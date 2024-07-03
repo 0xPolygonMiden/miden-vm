@@ -52,6 +52,7 @@ pub enum Error {
 /// An entry in the `strings` table of an encoded [`MastForest`].
 ///
 /// Strings are UTF8-encoded.
+#[derive(Debug)]
 pub struct StringRef {
     /// Offset into the `data` section.
     offset: DataOffset,
@@ -348,7 +349,7 @@ fn encode_decorator(decorator: &Decorator, data: &mut Vec<u8>, strings: &mut Vec
         },
         Decorator::AsmOp(assembly_op) => {
             data.push(assembly_op.num_cycles());
-            data.push(assembly_op.should_break() as u8);
+            data.write_bool(assembly_op.should_break());
 
             // TODOP: Make a StringTable type
 
