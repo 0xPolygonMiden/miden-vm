@@ -204,6 +204,7 @@ impl Deserializable for EncodedMastNodeType {
     }
 }
 
+// TODOP: Document (and rename `Encoded*`?)
 #[derive(Clone, Copy, Debug, FromPrimitive, ToPrimitive)]
 #[repr(u8)]
 pub enum MastNodeTypeVariant {
@@ -222,7 +223,6 @@ impl MastNodeTypeVariant {
         self.to_u8().expect("guaranteed to fit in a `u8` due to #[repr(u8)]")
     }
 
-    // TODOP: Just do `from_discriminant() -> Option<Self>`, and document what `None` means
     pub fn from_discriminant(discriminant: u8) -> Option<Self> {
         Self::from_u8(discriminant)
     }

@@ -71,7 +71,6 @@ impl Deserializable for StringRef {
 
 impl Serializable for MastForest {
     fn write_into<W: ByteWriter>(&self, target: &mut W) {
-        // TODOP: make sure padding is in accordance with Paul's docs
         let mut string_table_builder = StringTableBuilder::new();
         let mut data: Vec<u8> = Vec::new();
 
