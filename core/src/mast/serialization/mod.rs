@@ -23,6 +23,9 @@ use decorator::EncodedDecoratorVariant;
 mod info;
 use info::{EncodedMastNodeType, MastNodeInfo, MastNodeTypeVariant};
 
+mod string_table_builder;
+use string_table_builder::StringTableBuilder;
+
 #[cfg(test)]
 mod tests;
 
@@ -80,7 +83,7 @@ impl Deserializable for StringRef {
 impl Serializable for MastForest {
     fn write_into<W: ByteWriter>(&self, target: &mut W) {
         // TODOP: make sure padding is in accordance with Paul's docs
-        let mut strings: Vec<StringRef> = Vec::new();
+        let mut string_table_builder = StringTableBuilder::new();
         let mut data: Vec<u8> = Vec::new();
 
         // magic & version
@@ -95,12 +98,13 @@ impl Serializable for MastForest {
 
         // MAST node infos
         for mast_node in &self.nodes {
-            let mast_node_info = mast_node_to_info(mast_node, &mut data, &mut strings);
+            let mast_node_info = mast_node_to_info(mast_node, &mut data, &mut string_table_builder);
 
             mast_node_info.write_into(target);
         }
 
         // strings table
+        let strings = string_table_builder.into_table(&mut data);
         strings.write_into(target);
 
         // data blob
@@ -172,7 +176,7 @@ impl Deserializable for MastForest {
 fn mast_node_to_info(
     mast_node: &MastNode,
     data: &mut Vec<u8>,
-    strings: &mut Vec<StringRef>,
+    string_table_builder: &mut StringTableBuilder,
 ) -> MastNodeInfo {
     use MastNode::*;
 
@@ -190,7 +194,7 @@ fn mast_node_to_info(
                 match op_or_decorator {
                     OperationOrDecorator::Operation(operation) => encode_operation(operation, data),
                     OperationOrDecorator::Decorator(decorator) => {
-                        encode_decorator(decorator, data, strings)
+                        encode_decorator(decorator, data, string_table_builder)
                     }
                 }
             }
@@ -305,7 +309,11 @@ fn encode_operation(operation: &Operation, data: &mut Vec<u8>) {
     }
 }
 
-fn encode_decorator(decorator: &Decorator, data: &mut Vec<u8>, strings: &mut Vec<StringRef>) {
+fn encode_decorator(
+    decorator: &Decorator,
+    data: &mut Vec<u8>,
+    string_table_builder: &mut StringTableBuilder,
+) {
     // Set the first byte to the decorator discriminant.
     //
     // Note: the most significant bit is set to 1 (to differentiate decorators from operations).
@@ -351,19 +359,16 @@ fn encode_decorator(decorator: &Decorator, data: &mut Vec<u8>, strings: &mut Vec
             data.push(assembly_op.num_cycles());
             data.write_bool(assembly_op.should_break());
 
-            // TODOP: Make a StringTable type
-
             // context name
             {
-                let str_index_in_table = push_string(data, strings, assembly_op.context_name());
-
+                let str_index_in_table =
+                    string_table_builder.add_string(assembly_op.context_name());
                 data.write_usize(str_index_in_table);
             }
 
             // op
             {
-                let str_index_in_table = push_string(data, strings, assembly_op.op());
-
+                let str_index_in_table = string_table_builder.add_string(assembly_op.op());
                 data.write_usize(str_index_in_table);
             }
         }
@@ -382,24 +387,6 @@ fn encode_decorator(decorator: &Decorator, data: &mut Vec<u8>, strings: &mut Vec
         },
         Decorator::Event(value) | Decorator::Trace(value) => data.extend(value.to_le_bytes()),
     }
-}
-
-// TODOP: Make this a method of `StringTable` type
-fn push_string(data: &mut Vec<u8>, strings: &mut Vec<StringRef>, value: &str) -> StringIndex {
-    let offset = data.len();
-    data.extend(value.as_bytes());
-
-    let str_ref = StringRef {
-        offset: offset
-            .try_into()
-            .expect("MastForest serialization: data field larger than 2^32 bytes"),
-        len: value.len().try_into().expect("decorator string length exceeds 2^32 bytes"),
-    };
-
-    let str_index_in_table = strings.len();
-    strings.push(str_ref);
-
-    str_index_in_table
 }
 
 fn try_info_to_mast_node(
