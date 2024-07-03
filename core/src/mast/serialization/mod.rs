@@ -473,7 +473,7 @@ fn decode_operations_and_decorators(
     for _ in 0..num_to_decode {
         let first_byte = data_reader.read_u8()?;
 
-        if first_byte & 0b1000_0000 > 0 {
+        if first_byte & 0b1000_0000 == 0 {
             // operation.
             let op_code = first_byte;
 
