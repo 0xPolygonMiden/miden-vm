@@ -1355,6 +1355,31 @@ end";
 }
 
 #[test]
+fn program_with_proc_locals_fail() -> TestResult {
+    let mut context = TestContext::default();
+    let source = source_file!(
+        "\
+        proc.foo \
+            loc_store.0 \
+            add \
+            loc_load.0 \
+            mul \
+        end \
+        begin \
+            push.4 push.3 push.2 \
+            exec.foo \
+        end"
+    );
+    assert_assembler_diagnostic!(
+        context,
+        source,
+        "number of procedure locals was not set (or set to 0), but local values were used"
+    );
+
+    Ok(())
+}
+
+#[test]
 fn program_with_exported_procedure() -> TestResult {
     let mut context = TestContext::default();
     let source =
