@@ -1,5 +1,6 @@
 use alloc::string::ToString;
 use math::FieldElement;
+use miden_crypto::hash::rpo::RpoDigest;
 
 use super::*;
 use crate::operations::Operation;
@@ -297,8 +298,44 @@ fn serialize_deserialize_all_nodes() {
         mast_forest.add_node(basic_block_node)
     };
 
-    // TODOP: REMOVE
-    mast_forest.make_root(basic_block_id);
+    let call_node_id = {
+        let node = MastNode::new_call(basic_block_id, &mast_forest);
+        mast_forest.add_node(node)
+    };
+
+    let syscall_node_id = {
+        let node = MastNode::new_syscall(basic_block_id, &mast_forest);
+        mast_forest.add_node(node)
+    };
+
+    let loop_node_id = {
+        let node = MastNode::new_loop(basic_block_id, &mast_forest);
+        mast_forest.add_node(node)
+    };
+    let join_node_id = {
+        let node = MastNode::new_join(basic_block_id, call_node_id, &mast_forest);
+        mast_forest.add_node(node)
+    };
+    let split_node_id = {
+        let node = MastNode::new_split(basic_block_id, call_node_id, &mast_forest);
+        mast_forest.add_node(node)
+    };
+    let dyn_node_id = {
+        let node = MastNode::new_dynexec();
+        mast_forest.add_node(node)
+    };
+
+    let external_node_id = {
+        let node = MastNode::new_external(RpoDigest::default());
+        mast_forest.add_node(node)
+    };
+
+    mast_forest.make_root(join_node_id);
+    mast_forest.make_root(syscall_node_id);
+    mast_forest.make_root(loop_node_id);
+    mast_forest.make_root(split_node_id);
+    mast_forest.make_root(dyn_node_id);
+    mast_forest.make_root(external_node_id);
 
     let serialized_mast_forest = mast_forest.to_bytes();
     let deserialized_mast_forest = MastForest::read_from_bytes(&serialized_mast_forest).unwrap();
