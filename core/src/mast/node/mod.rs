@@ -88,11 +88,6 @@ impl MastNode {
         Self::Dyn
     }
 
-    // TODOP: removed, since unused?
-    pub fn new_dyncall(dyn_node_id: MastNodeId, mast_forest: &MastForest) -> Self {
-        Self::Call(CallNode::new(dyn_node_id, mast_forest))
-    }
-
     pub fn new_external(mast_root: RpoDigest) -> Self {
         Self::External(ExternalNode::new(mast_root))
     }
