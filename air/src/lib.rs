@@ -105,7 +105,8 @@ impl Air for ProcessorAir {
 
         // Define the number of boundary constraints for the main execution trace segment.
         // TODO: determine dynamically
-        let num_main_assertions = 2 + stack::NUM_ASSERTIONS + range::NUM_ASSERTIONS;
+        let num_main_assertions =
+            2 + stack::NUM_ASSERTIONS + range::NUM_ASSERTIONS + logup::NUM_ASSERTIONS;
 
         // Define the number of boundary constraints for the auxiliary execution trace segment.
         let num_aux_assertions = stack::NUM_AUX_ASSERTIONS + logup::NUM_AUX_ASSERTIONS;
@@ -127,7 +128,7 @@ impl Air for ProcessorAir {
             context,
             stack_inputs: pub_inputs.stack_inputs,
             stack_outputs: pub_inputs.stack_outputs,
-            main_trace_first_row:  pub_inputs.first_main_trace_row,
+            main_trace_first_row: pub_inputs.first_main_trace_row,
             constraint_ranges,
         }
     }
@@ -182,6 +183,13 @@ impl Air for ProcessorAir {
     ) -> Vec<Assertion<E>> {
         let mut result: Vec<Assertion<E>> = Vec::new();
 
+        let openings_combining_randomness = aux_rand_elements
+            .gkr_openings_combining_randomness()
+            .expect("GKR openings combining randomness not present in AuxRandElements");
+        let lagrange_kernel_rand_elements = aux_rand_elements
+            .lagrange()
+            .expect("GKR Lagrange kernel random elements not present in AuxRandElements");
+
         // --- set assertions for the first step --------------------------------------------------
 
         // add initial assertions for the stack's auxiliary columns.
@@ -191,7 +199,12 @@ impl Air for ProcessorAir {
             self.stack_inputs.values(),
         );
 
-        // TODOP: Add logup "s" column first step assertion
+        logup::get_aux_assertions_first_step(
+            &mut result,
+            lagrange_kernel_rand_elements,
+            &self.main_trace_first_row,
+            openings_combining_randomness,
+        );
 
         // --- set assertions for the last step ---------------------------------------------------
         let last_step = self.last_step();
@@ -206,9 +219,6 @@ impl Air for ProcessorAir {
 
         // Add LogUp's "s" column assertions for the last step.
         {
-            let openings_combining_randomness = aux_rand_elements
-                .gkr_openings_combining_randomness()
-                .expect("GKR openings combining randomness not present in AuxRandElements");
             let openings =
                 gkr_proof.expect("GKR proof not present").get_final_opening_claim().openings;
 
