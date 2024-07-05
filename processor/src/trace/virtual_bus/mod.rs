@@ -60,7 +60,7 @@ where
         rand_elements.gkr_openings_combining_randomness().expect(RAND_ELEMENTS_ERR),
     );
 
-    vec![lagrange_kernel_column, s_column]
+    vec![s_column, lagrange_kernel_column]
 }
 
 fn build_lagrange_kernel_column<E>(
