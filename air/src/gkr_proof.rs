@@ -295,7 +295,7 @@ impl<E: FieldElement> MultiLinearPoly<E> {
     /// evaluations times the Lagrange kernel.
     pub fn evaluate(&self, query: &[E]) -> E {
         let tensored_query = compute_lagrange_basis_evals_at(query);
-        inner_product(&self.evaluations, &tensored_query)
+        inner_product(self.evaluations.iter().copied(), tensored_query.iter().copied())
     }
 
     /// Similar to [`Self::evaluate`], except that the query was already turned into the Lagrange
@@ -305,7 +305,7 @@ impl<E: FieldElement> MultiLinearPoly<E> {
     /// This is more efficient than [`Self::evaluate`] when multiple different [`MultiLinearPoly`]
     /// need to be evaluated at the same query point.
     pub fn evaluate_with_lagrange_kernel(&self, lagrange_kernel: &[E]) -> E {
-        inner_product(&self.evaluations, lagrange_kernel)
+        inner_product(self.evaluations.iter().copied(), lagrange_kernel.iter().copied())
     }
 
     /// Computes f(r_0, y_1, ..., y_{ν - 1}) using the linear interpolation formula
@@ -640,16 +640,13 @@ pub struct SumCheckRoundClaim<E: FieldElement> {
 // HELPER
 // ================================================================================================
 
-// TODOP: Move and rename variables
-/// Computes the inner product of two vectors of the same length.
-///
-/// Panics if the vectors have different lengths.
-pub fn inner_product<E: FieldElement>(evaluations: &[E], tensored_query: &[E]) -> E {
-    assert_eq!(evaluations.len(), tensored_query.len());
-    evaluations
-        .iter()
-        .zip(tensored_query.iter())
-        .fold(E::ZERO, |acc, (x_i, y_i)| acc + *x_i * *y_i)
+/// Computes the inner product in the extension field of two iterators that must yield the same
+/// number of items.
+pub fn inner_product<E: FieldElement>(
+    x: impl Iterator<Item = impl Into<E>>,
+    y: impl Iterator<Item = impl Into<E>>,
+) -> E {
+    x.zip(y).fold(E::ZERO, |acc, (x_i, y_i)| acc + x_i.into() * y_i.into())
 }
 
 /// Computes the evaluations of the Lagrange basis polynomials over the interpolating

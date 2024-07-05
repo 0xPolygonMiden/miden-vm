@@ -37,10 +37,9 @@ pub fn get_aux_assertions_first_step<E>(
         .map(|r| E::ONE - *r)
         .fold(E::ONE, |acc, ele| acc * ele);
 
-    let main_trace_first_row: Vec<E> =
-        main_trace_first_row.iter().map(|&ele| E::from(ele)).collect();
-    let assertion_value =
-        eq_fn_at_0 * inner_product(&main_trace_first_row, openings_combining_randomness);
+    let main_trace_first_row = main_trace_first_row.iter().copied();
+    let assertion_value = eq_fn_at_0
+        * inner_product(main_trace_first_row, openings_combining_randomness.iter().copied());
 
     result.push(Assertion::single(S_COL_IDX, 0, assertion_value));
 }
@@ -53,7 +52,8 @@ pub fn get_aux_assertions_last_step<E>(
 ) where
     E: FieldElement<BaseField = Felt>,
 {
-    let value = inner_product(openings_combining_randomness, openings);
+    let value =
+        inner_product(openings_combining_randomness.iter().copied(), openings.iter().copied());
 
     result.push(Assertion::single(S_COL_IDX, step, value));
 }
@@ -76,10 +76,11 @@ pub fn enforce_aux_constraints<F, E>(
     let rhs = {
         let lagrange_kernel_next = aux_frame.next()[LAGRANGE_KERNEL_COL_IDX];
         let s_cur = aux_frame.current()[S_COL_IDX];
-        let main_trace_next_row: Vec<E> =
-            main_frame.next().iter().map(|&ele| E::from(ele)).collect();
+        let main_trace_next_row = main_frame.next().iter().copied();
 
-        s_cur + lagrange_kernel_next * inner_product(gkr_openings_randomness, &main_trace_next_row)
+        s_cur
+            + lagrange_kernel_next
+                * inner_product(gkr_openings_randomness.iter().copied(), main_trace_next_row)
     };
 
     result[0] = are_equal(s_next, rhs)
