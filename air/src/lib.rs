@@ -162,7 +162,7 @@ impl Air for ProcessorAir {
         // add initial assertions for the range checker.
         range::get_assertions_first_step(&mut result);
 
-        // add initial  assertions for logup
+        // add initial assertions for logup
         logup::get_assertions_first_step(&mut result, &self.main_trace_first_row);
 
         // --- set assertions for the last step ---------------------------------------------------

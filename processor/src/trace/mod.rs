@@ -8,6 +8,7 @@ use alloc::vec::Vec;
 use miden_air::{
     trace::{
         decoder::{NUM_USER_OP_HELPERS, USER_OP_HELPERS_OFFSET},
+        logup::{LAGRANGE_KERNEL_COL_IDX, S_COL_IDX},
         main_trace::MainTrace,
         AUX_TRACE_RAND_ELEMENTS, AUX_TRACE_WIDTH, DECODER_TRACE_OFFSET, MIN_TRACE_LEN,
         STACK_TRACE_OFFSET, TRACE_WIDTH,
@@ -230,11 +231,13 @@ impl ExecutionTrace {
             .chain(logup_gkr)
             .collect::<Vec<_>>();
 
-        // inject random values into the last rows of the trace
+        // inject random values into the last rows of the trace, except for the GKR columns
         let mut rng = RpoRandomCoin::new(self.program_hash().into());
-        for i in self.length() - NUM_RAND_ROWS..self.length() {
-            for column in aux_columns.iter_mut() {
-                column[i] = rng.draw().expect("failed to draw a random value");
+        for row_idx in self.length() - NUM_RAND_ROWS..self.length() {
+            for (col_idx, column) in aux_columns.iter_mut().enumerate() {
+                if col_idx != LAGRANGE_KERNEL_COL_IDX && col_idx != S_COL_IDX {
+                    column[row_idx] = rng.draw().expect("failed to draw a random value");
+                }
             }
         }
 
