@@ -18,8 +18,8 @@ pub const NUM_ASSERTIONS: usize = TRACE_WIDTH;
 pub const NUM_AUX_ASSERTIONS: usize = 2;
 
 pub fn get_assertions_first_step(result: &mut Vec<Assertion<Felt>>, main_trace_first_row: &[Felt]) {
-    for col_idx in 0..TRACE_WIDTH {
-        result.push(Assertion::single(col_idx, 0, main_trace_first_row[col_idx]))
+    for (col_idx, col) in main_trace_first_row.iter().enumerate().take(TRACE_WIDTH) {
+        result.push(Assertion::single(col_idx, 0, *col))
     }
 }
 
