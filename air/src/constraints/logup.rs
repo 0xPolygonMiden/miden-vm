@@ -1,8 +1,15 @@
 use alloc::vec::Vec;
-use vm_core::{Felt, FieldElement};
-use winter_air::{Assertion, LagrangeKernelRandElements, TransitionConstraintDegree};
+use vm_core::{ExtensionOf, Felt, FieldElement};
+use winter_air::{
+    Assertion, EvaluationFrame, LagrangeKernelRandElements, TransitionConstraintDegree,
+};
 
-use crate::{gkr_proof::inner_product, trace::logup::S_COL_IDX, TRACE_WIDTH};
+use crate::{
+    gkr_proof::inner_product,
+    trace::logup::{LAGRANGE_KERNEL_COL_IDX, S_COL_IDX},
+    utils::are_equal,
+    TRACE_WIDTH,
+};
 
 /// The number of auxiliary assertions.
 pub const NUM_ASSERTIONS: usize = TRACE_WIDTH;
@@ -14,10 +21,6 @@ pub fn get_assertions_first_step(result: &mut Vec<Assertion<Felt>>, main_trace_f
     for col_idx in 0..TRACE_WIDTH {
         result.push(Assertion::single(col_idx, 0, main_trace_first_row[col_idx]))
     }
-}
-
-pub fn get_aux_transition_constraint_degrees() -> Vec<TransitionConstraintDegree> {
-    todo!()
 }
 
 pub fn get_aux_assertions_first_step<E>(
@@ -53,4 +56,31 @@ pub fn get_aux_assertions_last_step<E>(
     let value = inner_product(openings_combining_randomness, openings);
 
     result.push(Assertion::single(S_COL_IDX, step, value));
+}
+
+pub fn get_aux_transition_constraint_degrees() -> Vec<TransitionConstraintDegree> {
+    vec![TransitionConstraintDegree::new(2)]
+}
+
+pub fn enforce_aux_constraints<F, E>(
+    main_frame: &EvaluationFrame<F>,
+    aux_frame: &EvaluationFrame<E>,
+    gkr_openings_randomness: &[E],
+    result: &mut [E],
+) where
+    F: FieldElement<BaseField = Felt>,
+    E: FieldElement<BaseField = Felt> + ExtensionOf<F>,
+{
+    let s_next = aux_frame.next()[S_COL_IDX];
+
+    let rhs = {
+        let lagrange_kernel_next = aux_frame.next()[LAGRANGE_KERNEL_COL_IDX];
+        let s_cur = aux_frame.current()[S_COL_IDX];
+        let main_trace_next_row: Vec<E> =
+            main_frame.next().iter().map(|&ele| E::from(ele)).collect();
+
+        s_cur + lagrange_kernel_next * inner_product(gkr_openings_randomness, &main_trace_next_row)
+    };
+
+    result[0] = are_equal(s_next, rhs)
 }

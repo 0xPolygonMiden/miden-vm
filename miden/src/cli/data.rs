@@ -355,7 +355,11 @@ impl OutputFile {
 
     /// Write the output file
     #[instrument(name = "write_data_to_output_file", fields(path = %path.display()), skip_all)]
-    pub fn write(stack_outputs: &StackOutputs, main_trace_first_row: Vec<Felt>, path: &PathBuf) -> Result<(), String> {
+    pub fn write(
+        stack_outputs: &StackOutputs,
+        main_trace_first_row: Vec<Felt>,
+        path: &PathBuf,
+    ) -> Result<(), String> {
         // if path provided, create output file
         let file = fs::File::create(path).map_err(|err| {
             format!("Failed to create output file `{}` - {}", path.display(), err)

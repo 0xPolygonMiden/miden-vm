@@ -271,15 +271,20 @@ impl Air for ProcessorAir {
 
     fn evaluate_aux_transition<F, E>(
         &self,
-        _main_frame: &EvaluationFrame<F>,
-        _aux_frame: &EvaluationFrame<E>,
+        main_frame: &EvaluationFrame<F>,
+        aux_frame: &EvaluationFrame<E>,
         _periodic_values: &[F],
-        _aux_rand_elements: &AuxRandElements<E>,
-        _result: &mut [E],
+        aux_rand_elements: &AuxRandElements<E>,
+        result: &mut [E],
     ) where
         F: FieldElement<BaseField = Felt>,
         E: FieldElement<BaseField = Felt> + ExtensionOf<F>,
     {
+        let gkr_openings_randomness = aux_rand_elements
+            .gkr_openings_combining_randomness()
+            .expect("GKR openings randomness expected to be present");
+
+        logup::enforce_aux_constraints(main_frame, aux_frame, gkr_openings_randomness, result)
     }
 
     fn context(&self) -> &AirContext<Felt> {

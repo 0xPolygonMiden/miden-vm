@@ -67,7 +67,8 @@ pub fn verify(
     let security_level = proof.security_level();
 
     // build public inputs and try to verify the proof
-    let pub_inputs = PublicInputs::new(program_info, stack_inputs, stack_outputs, first_trace_main_row);
+    let pub_inputs =
+        PublicInputs::new(program_info, stack_inputs, stack_outputs, first_trace_main_row);
     let (hash_fn, proof) = proof.into_parts();
     match hash_fn {
         HashFunction::Blake3_192 => {

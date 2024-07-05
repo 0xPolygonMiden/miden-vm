@@ -640,6 +640,7 @@ pub struct SumCheckRoundClaim<E: FieldElement> {
 // HELPER
 // ================================================================================================
 
+// TODOP: Move and rename variables
 /// Computes the inner product of two vectors of the same length.
 ///
 /// Panics if the vectors have different lengths.
