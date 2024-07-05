@@ -24,7 +24,7 @@ pub use constraints::stack;
 use constraints::{chiplets, logup, range};
 
 pub mod trace;
-use trace::*;
+use trace::{logup::LAGRANGE_KERNEL_COL_IDX, *};
 
 mod errors;
 pub mod gkr_proof;
@@ -119,7 +119,7 @@ impl Air for ProcessorAir {
             aux_degrees,
             num_main_assertions,
             num_aux_assertions,
-            None,
+            Some(LAGRANGE_KERNEL_COL_IDX),
             options,
         )
         .set_num_transition_exemptions(2);
