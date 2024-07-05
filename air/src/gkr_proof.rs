@@ -7,7 +7,7 @@ use vm_core::{polynom, FieldElement};
 use winter_air::{GkrRandElements, GkrVerifier, LagrangeKernelRandElements};
 use winter_prover::{
     crypto::{ElementHasher, RandomCoin},
-    Deserializable, Serializable,
+    ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable,
 };
 
 use crate::{
@@ -77,8 +77,10 @@ impl<E> Serializable for GkrCircuitProof<E>
 where
     E: FieldElement,
 {
-    fn write_into<W: winter_prover::ByteWriter>(&self, _target: &mut W) {
-        todo!()
+    fn write_into<W: ByteWriter>(&self, target: &mut W) {
+        self.circuit_outputs.write_into(target);
+        self.before_final_layer_proofs.write_into(target);
+        self.final_layer_proof.write_into(target);
     }
 }
 
@@ -86,10 +88,12 @@ impl<E> Deserializable for GkrCircuitProof<E>
 where
     E: FieldElement,
 {
-    fn read_from<R: winter_prover::ByteReader>(
-        _source: &mut R,
-    ) -> Result<Self, winter_prover::DeserializationError> {
-        todo!()
+    fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
+        Ok(Self {
+            circuit_outputs: CircuitLayerPolys::read_from(source)?,
+            before_final_layer_proofs: BeforeFinalLayerProof::read_from(source)?,
+            final_layer_proof: FinalLayerProof::read_from(source)?,
+        })
     }
 }
 
@@ -99,11 +103,58 @@ pub struct BeforeFinalLayerProof<E: FieldElement> {
     pub proof: Vec<SumCheckProof<E>>,
 }
 
+impl<E> Serializable for BeforeFinalLayerProof<E>
+where
+    E: FieldElement,
+{
+    fn write_into<W: ByteWriter>(&self, target: &mut W) {
+        let Self { proof } = self;
+        proof.write_into(target);
+    }
+}
+
+impl<E> Deserializable for BeforeFinalLayerProof<E>
+where
+    E: FieldElement,
+{
+    fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
+        Ok(Self {
+            proof: Deserializable::read_from(source)?,
+        })
+    }
+}
+
 /// A proof for the input circuit layer i.e., the final layer in the GKR protocol.
 #[derive(Debug)]
 pub struct FinalLayerProof<E: FieldElement> {
     pub before_merge_proof: Vec<RoundProof<E>>,
     pub after_merge_proof: SumCheckProof<E>,
+}
+
+impl<E> Serializable for FinalLayerProof<E>
+where
+    E: FieldElement,
+{
+    fn write_into<W: ByteWriter>(&self, target: &mut W) {
+        let Self {
+            before_merge_proof,
+            after_merge_proof,
+        } = self;
+        before_merge_proof.write_into(target);
+        after_merge_proof.write_into(target);
+    }
+}
+
+impl<E> Deserializable for FinalLayerProof<E>
+where
+    E: FieldElement,
+{
+    fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
+        Ok(Self {
+            before_merge_proof: Deserializable::read_from(source)?,
+            after_merge_proof: Deserializable::read_from(source)?,
+        })
+    }
 }
 
 /// Holds a layer of an [`EvaluatedCircuit`] in a representation amenable to proving circuit
@@ -137,6 +188,32 @@ where
             denominators: MultiLinearPoly::from_evaluations(denominators)
                 .expect("evaluations guaranteed to be a power of two"),
         }
+    }
+}
+
+impl<E> Serializable for CircuitLayerPolys<E>
+where
+    E: FieldElement,
+{
+    fn write_into<W: ByteWriter>(&self, target: &mut W) {
+        let Self {
+            numerators,
+            denominators,
+        } = self;
+        numerators.write_into(target);
+        denominators.write_into(target);
+    }
+}
+
+impl<E> Deserializable for CircuitLayerPolys<E>
+where
+    E: FieldElement,
+{
+    fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
+        Ok(Self {
+            numerators: MultiLinearPoly::read_from(source)?,
+            denominators: MultiLinearPoly::read_from(source)?,
+        })
     }
 }
 
@@ -225,6 +302,29 @@ pub struct FinalOpeningClaim<E> {
     pub openings: Vec<E>,
 }
 
+impl<E: FieldElement> Serializable for FinalOpeningClaim<E> {
+    fn write_into<W: ByteWriter>(&self, target: &mut W) {
+        let Self {
+            eval_point,
+            openings,
+        } = self;
+        eval_point.write_into(target);
+        openings.write_into(target);
+    }
+}
+
+impl<E> Deserializable for FinalOpeningClaim<E>
+where
+    E: FieldElement,
+{
+    fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
+        Ok(Self {
+            eval_point: Deserializable::read_from(source)?,
+            openings: Deserializable::read_from(source)?,
+        })
+    }
+}
+
 /// A sum-check round proof.
 ///
 /// This represents the partial polynomial sent by the Prover during one of the rounds of the
@@ -236,6 +336,24 @@ pub struct RoundProof<E: FieldElement> {
     pub round_poly_coefs: UnivariatePolyCoef<E>,
 }
 
+impl<E: FieldElement> Serializable for RoundProof<E> {
+    fn write_into<W: ByteWriter>(&self, target: &mut W) {
+        let Self { round_poly_coefs } = self;
+        round_poly_coefs.write_into(target);
+    }
+}
+
+impl<E> Deserializable for RoundProof<E>
+where
+    E: FieldElement,
+{
+    fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
+        Ok(Self {
+            round_poly_coefs: Deserializable::read_from(source)?,
+        })
+    }
+}
+
 /// A sum-check proof.
 ///
 /// Composed of the round proofs i.e., the polynomials sent by the Prover at each round as well as
@@ -245,6 +363,28 @@ pub struct RoundProof<E: FieldElement> {
 pub struct SumCheckProof<E: FieldElement> {
     pub openings_claim: FinalOpeningClaim<E>,
     pub round_proofs: Vec<RoundProof<E>>,
+}
+
+impl<E> Serializable for SumCheckProof<E>
+where
+    E: FieldElement,
+{
+    fn write_into<W: ByteWriter>(&self, target: &mut W) {
+        self.openings_claim.write_into(target);
+        self.round_proofs.write_into(target);
+    }
+}
+
+impl<E> Deserializable for SumCheckProof<E>
+where
+    E: FieldElement,
+{
+    fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
+        Ok(Self {
+            openings_claim: Deserializable::read_from(source)?,
+            round_proofs: Deserializable::read_from(source)?,
+        })
+    }
 }
 
 // MULTI-LINEAR POLYNOMIAL
@@ -338,18 +478,44 @@ impl<E: FieldElement> MultiLinearPoly<E> {
     }
 }
 
-#[derive(Debug, thiserror::Error)]
-pub enum MultiLinearPolyError {
-    #[error("A multi-linear polynomial should have a power of 2 number of evaluations over the Boolean hyper-cube")]
-    EvaluationsNotPowerOfTwo,
-}
-
 impl<E: FieldElement> Index<usize> for MultiLinearPoly<E> {
     type Output = E;
 
     fn index(&self, index: usize) -> &E {
         &(self.evaluations[index])
     }
+}
+
+impl<E> Serializable for MultiLinearPoly<E>
+where
+    E: FieldElement,
+{
+    fn write_into<W: ByteWriter>(&self, target: &mut W) {
+        let Self {
+            num_variables,
+            evaluations,
+        } = self;
+        num_variables.write_into(target);
+        evaluations.write_into(target);
+    }
+}
+
+impl<E> Deserializable for MultiLinearPoly<E>
+where
+    E: FieldElement,
+{
+    fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
+        Ok(Self {
+            num_variables: Deserializable::read_from(source)?,
+            evaluations: Deserializable::read_from(source)?,
+        })
+    }
+}
+
+#[derive(Debug, thiserror::Error)]
+pub enum MultiLinearPolyError {
+    #[error("A multi-linear polynomial should have a power of 2 number of evaluations over the Boolean hyper-cube")]
+    EvaluationsNotPowerOfTwo,
 }
 
 /// The EQ (equality) function is the binary function defined by
@@ -448,6 +614,23 @@ impl<E: FieldElement> UnivariatePolyCoef<E> {
     }
 }
 
+impl<E: FieldElement> Serializable for UnivariatePolyCoef<E> {
+    fn write_into<W: ByteWriter>(&self, target: &mut W) {
+        let Self { coefficients } = self;
+        coefficients.write_into(target);
+    }
+}
+
+impl<E> Deserializable for UnivariatePolyCoef<E>
+where
+    E: FieldElement,
+{
+    fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
+        Ok(Self {
+            coefficients: Deserializable::read_from(source)?,
+        })
+    }
+}
 /// A multi-variate polynomial for composing individual multi-linear polynomials.
 pub trait CompositionPolynomial<E: FieldElement> {
     /// Maximum degree in all variables.
