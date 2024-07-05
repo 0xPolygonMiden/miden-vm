@@ -56,6 +56,7 @@ metal = ["prover/metal", "std"]
 std = ["assembly/std", "processor/std", "prover/std", "verifier/std"]
 
 [dependencies]
+air = { package = "miden-air", path = "../air", version = "0.9", default-features = false }
 assembly = { package = "miden-assembly", path = "../assembly", version = "0.9", default-features = false }
 blake3 = "1.5"
 clap = { version = "4.4", features = ["derive"], optional = true }

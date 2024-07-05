@@ -5,8 +5,9 @@ extern crate alloc;
 #[cfg(feature = "std")]
 extern crate std;
 
-use air::{HashFunction, ProcessorAir, ProvingOptions, PublicInputs};
+use air::{Felt, HashFunction, ProcessorAir, ProvingOptions, PublicInputs};
 use alloc::vec;
+use alloc::vec::Vec;
 use core::fmt;
 use vm_core::crypto::{
     hash::{Blake3_192, Blake3_256, Rpo256, Rpx256},
@@ -59,13 +60,14 @@ pub fn verify(
     program_info: ProgramInfo,
     stack_inputs: StackInputs,
     stack_outputs: StackOutputs,
+    first_trace_main_row: Vec<Felt>,
     proof: ExecutionProof,
 ) -> Result<u32, VerificationError> {
     // get security level of the proof
     let security_level = proof.security_level();
 
     // build public inputs and try to verify the proof
-    let pub_inputs = PublicInputs::new(program_info, stack_inputs, stack_outputs);
+    let pub_inputs = PublicInputs::new(program_info, stack_inputs, stack_outputs, first_trace_main_row);
     let (hash_fn, proof) = proof.into_parts();
     match hash_fn {
         HashFunction::Blake3_192 => {

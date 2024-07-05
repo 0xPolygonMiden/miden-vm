@@ -333,15 +333,15 @@ impl Test {
         let stack_inputs = StackInputs::try_from_ints(pub_inputs).unwrap();
         let program: Program = self.compile().expect("Failed to compile test source.");
         let host = DefaultHost::new(MemAdviceProvider::from(self.advice_inputs.clone()));
-        let (mut stack_outputs, proof) =
+        let (mut stack_outputs, first_main_trace_row, proof) =
             prover::prove(&program, stack_inputs.clone(), host, ProvingOptions::default()).unwrap();
 
         let program_info = ProgramInfo::from(program);
         if test_fail {
             stack_outputs.stack_mut()[0] += ONE;
-            assert!(verifier::verify(program_info, stack_inputs, stack_outputs, proof).is_err());
+            assert!(verifier::verify(program_info, stack_inputs, stack_outputs, first_main_trace_row, proof).is_err());
         } else {
-            let result = verifier::verify(program_info, stack_inputs, stack_outputs, proof);
+            let result = verifier::verify(program_info, stack_inputs, stack_outputs, first_main_trace_row ,proof);
             assert!(result.is_ok(), "error: {result:?}");
         }
     }

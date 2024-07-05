@@ -313,12 +313,13 @@ impl InputFile {
 pub struct OutputFile {
     pub stack: Vec<String>,
     pub overflow_addrs: Vec<String>,
+    pub first_main_trace_row: Vec<Felt>,
 }
 
 /// Helper methods to interact with the output file
 impl OutputFile {
     /// Returns a new [OutputFile] from the specified outputs vectors
-    pub fn new(stack_outputs: &StackOutputs) -> Self {
+    pub fn new(stack_outputs: &StackOutputs, first_main_trace_row: Vec<Felt>) -> Self {
         Self {
             stack: stack_outputs.stack().iter().map(|&v| v.to_string()).collect::<Vec<String>>(),
             overflow_addrs: stack_outputs
@@ -326,6 +327,7 @@ impl OutputFile {
                 .iter()
                 .map(|&v| v.to_string())
                 .collect::<Vec<String>>(),
+            first_main_trace_row,
         }
     }
 
@@ -353,14 +355,14 @@ impl OutputFile {
 
     /// Write the output file
     #[instrument(name = "write_data_to_output_file", fields(path = %path.display()), skip_all)]
-    pub fn write(stack_outputs: &StackOutputs, path: &PathBuf) -> Result<(), String> {
+    pub fn write(stack_outputs: &StackOutputs, main_trace_first_row: Vec<Felt>, path: &PathBuf) -> Result<(), String> {
         // if path provided, create output file
         let file = fs::File::create(path).map_err(|err| {
             format!("Failed to create output file `{}` - {}", path.display(), err)
         })?;
 
         // write outputs to output file
-        serde_json::to_writer_pretty(file, &Self::new(stack_outputs))
+        serde_json::to_writer_pretty(file, &Self::new(stack_outputs, main_trace_first_row))
             .map_err(|err| format!("Failed to write output data - {}", err))
     }
 

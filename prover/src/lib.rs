@@ -7,7 +7,8 @@ extern crate alloc;
 extern crate std;
 
 use air::{
-    gkr_proof::GkrCircuitProof, AuxRandElements, GkrRandElements, ProcessorAir, PublicInputs,
+    gkr_proof::GkrCircuitProof, trace::TRACE_WIDTH, AuxRandElements, GkrRandElements, ProcessorAir,
+    PublicInputs,
 };
 use alloc::vec;
 use alloc::vec::Vec;
@@ -20,7 +21,7 @@ use processor::{
         RpxRandomCoin, WinterRandomCoin,
     },
     math::{Felt, FieldElement},
-    prove_virtual_bus, ExecutionTrace, Program,
+    prove_virtual_bus, ExecutionTrace, Program, ZERO,
 };
 use tracing::instrument;
 use winter_prover::{
@@ -30,7 +31,7 @@ use winter_prover::{
 };
 
 #[cfg(feature = "std")]
-use {std::time::Instant, winter_prover::Trace};
+use std::time::Instant;
 mod gpu;
 
 // EXPORTS
@@ -41,7 +42,7 @@ pub use processor::{
     crypto, math, utils, AdviceInputs, Digest, ExecutionError, Host, InputError, MemAdviceProvider,
     StackInputs, StackOutputs, Word,
 };
-pub use winter_prover::Proof;
+pub use winter_prover::{Proof, Trace};
 
 // PROVER
 // ================================================================================================
@@ -61,7 +62,7 @@ pub fn prove<H>(
     stack_inputs: StackInputs,
     host: H,
     options: ProvingOptions,
-) -> Result<(StackOutputs, ExecutionProof), ExecutionError>
+) -> Result<(StackOutputs, Vec<Felt>, ExecutionProof), ExecutionError>
 where
     H: Host,
 {
@@ -81,6 +82,12 @@ where
     );
 
     let stack_outputs = trace.stack_outputs().clone();
+    let main_trace_first_row = {
+        let mut first_row = vec![ZERO; TRACE_WIDTH];
+        trace.main_segment().read_row_into(0, &mut first_row);
+
+        first_row
+    };
     let hash_fn = options.hash_fn();
 
     // generate STARK proof
@@ -121,7 +128,7 @@ where
     .map_err(ExecutionError::ProverError)?;
     let proof = ExecutionProof::new(proof, hash_fn);
 
-    Ok((stack_outputs, proof))
+    Ok((stack_outputs, main_trace_first_row, proof))
 }
 
 // PROVER
@@ -208,7 +215,20 @@ where
         );
 
         let program_info = trace.program_info().clone();
-        PublicInputs::new(program_info, self.stack_inputs.clone(), self.stack_outputs.clone())
+
+        let main_trace_first_row = {
+            let mut first_row = vec![ZERO; TRACE_WIDTH];
+            trace.main_segment().read_row_into(0, &mut first_row);
+
+            first_row
+        };
+
+        PublicInputs::new(
+            program_info,
+            self.stack_inputs.clone(),
+            self.stack_outputs.clone(),
+            main_trace_first_row,
+        )
     }
 
     fn new_trace_lde<E: FieldElement<BaseField = Felt>>(

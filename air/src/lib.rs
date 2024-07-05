@@ -58,6 +58,7 @@ pub struct ProcessorAir {
     context: AirContext<Felt>,
     stack_inputs: StackInputs,
     stack_outputs: StackOutputs,
+    main_trace_first_row: Vec<Felt>,
     constraint_ranges: TransitionConstraintRange,
 }
 
@@ -126,6 +127,7 @@ impl Air for ProcessorAir {
             context,
             stack_inputs: pub_inputs.stack_inputs,
             stack_outputs: pub_inputs.stack_outputs,
+            main_trace_first_row:  pub_inputs.first_main_trace_row,
             constraint_ranges,
         }
     }
@@ -155,8 +157,11 @@ impl Air for ProcessorAir {
         // add initial assertions for the stack.
         stack::get_assertions_first_step(&mut result, self.stack_inputs.values());
 
-        // Add initial assertions for the range checker.
+        // add initial assertions for the range checker.
         range::get_assertions_first_step(&mut result);
+
+        // add initial  assertions for logup
+        logup::get_assertions_first_step(&mut result, &self.main_trace_first_row);
 
         // --- set assertions for the last step ---------------------------------------------------
         let last_step = self.last_step();
@@ -280,6 +285,7 @@ pub struct PublicInputs {
     program_info: ProgramInfo,
     stack_inputs: StackInputs,
     stack_outputs: StackOutputs,
+    first_main_trace_row: Vec<Felt>,
 }
 
 impl PublicInputs {
@@ -287,11 +293,13 @@ impl PublicInputs {
         program_info: ProgramInfo,
         stack_inputs: StackInputs,
         stack_outputs: StackOutputs,
+        first_main_trace_row: Vec<Felt>,
     ) -> Self {
         Self {
             program_info,
             stack_inputs,
             stack_outputs,
+            first_main_trace_row,
         }
     }
 }
@@ -313,6 +321,7 @@ impl Serializable for PublicInputs {
         self.program_info.write_into(target);
         self.stack_inputs.write_into(target);
         self.stack_outputs.write_into(target);
+        self.first_main_trace_row.write_into(target);
     }
 }
 
@@ -321,11 +330,13 @@ impl Deserializable for PublicInputs {
         let program_info = ProgramInfo::read_from(source)?;
         let stack_inputs = StackInputs::read_from(source)?;
         let stack_outputs = StackOutputs::read_from(source)?;
+        let first_main_trace_row = Deserializable::read_from(source)?;
 
         Ok(PublicInputs {
             program_info,
             stack_inputs,
             stack_outputs,
+            first_main_trace_row,
         })
     }
 }
