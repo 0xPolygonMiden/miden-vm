@@ -26,10 +26,18 @@ overflow-checks = true
 [patch.crates-io]
 thiserror = { git = "https://github.com/bitwalker/thiserror", branch = "no-std" }
 miette = { git = "https://github.com/bitwalker/miette", branch = "no-std" }
-winter-verifier = {git = "https://github.com/plafer/winterfell", branch = "plafer-final-logup-gkr-fixes"}
-winter-prover = {git = "https://github.com/plafer/winterfell", branch = "plafer-final-logup-gkr-fixes"}
-winter-air = {git = "https://github.com/plafer/winterfell", branch = "plafer-final-logup-gkr-fixes"}
-winter-math = {git = "https://github.com/plafer/winterfell", branch = "plafer-final-logup-gkr-fixes"}
-winter-crypto = {git = "https://github.com/plafer/winterfell", branch = "plafer-final-logup-gkr-fixes"}
-winter-fri = {git = "https://github.com/plafer/winterfell", branch = "plafer-final-logup-gkr-fixes"}
-winter-utils = {git = "https://github.com/plafer/winterfell", branch = "plafer-final-logup-gkr-fixes"}
+# winter-verifier = {git = "https://github.com/plafer/winterfell", branch = "plafer-final-logup-gkr-fixes"}
+# winter-prover = {git = "https://github.com/plafer/winterfell", branch = "plafer-final-logup-gkr-fixes"}
+# winter-air = {git = "https://github.com/plafer/winterfell", branch = "plafer-final-logup-gkr-fixes"}
+# winter-math = {git = "https://github.com/plafer/winterfell", branch = "plafer-final-logup-gkr-fixes"}
+# winter-crypto = {git = "https://github.com/plafer/winterfell", branch = "plafer-final-logup-gkr-fixes"}
+# winter-fri = {git = "https://github.com/plafer/winterfell", branch = "plafer-final-logup-gkr-fixes"}
+# winter-utils = {git = "https://github.com/plafer/winterfell", branch = "plafer-final-logup-gkr-fixes"}
+
+winter-verifier = { path = "/Users/plaferriere/code/winterfell/verifier" }
+winter-prover = { path = "/Users/plaferriere/code/winterfell/prover" }
+winter-air = { path = "/Users/plaferriere/code/winterfell/air" }
+winter-math = { path = "/Users/plaferriere/code/winterfell/math" }
+winter-crypto = { path = "/Users/plaferriere/code/winterfell/crypto" }
+winter-fri = { path = "/Users/plaferriere/code/winterfell/fri" }
+winter-utils = { path = "/Users/plaferriere/code/winterfell/utils/core" }
