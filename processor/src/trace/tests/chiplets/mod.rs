@@ -4,9 +4,7 @@ use super::{
     init_state_from_words, AdviceInputs, ExecutionTrace, Felt, FieldElement, Operation, Word, ONE,
     ZERO,
 };
-use miden_air::trace::{
-    chiplets::hasher::HASH_CYCLE_LEN, AUX_TRACE_RAND_ELEMENTS, CHIPLETS_AUX_TRACE_OFFSET,
-};
+use miden_air::trace::{chiplets::hasher::HASH_CYCLE_LEN, CHIPLETS_AUX_TRACE_OFFSET};
 use test_utils::rand::rand_value;
 
 mod bitwise;

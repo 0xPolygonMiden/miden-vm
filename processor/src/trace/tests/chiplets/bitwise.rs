@@ -1,6 +1,6 @@
 use super::{
     build_trace_from_ops, rand_value, ExecutionTrace, Felt, FieldElement, Operation, Trace,
-    AUX_TRACE_RAND_ELEMENTS, CHIPLETS_AUX_TRACE_OFFSET, HASH_CYCLE_LEN, NUM_RAND_ROWS, ONE,
+    CHIPLETS_AUX_TRACE_OFFSET, HASH_CYCLE_LEN, NUM_RAND_ROWS, ONE,
 };
 use miden_air::{
     trace::chiplets::{
@@ -9,7 +9,7 @@ use miden_air::{
     },
     AuxRandElements,
 };
-use test_utils::rand::rand_vector;
+use test_utils::rand::aux_rand_elements_for_trace;
 
 /// Tests the generation of the `b_chip` bus column when only bitwise lookups are included. It
 /// ensures that trace generation is correct when all of the following are true.
@@ -52,7 +52,8 @@ fn b_chip_trace_bitwise() {
     ];
     let trace = build_trace_from_ops(operations, &stack);
 
-    let aux_rand_elements = AuxRandElements::new(rand_vector(AUX_TRACE_RAND_ELEMENTS));
+    let aux_rand_elements: AuxRandElements<Felt> =
+        aux_rand_elements_for_trace(trace.get_trace_len());
     let aux_columns = trace.build_aux_trace(&aux_rand_elements).unwrap();
     let b_chip = aux_columns.get_column(CHIPLETS_AUX_TRACE_OFFSET);
 
