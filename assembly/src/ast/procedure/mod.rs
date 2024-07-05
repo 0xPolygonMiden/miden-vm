@@ -5,7 +5,7 @@ mod name;
 mod procedure;
 mod resolver;
 
-pub use self::alias::ProcedureAlias;
+pub use self::alias::{AliasTarget, ProcedureAlias};
 pub use self::id::ProcedureIndex;
 pub use self::name::{FullyQualifiedProcedureName, ProcedureName};
 pub use self::procedure::{Procedure, Visibility};

@@ -53,7 +53,7 @@ pub use host::{
         AdviceExtractor, AdviceInputs, AdviceMap, AdviceProvider, AdviceSource, MemAdviceProvider,
         RecAdviceProvider,
     },
-    DefaultHost, Host, HostResponse,
+    DefaultHost, Host, HostResponse, MastForestStore, MemMastForestStore,
 };
 
 mod chiplets;
@@ -232,7 +232,7 @@ where
             return Err(ExecutionError::ProgramAlreadyExecuted);
         }
 
-        self.execute_mast_node(program.entrypoint(), program)?;
+        self.execute_mast_node(program.entrypoint(), program.mast_forest())?;
 
         Ok(self.stack.build_stack_outputs())
     }
@@ -243,7 +243,7 @@ where
     fn execute_mast_node(
         &mut self,
         node_id: MastNodeId,
-        program: &Program,
+        program: &MastForest,
     ) -> Result<(), ExecutionError> {
         let wrapper_node = &program
             .get_node_by_id(node_id)
@@ -256,6 +256,24 @@ where
             MastNode::Loop(node) => self.execute_loop_node(node, program),
             MastNode::Call(node) => self.execute_call_node(node, program),
             MastNode::Dyn => self.execute_dyn_node(program),
+            MastNode::External(external_node) => {
+                let mast_forest =
+                    self.host.borrow().get_mast_forest(&external_node.digest()).ok_or_else(
+                        || ExecutionError::MastForestNotFound {
+                            root_digest: external_node.digest(),
+                        },
+                    )?;
+
+                // We temporarily limit the parts of the program that can be called externally to
+                // procedure roots, even though MAST doesn't have that restriction.
+                let root_id = mast_forest.find_procedure_root(external_node.digest()).ok_or(
+                    ExecutionError::MalformedMastForestInHost {
+                        root_digest: external_node.digest(),
+                    },
+                )?;
+
+                self.execute_mast_node(root_id, &mast_forest)
+            }
         }
     }
 
@@ -263,7 +281,7 @@ where
     fn execute_join_node(
         &mut self,
         node: &JoinNode,
-        program: &Program,
+        program: &MastForest,
     ) -> Result<(), ExecutionError> {
         self.start_join_node(node, program)?;
 
@@ -278,7 +296,7 @@ where
     fn execute_split_node(
         &mut self,
         node: &SplitNode,
-        program: &Program,
+        program: &MastForest,
     ) -> Result<(), ExecutionError> {
         // start the SPLIT block; this also pops the stack and returns the popped element
         let condition = self.start_split_node(node, program)?;
@@ -300,7 +318,7 @@ where
     fn execute_loop_node(
         &mut self,
         node: &LoopNode,
-        program: &Program,
+        program: &MastForest,
     ) -> Result<(), ExecutionError> {
         // start the LOOP block; this also pops the stack and returns the popped element
         let condition = self.start_loop_node(node, program)?;
@@ -335,7 +353,7 @@ where
     fn execute_call_node(
         &mut self,
         call_node: &CallNode,
-        program: &Program,
+        program: &MastForest,
     ) -> Result<(), ExecutionError> {
         let callee_digest = {
             let callee = program.get_node_by_id(call_node.callee()).ok_or_else(|| {
@@ -366,14 +384,14 @@ where
 
     /// Executes the specified [DynNode] node.
     #[inline(always)]
-    fn execute_dyn_node(&mut self, program: &Program) -> Result<(), ExecutionError> {
+    fn execute_dyn_node(&mut self, program: &MastForest) -> Result<(), ExecutionError> {
         // get target hash from the stack
         let callee_hash = self.stack.get_word(0);
         self.start_dyn_node(callee_hash)?;
 
         // get dynamic code from the code block table and execute it
         let callee_id = program
-            .get_node_id_by_digest(callee_hash.into())
+            .find_procedure_root(callee_hash.into())
             .ok_or_else(|| ExecutionError::DynamicNodeNotFound(callee_hash.into()))?;
         self.execute_mast_node(callee_id, program)?;
 

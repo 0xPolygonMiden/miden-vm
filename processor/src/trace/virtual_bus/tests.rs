@@ -79,10 +79,9 @@ fn build_full_trace(stack_inputs: &[u64], operations: Vec<Operation>, kernel: Ke
         let mut mast_forest = MastForest::new();
 
         let root_node = MastNode::new_basic_block(operations);
-        let root_node_id = mast_forest.ensure_node(root_node);
-        mast_forest.set_entrypoint(root_node_id);
+        let root_node_id = mast_forest.add_node(root_node);
 
-        Program::new(mast_forest).unwrap()
+        Program::new(mast_forest, root_node_id)
     };
     process.execute(&program).unwrap();
     let (trace, _, _): (MainTrace, _, _) = ExecutionTrace::test_finalize_trace(process);

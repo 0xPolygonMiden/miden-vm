@@ -12,7 +12,7 @@ proc.foo.2
     <instructions>
 end
 ```
-A procedure label must start with a letter and can contain any combination of numbers, ASCII letters, and underscores (`_`). The number of characters in the procedure label cannot exceed 100.
+A procedure label must start with a letter and can contain any combination of numbers, ASCII letters, and underscores (`_`). Should you need to represent a label with other characters, an extended set is permitted via quoted identifiers, i.e. an identifier surrounded by `".."`. Quoted identifiers additionally allow any alphanumeric letter (ASCII or UTF-8), as well as various common punctuation characters: `!`, `?`, `:`, `.`, `<`, `>`, and `-`. Quoted identifiers are primarily intended for representing symbols/identifiers when compiling higher-level languages to Miden Assembly, but can be used anywhere that normal identifiers are expected.
 
 The number of locals specifies the number of memory-based local words a procedure can access (via `loc_load`, `loc_store`, and [other instructions](./io_operations.md#random-access-memory)). If a procedure doesn't need any memory-based locals, this parameter can be omitted or set to `0`. A procedure can have at most $2^{16}$ locals, and the total number of locals available to all procedures at runtime is limited to $2^{30}$.
 
@@ -22,15 +22,16 @@ exec.foo
 ```
 The difference between using each of these instructions is explained in the [next section](./execution_contexts.md#procedure-invocation-semantics).
 
-A procedure may execute any other previously defined procedure, but it cannot execute itself or any of the subsequent procedures. Thus, recursive procedure calls are not possible. For example, the following code block defines a program with two procedures:
-```
-proc.foo
-    <instructions>
-end
+A procedure may execute any other procedure, however recursion is not currently permitted, due to limitations imposed by the Merkalized Abstract Syntax Tree. Recursion is caught by static analysis of the call graph during assembly, so in general you don't need to think about this, but it is a limitation to be aware of. For example, the following code block defines a program with two procedures:
 
+```
 proc.bar
     <instructions>
     exec.foo
+    <instructions>
+end
+
+proc.foo
     <instructions>
 end
 
@@ -43,24 +44,24 @@ end
 ```
 
 #### Dynamic procedure invocation
-It is also possible to invoke procedures dynamically - i.e., without specifying target procedure labels at compile time. There are two instructions, `dynexec` and `dyncall`, which can be used to execute dynamically-specified code targets. Both instructions expect [MAST root](../../design/programs.md) of the target to be provided via the stack. The difference between `dynexec` and `dyncall` is that `dyncall` will [change context](./execution_contexts.md) before executing the dynamic code target, while `dynexec` will cause the code target to be executed in the current context.
+It is also possible to invoke procedures dynamically - i.e., without specifying target procedure labels at compile time. Unlike static procedure invocation, recursion is technically possible using dynamic invocation, but dynamic invocation is more expensive, and has less available operand stack capacity for procedure arguments, as 4 elements are required for the MAST root of the callee. There are two instructions, `dynexec` and `dyncall`, which can be used to execute dynamically-specified code targets. Both instructions expect the [MAST root](../../design/programs.md) of the target to be provided via the stack. The difference between `dynexec` and `dyncall` corresponds to the difference between `exec` and `call`, see the documentation on [procedure invocation semantics](./execution_contexts.md#procedure-invocation-semantics) for more detail.
 
-Dynamic code execution in the same context is achieved by setting the top $4$ elements of the stack to the hash of the dynamic code block and then executing the following instruction:
+Dynamic code execution in the same context is achieved by setting the top $4$ elements of the stack to the hash of the dynamic code block and then executing the `dynexec` or `dyncall` instruction. You can obtain the hash of a procedure in the current program, by name, using the `procref` instruction. See the following example of pairing the two:
 
 ```
+procref.foo
 dynexec
 ```
 
-This causes the VM to do the following:
+During assembly, the `procref.foo` instruction is compiled to a `push.HASH`, where `HASH` is the hash of the MAST root of the `foo` procedure.
 
-1. Read the top 4 elements of the stack to get the hash of the dynamic target (leaving the stack unchanged).
-2. Execute the code block which hashes to the specified target. The VM must know the specified code block and hash: they must be in the CodeBlockTable of the executing Program. Hashes can be put into the CodeBlockTable manually, or by executing `call`, `syscall`, or `procref` instructions. 
+During execution of the `dynexec` instruction, the VM does the following:
 
-Dynamic code execution in a new context can be achieved similarly by setting the top $4$ elements of the stack to the hash of the dynamic code block and then executing the following instruction:
+1. Reads, but does not consume, the top 4 elements of the stack to get the hash of the dynamic target (i.e. the operand stack is left unchanged).
+2. Load the code block referenced by the hash, or trap if no such MAST root is known.
+3. Execute the loaded code block
 
-```
-dyncall
-```
+The `dyncall` instruction is used the same way, with the difference that it involves a context switch to a new context when executing the referenced block, and switching back to the calling context once execution of the callee completes.
 
 > **Note**: In both cases, the stack is left unchanged. Therefore, if the dynamic code is intended to manipulate the stack, it should start by either dropping or moving the code block hash from the top of the stack.
 
@@ -99,7 +100,25 @@ A program cannot contain any exported procedures.
 When a program is executed, the execution starts at the first instruction following the `begin` instruction. The main procedure is expected to be the last procedure in the program and can be followed only by comments.
 
 #### Importing modules
-To invoke a procedure from an external module, the module first needs to be imported using a `use` instruction. Once a module is imported, procedures from this module can be invoked via the regular `exec` or `call` instructions as `exec|call.<module>::<label>` where `label` is the name of the procedure. For example:
+To reference items in another module, you must either import the module you wish to use, or specify a fully-qualified path to the item you want to reference.
+
+To import a module, you must use the `use` keyword in the top level scope of the current module, as shown below:
+
+```
+use.std::math::u64
+
+begin
+  ...
+end
+```
+
+In this example, the `std::math::u64` module is imported as `u64`, the default "alias" for the imported module. You can specify a different alias like so:
+
+```
+use.std::math::u64->bigint
+```
+
+This would alias the imported module as `bigint` rather than `u64`. The alias is needed to reference items from the imported module, as shown below:
 
 ```
 use.std::math::u64
@@ -110,21 +129,20 @@ begin
     exec.u64::wrapping_add
 end
 ```
-In the above example we import `std::math::u64` module from the [standard library](../stdlib/main.md). We then execute a program which pushes two 64-bit integers onto the stack, and then invokes a 64-bit addition procedure from the imported module.
 
-We can also define aliases for imported modules. For example:
+You can also bypass imports entirely, and specify an absolute procedure path, which requires prefixing the path with `::`. For example:
 
 ```
-use.std::math::u64->bigint
-
 begin
-    push.1.0
-    push.2.0
-    exec.bigint::checked_add
+  push.1.0
+  push.2.0
+  exec.::std::math::u64::wrapping_add
 end
 ```
 
-The set of modules which can be imported by a program can be specified via a Module Provider when instantiating the [Miden Assembler](https://crates.io/crates/miden-assembly) used to compile the program.
+In the examples above, we have been referencing the `std::math::u64` module, which is a module in the [Miden Standard Library](../stdlib/main.md). There are a number of useful modules there, that provide a variety of helpful functionality out of the box.
+
+If the assembler does not know about the imported modules, assembly will fail. You can register modules with the assembler when instantiating it, either in source form, or precompiled form. See the [miden-assembly docs](https://crates.io/crates/miden-assembly) for details. The assembler will use this information to resolve references to imported procedures during assembly.
 
 #### Re-exporting procedures
 A procedure defined in one module can be re-exported from a different module under the same or a different name. For example:
@@ -138,10 +156,25 @@ export.foo
     <instructions>
 end
 ```
-In addition to the locally-defined procedure `foo`, the above module also exports procedures `add` and `mul64` implementations of which will be identical to `add` and `mul` procedures from the `std::math::u64` module respectively.
+
+In the module shown above, not only is the locally-defined procedure `foo` exported, but so are two procedures named `add` and `mul64`, whose implementations are defined in the `std::math::u64` module.
+
+Similar to procedure invocation, you can bypass the explicit import by specifying an absolute path, like so:
+
+```
+export.::std::math::u64::mul->mul64
+```
+
+Additionally, you may re-export a procedure using its MAST root, so long as you specify an alias:
+
+```
+export.0x0000..0000->mul64
+```
+
+In all of the forms described above, the actual implementation of the re-exported procedure is defined externally. Other modules which reference the re-exported procedure, will have those references resolved to the original procedure during assembly.
 
 ### Constants
-Miden assembly supports constant declarations. These constants are scoped to the module they are defined in and can be used as immediate parameters for Miden assembly instructions. Constants are supported as immediate values for the following instructions: `push`, `assert`, `assertz`, `asert_eq`, `assert_eqw`, `locaddr`, `loc_load`, `loc_loadw`, `loc_store`, `loc_storew`, `mem_load`, `mem_loadw`, `mem_store`, `mem_storew`, `mtree_verify`.
+Miden assembly supports constant declarations. These constants are scoped to the module they are defined in and can be used as immediate parameters for Miden assembly instructions. Constants are supported as immediate values for many of the instructions in the Miden Assembly instruction set, see the documentation for specific instructions to determine whether or not it provides a form which accepts immediate operands.
 
 Constants must be declared right after module imports and before any procedures or program bodies. A constant's name must start with an upper-case letter and can contain any combination of numbers, upper-case ASCII letters, and underscores (`_`). The number of characters in a constant name cannot exceed 100.
 

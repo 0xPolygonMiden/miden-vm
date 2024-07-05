@@ -12,11 +12,11 @@ use miden_air::trace::{
 };
 use vm_core::{
     mast::{
-        get_span_op_group_count, BasicBlockNode, CallNode, DynNode, JoinNode, LoopNode,
+        get_span_op_group_count, BasicBlockNode, CallNode, DynNode, JoinNode, LoopNode, MastForest,
         MerkleTreeNode, SplitNode, OP_BATCH_SIZE,
     },
     stack::STACK_TOP_SIZE,
-    AssemblyOp, Program,
+    AssemblyOp,
 };
 
 mod trace;
@@ -56,7 +56,7 @@ where
     pub(super) fn start_join_node(
         &mut self,
         node: &JoinNode,
-        program: &Program,
+        program: &MastForest,
     ) -> Result<(), ExecutionError> {
         // use the hasher to compute the hash of the JOIN block; the row address returned by the
         // hasher is used as the ID of the block; the result of the hash is expected to be in
@@ -106,7 +106,7 @@ where
     pub(super) fn start_split_node(
         &mut self,
         node: &SplitNode,
-        program: &Program,
+        program: &MastForest,
     ) -> Result<Felt, ExecutionError> {
         let condition = self.stack.peek();
 
@@ -158,7 +158,7 @@ where
     pub(super) fn start_loop_node(
         &mut self,
         node: &LoopNode,
-        program: &Program,
+        program: &MastForest,
     ) -> Result<Felt, ExecutionError> {
         let condition = self.stack.peek();
 
@@ -222,7 +222,7 @@ where
     pub(super) fn start_call_node(
         &mut self,
         node: &CallNode,
-        program: &Program,
+        program: &MastForest,
     ) -> Result<(), ExecutionError> {
         // use the hasher to compute the hash of the CALL or SYSCALL block; the row address
         // returned by the hasher is used as the ID of the block; the result of the hash is

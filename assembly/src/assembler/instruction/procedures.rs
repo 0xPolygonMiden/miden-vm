@@ -1,5 +1,6 @@
 use super::{Assembler, AssemblyContext, BasicBlockBuilder, Operation};
 use crate::{
+    assembler::mast_forest_builder::MastForestBuilder,
     ast::{InvocationTarget, InvokeKind},
     AssemblyError, RpoDigest, SourceSpan, Span, Spanned,
 };
@@ -14,11 +15,11 @@ impl Assembler {
         kind: InvokeKind,
         callee: &InvocationTarget,
         context: &mut AssemblyContext,
-        mast_forest: &mut MastForest,
+        mast_forest_builder: &mut MastForestBuilder,
     ) -> Result<Option<MastNodeId>, AssemblyError> {
         let span = callee.span();
-        let digest = self.resolve_target(kind, callee, context, mast_forest)?;
-        self.invoke_mast_root(kind, span, digest, context, mast_forest)
+        let digest = self.resolve_target(kind, callee, context, mast_forest_builder.forest())?;
+        self.invoke_mast_root(kind, span, digest, context, mast_forest_builder)
     }
 
     fn invoke_mast_root(
@@ -27,7 +28,7 @@ impl Assembler {
         span: SourceSpan,
         mast_root: RpoDigest,
         context: &mut AssemblyContext,
-        mast_forest: &mut MastForest,
+        mast_forest_builder: &mut MastForestBuilder,
     ) -> Result<Option<MastNodeId>, AssemblyError> {
         // Get the procedure from the assembler
         let cache = &self.procedure_cache;
@@ -68,13 +69,15 @@ impl Assembler {
                             })
                         }
                     })?;
-                context.register_external_call(&proc, false, mast_forest)?;
+                context.register_external_call(&proc, false, mast_forest_builder.forest())?;
             }
-            Some(proc) => context.register_external_call(&proc, false, mast_forest)?,
+            Some(proc) => {
+                context.register_external_call(&proc, false, mast_forest_builder.forest())?
+            }
             None if matches!(kind, InvokeKind::SysCall) => {
                 return Err(AssemblyError::UnknownSysCallTarget {
                     span,
-                    source_file: current_source_file,
+                    source_file: current_source_file.clone(),
                     callee: mast_root,
                 });
             }
@@ -82,28 +85,43 @@ impl Assembler {
         }
 
         let mast_root_node_id = {
-            // Note that here we rely on the fact that we topologically sorted the procedures, such
-            // that when we assemble a procedure, all procedures that it calls will have been
-            // assembled, and hence be present in the `MastForest`. We currently assume that the
-            // `MastForest` contains all the procedures being called; "external procedures" only
-            // known by digest are not currently supported.
-            let callee_id = mast_forest
-                .get_node_id_by_digest(mast_root)
-                .unwrap_or_else(|| panic!("MAST root {} not in MAST forest", mast_root));
-
             match kind {
-                // For `exec`, we return the root of the procedure being exec'd, which has the
-                // effect of inlining it
-                InvokeKind::Exec => callee_id,
-                // For `call`, we just use the corresponding CALL block
-                InvokeKind::Call => {
-                    let node = MastNode::new_call(callee_id, mast_forest);
-                    mast_forest.ensure_node(node)
+                InvokeKind::Exec => {
+                    // Note that here we rely on the fact that we topologically sorted the
+                    // procedures, such that when we assemble a procedure, all
+                    // procedures that it calls will have been assembled, and
+                    // hence be present in the `MastForest`.
+                    mast_forest_builder.find_procedure_root(mast_root).unwrap_or_else(|| {
+                        // If the MAST root called isn't known to us, make it an external
+                        // reference.
+                        let external_node = MastNode::new_external(mast_root);
+                        mast_forest_builder.ensure_node(external_node)
+                    })
                 }
-                // For `syscall`, we just use the corresponding SYSCALL block
+                InvokeKind::Call => {
+                    let callee_id =
+                        mast_forest_builder.find_procedure_root(mast_root).unwrap_or_else(|| {
+                            // If the MAST root called isn't known to us, make it an external
+                            // reference.
+                            let external_node = MastNode::new_external(mast_root);
+                            mast_forest_builder.ensure_node(external_node)
+                        });
+
+                    let call_node = MastNode::new_call(callee_id, mast_forest_builder.forest());
+                    mast_forest_builder.ensure_node(call_node)
+                }
                 InvokeKind::SysCall => {
-                    let node = MastNode::new_syscall(callee_id, mast_forest);
-                    mast_forest.ensure_node(node)
+                    let callee_id =
+                        mast_forest_builder.find_procedure_root(mast_root).unwrap_or_else(|| {
+                            // If the MAST root called isn't known to us, make it an external
+                            // reference.
+                            let external_node = MastNode::new_external(mast_root);
+                            mast_forest_builder.ensure_node(external_node)
+                        });
+
+                    let syscall_node =
+                        MastNode::new_syscall(callee_id, mast_forest_builder.forest());
+                    mast_forest_builder.ensure_node(syscall_node)
                 }
             }
         };
@@ -114,9 +132,9 @@ impl Assembler {
     /// Creates a new DYN block for the dynamic code execution and return.
     pub(super) fn dynexec(
         &self,
-        mast_forest: &mut MastForest,
+        mast_forest_builder: &mut MastForestBuilder,
     ) -> Result<Option<MastNodeId>, AssemblyError> {
-        let dyn_node_id = mast_forest.ensure_node(MastNode::Dyn);
+        let dyn_node_id = mast_forest_builder.ensure_node(MastNode::Dyn);
 
         Ok(Some(dyn_node_id))
     }
@@ -124,13 +142,13 @@ impl Assembler {
     /// Creates a new CALL block whose target is DYN.
     pub(super) fn dyncall(
         &self,
-        mast_forest: &mut MastForest,
+        mast_forest_builder: &mut MastForestBuilder,
     ) -> Result<Option<MastNodeId>, AssemblyError> {
         let dyn_call_node_id = {
-            let dyn_node_id = mast_forest.ensure_node(MastNode::Dyn);
-            let dyn_call_node = MastNode::new_call(dyn_node_id, mast_forest);
+            let dyn_node_id = mast_forest_builder.ensure_node(MastNode::Dyn);
+            let dyn_call_node = MastNode::new_call(dyn_node_id, mast_forest_builder.forest());
 
-            mast_forest.ensure_node(dyn_call_node)
+            mast_forest_builder.ensure_node(dyn_call_node)
         };
 
         Ok(Some(dyn_call_node_id))

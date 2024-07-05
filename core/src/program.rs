@@ -5,8 +5,7 @@ use miden_crypto::{hash::rpo::RpoDigest, Felt, WORD_SIZE};
 use winter_utils::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable};
 
 use crate::{
-    errors::ProgramError,
-    mast::{MastForest, MastNode, MastNodeId},
+    mast::{MastForest, MastNode, MastNodeId, MerkleTreeNode},
     utils::ToElements,
 };
 
@@ -15,18 +14,42 @@ use super::Kernel;
 // PROGRAM
 // ===============================================================================================
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Program {
     mast_forest: MastForest,
+    /// The "entrypoint" is the node where execution of the program begins.
+    entrypoint: MastNodeId,
+    kernel: Kernel,
 }
 
 /// Constructors
 impl Program {
-    pub fn new(mast_forest: MastForest) -> Result<Self, ProgramError> {
-        if mast_forest.entrypoint().is_some() {
-            Ok(Self { mast_forest })
-        } else {
-            Err(ProgramError::NoEntrypoint)
+    /// Construct a new [`Program`] from the given MAST forest and entrypoint. The kernel is assumed
+    /// to be empty.
+    ///
+    /// # Panics:
+    /// - if `mast_forest` doesn't have an entrypoint
+    pub fn new(mast_forest: MastForest, entrypoint: MastNodeId) -> Self {
+        assert!(mast_forest.get_node_by_id(entrypoint).is_some());
+
+        Self {
+            mast_forest,
+            entrypoint,
+            kernel: Kernel::default(),
+        }
+    }
+
+    /// Construct a new [`Program`] from the given MAST forest, entrypoint, and kernel.
+    ///
+    /// # Panics:
+    /// - if `mast_forest` doesn't have an entrypoint
+    pub fn with_kernel(mast_forest: MastForest, entrypoint: MastNodeId, kernel: Kernel) -> Self {
+        assert!(mast_forest.get_node_by_id(entrypoint).is_some());
+
+        Self {
+            mast_forest,
+            entrypoint,
+            kernel,
         }
     }
 }
@@ -40,17 +63,19 @@ impl Program {
 
     /// Returns the kernel associated with this program.
     pub fn kernel(&self) -> &Kernel {
-        self.mast_forest.kernel()
+        &self.kernel
     }
 
     /// Returns the entrypoint associated with this program.
     pub fn entrypoint(&self) -> MastNodeId {
-        self.mast_forest.entrypoint().unwrap()
+        self.entrypoint
     }
 
-    /// A convenience method that provides the hash of the entrypoint.
+    /// Returns the hash of the program's entrypoint.
+    ///
+    /// Equivalently, returns the hash of the root of the entrypoint procedure.
     pub fn hash(&self) -> RpoDigest {
-        self.mast_forest.entrypoint_digest().unwrap()
+        self.mast_forest[self.entrypoint].digest()
     }
 
     /// Returns the [`MastNode`] associated with the provided [`MastNodeId`] if valid, or else
@@ -62,13 +87,15 @@ impl Program {
         self.mast_forest.get_node_by_id(node_id)
     }
 
-    /// Returns the [`MastNodeId`] associated with a given digest, if any.
-    ///
-    /// That is, every [`MastNode`] hashes to some digest. If there exists a [`MastNode`] in the
-    /// forest that hashes to this digest, then its id is returned.
+    /// Returns the [`MastNodeId`] of the procedure root associated with a given digest, if any.
     #[inline(always)]
-    pub fn get_node_id_by_digest(&self, digest: RpoDigest) -> Option<MastNodeId> {
-        self.mast_forest.get_node_id_by_digest(digest)
+    pub fn find_procedure_root(&self, digest: RpoDigest) -> Option<MastNodeId> {
+        self.mast_forest.find_procedure_root(digest)
+    }
+
+    /// Returns the number of procedures in this program.
+    pub fn num_procedures(&self) -> u32 {
+        self.mast_forest.num_procedures()
     }
 }
 
@@ -93,14 +120,6 @@ impl fmt::Display for Program {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         use crate::prettier::PrettyPrint;
         self.pretty_print(f)
-    }
-}
-
-impl TryFrom<MastForest> for Program {
-    type Error = ProgramError;
-
-    fn try_from(mast_forest: MastForest) -> Result<Self, Self::Error> {
-        Self::new(mast_forest)
     }
 }
 
