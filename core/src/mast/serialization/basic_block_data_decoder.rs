@@ -43,8 +43,8 @@ impl<'a> BasicBlockDataDecoder<'a> {
                 // operation.
                 let op_code = first_byte;
 
-                let operation = if op_code == Operation::Assert(0_u32).op_code()
-                    || op_code == Operation::MpVerify(0_u32).op_code()
+                let operation = if op_code == Operation::Assert(0).op_code()
+                    || op_code == Operation::MpVerify(0).op_code()
                 {
                     let value_le_bytes: [u8; 4] = self.data_reader.read_array()?;
                     let value = u32::from_le_bytes(value_le_bytes);

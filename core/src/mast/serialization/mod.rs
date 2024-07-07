@@ -18,7 +18,7 @@ use basic_block_data_decoder::BasicBlockDataDecoder;
 mod tests;
 
 // TYPE ALIASES
-// ===============================================================================================
+// ================================================================================================
 
 /// Specifies an offset into the `data` section of an encoded [`MastForest`].
 type DataOffset = u32;
@@ -27,7 +27,7 @@ type DataOffset = u32;
 type StringIndex = usize;
 
 // CONSTANTS
-// ===============================================================================================
+// ================================================================================================
 
 /// Magic string for detecting that a file is binary-encoded MAST.
 const MAGIC: &[u8; 5] = b"MAST\0";
@@ -40,7 +40,7 @@ const MAGIC: &[u8; 5] = b"MAST\0";
 const VERSION: [u8; 3] = [0, 0, 0];
 
 // STRING REF
-// ===============================================================================================
+// ================================================================================================
 
 /// An entry in the `strings` table of an encoded [`MastForest`].
 ///
@@ -71,7 +71,7 @@ impl Deserializable for StringRef {
 }
 
 // MAST FOREST SERIALIZATION/DESERIALIZATION
-// ===============================================================================================
+// ================================================================================================
 
 impl Serializable for MastForest {
     fn write_into<W: ByteWriter>(&self, target: &mut W) {

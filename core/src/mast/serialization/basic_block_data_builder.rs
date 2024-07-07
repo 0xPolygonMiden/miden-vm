@@ -9,6 +9,9 @@ use crate::{
 
 use super::{decorator::EncodedDecoratorVariant, DataOffset, StringIndex, StringRef};
 
+// BASIC BLOCK DATA BUILDER
+// ================================================================================================
+
 /// Builds the `data` section of a serialized [`crate::mast::MastForest`].
 #[derive(Debug, Default)]
 pub struct BasicBlockDataBuilder {
@@ -62,8 +65,8 @@ impl BasicBlockDataBuilder {
 
         // For operations that have extra data, encode it in `data`.
         match operation {
-            Operation::Assert(value) | Operation::MpVerify(value) => {
-                self.data.extend_from_slice(&value.to_le_bytes())
+            Operation::Assert(err_code) | Operation::MpVerify(err_code) => {
+                self.data.extend_from_slice(&err_code.to_le_bytes())
             }
             Operation::U32assert2(value) | Operation::Push(value) => {
                 self.data.extend_from_slice(&value.as_int().to_le_bytes())
@@ -239,6 +242,9 @@ impl BasicBlockDataBuilder {
         }
     }
 }
+
+// STRING TABLE BUILDER
+// ================================================================================================
 
 #[derive(Debug, Default)]
 struct StringTableBuilder {

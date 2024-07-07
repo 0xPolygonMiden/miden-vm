@@ -6,7 +6,7 @@ use crate::mast::{MastForest, MastNode, MastNodeId, MerkleTreeNode};
 use super::{basic_block_data_decoder::BasicBlockDataDecoder, DataOffset};
 
 // MAST NODE INFO
-// ===============================================================================================
+// ================================================================================================
 
 /// Represents a serialized [`MastNode`], with some data inlined in its [`MastNodeType`].
 ///
@@ -15,7 +15,7 @@ use super::{basic_block_data_decoder::BasicBlockDataDecoder, DataOffset};
 /// field. For all other variants of [`MastNode`], the `offset` field is guaranteed to be 0.
 ///
 /// The serialized representation of [`MastNodeInfo`] is guaranteed to be fixed width, so that the
-/// nodes stored in the `nodes` table of the serialzied [`MastForest`] can be accessed quickly by
+/// nodes stored in the `nodes` table of the serialized [`MastForest`] can be accessed quickly by
 /// index.
 #[derive(Debug)]
 pub struct MastNodeInfo {
@@ -123,7 +123,7 @@ impl Deserializable for MastNodeInfo {
 }
 
 // MAST NODE TYPE
-// ===============================================================================================
+// ================================================================================================
 
 const JOIN: u8 = 0;
 const SPLIT: u8 = 1;
@@ -393,7 +393,7 @@ impl MastNodeType {
 }
 
 // TESTS
-// ===============================================================================================
+// ================================================================================================
 
 #[cfg(test)]
 mod tests {

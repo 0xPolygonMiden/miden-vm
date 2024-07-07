@@ -21,6 +21,9 @@ pub trait MerkleTreeNode {
     fn to_display<'a>(&'a self, mast_forest: &'a MastForest) -> impl fmt::Display + 'a;
 }
 
+// MAST NODE ID
+// ================================================================================================
+
 /// An opaque handle to a [`MastNode`] in some [`MastForest`]. It is the responsibility of the user
 /// to use a given [`MastNodeId`] with the corresponding [`MastForest`].
 ///
@@ -72,7 +75,7 @@ impl Deserializable for MastNodeId {
 }
 
 // MAST FOREST
-// ===============================================================================================
+// ================================================================================================
 
 /// Represents one or more procedures, represented as a collection of [`MastNode`]s.
 ///
@@ -132,7 +135,7 @@ impl MastForest {
     /// Returns the [`MastNode`] associated with the provided [`MastNodeId`] if valid, or else
     /// `None`.
     ///
-    /// This is the faillible version of indexing (e.g. `mast_forest[node_id]`).
+    /// This is the failable version of indexing (e.g. `mast_forest[node_id]`).
     #[inline(always)]
     pub fn get_node_by_id(&self, node_id: MastNodeId) -> Option<&MastNode> {
         let idx = node_id.0 as usize;
