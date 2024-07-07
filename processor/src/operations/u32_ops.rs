@@ -28,15 +28,15 @@ where
     /// Pops top two element off the stack, splits them into low and high 32-bit values, checks if
     /// the high values are equal to 0; if they are, puts the original elements back onto the
     /// stack; if they are not, returns an error.
-    pub(super) fn op_u32assert2(&mut self, err_code: Felt) -> Result<(), ExecutionError> {
+    pub(super) fn op_u32assert2(&mut self, err_code: u32) -> Result<(), ExecutionError> {
         let a = self.stack.get(0);
         let b = self.stack.get(1);
 
         if a.as_int() >> 32 != 0 {
-            return Err(ExecutionError::NotU32Value(a, err_code));
+            return Err(ExecutionError::NotU32Value(a, Felt::from(err_code)));
         }
         if b.as_int() >> 32 != 0 {
-            return Err(ExecutionError::NotU32Value(b, err_code));
+            return Err(ExecutionError::NotU32Value(b, Felt::from(err_code)));
         }
 
         self.add_range_checks(Operation::U32assert2(err_code), a, b, false);
@@ -280,7 +280,7 @@ mod tests {
         let stack = StackInputs::try_from_ints([d as u64, c as u64, b as u64, a as u64]).unwrap();
         let mut process = Process::new_dummy_with_decoder_helpers(stack);
 
-        process.execute_op(Operation::U32assert2(ZERO)).unwrap();
+        process.execute_op(Operation::U32assert2(0)).unwrap();
         let expected = build_expected(&[a, b, c, d]);
         assert_eq!(expected, process.stack.trace_state());
     }
