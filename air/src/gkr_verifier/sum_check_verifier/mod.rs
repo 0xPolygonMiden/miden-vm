@@ -13,12 +13,12 @@ pub use self::error::Error;
 /// The sum-check Verifier is composed of two parts:
 ///
 /// 1. A multi-round interaction where it sends challenges and receives polynomials. For each
-/// polynomial received it uses the sent randomness to reduce the current claim to a new one.
+///    polynomial received it uses the sent randomness to reduce the current claim to a new one.
 ///
 /// 2. A final round where the Verifier queries the multi-linear oracles it received at the outset
-/// of the protocol (i.e., commitments) for their evaluations at the random point
-/// `(r_0, ... , r_{\nu - 1})` where $\nu$ is the number of rounds of the sum-check protocol and
-/// `r_i` is the randomness sent by the Verifier at each round.
+///    of the protocol (i.e., commitments) for their evaluations at the random point `(r_0, ... ,
+///    r_{\nu - 1})` where $\nu$ is the number of rounds of the sum-check protocol and `r_i` is the
+///    randomness sent by the Verifier at each round.
 pub struct SumCheckVerifier<E, P, C, H, V>
 where
     E: FieldElement,
@@ -57,13 +57,13 @@ where
     /// More precisely, the method:
     ///
     /// 1. Generates a `claimed_evaluation` from the round proof polynomials and the round challenge
-    /// randomness.
+    ///    randomness.
     ///
     /// 2. Computes a query that is built using the [FinalQueryBuilder] from the multi-linear
-    /// openings and the round challenges.
+    ///    openings and the round challenges.
     ///
     /// 3. Evaluates the composition polynomial at the query and checks that it is equal
-    /// `claimed_evaluation`.
+    ///    `claimed_evaluation`.
     ///
     /// 4. Outputs a `FinalOpeningClaim` on the multi-linear oracles.
     ///

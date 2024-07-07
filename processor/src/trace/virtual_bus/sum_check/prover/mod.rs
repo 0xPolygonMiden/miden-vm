@@ -22,7 +22,7 @@ pub use self::error::Error;
 ///
 /// 1. v ∈ 𝔽 where 𝔽 is a finite field.
 /// 2. f_i are multi-linear polynomials i.e., polynomials in 𝔽[X_0, \cdots ,X_{\nu - 1}] with degree
-/// at most one in each variable.
+///    at most one in each variable.
 /// 3. g is a multivariate polynomial with degree at most d in each variable.
 ///
 /// The Verifier is given commitments to each `f_i` in addition to the claimed sum `v`. The Prover
@@ -48,24 +48,23 @@ pub use self::error::Error;
 ///     
 ///     c. The Verifier samples a random challenge `r_i ∈ 𝔽` and sends it to the Prover.
 ///
-/// 5. The Verifier now queries each of the oracles behind the commitments i.e., `f_i` at
-/// `(r_0, \cdots , r_{\nu - 1})` to get u_i = f_i(r_0, \cdots , r_{\nu - 1}).
-/// The Verifier then accepts if and only if:
+/// 5. The Verifier now queries each of the oracles behind the commitments i.e., `f_i` at `(r_0,
+///    \cdots , r_{\nu - 1})` to get u_i = f_i(r_0, \cdots , r_{\nu - 1}). The Verifier then accepts
+///    if and only if:
 ///
 ///         s_{\nu - 1}(r_{\nu - 1}) = g(u_0, \cdots , u_{\nu - 1})
 ///
 /// A few remarks:
 ///
 /// 1. The degree bound on `g` implies that each of the `s_i` polynomials is a univariate polynomial
-/// of degree at most `d`. Thus, the Prover in each round sends `d + 1` values, either
-/// the coefficients or the evaluations of `s_i`.
+///    of degree at most `d`. Thus, the Prover in each round sends `d + 1` values, either the
+///    coefficients or the evaluations of `s_i`.
 ///
 /// 2. The Prover has each `f_i` in its evaluation form over the hyper-cube \{0 , 1\}^{\nu}.
 ///
 /// 3. An optimization is for the Prover to not send `s_i(0)` as it can be recovered from the
-///    current
-/// reduced claim s_{i - 1}(r_{i - 1}) using the relation s_{i}(0) = s_{i}(1) - s_{i - 1}(r_{i -
-/// 1}). This also means that the Verifier can skip point 4.b.
+///    current reduced claim s_{i - 1}(r_{i - 1}) using the relation s_{i}(0) = s_{i}(1) - s_{i -
+///    1}(r_{i - 1}). This also means that the Verifier can skip point 4.b.
 pub struct SumCheckProver<E, P, C, H, V>
 where
     E: FieldElement,

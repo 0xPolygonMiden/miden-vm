@@ -182,7 +182,7 @@ where
 /// 1. μ is the log_2 of the number of different numerator/denominator expressions divided by two.
 /// 2. [y] := \sum_{j = 0}^{μ - 1} y_j * 2^j
 /// 3. κ is the number of multi-linears (i.e., main trace columns) involved in the computation of
-/// the circuit (i.e., virtual bus).
+///    the circuit (i.e., virtual bus).
 /// 4. ν is the log_2 of the trace length.
 ///
 /// The above `m` is usually referred to as the merge of the individual composed multi-linear

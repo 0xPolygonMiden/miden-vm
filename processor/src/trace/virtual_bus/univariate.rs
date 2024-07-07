@@ -78,12 +78,10 @@ impl<E: FieldElement> UnivariatePolyEvals<E> {
 /// `U * M` where:
 ///
 /// 1. `M` is a lower triangular matrix where its entries are given by M(i, j) = M(i - 1, j) - M(i -
-///    1, j - 1) / (i - 1)
-/// with boundary conditions M(i, 1) = 1 and M(i, j) = 0 when j > i.
+///    1, j - 1) / (i - 1) with boundary conditions M(i, 1) = 1 and M(i, j) = 0 when j > i.
 ///
 /// 2. `U` is an upper triangular (involutory) matrix where its entries are given by U(i, j) = U(i,
-///    j - 1) - U(i - 1, j - 1)
-/// with boundary condition U(1, j) = 1 and U(i, j) = 0 when i > j.
+///    j - 1) - U(i - 1, j - 1) with boundary condition U(1, j) = 1 and U(i, j) = 0 when i > j.
 ///
 /// Note that the matrix indexing in the formulas above matches the one in the reference and starts
 /// from 1.
