@@ -25,7 +25,7 @@
 //! [1]: https://dl.acm.org/doi/10.1145/2699436
 //! [2]: https://eprint.iacr.org/2023/1284
 use alloc::vec::Vec;
-use miden_air::{trace::main_trace::MainTrace, AuxRandElements};
+use miden_air::{gkr_proof::inner_product, trace::main_trace::MainTrace, AuxRandElements};
 use vm_core::{Felt, FieldElement};
 
 mod circuit;
@@ -109,8 +109,8 @@ where
         let row_value = last_row_value
             + lagrange_kernel_row
                 * inner_product(
-                    openings_combining_randomness.iter(),
-                    main_trace_row.iter().map(|ele| E::from(*ele)),
+                    openings_combining_randomness.iter().copied(),
+                    main_trace_row.iter().copied(),
                 );
 
         s_col.push(row_value);
@@ -118,15 +118,4 @@ where
     }
 
     s_col
-}
-
-// TODOP: Don't duplicate the one in lagrange kernel
-pub fn inner_product<'a, E: FieldElement + 'a>(
-    evaluations: impl IntoIterator<Item = &'a E>,
-    tensored_query: impl IntoIterator<Item = E>,
-) -> E {
-    evaluations
-        .into_iter()
-        .zip(tensored_query)
-        .fold(E::ZERO, |acc, (x_i, y_i)| acc + *x_i * y_i)
 }
