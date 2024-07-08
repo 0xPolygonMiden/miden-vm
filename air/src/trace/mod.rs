@@ -74,7 +74,6 @@ pub const STACK_AUX_TRACE_WIDTH: usize = 1;
 pub const STACK_AUX_TRACE_RANGE: Range<usize> =
     range(STACK_AUX_TRACE_OFFSET, STACK_AUX_TRACE_WIDTH);
 
-// TODOP: REMOVE
 // Hasher auxiliary columns
 pub const HASHER_AUX_TRACE_OFFSET: usize = STACK_AUX_TRACE_RANGE.end;
 pub const HASHER_AUX_TRACE_WIDTH: usize = 1;
@@ -95,7 +94,6 @@ pub const GKR_LOGUP_AUX_TRACE_RANGE: Range<usize> =
 
 pub const AUX_TRACE_WIDTH: usize = GKR_LOGUP_AUX_TRACE_RANGE.end;
 
-// TODOP: Probably less now that range checker is removed?
 /// Number of random elements available to the prover after the commitment to the main trace
 /// segment.
 pub const AUX_TRACE_RAND_ELEMENTS: usize = 16;
