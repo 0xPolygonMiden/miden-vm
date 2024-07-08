@@ -7,7 +7,7 @@ extern crate alloc;
 extern crate std;
 
 use air::{
-    gkr_proof::GkrCircuitProof, trace::TRACE_WIDTH, AuxRandElements, GkrRandElements, ProcessorAir,
+    logup_gkr::GkrCircuitProof, trace::TRACE_WIDTH, AuxRandElements, GkrRandElements, ProcessorAir,
     PublicInputs,
 };
 use alloc::vec;

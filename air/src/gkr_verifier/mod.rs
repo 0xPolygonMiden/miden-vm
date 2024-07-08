@@ -1,4 +1,4 @@
-use crate::gkr_proof::{
+use crate::logup_gkr::{
     CircuitLayerPolys, EqFunction, FinalLayerProof, FinalOpeningClaim, GkrCircuitProof,
     GkrComposition, GkrCompositionMerge, SumCheckProof, SumCheckRoundClaim,
 };

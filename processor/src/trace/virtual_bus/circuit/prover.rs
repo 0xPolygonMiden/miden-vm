@@ -2,7 +2,7 @@ use super::{error::ProverError, GkrClaim};
 use crate::trace::virtual_bus::{sum_check::FinalClaimBuilder, SumCheckProver};
 use alloc::vec::Vec;
 use core::marker::PhantomData;
-use miden_air::gkr_proof::{
+use miden_air::logup_gkr::{
     evaluate_fractions_at_main_trace_query, BeforeFinalLayerProof, CircuitLayer, CircuitLayerPolys,
     CircuitWire, EqFunction, FinalLayerProof, FinalOpeningClaim, GkrCircuitProof, GkrComposition,
     GkrCompositionMerge, MultiLinearPoly, RoundProof, SumCheckProof, SumCheckRoundClaim,

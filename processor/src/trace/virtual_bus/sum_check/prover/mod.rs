@@ -2,7 +2,7 @@ use super::{reduce_claim, RoundProof};
 use crate::trace::virtual_bus::univariate::UnivariatePolyEvals;
 use alloc::vec::Vec;
 use core::marker::PhantomData;
-use miden_air::gkr_proof::{
+use miden_air::logup_gkr::{
     CompositionPolynomial, FinalOpeningClaim, MultiLinearPoly, SumCheckProof, SumCheckRoundClaim,
 };
 use vm_core::FieldElement;

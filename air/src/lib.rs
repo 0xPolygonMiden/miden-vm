@@ -8,7 +8,7 @@ extern crate std;
 
 use alloc::vec::Vec;
 
-use gkr_proof::{GkrCircuitProof, GkrCircuitVerifier};
+use logup_gkr::{GkrCircuitProof, GkrCircuitVerifier};
 use vm_core::{
     utils::{ByteReader, ByteWriter, Deserializable, Serializable},
     ExtensionOf, ProgramInfo, StackInputs, StackOutputs, ONE, ZERO,
@@ -27,11 +27,11 @@ pub mod trace;
 use trace::{logup::LAGRANGE_KERNEL_COL_IDX, CLK_COL_IDX, FMP_COL_IDX};
 
 mod errors;
-pub mod gkr_proof;
 mod gkr_verifier;
 pub use gkr_verifier::{
     verify_virtual_bus, CompositionPolyQueryBuilder, SumCheckVerifier, SumCheckVerifierError,
 };
+pub mod logup_gkr;
 mod options;
 mod proof;
 
