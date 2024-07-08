@@ -1,8 +1,11 @@
 use super::super::{
     Assertion, EvaluationFrame, Felt, FieldElement, TransitionConstraintDegree, CLK_COL_IDX,
-    DECODER_TRACE_OFFSET, FMP_COL_IDX, ONE, STACK_AUX_TRACE_OFFSET, STACK_TRACE_OFFSET, ZERO,
+    FMP_COL_IDX, ONE, ZERO,
 };
-use crate::decoder::{IS_CALL_FLAG_COL_IDX, IS_SYSCALL_FLAG_COL_IDX, USER_OP_HELPERS_OFFSET};
+use crate::trace::{
+    decoder::{IS_CALL_FLAG_COL_IDX, IS_SYSCALL_FLAG_COL_IDX, USER_OP_HELPERS_OFFSET},
+    DECODER_TRACE_OFFSET, STACK_AUX_TRACE_OFFSET, STACK_TRACE_OFFSET,
+};
 use crate::utils::{are_equal, is_binary};
 use alloc::vec::Vec;
 use vm_core::{stack::STACK_TOP_SIZE, StackOutputs};

@@ -10,9 +10,10 @@ use crate::{
         logup::{LAGRANGE_KERNEL_COL_IDX, S_COL_IDX},
         range::V_COL_IDX,
         stack::{B0_COL_IDX, B1_COL_IDX},
+        STACK_TRACE_OFFSET, TRACE_WIDTH,
     },
     utils::are_equal,
-    CLK_COL_IDX, FMP_COL_IDX, STACK_TRACE_OFFSET, TRACE_WIDTH,
+    CLK_COL_IDX, FMP_COL_IDX,
 };
 
 /// The number of auxiliary assertions.

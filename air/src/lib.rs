@@ -23,9 +23,8 @@ mod constraints;
 pub use constraints::stack;
 use constraints::{chiplets, logup, range};
 
-// TODOP: Cleanup
 pub mod trace;
-use trace::{logup::LAGRANGE_KERNEL_COL_IDX, *};
+use trace::{logup::LAGRANGE_KERNEL_COL_IDX, CLK_COL_IDX, FMP_COL_IDX};
 
 mod errors;
 pub mod gkr_proof;

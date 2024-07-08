@@ -3,8 +3,11 @@ use super::{
     HASHER_STATE_COL_RANGE, NUM_CONSTRAINTS, ONE, ZERO,
 };
 use crate::{
-    trace::chiplets::hasher::{Selectors, LINEAR_HASH, STATE_WIDTH},
-    Felt, TRACE_WIDTH,
+    trace::{
+        chiplets::hasher::{Selectors, LINEAR_HASH, STATE_WIDTH},
+        TRACE_WIDTH,
+    },
+    Felt,
 };
 use alloc::vec::Vec;
 use rand_utils::rand_array;

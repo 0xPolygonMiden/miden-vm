@@ -1,7 +1,8 @@
-use super::super::{
-    EvaluationFrame, Felt, FieldElement, TransitionConstraintDegree, CHIPLETS_OFFSET,
+use super::super::{EvaluationFrame, Felt, FieldElement, TransitionConstraintDegree};
+use crate::{
+    trace::CHIPLETS_OFFSET,
+    utils::{are_equal, binary_not, is_binary},
 };
-use crate::utils::{are_equal, binary_not, is_binary};
 use alloc::vec::Vec;
 
 mod bitwise;

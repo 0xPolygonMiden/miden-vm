@@ -11,13 +11,14 @@ use winter_prover::{
 };
 
 use crate::{
-    decoder::{DECODER_OP_BITS_OFFSET, DECODER_USER_OP_HELPERS_OFFSET},
     gkr_verifier::VerifierError,
     trace::{
         chiplets::{MEMORY_D0_COL_IDX, MEMORY_D1_COL_IDX},
+        decoder::{DECODER_OP_BITS_OFFSET, DECODER_USER_OP_HELPERS_OFFSET},
         range::{M_COL_IDX, V_COL_IDX},
+        CHIPLETS_OFFSET, TRACE_WIDTH,
     },
-    verify_virtual_bus, CHIPLETS_OFFSET, TRACE_WIDTH,
+    verify_virtual_bus,
 };
 
 #[derive(Debug, Default)]
