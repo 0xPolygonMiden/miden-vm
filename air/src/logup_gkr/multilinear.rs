@@ -140,9 +140,11 @@ pub enum MultiLinearPolyError {
 
 /// The EQ (equality) function is the binary function defined by
 ///
+/// ```ignore
 /// EQ:    {0 , 1}^ν ⛌ {0 , 1}^ν ⇾ {0 , 1}
 ///   ((x_0, ..., x_{ν - 1}), (y_0, ..., y_{ν - 1})) ↦ \prod_{i = 0}^{ν - 1} (x_i * y_i + (1 - x_i)
 /// * (1 - y_i))
+/// ```
 ///
 /// Taking It's multi-linear extension EQ^{~}, we can define a basis for the set of multi-linear
 /// polynomials in ν variables by
@@ -155,8 +157,10 @@ pub enum MultiLinearPolyError {
 /// defined as the summation of the evaluations of f against the Lagrange basis.
 /// More specifically, given (r_0, ..., r_{ν - 1}) ∈ 𝔽^ν, then:
 ///
+/// ```ignore
 ///     f^{~}(r_0, ..., r_{ν - 1}) = \sum_{(y_0, ..., y_{ν - 1}) ∈ {0 , 1}^ν}
 ///                  f(y_0, ..., y_{ν - 1}) EQ^{~}((r_0, ..., r_{ν - 1}), (y_0, ..., y_{ν - 1}))
+/// ```
 ///
 /// We call the Lagrange kernel the evaluation of the EQ^{~} function at
 /// ((r_0, ..., r_{ν - 1}), (y_0, ..., y_{ν - 1})) for all (y_0, ..., y_{ν - 1}) ∈ {0 , 1}^ν for

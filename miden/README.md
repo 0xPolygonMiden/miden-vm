@@ -108,7 +108,7 @@ let mut assembler = Assembler::default();
 let program = assembler.assemble("begin push.3 push.5 add end").unwrap();
 
 // let's execute it and generate a STARK proof
-let (outputs, proof) = prove(
+let (outputs, main_trace_first_row, proof) = prove(
     &program,
     StackInputs::default(),       // we won't provide any inputs
     DefaultHost::default(),       // we'll be using a default host
@@ -202,7 +202,7 @@ let host = DefaultHost::default();
 let stack_inputs = StackInputs::try_from_ints([0, 1]).unwrap();
 
 // execute the program
-let (outputs, proof) = miden_vm::prove(
+let (outputs, main_trace_first_row, proof) = miden_vm::prove(
     &program,
     stack_inputs,
     host,

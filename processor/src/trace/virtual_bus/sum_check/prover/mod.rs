@@ -40,20 +40,24 @@ pub use self::error::Error;
 ///
 /// 3. The Verifier samples a random challenge `r_0 ∈ 𝔽` and sends it to the Prover.
 ///
-/// 4. For each i in 1...(\nu - 1): a. The Prover sends the univariate polynomial defined by:
+/// 4. For each i in 1...(\nu - 1):
 ///
+///   a. The Prover sends the univariate polynomial defined by:
+///
+/// ```ignore
 ///         s_i(X_i) := \sum_{(x_{i + 1},\cdots, x_{\nu - 1})
 ///                                  w(r_0,\cdots, r_{i - 1}, X_i, x_{i + 1}, \cdots, x_{\nu - 1}).
-///
-///     b. The Verifier checks that s_{i - 1}(r_{i - 1}) = s_{i}(0) + s_{i}(1) rejecting if not.
-///     
-///     c. The Verifier samples a random challenge `r_i ∈ 𝔽` and sends it to the Prover.
+/// ```
+///   b. The Verifier checks that s_{i - 1}(r_{i - 1}) = s_{i}(0) + s_{i}(1) rejecting if not.
+///   c. The Verifier samples a random challenge `r_i ∈ 𝔽` and sends it to the Prover.
 ///
 /// 5. The Verifier now queries each of the oracles behind the commitments i.e., `f_i` at `(r_0,
 ///    \cdots , r_{\nu - 1})` to get u_i = f_i(r_0, \cdots , r_{\nu - 1}). The Verifier then accepts
 ///    if and only if:
 ///
+/// ```ignore
 ///         s_{\nu - 1}(r_{\nu - 1}) = g(u_0, \cdots , u_{\nu - 1})
+/// ```
 ///
 /// A few remarks:
 ///
@@ -255,9 +259,11 @@ where
 /// For the remaining evaluations, we use the fact that the folded `f_i` is multi-linear and hence
 /// we can write
 ///
+/// ```ignore
 ///     f_i(X_i, x_{i + 1}, \cdots, x_{\nu - 1}) =
-///        (1 - X_i) . f_i(0, x_{i + 1}, \cdots, x_{\nu - 1}) + X_i . f_i(1, x_{i + 1}, \cdots,
-/// x_{\nu - 1})
+///        (1 - X_i) . f_i(0, x_{i + 1}, \cdots, x_{\nu - 1}) +
+///        X_i . f_i(1, x_{i + 1}, \cdots, x_{\nu - 1})
+/// ```
 ///
 /// Note that we omitted writing the folding randomness for readability.
 /// Since the evaluation domain is {0, 1, ... , d_max}, we can compute the evaluations based on
