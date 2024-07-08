@@ -3,9 +3,10 @@ use crate::trace::virtual_bus::{sum_check::FinalClaimBuilder, SumCheckProver};
 use alloc::vec::Vec;
 use core::marker::PhantomData;
 use miden_air::logup_gkr::{
-    evaluate_fractions_at_main_trace_query, BeforeFinalLayerProof, CircuitLayer, CircuitLayerPolys,
-    CircuitWire, EqFunction, FinalLayerProof, FinalOpeningClaim, GkrCircuitProof, GkrComposition,
-    GkrCompositionMerge, MultiLinearPoly, RoundProof, SumCheckProof, SumCheckRoundClaim,
+    evaluate_fractions_at_main_trace_query,
+    sumcheck::{FinalOpeningClaim, RoundProof, SumCheckProof, SumCheckRoundClaim},
+    BeforeFinalLayerProof, CircuitLayer, CircuitLayerPolys, CircuitWire, EqFunction,
+    FinalLayerProof, GkrCircuitProof, GkrComposition, GkrCompositionMerge, MultiLinearPoly,
     NUM_WIRES_PER_TRACE_ROW,
 };
 use vm_core::{Felt, FieldElement};

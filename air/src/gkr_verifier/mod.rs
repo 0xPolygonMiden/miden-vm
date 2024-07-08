@@ -1,6 +1,7 @@
 use crate::logup_gkr::{
-    CircuitLayerPolys, EqFunction, FinalLayerProof, FinalOpeningClaim, GkrCircuitProof,
-    GkrComposition, GkrCompositionMerge, SumCheckProof, SumCheckRoundClaim,
+    sumcheck::{FinalOpeningClaim, SumCheckProof, SumCheckRoundClaim},
+    CircuitLayerPolys, EqFunction, FinalLayerProof, GkrCircuitProof, GkrComposition,
+    GkrCompositionMerge,
 };
 use alloc::{borrow::ToOwned, vec::Vec};
 use vm_core::FieldElement;

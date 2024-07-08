@@ -1,5 +1,8 @@
 use super::SumCheckRoundClaim;
-use crate::logup_gkr::{CompositionPolynomial, FinalOpeningClaim, RoundProof, SumCheckProof};
+use crate::logup_gkr::{
+    sumcheck::{FinalOpeningClaim, RoundProof, SumCheckProof},
+    CompositionPolynomial,
+};
 use alloc::vec::Vec;
 use core::marker::PhantomData;
 use vm_core::FieldElement;

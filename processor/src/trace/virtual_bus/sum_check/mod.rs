@@ -1,4 +1,4 @@
-use miden_air::logup_gkr::{RoundProof, SumCheckRoundClaim};
+use miden_air::logup_gkr::sumcheck::{RoundProof, SumCheckRoundClaim};
 use vm_core::FieldElement;
 
 mod prover;
@@ -30,7 +30,7 @@ mod test {
     use super::prover::{FinalClaimBuilder, SumCheckProver};
     use alloc::{borrow::ToOwned, vec::Vec};
     use miden_air::{
-        logup_gkr::{CompositionPolynomial, FinalOpeningClaim, MultiLinearPoly},
+        logup_gkr::{sumcheck::FinalOpeningClaim, CompositionPolynomial, MultiLinearPoly},
         CompositionPolyQueryBuilder, SumCheckVerifier,
     };
     use test_utils::rand::rand_vector;

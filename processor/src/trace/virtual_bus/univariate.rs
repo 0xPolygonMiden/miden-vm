@@ -1,5 +1,5 @@
 use alloc::vec::Vec;
-use miden_air::logup_gkr::UnivariatePolyCoef;
+use miden_air::logup_gkr::sumcheck::UnivariatePolyCoef;
 use vm_core::FieldElement;
 use winter_prover::math::batch_inversion;
 

@@ -3,7 +3,8 @@ use crate::trace::virtual_bus::univariate::UnivariatePolyEvals;
 use alloc::vec::Vec;
 use core::marker::PhantomData;
 use miden_air::logup_gkr::{
-    CompositionPolynomial, FinalOpeningClaim, MultiLinearPoly, SumCheckProof, SumCheckRoundClaim,
+    sumcheck::{FinalOpeningClaim, SumCheckProof, SumCheckRoundClaim},
+    CompositionPolynomial, MultiLinearPoly,
 };
 use vm_core::FieldElement;
 use winter_prover::crypto::{ElementHasher, RandomCoin};
