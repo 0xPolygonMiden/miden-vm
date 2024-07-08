@@ -269,7 +269,6 @@ where
     where
         E: FieldElement<BaseField = Self::BaseField>,
     {
-        // TODOP: `generate_gkr_proof()` should return a `Result`
         let logup_randomness: E = public_coin.draw().expect("failed to draw logup randomness");
 
         let gkr_proof =
