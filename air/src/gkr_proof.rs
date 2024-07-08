@@ -20,7 +20,14 @@ use crate::{
     verify_virtual_bus, CHIPLETS_OFFSET, TRACE_WIDTH,
 };
 
+#[derive(Debug, Default)]
 pub struct GkrCircuitVerifier {}
+
+impl GkrCircuitVerifier {
+    pub fn new() -> Self {
+        Self::default()
+    }
+}
 
 impl GkrVerifier for GkrCircuitVerifier {
     type GkrProof<E: FieldElement> = GkrCircuitProof<E>;

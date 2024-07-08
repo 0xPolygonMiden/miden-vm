@@ -134,6 +134,12 @@ impl Air for ProcessorAir {
         }
     }
 
+    fn get_gkr_proof_verifier<E: FieldElement<BaseField = Self::BaseField>>(
+        &self,
+    ) -> Self::GkrVerifier<E> {
+        GkrCircuitVerifier::new()
+    }
+
     // PERIODIC COLUMNS
     // --------------------------------------------------------------------------------------------
 
