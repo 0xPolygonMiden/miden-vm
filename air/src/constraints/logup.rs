@@ -1,11 +1,10 @@
 use alloc::vec::Vec;
-use vm_core::{stack::STACK_TOP_SIZE, ExtensionOf, Felt, FieldElement};
+use vm_core::{stack::STACK_TOP_SIZE, utils::inner_product, ExtensionOf, Felt, FieldElement};
 use winter_air::{
     Assertion, EvaluationFrame, LagrangeKernelRandElements, TransitionConstraintDegree,
 };
 
 use crate::{
-    gkr_proof::inner_product,
     trace::{
         logup::{LAGRANGE_KERNEL_COL_IDX, S_COL_IDX},
         range::V_COL_IDX,

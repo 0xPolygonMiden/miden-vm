@@ -1,4 +1,5 @@
 use crate::Felt;
+use ::math::FieldElement;
 use alloc::vec::Vec;
 use core::{
     fmt::Debug,
@@ -18,6 +19,18 @@ pub use winter_utils::ReadAdapter;
 
 pub mod math {
     pub use math::batch_inversion;
+}
+
+// INNER PRODUCT
+// ===============================================================================================
+
+/// Computes the inner product in the extension field of two iterators that must yield the same
+/// number of items.
+pub fn inner_product<E: FieldElement>(
+    x: impl Iterator<Item = impl Into<E>>,
+    y: impl Iterator<Item = impl Into<E>>,
+) -> E {
+    x.zip(y).fold(E::ZERO, |acc, (x_i, y_i)| acc + x_i.into() * y_i.into())
 }
 
 // TO ELEMENTS

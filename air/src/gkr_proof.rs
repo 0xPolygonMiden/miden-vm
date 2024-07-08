@@ -3,7 +3,7 @@ use core::ops::{Add, Index};
 
 use alloc::vec::Vec;
 use static_assertions::const_assert;
-use vm_core::{polynom, FieldElement};
+use vm_core::{polynom, utils::inner_product, FieldElement};
 use winter_air::{GkrRandElements, GkrVerifier, LagrangeKernelRandElements};
 use winter_prover::{
     crypto::{ElementHasher, RandomCoin},
@@ -830,15 +830,6 @@ pub struct SumCheckRoundClaim<E: FieldElement> {
 
 // HELPER
 // ================================================================================================
-
-/// Computes the inner product in the extension field of two iterators that must yield the same
-/// number of items.
-pub fn inner_product<E: FieldElement>(
-    x: impl Iterator<Item = impl Into<E>>,
-    y: impl Iterator<Item = impl Into<E>>,
-) -> E {
-    x.zip(y).fold(E::ZERO, |acc, (x_i, y_i)| acc + x_i.into() * y_i.into())
-}
 
 /// Computes the evaluations of the Lagrange basis polynomials over the interpolating
 /// set {0 , 1}^ν at (r_0, ..., r_{ν - 1}) i.e., the Lagrange kernel at (r_0, ..., r_{ν - 1}).

@@ -25,8 +25,8 @@
 //! [1]: https://dl.acm.org/doi/10.1145/2699436
 //! [2]: https://eprint.iacr.org/2023/1284
 use alloc::vec::Vec;
-use miden_air::{gkr_proof::inner_product, trace::main_trace::MainTrace, AuxRandElements};
-use vm_core::{Felt, FieldElement};
+use miden_air::{trace::main_trace::MainTrace, AuxRandElements};
+use vm_core::{utils::inner_product, Felt, FieldElement};
 
 mod circuit;
 pub use circuit::prove;
