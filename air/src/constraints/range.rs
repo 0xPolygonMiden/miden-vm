@@ -27,9 +27,10 @@ pub const CONSTRAINT_DEGREES: [usize; NUM_CONSTRAINTS] = [
 // --- MAIN TRACE ---------------------------------------------------------------------------------
 
 /// Returns the range checker's boundary assertions for the main trace at the first step.
-pub fn get_assertions_first_step(result: &mut Vec<Assertion<Felt>>) {
+pub fn get_assertions_first_step(result: &mut Vec<Assertion<Felt>>, main_trace_first_row: &[Felt]) {
     let step = 0;
     result.push(Assertion::single(V_COL_IDX, step, ZERO));
+    assert_eq!(main_trace_first_row[V_COL_IDX], ZERO);
 }
 
 /// Returns the range checker's boundary assertions for the main trace at the last step.

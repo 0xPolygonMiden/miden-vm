@@ -1,25 +1,42 @@
 use alloc::vec::Vec;
-use vm_core::{ExtensionOf, Felt, FieldElement};
+use vm_core::{stack::STACK_TOP_SIZE, ExtensionOf, Felt, FieldElement};
 use winter_air::{
     Assertion, EvaluationFrame, LagrangeKernelRandElements, TransitionConstraintDegree,
 };
 
 use crate::{
     gkr_proof::inner_product,
-    trace::logup::{LAGRANGE_KERNEL_COL_IDX, S_COL_IDX},
+    trace::{
+        logup::{LAGRANGE_KERNEL_COL_IDX, S_COL_IDX},
+        range::V_COL_IDX,
+        stack::{B0_COL_IDX, B1_COL_IDX},
+    },
     utils::are_equal,
-    TRACE_WIDTH,
+    CLK_COL_IDX, FMP_COL_IDX, STACK_TRACE_OFFSET, TRACE_WIDTH,
 };
 
 /// The number of auxiliary assertions.
-pub const NUM_ASSERTIONS: usize = TRACE_WIDTH;
+pub const NUM_ASSERTIONS: usize = TRACE_WIDTH - 21;
 
 /// The number of auxiliary assertions.
 pub const NUM_AUX_ASSERTIONS: usize = 2;
 
 pub fn get_assertions_first_step(result: &mut Vec<Assertion<Felt>>, main_trace_first_row: &[Felt]) {
+    const STACK_TRACE_END: usize = STACK_TRACE_OFFSET + STACK_TOP_SIZE - 1;
+    const B0_COL_IDX_MAIN_TRACE: usize = STACK_TRACE_OFFSET + B0_COL_IDX;
+    const B1_COL_IDX_MAIN_TRACE: usize = STACK_TRACE_OFFSET + B1_COL_IDX;
+
     for (col_idx, col) in main_trace_first_row.iter().enumerate().take(TRACE_WIDTH) {
-        result.push(Assertion::single(col_idx, 0, *col))
+        match col_idx {
+            // Hack: These columns already have an assertion
+            CLK_COL_IDX
+            | FMP_COL_IDX
+            | STACK_TRACE_OFFSET..=STACK_TRACE_END
+            | B0_COL_IDX_MAIN_TRACE
+            | B1_COL_IDX_MAIN_TRACE
+            | V_COL_IDX => (),
+            _ => result.push(Assertion::single(col_idx, 0, *col)),
+        }
     }
 }
 

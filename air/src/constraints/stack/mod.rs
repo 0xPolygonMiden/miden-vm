@@ -185,15 +185,21 @@ pub fn enforce_general_constraints<E: FieldElement>(
 // --- MAIN TRACE ---------------------------------------------------------------------------------
 
 /// Returns the stack's boundary assertions for the main trace at the first step.
-pub fn get_assertions_first_step(result: &mut Vec<Assertion<Felt>>, stack_inputs: &[Felt]) {
+pub fn get_assertions_first_step(
+    result: &mut Vec<Assertion<Felt>>,
+    stack_inputs: &[Felt],
+    main_trace_first_row: &[Felt],
+) {
     // stack columns at the first step should be set to stack inputs, excluding overflow inputs.
     for (i, &value) in stack_inputs.iter().take(STACK_TOP_SIZE).enumerate() {
         result.push(Assertion::single(STACK_TRACE_OFFSET + i, 0, value));
+        assert_eq!(main_trace_first_row[STACK_TRACE_OFFSET + i], value);
     }
 
     // if there are remaining slots on top of the stack without specified values, set them to ZERO.
     for i in stack_inputs.len()..STACK_TOP_SIZE {
         result.push(Assertion::single(STACK_TRACE_OFFSET + i, 0, ZERO));
+        assert_eq!(main_trace_first_row[STACK_TRACE_OFFSET + i], ZERO);
     }
 
     // get the initial values for the bookkeeping columns.
@@ -206,10 +212,12 @@ pub fn get_assertions_first_step(result: &mut Vec<Assertion<Felt>>, stack_inputs
 
     // b0 should be initialized to the depth of the stack.
     result.push(Assertion::single(B0_COL_IDX, 0, Felt::new(depth as u64)));
+    assert_eq!(main_trace_first_row[B0_COL_IDX], Felt::new(depth as u64));
 
     // b1 should be initialized to the address of the last row in the overflow table, which is 0
     // when the overflow table is empty and -1 mod p when the stack is initialized with overflow.
     result.push(Assertion::single(B1_COL_IDX, 0, overflow_addr));
+    assert_eq!(main_trace_first_row[B1_COL_IDX], overflow_addr);
 }
 
 /// Returns the stack's boundary assertions for the main trace at the last step.

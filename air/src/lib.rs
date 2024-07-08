@@ -151,16 +151,23 @@ impl Air for ProcessorAir {
 
         // --- set assertions for the first step --------------------------------------------------
         // first value of clk is 0
+        // TODOP: Fix this main_trace_first_row hack in this PR?
         result.push(Assertion::single(CLK_COL_IDX, 0, ZERO));
+        assert_eq!(self.main_trace_first_row[CLK_COL_IDX], ZERO);
 
         // first value of fmp is 2^30
         result.push(Assertion::single(FMP_COL_IDX, 0, Felt::new(2u64.pow(30))));
+        assert_eq!(self.main_trace_first_row[FMP_COL_IDX], Felt::new(2u64.pow(30)));
 
         // add initial assertions for the stack.
-        stack::get_assertions_first_step(&mut result, self.stack_inputs.values());
+        stack::get_assertions_first_step(
+            &mut result,
+            self.stack_inputs.values(),
+            &self.main_trace_first_row,
+        );
 
         // add initial assertions for the range checker.
-        range::get_assertions_first_step(&mut result);
+        range::get_assertions_first_step(&mut result, &self.main_trace_first_row);
 
         // add initial assertions for logup
         logup::get_assertions_first_step(&mut result, &self.main_trace_first_row);
