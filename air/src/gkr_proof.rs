@@ -833,7 +833,7 @@ pub struct SumCheckRoundClaim<E: FieldElement> {
 
 /// Computes the evaluations of the Lagrange basis polynomials over the interpolating
 /// set {0 , 1}^ν at (r_0, ..., r_{ν - 1}) i.e., the Lagrange kernel at (r_0, ..., r_{ν - 1}).
-pub fn compute_lagrange_basis_evals_at<E: FieldElement>(query: &[E]) -> Vec<E> {
+fn compute_lagrange_basis_evals_at<E: FieldElement>(query: &[E]) -> Vec<E> {
     let nu = query.len();
     let n = 1 << nu;
 
