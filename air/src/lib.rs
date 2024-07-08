@@ -156,7 +156,6 @@ impl Air for ProcessorAir {
 
         // --- set assertions for the first step --------------------------------------------------
         // first value of clk is 0
-        // TODOP: Fix this main_trace_first_row hack in this PR?
         result.push(Assertion::single(CLK_COL_IDX, 0, ZERO));
         assert_eq!(self.main_trace_first_row[CLK_COL_IDX], ZERO);
 

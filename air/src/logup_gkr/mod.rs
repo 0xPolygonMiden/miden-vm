@@ -22,6 +22,9 @@ pub use multilinear::{EqFunction, MultiLinearPoly, MultiLinearPolyError};
 pub mod sumcheck;
 use sumcheck::{FinalOpeningClaim, RoundProof, SumCheckProof};
 
+// GKR CIRCUIT VERIFIER
+// ===============================================================================================
+
 #[derive(Debug, Default)]
 pub struct GkrCircuitVerifier {}
 
@@ -67,6 +70,9 @@ impl GkrVerifier for GkrCircuitVerifier {
         Ok(gkr_rand_elements)
     }
 }
+
+// GKR CIRCUIT PROOF
+// ===============================================================================================
 
 /// A GKR proof for the correct evaluation of the sum of fractions circuit.
 #[derive(Debug)]
@@ -166,6 +172,9 @@ where
     }
 }
 
+// CIRCUIT LAYER POLYS
+// ===============================================================================================
+
 /// Holds a layer of an [`EvaluatedCircuit`] in a representation amenable to proving circuit
 /// evaluation using GKR.
 #[derive(Clone, Debug)]
@@ -226,6 +235,9 @@ where
     }
 }
 
+// CIRCUIT LAYER
+// ===============================================================================================
+
 /// Represents a layer in a [`EvaluatedCircuit`].
 ///
 /// A layer is made up of a set of `n` wires, where `n` is a power of two. This is the natural
@@ -258,6 +270,9 @@ impl<E: FieldElement> CircuitLayer<E> {
         self.wires.len()
     }
 }
+
+// CIRCUIT WIRE
+// ===============================================================================================
 
 /// Represents a fraction `numerator / denominator` as a pair `(numerator, denominator)`. This is
 /// the type for the gates' inputs in [`prover::EvaluatedCircuit`].
@@ -297,26 +312,4 @@ where
 
         Self::new(numerator, denominator)
     }
-}
-
-// HELPER
-// ================================================================================================
-
-/// Computes the evaluations of the Lagrange basis polynomials over the interpolating
-/// set {0 , 1}^ν at (r_0, ..., r_{ν - 1}) i.e., the Lagrange kernel at (r_0, ..., r_{ν - 1}).
-pub(crate) fn compute_lagrange_basis_evals_at<E: FieldElement>(query: &[E]) -> Vec<E> {
-    let nu = query.len();
-    let n = 1 << nu;
-
-    let mut evals: Vec<E> = vec![E::ONE; n];
-    let mut size = 1;
-    for r_i in query.iter().rev() {
-        size *= 2;
-        for i in (0..size).rev().step_by(2) {
-            let scalar = evals[i / 2];
-            evals[i] = scalar * *r_i;
-            evals[i - 1] = scalar - evals[i];
-        }
-    }
-    evals
 }

@@ -4,8 +4,6 @@ use alloc::vec::Vec;
 use vm_core::{utils::inner_product, FieldElement};
 use winter_prover::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable};
 
-use super::compute_lagrange_basis_evals_at;
-
 // MULTI-LINEAR POLYNOMIAL
 // ================================================================================================
 
@@ -206,4 +204,26 @@ impl<E: FieldElement> EqFunction<E> {
         MultiLinearPoly::from_evaluations(eq_evals)
             .expect("should not fail because evaluations is a power of two")
     }
+}
+
+// HELPER
+// ================================================================================================
+
+/// Computes the evaluations of the Lagrange basis polynomials over the interpolating
+/// set {0 , 1}^ν at (r_0, ..., r_{ν - 1}) i.e., the Lagrange kernel at (r_0, ..., r_{ν - 1}).
+fn compute_lagrange_basis_evals_at<E: FieldElement>(query: &[E]) -> Vec<E> {
+    let nu = query.len();
+    let n = 1 << nu;
+
+    let mut evals: Vec<E> = vec![E::ONE; n];
+    let mut size = 1;
+    for r_i in query.iter().rev() {
+        size *= 2;
+        for i in (0..size).rev().step_by(2) {
+            let scalar = evals[i / 2];
+            evals[i] = scalar * *r_i;
+            evals[i - 1] = scalar - evals[i];
+        }
+    }
+    evals
 }
