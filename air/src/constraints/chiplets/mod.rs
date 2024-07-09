@@ -7,6 +7,7 @@ use alloc::vec::Vec;
 mod bitwise;
 mod hasher;
 mod memory;
+mod fri;
 
 // CONSTANTS
 // ================================================================================================
@@ -27,6 +28,7 @@ pub const CONSTRAINT_DEGREES: [usize; NUM_CONSTRAINTS] = [
 pub fn get_periodic_column_values() -> Vec<Vec<Felt>> {
     let mut result = hasher::get_periodic_column_values();
     result.append(&mut bitwise::get_periodic_column_values());
+    result.append(&mut fri::get_periodic_column_values()); // Include FRI periodic columns
     result
 }
 
@@ -41,10 +43,9 @@ pub fn get_transition_constraint_degrees() -> Vec<TransitionConstraintDegree> {
         .collect();
 
     degrees.append(&mut hasher::get_transition_constraint_degrees());
-
     degrees.append(&mut bitwise::get_transition_constraint_degrees());
-
     degrees.append(&mut memory::get_transition_constraint_degrees());
+    degrees.append(&mut fri::get_transition_constraint_degrees()); // Include FRI constraint degrees
 
     degrees
 }
@@ -55,6 +56,7 @@ pub fn get_transition_constraint_count() -> usize {
         + hasher::get_transition_constraint_count()
         + bitwise::get_transition_constraint_count()
         + memory::get_transition_constraint_count()
+        + fri::get_transition_constraint_count() // Include FRI constraint count
 }
 
 /// Enforces constraints for the chiplets module and all chiplet components.
@@ -87,6 +89,15 @@ pub fn enforce_constraints<E: FieldElement<BaseField = Felt>>(
 
     // memory transition constraints
     memory::enforce_constraints(frame, &mut result[constraint_offset..], frame.memory_flag(false));
+    constraint_offset += memory::get_transition_constraint_count();
+
+    // fri transition constraints
+    fri::enforce_constraints(
+        frame,
+        &periodic_values[hasher::NUM_PERIODIC_COLUMNS + bitwise::NUM_PERIODIC_COLUMNS..],
+        &mut result[constraint_offset..],
+        frame.fri_flag(), // Included the fri flag below
+    );
 }
 
 // TRANSITION CONSTRAINT HELPERS
@@ -148,6 +159,9 @@ trait EvaluationFrameExt<E: FieldElement> {
     /// transition constraints with `include_last_row = false`, they will not be applied to the
     /// final row of the memory trace.
     fn memory_flag(&self, include_last_row: bool) -> E;
+
+    /// Flag to indicate whether the frame is in the FRI portion of the Chiplets trace.
+    fn fri_flag(&self) -> E;
 }
 
 impl<E: FieldElement> EvaluationFrameExt<E> for &EvaluationFrame<E> {
@@ -181,6 +195,11 @@ impl<E: FieldElement> EvaluationFrameExt<E> for &EvaluationFrame<E> {
             self.s(0) * self.s(1) * binary_not(self.s_next(2))
         }
     }
+
+    #[inline(always)]
+    fn fri_flag(&self) -> E {
+        self.s(0) * self.s(1) * self.s(2)
+    }
 }
 
 // EXTERNAL ACCESSORS
@@ -190,11 +209,18 @@ impl<E: FieldElement> EvaluationFrameExt<E> for &EvaluationFrame<E> {
 pub trait ChipletsFrameExt<E: FieldElement> {
     /// Flag to indicate whether the frame is in the memory chiplet.
     fn chiplets_memory_flag(&self) -> E;
+    /// Flag to indicate whether the frame is in the FRI chiplet.
+    fn chiplets_fri_flag(&self) -> E;
 }
 
 impl<E: FieldElement> ChipletsFrameExt<E> for &EvaluationFrame<E> {
     #[inline(always)]
     fn chiplets_memory_flag(&self) -> E {
         self.memory_flag(true)
+    }
+
+    #[inline(always)]
+    fn chiplets_fri_flag(&self) -> E {
+        self.fri_flag()
     }
 }
