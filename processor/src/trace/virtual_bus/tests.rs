@@ -11,6 +11,7 @@ use vm_core::{
 };
 use vm_core::{Felt, FieldElement, Kernel, Operation, StackInputs};
 
+
 #[test]
 fn test_vb_prover_verifier() {
     let s = 6;

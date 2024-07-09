@@ -15,6 +15,9 @@ use winter_prover::{
     matrix::ColMatrix,
 };
 
+// EVALUATED CIRCUIT
+// ================================================================================================
+
 /// Evaluation of a layered circuit for computing a sum of fractions.
 ///
 /// The circuit computes a sum of fractions based on the formula a / c + b / d = (a * d + b * c) /
@@ -169,6 +172,9 @@ where
     input_gates_values.try_into().unwrap()
 }
 
+// PROVER
+// ================================================================================================
+
 /// Evaluates and proves a fractional sum circuit given a set of composition polynomials.
 ///
 /// For the input layer of the circuit, each individual component of the quadruple
@@ -257,6 +263,9 @@ pub fn prove<
         final_layer_proof,
     })
 }
+
+// HELPER FUNCTIONS
+// ================================================================================================
 
 /// Proves the final GKR layer which corresponds to the input circuit layer.
 fn prove_final_circuit_layer<

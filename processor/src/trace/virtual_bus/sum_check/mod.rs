@@ -25,14 +25,18 @@ pub fn reduce_claim<E: FieldElement>(
     }
 }
 
+// TESTS
+// ================================================================================================
+
 #[cfg(test)]
-mod test {
+mod tests {
     use super::prover::{FinalClaimBuilder, SumCheckProver};
     use alloc::{borrow::ToOwned, vec::Vec};
     use miden_air::{
         logup_gkr::{sumcheck::FinalOpeningClaim, CompositionPolynomial, MultiLinearPoly},
         CompositionPolyQueryBuilder, SumCheckVerifier,
     };
+
     use test_utils::rand::rand_vector;
     use vm_core::{crypto::random::RpoRandomCoin, Felt, FieldElement, Word, ONE, ZERO};
 

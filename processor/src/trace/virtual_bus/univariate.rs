@@ -3,6 +3,9 @@ use miden_air::logup_gkr::sumcheck::UnivariatePolyCoef;
 use vm_core::FieldElement;
 use winter_prover::math::batch_inversion;
 
+// UNIVARIATE POLYNOMIAL (EVALUATION FORM)
+// ================================================================================================
+
 /// The evaluations of a univariate polynomial of degree n at 0, 1, ..., n with the evaluation at 0
 /// omitted.
 #[derive(Clone, Debug)]
@@ -62,6 +65,9 @@ impl<E: FieldElement> UnivariatePolyEvals<E> {
         UnivariatePolyCoef { coefficients }
     }
 }
+
+// HELPER FUNCTIONS
+// ================================================================================================
 
 /// Given a (row) vector `v`, computes the vector-matrix product `v * V^{-1}` where `V` is
 /// the Vandermonde matrix over the points `1, ..., n` where `n` is the length of `v`.
