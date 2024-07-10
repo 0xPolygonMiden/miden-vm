@@ -6,7 +6,7 @@ pub use decorators::{
     AdviceInjector, AssemblyOp, DebugOptions, Decorator, DecoratorIterator, DecoratorList,
     SignatureKind,
 };
-use winter_utils::DeserializationError;
+use winter_utils::{ByteWriter, DeserializationError, Serializable};
 
 // OPERATIONS
 // ================================================================================================
@@ -866,6 +866,111 @@ impl fmt::Display for Operation {
             Self::MrUpdate => write!(f, "mrupdate"),
             Self::FriE2F4 => write!(f, "frie2f4"),
             Self::RCombBase => write!(f, "rcomb1"),
+        }
+    }
+}
+
+impl Serializable for Operation {
+    fn write_into<W: ByteWriter>(&self, target: &mut W) {
+        target.write_u8(self.op_code());
+
+        // For operations that have extra data, encode it in `data`.
+        match self {
+            Operation::Assert(err_code)
+            | Operation::MpVerify(err_code)
+            | Operation::U32assert2(err_code) => {
+                err_code.to_le_bytes().write_into(target);
+            }
+            Operation::Push(value) => value.as_int().write_into(target),
+
+            // Note: we explicitly write out all the operations so that whenever we make a
+            // modification to the `Operation` enum, we get a compile error here. This
+            // should help us remember to properly encode/decode each operation variant.
+            Operation::Noop
+            | Operation::FmpAdd
+            | Operation::FmpUpdate
+            | Operation::SDepth
+            | Operation::Caller
+            | Operation::Clk
+            | Operation::Join
+            | Operation::Split
+            | Operation::Loop
+            | Operation::Call
+            | Operation::Dyn
+            | Operation::SysCall
+            | Operation::Span
+            | Operation::End
+            | Operation::Repeat
+            | Operation::Respan
+            | Operation::Halt
+            | Operation::Add
+            | Operation::Neg
+            | Operation::Mul
+            | Operation::Inv
+            | Operation::Incr
+            | Operation::And
+            | Operation::Or
+            | Operation::Not
+            | Operation::Eq
+            | Operation::Eqz
+            | Operation::Expacc
+            | Operation::Ext2Mul
+            | Operation::U32split
+            | Operation::U32add
+            | Operation::U32add3
+            | Operation::U32sub
+            | Operation::U32mul
+            | Operation::U32madd
+            | Operation::U32div
+            | Operation::U32and
+            | Operation::U32xor
+            | Operation::Pad
+            | Operation::Drop
+            | Operation::Dup0
+            | Operation::Dup1
+            | Operation::Dup2
+            | Operation::Dup3
+            | Operation::Dup4
+            | Operation::Dup5
+            | Operation::Dup6
+            | Operation::Dup7
+            | Operation::Dup9
+            | Operation::Dup11
+            | Operation::Dup13
+            | Operation::Dup15
+            | Operation::Swap
+            | Operation::SwapW
+            | Operation::SwapW2
+            | Operation::SwapW3
+            | Operation::SwapDW
+            | Operation::MovUp2
+            | Operation::MovUp3
+            | Operation::MovUp4
+            | Operation::MovUp5
+            | Operation::MovUp6
+            | Operation::MovUp7
+            | Operation::MovUp8
+            | Operation::MovDn2
+            | Operation::MovDn3
+            | Operation::MovDn4
+            | Operation::MovDn5
+            | Operation::MovDn6
+            | Operation::MovDn7
+            | Operation::MovDn8
+            | Operation::CSwap
+            | Operation::CSwapW
+            | Operation::AdvPop
+            | Operation::AdvPopW
+            | Operation::MLoadW
+            | Operation::MStoreW
+            | Operation::MLoad
+            | Operation::MStore
+            | Operation::MStream
+            | Operation::Pipe
+            | Operation::HPerm
+            | Operation::MrUpdate
+            | Operation::FriE2F4
+            | Operation::RCombBase => (),
         }
     }
 }

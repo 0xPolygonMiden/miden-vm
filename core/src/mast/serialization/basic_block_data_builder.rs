@@ -1,10 +1,10 @@
 use alloc::{collections::BTreeMap, vec::Vec};
 use miden_crypto::hash::rpo::{Rpo256, RpoDigest};
-use winter_utils::ByteWriter;
+use winter_utils::{ByteWriter, Serializable};
 
 use crate::{
     mast::{BasicBlockNode, OperationOrDecorator},
-    AdviceInjector, DebugOptions, Decorator, Operation, SignatureKind,
+    AdviceInjector, DebugOptions, Decorator, SignatureKind,
 };
 
 use super::{decorator::EncodedDecoratorVariant, DataOffset, StringIndex, StringRef};
@@ -45,7 +45,7 @@ impl BasicBlockDataBuilder {
         // 2nd part of `mast_node_to_info()` (inside the match)
         for op_or_decorator in basic_block.iter() {
             match op_or_decorator {
-                OperationOrDecorator::Operation(operation) => self.encode_operation(operation),
+                OperationOrDecorator::Operation(operation) => operation.write_into(&mut self.data),
                 OperationOrDecorator::Decorator(decorator) => self.encode_decorator(decorator),
             }
         }
@@ -60,108 +60,6 @@ impl BasicBlockDataBuilder {
 
 /// Helpers
 impl BasicBlockDataBuilder {
-    fn encode_operation(&mut self, operation: &Operation) {
-        self.data.push(operation.op_code());
-
-        // For operations that have extra data, encode it in `data`.
-        match operation {
-            Operation::Assert(err_code)
-            | Operation::MpVerify(err_code)
-            | Operation::U32assert2(err_code) => {
-                self.data.extend_from_slice(&err_code.to_le_bytes())
-            }
-            Operation::Push(value) => self.data.extend_from_slice(&value.as_int().to_le_bytes()),
-            // Note: we explicitly write out all the operations so that whenever we make a
-            // modification to the `Operation` enum, we get a compile error here. This
-            // should help us remember to properly encode/decode each operation variant.
-            Operation::Noop
-            | Operation::FmpAdd
-            | Operation::FmpUpdate
-            | Operation::SDepth
-            | Operation::Caller
-            | Operation::Clk
-            | Operation::Join
-            | Operation::Split
-            | Operation::Loop
-            | Operation::Call
-            | Operation::Dyn
-            | Operation::SysCall
-            | Operation::Span
-            | Operation::End
-            | Operation::Repeat
-            | Operation::Respan
-            | Operation::Halt
-            | Operation::Add
-            | Operation::Neg
-            | Operation::Mul
-            | Operation::Inv
-            | Operation::Incr
-            | Operation::And
-            | Operation::Or
-            | Operation::Not
-            | Operation::Eq
-            | Operation::Eqz
-            | Operation::Expacc
-            | Operation::Ext2Mul
-            | Operation::U32split
-            | Operation::U32add
-            | Operation::U32add3
-            | Operation::U32sub
-            | Operation::U32mul
-            | Operation::U32madd
-            | Operation::U32div
-            | Operation::U32and
-            | Operation::U32xor
-            | Operation::Pad
-            | Operation::Drop
-            | Operation::Dup0
-            | Operation::Dup1
-            | Operation::Dup2
-            | Operation::Dup3
-            | Operation::Dup4
-            | Operation::Dup5
-            | Operation::Dup6
-            | Operation::Dup7
-            | Operation::Dup9
-            | Operation::Dup11
-            | Operation::Dup13
-            | Operation::Dup15
-            | Operation::Swap
-            | Operation::SwapW
-            | Operation::SwapW2
-            | Operation::SwapW3
-            | Operation::SwapDW
-            | Operation::MovUp2
-            | Operation::MovUp3
-            | Operation::MovUp4
-            | Operation::MovUp5
-            | Operation::MovUp6
-            | Operation::MovUp7
-            | Operation::MovUp8
-            | Operation::MovDn2
-            | Operation::MovDn3
-            | Operation::MovDn4
-            | Operation::MovDn5
-            | Operation::MovDn6
-            | Operation::MovDn7
-            | Operation::MovDn8
-            | Operation::CSwap
-            | Operation::CSwapW
-            | Operation::AdvPop
-            | Operation::AdvPopW
-            | Operation::MLoadW
-            | Operation::MStoreW
-            | Operation::MLoad
-            | Operation::MStore
-            | Operation::MStream
-            | Operation::Pipe
-            | Operation::HPerm
-            | Operation::MrUpdate
-            | Operation::FriE2F4
-            | Operation::RCombBase => (),
-        }
-    }
-
     fn encode_decorator(&mut self, decorator: &Decorator) {
         // Set the first byte to the decorator discriminant.
         //
