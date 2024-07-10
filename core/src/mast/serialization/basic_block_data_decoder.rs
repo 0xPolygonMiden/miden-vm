@@ -55,11 +55,7 @@ impl<'a> BasicBlockDataDecoder<'a> {
 /// Helpers
 impl<'a> BasicBlockDataDecoder<'a> {
     fn decode_decorator(&mut self) -> Result<Decorator, DeserializationError> {
-        let discriminant = {
-            let first_byte = self.data_reader.read_u8()?;
-
-            first_byte & 0b0111_1111
-        };
+        let discriminant = self.data_reader.read_u8()?;
 
         let decorator_variant = EncodedDecoratorVariant::from_discriminant(discriminant)
             .ok_or_else(|| {

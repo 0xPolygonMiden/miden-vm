@@ -62,11 +62,9 @@ impl BasicBlockDataBuilder {
 impl BasicBlockDataBuilder {
     fn encode_decorator(&mut self, decorator: &Decorator) {
         // Set the first byte to the decorator discriminant.
-        //
-        // Note: the most significant bit is set to 1 (to differentiate decorators from operations).
         {
             let decorator_variant: EncodedDecoratorVariant = decorator.into();
-            self.data.push(decorator_variant.discriminant() | 0b1000_0000);
+            self.data.push(decorator_variant.discriminant());
         }
 
         // For decorators that have extra data, encode it in `data` and `strings`.

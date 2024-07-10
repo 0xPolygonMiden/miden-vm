@@ -40,12 +40,19 @@ pub enum EncodedDecoratorVariant {
 }
 
 impl EncodedDecoratorVariant {
+    /// Returns the discriminant of the given decorator variant.
+    ///
+    /// To distinguish them from [`crate::Operation`] discriminants, the most significant bit of
+    /// decorator discriminant is always set to 1.
     pub fn discriminant(&self) -> u8 {
-        self.to_u8().expect("guaranteed to fit in a `u8` due to #[repr(u8)]")
+        let discriminant = self.to_u8().expect("guaranteed to fit in a `u8` due to #[repr(u8)]");
+
+        discriminant | 0b1000_0000
     }
 
+    /// The inverse operation of [`Self::discriminant`].
     pub fn from_discriminant(discriminant: u8) -> Option<Self> {
-        Self::from_u8(discriminant)
+        Self::from_u8(discriminant & 0b0111_1111)
     }
 }
 
