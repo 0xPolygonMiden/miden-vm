@@ -742,8 +742,9 @@ impl Serializable for Operation {
             Operation::Push(value) => value.as_int().write_into(target),
 
             // Note: we explicitly write out all the operations so that whenever we make a
-            // modification to the `Operation` enum, we get a compile error here. This
-            // should help us remember to properly encode/decode each operation variant.
+            // modification to the `Operation` enum, we get a compile error here. This should help
+            // us remember to properly encode/decode each operation variant. Remember to also fix
+            // deserialization!
             Operation::Noop
             | Operation::FmpAdd
             | Operation::FmpUpdate
