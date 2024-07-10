@@ -250,6 +250,7 @@ where
         DefaultConstraintEvaluator::new(air, aux_rand_elements, gkr_proof, composition_coefficients)
     }
 
+    #[instrument(skip_all)]
     fn build_aux_trace<E>(
         &self,
         trace: &Self::Trace,
@@ -261,6 +262,7 @@ where
         trace.build_aux_trace(aux_rand_elements).unwrap()
     }
 
+    #[instrument(skip_all)]
     fn generate_gkr_proof<E>(
         &self,
         main_trace: &Self::Trace,
