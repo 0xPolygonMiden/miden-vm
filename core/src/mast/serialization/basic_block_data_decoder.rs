@@ -45,14 +45,13 @@ impl<'a> BasicBlockDataDecoder<'a> {
 
                 let operation = if op_code == Operation::Assert(0).op_code()
                     || op_code == Operation::MpVerify(0).op_code()
+                    || op_code == Operation::U32assert2(0).op_code()
                 {
                     let value_le_bytes: [u8; 4] = self.data_reader.read_array()?;
                     let value = u32::from_le_bytes(value_le_bytes);
 
                     Operation::with_opcode_and_data(op_code, OperationData::U32(value))?
-                } else if op_code == Operation::U32assert2(ZERO).op_code()
-                    || op_code == Operation::Push(ZERO).op_code()
-                {
+                } else if op_code == Operation::Push(ZERO).op_code() {
                     // Felt operation data
                     let value_le_bytes: [u8; 8] = self.data_reader.read_array()?;
                     let value_u64 = u64::from_le_bytes(value_le_bytes);

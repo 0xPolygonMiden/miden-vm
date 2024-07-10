@@ -6,7 +6,6 @@ use crate::{
 use vm_core::{
     AdviceInjector, Felt,
     Operation::{self, *},
-    ZERO,
 };
 
 /// This enum is intended to determine the mode of operation passed to the parsing function
@@ -45,7 +44,7 @@ pub fn u32testw(span_builder: &mut BasicBlockBuilder) {
 ///
 /// Implemented by executing `U32ASSERT2` on each pair of elements in the word.
 /// Total of 6 VM cycles.
-pub fn u32assertw(span_builder: &mut BasicBlockBuilder, err_code: Felt) {
+pub fn u32assertw(span_builder: &mut BasicBlockBuilder, err_code: u32) {
     #[rustfmt::skip]
     let ops = [
         // Test the first and the second elements
@@ -171,7 +170,7 @@ pub fn u32not(span_builder: &mut BasicBlockBuilder) {
     let ops = [
         // Perform the operation
         Push(Felt::from(u32::MAX)),
-        U32assert2(ZERO),
+        U32assert2(0),
         Swap,
         U32sub,
 

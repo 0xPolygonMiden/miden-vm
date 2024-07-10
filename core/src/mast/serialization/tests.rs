@@ -1,5 +1,4 @@
 use alloc::string::ToString;
-use math::FieldElement;
 use miden_crypto::{hash::rpo::RpoDigest, Felt};
 
 use super::*;
@@ -13,7 +12,7 @@ use crate::{
 /// [`serialize_deserialize_all_nodes`].
 #[test]
 fn confirm_operation_and_decorator_structure() {
-    let _ = match Operation::Noop {
+    match Operation::Noop {
         Operation::Noop => (),
         Operation::Assert(_) => (),
         Operation::FmpAdd => (),
@@ -105,7 +104,7 @@ fn confirm_operation_and_decorator_structure() {
         Operation::RCombBase => (),
     };
 
-    let _ = match Decorator::Event(0) {
+    match Decorator::Event(0) {
         Decorator::Advice(advice) => match advice {
             AdviceInjector::MerkleNodeMerge => (),
             AdviceInjector::MerkleNodeToStack => (),
@@ -181,7 +180,7 @@ fn serialize_deserialize_all_nodes() {
             Operation::Ext2Mul,
             Operation::U32split,
             Operation::U32add,
-            Operation::U32assert2(Felt::ONE),
+            Operation::U32assert2(222),
             Operation::U32add3,
             Operation::U32sub,
             Operation::U32mul,

@@ -65,12 +65,12 @@ impl BasicBlockDataBuilder {
 
         // For operations that have extra data, encode it in `data`.
         match operation {
-            Operation::Assert(err_code) | Operation::MpVerify(err_code) => {
+            Operation::Assert(err_code)
+            | Operation::MpVerify(err_code)
+            | Operation::U32assert2(err_code) => {
                 self.data.extend_from_slice(&err_code.to_le_bytes())
             }
-            Operation::U32assert2(value) | Operation::Push(value) => {
-                self.data.extend_from_slice(&value.as_int().to_le_bytes())
-            }
+            Operation::Push(value) => self.data.extend_from_slice(&value.as_int().to_le_bytes()),
             // Note: we explicitly write out all the operations so that whenever we make a
             // modification to the `Operation` enum, we get a compile error here. This
             // should help us remember to properly encode/decode each operation variant.

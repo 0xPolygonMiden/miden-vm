@@ -164,7 +164,7 @@ pub enum Operation {
     ///
     /// The internal value specifies an error code associated with the error in case when the
     /// assertion fails.
-    U32assert2(Felt),
+    U32assert2(u32),
 
     /// Pops three elements off the stack, adds them together, and splits the result into upper
     /// and lower 32-bit values. Then pushes the result back onto the stack.
@@ -535,9 +535,9 @@ impl Operation {
             0b0100_0110 => Ok(Self::U32div),
             0b0100_1000 => Ok(Self::U32split),
             0b0100_1010 => match data {
-                OperationData::Felt(value) => Ok(Self::U32assert2(value)),
+                OperationData::U32(value) => Ok(Self::U32assert2(value)),
                 _ => Err(DeserializationError::InvalidValue(
-                    "Invalid opcode data. 'U32assert2' opcode provided, hence expected to receive Felt data.".to_string()
+                    "Invalid opcode data. 'U32assert2' opcode provided, hence expected to receive u32 data.".to_string()
                 )),
             },
             0b0100_1100 => Ok(Self::U32add3),
