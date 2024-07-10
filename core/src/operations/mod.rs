@@ -5,6 +5,7 @@ pub use decorators::{
     AdviceInjector, AssemblyOp, DebugOptions, Decorator, DecoratorIterator, DecoratorList,
     SignatureKind,
 };
+use winter_utils::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable};
 
 // OPERATIONS OP CODES
 // ================================================================================================
@@ -725,5 +726,249 @@ impl fmt::Display for Operation {
             Self::FriE2F4 => write!(f, "frie2f4"),
             Self::RCombBase => write!(f, "rcomb1"),
         }
+    }
+}
+
+impl Serializable for Operation {
+    fn write_into<W: ByteWriter>(&self, target: &mut W) {
+        target.write_u8(self.op_code());
+
+        // For operations that have extra data, encode it in `data`.
+        match self {
+            Operation::Assert(err_code) | Operation::MpVerify(err_code) => {
+                err_code.to_le_bytes().write_into(target)
+            }
+            Operation::U32assert2(err_code) => err_code.as_int().write_into(target),
+            Operation::Push(value) => value.as_int().write_into(target),
+
+            // Note: we explicitly write out all the operations so that whenever we make a
+            // modification to the `Operation` enum, we get a compile error here. This
+            // should help us remember to properly encode/decode each operation variant.
+            Operation::Noop
+            | Operation::FmpAdd
+            | Operation::FmpUpdate
+            | Operation::SDepth
+            | Operation::Caller
+            | Operation::Clk
+            | Operation::Join
+            | Operation::Split
+            | Operation::Loop
+            | Operation::Call
+            | Operation::Dyn
+            | Operation::SysCall
+            | Operation::Span
+            | Operation::End
+            | Operation::Repeat
+            | Operation::Respan
+            | Operation::Halt
+            | Operation::Add
+            | Operation::Neg
+            | Operation::Mul
+            | Operation::Inv
+            | Operation::Incr
+            | Operation::And
+            | Operation::Or
+            | Operation::Not
+            | Operation::Eq
+            | Operation::Eqz
+            | Operation::Expacc
+            | Operation::Ext2Mul
+            | Operation::U32split
+            | Operation::U32add
+            | Operation::U32add3
+            | Operation::U32sub
+            | Operation::U32mul
+            | Operation::U32madd
+            | Operation::U32div
+            | Operation::U32and
+            | Operation::U32xor
+            | Operation::Pad
+            | Operation::Drop
+            | Operation::Dup0
+            | Operation::Dup1
+            | Operation::Dup2
+            | Operation::Dup3
+            | Operation::Dup4
+            | Operation::Dup5
+            | Operation::Dup6
+            | Operation::Dup7
+            | Operation::Dup9
+            | Operation::Dup11
+            | Operation::Dup13
+            | Operation::Dup15
+            | Operation::Swap
+            | Operation::SwapW
+            | Operation::SwapW2
+            | Operation::SwapW3
+            | Operation::SwapDW
+            | Operation::MovUp2
+            | Operation::MovUp3
+            | Operation::MovUp4
+            | Operation::MovUp5
+            | Operation::MovUp6
+            | Operation::MovUp7
+            | Operation::MovUp8
+            | Operation::MovDn2
+            | Operation::MovDn3
+            | Operation::MovDn4
+            | Operation::MovDn5
+            | Operation::MovDn6
+            | Operation::MovDn7
+            | Operation::MovDn8
+            | Operation::CSwap
+            | Operation::CSwapW
+            | Operation::AdvPop
+            | Operation::AdvPopW
+            | Operation::MLoadW
+            | Operation::MStoreW
+            | Operation::MLoad
+            | Operation::MStore
+            | Operation::MStream
+            | Operation::Pipe
+            | Operation::HPerm
+            | Operation::MrUpdate
+            | Operation::FriE2F4
+            | Operation::RCombBase => (),
+        }
+    }
+}
+
+impl Deserializable for Operation {
+    fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
+        let op_code = source.read_u8()?;
+
+        let operation = match op_code {
+            OPCODE_NOOP => Self::Noop,
+            OPCODE_EQZ => Self::Eqz,
+            OPCODE_NEG => Self::Neg,
+            OPCODE_INV => Self::Inv,
+            OPCODE_INCR => Self::Incr,
+            OPCODE_NOT => Self::Not,
+            OPCODE_FMPADD => Self::FmpAdd,
+            OPCODE_MLOAD => Self::MLoad,
+            OPCODE_SWAP => Self::Swap,
+            OPCODE_CALLER => Self::Caller,
+            OPCODE_MOVUP2 => Self::MovUp2,
+            OPCODE_MOVDN2 => Self::MovDn2,
+            OPCODE_MOVUP3 => Self::MovUp3,
+            OPCODE_MOVDN3 => Self::MovDn3,
+            OPCODE_ADVPOPW => Self::AdvPopW,
+            OPCODE_EXPACC => Self::Expacc,
+
+            OPCODE_MOVUP4 => Self::MovUp4,
+            OPCODE_MOVDN4 => Self::MovDn4,
+            OPCODE_MOVUP5 => Self::MovUp5,
+            OPCODE_MOVDN5 => Self::MovDn5,
+            OPCODE_MOVUP6 => Self::MovUp6,
+            OPCODE_MOVDN6 => Self::MovDn6,
+            OPCODE_MOVUP7 => Self::MovUp7,
+            OPCODE_MOVDN7 => Self::MovDn7,
+            OPCODE_SWAPW => Self::SwapW,
+            OPCODE_EXT2MUL => Self::Ext2Mul,
+            OPCODE_MOVUP8 => Self::MovUp8,
+            OPCODE_MOVDN8 => Self::MovDn8,
+            OPCODE_SWAPW2 => Self::SwapW2,
+            OPCODE_SWAPW3 => Self::SwapW3,
+            OPCODE_SWAPDW => Self::SwapDW,
+
+            OPCODE_ASSERT => {
+                let value_le_bytes: [u8; 4] = source.read_array()?;
+                let value = u32::from_le_bytes(value_le_bytes);
+                Self::Assert(value)
+            }
+            OPCODE_EQ => Self::Eq,
+            OPCODE_ADD => Self::Add,
+            OPCODE_MUL => Self::Mul,
+            OPCODE_AND => Self::And,
+            OPCODE_OR => Self::Or,
+            OPCODE_U32AND => Self::U32and,
+            OPCODE_U32XOR => Self::U32xor,
+            OPCODE_FRIE2F4 => Self::FriE2F4,
+            OPCODE_DROP => Self::Drop,
+            OPCODE_CSWAP => Self::CSwap,
+            OPCODE_CSWAPW => Self::CSwapW,
+            OPCODE_MLOADW => Self::MLoadW,
+            OPCODE_MSTORE => Self::MStore,
+            OPCODE_MSTOREW => Self::MStoreW,
+            OPCODE_FMPUPDATE => Self::FmpUpdate,
+
+            OPCODE_PAD => Self::Pad,
+            OPCODE_DUP0 => Self::Dup0,
+            OPCODE_DUP1 => Self::Dup1,
+            OPCODE_DUP2 => Self::Dup2,
+            OPCODE_DUP3 => Self::Dup3,
+            OPCODE_DUP4 => Self::Dup4,
+            OPCODE_DUP5 => Self::Dup5,
+            OPCODE_DUP6 => Self::Dup6,
+            OPCODE_DUP7 => Self::Dup7,
+            OPCODE_DUP9 => Self::Dup9,
+            OPCODE_DUP11 => Self::Dup11,
+            OPCODE_DUP13 => Self::Dup13,
+            OPCODE_DUP15 => Self::Dup15,
+            OPCODE_ADVPOP => Self::AdvPop,
+            OPCODE_SDEPTH => Self::SDepth,
+            OPCODE_CLK => Self::Clk,
+
+            OPCODE_U32ADD => Self::U32add,
+            OPCODE_U32SUB => Self::U32sub,
+            OPCODE_U32MUL => Self::U32mul,
+            OPCODE_U32DIV => Self::U32div,
+            OPCODE_U32SPLIT => Self::U32split,
+            OPCODE_U32ASSERT2 => {
+                let value_le_bytes: [u8; 8] = source.read_array()?;
+                let value_u64 = u64::from_le_bytes(value_le_bytes);
+                let value_felt = Felt::try_from(value_u64).map_err(|_| {
+                    DeserializationError::InvalidValue(format!(
+                        "Operation associated data doesn't fit in a field element: {value_u64}"
+                    ))
+                })?;
+
+                Self::U32assert2(value_felt)
+            }
+            OPCODE_U32ADD3 => Self::U32add3,
+            OPCODE_U32MADD => Self::U32madd,
+
+            OPCODE_HPERM => Self::HPerm,
+            OPCODE_MPVERIFY => {
+                let value_le_bytes: [u8; 4] = source.read_array()?;
+                let value = u32::from_le_bytes(value_le_bytes);
+
+                Self::MpVerify(value)
+            }
+            OPCODE_PIPE => Self::Pipe,
+            OPCODE_MSTREAM => Self::MStream,
+            OPCODE_SPLIT => Self::Split,
+            OPCODE_LOOP => Self::Loop,
+            OPCODE_SPAN => Self::Span,
+            OPCODE_JOIN => Self::Join,
+            OPCODE_DYN => Self::Dyn,
+            OPCODE_RCOMBBASE => Self::RCombBase,
+
+            OPCODE_MRUPDATE => Self::MrUpdate,
+            OPCODE_PUSH => {
+                let value_le_bytes: [u8; 8] = source.read_array()?;
+                let value_u64 = u64::from_le_bytes(value_le_bytes);
+                let value_felt = Felt::try_from(value_u64).map_err(|_| {
+                    DeserializationError::InvalidValue(format!(
+                        "Operation associated data doesn't fit in a field element: {value_u64}"
+                    ))
+                })?;
+
+                Self::Push(value_felt)
+            }
+            OPCODE_SYSCALL => Self::SysCall,
+            OPCODE_CALL => Self::Call,
+            OPCODE_END => Self::End,
+            OPCODE_REPEAT => Self::Repeat,
+            OPCODE_RESPAN => Self::Respan,
+            OPCODE_HALT => Self::Halt,
+            _ => {
+                return Err(DeserializationError::InvalidValue(format!(
+                    "Invalid opcode '{op_code}'"
+                )));
+            }
+        };
+
+        Ok(operation)
     }
 }
