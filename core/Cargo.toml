@@ -30,8 +30,8 @@ std = [
 math = { package = "winter-math", version = "0.9", default-features = false }
 miden-crypto = { git = "https://github.com/0xPolygonMiden/crypto", branch = "next", default-features = false }
 miden-formatting = { version = "0.1", default-features = false }
-num-derive = "0.4.2"
-num-traits = "0.2.19"
+num-derive = "0.4"
+num-traits = "0.2"
 thiserror = { version = "1.0", git = "https://github.com/bitwalker/thiserror", branch = "no-std", default-features = false }
 winter-utils = { package = "winter-utils", version = "0.9", default-features = false }
 
