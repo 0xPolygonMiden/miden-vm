@@ -873,9 +873,9 @@ impl Deserializable for Operation {
             OPCODE_SWAPDW => Self::SwapDW,
 
             OPCODE_ASSERT => {
-                let value_le_bytes: [u8; 4] = source.read_array()?;
-                let value = u32::from_le_bytes(value_le_bytes);
-                Self::Assert(value)
+                let err_code_le_bytes: [u8; 4] = source.read_array()?;
+                let err_code = u32::from_le_bytes(err_code_le_bytes);
+                Self::Assert(err_code)
             }
             OPCODE_EQ => Self::Eq,
             OPCODE_ADD => Self::Add,
@@ -916,25 +916,25 @@ impl Deserializable for Operation {
             OPCODE_U32DIV => Self::U32div,
             OPCODE_U32SPLIT => Self::U32split,
             OPCODE_U32ASSERT2 => {
-                let value_le_bytes: [u8; 8] = source.read_array()?;
-                let value_u64 = u64::from_le_bytes(value_le_bytes);
-                let value_felt = Felt::try_from(value_u64).map_err(|_| {
+                let err_code_le_bytes: [u8; 8] = source.read_array()?;
+                let err_code_u64 = u64::from_le_bytes(err_code_le_bytes);
+                let err_code_felt = Felt::try_from(err_code_u64).map_err(|_| {
                     DeserializationError::InvalidValue(format!(
-                        "Operation associated data doesn't fit in a field element: {value_u64}"
+                        "Operation associated data doesn't fit in a field element: {err_code_u64}"
                     ))
                 })?;
 
-                Self::U32assert2(value_felt)
+                Self::U32assert2(err_code_felt)
             }
             OPCODE_U32ADD3 => Self::U32add3,
             OPCODE_U32MADD => Self::U32madd,
 
             OPCODE_HPERM => Self::HPerm,
             OPCODE_MPVERIFY => {
-                let value_le_bytes: [u8; 4] = source.read_array()?;
-                let value = u32::from_le_bytes(value_le_bytes);
+                let err_code_le_bytes: [u8; 4] = source.read_array()?;
+                let err_code = u32::from_le_bytes(err_code_le_bytes);
 
-                Self::MpVerify(value)
+                Self::MpVerify(err_code)
             }
             OPCODE_PIPE => Self::Pipe,
             OPCODE_MSTREAM => Self::MStream,
