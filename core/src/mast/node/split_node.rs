@@ -3,10 +3,11 @@ use core::fmt;
 use miden_crypto::{hash::rpo::RpoDigest, Felt};
 use miden_formatting::prettier::PrettyPrint;
 
-use crate::chiplets::hasher;
-use crate::OPCODE_SPLIT;
-
-use crate::mast::{MastForest, MastNodeId, MerkleTreeNode};
+use crate::{
+    chiplets::hasher,
+    mast::{MastForest, MastNodeId, MerkleTreeNode},
+    OPCODE_SPLIT,
+};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct SplitNode {

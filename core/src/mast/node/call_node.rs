@@ -3,10 +3,11 @@ use core::fmt;
 use miden_crypto::{hash::rpo::RpoDigest, Felt};
 use miden_formatting::prettier::PrettyPrint;
 
-use crate::chiplets::hasher;
-use crate::{OPCODE_CALL, OPCODE_SYSCALL};
-
-use crate::mast::{MastForest, MastNodeId, MerkleTreeNode};
+use crate::{
+    chiplets::hasher,
+    mast::{MastForest, MastNodeId, MerkleTreeNode},
+    OPCODE_CALL, OPCODE_SYSCALL,
+};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct CallNode {

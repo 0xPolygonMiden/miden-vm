@@ -2,10 +2,12 @@ use core::fmt;
 
 use miden_crypto::{hash::rpo::RpoDigest, Felt};
 
-use crate::OPCODE_JOIN;
-use crate::{chiplets::hasher, prettier::PrettyPrint};
-
-use crate::mast::{MastForest, MastNodeId, MerkleTreeNode};
+use crate::{
+    chiplets::hasher,
+    mast::{MastForest, MastNodeId, MerkleTreeNode},
+    prettier::PrettyPrint,
+    OPCODE_JOIN,
+};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct JoinNode {
