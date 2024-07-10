@@ -6,7 +6,8 @@ pub use decorators::{
     AdviceInjector, AssemblyOp, DebugOptions, Decorator, DecoratorIterator, DecoratorList,
     SignatureKind,
 };
-use winter_utils::{ByteWriter, DeserializationError, Serializable};
+use miden_crypto::ZERO;
+use winter_utils::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable};
 
 // OPERATIONS
 // ================================================================================================
@@ -972,5 +973,37 @@ impl Serializable for Operation {
             | Operation::FriE2F4
             | Operation::RCombBase => (),
         }
+    }
+}
+
+impl Deserializable for Operation {
+    fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
+        let op_code = source.read_u8()?;
+
+        let operation = if op_code == Operation::Assert(0).op_code()
+            || op_code == Operation::MpVerify(0).op_code()
+            || op_code == Operation::U32assert2(0).op_code()
+        {
+            let value_le_bytes: [u8; 4] = source.read_array()?;
+            let value = u32::from_le_bytes(value_le_bytes);
+
+            Operation::with_opcode_and_data(op_code, OperationData::U32(value))?
+        } else if op_code == Operation::Push(ZERO).op_code() {
+            // Felt operation data
+            let value_le_bytes: [u8; 8] = source.read_array()?;
+            let value_u64 = u64::from_le_bytes(value_le_bytes);
+            let value_felt = Felt::try_from(value_u64).map_err(|_| {
+                DeserializationError::InvalidValue(format!(
+                    "Operation associated data doesn't fit in a field element: {value_u64}"
+                ))
+            })?;
+
+            Operation::with_opcode_and_data(op_code, OperationData::Felt(value_felt))?
+        } else {
+            // No operation data
+            Operation::with_opcode_and_data(op_code, OperationData::None)?
+        };
+
+        Ok(operation)
     }
 }
