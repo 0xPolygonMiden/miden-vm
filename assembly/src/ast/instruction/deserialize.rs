@@ -43,13 +43,9 @@ impl Deserializable for Instruction {
             OpCode::NeqImm => Ok(Self::NeqImm(Felt::read_from(source)?.into())),
             OpCode::Eqw => Ok(Self::Eqw),
             OpCode::Lt => Ok(Self::Lt),
-            OpCode::LtImm => Ok(Self::LtImm(Felt::read_from(source)?.into())),
             OpCode::Lte => Ok(Self::Lte),
-            OpCode::LteImm => Ok(Self::LteImm(Felt::read_from(source)?.into())),
             OpCode::Gt => Ok(Self::Gt),
-            OpCode::GtImm => Ok(Self::GtImm(Felt::read_from(source)?.into())),
             OpCode::Gte => Ok(Self::Gte),
-            OpCode::GteImm => Ok(Self::GteImm(Felt::read_from(source)?.into())),
             OpCode::IsOdd => Ok(Self::IsOdd),
 
             // ----- ext2 operations --------------------------------------------------------------
@@ -117,17 +113,11 @@ impl Deserializable for Instruction {
             OpCode::U32Clo => Ok(Self::U32Clo),
             OpCode::U32Cto => Ok(Self::U32Cto),
             OpCode::U32Lt => Ok(Self::U32Lt),
-            OpCode::U32LtImm => Ok(Self::U32LtImm(source.read_u32()?.into())),
             OpCode::U32Lte => Ok(Self::U32Lte),
-            OpCode::U32LteImm => Ok(Self::U32LteImm(source.read_u32()?.into())),
             OpCode::U32Gt => Ok(Self::U32Gt),
-            OpCode::U32GtImm => Ok(Self::U32GtImm(source.read_u32()?.into())),
             OpCode::U32Gte => Ok(Self::U32Gte),
-            OpCode::U32GteImm => Ok(Self::U32GteImm(source.read_u32()?.into())),
             OpCode::U32Min => Ok(Self::U32Min),
-            OpCode::U32MinImm => Ok(Self::U32MinImm(source.read_u32()?.into())),
             OpCode::U32Max => Ok(Self::U32Max),
-            OpCode::U32MaxImm => Ok(Self::U32MaxImm(source.read_u32()?.into())),
 
             // ----- stack manipulation -----------------------------------------------------------
             OpCode::Drop => Ok(Self::Drop),

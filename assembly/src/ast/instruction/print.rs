@@ -54,13 +54,9 @@ impl PrettyPrint for Instruction {
             Self::NeqImm(value) => inst_with_felt_imm("neq", value),
             Self::Eqw => const_text("eqw"),
             Self::Lt => const_text("lt"),
-            Self::LtImm(value) => inst_with_felt_imm("lt", value),
             Self::Lte => const_text("lte"),
-            Self::LteImm(value) => inst_with_felt_imm("lte", value),
             Self::Gt => const_text("gt"),
-            Self::GtImm(value) => inst_with_felt_imm("gt", value),
             Self::Gte => const_text("gte"),
-            Self::GteImm(value) => inst_with_felt_imm("gte", value),
             Self::IsOdd => const_text("is_odd"),
 
             // ----- ext2 operations --------------------------------------------------------------
@@ -128,17 +124,11 @@ impl PrettyPrint for Instruction {
             Self::U32Clo => const_text("u32clo"),
             Self::U32Cto => const_text("u32cto"),
             Self::U32Lt => const_text("u32lt"),
-            Self::U32LtImm(value) => inst_with_imm("u32lt", value),
             Self::U32Lte => const_text("u32lte"),
-            Self::U32LteImm(value) => inst_with_imm("u32lte", value),
             Self::U32Gt => const_text("u32gt"),
-            Self::U32GtImm(value) => inst_with_imm("u32gt", value),
             Self::U32Gte => const_text("u32gte"),
-            Self::U32GteImm(value) => inst_with_imm("u32gte", value),
             Self::U32Min => const_text("u32min"),
-            Self::U32MinImm(value) => inst_with_imm("u32min", value),
             Self::U32Max => const_text("u32max"),
-            Self::U32MaxImm(value) => inst_with_imm("u32min", value),
 
             // ----- stack manipulation -----------------------------------------------------------
             Self::Drop => const_text("drop"),
