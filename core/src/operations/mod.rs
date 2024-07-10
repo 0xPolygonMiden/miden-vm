@@ -11,6 +11,17 @@ use winter_utils::{ByteReader, ByteWriter, Deserializable, DeserializationError,
 // ================================================================================================
 
 use opcode_constants::*;
+
+/// Opcode patterns have the following meanings:
+/// - 00xxxxx operations do not shift the stack; constraint degree can be up to 2.
+/// - 010xxxx operations shift the stack the left; constraint degree can be up to 2.
+/// - 011xxxx operations shift the stack to the right; constraint degree can be up to 2.
+/// - 100xxx-: operations consume 4 range checks; constraint degree can be up to 3. These are used
+///   to encode most u32 operations.
+/// - 101xxx-: operations where constraint degree can be up to 3. These include control flow
+///   operations and some other operations requiring high degree constraints.
+/// - 11xxx--: operations where constraint degree can be up to 5. These include control flow
+///   operations and some other operations requiring very high degree constraints.
 #[rustfmt::skip]
 pub(super) mod opcode_constants {
     pub const OPCODE_NOOP: u8       = 0b0000_0000;
@@ -114,18 +125,6 @@ pub(super) mod opcode_constants {
 // ================================================================================================
 
 /// A set of native VM operations which take exactly one cycle to execute.
-///
-/// Opcode patterns have the following meanings:
-/// - 00xxxxx operations do not shift the stack; constraint degree can be up to 2.
-/// - 010xxxx operations shift the stack the left; constraint degree can be up to 2.
-/// - 011xxxx operations shift the stack to the right; constraint degree can be up to 2.
-/// - 100xxx-: operations consume 4 range checks; constraint degree can be up to 3. These are used
-///   to encode most u32 operations.
-/// - 101xxx-: operations where constraint degree can be up to 3. These include control flow
-///   operations and some other operations requiring high degree constraints.
-/// - 11xxx--: operations where constraint degree can be up to 5. These include control flow
-///   operations and some other operations requiring very high degree constraints.
-
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]
 #[repr(u8)]
 pub enum Operation {
