@@ -1,7 +1,9 @@
-use super::{
-    AuxColumnBuilder, Felt, FieldElement, MainTrace, CALL, DYN, END, JOIN, LOOP, ONE, RESPAN, SPAN,
-    SPLIT, SYSCALL, ZERO,
+use vm_core::{
+    OPCODE_CALL, OPCODE_DYN, OPCODE_END, OPCODE_JOIN, OPCODE_LOOP, OPCODE_RESPAN, OPCODE_SPAN,
+    OPCODE_SPLIT, OPCODE_SYSCALL,
 };
+
+use super::{AuxColumnBuilder, Felt, FieldElement, MainTrace, ONE, ZERO};
 
 // BLOCK STACK TABLE COLUMN BUILDER
 // ================================================================================================
@@ -18,8 +20,10 @@ impl<E: FieldElement<BaseField = Felt>> AuxColumnBuilder<E> for BlockStackColumn
         let op_code = op_code_felt.as_int() as u8;
 
         match op_code {
-            RESPAN => get_block_stack_table_removal_multiplicand(main_trace, i, true, alphas),
-            END => get_block_stack_table_removal_multiplicand(main_trace, i, false, alphas),
+            OPCODE_RESPAN => {
+                get_block_stack_table_removal_multiplicand(main_trace, i, true, alphas)
+            }
+            OPCODE_END => get_block_stack_table_removal_multiplicand(main_trace, i, false, alphas),
             _ => E::ONE,
         }
     }
@@ -30,7 +34,8 @@ impl<E: FieldElement<BaseField = Felt>> AuxColumnBuilder<E> for BlockStackColumn
         let op_code = op_code_felt.as_int() as u8;
 
         match op_code {
-            JOIN | SPLIT | SPAN | DYN | LOOP | RESPAN | CALL | SYSCALL => {
+            OPCODE_JOIN | OPCODE_SPLIT | OPCODE_SPAN | OPCODE_DYN | OPCODE_LOOP | OPCODE_RESPAN
+            | OPCODE_CALL | OPCODE_SYSCALL => {
                 get_block_stack_table_inclusion_multiplicand(main_trace, i, alphas, op_code)
             }
             _ => E::ONE,
@@ -102,17 +107,17 @@ fn get_block_stack_table_inclusion_multiplicand<E: FieldElement<BaseField = Felt
     op_code: u8,
 ) -> E {
     let block_id = main_trace.addr(i + 1);
-    let parent_id = if op_code == RESPAN {
+    let parent_id = if op_code == OPCODE_RESPAN {
         main_trace.decoder_hasher_state_element(1, i + 1)
     } else {
         main_trace.addr(i)
     };
-    let is_loop = if op_code == LOOP {
+    let is_loop = if op_code == OPCODE_LOOP {
         main_trace.stack_element(0, i)
     } else {
         ZERO
     };
-    let elements = if op_code == CALL || op_code == SYSCALL {
+    let elements = if op_code == OPCODE_CALL || op_code == OPCODE_SYSCALL {
         let parent_ctx = main_trace.ctx(i);
         let parent_fmp = main_trace.fmp(i);
         let parent_stack_depth = main_trace.stack_depth(i);

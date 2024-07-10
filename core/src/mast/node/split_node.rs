@@ -3,7 +3,8 @@ use core::fmt;
 use miden_crypto::{hash::rpo::RpoDigest, Felt};
 use miden_formatting::prettier::PrettyPrint;
 
-use crate::{chiplets::hasher, Operation};
+use crate::chiplets::hasher;
+use crate::OPCODE_SPLIT;
 
 use crate::mast::{MastForest, MastNodeId, MerkleTreeNode};
 
@@ -16,7 +17,7 @@ pub struct SplitNode {
 /// Constants
 impl SplitNode {
     /// The domain of the split node (used for control block hashing).
-    pub const DOMAIN: Felt = Felt::new(Operation::Split.op_code() as u64);
+    pub const DOMAIN: Felt = Felt::new(OPCODE_SPLIT as u64);
 }
 
 /// Constructors

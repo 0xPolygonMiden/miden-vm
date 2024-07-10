@@ -6,123 +6,236 @@ pub use decorators::{
     SignatureKind,
 };
 
+// OPERATIONS OP CODES
+// ================================================================================================
+
+use opcode_constants::*;
+pub(super) mod opcode_constants {
+    pub const OPCODE_NOOP: u8 = 0b0000_0000;
+    pub const OPCODE_EQZ: u8 = 0b0000_0001;
+    pub const OPCODE_NEG: u8 = 0b0000_0010;
+    pub const OPCODE_INV: u8 = 0b0000_0011;
+    pub const OPCODE_INCR: u8 = 0b0000_0100;
+    pub const OPCODE_NOT: u8 = 0b0000_0101;
+    pub const OPCODE_FMPADD: u8 = 0b0000_0110;
+    pub const OPCODE_MLOAD: u8 = 0b0000_0111;
+    pub const OPCODE_SWAP: u8 = 0b0000_1000;
+    pub const OPCODE_CALLER: u8 = 0b0000_1001;
+    pub const OPCODE_MOVUP2: u8 = 0b0000_1010;
+    pub const OPCODE_MOVDN2: u8 = 0b0000_1011;
+    pub const OPCODE_MOVUP3: u8 = 0b0000_1100;
+    pub const OPCODE_MOVDN3: u8 = 0b0000_1101;
+    pub const OPCODE_ADVPOPW: u8 = 0b0000_1110;
+    pub const OPCODE_EXPACC: u8 = 0b0000_1111;
+
+    pub const OPCODE_MOVUP4: u8 = 0b0001_0000;
+    pub const OPCODE_MOVDN4: u8 = 0b0001_0001;
+    pub const OPCODE_MOVUP5: u8 = 0b0001_0010;
+    pub const OPCODE_MOVDN5: u8 = 0b0001_0011;
+    pub const OPCODE_MOVUP6: u8 = 0b0001_0100;
+    pub const OPCODE_MOVDN6: u8 = 0b0001_0101;
+    pub const OPCODE_MOVUP7: u8 = 0b0001_0110;
+    pub const OPCODE_MOVDN7: u8 = 0b0001_0111;
+    pub const OPCODE_SWAPW: u8 = 0b0001_1000;
+    pub const OPCODE_EXT2MUL: u8 = 0b0001_1001;
+    pub const OPCODE_MOVUP8: u8 = 0b0001_1010;
+    pub const OPCODE_MOVDN8: u8 = 0b0001_1011;
+    pub const OPCODE_SWAPW2: u8 = 0b0001_1100;
+    pub const OPCODE_SWAPW3: u8 = 0b0001_1101;
+    pub const OPCODE_SWAPDW: u8 = 0b0001_1110;
+
+    pub const OPCODE_ASSERT: u8 = 0b0010_0000;
+    pub const OPCODE_EQ: u8 = 0b0010_0001;
+    pub const OPCODE_ADD: u8 = 0b0010_0010;
+    pub const OPCODE_MUL: u8 = 0b0010_0011;
+    pub const OPCODE_AND: u8 = 0b0010_0100;
+    pub const OPCODE_OR: u8 = 0b0010_0101;
+    pub const OPCODE_U32AND: u8 = 0b0010_0110;
+    pub const OPCODE_U32XOR: u8 = 0b0010_0111;
+    pub const OPCODE_FRIE2F4: u8 = 0b0010_1000;
+    pub const OPCODE_DROP: u8 = 0b0010_1001;
+    pub const OPCODE_CSWAP: u8 = 0b0010_1010;
+    pub const OPCODE_CSWAPW: u8 = 0b0010_1011;
+    pub const OPCODE_MLOADW: u8 = 0b0010_1100;
+    pub const OPCODE_MSTORE: u8 = 0b0010_1101;
+    pub const OPCODE_MSTOREW: u8 = 0b0010_1110;
+    pub const OPCODE_FMPUPDATE: u8 = 0b0010_1111;
+
+    pub const OPCODE_PAD: u8 = 0b0011_0000;
+    pub const OPCODE_DUP0: u8 = 0b0011_0001;
+    pub const OPCODE_DUP1: u8 = 0b0011_0010;
+    pub const OPCODE_DUP2: u8 = 0b0011_0011;
+    pub const OPCODE_DUP3: u8 = 0b0011_0100;
+    pub const OPCODE_DUP4: u8 = 0b0011_0101;
+    pub const OPCODE_DUP5: u8 = 0b0011_0110;
+    pub const OPCODE_DUP6: u8 = 0b0011_0111;
+    pub const OPCODE_DUP7: u8 = 0b0011_1000;
+    pub const OPCODE_DUP9: u8 = 0b0011_1001;
+    pub const OPCODE_DUP11: u8 = 0b0011_1010;
+    pub const OPCODE_DUP13: u8 = 0b0011_1011;
+    pub const OPCODE_DUP15: u8 = 0b0011_1100;
+    pub const OPCODE_ADVPOP: u8 = 0b0011_1101;
+    pub const OPCODE_SDEPTH: u8 = 0b0011_1110;
+    pub const OPCODE_CLK: u8 = 0b0011_1111;
+
+    pub const OPCODE_U32ADD: u8 = 0b0100_0000;
+    pub const OPCODE_U32SUB: u8 = 0b0100_0010;
+    pub const OPCODE_U32MUL: u8 = 0b0100_0100;
+    pub const OPCODE_U32DIV: u8 = 0b0100_0110;
+    pub const OPCODE_U32SPLIT: u8 = 0b0100_1000;
+    pub const OPCODE_U32ASSERT2: u8 = 0b0100_1010;
+    pub const OPCODE_U32ADD3: u8 = 0b0100_1100;
+    pub const OPCODE_U32MADD: u8 = 0b0100_1110;
+
+    pub const OPCODE_HPERM: u8 = 0b0101_0000;
+    pub const OPCODE_MPVERIFY: u8 = 0b0101_0001;
+    pub const OPCODE_PIPE: u8 = 0b0101_0010;
+    pub const OPCODE_MSTREAM: u8 = 0b0101_0011;
+    pub const OPCODE_SPLIT: u8 = 0b0101_0100;
+    pub const OPCODE_LOOP: u8 = 0b0101_0101;
+    pub const OPCODE_SPAN: u8 = 0b0101_0110;
+    pub const OPCODE_JOIN: u8 = 0b0101_0111;
+    pub const OPCODE_DYN: u8 = 0b0101_1000;
+    pub const OPCODE_RCOMBBASE: u8 = 0b0101_1001;
+
+    pub const OPCODE_MRUPDATE: u8 = 0b0110_0000;
+    pub const OPCODE_PUSH: u8 = 0b0110_0100;
+    pub const OPCODE_SYSCALL: u8 = 0b0110_1000;
+    pub const OPCODE_CALL: u8 = 0b0110_1100;
+    pub const OPCODE_END: u8 = 0b0111_0000;
+    pub const OPCODE_REPEAT: u8 = 0b0111_0100;
+    pub const OPCODE_RESPAN: u8 = 0b0111_1000;
+    pub const OPCODE_HALT: u8 = 0b0111_1100;
+}
+
 // OPERATIONS
 // ================================================================================================
 
-/// A set of native VM operations.
+/// A set of native VM operations which take exactly one cycle to execute.
 ///
-/// These operations take exactly one cycle to execute.
+/// Opcode patterns have the following meanings:
+/// - 00xxxxx operations do not shift the stack; constraint degree can be up to 2.
+/// - 010xxxx operations shift the stack the left; constraint degree can be up to 2.
+/// - 011xxxx operations shift the stack to the right; constraint degree can be up to 2.
+/// - 100xxx-: operations consume 4 range checks; constraint degree can be up to 3. These are used
+///   to encode most u32 operations.
+/// - 101xxx-: operations where constraint degree can be up to 3. These include control flow
+///   operations and some other operations requiring high degree constraints.
+/// - 11xxx--: operations where constraint degree can be up to 5. These include control flow
+///   operations and some other operations requiring very high degree constraints.
+
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]
+#[repr(u8)]
 pub enum Operation {
     // ----- system operations -------------------------------------------------------------------
     /// Advances cycle counter, but does not change the state of user stack.
-    Noop,
+    Noop = OPCODE_NOOP,
 
     /// Pops the stack; if the popped value is not 1, execution fails.
     ///
     /// The internal value specifies an error code associated with the error in case when the
     /// execution fails.
-    Assert(u32),
+    Assert(u32) = OPCODE_ASSERT,
 
     /// Pops an element off the stack, adds the current value of the `fmp` register to it, and
     /// pushes the result back onto the stack.
-    FmpAdd,
+    FmpAdd = OPCODE_FMPADD,
 
     /// Pops an element off the stack and adds it to the current value of `fmp` register.
-    FmpUpdate,
+    FmpUpdate = OPCODE_FMPUPDATE,
 
     /// Pushes the current depth of the stack onto the stack.
-    SDepth,
+    SDepth = OPCODE_SDEPTH,
 
     /// Overwrites the top four stack items with the hash of a function which initiated the current
     /// SYSCALL. Thus, this operation can be executed only inside a SYSCALL code block.
-    Caller,
+    Caller = OPCODE_CALLER,
 
     /// Pushes the current value of the clock cycle onto the stack. This operation can be used to
     /// measure the number of cycles it has taken to execute the program up to the current
     /// instruction.
-    Clk,
+    Clk = OPCODE_CLK,
 
     // ----- flow control operations -------------------------------------------------------------
     /// Marks the beginning of a join block.
-    Join,
+    Join = OPCODE_JOIN,
 
     /// Marks the beginning of a split block.
-    Split,
+    Split = OPCODE_SPLIT,
 
     /// Marks the beginning of a loop block.
-    Loop,
+    Loop = OPCODE_LOOP,
 
     /// Marks the beginning of a function call.
-    Call,
+    Call = OPCODE_CALL,
 
     /// Marks the beginning of a dynamic code block, where the target is specified by the stack.
-    Dyn,
+    Dyn = OPCODE_DYN,
 
     /// Marks the beginning of a kernel call.
-    SysCall,
+    SysCall = OPCODE_SYSCALL,
 
     /// Marks the beginning of a span code block.
-    Span,
+    Span = OPCODE_SPAN,
 
     /// Marks the end of a program block.
-    End,
+    End = OPCODE_END,
 
     /// Indicates that body of an executing loop should be executed again.
-    Repeat,
+    Repeat = OPCODE_REPEAT,
 
     /// Starts processing a new operation batch.
-    Respan,
+    Respan = OPCODE_RESPAN,
 
     /// Indicates the end of the program. This is used primarily to pad the execution trace to
     /// the required length. Once HALT operation is executed, no other operations can be executed
     /// by the VM (HALT operation itself excepted).
-    Halt,
+    Halt = OPCODE_HALT,
 
     // ----- field operations --------------------------------------------------------------------
     /// Pops two elements off the stack, adds them, and pushes the result back onto the stack.
-    Add,
+    Add = OPCODE_ADD,
 
     /// Pops an element off the stack, negates it, and pushes the result back onto the stack.
-    Neg,
+    Neg = OPCODE_NEG,
 
     /// Pops two elements off the stack, multiplies them, and pushes the result back onto the
     /// stack.
-    Mul,
+    Mul = OPCODE_MUL,
 
     /// Pops an element off the stack, computes its multiplicative inverse, and pushes the result
     /// back onto the stack.
-    Inv,
+    Inv = OPCODE_INV,
 
     /// Pops an element off the stack, adds 1 to it, and pushes the result back onto the stack.
-    Incr,
+    Incr = OPCODE_INCR,
 
     /// Pops two elements off the stack, multiplies them, and pushes the result back onto the
     /// stack.
     ///
     /// If either of the elements is greater than 1, execution fails. This operation is equivalent
     /// to boolean AND.
-    And,
+    And = OPCODE_AND,
 
     /// Pops two elements off the stack and subtracts their product from their sum.
     ///
     /// If either of the elements is greater than 1, execution fails. This operation is equivalent
     /// to boolean OR.
-    Or,
+    Or = OPCODE_OR,
 
     /// Pops an element off the stack and subtracts it from 1.
     ///
     /// If the element is greater than one, the execution fails. This operation is equivalent to
     /// boolean NOT.
-    Not,
+    Not = OPCODE_NOT,
 
     /// Pops two elements off the stack and compares them. If the elements are equal, pushes 1
     /// onto the stack, otherwise pushes 0 onto the stack.
-    Eq,
+    Eq = OPCODE_EQ,
 
     /// Pops an element off the stack and compares it to 0. If the element is 0, pushes 1 onto
     /// the stack, otherwise pushes 0 onto the stack.
-    Eqz,
+    Eqz = OPCODE_EQZ,
 
     /// Computes a single turn of exponent accumulation for the given inputs. This operation can be
     /// be used to compute a single turn of power of a field element.
@@ -137,25 +250,25 @@ pub enum Operation {
     /// At the end of the operation, exponent is replaced with its square, current value of power
     /// of base number `a` on exponent is incorporated into the accumulator and the number is
     /// shifted to the right by one bit.
-    Expacc,
+    Expacc = OPCODE_EXPACC,
 
     // ----- ext2 operations ---------------------------------------------------------------------
     /// Computes the product of two elements in the extension field of degree 2 and pushes the
     /// result back onto the stack as the third and fourth elements. Pushes 0 onto the stack as
     /// the first and second elements.
-    Ext2Mul,
+    Ext2Mul = OPCODE_EXT2MUL,
 
     // ----- u32 operations ----------------------------------------------------------------------
     /// Pops an element off the stack, splits it into upper and lower 32-bit values, and pushes
     /// these values back onto the stack.
-    U32split,
+    U32split = OPCODE_U32SPLIT,
 
     /// Pops two elements off the stack, adds them, and splits the result into upper and lower
     /// 32-bit values. Then pushes these values back onto the stack.
     ///
     /// If either of these elements is greater than or equal to 2^32, the result of this
     /// operation is undefined.
-    U32add,
+    U32add = OPCODE_U32ADD,
 
     /// Pops two elements off the stack and checks if each of them represents a 32-bit value.
     /// If both of them are, they are pushed back onto the stack, otherwise an error is returned.
@@ -166,7 +279,7 @@ pub enum Operation {
 
     /// Pops three elements off the stack, adds them together, and splits the result into upper
     /// and lower 32-bit values. Then pushes the result back onto the stack.
-    U32add3,
+    U32add3 = OPCODE_U32ADD3,
 
     /// Pops two elements off the stack and subtracts the first element from the second. Then,
     /// the result, together with a flag indicating whether subtraction underflowed is pushed
@@ -174,14 +287,14 @@ pub enum Operation {
     ///
     /// If their of the values is greater than or equal to 2^32, the result of this operation is
     /// undefined.
-    U32sub,
+    U32sub = OPCODE_U32SUB,
 
     /// Pops two elements off the stack, multiplies them, and splits the result into upper and
     /// lower 32-bit values. Then pushes these values back onto the stack.
     ///
     /// If their of the values is greater than or equal to 2^32, the result of this operation is
     /// undefined.
-    U32mul,
+    U32mul = OPCODE_U32MUL,
 
     /// Pops two elements off the stack and multiplies them. Then pops the third element off the
     /// stack, and adds it to the result. Finally, splits the result into upper and lower 32-bit
@@ -189,170 +302,170 @@ pub enum Operation {
     ///
     /// If any of the three values is greater than or equal to 2^32, the result of this operation
     /// is undefined.
-    U32madd,
+    U32madd = OPCODE_U32MADD,
 
     /// Pops two elements off the stack and divides the second element by the first. Then pushes
     /// the integer result of the division, together with the remainder, onto the stack.
     ///
     /// If their of the values is greater than or equal to 2^32, the result of this operation is
     /// undefined.
-    U32div,
+    U32div = OPCODE_U32DIV,
 
     /// Pops two elements off the stack, computes their binary AND, and pushes the result back
     /// onto the stack.
     ///
     /// If either of the elements is greater than or equal to 2^32, execution fails.
-    U32and,
+    U32and = OPCODE_U32AND,
 
     /// Pops two elements off the stack, computes their binary XOR, and pushes the result back
     /// onto the stack.
     ///
     /// If either of the elements is greater than or equal to 2^32, execution fails.
-    U32xor,
+    U32xor = OPCODE_U32XOR,
 
     // ----- stack manipulation ------------------------------------------------------------------
     /// Pushes 0 onto the stack.
-    Pad,
+    Pad = OPCODE_PAD,
 
     /// Removes to element from the stack.
-    Drop,
+    Drop = OPCODE_DROP,
 
     /// Pushes a copy of stack element 0 onto the stack.
-    Dup0,
+    Dup0 = OPCODE_DUP0,
 
     /// Pushes a copy of stack element 1 onto the stack.
-    Dup1,
+    Dup1 = OPCODE_DUP1,
 
     /// Pushes a copy of stack element 2 onto the stack.
-    Dup2,
+    Dup2 = OPCODE_DUP2,
 
     /// Pushes a copy of stack element 3 onto the stack.
-    Dup3,
+    Dup3 = OPCODE_DUP3,
 
     /// Pushes a copy of stack element 4 onto the stack.
-    Dup4,
+    Dup4 = OPCODE_DUP4,
 
     /// Pushes a copy of stack element 5 onto the stack.
-    Dup5,
+    Dup5 = OPCODE_DUP5,
 
     /// Pushes a copy of stack element 6 onto the stack.
-    Dup6,
+    Dup6 = OPCODE_DUP6,
 
     /// Pushes a copy of stack element 7 onto the stack.
-    Dup7,
+    Dup7 = OPCODE_DUP7,
 
     /// Pushes a copy of stack element 9 onto the stack.
-    Dup9,
+    Dup9 = OPCODE_DUP9,
 
     /// Pushes a copy of stack element 11 onto the stack.
-    Dup11,
+    Dup11 = OPCODE_DUP11,
 
     /// Pushes a copy of stack element 13 onto the stack.
-    Dup13,
+    Dup13 = OPCODE_DUP13,
 
     /// Pushes a copy of stack element 15 onto the stack.
-    Dup15,
+    Dup15 = OPCODE_DUP15,
 
     /// Swaps stack elements 0 and 1.
-    Swap,
+    Swap = OPCODE_SWAP,
 
     /// Swaps stack elements 0, 1, 2, and 3 with elements 4, 5, 6, and 7.
-    SwapW,
+    SwapW = OPCODE_SWAPW,
 
     /// Swaps stack elements 0, 1, 2, and 3 with elements 8, 9, 10, and 11.
-    SwapW2,
+    SwapW2 = OPCODE_SWAPW2,
 
     /// Swaps stack elements 0, 1, 2, and 3, with elements 12, 13, 14, and 15.
-    SwapW3,
+    SwapW3 = OPCODE_SWAPW3,
 
     /// Swaps the top two words pair wise.
     ///
     /// Input: [D, C, B, A, ...]
     /// Output: [B, A, D, C, ...]
-    SwapDW,
+    SwapDW = OPCODE_SWAPDW,
 
     /// Moves stack element 2 to the top of the stack.
-    MovUp2,
+    MovUp2 = OPCODE_MOVUP2,
 
     /// Moves stack element 3 to the top of the stack.
-    MovUp3,
+    MovUp3 = OPCODE_MOVUP3,
 
     /// Moves stack element 4 to the top of the stack.
-    MovUp4,
+    MovUp4 = OPCODE_MOVUP4,
 
     /// Moves stack element 5 to the top of the stack.
-    MovUp5,
+    MovUp5 = OPCODE_MOVUP5,
 
     /// Moves stack element 6 to the top of the stack.
-    MovUp6,
+    MovUp6 = OPCODE_MOVUP6,
 
     /// Moves stack element 7 to the top of the stack.
-    MovUp7,
+    MovUp7 = OPCODE_MOVUP7,
 
     /// Moves stack element 8 to the top of the stack.
-    MovUp8,
+    MovUp8 = OPCODE_MOVUP8,
 
     /// Moves the top stack element to position 2 on the stack.
-    MovDn2,
+    MovDn2 = OPCODE_MOVDN2,
 
     /// Moves the top stack element to position 3 on the stack.
-    MovDn3,
+    MovDn3 = OPCODE_MOVDN3,
 
     /// Moves the top stack element to position 4 on the stack.
-    MovDn4,
+    MovDn4 = OPCODE_MOVDN4,
 
     /// Moves the top stack element to position 5 on the stack.
-    MovDn5,
+    MovDn5 = OPCODE_MOVDN5,
 
     /// Moves the top stack element to position 6 on the stack.
-    MovDn6,
+    MovDn6 = OPCODE_MOVDN6,
 
     /// Moves the top stack element to position 7 on the stack.
-    MovDn7,
+    MovDn7 = OPCODE_MOVDN7,
 
     /// Moves the top stack element to position 8 on the stack.
-    MovDn8,
+    MovDn8 = OPCODE_MOVDN8,
 
     /// Pops an element off the stack, and if the element is 1, swaps the top two remaining
     /// elements on the stack. If the popped element is 0, the stack remains unchanged.
     ///
     /// If the popped element is neither 0 nor 1, execution fails.
-    CSwap,
+    CSwap = OPCODE_CSWAP,
 
     /// Pops an element off the stack, and if the element is 1, swaps the remaining elements
     /// 0, 1, 2, and 3 with elements 4, 5, 6, and 7. If the popped element is 0, the stack
     /// remains unchanged.
     ///
     /// If the popped element is neither 0 nor 1, execution fails.
-    CSwapW,
+    CSwapW = OPCODE_CSWAPW,
 
     // ----- input / output ----------------------------------------------------------------------
     /// Pushes the immediate value onto the stack.
-    Push(Felt),
+    Push(Felt) = OPCODE_PUSH,
 
     /// Removes the next element from the advice stack and pushes it onto the operand stack.
-    AdvPop,
+    AdvPop = OPCODE_ADVPOP,
 
     /// Removes a word (4 elements) from the advice stack and overwrites the top four operand
     /// stack elements with it.
-    AdvPopW,
+    AdvPopW = OPCODE_ADVPOPW,
 
     /// Pops an element off the stack, interprets it as a memory address, and replaces the
     /// remaining 4 elements at the top of the stack with values located at the specified address.
-    MLoadW,
+    MLoadW = OPCODE_MLOADW,
 
     /// Pops an element off the stack, interprets it as a memory address, and writes the remaining
     /// 4 elements at the top of the stack into memory at the specified address.
-    MStoreW,
+    MStoreW = OPCODE_MSTOREW,
 
     /// Pops an element off the stack, interprets it as a memory address, and pushes the first
     /// element of the word located at the specified address to the stack.
-    MLoad,
+    MLoad = OPCODE_MLOAD,
 
     /// Pops an element off the stack, interprets it as a memory address, and writes the remaining
     /// element at the top of the stack into the first element of the word located at the specified
     /// memory address. The remaining 3 elements of the word are not affected.
-    MStore,
+    MStore = OPCODE_MSTORE,
 
     /// Loads two words from memory, and replaces the top 8 elements of the stack with them,
     /// element-wise, in stack order.
@@ -364,7 +477,7 @@ pub enum Operation {
     ///   order).
     /// - Memory address (in position 12) is incremented by 2.
     /// - All other stack elements remain the same.
-    MStream,
+    MStream = OPCODE_MSTREAM,
 
     /// Pops two words from the advice stack, writes them to memory, and replaces the top 8
     /// elements of the stack with them, element-wise, in stack order.
@@ -378,7 +491,7 @@ pub enum Operation {
     ///   order).
     /// - Memory address (in position 12) is incremented by 2.
     /// - All other stack elements remain the same.
-    Pipe,
+    Pipe = OPCODE_PIPE,
 
     // ----- cryptographic operations ------------------------------------------------------------
     /// Performs a Rescue Prime Optimized permutation on the top 3 words of the operand stack,
@@ -387,7 +500,7 @@ pub enum Operation {
     ///
     /// Stack transition:
     /// [C, B, A, ...] -> [F, E, D, ...]
-    HPerm,
+    HPerm = OPCODE_HPERM,
 
     /// Verifies that a Merkle path from the specified node resolves to the specified root. This
     /// operation can be used to prove that the prover knows a path in the specified Merkle tree
@@ -405,7 +518,7 @@ pub enum Operation {
     ///
     /// The internal value specifies an error code associated with the error in case when the
     /// assertion fails.
-    MpVerify(u32),
+    MpVerify(u32) = OPCODE_MPVERIFY,
 
     /// Computes a new root of a Merkle tree where a node at the specified position is updated to
     /// the specified value.
@@ -424,10 +537,10 @@ pub enum Operation {
     ///
     /// The tree will always be copied into a new instance, meaning the advice provider will keep
     /// track of both the old and new Merkle trees.
-    MrUpdate,
+    MrUpdate = OPCODE_MRUPDATE,
 
     /// TODO: add docs
-    FriE2F4,
+    FriE2F4 = OPCODE_FRIE2F4,
 
     /// Performs a single step of a random linear combination defining the DEEP composition
     /// polynomial i.e., the input to the FRI protocol. More precisely, the sum in question is:
@@ -438,130 +551,21 @@ pub enum Operation {
     /// and $\alpha_i \cdot (T_i(x) - T_i(g \cdot z))$ and stores the values in two accumulators
     /// $r$ and $p$, respectively. This instruction is specialized to main trace columns i.e.
     /// the values $T_i(x)$ are base field elements.
-    RCombBase,
+    RCombBase = OPCODE_RCOMBBASE,
 }
 
 impl Operation {
     pub const OP_BITS: usize = 7;
 
     /// Returns the opcode of this operation.
-    ///
-    /// Opcode patterns have the following meanings:
-    /// - 00xxxxx operations do not shift the stack; constraint degree can be up to 2.
-    /// - 010xxxx operations shift the stack the left; constraint degree can be up to 2.
-    /// - 011xxxx operations shift the stack to the right; constraint degree can be up to 2.
-    /// - 100xxx-: operations consume 4 range checks; constraint degree can be up to 3. These are
-    ///   used to encode most u32 operations.
-    /// - 101xxx-: operations where constraint degree can be up to 3. These include control flow
-    ///   operations and some other operations requiring high degree constraints.
-    /// - 11xxx--: operations where constraint degree can be up to 5. These include control flow
-    ///   operations and some other operations requiring very high degree constraints.
     #[rustfmt::skip]
-    pub const fn op_code(&self) -> u8 {
-        match self {
-            Self::Noop          => 0b0000_0000,
-            Self::Eqz           => 0b0000_0001,
-            Self::Neg           => 0b0000_0010,
-            Self::Inv           => 0b0000_0011,
-            Self::Incr          => 0b0000_0100,
-            Self::Not           => 0b0000_0101,
-            Self::FmpAdd        => 0b0000_0110,
-            Self::MLoad         => 0b0000_0111,
-            Self::Swap          => 0b0000_1000,
-            Self::Caller        => 0b0000_1001,
-            Self::MovUp2        => 0b0000_1010,
-            Self::MovDn2        => 0b0000_1011,
-            Self::MovUp3        => 0b0000_1100,
-            Self::MovDn3        => 0b0000_1101,
-            Self::AdvPopW       => 0b0000_1110,
-            Self::Expacc        => 0b0000_1111,
-
-            Self::MovUp4        => 0b0001_0000,
-            Self::MovDn4        => 0b0001_0001,
-            Self::MovUp5        => 0b0001_0010,
-            Self::MovDn5        => 0b0001_0011,
-            Self::MovUp6        => 0b0001_0100,
-            Self::MovDn6        => 0b0001_0101,
-            Self::MovUp7        => 0b0001_0110,
-            Self::MovDn7        => 0b0001_0111,
-            Self::SwapW         => 0b0001_1000,
-            Self::Ext2Mul       => 0b0001_1001,
-            Self::MovUp8        => 0b0001_1010,
-            Self::MovDn8        => 0b0001_1011,
-            Self::SwapW2        => 0b0001_1100,
-            Self::SwapW3        => 0b0001_1101,
-            Self::SwapDW        => 0b0001_1110,
-            // <empty>          => 0b0001_1111,
-
-            Self::Assert(_)     => 0b0010_0000,
-            Self::Eq            => 0b0010_0001,
-            Self::Add           => 0b0010_0010,
-            Self::Mul           => 0b0010_0011,
-            Self::And           => 0b0010_0100,
-            Self::Or            => 0b0010_0101,
-            Self::U32and        => 0b0010_0110,
-            Self::U32xor        => 0b0010_0111,
-            Self::FriE2F4       => 0b0010_1000,
-            Self::Drop          => 0b0010_1001,
-            Self::CSwap         => 0b0010_1010,
-            Self::CSwapW        => 0b0010_1011,
-            Self::MLoadW        => 0b0010_1100,
-            Self::MStore        => 0b0010_1101,
-            Self::MStoreW       => 0b0010_1110,
-            Self::FmpUpdate     => 0b0010_1111,
-
-            Self::Pad           => 0b0011_0000,
-            Self::Dup0          => 0b0011_0001,
-            Self::Dup1          => 0b0011_0010,
-            Self::Dup2          => 0b0011_0011,
-            Self::Dup3          => 0b0011_0100,
-            Self::Dup4          => 0b0011_0101,
-            Self::Dup5          => 0b0011_0110,
-            Self::Dup6          => 0b0011_0111,
-            Self::Dup7          => 0b0011_1000,
-            Self::Dup9          => 0b0011_1001,
-            Self::Dup11         => 0b0011_1010,
-            Self::Dup13         => 0b0011_1011,
-            Self::Dup15         => 0b0011_1100,
-            Self::AdvPop        => 0b0011_1101,
-            Self::SDepth        => 0b0011_1110,
-            Self::Clk           => 0b0011_1111,
-
-            Self::U32add        => 0b0100_0000,
-            Self::U32sub        => 0b0100_0010,
-            Self::U32mul        => 0b0100_0100,
-            Self::U32div        => 0b0100_0110,
-            Self::U32split      => 0b0100_1000,
-            Self::U32assert2(_) => 0b0100_1010,
-            Self::U32add3       => 0b0100_1100,
-            Self::U32madd       => 0b0100_1110,
-
-            Self::HPerm         => 0b0101_0000,
-            Self::MpVerify(_)   => 0b0101_0001,
-            Self::Pipe          => 0b0101_0010,
-            Self::MStream       => 0b0101_0011,
-            Self::Split         => 0b0101_0100,
-            Self::Loop          => 0b0101_0101,
-            Self::Span          => 0b0101_0110,
-            Self::Join          => 0b0101_0111,
-            Self::Dyn           => 0b0101_1000,
-            Self::RCombBase     => 0b0101_1001,
-            // <empty>          => 0b0101_1010,
-            // <empty>          => 0b0101_1011,
-            // <empty>          => 0b0101_1100,
-            // <empty>          => 0b0101_1101,
-            // <empty>          => 0b0101_1110,
-            // <empty>          => 0b0101_1111,
-
-            Self::MrUpdate      => 0b0110_0000,
-            Self::Push(_)       => 0b0110_0100,
-            Self::SysCall       => 0b0110_1000,
-            Self::Call          => 0b0110_1100,
-            Self::End           => 0b0111_0000,
-            Self::Repeat        => 0b0111_0100,
-            Self::Respan        => 0b0111_1000,
-            Self::Halt          => 0b0111_1100,
-        }
+    pub fn op_code(&self) -> u8 {
+        // SAFETY: This is safe because we have given this enum a primitive representation with
+        // #[repr(u8)], with the first field of the underlying union-of-structs the discriminant.
+        //
+        // See the section on "accessing the numeric value of the discriminant"
+        // here: https://doc.rust-lang.org/std/mem/fn.discriminant.html
+        unsafe { *<*const _>::from(self).cast::<u8>() }
     }
 
     /// Returns an immediate value carried by this operation.

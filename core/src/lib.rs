@@ -100,6 +100,7 @@ pub mod prettier {
 }
 
 mod operations;
+pub use operations::opcode_constants::*;
 pub use operations::{
     AdviceInjector, AssemblyOp, DebugOptions, Decorator, DecoratorIterator, DecoratorList,
     Operation, SignatureKind,

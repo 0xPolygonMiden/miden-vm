@@ -3,7 +3,8 @@ use core::fmt;
 use miden_crypto::{hash::rpo::RpoDigest, Felt};
 use miden_formatting::prettier::PrettyPrint;
 
-use crate::{chiplets::hasher, Operation};
+use crate::chiplets::hasher;
+use crate::{OPCODE_CALL, OPCODE_SYSCALL};
 
 use crate::mast::{MastForest, MastNodeId, MerkleTreeNode};
 
@@ -17,9 +18,9 @@ pub struct CallNode {
 /// Constants
 impl CallNode {
     /// The domain of the call block (used for control block hashing).
-    pub const CALL_DOMAIN: Felt = Felt::new(Operation::Call.op_code() as u64);
+    pub const CALL_DOMAIN: Felt = Felt::new(OPCODE_CALL as u64);
     /// The domain of the syscall block (used for control block hashing).
-    pub const SYSCALL_DOMAIN: Felt = Felt::new(Operation::SysCall.op_code() as u64);
+    pub const SYSCALL_DOMAIN: Felt = Felt::new(OPCODE_SYSCALL as u64);
 }
 
 /// Constructors

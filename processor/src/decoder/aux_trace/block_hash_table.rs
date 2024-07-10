@@ -1,8 +1,9 @@
-use vm_core::{Word, ZERO};
-
-use super::{
-    AuxColumnBuilder, Felt, FieldElement, MainTrace, DYN, END, HALT, JOIN, LOOP, ONE, REPEAT, SPLIT,
+use vm_core::{
+    Word, OPCODE_DYN, OPCODE_END, OPCODE_HALT, OPCODE_JOIN, OPCODE_LOOP, OPCODE_REPEAT,
+    OPCODE_SPLIT, ZERO,
 };
+
+use super::{AuxColumnBuilder, Felt, FieldElement, MainTrace, ONE};
 
 // BLOCK HASH TABLE COLUMN BUILDER
 // ================================================================================================
@@ -31,7 +32,7 @@ impl<E: FieldElement<BaseField = Felt>> AuxColumnBuilder<E> for BlockHashTableCo
         let op_code = main_trace.get_op_code(row).as_int() as u8;
 
         match op_code {
-            END => BlockHashTableRow::from_end(main_trace, row).collapse(alphas),
+            OPCODE_END => BlockHashTableRow::from_end(main_trace, row).collapse(alphas),
             _ => E::ONE,
         }
     }
@@ -41,19 +42,19 @@ impl<E: FieldElement<BaseField = Felt>> AuxColumnBuilder<E> for BlockHashTableCo
         let op_code = main_trace.get_op_code(row).as_int() as u8;
 
         match op_code {
-            JOIN => {
+            OPCODE_JOIN => {
                 let left_child_row = BlockHashTableRow::from_join(main_trace, row, true);
                 let right_child_row = BlockHashTableRow::from_join(main_trace, row, false);
 
                 // Note: this adds the 2 rows separately to the block hash table.
                 left_child_row.collapse(alphas) * right_child_row.collapse(alphas)
             }
-            SPLIT => BlockHashTableRow::from_split(main_trace, row).collapse(alphas),
-            LOOP => BlockHashTableRow::from_loop(main_trace, row)
+            OPCODE_SPLIT => BlockHashTableRow::from_split(main_trace, row).collapse(alphas),
+            OPCODE_LOOP => BlockHashTableRow::from_loop(main_trace, row)
                 .map(|row| row.collapse(alphas))
                 .unwrap_or(E::ONE),
-            REPEAT => BlockHashTableRow::from_repeat(main_trace, row).collapse(alphas),
-            DYN => BlockHashTableRow::from_dyn(main_trace, row).collapse(alphas),
+            OPCODE_REPEAT => BlockHashTableRow::from_repeat(main_trace, row).collapse(alphas),
+            OPCODE_DYN => BlockHashTableRow::from_dyn(main_trace, row).collapse(alphas),
             _ => E::ONE,
         }
     }
@@ -88,7 +89,7 @@ impl BlockHashTableRow {
     pub fn table_init(main_trace: &MainTrace) -> Self {
         let program_hash = {
             let row_with_halt = (0..main_trace.num_rows())
-                .find(|row| main_trace.get_op_code(*row) == Felt::from(HALT))
+                .find(|row| main_trace.get_op_code(*row) == Felt::from(OPCODE_HALT))
                 .expect("execution trace must include at least one occurrence of HALT");
 
             main_trace.decoder_hasher_state_first_half(row_with_halt)
@@ -118,7 +119,9 @@ impl BlockHashTableRow {
         //   "second child"
         // - HALT: The end of the program, which a first child can't find itself in (since the
         //   second child needs to execute first)
-        let is_first_child = op_code_next != END && op_code_next != REPEAT && op_code_next != HALT;
+        let is_first_child = op_code_next != OPCODE_END
+            && op_code_next != OPCODE_REPEAT
+            && op_code_next != OPCODE_HALT;
         let is_loop_body = main_trace
             .is_loop_body_flag(row)
             .try_into()
