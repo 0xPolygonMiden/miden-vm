@@ -13,10 +13,10 @@ use miden_air::trace::{
     main_trace::MainTrace,
 };
 use vm_core::{
-    Word, ONE, OPCODE_AND, OPCODE_CALL, OPCODE_DYN, OPCODE_END, OPCODE_HPERM, OPCODE_JOIN,
-    OPCODE_LOOP, OPCODE_MLOAD, OPCODE_MLOADW, OPCODE_MPVERIFY, OPCODE_MRUPDATE, OPCODE_MSTORE,
-    OPCODE_MSTOREW, OPCODE_MSTREAM, OPCODE_RCOMBBASE, OPCODE_RESPAN, OPCODE_SPAN, OPCODE_SPLIT,
-    OPCODE_SYSCALL, OPCODE_U32XOR, ZERO,
+    Word, ONE, OPCODE_CALL, OPCODE_DYN, OPCODE_END, OPCODE_HPERM, OPCODE_JOIN, OPCODE_LOOP,
+    OPCODE_MLOAD, OPCODE_MLOADW, OPCODE_MPVERIFY, OPCODE_MRUPDATE, OPCODE_MSTORE, OPCODE_MSTOREW,
+    OPCODE_MSTREAM, OPCODE_RCOMBBASE, OPCODE_RESPAN, OPCODE_SPAN, OPCODE_SPLIT, OPCODE_SYSCALL,
+    OPCODE_U32AND, OPCODE_U32XOR, ZERO,
 };
 
 use super::{super::trace::AuxColumnBuilder, Felt, FieldElement};
@@ -205,7 +205,7 @@ impl<E: FieldElement<BaseField = Felt>> AuxColumnBuilder<E> for BusColumnBuilder
             OPCODE_SPAN => build_span_block_request(main_trace, alphas, row),
             OPCODE_RESPAN => build_respan_block_request(main_trace, alphas, row),
             OPCODE_END => build_end_block_request(main_trace, alphas, row),
-            OPCODE_AND => build_bitwise_request(main_trace, ZERO, alphas, row),
+            OPCODE_U32AND => build_bitwise_request(main_trace, ZERO, alphas, row),
             OPCODE_U32XOR => build_bitwise_request(main_trace, ONE, alphas, row),
             OPCODE_MLOADW => build_mem_request_word(main_trace, MEMORY_READ_LABEL, alphas, row),
             OPCODE_MSTOREW => build_mem_request_word(main_trace, MEMORY_WRITE_LABEL, alphas, row),
