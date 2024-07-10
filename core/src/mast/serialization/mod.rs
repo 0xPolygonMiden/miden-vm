@@ -87,21 +87,30 @@ impl Serializable for MastForest {
         // roots
         self.roots.write_into(target);
 
-        // MAST node infos
-        for mast_node in &self.nodes {
-            let mast_node_info = MastNodeInfo::new(mast_node);
+        // Prepare MAST node infos, but don't store them yet. We store them at the end to make
+        // deserialization more efficient.
+        let mast_node_infos: Vec<MastNodeInfo> = self
+            .nodes
+            .iter()
+            .map(|mast_node| {
+                let mast_node_info = MastNodeInfo::new(mast_node);
 
-            if let MastNode::Block(basic_block) = mast_node {
-                basic_block_data_builder.encode_basic_block(basic_block);
-            }
+                if let MastNode::Block(basic_block) = mast_node {
+                    basic_block_data_builder.encode_basic_block(basic_block);
+                }
 
-            mast_node_info.write_into(target);
-        }
+                mast_node_info
+            })
+            .collect();
 
         let (data, string_table) = basic_block_data_builder.into_parts();
 
         string_table.write_into(target);
         data.write_into(target);
+
+        for mast_node_info in mast_node_infos {
+            mast_node_info.write_into(target);
+        }
     }
 }
 
@@ -126,16 +135,6 @@ impl Deserializable for MastForest {
 
         let roots: Vec<MastNodeId> = Deserializable::read_from(source)?;
 
-        let mast_node_infos = {
-            let mut mast_node_infos = Vec::with_capacity(node_count);
-            for _ in 0..node_count {
-                let mast_node_info = MastNodeInfo::read_from(source)?;
-                mast_node_infos.push(mast_node_info);
-            }
-
-            mast_node_infos
-        };
-
         let strings: Vec<StringRef> = Deserializable::read_from(source)?;
 
         let data: Vec<u8> = Deserializable::read_from(source)?;
@@ -145,7 +144,9 @@ impl Deserializable for MastForest {
         let mast_forest = {
             let mut mast_forest = MastForest::new();
 
-            for mast_node_info in mast_node_infos {
+            for _ in 0..node_count {
+                let mast_node_info = MastNodeInfo::read_from(source)?;
+
                 let node = mast_node_info
                     .try_into_mast_node(&mast_forest, &mut basic_block_data_decoder)?;
 
