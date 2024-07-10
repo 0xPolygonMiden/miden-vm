@@ -89,8 +89,7 @@ impl Serializable for MastForest {
 
         // MAST node infos
         for mast_node in &self.nodes {
-            let mast_node_info =
-                MastNodeInfo::new(mast_node, basic_block_data_builder.next_data_offset());
+            let mast_node_info = MastNodeInfo::new(mast_node);
 
             if let MastNode::Block(basic_block) = mast_node {
                 basic_block_data_builder.encode_basic_block(basic_block);

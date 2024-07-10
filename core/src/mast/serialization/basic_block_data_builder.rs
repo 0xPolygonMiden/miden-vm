@@ -7,7 +7,7 @@ use crate::{
     AdviceInjector, DebugOptions, Decorator, SignatureKind,
 };
 
-use super::{decorator::EncodedDecoratorVariant, DataOffset, StringIndex, StringRef};
+use super::{decorator::EncodedDecoratorVariant, StringIndex, StringRef};
 
 // BASIC BLOCK DATA BUILDER
 // ================================================================================================
@@ -23,18 +23,6 @@ pub struct BasicBlockDataBuilder {
 impl BasicBlockDataBuilder {
     pub fn new() -> Self {
         Self::default()
-    }
-}
-
-/// Accessors
-impl BasicBlockDataBuilder {
-    /// Returns the offset in the serialized [`crate::mast::MastForest`] data field that the next
-    /// [`super::MastNodeInfo`] representing a [`BasicBlockNode`] will take.
-    pub fn next_data_offset(&self) -> DataOffset {
-        self.data
-            .len()
-            .try_into()
-            .expect("MAST forest data segment larger than 2^32 bytes")
     }
 }
 

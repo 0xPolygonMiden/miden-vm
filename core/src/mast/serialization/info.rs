@@ -3,7 +3,7 @@ use winter_utils::{ByteReader, ByteWriter, Deserializable, DeserializationError,
 
 use crate::mast::{MastForest, MastNode, MastNodeId, MerkleTreeNode};
 
-use super::{basic_block_data_decoder::BasicBlockDataDecoder, DataOffset};
+use super::basic_block_data_decoder::BasicBlockDataDecoder;
 
 // MAST NODE INFO
 // ================================================================================================
@@ -20,23 +20,15 @@ use super::{basic_block_data_decoder::BasicBlockDataDecoder, DataOffset};
 #[derive(Debug)]
 pub struct MastNodeInfo {
     ty: MastNodeType,
-    offset: DataOffset,
     digest: RpoDigest,
 }
 
 impl MastNodeInfo {
-    pub fn new(mast_node: &MastNode, basic_block_offset: DataOffset) -> Self {
+    pub fn new(mast_node: &MastNode) -> Self {
         let ty = MastNodeType::new(mast_node);
-
-        let offset = if let MastNode::Block(_) = mast_node {
-            basic_block_offset
-        } else {
-            0
-        };
 
         Self {
             ty,
-            offset,
             digest: mast_node.digest(),
         }
     }
@@ -106,19 +98,19 @@ impl MastNodeInfo {
 
 impl Serializable for MastNodeInfo {
     fn write_into<W: ByteWriter>(&self, target: &mut W) {
-        self.ty.write_into(target);
-        self.offset.write_into(target);
-        self.digest.write_into(target);
+        let Self { ty, digest } = self;
+
+        ty.write_into(target);
+        digest.write_into(target);
     }
 }
 
 impl Deserializable for MastNodeInfo {
     fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
         let ty = Deserializable::read_from(source)?;
-        let offset = DataOffset::read_from(source)?;
         let digest = RpoDigest::read_from(source)?;
 
-        Ok(Self { ty, offset, digest })
+        Ok(Self { ty, digest })
     }
 }
 
