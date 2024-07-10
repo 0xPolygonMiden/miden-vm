@@ -1,5 +1,5 @@
 use alloc::{collections::BTreeMap, vec::Vec};
-use miden_crypto::hash::rpo::{Rpo256, RpoDigest};
+use miden_crypto::hash::blake::{Blake3Digest, Blake3_256};
 use winter_utils::{ByteWriter, Serializable};
 
 use crate::{
@@ -147,13 +147,13 @@ impl BasicBlockDataBuilder {
 #[derive(Debug, Default)]
 struct StringTableBuilder {
     table: Vec<StringRef>,
-    str_to_index: BTreeMap<RpoDigest, StringIndex>,
+    str_to_index: BTreeMap<Blake3Digest<32>, StringIndex>,
     strings_data: Vec<u8>,
 }
 
 impl StringTableBuilder {
     pub fn add_string(&mut self, string: &str) -> StringIndex {
-        if let Some(str_idx) = self.str_to_index.get(&Rpo256::hash(string.as_bytes())) {
+        if let Some(str_idx) = self.str_to_index.get(&Blake3_256::hash(string.as_bytes())) {
             // return already interned string
             *str_idx
         } else {
@@ -171,7 +171,7 @@ impl StringTableBuilder {
 
             self.strings_data.extend(string.as_bytes());
             self.table.push(str_ref);
-            self.str_to_index.insert(Rpo256::hash(string.as_bytes()), str_idx);
+            self.str_to_index.insert(Blake3_256::hash(string.as_bytes()), str_idx);
 
             str_idx
         }
