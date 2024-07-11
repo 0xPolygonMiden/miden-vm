@@ -3,7 +3,7 @@ use winter_utils::{ByteReader, ByteWriter, Deserializable, DeserializationError,
 
 use crate::mast::{MastForest, MastNode, MastNodeId, MerkleTreeNode};
 
-use super::basic_block_data_decoder::BasicBlockDataDecoder;
+use super::{basic_block_data_decoder::BasicBlockDataDecoder, DataOffset};
 
 // MAST NODE INFO
 // ================================================================================================
@@ -24,8 +24,8 @@ pub struct MastNodeInfo {
 }
 
 impl MastNodeInfo {
-    pub fn new(mast_node: &MastNode) -> Self {
-        let ty = MastNodeType::new(mast_node);
+    pub fn new(mast_node: &MastNode, basic_block_offset: DataOffset) -> Self {
+        let ty = MastNodeType::new(mast_node, basic_block_offset);
 
         Self {
             ty,
@@ -40,6 +40,7 @@ impl MastNodeInfo {
     ) -> Result<MastNode, DeserializationError> {
         let mast_node = match self.ty {
             MastNodeType::Block {
+                offset: _,
                 len: num_operations_and_decorators,
             } => {
                 let (operations, decorators) = basic_block_data_decoder
@@ -147,6 +148,8 @@ pub enum MastNodeType {
         body_id: u32,
     } = LOOP,
     Block {
+        /// Offset of the basic block in the data segment
+        offset: u32,
         /// The number of operations and decorators in the basic block
         len: u32,
     } = BLOCK,
@@ -163,14 +166,17 @@ pub enum MastNodeType {
 /// Constructors
 impl MastNodeType {
     /// Constructs a new [`MastNodeType`] from a [`MastNode`].
-    pub fn new(mast_node: &MastNode) -> Self {
+    pub fn new(mast_node: &MastNode, basic_block_offset: u32) -> Self {
         use MastNode::*;
 
         match mast_node {
             Block(block_node) => {
                 let len = block_node.num_operations_and_decorators();
 
-                Self::Block { len }
+                Self::Block {
+                    len,
+                    offset: basic_block_offset,
+                }
             }
             Join(join_node) => Self::Join {
                 left_child_id: join_node.first().0,
@@ -233,13 +239,13 @@ impl MastNodeType {
             MastNodeType::Join {
                 left_child_id: left,
                 right_child_id: right,
-            } => Self::encode_join_or_split(*left, *right),
+            } => Self::encode_u32_pair(*left, *right),
             MastNodeType::Split {
                 if_branch_id: if_branch,
                 else_branch_id: else_branch,
-            } => Self::encode_join_or_split(*if_branch, *else_branch),
+            } => Self::encode_u32_pair(*if_branch, *else_branch),
             MastNodeType::Loop { body_id: body } => Self::encode_u32_payload(*body),
-            MastNodeType::Block { len } => Self::encode_u32_payload(*len),
+            MastNodeType::Block { offset, len } => Self::encode_u32_pair(*offset, *len),
             MastNodeType::Call { callee_id } => Self::encode_u32_payload(*callee_id),
             MastNodeType::SysCall { callee_id } => Self::encode_u32_payload(*callee_id),
             MastNodeType::Dyn => [0; 8],
@@ -247,7 +253,7 @@ impl MastNodeType {
         }
     }
 
-    fn encode_join_or_split(left_child_id: u32, right_child_id: u32) -> [u8; 8] {
+    fn encode_u32_pair(left_child_id: u32, right_child_id: u32) -> [u8; 8] {
         assert!(left_child_id < 2_u32.pow(30));
         assert!(right_child_id < 2_u32.pow(30));
 
@@ -304,14 +310,14 @@ impl Deserializable for MastNodeType {
 
         match tag {
             JOIN => {
-                let (left_child_id, right_child_id) = Self::decode_join_or_split(bytes);
+                let (left_child_id, right_child_id) = Self::decode_u32_pair(bytes);
                 Ok(Self::Join {
                     left_child_id,
                     right_child_id,
                 })
             }
             SPLIT => {
-                let (if_branch_id, else_branch_id) = Self::decode_join_or_split(bytes);
+                let (if_branch_id, else_branch_id) = Self::decode_u32_pair(bytes);
                 Ok(Self::Split {
                     if_branch_id,
                     else_branch_id,
@@ -322,8 +328,8 @@ impl Deserializable for MastNodeType {
                 Ok(Self::Loop { body_id })
             }
             BLOCK => {
-                let len = Self::decode_u32_payload(bytes);
-                Ok(Self::Block { len })
+                let (offset, len) = Self::decode_u32_pair(bytes);
+                Ok(Self::Block { offset, len })
             }
             CALL => {
                 let callee_id = Self::decode_u32_payload(bytes);
@@ -344,7 +350,7 @@ impl Deserializable for MastNodeType {
 
 /// Deserialization helpers
 impl MastNodeType {
-    fn decode_join_or_split(buffer: [u8; 8]) -> (u32, u32) {
+    fn decode_u32_pair(buffer: [u8; 8]) -> (u32, u32) {
         let first = {
             let mut first_le_bytes = [0_u8; 4];
 
@@ -414,7 +420,7 @@ mod tests {
         assert_eq!(expected_encoded_mast_node_type.to_vec(), encoded_mast_node_type);
 
         let (decoded_left, decoded_right) =
-            MastNodeType::decode_join_or_split(expected_encoded_mast_node_type);
+            MastNodeType::decode_u32_pair(expected_encoded_mast_node_type);
         assert_eq!(left_child_id, decoded_left);
         assert_eq!(right_child_id, decoded_right);
     }
@@ -441,7 +447,7 @@ mod tests {
         assert_eq!(expected_encoded_mast_node_type.to_vec(), encoded_mast_node_type);
 
         let (decoded_if_branch, decoded_else_branch) =
-            MastNodeType::decode_join_or_split(expected_encoded_mast_node_type);
+            MastNodeType::decode_u32_pair(expected_encoded_mast_node_type);
         assert_eq!(if_branch_id, decoded_if_branch);
         assert_eq!(else_branch_id, decoded_else_branch);
     }

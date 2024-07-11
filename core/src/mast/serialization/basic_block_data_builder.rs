@@ -7,7 +7,7 @@ use crate::{
     AdviceInjector, DebugOptions, Decorator, SignatureKind,
 };
 
-use super::{decorator::EncodedDecoratorVariant, StringIndex, StringRef};
+use super::{decorator::EncodedDecoratorVariant, DataOffset, StringIndex, StringRef};
 
 // BASIC BLOCK DATA BUILDER
 // ================================================================================================
@@ -23,6 +23,14 @@ pub struct BasicBlockDataBuilder {
 impl BasicBlockDataBuilder {
     pub fn new() -> Self {
         Self::default()
+    }
+}
+
+/// Accessors
+impl BasicBlockDataBuilder {
+    /// Returns the current offset into the data buffer.
+    pub fn get_offset(&self) -> DataOffset {
+        self.data.len() as DataOffset
     }
 }
 
