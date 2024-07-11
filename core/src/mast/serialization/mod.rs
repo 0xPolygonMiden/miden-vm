@@ -49,24 +49,19 @@ const VERSION: [u8; 3] = [0, 0, 0];
 pub struct StringRef {
     /// Offset into the `data` section.
     offset: DataOffset,
-
-    /// Length of the utf-8 string.
-    len: u32,
 }
 
 impl Serializable for StringRef {
     fn write_into<W: ByteWriter>(&self, target: &mut W) {
         self.offset.write_into(target);
-        self.len.write_into(target);
     }
 }
 
 impl Deserializable for StringRef {
     fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
         let offset = DataOffset::read_from(source)?;
-        let len = source.read_u32()?;
 
-        Ok(Self { offset, len })
+        Ok(Self { offset })
     }
 }
 

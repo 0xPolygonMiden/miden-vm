@@ -191,26 +191,17 @@ impl<'a> BasicBlockDataDecoder<'a> {
     }
 
     fn read_string(&self, str_idx: StringIndex) -> Result<String, DeserializationError> {
-        let str_ref = self.strings.get(str_idx).ok_or_else(|| {
-            DeserializationError::InvalidValue(format!("invalid index in strings table: {str_idx}"))
-        })?;
-
-        let str_bytes = {
-            let start = str_ref.offset as usize;
-            let end = (str_ref.offset + str_ref.len) as usize;
-
-            self.data.get(start..end).ok_or_else(|| {
+        let str_offset = {
+            let str_ref = self.strings.get(str_idx).ok_or_else(|| {
                 DeserializationError::InvalidValue(format!(
-                    "invalid string ref in strings table. Offset: {},  length: {}",
-                    str_ref.offset, str_ref.len
+                    "invalid index in strings table: {str_idx}"
                 ))
-            })?
+            })?;
+
+            str_ref.offset as usize
         };
 
-        String::from_utf8(str_bytes.to_vec()).map_err(|_| {
-            DeserializationError::InvalidValue(format!(
-                "Invalid UTF-8 string in strings table: {str_bytes:?}"
-            ))
-        })
+        let mut reader = SliceReader::new(&self.data[str_offset..]);
+        reader.read()
     }
 }

@@ -151,11 +151,10 @@ impl StringTableBuilder {
                     .len()
                     .try_into()
                     .expect("strings table larger than 2^32 bytes"),
-                len: string.len().try_into().expect("string larger than 2^32 bytes"),
             };
             let str_idx = self.table.len();
 
-            self.strings_data.extend(string.as_bytes());
+            string.write_into(&mut self.strings_data);
             self.table.push(str_ref);
             self.str_to_index.insert(Blake3_256::hash(string.as_bytes()), str_idx);
 
@@ -174,7 +173,6 @@ impl StringTableBuilder {
             .into_iter()
             .map(|str_ref| StringRef {
                 offset: str_ref.offset + table_offset,
-                len: str_ref.len,
             })
             .collect()
     }
