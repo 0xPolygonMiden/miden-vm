@@ -718,11 +718,7 @@ fn calculate_cto(span: &mut BasicBlockBuilder) {
 /// This operation takes:
 /// - 3 cycles without immediate value.
 /// - 4 cycles with immediate value.
-pub fn u32lt(span_builder: &mut BasicBlockBuilder, imm: Option<u32>) {
-    if let Some(imm) = imm {
-        span_builder.push_op(Push(Felt::from(imm)));
-    }
-
+pub fn u32lt(span_builder: &mut BasicBlockBuilder) {
     compute_lt(span_builder);
 }
 
@@ -731,11 +727,7 @@ pub fn u32lt(span_builder: &mut BasicBlockBuilder, imm: Option<u32>) {
 /// This operation takes:
 /// - 5 cycles without immediate value.
 /// - 6 cycles with immediate value.
-pub fn u32lte(span_builder: &mut BasicBlockBuilder, imm: Option<u32>) {
-    if let Some(imm) = imm {
-        span_builder.push_op(Push(Felt::from(imm)));
-    }
-
+pub fn u32lte(span_builder: &mut BasicBlockBuilder) {
     // Compute the lt with reversed number to get a gt check
     span_builder.push_op(Swap);
     compute_lt(span_builder);
@@ -749,11 +741,7 @@ pub fn u32lte(span_builder: &mut BasicBlockBuilder, imm: Option<u32>) {
 /// This operation takes:
 /// - 4 cycles without immediate value.
 /// - 5 cycles with immediate value.
-pub fn u32gt(span_builder: &mut BasicBlockBuilder, imm: Option<u32>) {
-    if let Some(imm) = imm {
-        span_builder.push_op(Push(Felt::from(imm)));
-    }
-
+pub fn u32gt(span_builder: &mut BasicBlockBuilder) {
     // Reverse the numbers so we can get a gt check.
     span_builder.push_op(Swap);
 
@@ -765,11 +753,7 @@ pub fn u32gt(span_builder: &mut BasicBlockBuilder, imm: Option<u32>) {
 /// This operation takes:
 /// - 4 cycles without immediate value.
 /// - 5 cycles with immediate value.
-pub fn u32gte(span_builder: &mut BasicBlockBuilder, imm: Option<u32>) {
-    if let Some(imm) = imm {
-        span_builder.push_op(Push(Felt::from(imm)));
-    }
-
+pub fn u32gte(span_builder: &mut BasicBlockBuilder) {
     compute_lt(span_builder);
 
     // Flip the final results to get the gte results.
@@ -785,11 +769,7 @@ pub fn u32gte(span_builder: &mut BasicBlockBuilder, imm: Option<u32>) {
 /// This operation takes:
 /// - 8 cycles without immediate value.
 /// - 9 cycles with immediate value.
-pub fn u32min(span_builder: &mut BasicBlockBuilder, imm: Option<u32>) {
-    if let Some(imm) = imm {
-        span_builder.push_op(Push(Felt::from(imm)));
-    }
-
+pub fn u32min(span_builder: &mut BasicBlockBuilder) {
     compute_max_and_min(span_builder);
 
     // Drop the max and keep the min
@@ -805,11 +785,7 @@ pub fn u32min(span_builder: &mut BasicBlockBuilder, imm: Option<u32>) {
 /// This operation takes:
 /// - 9 cycles without immediate value.
 /// - 10 cycles with immediate value.
-pub fn u32max(span_builder: &mut BasicBlockBuilder, imm: Option<u32>) {
-    if let Some(imm) = imm {
-        span_builder.push_op(Push(Felt::from(imm)));
-    }
-
+pub fn u32max(span_builder: &mut BasicBlockBuilder) {
     compute_max_and_min(span_builder);
 
     // Drop the min and keep the max

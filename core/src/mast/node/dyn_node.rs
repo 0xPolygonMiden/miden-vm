@@ -4,7 +4,7 @@ use miden_crypto::{hash::rpo::RpoDigest, Felt};
 
 use crate::{
     mast::{MastForest, MerkleTreeNode},
-    Operation,
+    OPCODE_DYN,
 };
 
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
@@ -13,7 +13,7 @@ pub struct DynNode;
 /// Constants
 impl DynNode {
     /// The domain of the Dyn block (used for control block hashing).
-    pub const DOMAIN: Felt = Felt::new(Operation::Dyn.op_code() as u64);
+    pub const DOMAIN: Felt = Felt::new(OPCODE_DYN as u64);
 }
 
 impl MerkleTreeNode for DynNode {

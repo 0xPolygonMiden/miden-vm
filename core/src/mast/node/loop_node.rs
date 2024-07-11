@@ -3,9 +3,11 @@ use core::fmt;
 use miden_crypto::{hash::rpo::RpoDigest, Felt};
 use miden_formatting::prettier::PrettyPrint;
 
-use crate::{chiplets::hasher, Operation};
-
-use crate::mast::{MastForest, MastNodeId, MerkleTreeNode};
+use crate::{
+    chiplets::hasher,
+    mast::{MastForest, MastNodeId, MerkleTreeNode},
+    OPCODE_LOOP,
+};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct LoopNode {
@@ -16,7 +18,7 @@ pub struct LoopNode {
 /// Constants
 impl LoopNode {
     /// The domain of the loop node (used for control block hashing).
-    pub const DOMAIN: Felt = Felt::new(Operation::Loop.op_code() as u64);
+    pub const DOMAIN: Felt = Felt::new(OPCODE_LOOP as u64);
 }
 
 /// Constructors

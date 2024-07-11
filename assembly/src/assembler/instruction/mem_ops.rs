@@ -1,5 +1,6 @@
 use super::{push_felt, push_u32_value, validate_param, AssemblyContext, BasicBlockBuilder};
-use crate::AssemblyError;
+use crate::{diagnostics::Report, AssemblyError};
+use alloc::string::ToString;
 use vm_core::{Felt, Operation::*};
 
 // INSTRUCTION PARSERS
@@ -112,6 +113,16 @@ pub fn local_to_absolute_addr(
     index: u16,
     num_proc_locals: u16,
 ) -> Result<(), AssemblyError> {
+    if num_proc_locals == 0 {
+        return Err(AssemblyError::Other(
+            Report::msg(
+                "number of procedure locals was not set (or set to 0), but local values were used"
+                    .to_string(),
+            )
+            .into(),
+        ));
+    }
+
     let max = num_proc_locals - 1;
     validate_param(index, 0..=max)?;
 

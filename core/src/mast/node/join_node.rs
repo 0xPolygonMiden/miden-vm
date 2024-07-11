@@ -2,9 +2,12 @@ use core::fmt;
 
 use miden_crypto::{hash::rpo::RpoDigest, Felt};
 
-use crate::{chiplets::hasher, prettier::PrettyPrint, Operation};
-
-use crate::mast::{MastForest, MastNodeId, MerkleTreeNode};
+use crate::{
+    chiplets::hasher,
+    mast::{MastForest, MastNodeId, MerkleTreeNode},
+    prettier::PrettyPrint,
+    OPCODE_JOIN,
+};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct JoinNode {
@@ -15,7 +18,7 @@ pub struct JoinNode {
 /// Constants
 impl JoinNode {
     /// The domain of the join block (used for control block hashing).
-    pub const DOMAIN: Felt = Felt::new(Operation::Join.op_code() as u64);
+    pub const DOMAIN: Felt = Felt::new(OPCODE_JOIN as u64);
 }
 
 /// Constructors
