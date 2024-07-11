@@ -12,33 +12,18 @@ use miden_air::trace::{
     },
     main_trace::MainTrace,
 };
-use vm_core::{Operation, Word, ONE, ZERO};
+use vm_core::{
+    Word, ONE, OPCODE_CALL, OPCODE_DYN, OPCODE_END, OPCODE_HPERM, OPCODE_JOIN, OPCODE_LOOP,
+    OPCODE_MLOAD, OPCODE_MLOADW, OPCODE_MPVERIFY, OPCODE_MRUPDATE, OPCODE_MSTORE, OPCODE_MSTOREW,
+    OPCODE_MSTREAM, OPCODE_RCOMBBASE, OPCODE_RESPAN, OPCODE_SPAN, OPCODE_SPLIT, OPCODE_SYSCALL,
+    OPCODE_U32AND, OPCODE_U32XOR, ZERO,
+};
 
 use super::{super::trace::AuxColumnBuilder, Felt, FieldElement};
 
 // CONSTANTS
 // ================================================================================================
 
-const JOIN: u8 = Operation::Join.op_code();
-const SPLIT: u8 = Operation::Split.op_code();
-const LOOP: u8 = Operation::Loop.op_code();
-const DYN: u8 = Operation::Dyn.op_code();
-const CALL: u8 = Operation::Call.op_code();
-const SYSCALL: u8 = Operation::SysCall.op_code();
-const SPAN: u8 = Operation::Span.op_code();
-const RESPAN: u8 = Operation::Respan.op_code();
-const END: u8 = Operation::End.op_code();
-const AND: u8 = Operation::U32and.op_code();
-const XOR: u8 = Operation::U32xor.op_code();
-const MLOADW: u8 = Operation::MLoadW.op_code();
-const MSTOREW: u8 = Operation::MStoreW.op_code();
-const MLOAD: u8 = Operation::MLoad.op_code();
-const MSTORE: u8 = Operation::MStore.op_code();
-const MSTREAM: u8 = Operation::MStream.op_code();
-const RCOMBBASE: u8 = Operation::RCombBase.op_code();
-const HPERM: u8 = Operation::HPerm.op_code();
-const MPVERIFY: u8 = Operation::MpVerify(0).op_code();
-const MRUPDATE: u8 = Operation::MrUpdate.op_code();
 const NUM_HEADER_ALPHAS: usize = 4;
 
 // CHIPLETS AUXILIARY TRACE BUILDER
@@ -213,24 +198,24 @@ impl<E: FieldElement<BaseField = Felt>> AuxColumnBuilder<E> for BusColumnBuilder
         let op_code = op_code_felt.as_int() as u8;
 
         match op_code {
-            JOIN | SPLIT | LOOP | DYN | CALL => {
+            OPCODE_JOIN | OPCODE_SPLIT | OPCODE_LOOP | OPCODE_DYN | OPCODE_CALL => {
                 build_control_block_request(main_trace, op_code_felt, alphas, row)
             }
-            SYSCALL => build_syscall_block_request(main_trace, op_code_felt, alphas, row),
-            SPAN => build_span_block_request(main_trace, alphas, row),
-            RESPAN => build_respan_block_request(main_trace, alphas, row),
-            END => build_end_block_request(main_trace, alphas, row),
-            AND => build_bitwise_request(main_trace, ZERO, alphas, row),
-            XOR => build_bitwise_request(main_trace, ONE, alphas, row),
-            MLOADW => build_mem_request_word(main_trace, MEMORY_READ_LABEL, alphas, row),
-            MSTOREW => build_mem_request_word(main_trace, MEMORY_WRITE_LABEL, alphas, row),
-            MLOAD => build_mem_request_element(main_trace, MEMORY_READ_LABEL, alphas, row),
-            MSTORE => build_mem_request_element(main_trace, MEMORY_WRITE_LABEL, alphas, row),
-            MSTREAM => build_mstream_request(main_trace, alphas, row),
-            RCOMBBASE => build_rcomb_base_request(main_trace, alphas, row),
-            HPERM => build_hperm_request(main_trace, alphas, row),
-            MPVERIFY => build_mpverify_request(main_trace, alphas, row),
-            MRUPDATE => build_mrupdate_request(main_trace, alphas, row),
+            OPCODE_SYSCALL => build_syscall_block_request(main_trace, op_code_felt, alphas, row),
+            OPCODE_SPAN => build_span_block_request(main_trace, alphas, row),
+            OPCODE_RESPAN => build_respan_block_request(main_trace, alphas, row),
+            OPCODE_END => build_end_block_request(main_trace, alphas, row),
+            OPCODE_U32AND => build_bitwise_request(main_trace, ZERO, alphas, row),
+            OPCODE_U32XOR => build_bitwise_request(main_trace, ONE, alphas, row),
+            OPCODE_MLOADW => build_mem_request_word(main_trace, MEMORY_READ_LABEL, alphas, row),
+            OPCODE_MSTOREW => build_mem_request_word(main_trace, MEMORY_WRITE_LABEL, alphas, row),
+            OPCODE_MLOAD => build_mem_request_element(main_trace, MEMORY_READ_LABEL, alphas, row),
+            OPCODE_MSTORE => build_mem_request_element(main_trace, MEMORY_WRITE_LABEL, alphas, row),
+            OPCODE_MSTREAM => build_mstream_request(main_trace, alphas, row),
+            OPCODE_RCOMBBASE => build_rcomb_base_request(main_trace, alphas, row),
+            OPCODE_HPERM => build_hperm_request(main_trace, alphas, row),
+            OPCODE_MPVERIFY => build_mpverify_request(main_trace, alphas, row),
+            OPCODE_MRUPDATE => build_mrupdate_request(main_trace, alphas, row),
             _ => E::ONE,
         }
     }
