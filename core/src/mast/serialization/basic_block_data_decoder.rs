@@ -2,19 +2,19 @@ use crate::{
     AdviceInjector, AssemblyOp, DebugOptions, Decorator, DecoratorList, Operation, SignatureKind,
 };
 
-use super::{decorator::EncodedDecoratorVariant, DataOffset, StringIndex, StringRef};
+use super::{decorator::EncodedDecoratorVariant, DataOffset, StringIndex};
 use alloc::{string::String, vec::Vec};
 use miden_crypto::Felt;
 use winter_utils::{ByteReader, Deserializable, DeserializationError, SliceReader};
 
 pub struct BasicBlockDataDecoder<'a> {
     data: &'a [u8],
-    strings: &'a [StringRef],
+    strings: &'a [DataOffset],
 }
 
 /// Constructors
 impl<'a> BasicBlockDataDecoder<'a> {
-    pub fn new(data: &'a [u8], strings: &'a [StringRef]) -> Self {
+    pub fn new(data: &'a [u8], strings: &'a [DataOffset]) -> Self {
         Self { data, strings }
     }
 }
@@ -189,15 +189,9 @@ impl<'a> BasicBlockDataDecoder<'a> {
     }
 
     fn read_string(&self, str_idx: StringIndex) -> Result<String, DeserializationError> {
-        let str_offset = {
-            let str_ref = self.strings.get(str_idx).ok_or_else(|| {
-                DeserializationError::InvalidValue(format!(
-                    "invalid index in strings table: {str_idx}"
-                ))
-            })?;
-
-            str_ref.offset as usize
-        };
+        let str_offset = self.strings.get(str_idx).copied().ok_or_else(|| {
+            DeserializationError::InvalidValue(format!("invalid index in strings table: {str_idx}"))
+        })? as usize;
 
         let mut reader = SliceReader::new(&self.data[str_offset..]);
         reader.read()

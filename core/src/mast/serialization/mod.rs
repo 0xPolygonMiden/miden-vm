@@ -39,32 +39,6 @@ const MAGIC: &[u8; 5] = b"MAST\0";
 /// version field itself, but should be considered invalid for now.
 const VERSION: [u8; 3] = [0, 0, 0];
 
-// STRING REF
-// ================================================================================================
-
-/// An entry in the `strings` table of an encoded [`MastForest`].
-///
-/// Strings are UTF8-encoded.
-#[derive(Debug)]
-pub struct StringRef {
-    /// Offset into the `data` section.
-    offset: DataOffset,
-}
-
-impl Serializable for StringRef {
-    fn write_into<W: ByteWriter>(&self, target: &mut W) {
-        self.offset.write_into(target);
-    }
-}
-
-impl Deserializable for StringRef {
-    fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
-        let offset = DataOffset::read_from(source)?;
-
-        Ok(Self { offset })
-    }
-}
-
 // MAST FOREST SERIALIZATION/DESERIALIZATION
 // ================================================================================================
 
@@ -131,7 +105,7 @@ impl Deserializable for MastForest {
 
         let roots: Vec<MastNodeId> = Deserializable::read_from(source)?;
 
-        let strings: Vec<StringRef> = Deserializable::read_from(source)?;
+        let strings: Vec<DataOffset> = Deserializable::read_from(source)?;
 
         let data: Vec<u8> = Deserializable::read_from(source)?;
 

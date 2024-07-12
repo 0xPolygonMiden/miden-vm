@@ -7,7 +7,7 @@ use crate::{
     AdviceInjector, DebugOptions, Decorator, SignatureKind,
 };
 
-use super::{decorator::EncodedDecoratorVariant, DataOffset, StringIndex, StringRef};
+use super::{decorator::EncodedDecoratorVariant, DataOffset, StringIndex};
 
 // BASIC BLOCK DATA BUILDER
 // ================================================================================================
@@ -48,7 +48,7 @@ impl BasicBlockDataBuilder {
     }
 
     /// Returns the serialized [`crate::mast::MastForest`] data field, as well as the string table.
-    pub fn into_parts(mut self) -> (Vec<u8>, Vec<StringRef>) {
+    pub fn into_parts(mut self) -> (Vec<u8>, Vec<DataOffset>) {
         let string_table = self.string_table_builder.into_table(&mut self.data);
         (self.data, string_table)
     }
@@ -140,7 +140,7 @@ impl BasicBlockDataBuilder {
 
 #[derive(Debug, Default)]
 struct StringTableBuilder {
-    table: Vec<StringRef>,
+    table: Vec<DataOffset>,
     str_to_index: BTreeMap<Blake3Digest<32>, StringIndex>,
     strings_data: Vec<u8>,
 }
@@ -153,35 +153,29 @@ impl StringTableBuilder {
         } else {
             // add new string to table
             // NOTE: these string refs' offset will need to be shifted again in `into_table()`
-            let str_ref = StringRef {
-                offset: self
-                    .strings_data
-                    .len()
-                    .try_into()
-                    .expect("strings table larger than 2^32 bytes"),
-            };
+            let str_offset = self
+                .strings_data
+                .len()
+                .try_into()
+                .expect("strings table larger than 2^32 bytes");
+
             let str_idx = self.table.len();
 
             string.write_into(&mut self.strings_data);
-            self.table.push(str_ref);
+            self.table.push(str_offset);
             self.str_to_index.insert(Blake3_256::hash(string.as_bytes()), str_idx);
 
             str_idx
         }
     }
 
-    pub fn into_table(self, data: &mut Vec<u8>) -> Vec<StringRef> {
+    pub fn into_table(self, data: &mut Vec<u8>) -> Vec<DataOffset> {
         let table_offset: u32 = data
             .len()
             .try_into()
             .expect("MAST forest serialization: data field longer than 2^32 bytes");
         data.extend(self.strings_data);
 
-        self.table
-            .into_iter()
-            .map(|str_ref| StringRef {
-                offset: str_ref.offset + table_offset,
-            })
-            .collect()
+        self.table.into_iter().map(|str_offset| str_offset + table_offset).collect()
     }
 }
