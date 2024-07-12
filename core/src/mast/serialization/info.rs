@@ -129,7 +129,7 @@ const EXTERNAL: u8 = 7;
 ///
 /// The serialized representation of the MAST node type is guaranteed to be 8 bytes, so that
 /// [`MastNodeInfo`] (which contains it) can be of fixed width.
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy)]
 #[repr(u8)]
 pub enum MastNodeType {
     Join {
@@ -207,19 +207,19 @@ impl Serializable for MastNodeType {
         let discriminant = self.discriminant() as u64;
         assert!(discriminant <= 0b1111);
 
-        let payload = match self {
+        let payload = match *self {
             MastNodeType::Join {
                 left_child_id: left,
                 right_child_id: right,
-            } => Self::encode_u32_pair(*left, *right),
+            } => Self::encode_u32_pair(left, right),
             MastNodeType::Split {
                 if_branch_id: if_branch,
                 else_branch_id: else_branch,
-            } => Self::encode_u32_pair(*if_branch, *else_branch),
-            MastNodeType::Loop { body_id: body } => Self::encode_u32_payload(*body),
-            MastNodeType::Block { offset, len } => Self::encode_u32_pair(*offset, *len),
-            MastNodeType::Call { callee_id } => Self::encode_u32_payload(*callee_id),
-            MastNodeType::SysCall { callee_id } => Self::encode_u32_payload(*callee_id),
+            } => Self::encode_u32_pair(if_branch, else_branch),
+            MastNodeType::Loop { body_id: body } => Self::encode_u32_payload(body),
+            MastNodeType::Block { offset, len } => Self::encode_u32_pair(offset, len),
+            MastNodeType::Call { callee_id } => Self::encode_u32_payload(callee_id),
+            MastNodeType::SysCall { callee_id } => Self::encode_u32_payload(callee_id),
             MastNodeType::Dyn => 0,
             MastNodeType::External => 0,
         };
