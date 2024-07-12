@@ -152,7 +152,7 @@ impl StringTableBuilder {
             *str_idx
         } else {
             // add new string to table
-            // NOTE: these string refs' offset will need to be shifted again in `into_buffer()`
+            // NOTE: these string refs' offset will need to be shifted again in `into_table()`
             let str_ref = StringRef {
                 offset: self
                     .strings_data
