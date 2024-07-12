@@ -129,7 +129,7 @@ const EXTERNAL: u8 = 7;
 ///
 /// The serialized representation of the MAST node type is guaranteed to be 8 bytes, so that
 /// [`MastNodeInfo`] (which contains it) can be of fixed width.
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[repr(u8)]
 pub enum MastNodeType {
     Join {
@@ -339,5 +339,24 @@ impl MastNodeType {
                 "Invalid payload: expected to fit in u32, but was {payload}"
             ))
         })
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn serialize_deserialize_60_bit_payload() {
+        // each child needs 30 bits
+        let mast_node_type = MastNodeType::Join {
+            left_child_id: 0x3F_FF_FF_FF,
+            right_child_id: 0x3F_FF_FF_FF,
+        };
+
+        let serialized = mast_node_type.to_bytes();
+        let deserialized = MastNodeType::read_from_bytes(&serialized).unwrap();
+
+        assert_eq!(mast_node_type, deserialized);
     }
 }
