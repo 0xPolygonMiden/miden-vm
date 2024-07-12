@@ -10,10 +10,6 @@ use super::{basic_block_data_decoder::BasicBlockDataDecoder, DataOffset};
 
 /// Represents a serialized [`MastNode`], with some data inlined in its [`MastNodeType`].
 ///
-/// In the case of [`crate::mast::BasicBlockNode`], all its operation- and decorator-related data is
-/// stored in the serialized [`MastForest`]'s `data` field at offset represented by the `offset`
-/// field. For all other variants of [`MastNode`], the `offset` field is guaranteed to be 0.
-///
 /// The serialized representation of [`MastNodeInfo`] is guaranteed to be fixed width, so that the
 /// nodes stored in the `nodes` table of the serialized [`MastForest`] can be accessed quickly by
 /// index.
