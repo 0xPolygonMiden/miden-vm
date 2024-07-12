@@ -344,6 +344,8 @@ impl MastNodeType {
 
 #[cfg(test)]
 mod tests {
+    use alloc::vec::Vec;
+
     use super::*;
 
     #[test]
@@ -358,5 +360,48 @@ mod tests {
         let deserialized = MastNodeType::read_from_bytes(&serialized).unwrap();
 
         assert_eq!(mast_node_type, deserialized);
+    }
+
+    #[test]
+    #[should_panic]
+    fn serialize_large_payloads_fails_1() {
+        // left child needs 31 bits
+        let mast_node_type = MastNodeType::Join {
+            left_child_id: 0x4F_FF_FF_FF,
+            right_child_id: 0x0,
+        };
+
+        // must panic
+        let _serialized = mast_node_type.to_bytes();
+    }
+
+    #[test]
+    #[should_panic]
+    fn serialize_large_payloads_fails_2() {
+        // right child needs 31 bits
+        let mast_node_type = MastNodeType::Join {
+            left_child_id: 0x0,
+            right_child_id: 0x4F_FF_FF_FF,
+        };
+
+        // must panic
+        let _serialized = mast_node_type.to_bytes();
+    }
+
+    #[test]
+    fn deserialize_large_payloads_fails() {
+        // Serialized `CALL` with a 33-bit payload
+        let serialized = {
+            let serialized_value = ((CALL as u64) << 60) | (u32::MAX as u64 + 1_u64);
+
+            let mut serialized_buffer: Vec<u8> = Vec::new();
+            serialized_value.write_into(&mut serialized_buffer);
+
+            serialized_buffer
+        };
+
+        let deserialized_result = MastNodeType::read_from_bytes(&serialized);
+
+        assert_matches!(deserialized_result, Err(DeserializationError::InvalidValue(_)));
     }
 }
