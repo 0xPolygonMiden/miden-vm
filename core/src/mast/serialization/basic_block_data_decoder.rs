@@ -163,25 +163,25 @@ impl<'a> BasicBlockDataDecoder<'a> {
                 Ok(Decorator::Debug(DebugOptions::MemAll))
             }
             EncodedDecoratorVariant::DebugOptionsMemInterval => {
-                let start = u32::from_le_bytes(data_reader.read_array::<4>()?);
-                let end = u32::from_le_bytes(data_reader.read_array::<4>()?);
+                let start = data_reader.read_u32()?;
+                let end = data_reader.read_u32()?;
 
                 Ok(Decorator::Debug(DebugOptions::MemInterval(start, end)))
             }
             EncodedDecoratorVariant::DebugOptionsLocalInterval => {
-                let start = u16::from_le_bytes(data_reader.read_array::<2>()?);
-                let second = u16::from_le_bytes(data_reader.read_array::<2>()?);
-                let end = u16::from_le_bytes(data_reader.read_array::<2>()?);
+                let start = data_reader.read_u16()?;
+                let second = data_reader.read_u16()?;
+                let end = data_reader.read_u16()?;
 
                 Ok(Decorator::Debug(DebugOptions::LocalInterval(start, second, end)))
             }
             EncodedDecoratorVariant::Event => {
-                let value = u32::from_le_bytes(data_reader.read_array::<4>()?);
+                let value = data_reader.read_u32()?;
 
                 Ok(Decorator::Event(value))
             }
             EncodedDecoratorVariant::Trace => {
-                let value = u32::from_le_bytes(data_reader.read_array::<4>()?);
+                let value = data_reader.read_u32()?;
 
                 Ok(Decorator::Trace(value))
             }
