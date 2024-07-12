@@ -32,15 +32,15 @@ impl MastNodeInfo {
     pub fn try_into_mast_node(
         self,
         mast_forest: &MastForest,
-        basic_block_data_decoder: &mut BasicBlockDataDecoder,
+        basic_block_data_decoder: &BasicBlockDataDecoder,
     ) -> Result<MastNode, DeserializationError> {
         let mast_node = match self.ty {
             MastNodeType::Block {
-                offset: _,
+                offset,
                 len: num_operations_and_decorators,
             } => {
                 let (operations, decorators) = basic_block_data_decoder
-                    .decode_operations_and_decorators(num_operations_and_decorators)?;
+                    .decode_operations_and_decorators(offset, num_operations_and_decorators)?;
 
                 Ok(MastNode::new_basic_block_with_decorators(operations, decorators))
             }

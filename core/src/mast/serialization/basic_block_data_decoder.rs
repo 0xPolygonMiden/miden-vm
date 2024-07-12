@@ -2,48 +2,43 @@ use crate::{
     AdviceInjector, AssemblyOp, DebugOptions, Decorator, DecoratorList, Operation, SignatureKind,
 };
 
-use super::{decorator::EncodedDecoratorVariant, StringIndex, StringRef};
+use super::{decorator::EncodedDecoratorVariant, DataOffset, StringIndex, StringRef};
 use alloc::{string::String, vec::Vec};
 use miden_crypto::Felt;
 use winter_utils::{ByteReader, Deserializable, DeserializationError, SliceReader};
 
 pub struct BasicBlockDataDecoder<'a> {
     data: &'a [u8],
-    data_reader: SliceReader<'a>,
     strings: &'a [StringRef],
 }
 
 /// Constructors
 impl<'a> BasicBlockDataDecoder<'a> {
     pub fn new(data: &'a [u8], strings: &'a [StringRef]) -> Self {
-        let data_reader = SliceReader::new(data);
-
-        Self {
-            data,
-            data_reader,
-            strings,
-        }
+        Self { data, strings }
     }
 }
 
 /// Mutators
 impl<'a> BasicBlockDataDecoder<'a> {
     pub fn decode_operations_and_decorators(
-        &mut self,
+        &self,
+        offset: DataOffset,
         num_to_decode: u32,
     ) -> Result<(Vec<Operation>, DecoratorList), DeserializationError> {
         let mut operations: Vec<Operation> = Vec::new();
         let mut decorators: DecoratorList = Vec::new();
 
+        let mut data_reader = SliceReader::new(&self.data[offset as usize..]);
         for _ in 0..num_to_decode {
-            let first_byte = self.data_reader.peek_u8()?;
+            let first_byte = data_reader.peek_u8()?;
 
             if first_byte & 0b1000_0000 == 0 {
                 // operation.
-                operations.push(Operation::read_from(&mut self.data_reader)?);
+                operations.push(Operation::read_from(&mut data_reader)?);
             } else {
                 // decorator.
-                let decorator = self.decode_decorator()?;
+                let decorator = self.decode_decorator(&mut data_reader)?;
                 decorators.push((operations.len(), decorator));
             }
         }
@@ -54,8 +49,11 @@ impl<'a> BasicBlockDataDecoder<'a> {
 
 /// Helpers
 impl<'a> BasicBlockDataDecoder<'a> {
-    fn decode_decorator(&mut self) -> Result<Decorator, DeserializationError> {
-        let discriminant = self.data_reader.read_u8()?;
+    fn decode_decorator(
+        &self,
+        data_reader: &mut SliceReader,
+    ) -> Result<Decorator, DeserializationError> {
+        let discriminant = data_reader.read_u8()?;
 
         let decorator_variant = EncodedDecoratorVariant::from_discriminant(discriminant)
             .ok_or_else(|| {
@@ -75,8 +73,8 @@ impl<'a> BasicBlockDataDecoder<'a> {
                 Ok(Decorator::Advice(AdviceInjector::UpdateMerkleNode))
             }
             EncodedDecoratorVariant::AdviceInjectorMapValueToStack => {
-                let include_len = self.data_reader.read_bool()?;
-                let key_offset = self.data_reader.read_usize()?;
+                let include_len = data_reader.read_bool()?;
+                let key_offset = data_reader.read_usize()?;
 
                 Ok(Decorator::Advice(AdviceInjector::MapValueToStack {
                     include_len,
@@ -120,7 +118,7 @@ impl<'a> BasicBlockDataDecoder<'a> {
                 Ok(Decorator::Advice(AdviceInjector::MemToMap))
             }
             EncodedDecoratorVariant::AdviceInjectorHdwordToMap => {
-                let domain = self.data_reader.read_u64()?;
+                let domain = data_reader.read_u64()?;
                 let domain = Felt::try_from(domain).map_err(|err| {
                     DeserializationError::InvalidValue(format!(
                         "Error when deserializing HdwordToMap decorator domain: {err}"
@@ -138,16 +136,16 @@ impl<'a> BasicBlockDataDecoder<'a> {
                 }))
             }
             EncodedDecoratorVariant::AssemblyOp => {
-                let num_cycles = self.data_reader.read_u8()?;
-                let should_break = self.data_reader.read_bool()?;
+                let num_cycles = data_reader.read_u8()?;
+                let should_break = data_reader.read_bool()?;
 
                 let context_name = {
-                    let str_index_in_table = self.data_reader.read_usize()?;
+                    let str_index_in_table = data_reader.read_usize()?;
                     self.read_string(str_index_in_table)?
                 };
 
                 let op = {
-                    let str_index_in_table = self.data_reader.read_usize()?;
+                    let str_index_in_table = data_reader.read_usize()?;
                     self.read_string(str_index_in_table)?
                 };
 
@@ -157,7 +155,7 @@ impl<'a> BasicBlockDataDecoder<'a> {
                 Ok(Decorator::Debug(DebugOptions::StackAll))
             }
             EncodedDecoratorVariant::DebugOptionsStackTop => {
-                let value = self.data_reader.read_u8()?;
+                let value = data_reader.read_u8()?;
 
                 Ok(Decorator::Debug(DebugOptions::StackTop(value)))
             }
@@ -165,25 +163,25 @@ impl<'a> BasicBlockDataDecoder<'a> {
                 Ok(Decorator::Debug(DebugOptions::MemAll))
             }
             EncodedDecoratorVariant::DebugOptionsMemInterval => {
-                let start = u32::from_le_bytes(self.data_reader.read_array::<4>()?);
-                let end = u32::from_le_bytes(self.data_reader.read_array::<4>()?);
+                let start = u32::from_le_bytes(data_reader.read_array::<4>()?);
+                let end = u32::from_le_bytes(data_reader.read_array::<4>()?);
 
                 Ok(Decorator::Debug(DebugOptions::MemInterval(start, end)))
             }
             EncodedDecoratorVariant::DebugOptionsLocalInterval => {
-                let start = u16::from_le_bytes(self.data_reader.read_array::<2>()?);
-                let second = u16::from_le_bytes(self.data_reader.read_array::<2>()?);
-                let end = u16::from_le_bytes(self.data_reader.read_array::<2>()?);
+                let start = u16::from_le_bytes(data_reader.read_array::<2>()?);
+                let second = u16::from_le_bytes(data_reader.read_array::<2>()?);
+                let end = u16::from_le_bytes(data_reader.read_array::<2>()?);
 
                 Ok(Decorator::Debug(DebugOptions::LocalInterval(start, second, end)))
             }
             EncodedDecoratorVariant::Event => {
-                let value = u32::from_le_bytes(self.data_reader.read_array::<4>()?);
+                let value = u32::from_le_bytes(data_reader.read_array::<4>()?);
 
                 Ok(Decorator::Event(value))
             }
             EncodedDecoratorVariant::Trace => {
-                let value = u32::from_le_bytes(self.data_reader.read_array::<4>()?);
+                let value = u32::from_le_bytes(data_reader.read_array::<4>()?);
 
                 Ok(Decorator::Trace(value))
             }

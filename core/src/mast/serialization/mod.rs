@@ -135,7 +135,7 @@ impl Deserializable for MastForest {
 
         let data: Vec<u8> = Deserializable::read_from(source)?;
 
-        let mut basic_block_data_decoder = BasicBlockDataDecoder::new(&data, &strings);
+        let basic_block_data_decoder = BasicBlockDataDecoder::new(&data, &strings);
 
         let mast_forest = {
             let mut mast_forest = MastForest::new();
@@ -143,8 +143,8 @@ impl Deserializable for MastForest {
             for _ in 0..node_count {
                 let mast_node_info = MastNodeInfo::read_from(source)?;
 
-                let node = mast_node_info
-                    .try_into_mast_node(&mast_forest, &mut basic_block_data_decoder)?;
+                let node =
+                    mast_node_info.try_into_mast_node(&mast_forest, &basic_block_data_decoder)?;
 
                 mast_forest.add_node(node);
             }
