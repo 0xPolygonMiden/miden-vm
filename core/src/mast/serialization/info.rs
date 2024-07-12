@@ -249,15 +249,15 @@ impl MastNodeType {
         }
     }
 
-    fn encode_u32_pair(left_child_id: u32, right_child_id: u32) -> [u8; 8] {
-        assert!(left_child_id < 2_u32.pow(30));
-        assert!(right_child_id < 2_u32.pow(30));
+    fn encode_u32_pair(left_value: u32, right_value: u32) -> [u8; 8] {
+        assert!(left_value < 2_u32.pow(30));
+        assert!(right_value < 2_u32.pow(30));
 
         let mut result: [u8; 8] = [0_u8; 8];
 
         // write left child into result
         {
-            let [lsb, a, b, msb] = left_child_id.to_le_bytes();
+            let [lsb, a, b, msb] = left_value.to_le_bytes();
             result[0] |= lsb >> 4;
             result[1] |= lsb << 4;
             result[1] |= a >> 4;
@@ -280,7 +280,7 @@ impl MastNodeType {
             // significant bits. Also, the most significant byte of the right child is guaranteed to
             // fit in 6 bits. Hence, we use big endian format for the right child id to simplify
             // encoding and decoding.
-            let [msb, a, b, lsb] = right_child_id.to_be_bytes();
+            let [msb, a, b, lsb] = right_value.to_be_bytes();
 
             result[4] |= msb;
             result[5] = a;
