@@ -49,38 +49,48 @@ test: ## Runs all tests
 doc: ## Generates & checks documentation
 	$(WARNINGS) cargo doc --all-features --keep-going --release
 
+.PHONY: mdbook
+mdbook: ## Generates mdbook
+	mdbook exec docs/
+
 # --- building ------------------------------------------------------------------------------------
 
 .PHONY: build
-build: ## Builds VM with optimized profile and features
+build: ## Builds with default parameters
+	cargo build --release --features concurrent
+
+.PHONY: build-no-std
+build-no-std: ## Builds without the standard library
+	cargo build --no-default-features --target wasm32-unknown-unknown --workspace
+
+# --- executing ------------------------------------------------------------------------------------
+
+.PHONY: exec
+exec: ## Builds with optimized profile and features
 	cargo build --profile optimized $(FEATURES_CONCURRENT_EXEC)
 
-.PHONY: build-single
-build-single: ## Builds VM in single-threaded mode
+.PHONY: exec-single
+exec-single: ## Builds in single-threaded mode
 	cargo build --profile optimized --features executable
 
-.PHONY: build-release
-build-release: ## Builds VM with release mode and no optimizations
-	cargo build --release $(FEATURES_CONCURRENT_EXEC)
-
-.PHONY: build-metal
-build-metal: ## Builds VM for metal
+.PHONY: exec-metal
+exec-metal: ## Builds for metal
 	cargo build --profile optimized $(FEATURES_METAL_EXEC)
 
-.PHONY: build-avx2
-build-avx2: ## Builds VM for avx2
+.PHONY: exec-avx2
+exec-avx2: ## Builds for avx2
 	RUSTFLAGS="-C target-feature=+avx2" cargo build --profile optimized $(FEATURES_CONCURRENT_EXEC)
 
-.PHONY: build-sve
-build-sve: ## Builds VM for sve
+.PHONY: exec-sve
+exec-sve: ## Builds for sve
 	RUSTFLAGS="-C target-feature=+sve" cargo build --profile optimized $(FEATURES_CONCURRENT_EXEC)
 
-.PHONY: build-info
-build-info: ## Builds VM with log tree
+.PHONY: exec-info
+exec-info: ## Builds with log tree
 	cargo build --profile optimized $(FEATURES_LOG_TREE)
 
 # --- benchmarking --------------------------------------------------------------------------------
 
 .PHONY: bench
-bench: ## Runs VM benchmarks
+bench: ## Runs benchmarks
 	cargo bench --profile optimized

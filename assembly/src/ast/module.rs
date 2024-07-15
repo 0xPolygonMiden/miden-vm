@@ -10,8 +10,8 @@ use super::{Export, Import, LocalNameResolver, ProcedureIndex, ProcedureName, Re
 use crate::{
     ast::{AliasTarget, AstSerdeOptions, Ident},
     diagnostics::{Report, SourceFile},
-    sema::SemanticAnalysisError,
     parser::ModuleParser,
+    sema::SemanticAnalysisError,
     ByteReader, ByteWriter, Deserializable, DeserializationError, LibraryNamespace, LibraryPath,
     Serializable, SourceSpan, Span, Spanned,
 };
