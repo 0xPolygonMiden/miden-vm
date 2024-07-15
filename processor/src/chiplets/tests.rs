@@ -1,6 +1,5 @@
 use crate::{
-    CodeBlock, DefaultHost, ExecutionOptions, ExecutionTrace, Kernel, Operation, Process,
-    StackInputs,
+    DefaultHost, ExecutionOptions, ExecutionTrace, Kernel, Operation, Process, StackInputs,
 };
 use alloc::vec::Vec;
 use miden_air::trace::{
@@ -13,7 +12,10 @@ use miden_air::trace::{
     },
     CHIPLETS_RANGE, CHIPLETS_WIDTH,
 };
-use vm_core::{CodeBlockTable, Felt, ONE, ZERO};
+use vm_core::{
+    mast::{MastForest, MastNode},
+    Felt, Program, ONE, ZERO,
+};
 
 type ChipletsTrace = [Vec<Felt>; CHIPLETS_WIDTH];
 
@@ -114,8 +116,15 @@ fn build_trace(
     let stack_inputs = StackInputs::try_from_ints(stack_inputs.iter().copied()).unwrap();
     let host = DefaultHost::default();
     let mut process = Process::new(kernel, stack_inputs, host, ExecutionOptions::default());
-    let program = CodeBlock::new_span(operations);
-    process.execute_code_block(&program, &CodeBlockTable::default()).unwrap();
+    let program = {
+        let mut mast_forest = MastForest::new();
+
+        let basic_block = MastNode::new_basic_block(operations);
+        let basic_block_id = mast_forest.add_node(basic_block);
+
+        Program::new(mast_forest, basic_block_id)
+    };
+    process.execute(&program).unwrap();
 
     let (trace, _, _) = ExecutionTrace::test_finalize_trace(process);
     let trace_len = trace.num_rows() - ExecutionTrace::NUM_RAND_ROWS;

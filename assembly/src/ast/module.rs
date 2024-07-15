@@ -8,7 +8,7 @@ use core::fmt;
 
 use super::{Export, Import, LocalNameResolver, ProcedureIndex, ProcedureName, ResolvedProcedure};
 use crate::{
-    ast::{AstSerdeOptions, Ident},
+    ast::{AliasTarget, AstSerdeOptions, Ident},
     diagnostics::{Report, SourceFile},
     sema::SemanticAnalysisError,
     parser::ModuleParser,
@@ -419,7 +419,10 @@ impl Module {
             Export::Procedure(ref proc) => {
                 Some(ResolvedProcedure::Local(Span::new(proc.name().span(), index)))
             }
-            Export::Alias(ref alias) => Some(ResolvedProcedure::External(alias.target.clone())),
+            Export::Alias(ref alias) => match alias.target() {
+                AliasTarget::MastRoot(digest) => Some(ResolvedProcedure::MastRoot(*digest)),
+                AliasTarget::Path(path) => Some(ResolvedProcedure::External(path.clone())),
+            },
         }
     }
 
@@ -431,7 +434,11 @@ impl Module {
                 ResolvedProcedure::Local(Span::new(p.name().span(), ProcedureIndex::new(i))),
             ),
             Export::Alias(ref p) => {
-                (p.name().clone(), ResolvedProcedure::External(p.target.clone()))
+                let target = match p.target {
+                    AliasTarget::MastRoot(ref digest) => ResolvedProcedure::MastRoot(*digest),
+                    AliasTarget::Path(ref path) => ResolvedProcedure::External(path.clone()),
+                };
+                (p.name().clone(), target)
             }
         }))
         .with_imports(

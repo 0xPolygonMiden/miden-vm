@@ -1,5 +1,6 @@
-use super::{push_felt, push_u32_value, validate_param, AssemblyContext, SpanBuilder};
-use crate::AssemblyError;
+use super::{push_felt, push_u32_value, validate_param, AssemblyContext, BasicBlockBuilder};
+use crate::{diagnostics::Report, AssemblyError};
+use alloc::string::ToString;
 use vm_core::{Felt, Operation::*};
 
 // INSTRUCTION PARSERS
@@ -20,7 +21,7 @@ use vm_core::{Felt, Operation::*};
 /// Returns an error if we are reading from local memory and local memory index is greater than
 /// the number of procedure locals.
 pub fn mem_read(
-    span: &mut SpanBuilder,
+    span: &mut BasicBlockBuilder,
     context: &AssemblyContext,
     addr: Option<u32>,
     is_local: bool,
@@ -71,7 +72,7 @@ pub fn mem_read(
 /// Returns an error if we are writing to local memory and local memory index is greater than
 /// the number of procedure locals.
 pub fn mem_write_imm(
-    span: &mut SpanBuilder,
+    span: &mut BasicBlockBuilder,
     context: &AssemblyContext,
     addr: u32,
     is_local: bool,
@@ -108,10 +109,20 @@ pub fn mem_write_imm(
 /// # Errors
 /// Returns an error if index is greater than the number of procedure locals.
 pub fn local_to_absolute_addr(
-    span: &mut SpanBuilder,
+    span: &mut BasicBlockBuilder,
     index: u16,
     num_proc_locals: u16,
 ) -> Result<(), AssemblyError> {
+    if num_proc_locals == 0 {
+        return Err(AssemblyError::Other(
+            Report::msg(
+                "number of procedure locals was not set (or set to 0), but local values were used"
+                    .to_string(),
+            )
+            .into(),
+        ));
+    }
+
     let max = num_proc_locals - 1;
     validate_param(index, 0..=max)?;
 

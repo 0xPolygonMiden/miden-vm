@@ -11,5 +11,7 @@ git-repository-url = "https://github.com/0xPolygonMiden/miden-vm/"
 [preprocessor.katex]
 after = ["links"]
 
+[preprocessor.alerts]
+
 [output.linkcheck]
 warning-policy = "ignore"

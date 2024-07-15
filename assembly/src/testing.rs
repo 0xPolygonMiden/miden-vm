@@ -1,6 +1,6 @@
 use crate::{
-    assembler::{Assembler, AssemblyContext, ProcedureCache},
-    ast::{Form, FullyQualifiedProcedureName, Module, ModuleKind},
+    assembler::{Assembler, AssemblyContext},
+    ast::{Form, Module, ModuleKind},
     diagnostics::{
         reporting::{set_hook, ReportHandlerOpts},
         Report, SourceFile,
@@ -13,7 +13,7 @@ use crate::diagnostics::reporting::set_panic_hook;
 
 use alloc::{boxed::Box, string::String, sync::Arc, vec::Vec};
 use core::fmt;
-use vm_core::{utils::DisplayHex, Program};
+use vm_core::Program;
 
 /// Represents a pattern for matching text abstractly
 /// for use in asserting contents of complex diagnostics
@@ -308,7 +308,7 @@ impl TestContext {
     /// module represented in `source`.
     #[track_caller]
     pub fn assemble(&mut self, source: impl Compile) -> Result<Program, Report> {
-        self.assembler.assemble(source)
+        self.assembler.clone().assemble(source)
     }
 
     /// Compile a module from `source`, with the fully-qualified name `path`, to MAST, returning
@@ -328,33 +328,5 @@ impl TestContext {
             ..CompileOptions::for_library()
         };
         self.assembler.assemble_module(module, options, &mut context)
-    }
-
-    /// Get a reference to the [ProcedureCache] of the [Assembler] constructed by this context.
-    pub fn procedure_cache(&self) -> &ProcedureCache {
-        self.assembler.procedure_cache()
-    }
-
-    /// Display the MAST root associated with `name` in the procedure cache of the [Assembler]
-    /// constructed by this context.
-    ///
-    /// It is expected that the module containing `name` was previously compiled by the assembler,
-    /// and is thus in the cache. This function will panic if that is not the case.
-    pub fn display_digest_from_cache(
-        &self,
-        name: &FullyQualifiedProcedureName,
-    ) -> impl fmt::Display {
-        self.procedure_cache()
-            .get_by_name(name)
-            .map(|p| p.code().hash())
-            .map(DisplayDigest)
-            .unwrap_or_else(|| panic!("procedure '{}' is not in the procedure cache", name))
-    }
-}
-
-struct DisplayDigest(RpoDigest);
-impl fmt::Display for DisplayDigest {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{:#x}", DisplayHex(self.0.as_bytes().as_slice()))
     }
 }

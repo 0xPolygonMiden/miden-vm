@@ -18,8 +18,8 @@ use miden_air::trace::{
 };
 use test_utils::rand::rand_value;
 use vm_core::{
-    code_blocks::{CodeBlock, Span, OP_BATCH_SIZE},
-    CodeBlockTable, EMPTY_WORD, ONE, ZERO,
+    mast::{BasicBlockNode, MastForest, MastNode, MerkleTreeNode, OP_BATCH_SIZE},
+    Program, EMPTY_WORD, ONE, ZERO,
 };
 
 // CONSTANTS
@@ -43,10 +43,17 @@ type DecoderTrace = [Vec<Felt>; DECODER_TRACE_WIDTH];
 // ================================================================================================
 
 #[test]
-fn span_block_one_group() {
+fn basic_block_one_group() {
     let ops = vec![Operation::Pad, Operation::Add, Operation::Mul];
-    let span = Span::new(ops.clone());
-    let program = CodeBlock::new_span(ops.clone());
+    let basic_block = BasicBlockNode::new(ops.clone());
+    let program = {
+        let mut mast_forest = MastForest::new();
+
+        let basic_block_node = MastNode::Block(basic_block.clone());
+        let basic_block_id = mast_forest.add_node(basic_block_node);
+
+        Program::new(mast_forest, basic_block_id)
+    };
 
     let (trace, trace_len) = build_trace(&[], &program);
 
@@ -63,7 +70,7 @@ fn span_block_one_group() {
     check_hasher_state(
         &trace,
         vec![
-            span.op_batches()[0].groups().to_vec(), // first group should contain op batch
+            basic_block.op_batches()[0].groups().to_vec(), // first group should contain op batch
             vec![build_op_group(&ops[1..])],
             vec![build_op_group(&ops[2..])],
             vec![],
@@ -81,11 +88,18 @@ fn span_block_one_group() {
 }
 
 #[test]
-fn span_block_small() {
+fn basic_block_small() {
     let iv = [ONE, TWO];
     let ops = vec![Operation::Push(iv[0]), Operation::Push(iv[1]), Operation::Add];
-    let span = Span::new(ops.clone());
-    let program = CodeBlock::new_span(ops.clone());
+    let basic_block = BasicBlockNode::new(ops.clone());
+    let program = {
+        let mut mast_forest = MastForest::new();
+
+        let basic_block_node = MastNode::Block(basic_block.clone());
+        let basic_block_id = mast_forest.add_node(basic_block_node);
+
+        Program::new(mast_forest, basic_block_id)
+    };
 
     let (trace, trace_len) = build_trace(&[], &program);
 
@@ -105,7 +119,7 @@ fn span_block_small() {
     check_hasher_state(
         &trace,
         vec![
-            span.op_batches()[0].groups().to_vec(),
+            basic_block.op_batches()[0].groups().to_vec(),
             vec![build_op_group(&ops[1..])],
             vec![build_op_group(&ops[2..])],
             vec![],
@@ -124,7 +138,7 @@ fn span_block_small() {
 }
 
 #[test]
-fn span_block() {
+fn basic_block() {
     let iv = [ONE, TWO, Felt::new(3), Felt::new(4), Felt::new(5)];
     let ops = vec![
         Operation::Push(iv[0]),
@@ -140,8 +154,15 @@ fn span_block() {
         Operation::Add,
         Operation::Inv,
     ];
-    let span = Span::new(ops.clone());
-    let program = CodeBlock::new_span(ops.clone());
+    let basic_block = BasicBlockNode::new(ops.clone());
+    let program = {
+        let mut mast_forest = MastForest::new();
+
+        let basic_block_node = MastNode::Block(basic_block.clone());
+        let basic_block_id = mast_forest.add_node(basic_block_node);
+
+        Program::new(mast_forest, basic_block_id)
+    };
     let (trace, trace_len) = build_trace(&[], &program);
 
     // --- check block address, op_bits, group count, op_index, and in_span columns ---------------
@@ -171,7 +192,7 @@ fn span_block() {
     check_hasher_state(
         &trace,
         vec![
-            span.op_batches()[0].groups().to_vec(),
+            basic_block.op_batches()[0].groups().to_vec(),
             vec![build_op_group(&ops[1..8])], // first group starts
             vec![build_op_group(&ops[2..8])],
             vec![build_op_group(&ops[3..8])],
@@ -225,8 +246,15 @@ fn span_block_with_respan() {
         Operation::Add,
         Operation::Push(iv[8]),
     ];
-    let span = Span::new(ops.clone());
-    let program = CodeBlock::new_span(ops.clone());
+    let basic_block = BasicBlockNode::new(ops.clone());
+    let program = {
+        let mut mast_forest = MastForest::new();
+
+        let basic_block_node = MastNode::Block(basic_block.clone());
+        let basic_block_id = mast_forest.add_node(basic_block_node);
+
+        Program::new(mast_forest, basic_block_id)
+    };
     let (trace, trace_len) = build_trace(&[], &program);
 
     // --- check block address, op_bits, group count, op_index, and in_span columns ---------------
@@ -258,7 +286,7 @@ fn span_block_with_respan() {
     check_hasher_state(
         &trace,
         vec![
-            span.op_batches()[0].groups().to_vec(),
+            basic_block.op_batches()[0].groups().to_vec(),
             vec![build_op_group(&ops[1..7])], // first group starts
             vec![build_op_group(&ops[2..7])],
             vec![build_op_group(&ops[3..7])],
@@ -267,7 +295,7 @@ fn span_block_with_respan() {
             vec![build_op_group(&ops[6..7])],
             vec![],
             vec![], // a NOOP inserted after last PUSH
-            span.op_batches()[1].groups().to_vec(),
+            basic_block.op_batches()[1].groups().to_vec(),
             vec![build_op_group(&ops[8..])], // next group starts
             vec![build_op_group(&ops[9..])],
             vec![],
@@ -290,10 +318,20 @@ fn span_block_with_respan() {
 // ================================================================================================
 
 #[test]
-fn join_block() {
-    let span1 = CodeBlock::new_span(vec![Operation::Mul]);
-    let span2 = CodeBlock::new_span(vec![Operation::Add]);
-    let program = CodeBlock::new_join([span1.clone(), span2.clone()]);
+fn join_node() {
+    let basic_block1 = MastNode::new_basic_block(vec![Operation::Mul]);
+    let basic_block2 = MastNode::new_basic_block(vec![Operation::Add]);
+    let program = {
+        let mut mast_forest = MastForest::new();
+
+        let basic_block1_id = mast_forest.add_node(basic_block1.clone());
+        let basic_block2_id = mast_forest.add_node(basic_block2.clone());
+
+        let join_node = MastNode::new_join(basic_block1_id, basic_block2_id, &mast_forest);
+        let join_node_id = mast_forest.add_node(join_node);
+
+        Program::new(mast_forest, join_node_id)
+    };
 
     let (trace, trace_len) = build_trace(&[], &program);
 
@@ -315,8 +353,8 @@ fn join_block() {
     // --- check hasher state columns -------------------------------------------------------------
 
     // in the first row, the hasher state is set to hashes of both child nodes
-    let span1_hash: Word = span1.hash().into();
-    let span2_hash: Word = span2.hash().into();
+    let span1_hash: Word = basic_block1.digest().into();
+    let span2_hash: Word = basic_block2.digest().into();
     assert_eq!(span1_hash, get_hasher_state1(&trace, 0));
     assert_eq!(span2_hash, get_hasher_state2(&trace, 0));
 
@@ -346,27 +384,37 @@ fn join_block() {
 // ================================================================================================
 
 #[test]
-fn split_block_true() {
-    let span1 = CodeBlock::new_span(vec![Operation::Mul]);
-    let span2 = CodeBlock::new_span(vec![Operation::Add]);
-    let program = CodeBlock::new_split(span1.clone(), span2.clone());
+fn split_node_true() {
+    let basic_block1 = MastNode::new_basic_block(vec![Operation::Mul]);
+    let basic_block2 = MastNode::new_basic_block(vec![Operation::Add]);
+    let program = {
+        let mut mast_forest = MastForest::new();
+
+        let basic_block1_id = mast_forest.add_node(basic_block1.clone());
+        let basic_block2_id = mast_forest.add_node(basic_block2.clone());
+
+        let split_node = MastNode::new_split(basic_block1_id, basic_block2_id, &mast_forest);
+        let split_node_id = mast_forest.add_node(split_node);
+
+        Program::new(mast_forest, split_node_id)
+    };
 
     let (trace, trace_len) = build_trace(&[1], &program);
 
     // --- check block address, op_bits, group count, op_index, and in_span columns ---------------
-    let span_addr = INIT_ADDR + EIGHT;
+    let basic_block_addr = INIT_ADDR + EIGHT;
     check_op_decoding(&trace, 0, ZERO, Operation::Split, 0, 0, 0);
     check_op_decoding(&trace, 1, INIT_ADDR, Operation::Span, 1, 0, 0);
-    check_op_decoding(&trace, 2, span_addr, Operation::Mul, 0, 0, 1);
-    check_op_decoding(&trace, 3, span_addr, Operation::End, 0, 0, 0);
+    check_op_decoding(&trace, 2, basic_block_addr, Operation::Mul, 0, 0, 1);
+    check_op_decoding(&trace, 3, basic_block_addr, Operation::End, 0, 0, 0);
     check_op_decoding(&trace, 4, INIT_ADDR, Operation::End, 0, 0, 0);
     check_op_decoding(&trace, 5, ZERO, Operation::Halt, 0, 0, 0);
 
     // --- check hasher state columns -------------------------------------------------------------
 
     // in the first row, the hasher state is set to hashes of both child nodes
-    let span1_hash: Word = span1.hash().into();
-    let span2_hash: Word = span2.hash().into();
+    let span1_hash: Word = basic_block1.digest().into();
+    let span2_hash: Word = basic_block2.digest().into();
     assert_eq!(span1_hash, get_hasher_state1(&trace, 0));
     assert_eq!(span2_hash, get_hasher_state2(&trace, 0));
 
@@ -389,27 +437,37 @@ fn split_block_true() {
 }
 
 #[test]
-fn split_block_false() {
-    let span1 = CodeBlock::new_span(vec![Operation::Mul]);
-    let span2 = CodeBlock::new_span(vec![Operation::Add]);
-    let program = CodeBlock::new_split(span1.clone(), span2.clone());
+fn split_node_false() {
+    let basic_block1 = MastNode::new_basic_block(vec![Operation::Mul]);
+    let basic_block2 = MastNode::new_basic_block(vec![Operation::Add]);
+    let program = {
+        let mut mast_forest = MastForest::new();
+
+        let basic_block1_id = mast_forest.add_node(basic_block1.clone());
+        let basic_block2_id = mast_forest.add_node(basic_block2.clone());
+
+        let split_node = MastNode::new_split(basic_block1_id, basic_block2_id, &mast_forest);
+        let split_node_id = mast_forest.add_node(split_node);
+
+        Program::new(mast_forest, split_node_id)
+    };
 
     let (trace, trace_len) = build_trace(&[0], &program);
 
     // --- check block address, op_bits, group count, op_index, and in_span columns ---------------
-    let span_addr = INIT_ADDR + EIGHT;
+    let basic_block_addr = INIT_ADDR + EIGHT;
     check_op_decoding(&trace, 0, ZERO, Operation::Split, 0, 0, 0);
     check_op_decoding(&trace, 1, INIT_ADDR, Operation::Span, 1, 0, 0);
-    check_op_decoding(&trace, 2, span_addr, Operation::Add, 0, 0, 1);
-    check_op_decoding(&trace, 3, span_addr, Operation::End, 0, 0, 0);
+    check_op_decoding(&trace, 2, basic_block_addr, Operation::Add, 0, 0, 1);
+    check_op_decoding(&trace, 3, basic_block_addr, Operation::End, 0, 0, 0);
     check_op_decoding(&trace, 4, INIT_ADDR, Operation::End, 0, 0, 0);
     check_op_decoding(&trace, 5, ZERO, Operation::Halt, 0, 0, 0);
 
     // --- check hasher state columns -------------------------------------------------------------
 
     // in the first row, the hasher state is set to hashes of both child nodes
-    let span1_hash: Word = span1.hash().into();
-    let span2_hash: Word = span2.hash().into();
+    let span1_hash: Word = basic_block1.digest().into();
+    let span2_hash: Word = basic_block2.digest().into();
     assert_eq!(span1_hash, get_hasher_state1(&trace, 0));
     assert_eq!(span2_hash, get_hasher_state2(&trace, 0));
 
@@ -435,9 +493,18 @@ fn split_block_false() {
 // ================================================================================================
 
 #[test]
-fn loop_block() {
-    let loop_body = CodeBlock::new_span(vec![Operation::Pad, Operation::Drop]);
-    let program = CodeBlock::new_loop(loop_body.clone());
+fn loop_node() {
+    let loop_body = MastNode::new_basic_block(vec![Operation::Pad, Operation::Drop]);
+    let program = {
+        let mut mast_forest = MastForest::new();
+
+        let loop_body_id = mast_forest.add_node(loop_body.clone());
+
+        let loop_node = MastNode::new_loop(loop_body_id, &mast_forest);
+        let loop_node_id = mast_forest.add_node(loop_node);
+
+        Program::new(mast_forest, loop_node_id)
+    };
 
     let (trace, trace_len) = build_trace(&[0, 1], &program);
 
@@ -454,7 +521,7 @@ fn loop_block() {
     // --- check hasher state columns -------------------------------------------------------------
 
     // in the first row, the hasher state is set to the hash of the loop's body
-    let loop_body_hash: Word = loop_body.hash().into();
+    let loop_body_hash: Word = loop_body.digest().into();
     assert_eq!(loop_body_hash, get_hasher_state1(&trace, 0));
     assert_eq!(EMPTY_WORD, get_hasher_state2(&trace, 0));
 
@@ -479,9 +546,18 @@ fn loop_block() {
 }
 
 #[test]
-fn loop_block_skip() {
-    let loop_body = CodeBlock::new_span(vec![Operation::Pad, Operation::Drop]);
-    let program = CodeBlock::new_loop(loop_body.clone());
+fn loop_node_skip() {
+    let loop_body = MastNode::new_basic_block(vec![Operation::Pad, Operation::Drop]);
+    let program = {
+        let mut mast_forest = MastForest::new();
+
+        let loop_body_id = mast_forest.add_node(loop_body.clone());
+
+        let loop_node = MastNode::new_loop(loop_body_id, &mast_forest);
+        let loop_node_id = mast_forest.add_node(loop_node);
+
+        Program::new(mast_forest, loop_node_id)
+    };
 
     let (trace, trace_len) = build_trace(&[0], &program);
 
@@ -493,7 +569,7 @@ fn loop_block_skip() {
     // --- check hasher state columns -------------------------------------------------------------
 
     // in the first row, the hasher state is set to the hash of the loop's body
-    let loop_body_hash: Word = loop_body.hash().into();
+    let loop_body_hash: Word = loop_body.digest().into();
     assert_eq!(loop_body_hash, get_hasher_state1(&trace, 0));
     assert_eq!(EMPTY_WORD, get_hasher_state2(&trace, 0));
 
@@ -513,9 +589,18 @@ fn loop_block_skip() {
 }
 
 #[test]
-fn loop_block_repeat() {
-    let loop_body = CodeBlock::new_span(vec![Operation::Pad, Operation::Drop]);
-    let program = CodeBlock::new_loop(loop_body.clone());
+fn loop_node_repeat() {
+    let loop_body = MastNode::new_basic_block(vec![Operation::Pad, Operation::Drop]);
+    let program = {
+        let mut mast_forest = MastForest::new();
+
+        let loop_body_id = mast_forest.add_node(loop_body.clone());
+
+        let loop_node = MastNode::new_loop(loop_body_id, &mast_forest);
+        let loop_node_id = mast_forest.add_node(loop_node);
+
+        Program::new(mast_forest, loop_node_id)
+    };
 
     let (trace, trace_len) = build_trace(&[0, 1, 1], &program);
 
@@ -540,7 +625,7 @@ fn loop_block_repeat() {
     // --- check hasher state columns -------------------------------------------------------------
 
     // in the first row, the hasher state is set to the hash of the loop's body
-    let loop_body_hash: Word = loop_body.hash().into();
+    let loop_body_hash: Word = loop_body.digest().into();
     assert_eq!(loop_body_hash, get_hasher_state1(&trace, 0));
     assert_eq!(EMPTY_WORD, get_hasher_state2(&trace, 0));
 
@@ -591,20 +676,36 @@ fn call_block() {
     //    stack[0] <- fmp
     // end
 
-    let first_span = CodeBlock::new_span(vec![
+    let mut mast_forest = MastForest::new();
+
+    let first_basic_block = MastNode::new_basic_block(vec![
         Operation::Push(TWO),
         Operation::FmpUpdate,
         Operation::Pad,
     ]);
-    let foo_root = CodeBlock::new_span(vec![Operation::Push(ONE), Operation::FmpUpdate]);
-    let last_span = CodeBlock::new_span(vec![Operation::FmpAdd]);
+    let first_basic_block_id = mast_forest.add_node(first_basic_block.clone());
 
-    let foo_call = CodeBlock::new_call(foo_root.hash());
-    let join1 = CodeBlock::new_join([first_span.clone(), foo_call.clone()]);
-    let program = CodeBlock::new_join([join1.clone(), last_span.clone()]);
+    let foo_root_node = MastNode::new_basic_block(vec![
+        Operation::Push(ONE), Operation::FmpUpdate
+    ]);
+    let foo_root_node_id = mast_forest.add_node(foo_root_node.clone());
+
+    let last_basic_block = MastNode::new_basic_block(vec![Operation::FmpAdd]);
+    let last_basic_block_id = mast_forest.add_node(last_basic_block.clone());
+
+    let foo_call_node = MastNode::new_call(foo_root_node_id, &mast_forest);
+    let foo_call_node_id = mast_forest.add_node(foo_call_node.clone());
+
+    let join1_node = MastNode::new_join(first_basic_block_id, foo_call_node_id, &mast_forest);
+    let join1_node_id = mast_forest.add_node(join1_node.clone());
+
+    let program_root = MastNode::new_join(join1_node_id, last_basic_block_id, &mast_forest);
+    let program_root_id = mast_forest.add_node(program_root);
+
+    let program = Program::new(mast_forest, program_root_id);
 
     let (sys_trace, dec_trace,   trace_len) =
-        build_call_trace(&program, foo_root.clone(), None);
+        build_call_trace(&program, Kernel::default());
 
     // --- check block address, op_bits, group count, op_index, and in_span columns ---------------
     check_op_decoding(&dec_trace, 0, ZERO, Operation::Join, 0, 0, 0);
@@ -612,14 +713,14 @@ fn call_block() {
     let join1_addr = INIT_ADDR + EIGHT;
     check_op_decoding(&dec_trace, 1, INIT_ADDR, Operation::Join, 0, 0, 0);
     // starting first SPAN block
-    let first_span_addr = join1_addr + EIGHT;
+    let first_basic_block_addr = join1_addr + EIGHT;
     check_op_decoding(&dec_trace, 2, join1_addr, Operation::Span, 2, 0, 0);
-    check_op_decoding(&dec_trace, 3, first_span_addr, Operation::Push(TWO), 1, 0, 1);
-    check_op_decoding(&dec_trace, 4, first_span_addr, Operation::FmpUpdate, 0, 1, 1);
-    check_op_decoding(&dec_trace, 5, first_span_addr, Operation::Pad, 0, 2, 1);
-    check_op_decoding(&dec_trace, 6, first_span_addr, Operation::End, 0, 0, 0);
+    check_op_decoding(&dec_trace, 3, first_basic_block_addr, Operation::Push(TWO), 1, 0, 1);
+    check_op_decoding(&dec_trace, 4, first_basic_block_addr, Operation::FmpUpdate, 0, 1, 1);
+    check_op_decoding(&dec_trace, 5, first_basic_block_addr, Operation::Pad, 0, 2, 1);
+    check_op_decoding(&dec_trace, 6, first_basic_block_addr, Operation::End, 0, 0, 0);
     // starting CALL block
-    let foo_call_addr = first_span_addr + EIGHT;
+    let foo_call_addr = first_basic_block_addr + EIGHT;
     check_op_decoding(&dec_trace, 7, join1_addr, Operation::Call, 0, 0, 0);
     // starting second SPAN block
     let foo_root_addr = foo_call_addr + EIGHT;
@@ -632,24 +733,24 @@ fn call_block() {
     // ending internal JOIN block
     check_op_decoding(&dec_trace, 13, join1_addr, Operation::End, 0, 0, 0);
     // starting the 3rd SPAN block
-    let last_span_addr = foo_root_addr + EIGHT;
+    let last_basic_block_addr = foo_root_addr + EIGHT;
     check_op_decoding(&dec_trace, 14, INIT_ADDR, Operation::Span, 1, 0, 0);
-    check_op_decoding(&dec_trace, 15, last_span_addr, Operation::FmpAdd, 0, 0, 1);
-    check_op_decoding(&dec_trace, 16, last_span_addr, Operation::End, 0, 0, 0);
+    check_op_decoding(&dec_trace, 15, last_basic_block_addr, Operation::FmpAdd, 0, 0, 1);
+    check_op_decoding(&dec_trace, 16, last_basic_block_addr, Operation::End, 0, 0, 0);
     // ending the program
     check_op_decoding(&dec_trace, 17, INIT_ADDR, Operation::End, 0, 0, 0);
     check_op_decoding(&dec_trace, 18, ZERO, Operation::Halt, 0, 0, 0);
 
     // --- check hasher state columns -------------------------------------------------------------
     // in the first row, the hasher state is set to hashes of (join1, span3)
-    let join1_hash: Word = join1.hash().into();
-    let last_span_hash: Word = last_span.hash().into();
+    let join1_hash: Word = join1_node.digest().into();
+    let last_basic_block_hash: Word = last_basic_block.digest().into();
     assert_eq!(join1_hash, get_hasher_state1(&dec_trace, 0));
-    assert_eq!(last_span_hash, get_hasher_state2(&dec_trace, 0));
+    assert_eq!(last_basic_block_hash, get_hasher_state2(&dec_trace, 0));
 
     // in the second row, the hasher state is set to hashes of (span1, fn_block)
-    let first_span_hash: Word = first_span.hash().into();
-    let foo_call_hash: Word = foo_call.hash().into();
+    let first_span_hash: Word = first_basic_block.digest().into();
+    let foo_call_hash: Word = foo_call_node.digest().into();
     assert_eq!(first_span_hash, get_hasher_state1(&dec_trace, 1));
     assert_eq!(foo_call_hash, get_hasher_state2(&dec_trace, 1));
 
@@ -657,8 +758,8 @@ fn call_block() {
     assert_eq!(first_span_hash, get_hasher_state1(&dec_trace, 6));
     assert_eq!(EMPTY_WORD, get_hasher_state2(&dec_trace, 6));
 
-    // in the 7th row, we start the CALL block which hash span2 as its only child
-    let foo_root_hash: Word = foo_root.hash().into();
+    // in the 7th row, we start the CALL block which has basic_block2 as its only child
+    let foo_root_hash: Word = foo_root_node.digest().into();
     assert_eq!(foo_root_hash, get_hasher_state1(&dec_trace, 7));
     assert_eq!(EMPTY_WORD, get_hasher_state2(&dec_trace, 7));
 
@@ -676,7 +777,7 @@ fn call_block() {
     assert_eq!(EMPTY_WORD, get_hasher_state2(&dec_trace, 13));
 
     // span3 ends in the 14th row
-    assert_eq!(last_span_hash, get_hasher_state1(&dec_trace, 16));
+    assert_eq!(last_basic_block_hash, get_hasher_state1(&dec_trace, 16));
     assert_eq!(EMPTY_WORD, get_hasher_state2(&dec_trace, 16));
 
     // the program ends in the 17th row
@@ -788,28 +889,49 @@ fn syscall_block() {
     //    stack[0] <- fmp
     // end
 
+    let mut mast_forest = MastForest::new();
+
     // build foo procedure body
-    let foo_root = CodeBlock::new_span(vec![Operation::Push(THREE), Operation::FmpUpdate]);
+    let foo_root = MastNode::new_basic_block(vec![Operation::Push(THREE), Operation::FmpUpdate]);
+    let foo_root_id = mast_forest.add_node(foo_root.clone());
+    mast_forest.make_root(foo_root_id);
+    let kernel = Kernel::new(&[foo_root.digest()]).unwrap();
 
     // build bar procedure body
-    let bar_span = CodeBlock::new_span(vec![Operation::Push(TWO), Operation::FmpUpdate]);
-    let foo_call = CodeBlock::new_syscall(foo_root.hash());
-    let bar_root = CodeBlock::new_join([bar_span.clone(), foo_call.clone()]);
+    let bar_basic_block = MastNode::new_basic_block(vec![Operation::Push(TWO), Operation::FmpUpdate]);
+    let bar_basic_block_id = mast_forest.add_node(bar_basic_block.clone());
+
+    let foo_call_node = MastNode::new_syscall(foo_root_id, &mast_forest);
+    let foo_call_node_id = mast_forest.add_node(foo_call_node.clone());
+
+    let bar_root_node = MastNode::new_join(bar_basic_block_id, foo_call_node_id, &mast_forest);
+    let bar_root_node_id = mast_forest.add_node(bar_root_node.clone());
+    mast_forest.make_root(bar_root_node_id);
 
     // build the program
-    let first_span = CodeBlock::new_span(vec![
+    let first_basic_block = MastNode::new_basic_block(vec![
         Operation::Push(ONE),
         Operation::FmpUpdate,
         Operation::Pad,
     ]);
-    let last_span = CodeBlock::new_span(vec![Operation::FmpAdd]);
+    let first_basic_block_id = mast_forest.add_node(first_basic_block.clone());
 
-    let bar_call = CodeBlock::new_call(bar_root.hash());
-    let inner_join = CodeBlock::new_join([first_span.clone(), bar_call.clone()]);
-    let program = CodeBlock::new_join([inner_join.clone(), last_span.clone()]);
+    let last_basic_block = MastNode::new_basic_block(vec![Operation::FmpAdd]);
+    let last_basic_block_id = mast_forest.add_node(last_basic_block.clone());
+
+    let bar_call_node = MastNode::new_call(bar_root_node_id, &mast_forest);
+    let bar_call_node_id = mast_forest.add_node(bar_call_node.clone());
+
+    let inner_join_node = MastNode::new_join(first_basic_block_id, bar_call_node_id, &mast_forest);
+    let inner_join_node_id = mast_forest.add_node(inner_join_node.clone());
+
+    let program_root_node = MastNode::new_join(inner_join_node_id, last_basic_block_id, &mast_forest);
+    let program_root_node_id = mast_forest.add_node(program_root_node.clone());
+
+    let program = Program::with_kernel(mast_forest, program_root_node_id, kernel.clone());
 
     let (sys_trace, dec_trace,   trace_len) =
-        build_call_trace(&program, bar_root.clone(), Some(foo_root.clone()));
+        build_call_trace(&program, kernel);
 
     // --- check block address, op_bits, group count, op_index, and in_span columns ---------------
     check_op_decoding(&dec_trace, 0, ZERO, Operation::Join, 0, 0, 0);
@@ -817,35 +939,35 @@ fn syscall_block() {
     let inner_join_addr = INIT_ADDR + EIGHT;
     check_op_decoding(&dec_trace, 1, INIT_ADDR, Operation::Join, 0, 0, 0);
     // starting first SPAN block
-    let first_span_addr = inner_join_addr + EIGHT;
+    let first_basic_block_addr = inner_join_addr + EIGHT;
     check_op_decoding(&dec_trace, 2, inner_join_addr, Operation::Span, 2, 0, 0);
-    check_op_decoding(&dec_trace, 3, first_span_addr, Operation::Push(TWO), 1, 0, 1);
-    check_op_decoding(&dec_trace, 4, first_span_addr, Operation::FmpUpdate, 0, 1, 1);
-    check_op_decoding(&dec_trace, 5, first_span_addr, Operation::Pad, 0, 2, 1);
-    check_op_decoding(&dec_trace, 6, first_span_addr, Operation::End, 0, 0, 0);
+    check_op_decoding(&dec_trace, 3, first_basic_block_addr, Operation::Push(TWO), 1, 0, 1);
+    check_op_decoding(&dec_trace, 4, first_basic_block_addr, Operation::FmpUpdate, 0, 1, 1);
+    check_op_decoding(&dec_trace, 5, first_basic_block_addr, Operation::Pad, 0, 2, 1);
+    check_op_decoding(&dec_trace, 6, first_basic_block_addr, Operation::End, 0, 0, 0);
 
     // starting CALL block for bar
-    let call_addr = first_span_addr + EIGHT;
+    let call_addr = first_basic_block_addr + EIGHT;
     check_op_decoding(&dec_trace, 7, inner_join_addr, Operation::Call, 0, 0, 0);
     // starting JOIN block inside bar
     let bar_join_addr = call_addr + EIGHT;
     check_op_decoding(&dec_trace, 8, call_addr, Operation::Join, 0, 0, 0);
     // starting SPAN block inside bar
-    let bar_span_addr = bar_join_addr + EIGHT;
+    let bar_basic_block_addr = bar_join_addr + EIGHT;
     check_op_decoding(&dec_trace, 9, bar_join_addr, Operation::Span, 2, 0, 0);
-    check_op_decoding(&dec_trace, 10, bar_span_addr, Operation::Push(ONE), 1, 0, 1);
-    check_op_decoding(&dec_trace, 11, bar_span_addr, Operation::FmpUpdate, 0, 1, 1);
-    check_op_decoding(&dec_trace, 12, bar_span_addr, Operation::End, 0, 0, 0);
+    check_op_decoding(&dec_trace, 10, bar_basic_block_addr, Operation::Push(ONE), 1, 0, 1);
+    check_op_decoding(&dec_trace, 11, bar_basic_block_addr, Operation::FmpUpdate, 0, 1, 1);
+    check_op_decoding(&dec_trace, 12, bar_basic_block_addr, Operation::End, 0, 0, 0);
 
     // starting SYSCALL block for bar
-    let syscall_addr = bar_span_addr + EIGHT;
+    let syscall_addr = bar_basic_block_addr + EIGHT;
     check_op_decoding(&dec_trace, 13, bar_join_addr, Operation::SysCall, 0, 0, 0);
     // starting SPAN block within syscall
-    let syscall_span_addr = syscall_addr + EIGHT;
+    let syscall_basic_block_addr = syscall_addr + EIGHT;
     check_op_decoding(&dec_trace, 14, syscall_addr, Operation::Span, 2, 0, 0);
-    check_op_decoding(&dec_trace, 15, syscall_span_addr, Operation::Push(THREE), 1, 0, 1);
-    check_op_decoding(&dec_trace, 16, syscall_span_addr, Operation::FmpUpdate, 0, 1, 1);
-    check_op_decoding(&dec_trace, 17, syscall_span_addr, Operation::End, 0, 0, 0);
+    check_op_decoding(&dec_trace, 15, syscall_basic_block_addr, Operation::Push(THREE), 1, 0, 1);
+    check_op_decoding(&dec_trace, 16, syscall_basic_block_addr, Operation::FmpUpdate, 0, 1, 1);
+    check_op_decoding(&dec_trace, 17, syscall_basic_block_addr, Operation::End, 0, 0, 0);
     // ending SYSCALL block
     check_op_decoding(&dec_trace, 18, syscall_addr, Operation::End, 0, 0, 0);
 
@@ -857,10 +979,10 @@ fn syscall_block() {
     check_op_decoding(&dec_trace, 21, inner_join_addr, Operation::End, 0, 0, 0);
 
     // starting the last SPAN block
-    let last_span_addr = syscall_span_addr + EIGHT;
+    let last_basic_block_addr = syscall_basic_block_addr + EIGHT;
     check_op_decoding(&dec_trace, 22, INIT_ADDR, Operation::Span, 1, 0, 0);
-    check_op_decoding(&dec_trace, 23, last_span_addr, Operation::FmpAdd, 0, 0, 1);
-    check_op_decoding(&dec_trace, 24, last_span_addr, Operation::End, 0, 0, 0);
+    check_op_decoding(&dec_trace, 23, last_basic_block_addr, Operation::FmpAdd, 0, 0, 1);
+    check_op_decoding(&dec_trace, 24, last_basic_block_addr, Operation::End, 0, 0, 0);
 
     // ending the program
     check_op_decoding(&dec_trace, 25, INIT_ADDR, Operation::End, 0, 0, 0);
@@ -868,14 +990,14 @@ fn syscall_block() {
 
     // --- check hasher state columns -------------------------------------------------------------
     // in the first row, the hasher state is set to hashes of (inner_join, last_span)
-    let inner_join_hash: Word = inner_join.hash().into();
-    let last_span_hash: Word = last_span.hash().into();
+    let inner_join_hash: Word = inner_join_node.digest().into();
+    let last_span_hash: Word = last_basic_block.digest().into();
     assert_eq!(inner_join_hash, get_hasher_state1(&dec_trace, 0));
     assert_eq!(last_span_hash, get_hasher_state2(&dec_trace, 0));
 
     // in the second row, the hasher state is set to hashes of (first_span, bar_call)
-    let first_span_hash: Word = first_span.hash().into();
-    let bar_call_hash: Word = bar_call.hash().into();
+    let first_span_hash: Word = first_basic_block.digest().into();
+    let bar_call_hash: Word = bar_call_node.digest().into();
     assert_eq!(first_span_hash, get_hasher_state1(&dec_trace, 1));
     assert_eq!(bar_call_hash, get_hasher_state2(&dec_trace, 1));
 
@@ -884,13 +1006,13 @@ fn syscall_block() {
     assert_eq!(EMPTY_WORD, get_hasher_state2(&dec_trace, 6));
 
     // in the 7th row, we start the CALL block which has bar_join as its only child
-    let bar_root_hash: Word = bar_root.hash().into();
+    let bar_root_hash: Word = bar_root_node.digest().into();
     assert_eq!(bar_root_hash, get_hasher_state1(&dec_trace, 7));
     assert_eq!(EMPTY_WORD, get_hasher_state2(&dec_trace, 7));
 
     // in the 8th row, the hasher state is set to hashes of (bar_span, foo_call)
-    let bar_span_hash: Word = bar_span.hash().into();
-    let foo_call_hash: Word = foo_call.hash().into();
+    let bar_span_hash: Word = bar_basic_block.digest().into();
+    let foo_call_hash: Word = foo_call_node.digest().into();
     assert_eq!(bar_span_hash, get_hasher_state1(&dec_trace, 8));
     assert_eq!(foo_call_hash, get_hasher_state2(&dec_trace, 8));
 
@@ -899,7 +1021,7 @@ fn syscall_block() {
     assert_eq!(EMPTY_WORD, get_hasher_state2(&dec_trace, 12));
 
     // in the 13th row, we start the SYSCALL block which has foo_span as its only child
-    let foo_root_hash: Word = foo_root.hash().into();
+    let foo_root_hash: Word = foo_root.digest().into();
     assert_eq!(foo_root_hash, get_hasher_state1(&dec_trace, 13));
     assert_eq!(EMPTY_WORD, get_hasher_state2(&dec_trace, 13));
 
@@ -930,7 +1052,7 @@ fn syscall_block() {
     assert_eq!(EMPTY_WORD, get_hasher_state2(&dec_trace, 24));
 
     // the program ends in the 25th row
-    let program_hash: Word = program.hash().into();
+    let program_hash: Word = program_root_node.digest().into();
     assert_eq!(program_hash, get_hasher_state1(&dec_trace, 25));
     assert_eq!(EMPTY_WORD, get_hasher_state2(&dec_trace, 25));
 
@@ -1056,25 +1178,40 @@ fn dyn_block() {
     // build a dynamic block which looks like this:
     // push.1 add
 
-    let foo_root = CodeBlock::new_span(vec![Operation::Push(ONE), Operation::Add]);
-    let mul_span = CodeBlock::new_span(vec![Operation::Mul]);
-    let save_span = CodeBlock::new_span(vec![Operation::MovDn4]);
-    let join = CodeBlock::new_join([mul_span.clone(), save_span.clone()]);
+    let mut mast_forest = MastForest::new();
+
+    let foo_root_node = MastNode::new_basic_block(vec![Operation::Push(ONE), Operation::Add]);
+    let foo_root_node_id = mast_forest.add_node(foo_root_node.clone());
+    mast_forest.make_root(foo_root_node_id);
+
+    let mul_bb_node = MastNode::new_basic_block(vec![Operation::Mul]);
+    let mul_bb_node_id = mast_forest.add_node(mul_bb_node.clone());
+
+    let save_bb_node = MastNode::new_basic_block(vec![Operation::MovDn4]);
+    let save_bb_node_id = mast_forest.add_node(save_bb_node.clone());
+
+    let join_node = MastNode::new_join(mul_bb_node_id, save_bb_node_id, &mast_forest);
+    let join_node_id = mast_forest.add_node(join_node.clone());
+
     // This dyn will point to foo.
-    let dyn_block = CodeBlock::new_dyn();
-    let program = CodeBlock::new_join([join.clone(), dyn_block.clone()]);
+    let dyn_node = MastNode::new_dynexec();
+    let dyn_node_id = mast_forest.add_node(dyn_node.clone());
+
+    let program_root_node = MastNode::new_join(join_node_id, dyn_node_id, &mast_forest);
+    let program_root_node_id = mast_forest.add_node(program_root_node.clone());
+
+    let program = Program::new(mast_forest, program_root_node_id);
 
     let (trace, trace_len) = build_dyn_trace(
         &[
-            foo_root.hash()[0].as_int(),
-            foo_root.hash()[1].as_int(),
-            foo_root.hash()[2].as_int(),
-            foo_root.hash()[3].as_int(),
+            foo_root_node.digest()[0].as_int(),
+            foo_root_node.digest()[1].as_int(),
+            foo_root_node.digest()[2].as_int(),
+            foo_root_node.digest()[3].as_int(),
             2,
             4,
         ],
         &program,
-        foo_root.clone(),
     );
 
     // --- check block address, op_bits, group count, op_index, and in_span columns ---------------
@@ -1083,26 +1220,26 @@ fn dyn_block() {
     let join_addr = INIT_ADDR + EIGHT;
     check_op_decoding(&trace, 1, INIT_ADDR, Operation::Join, 0, 0, 0);
     // starting first span
-    let mul_span_addr = join_addr + EIGHT;
+    let mul_basic_block_addr = join_addr + EIGHT;
     check_op_decoding(&trace, 2, join_addr, Operation::Span, 1, 0, 0);
-    check_op_decoding(&trace, 3, mul_span_addr, Operation::Mul, 0, 0, 1);
-    check_op_decoding(&trace, 4, mul_span_addr, Operation::End, 0, 0, 0);
+    check_op_decoding(&trace, 3, mul_basic_block_addr, Operation::Mul, 0, 0, 1);
+    check_op_decoding(&trace, 4, mul_basic_block_addr, Operation::End, 0, 0, 0);
     // starting second span
-    let save_span_addr = mul_span_addr + EIGHT;
+    let save_basic_block_addr = mul_basic_block_addr + EIGHT;
     check_op_decoding(&trace, 5, join_addr, Operation::Span, 1, 0, 0);
-    check_op_decoding(&trace, 6, save_span_addr, Operation::MovDn4, 0, 0, 1);
-    check_op_decoding(&trace, 7, save_span_addr, Operation::End, 0, 0, 0);
+    check_op_decoding(&trace, 6, save_basic_block_addr, Operation::MovDn4, 0, 0, 1);
+    check_op_decoding(&trace, 7, save_basic_block_addr, Operation::End, 0, 0, 0);
     // end inner join
     check_op_decoding(&trace, 8, join_addr, Operation::End, 0, 0, 0);
     // dyn
     check_op_decoding(&trace, 9, INIT_ADDR, Operation::Dyn, 0, 0, 0);
     // starting foo span
-    let dyn_addr = save_span_addr + EIGHT;
-    let add_span_addr = dyn_addr + EIGHT;
+    let dyn_addr = save_basic_block_addr + EIGHT;
+    let add_basic_block_addr = dyn_addr + EIGHT;
     check_op_decoding(&trace, 10, dyn_addr, Operation::Span, 2, 0, 0);
-    check_op_decoding(&trace, 11, add_span_addr, Operation::Push(ONE), 1, 0, 1);
-    check_op_decoding(&trace, 12, add_span_addr, Operation::Add, 0, 1, 1);
-    check_op_decoding(&trace, 13, add_span_addr, Operation::End, 0, 0, 0);
+    check_op_decoding(&trace, 11, add_basic_block_addr, Operation::Push(ONE), 1, 0, 1);
+    check_op_decoding(&trace, 12, add_basic_block_addr, Operation::Add, 0, 1, 1);
+    check_op_decoding(&trace, 13, add_basic_block_addr, Operation::End, 0, 0, 0);
     // end dyn
     check_op_decoding(&trace, 14, dyn_addr, Operation::End, 0, 0, 0);
     // end outer join
@@ -1111,23 +1248,23 @@ fn dyn_block() {
     // --- check hasher state columns -------------------------------------------------------------
 
     // in the first row, the hasher state is set to hashes of both child nodes
-    let join_hash: Word = join.hash().into();
-    let dyn_hash: Word = dyn_block.hash().into();
+    let join_hash: Word = join_node.digest().into();
+    let dyn_hash: Word = dyn_node.digest().into();
     assert_eq!(join_hash, get_hasher_state1(&trace, 0));
     assert_eq!(dyn_hash, get_hasher_state2(&trace, 0));
 
     // in the second row, the hasher set is set to hashes of both child nodes of the inner JOIN
-    let mul_span_hash: Word = mul_span.hash().into();
-    let save_span_hash: Word = save_span.hash().into();
-    assert_eq!(mul_span_hash, get_hasher_state1(&trace, 1));
-    assert_eq!(save_span_hash, get_hasher_state2(&trace, 1));
+    let mul_bb_node_hash: Word = mul_bb_node.digest().into();
+    let save_bb_node_hash: Word = save_bb_node.digest().into();
+    assert_eq!(mul_bb_node_hash, get_hasher_state1(&trace, 1));
+    assert_eq!(save_bb_node_hash, get_hasher_state2(&trace, 1));
 
     // at the end of the first SPAN, the hasher state is set to the hash of the first child
-    assert_eq!(mul_span_hash, get_hasher_state1(&trace, 4));
+    assert_eq!(mul_bb_node_hash, get_hasher_state1(&trace, 4));
     assert_eq!([ZERO, ZERO, ZERO, ZERO], get_hasher_state2(&trace, 4));
 
     // at the end of the second SPAN, the hasher state is set to the hash of the second child
-    assert_eq!(save_span_hash, get_hasher_state1(&trace, 7));
+    assert_eq!(save_bb_node_hash, get_hasher_state1(&trace, 7));
     assert_eq!([ZERO, ZERO, ZERO, ZERO], get_hasher_state2(&trace, 7));
 
     // at the end of the inner JOIN, the hasher set is set to the hash of the JOIN
@@ -1135,7 +1272,7 @@ fn dyn_block() {
     assert_eq!([ZERO, ZERO, ZERO, ZERO], get_hasher_state2(&trace, 8));
 
     // at the start of the DYN block, the hasher state is set to the hash of its child (foo span)
-    let foo_hash: Word = foo_root.hash().into();
+    let foo_hash: Word = foo_root_node.digest().into();
     assert_eq!(foo_hash, get_hasher_state1(&trace, 9));
     assert_eq!([ZERO, ZERO, ZERO, ZERO], get_hasher_state2(&trace, 9));
 
@@ -1147,7 +1284,7 @@ fn dyn_block() {
     assert_eq!(dyn_hash, get_hasher_state1(&trace, 14));
 
     // at the end of the program, the hasher state is set to the hash of the entire program
-    let program_hash: Word = program.hash().into();
+    let program_hash: Word = program_root_node.digest().into();
     assert_eq!(program_hash, get_hasher_state1(&trace, 15));
     assert_eq!([ZERO, ZERO, ZERO, ZERO], get_hasher_state2(&trace, 15));
 
@@ -1165,7 +1302,14 @@ fn dyn_block() {
 #[test]
 fn set_user_op_helpers_many() {
     // --- user operation with 4 helper values ----------------------------------------------------
-    let program = CodeBlock::new_span(vec![Operation::U32div]);
+    let program = {
+        let mut mast_forest = MastForest::new();
+
+        let basic_block = MastNode::new_basic_block(vec![Operation::U32div]);
+        let basic_block_id = mast_forest.add_node(basic_block);
+
+        Program::new(mast_forest, basic_block_id)
+    };
     let a = rand_value::<u32>();
     let b = rand_value::<u32>();
     let (dividend, divisor) = if a > b { (a, b) } else { (b, a) };
@@ -1193,12 +1337,12 @@ fn set_user_op_helpers_many() {
 // HELPER FUNCTIONS
 // ================================================================================================
 
-fn build_trace(stack_inputs: &[u64], program: &CodeBlock) -> (DecoderTrace, usize) {
+fn build_trace(stack_inputs: &[u64], program: &Program) -> (DecoderTrace, usize) {
     let stack_inputs = StackInputs::try_from_ints(stack_inputs.iter().copied()).unwrap();
     let host = DefaultHost::default();
     let mut process =
         Process::new(Kernel::default(), stack_inputs, host, ExecutionOptions::default());
-    process.execute_code_block(program, &CodeBlockTable::default()).unwrap();
+    process.execute(program).unwrap();
 
     let (trace, _, _) = ExecutionTrace::test_finalize_trace(process);
     let trace_len = trace.num_rows() - ExecutionTrace::NUM_RAND_ROWS;
@@ -1212,21 +1356,13 @@ fn build_trace(stack_inputs: &[u64], program: &CodeBlock) -> (DecoderTrace, usiz
     )
 }
 
-fn build_dyn_trace(
-    stack_inputs: &[u64],
-    program: &CodeBlock,
-    fn_block: CodeBlock,
-) -> (DecoderTrace, usize) {
+fn build_dyn_trace(stack_inputs: &[u64], program: &Program) -> (DecoderTrace, usize) {
     let stack_inputs = StackInputs::try_from_ints(stack_inputs.iter().copied()).unwrap();
     let host = DefaultHost::default();
     let mut process =
         Process::new(Kernel::default(), stack_inputs, host, ExecutionOptions::default());
 
-    // build code block table
-    let mut cb_table = CodeBlockTable::default();
-    cb_table.insert(fn_block);
-
-    process.execute_code_block(program, &cb_table).unwrap();
+    process.execute(program).unwrap();
 
     let (trace, _, _) = ExecutionTrace::test_finalize_trace(process);
     let trace_len = trace.num_rows() - ExecutionTrace::NUM_RAND_ROWS;
@@ -1240,27 +1376,12 @@ fn build_dyn_trace(
     )
 }
 
-fn build_call_trace(
-    program: &CodeBlock,
-    fn_block: CodeBlock,
-    kernel_proc: Option<CodeBlock>,
-) -> (SystemTrace, DecoderTrace, usize) {
-    let kernel = match kernel_proc {
-        Some(ref proc) => Kernel::new(&[proc.hash()]).unwrap(),
-        None => Kernel::default(),
-    };
+fn build_call_trace(program: &Program, kernel: Kernel) -> (SystemTrace, DecoderTrace, usize) {
     let host = DefaultHost::default();
     let stack_inputs = crate::StackInputs::default();
     let mut process = Process::new(kernel, stack_inputs, host, ExecutionOptions::default());
 
-    // build code block table
-    let mut cb_table = CodeBlockTable::default();
-    cb_table.insert(fn_block);
-    if let Some(proc) = kernel_proc {
-        cb_table.insert(proc);
-    }
-
-    process.execute_code_block(program, &cb_table).unwrap();
+    process.execute(program).unwrap();
 
     let (trace, _, _) = ExecutionTrace::test_finalize_trace(process);
     let trace_len = trace.num_rows() - ExecutionTrace::NUM_RAND_ROWS;

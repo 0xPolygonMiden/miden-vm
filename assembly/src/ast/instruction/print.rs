@@ -11,6 +11,7 @@ impl PrettyPrint for Instruction {
         use crate::prettier::*;
 
         match self {
+            Self::Nop => const_text("nop"),
             Self::Assert => const_text("assert"),
             Self::AssertWithError(err_code) => {
                 flatten(const_text("assert.err") + const_text("=") + display(err_code))
@@ -53,13 +54,9 @@ impl PrettyPrint for Instruction {
             Self::NeqImm(value) => inst_with_felt_imm("neq", value),
             Self::Eqw => const_text("eqw"),
             Self::Lt => const_text("lt"),
-            Self::LtImm(value) => inst_with_felt_imm("lt", value),
             Self::Lte => const_text("lte"),
-            Self::LteImm(value) => inst_with_felt_imm("lte", value),
             Self::Gt => const_text("gt"),
-            Self::GtImm(value) => inst_with_felt_imm("gt", value),
             Self::Gte => const_text("gte"),
-            Self::GteImm(value) => inst_with_felt_imm("gte", value),
             Self::IsOdd => const_text("is_odd"),
 
             // ----- ext2 operations --------------------------------------------------------------
@@ -283,7 +280,7 @@ impl PrettyPrint for Instruction {
                 const_text("exec") + const_text(".") + text(format!("{}::{}", module, name))
             }
             Self::Exec(InvocationTarget::AbsoluteProcedurePath { name, path }) => {
-                const_text("exec") + const_text(".") + text(format!("{}::{}", path.last(), name))
+                const_text("exec") + const_text(".") + text(format!("::{}::{}", path, name))
             }
             Self::Call(InvocationTarget::MastRoot(root)) => {
                 const_text("call")
@@ -297,7 +294,7 @@ impl PrettyPrint for Instruction {
                 const_text("call") + const_text(".") + text(format!("{}::{}", module, name))
             }
             Self::Call(InvocationTarget::AbsoluteProcedurePath { name, path }) => {
-                const_text("call") + const_text(".") + text(format!("{}::{}", path.last(), name))
+                const_text("call") + const_text(".") + text(format!("::{}::{}", path, name))
             }
             Self::SysCall(InvocationTarget::MastRoot(root)) => {
                 const_text("syscall")
@@ -311,7 +308,7 @@ impl PrettyPrint for Instruction {
                 const_text("syscall") + const_text(".") + text(format!("{}::{}", module, name))
             }
             Self::SysCall(InvocationTarget::AbsoluteProcedurePath { name, path }) => {
-                const_text("syscall") + const_text(".") + text(format!("{}::{}", path.last(), name))
+                const_text("syscall") + const_text(".") + text(format!("::{}::{}", path, name))
             }
             Self::DynExec => const_text("dynexec"),
             Self::DynCall => const_text("dyncall"),
@@ -325,9 +322,7 @@ impl PrettyPrint for Instruction {
                 const_text("procref") + const_text(".") + text(format!("{}::{}", module, name)),
             ),
             Self::ProcRef(InvocationTarget::AbsoluteProcedurePath { name, path }) => flatten(
-                const_text("procref")
-                    + const_text(".")
-                    + text(format!("{}::{}", path.last(), name)),
+                const_text("procref") + const_text(".") + text(format!("::{}::{}", path, name)),
             ),
 
             // ----- debug decorators -------------------------------------------------------------

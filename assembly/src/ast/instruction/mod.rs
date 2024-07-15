@@ -21,6 +21,7 @@ use crate::{
 /// NOTE: For control flow instructions, see [crate::ast::Op].
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub enum Instruction {
+    Nop,
     Assert,
     AssertWithError(ErrorCode),
     AssertEq,
@@ -55,13 +56,9 @@ pub enum Instruction {
     NeqImm(ImmFelt),
     Eqw,
     Lt,
-    LtImm(ImmFelt),
     Lte,
-    LteImm(ImmFelt),
     Gt,
-    GtImm(ImmFelt),
     Gte,
-    GteImm(ImmFelt),
     IsOdd,
 
     // ----- ext2 operations ---------------------------------------------------------------------

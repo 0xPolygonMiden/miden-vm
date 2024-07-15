@@ -513,14 +513,17 @@ fn test_ast_parsing_module_nested_if() -> Result<(), Report> {
         0,
         block!(
             inst!(PushU8(1)),
-            if_true!(block!(
-                inst!(PushU8(0)),
-                inst!(PushU8(1)),
-                if_true!(
-                    block!(inst!(PushU8(0)), inst!(Sub)),
-                    block!(inst!(PushU8(1)), inst!(Sub))
-                )
-            ))
+            if_true!(
+                block!(
+                    inst!(PushU8(0)),
+                    inst!(PushU8(1)),
+                    if_true!(
+                        block!(inst!(PushU8(0)), inst!(Sub)),
+                        block!(inst!(PushU8(1)), inst!(Sub))
+                    )
+                ),
+                block!(inst!(Nop))
+            )
         )
     ));
     assert_eq!(context.parse_forms(source)?, forms);
@@ -553,7 +556,7 @@ fn test_ast_parsing_module_sequential_if() -> Result<(), Report> {
         0,
         block!(
             inst!(PushU8(1)),
-            if_true!(block!(inst!(PushU8(5)), inst!(PushU8(1)))),
+            if_true!(block!(inst!(PushU8(5)), inst!(PushU8(1))), block!(inst!(Nop))),
             if_true!(block!(inst!(PushU8(0)), inst!(Sub)), block!(inst!(PushU8(1)), inst!(Sub)))
         )
     ));
@@ -585,7 +588,7 @@ fn parsed_while_if_body() {
         inst!(PushU8(1)),
         while_true!(block!(inst!(Mul))),
         inst!(Add),
-        if_true!(block!(inst!(Div))),
+        if_true!(block!(inst!(Div)), block!(inst!(Nop))),
         inst!(Mul)
     ));
 
@@ -1052,254 +1055,4 @@ fn assert_parsing_line_unexpected_token() {
         "  `----",
         r#" help: expected "begin", or "const", or "export", or "proc", or "use", or end of file, or doc comment"#
     );
-}
-
-// SERIALIZATION AND DESERIALIZATION TESTS
-// ================================================================================================
-
-#[cfg(feature = "nope")]
-mod serialization {
-
-    #[test]
-    fn test_ast_program_serde_simple() {
-        let source = "begin push.0xabc234 push.0 assertz end";
-        assert_correct_program_serialization(source, true);
-    }
-
-    #[test]
-    fn test_ast_program_serde_local_procs() {
-        let source = "\
-    proc.foo.1
-        loc_load.0
-    end
-    proc.bar.2
-        padw
-    end
-    begin
-        exec.foo
-        exec.bar
-    end";
-        assert_correct_program_serialization(source, true);
-    }
-
-    #[test]
-    fn test_ast_program_serde_exported_procs() {
-        let source = "\
-    export.foo.1
-        loc_load.0
-    end
-    export.bar.2
-        padw
-    end";
-        assert_correct_module_serialization(source, true);
-    }
-
-    #[test]
-    fn test_ast_program_serde_control_flow() {
-        let source = "\
-    begin
-        repeat.3
-            push.1
-            push.0.1
-        end
-
-        if.true
-            and
-            loc_store.0
-        else
-            padw
-        end
-
-        while.true
-            push.5.7
-            u32wrapping_add
-            loc_store.1
-            push.0
-        end
-
-        repeat.3
-            push.2
-            u32overflowing_mul
-        end
-
-    end";
-        assert_correct_program_serialization(source, true);
-    }
-
-    #[test]
-    fn test_ast_program_serde_imports_serialized() {
-        let source = "\
-    use.std::math::u64
-    use.std::crypto::fri
-
-    begin
-        push.0
-        push.1
-        exec.u64::wrapping_add
-    end";
-        assert_correct_program_serialization(source, true);
-    }
-
-    #[test]
-    fn test_ast_program_serde_imports_not_serialized() {
-        let source = "\
-    use.std::math::u64
-    use.std::crypto::fri
-
-    begin
-        push.0
-        push.1
-        exec.u64::wrapping_add
-    end";
-        assert_correct_program_serialization(source, false);
-    }
-
-    #[test]
-    fn test_ast_module_serde_imports_serialized() {
-        let source = "\
-    use.std::math::u64
-    use.std::crypto::fri
-
-    proc.foo.2
-        push.0
-        push.1
-        exec.u64::wrapping_add
-    end";
-        assert_correct_module_serialization(source, true);
-    }
-
-    #[test]
-    fn test_ast_module_serde_imports_not_serialized() {
-        let source = "\
-    use.std::math::u64
-    use.std::crypto::fri
-
-    proc.foo.2
-        push.0
-        push.1
-        exec.u64::wrapping_add
-    end";
-        assert_correct_module_serialization(source, false);
-    }
-
-    #[test]
-    fn test_repeat_with_constant_count() {
-        let source = "\
-    const.A=3
-    const.B=A*3+5
-
-    begin
-        repeat.A
-            push.1
-        end
-
-        repeat.B
-            push.0
-        end
-    end";
-
-        assert_correct_program_serialization(source, false);
-
-        let nodes: Vec<Node> = vec![
-            Node::Repeat {
-                times: 3,
-                body: CodeBody::new(vec![Node::Instruction(Instruction::PushU8(1))]),
-            },
-            Node::Repeat {
-                times: 14,
-                body: CodeBody::new(vec![Node::Instruction(Instruction::PushU8(0))]),
-            },
-        ];
-
-        assert_program_output(source, BTreeMap::new(), nodes);
-    }
-
-    /// Clears the module's imports.
-    ///
-    /// Serialization of imports is optional, so if they are not serialized, then they have to be
-    /// cleared before testing for equality
-    fn clear_imports_module(module: &mut ModuleAst) {
-        module.clear_imports();
-    }
-
-    /// Clears the program's imports.
-    ///
-    /// Serialization of imports is optional, so if they are not serialized, then they have to be
-    /// cleared before testing for equality
-    fn clear_imports_program(program: &mut ProgramAst) {
-        program.clear_imports();
-    }
-
-    fn assert_correct_program_serialization(source: &str, serialize_imports: bool) {
-        let program = ProgramAst::parse(source).unwrap();
-
-        // assert the correct program serialization
-        let program_serialized = program.to_bytes(AstSerdeOptions::new(serialize_imports));
-        let mut program_deserialized =
-            ProgramAst::from_bytes(program_serialized.as_slice()).unwrap();
-        let mut clear_program = clear_procs_loc_program(program.clone());
-        if !serialize_imports {
-            clear_imports_program(&mut clear_program);
-        }
-        assert_eq!(clear_program, program_deserialized);
-
-        // assert the correct locations serialization
-        let mut locations = Vec::new();
-        program.write_source_locations(&mut locations);
-
-        // assert empty locations
-        {
-            let mut locations = program_deserialized.source_locations();
-            let start = locations.next().unwrap();
-            assert_eq!(start, &SourceLocation::default());
-            assert!(locations.next().is_none());
-        }
-
-        program_deserialized
-            .load_source_locations(&mut SliceReader::new(&locations))
-            .unwrap();
-
-        let program_deserialized = if !serialize_imports {
-            program_deserialized.with_import_info(program.import_info().clone())
-        } else {
-            program_deserialized
-        };
-
-        assert_eq!(program, program_deserialized);
-    }
-
-    fn assert_correct_module_serialization(source: &str, serialize_imports: bool) {
-        let module = ModuleAst::parse(source).unwrap();
-        let module_serialized = module.to_bytes(AstSerdeOptions::new(serialize_imports));
-        let mut module_deserialized = ModuleAst::from_bytes(module_serialized.as_slice()).unwrap();
-        let mut clear_module = clear_procs_loc_module(module.clone());
-        if !serialize_imports {
-            clear_imports_module(&mut clear_module);
-        }
-        assert_eq!(clear_module, module_deserialized);
-
-        // assert the correct locations serialization
-        let mut locations = Vec::new();
-        module.write_source_locations(&mut locations);
-
-        // assert module locations are empty
-        module_deserialized.procs().iter().for_each(|m| {
-            let mut locations = m.source_locations();
-            let start = locations.next().unwrap();
-            assert_eq!(start, &SourceLocation::default());
-            assert!(locations.next().is_none());
-        });
-
-        module_deserialized
-            .load_source_locations(&mut SliceReader::new(&locations))
-            .unwrap();
-
-        module_deserialized = if !serialize_imports {
-            module_deserialized.with_import_info(module.import_info().clone())
-        } else {
-            module_deserialized
-        };
-
-        assert_eq!(module, module_deserialized);
-    }
 }

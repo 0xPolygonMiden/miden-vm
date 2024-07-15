@@ -1,10 +1,10 @@
 use super::{
-    ast::InvokeKind, Assembler, AssemblyContext, CodeBlock, Felt, Instruction, Operation,
-    SpanBuilder, ONE, ZERO,
+    ast::InvokeKind, mast_forest_builder::MastForestBuilder, Assembler, AssemblyContext,
+    BasicBlockBuilder, Felt, Instruction, Operation, ONE, ZERO,
 };
 use crate::{diagnostics::Report, utils::bound_into_included_u64, AssemblyError};
 use core::ops::RangeBounds;
-use vm_core::Decorator;
+use vm_core::{mast::MastNodeId, Decorator};
 
 mod adv_ops;
 mod crypto_ops;
@@ -22,9 +22,10 @@ impl Assembler {
     pub(super) fn compile_instruction(
         &self,
         instruction: &Instruction,
-        span_builder: &mut SpanBuilder,
+        span_builder: &mut BasicBlockBuilder,
         ctx: &mut AssemblyContext,
-    ) -> Result<Option<CodeBlock>, AssemblyError> {
+        mast_forest_builder: &mut MastForestBuilder,
+    ) -> Result<Option<MastNodeId>, AssemblyError> {
         // if the assembler is in debug mode, start tracking the instruction about to be executed;
         // this will allow us to map the instruction to the sequence of operations which were
         // executed as a part of this instruction.
@@ -32,7 +33,8 @@ impl Assembler {
             span_builder.track_instruction(instruction, ctx);
         }
 
-        let result = self.compile_instruction_impl(instruction, span_builder, ctx)?;
+        let result =
+            self.compile_instruction_impl(instruction, span_builder, ctx, mast_forest_builder)?;
 
         // compute and update the cycle count of the instruction which just finished executing
         if self.in_debug_mode() {
@@ -45,12 +47,14 @@ impl Assembler {
     fn compile_instruction_impl(
         &self,
         instruction: &Instruction,
-        span_builder: &mut SpanBuilder,
+        span_builder: &mut BasicBlockBuilder,
         ctx: &mut AssemblyContext,
-    ) -> Result<Option<CodeBlock>, AssemblyError> {
+        mast_forest_builder: &mut MastForestBuilder,
+    ) -> Result<Option<MastNodeId>, AssemblyError> {
         use Operation::*;
 
         match instruction {
+            Instruction::Nop => span_builder.push_op(Noop),
             Instruction::Assert => span_builder.push_op(Assert(0)),
             Instruction::AssertWithError(err_code) => {
                 span_builder.push_op(Assert(err_code.expect_value()))
@@ -99,13 +103,9 @@ impl Assembler {
             Instruction::Neq => span_builder.push_ops([Eq, Not]),
             Instruction::NeqImm(imm) => field_ops::neq_imm(span_builder, imm.expect_value()),
             Instruction::Lt => field_ops::lt(span_builder),
-            Instruction::LtImm(imm) => field_ops::lt_imm(span_builder, imm.expect_value()),
             Instruction::Lte => field_ops::lte(span_builder),
-            Instruction::LteImm(imm) => field_ops::lte_imm(span_builder, imm.expect_value()),
             Instruction::Gt => field_ops::gt(span_builder),
-            Instruction::GtImm(imm) => field_ops::gt_imm(span_builder, imm.expect_value()),
             Instruction::Gte => field_ops::gte(span_builder),
-            Instruction::GteImm(imm) => field_ops::gte_imm(span_builder, imm.expect_value()),
             Instruction::IsOdd => field_ops::is_odd(span_builder),
 
             // ----- ext2 instructions ------------------------------------------------------------
@@ -363,14 +363,20 @@ impl Assembler {
             Instruction::RCombBase => span_builder.push_op(RCombBase),
 
             // ----- exec/call instructions -------------------------------------------------------
-            Instruction::Exec(ref callee) => return self.invoke(InvokeKind::Exec, callee, ctx),
-            Instruction::Call(ref callee) => return self.invoke(InvokeKind::Call, callee, ctx),
-            Instruction::SysCall(ref callee) => {
-                return self.invoke(InvokeKind::SysCall, callee, ctx)
+            Instruction::Exec(ref callee) => {
+                return self.invoke(InvokeKind::Exec, callee, ctx, mast_forest_builder)
             }
-            Instruction::DynExec => return self.dynexec(),
-            Instruction::DynCall => return self.dyncall(),
-            Instruction::ProcRef(ref callee) => self.procref(callee, ctx, span_builder)?,
+            Instruction::Call(ref callee) => {
+                return self.invoke(InvokeKind::Call, callee, ctx, mast_forest_builder)
+            }
+            Instruction::SysCall(ref callee) => {
+                return self.invoke(InvokeKind::SysCall, callee, ctx, mast_forest_builder)
+            }
+            Instruction::DynExec => return self.dynexec(mast_forest_builder),
+            Instruction::DynCall => return self.dyncall(mast_forest_builder),
+            Instruction::ProcRef(ref callee) => {
+                self.procref(callee, ctx, span_builder, mast_forest_builder.forest())?
+            }
 
             // ----- debug decorators -------------------------------------------------------------
             Instruction::Breakpoint => {
@@ -411,7 +417,7 @@ impl Assembler {
 ///
 /// When the value is 0, PUSH operation is replaced with PAD. When the value is 1, PUSH operation
 /// is replaced with PAD INCR because in most cases this will be more efficient than doing a PUSH.
-fn push_u32_value(span_builder: &mut SpanBuilder, value: u32) {
+fn push_u32_value(span_builder: &mut BasicBlockBuilder, value: u32) {
     use Operation::*;
 
     if value == 0 {
@@ -429,7 +435,7 @@ fn push_u32_value(span_builder: &mut SpanBuilder, value: u32) {
 ///
 /// When the value is 0, PUSH operation is replaced with PAD. When the value is 1, PUSH operation
 /// is replaced with PAD INCR because in most cases this will be more efficient than doing a PUSH.
-fn push_felt(span_builder: &mut SpanBuilder, value: Felt) {
+fn push_felt(span_builder: &mut BasicBlockBuilder, value: Felt) {
     use Operation::*;
 
     if value == ZERO {

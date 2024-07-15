@@ -12,7 +12,7 @@ use vm_core::{Felt, FieldElement, StarkField, crypto::hash::RpoDigest};
 
 use crate::{LibraryPath, LibraryNamespace, ast::*, diagnostics::SourceFile, SourceSpan};
 use super::{
-    HexEncodedValue, Token, ParseError, ParsingError,
+    BinEncodedValue, HexEncodedValue, Token, ParseError, ParsingError,
     LiteralErrorKind, HexErrorKind, Span, Spanned,
     DocumentationType
 };
@@ -35,6 +35,7 @@ extern {
         const_ident => Token::ConstantIdent(<&'input str>),
         quoted_ident => Token::QuotedIdent(<&'input str>),
         hex_value => Token::HexValue(<HexEncodedValue>),
+        bin_value => Token::BinValue(<BinEncodedValue>),
         doc_comment => Token::DocComment(<DocumentationType>),
         comment => Token::Comment,
         uint => Token::Int(<u64>),
@@ -93,6 +94,7 @@ extern {
         "exp" => Token::Exp,
         "exp.u" => Token::ExpU,
         "export" => Token::Export,
+        "false" => Token::False,
         "fri_ext2fold4" => Token::FriExt2Fold4,
         "gt" => Token::Gt,
         "gte" => Token::Gte,
@@ -129,6 +131,7 @@ extern {
         "neg" => Token::Neg,
         "neq" => Token::Neq,
         "not" => Token::Not,
+        "nop" => Token::Nop,
         "or" => Token::Or,
         "padw" => Token::Padw,
         "pow2" => Token::Pow2,
@@ -299,18 +302,47 @@ Proc: Form = {
         Ok(Form::Procedure(Export::Procedure(procedure)))
     },
 
-    <l:@L> "export" "." <qualified_name:QualifiedName> <alias:("->" <BareIdent>)?> <r:@R> => {
-        let (name, path) = qualified_name;
-        let name = ProcedureName::new_unchecked(name.clone());
-        let export_name = alias.map(ProcedureName::new_unchecked).unwrap_or_else(|| name.clone());
-        let target = FullyQualifiedProcedureName {
-            span: span!(l, r),
-            module: path,
-            name,
+    <l:@L> "export" "." <name:MaybeQualifiedProcedurePath> <alias:("->" <ProcedureName>)?> <r:@R> =>? {
+        let span = span!(l, r);
+        let alias = match name {
+            InvocationTarget::ProcedureName(_) =>  return Err(ParseError::User {
+                error: ParsingError::UnqualifiedImport { span },
+            }),
+            InvocationTarget::MastRoot(digest) => {
+                if alias.is_none() {
+                    return Err(ParseError::User {
+                        error: ParsingError::UnnamedReexportOfMastRoot { span },
+                    });
+                }
+                ProcedureAlias::new(alias.unwrap(), digest, true)
+            }
+            InvocationTarget::ProcedurePath { name, module } => {
+                let export_name = alias.unwrap_or_else(|| name.clone());
+                let module = match module.as_str() {
+                    LibraryNamespace::KERNEL_PATH => LibraryPath::new_from_components(LibraryNamespace::Kernel, []),
+                    LibraryNamespace::EXEC_PATH => LibraryPath::new_from_components(LibraryNamespace::Exec, []),
+                    LibraryNamespace::ANON_PATH => LibraryPath::new_from_components(LibraryNamespace::Anon, []),
+                    _ => LibraryPath::new_from_components(LibraryNamespace::User(module.into_inner()), []),
+                };
+                let target = FullyQualifiedProcedureName {
+                    span,
+                    module,
+                    name,
+                };
+                ProcedureAlias::new(export_name, target, false)
+            }
+            InvocationTarget::AbsoluteProcedurePath { name, path } => {
+                let export_name = alias.unwrap_or_else(|| name.clone());
+                let target = FullyQualifiedProcedureName {
+                    span,
+                    module: path,
+                    name,
+                };
+                ProcedureAlias::new(export_name, target, true)
+            }
         };
-        let alias = ProcedureAlias::new(export_name, target)
-                        .with_source_file(Some(source_file.clone()));
-        Form::Procedure(Export::Alias(alias))
+        let alias = alias.with_source_file(Some(source_file.clone()));
+        Ok(Form::Procedure(Export::Alias(alias)))
     }
 }
 
@@ -347,19 +379,51 @@ Op: SmallOpsVec = {
 }
 
 IfElse: Op = {
-    <l:@L> "if" "." "true" <then_blk:Block> "else" <else_blk:Block> "end" <r:@R> => {
-        Op::If { span: span!(l, r), then_blk, else_blk }
+    // Handles the edge case of a code generator emitting an empty "then" block
+    <l:@L> "if" "." <cond:Condition> "else" <else_blk:Block> "end" <r:@R> => {
+        let span = span!(l, r);
+        let then_blk = Block::new(span, vec![Op::Inst(Span::new(span, Instruction::Nop))]);
+        // If false-conditioned, swap the blocks
+        if cond {
+            Op::If { span, then_blk, else_blk }
+        } else {
+            Op::If { span, then_blk: else_blk, else_blk: then_blk }
+        }
     },
 
-    <l:@L> "if" "." "true" <then_blk:Block> "end" <r:@R> => {
-        Op::If { span: span!(l, r), then_blk, else_blk: Default::default() }
+    <l:@L> "if" "." <cond:Condition> <then_blk:Block> "else" <else_blk:Block?> "end" <r:@R> => {
+        let span = span!(l, r);
+        let else_blk = else_blk.unwrap_or_else(|| Block::new(span, vec![Op::Inst(Span::new(span, Instruction::Nop))]));
+        // If false-conditioned, swap the blocks
+        if cond {
+            Op::If { span, then_blk, else_blk }
+        } else {
+            Op::If { span, then_blk: else_blk, else_blk: then_blk }
+        }
+    },
+
+    <l:@L> "if" "." <cond:Condition> <then_blk:Block> "end" <r:@R> => {
+        let span = span!(l, r);
+        let else_blk = Block::new(span, vec![Op::Inst(Span::new(span, Instruction::Nop))]);
+        // If false-conditioned, swap the blocks
+        if cond {
+            Op::If { span, then_blk, else_blk }
+        } else {
+            Op::If { span, then_blk: else_blk, else_blk: then_blk }
+        }
     }
+}
+
+#[inline]
+Condition: bool = {
+    "true" => true,
+    "false" => false,
 }
 
 While: Op = {
     <l:@L> "while" "." "true" <body:Block> "end" <r:@R> => {
         Op::While { span: span!(l, r), body }
-    }
+    },
 }
 
 Repeat: Op = {
@@ -439,22 +503,14 @@ Inst: Instruction = {
     "mtree_set" => Instruction::MTreeSet,
     "neg" => Instruction::Neg,
     "not" => Instruction::Not,
+    "nop" => Instruction::Nop,
     "or" => Instruction::Or,
     "padw" => Instruction::PadW,
     "pow2" => Instruction::Pow2,
     "rcomb_base" => Instruction::RCombBase,
     "sdepth" => Instruction::Sdepth,
     "swapdw" => Instruction::SwapDw,
-    "u32and" => Instruction::U32And,
     "u32cast" => Instruction::U32Cast,
-    "u32gt" => Instruction::U32Gt,
-    "u32gte" => Instruction::U32Gte,
-    "u32lt" => Instruction::U32Lt,
-    "u32lte" => Instruction::U32Lte,
-    "u32max" => Instruction::U32Max,
-    "u32min" => Instruction::U32Min,
-    "u32not" => Instruction::U32Not,
-    "u32or" => Instruction::U32Or,
     "u32overflowing_add3" => Instruction::U32OverflowingAdd3,
     "u32overflowing_madd" => Instruction::U32OverflowingMadd,
     "u32popcnt" => Instruction::U32Popcnt,
@@ -467,7 +523,6 @@ Inst: Instruction = {
     "u32testw" => Instruction::U32TestW,
     "u32wrapping_add3" => Instruction::U32WrappingAdd3,
     "u32wrapping_madd" => Instruction::U32WrappingMadd,
-    "u32xor" => Instruction::U32Xor,
     "xor" => Instruction::Xor,
 }
 
@@ -514,20 +569,9 @@ MaybeAssertCode: Option<Immediate<u32>> = {
 }
 
 Call: Instruction = {
-    "exec" "." <callee:Callee> => Instruction::Exec(callee),
-    "call" "." <callee:Callee> => Instruction::Call(callee),
-    "syscall" "." <callee:Callee> => Instruction::SysCall(callee),
-}
-
-Callee: InvocationTarget = {
-    <MastRoot> => InvocationTarget::MastRoot(<>),
-    <module_name:(<BareIdent> "::")?> <name:BareProcedureName> => {
-        match module_name {
-            Some(module) => InvocationTarget::ProcedurePath { name, module },
-            None => InvocationTarget::ProcedureName(name),
-        }
-    },
-    <QuotedProcedureName> => InvocationTarget::ProcedureName(<>),
+    "exec" "." <callee:InvocationTarget> => Instruction::Exec(callee),
+    "call" "." <callee:InvocationTarget> => Instruction::Call(callee),
+    "syscall" "." <callee:InvocationTarget> => Instruction::SysCall(callee),
 }
 
 #[inline]
@@ -558,23 +602,8 @@ Debug: Instruction = {
 
 #[inline]
 ProcRef: Instruction = {
-    "procref" "." <l:@L> <target:MaybeQualifiedName> <r:@R> => {
-        match target {
-            (name, None) => {
-                let name = ProcedureName::new_unchecked(name);
-                Instruction::ProcRef(InvocationTarget::ProcedureName(name))
-            },
-            (name, Some(module)) => {
-                let module = match module.namespace() {
-                    LibraryNamespace::User(ns) => Ident::new_unchecked(Span::new(span!(l, r), ns.clone())),
-                    _ => unreachable!(),
-                };
-                Instruction::ProcRef(InvocationTarget::ProcedurePath {
-                    name: ProcedureName::new_unchecked(name),
-                    module,
-                })
-            }
-        }
+    "procref" "." <l:@L> <target:InvocationTarget> <r:@R> => {
+        Instruction::ProcRef(target)
     }
 }
 
@@ -597,28 +626,48 @@ FoldableInstWithFeltImmediate: SmallOpsVec = {
     <l:@L> "lt" <imm:MaybeImm<Felt>> <r:@R> => {
         let span = span!(l, r);
         match imm {
-            Some(imm) => smallvec![Op::Inst(Span::new(span, Instruction::LtImm(imm)))],
+            Some(imm) => {
+                match imm {
+                    Immediate::Constant(name) => smallvec![Op::Inst(Span::new(span, Instruction::Push(Immediate::Constant(name)))), Op::Inst(Span::new(span, Instruction::Lt))],
+                    Immediate::Value(value) => smallvec![Op::Inst(Span::new(span, Instruction::PushFelt(value.into_inner()))), Op::Inst(Span::new(span, Instruction::Lt))],
+                }
+            }
             None => smallvec![Op::Inst(Span::new(span, Instruction::Lt))],
         }
     },
     <l:@L> "lte" <imm:MaybeImm<Felt>> <r:@R> => {
         let span = span!(l, r);
         match imm {
-            Some(imm) => smallvec![Op::Inst(Span::new(span, Instruction::LteImm(imm)))],
+            Some(imm) => {
+                match imm {
+                    Immediate::Constant(name) => smallvec![Op::Inst(Span::new(span, Instruction::Push(Immediate::Constant(name)))), Op::Inst(Span::new(span, Instruction::Lte))],
+                    Immediate::Value(value) => smallvec![Op::Inst(Span::new(span, Instruction::PushFelt(value.into_inner()))), Op::Inst(Span::new(span, Instruction::Lte))],
+                }
+            }
             None => smallvec![Op::Inst(Span::new(span, Instruction::Lte))],
         }
     },
     <l:@L> "gt" <imm:MaybeImm<Felt>> <r:@R> => {
         let span = span!(l, r);
         match imm {
-            Some(imm) => smallvec![Op::Inst(Span::new(span, Instruction::GtImm(imm)))],
+            Some(imm) => {
+                match imm {
+                    Immediate::Constant(name) => smallvec![Op::Inst(Span::new(span, Instruction::Push(Immediate::Constant(name)))), Op::Inst(Span::new(span, Instruction::Gt))],
+                    Immediate::Value(value) => smallvec![Op::Inst(Span::new(span, Instruction::PushFelt(value.into_inner()))), Op::Inst(Span::new(span, Instruction::Gt))],
+                }
+            }
             None => smallvec![Op::Inst(Span::new(span, Instruction::Gt))],
         }
     },
     <l:@L> "gte" <imm:MaybeImm<Felt>> <r:@R> => {
         let span = span!(l, r);
         match imm {
-            Some(imm) => smallvec![Op::Inst(Span::new(span, Instruction::GteImm(imm)))],
+            Some(imm) => {
+                match imm {
+                    Immediate::Constant(name) => smallvec![Op::Inst(Span::new(span, Instruction::Push(Immediate::Constant(name)))), Op::Inst(Span::new(span, Instruction::Gte))],
+                    Immediate::Value(value) => smallvec![Op::Inst(Span::new(span, Instruction::PushFelt(value.into_inner()))), Op::Inst(Span::new(span, Instruction::Gte))],
+                }
+            }
             None => smallvec![Op::Inst(Span::new(span, Instruction::Gte))],
         }
     },
@@ -684,6 +733,57 @@ FoldableInstWithU32Immediate: SmallOpsVec = {
             Some(imm) if imm == 0 => Err(ParseError::User { error: ParsingError::DivisionByZero { span: span!(l, r) } }),
             Some(imm) => Ok(smallvec![Op::Inst(Span::new(span, Instruction::U32ModImm(imm)))]),
             None => Ok(smallvec![Op::Inst(Span::new(span, Instruction::U32Mod))]),
+        }
+    },
+    <l:@L> "u32and" <imm:MaybeImm<U32>> <r:@R> => {
+        let span = span!(l, r);
+        match imm {
+            Some(imm) if imm == 0 => smallvec![Op::Inst(Span::new(span, Instruction::Drop)), Op::Inst(Span::new(span, Instruction::PushU8(0)))],
+            Some(imm) => {
+                match imm {
+                    Immediate::Constant(name) => smallvec![Op::Inst(Span::new(span, Instruction::Push(Immediate::Constant(name)))), Op::Inst(Span::new(span, Instruction::U32And))],
+                    Immediate::Value(value) => smallvec![Op::Inst(Span::new(span, Instruction::PushU32(value.into_inner()))), Op::Inst(Span::new(span, Instruction::U32And))],
+                }
+            }
+            None => smallvec![Op::Inst(Span::new(span, Instruction::U32And))],
+        }
+    },
+    <l:@L> "u32or" <imm:MaybeImm<U32>> <r:@R> => {
+        let span = span!(l, r);
+        match imm {
+            Some(imm) if imm == 0 => smallvec![],
+            Some(imm) => {
+                match imm {
+                    Immediate::Constant(name) => smallvec![Op::Inst(Span::new(span, Instruction::Push(Immediate::Constant(name)))), Op::Inst(Span::new(span, Instruction::U32Or))],
+                    Immediate::Value(value) => smallvec![Op::Inst(Span::new(span, Instruction::PushU32(value.into_inner()))), Op::Inst(Span::new(span, Instruction::U32Or))],
+                }
+            }
+            None => smallvec![Op::Inst(Span::new(span, Instruction::U32Or))],
+        }
+    },
+    <l:@L> "u32xor" <imm:MaybeImm<U32>> <r:@R> => {
+        let span = span!(l, r);
+        match imm {
+            Some(imm) if imm == 0 => smallvec![],
+            Some(imm) => {
+                match imm {
+                    Immediate::Constant(name) => smallvec![Op::Inst(Span::new(span, Instruction::Push(Immediate::Constant(name)))), Op::Inst(Span::new(span, Instruction::U32Xor))],
+                    Immediate::Value(value) => smallvec![Op::Inst(Span::new(span, Instruction::PushU32(value.into_inner()))), Op::Inst(Span::new(span, Instruction::U32Xor))],
+                }
+            }
+            None => smallvec![Op::Inst(Span::new(span, Instruction::U32Xor))],
+        }
+    },
+    <l:@L> "u32not" <imm:MaybeImm<U32>> <r:@R> => {
+        let span = span!(l, r);
+        match imm {
+            Some(imm) => {
+                match imm {
+                    Immediate::Constant(name) => smallvec![Op::Inst(Span::new(span, Instruction::Push(Immediate::Constant(name)))), Op::Inst(Span::new(span, Instruction::U32Not))],
+                    Immediate::Value(value) => smallvec![Op::Inst(Span::new(span, Instruction::PushU32(value.into_inner()))), Op::Inst(Span::new(span, Instruction::U32Not))],
+                }
+            }
+            None => smallvec![Op::Inst(Span::new(span, Instruction::U32Not))],
         }
     },
     <l:@L> "u32wrapping_add" <imm:MaybeImm<U32>> <r:@R> => {
@@ -762,6 +862,78 @@ FoldableInstWithU32Immediate: SmallOpsVec = {
             Some(imm) if imm == 0 => smallvec![],
             Some(imm) => smallvec![Op::Inst(Span::new(span, Instruction::U32RotrImm(imm)))],
             None => smallvec![Op::Inst(Span::new(span, Instruction::U32Rotr))],
+        }
+    },
+    <l:@L> "u32lt" <imm:MaybeImm<U32>> <r:@R> => {
+        let span = span!(l, r);
+        match imm {
+            Some(imm) => {
+                match imm {
+                    Immediate::Constant(name) => smallvec![Op::Inst(Span::new(span, Instruction::Push(Immediate::Constant(name)))), Op::Inst(Span::new(span, Instruction::U32Lt))],
+                    Immediate::Value(value) => smallvec![Op::Inst(Span::new(span, Instruction::PushU32(value.into_inner()))), Op::Inst(Span::new(span, Instruction::U32Lt))],
+                }
+            }
+            None => smallvec![Op::Inst(Span::new(span, Instruction::U32Lt))],
+        }
+    },
+    <l:@L> "u32lte" <imm:MaybeImm<U32>> <r:@R> => {
+        let span = span!(l, r);
+        match imm {
+            Some(imm) => {
+                match imm {
+                    Immediate::Constant(name) => smallvec![Op::Inst(Span::new(span, Instruction::Push(Immediate::Constant(name)))), Op::Inst(Span::new(span, Instruction::U32Lte))],
+                    Immediate::Value(value) => smallvec![Op::Inst(Span::new(span, Instruction::PushU32(value.into_inner()))), Op::Inst(Span::new(span, Instruction::U32Lte))],
+                }
+            }
+            None => smallvec![Op::Inst(Span::new(span, Instruction::U32Lte))],
+        }
+    },
+    <l:@L> "u32gt" <imm:MaybeImm<U32>> <r:@R> => {
+        let span = span!(l, r);
+        match imm {
+            Some(imm) => {
+                match imm {
+                    Immediate::Constant(name) => smallvec![Op::Inst(Span::new(span, Instruction::Push(Immediate::Constant(name)))), Op::Inst(Span::new(span, Instruction::U32Gt))],
+                    Immediate::Value(value) => smallvec![Op::Inst(Span::new(span, Instruction::PushU32(value.into_inner()))), Op::Inst(Span::new(span, Instruction::U32Gt))],
+                }
+            }
+            None => smallvec![Op::Inst(Span::new(span, Instruction::U32Gt))],
+        }
+    },
+    <l:@L> "u32gte" <imm:MaybeImm<U32>> <r:@R> => {
+        let span = span!(l, r);
+        match imm {
+            Some(imm) => {
+                match imm {
+                    Immediate::Constant(name) => smallvec![Op::Inst(Span::new(span, Instruction::Push(Immediate::Constant(name)))), Op::Inst(Span::new(span, Instruction::U32Gte))],
+                    Immediate::Value(value) => smallvec![Op::Inst(Span::new(span, Instruction::PushU32(value.into_inner()))), Op::Inst(Span::new(span, Instruction::U32Gte))],
+                }
+            }
+            None => smallvec![Op::Inst(Span::new(span, Instruction::U32Gte))],
+        }
+    },
+    <l:@L> "u32min" <imm:MaybeImm<U32>> <r:@R> => {
+        let span = span!(l, r);
+        match imm {
+            Some(imm) => {
+                match imm {
+                    Immediate::Constant(name) => smallvec![Op::Inst(Span::new(span, Instruction::Push(Immediate::Constant(name)))), Op::Inst(Span::new(span, Instruction::U32Min))],
+                    Immediate::Value(value) => smallvec![Op::Inst(Span::new(span, Instruction::PushU32(value.into_inner()))), Op::Inst(Span::new(span, Instruction::U32Min))],
+                }
+            }
+            None => smallvec![Op::Inst(Span::new(span, Instruction::U32Min))],
+        }
+    },
+    <l:@L> "u32max" <imm:MaybeImm<U32>> <r:@R> => {
+        let span = span!(l, r);
+        match imm {
+            Some(imm) => {
+                match imm {
+                    Immediate::Constant(name) => smallvec![Op::Inst(Span::new(span, Instruction::Push(Immediate::Constant(name)))), Op::Inst(Span::new(span, Instruction::U32Max))],
+                    Immediate::Value(value) => smallvec![Op::Inst(Span::new(span, Instruction::PushU32(value.into_inner()))), Op::Inst(Span::new(span, Instruction::U32Max))],
+                }
+            }
+            None => smallvec![Op::Inst(Span::new(span, Instruction::U32Max))],
         }
     },
 }
@@ -976,7 +1148,6 @@ Shift32: u8 = {
     }
 }
 
-
 #[inline]
 RawU8: u8 = {
     <n:U8> => n.into_inner(),
@@ -1012,6 +1183,14 @@ U32: u32 = {
             HexEncodedValue::U16(v) => Ok(v as u32),
             HexEncodedValue::U32(v) => Ok(v),
             _ =>  Err(ParseError::User { error: ParsingError::InvalidLiteral { span: span!(l, r), kind: LiteralErrorKind::U32Overflow } }),
+        }
+    },
+
+    <l:@L> <value:bin_value> <r:@R> =>? {
+        match value {
+            BinEncodedValue::U8(v) => Ok(v as u32),
+            BinEncodedValue::U16(v) => Ok(v as u32),
+            BinEncodedValue::U32(v) => Ok(v),
         }
     }
 }
@@ -1149,6 +1328,54 @@ QuotedProcedureName: ProcedureName = {
     }
 }
 
+InvocationTarget: InvocationTarget = {
+    <MastRoot> => InvocationTarget::MastRoot(<>),
+    MaybeQualifiedProcedurePath,
+}
+
+MaybeQualifiedProcedurePath: InvocationTarget = {
+    "::" <components:(<BareIdent> "::")*> <name:ProcedureName> =>? {
+        // A fully-qualified path without a module is routed to the anonymous namespace
+        if components.is_empty() {
+            let path = LibraryPath::new_from_components(LibraryNamespace::Anon, []);
+            return Ok(InvocationTarget::AbsoluteProcedurePath { name, path });
+        }
+
+        // Otherwise, use the path specified
+        let mut components = VecDeque::from(components);
+        let ns = components.pop_front().unwrap();
+        let ns = match ns.as_str() {
+            // Disallow the use of special namespaces with other components
+            special_ns @ (
+                LibraryNamespace::KERNEL_PATH
+                | LibraryNamespace::EXEC_PATH
+                | LibraryNamespace::ANON_PATH
+            ) if !components.is_empty() => {
+                return Err(ParseError::User {
+                    error: ParsingError::InvalidLibraryPath {
+                        span: ns.span(),
+                        message: format!("the {special_ns} namespace cannot have submodules")
+                    },
+                });
+            }
+            LibraryNamespace::KERNEL_PATH => LibraryNamespace::Kernel,
+            LibraryNamespace::EXEC_PATH => LibraryNamespace::Exec,
+            LibraryNamespace::ANON_PATH => LibraryNamespace::Anon,
+            _ => LibraryNamespace::User(ns.into_inner()),
+        };
+        let path = LibraryPath::new_from_components(ns, components);
+        Ok(InvocationTarget::AbsoluteProcedurePath { name, path })
+    },
+
+    <module:(<BareIdent> "::")?> <name:ProcedureName> => {
+        if let Some(module) = module {
+            InvocationTarget::ProcedurePath { name, module }
+        } else {
+            InvocationTarget::ProcedureName(name)
+        }
+    }
+}
+
 #[inline]
 BareIdent: Ident = {
     <l:@L> <name:bare_ident> <r:@R> => {
@@ -1173,6 +1400,19 @@ MaybeQualifiedName: (Ident, Option<LibraryPath>) = {
             let mut components = VecDeque::from(components);
             let ns = components.pop_front().unwrap();
             let ns = match ns.as_str() {
+                // Disallow the use of special namespaces with other components
+                special_ns @ (
+                    LibraryNamespace::KERNEL_PATH
+                    | LibraryNamespace::EXEC_PATH
+                    | LibraryNamespace::ANON_PATH
+                ) if !components.is_empty() => {
+                    return Err(ParseError::User {
+                        error: ParsingError::InvalidLibraryPath {
+                            span: ns.span(),
+                            message: format!("the {special_ns} namespace cannot have submodules")
+                        },
+                    });
+                }
                 LibraryNamespace::KERNEL_PATH => LibraryNamespace::Kernel,
                 LibraryNamespace::EXEC_PATH => LibraryNamespace::Exec,
                 LibraryNamespace::ANON_PATH => LibraryNamespace::Anon,
@@ -1189,6 +1429,19 @@ QualifiedName: (Ident, LibraryPath) = {
 
         let name = components.pop().unwrap();
         let ns = match first.as_str() {
+            // Disallow the use of special namespaces with other components
+            special_ns @ (
+                LibraryNamespace::KERNEL_PATH
+                | LibraryNamespace::EXEC_PATH
+                | LibraryNamespace::ANON_PATH
+            ) if !components.is_empty() => {
+                return Err(ParseError::User {
+                    error: ParsingError::InvalidLibraryPath {
+                        span: first.span(),
+                        message: format!("the {special_ns} namespace cannot have submodules")
+                    },
+                });
+            }
             LibraryNamespace::KERNEL_PATH => LibraryNamespace::Kernel,
             LibraryNamespace::EXEC_PATH => LibraryNamespace::Exec,
             LibraryNamespace::ANON_PATH => LibraryNamespace::Anon,

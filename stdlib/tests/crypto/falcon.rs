@@ -1,3 +1,4 @@
+use processor::{Program, ProgramInfo};
 use rand::{thread_rng, Rng};
 
 use assembly::{utils::Serializable, Assembler};
@@ -14,7 +15,7 @@ use test_utils::{
     crypto::{rpo_falcon512::Polynomial, rpo_falcon512::SecretKey, MerkleStore},
     expect_exec_error,
     rand::rand_vector,
-    FieldElement, ProgramInfo, QuadFelt, Word, WORD_SIZE,
+    FieldElement, QuadFelt, Word, WORD_SIZE,
 };
 
 /// Modulus used for rpo falcon 512.
@@ -172,7 +173,7 @@ fn test_falcon512_probabilistic_product_failure() {
     expect_exec_error!(
         test,
         ExecutionError::FailedAssertion {
-            clk: 17490,
+            clk: 31615,
             err_code: 0,
             err_msg: None,
         }
@@ -198,7 +199,7 @@ fn falcon_prove_verify() {
     let message = rand_vector::<Felt>(4).try_into().unwrap();
     let (source, op_stack, _, _, advice_map) = generate_test(sk, message);
 
-    let program = Assembler::default()
+    let program: Program = Assembler::default()
         .with_library(&StdLibrary::default())
         .expect("failed to load stdlib")
         .assemble(source)

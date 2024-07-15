@@ -297,8 +297,7 @@ where
         | U32AssertWWithError(ref code)
         | MTreeVerifyWithError(ref code) => visitor.visit_immediate_error_code(code),
         AddImm(ref imm) | SubImm(ref imm) | MulImm(ref imm) | DivImm(ref imm) | ExpImm(ref imm)
-        | EqImm(ref imm) | NeqImm(ref imm) | LtImm(ref imm) | LteImm(ref imm) | GtImm(ref imm)
-        | GteImm(ref imm) | Push(ref imm) => visitor.visit_immediate_felt(imm),
+        | EqImm(ref imm) | NeqImm(ref imm) | Push(ref imm) => visitor.visit_immediate_felt(imm),
         U32WrappingAddImm(ref imm)
         | U32OverflowingAddImm(ref imm)
         | U32WrappingSubImm(ref imm)
@@ -320,11 +319,11 @@ where
         SysCall(ref target) => visitor.visit_syscall(target),
         ProcRef(ref target) => visitor.visit_procref(target),
         Debug(ref options) => visitor.visit_debug_options(Span::new(span, options)),
-        Assert | AssertEq | AssertEqw | Assertz | Add | Sub | Mul | Div | Neg | ILog2 | Inv
-        | Incr | Pow2 | Exp | ExpBitLength(_) | Not | And | Or | Xor | Eq | Neq | Eqw | Lt
-        | Lte | Gt | Gte | IsOdd | Ext2Add | Ext2Sub | Ext2Mul | Ext2Div | Ext2Neg | Ext2Inv
-        | U32Test | U32TestW | U32Assert | U32Assert2 | U32AssertW | U32Split | U32Cast
-        | U32WrappingAdd | U32OverflowingAdd | U32OverflowingAdd3 | U32WrappingAdd3
+        Nop | Assert | AssertEq | AssertEqw | Assertz | Add | Sub | Mul | Div | Neg | ILog2
+        | Inv | Incr | Pow2 | Exp | ExpBitLength(_) | Not | And | Or | Xor | Eq | Neq | Eqw
+        | Lt | Lte | Gt | Gte | IsOdd | Ext2Add | Ext2Sub | Ext2Mul | Ext2Div | Ext2Neg
+        | Ext2Inv | U32Test | U32TestW | U32Assert | U32Assert2 | U32AssertW | U32Split
+        | U32Cast | U32WrappingAdd | U32OverflowingAdd | U32OverflowingAdd3 | U32WrappingAdd3
         | U32WrappingSub | U32OverflowingSub | U32WrappingMul | U32OverflowingMul
         | U32OverflowingMadd | U32WrappingMadd | U32Div | U32Mod | U32DivMod | U32And | U32Or
         | U32Xor | U32Not | U32Shr | U32Shl | U32Rotr | U32Rotl | U32Popcnt | U32Clz | U32Ctz
@@ -738,8 +737,7 @@ where
         | U32AssertWWithError(ref mut code)
         | MTreeVerifyWithError(ref mut code) => visitor.visit_mut_immediate_error_code(code),
         AddImm(ref mut imm) | SubImm(ref mut imm) | MulImm(ref mut imm) | DivImm(ref mut imm)
-        | ExpImm(ref mut imm) | EqImm(ref mut imm) | NeqImm(ref mut imm) | LtImm(ref mut imm)
-        | LteImm(ref mut imm) | GtImm(ref mut imm) | GteImm(ref mut imm) | Push(ref mut imm) => {
+        | ExpImm(ref mut imm) | EqImm(ref mut imm) | NeqImm(ref mut imm) | Push(ref mut imm) => {
             visitor.visit_mut_immediate_felt(imm)
         }
         U32WrappingAddImm(ref mut imm)
@@ -763,11 +761,11 @@ where
         SysCall(ref mut target) => visitor.visit_mut_syscall(target),
         ProcRef(ref mut target) => visitor.visit_mut_procref(target),
         Debug(ref mut options) => visitor.visit_mut_debug_options(Span::new(span, options)),
-        Assert | AssertEq | AssertEqw | Assertz | Add | Sub | Mul | Div | Neg | ILog2 | Inv
-        | Incr | Pow2 | Exp | ExpBitLength(_) | Not | And | Or | Xor | Eq | Neq | Eqw | Lt
-        | Lte | Gt | Gte | IsOdd | Ext2Add | Ext2Sub | Ext2Mul | Ext2Div | Ext2Neg | Ext2Inv
-        | U32Test | U32TestW | U32Assert | U32Assert2 | U32AssertW | U32Split | U32Cast
-        | U32WrappingAdd | U32OverflowingAdd | U32OverflowingAdd3 | U32WrappingAdd3
+        Nop | Assert | AssertEq | AssertEqw | Assertz | Add | Sub | Mul | Div | Neg | ILog2
+        | Inv | Incr | Pow2 | Exp | ExpBitLength(_) | Not | And | Or | Xor | Eq | Neq | Eqw
+        | Lt | Lte | Gt | Gte | IsOdd | Ext2Add | Ext2Sub | Ext2Mul | Ext2Div | Ext2Neg
+        | Ext2Inv | U32Test | U32TestW | U32Assert | U32Assert2 | U32AssertW | U32Split
+        | U32Cast | U32WrappingAdd | U32OverflowingAdd | U32OverflowingAdd3 | U32WrappingAdd3
         | U32WrappingSub | U32OverflowingSub | U32WrappingMul | U32OverflowingMul
         | U32OverflowingMadd | U32WrappingMadd | U32Div | U32Mod | U32DivMod | U32And | U32Or
         | U32Xor | U32Not | U32Shr | U32Shl | U32Rotr | U32Rotl | U32Popcnt | U32Clz | U32Ctz

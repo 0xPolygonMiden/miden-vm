@@ -311,7 +311,7 @@ impl FromStr for ProcedureName {
                             break Ok(Arc::from(tok.to_string().into_boxed_str()));
                         }
                         c if c.is_alphanumeric() => continue,
-                        '_' | '$' | '-' | '!' | '?' => continue,
+                        '_' | '$' | '-' | '!' | '?' | '<' | '>' | ':' | '.' => continue,
                         _ => break Err(IdentError::InvalidChars),
                     }
                 } else {

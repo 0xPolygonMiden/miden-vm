@@ -12,7 +12,8 @@ use alloc::string::ToString;
 #[repr(u8)]
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub enum OpCode {
-    Assert = 0,
+    Nop = 0,
+    Assert,
     AssertWithError,
     AssertEq,
     AssertEqWithError,
@@ -46,13 +47,9 @@ pub enum OpCode {
     NeqImm,
     Eqw,
     Lt,
-    LtImm,
     Lte,
-    LteImm,
     Gt,
-    GtImm,
     Gte,
-    GteImm,
     IsOdd,
 
     // ----- ext2 operations ---------------------------------------------------------------------

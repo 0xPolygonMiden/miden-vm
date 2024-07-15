@@ -1,14 +1,19 @@
-use super::{blocks::Dyn, Deserializable, Digest, Felt, Kernel, ProgramInfo, Serializable};
-use crate::{chiplets::hasher, Word};
+use crate::{
+    chiplets::hasher,
+    mast::{DynNode, MerkleTreeNode},
+    Kernel, ProgramInfo, Word,
+};
 use alloc::vec::Vec;
+use miden_crypto::{hash::rpo::RpoDigest, Felt};
 use proptest::prelude::*;
 use rand_utils::prng_array;
+use winter_utils::{Deserializable, Serializable};
 
 #[test]
 fn dyn_hash_is_correct() {
     let expected_constant =
-        hasher::merge_in_domain(&[Digest::default(), Digest::default()], Dyn::DOMAIN);
-    assert_eq!(expected_constant, Dyn::new().hash());
+        hasher::merge_in_domain(&[RpoDigest::default(), RpoDigest::default()], DynNode::DOMAIN);
+    assert_eq!(expected_constant, DynNode.digest());
 }
 
 proptest! {
@@ -18,7 +23,7 @@ proptest! {
         ref seed in any::<[u8; 32]>()
     ) {
         let program_hash = digest_from_seed(*seed);
-        let kernel: Vec<Digest> = (0..kernel_count)
+        let kernel: Vec<RpoDigest> = (0..kernel_count)
             .scan(*seed, |seed, _| {
                 *seed = prng_array(*seed);
                 Some(digest_from_seed(*seed))
@@ -35,7 +40,7 @@ proptest! {
 // HELPER FUNCTIONS
 // --------------------------------------------------------------------------------------------
 
-fn digest_from_seed(seed: [u8; 32]) -> Digest {
+fn digest_from_seed(seed: [u8; 32]) -> RpoDigest {
     let mut digest = Word::default();
     digest.iter_mut().enumerate().for_each(|(i, d)| {
         *d = <[u8; 8]>::try_from(&seed[i * 8..(i + 1) * 8])

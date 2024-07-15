@@ -1,5 +1,5 @@
 use super::{FullyQualifiedProcedureName, ProcedureIndex, ProcedureName};
-use crate::{ast::Ident, LibraryPath, SourceSpan, Span, Spanned};
+use crate::{ast::Ident, LibraryPath, RpoDigest, SourceSpan, Span, Spanned};
 use alloc::{collections::BTreeMap, vec::Vec};
 
 // RESOLVED PROCEDURE
@@ -12,6 +12,8 @@ pub enum ResolvedProcedure {
     Local(Span<ProcedureIndex>),
     /// The name was resolved to a procedure exported from another module
     External(FullyQualifiedProcedureName),
+    /// The name was resolved to a procedure with a known MAST root
+    MastRoot(Span<RpoDigest>),
 }
 
 impl Spanned for ResolvedProcedure {
@@ -19,6 +21,7 @@ impl Spanned for ResolvedProcedure {
         match self {
             Self::Local(ref spanned) => spanned.span(),
             Self::External(ref spanned) => spanned.span(),
+            Self::MastRoot(ref spanned) => spanned.span(),
         }
     }
 }

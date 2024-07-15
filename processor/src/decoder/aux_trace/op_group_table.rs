@@ -1,5 +1,6 @@
-use super::{AuxColumnBuilder, Felt, FieldElement, MainTrace, ONE, PUSH, RESPAN, SPAN};
+use super::{AuxColumnBuilder, Felt, FieldElement, MainTrace, ONE};
 use miden_air::trace::decoder::{OP_BATCH_2_GROUPS, OP_BATCH_4_GROUPS, OP_BATCH_8_GROUPS};
+use vm_core::{OPCODE_PUSH, OPCODE_RESPAN, OPCODE_SPAN};
 
 // OP GROUP TABLE COLUMN
 // ================================================================================================
@@ -27,7 +28,9 @@ impl<E: FieldElement<BaseField = Felt>> AuxColumnBuilder<E> for OpGroupTableColu
         let op_code = op_code_felt.as_int() as u8;
 
         match op_code {
-            SPAN | RESPAN => get_op_group_table_inclusion_multiplicand(main_trace, i, alphas),
+            OPCODE_SPAN | OPCODE_RESPAN => {
+                get_op_group_table_inclusion_multiplicand(main_trace, i, alphas)
+            }
             _ => E::ONE,
         }
     }
@@ -83,7 +86,7 @@ fn get_op_group_table_removal_multiplicand<E: FieldElement<BaseField = Felt>>(
     let block_id = main_trace.addr(i);
 
     let op_code = main_trace.get_op_code(i);
-    let tmp = if op_code == Felt::from(PUSH) {
+    let tmp = if op_code == Felt::from(OPCODE_PUSH) {
         main_trace.stack_element(0, i + 1)
     } else {
         let h0 = main_trace.decoder_hasher_state_first_half(i + 1)[0];

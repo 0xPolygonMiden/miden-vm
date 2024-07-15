@@ -6,6 +6,7 @@ use crate::{
 impl Serializable for Instruction {
     fn write_into<W: ByteWriter>(&self, target: &mut W) {
         match self {
+            Self::Nop => OpCode::Nop.write_into(target),
             Self::Assert => OpCode::Assert.write_into(target),
             Self::AssertWithError(err_code) => {
                 OpCode::AssertWithError.write_into(target);
@@ -76,25 +77,9 @@ impl Serializable for Instruction {
             }
             Self::Eqw => OpCode::Eqw.write_into(target),
             Self::Lt => OpCode::Lt.write_into(target),
-            Self::LtImm(v) => {
-                OpCode::LtImm.write_into(target);
-                v.expect_value().write_into(target);
-            }
             Self::Lte => OpCode::Lte.write_into(target),
-            Self::LteImm(v) => {
-                OpCode::LteImm.write_into(target);
-                v.expect_value().write_into(target);
-            }
             Self::Gt => OpCode::Gt.write_into(target),
-            Self::GtImm(v) => {
-                OpCode::GtImm.write_into(target);
-                v.expect_value().write_into(target);
-            }
             Self::Gte => OpCode::Gte.write_into(target),
-            Self::GteImm(v) => {
-                OpCode::GteImm.write_into(target);
-                v.expect_value().write_into(target);
-            }
             Self::IsOdd => OpCode::IsOdd.write_into(target),
 
             // ----- ext2 operations --------------------------------------------------------------

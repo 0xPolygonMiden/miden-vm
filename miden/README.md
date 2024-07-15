@@ -50,7 +50,7 @@ The `execute_iter()` function takes similar arguments (but without the `options`
 For example:
 
 ```rust
-use miden_vm::{Assembler, execute, execute_iter, DefaultHost, StackInputs};
+use miden_vm::{Assembler, execute, execute_iter, DefaultHost, Program, StackInputs};
 use processor::ExecutionOptions;
 
 // instantiate the assembler
@@ -99,7 +99,7 @@ If the program is executed successfully, the function returns a tuple with 2 ele
 Here is a simple example of executing a program which pushes two numbers onto the stack and computes their sum:
 
 ```rust
-use miden_vm::{Assembler, DefaultHost, ProvingOptions, prove, StackInputs};
+use miden_vm::{Assembler, DefaultHost, ProvingOptions, Program, prove, StackInputs};
 
 // instantiate the assembler
 let mut assembler = Assembler::default();
@@ -177,7 +177,7 @@ add         // stack state: 3 2
 Notice that except for the first 2 operations which initialize the stack, the sequence of `swap dup.1 add` operations repeats over and over. In fact, we can repeat these operations an arbitrary number of times to compute an arbitrary Fibonacci number. In Rust, it would look like this (this is actually a simplified version of the example in [fibonacci.rs](src/examples/src/fibonacci.rs)):
 
 ```rust
-use miden_vm::{Assembler, DefaultHost, ProvingOptions, StackInputs};
+use miden_vm::{Assembler, DefaultHost, Program, ProvingOptions, StackInputs};
 
 // set the number of terms to compute
 let n = 50;
