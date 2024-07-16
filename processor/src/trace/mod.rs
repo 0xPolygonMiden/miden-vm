@@ -66,7 +66,7 @@ impl ExecutionTrace {
     // CONSTRUCTOR
     // --------------------------------------------------------------------------------------------
     /// Builds an execution trace for the provided process.
-    pub(super) fn new<H>(process: Process<H>, stack_outputs: StackOutputs) -> Self
+    pub fn new<H>(process: Process<H>, stack_outputs: StackOutputs) -> Self
     where
         H: Host,
     {
