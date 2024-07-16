@@ -331,7 +331,7 @@ fn execute(
     Ok((mem_state, stack_state))
 }
 
-/// Parses the address in integer form from "!mem[addr]" command, otherwise throws an error.
+/// Parses the address in integer form from `!mem[addr]` command, otherwise throws an error.
 fn read_mem_address(mem_str: &str) -> Result<u64, String> {
     // the first five characters is "!mem[" and the digit character should start from 6th
     // element.

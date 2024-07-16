@@ -389,7 +389,7 @@ pub struct ProgramFile {
 
 /// Helper methods to interact with masm program file.
 impl ProgramFile {
-    /// Reads the masm file at the specified path and parses it into a [ProgramAst].
+    /// Reads the masm file at the specified path and parses it into a [ProgramFile].
     #[instrument(name = "read_program_file", fields(path = %path.display()))]
     pub fn read(path: &PathBuf) -> Result<Self, Report> {
         // parse the program into an AST
