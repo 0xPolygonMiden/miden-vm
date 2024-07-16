@@ -7,7 +7,7 @@ on:
     types: [opened, reopened, synchronize]
 
 jobs:
-  test-ubuntu:
+  test:
     name: test ${{matrix.toolchain}} on ubuntu-latest
     runs-on: ubuntu-latest
     strategy:

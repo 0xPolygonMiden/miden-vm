@@ -52,7 +52,7 @@ jobs:
       - name: check rust versions
         run: ./scripts/check-rust-version.sh
 
-  check-changelog:
+  changelog:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
