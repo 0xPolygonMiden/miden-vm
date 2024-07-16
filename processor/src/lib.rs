@@ -171,7 +171,7 @@ where
 /// However, for situations in which you want finer-grained control over those steps, you will need
 /// to construct an instance of [Process] using [Process::new], invoke [Process::execute], and then
 /// get the execution trace using [ExecutionTrace::new] using the outputs produced by execution.
-#[cfg(not(any(test, feature = "internals")))]
+#[cfg(not(any(test, feature = "testing")))]
 pub struct Process<H>
 where
     H: Host,
@@ -186,7 +186,7 @@ where
     enable_tracing: bool,
 }
 
-#[cfg(any(test, feature = "internals"))]
+#[cfg(any(test, feature = "testing"))]
 pub struct Process<H>
 where
     H: Host,

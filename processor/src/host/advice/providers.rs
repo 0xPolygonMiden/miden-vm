@@ -243,7 +243,7 @@ impl From<AdviceInputs> for MemAdviceProvider {
 }
 
 /// Accessors to internal data structures of the provider used for testing purposes.
-#[cfg(any(test, feature = "internals"))]
+#[cfg(any(test, feature = "testing"))]
 impl MemAdviceProvider {
     /// Returns the current state of the advice stack.
     pub fn stack(&self) -> &[Felt] {
@@ -364,7 +364,7 @@ impl From<AdviceInputs> for RecAdviceProvider {
 }
 
 /// Accessors to internal data structures of the provider used for testing purposes.
-#[cfg(any(test, feature = "internals"))]
+#[cfg(any(test, feature = "testing"))]
 impl RecAdviceProvider {
     /// Returns the current state of the advice stack.
     pub fn stack(&self) -> &[Felt] {

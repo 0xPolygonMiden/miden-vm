@@ -309,12 +309,12 @@ where
         self.store.insert(mast_forest)
     }
 
-    #[cfg(any(test, feature = "internals"))]
+    #[cfg(any(test, feature = "testing"))]
     pub fn advice_provider(&self) -> &A {
         &self.adv_provider
     }
 
-    #[cfg(any(test, feature = "internals"))]
+    #[cfg(any(test, feature = "testing"))]
     pub fn advice_provider_mut(&mut self) -> &mut A {
         &mut self.adv_provider
     }
