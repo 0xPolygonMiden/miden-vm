@@ -122,8 +122,10 @@ use stdlib::StdLibrary;
 /// ```
 ///
 /// If the memory is not yet been initialized:
+/// ```
 /// >> !mem
 /// The memory has not been initialized yet
+/// ```
 ///
 /// `!mem[addr]`
 /// The `!mem[addr]` command prints out memory contents at the address specified by `addr`.
@@ -298,6 +300,7 @@ pub fn start_repl(library_paths: &Vec<PathBuf>, use_stdlib: bool) {
 /// Compiles and executes a compiled Miden program, returning the stack, memory and any Miden
 /// errors. The program is passed in as a String, passed to the Miden Assembler, and then passed
 /// into the Miden Processor to be executed.
+#[allow(clippy::type_complexity)]
 fn execute(
     program: String,
     provided_libraries: &[MaslLibrary],
