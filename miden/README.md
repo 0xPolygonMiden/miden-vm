@@ -250,13 +250,13 @@ make exec
 # build an executable for Apple silicon (concurrent+metal)
 make exec-metal
 
-# built an executable for targets with AVX2 instructions (concurrent)
+# build an executable for targets with AVX2 instructions (concurrent)
 make exec-avx2
 
-# built an executable for targets with SVE instructions (concurrent)
+# build an executable for targets with SVE instructions (concurrent)
 make exec-sve
 
-# built an executable with log tree enabled
+# build an executable with log tree enabled
 make exec-info
 ```
 
