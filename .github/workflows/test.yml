@@ -7,14 +7,13 @@ on:
     types: [opened, reopened, synchronize]
 
 jobs:
-  test:
-    name: test ${{matrix.toolchain}} on ${{matrix.os}}
-    runs-on: ${{matrix.os}}
+  test-ubuntu:
+    name: test ${{matrix.toolchain}} on ubuntu-latest
+    runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
         toolchain: [stable, nightly]
-        os: [ubuntu-latest, windows-latest]
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@main
@@ -23,3 +22,22 @@ jobs:
         run: |
           rustup update --no-self-update ${{matrix.toolchain}}
           make test
+
+    test-windows:
+      name: test ${{matrix.toolchain}} on windows-latest
+      runs-on: windows-latest
+      strategy:
+        fail-fast: false
+        matrix:
+          toolchain: [stable, nightly]
+      timeout-minutes: 30
+      steps:
+        - uses: actions/checkout@main
+        - uses: taiki-e/install-action@nextest
+        - name: Install rust
+          uses: actions-rs/toolchain@v1
+          with:
+            toolchain: ${{matrix.toolchain}}
+            override: true
+        - name: Perform tests
+          run: make test
