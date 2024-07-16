@@ -17,7 +17,7 @@ The above functionality is also exposed via the single [miden-vm](https://crates
 To compile Miden VM into a binary, we have a [Makefile](https://www.gnu.org/software/make/manual/make.html) with the following tasks:
 
 ```
-make build
+make exec
 ```
 
 This will place an optimized, multi-threaded `miden` executable into the `./target/optimized` directory. It is equivalent to executing:
@@ -29,16 +29,8 @@ cargo build --profile optimized --features concurrent,executable
 If you would like to enable single-threaded mode, you can compile Miden VM using the following command:
 
 ```
-make build-single
+make exec-single
 ```
-
-For a faster build, you can compile with less optimizations, replacing `--profile optimized` by `--release`. Example:
-
-```
-make build-release
-```
-
-In this case, the `miden` executable will be placed in the `./target/release` directory.
 
 ### Controlling parallelism
 
@@ -49,10 +41,10 @@ Internally, Miden VM uses [rayon](https://github.com/rayon-rs/rayon) for paralle
 Miden VM proof generation can be accelerated via GPUs. Currently, GPU acceleration is enabled only on Apple silicon hardware (via [Metal](<https://en.wikipedia.org/wiki/Metal_(API)>)). To compile Miden VM with Metal acceleration enabled, you can run the following command:
 
 ```
-make build-metal
+make exec-metal
 ```
 
-Similar to `make build` command, this will place the resulting `miden` executable into the `./target/optimized` directory.
+Similar to `make exec` command, this will place the resulting `miden` executable into the `./target/optimized` directory.
 
 Currently, GPU acceleration is applicable only to recursive proofs which can be generated using the `-r` flag.
 
@@ -63,13 +55,13 @@ Miden VM execution and proof generation can be accelerated via vectorized instru
 To compile Miden VM with AVX2 acceleration enabled, you can run the following command:
 
 ```
-make build-avx2
+make exec-avx2
 ```
 
 To compile Miden VM with SVE acceleration enabled, you can run the following command:
 
 ```
-make build-sve
+make exec-sve
 ```
 
 This will place the resulting `miden` executable into the `./target/optimized` directory.
