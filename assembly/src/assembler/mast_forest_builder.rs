@@ -3,7 +3,7 @@ use core::ops::Index;
 use alloc::collections::BTreeMap;
 use vm_core::{
     crypto::hash::RpoDigest,
-    mast::{MastForest, MastNode, MastNodeId, MerkleTreeNode},
+    mast::{MastForest, MastForestError, MastNode, MastNodeId, MerkleTreeNode},
 };
 
 /// Builder for a [`MastForest`].
@@ -44,17 +44,17 @@ impl MastForestBuilder {
     /// If a [`MastNode`] which is equal to the current node was previously added, the previously
     /// returned [`MastNodeId`] will be returned. This enforces this invariant that equal
     /// [`MastNode`]s have equal [`MastNodeId`]s.
-    pub fn ensure_node(&mut self, node: MastNode) -> MastNodeId {
+    pub fn ensure_node(&mut self, node: MastNode) -> Result<MastNodeId, MastForestError> {
         let node_digest = node.digest();
 
         if let Some(node_id) = self.node_id_by_hash.get(&node_digest) {
             // node already exists in the forest; return previously assigned id
-            *node_id
+            Ok(*node_id)
         } else {
-            let new_node_id = self.mast_forest.add_node(node);
+            let new_node_id = self.mast_forest.add_node(node)?;
             self.node_id_by_hash.insert(node_digest, new_node_id);
 
-            new_node_id
+            Ok(new_node_id)
         }
     }
 

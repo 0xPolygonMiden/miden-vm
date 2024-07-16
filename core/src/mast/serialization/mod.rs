@@ -1,4 +1,4 @@
-use alloc::vec::Vec;
+use alloc::{string::ToString, vec::Vec};
 use winter_utils::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable};
 
 use super::{MastForest, MastNode, MastNodeId};
@@ -120,7 +120,11 @@ impl Deserializable for MastForest {
                 let node =
                     mast_node_info.try_into_mast_node(&mast_forest, &basic_block_data_decoder)?;
 
-                mast_forest.add_node(node);
+                mast_forest.add_node(node).map_err(|e| {
+                    DeserializationError::InvalidValue(format!(
+                        "failed to add node to MAST forest while deserializing: {e}",
+                    ))
+                })?;
             }
 
             for root in roots {

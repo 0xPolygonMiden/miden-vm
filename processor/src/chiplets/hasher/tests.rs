@@ -249,19 +249,19 @@ fn hash_memoization_control_blocks() {
     let mut mast_forest = MastForest::new();
 
     let t_branch = MastNode::new_basic_block(vec![Operation::Push(ZERO)]);
-    let t_branch_id = mast_forest.add_node(t_branch.clone());
+    let t_branch_id = mast_forest.add_node(t_branch.clone()).unwrap();
 
     let f_branch = MastNode::new_basic_block(vec![Operation::Push(ONE)]);
-    let f_branch_id = mast_forest.add_node(f_branch.clone());
+    let f_branch_id = mast_forest.add_node(f_branch.clone()).unwrap();
 
     let split1 = MastNode::new_split(t_branch_id, f_branch_id, &mast_forest);
-    let split1_id = mast_forest.add_node(split1.clone());
+    let split1_id = mast_forest.add_node(split1.clone()).unwrap();
 
     let split2 = MastNode::new_split(t_branch_id, f_branch_id, &mast_forest);
-    let split2_id = mast_forest.add_node(split2.clone());
+    let split2_id = mast_forest.add_node(split2.clone()).unwrap();
 
     let join_node = MastNode::new_join(split1_id, split2_id, &mast_forest);
-    let _join_node_id = mast_forest.add_node(join_node.clone());
+    let _join_node_id = mast_forest.add_node(join_node.clone()).unwrap();
 
     let mut hasher = Hasher::default();
     let h1: [Felt; DIGEST_LEN] = split1
@@ -414,19 +414,19 @@ fn hash_memoization_basic_blocks_check(basic_block: MastNode) {
     let mut mast_forest = MastForest::new();
 
     let basic_block_1 = basic_block.clone();
-    let basic_block_1_id = mast_forest.add_node(basic_block_1.clone());
+    let basic_block_1_id = mast_forest.add_node(basic_block_1.clone()).unwrap();
 
     let loop_body = MastNode::new_basic_block(vec![Operation::Pad, Operation::Eq, Operation::Not]);
-    let loop_body_id = mast_forest.add_node(loop_body);
+    let loop_body_id = mast_forest.add_node(loop_body).unwrap();
 
     let loop_block = MastNode::new_loop(loop_body_id, &mast_forest);
-    let loop_block_id = mast_forest.add_node(loop_block.clone());
+    let loop_block_id = mast_forest.add_node(loop_block.clone()).unwrap();
 
     let join2_block = MastNode::new_join(basic_block_1_id, loop_block_id, &mast_forest);
-    let join2_block_id = mast_forest.add_node(join2_block.clone());
+    let join2_block_id = mast_forest.add_node(join2_block.clone()).unwrap();
 
     let basic_block_2 = basic_block;
-    let basic_block_2_id = mast_forest.add_node(basic_block_2.clone());
+    let basic_block_2_id = mast_forest.add_node(basic_block_2.clone()).unwrap();
 
     let join1_block = MastNode::new_join(join2_block_id, basic_block_2_id, &mast_forest);
 
