@@ -32,17 +32,21 @@ use stdlib::StdLibrary;
 /// In order to execute a control flow operation, one needs to write the entire flow operation in
 /// a single line with spaces between individual operations.
 /// Ex.
-/// `repeat.20
+/// ```
+/// repeat.20
 ///     pow2
-/// end`
+/// end
+/// ```
 /// should be written as
 /// `repeat.20 pow2 end`
 ///
 /// To execute a control flow operation, one must write the entire statement in a single line with
 /// spaces between individual operations.
+/// ```
 /// >> repeat.20
 ///       pow2
 ///    end
+/// ```
 ///
 /// The above example should be written as follows in the REPL tool:
 /// >> repeat.20 pow2 end
@@ -59,8 +63,10 @@ use stdlib::StdLibrary;
 /// >> assert
 ///
 /// The `!stack` command will print out the following state of the stack:
+/// ```
 /// >> !stack
 /// 3072 1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+/// ```
 ///
 /// `!undo`
 /// The `!undo` command reverts to the previous state of the stack and memory by dropping off the
@@ -68,6 +74,7 @@ use stdlib::StdLibrary;
 /// to restore the state of a stack and memory $n$ instructions ago (provided there are $n$
 /// instructions in the program). The `!undo` command will result in an error if no remaining
 /// instructions are left in  the miden program.
+/// ```
 /// >> push.1 push.2 push.3
 /// >> push.4
 /// >> !stack
@@ -79,9 +86,11 @@ use stdlib::StdLibrary;
 /// 4 3 2 1 0 0 0 0 0 0 0 0 0 0 0 0
 /// >> !undo
 /// 3 2 1 0 0 0 0 0 0 0 0 0 0 0 0 0
+/// ```
 ///
 ///`!program`
 /// The `!program` command prints out the entire miden program getting executed. E.g., in the below
+/// ```
 /// scenario: >> push.1
 /// >> push.2
 /// >> push.3
@@ -95,6 +104,7 @@ use stdlib::StdLibrary;
 ///    add
 ///    add
 /// end
+/// ```
 ///
 /// `!help`
 /// The `!help` command prints out all the available commands in the REPL tool.
@@ -104,10 +114,12 @@ use stdlib::StdLibrary;
 /// location, the address, along with its memory values, is printed. Recall that four elements are
 /// stored at each memory address.
 /// If the memory has at least one value that has been initialized:
+/// ```
 /// >> !mem
 /// 7: [1, 2, 0, 3]
 /// 8: [5, 7, 3, 32]
 /// 9: [9, 10, 2, 0]
+/// ```
 ///
 /// If the memory is not yet been initialized:
 /// >> !mem
@@ -116,12 +128,16 @@ use stdlib::StdLibrary;
 /// `!mem[addr]`
 /// The `!mem[addr]` command prints out memory contents at the address specified by `addr`.
 /// If the `addr` has been initialized:
+/// ```
 /// >> !mem[9]
 /// 9: [9, 10, 2, 0]
+/// ```
 ///
 /// If the `addr` has not been initialized:
+/// ```
 /// >> !mem[87]
 /// Memory at address 87 is empty
+/// ```
 
 /// Initiates the Miden Repl tool.
 pub fn start_repl(library_paths: &Vec<PathBuf>, use_stdlib: bool) {

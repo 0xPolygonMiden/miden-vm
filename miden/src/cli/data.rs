@@ -151,8 +151,7 @@ impl InputFile {
     /// Parse advice stack data from the input file.
     fn parse_advice_stack(&self) -> Result<Vec<u64>, String> {
         self.advice_stack
-            .as_ref()
-            .map(Vec::as_slice)
+            .as_deref()
             .unwrap_or(&[])
             .iter()
             .map(|v| {
