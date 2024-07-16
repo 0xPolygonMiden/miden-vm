@@ -24,4 +24,5 @@ jobs:
             echo "CHANGELOG.md has been modified."
           else
             echo "::warning file=CHANGELOG.md::CHANGELOG.md has not been modified."
+            exit 1
           fi
