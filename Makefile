@@ -50,8 +50,8 @@ doc: ## Generates & checks documentation
 	$(WARNINGS) cargo doc --all-features --keep-going --release
 
 .PHONY: mdbook
-mdbook: ## Generates mdbook
-	mdbook exec docs/
+mdbook: ## Generates mdbook documentation
+	mdbook build docs/
 
 # --- building ------------------------------------------------------------------------------------
 
@@ -66,27 +66,27 @@ build-no-std: ## Builds without the standard library
 # --- executing ------------------------------------------------------------------------------------
 
 .PHONY: exec
-exec: ## Builds with optimized profile and features
+exec: ## Builds an executable with optimized profile and features
 	cargo build --profile optimized $(FEATURES_CONCURRENT_EXEC)
 
 .PHONY: exec-single
-exec-single: ## Builds in single-threaded mode
+exec-single: ## Builds a single-threaded executable
 	cargo build --profile optimized --features executable
 
 .PHONY: exec-metal
-exec-metal: ## Builds for metal
+exec-metal: ## Builds an executable with Metal acceleration enabled
 	cargo build --profile optimized $(FEATURES_METAL_EXEC)
 
 .PHONY: exec-avx2
-exec-avx2: ## Builds for avx2
+exec-avx2: ## Builds an executable with AVX2 acceleration enabled
 	RUSTFLAGS="-C target-feature=+avx2" cargo build --profile optimized $(FEATURES_CONCURRENT_EXEC)
 
 .PHONY: exec-sve
-exec-sve: ## Builds for sve
+exec-sve: ## Builds an executable with SVE acceleration enabled
 	RUSTFLAGS="-C target-feature=+sve" cargo build --profile optimized $(FEATURES_CONCURRENT_EXEC)
 
 .PHONY: exec-info
-exec-info: ## Builds with log tree
+exec-info: ## Builds an executable with log tree enabled
 	cargo build --profile optimized $(FEATURES_LOG_TREE)
 
 # --- benchmarking --------------------------------------------------------------------------------
