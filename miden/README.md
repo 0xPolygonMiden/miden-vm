@@ -225,20 +225,20 @@ If you want to execute, prove, and verify programs on Miden VM, but don't want t
 
 ### Compiling Miden VM
 
-First, make sure you have Rust [installed](https://www.rust-lang.org/tools/install). The current version of Miden VM requires Rust version **1.67** or later.
+First, make sure you have Rust [installed](https://www.rust-lang.org/tools/install). The current version of Miden VM requires Rust version **1.78** or later.
 
-Then, to compile Miden VM into a binary, run the following command:
+Then, to compile Miden VM into a binary, run the following `make` command:
 
 ```shell
-cargo build --profile optimized --features executable
+make exec
 ```
 
 This will place `miden` executable in the `./target/optimized` directory.
 
-By default, the executable will be compiled in the single-threaded mode. If you would like to enable multi-threaded proof generation, you can compile Miden VM using the following command:
+By default, the executable will be compiled in the multi-threaded mode. If you would like to enable single-threaded proof generation, you can compile Miden VM using the following command:
 
 ```shell
-cargo build --profile optimized --features concurrent,executable
+make exec-single
 ```
 
 We also provide a number of `make` commands to simplify building Miden VM for various targets:
@@ -255,6 +255,9 @@ make exec-avx2
 
 # built an executable for targets with SVE instructions (concurrent)
 make exec-sve
+
+# built an executable with log tree enabled
+make exec-info
 ```
 
 ### Running Miden VM
