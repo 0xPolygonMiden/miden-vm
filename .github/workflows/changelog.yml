@@ -23,6 +23,6 @@ jobs:
           if echo "$changed_files" | grep -q '^CHANGELOG.md$'; then
             echo "CHANGELOG.md has been modified."
           else
-            echo "::warning file=CHANGELOG.md::CHANGELOG.md has not been modified.\n This warning can be ignored if is has been explicitely decided not to log changes.\n Except in this situation, make sure to add log changes."
+            echo $'::warning file=CHANGELOG.md::CHANGELOG.md has not been modified.\n This warning can be ignored if is has been explicitely decided not to log changes.\n Except in this situation, make sure to add log changes.'
             exit 1
           fi
