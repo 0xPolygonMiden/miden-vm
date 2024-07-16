@@ -24,6 +24,22 @@ jobs:
           make test
 
   test-windows:
+    name: Test Rust nightly on windows-2022
+    # run windows check only when the target is `main`. will execute for release, push or PR.
+    runs-on: windows-2022
+    strategy:
+      fail-fast: false
+    steps:
+      - uses: actions/checkout@main
+      - name: Install rust
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: nightly
+          override: true
+      - name: Perform tests
+        run: make test
+
+  test-windows:
     name: test ${{matrix.toolchain}} on windows-2022
     runs-on: windows-2022
     strategy:
