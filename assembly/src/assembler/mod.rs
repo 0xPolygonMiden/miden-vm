@@ -3,6 +3,7 @@ use crate::{
         self, AliasTarget, Export, FullyQualifiedProcedureName, Instruction, InvocationTarget,
         InvokeKind, ModuleKind, ProcedureIndex,
     },
+    compiled_library::{CompiledLibrary, CompiledLibraryMetadata},
     diagnostics::{tracing::instrument, Report},
     sema::SemanticAnalysisError,
     AssemblyError, Compile, CompileOptions, Felt, Library, LibraryNamespace, LibraryPath,
@@ -312,6 +313,42 @@ impl Assembler {
 
 /// Compilation/Assembly
 impl Assembler {
+    // TODOP: Document
+    pub fn assemble_library<T: Iterator<Item = impl Compile>>(
+        mut self,
+        modules: T,
+        metadata: CompiledLibraryMetadata, // name, version etc.
+    ) -> Result<CompiledLibrary, Report> {
+        let module_ids: Vec<ModuleIndex> = modules
+            .map(|module| {
+                let module = module.compile()?;
+                Ok(self.module_graph.add_module(module)?)
+            })
+            .collect::<Result<_, Report>>()?;
+        self.module_graph.recompute()?;
+
+        let mut mast_forest_builder = core::mem::take(&mut self.mast_forest_builder);
+        let mut context = AssemblyContext::default();
+
+        self.assemble_graph(&mut context, &mut mast_forest_builder)?;
+
+        let exports = {
+            let mut exports = Vec::new();
+            for module_id in module_ids {
+                let exports_in_module: Vec<LibraryPath> =
+                    self.get_module_exports(module_id).map(|procedures| {
+                        procedures.into_iter().map(|proc| proc.path().clone()).collect()
+                    })?;
+
+                exports.extend(exports_in_module);
+            }
+
+            exports
+        };
+
+        Ok(CompiledLibrary::new(mast_forest_builder.build(), exports, metadata))
+    }
+
     /// Compiles the provided module into a [`Program`]. The resulting program can be executed on
     /// Miden VM.
     ///
@@ -466,8 +503,15 @@ impl Assembler {
         let mut mast_forest_builder = core::mem::take(&mut self.mast_forest_builder);
 
         self.assemble_graph(context, &mut mast_forest_builder)?;
-        let exported_procedure_digests =
-            self.get_module_exports(module_id, mast_forest_builder.forest());
+        let exported_procedure_digests = self.get_module_exports(module_id).map(|procedures| {
+            procedures
+                .into_iter()
+                .map(|proc| {
+                    let proc_code_node = &mast_forest_builder.forest()[proc.body_node_id()];
+                    proc_code_node.digest()
+                })
+                .collect()
+        });
 
         // Reassign the mast_forest to the assembler for use is a future program assembly
         self.mast_forest_builder = mast_forest_builder;
@@ -511,20 +555,19 @@ impl Assembler {
             .map_err(|err| Report::new(AssemblyError::Kernel(err)))
     }
 
-    /// Get the set of procedure roots for all exports of the given module
+    /// Get the set of exported procedures of the given module.
     ///
     /// Returns an error if the provided Miden Assembly is invalid.
     fn get_module_exports(
         &mut self,
         module: ModuleIndex,
-        mast_forest: &MastForest,
-    ) -> Result<Vec<RpoDigest>, Report> {
+        // TODOP: Return iterator instead?
+    ) -> Result<Vec<Arc<Procedure>>, Report> {
         assert!(self.module_graph.contains_module(module), "invalid module index");
 
         let mut exports = Vec::new();
         for (index, procedure) in self.module_graph[module].procedures().enumerate() {
-            // Only add exports to the code block table, locals will
-            // be added if they are in the call graph rooted at those
+            // Only add exports; locals will be added if they are in the call graph rooted at those
             // procedures
             if !procedure.visibility().is_exported() {
                 continue;
@@ -571,8 +614,7 @@ impl Assembler {
                 }
             });
 
-            let proc_code_node = &mast_forest[proc.body_node_id()];
-            exports.push(proc_code_node.digest());
+            exports.push(proc);
         }
 
         Ok(exports)
