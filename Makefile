@@ -63,7 +63,7 @@ build: ## Builds with default parameters
 build-no-std: ## Builds without the standard library
 	cargo build --no-default-features --target wasm32-unknown-unknown --workspace
 
-# --- executing ------------------------------------------------------------------------------------
+# --- executable ------------------------------------------------------------------------------------
 
 .PHONY: exec
 exec: ## Builds an executable with optimized profile and features
