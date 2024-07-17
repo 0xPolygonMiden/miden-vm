@@ -9,8 +9,8 @@ on:
     types: [opened, reopened, synchronize]
 
 jobs:
-  metal:
-    name: Build for metal
+  check:
+    name: Check compilation
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -18,37 +18,10 @@ jobs:
         toolchain: [stable, nightly]
     steps:
       - uses: actions/checkout@main
-      - name: Build for metal
+      - name: Check compilation
         run: |
           rustup update --no-self-update ${{ matrix.toolchain }}
-          make exec-metal
-
-  sve:
-    name: Build for sve
-    runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        toolchain: [stable, nightly]
-    steps:
-      - uses: actions/checkout@main
-      - name: Build for sve
-        run: |
-          rustup update --no-self-update ${{ matrix.toolchain }}
-          make exec-sve
-  avx2:
-    name: Build for avx2
-    runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        toolchain: [stable, nightly]
-    steps:
-      - uses: actions/checkout@main
-      - name: Build for avx2
-        run: |
-          rustup update --no-self-update ${{ matrix.toolchain }}
-          make exec-avx2
+          make check
 
   no-std:
     name: Build for no-std

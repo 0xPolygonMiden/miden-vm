@@ -37,12 +37,6 @@ format-check: ## Runs Format using nightly toolchain but only in check mode
 .PHONY: lint
 lint: format fix clippy ## Runs all linting tasks at once (Clippy, fixing, formatting)
 
-# --- testing -------------------------------------------------------------------------------------
-
-.PHONY: test
-test: ## Runs all tests
-	$(DEBUG_ASSERTIONS) cargo nextest run --cargo-profile test-release --features internals
-
 # --- docs ----------------------------------------------------------------------------------------
 
 .PHONY: doc
@@ -52,6 +46,18 @@ doc: ## Generates & checks documentation
 .PHONY: mdbook
 mdbook: ## Generates mdbook documentation
 	mdbook build docs/
+
+# --- testing -------------------------------------------------------------------------------------
+
+.PHONY: test
+test: ## Runs all tests
+	$(DEBUG_ASSERTIONS) cargo nextest run --cargo-profile test-release --features internals
+
+# --- checking ------------------------------------------------------------------------------------
+
+.PHONY: check
+check: ## Checks all targets and features for errors without code generation
+	cargo check --all-targets --all-features
 
 # --- building ------------------------------------------------------------------------------------
 
