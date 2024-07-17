@@ -2,42 +2,23 @@ name: miden book
 
 on:
   push:
-    branches:
-      - main
-      - next
+    branches: [main, next]
 
 jobs:
   deploy:
+    name: Deploy miden-vm mdbook
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
-      - uses: actions-rs/toolchain@v1
-        with:
-          toolchain: nightly
-          override: true
+      - uses: actions/checkout@main
+      - name: Install katex, alerts and linkcheck
+        run: |
+          rustup update --no-self-update stable
+          cargo +stable install mdbook-katex mdbook-linkcheck mdbook-alerts
 
       - name: Setup mdBook
         uses: peaceiris/actions-mdbook@v1
         with:
           mdbook-version: "latest"
-
-      - name: Install mdbook-katex
-        uses: actions-rs/cargo@v1
-        with:
-          command: install
-          args: mdbook-katex
-
-      - name: Install mdbook-alerts
-        uses: actions-rs/cargo@v1
-        with:
-          command: install
-          args: mdbook-alerts
-
-      - name: Install mdbook-linkcheck
-        uses: actions-rs/cargo@v1
-        with:
-          command: install
-          args: mdbook-linkcheck
 
       - name: Build miden book
         run: mdbook build docs/

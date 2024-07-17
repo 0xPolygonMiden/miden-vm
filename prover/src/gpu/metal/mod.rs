@@ -420,10 +420,10 @@ impl<
         let next_lde_step = (lde_step + self.blowup()) % self.trace_len();
 
         // copy auxiliary trace segment values into the frame
-        self.aux_segment_lde.as_ref().map(|mat| {
+        if let Some(mat) = self.aux_segment_lde.as_ref() {
             frame.current_mut().copy_from_slice(mat.row(lde_step));
             frame.next_mut().copy_from_slice(mat.row(next_lde_step));
-        });
+        }
     }
 
     /// Returns trace table rows at the specified positions along with Merkle authentication paths
@@ -465,7 +465,7 @@ impl<
         col_idx: usize,
         frame: &mut LagrangeKernelEvaluationFrame<E>,
     ) {
-        self.aux_segment_lde.as_ref().map(|aux_segment| {
+        if let Some(aux_segment) = self.aux_segment_lde.as_ref() {
             let frame = frame.frame_mut();
             frame.truncate(0);
 
@@ -478,7 +478,7 @@ impl<
 
                 frame.push(aux_segment.get(col_idx, next_lde_step));
             }
-        });
+        }
     }
 
     /// Returns the trace info

@@ -63,7 +63,7 @@ pub struct VmStateIterator {
 }
 
 impl VmStateIterator {
-    pub(super) fn new<H>(process: Process<H>, result: Result<StackOutputs, ExecutionError>) -> Self
+    pub fn new<H>(process: Process<H>, result: Result<StackOutputs, ExecutionError>) -> Self
     where
         H: Host,
     {

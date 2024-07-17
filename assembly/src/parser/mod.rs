@@ -41,10 +41,10 @@ type ParseError<'a> = lalrpop_util::ParseError<u32, Token<'a>, ParsingError>;
 // ================================================================================================
 
 /// This is a wrapper around the lower-level parser infrastructure which handles orchestrating all
-/// of the pieces needed to parse a [Module] from source, and run semantic analysis on it.
+/// of the pieces needed to parse a [ast::Module] from source, and run semantic analysis on it.
 ///
 /// In the vast majority of cases though, you will want to use the more ergonomic
-/// [Module::parse_str] or [Module::parse_file] APIs instead.
+/// [ast::Module::parse_str] or [ast::Module::parse_file] APIs instead.
 #[derive(Default)]
 pub struct ModuleParser {
     /// The kind of module we're parsing.
@@ -74,7 +74,7 @@ pub struct ModuleParser {
 }
 
 impl ModuleParser {
-    /// Construct a new parser for the given `kind` of [Module]
+    /// Construct a new parser for the given `kind` of [ast::Module].
     pub fn new(kind: ast::ModuleKind) -> Self {
         Self {
             kind,
@@ -88,7 +88,7 @@ impl ModuleParser {
         self.warnings_as_errors = yes;
     }
 
-    /// Parse a [Module] from `source`, and give it the provided `path`.
+    /// Parse a [ast::Module] from `source`, and give it the provided `path`.
     pub fn parse(
         &mut self,
         path: LibraryPath,
@@ -99,7 +99,7 @@ impl ModuleParser {
         sema::analyze(source, self.kind, path, forms, self.warnings_as_errors).map_err(Report::new)
     }
 
-    /// Parse a [Module], `name`, from `path`.
+    /// Parse a [ast::Module], `name`, from `path`.
     #[cfg(feature = "std")]
     pub fn parse_file<P>(&mut self, name: LibraryPath, path: P) -> Result<Box<ast::Module>, Report>
     where
@@ -116,7 +116,7 @@ impl ModuleParser {
         self.parse(name, source_file)
     }
 
-    /// Parse a [Module], `name`, from `source`.
+    /// Parse a [ast::Module], `name`, from `source`.
     pub fn parse_str(
         &mut self,
         name: LibraryPath,
@@ -128,7 +128,8 @@ impl ModuleParser {
     }
 }
 
-/// This is used in tests to parse `source` as a set of raw [ast::Form]s rather than as a [Module].
+/// This is used in tests to parse `source` as a set of raw [ast::Form]s rather than as a
+/// [ast::Module].
 ///
 /// NOTE: This does _not_ run semantic analysis.
 #[cfg(any(test, feature = "testing"))]
