@@ -17,46 +17,91 @@ struct DisplayModuleGraph<'a>(&'a ModuleGraph);
 impl<'a> fmt::Debug for DisplayModuleGraph<'a> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         f.debug_set()
-            .entries(self.0.modules.iter().enumerate().flat_map(|(index, m)| {
-                m.procedures().enumerate().filter_map(move |(i, export)| {
-                    if matches!(export, Export::Alias(_)) {
-                        None
-                    } else {
-                        let gid = GlobalProcedureIndex {
-                            module: ModuleIndex::new(index),
-                            index: ProcedureIndex::new(i),
-                        };
-                        let out_edges = self.0.callgraph.out_edges(gid);
-                        Some(DisplayModuleGraphNodeWithEdges { gid, out_edges })
-                    }
-                })
+            .entries(self.0.modules.iter().enumerate().flat_map(|(module_index, m)| {
+                match m {
+                    WrapperModule::Ast(m) => m
+                        .procedures()
+                        .enumerate()
+                        .filter_map(move |(i, export)| {
+                            if matches!(export, Export::Alias(_)) {
+                                None
+                            } else {
+                                let gid = GlobalProcedureIndex {
+                                    module: ModuleIndex::new(module_index),
+                                    index: ProcedureIndex::new(i),
+                                };
+                                let out_edges = self.0.callgraph.out_edges(gid);
+                                Some(DisplayModuleGraphNodeWithEdges { gid, out_edges })
+                            }
+                        })
+                        .collect::<Vec<_>>(),
+                    WrapperModule::Exports(m) => m
+                        .procedures
+                        .iter()
+                        .map(|(proc_index, _proc)| {
+                            let gid = GlobalProcedureIndex {
+                                module: ModuleIndex::new(module_index),
+                                index: *proc_index,
+                            };
+
+                            let out_edges = self.0.callgraph.out_edges(gid);
+                            DisplayModuleGraphNodeWithEdges { gid, out_edges }
+                        })
+                        .collect::<Vec<_>>(),
+                }
             }))
             .finish()
     }
 }
 
 #[doc(hidden)]
-struct DisplayModuleGraphNodes<'a>(&'a Vec<Arc<Module>>);
+struct DisplayModuleGraphNodes<'a>(&'a Vec<WrapperModule>);
 
 impl<'a> fmt::Debug for DisplayModuleGraphNodes<'a> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         f.debug_list()
-            .entries(self.0.iter().enumerate().flat_map(|(index, m)| {
-                m.procedures().enumerate().filter_map(move |(i, export)| {
-                    if matches!(export, Export::Alias(_)) {
-                        None
-                    } else {
-                        Some(DisplayModuleGraphNode {
-                            module: ModuleIndex::new(index),
-                            index: ProcedureIndex::new(i),
-                            path: m.path(),
-                            proc: export,
+            .entries(self.0.iter().enumerate().flat_map(|(module_index, m)| {
+                let module_index = ModuleIndex::new(module_index);
+
+                match m {
+                    WrapperModule::Ast(m) => m
+                        .procedures()
+                        .enumerate()
+                        .filter_map(move |(proc_index, export)| {
+                            if matches!(export, Export::Alias(_)) {
+                                None
+                            } else {
+                                Some(DisplayModuleGraphNode {
+                                    module: module_index,
+                                    index: ProcedureIndex::new(proc_index),
+                                    path: m.path(),
+                                    proc_name: export.name(),
+                                    ty: GraphNodeType::Ast,
+                                })
+                            }
                         })
-                    }
-                })
+                        .collect::<Vec<_>>(),
+                    WrapperModule::Exports(m) => m
+                        .procedures
+                        .iter()
+                        .map(|(proc_index, proc)| DisplayModuleGraphNode {
+                            module: module_index,
+                            index: *proc_index,
+                            path: m.path(),
+                            proc_name: proc.name(),
+                            ty: GraphNodeType::Compiled,
+                        })
+                        .collect::<Vec<_>>(),
+                }
             }))
             .finish()
     }
+}
+
+#[derive(Debug)]
+enum GraphNodeType {
+    Ast,
+    Compiled,
 }
 
 #[doc(hidden)]
@@ -64,7 +109,8 @@ struct DisplayModuleGraphNode<'a> {
     module: ModuleIndex,
     index: ProcedureIndex,
     path: &'a LibraryPath,
-    proc: &'a Export,
+    proc_name: &'a ProcedureName,
+    ty: GraphNodeType,
 }
 
 impl<'a> fmt::Debug for DisplayModuleGraphNode<'a> {
@@ -72,7 +118,8 @@ impl<'a> fmt::Debug for DisplayModuleGraphNode<'a> {
         f.debug_struct("Node")
             .field("id", &format_args!("{}:{}", &self.module.as_usize(), &self.index.as_usize()))
             .field("module", &self.path)
-            .field("name", &self.proc.name())
+            .field("name", &self.proc_name)
+            .field("type", &self.ty)
             .finish()
     }
 }

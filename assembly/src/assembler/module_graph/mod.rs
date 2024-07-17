@@ -76,6 +76,10 @@ impl CompiledModule {
                 .collect(),
         }
     }
+
+    pub fn path(&self) -> &LibraryPath {
+        &self.path
+    }
 }
 
 // TODOP: Rename

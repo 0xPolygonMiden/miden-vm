@@ -13,7 +13,6 @@ use crate::{
 };
 use alloc::{boxed::Box, sync::Arc, vec::Vec};
 use mast_forest_builder::MastForestBuilder;
-use module_graph::PendingWrapperModule;
 use vm_core::{
     mast::{MastForest, MastNode, MastNodeId, MerkleTreeNode},
     Decorator, DecoratorList, Kernel, Operation, Program,
