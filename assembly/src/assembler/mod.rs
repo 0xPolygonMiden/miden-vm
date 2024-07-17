@@ -3,7 +3,9 @@ use crate::{
         self, AliasTarget, Export, FullyQualifiedProcedureName, Instruction, InvocationTarget,
         InvokeKind, ModuleKind, ProcedureIndex,
     },
-    compiled_library::{CompiledLibrary, CompiledLibraryMetadata},
+    compiled_library::{
+        CompiledFullyQualifiedProcedureName, CompiledLibrary, CompiledLibraryMetadata,
+    },
     diagnostics::{tracing::instrument, Report},
     sema::SemanticAnalysisError,
     AssemblyError, Compile, CompileOptions, Felt, Library, LibraryNamespace, LibraryPath,
@@ -333,9 +335,12 @@ impl Assembler {
         let exports = {
             let mut exports = Vec::new();
             for module_id in module_ids {
-                let exports_in_module: Vec<LibraryPath> =
+                let exports_in_module: Vec<CompiledFullyQualifiedProcedureName> =
                     self.get_module_exports(module_id).map(|procedures| {
-                        procedures.into_iter().map(|proc| proc.path().clone()).collect()
+                        procedures
+                            .into_iter()
+                            .map(|proc| proc.fully_qualified_name().clone().into())
+                            .collect()
                     })?;
 
                 exports.extend(exports_in_module);
