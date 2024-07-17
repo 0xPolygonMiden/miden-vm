@@ -1,10 +1,9 @@
 # Miden Virtual Machine
 
 [![LICENSE](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/0xPolygonMiden/miden-vm/blob/main/LICENSE)
-[![test](https://github.com/0xPolygonMiden/miden-vm/actions/workflows/test.yml/badge.svg)](https://github.com/0xPolygonMiden/miden-vm/actions/workflows/test.yml)
-[![build](https://github.com/0xPolygonMiden/miden-vm/actions/workflows/build.yml/badge.svg)](https://github.com/0xPolygonMiden/miden-vm/actions/workflows/build.yml)
+[![Test](https://github.com/0xPolygonMiden/miden-vm/actions/workflows/test.yml/badge.svg)](https://github.com/0xPolygonMiden/miden-vm/actions/workflows/test.yml)
+[![Build](https://github.com/0xPolygonMiden/miden-vm/actions/workflows/build.yml/badge.svg)](https://github.com/0xPolygonMiden/miden-vm/actions/workflows/build.yml)
 [![RUST_VERSION](https://img.shields.io/badge/rustc-1.78+-lightgray.svg)](https://www.rust-lang.org/tools/install)
-[![GitHub Release](https://img.shields.io/github/release/0xPolygonMiden/miden-vm)](https://github.com/0xPolygonMiden/miden-vm/releases/)
 [![Crates.io](https://img.shields.io/crates/v/miden-vm)](https://crates.io/crates/miden-vm)
 
 A STARK-based virtual machine.
