@@ -1,7 +1,10 @@
 use alloc::{string::String, vec::Vec};
-use vm_core::mast::MastForest;
+use vm_core::{crypto::hash::RpoDigest, mast::MastForest};
 
-use crate::{ast::{FullyQualifiedProcedureName, ProcedureName}, LibraryPath, Version};
+use crate::{
+    ast::{FullyQualifiedProcedureName, ProcedureName},
+    LibraryPath, Version,
+};
 
 // TODOP: Refactor `FullyQualifiedProcedureName` instead, and use `Span<FQDN>` where needed?
 pub struct CompiledFullyQualifiedProcedureName {
@@ -17,6 +20,22 @@ impl From<FullyQualifiedProcedureName> for CompiledFullyQualifiedProcedureName {
             module: fqdn.module,
             name: fqdn.name,
         }
+    }
+}
+
+#[derive(Clone)]
+pub struct CompiledProcedure {
+    name: ProcedureName,
+    digest: RpoDigest,
+}
+
+impl CompiledProcedure {
+    pub fn name(&self) -> &ProcedureName {
+        &self.name
+    }
+
+    pub fn digest(&self) -> &RpoDigest {
+        &self.digest
     }
 }
 
