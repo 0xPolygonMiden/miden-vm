@@ -68,7 +68,7 @@ use crate::{ast::*, Felt, Span};
 /// information you need at the parent. It is just important to be aware that this is one of the
 /// elements placed in the hands of the visitor implementation.
 ///
-/// The methods of this trait all return [core::ops::ControlFlow<T>], which can be used to break out
+/// The methods of this trait all return [core::ops::ControlFlow], which can be used to break out
 /// of the traversal early via `ControlFlow::Break`. The `T` type parameter of this trait controls
 /// what the value associated with an early return will be. In most cases, the default of `()` is
 /// all you need - but in some cases it can be useful to return an error or other value, that
@@ -491,7 +491,7 @@ where
 /// do not need to visit any of the children. It is just important to be aware that this is one of
 /// the elements placed in the hands of the visitor implementation.
 ///
-/// The methods of this trait all return [core::ops::ControlFlow<T>], which can be used to break out
+/// The methods of this trait all return [core::ops::ControlFlow], which can be used to break out
 /// of the traversal early via `ControlFlow::Break`. The `T` type parameter of this trait controls
 /// what the value associated with an early return will be. In most cases, the default of `()` is
 /// all you need - but in some cases it can be useful to return an error or other value, that

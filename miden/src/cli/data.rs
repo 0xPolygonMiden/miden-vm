@@ -45,6 +45,7 @@ impl Debug {
 
 /// Struct used to deserialize merkle data from input file. Merkle data can be represented as a
 /// merkle tree or a Sparse Merkle Tree.
+#[allow(clippy::enum_variant_names)]
 #[derive(Deserialize, Debug)]
 pub enum MerkleData {
     /// String representation of a merkle tree. The merkle tree is represented as a vector of
@@ -151,8 +152,7 @@ impl InputFile {
     /// Parse advice stack data from the input file.
     fn parse_advice_stack(&self) -> Result<Vec<u64>, String> {
         self.advice_stack
-            .as_ref()
-            .map(Vec::as_slice)
+            .as_deref()
             .unwrap_or(&[])
             .iter()
             .map(|v| {
@@ -389,7 +389,7 @@ pub struct ProgramFile {
 
 /// Helper methods to interact with masm program file.
 impl ProgramFile {
-    /// Reads the masm file at the specified path and parses it into a [ProgramAst].
+    /// Reads the masm file at the specified path and parses it into a [ProgramFile].
     #[instrument(name = "read_program_file", fields(path = %path.display()))]
     pub fn read(path: &PathBuf) -> Result<Self, Report> {
         // parse the program into an AST

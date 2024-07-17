@@ -10,6 +10,7 @@ use super::{Export, Import, LocalNameResolver, ProcedureIndex, ProcedureName, Re
 use crate::{
     ast::{AliasTarget, AstSerdeOptions, Ident},
     diagnostics::{Report, SourceFile},
+    parser::ModuleParser,
     sema::SemanticAnalysisError,
     ByteReader, ByteWriter, Deserializable, DeserializationError, LibraryNamespace, LibraryPath,
     Serializable, SourceSpan, Span, Spanned,
@@ -281,8 +282,8 @@ impl Module {
     /// This is mostly useful when you want tighter control over the parser configuration, otherwise
     /// it is generally more convenient to use [Module::parse_file] or [Module::parse_str] for most
     /// use cases.
-    pub fn parser(kind: ModuleKind) -> crate::parser::ModuleParser {
-        crate::parser::ModuleParser::new(kind)
+    pub fn parser(kind: ModuleKind) -> ModuleParser {
+        ModuleParser::new(kind)
     }
 }
 
@@ -371,7 +372,7 @@ impl Module {
         self.imports.iter()
     }
 
-    /// Same as [imports], but returns mutable references to each import.
+    /// Same as [Self::imports], but returns mutable references to each import.
     pub fn imports_mut(&mut self) -> core::slice::IterMut<'_, Import> {
         self.imports.iter_mut()
     }

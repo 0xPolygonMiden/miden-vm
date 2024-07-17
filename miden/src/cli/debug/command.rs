@@ -94,7 +94,7 @@ impl DebugCommand {
         Ok(Self::Back(num_cycles))
     }
 
-    /// parse print command - p [m|s] [addr]
+    /// parse print command - `p [m|s] [addr]`
     fn parse_print<'a, I>(mut tokens: I) -> Result<Self, String>
     where
         I: Iterator<Item = &'a str>,

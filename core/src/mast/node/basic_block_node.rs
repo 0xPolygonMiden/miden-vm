@@ -205,7 +205,7 @@ impl fmt::Display for BasicBlockNode {
 // OPERATION BATCH
 // ================================================================================================
 
-/// A batch of operations in a [Span] block.
+/// A batch of operations in a span block.
 ///
 /// An operation batch consists of up to 8 operation groups, with each group containing up to 9
 /// operations or a single immediate value.

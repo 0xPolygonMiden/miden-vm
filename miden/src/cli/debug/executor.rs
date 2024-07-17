@@ -25,9 +25,10 @@ impl DebugExecutor {
             processor::execute_iter(&program, stack_inputs, DefaultHost::new(advice_provider));
         let vm_state = vm_state_iter
             .next()
-            .ok_or(format!(
+            .ok_or(
                 "Failed to instantiate DebugExecutor - `VmStateIterator` is not yielding!"
-            ))?
+                    .to_string(),
+            )?
             .expect("initial state of vm must be healthy!");
 
         Ok(Self {
