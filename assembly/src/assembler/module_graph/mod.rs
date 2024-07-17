@@ -54,12 +54,12 @@ impl<'a> WrapperProcedure<'a> {
 
 // TODOP: Rename (?)
 #[derive(Clone)]
-pub struct ModuleExports {
+pub struct CompiledModule {
     path: LibraryPath,
     procedures: Vec<(ProcedureIndex, CompiledProcedure)>,
 }
 
-impl ModuleExports {
+impl CompiledModule {
     pub fn new(path: LibraryPath, procedures: impl Iterator<Item = CompiledProcedure>) -> Self {
         Self {
             path,
@@ -75,7 +75,7 @@ impl ModuleExports {
 #[derive(Clone)]
 pub enum WrapperModule {
     Ast(Arc<Module>),
-    Exports(ModuleExports),
+    Exports(CompiledModule),
 }
 
 impl WrapperModule {
@@ -91,7 +91,7 @@ impl WrapperModule {
 #[derive(Clone)]
 pub enum PendingWrapperModule {
     Ast(Box<Module>),
-    Exports(ModuleExports),
+    Exports(CompiledModule),
 }
 
 impl PendingWrapperModule {
@@ -158,10 +158,35 @@ impl ModuleGraph {
     ///
     /// This function will panic if the number of modules exceeds the maximum representable
     /// [ModuleIndex] value, `u16::MAX`.
-    pub fn add_module(
+    pub fn add_ast_module(&mut self, module: Box<Module>) -> Result<ModuleIndex, AssemblyError> {
+        self.add_module(PendingWrapperModule::Ast(module))
+    }
+
+    /// Add compiled `module` to the graph.
+    ///
+    /// NOTE: This operation only adds a module to the graph, but does not perform the
+    /// important analysis needed for compilation, you must call [recompute] once all modules
+    /// are added to ensure the analysis results reflect the current version of the graph.
+    ///
+    /// # Errors
+    ///
+    /// This operation can fail for the following reasons:
+    ///
+    /// * Module with same [LibraryPath] is in the graph already
+    /// * Too many modules in the graph
+    ///
+    /// # Panics
+    ///
+    /// This function will panic if the number of modules exceeds the maximum representable
+    /// [ModuleIndex] value, `u16::MAX`.
+    pub fn add_compiled_module(
         &mut self,
-        module: PendingWrapperModule,
+        module: CompiledModule,
     ) -> Result<ModuleIndex, AssemblyError> {
+        self.add_module(PendingWrapperModule::Exports(module))
+    }
+
+    fn add_module(&mut self, module: PendingWrapperModule) -> Result<ModuleIndex, AssemblyError> {
         let is_duplicate =
             self.is_pending(module.path()) || self.find_module_index(module.path()).is_some();
         if is_duplicate {

@@ -13,6 +13,7 @@ use crate::{
 };
 use alloc::{boxed::Box, sync::Arc, vec::Vec};
 use mast_forest_builder::MastForestBuilder;
+use module_graph::PendingWrapperModule;
 use vm_core::{
     mast::{MastForest, MastNode, MastNodeId, MerkleTreeNode},
     Decorator, DecoratorList, Kernel, Operation, Program,
@@ -222,7 +223,7 @@ impl Assembler {
         let module = module.compile_with_options(options)?;
         assert_eq!(module.kind(), kind, "expected module kind to match compilation options");
 
-        self.module_graph.add_module(module)?;
+        self.module_graph.add_ast_module(module)?;
 
         Ok(())
     }
@@ -322,7 +323,7 @@ impl Assembler {
         let module_ids: Vec<ModuleIndex> = modules
             .map(|module| {
                 let module = module.compile()?;
-                Ok(self.module_graph.add_module(module)?)
+                Ok(self.module_graph.add_ast_module(module)?)
             })
             .collect::<Result<_, Report>>()?;
         self.module_graph.recompute()?;
@@ -444,7 +445,7 @@ impl Assembler {
         }
 
         // Recompute graph with executable module, and start compiling
-        let module_index = self.module_graph.add_module(program)?;
+        let module_index = self.module_graph.add_ast_module(program)?;
         self.module_graph.recompute()?;
 
         // Find the executable entrypoint
@@ -500,7 +501,7 @@ impl Assembler {
         let module = module.compile_with_options(options)?;
 
         // Recompute graph with the provided module, and start assembly
-        let module_id = self.module_graph.add_module(module)?;
+        let module_id = self.module_graph.add_ast_module(module)?;
         self.module_graph.recompute()?;
 
         let mut mast_forest_builder = core::mem::take(&mut self.mast_forest_builder);
@@ -536,7 +537,7 @@ impl Assembler {
         let mut context = AssemblyContext::for_kernel(module.path());
         context.set_warnings_as_errors(self.warnings_as_errors);
 
-        let kernel_index = self.module_graph.add_module(module)?;
+        let kernel_index = self.module_graph.add_ast_module(module)?;
         self.module_graph.recompute()?;
         let kernel_module = self.module_graph[kernel_index].clone();
         let mut kernel = Vec::new();
