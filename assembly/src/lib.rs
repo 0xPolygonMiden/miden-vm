@@ -38,7 +38,7 @@ pub use self::errors::AssemblyError;
 pub use self::library::{
     Library, LibraryError, LibraryNamespace, LibraryPath, MaslLibrary, PathError, Version,
 };
-pub use self::parser::{SourceLocation, SourceSpan, Span, Spanned};
+pub use self::parser::{ModuleParser, SourceLocation, SourceSpan, Span, Spanned};
 
 /// Re-exported for downstream crates
 pub use vm_core::utils;

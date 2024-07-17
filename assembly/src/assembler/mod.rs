@@ -74,19 +74,17 @@ pub enum ArtifactKind {
 /// want to provide a custom kernel.
 ///
 /// By default, an empty kernel is provided. However, you may provide your own using
-/// [Assembler::with_kernel] or [Assembler::with_kernel_from_source].
+/// [Assembler::with_kernel] or [Assembler::with_kernel_from_module].
 ///
 /// <div class="warning">
 /// Programs compiled with an empty kernel cannot use the `syscall` instruction.
 /// </div>
 ///
-/// * If you have a single executable module you want to compile, just call [Assembler::compile] or
-///   [Assembler::compile_ast], depending on whether you have source code in raw or parsed form.
-///
+/// * If you have a single executable module you want to compile, just call [Assembler::assemble].
 /// * If you want to link your executable to a few other modules that implement supporting
 ///   procedures, build the assembler with them first, using the various builder methods on
 ///   [Assembler], e.g. [Assembler::with_module], [Assembler::with_library], etc. Then, call
-///   [Assembler::compile] or [Assembler::compile_ast] to get your compiled program.
+///   [Assembler::assemble] to get your compiled program.
 #[derive(Clone)]
 pub struct Assembler {
     mast_forest_builder: MastForestBuilder,
@@ -363,7 +361,7 @@ impl Assembler {
         self.assemble_in_context(source, &mut context)
     }
 
-    /// Like [Assembler::compile], but also takes an [AssemblyContext] to configure the assembler.
+    /// Like [Assembler::assemble], but also takes an [AssemblyContext] to configure the assembler.
     pub fn assemble_in_context(
         self,
         source: impl Compile,
@@ -395,8 +393,8 @@ impl Assembler {
         self.assemble_with_options_in_context(source, options, &mut context)
     }
 
-    /// Like [Assembler::compile_with_opts], but additionally uses the provided [AssemblyContext]
-    /// to configure the assembler.
+    /// Like [Assembler::assemble_with_options], but additionally uses the provided
+    /// [AssemblyContext] to configure the assembler.
     #[instrument("assemble_with_opts_in_context", skip_all)]
     pub fn assemble_with_options_in_context(
         self,

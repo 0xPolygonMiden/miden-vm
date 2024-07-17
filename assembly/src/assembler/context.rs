@@ -18,7 +18,7 @@ use vm_core::mast::{MastForest, MastNodeId};
 /// the current module being compiled, and the current procedure being compiled.
 ///
 /// To provide a custom context, you must compile by invoking the
-/// [crate::Assembler::compile_in_context] API, which will use the provided context in place of
+/// [crate::Assembler::assemble_in_context] API, which will use the provided context in place of
 /// the default one generated internally by the other `compile`-like APIs.
 #[derive(Default)]
 pub struct AssemblyContext {

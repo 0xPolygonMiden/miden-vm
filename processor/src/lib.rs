@@ -162,8 +162,17 @@ where
 // PROCESS
 // ================================================================================================
 
+/// A [Process] is the underlying execution engine for a Miden [Program].
+///
+/// Typically, you do not need to worry about, or use [Process] directly, instead you should prefer
+/// to use either [execute] or [execute_iter], which also handle setting up the process state,
+/// inputs, as well as compute the [ExecutionTrace] for the program.
+///
+/// However, for situations in which you want finer-grained control over those steps, you will need
+/// to construct an instance of [Process] using [Process::new], invoke [Process::execute], and then
+/// get the execution trace using [ExecutionTrace::new] using the outputs produced by execution.
 #[cfg(not(any(test, feature = "internals")))]
-struct Process<H>
+pub struct Process<H>
 where
     H: Host,
 {
@@ -175,6 +184,21 @@ where
     host: RefCell<H>,
     max_cycles: u32,
     enable_tracing: bool,
+}
+
+#[cfg(any(test, feature = "internals"))]
+pub struct Process<H>
+where
+    H: Host,
+{
+    pub system: System,
+    pub decoder: Decoder,
+    pub stack: Stack,
+    pub range: RangeChecker,
+    pub chiplets: Chiplets,
+    pub host: RefCell<H>,
+    pub max_cycles: u32,
+    pub enable_tracing: bool,
 }
 
 impl<H> Process<H>
@@ -644,22 +668,4 @@ impl<H: Host> ProcessState for Process<H> {
     fn get_mem_state(&self, ctx: ContextId) -> Vec<(u64, Word)> {
         self.chiplets.get_mem_state_at(ctx, self.system.clk())
     }
-}
-
-// INTERNALS
-// ================================================================================================
-
-#[cfg(any(test, feature = "internals"))]
-pub struct Process<H>
-where
-    H: Host,
-{
-    pub system: System,
-    pub decoder: Decoder,
-    pub stack: Stack,
-    pub range: RangeChecker,
-    pub chiplets: Chiplets,
-    pub host: RefCell<H>,
-    pub max_cycles: u32,
-    pub enable_tracing: bool,
 }

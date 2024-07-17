@@ -2,15 +2,16 @@
 name = "miden-processor"
 version = "0.9.2"
 description = "Miden VM processor"
-authors = ["miden contributors"]
-readme = "README.md"
-license = "MIT"
-repository = "https://github.com/0xPolygonMiden/miden-vm"
 documentation = "https://docs.rs/miden-processor/0.9.2"
 categories = ["emulators", "no-std"]
 keywords = ["miden", "virtual-machine"]
-edition = "2021"
-rust-version = "1.75"
+readme.workspace = true
+license.workspace = true
+authors.workspace = true
+homepage.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+edition.workspace = true
 
 [lib]
 bench = false
