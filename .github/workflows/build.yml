@@ -9,20 +9,6 @@ on:
     types: [opened, reopened, synchronize]
 
 jobs:
-  check:
-    name: Check compilation
-    runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        toolchain: [stable, nightly]
-    steps:
-      - uses: actions/checkout@main
-      - name: Check compilation
-        run: |
-          rustup update --no-self-update ${{ matrix.toolchain }}
-          make check
-
   no-std:
     name: Build for no-std
     runs-on: ubuntu-latest
