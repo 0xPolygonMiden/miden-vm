@@ -450,6 +450,7 @@ impl Assembler {
 
         // Find the executable entrypoint
         let entrypoint = self.module_graph[module_index]
+            .unwrap_ast()
             .index_of(|p| p.is_main())
             .map(|index| GlobalProcedureIndex {
                 module: module_index,
@@ -542,6 +543,7 @@ impl Assembler {
         let kernel_module = self.module_graph[kernel_index].clone();
         let mut kernel = Vec::new();
         for (index, _syscall) in kernel_module
+            .unwrap_ast()
             .procedures()
             .enumerate()
             .filter(|(_, p)| p.visibility().is_syscall())
@@ -636,7 +638,7 @@ impl Assembler {
         mut mast_forest_builder: MastForestBuilder,
     ) -> Result<Program, Report> {
         // Raise an error if we are called with an invalid entrypoint
-        assert!(self.module_graph[entrypoint].name().is_main());
+        assert!(self.module_graph.get_procedure_unsafe(entrypoint).name().is_main());
 
         // Compile the module graph rooted at the entrypoint
         let entry_procedure =
@@ -680,8 +682,8 @@ impl Assembler {
             let mut nodes = Vec::with_capacity(iter.len());
             for node in iter {
                 let module = self.module_graph[node.module].path();
-                let proc = self.module_graph[node].name();
-                nodes.push(format!("{}::{}", module, proc));
+                let proc = self.module_graph.get_procedure_unsafe(node);
+                nodes.push(format!("{}::{}", module, proc.name()));
             }
             AssemblyError::Cycle { nodes }
         })?;
@@ -768,7 +770,8 @@ impl Assembler {
         let num_locals = procedure.num_locals();
         context.set_current_procedure(procedure);
 
-        let proc = self.module_graph[gid].unwrap_procedure();
+        let wrapper_proc = self.module_graph.get_procedure_unsafe(gid);
+        let proc = wrapper_proc.unwrap_ast().unwrap_procedure();
         let proc_body_root = if num_locals > 0 {
             // for procedures with locals, we need to update fmp register before and after the
             // procedure body is executed. specifically:

@@ -50,6 +50,13 @@ impl<'a> WrapperProcedure<'a> {
             WrapperProcedure::Compiled(p) => p.name(),
         }
     }
+
+    pub fn unwrap_ast(&self) -> &Export {
+        match self {
+            WrapperProcedure::Ast(proc) => proc,
+            WrapperProcedure::Compiled(_) => panic!("expected AST procedure, but was compiled"),
+        }
+    }
 }
 
 // TODOP: Rename (?)
@@ -83,6 +90,15 @@ impl WrapperModule {
         match self {
             WrapperModule::Ast(m) => m.path(),
             WrapperModule::Exports(m) => &m.path,
+        }
+    }
+
+    pub fn unwrap_ast(&self) -> Arc<Module> {
+        match self {
+            WrapperModule::Ast(module) => module.clone(),
+            WrapperModule::Exports(_) => {
+                panic!("expected module to be in AST representation, but was compiled")
+            }
         }
     }
 }
