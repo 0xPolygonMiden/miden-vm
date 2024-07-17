@@ -32,7 +32,7 @@ Having a small number elements to describe public inputs and outputs of a progra
 
 ## Usage
 
-Miden crate exposes several functions which can be used to execute programs, generate proofs of their correct execution, and verify the generated proofs. How to do this is explained below, but you can also take a look at working examples [here](examples) and find instructions for running them via CLI [here](#fibonacci-example).
+Miden crate exposes several functions which can be used to execute programs, generate proofs of their correct execution, and verify the generated proofs. How to do this is explained below, but you can also take a look at working examples [here](examples/) and find instructions for running them via CLI [here](#fibonacci-example).
 
 ### Executing programs
 
