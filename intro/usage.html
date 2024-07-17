@@ -262,12 +262,8 @@
 <pre><code>cargo build --profile optimized --features concurrent,executable
 </code></pre>
 <p>If you would like to enable single-threaded mode, you can compile Miden VM using the following command:</p>
-<pre><code>cargo build --profile optimized --features executable
+<pre><code>make exec-single
 </code></pre>
-<p>For a faster build, you can compile with less optimizations, replacing <code>--profile optimized</code> by <code>--release</code>. Example:</p>
-<pre><code>cargo build --release --features concurrent,executable
-</code></pre>
-<p>In this case, the <code>miden</code> executable will be placed in the <code>./target/release</code> directory.</p>
 <h3 id="controlling-parallelism"><a class="header" href="#controlling-parallelism">Controlling parallelism</a></h3>
 <p>Internally, Miden VM uses <a href="https://github.com/rayon-rs/rayon">rayon</a> for parallel computations. To control the number of threads used to generate a STARK proof, you can use <code>RAYON_NUM_THREADS</code> environment variable.</p>
 <h3 id="gpu-acceleration"><a class="header" href="#gpu-acceleration">GPU acceleration</a></h3>
@@ -324,11 +320,11 @@
 <li>Secret (or nondeterministic) inputs:
 <ul>
 <li><code>advice_stack</code> - can be supplied to the VM. There is no limit on how much data the advice provider can hold. This is provided as a string array where each string entry represents a field element.</li>
-<li><code>advice_map</code> - is supplied as a map of 64-character hex keys, each mapped to an array of numbers.  The hex keys are interpreted as 4 field elements and the arrays of numbers are interpreted as arrays of field elements.</li>
+<li><code>advice_map</code> - is supplied as a map of 64-character hex keys, each mapped to an array of numbers. The hex keys are interpreted as 4 field elements and the arrays of numbers are interpreted as arrays of field elements.</li>
 <li><code>merkle_store</code> - the Merkle store is container that allows the user to define <code>merkle_tree</code>, <code>sparse_merkle_tree</code> and <code>partial_merkle_tree</code> data structures.
 <ul>
 <li><code>merkle_tree</code> - is supplied as an array of 64-character hex values where each value represents a leaf (4 elements) in the tree.</li>
-<li><code>sparse_merkle_tree</code> - is supplied as an array of tuples of the form (number, 64-character hex string).  The number represents the leaf index and the hex string represents the leaf value (4 elements).</li>
+<li><code>sparse_merkle_tree</code> - is supplied as an array of tuples of the form (number, 64-character hex string). The number represents the leaf index and the hex string represents the leaf value (4 elements).</li>
 <li><code>partial_merkle_tree</code> - is supplied as an array of tuples of the form ((number, number), 64-character hex string). The internal tuple represents the leaf depth and index at this depth, and the hex string represents the leaf value (4 elements).</li>
 </ul>
 </li>
