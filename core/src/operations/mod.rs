@@ -276,7 +276,7 @@ pub enum Operation {
     ///
     /// The internal value specifies an error code associated with the error in case when the
     /// assertion fails.
-    U32assert2(Felt) = OPCODE_U32ASSERT2,
+    U32assert2(u32) = OPCODE_U32ASSERT2,
 
     /// Pops three elements off the stack, adds them together, and splits the result into upper
     /// and lower 32-bit values. Then pushes the result back onto the stack.
@@ -735,16 +735,16 @@ impl Serializable for Operation {
 
         // For operations that have extra data, encode it in `data`.
         match self {
-            Operation::Assert(err_code) | Operation::MpVerify(err_code) => {
-                err_code.to_le_bytes().write_into(target)
+            Operation::Assert(err_code)
+            | Operation::MpVerify(err_code)
+            | Operation::U32assert2(err_code) => {
+                err_code.to_le_bytes().write_into(target);
             }
-            Operation::U32assert2(err_code) => err_code.as_int().write_into(target),
             Operation::Push(value) => value.as_int().write_into(target),
 
             // Note: we explicitly write out all the operations so that whenever we make a
-            // modification to the `Operation` enum, we get a compile error here. This should help
-            // us remember to properly encode/decode each operation variant. Remember to also fix
-            // deserialization!
+            // modification to the `Operation` enum, we get a compile error here. This
+            // should help us remember to properly encode/decode each operation variant.
             Operation::Noop
             | Operation::FmpAdd
             | Operation::FmpUpdate
@@ -873,8 +873,7 @@ impl Deserializable for Operation {
             OPCODE_SWAPDW => Self::SwapDW,
 
             OPCODE_ASSERT => {
-                let err_code_le_bytes: [u8; 4] = source.read_array()?;
-                let err_code = u32::from_le_bytes(err_code_le_bytes);
+                let err_code = source.read_u32()?;
                 Self::Assert(err_code)
             }
             OPCODE_EQ => Self::Eq,
@@ -916,23 +915,16 @@ impl Deserializable for Operation {
             OPCODE_U32DIV => Self::U32div,
             OPCODE_U32SPLIT => Self::U32split,
             OPCODE_U32ASSERT2 => {
-                let err_code_le_bytes: [u8; 8] = source.read_array()?;
-                let err_code_u64 = u64::from_le_bytes(err_code_le_bytes);
-                let err_code_felt = Felt::try_from(err_code_u64).map_err(|_| {
-                    DeserializationError::InvalidValue(format!(
-                        "Operation associated data doesn't fit in a field element: {err_code_u64}"
-                    ))
-                })?;
+                let err_code = source.read_u32()?;
 
-                Self::U32assert2(err_code_felt)
+                Self::U32assert2(err_code)
             }
             OPCODE_U32ADD3 => Self::U32add3,
             OPCODE_U32MADD => Self::U32madd,
 
             OPCODE_HPERM => Self::HPerm,
             OPCODE_MPVERIFY => {
-                let err_code_le_bytes: [u8; 4] = source.read_array()?;
-                let err_code = u32::from_le_bytes(err_code_le_bytes);
+                let err_code = source.read_u32()?;
 
                 Self::MpVerify(err_code)
             }
@@ -947,8 +939,7 @@ impl Deserializable for Operation {
 
             OPCODE_MRUPDATE => Self::MrUpdate,
             OPCODE_PUSH => {
-                let value_le_bytes: [u8; 8] = source.read_array()?;
-                let value_u64 = u64::from_le_bytes(value_le_bytes);
+                let value_u64 = source.read_u64()?;
                 let value_felt = Felt::try_from(value_u64).map_err(|_| {
                     DeserializationError::InvalidValue(format!(
                         "Operation associated data doesn't fit in a field element: {value_u64}"

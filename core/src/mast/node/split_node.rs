@@ -33,6 +33,11 @@ impl SplitNode {
 
         Self { branches, digest }
     }
+
+    #[cfg(test)]
+    pub fn new_test(branches: [MastNodeId; 2], digest: RpoDigest) -> Self {
+        Self { branches, digest }
+    }
 }
 
 /// Public accessors

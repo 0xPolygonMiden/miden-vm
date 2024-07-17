@@ -3,8 +3,8 @@ use core::fmt;
 
 use alloc::{boxed::Box, vec::Vec};
 pub use basic_block_node::{
-    get_span_op_group_count, BasicBlockNode, OpBatch, BATCH_SIZE as OP_BATCH_SIZE,
-    GROUP_SIZE as OP_GROUP_SIZE,
+    get_span_op_group_count, BasicBlockNode, OpBatch, OperationOrDecorator,
+    BATCH_SIZE as OP_BATCH_SIZE, GROUP_SIZE as OP_GROUP_SIZE,
 };
 
 mod call_node;
@@ -86,10 +86,6 @@ impl MastNode {
 
     pub fn new_dynexec() -> Self {
         Self::Dyn
-    }
-
-    pub fn new_dyncall(dyn_node_id: MastNodeId, mast_forest: &MastForest) -> Self {
-        Self::Call(CallNode::new(dyn_node_id, mast_forest))
     }
 
     pub fn new_external(mast_root: RpoDigest) -> Self {

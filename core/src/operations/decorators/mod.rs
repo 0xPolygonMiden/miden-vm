@@ -32,7 +32,7 @@ pub enum Decorator {
     Debug(DebugOptions),
     /// Emits an event to the host.
     Event(u32),
-    /// Emmits a trace to the host.
+    /// Emits a trace to the host.
     Trace(u32),
 }
 

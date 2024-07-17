@@ -6,8 +6,11 @@ use miden_crypto::hash::rpo::RpoDigest;
 mod node;
 pub use node::{
     get_span_op_group_count, BasicBlockNode, CallNode, DynNode, ExternalNode, JoinNode, LoopNode,
-    MastNode, OpBatch, SplitNode, OP_BATCH_SIZE, OP_GROUP_SIZE,
+    MastNode, OpBatch, OperationOrDecorator, SplitNode, OP_BATCH_SIZE, OP_GROUP_SIZE,
 };
+use winter_utils::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable};
+
+mod serialization;
 
 #[cfg(test)]
 mod tests;
@@ -18,6 +21,9 @@ pub trait MerkleTreeNode {
     fn to_display<'a>(&'a self, mast_forest: &'a MastForest) -> impl fmt::Display + 'a;
 }
 
+// MAST NODE ID
+// ================================================================================================
+
 /// An opaque handle to a [`MastNode`] in some [`MastForest`]. It is the responsibility of the user
 /// to use a given [`MastNodeId`] with the corresponding [`MastForest`].
 ///
@@ -27,14 +33,49 @@ pub trait MerkleTreeNode {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct MastNodeId(u32);
 
+impl MastNodeId {
+    /// Returns a new `MastNodeId` with the provided inner value, or an error if the provided
+    /// `value` is greater than the number of nodes in the forest.
+    ///
+    /// For use in deserialization.
+    pub fn from_u32_safe(
+        value: u32,
+        mast_forest: &MastForest,
+    ) -> Result<Self, DeserializationError> {
+        if (value as usize) < mast_forest.nodes.len() {
+            Ok(Self(value))
+        } else {
+            Err(DeserializationError::InvalidValue(format!(
+                "Invalid deserialized MAST node ID '{}', but only {} nodes in the forest",
+                value,
+                mast_forest.nodes.len(),
+            )))
+        }
+    }
+}
+
 impl fmt::Display for MastNodeId {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "MastNodeId({})", self.0)
     }
 }
 
+impl Serializable for MastNodeId {
+    fn write_into<W: ByteWriter>(&self, target: &mut W) {
+        self.0.write_into(target)
+    }
+}
+
+impl Deserializable for MastNodeId {
+    fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
+        let inner = source.read_u32()?;
+
+        Ok(Self(inner))
+    }
+}
+
 // MAST FOREST
-// ===============================================================================================
+// ================================================================================================
 
 /// Represents one or more procedures, represented as a collection of [`MastNode`]s.
 ///
@@ -94,7 +135,7 @@ impl MastForest {
     /// Returns the [`MastNode`] associated with the provided [`MastNodeId`] if valid, or else
     /// `None`.
     ///
-    /// This is the faillible version of indexing (e.g. `mast_forest[node_id]`).
+    /// This is the failable version of indexing (e.g. `mast_forest[node_id]`).
     #[inline(always)]
     pub fn get_node_by_id(&self, node_id: MastNodeId) -> Option<&MastNode> {
         let idx = node_id.0 as usize;

@@ -119,17 +119,17 @@ impl Assembler {
             // ----- u32 manipulation -------------------------------------------------------------
             Instruction::U32Test => span_builder.push_ops([Dup0, U32split, Swap, Drop, Eqz]),
             Instruction::U32TestW => u32_ops::u32testw(span_builder),
-            Instruction::U32Assert => span_builder.push_ops([Pad, U32assert2(ZERO), Drop]),
+            Instruction::U32Assert => span_builder.push_ops([Pad, U32assert2(0), Drop]),
             Instruction::U32AssertWithError(err_code) => {
-                span_builder.push_ops([Pad, U32assert2(Felt::from(err_code.expect_value())), Drop])
+                span_builder.push_ops([Pad, U32assert2(err_code.expect_value()), Drop])
             }
-            Instruction::U32Assert2 => span_builder.push_op(U32assert2(ZERO)),
+            Instruction::U32Assert2 => span_builder.push_op(U32assert2(0)),
             Instruction::U32Assert2WithError(err_code) => {
-                span_builder.push_op(U32assert2(Felt::from(err_code.expect_value())))
+                span_builder.push_op(U32assert2(err_code.expect_value()))
             }
-            Instruction::U32AssertW => u32_ops::u32assertw(span_builder, ZERO),
+            Instruction::U32AssertW => u32_ops::u32assertw(span_builder, 0),
             Instruction::U32AssertWWithError(err_code) => {
-                u32_ops::u32assertw(span_builder, Felt::from(err_code.expect_value()))
+                u32_ops::u32assertw(span_builder, err_code.expect_value())
             }
 
             Instruction::U32Cast => span_builder.push_ops([U32split, Drop]),
