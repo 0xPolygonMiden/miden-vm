@@ -1,4 +1,4 @@
-use alloc::{string::ToString, vec::Vec};
+use alloc::vec::Vec;
 use winter_utils::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable};
 
 use super::{MastForest, MastNode, MastNodeId};

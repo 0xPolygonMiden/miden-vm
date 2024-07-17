@@ -17,6 +17,7 @@
 - Added support for immediate values for `u32and`, `u32or`, `u32xor` and `u32not` bitwise instructions (#1362).
 - Optimized `std::sys::truncate_stuck` procedure (#1384).
 - Add serialization/deserialization for `MastForest` (#1370)
+- Introduce `MastForestError` to enforce `MastForest` node count invariant (#1394)
 
 #### Changed
 
