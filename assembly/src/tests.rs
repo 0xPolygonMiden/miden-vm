@@ -2408,7 +2408,7 @@ fn test_compiled_library() {
     end
     "
         );
-        mod_parser.parse(LibraryPath::new("mod1").unwrap(), source).unwrap()
+        mod_parser.parse(LibraryPath::new("mylib::mod1").unwrap(), source).unwrap()
     };
 
     let mod2 = {
@@ -2426,7 +2426,7 @@ fn test_compiled_library() {
     end
     "
         );
-        mod_parser.parse(LibraryPath::new("mod2").unwrap(), source).unwrap()
+        mod_parser.parse(LibraryPath::new("mylib::mod2").unwrap(), source).unwrap()
     };
 
     let metadata = CompiledLibraryMetadata {

@@ -32,7 +32,7 @@ impl From<FullyQualifiedProcedureName> for CompiledFullyQualifiedProcedureName {
     }
 }
 
-#[derive(Clone)]
+#[derive(Debug, Clone)]
 pub struct CompiledProcedure {
     pub name: ProcedureName,
     pub digest: RpoDigest,
@@ -123,7 +123,7 @@ pub struct CompiledLibraryMetadata {
 }
 
 // TODOP: Rename (?)
-#[derive(Clone)]
+#[derive(Debug, Clone)]
 pub struct CompiledModule {
     path: LibraryPath,
     procedures: Vec<(ProcedureIndex, CompiledProcedure)>,
