@@ -228,6 +228,15 @@ impl Assembler {
         Ok(())
     }
 
+    /// TODOP: Add `vendored` flag and document
+    pub fn add_compiled_library(&mut self, library: CompiledLibrary) -> Result<(), Report> {
+        for module in library.into_compiled_modules() {
+            self.module_graph.add_compiled_module(module)?;
+        }
+
+        Ok(())
+    }
+
     /// Adds the library to provide modules for the compilation.
     pub fn with_library<L>(mut self, library: &L) -> Result<Self, Report>
     where

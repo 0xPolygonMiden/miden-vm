@@ -529,6 +529,7 @@ impl ModuleGraph {
     }
 
     /// Fetch a [WrapperProcedure] by [GlobalProcedureIndex], or `None` if index is invalid.
+    #[allow(unused)]
     pub fn get_procedure(&self, id: GlobalProcedureIndex) -> Option<WrapperProcedure> {
         match &self.modules[id.module.as_usize()] {
             WrapperModule::Ast(m) => m.get(id.index).map(WrapperProcedure::Ast),
