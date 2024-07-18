@@ -177,7 +177,7 @@ impl<'a> NameResolver<'a> {
                                 .get_name(gid.index)
                                 .clone()
                         } else {
-                            self.graph[gid].name().clone()
+                            self.graph.get_procedure_unsafe(gid).name().clone()
                         };
                         Ok(ResolvedTarget::Resolved {
                             gid,
@@ -210,6 +210,7 @@ impl<'a> NameResolver<'a> {
                 .resolve_import(name)
         } else {
             self.graph[caller.module]
+                .unwrap_ast()
                 .resolve_import(name)
                 .map(|import| Span::new(import.span(), import.path()))
         }
@@ -255,7 +256,7 @@ impl<'a> NameResolver<'a> {
                                     .get_name(gid.index)
                                     .clone()
                             } else {
-                                self.graph[gid].name().clone()
+                                self.graph.get_procedure_unsafe(gid).name().clone()
                             };
                             Ok(ResolvedTarget::Resolved {
                                 gid,
@@ -315,7 +316,7 @@ impl<'a> NameResolver<'a> {
         if module_index >= pending_offset {
             self.pending[module_index - pending_offset].resolver.resolve(callee)
         } else {
-            self.graph[module].resolve(callee)
+            self.graph[module].unwrap_ast().resolve(callee)
         }
     }
 
@@ -487,7 +488,7 @@ impl<'a> NameResolver<'a> {
         if module_index >= pending_offset {
             self.pending[module_index - pending_offset].source_file.clone()
         } else {
-            self.graph[module].source_file()
+            self.graph[module].unwrap_ast().source_file()
         }
     }
 

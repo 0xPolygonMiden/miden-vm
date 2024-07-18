@@ -101,9 +101,9 @@ impl WrapperModule {
         }
     }
 
-    pub fn unwrap_ast(&self) -> Arc<Module> {
+    pub fn unwrap_ast(&self) -> &Arc<Module> {
         match self {
-            WrapperModule::Ast(module) => module.clone(),
+            WrapperModule::Ast(module) => module,
             WrapperModule::Exports(_) => {
                 panic!("expected module to be in AST representation, but was compiled")
             }
@@ -558,7 +558,7 @@ impl ModuleGraph {
     /// Fetch a [WrapperProcedure] by [GlobalProcedureIndex], or `None` if index is invalid.
     pub fn get_procedure(&self, id: GlobalProcedureIndex) -> Option<WrapperProcedure> {
         match &self.modules[id.module.as_usize()] {
-            WrapperModule::Ast(m) => m.get(id.index).map(|export| WrapperProcedure::Ast(export)),
+            WrapperModule::Ast(m) => m.get(id.index).map(WrapperProcedure::Ast),
             WrapperModule::Exports(m) => m
                 .procedures
                 .get(id.index.as_usize())
