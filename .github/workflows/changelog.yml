@@ -1,4 +1,5 @@
 # Runs changelog related jobs.
+# CI job heavily inspired by: https://github.com/tarides/changelog-check-action
 
 name: changelog
 
@@ -7,10 +8,8 @@ on:
     types: [opened, reopened, synchronize]
 
 jobs:
-  # CI job heavily inspired by: https://github.com/tarides/changelog-check-action
   changelog:
     runs-on: ubuntu-latest
-    using: "composite"
     steps:
       - name: Checkout code
         uses: actions/checkout@main
