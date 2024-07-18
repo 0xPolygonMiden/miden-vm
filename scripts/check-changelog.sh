@@ -5,15 +5,15 @@ CHANGELOG_FILE="${1:-CHANGES.md}"
 
 if [ "${NO_CHANGELOG_LABEL}" = "true" ]; then
     # 'no changelog' set, so finish successfully
-    echo "::info no changelog label has been set"
+    echo $'::info no changelog label has been set'
     exit 0
 else
     # a changelog check is required
     # fail if the diff is empty
     if git diff --exit-code "origin/${BASE_REF}" -- "${CHANGELOG_FILE}"; then
-        >&2 echo "::warning Changes should come with an entry in the CHANGELOG.md file. This behavior
+        >&2 echo $'::warning Changes should come with an entry in the CHANGELOG.md file. This behavior
 can be overridden by using the \"no changelog\" label, which is used for changes
-that trivial / explicitely decided not to need a changelog entry."
+that trivial / explicitely decided not to need a changelog entry.'
         exit 1
     fi
 fi
