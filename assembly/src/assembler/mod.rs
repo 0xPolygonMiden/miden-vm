@@ -742,7 +742,7 @@ impl Assembler {
             let is_entry = entrypoint == Some(procedure_gid);
 
             // Fetch procedure metadata from the graph
-            let module = &self.module_graph[procedure_gid.module];
+            let module = &self.module_graph[procedure_gid.module].unwrap_ast();
             let ast = &module[procedure_gid.index];
             let num_locals = ast.num_locals();
             let name = FullyQualifiedProcedureName {
