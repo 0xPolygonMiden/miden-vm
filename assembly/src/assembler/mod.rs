@@ -331,7 +331,7 @@ impl Assembler {
     ) -> Result<CompiledLibrary, Report> {
         let module_ids: Vec<ModuleIndex> = modules
             .map(|module| {
-                let module = module.compile()?;
+                let module = module.compile_with_options(CompileOptions::for_library())?;
                 Ok(self.module_graph.add_ast_module(module)?)
             })
             .collect::<Result<_, Report>>()?;

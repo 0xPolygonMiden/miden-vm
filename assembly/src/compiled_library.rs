@@ -1,4 +1,4 @@
-use alloc::{collections::BTreeMap, string::String, vec::Vec};
+use alloc::{collections::BTreeMap, vec::Vec};
 use vm_core::{
     crypto::hash::RpoDigest,
     mast::{MastForest, MerkleTreeNode},
@@ -118,7 +118,7 @@ impl CompiledLibrary {
 }
 
 pub struct CompiledLibraryMetadata {
-    pub name: String,
+    pub path: LibraryPath,
     pub version: Version,
 }
 
