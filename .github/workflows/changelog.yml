@@ -1,0 +1,27 @@
+# Runs changelog related jobs.
+
+name: changelog
+
+on:
+  pull_request:
+    types: [opened, reopened, synchronize]
+
+jobs:
+  changelog:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@main
+        with:
+          fetch-depth: 0
+      - name: Check if CHANGELOG.md is modified
+        run: |
+          # Get the list of changed files in the PR
+          changed_files=$(git diff --name-only origin/${{ github.event.pull_request.base.ref }}...${{ github.sha }})
+          # Check if CHANGELOG.md is in the list of changed files
+          if echo "$changed_files" | grep -q '^CHANGELOG.md$'; then
+            echo "CHANGELOG.md has been modified."
+          else
+            echo $'::warning file=CHANGELOG.md::CHANGELOG.md has not been modified.\n This warning can be ignored if is has been explicitely decided not to log changes.\n Except in this situation, make sure to add log changes.'
+            exit 1
+          fi
