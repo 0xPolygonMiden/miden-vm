@@ -324,9 +324,9 @@ impl Assembler {
 /// Compilation/Assembly
 impl Assembler {
     // TODOP: Document
-    pub fn assemble_library<T: Iterator<Item = impl Compile>>(
+    pub fn assemble_library(
         mut self,
-        modules: T,
+        modules: impl Iterator<Item = impl Compile>,
         metadata: CompiledLibraryMetadata, // name, version etc.
     ) -> Result<CompiledLibrary, Report> {
         let module_ids: Vec<ModuleIndex> = modules
