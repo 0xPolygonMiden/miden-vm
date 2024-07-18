@@ -1,7 +1,7 @@
 #!/bin/bash
 set -uo pipefail
 
-CHANGELOG_FILE="${1:-CHANGES.md}"
+CHANGELOG_FILE="${1:-CHANGELOG.md}"
 
 if [ "${NO_CHANGELOG_LABEL}" = "true" ]; then
     # 'no changelog' set, so finish successfully
