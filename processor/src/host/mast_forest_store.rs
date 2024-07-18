@@ -1,5 +1,8 @@
 use alloc::{collections::BTreeMap, sync::Arc};
-use vm_core::{crypto::hash::RpoDigest, mast::MastForest};
+use vm_core::{
+    crypto::hash::RpoDigest,
+    mast::{MastForest, MerkleTreeNode},
+};
 
 /// A set of [`MastForest`]s available to the prover that programs may refer to (by means of an
 /// [`vm_core::mast::ExternalNode`]).
@@ -25,7 +28,7 @@ impl MemMastForestStore {
     pub fn insert(&mut self, mast_forest: MastForest) {
         let mast_forest = Arc::new(mast_forest);
 
-        for root in mast_forest.procedure_roots() {
+        for root in mast_forest.procedure_roots().iter().map(|&id| mast_forest[id].digest()) {
             self.mast_forests.insert(root, mast_forest.clone());
         }
     }
