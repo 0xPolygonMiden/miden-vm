@@ -91,6 +91,14 @@ impl WrapperModule {
             WrapperModule::Exports(module) => module,
         }
     }
+
+    /// Resolves `name` to a procedure within the local scope of this module
+    pub fn resolve(&self, name: &ProcedureName) -> Option<ResolvedProcedure> {
+        match self {
+            WrapperModule::Ast(module) => module.resolve(name),
+            WrapperModule::Exports(module) => module.resolve(name),
+        }
+    }
 }
 
 // TODOP: Try to do without this `Pending*` version

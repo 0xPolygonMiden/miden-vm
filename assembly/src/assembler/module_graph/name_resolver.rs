@@ -316,7 +316,7 @@ impl<'a> NameResolver<'a> {
         if module_index >= pending_offset {
             self.pending[module_index - pending_offset].resolver.resolve(callee)
         } else {
-            self.graph[module].unwrap_ast().resolve(callee)
+            self.graph[module].resolve(callee)
         }
     }
 
