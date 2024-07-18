@@ -36,7 +36,7 @@ impl<'a> fmt::Debug for DisplayModuleGraph<'a> {
                         })
                         .collect::<Vec<_>>(),
                     WrapperModule::Exports(m) => m
-                        .procedures
+                        .procedures()
                         .iter()
                         .map(|(proc_index, _proc)| {
                             let gid = GlobalProcedureIndex {
@@ -82,7 +82,7 @@ impl<'a> fmt::Debug for DisplayModuleGraphNodes<'a> {
                         })
                         .collect::<Vec<_>>(),
                     WrapperModule::Exports(m) => m
-                        .procedures
+                        .procedures()
                         .iter()
                         .map(|(proc_index, proc)| DisplayModuleGraphNode {
                             module: module_index,

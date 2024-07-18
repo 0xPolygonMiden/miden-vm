@@ -2,7 +2,7 @@ use alloc::{string::String, vec::Vec};
 use vm_core::{crypto::hash::RpoDigest, mast::MastForest};
 
 use crate::{
-    ast::{FullyQualifiedProcedureName, ProcedureName},
+    ast::{FullyQualifiedProcedureName, ProcedureIndex, ProcedureName},
     LibraryPath, Version,
 };
 
@@ -81,9 +81,41 @@ impl CompiledLibrary {
     pub fn metadata(&self) -> &CompiledLibraryMetadata {
         &self.metadata
     }
+
+    pub fn into_compiled_modules(self) -> Vec<CompiledModule> {
+        todo!()
+    }
 }
 
 pub struct CompiledLibraryMetadata {
     pub name: String,
     pub version: Version,
+}
+
+// TODOP: Rename (?)
+#[derive(Clone)]
+pub struct CompiledModule {
+    path: LibraryPath,
+    procedures: Vec<(ProcedureIndex, CompiledProcedure)>,
+}
+
+impl CompiledModule {
+    pub fn new(path: LibraryPath, procedures: impl Iterator<Item = CompiledProcedure>) -> Self {
+        Self {
+            path,
+            procedures: procedures
+                .enumerate()
+                .map(|(idx, proc)| (ProcedureIndex::new(idx), proc))
+                .collect(),
+        }
+    }
+
+    pub fn path(&self) -> &LibraryPath {
+        &self.path
+    }
+
+    // TODOP: Store as `CompiledProcedure`, and add a method `iter()` that iterates with `ProcedureIndex`
+    pub fn procedures(&self) -> &[(ProcedureIndex, CompiledProcedure)] {
+        &self.procedures
+    }
 }

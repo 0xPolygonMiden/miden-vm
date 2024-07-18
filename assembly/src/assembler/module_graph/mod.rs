@@ -27,7 +27,7 @@ use self::{
     rewrites::ModuleRewriter,
 };
 use super::{GlobalProcedureIndex, ModuleIndex};
-use crate::compiled_library::CompiledProcedure;
+use crate::compiled_library::{CompiledModule, CompiledProcedure};
 use crate::{
     ast::{
         Export, FullyQualifiedProcedureName, InvocationTarget, Module, ProcedureIndex,
@@ -59,33 +59,6 @@ impl<'a> WrapperProcedure<'a> {
     }
 }
 
-// TODOP: Rename (?)
-#[derive(Clone)]
-pub struct CompiledModule {
-    path: LibraryPath,
-    procedures: Vec<(ProcedureIndex, CompiledProcedure)>,
-}
-
-impl CompiledModule {
-    pub fn new(path: LibraryPath, procedures: impl Iterator<Item = CompiledProcedure>) -> Self {
-        Self {
-            path,
-            procedures: procedures
-                .enumerate()
-                .map(|(idx, proc)| (ProcedureIndex::new(idx), proc))
-                .collect(),
-        }
-    }
-
-    pub fn path(&self) -> &LibraryPath {
-        &self.path
-    }
-
-    pub fn procedures(&self) -> &[(ProcedureIndex, CompiledProcedure)] {
-        &self.procedures
-    }
-}
-
 // TODOP: Rename
 #[derive(Clone)]
 pub enum WrapperModule {
@@ -97,7 +70,7 @@ impl WrapperModule {
     pub fn path(&self) -> &LibraryPath {
         match self {
             WrapperModule::Ast(m) => m.path(),
-            WrapperModule::Exports(m) => &m.path,
+            WrapperModule::Exports(m) => m.path(),
         }
     }
 
@@ -122,7 +95,7 @@ impl PendingWrapperModule {
     pub fn path(&self) -> &LibraryPath {
         match self {
             PendingWrapperModule::Ast(m) => m.path(),
-            PendingWrapperModule::Exports(m) => &m.path,
+            PendingWrapperModule::Exports(m) => m.path(),
         }
     }
 }
@@ -393,7 +366,7 @@ impl ModuleGraph {
                     }
                 }
                 PendingWrapperModule::Exports(pending_module) => {
-                    for (procedure_id, _procedure) in pending_module.procedures.iter() {
+                    for (procedure_id, _procedure) in pending_module.procedures().iter() {
                         let global_id = GlobalProcedureIndex {
                             module: module_id,
                             index: *procedure_id,
@@ -560,7 +533,7 @@ impl ModuleGraph {
         match &self.modules[id.module.as_usize()] {
             WrapperModule::Ast(m) => m.get(id.index).map(WrapperProcedure::Ast),
             WrapperModule::Exports(m) => m
-                .procedures
+                .procedures()
                 .get(id.index.as_usize())
                 .map(|(_idx, proc)| WrapperProcedure::Compiled(proc)),
         }
@@ -574,7 +547,7 @@ impl ModuleGraph {
         match &self.modules[id.module.as_usize()] {
             WrapperModule::Ast(m) => WrapperProcedure::Ast(&m[id.index]),
             WrapperModule::Exports(m) => {
-                WrapperProcedure::Compiled(&m.procedures[id.index.as_usize()].1)
+                WrapperProcedure::Compiled(&m.procedures()[id.index.as_usize()].1)
             }
         }
     }
@@ -755,7 +728,7 @@ impl ModuleGraph {
                 }
                 WrapperModule::Exports(module) => {
                     break module
-                        .procedures
+                        .procedures()
                         .iter()
                         .find(|(_index, procedure)| procedure.name() == &name.name)
                         .map(|(index, _)| GlobalProcedureIndex {
