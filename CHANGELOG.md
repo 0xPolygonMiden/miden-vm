@@ -4,7 +4,6 @@
 
 #### Enhancements
 
-- Updated CI and Makefile to standardise it accross Miden repositories (#1342).
 - Added error codes support for the `mtree_verify` instruction (#1328).
 - Added support for immediate values for `lt`, `lte`, `gt`, `gte` comparison instructions (#1346).
 - Change MAST to a table-based representation (#1349)
@@ -16,7 +15,9 @@
 - Relaxed the parser to allow one branch of an `if.(true|false)` to be empty
 - Added support for immediate values for `u32and`, `u32or`, `u32xor` and `u32not` bitwise instructions (#1362).
 - Optimized `std::sys::truncate_stuck` procedure (#1384).
+- Updated CI and Makefile to standardise it accross Miden repositories (#1342).
 - Add serialization/deserialization for `MastForest` (#1370)
+- Updated CI to support `CHANGELOG.md` modification checking and `no changelog` label (#1406)
 - Introduce `MastForestError` to enforce `MastForest` node count invariant (#1394)
 
 #### Changed
