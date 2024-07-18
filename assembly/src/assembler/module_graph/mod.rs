@@ -80,6 +80,10 @@ impl CompiledModule {
     pub fn path(&self) -> &LibraryPath {
         &self.path
     }
+
+    pub fn procedures(&self) -> &[(ProcedureIndex, CompiledProcedure)] {
+        &self.procedures
+    }
 }
 
 // TODOP: Rename

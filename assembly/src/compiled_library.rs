@@ -9,15 +9,21 @@ use crate::{
 // TODOP: Refactor `FullyQualifiedProcedureName` instead, and use `Span<FQDN>` where needed?
 pub struct CompiledFullyQualifiedProcedureName {
     /// The module path for this procedure.
-    pub module: LibraryPath,
+    pub module_path: LibraryPath,
     /// The name of the procedure.
     pub name: ProcedureName,
+}
+
+impl CompiledFullyQualifiedProcedureName {
+    pub fn new(module_path: LibraryPath, name: ProcedureName) -> Self {
+        Self { module_path, name }
+    }
 }
 
 impl From<FullyQualifiedProcedureName> for CompiledFullyQualifiedProcedureName {
     fn from(fqdn: FullyQualifiedProcedureName) -> Self {
         Self {
-            module: fqdn.module,
+            module_path: fqdn.module,
             name: fqdn.name,
         }
     }
@@ -25,10 +31,11 @@ impl From<FullyQualifiedProcedureName> for CompiledFullyQualifiedProcedureName {
 
 #[derive(Clone)]
 pub struct CompiledProcedure {
-    name: ProcedureName,
-    digest: RpoDigest,
+    pub name: ProcedureName,
+    pub digest: RpoDigest,
 }
 
+// TODOP: Remove methods in favor of pub fields?
 impl CompiledProcedure {
     pub fn name(&self) -> &ProcedureName {
         &self.name
