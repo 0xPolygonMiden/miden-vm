@@ -59,7 +59,7 @@ impl Assembler {
                         callee: proc.fully_qualified_name().clone(),
                     })
                     .and_then(|module| {
-                        if module.is_kernel() {
+                        if module.unwrap_ast().is_kernel() {
                             Ok(())
                         } else {
                             Err(AssemblyError::InvalidSysCallTarget {
