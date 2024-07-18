@@ -82,6 +82,15 @@ impl WrapperModule {
             }
         }
     }
+
+    pub fn unwrap_compiled(&self) -> &CompiledModule {
+        match self {
+            WrapperModule::Ast(_) => {
+                panic!("expected module to be compiled, but was in AST representation")
+            }
+            WrapperModule::Exports(module) => module,
+        }
+    }
 }
 
 // TODOP: Try to do without this `Pending*` version

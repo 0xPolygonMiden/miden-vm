@@ -230,8 +230,27 @@ impl Assembler {
 
     /// TODOP: Add `vendored` flag and document
     pub fn add_compiled_library(&mut self, library: CompiledLibrary) -> Result<(), Report> {
-        for module in library.into_compiled_modules() {
-            self.module_graph.add_compiled_module(module)?;
+        let module_indexes: Vec<ModuleIndex> = library
+            .into_compiled_modules()
+            .into_iter()
+            .map(|module| self.module_graph.add_compiled_module(module))
+            .collect::<Result<_, _>>()?;
+
+        // TODOP: Try to remove this recompute()
+        self.module_graph.recompute()?;
+
+        // Register all procedures as roots
+        for module_index in module_indexes {
+            for (proc_index, proc) in
+                self.module_graph[module_index].unwrap_compiled().clone().procedures()
+            {
+                let gid = GlobalProcedureIndex {
+                    module: module_index,
+                    index: *proc_index,
+                };
+
+                self.module_graph.register_mast_root(gid, proc.digest)?;
+            }
         }
 
         Ok(())
