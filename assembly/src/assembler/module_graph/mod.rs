@@ -57,6 +57,14 @@ impl<'a> WrapperProcedure<'a> {
             WrapperProcedure::Compiled(_) => panic!("expected AST procedure, but was compiled"),
         }
     }
+
+    pub fn is_compiled(&self) -> bool {
+        matches!(self, Self::Compiled(_))
+    }
+
+    pub fn is_ast(&self) -> bool {
+        matches!(self, Self::Ast(_))
+    }
 }
 
 // TODOP: Rename
@@ -531,7 +539,14 @@ impl ModuleGraph {
         &self,
         caller: GlobalProcedureIndex,
     ) -> Result<Vec<GlobalProcedureIndex>, CycleError> {
-        self.callgraph.toposort_caller(caller)
+        // TODOP: Fix Vec -> into_iter() -> collect
+        // TODOP: Should we change name/args?
+        Ok(self
+            .callgraph
+            .toposort_caller(caller)?
+            .into_iter()
+            .filter(|&gid| self.get_procedure_unsafe(gid).is_ast())
+            .collect())
     }
 
     /// Fetch a [Module] by [ModuleIndex]
