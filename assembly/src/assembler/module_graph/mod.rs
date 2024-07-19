@@ -396,7 +396,6 @@ impl ModuleGraph {
         for (pending_index, pending_module) in pending.iter().enumerate() {
             let module_id = ModuleIndex::new(high_water_mark + pending_index);
 
-            // TODOP: Refactor everywhere that we added big `match` statements
             // Apply module to call graph
             match pending_module {
                 PendingModuleWrapper::Ast(pending_module) => {

@@ -1,7 +1,7 @@
 use crate::{
     ast::{
         self, AliasTarget, Export, FullyQualifiedProcedureName, Instruction, InvocationTarget,
-        InvokeKind, ModuleKind, ProcedureIndex,
+        InvokeKind, Module, ModuleKind, ProcedureIndex,
     },
     compiled_library::{
         CompiledFullyQualifiedProcedureName, CompiledLibrary, CompiledLibraryMetadata,
@@ -604,28 +604,44 @@ impl Assembler {
             .map_err(|err| Report::new(AssemblyError::Kernel(err)))
     }
 
-    // TODOP: Fix docs
-    /// Get the set of exported procedures of the given module.
+    /// Get the set of exported procedure infos of the given module.
     ///
     /// Returns an error if the provided Miden Assembly is invalid.
     fn get_module_exports(
         &mut self,
         module_index: ModuleIndex,
         mast_forest: &MastForest,
-        // TODOP: Return iterator instead?
     ) -> Result<Vec<ProcedureInfo>, Report> {
         assert!(self.module_graph.contains_module(module_index), "invalid module index");
 
         let exports: Vec<ProcedureInfo> = match &self.module_graph[module_index] {
             module_graph::WrappedModule::Ast(module) => {
-                let mut exports = Vec::new();
-                for (index, procedure) in module.procedures().enumerate() {
-                    // Only add exports; locals will be added if they are in the call graph rooted
-                    // at those procedures
-                    if !procedure.visibility().is_exported() {
-                        continue;
-                    }
-                    let gid = match procedure {
+                self.get_module_exports_ast(module_index, module, mast_forest)?
+            }
+            module_graph::WrappedModule::Info(module) => {
+                module.procedure_infos().map(|(_idx, proc)| proc).cloned().collect()
+            }
+        };
+
+        Ok(exports)
+    }
+
+    /// Helper function for [`Self::get_module_exports`], specifically for when the inner
+    /// [`module_graph::WrappedModule`] is in `Ast` representation.
+    fn get_module_exports_ast(
+        &self,
+        module_index: ModuleIndex,
+        module: &Arc<Module>,
+        mast_forest: &MastForest,
+    ) -> Result<Vec<ProcedureInfo>, Report> {
+        let mut exports = Vec::new();
+        for (index, procedure) in module.procedures().enumerate() {
+            // Only add exports; locals will be added if they are in the call graph rooted
+            // at those procedures
+            if !procedure.visibility().is_exported() {
+                continue;
+            }
+            let gid = match procedure {
                         Export::Procedure(_) => GlobalProcedureIndex {
                             module: module_index,
                             index: ProcedureIndex::new(index),
@@ -649,38 +665,31 @@ impl Assembler {
                             }
                         }
                     };
-                    let proc = self.procedure_cache.get(gid).unwrap_or_else(|| match procedure {
-                        Export::Procedure(ref proc) => {
-                            panic!(
-                                "compilation apparently succeeded, but did not find a \
+            let proc = self.procedure_cache.get(gid).unwrap_or_else(|| match procedure {
+                Export::Procedure(ref proc) => {
+                    panic!(
+                        "compilation apparently succeeded, but did not find a \
                                 entry in the procedure cache for '{}'",
-                                proc.name()
-                            )
-                        }
-                        Export::Alias(ref alias) => {
-                            panic!(
-                                "compilation apparently succeeded, but did not find a \
-                                entry in the procedure cache for alias '{}', i.e. '{}'",
-                                alias.name(),
-                                alias.target()
-                            );
-                        }
-                    });
-
-                    let compiled_proc = ProcedureInfo {
-                        name: proc.name().clone(),
-                        digest: mast_forest[proc.body_node_id()].digest(),
-                    };
-
-                    exports.push(compiled_proc);
+                        proc.name()
+                    )
                 }
+                Export::Alias(ref alias) => {
+                    panic!(
+                        "compilation apparently succeeded, but did not find a \
+                                entry in the procedure cache for alias '{}', i.e. '{}'",
+                        alias.name(),
+                        alias.target()
+                    );
+                }
+            });
 
-                exports
-            }
-            module_graph::WrappedModule::Info(module) => {
-                module.procedure_infos().map(|(_idx, proc)| proc).cloned().collect()
-            }
-        };
+            let compiled_proc = ProcedureInfo {
+                name: proc.name().clone(),
+                digest: mast_forest[proc.body_node_id()].digest(),
+            };
+
+            exports.push(compiled_proc);
+        }
 
         Ok(exports)
     }
