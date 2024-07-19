@@ -161,7 +161,7 @@ impl CompiledModule {
                 // TODOP: FIX SPAN
                 Some(ResolvedProcedure::MastRoot(Span::new(
                     SourceSpan::at(0),
-                    proc.digest().clone(),
+                    *proc.digest(),
                 )))
             } else {
                 None

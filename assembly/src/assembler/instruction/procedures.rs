@@ -2,7 +2,7 @@ use super::{Assembler, AssemblyContext, BasicBlockBuilder, Operation};
 use crate::{
     assembler::mast_forest_builder::MastForestBuilder,
     ast::{InvocationTarget, InvokeKind},
-    AssemblyError, RpoDigest, SourceSpan, Span, Spanned,
+    AssemblyError, RpoDigest, SourceSpan, Spanned,
 };
 
 use smallvec::SmallVec;
@@ -35,7 +35,7 @@ impl Assembler {
         let current_source_file = context.unwrap_current_procedure().source_file();
 
         // If the procedure is cached, register the call to ensure the callset
-        // is updated correctly. Otherwise, register a phantom call.
+        // is updated correctly.
         match cache.get_by_mast_root(&mast_root) {
             Some(proc) if matches!(kind, InvokeKind::SysCall) => {
                 // Verify if this is a syscall, that the callee is a kernel procedure
@@ -81,7 +81,7 @@ impl Assembler {
                     callee: mast_root,
                 });
             }
-            None => context.register_phantom_call(Span::new(span, mast_root))?,
+            None => (),
         }
 
         let mast_root_node_id = {
@@ -161,14 +161,12 @@ impl Assembler {
         span_builder: &mut BasicBlockBuilder,
         mast_forest: &MastForest,
     ) -> Result<(), AssemblyError> {
-        let span = callee.span();
         let digest = self.resolve_target(InvokeKind::Exec, callee, context, mast_forest)?;
-        self.procref_mast_root(span, digest, context, span_builder, mast_forest)
+        self.procref_mast_root(digest, context, span_builder, mast_forest)
     }
 
     fn procref_mast_root(
         &self,
-        span: SourceSpan,
         mast_root: RpoDigest,
         context: &mut AssemblyContext,
         span_builder: &mut BasicBlockBuilder,
@@ -176,10 +174,8 @@ impl Assembler {
     ) -> Result<(), AssemblyError> {
         // Add the root to the callset to be able to use dynamic instructions
         // with the referenced procedure later
-        let cache = &self.procedure_cache;
-        match cache.get_by_mast_root(&mast_root) {
-            Some(proc) => context.register_external_call(&proc, false, mast_forest)?,
-            None => context.register_phantom_call(Span::new(span, mast_root))?,
+        if let Some(proc) = self.procedure_cache.get_by_mast_root(&mast_root) {
+            context.register_external_call(&proc, false, mast_forest)?;
         }
 
         // Create an array with `Push` operations containing root elements

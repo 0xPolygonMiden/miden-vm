@@ -58,10 +58,6 @@ impl<'a> WrapperProcedure<'a> {
         }
     }
 
-    pub fn is_compiled(&self) -> bool {
-        matches!(self, Self::Compiled(_))
-    }
-
     pub fn is_ast(&self) -> bool {
         matches!(self, Self::Ast(_))
     }

@@ -77,15 +77,6 @@ pub enum AssemblyError {
         #[source_code]
         source_file: Option<Arc<SourceFile>>,
     },
-    #[error("cannot call phantom procedure: phantom calls are disabled")]
-    #[diagnostic(help("mast root is {digest}"))]
-    PhantomCallsNotAllowed {
-        #[label("the procedure referenced here is not available")]
-        span: SourceSpan,
-        #[source_code]
-        source_file: Option<Arc<SourceFile>>,
-        digest: RpoDigest,
-    },
     #[error("invalid syscall: '{callee}' is not an exported kernel procedure")]
     #[diagnostic()]
     InvalidSysCallTarget {

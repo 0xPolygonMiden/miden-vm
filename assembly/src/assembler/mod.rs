@@ -343,7 +343,8 @@ impl Assembler {
 /// Compilation/Assembly
 impl Assembler {
     // TODOP: Document
-    // TODOP: Check that `CompiledLibraryMetadata` is consistent with `modules` (e.g. modules path indeed start with library name)
+    // TODOP: Check that `CompiledLibraryMetadata` is consistent with `modules` (e.g. modules path
+    // indeed start with library name)
     pub fn assemble_library(
         mut self,
         modules: impl Iterator<Item = impl Compile>,
