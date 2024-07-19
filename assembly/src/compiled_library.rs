@@ -89,9 +89,9 @@ impl CompiledLibrary {
         &self.metadata
     }
 
-    /// Returns an iterator over the compiled modules of the library.
-    pub fn into_compiled_modules(self) -> impl Iterator<Item = CompiledModule> {
-        let mut modules_by_path: BTreeMap<LibraryPath, CompiledModule> = BTreeMap::new();
+    /// Returns an iterator over the module infos of the library.
+    pub fn into_module_infos(self) -> impl Iterator<Item = ModuleInfo> {
+        let mut modules_by_path: BTreeMap<LibraryPath, ModuleInfo> = BTreeMap::new();
 
         for (proc_index, proc_name) in self.exports.into_iter().enumerate() {
             modules_by_path
@@ -113,7 +113,7 @@ impl CompiledLibrary {
                         digest: proc_digest,
                     };
 
-                    CompiledModule::new(proc_name.module_path, core::iter::once(proc))
+                    ModuleInfo::new(proc_name.module_path, core::iter::once(proc))
                 });
         }
 
@@ -126,14 +126,14 @@ pub struct CompiledLibraryMetadata {
     pub version: Version,
 }
 
-// TODOP: Rename (?)
+/// Stores a module's path, as well as information about all exported procedures.
 #[derive(Debug, Clone)]
-pub struct CompiledModule {
+pub struct ModuleInfo {
     path: LibraryPath,
     procedures: Vec<(ProcedureIndex, ProcedureInfo)>,
 }
 
-impl CompiledModule {
+impl ModuleInfo {
     pub fn new(path: LibraryPath, procedures: impl Iterator<Item = ProcedureInfo>) -> Self {
         Self {
             path,

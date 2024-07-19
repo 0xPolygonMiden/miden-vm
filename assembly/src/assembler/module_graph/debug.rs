@@ -35,7 +35,7 @@ impl<'a> fmt::Debug for DisplayModuleGraph<'a> {
                             }
                         })
                         .collect::<Vec<_>>(),
-                    WrapperModule::Exports(m) => m
+                    WrapperModule::Info(m) => m
                         .procedures()
                         .iter()
                         .map(|(proc_index, _proc)| {
@@ -81,7 +81,7 @@ impl<'a> fmt::Debug for DisplayModuleGraphNodes<'a> {
                             }
                         })
                         .collect::<Vec<_>>(),
-                    WrapperModule::Exports(m) => m
+                    WrapperModule::Info(m) => m
                         .procedures()
                         .iter()
                         .map(|(proc_index, proc)| DisplayModuleGraphNode {

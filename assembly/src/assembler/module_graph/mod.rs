@@ -27,7 +27,7 @@ use self::{
     rewrites::ModuleRewriter,
 };
 use super::{GlobalProcedureIndex, ModuleIndex};
-use crate::compiled_library::{CompiledModule, ProcedureInfo};
+use crate::compiled_library::{ModuleInfo, ProcedureInfo};
 use crate::{
     ast::{
         Export, FullyQualifiedProcedureName, InvocationTarget, Module, ProcedureIndex,
@@ -67,32 +67,32 @@ impl<'a> WrapperProcedure<'a> {
 #[derive(Clone)]
 pub enum WrapperModule {
     Ast(Arc<Module>),
-    Exports(CompiledModule),
+    Info(ModuleInfo),
 }
 
 impl WrapperModule {
     pub fn path(&self) -> &LibraryPath {
         match self {
             WrapperModule::Ast(m) => m.path(),
-            WrapperModule::Exports(m) => m.path(),
+            WrapperModule::Info(m) => m.path(),
         }
     }
 
     pub fn unwrap_ast(&self) -> &Arc<Module> {
         match self {
             WrapperModule::Ast(module) => module,
-            WrapperModule::Exports(_) => {
+            WrapperModule::Info(_) => {
                 panic!("expected module to be in AST representation, but was compiled")
             }
         }
     }
 
-    pub fn unwrap_compiled(&self) -> &CompiledModule {
+    pub fn unwrap_info(&self) -> &ModuleInfo {
         match self {
             WrapperModule::Ast(_) => {
                 panic!("expected module to be compiled, but was in AST representation")
             }
-            WrapperModule::Exports(module) => module,
+            WrapperModule::Info(module) => module,
         }
     }
 
@@ -100,7 +100,7 @@ impl WrapperModule {
     pub fn resolve(&self, name: &ProcedureName) -> Option<ResolvedProcedure> {
         match self {
             WrapperModule::Ast(module) => module.resolve(name),
-            WrapperModule::Exports(module) => module.resolve(name),
+            WrapperModule::Info(module) => module.resolve(name),
         }
     }
 }
@@ -109,14 +109,14 @@ impl WrapperModule {
 #[derive(Clone)]
 pub enum PendingWrapperModule {
     Ast(Box<Module>),
-    Exports(CompiledModule),
+    Info(ModuleInfo),
 }
 
 impl PendingWrapperModule {
     pub fn path(&self) -> &LibraryPath {
         match self {
             PendingWrapperModule::Ast(m) => m.path(),
-            PendingWrapperModule::Exports(m) => m.path(),
+            PendingWrapperModule::Info(m) => m.path(),
         }
     }
 }
@@ -180,11 +180,11 @@ impl ModuleGraph {
         self.add_module(PendingWrapperModule::Ast(module))
     }
 
-    /// Add compiled `module` to the graph.
+    /// Add the [`ModuleInfo`] to the graph.
     ///
-    /// NOTE: This operation only adds a module to the graph, but does not perform the
-    /// important analysis needed for compilation, you must call [recompute] once all modules
-    /// are added to ensure the analysis results reflect the current version of the graph.
+    /// NOTE: This operation only adds a module to the graph, but does not perform the important
+    /// analysis needed for compilation, you must call [`Self::recompute`] once all modules are
+    /// added to ensure the analysis results reflect the current version of the graph.
     ///
     /// # Errors
     ///
@@ -197,11 +197,11 @@ impl ModuleGraph {
     ///
     /// This function will panic if the number of modules exceeds the maximum representable
     /// [ModuleIndex] value, `u16::MAX`.
-    pub fn add_compiled_module(
+    pub fn add_module_info(
         &mut self,
-        module: CompiledModule,
+        module_info: ModuleInfo,
     ) -> Result<ModuleIndex, AssemblyError> {
-        self.add_module(PendingWrapperModule::Exports(module))
+        self.add_module(PendingWrapperModule::Info(module_info))
     }
 
     fn add_module(&mut self, module: PendingWrapperModule) -> Result<ModuleIndex, AssemblyError> {
@@ -368,6 +368,7 @@ impl ModuleGraph {
         for (pending_index, pending_module) in pending.iter().enumerate() {
             let module_id = ModuleIndex::new(high_water_mark + pending_index);
 
+            // TODOP: Refactor everywhere that we added big `match` statements
             // Apply module to call graph
             match pending_module {
                 PendingWrapperModule::Ast(pending_module) => {
@@ -386,7 +387,7 @@ impl ModuleGraph {
                         }
                     }
                 }
-                PendingWrapperModule::Exports(pending_module) => {
+                PendingWrapperModule::Info(pending_module) => {
                     for (procedure_id, _procedure) in pending_module.procedures().iter() {
                         let global_id = GlobalProcedureIndex {
                             module: module_id,
@@ -446,8 +447,8 @@ impl ModuleGraph {
 
                     finished.push(WrapperModule::Ast(Arc::new(*ast_module)))
                 }
-                PendingWrapperModule::Exports(module) => {
-                    finished.push(WrapperModule::Exports(module));
+                PendingWrapperModule::Info(module) => {
+                    finished.push(WrapperModule::Info(module));
                 }
             }
         }
@@ -561,7 +562,7 @@ impl ModuleGraph {
     pub fn get_procedure(&self, id: GlobalProcedureIndex) -> Option<WrapperProcedure> {
         match &self.modules[id.module.as_usize()] {
             WrapperModule::Ast(m) => m.get(id.index).map(WrapperProcedure::Ast),
-            WrapperModule::Exports(m) => m
+            WrapperModule::Info(m) => m
                 .procedures()
                 .get(id.index.as_usize())
                 .map(|(_idx, proc)| WrapperProcedure::Compiled(proc)),
@@ -575,7 +576,7 @@ impl ModuleGraph {
     pub fn get_procedure_unsafe(&self, id: GlobalProcedureIndex) -> WrapperProcedure {
         match &self.modules[id.module.as_usize()] {
             WrapperModule::Ast(m) => WrapperProcedure::Ast(&m[id.index]),
-            WrapperModule::Exports(m) => {
+            WrapperModule::Info(m) => {
                 WrapperProcedure::Compiled(&m.procedures()[id.index.as_usize()].1)
             }
         }
@@ -630,13 +631,13 @@ impl ModuleGraph {
                     let prev_proc = {
                         match &self.modules[prev_id.module.as_usize()] {
                             WrapperModule::Ast(module) => Some(&module[prev_id.index]),
-                            WrapperModule::Exports(_) => None,
+                            WrapperModule::Info(_) => None,
                         }
                     };
                     let current_proc = {
                         match &self.modules[id.module.as_usize()] {
                             WrapperModule::Ast(module) => Some(&module[id.index]),
-                            WrapperModule::Exports(_) => None,
+                            WrapperModule::Info(_) => None,
                         }
                     };
 
@@ -755,7 +756,7 @@ impl ModuleGraph {
                         }
                     }
                 }
-                WrapperModule::Exports(module) => {
+                WrapperModule::Info(module) => {
                     break module
                         .procedures()
                         .iter()
