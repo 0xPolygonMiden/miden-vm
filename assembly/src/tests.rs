@@ -1484,8 +1484,6 @@ fn program_with_invalid_rpo_digest_call() {
     );
 }
 
-/// Phantom calls are currently not implemented. Re-enable this test once they are implemented.
-#[ignore]
 #[test]
 fn program_with_phantom_mast_call() -> TestResult {
     let mut context = TestContext::default();
@@ -1494,27 +1492,8 @@ fn program_with_phantom_mast_call() -> TestResult {
     );
     let ast = context.parse_program(source)?;
 
-    // phantom calls not allowed
     let assembler = Assembler::default().with_debug_mode(true);
-
-    let mut context = AssemblyContext::for_program(ast.path()).with_phantom_calls(false);
-    let err = assembler
-        .assemble_in_context(ast.clone(), &mut context)
-        .expect_err("expected compilation to fail with phantom calls");
-    assert_diagnostic_lines!(
-        err,
-        "cannot call phantom procedure: phantom calls are disabled",
-        regex!(r#",-\[test[\d]+:1:12\]"#),
-        "1 | begin call.0xc2545da99d3a1f3f38d957c7893c44d78998d8ea8b11aba7e22c8c2b2a213dae end",
-        "  :            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^|^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^",
-        "  :                                             `-- the procedure referenced here is not available",
-        "  `----",
-        " help: mast root is 0xc2545da99d3a1f3f38d957c7893c44d78998d8ea8b11aba7e22c8c2b2a213dae"
-    );
-
-    // phantom calls allowed
-    let assembler = Assembler::default().with_debug_mode(true);
-    let mut context = AssemblyContext::for_program(ast.path()).with_phantom_calls(true);
+    let mut context = AssemblyContext::for_program(ast.path());
     assembler.assemble_in_context(ast, &mut context)?;
     Ok(())
 }

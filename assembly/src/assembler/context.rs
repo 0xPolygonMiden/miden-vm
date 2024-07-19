@@ -4,7 +4,7 @@ use super::{procedure::CallSet, ArtifactKind, GlobalProcedureIndex, Procedure};
 use crate::{
     ast::{FullyQualifiedProcedureName, Visibility},
     diagnostics::SourceFile,
-    AssemblyError, LibraryPath, RpoDigest, SourceSpan, Span, Spanned,
+    AssemblyError, LibraryPath, RpoDigest, SourceSpan, Spanned,
 };
 use vm_core::mast::{MastForest, MastNodeId};
 
@@ -26,11 +26,6 @@ pub struct AssemblyContext {
     kind: ArtifactKind,
     /// When true, promote warning diagnostics to errors
     warnings_as_errors: bool,
-    /// When true, this permits calls to refer to procedures which are not locally available,
-    /// as long as they are referenced by MAST root, and not by name. As long as the MAST for those
-    /// roots is present when the code is executed, this works fine. However, if the VM tries to
-    /// execute a program with such calls, and the MAST is not available, the program will trap.
-    allow_phantom_calls: bool,
     /// The current procedure being compiled
     current_procedure: Option<ProcedureContext>,
     /// The fully-qualified module path which should be compiled.
@@ -98,21 +93,6 @@ impl AssemblyContext {
         self.current_procedure.as_mut().expect("missing current procedure context")
     }
 
-    /// Enables phantom calls when compiling with this context.
-    ///
-    /// # Panics
-    ///
-    /// This function will panic if you attempt to enable phantom calls for a kernel-mode context,
-    /// as non-local procedure calls are not allowed in kernel modules.
-    pub fn with_phantom_calls(mut self, allow_phantom_calls: bool) -> Self {
-        assert!(
-            !self.is_kernel() || !allow_phantom_calls,
-            "kernel modules cannot have phantom calls enabled"
-        );
-        self.allow_phantom_calls = allow_phantom_calls;
-        self
-    }
-
     /// Returns true if this context is used for compiling a kernel.
     pub fn is_kernel(&self) -> bool {
         matches!(self.kind, ArtifactKind::Kernel)
@@ -132,31 +112,6 @@ impl AssemblyContext {
     #[inline(always)]
     pub fn warnings_as_errors(&self) -> bool {
         self.warnings_as_errors
-    }
-
-    /// Registers a "phantom" call to the procedure with the specified MAST root.
-    ///
-    /// A phantom call indicates that code for the procedure is not available. Executing a phantom
-    /// call will result in a runtime error. However, the VM may be able to execute a program with
-    /// phantom calls as long as the branches containing them are not taken.
-    ///
-    /// # Errors
-    /// Returns an error if phantom calls are not allowed in this assembly context.
-    pub fn register_phantom_call(
-        &mut self,
-        mast_root: Span<RpoDigest>,
-    ) -> Result<(), AssemblyError> {
-        if !self.allow_phantom_calls {
-            let source_file = self.unwrap_current_procedure().source_file().clone();
-            let (span, digest) = mast_root.into_parts();
-            Err(AssemblyError::PhantomCallsNotAllowed {
-                span,
-                source_file,
-                digest,
-            })
-        } else {
-            Ok(())
-        }
     }
 
     /// Registers a call to an externally-defined procedure which we have previously compiled.
