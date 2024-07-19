@@ -232,7 +232,6 @@ impl Assembler {
     pub fn add_compiled_library(&mut self, library: CompiledLibrary) -> Result<(), Report> {
         let module_indexes: Vec<ModuleIndex> = library
             .into_compiled_modules()
-            .into_iter()
             .map(|module| self.module_graph.add_compiled_module(module))
             .collect::<Result<_, _>>()?;
 
@@ -388,7 +387,7 @@ impl Assembler {
             exports
         };
 
-        Ok(CompiledLibrary::new(mast_forest_builder.build(), exports, metadata))
+        Ok(CompiledLibrary::new(mast_forest_builder.build(), exports, metadata)?)
     }
 
     /// Compiles the provided module into a [`Program`]. The resulting program can be executed on

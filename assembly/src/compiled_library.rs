@@ -6,7 +6,7 @@ use vm_core::{
 
 use crate::{
     ast::{FullyQualifiedProcedureName, ProcedureIndex, ProcedureName, ResolvedProcedure},
-    LibraryPath, Version,
+    CompiledLibraryError, LibraryPath, Version,
 };
 
 /// A procedure's name, along with its module path.
@@ -42,44 +42,55 @@ pub struct ProcedureInfo {
     pub digest: RpoDigest,
 }
 
-// TODOP: Move into `miden-core` along with `LibraryPath`
+/// Represents a library where all modules modules were compiled into a [`MastForest`].
 pub struct CompiledLibrary {
     mast_forest: MastForest,
-    // a path for every `root` in the associated [MastForest]
+    // a path for every `root` in the associated MAST forest
     exports: Vec<CompiledFullyQualifiedProcedureName>,
     metadata: CompiledLibraryMetadata,
 }
 
 /// Constructors
 impl CompiledLibrary {
-    // TODOP: Add validation that num roots = num exports
+    /// Constructs a new [`CompiledLibrary`].
     pub fn new(
         mast_forest: MastForest,
         exports: Vec<CompiledFullyQualifiedProcedureName>,
         metadata: CompiledLibraryMetadata,
-    ) -> Self {
-        Self {
+    ) -> Result<Self, CompiledLibraryError> {
+        if mast_forest.procedure_roots().len() != exports.len() {
+            return Err(CompiledLibraryError::InvalidExports {
+                exports_len: exports.len(),
+                roots_len: mast_forest.procedure_roots().len(),
+            });
+        }
+
+        Ok(Self {
             mast_forest,
             exports,
             metadata,
-        }
+        })
     }
 }
 
 impl CompiledLibrary {
+    /// Returns the inner [`MastForest`].
     pub fn mast_forest(&self) -> &MastForest {
         &self.mast_forest
     }
 
+    /// Returns the fully qualified name of all procedures exported by the library.
     pub fn exports(&self) -> &[CompiledFullyQualifiedProcedureName] {
         &self.exports
     }
 
+    /// Returns the library metadata.
     pub fn metadata(&self) -> &CompiledLibraryMetadata {
         &self.metadata
     }
 
-    pub fn into_compiled_modules(self) -> Vec<CompiledModule> {
+    /// Returns an iterator over the compiled modules of the library.
+    pub fn into_compiled_modules(self) -> impl Iterator<Item = CompiledModule> {
         let mut modules_by_path: BTreeMap<LibraryPath, CompiledModule> = BTreeMap::new();
 
         for (proc_index, proc_name) in self.exports.into_iter().enumerate() {
@@ -106,7 +117,7 @@ impl CompiledLibrary {
                 });
         }
 
-        modules_by_path.into_values().collect()
+        modules_by_path.into_values()
     }
 }
 
