@@ -240,11 +240,11 @@ impl Assembler {
         // Register all procedures as roots
         for module_index in module_indexes {
             for (proc_index, proc) in
-                self.module_graph[module_index].unwrap_info().clone().procedures()
+                self.module_graph[module_index].unwrap_info().clone().procedure_infos()
             {
                 let gid = GlobalProcedureIndex {
                     module: module_index,
-                    index: *proc_index,
+                    index: proc_index,
                 };
 
                 self.module_graph.register_mast_root(gid, proc.digest)?;
@@ -666,7 +666,7 @@ impl Assembler {
                 exports
             }
             module_graph::WrapperModule::Info(module) => {
-                module.procedures().iter().map(|(_idx, proc)| proc).cloned().collect()
+                module.procedure_infos().map(|(_idx, proc)| proc).cloned().collect()
             }
         };
 

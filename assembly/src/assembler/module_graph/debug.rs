@@ -36,12 +36,11 @@ impl<'a> fmt::Debug for DisplayModuleGraph<'a> {
                         })
                         .collect::<Vec<_>>(),
                     WrapperModule::Info(m) => m
-                        .procedures()
-                        .iter()
+                        .procedure_infos()
                         .map(|(proc_index, _proc)| {
                             let gid = GlobalProcedureIndex {
                                 module: ModuleIndex::new(module_index),
-                                index: *proc_index,
+                                index: proc_index,
                             };
 
                             let out_edges = self.0.callgraph.out_edges(gid);
@@ -82,11 +81,10 @@ impl<'a> fmt::Debug for DisplayModuleGraphNodes<'a> {
                         })
                         .collect::<Vec<_>>(),
                     WrapperModule::Info(m) => m
-                        .procedures()
-                        .iter()
+                        .procedure_infos()
                         .map(|(proc_index, proc)| DisplayModuleGraphNode {
                             module: module_index,
-                            index: *proc_index,
+                            index: proc_index,
                             path: m.path(),
                             proc_name: &proc.name,
                             ty: GraphNodeType::Compiled,

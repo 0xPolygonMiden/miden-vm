@@ -100,7 +100,9 @@ impl WrapperModule {
     pub fn resolve(&self, name: &ProcedureName) -> Option<ResolvedProcedure> {
         match self {
             WrapperModule::Ast(module) => module.resolve(name),
-            WrapperModule::Info(module) => module.resolve(name),
+            WrapperModule::Info(module) => {
+                module.get_proc_digest_by_name(name).map(ResolvedProcedure::MastRoot)
+            }
         }
     }
 }
@@ -388,10 +390,10 @@ impl ModuleGraph {
                     }
                 }
                 PendingWrapperModule::Info(pending_module) => {
-                    for (procedure_id, _procedure) in pending_module.procedures().iter() {
+                    for (proc_index, _procedure) in pending_module.procedure_infos() {
                         let global_id = GlobalProcedureIndex {
                             module: module_id,
-                            index: *procedure_id,
+                            index: proc_index,
                         };
                         self.callgraph.get_or_insert_node(global_id);
                     }
@@ -562,10 +564,9 @@ impl ModuleGraph {
     pub fn get_procedure(&self, id: GlobalProcedureIndex) -> Option<WrapperProcedure> {
         match &self.modules[id.module.as_usize()] {
             WrapperModule::Ast(m) => m.get(id.index).map(WrapperProcedure::Ast),
-            WrapperModule::Info(m) => m
-                .procedures()
-                .get(id.index.as_usize())
-                .map(|(_idx, proc)| WrapperProcedure::Compiled(proc)),
+            WrapperModule::Info(m) => {
+                m.get_proc_info_by_index(id.index).map(WrapperProcedure::Compiled)
+            }
         }
     }
 
@@ -577,7 +578,7 @@ impl ModuleGraph {
         match &self.modules[id.module.as_usize()] {
             WrapperModule::Ast(m) => WrapperProcedure::Ast(&m[id.index]),
             WrapperModule::Info(m) => {
-                WrapperProcedure::Compiled(&m.procedures()[id.index.as_usize()].1)
+                WrapperProcedure::Compiled(m.get_proc_info_by_index(id.index).unwrap())
             }
         }
     }
@@ -758,12 +759,16 @@ impl ModuleGraph {
                 }
                 WrapperModule::Info(module) => {
                     break module
-                        .procedures()
-                        .iter()
-                        .find(|(_index, procedure)| procedure.name == name.name)
-                        .map(|(index, _)| GlobalProcedureIndex {
-                            module: module_index,
-                            index: *index,
+                        .procedure_infos()
+                        .find_map(|(index, procedure)| {
+                            if procedure.name == name.name {
+                                Some(GlobalProcedureIndex {
+                                    module: module_index,
+                                    index,
+                                })
+                            } else {
+                                None
+                            }
                         })
                         .ok_or(AssemblyError::Failed {
                             labels: vec![RelatedLabel::error("undefined procedure")

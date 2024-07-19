@@ -5,7 +5,7 @@ use vm_core::{
 };
 
 use crate::{
-    ast::{FullyQualifiedProcedureName, ProcedureIndex, ProcedureName, ResolvedProcedure},
+    ast::{FullyQualifiedProcedureName, ProcedureIndex, ProcedureName},
     CompiledLibraryError, LibraryPath, Version,
 };
 
@@ -100,7 +100,7 @@ impl CompiledLibrary {
                     let proc_node_id = self.mast_forest.procedure_roots()[proc_index];
                     let proc_digest = self.mast_forest[proc_node_id].digest();
 
-                    compiled_module.add_procedure(ProcedureInfo {
+                    compiled_module.add_procedure_info(ProcedureInfo {
                         name: proc_name.name.clone(),
                         digest: proc_digest,
                     })
@@ -113,7 +113,7 @@ impl CompiledLibrary {
                         digest: proc_digest,
                     };
 
-                    ModuleInfo::new(proc_name.module_path, core::iter::once(proc))
+                    ModuleInfo::new(proc_name.module_path, vec![proc])
                 });
         }
 
@@ -130,39 +130,52 @@ pub struct CompiledLibraryMetadata {
 #[derive(Debug, Clone)]
 pub struct ModuleInfo {
     path: LibraryPath,
-    procedures: Vec<(ProcedureIndex, ProcedureInfo)>,
+    procedure_infos: Vec<ProcedureInfo>,
 }
 
 impl ModuleInfo {
-    pub fn new(path: LibraryPath, procedures: impl Iterator<Item = ProcedureInfo>) -> Self {
+    /// Constructs a new [`ModuleInfo`].
+    pub fn new(path: LibraryPath, procedures: Vec<ProcedureInfo>) -> Self {
         Self {
             path,
-            procedures: procedures
-                .enumerate()
-                .map(|(idx, proc)| (ProcedureIndex::new(idx), proc))
-                .collect(),
+            procedure_infos: procedures,
         }
     }
 
-    pub fn add_procedure(&mut self, procedure: ProcedureInfo) {
-        let index = ProcedureIndex::new(self.procedures.len());
-        self.procedures.push((index, procedure));
+    /// Adds a [`ProcedureInfo`] to the module.
+    pub fn add_procedure_info(&mut self, procedure: ProcedureInfo) {
+        self.procedure_infos.push(procedure);
     }
 
+    /// Returns the module's library path.
     pub fn path(&self) -> &LibraryPath {
         &self.path
     }
 
-    // TODOP: Store as `CompiledProcedure`, and add a method `iter()` that iterates with
-    // `ProcedureIndex`
-    pub fn procedures(&self) -> &[(ProcedureIndex, ProcedureInfo)] {
-        &self.procedures
+    /// Returns the number of procedures in the module.
+    pub fn num_procedures(&self) -> usize {
+        self.procedure_infos.len()
     }
 
-    pub fn resolve(&self, name: &ProcedureName) -> Option<ResolvedProcedure> {
-        self.procedures.iter().find_map(|(_, proc)| {
-            if &proc.name == name {
-                Some(ResolvedProcedure::MastRoot(proc.digest))
+    /// Returns an iterator over the procedure infos in the module with their corresponding
+    /// procedure index in the module.
+    pub fn procedure_infos(&self) -> impl Iterator<Item = (ProcedureIndex, &ProcedureInfo)> {
+        self.procedure_infos
+            .iter()
+            .enumerate()
+            .map(|(idx, proc)| (ProcedureIndex::new(idx), proc))
+    }
+
+    /// Returns the [`ProcedureInfo`] of the procedure at the provided index, if any.
+    pub fn get_proc_info_by_index(&self, index: ProcedureIndex) -> Option<&ProcedureInfo> {
+        self.procedure_infos.get(index.as_usize())
+    }
+
+    /// Returns the digest of the procedure with the provided name, if any.
+    pub fn get_proc_digest_by_name(&self, name: &ProcedureName) -> Option<RpoDigest> {
+        self.procedure_infos.iter().find_map(|proc_info| {
+            if &proc_info.name == name {
+                Some(proc_info.digest)
             } else {
                 None
             }
