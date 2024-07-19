@@ -189,7 +189,7 @@ impl<'a> NameResolver<'a> {
             Some(ResolvedProcedure::MastRoot(ref digest)) => {
                 match self.graph.get_procedure_index_by_digest(digest) {
                     Some(gid) => Ok(ResolvedTarget::Exact { gid }),
-                    None => Ok(ResolvedTarget::Phantom(**digest)),
+                    None => Ok(ResolvedTarget::Phantom(*digest)),
                 }
             }
             None => Err(AssemblyError::Failed {

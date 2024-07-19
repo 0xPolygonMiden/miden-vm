@@ -6,7 +6,7 @@ use vm_core::{
 
 use crate::{
     ast::{FullyQualifiedProcedureName, ProcedureIndex, ProcedureName, ResolvedProcedure},
-    LibraryPath, SourceSpan, Span, Version,
+    LibraryPath, Version,
 };
 
 // TODOP: Refactor `FullyQualifiedProcedureName` instead, and use `Span<FQDN>` where needed?
@@ -158,11 +158,7 @@ impl CompiledModule {
     pub fn resolve(&self, name: &ProcedureName) -> Option<ResolvedProcedure> {
         self.procedures.iter().find_map(|(_, proc)| {
             if proc.name() == name {
-                // TODOP: FIX SPAN
-                Some(ResolvedProcedure::MastRoot(Span::new(
-                    SourceSpan::at(0),
-                    *proc.digest(),
-                )))
+                Some(ResolvedProcedure::MastRoot(*proc.digest()))
             } else {
                 None
             }

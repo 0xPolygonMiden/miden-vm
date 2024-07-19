@@ -208,11 +208,9 @@ impl Module {
                 span: export.span(),
             });
         }
-        if let Some(prev) = self.resolve(export.name()) {
-            let prev_span = prev.span();
-            Err(SemanticAnalysisError::SymbolConflict {
-                span: export.span(),
-                prev_span,
+        if let Some(_prev) = self.resolve(export.name()) {
+            Err(SemanticAnalysisError::ProcedureNameConflict {
+                name: export.name().clone(),
             })
         } else {
             self.procedures.push(export);
@@ -420,7 +418,7 @@ impl Module {
                 Some(ResolvedProcedure::Local(Span::new(proc.name().span(), index)))
             }
             Export::Alias(ref alias) => match alias.target() {
-                AliasTarget::MastRoot(digest) => Some(ResolvedProcedure::MastRoot(*digest)),
+                AliasTarget::MastRoot(digest) => Some(ResolvedProcedure::MastRoot(**digest)),
                 AliasTarget::Path(path) => Some(ResolvedProcedure::External(path.clone())),
             },
         }
@@ -435,7 +433,7 @@ impl Module {
             ),
             Export::Alias(ref p) => {
                 let target = match p.target {
-                    AliasTarget::MastRoot(ref digest) => ResolvedProcedure::MastRoot(*digest),
+                    AliasTarget::MastRoot(ref digest) => ResolvedProcedure::MastRoot(**digest),
                     AliasTarget::Path(ref path) => ResolvedProcedure::External(path.clone()),
                 };
                 (p.name().clone(), target)
