@@ -73,13 +73,13 @@ fn decoder_p1_join() {
         let mut mast_forest = MastForest::new();
 
         let basic_block_1 = MastNode::new_basic_block(vec![Operation::Mul]);
-        let basic_block_1_id = mast_forest.add_node(basic_block_1);
+        let basic_block_1_id = mast_forest.add_node(basic_block_1).unwrap();
 
         let basic_block_2 = MastNode::new_basic_block(vec![Operation::Add]);
-        let basic_block_2_id = mast_forest.add_node(basic_block_2);
+        let basic_block_2_id = mast_forest.add_node(basic_block_2).unwrap();
 
         let join = MastNode::new_join(basic_block_1_id, basic_block_2_id, &mast_forest);
-        let join_id = mast_forest.add_node(join);
+        let join_id = mast_forest.add_node(join).unwrap();
 
         Program::new(mast_forest, join_id)
     };
@@ -144,13 +144,13 @@ fn decoder_p1_split() {
         let mut mast_forest = MastForest::new();
 
         let basic_block_1 = MastNode::new_basic_block(vec![Operation::Mul]);
-        let basic_block_1_id = mast_forest.add_node(basic_block_1);
+        let basic_block_1_id = mast_forest.add_node(basic_block_1).unwrap();
 
         let basic_block_2 = MastNode::new_basic_block(vec![Operation::Add]);
-        let basic_block_2_id = mast_forest.add_node(basic_block_2);
+        let basic_block_2_id = mast_forest.add_node(basic_block_2).unwrap();
 
         let split = MastNode::new_split(basic_block_1_id, basic_block_2_id, &mast_forest);
-        let split_id = mast_forest.add_node(split);
+        let split_id = mast_forest.add_node(split).unwrap();
 
         Program::new(mast_forest, split_id)
     };
@@ -202,16 +202,16 @@ fn decoder_p1_loop_with_repeat() {
         let mut mast_forest = MastForest::new();
 
         let basic_block_1 = MastNode::new_basic_block(vec![Operation::Pad]);
-        let basic_block_1_id = mast_forest.add_node(basic_block_1);
+        let basic_block_1_id = mast_forest.add_node(basic_block_1).unwrap();
 
         let basic_block_2 = MastNode::new_basic_block(vec![Operation::Drop]);
-        let basic_block_2_id = mast_forest.add_node(basic_block_2);
+        let basic_block_2_id = mast_forest.add_node(basic_block_2).unwrap();
 
         let join = MastNode::new_join(basic_block_1_id, basic_block_2_id, &mast_forest);
-        let join_id = mast_forest.add_node(join);
+        let join_id = mast_forest.add_node(join).unwrap();
 
         let loop_node = MastNode::new_loop(join_id, &mast_forest);
-        let loop_node_id = mast_forest.add_node(loop_node);
+        let loop_node_id = mast_forest.add_node(loop_node).unwrap();
 
         Program::new(mast_forest, loop_node_id)
     };
@@ -333,7 +333,7 @@ fn decoder_p2_span_with_respan() {
 
         let (ops, _) = build_span_with_respan_ops();
         let basic_block = MastNode::new_basic_block(ops);
-        let basic_block_id = mast_forest.add_node(basic_block);
+        let basic_block_id = mast_forest.add_node(basic_block).unwrap();
 
         Program::new(mast_forest, basic_block_id)
     };
@@ -369,13 +369,13 @@ fn decoder_p2_join() {
     let mut mast_forest = MastForest::new();
 
     let basic_block_1 = MastNode::new_basic_block(vec![Operation::Mul]);
-    let basic_block_1_id = mast_forest.add_node(basic_block_1.clone());
+    let basic_block_1_id = mast_forest.add_node(basic_block_1.clone()).unwrap();
 
     let basic_block_2 = MastNode::new_basic_block(vec![Operation::Add]);
-    let basic_block_2_id = mast_forest.add_node(basic_block_2.clone());
+    let basic_block_2_id = mast_forest.add_node(basic_block_2.clone()).unwrap();
 
     let join = MastNode::new_join(basic_block_1_id, basic_block_2_id, &mast_forest);
-    let join_id = mast_forest.add_node(join.clone());
+    let join_id = mast_forest.add_node(join.clone()).unwrap();
 
     let program = Program::new(mast_forest, join_id);
 
@@ -434,13 +434,13 @@ fn decoder_p2_split_true() {
     let mut mast_forest = MastForest::new();
 
     let basic_block_1 = MastNode::new_basic_block(vec![Operation::Mul]);
-    let basic_block_1_id = mast_forest.add_node(basic_block_1.clone());
+    let basic_block_1_id = mast_forest.add_node(basic_block_1.clone()).unwrap();
 
     let basic_block_2 = MastNode::new_basic_block(vec![Operation::Add]);
-    let basic_block_2_id = mast_forest.add_node(basic_block_2);
+    let basic_block_2_id = mast_forest.add_node(basic_block_2).unwrap();
 
     let split = MastNode::new_split(basic_block_1_id, basic_block_2_id, &mast_forest);
-    let split_id = mast_forest.add_node(split);
+    let split_id = mast_forest.add_node(split).unwrap();
 
     let program = Program::new(mast_forest, split_id);
 
@@ -490,13 +490,13 @@ fn decoder_p2_split_false() {
     let mut mast_forest = MastForest::new();
 
     let basic_block_1 = MastNode::new_basic_block(vec![Operation::Mul]);
-    let basic_block_1_id = mast_forest.add_node(basic_block_1.clone());
+    let basic_block_1_id = mast_forest.add_node(basic_block_1.clone()).unwrap();
 
     let basic_block_2 = MastNode::new_basic_block(vec![Operation::Add]);
-    let basic_block_2_id = mast_forest.add_node(basic_block_2.clone());
+    let basic_block_2_id = mast_forest.add_node(basic_block_2.clone()).unwrap();
 
     let split = MastNode::new_split(basic_block_1_id, basic_block_2_id, &mast_forest);
-    let split_id = mast_forest.add_node(split);
+    let split_id = mast_forest.add_node(split).unwrap();
 
     let program = Program::new(mast_forest, split_id);
 
@@ -546,16 +546,16 @@ fn decoder_p2_loop_with_repeat() {
     let mut mast_forest = MastForest::new();
 
     let basic_block_1 = MastNode::new_basic_block(vec![Operation::Pad]);
-    let basic_block_1_id = mast_forest.add_node(basic_block_1.clone());
+    let basic_block_1_id = mast_forest.add_node(basic_block_1.clone()).unwrap();
 
     let basic_block_2 = MastNode::new_basic_block(vec![Operation::Drop]);
-    let basic_block_2_id = mast_forest.add_node(basic_block_2.clone());
+    let basic_block_2_id = mast_forest.add_node(basic_block_2.clone()).unwrap();
 
     let join = MastNode::new_join(basic_block_1_id, basic_block_2_id, &mast_forest);
-    let join_id = mast_forest.add_node(join.clone());
+    let join_id = mast_forest.add_node(join.clone()).unwrap();
 
     let loop_node = MastNode::new_loop(join_id, &mast_forest);
-    let loop_node_id = mast_forest.add_node(loop_node);
+    let loop_node_id = mast_forest.add_node(loop_node).unwrap();
 
     let program = Program::new(mast_forest, loop_node_id);
 

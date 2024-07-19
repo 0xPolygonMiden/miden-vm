@@ -886,8 +886,9 @@ impl Assembler {
                         context,
                         mast_forest_builder,
                     )? {
-                        if let Some(basic_block_id) =
-                            basic_block_builder.make_basic_block(mast_forest_builder)
+                        if let Some(basic_block_id) = basic_block_builder
+                            .make_basic_block(mast_forest_builder)
+                            .map_err(AssemblyError::from)?
                         {
                             mast_node_ids.push(basic_block_id);
                         }
@@ -899,8 +900,9 @@ impl Assembler {
                 Op::If {
                     then_blk, else_blk, ..
                 } => {
-                    if let Some(basic_block_id) =
-                        basic_block_builder.make_basic_block(mast_forest_builder)
+                    if let Some(basic_block_id) = basic_block_builder
+                        .make_basic_block(mast_forest_builder)
+                        .map_err(AssemblyError::from)?
                     {
                         mast_node_ids.push(basic_block_id);
                     }
@@ -914,14 +916,15 @@ impl Assembler {
                         let split_node =
                             MastNode::new_split(then_blk, else_blk, mast_forest_builder.forest());
 
-                        mast_forest_builder.ensure_node(split_node)
+                        mast_forest_builder.ensure_node(split_node).map_err(AssemblyError::from)?
                     };
                     mast_node_ids.push(split_node_id);
                 }
 
                 Op::Repeat { count, body, .. } => {
-                    if let Some(basic_block_id) =
-                        basic_block_builder.make_basic_block(mast_forest_builder)
+                    if let Some(basic_block_id) = basic_block_builder
+                        .make_basic_block(mast_forest_builder)
+                        .map_err(AssemblyError::from)?
                     {
                         mast_node_ids.push(basic_block_id);
                     }
@@ -935,8 +938,9 @@ impl Assembler {
                 }
 
                 Op::While { body, .. } => {
-                    if let Some(basic_block_id) =
-                        basic_block_builder.make_basic_block(mast_forest_builder)
+                    if let Some(basic_block_id) = basic_block_builder
+                        .make_basic_block(mast_forest_builder)
+                        .map_err(AssemblyError::from)?
                     {
                         mast_node_ids.push(basic_block_id);
                     }
@@ -947,22 +951,25 @@ impl Assembler {
                     let loop_node_id = {
                         let loop_node =
                             MastNode::new_loop(loop_body_node_id, mast_forest_builder.forest());
-                        mast_forest_builder.ensure_node(loop_node)
+                        mast_forest_builder.ensure_node(loop_node).map_err(AssemblyError::from)?
                     };
                     mast_node_ids.push(loop_node_id);
                 }
             }
         }
 
-        if let Some(basic_block_id) = basic_block_builder.into_basic_block(mast_forest_builder) {
+        if let Some(basic_block_id) = basic_block_builder
+            .try_into_basic_block(mast_forest_builder)
+            .map_err(AssemblyError::from)?
+        {
             mast_node_ids.push(basic_block_id);
         }
 
         Ok(if mast_node_ids.is_empty() {
             let basic_block_node = MastNode::new_basic_block(vec![Operation::Noop]);
-            mast_forest_builder.ensure_node(basic_block_node)
+            mast_forest_builder.ensure_node(basic_block_node).map_err(AssemblyError::from)?
         } else {
-            combine_mast_node_ids(mast_node_ids, mast_forest_builder)
+            combine_mast_node_ids(mast_node_ids, mast_forest_builder)?
         })
     }
 
@@ -1006,7 +1013,7 @@ struct BodyWrapper {
 fn combine_mast_node_ids(
     mut mast_node_ids: Vec<MastNodeId>,
     mast_forest_builder: &mut MastForestBuilder,
-) -> MastNodeId {
+) -> Result<MastNodeId, AssemblyError> {
     debug_assert!(!mast_node_ids.is_empty(), "cannot combine empty MAST node id list");
 
     // build a binary tree of blocks joining them using JOIN blocks
@@ -1025,7 +1032,7 @@ fn combine_mast_node_ids(
             (source_mast_node_iter.next(), source_mast_node_iter.next())
         {
             let join_mast_node = MastNode::new_join(left, right, mast_forest_builder.forest());
-            let join_mast_node_id = mast_forest_builder.ensure_node(join_mast_node);
+            let join_mast_node_id = mast_forest_builder.ensure_node(join_mast_node)?;
 
             mast_node_ids.push(join_mast_node_id);
         }
@@ -1034,5 +1041,5 @@ fn combine_mast_node_ids(
         }
     }
 
-    mast_node_ids.remove(0)
+    Ok(mast_node_ids.remove(0))
 }

@@ -4,7 +4,7 @@ use super::{
 };
 use alloc::{borrow::Borrow, string::ToString, vec::Vec};
 use vm_core::{
-    mast::{MastNode, MastNodeId},
+    mast::{MastForestError, MastNode, MastNodeId},
     AdviceInjector, AssemblyOp, Operation,
 };
 
@@ -129,22 +129,22 @@ impl BasicBlockBuilder {
     pub fn make_basic_block(
         &mut self,
         mast_forest_builder: &mut MastForestBuilder,
-    ) -> Option<MastNodeId> {
+    ) -> Result<Option<MastNodeId>, MastForestError> {
         if !self.ops.is_empty() {
             let ops = self.ops.drain(..).collect();
             let decorators = self.decorators.drain(..).collect();
 
             let basic_block_node = MastNode::new_basic_block_with_decorators(ops, decorators);
-            let basic_block_node_id = mast_forest_builder.ensure_node(basic_block_node);
+            let basic_block_node_id = mast_forest_builder.ensure_node(basic_block_node)?;
 
-            Some(basic_block_node_id)
+            Ok(Some(basic_block_node_id))
         } else if !self.decorators.is_empty() {
             // this is a bug in the assembler. we shouldn't have decorators added without their
             // associated operations
             // TODO: change this to an error or allow decorators in empty span blocks
             unreachable!("decorators in an empty SPAN block")
         } else {
-            None
+            Ok(None)
         }
     }
 
@@ -155,10 +155,10 @@ impl BasicBlockBuilder {
     /// - Operations contained in the epilogue of the builder are appended to the list of ops which
     ///   go into the new BASIC BLOCK node.
     /// - The builder is consumed in the process.
-    pub fn into_basic_block(
+    pub fn try_into_basic_block(
         mut self,
         mast_forest_builder: &mut MastForestBuilder,
-    ) -> Option<MastNodeId> {
+    ) -> Result<Option<MastNodeId>, MastForestError> {
         self.ops.append(&mut self.epilogue);
         self.make_basic_block(mast_forest_builder)
     }

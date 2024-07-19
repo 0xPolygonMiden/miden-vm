@@ -51,7 +51,7 @@ pub fn b_chip_span() {
         let mut mast_forest = MastForest::new();
 
         let basic_block = MastNode::new_basic_block(vec![Operation::Add, Operation::Mul]);
-        let basic_block_id = mast_forest.add_node(basic_block);
+        let basic_block_id = mast_forest.add_node(basic_block).unwrap();
 
         Program::new(mast_forest, basic_block_id)
     };
@@ -124,7 +124,7 @@ pub fn b_chip_span_with_respan() {
 
         let (ops, _) = build_span_with_respan_ops();
         let basic_block = MastNode::new_basic_block(ops);
-        let basic_block_id = mast_forest.add_node(basic_block);
+        let basic_block_id = mast_forest.add_node(basic_block).unwrap();
 
         Program::new(mast_forest, basic_block_id)
     };
@@ -216,13 +216,13 @@ pub fn b_chip_merge() {
         let mut mast_forest = MastForest::new();
 
         let t_branch = MastNode::new_basic_block(vec![Operation::Add]);
-        let t_branch_id = mast_forest.add_node(t_branch);
+        let t_branch_id = mast_forest.add_node(t_branch).unwrap();
 
         let f_branch = MastNode::new_basic_block(vec![Operation::Mul]);
-        let f_branch_id = mast_forest.add_node(f_branch);
+        let f_branch_id = mast_forest.add_node(f_branch).unwrap();
 
         let split = MastNode::new_split(t_branch_id, f_branch_id, &mast_forest);
-        let split_id = mast_forest.add_node(split);
+        let split_id = mast_forest.add_node(split).unwrap();
 
         Program::new(mast_forest, split_id)
     };
@@ -335,7 +335,7 @@ pub fn b_chip_permutation() {
         let mut mast_forest = MastForest::new();
 
         let basic_block = MastNode::new_basic_block(vec![Operation::HPerm]);
-        let basic_block_id = mast_forest.add_node(basic_block);
+        let basic_block_id = mast_forest.add_node(basic_block).unwrap();
 
         Program::new(mast_forest, basic_block_id)
     };

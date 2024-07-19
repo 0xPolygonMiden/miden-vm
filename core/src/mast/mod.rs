@@ -77,6 +77,16 @@ impl Deserializable for MastNodeId {
 // MAST FOREST
 // ================================================================================================
 
+/// Represents the types of errors that can occur when dealing with MAST forest.
+#[derive(Debug, thiserror::Error)]
+pub enum MastForestError {
+    #[error(
+        "invalid node count: MAST forest exceeds the maximum of {} nodes",
+        MastForest::MAX_NODES
+    )]
+    TooManyNodes,
+}
+
 /// Represents one or more procedures, represented as a collection of [`MastNode`]s.
 ///
 /// A [`MastForest`] does not have an entrypoint, and hence is not executable. A [`crate::Program`]
@@ -100,20 +110,21 @@ impl MastForest {
 
 /// Mutators
 impl MastForest {
+    /// The maximum number of nodes that can be stored in a single MAST forest.
+    const MAX_NODES: usize = (1 << 30) - 1;
+
     /// Adds a node to the forest, and returns the associated [`MastNodeId`].
     ///
     /// Adding two duplicate nodes will result in two distinct returned [`MastNodeId`]s.
-    pub fn add_node(&mut self, node: MastNode) -> MastNodeId {
-        let new_node_id = MastNodeId(
-            self.nodes
-                .len()
-                .try_into()
-                .expect("invalid node id: exceeded maximum number of nodes in a single forest"),
-        );
+    pub fn add_node(&mut self, node: MastNode) -> Result<MastNodeId, MastForestError> {
+        if self.nodes.len() == Self::MAX_NODES {
+            return Err(MastForestError::TooManyNodes);
+        }
 
+        let new_node_id = MastNodeId(self.nodes.len() as u32);
         self.nodes.push(node);
 
-        new_node_id
+        Ok(new_node_id)
     }
 
     /// Marks the given [`MastNodeId`] as being the root of a procedure.
