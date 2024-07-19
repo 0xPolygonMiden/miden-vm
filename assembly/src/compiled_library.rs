@@ -9,7 +9,10 @@ use crate::{
     LibraryPath, Version,
 };
 
-// TODOP: Refactor `FullyQualifiedProcedureName` instead, and use `Span<FQDN>` where needed?
+/// A procedure's name, along with its module path.
+/// 
+/// The only difference between this type and [`FullyQualifiedProcedureName`] is that
+/// [`CompiledFullyQualifiedProcedureName`] doesn't have a [`crate::SourceSpan`].
 pub struct CompiledFullyQualifiedProcedureName {
     /// The module path for this procedure.
     pub module_path: LibraryPath,
