@@ -2423,11 +2423,17 @@ fn test_compiled_library() {
     use.mylib::mod1
     use.mylib::mod2
 
+    proc.foo
+        push.1
+        drop
+    end
+
     begin
-    exec.mod1::foo
-    exec.mod1::bar
-    exec.mod2::foo
-    exec.mod2::bar
+        exec.mod1::foo
+        exec.mod1::bar
+        exec.mod2::foo
+        exec.mod2::bar
+        exec.foo
     end
     ";
 
