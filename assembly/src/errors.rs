@@ -137,7 +137,6 @@ pub enum AssemblyError {
     #[diagnostic(transparent)]
     Other(#[from] RelatedError),
     #[error(transparent)]
-    #[diagnostic(transparent)]
     Forest(#[from] MastForestError),
 }
 

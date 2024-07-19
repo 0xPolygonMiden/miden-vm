@@ -2,7 +2,6 @@ use core::{fmt, ops::Index};
 
 use alloc::vec::Vec;
 use miden_crypto::hash::rpo::RpoDigest;
-use miette::Diagnostic;
 
 mod node;
 pub use node::{
@@ -79,7 +78,7 @@ impl Deserializable for MastNodeId {
 // ================================================================================================
 
 /// Represents the types of errors that can occur when dealing with MAST forest.
-#[derive(Debug, thiserror::Error, Diagnostic)]
+#[derive(Debug, thiserror::Error)]
 pub enum MastForestError {
     #[error(
         "invalid node count: MAST forest exceeds the maximum of {} nodes",
