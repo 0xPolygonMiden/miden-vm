@@ -132,7 +132,7 @@ impl WrappedModule {
     }
 }
 
-// TODOP: Try to do without this `Pending*` version
+/// Wraps modules that are pending in the [`ModuleGraph`].
 #[derive(Clone)]
 pub enum PendingModuleWrapper {
     Ast(Box<Module>),
@@ -140,6 +140,7 @@ pub enum PendingModuleWrapper {
 }
 
 impl PendingModuleWrapper {
+    /// Returns the library path of the wrapped module.
     pub fn path(&self) -> &LibraryPath {
         match self {
             Self::Ast(m) => m.path(),
