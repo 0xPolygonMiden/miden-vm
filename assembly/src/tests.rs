@@ -2403,7 +2403,7 @@ fn test_compiled_library() {
     };
 
     let metadata = CompiledLibraryMetadata {
-        path: LibraryPath::new("mylib").unwrap(),
+        name: LibraryNamespace::new("mylib").unwrap(),
         version: Version::min(),
     };
 

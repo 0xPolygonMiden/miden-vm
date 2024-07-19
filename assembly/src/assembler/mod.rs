@@ -14,6 +14,7 @@ use crate::{
 };
 use alloc::{boxed::Box, sync::Arc, vec::Vec};
 use mast_forest_builder::MastForestBuilder;
+use miette::miette;
 use vm_core::{
     mast::{MastForest, MastNode, MastNodeId, MerkleTreeNode},
     Decorator, DecoratorList, Kernel, Operation, Program,
@@ -340,9 +341,10 @@ impl Assembler {
 
 /// Compilation/Assembly
 impl Assembler {
-    // TODOP: Document
-    // TODOP: Check that `CompiledLibraryMetadata` is consistent with `modules` (e.g. modules path
-    // indeed start with library name)
+    /// Assembles a set of modules into a library.
+    ///
+    /// The returned library can be added to the assembler assembling a program that depends on the
+    /// library using [`Self::add_compiled_library`].
     pub fn assemble_library(
         mut self,
         modules: impl Iterator<Item = impl Compile>,
@@ -351,6 +353,16 @@ impl Assembler {
         let module_ids: Vec<ModuleIndex> = modules
             .map(|module| {
                 let module = module.compile_with_options(CompileOptions::for_library())?;
+
+                if module.path().namespace() != &metadata.name {
+                    return Err(miette!(
+                        "library namespace is {}, but module {} has namespace {}",
+                        metadata.name,
+                        module.name(),
+                        module.path().namespace()
+                    ));
+                }
+
                 Ok(self.module_graph.add_ast_module(module)?)
             })
             .collect::<Result<_, Report>>()?;

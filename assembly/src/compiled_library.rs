@@ -6,7 +6,7 @@ use vm_core::{
 
 use crate::{
     ast::{FullyQualifiedProcedureName, ProcedureIndex, ProcedureName},
-    CompiledLibraryError, LibraryPath, Version,
+    CompiledLibraryError, LibraryNamespace, LibraryPath, Version,
 };
 
 /// A procedure's name, along with its module path.
@@ -122,7 +122,7 @@ impl CompiledLibrary {
 }
 
 pub struct CompiledLibraryMetadata {
-    pub path: LibraryPath,
+    pub name: LibraryNamespace,
     pub version: Version,
 }
 
