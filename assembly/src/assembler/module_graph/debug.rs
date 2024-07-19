@@ -19,7 +19,7 @@ impl<'a> fmt::Debug for DisplayModuleGraph<'a> {
         f.debug_set()
             .entries(self.0.modules.iter().enumerate().flat_map(|(module_index, m)| {
                 match m {
-                    WrapperModule::Ast(m) => m
+                    WrappedModule::Ast(m) => m
                         .procedures()
                         .enumerate()
                         .filter_map(move |(i, export)| {
@@ -35,7 +35,7 @@ impl<'a> fmt::Debug for DisplayModuleGraph<'a> {
                             }
                         })
                         .collect::<Vec<_>>(),
-                    WrapperModule::Info(m) => m
+                    WrappedModule::Info(m) => m
                         .procedure_infos()
                         .map(|(proc_index, _proc)| {
                             let gid = GlobalProcedureIndex {
@@ -54,7 +54,7 @@ impl<'a> fmt::Debug for DisplayModuleGraph<'a> {
 }
 
 #[doc(hidden)]
-struct DisplayModuleGraphNodes<'a>(&'a Vec<WrapperModule>);
+struct DisplayModuleGraphNodes<'a>(&'a Vec<WrappedModule>);
 
 impl<'a> fmt::Debug for DisplayModuleGraphNodes<'a> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
@@ -63,7 +63,7 @@ impl<'a> fmt::Debug for DisplayModuleGraphNodes<'a> {
                 let module_index = ModuleIndex::new(module_index);
 
                 match m {
-                    WrapperModule::Ast(m) => m
+                    WrappedModule::Ast(m) => m
                         .procedures()
                         .enumerate()
                         .filter_map(move |(proc_index, export)| {
@@ -80,7 +80,7 @@ impl<'a> fmt::Debug for DisplayModuleGraphNodes<'a> {
                             }
                         })
                         .collect::<Vec<_>>(),
-                    WrapperModule::Info(m) => m
+                    WrappedModule::Info(m) => m
                         .procedure_infos()
                         .map(|(proc_index, proc)| DisplayModuleGraphNode {
                             module: module_index,

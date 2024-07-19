@@ -605,7 +605,7 @@ impl Assembler {
         assert!(self.module_graph.contains_module(module_index), "invalid module index");
 
         let exports: Vec<ProcedureInfo> = match &self.module_graph[module_index] {
-            module_graph::WrapperModule::Ast(module) => {
+            module_graph::WrappedModule::Ast(module) => {
                 let mut exports = Vec::new();
                 for (index, procedure) in module.procedures().enumerate() {
                     // Only add exports; locals will be added if they are in the call graph rooted
@@ -665,7 +665,7 @@ impl Assembler {
 
                 exports
             }
-            module_graph::WrapperModule::Info(module) => {
+            module_graph::WrappedModule::Info(module) => {
                 module.procedure_infos().map(|(_idx, proc)| proc).cloned().collect()
             }
         };
