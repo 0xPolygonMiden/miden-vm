@@ -6,7 +6,7 @@ use crate::{
 };
 
 use smallvec::SmallVec;
-use vm_core::mast::{MastForest, MastNode, MastNodeId};
+use vm_core::mast::{MastForest, MastNodeId};
 
 /// Procedure Invocation
 impl Assembler {
@@ -96,8 +96,7 @@ impl Assembler {
                         None => {
                             // If the MAST root called isn't known to us, make it an external
                             // reference.
-                            let external_node = MastNode::new_external(mast_root);
-                            mast_forest_builder.ensure_node(external_node)?
+                            mast_forest_builder.ensure_external(mast_root)?
                         }
                     }
                 }
@@ -107,13 +106,11 @@ impl Assembler {
                         None => {
                             // If the MAST root called isn't known to us, make it an external
                             // reference.
-                            let external_node = MastNode::new_external(mast_root);
-                            mast_forest_builder.ensure_node(external_node)?
+                            mast_forest_builder.ensure_external(mast_root)?
                         }
                     };
 
-                    let call_node = MastNode::new_call(callee_id, mast_forest_builder.forest());
-                    mast_forest_builder.ensure_node(call_node)?
+                    mast_forest_builder.ensure_call(callee_id)?
                 }
                 InvokeKind::SysCall => {
                     let callee_id = match mast_forest_builder.find_procedure_root(mast_root) {
@@ -121,14 +118,11 @@ impl Assembler {
                         None => {
                             // If the MAST root called isn't known to us, make it an external
                             // reference.
-                            let external_node = MastNode::new_external(mast_root);
-                            mast_forest_builder.ensure_node(external_node)?
+                            mast_forest_builder.ensure_external(mast_root)?
                         }
                     };
 
-                    let syscall_node =
-                        MastNode::new_syscall(callee_id, mast_forest_builder.forest());
-                    mast_forest_builder.ensure_node(syscall_node)?
+                    mast_forest_builder.ensure_syscall(callee_id)?
                 }
             }
         };
@@ -141,7 +135,7 @@ impl Assembler {
         &self,
         mast_forest_builder: &mut MastForestBuilder,
     ) -> Result<Option<MastNodeId>, AssemblyError> {
-        let dyn_node_id = mast_forest_builder.ensure_node(MastNode::Dyn)?;
+        let dyn_node_id = mast_forest_builder.ensure_dynexec()?;
 
         Ok(Some(dyn_node_id))
     }
@@ -152,10 +146,8 @@ impl Assembler {
         mast_forest_builder: &mut MastForestBuilder,
     ) -> Result<Option<MastNodeId>, AssemblyError> {
         let dyn_call_node_id = {
-            let dyn_node_id = mast_forest_builder.ensure_node(MastNode::Dyn)?;
-            let dyn_call_node = MastNode::new_call(dyn_node_id, mast_forest_builder.forest());
-
-            mast_forest_builder.ensure_node(dyn_call_node)?
+            let dyn_node_id = mast_forest_builder.ensure_dynexec()?;
+            mast_forest_builder.ensure_call(dyn_node_id)?
         };
 
         Ok(Some(dyn_call_node_id))

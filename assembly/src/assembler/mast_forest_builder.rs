@@ -1,9 +1,10 @@
 use core::ops::Index;
 
-use alloc::collections::BTreeMap;
+use alloc::{collections::BTreeMap, vec::Vec};
 use vm_core::{
     crypto::hash::RpoDigest,
     mast::{MastForest, MastForestError, MastNode, MastNodeId, MerkleTreeNode},
+    DecoratorList, Operation,
 };
 
 /// Builder for a [`MastForest`].
@@ -44,7 +45,7 @@ impl MastForestBuilder {
     /// If a [`MastNode`] which is equal to the current node was previously added, the previously
     /// returned [`MastNodeId`] will be returned. This enforces this invariant that equal
     /// [`MastNode`]s have equal [`MastNodeId`]s.
-    pub fn ensure_node(&mut self, node: MastNode) -> Result<MastNodeId, MastForestError> {
+    fn ensure_node(&mut self, node: MastNode) -> Result<MastNodeId, MastForestError> {
         let node_digest = node.digest();
 
         if let Some(node_id) = self.node_id_by_hash.get(&node_digest) {
@@ -56,6 +57,63 @@ impl MastForestBuilder {
 
             Ok(new_node_id)
         }
+    }
+
+    /// Adds a basic block node to the forest, and returns the [`MastNodeId`] associated with it.
+    pub fn ensure_block(
+        &mut self,
+        operations: Vec<Operation>,
+        decorators: Option<DecoratorList>,
+    ) -> Result<MastNodeId, MastForestError> {
+        match decorators {
+            Some(decorators) => {
+                self.ensure_node(MastNode::new_basic_block_with_decorators(operations, decorators))
+            }
+            None => self.ensure_node(MastNode::new_basic_block(operations)),
+        }
+    }
+
+    /// Adds a join node to the forest, and returns the [`MastNodeId`] associated with it.
+    pub fn ensure_join(
+        &mut self,
+        left_child: MastNodeId,
+        right_child: MastNodeId,
+    ) -> Result<MastNodeId, MastForestError> {
+        self.ensure_node(MastNode::new_join(left_child, right_child, &self.mast_forest))
+    }
+
+    /// Adds a split node to the forest, and returns the [`MastNodeId`] associated with it.
+    pub fn ensure_split(
+        &mut self,
+        if_branch: MastNodeId,
+        else_branch: MastNodeId,
+    ) -> Result<MastNodeId, MastForestError> {
+        self.ensure_node(MastNode::new_split(if_branch, else_branch, &self.mast_forest))
+    }
+
+    /// Adds a loop node to the forest, and returns the [`MastNodeId`] associated with it.
+    pub fn ensure_loop(&mut self, body: MastNodeId) -> Result<MastNodeId, MastForestError> {
+        self.ensure_node(MastNode::new_loop(body, &self.mast_forest))
+    }
+
+    /// Adds a call node to the forest, and returns the [`MastNodeId`] associated with it.
+    pub fn ensure_call(&mut self, callee: MastNodeId) -> Result<MastNodeId, MastForestError> {
+        self.ensure_node(MastNode::new_call(callee, &self.mast_forest))
+    }
+
+    /// Adds a syscall node to the forest, and returns the [`MastNodeId`] associated with it.
+    pub fn ensure_syscall(&mut self, callee: MastNodeId) -> Result<MastNodeId, MastForestError> {
+        self.ensure_node(MastNode::new_syscall(callee, &self.mast_forest))
+    }
+
+    /// Adds a dynexec node to the forest, and returns the [`MastNodeId`] associated with it.
+    pub fn ensure_dynexec(&mut self) -> Result<MastNodeId, MastForestError> {
+        self.ensure_node(MastNode::new_dynexec())
+    }
+
+    /// Adds an external node to the forest, and returns the [`MastNodeId`] associated with it.
+    pub fn ensure_external(&mut self, mast_root: RpoDigest) -> Result<MastNodeId, MastForestError> {
+        self.ensure_node(MastNode::new_external(mast_root))
     }
 
     /// Marks the given [`MastNodeId`] as being the root of a procedure.
