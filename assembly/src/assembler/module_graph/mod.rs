@@ -558,13 +558,12 @@ impl ModuleGraph {
         self.topo.as_slice()
     }
 
-    /// Compute the topological sort of the callgraph rooted at `caller`
-    pub fn topological_sort_from_root(
+    /// Compute the topological sort of the callgraph rooted at `caller`, only for procedures that
+    /// need to be assembled (i.e. in `Ast` representation).
+    pub fn topological_sort_ast_procs_from_root(
         &self,
         caller: GlobalProcedureIndex,
     ) -> Result<Vec<GlobalProcedureIndex>, CycleError> {
-        // TODOP: Fix Vec -> into_iter() -> collect
-        // TODOP: Should we change name/args?
         Ok(self
             .callgraph
             .toposort_caller(caller)?
