@@ -88,7 +88,7 @@ impl<'a> fmt::Debug for DisplayModuleGraphNodes<'a> {
                             module: module_index,
                             index: *proc_index,
                             path: m.path(),
-                            proc_name: proc.name(),
+                            proc_name: &proc.name,
                             ty: GraphNodeType::Compiled,
                         })
                         .collect::<Vec<_>>(),

@@ -27,7 +27,7 @@ use self::{
     rewrites::ModuleRewriter,
 };
 use super::{GlobalProcedureIndex, ModuleIndex};
-use crate::compiled_library::{CompiledModule, CompiledProcedure};
+use crate::compiled_library::{CompiledModule, ProcedureInfo};
 use crate::{
     ast::{
         Export, FullyQualifiedProcedureName, InvocationTarget, Module, ProcedureIndex,
@@ -40,14 +40,14 @@ use crate::{
 // TODOP: Better doc
 pub enum WrapperProcedure<'a> {
     Ast(&'a Export),
-    Compiled(&'a CompiledProcedure),
+    Compiled(&'a ProcedureInfo),
 }
 
 impl<'a> WrapperProcedure<'a> {
     pub fn name(&self) -> &ProcedureName {
         match self {
             WrapperProcedure::Ast(p) => p.name(),
-            WrapperProcedure::Compiled(p) => p.name(),
+            WrapperProcedure::Compiled(p) => &p.name,
         }
     }
 
@@ -759,7 +759,7 @@ impl ModuleGraph {
                     break module
                         .procedures()
                         .iter()
-                        .find(|(_index, procedure)| procedure.name() == &name.name)
+                        .find(|(_index, procedure)| procedure.name == name.name)
                         .map(|(index, _)| GlobalProcedureIndex {
                             module: module_index,
                             index: *index,

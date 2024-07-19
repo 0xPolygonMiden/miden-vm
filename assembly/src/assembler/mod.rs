@@ -5,7 +5,7 @@ use crate::{
     },
     compiled_library::{
         CompiledFullyQualifiedProcedureName, CompiledLibrary, CompiledLibraryMetadata,
-        CompiledProcedure,
+        ProcedureInfo,
     },
     diagnostics::{tracing::instrument, Report},
     sema::SemanticAnalysisError,
@@ -228,7 +228,7 @@ impl Assembler {
         Ok(())
     }
 
-    /// TODOP: documentation
+    /// Adds the compiled library to provide modules for the compilation.
     pub fn add_compiled_library(&mut self, library: CompiledLibrary) -> Result<(), Report> {
         let module_indexes: Vec<ModuleIndex> = library
             .into_compiled_modules()
@@ -602,10 +602,10 @@ impl Assembler {
         module_index: ModuleIndex,
         mast_forest: &MastForest,
         // TODOP: Return iterator instead?
-    ) -> Result<Vec<CompiledProcedure>, Report> {
+    ) -> Result<Vec<ProcedureInfo>, Report> {
         assert!(self.module_graph.contains_module(module_index), "invalid module index");
 
-        let exports: Vec<CompiledProcedure> = match &self.module_graph[module_index] {
+        let exports: Vec<ProcedureInfo> = match &self.module_graph[module_index] {
             module_graph::WrapperModule::Ast(module) => {
                 let mut exports = Vec::new();
                 for (index, procedure) in module.procedures().enumerate() {
@@ -656,7 +656,7 @@ impl Assembler {
                         }
                     });
 
-                    let compiled_proc = CompiledProcedure {
+                    let compiled_proc = ProcedureInfo {
                         name: proc.name().clone(),
                         digest: mast_forest[proc.body_node_id()].digest(),
                     };

@@ -10,7 +10,7 @@ use crate::{
 };
 
 /// A procedure's name, along with its module path.
-/// 
+///
 /// The only difference between this type and [`FullyQualifiedProcedureName`] is that
 /// [`CompiledFullyQualifiedProcedureName`] doesn't have a [`crate::SourceSpan`].
 pub struct CompiledFullyQualifiedProcedureName {
@@ -35,21 +35,11 @@ impl From<FullyQualifiedProcedureName> for CompiledFullyQualifiedProcedureName {
     }
 }
 
+/// Stores the name and digest of a procedure.
 #[derive(Debug, Clone)]
-pub struct CompiledProcedure {
+pub struct ProcedureInfo {
     pub name: ProcedureName,
     pub digest: RpoDigest,
-}
-
-// TODOP: Remove methods in favor of pub fields?
-impl CompiledProcedure {
-    pub fn name(&self) -> &ProcedureName {
-        &self.name
-    }
-
-    pub fn digest(&self) -> &RpoDigest {
-        &self.digest
-    }
 }
 
 // TODOP: Move into `miden-core` along with `LibraryPath`
@@ -99,7 +89,7 @@ impl CompiledLibrary {
                     let proc_node_id = self.mast_forest.procedure_roots()[proc_index];
                     let proc_digest = self.mast_forest[proc_node_id].digest();
 
-                    compiled_module.add_procedure(CompiledProcedure {
+                    compiled_module.add_procedure(ProcedureInfo {
                         name: proc_name.name.clone(),
                         digest: proc_digest,
                     })
@@ -107,7 +97,7 @@ impl CompiledLibrary {
                 .or_insert_with(|| {
                     let proc_node_id = self.mast_forest.procedure_roots()[proc_index];
                     let proc_digest = self.mast_forest[proc_node_id].digest();
-                    let proc = CompiledProcedure {
+                    let proc = ProcedureInfo {
                         name: proc_name.name,
                         digest: proc_digest,
                     };
@@ -129,11 +119,11 @@ pub struct CompiledLibraryMetadata {
 #[derive(Debug, Clone)]
 pub struct CompiledModule {
     path: LibraryPath,
-    procedures: Vec<(ProcedureIndex, CompiledProcedure)>,
+    procedures: Vec<(ProcedureIndex, ProcedureInfo)>,
 }
 
 impl CompiledModule {
-    pub fn new(path: LibraryPath, procedures: impl Iterator<Item = CompiledProcedure>) -> Self {
+    pub fn new(path: LibraryPath, procedures: impl Iterator<Item = ProcedureInfo>) -> Self {
         Self {
             path,
             procedures: procedures
@@ -143,7 +133,7 @@ impl CompiledModule {
         }
     }
 
-    pub fn add_procedure(&mut self, procedure: CompiledProcedure) {
+    pub fn add_procedure(&mut self, procedure: ProcedureInfo) {
         let index = ProcedureIndex::new(self.procedures.len());
         self.procedures.push((index, procedure));
     }
@@ -154,14 +144,14 @@ impl CompiledModule {
 
     // TODOP: Store as `CompiledProcedure`, and add a method `iter()` that iterates with
     // `ProcedureIndex`
-    pub fn procedures(&self) -> &[(ProcedureIndex, CompiledProcedure)] {
+    pub fn procedures(&self) -> &[(ProcedureIndex, ProcedureInfo)] {
         &self.procedures
     }
 
     pub fn resolve(&self, name: &ProcedureName) -> Option<ResolvedProcedure> {
         self.procedures.iter().find_map(|(_, proc)| {
-            if proc.name() == name {
-                Some(ResolvedProcedure::MastRoot(*proc.digest()))
+            if &proc.name == name {
+                Some(ResolvedProcedure::MastRoot(proc.digest))
             } else {
                 None
             }
