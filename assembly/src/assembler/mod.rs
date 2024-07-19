@@ -228,7 +228,7 @@ impl Assembler {
         Ok(())
     }
 
-    /// TODOP: Add `vendored` flag and document
+    /// TODOP: documentation
     pub fn add_compiled_library(&mut self, library: CompiledLibrary) -> Result<(), Report> {
         let module_indexes: Vec<ModuleIndex> = library
             .into_compiled_modules()
@@ -236,7 +236,6 @@ impl Assembler {
             .map(|module| self.module_graph.add_compiled_module(module))
             .collect::<Result<_, _>>()?;
 
-        // TODOP: Try to remove this recompute()
         self.module_graph.recompute()?;
 
         // Register all procedures as roots
