@@ -18,6 +18,7 @@
 - Updated CI and Makefile to standardise it accross Miden repositories (#1342).
 - Add serialization/deserialization for `MastForest` (#1370)
 - Updated CI to support `CHANGELOG.md` modification checking and `no changelog` label (#1406)
+- Introduce `MastForestError` to enforce `MastForest` node count invariant (#1394)
 
 #### Changed
 

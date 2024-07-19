@@ -35,7 +35,7 @@ pub fn build_trace_from_ops(operations: Vec<Operation>, stack: &[u64]) -> Execut
     let mut mast_forest = MastForest::new();
 
     let basic_block = MastNode::new_basic_block(operations);
-    let basic_block_id = mast_forest.add_node(basic_block);
+    let basic_block_id = mast_forest.add_node(basic_block).unwrap();
 
     let program = Program::new(mast_forest, basic_block_id);
 
@@ -57,7 +57,7 @@ pub fn build_trace_from_ops_with_inputs(
 
     let mut mast_forest = MastForest::new();
     let basic_block = MastNode::new_basic_block(operations);
-    let basic_block_id = mast_forest.add_node(basic_block);
+    let basic_block_id = mast_forest.add_node(basic_block).unwrap();
 
     let program = Program::new(mast_forest, basic_block_id);
 

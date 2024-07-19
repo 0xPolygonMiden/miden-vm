@@ -1,4 +1,5 @@
 use alloc::{string::String, sync::Arc, vec::Vec};
+use vm_core::mast::MastForestError;
 
 use crate::{
     ast::{FullyQualifiedProcedureName, ProcedureName},
@@ -135,7 +136,10 @@ pub enum AssemblyError {
     #[error(transparent)]
     #[diagnostic(transparent)]
     Other(#[from] RelatedError),
+    #[error(transparent)]
+    Forest(#[from] MastForestError),
 }
+
 impl From<Report> for AssemblyError {
     fn from(report: Report) -> Self {
         Self::Other(RelatedError::new(report))

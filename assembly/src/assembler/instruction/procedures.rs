@@ -91,37 +91,44 @@ impl Assembler {
                     // procedures, such that when we assemble a procedure, all
                     // procedures that it calls will have been assembled, and
                     // hence be present in the `MastForest`.
-                    mast_forest_builder.find_procedure_root(mast_root).unwrap_or_else(|| {
-                        // If the MAST root called isn't known to us, make it an external
-                        // reference.
-                        let external_node = MastNode::new_external(mast_root);
-                        mast_forest_builder.ensure_node(external_node)
-                    })
+                    match mast_forest_builder.find_procedure_root(mast_root) {
+                        Some(root) => root,
+                        None => {
+                            // If the MAST root called isn't known to us, make it an external
+                            // reference.
+                            let external_node = MastNode::new_external(mast_root);
+                            mast_forest_builder.ensure_node(external_node)?
+                        }
+                    }
                 }
                 InvokeKind::Call => {
-                    let callee_id =
-                        mast_forest_builder.find_procedure_root(mast_root).unwrap_or_else(|| {
+                    let callee_id = match mast_forest_builder.find_procedure_root(mast_root) {
+                        Some(callee_id) => callee_id,
+                        None => {
                             // If the MAST root called isn't known to us, make it an external
                             // reference.
                             let external_node = MastNode::new_external(mast_root);
-                            mast_forest_builder.ensure_node(external_node)
-                        });
+                            mast_forest_builder.ensure_node(external_node)?
+                        }
+                    };
 
                     let call_node = MastNode::new_call(callee_id, mast_forest_builder.forest());
-                    mast_forest_builder.ensure_node(call_node)
+                    mast_forest_builder.ensure_node(call_node)?
                 }
                 InvokeKind::SysCall => {
-                    let callee_id =
-                        mast_forest_builder.find_procedure_root(mast_root).unwrap_or_else(|| {
+                    let callee_id = match mast_forest_builder.find_procedure_root(mast_root) {
+                        Some(callee_id) => callee_id,
+                        None => {
                             // If the MAST root called isn't known to us, make it an external
                             // reference.
                             let external_node = MastNode::new_external(mast_root);
-                            mast_forest_builder.ensure_node(external_node)
-                        });
+                            mast_forest_builder.ensure_node(external_node)?
+                        }
+                    };
 
                     let syscall_node =
                         MastNode::new_syscall(callee_id, mast_forest_builder.forest());
-                    mast_forest_builder.ensure_node(syscall_node)
+                    mast_forest_builder.ensure_node(syscall_node)?
                 }
             }
         };
@@ -134,7 +141,7 @@ impl Assembler {
         &self,
         mast_forest_builder: &mut MastForestBuilder,
     ) -> Result<Option<MastNodeId>, AssemblyError> {
-        let dyn_node_id = mast_forest_builder.ensure_node(MastNode::Dyn);
+        let dyn_node_id = mast_forest_builder.ensure_node(MastNode::Dyn)?;
 
         Ok(Some(dyn_node_id))
     }
@@ -145,10 +152,10 @@ impl Assembler {
         mast_forest_builder: &mut MastForestBuilder,
     ) -> Result<Option<MastNodeId>, AssemblyError> {
         let dyn_call_node_id = {
-            let dyn_node_id = mast_forest_builder.ensure_node(MastNode::Dyn);
+            let dyn_node_id = mast_forest_builder.ensure_node(MastNode::Dyn)?;
             let dyn_call_node = MastNode::new_call(dyn_node_id, mast_forest_builder.forest());
 
-            mast_forest_builder.ensure_node(dyn_call_node)
+            mast_forest_builder.ensure_node(dyn_call_node)?
         };
 
         Ok(Some(dyn_call_node_id))
