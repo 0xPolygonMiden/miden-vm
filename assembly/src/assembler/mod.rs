@@ -962,11 +962,15 @@ impl Assembler {
         let resolved = self.module_graph.resolve_target(&caller, target)?;
         match resolved {
             ResolvedTarget::Phantom(digest) | ResolvedTarget::Cached { digest, .. } => Ok(digest),
-            ResolvedTarget::Exact { gid } | ResolvedTarget::Resolved { gid, .. } => Ok(self
-                .procedure_cache
-                .get(gid)
-                .map(|p| p.mast_root(mast_forest))
-                .expect("expected callee to have been compiled already")),
+            ResolvedTarget::Exact { gid } | ResolvedTarget::Resolved { gid, .. } => Ok(
+                // first look in the module graph, and fallback to the procedure cache
+                self.module_graph.get_mast_root(gid).copied().unwrap_or_else(|| {
+                    self.procedure_cache
+                        .get(gid)
+                        .map(|p| p.mast_root(mast_forest))
+                        .expect("expected callee to have been compiled already")
+                }),
+            ),
         }
     }
 }
