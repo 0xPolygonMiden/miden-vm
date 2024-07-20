@@ -285,9 +285,9 @@ where
     let clk = system.clk();
 
     // trace lengths of system and stack components must be equal to the number of executed cycles
-    assert_eq!(clk as usize, system.trace_len(), "inconsistent system trace lengths");
-    assert_eq!(clk as usize, decoder.trace_len(), "inconsistent decoder trace length");
-    assert_eq!(clk as usize, stack.trace_len(), "inconsistent stack trace lengths");
+    assert_eq!(usize::from(clk), system.trace_len(), "inconsistent system trace lengths");
+    assert_eq!(usize::from(clk), decoder.trace_len(), "inconsistent decoder trace length");
+    assert_eq!(usize::from(clk), stack.trace_len(), "inconsistent stack trace lengths");
 
     // Add the range checks required by the chiplets to the range checker.
     chiplets.append_range_checks(&mut range);
@@ -296,7 +296,7 @@ where
     let range_table_len = range.get_number_range_checker_rows();
 
     // Get the trace length required to hold all execution trace steps.
-    let max_len = range_table_len.max(clk as usize).max(chiplets.trace_len());
+    let max_len = range_table_len.max(clk.into()).max(chiplets.trace_len());
 
     // pad the trace length to the next power of two and ensure that there is space for the
     // rows to hold random values
@@ -308,7 +308,7 @@ where
 
     // get the lengths of the traces: main, range, and chiplets
     let trace_len_summary =
-        TraceLenSummary::new(clk as usize, range_table_len, ChipletsLengths::new(&chiplets));
+        TraceLenSummary::new(clk.into(), range_table_len, ChipletsLengths::new(&chiplets));
 
     // combine all trace segments into the main trace
     let system_trace = system.into_trace(trace_len, NUM_RAND_ROWS);

@@ -6,18 +6,21 @@ use super::{
 use crate::StackInputs;
 use alloc::vec::Vec;
 use core::ops::Range;
-use miden_air::trace::{
-    chiplets::{
-        hasher::{
-            HasherState, Selectors, CAPACITY_DOMAIN_IDX, CAPACITY_LEN, DIGEST_RANGE,
-            HASH_CYCLE_LEN, LINEAR_HASH, LINEAR_HASH_LABEL, MP_VERIFY, MP_VERIFY_LABEL,
-            MR_UPDATE_NEW, MR_UPDATE_NEW_LABEL, MR_UPDATE_OLD, MR_UPDATE_OLD_LABEL, RETURN_HASH,
-            RETURN_HASH_LABEL, RETURN_STATE, RETURN_STATE_LABEL, STATE_WIDTH,
+use miden_air::{
+    trace::{
+        chiplets::{
+            hasher::{
+                HasherState, Selectors, CAPACITY_DOMAIN_IDX, CAPACITY_LEN, DIGEST_RANGE,
+                HASH_CYCLE_LEN, LINEAR_HASH, LINEAR_HASH_LABEL, MP_VERIFY, MP_VERIFY_LABEL,
+                MR_UPDATE_NEW, MR_UPDATE_NEW_LABEL, MR_UPDATE_OLD, MR_UPDATE_OLD_LABEL,
+                RETURN_HASH, RETURN_HASH_LABEL, RETURN_STATE, RETURN_STATE_LABEL, STATE_WIDTH,
+            },
+            HASHER_NODE_INDEX_COL_IDX, HASHER_STATE_COL_RANGE, HASHER_TRACE_OFFSET,
         },
-        HASHER_NODE_INDEX_COL_IDX, HASHER_STATE_COL_RANGE, HASHER_TRACE_OFFSET,
+        decoder::{NUM_OP_BITS, OP_BITS_OFFSET},
+        CLK_COL_IDX, DECODER_TRACE_OFFSET,
     },
-    decoder::{NUM_OP_BITS, OP_BITS_OFFSET},
-    CLK_COL_IDX, DECODER_TRACE_OFFSET,
+    RowIndex,
 };
 use vm_core::{
     chiplets::hasher::apply_permutation,
@@ -71,14 +74,14 @@ pub fn b_chip_span() {
 
     // initialize the request state.
     let mut state = [ZERO; STATE_WIDTH];
-    fill_state_from_decoder_with_domain(&trace, &mut state, 0);
+    fill_state_from_decoder_with_domain(&trace, &mut state, 0.into());
     // request the initialization of the span hash
     let request_init =
         build_expected(&alphas, LINEAR_HASH_LABEL, state, [ZERO; STATE_WIDTH], ONE, ZERO);
     let mut expected = request_init.inv();
 
     // provide the initialization of the span hash
-    expected *= build_expected_from_trace(&trace, &alphas, 0);
+    expected *= build_expected_from_trace(&trace, &alphas, 0.into());
     assert_eq!(expected, b_chip[1]);
 
     // Nothing changes when there is no communication with the hash chiplet.
@@ -105,7 +108,7 @@ pub fn b_chip_span() {
     }
 
     // At the end of the hash cycle, the result of the span hash is provided by the hasher
-    expected *= build_expected_from_trace(&trace, &alphas, HASH_CYCLE_LEN - 1);
+    expected *= build_expected_from_trace(&trace, &alphas, (HASH_CYCLE_LEN - 1).into());
     assert_eq!(expected, b_chip[HASH_CYCLE_LEN]);
 
     // The value in b_chip should be ONE now and for the rest of the trace.
@@ -142,14 +145,14 @@ pub fn b_chip_span_with_respan() {
 
     // initialize the request state.
     let mut state = [ZERO; STATE_WIDTH];
-    fill_state_from_decoder_with_domain(&trace, &mut state, 0);
+    fill_state_from_decoder_with_domain(&trace, &mut state, 0.into());
     // request the initialization of the span hash
     let request_init =
         build_expected(&alphas, LINEAR_HASH_LABEL, state, [ZERO; STATE_WIDTH], ONE, ZERO);
     let mut expected = request_init.inv();
 
     // provide the initialization of the span hash
-    expected *= build_expected_from_trace(&trace, &alphas, 0);
+    expected *= build_expected_from_trace(&trace, &alphas, 0.into());
     assert_eq!(expected, b_chip[1]);
 
     // Nothing changes when there is no communication with the hash chiplet.
@@ -159,7 +162,7 @@ pub fn b_chip_span_with_respan() {
 
     // At the end of the first hash cycle at cycle 7, the absorption of the next operation batch is
     // provided by the hasher.
-    expected *= build_expected_from_trace(&trace, &alphas, 7);
+    expected *= build_expected_from_trace(&trace, &alphas, 7.into());
     assert_eq!(expected, b_chip[8]);
 
     // Nothing changes when there is no communication with the hash chiplet.
@@ -170,7 +173,7 @@ pub fn b_chip_span_with_respan() {
     apply_permutation(&mut state);
     let prev_state = state;
     // get the state with the next absorbed batch.
-    fill_state_from_decoder(&trace, &mut state, 9);
+    fill_state_from_decoder(&trace, &mut state, 9.into());
 
     let request_respan =
         build_expected(&alphas, LINEAR_HASH_LABEL, prev_state, state, Felt::new(8), ZERO);
@@ -184,7 +187,7 @@ pub fn b_chip_span_with_respan() {
 
     // At cycle 15 at the end of the second hash cycle, the result of the span hash is provided by
     // the hasher
-    expected *= build_expected_from_trace(&trace, &alphas, 15);
+    expected *= build_expected_from_trace(&trace, &alphas, 15.into());
     assert_eq!(expected, b_chip[16]);
 
     // Nothing changes when there is no communication with the hash chiplet.
@@ -238,20 +241,20 @@ pub fn b_chip_merge() {
 
     // initialize the request state.
     let mut split_state = [ZERO; STATE_WIDTH];
-    fill_state_from_decoder_with_domain(&trace, &mut split_state, 0);
+    fill_state_from_decoder_with_domain(&trace, &mut split_state, 0.into());
     // request the initialization of the span hash
     let split_init =
         build_expected(&alphas, LINEAR_HASH_LABEL, split_state, [ZERO; STATE_WIDTH], ONE, ZERO);
     let mut expected = split_init.inv();
 
     // provide the initialization of the span hash
-    expected *= build_expected_from_trace(&trace, &alphas, 0);
+    expected *= build_expected_from_trace(&trace, &alphas, 0.into());
     assert_eq!(expected, b_chip[1]);
 
     // at cycle 1 the initialization of the span block hash for the false branch is requested by the
     // decoder
     let mut f_branch_state = [ZERO; STATE_WIDTH];
-    fill_state_from_decoder_with_domain(&trace, &mut f_branch_state, 1);
+    fill_state_from_decoder_with_domain(&trace, &mut f_branch_state, 1.into());
     // request the initialization of the false branch hash
     let f_branch_init = build_expected(
         &alphas,
@@ -299,12 +302,12 @@ pub fn b_chip_merge() {
     }
 
     // at cycle 7 the result of the merge is provided by the hasher
-    expected *= build_expected_from_trace(&trace, &alphas, 7);
+    expected *= build_expected_from_trace(&trace, &alphas, 7.into());
     assert_eq!(expected, b_chip[8]);
 
     // at cycle 8 the initialization of the hash of the span block for the false branch is provided
     // by the hasher
-    expected *= build_expected_from_trace(&trace, &alphas, 8);
+    expected *= build_expected_from_trace(&trace, &alphas, 8.into());
     assert_eq!(expected, b_chip[9]);
 
     // Nothing changes when there is no communication with the hash chiplet.
@@ -313,7 +316,7 @@ pub fn b_chip_merge() {
     }
 
     // at cycle 15 the result of the span block for the false branch is provided by the hasher
-    expected *= build_expected_from_trace(&trace, &alphas, 15);
+    expected *= build_expected_from_trace(&trace, &alphas, 15.into());
     assert_eq!(expected, b_chip[16]);
 
     // The value in b_chip should be ONE now and for the rest of the trace.
@@ -356,13 +359,13 @@ pub fn b_chip_permutation() {
 
     // initialize the request state.
     let mut span_state = [ZERO; STATE_WIDTH];
-    fill_state_from_decoder_with_domain(&trace, &mut span_state, 0);
+    fill_state_from_decoder_with_domain(&trace, &mut span_state, 0.into());
     // request the initialization of the span hash
     let span_init =
         build_expected(&alphas, LINEAR_HASH_LABEL, span_state, [ZERO; STATE_WIDTH], ONE, ZERO);
     let mut expected = span_init.inv();
     // provide the initialization of the span hash
-    expected *= build_expected_from_trace(&trace, &alphas, 0);
+    expected *= build_expected_from_trace(&trace, &alphas, 0.into());
     assert_eq!(expected, b_chip[1]);
 
     // at cycle 1 hperm is executed and the initialization and result of the hash are both
@@ -409,11 +412,11 @@ pub fn b_chip_permutation() {
     }
 
     // at cycle 7 the result of the span hash is provided by the hasher
-    expected *= build_expected_from_trace(&trace, &alphas, 7);
+    expected *= build_expected_from_trace(&trace, &alphas, 7.into());
     assert_eq!(expected, b_chip[8]);
 
     // at cycle 8 the initialization of the hperm hash is provided by the hasher
-    expected *= build_expected_from_trace(&trace, &alphas, 8);
+    expected *= build_expected_from_trace(&trace, &alphas, 8.into());
     assert_eq!(expected, b_chip[9]);
 
     // Nothing changes when there is no communication with the hash chiplet.
@@ -422,7 +425,7 @@ pub fn b_chip_permutation() {
     }
 
     // at cycle 15 the result of the hperm hash is provided by the hasher
-    expected *= build_expected_from_trace(&trace, &alphas, 15);
+    expected *= build_expected_from_trace(&trace, &alphas, 15.into());
     assert_eq!(expected, b_chip[16]);
 
     // The value in b_chip should be ONE now and for the rest of the trace.
@@ -471,13 +474,13 @@ fn b_chip_mpverify() {
 
     // initialize the request state.
     let mut span_state = [ZERO; STATE_WIDTH];
-    fill_state_from_decoder_with_domain(&trace, &mut span_state, 0);
+    fill_state_from_decoder_with_domain(&trace, &mut span_state, 0.into());
     // request the initialization of the span hash
     let span_init =
         build_expected(&alphas, LINEAR_HASH_LABEL, span_state, [ZERO; STATE_WIDTH], ONE, ZERO);
     let mut expected = span_init.inv();
     // provide the initialization of the span hash
-    expected *= build_expected_from_trace(&trace, &alphas, 0);
+    expected *= build_expected_from_trace(&trace, &alphas, 0.into());
     assert_eq!(expected, b_chip[1]);
 
     // at cycle 1 a merkle path verification is executed and the initialization and result of the
@@ -546,11 +549,11 @@ fn b_chip_mpverify() {
     }
 
     // at cycle 7 the result of the span hash is provided by the hasher
-    expected *= build_expected_from_trace(&trace, &alphas, 7);
+    expected *= build_expected_from_trace(&trace, &alphas, 7.into());
     assert_eq!(expected, b_chip[8]);
 
     // at cycle 8 the initialization of the merkle path is provided by the hasher
-    expected *= build_expected_from_trace(&trace, &alphas, 8);
+    expected *= build_expected_from_trace(&trace, &alphas, 8.into());
     assert_eq!(expected, b_chip[9]);
 
     // Nothing changes when there is no communication with the hash chiplet.
@@ -559,7 +562,7 @@ fn b_chip_mpverify() {
     }
 
     // when the merkle path verification has been completed the hasher provides the result
-    expected *= build_expected_from_trace(&trace, &alphas, mp_verify_complete - 1);
+    expected *= build_expected_from_trace(&trace, &alphas, (mp_verify_complete - 1).into());
     assert_eq!(expected, b_chip[mp_verify_complete]);
 
     // The value in b_chip should be ONE now and for the rest of the trace.
@@ -617,13 +620,13 @@ fn b_chip_mrupdate() {
 
     // initialize the request state.
     let mut span_state = [ZERO; STATE_WIDTH];
-    fill_state_from_decoder_with_domain(&trace, &mut span_state, 0);
+    fill_state_from_decoder_with_domain(&trace, &mut span_state, 0.into());
     // request the initialization of the span hash
     let span_init =
         build_expected(&alphas, LINEAR_HASH_LABEL, span_state, [ZERO; STATE_WIDTH], ONE, ZERO);
     let mut expected = span_init.inv();
     // provide the initialization of the span hash
-    expected *= build_expected_from_trace(&trace, &alphas, 0);
+    expected *= build_expected_from_trace(&trace, &alphas, 0.into());
     assert_eq!(expected, b_chip[1]);
 
     // at cycle 1 a merkle path verification is executed and the initialization and result of the
@@ -746,11 +749,11 @@ fn b_chip_mrupdate() {
     }
 
     // at cycle 7 the result of the span hash is provided by the hasher
-    expected *= build_expected_from_trace(&trace, &alphas, 7);
+    expected *= build_expected_from_trace(&trace, &alphas, 7.into());
     assert_eq!(expected, b_chip[8]);
 
     // at cycle 8 the initialization of the first merkle path is provided by the hasher
-    expected *= build_expected_from_trace(&trace, &alphas, 8);
+    expected *= build_expected_from_trace(&trace, &alphas, 8.into());
     assert_eq!(expected, b_chip[9]);
 
     // Nothing changes when there is no communication with the hash chiplet.
@@ -759,11 +762,11 @@ fn b_chip_mrupdate() {
     }
 
     // when the first merkle path verification has been completed the hasher provides the result
-    expected *= build_expected_from_trace(&trace, &alphas, mp_old_verify_complete - 1);
+    expected *= build_expected_from_trace(&trace, &alphas, (mp_old_verify_complete - 1).into());
     assert_eq!(expected, b_chip[mp_old_verify_complete]);
 
     // at cycle 32 the initialization of the second merkle path is provided by the hasher
-    expected *= build_expected_from_trace(&trace, &alphas, mp_old_verify_complete);
+    expected *= build_expected_from_trace(&trace, &alphas, mp_old_verify_complete.into());
     assert_eq!(expected, b_chip[mp_old_verify_complete + 1]);
 
     // Nothing changes when there is no communication with the hash chiplet.
@@ -772,7 +775,7 @@ fn b_chip_mrupdate() {
     }
 
     // when the merkle path verification has been completed the hasher provides the result
-    expected *= build_expected_from_trace(&trace, &alphas, mp_new_verify_complete - 1);
+    expected *= build_expected_from_trace(&trace, &alphas, (mp_new_verify_complete - 1).into());
     assert_eq!(expected, b_chip[mp_new_verify_complete]);
 
     // The value in b_chip should be ONE now and for the rest of the trace.
@@ -827,7 +830,7 @@ fn build_expected(
 
 /// Reduces the specified row in the execution trace to an expected value representing a hash
 /// operation lookup.
-fn build_expected_from_trace(trace: &ExecutionTrace, alphas: &[Felt], row: usize) -> Felt {
+fn build_expected_from_trace(trace: &ExecutionTrace, alphas: &[Felt], row: RowIndex) -> Felt {
     let s0 = trace.main_trace.get_column(HASHER_TRACE_OFFSET)[row];
     let s1 = trace.main_trace.get_column(HASHER_TRACE_OFFSET + 1)[row];
     let s2 = trace.main_trace.get_column(HASHER_TRACE_OFFSET + 2)[row];
@@ -888,7 +891,7 @@ fn get_label_from_selectors(selectors: Selectors) -> Option<u8> {
 fn fill_state_from_decoder_with_domain(
     trace: &ExecutionTrace,
     state: &mut HasherState,
-    row: usize,
+    row: RowIndex,
 ) {
     let domain = extract_control_block_domain_from_trace(trace, row);
     state[CAPACITY_DOMAIN_IDX] = domain;
@@ -898,7 +901,7 @@ fn fill_state_from_decoder_with_domain(
 
 /// Populates the provided HasherState with the state stored in the decoder's execution trace at the
 /// specified row.
-fn fill_state_from_decoder(trace: &ExecutionTrace, state: &mut HasherState, row: usize) {
+fn fill_state_from_decoder(trace: &ExecutionTrace, state: &mut HasherState, row: RowIndex) {
     for (i, col_idx) in DECODER_HASHER_STATE_RANGE.enumerate() {
         state[CAPACITY_LEN + i] = trace.main_trace.get_column(col_idx)[row];
     }
@@ -906,7 +909,7 @@ fn fill_state_from_decoder(trace: &ExecutionTrace, state: &mut HasherState, row:
 
 /// Extract the control block domain from the execution trace.  This is achieved
 /// by calculating the op code as [bit_0 * 2**0 + bit_1 * 2**1 + ... + bit_6 * 2**6]
-fn extract_control_block_domain_from_trace(trace: &ExecutionTrace, row: usize) -> Felt {
+fn extract_control_block_domain_from_trace(trace: &ExecutionTrace, row: RowIndex) -> Felt {
     // calculate the op code
     let opcode_value = DECODER_OP_BITS_RANGE.rev().fold(0u8, |result, bit_index| {
         let op_bit = trace.main_trace.get_column(bit_index)[row].as_int() as u8;

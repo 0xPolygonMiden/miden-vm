@@ -1,3 +1,4 @@
+use miden_air::RowIndex;
 use vm_core::{
     Word, OPCODE_DYN, OPCODE_END, OPCODE_HALT, OPCODE_JOIN, OPCODE_LOOP, OPCODE_REPEAT,
     OPCODE_SPLIT, ZERO,
@@ -28,7 +29,7 @@ impl<E: FieldElement<BaseField = Felt>> AuxColumnBuilder<E> for BlockHashTableCo
     }
 
     /// Removes a row from the block hash table.
-    fn get_requests_at(&self, main_trace: &MainTrace, alphas: &[E], row: usize) -> E {
+    fn get_requests_at(&self, main_trace: &MainTrace, alphas: &[E], row: RowIndex) -> E {
         let op_code = main_trace.get_op_code(row).as_int() as u8;
 
         match op_code {
@@ -38,7 +39,7 @@ impl<E: FieldElement<BaseField = Felt>> AuxColumnBuilder<E> for BlockHashTableCo
     }
 
     /// Adds a row to the block hash table.
-    fn get_responses_at(&self, main_trace: &MainTrace, alphas: &[E], row: usize) -> E {
+    fn get_responses_at(&self, main_trace: &MainTrace, alphas: &[E], row: RowIndex) -> E {
         let op_code = main_trace.get_op_code(row).as_int() as u8;
 
         match op_code {
@@ -88,8 +89,9 @@ impl BlockHashTableRow {
     // Computes the initial row in the block hash table.
     pub fn table_init(main_trace: &MainTrace) -> Self {
         let program_hash = {
-            let row_with_halt = (0..main_trace.num_rows())
-                .find(|row| main_trace.get_op_code(*row) == Felt::from(OPCODE_HALT))
+            let row_with_halt = main_trace
+                .row_iter()
+                .find(|&row| main_trace.get_op_code(row) == Felt::from(OPCODE_HALT))
                 .expect("execution trace must include at least one occurrence of HALT");
 
             main_trace.decoder_hasher_state_first_half(row_with_halt)
@@ -105,7 +107,7 @@ impl BlockHashTableRow {
 
     /// Computes the row to be removed from the block hash table when encountering an `END`
     /// operation.
-    pub fn from_end(main_trace: &MainTrace, row: usize) -> Self {
+    pub fn from_end(main_trace: &MainTrace, row: RowIndex) -> Self {
         let op_code_next = main_trace.get_op_code(row + 1).as_int() as u8;
         let parent_block_id = main_trace.addr(row + 1);
         let child_block_hash = main_trace.decoder_hasher_state_first_half(row);
@@ -137,7 +139,7 @@ impl BlockHashTableRow {
 
     /// Computes the row corresponding to the left or right child to add to the block hash table
     /// when encountering a `JOIN` operation.
-    pub fn from_join(main_trace: &MainTrace, row: usize, is_first_child: bool) -> Self {
+    pub fn from_join(main_trace: &MainTrace, row: RowIndex, is_first_child: bool) -> Self {
         let child_block_hash = if is_first_child {
             main_trace.decoder_hasher_state_first_half(row)
         } else {
@@ -153,7 +155,7 @@ impl BlockHashTableRow {
     }
 
     /// Computes the row to add to the block hash table when encountering a `SPLIT` operation.
-    pub fn from_split(main_trace: &MainTrace, row: usize) -> Self {
+    pub fn from_split(main_trace: &MainTrace, row: RowIndex) -> Self {
         let stack_top = main_trace.stack_element(0, row);
         let parent_block_id = main_trace.addr(row + 1);
         // Note: only one child of a split block is executed. Hence, `is_first_child` is always
@@ -183,7 +185,7 @@ impl BlockHashTableRow {
 
     /// Computes the row (optionally) to add to the block hash table when encountering a `LOOP`
     /// operation. That is, a loop will have a child to execute when the top of the stack is 1.
-    pub fn from_loop(main_trace: &MainTrace, row: usize) -> Option<Self> {
+    pub fn from_loop(main_trace: &MainTrace, row: RowIndex) -> Option<Self> {
         let stack_top = main_trace.stack_element(0, row);
 
         if stack_top == ONE {
@@ -202,7 +204,7 @@ impl BlockHashTableRow {
     /// `REPEAT` marks the start of a new loop iteration, and hence the loop's child block needs to
     /// be added to the block hash table once again (since it was removed in the previous `END`
     /// instruction).
-    pub fn from_repeat(main_trace: &MainTrace, row: usize) -> Self {
+    pub fn from_repeat(main_trace: &MainTrace, row: RowIndex) -> Self {
         Self {
             parent_block_id: main_trace.addr(row + 1),
             child_block_hash: main_trace.decoder_hasher_state_first_half(row),
@@ -212,7 +214,7 @@ impl BlockHashTableRow {
     }
 
     /// Computes the row to add to the block hash table when encountering a `DYN` operation.
-    pub fn from_dyn(main_trace: &MainTrace, row: usize) -> Self {
+    pub fn from_dyn(main_trace: &MainTrace, row: RowIndex) -> Self {
         let child_block_hash = {
             // Note: the child block hash is found on the stack, and hence in reverse order.
             let s0 = main_trace.stack_element(0, row);

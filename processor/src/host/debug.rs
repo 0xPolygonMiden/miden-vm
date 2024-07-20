@@ -1,4 +1,5 @@
 use alloc::vec::Vec;
+use miden_air::RowIndex;
 use std::{print, println};
 
 use vm_core::{DebugOptions, Word};
@@ -35,13 +36,13 @@ pub fn print_debug_info<S: ProcessState>(process: &S, options: &DebugOptions) {
 // ================================================================================================
 
 struct Printer {
-    clk: u32,
+    clk: RowIndex,
     ctx: ContextId,
     fmp: u32,
 }
 
 impl Printer {
-    fn new(clk: u32, ctx: ContextId, fmp: u64) -> Self {
+    fn new(clk: RowIndex, ctx: ContextId, fmp: u64) -> Self {
         Self {
             clk,
             ctx,

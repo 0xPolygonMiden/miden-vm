@@ -1,3 +1,4 @@
+use processor::RowIndex;
 use processor::{AsmOpInfo, ContextId, VmState};
 use test_utils::{assert_eq, build_debug_test, Felt, ToElements, ONE};
 use vm_core::{debuginfo::Location, AssemblyOp, Operation};
@@ -39,7 +40,7 @@ fn test_exec_iter() {
     });
     let expected_states = vec![
         VmState {
-            clk: 0,
+            clk: RowIndex::from(0),
             ctx: ContextId::root(),
             op: None,
             asmop: None,
@@ -48,7 +49,7 @@ fn test_exec_iter() {
             memory: Vec::new(),
         },
         VmState {
-            clk: 1,
+            clk: RowIndex::from(1),
             ctx: ContextId::root(),
             op: Some(Operation::Join),
             asmop: None,
@@ -57,7 +58,7 @@ fn test_exec_iter() {
             memory: Vec::new(),
         },
         VmState {
-            clk: 2,
+            clk: RowIndex::from(2),
             ctx: ContextId::root(),
             op: Some(Operation::Span),
             asmop: None,
@@ -66,7 +67,7 @@ fn test_exec_iter() {
             memory: Vec::new(),
         },
         VmState {
-            clk: 3,
+            clk: RowIndex::from(3),
             ctx: ContextId::root(),
             op: Some(Operation::Pad),
             asmop: Some(AsmOpInfo::new(
@@ -84,7 +85,7 @@ fn test_exec_iter() {
             memory: Vec::new(),
         },
         VmState {
-            clk: 4,
+            clk: RowIndex::from(4),
             ctx: ContextId::root(),
             op: Some(Operation::Incr),
             asmop: Some(AsmOpInfo::new(
@@ -102,7 +103,7 @@ fn test_exec_iter() {
             memory: Vec::new(),
         },
         VmState {
-            clk: 5,
+            clk: RowIndex::from(5),
             ctx: ContextId::root(),
             op: Some(Operation::MStoreW),
             asmop: Some(AsmOpInfo::new(
@@ -120,7 +121,7 @@ fn test_exec_iter() {
             memory: mem.clone(),
         },
         VmState {
-            clk: 6,
+            clk: RowIndex::from(6),
             ctx: ContextId::root(),
             op: Some(Operation::Drop),
             asmop: Some(AsmOpInfo::new(
@@ -138,7 +139,7 @@ fn test_exec_iter() {
             memory: mem.clone(),
         },
         VmState {
-            clk: 7,
+            clk: RowIndex::from(7),
             ctx: ContextId::root(),
             op: Some(Operation::Drop),
             asmop: Some(AsmOpInfo::new(
@@ -156,7 +157,7 @@ fn test_exec_iter() {
             memory: mem.clone(),
         },
         VmState {
-            clk: 8,
+            clk: RowIndex::from(8),
             ctx: ContextId::root(),
             op: Some(Operation::Drop),
             asmop: Some(AsmOpInfo::new(
@@ -174,7 +175,7 @@ fn test_exec_iter() {
             memory: mem.clone(),
         },
         VmState {
-            clk: 9,
+            clk: RowIndex::from(9),
             ctx: ContextId::root(),
             op: Some(Operation::Drop),
             asmop: Some(AsmOpInfo::new(
@@ -192,7 +193,7 @@ fn test_exec_iter() {
             memory: mem.clone(),
         },
         VmState {
-            clk: 10,
+            clk: RowIndex::from(10),
             ctx: ContextId::root(),
             op: Some(Operation::Push(Felt::new(17))),
             asmop: Some(AsmOpInfo::new(
@@ -210,7 +211,7 @@ fn test_exec_iter() {
             memory: mem.clone(),
         },
         VmState {
-            clk: 11,
+            clk: RowIndex::from(11),
             ctx: ContextId::root(),
             op: Some(Operation::Noop),
             asmop: None,
@@ -219,7 +220,7 @@ fn test_exec_iter() {
             memory: mem.clone(),
         },
         VmState {
-            clk: 12,
+            clk: RowIndex::from(12),
             ctx: ContextId::root(),
             op: Some(Operation::End),
             asmop: None,
@@ -228,7 +229,7 @@ fn test_exec_iter() {
             memory: mem.clone(),
         },
         VmState {
-            clk: 13,
+            clk: RowIndex::from(13),
             ctx: ContextId::root(),
             op: Some(Operation::Span),
             asmop: None,
@@ -237,7 +238,7 @@ fn test_exec_iter() {
             memory: mem.clone(),
         },
         VmState {
-            clk: 14,
+            clk: RowIndex::from(14),
             ctx: ContextId::root(),
             op: Some(Operation::Push(ONE)),
             asmop: None,
@@ -246,7 +247,7 @@ fn test_exec_iter() {
             memory: mem.clone(),
         },
         VmState {
-            clk: 15,
+            clk: RowIndex::from(15),
             ctx: ContextId::root(),
             op: Some(Operation::FmpUpdate),
             asmop: None,
@@ -255,7 +256,7 @@ fn test_exec_iter() {
             memory: mem.clone(),
         },
         VmState {
-            clk: 16,
+            clk: RowIndex::from(16),
             ctx: ContextId::root(),
             op: Some(Operation::Pad),
             asmop: Some(AsmOpInfo::new(
@@ -273,7 +274,7 @@ fn test_exec_iter() {
             memory: mem.clone(),
         },
         VmState {
-            clk: 17,
+            clk: RowIndex::from(17),
             ctx: ContextId::root(),
             op: Some(Operation::FmpAdd),
             asmop: Some(AsmOpInfo::new(
@@ -292,7 +293,7 @@ fn test_exec_iter() {
             memory: mem,
         },
         VmState {
-            clk: 18,
+            clk: RowIndex::from(18),
             ctx: ContextId::root(),
             op: Some(Operation::MStore),
             asmop: Some(AsmOpInfo::new(
@@ -313,7 +314,7 @@ fn test_exec_iter() {
             ],
         },
         VmState {
-            clk: 19,
+            clk: RowIndex::from(19),
             ctx: ContextId::root(),
             op: Some(Operation::Drop),
             asmop: Some(AsmOpInfo::new(
@@ -334,7 +335,7 @@ fn test_exec_iter() {
             ],
         },
         VmState {
-            clk: 20,
+            clk: RowIndex::from(20),
             ctx: ContextId::root(),
             op: Some(Operation::Push(Felt::new(18446744069414584320))),
             asmop: None,
@@ -347,7 +348,7 @@ fn test_exec_iter() {
             ],
         },
         VmState {
-            clk: 21,
+            clk: RowIndex::from(21),
             ctx: ContextId::root(),
             op: Some(Operation::FmpUpdate),
             asmop: None,
@@ -359,7 +360,7 @@ fn test_exec_iter() {
             ],
         },
         VmState {
-            clk: 22,
+            clk: RowIndex::from(22),
             ctx: ContextId::root(),
             op: Some(Operation::Noop),
             asmop: None,
@@ -371,7 +372,7 @@ fn test_exec_iter() {
             ],
         },
         VmState {
-            clk: 23,
+            clk: RowIndex::from(23),
             ctx: ContextId::root(),
             op: Some(Operation::End),
             asmop: None,
@@ -383,7 +384,7 @@ fn test_exec_iter() {
             ],
         },
         VmState {
-            clk: 24,
+            clk: RowIndex::from(24),
             ctx: ContextId::root(),
             op: Some(Operation::End),
             asmop: None,

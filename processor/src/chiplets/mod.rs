@@ -5,7 +5,10 @@ use super::{
     TraceFragment, Word, CHIPLETS_WIDTH, EMPTY_WORD, ONE, ZERO,
 };
 use alloc::vec::Vec;
-use miden_air::trace::chiplets::hasher::{Digest, HasherState};
+use miden_air::{
+    trace::chiplets::hasher::{Digest, HasherState},
+    RowIndex,
+};
 use vm_core::{mast::OpBatch, Kernel};
 
 mod bitwise;
@@ -113,7 +116,7 @@ mod tests;
 ///             +---+---+---+---+---------------------------------------------------------+
 pub struct Chiplets {
     /// Current clock cycle of the VM.
-    clk: u32,
+    clk: RowIndex,
     hasher: Hasher,
     bitwise: Bitwise,
     memory: Memory,
@@ -126,7 +129,7 @@ impl Chiplets {
     /// Returns a new [Chiplets] component instantiated with the provided Kernel.
     pub fn new(kernel: Kernel) -> Self {
         Self {
-            clk: 0,
+            clk: RowIndex::from(0),
             hasher: Hasher::default(),
             bitwise: Bitwise::default(),
             memory: Memory::default(),
@@ -149,22 +152,22 @@ impl Chiplets {
     }
 
     /// Returns the index of the first row of [Bitwise] execution trace.
-    pub fn bitwise_start(&self) -> usize {
-        self.hasher.trace_len()
+    pub fn bitwise_start(&self) -> RowIndex {
+        self.hasher.trace_len().into()
     }
 
     /// Returns the index of the first row of the [Memory] execution trace.
-    pub fn memory_start(&self) -> usize {
+    pub fn memory_start(&self) -> RowIndex {
         self.bitwise_start() + self.bitwise.trace_len()
     }
 
     /// Returns the index of the first row of [KernelRom] execution trace.
-    pub fn kernel_rom_start(&self) -> usize {
+    pub fn kernel_rom_start(&self) -> RowIndex {
         self.memory_start() + self.memory.trace_len()
     }
 
     /// Returns the index of the first row of the padding section of the execution trace.
-    pub fn padding_start(&self) -> usize {
+    pub fn padding_start(&self) -> RowIndex {
         self.kernel_rom_start() + self.kernel_rom.trace_len()
     }
 
@@ -341,7 +344,7 @@ impl Chiplets {
     /// Returns the entire memory state for the specified execution context at the specified cycle.
     /// The state is returned as a vector of (address, value) tuples, and includes addresses which
     /// have been accessed at least once.
-    pub fn get_mem_state_at(&self, ctx: ContextId, clk: u32) -> Vec<(u64, Word)> {
+    pub fn get_mem_state_at(&self, ctx: ContextId, clk: RowIndex) -> Vec<(u64, Word)> {
         self.memory.get_state_at(ctx, clk)
     }
 
@@ -415,11 +418,11 @@ impl Chiplets {
     /// It returns the auxiliary trace builders for generating auxiliary trace columns that depend
     /// on data from [Chiplets].
     fn fill_trace(self, trace: &mut [Vec<Felt>; CHIPLETS_WIDTH]) {
-        // get the rows where chiplets begin.
-        let bitwise_start = self.bitwise_start();
-        let memory_start = self.memory_start();
-        let kernel_rom_start = self.kernel_rom_start();
-        let padding_start = self.padding_start();
+        // get the rows where:usize  chiplets begin.
+        let bitwise_start: usize = self.bitwise_start().into();
+        let memory_start: usize = self.memory_start().into();
+        let kernel_rom_start: usize = self.kernel_rom_start().into();
+        let padding_start: usize = self.padding_start().into();
 
         let Chiplets {
             clk: _,

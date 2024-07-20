@@ -1,7 +1,7 @@
 use super::{Felt, FieldElement, OverflowTableRow};
 use crate::trace::AuxColumnBuilder;
 use alloc::vec::Vec;
-use miden_air::trace::main_trace::MainTrace;
+use miden_air::{trace::main_trace::MainTrace, RowIndex};
 
 // AUXILIARY TRACE BUILDER
 // ================================================================================================
@@ -40,7 +40,7 @@ impl<E: FieldElement<BaseField = Felt>> AuxColumnBuilder<E> for AuxTraceBuilder 
     }
 
     /// Removes a row from the stack overflow table.
-    fn get_requests_at(&self, main_trace: &MainTrace, alphas: &[E], i: usize) -> E {
+    fn get_requests_at(&self, main_trace: &MainTrace, alphas: &[E], i: RowIndex) -> E {
         let is_left_shift = main_trace.is_left_shift(i);
         let is_non_empty_overflow = main_trace.is_non_empty_overflow(i);
 
@@ -57,7 +57,7 @@ impl<E: FieldElement<BaseField = Felt>> AuxColumnBuilder<E> for AuxTraceBuilder 
     }
 
     /// Adds a row to the stack overflow table.
-    fn get_responses_at(&self, main_trace: &MainTrace, alphas: &[E], i: usize) -> E {
+    fn get_responses_at(&self, main_trace: &MainTrace, alphas: &[E], i: RowIndex) -> E {
         let is_right_shift = main_trace.is_right_shift(i);
 
         if is_right_shift {

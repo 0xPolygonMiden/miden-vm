@@ -1,5 +1,6 @@
-use alloc::vec::Vec;
 use core::ops::Range;
+
+use alloc::vec::Vec;
 
 use super::FieldElement;
 use vm_core::utils::range as create_range;

@@ -5,6 +5,7 @@ use super::{
 };
 use alloc::string::String;
 use core::fmt::{Display, Formatter};
+use miden_air::RowIndex;
 use vm_core::{mast::MastNodeId, stack::STACK_TOP_SIZE, utils::to_hex};
 use winter_prover::{math::FieldElement, ProverError};
 
@@ -17,15 +18,15 @@ use std::error::Error;
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum ExecutionError {
     AdviceMapKeyNotFound(Word),
-    AdviceStackReadFailed(u32),
+    AdviceStackReadFailed(RowIndex),
     CallerNotInSyscall,
     CycleLimitExceeded(u32),
-    DivideByZero(u32),
+    DivideByZero(RowIndex),
     DynamicNodeNotFound(Digest),
     EventError(String),
     Ext2InttError(Ext2InttError),
     FailedAssertion {
-        clk: u32,
+        clk: RowIndex,
         err_code: u32,
         err_msg: Option<String>,
     },
@@ -46,7 +47,7 @@ pub enum ExecutionError {
         depth: Felt,
         value: Felt,
     },
-    LogArgumentZero(u32),
+    LogArgumentZero(RowIndex),
     MalformedSignatureKey(&'static str),
     MalformedMastForestInHost {
         root_digest: Digest,
