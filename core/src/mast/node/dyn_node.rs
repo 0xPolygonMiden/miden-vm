@@ -2,10 +2,7 @@ use core::fmt;
 
 use miden_crypto::{hash::rpo::RpoDigest, Felt};
 
-use crate::{
-    mast::{MastForest, MerkleTreeNode},
-    OPCODE_DYN,
-};
+use crate::{mast::MastForest, OPCODE_DYN};
 
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct DynNode;
@@ -16,8 +13,8 @@ impl DynNode {
     pub const DOMAIN: Felt = Felt::new(OPCODE_DYN as u64);
 }
 
-impl MerkleTreeNode for DynNode {
-    fn digest(&self) -> RpoDigest {
+impl DynNode {
+    pub fn digest(&self) -> RpoDigest {
         // The Dyn node is represented by a constant, which is set to be the hash of two empty
         // words ([ZERO, ZERO, ZERO, ZERO]) with a domain value of `DYN_DOMAIN`, i.e.
         // hasher::merge_in_domain(&[Digest::default(), Digest::default()], DynNode::DOMAIN)
@@ -29,7 +26,7 @@ impl MerkleTreeNode for DynNode {
         ])
     }
 
-    fn to_display<'a>(&'a self, _mast_forest: &'a MastForest) -> impl fmt::Display + 'a {
+    pub fn to_display<'a>(&'a self, _mast_forest: &'a MastForest) -> impl fmt::Display + 'a {
         self
     }
 }

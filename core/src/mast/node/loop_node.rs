@@ -5,9 +5,12 @@ use miden_formatting::prettier::PrettyPrint;
 
 use crate::{
     chiplets::hasher,
-    mast::{MastForest, MastNodeId, MerkleTreeNode},
+    mast::{MastForest, MastNodeId},
     OPCODE_LOOP,
 };
+
+// LOOP NODE
+// ================================================================================================
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct LoopNode {
@@ -32,11 +35,18 @@ impl LoopNode {
 
         Self { body, digest }
     }
+}
 
-    pub(super) fn to_pretty_print<'a>(
-        &'a self,
-        mast_forest: &'a MastForest,
-    ) -> impl PrettyPrint + 'a {
+impl LoopNode {
+    pub fn body(&self) -> MastNodeId {
+        self.body
+    }
+
+    pub fn digest(&self) -> RpoDigest {
+        self.digest
+    }
+
+    pub fn to_display<'a>(&'a self, mast_forest: &'a MastForest) -> impl fmt::Display + 'a {
         LoopNodePrettyPrint {
             loop_node: self,
             mast_forest,
@@ -44,18 +54,14 @@ impl LoopNode {
     }
 }
 
+// PRETTY PRINTING
+// ================================================================================================
+
 impl LoopNode {
-    pub fn body(&self) -> MastNodeId {
-        self.body
-    }
-}
-
-impl MerkleTreeNode for LoopNode {
-    fn digest(&self) -> RpoDigest {
-        self.digest
-    }
-
-    fn to_display<'a>(&'a self, mast_forest: &'a MastForest) -> impl fmt::Display + 'a {
+    pub(super) fn to_pretty_print<'a>(
+        &'a self,
+        mast_forest: &'a MastForest,
+    ) -> impl PrettyPrint + 'a {
         LoopNodePrettyPrint {
             loop_node: self,
             mast_forest,

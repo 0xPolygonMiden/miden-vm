@@ -16,7 +16,7 @@ use miden_air::trace::{
 };
 use test_utils::rand::rand_array;
 use vm_core::{
-    mast::{MastForest, MastNode, MerkleTreeNode},
+    mast::{MastForest, MastNode},
     FieldElement, Operation, Program, Word, ONE, ZERO,
 };
 

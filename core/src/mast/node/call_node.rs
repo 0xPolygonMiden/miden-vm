@@ -5,7 +5,7 @@ use miden_formatting::prettier::PrettyPrint;
 
 use crate::{
     chiplets::hasher,
-    mast::{MastForest, MastNodeId, MerkleTreeNode},
+    mast::{MastForest, MastNodeId},
     OPCODE_CALL, OPCODE_SYSCALL,
 };
 
@@ -87,12 +87,12 @@ impl CallNode {
     }
 }
 
-impl MerkleTreeNode for CallNode {
-    fn digest(&self) -> RpoDigest {
+impl CallNode {
+    pub fn digest(&self) -> RpoDigest {
         self.digest
     }
 
-    fn to_display<'a>(&'a self, mast_forest: &'a MastForest) -> impl fmt::Display + 'a {
+    pub fn to_display<'a>(&'a self, mast_forest: &'a MastForest) -> impl fmt::Display + 'a {
         CallNodePrettyPrint {
             call_node: self,
             mast_forest,

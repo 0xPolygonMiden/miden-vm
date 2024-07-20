@@ -15,12 +15,6 @@ mod serialization;
 #[cfg(test)]
 mod tests;
 
-/// Encapsulates the behavior that a [`MastNode`] (and all its variants) is expected to have.
-pub trait MerkleTreeNode {
-    fn digest(&self) -> RpoDigest;
-    fn to_display<'a>(&'a self, mast_forest: &'a MastForest) -> impl fmt::Display + 'a;
-}
-
 // MAST FOREST
 // ================================================================================================
 
@@ -170,6 +164,8 @@ impl Serializable for MastNodeId {
 impl Deserializable for MastNodeId {
     fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
         let inner = source.read_u32()?;
+
+        // TODO: fix
 
         Ok(Self(inner))
     }

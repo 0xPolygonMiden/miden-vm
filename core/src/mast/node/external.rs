@@ -1,4 +1,4 @@
-use crate::mast::{MastForest, MerkleTreeNode};
+use crate::mast::MastForest;
 use core::fmt;
 use miden_crypto::hash::rpo::RpoDigest;
 
@@ -24,11 +24,11 @@ impl ExternalNode {
     }
 }
 
-impl MerkleTreeNode for ExternalNode {
-    fn digest(&self) -> RpoDigest {
+impl ExternalNode {
+    pub fn digest(&self) -> RpoDigest {
         self.digest
     }
-    fn to_display<'a>(&'a self, _mast_forest: &'a MastForest) -> impl fmt::Display + 'a {
+    pub fn to_display<'a>(&'a self, _mast_forest: &'a MastForest) -> impl fmt::Display + 'a {
         self
     }
 }

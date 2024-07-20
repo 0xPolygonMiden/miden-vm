@@ -5,9 +5,12 @@ use miden_formatting::prettier::PrettyPrint;
 
 use crate::{
     chiplets::hasher,
-    mast::{MastForest, MastNodeId, MerkleTreeNode},
+    mast::{MastForest, MastNodeId},
     OPCODE_SPLIT,
 };
+
+// SPLIT NODE
+// ================================================================================================
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct SplitNode {
@@ -49,13 +52,12 @@ impl SplitNode {
     pub fn on_false(&self) -> MastNodeId {
         self.branches[1]
     }
-}
 
-impl SplitNode {
-    pub(super) fn to_pretty_print<'a>(
-        &'a self,
-        mast_forest: &'a MastForest,
-    ) -> impl PrettyPrint + 'a {
+    pub fn digest(&self) -> RpoDigest {
+        self.digest
+    }
+
+    pub fn to_display<'a>(&'a self, mast_forest: &'a MastForest) -> impl core::fmt::Display + 'a {
         SplitNodePrettyPrint {
             split_node: self,
             mast_forest,
@@ -63,12 +65,14 @@ impl SplitNode {
     }
 }
 
-impl MerkleTreeNode for SplitNode {
-    fn digest(&self) -> RpoDigest {
-        self.digest
-    }
+// PRETTY PRINTING
+// ================================================================================================
 
-    fn to_display<'a>(&'a self, mast_forest: &'a MastForest) -> impl core::fmt::Display + 'a {
+impl SplitNode {
+    pub(super) fn to_pretty_print<'a>(
+        &'a self,
+        mast_forest: &'a MastForest,
+    ) -> impl PrettyPrint + 'a {
         SplitNodePrettyPrint {
             split_node: self,
             mast_forest,

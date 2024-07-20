@@ -18,7 +18,7 @@ use miden_air::trace::{
 };
 use test_utils::rand::rand_value;
 use vm_core::{
-    mast::{BasicBlockNode, MastForest, MastNode, MerkleTreeNode, OP_BATCH_SIZE},
+    mast::{BasicBlockNode, MastForest, MastNode, OP_BATCH_SIZE},
     Program, EMPTY_WORD, ONE, ZERO,
 };
 

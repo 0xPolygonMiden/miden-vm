@@ -6,9 +6,7 @@ use miden_formatting::prettier::PrettyPrint;
 use winter_utils::flatten_slice_elements;
 
 use crate::{
-    chiplets::hasher,
-    mast::{MastForest, MerkleTreeNode},
-    Decorator, DecoratorIterator, DecoratorList, Operation,
+    chiplets::hasher, mast::MastForest, Decorator, DecoratorIterator, DecoratorList, Operation,
 };
 
 #[cfg(test)]
@@ -67,12 +65,14 @@ pub struct BasicBlockNode {
     decorators: DecoratorList,
 }
 
+// ------------------------------------------------------------------------------------------------
 /// Constants
 impl BasicBlockNode {
     /// The domain of the basic block node (used for control block hashing).
     pub const DOMAIN: Felt = ZERO;
 }
 
+// ------------------------------------------------------------------------------------------------
 /// Constructors
 impl BasicBlockNode {
     /// Returns a new [`BasicBlockNode`] instantiated with the specified operations.
@@ -108,6 +108,7 @@ impl BasicBlockNode {
     }
 }
 
+// ------------------------------------------------------------------------------------------------
 /// Public accessors
 impl BasicBlockNode {
     pub fn num_operations_and_decorators(&self) -> u32 {
@@ -139,35 +140,18 @@ impl BasicBlockNode {
     pub fn decorators(&self) -> &DecoratorList {
         &self.decorators
     }
-}
 
-impl MerkleTreeNode for BasicBlockNode {
-    fn digest(&self) -> RpoDigest {
+    pub fn digest(&self) -> RpoDigest {
         self.digest
     }
 
-    fn to_display<'a>(&'a self, _mast_forest: &'a MastForest) -> impl fmt::Display + 'a {
+    pub fn to_display<'a>(&'a self, _mast_forest: &'a MastForest) -> impl fmt::Display + 'a {
         self
     }
 }
 
-/// Checks if a given decorators list is valid (only checked in debug mode)
-/// - Assert the decorator list is in ascending order.
-/// - Assert the last op index in decorator list is less than or equal to the number of operations.
-#[cfg(debug_assertions)]
-fn validate_decorators(operations: &[Operation], decorators: &DecoratorList) {
-    if !decorators.is_empty() {
-        // check if decorator list is sorted
-        for i in 0..(decorators.len() - 1) {
-            debug_assert!(decorators[i + 1].0 >= decorators[i].0, "unsorted decorators list");
-        }
-        // assert the last index in decorator list is less than operations vector length
-        debug_assert!(
-            operations.len() >= decorators.last().expect("empty decorators list").0,
-            "last op index in decorator list should be less than or equal to the number of ops"
-        );
-    }
-}
+// PRETTY PRINTING
+// ================================================================================================
 
 impl PrettyPrint for BasicBlockNode {
     #[rustfmt::skip]
@@ -514,4 +498,22 @@ fn batch_ops(ops: Vec<Operation>) -> (Vec<OpBatch>, RpoDigest) {
 pub fn get_span_op_group_count(op_batches: &[OpBatch]) -> usize {
     let last_batch_num_groups = op_batches.last().expect("no last group").num_groups();
     (op_batches.len() - 1) * BATCH_SIZE + last_batch_num_groups.next_power_of_two()
+}
+
+/// Checks if a given decorators list is valid (only checked in debug mode)
+/// - Assert the decorator list is in ascending order.
+/// - Assert the last op index in decorator list is less than or equal to the number of operations.
+#[cfg(debug_assertions)]
+fn validate_decorators(operations: &[Operation], decorators: &DecoratorList) {
+    if !decorators.is_empty() {
+        // check if decorator list is sorted
+        for i in 0..(decorators.len() - 1) {
+            debug_assert!(decorators[i + 1].0 >= decorators[i].0, "unsorted decorators list");
+        }
+        // assert the last index in decorator list is less than operations vector length
+        debug_assert!(
+            operations.len() >= decorators.last().expect("empty decorators list").0,
+            "last op index in decorator list should be less than or equal to the number of ops"
+        );
+    }
 }

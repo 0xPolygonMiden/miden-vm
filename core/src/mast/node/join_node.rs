@@ -4,10 +4,13 @@ use miden_crypto::{hash::rpo::RpoDigest, Felt};
 
 use crate::{
     chiplets::hasher,
-    mast::{MastForest, MastNodeId, MerkleTreeNode},
+    mast::{MastForest, MastNodeId},
     prettier::PrettyPrint,
     OPCODE_JOIN,
 };
+
+// JOIN NODE
+// ================================================================================================
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct JoinNode {
@@ -41,7 +44,7 @@ impl JoinNode {
     }
 }
 
-/// Accessors
+/// Public accessors
 impl JoinNode {
     pub fn first(&self) -> MastNodeId {
         self.children[0]
@@ -50,13 +53,12 @@ impl JoinNode {
     pub fn second(&self) -> MastNodeId {
         self.children[1]
     }
-}
 
-impl JoinNode {
-    pub(super) fn to_pretty_print<'a>(
-        &'a self,
-        mast_forest: &'a MastForest,
-    ) -> impl PrettyPrint + 'a {
+    pub fn digest(&self) -> RpoDigest {
+        self.digest
+    }
+
+    pub fn to_display<'a>(&'a self, mast_forest: &'a MastForest) -> impl fmt::Display + 'a {
         JoinNodePrettyPrint {
             join_node: self,
             mast_forest,
@@ -64,12 +66,14 @@ impl JoinNode {
     }
 }
 
-impl MerkleTreeNode for JoinNode {
-    fn digest(&self) -> RpoDigest {
-        self.digest
-    }
+// PRETTY PRINTING
+// ================================================================================================
 
-    fn to_display<'a>(&'a self, mast_forest: &'a MastForest) -> impl fmt::Display + 'a {
+impl JoinNode {
+    pub(super) fn to_pretty_print<'a>(
+        &'a self,
+        mast_forest: &'a MastForest,
+    ) -> impl PrettyPrint + 'a {
         JoinNodePrettyPrint {
             join_node: self,
             mast_forest,

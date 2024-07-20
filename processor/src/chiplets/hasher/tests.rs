@@ -12,7 +12,7 @@ use test_utils::rand::rand_array;
 use vm_core::{
     chiplets::hasher,
     crypto::merkle::{MerkleTree, NodeIndex},
-    mast::{MastForest, MastNode, MerkleTreeNode},
+    mast::{MastForest, MastNode},
     Operation, ONE, ZERO,
 };
 

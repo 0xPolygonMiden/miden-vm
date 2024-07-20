@@ -18,7 +18,7 @@ pub use vm_core::{
     chiplets::hasher::Digest,
     crypto::merkle::SMT_DEPTH,
     errors::InputError,
-    mast::{MastForest, MastNode, MastNodeId, MerkleTreeNode},
+    mast::{MastForest, MastNode, MastNodeId},
     utils::DeserializationError,
     AdviceInjector, AssemblyOp, Felt, Kernel, Operation, Program, ProgramInfo, QuadExtension,
     StackInputs, StackOutputs, Word, EMPTY_WORD, ONE, ZERO,

@@ -3,7 +3,7 @@ use core::ops::Index;
 use alloc::{collections::BTreeMap, vec::Vec};
 use vm_core::{
     crypto::hash::RpoDigest,
-    mast::{MastForest, MastForestError, MastNode, MastNodeId, MerkleTreeNode},
+    mast::{MastForest, MastForestError, MastNode, MastNodeId},
     DecoratorList, Operation,
 };
 

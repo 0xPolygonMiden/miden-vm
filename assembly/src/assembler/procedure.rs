@@ -5,7 +5,7 @@ use crate::{
     diagnostics::SourceFile,
     LibraryPath, RpoDigest, SourceSpan, Spanned,
 };
-use vm_core::mast::{MastForest, MastNodeId, MerkleTreeNode};
+use vm_core::mast::{MastForest, MastNodeId};
 
 pub type CallSet = BTreeSet<RpoDigest>;
 

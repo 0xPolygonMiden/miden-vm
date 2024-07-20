@@ -28,7 +28,7 @@ mod loop_node;
 pub use loop_node::LoopNode;
 
 use crate::{
-    mast::{MastForest, MastNodeId, MerkleTreeNode},
+    mast::{MastForest, MastNodeId},
     DecoratorList, Operation,
 };
 
@@ -140,13 +140,8 @@ impl MastNode {
             MastNode::External(_) => panic!("Can't fetch domain for an `External` node."),
         }
     }
-}
 
-// ------------------------------------------------------------------------------------------------
-// MerkleTreeNode impl
-
-impl MerkleTreeNode for MastNode {
-    fn digest(&self) -> RpoDigest {
+    pub fn digest(&self) -> RpoDigest {
         match self {
             MastNode::Block(node) => node.digest(),
             MastNode::Join(node) => node.digest(),
@@ -158,7 +153,7 @@ impl MerkleTreeNode for MastNode {
         }
     }
 
-    fn to_display<'a>(&'a self, mast_forest: &'a MastForest) -> impl fmt::Display + 'a {
+    pub fn to_display<'a>(&'a self, mast_forest: &'a MastForest) -> impl fmt::Display + 'a {
         match self {
             MastNode::Block(node) => MastNodeDisplay::new(node.to_display(mast_forest)),
             MastNode::Join(node) => MastNodeDisplay::new(node.to_display(mast_forest)),
