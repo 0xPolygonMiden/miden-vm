@@ -32,6 +32,9 @@ use crate::{
     DecoratorList, Operation,
 };
 
+// MAST NODE
+// ================================================================================================
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum MastNode {
     Block(BasicBlockNode),
@@ -43,6 +46,7 @@ pub enum MastNode {
     External(ExternalNode),
 }
 
+// ------------------------------------------------------------------------------------------------
 /// Constructors
 impl MastNode {
     pub fn new_basic_block(operations: Vec<Operation>) -> Self {
@@ -93,6 +97,7 @@ impl MastNode {
     }
 }
 
+// ------------------------------------------------------------------------------------------------
 /// Public accessors
 impl MastNode {
     pub fn is_basic_block(&self) -> bool {
@@ -137,6 +142,9 @@ impl MastNode {
     }
 }
 
+// ------------------------------------------------------------------------------------------------
+// MerkleTreeNode impl
+
 impl MerkleTreeNode for MastNode {
     fn digest(&self) -> RpoDigest {
         match self {
@@ -162,6 +170,9 @@ impl MerkleTreeNode for MastNode {
         }
     }
 }
+
+// PRETTY PRINTING
+// ================================================================================================
 
 struct MastNodePrettyPrint<'a> {
     node_pretty_print: Box<dyn PrettyPrint + 'a>,
