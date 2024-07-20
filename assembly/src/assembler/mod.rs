@@ -11,7 +11,7 @@ use crate::{
 use alloc::{boxed::Box, sync::Arc, vec::Vec};
 use mast_forest_builder::MastForestBuilder;
 use vm_core::{
-    mast::{MastForest, MastNode, MastNodeId, MerkleTreeNode},
+    mast::{MastForest, MastNodeId, MerkleTreeNode},
     Decorator, DecoratorList, Kernel, Operation, Program,
 };
 
@@ -792,12 +792,9 @@ impl Assembler {
                     let else_blk =
                         self.compile_body(else_blk.iter(), context, None, mast_forest_builder)?;
 
-                    let split_node_id = {
-                        let split_node =
-                            MastNode::new_split(then_blk, else_blk, mast_forest_builder.forest());
-
-                        mast_forest_builder.ensure_node(split_node).map_err(AssemblyError::from)?
-                    };
+                    let split_node_id = mast_forest_builder
+                        .ensure_split(then_blk, else_blk)
+                        .map_err(AssemblyError::from)?;
                     mast_node_ids.push(split_node_id);
                 }
 
@@ -828,11 +825,9 @@ impl Assembler {
                     let loop_body_node_id =
                         self.compile_body(body.iter(), context, None, mast_forest_builder)?;
 
-                    let loop_node_id = {
-                        let loop_node =
-                            MastNode::new_loop(loop_body_node_id, mast_forest_builder.forest());
-                        mast_forest_builder.ensure_node(loop_node).map_err(AssemblyError::from)?
-                    };
+                    let loop_node_id = mast_forest_builder
+                        .ensure_loop(loop_body_node_id)
+                        .map_err(AssemblyError::from)?;
                     mast_node_ids.push(loop_node_id);
                 }
             }
@@ -846,8 +841,9 @@ impl Assembler {
         }
 
         Ok(if mast_node_ids.is_empty() {
-            let basic_block_node = MastNode::new_basic_block(vec![Operation::Noop]);
-            mast_forest_builder.ensure_node(basic_block_node).map_err(AssemblyError::from)?
+            mast_forest_builder
+                .ensure_block(vec![Operation::Noop], None)
+                .map_err(AssemblyError::from)?
         } else {
             combine_mast_node_ids(mast_node_ids, mast_forest_builder)?
         })
@@ -907,8 +903,7 @@ fn combine_mast_node_ids(
         while let (Some(left), Some(right)) =
             (source_mast_node_iter.next(), source_mast_node_iter.next())
         {
-            let join_mast_node = MastNode::new_join(left, right, mast_forest_builder.forest());
-            let join_mast_node_id = mast_forest_builder.ensure_node(join_mast_node)?;
+            let join_mast_node_id = mast_forest_builder.ensure_join(left, right)?;
 
             mast_node_ids.push(join_mast_node_id);
         }

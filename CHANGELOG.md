@@ -6,8 +6,8 @@
 
 - Added error codes support for the `mtree_verify` instruction (#1328).
 - Added support for immediate values for `lt`, `lte`, `gt`, `gte` comparison instructions (#1346).
-- Change MAST to a table-based representation (#1349)
-- Introduce `MastForestStore` (#1359)
+- Changed MAST to a table-based representation (#1349)
+- Introduced `MastForestStore` (#1359)
 - Adjusted prover's metal acceleration code to work with 0.9 versions of the crates (#1357)
 - Added support for immediate values for `u32lt`, `u32lte`, `u32gt`, `u32gte`, `u32min` and `u32max` comparison instructions (#1358).
 - Added support for the `nop` instruction, which corresponds to the VM opcode of the same name, and has the same semantics. This is implemented for use by compilers primarily.
@@ -16,9 +16,10 @@
 - Added support for immediate values for `u32and`, `u32or`, `u32xor` and `u32not` bitwise instructions (#1362).
 - Optimized `std::sys::truncate_stuck` procedure (#1384).
 - Updated CI and Makefile to standardise it accross Miden repositories (#1342).
-- Add serialization/deserialization for `MastForest` (#1370)
+- Added serialization/deserialization for `MastForest` (#1370)
 - Updated CI to support `CHANGELOG.md` modification checking and `no changelog` label (#1406)
-- Introduce `MastForestError` to enforce `MastForest` node count invariant (#1394)
+- Introduced `MastForestError` to enforce `MastForest` node count invariant (#1394)
+- Added functions to `MastForestBuilder` to allow ensuring of nodes with fewer LOC (#1404)
 
 #### Changed
 

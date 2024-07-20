@@ -1194,7 +1194,7 @@ fn dyn_block() {
     let join_node_id = mast_forest.add_node(join_node.clone()).unwrap();
 
     // This dyn will point to foo.
-    let dyn_node = MastNode::new_dynexec();
+    let dyn_node = MastNode::new_dyn();
     let dyn_node_id = mast_forest.add_node(dyn_node.clone()).unwrap();
 
     let program_root_node = MastNode::new_join(join_node_id, dyn_node_id, &mast_forest);

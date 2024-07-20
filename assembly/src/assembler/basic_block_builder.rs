@@ -4,7 +4,7 @@ use super::{
 };
 use alloc::{borrow::Borrow, string::ToString, vec::Vec};
 use vm_core::{
-    mast::{MastForestError, MastNode, MastNodeId},
+    mast::{MastForestError, MastNodeId},
     AdviceInjector, AssemblyOp, Operation,
 };
 
@@ -134,8 +134,7 @@ impl BasicBlockBuilder {
             let ops = self.ops.drain(..).collect();
             let decorators = self.decorators.drain(..).collect();
 
-            let basic_block_node = MastNode::new_basic_block_with_decorators(ops, decorators);
-            let basic_block_node_id = mast_forest_builder.ensure_node(basic_block_node)?;
+            let basic_block_node_id = mast_forest_builder.ensure_block(ops, Some(decorators))?;
 
             Ok(Some(basic_block_node_id))
         } else if !self.decorators.is_empty() {
