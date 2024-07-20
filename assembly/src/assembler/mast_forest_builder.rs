@@ -107,8 +107,8 @@ impl MastForestBuilder {
     }
 
     /// Adds a dynexec node to the forest, and returns the [`MastNodeId`] associated with it.
-    pub fn ensure_dynexec(&mut self) -> Result<MastNodeId, MastForestError> {
-        self.ensure_node(MastNode::new_dynexec())
+    pub fn ensure_dyn(&mut self) -> Result<MastNodeId, MastForestError> {
+        self.ensure_node(MastNode::new_dyn())
     }
 
     /// Adds an external node to the forest, and returns the [`MastNodeId`] associated with it.

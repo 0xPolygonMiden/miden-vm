@@ -135,7 +135,7 @@ impl Assembler {
         &self,
         mast_forest_builder: &mut MastForestBuilder,
     ) -> Result<Option<MastNodeId>, AssemblyError> {
-        let dyn_node_id = mast_forest_builder.ensure_dynexec()?;
+        let dyn_node_id = mast_forest_builder.ensure_dyn()?;
 
         Ok(Some(dyn_node_id))
     }
@@ -146,7 +146,7 @@ impl Assembler {
         mast_forest_builder: &mut MastForestBuilder,
     ) -> Result<Option<MastNodeId>, AssemblyError> {
         let dyn_call_node_id = {
-            let dyn_node_id = mast_forest_builder.ensure_dynexec()?;
+            let dyn_node_id = mast_forest_builder.ensure_dyn()?;
             mast_forest_builder.ensure_call(dyn_node_id)?
         };
 

@@ -84,7 +84,7 @@ impl MastNode {
         Self::Call(CallNode::new_syscall(callee, mast_forest))
     }
 
-    pub fn new_dynexec() -> Self {
+    pub fn new_dyn() -> Self {
         Self::Dyn
     }
 

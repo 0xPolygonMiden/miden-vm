@@ -77,7 +77,7 @@ impl MastNodeInfo {
 
                 Ok(MastNode::new_syscall(callee_id, mast_forest))
             }
-            MastNodeType::Dyn => Ok(MastNode::new_dynexec()),
+            MastNodeType::Dyn => Ok(MastNode::new_dyn()),
             MastNodeType::External => Ok(MastNode::new_external(self.digest)),
         }?;
 
