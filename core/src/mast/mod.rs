@@ -8,7 +8,7 @@ pub use node::{
     BasicBlockNode, CallNode, DynNode, ExternalNode, JoinNode, LoopNode, MastNode, OpBatch,
     OperationOrDecorator, SplitNode, OP_BATCH_SIZE, OP_GROUP_SIZE,
 };
-use winter_utils::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable};
+use winter_utils::DeserializationError;
 
 mod serialization;
 
@@ -152,25 +152,21 @@ impl MastNodeId {
     }
 }
 
+impl From<MastNodeId> for u32 {
+    fn from(value: MastNodeId) -> Self {
+        value.0
+    }
+}
+
+impl From<&MastNodeId> for u32 {
+    fn from(value: &MastNodeId) -> Self {
+        value.0
+    }
+}
+
 impl fmt::Display for MastNodeId {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "MastNodeId({})", self.0)
-    }
-}
-
-impl Serializable for MastNodeId {
-    fn write_into<W: ByteWriter>(&self, target: &mut W) {
-        self.0.write_into(target)
-    }
-}
-
-impl Deserializable for MastNodeId {
-    fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
-        let inner = source.read_u32()?;
-
-        // TODO: fix
-
-        Ok(Self(inner))
     }
 }
 
