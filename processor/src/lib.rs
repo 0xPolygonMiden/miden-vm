@@ -62,8 +62,7 @@ use chiplets::Chiplets;
 mod trace;
 use trace::TraceFragment;
 pub use trace::{
-    prove_virtual_bus, verify_virtual_bus, ChipletsLengths, ExecutionTrace, TraceLenSummary,
-    NUM_RAND_ROWS,
+    prove_virtual_bus, ChipletsLengths, ExecutionTrace, TraceLenSummary, NUM_RAND_ROWS,
 };
 
 mod errors;
@@ -114,7 +113,6 @@ pub struct StackTrace {
 
 pub struct RangeCheckTrace {
     trace: [Vec<Felt>; RANGE_CHECK_TRACE_WIDTH],
-    aux_builder: range::AuxTraceBuilder,
 }
 
 pub struct ChipletsTrace {

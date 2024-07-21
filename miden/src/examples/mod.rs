@@ -121,15 +121,11 @@ impl ExampleOptions {
 
         // execute the program and generate the proof of execution
         let now = Instant::now();
-        let (stack_outputs, proof) =
+        let (stack_outputs, first_main_trace_row, proof) =
             miden_vm::prove(&program, stack_inputs.clone(), host, proof_options).unwrap();
         println!("--------------------------------");
 
-        println!(
-            "Executed program in {} ms",
-            //hex::encode(program.hash()), // TODO: include into message
-            now.elapsed().as_millis()
-        );
+        println!("Executed program in {} ms", now.elapsed().as_millis());
         println!("Stack outputs: {:?}", stack_outputs.stack_truncated(num_outputs));
         assert_eq!(
             expected_result,
@@ -149,7 +145,13 @@ impl ExampleOptions {
         let now = Instant::now();
         let program_info = ProgramInfo::from(program);
 
-        match miden_vm::verify(program_info, stack_inputs, stack_outputs, proof) {
+        match miden_vm::verify(
+            program_info,
+            stack_inputs,
+            stack_outputs,
+            first_main_trace_row,
+            proof,
+        ) {
             Ok(_) => println!("Execution verified in {} ms", now.elapsed().as_millis()),
             Err(err) => println!("Failed to verify execution: {}", err),
         }
@@ -174,7 +176,7 @@ where
         expected_result,
     } = example;
 
-    let (mut outputs, proof) =
+    let (mut outputs, first_main_trace_row, proof) =
         miden_vm::prove(&program, stack_inputs.clone(), host, options).unwrap();
 
     assert_eq!(
@@ -188,9 +190,15 @@ where
 
     if fail {
         outputs.stack_mut()[0] += ONE;
-        assert!(miden_vm::verify(program_info, stack_inputs, outputs, proof).is_err())
+        assert!(
+            miden_vm::verify(program_info, stack_inputs, outputs, first_main_trace_row, proof)
+                .is_err()
+        )
     } else {
-        assert!(miden_vm::verify(program_info, stack_inputs, outputs, proof).is_ok());
+        assert!(
+            miden_vm::verify(program_info, stack_inputs, outputs, first_main_trace_row, proof)
+                .is_ok()
+        );
     }
 }
 

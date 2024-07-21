@@ -101,9 +101,10 @@ impl ProveCmd {
             self.get_proof_options().map_err(|err| Report::msg(format!("{err}")))?;
 
         // execute program and generate proof
-        let (stack_outputs, proof) = prover::prove(&program, stack_inputs, host, proving_options)
-            .into_diagnostic()
-            .wrap_err("Failed to prove program")?;
+        let (stack_outputs, first_main_trace_row, proof) =
+            prover::prove(&program, stack_inputs, host, proving_options)
+                .into_diagnostic()
+                .wrap_err("Failed to prove program")?;
 
         println!(
             "Program with hash {} proved in {} ms",
@@ -117,14 +118,19 @@ impl ProveCmd {
         // provide outputs
         if let Some(output_path) = &self.output_file {
             // write all outputs to specified file.
-            OutputFile::write(&stack_outputs, output_path).map_err(Report::msg)?;
+            OutputFile::write(&stack_outputs, first_main_trace_row, output_path)
+                .map_err(Report::msg)?;
         } else {
             // if no output path was provided, get the stack outputs for printing to the screen.
             let stack = stack_outputs.stack_truncated(self.num_outputs).to_vec();
 
             // write all outputs to default location if none was provided
-            OutputFile::write(&stack_outputs, &self.assembly_file.with_extension("outputs"))
-                .map_err(Report::msg)?;
+            OutputFile::write(
+                &stack_outputs,
+                first_main_trace_row,
+                &self.assembly_file.with_extension("outputs"),
+            )
+            .map_err(Report::msg)?;
 
             // print stack outputs to screen.
             println!("Output: {:?}", stack);

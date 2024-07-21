@@ -1,5 +1,6 @@
 use alloc::vec::Vec;
-use vm_core::{polynom, FieldElement};
+use miden_air::logup_gkr::sumcheck::UnivariatePolyCoef;
+use vm_core::FieldElement;
 use winter_prover::math::batch_inversion;
 
 // UNIVARIATE POLYNOMIAL (EVALUATION FORM)
@@ -65,37 +66,6 @@ impl<E: FieldElement> UnivariatePolyEvals<E> {
     }
 }
 
-// UNIVARIATE POLYNOMIAL (COEFFICIENT FORM)
-// ================================================================================================
-
-/// The coefficients of a univariate polynomial of degree n with the linear term coefficient
-/// omitted.
-#[derive(Clone, Debug)]
-pub struct UnivariatePolyCoef<E: FieldElement> {
-    pub(crate) coefficients: Vec<E>,
-}
-
-impl<E: FieldElement> UnivariatePolyCoef<E> {
-    /// Evaluates a polynomial at a challenge point using a round claim.
-    ///
-    /// The round claim is used to recover the coefficient of the linear term using the relation
-    /// 2 * c0 + c1 + ... c_{n - 1} = claim. Using the complete list of coefficients, the polynomial
-    /// is then evaluated using Horner's method.
-    pub fn evaluate_using_claim(&self, claim: &E, challenge: &E) -> E {
-        // recover the coefficient of the linear term
-        let c1 = *claim
-            - self.coefficients.iter().fold(E::ZERO, |acc, term| acc + *term)
-            - self.coefficients[0];
-
-        // construct the full coefficient list
-        let mut complete_coefficients = vec![self.coefficients[0], c1];
-        complete_coefficients.extend_from_slice(&self.coefficients[1..]);
-
-        // evaluate
-        polynom::eval(&complete_coefficients, *challenge)
-    }
-}
-
 // HELPER FUNCTIONS
 // ================================================================================================
 
@@ -114,12 +84,10 @@ impl<E: FieldElement> UnivariatePolyCoef<E> {
 /// `U * M` where:
 ///
 /// 1. `M` is a lower triangular matrix where its entries are given by M(i, j) = M(i - 1, j) - M(i -
-///    1, j - 1) / (i - 1)
-/// with boundary conditions M(i, 1) = 1 and M(i, j) = 0 when j > i.
+///    1, j - 1) / (i - 1) with boundary conditions M(i, 1) = 1 and M(i, j) = 0 when j > i.
 ///
 /// 2. `U` is an upper triangular (involutory) matrix where its entries are given by U(i, j) = U(i,
-///    j - 1) - U(i - 1, j - 1)
-/// with boundary condition U(1, j) = 1 and U(i, j) = 0 when i > j.
+///    j - 1) - U(i - 1, j - 1) with boundary condition U(1, j) = 1 and U(i, j) = 0 when i > j.
 ///
 /// Note that the matrix indexing in the formulas above matches the one in the reference and starts
 /// from 1.

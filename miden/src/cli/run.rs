@@ -1,8 +1,11 @@
 use super::data::{instrument, Debug, InputFile, Libraries, OutputFile, ProgramFile};
+use air::trace::TRACE_WIDTH;
 use assembly::diagnostics::{IntoDiagnostic, Report, WrapErr};
 use clap::Parser;
 use processor::{DefaultHost, ExecutionOptions, ExecutionTrace};
+use prover::Trace;
 use std::{path::PathBuf, time::Instant};
+use vm_core::ZERO;
 
 #[derive(Debug, Clone, Parser)]
 #[clap(about = "Run a miden program")]
@@ -57,8 +60,16 @@ impl RunCmd {
         );
 
         if let Some(output_path) = &self.output_file {
+            let main_trace_first_row = {
+                let mut first_row = vec![ZERO; TRACE_WIDTH];
+                trace.main_segment().read_row_into(0, &mut first_row);
+
+                first_row
+            };
+
             // write outputs to file if one was specified
-            OutputFile::write(trace.stack_outputs(), output_path).map_err(Report::msg)?;
+            OutputFile::write(trace.stack_outputs(), main_trace_first_row, output_path)
+                .map_err(Report::msg)?;
         } else {
             // write the stack outputs to the screen.
             println!("Output: {:?}", trace.stack_outputs().stack_truncated(self.num_outputs));

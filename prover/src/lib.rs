@@ -6,7 +6,12 @@ extern crate alloc;
 #[cfg(feature = "std")]
 extern crate std;
 
-use air::{AuxRandElements, ProcessorAir, PublicInputs};
+use air::{
+    logup_gkr::GkrCircuitProof, trace::TRACE_WIDTH, AuxRandElements, GkrRandElements, ProcessorAir,
+    PublicInputs,
+};
+use alloc::vec;
+use alloc::vec::Vec;
 use core::marker::PhantomData;
 #[cfg(all(feature = "metal", target_arch = "aarch64", target_os = "macos"))]
 use miden_gpu::HashFn;
@@ -16,17 +21,17 @@ use processor::{
         RpxRandomCoin, WinterRandomCoin,
     },
     math::{Felt, FieldElement},
-    ExecutionTrace, Program,
+    prove_virtual_bus, ExecutionTrace, Program, ZERO,
 };
 use tracing::instrument;
 use winter_prover::{
     matrix::ColMatrix, ConstraintCompositionCoefficients, DefaultConstraintEvaluator,
-    DefaultTraceLde, ProofOptions as WinterProofOptions, Prover, StarkDomain, TraceInfo,
-    TracePolyTable,
+    DefaultTraceLde, LagrangeKernelRandElements, ProofOptions as WinterProofOptions, Prover,
+    ProverGkrProof, StarkDomain, TraceInfo, TracePolyTable,
 };
 
 #[cfg(feature = "std")]
-use {std::time::Instant, winter_prover::Trace};
+use std::time::Instant;
 mod gpu;
 
 // EXPORTS
@@ -37,7 +42,7 @@ pub use processor::{
     crypto, math, utils, AdviceInputs, Digest, ExecutionError, Host, InputError, MemAdviceProvider,
     StackInputs, StackOutputs, Word,
 };
-pub use winter_prover::Proof;
+pub use winter_prover::{Proof, Trace};
 
 // PROVER
 // ================================================================================================
@@ -57,7 +62,7 @@ pub fn prove<H>(
     stack_inputs: StackInputs,
     host: H,
     options: ProvingOptions,
-) -> Result<(StackOutputs, ExecutionProof), ExecutionError>
+) -> Result<(StackOutputs, Vec<Felt>, ExecutionProof), ExecutionError>
 where
     H: Host,
 {
@@ -77,6 +82,12 @@ where
     );
 
     let stack_outputs = trace.stack_outputs().clone();
+    let main_trace_first_row = {
+        let mut first_row = vec![ZERO; TRACE_WIDTH];
+        trace.main_segment().read_row_into(0, &mut first_row);
+
+        first_row
+    };
     let hash_fn = options.hash_fn();
 
     // generate STARK proof
@@ -117,7 +128,7 @@ where
     .map_err(ExecutionError::ProverError)?;
     let proof = ExecutionProof::new(proof, hash_fn);
 
-    Ok((stack_outputs, proof))
+    Ok((stack_outputs, main_trace_first_row, proof))
 }
 
 // PROVER
@@ -204,7 +215,20 @@ where
         );
 
         let program_info = trace.program_info().clone();
-        PublicInputs::new(program_info, self.stack_inputs.clone(), self.stack_outputs.clone())
+
+        let main_trace_first_row = {
+            let mut first_row = vec![ZERO; TRACE_WIDTH];
+            trace.main_segment().read_row_into(0, &mut first_row);
+
+            first_row
+        };
+
+        PublicInputs::new(
+            program_info,
+            self.stack_inputs.clone(),
+            self.stack_outputs.clone(),
+            main_trace_first_row,
+        )
     }
 
     fn new_trace_lde<E: FieldElement<BaseField = Felt>>(
@@ -220,11 +244,13 @@ where
         &self,
         air: &'a ProcessorAir,
         aux_rand_elements: Option<AuxRandElements<E>>,
+        gkr_proof: Option<&GkrCircuitProof<E>>,
         composition_coefficients: ConstraintCompositionCoefficients<E>,
     ) -> Self::ConstraintEvaluator<'a, E> {
-        DefaultConstraintEvaluator::new(air, aux_rand_elements, composition_coefficients)
+        DefaultConstraintEvaluator::new(air, aux_rand_elements, gkr_proof, composition_coefficients)
     }
 
+    #[instrument(skip_all)]
     fn build_aux_trace<E>(
         &self,
         trace: &Self::Trace,
@@ -233,6 +259,42 @@ where
     where
         E: FieldElement<BaseField = Self::BaseField>,
     {
-        trace.build_aux_trace(aux_rand_elements.rand_elements()).unwrap()
+        trace.build_aux_trace(aux_rand_elements).unwrap()
+    }
+
+    #[instrument(skip_all)]
+    fn generate_gkr_proof<E>(
+        &self,
+        main_trace: &Self::Trace,
+        public_coin: &mut Self::RandomCoin,
+    ) -> (ProverGkrProof<Self, E>, GkrRandElements<E>)
+    where
+        E: FieldElement<BaseField = Self::BaseField>,
+    {
+        let logup_randomness: E = public_coin.draw().expect("failed to draw logup randomness");
+
+        let gkr_proof =
+            prove_virtual_bus(main_trace.main_segment(), vec![logup_randomness], public_coin)
+                .expect("Failed to generate GKR proof");
+
+        let final_opening_claim = gkr_proof.get_final_opening_claim();
+
+        // draw openings combining randomness
+        let openings_combining_randomness: Vec<E> = {
+            let openings_digest = H::hash_elements(&final_opening_claim.openings);
+
+            public_coin.reseed(openings_digest);
+
+            (0..main_trace.main_segment().num_cols())
+                .map(|_| public_coin.draw().expect("failed to draw openings combining randomness"))
+                .collect()
+        };
+
+        let gkr_rand_elements = GkrRandElements::new(
+            LagrangeKernelRandElements::new(final_opening_claim.eval_point),
+            openings_combining_randomness,
+        );
+
+        (gkr_proof, gkr_rand_elements)
     }
 }

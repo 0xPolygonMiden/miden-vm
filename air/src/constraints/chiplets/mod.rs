@@ -1,7 +1,8 @@
-use super::super::{
-    EvaluationFrame, Felt, FieldElement, TransitionConstraintDegree, CHIPLETS_OFFSET,
+use super::super::{EvaluationFrame, Felt, FieldElement, TransitionConstraintDegree};
+use crate::{
+    trace::CHIPLETS_OFFSET,
+    utils::{are_equal, binary_not, is_binary},
 };
-use crate::utils::{are_equal, binary_not, is_binary};
 use alloc::vec::Vec;
 
 mod bitwise;
@@ -187,6 +188,7 @@ impl<E: FieldElement> EvaluationFrameExt<E> for &EvaluationFrame<E> {
 // ================================================================================================
 /// Trait to allow other processors to easily access the chiplet values they need for constraint
 /// calculations.
+#[allow(dead_code)]
 pub trait ChipletsFrameExt<E: FieldElement> {
     /// Flag to indicate whether the frame is in the memory chiplet.
     fn chiplets_memory_flag(&self) -> E;

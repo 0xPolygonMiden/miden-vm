@@ -1,16 +1,19 @@
 use super::{
     chiplets::AuxTraceBuilder as ChipletsAuxTraceBuilder, crypto::RpoRandomCoin,
     decoder::AuxTraceBuilder as DecoderAuxTraceBuilder,
-    range::AuxTraceBuilder as RangeCheckerAuxTraceBuilder,
     stack::AuxTraceBuilder as StackAuxTraceBuilder, ColMatrix, Digest, Felt, FieldElement, Host,
     Process, StackTopState,
 };
 use alloc::vec::Vec;
-use miden_air::trace::{
-    decoder::{NUM_USER_OP_HELPERS, USER_OP_HELPERS_OFFSET},
-    main_trace::MainTrace,
-    AUX_TRACE_RAND_ELEMENTS, AUX_TRACE_WIDTH, DECODER_TRACE_OFFSET, MIN_TRACE_LEN,
-    STACK_TRACE_OFFSET, TRACE_WIDTH,
+use miden_air::{
+    trace::{
+        decoder::{NUM_USER_OP_HELPERS, USER_OP_HELPERS_OFFSET},
+        logup::{LAGRANGE_KERNEL_COL_IDX, S_COL_IDX},
+        main_trace::MainTrace,
+        AUX_TRACE_RAND_ELEMENTS, AUX_TRACE_WIDTH, DECODER_TRACE_OFFSET, MIN_TRACE_LEN,
+        STACK_TRACE_OFFSET, TRACE_WIDTH,
+    },
+    AuxRandElements,
 };
 use vm_core::{stack::STACK_TOP_SIZE, ProgramInfo, StackOutputs, ZERO};
 use winter_prover::{crypto::RandomCoin, EvaluationFrame, Trace, TraceInfo};
@@ -19,7 +22,7 @@ mod utils;
 pub use utils::{AuxColumnBuilder, ChipletsLengths, TraceFragment, TraceLenSummary};
 
 mod virtual_bus;
-pub use virtual_bus::{prove as prove_virtual_bus, verify as verify_virtual_bus};
+pub use virtual_bus::prove as prove_virtual_bus;
 
 #[cfg(test)]
 mod tests;
@@ -38,7 +41,6 @@ pub const NUM_RAND_ROWS: usize = 1;
 pub struct AuxTraceBuilders {
     pub(crate) decoder: DecoderAuxTraceBuilder,
     pub(crate) stack: StackAuxTraceBuilder,
-    pub(crate) range: RangeCheckerAuxTraceBuilder,
     pub(crate) chiplets: ChipletsAuxTraceBuilder,
 }
 
@@ -196,7 +198,7 @@ impl ExecutionTrace {
         finalize_trace(process, rng)
     }
 
-    pub fn build_aux_trace<E>(&self, rand_elements: &[E]) -> Option<ColMatrix<E>>
+    pub fn build_aux_trace<E>(&self, rand_elements: &AuxRandElements<E>) -> Option<ColMatrix<E>>
     where
         E: FieldElement<BaseField = Felt>,
     {
@@ -204,35 +206,38 @@ impl ExecutionTrace {
         let decoder_aux_columns = self
             .aux_trace_builders
             .decoder
-            .build_aux_columns(&self.main_trace, rand_elements);
+            .build_aux_columns(&self.main_trace, rand_elements.rand_elements());
 
         // add stack's running product columns
-        let stack_aux_columns =
-            self.aux_trace_builders.stack.build_aux_columns(&self.main_trace, rand_elements);
-
-        // add the range checker's running product columns
-        let range_aux_columns =
-            self.aux_trace_builders.range.build_aux_columns(&self.main_trace, rand_elements);
+        let stack_aux_columns = self
+            .aux_trace_builders
+            .stack
+            .build_aux_columns(&self.main_trace, rand_elements.rand_elements());
 
         // add the running product columns for the chiplets
         let chiplets = self
             .aux_trace_builders
             .chiplets
-            .build_aux_columns(&self.main_trace, rand_elements);
+            .build_aux_columns(&self.main_trace, rand_elements.rand_elements());
+
+        // add the aux columns for LogUp-GKR
+        let logup_gkr = virtual_bus::build_aux_columns(&self.main_trace, rand_elements);
 
         // combine all auxiliary columns into a single vector
         let mut aux_columns = decoder_aux_columns
             .into_iter()
             .chain(stack_aux_columns)
-            .chain(range_aux_columns)
             .chain(chiplets)
+            .chain(logup_gkr)
             .collect::<Vec<_>>();
 
-        // inject random values into the last rows of the trace
+        // inject random values into the last rows of the trace, except for the GKR columns
         let mut rng = RpoRandomCoin::new(self.program_hash().into());
-        for i in self.length() - NUM_RAND_ROWS..self.length() {
-            for column in aux_columns.iter_mut() {
-                column[i] = rng.draw().expect("failed to draw a random value");
+        for row_idx in self.length() - NUM_RAND_ROWS..self.length() {
+            for (col_idx, column) in aux_columns.iter_mut().enumerate() {
+                if col_idx != LAGRANGE_KERNEL_COL_IDX && col_idx != S_COL_IDX {
+                    column[row_idx] = rng.draw().expect("failed to draw a random value");
+                }
             }
         }
 
@@ -337,14 +342,13 @@ where
         }
     }
 
-    let aux_trace_hints = AuxTraceBuilders {
+    let aux_trace_builders = AuxTraceBuilders {
         decoder: decoder_trace.aux_builder,
         stack: stack_trace.aux_builder,
-        range: range_check_trace.aux_builder,
         chiplets: chiplets_trace.aux_builder,
     };
 
     let main_trace = MainTrace::new(ColMatrix::new(trace));
 
-    (main_trace, aux_trace_hints, trace_len_summary)
+    (main_trace, aux_trace_builders, trace_len_summary)
 }

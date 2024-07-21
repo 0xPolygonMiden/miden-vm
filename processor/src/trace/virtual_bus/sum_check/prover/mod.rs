@@ -1,9 +1,10 @@
-use super::{
-    reduce_claim, CompositionPolynomial, FinalOpeningClaim, Proof, RoundClaim, RoundProof,
-};
-use crate::trace::virtual_bus::{multilinear::MultiLinearPoly, univariate::UnivariatePolyEvals};
+use super::{reduce_claim, RoundProof, UnivariatePolyEvals};
 use alloc::vec::Vec;
 use core::marker::PhantomData;
+use miden_air::logup_gkr::{
+    sumcheck::{FinalOpeningClaim, SumCheckProof, SumCheckRoundClaim},
+    CompositionPolynomial, MultiLinearPoly,
+};
 use vm_core::FieldElement;
 use winter_prover::crypto::{ElementHasher, RandomCoin};
 
@@ -21,7 +22,7 @@ pub use self::error::Error;
 ///
 /// 1. v ∈ 𝔽 where 𝔽 is a finite field.
 /// 2. f_i are multi-linear polynomials i.e., polynomials in 𝔽[X_0, \cdots ,X_{\nu - 1}] with degree
-/// at most one in each variable.
+///    at most one in each variable.
 /// 3. g is a multivariate polynomial with degree at most d in each variable.
 ///
 /// The Verifier is given commitments to each `f_i` in addition to the claimed sum `v`. The Prover
@@ -38,33 +39,36 @@ pub use self::error::Error;
 ///
 /// 3. The Verifier samples a random challenge `r_0 ∈ 𝔽` and sends it to the Prover.
 ///
-/// 4. For each i in 1...(\nu - 1): a. The Prover sends the univariate polynomial defined by:
+/// 4. For each i in 1...(\nu - 1):
 ///
+///   a. The Prover sends the univariate polynomial defined by:
+///
+/// ```ignore
 ///         s_i(X_i) := \sum_{(x_{i + 1},\cdots, x_{\nu - 1})
 ///                                  w(r_0,\cdots, r_{i - 1}, X_i, x_{i + 1}, \cdots, x_{\nu - 1}).
+/// ```
+///   b. The Verifier checks that s_{i - 1}(r_{i - 1}) = s_{i}(0) + s_{i}(1) rejecting if not.
+///   c. The Verifier samples a random challenge `r_i ∈ 𝔽` and sends it to the Prover.
 ///
-///     b. The Verifier checks that s_{i - 1}(r_{i - 1}) = s_{i}(0) + s_{i}(1) rejecting if not.
-///     
-///     c. The Verifier samples a random challenge `r_i ∈ 𝔽` and sends it to the Prover.
+/// 5. The Verifier now queries each of the oracles behind the commitments i.e., `f_i` at `(r_0,
+///    \cdots , r_{\nu - 1})` to get u_i = f_i(r_0, \cdots , r_{\nu - 1}). The Verifier then accepts
+///    if and only if:
 ///
-/// 5. The Verifier now queries each of the oracles behind the commitments i.e., `f_i` at
-/// `(r_0, \cdots , r_{\nu - 1})` to get u_i = f_i(r_0, \cdots , r_{\nu - 1}).
-/// The Verifier then accepts if and only if:
-///
+/// ```ignore
 ///         s_{\nu - 1}(r_{\nu - 1}) = g(u_0, \cdots , u_{\nu - 1})
+/// ```
 ///
 /// A few remarks:
 ///
 /// 1. The degree bound on `g` implies that each of the `s_i` polynomials is a univariate polynomial
-/// of degree at most `d`. Thus, the Prover in each round sends `d + 1` values, either
-/// the coefficients or the evaluations of `s_i`.
+///    of degree at most `d`. Thus, the Prover in each round sends `d + 1` values, either the
+///    coefficients or the evaluations of `s_i`.
 ///
 /// 2. The Prover has each `f_i` in its evaluation form over the hyper-cube \{0 , 1\}^{\nu}.
 ///
 /// 3. An optimization is for the Prover to not send `s_i(0)` as it can be recovered from the
-///    current
-/// reduced claim s_{i - 1}(r_{i - 1}) using the relation s_{i}(0) = s_{i}(1) - s_{i - 1}(r_{i -
-/// 1}). This also means that the Verifier can skip point 4.b.
+///    current reduced claim s_{i - 1}(r_{i - 1}) using the relation s_{i}(0) = s_{i}(1) - s_{i -
+///    1}(r_{i - 1}). This also means that the Verifier can skip point 4.b.
 pub struct SumCheckProver<E, P, C, H, V>
 where
     E: FieldElement,
@@ -123,10 +127,10 @@ where
         claim: E,
         mut mls: Vec<MultiLinearPoly<E>>,
         coin: &mut C,
-    ) -> Result<Proof<E>, Error> {
+    ) -> Result<SumCheckProof<E>, Error> {
         let num_rounds = mls[0].num_variables();
         let (
-            RoundClaim {
+            SumCheckRoundClaim {
                 eval_point,
                 claim: _claim,
             },
@@ -136,7 +140,7 @@ where
         let openings = mls.iter_mut().map(|ml| ml.evaluations()[0]).collect();
         let openings_claim = self.final_claim_builder.build_claim(openings, &eval_point);
 
-        Ok(Proof {
+        Ok(SumCheckProof {
             openings_claim,
             round_proofs,
         })
@@ -149,7 +153,7 @@ where
         mls: &mut [MultiLinearPoly<E>],
         num_rounds: usize,
         coin: &mut C,
-    ) -> Result<(RoundClaim<E>, Vec<RoundProof<E>>), Error> {
+    ) -> Result<(SumCheckRoundClaim<E>, Vec<RoundProof<E>>), Error> {
         // there should be at least one multi-linear polynomial provided
         if mls.is_empty() {
             return Err(Error::NoMlsProvided);
@@ -179,7 +183,7 @@ where
         let mut round_proofs = vec![];
 
         // setup first round claim
-        let mut current_round_claim = RoundClaim {
+        let mut current_round_claim = SumCheckRoundClaim {
             eval_point: vec![],
             claim,
         };
@@ -254,9 +258,11 @@ where
 /// For the remaining evaluations, we use the fact that the folded `f_i` is multi-linear and hence
 /// we can write
 ///
+/// ```ignore
 ///     f_i(X_i, x_{i + 1}, \cdots, x_{\nu - 1}) =
-///        (1 - X_i) . f_i(0, x_{i + 1}, \cdots, x_{\nu - 1}) + X_i . f_i(1, x_{i + 1}, \cdots,
-/// x_{\nu - 1})
+///        (1 - X_i) . f_i(0, x_{i + 1}, \cdots, x_{\nu - 1}) +
+///        X_i . f_i(1, x_{i + 1}, \cdots, x_{\nu - 1})
+/// ```
 ///
 /// Note that we omitted writing the folding randomness for readability.
 /// Since the evaluation domain is {0, 1, ... , d_max}, we can compute the evaluations based on

@@ -52,9 +52,15 @@ impl VerifyCmd {
 
         // verify proof
         let stack_outputs = outputs_data.stack_outputs().map_err(Report::msg)?;
-        verifier::verify(program_info, stack_inputs, stack_outputs, proof)
-            .into_diagnostic()
-            .wrap_err("Program failed verification!")?;
+        verifier::verify(
+            program_info,
+            stack_inputs,
+            stack_outputs,
+            outputs_data.first_main_trace_row,
+            proof,
+        )
+        .into_diagnostic()
+        .wrap_err("Program failed verification!")?;
 
         println!("Verification complete in {} ms", now.elapsed().as_millis());
 

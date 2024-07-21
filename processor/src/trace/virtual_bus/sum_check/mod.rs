@@ -1,48 +1,18 @@
-use super::univariate::UnivariatePolyCoef;
-use alloc::vec::Vec;
+use miden_air::logup_gkr::sumcheck::{RoundProof, SumCheckRoundClaim};
 use vm_core::FieldElement;
 
 mod prover;
 pub use prover::{Error as SumCheckProverError, FinalClaimBuilder, SumCheckProver};
-mod verifier;
-pub use verifier::{CompositionPolyQueryBuilder, Error as SumCheckVerifierError, SumCheckVerifier};
 
-/// A sum-check round proof.
-///
-/// This represents the partial polynomial sent by the Prover during one of the rounds of the
-/// sum-check protocol. The polynomial is in coefficient form and excludes the coefficient for
-/// the linear term as the Verifier can recover it from the other coefficients and the current
-/// (reduced) claim.
-#[derive(Debug, Clone)]
-pub struct RoundProof<E: FieldElement> {
-    pub round_poly_coefs: UnivariatePolyCoef<E>,
-}
-
-/// A sum-check proof.
-///
-/// Composed of the round proofs i.e., the polynomials sent by the Prover at each round as well as
-/// the (claimed) openings of the multi-linear oracles at the evaluation point given by the round
-/// challenges.
-#[derive(Debug, Clone)]
-pub struct Proof<E: FieldElement> {
-    pub openings_claim: FinalOpeningClaim<E>,
-    pub round_proofs: Vec<RoundProof<E>>,
-}
-
-/// Contains the round challenges sent by the Verifier up to some round as well as the current
-/// reduced claim.
-#[derive(Debug)]
-pub struct RoundClaim<E: FieldElement> {
-    pub eval_point: Vec<E>,
-    pub claim: E,
-}
+mod univariate;
+use univariate::UnivariatePolyEvals;
 
 /// Reduces an old claim to a new claim using the round challenge.
 pub fn reduce_claim<E: FieldElement>(
     current_poly: &RoundProof<E>,
-    current_round_claim: RoundClaim<E>,
+    current_round_claim: SumCheckRoundClaim<E>,
     round_challenge: E,
-) -> RoundClaim<E> {
+) -> SumCheckRoundClaim<E> {
     // evaluate the round polynomial at the round challenge to obtain the new claim
     let new_claim = current_poly
         .round_poly_coefs
@@ -52,34 +22,10 @@ pub fn reduce_claim<E: FieldElement>(
     let mut new_partial_eval_point = current_round_claim.eval_point;
     new_partial_eval_point.push(round_challenge);
 
-    RoundClaim {
+    SumCheckRoundClaim {
         eval_point: new_partial_eval_point,
         claim: new_claim,
     }
-}
-
-/// Represents an opening claim at an evaluation point against a batch of oracles.
-///
-/// After verifying [`Proof`], the verifier is left with a question on the validity of a final
-/// claim on a number of oracles open to a given set of values at some given point.
-/// This question is answered either using further interaction with the Prover or using
-/// a polynomial commitment opening proof in the compiled protocol.
-#[derive(Clone, Debug)]
-pub struct FinalOpeningClaim<E> {
-    pub eval_point: Vec<E>,
-    pub openings: Vec<E>,
-}
-
-// COMPOSITION POLYNOMIAL
-// ================================================================================================
-
-/// A multi-variate polynomial for composing individual multi-linear polynomials.
-pub trait CompositionPolynomial<E: FieldElement> {
-    /// Maximum degree in all variables.
-    fn max_degree(&self) -> u32;
-
-    /// Given a query, of length equal the number of variables, evaluates [Self] at this query.
-    fn evaluate(&self, query: &[E]) -> E;
 }
 
 // TESTS
@@ -87,13 +33,13 @@ pub trait CompositionPolynomial<E: FieldElement> {
 
 #[cfg(test)]
 mod tests {
-    use super::{
-        prover::{FinalClaimBuilder, SumCheckProver},
-        verifier::{CompositionPolyQueryBuilder, SumCheckVerifier},
-        CompositionPolynomial,
-    };
-    use crate::trace::virtual_bus::multilinear::MultiLinearPoly;
+    use super::prover::{FinalClaimBuilder, SumCheckProver};
     use alloc::{borrow::ToOwned, vec::Vec};
+    use miden_air::{
+        logup_gkr::{sumcheck::FinalOpeningClaim, CompositionPolynomial, MultiLinearPoly},
+        CompositionPolyQueryBuilder, SumCheckVerifier,
+    };
+
     use test_utils::rand::rand_vector;
     use vm_core::{crypto::random::RpoRandomCoin, Felt, FieldElement, Word, ONE, ZERO};
 
@@ -116,7 +62,7 @@ mod tests {
         let plain_query_builder = ProjectionPolyQueryBuilder::default();
         let verifier = SumCheckVerifier::new(virtual_poly, plain_query_builder);
         let mut coin = RpoRandomCoin::new(Word::default());
-        let result = verifier.verify(claim, proof, &mut coin);
+        let result = verifier.verify(claim, &proof, &mut coin);
 
         assert!(result.is_ok())
     }
@@ -142,7 +88,7 @@ mod tests {
         let plain_query_builder = ProjectionPolyQueryBuilder::default();
         let verifier = SumCheckVerifier::new(virtual_poly, plain_query_builder);
         let mut coin = RpoRandomCoin::new(Word::default());
-        let result = verifier.verify(claim, proof, &mut coin);
+        let result = verifier.verify(claim, &proof, &mut coin);
 
         assert!(result.is_ok())
     }
@@ -172,7 +118,7 @@ mod tests {
         let plain_query_builder = ProjectionPolyQueryBuilder::default();
         let verifier = SumCheckVerifier::new(virtual_poly, plain_query_builder);
         let mut coin = RpoRandomCoin::new(Word::default());
-        let result = verifier.verify(claim, proof, &mut coin);
+        let result = verifier.verify(claim, &proof, &mut coin);
 
         assert!(result.is_err())
     }
@@ -186,8 +132,8 @@ mod tests {
             &self,
             openings: Vec<Self::Field>,
             evaluation_point: &[Self::Field],
-        ) -> super::FinalOpeningClaim<Self::Field> {
-            super::FinalOpeningClaim {
+        ) -> FinalOpeningClaim<Self::Field> {
+            FinalOpeningClaim {
                 eval_point: evaluation_point.to_owned(),
                 openings,
             }
@@ -200,7 +146,7 @@ mod tests {
     impl<E: FieldElement> CompositionPolyQueryBuilder<E> for ProjectionPolyQueryBuilder {
         fn build_query(
             &self,
-            openings_claim: &super::FinalOpeningClaim<E>,
+            openings_claim: &FinalOpeningClaim<E>,
             _evaluation_point: &[E],
         ) -> Vec<E> {
             openings_claim.openings.to_vec()
