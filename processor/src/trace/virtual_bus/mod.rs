@@ -35,8 +35,6 @@ mod sum_check;
 pub use sum_check::SumCheckProver;
 use winter_prover::LagrangeKernelRandElements;
 
-mod univariate;
-
 #[cfg(test)]
 mod tests;
 

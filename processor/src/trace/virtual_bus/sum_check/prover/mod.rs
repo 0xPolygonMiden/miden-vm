@@ -1,5 +1,4 @@
-use super::{reduce_claim, RoundProof};
-use crate::trace::virtual_bus::univariate::UnivariatePolyEvals;
+use super::{reduce_claim, RoundProof, UnivariatePolyEvals};
 use alloc::vec::Vec;
 use core::marker::PhantomData;
 use miden_air::logup_gkr::{

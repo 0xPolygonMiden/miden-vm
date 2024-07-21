@@ -4,6 +4,9 @@ use vm_core::FieldElement;
 mod prover;
 pub use prover::{Error as SumCheckProverError, FinalClaimBuilder, SumCheckProver};
 
+mod univariate;
+use univariate::UnivariatePolyEvals;
+
 /// Reduces an old claim to a new claim using the round challenge.
 pub fn reduce_claim<E: FieldElement>(
     current_poly: &RoundProof<E>,
