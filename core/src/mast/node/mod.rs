@@ -3,8 +3,8 @@ use core::fmt;
 
 use alloc::{boxed::Box, vec::Vec};
 pub use basic_block_node::{
-    get_span_op_group_count, BasicBlockNode, OpBatch, OperationOrDecorator,
-    BATCH_SIZE as OP_BATCH_SIZE, GROUP_SIZE as OP_GROUP_SIZE,
+    BasicBlockNode, OpBatch, OperationOrDecorator, BATCH_SIZE as OP_BATCH_SIZE,
+    GROUP_SIZE as OP_GROUP_SIZE,
 };
 
 mod call_node;
@@ -155,12 +155,12 @@ impl MastNode {
 
     pub fn to_display<'a>(&'a self, mast_forest: &'a MastForest) -> impl fmt::Display + 'a {
         match self {
-            MastNode::Block(node) => MastNodeDisplay::new(node.to_display(mast_forest)),
+            MastNode::Block(node) => MastNodeDisplay::new(node),
             MastNode::Join(node) => MastNodeDisplay::new(node.to_display(mast_forest)),
             MastNode::Split(node) => MastNodeDisplay::new(node.to_display(mast_forest)),
             MastNode::Loop(node) => MastNodeDisplay::new(node.to_display(mast_forest)),
             MastNode::Call(node) => MastNodeDisplay::new(node.to_display(mast_forest)),
-            MastNode::Dyn => MastNodeDisplay::new(DynNode.to_display(mast_forest)),
+            MastNode::Dyn => MastNodeDisplay::new(DynNode),
             MastNode::External(node) => MastNodeDisplay::new(node.to_display(mast_forest)),
         }
     }

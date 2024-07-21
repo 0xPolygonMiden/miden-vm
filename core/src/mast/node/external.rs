@@ -2,6 +2,9 @@ use crate::mast::MastForest;
 use core::fmt;
 use miden_crypto::hash::rpo::RpoDigest;
 
+// EXTERNAL NODE
+// ================================================================================================
+
 /// Node for referencing procedures not present in a given [`MastForest`] (hence "external").
 ///
 /// External nodes can be used to verify the integrity of a program's hash while keeping parts of
@@ -25,10 +28,17 @@ impl ExternalNode {
 }
 
 impl ExternalNode {
+    /// Returns the commitment to the MAST node referenced by this external node.
     pub fn digest(&self) -> RpoDigest {
         self.digest
     }
-    pub fn to_display<'a>(&'a self, _mast_forest: &'a MastForest) -> impl fmt::Display + 'a {
+}
+
+// PRETTY PRINTING
+// ================================================================================================
+
+impl ExternalNode {
+    pub(super) fn to_display<'a>(&'a self, _mast_forest: &'a MastForest) -> impl fmt::Display + 'a {
         self
     }
 }

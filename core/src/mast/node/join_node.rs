@@ -12,6 +12,8 @@ use crate::{
 // JOIN NODE
 // ================================================================================================
 
+/// A Join node describe sequential execution. When the VM encounters a Join node, it executes the
+/// first child first and the second child second.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct JoinNode {
     children: [MastNodeId; 2],
@@ -46,23 +48,25 @@ impl JoinNode {
 
 /// Public accessors
 impl JoinNode {
-    pub fn first(&self) -> MastNodeId {
-        self.children[0]
-    }
-
-    pub fn second(&self) -> MastNodeId {
-        self.children[1]
-    }
-
+    /// Returns a commitment to this Join node.
+    ///
+    /// The commitment is computed as a hash of the `first` and `second` child node in the domain
+    /// defined by [Self::DOMAIN] - i.e.,:
+    ///
+    /// hasher::merge_in_domain(&[first_child_digest, second_child_digest], JoinNode::DOMAIN)
     pub fn digest(&self) -> RpoDigest {
         self.digest
     }
 
-    pub fn to_display<'a>(&'a self, mast_forest: &'a MastForest) -> impl fmt::Display + 'a {
-        JoinNodePrettyPrint {
-            join_node: self,
-            mast_forest,
-        }
+    /// Returns the ID of the node that is to be executed first.
+    pub fn first(&self) -> MastNodeId {
+        self.children[0]
+    }
+
+    /// Returns the ID of the node that is to be executed after the execution of the program
+    /// defined by the first node completes.
+    pub fn second(&self) -> MastNodeId {
+        self.children[1]
     }
 }
 
@@ -70,6 +74,13 @@ impl JoinNode {
 // ================================================================================================
 
 impl JoinNode {
+    pub(super) fn to_display<'a>(&'a self, mast_forest: &'a MastForest) -> impl fmt::Display + 'a {
+        JoinNodePrettyPrint {
+            join_node: self,
+            mast_forest,
+        }
+    }
+
     pub(super) fn to_pretty_print<'a>(
         &'a self,
         mast_forest: &'a MastForest,
