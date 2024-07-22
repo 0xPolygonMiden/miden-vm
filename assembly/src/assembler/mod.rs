@@ -66,8 +66,6 @@ pub struct Assembler {
     warnings_as_errors: bool,
     /// Whether the assembler enables extra debugging information.
     in_debug_mode: bool,
-    /// Whether the assembler allows unknown invocation targets in compiled code.
-    allow_phantom_calls: bool,
 }
 
 impl Default for Assembler {
@@ -77,7 +75,6 @@ impl Default for Assembler {
             procedure_cache: Default::default(),
             warnings_as_errors: false,
             in_debug_mode: false,
-            allow_phantom_calls: true,
         }
     }
 }
@@ -109,12 +106,6 @@ impl Assembler {
     /// Puts the assembler into the debug mode.
     pub fn with_debug_mode(mut self, yes: bool) -> Self {
         self.in_debug_mode = yes;
-        self
-    }
-
-    /// Sets whether to allow phantom calls.
-    pub fn with_phantom_calls(mut self, yes: bool) -> Self {
-        self.allow_phantom_calls = yes;
         self
     }
 
@@ -245,11 +236,6 @@ impl Assembler {
         self.module_graph.kernel()
     }
 
-    /// Returns true if this assembler was instantiated with phantom calls enabled.
-    pub fn allow_phantom_calls(&self) -> bool {
-        self.allow_phantom_calls
-    }
-
     #[cfg(any(test, feature = "testing"))]
     #[doc(hidden)]
     pub fn module_graph(&self) -> &ModuleGraph {
@@ -298,7 +284,7 @@ impl Assembler {
 
         let program = source.compile_with_options(CompileOptions {
             // Override the module name so that we always compile the executable
-            // module as #exec
+            // module as #exe
             path: Some(LibraryPath::from(LibraryNamespace::Exec)),
             ..options
         })?;
