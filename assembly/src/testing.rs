@@ -316,14 +316,10 @@ impl TestContext {
     #[track_caller]
     pub fn assemble_module(
         &mut self,
-        path: LibraryPath,
-        module: impl Compile,
+        _path: LibraryPath,
+        _module: impl Compile,
     ) -> Result<Vec<RpoDigest>, Report> {
-        let options = CompileOptions {
-            path: Some(path),
-            warnings_as_errors: self.assembler.warnings_as_errors(),
-            ..CompileOptions::for_library()
-        };
-        self.assembler.assemble_module(module, options)
+        // This API will change after we implement `Assembler::add_library()`
+        unimplemented!()
     }
 }

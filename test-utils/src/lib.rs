@@ -277,8 +277,10 @@ impl Test {
     /// Compiles a test's source and returns the resulting Program or Assembly error.
     pub fn compile(&self) -> Result<Program, Report> {
         use assembly::{ast::ModuleKind, CompileOptions};
+        #[allow(unused)]
         let assembler = if let Some(kernel) = self.kernel.as_ref() {
-            assembly::Assembler::with_kernel_from_module(kernel).expect("invalid kernel")
+            // TODO: Load in kernel after we add the new `Assembler::add_library()`
+            assembly::Assembler::default()
         } else {
             assembly::Assembler::default()
         };

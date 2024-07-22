@@ -1,7 +1,6 @@
 use crate::{
     ast::{
-        self, AliasTarget, Export, FullyQualifiedProcedureName, Instruction, InvocationTarget,
-        InvokeKind, ModuleKind, ProcedureIndex,
+        self, FullyQualifiedProcedureName, Instruction, InvocationTarget, InvokeKind, ModuleKind,
     },
     diagnostics::Report,
     sema::SemanticAnalysisError,
@@ -11,7 +10,7 @@ use crate::{
 use alloc::{boxed::Box, sync::Arc, vec::Vec};
 use mast_forest_builder::MastForestBuilder;
 use vm_core::{
-    mast::{MastForest, MastNodeId, MerkleTreeNode},
+    mast::{MastForest, MastNodeId},
     Decorator, DecoratorList, Kernel, Operation, Program,
 };
 
@@ -99,26 +98,6 @@ impl Assembler {
         assembler.module_graph.set_kernel(None, kernel);
 
         assembler
-    }
-
-    /// Start building an [Assembler], with a kernel given by compiling the given source module.
-    ///
-    /// # Errors
-    /// Returns an error if compiling kernel source results in an error.
-    pub fn with_kernel_from_module(module: impl Compile) -> Result<Self, Report> {
-        let mut assembler = Self::new();
-        let opts = CompileOptions::for_kernel();
-        let module = module.compile_with_options(opts)?;
-
-        let mut mast_forest_builder = MastForestBuilder::new();
-
-        let (kernel_index, kernel) =
-            assembler.assemble_kernel_module(module, &mut mast_forest_builder)?;
-        assembler.module_graph.set_kernel(Some(kernel_index), kernel);
-
-        assembler.mast_forest_builder = mast_forest_builder;
-
-        Ok(assembler)
     }
 
     /// Sets the default behavior of this assembler with regard to warning diagnostics.
@@ -343,137 +322,6 @@ impl Assembler {
         self.compile_program(entrypoint, mast_forest_builder)
     }
 
-    /// Compile and assembles all procedures in the specified module, adding them to the procedure
-    /// cache.
-    ///
-    /// Returns a vector of procedure digests for all exported procedures in the module.
-    ///
-    /// The provided context is used to determine what type of module to assemble, i.e. either
-    /// a kernel or library module.
-    pub fn assemble_module(
-        &mut self,
-        module: impl Compile,
-        options: CompileOptions,
-    ) -> Result<Vec<RpoDigest>, Report> {
-        // Compile module
-        let module = module.compile_with_options(options)?;
-
-        // Recompute graph with the provided module, and start assembly
-        let module_id = self.module_graph.add_module(module)?;
-        self.module_graph.recompute()?;
-
-        let mut mast_forest_builder = core::mem::take(&mut self.mast_forest_builder);
-
-        self.assemble_graph(&mut mast_forest_builder)?;
-        let exported_procedure_digests =
-            self.get_module_exports(module_id, mast_forest_builder.forest());
-
-        // Reassign the mast_forest to the assembler for use is a future program assembly
-        self.mast_forest_builder = mast_forest_builder;
-
-        exported_procedure_digests
-    }
-
-    /// Compiles the given kernel module, returning both the compiled kernel and its index in the
-    /// graph.
-    fn assemble_kernel_module(
-        &mut self,
-        module: Box<ast::Module>,
-        mast_forest_builder: &mut MastForestBuilder,
-    ) -> Result<(ModuleIndex, Kernel), Report> {
-        if !module.is_kernel() {
-            return Err(Report::msg(format!("expected kernel module, got {}", module.kind())));
-        }
-
-        let kernel_index = self.module_graph.add_module(module)?;
-        self.module_graph.recompute()?;
-        let kernel_module = self.module_graph[kernel_index].clone();
-        let mut kernel = Vec::new();
-        for (index, _syscall) in kernel_module
-            .procedures()
-            .enumerate()
-            .filter(|(_, p)| p.visibility().is_syscall())
-        {
-            let gid = GlobalProcedureIndex {
-                module: kernel_index,
-                index: ProcedureIndex::new(index),
-            };
-            let compiled = self.compile_subgraph(gid, false, mast_forest_builder)?;
-            kernel.push(compiled.mast_root(mast_forest_builder.forest()));
-        }
-
-        Kernel::new(&kernel)
-            .map(|kernel| (kernel_index, kernel))
-            .map_err(|err| Report::new(AssemblyError::Kernel(err)))
-    }
-
-    /// Get the set of procedure roots for all exports of the given module
-    ///
-    /// Returns an error if the provided Miden Assembly is invalid.
-    fn get_module_exports(
-        &self,
-        module: ModuleIndex,
-        mast_forest: &MastForest,
-    ) -> Result<Vec<RpoDigest>, Report> {
-        assert!(self.module_graph.contains_module(module), "invalid module index");
-
-        let mut exports = Vec::new();
-        for (index, procedure) in self.module_graph[module].procedures().enumerate() {
-            // Only add exports to the code block table, locals will
-            // be added if they are in the call graph rooted at those
-            // procedures
-            if !procedure.visibility().is_exported() {
-                continue;
-            }
-            let gid = match procedure {
-                Export::Procedure(_) => GlobalProcedureIndex {
-                    module,
-                    index: ProcedureIndex::new(index),
-                },
-                Export::Alias(ref alias) => {
-                    match alias.target() {
-                        AliasTarget::MastRoot(digest) => {
-                            self.procedure_cache.contains_mast_root(digest)
-                                .unwrap_or_else(|| {
-                                    panic!(
-                                        "compilation apparently succeeded, but did not find a \
-                                                entry in the procedure cache for alias '{}', i.e. '{}'",
-                                        alias.name(),
-                                        digest
-                                    );
-                                })
-                        }
-                        AliasTarget::Path(ref name)=> {
-                            self.module_graph.find(alias.source_file(), name)?
-                        }
-                    }
-                }
-            };
-            let proc = self.procedure_cache.get(gid).unwrap_or_else(|| match procedure {
-                Export::Procedure(ref proc) => {
-                    panic!(
-                        "compilation apparently succeeded, but did not find a \
-                                entry in the procedure cache for '{}'",
-                        proc.name()
-                    )
-                }
-                Export::Alias(ref alias) => {
-                    panic!(
-                        "compilation apparently succeeded, but did not find a \
-                                entry in the procedure cache for alias '{}', i.e. '{}'",
-                        alias.name(),
-                        alias.target()
-                    );
-                }
-            });
-
-            let proc_code_node = &mast_forest[proc.body_node_id()];
-            exports.push(proc_code_node.digest());
-        }
-
-        Ok(exports)
-    }
-
     /// Compile the provided [Module] into a [Program].
     ///
     /// Ensures that the [`MastForest`] entrypoint is set to the entrypoint of the program.
@@ -495,20 +343,6 @@ impl Assembler {
             entry_procedure.body_node_id(),
             self.module_graph.kernel().clone(),
         ))
-    }
-
-    /// Compile all of the uncompiled procedures in the module graph, placing them
-    /// in the procedure cache once compiled.
-    ///
-    /// Returns an error if any of the provided Miden Assembly is invalid.
-    fn assemble_graph(
-        &mut self,
-        mast_forest_builder: &mut MastForestBuilder,
-    ) -> Result<(), Report> {
-        let mut worklist = self.module_graph.topological_sort().to_vec();
-        assert!(!worklist.is_empty());
-        self.process_graph_worklist(&mut worklist, None, mast_forest_builder)
-            .map(|_| ())
     }
 
     /// Compile the uncompiled procedure in the module graph which are members of the subgraph
