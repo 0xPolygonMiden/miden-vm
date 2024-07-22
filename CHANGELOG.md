@@ -20,6 +20,7 @@
 - Updated CI to support `CHANGELOG.md` modification checking and `no changelog` label (#1406)
 - Introduced `MastForestError` to enforce `MastForest` node count invariant (#1394)
 - Added functions to `MastForestBuilder` to allow ensuring of nodes with fewer LOC (#1404)
+- Make `Assembler` single-use (#1409)
 
 #### Changed
 
