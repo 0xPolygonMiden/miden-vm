@@ -31,7 +31,7 @@ pub mod testing;
 #[cfg(test)]
 mod tests;
 
-pub use self::assembler::{ArtifactKind, Assembler, AssemblyContext};
+pub use self::assembler::Assembler;
 pub use self::compile::{Compile, Options as CompileOptions};
 pub use self::errors::AssemblyError;
 pub use self::library::{

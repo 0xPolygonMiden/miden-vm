@@ -25,7 +25,6 @@ mod procedure;
 #[cfg(test)]
 mod tests;
 
-pub use self::context::AssemblyContext;
 pub use self::id::{GlobalProcedureIndex, ModuleIndex};
 pub(crate) use self::module_graph::ProcedureCache;
 pub use self::procedure::Procedure;
@@ -33,33 +32,6 @@ pub use self::procedure::Procedure;
 use self::basic_block_builder::BasicBlockBuilder;
 use self::context::ProcedureContext;
 use self::module_graph::{CallerInfo, ModuleGraph, ResolvedTarget};
-
-// ARTIFACT KIND
-// ================================================================================================
-
-/// Represents the type of artifact produced by an [Assembler].
-#[derive(Default, Copy, Clone, PartialEq, Eq, Hash)]
-#[non_exhaustive]
-pub enum ArtifactKind {
-    /// Produce an executable program.
-    ///
-    /// This is the default artifact produced by the assembler, and is the only artifact that is
-    /// useful on its own.
-    #[default]
-    Executable,
-    /// Produce a MAST library
-    ///
-    /// The assembler will produce MAST in binary form which can be packaged and distributed.
-    /// These artifacts can then be loaded by the VM with an executable program that references
-    /// the contents of the library, without having to compile them together.
-    Library,
-    /// Produce a MAST kernel module
-    ///
-    /// The assembler will produce MAST for a kernel module, which is essentially the same as
-    /// [crate::Library], however additional constraints are imposed on compilation to ensure that
-    /// the produced kernel is valid.
-    Kernel,
-}
 
 // ASSEMBLER
 // ================================================================================================
@@ -334,22 +306,7 @@ impl Assembler {
     ///
     /// Returns an error if parsing or compilation of the specified program fails, or the options
     /// are invalid.
-    pub fn assemble_with_options(
-        self,
-        source: impl Compile,
-        options: CompileOptions,
-    ) -> Result<Program, Report> {
-        let mut context = AssemblyContext::default();
-        context.set_warnings_as_errors(options.warnings_as_errors);
-
-        self.assemble_with_options_impl(source, options)
-    }
-
-    /// Implementation of [`Self::assemble_with_options_in_context`] which doesn't consume `self`.
-    ///
-    /// The main purpose of this separation is to enable some tests to access the assembler state
-    /// after assembly.
-    fn assemble_with_options_impl(
+    fn assemble_with_options(
         mut self,
         source: impl Compile,
         options: CompileOptions,
@@ -404,32 +361,7 @@ impl Assembler {
         &mut self,
         module: impl Compile,
         options: CompileOptions,
-        context: &mut AssemblyContext,
     ) -> Result<Vec<RpoDigest>, Report> {
-        match context.kind() {
-            _ if options.kind.is_executable() => {
-                return Err(Report::msg(
-                    "invalid compile options: expected configuration for library or kernel module ",
-                ))
-            }
-            ArtifactKind::Executable => {
-                return Err(Report::msg(
-                    "invalid context: expected context configured for library or kernel modules",
-                ))
-            }
-            ArtifactKind::Kernel if !options.kind.is_kernel() => {
-                return Err(Report::msg(
-                    "invalid context: cannot assemble a kernel from a module compiled as a library",
-                ))
-            }
-            ArtifactKind::Library if !options.kind.is_library() => {
-                return Err(Report::msg(
-                    "invalid context: cannot assemble a library from a module compiled as a kernel",
-                ))
-            }
-            ArtifactKind::Kernel | ArtifactKind::Library => (),
-        }
-
         // Compile module
         let module = module.compile_with_options(options)?;
 
@@ -459,9 +391,6 @@ impl Assembler {
         if !module.is_kernel() {
             return Err(Report::msg(format!("expected kernel module, got {}", module.kind())));
         }
-
-        let mut context = AssemblyContext::for_kernel(module.path());
-        context.set_warnings_as_errors(self.warnings_as_errors);
 
         let kernel_index = self.module_graph.add_module(module)?;
         self.module_graph.recompute()?;

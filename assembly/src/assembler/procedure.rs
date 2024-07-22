@@ -72,6 +72,7 @@ impl Procedure {
 /// Metadata
 impl Procedure {
     /// Returns a reference to the name of this procedure
+    #[allow(unused)]
     pub fn name(&self) -> &ProcedureName {
         &self.path.name
     }
@@ -93,6 +94,7 @@ impl Procedure {
 
     /// Returns a reference to the Miden Assembly source file from which this
     /// procedure was compiled, if available.
+    #[allow(unused)]
     pub fn source_file(&self) -> Option<Arc<SourceFile>> {
         self.source_file.clone()
     }
