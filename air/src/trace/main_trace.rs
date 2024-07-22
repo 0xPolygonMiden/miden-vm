@@ -19,9 +19,6 @@ use super::{
 use core::ops::{Deref, Range};
 use vm_core::{utils::range, Felt, Word, ONE, ZERO};
 
-#[cfg(any(test, feature = "internals"))]
-use alloc::vec::Vec;
-
 // CONSTANTS
 // ================================================================================================
 
@@ -43,6 +40,13 @@ impl Deref for MainTrace {
     }
 }
 
+#[cfg(any(test, feature = "internals"))]
+impl core::ops::DerefMut for MainTrace {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.columns
+    }
+}
+
 impl MainTrace {
     pub fn new(main_trace: ColMatrix<Felt>) -> Self {
         Self {
@@ -55,7 +59,7 @@ impl MainTrace {
     }
 
     #[cfg(any(test, feature = "internals"))]
-    pub fn get_column_range(&self, range: Range<usize>) -> Vec<Vec<Felt>> {
+    pub fn get_column_range(&self, range: Range<usize>) -> alloc::vec::Vec<alloc::vec::Vec<Felt>> {
         range.fold(vec![], |mut acc, col_idx| {
             acc.push(self.get_column(col_idx).to_vec());
             acc
