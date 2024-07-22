@@ -77,12 +77,19 @@ impl CallNode {
     /// The commitment is computed as a hash of the callee and an empty word ([ZERO; 4]) in the
     /// domain defined by either [Self::CALL_DOMAIN] or [Self::SYSCALL_DOMAIN], depending on
     /// whether the node represents a simple call or a syscall - i.e.,:
-    ///
-    /// hasher::merge_in_domain(&[callee_digest, Digest::default()], CallNode::CALL_DOMAIN)
-    ///
+    /// ```
+    /// # use miden_core::mast::CallNode;
+    /// # use miden_crypto::{hash::rpo::{RpoDigest as Digest, Rpo256 as Hasher}};
+    /// # let callee_digest = Digest::default();
+    /// Hasher::merge_in_domain(&[callee_digest, Digest::default()], CallNode::CALL_DOMAIN);
+    /// ```
     /// or
-    ///
-    /// hasher::merge_in_domain(&[callee_digest, Digest::default()], CallNode::SYSCALL_DOMAIN)
+    /// ```
+    /// # use miden_core::mast::CallNode;
+    /// # use miden_crypto::{hash::rpo::{RpoDigest as Digest, Rpo256 as Hasher}};
+    /// # let callee_digest = Digest::default();
+    /// Hasher::merge_in_domain(&[callee_digest, Digest::default()], CallNode::SYSCALL_DOMAIN);
+    /// ```
     pub fn digest(&self) -> RpoDigest {
         self.digest
     }

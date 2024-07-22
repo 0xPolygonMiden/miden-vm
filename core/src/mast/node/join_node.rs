@@ -52,8 +52,13 @@ impl JoinNode {
     ///
     /// The commitment is computed as a hash of the `first` and `second` child node in the domain
     /// defined by [Self::DOMAIN] - i.e.,:
-    ///
-    /// hasher::merge_in_domain(&[first_child_digest, second_child_digest], JoinNode::DOMAIN)
+    /// ```
+    /// # use miden_core::mast::JoinNode;
+    /// # use miden_crypto::{hash::rpo::{RpoDigest as Digest, Rpo256 as Hasher}};
+    /// # let first_child_digest = Digest::default();
+    /// # let second_child_digest = Digest::default();
+    /// Hasher::merge_in_domain(&[first_child_digest, second_child_digest], JoinNode::DOMAIN);
+    /// ```
     pub fn digest(&self) -> RpoDigest {
         self.digest
     }

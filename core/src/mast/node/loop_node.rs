@@ -48,8 +48,12 @@ impl LoopNode {
     ///
     /// The commitment is computed as a hash of the loop body and an empty word ([ZERO; 4]) in
     /// the domain defined by [Self::DOMAIN] - i..e,:
-    ///
-    /// hasher::merge_in_domain(&[on_true_digest, Digest::default()], LoopNode::DOMAIN)
+    /// ```
+    /// # use miden_core::mast::LoopNode;
+    /// # use miden_crypto::{hash::rpo::{RpoDigest as Digest, Rpo256 as Hasher}};
+    /// # let body_digest = Digest::default();
+    /// Hasher::merge_in_domain(&[body_digest, Digest::default()], LoopNode::DOMAIN);
+    /// ```
     pub fn digest(&self) -> RpoDigest {
         self.digest
     }

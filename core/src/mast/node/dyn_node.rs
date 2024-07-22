@@ -24,7 +24,11 @@ impl DynNode {
     /// The commitment is computed by hashing two empty words ([ZERO; 4]) in the domain defined
     /// by [Self::DOMAIN], i.e.:
     ///
-    /// hasher::merge_in_domain(&[Digest::default(), Digest::default()], DynNode::DOMAIN)
+    /// ```
+    /// # use miden_core::mast::DynNode;
+    /// # use miden_crypto::{hash::rpo::{RpoDigest as Digest, Rpo256 as Hasher}};
+    /// Hasher::merge_in_domain(&[Digest::default(), Digest::default()], DynNode::DOMAIN);
+    /// ```
     pub fn digest(&self) -> RpoDigest {
         RpoDigest::new([
             Felt::new(8115106948140260551),

@@ -55,8 +55,13 @@ impl SplitNode {
     ///
     /// The commitment is computed as a hash of the `on_true` and `on_false` child nodes in the
     /// domain defined by [Self::DOMAIN] - i..e,:
-    ///
-    /// hasher::merge_in_domain(&[on_true_digest, on_false_digest], SplitNode::DOMAIN)
+    /// ```
+    /// # use miden_core::mast::SplitNode;
+    /// # use miden_crypto::{hash::rpo::{RpoDigest as Digest, Rpo256 as Hasher}};
+    /// # let on_true_digest = Digest::default();
+    /// # let on_false_digest = Digest::default();
+    /// Hasher::merge_in_domain(&[on_true_digest, on_false_digest], SplitNode::DOMAIN);
+    /// ```
     pub fn digest(&self) -> RpoDigest {
         self.digest
     }
