@@ -187,7 +187,7 @@ fn local_fn_call_with_mem_access() {
     test.prove_and_verify(vec![3, 7], false);
 }
 
-// TODO: Fix test after we implement `Assembler::add_library()`
+// TODO: Fix test after we implement the new `Assembler::add_library()`
 #[ignore]
 #[test]
 fn simple_syscall() {
@@ -389,7 +389,7 @@ fn simple_dyncall() {
 // PROCREF INSTRUCTION
 // ================================================================================================
 
-// TODO: fix test after we implement the new `Assembler::add_library()`
+// TODO: Fix test after we implement the new `Assembler::add_library()`
 #[ignore]
 #[allow(unused)]
 #[test]

@@ -16,7 +16,7 @@ use crate::{
 // TESTS
 // ================================================================================================
 
-// TODO: Remove #[ignore] after we implement the new `Assembler::add_library()`
+// TODO: Fix test after we implement the new `Assembler::add_library()`
 #[ignore]
 #[allow(unused)]
 #[test]
