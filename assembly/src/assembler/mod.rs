@@ -418,7 +418,7 @@ impl Assembler {
     ///
     /// Returns an error if the provided Miden Assembly is invalid.
     fn get_module_exports(
-        &mut self,
+        &self,
         module: ModuleIndex,
         mast_forest: &MastForest,
     ) -> Result<Vec<RpoDigest>, Report> {
@@ -487,7 +487,7 @@ impl Assembler {
     ///
     /// Returns an error if the provided Miden Assembly is invalid.
     fn compile_program(
-        &mut self,
+        mut self,
         entrypoint: GlobalProcedureIndex,
         mut mast_forest_builder: MastForestBuilder,
     ) -> Result<Program, Report> {
