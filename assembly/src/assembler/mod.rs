@@ -54,9 +54,8 @@ use self::module_graph::{CallerInfo, ModuleGraph, ResolvedTarget};
 ///   [Assembler::assemble] to get your compiled program.
 #[derive(Clone, Default)]
 pub struct Assembler {
-    /// The global [ModuleGraph] for this assembler. All new [AssemblyContext]s inherit this graph
-    /// as a baseline.
-    module_graph: Box<ModuleGraph>,
+    /// The global [ModuleGraph] for this assembler.
+    module_graph: ModuleGraph,
     /// The global procedure cache for this assembler.
     procedure_cache: ProcedureCache,
     /// Whether to treat warning diagnostics as errors
@@ -65,7 +64,8 @@ pub struct Assembler {
     in_debug_mode: bool,
 }
 
-/// Builder
+// ------------------------------------------------------------------------------------------------
+/// Constructors
 impl Assembler {
     /// Start building an [Assembler]
     pub fn new() -> Self {
@@ -203,7 +203,8 @@ impl Assembler {
     }
 }
 
-/// Queries
+// ------------------------------------------------------------------------------------------------
+/// Public Accessors
 impl Assembler {
     /// Returns true if this assembler promotes warning diagnostics as errors by default.
     pub fn warnings_as_errors(&self) -> bool {
@@ -229,6 +230,7 @@ impl Assembler {
     }
 }
 
+// ------------------------------------------------------------------------------------------------
 /// Compilation/Assembly
 impl Assembler {
     /// Compiles the provided module into a [`Program`]. The resulting program can be executed on
@@ -566,6 +568,9 @@ impl Assembler {
         }
     }
 }
+
+// HELPERS
+// ================================================================================================
 
 /// Contains a set of operations which need to be executed before and after a sequence of AST
 /// nodes (i.e., code body).

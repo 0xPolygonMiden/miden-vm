@@ -8,6 +8,10 @@ use crate::{
 };
 use vm_core::mast::{MastForest, MastNodeId};
 
+// PROCEDURE CONTEXT
+// ================================================================================================
+
+/// Information about a procedure currently being compiled.
 pub struct ProcedureContext {
     span: SourceSpan,
     source_file: Option<Arc<SourceFile>>,
@@ -18,6 +22,8 @@ pub struct ProcedureContext {
     callset: CallSet,
 }
 
+// ------------------------------------------------------------------------------------------------
+/// Constructors
 impl ProcedureContext {
     pub fn new(
         gid: GlobalProcedureIndex,
@@ -35,6 +41,11 @@ impl ProcedureContext {
         }
     }
 
+    pub fn with_num_locals(mut self, num_locals: u16) -> Self {
+        self.num_locals = num_locals;
+        self
+    }
+
     pub fn with_span(mut self, span: SourceSpan) -> Self {
         self.span = span;
         self
@@ -44,33 +55,21 @@ impl ProcedureContext {
         self.source_file = source_file;
         self
     }
+}
 
-    pub fn with_num_locals(mut self, num_locals: u16) -> Self {
-        self.num_locals = num_locals;
-        self
-    }
-
-    pub fn insert_callee(&mut self, callee: RpoDigest) {
-        self.callset.insert(callee);
-    }
-
-    pub fn extend_callset<I>(&mut self, callees: I)
-    where
-        I: IntoIterator<Item = RpoDigest>,
-    {
-        self.callset.extend(callees);
-    }
-
-    pub fn num_locals(&self) -> u16 {
-        self.num_locals
-    }
-
+// ------------------------------------------------------------------------------------------------
+/// Public accessors
+impl ProcedureContext {
     pub fn id(&self) -> GlobalProcedureIndex {
         self.gid
     }
 
     pub fn name(&self) -> &FullyQualifiedProcedureName {
         &self.name
+    }
+
+    pub fn num_locals(&self) -> u16 {
+        self.num_locals
     }
 
     #[allow(unused)]
@@ -84,6 +83,21 @@ impl ProcedureContext {
 
     pub fn is_kernel(&self) -> bool {
         self.visibility.is_syscall()
+    }
+}
+
+// ------------------------------------------------------------------------------------------------
+/// State mutators
+impl ProcedureContext {
+    pub fn insert_callee(&mut self, callee: RpoDigest) {
+        self.callset.insert(callee);
+    }
+
+    pub fn extend_callset<I>(&mut self, callees: I)
+    where
+        I: IntoIterator<Item = RpoDigest>,
+    {
+        self.callset.extend(callees);
     }
 
     /// Registers a call to an externally-defined procedure which we have previously compiled.

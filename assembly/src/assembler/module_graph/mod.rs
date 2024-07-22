@@ -71,7 +71,8 @@ pub struct ModuleGraph {
     kernel: Kernel,
 }
 
-/// Construction
+// ------------------------------------------------------------------------------------------------
+/// Constructors
 impl ModuleGraph {
     /// Add `module` to the graph.
     ///
@@ -114,6 +115,7 @@ impl ModuleGraph {
     }
 }
 
+// ------------------------------------------------------------------------------------------------
 /// Kernels
 impl ModuleGraph {
     pub(super) fn set_kernel(&mut self, kernel_index: Option<ModuleIndex>, kernel: Kernel) {
@@ -155,6 +157,7 @@ impl ModuleGraph {
     }
 }
 
+// ------------------------------------------------------------------------------------------------
 /// Analysis
 impl ModuleGraph {
     /// Recompute the module graph.
@@ -343,6 +346,7 @@ impl ModuleGraph {
     }
 }
 
+// ------------------------------------------------------------------------------------------------
 /// Accessors/Queries
 impl ModuleGraph {
     /// Compute the topological sort of the callgraph rooted at `caller`
