@@ -57,7 +57,6 @@ use self::module_graph::{CallerInfo, ModuleGraph, ResolvedTarget};
 ///   [Assembler::assemble] to get your compiled program.
 #[derive(Clone)]
 pub struct Assembler {
-    mast_forest_builder: MastForestBuilder,
     /// The global [ModuleGraph] for this assembler. All new [AssemblyContext]s inherit this graph
     /// as a baseline.
     module_graph: Box<ModuleGraph>,
@@ -74,7 +73,6 @@ pub struct Assembler {
 impl Default for Assembler {
     fn default() -> Self {
         Self {
-            mast_forest_builder: Default::default(),
             module_graph: Default::default(),
             procedure_cache: Default::default(),
             warnings_as_errors: false,
@@ -296,7 +294,7 @@ impl Assembler {
             ));
         }
 
-        let mast_forest_builder = core::mem::take(&mut self.mast_forest_builder);
+        let mast_forest_builder = MastForestBuilder::default();
 
         let program = source.compile_with_options(CompileOptions {
             // Override the module name so that we always compile the executable
