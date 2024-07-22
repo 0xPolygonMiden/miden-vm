@@ -43,9 +43,6 @@ use self::module_graph::{CallerInfo, ModuleGraph, ResolvedTarget};
 /// Depending on your needs, there are multiple ways of using the assembler, and whether or not you
 /// want to provide a custom kernel.
 ///
-/// By default, an empty kernel is provided. However, you may provide your own using
-/// [Assembler::with_kernel] or [Assembler::with_kernel_from_module].
-///
 /// <div class="warning">
 /// Programs compiled with an empty kernel cannot use the `syscall` instruction.
 /// </div>
@@ -55,7 +52,7 @@ use self::module_graph::{CallerInfo, ModuleGraph, ResolvedTarget};
 ///   procedures, build the assembler with them first, using the various builder methods on
 ///   [Assembler], e.g. [Assembler::with_module], [Assembler::with_library], etc. Then, call
 ///   [Assembler::assemble] to get your compiled program.
-#[derive(Clone)]
+#[derive(Clone, Default)]
 pub struct Assembler {
     /// The global [ModuleGraph] for this assembler. All new [AssemblyContext]s inherit this graph
     /// as a baseline.
@@ -66,17 +63,6 @@ pub struct Assembler {
     warnings_as_errors: bool,
     /// Whether the assembler enables extra debugging information.
     in_debug_mode: bool,
-}
-
-impl Default for Assembler {
-    fn default() -> Self {
-        Self {
-            module_graph: Default::default(),
-            procedure_cache: Default::default(),
-            warnings_as_errors: false,
-            in_debug_mode: false,
-        }
-    }
 }
 
 /// Builder
