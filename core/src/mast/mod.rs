@@ -5,33 +5,30 @@ use miden_crypto::hash::rpo::RpoDigest;
 
 mod node;
 pub use node::{
-    get_span_op_group_count, BasicBlockNode, CallNode, DynNode, ExternalNode, JoinNode, LoopNode,
-    MastNode, OpBatch, OperationOrDecorator, SplitNode, OP_BATCH_SIZE, OP_GROUP_SIZE,
+    BasicBlockNode, CallNode, DynNode, ExternalNode, JoinNode, LoopNode, MastNode, OpBatch,
+    OperationOrDecorator, SplitNode, OP_BATCH_SIZE, OP_GROUP_SIZE,
 };
-use winter_utils::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable};
+use winter_utils::DeserializationError;
 
 mod serialization;
 
 #[cfg(test)]
 mod tests;
 
-/// Encapsulates the behavior that a [`MastNode`] (and all its variants) is expected to have.
-pub trait MerkleTreeNode {
-    fn digest(&self) -> RpoDigest;
-    fn to_display<'a>(&'a self, mast_forest: &'a MastForest) -> impl fmt::Display + 'a;
-}
-
 // MAST FOREST
 // ================================================================================================
 
-/// Represents the types of errors that can occur when dealing with MAST forest.
-#[derive(Debug, thiserror::Error)]
-pub enum MastForestError {
-    #[error(
-        "invalid node count: MAST forest exceeds the maximum of {} nodes",
-        MastForest::MAX_NODES
-    )]
-    TooManyNodes,
+/// Represents one or more procedures, represented as a collection of [`MastNode`]s.
+///
+/// A [`MastForest`] does not have an entrypoint, and hence is not executable. A [`crate::Program`]
+/// can be built from a [`MastForest`] to specify an entrypoint.
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
+pub struct MastForest {
+    /// All of the nodes local to the trees comprising the MAST forest.
+    nodes: Vec<MastNode>,
+
+    /// Roots of procedures defined within this MAST forest.
+    roots: Vec<MastNodeId>,
 }
 
 // ------------------------------------------------------------------------------------------------
@@ -155,38 +152,33 @@ impl MastNodeId {
     }
 }
 
+impl From<MastNodeId> for u32 {
+    fn from(value: MastNodeId) -> Self {
+        value.0
+    }
+}
+
+impl From<&MastNodeId> for u32 {
+    fn from(value: &MastNodeId) -> Self {
+        value.0
+    }
+}
+
 impl fmt::Display for MastNodeId {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "MastNodeId({})", self.0)
     }
 }
 
-impl Serializable for MastNodeId {
-    fn write_into<W: ByteWriter>(&self, target: &mut W) {
-        self.0.write_into(target)
-    }
-}
-
-impl Deserializable for MastNodeId {
-    fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
-        let inner = source.read_u32()?;
-
-        Ok(Self(inner))
-    }
-}
-
 // MAST FOREST ERROR
 // ================================================================================================
 
-/// Represents one or more procedures, represented as a collection of [`MastNode`]s.
-///
-/// A [`MastForest`] does not have an entrypoint, and hence is not executable. A [`crate::Program`]
-/// can be built from a [`MastForest`] to specify an entrypoint.
-#[derive(Clone, Debug, Default, PartialEq, Eq)]
-pub struct MastForest {
-    /// All of the nodes local to the trees comprising the MAST forest.
-    nodes: Vec<MastNode>,
-
-    /// Roots of procedures defined within this MAST forest.
-    roots: Vec<MastNodeId>,
+/// Represents the types of errors that can occur when dealing with MAST forest.
+#[derive(Debug, thiserror::Error)]
+pub enum MastForestError {
+    #[error(
+        "invalid node count: MAST forest exceeds the maximum of {} nodes",
+        MastForest::MAX_NODES
+    )]
+    TooManyNodes,
 }

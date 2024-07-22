@@ -1,7 +1,7 @@
 use miden_crypto::hash::rpo::RpoDigest;
 use winter_utils::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable};
 
-use crate::mast::{MastForest, MastNode, MastNodeId, MerkleTreeNode};
+use crate::mast::{MastForest, MastNode, MastNodeId};
 
 use super::{basic_block_data_decoder::BasicBlockDataDecoder, DataOffset};
 

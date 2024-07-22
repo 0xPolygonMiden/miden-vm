@@ -5,10 +5,19 @@ use miden_formatting::prettier::PrettyPrint;
 
 use crate::{
     chiplets::hasher,
-    mast::{MastForest, MastNodeId, MerkleTreeNode},
+    mast::{MastForest, MastNodeId},
     OPCODE_CALL, OPCODE_SYSCALL,
 };
 
+// CALL NODE
+// ================================================================================================
+
+/// A Call node describes a function call such that the callee is executed in a different execution
+/// context from the currently executing code.
+///
+/// A call node can be of two types:
+/// - A simple call: the callee is executed in the new user context.
+/// - A syscall: the callee is executed in the root context.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct CallNode {
     callee: MastNodeId,
@@ -16,6 +25,7 @@ pub struct CallNode {
     digest: RpoDigest,
 }
 
+//-------------------------------------------------------------------------------------------------
 /// Constants
 impl CallNode {
     /// The domain of the call block (used for control block hashing).
@@ -24,6 +34,7 @@ impl CallNode {
     pub const SYSCALL_DOMAIN: Felt = Felt::new(OPCODE_SYSCALL as u64);
 }
 
+//-------------------------------------------------------------------------------------------------
 /// Constructors
 impl CallNode {
     /// Returns a new [`CallNode`] instantiated with the specified callee.
@@ -58,16 +69,42 @@ impl CallNode {
     }
 }
 
+//-------------------------------------------------------------------------------------------------
+/// Public accessors
 impl CallNode {
+    /// Returns a commitment to this Call node.
+    ///
+    /// The commitment is computed as a hash of the callee and an empty word ([ZERO; 4]) in the
+    /// domain defined by either [Self::CALL_DOMAIN] or [Self::SYSCALL_DOMAIN], depending on
+    /// whether the node represents a simple call or a syscall - i.e.,:
+    /// ```
+    /// # use miden_core::mast::CallNode;
+    /// # use miden_crypto::{hash::rpo::{RpoDigest as Digest, Rpo256 as Hasher}};
+    /// # let callee_digest = Digest::default();
+    /// Hasher::merge_in_domain(&[callee_digest, Digest::default()], CallNode::CALL_DOMAIN);
+    /// ```
+    /// or
+    /// ```
+    /// # use miden_core::mast::CallNode;
+    /// # use miden_crypto::{hash::rpo::{RpoDigest as Digest, Rpo256 as Hasher}};
+    /// # let callee_digest = Digest::default();
+    /// Hasher::merge_in_domain(&[callee_digest, Digest::default()], CallNode::SYSCALL_DOMAIN);
+    /// ```
+    pub fn digest(&self) -> RpoDigest {
+        self.digest
+    }
+
+    /// Returns the ID of the node to be invoked by this call node.
     pub fn callee(&self) -> MastNodeId {
         self.callee
     }
 
+    /// Returns true if this call node represents a syscall.
     pub fn is_syscall(&self) -> bool {
         self.is_syscall
     }
 
-    /// Returns the domain of the call node.
+    /// Returns the domain of this call node.
     pub fn domain(&self) -> Felt {
         if self.is_syscall() {
             Self::SYSCALL_DOMAIN
@@ -75,7 +112,12 @@ impl CallNode {
             Self::CALL_DOMAIN
         }
     }
+}
 
+// PRETTY PRINTING
+// ================================================================================================
+
+impl CallNode {
     pub(super) fn to_pretty_print<'a>(
         &'a self,
         mast_forest: &'a MastForest,
@@ -85,14 +127,8 @@ impl CallNode {
             mast_forest,
         }
     }
-}
 
-impl MerkleTreeNode for CallNode {
-    fn digest(&self) -> RpoDigest {
-        self.digest
-    }
-
-    fn to_display<'a>(&'a self, mast_forest: &'a MastForest) -> impl fmt::Display + 'a {
+    pub(super) fn to_display<'a>(&'a self, mast_forest: &'a MastForest) -> impl fmt::Display + 'a {
         CallNodePrettyPrint {
             call_node: self,
             mast_forest,

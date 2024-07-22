@@ -1,7 +1,7 @@
 use processor::FMP_MIN;
 use test_utils::{build_op_test, build_test, StackInputs, Test, Word, STACK_TOP_SIZE};
 use vm_core::{
-    mast::{MastForest, MastNode, MerkleTreeNode},
+    mast::{MastForest, MastNode},
     Operation,
 };
 

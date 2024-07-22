@@ -11,7 +11,7 @@ use crate::{
 use alloc::{boxed::Box, sync::Arc, vec::Vec};
 use mast_forest_builder::MastForestBuilder;
 use vm_core::{
-    mast::{MastForest, MastNodeId, MerkleTreeNode},
+    mast::{MastForest, MastNodeId},
     Decorator, DecoratorList, Kernel, Operation, Program,
 };
 

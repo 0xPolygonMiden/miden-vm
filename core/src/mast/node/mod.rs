@@ -3,8 +3,8 @@ use core::fmt;
 
 use alloc::{boxed::Box, vec::Vec};
 pub use basic_block_node::{
-    get_span_op_group_count, BasicBlockNode, OpBatch, OperationOrDecorator,
-    BATCH_SIZE as OP_BATCH_SIZE, GROUP_SIZE as OP_GROUP_SIZE,
+    BasicBlockNode, OpBatch, OperationOrDecorator, BATCH_SIZE as OP_BATCH_SIZE,
+    GROUP_SIZE as OP_GROUP_SIZE,
 };
 
 mod call_node;
@@ -28,7 +28,7 @@ mod loop_node;
 pub use loop_node::LoopNode;
 
 use crate::{
-    mast::{MastForest, MastNodeId, MerkleTreeNode},
+    mast::{MastForest, MastNodeId},
     DecoratorList, Operation,
 };
 
@@ -140,13 +140,8 @@ impl MastNode {
             MastNode::External(_) => panic!("Can't fetch domain for an `External` node."),
         }
     }
-}
 
-// ------------------------------------------------------------------------------------------------
-// MerkleTreeNode impl
-
-impl MerkleTreeNode for MastNode {
-    fn digest(&self) -> RpoDigest {
+    pub fn digest(&self) -> RpoDigest {
         match self {
             MastNode::Block(node) => node.digest(),
             MastNode::Join(node) => node.digest(),
@@ -158,14 +153,14 @@ impl MerkleTreeNode for MastNode {
         }
     }
 
-    fn to_display<'a>(&'a self, mast_forest: &'a MastForest) -> impl fmt::Display + 'a {
+    pub fn to_display<'a>(&'a self, mast_forest: &'a MastForest) -> impl fmt::Display + 'a {
         match self {
-            MastNode::Block(node) => MastNodeDisplay::new(node.to_display(mast_forest)),
+            MastNode::Block(node) => MastNodeDisplay::new(node),
             MastNode::Join(node) => MastNodeDisplay::new(node.to_display(mast_forest)),
             MastNode::Split(node) => MastNodeDisplay::new(node.to_display(mast_forest)),
             MastNode::Loop(node) => MastNodeDisplay::new(node.to_display(mast_forest)),
             MastNode::Call(node) => MastNodeDisplay::new(node.to_display(mast_forest)),
-            MastNode::Dyn => MastNodeDisplay::new(DynNode.to_display(mast_forest)),
+            MastNode::Dyn => MastNodeDisplay::new(DynNode),
             MastNode::External(node) => MastNodeDisplay::new(node.to_display(mast_forest)),
         }
     }
