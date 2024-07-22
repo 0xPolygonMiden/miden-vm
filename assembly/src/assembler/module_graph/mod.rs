@@ -2,7 +2,6 @@ mod analysis;
 mod callgraph;
 mod debug;
 mod name_resolver;
-mod phantom;
 mod procedure_cache;
 mod rewrites;
 
@@ -10,21 +9,13 @@ pub use self::callgraph::{CallGraph, CycleError};
 pub use self::name_resolver::{CallerInfo, ResolvedTarget};
 pub use self::procedure_cache::ProcedureCache;
 
-use alloc::{
-    boxed::Box,
-    collections::{BTreeMap, BTreeSet},
-    sync::Arc,
-    vec::Vec,
-};
+use alloc::{boxed::Box, collections::BTreeMap, sync::Arc, vec::Vec};
 use core::ops::Index;
 use vm_core::Kernel;
 
 use smallvec::{smallvec, SmallVec};
 
-use self::{
-    analysis::MaybeRewriteCheck, name_resolver::NameResolver, phantom::PhantomCall,
-    rewrites::ModuleRewriter,
-};
+use self::{analysis::MaybeRewriteCheck, name_resolver::NameResolver, rewrites::ModuleRewriter};
 use super::{GlobalProcedureIndex, ModuleIndex};
 use crate::{
     ast::{
@@ -60,13 +51,6 @@ pub struct ModuleGraph {
     roots: BTreeMap<RpoDigest, SmallVec<[GlobalProcedureIndex; 1]>>,
     /// The set of procedures in this graph which have known MAST roots
     digests: BTreeMap<GlobalProcedureIndex, RpoDigest>,
-    /// The set of procedures which have no known definition in the graph, aka "phantom calls".
-    /// Since we know the hash of these functions, we can proceed with compilation, but in some
-    /// contexts we wish to disallow them and raise an error if any such calls are present.
-    ///
-    /// When we merge graphs, we attempt to resolve phantoms by attempting to find definitions in
-    /// the opposite graph.
-    phantoms: BTreeSet<PhantomCall>,
     kernel_index: Option<ModuleIndex>,
     kernel: Kernel,
 }
@@ -243,7 +227,6 @@ impl ModuleGraph {
         for module in pending.iter() {
             resolver.push_pending(module);
         }
-        let mut phantoms = BTreeSet::default();
         let mut edges = Vec::new();
         let mut finished = Vec::<Arc<Module>>::new();
 
@@ -253,9 +236,6 @@ impl ModuleGraph {
 
             let mut rewriter = ModuleRewriter::new(&resolver);
             rewriter.apply(module_id, &mut module)?;
-
-            // Gather the phantom calls found while rewriting the module
-            phantoms.extend(rewriter.phantoms());
 
             for (index, procedure) in module.procedures().enumerate() {
                 let procedure_id = ProcedureIndex::new(index);
@@ -286,7 +266,6 @@ impl ModuleGraph {
         drop(resolver);
 
         // Extend the graph with all of the new additions
-        self.phantoms.extend(phantoms);
         self.modules.append(&mut finished);
         edges
             .into_iter()
@@ -336,8 +315,6 @@ impl ModuleGraph {
             let mut module = Box::new(Arc::unwrap_or_clone(module));
             let mut rewriter = ModuleRewriter::new(&resolver);
             rewriter.apply(module_id, &mut module)?;
-
-            self.phantoms.extend(rewriter.phantoms());
 
             Ok(Some(Arc::from(module)))
         } else {

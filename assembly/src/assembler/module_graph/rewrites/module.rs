@@ -3,7 +3,7 @@ use core::ops::ControlFlow;
 
 use crate::{
     assembler::{
-        module_graph::{CallerInfo, NameResolver, PhantomCall},
+        module_graph::{CallerInfo, NameResolver},
         ModuleIndex, ResolvedTarget,
     },
     ast::{
@@ -24,7 +24,6 @@ pub struct ModuleRewriter<'a, 'b: 'a> {
     resolver: &'a NameResolver<'b>,
     module_id: ModuleIndex,
     invoked: BTreeSet<Invoke>,
-    phantoms: BTreeSet<PhantomCall>,
     source_file: Option<Arc<SourceFile>>,
 }
 
@@ -35,7 +34,6 @@ impl<'a, 'b: 'a> ModuleRewriter<'a, 'b> {
             resolver,
             module_id: ModuleIndex::new(u16::MAX as usize),
             invoked: Default::default(),
-            phantoms: Default::default(),
             source_file: None,
         }
     }
@@ -54,11 +52,6 @@ impl<'a, 'b: 'a> ModuleRewriter<'a, 'b> {
         }
 
         Ok(())
-    }
-
-    /// Take the set of accumulated phantom calls out of this rewriter
-    pub fn phantoms(&mut self) -> BTreeSet<PhantomCall> {
-        core::mem::take(&mut self.phantoms)
     }
 
     fn rewrite_target(
@@ -81,14 +74,7 @@ impl<'a, 'b: 'a> ModuleRewriter<'a, 'b> {
                     target: target.clone(),
                 });
             }
-            Ok(ResolvedTarget::Phantom(callee)) => {
-                let call = PhantomCall {
-                    span: target.span(),
-                    source_file: self.source_file.clone(),
-                    callee,
-                };
-                self.phantoms.insert(call);
-            }
+            Ok(ResolvedTarget::Phantom(_)) => (),
             Ok(ResolvedTarget::Exact { .. }) => {
                 self.invoked.insert(Invoke {
                     kind,
