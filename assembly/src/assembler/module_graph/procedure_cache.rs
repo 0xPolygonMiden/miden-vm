@@ -214,18 +214,6 @@ impl ProcedureCache {
         Ok(())
     }
 
-    /// This removes any entries in the cache for procedures in `module`
-    pub fn remove_module(&mut self, module: ModuleIndex) {
-        let index = module.as_usize();
-        if let Some(slots) = self.cache.get_mut(index) {
-            slots.clear();
-        }
-        if let Some(path) = self.modules.get_mut(index) {
-            *path = None;
-        }
-        self.by_mast_root.retain(|_digest, gid| gid.module != module);
-    }
-
     fn ensure_cache_slot_exists(&mut self, id: GlobalProcedureIndex, module: &LibraryPath) {
         let min_cache_len = id.module.as_usize() + 1;
         let min_module_len = id.index.as_usize() + 1;

@@ -106,57 +106,6 @@ impl ModuleGraph {
         Ok(module_id)
     }
 
-    /// Remove a module from the graph by discarding any edges involving that module. We do not
-    /// remove the module from the node set by default, so as to preserve the stability of indices
-    /// in the graph. However, we do remove the module from the set if it is the most recently
-    /// added module, as that matches the most common case of compiling multiple programs in a row,
-    /// where we discard the executable module each time.
-    pub fn remove_module(&mut self, index: ModuleIndex) {
-        use alloc::collections::btree_map::Entry;
-
-        // If the given index is a pending module, we just remove it from the pending set and call
-        // it a day
-        let pending_offset = self.modules.len();
-        if index.as_usize() >= pending_offset {
-            self.pending.remove(index.as_usize() - pending_offset);
-            return;
-        }
-
-        self.callgraph.remove_edges_for_module(index);
-
-        // We remove all nodes from the topological sort that belong to the given module. The
-        // resulting sort is still valid, but may change the next time it is computed
-        self.topo.retain(|gid| gid.module != index);
-
-        // Remove any cached procedure roots for the given module
-        for (gid, digest) in self.digests.iter() {
-            if gid.module != index {
-                continue;
-            }
-            if let Entry::Occupied(mut entry) = self.roots.entry(*digest) {
-                if entry.get().iter().all(|gid| gid.module == index) {
-                    entry.remove();
-                } else {
-                    entry.get_mut().retain(|gid| gid.module != index);
-                }
-            }
-        }
-        self.digests.retain(|gid, _| gid.module != index);
-        self.roots.retain(|_, gids| !gids.is_empty());
-
-        // Handle removing the kernel module
-        if self.kernel_index == Some(index) {
-            self.kernel_index = None;
-            self.kernel = Default::default();
-        }
-
-        // If the module being removed comes last in the node set, remove it from the set to avoid
-        // growing the set unnecessarily over time.
-        if index.as_usize() == self.modules.len().saturating_sub(1) {
-            self.modules.pop();
-        }
-    }
-
     fn is_pending(&self, path: &LibraryPath) -> bool {
         self.pending.iter().any(|m| m.path() == path)
     }

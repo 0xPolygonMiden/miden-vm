@@ -327,13 +327,6 @@ impl Assembler {
         })?;
         assert!(program.is_executable());
 
-        // Remove any previously compiled executable module and clean up graph
-        let prev_program = self.module_graph.find_module_index(program.path());
-        if let Some(module_index) = prev_program {
-            self.module_graph.remove_module(module_index);
-            self.procedure_cache.remove_module(module_index);
-        }
-
         // Recompute graph with executable module, and start compiling
         let module_index = self.module_graph.add_module(program)?;
         self.module_graph.recompute()?;
