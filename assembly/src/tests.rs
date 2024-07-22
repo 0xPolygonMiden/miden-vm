@@ -6,7 +6,7 @@ use crate::{
     diagnostics::Report,
     regex, source_file,
     testing::{Pattern, TestContext},
-    Assembler, AssemblyContext, Library, LibraryNamespace, LibraryPath, MaslLibrary, Version,
+    Assembler, Library, LibraryNamespace, LibraryPath, MaslLibrary, Version,
 };
 
 type TestResult = Result<(), Report>;
@@ -1493,8 +1493,7 @@ fn program_with_phantom_mast_call() -> TestResult {
     let ast = context.parse_program(source)?;
 
     let assembler = Assembler::default().with_debug_mode(true);
-    let mut context = AssemblyContext::for_program(ast.path());
-    assembler.assemble_in_context(ast, &mut context)?;
+    assembler.assemble(ast)?;
     Ok(())
 }
 

@@ -1,7 +1,8 @@
 use super::{field_ops::append_pow2_op, push_u32_value, validate_param, BasicBlockBuilder};
 use crate::{
+    assembler::context::ProcedureContext,
     diagnostics::{RelatedError, Report},
-    AssemblyContext, AssemblyError, Span, MAX_U32_ROTATE_VALUE, MAX_U32_SHIFT_VALUE,
+    AssemblyError, Span, MAX_U32_ROTATE_VALUE, MAX_U32_SHIFT_VALUE,
 };
 use vm_core::{
     AdviceInjector, Felt,
@@ -116,10 +117,10 @@ pub fn u32mul(span_builder: &mut BasicBlockBuilder, op_mode: U32OpMode, imm: Opt
 ///    - 3 cycles if b is not 1
 pub fn u32div(
     span_builder: &mut BasicBlockBuilder,
-    ctx: &AssemblyContext,
+    proc_ctx: &ProcedureContext,
     imm: Option<Span<u32>>,
 ) -> Result<(), AssemblyError> {
-    handle_division(span_builder, ctx, imm)?;
+    handle_division(span_builder, proc_ctx, imm)?;
     span_builder.push_op(Drop);
     Ok(())
 }
@@ -133,10 +134,10 @@ pub fn u32div(
 ///    - 4 cycles if b is not 1
 pub fn u32mod(
     span_builder: &mut BasicBlockBuilder,
-    ctx: &AssemblyContext,
+    proc_ctx: &ProcedureContext,
     imm: Option<Span<u32>>,
 ) -> Result<(), AssemblyError> {
-    handle_division(span_builder, ctx, imm)?;
+    handle_division(span_builder, proc_ctx, imm)?;
     span_builder.push_ops([Swap, Drop]);
     Ok(())
 }
@@ -150,10 +151,10 @@ pub fn u32mod(
 ///    - 2 cycles if b is not 1
 pub fn u32divmod(
     span_builder: &mut BasicBlockBuilder,
-    ctx: &AssemblyContext,
+    proc_ctx: &ProcedureContext,
     imm: Option<Span<u32>>,
 ) -> Result<(), AssemblyError> {
-    handle_division(span_builder, ctx, imm)
+    handle_division(span_builder, proc_ctx, imm)
 }
 
 // BITWISE OPERATIONS
@@ -366,12 +367,12 @@ fn handle_arithmetic_operation(
 /// immediate parameters.
 fn handle_division(
     span_builder: &mut BasicBlockBuilder,
-    ctx: &AssemblyContext,
+    proc_ctx: &ProcedureContext,
     imm: Option<Span<u32>>,
 ) -> Result<(), AssemblyError> {
     if let Some(imm) = imm {
         if imm == 0 {
-            let source_file = ctx.unwrap_current_procedure().source_file();
+            let source_file = proc_ctx.source_file();
             let error =
                 Report::new(crate::parser::ParsingError::DivisionByZero { span: imm.span() });
             return if let Some(source_file) = source_file {

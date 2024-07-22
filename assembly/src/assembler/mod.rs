@@ -3,7 +3,7 @@ use crate::{
         self, AliasTarget, Export, FullyQualifiedProcedureName, Instruction, InvocationTarget,
         InvokeKind, ModuleKind, ProcedureIndex,
     },
-    diagnostics::{tracing::instrument, Report},
+    diagnostics::Report,
     sema::SemanticAnalysisError,
     AssemblyError, Compile, CompileOptions, Felt, Library, LibraryNamespace, LibraryPath,
     RpoDigest, Spanned, ONE, ZERO,
@@ -318,23 +318,12 @@ impl Assembler {
     /// Returns an error if parsing or compilation of the specified program fails, or if the source
     /// doesn't have an entrypoint.
     pub fn assemble(self, source: impl Compile) -> Result<Program, Report> {
-        let mut context = AssemblyContext::default();
-        context.set_warnings_as_errors(self.warnings_as_errors);
-
-        self.assemble_in_context(source, &mut context)
-    }
-
-    /// Like [Assembler::assemble], but also takes an [AssemblyContext] to configure the assembler.
-    pub fn assemble_in_context(
-        self,
-        source: impl Compile,
-        context: &mut AssemblyContext,
-    ) -> Result<Program, Report> {
         let opts = CompileOptions {
-            warnings_as_errors: context.warnings_as_errors(),
+            warnings_as_errors: self.warnings_as_errors,
             ..CompileOptions::default()
         };
-        self.assemble_with_options_in_context(source, opts, context)
+
+        self.assemble_with_options(source, opts)
     }
 
     /// Compiles the provided module into a [Program] using the provided options.
@@ -353,30 +342,17 @@ impl Assembler {
         let mut context = AssemblyContext::default();
         context.set_warnings_as_errors(options.warnings_as_errors);
 
-        self.assemble_with_options_in_context(source, options, &mut context)
-    }
-
-    /// Like [Assembler::assemble_with_options], but additionally uses the provided
-    /// [AssemblyContext] to configure the assembler.
-    #[instrument("assemble_with_opts_in_context", skip_all)]
-    pub fn assemble_with_options_in_context(
-        self,
-        source: impl Compile,
-        options: CompileOptions,
-        context: &mut AssemblyContext,
-    ) -> Result<Program, Report> {
-        self.assemble_with_options_in_context_impl(source, options, context)
+        self.assemble_with_options_impl(source, options)
     }
 
     /// Implementation of [`Self::assemble_with_options_in_context`] which doesn't consume `self`.
     ///
     /// The main purpose of this separation is to enable some tests to access the assembler state
     /// after assembly.
-    fn assemble_with_options_in_context_impl(
+    fn assemble_with_options_impl(
         mut self,
         source: impl Compile,
         options: CompileOptions,
-        context: &mut AssemblyContext,
     ) -> Result<Program, Report> {
         if options.kind != ModuleKind::Executable {
             return Err(Report::msg(
@@ -414,7 +390,7 @@ impl Assembler {
             })
             .ok_or(SemanticAnalysisError::MissingEntrypoint)?;
 
-        self.compile_program(entrypoint, context, mast_forest_builder)
+        self.compile_program(entrypoint, mast_forest_builder)
     }
 
     /// Compile and assembles all procedures in the specified module, adding them to the procedure
@@ -463,7 +439,7 @@ impl Assembler {
 
         let mut mast_forest_builder = core::mem::take(&mut self.mast_forest_builder);
 
-        self.assemble_graph(context, &mut mast_forest_builder)?;
+        self.assemble_graph(&mut mast_forest_builder)?;
         let exported_procedure_digests =
             self.get_module_exports(module_id, mast_forest_builder.forest());
 
@@ -500,7 +476,7 @@ impl Assembler {
                 module: kernel_index,
                 index: ProcedureIndex::new(index),
             };
-            let compiled = self.compile_subgraph(gid, false, &mut context, mast_forest_builder)?;
+            let compiled = self.compile_subgraph(gid, false, mast_forest_builder)?;
             kernel.push(compiled.mast_root(mast_forest_builder.forest()));
         }
 
@@ -584,15 +560,13 @@ impl Assembler {
     fn compile_program(
         &mut self,
         entrypoint: GlobalProcedureIndex,
-        context: &mut AssemblyContext,
         mut mast_forest_builder: MastForestBuilder,
     ) -> Result<Program, Report> {
         // Raise an error if we are called with an invalid entrypoint
         assert!(self.module_graph[entrypoint].name().is_main());
 
         // Compile the module graph rooted at the entrypoint
-        let entry_procedure =
-            self.compile_subgraph(entrypoint, true, context, &mut mast_forest_builder)?;
+        let entry_procedure = self.compile_subgraph(entrypoint, true, &mut mast_forest_builder)?;
 
         Ok(Program::with_kernel(
             mast_forest_builder.build(),
@@ -607,12 +581,11 @@ impl Assembler {
     /// Returns an error if any of the provided Miden Assembly is invalid.
     fn assemble_graph(
         &mut self,
-        context: &mut AssemblyContext,
         mast_forest_builder: &mut MastForestBuilder,
     ) -> Result<(), Report> {
         let mut worklist = self.module_graph.topological_sort().to_vec();
         assert!(!worklist.is_empty());
-        self.process_graph_worklist(&mut worklist, context, None, mast_forest_builder)
+        self.process_graph_worklist(&mut worklist, None, mast_forest_builder)
             .map(|_| ())
     }
 
@@ -624,7 +597,6 @@ impl Assembler {
         &mut self,
         root: GlobalProcedureIndex,
         is_entrypoint: bool,
-        context: &mut AssemblyContext,
         mast_forest_builder: &mut MastForestBuilder,
     ) -> Result<Arc<Procedure>, Report> {
         let mut worklist = self.module_graph.topological_sort_from_root(root).map_err(|cycle| {
@@ -641,10 +613,9 @@ impl Assembler {
         assert!(!worklist.is_empty());
 
         let compiled = if is_entrypoint {
-            self.process_graph_worklist(&mut worklist, context, Some(root), mast_forest_builder)?
+            self.process_graph_worklist(&mut worklist, Some(root), mast_forest_builder)?
         } else {
-            let _ =
-                self.process_graph_worklist(&mut worklist, context, None, mast_forest_builder)?;
+            let _ = self.process_graph_worklist(&mut worklist, None, mast_forest_builder)?;
             self.procedure_cache.get(root)
         };
 
@@ -654,7 +625,6 @@ impl Assembler {
     fn process_graph_worklist(
         &mut self,
         worklist: &mut Vec<GlobalProcedureIndex>,
-        context: &mut AssemblyContext,
         entrypoint: Option<GlobalProcedureIndex>,
         mast_forest_builder: &mut MastForestBuilder,
     ) -> Result<Option<Arc<Procedure>>, Report> {
@@ -687,7 +657,7 @@ impl Assembler {
                 .with_source_file(ast.source_file());
 
             // Compile this procedure
-            let procedure = self.compile_procedure(pctx, context, mast_forest_builder)?;
+            let procedure = self.compile_procedure(pctx, mast_forest_builder)?;
 
             // Cache the compiled procedure, unless it's the program entrypoint
             if is_entry {
@@ -711,14 +681,12 @@ impl Assembler {
     /// Compiles a single Miden Assembly procedure to its MAST representation.
     fn compile_procedure(
         &self,
-        procedure: ProcedureContext,
-        context: &mut AssemblyContext,
+        mut proc_ctx: ProcedureContext,
         mast_forest_builder: &mut MastForestBuilder,
     ) -> Result<Box<Procedure>, Report> {
         // Make sure the current procedure context is available during codegen
-        let gid = procedure.id();
-        let num_locals = procedure.num_locals();
-        context.set_current_procedure(procedure);
+        let gid = proc_ctx.id();
+        let num_locals = proc_ctx.num_locals();
 
         let proc = self.module_graph[gid].unwrap_procedure();
         let proc_body_root = if num_locals > 0 {
@@ -731,21 +699,20 @@ impl Assembler {
                 prologue: vec![Operation::Push(num_locals), Operation::FmpUpdate],
                 epilogue: vec![Operation::Push(-num_locals), Operation::FmpUpdate],
             };
-            self.compile_body(proc.iter(), context, Some(wrapper), mast_forest_builder)?
+            self.compile_body(proc.iter(), &mut proc_ctx, Some(wrapper), mast_forest_builder)?
         } else {
-            self.compile_body(proc.iter(), context, None, mast_forest_builder)?
+            self.compile_body(proc.iter(), &mut proc_ctx, None, mast_forest_builder)?
         };
 
         mast_forest_builder.make_root(proc_body_root);
 
-        let pctx = context.take_current_procedure().unwrap();
-        Ok(pctx.into_procedure(proc_body_root))
+        Ok(proc_ctx.into_procedure(proc_body_root))
     }
 
     fn compile_body<'a, I>(
         &self,
         body: I,
-        context: &mut AssemblyContext,
+        proc_ctx: &mut ProcedureContext,
         wrapper: Option<BodyWrapper>,
         mast_forest_builder: &mut MastForestBuilder,
     ) -> Result<MastNodeId, Report>
@@ -763,7 +730,7 @@ impl Assembler {
                     if let Some(mast_node_id) = self.compile_instruction(
                         inst,
                         &mut basic_block_builder,
-                        context,
+                        proc_ctx,
                         mast_forest_builder,
                     )? {
                         if let Some(basic_block_id) = basic_block_builder
@@ -788,9 +755,9 @@ impl Assembler {
                     }
 
                     let then_blk =
-                        self.compile_body(then_blk.iter(), context, None, mast_forest_builder)?;
+                        self.compile_body(then_blk.iter(), proc_ctx, None, mast_forest_builder)?;
                     let else_blk =
-                        self.compile_body(else_blk.iter(), context, None, mast_forest_builder)?;
+                        self.compile_body(else_blk.iter(), proc_ctx, None, mast_forest_builder)?;
 
                     let split_node_id = mast_forest_builder
                         .ensure_split(then_blk, else_blk)
@@ -807,7 +774,7 @@ impl Assembler {
                     }
 
                     let repeat_node_id =
-                        self.compile_body(body.iter(), context, None, mast_forest_builder)?;
+                        self.compile_body(body.iter(), proc_ctx, None, mast_forest_builder)?;
 
                     for _ in 0..*count {
                         mast_node_ids.push(repeat_node_id);
@@ -823,7 +790,7 @@ impl Assembler {
                     }
 
                     let loop_body_node_id =
-                        self.compile_body(body.iter(), context, None, mast_forest_builder)?;
+                        self.compile_body(body.iter(), proc_ctx, None, mast_forest_builder)?;
 
                     let loop_node_id = mast_forest_builder
                         .ensure_loop(loop_body_node_id)
@@ -853,14 +820,13 @@ impl Assembler {
         &self,
         kind: InvokeKind,
         target: &InvocationTarget,
-        context: &AssemblyContext,
+        proc_ctx: &ProcedureContext,
         mast_forest: &MastForest,
     ) -> Result<RpoDigest, AssemblyError> {
-        let current_proc = context.unwrap_current_procedure();
         let caller = CallerInfo {
             span: target.span(),
-            source_file: current_proc.source_file(),
-            module: current_proc.id().module,
+            source_file: proc_ctx.source_file(),
+            module: proc_ctx.id().module,
             kind,
         };
         let resolved = self.module_graph.resolve_target(&caller, target)?;

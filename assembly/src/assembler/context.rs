@@ -142,7 +142,7 @@ impl AssemblyContext {
 // PROCEDURE CONTEXT
 // ================================================================================================
 
-pub(super) struct ProcedureContext {
+pub struct ProcedureContext {
     span: SourceSpan,
     source_file: Option<Arc<SourceFile>>,
     gid: GlobalProcedureIndex,
@@ -153,7 +153,7 @@ pub(super) struct ProcedureContext {
 }
 
 impl ProcedureContext {
-    pub(super) fn new(
+    pub fn new(
         gid: GlobalProcedureIndex,
         name: FullyQualifiedProcedureName,
         visibility: Visibility,
@@ -169,26 +169,26 @@ impl ProcedureContext {
         }
     }
 
-    pub(super) fn with_span(mut self, span: SourceSpan) -> Self {
+    pub fn with_span(mut self, span: SourceSpan) -> Self {
         self.span = span;
         self
     }
 
-    pub(super) fn with_source_file(mut self, source_file: Option<Arc<SourceFile>>) -> Self {
+    pub fn with_source_file(mut self, source_file: Option<Arc<SourceFile>>) -> Self {
         self.source_file = source_file;
         self
     }
 
-    pub(super) fn with_num_locals(mut self, num_locals: u16) -> Self {
+    pub fn with_num_locals(mut self, num_locals: u16) -> Self {
         self.num_locals = num_locals;
         self
     }
 
-    pub(crate) fn insert_callee(&mut self, callee: RpoDigest) {
+    pub fn insert_callee(&mut self, callee: RpoDigest) {
         self.callset.insert(callee);
     }
 
-    pub(crate) fn extend_callset<I>(&mut self, callees: I)
+    pub fn extend_callset<I>(&mut self, callees: I)
     where
         I: IntoIterator<Item = RpoDigest>,
     {
@@ -218,6 +218,28 @@ impl ProcedureContext {
 
     pub fn is_kernel(&self) -> bool {
         self.visibility.is_syscall()
+    }
+
+    /// Registers a call to an externally-defined procedure which we have previously compiled.
+    ///
+    /// The call set of the callee is added to the call set of the procedure we are currently
+    /// compiling, to reflect that all of the code reachable from the callee is by extension
+    /// reachable by the caller.
+    pub fn register_external_call(
+        &mut self,
+        callee: &Procedure,
+        inlined: bool,
+        mast_forest: &MastForest,
+    ) -> Result<(), AssemblyError> {
+        // If we call the callee, it's callset is by extension part of our callset
+        self.extend_callset(callee.callset().iter().cloned());
+
+        // If the callee is not being inlined, add it to our callset
+        if !inlined {
+            self.insert_callee(callee.mast_root(mast_forest));
+        }
+
+        Ok(())
     }
 
     pub fn into_procedure(self, body_node_id: MastNodeId) -> Box<Procedure> {
