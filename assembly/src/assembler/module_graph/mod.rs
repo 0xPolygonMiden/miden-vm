@@ -2,12 +2,10 @@ mod analysis;
 mod callgraph;
 mod debug;
 mod name_resolver;
-mod procedure_cache;
 mod rewrites;
 
 pub use self::callgraph::{CallGraph, CycleError};
 pub use self::name_resolver::{CallerInfo, ResolvedTarget};
-pub use self::procedure_cache::ProcedureCache;
 
 use alloc::{boxed::Box, collections::BTreeMap, sync::Arc, vec::Vec};
 use core::ops::Index;
@@ -49,8 +47,6 @@ pub struct ModuleGraph {
     /// The set of MAST roots which have procedure definitions in this graph. There can be
     /// multiple procedures bound to the same root due to having identical code.
     roots: BTreeMap<RpoDigest, SmallVec<[GlobalProcedureIndex; 1]>>,
-    /// The set of procedures in this graph which have known MAST roots
-    digests: BTreeMap<GlobalProcedureIndex, RpoDigest>,
     kernel_index: Option<ModuleIndex>,
     kernel: Kernel,
 }
@@ -346,31 +342,11 @@ impl ModuleGraph {
         self.modules.get(id.module.as_usize()).and_then(|m| m.get(id.index))
     }
 
-    /// Fetches a [Procedure] by [RpoDigest].
-    ///
-    /// NOTE: This implicitly chooses the first definition for a procedure if the same digest is
-    /// shared for multiple definitions.
-    #[allow(unused)]
-    pub fn get_procedure_by_digest(&self, digest: &RpoDigest) -> Option<&Procedure> {
-        self.roots
-            .get(digest)
-            .and_then(|indices| match self.get_procedure(indices[0])? {
-                Export::Procedure(ref proc) => Some(proc),
-                Export::Alias(_) => None,
-            })
-    }
-
     pub fn get_procedure_index_by_digest(
         &self,
         digest: &RpoDigest,
     ) -> Option<GlobalProcedureIndex> {
         self.roots.get(digest).map(|indices| indices[0])
-    }
-
-    /// Look up the [RpoDigest] associated with the given [GlobalProcedureIndex], if one is known
-    /// at this point in time.
-    pub fn get_mast_root(&self, id: GlobalProcedureIndex) -> Option<&RpoDigest> {
-        self.digests.get(&id)
     }
 
     #[allow(unused)]
@@ -434,19 +410,6 @@ impl ModuleGraph {
             }
             Entry::Vacant(entry) => {
                 entry.insert(smallvec![id]);
-            }
-        }
-
-        match self.digests.entry(id) {
-            Entry::Occupied(ref entry) => {
-                assert_eq!(
-                    entry.get(),
-                    &digest,
-                    "attempted to register the same procedure with different digests!"
-                );
-            }
-            Entry::Vacant(entry) => {
-                entry.insert(digest);
             }
         }
 

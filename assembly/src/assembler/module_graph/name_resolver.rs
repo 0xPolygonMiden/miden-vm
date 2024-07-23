@@ -48,12 +48,6 @@ pub struct CallerInfo {
 /// Represents the output of the [NameResolver] when it resolves a procedure name.
 #[derive(Debug)]
 pub enum ResolvedTarget {
-    /// The callee is available in the procedure cache, so we know its exact hash.
-    Cached {
-        digest: RpoDigest,
-        /// If the procedure was compiled from source, this is its identifier in the [ModuleGraph]
-        gid: Option<GlobalProcedureIndex>,
-    },
     /// The callee was resolved to a known procedure in the [ModuleGraph]
     Exact { gid: GlobalProcedureIndex },
     /// The callee was resolved to a concrete procedure definition, and can be referenced as
@@ -73,7 +67,6 @@ impl ResolvedTarget {
     pub fn into_global_id(self) -> Option<GlobalProcedureIndex> {
         match self {
             ResolvedTarget::Exact { gid } | ResolvedTarget::Resolved { gid, .. } => Some(gid),
-            ResolvedTarget::Cached { gid, .. } => gid,
             ResolvedTarget::Phantom(_) => None,
         }
     }
@@ -140,51 +133,31 @@ impl<'a> NameResolver<'a> {
                     module: self.graph.kernel_index.unwrap(),
                     index: index.into_inner(),
                 };
-                match self.graph.get_mast_root(gid) {
-                    Some(digest) => Ok(ResolvedTarget::Cached {
-                        digest: *digest,
-                        gid: Some(gid),
-                    }),
-                    None => Ok(ResolvedTarget::Exact { gid }),
-                }
+                Ok(ResolvedTarget::Exact { gid })
             }
             Some(ResolvedProcedure::Local(index)) => {
                 let gid = GlobalProcedureIndex {
                     module: caller.module,
                     index: index.into_inner(),
                 };
-                match self.graph.get_mast_root(gid) {
-                    Some(digest) => Ok(ResolvedTarget::Cached {
-                        digest: *digest,
-                        gid: Some(gid),
-                    }),
-                    None => Ok(ResolvedTarget::Exact { gid }),
-                }
+                Ok(ResolvedTarget::Exact { gid })
             }
             Some(ResolvedProcedure::External(ref fqn)) => {
                 let gid = self.find(caller, fqn)?;
-                match self.graph.get_mast_root(gid) {
-                    Some(digest) => Ok(ResolvedTarget::Cached {
-                        digest: *digest,
-                        gid: Some(gid),
-                    }),
-                    None => {
-                        let path = self.module_path(gid.module);
-                        let pending_offset = self.graph.modules.len();
-                        let name = if gid.module.as_usize() >= pending_offset {
-                            self.pending[gid.module.as_usize() - pending_offset]
-                                .resolver
-                                .get_name(gid.index)
-                                .clone()
-                        } else {
-                            self.graph[gid].name().clone()
-                        };
-                        Ok(ResolvedTarget::Resolved {
-                            gid,
-                            target: InvocationTarget::AbsoluteProcedurePath { name, path },
-                        })
-                    }
-                }
+                let path = self.module_path(gid.module);
+                let pending_offset = self.graph.modules.len();
+                let name = if gid.module.as_usize() >= pending_offset {
+                    self.pending[gid.module.as_usize() - pending_offset]
+                        .resolver
+                        .get_name(gid.index)
+                        .clone()
+                } else {
+                    self.graph[gid].name().clone()
+                };
+                Ok(ResolvedTarget::Resolved {
+                    gid,
+                    target: InvocationTarget::AbsoluteProcedurePath { name, path },
+                })
             }
             Some(ResolvedProcedure::MastRoot(ref digest)) => {
                 match self.graph.get_procedure_index_by_digest(digest) {
@@ -241,28 +214,20 @@ impl<'a> NameResolver<'a> {
                         name: name.clone(),
                     };
                     let gid = self.find(caller, &fqn)?;
-                    match self.graph.get_mast_root(gid) {
-                        Some(digest) => Ok(ResolvedTarget::Cached {
-                            digest: *digest,
-                            gid: Some(gid),
-                        }),
-                        None => {
-                            let path = self.module_path(gid.module);
-                            let pending_offset = self.graph.modules.len();
-                            let name = if gid.module.as_usize() >= pending_offset {
-                                self.pending[gid.module.as_usize() - pending_offset]
-                                    .resolver
-                                    .get_name(gid.index)
-                                    .clone()
-                            } else {
-                                self.graph[gid].name().clone()
-                            };
-                            Ok(ResolvedTarget::Resolved {
-                                gid,
-                                target: InvocationTarget::AbsoluteProcedurePath { name, path },
-                            })
-                        }
-                    }
+                    let path = self.module_path(gid.module);
+                    let pending_offset = self.graph.modules.len();
+                    let name = if gid.module.as_usize() >= pending_offset {
+                        self.pending[gid.module.as_usize() - pending_offset]
+                            .resolver
+                            .get_name(gid.index)
+                            .clone()
+                    } else {
+                        self.graph[gid].name().clone()
+                    };
+                    Ok(ResolvedTarget::Resolved {
+                        gid,
+                        target: InvocationTarget::AbsoluteProcedurePath { name, path },
+                    })
                 }
                 None => Err(AssemblyError::UndefinedModule {
                     span: target.span(),
@@ -280,13 +245,7 @@ impl<'a> NameResolver<'a> {
                     name: name.clone(),
                 };
                 let gid = self.find(caller, &fqn)?;
-                match self.graph.get_mast_root(gid) {
-                    Some(digest) => Ok(ResolvedTarget::Cached {
-                        digest: *digest,
-                        gid: Some(gid),
-                    }),
-                    None => Ok(ResolvedTarget::Exact { gid }),
-                }
+                Ok(ResolvedTarget::Exact { gid })
             }
         }
     }

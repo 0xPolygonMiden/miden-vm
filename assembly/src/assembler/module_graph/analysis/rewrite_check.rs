@@ -68,13 +68,6 @@ impl<'a, 'b: 'a> RewriteCheckVisitor<'a, 'b> {
             Ok(ResolvedTarget::Exact { .. } | ResolvedTarget::Phantom(_)) => {
                 ControlFlow::Continue(())
             }
-            Ok(ResolvedTarget::Cached { .. }) => {
-                if let InvocationTarget::MastRoot(_) = target {
-                    ControlFlow::Continue(())
-                } else {
-                    ControlFlow::Break(Ok(true))
-                }
-            }
         }
     }
 }

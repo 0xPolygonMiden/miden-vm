@@ -1,26 +1,164 @@
 use alloc::{collections::BTreeSet, sync::Arc};
 
+use super::GlobalProcedureIndex;
 use crate::{
     ast::{FullyQualifiedProcedureName, ProcedureName, Visibility},
     diagnostics::SourceFile,
-    LibraryPath, RpoDigest, SourceSpan, Spanned,
+    AssemblyError, LibraryPath, RpoDigest, SourceSpan, Spanned,
 };
-use vm_core::mast::{MastForest, MastNodeId};
+use vm_core::mast::MastNodeId;
 
 pub type CallSet = BTreeSet<RpoDigest>;
+
+// PROCEDURE CONTEXT
+// ================================================================================================
+
+/// Information about a procedure currently being compiled.
+pub struct ProcedureContext {
+    gid: GlobalProcedureIndex,
+    span: SourceSpan,
+    source_file: Option<Arc<SourceFile>>,
+    name: FullyQualifiedProcedureName,
+    visibility: Visibility,
+    num_locals: u16,
+    callset: CallSet,
+}
+
+// ------------------------------------------------------------------------------------------------
+/// Constructors
+impl ProcedureContext {
+    pub fn new(
+        gid: GlobalProcedureIndex,
+        name: FullyQualifiedProcedureName,
+        visibility: Visibility,
+    ) -> Self {
+        Self {
+            gid,
+            span: name.span(),
+            source_file: None,
+            name,
+            visibility,
+            num_locals: 0,
+            callset: Default::default(),
+        }
+    }
+
+    pub fn with_num_locals(mut self, num_locals: u16) -> Self {
+        self.num_locals = num_locals;
+        self
+    }
+
+    pub fn with_span(mut self, span: SourceSpan) -> Self {
+        self.span = span;
+        self
+    }
+
+    pub fn with_source_file(mut self, source_file: Option<Arc<SourceFile>>) -> Self {
+        self.source_file = source_file;
+        self
+    }
+}
+
+// ------------------------------------------------------------------------------------------------
+/// Public accessors
+impl ProcedureContext {
+    pub fn id(&self) -> GlobalProcedureIndex {
+        self.gid
+    }
+
+    pub fn name(&self) -> &FullyQualifiedProcedureName {
+        &self.name
+    }
+
+    pub fn num_locals(&self) -> u16 {
+        self.num_locals
+    }
+
+    #[allow(unused)]
+    pub fn module(&self) -> &LibraryPath {
+        &self.name.module
+    }
+
+    pub fn source_file(&self) -> Option<Arc<SourceFile>> {
+        self.source_file.clone()
+    }
+
+    pub fn is_kernel(&self) -> bool {
+        self.visibility.is_syscall()
+    }
+}
+
+// ------------------------------------------------------------------------------------------------
+/// State mutators
+impl ProcedureContext {
+    pub fn insert_callee(&mut self, callee: RpoDigest) {
+        self.callset.insert(callee);
+    }
+
+    pub fn extend_callset<I>(&mut self, callees: I)
+    where
+        I: IntoIterator<Item = RpoDigest>,
+    {
+        self.callset.extend(callees);
+    }
+
+    /// Registers a call to an externally-defined procedure which we have previously compiled.
+    ///
+    /// The call set of the callee is added to the call set of the procedure we are currently
+    /// compiling, to reflect that all of the code reachable from the callee is by extension
+    /// reachable by the caller.
+    pub fn register_external_call(
+        &mut self,
+        callee: &Procedure,
+        inlined: bool,
+    ) -> Result<(), AssemblyError> {
+        // If we call the callee, it's callset is by extension part of our callset
+        self.extend_callset(callee.callset().iter().cloned());
+
+        // If the callee is not being inlined, add it to our callset
+        if !inlined {
+            self.insert_callee(callee.mast_root());
+        }
+
+        Ok(())
+    }
+
+    /// Transforms this procedure context into a [Procedure].
+    ///
+    /// The passed-in `mast_root` defines the MAST root of the procedure's body while
+    /// `mast_node_id` specifies the ID of the procedure's body node in the MAST forest in
+    /// which the procedure is defined.
+    ///
+    /// <div class="warning">
+    /// `mast_root` and `mast_node_id` must be consistent. That is, the node located in the MAST
+    /// forest under `mast_node_id` must have the digest equal to the `mast_root`.
+    /// </div>
+    pub fn into_procedure(self, mast_root: RpoDigest, mast_node_id: MastNodeId) -> Procedure {
+        Procedure::new(self.name, self.visibility, self.num_locals as u32, mast_root, mast_node_id)
+            .with_span(self.span)
+            .with_source_file(self.source_file)
+            .with_callset(self.callset)
+    }
+}
+
+impl Spanned for ProcedureContext {
+    fn span(&self) -> SourceSpan {
+        self.span
+    }
+}
 
 // PROCEDURE
 // ================================================================================================
 
-/// A compiled Miden Assembly procedure, consisting of MAST and basic metadata.
+/// A compiled Miden Assembly procedure, consisting of MAST info and basic metadata.
 ///
 /// Procedure metadata includes:
 ///
-/// * Fully-qualified path of the procedure in Miden Assembly (if known).
-/// * Number of procedure locals to allocate.
-/// * The visibility of the procedure (e.g. public/private/syscall)
-/// * The set of MAST roots invoked by this procedure.
-/// * The original source span and file of the procedure (if available).
+/// - Fully-qualified path of the procedure in Miden Assembly (if known).
+/// - Number of procedure locals to allocate.
+/// - The visibility of the procedure (e.g. public/private/syscall)
+/// - The set of MAST roots invoked by this procedure.
+/// - The original source span and file of the procedure (if available).
 #[derive(Clone, Debug)]
 pub struct Procedure {
     span: SourceSpan,
@@ -28,18 +166,22 @@ pub struct Procedure {
     path: FullyQualifiedProcedureName,
     visibility: Visibility,
     num_locals: u32,
-    /// The MAST node id for the root of this procedure
+    /// The MAST root of the procedure.
+    mast_root: RpoDigest,
+    /// The MAST node id which resolves to the above MAST root.
     body_node_id: MastNodeId,
     /// The set of MAST roots called by this procedure
     callset: CallSet,
 }
 
-/// Builder
+// ------------------------------------------------------------------------------------------------
+/// Constructors
 impl Procedure {
-    pub(crate) fn new(
+    fn new(
         path: FullyQualifiedProcedureName,
         visibility: Visibility,
         num_locals: u32,
+        mast_root: RpoDigest,
         body_node_id: MastNodeId,
     ) -> Self {
         Self {
@@ -48,6 +190,7 @@ impl Procedure {
             path,
             visibility,
             num_locals,
+            mast_root,
             body_node_id,
             callset: Default::default(),
         }
@@ -69,7 +212,8 @@ impl Procedure {
     }
 }
 
-/// Metadata
+// ------------------------------------------------------------------------------------------------
+/// Public accessors
 impl Procedure {
     /// Returns a reference to the name of this procedure
     #[allow(unused)]
@@ -105,9 +249,8 @@ impl Procedure {
     }
 
     /// Returns the root of this procedure's MAST.
-    pub fn mast_root(&self, mast_forest: &MastForest) -> RpoDigest {
-        let body_node = &mast_forest[self.body_node_id];
-        body_node.digest()
+    pub fn mast_root(&self) -> RpoDigest {
+        self.mast_root
     }
 
     /// Returns a reference to the MAST node ID of this procedure.

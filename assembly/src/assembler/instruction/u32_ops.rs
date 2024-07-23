@@ -1,6 +1,6 @@
 use super::{field_ops::append_pow2_op, push_u32_value, validate_param, BasicBlockBuilder};
 use crate::{
-    assembler::context::ProcedureContext,
+    assembler::ProcedureContext,
     diagnostics::{RelatedError, Report},
     AssemblyError, Span, MAX_U32_ROTATE_VALUE, MAX_U32_SHIFT_VALUE,
 };
