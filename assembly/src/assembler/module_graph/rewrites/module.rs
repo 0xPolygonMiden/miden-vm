@@ -14,6 +14,9 @@ use crate::{
     AssemblyError, Spanned,
 };
 
+// MODULE REWRITE CHECK
+// ================================================================================================
+
 /// A [ModuleRewriter] handles applying all of the module-wide rewrites to a [Module] that is being
 /// added to a [ModuleGraph]. These rewrites include:
 ///

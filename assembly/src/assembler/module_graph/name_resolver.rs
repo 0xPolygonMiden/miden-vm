@@ -120,74 +120,6 @@ impl<'a> NameResolver<'a> {
         });
     }
 
-    /// Resolver `callee` to a [ResolvedTarget], using `caller` as the context in which `callee`
-    /// should be resolved.
-    pub fn resolve(
-        &self,
-        caller: &CallerInfo,
-        callee: &ProcedureName,
-    ) -> Result<ResolvedTarget, AssemblyError> {
-        match self.resolve_local(caller, callee) {
-            Some(ResolvedProcedure::Local(index)) if matches!(caller.kind, InvokeKind::SysCall) => {
-                let gid = GlobalProcedureIndex {
-                    module: self.graph.kernel_index.unwrap(),
-                    index: index.into_inner(),
-                };
-                Ok(ResolvedTarget::Exact { gid })
-            }
-            Some(ResolvedProcedure::Local(index)) => {
-                let gid = GlobalProcedureIndex {
-                    module: caller.module,
-                    index: index.into_inner(),
-                };
-                Ok(ResolvedTarget::Exact { gid })
-            }
-            Some(ResolvedProcedure::External(ref fqn)) => {
-                let gid = self.find(caller, fqn)?;
-                let path = self.module_path(gid.module);
-                let pending_offset = self.graph.modules.len();
-                let name = if gid.module.as_usize() >= pending_offset {
-                    self.pending[gid.module.as_usize() - pending_offset]
-                        .resolver
-                        .get_name(gid.index)
-                        .clone()
-                } else {
-                    self.graph[gid].name().clone()
-                };
-                Ok(ResolvedTarget::Resolved {
-                    gid,
-                    target: InvocationTarget::AbsoluteProcedurePath { name, path },
-                })
-            }
-            Some(ResolvedProcedure::MastRoot(ref digest)) => {
-                match self.graph.get_procedure_index_by_digest(digest) {
-                    Some(gid) => Ok(ResolvedTarget::Exact { gid }),
-                    None => Ok(ResolvedTarget::Phantom(**digest)),
-                }
-            }
-            None => Err(AssemblyError::Failed {
-                labels: vec![RelatedLabel::error("undefined procedure")
-                    .with_source_file(caller.source_file.clone())
-                    .with_labeled_span(caller.span, "unable to resolve this name locally")],
-            }),
-        }
-    }
-
-    /// Resolve `name`, the name of an imported module, to a [LibraryPath], using `caller` as the
-    /// context.
-    pub fn resolve_import(&self, caller: &CallerInfo, name: &Ident) -> Option<Span<&LibraryPath>> {
-        let pending_offset = self.graph.modules.len();
-        if caller.module.as_usize() >= pending_offset {
-            self.pending[caller.module.as_usize() - pending_offset]
-                .resolver
-                .resolve_import(name)
-        } else {
-            self.graph[caller.module]
-                .resolve_import(name)
-                .map(|import| Span::new(import.span(), import.path()))
-        }
-    }
-
     /// Resolve `target`, a possibly-resolved callee identifier, to a [ResolvedTarget], using
     /// `caller` as the context.
     pub fn resolve_target(
@@ -250,6 +182,74 @@ impl<'a> NameResolver<'a> {
         }
     }
 
+    /// Resolver `callee` to a [ResolvedTarget], using `caller` as the context in which `callee`
+    /// should be resolved.
+    fn resolve(
+        &self,
+        caller: &CallerInfo,
+        callee: &ProcedureName,
+    ) -> Result<ResolvedTarget, AssemblyError> {
+        match self.resolve_local(caller, callee) {
+            Some(ResolvedProcedure::Local(index)) if matches!(caller.kind, InvokeKind::SysCall) => {
+                let gid = GlobalProcedureIndex {
+                    module: self.graph.kernel_index.unwrap(),
+                    index: index.into_inner(),
+                };
+                Ok(ResolvedTarget::Exact { gid })
+            }
+            Some(ResolvedProcedure::Local(index)) => {
+                let gid = GlobalProcedureIndex {
+                    module: caller.module,
+                    index: index.into_inner(),
+                };
+                Ok(ResolvedTarget::Exact { gid })
+            }
+            Some(ResolvedProcedure::External(ref fqn)) => {
+                let gid = self.find(caller, fqn)?;
+                let path = self.module_path(gid.module);
+                let pending_offset = self.graph.modules.len();
+                let name = if gid.module.as_usize() >= pending_offset {
+                    self.pending[gid.module.as_usize() - pending_offset]
+                        .resolver
+                        .get_name(gid.index)
+                        .clone()
+                } else {
+                    self.graph[gid].name().clone()
+                };
+                Ok(ResolvedTarget::Resolved {
+                    gid,
+                    target: InvocationTarget::AbsoluteProcedurePath { name, path },
+                })
+            }
+            Some(ResolvedProcedure::MastRoot(ref digest)) => {
+                match self.graph.get_procedure_index_by_digest(digest) {
+                    Some(gid) => Ok(ResolvedTarget::Exact { gid }),
+                    None => Ok(ResolvedTarget::Phantom(**digest)),
+                }
+            }
+            None => Err(AssemblyError::Failed {
+                labels: vec![RelatedLabel::error("undefined procedure")
+                    .with_source_file(caller.source_file.clone())
+                    .with_labeled_span(caller.span, "unable to resolve this name locally")],
+            }),
+        }
+    }
+
+    /// Resolve `name`, the name of an imported module, to a [LibraryPath], using `caller` as the
+    /// context.
+    fn resolve_import(&self, caller: &CallerInfo, name: &Ident) -> Option<Span<&LibraryPath>> {
+        let pending_offset = self.graph.modules.len();
+        if caller.module.as_usize() >= pending_offset {
+            self.pending[caller.module.as_usize() - pending_offset]
+                .resolver
+                .resolve_import(name)
+        } else {
+            self.graph[caller.module]
+                .resolve_import(name)
+                .map(|import| Span::new(import.span(), import.path()))
+        }
+    }
+
     fn resolve_local(
         &self,
         caller: &CallerInfo,
@@ -278,11 +278,11 @@ impl<'a> NameResolver<'a> {
         }
     }
 
-    /// Resolve `name` to its concrete definition, returning the corresponding
+    /// Resolve `callee` to its concrete definition, returning the corresponding
     /// [GlobalProcedureIndex].
     ///
     /// If an error occurs during resolution, or the name cannot be resolved, `Err` is returned.
-    pub fn find(
+    fn find(
         &self,
         caller: &CallerInfo,
         callee: &FullyQualifiedProcedureName,
@@ -430,7 +430,7 @@ impl<'a> NameResolver<'a> {
     }
 
     /// Resolve a [LibraryPath] to a [ModuleIndex] in this graph
-    pub fn find_module_index(&self, name: &LibraryPath) -> Option<ModuleIndex> {
+    fn find_module_index(&self, name: &LibraryPath) -> Option<ModuleIndex> {
         self.graph
             .modules
             .iter()
