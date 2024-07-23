@@ -9,7 +9,7 @@ use alloc::vec::Vec;
 /// 2. The expanded public key represented as the coefficients of a polynomial of degree < 512.
 /// 3. The signature represented as the coefficients of a polynomial of degree < 512.
 /// 4. The product of the above two polynomials in the ring of polynomials with coefficients
-/// in the Miden field.
+///    in the Miden field.
 ///
 /// # Errors
 /// Will return an error if either:

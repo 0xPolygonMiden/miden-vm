@@ -89,7 +89,7 @@ pub enum TestError {
 ///
 /// Types of failure tests:
 /// - Assembly error test: check that attempting to compile the given source causes an
-/// AssemblyError which contains the specified substring.
+///   AssemblyError which contains the specified substring.
 /// - Execution error test: check that running a program compiled from the given source causes
 ///   an ExecutionError which contains the specified substring.
 pub struct Test {
