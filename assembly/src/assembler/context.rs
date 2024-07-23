@@ -122,28 +122,6 @@ impl ProcedureContext {
         Ok(())
     }
 
-    /// Registers a call to an externally-defined procedure which we have previously compiled.
-    ///
-    /// The call set of the callee is added to the call set of the procedure we are currently
-    /// compiling, to reflect that all of the code reachable from the callee is by extension
-    /// reachable by the caller.
-    pub fn register_external_call(
-        &mut self,
-        callee: &Procedure,
-        inlined: bool,
-        mast_forest: &MastForest,
-    ) -> Result<(), AssemblyError> {
-        // If we call the callee, it's callset is by extension part of our callset
-        self.extend_callset(callee.callset().iter().cloned());
-
-        // If the callee is not being inlined, add it to our callset
-        if !inlined {
-            self.insert_callee(callee.mast_root(mast_forest));
-        }
-
-        Ok(())
-    }
-
     pub fn into_procedure(self, body_node_id: MastNodeId) -> Box<Procedure> {
         let procedure =
             Procedure::new(self.name, self.visibility, self.num_locals as u32, body_node_id)
