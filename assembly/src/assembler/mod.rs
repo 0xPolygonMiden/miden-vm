@@ -387,6 +387,9 @@ impl Assembler {
             // Compile this procedure
             let procedure = self.compile_procedure(pctx, mast_forest_builder)?;
 
+            // register the procedure in the MAST forest
+            mast_forest_builder.make_root(procedure.body_node_id());
+
             // Cache the compiled procedure, unless it's the program entrypoint
             if is_entry {
                 compiled_entrypoint = Some(Arc::from(procedure));
@@ -431,8 +434,6 @@ impl Assembler {
         } else {
             self.compile_body(proc.iter(), &mut proc_ctx, None, mast_forest_builder)?
         };
-
-        mast_forest_builder.make_root(proc_body_root);
 
         Ok(proc_ctx.into_procedure(proc_body_root))
     }
