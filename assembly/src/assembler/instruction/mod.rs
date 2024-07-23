@@ -1,6 +1,6 @@
 use super::{
-    ast::InvokeKind, context::ProcedureContext, mast_forest_builder::MastForestBuilder, Assembler,
-    BasicBlockBuilder, Felt, Instruction, Operation, ONE, ZERO,
+    ast::InvokeKind, mast_forest_builder::MastForestBuilder, Assembler, BasicBlockBuilder, Felt,
+    Instruction, Operation, ProcedureContext, ONE, ZERO,
 };
 use crate::{diagnostics::Report, utils::bound_into_included_u64, AssemblyError};
 use core::ops::RangeBounds;
@@ -391,7 +391,7 @@ impl Assembler {
             Instruction::DynExec => return self.dynexec(mast_forest_builder),
             Instruction::DynCall => return self.dyncall(mast_forest_builder),
             Instruction::ProcRef(ref callee) => {
-                self.procref(callee, proc_ctx, span_builder, mast_forest_builder.forest())?
+                self.procref(callee, proc_ctx, span_builder, mast_forest_builder)?
             }
 
             // ----- debug decorators -------------------------------------------------------------

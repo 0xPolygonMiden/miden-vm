@@ -16,10 +16,10 @@ use crate::ast::ProcedureIndex;
 /// </div>
 ///
 /// In addition to the [super::ModuleGraph], these indices are also used with an instance of a
-/// [super::ProcedureCache]. This is because the [super::ModuleGraph] and [super::ProcedureCache]
-/// instances are paired, i.e. the [super::ModuleGraph] stores the syntax trees and call graph
-/// analysis for a program, while the [super::ProcedureCache] caches the compiled
-/// [super::Procedure]s for the same program, as derived from the corresponding graph.
+/// [super::MastForestBuilder]. This is because the [super::ModuleGraph] and
+/// [super::MastForestBuilder] instances are paired, i.e. the [super::ModuleGraph] stores the syntax
+/// trees and call graph analysis for a program, while the [super::MastForestBuilder] caches the
+/// compiled [super::Procedure]s for the same program, as derived from the corresponding graph.
 ///
 /// This is intended for use when we are doing global inter-procedural analysis on a (possibly
 /// growable) set of modules. It is expected that the index of a module in the set, as well as the

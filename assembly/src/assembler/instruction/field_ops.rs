@@ -1,6 +1,6 @@
 use super::{validate_param, BasicBlockBuilder};
 use crate::{
-    assembler::context::ProcedureContext,
+    assembler::ProcedureContext,
     diagnostics::{RelatedError, Report},
     AssemblyError, Felt, Span, MAX_EXP_BITS, ONE, ZERO,
 };

@@ -11,7 +11,7 @@ use crate::{
         InvocationTarget, Invoke, InvokeKind, Module, Procedure,
     },
     diagnostics::SourceFile,
-    AssemblyError, Span, Spanned,
+    AssemblyError, Spanned,
 };
 
 /// A [ModuleRewriter] handles applying all of the module-wide rewrites to a [Module] that is being
@@ -67,13 +67,6 @@ impl<'a, 'b: 'a> ModuleRewriter<'a, 'b> {
         };
         match self.resolver.resolve_target(&caller, target) {
             Err(err) => return ControlFlow::Break(err),
-            Ok(ResolvedTarget::Cached { digest, .. }) => {
-                *target = InvocationTarget::MastRoot(Span::new(target.span(), digest));
-                self.invoked.insert(Invoke {
-                    kind,
-                    target: target.clone(),
-                });
-            }
             Ok(ResolvedTarget::Phantom(_)) => (),
             Ok(ResolvedTarget::Exact { .. }) => {
                 self.invoked.insert(Invoke {

@@ -21,6 +21,7 @@
 - Introduced `MastForestError` to enforce `MastForest` node count invariant (#1394)
 - Added functions to `MastForestBuilder` to allow ensuring of nodes with fewer LOC (#1404)
 - Make `Assembler` single-use (#1409)
+- Remove `ProcedureCache` from the assembler (#1411).
 
 #### Changed
 

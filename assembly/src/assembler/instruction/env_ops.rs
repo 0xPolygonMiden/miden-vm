@@ -1,5 +1,5 @@
 use super::{mem_ops::local_to_absolute_addr, push_felt, BasicBlockBuilder};
-use crate::{assembler::context::ProcedureContext, AssemblyError, Felt, Spanned};
+use crate::{assembler::ProcedureContext, AssemblyError, Felt, Spanned};
 use vm_core::Operation::*;
 
 // CONSTANT INPUTS

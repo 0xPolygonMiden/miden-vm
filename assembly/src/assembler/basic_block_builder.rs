@@ -1,12 +1,11 @@
+use crate::AssemblyError;
+
 use super::{
-    context::ProcedureContext, mast_forest_builder::MastForestBuilder, BodyWrapper, Decorator,
-    DecoratorList, Instruction,
+    mast_forest_builder::MastForestBuilder, BodyWrapper, Decorator, DecoratorList, Instruction,
+    ProcedureContext,
 };
 use alloc::{borrow::Borrow, string::ToString, vec::Vec};
-use vm_core::{
-    mast::{MastForestError, MastNodeId},
-    AdviceInjector, AssemblyOp, Operation,
-};
+use vm_core::{mast::MastNodeId, AdviceInjector, AssemblyOp, Operation};
 
 // BASIC BLOCK BUILDER
 // ================================================================================================
@@ -129,7 +128,7 @@ impl BasicBlockBuilder {
     pub fn make_basic_block(
         &mut self,
         mast_forest_builder: &mut MastForestBuilder,
-    ) -> Result<Option<MastNodeId>, MastForestError> {
+    ) -> Result<Option<MastNodeId>, AssemblyError> {
         if !self.ops.is_empty() {
             let ops = self.ops.drain(..).collect();
             let decorators = self.decorators.drain(..).collect();
@@ -157,7 +156,7 @@ impl BasicBlockBuilder {
     pub fn try_into_basic_block(
         mut self,
         mast_forest_builder: &mut MastForestBuilder,
-    ) -> Result<Option<MastNodeId>, MastForestError> {
+    ) -> Result<Option<MastNodeId>, AssemblyError> {
         self.ops.append(&mut self.epilogue);
         self.make_basic_block(mast_forest_builder)
     }
