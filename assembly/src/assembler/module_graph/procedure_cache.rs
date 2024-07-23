@@ -137,11 +137,6 @@ impl ProcedureCache {
             .unwrap_or(false)
     }
 
-    /// Returns the [GlobalProcedureIndex] of the procedure with the given MAST root, if cached.
-    pub fn contains_mast_root(&self, hash: &RpoDigest) -> Option<GlobalProcedureIndex> {
-        self.by_mast_root.get(hash).copied()
-    }
-
     /// Inserts the given [Procedure] into this cache, using the [GlobalProcedureIndex] as the
     /// cache key.
     ///
@@ -212,18 +207,6 @@ impl ProcedureCache {
         self.by_mast_root.insert(mast_root, id);
 
         Ok(())
-    }
-
-    /// This removes any entries in the cache for procedures in `module`
-    pub fn remove_module(&mut self, module: ModuleIndex) {
-        let index = module.as_usize();
-        if let Some(slots) = self.cache.get_mut(index) {
-            slots.clear();
-        }
-        if let Some(path) = self.modules.get_mut(index) {
-            *path = None;
-        }
-        self.by_mast_root.retain(|_digest, gid| gid.module != module);
     }
 
     fn ensure_cache_slot_exists(&mut self, id: GlobalProcedureIndex, module: &LibraryPath) {

@@ -15,10 +15,6 @@ pub struct MastForestBuilder {
 }
 
 impl MastForestBuilder {
-    pub fn new() -> Self {
-        Self::default()
-    }
-
     pub fn build(self) -> MastForest {
         self.mast_forest
     }

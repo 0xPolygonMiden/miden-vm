@@ -1,6 +1,6 @@
 use super::{
-    mast_forest_builder::MastForestBuilder, AssemblyContext, BodyWrapper, Decorator, DecoratorList,
-    Instruction,
+    context::ProcedureContext, mast_forest_builder::MastForestBuilder, BodyWrapper, Decorator,
+    DecoratorList, Instruction,
 };
 use alloc::{borrow::Borrow, string::ToString, vec::Vec};
 use vm_core::{
@@ -85,8 +85,8 @@ impl BasicBlockBuilder {
     ///
     /// This indicates that the provided instruction should be tracked and the cycle count for
     /// this instruction will be computed when the call to set_instruction_cycle_count() is made.
-    pub fn track_instruction(&mut self, instruction: &Instruction, ctx: &AssemblyContext) {
-        let context_name = ctx.unwrap_current_procedure().name().to_string();
+    pub fn track_instruction(&mut self, instruction: &Instruction, proc_ctx: &ProcedureContext) {
+        let context_name = proc_ctx.name().to_string();
         let num_cycles = 0;
         let op = instruction.to_string();
         let should_break = instruction.should_break();

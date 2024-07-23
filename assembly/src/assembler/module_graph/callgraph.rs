@@ -3,7 +3,7 @@ use alloc::{
     vec::Vec,
 };
 
-use crate::assembler::{GlobalProcedureIndex, ModuleIndex};
+use crate::assembler::GlobalProcedureIndex;
 
 /// Represents the inability to construct a topological ordering of the nodes in a [CallGraph]
 /// due to a cycle in the graph, which can happen due to recursion.
@@ -78,19 +78,6 @@ impl CallGraph {
         }
 
         callees.push(callee);
-    }
-
-    /// Removes all edges to/from a procedure in `module`
-    ///
-    /// NOTE: If a procedure that is removed has predecessors (callers) in the graph, this will
-    /// remove those edges, and the graph will be incomplete and not reflect the "true" call graph.
-    /// In practice, we are recomputing the graph after making such modifications, so this a
-    /// temporary state of affairs - still, it is important to be aware of this behavior.
-    pub fn remove_edges_for_module(&mut self, module: ModuleIndex) {
-        for (_, out_edges) in self.nodes.iter_mut() {
-            out_edges.retain(|gid| gid.module != module);
-        }
-        self.nodes.retain(|gid, _| gid.module != module);
     }
 
     /// Removes the edge between `caller` and `callee` from the graph

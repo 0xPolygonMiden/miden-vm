@@ -1,9 +1,8 @@
 use crate::{
     ast::{
-        self, AliasTarget, Export, FullyQualifiedProcedureName, Instruction, InvocationTarget,
-        InvokeKind, ModuleKind, ProcedureIndex,
+        self, FullyQualifiedProcedureName, Instruction, InvocationTarget, InvokeKind, ModuleKind,
     },
-    diagnostics::{tracing::instrument, Report},
+    diagnostics::Report,
     sema::SemanticAnalysisError,
     AssemblyError, Compile, CompileOptions, Felt, Library, LibraryNamespace, LibraryPath,
     RpoDigest, Spanned, ONE, ZERO,
@@ -25,7 +24,6 @@ mod procedure;
 #[cfg(test)]
 mod tests;
 
-pub use self::context::AssemblyContext;
 pub use self::id::{GlobalProcedureIndex, ModuleIndex};
 pub(crate) use self::module_graph::ProcedureCache;
 pub use self::procedure::Procedure;
@@ -33,33 +31,6 @@ pub use self::procedure::Procedure;
 use self::basic_block_builder::BasicBlockBuilder;
 use self::context::ProcedureContext;
 use self::module_graph::{CallerInfo, ModuleGraph, ResolvedTarget};
-
-// ARTIFACT KIND
-// ================================================================================================
-
-/// Represents the type of artifact produced by an [Assembler].
-#[derive(Default, Copy, Clone, PartialEq, Eq, Hash)]
-#[non_exhaustive]
-pub enum ArtifactKind {
-    /// Produce an executable program.
-    ///
-    /// This is the default artifact produced by the assembler, and is the only artifact that is
-    /// useful on its own.
-    #[default]
-    Executable,
-    /// Produce a MAST library
-    ///
-    /// The assembler will produce MAST in binary form which can be packaged and distributed.
-    /// These artifacts can then be loaded by the VM with an executable program that references
-    /// the contents of the library, without having to compile them together.
-    Library,
-    /// Produce a MAST kernel module
-    ///
-    /// The assembler will produce MAST for a kernel module, which is essentially the same as
-    /// [crate::Library], however additional constraints are imposed on compilation to ensure that
-    /// the produced kernel is valid.
-    Kernel,
-}
 
 // ASSEMBLER
 // ================================================================================================
@@ -72,9 +43,6 @@ pub enum ArtifactKind {
 /// Depending on your needs, there are multiple ways of using the assembler, and whether or not you
 /// want to provide a custom kernel.
 ///
-/// By default, an empty kernel is provided. However, you may provide your own using
-/// [Assembler::with_kernel] or [Assembler::with_kernel_from_module].
-///
 /// <div class="warning">
 /// Programs compiled with an empty kernel cannot use the `syscall` instruction.
 /// </div>
@@ -84,36 +52,20 @@ pub enum ArtifactKind {
 ///   procedures, build the assembler with them first, using the various builder methods on
 ///   [Assembler], e.g. [Assembler::with_module], [Assembler::with_library], etc. Then, call
 ///   [Assembler::assemble] to get your compiled program.
-#[derive(Clone)]
+#[derive(Clone, Default)]
 pub struct Assembler {
-    mast_forest_builder: MastForestBuilder,
-    /// The global [ModuleGraph] for this assembler. All new [AssemblyContext]s inherit this graph
-    /// as a baseline.
-    module_graph: Box<ModuleGraph>,
+    /// The global [ModuleGraph] for this assembler.
+    module_graph: ModuleGraph,
     /// The global procedure cache for this assembler.
     procedure_cache: ProcedureCache,
     /// Whether to treat warning diagnostics as errors
     warnings_as_errors: bool,
     /// Whether the assembler enables extra debugging information.
     in_debug_mode: bool,
-    /// Whether the assembler allows unknown invocation targets in compiled code.
-    allow_phantom_calls: bool,
 }
 
-impl Default for Assembler {
-    fn default() -> Self {
-        Self {
-            mast_forest_builder: Default::default(),
-            module_graph: Default::default(),
-            procedure_cache: Default::default(),
-            warnings_as_errors: false,
-            in_debug_mode: false,
-            allow_phantom_calls: true,
-        }
-    }
-}
-
-/// Builder
+// ------------------------------------------------------------------------------------------------
+/// Constructors
 impl Assembler {
     /// Start building an [Assembler]
     pub fn new() -> Self {
@@ -129,26 +81,6 @@ impl Assembler {
         assembler
     }
 
-    /// Start building an [Assembler], with a kernel given by compiling the given source module.
-    ///
-    /// # Errors
-    /// Returns an error if compiling kernel source results in an error.
-    pub fn with_kernel_from_module(module: impl Compile) -> Result<Self, Report> {
-        let mut assembler = Self::new();
-        let opts = CompileOptions::for_kernel();
-        let module = module.compile_with_options(opts)?;
-
-        let mut mast_forest_builder = MastForestBuilder::new();
-
-        let (kernel_index, kernel) =
-            assembler.assemble_kernel_module(module, &mut mast_forest_builder)?;
-        assembler.module_graph.set_kernel(Some(kernel_index), kernel);
-
-        assembler.mast_forest_builder = mast_forest_builder;
-
-        Ok(assembler)
-    }
-
     /// Sets the default behavior of this assembler with regard to warning diagnostics.
     ///
     /// When true, any warning diagnostics that are emitted will be promoted to errors.
@@ -160,12 +92,6 @@ impl Assembler {
     /// Puts the assembler into the debug mode.
     pub fn with_debug_mode(mut self, yes: bool) -> Self {
         self.in_debug_mode = yes;
-        self
-    }
-
-    /// Sets whether to allow phantom calls.
-    pub fn with_phantom_calls(mut self, yes: bool) -> Self {
-        self.allow_phantom_calls = yes;
         self
     }
 
@@ -277,7 +203,8 @@ impl Assembler {
     }
 }
 
-/// Queries
+// ------------------------------------------------------------------------------------------------
+/// Public Accessors
 impl Assembler {
     /// Returns true if this assembler promotes warning diagnostics as errors by default.
     pub fn warnings_as_errors(&self) -> bool {
@@ -296,11 +223,6 @@ impl Assembler {
         self.module_graph.kernel()
     }
 
-    /// Returns true if this assembler was instantiated with phantom calls enabled.
-    pub fn allow_phantom_calls(&self) -> bool {
-        self.allow_phantom_calls
-    }
-
     #[cfg(any(test, feature = "testing"))]
     #[doc(hidden)]
     pub fn module_graph(&self) -> &ModuleGraph {
@@ -308,6 +230,7 @@ impl Assembler {
     }
 }
 
+// ------------------------------------------------------------------------------------------------
 /// Compilation/Assembly
 impl Assembler {
     /// Compiles the provided module into a [`Program`]. The resulting program can be executed on
@@ -318,23 +241,12 @@ impl Assembler {
     /// Returns an error if parsing or compilation of the specified program fails, or if the source
     /// doesn't have an entrypoint.
     pub fn assemble(self, source: impl Compile) -> Result<Program, Report> {
-        let mut context = AssemblyContext::default();
-        context.set_warnings_as_errors(self.warnings_as_errors);
-
-        self.assemble_in_context(source, &mut context)
-    }
-
-    /// Like [Assembler::assemble], but also takes an [AssemblyContext] to configure the assembler.
-    pub fn assemble_in_context(
-        self,
-        source: impl Compile,
-        context: &mut AssemblyContext,
-    ) -> Result<Program, Report> {
         let opts = CompileOptions {
-            warnings_as_errors: context.warnings_as_errors(),
+            warnings_as_errors: self.warnings_as_errors,
             ..CompileOptions::default()
         };
-        self.assemble_with_options_in_context(source, opts, context)
+
+        self.assemble_with_options(source, opts)
     }
 
     /// Compiles the provided module into a [Program] using the provided options.
@@ -345,38 +257,10 @@ impl Assembler {
     ///
     /// Returns an error if parsing or compilation of the specified program fails, or the options
     /// are invalid.
-    pub fn assemble_with_options(
-        self,
-        source: impl Compile,
-        options: CompileOptions,
-    ) -> Result<Program, Report> {
-        let mut context = AssemblyContext::default();
-        context.set_warnings_as_errors(options.warnings_as_errors);
-
-        self.assemble_with_options_in_context(source, options, &mut context)
-    }
-
-    /// Like [Assembler::assemble_with_options], but additionally uses the provided
-    /// [AssemblyContext] to configure the assembler.
-    #[instrument("assemble_with_opts_in_context", skip_all)]
-    pub fn assemble_with_options_in_context(
-        self,
-        source: impl Compile,
-        options: CompileOptions,
-        context: &mut AssemblyContext,
-    ) -> Result<Program, Report> {
-        self.assemble_with_options_in_context_impl(source, options, context)
-    }
-
-    /// Implementation of [`Self::assemble_with_options_in_context`] which doesn't consume `self`.
-    ///
-    /// The main purpose of this separation is to enable some tests to access the assembler state
-    /// after assembly.
-    fn assemble_with_options_in_context_impl(
+    fn assemble_with_options(
         mut self,
         source: impl Compile,
         options: CompileOptions,
-        context: &mut AssemblyContext,
     ) -> Result<Program, Report> {
         if options.kind != ModuleKind::Executable {
             return Err(Report::msg(
@@ -384,22 +268,15 @@ impl Assembler {
             ));
         }
 
-        let mast_forest_builder = core::mem::take(&mut self.mast_forest_builder);
+        let mast_forest_builder = MastForestBuilder::default();
 
         let program = source.compile_with_options(CompileOptions {
             // Override the module name so that we always compile the executable
-            // module as #exec
+            // module as #exe
             path: Some(LibraryPath::from(LibraryNamespace::Exec)),
             ..options
         })?;
         assert!(program.is_executable());
-
-        // Remove any previously compiled executable module and clean up graph
-        let prev_program = self.module_graph.find_module_index(program.path());
-        if let Some(module_index) = prev_program {
-            self.module_graph.remove_module(module_index);
-            self.procedure_cache.remove_module(module_index);
-        }
 
         // Recompute graph with executable module, and start compiling
         let module_index = self.module_graph.add_module(program)?;
@@ -414,166 +291,7 @@ impl Assembler {
             })
             .ok_or(SemanticAnalysisError::MissingEntrypoint)?;
 
-        self.compile_program(entrypoint, context, mast_forest_builder)
-    }
-
-    /// Compile and assembles all procedures in the specified module, adding them to the procedure
-    /// cache.
-    ///
-    /// Returns a vector of procedure digests for all exported procedures in the module.
-    ///
-    /// The provided context is used to determine what type of module to assemble, i.e. either
-    /// a kernel or library module.
-    pub fn assemble_module(
-        &mut self,
-        module: impl Compile,
-        options: CompileOptions,
-        context: &mut AssemblyContext,
-    ) -> Result<Vec<RpoDigest>, Report> {
-        match context.kind() {
-            _ if options.kind.is_executable() => {
-                return Err(Report::msg(
-                    "invalid compile options: expected configuration for library or kernel module ",
-                ))
-            }
-            ArtifactKind::Executable => {
-                return Err(Report::msg(
-                    "invalid context: expected context configured for library or kernel modules",
-                ))
-            }
-            ArtifactKind::Kernel if !options.kind.is_kernel() => {
-                return Err(Report::msg(
-                    "invalid context: cannot assemble a kernel from a module compiled as a library",
-                ))
-            }
-            ArtifactKind::Library if !options.kind.is_library() => {
-                return Err(Report::msg(
-                    "invalid context: cannot assemble a library from a module compiled as a kernel",
-                ))
-            }
-            ArtifactKind::Kernel | ArtifactKind::Library => (),
-        }
-
-        // Compile module
-        let module = module.compile_with_options(options)?;
-
-        // Recompute graph with the provided module, and start assembly
-        let module_id = self.module_graph.add_module(module)?;
-        self.module_graph.recompute()?;
-
-        let mut mast_forest_builder = core::mem::take(&mut self.mast_forest_builder);
-
-        self.assemble_graph(context, &mut mast_forest_builder)?;
-        let exported_procedure_digests =
-            self.get_module_exports(module_id, mast_forest_builder.forest());
-
-        // Reassign the mast_forest to the assembler for use is a future program assembly
-        self.mast_forest_builder = mast_forest_builder;
-
-        exported_procedure_digests
-    }
-
-    /// Compiles the given kernel module, returning both the compiled kernel and its index in the
-    /// graph.
-    fn assemble_kernel_module(
-        &mut self,
-        module: Box<ast::Module>,
-        mast_forest_builder: &mut MastForestBuilder,
-    ) -> Result<(ModuleIndex, Kernel), Report> {
-        if !module.is_kernel() {
-            return Err(Report::msg(format!("expected kernel module, got {}", module.kind())));
-        }
-
-        let mut context = AssemblyContext::for_kernel(module.path());
-        context.set_warnings_as_errors(self.warnings_as_errors);
-
-        let kernel_index = self.module_graph.add_module(module)?;
-        self.module_graph.recompute()?;
-        let kernel_module = self.module_graph[kernel_index].clone();
-        let mut kernel = Vec::new();
-        for (index, _syscall) in kernel_module
-            .procedures()
-            .enumerate()
-            .filter(|(_, p)| p.visibility().is_syscall())
-        {
-            let gid = GlobalProcedureIndex {
-                module: kernel_index,
-                index: ProcedureIndex::new(index),
-            };
-            let compiled = self.compile_subgraph(gid, false, &mut context, mast_forest_builder)?;
-            kernel.push(compiled.mast_root(mast_forest_builder.forest()));
-        }
-
-        Kernel::new(&kernel)
-            .map(|kernel| (kernel_index, kernel))
-            .map_err(|err| Report::new(AssemblyError::Kernel(err)))
-    }
-
-    /// Get the set of procedure roots for all exports of the given module
-    ///
-    /// Returns an error if the provided Miden Assembly is invalid.
-    fn get_module_exports(
-        &mut self,
-        module: ModuleIndex,
-        mast_forest: &MastForest,
-    ) -> Result<Vec<RpoDigest>, Report> {
-        assert!(self.module_graph.contains_module(module), "invalid module index");
-
-        let mut exports = Vec::new();
-        for (index, procedure) in self.module_graph[module].procedures().enumerate() {
-            // Only add exports to the code block table, locals will
-            // be added if they are in the call graph rooted at those
-            // procedures
-            if !procedure.visibility().is_exported() {
-                continue;
-            }
-            let gid = match procedure {
-                Export::Procedure(_) => GlobalProcedureIndex {
-                    module,
-                    index: ProcedureIndex::new(index),
-                },
-                Export::Alias(ref alias) => {
-                    match alias.target() {
-                        AliasTarget::MastRoot(digest) => {
-                            self.procedure_cache.contains_mast_root(digest)
-                                .unwrap_or_else(|| {
-                                    panic!(
-                                        "compilation apparently succeeded, but did not find a \
-                                                entry in the procedure cache for alias '{}', i.e. '{}'",
-                                        alias.name(),
-                                        digest
-                                    );
-                                })
-                        }
-                        AliasTarget::Path(ref name)=> {
-                            self.module_graph.find(alias.source_file(), name)?
-                        }
-                    }
-                }
-            };
-            let proc = self.procedure_cache.get(gid).unwrap_or_else(|| match procedure {
-                Export::Procedure(ref proc) => {
-                    panic!(
-                        "compilation apparently succeeded, but did not find a \
-                                entry in the procedure cache for '{}'",
-                        proc.name()
-                    )
-                }
-                Export::Alias(ref alias) => {
-                    panic!(
-                        "compilation apparently succeeded, but did not find a \
-                                entry in the procedure cache for alias '{}', i.e. '{}'",
-                        alias.name(),
-                        alias.target()
-                    );
-                }
-            });
-
-            let proc_code_node = &mast_forest[proc.body_node_id()];
-            exports.push(proc_code_node.digest());
-        }
-
-        Ok(exports)
+        self.compile_program(entrypoint, mast_forest_builder)
     }
 
     /// Compile the provided [Module] into a [Program].
@@ -582,38 +300,21 @@ impl Assembler {
     ///
     /// Returns an error if the provided Miden Assembly is invalid.
     fn compile_program(
-        &mut self,
+        mut self,
         entrypoint: GlobalProcedureIndex,
-        context: &mut AssemblyContext,
         mut mast_forest_builder: MastForestBuilder,
     ) -> Result<Program, Report> {
         // Raise an error if we are called with an invalid entrypoint
         assert!(self.module_graph[entrypoint].name().is_main());
 
         // Compile the module graph rooted at the entrypoint
-        let entry_procedure =
-            self.compile_subgraph(entrypoint, true, context, &mut mast_forest_builder)?;
+        let entry_procedure = self.compile_subgraph(entrypoint, true, &mut mast_forest_builder)?;
 
         Ok(Program::with_kernel(
             mast_forest_builder.build(),
             entry_procedure.body_node_id(),
             self.module_graph.kernel().clone(),
         ))
-    }
-
-    /// Compile all of the uncompiled procedures in the module graph, placing them
-    /// in the procedure cache once compiled.
-    ///
-    /// Returns an error if any of the provided Miden Assembly is invalid.
-    fn assemble_graph(
-        &mut self,
-        context: &mut AssemblyContext,
-        mast_forest_builder: &mut MastForestBuilder,
-    ) -> Result<(), Report> {
-        let mut worklist = self.module_graph.topological_sort().to_vec();
-        assert!(!worklist.is_empty());
-        self.process_graph_worklist(&mut worklist, context, None, mast_forest_builder)
-            .map(|_| ())
     }
 
     /// Compile the uncompiled procedure in the module graph which are members of the subgraph
@@ -624,7 +325,6 @@ impl Assembler {
         &mut self,
         root: GlobalProcedureIndex,
         is_entrypoint: bool,
-        context: &mut AssemblyContext,
         mast_forest_builder: &mut MastForestBuilder,
     ) -> Result<Arc<Procedure>, Report> {
         let mut worklist = self.module_graph.topological_sort_from_root(root).map_err(|cycle| {
@@ -641,10 +341,9 @@ impl Assembler {
         assert!(!worklist.is_empty());
 
         let compiled = if is_entrypoint {
-            self.process_graph_worklist(&mut worklist, context, Some(root), mast_forest_builder)?
+            self.process_graph_worklist(&mut worklist, Some(root), mast_forest_builder)?
         } else {
-            let _ =
-                self.process_graph_worklist(&mut worklist, context, None, mast_forest_builder)?;
+            let _ = self.process_graph_worklist(&mut worklist, None, mast_forest_builder)?;
             self.procedure_cache.get(root)
         };
 
@@ -654,7 +353,6 @@ impl Assembler {
     fn process_graph_worklist(
         &mut self,
         worklist: &mut Vec<GlobalProcedureIndex>,
-        context: &mut AssemblyContext,
         entrypoint: Option<GlobalProcedureIndex>,
         mast_forest_builder: &mut MastForestBuilder,
     ) -> Result<Option<Arc<Procedure>>, Report> {
@@ -687,7 +385,10 @@ impl Assembler {
                 .with_source_file(ast.source_file());
 
             // Compile this procedure
-            let procedure = self.compile_procedure(pctx, context, mast_forest_builder)?;
+            let procedure = self.compile_procedure(pctx, mast_forest_builder)?;
+
+            // register the procedure in the MAST forest
+            mast_forest_builder.make_root(procedure.body_node_id());
 
             // Cache the compiled procedure, unless it's the program entrypoint
             if is_entry {
@@ -711,14 +412,12 @@ impl Assembler {
     /// Compiles a single Miden Assembly procedure to its MAST representation.
     fn compile_procedure(
         &self,
-        procedure: ProcedureContext,
-        context: &mut AssemblyContext,
+        mut proc_ctx: ProcedureContext,
         mast_forest_builder: &mut MastForestBuilder,
     ) -> Result<Box<Procedure>, Report> {
         // Make sure the current procedure context is available during codegen
-        let gid = procedure.id();
-        let num_locals = procedure.num_locals();
-        context.set_current_procedure(procedure);
+        let gid = proc_ctx.id();
+        let num_locals = proc_ctx.num_locals();
 
         let proc = self.module_graph[gid].unwrap_procedure();
         let proc_body_root = if num_locals > 0 {
@@ -731,21 +430,18 @@ impl Assembler {
                 prologue: vec![Operation::Push(num_locals), Operation::FmpUpdate],
                 epilogue: vec![Operation::Push(-num_locals), Operation::FmpUpdate],
             };
-            self.compile_body(proc.iter(), context, Some(wrapper), mast_forest_builder)?
+            self.compile_body(proc.iter(), &mut proc_ctx, Some(wrapper), mast_forest_builder)?
         } else {
-            self.compile_body(proc.iter(), context, None, mast_forest_builder)?
+            self.compile_body(proc.iter(), &mut proc_ctx, None, mast_forest_builder)?
         };
 
-        mast_forest_builder.make_root(proc_body_root);
-
-        let pctx = context.take_current_procedure().unwrap();
-        Ok(pctx.into_procedure(proc_body_root))
+        Ok(proc_ctx.into_procedure(proc_body_root))
     }
 
     fn compile_body<'a, I>(
         &self,
         body: I,
-        context: &mut AssemblyContext,
+        proc_ctx: &mut ProcedureContext,
         wrapper: Option<BodyWrapper>,
         mast_forest_builder: &mut MastForestBuilder,
     ) -> Result<MastNodeId, Report>
@@ -763,7 +459,7 @@ impl Assembler {
                     if let Some(mast_node_id) = self.compile_instruction(
                         inst,
                         &mut basic_block_builder,
-                        context,
+                        proc_ctx,
                         mast_forest_builder,
                     )? {
                         if let Some(basic_block_id) = basic_block_builder
@@ -788,9 +484,9 @@ impl Assembler {
                     }
 
                     let then_blk =
-                        self.compile_body(then_blk.iter(), context, None, mast_forest_builder)?;
+                        self.compile_body(then_blk.iter(), proc_ctx, None, mast_forest_builder)?;
                     let else_blk =
-                        self.compile_body(else_blk.iter(), context, None, mast_forest_builder)?;
+                        self.compile_body(else_blk.iter(), proc_ctx, None, mast_forest_builder)?;
 
                     let split_node_id = mast_forest_builder
                         .ensure_split(then_blk, else_blk)
@@ -807,7 +503,7 @@ impl Assembler {
                     }
 
                     let repeat_node_id =
-                        self.compile_body(body.iter(), context, None, mast_forest_builder)?;
+                        self.compile_body(body.iter(), proc_ctx, None, mast_forest_builder)?;
 
                     for _ in 0..*count {
                         mast_node_ids.push(repeat_node_id);
@@ -823,7 +519,7 @@ impl Assembler {
                     }
 
                     let loop_body_node_id =
-                        self.compile_body(body.iter(), context, None, mast_forest_builder)?;
+                        self.compile_body(body.iter(), proc_ctx, None, mast_forest_builder)?;
 
                     let loop_node_id = mast_forest_builder
                         .ensure_loop(loop_body_node_id)
@@ -853,14 +549,13 @@ impl Assembler {
         &self,
         kind: InvokeKind,
         target: &InvocationTarget,
-        context: &AssemblyContext,
+        proc_ctx: &ProcedureContext,
         mast_forest: &MastForest,
     ) -> Result<RpoDigest, AssemblyError> {
-        let current_proc = context.unwrap_current_procedure();
         let caller = CallerInfo {
             span: target.span(),
-            source_file: current_proc.source_file(),
-            module: current_proc.id().module,
+            source_file: proc_ctx.source_file(),
+            module: proc_ctx.id().module,
             kind,
         };
         let resolved = self.module_graph.resolve_target(&caller, target)?;
@@ -874,6 +569,9 @@ impl Assembler {
         }
     }
 }
+
+// HELPERS
+// ================================================================================================
 
 /// Contains a set of operations which need to be executed before and after a sequence of AST
 /// nodes (i.e., code body).

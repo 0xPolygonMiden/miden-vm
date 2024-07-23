@@ -1,5 +1,5 @@
-use super::{mem_ops::local_to_absolute_addr, push_felt, AssemblyContext, BasicBlockBuilder};
-use crate::{AssemblyError, Felt, Spanned};
+use super::{mem_ops::local_to_absolute_addr, push_felt, BasicBlockBuilder};
+use crate::{assembler::context::ProcedureContext, AssemblyError, Felt, Spanned};
 use vm_core::Operation::*;
 
 // CONSTANT INPUTS
@@ -41,9 +41,9 @@ where
 pub fn locaddr(
     span: &mut BasicBlockBuilder,
     index: u16,
-    context: &AssemblyContext,
+    proc_ctx: &ProcedureContext,
 ) -> Result<(), AssemblyError> {
-    local_to_absolute_addr(span, index, context.unwrap_current_procedure().num_locals())
+    local_to_absolute_addr(span, index, proc_ctx.num_locals())
 }
 
 /// Appends CALLER operation to the span which puts the hash of the function which initiated the
@@ -53,13 +53,12 @@ pub fn locaddr(
 /// Returns an error if the instruction is being executed outside of kernel context.
 pub fn caller(
     span: &mut BasicBlockBuilder,
-    context: &AssemblyContext,
+    proc_ctx: &ProcedureContext,
 ) -> Result<(), AssemblyError> {
-    let current_procedure = context.unwrap_current_procedure();
-    if !current_procedure.is_kernel() {
+    if !proc_ctx.is_kernel() {
         return Err(AssemblyError::CallerOutsideOfKernel {
-            span: current_procedure.span(),
-            source_file: current_procedure.source_file(),
+            span: proc_ctx.span(),
+            source_file: proc_ctx.source_file(),
         });
     }
     span.push_op(Caller);

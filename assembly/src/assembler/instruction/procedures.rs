@@ -1,8 +1,8 @@
-use super::{Assembler, AssemblyContext, BasicBlockBuilder, Operation};
+use super::{Assembler, BasicBlockBuilder, Operation};
 use crate::{
-    assembler::mast_forest_builder::MastForestBuilder,
+    assembler::{context::ProcedureContext, mast_forest_builder::MastForestBuilder},
     ast::{InvocationTarget, InvokeKind},
-    AssemblyError, RpoDigest, SourceSpan, Span, Spanned,
+    AssemblyError, RpoDigest, SourceSpan, Spanned,
 };
 
 use smallvec::SmallVec;
@@ -14,12 +14,12 @@ impl Assembler {
         &self,
         kind: InvokeKind,
         callee: &InvocationTarget,
-        context: &mut AssemblyContext,
+        proc_ctx: &mut ProcedureContext,
         mast_forest_builder: &mut MastForestBuilder,
     ) -> Result<Option<MastNodeId>, AssemblyError> {
         let span = callee.span();
-        let digest = self.resolve_target(kind, callee, context, mast_forest_builder.forest())?;
-        self.invoke_mast_root(kind, span, digest, context, mast_forest_builder)
+        let digest = self.resolve_target(kind, callee, proc_ctx, mast_forest_builder.forest())?;
+        self.invoke_mast_root(kind, span, digest, proc_ctx, mast_forest_builder)
     }
 
     fn invoke_mast_root(
@@ -27,15 +27,15 @@ impl Assembler {
         kind: InvokeKind,
         span: SourceSpan,
         mast_root: RpoDigest,
-        context: &mut AssemblyContext,
+        proc_ctx: &mut ProcedureContext,
         mast_forest_builder: &mut MastForestBuilder,
     ) -> Result<Option<MastNodeId>, AssemblyError> {
         // Get the procedure from the assembler
         let cache = &self.procedure_cache;
-        let current_source_file = context.unwrap_current_procedure().source_file();
+        let current_source_file = proc_ctx.source_file();
 
         // If the procedure is cached, register the call to ensure the callset
-        // is updated correctly. Otherwise, register a phantom call.
+        // is updated correctly.
         match cache.get_by_mast_root(&mast_root) {
             Some(proc) if matches!(kind, InvokeKind::SysCall) => {
                 // Verify if this is a syscall, that the callee is a kernel procedure
@@ -69,10 +69,10 @@ impl Assembler {
                             })
                         }
                     })?;
-                context.register_external_call(&proc, false, mast_forest_builder.forest())?;
+                proc_ctx.register_external_call(&proc, false, mast_forest_builder.forest())?;
             }
             Some(proc) => {
-                context.register_external_call(&proc, false, mast_forest_builder.forest())?
+                proc_ctx.register_external_call(&proc, false, mast_forest_builder.forest())?
             }
             None if matches!(kind, InvokeKind::SysCall) => {
                 return Err(AssemblyError::UnknownSysCallTarget {
@@ -81,7 +81,7 @@ impl Assembler {
                     callee: mast_root,
                 });
             }
-            None => context.register_phantom_call(Span::new(span, mast_root))?,
+            None => (),
         }
 
         let mast_root_node_id = {
@@ -156,29 +156,25 @@ impl Assembler {
     pub(super) fn procref(
         &self,
         callee: &InvocationTarget,
-        context: &mut AssemblyContext,
+        proc_ctx: &mut ProcedureContext,
         span_builder: &mut BasicBlockBuilder,
         mast_forest: &MastForest,
     ) -> Result<(), AssemblyError> {
-        let span = callee.span();
-        let digest = self.resolve_target(InvokeKind::Exec, callee, context, mast_forest)?;
-        self.procref_mast_root(span, digest, context, span_builder, mast_forest)
+        let digest = self.resolve_target(InvokeKind::Exec, callee, proc_ctx, mast_forest)?;
+        self.procref_mast_root(digest, proc_ctx, span_builder, mast_forest)
     }
 
     fn procref_mast_root(
         &self,
-        span: SourceSpan,
         mast_root: RpoDigest,
-        context: &mut AssemblyContext,
+        proc_ctx: &mut ProcedureContext,
         span_builder: &mut BasicBlockBuilder,
         mast_forest: &MastForest,
     ) -> Result<(), AssemblyError> {
         // Add the root to the callset to be able to use dynamic instructions
         // with the referenced procedure later
-        let cache = &self.procedure_cache;
-        match cache.get_by_mast_root(&mast_root) {
-            Some(proc) => context.register_external_call(&proc, false, mast_forest)?,
-            None => context.register_phantom_call(Span::new(span, mast_root))?,
+        if let Some(proc) = self.procedure_cache.get_by_mast_root(&mast_root) {
+            proc_ctx.register_external_call(&proc, false, mast_forest)?;
         }
 
         // Create an array with `Push` operations containing root elements
