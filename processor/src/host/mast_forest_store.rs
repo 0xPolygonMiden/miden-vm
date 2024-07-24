@@ -26,7 +26,8 @@ impl MemMastForestStore {
         let mast_forest = Arc::new(mast_forest);
 
         for root in mast_forest.procedure_roots() {
-            self.mast_forests.insert(root, mast_forest.clone());
+            let root_digest = mast_forest[*root].digest();
+            self.mast_forests.insert(root_digest, mast_forest.clone());
         }
     }
 }

@@ -59,3 +59,13 @@ pub enum LibraryError {
     #[cfg(feature = "std")]
     Io(#[from] std::io::Error),
 }
+
+#[derive(Debug, thiserror::Error, Diagnostic)]
+pub enum CompiledLibraryError {
+    #[error("Invalid exports: MAST forest has {roots_len} procedure roots, but exports have {exports_len}")]
+    #[diagnostic()]
+    InvalidExports {
+        exports_len: usize,
+        roots_len: usize,
+    },
+}
