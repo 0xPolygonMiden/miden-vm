@@ -1,9 +1,8 @@
-use alloc::{collections::BTreeMap, vec::Vec};
+use alloc::vec::Vec;
 
-use vm_core::crypto::hash::RpoDigest;
 use vm_core::mast::MastForest;
 
-use crate::ast::{self, FullyQualifiedProcedureName, ProcedureIndex, ProcedureName};
+use crate::ast::{self, FullyQualifiedProcedureName};
 
 mod error;
 mod masl;
@@ -61,104 +60,6 @@ impl CompiledLibrary {
     pub fn exports(&self) -> &[FullyQualifiedProcedureName] {
         &self.exports
     }
-
-    /// Returns an iterator over the module infos of the library.
-    pub fn into_module_infos(self) -> impl Iterator<Item = ModuleInfo> {
-        let mut modules_by_path: BTreeMap<LibraryPath, ModuleInfo> = BTreeMap::new();
-
-        for (proc_index, proc_name) in self.exports.into_iter().enumerate() {
-            modules_by_path
-                .entry(proc_name.module.clone())
-                .and_modify(|compiled_module| {
-                    let proc_node_id = self.mast_forest.procedure_roots()[proc_index];
-                    let proc_digest = self.mast_forest[proc_node_id].digest();
-
-                    compiled_module.add_procedure_info(ProcedureInfo {
-                        name: proc_name.name.clone(),
-                        digest: proc_digest,
-                    })
-                })
-                .or_insert_with(|| {
-                    let proc_node_id = self.mast_forest.procedure_roots()[proc_index];
-                    let proc_digest = self.mast_forest[proc_node_id].digest();
-                    let proc = ProcedureInfo {
-                        name: proc_name.name,
-                        digest: proc_digest,
-                    };
-
-                    ModuleInfo::new(proc_name.module, vec![proc])
-                });
-        }
-
-        modules_by_path.into_values()
-    }
-}
-
-// MODULE INFO
-// ===============================================================================================
-
-/// Stores a module's path, as well as information about all exported procedures.
-#[derive(Debug, Clone)]
-pub struct ModuleInfo {
-    path: LibraryPath,
-    procedure_infos: Vec<ProcedureInfo>,
-}
-
-impl ModuleInfo {
-    /// Constructs a new [`ModuleInfo`].
-    pub fn new(path: LibraryPath, procedures: Vec<ProcedureInfo>) -> Self {
-        Self {
-            path,
-            procedure_infos: procedures,
-        }
-    }
-
-    /// Adds a [`ProcedureInfo`] to the module.
-    pub fn add_procedure_info(&mut self, procedure: ProcedureInfo) {
-        self.procedure_infos.push(procedure);
-    }
-
-    /// Returns the module's library path.
-    pub fn path(&self) -> &LibraryPath {
-        &self.path
-    }
-
-    /// Returns the number of procedures in the module.
-    pub fn num_procedures(&self) -> usize {
-        self.procedure_infos.len()
-    }
-
-    /// Returns an iterator over the procedure infos in the module with their corresponding
-    /// procedure index in the module.
-    pub fn procedure_infos(&self) -> impl Iterator<Item = (ProcedureIndex, &ProcedureInfo)> {
-        self.procedure_infos
-            .iter()
-            .enumerate()
-            .map(|(idx, proc)| (ProcedureIndex::new(idx), proc))
-    }
-
-    /// Returns the [`ProcedureInfo`] of the procedure at the provided index, if any.
-    pub fn get_proc_info_by_index(&self, index: ProcedureIndex) -> Option<&ProcedureInfo> {
-        self.procedure_infos.get(index.as_usize())
-    }
-
-    /// Returns the digest of the procedure with the provided name, if any.
-    pub fn get_proc_digest_by_name(&self, name: &ProcedureName) -> Option<RpoDigest> {
-        self.procedure_infos.iter().find_map(|proc_info| {
-            if &proc_info.name == name {
-                Some(proc_info.digest)
-            } else {
-                None
-            }
-        })
-    }
-}
-
-/// Stores the name and digest of a procedure.
-#[derive(Debug, Clone)]
-pub struct ProcedureInfo {
-    pub name: ProcedureName,
-    pub digest: RpoDigest,
 }
 
 // LIBRARY
