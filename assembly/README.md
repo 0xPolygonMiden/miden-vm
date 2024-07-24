@@ -28,10 +28,10 @@ use miden_assembly::Assembler;
 let assembler = Assembler::default();
 
 // Emit a program which pushes values 3 and 5 onto the stack and adds them
-let program = assembler.assemble("begin push.3 push.5 add end").unwrap();
+let program = assembler.assemble_program("begin push.3 push.5 add end").unwrap();
 
 // Emit a program from some source code on disk (requires the `std` feature)
-let program = assembler.assemble(&Path::new("./example.masm")).unwrap();
+let program = assembler.assemble_program(&Path::new("./example.masm")).unwrap();
 ```
 
 > [!NOTE]
@@ -119,7 +119,7 @@ Programs compiled by this assembler will be able to make calls to the
 `foo` procedure by executing the `syscall` instruction, like so:
 
 ```rust
-assembler.assemble("
+assembler.assemble_program("
 begin
     syscall.foo
 end
@@ -169,7 +169,7 @@ let assembler = Assembler::default()
     .unwrap();
 
 // Assemble our program
-assembler.assemble("
+assembler.assemble_program("
 begin
     push.1.2
     syscall.foo
