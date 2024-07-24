@@ -419,8 +419,7 @@ impl Assembler {
         ))
     }
 
-    /// Compile all of the uncompiled procedures in the module graph, placing them
-    /// in the procedure cache once compiled.
+    /// Compile all of the uncompiled procedures in the module graph.
     ///
     /// Returns an error if any of the provided Miden Assembly is invalid.
     fn assemble_graph(
