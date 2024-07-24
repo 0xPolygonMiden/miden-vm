@@ -7,9 +7,8 @@ mod rewrites;
 pub use self::callgraph::{CallGraph, CycleError};
 pub use self::name_resolver::{CallerInfo, ResolvedTarget};
 
-use alloc::{boxed::Box, collections::BTreeMap, sync::Arc, vec::Vec};
+use alloc::{borrow::Cow, boxed::Box, collections::BTreeMap, sync::Arc, vec::Vec};
 use core::ops::Index;
-use std::borrow::Cow;
 use vm_core::Kernel;
 
 use smallvec::{smallvec, SmallVec};

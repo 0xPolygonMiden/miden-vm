@@ -1,5 +1,4 @@
-use std::collections::BTreeMap;
-use std::vec::Vec;
+use alloc::{collections::BTreeMap, vec::Vec};
 
 use vm_core::crypto::hash::RpoDigest;
 use vm_core::mast::MastForest;
