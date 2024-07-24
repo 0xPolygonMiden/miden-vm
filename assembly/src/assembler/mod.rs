@@ -283,29 +283,29 @@ impl Assembler {
                 continue;
             }
             let gid = match procedure {
-                        Export::Procedure(_) => GlobalProcedureIndex {
-                            module: module_index,
-                            index: ProcedureIndex::new(index),
-                        },
-                        Export::Alias(ref alias) => {
-                            match alias.target() {
-                                AliasTarget::MastRoot(digest) => {
-                                    self.module_graph.get_procedure_index_by_digest(digest)
-                                        .unwrap_or_else(|| {
-                                            panic!(
-                                                "compilation apparently succeeded, but did not find a \
-                                                        entry in the procedure cache for alias '{}', i.e. '{}'",
-                                                alias.name(),
-                                                digest
-                                            );
-                                        })
-                                }
-                                AliasTarget::Path(ref name)=> {
-                                    self.module_graph.find(alias.source_file(), name)?
-                                }
-                            }
+                Export::Procedure(_) => GlobalProcedureIndex {
+                    module: module_index,
+                    index: ProcedureIndex::new(index),
+                },
+                Export::Alias(ref alias) => {
+                    match alias.target() {
+                        AliasTarget::MastRoot(digest) => {
+                            self.module_graph.get_procedure_index_by_digest(digest)
+                                .unwrap_or_else(|| {
+                                    panic!(
+                                        "compilation apparently succeeded, but did not find a \
+                                                entry in the procedure cache for alias '{}', i.e. '{}'",
+                                        alias.name(),
+                                        digest
+                                    );
+                                })
                         }
-                    };
+                        AliasTarget::Path(ref name)=> {
+                            self.module_graph.find(alias.source_file(), name)?
+                        }
+                    }
+                }
+            };
             let proc = mast_forest_builder.get_procedure(gid).unwrap_or_else(|| match procedure {
                 Export::Procedure(ref proc) => {
                     panic!(
