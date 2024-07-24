@@ -26,7 +26,8 @@ fn test_memcopy() {
         .with_library(&StdLibrary::default())
         .expect("failed to load stdlib");
 
-    let program: Program = assembler.assemble(source).expect("Failed to compile test source.");
+    let program: Program =
+        assembler.assemble_program(source).expect("Failed to compile test source.");
 
     let mut process = Process::new(
         program.kernel().clone(),

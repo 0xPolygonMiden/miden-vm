@@ -1495,7 +1495,7 @@ fn program_with_phantom_mast_call() -> TestResult {
     let ast = context.parse_program(source)?;
 
     let assembler = Assembler::default().with_debug_mode(true);
-    assembler.assemble(ast)?;
+    assembler.assemble_program(ast)?;
     Ok(())
 }
 

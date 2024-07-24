@@ -283,7 +283,7 @@ impl Assembler {
     ///
     /// Returns an error if parsing or compilation of the specified program fails, or if the source
     /// doesn't have an entrypoint.
-    pub fn assemble(self, source: impl Compile) -> Result<Program, Report> {
+    pub fn assemble_program(self, source: impl Compile) -> Result<Program, Report> {
         let opts = CompileOptions {
             warnings_as_errors: self.warnings_as_errors,
             ..CompileOptions::default()

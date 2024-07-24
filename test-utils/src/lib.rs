@@ -299,7 +299,7 @@ impl Test {
             .with_libraries(self.libraries.iter())
             .expect("failed to load stdlib");
 
-        assembler.assemble(self.source.clone())
+        assembler.assemble_program(self.source.clone())
     }
 
     /// Compiles the test's source to a Program and executes it with the tests inputs. Returns a
