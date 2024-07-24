@@ -42,8 +42,6 @@ pub struct ModuleGraph {
     /// The global call graph of calls, not counting those that are performed directly via MAST
     /// root.
     callgraph: CallGraph,
-    /// The computed topological ordering of the call graph
-    topo: Vec<GlobalProcedureIndex>,
     /// The set of MAST roots which have procedure definitions in this graph. There can be
     /// multiple procedures bound to the same root due to having identical code.
     roots: BTreeMap<RpoDigest, SmallVec<[GlobalProcedureIndex; 1]>>,
@@ -191,9 +189,6 @@ impl ModuleGraph {
             return Ok(());
         }
 
-        // Remove previous topological sort, since it is no longer valid
-        self.topo.clear();
-
         // Visit all of the pending modules, assigning them ids, and adding them to the module
         // graph after rewriting any calls to use absolute paths
         let high_water_mark = self.modules.len();
@@ -283,7 +278,7 @@ impl ModuleGraph {
         }
 
         // Make sure the graph is free of cycles
-        let topo = self.callgraph.toposort().map_err(|cycle| {
+        self.callgraph.toposort().map_err(|cycle| {
             let iter = cycle.into_node_ids();
             let mut nodes = Vec::with_capacity(iter.len());
             for node in iter {
@@ -293,7 +288,6 @@ impl ModuleGraph {
             }
             AssemblyError::Cycle { nodes }
         })?;
-        self.topo = topo;
 
         Ok(())
     }
