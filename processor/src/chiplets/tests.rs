@@ -12,10 +12,7 @@ use miden_air::trace::{
     },
     CHIPLETS_RANGE, CHIPLETS_WIDTH,
 };
-use vm_core::{
-    mast::{MastForest, MastNode},
-    Felt, Program, ONE, ZERO,
-};
+use vm_core::{mast::MastForest, Felt, Program, ONE, ZERO};
 
 type ChipletsTrace = [Vec<Felt>; CHIPLETS_WIDTH];
 

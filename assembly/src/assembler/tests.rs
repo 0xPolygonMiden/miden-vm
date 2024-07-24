@@ -1,10 +1,6 @@
 use alloc::{boxed::Box, vec::Vec};
 use pretty_assertions::assert_eq;
-use vm_core::{
-    assert_matches,
-    mast::{MastForest, MastNode},
-    Program,
-};
+use vm_core::{assert_matches, mast::MastForest, Program};
 
 use super::{Assembler, Library, Operation};
 use crate::{
