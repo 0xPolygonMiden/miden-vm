@@ -28,7 +28,7 @@ assembly = { package = "miden-assembly", path = "../assembly", version = "0.9", 
     "testing",
 ] }
 processor = { package = "miden-processor", path = "../processor", version = "0.9", default-features = false, features = [
-    "internals",
+    "testing",
 ] }
 prover = { package = "miden-prover", path = "../prover", version = "0.9", default-features = false }
 test-case = "3.2"

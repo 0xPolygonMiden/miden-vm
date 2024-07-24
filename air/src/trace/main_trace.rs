@@ -19,7 +19,7 @@ use super::{
 use core::ops::{Deref, Range};
 use vm_core::{utils::range, Felt, Word, ONE, ZERO};
 
-#[cfg(any(test, feature = "internals"))]
+#[cfg(any(test, feature = "testing"))]
 use alloc::vec::Vec;
 
 // CONSTANTS
@@ -54,7 +54,7 @@ impl MainTrace {
         self.columns.num_rows()
     }
 
-    #[cfg(any(test, feature = "internals"))]
+    #[cfg(any(test, feature = "testing"))]
     pub fn get_column_range(&self, range: Range<usize>) -> Vec<Vec<Felt>> {
         range.fold(vec![], |mut acc, col_idx| {
             acc.push(self.get_column(col_idx).to_vec());

@@ -51,7 +51,7 @@ mdbook: ## Generates mdbook documentation
 
 .PHONY: test
 test: ## Runs all tests
-	$(DEBUG_ASSERTIONS) cargo nextest run --cargo-profile test-release --features internals
+	$(DEBUG_ASSERTIONS) cargo nextest run --cargo-profile test-release --features testing
 
 # --- checking ------------------------------------------------------------------------------------
 

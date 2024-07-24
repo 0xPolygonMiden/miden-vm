@@ -26,6 +26,7 @@
 #### Changed
 
 - When using `if.(true|false) .. end`, the parser used to emit an empty block for the branch that was elided. The parser now emits a block containing a single `nop` instruction instead, which is equivalent to the code emitted by the assembler when lowering to MAST.
+- `internals` configuration feature was renamed to `testing` (#1399).
 
 ## 0.9.2 (2024-05-22) - `stdlib` crate only
 
