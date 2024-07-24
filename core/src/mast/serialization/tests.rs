@@ -295,41 +295,19 @@ fn serialize_deserialize_all_nodes() {
             (num_operations, Decorator::Trace(55)),
         ];
 
-        let basic_block_node = MastNode::new_basic_block_with_decorators(operations, decorators);
-        mast_forest.add_node(basic_block_node).unwrap()
+        mast_forest.add_block(operations, Some(decorators)).unwrap()
     };
 
-    let call_node_id = {
-        let node = MastNode::new_call(basic_block_id, &mast_forest);
-        mast_forest.add_node(node).unwrap()
-    };
+    let call_node_id = mast_forest.add_call(basic_block_id).unwrap();
 
-    let syscall_node_id = {
-        let node = MastNode::new_syscall(basic_block_id, &mast_forest);
-        mast_forest.add_node(node).unwrap()
-    };
+    let syscall_node_id = mast_forest.add_syscall(basic_block_id).unwrap();
 
-    let loop_node_id = {
-        let node = MastNode::new_loop(basic_block_id, &mast_forest);
-        mast_forest.add_node(node).unwrap()
-    };
-    let join_node_id = {
-        let node = MastNode::new_join(basic_block_id, call_node_id, &mast_forest);
-        mast_forest.add_node(node).unwrap()
-    };
-    let split_node_id = {
-        let node = MastNode::new_split(basic_block_id, call_node_id, &mast_forest);
-        mast_forest.add_node(node).unwrap()
-    };
-    let dyn_node_id = {
-        let node = MastNode::new_dyn();
-        mast_forest.add_node(node).unwrap()
-    };
+    let loop_node_id = mast_forest.add_loop(basic_block_id).unwrap();
+    let join_node_id = mast_forest.add_join(basic_block_id, call_node_id).unwrap();
+    let split_node_id = mast_forest.add_split(basic_block_id, call_node_id).unwrap();
+    let dyn_node_id = mast_forest.add_dyn().unwrap();
 
-    let external_node_id = {
-        let node = MastNode::new_external(RpoDigest::default());
-        mast_forest.add_node(node).unwrap()
-    };
+    let external_node_id = mast_forest.add_external(RpoDigest::default()).unwrap();
 
     mast_forest.make_root(join_node_id);
     mast_forest.make_root(syscall_node_id);

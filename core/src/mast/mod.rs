@@ -10,6 +10,8 @@ pub use node::{
 };
 use winter_utils::DeserializationError;
 
+use crate::{DecoratorList, Operation};
+
 mod serialization;
 
 #[cfg(test)]
@@ -58,6 +60,63 @@ impl MastForest {
         self.nodes.push(node);
 
         Ok(new_node_id)
+    }
+
+    /// Adds a basic block node to the forest, and returns the [`MastNodeId`] associated with it.
+    pub fn add_block(
+        &mut self,
+        operations: Vec<Operation>,
+        decorators: Option<DecoratorList>,
+    ) -> Result<MastNodeId, MastForestError> {
+        match decorators {
+            Some(decorators) => {
+                self.add_node(MastNode::new_basic_block_with_decorators(operations, decorators))
+            }
+            None => self.add_node(MastNode::new_basic_block(operations)),
+        }
+    }
+
+    /// Adds a join node to the forest, and returns the [`MastNodeId`] associated with it.
+    pub fn add_join(
+        &mut self,
+        left_child: MastNodeId,
+        right_child: MastNodeId,
+    ) -> Result<MastNodeId, MastForestError> {
+        self.add_node(MastNode::new_join(left_child, right_child, self))
+    }
+
+    /// Adds a split node to the forest, and returns the [`MastNodeId`] associated with it.
+    pub fn add_split(
+        &mut self,
+        if_branch: MastNodeId,
+        else_branch: MastNodeId,
+    ) -> Result<MastNodeId, MastForestError> {
+        self.add_node(MastNode::new_split(if_branch, else_branch, self))
+    }
+
+    /// Adds a loop node to the forest, and returns the [`MastNodeId`] associated with it.
+    pub fn add_loop(&mut self, body: MastNodeId) -> Result<MastNodeId, MastForestError> {
+        self.add_node(MastNode::new_loop(body, self))
+    }
+
+    /// Adds a call node to the forest, and returns the [`MastNodeId`] associated with it.
+    pub fn add_call(&mut self, callee: MastNodeId) -> Result<MastNodeId, MastForestError> {
+        self.add_node(MastNode::new_call(callee, self))
+    }
+
+    /// Adds a syscall node to the forest, and returns the [`MastNodeId`] associated with it.
+    pub fn add_syscall(&mut self, callee: MastNodeId) -> Result<MastNodeId, MastForestError> {
+        self.add_node(MastNode::new_syscall(callee, self))
+    }
+
+    /// Adds a dyn node to the forest, and returns the [`MastNodeId`] associated with it.
+    pub fn add_dyn(&mut self) -> Result<MastNodeId, MastForestError> {
+        self.add_node(MastNode::new_dyn())
+    }
+
+    /// Adds an external node to the forest, and returns the [`MastNodeId`] associated with it.
+    pub fn add_external(&mut self, mast_root: RpoDigest) -> Result<MastNodeId, MastForestError> {
+        self.add_node(MastNode::new_external(mast_root))
     }
 
     /// Marks the given [`MastNodeId`] as being the root of a procedure.

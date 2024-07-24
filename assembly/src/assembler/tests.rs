@@ -248,29 +248,18 @@ fn duplicate_nodes() {
     let mut expected_mast_forest = MastForest::new();
 
     // basic block: mul
-    let mul_basic_block_id = {
-        let node = MastNode::new_basic_block(vec![Operation::Mul]);
-        expected_mast_forest.add_node(node).unwrap()
-    };
+    let mul_basic_block_id = expected_mast_forest.add_block(vec![Operation::Mul], None).unwrap();
 
     // basic block: add
-    let add_basic_block_id = {
-        let node = MastNode::new_basic_block(vec![Operation::Add]);
-        expected_mast_forest.add_node(node).unwrap()
-    };
+    let add_basic_block_id = expected_mast_forest.add_block(vec![Operation::Add], None).unwrap();
 
     // inner split: `if.true add else mul end`
-    let inner_split_id = {
-        let node =
-            MastNode::new_split(add_basic_block_id, mul_basic_block_id, &expected_mast_forest);
-        expected_mast_forest.add_node(node).unwrap()
-    };
+    let inner_split_id =
+        expected_mast_forest.add_split(add_basic_block_id, mul_basic_block_id).unwrap();
 
     // root: outer split
-    let root_id = {
-        let node = MastNode::new_split(mul_basic_block_id, inner_split_id, &expected_mast_forest);
-        expected_mast_forest.add_node(node).unwrap()
-    };
+    let root_id = expected_mast_forest.add_split(mul_basic_block_id, inner_split_id).unwrap();
+
     expected_mast_forest.make_root(root_id);
 
     let expected_program = Program::new(expected_mast_forest, root_id);

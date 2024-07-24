@@ -416,8 +416,9 @@ fn hash_memoization_basic_blocks_check(basic_block: MastNode) {
     let basic_block_1 = basic_block.clone();
     let basic_block_1_id = mast_forest.add_node(basic_block_1.clone()).unwrap();
 
-    let loop_body = MastNode::new_basic_block(vec![Operation::Pad, Operation::Eq, Operation::Not]);
-    let loop_body_id = mast_forest.add_node(loop_body).unwrap();
+    let loop_body_id = mast_forest
+        .add_block(vec![Operation::Pad, Operation::Eq, Operation::Not], None)
+        .unwrap();
 
     let loop_block = MastNode::new_loop(loop_body_id, &mast_forest);
     let loop_block_id = mast_forest.add_node(loop_block.clone()).unwrap();
