@@ -43,11 +43,12 @@ use self::module_graph::{CallerInfo, ModuleGraph, ResolvedTarget};
 /// Programs compiled with an empty kernel cannot use the `syscall` instruction.
 /// </div>
 ///
-/// * If you have a single executable module you want to compile, just call [Assembler::assemble].
+/// * If you have a single executable module you want to compile, just call
+///   [Assembler::assemble_program].
 /// * If you want to link your executable to a few other modules that implement supporting
 ///   procedures, build the assembler with them first, using the various builder methods on
 ///   [Assembler], e.g. [Assembler::with_module], [Assembler::with_library], etc. Then, call
-///   [Assembler::assemble] to get your compiled program.
+///   [Assembler::assemble_program] to get your compiled program.
 #[derive(Clone, Default)]
 pub struct Assembler {
     /// The global [ModuleGraph] for this assembler.
