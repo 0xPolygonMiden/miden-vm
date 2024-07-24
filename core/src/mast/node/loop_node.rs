@@ -5,10 +5,19 @@ use miden_formatting::prettier::PrettyPrint;
 
 use crate::{
     chiplets::hasher,
-    mast::{MastForest, MastNodeId, MerkleTreeNode},
+    mast::{MastForest, MastNodeId},
     OPCODE_LOOP,
 };
 
+// LOOP NODE
+// ================================================================================================
+
+/// A Loop node defines condition-controlled iterative execution. When the VM encounters a Loop
+/// node, it will keep executing the body of the loop as long as the top of the stack is `1``.
+///
+/// The loop is exited when at the end of executing the loop body the top of the stack is `0``.
+/// If the top of the stack is neither `0` nor `1` when the condition is checked, the execution
+/// fails.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct LoopNode {
     body: MastNodeId,
@@ -32,30 +41,44 @@ impl LoopNode {
 
         Self { body, digest }
     }
-
-    pub(super) fn to_pretty_print<'a>(
-        &'a self,
-        mast_forest: &'a MastForest,
-    ) -> impl PrettyPrint + 'a {
-        LoopNodePrettyPrint {
-            loop_node: self,
-            mast_forest,
-        }
-    }
 }
 
 impl LoopNode {
+    /// Returns a commitment to this Loop node.
+    ///
+    /// The commitment is computed as a hash of the loop body and an empty word ([ZERO; 4]) in
+    /// the domain defined by [Self::DOMAIN] - i..e,:
+    /// ```
+    /// # use miden_core::mast::LoopNode;
+    /// # use miden_crypto::{hash::rpo::{RpoDigest as Digest, Rpo256 as Hasher}};
+    /// # let body_digest = Digest::default();
+    /// Hasher::merge_in_domain(&[body_digest, Digest::default()], LoopNode::DOMAIN);
+    /// ```
+    pub fn digest(&self) -> RpoDigest {
+        self.digest
+    }
+
+    /// Returns the ID of the node presenting the body of the loop.
     pub fn body(&self) -> MastNodeId {
         self.body
     }
 }
 
-impl MerkleTreeNode for LoopNode {
-    fn digest(&self) -> RpoDigest {
-        self.digest
+// PRETTY PRINTING
+// ================================================================================================
+
+impl LoopNode {
+    pub(super) fn to_display<'a>(&'a self, mast_forest: &'a MastForest) -> impl fmt::Display + 'a {
+        LoopNodePrettyPrint {
+            loop_node: self,
+            mast_forest,
+        }
     }
 
-    fn to_display<'a>(&'a self, mast_forest: &'a MastForest) -> impl fmt::Display + 'a {
+    pub(super) fn to_pretty_print<'a>(
+        &'a self,
+        mast_forest: &'a MastForest,
+    ) -> impl PrettyPrint + 'a {
         LoopNodePrettyPrint {
             loop_node: self,
             mast_forest,

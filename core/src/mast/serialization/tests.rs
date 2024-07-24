@@ -322,7 +322,7 @@ fn serialize_deserialize_all_nodes() {
         mast_forest.add_node(node).unwrap()
     };
     let dyn_node_id = {
-        let node = MastNode::new_dynexec();
+        let node = MastNode::new_dyn();
         mast_forest.add_node(node).unwrap()
     };
 

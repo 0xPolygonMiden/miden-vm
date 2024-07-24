@@ -5,87 +5,18 @@ use miden_crypto::hash::rpo::RpoDigest;
 
 mod node;
 pub use node::{
-    get_span_op_group_count, BasicBlockNode, CallNode, DynNode, ExternalNode, JoinNode, LoopNode,
-    MastNode, OpBatch, OperationOrDecorator, SplitNode, OP_BATCH_SIZE, OP_GROUP_SIZE,
+    BasicBlockNode, CallNode, DynNode, ExternalNode, JoinNode, LoopNode, MastNode, OpBatch,
+    OperationOrDecorator, SplitNode, OP_BATCH_SIZE, OP_GROUP_SIZE,
 };
-use winter_utils::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable};
+use winter_utils::DeserializationError;
 
 mod serialization;
 
 #[cfg(test)]
 mod tests;
 
-/// Encapsulates the behavior that a [`MastNode`] (and all its variants) is expected to have.
-pub trait MerkleTreeNode {
-    fn digest(&self) -> RpoDigest;
-    fn to_display<'a>(&'a self, mast_forest: &'a MastForest) -> impl fmt::Display + 'a;
-}
-
-// MAST NODE ID
-// ================================================================================================
-
-/// An opaque handle to a [`MastNode`] in some [`MastForest`]. It is the responsibility of the user
-/// to use a given [`MastNodeId`] with the corresponding [`MastForest`].
-///
-/// Note that the [`MastForest`] does *not* ensure that equal [`MastNode`]s have equal
-/// [`MastNodeId`] handles. Hence, [`MastNodeId`] equality must not be used to test for equality of
-/// the underlying [`MastNode`].
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub struct MastNodeId(u32);
-
-impl MastNodeId {
-    /// Returns a new `MastNodeId` with the provided inner value, or an error if the provided
-    /// `value` is greater than the number of nodes in the forest.
-    ///
-    /// For use in deserialization.
-    pub fn from_u32_safe(
-        value: u32,
-        mast_forest: &MastForest,
-    ) -> Result<Self, DeserializationError> {
-        if (value as usize) < mast_forest.nodes.len() {
-            Ok(Self(value))
-        } else {
-            Err(DeserializationError::InvalidValue(format!(
-                "Invalid deserialized MAST node ID '{}', but only {} nodes in the forest",
-                value,
-                mast_forest.nodes.len(),
-            )))
-        }
-    }
-}
-
-impl fmt::Display for MastNodeId {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "MastNodeId({})", self.0)
-    }
-}
-
-impl Serializable for MastNodeId {
-    fn write_into<W: ByteWriter>(&self, target: &mut W) {
-        self.0.write_into(target)
-    }
-}
-
-impl Deserializable for MastNodeId {
-    fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
-        let inner = source.read_u32()?;
-
-        Ok(Self(inner))
-    }
-}
-
 // MAST FOREST
 // ================================================================================================
-
-/// Represents the types of errors that can occur when dealing with MAST forest.
-#[derive(Debug, thiserror::Error)]
-pub enum MastForestError {
-    #[error(
-        "invalid node count: MAST forest exceeds the maximum of {} nodes",
-        MastForest::MAX_NODES
-    )]
-    TooManyNodes,
-}
 
 /// Represents one or more procedures, represented as a collection of [`MastNode`]s.
 ///
@@ -100,6 +31,7 @@ pub struct MastForest {
     roots: Vec<MastNodeId>,
 }
 
+// ------------------------------------------------------------------------------------------------
 /// Constructors
 impl MastForest {
     /// Creates a new empty [`MastForest`].
@@ -108,7 +40,8 @@ impl MastForest {
     }
 }
 
-/// Mutators
+// ------------------------------------------------------------------------------------------------
+/// State mutators
 impl MastForest {
     /// The maximum number of nodes that can be stored in a single MAST forest.
     const MAX_NODES: usize = (1 << 30) - 1;
@@ -141,6 +74,7 @@ impl MastForest {
     }
 }
 
+// ------------------------------------------------------------------------------------------------
 /// Public accessors
 impl MastForest {
     /// Returns the [`MastNode`] associated with the provided [`MastNodeId`] if valid, or else
@@ -183,4 +117,68 @@ impl Index<MastNodeId> for MastForest {
 
         &self.nodes[idx]
     }
+}
+
+// MAST NODE ID
+// ================================================================================================
+
+/// An opaque handle to a [`MastNode`] in some [`MastForest`]. It is the responsibility of the user
+/// to use a given [`MastNodeId`] with the corresponding [`MastForest`].
+///
+/// Note that the [`MastForest`] does *not* ensure that equal [`MastNode`]s have equal
+/// [`MastNodeId`] handles. Hence, [`MastNodeId`] equality must not be used to test for equality of
+/// the underlying [`MastNode`].
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub struct MastNodeId(u32);
+
+impl MastNodeId {
+    /// Returns a new `MastNodeId` with the provided inner value, or an error if the provided
+    /// `value` is greater than the number of nodes in the forest.
+    ///
+    /// For use in deserialization.
+    pub fn from_u32_safe(
+        value: u32,
+        mast_forest: &MastForest,
+    ) -> Result<Self, DeserializationError> {
+        if (value as usize) < mast_forest.nodes.len() {
+            Ok(Self(value))
+        } else {
+            Err(DeserializationError::InvalidValue(format!(
+                "Invalid deserialized MAST node ID '{}', but only {} nodes in the forest",
+                value,
+                mast_forest.nodes.len(),
+            )))
+        }
+    }
+}
+
+impl From<MastNodeId> for u32 {
+    fn from(value: MastNodeId) -> Self {
+        value.0
+    }
+}
+
+impl From<&MastNodeId> for u32 {
+    fn from(value: &MastNodeId) -> Self {
+        value.0
+    }
+}
+
+impl fmt::Display for MastNodeId {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "MastNodeId({})", self.0)
+    }
+}
+
+// MAST FOREST ERROR
+// ================================================================================================
+
+/// Represents the types of errors that can occur when dealing with MAST forest.
+#[derive(Debug, thiserror::Error)]
+pub enum MastForestError {
+    #[error(
+        "invalid node count: MAST forest exceeds the maximum of {} nodes",
+        MastForest::MAX_NODES
+    )]
+    TooManyNodes,
 }

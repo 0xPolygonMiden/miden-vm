@@ -4,11 +4,16 @@ use miden_crypto::{hash::rpo::RpoDigest, Felt};
 
 use crate::{
     chiplets::hasher,
-    mast::{MastForest, MastNodeId, MerkleTreeNode},
+    mast::{MastForest, MastNodeId},
     prettier::PrettyPrint,
     OPCODE_JOIN,
 };
 
+// JOIN NODE
+// ================================================================================================
+
+/// A Join node describe sequential execution. When the VM encounters a Join node, it executes the
+/// first child first and the second child second.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct JoinNode {
     children: [MastNodeId; 2],
@@ -41,35 +46,50 @@ impl JoinNode {
     }
 }
 
-/// Accessors
+/// Public accessors
 impl JoinNode {
+    /// Returns a commitment to this Join node.
+    ///
+    /// The commitment is computed as a hash of the `first` and `second` child node in the domain
+    /// defined by [Self::DOMAIN] - i.e.,:
+    /// ```
+    /// # use miden_core::mast::JoinNode;
+    /// # use miden_crypto::{hash::rpo::{RpoDigest as Digest, Rpo256 as Hasher}};
+    /// # let first_child_digest = Digest::default();
+    /// # let second_child_digest = Digest::default();
+    /// Hasher::merge_in_domain(&[first_child_digest, second_child_digest], JoinNode::DOMAIN);
+    /// ```
+    pub fn digest(&self) -> RpoDigest {
+        self.digest
+    }
+
+    /// Returns the ID of the node that is to be executed first.
     pub fn first(&self) -> MastNodeId {
         self.children[0]
     }
 
+    /// Returns the ID of the node that is to be executed after the execution of the program
+    /// defined by the first node completes.
     pub fn second(&self) -> MastNodeId {
         self.children[1]
     }
 }
 
+// PRETTY PRINTING
+// ================================================================================================
+
 impl JoinNode {
-    pub(super) fn to_pretty_print<'a>(
-        &'a self,
-        mast_forest: &'a MastForest,
-    ) -> impl PrettyPrint + 'a {
+    pub(super) fn to_display<'a>(&'a self, mast_forest: &'a MastForest) -> impl fmt::Display + 'a {
         JoinNodePrettyPrint {
             join_node: self,
             mast_forest,
         }
     }
-}
 
-impl MerkleTreeNode for JoinNode {
-    fn digest(&self) -> RpoDigest {
-        self.digest
-    }
-
-    fn to_display<'a>(&'a self, mast_forest: &'a MastForest) -> impl fmt::Display + 'a {
+    pub(super) fn to_pretty_print<'a>(
+        &'a self,
+        mast_forest: &'a MastForest,
+    ) -> impl PrettyPrint + 'a {
         JoinNodePrettyPrint {
             join_node: self,
             mast_forest,

@@ -1,12 +1,12 @@
-use super::{Assembler, AssemblyContext, BasicBlockBuilder, Operation};
+use super::{Assembler, BasicBlockBuilder, Operation};
 use crate::{
-    assembler::mast_forest_builder::MastForestBuilder,
+    assembler::{mast_forest_builder::MastForestBuilder, ProcedureContext},
     ast::{InvocationTarget, InvokeKind},
     AssemblyError, RpoDigest, SourceSpan, Spanned,
 };
 
 use smallvec::SmallVec;
-use vm_core::mast::{MastForest, MastNode, MastNodeId};
+use vm_core::mast::MastNodeId;
 
 /// Procedure Invocation
 impl Assembler {
@@ -14,12 +14,12 @@ impl Assembler {
         &self,
         kind: InvokeKind,
         callee: &InvocationTarget,
-        context: &mut AssemblyContext,
+        proc_ctx: &mut ProcedureContext,
         mast_forest_builder: &mut MastForestBuilder,
     ) -> Result<Option<MastNodeId>, AssemblyError> {
         let span = callee.span();
-        let digest = self.resolve_target(kind, callee, context, mast_forest_builder.forest())?;
-        self.invoke_mast_root(kind, span, digest, context, mast_forest_builder)
+        let digest = self.resolve_target(kind, callee, proc_ctx, mast_forest_builder)?;
+        self.invoke_mast_root(kind, span, digest, proc_ctx, mast_forest_builder)
     }
 
     fn invoke_mast_root(
@@ -27,16 +27,15 @@ impl Assembler {
         kind: InvokeKind,
         span: SourceSpan,
         mast_root: RpoDigest,
-        context: &mut AssemblyContext,
+        proc_ctx: &mut ProcedureContext,
         mast_forest_builder: &mut MastForestBuilder,
     ) -> Result<Option<MastNodeId>, AssemblyError> {
         // Get the procedure from the assembler
-        let cache = &self.procedure_cache;
-        let current_source_file = context.unwrap_current_procedure().source_file();
+        let current_source_file = proc_ctx.source_file();
 
         // If the procedure is cached, register the call to ensure the callset
         // is updated correctly.
-        match cache.get_by_mast_root(&mast_root) {
+        match mast_forest_builder.find_procedure(&mast_root) {
             Some(proc) if matches!(kind, InvokeKind::SysCall) => {
                 // Verify if this is a syscall, that the callee is a kernel procedure
                 //
@@ -69,11 +68,9 @@ impl Assembler {
                             })
                         }
                     })?;
-                context.register_external_call(&proc, false, mast_forest_builder.forest())?;
+                proc_ctx.register_external_call(&proc, false)?;
             }
-            Some(proc) => {
-                context.register_external_call(&proc, false, mast_forest_builder.forest())?
-            }
+            Some(proc) => proc_ctx.register_external_call(&proc, false)?,
             None if matches!(kind, InvokeKind::SysCall) => {
                 return Err(AssemblyError::UnknownSysCallTarget {
                     span,
@@ -91,44 +88,38 @@ impl Assembler {
                     // procedures, such that when we assemble a procedure, all
                     // procedures that it calls will have been assembled, and
                     // hence be present in the `MastForest`.
-                    match mast_forest_builder.find_procedure_root(mast_root) {
+                    match mast_forest_builder.find_procedure_node_id(mast_root) {
                         Some(root) => root,
                         None => {
                             // If the MAST root called isn't known to us, make it an external
                             // reference.
-                            let external_node = MastNode::new_external(mast_root);
-                            mast_forest_builder.ensure_node(external_node)?
+                            mast_forest_builder.ensure_external(mast_root)?
                         }
                     }
                 }
                 InvokeKind::Call => {
-                    let callee_id = match mast_forest_builder.find_procedure_root(mast_root) {
+                    let callee_id = match mast_forest_builder.find_procedure_node_id(mast_root) {
                         Some(callee_id) => callee_id,
                         None => {
                             // If the MAST root called isn't known to us, make it an external
                             // reference.
-                            let external_node = MastNode::new_external(mast_root);
-                            mast_forest_builder.ensure_node(external_node)?
+                            mast_forest_builder.ensure_external(mast_root)?
                         }
                     };
 
-                    let call_node = MastNode::new_call(callee_id, mast_forest_builder.forest());
-                    mast_forest_builder.ensure_node(call_node)?
+                    mast_forest_builder.ensure_call(callee_id)?
                 }
                 InvokeKind::SysCall => {
-                    let callee_id = match mast_forest_builder.find_procedure_root(mast_root) {
+                    let callee_id = match mast_forest_builder.find_procedure_node_id(mast_root) {
                         Some(callee_id) => callee_id,
                         None => {
                             // If the MAST root called isn't known to us, make it an external
                             // reference.
-                            let external_node = MastNode::new_external(mast_root);
-                            mast_forest_builder.ensure_node(external_node)?
+                            mast_forest_builder.ensure_external(mast_root)?
                         }
                     };
 
-                    let syscall_node =
-                        MastNode::new_syscall(callee_id, mast_forest_builder.forest());
-                    mast_forest_builder.ensure_node(syscall_node)?
+                    mast_forest_builder.ensure_syscall(callee_id)?
                 }
             }
         };
@@ -141,7 +132,7 @@ impl Assembler {
         &self,
         mast_forest_builder: &mut MastForestBuilder,
     ) -> Result<Option<MastNodeId>, AssemblyError> {
-        let dyn_node_id = mast_forest_builder.ensure_node(MastNode::Dyn)?;
+        let dyn_node_id = mast_forest_builder.ensure_dyn()?;
 
         Ok(Some(dyn_node_id))
     }
@@ -152,10 +143,8 @@ impl Assembler {
         mast_forest_builder: &mut MastForestBuilder,
     ) -> Result<Option<MastNodeId>, AssemblyError> {
         let dyn_call_node_id = {
-            let dyn_node_id = mast_forest_builder.ensure_node(MastNode::Dyn)?;
-            let dyn_call_node = MastNode::new_call(dyn_node_id, mast_forest_builder.forest());
-
-            mast_forest_builder.ensure_node(dyn_call_node)?
+            let dyn_node_id = mast_forest_builder.ensure_dyn()?;
+            mast_forest_builder.ensure_call(dyn_node_id)?
         };
 
         Ok(Some(dyn_call_node_id))
@@ -164,25 +153,27 @@ impl Assembler {
     pub(super) fn procref(
         &self,
         callee: &InvocationTarget,
-        context: &mut AssemblyContext,
+        proc_ctx: &mut ProcedureContext,
         span_builder: &mut BasicBlockBuilder,
-        mast_forest: &MastForest,
+        mast_forest_builder: &MastForestBuilder,
     ) -> Result<(), AssemblyError> {
-        let digest = self.resolve_target(InvokeKind::Exec, callee, context, mast_forest)?;
-        self.procref_mast_root(digest, context, span_builder, mast_forest)
+        let digest =
+            self.resolve_target(InvokeKind::Exec, callee, proc_ctx, mast_forest_builder)?;
+        self.procref_mast_root(digest, proc_ctx, span_builder, mast_forest_builder)
     }
 
     fn procref_mast_root(
         &self,
         mast_root: RpoDigest,
-        context: &mut AssemblyContext,
+        proc_ctx: &mut ProcedureContext,
         span_builder: &mut BasicBlockBuilder,
-        mast_forest: &MastForest,
+        mast_forest_builder: &MastForestBuilder,
     ) -> Result<(), AssemblyError> {
         // Add the root to the callset to be able to use dynamic instructions
         // with the referenced procedure later
-        if let Some(proc) = self.procedure_cache.get_by_mast_root(&mast_root) {
-            context.register_external_call(&proc, false, mast_forest)?;
+
+        if let Some(proc) = mast_forest_builder.find_procedure(&mast_root) {
+            proc_ctx.register_external_call(&proc, false)?;
         }
 
         // Create an array with `Push` operations containing root elements

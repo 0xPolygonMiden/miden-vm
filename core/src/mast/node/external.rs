@@ -1,6 +1,9 @@
-use crate::mast::{MastForest, MerkleTreeNode};
+use crate::mast::MastForest;
 use core::fmt;
 use miden_crypto::hash::rpo::RpoDigest;
+
+// EXTERNAL NODE
+// ================================================================================================
 
 /// Node for referencing procedures not present in a given [`MastForest`] (hence "external").
 ///
@@ -24,11 +27,18 @@ impl ExternalNode {
     }
 }
 
-impl MerkleTreeNode for ExternalNode {
-    fn digest(&self) -> RpoDigest {
+impl ExternalNode {
+    /// Returns the commitment to the MAST node referenced by this external node.
+    pub fn digest(&self) -> RpoDigest {
         self.digest
     }
-    fn to_display<'a>(&'a self, _mast_forest: &'a MastForest) -> impl fmt::Display + 'a {
+}
+
+// PRETTY PRINTING
+// ================================================================================================
+
+impl ExternalNode {
+    pub(super) fn to_display<'a>(&'a self, _mast_forest: &'a MastForest) -> impl fmt::Display + 'a {
         self
     }
 }

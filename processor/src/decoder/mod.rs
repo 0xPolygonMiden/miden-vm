@@ -12,8 +12,7 @@ use miden_air::trace::{
 };
 use vm_core::{
     mast::{
-        get_span_op_group_count, BasicBlockNode, CallNode, DynNode, JoinNode, LoopNode, MastForest,
-        MerkleTreeNode, SplitNode, OP_BATCH_SIZE,
+        BasicBlockNode, CallNode, DynNode, JoinNode, LoopNode, MastForest, SplitNode, OP_BATCH_SIZE,
     },
     stack::STACK_TOP_SIZE,
     AssemblyOp,
@@ -341,7 +340,7 @@ where
         // start decoding the first operation batch; this also appends a row with SPAN operation
         // to the decoder trace. we also need the total number of operation groups so that we can
         // set the value of the group_count register at the beginning of the SPAN.
-        let num_op_groups = get_span_op_group_count(op_batches);
+        let num_op_groups = basic_block.num_op_groups();
         self.decoder
             .start_basic_block(&op_batches[0], Felt::new(num_op_groups as u64), addr);
         self.execute_op(Operation::Noop)

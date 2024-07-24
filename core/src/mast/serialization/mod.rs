@@ -54,7 +54,8 @@ impl Serializable for MastForest {
         target.write_usize(self.nodes.len());
 
         // roots
-        self.roots.write_into(target);
+        let roots: Vec<u32> = self.roots.iter().map(u32::from).collect();
+        roots.write_into(target);
 
         // Prepare MAST node infos, but don't store them yet. We store them at the end to make
         // deserialization more efficient.
@@ -102,11 +103,8 @@ impl Deserializable for MastForest {
         }
 
         let node_count = source.read_usize()?;
-
-        let roots: Vec<MastNodeId> = Deserializable::read_from(source)?;
-
+        let roots: Vec<u32> = Deserializable::read_from(source)?;
         let strings: Vec<DataOffset> = Deserializable::read_from(source)?;
-
         let data: Vec<u8> = Deserializable::read_from(source)?;
 
         let basic_block_data_decoder = BasicBlockDataDecoder::new(&data, &strings);
@@ -128,6 +126,8 @@ impl Deserializable for MastForest {
             }
 
             for root in roots {
+                // make sure the root is valid in the context of the MAST forest
+                let root = MastNodeId::from_u32_safe(root, &mast_forest)?;
                 mast_forest.make_root(root);
             }
 

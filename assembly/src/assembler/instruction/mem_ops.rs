@@ -1,5 +1,5 @@
-use super::{push_felt, push_u32_value, validate_param, AssemblyContext, BasicBlockBuilder};
-use crate::{diagnostics::Report, AssemblyError};
+use super::{push_felt, push_u32_value, validate_param, BasicBlockBuilder};
+use crate::{assembler::ProcedureContext, diagnostics::Report, AssemblyError};
 use alloc::string::ToString;
 use vm_core::{Felt, Operation::*};
 
@@ -22,7 +22,7 @@ use vm_core::{Felt, Operation::*};
 /// the number of procedure locals.
 pub fn mem_read(
     span: &mut BasicBlockBuilder,
-    context: &AssemblyContext,
+    proc_ctx: &ProcedureContext,
     addr: Option<u32>,
     is_local: bool,
     is_single: bool,
@@ -30,7 +30,7 @@ pub fn mem_read(
     // if the address was provided as an immediate value, put it onto the stack
     if let Some(addr) = addr {
         if is_local {
-            let num_locals = context.unwrap_current_procedure().num_locals();
+            let num_locals = proc_ctx.num_locals();
             local_to_absolute_addr(span, addr as u16, num_locals)?;
         } else {
             push_u32_value(span, addr);
@@ -73,14 +73,13 @@ pub fn mem_read(
 /// the number of procedure locals.
 pub fn mem_write_imm(
     span: &mut BasicBlockBuilder,
-    context: &AssemblyContext,
+    proc_ctx: &ProcedureContext,
     addr: u32,
     is_local: bool,
     is_single: bool,
 ) -> Result<(), AssemblyError> {
     if is_local {
-        let num_locals = context.unwrap_current_procedure().num_locals();
-        local_to_absolute_addr(span, addr as u16, num_locals)?;
+        local_to_absolute_addr(span, addr as u16, proc_ctx.num_locals())?;
     } else {
         push_u32_value(span, addr);
     }

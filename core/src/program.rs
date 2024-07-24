@@ -5,7 +5,7 @@ use miden_crypto::{hash::rpo::RpoDigest, Felt, WORD_SIZE};
 use winter_utils::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable};
 
 use crate::{
-    mast::{MastForest, MastNode, MastNodeId, MerkleTreeNode},
+    mast::{MastForest, MastNode, MastNodeId},
     utils::ToElements,
 };
 

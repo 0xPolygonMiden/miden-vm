@@ -2,38 +2,27 @@ mod analysis;
 mod callgraph;
 mod debug;
 mod name_resolver;
-mod phantom;
-mod procedure_cache;
 mod rewrites;
 
 pub use self::callgraph::{CallGraph, CycleError};
 pub use self::name_resolver::{CallerInfo, ResolvedTarget};
-pub use self::procedure_cache::ProcedureCache;
 
-use alloc::{
-    borrow::Cow,
-    boxed::Box,
-    collections::{BTreeMap, BTreeSet},
-    sync::Arc,
-    vec::Vec,
-};
+use alloc::{boxed::Box, collections::BTreeMap, sync::Arc, vec::Vec};
 use core::ops::Index;
+use std::borrow::Cow;
 use vm_core::Kernel;
 
 use smallvec::{smallvec, SmallVec};
 
-use self::{
-    analysis::MaybeRewriteCheck, name_resolver::NameResolver, phantom::PhantomCall,
-    rewrites::ModuleRewriter,
-};
+use self::{analysis::MaybeRewriteCheck, name_resolver::NameResolver, rewrites::ModuleRewriter};
 use super::{GlobalProcedureIndex, ModuleIndex};
 use crate::compiled_library::{ModuleInfo, ProcedureInfo};
+use crate::diagnostics::{RelatedLabel, SourceFile};
 use crate::{
     ast::{
         Export, FullyQualifiedProcedureName, InvocationTarget, Module, ProcedureIndex,
         ProcedureName, ResolvedProcedure,
     },
-    diagnostics::{RelatedLabel, SourceFile},
     AssemblyError, LibraryPath, RpoDigest, Spanned,
 };
 
@@ -172,20 +161,12 @@ pub struct ModuleGraph {
     /// The set of MAST roots which have procedure definitions in this graph. There can be
     /// multiple procedures bound to the same root due to having identical code.
     roots: BTreeMap<RpoDigest, SmallVec<[GlobalProcedureIndex; 1]>>,
-    /// The set of procedures in this graph which have known MAST roots
-    digests: BTreeMap<GlobalProcedureIndex, RpoDigest>,
-    /// The set of procedures which have no known definition in the graph, aka "phantom calls".
-    /// Since we know the hash of these functions, we can proceed with compilation, but in some
-    /// contexts we wish to disallow them and raise an error if any such calls are present.
-    ///
-    /// When we merge graphs, we attempt to resolve phantoms by attempting to find definitions in
-    /// the opposite graph.
-    phantoms: BTreeSet<PhantomCall>,
     kernel_index: Option<ModuleIndex>,
     kernel: Kernel,
 }
 
-/// Construction
+// ------------------------------------------------------------------------------------------------
+/// Constructors
 impl ModuleGraph {
     /// Add `module` to the graph.
     ///
@@ -246,57 +227,6 @@ impl ModuleGraph {
         Ok(module_id)
     }
 
-    /// Remove a module from the graph by discarding any edges involving that module. We do not
-    /// remove the module from the node set by default, so as to preserve the stability of indices
-    /// in the graph. However, we do remove the module from the set if it is the most recently
-    /// added module, as that matches the most common case of compiling multiple programs in a row,
-    /// where we discard the executable module each time.
-    pub fn remove_module(&mut self, index: ModuleIndex) {
-        use alloc::collections::btree_map::Entry;
-
-        // If the given index is a pending module, we just remove it from the pending set and call
-        // it a day
-        let pending_offset = self.modules.len();
-        if index.as_usize() >= pending_offset {
-            self.pending.remove(index.as_usize() - pending_offset);
-            return;
-        }
-
-        self.callgraph.remove_edges_for_module(index);
-
-        // We remove all nodes from the topological sort that belong to the given module. The
-        // resulting sort is still valid, but may change the next time it is computed
-        self.topo.retain(|gid| gid.module != index);
-
-        // Remove any cached procedure roots for the given module
-        for (gid, digest) in self.digests.iter() {
-            if gid.module != index {
-                continue;
-            }
-            if let Entry::Occupied(mut entry) = self.roots.entry(*digest) {
-                if entry.get().iter().all(|gid| gid.module == index) {
-                    entry.remove();
-                } else {
-                    entry.get_mut().retain(|gid| gid.module != index);
-                }
-            }
-        }
-        self.digests.retain(|gid, _| gid.module != index);
-        self.roots.retain(|_, gids| !gids.is_empty());
-
-        // Handle removing the kernel module
-        if self.kernel_index == Some(index) {
-            self.kernel_index = None;
-            self.kernel = Default::default();
-        }
-
-        // If the module being removed comes last in the node set, remove it from the set to avoid
-        // growing the set unnecessarily over time.
-        if index.as_usize() == self.modules.len().saturating_sub(1) {
-            self.modules.pop();
-        }
-    }
-
     fn is_pending(&self, path: &LibraryPath) -> bool {
         self.pending.iter().any(|m| m.path() == path)
     }
@@ -307,6 +237,7 @@ impl ModuleGraph {
     }
 }
 
+// ------------------------------------------------------------------------------------------------
 /// Kernels
 impl ModuleGraph {
     pub(super) fn set_kernel(&mut self, kernel_index: Option<ModuleIndex>, kernel: Kernel) {
@@ -333,8 +264,19 @@ impl ModuleGraph {
     }
 }
 
+// ------------------------------------------------------------------------------------------------
 /// Analysis
 impl ModuleGraph {
+    /// Get a slice representing the topological ordering of this graph.
+    ///
+    /// The slice is ordered such that when a node is encountered, all of its dependencies come
+    /// after it in the slice. Thus, by walking the slice in reverse, we visit the leaves of the
+    /// graph before any of the dependents of those leaves. We use this property to resolve MAST
+    /// roots for the entire program, bottom-up.
+    pub fn topological_sort(&self) -> &[GlobalProcedureIndex] {
+        self.topo.as_slice()
+    }
+
     /// Recompute the module graph.
     ///
     /// This should be called any time `add_module`, `add_library`, etc., are called, when all such
@@ -434,7 +376,6 @@ impl ModuleGraph {
                 resolver.push_pending(module);
             }
         }
-        let mut phantoms = BTreeSet::default();
         let mut edges = Vec::new();
         let mut finished: Vec<WrappedModule> = Vec::new();
 
@@ -446,9 +387,6 @@ impl ModuleGraph {
 
                     let mut rewriter = ModuleRewriter::new(&resolver);
                     rewriter.apply(module_id, &mut ast_module)?;
-
-                    // Gather the phantom calls found while rewriting the module
-                    phantoms.extend(rewriter.phantoms());
 
                     for (index, procedure) in ast_module.procedures().enumerate() {
                         let procedure_id = ProcedureIndex::new(index);
@@ -484,7 +422,6 @@ impl ModuleGraph {
         drop(resolver);
 
         // Extend the graph with all of the new additions
-        self.phantoms.extend(phantoms);
         self.modules.append(&mut finished);
         edges
             .into_iter()
@@ -537,8 +474,6 @@ impl ModuleGraph {
             let mut rewriter = ModuleRewriter::new(&resolver);
             rewriter.apply(module_id, &mut module)?;
 
-            self.phantoms.extend(rewriter.phantoms());
-
             Ok(Some(Arc::from(module)))
         } else {
             Ok(None)
@@ -546,21 +481,11 @@ impl ModuleGraph {
     }
 }
 
+// ------------------------------------------------------------------------------------------------
 /// Accessors/Queries
 impl ModuleGraph {
-    /// Get a slice representing the topological ordering of this graph.
-    ///
-    /// The slice is ordered such that when a node is encountered, all of its dependencies come
-    /// after it in the slice. Thus, by walking the slice in reverse, we visit the leaves of the
-    /// graph before any of the dependents of those leaves. We use this property to resolve MAST
-    /// roots for the entire program, bottom-up.
-    pub fn topological_sort(&self) -> &[GlobalProcedureIndex] {
-        self.topo.as_slice()
-    }
-
-    /// Compute the topological sort of the callgraph rooted at `caller`, only for procedures that
-    /// need to be assembled (i.e. in `Ast` representation).
-    pub fn topological_sort_ast_procs_from_root(
+    /// Compute the topological sort of the callgraph rooted at `caller`
+    pub fn topological_sort_from_root(
         &self,
         caller: GlobalProcedureIndex,
     ) -> Result<Vec<GlobalProcedureIndex>, CycleError> {
@@ -568,6 +493,7 @@ impl ModuleGraph {
             .callgraph
             .toposort_caller(caller)?
             .into_iter()
+            // TODOP: do this outside the function
             .filter(|&gid| self.get_procedure_unsafe(gid).is_ast())
             .collect())
     }
@@ -612,12 +538,6 @@ impl ModuleGraph {
         digest: &RpoDigest,
     ) -> Option<GlobalProcedureIndex> {
         self.roots.get(digest).map(|indices| indices[0])
-    }
-
-    /// Look up the [RpoDigest] associated with the given [GlobalProcedureIndex], if one is known
-    /// at this point in time.
-    pub fn get_mast_root(&self, id: GlobalProcedureIndex) -> Option<&RpoDigest> {
-        self.digests.get(&id)
     }
 
     #[allow(unused)]
@@ -696,19 +616,6 @@ impl ModuleGraph {
             }
             Entry::Vacant(entry) => {
                 entry.insert(smallvec![id]);
-            }
-        }
-
-        match self.digests.entry(id) {
-            Entry::Occupied(ref entry) => {
-                assert_eq!(
-                    entry.get(),
-                    &digest,
-                    "attempted to register the same procedure with different digests!"
-                );
-            }
-            Entry::Vacant(entry) => {
-                entry.insert(digest);
             }
         }
 

@@ -3,8 +3,8 @@ use core::fmt;
 
 use alloc::{boxed::Box, vec::Vec};
 pub use basic_block_node::{
-    get_span_op_group_count, BasicBlockNode, OpBatch, OperationOrDecorator,
-    BATCH_SIZE as OP_BATCH_SIZE, GROUP_SIZE as OP_GROUP_SIZE,
+    BasicBlockNode, OpBatch, OperationOrDecorator, BATCH_SIZE as OP_BATCH_SIZE,
+    GROUP_SIZE as OP_GROUP_SIZE,
 };
 
 mod call_node;
@@ -28,9 +28,12 @@ mod loop_node;
 pub use loop_node::LoopNode;
 
 use crate::{
-    mast::{MastForest, MastNodeId, MerkleTreeNode},
+    mast::{MastForest, MastNodeId},
     DecoratorList, Operation,
 };
+
+// MAST NODE
+// ================================================================================================
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum MastNode {
@@ -43,6 +46,7 @@ pub enum MastNode {
     External(ExternalNode),
 }
 
+// ------------------------------------------------------------------------------------------------
 /// Constructors
 impl MastNode {
     pub fn new_basic_block(operations: Vec<Operation>) -> Self {
@@ -84,7 +88,7 @@ impl MastNode {
         Self::Call(CallNode::new_syscall(callee, mast_forest))
     }
 
-    pub fn new_dynexec() -> Self {
+    pub fn new_dyn() -> Self {
         Self::Dyn
     }
 
@@ -93,6 +97,7 @@ impl MastNode {
     }
 }
 
+// ------------------------------------------------------------------------------------------------
 /// Public accessors
 impl MastNode {
     pub fn is_basic_block(&self) -> bool {
@@ -135,10 +140,8 @@ impl MastNode {
             MastNode::External(_) => panic!("Can't fetch domain for an `External` node."),
         }
     }
-}
 
-impl MerkleTreeNode for MastNode {
-    fn digest(&self) -> RpoDigest {
+    pub fn digest(&self) -> RpoDigest {
         match self {
             MastNode::Block(node) => node.digest(),
             MastNode::Join(node) => node.digest(),
@@ -150,18 +153,21 @@ impl MerkleTreeNode for MastNode {
         }
     }
 
-    fn to_display<'a>(&'a self, mast_forest: &'a MastForest) -> impl fmt::Display + 'a {
+    pub fn to_display<'a>(&'a self, mast_forest: &'a MastForest) -> impl fmt::Display + 'a {
         match self {
-            MastNode::Block(node) => MastNodeDisplay::new(node.to_display(mast_forest)),
+            MastNode::Block(node) => MastNodeDisplay::new(node),
             MastNode::Join(node) => MastNodeDisplay::new(node.to_display(mast_forest)),
             MastNode::Split(node) => MastNodeDisplay::new(node.to_display(mast_forest)),
             MastNode::Loop(node) => MastNodeDisplay::new(node.to_display(mast_forest)),
             MastNode::Call(node) => MastNodeDisplay::new(node.to_display(mast_forest)),
-            MastNode::Dyn => MastNodeDisplay::new(DynNode.to_display(mast_forest)),
+            MastNode::Dyn => MastNodeDisplay::new(DynNode),
             MastNode::External(node) => MastNodeDisplay::new(node.to_display(mast_forest)),
         }
     }
 }
+
+// PRETTY PRINTING
+// ================================================================================================
 
 struct MastNodePrettyPrint<'a> {
     node_pretty_print: Box<dyn PrettyPrint + 'a>,

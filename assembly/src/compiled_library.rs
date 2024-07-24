@@ -1,8 +1,5 @@
 use alloc::{collections::BTreeMap, vec::Vec};
-use vm_core::{
-    crypto::hash::RpoDigest,
-    mast::{MastForest, MerkleTreeNode},
-};
+use vm_core::{crypto::hash::RpoDigest, mast::MastForest};
 
 use crate::{
     ast::{FullyQualifiedProcedureName, ProcedureIndex, ProcedureName},

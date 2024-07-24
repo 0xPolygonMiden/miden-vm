@@ -2,11 +2,12 @@ use core::fmt;
 
 use miden_crypto::{hash::rpo::RpoDigest, Felt};
 
-use crate::{
-    mast::{MastForest, MerkleTreeNode},
-    OPCODE_DYN,
-};
+use crate::OPCODE_DYN;
 
+// DYN NODE
+// ================================================================================================
+
+/// A Dyn node specifies that the node to be executed next is defined dynamically via the stack.
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct DynNode;
 
@@ -16,11 +17,19 @@ impl DynNode {
     pub const DOMAIN: Felt = Felt::new(OPCODE_DYN as u64);
 }
 
-impl MerkleTreeNode for DynNode {
-    fn digest(&self) -> RpoDigest {
-        // The Dyn node is represented by a constant, which is set to be the hash of two empty
-        // words ([ZERO, ZERO, ZERO, ZERO]) with a domain value of `DYN_DOMAIN`, i.e.
-        // hasher::merge_in_domain(&[Digest::default(), Digest::default()], DynNode::DOMAIN)
+/// Public accessors
+impl DynNode {
+    /// Returns a commitment to a Dyn node.
+    ///
+    /// The commitment is computed by hashing two empty words ([ZERO; 4]) in the domain defined
+    /// by [Self::DOMAIN], i.e.:
+    ///
+    /// ```
+    /// # use miden_core::mast::DynNode;
+    /// # use miden_crypto::{hash::rpo::{RpoDigest as Digest, Rpo256 as Hasher}};
+    /// Hasher::merge_in_domain(&[Digest::default(), Digest::default()], DynNode::DOMAIN);
+    /// ```
+    pub fn digest(&self) -> RpoDigest {
         RpoDigest::new([
             Felt::new(8115106948140260551),
             Felt::new(13491227816952616836),
@@ -28,11 +37,10 @@ impl MerkleTreeNode for DynNode {
             Felt::new(16575543461540527115),
         ])
     }
-
-    fn to_display<'a>(&'a self, _mast_forest: &'a MastForest) -> impl fmt::Display + 'a {
-        self
-    }
 }
+
+// PRETTY PRINTING
+// ================================================================================================
 
 impl crate::prettier::PrettyPrint for DynNode {
     fn render(&self) -> crate::prettier::Document {
@@ -47,6 +55,9 @@ impl fmt::Display for DynNode {
         self.pretty_print(f)
     }
 }
+
+// TESTS
+// ================================================================================================
 
 #[cfg(test)]
 mod tests {

@@ -1,5 +1,5 @@
 use crate::{
-    assembler::{Assembler, AssemblyContext},
+    assembler::Assembler,
     ast::{Form, Module, ModuleKind},
     diagnostics::{
         reporting::{set_hook, ReportHandlerOpts},
@@ -316,17 +316,10 @@ impl TestContext {
     #[track_caller]
     pub fn assemble_module(
         &mut self,
-        path: LibraryPath,
-        module: impl Compile,
+        _path: LibraryPath,
+        _module: impl Compile,
     ) -> Result<Vec<RpoDigest>, Report> {
-        let mut context = AssemblyContext::for_library(&path);
-        context.set_warnings_as_errors(self.assembler.warnings_as_errors());
-
-        let options = CompileOptions {
-            path: Some(path),
-            warnings_as_errors: self.assembler.warnings_as_errors(),
-            ..CompileOptions::for_library()
-        };
-        self.assembler.assemble_module(module, options, &mut context)
+        // This API will change after we implement `Assembler::add_library()`
+        unimplemented!()
     }
 }

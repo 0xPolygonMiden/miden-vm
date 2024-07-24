@@ -1,7 +1,7 @@
 use miden_crypto::hash::rpo::RpoDigest;
 use winter_utils::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable};
 
-use crate::mast::{MastForest, MastNode, MastNodeId, MerkleTreeNode};
+use crate::mast::{MastForest, MastNode, MastNodeId};
 
 use super::{basic_block_data_decoder::BasicBlockDataDecoder, DataOffset};
 
@@ -77,7 +77,7 @@ impl MastNodeInfo {
 
                 Ok(MastNode::new_syscall(callee_id, mast_forest))
             }
-            MastNodeType::Dyn => Ok(MastNode::new_dynexec()),
+            MastNodeType::Dyn => Ok(MastNode::new_dyn()),
             MastNodeType::External => Ok(MastNode::new_external(self.digest)),
         }?;
 

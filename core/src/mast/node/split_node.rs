@@ -5,10 +5,19 @@ use miden_formatting::prettier::PrettyPrint;
 
 use crate::{
     chiplets::hasher,
-    mast::{MastForest, MastNodeId, MerkleTreeNode},
+    mast::{MastForest, MastNodeId},
     OPCODE_SPLIT,
 };
 
+// SPLIT NODE
+// ================================================================================================
+
+/// A Split node defines conditional execution. When the VM encounters a Split node it executes
+/// either the `on_true` child or `on_false` child.
+///
+/// Which child is executed is determined based on the top of the stack. If the value is `1`, then
+/// the `on_true` child is executed. If the value is `0`, then the `on_false` child is executed. If
+/// the value is neither `0` nor `1`, the execution fails.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct SplitNode {
     branches: [MastNodeId; 2],
@@ -42,33 +51,47 @@ impl SplitNode {
 
 /// Public accessors
 impl SplitNode {
+    /// Returns a commitment to this Split node.
+    ///
+    /// The commitment is computed as a hash of the `on_true` and `on_false` child nodes in the
+    /// domain defined by [Self::DOMAIN] - i..e,:
+    /// ```
+    /// # use miden_core::mast::SplitNode;
+    /// # use miden_crypto::{hash::rpo::{RpoDigest as Digest, Rpo256 as Hasher}};
+    /// # let on_true_digest = Digest::default();
+    /// # let on_false_digest = Digest::default();
+    /// Hasher::merge_in_domain(&[on_true_digest, on_false_digest], SplitNode::DOMAIN);
+    /// ```
+    pub fn digest(&self) -> RpoDigest {
+        self.digest
+    }
+
+    /// Returns the ID of the node which is to be executed if the top of the stack is `1`.
     pub fn on_true(&self) -> MastNodeId {
         self.branches[0]
     }
 
+    /// Returns the ID of the node which is to be executed if the top of the stack is `0`.
     pub fn on_false(&self) -> MastNodeId {
         self.branches[1]
     }
 }
 
+// PRETTY PRINTING
+// ================================================================================================
+
 impl SplitNode {
-    pub(super) fn to_pretty_print<'a>(
-        &'a self,
-        mast_forest: &'a MastForest,
-    ) -> impl PrettyPrint + 'a {
+    pub(super) fn to_display<'a>(&'a self, mast_forest: &'a MastForest) -> impl fmt::Display + 'a {
         SplitNodePrettyPrint {
             split_node: self,
             mast_forest,
         }
     }
-}
 
-impl MerkleTreeNode for SplitNode {
-    fn digest(&self) -> RpoDigest {
-        self.digest
-    }
-
-    fn to_display<'a>(&'a self, mast_forest: &'a MastForest) -> impl core::fmt::Display + 'a {
+    pub(super) fn to_pretty_print<'a>(
+        &'a self,
+        mast_forest: &'a MastForest,
+    ) -> impl PrettyPrint + 'a {
         SplitNodePrettyPrint {
             split_node: self,
             mast_forest,

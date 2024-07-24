@@ -1,12 +1,11 @@
+use crate::AssemblyError;
+
 use super::{
-    mast_forest_builder::MastForestBuilder, AssemblyContext, BodyWrapper, Decorator, DecoratorList,
-    Instruction,
+    mast_forest_builder::MastForestBuilder, BodyWrapper, Decorator, DecoratorList, Instruction,
+    ProcedureContext,
 };
 use alloc::{borrow::Borrow, string::ToString, vec::Vec};
-use vm_core::{
-    mast::{MastForestError, MastNode, MastNodeId},
-    AdviceInjector, AssemblyOp, Operation,
-};
+use vm_core::{mast::MastNodeId, AdviceInjector, AssemblyOp, Operation};
 
 // BASIC BLOCK BUILDER
 // ================================================================================================
@@ -85,8 +84,8 @@ impl BasicBlockBuilder {
     ///
     /// This indicates that the provided instruction should be tracked and the cycle count for
     /// this instruction will be computed when the call to set_instruction_cycle_count() is made.
-    pub fn track_instruction(&mut self, instruction: &Instruction, ctx: &AssemblyContext) {
-        let context_name = ctx.unwrap_current_procedure().name().to_string();
+    pub fn track_instruction(&mut self, instruction: &Instruction, proc_ctx: &ProcedureContext) {
+        let context_name = proc_ctx.name().to_string();
         let num_cycles = 0;
         let op = instruction.to_string();
         let should_break = instruction.should_break();
@@ -129,13 +128,12 @@ impl BasicBlockBuilder {
     pub fn make_basic_block(
         &mut self,
         mast_forest_builder: &mut MastForestBuilder,
-    ) -> Result<Option<MastNodeId>, MastForestError> {
+    ) -> Result<Option<MastNodeId>, AssemblyError> {
         if !self.ops.is_empty() {
             let ops = self.ops.drain(..).collect();
             let decorators = self.decorators.drain(..).collect();
 
-            let basic_block_node = MastNode::new_basic_block_with_decorators(ops, decorators);
-            let basic_block_node_id = mast_forest_builder.ensure_node(basic_block_node)?;
+            let basic_block_node_id = mast_forest_builder.ensure_block(ops, Some(decorators))?;
 
             Ok(Some(basic_block_node_id))
         } else if !self.decorators.is_empty() {
@@ -158,7 +156,7 @@ impl BasicBlockBuilder {
     pub fn try_into_basic_block(
         mut self,
         mast_forest_builder: &mut MastForestBuilder,
-    ) -> Result<Option<MastNodeId>, MastForestError> {
+    ) -> Result<Option<MastNodeId>, AssemblyError> {
         self.ops.append(&mut self.epilogue);
         self.make_basic_block(mast_forest_builder)
     }

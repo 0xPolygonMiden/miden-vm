@@ -1,5 +1,6 @@
-use super::{validate_param, AssemblyContext, BasicBlockBuilder};
+use super::{validate_param, BasicBlockBuilder};
 use crate::{
+    assembler::ProcedureContext,
     diagnostics::{RelatedError, Report},
     AssemblyError, Felt, Span, MAX_EXP_BITS, ONE, ZERO,
 };
@@ -88,11 +89,11 @@ pub fn mul_imm(span_builder: &mut BasicBlockBuilder, imm: Felt) {
 /// Returns an error if the immediate value is ZERO.
 pub fn div_imm(
     span_builder: &mut BasicBlockBuilder,
-    ctx: &mut AssemblyContext,
+    proc_ctx: &mut ProcedureContext,
     imm: Span<Felt>,
 ) -> Result<(), AssemblyError> {
     if imm == ZERO {
-        let source_file = ctx.unwrap_current_procedure().source_file();
+        let source_file = proc_ctx.source_file();
         let error = Report::new(crate::parser::ParsingError::DivisionByZero { span: imm.span() });
         return Err(if let Some(source_file) = source_file {
             AssemblyError::Other(RelatedError::new(error.with_source_code(source_file)))
