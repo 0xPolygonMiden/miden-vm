@@ -474,23 +474,6 @@ impl ModuleGraph {
         self.callgraph.toposort_caller(caller)
     }
 
-    /// Fetch a [Module] by [ModuleIndex]
-    #[allow(unused)]
-    pub fn get_module(&self, id: ModuleIndex) -> Option<WrappedModule> {
-        self.modules.get(id.as_usize()).cloned()
-    }
-
-    /// Fetch a [WrapperProcedure] by [GlobalProcedureIndex], or `None` if index is invalid.
-    #[allow(unused)]
-    pub fn get_procedure(&self, id: GlobalProcedureIndex) -> Option<ProcedureWrapper> {
-        match &self.modules[id.module.as_usize()] {
-            WrappedModule::Ast(m) => m.get(id.index).map(ProcedureWrapper::Ast),
-            WrappedModule::Info(m) => {
-                m.get_proc_info_by_index(id.index).map(ProcedureWrapper::Info)
-            }
-        }
-    }
-
     /// Fetch a [WrapperProcedure] by [GlobalProcedureIndex].
     ///
     /// # Panics
