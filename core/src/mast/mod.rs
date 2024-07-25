@@ -255,7 +255,7 @@ impl fmt::Display for MastNodeId {
 // ================================================================================================
 
 /// Represents the types of errors that can occur when dealing with MAST forest.
-#[derive(Debug, thiserror::Error)]
+#[derive(Debug, thiserror::Error, PartialEq)]
 pub enum MastForestError {
     #[error(
         "invalid node count: MAST forest exceeds the maximum of {} nodes",
