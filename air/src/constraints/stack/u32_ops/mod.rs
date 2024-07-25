@@ -118,7 +118,7 @@ pub fn enforce_u32split_constraints<E: FieldElement<BaseField = Felt>>(
 /// elements in the current trace of the stack. Therefore, the following constraints are
 /// enforced:
 /// - The aggregation of limbs from the helper registers is equal to the sum of the top two
-/// element in the stack.
+///   element in the stack.
 pub fn enforce_u32add_constraints<E: FieldElement<BaseField = Felt>>(
     frame: &EvaluationFrame<E>,
     result: &mut [E],
@@ -139,7 +139,7 @@ pub fn enforce_u32add_constraints<E: FieldElement<BaseField = Felt>>(
 /// elements in the current trace of the stack. Therefore, the following constraints are
 /// enforced:
 /// - The aggregation of limbs from the helper registers is equal to the sum of the top three
-/// elements in the stack.
+///   elements in the stack.
 pub fn enforce_u32add3_constraints<E: FieldElement<BaseField = Felt>>(
     frame: &EvaluationFrame<E>,
     result: &mut [E],
@@ -287,9 +287,9 @@ pub fn enforce_check_element_validity<E: FieldElement<BaseField = Felt>>(
 /// Enforces constraints of the general operation. The constaints checks if the lower 16-bits limbs
 /// are aggregated correctly or not. Therefore, the following constraints are enforced:
 /// - The aggregation of lower two lower 16-bits limbs in the helper registers is equal to the second
-/// element in the next row.
+///   element in the next row.
 /// - The aggregation of lower two upper 16-bits limbs in the helper registers is equal to the first
-/// element in the next row.
+///   element in the next row.
 pub fn enforce_limbs_agg<E: FieldElement<BaseField = Felt>>(
     frame: &EvaluationFrame<E>,
     result: &mut [E],

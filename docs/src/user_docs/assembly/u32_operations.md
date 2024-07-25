@@ -7,7 +7,7 @@ In all the table below, the number of cycles it takes for the VM to execute each
 
 ### Conversions and tests
 
-| Instruction                                    | Stack input | Stack output  | Notes                                                                                                                          |
+| Instruction                                    | Stack_input | Stack_output  | Notes                                                                                                                          |
 | ---------------------------------------------- | ----------- | ------------- | ------------------------------------------------------------------------------------------------------------------------------ |
 | u32test <br> - *(5 cycles)*                    | [a, ...]    | [b, a, ...]   | $b \leftarrow \begin{cases} 1, & \text{if}\ a < 2^{32} \\ 0, & \text{otherwise}\ \end{cases}$                                  |
 | u32testw <br> - *(23 cycles)*                  | [A, ...]    | [b, A, ...]   | $b \leftarrow \begin{cases} 1, & \text{if}\ \forall\ i \in \{0, 1, 2, 3\}\ a_i < 2^{32} \\ 0, & \text{otherwise}\ \end{cases}$ |
@@ -26,7 +26,7 @@ If the error code is omitted, the default value of $0$ is assumed.
 
 ### Arithmetic operations
 
-| Instruction                                                                               | Stack input    | Stack output  | Notes                                                                                                                                                                                  |
+| Instruction                                                                               | Stack_input    | Stack_output  | Notes                                                                                                                                                                                  |
 | ----------------------------------------------------------------------------------------- | -------------- | ------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | u32overflowing_add <br> - *(1 cycle)* <br> u32overflowing_add.*b* <br> - *(2-3 cycles)*   | [b, a, ...]    | [d, c, ...]   | $c \leftarrow (a + b) \mod 2^{32}$ <br> $d \leftarrow \begin{cases} 1, & \text{if}\ (a + b) \ge 2^{32} \\ 0, & \text{otherwise}\ \end{cases}$ <br> Undefined if $max(a, b) \ge 2^{32}$ |
 | u32wrapping_add <br> - *(2 cycles)* <br> u32wrapping_add.*b* <br> - *(3-4 cycles)*        | [b, a, ...]    | [c, ...]      | $c \leftarrow (a + b) \mod 2^{32}$ <br> Undefined if $max(a, b) \ge 2^{32}$                                                                                                            |
@@ -44,7 +44,7 @@ If the error code is omitted, the default value of $0$ is assumed.
 
 ### Bitwise operations
 
-| Instruction                                                                           | Stack input    | Stack output  | Notes                                                                                                                          |
+| Instruction                                                                           | Stack_input    | Stack_output  | Notes                                                                                                                          |
 | ------------------------------------------------------------------------------------- | -------------- | ------------- | ------------------------------------------------------------------------------------------------------------------------------ |
 | u32and <br> - *(1 cycle)*                                                     | [b, a, ...]    | [c, ...]      | Computes $c$ as a bitwise `AND` of binary representations of $a$ and $b$. <br> Fails if $max(a,b) \ge 2^{32}$                  |
 | u32or <br> - *(6 cycle)s*                                                     | [b, a, ...]    | [c, ...]      | Computes $c$ as a bitwise `OR` of binary representations of $a$ and $b$. <br> Fails if $max(a,b) \ge 2^{32}$                   |
@@ -63,7 +63,7 @@ If the error code is omitted, the default value of $0$ is assumed.
 
 ### Comparison operations
 
-| Instruction                                                                      | Stack input  | Stack output    | Notes                                                                                                                                                                                                                  |
+| Instruction                                                                      | Stack_input  | Stack_output    | Notes                                                                                                                                                                                                                  |
 | -------------------------------------------------------------------------------- | ------------ | --------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | u32lt <br> - *(3 cycles)*                                              | [b, a, ...]  | [c, ...]        | $c \leftarrow \begin{cases} 1, & \text{if}\ a < b \\ 0, & \text{otherwise}\ \end{cases}$ <br> Undefined if $max(a, b) \ge 2^{32}$                                                                                      |
 | u32lte <br> - *(5 cycles)*                                             | [b, a, ...]  | [c, ...]        | $c \leftarrow \begin{cases} 1, & \text{if}\ a \le b \\ 0, & \text{otherwise}\ \end{cases}$ <br> Undefined if $max(a, b) \ge 2^{32}$                                                                                    |
