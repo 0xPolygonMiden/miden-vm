@@ -398,16 +398,22 @@ impl Assembler {
         is_entrypoint: bool,
         mast_forest_builder: &mut MastForestBuilder,
     ) -> Result<Arc<Procedure>, Report> {
-        let mut worklist = self.module_graph.topological_sort_from_root(root).map_err(|cycle| {
-            let iter = cycle.into_node_ids();
-            let mut nodes = Vec::with_capacity(iter.len());
-            for node in iter {
-                let module = self.module_graph[node.module].path();
-                let proc = self.module_graph.get_procedure_unsafe(node);
-                nodes.push(format!("{}::{}", module, proc.name()));
-            }
-            AssemblyError::Cycle { nodes }
-        })?;
+        let mut worklist: Vec<GlobalProcedureIndex> = self
+            .module_graph
+            .topological_sort_from_root(root)
+            .map_err(|cycle| {
+                let iter = cycle.into_node_ids();
+                let mut nodes = Vec::with_capacity(iter.len());
+                for node in iter {
+                    let module = self.module_graph[node.module].path();
+                    let proc = self.module_graph.get_procedure_unsafe(node);
+                    nodes.push(format!("{}::{}", module, proc.name()));
+                }
+                AssemblyError::Cycle { nodes }
+            })?
+            .into_iter()
+            .filter(|&gid| self.module_graph.get_procedure_unsafe(gid).is_ast())
+            .collect();
 
         assert!(!worklist.is_empty());
 
