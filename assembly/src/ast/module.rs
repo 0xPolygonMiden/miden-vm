@@ -208,9 +208,11 @@ impl Module {
                 span: export.span(),
             });
         }
-        if let Some(_prev) = self.resolve(export.name()) {
-            Err(SemanticAnalysisError::ProcedureNameConflict {
-                name: export.name().clone(),
+        if let Some(prev) = self.resolve(export.name()) {
+            let prev_span = prev.span();
+            Err(SemanticAnalysisError::SymbolConflict {
+                span: export.span(),
+                prev_span,
             })
         } else {
             self.procedures.push(export);

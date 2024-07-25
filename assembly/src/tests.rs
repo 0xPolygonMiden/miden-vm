@@ -2198,7 +2198,13 @@ fn invalid_proc_duplicate_procedure_name() {
         source,
         "syntax error",
         "help: see emitted diagnostics for details",
-        "procedure name conflict: found duplicate definitions of 'foo'"
+        "symbol conflict: found duplicate definitions of the same name",
+        regex!(r#",-\[test[\d]+:1:6\]"#),
+        "1 | proc.foo add mul end proc.foo push.3 end begin push.1 end",
+        "  :      ^|^             ^^^^^^^^^|^^^^^^^^^",
+        "  :       |                       `-- conflict occurs here",
+        "  :       `-- previously defined here",
+        "  `----"
     );
 }
 

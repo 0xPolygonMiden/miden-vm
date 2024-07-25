@@ -5,8 +5,6 @@ use crate::{
 use alloc::{sync::Arc, vec::Vec};
 use core::fmt;
 
-use super::ProcedureName;
-
 /// The high-level error type for all semantic analysis errors.
 ///
 /// This rolls up multiple errors into a single one, and as such, can emit many
@@ -78,9 +76,6 @@ pub enum SemanticAnalysisError {
         #[label("previously defined here")]
         prev_span: SourceSpan,
     },
-    #[error("procedure name conflict: found duplicate definitions of '{name}'")]
-    #[diagnostic()]
-    ProcedureNameConflict { name: ProcedureName },
     #[error("symbol undefined: no such name found in scope")]
     #[diagnostic(help("are you missing an import?"))]
     SymbolUndefined {
