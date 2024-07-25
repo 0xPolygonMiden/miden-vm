@@ -10,6 +10,7 @@ use crate::{
 };
 use alloc::{sync::Arc, vec::Vec};
 use mast_forest_builder::MastForestBuilder;
+use module_graph::ProcedureWrapper;
 use vm_core::{mast::MastNodeId, Decorator, DecoratorList, Felt, Kernel, Operation, Program};
 
 mod basic_block_builder;
@@ -614,10 +615,13 @@ impl Assembler {
         match resolved {
             ResolvedTarget::Phantom(digest) => Ok(digest),
             ResolvedTarget::Exact { gid } | ResolvedTarget::Resolved { gid, .. } => {
-                Ok(mast_forest_builder
-                    .get_procedure(gid)
-                    .map(|p| p.mast_root())
-                    .expect("expected callee to have been compiled already"))
+                match mast_forest_builder.get_procedure(gid) {
+                    Some(p) => Ok(p.mast_root()),
+                    None => match self.module_graph.get_procedure_unsafe(gid) {
+                        ProcedureWrapper::Info(p) => Ok(p.digest),
+                        ProcedureWrapper::Ast(_) => panic!("Did not find procedure {gid:?} neither in module graph nor procedure cache"),
+                    },
+                }
             }
         }
     }
