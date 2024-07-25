@@ -3,7 +3,6 @@ use alloc::{rc::Rc, string::ToString, vec::Vec};
 use crate::{
     assert_diagnostic_lines,
     ast::{Module, ModuleKind},
-    compiled_library::CompiledLibraryMetadata,
     diagnostics::Report,
     regex, source_file,
     testing::{Pattern, TestContext},
@@ -1496,7 +1495,7 @@ fn program_with_phantom_mast_call() -> TestResult {
     let ast = context.parse_program(source)?;
 
     let assembler = Assembler::default().with_debug_mode(true);
-    assembler.assemble(ast)?;
+    assembler.assemble_program(ast)?;
     Ok(())
 }
 
@@ -2369,12 +2368,10 @@ fn test_compiled_library() {
     proc.internal
         push.5
     end
-
     export.foo
         push.1
         drop
     end
-
     export.bar
         exec.internal
         drop
@@ -2391,7 +2388,6 @@ fn test_compiled_library() {
         push.7
         add.5
     end 
-
     # Same definition as mod1::foo
     export.bar
         push.1
@@ -2402,14 +2398,9 @@ fn test_compiled_library() {
         mod_parser.parse(LibraryPath::new("mylib::mod2").unwrap(), source).unwrap()
     };
 
-    let metadata = CompiledLibraryMetadata {
-        name: LibraryNamespace::new("mylib").unwrap(),
-        version: Version::min(),
-    };
-
     let compiled_library = {
         let assembler = Assembler::new();
-        assembler.assemble_library(vec![mod1, mod2].into_iter(), metadata).unwrap()
+        assembler.assemble_library(vec![mod1, mod2].into_iter()).unwrap()
     };
 
     assert_eq!(compiled_library.exports().len(), 4);
@@ -2437,7 +2428,7 @@ fn test_compiled_library() {
     end
     ";
 
-    let _program = assembler.assemble(program_source).unwrap();
+    let _program = assembler.assemble_program(program_source).unwrap();
 }
 
 // DUMMY LIBRARY

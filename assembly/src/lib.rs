@@ -21,7 +21,6 @@ use vm_core::{prettier, utils::DisplayHex};
 mod assembler;
 pub mod ast;
 mod compile;
-pub mod compiled_library;
 pub mod diagnostics;
 mod errors;
 pub mod library;

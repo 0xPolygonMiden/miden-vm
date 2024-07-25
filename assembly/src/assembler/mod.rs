@@ -1,21 +1,16 @@
 use crate::{
     ast::{
-        self, AliasTarget, Export, FullyQualifiedProcedureName, Instruction, InvocationTarget,
-        InvokeKind, Module, ModuleKind, ProcedureIndex,
-    },
-    compiled_library::{
-        CompiledFullyQualifiedProcedureName, CompiledLibrary, CompiledLibraryMetadata,
-        ProcedureInfo,
+        self, FullyQualifiedProcedureName, InvocationTarget, InvokeKind, ModuleKind, ProcedureIndex,
     },
     diagnostics::Report,
+    library::CompiledLibrary,
     sema::SemanticAnalysisError,
-    AssemblyError, Compile, CompileOptions, Felt, Library, LibraryNamespace, LibraryPath,
-    RpoDigest, Spanned, ONE, ZERO,
+    AssemblyError, Compile, CompileOptions, Library, LibraryNamespace, LibraryPath, RpoDigest,
+    Spanned,
 };
 use alloc::{sync::Arc, vec::Vec};
 use mast_forest_builder::MastForestBuilder;
-use miette::miette;
-use vm_core::{mast::MastNodeId, Decorator, DecoratorList, Kernel, Operation, Program};
+use vm_core::{mast::MastNodeId, Decorator, DecoratorList, Felt, Kernel, Operation, Program};
 
 mod basic_block_builder;
 mod id;
@@ -47,11 +42,12 @@ use self::module_graph::{CallerInfo, ModuleGraph, ResolvedTarget};
 /// Programs compiled with an empty kernel cannot use the `syscall` instruction.
 /// </div>
 ///
-/// * If you have a single executable module you want to compile, just call [Assembler::assemble].
+/// * If you have a single executable module you want to compile, just call
+///   [Assembler::assemble_program].
 /// * If you want to link your executable to a few other modules that implement supporting
 ///   procedures, build the assembler with them first, using the various builder methods on
 ///   [Assembler], e.g. [Assembler::with_module], [Assembler::with_library], etc. Then, call
-///   [Assembler::assemble] to get your compiled program.
+///   [Assembler::assemble_program] to get your compiled program.
 #[derive(Clone, Default)]
 pub struct Assembler {
     /// The global [ModuleGraph] for this assembler.
@@ -258,26 +254,13 @@ impl Assembler {
 /// Compilation/Assembly
 impl Assembler {
     /// Assembles a set of modules into a library.
-    ///
-    /// The returned library can be added to the assembler assembling a program that depends on the
-    /// library using [`Self::add_compiled_library`].
     pub fn assemble_library(
         mut self,
         modules: impl Iterator<Item = impl Compile>,
-        metadata: CompiledLibraryMetadata, // name, version etc.
     ) -> Result<CompiledLibrary, Report> {
-        let module_ids: Vec<ModuleIndex> = modules
+        let module_indices: Vec<ModuleIndex> = modules
             .map(|module| {
                 let module = module.compile_with_options(CompileOptions::for_library())?;
-
-                if module.path().namespace() != &metadata.name {
-                    return Err(miette!(
-                        "library namespace is {}, but module {} has namespace {}",
-                        metadata.name,
-                        module.name(),
-                        module.path().namespace()
-                    ));
-                }
 
                 Ok(self.module_graph.add_ast_module(module)?)
             })
@@ -286,124 +269,37 @@ impl Assembler {
 
         let mut mast_forest_builder = MastForestBuilder::default();
 
-        self.assemble_graph(&mut mast_forest_builder)?;
-
         let exports = {
             let mut exports = Vec::new();
-            for module_id in module_ids {
-                let module = self.module_graph.get_module(module_id).unwrap();
-                let module_path = module.path();
 
-                let exports_in_module: Vec<CompiledFullyQualifiedProcedureName> =
-                    self.get_module_exports(module_id, &mast_forest_builder).map(|procedures| {
-                        procedures
-                            .into_iter()
-                            .map(|proc| {
-                                CompiledFullyQualifiedProcedureName::new(
-                                    module_path.clone(),
-                                    proc.name,
-                                )
-                            })
-                            .collect()
-                    })?;
+            for module_idx in module_indices {
+                let module = self.module_graph[module_idx].unwrap_ast().clone();
 
-                exports.extend(exports_in_module);
+                for (proc_idx, procedure) in module.procedures().enumerate() {
+                    // Only add exports; locals will be added if they are in the call graph rooted
+                    // at those procedures
+                    if !procedure.visibility().is_exported() {
+                        continue;
+                    }
+
+                    let gid = GlobalProcedureIndex {
+                        module: module_idx,
+                        index: ProcedureIndex::new(proc_idx),
+                    };
+
+                    self.compile_subgraph(gid, false, &mut mast_forest_builder)?;
+
+                    exports.push(FullyQualifiedProcedureName::new(
+                        module.path().clone(),
+                        procedure.name().clone(),
+                    ));
+                }
             }
 
             exports
         };
 
-        Ok(CompiledLibrary::new(mast_forest_builder.build(), exports, metadata)?)
-    }
-
-    /// Get the set of exported procedure infos of the given module.
-    ///
-    /// Returns an error if the provided Miden Assembly is invalid.
-    fn get_module_exports(
-        &mut self,
-        module_index: ModuleIndex,
-        mast_forest_builder: &MastForestBuilder,
-    ) -> Result<Vec<ProcedureInfo>, Report> {
-        assert!(self.module_graph.contains_module(module_index), "invalid module index");
-
-        let exports: Vec<ProcedureInfo> = match &self.module_graph[module_index] {
-            module_graph::WrappedModule::Ast(module) => {
-                self.get_module_exports_ast(module_index, module, mast_forest_builder)?
-            }
-            module_graph::WrappedModule::Info(module) => {
-                module.procedure_infos().map(|(_idx, proc)| proc).cloned().collect()
-            }
-        };
-
-        Ok(exports)
-    }
-
-    /// Helper function for [`Self::get_module_exports`], specifically for when the inner
-    /// [`module_graph::WrappedModule`] is in `Ast` representation.
-    fn get_module_exports_ast(
-        &self,
-        module_index: ModuleIndex,
-        module: &Arc<Module>,
-        mast_forest_builder: &MastForestBuilder,
-    ) -> Result<Vec<ProcedureInfo>, Report> {
-        let mut exports = Vec::new();
-        for (index, procedure) in module.procedures().enumerate() {
-            // Only add exports; locals will be added if they are in the call graph rooted
-            // at those procedures
-            if !procedure.visibility().is_exported() {
-                continue;
-            }
-            let gid = match procedure {
-                        Export::Procedure(_) => GlobalProcedureIndex {
-                            module: module_index,
-                            index: ProcedureIndex::new(index),
-                        },
-                        Export::Alias(ref alias) => {
-                            match alias.target() {
-                                AliasTarget::MastRoot(digest) => {
-                                    self.module_graph.get_procedure_index_by_digest(digest)
-                                        .unwrap_or_else(|| {
-                                            panic!(
-                                                "compilation apparently succeeded, but did not find a \
-                                                        entry in the procedure cache for alias '{}', i.e. '{}'",
-                                                alias.name(),
-                                                digest
-                                            );
-                                        })
-                                }
-                                AliasTarget::Path(ref name)=> {
-                                    self.module_graph.find(alias.source_file(), name)?
-                                }
-                            }
-                        }
-                    };
-            let proc = mast_forest_builder.get_procedure(gid).unwrap_or_else(|| match procedure {
-                Export::Procedure(ref proc) => {
-                    panic!(
-                        "compilation apparently succeeded, but did not find a \
-                                entry in the procedure cache for '{}'",
-                        proc.name()
-                    )
-                }
-                Export::Alias(ref alias) => {
-                    panic!(
-                        "compilation apparently succeeded, but did not find a \
-                                entry in the procedure cache for alias '{}', i.e. '{}'",
-                        alias.name(),
-                        alias.target()
-                    );
-                }
-            });
-
-            let compiled_proc = ProcedureInfo {
-                name: proc.name().clone(),
-                digest: mast_forest_builder[proc.body_node_id()].digest(),
-            };
-
-            exports.push(compiled_proc);
-        }
-
-        Ok(exports)
+        Ok(CompiledLibrary::new(mast_forest_builder.build(), exports)?)
     }
 
     /// Compiles the provided module into a [`Program`]. The resulting program can be executed on
@@ -413,7 +309,7 @@ impl Assembler {
     ///
     /// Returns an error if parsing or compilation of the specified program fails, or if the source
     /// doesn't have an entrypoint.
-    pub fn assemble(self, source: impl Compile) -> Result<Program, Report> {
+    pub fn assemble_program(self, source: impl Compile) -> Result<Program, Report> {
         let opts = CompileOptions {
             warnings_as_errors: self.warnings_as_errors,
             ..CompileOptions::default()
@@ -489,20 +385,6 @@ impl Assembler {
             entry_procedure.body_node_id(),
             self.module_graph.kernel().clone(),
         ))
-    }
-
-    /// Compile all of the uncompiled procedures in the module graph, placing them
-    /// in the procedure cache once compiled.
-    ///
-    /// Returns an error if any of the provided Miden Assembly is invalid.
-    fn assemble_graph(
-        &mut self,
-        mast_forest_builder: &mut MastForestBuilder,
-    ) -> Result<(), Report> {
-        let mut worklist = self.module_graph.topological_sort().to_vec();
-        assert!(!worklist.is_empty());
-        self.process_graph_worklist(&mut worklist, None, mast_forest_builder)
-            .map(|_| ())
     }
 
     /// Compile the uncompiled procedure in the module graph which are members of the subgraph

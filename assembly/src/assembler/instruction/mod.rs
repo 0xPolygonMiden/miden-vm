@@ -1,10 +1,10 @@
 use super::{
     ast::InvokeKind, mast_forest_builder::MastForestBuilder, Assembler, BasicBlockBuilder, Felt,
-    Instruction, Operation, ProcedureContext, ONE, ZERO,
+    Operation, ProcedureContext,
 };
-use crate::{diagnostics::Report, utils::bound_into_included_u64, AssemblyError};
+use crate::{ast::Instruction, diagnostics::Report, utils::bound_into_included_u64, AssemblyError};
 use core::ops::RangeBounds;
-use vm_core::{mast::MastNodeId, Decorator};
+use vm_core::{mast::MastNodeId, Decorator, ONE, ZERO};
 
 mod adv_ops;
 mod crypto_ops;

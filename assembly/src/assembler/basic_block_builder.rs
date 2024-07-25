@@ -1,8 +1,7 @@
-use crate::AssemblyError;
+use crate::{ast::Instruction, AssemblyError};
 
 use super::{
-    mast_forest_builder::MastForestBuilder, BodyWrapper, Decorator, DecoratorList, Instruction,
-    ProcedureContext,
+    mast_forest_builder::MastForestBuilder, BodyWrapper, Decorator, DecoratorList, ProcedureContext,
 };
 use alloc::{borrow::Borrow, string::ToString, vec::Vec};
 use vm_core::{mast::MastNodeId, AdviceInjector, AssemblyOp, Operation};

@@ -1,4 +1,11 @@
-use crate::ast;
+use std::collections::BTreeMap;
+
+use alloc::vec::Vec;
+
+use vm_core::crypto::hash::RpoDigest;
+use vm_core::mast::MastForest;
+
+use crate::ast::{self, FullyQualifiedProcedureName, ProcedureIndex, ProcedureName};
 
 mod error;
 mod masl;
@@ -6,7 +13,7 @@ mod namespace;
 mod path;
 mod version;
 
-pub use self::error::LibraryError;
+pub use self::error::{CompiledLibraryError, LibraryError};
 pub use self::masl::MaslLibrary;
 pub use self::namespace::{LibraryNamespace, LibraryNamespaceError};
 pub use self::path::{LibraryPath, LibraryPathComponent, PathError};
@@ -14,6 +21,146 @@ pub use self::version::{Version, VersionError};
 
 #[cfg(test)]
 mod tests;
+
+// COMPILED LIBRARY
+// ===============================================================================================
+
+/// Represents a library where all modules modules were compiled into a [`MastForest`].
+pub struct CompiledLibrary {
+    mast_forest: MastForest,
+    // a path for every `root` in the associated MAST forest
+    exports: Vec<FullyQualifiedProcedureName>,
+}
+
+/// Constructors
+impl CompiledLibrary {
+    /// Constructs a new [`CompiledLibrary`].
+    pub fn new(
+        mast_forest: MastForest,
+        exports: Vec<FullyQualifiedProcedureName>,
+    ) -> Result<Self, CompiledLibraryError> {
+        if mast_forest.num_procedures() as usize != exports.len() {
+            return Err(CompiledLibraryError::InvalidExports {
+                exports_len: exports.len(),
+                roots_len: mast_forest.num_procedures() as usize,
+            });
+        }
+
+        Ok(Self {
+            mast_forest,
+            exports,
+        })
+    }
+}
+
+impl CompiledLibrary {
+    /// Returns the inner [`MastForest`].
+    pub fn mast_forest(&self) -> &MastForest {
+        &self.mast_forest
+    }
+
+    /// Returns the fully qualified name of all procedures exported by the library.
+    pub fn exports(&self) -> &[FullyQualifiedProcedureName] {
+        &self.exports
+    }
+
+    /// Returns an iterator over the module infos of the library.
+    pub fn into_module_infos(self) -> impl Iterator<Item = ModuleInfo> {
+        let mut modules_by_path: BTreeMap<LibraryPath, ModuleInfo> = BTreeMap::new();
+
+        for (proc_index, proc_name) in self.exports.into_iter().enumerate() {
+            modules_by_path
+                .entry(proc_name.module.clone())
+                .and_modify(|compiled_module| {
+                    let proc_node_id = self.mast_forest.procedure_roots()[proc_index];
+                    let proc_digest = self.mast_forest[proc_node_id].digest();
+
+                    compiled_module.add_procedure_info(ProcedureInfo {
+                        name: proc_name.name.clone(),
+                        digest: proc_digest,
+                    })
+                })
+                .or_insert_with(|| {
+                    let proc_node_id = self.mast_forest.procedure_roots()[proc_index];
+                    let proc_digest = self.mast_forest[proc_node_id].digest();
+                    let proc = ProcedureInfo {
+                        name: proc_name.name,
+                        digest: proc_digest,
+                    };
+
+                    ModuleInfo::new(proc_name.module, vec![proc])
+                });
+        }
+
+        modules_by_path.into_values()
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct ModuleInfo {
+    path: LibraryPath,
+    procedure_infos: Vec<ProcedureInfo>,
+}
+
+impl ModuleInfo {
+    /// Constructs a new [`ModuleInfo`].
+    pub fn new(path: LibraryPath, procedures: Vec<ProcedureInfo>) -> Self {
+        Self {
+            path,
+            procedure_infos: procedures,
+        }
+    }
+
+    /// Adds a [`ProcedureInfo`] to the module.
+    pub fn add_procedure_info(&mut self, procedure: ProcedureInfo) {
+        self.procedure_infos.push(procedure);
+    }
+
+    /// Returns the module's library path.
+    pub fn path(&self) -> &LibraryPath {
+        &self.path
+    }
+
+    /// Returns the number of procedures in the module.
+    pub fn num_procedures(&self) -> usize {
+        self.procedure_infos.len()
+    }
+
+    /// Returns an iterator over the procedure infos in the module with their corresponding
+    /// procedure index in the module.
+    pub fn procedure_infos(&self) -> impl Iterator<Item = (ProcedureIndex, &ProcedureInfo)> {
+        self.procedure_infos
+            .iter()
+            .enumerate()
+            .map(|(idx, proc)| (ProcedureIndex::new(idx), proc))
+    }
+
+    /// Returns the [`ProcedureInfo`] of the procedure at the provided index, if any.
+    pub fn get_proc_info_by_index(&self, index: ProcedureIndex) -> Option<&ProcedureInfo> {
+        self.procedure_infos.get(index.as_usize())
+    }
+
+    /// Returns the digest of the procedure with the provided name, if any.
+    pub fn get_proc_digest_by_name(&self, name: &ProcedureName) -> Option<RpoDigest> {
+        self.procedure_infos.iter().find_map(|proc_info| {
+            if &proc_info.name == name {
+                Some(proc_info.digest)
+            } else {
+                None
+            }
+        })
+    }
+}
+
+/// Stores the name and digest of a procedure.
+#[derive(Debug, Clone)]
+pub struct ProcedureInfo {
+    pub name: ProcedureName,
+    pub digest: RpoDigest,
+}
+
+// LIBRARY
+// ===============================================================================================
 
 /// Maximum number of modules in a library.
 const MAX_MODULES: usize = u16::MAX as usize;

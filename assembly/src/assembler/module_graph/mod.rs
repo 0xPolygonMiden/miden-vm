@@ -9,20 +9,18 @@ pub use self::name_resolver::{CallerInfo, ResolvedTarget};
 
 use alloc::{boxed::Box, collections::BTreeMap, sync::Arc, vec::Vec};
 use core::ops::Index;
-use std::borrow::Cow;
 use vm_core::Kernel;
 
 use smallvec::{smallvec, SmallVec};
 
 use self::{analysis::MaybeRewriteCheck, name_resolver::NameResolver, rewrites::ModuleRewriter};
 use super::{GlobalProcedureIndex, ModuleIndex};
-use crate::compiled_library::{ModuleInfo, ProcedureInfo};
-use crate::diagnostics::{RelatedLabel, SourceFile};
 use crate::{
     ast::{
         Export, FullyQualifiedProcedureName, InvocationTarget, Module, ProcedureIndex,
         ProcedureName, ResolvedProcedure,
     },
+    library::{ModuleInfo, ProcedureInfo},
     AssemblyError, LibraryPath, RpoDigest, Spanned,
 };
 
@@ -156,8 +154,6 @@ pub struct ModuleGraph {
     /// The global call graph of calls, not counting those that are performed directly via MAST
     /// root.
     callgraph: CallGraph,
-    /// The computed topological ordering of the call graph
-    topo: Vec<GlobalProcedureIndex>,
     /// The set of MAST roots which have procedure definitions in this graph. There can be
     /// multiple procedures bound to the same root due to having identical code.
     roots: BTreeMap<RpoDigest, SmallVec<[GlobalProcedureIndex; 1]>>,
@@ -267,16 +263,6 @@ impl ModuleGraph {
 // ------------------------------------------------------------------------------------------------
 /// Analysis
 impl ModuleGraph {
-    /// Get a slice representing the topological ordering of this graph.
-    ///
-    /// The slice is ordered such that when a node is encountered, all of its dependencies come
-    /// after it in the slice. Thus, by walking the slice in reverse, we visit the leaves of the
-    /// graph before any of the dependents of those leaves. We use this property to resolve MAST
-    /// roots for the entire program, bottom-up.
-    pub fn topological_sort(&self) -> &[GlobalProcedureIndex] {
-        self.topo.as_slice()
-    }
-
     /// Recompute the module graph.
     ///
     /// This should be called any time `add_module`, `add_library`, etc., are called, when all such
@@ -327,9 +313,6 @@ impl ModuleGraph {
         if self.pending.is_empty() {
             return Ok(());
         }
-
-        // Remove previous topological sort, since it is no longer valid
-        self.topo.clear();
 
         // Visit all of the pending modules, assigning them ids, and adding them to the module
         // graph after rewriting any calls to use absolute paths
@@ -445,7 +428,7 @@ impl ModuleGraph {
         }
 
         // Make sure the graph is free of cycles
-        let topo = self.callgraph.toposort().map_err(|cycle| {
+        self.callgraph.toposort().map_err(|cycle| {
             let iter = cycle.into_node_ids();
             let mut nodes = Vec::with_capacity(iter.len());
             for node in iter {
@@ -455,7 +438,6 @@ impl ModuleGraph {
             }
             AssemblyError::Cycle { nodes }
         })?;
-        self.topo = topo;
 
         Ok(())
     }
@@ -502,11 +484,6 @@ impl ModuleGraph {
     #[allow(unused)]
     pub fn get_module(&self, id: ModuleIndex) -> Option<WrappedModule> {
         self.modules.get(id.as_usize()).cloned()
-    }
-
-    /// Fetch a [Module] by [ModuleIndex]
-    pub fn contains_module(&self, id: ModuleIndex) -> bool {
-        self.modules.get(id.as_usize()).is_some()
     }
 
     /// Fetch a [WrapperProcedure] by [GlobalProcedureIndex], or `None` if index is invalid.
@@ -620,98 +597,6 @@ impl ModuleGraph {
         }
 
         Ok(())
-    }
-
-    /// Resolves a [FullyQualifiedProcedureName] to its defining [Procedure].
-    pub fn find(
-        &self,
-        source_file: Option<Arc<SourceFile>>,
-        name: &FullyQualifiedProcedureName,
-    ) -> Result<GlobalProcedureIndex, AssemblyError> {
-        let mut next = Cow::Borrowed(name);
-        let mut caller = source_file.clone();
-        loop {
-            let module_index = self.find_module_index(&next.module).ok_or_else(|| {
-                AssemblyError::UndefinedModule {
-                    span: next.span(),
-                    source_file: caller.clone(),
-                    path: name.module.clone(),
-                }
-            })?;
-            let module = &self.modules[module_index.as_usize()];
-
-            match module {
-                WrappedModule::Ast(module) => {
-                    match module.resolve(&next.name) {
-                        Some(ResolvedProcedure::Local(index)) => {
-                            let id = GlobalProcedureIndex {
-                                module: module_index,
-                                index: index.into_inner(),
-                            };
-                            break Ok(id);
-                        }
-                        Some(ResolvedProcedure::External(fqn)) => {
-                            // If we see that we're about to enter an infinite resolver loop because
-                            // of a recursive alias, return an error
-                            if name == &fqn {
-                                break Err(AssemblyError::RecursiveAlias {
-                                    source_file: caller.clone(),
-                                    name: name.clone(),
-                                });
-                            }
-                            next = Cow::Owned(fqn);
-                            caller = module.source_file();
-                        }
-                        Some(ResolvedProcedure::MastRoot(ref digest)) => {
-                            if let Some(id) = self.get_procedure_index_by_digest(digest) {
-                                break Ok(id);
-                            }
-                            break Err(AssemblyError::Failed {
-                                labels: vec![RelatedLabel::error("undefined procedure")
-                                    .with_source_file(source_file)
-                                    .with_labeled_span(
-                                        next.span(),
-                                        "unable to resolve this reference",
-                                    )],
-                            });
-                        }
-                        None => {
-                            // No such procedure known to `module`
-                            break Err(AssemblyError::Failed {
-                                labels: vec![RelatedLabel::error("undefined procedure")
-                                    .with_source_file(source_file)
-                                    .with_labeled_span(
-                                        next.span(),
-                                        "unable to resolve this reference",
-                                    )],
-                            });
-                        }
-                    }
-                }
-                WrappedModule::Info(module) => {
-                    break module
-                        .procedure_infos()
-                        .find_map(|(index, procedure)| {
-                            if procedure.name == name.name {
-                                Some(GlobalProcedureIndex {
-                                    module: module_index,
-                                    index,
-                                })
-                            } else {
-                                None
-                            }
-                        })
-                        .ok_or(AssemblyError::Failed {
-                            labels: vec![RelatedLabel::error("undefined procedure")
-                                .with_source_file(source_file)
-                                .with_labeled_span(
-                                    next.span(),
-                                    "unable to resolve this reference",
-                                )],
-                        })
-                }
-            }
-        }
     }
 
     /// Resolve a [LibraryPath] to a [ModuleIndex] in this graph
