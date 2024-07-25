@@ -18,7 +18,7 @@ fn program_compilation(c: &mut Criterion) {
             let assembler = Assembler::default()
                 .with_library(&StdLibrary::default())
                 .expect("failed to load stdlib");
-            assembler.assemble(source).expect("Failed to compile test source.")
+            assembler.assemble_program(source).expect("Failed to compile test source.")
         });
     });
 

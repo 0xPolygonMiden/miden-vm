@@ -123,7 +123,7 @@ fn nested_blocks() {
         syscall.foo
     end"#;
 
-    let program = assembler.assemble(program).unwrap();
+    let program = assembler.assemble_program(program).unwrap();
 
     let exec_bar_node_id = {
         // bar procedure
@@ -224,7 +224,7 @@ fn duplicate_procedure() {
         end
     "#;
 
-    let program = assembler.assemble(program_source).unwrap();
+    let program = assembler.assemble_program(program_source).unwrap();
     assert_eq!(program.num_procedures(), 2);
 }
 
@@ -243,7 +243,7 @@ fn duplicate_nodes() {
     end
     "#;
 
-    let program = assembler.assemble(program_source).unwrap();
+    let program = assembler.assemble_program(program_source).unwrap();
 
     let mut expected_mast_forest = MastForest::new();
 
@@ -339,5 +339,5 @@ fn explicit_fully_qualified_procedure_references() {
         exec.::foo::baz::baz
     end"#;
 
-    assert_matches!(assembler.assemble(program), Ok(_));
+    assert_matches!(assembler.assemble_program(program), Ok(_));
 }

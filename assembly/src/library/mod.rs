@@ -1,4 +1,8 @@
-use crate::ast;
+use alloc::vec::Vec;
+
+use vm_core::mast::MastForest;
+
+use crate::ast::{self, FullyQualifiedProcedureName};
 
 mod error;
 mod masl;
@@ -6,7 +10,7 @@ mod namespace;
 mod path;
 mod version;
 
-pub use self::error::LibraryError;
+pub use self::error::{CompiledLibraryError, LibraryError};
 pub use self::masl::MaslLibrary;
 pub use self::namespace::{LibraryNamespace, LibraryNamespaceError};
 pub use self::path::{LibraryPath, LibraryPathComponent, PathError};
@@ -14,6 +18,52 @@ pub use self::version::{Version, VersionError};
 
 #[cfg(test)]
 mod tests;
+
+// COMPILED LIBRARY
+// ===============================================================================================
+
+/// Represents a library where all modules modules were compiled into a [`MastForest`].
+pub struct CompiledLibrary {
+    mast_forest: MastForest,
+    // a path for every `root` in the associated MAST forest
+    exports: Vec<FullyQualifiedProcedureName>,
+}
+
+/// Constructors
+impl CompiledLibrary {
+    /// Constructs a new [`CompiledLibrary`].
+    pub fn new(
+        mast_forest: MastForest,
+        exports: Vec<FullyQualifiedProcedureName>,
+    ) -> Result<Self, CompiledLibraryError> {
+        if mast_forest.num_procedures() as usize != exports.len() {
+            return Err(CompiledLibraryError::InvalidExports {
+                exports_len: exports.len(),
+                roots_len: mast_forest.num_procedures() as usize,
+            });
+        }
+
+        Ok(Self {
+            mast_forest,
+            exports,
+        })
+    }
+}
+
+impl CompiledLibrary {
+    /// Returns the inner [`MastForest`].
+    pub fn mast_forest(&self) -> &MastForest {
+        &self.mast_forest
+    }
+
+    /// Returns the fully qualified name of all procedures exported by the library.
+    pub fn exports(&self) -> &[FullyQualifiedProcedureName] {
+        &self.exports
+    }
+}
+
+// LIBRARY
+// ===============================================================================================
 
 /// Maximum number of modules in a library.
 const MAX_MODULES: usize = u16::MAX as usize;

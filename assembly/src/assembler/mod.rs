@@ -1,8 +1,10 @@
 use crate::{
     ast::{
         self, FullyQualifiedProcedureName, Instruction, InvocationTarget, InvokeKind, ModuleKind,
+        ProcedureIndex,
     },
     diagnostics::Report,
+    library::CompiledLibrary,
     sema::SemanticAnalysisError,
     AssemblyError, Compile, CompileOptions, Felt, Library, LibraryNamespace, LibraryPath,
     RpoDigest, Spanned, ONE, ZERO,
@@ -41,11 +43,12 @@ use self::module_graph::{CallerInfo, ModuleGraph, ResolvedTarget};
 /// Programs compiled with an empty kernel cannot use the `syscall` instruction.
 /// </div>
 ///
-/// * If you have a single executable module you want to compile, just call [Assembler::assemble].
+/// * If you have a single executable module you want to compile, just call
+///   [Assembler::assemble_program].
 /// * If you want to link your executable to a few other modules that implement supporting
 ///   procedures, build the assembler with them first, using the various builder methods on
 ///   [Assembler], e.g. [Assembler::with_module], [Assembler::with_library], etc. Then, call
-///   [Assembler::assemble] to get your compiled program.
+///   [Assembler::assemble_program] to get your compiled program.
 #[derive(Clone, Default)]
 pub struct Assembler {
     /// The global [ModuleGraph] for this assembler.
@@ -225,6 +228,55 @@ impl Assembler {
 // ------------------------------------------------------------------------------------------------
 /// Compilation/Assembly
 impl Assembler {
+    /// Assembles a set of modules into a library.
+    pub fn assemble_library(
+        mut self,
+        modules: impl Iterator<Item = impl Compile>,
+    ) -> Result<CompiledLibrary, Report> {
+        let module_indices: Vec<ModuleIndex> = modules
+            .map(|module| {
+                let module = module.compile_with_options(CompileOptions::for_library())?;
+
+                Ok(self.module_graph.add_module(module)?)
+            })
+            .collect::<Result<_, Report>>()?;
+        self.module_graph.recompute()?;
+
+        let mut mast_forest_builder = MastForestBuilder::default();
+
+        let exports = {
+            let mut exports = Vec::new();
+
+            for module_idx in module_indices {
+                let module = self.module_graph.get_module(module_idx).unwrap();
+
+                for (proc_idx, procedure) in module.procedures().enumerate() {
+                    // Only add exports; locals will be added if they are in the call graph rooted
+                    // at those procedures
+                    if !procedure.visibility().is_exported() {
+                        continue;
+                    }
+
+                    let gid = GlobalProcedureIndex {
+                        module: module_idx,
+                        index: ProcedureIndex::new(proc_idx),
+                    };
+
+                    self.compile_subgraph(gid, false, &mut mast_forest_builder)?;
+
+                    exports.push(FullyQualifiedProcedureName::new(
+                        module.path().clone(),
+                        procedure.name().clone(),
+                    ));
+                }
+            }
+
+            exports
+        };
+
+        Ok(CompiledLibrary::new(mast_forest_builder.build(), exports)?)
+    }
+
     /// Compiles the provided module into a [`Program`]. The resulting program can be executed on
     /// Miden VM.
     ///
@@ -232,7 +284,7 @@ impl Assembler {
     ///
     /// Returns an error if parsing or compilation of the specified program fails, or if the source
     /// doesn't have an entrypoint.
-    pub fn assemble(self, source: impl Compile) -> Result<Program, Report> {
+    pub fn assemble_program(self, source: impl Compile) -> Result<Program, Report> {
         let opts = CompileOptions {
             warnings_as_errors: self.warnings_as_errors,
             ..CompileOptions::default()

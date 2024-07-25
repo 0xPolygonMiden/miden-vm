@@ -6,7 +6,7 @@ use crate::{
     diagnostics::Report,
     regex, source_file,
     testing::{Pattern, TestContext},
-    Assembler, Library, LibraryNamespace, LibraryPath, MaslLibrary, Version,
+    Assembler, Library, LibraryNamespace, LibraryPath, MaslLibrary, ModuleParser, Version,
 };
 
 type TestResult = Result<(), Report>;
@@ -1495,7 +1495,7 @@ fn program_with_phantom_mast_call() -> TestResult {
     let ast = context.parse_program(source)?;
 
     let assembler = Assembler::default().with_debug_mode(true);
-    assembler.assemble(ast)?;
+    assembler.assemble_program(ast)?;
     Ok(())
 }
 
@@ -2361,6 +2361,53 @@ fn invalid_while() -> TestResult {
         r#" help: expected ".", or primitive opcode (e.g. "add"), or "end", or control flow opcode (e.g. "if.true")"#
     );
     Ok(())
+}
+
+#[test]
+fn test_compiled_library() {
+    let mut mod_parser = ModuleParser::new(ModuleKind::Library);
+    let mod1 = {
+        let source = source_file!(
+            "
+    proc.internal
+        push.5
+    end
+    export.foo
+        push.1
+        drop
+    end
+    export.bar
+        exec.internal
+        drop
+    end
+    "
+        );
+        mod_parser.parse(LibraryPath::new("mylib::mod1").unwrap(), source).unwrap()
+    };
+
+    let mod2 = {
+        let source = source_file!(
+            "
+    export.foo
+        push.7
+        add.5
+    end 
+    # Same definition as mod1::foo
+    export.bar
+        push.1
+        drop
+    end
+    "
+        );
+        mod_parser.parse(LibraryPath::new("mylib::mod2").unwrap(), source).unwrap()
+    };
+
+    let compiled_library = {
+        let assembler = Assembler::new();
+        assembler.assemble_library(vec![mod1, mod2].into_iter()).unwrap()
+    };
+
+    assert_eq!(compiled_library.exports().len(), 4);
 }
 
 // DUMMY LIBRARY
