@@ -177,73 +177,6 @@
                 <div id="content" class="content">
                     <main>
                         <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.4/dist/katex.min.css">
-<style>
-.mdbook-alerts {
-  padding: 8px 16px;
-  margin-bottom: 16px;
-  border-left: 0.25em solid var(--mdbook-alerts-color);
-}
-
-.mdbook-alerts > *:first-child {
-  margin-top: 0;
-}
-
-.mdbook-alerts > *:last-child {
-  margin-bottom: 0;
-}
-
-.mdbook-alerts-title {
-  display: flex;
-  font-weight: 600;
-  align-items: center;
-  line-height: 1;
-  color: var(--mdbook-alerts-color);
-  text-transform: capitalize;
-}
-
-.mdbook-alerts-icon {
-  display: inline-block;
-  width: 1em;
-  height: 1em;
-  margin-right: 0.2em;
-  background-color: currentColor;
-  -webkit-mask: no-repeat center / 100%;
-  mask: no-repeat center / 100%;
-  -webkit-mask-image: var(--mdbook-alerts-icon);
-  mask-image: var(--mdbook-alerts-icon);
-}
-
-.mdbook-alerts-note {
-  --mdbook-alerts-color: rgb(9, 105, 218);
-  /* https://icon-sets.iconify.design/material-symbols/info-outline-rounded/ */
-  --mdbook-alerts-icon: url('data:image/svg+xml,%3Csvg xmlns="http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg" width="24" height="24" viewBox="0 0 24 24"%3E%3Cpath fill="currentColor" d="M12 17q.425 0 .713-.288T13 16v-4q0-.425-.288-.712T12 11q-.425 0-.712.288T11 12v4q0 .425.288.713T12 17m0-8q.425 0 .713-.288T13 8q0-.425-.288-.712T12 7q-.425 0-.712.288T11 8q0 .425.288.713T12 9m0 13q-2.075 0-3.9-.788t-3.175-2.137q-1.35-1.35-2.137-3.175T2 12q0-2.075.788-3.9t2.137-3.175q1.35-1.35 3.175-2.137T12 2q2.075 0 3.9.788t3.175 2.137q1.35 1.35 2.138 3.175T22 12q0 2.075-.788 3.9t-2.137 3.175q-1.35 1.35-3.175 2.138T12 22m0-2q3.35 0 5.675-2.325T20 12q0-3.35-2.325-5.675T12 4Q8.65 4 6.325 6.325T4 12q0 3.35 2.325 5.675T12 20m0-8"%2F%3E%3C%2Fsvg%3E');
-}
-
-.mdbook-alerts-tip {
-  --mdbook-alerts-color: rgb(26, 127, 55);
-  /* https://icon-sets.iconify.design/material-symbols/lightbulb-outline-rounded/ */
-  --mdbook-alerts-icon: url('data:image/svg+xml,%3Csvg xmlns="http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg" width="24" height="24" viewBox="0 0 24 24"%3E%3Cpath fill="currentColor" d="M12 22q-.825 0-1.412-.587T10 20h4q0 .825-.587 1.413T12 22m-3-3q-.425 0-.712-.288T8 18q0-.425.288-.712T9 17h6q.425 0 .713.288T16 18q0 .425-.288.713T15 19zm-.75-3q-1.725-1.025-2.738-2.75T4.5 9.5q0-3.125 2.188-5.312T12 2q3.125 0 5.313 2.188T19.5 9.5q0 2.025-1.012 3.75T15.75 16zm.6-2h6.3q1.125-.8 1.738-1.975T17.5 9.5q0-2.3-1.6-3.9T12 4Q9.7 4 8.1 5.6T6.5 9.5q0 1.35.613 2.525T8.85 14M12 14"%2F%3E%3C%2Fsvg%3E');
-}
-
-.mdbook-alerts-important {
-  --mdbook-alerts-color: rgb(130, 80, 223);
-  /* https://icon-sets.iconify.design/material-symbols/chat-info-outline-rounded/ */
-  --mdbook-alerts-icon: url('data:image/svg+xml,%3Csvg xmlns="http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg" width="24" height="24" viewBox="0 0 24 24"%3E%3Cpath fill="currentColor" d="M12 7q.425 0 .713-.288T13 6q0-.425-.288-.712T12 5q-.425 0-.712.288T11 6q0 .425.288.713T12 7m0 8q.425 0 .713-.288T13 14v-4q0-.425-.288-.712T12 9q-.425 0-.712.288T11 10v4q0 .425.288.713T12 15m-6 3l-2.3 2.3q-.475.475-1.088.213T2 19.575V4q0-.825.588-1.412T4 2h16q.825 0 1.413.588T22 4v12q0 .825-.587 1.413T20 18zm-.85-2H20V4H4v13.125zM4 16V4z"%2F%3E%3C%2Fsvg%3E');
-}
-
-.mdbook-alerts-warning {
-  --mdbook-alerts-color: rgb(154, 103, 0);
-  /* https://icon-sets.iconify.design/material-symbols/warning-outline-rounded/ */
-  --mdbook-alerts-icon: url('data:image/svg+xml,%3Csvg xmlns="http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg" width="24" height="24" viewBox="0 0 24 24"%3E%3Cpath fill="currentColor" d="M2.725 21q-.275 0-.5-.137t-.35-.363q-.125-.225-.137-.488t.137-.512l9.25-16q.15-.25.388-.375T12 3q.25 0 .488.125t.387.375l9.25 16q.15.25.138.513t-.138.487q-.125.225-.35.363t-.5.137zm1.725-2h15.1L12 6zM12 18q.425 0 .713-.288T13 17q0-.425-.288-.712T12 16q-.425 0-.712.288T11 17q0 .425.288.713T12 18m0-3q.425 0 .713-.288T13 14v-3q0-.425-.288-.712T12 10q-.425 0-.712.288T11 11v3q0 .425.288.713T12 15m0-2.5"%2F%3E%3C%2Fsvg%3E');
-}
-
-.mdbook-alerts-caution {
-  --mdbook-alerts-color: rgb(207, 34, 46);
-  /* https://icon-sets.iconify.design/material-symbols/brightness-alert-outline-rounded/ */
-  --mdbook-alerts-icon: url('data:image/svg+xml,%3Csvg xmlns="http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg" width="24" height="24" viewBox="0 0 24 24"%3E%3Cpath fill="currentColor" d="M12 17q.425 0 .713-.288T13 16q0-.425-.288-.712T12 15q-.425 0-.712.288T11 16q0 .425.288.713T12 17m0-4q.425 0 .713-.288T13 12V8q0-.425-.288-.712T12 7q-.425 0-.712.288T11 8v4q0 .425.288.713T12 13m-3.35 7H6q-.825 0-1.412-.587T4 18v-2.65L2.075 13.4q-.275-.3-.425-.662T1.5 12q0-.375.15-.737t.425-.663L4 8.65V6q0-.825.588-1.412T6 4h2.65l1.95-1.925q.3-.275.663-.425T12 1.5q.375 0 .738.15t.662.425L15.35 4H18q.825 0 1.413.588T20 6v2.65l1.925 1.95q.275.3.425.663t.15.737q0 .375-.15.738t-.425.662L20 15.35V18q0 .825-.587 1.413T18 20h-2.65l-1.95 1.925q-.3.275-.662.425T12 22.5q-.375 0-.737-.15t-.663-.425zm.85-2l2.5 2.5l2.5-2.5H18v-3.5l2.5-2.5L18 9.5V6h-3.5L12 3.5L9.5 6H6v3.5L3.5 12L6 14.5V18zm2.5-6"%2F%3E%3C%2Fsvg%3E');
-}
-
-</style>
 <h2 id="code-organization"><a class="header" href="#code-organization">Code organization</a></h2>
 <p>A Miden assembly program is just a sequence of instructions each describing a specific directive or an operation. You can use any combination of whitespace characters to separate one instruction from another.</p>
 <p>In turn, Miden assembly instructions are just keywords which can be parameterized by zero or more parameters. The notation for specifying parameters is <em>keyword.param1.param2</em> - i.e., the parameters are separated by periods. For example, <code>push.123</code> instruction denotes a <code>push</code> operation which is parameterized by value <code>123</code>.</p>
@@ -254,20 +187,20 @@
     &lt;instructions&gt;
 end
 </code></pre>
-<p>A procedure label must start with a letter and can contain any combination of numbers, ASCII letters, and underscores (<code>_</code>). Should you need to represent a label with other characters, an extended set is permitted via quoted identifiers, i.e. an identifier surrounded by <code>".."</code>. Quoted identifiers additionally allow any alphanumeric letter (ASCII or UTF-8), as well as various common punctuation characters: <code>!</code>, <code>?</code>, <code>:</code>, <code>.</code>, <code>&lt;</code>, <code>&gt;</code>, and <code>-</code>. Quoted identifiers are primarily intended for representing symbols/identifiers when compiling higher-level languages to Miden Assembly, but can be used anywhere that normal identifiers are expected.</p>
+<p>A procedure label must start with a letter and can contain any combination of numbers, ASCII letters, and underscores (<code>_</code>). The number of characters in the procedure label cannot exceed 100.</p>
 <p>The number of locals specifies the number of memory-based local words a procedure can access (via <code>loc_load</code>, <code>loc_store</code>, and <a href="./io_operations.html#random-access-memory">other instructions</a>). If a procedure doesn't need any memory-based locals, this parameter can be omitted or set to <code>0</code>. A procedure can have at most <span class="katex"><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.8141em;"></span><span class="mord"><span class="mord">2</span><span class="msupsub"><span class="vlist-t"><span class="vlist-r"><span class="vlist" style="height:0.8141em;"><span style="top:-3.063em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mtight">16</span></span></span></span></span></span></span></span></span></span></span></span> locals, and the total number of locals available to all procedures at runtime is limited to <span class="katex"><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.8141em;"></span><span class="mord"><span class="mord">2</span><span class="msupsub"><span class="vlist-t"><span class="vlist-r"><span class="vlist" style="height:0.8141em;"><span style="top:-3.063em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mtight">30</span></span></span></span></span></span></span></span></span></span></span></span>.</p>
 <p>To execute a procedure, the <code>exec.&lt;label&gt;</code>, <code>call.&lt;label&gt;</code>, and <code>syscall.&lt;label&gt;</code> instructions can be used. For example:</p>
 <pre><code>exec.foo
 </code></pre>
 <p>The difference between using each of these instructions is explained in the <a href="./execution_contexts.html#procedure-invocation-semantics">next section</a>.</p>
-<p>A procedure may execute any other procedure, however recursion is not currently permitted, due to limitations imposed by the Merkalized Abstract Syntax Tree. Recursion is caught by static analysis of the call graph during assembly, so in general you don't need to think about this, but it is a limitation to be aware of. For example, the following code block defines a program with two procedures:</p>
-<pre><code>proc.bar
-    &lt;instructions&gt;
-    exec.foo
+<p>A procedure may execute any other previously defined procedure, but it cannot execute itself or any of the subsequent procedures. Thus, recursive procedure calls are not possible. For example, the following code block defines a program with two procedures:</p>
+<pre><code>proc.foo
     &lt;instructions&gt;
 end
 
-proc.foo
+proc.bar
+    &lt;instructions&gt;
+    exec.foo
     &lt;instructions&gt;
 end
 
@@ -279,19 +212,18 @@ begin
 end
 </code></pre>
 <h4 id="dynamic-procedure-invocation"><a class="header" href="#dynamic-procedure-invocation">Dynamic procedure invocation</a></h4>
-<p>It is also possible to invoke procedures dynamically - i.e., without specifying target procedure labels at compile time. Unlike static procedure invocation, recursion is technically possible using dynamic invocation, but dynamic invocation is more expensive, and has less available operand stack capacity for procedure arguments, as 4 elements are required for the MAST root of the callee. There are two instructions, <code>dynexec</code> and <code>dyncall</code>, which can be used to execute dynamically-specified code targets. Both instructions expect the <a href="../../design/programs.html">MAST root</a> of the target to be provided via the stack. The difference between <code>dynexec</code> and <code>dyncall</code> corresponds to the difference between <code>exec</code> and <code>call</code>, see the documentation on <a href="./execution_contexts.html#procedure-invocation-semantics">procedure invocation semantics</a> for more detail.</p>
-<p>Dynamic code execution in the same context is achieved by setting the top <span class="katex"><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.6444em;"></span><span class="mord">4</span></span></span></span> elements of the stack to the hash of the dynamic code block and then executing the <code>dynexec</code> or <code>dyncall</code> instruction. You can obtain the hash of a procedure in the current program, by name, using the <code>procref</code> instruction. See the following example of pairing the two:</p>
-<pre><code>procref.foo
-dynexec
+<p>It is also possible to invoke procedures dynamically - i.e., without specifying target procedure labels at compile time. There are two instructions, <code>dynexec</code> and <code>dyncall</code>, which can be used to execute dynamically-specified code targets. Both instructions expect <a href="../../design/programs.html">MAST root</a> of the target to be provided via the stack. The difference between <code>dynexec</code> and <code>dyncall</code> is that <code>dyncall</code> will <a href="./execution_contexts.html">change context</a> before executing the dynamic code target, while <code>dynexec</code> will cause the code target to be executed in the current context.</p>
+<p>Dynamic code execution in the same context is achieved by setting the top <span class="katex"><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.6444em;"></span><span class="mord">4</span></span></span></span> elements of the stack to the hash of the dynamic code block and then executing the following instruction:</p>
+<pre><code>dynexec
 </code></pre>
-<p>During assembly, the <code>procref.foo</code> instruction is compiled to a <code>push.HASH</code>, where <code>HASH</code> is the hash of the MAST root of the <code>foo</code> procedure.</p>
-<p>During execution of the <code>dynexec</code> instruction, the VM does the following:</p>
+<p>This causes the VM to do the following:</p>
 <ol>
-<li>Reads, but does not consume, the top 4 elements of the stack to get the hash of the dynamic target (i.e. the operand stack is left unchanged).</li>
-<li>Load the code block referenced by the hash, or trap if no such MAST root is known.</li>
-<li>Execute the loaded code block</li>
+<li>Read the top 4 elements of the stack to get the hash of the dynamic target (leaving the stack unchanged).</li>
+<li>Execute the code block which hashes to the specified target. The VM must know the specified code block and hash: they must be in the CodeBlockTable of the executing Program. Hashes can be put into the CodeBlockTable manually, or by executing <code>call</code>, <code>syscall</code>, or <code>procref</code> instructions.</li>
 </ol>
-<p>The <code>dyncall</code> instruction is used the same way, with the difference that it involves a context switch to a new context when executing the referenced block, and switching back to the calling context once execution of the callee completes.</p>
+<p>Dynamic code execution in a new context can be achieved similarly by setting the top <span class="katex"><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.6444em;"></span><span class="mord">4</span></span></span></span> elements of the stack to the hash of the dynamic code block and then executing the following instruction:</p>
+<pre><code>dyncall
+</code></pre>
 <blockquote>
 <p><strong>Note</strong>: In both cases, the stack is left unchanged. Therefore, if the dynamic code is intended to manipulate the stack, it should start by either dropping or moving the code block hash from the top of the stack.</p>
 </blockquote>
@@ -324,18 +256,7 @@ end
 <p>A program cannot contain any exported procedures.</p>
 <p>When a program is executed, the execution starts at the first instruction following the <code>begin</code> instruction. The main procedure is expected to be the last procedure in the program and can be followed only by comments.</p>
 <h4 id="importing-modules"><a class="header" href="#importing-modules">Importing modules</a></h4>
-<p>To reference items in another module, you must either import the module you wish to use, or specify a fully-qualified path to the item you want to reference.</p>
-<p>To import a module, you must use the <code>use</code> keyword in the top level scope of the current module, as shown below:</p>
-<pre><code>use.std::math::u64
-
-begin
-  ...
-end
-</code></pre>
-<p>In this example, the <code>std::math::u64</code> module is imported as <code>u64</code>, the default "alias" for the imported module. You can specify a different alias like so:</p>
-<pre><code>use.std::math::u64-&gt;bigint
-</code></pre>
-<p>This would alias the imported module as <code>bigint</code> rather than <code>u64</code>. The alias is needed to reference items from the imported module, as shown below:</p>
+<p>To invoke a procedure from an external module, the module first needs to be imported using a <code>use</code> instruction. Once a module is imported, procedures from this module can be invoked via the regular <code>exec</code> or <code>call</code> instructions as <code>exec|call.&lt;module&gt;::&lt;label&gt;</code> where <code>label</code> is the name of the procedure. For example:</p>
 <pre><code>use.std::math::u64
 
 begin
@@ -344,15 +265,17 @@ begin
     exec.u64::wrapping_add
 end
 </code></pre>
-<p>You can also bypass imports entirely, and specify an absolute procedure path, which requires prefixing the path with <code>::</code>. For example:</p>
-<pre><code>begin
-  push.1.0
-  push.2.0
-  exec.::std::math::u64::wrapping_add
+<p>In the above example we import <code>std::math::u64</code> module from the <a href="../stdlib/main.html">standard library</a>. We then execute a program which pushes two 64-bit integers onto the stack, and then invokes a 64-bit addition procedure from the imported module.</p>
+<p>We can also define aliases for imported modules. For example:</p>
+<pre><code>use.std::math::u64-&gt;bigint
+
+begin
+    push.1.0
+    push.2.0
+    exec.bigint::checked_add
 end
 </code></pre>
-<p>In the examples above, we have been referencing the <code>std::math::u64</code> module, which is a module in the <a href="../stdlib/main.html">Miden Standard Library</a>. There are a number of useful modules there, that provide a variety of helpful functionality out of the box.</p>
-<p>If the assembler does not know about the imported modules, assembly will fail. You can register modules with the assembler when instantiating it, either in source form, or precompiled form. See the <a href="https://crates.io/crates/miden-assembly">miden-assembly docs</a> for details. The assembler will use this information to resolve references to imported procedures during assembly.</p>
+<p>The set of modules which can be imported by a program can be specified via a Module Provider when instantiating the <a href="https://crates.io/crates/miden-assembly">Miden Assembler</a> used to compile the program.</p>
 <h4 id="re-exporting-procedures"><a class="header" href="#re-exporting-procedures">Re-exporting procedures</a></h4>
 <p>A procedure defined in one module can be re-exported from a different module under the same or a different name. For example:</p>
 <pre><code>use.std::math::u64
@@ -364,16 +287,9 @@ export.foo
     &lt;instructions&gt;
 end
 </code></pre>
-<p>In the module shown above, not only is the locally-defined procedure <code>foo</code> exported, but so are two procedures named <code>add</code> and <code>mul64</code>, whose implementations are defined in the <code>std::math::u64</code> module.</p>
-<p>Similar to procedure invocation, you can bypass the explicit import by specifying an absolute path, like so:</p>
-<pre><code>export.::std::math::u64::mul-&gt;mul64
-</code></pre>
-<p>Additionally, you may re-export a procedure using its MAST root, so long as you specify an alias:</p>
-<pre><code>export.0x0000..0000-&gt;mul64
-</code></pre>
-<p>In all of the forms described above, the actual implementation of the re-exported procedure is defined externally. Other modules which reference the re-exported procedure, will have those references resolved to the original procedure during assembly.</p>
+<p>In addition to the locally-defined procedure <code>foo</code>, the above module also exports procedures <code>add</code> and <code>mul64</code> implementations of which will be identical to <code>add</code> and <code>mul</code> procedures from the <code>std::math::u64</code> module respectively.</p>
 <h3 id="constants"><a class="header" href="#constants">Constants</a></h3>
-<p>Miden assembly supports constant declarations. These constants are scoped to the module they are defined in and can be used as immediate parameters for Miden assembly instructions. Constants are supported as immediate values for many of the instructions in the Miden Assembly instruction set, see the documentation for specific instructions to determine whether or not it provides a form which accepts immediate operands.</p>
+<p>Miden assembly supports constant declarations. These constants are scoped to the module they are defined in and can be used as immediate parameters for Miden assembly instructions. Constants are supported as immediate values for the following instructions: <code>push</code>, <code>assert</code>, <code>assertz</code>, <code>asert_eq</code>, <code>assert_eqw</code>, <code>locaddr</code>, <code>loc_load</code>, <code>loc_loadw</code>, <code>loc_store</code>, <code>loc_storew</code>, <code>mem_load</code>, <code>mem_loadw</code>, <code>mem_store</code>, <code>mem_storew</code>.</p>
 <p>Constants must be declared right after module imports and before any procedures or program bodies. A constant's name must start with an upper-case letter and can contain any combination of numbers, upper-case ASCII letters, and underscores (<code>_</code>). The number of characters in a constant name cannot exceed 100.</p>
 <p>A constant's value must be in a decimal or hexidecimal form and be in the range between <span class="katex"><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.6444em;"></span><span class="mord">0</span></span></span></span> and <span class="katex"><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.8974em;vertical-align:-0.0833em;"></span><span class="mord"><span class="mord">2</span><span class="msupsub"><span class="vlist-t"><span class="vlist-r"><span class="vlist" style="height:0.8141em;"><span style="top:-3.063em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mtight">64</span></span></span></span></span></span></span></span></span><span class="mspace" style="margin-right:0.2222em;"></span><span class="mbin">−</span><span class="mspace" style="margin-right:0.2222em;"></span></span><span class="base"><span class="strut" style="height:0.8141em;"></span><span class="mord"><span class="mord">2</span><span class="msupsub"><span class="vlist-t"><span class="vlist-r"><span class="vlist" style="height:0.8141em;"><span style="top:-3.063em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mtight">32</span></span></span></span></span></span></span></span></span></span></span></span> (both inclusive). Value can be defined by an arithmetic expression using <code>+</code>, <code>-</code>, <code>*</code>, <code>/</code>, <code>//</code>, <code>(</code>, <code>)</code> operators and references to the previously defined constants if it uses only decimal numbers. Here <code>/</code> is a field division and <code>//</code> is an integer division. Note that the arithmetic expression cannot contain spaces.</p>
 <pre><code>use.std::math::u64
