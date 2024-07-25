@@ -245,18 +245,8 @@ impl ModuleGraph {
         &self.kernel
     }
 
-    #[allow(unused)]
-    pub fn kernel_index(&self) -> Option<ModuleIndex> {
-        self.kernel_index
-    }
-
     pub fn has_nonempty_kernel(&self) -> bool {
         self.kernel_index.is_some() || !self.kernel.is_empty()
-    }
-
-    #[allow(unused)]
-    pub fn is_kernel_procedure_root(&self, digest: &RpoDigest) -> bool {
-        self.kernel.contains_proc(*digest)
     }
 }
 
@@ -494,11 +484,6 @@ impl ModuleGraph {
         self.roots.get(digest).map(|indices| indices[0])
     }
 
-    #[allow(unused)]
-    pub fn callees(&self, gid: GlobalProcedureIndex) -> &[GlobalProcedureIndex] {
-        self.callgraph.out_edges(gid)
-    }
-
     /// Resolves `target` from the perspective of `caller`.
     pub fn resolve_target(
         &self,
@@ -584,21 +569,6 @@ impl ModuleGraph {
     /// Resolve a [LibraryPath] to a [Module] in this graph
     pub fn find_module(&self, name: &LibraryPath) -> Option<WrappedModule> {
         self.modules.iter().find(|m| m.path() == name).cloned()
-    }
-
-    /// Returns an iterator over the set of [Module]s in this graph, and their indices
-    #[allow(unused)]
-    pub fn modules(&self) -> impl Iterator<Item = (ModuleIndex, WrappedModule)> + '_ {
-        self.modules
-            .iter()
-            .enumerate()
-            .map(|(idx, m)| (ModuleIndex::new(idx), m.clone()))
-    }
-
-    /// Like [modules], but returns a reference to the module, rather than an owned pointer
-    #[allow(unused)]
-    pub fn modules_by_ref(&self) -> impl Iterator<Item = (ModuleIndex, &WrappedModule)> + '_ {
-        self.modules.iter().enumerate().map(|(idx, m)| (ModuleIndex::new(idx), m))
     }
 }
 
