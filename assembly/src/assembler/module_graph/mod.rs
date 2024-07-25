@@ -471,7 +471,7 @@ impl ModuleGraph {
         &self,
         caller: GlobalProcedureIndex,
     ) -> Result<Vec<GlobalProcedureIndex>, CycleError> {
-        Ok(self.callgraph.toposort_caller(caller)?)
+        self.callgraph.toposort_caller(caller)
     }
 
     /// Fetch a [Module] by [ModuleIndex]
