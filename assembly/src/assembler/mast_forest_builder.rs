@@ -168,7 +168,8 @@ impl MastForestBuilder {
         left_child: MastNodeId,
         right_child: MastNodeId,
     ) -> Result<MastNodeId, AssemblyError> {
-        self.ensure_node(MastNode::new_join(left_child, right_child, &self.mast_forest))
+        let join = MastNode::new_join(left_child, right_child, &self.mast_forest)?;
+        self.ensure_node(join)
     }
 
     /// Adds a split node to the forest, and returns the [`MastNodeId`] associated with it.
@@ -177,22 +178,26 @@ impl MastForestBuilder {
         if_branch: MastNodeId,
         else_branch: MastNodeId,
     ) -> Result<MastNodeId, AssemblyError> {
-        self.ensure_node(MastNode::new_split(if_branch, else_branch, &self.mast_forest))
+        let split = MastNode::new_split(if_branch, else_branch, &self.mast_forest)?;
+        self.ensure_node(split)
     }
 
     /// Adds a loop node to the forest, and returns the [`MastNodeId`] associated with it.
     pub fn ensure_loop(&mut self, body: MastNodeId) -> Result<MastNodeId, AssemblyError> {
-        self.ensure_node(MastNode::new_loop(body, &self.mast_forest))
+        let loop_node = MastNode::new_loop(body, &self.mast_forest)?;
+        self.ensure_node(loop_node)
     }
 
     /// Adds a call node to the forest, and returns the [`MastNodeId`] associated with it.
     pub fn ensure_call(&mut self, callee: MastNodeId) -> Result<MastNodeId, AssemblyError> {
-        self.ensure_node(MastNode::new_call(callee, &self.mast_forest))
+        let call = MastNode::new_call(callee, &self.mast_forest)?;
+        self.ensure_node(call)
     }
 
     /// Adds a syscall node to the forest, and returns the [`MastNodeId`] associated with it.
     pub fn ensure_syscall(&mut self, callee: MastNodeId) -> Result<MastNodeId, AssemblyError> {
-        self.ensure_node(MastNode::new_syscall(callee, &self.mast_forest))
+        let syscall = MastNode::new_syscall(callee, &self.mast_forest)?;
+        self.ensure_node(syscall)
     }
 
     /// Adds a dyn node to the forest, and returns the [`MastNodeId`] associated with it.

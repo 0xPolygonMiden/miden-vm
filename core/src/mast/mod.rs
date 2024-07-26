@@ -82,11 +82,8 @@ impl MastForest {
         left_child: MastNodeId,
         right_child: MastNodeId,
     ) -> Result<MastNodeId, MastForestError> {
-        match self.add_node(MastNode::new_join(left_child, right_child, self))? {
-            new if new <= left_child => Err(MastForestError::InvalidNodeId(left_child)),
-            new if new <= right_child => Err(MastForestError::InvalidNodeId(right_child)),
-            new => Ok(new),
-        }
+        let join = MastNode::new_join(left_child, right_child, self)?;
+        self.add_node(join)
     }
 
     /// Adds a split node to the forest, and returns the [`MastNodeId`] associated with it.
@@ -95,35 +92,26 @@ impl MastForest {
         if_branch: MastNodeId,
         else_branch: MastNodeId,
     ) -> Result<MastNodeId, MastForestError> {
-        match self.add_node(MastNode::new_split(if_branch, else_branch, self))? {
-            new if new <= if_branch => Err(MastForestError::InvalidNodeId(if_branch)),
-            new if new <= else_branch => Err(MastForestError::InvalidNodeId(else_branch)),
-            new => Ok(new),
-        }
+        let split = MastNode::new_split(if_branch, else_branch, self)?;
+        self.add_node(split)
     }
 
     /// Adds a loop node to the forest, and returns the [`MastNodeId`] associated with it.
     pub fn add_loop(&mut self, body: MastNodeId) -> Result<MastNodeId, MastForestError> {
-        match self.add_node(MastNode::new_loop(body, self))? {
-            new if new <= body => Err(MastForestError::InvalidNodeId(body)),
-            new => Ok(new),
-        }
+        let loop_node = MastNode::new_loop(body, self)?;
+        self.add_node(loop_node)
     }
 
     /// Adds a call node to the forest, and returns the [`MastNodeId`] associated with it.
     pub fn add_call(&mut self, callee: MastNodeId) -> Result<MastNodeId, MastForestError> {
-        match self.add_node(MastNode::new_call(callee, self))? {
-            new if new <= callee => Err(MastForestError::InvalidNodeId(callee)),
-            new => Ok(new),
-        }
+        let call = MastNode::new_call(callee, self)?;
+        self.add_node(call)
     }
 
     /// Adds a syscall node to the forest, and returns the [`MastNodeId`] associated with it.
     pub fn add_syscall(&mut self, callee: MastNodeId) -> Result<MastNodeId, MastForestError> {
-        match self.add_node(MastNode::new_syscall(callee, self))? {
-            new if new <= callee => Err(MastForestError::InvalidNodeId(callee)),
-            new => Ok(new),
-        }
+        let syscall = MastNode::new_syscall(callee, self)?;
+        self.add_node(syscall)
     }
 
     /// Adds a dyn node to the forest, and returns the [`MastNodeId`] associated with it.
@@ -233,6 +221,12 @@ impl MastNodeId {
     }
 }
 
+impl From<MastNodeId> for usize {
+    fn from(value: MastNodeId) -> Self {
+        value.0 as usize
+    }
+}
+
 impl From<MastNodeId> for u32 {
     fn from(value: MastNodeId) -> Self {
         value.0
@@ -262,6 +256,6 @@ pub enum MastForestError {
         MastForest::MAX_NODES
     )]
     TooManyNodes,
-    #[error("invalid node id: {0}")]
-    InvalidNodeId(MastNodeId),
+    #[error("node id: {0} is greater than or equal to forest length: {1}")]
+    NodeIdOverflow(MastNodeId, usize),
 }

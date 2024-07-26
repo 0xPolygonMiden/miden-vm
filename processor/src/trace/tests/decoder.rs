@@ -363,7 +363,7 @@ fn decoder_p2_join() {
     let basic_block_2 = MastNode::new_basic_block(vec![Operation::Add]);
     let basic_block_2_id = mast_forest.add_node(basic_block_2.clone()).unwrap();
 
-    let join = MastNode::new_join(basic_block_1_id, basic_block_2_id, &mast_forest);
+    let join = MastNode::new_join(basic_block_1_id, basic_block_2_id, &mast_forest).unwrap();
     let join_id = mast_forest.add_node(join.clone()).unwrap();
 
     let program = Program::new(mast_forest, join_id);
@@ -537,7 +537,7 @@ fn decoder_p2_loop_with_repeat() {
     let basic_block_2 = MastNode::new_basic_block(vec![Operation::Drop]);
     let basic_block_2_id = mast_forest.add_node(basic_block_2.clone()).unwrap();
 
-    let join = MastNode::new_join(basic_block_1_id, basic_block_2_id, &mast_forest);
+    let join = MastNode::new_join(basic_block_1_id, basic_block_2_id, &mast_forest).unwrap();
     let join_id = mast_forest.add_node(join.clone()).unwrap();
 
     let loop_node_id = mast_forest.add_loop(join_id).unwrap();

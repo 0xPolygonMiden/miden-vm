@@ -51,7 +51,12 @@ impl MastNodeInfo {
                 let left_child = MastNodeId::from_u32_safe(left_child_id, mast_forest)?;
                 let right_child = MastNodeId::from_u32_safe(right_child_id, mast_forest)?;
 
-                Ok(MastNode::new_join(left_child, right_child, mast_forest))
+                MastNode::new_join(left_child, right_child, mast_forest).map_err(|e| {
+                    DeserializationError::InvalidValue(format!(
+                        "Failed to deserialize Join node: {}",
+                        e
+                    ))
+                })
             }
             MastNodeType::Split {
                 if_branch_id,
@@ -60,22 +65,38 @@ impl MastNodeInfo {
                 let if_branch = MastNodeId::from_u32_safe(if_branch_id, mast_forest)?;
                 let else_branch = MastNodeId::from_u32_safe(else_branch_id, mast_forest)?;
 
-                Ok(MastNode::new_split(if_branch, else_branch, mast_forest))
+                MastNode::new_split(if_branch, else_branch, mast_forest).map_err(|e| {
+                    DeserializationError::InvalidValue(format!(
+                        "Failed to deserialize Split node: {e}"
+                    ))
+                })
             }
             MastNodeType::Loop { body_id } => {
                 let body_id = MastNodeId::from_u32_safe(body_id, mast_forest)?;
 
-                Ok(MastNode::new_loop(body_id, mast_forest))
+                MastNode::new_loop(body_id, mast_forest).map_err(|e| {
+                    DeserializationError::InvalidValue(format!(
+                        "Failed to deserialize Loop node: {e}"
+                    ))
+                })
             }
             MastNodeType::Call { callee_id } => {
                 let callee_id = MastNodeId::from_u32_safe(callee_id, mast_forest)?;
 
-                Ok(MastNode::new_call(callee_id, mast_forest))
+                MastNode::new_call(callee_id, mast_forest).map_err(|e| {
+                    DeserializationError::InvalidValue(format!(
+                        "Failed to deserialize Call node: {e}"
+                    ))
+                })
             }
             MastNodeType::SysCall { callee_id } => {
                 let callee_id = MastNodeId::from_u32_safe(callee_id, mast_forest)?;
 
-                Ok(MastNode::new_syscall(callee_id, mast_forest))
+                MastNode::new_syscall(callee_id, mast_forest).map_err(|e| {
+                    DeserializationError::InvalidValue(format!(
+                        "Failed to deserialize SysCall node: {e}"
+                    ))
+                })
             }
             MastNodeType::Dyn => Ok(MastNode::new_dyn()),
             MastNodeType::External => Ok(MastNode::new_external(self.digest)),

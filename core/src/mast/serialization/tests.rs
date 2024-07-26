@@ -339,22 +339,22 @@ fn mast_forest_invalid_node_id() {
 
     // Attempt to join with invalid ids
     let join = forest.add_join(overflow, second);
-    assert_eq!(join, Err(MastForestError::InvalidNodeId(overflow)));
+    assert_eq!(join, Err(MastForestError::NodeIdOverflow(overflow, 2)));
     let join = forest.add_join(first, overflow);
-    assert_eq!(join, Err(MastForestError::InvalidNodeId(overflow)));
+    assert_eq!(join, Err(MastForestError::NodeIdOverflow(overflow, 2)));
 
     // Attempt to split with invalid ids
     let split = forest.add_split(overflow, second);
-    assert_eq!(split, Err(MastForestError::InvalidNodeId(overflow)));
+    assert_eq!(split, Err(MastForestError::NodeIdOverflow(overflow, 2)));
     let split = forest.add_split(first, overflow);
-    assert_eq!(split, Err(MastForestError::InvalidNodeId(overflow)));
+    assert_eq!(split, Err(MastForestError::NodeIdOverflow(overflow, 2)));
 
     // Attempt to loop with invalid ids
-    assert_eq!(forest.add_loop(overflow), Err(MastForestError::InvalidNodeId(overflow)));
+    assert_eq!(forest.add_loop(overflow), Err(MastForestError::NodeIdOverflow(overflow, 2)));
 
     // Attempt to call with invalid ids
-    assert_eq!(forest.add_call(overflow), Err(MastForestError::InvalidNodeId(overflow)));
-    assert_eq!(forest.add_syscall(overflow), Err(MastForestError::InvalidNodeId(overflow)));
+    assert_eq!(forest.add_call(overflow), Err(MastForestError::NodeIdOverflow(overflow, 2)));
+    assert_eq!(forest.add_syscall(overflow), Err(MastForestError::NodeIdOverflow(overflow, 2)));
 
     // Validate normal operations
     forest.add_join(first, second).unwrap();
