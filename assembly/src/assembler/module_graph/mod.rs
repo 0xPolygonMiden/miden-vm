@@ -164,6 +164,32 @@ pub struct ModuleGraph {
 // ------------------------------------------------------------------------------------------------
 /// Constructors
 impl ModuleGraph {
+    /// Adds all module infos to the graph.
+    pub fn add_compiled_modules(
+        &mut self,
+        module_infos: impl Iterator<Item = ModuleInfo>,
+    ) -> Result<(), AssemblyError> {
+        let module_indices: Vec<ModuleIndex> = module_infos
+            .map(|module| self.add_module_info(module))
+            .collect::<Result<_, _>>()?;
+
+        self.recompute()?;
+
+        // Register all procedures as roots
+        for module_index in module_indices {
+            for (proc_index, proc) in self[module_index].unwrap_info().clone().procedure_infos() {
+                let gid = GlobalProcedureIndex {
+                    module: module_index,
+                    index: proc_index,
+                };
+
+                self.register_mast_root(gid, proc.digest)?;
+            }
+        }
+
+        Ok(())
+    }
+
     /// Add `module` to the graph.
     ///
     /// NOTE: This operation only adds a module to the graph, but does not perform the

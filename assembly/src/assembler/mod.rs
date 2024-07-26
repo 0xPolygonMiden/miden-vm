@@ -147,28 +147,9 @@ impl Assembler {
 
     /// Adds the compiled library to provide modules for the compilation.
     pub fn add_compiled_library(&mut self, library: CompiledLibrary) -> Result<(), Report> {
-        let module_indexes: Vec<ModuleIndex> = library
-            .into_module_infos()
-            .map(|module| self.module_graph.add_module_info(module))
-            .collect::<Result<_, _>>()?;
-
-        self.module_graph.recompute()?;
-
-        // Register all procedures as roots
-        for module_index in module_indexes {
-            for (proc_index, proc) in
-                self.module_graph[module_index].unwrap_info().clone().procedure_infos()
-            {
-                let gid = GlobalProcedureIndex {
-                    module: module_index,
-                    index: proc_index,
-                };
-
-                self.module_graph.register_mast_root(gid, proc.digest)?;
-            }
-        }
-
-        Ok(())
+        self.module_graph
+            .add_compiled_modules(library.into_module_infos())
+            .map_err(Report::from)
     }
 
     /// Adds the library to provide modules for the compilation.
