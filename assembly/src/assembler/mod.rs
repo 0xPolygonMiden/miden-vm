@@ -10,7 +10,7 @@ use crate::{
 };
 use alloc::{sync::Arc, vec::Vec};
 use mast_forest_builder::MastForestBuilder;
-use module_graph::ProcedureWrapper;
+use module_graph::{ProcedureWrapper, WrappedModule};
 use vm_core::{mast::MastNodeId, Decorator, DecoratorList, Felt, Kernel, Operation, Program};
 
 mod basic_block_builder;
@@ -259,7 +259,7 @@ impl Assembler {
         mut self,
         modules: impl Iterator<Item = impl Compile>,
     ) -> Result<CompiledLibrary, Report> {
-        let module_indices: Vec<ModuleIndex> = modules
+        let ast_module_indices: Vec<ModuleIndex> = modules
             .map(|module| {
                 let module = module.compile_with_options(CompileOptions::for_library())?;
 
@@ -273,10 +273,12 @@ impl Assembler {
         let exports = {
             let mut exports = Vec::new();
 
-            for module_idx in module_indices {
-                let module = self.module_graph[module_idx].unwrap_ast().clone();
+            for ast_module_idx in ast_module_indices {
+                // Note: it is safe to use `unwrap_ast()` here, since all modules looped over are
+                // AST (we just added them to the module graph)
+                let ast_module = self.module_graph[ast_module_idx].unwrap_ast().clone();
 
-                for (proc_idx, procedure) in module.procedures().enumerate() {
+                for (proc_idx, procedure) in ast_module.procedures().enumerate() {
                     // Only add exports; locals will be added if they are in the call graph rooted
                     // at those procedures
                     if !procedure.visibility().is_exported() {
@@ -284,14 +286,14 @@ impl Assembler {
                     }
 
                     let gid = GlobalProcedureIndex {
-                        module: module_idx,
+                        module: ast_module_idx,
                         index: ProcedureIndex::new(proc_idx),
                     };
 
                     self.compile_subgraph(gid, false, &mut mast_forest_builder)?;
 
                     exports.push(FullyQualifiedProcedureName::new(
-                        module.path().clone(),
+                        ast_module.path().clone(),
                         procedure.name().clone(),
                     ));
                 }
@@ -349,15 +351,16 @@ impl Assembler {
         assert!(program.is_executable());
 
         // Recompute graph with executable module, and start compiling
-        let module_index = self.module_graph.add_ast_module(program)?;
+        let ast_module_index = self.module_graph.add_ast_module(program)?;
         self.module_graph.recompute()?;
 
-        // Find the executable entrypoint
-        let entrypoint = self.module_graph[module_index]
+        // Find the executable entrypoint Note: it is safe to use `unwrap_ast()` here, since this is
+        // the module we just added, which is in AST representation.
+        let entrypoint = self.module_graph[ast_module_index]
             .unwrap_ast()
             .index_of(|p| p.is_main())
             .map(|index| GlobalProcedureIndex {
-                module: module_index,
+                module: ast_module_index,
                 index,
             })
             .ok_or(SemanticAnalysisError::MissingEntrypoint)?;
@@ -427,6 +430,7 @@ impl Assembler {
         Ok(compiled.expect("compilation succeeded but root not found in cache"))
     }
 
+    /// Compiles all procedures in the `worklist`.
     fn process_graph_worklist(
         &mut self,
         worklist: &mut Vec<GlobalProcedureIndex>,
@@ -445,7 +449,12 @@ impl Assembler {
             let is_entry = entrypoint == Some(procedure_gid);
 
             // Fetch procedure metadata from the graph
-            let module = &self.module_graph[procedure_gid.module].unwrap_ast();
+            let module = match &self.module_graph[procedure_gid.module] {
+                WrappedModule::Ast(ast_module) => ast_module,
+                // Note: if the containing module is in `Info` representation, there is nothing to
+                // compile.
+                WrappedModule::Info(_) => continue,
+            };
             let ast = &module[procedure_gid.index];
             let num_locals = ast.num_locals();
             let name = FullyQualifiedProcedureName {
