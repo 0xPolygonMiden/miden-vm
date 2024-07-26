@@ -449,7 +449,10 @@ impl<'a> NameResolver<'a> {
         if module_index >= pending_offset {
             self.pending[module_index - pending_offset].source_file.clone()
         } else {
-            self.graph[module].unwrap_ast().source_file()
+            match &self.graph[module] {
+                WrappedModule::Ast(module) => module.source_file(),
+                WrappedModule::Info(_) => None,
+            }
         }
     }
 
