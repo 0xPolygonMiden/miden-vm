@@ -170,7 +170,7 @@ impl ModuleGraph {
         module_infos: impl Iterator<Item = ModuleInfo>,
     ) -> Result<(), AssemblyError> {
         let module_indices: Vec<ModuleIndex> = module_infos
-            .map(|module| self.add_module_info(module))
+            .map(|module| self.add_module(PendingWrappedModule::Info(module)))
             .collect::<Result<_, _>>()?;
 
         self.recompute()?;
@@ -209,30 +209,6 @@ impl ModuleGraph {
     /// [ModuleIndex] value, `u16::MAX`.
     pub fn add_ast_module(&mut self, module: Box<Module>) -> Result<ModuleIndex, AssemblyError> {
         self.add_module(PendingWrappedModule::Ast(module))
-    }
-
-    /// Add the [`ModuleInfo`] to the graph.
-    ///
-    /// NOTE: This operation only adds a module to the graph, but does not perform the important
-    /// analysis needed for compilation, you must call [`Self::recompute`] once all modules are
-    /// added to ensure the analysis results reflect the current version of the graph.
-    ///
-    /// # Errors
-    ///
-    /// This operation can fail for the following reasons:
-    ///
-    /// * Module with same [LibraryPath] is in the graph already
-    /// * Too many modules in the graph
-    ///
-    /// # Panics
-    ///
-    /// This function will panic if the number of modules exceeds the maximum representable
-    /// [ModuleIndex] value, `u16::MAX`.
-    pub fn add_module_info(
-        &mut self,
-        module_info: ModuleInfo,
-    ) -> Result<ModuleIndex, AssemblyError> {
-        self.add_module(PendingWrappedModule::Info(module_info))
     }
 
     fn add_module(&mut self, module: PendingWrappedModule) -> Result<ModuleIndex, AssemblyError> {
