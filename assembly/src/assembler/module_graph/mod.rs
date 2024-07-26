@@ -121,12 +121,12 @@ impl WrappedModule {
 
 /// Wraps modules that are pending in the [`ModuleGraph`].
 #[derive(Clone)]
-pub enum PendingModuleWrapper {
+pub enum PendingWrappedModule {
     Ast(Box<Module>),
     Info(ModuleInfo),
 }
 
-impl PendingModuleWrapper {
+impl PendingWrappedModule {
     /// Returns the library path of the wrapped module.
     pub fn path(&self) -> &LibraryPath {
         match self {
@@ -150,7 +150,7 @@ pub struct ModuleGraph {
     ///
     /// Once added to the graph, modules become immutable, and any additional modules added after
     /// that must by definition only depend on modules in the graph, and not be depended upon.
-    pending: Vec<PendingModuleWrapper>,
+    pending: Vec<PendingWrappedModule>,
     /// The global call graph of calls, not counting those that are performed directly via MAST
     /// root.
     callgraph: CallGraph,
@@ -182,7 +182,7 @@ impl ModuleGraph {
     /// This function will panic if the number of modules exceeds the maximum representable
     /// [ModuleIndex] value, `u16::MAX`.
     pub fn add_ast_module(&mut self, module: Box<Module>) -> Result<ModuleIndex, AssemblyError> {
-        self.add_module(PendingModuleWrapper::Ast(module))
+        self.add_module(PendingWrappedModule::Ast(module))
     }
 
     /// Add the [`ModuleInfo`] to the graph.
@@ -206,10 +206,10 @@ impl ModuleGraph {
         &mut self,
         module_info: ModuleInfo,
     ) -> Result<ModuleIndex, AssemblyError> {
-        self.add_module(PendingModuleWrapper::Info(module_info))
+        self.add_module(PendingWrappedModule::Info(module_info))
     }
 
-    fn add_module(&mut self, module: PendingModuleWrapper) -> Result<ModuleIndex, AssemblyError> {
+    fn add_module(&mut self, module: PendingWrappedModule) -> Result<ModuleIndex, AssemblyError> {
         let is_duplicate =
             self.is_pending(module.path()) || self.find_module_index(module.path()).is_some();
         if is_duplicate {
@@ -313,7 +313,7 @@ impl ModuleGraph {
 
             // Apply module to call graph
             match pending_module {
-                PendingModuleWrapper::Ast(pending_module) => {
+                PendingWrappedModule::Ast(pending_module) => {
                     for (index, procedure) in pending_module.procedures().enumerate() {
                         let procedure_id = ProcedureIndex::new(index);
                         let global_id = GlobalProcedureIndex {
@@ -329,7 +329,7 @@ impl ModuleGraph {
                         }
                     }
                 }
-                PendingModuleWrapper::Info(pending_module) => {
+                PendingWrappedModule::Info(pending_module) => {
                     for (proc_index, _procedure) in pending_module.procedure_infos() {
                         let global_id = GlobalProcedureIndex {
                             module: module_id,
@@ -345,7 +345,7 @@ impl ModuleGraph {
         // before they are added to the graph
         let mut resolver = NameResolver::new(self);
         for module in pending.iter() {
-            if let PendingModuleWrapper::Ast(module) = module {
+            if let PendingWrappedModule::Ast(module) = module {
                 resolver.push_pending(module);
             }
         }
@@ -355,7 +355,7 @@ impl ModuleGraph {
         // Visit all of the newly-added modules and perform any rewrites to AST modules.
         for (pending_index, module) in pending.into_iter().enumerate() {
             match module {
-                PendingModuleWrapper::Ast(mut ast_module) => {
+                PendingWrappedModule::Ast(mut ast_module) => {
                     let module_id = ModuleIndex::new(high_water_mark + pending_index);
 
                     let mut rewriter = ModuleRewriter::new(&resolver);
@@ -385,7 +385,7 @@ impl ModuleGraph {
 
                     finished.push(WrappedModule::Ast(Arc::new(*ast_module)))
                 }
-                PendingModuleWrapper::Info(module) => {
+                PendingWrappedModule::Info(module) => {
                     finished.push(WrappedModule::Info(module));
                 }
             }
