@@ -5,10 +5,7 @@ use super::{
 use crate::{AdviceInputs, DefaultHost, ExecutionOptions, MemAdviceProvider, StackInputs};
 use alloc::vec::Vec;
 use test_utils::rand::rand_array;
-use vm_core::{
-    mast::{MastForest, MastNode},
-    Kernel, Operation, Program, StackOutputs, Word, ONE, ZERO,
-};
+use vm_core::{mast::MastForest, Kernel, Operation, Program, StackOutputs, Word, ONE, ZERO};
 
 mod chiplets;
 mod decoder;
@@ -34,8 +31,7 @@ pub fn build_trace_from_program(program: &Program, stack_inputs: &[u64]) -> Exec
 pub fn build_trace_from_ops(operations: Vec<Operation>, stack: &[u64]) -> ExecutionTrace {
     let mut mast_forest = MastForest::new();
 
-    let basic_block = MastNode::new_basic_block(operations);
-    let basic_block_id = mast_forest.add_node(basic_block).unwrap();
+    let basic_block_id = mast_forest.add_block(operations, None).unwrap();
 
     let program = Program::new(mast_forest, basic_block_id);
 
@@ -56,8 +52,7 @@ pub fn build_trace_from_ops_with_inputs(
         Process::new(Kernel::default(), stack_inputs, host, ExecutionOptions::default());
 
     let mut mast_forest = MastForest::new();
-    let basic_block = MastNode::new_basic_block(operations);
-    let basic_block_id = mast_forest.add_node(basic_block).unwrap();
+    let basic_block_id = mast_forest.add_block(operations, None).unwrap();
 
     let program = Program::new(mast_forest, basic_block_id);
 

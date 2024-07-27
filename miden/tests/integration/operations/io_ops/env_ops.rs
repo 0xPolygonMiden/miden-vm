@@ -162,10 +162,9 @@ fn caller() {
 fn build_bar_hash() -> [u64; 4] {
     let mut mast_forest = MastForest::new();
 
-    let foo_root = MastNode::new_basic_block(vec![Operation::Caller]);
-    let foo_root_id = mast_forest.add_node(foo_root).unwrap();
+    let foo_root_id = mast_forest.add_block(vec![Operation::Caller], None).unwrap();
 
-    let bar_root = MastNode::new_syscall(foo_root_id, &mast_forest);
+    let bar_root = MastNode::new_syscall(foo_root_id, &mast_forest).unwrap();
     let bar_hash: Word = bar_root.digest().into();
     [
         bar_hash[0].as_int(),

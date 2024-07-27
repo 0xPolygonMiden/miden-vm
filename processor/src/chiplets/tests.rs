@@ -12,10 +12,7 @@ use miden_air::trace::{
     },
     CHIPLETS_RANGE, CHIPLETS_WIDTH,
 };
-use vm_core::{
-    mast::{MastForest, MastNode},
-    Felt, Program, ONE, ZERO,
-};
+use vm_core::{mast::MastForest, Felt, Program, ONE, ZERO};
 
 type ChipletsTrace = [Vec<Felt>; CHIPLETS_WIDTH];
 
@@ -119,8 +116,7 @@ fn build_trace(
     let program = {
         let mut mast_forest = MastForest::new();
 
-        let basic_block = MastNode::new_basic_block(operations);
-        let basic_block_id = mast_forest.add_node(basic_block).unwrap();
+        let basic_block_id = mast_forest.add_block(operations, None).unwrap();
 
         Program::new(mast_forest, basic_block_id)
     };

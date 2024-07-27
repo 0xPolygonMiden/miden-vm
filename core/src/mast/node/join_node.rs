@@ -4,7 +4,7 @@ use miden_crypto::{hash::rpo::RpoDigest, Felt};
 
 use crate::{
     chiplets::hasher,
-    mast::{MastForest, MastNodeId},
+    mast::{MastForest, MastForestError, MastNodeId},
     prettier::PrettyPrint,
     OPCODE_JOIN,
 };
@@ -29,7 +29,16 @@ impl JoinNode {
 /// Constructors
 impl JoinNode {
     /// Returns a new [`JoinNode`] instantiated with the specified children nodes.
-    pub fn new(children: [MastNodeId; 2], mast_forest: &MastForest) -> Self {
+    pub fn new(
+        children: [MastNodeId; 2],
+        mast_forest: &MastForest,
+    ) -> Result<Self, MastForestError> {
+        let forest_len = mast_forest.nodes.len();
+        if usize::from(children[0]) >= forest_len {
+            return Err(MastForestError::NodeIdOverflow(children[0], forest_len));
+        } else if usize::from(children[1]) >= forest_len {
+            return Err(MastForestError::NodeIdOverflow(children[1], forest_len));
+        }
         let digest = {
             let left_child_hash = mast_forest[children[0]].digest();
             let right_child_hash = mast_forest[children[1]].digest();
@@ -37,7 +46,7 @@ impl JoinNode {
             hasher::merge_in_domain(&[left_child_hash, right_child_hash], Self::DOMAIN)
         };
 
-        Self { children, digest }
+        Ok(Self { children, digest })
     }
 
     #[cfg(test)]

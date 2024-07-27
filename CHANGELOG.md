@@ -19,10 +19,10 @@
 - Added serialization/deserialization for `MastForest` (#1370)
 - Updated CI to support `CHANGELOG.md` modification checking and `no changelog` label (#1406)
 - Introduced `MastForestError` to enforce `MastForest` node count invariant (#1394)
-- Added functions to `MastForestBuilder` to allow ensuring of nodes with fewer LOC (#1404)
-- Make `Assembler` single-use (#1409)
-- Remove `ProcedureCache` from the assembler (#1411).
-- Add `Assembler::assemble_library()` (#1413)
+- Added functions to `MastForest` and `MastForestBuilder` to add and ensure nodes with fewer LOC (#1404, #1412)
+- Made `Assembler` single-use (#1409)
+- Removed `ProcedureCache` from the assembler (#1411).
+- Added `Assembler::assemble_library()` (#1413)
 
 #### Changed
 

@@ -10,6 +10,8 @@ pub use node::{
 };
 use winter_utils::DeserializationError;
 
+use crate::{DecoratorList, Operation};
+
 mod serialization;
 
 #[cfg(test)]
@@ -58,6 +60,68 @@ impl MastForest {
         self.nodes.push(node);
 
         Ok(new_node_id)
+    }
+
+    /// Adds a basic block node to the forest, and returns the [`MastNodeId`] associated with it.
+    pub fn add_block(
+        &mut self,
+        operations: Vec<Operation>,
+        decorators: Option<DecoratorList>,
+    ) -> Result<MastNodeId, MastForestError> {
+        match decorators {
+            Some(decorators) => {
+                self.add_node(MastNode::new_basic_block_with_decorators(operations, decorators))
+            }
+            None => self.add_node(MastNode::new_basic_block(operations)),
+        }
+    }
+
+    /// Adds a join node to the forest, and returns the [`MastNodeId`] associated with it.
+    pub fn add_join(
+        &mut self,
+        left_child: MastNodeId,
+        right_child: MastNodeId,
+    ) -> Result<MastNodeId, MastForestError> {
+        let join = MastNode::new_join(left_child, right_child, self)?;
+        self.add_node(join)
+    }
+
+    /// Adds a split node to the forest, and returns the [`MastNodeId`] associated with it.
+    pub fn add_split(
+        &mut self,
+        if_branch: MastNodeId,
+        else_branch: MastNodeId,
+    ) -> Result<MastNodeId, MastForestError> {
+        let split = MastNode::new_split(if_branch, else_branch, self)?;
+        self.add_node(split)
+    }
+
+    /// Adds a loop node to the forest, and returns the [`MastNodeId`] associated with it.
+    pub fn add_loop(&mut self, body: MastNodeId) -> Result<MastNodeId, MastForestError> {
+        let loop_node = MastNode::new_loop(body, self)?;
+        self.add_node(loop_node)
+    }
+
+    /// Adds a call node to the forest, and returns the [`MastNodeId`] associated with it.
+    pub fn add_call(&mut self, callee: MastNodeId) -> Result<MastNodeId, MastForestError> {
+        let call = MastNode::new_call(callee, self)?;
+        self.add_node(call)
+    }
+
+    /// Adds a syscall node to the forest, and returns the [`MastNodeId`] associated with it.
+    pub fn add_syscall(&mut self, callee: MastNodeId) -> Result<MastNodeId, MastForestError> {
+        let syscall = MastNode::new_syscall(callee, self)?;
+        self.add_node(syscall)
+    }
+
+    /// Adds a dyn node to the forest, and returns the [`MastNodeId`] associated with it.
+    pub fn add_dyn(&mut self) -> Result<MastNodeId, MastForestError> {
+        self.add_node(MastNode::new_dyn())
+    }
+
+    /// Adds an external node to the forest, and returns the [`MastNodeId`] associated with it.
+    pub fn add_external(&mut self, mast_root: RpoDigest) -> Result<MastNodeId, MastForestError> {
+        self.add_node(MastNode::new_external(mast_root))
     }
 
     /// Marks the given [`MastNodeId`] as being the root of a procedure.
@@ -157,6 +221,12 @@ impl MastNodeId {
     }
 }
 
+impl From<MastNodeId> for usize {
+    fn from(value: MastNodeId) -> Self {
+        value.0 as usize
+    }
+}
+
 impl From<MastNodeId> for u32 {
     fn from(value: MastNodeId) -> Self {
         value.0
@@ -179,11 +249,13 @@ impl fmt::Display for MastNodeId {
 // ================================================================================================
 
 /// Represents the types of errors that can occur when dealing with MAST forest.
-#[derive(Debug, thiserror::Error)]
+#[derive(Debug, thiserror::Error, PartialEq)]
 pub enum MastForestError {
     #[error(
         "invalid node count: MAST forest exceeds the maximum of {} nodes",
         MastForest::MAX_NODES
     )]
     TooManyNodes,
+    #[error("node id: {0} is greater than or equal to forest length: {1}")]
+    NodeIdOverflow(MastNodeId, usize),
 }
