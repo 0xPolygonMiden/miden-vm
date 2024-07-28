@@ -321,8 +321,6 @@ impl Assembler {
             ));
         }
 
-        let mast_forest_builder = MastForestBuilder::default();
-
         let program = source.compile_with_options(CompileOptions {
             // Override the module name so that we always compile the executable
             // module as #exe
@@ -346,23 +344,8 @@ impl Assembler {
             })
             .ok_or(SemanticAnalysisError::MissingEntrypoint)?;
 
-        self.compile_program(entrypoint, mast_forest_builder)
-    }
-
-    /// Compile the provided [Module] into a [Program].
-    ///
-    /// Ensures that the [`MastForest`] entrypoint is set to the entrypoint of the program.
-    ///
-    /// Returns an error if the provided Miden Assembly is invalid.
-    fn compile_program(
-        mut self,
-        entrypoint: GlobalProcedureIndex,
-        mut mast_forest_builder: MastForestBuilder,
-    ) -> Result<Program, Report> {
-        // Raise an error if we are called with an invalid entrypoint
-        assert!(self.module_graph.get_procedure_unsafe(entrypoint).name().is_main());
-
         // Compile the module graph rooted at the entrypoint
+        let mut mast_forest_builder = MastForestBuilder::default();
         let entry_procedure = self.compile_subgraph(entrypoint, true, &mut mast_forest_builder)?;
 
         Ok(Program::with_kernel(
