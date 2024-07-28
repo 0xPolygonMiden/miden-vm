@@ -293,40 +293,14 @@ impl Assembler {
     ///
     /// Returns an error if parsing or compilation of the specified program fails, or if the source
     /// doesn't have an entrypoint.
-    pub fn assemble_program(self, source: impl Compile) -> Result<Program, Report> {
-        let opts = CompileOptions {
+    pub fn assemble_program(mut self, source: impl Compile) -> Result<Program, Report> {
+        let options = CompileOptions {
+            kind: ModuleKind::Executable,
             warnings_as_errors: self.warnings_as_errors,
-            ..CompileOptions::default()
+            path: Some(LibraryPath::from(LibraryNamespace::Exec)),
         };
 
-        self.assemble_with_options(source, opts)
-    }
-
-    /// Compiles the provided module into a [Program] using the provided options.
-    ///
-    /// The resulting program can be executed on Miden VM.
-    ///
-    /// # Errors
-    ///
-    /// Returns an error if parsing or compilation of the specified program fails, or the options
-    /// are invalid.
-    fn assemble_with_options(
-        mut self,
-        source: impl Compile,
-        options: CompileOptions,
-    ) -> Result<Program, Report> {
-        if options.kind != ModuleKind::Executable {
-            return Err(Report::msg(
-                "invalid compile options: assemble_with_opts_in_context requires that the kind be 'executable'",
-            ));
-        }
-
-        let program = source.compile_with_options(CompileOptions {
-            // Override the module name so that we always compile the executable
-            // module as #exe
-            path: Some(LibraryPath::from(LibraryNamespace::Exec)),
-            ..options
-        })?;
+        let program = source.compile_with_options(options)?;
         assert!(program.is_executable());
 
         // Recompute graph with executable module, and start compiling
