@@ -369,7 +369,7 @@ impl Module {
         self.procedures.iter_mut()
     }
 
-    /// Returns procedure exported from this module.
+    /// Returns procedures exported from this module.
     ///
     /// Each exported procedure is represented by its global procedure index and a fully qualified
     /// name. The global procedure index is computed using the specified module index.

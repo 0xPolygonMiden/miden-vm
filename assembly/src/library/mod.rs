@@ -94,6 +94,9 @@ impl CompiledLibrary {
     }
 }
 
+// MODULE INFO
+// ===============================================================================================
+
 #[derive(Debug, Clone)]
 pub struct ModuleInfo {
     path: LibraryPath,
@@ -101,8 +104,11 @@ pub struct ModuleInfo {
 }
 
 impl ModuleInfo {
-    /// Constructs a new [`ModuleInfo`].
-    pub fn new(path: LibraryPath, procedures: Vec<ProcedureInfo>) -> Self {
+    /// Returns a new [`ModuleInfo`] instantiated from the provided procedures.
+    ///
+    /// Note: this constructor assumes that the fully-qualified names of the provided procedures
+    /// are consistent with the provided module path, but this is not checked.
+    fn new(path: LibraryPath, procedures: Vec<ProcedureInfo>) -> Self {
         Self {
             path,
             procedure_infos: procedures,
@@ -131,6 +137,11 @@ impl ModuleInfo {
             .iter()
             .enumerate()
             .map(|(idx, proc)| (ProcedureIndex::new(idx), proc))
+    }
+
+    /// Returns an iterator over the MAST roots of procedures defined in this module.
+    pub fn procedure_digests(&self) -> impl Iterator<Item = RpoDigest> + '_ {
+        self.procedure_infos.iter().map(|p| p.digest)
     }
 
     /// Returns the [`ProcedureInfo`] of the procedure at the provided index, if any.

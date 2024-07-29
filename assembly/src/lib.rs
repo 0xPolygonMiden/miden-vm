@@ -9,7 +9,6 @@ extern crate std;
 
 use vm_core::{
     crypto::hash::RpoDigest,
-    errors::KernelError,
     utils::{
         ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable, SliceReader,
     },
@@ -33,7 +32,7 @@ mod tests;
 
 pub use self::assembler::Assembler;
 pub use self::compile::{Compile, Options as CompileOptions};
-pub use self::errors::{AssemblyError, CompiledLibraryError};
+pub use self::errors::{AssemblerError, AssemblyError, CompiledLibraryError};
 pub use self::library::{
     Library, LibraryError, LibraryNamespace, LibraryPath, MaslLibrary, PathError, Version,
 };

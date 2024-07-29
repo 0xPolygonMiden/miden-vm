@@ -1,11 +1,28 @@
 use alloc::{string::String, sync::Arc, vec::Vec};
-use vm_core::mast::MastForestError;
+use vm_core::{errors::KernelError, mast::MastForestError};
 
 use crate::{
     ast::FullyQualifiedProcedureName,
     diagnostics::{Diagnostic, RelatedError, RelatedLabel, Report, SourceFile},
     LibraryNamespace, LibraryPath, RpoDigest, SourceSpan,
 };
+
+// ASSEMBLER ERROR
+// ================================================================================================
+
+/// An error generated during instantiation of an [super::Assembler].
+#[derive(Debug, thiserror::Error, Diagnostic)]
+#[non_exhaustive]
+pub enum AssemblerError {
+    #[error("kernel library contains no modules")]
+    EmptyKernelLibrary,
+    #[error(transparent)]
+    Kernel(#[from] KernelError),
+    #[error("kernel library does not contain a kernel module")]
+    NoKernelModuleInKernelLibrary,
+    #[error("non-kernel modules are present in kernel library")]
+    NonKernelModulesInKernelLibrary,
+}
 
 // ASSEMBLY ERROR
 // ================================================================================================

@@ -3,8 +3,8 @@ use crate::{
     diagnostics::Report,
     library::CompiledLibrary,
     sema::SemanticAnalysisError,
-    AssemblyError, Compile, CompileOptions, Library, LibraryNamespace, LibraryPath, RpoDigest,
-    Spanned,
+    AssemblerError, AssemblyError, Compile, CompileOptions, Library, LibraryNamespace, LibraryPath,
+    RpoDigest, Spanned,
 };
 use alloc::{sync::Arc, vec::Vec};
 use mast_forest_builder::MastForestBuilder;
@@ -61,22 +61,38 @@ pub struct Assembler {
 /// Constructors
 impl Assembler {
     /// Start building an [`Assembler`] with a kernel defined by the provided [CompiledLibrary].
-    pub fn with_kernel(kernel: CompiledLibrary) -> Result<Self, AssemblyError> {
+    ///
+    /// # Errors
+    pub fn with_kernel(kernel_lib: CompiledLibrary) -> Result<Self, AssemblerError> {
+        // get the kernel module from the library and make sure it is valid
+        let kernel_module = {
+            let modules = kernel_lib.into_module_infos().collect::<Vec<_>>();
+            if modules.is_empty() {
+                return Err(AssemblerError::EmptyKernelLibrary);
+            }
+
+            if modules.len() > 1 {
+                return Err(AssemblerError::NonKernelModulesInKernelLibrary);
+            }
+
+            let module = modules.into_iter().next().expect("there must be exactly one module");
+            if module.path() != &LibraryPath::from(LibraryNamespace::Kernel) {
+                return Err(AssemblerError::NoKernelModuleInKernelLibrary);
+            }
+
+            module
+        };
+
+        // build the kernel
+        let proc_hashes: Vec<_> = kernel_module.procedure_digests().collect();
+        let kernel = Kernel::new(&proc_hashes)?;
+
+        // instantiate the assembler with the specified kernel
         let mut assembler = Self::default();
-
-        let kernel_modules = kernel.into_module_infos().collect::<Vec<_>>();
-        let kernel_module = &kernel_modules[0];
-        if kernel_module.path() != &LibraryPath::from(LibraryNamespace::Kernel) {
-            panic!("error");
-        }
-
-        let proc_hashes =
-            kernel_module.procedure_infos().map(|(_, p)| p.digest).collect::<Vec<_>>();
-        let kernel = Kernel::new(&proc_hashes).unwrap();
-
-        let module_indexes =
-            assembler.module_graph.add_compiled_modules(kernel_modules.into_iter())?;
-
+        let module_indexes = assembler
+            .module_graph
+            .add_compiled_modules([kernel_module].into_iter())
+            .expect("failed to add kernel module to the module graph");
         assembler.module_graph.set_kernel(Some(module_indexes[0]), kernel);
 
         Ok(assembler)
