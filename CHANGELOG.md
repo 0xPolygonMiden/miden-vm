@@ -15,15 +15,16 @@
 - Relaxed the parser to allow one branch of an `if.(true|false)` to be empty
 - Added support for immediate values for `u32and`, `u32or`, `u32xor` and `u32not` bitwise instructions (#1362).
 - Optimized `std::sys::truncate_stuck` procedure (#1384).
-- Updated CI and Makefile to standardise it accross Miden repositories (#1342).
+- Updated CI and Makefile to standardize it across Miden repositories (#1342).
 - Add serialization/deserialization for `MastForest` (#1370)
 - Assembler: add the ability to compile MAST libraries, and to assemble a program using compiled libraries (#1401)
 - Updated CI to support `CHANGELOG.md` modification checking and `no changelog` label (#1406)
 - Introduced `MastForestError` to enforce `MastForest` node count invariant (#1394)
 - Added functions to `MastForestBuilder` to allow ensuring of nodes with fewer LOC (#1404)
-- Make `Assembler` single-use (#1409)
-- Remove `ProcedureCache` from the assembler (#1411).
-- Add `Assembler::assemble_library()` (#1413)
+- [BREAKING] Made `Assembler` single-use (#1409).
+- Removed `ProcedureCache` from the assembler (#1411).
+- Added `Assembler::assemble_library()` (#1413).
+- Added `Assembler::assemble_kernel()` (#1418).
 
 #### Changed
 
