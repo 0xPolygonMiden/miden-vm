@@ -269,12 +269,12 @@ impl Assembler {
         Ok(CompiledLibrary::new(mast_forest_builder.build(), exports)?)
     }
 
-    /// Assembles the provided module into a [CompiledLibrary] intended to be used as a Kernel.
+    /// Assembles the provided module into a [KernelLibrary] intended to be used as a Kernel.
     ///
     /// # Errors
     ///
     /// Returns an error if parsing or compilation of the specified modules fails.
-    pub fn assemble_kernel(mut self, module: impl Compile) -> Result<CompiledLibrary, Report> {
+    pub fn assemble_kernel(mut self, module: impl Compile) -> Result<KernelLibrary, Report> {
         let options = CompileOptions {
             kind: ModuleKind::Kernel,
             warnings_as_errors: self.warnings_as_errors,
@@ -300,7 +300,8 @@ impl Assembler {
             })
             .collect::<Result<Vec<FullyQualifiedProcedureName>, Report>>()?;
 
-        Ok(CompiledLibrary::new(mast_forest_builder.build(), exports)?)
+        let library = CompiledLibrary::new(mast_forest_builder.build(), exports)?;
+        Ok(library.try_into()?)
     }
 
     /// Compiles the provided module into a [`Program`]. The resulting program can be executed on
