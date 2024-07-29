@@ -139,6 +139,22 @@ impl<'a> BasicBlockDataDecoder<'a> {
                 let num_cycles = data_reader.read_u8()?;
                 let should_break = data_reader.read_bool()?;
 
+                // source location
+                let location = if data_reader.read_bool()? {
+                    let str_index_in_table = data_reader.read_usize()?;
+                    let source_file =
+                        crate::SourceFile::from(self.read_string(str_index_in_table)?);
+                    let start = data_reader.read_u32()?;
+                    let end = data_reader.read_u32()?;
+                    Some(crate::SourceLocation {
+                        source_file,
+                        start,
+                        end,
+                    })
+                } else {
+                    None
+                };
+
                 let context_name = {
                     let str_index_in_table = data_reader.read_usize()?;
                     self.read_string(str_index_in_table)?
@@ -149,7 +165,13 @@ impl<'a> BasicBlockDataDecoder<'a> {
                     self.read_string(str_index_in_table)?
                 };
 
-                Ok(Decorator::AsmOp(AssemblyOp::new(context_name, num_cycles, op, should_break)))
+                Ok(Decorator::AsmOp(AssemblyOp::new(
+                    location,
+                    context_name,
+                    num_cycles,
+                    op,
+                    should_break,
+                )))
             }
             EncodedDecoratorVariant::DebugOptionsStackAll => {
                 Ok(Decorator::Debug(DebugOptions::StackAll))

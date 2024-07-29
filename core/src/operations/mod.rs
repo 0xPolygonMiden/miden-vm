@@ -3,7 +3,7 @@ use core::fmt;
 mod decorators;
 pub use decorators::{
     AdviceInjector, AssemblyOp, DebugOptions, Decorator, DecoratorIterator, DecoratorList,
-    SignatureKind,
+    SignatureKind, SourceFile, SourceLocation,
 };
 use winter_utils::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable};
 

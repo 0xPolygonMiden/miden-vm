@@ -6,6 +6,22 @@ use vm_core::{AssemblyOp, Felt, Operation};
 fn asmop_one_span_block_test() {
     let source = "begin push.1 push.2 add end";
     let test = build_debug_test!(source);
+    let source_file = vm_core::SourceFile::new(test.source.name());
+    let push1_loc = Some(vm_core::SourceLocation {
+        source_file: source_file.clone(),
+        start: 6,
+        end: 6 + 6,
+    });
+    let push2_loc = Some(vm_core::SourceLocation {
+        source_file: source_file.clone(),
+        start: 13,
+        end: 13 + 6,
+    });
+    let add_loc = Some(vm_core::SourceLocation {
+        source_file: source_file.clone(),
+        start: 20,
+        end: 20 + 3,
+    });
     let vm_state_iterator = test.execute_iter();
     let expected_vm_state = vec![
         VmStatePartial {
@@ -21,7 +37,13 @@ fn asmop_one_span_block_test() {
         VmStatePartial {
             clk: 2,
             asmop: Some(AsmOpInfo::new(
-                AssemblyOp::new("#exec::#main".to_string(), 2, "push.1".to_string(), false),
+                AssemblyOp::new(
+                    push1_loc.clone(),
+                    "#exec::#main".to_string(),
+                    2,
+                    "push.1".to_string(),
+                    false,
+                ),
                 1,
             )),
             op: Some(Operation::Pad),
@@ -29,7 +51,13 @@ fn asmop_one_span_block_test() {
         VmStatePartial {
             clk: 3,
             asmop: Some(AsmOpInfo::new(
-                AssemblyOp::new("#exec::#main".to_string(), 2, "push.1".to_string(), false),
+                AssemblyOp::new(
+                    push1_loc,
+                    "#exec::#main".to_string(),
+                    2,
+                    "push.1".to_string(),
+                    false,
+                ),
                 2,
             )),
             op: Some(Operation::Incr),
@@ -37,7 +65,13 @@ fn asmop_one_span_block_test() {
         VmStatePartial {
             clk: 4,
             asmop: Some(AsmOpInfo::new(
-                AssemblyOp::new("#exec::#main".to_string(), 1, "push.2".to_string(), false),
+                AssemblyOp::new(
+                    push2_loc,
+                    "#exec::#main".to_string(),
+                    1,
+                    "push.2".to_string(),
+                    false,
+                ),
                 1,
             )),
             op: Some(Operation::Push(Felt::new(2))),
@@ -45,7 +79,7 @@ fn asmop_one_span_block_test() {
         VmStatePartial {
             clk: 5,
             asmop: Some(AsmOpInfo::new(
-                AssemblyOp::new("#exec::#main".to_string(), 1, "add".to_string(), false),
+                AssemblyOp::new(add_loc, "#exec::#main".to_string(), 1, "add".to_string(), false),
                 1,
             )),
             op: Some(Operation::Add),
@@ -64,6 +98,22 @@ fn asmop_one_span_block_test() {
 fn asmop_with_one_procedure() {
     let source = "proc.foo push.1 push.2 add end begin exec.foo end";
     let test = build_debug_test!(source);
+    let source_file = vm_core::SourceFile::new(test.source.name());
+    let push1_loc = Some(vm_core::SourceLocation {
+        source_file: source_file.clone(),
+        start: 9,
+        end: 9 + 6,
+    });
+    let push2_loc = Some(vm_core::SourceLocation {
+        source_file: source_file.clone(),
+        start: 16,
+        end: 16 + 6,
+    });
+    let add_loc = Some(vm_core::SourceLocation {
+        source_file: source_file.clone(),
+        start: 23,
+        end: 23 + 3,
+    });
     let vm_state_iterator = test.execute_iter();
     let expected_vm_state = vec![
         VmStatePartial {
@@ -79,7 +129,13 @@ fn asmop_with_one_procedure() {
         VmStatePartial {
             clk: 2,
             asmop: Some(AsmOpInfo::new(
-                AssemblyOp::new("#exec::foo".to_string(), 2, "push.1".to_string(), false),
+                AssemblyOp::new(
+                    push1_loc.clone(),
+                    "#exec::foo".to_string(),
+                    2,
+                    "push.1".to_string(),
+                    false,
+                ),
                 1,
             )),
             op: Some(Operation::Pad),
@@ -87,7 +143,13 @@ fn asmop_with_one_procedure() {
         VmStatePartial {
             clk: 3,
             asmop: Some(AsmOpInfo::new(
-                AssemblyOp::new("#exec::foo".to_string(), 2, "push.1".to_string(), false),
+                AssemblyOp::new(
+                    push1_loc,
+                    "#exec::foo".to_string(),
+                    2,
+                    "push.1".to_string(),
+                    false,
+                ),
                 2,
             )),
             op: Some(Operation::Incr),
@@ -95,7 +157,13 @@ fn asmop_with_one_procedure() {
         VmStatePartial {
             clk: 4,
             asmop: Some(AsmOpInfo::new(
-                AssemblyOp::new("#exec::foo".to_string(), 1, "push.2".to_string(), false),
+                AssemblyOp::new(
+                    push2_loc,
+                    "#exec::foo".to_string(),
+                    1,
+                    "push.2".to_string(),
+                    false,
+                ),
                 1,
             )),
             op: Some(Operation::Push(Felt::new(2))),
@@ -103,7 +171,7 @@ fn asmop_with_one_procedure() {
         VmStatePartial {
             clk: 5,
             asmop: Some(AsmOpInfo::new(
-                AssemblyOp::new("#exec::foo".to_string(), 1, "add".to_string(), false),
+                AssemblyOp::new(add_loc, "#exec::foo".to_string(), 1, "add".to_string(), false),
                 1,
             )),
             op: Some(Operation::Add),
@@ -126,6 +194,22 @@ fn asmop_repeat_test() {
             end
         end";
     let test = build_debug_test!(source);
+    let source_file = vm_core::SourceFile::new(test.source.name());
+    let push1_loc = Some(vm_core::SourceLocation {
+        source_file: source_file.clone(),
+        start: 43,
+        end: 43 + 6,
+    });
+    let push2_loc = Some(vm_core::SourceLocation {
+        source_file: source_file.clone(),
+        start: 50,
+        end: 50 + 6,
+    });
+    let add_loc = Some(vm_core::SourceLocation {
+        source_file: source_file.clone(),
+        start: 57,
+        end: 57 + 3,
+    });
     let vm_state_iterator = test.execute_iter();
     let expected_vm_state = vec![
         VmStatePartial {
@@ -151,7 +235,13 @@ fn asmop_repeat_test() {
         VmStatePartial {
             clk: 4,
             asmop: Some(AsmOpInfo::new(
-                AssemblyOp::new("#exec::#main".to_string(), 2, "push.1".to_string(), false),
+                AssemblyOp::new(
+                    push1_loc.clone(),
+                    "#exec::#main".to_string(),
+                    2,
+                    "push.1".to_string(),
+                    false,
+                ),
                 1,
             )),
             op: Some(Operation::Pad),
@@ -159,7 +249,13 @@ fn asmop_repeat_test() {
         VmStatePartial {
             clk: 5,
             asmop: Some(AsmOpInfo::new(
-                AssemblyOp::new("#exec::#main".to_string(), 2, "push.1".to_string(), false),
+                AssemblyOp::new(
+                    push1_loc.clone(),
+                    "#exec::#main".to_string(),
+                    2,
+                    "push.1".to_string(),
+                    false,
+                ),
                 2,
             )),
             op: Some(Operation::Incr),
@@ -167,7 +263,13 @@ fn asmop_repeat_test() {
         VmStatePartial {
             clk: 6,
             asmop: Some(AsmOpInfo::new(
-                AssemblyOp::new("#exec::#main".to_string(), 1, "push.2".to_string(), false),
+                AssemblyOp::new(
+                    push2_loc.clone(),
+                    "#exec::#main".to_string(),
+                    1,
+                    "push.2".to_string(),
+                    false,
+                ),
                 1,
             )),
             op: Some(Operation::Push(Felt::new(2))),
@@ -175,7 +277,13 @@ fn asmop_repeat_test() {
         VmStatePartial {
             clk: 7,
             asmop: Some(AsmOpInfo::new(
-                AssemblyOp::new("#exec::#main".to_string(), 1, "add".to_string(), false),
+                AssemblyOp::new(
+                    add_loc.clone(),
+                    "#exec::#main".to_string(),
+                    1,
+                    "add".to_string(),
+                    false,
+                ),
                 1,
             )),
             op: Some(Operation::Add),
@@ -194,7 +302,13 @@ fn asmop_repeat_test() {
         VmStatePartial {
             clk: 10,
             asmop: Some(AsmOpInfo::new(
-                AssemblyOp::new("#exec::#main".to_string(), 2, "push.1".to_string(), false),
+                AssemblyOp::new(
+                    push1_loc.clone(),
+                    "#exec::#main".to_string(),
+                    2,
+                    "push.1".to_string(),
+                    false,
+                ),
                 1,
             )),
             op: Some(Operation::Pad),
@@ -202,7 +316,13 @@ fn asmop_repeat_test() {
         VmStatePartial {
             clk: 11,
             asmop: Some(AsmOpInfo::new(
-                AssemblyOp::new("#exec::#main".to_string(), 2, "push.1".to_string(), false),
+                AssemblyOp::new(
+                    push1_loc.clone(),
+                    "#exec::#main".to_string(),
+                    2,
+                    "push.1".to_string(),
+                    false,
+                ),
                 2,
             )),
             op: Some(Operation::Incr),
@@ -210,7 +330,13 @@ fn asmop_repeat_test() {
         VmStatePartial {
             clk: 12,
             asmop: Some(AsmOpInfo::new(
-                AssemblyOp::new("#exec::#main".to_string(), 1, "push.2".to_string(), false),
+                AssemblyOp::new(
+                    push2_loc.clone(),
+                    "#exec::#main".to_string(),
+                    1,
+                    "push.2".to_string(),
+                    false,
+                ),
                 1,
             )),
             op: Some(Operation::Push(Felt::new(2))),
@@ -218,7 +344,13 @@ fn asmop_repeat_test() {
         VmStatePartial {
             clk: 13,
             asmop: Some(AsmOpInfo::new(
-                AssemblyOp::new("#exec::#main".to_string(), 1, "add".to_string(), false),
+                AssemblyOp::new(
+                    add_loc.clone(),
+                    "#exec::#main".to_string(),
+                    1,
+                    "add".to_string(),
+                    false,
+                ),
                 1,
             )),
             op: Some(Operation::Add),
@@ -243,7 +375,13 @@ fn asmop_repeat_test() {
         VmStatePartial {
             clk: 17,
             asmop: Some(AsmOpInfo::new(
-                AssemblyOp::new("#exec::#main".to_string(), 2, "push.1".to_string(), false),
+                AssemblyOp::new(
+                    push1_loc.clone(),
+                    "#exec::#main".to_string(),
+                    2,
+                    "push.1".to_string(),
+                    false,
+                ),
                 1,
             )),
             op: Some(Operation::Pad),
@@ -251,7 +389,13 @@ fn asmop_repeat_test() {
         VmStatePartial {
             clk: 18,
             asmop: Some(AsmOpInfo::new(
-                AssemblyOp::new("#exec::#main".to_string(), 2, "push.1".to_string(), false),
+                AssemblyOp::new(
+                    push1_loc,
+                    "#exec::#main".to_string(),
+                    2,
+                    "push.1".to_string(),
+                    false,
+                ),
                 2,
             )),
             op: Some(Operation::Incr),
@@ -259,7 +403,13 @@ fn asmop_repeat_test() {
         VmStatePartial {
             clk: 19,
             asmop: Some(AsmOpInfo::new(
-                AssemblyOp::new("#exec::#main".to_string(), 1, "push.2".to_string(), false),
+                AssemblyOp::new(
+                    push2_loc,
+                    "#exec::#main".to_string(),
+                    1,
+                    "push.2".to_string(),
+                    false,
+                ),
                 1,
             )),
             op: Some(Operation::Push(Felt::new(2))),
@@ -267,7 +417,7 @@ fn asmop_repeat_test() {
         VmStatePartial {
             clk: 20,
             asmop: Some(AsmOpInfo::new(
-                AssemblyOp::new("#exec::#main".to_string(), 1, "add".to_string(), false),
+                AssemblyOp::new(add_loc, "#exec::#main".to_string(), 1, "add".to_string(), false),
                 1,
             )),
             op: Some(Operation::Add),
@@ -302,6 +452,27 @@ fn asmop_conditional_execution_test() {
 
     //if branch
     let test = build_debug_test!(source, &[1, 1]);
+    let source_file = vm_core::SourceFile::new(test.source.name());
+    let eq_loc = Some(vm_core::SourceLocation {
+        source_file: source_file.clone(),
+        start: 18,
+        end: 18 + 2,
+    });
+    let push1_loc = Some(vm_core::SourceLocation {
+        source_file: source_file.clone(),
+        start: 57,
+        end: 57 + 6,
+    });
+    let push2_loc = Some(vm_core::SourceLocation {
+        source_file: source_file.clone(),
+        start: 64,
+        end: 64 + 6,
+    });
+    let add_loc = Some(vm_core::SourceLocation {
+        source_file: source_file.clone(),
+        start: 71,
+        end: 71 + 3,
+    });
     let vm_state_iterator = test.execute_iter();
     let expected_vm_state = vec![
         VmStatePartial {
@@ -322,7 +493,7 @@ fn asmop_conditional_execution_test() {
         VmStatePartial {
             clk: 3,
             asmop: Some(AsmOpInfo::new(
-                AssemblyOp::new("#exec::#main".to_string(), 1, "eq".to_string(), false),
+                AssemblyOp::new(eq_loc, "#exec::#main".to_string(), 1, "eq".to_string(), false),
                 1,
             )),
             op: Some(Operation::Eq),
@@ -345,7 +516,13 @@ fn asmop_conditional_execution_test() {
         VmStatePartial {
             clk: 7,
             asmop: Some(AsmOpInfo::new(
-                AssemblyOp::new("#exec::#main".to_string(), 2, "push.1".to_string(), false),
+                AssemblyOp::new(
+                    push1_loc.clone(),
+                    "#exec::#main".to_string(),
+                    2,
+                    "push.1".to_string(),
+                    false,
+                ),
                 1,
             )),
             op: Some(Operation::Pad),
@@ -353,7 +530,13 @@ fn asmop_conditional_execution_test() {
         VmStatePartial {
             clk: 8,
             asmop: Some(AsmOpInfo::new(
-                AssemblyOp::new("#exec::#main".to_string(), 2, "push.1".to_string(), false),
+                AssemblyOp::new(
+                    push1_loc,
+                    "#exec::#main".to_string(),
+                    2,
+                    "push.1".to_string(),
+                    false,
+                ),
                 2,
             )),
             op: Some(Operation::Incr),
@@ -361,7 +544,13 @@ fn asmop_conditional_execution_test() {
         VmStatePartial {
             clk: 9,
             asmop: Some(AsmOpInfo::new(
-                AssemblyOp::new("#exec::#main".to_string(), 1, "push.2".to_string(), false),
+                AssemblyOp::new(
+                    push2_loc,
+                    "#exec::#main".to_string(),
+                    1,
+                    "push.2".to_string(),
+                    false,
+                ),
                 1,
             )),
             op: Some(Operation::Push(Felt::new(2))),
@@ -369,7 +558,7 @@ fn asmop_conditional_execution_test() {
         VmStatePartial {
             clk: 10,
             asmop: Some(AsmOpInfo::new(
-                AssemblyOp::new("#exec::#main".to_string(), 1, "add".to_string(), false),
+                AssemblyOp::new(add_loc, "#exec::#main".to_string(), 1, "add".to_string(), false),
                 1,
             )),
             op: Some(Operation::Add),
@@ -395,6 +584,27 @@ fn asmop_conditional_execution_test() {
 
     //else branch
     let test = build_debug_test!(source, &[1, 0]);
+    let source_file = vm_core::SourceFile::new(test.source.name());
+    let eq_loc = Some(vm_core::SourceLocation {
+        source_file: source_file.clone(),
+        start: 18,
+        end: 18 + 2,
+    });
+    let push3_loc = Some(vm_core::SourceLocation {
+        source_file: source_file.clone(),
+        start: 108,
+        end: 108 + 6,
+    });
+    let push4_loc = Some(vm_core::SourceLocation {
+        source_file: source_file.clone(),
+        start: 115,
+        end: 115 + 6,
+    });
+    let add_loc = Some(vm_core::SourceLocation {
+        source_file: source_file.clone(),
+        start: 122,
+        end: 122 + 3,
+    });
     let vm_state_iterator = test.execute_iter();
     let expected_vm_state = vec![
         VmStatePartial {
@@ -415,7 +625,7 @@ fn asmop_conditional_execution_test() {
         VmStatePartial {
             clk: 3,
             asmop: Some(AsmOpInfo::new(
-                AssemblyOp::new("#exec::#main".to_string(), 1, "eq".to_string(), false),
+                AssemblyOp::new(eq_loc, "#exec::#main".to_string(), 1, "eq".to_string(), false),
                 1,
             )),
             op: Some(Operation::Eq),
@@ -438,7 +648,13 @@ fn asmop_conditional_execution_test() {
         VmStatePartial {
             clk: 7,
             asmop: Some(AsmOpInfo::new(
-                AssemblyOp::new("#exec::#main".to_string(), 1, "push.3".to_string(), false),
+                AssemblyOp::new(
+                    push3_loc,
+                    "#exec::#main".to_string(),
+                    1,
+                    "push.3".to_string(),
+                    false,
+                ),
                 1,
             )),
             op: Some(Operation::Push(Felt::new(3))),
@@ -446,7 +662,13 @@ fn asmop_conditional_execution_test() {
         VmStatePartial {
             clk: 8,
             asmop: Some(AsmOpInfo::new(
-                AssemblyOp::new("#exec::#main".to_string(), 1, "push.4".to_string(), false),
+                AssemblyOp::new(
+                    push4_loc,
+                    "#exec::#main".to_string(),
+                    1,
+                    "push.4".to_string(),
+                    false,
+                ),
                 1,
             )),
             op: Some(Operation::Push(Felt::new(4))),
@@ -454,7 +676,7 @@ fn asmop_conditional_execution_test() {
         VmStatePartial {
             clk: 9,
             asmop: Some(AsmOpInfo::new(
-                AssemblyOp::new("#exec::#main".to_string(), 1, "add".to_string(), false),
+                AssemblyOp::new(add_loc, "#exec::#main".to_string(), 1, "add".to_string(), false),
                 1,
             )),
             op: Some(Operation::Add),

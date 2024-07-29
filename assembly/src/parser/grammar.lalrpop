@@ -1084,8 +1084,14 @@ InstWithBitSizeImmediate: Instruction = {
 
 Push: SmallOpsVec = {
     <l:@L> "push" "." <values:DotDelimited<IntOrHexImm>> <r:@R> =>? {
-        let ops = values.into_iter().map(|imm| {
+        let ops = values.into_iter().enumerate().map(|(i, imm)| {
             let span = imm.span();
+            // Include the "push" token in the first item's span
+            let span = if i == 0 {
+                span!(l, span.end() as u32)
+            } else {
+                span
+            };
             Op::Inst(Span::new(span, match imm {
                 Immediate::Constant(name) => Instruction::Push(Immediate::Constant(name)),
                 Immediate::Value(value) => {

@@ -281,6 +281,11 @@ fn serialize_deserialize_all_nodes() {
             (
                 15,
                 Decorator::AsmOp(AssemblyOp::new(
+                    Some(crate::SourceLocation {
+                        source_file: crate::SourceFile::new("test"),
+                        start: 42,
+                        end: 43,
+                    }),
                     "context".to_string(),
                     15,
                     "op".to_string(),

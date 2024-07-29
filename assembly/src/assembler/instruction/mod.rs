@@ -2,7 +2,9 @@ use super::{
     ast::InvokeKind, mast_forest_builder::MastForestBuilder, Assembler, BasicBlockBuilder, Felt,
     Operation, ProcedureContext,
 };
-use crate::{ast::Instruction, diagnostics::Report, utils::bound_into_included_u64, AssemblyError};
+use crate::{
+    ast::Instruction, diagnostics::Report, utils::bound_into_included_u64, AssemblyError, Span,
+};
 use core::ops::RangeBounds;
 use vm_core::{mast::MastNodeId, Decorator, ONE, ZERO};
 
@@ -21,7 +23,7 @@ use self::u32_ops::U32OpMode::*;
 impl Assembler {
     pub(super) fn compile_instruction(
         &self,
-        instruction: &Instruction,
+        instruction: &Span<Instruction>,
         span_builder: &mut BasicBlockBuilder,
         proc_ctx: &mut ProcedureContext,
         mast_forest_builder: &mut MastForestBuilder,
@@ -50,14 +52,14 @@ impl Assembler {
 
     fn compile_instruction_impl(
         &self,
-        instruction: &Instruction,
+        instruction: &Span<Instruction>,
         span_builder: &mut BasicBlockBuilder,
         proc_ctx: &mut ProcedureContext,
         mast_forest_builder: &mut MastForestBuilder,
     ) -> Result<Option<MastNodeId>, AssemblyError> {
         use Operation::*;
 
-        match instruction {
+        match &**instruction {
             Instruction::Nop => span_builder.push_op(Noop),
             Instruction::Assert => span_builder.push_op(Assert(0)),
             Instruction::AssertWithError(err_code) => {
