@@ -102,7 +102,7 @@ impl CompiledLibrary {
 ///
 /// This differs from the regular [CompiledLibrary] as follows:
 /// - All exported procedures must be exported directly from the kernel namespace (i.e., `#sys`).
-/// - The number of exported procedures cannot exceed [Kernel::MAX_KERNEL_PROCEDURES] (i.e., 256).
+/// - The number of exported procedures cannot exceed [Kernel::MAX_NUM_PROCEDURES] (i.e., 256).
 pub struct KernelLibrary {
     kernel: Kernel,
     kernel_info: ModuleInfo,

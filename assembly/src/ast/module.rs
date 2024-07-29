@@ -11,7 +11,6 @@ use super::{
     ResolvedProcedure,
 };
 use crate::{
-    assembler::{GlobalProcedureIndex, ModuleIndex},
     ast::{AliasTarget, AstSerdeOptions, Ident},
     diagnostics::{Report, SourceFile},
     parser::ModuleParser,
@@ -371,26 +370,21 @@ impl Module {
 
     /// Returns procedures exported from this module.
     ///
-    /// Each exported procedure is represented by its global procedure index and a fully qualified
-    /// name. The global procedure index is computed using the specified module index.
+    /// Each exported procedure is represented by its local procedure index and a fully qualified
+    /// name.
     pub fn exported_procedures(
         &self,
-        module_idx: ModuleIndex,
-    ) -> impl Iterator<Item = (GlobalProcedureIndex, FullyQualifiedProcedureName)> + '_ {
-        self.procedures.iter().enumerate().filter_map(move |(proc_idx, p)| {
+    ) -> impl Iterator<Item = (ProcedureIndex, FullyQualifiedProcedureName)> + '_ {
+        self.procedures.iter().enumerate().filter_map(|(proc_idx, p)| {
             // skip un-exported procedures
             if !p.visibility().is_exported() {
                 return None;
             }
 
-            let gid = GlobalProcedureIndex {
-                module: module_idx,
-                index: ProcedureIndex::new(proc_idx),
-            };
-
+            let proc_idx = ProcedureIndex::new(proc_idx);
             let fqn = FullyQualifiedProcedureName::new(self.path().clone(), p.name().clone());
 
-            Some((gid, fqn))
+            Some((proc_idx, fqn))
         })
     }
 

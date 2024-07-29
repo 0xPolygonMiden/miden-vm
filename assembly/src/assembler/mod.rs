@@ -257,8 +257,8 @@ impl Assembler {
                 // AST (we just added them to the module graph)
                 let ast_module = self.module_graph[module_idx].unwrap_ast().clone();
 
-                for (gid, fqn) in ast_module.exported_procedures(module_idx) {
-                    self.compile_subgraph(gid, false, &mut mast_forest_builder)?;
+                for (proc_idx, fqn) in ast_module.exported_procedures() {
+                    self.compile_subgraph(module_idx + proc_idx, false, &mut mast_forest_builder)?;
                     exports.push(fqn);
                 }
             }
@@ -293,9 +293,9 @@ impl Assembler {
         let ast_module = self.module_graph[module_idx].unwrap_ast().clone();
 
         let exports = ast_module
-            .exported_procedures(module_idx)
-            .map(|(gid, fqn)| {
-                self.compile_subgraph(gid, false, &mut mast_forest_builder)?;
+            .exported_procedures()
+            .map(|(proc_idx, fqn)| {
+                self.compile_subgraph(module_idx + proc_idx, false, &mut mast_forest_builder)?;
                 Ok(fqn)
             })
             .collect::<Result<Vec<FullyQualifiedProcedureName>, Report>>()?;
