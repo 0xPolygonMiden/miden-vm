@@ -5,7 +5,7 @@ use miden_formatting::prettier::PrettyPrint;
 
 use crate::{
     chiplets::hasher,
-    mast::{MastForest, MastNodeId},
+    mast::{MastForest, MastForestError, MastNodeId},
     OPCODE_SPLIT,
 };
 
@@ -32,7 +32,16 @@ impl SplitNode {
 
 /// Constructors
 impl SplitNode {
-    pub fn new(branches: [MastNodeId; 2], mast_forest: &MastForest) -> Self {
+    pub fn new(
+        branches: [MastNodeId; 2],
+        mast_forest: &MastForest,
+    ) -> Result<Self, MastForestError> {
+        let forest_len = mast_forest.nodes.len();
+        if usize::from(branches[0]) >= forest_len {
+            return Err(MastForestError::NodeIdOverflow(branches[0], forest_len));
+        } else if usize::from(branches[1]) >= forest_len {
+            return Err(MastForestError::NodeIdOverflow(branches[1], forest_len));
+        }
         let digest = {
             let if_branch_hash = mast_forest[branches[0]].digest();
             let else_branch_hash = mast_forest[branches[1]].digest();
@@ -40,7 +49,7 @@ impl SplitNode {
             hasher::merge_in_domain(&[if_branch_hash, else_branch_hash], Self::DOMAIN)
         };
 
-        Self { branches, digest }
+        Ok(Self { branches, digest })
     }
 
     #[cfg(test)]

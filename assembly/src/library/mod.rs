@@ -143,7 +143,7 @@ impl ModuleInfo {
     pub fn procedure_digests(&self) -> impl Iterator<Item = RpoDigest> + '_ {
         self.procedure_infos.iter().map(|p| p.digest)
     }
-
+  
     /// Returns the [`ProcedureInfo`] of the procedure at the provided index, if any.
     pub fn get_proc_info_by_index(&self, index: ProcedureIndex) -> Option<&ProcedureInfo> {
         self.procedure_infos.get(index.as_usize())

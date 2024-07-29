@@ -5,7 +5,7 @@ use miden_formatting::prettier::PrettyPrint;
 
 use crate::{
     chiplets::hasher,
-    mast::{MastForest, MastNodeId},
+    mast::{MastForest, MastForestError, MastNodeId},
     OPCODE_LOOP,
 };
 
@@ -32,14 +32,17 @@ impl LoopNode {
 
 /// Constructors
 impl LoopNode {
-    pub fn new(body: MastNodeId, mast_forest: &MastForest) -> Self {
+    pub fn new(body: MastNodeId, mast_forest: &MastForest) -> Result<Self, MastForestError> {
+        if usize::from(body) >= mast_forest.nodes.len() {
+            return Err(MastForestError::NodeIdOverflow(body, mast_forest.nodes.len()));
+        }
         let digest = {
             let body_hash = mast_forest[body].digest();
 
             hasher::merge_in_domain(&[body_hash, RpoDigest::default()], Self::DOMAIN)
         };
 
-        Self { body, digest }
+        Ok(Self { body, digest })
     }
 }
 

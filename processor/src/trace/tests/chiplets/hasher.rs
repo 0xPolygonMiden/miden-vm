@@ -22,7 +22,7 @@ use miden_air::trace::{
 use vm_core::{
     chiplets::hasher::apply_permutation,
     crypto::merkle::{MerkleStore, MerkleTree, NodeIndex},
-    mast::{MastForest, MastNode},
+    mast::MastForest,
     utils::range,
     Program, Word,
 };
@@ -50,8 +50,8 @@ pub fn b_chip_span() {
     let program = {
         let mut mast_forest = MastForest::new();
 
-        let basic_block = MastNode::new_basic_block(vec![Operation::Add, Operation::Mul]);
-        let basic_block_id = mast_forest.add_node(basic_block).unwrap();
+        let basic_block_id =
+            mast_forest.add_block(vec![Operation::Add, Operation::Mul], None).unwrap();
 
         Program::new(mast_forest, basic_block_id)
     };
@@ -123,8 +123,7 @@ pub fn b_chip_span_with_respan() {
         let mut mast_forest = MastForest::new();
 
         let (ops, _) = build_span_with_respan_ops();
-        let basic_block = MastNode::new_basic_block(ops);
-        let basic_block_id = mast_forest.add_node(basic_block).unwrap();
+        let basic_block_id = mast_forest.add_block(ops, None).unwrap();
 
         Program::new(mast_forest, basic_block_id)
     };
@@ -215,14 +214,11 @@ pub fn b_chip_merge() {
     let program = {
         let mut mast_forest = MastForest::new();
 
-        let t_branch = MastNode::new_basic_block(vec![Operation::Add]);
-        let t_branch_id = mast_forest.add_node(t_branch).unwrap();
+        let t_branch_id = mast_forest.add_block(vec![Operation::Add], None).unwrap();
 
-        let f_branch = MastNode::new_basic_block(vec![Operation::Mul]);
-        let f_branch_id = mast_forest.add_node(f_branch).unwrap();
+        let f_branch_id = mast_forest.add_block(vec![Operation::Mul], None).unwrap();
 
-        let split = MastNode::new_split(t_branch_id, f_branch_id, &mast_forest);
-        let split_id = mast_forest.add_node(split).unwrap();
+        let split_id = mast_forest.add_split(t_branch_id, f_branch_id).unwrap();
 
         Program::new(mast_forest, split_id)
     };
@@ -334,8 +330,7 @@ pub fn b_chip_permutation() {
     let program = {
         let mut mast_forest = MastForest::new();
 
-        let basic_block = MastNode::new_basic_block(vec![Operation::HPerm]);
-        let basic_block_id = mast_forest.add_node(basic_block).unwrap();
+        let basic_block_id = mast_forest.add_block(vec![Operation::HPerm], None).unwrap();
 
         Program::new(mast_forest, basic_block_id)
     };

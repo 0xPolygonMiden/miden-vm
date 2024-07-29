@@ -5,7 +5,7 @@ use miden_formatting::prettier::PrettyPrint;
 
 use crate::{
     chiplets::hasher,
-    mast::{MastForest, MastNodeId},
+    mast::{MastForest, MastForestError, MastNodeId},
     OPCODE_CALL, OPCODE_SYSCALL,
 };
 
@@ -38,34 +38,43 @@ impl CallNode {
 /// Constructors
 impl CallNode {
     /// Returns a new [`CallNode`] instantiated with the specified callee.
-    pub fn new(callee: MastNodeId, mast_forest: &MastForest) -> Self {
+    pub fn new(callee: MastNodeId, mast_forest: &MastForest) -> Result<Self, MastForestError> {
+        if usize::from(callee) >= mast_forest.nodes.len() {
+            return Err(MastForestError::NodeIdOverflow(callee, mast_forest.nodes.len()));
+        }
         let digest = {
             let callee_digest = mast_forest[callee].digest();
 
             hasher::merge_in_domain(&[callee_digest, RpoDigest::default()], Self::CALL_DOMAIN)
         };
 
-        Self {
+        Ok(Self {
             callee,
             is_syscall: false,
             digest,
-        }
+        })
     }
 
     /// Returns a new [`CallNode`] instantiated with the specified callee and marked as a kernel
     /// call.
-    pub fn new_syscall(callee: MastNodeId, mast_forest: &MastForest) -> Self {
+    pub fn new_syscall(
+        callee: MastNodeId,
+        mast_forest: &MastForest,
+    ) -> Result<Self, MastForestError> {
+        if usize::from(callee) >= mast_forest.nodes.len() {
+            return Err(MastForestError::NodeIdOverflow(callee, mast_forest.nodes.len()));
+        }
         let digest = {
             let callee_digest = mast_forest[callee].digest();
 
             hasher::merge_in_domain(&[callee_digest, RpoDigest::default()], Self::SYSCALL_DOMAIN)
         };
 
-        Self {
+        Ok(Self {
             callee,
             is_syscall: true,
             digest,
-        }
+        })
     }
 }
 

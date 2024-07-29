@@ -23,6 +23,7 @@
 - Added functions to `MastForestBuilder` to allow ensuring of nodes with fewer LOC (#1404)
 - [BREAKING] Made `Assembler` single-use (#1409).
 - Removed `ProcedureCache` from the assembler (#1411).
+- Added functions to `MastForest` and `MastForestBuilder` to add and ensure nodes with fewer LOC (#1404, #1412)
 - Added `Assembler::assemble_library()` (#1413).
 - Added `Assembler::assemble_kernel()` (#1418).
 

@@ -3,7 +3,8 @@ use miden_crypto::{hash::rpo::RpoDigest, Felt};
 
 use super::*;
 use crate::{
-    operations::Operation, AdviceInjector, AssemblyOp, DebugOptions, Decorator, SignatureKind,
+    mast::MastForestError, operations::Operation, AdviceInjector, AssemblyOp, DebugOptions,
+    Decorator, SignatureKind,
 };
 
 /// If this test fails to compile, it means that `Operation` or `Decorator` was changed. Make sure
@@ -295,41 +296,19 @@ fn serialize_deserialize_all_nodes() {
             (num_operations, Decorator::Trace(55)),
         ];
 
-        let basic_block_node = MastNode::new_basic_block_with_decorators(operations, decorators);
-        mast_forest.add_node(basic_block_node).unwrap()
+        mast_forest.add_block(operations, Some(decorators)).unwrap()
     };
 
-    let call_node_id = {
-        let node = MastNode::new_call(basic_block_id, &mast_forest);
-        mast_forest.add_node(node).unwrap()
-    };
+    let call_node_id = mast_forest.add_call(basic_block_id).unwrap();
 
-    let syscall_node_id = {
-        let node = MastNode::new_syscall(basic_block_id, &mast_forest);
-        mast_forest.add_node(node).unwrap()
-    };
+    let syscall_node_id = mast_forest.add_syscall(basic_block_id).unwrap();
 
-    let loop_node_id = {
-        let node = MastNode::new_loop(basic_block_id, &mast_forest);
-        mast_forest.add_node(node).unwrap()
-    };
-    let join_node_id = {
-        let node = MastNode::new_join(basic_block_id, call_node_id, &mast_forest);
-        mast_forest.add_node(node).unwrap()
-    };
-    let split_node_id = {
-        let node = MastNode::new_split(basic_block_id, call_node_id, &mast_forest);
-        mast_forest.add_node(node).unwrap()
-    };
-    let dyn_node_id = {
-        let node = MastNode::new_dyn();
-        mast_forest.add_node(node).unwrap()
-    };
+    let loop_node_id = mast_forest.add_loop(basic_block_id).unwrap();
+    let join_node_id = mast_forest.add_join(basic_block_id, call_node_id).unwrap();
+    let split_node_id = mast_forest.add_split(basic_block_id, call_node_id).unwrap();
+    let dyn_node_id = mast_forest.add_dyn().unwrap();
 
-    let external_node_id = {
-        let node = MastNode::new_external(RpoDigest::default());
-        mast_forest.add_node(node).unwrap()
-    };
+    let external_node_id = mast_forest.add_external(RpoDigest::default()).unwrap();
 
     mast_forest.make_root(join_node_id);
     mast_forest.make_root(syscall_node_id);
@@ -342,4 +321,41 @@ fn serialize_deserialize_all_nodes() {
     let deserialized_mast_forest = MastForest::read_from_bytes(&serialized_mast_forest).unwrap();
 
     assert_eq!(mast_forest, deserialized_mast_forest);
+}
+
+#[test]
+fn mast_forest_invalid_node_id() {
+    // Hydrate a forest smaller than the second
+    let mut forest = MastForest::new();
+    let first = forest.add_block(vec![Operation::U32div], None).unwrap();
+    let second = forest.add_block(vec![Operation::U32div], None).unwrap();
+
+    // Hydrate a forest larger than the first to get an overflow MastNodeId
+    let mut overflow_forest = MastForest::new();
+    let overflow = (0..=3)
+        .map(|_| overflow_forest.add_block(vec![Operation::U32div], None).unwrap())
+        .last()
+        .unwrap();
+
+    // Attempt to join with invalid ids
+    let join = forest.add_join(overflow, second);
+    assert_eq!(join, Err(MastForestError::NodeIdOverflow(overflow, 2)));
+    let join = forest.add_join(first, overflow);
+    assert_eq!(join, Err(MastForestError::NodeIdOverflow(overflow, 2)));
+
+    // Attempt to split with invalid ids
+    let split = forest.add_split(overflow, second);
+    assert_eq!(split, Err(MastForestError::NodeIdOverflow(overflow, 2)));
+    let split = forest.add_split(first, overflow);
+    assert_eq!(split, Err(MastForestError::NodeIdOverflow(overflow, 2)));
+
+    // Attempt to loop with invalid ids
+    assert_eq!(forest.add_loop(overflow), Err(MastForestError::NodeIdOverflow(overflow, 2)));
+
+    // Attempt to call with invalid ids
+    assert_eq!(forest.add_call(overflow), Err(MastForestError::NodeIdOverflow(overflow, 2)));
+    assert_eq!(forest.add_syscall(overflow), Err(MastForestError::NodeIdOverflow(overflow, 2)));
+
+    // Validate normal operations
+    forest.add_join(first, second).unwrap();
 }

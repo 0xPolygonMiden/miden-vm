@@ -32,6 +32,8 @@ use crate::{
     DecoratorList, Operation,
 };
 
+use super::MastForestError;
+
 // MAST NODE
 // ================================================================================================
 
@@ -64,28 +66,36 @@ impl MastNode {
         left_child: MastNodeId,
         right_child: MastNodeId,
         mast_forest: &MastForest,
-    ) -> Self {
-        Self::Join(JoinNode::new([left_child, right_child], mast_forest))
+    ) -> Result<Self, MastForestError> {
+        let join = JoinNode::new([left_child, right_child], mast_forest)?;
+        Ok(Self::Join(join))
     }
 
     pub fn new_split(
         if_branch: MastNodeId,
         else_branch: MastNodeId,
         mast_forest: &MastForest,
-    ) -> Self {
-        Self::Split(SplitNode::new([if_branch, else_branch], mast_forest))
+    ) -> Result<Self, MastForestError> {
+        let split = SplitNode::new([if_branch, else_branch], mast_forest)?;
+        Ok(Self::Split(split))
     }
 
-    pub fn new_loop(body: MastNodeId, mast_forest: &MastForest) -> Self {
-        Self::Loop(LoopNode::new(body, mast_forest))
+    pub fn new_loop(body: MastNodeId, mast_forest: &MastForest) -> Result<Self, MastForestError> {
+        let loop_node = LoopNode::new(body, mast_forest)?;
+        Ok(Self::Loop(loop_node))
     }
 
-    pub fn new_call(callee: MastNodeId, mast_forest: &MastForest) -> Self {
-        Self::Call(CallNode::new(callee, mast_forest))
+    pub fn new_call(callee: MastNodeId, mast_forest: &MastForest) -> Result<Self, MastForestError> {
+        let call = CallNode::new(callee, mast_forest)?;
+        Ok(Self::Call(call))
     }
 
-    pub fn new_syscall(callee: MastNodeId, mast_forest: &MastForest) -> Self {
-        Self::Call(CallNode::new_syscall(callee, mast_forest))
+    pub fn new_syscall(
+        callee: MastNodeId,
+        mast_forest: &MastForest,
+    ) -> Result<Self, MastForestError> {
+        let syscall = CallNode::new_syscall(callee, mast_forest)?;
+        Ok(Self::Call(syscall))
     }
 
     pub fn new_dyn() -> Self {
