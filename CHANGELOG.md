@@ -16,7 +16,8 @@
 - Added support for immediate values for `u32and`, `u32or`, `u32xor` and `u32not` bitwise instructions (#1362).
 - Optimized `std::sys::truncate_stuck` procedure (#1384).
 - Updated CI and Makefile to standardise it accross Miden repositories (#1342).
-- Added serialization/deserialization for `MastForest` (#1370)
+- Add serialization/deserialization for `MastForest` (#1370)
+- Assembler: add the ability to compile MAST libraries, and to assemble a program using compiled libraries (#1401)
 - Updated CI to support `CHANGELOG.md` modification checking and `no changelog` label (#1406)
 - Introduced `MastForestError` to enforce `MastForest` node count invariant (#1394)
 - Added functions to `MastForest` and `MastForestBuilder` to add and ensure nodes with fewer LOC (#1404, #1412)

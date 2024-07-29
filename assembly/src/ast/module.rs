@@ -420,7 +420,7 @@ impl Module {
                 Some(ResolvedProcedure::Local(Span::new(proc.name().span(), index)))
             }
             Export::Alias(ref alias) => match alias.target() {
-                AliasTarget::MastRoot(digest) => Some(ResolvedProcedure::MastRoot(*digest)),
+                AliasTarget::MastRoot(digest) => Some(ResolvedProcedure::MastRoot(**digest)),
                 AliasTarget::Path(path) => Some(ResolvedProcedure::External(path.clone())),
             },
         }
@@ -435,7 +435,7 @@ impl Module {
             ),
             Export::Alias(ref p) => {
                 let target = match p.target {
-                    AliasTarget::MastRoot(ref digest) => ResolvedProcedure::MastRoot(*digest),
+                    AliasTarget::MastRoot(ref digest) => ResolvedProcedure::MastRoot(**digest),
                     AliasTarget::Path(ref path) => ResolvedProcedure::External(path.clone()),
                 };
                 (p.name().clone(), target)

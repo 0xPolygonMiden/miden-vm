@@ -1,17 +1,17 @@
 use crate::{
     ast::{
-        self, FullyQualifiedProcedureName, Instruction, InvocationTarget, InvokeKind, ModuleKind,
-        ProcedureIndex,
+        self, FullyQualifiedProcedureName, InvocationTarget, InvokeKind, ModuleKind, ProcedureIndex,
     },
     diagnostics::Report,
     library::CompiledLibrary,
     sema::SemanticAnalysisError,
-    AssemblyError, Compile, CompileOptions, Felt, Library, LibraryNamespace, LibraryPath,
-    RpoDigest, Spanned, ONE, ZERO,
+    AssemblyError, Compile, CompileOptions, Library, LibraryNamespace, LibraryPath, RpoDigest,
+    Spanned,
 };
 use alloc::{sync::Arc, vec::Vec};
 use mast_forest_builder::MastForestBuilder;
-use vm_core::{mast::MastNodeId, Decorator, DecoratorList, Kernel, Operation, Program};
+use module_graph::{ProcedureWrapper, WrappedModule};
+use vm_core::{mast::MastNodeId, Decorator, DecoratorList, Felt, Kernel, Operation, Program};
 
 mod basic_block_builder;
 mod id;
@@ -140,9 +140,16 @@ impl Assembler {
         let module = module.compile_with_options(options)?;
         assert_eq!(module.kind(), kind, "expected module kind to match compilation options");
 
-        self.module_graph.add_module(module)?;
+        self.module_graph.add_ast_module(module)?;
 
         Ok(())
+    }
+
+    /// Adds the compiled library to provide modules for the compilation.
+    pub fn add_compiled_library(&mut self, library: CompiledLibrary) -> Result<(), Report> {
+        self.module_graph
+            .add_compiled_modules(library.into_module_infos())
+            .map_err(Report::from)
     }
 
     /// Adds the library to provide modules for the compilation.
@@ -233,11 +240,11 @@ impl Assembler {
         mut self,
         modules: impl Iterator<Item = impl Compile>,
     ) -> Result<CompiledLibrary, Report> {
-        let module_indices: Vec<ModuleIndex> = modules
+        let ast_module_indices: Vec<ModuleIndex> = modules
             .map(|module| {
                 let module = module.compile_with_options(CompileOptions::for_library())?;
 
-                Ok(self.module_graph.add_module(module)?)
+                Ok(self.module_graph.add_ast_module(module)?)
             })
             .collect::<Result<_, Report>>()?;
         self.module_graph.recompute()?;
@@ -247,10 +254,12 @@ impl Assembler {
         let exports = {
             let mut exports = Vec::new();
 
-            for module_idx in module_indices {
-                let module = self.module_graph.get_module(module_idx).unwrap();
+            for ast_module_idx in ast_module_indices {
+                // Note: it is safe to use `unwrap_ast()` here, since all modules looped over are
+                // AST (we just added them to the module graph)
+                let ast_module = self.module_graph[ast_module_idx].unwrap_ast().clone();
 
-                for (proc_idx, procedure) in module.procedures().enumerate() {
+                for (proc_idx, procedure) in ast_module.procedures().enumerate() {
                     // Only add exports; locals will be added if they are in the call graph rooted
                     // at those procedures
                     if !procedure.visibility().is_exported() {
@@ -258,14 +267,14 @@ impl Assembler {
                     }
 
                     let gid = GlobalProcedureIndex {
-                        module: module_idx,
+                        module: ast_module_idx,
                         index: ProcedureIndex::new(proc_idx),
                     };
 
                     self.compile_subgraph(gid, false, &mut mast_forest_builder)?;
 
                     exports.push(FullyQualifiedProcedureName::new(
-                        module.path().clone(),
+                        ast_module.path().clone(),
                         procedure.name().clone(),
                     ));
                 }
@@ -284,74 +293,33 @@ impl Assembler {
     ///
     /// Returns an error if parsing or compilation of the specified program fails, or if the source
     /// doesn't have an entrypoint.
-    pub fn assemble_program(self, source: impl Compile) -> Result<Program, Report> {
-        let opts = CompileOptions {
+    pub fn assemble_program(mut self, source: impl Compile) -> Result<Program, Report> {
+        let options = CompileOptions {
+            kind: ModuleKind::Executable,
             warnings_as_errors: self.warnings_as_errors,
-            ..CompileOptions::default()
+            path: Some(LibraryPath::from(LibraryNamespace::Exec)),
         };
 
-        self.assemble_with_options(source, opts)
-    }
-
-    /// Compiles the provided module into a [Program] using the provided options.
-    ///
-    /// The resulting program can be executed on Miden VM.
-    ///
-    /// # Errors
-    ///
-    /// Returns an error if parsing or compilation of the specified program fails, or the options
-    /// are invalid.
-    fn assemble_with_options(
-        mut self,
-        source: impl Compile,
-        options: CompileOptions,
-    ) -> Result<Program, Report> {
-        if options.kind != ModuleKind::Executable {
-            return Err(Report::msg(
-                "invalid compile options: assemble_with_opts_in_context requires that the kind be 'executable'",
-            ));
-        }
-
-        let mast_forest_builder = MastForestBuilder::default();
-
-        let program = source.compile_with_options(CompileOptions {
-            // Override the module name so that we always compile the executable
-            // module as #exe
-            path: Some(LibraryPath::from(LibraryNamespace::Exec)),
-            ..options
-        })?;
+        let program = source.compile_with_options(options)?;
         assert!(program.is_executable());
 
         // Recompute graph with executable module, and start compiling
-        let module_index = self.module_graph.add_module(program)?;
+        let ast_module_index = self.module_graph.add_ast_module(program)?;
         self.module_graph.recompute()?;
 
-        // Find the executable entrypoint
-        let entrypoint = self.module_graph[module_index]
+        // Find the executable entrypoint Note: it is safe to use `unwrap_ast()` here, since this is
+        // the module we just added, which is in AST representation.
+        let entrypoint = self.module_graph[ast_module_index]
+            .unwrap_ast()
             .index_of(|p| p.is_main())
             .map(|index| GlobalProcedureIndex {
-                module: module_index,
+                module: ast_module_index,
                 index,
             })
             .ok_or(SemanticAnalysisError::MissingEntrypoint)?;
 
-        self.compile_program(entrypoint, mast_forest_builder)
-    }
-
-    /// Compile the provided [Module] into a [Program].
-    ///
-    /// Ensures that the [`MastForest`] entrypoint is set to the entrypoint of the program.
-    ///
-    /// Returns an error if the provided Miden Assembly is invalid.
-    fn compile_program(
-        mut self,
-        entrypoint: GlobalProcedureIndex,
-        mut mast_forest_builder: MastForestBuilder,
-    ) -> Result<Program, Report> {
-        // Raise an error if we are called with an invalid entrypoint
-        assert!(self.module_graph[entrypoint].name().is_main());
-
         // Compile the module graph rooted at the entrypoint
+        let mut mast_forest_builder = MastForestBuilder::default();
         let entry_procedure = self.compile_subgraph(entrypoint, true, &mut mast_forest_builder)?;
 
         Ok(Program::with_kernel(
@@ -371,16 +339,22 @@ impl Assembler {
         is_entrypoint: bool,
         mast_forest_builder: &mut MastForestBuilder,
     ) -> Result<Arc<Procedure>, Report> {
-        let mut worklist = self.module_graph.topological_sort_from_root(root).map_err(|cycle| {
-            let iter = cycle.into_node_ids();
-            let mut nodes = Vec::with_capacity(iter.len());
-            for node in iter {
-                let module = self.module_graph[node.module].path();
-                let proc = self.module_graph[node].name();
-                nodes.push(format!("{}::{}", module, proc));
-            }
-            AssemblyError::Cycle { nodes }
-        })?;
+        let mut worklist: Vec<GlobalProcedureIndex> = self
+            .module_graph
+            .topological_sort_from_root(root)
+            .map_err(|cycle| {
+                let iter = cycle.into_node_ids();
+                let mut nodes = Vec::with_capacity(iter.len());
+                for node in iter {
+                    let module = self.module_graph[node.module].path();
+                    let proc = self.module_graph.get_procedure_unsafe(node);
+                    nodes.push(format!("{}::{}", module, proc.name()));
+                }
+                AssemblyError::Cycle { nodes }
+            })?
+            .into_iter()
+            .filter(|&gid| self.module_graph.get_procedure_unsafe(gid).is_ast())
+            .collect();
 
         assert!(!worklist.is_empty());
 
@@ -394,6 +368,7 @@ impl Assembler {
         Ok(compiled.expect("compilation succeeded but root not found in cache"))
     }
 
+    /// Compiles all procedures in the `worklist`.
     fn process_graph_worklist(
         &mut self,
         worklist: &mut Vec<GlobalProcedureIndex>,
@@ -412,7 +387,12 @@ impl Assembler {
             let is_entry = entrypoint == Some(procedure_gid);
 
             // Fetch procedure metadata from the graph
-            let module = &self.module_graph[procedure_gid.module];
+            let module = match &self.module_graph[procedure_gid.module] {
+                WrappedModule::Ast(ast_module) => ast_module,
+                // Note: if the containing module is in `Info` representation, there is nothing to
+                // compile.
+                WrappedModule::Info(_) => continue,
+            };
             let ast = &module[procedure_gid.index];
             let num_locals = ast.num_locals();
             let name = FullyQualifiedProcedureName {
@@ -452,7 +432,8 @@ impl Assembler {
         let gid = proc_ctx.id();
         let num_locals = proc_ctx.num_locals();
 
-        let proc = self.module_graph[gid].unwrap_procedure();
+        let wrapper_proc = self.module_graph.get_procedure_unsafe(gid);
+        let proc = wrapper_proc.unwrap_ast().unwrap_procedure();
         let proc_body_id = if num_locals > 0 {
             // for procedures with locals, we need to update fmp register before and after the
             // procedure body is executed. specifically:
@@ -587,10 +568,13 @@ impl Assembler {
         match resolved {
             ResolvedTarget::Phantom(digest) => Ok(digest),
             ResolvedTarget::Exact { gid } | ResolvedTarget::Resolved { gid, .. } => {
-                Ok(mast_forest_builder
-                    .get_procedure(gid)
-                    .map(|p| p.mast_root())
-                    .expect("expected callee to have been compiled already"))
+                match mast_forest_builder.get_procedure(gid) {
+                    Some(p) => Ok(p.mast_root()),
+                    None => match self.module_graph.get_procedure_unsafe(gid) {
+                        ProcedureWrapper::Info(p) => Ok(p.digest),
+                        ProcedureWrapper::Ast(_) => panic!("Did not find procedure {gid:?} neither in module graph nor procedure cache"),
+                    },
+                }
             }
         }
     }

@@ -2363,6 +2363,8 @@ fn invalid_while() -> TestResult {
     Ok(())
 }
 
+// COMPILED LIBRARIES
+// ================================================================================================
 #[test]
 fn test_compiled_library() {
     let mut mod_parser = ModuleParser::new(ModuleKind::Library);
@@ -2408,6 +2410,31 @@ fn test_compiled_library() {
     };
 
     assert_eq!(compiled_library.exports().len(), 4);
+
+    // Compile program that uses compiled library
+    let mut assembler = Assembler::new();
+
+    assembler.add_compiled_library(compiled_library).unwrap();
+
+    let program_source = "
+    use.mylib::mod1
+    use.mylib::mod2
+
+    proc.foo
+        push.1
+        drop
+    end
+
+    begin
+        exec.mod1::foo
+        exec.mod1::bar
+        exec.mod2::foo
+        exec.mod2::bar
+        exec.foo
+    end
+    ";
+
+    let _program = assembler.assemble_program(program_source).unwrap();
 }
 
 // DUMMY LIBRARY

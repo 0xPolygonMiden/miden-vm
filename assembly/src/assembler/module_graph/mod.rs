@@ -17,18 +17,131 @@ use self::{analysis::MaybeRewriteCheck, name_resolver::NameResolver, rewrites::M
 use super::{GlobalProcedureIndex, ModuleIndex};
 use crate::{
     ast::{
-        Export, FullyQualifiedProcedureName, InvocationTarget, Module, Procedure, ProcedureIndex,
-        ProcedureName,
+        Export, FullyQualifiedProcedureName, InvocationTarget, Module, ProcedureIndex,
+        ProcedureName, ResolvedProcedure,
     },
+    library::{ModuleInfo, ProcedureInfo},
     AssemblyError, LibraryPath, RpoDigest, Spanned,
 };
+
+/// Wraps all supported representations of a procedure in the module graph.
+///
+/// Currently, there are two supported representations:
+/// - `Ast`: wraps a procedure for which we have access to the entire AST,
+/// - `Info`: stores the procedure's name and digest (resulting from previously compiled
+///   procedures).
+pub enum ProcedureWrapper<'a> {
+    Ast(&'a Export),
+    Info(&'a ProcedureInfo),
+}
+
+impl<'a> ProcedureWrapper<'a> {
+    /// Returns the name of the procedure.
+    pub fn name(&self) -> &ProcedureName {
+        match self {
+            Self::Ast(p) => p.name(),
+            Self::Info(p) => &p.name,
+        }
+    }
+
+    /// Returns the wrapped procedure if in the `Ast` representation, or panics otherwise.
+    ///
+    /// # Panics
+    /// - Panics if the wrapped procedure is not in the `Ast` representation.
+    pub fn unwrap_ast(&self) -> &Export {
+        match self {
+            Self::Ast(proc) => proc,
+            Self::Info(_) => panic!("expected AST procedure, but was compiled"),
+        }
+    }
+
+    /// Returns true if the wrapped procedure is in the `Ast` representation.
+    pub fn is_ast(&self) -> bool {
+        matches!(self, Self::Ast(_))
+    }
+}
+
+/// Wraps all supported representations of a module in the module graph.
+///
+/// Currently, there are two supported representations:
+/// - `Ast`: wraps a module for which we have access to the entire AST,
+/// - `Info`: stores only the necessary information about a module (resulting from previously
+///   compiled modules).
+#[derive(Clone)]
+pub enum WrappedModule {
+    Ast(Arc<Module>),
+    Info(ModuleInfo),
+}
+
+impl WrappedModule {
+    /// Returns the library path of the wrapped module.
+    pub fn path(&self) -> &LibraryPath {
+        match self {
+            Self::Ast(m) => m.path(),
+            Self::Info(m) => m.path(),
+        }
+    }
+
+    /// Returns the wrapped module if in the `Ast` representation, or panics otherwise.
+    ///
+    /// # Panics
+    /// - Panics if the wrapped module is not in the `Ast` representation.
+    pub fn unwrap_ast(&self) -> &Arc<Module> {
+        match self {
+            Self::Ast(module) => module,
+            Self::Info(_) => {
+                panic!("expected module to be in AST representation, but was compiled")
+            }
+        }
+    }
+
+    /// Returns the wrapped module if in the `Info` representation, or panics otherwise.
+    ///
+    /// # Panics
+    /// - Panics if the wrapped module is not in the `Info` representation.
+    pub fn unwrap_info(&self) -> &ModuleInfo {
+        match self {
+            Self::Ast(_) => {
+                panic!("expected module to be compiled, but was in AST representation")
+            }
+            Self::Info(module) => module,
+        }
+    }
+
+    /// Resolves `name` to a procedure within the local scope of this module.
+    pub fn resolve(&self, name: &ProcedureName) -> Option<ResolvedProcedure> {
+        match self {
+            WrappedModule::Ast(module) => module.resolve(name),
+            WrappedModule::Info(module) => {
+                module.get_proc_digest_by_name(name).map(ResolvedProcedure::MastRoot)
+            }
+        }
+    }
+}
+
+/// Wraps modules that are pending in the [`ModuleGraph`].
+#[derive(Clone)]
+pub enum PendingWrappedModule {
+    Ast(Box<Module>),
+    Info(ModuleInfo),
+}
+
+impl PendingWrappedModule {
+    /// Returns the library path of the wrapped module.
+    pub fn path(&self) -> &LibraryPath {
+        match self {
+            Self::Ast(m) => m.path(),
+            Self::Info(m) => m.path(),
+        }
+    }
+}
 
 // MODULE GRAPH
 // ================================================================================================
 
 #[derive(Default, Clone)]
 pub struct ModuleGraph {
-    modules: Vec<Arc<Module>>,
+    modules: Vec<WrappedModule>,
     /// The set of modules pending additional processing before adding them to the graph.
     ///
     /// When adding a set of inter-dependent modules to the graph, we process them as a group, so
@@ -37,8 +150,7 @@ pub struct ModuleGraph {
     ///
     /// Once added to the graph, modules become immutable, and any additional modules added after
     /// that must by definition only depend on modules in the graph, and not be depended upon.
-    #[allow(clippy::vec_box)]
-    pending: Vec<Box<Module>>,
+    pending: Vec<PendingWrappedModule>,
     /// The global call graph of calls, not counting those that are performed directly via MAST
     /// root.
     callgraph: CallGraph,
@@ -52,6 +164,32 @@ pub struct ModuleGraph {
 // ------------------------------------------------------------------------------------------------
 /// Constructors
 impl ModuleGraph {
+    /// Adds all module infos to the graph.
+    pub fn add_compiled_modules(
+        &mut self,
+        module_infos: impl Iterator<Item = ModuleInfo>,
+    ) -> Result<(), AssemblyError> {
+        let module_indices: Vec<ModuleIndex> = module_infos
+            .map(|module| self.add_module(PendingWrappedModule::Info(module)))
+            .collect::<Result<_, _>>()?;
+
+        self.recompute()?;
+
+        // Register all procedures as roots
+        for module_index in module_indices {
+            for (proc_index, proc) in self[module_index].unwrap_info().clone().procedure_infos() {
+                let gid = GlobalProcedureIndex {
+                    module: module_index,
+                    index: proc_index,
+                };
+
+                self.register_mast_root(gid, proc.digest)?;
+            }
+        }
+
+        Ok(())
+    }
+
     /// Add `module` to the graph.
     ///
     /// NOTE: This operation only adds a module to the graph, but does not perform the
@@ -69,7 +207,11 @@ impl ModuleGraph {
     ///
     /// This function will panic if the number of modules exceeds the maximum representable
     /// [ModuleIndex] value, `u16::MAX`.
-    pub fn add_module(&mut self, module: Box<Module>) -> Result<ModuleIndex, AssemblyError> {
+    pub fn add_ast_module(&mut self, module: Box<Module>) -> Result<ModuleIndex, AssemblyError> {
+        self.add_module(PendingWrappedModule::Ast(module))
+    }
+
+    fn add_module(&mut self, module: PendingWrappedModule) -> Result<ModuleIndex, AssemblyError> {
         let is_duplicate =
             self.is_pending(module.path()) || self.find_module_index(module.path()).is_some();
         if is_duplicate {
@@ -105,33 +247,8 @@ impl ModuleGraph {
         &self.kernel
     }
 
-    #[allow(unused)]
-    pub fn kernel_index(&self) -> Option<ModuleIndex> {
-        self.kernel_index
-    }
-
     pub fn has_nonempty_kernel(&self) -> bool {
         self.kernel_index.is_some() || !self.kernel.is_empty()
-    }
-
-    #[allow(unused)]
-    pub fn is_kernel_procedure_root(&self, digest: &RpoDigest) -> bool {
-        self.kernel.contains_proc(*digest)
-    }
-
-    #[allow(unused)]
-    pub fn is_kernel_procedure(&self, name: &ProcedureName) -> bool {
-        self.kernel_index
-            .map(|index| self[index].resolve(name).is_some())
-            .unwrap_or(false)
-    }
-
-    #[allow(unused)]
-    pub fn is_kernel_procedure_fully_qualified(&self, name: &FullyQualifiedProcedureName) -> bool {
-        self.find_module_index(&name.module)
-            .filter(|module_index| self.kernel_index == Some(*module_index))
-            .map(|module_index| self[module_index].resolve(&name.name).is_some())
-            .unwrap_or(false)
     }
 }
 
@@ -197,17 +314,31 @@ impl ModuleGraph {
             let module_id = ModuleIndex::new(high_water_mark + pending_index);
 
             // Apply module to call graph
-            for (index, procedure) in pending_module.procedures().enumerate() {
-                let procedure_id = ProcedureIndex::new(index);
-                let global_id = GlobalProcedureIndex {
-                    module: module_id,
-                    index: procedure_id,
-                };
+            match pending_module {
+                PendingWrappedModule::Ast(pending_module) => {
+                    for (index, procedure) in pending_module.procedures().enumerate() {
+                        let procedure_id = ProcedureIndex::new(index);
+                        let global_id = GlobalProcedureIndex {
+                            module: module_id,
+                            index: procedure_id,
+                        };
 
-                // Ensure all entrypoints and exported symbols are represented in the call graph,
-                // even if they have no edges, we need them in the graph for the topological sort
-                if matches!(procedure, Export::Procedure(_)) {
-                    self.callgraph.get_or_insert_node(global_id);
+                        // Ensure all entrypoints and exported symbols are represented in the call
+                        // graph, even if they have no edges, we need them
+                        // in the graph for the topological sort
+                        if matches!(procedure, Export::Procedure(_)) {
+                            self.callgraph.get_or_insert_node(global_id);
+                        }
+                    }
+                }
+                PendingWrappedModule::Info(pending_module) => {
+                    for (proc_index, _procedure) in pending_module.procedure_infos() {
+                        let global_id = GlobalProcedureIndex {
+                            module: module_id,
+                            index: proc_index,
+                        };
+                        self.callgraph.get_or_insert_node(global_id);
+                    }
                 }
             }
         }
@@ -216,41 +347,50 @@ impl ModuleGraph {
         // before they are added to the graph
         let mut resolver = NameResolver::new(self);
         for module in pending.iter() {
-            resolver.push_pending(module);
+            if let PendingWrappedModule::Ast(module) = module {
+                resolver.push_pending(module);
+            }
         }
         let mut edges = Vec::new();
-        let mut finished = Vec::<Arc<Module>>::new();
+        let mut finished: Vec<WrappedModule> = Vec::new();
 
-        // Visit all of the newly-added modules and perform any rewrites
-        for (pending_index, mut module) in pending.into_iter().enumerate() {
-            let module_id = ModuleIndex::new(high_water_mark + pending_index);
+        // Visit all of the newly-added modules and perform any rewrites to AST modules.
+        for (pending_index, module) in pending.into_iter().enumerate() {
+            match module {
+                PendingWrappedModule::Ast(mut ast_module) => {
+                    let module_id = ModuleIndex::new(high_water_mark + pending_index);
 
-            let mut rewriter = ModuleRewriter::new(&resolver);
-            rewriter.apply(module_id, &mut module)?;
+                    let mut rewriter = ModuleRewriter::new(&resolver);
+                    rewriter.apply(module_id, &mut ast_module)?;
 
-            for (index, procedure) in module.procedures().enumerate() {
-                let procedure_id = ProcedureIndex::new(index);
-                let gid = GlobalProcedureIndex {
-                    module: module_id,
-                    index: procedure_id,
-                };
+                    for (index, procedure) in ast_module.procedures().enumerate() {
+                        let procedure_id = ProcedureIndex::new(index);
+                        let gid = GlobalProcedureIndex {
+                            module: module_id,
+                            index: procedure_id,
+                        };
 
-                for invoke in procedure.invoked() {
-                    let caller = CallerInfo {
-                        span: invoke.span(),
-                        source_file: module.source_file(),
-                        module: module_id,
-                        kind: invoke.kind,
-                    };
-                    if let Some(callee) =
-                        resolver.resolve_target(&caller, &invoke.target)?.into_global_id()
-                    {
-                        edges.push((gid, callee));
+                        for invoke in procedure.invoked() {
+                            let caller = CallerInfo {
+                                span: invoke.span(),
+                                source_file: ast_module.source_file(),
+                                module: module_id,
+                                kind: invoke.kind,
+                            };
+                            if let Some(callee) =
+                                resolver.resolve_target(&caller, &invoke.target)?.into_global_id()
+                            {
+                                edges.push((gid, callee));
+                            }
+                        }
                     }
+
+                    finished.push(WrappedModule::Ast(Arc::new(*ast_module)))
+                }
+                PendingWrappedModule::Info(module) => {
+                    finished.push(WrappedModule::Info(module));
                 }
             }
-
-            finished.push(Arc::from(module));
         }
 
         // Release the graph again
@@ -260,20 +400,22 @@ impl ModuleGraph {
         self.modules.append(&mut finished);
         edges
             .into_iter()
-            .for_each(|(callee, caller)| self.callgraph.add_edge(callee, caller));
+            .for_each(|(caller, callee)| self.callgraph.add_edge(caller, callee));
 
-        // Visit all of the modules in the base module graph, and modify them if any of the
-        // pending modules allow additional information to be inferred (such as the absolute path
-        // of imports, etc)
+        // Visit all of the (AST) modules in the base module graph, and modify them if any of the
+        // pending modules allow additional information to be inferred (such as the absolute path of
+        // imports, etc)
         for module_index in 0..high_water_mark {
             let module_id = ModuleIndex::new(module_index);
             let module = self.modules[module_id.as_usize()].clone();
 
-            // Re-analyze the module, and if we needed to clone-on-write, the new module will be
-            // returned. Otherwise, `Ok(None)` indicates that the module is unchanged, and `Err`
-            // indicates that re-analysis has found an issue with this module.
-            if let Some(new_module) = self.reanalyze_module(module_id, module)? {
-                self.modules[module_id.as_usize()] = new_module;
+            if let WrappedModule::Ast(module) = module {
+                // Re-analyze the module, and if we needed to clone-on-write, the new module will be
+                // returned. Otherwise, `Ok(None)` indicates that the module is unchanged, and `Err`
+                // indicates that re-analysis has found an issue with this module.
+                if let Some(new_module) = self.reanalyze_module(module_id, module)? {
+                    self.modules[module_id.as_usize()] = WrappedModule::Ast(new_module);
+                }
             }
         }
 
@@ -283,8 +425,8 @@ impl ModuleGraph {
             let mut nodes = Vec::with_capacity(iter.len());
             for node in iter {
                 let module = self[node.module].path();
-                let proc = self[node].name();
-                nodes.push(format!("{}::{}", module, proc));
+                let proc = self.get_procedure_unsafe(node);
+                nodes.push(format!("{}::{}", module, proc.name()));
             }
             AssemblyError::Cycle { nodes }
         })?;
@@ -324,16 +466,17 @@ impl ModuleGraph {
         self.callgraph.toposort_caller(caller)
     }
 
-    /// Fetch a [Module] by [ModuleIndex]
-    #[allow(unused)]
-    pub fn get_module(&self, id: ModuleIndex) -> Option<Arc<Module>> {
-        self.modules.get(id.as_usize()).cloned()
-    }
-
-    /// Fetch a [Export] by [GlobalProcedureIndex]
-    #[allow(unused)]
-    pub fn get_procedure(&self, id: GlobalProcedureIndex) -> Option<&Export> {
-        self.modules.get(id.module.as_usize()).and_then(|m| m.get(id.index))
+    /// Fetch a [WrapperProcedure] by [GlobalProcedureIndex].
+    ///
+    /// # Panics
+    /// - Panics if index is invalid.
+    pub fn get_procedure_unsafe(&self, id: GlobalProcedureIndex) -> ProcedureWrapper {
+        match &self.modules[id.module.as_usize()] {
+            WrappedModule::Ast(m) => ProcedureWrapper::Ast(&m[id.index]),
+            WrappedModule::Info(m) => {
+                ProcedureWrapper::Info(m.get_proc_info_by_index(id.index).unwrap())
+            }
+        }
     }
 
     pub fn get_procedure_index_by_digest(
@@ -341,11 +484,6 @@ impl ModuleGraph {
         digest: &RpoDigest,
     ) -> Option<GlobalProcedureIndex> {
         self.roots.get(digest).map(|indices| indices[0])
-    }
-
-    #[allow(unused)]
-    pub fn callees(&self, gid: GlobalProcedureIndex) -> &[GlobalProcedureIndex] {
-        self.callgraph.out_edges(gid)
     }
 
     /// Resolves `target` from the perspective of `caller`.
@@ -376,26 +514,41 @@ impl ModuleGraph {
             Entry::Occupied(ref mut entry) => {
                 let prev_id = entry.get()[0];
                 if prev_id != id {
-                    // Multiple procedures with the same root, but incompatible
-                    let prev = &self.modules[prev_id.module.as_usize()][prev_id.index];
-                    let current = &self.modules[id.module.as_usize()][id.index];
-                    if prev.num_locals() != current.num_locals() {
-                        let prev_module = self.modules[prev_id.module.as_usize()].path();
-                        let prev_name = FullyQualifiedProcedureName {
-                            span: prev.span(),
-                            module: prev_module.clone(),
-                            name: prev.name().clone(),
-                        };
-                        let current_module = self.modules[id.module.as_usize()].path();
-                        let current_name = FullyQualifiedProcedureName {
-                            span: current.span(),
-                            module: current_module.clone(),
-                            name: current.name().clone(),
-                        };
-                        return Err(AssemblyError::ConflictingDefinitions {
-                            first: prev_name,
-                            second: current_name,
-                        });
+                    let prev_proc = {
+                        match &self.modules[prev_id.module.as_usize()] {
+                            WrappedModule::Ast(module) => Some(&module[prev_id.index]),
+                            WrappedModule::Info(_) => None,
+                        }
+                    };
+                    let current_proc = {
+                        match &self.modules[id.module.as_usize()] {
+                            WrappedModule::Ast(module) => Some(&module[id.index]),
+                            WrappedModule::Info(_) => None,
+                        }
+                    };
+
+                    // Note: For compiled procedures, we can't check further if they're compatible,
+                    // so we assume they are.
+                    if let (Some(prev_proc), Some(current_proc)) = (prev_proc, current_proc) {
+                        if prev_proc.num_locals() != current_proc.num_locals() {
+                            // Multiple procedures with the same root, but incompatible
+                            let prev_module = self.modules[prev_id.module.as_usize()].path();
+                            let prev_name = FullyQualifiedProcedureName {
+                                span: prev_proc.span(),
+                                module: prev_module.clone(),
+                                name: prev_proc.name().clone(),
+                            };
+                            let current_module = self.modules[id.module.as_usize()].path();
+                            let current_name = FullyQualifiedProcedureName {
+                                span: current_proc.span(),
+                                module: current_module.clone(),
+                                name: current_proc.name().clone(),
+                            };
+                            return Err(AssemblyError::ConflictingDefinitions {
+                                first: prev_name,
+                                second: current_name,
+                            });
+                        }
                     }
 
                     // Multiple procedures with the same root, but compatible
@@ -416,59 +569,15 @@ impl ModuleGraph {
     }
 
     /// Resolve a [LibraryPath] to a [Module] in this graph
-    pub fn find_module(&self, name: &LibraryPath) -> Option<Arc<Module>> {
+    pub fn find_module(&self, name: &LibraryPath) -> Option<WrappedModule> {
         self.modules.iter().find(|m| m.path() == name).cloned()
-    }
-
-    /// Returns an iterator over the set of [Module]s in this graph, and their indices
-    #[allow(unused)]
-    pub fn modules(&self) -> impl Iterator<Item = (ModuleIndex, Arc<Module>)> + '_ {
-        self.modules
-            .iter()
-            .enumerate()
-            .map(|(idx, m)| (ModuleIndex::new(idx), m.clone()))
-    }
-
-    /// Like [modules], but returns a reference to the module, rather than an owned pointer
-    #[allow(unused)]
-    pub fn modules_by_ref(&self) -> impl Iterator<Item = (ModuleIndex, &Module)> + '_ {
-        self.modules
-            .iter()
-            .enumerate()
-            .map(|(idx, m)| (ModuleIndex::new(idx), m.as_ref()))
-    }
-
-    /// Returns an iterator over the set of [Procedure]s in this graph, and their indices
-    #[allow(unused)]
-    pub fn procedures(&self) -> impl Iterator<Item = (GlobalProcedureIndex, &Procedure)> + '_ {
-        self.modules_by_ref().flat_map(|(module_index, module)| {
-            module.procedures().enumerate().filter_map(move |(index, p)| {
-                let index = ProcedureIndex::new(index);
-                let id = GlobalProcedureIndex {
-                    module: module_index,
-                    index,
-                };
-                match p {
-                    Export::Procedure(ref p) => Some((id, p)),
-                    Export::Alias(_) => None,
-                }
-            })
-        })
     }
 }
 
 impl Index<ModuleIndex> for ModuleGraph {
-    type Output = Arc<Module>;
+    type Output = WrappedModule;
 
     fn index(&self, index: ModuleIndex) -> &Self::Output {
         self.modules.index(index.as_usize())
-    }
-}
-
-impl Index<GlobalProcedureIndex> for ModuleGraph {
-    type Output = Export;
-
-    fn index(&self, index: GlobalProcedureIndex) -> &Self::Output {
-        self.modules[index.module.as_usize()].index(index.index)
     }
 }

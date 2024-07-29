@@ -1,6 +1,6 @@
 use alloc::{borrow::Cow, collections::BTreeSet, sync::Arc, vec::Vec};
 
-use super::ModuleGraph;
+use super::{ModuleGraph, WrappedModule};
 use crate::{
     assembler::{GlobalProcedureIndex, ModuleIndex},
     ast::{
@@ -154,7 +154,7 @@ impl<'a> NameResolver<'a> {
                             .get_name(gid.index)
                             .clone()
                     } else {
-                        self.graph[gid].name().clone()
+                        self.graph.get_procedure_unsafe(gid).name().clone()
                     };
                     Ok(ResolvedTarget::Resolved {
                         gid,
@@ -214,7 +214,7 @@ impl<'a> NameResolver<'a> {
                         .get_name(gid.index)
                         .clone()
                 } else {
-                    self.graph[gid].name().clone()
+                    self.graph.get_procedure_unsafe(gid).name().clone()
                 };
                 Ok(ResolvedTarget::Resolved {
                     gid,
@@ -224,7 +224,7 @@ impl<'a> NameResolver<'a> {
             Some(ResolvedProcedure::MastRoot(ref digest)) => {
                 match self.graph.get_procedure_index_by_digest(digest) {
                     Some(gid) => Ok(ResolvedTarget::Exact { gid }),
-                    None => Ok(ResolvedTarget::Phantom(**digest)),
+                    None => Ok(ResolvedTarget::Phantom(*digest)),
                 }
             }
             None => Err(AssemblyError::Failed {
@@ -244,9 +244,12 @@ impl<'a> NameResolver<'a> {
                 .resolver
                 .resolve_import(name)
         } else {
-            self.graph[caller.module]
-                .resolve_import(name)
-                .map(|import| Span::new(import.span(), import.path()))
+            match &self.graph[caller.module] {
+                WrappedModule::Ast(module) => module
+                    .resolve_import(name)
+                    .map(|import| Span::new(import.span(), import.path())),
+                WrappedModule::Info(_) => None,
+            }
         }
     }
 
@@ -446,7 +449,10 @@ impl<'a> NameResolver<'a> {
         if module_index >= pending_offset {
             self.pending[module_index - pending_offset].source_file.clone()
         } else {
-            self.graph[module].source_file()
+            match &self.graph[module] {
+                WrappedModule::Ast(module) => module.source_file(),
+                WrappedModule::Info(_) => None,
+            }
         }
     }
 

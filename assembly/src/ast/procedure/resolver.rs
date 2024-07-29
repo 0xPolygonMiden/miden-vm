@@ -13,15 +13,15 @@ pub enum ResolvedProcedure {
     /// The name was resolved to a procedure exported from another module
     External(FullyQualifiedProcedureName),
     /// The name was resolved to a procedure with a known MAST root
-    MastRoot(Span<RpoDigest>),
+    MastRoot(RpoDigest),
 }
 
 impl Spanned for ResolvedProcedure {
     fn span(&self) -> SourceSpan {
         match self {
-            Self::Local(ref spanned) => spanned.span(),
-            Self::External(ref spanned) => spanned.span(),
-            Self::MastRoot(ref spanned) => spanned.span(),
+            ResolvedProcedure::Local(p) => p.span(),
+            ResolvedProcedure::External(p) => p.span(),
+            ResolvedProcedure::MastRoot(_) => SourceSpan::default(),
         }
     }
 }

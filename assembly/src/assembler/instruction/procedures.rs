@@ -58,7 +58,10 @@ impl Assembler {
                         callee: proc.fully_qualified_name().clone(),
                     })
                     .and_then(|module| {
-                        if module.is_kernel() {
+                        // Note: this module is guaranteed to be of AST variant, since we have the
+                        // AST of a procedure contained in it (i.e. `proc`). Hence, it must be that
+                        // the entire module is in AST representation as well.
+                        if module.unwrap_ast().is_kernel() {
                             Ok(())
                         } else {
                             Err(AssemblyError::InvalidSysCallTarget {
