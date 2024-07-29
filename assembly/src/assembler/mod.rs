@@ -63,6 +63,9 @@ impl Assembler {
     /// Start building an [`Assembler`] with a kernel defined by the provided [CompiledLibrary].
     ///
     /// # Errors
+    /// Returns an error if:
+    /// - The library does not contain a kernel module.
+    /// - The library contains non-kernel modules.
     pub fn with_kernel(kernel_lib: CompiledLibrary) -> Result<Self, AssemblerError> {
         // get the kernel module from the library and make sure it is valid
         let kernel_module = {
@@ -75,27 +78,13 @@ impl Assembler {
                 return Err(AssemblerError::NonKernelModulesInKernelLibrary);
             }
 
-            let module = modules.into_iter().next().expect("there must be exactly one module");
-            if module.path() != &LibraryPath::from(LibraryNamespace::Kernel) {
-                return Err(AssemblerError::NoKernelModuleInKernelLibrary);
-            }
-
-            module
+            modules.into_iter().next().expect("there must be exactly one module")
         };
 
-        // build the kernel
-        let proc_hashes: Vec<_> = kernel_module.procedure_digests().collect();
-        let kernel = Kernel::new(&proc_hashes)?;
-
-        // instantiate the assembler with the specified kernel
-        let mut assembler = Self::default();
-        let module_indexes = assembler
-            .module_graph
-            .add_compiled_modules([kernel_module].into_iter())
-            .expect("failed to add kernel module to the module graph");
-        assembler.module_graph.set_kernel(Some(module_indexes[0]), kernel);
-
-        Ok(assembler)
+        Ok(Self {
+            module_graph: ModuleGraph::with_kernel(kernel_module)?,
+            ..Default::default()
+        })
     }
 
     /// Sets the default behavior of this assembler with regard to warning diagnostics.

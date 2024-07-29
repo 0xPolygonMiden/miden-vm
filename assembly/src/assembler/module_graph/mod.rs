@@ -21,8 +21,11 @@ use crate::{
         ProcedureName, ResolvedProcedure,
     },
     library::{ModuleInfo, ProcedureInfo},
-    AssemblyError, LibraryPath, RpoDigest, Spanned,
+    AssemblerError, AssemblyError, LibraryNamespace, LibraryPath, RpoDigest, Spanned,
 };
+
+// WRAPPER STRUCTS
+// ================================================================================================
 
 /// Wraps all supported representations of a procedure in the module graph.
 ///
@@ -238,9 +241,27 @@ impl ModuleGraph {
 // ------------------------------------------------------------------------------------------------
 /// Kernels
 impl ModuleGraph {
-    pub(super) fn set_kernel(&mut self, kernel_index: Option<ModuleIndex>, kernel: Kernel) {
-        self.kernel_index = kernel_index;
-        self.kernel = kernel;
+    pub(super) fn with_kernel(kernel_module: ModuleInfo) -> Result<Self, AssemblerError> {
+        if kernel_module.path() != &LibraryPath::from(LibraryNamespace::Kernel) {
+            return Err(AssemblerError::NoKernelModuleInKernelLibrary);
+        }
+
+        // build the kernel struct from the kernel module
+        let proc_hashes: Vec<_> = kernel_module.procedure_digests().collect();
+        let kernel = Kernel::new(&proc_hashes)?;
+
+        // add kernel module to the graph
+        // TODO: simplify this to avoid using Self::add_compiled_modules()
+        let mut graph = Self::default();
+        let module_indexes = graph
+            .add_compiled_modules([kernel_module].into_iter())
+            .expect("failed to add kernel module to the module graph");
+        assert_eq!(module_indexes[0], ModuleIndex::new(0), "kernel should be the first module");
+
+        graph.kernel_index = Some(module_indexes[0]);
+        graph.kernel = kernel;
+
+        Ok(graph)
     }
 
     pub fn kernel(&self) -> &Kernel {
