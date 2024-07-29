@@ -1,7 +1,5 @@
 use crate::{
-    ast::{
-        self, FullyQualifiedProcedureName, InvocationTarget, InvokeKind, ModuleKind, ProcedureIndex,
-    },
+    ast::{self, FullyQualifiedProcedureName, InvocationTarget, InvokeKind, ModuleKind},
     diagnostics::Report,
     library::CompiledLibrary,
     sema::SemanticAnalysisError,
@@ -62,18 +60,26 @@ pub struct Assembler {
 // ------------------------------------------------------------------------------------------------
 /// Constructors
 impl Assembler {
-    /// Start building an [Assembler]
-    pub fn new() -> Self {
-        Self::default()
-    }
+    /// Start building an [`Assembler`] with a kernel defined by the provided [CompiledLibrary].
+    pub fn with_kernel(kernel: CompiledLibrary) -> Result<Self, AssemblyError> {
+        let mut assembler = Self::default();
 
-    /// Start building an [`Assembler`] with the given [`Kernel`].
-    pub fn with_kernel(kernel: Kernel) -> Self {
-        let mut assembler = Self::new();
+        let kernel_modules = kernel.into_module_infos().collect::<Vec<_>>();
+        let kernel_module = &kernel_modules[0];
+        if kernel_module.path() != &LibraryPath::from(LibraryNamespace::Kernel) {
+            panic!("error");
+        }
 
-        assembler.module_graph.set_kernel(None, kernel);
+        let proc_hashes =
+            kernel_module.procedure_infos().map(|(_, p)| p.digest).collect::<Vec<_>>();
+        let kernel = Kernel::new(&proc_hashes).unwrap();
 
-        assembler
+        let module_indexes =
+            assembler.module_graph.add_compiled_modules(kernel_modules.into_iter())?;
+
+        assembler.module_graph.set_kernel(Some(module_indexes[0]), kernel);
+
+        Ok(assembler)
     }
 
     /// Sets the default behavior of this assembler with regard to warning diagnostics.
@@ -149,7 +155,8 @@ impl Assembler {
     pub fn add_compiled_library(&mut self, library: CompiledLibrary) -> Result<(), Report> {
         self.module_graph
             .add_compiled_modules(library.into_module_infos())
-            .map_err(Report::from)
+            .map_err(Report::from)?;
+        Ok(())
     }
 
     /// Adds the library to provide modules for the compilation.
@@ -235,7 +242,11 @@ impl Assembler {
 // ------------------------------------------------------------------------------------------------
 /// Compilation/Assembly
 impl Assembler {
-    /// Assembles a set of modules into a library.
+    /// Assembles a set of modules into a [CompiledLibrary].
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if parsing or compilation of the specified modules fails.
     pub fn assemble_library(
         mut self,
         modules: impl Iterator<Item = impl Compile>,
@@ -254,34 +265,53 @@ impl Assembler {
         let exports = {
             let mut exports = Vec::new();
 
-            for ast_module_idx in ast_module_indices {
+            for module_idx in ast_module_indices {
                 // Note: it is safe to use `unwrap_ast()` here, since all modules looped over are
                 // AST (we just added them to the module graph)
-                let ast_module = self.module_graph[ast_module_idx].unwrap_ast().clone();
+                let ast_module = self.module_graph[module_idx].unwrap_ast().clone();
 
-                for (proc_idx, procedure) in ast_module.procedures().enumerate() {
-                    // Only add exports; locals will be added if they are in the call graph rooted
-                    // at those procedures
-                    if !procedure.visibility().is_exported() {
-                        continue;
-                    }
-
-                    let gid = GlobalProcedureIndex {
-                        module: ast_module_idx,
-                        index: ProcedureIndex::new(proc_idx),
-                    };
-
+                for (gid, fqn) in ast_module.exported_procedures(module_idx) {
                     self.compile_subgraph(gid, false, &mut mast_forest_builder)?;
-
-                    exports.push(FullyQualifiedProcedureName::new(
-                        ast_module.path().clone(),
-                        procedure.name().clone(),
-                    ));
+                    exports.push(fqn);
                 }
             }
 
             exports
         };
+
+        Ok(CompiledLibrary::new(mast_forest_builder.build(), exports)?)
+    }
+
+    /// Assembles the provided module into a [CompiledLibrary] intended to be used as a Kernel.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if parsing or compilation of the specified modules fails.
+    pub fn assemble_kernel(mut self, module: impl Compile) -> Result<CompiledLibrary, Report> {
+        let options = CompileOptions {
+            kind: ModuleKind::Kernel,
+            warnings_as_errors: self.warnings_as_errors,
+            path: Some(LibraryPath::from(LibraryNamespace::Kernel)),
+        };
+
+        let module = module.compile_with_options(options)?;
+        let module_idx = self.module_graph.add_ast_module(module)?;
+
+        self.module_graph.recompute()?;
+
+        let mut mast_forest_builder = MastForestBuilder::default();
+
+        // Note: it is safe to use `unwrap_ast()` here, since all modules looped over are
+        // AST (we just added them to the module graph)
+        let ast_module = self.module_graph[module_idx].unwrap_ast().clone();
+
+        let exports = ast_module
+            .exported_procedures(module_idx)
+            .map(|(gid, fqn)| {
+                self.compile_subgraph(gid, false, &mut mast_forest_builder)?;
+                Ok(fqn)
+            })
+            .collect::<Result<Vec<FullyQualifiedProcedureName>, Report>>()?;
 
         Ok(CompiledLibrary::new(mast_forest_builder.build(), exports)?)
     }

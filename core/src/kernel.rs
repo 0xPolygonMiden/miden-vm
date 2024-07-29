@@ -5,6 +5,9 @@ use crate::{
 use alloc::vec::Vec;
 use miden_crypto::hash::rpo::RpoDigest;
 
+// KERNEL
+// ================================================================================================
+
 /// A list of procedure hashes defining a VM kernel.
 ///
 /// The internally-stored list always has a consistent order, regardless of the order of procedure

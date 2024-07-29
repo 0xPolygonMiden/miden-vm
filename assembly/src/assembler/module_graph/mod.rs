@@ -168,7 +168,7 @@ impl ModuleGraph {
     pub fn add_compiled_modules(
         &mut self,
         module_infos: impl Iterator<Item = ModuleInfo>,
-    ) -> Result<(), AssemblyError> {
+    ) -> Result<Vec<ModuleIndex>, AssemblyError> {
         let module_indices: Vec<ModuleIndex> = module_infos
             .map(|module| self.add_module(PendingWrappedModule::Info(module)))
             .collect::<Result<_, _>>()?;
@@ -176,7 +176,7 @@ impl ModuleGraph {
         self.recompute()?;
 
         // Register all procedures as roots
-        for module_index in module_indices {
+        for &module_index in module_indices.iter() {
             for (proc_index, proc) in self[module_index].unwrap_info().clone().procedure_infos() {
                 let gid = GlobalProcedureIndex {
                     module: module_index,
@@ -187,7 +187,7 @@ impl ModuleGraph {
             }
         }
 
-        Ok(())
+        Ok(module_indices)
     }
 
     /// Add `module` to the graph.
