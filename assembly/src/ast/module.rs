@@ -378,8 +378,7 @@ impl Module {
         module_idx: ModuleIndex,
     ) -> impl Iterator<Item = (GlobalProcedureIndex, FullyQualifiedProcedureName)> + '_ {
         self.procedures.iter().enumerate().filter_map(move |(proc_idx, p)| {
-            // Only add exports; locals will be added if they are in the call graph rooted
-            // at those procedures
+            // skip un-exported procedures
             if !p.visibility().is_exported() {
                 return None;
             }

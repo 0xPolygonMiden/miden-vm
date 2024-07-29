@@ -21,7 +21,7 @@ use crate::{
         ProcedureName, ResolvedProcedure,
     },
     library::{ModuleInfo, ProcedureInfo},
-    AssemblerError, AssemblyError, LibraryNamespace, LibraryPath, RpoDigest, Spanned,
+    AssemblyError, LibraryNamespace, LibraryPath, RpoDigest, Spanned,
 };
 
 // WRAPPER STRUCTS
@@ -241,14 +241,14 @@ impl ModuleGraph {
 // ------------------------------------------------------------------------------------------------
 /// Kernels
 impl ModuleGraph {
-    pub(super) fn with_kernel(kernel_module: ModuleInfo) -> Result<Self, AssemblerError> {
-        if kernel_module.path() != &LibraryPath::from(LibraryNamespace::Kernel) {
-            return Err(AssemblerError::NoKernelModuleInKernelLibrary);
-        }
-
-        // build the kernel struct from the kernel module
-        let proc_hashes: Vec<_> = kernel_module.procedure_digests().collect();
-        let kernel = Kernel::new(&proc_hashes)?;
+    /// Returns a new [ModuleGraph] instantiated from the provided kernel and kernel info module.
+    ///
+    /// Note: it is assumed that kernel and kernel_module are consistent, but this is not checked.
+    ///
+    /// TODO: consider passing `KerneLibrary` into this constructor as a parameter instead.
+    pub(super) fn with_kernel(kernel: Kernel, kernel_module: ModuleInfo) -> Self {
+        assert!(!kernel.is_empty());
+        assert_eq!(kernel_module.path(), &LibraryPath::from(LibraryNamespace::Kernel));
 
         // add kernel module to the graph
         // TODO: simplify this to avoid using Self::add_compiled_modules()
@@ -261,7 +261,7 @@ impl ModuleGraph {
         graph.kernel_index = Some(module_indexes[0]);
         graph.kernel = kernel;
 
-        Ok(graph)
+        graph
     }
 
     pub fn kernel(&self) -> &Kernel {

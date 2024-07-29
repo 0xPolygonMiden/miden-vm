@@ -1,10 +1,10 @@
 use crate::{
     ast::{self, FullyQualifiedProcedureName, InvocationTarget, InvokeKind, ModuleKind},
     diagnostics::Report,
-    library::CompiledLibrary,
+    library::{CompiledLibrary, KernelLibrary},
     sema::SemanticAnalysisError,
-    AssemblerError, AssemblyError, Compile, CompileOptions, Library, LibraryNamespace, LibraryPath,
-    RpoDigest, Spanned,
+    AssemblyError, Compile, CompileOptions, Library, LibraryNamespace, LibraryPath, RpoDigest,
+    Spanned,
 };
 use alloc::{sync::Arc, vec::Vec};
 use mast_forest_builder::MastForestBuilder;
@@ -60,31 +60,13 @@ pub struct Assembler {
 // ------------------------------------------------------------------------------------------------
 /// Constructors
 impl Assembler {
-    /// Start building an [`Assembler`] with a kernel defined by the provided [CompiledLibrary].
-    ///
-    /// # Errors
-    /// Returns an error if:
-    /// - The library does not contain a kernel module.
-    /// - The library contains non-kernel modules.
-    pub fn with_kernel(kernel_lib: CompiledLibrary) -> Result<Self, AssemblerError> {
-        // get the kernel module from the library and make sure it is valid
-        let kernel_module = {
-            let modules = kernel_lib.into_module_infos().collect::<Vec<_>>();
-            if modules.is_empty() {
-                return Err(AssemblerError::EmptyKernelLibrary);
-            }
-
-            if modules.len() > 1 {
-                return Err(AssemblerError::NonKernelModulesInKernelLibrary);
-            }
-
-            modules.into_iter().next().expect("there must be exactly one module")
-        };
-
-        Ok(Self {
-            module_graph: ModuleGraph::with_kernel(kernel_module)?,
+    /// Start building an [`Assembler`] with a kernel defined by the provided [KernelLibrary].
+    pub fn with_kernel(kernel_lib: KernelLibrary) -> Self {
+        let (kernel, kernel_module, _) = kernel_lib.into_parts();
+        Self {
+            module_graph: ModuleGraph::with_kernel(kernel, kernel_module),
             ..Default::default()
-        })
+        }
     }
 
     /// Sets the default behavior of this assembler with regard to warning diagnostics.
