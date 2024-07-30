@@ -180,7 +180,7 @@ mod use_std_library {
     use ast::ModuleKind;
     use masl::{LibraryEntry, WalkLibrary};
     use miette::{Context, Report};
-    use std::path::Path;
+    use std::{fs, io, path::Path};
 
     impl CompiledLibrary {
         /// File extension for the Assembly Library.
@@ -192,6 +192,35 @@ mod use_std_library {
         /// Name of the root module.
         pub const MOD: &'static str = "mod";
 
+        /// Write the library to a target directory, using its namespace as file name and the
+        /// appropriate extension.
+        pub fn write_to_dir(
+            &self,
+            dir_path: impl AsRef<Path>,
+            options: AstSerdeOptions,
+        ) -> io::Result<()> {
+            fs::create_dir_all(&dir_path)?;
+
+            let mut path = dir_path.as_ref().join(self.namespace().as_ref());
+            path.set_extension(Self::LIBRARY_EXTENSION);
+
+            // NOTE: We catch panics due to i/o errors here due to the fact
+            // that the ByteWriter trait does not provide fallible APIs, so
+            // WriteAdapter will panic if the underlying writes fail. This
+            // needs to be addressed in winterfall at some point
+            std::panic::catch_unwind(|| {
+                let mut file = fs::File::create(path)?;
+                self.write_into_with_options(&mut file, options);
+                Ok(())
+            })
+            .map_err(|p| {
+                match p.downcast::<io::Error>() {
+                    // SAFETY: It is guaranteed safe to read Box<std::io::Error>
+                    Ok(err) => unsafe { core::ptr::read(&*err) },
+                    Err(err) => std::panic::resume_unwind(err),
+                }
+            })?
+        }
         /// Read a directory and recursively create modules from its `masm` files.
         ///
         /// For every directory, concatenate the module path with the dir name and proceed.
@@ -366,9 +395,18 @@ impl KernelLibrary {
 mod use_std_kernel {
     use super::*;
     use miette::Report;
-    use std::path::Path;
+    use std::{io, path::Path};
 
     impl KernelLibrary {
+        /// Write the library to a target directory, using its namespace as file name and the
+        /// appropriate extension.
+        pub fn write_to_dir(
+            &self,
+            dir_path: impl AsRef<Path>,
+            options: AstSerdeOptions,
+        ) -> io::Result<()> {
+            self.library.write_to_dir(dir_path, options)
+        }
         /// Read a directory and recursively create modules from its `masm` files.
         ///
         /// For every directory, concatenate the module path with the dir name and proceed.
