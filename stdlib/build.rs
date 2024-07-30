@@ -2,12 +2,9 @@ use assembly::{
     ast::AstSerdeOptions,
     diagnostics::{IntoDiagnostic, Result},
     library::CompiledLibrary,
-    LibraryNamespace, MaslLibrary, Version,
+    LibraryNamespace, Version,
 };
-use std::{env, fs, io, path::Path};
-
-mod md_renderer;
-use md_renderer::MarkdownRenderer;
+use std::{env, path::Path};
 
 // CONSTANTS
 // ================================================================================================
@@ -38,43 +35,6 @@ fn main() -> Result<()> {
     stdlib
         .write_to_dir(Path::new(&build_dir).join(ASL_DIR_PATH), options)
         .into_diagnostic()?;
-
-    // updates the documentation of these modules
-    // TODO(plafer): Reenable this
-    // build_stdlib_docs(stdlib, DOC_DIR_PATH).into_diagnostic()?;
-
-    Ok(())
-}
-
-// STDLIB DOCUMENTATION
-// ================================================================================================
-
-/// A renderer renders a ModuleSourceMap into a particular doc format and index (e.g: markdown, etc)
-trait Renderer {
-    // Render writes out the document files into the output directory
-    fn render(stdlib: &MaslLibrary, output_dir: &str);
-}
-
-/// Writes Miden standard library modules documentation markdown files based on the available
-/// modules and comments.
-pub fn build_stdlib_docs(library: &MaslLibrary, output_dir: &str) -> io::Result<()> {
-    // Clean the output folder. This only deletes the folder's content, and not the folder itself,
-    // because removing the folder fails on docs.rs
-    for entry in fs::read_dir(output_dir)? {
-        let entry = entry?;
-        let metadata = entry.metadata()?;
-
-        if metadata.is_dir() {
-            fs::remove_dir_all(entry.path())?;
-        } else {
-            assert!(metadata.is_file());
-            fs::remove_file(entry.path())?;
-        }
-    }
-
-    // Render the stdlib modules into markdown
-    // TODO: Make the renderer choice pluggable.
-    MarkdownRenderer::render(library, output_dir);
 
     Ok(())
 }
