@@ -265,13 +265,13 @@ mod use_std {
 }
 
 #[cfg(feature = "std")]
-struct LibraryEntry {
-    name: super::LibraryPath,
-    source_path: std::path::PathBuf,
+pub struct LibraryEntry {
+    pub name: super::LibraryPath,
+    pub source_path: std::path::PathBuf,
 }
 
 #[cfg(feature = "std")]
-struct WalkLibrary<'a> {
+pub struct WalkLibrary<'a> {
     namespace: LibraryNamespace,
     root: &'a std::path::Path,
     stack: alloc::collections::VecDeque<std::io::Result<std::fs::DirEntry>>,
@@ -279,7 +279,7 @@ struct WalkLibrary<'a> {
 
 #[cfg(feature = "std")]
 impl<'a> WalkLibrary<'a> {
-    fn new(namespace: LibraryNamespace, path: &'a std::path::Path) -> std::io::Result<Self> {
+    pub fn new(namespace: LibraryNamespace, path: &'a std::path::Path) -> std::io::Result<Self> {
         use alloc::collections::VecDeque;
 
         let stack = VecDeque::from_iter(std::fs::read_dir(path)?);

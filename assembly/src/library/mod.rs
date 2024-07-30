@@ -27,7 +27,7 @@ mod tests;
 // COMPILED LIBRARY
 // ================================================================================================
 
-/// Represents a library where all modules modules were compiled into a [`MastForest`].
+/// Represents a library where all modules were compiled into a [`MastForest`].
 pub struct CompiledLibrary {
     mast_forest: MastForest,
     // a path for every `root` in the associated MAST forest
@@ -140,6 +140,111 @@ impl CompiledLibrary {
     }
 }
 
+#[cfg(feature = "std")]
+mod use_std_library {
+    use super::*;
+    use crate::{diagnostics::IntoDiagnostic, Assembler};
+    use alloc::collections::btree_map::Entry;
+    use ast::ModuleKind;
+    use masl::{LibraryEntry, WalkLibrary};
+    use miette::{Context, Report};
+    use std::path::Path;
+
+    impl CompiledLibrary {
+        /// File extension for the Assembly Library.
+        pub const LIBRARY_EXTENSION: &'static str = "masl";
+
+        /// File extension for the Assembly Module.
+        pub const MODULE_EXTENSION: &'static str = "masm";
+
+        /// Name of the root module.
+        pub const MOD: &'static str = "mod";
+
+        /// Read a directory and recursively create modules from its `masm` files.
+        ///
+        /// For every directory, concatenate the module path with the dir name and proceed.
+        ///
+        /// For every file, pick and compile the ones with `masm` extension; skip otherwise.
+        ///
+        /// Example:
+        ///
+        /// - ./sys.masm            -> "sys"
+        /// - ./crypto/hash.masm    -> "crypto::hash"
+        /// - ./math/u32.masm       -> "math::u32"
+        /// - ./math/u64.masm       -> "math::u64"
+        pub fn from_dir(
+            path: impl AsRef<Path>,
+            namespace: LibraryNamespace,
+        ) -> Result<Self, Report> {
+            let path = path.as_ref();
+            if !path.is_dir() {
+                return Err(Report::msg(format!(
+                    "the provided path '{}' is not a valid directory",
+                    path.display()
+                )));
+            }
+
+            // mod.masm is not allowed in the root directory
+            if path.join("mod.masm").exists() {
+                return Err(Report::msg("mod.masm is not allowed in the root directory"));
+            }
+
+            Self::compile_modules_from_dir(namespace, path)
+        }
+
+        /// Read the contents (modules) of this library from `dir`, returning any errors that occur
+        /// while traversing the file system.
+        ///
+        /// Errors may also be returned if traversal discovers issues with the library, such as
+        /// invalid names, etc.
+        ///
+        /// Returns a library built from the set of modules that were compiled.
+        fn compile_modules_from_dir(
+            namespace: LibraryNamespace,
+            dir: &Path,
+        ) -> Result<Self, Report> {
+            let mut modules = BTreeMap::default();
+
+            let walker = WalkLibrary::new(namespace.clone(), dir)
+                .into_diagnostic()
+                .wrap_err_with(|| format!("failed to load library from '{}'", dir.display()))?;
+            for entry in walker {
+                let LibraryEntry {
+                    mut name,
+                    source_path,
+                } = entry?;
+                if name.last() == Self::MOD {
+                    name.pop();
+                }
+                // Parse module at the given path
+                let ast = ast::Module::parse_file(name.clone(), ModuleKind::Library, &source_path)?;
+                match modules.entry(name) {
+                    Entry::Occupied(ref entry) => {
+                        return Err(LibraryError::DuplicateModulePath(entry.key().clone()))
+                            .into_diagnostic();
+                    }
+                    Entry::Vacant(entry) => {
+                        entry.insert(ast);
+                    }
+                }
+            }
+
+            if modules.is_empty() {
+                return Err(LibraryError::Empty(namespace.clone()).into());
+            }
+            if modules.len() > MAX_MODULES {
+                return Err(LibraryError::TooManyModulesInLibrary {
+                    name: namespace.clone(),
+                    count: modules.len(),
+                    max: MAX_MODULES,
+                }
+                .into());
+            }
+
+            Assembler::default().assemble_library(modules.into_values())
+        }
+    }
+}
 // KERNEL LIBRARY
 // ================================================================================================
 
@@ -223,6 +328,25 @@ impl KernelLibrary {
                 "Failed to deserialize kernel library: {err}"
             ))
         })
+    }
+}
+#[cfg(feature = "std")]
+mod use_std_kernel {
+    use super::*;
+    use miette::Report;
+    use std::path::Path;
+
+    impl KernelLibrary {
+        /// Read a directory and recursively create modules from its `masm` files.
+        ///
+        /// For every directory, concatenate the module path with the dir name and proceed.
+        ///
+        /// For every file, pick and compile the ones with `masm` extension; skip otherwise.
+        pub fn from_dir(path: impl AsRef<Path>) -> Result<Self, Report> {
+            let library = CompiledLibrary::from_dir(path, LibraryNamespace::Kernel)?;
+
+            Ok(Self::try_from(library)?)
+        }
     }
 }
 
