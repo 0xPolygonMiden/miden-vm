@@ -348,6 +348,11 @@ pub struct KernelLibrary {
 }
 
 impl KernelLibrary {
+    /// Returns the inner [`MastForest`].
+    pub fn mast_forest(&self) -> &MastForest {
+        self.library.mast_forest()
+    }
+
     /// Destructures this kernel library into individual parts.
     pub fn into_parts(self) -> (Kernel, ModuleInfo, MastForest) {
         (self.kernel, self.kernel_info, self.library.mast_forest)

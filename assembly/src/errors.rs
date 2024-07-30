@@ -4,7 +4,7 @@ use vm_core::mast::MastForestError;
 use crate::{
     ast::FullyQualifiedProcedureName,
     diagnostics::{Diagnostic, RelatedError, RelatedLabel, Report, SourceFile},
-    LibraryNamespace, LibraryPath, RpoDigest, SourceSpan,
+    LibraryNamespace, LibraryPath, SourceSpan,
 };
 
 // ASSEMBLY ERROR
@@ -59,15 +59,6 @@ pub enum AssemblyError {
         #[source_code]
         source_file: Option<Arc<SourceFile>>,
         callee: FullyQualifiedProcedureName,
-    },
-    #[error("invalid syscall: kernel procedures must be available during compilation, but '{callee}' is not")]
-    #[diagnostic()]
-    UnknownSysCallTarget {
-        #[label("call occurs here")]
-        span: SourceSpan,
-        #[source_code]
-        source_file: Option<Arc<SourceFile>>,
-        callee: RpoDigest,
     },
     #[error("invalid use of 'caller' instruction outside of kernel")]
     #[diagnostic(help(

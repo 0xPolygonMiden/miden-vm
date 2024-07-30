@@ -126,8 +126,6 @@ fn locaddr() {
 // CALLER INSTRUCTION
 // ================================================================================================
 
-// TODO: Fix test after we implement the new `Assembler::add_library()`
-#[ignore]
 #[test]
 fn caller() {
     let kernel_source = "
@@ -147,7 +145,7 @@ fn caller() {
 
     // TODO: update and use macro?
     let test = Test {
-        kernel: Some(kernel_source.to_string()),
+        kernel_source: Some(kernel_source.to_string()),
         stack_inputs: StackInputs::try_from_ints([1, 2, 3, 4, 5]).unwrap(),
         ..Test::new(&format!("test{}", line!()), program_source, false)
     };
