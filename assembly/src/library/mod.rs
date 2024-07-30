@@ -16,7 +16,6 @@ mod path;
 mod version;
 
 pub use self::error::{CompiledLibraryError, LibraryError};
-pub use self::masl::MaslLibrary;
 pub use self::namespace::{LibraryNamespace, LibraryNamespaceError};
 pub use self::path::{LibraryPath, LibraryPathComponent, PathError};
 pub use self::version::{Version, VersionError};
@@ -531,9 +530,6 @@ pub struct ProcedureInfo {
 
 /// Maximum number of modules in a library.
 const MAX_MODULES: usize = u16::MAX as usize;
-
-/// Maximum number of dependencies in a library.
-const MAX_DEPENDENCIES: usize = u16::MAX as usize;
 
 /// A library definition that provides AST modules for the compilation process.
 pub trait Library {

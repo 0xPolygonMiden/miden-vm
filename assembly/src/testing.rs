@@ -5,7 +5,8 @@ use crate::{
         reporting::{set_hook, ReportHandlerOpts},
         Report, SourceFile,
     },
-    Compile, CompileOptions, Library, LibraryPath, RpoDigest,
+    library::CompiledLibrary,
+    Compile, CompileOptions, LibraryPath, RpoDigest,
 };
 
 #[cfg(feature = "std")]
@@ -295,11 +296,8 @@ impl TestContext {
 
     /// Add the modules of `library` to the [Assembler] constructed by this context.
     #[track_caller]
-    pub fn add_library<L>(&mut self, library: &L) -> Result<(), Report>
-    where
-        L: ?Sized + Library + 'static,
-    {
-        self.assembler.add_library(library)
+    pub fn add_library(&mut self, library: CompiledLibrary) -> Result<(), Report> {
+        self.assembler.add_compiled_library(library)
     }
 
     /// Compile a [Program] from `source` using the [Assembler] constructed by this context.

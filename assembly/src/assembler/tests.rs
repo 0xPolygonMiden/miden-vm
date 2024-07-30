@@ -165,7 +165,8 @@ fn nested_blocks() {
     let expected_program = Program::new(expected_mast_forest_builder.build(), combined_node_id);
     assert_eq!(expected_program.hash(), program.hash());
 
-    // also check that the program has the right number of procedures (which excludes the dummy library and kernel)
+    // also check that the program has the right number of procedures (which excludes the dummy
+    // library and kernel)
     assert_eq!(program.num_procedures(), 3);
 }
 

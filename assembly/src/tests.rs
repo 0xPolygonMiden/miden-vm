@@ -1,4 +1,4 @@
-use alloc::{rc::Rc, string::ToString, vec::Vec};
+use alloc::string::ToString;
 
 use crate::{
     assert_diagnostic_lines,
@@ -6,7 +6,7 @@ use crate::{
     diagnostics::Report,
     regex, source_file,
     testing::{Pattern, TestContext},
-    Assembler, Library, LibraryNamespace, LibraryPath, MaslLibrary, ModuleParser, Version,
+    Assembler, LibraryPath, ModuleParser,
 };
 
 type TestResult = Result<(), Report>;
@@ -411,12 +411,10 @@ fn get_proc_name_of_unknown_module() -> TestResult {
     let module_path_one = "module::path::one".parse().unwrap();
     let module1 = context.parse_module_with_path(module_path_one, module_source1)?;
 
-    let masl_lib =
-        MaslLibrary::new(module1.namespace().clone(), Version::default(), [module1], vec![])
-            .unwrap();
+    let masl_lib = Assembler::default().assemble_library(core::iter::once(module1)).unwrap();
 
     // instantiate assembler
-    context.add_library(&masl_lib)?;
+    context.add_library(masl_lib)?;
 
     // compile program with procref calls
     let source = source_file!(
@@ -1518,10 +1516,9 @@ fn program_with_one_import_and_hex_call() -> TestResult {
     let mut context = TestContext::default();
     let path = MODULE.parse().unwrap();
     let ast = context.parse_module_with_path(path, source_file!(PROCEDURE.to_string()))?;
-    let ns = ast.namespace().clone();
-    let library = DummyLibrary::new(ns, vec![Rc::from(ast)]);
+    let library = Assembler::default().assemble_library(core::iter::once(ast)).unwrap();
 
-    context.add_library(&library)?;
+    context.add_library(library)?;
 
     let source = source_file!(format!(
         r#"
@@ -1594,10 +1591,9 @@ fn program_with_two_imported_procs_with_same_mast_root() -> TestResult {
     let mut context = TestContext::default();
     let path = MODULE.parse().unwrap();
     let ast = context.parse_module_with_path(path, source_file!(PROCEDURE.to_string()))?;
-    let ns = ast.namespace().clone();
-    let library = DummyLibrary::new(ns, vec![Rc::from(ast)]);
+    let library = Assembler::default().assemble_library(core::iter::once(ast)).unwrap();
 
-    context.add_library(&library)?;
+    context.add_library(library)?;
 
     let source = source_file!(format!(
         r#"
@@ -1664,10 +1660,9 @@ fn program_with_reexported_proc_in_same_library() -> TestResult {
         Module::parse_str(REF_MODULE.parse().unwrap(), ModuleKind::Library, REF_MODULE_BODY)
             .unwrap();
 
-    let ns = ref_ast.namespace().clone();
-    let library = DummyLibrary::new(ns, vec![Rc::from(ast), Rc::from(ref_ast)]);
+    let library = Assembler::default().assemble_library(vec![ast, ref_ast].into_iter()).unwrap();
 
-    context.add_library(&library)?;
+    context.add_library(library)?;
 
     let source = source_file!(format!(
         r#"
@@ -1722,17 +1717,15 @@ fn program_with_reexported_proc_in_another_library() -> TestResult {
 
     let mut context = TestContext::default();
     let ast = Module::parse_str(MODULE.parse().unwrap(), ModuleKind::Library, MODULE_BODY).unwrap();
-    let ns = ast.namespace().clone();
-    let dummy_library_1 = DummyLibrary::new(ns, vec![Rc::from(ast)]);
+    let dummy_library_1 = Assembler::default().assemble_library(vec![ast].into_iter()).unwrap();
 
     let ref_ast =
         Module::parse_str(REF_MODULE.parse().unwrap(), ModuleKind::Library, REF_MODULE_BODY)
             .unwrap();
-    let ns = ref_ast.namespace().clone();
-    let dummy_library_2 = DummyLibrary::new(ns, vec![Rc::from(ref_ast)]);
+    let dummy_library_2 = Assembler::default().assemble_library(vec![ref_ast].into_iter()).unwrap();
 
-    context.add_library(&dummy_library_1)?;
-    context.add_library(&dummy_library_2)?;
+    context.add_library(dummy_library_1.clone())?;
+    context.add_library(dummy_library_2)?;
 
     let source = source_file!(format!(
         r#"
@@ -1760,7 +1753,7 @@ end";
     // when the re-exported proc is part of a different library and the library is not passed to
     // the assembler it should fail
     let mut context = TestContext::default();
-    context.add_library(&dummy_library_1)?;
+    context.add_library(dummy_library_1)?;
     let source = source_file!(format!(
         r#"
         use.{MODULE}
@@ -1793,10 +1786,9 @@ fn module_alias() -> TestResult {
 
     let mut context = TestContext::default();
     let ast = Module::parse_str(MODULE.parse().unwrap(), ModuleKind::Library, PROCEDURE).unwrap();
-    let ns = ast.namespace().clone();
-    let library = DummyLibrary::new(ns, vec![Rc::from(ast)]);
+    let library = Assembler::default().assemble_library(vec![ast].into_iter()).unwrap();
 
-    context.add_library(&library)?;
+    context.add_library(library)?;
 
     let source = source_file!(
         "
@@ -2435,42 +2427,4 @@ fn test_compiled_library() {
     ";
 
     let _program = assembler.assemble_program(program_source).unwrap();
-}
-
-// DUMMY LIBRARY
-// ================================================================================================
-
-struct DummyLibrary {
-    namespace: LibraryNamespace,
-    modules: Vec<Rc<Module>>,
-    dependencies: Vec<LibraryNamespace>,
-}
-
-impl DummyLibrary {
-    fn new(namespace: LibraryNamespace, modules: Vec<Rc<Module>>) -> Self {
-        Self {
-            namespace,
-            modules,
-            dependencies: Vec::new(),
-        }
-    }
-}
-
-impl Library for DummyLibrary {
-    fn root_ns(&self) -> &LibraryNamespace {
-        &self.namespace
-    }
-
-    fn version(&self) -> &Version {
-        const MIN: Version = Version::min();
-        &MIN
-    }
-
-    fn modules(&self) -> impl ExactSizeIterator<Item = &Module> + '_ {
-        self.modules.iter().map(|p| p.as_ref())
-    }
-
-    fn dependencies(&self) -> &[LibraryNamespace] {
-        &self.dependencies
-    }
 }
