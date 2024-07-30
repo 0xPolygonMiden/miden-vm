@@ -9,7 +9,6 @@ extern crate std;
 
 use vm_core::{
     crypto::hash::RpoDigest,
-    errors::KernelError,
     utils::{
         ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable, SliceReader,
     },

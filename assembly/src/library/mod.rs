@@ -2,6 +2,7 @@ use alloc::{collections::BTreeMap, vec::Vec};
 
 use vm_core::crypto::hash::RpoDigest;
 use vm_core::mast::MastForest;
+use vm_core::Kernel;
 
 use crate::ast::{self, FullyQualifiedProcedureName, ProcedureIndex, ProcedureName};
 
@@ -21,7 +22,7 @@ pub use self::version::{Version, VersionError};
 mod tests;
 
 // COMPILED LIBRARY
-// ===============================================================================================
+// ================================================================================================
 
 /// Represents a library where all modules modules were compiled into a [`MastForest`].
 pub struct CompiledLibrary {
@@ -94,6 +95,67 @@ impl CompiledLibrary {
     }
 }
 
+// KERNEL LIBRARY
+// ================================================================================================
+
+/// Represents a library containing a Miden VM kernel.
+///
+/// This differs from the regular [CompiledLibrary] as follows:
+/// - All exported procedures must be exported directly from the kernel namespace (i.e., `#sys`).
+/// - The number of exported procedures cannot exceed [Kernel::MAX_NUM_PROCEDURES] (i.e., 256).
+pub struct KernelLibrary {
+    kernel: Kernel,
+    kernel_info: ModuleInfo,
+    library: CompiledLibrary,
+}
+
+impl KernelLibrary {
+    /// Destructures this kernel library into individual parts.
+    pub fn into_parts(self) -> (Kernel, ModuleInfo, MastForest) {
+        (self.kernel, self.kernel_info, self.library.mast_forest)
+    }
+}
+
+impl TryFrom<CompiledLibrary> for KernelLibrary {
+    type Error = CompiledLibraryError;
+
+    fn try_from(library: CompiledLibrary) -> Result<Self, Self::Error> {
+        let kernel_path = LibraryPath::from(LibraryNamespace::Kernel);
+        let mut kernel_procs = Vec::with_capacity(library.exports.len());
+        let mut proc_digests = Vec::with_capacity(library.exports.len());
+
+        for (proc_index, proc_path) in library.exports.iter().enumerate() {
+            // make sure all procedures are exported directly from the #sys module
+            if proc_path.module != kernel_path {
+                return Err(CompiledLibraryError::InvalidKernelExport {
+                    procedure_path: proc_path.clone(),
+                });
+            }
+
+            let proc_node_id = library.mast_forest.procedure_roots()[proc_index];
+            let proc_digest = library.mast_forest[proc_node_id].digest();
+
+            proc_digests.push(proc_digest);
+            kernel_procs.push(ProcedureInfo {
+                name: proc_path.name.clone(),
+                digest: proc_digest,
+            });
+        }
+
+        let kernel = Kernel::new(&proc_digests)?;
+        let module_info = ModuleInfo::new(kernel_path, kernel_procs);
+
+        Ok(Self {
+            kernel,
+            kernel_info: module_info,
+            library,
+        })
+    }
+}
+
+// MODULE INFO
+// ================================================================================================
+
 #[derive(Debug, Clone)]
 pub struct ModuleInfo {
     path: LibraryPath,
@@ -101,8 +163,11 @@ pub struct ModuleInfo {
 }
 
 impl ModuleInfo {
-    /// Constructs a new [`ModuleInfo`].
-    pub fn new(path: LibraryPath, procedures: Vec<ProcedureInfo>) -> Self {
+    /// Returns a new [`ModuleInfo`] instantiated from the provided procedures.
+    ///
+    /// Note: this constructor assumes that the fully-qualified names of the provided procedures
+    /// are consistent with the provided module path, but this is not checked.
+    fn new(path: LibraryPath, procedures: Vec<ProcedureInfo>) -> Self {
         Self {
             path,
             procedure_infos: procedures,
@@ -131,6 +196,11 @@ impl ModuleInfo {
             .iter()
             .enumerate()
             .map(|(idx, proc)| (ProcedureIndex::new(idx), proc))
+    }
+
+    /// Returns an iterator over the MAST roots of procedures defined in this module.
+    pub fn procedure_digests(&self) -> impl Iterator<Item = RpoDigest> + '_ {
+        self.procedure_infos.iter().map(|p| p.digest)
     }
 
     /// Returns the [`ProcedureInfo`] of the procedure at the provided index, if any.

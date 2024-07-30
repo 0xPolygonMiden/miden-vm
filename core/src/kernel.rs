@@ -5,6 +5,9 @@ use crate::{
 use alloc::vec::Vec;
 use miden_crypto::hash::rpo::RpoDigest;
 
+// KERNEL
+// ================================================================================================
+
 /// A list of procedure hashes defining a VM kernel.
 ///
 /// The internally-stored list always has a consistent order, regardless of the order of procedure
@@ -12,13 +15,14 @@ use miden_crypto::hash::rpo::RpoDigest;
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct Kernel(Vec<RpoDigest>);
 
-pub const MAX_KERNEL_PROCEDURES: usize = u8::MAX as usize;
-
 impl Kernel {
+    /// The maximum number of procedures which can be exported from a Kernel.
+    pub const MAX_NUM_PROCEDURES: usize = u8::MAX as usize;
+
     /// Returns a new [Kernel] instantiated with the specified procedure hashes.
     pub fn new(proc_hashes: &[RpoDigest]) -> Result<Self, KernelError> {
-        if proc_hashes.len() > MAX_KERNEL_PROCEDURES {
-            Err(KernelError::TooManyProcedures(MAX_KERNEL_PROCEDURES, proc_hashes.len()))
+        if proc_hashes.len() > Self::MAX_NUM_PROCEDURES {
+            Err(KernelError::TooManyProcedures(Self::MAX_NUM_PROCEDURES, proc_hashes.len()))
         } else {
             let mut hashes = proc_hashes.to_vec();
             hashes.sort_by_key(|v| v.as_bytes()); // ensure consistent order
@@ -52,21 +56,15 @@ impl Kernel {
 // this is required by AIR as public inputs will be serialized with the proof
 impl Serializable for Kernel {
     fn write_into<W: ByteWriter>(&self, target: &mut W) {
-        debug_assert!(self.0.len() <= MAX_KERNEL_PROCEDURES);
-        target.write_usize(self.0.len());
+        // expect is OK here because the number of procedures is enforced by the constructor
+        target.write_u8(self.0.len().try_into().expect("too many kernel procedures"));
         target.write_many(&self.0)
     }
 }
 
 impl Deserializable for Kernel {
     fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
-        let len = source.read_usize()?;
-        if len > MAX_KERNEL_PROCEDURES {
-            return Err(DeserializationError::InvalidValue(format!(
-                "Number of kernel procedures can not be more than {}, but {} was provided",
-                MAX_KERNEL_PROCEDURES, len
-            )));
-        }
+        let len = source.read_u8()? as usize;
         let kernel = source.read_many::<RpoDigest>(len)?;
         Ok(Self(kernel))
     }

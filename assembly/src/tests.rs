@@ -2405,14 +2405,14 @@ fn test_compiled_library() {
     };
 
     let compiled_library = {
-        let assembler = Assembler::new();
+        let assembler = Assembler::default();
         assembler.assemble_library(vec![mod1, mod2].into_iter()).unwrap()
     };
 
     assert_eq!(compiled_library.exports().len(), 4);
 
     // Compile program that uses compiled library
-    let mut assembler = Assembler::new();
+    let mut assembler = Assembler::default();
 
     assembler.add_compiled_library(compiled_library).unwrap();
 

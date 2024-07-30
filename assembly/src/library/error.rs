@@ -1,7 +1,10 @@
 use alloc::string::String;
+use vm_core::errors::KernelError;
 
 use crate::{
-    diagnostics::Diagnostic, library::LibraryNamespaceError, library::VersionError,
+    ast::FullyQualifiedProcedureName,
+    diagnostics::Diagnostic,
+    library::{LibraryNamespaceError, VersionError},
     DeserializationError, LibraryNamespace, LibraryPath, PathError,
 };
 
@@ -68,4 +71,10 @@ pub enum CompiledLibraryError {
         exports_len: usize,
         roots_len: usize,
     },
+    #[error("Invalid export in kernel library: {procedure_path}")]
+    InvalidKernelExport {
+        procedure_path: FullyQualifiedProcedureName,
+    },
+    #[error(transparent)]
+    Kernel(#[from] KernelError),
 }

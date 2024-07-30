@@ -6,7 +6,10 @@ use alloc::{
 };
 use core::fmt;
 
-use super::{Export, Import, LocalNameResolver, ProcedureIndex, ProcedureName, ResolvedProcedure};
+use super::{
+    Export, FullyQualifiedProcedureName, Import, LocalNameResolver, ProcedureIndex, ProcedureName,
+    ResolvedProcedure,
+};
 use crate::{
     ast::{AliasTarget, AstSerdeOptions, Ident},
     diagnostics::{Report, SourceFile},
@@ -363,6 +366,26 @@ impl Module {
     /// Same as [Module::procedures], but returns mutable references.
     pub fn procedures_mut(&mut self) -> core::slice::IterMut<'_, Export> {
         self.procedures.iter_mut()
+    }
+
+    /// Returns procedures exported from this module.
+    ///
+    /// Each exported procedure is represented by its local procedure index and a fully qualified
+    /// name.
+    pub fn exported_procedures(
+        &self,
+    ) -> impl Iterator<Item = (ProcedureIndex, FullyQualifiedProcedureName)> + '_ {
+        self.procedures.iter().enumerate().filter_map(|(proc_idx, p)| {
+            // skip un-exported procedures
+            if !p.visibility().is_exported() {
+                return None;
+            }
+
+            let proc_idx = ProcedureIndex::new(proc_idx);
+            let fqn = FullyQualifiedProcedureName::new(self.path().clone(), p.name().clone());
+
+            Some((proc_idx, fqn))
+        })
     }
 
     /// Get an iterator over the imports declared in this module.

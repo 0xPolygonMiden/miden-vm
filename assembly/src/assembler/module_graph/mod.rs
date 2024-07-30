@@ -21,8 +21,11 @@ use crate::{
         ProcedureName, ResolvedProcedure,
     },
     library::{ModuleInfo, ProcedureInfo},
-    AssemblyError, LibraryPath, RpoDigest, Spanned,
+    AssemblyError, LibraryNamespace, LibraryPath, RpoDigest, Spanned,
 };
+
+// WRAPPER STRUCTS
+// ================================================================================================
 
 /// Wraps all supported representations of a procedure in the module graph.
 ///
@@ -168,7 +171,7 @@ impl ModuleGraph {
     pub fn add_compiled_modules(
         &mut self,
         module_infos: impl Iterator<Item = ModuleInfo>,
-    ) -> Result<(), AssemblyError> {
+    ) -> Result<Vec<ModuleIndex>, AssemblyError> {
         let module_indices: Vec<ModuleIndex> = module_infos
             .map(|module| self.add_module(PendingWrappedModule::Info(module)))
             .collect::<Result<_, _>>()?;
@@ -176,7 +179,7 @@ impl ModuleGraph {
         self.recompute()?;
 
         // Register all procedures as roots
-        for module_index in module_indices {
+        for &module_index in module_indices.iter() {
             for (proc_index, proc) in self[module_index].unwrap_info().clone().procedure_infos() {
                 let gid = GlobalProcedureIndex {
                     module: module_index,
@@ -187,7 +190,7 @@ impl ModuleGraph {
             }
         }
 
-        Ok(())
+        Ok(module_indices)
     }
 
     /// Add `module` to the graph.
@@ -238,9 +241,27 @@ impl ModuleGraph {
 // ------------------------------------------------------------------------------------------------
 /// Kernels
 impl ModuleGraph {
-    pub(super) fn set_kernel(&mut self, kernel_index: Option<ModuleIndex>, kernel: Kernel) {
-        self.kernel_index = kernel_index;
-        self.kernel = kernel;
+    /// Returns a new [ModuleGraph] instantiated from the provided kernel and kernel info module.
+    ///
+    /// Note: it is assumed that kernel and kernel_module are consistent, but this is not checked.
+    ///
+    /// TODO: consider passing `KerneLibrary` into this constructor as a parameter instead.
+    pub(super) fn with_kernel(kernel: Kernel, kernel_module: ModuleInfo) -> Self {
+        assert!(!kernel.is_empty());
+        assert_eq!(kernel_module.path(), &LibraryPath::from(LibraryNamespace::Kernel));
+
+        // add kernel module to the graph
+        // TODO: simplify this to avoid using Self::add_compiled_modules()
+        let mut graph = Self::default();
+        let module_indexes = graph
+            .add_compiled_modules([kernel_module].into_iter())
+            .expect("failed to add kernel module to the module graph");
+        assert_eq!(module_indexes[0], ModuleIndex::new(0), "kernel should be the first module");
+
+        graph.kernel_index = Some(module_indexes[0]);
+        graph.kernel = kernel;
+
+        graph
     }
 
     pub fn kernel(&self) -> &Kernel {

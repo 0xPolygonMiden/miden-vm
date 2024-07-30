@@ -66,7 +66,7 @@ fn nested_blocks() {
         }
     }
 
-    let assembler = Assembler::new().with_library(&DummyLibrary::default()).unwrap();
+    let assembler = Assembler::default().with_library(&DummyLibrary::default()).unwrap();
 
     // The expected `MastForest` for the program (that we will build by hand)
     let mut expected_mast_forest_builder = MastForestBuilder::default();
@@ -200,7 +200,7 @@ fn nested_blocks() {
 /// forest.
 #[test]
 fn duplicate_procedure() {
-    let assembler = Assembler::new();
+    let assembler = Assembler::default();
 
     let program_source = r#"
         proc.foo
@@ -227,7 +227,7 @@ fn duplicate_procedure() {
 /// Ensures that equal MAST nodes don't get added twice to a MAST forest
 #[test]
 fn duplicate_nodes() {
-    let assembler = Assembler::new();
+    let assembler = Assembler::default();
 
     let program_source = r#"
     begin
@@ -317,7 +317,7 @@ fn explicit_fully_qualified_procedure_references() {
         }
     }
 
-    let assembler = Assembler::new().with_library(&DummyLibrary::default()).unwrap();
+    let assembler = Assembler::default().with_library(&DummyLibrary::default()).unwrap();
 
     let program = r#"
     begin
