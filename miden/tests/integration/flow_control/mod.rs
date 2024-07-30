@@ -1,4 +1,6 @@
 use assembly::{ast::ModuleKind, Assembler, LibraryPath};
+use core::iter;
+use miden_vm::Module;
 use processor::ExecutionError;
 use prover::Digest;
 use stdlib::StdLibrary;
@@ -187,8 +189,6 @@ fn local_fn_call_with_mem_access() {
     test.prove_and_verify(vec![3, 7], false);
 }
 
-// TODO: Fix test after we implement the new `Assembler::add_library()`
-#[ignore]
 #[test]
 fn simple_syscall() {
     let kernel_source = "
@@ -204,7 +204,7 @@ fn simple_syscall() {
 
     // TODO: update and use macro?
     let test = Test {
-        kernel: Some(kernel_source.to_string()),
+        kernel_source: Some(kernel_source.to_string()),
         stack_inputs: StackInputs::try_from_ints([1, 2]).unwrap(),
         ..Test::new(&format!("test{}", line!()), program_source, false)
     };
@@ -389,13 +389,8 @@ fn simple_dyncall() {
 // PROCREF INSTRUCTION
 // ================================================================================================
 
-// TODO: Fix test after we implement the new `Assembler::add_library()`
-#[ignore]
-#[allow(unused)]
 #[test]
 fn procref() {
-    let mut assembler = Assembler::default().with_library(&StdLibrary::default()).unwrap();
-
     let module_source = "
     use.std::math::u64
     export.u64::overflowing_add
@@ -406,12 +401,19 @@ fn procref() {
     ";
 
     // obtain procedures' MAST roots by compiling them as module
-    let module_path = "test::foo".parse::<LibraryPath>().unwrap();
-    let opts = assembly::CompileOptions::new(ModuleKind::Library, module_path).unwrap();
+    let mast_roots: Vec<Digest> = {
+        let module_path = "test::foo".parse::<LibraryPath>().unwrap();
+        let module = Module::parse_str(module_path, ModuleKind::Library, module_source).unwrap();
+        let library = Assembler::default()
+            .with_library(&StdLibrary::default())
+            .unwrap()
+            .assemble_library(iter::once(module))
+            .unwrap();
 
-    // TODO: Fix
-    // let mast_roots = assembler.assemble_module(module_source, opts).unwrap();
-    let mast_roots: Vec<Digest> = Vec::new();
+        let module_info = library.into_module_infos().next().unwrap();
+
+        module_info.procedure_digests().collect()
+    };
 
     let source = "
     use.std::math::u64

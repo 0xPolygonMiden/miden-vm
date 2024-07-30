@@ -1,3 +1,5 @@
+use core::iter;
+
 use alloc::{boxed::Box, vec::Vec};
 use pretty_assertions::assert_eq;
 use vm_core::{assert_matches, mast::MastForest, Program};
@@ -12,61 +14,32 @@ use crate::{
 // TESTS
 // ================================================================================================
 
-// TODO: Fix test after we implement the new `Assembler::add_library()`
-#[ignore]
-#[allow(unused)]
 #[test]
 fn nested_blocks() {
-    const MODULE: &str = "foo::bar";
     const KERNEL: &str = r#"
         export.foo
             add
         end"#;
-    const PROCEDURE: &str = r#"
+    const MODULE: &str = "foo::bar";
+    const MODULE_PROCEDURE: &str = r#"
         export.baz
             push.29
         end"#;
 
-    pub struct DummyLibrary {
-        namespace: LibraryNamespace,
-        #[allow(clippy::vec_box)]
-        modules: Vec<Box<Module>>,
-        dependencies: Vec<LibraryNamespace>,
-    }
+    let assembler = {
+        let kernel_lib = Assembler::default().assemble_kernel(KERNEL).unwrap();
 
-    impl Default for DummyLibrary {
-        fn default() -> Self {
-            let ast =
-                Module::parse_str(MODULE.parse().unwrap(), ModuleKind::Library, PROCEDURE).unwrap();
-            let namespace = ast.namespace().clone();
-            Self {
-                namespace,
-                modules: vec![ast],
-                dependencies: Vec::new(),
-            }
-        }
-    }
+        let dummy_module =
+            Module::parse_str(MODULE.parse().unwrap(), ModuleKind::Library, MODULE_PROCEDURE)
+                .unwrap();
+        let dummy_library =
+            Assembler::default().assemble_library(iter::once(dummy_module)).unwrap();
 
-    impl Library for DummyLibrary {
-        fn root_ns(&self) -> &LibraryNamespace {
-            &self.namespace
-        }
+        let mut assembler = Assembler::with_kernel(kernel_lib).unwrap();
+        assembler.add_compiled_library(dummy_library).unwrap();
 
-        fn version(&self) -> &Version {
-            const MIN: Version = Version::min();
-            &MIN
-        }
-
-        fn modules(&self) -> impl ExactSizeIterator<Item = &Module> + '_ {
-            self.modules.iter().map(|m| m.as_ref())
-        }
-
-        fn dependencies(&self) -> &[LibraryNamespace] {
-            &self.dependencies
-        }
-    }
-
-    let assembler = Assembler::default().with_library(&DummyLibrary::default()).unwrap();
+        assembler
+    };
 
     // The expected `MastForest` for the program (that we will build by hand)
     let mut expected_mast_forest_builder = MastForestBuilder::default();
@@ -192,8 +165,8 @@ fn nested_blocks() {
     let expected_program = Program::new(expected_mast_forest_builder.build(), combined_node_id);
     assert_eq!(expected_program.hash(), program.hash());
 
-    // also check that the program has the right number of procedures
-    assert_eq!(program.num_procedures(), 5);
+    // also check that the program has the right number of procedures (which excludes the dummy library and kernel)
+    assert_eq!(program.num_procedures(), 3);
 }
 
 /// Ensures that a single copy of procedures with the same MAST root are added only once to the MAST

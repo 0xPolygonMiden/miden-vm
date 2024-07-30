@@ -74,13 +74,6 @@ impl Assembler {
                 proc_ctx.register_external_call(&proc, false)?;
             }
             Some(proc) => proc_ctx.register_external_call(&proc, false)?,
-            None if matches!(kind, InvokeKind::SysCall) => {
-                return Err(AssemblyError::UnknownSysCallTarget {
-                    span,
-                    source_file: current_source_file.clone(),
-                    callee: mast_root,
-                });
-            }
             None => (),
         }
 
