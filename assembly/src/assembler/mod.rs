@@ -146,6 +146,12 @@ impl Assembler {
         Ok(())
     }
 
+    /// Adds the compiled library to provide modules for the compilation.
+    pub fn with_compiled_library(mut self, library: CompiledLibrary) -> Result<Self, Report> {
+        self.add_compiled_library(library)?;
+        Ok(self)
+    }
+
     /// Adds the library to provide modules for the compilation.
     pub fn with_library<L>(mut self, library: &L) -> Result<Self, Report>
     where

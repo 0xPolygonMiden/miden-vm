@@ -79,9 +79,7 @@ pub enum CompiledLibraryError {
         procedure_path: FullyQualifiedProcedureName,
     },
     #[error("exports are not in the same namespace. All namespaces: {namespaces:?}")]
-    InconsistentNamespaces {
-        namespaces: Vec<LibraryNamespace>
-    },
+    InconsistentNamespaces { namespaces: Vec<LibraryNamespace> },
     #[error(transparent)]
     Kernel(#[from] KernelError),
 }

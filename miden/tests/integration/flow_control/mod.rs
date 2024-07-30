@@ -394,7 +394,9 @@ fn simple_dyncall() {
 #[allow(unused)]
 #[test]
 fn procref() {
-    let mut assembler = Assembler::default().with_library(&StdLibrary::default()).unwrap();
+    let mut assembler = Assembler::default()
+        .with_compiled_library(StdLibrary::default().into())
+        .unwrap();
 
     let module_source = "
     use.std::math::u64

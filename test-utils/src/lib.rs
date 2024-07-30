@@ -8,6 +8,7 @@ extern crate std;
 // IMPORTS
 // ================================================================================================
 
+use assembly::library::CompiledLibrary;
 use processor::Program;
 #[cfg(not(target_family = "wasm"))]
 use proptest::prelude::{Arbitrary, Strategy};
@@ -177,7 +178,7 @@ pub struct Test {
     pub stack_inputs: StackInputs,
     pub advice_inputs: AdviceInputs,
     pub in_debug_mode: bool,
-    pub libraries: Vec<MaslLibrary>,
+    pub libraries: Vec<CompiledLibrary>,
     pub add_modules: Vec<(LibraryPath, String)>,
 }
 
@@ -284,7 +285,7 @@ impl Test {
         } else {
             assembly::Assembler::default()
         };
-        let assembler = self
+        let mut assembler = self
             .add_modules
             .iter()
             .fold(assembler, |assembler, (path, source)| {
@@ -295,9 +296,10 @@ impl Test {
                     )
                     .expect("invalid masm source code")
             })
-            .with_debug_mode(self.in_debug_mode)
-            .with_libraries(self.libraries.iter())
-            .expect("failed to load stdlib");
+            .with_debug_mode(self.in_debug_mode);
+        for library in &self.libraries {
+            assembler.add_compiled_library(library.clone()).unwrap();
+        }
 
         assembler.assemble_program(self.source.clone())
     }

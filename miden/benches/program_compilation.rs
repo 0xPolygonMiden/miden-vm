@@ -15,9 +15,11 @@ fn program_compilation(c: &mut Criterion) {
                 exec.sha256::hash_2to1
             end";
         bench.iter(|| {
-            let assembler = Assembler::default()
-                .with_library(&StdLibrary::default())
+            let mut assembler = Assembler::default();
+            assembler
+                .add_compiled_library(StdLibrary::default().into())
                 .expect("failed to load stdlib");
+
             assembler.assemble_program(source).expect("Failed to compile test source.")
         });
     });

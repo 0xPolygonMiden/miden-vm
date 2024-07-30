@@ -28,6 +28,7 @@ mod tests;
 // ================================================================================================
 
 /// Represents a library where all modules were compiled into a [`MastForest`].
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct CompiledLibrary {
     mast_forest: MastForest,
     // a path for every `root` in the associated MAST forest
@@ -172,6 +173,18 @@ impl CompiledLibrary {
     }
 }
 
+impl Serializable for CompiledLibrary {
+    fn write_into<W: ByteWriter>(&self, target: &mut W) {
+        self.write_into_with_options(target, AstSerdeOptions::default())
+    }
+}
+
+impl Deserializable for CompiledLibrary {
+    fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
+        Self::read_from_with_options(source, AstSerdeOptions::default())
+    }
+}
+
 #[cfg(feature = "std")]
 mod use_std_library {
     use super::*;
@@ -181,6 +194,7 @@ mod use_std_library {
     use masl::{LibraryEntry, WalkLibrary};
     use miette::{Context, Report};
     use std::{fs, io, path::Path};
+    use vm_core::utils::ReadAdapter;
 
     impl CompiledLibrary {
         /// File extension for the Assembly Library.
@@ -303,6 +317,19 @@ mod use_std_library {
             }
 
             Assembler::default().assemble_library(modules.into_values())
+        }
+
+        pub fn deserialize_from_file(path: impl AsRef<Path>) -> Result<Self, DeserializationError> {
+            let path = path.as_ref();
+            let mut file = fs::File::open(path).map_err(|err| {
+                DeserializationError::InvalidValue(format!(
+                    "failed to open file at {}: {err}",
+                    path.to_string_lossy()
+                ))
+            })?;
+            let mut adapter = ReadAdapter::new(&mut file);
+
+            Self::read_from(&mut adapter)
         }
     }
 }

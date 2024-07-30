@@ -1,12 +1,14 @@
 use alloc::{string::ToString, sync::Arc, vec::Vec};
 
-use vm_core::utils::{Deserializable, Serializable, SliceReader};
+use vm_core::utils::SliceReader;
 
-use super::{Library, LibraryNamespace, LibraryPath, MaslLibrary, Version};
+use super::LibraryPath;
 use crate::{
-    ast::{AstSerdeOptions, Module, ModuleKind},
+    ast::{AstSerdeOptions, Module, ModuleKind, ProcedureName},
     diagnostics::{IntoDiagnostic, Report, SourceFile},
+    library::CompiledLibrary,
     testing::TestContext,
+    Assembler,
 };
 
 macro_rules! parse_module {
@@ -44,23 +46,28 @@ fn masl_locations_serialization() -> Result<(), Report> {
     let modules = vec![foo, bar];
 
     // serialize/deserialize the bundle with locations
-    let namespace = LibraryNamespace::new("test").unwrap();
-    let version = Version::min();
-    let bundle = MaslLibrary::new(namespace, version, modules.iter().cloned(), Vec::new())?;
+    let bundle = Assembler::default().assemble_library(modules.iter().cloned()).unwrap();
 
     let mut bytes = Vec::new();
-    bundle.write_into(&mut bytes);
-    let deserialized = MaslLibrary::read_from(&mut SliceReader::new(&bytes)).unwrap();
+    bundle.write_into_with_options(&mut bytes, AstSerdeOptions::new(true, true));
+    let deserialized = CompiledLibrary::read_from_with_options(
+        &mut SliceReader::new(&bytes),
+        AstSerdeOptions::new(true, false),
+    )
+    .unwrap();
     assert_eq!(bundle, deserialized);
 
     // serialize/deserialize the bundle without locations
-    let namespace = LibraryNamespace::new("test").unwrap();
-    let bundle = MaslLibrary::new(namespace, version, modules, Vec::new())?;
+    let bundle = Assembler::default().assemble_library(modules.iter().cloned()).unwrap();
 
     // serialize/deserialize the bundle
     let mut bytes = Vec::new();
     bundle.write_into_with_options(&mut bytes, AstSerdeOptions::new(true, false));
-    let deserialized = MaslLibrary::read_from(&mut SliceReader::new(&bytes)).unwrap();
+    let deserialized = CompiledLibrary::read_from_with_options(
+        &mut SliceReader::new(&bytes),
+        AstSerdeOptions::new(true, false),
+    )
+    .unwrap();
     assert_eq!(bundle, deserialized);
 
     Ok(())
@@ -79,20 +86,13 @@ fn get_module_by_path() -> Result<(), Report> {
     let modules = vec![foo];
 
     // create the bundle with locations
-    let namespace = LibraryNamespace::new("test")?;
-    let version = Version::min();
-    let bundle = MaslLibrary::new(namespace, version, modules, Vec::new())?;
+    let bundle = Assembler::default().assemble_library(modules.iter().cloned()).unwrap();
 
-    // get AST associated with "test::foo" path
-    let foo_ast = bundle.get_module(&LibraryPath::new("test::foo").unwrap()).unwrap();
-    let foo_expected = "export.foo
-    add
-end
+    let foo_module_info = bundle.into_module_infos().next().unwrap();
+    assert_eq!(foo_module_info.path(), &LibraryPath::new("test::foo").unwrap());
 
-";
-    assert_eq!(foo_ast.to_string(), foo_expected);
-
-    assert!(bundle.get_module(&LibraryPath::new("test::bar").unwrap()).is_none());
+    let (_, foo_proc) = foo_module_info.procedure_infos().next().unwrap();
+    assert_eq!(foo_proc.name, ProcedureName::new("foo").unwrap());
 
     Ok(())
 }

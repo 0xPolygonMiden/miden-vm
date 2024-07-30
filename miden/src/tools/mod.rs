@@ -216,7 +216,7 @@ where
 {
     let program = Assembler::default()
         .with_debug_mode(true)
-        .with_library(&StdLibrary::default())?
+        .with_compiled_library(StdLibrary::default().into())?
         .assemble_program(program)?;
     let mut execution_details = ExecutionDetails::default();
 

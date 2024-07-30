@@ -1,5 +1,7 @@
 use assembly::{
+    ast::AstSerdeOptions,
     diagnostics::{IntoDiagnostic, Result},
+    library::CompiledLibrary,
     LibraryNamespace, MaslLibrary, Version,
 };
 use std::{env, fs, io, path::Path};
@@ -12,7 +14,7 @@ use md_renderer::MarkdownRenderer;
 
 const ASM_DIR_PATH: &str = "./asm";
 const ASL_DIR_PATH: &str = "./assets";
-const DOC_DIR_PATH: &str = "./docs";
+const _DOC_DIR_PATH: &str = "./docs";
 
 // PRE-PROCESSING
 // ================================================================================================
@@ -26,17 +28,20 @@ fn main() -> Result<()> {
     println!("cargo:rerun-if-changed=../assembly/src");
 
     let namespace = "std".parse::<LibraryNamespace>().expect("invalid base namespace");
-    let version = env!("CARGO_PKG_VERSION").parse::<Version>().expect("invalid cargo version");
-    let stdlib = MaslLibrary::read_from_dir(ASM_DIR_PATH, namespace, version)?;
+    // TODO: Add version to `Library`
+    let _version = env!("CARGO_PKG_VERSION").parse::<Version>().expect("invalid cargo version");
+    let stdlib = CompiledLibrary::from_dir(ASM_DIR_PATH, namespace)?;
 
     // write the masl output
     let build_dir = env::var("OUT_DIR").unwrap();
+    let options = AstSerdeOptions::new(false, false);
     stdlib
-        .write_to_dir(Path::new(&build_dir).join(ASL_DIR_PATH))
+        .write_to_dir(Path::new(&build_dir).join(ASL_DIR_PATH), options)
         .into_diagnostic()?;
 
     // updates the documentation of these modules
-    build_stdlib_docs(&stdlib, DOC_DIR_PATH).into_diagnostic()?;
+    // TODO(plafer): Reenable this
+    // build_stdlib_docs(stdlib, DOC_DIR_PATH).into_diagnostic()?;
 
     Ok(())
 }

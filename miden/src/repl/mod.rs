@@ -1,4 +1,4 @@
-use assembly::{Assembler, Library, MaslLibrary};
+use assembly::{library::CompiledLibrary, Assembler};
 use miden_vm::{math::Felt, DefaultHost, StackInputs, Word};
 use processor::ContextId;
 use rustyline::{error::ReadlineError, DefaultEditor};
@@ -151,13 +151,13 @@ pub fn start_repl(library_paths: &Vec<PathBuf>, use_stdlib: bool) {
     // load libraries from files
     let mut provided_libraries = Vec::new();
     for path in library_paths {
-        let library = MaslLibrary::read_from_file(path)
+        let library = CompiledLibrary::deserialize_from_file(path)
             .map_err(|e| format!("Failed to read library: {e}"))
             .unwrap();
         provided_libraries.push(library);
     }
     if use_stdlib {
-        provided_libraries.push(MaslLibrary::from(StdLibrary::default()));
+        provided_libraries.push(StdLibrary::default().into());
     }
 
     println!("========================== Miden REPL ============================");
@@ -303,14 +303,16 @@ pub fn start_repl(library_paths: &Vec<PathBuf>, use_stdlib: bool) {
 #[allow(clippy::type_complexity)]
 fn execute(
     program: String,
-    provided_libraries: &[MaslLibrary],
+    provided_libraries: &[CompiledLibrary],
 ) -> Result<(Vec<(u64, Word)>, Vec<Felt>), String> {
     // compile program
     let mut assembler = Assembler::default();
 
-    assembler = assembler
-        .with_libraries(provided_libraries.iter())
-        .map_err(|err| format!("{err}"))?;
+    for library in provided_libraries {
+        assembler
+            .add_compiled_library(library.clone())
+            .map_err(|err| format!("{err}"))?;
+    }
 
     let program = assembler.assemble_program(program).map_err(|err| format!("{err}"))?;
 
@@ -357,7 +359,7 @@ fn read_mem_address(mem_str: &str) -> Result<u64, String> {
 /// all available modules if no module name was provided.
 fn handle_use_command(
     line: String,
-    provided_libraries: &Vec<MaslLibrary>,
+    provided_libraries: &[CompiledLibrary],
     imported_modules: &mut BTreeSet<String>,
 ) {
     let tokens: Vec<&str> = line.split_whitespace().collect();
@@ -365,8 +367,8 @@ fn handle_use_command(
     match tokens.len() {
         1 => {
             println!("Modules available for importing:");
-            for lib in provided_libraries {
-                lib.modules().for_each(|module| println!("{}", module.path()));
+            for lib in provided_libraries.iter().cloned() {
+                lib.into_module_infos().for_each(|module| println!("{}", module.path()));
             }
         }
         2 => {
