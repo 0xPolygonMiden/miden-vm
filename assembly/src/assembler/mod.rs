@@ -3,8 +3,7 @@ use crate::{
     diagnostics::Report,
     library::{CompiledLibrary, KernelLibrary},
     sema::SemanticAnalysisError,
-    AssemblyError, Compile, CompileOptions, Library, LibraryNamespace, LibraryPath, RpoDigest,
-    Spanned,
+    AssemblyError, Compile, CompileOptions, LibraryNamespace, LibraryPath, RpoDigest, Spanned,
 };
 use alloc::{sync::Arc, vec::Vec};
 use mast_forest_builder::MastForestBuilder;
@@ -150,58 +149,6 @@ impl Assembler {
     pub fn with_compiled_library(mut self, library: CompiledLibrary) -> Result<Self, Report> {
         self.add_compiled_library(library)?;
         Ok(self)
-    }
-
-    /// Adds the library to provide modules for the compilation.
-    pub fn with_library<L>(mut self, library: &L) -> Result<Self, Report>
-    where
-        L: ?Sized + Library + 'static,
-    {
-        self.add_library(library)?;
-
-        Ok(self)
-    }
-
-    /// Adds the library to provide modules for the compilation.
-    pub fn add_library<L>(&mut self, library: &L) -> Result<(), Report>
-    where
-        L: ?Sized + Library + 'static,
-    {
-        let namespace = library.root_ns();
-        library.modules().try_for_each(|module| {
-            if !module.is_in_namespace(namespace) {
-                return Err(Report::new(AssemblyError::InconsistentNamespace {
-                    expected: namespace.clone(),
-                    actual: module.namespace().clone(),
-                }));
-            }
-
-            self.add_module(module)?;
-
-            Ok(())
-        })
-    }
-
-    /// Adds a library bundle to provide modules for the compilation.
-    pub fn with_libraries<'a, I, L>(mut self, libraries: I) -> Result<Self, Report>
-    where
-        L: ?Sized + Library + 'static,
-        I: IntoIterator<Item = &'a L>,
-    {
-        self.add_libraries(libraries)?;
-        Ok(self)
-    }
-
-    /// Adds a library bundle to provide modules for the compilation.
-    pub fn add_libraries<'a, I, L>(&mut self, libraries: I) -> Result<(), Report>
-    where
-        L: ?Sized + Library + 'static,
-        I: IntoIterator<Item = &'a L>,
-    {
-        for library in libraries {
-            self.add_library(library)?;
-        }
-        Ok(())
     }
 }
 

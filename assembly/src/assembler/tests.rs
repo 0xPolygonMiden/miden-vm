@@ -1,14 +1,12 @@
 use core::iter;
 
-use alloc::{boxed::Box, vec::Vec};
 use pretty_assertions::assert_eq;
 use vm_core::{assert_matches, mast::MastForest, Program};
 
-use super::{Assembler, Library, Operation};
+use super::{Assembler, Operation};
 use crate::{
     assembler::{combine_mast_node_ids, mast_forest_builder::MastForestBuilder},
     ast::{Module, ModuleKind},
-    LibraryNamespace, Version,
 };
 
 // TESTS
@@ -250,48 +248,11 @@ fn explicit_fully_qualified_procedure_references() {
             exec.::foo::bar::bar
         end"#;
 
-    pub struct DummyLibrary {
-        namespace: LibraryNamespace,
-        #[allow(clippy::vec_box)]
-        modules: Vec<Box<Module>>,
-        dependencies: Vec<LibraryNamespace>,
-    }
+    let bar = Module::parse_str(BAR_NAME.parse().unwrap(), ModuleKind::Library, BAR).unwrap();
+    let baz = Module::parse_str(BAZ_NAME.parse().unwrap(), ModuleKind::Library, BAZ).unwrap();
+    let library = Assembler::default().assemble_library(vec![bar, baz].into_iter()).unwrap();
 
-    impl Default for DummyLibrary {
-        fn default() -> Self {
-            let bar =
-                Module::parse_str(BAR_NAME.parse().unwrap(), ModuleKind::Library, BAR).unwrap();
-            let baz =
-                Module::parse_str(BAZ_NAME.parse().unwrap(), ModuleKind::Library, BAZ).unwrap();
-            let namespace = LibraryNamespace::new("foo").unwrap();
-            Self {
-                namespace,
-                modules: vec![bar, baz],
-                dependencies: Vec::new(),
-            }
-        }
-    }
-
-    impl Library for DummyLibrary {
-        fn root_ns(&self) -> &LibraryNamespace {
-            &self.namespace
-        }
-
-        fn version(&self) -> &Version {
-            const MIN: Version = Version::min();
-            &MIN
-        }
-
-        fn modules(&self) -> impl ExactSizeIterator<Item = &Module> + '_ {
-            self.modules.iter().map(|m| m.as_ref())
-        }
-
-        fn dependencies(&self) -> &[LibraryNamespace] {
-            &self.dependencies
-        }
-    }
-
-    let assembler = Assembler::default().with_library(&DummyLibrary::default()).unwrap();
+    let assembler = Assembler::default().with_compiled_library(library).unwrap();
 
     let program = r#"
     begin

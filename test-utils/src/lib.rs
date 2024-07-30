@@ -27,7 +27,7 @@ use vm_core::{chiplets::hasher::apply_permutation, ProgramInfo};
 
 pub use assembly::{
     diagnostics::{Report, SourceFile},
-    Library, LibraryPath,
+    LibraryPath,
 };
 pub use pretty_assertions::{assert_eq, assert_ne, assert_str_eq};
 pub use processor::{
