@@ -48,6 +48,34 @@ impl CompiledLibrary {
             });
         }
 
+        if exports.is_empty() {
+            return Err(CompiledLibraryError::EmptyExports);
+        }
+
+        {
+            let first_module_namespace = exports[0].module.namespace();
+
+            let other_namespaces: Vec<&LibraryNamespace> = exports
+                .iter()
+                .filter_map(|export| {
+                    if export.module.namespace() != first_module_namespace {
+                        Some(export.module.namespace())
+                    } else {
+                        None
+                    }
+                })
+                .collect();
+
+            if !other_namespaces.is_empty() {
+                let mut all_namespaces = vec![first_module_namespace.clone()];
+                all_namespaces.extend(other_namespaces.into_iter().cloned());
+
+                return Err(CompiledLibraryError::InconsistentNamespaces {
+                    namespaces: all_namespaces,
+                });
+            }
+        }
+
         Ok(Self {
             mast_forest,
             exports,
@@ -65,6 +93,10 @@ impl CompiledLibrary {
     /// Returns the fully qualified name of all procedures exported by the library.
     pub fn exports(&self) -> &[FullyQualifiedProcedureName] {
         &self.exports
+    }
+
+    pub fn namespace(&self) -> &LibraryNamespace {
+        self.exports[0].module.namespace()
     }
 }
 

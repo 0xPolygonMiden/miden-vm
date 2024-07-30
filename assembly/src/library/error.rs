@@ -1,4 +1,4 @@
-use alloc::string::String;
+use alloc::{string::String, vec::Vec};
 use vm_core::errors::KernelError;
 
 use crate::{
@@ -65,6 +65,9 @@ pub enum LibraryError {
 
 #[derive(Debug, thiserror::Error, Diagnostic)]
 pub enum CompiledLibraryError {
+    #[error("Invalid exports: there must be at least one export")]
+    #[diagnostic()]
+    EmptyExports,
     #[error("Invalid exports: MAST forest has {roots_len} procedure roots, but exports have {exports_len}")]
     #[diagnostic()]
     InvalidExports {
@@ -74,6 +77,10 @@ pub enum CompiledLibraryError {
     #[error("Invalid export in kernel library: {procedure_path}")]
     InvalidKernelExport {
         procedure_path: FullyQualifiedProcedureName,
+    },
+    #[error("exports are not in the same namespace. All namespaces: {namespaces:?}")]
+    InconsistentNamespaces {
+        namespaces: Vec<LibraryNamespace>
     },
     #[error(transparent)]
     Kernel(#[from] KernelError),
