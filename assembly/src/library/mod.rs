@@ -2,9 +2,12 @@ use alloc::{collections::BTreeMap, vec::Vec};
 
 use vm_core::crypto::hash::RpoDigest;
 use vm_core::mast::MastForest;
+use vm_core::utils::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable};
 use vm_core::Kernel;
 
-use crate::ast::{self, FullyQualifiedProcedureName, ProcedureIndex, ProcedureName};
+use crate::ast::{
+    self, AstSerdeOptions, FullyQualifiedProcedureName, ProcedureIndex, ProcedureName,
+};
 
 mod error;
 mod masl;
@@ -52,6 +55,7 @@ impl CompiledLibrary {
     }
 }
 
+/// Accessors
 impl CompiledLibrary {
     /// Returns the inner [`MastForest`].
     pub fn mast_forest(&self) -> &MastForest {
@@ -62,7 +66,10 @@ impl CompiledLibrary {
     pub fn exports(&self) -> &[FullyQualifiedProcedureName] {
         &self.exports
     }
+}
 
+/// Conversions
+impl CompiledLibrary {
     /// Returns an iterator over the module infos of the library.
     pub fn into_module_infos(self) -> impl Iterator<Item = ModuleInfo> {
         let mut modules_by_path: BTreeMap<LibraryPath, ModuleInfo> = BTreeMap::new();
@@ -92,6 +99,44 @@ impl CompiledLibrary {
         }
 
         modules_by_path.into_values()
+    }
+}
+
+/// Serialization
+impl CompiledLibrary {
+    /// Serialize to `target` using `options`
+    pub fn write_into_with_options<W: ByteWriter>(&self, target: &mut W, options: AstSerdeOptions) {
+        let Self {
+            mast_forest,
+            exports,
+        } = self;
+
+        mast_forest.write_into(target);
+
+        target.write_usize(exports.len());
+        for proc_name in exports {
+            proc_name.write_into_with_options(target, options);
+        }
+    }
+
+    /// Deserialize from `source` using `options`
+    pub fn read_from_with_options<R: ByteReader>(
+        source: &mut R,
+        options: AstSerdeOptions,
+    ) -> Result<Self, DeserializationError> {
+        let mast_forest = MastForest::read_from(source)?;
+
+        let num_exports = source.read_usize()?;
+        let mut exports = Vec::with_capacity(num_exports);
+        for _ in 0..num_exports {
+            let proc_name = FullyQualifiedProcedureName::read_from_with_options(source, options)?;
+            exports.push(proc_name);
+        }
+
+        Ok(Self {
+            mast_forest,
+            exports,
+        })
     }
 }
 
@@ -149,6 +194,34 @@ impl TryFrom<CompiledLibrary> for KernelLibrary {
             kernel,
             kernel_info: module_info,
             library,
+        })
+    }
+}
+
+/// Serialization
+impl KernelLibrary {
+    /// Serialize to `target` using `options`
+    pub fn write_into_with_options<W: ByteWriter>(&self, target: &mut W, options: AstSerdeOptions) {
+        let Self {
+            kernel: _,
+            kernel_info: _,
+            library,
+        } = self;
+
+        library.write_into_with_options(target, options);
+    }
+
+    /// Deserialize from `source` using `options`
+    pub fn read_from_with_options<R: ByteReader>(
+        source: &mut R,
+        options: AstSerdeOptions,
+    ) -> Result<Self, DeserializationError> {
+        let library = CompiledLibrary::read_from_with_options(source, options)?;
+
+        Self::try_from(library).map_err(|err| {
+            DeserializationError::InvalidValue(format!(
+                "Failed to deserialize kernel library: {err}"
+            ))
         })
     }
 }
