@@ -1,7 +1,7 @@
 use alloc::{collections::BTreeMap, vec::Vec};
 
 use vm_core::crypto::hash::RpoDigest;
-use vm_core::mast::MastForest;
+use vm_core::mast::{MastForest, MastNodeId};
 use vm_core::utils::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable};
 use vm_core::Kernel;
 
@@ -27,76 +27,93 @@ mod tests;
 // ================================================================================================
 
 /// Represents a library where all modules were compiled into a [`MastForest`].
+///
+/// A library exports a set of one or more procedures. Currently, all exported procedures belong
+/// to the same top-level namespace.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct CompiledLibrary {
+    /// The namespace associated with this library. All procedures in this library will have this
+    /// namespace.
+    namespace: LibraryNamespace,
+    /// A map between procedure paths and the corresponding procedure toots in the MAST forest.
+    /// Multiple paths can map to the same root, and also, some roots may not be associated with
+    /// any paths.
+    exports: BTreeMap<FullyQualifiedProcedureName, MastNodeId>,
+    /// The MAST forest underlying this library.
     mast_forest: MastForest,
-    // a path for every `root` in the associated MAST forest
-    exports: Vec<FullyQualifiedProcedureName>,
 }
 
 /// Constructors
 impl CompiledLibrary {
-    /// Constructs a new [`CompiledLibrary`].
+    /// Constructs a new [`CompiledLibrary`] from the provided MAST forest and a set of exports.
+    ///
+    /// # Errors
+    /// Returns an error if:
+    /// - The set of exported procedures is empty.
+    /// - Not all exported procedures belong to the same namespace.
+    /// - Not all exported procedures are present in the MAST forest.
     pub fn new(
         mast_forest: MastForest,
-        exports: Vec<FullyQualifiedProcedureName>,
+        exports: BTreeMap<FullyQualifiedProcedureName, RpoDigest>,
     ) -> Result<Self, CompiledLibraryError> {
-        if mast_forest.num_procedures() as usize != exports.len() {
-            return Err(CompiledLibraryError::InvalidExports {
-                exports_len: exports.len(),
-                roots_len: mast_forest.num_procedures() as usize,
-            });
-        }
-
         if exports.is_empty() {
             return Err(CompiledLibraryError::EmptyExports);
         }
 
-        {
-            let first_module_namespace = exports[0].module.namespace();
+        let first_namespace =
+            exports.first_key_value().expect("exports are empty").0.namespace().clone();
+        let mut other_namespaces = Vec::new();
 
-            let other_namespaces: Vec<&LibraryNamespace> = exports
-                .iter()
-                .filter_map(|export| {
-                    if export.module.namespace() != first_module_namespace {
-                        Some(export.module.namespace())
-                    } else {
-                        None
-                    }
-                })
-                .collect();
+        let mut fqn_to_node_id = BTreeMap::new();
+        let mut missing_exports = Vec::new();
 
-            if !other_namespaces.is_empty() {
-                let mut all_namespaces = vec![first_module_namespace.clone()];
-                all_namespaces.extend(other_namespaces.into_iter().cloned());
+        // convert fqn |-> mast_root map into fqn |-> mast_node_id map
+        for (fqn, mast_root) in exports.into_iter() {
+            if fqn.namespace() != &first_namespace {
+                other_namespaces.push(fqn.namespace().clone());
+            }
 
-                return Err(CompiledLibraryError::InconsistentNamespaces {
-                    namespaces: all_namespaces,
-                });
+            match mast_forest.find_procedure_root(mast_root) {
+                Some(node_id) => {
+                    fqn_to_node_id.insert(fqn, node_id);
+                }
+                None => missing_exports.push(fqn),
             }
         }
 
+        if !missing_exports.is_empty() {
+            return Err(CompiledLibraryError::MissingExports { missing_exports });
+        }
+
+        if !other_namespaces.is_empty() {
+            let mut namespaces = vec![first_namespace.clone()];
+            namespaces.append(&mut other_namespaces);
+            return Err(CompiledLibraryError::InconsistentNamespaces { namespaces });
+        }
+
         Ok(Self {
+            namespace: first_namespace,
+            exports: fqn_to_node_id,
             mast_forest,
-            exports,
         })
     }
 }
 
 /// Accessors
 impl CompiledLibrary {
-    /// Returns the inner [`MastForest`].
-    pub fn mast_forest(&self) -> &MastForest {
-        &self.mast_forest
+    /// Returns the namespace associated with this library.
+    pub fn namespace(&self) -> &LibraryNamespace {
+        &self.namespace
     }
 
     /// Returns the fully qualified name of all procedures exported by the library.
-    pub fn exports(&self) -> &[FullyQualifiedProcedureName] {
-        &self.exports
+    pub fn exports(&self) -> impl Iterator<Item = &FullyQualifiedProcedureName> {
+        self.exports.keys()
     }
 
-    pub fn namespace(&self) -> &LibraryNamespace {
-        self.exports[0].module.namespace()
+    /// Returns the inner [`MastForest`].
+    pub fn mast_forest(&self) -> &MastForest {
+        &self.mast_forest
     }
 }
 
@@ -106,11 +123,10 @@ impl CompiledLibrary {
     pub fn into_module_infos(self) -> impl Iterator<Item = ModuleInfo> {
         let mut modules_by_path: BTreeMap<LibraryPath, ModuleInfo> = BTreeMap::new();
 
-        for (proc_index, proc_name) in self.exports.into_iter().enumerate() {
+        for (proc_name, proc_node_id) in self.exports.into_iter() {
             modules_by_path
                 .entry(proc_name.module.clone())
                 .and_modify(|compiled_module| {
-                    let proc_node_id = self.mast_forest.procedure_roots()[proc_index];
                     let proc_digest = self.mast_forest[proc_node_id].digest();
 
                     compiled_module.add_procedure_info(ProcedureInfo {
@@ -119,7 +135,6 @@ impl CompiledLibrary {
                     })
                 })
                 .or_insert_with(|| {
-                    let proc_node_id = self.mast_forest.procedure_roots()[proc_index];
                     let proc_digest = self.mast_forest[proc_node_id].digest();
                     let proc = ProcedureInfo {
                         name: proc_name.name,
@@ -139,15 +154,18 @@ impl CompiledLibrary {
     /// Serialize to `target` using `options`
     pub fn write_into_with_options<W: ByteWriter>(&self, target: &mut W, options: AstSerdeOptions) {
         let Self {
-            mast_forest,
+            namespace,
             exports,
+            mast_forest,
         } = self;
 
+        namespace.write_into(target);
         mast_forest.write_into(target);
 
         target.write_usize(exports.len());
-        for proc_name in exports {
+        for (proc_name, proc_node_id) in exports {
             proc_name.write_into_with_options(target, options);
+            target.write_u32(proc_node_id.into());
         }
     }
 
@@ -156,18 +174,33 @@ impl CompiledLibrary {
         source: &mut R,
         options: AstSerdeOptions,
     ) -> Result<Self, DeserializationError> {
+        let namespace = LibraryNamespace::read_from(source)?;
         let mast_forest = MastForest::read_from(source)?;
 
         let num_exports = source.read_usize()?;
-        let mut exports = Vec::with_capacity(num_exports);
+        let mut exports = BTreeMap::new();
         for _ in 0..num_exports {
             let proc_name = FullyQualifiedProcedureName::read_from_with_options(source, options)?;
-            exports.push(proc_name);
+            if proc_name.namespace() != &namespace {
+                return Err(DeserializationError::InvalidValue(format!(
+                    "procedure {proc_name} does not belong to library namespace {namespace}"
+                )));
+            }
+
+            let proc_node_id = MastNodeId::from_u32_safe(source.read_u32()?, &mast_forest)?;
+            if !mast_forest.is_procedure_root(proc_node_id) {
+                return Err(DeserializationError::InvalidValue(format!(
+                    "node with id {proc_node_id} is not a procedure root"
+                )));
+            }
+
+            exports.insert(proc_name, proc_node_id);
         }
 
         Ok(Self {
-            mast_forest,
+            namespace,
             exports,
+            mast_forest,
         })
     }
 }
@@ -332,6 +365,7 @@ mod use_std_library {
         }
     }
 }
+
 // KERNEL LIBRARY
 // ================================================================================================
 
@@ -366,7 +400,7 @@ impl TryFrom<CompiledLibrary> for KernelLibrary {
         let mut kernel_procs = Vec::with_capacity(library.exports.len());
         let mut proc_digests = Vec::with_capacity(library.exports.len());
 
-        for (proc_index, proc_path) in library.exports.iter().enumerate() {
+        for (proc_path, proc_node_id) in library.exports.iter() {
             // make sure all procedures are exported directly from the #sys module
             if proc_path.module != kernel_path {
                 return Err(CompiledLibraryError::InvalidKernelExport {
@@ -374,8 +408,7 @@ impl TryFrom<CompiledLibrary> for KernelLibrary {
                 });
             }
 
-            let proc_node_id = library.mast_forest.procedure_roots()[proc_index];
-            let proc_digest = library.mast_forest[proc_node_id].digest();
+            let proc_digest = library.mast_forest[*proc_node_id].digest();
 
             proc_digests.push(proc_digest);
             kernel_procs.push(ProcedureInfo {
@@ -422,6 +455,7 @@ impl KernelLibrary {
         })
     }
 }
+
 #[cfg(feature = "std")]
 mod use_std_kernel {
     use super::*;

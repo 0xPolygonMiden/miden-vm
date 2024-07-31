@@ -43,7 +43,7 @@ fn masl_locations_serialization() -> Result<(), Report> {
         end
     "#;
     let bar = parse_module!("test::bar", bar);
-    let modules = vec![foo, bar];
+    let modules = [foo, bar];
 
     // serialize/deserialize the bundle with locations
     let bundle = Assembler::default().assemble_library(modules.iter().cloned()).unwrap();
@@ -83,7 +83,7 @@ fn get_module_by_path() -> Result<(), Report> {
         end
     "#;
     let foo = parse_module!("test::foo", foo_source);
-    let modules = vec![foo];
+    let modules = [foo];
 
     // create the bundle with locations
     let bundle = Assembler::default().assemble_library(modules.iter().cloned()).unwrap();

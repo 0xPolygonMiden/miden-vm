@@ -8,8 +8,8 @@ use core::{
 use crate::{
     ast::{AstSerdeOptions, CaseKindError, Ident, IdentError},
     diagnostics::{IntoDiagnostic, Report},
-    ByteReader, ByteWriter, Deserializable, DeserializationError, LibraryPath, Serializable,
-    SourceSpan, Span, Spanned,
+    ByteReader, ByteWriter, Deserializable, DeserializationError, LibraryNamespace, LibraryPath,
+    Serializable, SourceSpan, Span, Spanned,
 };
 
 // FULLY QUALIFIED PROCEDURE NAME
@@ -36,6 +36,11 @@ impl FullyQualifiedProcedureName {
             module,
             name,
         }
+    }
+
+    /// Returns the namespace of this fully-qualified procedure name.
+    pub fn namespace(&self) -> &LibraryNamespace {
+        self.module.namespace()
     }
 }
 

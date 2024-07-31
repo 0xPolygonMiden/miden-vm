@@ -2401,7 +2401,7 @@ fn test_compiled_library() {
         assembler.assemble_library(vec![mod1, mod2].into_iter()).unwrap()
     };
 
-    assert_eq!(compiled_library.exports().len(), 4);
+    assert_eq!(compiled_library.exports().count(), 4);
 
     // Compile program that uses compiled library
     let mut assembler = Assembler::default();

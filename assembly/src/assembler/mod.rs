@@ -5,7 +5,7 @@ use crate::{
     sema::SemanticAnalysisError,
     AssemblyError, Compile, CompileOptions, LibraryNamespace, LibraryPath, RpoDigest, Spanned,
 };
-use alloc::{sync::Arc, vec::Vec};
+use alloc::{collections::BTreeMap, sync::Arc, vec::Vec};
 use mast_forest_builder::MastForestBuilder;
 use module_graph::{ProcedureWrapper, WrappedModule};
 use vm_core::{mast::MastNodeId, Decorator, DecoratorList, Felt, Kernel, Operation, Program};
@@ -203,7 +203,7 @@ impl Assembler {
         let mut mast_forest_builder = MastForestBuilder::default();
 
         let exports = {
-            let mut exports = Vec::new();
+            let mut exports = BTreeMap::new();
 
             for module_idx in ast_module_indices {
                 // Note: it is safe to use `unwrap_ast()` here, since all modules looped over are
@@ -211,8 +211,9 @@ impl Assembler {
                 let ast_module = self.module_graph[module_idx].unwrap_ast().clone();
 
                 for (proc_idx, fqn) in ast_module.exported_procedures() {
-                    self.compile_subgraph(module_idx + proc_idx, false, &mut mast_forest_builder)?;
-                    exports.push(fqn);
+                    let gid = module_idx + proc_idx;
+                    let procedure = self.compile_subgraph(gid, false, &mut mast_forest_builder)?;
+                    exports.insert(fqn, procedure.mast_root());
                 }
             }
 
@@ -248,10 +249,11 @@ impl Assembler {
         let exports = ast_module
             .exported_procedures()
             .map(|(proc_idx, fqn)| {
-                self.compile_subgraph(module_idx + proc_idx, false, &mut mast_forest_builder)?;
-                Ok(fqn)
+                let gid = module_idx + proc_idx;
+                let procedure = self.compile_subgraph(gid, false, &mut mast_forest_builder)?;
+                Ok((fqn, procedure.mast_root()))
             })
-            .collect::<Result<Vec<FullyQualifiedProcedureName>, Report>>()?;
+            .collect::<Result<BTreeMap<FullyQualifiedProcedureName, RpoDigest>, Report>>()?;
 
         let library = CompiledLibrary::new(mast_forest_builder.build(), exports)?;
         Ok(library.try_into()?)

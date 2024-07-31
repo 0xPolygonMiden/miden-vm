@@ -158,6 +158,11 @@ impl MastForest {
         self.roots.iter().find(|&&root_id| self[root_id].digest() == digest).copied()
     }
 
+    /// Returns true if a node with the specified ID is a root of a procedure in this MAST forest.
+    pub fn is_procedure_root(&self, node_id: MastNodeId) -> bool {
+        self.roots.contains(&node_id)
+    }
+
     /// Returns an iterator over the digest of the procedures in this MAST forest.
     pub fn procedure_digests(&self) -> impl Iterator<Item = RpoDigest> + '_ {
         self.roots.iter().map(|&root_id| self[root_id].digest())

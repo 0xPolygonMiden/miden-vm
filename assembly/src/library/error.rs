@@ -68,18 +68,16 @@ pub enum CompiledLibraryError {
     #[error("Invalid exports: there must be at least one export")]
     #[diagnostic()]
     EmptyExports,
-    #[error("Invalid exports: MAST forest has {roots_len} procedure roots, but exports have {exports_len}")]
-    #[diagnostic()]
-    InvalidExports {
-        exports_len: usize,
-        roots_len: usize,
-    },
-    #[error("Invalid export in kernel library: {procedure_path}")]
+    #[error("exports are not in the same namespace; all namespaces: {namespaces:?}")]
+    InconsistentNamespaces { namespaces: Vec<LibraryNamespace> },
+    #[error("invalid export in kernel library: {procedure_path}")]
     InvalidKernelExport {
         procedure_path: FullyQualifiedProcedureName,
     },
-    #[error("exports are not in the same namespace. All namespaces: {namespaces:?}")]
-    InconsistentNamespaces { namespaces: Vec<LibraryNamespace> },
     #[error(transparent)]
     Kernel(#[from] KernelError),
+    #[error("no MAST roots for the following exports: {missing_exports:?}")]
+    MissingExports {
+        missing_exports: Vec<FullyQualifiedProcedureName>,
+    },
 }
