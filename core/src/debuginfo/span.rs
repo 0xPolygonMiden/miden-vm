@@ -235,10 +235,34 @@ impl<T: Hash> Hash for Span<T> {
     }
 }
 
+impl<T: Serializable> Span<T> {
+    pub fn write_into_with_options<W: ByteWriter>(&self, target: &mut W, debug: bool) {
+        if debug {
+            self.span.write_into(target);
+        }
+        self.spanned.write_into(target);
+    }
+}
+
 impl<T: Serializable> Serializable for Span<T> {
     fn write_into<W: ByteWriter>(&self, target: &mut W) {
         self.span.write_into(target);
         self.spanned.write_into(target);
+    }
+}
+
+impl<T: Deserializable> Span<T> {
+    pub fn read_from_with_options<R: ByteReader>(
+        source: &mut R,
+        debug: bool,
+    ) -> Result<Self, DeserializationError> {
+        let span = if debug {
+            SourceSpan::read_from(source)?
+        } else {
+            SourceSpan::default()
+        };
+        let spanned = T::read_from(source)?;
+        Ok(Self { span, spanned })
     }
 }
 

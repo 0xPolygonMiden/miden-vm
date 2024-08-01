@@ -219,13 +219,12 @@ mod use_std_library {
     use super::*;
     use crate::{
         ast::{self, ModuleKind},
-        diagnostics::IntoDiagnostic,
+        diagnostics::{IntoDiagnostic, SourceManager},
         Assembler,
     };
-    use alloc::collections::btree_map::Entry;
     use masl::{LibraryEntry, WalkLibrary};
     use miette::{Context, Report};
-    use std::{fs, io, path::Path};
+    use std::{collections::btree_map::Entry, fs, io, path::Path, sync::Arc};
     use vm_core::utils::ReadAdapter;
 
     impl CompiledLibrary {
@@ -298,6 +297,7 @@ mod use_std_library {
         pub fn from_dir(
             path: impl AsRef<Path>,
             namespace: LibraryNamespace,
+            source_manager: Arc<dyn SourceManager>,
         ) -> Result<Self, Report> {
             let path = path.as_ref();
             if !path.is_dir() {
@@ -312,7 +312,7 @@ mod use_std_library {
                 return Err(Report::msg("mod.masm is not allowed in the root directory"));
             }
 
-            Self::compile_modules_from_dir(namespace, path)
+            Self::compile_modules_from_dir(namespace, path, source_manager)
         }
 
         /// Read the contents (modules) of this library from `dir`, returning any errors that occur
@@ -325,6 +325,7 @@ mod use_std_library {
         fn compile_modules_from_dir(
             namespace: LibraryNamespace,
             dir: &Path,
+            source_manager: Arc<dyn SourceManager>,
         ) -> Result<Self, Report> {
             let mut modules = BTreeMap::default();
 
@@ -340,7 +341,8 @@ mod use_std_library {
                     name.pop();
                 }
                 // Parse module at the given path
-                let ast = ast::Module::parse_file(name.clone(), ModuleKind::Library, &source_path)?;
+                let mut parser = ast::Module::parser(ModuleKind::Library);
+                let ast = parser.parse_file(name.clone(), &source_path, &source_manager)?;
                 match modules.entry(name) {
                     Entry::Occupied(ref entry) => {
                         return Err(LibraryError::DuplicateModulePath(entry.key().clone()))
@@ -364,7 +366,9 @@ mod use_std_library {
                 .into());
             }
 
-            Assembler::default().assemble_library(modules.into_values())
+            Assembler::new(source_manager)
+                .with_debug_mode(true)
+                .assemble_library(modules.into_values())
         }
 
         pub fn deserialize_from_file(path: impl AsRef<Path>) -> Result<Self, DeserializationError> {
@@ -529,9 +533,10 @@ impl Deserializable for KernelLibrary {
 
 #[cfg(feature = "std")]
 mod use_std_kernel {
+    use std::{io, path::Path, sync::Arc};
+
     use super::*;
-    use miette::Report;
-    use std::{io, path::Path};
+    use crate::diagnostics::{Report, SourceManager};
 
     impl KernelLibrary {
         /// Write the library to a target file
@@ -547,8 +552,12 @@ mod use_std_kernel {
         /// For every directory, concatenate the module path with the dir name and proceed.
         ///
         /// For every file, pick and compile the ones with `masm` extension; skip otherwise.
-        pub fn from_dir(path: impl AsRef<Path>) -> Result<Self, Report> {
-            let library = CompiledLibrary::from_dir(path, LibraryNamespace::Kernel)?;
+        pub fn from_dir(
+            path: impl AsRef<Path>,
+            source_manager: Arc<dyn SourceManager>,
+        ) -> Result<Self, Report> {
+            let library =
+                CompiledLibrary::from_dir(path, LibraryNamespace::Kernel, source_manager)?;
 
             Ok(Self::try_from(library)?)
         }

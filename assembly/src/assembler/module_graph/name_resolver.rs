@@ -1,4 +1,4 @@
-use alloc::{borrow::Cow, collections::BTreeSet, sync::Arc, vec::Vec};
+use alloc::{borrow::Cow, collections::BTreeSet, vec::Vec};
 
 use super::{ModuleGraph, WrappedModule};
 use crate::{
@@ -7,7 +7,7 @@ use crate::{
         Ident, InvocationTarget, InvokeKind, Module, ProcedureName, QualifiedProcedureName,
         ResolvedProcedure,
     },
-    diagnostics::{RelatedLabel, SourceFile},
+    diagnostics::RelatedLabel,
     library::{LibraryNamespace, LibraryPath},
     AssemblyError, RpoDigest, SourceSpan, Span, Spanned,
 };
@@ -21,7 +21,6 @@ use crate::{
 /// include in name resolution in order to be able to fully resolve all names for a given set of
 /// modules.
 struct ThinModule {
-    source_file: Option<Arc<SourceFile>>,
     path: LibraryPath,
     resolver: crate::ast::LocalNameResolver,
 }
@@ -34,8 +33,6 @@ struct ThinModule {
 pub struct CallerInfo {
     /// The source span of the caller
     pub span: SourceSpan,
-    /// The source file corresponding to `span`, if available
-    pub source_file: Option<Arc<SourceFile>>,
     /// The "where", i.e. index of the caller's module in the [ModuleGraph].
     pub module: ModuleIndex,
     /// The "how", i.e. how the callee is being invoked.
@@ -114,7 +111,6 @@ impl<'a> NameResolver<'a> {
     /// have not yet processed to the resolver, as we resolve names for each module in the set.
     pub fn push_pending(&mut self, module: &Module) {
         self.pending.push(ThinModule {
-            source_file: module.source_file(),
             path: module.path().clone(),
             resolver: module.resolver(),
         });
@@ -162,8 +158,8 @@ impl<'a> NameResolver<'a> {
                     })
                 }
                 None => Err(AssemblyError::UndefinedModule {
-                    span: target.span(),
-                    source_file: caller.source_file.clone(),
+                    span: caller.span,
+                    source_file: self.graph.source_manager.get(caller.span.source_id()).ok(),
                     path: LibraryPath::new_from_components(
                         LibraryNamespace::User(imported_module.clone().into_inner()),
                         [],
@@ -229,7 +225,7 @@ impl<'a> NameResolver<'a> {
             }
             None => Err(AssemblyError::Failed {
                 labels: vec![RelatedLabel::error("undefined procedure")
-                    .with_source_file(caller.source_file.clone())
+                    .with_source_file(self.graph.source_manager.get(caller.span.source_id()).ok())
                     .with_labeled_span(caller.span, "unable to resolve this name locally")],
             }),
         }
@@ -305,8 +301,12 @@ impl<'a> NameResolver<'a> {
         loop {
             let module_index = self.find_module_index(&current_callee.module).ok_or_else(|| {
                 AssemblyError::UndefinedModule {
-                    span: current_callee.span(),
-                    source_file: current_caller.source_file.clone(),
+                    span: current_caller.span,
+                    source_file: self
+                        .graph
+                        .source_manager
+                        .get(current_caller.span.source_id())
+                        .ok(),
                     path: current_callee.module.clone(),
                 }
             })?;
@@ -320,8 +320,12 @@ impl<'a> NameResolver<'a> {
                     if matches!(current_caller.kind, InvokeKind::SysCall if self.graph.kernel_index != Some(module_index))
                     {
                         break Err(AssemblyError::InvalidSysCallTarget {
-                            span: current_callee.span(),
-                            source_file: current_caller.source_file.clone(),
+                            span: current_caller.span,
+                            source_file: self
+                                .graph
+                                .source_manager
+                                .get(current_caller.span.source_id())
+                                .ok(),
                             callee: current_callee.into_owned(),
                         });
                     }
@@ -335,20 +339,16 @@ impl<'a> NameResolver<'a> {
                         break Err(AssemblyError::Failed {
                             labels: vec![
                                 RelatedLabel::error("recursive alias")
-                                    .with_source_file(self.module_source(module_index))
+                                    .with_source_file(self.graph.source_manager.get(fqn.span().source_id()).ok())
                                     .with_labeled_span(fqn.span(), "occurs because this import causes import resolution to loop back on itself"),
                                 RelatedLabel::advice("recursive alias")
-                                    .with_source_file(caller.source_file.clone())
+                                    .with_source_file(self.graph.source_manager.get(caller.span.source_id()).ok())
                                     .with_labeled_span(caller.span, "as a result of resolving this procedure reference"),
                             ],
                         });
                     }
-                    let source_file = self
-                        .find_module_index(&fqn.module)
-                        .and_then(|index| self.module_source(index));
                     current_caller = Cow::Owned(CallerInfo {
                         span: fqn.span(),
-                        source_file,
                         module: module_index,
                         kind: current_caller.kind,
                     });
@@ -363,13 +363,20 @@ impl<'a> NameResolver<'a> {
                     break Err(AssemblyError::Failed {
                         labels: vec![
                             RelatedLabel::error("undefined procedure")
-                                .with_source_file(caller.source_file.clone())
+                                .with_source_file(
+                                    self.graph.source_manager.get(caller.span.source_id()).ok(),
+                                )
                                 .with_labeled_span(
                                     caller.span,
                                     "unable to resolve this reference to its definition",
                                 ),
                             RelatedLabel::error("name resolution cannot proceed")
-                                .with_source_file(self.module_source(module_index))
+                                .with_source_file(
+                                    self.graph
+                                        .source_manager
+                                        .get(current_callee.span().source_id())
+                                        .ok(),
+                                )
                                 .with_labeled_span(
                                     current_callee.span(),
                                     "this name cannot be resolved",
@@ -383,10 +390,10 @@ impl<'a> NameResolver<'a> {
                         break Err(AssemblyError::Failed {
                             labels: vec![
                                 RelatedLabel::error("undefined kernel procedure")
-                                    .with_source_file(caller.source_file.clone())
+                                    .with_source_file(self.graph.source_manager.get(caller.span.source_id()).ok())
                                     .with_labeled_span(caller.span, "unable to resolve this reference to a procedure in the current kernel"),
                                 RelatedLabel::error("invalid syscall")
-                                    .with_source_file(self.module_source(module_index))
+                                    .with_source_file(self.graph.source_manager.get(current_callee.span().source_id()).ok())
                                     .with_labeled_span(
                                         current_callee.span(),
                                         "this name cannot be resolved, because the assembler has an empty kernel",
@@ -398,10 +405,10 @@ impl<'a> NameResolver<'a> {
                         break Err(AssemblyError::Failed {
                             labels: vec![
                                 RelatedLabel::error("undefined kernel procedure")
-                                    .with_source_file(caller.source_file.clone())
+                                    .with_source_file(self.graph.source_manager.get(caller.span.source_id()).ok())
                                     .with_labeled_span(caller.span, "unable to resolve this reference to a procedure in the current kernel"),
                                 RelatedLabel::error("name resolution cannot proceed")
-                                    .with_source_file(self.module_source(module_index))
+                                    .with_source_file(self.graph.source_manager.get(current_callee.span().source_id()).ok())
                                     .with_labeled_span(
                                         current_callee.span(),
                                         "this name cannot be resolved",
@@ -415,13 +422,20 @@ impl<'a> NameResolver<'a> {
                     break Err(AssemblyError::Failed {
                         labels: vec![
                             RelatedLabel::error("undefined procedure")
-                                .with_source_file(caller.source_file.clone())
+                                .with_source_file(
+                                    self.graph.source_manager.get(caller.span.source_id()).ok(),
+                                )
                                 .with_labeled_span(
                                     caller.span,
                                     "unable to resolve this reference to its definition",
                                 ),
                             RelatedLabel::error("name resolution cannot proceed")
-                                .with_source_file(self.module_source(module_index))
+                                .with_source_file(
+                                    self.graph
+                                        .source_manager
+                                        .get(current_callee.span().source_id())
+                                        .ok(),
+                                )
                                 .with_labeled_span(
                                     current_callee.span(),
                                     "this name cannot be resolved",
@@ -442,19 +456,6 @@ impl<'a> NameResolver<'a> {
             .chain(self.pending.iter().map(|m| &m.path))
             .position(|path| path == name)
             .map(ModuleIndex::new)
-    }
-
-    fn module_source(&self, module: ModuleIndex) -> Option<Arc<SourceFile>> {
-        let pending_offset = self.graph.modules.len();
-        let module_index = module.as_usize();
-        if module_index >= pending_offset {
-            self.pending[module_index - pending_offset].source_file.clone()
-        } else {
-            match &self.graph[module] {
-                WrappedModule::Ast(module) => module.source_file(),
-                WrappedModule::Info(_) => None,
-            }
-        }
     }
 
     fn module_path(&self, module: ModuleIndex) -> LibraryPath {

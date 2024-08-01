@@ -372,9 +372,9 @@ fn handle_division(
 ) -> Result<(), AssemblyError> {
     if let Some(imm) = imm {
         if imm == 0 {
-            let source_file = proc_ctx.source_file();
-            let error =
-                Report::new(crate::parser::ParsingError::DivisionByZero { span: imm.span() });
+            let imm_span = imm.span();
+            let source_file = proc_ctx.source_manager().get(imm_span.source_id()).ok();
+            let error = Report::new(crate::parser::ParsingError::DivisionByZero { span: imm_span });
             return if let Some(source_file) = source_file {
                 Err(AssemblyError::Other(RelatedError::new(error.with_source_code(source_file))))
             } else {

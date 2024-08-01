@@ -1,7 +1,7 @@
 use crate::{
     ast::*,
-    diagnostics::{Diagnostic, Severity, SourceFile},
-    Felt, Span, Spanned,
+    diagnostics::{Diagnostic, Severity},
+    Felt, SourceFile, Span, Spanned,
 };
 use alloc::{
     collections::{BTreeMap, BTreeSet},
@@ -13,21 +13,21 @@ use super::{SemanticAnalysisError, SyntaxError};
 
 /// This maintains the state for semantic analysis of a single [Module].
 pub struct AnalysisContext {
-    source_code: Arc<SourceFile>,
     /// A map of constants to the value of that constant
     constants: BTreeMap<Ident, Constant>,
     procedures: BTreeSet<ProcedureName>,
     errors: Vec<SemanticAnalysisError>,
+    source_file: Arc<SourceFile>,
     warnings_as_errors: bool,
 }
 
 impl AnalysisContext {
-    pub fn new(source_code: Arc<SourceFile>) -> Self {
+    pub fn new(source_file: Arc<SourceFile>) -> Self {
         Self {
-            source_code,
             constants: Default::default(),
             procedures: Default::default(),
             errors: Default::default(),
+            source_file,
             warnings_as_errors: false,
         }
     }
@@ -39,10 +39,6 @@ impl AnalysisContext {
     #[inline(always)]
     pub fn warnings_as_errors(&self) -> bool {
         self.warnings_as_errors
-    }
-
-    pub fn source_file(&self) -> Arc<SourceFile> {
-        self.source_code.clone()
     }
 
     pub fn register_procedure_name(&mut self, name: ProcedureName) {
@@ -73,7 +69,7 @@ impl AnalysisContext {
                 self.errors.push(err);
                 let errors = core::mem::take(&mut self.errors);
                 Err(SyntaxError {
-                    input: self.source_code.clone(),
+                    source_file: self.source_file.clone(),
                     errors,
                 })
             }
@@ -131,7 +127,7 @@ impl AnalysisContext {
     pub fn has_failed(&mut self) -> Result<(), SyntaxError> {
         if self.has_errors() {
             Err(SyntaxError {
-                input: self.source_file(),
+                source_file: self.source_file.clone(),
                 errors: core::mem::take(&mut self.errors),
             })
         } else {
@@ -142,7 +138,7 @@ impl AnalysisContext {
     pub fn into_result(self) -> Result<(), SyntaxError> {
         if self.has_errors() {
             Err(SyntaxError {
-                input: self.source_code,
+                source_file: self.source_file.clone(),
                 errors: self.errors,
             })
         } else {
@@ -158,7 +154,7 @@ impl AnalysisContext {
         if !self.errors.is_empty() {
             // Emit warnings to stderr
             let warning = Report::from(super::errors::SyntaxWarning {
-                input: self.source_code,
+                source_file: self.source_file,
                 errors: self.errors,
             });
             std::eprintln!("{}", warning);

@@ -1,26 +1,26 @@
 use processor::{AsmOpInfo, VmStateIterator};
 use test_utils::{assert_eq, build_debug_test};
-use vm_core::{AssemblyOp, Felt, Operation};
+use vm_core::{debuginfo::Location, AssemblyOp, Felt, Operation};
 
 #[test]
 fn asmop_one_span_block_test() {
     let source = "begin push.1 push.2 add end";
     let test = build_debug_test!(source);
-    let source_file = vm_core::SourceFile::new(test.source.name());
-    let push1_loc = Some(vm_core::SourceLocation {
-        source_file: source_file.clone(),
-        start: 6,
-        end: 6 + 6,
+    let path = test.source.name();
+    let push1_loc = Some(Location {
+        path: path.clone(),
+        start: 6.into(),
+        end: (6 + 6).into(),
     });
-    let push2_loc = Some(vm_core::SourceLocation {
-        source_file: source_file.clone(),
-        start: 13,
-        end: 13 + 6,
+    let push2_loc = Some(Location {
+        path: path.clone(),
+        start: 13.into(),
+        end: (13 + 6).into(),
     });
-    let add_loc = Some(vm_core::SourceLocation {
-        source_file: source_file.clone(),
-        start: 20,
-        end: 20 + 3,
+    let add_loc = Some(Location {
+        path: path.clone(),
+        start: 20.into(),
+        end: (20 + 3).into(),
     });
     let vm_state_iterator = test.execute_iter();
     let expected_vm_state = vec![
@@ -98,21 +98,21 @@ fn asmop_one_span_block_test() {
 fn asmop_with_one_procedure() {
     let source = "proc.foo push.1 push.2 add end begin exec.foo end";
     let test = build_debug_test!(source);
-    let source_file = vm_core::SourceFile::new(test.source.name());
-    let push1_loc = Some(vm_core::SourceLocation {
-        source_file: source_file.clone(),
-        start: 9,
-        end: 9 + 6,
+    let path = test.source.name();
+    let push1_loc = Some(Location {
+        path: path.clone(),
+        start: 9.into(),
+        end: (9 + 6).into(),
     });
-    let push2_loc = Some(vm_core::SourceLocation {
-        source_file: source_file.clone(),
-        start: 16,
-        end: 16 + 6,
+    let push2_loc = Some(Location {
+        path: path.clone(),
+        start: 16.into(),
+        end: (16 + 6).into(),
     });
-    let add_loc = Some(vm_core::SourceLocation {
-        source_file: source_file.clone(),
-        start: 23,
-        end: 23 + 3,
+    let add_loc = Some(Location {
+        path: path.clone(),
+        start: 23.into(),
+        end: (23 + 3).into(),
     });
     let vm_state_iterator = test.execute_iter();
     let expected_vm_state = vec![
@@ -194,21 +194,21 @@ fn asmop_repeat_test() {
             end
         end";
     let test = build_debug_test!(source);
-    let source_file = vm_core::SourceFile::new(test.source.name());
-    let push1_loc = Some(vm_core::SourceLocation {
-        source_file: source_file.clone(),
-        start: 43,
-        end: 43 + 6,
+    let path = test.source.name();
+    let push1_loc = Some(Location {
+        path: path.clone(),
+        start: 43.into(),
+        end: (43 + 6).into(),
     });
-    let push2_loc = Some(vm_core::SourceLocation {
-        source_file: source_file.clone(),
-        start: 50,
-        end: 50 + 6,
+    let push2_loc = Some(Location {
+        path: path.clone(),
+        start: 50.into(),
+        end: (50 + 6).into(),
     });
-    let add_loc = Some(vm_core::SourceLocation {
-        source_file: source_file.clone(),
-        start: 57,
-        end: 57 + 3,
+    let add_loc = Some(Location {
+        path: path.clone(),
+        start: 57.into(),
+        end: (57 + 3).into(),
     });
     let vm_state_iterator = test.execute_iter();
     let expected_vm_state = vec![
@@ -452,26 +452,26 @@ fn asmop_conditional_execution_test() {
 
     //if branch
     let test = build_debug_test!(source, &[1, 1]);
-    let source_file = vm_core::SourceFile::new(test.source.name());
-    let eq_loc = Some(vm_core::SourceLocation {
-        source_file: source_file.clone(),
-        start: 18,
-        end: 18 + 2,
+    let path = test.source.name();
+    let eq_loc = Some(Location {
+        path: path.clone(),
+        start: 18.into(),
+        end: (18 + 2).into(),
     });
-    let push1_loc = Some(vm_core::SourceLocation {
-        source_file: source_file.clone(),
-        start: 57,
-        end: 57 + 6,
+    let push1_loc = Some(Location {
+        path: path.clone(),
+        start: 57.into(),
+        end: (57 + 6).into(),
     });
-    let push2_loc = Some(vm_core::SourceLocation {
-        source_file: source_file.clone(),
-        start: 64,
-        end: 64 + 6,
+    let push2_loc = Some(Location {
+        path: path.clone(),
+        start: 64.into(),
+        end: (64 + 6).into(),
     });
-    let add_loc = Some(vm_core::SourceLocation {
-        source_file: source_file.clone(),
-        start: 71,
-        end: 71 + 3,
+    let add_loc = Some(Location {
+        path: path.clone(),
+        start: 71.into(),
+        end: (71 + 3).into(),
     });
     let vm_state_iterator = test.execute_iter();
     let expected_vm_state = vec![
@@ -584,26 +584,26 @@ fn asmop_conditional_execution_test() {
 
     //else branch
     let test = build_debug_test!(source, &[1, 0]);
-    let source_file = vm_core::SourceFile::new(test.source.name());
-    let eq_loc = Some(vm_core::SourceLocation {
-        source_file: source_file.clone(),
-        start: 18,
-        end: 18 + 2,
+    let path = test.source.name();
+    let eq_loc = Some(Location {
+        path: path.clone(),
+        start: 18.into(),
+        end: (18 + 2).into(),
     });
-    let push3_loc = Some(vm_core::SourceLocation {
-        source_file: source_file.clone(),
-        start: 108,
-        end: 108 + 6,
+    let push3_loc = Some(Location {
+        path: path.clone(),
+        start: 108.into(),
+        end: (108 + 6).into(),
     });
-    let push4_loc = Some(vm_core::SourceLocation {
-        source_file: source_file.clone(),
-        start: 115,
-        end: 115 + 6,
+    let push4_loc = Some(Location {
+        path: path.clone(),
+        start: 115.into(),
+        end: (115 + 6).into(),
     });
-    let add_loc = Some(vm_core::SourceLocation {
-        source_file: source_file.clone(),
-        start: 122,
-        end: 122 + 3,
+    let add_loc = Some(Location {
+        path: path.clone(),
+        start: 122.into(),
+        end: (122 + 3).into(),
     });
     let vm_state_iterator = test.execute_iter();
     let expected_vm_state = vec![

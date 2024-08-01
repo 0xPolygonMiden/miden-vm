@@ -32,13 +32,13 @@ mod tests;
 
 pub use self::assembler::Assembler;
 pub use self::compile::{Compile, Options as CompileOptions};
+pub use self::diagnostics::{
+    MultiThreadedSourceManager, Report, SingleThreadedSourceManager, SourceFile, SourceId,
+    SourceManager, SourceSpan, Span, Spanned,
+};
 pub use self::errors::{AssemblyError, CompiledLibraryError};
 pub use self::library::{LibraryError, LibraryNamespace, LibraryPath, PathError, Version};
 pub use self::parser::ModuleParser;
-pub use vm_core::debuginfo::{
-    ByteIndex, ByteOffset, MultiThreadedSourceManager, SingleThreadedSourceManager, SourceContent,
-    SourceFile, SourceFileRef, SourceId, SourceManager, SourceSpan, Span, Spanned,
-};
 
 /// Re-exported for downstream crates
 pub use vm_core::utils;

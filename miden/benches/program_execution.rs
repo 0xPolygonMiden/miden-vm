@@ -8,6 +8,10 @@ fn program_execution(c: &mut Criterion) {
     let mut group = c.benchmark_group("program_execution");
     group.measurement_time(Duration::from_secs(10));
 
+    let stdlib = StdLibrary::default();
+    let mut host = DefaultHost::default();
+    host.load_mast_forest(stdlib.as_ref().mast_forest().clone());
+
     group.bench_function("sha256", |bench| {
         let source = "
             use.std::crypto::hashes::sha256
@@ -16,18 +20,11 @@ fn program_execution(c: &mut Criterion) {
                 exec.sha256::hash_2to1
             end";
         let mut assembler = Assembler::default();
-        assembler
-            .add_compiled_library(StdLibrary::default())
-            .expect("failed to load stdlib");
+        assembler.add_compiled_library(&stdlib).expect("failed to load stdlib");
         let program: Program =
             assembler.assemble_program(source).expect("Failed to compile test source.");
         bench.iter(|| {
-            execute(
-                &program,
-                StackInputs::default(),
-                DefaultHost::default(),
-                ExecutionOptions::default(),
-            )
+            execute(&program, StackInputs::default(), host.clone(), ExecutionOptions::default())
         });
     });
 

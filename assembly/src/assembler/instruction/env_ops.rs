@@ -1,5 +1,5 @@
 use super::{mem_ops::local_to_absolute_addr, push_felt, BasicBlockBuilder};
-use crate::{assembler::ProcedureContext, AssemblyError, Felt, Spanned};
+use crate::{assembler::ProcedureContext, AssemblyError, Felt, SourceSpan};
 use vm_core::Operation::*;
 
 // CONSTANT INPUTS
@@ -54,11 +54,12 @@ pub fn locaddr(
 pub fn caller(
     span: &mut BasicBlockBuilder,
     proc_ctx: &ProcedureContext,
+    source_span: SourceSpan,
 ) -> Result<(), AssemblyError> {
     if !proc_ctx.is_kernel() {
         return Err(AssemblyError::CallerOutsideOfKernel {
-            span: proc_ctx.span(),
-            source_file: proc_ctx.source_file(),
+            span: source_span,
+            source_file: proc_ctx.source_manager().get(source_span.source_id()).ok(),
         });
     }
     span.push_op(Caller);

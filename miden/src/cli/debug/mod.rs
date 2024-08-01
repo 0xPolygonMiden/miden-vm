@@ -2,7 +2,7 @@ use super::data::{Debug, InputFile, Libraries, ProgramFile};
 use assembly::diagnostics::Report;
 use clap::Parser;
 use rustyline::{error::ReadlineError, Config, DefaultEditor, EditMode};
-use std::path::PathBuf;
+use std::{path::PathBuf, sync::Arc};
 
 mod command;
 use command::DebugCommand;
@@ -28,17 +28,23 @@ pub struct DebugCmd {
 }
 
 impl DebugCmd {
+    #[allow(clippy::arc_with_non_send_sync)]
     pub fn execute(&self) -> Result<(), Report> {
         println!("============================================================");
         println!("Debug program");
         println!("============================================================");
 
+        let source_manager = Arc::new(assembly::SingleThreadedSourceManager::default());
+
         // load libraries from files
         let libraries = Libraries::new(&self.library_paths)?;
 
         // load program from file and compile
-        let program =
-            ProgramFile::read(&self.assembly_file)?.compile(&Debug::On, &libraries.libraries)?;
+        let program = ProgramFile::read(&self.assembly_file, &source_manager)?.compile(
+            &Debug::On,
+            &libraries.libraries,
+            source_manager.clone(),
+        )?;
 
         let program_hash: [u8; 32] = program.hash().into();
         println!("Debugging program with hash {}...", hex::encode(program_hash));

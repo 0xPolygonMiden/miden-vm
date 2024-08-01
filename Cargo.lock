@@ -999,10 +999,14 @@ dependencies = [
 name = "miden-core"
 version = "0.10.0"
 dependencies = [
+ "lock_api",
+ "memchr",
  "miden-crypto",
  "miden-formatting",
+ "miette",
  "num-derive",
  "num-traits",
+ "parking_lot",
  "proptest",
  "thiserror",
  "winter-math 0.9.0",

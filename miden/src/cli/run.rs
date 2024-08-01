@@ -2,7 +2,7 @@ use super::data::{instrument, Debug, InputFile, Libraries, OutputFile, ProgramFi
 use assembly::diagnostics::{IntoDiagnostic, Report, WrapErr};
 use clap::Parser;
 use processor::{DefaultHost, ExecutionOptions, ExecutionTrace};
-use std::{path::PathBuf, time::Instant};
+use std::{path::PathBuf, sync::Arc, time::Instant};
 
 #[derive(Debug, Clone, Parser)]
 #[clap(about = "Run a miden program")]
@@ -99,13 +99,19 @@ impl RunCmd {
 // ================================================================================================
 
 #[instrument(name = "run_program", skip_all)]
+#[allow(clippy::arc_with_non_send_sync)]
 fn run_program(params: &RunCmd) -> Result<(ExecutionTrace, [u8; 32]), Report> {
+    let source_manager = Arc::new(assembly::SingleThreadedSourceManager::default());
+
     // load libraries from files
     let libraries = Libraries::new(&params.library_paths)?;
 
     // load program from file and compile
-    let program =
-        ProgramFile::read(&params.assembly_file)?.compile(&Debug::Off, &libraries.libraries)?;
+    let program = ProgramFile::read(&params.assembly_file, &source_manager)?.compile(
+        &Debug::Off,
+        &libraries.libraries,
+        source_manager,
+    )?;
 
     // load input data from file
     let input_data = InputFile::read(&params.input_file, &params.assembly_file)?;

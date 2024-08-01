@@ -3,9 +3,10 @@ use crate::{
     diagnostics::Report,
     library::{CompiledLibrary, KernelLibrary},
     sema::SemanticAnalysisError,
-    AssemblyError, Compile, CompileOptions, LibraryNamespace, LibraryPath, RpoDigest, Spanned,
+    AssemblyError, Compile, CompileOptions, LibraryNamespace, LibraryPath, RpoDigest,
+    SourceManager, Spanned,
 };
-use alloc::{collections::BTreeMap, vec::Vec};
+use alloc::{collections::BTreeMap, sync::Arc, vec::Vec};
 use mast_forest_builder::MastForestBuilder;
 use module_graph::{ProcedureWrapper, WrappedModule};
 use vm_core::{mast::MastNodeId, Decorator, DecoratorList, Felt, Kernel, Operation, Program};
@@ -46,8 +47,10 @@ use self::module_graph::{CallerInfo, ModuleGraph, ResolvedTarget};
 ///   procedures, build the assembler with them first, using the various builder methods on
 ///   [Assembler], e.g. [Assembler::with_module], [Assembler::with_compiled_library], etc. Then,
 ///   call [Assembler::assemble_program] to get your compiled program.
-#[derive(Clone, Default)]
+#[derive(Clone)]
 pub struct Assembler {
+    /// The source manager to use for compilation and source location information
+    source_manager: Arc<dyn SourceManager>,
     /// The global [ModuleGraph] for this assembler.
     module_graph: ModuleGraph,
     /// Whether to treat warning diagnostics as errors
@@ -56,14 +59,42 @@ pub struct Assembler {
     in_debug_mode: bool,
 }
 
+impl Default for Assembler {
+    #[allow(clippy::arc_with_non_send_sync)]
+    fn default() -> Self {
+        use vm_core::debuginfo::SingleThreadedSourceManager;
+        let source_manager = Arc::new(SingleThreadedSourceManager::default());
+        let module_graph = ModuleGraph::new(source_manager.clone());
+        Self {
+            source_manager,
+            module_graph,
+            warnings_as_errors: false,
+            in_debug_mode: false,
+        }
+    }
+}
+
 // ------------------------------------------------------------------------------------------------
 /// Constructors
 impl Assembler {
-    /// Start building an [`Assembler`] with a kernel defined by the provided [KernelLibrary].
-    pub fn with_kernel(kernel_lib: KernelLibrary) -> Self {
-        let (kernel, kernel_module, _) = kernel_lib.into_parts();
+    /// Start building an [Assembler]
+    pub fn new(source_manager: Arc<dyn SourceManager>) -> Self {
+        let module_graph = ModuleGraph::new(source_manager.clone());
         Self {
-            module_graph: ModuleGraph::with_kernel(kernel, kernel_module),
+            source_manager,
+            module_graph,
+            warnings_as_errors: false,
+            in_debug_mode: false,
+        }
+    }
+
+    /// Start building an [`Assembler`] with a kernel defined by the provided [KernelLibrary].
+    pub fn with_kernel(source_manager: Arc<dyn SourceManager>, kernel_lib: KernelLibrary) -> Self {
+        let (kernel, kernel_module, _) = kernel_lib.into_parts();
+        let module_graph = ModuleGraph::with_kernel(source_manager.clone(), kernel, kernel_module);
+        Self {
+            source_manager,
+            module_graph,
             ..Default::default()
         }
     }
@@ -80,6 +111,11 @@ impl Assembler {
     pub fn with_debug_mode(mut self, yes: bool) -> Self {
         self.in_debug_mode = yes;
         self
+    }
+
+    /// Sets the debug mode flag of the assembler
+    pub fn set_debug_mode(&mut self, yes: bool) {
+        self.in_debug_mode = yes;
     }
 
     /// Adds `module` to the module graph of the assembler.
@@ -129,7 +165,7 @@ impl Assembler {
             ));
         }
 
-        let module = module.compile_with_options(options)?;
+        let module = module.compile_with_options(&self.source_manager, options)?;
         assert_eq!(module.kind(), kind, "expected module kind to match compilation options");
 
         self.module_graph.add_ast_module(module)?;
@@ -200,7 +236,7 @@ impl Assembler {
         let ast_module_indices =
             modules.into_iter().try_fold(Vec::default(), |mut acc, module| {
                 module
-                    .compile_with_options(CompileOptions::for_library())
+                    .compile_with_options(&self.source_manager, CompileOptions::for_library())
                     .and_then(|module| {
                         self.module_graph.add_ast_module(module).map_err(Report::from)
                     })
@@ -251,7 +287,7 @@ impl Assembler {
             path: Some(LibraryPath::from(LibraryNamespace::Kernel)),
         };
 
-        let module = module.compile_with_options(options)?;
+        let module = module.compile_with_options(&self.source_manager, options)?;
         let module_idx = self.module_graph.add_ast_module(module)?;
 
         self.module_graph.recompute()?;
@@ -293,7 +329,7 @@ impl Assembler {
             path: Some(LibraryPath::from(LibraryNamespace::Exec)),
         };
 
-        let program = source.compile_with_options(options)?;
+        let program = source.compile_with_options(&self.source_manager, options)?;
         assert!(program.is_executable());
 
         // Recompute graph with executable module, and start compiling
@@ -377,6 +413,7 @@ impl Assembler {
                 // compile.
                 WrappedModule::Info(_) => continue,
             };
+
             let export = &module[procedure_gid.index];
             match export {
                 Export::Procedure(proc) => {
@@ -386,10 +423,14 @@ impl Assembler {
                         module: module.path().clone(),
                         name: proc.name().clone(),
                     };
-                    let pctx = ProcedureContext::new(procedure_gid, name, proc.visibility())
-                        .with_num_locals(num_locals)
-                        .with_span(proc.span())
-                        .with_source_file(proc.source_file());
+                    let pctx = ProcedureContext::new(
+                        procedure_gid,
+                        name,
+                        proc.visibility(),
+                        self.source_manager.clone(),
+                    )
+                    .with_num_locals(num_locals)
+                    .with_span(proc.span());
 
                     // Compile this procedure
                     let procedure = self.compile_procedure(pctx, mast_forest_builder)?;
@@ -404,9 +445,13 @@ impl Assembler {
                         module: module.path().clone(),
                         name: proc_alias.name().clone(),
                     };
-                    let pctx = ProcedureContext::new(procedure_gid, name, ast::Visibility::Public)
-                        .with_span(proc_alias.span())
-                        .with_source_file(proc_alias.source_file());
+                    let pctx = ProcedureContext::new(
+                        procedure_gid,
+                        name,
+                        ast::Visibility::Public,
+                        self.source_manager.clone(),
+                    )
+                    .with_span(proc_alias.span());
 
                     let proc_alias_root = self.resolve_target(
                         InvokeKind::ProcRef,
@@ -562,7 +607,6 @@ impl Assembler {
     ) -> Result<RpoDigest, AssemblyError> {
         let caller = CallerInfo {
             span: target.span(),
-            source_file: proc_ctx.source_file(),
             module: proc_ctx.id().module,
             kind,
         };

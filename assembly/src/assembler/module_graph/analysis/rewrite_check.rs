@@ -1,4 +1,3 @@
-use alloc::sync::Arc;
 use core::ops::ControlFlow;
 
 use crate::{
@@ -7,7 +6,6 @@ use crate::{
         ModuleIndex, ResolvedTarget,
     },
     ast::{visit::Visit, InvocationTarget, InvokeKind, Module},
-    diagnostics::SourceFile,
     AssemblyError, Spanned,
 };
 
@@ -38,7 +36,6 @@ impl<'a, 'b: 'a> MaybeRewriteCheck<'a, 'b> {
         let mut visitor = RewriteCheckVisitor {
             resolver: self.resolver,
             module_id,
-            source_file: module.source_file(),
         };
         match visitor.visit_module(module) {
             ControlFlow::Break(result) => result,
@@ -53,7 +50,6 @@ impl<'a, 'b: 'a> MaybeRewriteCheck<'a, 'b> {
 struct RewriteCheckVisitor<'a, 'b: 'a> {
     resolver: &'a NameResolver<'b>,
     module_id: ModuleIndex,
-    source_file: Option<Arc<SourceFile>>,
 }
 
 impl<'a, 'b: 'a> RewriteCheckVisitor<'a, 'b> {
@@ -64,7 +60,6 @@ impl<'a, 'b: 'a> RewriteCheckVisitor<'a, 'b> {
     ) -> ControlFlow<Result<bool, AssemblyError>> {
         let caller = CallerInfo {
             span: target.span(),
-            source_file: self.source_file.clone(),
             module: self.module_id,
             kind,
         };

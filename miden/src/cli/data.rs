@@ -17,6 +17,7 @@ use std::{
     fs,
     io::Write,
     path::{Path, PathBuf},
+    sync::Arc,
 };
 use stdlib::StdLibrary;
 pub use tracing::{event, instrument, Level};
@@ -391,10 +392,15 @@ pub struct ProgramFile {
 /// Helper methods to interact with masm program file.
 impl ProgramFile {
     /// Reads the masm file at the specified path and parses it into a [ProgramFile].
-    #[instrument(name = "read_program_file", fields(path = %path.display()))]
-    pub fn read(path: &PathBuf) -> Result<Self, Report> {
+    #[instrument(name = "read_program_file", skip(source_manager), fields(path = %path.display()))]
+    pub fn read(
+        path: &PathBuf,
+        source_manager: &dyn assembly::SourceManager,
+    ) -> Result<Self, Report> {
         // parse the program into an AST
-        let ast = Module::parse_file(LibraryNamespace::Exec.into(), ModuleKind::Executable, path)
+        let mut parser = Module::parser(ModuleKind::Executable);
+        let ast = parser
+            .parse_file(LibraryNamespace::Exec.into(), path, source_manager)
             .wrap_err_with(|| format!("Failed to parse program file `{}`", path.display()))?;
 
         Ok(Self {
@@ -405,12 +411,17 @@ impl ProgramFile {
 
     /// Compiles this program file into a [Program].
     #[instrument(name = "compile_program", skip_all)]
-    pub fn compile<'a, I>(&self, debug: &Debug, libraries: I) -> Result<Program, Report>
+    pub fn compile<'a, I>(
+        &self,
+        debug: &Debug,
+        libraries: I,
+        source_manager: Arc<dyn assembly::SourceManager>,
+    ) -> Result<Program, Report>
     where
         I: IntoIterator<Item = &'a CompiledLibrary>,
     {
         // compile program
-        let mut assembler = Assembler::default().with_debug_mode(debug.is_on());
+        let mut assembler = Assembler::new(source_manager.clone()).with_debug_mode(debug.is_on());
         assembler
             .add_compiled_library(StdLibrary::default())
             .wrap_err("Failed to load stdlib")?;

@@ -1,9 +1,4 @@
-use alloc::{
-    boxed::Box,
-    string::{String, ToString},
-    sync::Arc,
-    vec::Vec,
-};
+use alloc::{boxed::Box, string::String, sync::Arc, vec::Vec};
 use core::fmt;
 
 use super::{
@@ -112,12 +107,6 @@ impl Deserializable for ModuleKind {
 pub struct Module {
     /// The span covering the entire definition of this module.
     span: SourceSpan,
-    /// If available/known, the source contents from which this module was parsed. This is used
-    /// to provide rich diagnostics output during semantic analysis.
-    ///
-    /// In cases where this file is not available, diagnostics will revert to a simple form with
-    /// a helpful message, but without source code snippets.
-    source_file: Option<Arc<SourceFile>>,
     /// The documentation associated with this module.
     ///
     /// Module documentation is provided in Miden Assembly as a documentation comment starting on
@@ -144,7 +133,6 @@ impl Module {
     pub fn new(kind: ModuleKind, path: LibraryPath) -> Self {
         Self {
             span: Default::default(),
-            source_file: None,
             docs: None,
             path,
             kind,
@@ -163,24 +151,11 @@ impl Module {
         Self::new(ModuleKind::Executable, LibraryNamespace::Exec.into())
     }
 
-    /// Builds this [Module] with the given source file in which it was defined.
-    ///
-    /// When a source file is given, diagnostics will contain source code snippets.
-    pub fn with_source_file(mut self, source_file: Option<Arc<SourceFile>>) -> Self {
-        self.source_file = source_file;
-        self
-    }
-
     /// Specifies the source span in the source file in which this module was defined, that covers
     /// the full definition of this module.
     pub fn with_span(mut self, span: SourceSpan) -> Self {
         self.span = span;
         self
-    }
-
-    /// Like [Module::with_source_file], but does not require ownership of the [Module].
-    pub fn set_source_file(&mut self, source_file: Arc<SourceFile>) {
-        self.source_file = Some(source_file);
     }
 
     /// Sets the [LibraryPath] for this module
@@ -250,26 +225,6 @@ impl Module {
 
 /// Parsing
 impl Module {
-    /// Parse a [Module], `name`, of the given [ModuleKind], from `path`.
-    #[cfg(feature = "std")]
-    pub fn parse_file<P>(name: LibraryPath, kind: ModuleKind, path: P) -> Result<Box<Self>, Report>
-    where
-        P: AsRef<std::path::Path>,
-    {
-        let mut parser = Self::parser(kind);
-        parser.parse_file(name, path)
-    }
-
-    /// Parse a [Module], `name`, of the given [ModuleKind], from `source`.
-    pub fn parse_str(
-        name: LibraryPath,
-        kind: ModuleKind,
-        source: impl ToString,
-    ) -> Result<Box<Self>, Report> {
-        let mut parser = Self::parser(kind);
-        parser.parse_str(name, source)
-    }
-
     /// Parse a [Module], `name`, of the given [ModuleKind], from `source_file`.
     pub fn parse(
         name: LibraryPath,
@@ -281,10 +236,6 @@ impl Module {
     }
 
     /// Get a [ModuleParser] for parsing modules of the provided [ModuleKind]
-    ///
-    /// This is mostly useful when you want tighter control over the parser configuration, otherwise
-    /// it is generally more convenient to use [Module::parse_file] or [Module::parse_str] for most
-    /// use cases.
     pub fn parser(kind: ModuleKind) -> ModuleParser {
         ModuleParser::new(kind)
     }
@@ -292,17 +243,6 @@ impl Module {
 
 /// Metadata
 impl Module {
-    /// Get the source code for this module, if available
-    ///
-    /// The source code will not be available in the following situations:
-    ///
-    /// * The module was constructed in-memory via AST structures, and not derived from source code.
-    /// * The module was serialized without debug info, and then deserialized. Without debug info,
-    ///   the source code is lost when round-tripping through serialization.
-    pub fn source_file(&self) -> Option<Arc<SourceFile>> {
-        self.source_file.clone()
-    }
-
     /// Get the name of this specific module, i.e. the last component of the [LibraryPath] that
     /// represents the fully-qualified name of the module, e.g. `u64` in `std::math::u64`
     pub fn name(&self) -> &str {
@@ -533,17 +473,6 @@ impl Module {
         options.write_into(target);
         if options.debug_info {
             self.span.write_into(target);
-            if let Some(source_file) = self.source_file.as_ref() {
-                target.write_u8(1);
-                let source_name = source_file.name();
-                let source_bytes = source_file.inner().as_bytes();
-                target.write_usize(source_name.as_bytes().len());
-                target.write_bytes(source_name.as_bytes());
-                target.write_usize(source_bytes.len());
-                target.write_bytes(source_bytes);
-            } else {
-                target.write_u8(0);
-            }
         }
         self.kind.write_into(target);
         self.path.write_into(target);
@@ -627,30 +556,10 @@ impl Deserializable for Module {
     /// [Module::write_into_with_options]
     fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
         let options = AstSerdeOptions::read_from(source)?;
-        let (span, source_file) = if options.debug_info {
-            let span = SourceSpan::read_from(source)?;
-            match source.read_u8()? {
-                0 => (span, None),
-                1 => {
-                    let nlen = source.read_usize()?;
-                    let source_name = core::str::from_utf8(source.read_slice(nlen)?)
-                        .map(|s| s.to_string())
-                        .map_err(|e| DeserializationError::InvalidValue(e.to_string()))?;
-                    let clen = source.read_usize()?;
-                    let source_content = core::str::from_utf8(source.read_slice(clen)?)
-                        .map_err(|e| DeserializationError::InvalidValue(e.to_string()))?;
-                    let source_file =
-                        Arc::new(SourceFile::new(source_name, source_content.to_string()));
-                    (span, Some(source_file))
-                }
-                n => {
-                    return Err(DeserializationError::InvalidValue(format!(
-                        "invalid option tag: '{n}'"
-                    )));
-                }
-            }
+        let span = if options.debug_info {
+            SourceSpan::read_from(source)?
         } else {
-            (SourceSpan::default(), None)
+            SourceSpan::default()
         };
         let kind = ModuleKind::read_from(source)?;
         let path = LibraryPath::read_from(source)?;
@@ -669,11 +578,10 @@ impl Deserializable for Module {
         let mut procedures = Vec::with_capacity(num_procedures);
         for _ in 0..num_procedures {
             let export = Export::read_from_with_options(source, options)?;
-            procedures.push(export.with_source_file(source_file.clone()));
+            procedures.push(export);
         }
         Ok(Self {
             span,
-            source_file,
             docs: None,
             path,
             kind,

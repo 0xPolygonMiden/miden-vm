@@ -1,6 +1,6 @@
 use processor::{AsmOpInfo, ContextId, VmState};
 use test_utils::{assert_eq, build_debug_test, Felt, ToElements, ONE};
-use vm_core::{AssemblyOp, Operation};
+use vm_core::{debuginfo::Location, AssemblyOp, Operation};
 
 // EXEC ITER TESTS
 // =================================================================
@@ -12,30 +12,30 @@ fn test_exec_iter() {
         init_stack.push(i);
     });
     let test = build_debug_test!(source, &init_stack);
-    let source_file = vm_core::SourceFile::new(test.source.name());
+    let path = test.source.name();
     let traces = test.execute_iter();
     let fmp = Felt::new(2u64.pow(30));
     let next_fmp = fmp + ONE;
     let mem = vec![(1_u64, slice_to_word(&[13, 14, 15, 16]))];
-    let mem_storew1_loc = Some(vm_core::SourceLocation {
-        source_file: source_file.clone(),
-        start: 33,
-        end: 33 + 12,
+    let mem_storew1_loc = Some(Location {
+        path: path.clone(),
+        start: 33.into(),
+        end: (33 + 12).into(),
     });
-    let dropw_loc = Some(vm_core::SourceLocation {
-        source_file: source_file.clone(),
-        start: 46,
-        end: 46 + 5,
+    let dropw_loc = Some(Location {
+        path: path.clone(),
+        start: 46.into(),
+        end: (46 + 5).into(),
     });
-    let push17_loc = Some(vm_core::SourceLocation {
-        source_file: source_file.clone(),
-        start: 52,
-        end: 52 + 7,
+    let push17_loc = Some(Location {
+        path: path.clone(),
+        start: 52.into(),
+        end: (52 + 7).into(),
     });
-    let locstore0_loc = Some(vm_core::SourceLocation {
-        source_file: source_file.clone(),
-        start: 11,
-        end: 11 + 11,
+    let locstore0_loc = Some(Location {
+        path: path.clone(),
+        start: 11.into(),
+        end: (11 + 11).into(),
     });
     let expected_states = vec![
         VmState {

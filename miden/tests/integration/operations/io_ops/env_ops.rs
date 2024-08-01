@@ -1,3 +1,4 @@
+use assembly::SourceManager;
 use processor::FMP_MIN;
 use test_utils::{build_op_test, build_test, StackInputs, Test, Word, STACK_TOP_SIZE};
 use vm_core::{
@@ -144,11 +145,13 @@ fn caller() {
         end";
 
     // TODO: update and use macro?
-    let test = Test {
-        kernel_source: Some(kernel_source.to_string()),
-        stack_inputs: StackInputs::try_from_ints([1, 2, 3, 4, 5]).unwrap(),
-        ..Test::new(&format!("test{}", line!()), program_source, false)
-    };
+    let mut test = Test::new(&format!("test{}", line!()), program_source, false);
+    test.stack_inputs = StackInputs::try_from_ints([1, 2, 3, 4, 5]).unwrap();
+    test.kernel_source = Some(
+        test.source_manager
+            .load(&format!("kernel{}", line!()), kernel_source.to_string()),
+    );
+
     // top 4 elements should be overwritten with the hash of `bar` procedure, but the 5th
     // element should remain untouched
     let bar_hash = build_bar_hash();

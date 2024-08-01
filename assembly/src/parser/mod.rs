@@ -1,10 +1,10 @@
 /// Simple macro used in the grammar definition for constructing spans
 macro_rules! span {
-    ($l:expr, $r:expr) => {
-        crate::SourceSpan::new($l..$r)
+    ($id:expr, $l:expr, $r:expr) => {
+        crate::SourceSpan::new($id, $l..$r)
     };
-    ($i:expr) => {
-        crate::SourceSpan::new($i..$i)
+    ($id:expr, $i:expr) => {
+        crate::SourceSpan::at($id, $i)
     };
 }
 
@@ -16,14 +16,12 @@ lalrpop_util::lalrpop_mod!(
 
 mod error;
 mod lexer;
-mod location;
 mod scanner;
 mod span;
 mod token;
 
 pub use self::error::{BinErrorKind, HexErrorKind, LiteralErrorKind, ParsingError};
 pub use self::lexer::Lexer;
-pub use self::location::SourceLocation;
 pub use self::scanner::Scanner;
 pub use self::span::{SourceSpan, Span, Spanned};
 pub use self::token::{BinEncodedValue, DocumentationType, HexEncodedValue, Token};
@@ -31,7 +29,7 @@ pub use self::token::{BinEncodedValue, DocumentationType, HexEncodedValue, Token
 use crate::{
     ast,
     diagnostics::{Report, SourceFile},
-    sema, LibraryPath,
+    sema, LibraryPath, SourceManager,
 };
 use alloc::{boxed::Box, collections::BTreeSet, string::ToString, sync::Arc, vec::Vec};
 
@@ -42,9 +40,6 @@ type ParseError<'a> = lalrpop_util::ParseError<u32, Token<'a>, ParsingError>;
 
 /// This is a wrapper around the lower-level parser infrastructure which handles orchestrating all
 /// of the pieces needed to parse a [ast::Module] from source, and run semantic analysis on it.
-///
-/// In the vast majority of cases though, you will want to use the more ergonomic
-/// [ast::Module::parse_str] or [ast::Module::parse_file] APIs instead.
 #[derive(Default)]
 pub struct ModuleParser {
     /// The kind of module we're parsing.
@@ -101,18 +96,23 @@ impl ModuleParser {
 
     /// Parse a [ast::Module], `name`, from `path`.
     #[cfg(feature = "std")]
-    pub fn parse_file<P>(&mut self, name: LibraryPath, path: P) -> Result<Box<ast::Module>, Report>
+    pub fn parse_file<P>(
+        &mut self,
+        name: LibraryPath,
+        path: P,
+        source_manager: &dyn SourceManager,
+    ) -> Result<Box<ast::Module>, Report>
     where
         P: AsRef<std::path::Path>,
     {
         use crate::diagnostics::{IntoDiagnostic, WrapErr};
+        use vm_core::debuginfo::SourceManagerExt;
 
         let path = path.as_ref();
-        let filename = path.to_string_lossy();
-        let source = std::fs::read_to_string(path)
+        let source_file = source_manager
+            .load_file(path)
             .into_diagnostic()
-            .wrap_err_with(|| format!("failed to parse module from '{filename}'"))?;
-        let source_file = Arc::new(SourceFile::new(filename, source));
+            .wrap_err_with(|| format!("failed to load source file from '{}'", path.display()))?;
         self.parse(name, source_file)
     }
 
@@ -121,9 +121,13 @@ impl ModuleParser {
         &mut self,
         name: LibraryPath,
         source: impl ToString,
+        source_manager: &dyn SourceManager,
     ) -> Result<Box<ast::Module>, Report> {
-        let source = source.to_string();
-        let source_file = Arc::new(SourceFile::new(name.path(), source));
+        use vm_core::debuginfo::SourceContent;
+
+        let path = Arc::from(name.path().into_owned().into_boxed_str());
+        let content = SourceContent::new(Arc::clone(&path), source.to_string().into_boxed_str());
+        let source_file = source_manager.load_from_raw_parts(path, content);
         self.parse(name, source_file)
     }
 }
@@ -146,11 +150,12 @@ fn parse_forms_internal(
     source: Arc<SourceFile>,
     interned: &mut BTreeSet<Arc<str>>,
 ) -> Result<Vec<ast::Form>, ParsingError> {
-    let scanner = Scanner::new(source.inner().as_ref());
-    let lexer = Lexer::new(scanner);
+    let source_id = source.id();
+    let scanner = Scanner::new(source.as_str());
+    let lexer = Lexer::new(source_id, scanner);
     grammar::FormsParser::new()
         .parse(&source, interned, core::marker::PhantomData, lexer)
-        .map_err(ParsingError::from)
+        .map_err(|err| ParsingError::from_parse_error(source_id, err))
 }
 
 // TESTS
@@ -159,13 +164,15 @@ fn parse_forms_internal(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::SourceId;
     use vm_core::assert_matches;
 
     // This test checks the lexer behavior with regard to tokenizing `exp(.u?[\d]+)?`
     #[test]
     fn lex_exp() {
+        let source_id = SourceId::default();
         let scanner = Scanner::new("begin exp.u9 end");
-        let mut lexer = Lexer::new(scanner).map(|result| result.map(|(_, t, _)| t));
+        let mut lexer = Lexer::new(source_id, scanner).map(|result| result.map(|(_, t, _)| t));
         assert_matches!(lexer.next(), Some(Ok(Token::Begin)));
         assert_matches!(lexer.next(), Some(Ok(Token::ExpU)));
         assert_matches!(lexer.next(), Some(Ok(Token::Int(n))) if n == 9);
@@ -174,6 +181,7 @@ mod tests {
 
     #[test]
     fn lex_block() {
+        let source_id = SourceId::default();
         let scanner = Scanner::new(
             "\
 const.ERR1=1
@@ -185,7 +193,7 @@ begin
 end
 ",
         );
-        let mut lexer = Lexer::new(scanner).map(|result| result.map(|(_, t, _)| t));
+        let mut lexer = Lexer::new(source_id, scanner).map(|result| result.map(|(_, t, _)| t));
         assert_matches!(lexer.next(), Some(Ok(Token::Const)));
         assert_matches!(lexer.next(), Some(Ok(Token::Dot)));
         assert_matches!(lexer.next(), Some(Ok(Token::ConstantIdent("ERR1"))));
@@ -209,6 +217,7 @@ end
 
     #[test]
     fn lex_emit() {
+        let source_id = SourceId::default();
         let scanner = Scanner::new(
             "\
 begin
@@ -217,7 +226,7 @@ begin
 end
 ",
         );
-        let mut lexer = Lexer::new(scanner).map(|result| result.map(|(_, t, _)| t));
+        let mut lexer = Lexer::new(source_id, scanner).map(|result| result.map(|(_, t, _)| t));
         assert_matches!(lexer.next(), Some(Ok(Token::Begin)));
         assert_matches!(lexer.next(), Some(Ok(Token::Push)));
         assert_matches!(lexer.next(), Some(Ok(Token::Dot)));

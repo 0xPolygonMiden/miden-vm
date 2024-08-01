@@ -309,15 +309,16 @@ fn execute(
     let mut assembler = Assembler::default();
 
     for library in provided_libraries {
-        assembler
-            .add_compiled_library(library.clone())
-            .map_err(|err| format!("{err}"))?;
+        assembler.add_compiled_library(library).map_err(|err| format!("{err}"))?;
     }
 
     let program = assembler.assemble_program(program).map_err(|err| format!("{err}"))?;
 
     let stack_inputs = StackInputs::default();
-    let host = DefaultHost::default();
+    let mut host = DefaultHost::default();
+    for library in provided_libraries {
+        host.load_mast_forest(library.mast_forest().clone());
+    }
 
     let state_iter = processor::execute_iter(&program, stack_inputs, host);
     let (system, _, stack, chiplets, err) = state_iter.into_parts();

@@ -35,7 +35,9 @@ impl Analyze {
 
         // fetch the stack and program inputs from the arguments
         let stack_inputs = input_data.parse_stack_inputs().map_err(Report::msg)?;
-        let host = DefaultHost::new(input_data.parse_advice_provider().map_err(Report::msg)?);
+        let mut host = DefaultHost::new(input_data.parse_advice_provider().map_err(Report::msg)?);
+        let stdlib = StdLibrary::default();
+        host.load_mast_forest(stdlib.as_ref().mast_forest().clone());
 
         let execution_details: ExecutionDetails = analyze(program.as_str(), stack_inputs, host)
             .expect("Could not retrieve execution details");
@@ -206,17 +208,14 @@ impl fmt::Display for ExecutionDetails {
 }
 
 /// Returns program analysis of a given program.
-pub fn analyze<H>(
-    program: &str,
-    stack_inputs: StackInputs,
-    host: H,
-) -> Result<ExecutionDetails, Report>
+fn analyze<H>(program: &str, stack_inputs: StackInputs, host: H) -> Result<ExecutionDetails, Report>
 where
     H: Host,
 {
+    let stdlib = StdLibrary::default();
     let program = Assembler::default()
         .with_debug_mode(true)
-        .with_compiled_library(StdLibrary::default())?
+        .with_compiled_library(&stdlib)?
         .assemble_program(program)?;
     let mut execution_details = ExecutionDetails::default();
 

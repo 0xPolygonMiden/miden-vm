@@ -1,4 +1,4 @@
-use core::iter;
+#![allow(clippy::arc_with_non_send_sync)]
 
 use pretty_assertions::assert_eq;
 use vm_core::{assert_matches, mast::MastForest, Program};
@@ -6,14 +6,15 @@ use vm_core::{assert_matches, mast::MastForest, Program};
 use super::{Assembler, Operation};
 use crate::{
     assembler::{combine_mast_node_ids, mast_forest_builder::MastForestBuilder},
-    ast::{Module, ModuleKind},
+    diagnostics::Report,
+    testing::TestContext,
 };
 
 // TESTS
 // ================================================================================================
 
 #[test]
-fn nested_blocks() {
+fn nested_blocks() -> Result<(), Report> {
     const KERNEL: &str = r#"
         export.foo
             add
@@ -24,16 +25,17 @@ fn nested_blocks() {
             push.29
         end"#;
 
+    let context = TestContext::new();
     let assembler = {
-        let kernel_lib = Assembler::default().assemble_kernel(KERNEL).unwrap();
+        let kernel_lib = Assembler::new(context.source_manager()).assemble_kernel(KERNEL).unwrap();
 
         let dummy_module =
-            Module::parse_str(MODULE.parse().unwrap(), ModuleKind::Library, MODULE_PROCEDURE)
-                .unwrap();
-        let dummy_library =
-            Assembler::default().assemble_library(iter::once(dummy_module)).unwrap();
+            context.parse_module_with_path(MODULE.parse().unwrap(), MODULE_PROCEDURE)?;
+        let dummy_library = Assembler::new(context.source_manager())
+            .assemble_library([dummy_module])
+            .unwrap();
 
-        let mut assembler = Assembler::with_kernel(kernel_lib);
+        let mut assembler = Assembler::with_kernel(context.source_manager(), kernel_lib);
         assembler.add_compiled_library(dummy_library).unwrap();
 
         assembler
@@ -166,13 +168,15 @@ fn nested_blocks() {
     // also check that the program has the right number of procedures (which excludes the dummy
     // library and kernel)
     assert_eq!(program.num_procedures(), 3);
+
+    Ok(())
 }
 
 /// Ensures that a single copy of procedures with the same MAST root are added only once to the MAST
 /// forest.
 #[test]
 fn duplicate_procedure() {
-    let assembler = Assembler::default();
+    let context = TestContext::new();
 
     let program_source = r#"
         proc.foo
@@ -192,14 +196,14 @@ fn duplicate_procedure() {
         end
     "#;
 
-    let program = assembler.assemble_program(program_source).unwrap();
+    let program = context.assemble(program_source).unwrap();
     assert_eq!(program.num_procedures(), 2);
 }
 
 /// Ensures that equal MAST nodes don't get added twice to a MAST forest
 #[test]
 fn duplicate_nodes() {
-    let assembler = Assembler::default();
+    let context = TestContext::new().with_debug_info(false);
 
     let program_source = r#"
     begin
@@ -211,7 +215,7 @@ fn duplicate_nodes() {
     end
     "#;
 
-    let program = assembler.assemble_program(program_source).unwrap();
+    let program = context.assemble(program_source).unwrap();
 
     let mut expected_mast_forest = MastForest::new();
 
@@ -236,7 +240,7 @@ fn duplicate_nodes() {
 }
 
 #[test]
-fn explicit_fully_qualified_procedure_references() {
+fn explicit_fully_qualified_procedure_references() -> Result<(), Report> {
     const BAR_NAME: &str = "foo::bar";
     const BAR: &str = r#"
         export.bar
@@ -248,11 +252,14 @@ fn explicit_fully_qualified_procedure_references() {
             exec.::foo::bar::bar
         end"#;
 
-    let bar = Module::parse_str(BAR_NAME.parse().unwrap(), ModuleKind::Library, BAR).unwrap();
-    let baz = Module::parse_str(BAZ_NAME.parse().unwrap(), ModuleKind::Library, BAZ).unwrap();
-    let library = Assembler::default().assemble_library([bar, baz]).unwrap();
+    let context = TestContext::default();
+    let bar = context.parse_module_with_path(BAR_NAME.parse().unwrap(), BAR)?;
+    let baz = context.parse_module_with_path(BAZ_NAME.parse().unwrap(), BAZ)?;
+    let library = context.assemble_library([bar, baz]).unwrap();
 
-    let assembler = Assembler::default().with_compiled_library(&library).unwrap();
+    let assembler = Assembler::new(context.source_manager())
+        .with_compiled_library(&library)
+        .unwrap();
 
     let program = r#"
     begin
@@ -260,10 +267,11 @@ fn explicit_fully_qualified_procedure_references() {
     end"#;
 
     assert_matches!(assembler.assemble_program(program), Ok(_));
+    Ok(())
 }
 
 #[test]
-fn re_exports() {
+fn re_exports() -> Result<(), Report> {
     const BAR_NAME: &str = "foo::bar";
     const BAR: &str = r#"
         export.bar
@@ -280,11 +288,14 @@ fn re_exports() {
             push.1 push.2 add
         end"#;
 
-    let bar = Module::parse_str(BAR_NAME.parse().unwrap(), ModuleKind::Library, BAR).unwrap();
-    let baz = Module::parse_str(BAZ_NAME.parse().unwrap(), ModuleKind::Library, BAZ).unwrap();
-    let library = Assembler::default().assemble_library([bar, baz]).unwrap();
+    let context = TestContext::new();
+    let bar = context.parse_module_with_path(BAR_NAME.parse().unwrap(), BAR)?;
+    let baz = context.parse_module_with_path(BAZ_NAME.parse().unwrap(), BAZ)?;
+    let library = context.assemble_library([bar, baz]).unwrap();
 
-    let assembler = Assembler::default().with_compiled_library(&library).unwrap();
+    let assembler = Assembler::new(context.source_manager())
+        .with_compiled_library(&library)
+        .unwrap();
 
     let program = r#"
     use.foo::baz
@@ -297,4 +308,5 @@ fn re_exports() {
     end"#;
 
     assert_matches!(assembler.assemble_program(program), Ok(_));
+    Ok(())
 }

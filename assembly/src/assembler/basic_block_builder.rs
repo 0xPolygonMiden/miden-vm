@@ -88,15 +88,8 @@ impl BasicBlockBuilder {
         instruction: &Span<Instruction>,
         proc_ctx: &ProcedureContext,
     ) {
-        let location = proc_ctx.source_file().map(|source_file| {
-            let source_file = vm_core::SourceFile::new(source_file.name());
-            let span = instruction.span();
-            vm_core::SourceLocation {
-                source_file,
-                start: span.start().try_into().expect("invalid byte offset: value is > 2^32 bytes"),
-                end: span.end().try_into().expect("invalid byte offset: value is > 2^32 bytes"),
-            }
-        });
+        let span = instruction.span();
+        let location = proc_ctx.source_manager().location(span).ok();
         let context_name = proc_ctx.name().to_string();
         let num_cycles = 0;
         let op = instruction.to_string();

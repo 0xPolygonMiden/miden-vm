@@ -5,7 +5,7 @@ use assembly::{
     LibraryNamespace, Version,
 };
 use clap::Parser;
-use std::path::PathBuf;
+use std::{path::PathBuf, sync::Arc};
 
 #[derive(Debug, Clone, Parser)]
 #[clap(
@@ -25,6 +25,7 @@ pub struct BundleCmd {
 }
 
 impl BundleCmd {
+    #[allow(clippy::arc_with_non_send_sync)]
     pub fn execute(&self) -> Result<(), Report> {
         println!("============================================================");
         println!("Build library");
@@ -40,11 +41,12 @@ impl BundleCmd {
                 .into_owned(),
         };
 
+        let source_manager = Arc::new(assembly::SingleThreadedSourceManager::default());
         let library_namespace =
             namespace.parse::<LibraryNamespace>().expect("invalid base namespace");
         // TODO: Add version to `Library`
         let _version = self.version.parse::<Version>().expect("invalid cargo version");
-        let stdlib = CompiledLibrary::from_dir(&self.dir, library_namespace)?;
+        let stdlib = CompiledLibrary::from_dir(&self.dir, library_namespace, source_manager)?;
 
         // write the masl output
         let options = AstSerdeOptions::new(false, false);

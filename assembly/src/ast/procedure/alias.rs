@@ -1,11 +1,11 @@
-use alloc::{string::String, sync::Arc};
+use alloc::string::String;
 use core::fmt;
 
 use super::{ProcedureName, QualifiedProcedureName};
 use crate::{
     ast::{AstSerdeOptions, InvocationTarget},
-    diagnostics::SourceFile,
-    ByteReader, ByteWriter, DeserializationError, RpoDigest, SourceSpan, Span, Spanned,
+    diagnostics::{SourceSpan, Span, Spanned},
+    ByteReader, ByteWriter, DeserializationError, RpoDigest,
 };
 
 // PROCEDURE ALIAS
@@ -19,8 +19,6 @@ use crate::{
 /// the caller is in the current module, or in another module.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ProcedureAlias {
-    /// The source file in which this alias was defined, if available
-    source_file: Option<Arc<SourceFile>>,
     /// The documentation attached to this procedure
     docs: Option<Span<String>>,
     /// The name of this procedure
@@ -38,7 +36,6 @@ impl ProcedureAlias {
     pub fn new(name: ProcedureName, target: AliasTarget) -> Self {
         Self {
             docs: None,
-            source_file: None,
             name,
             target,
         }
@@ -48,17 +45,6 @@ impl ProcedureAlias {
     pub fn with_docs(mut self, docs: Option<Span<String>>) -> Self {
         self.docs = docs;
         self
-    }
-
-    /// Adds source code to this declaration, so that we can render source snippets in diagnostics.
-    pub fn with_source_file(mut self, source_file: Option<Arc<SourceFile>>) -> Self {
-        self.source_file = source_file;
-        self
-    }
-
-    /// Returns the source file associated with this declaration.
-    pub fn source_file(&self) -> Option<Arc<SourceFile>> {
-        self.source_file.clone()
     }
 
     /// Returns the documentation associated with this declaration.
@@ -119,7 +105,6 @@ impl ProcedureAlias {
         let name = ProcedureName::read_from_with_options(source, options)?;
         let target = AliasTarget::read_from_with_options(source, options)?;
         Ok(Self {
-            source_file: None,
             docs: None,
             name,
             target,
@@ -283,7 +268,7 @@ impl AliasTarget {
     pub fn write_into_with_options<W: ByteWriter>(&self, target: &mut W, options: AstSerdeOptions) {
         target.write_u8(self.tag());
         match self {
-            Self::MastRoot(spanned) => spanned.write_into(target, options),
+            Self::MastRoot(spanned) => spanned.write_into_with_options(target, options.debug_info),
             Self::ProcedurePath(path) => path.write_into_with_options(target, options),
             Self::AbsoluteProcedurePath(path) => path.write_into_with_options(target, options),
         }
@@ -296,7 +281,7 @@ impl AliasTarget {
     ) -> Result<Self, DeserializationError> {
         match source.read_u8()? {
             0 => {
-                let root = Span::<RpoDigest>::read_from(source, options)?;
+                let root = Span::<RpoDigest>::read_from_with_options(source, options.debug_info)?;
                 Ok(Self::MastRoot(root))
             }
             1 => {

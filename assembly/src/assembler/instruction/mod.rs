@@ -313,7 +313,7 @@ impl Assembler {
             Instruction::PushU32List(imms) => env_ops::push_many(imms, span_builder),
             Instruction::PushFeltList(imms) => env_ops::push_many(imms, span_builder),
             Instruction::Sdepth => span_builder.push_op(SDepth),
-            Instruction::Caller => env_ops::caller(span_builder, proc_ctx)?,
+            Instruction::Caller => env_ops::caller(span_builder, proc_ctx, instruction.span())?,
             Instruction::Clk => span_builder.push_op(Clk),
             Instruction::AdvPipe => span_builder.push_op(Pipe),
             Instruction::AdvPush(n) => adv_ops::adv_push(span_builder, n.expect_value())?,

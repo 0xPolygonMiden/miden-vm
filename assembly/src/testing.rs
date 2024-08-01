@@ -3,7 +3,7 @@ use crate::{
     ast::{Form, Module, ModuleKind},
     diagnostics::{
         reporting::{set_hook, ReportHandlerOpts},
-        Report, SourceFile,
+        Report, SourceFile, SourceManager,
     },
     library::CompiledLibrary,
     Compile, CompileOptions, LibraryPath, RpoDigest,
@@ -125,17 +125,11 @@ macro_rules! regex {
 /// the source file was constructed.
 #[macro_export]
 macro_rules! source_file {
-    ($source:literal) => {
-        ::alloc::sync::Arc::new($crate::diagnostics::SourceFile::new(
-            concat!("test", line!()),
-            $source.to_string(),
-        ))
+    ($context:expr, $source:literal) => {
+        $context.source_manager().load(concat!("test", line!()), $source.to_string())
     };
-    ($source:expr) => {
-        ::alloc::sync::Arc::new($crate::diagnostics::SourceFile::new(
-            concat!("test", line!()),
-            $source,
-        ))
+    ($context:expr, $source:expr) => {
+        $context.source_manager().load(concat!("test", line!()), $source.to_string())
     };
 }
 
@@ -178,6 +172,7 @@ macro_rules! assert_diagnostic_lines {
 ///
 /// Some of the assertion macros defined above require a [TestContext], so be aware of that.
 pub struct TestContext {
+    source_manager: Arc<dyn SourceManager>,
     assembler: Assembler,
 }
 
@@ -188,6 +183,7 @@ impl Default for TestContext {
 }
 
 impl TestContext {
+    #[allow(clippy::arc_with_non_send_sync)]
     pub fn new() -> Self {
         #[cfg(feature = "std")]
         {
@@ -202,9 +198,24 @@ impl TestContext {
         {
             let _ = set_hook(Box::new(|_| Box::new(ReportHandlerOpts::new().build())));
         }
+        let source_manager = Arc::new(crate::SingleThreadedSourceManager::default());
+        let assembler = Assembler::new(source_manager.clone())
+            .with_debug_mode(true)
+            .with_warnings_as_errors(true);
         Self {
-            assembler: Assembler::default().with_debug_mode(true).with_warnings_as_errors(true),
+            source_manager,
+            assembler,
         }
+    }
+
+    pub fn with_debug_info(mut self, yes: bool) -> Self {
+        self.assembler.set_debug_mode(yes);
+        self
+    }
+
+    #[inline(always)]
+    pub fn source_manager(&self) -> Arc<dyn SourceManager> {
+        self.source_manager.clone()
     }
 
     /// Parse the given source file into a vector of top-level [Form]s.
@@ -212,7 +223,7 @@ impl TestContext {
     /// This does not run semantic analysis, or construct a [Module] from the parsed
     /// forms, and is largely intended for low-level testing of the parser.
     #[track_caller]
-    pub fn parse_forms(&mut self, source: Arc<SourceFile>) -> Result<Vec<Form>, Report> {
+    pub fn parse_forms(&self, source: Arc<SourceFile>) -> Result<Vec<Form>, Report> {
         crate::parser::parse_forms(source.clone())
             .map_err(|err| Report::new(err).with_source_code(source))
     }
@@ -222,11 +233,14 @@ impl TestContext {
     /// This runs semantic analysis, and the returned module is guaranteed to be syntactically
     /// valid.
     #[track_caller]
-    pub fn parse_program(&mut self, source: impl Compile) -> Result<Box<Module>, Report> {
-        source.compile_with_options(CompileOptions {
-            warnings_as_errors: self.assembler.warnings_as_errors(),
-            ..Default::default()
-        })
+    pub fn parse_program(&self, source: impl Compile) -> Result<Box<Module>, Report> {
+        source.compile_with_options(
+            self.source_manager.as_ref(),
+            CompileOptions {
+                warnings_as_errors: self.assembler.warnings_as_errors(),
+                ..Default::default()
+            },
+        )
     }
 
     /// Parse the given source file into a kernel [Module].
@@ -235,11 +249,14 @@ impl TestContext {
     /// valid.
     #[allow(unused)]
     #[track_caller]
-    pub fn parse_kernel(&mut self, source: impl Compile) -> Result<Box<Module>, Report> {
-        source.compile_with_options(CompileOptions {
-            warnings_as_errors: self.assembler.warnings_as_errors(),
-            ..CompileOptions::for_kernel()
-        })
+    pub fn parse_kernel(&self, source: impl Compile) -> Result<Box<Module>, Report> {
+        source.compile_with_options(
+            self.source_manager.as_ref(),
+            CompileOptions {
+                warnings_as_errors: self.assembler.warnings_as_errors(),
+                ..CompileOptions::for_kernel()
+            },
+        )
     }
 
     /// Parse the given source file into an anonymous library [Module].
@@ -247,24 +264,30 @@ impl TestContext {
     /// This runs semantic analysis, and the returned module is guaranteed to be syntactically
     /// valid.
     #[track_caller]
-    pub fn parse_module(&mut self, source: impl Compile) -> Result<Box<Module>, Report> {
-        source.compile_with_options(CompileOptions {
-            warnings_as_errors: self.assembler.warnings_as_errors(),
-            ..CompileOptions::for_library()
-        })
+    pub fn parse_module(&self, source: impl Compile) -> Result<Box<Module>, Report> {
+        source.compile_with_options(
+            self.source_manager.as_ref(),
+            CompileOptions {
+                warnings_as_errors: self.assembler.warnings_as_errors(),
+                ..CompileOptions::for_library()
+            },
+        )
     }
 
     /// Parse the given source file into a library [Module] with the given fully-qualified path.
     #[track_caller]
     pub fn parse_module_with_path(
-        &mut self,
+        &self,
         path: LibraryPath,
         source: impl Compile,
     ) -> Result<Box<Module>, Report> {
-        source.compile_with_options(CompileOptions {
-            warnings_as_errors: self.assembler.warnings_as_errors(),
-            ..CompileOptions::new(ModuleKind::Library, path).unwrap()
-        })
+        source.compile_with_options(
+            self.source_manager.as_ref(),
+            CompileOptions {
+                warnings_as_errors: self.assembler.warnings_as_errors(),
+                ..CompileOptions::new(ModuleKind::Library, path).unwrap()
+            },
+        )
     }
 
     /// Add `module` to the [Assembler] constructed by this context, making it available to
@@ -305,15 +328,27 @@ impl TestContext {
     /// NOTE: Any modules added by, e.g. `add_module`, will be available to the executable
     /// module represented in `source`.
     #[track_caller]
-    pub fn assemble(&mut self, source: impl Compile) -> Result<Program, Report> {
+    pub fn assemble(&self, source: impl Compile) -> Result<Program, Report> {
         self.assembler.clone().assemble_program(source)
+    }
+
+    /// Compile a [CompiledLibrary] from `modules` using the [Assembler] constructed by this
+    /// context.
+    ///
+    /// NOTE: Any modules added by, e.g. `add_module`, will be available to the library
+    #[track_caller]
+    pub fn assemble_library(
+        &self,
+        modules: impl IntoIterator<Item = Box<Module>>,
+    ) -> Result<CompiledLibrary, Report> {
+        self.assembler.clone().assemble_library(modules)
     }
 
     /// Compile a module from `source`, with the fully-qualified name `path`, to MAST, returning
     /// the MAST roots of all the exported procedures of that module.
     #[track_caller]
     pub fn assemble_module(
-        &mut self,
+        &self,
         _path: LibraryPath,
         _module: impl Compile,
     ) -> Result<Vec<RpoDigest>, Report> {
