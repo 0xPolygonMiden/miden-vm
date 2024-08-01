@@ -1,3 +1,5 @@
+pub mod sync;
+
 use crate::Felt;
 use alloc::vec::Vec;
 use core::{
