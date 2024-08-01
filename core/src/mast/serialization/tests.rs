@@ -1,4 +1,4 @@
-use alloc::string::ToString;
+use alloc::{string::ToString, sync::Arc};
 use miden_crypto::{hash::rpo::RpoDigest, Felt};
 
 use super::*;
@@ -281,10 +281,10 @@ fn serialize_deserialize_all_nodes() {
             (
                 15,
                 Decorator::AsmOp(AssemblyOp::new(
-                    Some(crate::SourceLocation {
-                        source_file: crate::SourceFile::new("test"),
-                        start: 42,
-                        end: 43,
+                    Some(crate::debuginfo::Location {
+                        path: Arc::from("test"),
+                        start: 42.into(),
+                        end: 43.into(),
                     }),
                     "context".to_string(),
                     15,

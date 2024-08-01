@@ -7,7 +7,7 @@ pub use tracing;
 use alloc::{borrow::Cow, boxed::Box, sync::Arc, vec::Vec};
 use core::{fmt, ops::Range};
 
-pub type SourceFile = NamedSource<alloc::string::String>;
+pub use vm_core::debuginfo::SourceFile;
 
 // LABEL
 // ================================================================================================

@@ -5,7 +5,7 @@ mod advice;
 pub use advice::AdviceInjector;
 
 mod assembly_op;
-pub use assembly_op::{AssemblyOp, SourceFile, SourceLocation};
+pub use assembly_op::AssemblyOp;
 
 mod debug;
 pub use debug::DebugOptions;

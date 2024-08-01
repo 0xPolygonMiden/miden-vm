@@ -107,10 +107,10 @@ impl BasicBlockDataBuilder {
                 self.data.write_bool(loc.is_some());
                 if let Some(loc) = loc {
                     let str_index_in_table =
-                        self.string_table_builder.add_string(loc.source_file.as_ref());
+                        self.string_table_builder.add_string(loc.path.as_ref());
                     self.data.write_usize(str_index_in_table);
-                    self.data.write_u32(loc.start);
-                    self.data.write_u32(loc.end);
+                    self.data.write_u32(loc.start.to_u32());
+                    self.data.write_u32(loc.end.to_u32());
                 }
 
                 // context name

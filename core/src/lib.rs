@@ -50,6 +50,7 @@ assertion failed: `(left matches right)`
 }
 
 pub mod chiplets;
+pub mod debuginfo;
 pub mod errors;
 
 mod program;
@@ -117,7 +118,7 @@ pub mod prettier {
 mod operations;
 pub use operations::{
     opcode_constants::*, AdviceInjector, AssemblyOp, DebugOptions, Decorator, DecoratorIterator,
-    DecoratorList, Operation, SignatureKind, SourceFile, SourceLocation,
+    DecoratorList, Operation, SignatureKind,
 };
 
 pub mod stack;
