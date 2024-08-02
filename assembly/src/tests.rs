@@ -1536,28 +1536,7 @@ begin
     join
         join
             basic_block push(4) push(3) end
-            join
-                join
-                    join
-                        basic_block eqz end
-                        basic_block swap eqz and end
-                    end
-                    join
-                        basic_block swap eqz and end
-                        basic_block swap eqz and end
-                    end
-                end
-                join
-                    join
-                        basic_block swap eqz and end
-                        basic_block swap eqz and end
-                    end
-                    join
-                        basic_block swap eqz and end
-                        basic_block swap eqz and end
-                    end
-                end
-            end
+            external.0x20234ee941e53a15886e733cc8e041198c6e90d2a16ea18ce1030e8c3596dd38
         end
         call.0x20234ee941e53a15886e733cc8e041198c6e90d2a16ea18ce1030e8c3596dd38
     end
