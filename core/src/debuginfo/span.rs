@@ -13,7 +13,26 @@ pub trait Spanned {
     fn span(&self) -> SourceSpan;
 }
 
-impl<T: Spanned> Spanned for &T {
+impl Spanned for SourceSpan {
+    #[inline(always)]
+    fn span(&self) -> SourceSpan {
+        *self
+    }
+}
+
+impl<T: ?Sized + Spanned> Spanned for alloc::boxed::Box<T> {
+    fn span(&self) -> SourceSpan {
+        (**self).span()
+    }
+}
+
+impl<T: ?Sized + Spanned> Spanned for alloc::rc::Rc<T> {
+    fn span(&self) -> SourceSpan {
+        (**self).span()
+    }
+}
+
+impl<T: ?Sized + Spanned> Spanned for alloc::sync::Arc<T> {
     fn span(&self) -> SourceSpan {
         (**self).span()
     }
