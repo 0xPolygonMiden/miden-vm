@@ -15,6 +15,7 @@ use smallvec::{smallvec, SmallVec};
 
 use self::{analysis::MaybeRewriteCheck, name_resolver::NameResolver, rewrites::ModuleRewriter};
 use super::{GlobalProcedureIndex, ModuleIndex};
+use crate::ast::InvokeKind;
 use crate::{
     ast::{
         Export, FullyQualifiedProcedureName, InvocationTarget, Module, ProcedureIndex,
@@ -347,8 +348,25 @@ impl ModuleGraph {
                         // Ensure all entrypoints and exported symbols are represented in the call
                         // graph, even if they have no edges, we need them
                         // in the graph for the topological sort
-                        if matches!(procedure, Export::Procedure(_)) {
-                            self.callgraph.get_or_insert_node(global_id);
+                        self.callgraph.get_or_insert_node(global_id);
+                        match procedure {
+                            Export::Procedure(_) => (),
+                            Export::Alias(alias) => {
+                                let target = self
+                                    .resolve_target(
+                                        &CallerInfo {
+                                            span: alias.span(),
+                                            source_file: pending_module.source_file(),
+                                            module: module_id,
+                                            kind: InvokeKind::Exec,
+                                        },
+                                        &alias.target().clone().into(),
+                                    )
+                                    .expect("expected that alias target exists");
+                                if let Some(target_gid) = target.into_global_id() {
+                                    self.callgraph.add_edge(global_id, target_gid);
+                                }
+                            }
                         }
                     }
                 }

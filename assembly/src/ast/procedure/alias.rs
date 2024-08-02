@@ -3,8 +3,9 @@ use core::fmt;
 
 use super::{FullyQualifiedProcedureName, ProcedureName};
 use crate::{
-    ast::AstSerdeOptions, diagnostics::SourceFile, ByteReader, ByteWriter, DeserializationError,
-    RpoDigest, SourceSpan, Span, Spanned,
+    ast::{AstSerdeOptions, InvocationTarget},
+    diagnostics::SourceFile,
+    ByteReader, ByteWriter, DeserializationError, RpoDigest, SourceSpan, Span, Spanned,
 };
 
 // PROCEDURE ALIAS
@@ -152,6 +153,7 @@ impl crate::prettier::PrettyPrint for ProcedureAlias {
 
 /// A fully-qualified external procedure that is the target of a procedure alias
 #[derive(Debug, Clone, PartialEq, Eq)]
+#[repr(u8)]
 pub enum AliasTarget {
     /// An alias of a procedure with the given digest
     MastRoot(Span<RpoDigest>),
@@ -177,6 +179,18 @@ impl From<Span<RpoDigest>> for AliasTarget {
 impl From<FullyQualifiedProcedureName> for AliasTarget {
     fn from(path: FullyQualifiedProcedureName) -> Self {
         Self::Path(path)
+    }
+}
+
+impl From<AliasTarget> for InvocationTarget {
+    fn from(alias_target: AliasTarget) -> Self {
+        match alias_target {
+            AliasTarget::MastRoot(digest) => InvocationTarget::MastRoot(digest),
+            AliasTarget::Path(mut fqdn) => InvocationTarget::ProcedurePath {
+                name: fqdn.name,
+                module: fqdn.module.pop().unwrap(),
+            },
+        }
     }
 }
 
