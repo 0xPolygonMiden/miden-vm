@@ -589,6 +589,11 @@ impl SourceContent {
 #[derive(Default, Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct ByteIndex(u32);
 impl ByteIndex {
+    /// Create a [ByteIndex] from a raw `u32` index
+    pub const fn new(index: u32) -> Self {
+        Self(index)
+    }
+
     /// Get the raw index as a usize
     #[inline(always)]
     pub const fn to_usize(self) -> usize {

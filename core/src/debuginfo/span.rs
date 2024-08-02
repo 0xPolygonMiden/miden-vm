@@ -300,6 +300,13 @@ pub struct SourceSpan {
 pub struct InvalidByteIndexRange;
 
 impl SourceSpan {
+    /// A sentinel [SourceSpan] that indicates the span is unknown/invalid
+    pub const UNKNOWN: Self = Self {
+        source_id: SourceId::UNKNOWN,
+        start: ByteIndex::new(0),
+        end: ByteIndex::new(0),
+    };
+
     /// Creates a new [SourceSpan] from the given range.
     pub fn new<B>(source_id: SourceId, range: Range<B>) -> Self
     where
@@ -337,6 +344,11 @@ impl SourceSpan {
             start: ByteIndex::from(range.start as u32),
             end: ByteIndex::from(range.end as u32),
         })
+    }
+
+    /// Returns `true` if this [SourceSpan] represents the unknown span
+    pub const fn is_unknown(&self) -> bool {
+        self.source_id.is_unknown()
     }
 
     /// Get the [SourceId] associated with this source span
