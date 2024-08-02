@@ -20,6 +20,7 @@ pub struct MastForestBuilder {
     mast_forest: MastForest,
     node_id_by_hash: BTreeMap<RpoDigest, MastNodeId>,
     procedures: BTreeMap<GlobalProcedureIndex, Arc<Procedure>>,
+    procedure_hashes: BTreeMap<GlobalProcedureIndex, RpoDigest>,
     proc_gid_by_hash: BTreeMap<RpoDigest, GlobalProcedureIndex>,
 }
 
@@ -37,6 +38,13 @@ impl MastForestBuilder {
     #[inline(always)]
     pub fn get_procedure(&self, gid: GlobalProcedureIndex) -> Option<Arc<Procedure>> {
         self.procedures.get(&gid).cloned()
+    }
+
+    /// Returns the hash of the procedure with the specified [`GlobalProcedureIndex`], or None if
+    /// such a procedure is not present in this MAST forest builder.
+    #[inline(always)]
+    pub fn get_procedure_hash(&self, gid: GlobalProcedureIndex) -> Option<RpoDigest> {
+        self.procedure_hashes.get(&gid).cloned()
     }
 
     /// Returns a reference to the procedure with the specified MAST root, or None
@@ -61,6 +69,17 @@ impl MastForestBuilder {
 }
 
 impl MastForestBuilder {
+    pub fn insert_procedure_hash(
+        &mut self,
+        gid: GlobalProcedureIndex,
+        proc_hash: RpoDigest,
+    ) -> Result<(), AssemblyError> {
+        // TODO(plafer): Check if exists
+        self.procedure_hashes.insert(gid, proc_hash);
+
+        Ok(())
+    }
+
     /// Inserts a procedure into this MAST forest builder.
     ///
     /// If the procedure with the same ID already exists in this forest builder, this will have
@@ -109,12 +128,14 @@ impl MastForestBuilder {
             // different [GlobalProcedureIndex], so insert the cached procedure into the slot for
             // `id`, but skip inserting a record in the MAST root lookup table
             self.make_root(procedure.body_node_id());
+            self.insert_procedure_hash(gid, procedure.mast_root())?;
             self.procedures.insert(gid, Arc::new(procedure));
             return Ok(());
         }
 
         self.make_root(procedure.body_node_id());
         self.proc_gid_by_hash.insert(proc_root, gid);
+        self.insert_procedure_hash(gid, procedure.mast_root())?;
         self.procedures.insert(gid, Arc::new(procedure));
 
         Ok(())

@@ -1,11 +1,11 @@
 use crate::{
-    ast::{self, FullyQualifiedProcedureName, InvocationTarget, InvokeKind, ModuleKind},
+    ast::{self, Export, FullyQualifiedProcedureName, InvocationTarget, InvokeKind, ModuleKind},
     diagnostics::Report,
     library::{CompiledLibrary, KernelLibrary},
     sema::SemanticAnalysisError,
     AssemblyError, Compile, CompileOptions, LibraryNamespace, LibraryPath, RpoDigest, Spanned,
 };
-use alloc::{collections::BTreeMap, sync::Arc, vec::Vec};
+use alloc::{collections::BTreeMap, vec::Vec};
 use mast_forest_builder::MastForestBuilder;
 use module_graph::{ProcedureWrapper, WrappedModule};
 use vm_core::{mast::MastNodeId, Decorator, DecoratorList, Felt, Kernel, Operation, Program};
@@ -212,8 +212,12 @@ impl Assembler {
 
                 for (proc_idx, fqn) in ast_module.exported_procedures() {
                     let gid = module_idx + proc_idx;
-                    let procedure = self.compile_subgraph(gid, false, &mut mast_forest_builder)?;
-                    exports.insert(fqn, procedure.mast_root());
+                    self.compile_subgraph(gid, &mut mast_forest_builder)?;
+
+                    let proc_hash = mast_forest_builder
+                        .get_procedure_hash(gid)
+                        .expect("compilation succeeded but root not found in cache");
+                    exports.insert(fqn, proc_hash);
                 }
             }
 
@@ -250,8 +254,12 @@ impl Assembler {
             .exported_procedures()
             .map(|(proc_idx, fqn)| {
                 let gid = module_idx + proc_idx;
-                let procedure = self.compile_subgraph(gid, false, &mut mast_forest_builder)?;
-                Ok((fqn, procedure.mast_root()))
+                self.compile_subgraph(gid, &mut mast_forest_builder)?;
+
+                let proc_hash = mast_forest_builder
+                    .get_procedure_hash(gid)
+                    .expect("compilation succeeded but root not found in cache");
+                Ok((fqn, proc_hash))
             })
             .collect::<Result<BTreeMap<FullyQualifiedProcedureName, RpoDigest>, Report>>()?;
 
@@ -293,7 +301,10 @@ impl Assembler {
 
         // Compile the module graph rooted at the entrypoint
         let mut mast_forest_builder = MastForestBuilder::default();
-        let entry_procedure = self.compile_subgraph(entrypoint, true, &mut mast_forest_builder)?;
+        self.compile_subgraph(entrypoint, &mut mast_forest_builder)?;
+        let entry_procedure = mast_forest_builder
+            .get_procedure(entrypoint)
+            .expect("compilation succeeded but root not found in cache");
 
         Ok(Program::with_kernel(
             mast_forest_builder.build(),
@@ -309,9 +320,8 @@ impl Assembler {
     fn compile_subgraph(
         &mut self,
         root: GlobalProcedureIndex,
-        is_entrypoint: bool,
         mast_forest_builder: &mut MastForestBuilder,
-    ) -> Result<Arc<Procedure>, Report> {
+    ) -> Result<(), Report> {
         let mut worklist: Vec<GlobalProcedureIndex> = self
             .module_graph
             .topological_sort_from_root(root)
@@ -331,34 +341,23 @@ impl Assembler {
 
         assert!(!worklist.is_empty());
 
-        let compiled = if is_entrypoint {
-            self.process_graph_worklist(&mut worklist, Some(root), mast_forest_builder)?
-        } else {
-            let _ = self.process_graph_worklist(&mut worklist, None, mast_forest_builder)?;
-            mast_forest_builder.get_procedure(root)
-        };
-
-        Ok(compiled.expect("compilation succeeded but root not found in cache"))
+        self.process_graph_worklist(&mut worklist, mast_forest_builder)
     }
 
     /// Compiles all procedures in the `worklist`.
     fn process_graph_worklist(
         &mut self,
         worklist: &mut Vec<GlobalProcedureIndex>,
-        entrypoint: Option<GlobalProcedureIndex>,
         mast_forest_builder: &mut MastForestBuilder,
-    ) -> Result<Option<Arc<Procedure>>, Report> {
+    ) -> Result<(), Report> {
         // Process the topological ordering in reverse order (bottom-up), so that
         // each procedure is compiled with all of its dependencies fully compiled
-        let mut compiled_entrypoint = None;
         while let Some(procedure_gid) = worklist.pop() {
             // If we have already compiled this procedure, do not recompile
             if let Some(proc) = mast_forest_builder.get_procedure(procedure_gid) {
                 self.module_graph.register_mast_root(procedure_gid, proc.mast_root())?;
                 continue;
             }
-            let is_entry = entrypoint == Some(procedure_gid);
-
             // Fetch procedure metadata from the graph
             let module = match &self.module_graph[procedure_gid.module] {
                 WrappedModule::Ast(ast_module) => ast_module,
@@ -366,33 +365,54 @@ impl Assembler {
                 // compile.
                 WrappedModule::Info(_) => continue,
             };
-            let ast = &module[procedure_gid.index];
-            let num_locals = ast.num_locals();
-            let name = FullyQualifiedProcedureName {
-                span: ast.span(),
-                module: module.path().clone(),
-                name: ast.name().clone(),
-            };
-            let pctx = ProcedureContext::new(procedure_gid, name, ast.visibility())
-                .with_num_locals(num_locals as u16)
-                .with_span(ast.span())
-                .with_source_file(ast.source_file());
+            let export = &module[procedure_gid.index];
+            match export {
+                Export::Procedure(proc) => {
+                    let num_locals = proc.num_locals();
+                    let name = FullyQualifiedProcedureName {
+                        span: proc.span(),
+                        module: module.path().clone(),
+                        name: proc.name().clone(),
+                    };
+                    let pctx = ProcedureContext::new(procedure_gid, name, proc.visibility())
+                        .with_num_locals(num_locals)
+                        .with_span(proc.span())
+                        .with_source_file(proc.source_file());
 
-            // Compile this procedure
-            let procedure = self.compile_procedure(pctx, mast_forest_builder)?;
+                    // Compile this procedure
+                    let procedure = self.compile_procedure(pctx, mast_forest_builder)?;
 
-            // Cache the compiled procedure, unless it's the program entrypoint
-            if is_entry {
-                mast_forest_builder.make_root(procedure.body_node_id());
-                compiled_entrypoint = Some(Arc::from(procedure));
-            } else {
-                // Make the MAST root available to all dependents
-                self.module_graph.register_mast_root(procedure_gid, procedure.mast_root())?;
-                mast_forest_builder.insert_procedure(procedure_gid, procedure)?;
+                    // Cache the compiled procedure.
+                    self.module_graph.register_mast_root(procedure_gid, procedure.mast_root())?;
+                    mast_forest_builder.insert_procedure(procedure_gid, procedure)?;
+                }
+                Export::Alias(proc_alias) => {
+                    let name = FullyQualifiedProcedureName {
+                        span: proc_alias.span(),
+                        module: module.path().clone(),
+                        name: proc_alias.name().clone(),
+                    };
+                    let pctx = ProcedureContext::new(procedure_gid, name, ast::Visibility::Public)
+                        .with_span(proc_alias.span())
+                        .with_source_file(proc_alias.source_file());
+
+                    let proc_alias_root = self.resolve_target(
+                        InvokeKind::Exec,
+                        &InvocationTarget::AbsoluteProcedurePath {
+                            name: proc_alias.name().clone(),
+                            path: module.path().clone(),
+                        },
+                        &pctx,
+                        mast_forest_builder,
+                    )?;
+                    // Make the MAST root available to all dependents
+                    self.module_graph.register_mast_root(procedure_gid, proc_alias_root)?;
+                    mast_forest_builder.insert_procedure_hash(procedure_gid, proc_alias_root)?;
+                }
             }
         }
 
-        Ok(compiled_entrypoint)
+        Ok(())
     }
 
     /// Compiles a single Miden Assembly procedure to its MAST representation.
@@ -541,8 +561,8 @@ impl Assembler {
         match resolved {
             ResolvedTarget::Phantom(digest) => Ok(digest),
             ResolvedTarget::Exact { gid } | ResolvedTarget::Resolved { gid, .. } => {
-                match mast_forest_builder.get_procedure(gid) {
-                    Some(p) => Ok(p.mast_root()),
+                match mast_forest_builder.get_procedure_hash(gid) {
+                    Some(proc_hash) => Ok(proc_hash),
                     None => match self.module_graph.get_procedure_unsafe(gid) {
                         ProcedureWrapper::Info(p) => Ok(p.digest),
                         ProcedureWrapper::Ast(_) => panic!("Did not find procedure {gid:?} neither in module graph nor procedure cache"),

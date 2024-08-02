@@ -261,3 +261,40 @@ fn explicit_fully_qualified_procedure_references() {
 
     assert_matches!(assembler.assemble_program(program), Ok(_));
 }
+
+#[test]
+fn re_exports() {
+    const BAR_NAME: &str = "foo::bar";
+    const BAR: &str = r#"
+        export.bar
+            add
+        end"#;
+
+    const BAZ_NAME: &str = "foo::baz";
+    const BAZ: &str = r#"
+        use.foo::bar
+
+        export.bar::bar
+
+        export.baz
+            push.1 push.2 add
+        end"#;
+
+    let bar = Module::parse_str(BAR_NAME.parse().unwrap(), ModuleKind::Library, BAR).unwrap();
+    let baz = Module::parse_str(BAZ_NAME.parse().unwrap(), ModuleKind::Library, BAZ).unwrap();
+    let library = Assembler::default().assemble_library(vec![bar, baz].into_iter()).unwrap();
+
+    let assembler = Assembler::default().with_compiled_library(library).unwrap();
+
+    let program = r#"
+    use.foo::baz
+
+    begin
+        push.1 push.2
+        exec.baz::baz
+        push.3 push.4
+        exec.baz::bar
+    end"#;
+
+    assert_matches!(assembler.assemble_program(program), Ok(_));
+}
