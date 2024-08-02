@@ -2,7 +2,7 @@ use alloc::{collections::BTreeSet, sync::Arc};
 
 use super::GlobalProcedureIndex;
 use crate::{
-    ast::{FullyQualifiedProcedureName, ProcedureName, Visibility},
+    ast::{ProcedureName, QualifiedProcedureName, Visibility},
     diagnostics::SourceFile,
     AssemblyError, LibraryPath, RpoDigest, SourceSpan, Spanned,
 };
@@ -18,7 +18,7 @@ pub struct ProcedureContext {
     gid: GlobalProcedureIndex,
     span: SourceSpan,
     source_file: Option<Arc<SourceFile>>,
-    name: FullyQualifiedProcedureName,
+    name: QualifiedProcedureName,
     visibility: Visibility,
     num_locals: u16,
     callset: CallSet,
@@ -29,7 +29,7 @@ pub struct ProcedureContext {
 impl ProcedureContext {
     pub fn new(
         gid: GlobalProcedureIndex,
-        name: FullyQualifiedProcedureName,
+        name: QualifiedProcedureName,
         visibility: Visibility,
     ) -> Self {
         Self {
@@ -66,7 +66,7 @@ impl ProcedureContext {
         self.gid
     }
 
-    pub fn name(&self) -> &FullyQualifiedProcedureName {
+    pub fn name(&self) -> &QualifiedProcedureName {
         &self.name
     }
 
@@ -163,7 +163,7 @@ impl Spanned for ProcedureContext {
 pub struct Procedure {
     span: SourceSpan,
     source_file: Option<Arc<SourceFile>>,
-    path: FullyQualifiedProcedureName,
+    path: QualifiedProcedureName,
     visibility: Visibility,
     num_locals: u32,
     /// The MAST root of the procedure.
@@ -178,7 +178,7 @@ pub struct Procedure {
 /// Constructors
 impl Procedure {
     fn new(
-        path: FullyQualifiedProcedureName,
+        path: QualifiedProcedureName,
         visibility: Visibility,
         num_locals: u32,
         mast_root: RpoDigest,
@@ -222,7 +222,7 @@ impl Procedure {
     }
 
     /// Returns a reference to the fully-qualified name of this procedure
-    pub fn fully_qualified_name(&self) -> &FullyQualifiedProcedureName {
+    pub fn fully_qualified_name(&self) -> &QualifiedProcedureName {
         &self.path
     }
 

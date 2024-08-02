@@ -1,5 +1,5 @@
 use crate::{
-    ast::{self, Export, FullyQualifiedProcedureName, InvocationTarget, InvokeKind, ModuleKind},
+    ast::{self, Export, InvocationTarget, InvokeKind, ModuleKind, QualifiedProcedureName},
     diagnostics::Report,
     library::{CompiledLibrary, KernelLibrary},
     sema::SemanticAnalysisError,
@@ -261,7 +261,7 @@ impl Assembler {
                     .expect("compilation succeeded but root not found in cache");
                 Ok((fqn, proc_hash))
             })
-            .collect::<Result<BTreeMap<FullyQualifiedProcedureName, RpoDigest>, Report>>()?;
+            .collect::<Result<BTreeMap<QualifiedProcedureName, RpoDigest>, Report>>()?;
 
         let library = CompiledLibrary::new(mast_forest_builder.build(), exports)?;
         Ok(library.try_into()?)
@@ -369,7 +369,7 @@ impl Assembler {
             match export {
                 Export::Procedure(proc) => {
                     let num_locals = proc.num_locals();
-                    let name = FullyQualifiedProcedureName {
+                    let name = QualifiedProcedureName {
                         span: proc.span(),
                         module: module.path().clone(),
                         name: proc.name().clone(),
@@ -387,7 +387,7 @@ impl Assembler {
                     mast_forest_builder.insert_procedure(procedure_gid, procedure)?;
                 }
                 Export::Alias(proc_alias) => {
-                    let name = FullyQualifiedProcedureName {
+                    let name = QualifiedProcedureName {
                         span: proc_alias.span(),
                         module: module.path().clone(),
                         name: proc_alias.name().clone(),
@@ -397,11 +397,8 @@ impl Assembler {
                         .with_source_file(proc_alias.source_file());
 
                     let proc_alias_root = self.resolve_target(
-                        InvokeKind::Exec,
-                        &InvocationTarget::AbsoluteProcedurePath {
-                            name: proc_alias.name().clone(),
-                            path: module.path().clone(),
-                        },
+                        InvokeKind::ProcRef,
+                        &proc_alias.target().into(),
                         &pctx,
                         mast_forest_builder,
                     )?;

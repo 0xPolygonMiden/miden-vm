@@ -7,7 +7,7 @@ use alloc::{
 use core::fmt;
 
 use super::{
-    Export, FullyQualifiedProcedureName, Import, LocalNameResolver, ProcedureIndex, ProcedureName,
+    Export, Import, LocalNameResolver, ProcedureIndex, ProcedureName, QualifiedProcedureName,
     ResolvedProcedure,
 };
 use crate::{
@@ -374,7 +374,7 @@ impl Module {
     /// name.
     pub fn exported_procedures(
         &self,
-    ) -> impl Iterator<Item = (ProcedureIndex, FullyQualifiedProcedureName)> + '_ {
+    ) -> impl Iterator<Item = (ProcedureIndex, QualifiedProcedureName)> + '_ {
         self.procedures.iter().enumerate().filter_map(|(proc_idx, p)| {
             // skip un-exported procedures
             if !p.visibility().is_exported() {
@@ -382,7 +382,7 @@ impl Module {
             }
 
             let proc_idx = ProcedureIndex::new(proc_idx);
-            let fqn = FullyQualifiedProcedureName::new(self.path().clone(), p.name().clone());
+            let fqn = QualifiedProcedureName::new(self.path().clone(), p.name().clone());
 
             Some((proc_idx, fqn))
         })
@@ -444,7 +444,9 @@ impl Module {
             }
             Export::Alias(ref alias) => match alias.target() {
                 AliasTarget::MastRoot(digest) => Some(ResolvedProcedure::MastRoot(**digest)),
-                AliasTarget::Path(path) => Some(ResolvedProcedure::External(path.clone())),
+                AliasTarget::ProcedurePath(path) | AliasTarget::AbsoluteProcedurePath(path) => {
+                    Some(ResolvedProcedure::External(path.clone()))
+                }
             },
         }
     }
@@ -457,9 +459,11 @@ impl Module {
                 ResolvedProcedure::Local(Span::new(p.name().span(), ProcedureIndex::new(i))),
             ),
             Export::Alias(ref p) => {
-                let target = match p.target {
-                    AliasTarget::MastRoot(ref digest) => ResolvedProcedure::MastRoot(**digest),
-                    AliasTarget::Path(ref path) => ResolvedProcedure::External(path.clone()),
+                let target = match p.target() {
+                    AliasTarget::MastRoot(digest) => ResolvedProcedure::MastRoot(**digest),
+                    AliasTarget::ProcedurePath(path) | AliasTarget::AbsoluteProcedurePath(path) => {
+                        ResolvedProcedure::External(path.clone())
+                    }
                 };
                 (p.name().clone(), target)
             }

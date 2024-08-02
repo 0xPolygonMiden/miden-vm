@@ -64,6 +64,18 @@ impl LibraryNamespace {
         source.as_ref().parse()
     }
 
+    /// Construct a new [LibraryNamespace] from a previously-validated [Ident].
+    ///
+    /// NOTE: The caller must ensure that the given identifier is a valid namespace name.
+    pub fn from_ident_unchecked(name: Ident) -> Self {
+        match name.as_str() {
+            Self::KERNEL_PATH => Self::Kernel,
+            Self::EXEC_PATH => Self::Exec,
+            Self::ANON_PATH => Self::Anon,
+            _ => Self::User(name.into_inner()),
+        }
+    }
+
     /// Parse a [LibraryNamespace] by taking the prefix of the given path string, and returning
     /// the namespace and remaining string if successful.
     pub fn strip_path_prefix(path: &str) -> Result<(Self, &str), LibraryNamespaceError> {

@@ -12,13 +12,16 @@ use crate::{
     Serializable, SourceSpan, Span, Spanned,
 };
 
-// FULLY QUALIFIED PROCEDURE NAME
+// QUALIFIED PROCEDURE NAME
 // ================================================================================================
 
-/// Represents a fully-qualified procedure name, e.g. `std::math::u64::add`, parsed into it's
+/// Represents a qualified procedure name, e.g. `std::math::u64::add`, parsed into it's
 /// constituent [LibraryPath] and [ProcedureName] components.
+///
+/// A qualified procedure name can be context-sensitive, i.e. the module path might refer
+/// to an imported
 #[derive(Clone)]
-pub struct FullyQualifiedProcedureName {
+pub struct QualifiedProcedureName {
     /// The source span associated with this identifier.
     pub span: SourceSpan,
     /// The module path for this procedure.
@@ -27,7 +30,7 @@ pub struct FullyQualifiedProcedureName {
     pub name: ProcedureName,
 }
 
-impl FullyQualifiedProcedureName {
+impl QualifiedProcedureName {
     /// Create a new [FullyQualifiedProcedureName] with the given fully-qualified module path
     /// and procedure name.
     pub fn new(module: LibraryPath, name: ProcedureName) -> Self {
@@ -44,7 +47,7 @@ impl FullyQualifiedProcedureName {
     }
 }
 
-impl FromStr for FullyQualifiedProcedureName {
+impl FromStr for QualifiedProcedureName {
     type Err = Report;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
@@ -59,39 +62,39 @@ impl FromStr for FullyQualifiedProcedureName {
     }
 }
 
-impl Eq for FullyQualifiedProcedureName {}
+impl Eq for QualifiedProcedureName {}
 
-impl PartialEq for FullyQualifiedProcedureName {
+impl PartialEq for QualifiedProcedureName {
     fn eq(&self, other: &Self) -> bool {
         self.name == other.name && self.module == other.module
     }
 }
 
-impl Ord for FullyQualifiedProcedureName {
+impl Ord for QualifiedProcedureName {
     fn cmp(&self, other: &Self) -> core::cmp::Ordering {
         self.module.cmp(&other.module).then_with(|| self.name.cmp(&other.name))
     }
 }
 
-impl PartialOrd for FullyQualifiedProcedureName {
+impl PartialOrd for QualifiedProcedureName {
     fn partial_cmp(&self, other: &Self) -> Option<core::cmp::Ordering> {
         Some(self.cmp(other))
     }
 }
 
-impl From<FullyQualifiedProcedureName> for miette::SourceSpan {
-    fn from(fqn: FullyQualifiedProcedureName) -> Self {
+impl From<QualifiedProcedureName> for miette::SourceSpan {
+    fn from(fqn: QualifiedProcedureName) -> Self {
         fqn.span.into()
     }
 }
 
-impl Spanned for FullyQualifiedProcedureName {
+impl Spanned for QualifiedProcedureName {
     fn span(&self) -> SourceSpan {
         self.span
     }
 }
 
-impl fmt::Debug for FullyQualifiedProcedureName {
+impl fmt::Debug for QualifiedProcedureName {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         f.debug_struct("FullyQualifiedProcedureName")
             .field("module", &self.module)
@@ -100,14 +103,14 @@ impl fmt::Debug for FullyQualifiedProcedureName {
     }
 }
 
-impl fmt::Display for FullyQualifiedProcedureName {
+impl fmt::Display for QualifiedProcedureName {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "{}::{}", &self.module, &self.name)
     }
 }
 
 /// Serialization
-impl FullyQualifiedProcedureName {
+impl QualifiedProcedureName {
     /// Serialize to `target` using `options`
     pub fn write_into_with_options<W: ByteWriter>(&self, target: &mut W, options: AstSerdeOptions) {
         if options.debug_info {

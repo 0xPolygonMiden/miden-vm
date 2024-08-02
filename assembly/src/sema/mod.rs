@@ -7,7 +7,7 @@ pub use self::errors::{SemanticAnalysisError, SyntaxError};
 
 use self::passes::{ConstEvalVisitor, VerifyInvokeTargets};
 
-use crate::{ast::*, diagnostics::SourceFile, LibraryNamespace, LibraryPath, Span, Spanned};
+use crate::{ast::*, diagnostics::SourceFile, LibraryPath, Spanned};
 use alloc::collections::BTreeSet;
 use alloc::{boxed::Box, collections::VecDeque, sync::Arc, vec::Vec};
 
@@ -179,16 +179,11 @@ fn visit_procedures(
                 // to its fully-qualified path. This is needed because after
                 // parsing, the path only contains the last component,
                 // e.g. `u64` of `std::math::u64`.
-                let is_absolute = alias.absolute();
-                let target = &mut alias.target;
+                let is_absolute = alias.is_absolute();
                 if !is_absolute {
-                    if let AliasTarget::Path(ref mut target) = target {
-                        let imported_module = match target.module.namespace() {
-                            LibraryNamespace::User(ref ns) => {
-                                Ident::new_unchecked(Span::new(target.span(), ns.clone()))
-                            }
-                            _ => unreachable!(),
-                        };
+                    if let AliasTarget::ProcedurePath(ref mut target) = alias.target_mut() {
+                        let imported_module =
+                            target.module.namespace().to_ident().with_span(target.span);
                         if let Some(import) = module.resolve_import_mut(&imported_module) {
                             target.module = import.path.clone();
                             // Mark the backing import as used

@@ -2,7 +2,7 @@ use alloc::{string::String, vec::Vec};
 use vm_core::errors::KernelError;
 
 use crate::{
-    ast::FullyQualifiedProcedureName,
+    ast::QualifiedProcedureName,
     diagnostics::Diagnostic,
     library::{LibraryNamespaceError, VersionError},
     DeserializationError, LibraryNamespace, LibraryPath, PathError,
@@ -72,12 +72,12 @@ pub enum CompiledLibraryError {
     InconsistentNamespaces { namespaces: Vec<LibraryNamespace> },
     #[error("invalid export in kernel library: {procedure_path}")]
     InvalidKernelExport {
-        procedure_path: FullyQualifiedProcedureName,
+        procedure_path: QualifiedProcedureName,
     },
     #[error(transparent)]
     Kernel(#[from] KernelError),
     #[error("no MAST roots for the following exports: {missing_exports:?}")]
     MissingExports {
-        missing_exports: Vec<FullyQualifiedProcedureName>,
+        missing_exports: Vec<QualifiedProcedureName>,
     },
 }

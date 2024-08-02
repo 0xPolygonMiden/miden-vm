@@ -1,7 +1,7 @@
 use alloc::{string::String, sync::Arc};
 use core::fmt;
 
-use super::{FullyQualifiedProcedureName, ProcedureName};
+use super::{ProcedureName, QualifiedProcedureName};
 use crate::{
     ast::{AstSerdeOptions, InvocationTarget},
     diagnostics::SourceFile,
@@ -23,29 +23,24 @@ pub struct ProcedureAlias {
     source_file: Option<Arc<SourceFile>>,
     /// The documentation attached to this procedure
     docs: Option<Span<String>>,
-    /// The name of the re-exported procedure.
+    /// The name of this procedure
     name: ProcedureName,
-    /// The fully-qualified name of the imported procedure
+    /// The underlying procedure being aliased.
     ///
-    /// NOTE: This is fully-qualified from the perspective of the containing [Module], but may not
-    /// be fully-resolved to the concrete definition until compilation time.
-    pub(crate) target: AliasTarget,
-    /// If true, this alias was created with an absolute path, bypassing the need for an import
-    absolute: bool,
+    /// Alias targets are context-sensitive, depending on how they were defined and what stage of
+    /// compilation we're in. See [AliasTarget] for semantics of each target type, but they closely
+    /// correspond to [InvocationTarget].
+    target: AliasTarget,
 }
 
 impl ProcedureAlias {
     /// Creates a new procedure alias called `name`, which resolves to `target`.
-    pub fn new(name: ProcedureName, target: impl Into<AliasTarget>, absolute: bool) -> Self {
-        let target = target.into();
-        // Ignore the absolute flag if the target is implicitly absolute
-        let absolute = matches!(target, AliasTarget::MastRoot(_)) || absolute;
+    pub fn new(name: ProcedureName, target: AliasTarget) -> Self {
         Self {
             docs: None,
             source_file: None,
             name,
             target,
-            absolute,
         }
     }
 
@@ -75,19 +70,38 @@ impl ProcedureAlias {
     ///
     /// If the procedure is simply re-exported with the same name, this will be equivalent to
     /// `self.target().name`
+    #[inline]
     pub fn name(&self) -> &ProcedureName {
         &self.name
     }
 
     /// Returns the target of this procedure alias
+    #[inline]
     pub fn target(&self) -> &AliasTarget {
         &self.target
     }
 
+    /// Returns a mutable reference to the target of this procedure alias
+    #[inline]
+    pub fn target_mut(&mut self) -> &mut AliasTarget {
+        &mut self.target
+    }
+
     /// Returns true if this procedure uses an absolute target path
     #[inline]
-    pub fn absolute(&self) -> bool {
-        self.absolute
+    pub fn is_absolute(&self) -> bool {
+        matches!(self.target, AliasTarget::MastRoot(_) | AliasTarget::AbsoluteProcedurePath(_))
+    }
+
+    /// Returns true if this alias uses a different name than the target procedure
+    #[inline]
+    pub fn is_renamed(&self) -> bool {
+        match self.target() {
+            AliasTarget::MastRoot(_) => true,
+            AliasTarget::ProcedurePath(fqn) | AliasTarget::AbsoluteProcedurePath(fqn) => {
+                fqn.name != self.name
+            }
+        }
     }
 }
 
@@ -96,7 +110,6 @@ impl ProcedureAlias {
     pub fn write_into_with_options<W: ByteWriter>(&self, target: &mut W, options: AstSerdeOptions) {
         self.name.write_into_with_options(target, options);
         self.target.write_into_with_options(target, options);
-        target.write_bool(self.absolute);
     }
 
     pub fn read_from_with_options<R: ByteReader>(
@@ -105,13 +118,11 @@ impl ProcedureAlias {
     ) -> Result<Self, DeserializationError> {
         let name = ProcedureName::read_from_with_options(source, options)?;
         let target = AliasTarget::read_from_with_options(source, options)?;
-        let absolute = source.read_bool()?;
         Ok(Self {
             source_file: None,
             docs: None,
             name,
             target,
-            absolute,
         })
     }
 }
@@ -138,12 +149,12 @@ impl crate::prettier::PrettyPrint for ProcedureAlias {
         doc += const_text("export.");
         doc += match &self.target {
             target @ AliasTarget::MastRoot(_) => display(format_args!("{}->{}", target, self.name)),
-            AliasTarget::Path(name) => {
-                let prefix = if self.absolute { "::" } else { "" };
-                if name.name == self.name {
-                    display(format_args!("{}{}", prefix, name))
+            target => {
+                let prefix = if self.is_absolute() { "::" } else { "" };
+                if self.is_renamed() {
+                    display(format_args!("{}{}->{}", prefix, target, &self.name))
                 } else {
-                    display(format_args!("{}{}->{}", prefix, name, &self.name))
+                    display(format_args!("{}{}", prefix, target))
                 }
             }
         };
@@ -155,17 +166,25 @@ impl crate::prettier::PrettyPrint for ProcedureAlias {
 #[derive(Debug, Clone, PartialEq, Eq)]
 #[repr(u8)]
 pub enum AliasTarget {
-    /// An alias of a procedure with the given digest
+    /// An alias of the procedure whose root is the given digest
+    ///
+    /// Corresponds to [`InvocationTarget::MastRoot`]
     MastRoot(Span<RpoDigest>),
-    /// An alias of a procedure with the given fully-qualified path
-    Path(FullyQualifiedProcedureName),
+    /// An alias of `name`, imported from `module`
+    ///
+    /// Corresponds to [`InvocationTarget::ProcedurePath`]
+    ProcedurePath(QualifiedProcedureName),
+    /// An alias of a procedure with the given absolute, fully-qualified path
+    ///
+    /// Corresponds to [InvocationTarget::AbsoluteProcedurePath]
+    AbsoluteProcedurePath(QualifiedProcedureName),
 }
 
 impl Spanned for AliasTarget {
     fn span(&self) -> SourceSpan {
         match self {
             Self::MastRoot(spanned) => spanned.span(),
-            Self::Path(spanned) => spanned.span(),
+            Self::ProcedurePath(spanned) | Self::AbsoluteProcedurePath(spanned) => spanned.span(),
         }
     }
 }
@@ -176,19 +195,54 @@ impl From<Span<RpoDigest>> for AliasTarget {
     }
 }
 
-impl From<FullyQualifiedProcedureName> for AliasTarget {
-    fn from(path: FullyQualifiedProcedureName) -> Self {
-        Self::Path(path)
+impl TryFrom<InvocationTarget> for AliasTarget {
+    type Error = InvocationTarget;
+
+    fn try_from(target: InvocationTarget) -> Result<Self, Self::Error> {
+        let span = target.span();
+        match target {
+            InvocationTarget::MastRoot(digest) => Ok(Self::MastRoot(digest)),
+            InvocationTarget::ProcedurePath { name, module } => {
+                let ns = crate::LibraryNamespace::from_ident_unchecked(module);
+                let module = crate::LibraryPath::new_from_components(ns, []);
+                Ok(Self::ProcedurePath(QualifiedProcedureName { span, module, name }))
+            }
+            InvocationTarget::AbsoluteProcedurePath { name, path: module } => {
+                Ok(Self::AbsoluteProcedurePath(QualifiedProcedureName { span, module, name }))
+            }
+            target @ InvocationTarget::ProcedureName(_) => Err(target),
+        }
     }
 }
 
+impl From<&AliasTarget> for InvocationTarget {
+    fn from(target: &AliasTarget) -> Self {
+        match target {
+            AliasTarget::MastRoot(digest) => Self::MastRoot(*digest),
+            AliasTarget::ProcedurePath(ref fqn) => {
+                let name = fqn.name.clone();
+                let module = fqn.module.last_component().to_ident();
+                Self::ProcedurePath { name, module }
+            }
+            AliasTarget::AbsoluteProcedurePath(ref fqn) => Self::AbsoluteProcedurePath {
+                name: fqn.name.clone(),
+                path: fqn.module.clone(),
+            },
+        }
+    }
+}
 impl From<AliasTarget> for InvocationTarget {
-    fn from(alias_target: AliasTarget) -> Self {
-        match alias_target {
-            AliasTarget::MastRoot(digest) => InvocationTarget::MastRoot(digest),
-            AliasTarget::Path(mut fqdn) => InvocationTarget::ProcedurePath {
-                name: fqdn.name,
-                module: fqdn.module.pop().unwrap(),
+    fn from(target: AliasTarget) -> Self {
+        match target {
+            AliasTarget::MastRoot(digest) => Self::MastRoot(digest),
+            AliasTarget::ProcedurePath(fqn) => {
+                let name = fqn.name;
+                let module = fqn.module.last_component().to_ident();
+                Self::ProcedurePath { name, module }
+            }
+            AliasTarget::AbsoluteProcedurePath(fqn) => Self::AbsoluteProcedurePath {
+                name: fqn.name,
+                path: fqn.module,
             },
         }
     }
@@ -201,7 +255,8 @@ impl crate::prettier::PrettyPrint for AliasTarget {
 
         match self {
             Self::MastRoot(digest) => display(DisplayHex(digest.as_bytes().as_slice())),
-            Self::Path(path) => display(format_args!("{}", path)),
+            Self::ProcedurePath(fqn) => display(fqn),
+            Self::AbsoluteProcedurePath(fqn) => display(format_args!("::{}", fqn)),
         }
     }
 }
@@ -229,7 +284,8 @@ impl AliasTarget {
         target.write_u8(self.tag());
         match self {
             Self::MastRoot(spanned) => spanned.write_into(target, options),
-            Self::Path(path) => path.write_into_with_options(target, options),
+            Self::ProcedurePath(path) => path.write_into_with_options(target, options),
+            Self::AbsoluteProcedurePath(path) => path.write_into_with_options(target, options),
         }
     }
 
@@ -244,8 +300,12 @@ impl AliasTarget {
                 Ok(Self::MastRoot(root))
             }
             1 => {
-                let path = FullyQualifiedProcedureName::read_from_with_options(source, options)?;
-                Ok(Self::Path(path))
+                let path = QualifiedProcedureName::read_from_with_options(source, options)?;
+                Ok(Self::ProcedurePath(path))
+            }
+            2 => {
+                let path = QualifiedProcedureName::read_from_with_options(source, options)?;
+                Ok(Self::AbsoluteProcedurePath(path))
             }
             n => Err(DeserializationError::InvalidValue(format!(
                 "{} is not a valid alias target type",

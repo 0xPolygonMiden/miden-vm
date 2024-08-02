@@ -18,8 +18,8 @@ use super::{GlobalProcedureIndex, ModuleIndex};
 use crate::ast::InvokeKind;
 use crate::{
     ast::{
-        Export, FullyQualifiedProcedureName, InvocationTarget, Module, ProcedureIndex,
-        ProcedureName, ResolvedProcedure,
+        Export, InvocationTarget, Module, ProcedureIndex, ProcedureName, QualifiedProcedureName,
+        ResolvedProcedure,
     },
     library::{ModuleInfo, ProcedureInfo},
     AssemblyError, LibraryNamespace, LibraryPath, RpoDigest, Spanned,
@@ -338,7 +338,7 @@ impl ModuleGraph {
             // Apply module to call graph
             match pending_module {
                 PendingWrappedModule::Ast(pending_module) => {
-                    for (index, procedure) in pending_module.procedures().enumerate() {
+                    for (index, _) in pending_module.procedures().enumerate() {
                         let procedure_id = ProcedureIndex::new(index);
                         let global_id = GlobalProcedureIndex {
                             module: module_id,
@@ -349,25 +349,6 @@ impl ModuleGraph {
                         // graph, even if they have no edges, we need them
                         // in the graph for the topological sort
                         self.callgraph.get_or_insert_node(global_id);
-                        match procedure {
-                            Export::Procedure(_) => (),
-                            Export::Alias(alias) => {
-                                let target = self
-                                    .resolve_target(
-                                        &CallerInfo {
-                                            span: alias.span(),
-                                            source_file: pending_module.source_file(),
-                                            module: module_id,
-                                            kind: InvokeKind::Exec,
-                                        },
-                                        &alias.target().clone().into(),
-                                    )
-                                    .expect("expected that alias target exists");
-                                if let Some(target_gid) = target.into_global_id() {
-                                    self.callgraph.add_edge(global_id, target_gid);
-                                }
-                            }
-                        }
                     }
                 }
                 PendingWrappedModule::Info(pending_module) => {
@@ -409,6 +390,23 @@ impl ModuleGraph {
                             index: procedure_id,
                         };
 
+                        // Add edge to the call graph to represent dependency on aliased procedures
+                        if let Export::Alias(ref alias) = procedure {
+                            let caller = CallerInfo {
+                                span: alias.span(),
+                                source_file: ast_module.source_file(),
+                                module: module_id,
+                                kind: InvokeKind::ProcRef,
+                            };
+                            let target = alias.target().into();
+                            if let Some(callee) =
+                                resolver.resolve_target(&caller, &target)?.into_global_id()
+                            {
+                                edges.push((gid, callee));
+                            }
+                        }
+
+                        // Add edges to all transitive dependencies of this procedure due to calls
                         for invoke in procedure.invoked() {
                             let caller = CallerInfo {
                                 span: invoke.span(),
@@ -572,13 +570,13 @@ impl ModuleGraph {
                         if prev_proc.num_locals() != current_proc.num_locals() {
                             // Multiple procedures with the same root, but incompatible
                             let prev_module = self.modules[prev_id.module.as_usize()].path();
-                            let prev_name = FullyQualifiedProcedureName {
+                            let prev_name = QualifiedProcedureName {
                                 span: prev_proc.span(),
                                 module: prev_module.clone(),
                                 name: prev_proc.name().clone(),
                             };
                             let current_module = self.modules[id.module.as_usize()].path();
-                            let current_name = FullyQualifiedProcedureName {
+                            let current_name = QualifiedProcedureName {
                                 span: current_proc.span(),
                                 module: current_module.clone(),
                                 name: current_proc.name().clone(),

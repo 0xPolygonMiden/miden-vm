@@ -1,4 +1,4 @@
-use super::{FullyQualifiedProcedureName, ProcedureIndex, ProcedureName};
+use super::{ProcedureIndex, ProcedureName, QualifiedProcedureName};
 use crate::{ast::Ident, LibraryPath, RpoDigest, SourceSpan, Span, Spanned};
 use alloc::{collections::BTreeMap, vec::Vec};
 
@@ -11,7 +11,7 @@ pub enum ResolvedProcedure {
     /// The name was resolved to a procedure definition in the same module at the given index
     Local(Span<ProcedureIndex>),
     /// The name was resolved to a procedure exported from another module
-    External(FullyQualifiedProcedureName),
+    External(QualifiedProcedureName),
     /// The name was resolved to a procedure with a known MAST root
     MastRoot(RpoDigest),
 }

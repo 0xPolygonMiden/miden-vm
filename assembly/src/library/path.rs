@@ -43,6 +43,26 @@ pub enum LibraryPathComponent<'a> {
     Normal(&'a Ident),
 }
 
+impl<'a> LibraryPathComponent<'a> {
+    /// Get this component as a [str]
+    #[inline(always)]
+    pub fn as_str(&self) -> &'a str {
+        match self {
+            Self::Namespace(ns) => ns.as_str(),
+            Self::Normal(id) => id.as_str(),
+        }
+    }
+
+    /// Get this component as an [Ident]
+    #[inline]
+    pub fn to_ident(&self) -> Ident {
+        match self {
+            Self::Namespace(ns) => ns.to_ident(),
+            Self::Normal(id) => Ident::clone(id),
+        }
+    }
+}
+
 impl<'a> Eq for LibraryPathComponent<'a> {}
 
 impl<'a> PartialEq for LibraryPathComponent<'a> {
@@ -73,6 +93,13 @@ impl<'a> AsRef<str> for LibraryPathComponent<'a> {
 impl<'a> fmt::Display for LibraryPathComponent<'a> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         f.write_str(self.as_ref())
+    }
+}
+
+impl From<LibraryPathComponent<'_>> for Ident {
+    #[inline]
+    fn from(component: LibraryPathComponent<'_>) -> Self {
+        component.to_ident()
     }
 }
 
@@ -182,13 +209,18 @@ impl LibraryPath {
         &self.inner.ns
     }
 
-    /// Returns the last component of the path.
+    /// Returns the last component of the path as a `str`
     pub fn last(&self) -> &str {
+        self.last_component().as_str()
+    }
+
+    /// Returns the last component of the path.
+    pub fn last_component(&self) -> LibraryPathComponent<'_> {
         self.inner
             .components
             .last()
-            .map(|component| component.as_str())
-            .unwrap_or_else(|| self.inner.ns.as_str())
+            .map(LibraryPathComponent::Normal)
+            .unwrap_or_else(|| LibraryPathComponent::Namespace(&self.inner.ns))
     }
 
     /// Returns the number of components in the path.

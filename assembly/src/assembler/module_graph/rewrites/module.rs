@@ -8,7 +8,7 @@ use crate::{
     },
     ast::{
         visit::{self, VisitMut},
-        InvocationTarget, Invoke, InvokeKind, Module, Procedure,
+        AliasTarget, InvocationTarget, Invoke, InvokeKind, Module, Procedure,
     },
     diagnostics::SourceFile,
     AssemblyError, Spanned,
@@ -111,5 +111,15 @@ impl<'a, 'b: 'a> VisitMut<AssemblyError> for ModuleRewriter<'a, 'b> {
         target: &mut InvocationTarget,
     ) -> ControlFlow<AssemblyError> {
         self.rewrite_target(InvokeKind::Exec, target)
+    }
+    fn visit_mut_alias_target(&mut self, target: &mut AliasTarget) -> ControlFlow<AssemblyError> {
+        if matches!(target, AliasTarget::MastRoot(_)) {
+            return ControlFlow::Continue(());
+        }
+        let mut invoke_target = (target as &AliasTarget).into();
+        self.rewrite_target(InvokeKind::ProcRef, &mut invoke_target)?;
+        // This will always succeed, as the original target is qualified by construction
+        *target = AliasTarget::try_from(invoke_target).unwrap();
+        ControlFlow::Continue(())
     }
 }

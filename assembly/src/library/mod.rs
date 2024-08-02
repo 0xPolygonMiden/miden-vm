@@ -5,9 +5,7 @@ use vm_core::mast::{MastForest, MastNodeId};
 use vm_core::utils::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable};
 use vm_core::Kernel;
 
-use crate::ast::{
-    self, AstSerdeOptions, FullyQualifiedProcedureName, ProcedureIndex, ProcedureName,
-};
+use crate::ast::{self, AstSerdeOptions, ProcedureIndex, ProcedureName, QualifiedProcedureName};
 
 mod error;
 mod masl;
@@ -38,7 +36,7 @@ pub struct CompiledLibrary {
     /// A map between procedure paths and the corresponding procedure toots in the MAST forest.
     /// Multiple paths can map to the same root, and also, some roots may not be associated with
     /// any paths.
-    exports: BTreeMap<FullyQualifiedProcedureName, MastNodeId>,
+    exports: BTreeMap<QualifiedProcedureName, MastNodeId>,
     /// The MAST forest underlying this library.
     mast_forest: MastForest,
 }
@@ -54,7 +52,7 @@ impl CompiledLibrary {
     /// - Not all exported procedures are present in the MAST forest.
     pub fn new(
         mast_forest: MastForest,
-        exports: BTreeMap<FullyQualifiedProcedureName, RpoDigest>,
+        exports: BTreeMap<QualifiedProcedureName, RpoDigest>,
     ) -> Result<Self, CompiledLibraryError> {
         if exports.is_empty() {
             return Err(CompiledLibraryError::EmptyExports);
@@ -107,7 +105,7 @@ impl CompiledLibrary {
     }
 
     /// Returns the fully qualified name of all procedures exported by the library.
-    pub fn exports(&self) -> impl Iterator<Item = &FullyQualifiedProcedureName> {
+    pub fn exports(&self) -> impl Iterator<Item = &QualifiedProcedureName> {
         self.exports.keys()
     }
 
@@ -180,7 +178,7 @@ impl CompiledLibrary {
         let num_exports = source.read_usize()?;
         let mut exports = BTreeMap::new();
         for _ in 0..num_exports {
-            let proc_name = FullyQualifiedProcedureName::read_from_with_options(source, options)?;
+            let proc_name = QualifiedProcedureName::read_from_with_options(source, options)?;
             if proc_name.namespace() != &namespace {
                 return Err(DeserializationError::InvalidValue(format!(
                     "procedure {proc_name} does not belong to library namespace {namespace}"

@@ -2,7 +2,7 @@ use alloc::{string::String, sync::Arc, vec::Vec};
 use vm_core::mast::MastForestError;
 
 use crate::{
-    ast::FullyQualifiedProcedureName,
+    ast::QualifiedProcedureName,
     diagnostics::{Diagnostic, RelatedError, RelatedLabel, Report, SourceFile},
     LibraryNamespace, LibraryPath, SourceSpan,
 };
@@ -30,8 +30,8 @@ pub enum AssemblyError {
     #[error("two procedures found with same mast root, but conflicting definitions ('{first}' and '{second}')")]
     #[diagnostic()]
     ConflictingDefinitions {
-        first: FullyQualifiedProcedureName,
-        second: FullyQualifiedProcedureName,
+        first: QualifiedProcedureName,
+        second: QualifiedProcedureName,
     },
     #[error("duplicate definition found for module '{path}'")]
     #[diagnostic()]
@@ -58,7 +58,7 @@ pub enum AssemblyError {
         span: SourceSpan,
         #[source_code]
         source_file: Option<Arc<SourceFile>>,
-        callee: FullyQualifiedProcedureName,
+        callee: QualifiedProcedureName,
     },
     #[error("invalid use of 'caller' instruction outside of kernel")]
     #[diagnostic(help(
