@@ -26,6 +26,7 @@
 - Added functions to `MastForest` and `MastForestBuilder` to add and ensure nodes with fewer LOC (#1404, #1412)
 - Added `Assembler::assemble_library()` (#1413).
 - Added `Assembler::assemble_kernel()` (#1418).
+- Added `miden_core::prettier::pretty_print_csv` helper, for formatting of iterators over `PrettyPrint` values as comma-separated items
 
 #### Changed
 
