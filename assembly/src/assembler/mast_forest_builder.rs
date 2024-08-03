@@ -95,17 +95,9 @@ impl MastForestBuilder {
         //
         // If there is already a cache entry, but it conflicts with what we're trying to cache,
         // then raise an error.
-        if let Some(cached) = self.procedures.get(&gid) {
-            let cached_root = self.mast_forest[cached.body_node_id()].digest();
-            if cached_root != proc_root || cached.num_locals() != procedure.num_locals() {
-                return Err(AssemblyError::ConflictingDefinitions {
-                    first: cached.fully_qualified_name().clone(),
-                    second: procedure.fully_qualified_name().clone(),
-                });
-            }
-
+        if self.procedures.contains_key(&gid) {
             // The global procedure index and the MAST root resolve to an already cached version of
-            // this procedure, nothing to do.
+            // this procedure, or an alias of it, nothing to do.
             //
             // TODO: We should emit a warning for this, because while it is not an error per se, it
             // does reflect that we're doing work we don't need to be doing. However, emitting a
@@ -117,20 +109,24 @@ impl MastForestBuilder {
         // We don't have a cache entry yet, but we do want to make sure we don't have a conflicting
         // cache entry with the same MAST root:
         if let Some(cached) = self.find_procedure(&proc_root) {
-            if cached.num_locals() != procedure.num_locals() {
+            // Handle the case where a procedure with no locals is lowered to a MastForest
+            // consisting only of an `External` node to another procedure which has one or more
+            // locals. This will result in the calling procedure having the same digest as the
+            // callee, but the two procedures having mismatched local counts. When this occurs,
+            // we want to use the procedure with non-zero local count as the definition, and treat
+            // the other procedure as an alias, which can be referenced like any other procedure,
+            // but the MAST returned for it will be that of the "real" definition.
+            let cached_locals = cached.num_locals();
+            let procedure_locals = procedure.num_locals();
+            let mismatched_locals = cached_locals != procedure_locals;
+            let is_valid =
+                !mismatched_locals || core::cmp::min(cached_locals, procedure_locals) == 0;
+            if !is_valid {
                 return Err(AssemblyError::ConflictingDefinitions {
                     first: cached.fully_qualified_name().clone(),
                     second: procedure.fully_qualified_name().clone(),
                 });
             }
-
-            // We have a previously cached version of an equivalent procedure, just under a
-            // different [GlobalProcedureIndex], so insert the cached procedure into the slot for
-            // `id`, but skip inserting a record in the MAST root lookup table
-            self.make_root(procedure.body_node_id());
-            self.insert_procedure_hash(gid, procedure.mast_root())?;
-            self.procedures.insert(gid, Arc::new(procedure));
-            return Ok(());
         }
 
         self.make_root(procedure.body_node_id());

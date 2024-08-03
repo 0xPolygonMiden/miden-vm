@@ -549,43 +549,6 @@ impl ModuleGraph {
             Entry::Occupied(ref mut entry) => {
                 let prev_id = entry.get()[0];
                 if prev_id != id {
-                    let prev_proc = {
-                        match &self.modules[prev_id.module.as_usize()] {
-                            WrappedModule::Ast(module) => Some(&module[prev_id.index]),
-                            WrappedModule::Info(_) => None,
-                        }
-                    };
-                    let current_proc = {
-                        match &self.modules[id.module.as_usize()] {
-                            WrappedModule::Ast(module) => Some(&module[id.index]),
-                            WrappedModule::Info(_) => None,
-                        }
-                    };
-
-                    // Note: For compiled procedures, we can't check further if they're compatible,
-                    // so we assume they are.
-                    if let (Some(prev_proc), Some(current_proc)) = (prev_proc, current_proc) {
-                        if prev_proc.num_locals() != current_proc.num_locals() {
-                            // Multiple procedures with the same root, but incompatible
-                            let prev_module = self.modules[prev_id.module.as_usize()].path();
-                            let prev_name = QualifiedProcedureName {
-                                span: prev_proc.span(),
-                                module: prev_module.clone(),
-                                name: prev_proc.name().clone(),
-                            };
-                            let current_module = self.modules[id.module.as_usize()].path();
-                            let current_name = QualifiedProcedureName {
-                                span: current_proc.span(),
-                                module: current_module.clone(),
-                                name: current_proc.name().clone(),
-                            };
-                            return Err(AssemblyError::ConflictingDefinitions {
-                                first: prev_name,
-                                second: current_name,
-                            });
-                        }
-                    }
-
                     // Multiple procedures with the same root, but compatible
                     entry.get_mut().push(id);
                 }
