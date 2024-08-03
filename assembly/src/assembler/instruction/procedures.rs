@@ -74,19 +74,12 @@ impl Assembler {
                 proc_ctx.register_external_call(&proc, false)?;
             }
             Some(proc) => proc_ctx.register_external_call(&proc, false)?,
-            None if matches!(kind, InvokeKind::SysCall) => {
-                return Err(AssemblyError::UnknownSysCallTarget {
-                    span,
-                    source_file: current_source_file.clone(),
-                    callee: mast_root,
-                });
-            }
             None => (),
         }
 
         let mast_root_node_id = {
             match kind {
-                InvokeKind::Exec => {
+                InvokeKind::Exec | InvokeKind::ProcRef => {
                     // Note that here we rely on the fact that we topologically sorted the
                     // procedures, such that when we assemble a procedure, all
                     // procedures that it calls will have been assembled, and
@@ -161,7 +154,7 @@ impl Assembler {
         mast_forest_builder: &MastForestBuilder,
     ) -> Result<(), AssemblyError> {
         let digest =
-            self.resolve_target(InvokeKind::Exec, callee, proc_ctx, mast_forest_builder)?;
+            self.resolve_target(InvokeKind::ProcRef, callee, proc_ctx, mast_forest_builder)?;
         self.procref_mast_root(digest, proc_ctx, span_builder, mast_forest_builder)
     }
 

@@ -967,7 +967,7 @@ dependencies = [
 
 [[package]]
 name = "miden-air"
-version = "0.9.2"
+version = "0.10.0"
 dependencies = [
  "criterion",
  "miden-core",
@@ -979,7 +979,7 @@ dependencies = [
 
 [[package]]
 name = "miden-assembly"
-version = "0.9.2"
+version = "0.10.0"
 dependencies = [
  "aho-corasick",
  "lalrpop",
@@ -997,7 +997,7 @@ dependencies = [
 
 [[package]]
 name = "miden-core"
-version = "0.9.1"
+version = "0.10.0"
 dependencies = [
  "miden-crypto",
  "miden-formatting",
@@ -1050,7 +1050,7 @@ dependencies = [
 
 [[package]]
 name = "miden-processor"
-version = "0.9.2"
+version = "0.10.0"
 dependencies = [
  "logtest",
  "miden-air",
@@ -1065,7 +1065,7 @@ dependencies = [
 
 [[package]]
 name = "miden-prover"
-version = "0.9.1"
+version = "0.10.0"
 dependencies = [
  "elsa",
  "miden-air",
@@ -1078,7 +1078,7 @@ dependencies = [
 
 [[package]]
 name = "miden-stdlib"
-version = "0.9.2"
+version = "0.10.0"
 dependencies = [
  "blake3",
  "miden-air",
@@ -1114,7 +1114,7 @@ dependencies = [
 
 [[package]]
 name = "miden-verifier"
-version = "0.9.1"
+version = "0.10.0"
 dependencies = [
  "miden-air",
  "miden-core",
@@ -1124,7 +1124,7 @@ dependencies = [
 
 [[package]]
 name = "miden-vm"
-version = "0.9.1"
+version = "0.10.0"
 dependencies = [
  "assert_cmd",
  "blake3",

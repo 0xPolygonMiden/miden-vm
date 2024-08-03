@@ -119,6 +119,9 @@ pub trait Visit<T = ()> {
     fn visit_invoke_target(&mut self, target: &InvocationTarget) -> ControlFlow<T> {
         visit_invoke_target(self, target)
     }
+    fn visit_alias_target(&mut self, target: &AliasTarget) -> ControlFlow<T> {
+        visit_alias_target(self, target)
+    }
     fn visit_immediate_u8(&mut self, imm: &Immediate<u8>) -> ControlFlow<T> {
         visit_immediate_u8(self, imm)
     }
@@ -185,6 +188,9 @@ where
     fn visit_invoke_target(&mut self, target: &InvocationTarget) -> ControlFlow<T> {
         (**self).visit_invoke_target(target)
     }
+    fn visit_alias_target(&mut self, target: &AliasTarget) -> ControlFlow<T> {
+        (**self).visit_alias_target(target)
+    }
     fn visit_immediate_u8(&mut self, imm: &Immediate<u8>) -> ControlFlow<T> {
         (**self).visit_immediate_u8(imm)
     }
@@ -242,11 +248,11 @@ where
 }
 
 #[inline(always)]
-pub fn visit_procedure_alias<V, T>(_visitor: &mut V, _alias: &ProcedureAlias) -> ControlFlow<T>
+pub fn visit_procedure_alias<V, T>(visitor: &mut V, alias: &ProcedureAlias) -> ControlFlow<T>
 where
     V: ?Sized + Visit<T>,
 {
-    ControlFlow::Continue(())
+    visitor.visit_alias_target(alias.target())
 }
 
 pub fn visit_block<V, T>(visitor: &mut V, block: &Block) -> ControlFlow<T>
@@ -434,6 +440,14 @@ where
 }
 
 #[inline(always)]
+pub fn visit_alias_target<V, T>(_visitor: &mut V, _target: &AliasTarget) -> ControlFlow<T>
+where
+    V: ?Sized + Visit<T>,
+{
+    ControlFlow::Continue(())
+}
+
+#[inline(always)]
 pub fn visit_immediate_u8<V, T>(_visitor: &mut V, _imm: &Immediate<u8>) -> ControlFlow<T>
 where
     V: ?Sized + Visit<T>,
@@ -545,6 +559,9 @@ pub trait VisitMut<T = ()> {
     fn visit_mut_invoke_target(&mut self, target: &mut InvocationTarget) -> ControlFlow<T> {
         visit_mut_invoke_target(self, target)
     }
+    fn visit_mut_alias_target(&mut self, target: &mut AliasTarget) -> ControlFlow<T> {
+        visit_mut_alias_target(self, target)
+    }
     fn visit_mut_immediate_u8(&mut self, imm: &mut Immediate<u8>) -> ControlFlow<T> {
         visit_mut_immediate_u8(self, imm)
     }
@@ -614,6 +631,9 @@ where
     fn visit_mut_invoke_target(&mut self, target: &mut InvocationTarget) -> ControlFlow<T> {
         (**self).visit_mut_invoke_target(target)
     }
+    fn visit_mut_alias_target(&mut self, target: &mut AliasTarget) -> ControlFlow<T> {
+        (**self).visit_mut_alias_target(target)
+    }
     fn visit_mut_immediate_u8(&mut self, imm: &mut Immediate<u8>) -> ControlFlow<T> {
         (**self).visit_mut_immediate_u8(imm)
     }
@@ -672,13 +692,13 @@ where
 
 #[inline(always)]
 pub fn visit_mut_procedure_alias<V, T>(
-    _visitor: &mut V,
-    _alias: &mut ProcedureAlias,
+    visitor: &mut V,
+    alias: &mut ProcedureAlias,
 ) -> ControlFlow<T>
 where
     V: ?Sized + VisitMut<T>,
 {
-    ControlFlow::Continue(())
+    visitor.visit_mut_alias_target(alias.target_mut())
 }
 
 pub fn visit_mut_block<V, T>(visitor: &mut V, block: &mut Block) -> ControlFlow<T>
@@ -879,6 +899,14 @@ pub fn visit_mut_invoke_target<V, T>(
     _visitor: &mut V,
     _target: &mut InvocationTarget,
 ) -> ControlFlow<T>
+where
+    V: ?Sized + VisitMut<T>,
+{
+    ControlFlow::Continue(())
+}
+
+#[inline(always)]
+pub fn visit_mut_alias_target<V, T>(_visitor: &mut V, _target: &mut AliasTarget) -> ControlFlow<T>
 where
     V: ?Sized + VisitMut<T>,
 {

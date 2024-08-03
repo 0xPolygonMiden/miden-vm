@@ -1,7 +1,8 @@
 use assembly::{
     ast::{Module, ModuleKind},
     diagnostics::{IntoDiagnostic, Report, WrapErr},
-    Assembler, Library, LibraryNamespace, MaslLibrary,
+    library::CompiledLibrary,
+    Assembler, LibraryNamespace,
 };
 use miden_vm::{
     crypto::{MerkleStore, MerkleTree, NodeIndex, PartialMerkleTree, RpoDigest, SimpleSmt},
@@ -404,20 +405,19 @@ impl ProgramFile {
 
     /// Compiles this program file into a [Program].
     #[instrument(name = "compile_program", skip_all)]
-    pub fn compile<'a, I, L>(&self, debug: &Debug, libraries: I) -> Result<Program, Report>
+    pub fn compile<'a, I>(&self, debug: &Debug, libraries: I) -> Result<Program, Report>
     where
-        I: IntoIterator<Item = &'a L>,
-        L: ?Sized + Library + 'static,
+        I: IntoIterator<Item = &'a CompiledLibrary>,
     {
         // compile program
-        let mut assembler = Assembler::default()
-            .with_debug_mode(debug.is_on())
-            .with_library(&StdLibrary::default())
+        let mut assembler = Assembler::default().with_debug_mode(debug.is_on());
+        assembler
+            .add_compiled_library(StdLibrary::default())
             .wrap_err("Failed to load stdlib")?;
 
-        assembler = assembler
-            .with_libraries(libraries.into_iter())
-            .wrap_err("Failed to load libraries")?;
+        for library in libraries {
+            assembler.add_compiled_library(library).wrap_err("Failed to load libraries")?;
+        }
 
         let program: Program = assembler
             .assemble_program(self.ast.as_ref())
@@ -529,7 +529,7 @@ impl ProgramHash {
 // LIBRARY FILE
 // ================================================================================================
 pub struct Libraries {
-    pub libraries: Vec<MaslLibrary>,
+    pub libraries: Vec<CompiledLibrary>,
 }
 
 impl Libraries {
@@ -543,7 +543,9 @@ impl Libraries {
         let mut libraries = Vec::new();
 
         for path in paths {
-            let library = MaslLibrary::read_from_file(path)?;
+            // TODO(plafer): How to create a `Report` from an error that doesn't derive
+            // `Diagnostic`?
+            let library = CompiledLibrary::deserialize_from_file(path).unwrap();
             libraries.push(library);
         }
 

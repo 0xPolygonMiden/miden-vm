@@ -7,7 +7,7 @@ mod resolver;
 
 pub use self::alias::{AliasTarget, ProcedureAlias};
 pub use self::id::ProcedureIndex;
-pub use self::name::{FullyQualifiedProcedureName, ProcedureName};
+pub use self::name::{ProcedureName, QualifiedProcedureName};
 pub use self::procedure::{Procedure, Visibility};
 pub use self::resolver::{LocalNameResolver, ResolvedProcedure};
 

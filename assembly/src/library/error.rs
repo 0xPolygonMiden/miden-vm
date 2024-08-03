@@ -1,10 +1,11 @@
-use alloc::string::String;
+use alloc::{string::String, vec::Vec};
 use vm_core::errors::KernelError;
 
 use crate::{
-    ast::FullyQualifiedProcedureName,
+    ast::QualifiedProcedureName,
     diagnostics::Diagnostic,
     library::{LibraryNamespaceError, VersionError},
+    prettier::pretty_print_csv,
     DeserializationError, LibraryNamespace, LibraryPath, PathError,
 };
 
@@ -65,16 +66,19 @@ pub enum LibraryError {
 
 #[derive(Debug, thiserror::Error, Diagnostic)]
 pub enum CompiledLibraryError {
-    #[error("Invalid exports: MAST forest has {roots_len} procedure roots, but exports have {exports_len}")]
+    #[error("Invalid exports: there must be at least one export")]
     #[diagnostic()]
-    InvalidExports {
-        exports_len: usize,
-        roots_len: usize,
-    },
-    #[error("Invalid export in kernel library: {procedure_path}")]
+    EmptyExports,
+    #[error("exports are not in the same namespace; all namespaces: {namespaces:?}")]
+    InconsistentNamespaces { namespaces: Vec<LibraryNamespace> },
+    #[error("invalid export in kernel library: {procedure_path}")]
     InvalidKernelExport {
-        procedure_path: FullyQualifiedProcedureName,
+        procedure_path: QualifiedProcedureName,
     },
     #[error(transparent)]
     Kernel(#[from] KernelError),
+    #[error("no MAST roots for the following exports: {}", pretty_print_csv(missing_exports.as_slice()))]
+    MissingExports {
+        missing_exports: Vec<QualifiedProcedureName>,
+    },
 }

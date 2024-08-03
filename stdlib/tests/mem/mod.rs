@@ -22,17 +22,21 @@ fn test_memcopy() {
     end
     ";
 
+    let stdlib = StdLibrary::default();
     let assembler = assembly::Assembler::default()
-        .with_library(&StdLibrary::default())
+        .with_compiled_library(&stdlib)
         .expect("failed to load stdlib");
 
     let program: Program =
         assembler.assemble_program(source).expect("Failed to compile test source.");
 
+    let mut host = DefaultHost::default();
+    host.load_mast_forest(stdlib.as_ref().mast_forest().clone());
+
     let mut process = Process::new(
         program.kernel().clone(),
         StackInputs::default(),
-        DefaultHost::default(),
+        host,
         ExecutionOptions::default(),
     );
     process.execute(&program).unwrap();

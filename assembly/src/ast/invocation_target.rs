@@ -16,6 +16,7 @@ pub enum InvokeKind {
     Exec = 0,
     Call,
     SysCall,
+    ProcRef,
 }
 
 /// Represents a specific invocation

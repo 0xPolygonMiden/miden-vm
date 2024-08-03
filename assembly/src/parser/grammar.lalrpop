@@ -314,7 +314,7 @@ Proc: Form = {
                         error: ParsingError::UnnamedReexportOfMastRoot { span },
                     });
                 }
-                ProcedureAlias::new(alias.unwrap(), digest, true)
+                ProcedureAlias::new(alias.unwrap(), AliasTarget::MastRoot(digest))
             }
             InvocationTarget::ProcedurePath { name, module } => {
                 let export_name = alias.unwrap_or_else(|| name.clone());
@@ -324,21 +324,21 @@ Proc: Form = {
                     LibraryNamespace::ANON_PATH => LibraryPath::new_from_components(LibraryNamespace::Anon, []),
                     _ => LibraryPath::new_from_components(LibraryNamespace::User(module.into_inner()), []),
                 };
-                let target = FullyQualifiedProcedureName {
+                let target = QualifiedProcedureName {
                     span,
                     module,
                     name,
                 };
-                ProcedureAlias::new(export_name, target, false)
+                ProcedureAlias::new(export_name, AliasTarget::ProcedurePath(target))
             }
             InvocationTarget::AbsoluteProcedurePath { name, path } => {
                 let export_name = alias.unwrap_or_else(|| name.clone());
-                let target = FullyQualifiedProcedureName {
+                let target = QualifiedProcedureName {
                     span,
                     module: path,
                     name,
                 };
-                ProcedureAlias::new(export_name, target, true)
+                ProcedureAlias::new(export_name, AliasTarget::AbsoluteProcedurePath(target))
             }
         };
         let alias = alias.with_source_file(Some(source_file.clone()));

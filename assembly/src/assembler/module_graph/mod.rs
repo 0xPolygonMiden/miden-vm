@@ -15,11 +15,9 @@ use smallvec::{smallvec, SmallVec};
 
 use self::{analysis::MaybeRewriteCheck, name_resolver::NameResolver, rewrites::ModuleRewriter};
 use super::{GlobalProcedureIndex, ModuleIndex};
+use crate::ast::InvokeKind;
 use crate::{
-    ast::{
-        Export, FullyQualifiedProcedureName, InvocationTarget, Module, ProcedureIndex,
-        ProcedureName, ResolvedProcedure,
-    },
+    ast::{Export, InvocationTarget, Module, ProcedureIndex, ProcedureName, ResolvedProcedure},
     library::{ModuleInfo, ProcedureInfo},
     AssemblyError, LibraryNamespace, LibraryPath, RpoDigest, Spanned,
 };
@@ -170,9 +168,10 @@ impl ModuleGraph {
     /// Adds all module infos to the graph.
     pub fn add_compiled_modules(
         &mut self,
-        module_infos: impl Iterator<Item = ModuleInfo>,
+        module_infos: impl IntoIterator<Item = ModuleInfo>,
     ) -> Result<Vec<ModuleIndex>, AssemblyError> {
         let module_indices: Vec<ModuleIndex> = module_infos
+            .into_iter()
             .map(|module| self.add_module(PendingWrappedModule::Info(module)))
             .collect::<Result<_, _>>()?;
 
@@ -254,7 +253,7 @@ impl ModuleGraph {
         // TODO: simplify this to avoid using Self::add_compiled_modules()
         let mut graph = Self::default();
         let module_indexes = graph
-            .add_compiled_modules([kernel_module].into_iter())
+            .add_compiled_modules([kernel_module])
             .expect("failed to add kernel module to the module graph");
         assert_eq!(module_indexes[0], ModuleIndex::new(0), "kernel should be the first module");
 
@@ -337,7 +336,7 @@ impl ModuleGraph {
             // Apply module to call graph
             match pending_module {
                 PendingWrappedModule::Ast(pending_module) => {
-                    for (index, procedure) in pending_module.procedures().enumerate() {
+                    for (index, _) in pending_module.procedures().enumerate() {
                         let procedure_id = ProcedureIndex::new(index);
                         let global_id = GlobalProcedureIndex {
                             module: module_id,
@@ -347,9 +346,7 @@ impl ModuleGraph {
                         // Ensure all entrypoints and exported symbols are represented in the call
                         // graph, even if they have no edges, we need them
                         // in the graph for the topological sort
-                        if matches!(procedure, Export::Procedure(_)) {
-                            self.callgraph.get_or_insert_node(global_id);
-                        }
+                        self.callgraph.get_or_insert_node(global_id);
                     }
                 }
                 PendingWrappedModule::Info(pending_module) => {
@@ -391,6 +388,23 @@ impl ModuleGraph {
                             index: procedure_id,
                         };
 
+                        // Add edge to the call graph to represent dependency on aliased procedures
+                        if let Export::Alias(ref alias) = procedure {
+                            let caller = CallerInfo {
+                                span: alias.span(),
+                                source_file: ast_module.source_file(),
+                                module: module_id,
+                                kind: InvokeKind::ProcRef,
+                            };
+                            let target = alias.target().into();
+                            if let Some(callee) =
+                                resolver.resolve_target(&caller, &target)?.into_global_id()
+                            {
+                                edges.push((gid, callee));
+                            }
+                        }
+
+                        // Add edges to all transitive dependencies of this procedure due to calls
                         for invoke in procedure.invoked() {
                             let caller = CallerInfo {
                                 span: invoke.span(),
@@ -535,43 +549,6 @@ impl ModuleGraph {
             Entry::Occupied(ref mut entry) => {
                 let prev_id = entry.get()[0];
                 if prev_id != id {
-                    let prev_proc = {
-                        match &self.modules[prev_id.module.as_usize()] {
-                            WrappedModule::Ast(module) => Some(&module[prev_id.index]),
-                            WrappedModule::Info(_) => None,
-                        }
-                    };
-                    let current_proc = {
-                        match &self.modules[id.module.as_usize()] {
-                            WrappedModule::Ast(module) => Some(&module[id.index]),
-                            WrappedModule::Info(_) => None,
-                        }
-                    };
-
-                    // Note: For compiled procedures, we can't check further if they're compatible,
-                    // so we assume they are.
-                    if let (Some(prev_proc), Some(current_proc)) = (prev_proc, current_proc) {
-                        if prev_proc.num_locals() != current_proc.num_locals() {
-                            // Multiple procedures with the same root, but incompatible
-                            let prev_module = self.modules[prev_id.module.as_usize()].path();
-                            let prev_name = FullyQualifiedProcedureName {
-                                span: prev_proc.span(),
-                                module: prev_module.clone(),
-                                name: prev_proc.name().clone(),
-                            };
-                            let current_module = self.modules[id.module.as_usize()].path();
-                            let current_name = FullyQualifiedProcedureName {
-                                span: current_proc.span(),
-                                module: current_module.clone(),
-                                name: current_proc.name().clone(),
-                            };
-                            return Err(AssemblyError::ConflictingDefinitions {
-                                first: prev_name,
-                                second: current_name,
-                            });
-                        }
-                    }
-
                     // Multiple procedures with the same root, but compatible
                     entry.get_mut().push(id);
                 }

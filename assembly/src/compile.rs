@@ -84,7 +84,7 @@ impl Options {
 /// This trait is meant to be implemented by any type that can be compiled to a [Module],
 /// to allow methods which expect a [Module] to accept things like:
 ///
-/// * A [Module] which was previously compiled or read from a [crate::Library].
+/// * A [Module] which was previously parsed or deserialized
 /// * A string representing the source code of a [Module].
 /// * A path to a file containing the source code of a [Module].
 /// * A vector of [crate::ast::Form]s comprising the contents of a [Module].

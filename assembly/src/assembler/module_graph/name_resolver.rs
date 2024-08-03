@@ -4,7 +4,7 @@ use super::{ModuleGraph, WrappedModule};
 use crate::{
     assembler::{GlobalProcedureIndex, ModuleIndex},
     ast::{
-        FullyQualifiedProcedureName, Ident, InvocationTarget, InvokeKind, Module, ProcedureName,
+        Ident, InvocationTarget, InvokeKind, Module, ProcedureName, QualifiedProcedureName,
         ResolvedProcedure,
     },
     diagnostics::{RelatedLabel, SourceFile},
@@ -140,7 +140,7 @@ impl<'a> NameResolver<'a> {
                 module: ref imported_module,
             } => match self.resolve_import(caller, imported_module) {
                 Some(imported_module) => {
-                    let fqn = FullyQualifiedProcedureName {
+                    let fqn = QualifiedProcedureName {
                         span: target.span(),
                         module: imported_module.into_inner().clone(),
                         name: name.clone(),
@@ -171,7 +171,7 @@ impl<'a> NameResolver<'a> {
                 }),
             },
             InvocationTarget::AbsoluteProcedurePath { ref name, ref path } => {
-                let fqn = FullyQualifiedProcedureName {
+                let fqn = QualifiedProcedureName {
                     span: target.span(),
                     module: path.clone(),
                     name: name.clone(),
@@ -288,13 +288,14 @@ impl<'a> NameResolver<'a> {
     fn find(
         &self,
         caller: &CallerInfo,
-        callee: &FullyQualifiedProcedureName,
+        callee: &QualifiedProcedureName,
     ) -> Result<GlobalProcedureIndex, AssemblyError> {
-        // If the caller is a syscall, set the invoke kind to exec until we have resolved the
-        // procedure, then verify that it is in the kernel module
+        // If the caller is a syscall, set the invoke kind to `ProcRef` until we have resolved the
+        // procedure, then verify that it is in the kernel module. This bypasses validation until
+        // after resolution
         let mut current_caller = if matches!(caller.kind, InvokeKind::SysCall) {
             let mut caller = caller.clone();
-            caller.kind = InvokeKind::Exec;
+            caller.kind = InvokeKind::ProcRef;
             Cow::Owned(caller)
         } else {
             Cow::Borrowed(caller)
