@@ -10,6 +10,12 @@ use assembly::{library::CompiledLibrary, utils::Deserializable};
 /// TODO: add docs
 pub struct StdLibrary(CompiledLibrary);
 
+impl AsRef<CompiledLibrary> for StdLibrary {
+    fn as_ref(&self) -> &CompiledLibrary {
+        &self.0
+    }
+}
+
 impl From<StdLibrary> for CompiledLibrary {
     fn from(value: StdLibrary) -> Self {
         value.0
@@ -34,7 +40,7 @@ mod tests {
     fn test_compile() {
         let path = "std::math::u64::overflowing_add".parse::<LibraryPath>().unwrap();
         let stdlib = StdLibrary::default();
-        let exists = stdlib.0.into_module_infos().any(|module| {
+        let exists = stdlib.0.module_infos().any(|module| {
             module
                 .procedure_infos()
                 .any(|(_, proc)| module.path().clone().append(&proc.name).unwrap() == path)

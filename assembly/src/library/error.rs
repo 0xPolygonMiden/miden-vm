@@ -5,6 +5,7 @@ use crate::{
     ast::QualifiedProcedureName,
     diagnostics::Diagnostic,
     library::{LibraryNamespaceError, VersionError},
+    prettier::pretty_print_csv,
     DeserializationError, LibraryNamespace, LibraryPath, PathError,
 };
 
@@ -76,7 +77,7 @@ pub enum CompiledLibraryError {
     },
     #[error(transparent)]
     Kernel(#[from] KernelError),
-    #[error("no MAST roots for the following exports: {missing_exports:?}")]
+    #[error("no MAST roots for the following exports: {}", pretty_print_csv(missing_exports.as_slice()))]
     MissingExports {
         missing_exports: Vec<QualifiedProcedureName>,
     },

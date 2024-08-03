@@ -12,7 +12,10 @@ fn cli_run() -> Result<(), Box<dyn std::error::Error>> {
         .current_release()
         .current_target()
         .run()
-        .unwrap();
+        .unwrap_or_else(|err| {
+            eprintln!("{err}");
+            panic!("failed to build `miden`");
+        });
 
     let mut cmd = bin_under_test.command();
 

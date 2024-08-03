@@ -367,8 +367,8 @@ fn handle_use_command(
     match tokens.len() {
         1 => {
             println!("Modules available for importing:");
-            for lib in provided_libraries.iter().cloned() {
-                lib.into_module_infos().for_each(|module| println!("{}", module.path()));
+            for lib in provided_libraries {
+                lib.module_infos().for_each(|module| println!("{}", module.path()));
             }
         }
         2 => {

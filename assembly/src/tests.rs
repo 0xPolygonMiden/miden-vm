@@ -411,23 +411,12 @@ fn get_proc_name_of_unknown_module() -> TestResult {
     let module_path_one = "module::path::one".parse().unwrap();
     let module1 = context.parse_module_with_path(module_path_one, module_source1)?;
 
-    let masl_lib = Assembler::default().assemble_library(core::iter::once(module1)).unwrap();
+    let report = Assembler::default()
+        .assemble_library(core::iter::once(module1))
+        .expect_err("expected unknown module error");
 
-    // instantiate assembler
-    context.add_library(masl_lib)?;
-
-    // compile program with procref calls
-    let source = source_file!(
-        "
-        use.module::path::one
-
-        begin
-            procref.one::foo
-        end"
-    );
-    assert_assembler_diagnostic!(
-        context,
-        source,
+    assert_diagnostic_lines!(
+        report,
         "undefined module 'module::path::two'",
         regex!(r#",-\[test[\d]+:5:22\]"#),
         "4 |     export.foo",
@@ -436,6 +425,7 @@ fn get_proc_name_of_unknown_module() -> TestResult {
         "6 |     end",
         "  `----"
     );
+
     Ok(())
 }
 
@@ -1518,7 +1508,7 @@ fn program_with_one_import_and_hex_call() -> TestResult {
     let ast = context.parse_module_with_path(path, source_file!(PROCEDURE.to_string()))?;
     let library = Assembler::default().assemble_library(core::iter::once(ast)).unwrap();
 
-    context.add_library(library)?;
+    context.add_library(&library)?;
 
     let source = source_file!(format!(
         r#"
@@ -1572,7 +1562,7 @@ fn program_with_two_imported_procs_with_same_mast_root() -> TestResult {
     let ast = context.parse_module_with_path(path, source_file!(PROCEDURE.to_string()))?;
     let library = Assembler::default().assemble_library(core::iter::once(ast)).unwrap();
 
-    context.add_library(library)?;
+    context.add_library(&library)?;
 
     let source = source_file!(format!(
         r#"
@@ -1639,9 +1629,9 @@ fn program_with_reexported_proc_in_same_library() -> TestResult {
         Module::parse_str(REF_MODULE.parse().unwrap(), ModuleKind::Library, REF_MODULE_BODY)
             .unwrap();
 
-    let library = Assembler::default().assemble_library(vec![ast, ref_ast].into_iter()).unwrap();
+    let library = Assembler::default().assemble_library([ast, ref_ast]).unwrap();
 
-    context.add_library(library)?;
+    context.add_library(&library)?;
 
     let source = source_file!(format!(
         r#"
@@ -1658,9 +1648,9 @@ begin
     join
         join
             basic_block push(4) push(3) end
-            basic_block u32assert2(0) eqz swap eqz and end
+            external.0xb9691da1d9b4b364aca0a0990e9f04c446a2faa622c8dd0d8831527dbec61393
         end
-        basic_block eqz swap eqz and end
+        external.0xcb08c107c81c582788cbf63c99f6b455e11b33bb98ca05fe1cfa17c087dfa8f1
     end
 end";
     assert_str_eq!(format!("{program}"), expected);
@@ -1695,16 +1685,16 @@ fn program_with_reexported_proc_in_another_library() -> TestResult {
     "#;
 
     let mut context = TestContext::default();
-    let ast = Module::parse_str(MODULE.parse().unwrap(), ModuleKind::Library, MODULE_BODY).unwrap();
-    let dummy_library_1 = Assembler::default().assemble_library(vec![ast].into_iter()).unwrap();
-
+    // We reference code in this module
     let ref_ast =
-        Module::parse_str(REF_MODULE.parse().unwrap(), ModuleKind::Library, REF_MODULE_BODY)
-            .unwrap();
-    let dummy_library_2 = Assembler::default().assemble_library(vec![ref_ast].into_iter()).unwrap();
+        Module::parse_str(REF_MODULE.parse().unwrap(), ModuleKind::Library, REF_MODULE_BODY)?;
+    // But only exports from this module are exposed by the library
+    let ast = Module::parse_str(MODULE.parse().unwrap(), ModuleKind::Library, MODULE_BODY)?;
 
-    context.add_library(dummy_library_1.clone())?;
-    context.add_library(dummy_library_2)?;
+    let dummy_library = Assembler::default().with_module(ref_ast)?.assemble_library([ast])?;
+
+    // Now we want to use the the library we've compiled
+    context.add_library(&dummy_library)?;
 
     let source = source_file!(format!(
         r#"
@@ -1722,24 +1712,24 @@ begin
     join
         join
             basic_block push(4) push(3) end
-            basic_block u32assert2(0) eqz swap eqz and end
+            external.0xb9691da1d9b4b364aca0a0990e9f04c446a2faa622c8dd0d8831527dbec61393
         end
-        basic_block eqz swap eqz and end
+        external.0xcb08c107c81c582788cbf63c99f6b455e11b33bb98ca05fe1cfa17c087dfa8f1
     end
 end";
     assert_str_eq!(format!("{program}"), expected);
 
-    // when the re-exported proc is part of a different library and the library is not passed to
-    // the assembler it should fail
+    // We also want to assert that exports from the referenced module do not leak
     let mut context = TestContext::default();
-    context.add_library(dummy_library_1)?;
+    context.add_library(dummy_library)?;
+
     let source = source_file!(format!(
         r#"
-        use.{MODULE}
+        use.{REF_MODULE}
         begin
             push.4 push.3
-            exec.u256::checked_eqz
-            exec.u256::notchecked_eqz
+            exec.u64::checked_eqz
+            exec.u64::notchecked_eqz
         end"#
     ));
     assert_assembler_diagnostic!(context, source, "undefined module 'dummy2::math::u64'");
@@ -1765,9 +1755,9 @@ fn module_alias() -> TestResult {
 
     let mut context = TestContext::default();
     let ast = Module::parse_str(MODULE.parse().unwrap(), ModuleKind::Library, PROCEDURE).unwrap();
-    let library = Assembler::default().assemble_library(vec![ast].into_iter()).unwrap();
+    let library = Assembler::default().assemble_library([ast]).unwrap();
 
-    context.add_library(library)?;
+    context.add_library(&library)?;
 
     let source = source_file!(
         "
@@ -1785,18 +1775,7 @@ fn module_alias() -> TestResult {
 begin
     join
         basic_block pad incr pad push(2) pad end
-        basic_block
-            swap
-            movup3
-            u32assert2(0)
-            u32add
-            movup3
-            movup3
-            u32assert2(0)
-            u32add3
-            eqz
-            assert(0)
-        end
+        external.0x3cff5b58a573dc9d25fd3c57130cc57e5b1b381dc58b5ae3594b390c59835e63
     end
 end";
     assert_str_eq!(format!("{program}"), expected);
@@ -2364,7 +2343,7 @@ fn test_compiled_library() {
     export.foo
         push.7
         add.5
-    end 
+    end
     # Same definition as mod1::foo
     export.bar
         push.1
@@ -2377,7 +2356,7 @@ fn test_compiled_library() {
 
     let compiled_library = {
         let assembler = Assembler::default();
-        assembler.assemble_library(vec![mod1, mod2].into_iter()).unwrap()
+        assembler.assemble_library([mod1, mod2]).unwrap()
     };
 
     assert_eq!(compiled_library.exports().count(), 4);
@@ -2385,7 +2364,7 @@ fn test_compiled_library() {
     // Compile program that uses compiled library
     let mut assembler = Assembler::default();
 
-    assembler.add_compiled_library(compiled_library).unwrap();
+    assembler.add_compiled_library(&compiled_library).unwrap();
 
     let program_source = "
     use.mylib::mod1

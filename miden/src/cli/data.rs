@@ -412,13 +412,11 @@ impl ProgramFile {
         // compile program
         let mut assembler = Assembler::default().with_debug_mode(debug.is_on());
         assembler
-            .add_compiled_library(StdLibrary::default().into())
+            .add_compiled_library(StdLibrary::default())
             .wrap_err("Failed to load stdlib")?;
 
         for library in libraries {
-            assembler
-                .add_compiled_library(library.clone())
-                .wrap_err("Failed to load libraries")?;
+            assembler.add_compiled_library(library).wrap_err("Failed to load libraries")?;
         }
 
         let program: Program = assembler

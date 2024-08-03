@@ -44,7 +44,7 @@ pub enum LibraryPathComponent<'a> {
 }
 
 impl<'a> LibraryPathComponent<'a> {
-    /// Get this component as a [str]
+    /// Get this component as a [prim@str]
     #[inline(always)]
     pub fn as_str(&self) -> &'a str {
         match self {

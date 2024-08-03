@@ -1,13 +1,17 @@
-use alloc::{collections::BTreeMap, vec::Vec};
+use alloc::{
+    collections::{BTreeMap, BTreeSet},
+    vec::Vec,
+};
 
 use vm_core::crypto::hash::RpoDigest;
 use vm_core::mast::{MastForest, MastNodeId};
 use vm_core::utils::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable};
 use vm_core::Kernel;
 
-use crate::ast::{self, AstSerdeOptions, ProcedureIndex, ProcedureName, QualifiedProcedureName};
+use crate::ast::{AstSerdeOptions, ProcedureIndex, ProcedureName, QualifiedProcedureName};
 
 mod error;
+#[cfg(feature = "std")]
 mod masl;
 mod namespace;
 mod path;
@@ -30,15 +34,31 @@ mod tests;
 /// to the same top-level namespace.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct CompiledLibrary {
-    /// The namespace associated with this library. All procedures in this library will have this
-    /// namespace.
-    namespace: LibraryNamespace,
+    /// The content hash of this library, formed by hashing the roots of all exports in
+    /// lexicographical order (by digest, not procedure name)
+    digest: RpoDigest,
     /// A map between procedure paths and the corresponding procedure toots in the MAST forest.
     /// Multiple paths can map to the same root, and also, some roots may not be associated with
     /// any paths.
-    exports: BTreeMap<QualifiedProcedureName, MastNodeId>,
+    exports: BTreeMap<QualifiedProcedureName, Export>,
     /// The MAST forest underlying this library.
     mast_forest: MastForest,
+}
+
+impl AsRef<CompiledLibrary> for CompiledLibrary {
+    #[inline(always)]
+    fn as_ref(&self) -> &CompiledLibrary {
+        self
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+#[repr(u8)]
+enum Export {
+    /// The export is contained in the [MastForest] of this library
+    Local(MastNodeId),
+    /// The export is a re-export of an externally-defined procedure from another library
+    External(RpoDigest),
 }
 
 /// Constructors
@@ -46,9 +66,9 @@ impl CompiledLibrary {
     /// Constructs a new [`CompiledLibrary`] from the provided MAST forest and a set of exports.
     ///
     /// # Errors
+    ///
     /// Returns an error if:
     /// - The set of exported procedures is empty.
-    /// - Not all exported procedures belong to the same namespace.
     /// - Not all exported procedures are present in the MAST forest.
     pub fn new(
         mast_forest: MastForest,
@@ -58,40 +78,25 @@ impl CompiledLibrary {
             return Err(CompiledLibraryError::EmptyExports);
         }
 
-        let first_namespace =
-            exports.first_key_value().expect("exports are empty").0.namespace().clone();
-        let mut other_namespaces = Vec::new();
-
-        let mut fqn_to_node_id = BTreeMap::new();
-        let mut missing_exports = Vec::new();
+        let mut fqn_to_export = BTreeMap::new();
 
         // convert fqn |-> mast_root map into fqn |-> mast_node_id map
         for (fqn, mast_root) in exports.into_iter() {
-            if fqn.namespace() != &first_namespace {
-                other_namespaces.push(fqn.namespace().clone());
-            }
-
             match mast_forest.find_procedure_root(mast_root) {
                 Some(node_id) => {
-                    fqn_to_node_id.insert(fqn, node_id);
+                    fqn_to_export.insert(fqn, Export::Local(node_id));
                 }
-                None => missing_exports.push(fqn),
+                None => {
+                    fqn_to_export.insert(fqn, Export::External(mast_root));
+                }
             }
         }
 
-        if !missing_exports.is_empty() {
-            return Err(CompiledLibraryError::MissingExports { missing_exports });
-        }
-
-        if !other_namespaces.is_empty() {
-            let mut namespaces = vec![first_namespace.clone()];
-            namespaces.append(&mut other_namespaces);
-            return Err(CompiledLibraryError::InconsistentNamespaces { namespaces });
-        }
+        let digest = content_hash(&fqn_to_export, &mast_forest);
 
         Ok(Self {
-            namespace: first_namespace,
-            exports: fqn_to_node_id,
+            digest,
+            exports: fqn_to_export,
             mast_forest,
         })
     }
@@ -99,9 +104,9 @@ impl CompiledLibrary {
 
 /// Accessors
 impl CompiledLibrary {
-    /// Returns the namespace associated with this library.
-    pub fn namespace(&self) -> &LibraryNamespace {
-        &self.namespace
+    /// Returns the [RpoDigest] representing the content hash of this library
+    pub fn digest(&self) -> &RpoDigest {
+        &self.digest
     }
 
     /// Returns the fully qualified name of all procedures exported by the library.
@@ -118,14 +123,14 @@ impl CompiledLibrary {
 /// Conversions
 impl CompiledLibrary {
     /// Returns an iterator over the module infos of the library.
-    pub fn into_module_infos(self) -> impl Iterator<Item = ModuleInfo> {
+    pub fn module_infos(&self) -> impl Iterator<Item = ModuleInfo> {
         let mut modules_by_path: BTreeMap<LibraryPath, ModuleInfo> = BTreeMap::new();
 
-        for (proc_name, proc_node_id) in self.exports.into_iter() {
+        for (proc_name, export) in self.exports.iter() {
             modules_by_path
                 .entry(proc_name.module.clone())
                 .and_modify(|compiled_module| {
-                    let proc_digest = self.mast_forest[proc_node_id].digest();
+                    let proc_digest = export.digest(&self.mast_forest);
 
                     compiled_module.add_procedure_info(ProcedureInfo {
                         name: proc_name.name.clone(),
@@ -133,13 +138,13 @@ impl CompiledLibrary {
                     })
                 })
                 .or_insert_with(|| {
-                    let proc_digest = self.mast_forest[proc_node_id].digest();
+                    let proc_digest = export.digest(&self.mast_forest);
                     let proc = ProcedureInfo {
-                        name: proc_name.name,
+                        name: proc_name.name.clone(),
                         digest: proc_digest,
                     };
 
-                    ModuleInfo::new(proc_name.module, vec![proc])
+                    ModuleInfo::new(proc_name.module.clone(), vec![proc])
                 });
         }
 
@@ -152,54 +157,19 @@ impl CompiledLibrary {
     /// Serialize to `target` using `options`
     pub fn write_into_with_options<W: ByteWriter>(&self, target: &mut W, options: AstSerdeOptions) {
         let Self {
-            namespace,
+            digest: _,
             exports,
             mast_forest,
         } = self;
 
-        namespace.write_into(target);
+        options.write_into(target);
         mast_forest.write_into(target);
 
         target.write_usize(exports.len());
-        for (proc_name, proc_node_id) in exports {
+        for (proc_name, export) in exports {
             proc_name.write_into_with_options(target, options);
-            target.write_u32(proc_node_id.into());
+            export.write_into(target);
         }
-    }
-
-    /// Deserialize from `source` using `options`
-    pub fn read_from_with_options<R: ByteReader>(
-        source: &mut R,
-        options: AstSerdeOptions,
-    ) -> Result<Self, DeserializationError> {
-        let namespace = LibraryNamespace::read_from(source)?;
-        let mast_forest = MastForest::read_from(source)?;
-
-        let num_exports = source.read_usize()?;
-        let mut exports = BTreeMap::new();
-        for _ in 0..num_exports {
-            let proc_name = QualifiedProcedureName::read_from_with_options(source, options)?;
-            if proc_name.namespace() != &namespace {
-                return Err(DeserializationError::InvalidValue(format!(
-                    "procedure {proc_name} does not belong to library namespace {namespace}"
-                )));
-            }
-
-            let proc_node_id = MastNodeId::from_u32_safe(source.read_u32()?, &mast_forest)?;
-            if !mast_forest.is_procedure_root(proc_node_id) {
-                return Err(DeserializationError::InvalidValue(format!(
-                    "node with id {proc_node_id} is not a procedure root"
-                )));
-            }
-
-            exports.insert(proc_name, proc_node_id);
-        }
-
-        Ok(Self {
-            namespace,
-            exports,
-            mast_forest,
-        })
     }
 }
 
@@ -211,16 +181,48 @@ impl Serializable for CompiledLibrary {
 
 impl Deserializable for CompiledLibrary {
     fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
-        Self::read_from_with_options(source, AstSerdeOptions::default())
+        let options = AstSerdeOptions::read_from(source)?;
+        let mast_forest = MastForest::read_from(source)?;
+
+        let num_exports = source.read_usize()?;
+        let mut exports = BTreeMap::new();
+        for _ in 0..num_exports {
+            let proc_name = QualifiedProcedureName::read_from_with_options(source, options)?;
+            let export = Export::read_with_forest(source, &mast_forest)?;
+
+            exports.insert(proc_name, export);
+        }
+
+        let digest = content_hash(&exports, &mast_forest);
+
+        Ok(Self {
+            digest,
+            exports,
+            mast_forest,
+        })
     }
+}
+
+fn content_hash(
+    exports: &BTreeMap<QualifiedProcedureName, Export>,
+    mast_forest: &MastForest,
+) -> RpoDigest {
+    let digests = BTreeSet::from_iter(exports.values().map(|export| export.digest(mast_forest)));
+    digests
+        .into_iter()
+        .reduce(|a, b| vm_core::crypto::hash::Rpo256::merge(&[a, b]))
+        .unwrap()
 }
 
 #[cfg(feature = "std")]
 mod use_std_library {
     use super::*;
-    use crate::{diagnostics::IntoDiagnostic, Assembler};
+    use crate::{
+        ast::{self, ModuleKind},
+        diagnostics::IntoDiagnostic,
+        Assembler,
+    };
     use alloc::collections::btree_map::Entry;
-    use ast::ModuleKind;
     use masl::{LibraryEntry, WalkLibrary};
     use miette::{Context, Report};
     use std::{fs, io, path::Path};
@@ -236,17 +238,21 @@ mod use_std_library {
         /// Name of the root module.
         pub const MOD: &'static str = "mod";
 
-        /// Write the library to a target directory, using its namespace as file name and the
-        /// appropriate extension.
-        pub fn write_to_dir(
+        /// Write the library to a target file
+        ///
+        /// NOTE: It is up to the caller to use the correct file extension, but there is no
+        /// specific requirement that the extension be set, or the same as
+        /// [`Self::LIBRARY_EXTENSION`].
+        pub fn write_to_file(
             &self,
-            dir_path: impl AsRef<Path>,
+            path: impl AsRef<Path>,
             options: AstSerdeOptions,
         ) -> io::Result<()> {
-            fs::create_dir_all(&dir_path)?;
+            let path = path.as_ref();
 
-            let mut path = dir_path.as_ref().join(self.namespace().as_ref());
-            path.set_extension(Self::LIBRARY_EXTENSION);
+            if let Some(dir) = path.parent() {
+                fs::create_dir_all(dir)?;
+            }
 
             // NOTE: We catch panics due to i/o errors here due to the fact
             // that the ByteWriter trait does not provide fallible APIs, so
@@ -265,18 +271,30 @@ mod use_std_library {
                 }
             })?
         }
-        /// Read a directory and recursively create modules from its `masm` files.
+
+        /// Create a [CompiledLibrary] from a standard Miden Assembly project layout.
         ///
-        /// For every directory, concatenate the module path with the dir name and proceed.
+        /// The standard layout dictates that a given path is the root of a namespace, and the
+        /// directory hierarchy corresponds to the namespace hierarchy. A `.masm` file found in a
+        /// given subdirectory of the root, will be parsed with its [LibraryPath] set based on
+        /// where it resides in the directory structure.
         ///
-        /// For every file, pick and compile the ones with `masm` extension; skip otherwise.
+        /// This function recursively parses the entire directory structure under `path`, ignoring
+        /// any files which do not have the `.masm` extension.
         ///
-        /// Example:
+        /// For example, let's say I call this function like so:
         ///
-        /// - ./sys.masm            -> "sys"
-        /// - ./crypto/hash.masm    -> "crypto::hash"
-        /// - ./math/u32.masm       -> "math::u32"
-        /// - ./math/u64.masm       -> "math::u64"
+        /// ```rust
+        /// CompiledLibrary::from_dir("~/masm/std", LibraryNamespace::new("std").unwrap()):
+        /// ```
+        ///
+        /// Here's how we would handle various files under this path:
+        ///
+        /// - ~/masm/std/sys.masm            -> Parsed as "std::sys"
+        /// - ~/masm/std/crypto/hash.masm    -> Parsed as "std::crypto::hash"
+        /// - ~/masm/std/math/u32.masm       -> Parsed as "std::math::u32"
+        /// - ~/masm/std/math/u64.masm       -> Parsed as "std::math::u64"
+        /// - ~/masm/std/math/README.md      -> Ignored
         pub fn from_dir(
             path: impl AsRef<Path>,
             namespace: LibraryNamespace,
@@ -364,6 +382,58 @@ mod use_std_library {
     }
 }
 
+impl Export {
+    pub fn digest(&self, mast_forest: &MastForest) -> RpoDigest {
+        match self {
+            Self::Local(node_id) => mast_forest[*node_id].digest(),
+            Self::External(digest) => *digest,
+        }
+    }
+
+    fn tag(&self) -> u8 {
+        // SAFETY: This is safe because we have given this enum a primitive representation with
+        // #[repr(u8)], with the first field of the underlying union-of-structs the discriminant.
+        //
+        // See the section on "accessing the numeric value of the discriminant"
+        // here: https://doc.rust-lang.org/std/mem/fn.discriminant.html
+        unsafe { *<*const _>::from(self).cast::<u8>() }
+    }
+}
+
+impl Serializable for Export {
+    fn write_into<W: ByteWriter>(&self, target: &mut W) {
+        target.write_u8(self.tag());
+        match self {
+            Self::Local(node_id) => target.write_u32(node_id.into()),
+            Self::External(digest) => digest.write_into(target),
+        }
+    }
+}
+
+impl Export {
+    pub fn read_with_forest<R: ByteReader>(
+        source: &mut R,
+        mast_forest: &MastForest,
+    ) -> Result<Self, DeserializationError> {
+        match source.read_u8()? {
+            0 => {
+                let node_id = MastNodeId::from_u32_safe(source.read_u32()?, mast_forest)?;
+                if !mast_forest.is_procedure_root(node_id) {
+                    return Err(DeserializationError::InvalidValue(format!(
+                        "node with id {node_id} is not a procedure root"
+                    )));
+                }
+                Ok(Self::Local(node_id))
+            }
+            1 => RpoDigest::read_from(source).map(Self::External),
+            n => Err(DeserializationError::InvalidValue(format!(
+                "{} is not a valid compiled library export entry",
+                n
+            ))),
+        }
+    }
+}
+
 // KERNEL LIBRARY
 // ================================================================================================
 
@@ -398,16 +468,15 @@ impl TryFrom<CompiledLibrary> for KernelLibrary {
         let mut kernel_procs = Vec::with_capacity(library.exports.len());
         let mut proc_digests = Vec::with_capacity(library.exports.len());
 
-        for (proc_path, proc_node_id) in library.exports.iter() {
-            // make sure all procedures are exported directly from the #sys module
+        for (proc_path, export) in library.exports.iter() {
+            // make sure all procedures are exported only from the kernel root
             if proc_path.module != kernel_path {
                 return Err(CompiledLibraryError::InvalidKernelExport {
                     procedure_path: proc_path.clone(),
                 });
             }
 
-            let proc_digest = library.mast_forest[*proc_node_id].digest();
-
+            let proc_digest = export.digest(&library.mast_forest);
             proc_digests.push(proc_digest);
             kernel_procs.push(ProcedureInfo {
                 name: proc_path.name.clone(),
@@ -438,13 +507,17 @@ impl KernelLibrary {
 
         library.write_into_with_options(target, options);
     }
+}
 
-    /// Deserialize from `source` using `options`
-    pub fn read_from_with_options<R: ByteReader>(
-        source: &mut R,
-        options: AstSerdeOptions,
-    ) -> Result<Self, DeserializationError> {
-        let library = CompiledLibrary::read_from_with_options(source, options)?;
+impl Serializable for KernelLibrary {
+    fn write_into<W: ByteWriter>(&self, target: &mut W) {
+        self.write_into_with_options(target, AstSerdeOptions::default())
+    }
+}
+
+impl Deserializable for KernelLibrary {
+    fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
+        let library = CompiledLibrary::read_from(source)?;
 
         Self::try_from(library).map_err(|err| {
             DeserializationError::InvalidValue(format!(
@@ -461,14 +534,13 @@ mod use_std_kernel {
     use std::{io, path::Path};
 
     impl KernelLibrary {
-        /// Write the library to a target directory, using its namespace as file name and the
-        /// appropriate extension.
-        pub fn write_to_dir(
+        /// Write the library to a target file
+        pub fn write_to_file(
             &self,
-            dir_path: impl AsRef<Path>,
+            path: impl AsRef<Path>,
             options: AstSerdeOptions,
         ) -> io::Result<()> {
-            self.library.write_to_dir(dir_path, options)
+            self.library.write_to_file(path, options)
         }
         /// Read a directory and recursively create modules from its `masm` files.
         ///
@@ -558,4 +630,5 @@ pub struct ProcedureInfo {
 }
 
 /// Maximum number of modules in a library.
+#[cfg(feature = "std")]
 const MAX_MODULES: usize = u16::MAX as usize;

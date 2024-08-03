@@ -14,8 +14,10 @@ use processor::{MastForest, Program};
 #[cfg(not(target_family = "wasm"))]
 use proptest::prelude::{Arbitrary, Strategy};
 
+#[cfg(not(target_family = "wasm"))]
+use alloc::format;
+
 use alloc::{
-    format,
     string::{String, ToString},
     sync::Arc,
     vec::Vec,
@@ -220,6 +222,7 @@ impl Test {
     /// Executes the test and validates that the process memory has the elements of `expected_mem`
     /// at address `mem_start_addr` and that the end of the stack execution trace matches the
     /// `final_stack`.
+    #[track_caller]
     pub fn expect_stack_and_memory(
         &self,
         final_stack: &[u64],
@@ -231,6 +234,9 @@ impl Test {
         let mut host = DefaultHost::new(MemAdviceProvider::from(self.advice_inputs.clone()));
         if let Some(kernel) = kernel {
             host.load_mast_forest(kernel);
+        }
+        for library in &self.libraries {
+            host.load_mast_forest(library.mast_forest().clone());
         }
 
         // execute the test
@@ -304,7 +310,7 @@ impl Test {
             })
             .with_debug_mode(self.in_debug_mode);
         for library in &self.libraries {
-            assembler.add_compiled_library(library.clone()).unwrap();
+            assembler.add_compiled_library(library).unwrap();
         }
 
         Ok((assembler.assemble_program(self.source.clone())?, compiled_kernel))
@@ -319,6 +325,9 @@ impl Test {
         if let Some(kernel) = kernel {
             host.load_mast_forest(kernel);
         }
+        for library in &self.libraries {
+            host.load_mast_forest(library.mast_forest().clone());
+        }
         processor::execute(&program, self.stack_inputs.clone(), host, ExecutionOptions::default())
     }
 
@@ -331,6 +340,9 @@ impl Test {
         let mut host = DefaultHost::new(MemAdviceProvider::from(self.advice_inputs.clone()));
         if let Some(kernel) = kernel {
             host.load_mast_forest(kernel);
+        }
+        for library in &self.libraries {
+            host.load_mast_forest(library.mast_forest().clone());
         }
 
         let mut process = Process::new(
@@ -353,6 +365,9 @@ impl Test {
         if let Some(kernel) = kernel {
             host.load_mast_forest(kernel);
         }
+        for library in &self.libraries {
+            host.load_mast_forest(library.mast_forest().clone());
+        }
         let (mut stack_outputs, proof) =
             prover::prove(&program, stack_inputs.clone(), host, ProvingOptions::default()).unwrap();
 
@@ -374,6 +389,9 @@ impl Test {
         let mut host = DefaultHost::new(MemAdviceProvider::from(self.advice_inputs.clone()));
         if let Some(kernel) = kernel {
             host.load_mast_forest(kernel);
+        }
+        for library in &self.libraries {
+            host.load_mast_forest(library.mast_forest().clone());
         }
         processor::execute_iter(&program, self.stack_inputs.clone(), host)
     }

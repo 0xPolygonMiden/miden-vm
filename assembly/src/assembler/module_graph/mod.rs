@@ -17,10 +17,7 @@ use self::{analysis::MaybeRewriteCheck, name_resolver::NameResolver, rewrites::M
 use super::{GlobalProcedureIndex, ModuleIndex};
 use crate::ast::InvokeKind;
 use crate::{
-    ast::{
-        Export, InvocationTarget, Module, ProcedureIndex, ProcedureName, QualifiedProcedureName,
-        ResolvedProcedure,
-    },
+    ast::{Export, InvocationTarget, Module, ProcedureIndex, ProcedureName, ResolvedProcedure},
     library::{ModuleInfo, ProcedureInfo},
     AssemblyError, LibraryNamespace, LibraryPath, RpoDigest, Spanned,
 };
@@ -171,9 +168,10 @@ impl ModuleGraph {
     /// Adds all module infos to the graph.
     pub fn add_compiled_modules(
         &mut self,
-        module_infos: impl Iterator<Item = ModuleInfo>,
+        module_infos: impl IntoIterator<Item = ModuleInfo>,
     ) -> Result<Vec<ModuleIndex>, AssemblyError> {
         let module_indices: Vec<ModuleIndex> = module_infos
+            .into_iter()
             .map(|module| self.add_module(PendingWrappedModule::Info(module)))
             .collect::<Result<_, _>>()?;
 
@@ -255,7 +253,7 @@ impl ModuleGraph {
         // TODO: simplify this to avoid using Self::add_compiled_modules()
         let mut graph = Self::default();
         let module_indexes = graph
-            .add_compiled_modules([kernel_module].into_iter())
+            .add_compiled_modules([kernel_module])
             .expect("failed to add kernel module to the module graph");
         assert_eq!(module_indexes[0], ModuleIndex::new(0), "kernel should be the first module");
 

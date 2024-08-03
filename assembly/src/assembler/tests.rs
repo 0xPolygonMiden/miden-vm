@@ -250,9 +250,9 @@ fn explicit_fully_qualified_procedure_references() {
 
     let bar = Module::parse_str(BAR_NAME.parse().unwrap(), ModuleKind::Library, BAR).unwrap();
     let baz = Module::parse_str(BAZ_NAME.parse().unwrap(), ModuleKind::Library, BAZ).unwrap();
-    let library = Assembler::default().assemble_library(vec![bar, baz].into_iter()).unwrap();
+    let library = Assembler::default().assemble_library([bar, baz]).unwrap();
 
-    let assembler = Assembler::default().with_compiled_library(library).unwrap();
+    let assembler = Assembler::default().with_compiled_library(&library).unwrap();
 
     let program = r#"
     begin
@@ -282,9 +282,9 @@ fn re_exports() {
 
     let bar = Module::parse_str(BAR_NAME.parse().unwrap(), ModuleKind::Library, BAR).unwrap();
     let baz = Module::parse_str(BAZ_NAME.parse().unwrap(), ModuleKind::Library, BAZ).unwrap();
-    let library = Assembler::default().assemble_library(vec![bar, baz].into_iter()).unwrap();
+    let library = Assembler::default().assemble_library([bar, baz]).unwrap();
 
-    let assembler = Assembler::default().with_compiled_library(library).unwrap();
+    let assembler = Assembler::default().with_compiled_library(&library).unwrap();
 
     let program = r#"
     use.foo::baz

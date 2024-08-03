@@ -405,12 +405,12 @@ fn procref() {
         let module_path = "test::foo".parse::<LibraryPath>().unwrap();
         let module = Module::parse_str(module_path, ModuleKind::Library, module_source).unwrap();
         let library = Assembler::default()
-            .with_compiled_library(StdLibrary::default().into())
+            .with_compiled_library(StdLibrary::default())
             .unwrap()
             .assemble_library(iter::once(module))
             .unwrap();
 
-        let module_info = library.into_module_infos().next().unwrap();
+        let module_info = library.module_infos().next().unwrap();
 
         module_info.procedure_digests().collect()
     };
@@ -432,15 +432,15 @@ fn procref() {
     test.libraries = vec![StdLibrary::default().into()];
 
     test.expect_stack(&[
-        mast_roots[1][3].as_int(),
-        mast_roots[1][2].as_int(),
-        mast_roots[1][1].as_int(),
-        mast_roots[1][0].as_int(),
-        0,
         mast_roots[0][3].as_int(),
         mast_roots[0][2].as_int(),
         mast_roots[0][1].as_int(),
         mast_roots[0][0].as_int(),
+        0,
+        mast_roots[1][3].as_int(),
+        mast_roots[1][2].as_int(),
+        mast_roots[1][1].as_int(),
+        mast_roots[1][0].as_int(),
     ]);
 
     test.prove_and_verify(vec![], false);

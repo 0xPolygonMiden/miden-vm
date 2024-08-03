@@ -1,20 +1,16 @@
-use super::LibraryNamespace;
-use crate::library::CompiledLibrary;
+use super::*;
 
-#[cfg(feature = "std")]
 pub struct LibraryEntry {
-    pub name: super::LibraryPath,
+    pub name: LibraryPath,
     pub source_path: std::path::PathBuf,
 }
 
-#[cfg(feature = "std")]
 pub struct WalkLibrary<'a> {
     namespace: LibraryNamespace,
     root: &'a std::path::Path,
     stack: alloc::collections::VecDeque<std::io::Result<std::fs::DirEntry>>,
 }
 
-#[cfg(feature = "std")]
 impl<'a> WalkLibrary<'a> {
     pub fn new(namespace: LibraryNamespace, path: &'a std::path::Path) -> std::io::Result<Self> {
         use alloc::collections::VecDeque;
@@ -83,7 +79,6 @@ impl<'a> WalkLibrary<'a> {
     }
 }
 
-#[cfg(feature = "std")]
 impl<'a> Iterator for WalkLibrary<'a> {
     type Item = Result<LibraryEntry, crate::diagnostics::Report>;
     fn next(&mut self) -> Option<Self::Item> {

@@ -296,7 +296,7 @@ impl TestContext {
 
     /// Add the modules of `library` to the [Assembler] constructed by this context.
     #[track_caller]
-    pub fn add_library(&mut self, library: CompiledLibrary) -> Result<(), Report> {
+    pub fn add_library(&mut self, library: impl AsRef<CompiledLibrary>) -> Result<(), Report> {
         self.assembler.add_compiled_library(library)
     }
 

@@ -44,8 +44,8 @@ use self::module_graph::{CallerInfo, ModuleGraph, ResolvedTarget};
 ///   [Assembler::assemble_program].
 /// * If you want to link your executable to a few other modules that implement supporting
 ///   procedures, build the assembler with them first, using the various builder methods on
-///   [Assembler], e.g. [Assembler::with_module], [Assembler::with_library], etc. Then, call
-///   [Assembler::assemble_program] to get your compiled program.
+///   [Assembler], e.g. [Assembler::with_module], [Assembler::with_compiled_library], etc. Then,
+///   call [Assembler::assemble_program] to get your compiled program.
 #[derive(Clone, Default)]
 pub struct Assembler {
     /// The global [ModuleGraph] for this assembler.
@@ -138,15 +138,21 @@ impl Assembler {
     }
 
     /// Adds the compiled library to provide modules for the compilation.
-    pub fn add_compiled_library(&mut self, library: CompiledLibrary) -> Result<(), Report> {
+    pub fn add_compiled_library(
+        &mut self,
+        library: impl AsRef<CompiledLibrary>,
+    ) -> Result<(), Report> {
         self.module_graph
-            .add_compiled_modules(library.into_module_infos())
+            .add_compiled_modules(library.as_ref().module_infos())
             .map_err(Report::from)?;
         Ok(())
     }
 
     /// Adds the compiled library to provide modules for the compilation.
-    pub fn with_compiled_library(mut self, library: CompiledLibrary) -> Result<Self, Report> {
+    pub fn with_compiled_library(
+        mut self,
+        library: impl AsRef<CompiledLibrary>,
+    ) -> Result<Self, Report> {
         self.add_compiled_library(library)?;
         Ok(self)
     }
@@ -189,15 +195,21 @@ impl Assembler {
     /// Returns an error if parsing or compilation of the specified modules fails.
     pub fn assemble_library(
         mut self,
-        modules: impl Iterator<Item = impl Compile>,
+        modules: impl IntoIterator<Item = impl Compile>,
     ) -> Result<CompiledLibrary, Report> {
-        let ast_module_indices: Vec<ModuleIndex> = modules
-            .map(|module| {
-                let module = module.compile_with_options(CompileOptions::for_library())?;
+        let ast_module_indices =
+            modules.into_iter().try_fold(Vec::default(), |mut acc, module| {
+                module
+                    .compile_with_options(CompileOptions::for_library())
+                    .and_then(|module| {
+                        self.module_graph.add_ast_module(module).map_err(Report::from)
+                    })
+                    .map(move |module_id| {
+                        acc.push(module_id);
+                        acc
+                    })
+            })?;
 
-                Ok(self.module_graph.add_ast_module(module)?)
-            })
-            .collect::<Result<_, Report>>()?;
         self.module_graph.recompute()?;
 
         let mut mast_forest_builder = MastForestBuilder::default();
@@ -206,8 +218,8 @@ impl Assembler {
             let mut exports = BTreeMap::new();
 
             for module_idx in ast_module_indices {
-                // Note: it is safe to use `unwrap_ast()` here, since all modules looped over are
-                // AST (we just added them to the module graph)
+                // Note: it is safe to use `unwrap_ast()` here, since all of the modules contained
+                // in `ast_module_indices` are in AST form by definition.
                 let ast_module = self.module_graph[module_idx].unwrap_ast().clone();
 
                 for (proc_idx, fqn) in ast_module.exported_procedures() {

@@ -48,7 +48,11 @@ impl BundleCmd {
 
         // write the masl output
         let options = AstSerdeOptions::new(false, false);
-        stdlib.write_to_dir(self.dir.clone(), options).into_diagnostic()?;
+        let output_file = self
+            .dir
+            .join(self.namespace.as_deref().unwrap_or("out"))
+            .with_extension(CompiledLibrary::LIBRARY_EXTENSION);
+        stdlib.write_to_file(output_file, options).into_diagnostic()?;
 
         println!("Built library {}", namespace);
 

@@ -31,7 +31,7 @@ pub struct QualifiedProcedureName {
 }
 
 impl QualifiedProcedureName {
-    /// Create a new [FullyQualifiedProcedureName] with the given fully-qualified module path
+    /// Create a new [QualifiedProcedureName] with the given fully-qualified module path
     /// and procedure name.
     pub fn new(module: LibraryPath, name: ProcedureName) -> Self {
         Self {
@@ -100,6 +100,14 @@ impl fmt::Debug for QualifiedProcedureName {
             .field("module", &self.module)
             .field("name", &self.name)
             .finish()
+    }
+}
+
+impl crate::prettier::PrettyPrint for QualifiedProcedureName {
+    fn render(&self) -> vm_core::prettier::Document {
+        use crate::prettier::*;
+
+        display(self)
     }
 }
 

@@ -200,7 +200,7 @@ fn falcon_prove_verify() {
     let (source, op_stack, _, _, advice_map) = generate_test(sk, message);
 
     let program: Program = Assembler::default()
-        .with_compiled_library(StdLibrary::default().into())
+        .with_compiled_library(StdLibrary::default())
         .expect("failed to load stdlib")
         .assemble_program(source)
         .expect("failed to compile test source");

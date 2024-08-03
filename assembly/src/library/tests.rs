@@ -8,7 +8,7 @@ use crate::{
     diagnostics::{IntoDiagnostic, Report, SourceFile},
     library::CompiledLibrary,
     testing::TestContext,
-    Assembler,
+    Assembler, Deserializable,
 };
 
 macro_rules! parse_module {
@@ -50,11 +50,7 @@ fn masl_locations_serialization() -> Result<(), Report> {
 
     let mut bytes = Vec::new();
     bundle.write_into_with_options(&mut bytes, AstSerdeOptions::new(true, true));
-    let deserialized = CompiledLibrary::read_from_with_options(
-        &mut SliceReader::new(&bytes),
-        AstSerdeOptions::new(true, false),
-    )
-    .unwrap();
+    let deserialized = CompiledLibrary::read_from(&mut SliceReader::new(&bytes)).unwrap();
     assert_eq!(bundle, deserialized);
 
     // serialize/deserialize the bundle without locations
@@ -63,11 +59,7 @@ fn masl_locations_serialization() -> Result<(), Report> {
     // serialize/deserialize the bundle
     let mut bytes = Vec::new();
     bundle.write_into_with_options(&mut bytes, AstSerdeOptions::new(true, false));
-    let deserialized = CompiledLibrary::read_from_with_options(
-        &mut SliceReader::new(&bytes),
-        AstSerdeOptions::new(true, false),
-    )
-    .unwrap();
+    let deserialized = CompiledLibrary::read_from(&mut SliceReader::new(&bytes)).unwrap();
     assert_eq!(bundle, deserialized);
 
     Ok(())
@@ -88,7 +80,7 @@ fn get_module_by_path() -> Result<(), Report> {
     // create the bundle with locations
     let bundle = Assembler::default().assemble_library(modules.iter().cloned()).unwrap();
 
-    let foo_module_info = bundle.into_module_infos().next().unwrap();
+    let foo_module_info = bundle.module_infos().next().unwrap();
     assert_eq!(foo_module_info.path(), &LibraryPath::new("test::foo").unwrap());
 
     let (_, foo_proc) = foo_module_info.procedure_infos().next().unwrap();

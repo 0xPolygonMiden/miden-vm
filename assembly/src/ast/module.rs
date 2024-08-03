@@ -403,8 +403,9 @@ impl Module {
     /// Get an iterator over the "dependencies" of a module, i.e. what library namespaces we expect
     /// to find imported procedures in.
     ///
-    /// For example, if we have imported `std::math::u64`, then we would expect to import that
-    /// module from a [crate::Library] with the namespace `std`.
+    /// For example, if we have imported `std::math::u64`, then we would expect to find a library
+    /// on disk named `std.masl`, although that isn't a strict requirement. This notion of
+    /// dependencies may go away with future packaging-related changed.
     pub fn dependencies(&self) -> impl Iterator<Item = &LibraryNamespace> {
         self.import_paths().map(|import| import.namespace())
     }

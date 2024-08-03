@@ -9,9 +9,8 @@ use std::{env, path::Path};
 // CONSTANTS
 // ================================================================================================
 
-const ASM_DIR_PATH: &str = "./asm";
-const ASL_DIR_PATH: &str = "./assets";
-const _DOC_DIR_PATH: &str = "./docs";
+const ASM_DIR_PATH: &str = "asm";
+const ASL_DIR_PATH: &str = "assets";
 
 // PRE-PROCESSING
 // ================================================================================================
@@ -24,17 +23,23 @@ fn main() -> Result<()> {
     println!("cargo:rerun-if-changed=asm");
     println!("cargo:rerun-if-changed=../assembly/src");
 
+    let manifest_dir = env!("CARGO_MANIFEST_DIR");
+    let asm_dir = Path::new(manifest_dir).join(ASM_DIR_PATH);
+
     let namespace = "std".parse::<LibraryNamespace>().expect("invalid base namespace");
     // TODO: Add version to `Library`
     let _version = env!("CARGO_PKG_VERSION").parse::<Version>().expect("invalid cargo version");
-    let stdlib = CompiledLibrary::from_dir(ASM_DIR_PATH, namespace)?;
+    let stdlib = CompiledLibrary::from_dir(asm_dir, namespace)?;
 
     // write the masl output
     let build_dir = env::var("OUT_DIR").unwrap();
+    let build_dir = Path::new(&build_dir);
     let options = AstSerdeOptions::new(false, false);
-    stdlib
-        .write_to_dir(Path::new(&build_dir).join(ASL_DIR_PATH), options)
-        .into_diagnostic()?;
+    let output_file = build_dir
+        .join(ASL_DIR_PATH)
+        .join("std")
+        .with_extension(CompiledLibrary::LIBRARY_EXTENSION);
+    stdlib.write_to_file(output_file, options).into_diagnostic()?;
 
     Ok(())
 }
