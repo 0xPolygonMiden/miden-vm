@@ -29,6 +29,7 @@
 - Added `miden_core::prettier::pretty_print_csv` helper, for formatting of iterators over `PrettyPrint` values as comma-separated items
 - Added source location tracking to assembled MAST (#1419)
 - Added source code management primitives in `miden-core` (#1419)
+- Added `make test-fast` and `make test-skip-proptests` Makefile targets for faster testing during local development
 
 #### Changed
 
