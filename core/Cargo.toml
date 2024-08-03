@@ -32,15 +32,15 @@ std = [
 
 [dependencies]
 math = { package = "winter-math", version = "0.9", default-features = false }
-memchr = { version = "2.7.4", default-features = false }
+memchr = { version = "2.7", default-features = false }
 miden-crypto = { git = "https://github.com/0xPolygonMiden/crypto", branch = "next", default-features = false }
 miden-formatting = { version = "0.1", default-features = false }
 miette = { version = "7.1.0", git = "https://github.com/bitwalker/miette", branch = "no-std", default-features = false, features = [
     "fancy-no-syscall",
     "derive",
 ], optional = true }
-lock_api = { version = "0.4.12", features = ["arc_lock"] }
-parking_lot = { version = "0.12.3", optional = true }
+lock_api = { version = "0.4", features = ["arc_lock"] }
+parking_lot = { version = "0.12", optional = true }
 num-derive = { version = "0.4", default-features = false }
 num-traits = { version = "0.2", default-features = false }
 thiserror = { version = "1.0", git = "https://github.com/bitwalker/thiserror", branch = "no-std", default-features = false }

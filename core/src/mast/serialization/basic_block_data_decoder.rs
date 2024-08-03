@@ -11,6 +11,17 @@ use winter_utils::{ByteReader, Deserializable, DeserializationError, SliceReader
 pub struct BasicBlockDataDecoder<'a> {
     data: &'a [u8],
     strings: &'a [DataOffset],
+    /// This field is used to allocate an `Arc` for any string in `strings` where the decoder
+    /// requests a reference-counted string rather than a fresh allocation as a `String`.
+    ///
+    /// Currently, this is only used for debug information (source file names), but most cases
+    /// where strings are stored in MAST are stored as `Arc` in practice, we just haven't yet
+    /// updated all of the decoders.
+    ///
+    /// We lazily allocate an `Arc` when strings are decoded as an `Arc`, but the underlying
+    /// string data corresponds to the same index in `strings`. All future requests for a
+    /// ref-counted string we've allocated an `Arc` for, will clone the `Arc` rather than
+    /// allocate a fresh string.
     refc_strings: Vec<RefCell<Option<Arc<str>>>>,
 }
 

@@ -17,18 +17,16 @@ lalrpop_util::lalrpop_mod!(
 mod error;
 mod lexer;
 mod scanner;
-mod span;
 mod token;
 
 pub use self::error::{BinErrorKind, HexErrorKind, LiteralErrorKind, ParsingError};
 pub use self::lexer::Lexer;
 pub use self::scanner::Scanner;
-pub use self::span::{SourceSpan, Span, Spanned};
 pub use self::token::{BinEncodedValue, DocumentationType, HexEncodedValue, Token};
 
 use crate::{
     ast,
-    diagnostics::{Report, SourceFile},
+    diagnostics::{Report, SourceFile, SourceSpan, Span, Spanned},
     sema, LibraryPath, SourceManager,
 };
 use alloc::{boxed::Box, collections::BTreeSet, string::ToString, sync::Arc, vec::Vec};

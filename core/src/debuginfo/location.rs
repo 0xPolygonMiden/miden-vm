@@ -3,7 +3,7 @@ use core::{fmt, ops::Range};
 
 use super::ByteIndex;
 
-/// A [Location] represents traditional file/line/column information for use in rendering.
+/// A [Location] represents file and span information for portability across source managers
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct Location {
     /// The path to the source file in which the relevant source code can be found
