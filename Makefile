@@ -61,6 +61,10 @@ test-fast: ## Runs all tests with the debug profile
 test-skip-proptests: ## Runs all tests, except property-based tests
 	$(DEBUG_ASSERTIONS) cargo nextest run --features testing -E 'not test(#*proptest)'
 
+.PHONY: test-loom
+test-loom: ## Runs all loom-based tests
+	RUSTFLAGS="--cfg loom" cargo nextest run --cargo-profile test-release --features testing -E 'test(#*loom)'
+
 # --- checking ------------------------------------------------------------------------------------
 
 .PHONY: check

@@ -49,3 +49,11 @@ winter-utils = { package = "winter-utils", version = "0.9", default-features = f
 [dev-dependencies]
 proptest = "1.3"
 rand_utils = { version = "0.9", package = "winter-rand-utils" }
+loom = "0.7"
+
+[target.'cfg(loom)'.dependencies]
+loom = "0.7"
+
+# Enable once the VM reaches Rust 1.80+
+#[lints.rust]
+#unexpected_cfgs = { level = "warn", check-cfg = ['cfg(loom)'] }
