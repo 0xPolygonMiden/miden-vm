@@ -547,11 +547,11 @@ mod use_std_kernel {
         ) -> io::Result<()> {
             self.library.write_to_file(path, options)
         }
-        /// Read a directory and recursively create modules from its `masm` files.
+
+        /// Create a [KernelLibrary] from a standard Miden Assembly project layout.
         ///
-        /// For every directory, concatenate the module path with the dir name and proceed.
-        ///
-        /// For every file, pick and compile the ones with `masm` extension; skip otherwise.
+        /// This is essentially a wrapper around [CompiledLibrary::from_dir], which then validates
+        /// that the resulting [CompiledLibrary] is a valid [KernelLibrary].
         pub fn from_dir(
             path: impl AsRef<Path>,
             source_manager: Arc<dyn SourceManager>,

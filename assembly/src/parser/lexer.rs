@@ -58,6 +58,7 @@ macro_rules! pop2 {
 /// guarantee that parsing them will produce meaningful results, it is primarily to assist in
 /// gathering as many errors as possible.
 pub struct Lexer<'input> {
+    /// The [SourceId] of the file being lexed, for use in producing spans in lexer diagnostics
     source_id: SourceId,
 
     /// The scanner produces a sequence of chars + location, and can be controlled
