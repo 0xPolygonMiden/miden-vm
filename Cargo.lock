@@ -998,6 +998,7 @@ dependencies = [
  "criterion",
  "miden-core",
  "proptest",
+ "thiserror",
  "winter-air",
  "winter-prover",
  "winter-rand-utils",
@@ -1131,6 +1132,7 @@ dependencies = [
 name = "miden-test-utils"
 version = "0.1.0"
 dependencies = [
+ "miden-air",
  "miden-assembly",
  "miden-core",
  "miden-processor",

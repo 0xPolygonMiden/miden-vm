@@ -1,6 +1,7 @@
 use super::{ExecutionError, Felt, FieldElement, SysTrace, Word, EMPTY_WORD, ONE, ZERO};
 use alloc::vec::Vec;
 use core::fmt::{self, Display};
+use miden_air::RowIndex;
 
 #[cfg(test)]
 mod tests;
@@ -38,7 +39,7 @@ pub const FMP_MAX: u64 = 3 * 2_u64.pow(30) - 1;
 /// - hash of the function which initiated the current execution context. if the context was
 ///   initiated from the root context, this will be set to ZEROs.
 pub struct System {
-    clk: u32,
+    clk: RowIndex,
     ctx: ContextId,
     fmp: Felt,
     in_syscall: bool,
@@ -63,7 +64,7 @@ impl System {
         fmp_trace[0] = fmp;
 
         Self {
-            clk: 0,
+            clk: RowIndex::from(0),
             ctx: ContextId::root(),
             fmp,
             in_syscall: false,
@@ -86,7 +87,7 @@ impl System {
 
     /// Returns the current clock cycle of a process.
     #[inline(always)]
-    pub fn clk(&self) -> u32 {
+    pub fn clk(&self) -> RowIndex {
         self.clk
     }
 
@@ -118,19 +119,19 @@ impl System {
     /// Trace length of the system columns is equal to the number of cycles executed by the VM.
     #[inline(always)]
     pub fn trace_len(&self) -> usize {
-        self.clk as usize
+        self.clk.into()
     }
 
     /// Returns execution context ID at the specified clock cycle.
     #[inline(always)]
-    pub fn get_ctx_at(&self, clk: u32) -> ContextId {
-        (self.ctx_trace[clk as usize].as_int() as u32).into()
+    pub fn get_ctx_at(&self, clk: RowIndex) -> ContextId {
+        (self.ctx_trace[usize::from(clk)].as_int() as u32).into()
     }
 
     /// Returns free memory pointer at the specified clock cycle.
     #[inline(always)]
-    pub fn get_fmp_at(&self, clk: u32) -> Felt {
-        self.fmp_trace[clk as usize]
+    pub fn get_fmp_at(&self, clk: RowIndex) -> Felt {
+        self.fmp_trace[usize::from(clk)]
     }
 
     // STATE MUTATORS
@@ -141,11 +142,11 @@ impl System {
         self.clk += 1;
 
         // Check that maximum number of cycles is not exceeded.
-        if self.clk > max_cycles {
+        if u32::from(self.clk) > max_cycles {
             return Err(ExecutionError::CycleLimitExceeded(max_cycles));
         }
 
-        let clk = self.clk as usize;
+        let clk: usize = self.clk.into();
 
         self.clk_trace[clk] = Felt::from(self.clk);
         self.fmp_trace[clk] = self.fmp;
@@ -235,7 +236,7 @@ impl System {
     /// overwritten with random values. This parameter is unused because last rows are just
     /// duplicates of the prior rows and thus can be safely overwritten.
     pub fn into_trace(mut self, trace_len: usize, num_rand_rows: usize) -> SysTrace {
-        let clk = self.clk() as usize;
+        let clk: usize = self.clk().into();
         // make sure that only the duplicate rows will be overwritten with random values
         assert!(clk + num_rand_rows <= trace_len, "target trace length too small");
 
@@ -284,7 +285,7 @@ impl System {
     /// Trace length is doubled every time it needs to be increased.
     pub fn ensure_trace_capacity(&mut self) {
         let current_capacity = self.clk_trace.len();
-        if self.clk + 1 >= current_capacity as u32 {
+        if self.clk + 1 >= RowIndex::from(current_capacity) {
             let new_length = current_capacity * 2;
             self.clk_trace.resize(new_length, ZERO);
             self.ctx_trace.resize(new_length, ZERO);
@@ -313,6 +314,12 @@ impl ContextId {
     /// Returns true if the context ID represents the root context
     pub fn is_root(&self) -> bool {
         self.0 == 0
+    }
+}
+
+impl From<RowIndex> for ContextId {
+    fn from(value: RowIndex) -> Self {
+        Self(u32::from(value))
     }
 }
 

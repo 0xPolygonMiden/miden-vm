@@ -3,12 +3,15 @@ use super::{
     ZERO,
 };
 use alloc::vec::Vec;
-use miden_air::trace::{
-    chiplets::hasher::DIGEST_LEN,
-    decoder::{
-        NUM_HASHER_COLUMNS, NUM_OP_BATCH_FLAGS, NUM_OP_BITS, NUM_OP_BITS_EXTRA_COLS,
-        OP_BATCH_1_GROUPS, OP_BATCH_2_GROUPS, OP_BATCH_4_GROUPS, OP_BATCH_8_GROUPS,
+use miden_air::{
+    trace::{
+        chiplets::hasher::DIGEST_LEN,
+        decoder::{
+            NUM_HASHER_COLUMNS, NUM_OP_BATCH_FLAGS, NUM_OP_BITS, NUM_OP_BITS_EXTRA_COLS,
+            OP_BATCH_1_GROUPS, OP_BATCH_2_GROUPS, OP_BATCH_4_GROUPS, OP_BATCH_8_GROUPS,
+        },
     },
+    RowIndex,
 };
 use vm_core::{
     mast::{
@@ -700,7 +703,7 @@ impl Decoder {
     // --------------------------------------------------------------------------------------------
 
     /// Appends an asmop decorator at the specified clock cycle to the asmop list in debug mode.
-    pub fn append_asmop(&mut self, clk: u32, asmop: AssemblyOp) {
+    pub fn append_asmop(&mut self, clk: RowIndex, asmop: AssemblyOp) {
         self.debug_info.append_asmop(clk, asmop);
     }
 
@@ -821,7 +824,7 @@ impl DebugInfo {
     }
 
     /// Appends an asmop decorator at the specified clock cycle to the asmop list in debug mode.
-    pub fn append_asmop(&mut self, clk: u32, asmop: AssemblyOp) {
-        self.assembly_ops.push((clk as usize, asmop));
+    pub fn append_asmop(&mut self, clk: RowIndex, asmop: AssemblyOp) {
+        self.assembly_ops.push((clk.into(), asmop));
     }
 }

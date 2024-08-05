@@ -2,7 +2,7 @@ use super::{Felt, FieldElement, NUM_RAND_ROWS};
 use crate::{chiplets::Chiplets, utils::uninit_vector};
 use alloc::vec::Vec;
 use core::slice;
-use miden_air::trace::main_trace::MainTrace;
+use miden_air::{trace::main_trace::MainTrace, RowIndex};
 
 #[cfg(test)]
 use vm_core::{utils::ToElements, Operation};
@@ -41,7 +41,7 @@ impl<'a> TraceFragment<'a> {
 
     /// Updates a single cell in this fragment with provided value.
     #[inline(always)]
-    pub fn set(&mut self, row_idx: usize, col_idx: usize, value: Felt) {
+    pub fn set(&mut self, row_idx: RowIndex, col_idx: usize, value: Felt) {
         self.data[col_idx][row_idx] = value;
     }
 
@@ -148,10 +148,13 @@ pub struct ChipletsLengths {
 impl ChipletsLengths {
     pub fn new(chiplets: &Chiplets) -> Self {
         ChipletsLengths {
-            hash_chiplet_len: chiplets.bitwise_start(),
-            bitwise_chiplet_len: chiplets.memory_start() - chiplets.bitwise_start(),
-            memory_chiplet_len: chiplets.kernel_rom_start() - chiplets.memory_start(),
-            kernel_rom_len: chiplets.padding_start() - chiplets.kernel_rom_start(),
+            hash_chiplet_len: chiplets.bitwise_start().into(),
+            bitwise_chiplet_len: usize::from(chiplets.memory_start())
+                - usize::from(chiplets.bitwise_start()),
+            memory_chiplet_len: usize::from(chiplets.kernel_rom_start())
+                - usize::from(chiplets.memory_start()),
+            kernel_rom_len: usize::from(chiplets.padding_start())
+                - usize::from(chiplets.kernel_rom_start()),
         }
     }
 
@@ -210,9 +213,9 @@ pub trait AuxColumnBuilder<E: FieldElement<BaseField = Felt>> {
     // REQUIRED METHODS
     // --------------------------------------------------------------------------------------------
 
-    fn get_requests_at(&self, main_trace: &MainTrace, alphas: &[E], row_idx: usize) -> E;
+    fn get_requests_at(&self, main_trace: &MainTrace, alphas: &[E], row: RowIndex) -> E;
 
-    fn get_responses_at(&self, main_trace: &MainTrace, alphas: &[E], row_idx: usize) -> E;
+    fn get_responses_at(&self, main_trace: &MainTrace, alphas: &[E], row: RowIndex) -> E;
 
     // PROVIDED METHODS
     // --------------------------------------------------------------------------------------------
@@ -235,9 +238,10 @@ pub trait AuxColumnBuilder<E: FieldElement<BaseField = Felt>> {
 
         let mut requests_running_prod = E::ONE;
         for row_idx in 0..main_trace.num_rows() - 1 {
+            let row = row_idx.into();
             responses_prod[row_idx + 1] =
-                responses_prod[row_idx] * self.get_responses_at(main_trace, alphas, row_idx);
-            requests[row_idx + 1] = self.get_requests_at(main_trace, alphas, row_idx);
+                responses_prod[row_idx] * self.get_responses_at(main_trace, alphas, row);
+            requests[row_idx + 1] = self.get_requests_at(main_trace, alphas, row);
             requests_running_prod *= requests[row_idx + 1];
         }
 

@@ -1,4 +1,5 @@
 use alloc::{collections::BTreeMap, vec::Vec};
+use miden_air::RowIndex;
 
 use super::{trace::NUM_RAND_ROWS, Felt, FieldElement, RangeCheckTrace, ZERO};
 use crate::utils::uninit_vector;
@@ -43,7 +44,7 @@ pub struct RangeChecker {
     /// Range check lookups performed by all user operations, grouped and sorted by clock cycle.
     /// Each cycle is mapped to a vector of the range checks requested at that cycle, which can
     /// come from the stack, memory, or both.
-    cycle_lookups: BTreeMap<u32, Vec<u16>>,
+    cycle_lookups: BTreeMap<RowIndex, Vec<u16>>,
 }
 
 impl RangeChecker {
@@ -71,7 +72,7 @@ impl RangeChecker {
     }
 
     /// Adds range check lookups from the stack or memory to this [RangeChecker] instance.
-    pub fn add_range_checks(&mut self, clk: u32, values: &[u16]) {
+    pub fn add_range_checks(&mut self, clk: RowIndex, values: &[u16]) {
         // range checks requests only come from memory or from the stack, which always request 2 or
         // 4 lookups respectively.
         debug_assert!(values.len() == 2 || values.len() == 4);

@@ -212,7 +212,7 @@ fn div_fail() {
 
     // --- test divide by zero --------------------------------------------------------------------
     let test = build_op_test!(asm_op, &[1, 0]);
-    expect_exec_error!(test, ExecutionError::DivideByZero(1));
+    expect_exec_error!(test, ExecutionError::DivideByZero(1.into()));
 }
 
 #[test]
@@ -277,7 +277,7 @@ fn inv_fail() {
 
     // --- test no inv on 0 -----------------------------------------------------------------------
     let test = build_op_test!(asm_op, &[0]);
-    expect_exec_error!(test, ExecutionError::DivideByZero(1));
+    expect_exec_error!(test, ExecutionError::DivideByZero(1.into()));
 
     let asm_op = "inv.1";
 
@@ -318,7 +318,7 @@ fn pow2_fail() {
     expect_exec_error!(
         test,
         ExecutionError::FailedAssertion {
-            clk: 16,
+            clk: 16.into(),
             err_code: 0,
             err_msg: None,
         }
@@ -353,7 +353,7 @@ fn exp_bits_length_fail() {
     expect_exec_error!(
         test,
         ExecutionError::FailedAssertion {
-            clk: 18,
+            clk: 18.into(),
             err_code: 0,
             err_msg: None
         }
@@ -402,7 +402,7 @@ fn ilog2_fail() {
     let asm_op = "ilog2";
 
     let test = build_op_test!(asm_op, &[0]);
-    expect_exec_error!(test, ExecutionError::LogArgumentZero(1));
+    expect_exec_error!(test, ExecutionError::LogArgumentZero(1.into()));
 }
 
 // FIELD OPS BOOLEAN - MANUAL TESTS

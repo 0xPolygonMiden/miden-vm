@@ -13,6 +13,7 @@ use miden_air::trace::{
     CHIPLETS_WIDTH, DECODER_TRACE_WIDTH, MIN_TRACE_LEN, RANGE_CHECK_TRACE_WIDTH, STACK_TRACE_WIDTH,
     SYS_TRACE_WIDTH,
 };
+pub use miden_air::RowIndex;
 pub use miden_air::{ExecutionOptions, ExecutionOptionsError};
 pub use vm_core::{
     chiplets::hasher::Digest,
@@ -597,7 +598,7 @@ where
 /// A trait that defines a set of methods which allow access to the state of the process.
 pub trait ProcessState {
     /// Returns the current clock cycle of a process.
-    fn clk(&self) -> u32;
+    fn clk(&self) -> RowIndex;
 
     /// Returns the current execution context ID.
     fn ctx(&self) -> ContextId;
@@ -637,7 +638,7 @@ pub trait ProcessState {
 }
 
 impl<H: Host> ProcessState for Process<H> {
-    fn clk(&self) -> u32 {
+    fn clk(&self) -> RowIndex {
         self.system.clk()
     }
 

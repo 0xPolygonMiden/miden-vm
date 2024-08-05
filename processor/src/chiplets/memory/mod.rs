@@ -4,8 +4,11 @@ use super::{
 };
 use crate::system::ContextId;
 use alloc::{collections::BTreeMap, vec::Vec};
-use miden_air::trace::chiplets::memory::{
-    ADDR_COL_IDX, CLK_COL_IDX, CTX_COL_IDX, D0_COL_IDX, D1_COL_IDX, D_INV_COL_IDX, V_COL_RANGE,
+use miden_air::{
+    trace::chiplets::memory::{
+        ADDR_COL_IDX, CLK_COL_IDX, CTX_COL_IDX, D0_COL_IDX, D1_COL_IDX, D_INV_COL_IDX, V_COL_RANGE,
+    },
+    RowIndex,
 };
 
 mod segment;
@@ -114,7 +117,7 @@ impl Memory {
     /// Returns the entire memory state for the specified execution context at the specified cycle.
     /// The state is returned as a vector of (address, value) tuples, and includes addresses which
     /// have been accessed at least once.
-    pub fn get_state_at(&self, ctx: ContextId, clk: u32) -> Vec<(u64, Word)> {
+    pub fn get_state_at(&self, ctx: ContextId, clk: RowIndex) -> Vec<(u64, Word)> {
         if clk == 0 {
             return vec![];
         }
@@ -132,13 +135,13 @@ impl Memory {
     ///
     /// If the specified address hasn't been previously written to, four ZERO elements are
     /// returned. This effectively implies that memory is initialized to ZERO.
-    pub fn read(&mut self, ctx: ContextId, addr: u32, clk: u32) -> Word {
+    pub fn read(&mut self, ctx: ContextId, addr: u32, clk: RowIndex) -> Word {
         self.num_trace_rows += 1;
         self.trace.entry(ctx).or_default().read(addr, Felt::from(clk))
     }
 
     /// Writes the provided word at the specified context/address.
-    pub fn write(&mut self, ctx: ContextId, addr: u32, clk: u32, value: Word) {
+    pub fn write(&mut self, ctx: ContextId, addr: u32, clk: RowIndex, value: Word) {
         self.num_trace_rows += 1;
         self.trace.entry(ctx).or_default().write(addr, Felt::from(clk), value);
     }
@@ -148,7 +151,7 @@ impl Memory {
 
     /// Adds all of the range checks required by the [Memory] chiplet to the provided
     /// [RangeChecker] chiplet instance, along with their row in the finalized execution trace.
-    pub fn append_range_checks(&self, memory_start_row: usize, range: &mut RangeChecker) {
+    pub fn append_range_checks(&self, memory_start_row: RowIndex, range: &mut RangeChecker) {
         // set the previous address and clock cycle to the first address and clock cycle of the
         // trace; we also adjust the clock cycle so that delta value for the first row would end
         // up being ZERO. if the trace is empty, return without any further processing.
@@ -158,7 +161,7 @@ impl Memory {
         };
 
         // op range check index
-        let mut row = memory_start_row as u32;
+        let mut row = memory_start_row;
 
         for (&ctx, segment) in self.trace.iter() {
             for (&addr, addr_trace) in segment.inner().iter() {
@@ -171,7 +174,7 @@ impl Memory {
                     let delta = if prev_ctx != ctx {
                         (u32::from(ctx) - u32::from(prev_ctx)).into()
                     } else if prev_addr != addr {
-                        (addr - prev_addr) as u64
+                        u64::from(addr - prev_addr)
                     } else {
                         clk - prev_clk - 1
                     };
@@ -203,7 +206,7 @@ impl Memory {
 
         // iterate through addresses in ascending order, and write trace row for each memory access
         // into the trace. we expect the trace to be 14 columns wide.
-        let mut row = 0;
+        let mut row: RowIndex = 0.into();
 
         for (ctx, segment) in self.trace {
             let ctx = Felt::from(ctx);

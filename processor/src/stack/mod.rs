@@ -1,6 +1,7 @@
 use super::{Felt, FieldElement, StackInputs, StackOutputs, ONE, STACK_TRACE_WIDTH, ZERO};
 use alloc::vec::Vec;
 use core::cmp;
+use miden_air::RowIndex;
 use vm_core::{stack::STACK_TOP_SIZE, Word, WORD_SIZE};
 
 mod trace;
@@ -52,7 +53,7 @@ const MAX_TOP_IDX: usize = STACK_TOP_SIZE - 1;
 ///   column are set by the prover non-deterministically to 1 / (b0−16) when b0 != 16, and to any
 ///   other value otherwise.
 pub struct Stack {
-    clk: u32,
+    clk: RowIndex,
     trace: StackTrace,
     overflow: OverflowTable,
     active_depth: usize,
@@ -86,7 +87,7 @@ impl Stack {
         };
 
         Self {
-            clk: 0,
+            clk: RowIndex::from(0),
             trace,
             overflow,
             active_depth: depth,
@@ -103,7 +104,7 @@ impl Stack {
     }
 
     /// Returns the current clock cycle of the execution trace.
-    pub fn current_clk(&self) -> u32 {
+    pub fn current_clk(&self) -> RowIndex {
         self.clk
     }
 
@@ -111,7 +112,7 @@ impl Stack {
     ///
     /// Trace length of the stack is equal to the number of cycles executed by the VM.
     pub fn trace_len(&self) -> usize {
-        self.clk as usize
+        self.clk.into()
     }
 
     /// Returns a copy of the item currently at the top of the stack.
@@ -125,13 +126,13 @@ impl Stack {
     /// # Panics
     /// Panics if invoked for non-last clock cycle on a stack instantiated with
     /// `keep_overflow_trace` set to false.
-    pub fn get_state_at(&self, clk: u32) -> Vec<Felt> {
+    pub fn get_state_at(&self, clk: RowIndex) -> Vec<Felt> {
         let mut result = Vec::with_capacity(self.active_depth);
         self.trace.append_state_into(&mut result, clk);
         if clk == self.clk {
             self.overflow.append_into(&mut result);
         } else {
-            self.overflow.append_state_into(&mut result, clk as u64);
+            self.overflow.append_state_into(&mut result, clk.into());
         }
 
         result
@@ -186,7 +187,7 @@ impl Stack {
     /// same position at the next clock cycle.
     pub fn copy_state(&mut self, start_pos: usize) {
         self.trace.copy_stack_state_at(
-            self.clk,
+            self.clk.into(),
             start_pos,
             // TODO: change type of `active_depth` to `u32`
             Felt::try_from(self.active_depth as u64)
@@ -213,7 +214,7 @@ impl Stack {
             }
             _ => {
                 // Update the stack & overflow table.
-                let from_overflow = self.overflow.pop(self.clk as u64);
+                let from_overflow = self.overflow.pop(u64::from(self.clk));
                 self.trace.stack_shift_left_at(
                     self.clk,
                     start_pos,
@@ -287,7 +288,7 @@ impl Stack {
     /// overwritten with random values. This parameter is unused because last rows are just
     /// duplicates of the prior rows and thus can be safely overwritten.
     pub fn into_trace(self, trace_len: usize, num_rand_rows: usize) -> super::StackTrace {
-        let clk = self.current_clk() as usize;
+        let clk = usize::from(self.current_clk());
         // make sure that only the duplicate rows will be overwritten with random values
         assert!(clk + num_rand_rows <= trace_len, "target trace length too small");
 

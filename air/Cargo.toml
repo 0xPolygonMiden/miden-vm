@@ -27,13 +27,14 @@ harness = false
 
 [features]
 default = ["std"]
-std = ["vm-core/std", "winter-air/std"]
+std = ["vm-core/std", "winter-air/std", "thiserror/std"]
 testing = []
 
 [dependencies]
 vm-core = { package = "miden-core", path = "../core", version = "0.10", default-features = false }
 winter-air = { package = "winter-air", version = "0.9", default-features = false }
 winter-prover = { package = "winter-prover", version = "0.9", default-features = false }
+thiserror = { version = "1.0", git = "https://github.com/bitwalker/thiserror", branch = "no-std", default-features = false }
 
 [dev-dependencies]
 criterion = "0.5"

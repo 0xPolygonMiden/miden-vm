@@ -31,6 +31,7 @@
 - Added source code management primitives in `miden-core` (#1419)
 - Added `make test-fast` and `make test-skip-proptests` Makefile targets for faster testing during local development
 - Added `ProgramFile::read_with` constructor that takes a `SourceManager` impl to use for source management
+- Added `RowIndex(u32)` (#1408)
 
 #### Changed
 

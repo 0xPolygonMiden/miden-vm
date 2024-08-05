@@ -97,7 +97,7 @@ fn shift_left() {
 
     // Shift right twice to add 2 items to the overflow table.
     stack.shift_right(0);
-    let prev_overflow_addr = stack.current_clk() as usize;
+    let prev_overflow_addr: usize = stack.current_clk().into();
     stack.advance_clock();
     stack.shift_right(0);
     stack.advance_clock();
@@ -137,7 +137,7 @@ fn shift_right() {
 
     // ---- right shift an entire stack of minimum depth ------------------------------------------
     let expected_stack = build_stack(&[0, 4, 3, 2, 1]);
-    let expected_helpers = build_helpers_partial(1, stack.current_clk() as usize);
+    let expected_helpers = build_helpers_partial(1, stack.current_clk().into());
 
     stack.shift_right(0);
     stack.advance_clock();
@@ -150,7 +150,7 @@ fn shift_right() {
 
     // ---- right shift when the overflow table is non-empty --------------------------------------
     let expected_stack = build_stack(&[0, 0, 4, 3, 2, 1]);
-    let expected_helpers = build_helpers_partial(2, stack.current_clk() as usize);
+    let expected_helpers = build_helpers_partial(2, stack.current_clk().into());
 
     stack.shift_right(0);
     stack.advance_clock();

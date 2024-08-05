@@ -608,7 +608,6 @@ fn check_hasher_state_trace(trace: &[Vec<Felt>], row_idx: usize, init_state: Has
     }
 }
 
-/// Makes sure that the trace is copied correctly on memoization
 fn check_memoized_trace(
     trace: &[Vec<Felt>],
     start_row: usize,

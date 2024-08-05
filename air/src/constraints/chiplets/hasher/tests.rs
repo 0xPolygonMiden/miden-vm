@@ -4,7 +4,7 @@ use super::{
 };
 use crate::{
     trace::chiplets::hasher::{Selectors, LINEAR_HASH, STATE_WIDTH},
-    Felt, TRACE_WIDTH,
+    Felt, RowIndex, TRACE_WIDTH,
 };
 use alloc::vec::Vec;
 use rand_utils::rand_array;
@@ -20,12 +20,12 @@ use winter_air::EvaluationFrame;
 fn hash_round() {
     let expected = [ZERO; NUM_CONSTRAINTS];
 
-    let cycle_row_num: usize = 3;
+    let cycle_row = 3.into();
     let current_selectors = [ZERO, LINEAR_HASH[1], LINEAR_HASH[2]];
     let next_selectors = current_selectors;
 
-    let frame = get_test_hashing_frame(current_selectors, next_selectors, cycle_row_num);
-    let result = get_constraint_evaluation(frame, cycle_row_num);
+    let frame = get_test_hashing_frame(current_selectors, next_selectors, cycle_row);
+    let result = get_constraint_evaluation(frame, cycle_row);
     assert_eq!(expected, result);
 }
 
@@ -36,10 +36,10 @@ fn hash_round() {
 /// the specified row.
 fn get_constraint_evaluation(
     frame: EvaluationFrame<Felt>,
-    cycle_row_num: usize,
+    cycle_row: RowIndex,
 ) -> [Felt; NUM_CONSTRAINTS] {
     let mut result = [ZERO; NUM_CONSTRAINTS];
-    let periodic_values = get_test_periodic_values(cycle_row_num);
+    let periodic_values = get_test_periodic_values(cycle_row);
 
     enforce_constraints(&frame, &periodic_values, &mut result, ONE);
 
@@ -47,12 +47,12 @@ fn get_constraint_evaluation(
 }
 
 /// Returns the values from the periodic columns for the specified cycle row.
-fn get_test_periodic_values(cycle_row: usize) -> Vec<Felt> {
+fn get_test_periodic_values(cycle_row: RowIndex) -> Vec<Felt> {
     // Set the periodic column values.
-    let mut periodic_values = match cycle_row {
-        0 => vec![ZERO, ZERO, ONE],
-        7 => vec![ZERO, ONE, ZERO],
-        8 => vec![ONE, ZERO, ZERO],
+    let mut periodic_values = match cycle_row.into() {
+        0u32 => vec![ZERO, ZERO, ONE],
+        7u32 => vec![ZERO, ONE, ZERO],
+        8u32 => vec![ONE, ZERO, ZERO],
         _ => vec![ZERO, ZERO, ZERO],
     };
 
@@ -70,7 +70,7 @@ fn get_test_periodic_values(cycle_row: usize) -> Vec<Felt> {
 fn get_test_hashing_frame(
     current_selectors: Selectors,
     next_selectors: Selectors,
-    cycle_row_num: usize,
+    cycle_row: RowIndex,
 ) -> EvaluationFrame<Felt> {
     let mut current = vec![ZERO; TRACE_WIDTH];
     let mut next = vec![ZERO; TRACE_WIDTH];
@@ -84,7 +84,7 @@ fn get_test_hashing_frame(
     current[HASHER_STATE_COL_RANGE].copy_from_slice(&state);
 
     // Set the hasher state after a single permutation.
-    apply_round(&mut state, cycle_row_num);
+    apply_round(&mut state, cycle_row.into());
     next[HASHER_STATE_COL_RANGE].copy_from_slice(&state);
 
     // Set the node index values to zero for hash computations.
