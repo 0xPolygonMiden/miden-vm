@@ -287,9 +287,9 @@ where
     let clk = system.clk();
 
     // trace lengths of system and stack components must be equal to the number of executed cycles
-    assert_eq!(usize::from(clk), system.trace_len(), "inconsistent system trace lengths");
-    assert_eq!(usize::from(clk), decoder.trace_len(), "inconsistent decoder trace length");
-    assert_eq!(usize::from(clk), stack.trace_len(), "inconsistent stack trace lengths");
+    assert_eq!(clk.as_usize(), system.trace_len(), "inconsistent system trace lengths");
+    assert_eq!(clk.as_usize(), decoder.trace_len(), "inconsistent decoder trace length");
+    assert_eq!(clk.as_usize(), stack.trace_len(), "inconsistent stack trace lengths");
 
     // Add the range checks required by the chiplets to the range checker.
     chiplets.append_range_checks(&mut range);

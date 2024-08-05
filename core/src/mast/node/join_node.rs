@@ -34,9 +34,9 @@ impl JoinNode {
         mast_forest: &MastForest,
     ) -> Result<Self, MastForestError> {
         let forest_len = mast_forest.nodes.len();
-        if usize::from(children[0]) >= forest_len {
+        if children[0].as_usize() >= forest_len {
             return Err(MastForestError::NodeIdOverflow(children[0], forest_len));
-        } else if usize::from(children[1]) >= forest_len {
+        } else if children[1].as_usize() >= forest_len {
             return Err(MastForestError::NodeIdOverflow(children[1], forest_len));
         }
         let digest = {

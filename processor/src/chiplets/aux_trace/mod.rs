@@ -721,7 +721,7 @@ where
     let op_label = get_op_label(selector0, selector1, selector2, selector3);
 
     // f_bp, f_mp, f_mv or f_mu == 1
-    if usize::from(row) % HASH_CYCLE_LEN == 0 {
+    if row.as_usize() % HASH_CYCLE_LEN == 0 {
         let state = main_trace.chiplet_hasher_state(row);
         let alphas_state = &alphas[NUM_HEADER_ALPHAS..(NUM_HEADER_ALPHAS + STATE_WIDTH)];
         let node_index = main_trace.chiplet_node_index(row);
@@ -755,7 +755,7 @@ where
     }
 
     // f_hout, f_sout, f_abp == 1
-    if usize::from(row) % HASH_CYCLE_LEN == HASH_CYCLE_LEN - 1 {
+    if row.as_usize() % HASH_CYCLE_LEN == HASH_CYCLE_LEN - 1 {
         let state = main_trace.chiplet_hasher_state(row);
         let alphas_state = &alphas[NUM_HEADER_ALPHAS..(NUM_HEADER_ALPHAS + STATE_WIDTH)];
         let node_index = main_trace.chiplet_node_index(row);
@@ -811,7 +811,7 @@ where
     E: FieldElement<BaseField = Felt>,
 {
     let is_xor = main_trace.chiplet_selector_2(row);
-    if usize::from(row) % BITWISE_OP_CYCLE_LEN == BITWISE_OP_CYCLE_LEN - 1 {
+    if row.as_usize() % BITWISE_OP_CYCLE_LEN == BITWISE_OP_CYCLE_LEN - 1 {
         let op_label = get_op_label(ONE, ZERO, is_xor, ZERO);
 
         let a = main_trace.chiplet_bitwise_a(row);

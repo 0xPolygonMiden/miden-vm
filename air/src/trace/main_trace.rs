@@ -436,7 +436,7 @@ impl MainTrace {
     /// Returns `true` if the hasher chiplet flags indicate the initialization of verifying
     /// a Merkle path to an old node during Merkle root update procedure (MRUPDATE).
     pub fn f_mv(&self, i: RowIndex) -> bool {
-        (usize::from(i) % HASH_CYCLE_LEN == 0)
+        (i.as_usize() % HASH_CYCLE_LEN == 0)
             && self.chiplet_selector_0(i) == ZERO
             && self.chiplet_selector_1(i) == ONE
             && self.chiplet_selector_2(i) == ONE
@@ -446,7 +446,7 @@ impl MainTrace {
     /// Returns `true` if the hasher chiplet flags indicate the continuation of verifying
     /// a Merkle path to an old node during Merkle root update procedure (MRUPDATE).
     pub fn f_mva(&self, i: RowIndex) -> bool {
-        (usize::from(i) % HASH_CYCLE_LEN == HASH_CYCLE_LEN - 1)
+        (i.as_usize() % HASH_CYCLE_LEN == HASH_CYCLE_LEN - 1)
             && self.chiplet_selector_0(i) == ZERO
             && self.chiplet_selector_1(i) == ONE
             && self.chiplet_selector_2(i) == ONE
@@ -456,7 +456,7 @@ impl MainTrace {
     /// Returns `true` if the hasher chiplet flags indicate the initialization of verifying
     /// a Merkle path to a new node during Merkle root update procedure (MRUPDATE).
     pub fn f_mu(&self, i: RowIndex) -> bool {
-        (usize::from(i) % HASH_CYCLE_LEN == 0)
+        (i.as_usize() % HASH_CYCLE_LEN == 0)
             && self.chiplet_selector_0(i) == ZERO
             && self.chiplet_selector_1(i) == ONE
             && self.chiplet_selector_2(i) == ONE
@@ -466,7 +466,7 @@ impl MainTrace {
     /// Returns `true` if the hasher chiplet flags indicate the continuation of verifying
     /// a Merkle path to a new node during Merkle root update procedure (MRUPDATE).
     pub fn f_mua(&self, i: RowIndex) -> bool {
-        (usize::from(i) % HASH_CYCLE_LEN == HASH_CYCLE_LEN - 1)
+        (i.as_usize() % HASH_CYCLE_LEN == HASH_CYCLE_LEN - 1)
             && self.chiplet_selector_0(i) == ZERO
             && self.chiplet_selector_1(i) == ONE
             && self.chiplet_selector_2(i) == ONE

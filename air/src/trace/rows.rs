@@ -20,6 +20,16 @@ pub enum RowIndexError<T> {
 #[derive(Debug, Copy, Clone, Eq, Ord, PartialOrd)]
 pub struct RowIndex(u32);
 
+impl RowIndex {
+    pub fn as_usize(&self) -> usize {
+        self.0 as usize
+    }
+
+    pub fn as_u32(&self) -> u32 {
+        self.0
+    }
+}
+
 impl Display for RowIndex {
     fn fmt(&self, f: &mut Formatter) -> core::fmt::Result {
         write!(f, "{}", self.0)
@@ -126,13 +136,21 @@ impl SubAssign<u32> for RowIndex {
     }
 }
 
+impl Sub<RowIndex> for RowIndex {
+    type Output = usize;
+
+    fn sub(self, rhs: RowIndex) -> Self::Output {
+        (self.0 - rhs.0) as usize
+    }
+}
+
 impl RowIndex {
     pub fn saturating_sub(self, rhs: u32) -> Self {
         RowIndex(self.0.saturating_sub(rhs))
     }
 
-    pub fn max(self, other: u32) -> Self {
-        RowIndex(self.0.max(other))
+    pub fn max(self, other: RowIndex) -> Self {
+        RowIndex(self.0.max(other.0))
     }
 }
 

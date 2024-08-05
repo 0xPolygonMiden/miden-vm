@@ -148,12 +148,9 @@ impl ChipletsLengths {
     pub fn new(chiplets: &Chiplets) -> Self {
         ChipletsLengths {
             hash_chiplet_len: chiplets.bitwise_start().into(),
-            bitwise_chiplet_len: usize::from(chiplets.memory_start())
-                - usize::from(chiplets.bitwise_start()),
-            memory_chiplet_len: usize::from(chiplets.kernel_rom_start())
-                - usize::from(chiplets.memory_start()),
-            kernel_rom_len: usize::from(chiplets.padding_start())
-                - usize::from(chiplets.kernel_rom_start()),
+            bitwise_chiplet_len: chiplets.memory_start() - chiplets.bitwise_start(),
+            memory_chiplet_len: chiplets.kernel_rom_start() - chiplets.memory_start(),
+            kernel_rom_len: chiplets.padding_start() - chiplets.kernel_rom_start(),
         }
     }
 

@@ -37,9 +37,9 @@ impl SplitNode {
         mast_forest: &MastForest,
     ) -> Result<Self, MastForestError> {
         let forest_len = mast_forest.nodes.len();
-        if usize::from(branches[0]) >= forest_len {
+        if branches[0].as_usize() >= forest_len {
             return Err(MastForestError::NodeIdOverflow(branches[0], forest_len));
-        } else if usize::from(branches[1]) >= forest_len {
+        } else if branches[1].as_usize() >= forest_len {
             return Err(MastForestError::NodeIdOverflow(branches[1], forest_len));
         }
         let digest = {

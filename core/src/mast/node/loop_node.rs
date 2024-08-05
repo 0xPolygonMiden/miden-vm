@@ -33,7 +33,7 @@ impl LoopNode {
 /// Constructors
 impl LoopNode {
     pub fn new(body: MastNodeId, mast_forest: &MastForest) -> Result<Self, MastForestError> {
-        if usize::from(body) >= mast_forest.nodes.len() {
+        if body.as_usize() >= mast_forest.nodes.len() {
             return Err(MastForestError::NodeIdOverflow(body, mast_forest.nodes.len()));
         }
         let digest = {
