@@ -1,4 +1,5 @@
 use alloc::vec::Vec;
+
 use miden_air::ProcessorAir;
 use processor::crypto::RpoRandomCoin;
 use test_utils::{
@@ -141,12 +142,7 @@ pub fn generate_advice_inputs(
     for partial_tree in &partial_trees_fri {
         store.extend(partial_tree.inner_nodes());
     }
-    Ok(VerifierData {
-        initial_stack,
-        tape,
-        store,
-        advice_map,
-    })
+    Ok(VerifierData { initial_stack, tape, store, advice_map })
 }
 
 // Helpers

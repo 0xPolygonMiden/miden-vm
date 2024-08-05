@@ -34,11 +34,7 @@ pub struct ProcedureAlias {
 impl ProcedureAlias {
     /// Creates a new procedure alias called `name`, which resolves to `target`.
     pub fn new(name: ProcedureName, target: AliasTarget) -> Self {
-        Self {
-            docs: None,
-            name,
-            target,
-        }
+        Self { docs: None, name, target }
     }
 
     /// Adds documentation to this procedure alias.
@@ -86,7 +82,7 @@ impl ProcedureAlias {
             AliasTarget::MastRoot(_) => true,
             AliasTarget::ProcedurePath(fqn) | AliasTarget::AbsoluteProcedurePath(fqn) => {
                 fqn.name != self.name
-            }
+            },
         }
     }
 }
@@ -104,11 +100,7 @@ impl ProcedureAlias {
     ) -> Result<Self, DeserializationError> {
         let name = ProcedureName::read_from_with_options(source, options)?;
         let target = AliasTarget::read_from_with_options(source, options)?;
-        Ok(Self {
-            docs: None,
-            name,
-            target,
-        })
+        Ok(Self { docs: None, name, target })
     }
 }
 
@@ -141,7 +133,7 @@ impl crate::prettier::PrettyPrint for ProcedureAlias {
                 } else {
                     display(format_args!("{}{}", prefix, target))
                 }
-            }
+            },
         };
         doc
     }
@@ -191,10 +183,10 @@ impl TryFrom<InvocationTarget> for AliasTarget {
                 let ns = crate::LibraryNamespace::from_ident_unchecked(module);
                 let module = crate::LibraryPath::new_from_components(ns, []);
                 Ok(Self::ProcedurePath(QualifiedProcedureName { span, module, name }))
-            }
+            },
             InvocationTarget::AbsoluteProcedurePath { name, path: module } => {
                 Ok(Self::AbsoluteProcedurePath(QualifiedProcedureName { span, module, name }))
-            }
+            },
             target @ InvocationTarget::ProcedureName(_) => Err(target),
         }
     }
@@ -208,7 +200,7 @@ impl From<&AliasTarget> for InvocationTarget {
                 let name = fqn.name.clone();
                 let module = fqn.module.last_component().to_ident();
                 Self::ProcedurePath { name, module }
-            }
+            },
             AliasTarget::AbsoluteProcedurePath(ref fqn) => Self::AbsoluteProcedurePath {
                 name: fqn.name.clone(),
                 path: fqn.module.clone(),
@@ -224,10 +216,9 @@ impl From<AliasTarget> for InvocationTarget {
                 let name = fqn.name;
                 let module = fqn.module.last_component().to_ident();
                 Self::ProcedurePath { name, module }
-            }
-            AliasTarget::AbsoluteProcedurePath(fqn) => Self::AbsoluteProcedurePath {
-                name: fqn.name,
-                path: fqn.module,
+            },
+            AliasTarget::AbsoluteProcedurePath(fqn) => {
+                Self::AbsoluteProcedurePath { name: fqn.name, path: fqn.module }
             },
         }
     }
@@ -235,8 +226,9 @@ impl From<AliasTarget> for InvocationTarget {
 
 impl crate::prettier::PrettyPrint for AliasTarget {
     fn render(&self) -> crate::prettier::Document {
-        use crate::prettier::*;
         use vm_core::utils::DisplayHex;
+
+        use crate::prettier::*;
 
         match self {
             Self::MastRoot(digest) => display(DisplayHex(digest.as_bytes().as_slice())),
@@ -283,15 +275,15 @@ impl AliasTarget {
             0 => {
                 let root = Span::<RpoDigest>::read_from_with_options(source, options.debug_info)?;
                 Ok(Self::MastRoot(root))
-            }
+            },
             1 => {
                 let path = QualifiedProcedureName::read_from_with_options(source, options)?;
                 Ok(Self::ProcedurePath(path))
-            }
+            },
             2 => {
                 let path = QualifiedProcedureName::read_from_with_options(source, options)?;
                 Ok(Self::AbsoluteProcedurePath(path))
-            }
+            },
             n => Err(DeserializationError::InvalidValue(format!(
                 "{} is not a valid alias target type",
                 n

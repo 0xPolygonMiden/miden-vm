@@ -2,12 +2,7 @@
 //! For now, the logic is limited to GPU accelerating trace and constraint commitments,
 //! using the RPO 256 or RPX 256 hash functions.
 
-use crate::{
-    crypto::{RandomCoin, Rpo256},
-    math::fft,
-    ExecutionProver, ExecutionTrace, Felt, FieldElement, ProcessorAir, PublicInputs,
-    WinterProofOptions,
-};
+use std::{boxed::Box, marker::PhantomData, time::Instant, vec::Vec};
 
 use air::{AuxRandElements, LagrangeKernelEvaluationFrame};
 use elsa::FrozenVec;
@@ -20,7 +15,6 @@ use processor::{
     crypto::{ElementHasher, Hasher},
     ONE,
 };
-use std::{boxed::Box, marker::PhantomData, time::Instant, vec::Vec};
 use tracing::{event, Level};
 use winter_prover::{
     crypto::{Digest, MerkleTree},
@@ -29,6 +23,13 @@ use winter_prover::{
     CompositionPoly, CompositionPolyTrace, ConstraintCommitment, ConstraintCompositionCoefficients,
     DefaultConstraintEvaluator, EvaluationFrame, Prover, StarkDomain, TraceInfo, TraceLde,
     TracePolyTable,
+};
+
+use crate::{
+    crypto::{RandomCoin, Rpo256},
+    math::fft,
+    ExecutionProver, ExecutionTrace, Felt, FieldElement, ProcessorAir, PublicInputs,
+    WinterProofOptions,
 };
 
 #[cfg(test)]

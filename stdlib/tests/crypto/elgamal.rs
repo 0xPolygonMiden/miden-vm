@@ -1,6 +1,8 @@
-use crate::math::ecgfp5::{base_field::Ext5, group::ECExt5};
 use std::ops::Add;
+
 use test_utils::{rand::rand_array, Felt, FieldElement};
+
+use crate::math::ecgfp5::{base_field::Ext5, group::ECExt5};
 
 fn gen_random_private_key() -> [u32; 10] {
     rand_array::<u32, 10>()
@@ -9,18 +11,18 @@ fn gen_random_private_key() -> [u32; 10] {
 fn get_generator() -> ECExt5 {
     ECExt5 {
         x: Ext5::new(
-            0xb2ca178ecf4453a1,
-            0x3c757788836d3ea4,
-            0x48d7f28a26dafd0b,
-            0x1e0f15c7fd44c28e,
-            0x21fa7ffcc8252211,
+            0xB2CA178ECF4453A1,
+            0x3C757788836D3EA4,
+            0x48D7F28A26DAFD0B,
+            0x1E0F15C7FD44C28E,
+            0x21FA7FFCC8252211,
         ),
         y: Ext5::new(
-            0xb2ca178ecf4453a1,
-            0x3c757788836d3ea4,
-            0x48d7f28a26dafd0b,
-            0x1e0f15c7fd44c28e,
-            0x21fa7ffcc8252211,
+            0xB2CA178ECF4453A1,
+            0x3C757788836D3EA4,
+            0x48D7F28A26DAFD0B,
+            0x1E0F15C7FD44C28E,
+            0x21FA7FFCC8252211,
         ) * Ext5::from_int(4),
         point_at_infinity: Felt::ZERO,
     }

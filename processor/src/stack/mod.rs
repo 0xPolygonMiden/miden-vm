@@ -1,8 +1,10 @@
-use super::{Felt, FieldElement, StackInputs, StackOutputs, ONE, STACK_TRACE_WIDTH, ZERO};
 use alloc::vec::Vec;
 use core::cmp;
+
 use miden_air::RowIndex;
 use vm_core::{stack::STACK_TOP_SIZE, Word, WORD_SIZE};
+
+use super::{Felt, FieldElement, StackInputs, StackOutputs, ONE, STACK_TRACE_WIDTH, ZERO};
 
 mod trace;
 use trace::StackTrace;
@@ -211,7 +213,7 @@ impl Stack {
             STACK_TOP_SIZE => {
                 // Shift in a ZERO, to prevent depth shrinking below the minimum stack depth.
                 self.trace.stack_shift_left_at(self.clk, start_pos, ZERO, None);
-            }
+            },
             _ => {
                 // Update the stack & overflow table.
                 let from_overflow = self.overflow.pop(u64::from(self.clk));
@@ -225,7 +227,7 @@ impl Stack {
                 // Stack depth only decreases when it is greater than the minimum stack depth.
                 self.active_depth -= 1;
                 self.full_depth -= 1;
-            }
+            },
         }
     }
 

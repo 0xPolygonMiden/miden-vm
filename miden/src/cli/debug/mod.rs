@@ -1,8 +1,10 @@
-use super::data::{Debug, InputFile, Libraries, ProgramFile};
+use std::{path::PathBuf, sync::Arc};
+
 use assembly::diagnostics::Report;
 use clap::Parser;
 use rustyline::{error::ReadlineError, Config, DefaultEditor, EditMode};
-use std::{path::PathBuf, sync::Arc};
+
+use super::data::{Debug, InputFile, Libraries, ProgramFile};
 
 mod command;
 use command::DebugCommand;
@@ -78,18 +80,18 @@ impl DebugCmd {
                             println!("Debugging complete");
                             break;
                         }
-                    }
+                    },
                     Ok(None) => (),
                     Err(err) => eprintln!("{err}"),
                 },
                 Err(ReadlineError::Interrupted) => {
                     // ctrl+c is a transparent interruption and should provide not feedback or
                     // action.
-                }
+                },
                 Err(ReadlineError::Eof) => {
                     eprintln!("CTRL-D");
                     break;
-                }
+                },
                 Err(err) => eprintln!("malformed command - failed to read user input: {}", err),
             }
         }

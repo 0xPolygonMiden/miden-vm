@@ -354,9 +354,11 @@ impl<'a> Compile for &'a std::path::Path {
         source_manager: &dyn SourceManager,
         options: Options,
     ) -> Result<Box<Module>, Report> {
-        use crate::{ast::Ident, library::PathError};
         use std::path::Component;
+
         use vm_core::debuginfo::SourceManagerExt;
+
+        use crate::{ast::Ident, library::PathError};
 
         let path = match options.path {
             Some(path) => path,
@@ -390,7 +392,7 @@ impl<'a> Compile for &'a std::path::Path {
                         Ok::<(), Report>(())
                     })?;
                 LibraryPath::new_from_components(ns, parts)
-            }
+            },
         };
         let source_file = source_manager
             .load_file(self)

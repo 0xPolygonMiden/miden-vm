@@ -1,9 +1,10 @@
+use core::ops::ControlFlow;
+
 use crate::{
     ast::*,
     sema::{AnalysisContext, SemanticAnalysisError},
     Felt, Span, Spanned,
 };
-use core::ops::ControlFlow;
 
 /// This visitor evaluates all constant expressions and folds them to literals.
 pub struct ConstEvalVisitor<'analyzer> {
@@ -29,17 +30,17 @@ impl<'analyzer> ConstEvalVisitor<'analyzer> {
                     Ok(value) => match T::try_from(value.as_int()) {
                         Ok(value) => {
                             *imm = Immediate::Value(Span::new(span, value));
-                        }
+                        },
                         Err(_) => {
                             self.analyzer.error(SemanticAnalysisError::ImmediateOverflow { span });
-                        }
+                        },
                     },
                     Err(error) => {
                         self.analyzer.error(error);
-                    }
+                    },
                 }
                 ControlFlow::Continue(())
-            }
+            },
         }
     }
 }
@@ -65,13 +66,13 @@ impl<'analyzer> VisitMut for ConstEvalVisitor<'analyzer> {
                 match self.analyzer.get_constant(name) {
                     Ok(value) => {
                         *imm = Immediate::Value(Span::new(span, value));
-                    }
+                    },
                     Err(error) => {
                         self.analyzer.error(error);
-                    }
+                    },
                 }
                 ControlFlow::Continue(())
-            }
+            },
         }
     }
 }

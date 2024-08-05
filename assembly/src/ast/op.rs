@@ -46,26 +46,20 @@ impl Op {
         }
         target.write_u8(self.tag());
         match self {
-            Self::If {
-                ref then_blk,
-                ref else_blk,
-                ..
-            } => {
+            Self::If { ref then_blk, ref else_blk, .. } => {
                 then_blk.write_into_with_options(target, options);
                 else_blk.write_into_with_options(target, options);
-            }
+            },
             Self::While { ref body, .. } => {
                 body.write_into_with_options(target, options);
-            }
-            Self::Repeat {
-                count, ref body, ..
-            } => {
+            },
+            Self::Repeat { count, ref body, .. } => {
                 target.write_u32(*count);
                 body.write_into_with_options(target, options);
-            }
+            },
             Self::Inst(ref inst) => {
                 (**inst).write_into(target);
-            }
+            },
         }
     }
 
@@ -82,25 +76,21 @@ impl Op {
             0 => {
                 let then_blk = Block::read_from_with_options(source, options)?;
                 let else_blk = Block::read_from_with_options(source, options)?;
-                Ok(Self::If {
-                    span,
-                    then_blk,
-                    else_blk,
-                })
-            }
+                Ok(Self::If { span, then_blk, else_blk })
+            },
             1 => {
                 let body = Block::read_from_with_options(source, options)?;
                 Ok(Self::While { span, body })
-            }
+            },
             2 => {
                 let count = source.read_u32()?;
                 let body = Block::read_from_with_options(source, options)?;
                 Ok(Self::Repeat { span, count, body })
-            }
+            },
             3 => {
                 let inst = Instruction::read_from(source)?;
                 Ok(Self::Inst(Span::new(span, inst)))
-            }
+            },
             n => Err(DeserializationError::InvalidValue(format!("{n} is not a valid op tag"))),
         }
     }
@@ -121,11 +111,7 @@ impl crate::prettier::PrettyPrint for Op {
         use crate::prettier::*;
 
         match self {
-            Self::If {
-                ref then_blk,
-                ref else_blk,
-                ..
-            } => {
+            Self::If { ref then_blk, ref else_blk, .. } => {
                 text("if.true")
                     + nl()
                     + then_blk.render()
@@ -135,13 +121,13 @@ impl crate::prettier::PrettyPrint for Op {
                     + else_blk.render()
                     + nl()
                     + text("end")
-            }
+            },
             Self::While { ref body, .. } => {
                 text("while.true") + nl() + body.render() + nl() + text("end")
-            }
-            Self::Repeat {
-                count, ref body, ..
-            } => display(format!("repeat.{count}")) + nl() + body.render() + nl() + text("end"),
+            },
+            Self::Repeat { count, ref body, .. } => {
+                display(format!("repeat.{count}")) + nl() + body.render() + nl() + text("end")
+            },
             Self::Inst(ref inst) => inst.render(),
         }
     }
@@ -150,17 +136,13 @@ impl crate::prettier::PrettyPrint for Op {
 impl fmt::Debug for Op {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
-            Self::If {
-                ref then_blk,
-                ref else_blk,
-                ..
-            } => f.debug_struct("If").field("then", then_blk).field("else", else_blk).finish(),
+            Self::If { ref then_blk, ref else_blk, .. } => {
+                f.debug_struct("If").field("then", then_blk).field("else", else_blk).finish()
+            },
             Self::While { ref body, .. } => f.debug_tuple("While").field(body).finish(),
-            Self::Repeat {
-                ref count,
-                ref body,
-                ..
-            } => f.debug_struct("Repeat").field("count", count).field("body", body).finish(),
+            Self::Repeat { ref count, ref body, .. } => {
+                f.debug_struct("Repeat").field("count", count).field("body", body).finish()
+            },
             Self::Inst(ref inst) => fmt::Debug::fmt(&**inst, f),
         }
     }
@@ -172,29 +154,13 @@ impl PartialEq for Op {
     fn eq(&self, other: &Self) -> bool {
         match (self, other) {
             (
-                Self::If {
-                    then_blk: lt,
-                    else_blk: le,
-                    ..
-                },
-                Self::If {
-                    then_blk: rt,
-                    else_blk: re,
-                    ..
-                },
+                Self::If { then_blk: lt, else_blk: le, .. },
+                Self::If { then_blk: rt, else_blk: re, .. },
             ) => lt == rt && le == re,
             (Self::While { body: lbody, .. }, Self::While { body: rbody, .. }) => lbody == rbody,
             (
-                Self::Repeat {
-                    count: lcount,
-                    body: lbody,
-                    ..
-                },
-                Self::Repeat {
-                    count: rcount,
-                    body: rbody,
-                    ..
-                },
+                Self::Repeat { count: lcount, body: lbody, .. },
+                Self::Repeat { count: rcount, body: rbody, .. },
             ) => lcount == rcount && lbody == rbody,
             (Self::Inst(l), Self::Inst(r)) => l == r,
             _ => false,

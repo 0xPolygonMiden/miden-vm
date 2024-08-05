@@ -16,10 +16,7 @@ pub struct AstSerdeOptions {
 
 impl AstSerdeOptions {
     pub const fn new(serialize_imports: bool, debug_info: bool) -> Self {
-        Self {
-            serialize_imports,
-            debug_info,
-        }
+        Self { serialize_imports, debug_info }
     }
 
     pub fn with_debug_info(mut self, yes: bool) -> Self {

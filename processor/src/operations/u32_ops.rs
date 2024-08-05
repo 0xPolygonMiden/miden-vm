@@ -232,13 +232,14 @@ where
 
 #[cfg(test)]
 mod tests {
+    use miden_air::trace::{decoder::NUM_USER_OP_HELPERS, stack::STACK_TOP_SIZE};
+    use test_utils::rand::rand_value;
+
     use super::{
         super::{Felt, Operation},
         split_u32_into_u16, Process,
     };
     use crate::{StackInputs, ZERO};
-    use miden_air::trace::{decoder::NUM_USER_OP_HELPERS, stack::STACK_TOP_SIZE};
-    use test_utils::rand::rand_value;
 
     // CASTING OPERATIONS
     // --------------------------------------------------------------------------------------------

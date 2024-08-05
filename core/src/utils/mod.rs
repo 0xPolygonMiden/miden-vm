@@ -1,6 +1,5 @@
 pub mod sync;
 
-use crate::Felt;
 use alloc::vec::Vec;
 use core::{
     fmt::Debug,
@@ -9,7 +8,6 @@ use core::{
 
 // RE-EXPORTS
 // ================================================================================================
-
 pub use miden_crypto::utils::{
     collections, uninit_vector, ByteReader, ByteWriter, Deserializable, DeserializationError,
     Serializable, SliceReader,
@@ -17,6 +15,8 @@ pub use miden_crypto::utils::{
 pub use winter_utils::group_slice_elements;
 #[cfg(feature = "std")]
 pub use winter_utils::ReadAdapter;
+
+use crate::Felt;
 
 pub mod math {
     pub use math::batch_inversion;
@@ -80,10 +80,7 @@ impl<T: Copy> PushMany<T> for Vec<T> {
 
 /// Returns a [Range] initialized with the specified `start` and with `end` set to `start` + `len`.
 pub const fn range(start: usize, len: usize) -> Range<usize> {
-    Range {
-        start,
-        end: start + len,
-    }
+    Range { start, end: start + len }
 }
 
 /// Converts and parses a [Bound] into an included u64 value.
@@ -100,7 +97,7 @@ where
             } else {
                 u64::MAX
             }
-        }
+        },
     }
 }
 

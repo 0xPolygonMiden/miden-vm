@@ -72,20 +72,14 @@ impl LoopNode {
 
 impl LoopNode {
     pub(super) fn to_display<'a>(&'a self, mast_forest: &'a MastForest) -> impl fmt::Display + 'a {
-        LoopNodePrettyPrint {
-            loop_node: self,
-            mast_forest,
-        }
+        LoopNodePrettyPrint { loop_node: self, mast_forest }
     }
 
     pub(super) fn to_pretty_print<'a>(
         &'a self,
         mast_forest: &'a MastForest,
     ) -> impl PrettyPrint + 'a {
-        LoopNodePrettyPrint {
-            loop_node: self,
-            mast_forest,
-        }
+        LoopNodePrettyPrint { loop_node: self, mast_forest }
     }
 }
 

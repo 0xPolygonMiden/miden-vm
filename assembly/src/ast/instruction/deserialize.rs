@@ -72,7 +72,7 @@ impl Deserializable for Instruction {
             OpCode::U32OverflowingAdd => Ok(Self::U32OverflowingAdd),
             OpCode::U32OverflowingAddImm => {
                 Ok(Self::U32OverflowingAddImm(source.read_u32()?.into()))
-            }
+            },
             OpCode::U32OverflowingAdd3 => Ok(Self::U32OverflowingAdd3),
             OpCode::U32WrappingAdd3 => Ok(Self::U32WrappingAdd3),
             OpCode::U32WrappingSub => Ok(Self::U32WrappingSub),
@@ -80,13 +80,13 @@ impl Deserializable for Instruction {
             OpCode::U32OverflowingSub => Ok(Self::U32OverflowingSub),
             OpCode::U32OverflowingSubImm => {
                 Ok(Self::U32OverflowingSubImm(source.read_u32()?.into()))
-            }
+            },
             OpCode::U32WrappingMul => Ok(Self::U32WrappingMul),
             OpCode::U32WrappingMulImm => Ok(Self::U32WrappingMulImm(source.read_u32()?.into())),
             OpCode::U32OverflowingMul => Ok(Self::U32OverflowingMul),
             OpCode::U32OverflowingMulImm => {
                 Ok(Self::U32OverflowingMulImm(source.read_u32()?.into()))
-            }
+            },
             OpCode::U32OverflowingMadd => Ok(Self::U32OverflowingMadd),
             OpCode::U32WrappingMadd => Ok(Self::U32WrappingMadd),
             OpCode::U32Div => Ok(Self::U32Div),
@@ -216,28 +216,28 @@ impl Deserializable for Instruction {
                     .map(|_| source.read_u8())
                     .collect::<Result<_, _>>()
                     .map(Self::PushU8List)
-            }
+            },
             OpCode::PushU16List => {
                 let length = parse_num_push_params(source)?;
                 (0..length)
                     .map(|_| source.read_u16())
                     .collect::<Result<_, _>>()
                     .map(Self::PushU16List)
-            }
+            },
             OpCode::PushU32List => {
                 let length = parse_num_push_params(source)?;
                 (0..length)
                     .map(|_| source.read_u32())
                     .collect::<Result<_, _>>()
                     .map(Self::PushU32List)
-            }
+            },
             OpCode::PushFeltList => {
                 let length = parse_num_push_params(source)?;
                 (0..length)
                     .map(|_| Felt::read_from(source))
                     .collect::<Result<_, _>>()
                     .map(Self::PushFeltList)
-            }
+            },
 
             OpCode::Locaddr => Ok(Self::Locaddr(source.read_u16()?.into())),
             OpCode::Sdepth => Ok(Self::Sdepth),
@@ -275,7 +275,7 @@ impl Deserializable for Instruction {
             OpCode::MTreeVerify => Ok(Self::MTreeVerify),
             OpCode::MTreeVerifyWithError => {
                 Ok(Self::MTreeVerifyWithError(source.read_u32()?.into()))
-            }
+            },
 
             // ----- STARK proof verification -----------------------------------------------------
             OpCode::FriExt2Fold4 => Ok(Self::FriExt2Fold4),

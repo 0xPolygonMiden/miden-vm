@@ -1,3 +1,10 @@
+use alloc::{boxed::Box, string::String, sync::Arc, vec::Vec};
+use core::fmt;
+
+use vm_core::Program;
+
+#[cfg(feature = "std")]
+use crate::diagnostics::reporting::set_panic_hook;
 use crate::{
     assembler::Assembler,
     ast::{Form, Module, ModuleKind},
@@ -8,13 +15,6 @@ use crate::{
     library::CompiledLibrary,
     Compile, CompileOptions, LibraryPath, RpoDigest,
 };
-
-#[cfg(feature = "std")]
-use crate::diagnostics::reporting::set_panic_hook;
-
-use alloc::{boxed::Box, string::String, sync::Arc, vec::Vec};
-use core::fmt;
-use vm_core::Program;
 
 /// Represents a pattern for matching text abstractly
 /// for use in asserting contents of complex diagnostics
@@ -201,10 +201,7 @@ impl TestContext {
         let assembler = Assembler::new(source_manager.clone())
             .with_debug_mode(true)
             .with_warnings_as_errors(true);
-        Self {
-            source_manager,
-            assembler,
-        }
+        Self { source_manager, assembler }
     }
 
     pub fn with_debug_info(mut self, yes: bool) -> Self {

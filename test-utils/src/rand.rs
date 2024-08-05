@@ -1,6 +1,6 @@
-use super::{Felt, Word};
-
 pub use rand_utils::*;
+
+use super::{Felt, Word};
 
 // SEEDED GENERATORS
 // ================================================================================================

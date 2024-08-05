@@ -1,6 +1,6 @@
-use super::*;
-
 use core::fmt;
+
+use super::*;
 
 impl fmt::Debug for ModuleGraph {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {

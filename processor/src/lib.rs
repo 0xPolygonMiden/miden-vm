@@ -13,8 +13,7 @@ use miden_air::trace::{
     CHIPLETS_WIDTH, DECODER_TRACE_WIDTH, MIN_TRACE_LEN, RANGE_CHECK_TRACE_WIDTH, STACK_TRACE_WIDTH,
     SYS_TRACE_WIDTH,
 };
-pub use miden_air::RowIndex;
-pub use miden_air::{ExecutionOptions, ExecutionOptionsError};
+pub use miden_air::{ExecutionOptions, ExecutionOptionsError, RowIndex};
 pub use vm_core::{
     chiplets::hasher::Digest,
     crypto::merkle::SMT_DEPTH,
@@ -30,7 +29,6 @@ use vm_core::{
     },
     Decorator, DecoratorIterator, FieldElement, StackTopState,
 };
-
 pub use winter_prover::matrix::ColMatrix;
 
 mod operations;
@@ -297,7 +295,7 @@ where
                 )?;
 
                 self.execute_mast_node(root_id, &mast_forest)
-            }
+            },
         }
     }
 
@@ -381,9 +379,7 @@ where
     ) -> Result<(), ExecutionError> {
         let callee_digest = {
             let callee = program.get_node_by_id(call_node.callee()).ok_or_else(|| {
-                ExecutionError::MastNodeNotFoundInForest {
-                    node_id: call_node.callee(),
-                }
+                ExecutionError::MastNodeNotFoundInForest { node_id: call_node.callee() }
             })?;
 
             callee.digest()
@@ -552,23 +548,23 @@ where
         match decorator {
             Decorator::Advice(injector) => {
                 self.host.borrow_mut().set_advice(self, *injector)?;
-            }
+            },
             Decorator::Debug(options) => {
                 self.host.borrow_mut().on_debug(self, options)?;
-            }
+            },
             Decorator::AsmOp(assembly_op) => {
                 if self.decoder.in_debug_mode() {
                     self.decoder.append_asmop(self.system.clk(), assembly_op.clone());
                 }
-            }
+            },
             Decorator::Event(id) => {
                 self.host.borrow_mut().on_event(self, *id)?;
-            }
+            },
             Decorator::Trace(id) => {
                 if self.enable_tracing {
                     self.host.borrow_mut().on_trace(self, *id)?;
                 }
-            }
+            },
         }
         Ok(())
     }

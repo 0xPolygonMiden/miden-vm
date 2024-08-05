@@ -71,12 +71,7 @@ impl Import {
 
         let name = Ident::read_from_with_options(source, options)?;
         let path = LibraryPath::read_from(source)?;
-        Ok(Self {
-            span,
-            name,
-            path,
-            uses: 0,
-        })
+        Ok(Self { span, name, path, uses: 0 })
     }
 }
 

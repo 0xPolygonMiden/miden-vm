@@ -270,14 +270,10 @@ where
     V: ?Sized + Visit<T>,
 {
     match op {
-        Op::If {
-            ref then_blk,
-            ref else_blk,
-            ..
-        } => {
+        Op::If { ref then_blk, ref else_blk, .. } => {
             visitor.visit_block(then_blk)?;
             visitor.visit_block(else_blk)
-        }
+        },
         Op::While { ref body, .. } | Op::Repeat { ref body, .. } => visitor.visit_block(body),
         Op::Inst(ref inst) => visitor.visit_inst(inst),
     }
@@ -362,7 +358,7 @@ where
         | AdviceInjectorNode::PushMapValNImm { offset: ref imm }
         | AdviceInjectorNode::InsertHdwordImm { domain: ref imm } => {
             visitor.visit_immediate_u8(imm)
-        }
+        },
         AdviceInjectorNode::PushU64Div
         | AdviceInjectorNode::PushExt2intt
         | AdviceInjectorNode::PushSmtGet
@@ -388,14 +384,14 @@ where
         DebugOptions::MemInterval(ref imm1, ref imm2) => {
             visitor.visit_immediate_u32(imm1)?;
             visitor.visit_immediate_u32(imm2)
-        }
+        },
         DebugOptions::LocalInterval(ref imm1, ref imm2) => {
             visitor.visit_immediate_u16(imm1)?;
             visitor.visit_immediate_u16(imm2)
-        }
+        },
         DebugOptions::StackAll | DebugOptions::MemAll | DebugOptions::LocalAll => {
             ControlFlow::Continue(())
-        }
+        },
     }
 }
 
@@ -716,17 +712,13 @@ where
     V: ?Sized + VisitMut<T>,
 {
     match op {
-        Op::If {
-            ref mut then_blk,
-            ref mut else_blk,
-            ..
-        } => {
+        Op::If { ref mut then_blk, ref mut else_blk, .. } => {
             visitor.visit_mut_block(then_blk)?;
             visitor.visit_mut_block(else_blk)
-        }
+        },
         Op::While { ref mut body, .. } | Op::Repeat { ref mut body, .. } => {
             visitor.visit_mut_block(body)
-        }
+        },
         Op::Inst(ref mut inst) => visitor.visit_mut_inst(inst),
     }
 }
@@ -759,7 +751,7 @@ where
         AddImm(ref mut imm) | SubImm(ref mut imm) | MulImm(ref mut imm) | DivImm(ref mut imm)
         | ExpImm(ref mut imm) | EqImm(ref mut imm) | NeqImm(ref mut imm) | Push(ref mut imm) => {
             visitor.visit_mut_immediate_felt(imm)
-        }
+        },
         U32WrappingAddImm(ref mut imm)
         | U32OverflowingAddImm(ref mut imm)
         | U32WrappingSubImm(ref mut imm)
@@ -814,15 +806,11 @@ where
     V: ?Sized + VisitMut<T>,
 {
     match node.into_inner() {
-        AdviceInjectorNode::PushMapValImm {
-            offset: ref mut imm,
-        }
-        | AdviceInjectorNode::PushMapValNImm {
-            offset: ref mut imm,
-        }
-        | AdviceInjectorNode::InsertHdwordImm {
-            domain: ref mut imm,
-        } => visitor.visit_mut_immediate_u8(imm),
+        AdviceInjectorNode::PushMapValImm { offset: ref mut imm }
+        | AdviceInjectorNode::PushMapValNImm { offset: ref mut imm }
+        | AdviceInjectorNode::InsertHdwordImm { domain: ref mut imm } => {
+            visitor.visit_mut_immediate_u8(imm)
+        },
         AdviceInjectorNode::PushU64Div
         | AdviceInjectorNode::PushExt2intt
         | AdviceInjectorNode::PushSmtGet
@@ -851,14 +839,14 @@ where
         DebugOptions::MemInterval(ref mut imm1, ref mut imm2) => {
             visitor.visit_mut_immediate_u32(imm1)?;
             visitor.visit_mut_immediate_u32(imm2)
-        }
+        },
         DebugOptions::LocalInterval(ref mut imm1, ref mut imm2) => {
             visitor.visit_mut_immediate_u16(imm1)?;
             visitor.visit_mut_immediate_u16(imm2)
-        }
+        },
         DebugOptions::StackAll | DebugOptions::MemAll | DebugOptions::LocalAll => {
             ControlFlow::Continue(())
-        }
+        },
     }
 }
 

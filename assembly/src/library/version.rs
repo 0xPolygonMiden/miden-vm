@@ -24,11 +24,7 @@ impl Version {
     /// Returns the current minimal version supported by the code in this crate.
     #[inline(always)]
     pub const fn min() -> Self {
-        Self {
-            major: 0,
-            minor: 1,
-            patch: 0,
-        }
+        Self { major: 0, minor: 1, patch: 0 }
     }
 }
 
@@ -38,11 +34,7 @@ impl Version {
     ///
     /// This is useful for comparing two versions at major version granularity
     pub const fn to_nearest_major(self) -> Self {
-        Self {
-            minor: 0,
-            patch: 0,
-            ..self
-        }
+        Self { minor: 0, patch: 0, ..self }
     }
 
     /// Returns a new [Version] clamped to the minor version
@@ -63,19 +55,12 @@ impl Version {
 
     /// Return a new [Version] representing the next minor version release
     pub const fn next_minor(self) -> Self {
-        Self {
-            minor: self.minor + 1,
-            patch: 0,
-            ..self
-        }
+        Self { minor: self.minor + 1, patch: 0, ..self }
     }
 
     /// Return a new [Version] representing the next patch release
     pub const fn next_patch(self) -> Self {
-        Self {
-            patch: self.patch + 1,
-            ..self
-        }
+        Self { patch: self.patch + 1, ..self }
     }
 }
 
@@ -101,11 +86,7 @@ impl Deserializable for Version {
         let major = source.read_u16()?;
         let minor = source.read_u16()?;
         let patch = source.read_u16()?;
-        Ok(Self {
-            major,
-            minor,
-            patch,
-        })
+        Ok(Self { major, minor, patch })
     }
 }
 
@@ -163,11 +144,7 @@ impl FromStr for Version {
         if components.next().is_some() {
             Err(VersionError::Unsupported)
         } else {
-            Ok(Self {
-                major,
-                minor,
-                patch,
-            })
+            Ok(Self { major, minor, patch })
         }
     }
 }

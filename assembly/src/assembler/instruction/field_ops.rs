@@ -1,10 +1,11 @@
+use vm_core::{AdviceInjector, FieldElement, Operation::*};
+
 use super::{validate_param, BasicBlockBuilder};
 use crate::{
     assembler::ProcedureContext,
     diagnostics::{RelatedError, Report},
     AssemblyError, Felt, Span, MAX_EXP_BITS, ONE, ZERO,
 };
-use vm_core::{AdviceInjector, FieldElement, Operation::*};
 
 /// Field element representing TWO in the base field of the VM.
 const TWO: Felt = Felt::new(2);
@@ -218,32 +219,32 @@ fn perform_exp_for_small_power(span_builder: &mut BasicBlockBuilder, pow: u64) {
             span_builder.push_op(Drop);
             span_builder.push_op(Pad);
             span_builder.push_op(Incr);
-        }
+        },
         1 => span_builder.push_op(Noop), // TODO: show warning?
         2 => {
             span_builder.push_op(Dup0);
             span_builder.push_op(Mul);
-        }
+        },
         3 => {
             span_builder.push_op_many(Dup0, 2);
             span_builder.push_op_many(Mul, 2);
-        }
+        },
         4 => {
             span_builder.push_op_many(Dup0, 3);
             span_builder.push_op_many(Mul, 3);
-        }
+        },
         5 => {
             span_builder.push_op_many(Dup0, 4);
             span_builder.push_op_many(Mul, 4);
-        }
+        },
         6 => {
             span_builder.push_op_many(Dup0, 5);
             span_builder.push_op_many(Mul, 5);
-        }
+        },
         7 => {
             span_builder.push_op_many(Dup0, 6);
             span_builder.push_op_many(Mul, 6);
-        }
+        },
         _ => unreachable!("pow must be less than 8"),
     }
 }

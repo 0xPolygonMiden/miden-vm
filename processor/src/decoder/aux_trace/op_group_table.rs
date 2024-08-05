@@ -1,9 +1,10 @@
-use super::{AuxColumnBuilder, Felt, FieldElement, MainTrace, ONE};
 use miden_air::{
     trace::decoder::{OP_BATCH_2_GROUPS, OP_BATCH_4_GROUPS, OP_BATCH_8_GROUPS},
     RowIndex,
 };
 use vm_core::{OPCODE_PUSH, OPCODE_RESPAN, OPCODE_SPAN};
+
+use super::{AuxColumnBuilder, Felt, FieldElement, MainTrace, ONE};
 
 // OP GROUP TABLE COLUMN
 // ================================================================================================
@@ -33,7 +34,7 @@ impl<E: FieldElement<BaseField = Felt>> AuxColumnBuilder<E> for OpGroupTableColu
         match op_code {
             OPCODE_SPAN | OPCODE_RESPAN => {
                 get_op_group_table_inclusion_multiplicand(main_trace, i, alphas)
-            }
+            },
             _ => E::ONE,
         }
     }

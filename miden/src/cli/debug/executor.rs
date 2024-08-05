@@ -1,9 +1,10 @@
 use std::sync::Arc;
 
-use super::DebugCommand;
 use miden_vm::{
     math::Felt, DefaultHost, MemAdviceProvider, Program, StackInputs, VmState, VmStateIterator,
 };
+
+use super::DebugCommand;
 
 /// Holds debugger state and iterator used for debugging.
 pub struct DebugExecutor {
@@ -37,11 +38,7 @@ impl DebugExecutor {
             )?
             .expect("initial state of vm must be healthy!");
 
-        Ok(Self {
-            vm_state_iter,
-            vm_state,
-            source_manager,
-        })
+        Ok(Self { vm_state_iter, vm_state, source_manager })
     }
 
     // MODIFIERS
@@ -58,7 +55,7 @@ impl DebugExecutor {
                     }
                 }
                 self.print_vm_state();
-            }
+            },
             DebugCommand::Next(cycles) => {
                 for _cycle in 0..cycles {
                     match self.next_vm_state() {
@@ -67,18 +64,18 @@ impl DebugExecutor {
                             if self.should_break() {
                                 break;
                             }
-                        }
+                        },
                         None => break,
                     }
                 }
                 self.print_vm_state();
-            }
+            },
             DebugCommand::Rewind => {
                 while let Some(new_vm_state) = self.vm_state_iter.back() {
                     self.vm_state = new_vm_state;
                 }
                 self.print_vm_state();
-            }
+            },
             DebugCommand::Back(cycles) => {
                 for _cycle in 0..cycles {
                     match self.vm_state_iter.back() {
@@ -87,12 +84,12 @@ impl DebugExecutor {
                             if self.should_break() {
                                 break;
                             }
-                        }
+                        },
                         None => break,
                     }
                 }
                 self.print_vm_state()
-            }
+            },
             DebugCommand::PrintState => self.print_vm_state(),
             DebugCommand::PrintStack => self.print_stack(),
             DebugCommand::PrintStackItem(index) => self.print_stack_item(index),
@@ -113,12 +110,12 @@ impl DebugExecutor {
                 Err(err) => {
                     println!("Execution error: {err:?}");
                     None
-                }
+                },
             },
             None => {
                 println!("Program execution complete.");
                 None
-            }
+            },
         }
     }
 

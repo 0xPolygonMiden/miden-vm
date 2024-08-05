@@ -1,15 +1,14 @@
+use alloc::{collections::BTreeMap, sync::Arc, vec::Vec};
 use core::ops::Index;
 
-use alloc::{collections::BTreeMap, sync::Arc, vec::Vec};
 use vm_core::{
     crypto::hash::RpoDigest,
     mast::{MastForest, MastNode, MastNodeId},
     DecoratorList, Operation,
 };
 
-use crate::AssemblyError;
-
 use super::{GlobalProcedureIndex, Procedure};
+use crate::AssemblyError;
 
 // MAST FOREST BUILDER
 // ================================================================================================
@@ -174,7 +173,7 @@ impl MastForestBuilder {
         match decorators {
             Some(decorators) => {
                 self.ensure_node(MastNode::new_basic_block_with_decorators(operations, decorators))
-            }
+            },
             None => self.ensure_node(MastNode::new_basic_block(operations)),
         }
     }

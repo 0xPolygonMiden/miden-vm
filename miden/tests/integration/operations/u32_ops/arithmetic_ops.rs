@@ -1,8 +1,9 @@
-use super::test_unchecked_execution;
 use processor::ExecutionError;
 use test_utils::{
     build_op_test, expect_exec_error, proptest::prelude::*, rand::rand_value, U32_BOUND,
 };
+
+use super::test_unchecked_execution;
 
 // U32 OPERATIONS TESTS - MANUAL - ARITHMETIC OPERATIONS
 // ================================================================================================

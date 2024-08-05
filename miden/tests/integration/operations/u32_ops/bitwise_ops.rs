@@ -1,9 +1,9 @@
-use super::test_input_out_of_bounds;
-use processor::math::Felt;
-use processor::ExecutionError;
+use processor::{math::Felt, ExecutionError};
 use test_utils::{
     build_op_test, expect_exec_error, proptest::prelude::*, rand::rand_value, U32_BOUND, ZERO,
 };
+
+use super::test_input_out_of_bounds;
 
 // U32 OPERATIONS TESTS - MANUAL - BITWISE OPERATIONS
 // ================================================================================================

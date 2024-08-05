@@ -55,11 +55,7 @@ impl ProvingOptions {
             fri_remainder_max_degree,
         );
         let exec_options = ExecutionOptions::default();
-        Self {
-            exec_options,
-            proof_options,
-            hash_fn,
-        }
+        Self { exec_options, proof_options, hash_fn }
     }
 
     /// Creates a new preset instance of [ProvingOptions] targeting 96-bit security level.

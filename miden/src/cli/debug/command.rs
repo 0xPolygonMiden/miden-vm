@@ -46,7 +46,7 @@ impl DebugCommand {
                     "malformed command - does not match any known command: `{}`",
                     command
                 ))
-            }
+            },
         };
 
         // command is fully parsed and shouldn't contain further tokens
@@ -112,7 +112,7 @@ impl DebugCommand {
                 return Err(format!(
                     "malformed `print` command - unexpected subcommand: `{command}`"
                 ))
-            }
+            },
         };
 
         // parse the subcommand argument, if present

@@ -1,12 +1,13 @@
+use vm_core::{
+    AdviceInjector, Felt,
+    Operation::{self, *},
+};
+
 use super::{field_ops::append_pow2_op, push_u32_value, validate_param, BasicBlockBuilder};
 use crate::{
     assembler::ProcedureContext,
     diagnostics::{RelatedError, Report},
     AssemblyError, Span, MAX_U32_ROTATE_VALUE, MAX_U32_SHIFT_VALUE,
-};
-use vm_core::{
-    AdviceInjector, Felt,
-    Operation::{self, *},
 };
 
 /// This enum is intended to determine the mode of operation passed to the parsing function
@@ -243,15 +244,15 @@ pub fn u32rotr(span_builder: &mut BasicBlockBuilder, imm: Option<u8>) -> Result<
             // if rotation is performed by 0, do nothing (Noop)
             span_builder.push_op(Noop);
             return Ok(());
-        }
+        },
         Some(imm) => {
             validate_param(imm, 1..=MAX_U32_ROTATE_VALUE)?;
             span_builder.push_op(Push(Felt::new(1 << (32 - imm))));
-        }
+        },
         None => {
             span_builder.push_ops([Push(Felt::new(32)), Swap, U32sub, Drop]);
             append_pow2_op(span_builder);
-        }
+        },
     }
     span_builder.push_ops([U32mul, Add]);
     Ok(())
@@ -401,14 +402,14 @@ fn prepare_bitwise<const MAX_VALUE: u8>(
         Some(0) => {
             // if shift/rotation is performed by 0, do nothing (Noop)
             span_builder.push_op(Noop);
-        }
+        },
         Some(imm) => {
             validate_param(imm, 1..=MAX_VALUE)?;
             span_builder.push_op(Push(Felt::new(1 << imm)));
-        }
+        },
         None => {
             append_pow2_op(span_builder);
-        }
+        },
     }
     Ok(())
 }

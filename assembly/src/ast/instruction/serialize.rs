@@ -11,42 +11,42 @@ impl Serializable for Instruction {
             Self::AssertWithError(err_code) => {
                 OpCode::AssertWithError.write_into(target);
                 target.write_u32(err_code.expect_value());
-            }
+            },
             Self::AssertEq => OpCode::AssertEq.write_into(target),
             Self::AssertEqWithError(err_code) => {
                 OpCode::AssertEqWithError.write_into(target);
                 target.write_u32(err_code.expect_value());
-            }
+            },
             Self::AssertEqw => OpCode::AssertEqw.write_into(target),
             Self::AssertEqwWithError(err_code) => {
                 OpCode::AssertEqwWithError.write_into(target);
                 target.write_u32(err_code.expect_value());
-            }
+            },
             Self::Assertz => OpCode::Assertz.write_into(target),
             Self::AssertzWithError(err_code) => {
                 OpCode::AssertzWithError.write_into(target);
                 target.write_u32(err_code.expect_value());
-            }
+            },
             Self::Add => OpCode::Add.write_into(target),
             Self::AddImm(v) => {
                 OpCode::AddImm.write_into(target);
                 v.expect_value().write_into(target);
-            }
+            },
             Self::Sub => OpCode::Sub.write_into(target),
             Self::SubImm(v) => {
                 OpCode::SubImm.write_into(target);
                 v.expect_value().write_into(target);
-            }
+            },
             Self::Mul => OpCode::Mul.write_into(target),
             Self::MulImm(v) => {
                 OpCode::MulImm.write_into(target);
                 v.expect_value().write_into(target);
-            }
+            },
             Self::Div => OpCode::Div.write_into(target),
             Self::DivImm(v) => {
                 OpCode::DivImm.write_into(target);
                 v.expect_value().write_into(target);
-            }
+            },
             Self::Neg => OpCode::Neg.write_into(target),
             Self::ILog2 => OpCode::ILog2.write_into(target),
             Self::Inv => OpCode::Inv.write_into(target),
@@ -56,11 +56,11 @@ impl Serializable for Instruction {
             Self::ExpImm(v) => {
                 OpCode::ExpImm.write_into(target);
                 v.expect_value().write_into(target);
-            }
+            },
             Self::ExpBitLength(v) => {
                 OpCode::ExpBitLength.write_into(target);
                 target.write_u8(*v);
-            }
+            },
             Self::Not => OpCode::Not.write_into(target),
             Self::And => OpCode::And.write_into(target),
             Self::Or => OpCode::Or.write_into(target),
@@ -69,12 +69,12 @@ impl Serializable for Instruction {
             Self::EqImm(v) => {
                 OpCode::EqImm.write_into(target);
                 v.expect_value().write_into(target);
-            }
+            },
             Self::Neq => OpCode::Neq.write_into(target),
             Self::NeqImm(v) => {
                 OpCode::NeqImm.write_into(target);
                 v.expect_value().write_into(target);
-            }
+            },
             Self::Eqw => OpCode::Eqw.write_into(target),
             Self::Lt => OpCode::Lt.write_into(target),
             Self::Lte => OpCode::Lte.write_into(target),
@@ -97,68 +97,68 @@ impl Serializable for Instruction {
             Self::U32AssertWithError(err_code) => {
                 OpCode::U32AssertWithError.write_into(target);
                 target.write_u32(err_code.expect_value());
-            }
+            },
             Self::U32Assert2 => OpCode::U32Assert2.write_into(target),
             Self::U32Assert2WithError(err_code) => {
                 OpCode::U32Assert2WithError.write_into(target);
                 target.write_u32(err_code.expect_value());
-            }
+            },
             Self::U32AssertW => OpCode::U32AssertW.write_into(target),
             Self::U32AssertWWithError(err_code) => {
                 OpCode::U32AssertWWithError.write_into(target);
                 target.write_u32(err_code.expect_value());
-            }
+            },
             Self::U32Split => OpCode::U32Split.write_into(target),
             Self::U32Cast => OpCode::U32Cast.write_into(target),
             Self::U32WrappingAdd => OpCode::U32WrappingAdd.write_into(target),
             Self::U32WrappingAddImm(v) => {
                 OpCode::U32WrappingAddImm.write_into(target);
                 target.write_u32(v.expect_value());
-            }
+            },
             Self::U32OverflowingAdd => OpCode::U32OverflowingAdd.write_into(target),
             Self::U32OverflowingAddImm(v) => {
                 OpCode::U32OverflowingAddImm.write_into(target);
                 target.write_u32(v.expect_value());
-            }
+            },
             Self::U32OverflowingAdd3 => OpCode::U32OverflowingAdd3.write_into(target),
             Self::U32WrappingAdd3 => OpCode::U32WrappingAdd3.write_into(target),
             Self::U32WrappingSub => OpCode::U32WrappingSub.write_into(target),
             Self::U32WrappingSubImm(v) => {
                 OpCode::U32WrappingSubImm.write_into(target);
                 target.write_u32(v.expect_value());
-            }
+            },
             Self::U32OverflowingSub => OpCode::U32OverflowingSub.write_into(target),
             Self::U32OverflowingSubImm(v) => {
                 OpCode::U32OverflowingSubImm.write_into(target);
                 target.write_u32(v.expect_value());
-            }
+            },
             Self::U32WrappingMul => OpCode::U32WrappingMul.write_into(target),
             Self::U32WrappingMulImm(v) => {
                 OpCode::U32WrappingMulImm.write_into(target);
                 target.write_u32(v.expect_value());
-            }
+            },
             Self::U32OverflowingMul => OpCode::U32OverflowingMul.write_into(target),
             Self::U32OverflowingMulImm(v) => {
                 OpCode::U32OverflowingMulImm.write_into(target);
                 target.write_u32(v.expect_value());
-            }
+            },
             Self::U32OverflowingMadd => OpCode::U32OverflowingMadd.write_into(target),
             Self::U32WrappingMadd => OpCode::U32WrappingMadd.write_into(target),
             Self::U32Div => OpCode::U32Div.write_into(target),
             Self::U32DivImm(v) => {
                 OpCode::U32DivImm.write_into(target);
                 target.write_u32(v.expect_value());
-            }
+            },
             Self::U32Mod => OpCode::U32Mod.write_into(target),
             Self::U32ModImm(v) => {
                 OpCode::U32ModImm.write_into(target);
                 target.write_u32(v.expect_value());
-            }
+            },
             Self::U32DivMod => OpCode::U32DivMod.write_into(target),
             Self::U32DivModImm(v) => {
                 OpCode::U32DivModImm.write_into(target);
                 target.write_u32(v.expect_value());
-            }
+            },
             Self::U32And => OpCode::U32And.write_into(target),
             Self::U32Or => OpCode::U32Or.write_into(target),
             Self::U32Xor => OpCode::U32Xor.write_into(target),
@@ -167,22 +167,22 @@ impl Serializable for Instruction {
             Self::U32ShrImm(v) => {
                 OpCode::U32ShrImm.write_into(target);
                 target.write_u8(v.expect_value());
-            }
+            },
             Self::U32Shl => OpCode::U32Shl.write_into(target),
             Self::U32ShlImm(v) => {
                 OpCode::U32ShlImm.write_into(target);
                 target.write_u8(v.expect_value());
-            }
+            },
             Self::U32Rotr => OpCode::U32Rotr.write_into(target),
             Self::U32RotrImm(v) => {
                 OpCode::U32RotrImm.write_into(target);
                 target.write_u8(v.expect_value());
-            }
+            },
             Self::U32Rotl => OpCode::U32Rotl.write_into(target),
             Self::U32RotlImm(v) => {
                 OpCode::U32RotlImm.write_into(target);
                 target.write_u8(v.expect_value());
-            }
+            },
             Self::U32Popcnt => OpCode::U32Popcnt.write_into(target),
             Self::U32Clz => OpCode::U32Clz.write_into(target),
             Self::U32Ctz => OpCode::U32Ctz.write_into(target),
@@ -279,51 +279,51 @@ impl Serializable for Instruction {
             Self::Push(imm) => {
                 OpCode::PushFelt.write_into(target);
                 imm.expect_value().write_into(target);
-            }
+            },
             Self::PushU8(value) => {
                 OpCode::PushU8.write_into(target);
                 target.write_u8(*value);
-            }
+            },
             Self::PushU16(value) => {
                 OpCode::PushU16.write_into(target);
                 target.write_u16(*value);
-            }
+            },
             Self::PushU32(value) => {
                 OpCode::PushU32.write_into(target);
                 target.write_u32(*value);
-            }
+            },
             Self::PushFelt(value) => {
                 OpCode::PushFelt.write_into(target);
                 value.write_into(target);
-            }
+            },
             Self::PushWord(values) => {
                 OpCode::PushWord.write_into(target);
                 values.iter().for_each(|&v| v.write_into(target));
-            }
+            },
             Self::PushU8List(values) => {
                 OpCode::PushU8List.write_into(target);
                 target.write_u8(values.len() as u8);
                 values.iter().for_each(|&v| target.write_u8(v));
-            }
+            },
             Self::PushU16List(values) => {
                 OpCode::PushU16List.write_into(target);
                 target.write_u8(values.len() as u8);
                 values.iter().for_each(|&v| target.write_u16(v));
-            }
+            },
             Self::PushU32List(values) => {
                 OpCode::PushU32List.write_into(target);
                 target.write_u8(values.len() as u8);
                 values.iter().for_each(|&v| target.write_u32(v));
-            }
+            },
             Self::PushFeltList(values) => {
                 OpCode::PushFeltList.write_into(target);
                 target.write_u8(values.len() as u8);
                 values.iter().for_each(|&v| v.write_into(target));
-            }
+            },
             Self::Locaddr(v) => {
                 OpCode::Locaddr.write_into(target);
                 target.write_u16(v.expect_value());
-            }
+            },
             Self::Sdepth => OpCode::Sdepth.write_into(target),
             Self::Caller => OpCode::Caller.write_into(target),
             Self::Clk => OpCode::Clk.write_into(target),
@@ -332,38 +332,38 @@ impl Serializable for Instruction {
             Self::MemLoadImm(v) => {
                 OpCode::MemLoadImm.write_into(target);
                 target.write_u32(v.expect_value());
-            }
+            },
             Self::MemLoadW => OpCode::MemLoadW.write_into(target),
             Self::MemLoadWImm(v) => {
                 OpCode::MemLoadWImm.write_into(target);
                 target.write_u32(v.expect_value());
-            }
+            },
             Self::LocLoad(v) => {
                 OpCode::LocLoad.write_into(target);
                 target.write_u16(v.expect_value());
-            }
+            },
             Self::LocLoadW(v) => {
                 OpCode::LocLoadW.write_into(target);
                 target.write_u16(v.expect_value());
-            }
+            },
             Self::MemStore => OpCode::MemStore.write_into(target),
             Self::MemStoreImm(v) => {
                 OpCode::MemStoreImm.write_into(target);
                 target.write_u32(v.expect_value());
-            }
+            },
             Self::LocStore(v) => {
                 OpCode::LocStore.write_into(target);
                 target.write_u16(v.expect_value());
-            }
+            },
             Self::MemStoreW => OpCode::MemStoreW.write_into(target),
             Self::MemStoreWImm(v) => {
                 OpCode::MemStoreWImm.write_into(target);
                 target.write_u32(v.expect_value());
-            }
+            },
             Self::LocStoreW(v) => {
                 OpCode::LocStoreW.write_into(target);
                 target.write_u16(v.expect_value());
-            }
+            },
 
             Self::MemStream => OpCode::MemStream.write_into(target),
             Self::AdvPipe => OpCode::AdvPipe.write_into(target),
@@ -371,13 +371,13 @@ impl Serializable for Instruction {
             Self::AdvPush(v) => {
                 OpCode::AdvPush.write_into(target);
                 target.write_u8(v.expect_value());
-            }
+            },
             Self::AdvLoadW => OpCode::AdvLoadW.write_into(target),
 
             Self::AdvInject(injector) => {
                 OpCode::AdvInject.write_into(target);
                 injector.write_into(target);
-            }
+            },
 
             // ----- cryptographic operations -----------------------------------------------------
             Self::Hash => OpCode::Hash.write_into(target),
@@ -390,7 +390,7 @@ impl Serializable for Instruction {
             Self::MTreeVerifyWithError(err_code) => {
                 OpCode::MTreeVerifyWithError.write_into(target);
                 target.write_u32(err_code.expect_value());
-            }
+            },
 
             // ----- STARK proof verification -----------------------------------------------------
             Self::FriExt2Fold4 => OpCode::FriExt2Fold4.write_into(target),
@@ -400,41 +400,41 @@ impl Serializable for Instruction {
             Self::Exec(ref callee) => {
                 OpCode::Exec.write_into(target);
                 callee.write_into(target);
-            }
+            },
             Self::Call(ref callee) => {
                 OpCode::Call.write_into(target);
                 callee.write_into(target);
-            }
+            },
             Self::SysCall(ref callee) => {
                 OpCode::SysCall.write_into(target);
                 callee.write_into(target);
-            }
+            },
             Self::DynExec => OpCode::DynExec.write_into(target),
             Self::DynCall => OpCode::DynCall.write_into(target),
             Self::ProcRef(ref callee) => {
                 OpCode::ProcRef.write_into(target);
                 callee.write_into(target);
-            }
+            },
 
             // ----- debug decorators -------------------------------------------------------------
             Self::Breakpoint => {
                 // this is a transparent instruction and will not be encoded into the library
-            }
+            },
 
             Self::Debug(options) => {
                 OpCode::Debug.write_into(target);
                 options.write_into(target);
-            }
+            },
 
             // ----- event decorators -------------------------------------------------------------
             Self::Emit(event_id) => {
                 OpCode::Emit.write_into(target);
                 target.write_u32(event_id.expect_value());
-            }
+            },
             Self::Trace(trace_id) => {
                 OpCode::Trace.write_into(target);
                 target.write_u32(trace_id.expect_value());
-            }
+            },
         }
     }
 }

@@ -1,9 +1,9 @@
+use std::time::Instant;
+
 use assembly::diagnostics::{IntoDiagnostic, Report};
 use clap::Parser;
 use miden_vm::{ExecutionProof, Host, Program, ProgramInfo, ProvingOptions, StackInputs};
 use processor::{ExecutionOptions, ExecutionOptionsError, Felt, ONE, ZERO};
-
-use std::time::Instant;
 
 pub mod blake3;
 pub mod fibonacci;
@@ -85,14 +85,14 @@ impl ExampleOptions {
                 } else {
                     ProvingOptions::with_96_bit_security(self.recursive)
                 }
-            }
+            },
             "128bits" => {
                 if self.rpx {
                     ProvingOptions::with_128_bit_security_rpx()
                 } else {
                     ProvingOptions::with_128_bit_security(self.recursive)
                 }
-            }
+            },
             other => panic!("{} is not a valid security level", other),
         }
         .with_execution_options(exec_options))

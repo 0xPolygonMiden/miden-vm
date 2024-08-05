@@ -171,7 +171,7 @@ impl FromStr for LibraryNamespace {
             other => {
                 Self::validate(other)?;
                 Ok(Self::User(Arc::from(other.to_string().into_boxed_str())))
-            }
+            },
         }
     }
 }

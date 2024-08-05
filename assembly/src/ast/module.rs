@@ -182,16 +182,11 @@ impl Module {
     /// previous definition
     pub fn define_procedure(&mut self, export: Export) -> Result<(), SemanticAnalysisError> {
         if self.is_kernel() && matches!(export, Export::Alias(_)) {
-            return Err(SemanticAnalysisError::ReexportFromKernel {
-                span: export.span(),
-            });
+            return Err(SemanticAnalysisError::ReexportFromKernel { span: export.span() });
         }
         if let Some(prev) = self.resolve(export.name()) {
             let prev_span = prev.span();
-            Err(SemanticAnalysisError::SymbolConflict {
-                span: export.span(),
-                prev_span,
-            })
+            Err(SemanticAnalysisError::SymbolConflict { span: export.span(), prev_span })
         } else {
             self.procedures.push(export);
             Ok(())
@@ -203,18 +198,12 @@ impl Module {
     pub fn define_import(&mut self, import: Import) -> Result<(), SemanticAnalysisError> {
         if let Some(prev_import) = self.resolve_import(&import.name) {
             let prev_span = prev_import.span;
-            return Err(SemanticAnalysisError::ImportConflict {
-                span: import.span,
-                prev_span,
-            });
+            return Err(SemanticAnalysisError::ImportConflict { span: import.span, prev_span });
         }
 
         if let Some(prev_defined) = self.procedures.iter().find(|e| e.name().eq(&import.name)) {
             let prev_span = prev_defined.span();
-            return Err(SemanticAnalysisError::SymbolConflict {
-                span: import.span,
-                prev_span,
-            });
+            return Err(SemanticAnalysisError::SymbolConflict { span: import.span, prev_span });
         }
 
         self.imports.push(import);
@@ -382,12 +371,12 @@ impl Module {
         match &self.procedures[index.as_usize()] {
             Export::Procedure(ref proc) => {
                 Some(ResolvedProcedure::Local(Span::new(proc.name().span(), index)))
-            }
+            },
             Export::Alias(ref alias) => match alias.target() {
                 AliasTarget::MastRoot(digest) => Some(ResolvedProcedure::MastRoot(**digest)),
                 AliasTarget::ProcedurePath(path) | AliasTarget::AbsoluteProcedurePath(path) => {
                     Some(ResolvedProcedure::External(path.clone()))
-                }
+                },
             },
         }
     }
@@ -404,10 +393,10 @@ impl Module {
                     AliasTarget::MastRoot(digest) => ResolvedProcedure::MastRoot(**digest),
                     AliasTarget::ProcedurePath(path) | AliasTarget::AbsoluteProcedurePath(path) => {
                         ResolvedProcedure::External(path.clone())
-                    }
+                    },
                 };
                 (p.name().clone(), target)
-            }
+            },
         }))
         .with_imports(
             self.imports
@@ -529,7 +518,7 @@ impl Module {
                 };
                 self.write_into_with_options(file, options);
                 Ok(())
-            }
+            },
             Err(err) => Err(err),
         })
         .map_err(|p| {

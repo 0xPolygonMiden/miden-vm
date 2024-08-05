@@ -1,5 +1,7 @@
 use alloc::{string::ToString, sync::Arc, vec::Vec};
 
+use pretty_assertions::assert_eq;
+
 use crate::{
     assert_diagnostic, assert_diagnostic_lines,
     ast::*,
@@ -9,10 +11,8 @@ use crate::{
     Felt, Span,
 };
 
-use pretty_assertions::assert_eq;
-
 macro_rules! inst {
-    ($inst:ident ($value:expr)) => {
+    ($inst:ident($value:expr)) => {
         Op::Inst(Span::unknown(Instruction::$inst($value)))
     };
 
@@ -35,10 +35,7 @@ macro_rules! exec {
             Ident::new_unchecked(Span::unknown(Arc::from(name.to_string().into_boxed_str())));
         let name = ProcedureName::new_unchecked(name);
 
-        inst!(Exec(InvocationTarget::ProcedurePath {
-            name,
-            module: module.parse().unwrap(),
-        }))
+        inst!(Exec(InvocationTarget::ProcedurePath { name, module: module.parse().unwrap() }))
     }};
 }
 
@@ -109,10 +106,7 @@ macro_rules! if_true {
 
 macro_rules! while_true {
     ($body:expr) => {
-        Op::While {
-            span: Default::default(),
-            body: $body,
-        }
+        Op::While { span: Default::default(), body: $body }
     };
 }
 
@@ -210,7 +204,7 @@ macro_rules! assert_forms {
 {}",
                     crate::diagnostics::reporting::PrintDiagnostic::new_without_color(report)
                 );
-            }
+            },
         }
     };
 }

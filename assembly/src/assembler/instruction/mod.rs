@@ -1,3 +1,7 @@
+use core::ops::RangeBounds;
+
+use vm_core::{mast::MastNodeId, Decorator, ONE, ZERO};
+
 use super::{
     ast::InvokeKind, mast_forest_builder::MastForestBuilder, Assembler, BasicBlockBuilder, Felt,
     Operation, ProcedureContext,
@@ -5,8 +9,6 @@ use super::{
 use crate::{
     ast::Instruction, diagnostics::Report, utils::bound_into_included_u64, AssemblyError, Span,
 };
-use core::ops::RangeBounds;
-use vm_core::{mast::MastNodeId, Decorator, ONE, ZERO};
 
 mod adv_ops;
 mod crypto_ops;
@@ -64,19 +66,19 @@ impl Assembler {
             Instruction::Assert => span_builder.push_op(Assert(0)),
             Instruction::AssertWithError(err_code) => {
                 span_builder.push_op(Assert(err_code.expect_value()))
-            }
+            },
             Instruction::AssertEq => span_builder.push_ops([Eq, Assert(0)]),
             Instruction::AssertEqWithError(err_code) => {
                 span_builder.push_ops([Eq, Assert(err_code.expect_value())])
-            }
+            },
             Instruction::AssertEqw => field_ops::assertw(span_builder, 0),
             Instruction::AssertEqwWithError(err_code) => {
                 field_ops::assertw(span_builder, err_code.expect_value())
-            }
+            },
             Instruction::Assertz => span_builder.push_ops([Eqz, Assert(0)]),
             Instruction::AssertzWithError(err_code) => {
                 span_builder.push_ops([Eqz, Assert(err_code.expect_value())])
-            }
+            },
 
             Instruction::Add => span_builder.push_op(Add),
             Instruction::AddImm(imm) => field_ops::add_imm(span_builder, imm.expect_value()),
@@ -87,7 +89,7 @@ impl Assembler {
             Instruction::Div => span_builder.push_ops([Inv, Mul]),
             Instruction::DivImm(imm) => {
                 field_ops::div_imm(span_builder, proc_ctx, imm.expect_spanned_value())?;
-            }
+            },
             Instruction::Neg => span_builder.push_op(Neg),
             Instruction::Inv => span_builder.push_op(Inv),
             Instruction::Incr => span_builder.push_op(Incr),
@@ -128,15 +130,15 @@ impl Assembler {
             Instruction::U32Assert => span_builder.push_ops([Pad, U32assert2(0), Drop]),
             Instruction::U32AssertWithError(err_code) => {
                 span_builder.push_ops([Pad, U32assert2(err_code.expect_value()), Drop])
-            }
+            },
             Instruction::U32Assert2 => span_builder.push_op(U32assert2(0)),
             Instruction::U32Assert2WithError(err_code) => {
                 span_builder.push_op(U32assert2(err_code.expect_value()))
-            }
+            },
             Instruction::U32AssertW => u32_ops::u32assertw(span_builder, 0),
             Instruction::U32AssertWWithError(err_code) => {
                 u32_ops::u32assertw(span_builder, err_code.expect_value())
-            }
+            },
 
             Instruction::U32Cast => span_builder.push_ops([U32split, Drop]),
             Instruction::U32Split => span_builder.push_op(U32split),
@@ -144,46 +146,46 @@ impl Assembler {
             Instruction::U32OverflowingAdd => u32_ops::u32add(span_builder, Overflowing, None),
             Instruction::U32OverflowingAddImm(v) => {
                 u32_ops::u32add(span_builder, Overflowing, Some(v.expect_value()))
-            }
+            },
             Instruction::U32WrappingAdd => u32_ops::u32add(span_builder, Wrapping, None),
             Instruction::U32WrappingAddImm(v) => {
                 u32_ops::u32add(span_builder, Wrapping, Some(v.expect_value()))
-            }
+            },
             Instruction::U32OverflowingAdd3 => span_builder.push_op(U32add3),
             Instruction::U32WrappingAdd3 => span_builder.push_ops([U32add3, Drop]),
 
             Instruction::U32OverflowingSub => u32_ops::u32sub(span_builder, Overflowing, None),
             Instruction::U32OverflowingSubImm(v) => {
                 u32_ops::u32sub(span_builder, Overflowing, Some(v.expect_value()))
-            }
+            },
             Instruction::U32WrappingSub => u32_ops::u32sub(span_builder, Wrapping, None),
             Instruction::U32WrappingSubImm(v) => {
                 u32_ops::u32sub(span_builder, Wrapping, Some(v.expect_value()))
-            }
+            },
 
             Instruction::U32OverflowingMul => u32_ops::u32mul(span_builder, Overflowing, None),
             Instruction::U32OverflowingMulImm(v) => {
                 u32_ops::u32mul(span_builder, Overflowing, Some(v.expect_value()))
-            }
+            },
             Instruction::U32WrappingMul => u32_ops::u32mul(span_builder, Wrapping, None),
             Instruction::U32WrappingMulImm(v) => {
                 u32_ops::u32mul(span_builder, Wrapping, Some(v.expect_value()))
-            }
+            },
             Instruction::U32OverflowingMadd => span_builder.push_op(U32madd),
             Instruction::U32WrappingMadd => span_builder.push_ops([U32madd, Drop]),
 
             Instruction::U32Div => u32_ops::u32div(span_builder, proc_ctx, None)?,
             Instruction::U32DivImm(v) => {
                 u32_ops::u32div(span_builder, proc_ctx, Some(v.expect_spanned_value()))?
-            }
+            },
             Instruction::U32Mod => u32_ops::u32mod(span_builder, proc_ctx, None)?,
             Instruction::U32ModImm(v) => {
                 u32_ops::u32mod(span_builder, proc_ctx, Some(v.expect_spanned_value()))?
-            }
+            },
             Instruction::U32DivMod => u32_ops::u32divmod(span_builder, proc_ctx, None)?,
             Instruction::U32DivModImm(v) => {
                 u32_ops::u32divmod(span_builder, proc_ctx, Some(v.expect_spanned_value()))?
-            }
+            },
             Instruction::U32And => span_builder.push_op(U32and),
             Instruction::U32Or => span_builder.push_ops([Dup1, Dup1, U32and, Neg, Add, Add]),
             Instruction::U32Xor => span_builder.push_op(U32xor),
@@ -243,22 +245,22 @@ impl Assembler {
             Instruction::Swap9 => span_builder.push_ops([MovDn8, SwapDW, Swap, SwapDW, MovUp8]),
             Instruction::Swap10 => {
                 span_builder.push_ops([MovDn8, SwapDW, Swap, MovUp2, SwapDW, MovUp8])
-            }
+            },
             Instruction::Swap11 => {
                 span_builder.push_ops([MovDn8, SwapDW, MovDn2, MovUp3, SwapDW, MovUp8])
-            }
+            },
             Instruction::Swap12 => {
                 span_builder.push_ops([MovDn8, SwapDW, MovDn3, MovUp4, SwapDW, MovUp8])
-            }
+            },
             Instruction::Swap13 => {
                 span_builder.push_ops([MovDn8, SwapDW, MovDn4, MovUp5, SwapDW, MovUp8])
-            }
+            },
             Instruction::Swap14 => {
                 span_builder.push_ops([MovDn8, SwapDW, MovDn5, MovUp6, SwapDW, MovUp8])
-            }
+            },
             Instruction::Swap15 => {
                 span_builder.push_ops([MovDn8, SwapDW, MovDn6, MovUp7, SwapDW, MovUp8])
-            }
+            },
             Instruction::SwapW1 => span_builder.push_op(SwapW),
             Instruction::SwapW2 => span_builder.push_op(SwapW2),
             Instruction::SwapW3 => span_builder.push_op(SwapW3),
@@ -324,11 +326,11 @@ impl Assembler {
             Instruction::MemLoad => mem_ops::mem_read(span_builder, proc_ctx, None, false, true)?,
             Instruction::MemLoadImm(v) => {
                 mem_ops::mem_read(span_builder, proc_ctx, Some(v.expect_value()), false, true)?
-            }
+            },
             Instruction::MemLoadW => mem_ops::mem_read(span_builder, proc_ctx, None, false, false)?,
             Instruction::MemLoadWImm(v) => {
                 mem_ops::mem_read(span_builder, proc_ctx, Some(v.expect_value()), false, false)?
-            }
+            },
             Instruction::LocLoad(v) => mem_ops::mem_read(
                 span_builder,
                 proc_ctx,
@@ -347,13 +349,13 @@ impl Assembler {
             Instruction::MemStoreW => span_builder.push_ops([MStoreW]),
             Instruction::MemStoreImm(v) => {
                 mem_ops::mem_write_imm(span_builder, proc_ctx, v.expect_value(), false, true)?
-            }
+            },
             Instruction::MemStoreWImm(v) => {
                 mem_ops::mem_write_imm(span_builder, proc_ctx, v.expect_value(), false, false)?
-            }
+            },
             Instruction::LocStore(v) => {
                 mem_ops::mem_write_imm(span_builder, proc_ctx, v.expect_value() as u32, true, true)?
-            }
+            },
             Instruction::LocStoreW(v) => mem_ops::mem_write_imm(
                 span_builder,
                 proc_ctx,
@@ -374,7 +376,7 @@ impl Assembler {
             Instruction::MTreeVerify => span_builder.push_op(MpVerify(0)),
             Instruction::MTreeVerifyWithError(err_code) => {
                 span_builder.push_op(MpVerify(err_code.expect_value()))
-            }
+            },
 
             // ----- STARK proof verification -----------------------------------------------------
             Instruction::FriExt2Fold4 => span_builder.push_op(FriE2F4),
@@ -383,18 +385,18 @@ impl Assembler {
             // ----- exec/call instructions -------------------------------------------------------
             Instruction::Exec(ref callee) => {
                 return self.invoke(InvokeKind::Exec, callee, proc_ctx, mast_forest_builder)
-            }
+            },
             Instruction::Call(ref callee) => {
                 return self.invoke(InvokeKind::Call, callee, proc_ctx, mast_forest_builder)
-            }
+            },
             Instruction::SysCall(ref callee) => {
                 return self.invoke(InvokeKind::SysCall, callee, proc_ctx, mast_forest_builder)
-            }
+            },
             Instruction::DynExec => return self.dynexec(mast_forest_builder),
             Instruction::DynCall => return self.dyncall(mast_forest_builder),
             Instruction::ProcRef(ref callee) => {
                 self.procref(callee, proc_ctx, span_builder, mast_forest_builder)?
-            }
+            },
 
             // ----- debug decorators -------------------------------------------------------------
             Instruction::Breakpoint => {
@@ -402,7 +404,7 @@ impl Assembler {
                     span_builder.push_op(Noop);
                     span_builder.track_instruction(instruction, proc_ctx);
                 }
-            }
+            },
 
             Instruction::Debug(options) => {
                 if self.in_debug_mode() {
@@ -410,17 +412,17 @@ impl Assembler {
                         options.clone().try_into().expect("unresolved constant"),
                     ))
                 }
-            }
+            },
 
             // ----- emit instruction -------------------------------------------------------------
             Instruction::Emit(event_id) => {
                 span_builder.push_decorator(Decorator::Event(event_id.expect_value()));
-            }
+            },
 
             // ----- trace instruction ------------------------------------------------------------
             Instruction::Trace(trace_id) => {
                 span_builder.push_decorator(Decorator::Trace(trace_id.expect_value()));
-            }
+            },
         }
 
         Ok(None)

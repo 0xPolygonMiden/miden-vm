@@ -1,6 +1,6 @@
-use crate::*;
-use air::{ProvingOptions, StarkField};
 use alloc::vec::Vec;
+
+use air::{ProvingOptions, StarkField};
 use gpu::metal::{MetalExecutionProver, DIGEST_SIZE, RATE};
 use processor::{
     crypto::{Hasher, RpoDigest, RpoRandomCoin, Rpx256, RpxDigest, RpxRandomCoin},
@@ -8,6 +8,8 @@ use processor::{
     StackInputs, StackOutputs,
 };
 use winter_prover::{crypto::Digest, math::fields::CubeExtension, CompositionPolyTrace, TraceLde};
+
+use crate::*;
 
 type CubeFelt = CubeExtension<Felt>;
 

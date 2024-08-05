@@ -1,15 +1,14 @@
+use alloc::vec::Vec;
 use core::{fmt, ops::Index};
 
-use alloc::vec::Vec;
 use miden_crypto::{hash::rpo::RpoDigest, Felt, WORD_SIZE};
 use winter_utils::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable};
 
+use super::Kernel;
 use crate::{
     mast::{MastForest, MastNode, MastNodeId},
     utils::ToElements,
 };
-
-use super::Kernel;
 
 // PROGRAM
 // ===============================================================================================
@@ -46,11 +45,7 @@ impl Program {
     pub fn with_kernel(mast_forest: MastForest, entrypoint: MastNodeId, kernel: Kernel) -> Self {
         assert!(mast_forest.get_node_by_id(entrypoint).is_some());
 
-        Self {
-            mast_forest,
-            entrypoint,
-            kernel,
-        }
+        Self { mast_forest, entrypoint, kernel }
     }
 }
 
@@ -152,10 +147,7 @@ impl ProgramInfo {
 
     /// Creates a new instance of a program info.
     pub const fn new(program_hash: RpoDigest, kernel: Kernel) -> Self {
-        Self {
-            program_hash,
-            kernel,
-        }
+        Self { program_hash, kernel }
     }
 
     // PUBLIC ACCESSORS
@@ -182,10 +174,7 @@ impl From<Program> for ProgramInfo {
         let program_hash = program.hash();
         let kernel = program.kernel().clone();
 
-        Self {
-            program_hash,
-            kernel,
-        }
+        Self { program_hash, kernel }
     }
 }
 
@@ -203,10 +192,7 @@ impl Deserializable for ProgramInfo {
     fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
         let program_hash = source.read()?;
         let kernel = source.read()?;
-        Ok(Self {
-            program_hash,
-            kernel,
-        })
+        Ok(Self { program_hash, kernel })
     }
 }
 

@@ -1,7 +1,9 @@
-use super::{ExecutionError, Felt, FieldElement, SysTrace, Word, EMPTY_WORD, ONE, ZERO};
 use alloc::vec::Vec;
 use core::fmt::{self, Display};
+
 use miden_air::RowIndex;
+
+use super::{ExecutionError, Felt, FieldElement, SysTrace, Word, EMPTY_WORD, ONE, ZERO};
 
 #[cfg(test)]
 mod tests;

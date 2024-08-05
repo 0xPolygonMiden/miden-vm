@@ -1,7 +1,6 @@
-use super::HostResponse;
-use crate::{ExecutionError, Felt, InputError, ProcessState, Word};
 use alloc::vec::Vec;
 use core::borrow::Borrow;
+
 use vm_core::{
     crypto::{
         hash::RpoDigest,
@@ -9,6 +8,9 @@ use vm_core::{
     },
     AdviceInjector, SignatureKind,
 };
+
+use super::HostResponse;
+use crate::{ExecutionError, Felt, InputError, ProcessState, Word};
 
 mod extractors;
 pub use extractors::AdviceExtractor;
@@ -58,10 +60,9 @@ pub trait AdviceProvider: Sized {
         match advice_injector {
             AdviceInjector::MerkleNodeMerge => self.merge_merkle_nodes(process),
             AdviceInjector::MerkleNodeToStack => self.copy_merkle_node_to_adv_stack(process),
-            AdviceInjector::MapValueToStack {
-                include_len,
-                key_offset,
-            } => self.copy_map_value_to_adv_stack(process, *include_len, *key_offset),
+            AdviceInjector::MapValueToStack { include_len, key_offset } => {
+                self.copy_map_value_to_adv_stack(process, *include_len, *key_offset)
+            },
             AdviceInjector::UpdateMerkleNode => self.update_operand_stack_merkle_node(process),
             AdviceInjector::U64Div => self.push_u64_div_result(process),
             AdviceInjector::Ext2Inv => self.push_ext2_inv_result(process),
@@ -78,7 +79,7 @@ pub trait AdviceProvider: Sized {
             AdviceInjector::MemToMap => self.insert_mem_values_into_adv_map(process),
             AdviceInjector::HdwordToMap { domain } => {
                 self.insert_hdword_into_adv_map(process, *domain)
-            }
+            },
             AdviceInjector::HpermToMap => self.insert_hperm_into_adv_map(process),
             AdviceInjector::SigToStack { kind } => self.push_signature(process, *kind),
         }
@@ -94,7 +95,7 @@ pub trait AdviceProvider: Sized {
             AdviceExtractor::PopStack => self.pop_stack(process).map(HostResponse::Element),
             AdviceExtractor::PopStackDWord => {
                 self.pop_stack_dword(process).map(HostResponse::DoubleWord)
-            }
+            },
             AdviceExtractor::PopStackWord => self.pop_stack_word(process).map(HostResponse::Word),
             AdviceExtractor::GetMerklePath => self.get_operand_stack_merkle_path(process),
         }

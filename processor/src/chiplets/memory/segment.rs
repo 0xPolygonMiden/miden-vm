@@ -1,4 +1,5 @@
 use alloc::{collections::BTreeMap, vec::Vec};
+
 use miden_air::{
     trace::chiplets::memory::{Selectors, MEMORY_COPY_READ, MEMORY_INIT_READ, MEMORY_WRITE},
     RowIndex,
@@ -56,7 +57,7 @@ impl MemorySegmentTrace {
                     if i > 0 {
                         result.push((addr.into(), addr_trace[i - 1].value()));
                     }
-                }
+                },
             }
         }
 

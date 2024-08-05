@@ -1,17 +1,22 @@
+use alloc::vec::Vec;
+
+use rand_utils::rand_value;
+
 use super::{
     EvaluationFrame, MEMORY_ADDR_COL_IDX, MEMORY_CLK_COL_IDX, MEMORY_CTX_COL_IDX,
     MEMORY_D0_COL_IDX, MEMORY_D1_COL_IDX, MEMORY_D_INV_COL_IDX, MEMORY_V_COL_RANGE, NUM_ELEMENTS,
 };
-use crate::trace::{
-    chiplets::{
-        memory::{Selectors, MEMORY_COPY_READ, MEMORY_INIT_READ, MEMORY_WRITE},
-        MEMORY_TRACE_OFFSET,
+use crate::{
+    chiplets::memory,
+    trace::{
+        chiplets::{
+            memory::{Selectors, MEMORY_COPY_READ, MEMORY_INIT_READ, MEMORY_WRITE},
+            MEMORY_TRACE_OFFSET,
+        },
+        TRACE_WIDTH,
     },
-    TRACE_WIDTH,
+    Felt, FieldElement, ONE, ZERO,
 };
-use crate::{chiplets::memory, Felt, FieldElement, ONE, ZERO};
-use alloc::vec::Vec;
-use rand_utils::rand_value;
 
 // UNIT TESTS
 // ================================================================================================
@@ -204,7 +209,7 @@ fn get_test_delta_row(delta_type: &MemoryTestDeltaType) -> Vec<u64> {
             // Set addr and clock in the row column to random values.
             row[addr_idx] = rand_value::<u32>() as u64;
             row[clk_idx] = rand_value::<u32>() as u64;
-        }
+        },
         MemoryTestDeltaType::Address => {
             // Keep the context value the same in current and row rows (leave it as ZERO).
             // Set the row value for the address.
@@ -212,12 +217,12 @@ fn get_test_delta_row(delta_type: &MemoryTestDeltaType) -> Vec<u64> {
 
             // Set clock in the row column to a random value.
             row[clk_idx] = rand_value::<u32>() as u64;
-        }
+        },
         MemoryTestDeltaType::Clock => {
             // Keep the context and address values the same in the current and row rows.
             // Set the current and row values for the clock.
             row[clk_idx] = delta_value;
-        }
+        },
     }
 
     row

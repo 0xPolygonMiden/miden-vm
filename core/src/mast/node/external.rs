@@ -1,6 +1,8 @@
-use crate::mast::MastForest;
 use core::fmt;
+
 use miden_crypto::hash::rpo::RpoDigest;
+
+use crate::mast::MastForest;
 
 // EXTERNAL NODE
 // ================================================================================================
@@ -21,9 +23,7 @@ pub struct ExternalNode {
 impl ExternalNode {
     /// Returns a new [`ExternalNode`] instantiated with the specified procedure hash.
     pub fn new(procedure_hash: RpoDigest) -> Self {
-        Self {
-            digest: procedure_hash,
-        }
+        Self { digest: procedure_hash }
     }
 }
 
@@ -45,8 +45,9 @@ impl ExternalNode {
 
 impl crate::prettier::PrettyPrint for ExternalNode {
     fn render(&self) -> crate::prettier::Document {
-        use crate::prettier::*;
         use miden_formatting::hex::ToHex;
+
+        use crate::prettier::*;
         const_text("external") + const_text(".") + text(self.digest.as_bytes().to_hex_with_prefix())
     }
 }

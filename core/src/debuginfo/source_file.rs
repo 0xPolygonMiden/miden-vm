@@ -456,11 +456,7 @@ impl SourceContent {
             .collect::<Vec<_>>()
             .into_boxed_slice();
 
-        Self {
-            path,
-            content,
-            line_starts,
-        }
+        Self { path, content, line_starts }
     }
 
     /// Get the name of this source file

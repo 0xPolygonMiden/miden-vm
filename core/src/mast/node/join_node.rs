@@ -89,20 +89,14 @@ impl JoinNode {
 
 impl JoinNode {
     pub(super) fn to_display<'a>(&'a self, mast_forest: &'a MastForest) -> impl fmt::Display + 'a {
-        JoinNodePrettyPrint {
-            join_node: self,
-            mast_forest,
-        }
+        JoinNodePrettyPrint { join_node: self, mast_forest }
     }
 
     pub(super) fn to_pretty_print<'a>(
         &'a self,
         mast_forest: &'a MastForest,
     ) -> impl PrettyPrint + 'a {
-        JoinNodePrettyPrint {
-            join_node: self,
-            mast_forest,
-        }
+        JoinNodePrettyPrint { join_node: self, mast_forest }
     }
 }
 

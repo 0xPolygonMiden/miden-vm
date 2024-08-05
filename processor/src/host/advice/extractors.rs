@@ -100,7 +100,7 @@ impl fmt::Display for AdviceExtractor {
             Self::PopStackDWord => write!(f, "pop_stack_dword"),
             Self::GetMerklePath => {
                 write!(f, "get_merkle_path")
-            }
+            },
         }
     }
 }

@@ -102,9 +102,7 @@ macro_rules! build_test_by_mode {
             add_modules: Vec::default(),
         }
     }};
-    (
-        $in_debug_mode:expr, $source:expr, $stack_inputs:expr, $advice_stack:expr
-    ) => {{
+    ($in_debug_mode:expr, $source:expr, $stack_inputs:expr, $advice_stack:expr) => {{
         use ::assembly::SourceManager;
 
         let stack_inputs: Vec<u64> = $stack_inputs.to_vec();
@@ -131,7 +129,11 @@ macro_rules! build_test_by_mode {
         }
     }};
     (
-        $in_debug_mode:expr, $source:expr, $stack_inputs:expr, $advice_stack:expr, $advice_merkle_store:expr
+        $in_debug_mode:expr,
+        $source:expr,
+        $stack_inputs:expr,
+        $advice_stack:expr,
+        $advice_merkle_store:expr
     ) => {{
         use ::assembly::SourceManager;
 
@@ -157,7 +159,14 @@ macro_rules! build_test_by_mode {
             add_modules: Vec::default(),
         }
     }};
-    ($in_debug_mode:expr, $source:expr, $stack_inputs:expr, $advice_stack:expr, $advice_merkle_store:expr, $advice_map:expr) => {{
+    (
+        $in_debug_mode:expr,
+        $source:expr,
+        $stack_inputs:expr,
+        $advice_stack:expr,
+        $advice_merkle_store:expr,
+        $advice_map:expr
+    ) => {{
         use ::assembly::SourceManager;
 
         let stack_inputs: Vec<u64> = $stack_inputs.to_vec();

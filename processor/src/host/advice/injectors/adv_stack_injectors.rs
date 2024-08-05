@@ -1,8 +1,10 @@
-use super::super::{AdviceSource, ExecutionError, Felt, HostResponse};
-use crate::{AdviceProvider, Ext2InttError, FieldElement, ProcessState, ZERO};
 use alloc::vec::Vec;
+
 use vm_core::{QuadExtension, SignatureKind};
 use winter_prover::math::fft;
+
+use super::super::{AdviceSource, ExecutionError, Felt, HostResponse};
+use crate::{AdviceProvider, Ext2InttError, FieldElement, ProcessState, ZERO};
 
 // TYPE ALIASES
 // ================================================================================================

@@ -23,7 +23,7 @@ impl<E: FieldElement<BaseField = Felt>> AuxColumnBuilder<E> for BlockStackColumn
         match op_code {
             OPCODE_RESPAN => {
                 get_block_stack_table_removal_multiplicand(main_trace, i, true, alphas)
-            }
+            },
             OPCODE_END => get_block_stack_table_removal_multiplicand(main_trace, i, false, alphas),
             _ => E::ONE,
         }
@@ -38,7 +38,7 @@ impl<E: FieldElement<BaseField = Felt>> AuxColumnBuilder<E> for BlockStackColumn
             OPCODE_JOIN | OPCODE_SPLIT | OPCODE_SPAN | OPCODE_DYN | OPCODE_LOOP | OPCODE_RESPAN
             | OPCODE_CALL | OPCODE_SYSCALL => {
                 get_block_stack_table_inclusion_multiplicand(main_trace, i, alphas, op_code)
-            }
+            },
             _ => E::ONE,
         }
     }

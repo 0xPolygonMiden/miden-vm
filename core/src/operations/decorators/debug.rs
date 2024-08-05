@@ -43,7 +43,7 @@ impl fmt::Display for DebugOptions {
             Self::MemInterval(n, m) => write!(f, "mem.{n}.{m}"),
             Self::LocalInterval(start, end, _) => {
                 write!(f, "local.{start}.{end}")
-            }
+            },
         }
     }
 }

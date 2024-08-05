@@ -1,5 +1,4 @@
-use processor::RowIndex;
-use processor::{AsmOpInfo, VmStateIterator};
+use processor::{AsmOpInfo, RowIndex, VmStateIterator};
 use test_utils::{assert_eq, build_debug_test};
 use vm_core::{debuginfo::Location, AssemblyOp, Felt, Operation};
 

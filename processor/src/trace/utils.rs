@@ -1,11 +1,12 @@
-use super::{Felt, FieldElement, NUM_RAND_ROWS};
-use crate::{chiplets::Chiplets, utils::uninit_vector};
 use alloc::vec::Vec;
 use core::slice;
-use miden_air::{trace::main_trace::MainTrace, RowIndex};
 
+use miden_air::{trace::main_trace::MainTrace, RowIndex};
 #[cfg(test)]
 use vm_core::{utils::ToElements, Operation};
+
+use super::{Felt, FieldElement, NUM_RAND_ROWS};
+use crate::{chiplets::Chiplets, utils::uninit_vector};
 
 // TRACE FRAGMENT
 // ================================================================================================
@@ -18,9 +19,7 @@ pub struct TraceFragment<'a> {
 impl<'a> TraceFragment<'a> {
     /// Creates a new TraceFragment with its data allocated to the specified capacity.
     pub fn new(capacity: usize) -> Self {
-        TraceFragment {
-            data: Vec::with_capacity(capacity),
-        }
+        TraceFragment { data: Vec::with_capacity(capacity) }
     }
 
     // PUBLIC ACCESSORS

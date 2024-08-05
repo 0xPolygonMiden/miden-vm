@@ -1,11 +1,13 @@
-use super::{super::utils::get_trace_len, Felt, MAX_TOP_IDX, ONE, STACK_TRACE_WIDTH, ZERO};
-use crate::utils::math::batch_inversion;
 use alloc::vec::Vec;
+
 use miden_air::{
     trace::stack::{H0_COL_IDX, NUM_STACK_HELPER_COLS, STACK_TOP_SIZE},
     RowIndex,
 };
 use vm_core::FieldElement;
+
+use super::{super::utils::get_trace_len, Felt, MAX_TOP_IDX, ONE, STACK_TRACE_WIDTH, ZERO};
+use crate::utils::math::batch_inversion;
 
 // STACK TRACE
 // ================================================================================================

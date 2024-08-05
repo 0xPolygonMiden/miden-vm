@@ -1,12 +1,13 @@
-use super::{Felt, ONE, ZERO};
-use crate::trace::AuxColumnBuilder;
 use alloc::vec::Vec;
+
 use miden_air::trace::main_trace::MainTrace;
 use vm_core::FieldElement;
 
+use super::{Felt, ONE, ZERO};
+use crate::trace::AuxColumnBuilder;
+
 mod block_hash_table;
 use block_hash_table::BlockHashTableColumnBuilder;
-
 #[cfg(test)]
 pub use block_hash_table::BlockHashTableRow;
 

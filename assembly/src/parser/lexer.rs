@@ -143,10 +143,10 @@ impl<'input> Lexer<'input> {
         match self.tokenize() {
             Ok(tok) => {
                 self.token = tok;
-            }
+            },
             Err(err) => {
                 self.error = Some(err);
-            }
+            },
         }
     }
 
@@ -255,12 +255,12 @@ impl<'input> Lexer<'input> {
                     self.skip();
                     self.skip();
                     return self.lex_docs();
-                }
+                },
                 _ => {
                     self.skip();
                     self.skip_comment();
                     return Ok(Token::Comment);
-                }
+                },
             }
         }
 
@@ -299,12 +299,12 @@ impl<'input> Lexer<'input> {
                     self.skip();
                     self.skip();
                     self.lex_hex()
-                }
+                },
                 'b' => {
                     self.skip();
                     self.skip();
                     self.lex_bin()
-                }
+                },
                 '0'..='9' => self.lex_number(),
                 _ => pop!(self, Token::Int(0)),
             },
@@ -354,13 +354,13 @@ impl<'input> Lexer<'input> {
                         self.skip();
                         line_start = self.token_end;
                         continue;
-                    }
+                    },
                     _ if is_module_doc => {
                         break Ok(Token::DocComment(DocumentationType::Module(buf)));
-                    }
+                    },
                     _ => {
                         break Ok(Token::DocComment(DocumentationType::Form(buf)));
-                    }
+                    },
                 }
             }
 
@@ -409,7 +409,7 @@ impl<'input> Lexer<'input> {
                 } else {
                     Ok(Token::Exp)
                 }
-            }
+            },
             _ => Ok(Token::from_keyword_or_ident_with_searcher(name, &self.keywords)),
         }
     }
@@ -425,7 +425,7 @@ impl<'input> Lexer<'input> {
                     break Err(ParsingError::UnclosedQuote {
                         start: SourceSpan::at(self.source_id, self.span().start()),
                     });
-                }
+                },
                 '"' => {
                     let span = self.span();
                     let start = span.start() + quote_size;
@@ -433,21 +433,21 @@ impl<'input> Lexer<'input> {
 
                     self.skip();
                     break Ok(Token::QuotedIdent(self.slice_span(span)));
-                }
+                },
                 c if c.is_ascii_alphanumeric() => {
                     self.skip();
                     continue;
-                }
+                },
                 '_' | '$' | '-' | '!' | '?' | '<' | '>' | ':' | '.' => {
                     self.skip();
                     continue;
-                }
+                },
                 c => {
                     let loc = self.span().end() - ByteOffset::from_char_len(c);
                     break Err(ParsingError::InvalidIdentCharacter {
                         span: SourceSpan::at(self.source_id, loc),
                     });
-                }
+                },
             }
         }
     }
@@ -596,7 +596,7 @@ fn parse_hex(span: SourceSpan, hex_digits: &str) -> Result<HexEncodedValue, Pars
                 });
             }
             Ok(shrink_u64_hex(value))
-        }
+        },
         // Word
         64 => {
             let mut word = [Felt::ZERO; 4];
@@ -626,20 +626,13 @@ fn parse_hex(span: SourceSpan, hex_digits: &str) -> Result<HexEncodedValue, Pars
                 *element = Felt::new(value);
             }
             Ok(HexEncodedValue::Word(word))
-        }
+        },
         // Invalid
-        n if n > 64 => Err(ParsingError::InvalidHexLiteral {
-            span,
-            kind: HexErrorKind::TooLong,
-        }),
-        n if n % 2 != 0 && n < 64 => Err(ParsingError::InvalidHexLiteral {
-            span,
-            kind: HexErrorKind::MissingDigits,
-        }),
-        _ => Err(ParsingError::InvalidHexLiteral {
-            span,
-            kind: HexErrorKind::Invalid,
-        }),
+        n if n > 64 => Err(ParsingError::InvalidHexLiteral { span, kind: HexErrorKind::TooLong }),
+        n if n % 2 != 0 && n < 64 => {
+            Err(ParsingError::InvalidHexLiteral { span, kind: HexErrorKind::MissingDigits })
+        },
+        _ => Err(ParsingError::InvalidHexLiteral { span, kind: HexErrorKind::Invalid }),
     }
 }
 
@@ -655,10 +648,7 @@ fn parse_bin(span: SourceSpan, bin_digits: &str) -> Result<BinEncodedValue, Pars
             })?;
         Ok(shrink_u32_bin(value))
     } else {
-        Err(ParsingError::InvalidBinaryLiteral {
-            span,
-            kind: BinErrorKind::TooLong,
-        })
+        Err(ParsingError::InvalidBinaryLiteral { span, kind: BinErrorKind::TooLong })
     }
 }
 

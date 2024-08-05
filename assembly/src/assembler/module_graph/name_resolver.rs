@@ -93,10 +93,7 @@ pub struct NameResolver<'a> {
 impl<'a> NameResolver<'a> {
     /// Create a new [NameResolver] for the provided [ModuleGraph].
     pub fn new(graph: &'a ModuleGraph) -> Self {
-        Self {
-            graph,
-            pending: vec![],
-        }
+        Self { graph, pending: vec![] }
     }
 
     /// Add a module to the set of "pending" modules this resolver will consult when doing
@@ -129,42 +126,41 @@ impl<'a> NameResolver<'a> {
                     None => Ok(ResolvedTarget::Phantom(mast_root.into_inner())),
                     Some(gid) => Ok(ResolvedTarget::Exact { gid }),
                 }
-            }
+            },
             InvocationTarget::ProcedureName(ref callee) => self.resolve(caller, callee),
-            InvocationTarget::ProcedurePath {
-                ref name,
-                module: ref imported_module,
-            } => match self.resolve_import(caller, imported_module) {
-                Some(imported_module) => {
-                    let fqn = QualifiedProcedureName {
-                        span: target.span(),
-                        module: imported_module.into_inner().clone(),
-                        name: name.clone(),
-                    };
-                    let gid = self.find(caller, &fqn)?;
-                    let path = self.module_path(gid.module);
-                    let pending_offset = self.graph.modules.len();
-                    let name = if gid.module.as_usize() >= pending_offset {
-                        self.pending[gid.module.as_usize() - pending_offset]
-                            .resolver
-                            .get_name(gid.index)
-                            .clone()
-                    } else {
-                        self.graph.get_procedure_unsafe(gid).name().clone()
-                    };
-                    Ok(ResolvedTarget::Resolved {
-                        gid,
-                        target: InvocationTarget::AbsoluteProcedurePath { name, path },
-                    })
+            InvocationTarget::ProcedurePath { ref name, module: ref imported_module } => {
+                match self.resolve_import(caller, imported_module) {
+                    Some(imported_module) => {
+                        let fqn = QualifiedProcedureName {
+                            span: target.span(),
+                            module: imported_module.into_inner().clone(),
+                            name: name.clone(),
+                        };
+                        let gid = self.find(caller, &fqn)?;
+                        let path = self.module_path(gid.module);
+                        let pending_offset = self.graph.modules.len();
+                        let name = if gid.module.as_usize() >= pending_offset {
+                            self.pending[gid.module.as_usize() - pending_offset]
+                                .resolver
+                                .get_name(gid.index)
+                                .clone()
+                        } else {
+                            self.graph.get_procedure_unsafe(gid).name().clone()
+                        };
+                        Ok(ResolvedTarget::Resolved {
+                            gid,
+                            target: InvocationTarget::AbsoluteProcedurePath { name, path },
+                        })
+                    },
+                    None => Err(AssemblyError::UndefinedModule {
+                        span: caller.span,
+                        source_file: self.graph.source_manager.get(caller.span.source_id()).ok(),
+                        path: LibraryPath::new_from_components(
+                            LibraryNamespace::User(imported_module.clone().into_inner()),
+                            [],
+                        ),
+                    }),
                 }
-                None => Err(AssemblyError::UndefinedModule {
-                    span: caller.span,
-                    source_file: self.graph.source_manager.get(caller.span.source_id()).ok(),
-                    path: LibraryPath::new_from_components(
-                        LibraryNamespace::User(imported_module.clone().into_inner()),
-                        [],
-                    ),
-                }),
             },
             InvocationTarget::AbsoluteProcedurePath { ref name, ref path } => {
                 let fqn = QualifiedProcedureName {
@@ -174,7 +170,7 @@ impl<'a> NameResolver<'a> {
                 };
                 let gid = self.find(caller, &fqn)?;
                 Ok(ResolvedTarget::Exact { gid })
-            }
+            },
         }
     }
 
@@ -192,14 +188,14 @@ impl<'a> NameResolver<'a> {
                     index: index.into_inner(),
                 };
                 Ok(ResolvedTarget::Exact { gid })
-            }
+            },
             Some(ResolvedProcedure::Local(index)) => {
                 let gid = GlobalProcedureIndex {
                     module: caller.module,
                     index: index.into_inner(),
                 };
                 Ok(ResolvedTarget::Exact { gid })
-            }
+            },
             Some(ResolvedProcedure::External(ref fqn)) => {
                 let gid = self.find(caller, fqn)?;
                 let path = self.module_path(gid.module);
@@ -216,13 +212,13 @@ impl<'a> NameResolver<'a> {
                     gid,
                     target: InvocationTarget::AbsoluteProcedurePath { name, path },
                 })
-            }
+            },
             Some(ResolvedProcedure::MastRoot(ref digest)) => {
                 match self.graph.get_procedure_index_by_digest(digest) {
                     Some(gid) => Ok(ResolvedTarget::Exact { gid }),
                     None => Ok(ResolvedTarget::Phantom(*digest)),
                 }
-            }
+            },
             None => Err(AssemblyError::Failed {
                 labels: vec![RelatedLabel::error("undefined procedure")
                     .with_source_file(self.graph.source_manager.get(caller.span.source_id()).ok())
@@ -330,7 +326,7 @@ impl<'a> NameResolver<'a> {
                         });
                     }
                     break Ok(id);
-                }
+                },
                 Some(ResolvedProcedure::External(fqn)) => {
                     // If we see that we're about to enter an infinite
                     // resolver loop because of a recursive alias, return
@@ -353,7 +349,7 @@ impl<'a> NameResolver<'a> {
                         kind: current_caller.kind,
                     });
                     current_callee = Cow::Owned(fqn);
-                }
+                },
                 Some(ResolvedProcedure::MastRoot(ref digest)) => {
                     if let Some(id) = self.graph.get_procedure_index_by_digest(digest) {
                         break Ok(id);
@@ -383,7 +379,7 @@ impl<'a> NameResolver<'a> {
                                 ),
                         ],
                     });
-                }
+                },
                 None if matches!(current_caller.kind, InvokeKind::SysCall) => {
                     if self.graph.has_nonempty_kernel() {
                         // No kernel, so this invoke is invalid anyway
@@ -416,7 +412,7 @@ impl<'a> NameResolver<'a> {
                             ]
                         });
                     }
-                }
+                },
                 None => {
                     // No such procedure known to `module`
                     break Err(AssemblyError::Failed {
@@ -442,7 +438,7 @@ impl<'a> NameResolver<'a> {
                                 ),
                         ],
                     });
-                }
+                },
             }
         }
     }

@@ -1,7 +1,8 @@
+use std::time::Duration;
+
 use criterion::{criterion_group, criterion_main, Criterion};
 use miden_vm::{Assembler, DefaultHost, StackInputs};
 use processor::{execute, ExecutionOptions, Program};
-use std::time::Duration;
 use stdlib::StdLibrary;
 
 fn program_execution(c: &mut Criterion) {

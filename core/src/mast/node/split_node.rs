@@ -91,20 +91,14 @@ impl SplitNode {
 
 impl SplitNode {
     pub(super) fn to_display<'a>(&'a self, mast_forest: &'a MastForest) -> impl fmt::Display + 'a {
-        SplitNodePrettyPrint {
-            split_node: self,
-            mast_forest,
-        }
+        SplitNodePrettyPrint { split_node: self, mast_forest }
     }
 
     pub(super) fn to_pretty_print<'a>(
         &'a self,
         mast_forest: &'a MastForest,
     ) -> impl PrettyPrint + 'a {
-        SplitNodePrettyPrint {
-            split_node: self,
-            mast_forest,
-        }
+        SplitNodePrettyPrint { split_node: self, mast_forest }
     }
 }
 

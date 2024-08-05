@@ -270,12 +270,13 @@ where
 
 #[cfg(test)]
 mod tests {
+    use vm_core::{utils::ToElements, Word, ONE, ZERO};
+
     use super::{
         super::{super::AdviceProvider, Operation, STACK_TOP_SIZE},
         Felt, Host, Process,
     };
     use crate::{AdviceSource, ContextId};
-    use vm_core::{utils::ToElements, Word, ONE, ZERO};
 
     #[test]
     fn op_push() {

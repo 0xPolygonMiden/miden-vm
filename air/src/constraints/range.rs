@@ -1,3 +1,7 @@
+use alloc::vec::Vec;
+
+use vm_core::{ExtensionOf, ZERO};
+
 use crate::{
     chiplets::ChipletsFrameExt,
     constraints::MainFrameExt,
@@ -5,9 +9,6 @@ use crate::{
     utils::are_equal,
     Assertion, EvaluationFrame, Felt, FieldElement, TransitionConstraintDegree,
 };
-use alloc::vec::Vec;
-
-use vm_core::{ExtensionOf, ZERO};
 
 // CONSTANTS
 // ================================================================================================

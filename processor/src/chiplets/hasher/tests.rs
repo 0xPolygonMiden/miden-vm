@@ -1,8 +1,3 @@
-use super::{
-    init_state_from_words, Digest, Felt, Hasher, HasherState, MerklePath, Selectors, TraceFragment,
-    Word, LINEAR_HASH, MP_VERIFY, MR_UPDATE_NEW, MR_UPDATE_OLD, RETURN_HASH, RETURN_STATE,
-    TRACE_WIDTH,
-};
 use alloc::vec::Vec;
 
 use miden_air::trace::chiplets::hasher::{
@@ -14,6 +9,12 @@ use vm_core::{
     crypto::merkle::{MerkleTree, NodeIndex},
     mast::{MastForest, MastNode},
     Operation, ONE, ZERO,
+};
+
+use super::{
+    init_state_from_words, Digest, Felt, Hasher, HasherState, MerklePath, Selectors, TraceFragment,
+    Word, LINEAR_HASH, MP_VERIFY, MR_UPDATE_NEW, MR_UPDATE_OLD, RETURN_HASH, RETURN_STATE,
+    TRACE_WIDTH,
 };
 
 // LINEAR HASH TESTS

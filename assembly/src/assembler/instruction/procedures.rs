@@ -1,12 +1,12 @@
+use smallvec::SmallVec;
+use vm_core::mast::MastNodeId;
+
 use super::{Assembler, BasicBlockBuilder, Operation};
 use crate::{
     assembler::{mast_forest_builder::MastForestBuilder, ProcedureContext},
     ast::{InvocationTarget, InvokeKind},
     AssemblyError, RpoDigest, SourceSpan, Spanned,
 };
-
-use smallvec::SmallVec;
-use vm_core::mast::MastNodeId;
 
 /// Procedure Invocation
 impl Assembler {
@@ -72,7 +72,7 @@ impl Assembler {
                         }
                     })?;
                 proc_ctx.register_external_call(&proc, false)?;
-            }
+            },
             Some(proc) => proc_ctx.register_external_call(&proc, false)?,
             None => (),
         }
@@ -90,9 +90,9 @@ impl Assembler {
                             // If the MAST root called isn't known to us, make it an external
                             // reference.
                             mast_forest_builder.ensure_external(mast_root)?
-                        }
+                        },
                     }
-                }
+                },
                 InvokeKind::Call => {
                     let callee_id = match mast_forest_builder.find_procedure_node_id(mast_root) {
                         Some(callee_id) => callee_id,
@@ -100,11 +100,11 @@ impl Assembler {
                             // If the MAST root called isn't known to us, make it an external
                             // reference.
                             mast_forest_builder.ensure_external(mast_root)?
-                        }
+                        },
                     };
 
                     mast_forest_builder.ensure_call(callee_id)?
-                }
+                },
                 InvokeKind::SysCall => {
                     let callee_id = match mast_forest_builder.find_procedure_node_id(mast_root) {
                         Some(callee_id) => callee_id,
@@ -112,11 +112,11 @@ impl Assembler {
                             // If the MAST root called isn't known to us, make it an external
                             // reference.
                             mast_forest_builder.ensure_external(mast_root)?
-                        }
+                        },
                     };
 
                     mast_forest_builder.ensure_syscall(callee_id)?
-                }
+                },
             }
         };
 

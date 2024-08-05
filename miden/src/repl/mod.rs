@@ -1,8 +1,9 @@
+use std::{collections::BTreeSet, path::PathBuf};
+
 use assembly::{library::CompiledLibrary, Assembler};
 use miden_vm::{math::Felt, DefaultHost, StackInputs, Word};
 use processor::ContextId;
 use rustyline::{error::ReadlineError, DefaultEditor};
-use std::{collections::BTreeSet, path::PathBuf};
 use stdlib::StdLibrary;
 
 /// This work is in continuation to the amazing work done by team `Scribe`
@@ -198,11 +199,11 @@ pub fn start_repl(library_paths: &Vec<PathBuf>, use_stdlib: bool) {
                         print_stack(stack_state);
                     }
                     memory = mem;
-                }
+                },
                 Err(e) => {
                     println!("Error running program: {:?}", e);
                     program_lines.pop();
-                }
+                },
             }
         } else if should_print_stack {
             println!("{}", str::repeat("0 ", 16));
@@ -250,7 +251,7 @@ pub fn start_repl(library_paths: &Vec<PathBuf>, use_stdlib: bool) {
                             if !mem_at_addr_present {
                                 println!("Memory at address {} is empty", addr);
                             }
-                        }
+                        },
                         Err(msg) => println!("{}", msg),
                     }
 
@@ -260,11 +261,11 @@ pub fn start_repl(library_paths: &Vec<PathBuf>, use_stdlib: bool) {
                         Some(last_line) => {
                             println!("Undoing {}", last_line);
                             should_print_stack = true;
-                        }
+                        },
                         None => {
                             println!("There's no previously executed command");
                             should_print_stack = false;
-                        }
+                        },
                     };
                 } else if line == "!stack" {
                     should_print_stack = true;
@@ -275,19 +276,19 @@ pub fn start_repl(library_paths: &Vec<PathBuf>, use_stdlib: bool) {
                     program_lines.push(line.clone());
                     should_print_stack = true;
                 }
-            }
+            },
             Err(ReadlineError::Interrupted) => {
                 println!("CTRL-C");
                 break;
-            }
+            },
             Err(ReadlineError::Eof) => {
                 println!("CTRL-D");
                 break;
-            }
+            },
             Err(err) => {
                 println!("Error: {:?}", err);
                 break;
-            }
+            },
         };
     }
     rl.save_history("history.txt")
@@ -371,10 +372,10 @@ fn handle_use_command(
             for lib in provided_libraries {
                 lib.module_infos().for_each(|module| println!("{}", module.path()));
             }
-        }
+        },
         2 => {
             imported_modules.insert(format!("use.{}", tokens[1]).to_string());
-        }
+        },
         _ => println!("malformed instruction '!use': too many parameters provided"),
     }
 }

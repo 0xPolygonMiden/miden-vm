@@ -1,7 +1,7 @@
 mod basic_block_node;
+use alloc::{boxed::Box, vec::Vec};
 use core::fmt;
 
-use alloc::{boxed::Box, vec::Vec};
 pub use basic_block_node::{
     BasicBlockNode, OpBatch, OperationOrDecorator, BATCH_SIZE as OP_BATCH_SIZE,
     GROUP_SIZE as OP_GROUP_SIZE,
@@ -27,12 +27,11 @@ pub use split_node::SplitNode;
 mod loop_node;
 pub use loop_node::LoopNode;
 
+use super::MastForestError;
 use crate::{
     mast::{MastForest, MastNodeId},
     DecoratorList, Operation,
 };
-
-use super::MastForestError;
 
 // MAST NODE
 // ================================================================================================
@@ -121,19 +120,19 @@ impl MastNode {
         match self {
             MastNode::Block(basic_block_node) => {
                 MastNodePrettyPrint::new(Box::new(basic_block_node))
-            }
+            },
             MastNode::Join(join_node) => {
                 MastNodePrettyPrint::new(Box::new(join_node.to_pretty_print(mast_forest)))
-            }
+            },
             MastNode::Split(split_node) => {
                 MastNodePrettyPrint::new(Box::new(split_node.to_pretty_print(mast_forest)))
-            }
+            },
             MastNode::Loop(loop_node) => {
                 MastNodePrettyPrint::new(Box::new(loop_node.to_pretty_print(mast_forest)))
-            }
+            },
             MastNode::Call(call_node) => {
                 MastNodePrettyPrint::new(Box::new(call_node.to_pretty_print(mast_forest)))
-            }
+            },
             MastNode::Dyn => MastNodePrettyPrint::new(Box::new(DynNode)),
             MastNode::External(external_node) => MastNodePrettyPrint::new(Box::new(external_node)),
         }
@@ -201,9 +200,7 @@ struct MastNodeDisplay<'a> {
 
 impl<'a> MastNodeDisplay<'a> {
     pub fn new(node: impl fmt::Display + 'a) -> Self {
-        Self {
-            node_display: Box::new(node),
-        }
+        Self { node_display: Box::new(node) }
     }
 }
 

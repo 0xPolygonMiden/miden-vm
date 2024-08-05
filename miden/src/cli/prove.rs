@@ -1,10 +1,11 @@
-use super::data::{instrument, Debug, InputFile, Libraries, OutputFile, ProgramFile, ProofFile};
+use std::{path::PathBuf, time::Instant};
+
 use assembly::diagnostics::{IntoDiagnostic, Report, WrapErr};
 use clap::Parser;
 use miden_vm::ProvingOptions;
 use processor::{DefaultHost, ExecutionOptions, ExecutionOptionsError, Program};
 
-use std::{path::PathBuf, time::Instant};
+use super::data::{instrument, Debug, InputFile, Libraries, OutputFile, ProgramFile, ProofFile};
 
 #[derive(Debug, Clone, Parser)]
 #[clap(about = "Prove a miden program")]
@@ -69,14 +70,14 @@ impl ProveCmd {
                 } else {
                     ProvingOptions::with_96_bit_security(self.recursive)
                 }
-            }
+            },
             "128bits" => {
                 if self.rpx {
                     ProvingOptions::with_128_bit_security_rpx()
                 } else {
                     ProvingOptions::with_128_bit_security(self.recursive)
                 }
-            }
+            },
             other => panic!("{} is not a valid security setting", other),
         }
         .with_execution_options(exec_options))

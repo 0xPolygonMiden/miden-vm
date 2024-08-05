@@ -1,11 +1,13 @@
-use super::{ExecutionError, Felt, ProcessState};
-use crate::MemAdviceProvider;
 use alloc::sync::Arc;
+
 use vm_core::{
     crypto::{hash::RpoDigest, merkle::MerklePath},
     mast::MastForest,
     AdviceInjector, DebugOptions, Word,
 };
+
+use super::{ExecutionError, Felt, ProcessState};
+use crate::MemAdviceProvider;
 
 pub(super) mod advice;
 use advice::{AdviceExtractor, AdviceProvider};

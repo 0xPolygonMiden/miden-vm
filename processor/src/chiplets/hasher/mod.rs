@@ -1,10 +1,12 @@
-use super::{
-    Felt, HasherState, MerklePath, MerkleRootUpdate, OpBatch, TraceFragment, Word, ONE, ZERO,
-};
 use alloc::collections::BTreeMap;
+
 use miden_air::trace::chiplets::hasher::{
     Digest, Selectors, DIGEST_LEN, DIGEST_RANGE, LINEAR_HASH, MP_VERIFY, MR_UPDATE_NEW,
     MR_UPDATE_OLD, RATE_LEN, RETURN_HASH, RETURN_STATE, STATE_WIDTH, TRACE_WIDTH,
+};
+
+use super::{
+    Felt, HasherState, MerklePath, MerkleRootUpdate, OpBatch, TraceFragment, Word, ONE, ZERO,
 };
 
 mod trace;
@@ -238,11 +240,7 @@ impl Hasher {
         let new_root =
             self.verify_merkle_path(new_value, path, index, MerklePathContext::MrUpdateNew);
 
-        MerkleRootUpdate {
-            address,
-            old_root,
-            new_root,
-        }
+        MerkleRootUpdate { address, old_root, new_root }
     }
 
     // TRACE GENERATION

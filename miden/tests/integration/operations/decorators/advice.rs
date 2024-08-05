@@ -1,15 +1,12 @@
 use miden_vm::{Digest, Word};
 use processor::ExecutionError;
 use rand_chacha::rand_core::SeedableRng;
-
-use test_utils::crypto::rpo_falcon512::SecretKey;
-use test_utils::rand::rand_array;
-use test_utils::serde::Serializable;
 use test_utils::{
     build_test,
-    crypto::{MerkleStore, RpoDigest},
+    crypto::{rpo_falcon512::SecretKey, MerkleStore, RpoDigest},
     expect_exec_error,
-    rand::rand_value,
+    rand::{rand_array, rand_value},
+    serde::Serializable,
     Felt,
 };
 

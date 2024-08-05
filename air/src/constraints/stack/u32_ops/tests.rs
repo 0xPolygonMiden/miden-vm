@@ -1,12 +1,14 @@
+use proptest::prelude::*;
+use vm_core::{Felt, FieldElement, Operation, ZERO};
+
 use super::{
     super::{DECODER_TRACE_OFFSET, STACK_TRACE_OFFSET},
     enforce_constraints, EvaluationFrame, NUM_CONSTRAINTS,
 };
-use crate::stack::op_flags::{generate_evaluation_frame, OpFlags};
-use crate::trace::decoder::USER_OP_HELPERS_OFFSET;
-use vm_core::{Felt, FieldElement, Operation, ZERO};
-
-use proptest::prelude::*;
+use crate::{
+    stack::op_flags::{generate_evaluation_frame, OpFlags},
+    trace::decoder::USER_OP_HELPERS_OFFSET,
+};
 
 // RANDOMIZED TESTS
 // ================================================================================================

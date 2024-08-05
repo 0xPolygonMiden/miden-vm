@@ -1,7 +1,9 @@
+use alloc::vec::Vec;
+
+use miden_air::{trace::main_trace::MainTrace, RowIndex};
+
 use super::{Felt, FieldElement, OverflowTableRow};
 use crate::trace::AuxColumnBuilder;
-use alloc::vec::Vec;
-use miden_air::{trace::main_trace::MainTrace, RowIndex};
 
 // AUXILIARY TRACE BUILDER
 // ================================================================================================

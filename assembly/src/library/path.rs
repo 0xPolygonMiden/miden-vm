@@ -1,8 +1,3 @@
-use crate::{
-    ast::{Ident, IdentError},
-    ByteReader, ByteWriter, Deserializable, DeserializationError, LibraryNamespace, Serializable,
-    Span,
-};
 use alloc::{
     borrow::Cow,
     string::{String, ToString},
@@ -13,7 +8,14 @@ use core::{
     fmt,
     str::{self, FromStr},
 };
+
 use smallvec::smallvec;
+
+use crate::{
+    ast::{Ident, IdentError},
+    ByteReader, ByteWriter, Deserializable, DeserializationError, LibraryNamespace, Serializable,
+    Span,
+};
 
 /// Represents errors that can occur when creating, parsing, or manipulating [LibraryPath]s
 #[derive(Debug, PartialEq, Eq, thiserror::Error)]
@@ -266,7 +268,7 @@ impl LibraryPath {
                     if a != b {
                         break false;
                     }
-                }
+                },
             }
         }
     }
@@ -376,7 +378,7 @@ impl LibraryPath {
                 let mut components = self.inner.components.clone();
                 components.pop();
                 Some(Self::make(ns, components))
-            }
+            },
         }
     }
 
@@ -435,7 +437,7 @@ impl<'a> TryFrom<Vec<LibraryPathComponent<'a>>> for LibraryPath {
                 LibraryPathComponent::Normal(ident) => components.push(ident.clone()),
                 LibraryPathComponent::Namespace(LibraryNamespace::User(name)) => {
                     components.push(Ident::new_unchecked(Span::unknown(name.clone())));
-                }
+                },
                 LibraryPathComponent::Namespace(_) => return Err(PathError::UnsupportedJoin),
             }
         }
@@ -533,8 +535,9 @@ fn validate_component(component: &str) -> Result<(), PathError> {
 /// Tests
 #[cfg(test)]
 mod tests {
-    use super::{super::LibraryNamespaceError, IdentError, LibraryPath, PathError};
     use vm_core::assert_matches;
+
+    use super::{super::LibraryNamespaceError, IdentError, LibraryPath, PathError};
 
     #[test]
     fn new_path() {

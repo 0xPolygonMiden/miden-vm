@@ -11,13 +11,12 @@ pub mod rwlock {
         sync::atomic::{AtomicUsize, Ordering},
     };
 
+    use lock_api::RawRwLock;
     #[cfg(loom)]
     use loom::{
         hint,
         sync::atomic::{AtomicUsize, Ordering},
     };
-
-    use lock_api::RawRwLock;
 
     /// An implementation of a reader-writer lock, based on a spinlock primitive, no-std compatible
     ///
@@ -180,7 +179,7 @@ pub mod rwlock {
                             s = e;
                             hint::spin_loop();
                             continue;
-                        }
+                        },
                     }
                 }
 
@@ -249,9 +248,11 @@ pub mod rwlock {
 
 #[cfg(all(loom, test))]
 mod test {
-    use super::rwlock::{RwLock, Spinlock};
     use alloc::vec::Vec;
+
     use loom::{model::Builder, sync::Arc};
+
+    use super::rwlock::{RwLock, Spinlock};
 
     #[test]
     fn test_rwlock_loom() {

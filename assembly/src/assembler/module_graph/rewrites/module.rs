@@ -70,20 +70,12 @@ impl<'a, 'b: 'a> ModuleRewriter<'a, 'b> {
             Err(err) => return ControlFlow::Break(err),
             Ok(ResolvedTarget::Phantom(_)) => (),
             Ok(ResolvedTarget::Exact { .. }) => {
-                self.invoked.insert(Invoke {
-                    kind,
-                    target: target.clone(),
-                });
-            }
-            Ok(ResolvedTarget::Resolved {
-                target: new_target, ..
-            }) => {
+                self.invoked.insert(Invoke { kind, target: target.clone() });
+            },
+            Ok(ResolvedTarget::Resolved { target: new_target, .. }) => {
                 *target = new_target;
-                self.invoked.insert(Invoke {
-                    kind,
-                    target: target.clone(),
-                });
-            }
+                self.invoked.insert(Invoke { kind, target: target.clone() });
+            },
         }
 
         ControlFlow::Continue(())

@@ -1,4 +1,5 @@
 use std::ops::Mul;
+
 use test_utils::rand::rand_value;
 
 #[derive(Copy, Clone, Debug)]
@@ -13,9 +14,7 @@ impl Scalar {
     }
 
     const fn one() -> Self {
-        Self {
-            limbs: [1, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-        }
+        Self { limbs: [1, 0, 0, 0, 0, 0, 0, 0, 0, 0] }
     }
 
     /// ECExt5 Scalar N =

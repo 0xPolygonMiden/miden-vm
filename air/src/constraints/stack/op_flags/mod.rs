@@ -1,11 +1,14 @@
-use super::{EvaluationFrame, B0_COL_IDX};
-use crate::trace::{
-    decoder::{IS_LOOP_FLAG_COL_IDX, NUM_OP_BITS, OP_BITS_EXTRA_COLS_RANGE, OP_BITS_RANGE},
-    stack::H0_COL_IDX,
-    DECODER_TRACE_OFFSET, STACK_TRACE_OFFSET, TRACE_WIDTH,
-};
-use crate::utils::binary_not;
 use vm_core::{Felt, FieldElement, Operation, ONE, ZERO};
+
+use super::{EvaluationFrame, B0_COL_IDX};
+use crate::{
+    trace::{
+        decoder::{IS_LOOP_FLAG_COL_IDX, NUM_OP_BITS, OP_BITS_EXTRA_COLS_RANGE, OP_BITS_RANGE},
+        stack::H0_COL_IDX,
+        DECODER_TRACE_OFFSET, STACK_TRACE_OFFSET, TRACE_WIDTH,
+    },
+    utils::binary_not,
+};
 #[cfg(test)]
 pub mod tests;
 

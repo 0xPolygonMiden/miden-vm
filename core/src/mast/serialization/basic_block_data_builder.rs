@@ -1,13 +1,13 @@
 use alloc::{collections::BTreeMap, vec::Vec};
+
 use miden_crypto::hash::blake::{Blake3Digest, Blake3_256};
 use winter_utils::{ByteWriter, Serializable};
 
+use super::{decorator::EncodedDecoratorVariant, DataOffset, StringIndex};
 use crate::{
     mast::{BasicBlockNode, OperationOrDecorator},
     AdviceInjector, DebugOptions, Decorator, SignatureKind,
 };
-
-use super::{decorator::EncodedDecoratorVariant, DataOffset, StringIndex};
 
 // BASIC BLOCK DATA BUILDER
 // ================================================================================================
@@ -66,16 +66,13 @@ impl BasicBlockDataBuilder {
         // For decorators that have extra data, encode it in `data` and `strings`.
         match decorator {
             Decorator::Advice(advice_injector) => match advice_injector {
-                AdviceInjector::MapValueToStack {
-                    include_len,
-                    key_offset,
-                } => {
+                AdviceInjector::MapValueToStack { include_len, key_offset } => {
                     self.data.write_bool(*include_len);
                     self.data.write_usize(*key_offset);
-                }
+                },
                 AdviceInjector::HdwordToMap { domain } => {
                     self.data.extend(domain.as_int().to_le_bytes())
-                }
+                },
 
                 // Note: Since there is only 1 variant, we don't need to write any extra bytes.
                 AdviceInjector::SigToStack { kind } => match kind {
@@ -125,23 +122,23 @@ impl BasicBlockDataBuilder {
                     let str_index_in_table = self.string_table_builder.add_string(assembly_op.op());
                     self.data.write_usize(str_index_in_table);
                 }
-            }
+            },
             Decorator::Debug(debug_options) => match debug_options {
                 DebugOptions::StackTop(value) => self.data.push(*value),
                 DebugOptions::MemInterval(start, end) => {
                     self.data.extend(start.to_le_bytes());
                     self.data.extend(end.to_le_bytes());
-                }
+                },
                 DebugOptions::LocalInterval(start, second, end) => {
                     self.data.extend(start.to_le_bytes());
                     self.data.extend(second.to_le_bytes());
                     self.data.extend(end.to_le_bytes());
-                }
+                },
                 DebugOptions::StackAll | DebugOptions::MemAll => (),
             },
             Decorator::Event(value) | Decorator::Trace(value) => {
                 self.data.extend(value.to_le_bytes())
-            }
+            },
         }
     }
 }

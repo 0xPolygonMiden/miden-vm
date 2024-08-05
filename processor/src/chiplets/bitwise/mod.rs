@@ -1,9 +1,11 @@
-use super::{utils::get_trace_len, ExecutionError, Felt, TraceFragment, ZERO};
 use alloc::vec::Vec;
+
 use miden_air::trace::chiplets::bitwise::{
     A_COL_IDX, A_COL_RANGE, BITWISE_AND, BITWISE_XOR, B_COL_IDX, B_COL_RANGE, OUTPUT_COL_IDX,
     PREV_OUTPUT_COL_IDX, TRACE_WIDTH,
 };
+
+use super::{utils::get_trace_len, ExecutionError, Felt, TraceFragment, ZERO};
 
 #[cfg(test)]
 mod tests;
@@ -99,7 +101,7 @@ impl Bitwise {
             self.add_bitwise_trace_row(BITWISE_AND, a, b);
 
             // compute bitwise AND of the 4 least significant bits of a and b
-            let result_4_bit = (a & b) & 0xf;
+            let result_4_bit = (a & b) & 0xF;
 
             // append the 4 bit result to the result accumulator, and save the current result into
             // the output column in the trace.
@@ -134,7 +136,7 @@ impl Bitwise {
             self.add_bitwise_trace_row(BITWISE_XOR, a, b);
 
             // compute bitwise XOR of the 4 least significant bits of a and b
-            let result_4_bit = (a ^ b) & 0xf;
+            let result_4_bit = (a ^ b) & 0xF;
 
             // append the 4 bit result to the result accumulator, and save the current result into
             // the output column in the trace.

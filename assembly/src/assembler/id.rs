@@ -59,9 +59,6 @@ impl core::ops::Add<ProcedureIndex> for ModuleIndex {
     type Output = GlobalProcedureIndex;
 
     fn add(self, rhs: ProcedureIndex) -> Self::Output {
-        GlobalProcedureIndex {
-            module: self,
-            index: rhs,
-        }
+        GlobalProcedureIndex { module: self, index: rhs }
     }
 }

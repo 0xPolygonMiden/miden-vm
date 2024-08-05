@@ -1,16 +1,15 @@
-use super::Felt;
 use core::fmt;
+
+use super::Felt;
 mod decorators;
 pub use decorators::{
     AdviceInjector, AssemblyOp, DebugOptions, Decorator, DecoratorIterator, DecoratorList,
     SignatureKind,
 };
-use winter_utils::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable};
-
 // OPERATIONS OP CODES
 // ================================================================================================
-
 use opcode_constants::*;
+use winter_utils::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable};
 
 /// Opcode patterns have the following meanings:
 /// - 00xxxxx operations do not shift the stack; constraint degree can be up to 2.
@@ -739,7 +738,7 @@ impl Serializable for Operation {
             | Operation::MpVerify(err_code)
             | Operation::U32assert2(err_code) => {
                 err_code.to_le_bytes().write_into(target);
-            }
+            },
             Operation::Push(value) => value.as_int().write_into(target),
 
             // Note: we explicitly write out all the operations so that whenever we make a
@@ -875,7 +874,7 @@ impl Deserializable for Operation {
             OPCODE_ASSERT => {
                 let err_code = source.read_u32()?;
                 Self::Assert(err_code)
-            }
+            },
             OPCODE_EQ => Self::Eq,
             OPCODE_ADD => Self::Add,
             OPCODE_MUL => Self::Mul,
@@ -918,7 +917,7 @@ impl Deserializable for Operation {
                 let err_code = source.read_u32()?;
 
                 Self::U32assert2(err_code)
-            }
+            },
             OPCODE_U32ADD3 => Self::U32add3,
             OPCODE_U32MADD => Self::U32madd,
 
@@ -927,7 +926,7 @@ impl Deserializable for Operation {
                 let err_code = source.read_u32()?;
 
                 Self::MpVerify(err_code)
-            }
+            },
             OPCODE_PIPE => Self::Pipe,
             OPCODE_MSTREAM => Self::MStream,
             OPCODE_SPLIT => Self::Split,
@@ -947,7 +946,7 @@ impl Deserializable for Operation {
                 })?;
 
                 Self::Push(value_felt)
-            }
+            },
             OPCODE_SYSCALL => Self::SysCall,
             OPCODE_CALL => Self::Call,
             OPCODE_END => Self::End,
@@ -958,7 +957,7 @@ impl Deserializable for Operation {
                 return Err(DeserializationError::InvalidValue(format!(
                     "Invalid opcode '{op_code}'"
                 )));
-            }
+            },
         };
 
         Ok(operation)

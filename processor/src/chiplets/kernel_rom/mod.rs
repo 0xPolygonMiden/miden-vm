@@ -1,6 +1,8 @@
-use super::{Digest, ExecutionError, Felt, Kernel, TraceFragment, Word, ONE, ZERO};
 use alloc::collections::BTreeMap;
+
 use miden_air::{trace::chiplets::kernel_rom::TRACE_WIDTH, RowIndex};
+
+use super::{Digest, ExecutionError, Felt, Kernel, TraceFragment, Word, ONE, ZERO};
 
 #[cfg(test)]
 mod tests;
@@ -56,11 +58,7 @@ impl KernelRom {
             access_map.insert(proc_hash.into(), ProcAccessInfo::new(proc_hash));
         }
 
-        Self {
-            access_map,
-            kernel,
-            trace_len,
-        }
+        Self { access_map, kernel, trace_len }
     }
 
     // PUBLIC ACCESSORS
