@@ -101,7 +101,7 @@ impl Bitwise {
             self.add_bitwise_trace_row(BITWISE_AND, a, b);
 
             // compute bitwise AND of the 4 least significant bits of a and b
-            let result_4_bit = (a & b) & 0xf;
+            let result_4_bit = (a & b) & 0xF;
 
             // append the 4 bit result to the result accumulator, and save the current result into
             // the output column in the trace.
@@ -136,7 +136,7 @@ impl Bitwise {
             self.add_bitwise_trace_row(BITWISE_XOR, a, b);
 
             // compute bitwise XOR of the 4 least significant bits of a and b
-            let result_4_bit = (a ^ b) & 0xf;
+            let result_4_bit = (a ^ b) & 0xF;
 
             // append the 4 bit result to the result accumulator, and save the current result into
             // the output column in the trace.
