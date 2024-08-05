@@ -284,7 +284,11 @@ mod use_std_library {
         /// For example, let's say I call this function like so:
         ///
         /// ```rust
-        /// CompiledLibrary::from_dir("~/masm/std", LibraryNamespace::new("std").unwrap()):
+        /// CompiledLibrary::from_dir(
+        ///     "~/masm/std",
+        ///     LibraryNamespace::new("std").unwrap()
+        ///     Arc::new(crate::DefaultSourceManager::default()),
+        /// );
         /// ```
         ///
         /// Here's how we would handle various files under this path:
