@@ -7,6 +7,7 @@ fn program_compilation(c: &mut Criterion) {
     let mut group = c.benchmark_group("program_compilation");
     group.measurement_time(Duration::from_secs(10));
 
+    let stdlib = StdLibrary::default();
     group.bench_function("sha256", |bench| {
         let source = "
             use.std::crypto::hashes::sha256
@@ -16,9 +17,7 @@ fn program_compilation(c: &mut Criterion) {
             end";
         bench.iter(|| {
             let mut assembler = Assembler::default();
-            assembler
-                .add_compiled_library(StdLibrary::default())
-                .expect("failed to load stdlib");
+            assembler.add_compiled_library(&stdlib).expect("failed to load stdlib");
 
             assembler.assemble_program(source).expect("Failed to compile test source.")
         });

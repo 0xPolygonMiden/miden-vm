@@ -50,8 +50,20 @@ mdbook: ## Generates mdbook documentation
 # --- testing -------------------------------------------------------------------------------------
 
 .PHONY: test
-test: ## Runs all tests
+test: ## Runs all tests with the release profile
 	$(DEBUG_ASSERTIONS) cargo nextest run --cargo-profile test-release --features testing
+
+.PHONY: test-fast
+test-fast: ## Runs all tests with the debug profile
+	$(DEBUG_ASSERTIONS) cargo nextest run --features testing
+
+.PHONY: test-skip-proptests
+test-skip-proptests: ## Runs all tests, except property-based tests
+	$(DEBUG_ASSERTIONS) cargo nextest run --features testing -E 'not test(#*proptest)'
+
+.PHONY: test-loom
+test-loom: ## Runs all loom-based tests
+	RUSTFLAGS="--cfg loom" cargo nextest run --cargo-profile test-release --features testing -E 'test(#*loom)'
 
 # --- checking ------------------------------------------------------------------------------------
 

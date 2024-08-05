@@ -1,10 +1,9 @@
-use alloc::{collections::BTreeSet, string::String, sync::Arc};
+use alloc::{collections::BTreeSet, string::String};
 use core::fmt;
 
 use super::ProcedureName;
 use crate::{
     ast::{AstSerdeOptions, Block, Invoke},
-    diagnostics::SourceFile,
     ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable, SourceSpan, Span,
     Spanned,
 };
@@ -72,8 +71,6 @@ impl Deserializable for Visibility {
 pub struct Procedure {
     /// The source span of the full procedure body
     span: SourceSpan,
-    /// The source file in which this procedure was defined, if available
-    source_file: Option<Arc<SourceFile>>,
     /// The documentation attached to this procedure
     docs: Option<Span<String>>,
     /// The local name of this procedure
@@ -101,7 +98,6 @@ impl Procedure {
     ) -> Self {
         Self {
             span,
-            source_file: None,
             docs: None,
             name,
             visibility,
@@ -117,18 +113,6 @@ impl Procedure {
         self
     }
 
-    /// Adds source code to this procedure definition so we can render source snippets
-    /// in diagnostics.
-    pub fn with_source_file(mut self, source_file: Option<Arc<SourceFile>>) -> Self {
-        self.source_file = source_file;
-        self
-    }
-
-    /// Like [Procedure::with_source_file], but does not require ownership of the procedure.
-    pub fn set_source_file(&mut self, source_file: Arc<SourceFile>) {
-        self.source_file = Some(source_file);
-    }
-
     /// Modifies the visibility of this procedure.
     ///
     /// This is made crate-local as the visibility of a procedure is virtually always determined
@@ -142,11 +126,6 @@ impl Procedure {
 
 /// Metadata
 impl Procedure {
-    /// Returns the source file associated with this procedure.
-    pub fn source_file(&self) -> Option<Arc<SourceFile>> {
-        self.source_file.clone()
-    }
-
     /// Returns the name of this procedure within its containing module.
     pub fn name(&self) -> &ProcedureName {
         &self.name
@@ -264,7 +243,6 @@ impl Procedure {
         let body = Block::read_from_with_options(source, options)?;
         Ok(Self {
             span,
-            source_file: None,
             docs: None,
             name,
             visibility,

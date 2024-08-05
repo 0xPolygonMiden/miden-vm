@@ -316,3 +316,10 @@ impl fmt::Display for AsmOpInfo {
         write!(f, "{}, cycles={}", self.asmop, self.cycle_idx)
     }
 }
+
+impl AsRef<AssemblyOp> for AsmOpInfo {
+    #[inline]
+    fn as_ref(&self) -> &AssemblyOp {
+        &self.asmop
+    }
+}

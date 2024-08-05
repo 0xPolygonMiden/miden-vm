@@ -1,5 +1,6 @@
-use assembly::{ast::ModuleKind, Assembler, LibraryPath};
-use core::iter;
+use alloc::sync::Arc;
+
+use assembly::{ast::ModuleKind, Assembler, LibraryPath, Report, SourceManager};
 use miden_vm::Module;
 use processor::ExecutionError;
 use prover::Digest;
@@ -203,11 +204,12 @@ fn simple_syscall() {
         end";
 
     // TODO: update and use macro?
-    let test = Test {
-        kernel_source: Some(kernel_source.to_string()),
-        stack_inputs: StackInputs::try_from_ints([1, 2]).unwrap(),
-        ..Test::new(&format!("test{}", line!()), program_source, false)
-    };
+    let mut test = Test::new(&format!("test{}", line!()), program_source, false);
+    test.stack_inputs = StackInputs::try_from_ints([1, 2]).unwrap();
+    test.kernel_source = Some(
+        test.source_manager
+            .load(&format!("kernel{}", line!()), kernel_source.to_string()),
+    );
     test.expect_stack(&[3]);
 
     test.prove_and_verify(vec![1, 2], false);
@@ -390,7 +392,7 @@ fn simple_dyncall() {
 // ================================================================================================
 
 #[test]
-fn procref() {
+fn procref() -> Result<(), Report> {
     let module_source = "
     use.std::math::u64
     export.u64::overflowing_add
@@ -402,12 +404,14 @@ fn procref() {
 
     // obtain procedures' MAST roots by compiling them as module
     let mast_roots: Vec<Digest> = {
+        let source_manager = Arc::new(assembly::DefaultSourceManager::default());
         let module_path = "test::foo".parse::<LibraryPath>().unwrap();
-        let module = Module::parse_str(module_path, ModuleKind::Library, module_source).unwrap();
-        let library = Assembler::default()
+        let mut parser = Module::parser(ModuleKind::Library);
+        let module = parser.parse_str(module_path, module_source, &source_manager)?;
+        let library = Assembler::new(source_manager)
             .with_compiled_library(StdLibrary::default())
             .unwrap()
-            .assemble_library(iter::once(module))
+            .assemble_library([module])
             .unwrap();
 
         let module_info = library.module_infos().next().unwrap();
@@ -444,4 +448,5 @@ fn procref() {
     ]);
 
     test.prove_and_verify(vec![], false);
+    Ok(())
 }

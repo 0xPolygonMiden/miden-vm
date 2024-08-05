@@ -1,6 +1,6 @@
 use processor::{AsmOpInfo, ContextId, VmState};
 use test_utils::{assert_eq, build_debug_test, Felt, ToElements, ONE};
-use vm_core::{AssemblyOp, Operation};
+use vm_core::{debuginfo::Location, AssemblyOp, Operation};
 
 // EXEC ITER TESTS
 // =================================================================
@@ -12,10 +12,31 @@ fn test_exec_iter() {
         init_stack.push(i);
     });
     let test = build_debug_test!(source, &init_stack);
+    let path = test.source.name();
     let traces = test.execute_iter();
     let fmp = Felt::new(2u64.pow(30));
     let next_fmp = fmp + ONE;
     let mem = vec![(1_u64, slice_to_word(&[13, 14, 15, 16]))];
+    let mem_storew1_loc = Some(Location {
+        path: path.clone(),
+        start: 33.into(),
+        end: (33 + 12).into(),
+    });
+    let dropw_loc = Some(Location {
+        path: path.clone(),
+        start: 46.into(),
+        end: (46 + 5).into(),
+    });
+    let push17_loc = Some(Location {
+        path: path.clone(),
+        start: 52.into(),
+        end: (52 + 7).into(),
+    });
+    let locstore0_loc = Some(Location {
+        path: path.clone(),
+        start: 11.into(),
+        end: (11 + 11).into(),
+    });
     let expected_states = vec![
         VmState {
             clk: 0,
@@ -49,7 +70,13 @@ fn test_exec_iter() {
             ctx: ContextId::root(),
             op: Some(Operation::Pad),
             asmop: Some(AsmOpInfo::new(
-                AssemblyOp::new("#exec::#main".to_string(), 3, "mem_storew.1".to_string(), false),
+                AssemblyOp::new(
+                    mem_storew1_loc.clone(),
+                    "#exec::#main".to_string(),
+                    3,
+                    "mem_storew.1".to_string(),
+                    false,
+                ),
                 1,
             )),
             stack: [0, 16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1].to_elements(),
@@ -61,7 +88,13 @@ fn test_exec_iter() {
             ctx: ContextId::root(),
             op: Some(Operation::Incr),
             asmop: Some(AsmOpInfo::new(
-                AssemblyOp::new("#exec::#main".to_string(), 3, "mem_storew.1".to_string(), false),
+                AssemblyOp::new(
+                    mem_storew1_loc.clone(),
+                    "#exec::#main".to_string(),
+                    3,
+                    "mem_storew.1".to_string(),
+                    false,
+                ),
                 2,
             )),
             stack: [1, 16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2].to_elements(),
@@ -73,7 +106,13 @@ fn test_exec_iter() {
             ctx: ContextId::root(),
             op: Some(Operation::MStoreW),
             asmop: Some(AsmOpInfo::new(
-                AssemblyOp::new("#exec::#main".to_string(), 3, "mem_storew.1".to_string(), false),
+                AssemblyOp::new(
+                    mem_storew1_loc,
+                    "#exec::#main".to_string(),
+                    3,
+                    "mem_storew.1".to_string(),
+                    false,
+                ),
                 3,
             )),
             stack: [16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1].to_elements(),
@@ -85,7 +124,13 @@ fn test_exec_iter() {
             ctx: ContextId::root(),
             op: Some(Operation::Drop),
             asmop: Some(AsmOpInfo::new(
-                AssemblyOp::new("#exec::#main".to_string(), 4, "dropw".to_string(), false),
+                AssemblyOp::new(
+                    dropw_loc.clone(),
+                    "#exec::#main".to_string(),
+                    4,
+                    "dropw".to_string(),
+                    false,
+                ),
                 1,
             )),
             stack: [15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0].to_elements(),
@@ -97,7 +142,13 @@ fn test_exec_iter() {
             ctx: ContextId::root(),
             op: Some(Operation::Drop),
             asmop: Some(AsmOpInfo::new(
-                AssemblyOp::new("#exec::#main".to_string(), 4, "dropw".to_string(), false),
+                AssemblyOp::new(
+                    dropw_loc.clone(),
+                    "#exec::#main".to_string(),
+                    4,
+                    "dropw".to_string(),
+                    false,
+                ),
                 2,
             )),
             stack: [14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0, 0].to_elements(),
@@ -109,7 +160,13 @@ fn test_exec_iter() {
             ctx: ContextId::root(),
             op: Some(Operation::Drop),
             asmop: Some(AsmOpInfo::new(
-                AssemblyOp::new("#exec::#main".to_string(), 4, "dropw".to_string(), false),
+                AssemblyOp::new(
+                    dropw_loc.clone(),
+                    "#exec::#main".to_string(),
+                    4,
+                    "dropw".to_string(),
+                    false,
+                ),
                 3,
             )),
             stack: [13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0, 0, 0].to_elements(),
@@ -121,7 +178,13 @@ fn test_exec_iter() {
             ctx: ContextId::root(),
             op: Some(Operation::Drop),
             asmop: Some(AsmOpInfo::new(
-                AssemblyOp::new("#exec::#main".to_string(), 4, "dropw".to_string(), false),
+                AssemblyOp::new(
+                    dropw_loc,
+                    "#exec::#main".to_string(),
+                    4,
+                    "dropw".to_string(),
+                    false,
+                ),
                 4,
             )),
             stack: [12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0, 0, 0, 0, 0].to_elements(),
@@ -133,7 +196,13 @@ fn test_exec_iter() {
             ctx: ContextId::root(),
             op: Some(Operation::Push(Felt::new(17))),
             asmop: Some(AsmOpInfo::new(
-                AssemblyOp::new("#exec::#main".to_string(), 1, "push.17".to_string(), false),
+                AssemblyOp::new(
+                    push17_loc,
+                    "#exec::#main".to_string(),
+                    1,
+                    "push.17".to_string(),
+                    false,
+                ),
                 1,
             )),
             stack: [17, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0, 0, 0, 0].to_elements(),
@@ -190,7 +259,13 @@ fn test_exec_iter() {
             ctx: ContextId::root(),
             op: Some(Operation::Pad),
             asmop: Some(AsmOpInfo::new(
-                AssemblyOp::new("#exec::foo".to_string(), 4, "loc_store.0".to_string(), false),
+                AssemblyOp::new(
+                    locstore0_loc.clone(),
+                    "#exec::foo".to_string(),
+                    4,
+                    "loc_store.0".to_string(),
+                    false,
+                ),
                 1,
             )),
             stack: [0, 17, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0, 0, 0, 0].to_elements(),
@@ -202,7 +277,13 @@ fn test_exec_iter() {
             ctx: ContextId::root(),
             op: Some(Operation::FmpAdd),
             asmop: Some(AsmOpInfo::new(
-                AssemblyOp::new("#exec::foo".to_string(), 4, "loc_store.0".to_string(), false),
+                AssemblyOp::new(
+                    locstore0_loc.clone(),
+                    "#exec::foo".to_string(),
+                    4,
+                    "loc_store.0".to_string(),
+                    false,
+                ),
                 2,
             )),
             stack: [2u64.pow(30) + 1, 17, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0, 0, 0]
@@ -215,7 +296,13 @@ fn test_exec_iter() {
             ctx: ContextId::root(),
             op: Some(Operation::MStore),
             asmop: Some(AsmOpInfo::new(
-                AssemblyOp::new("#exec::foo".to_string(), 4, "loc_store.0".to_string(), false),
+                AssemblyOp::new(
+                    locstore0_loc.clone(),
+                    "#exec::foo".to_string(),
+                    4,
+                    "loc_store.0".to_string(),
+                    false,
+                ),
                 3,
             )),
             stack: [17, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0, 0, 0].to_elements(),
@@ -230,7 +317,13 @@ fn test_exec_iter() {
             ctx: ContextId::root(),
             op: Some(Operation::Drop),
             asmop: Some(AsmOpInfo::new(
-                AssemblyOp::new("#exec::foo".to_string(), 4, "loc_store.0".to_string(), false),
+                AssemblyOp::new(
+                    locstore0_loc.clone(),
+                    "#exec::foo".to_string(),
+                    4,
+                    "loc_store.0".to_string(),
+                    false,
+                ),
                 4,
             )),
             stack: [12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0, 0, 0, 0, 0].to_elements(),

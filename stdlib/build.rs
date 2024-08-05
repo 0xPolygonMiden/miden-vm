@@ -4,7 +4,7 @@ use assembly::{
     library::CompiledLibrary,
     LibraryNamespace, Version,
 };
-use std::{env, path::Path};
+use std::{env, path::Path, sync::Arc};
 
 // CONSTANTS
 // ================================================================================================
@@ -26,10 +26,11 @@ fn main() -> Result<()> {
     let manifest_dir = env!("CARGO_MANIFEST_DIR");
     let asm_dir = Path::new(manifest_dir).join(ASM_DIR_PATH);
 
+    let source_manager = Arc::new(assembly::DefaultSourceManager::default());
     let namespace = "std".parse::<LibraryNamespace>().expect("invalid base namespace");
     // TODO: Add version to `Library`
     let _version = env!("CARGO_PKG_VERSION").parse::<Version>().expect("invalid cargo version");
-    let stdlib = CompiledLibrary::from_dir(asm_dir, namespace)?;
+    let stdlib = CompiledLibrary::from_dir(asm_dir, namespace, source_manager)?;
 
     // write the masl output
     let build_dir = env::var("OUT_DIR").unwrap();

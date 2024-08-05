@@ -31,7 +31,7 @@ impl Assembler {
         mast_forest_builder: &mut MastForestBuilder,
     ) -> Result<Option<MastNodeId>, AssemblyError> {
         // Get the procedure from the assembler
-        let current_source_file = proc_ctx.source_file();
+        let current_source_file = self.source_manager.get(span.source_id()).ok();
 
         // If the procedure is cached, register the call to ensure the callset
         // is updated correctly.

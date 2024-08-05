@@ -1,4 +1,4 @@
-use alloc::{collections::BTreeSet, sync::Arc};
+use alloc::collections::BTreeSet;
 use core::ops::ControlFlow;
 
 use crate::{
@@ -10,8 +10,7 @@ use crate::{
         visit::{self, VisitMut},
         AliasTarget, InvocationTarget, Invoke, InvokeKind, Module, Procedure,
     },
-    diagnostics::SourceFile,
-    AssemblyError, Spanned,
+    AssemblyError, SourceSpan, Spanned,
 };
 
 // MODULE REWRITE CHECK
@@ -26,8 +25,8 @@ use crate::{
 pub struct ModuleRewriter<'a, 'b: 'a> {
     resolver: &'a NameResolver<'b>,
     module_id: ModuleIndex,
+    span: SourceSpan,
     invoked: BTreeSet<Invoke>,
-    source_file: Option<Arc<SourceFile>>,
 }
 
 impl<'a, 'b: 'a> ModuleRewriter<'a, 'b> {
@@ -36,8 +35,8 @@ impl<'a, 'b: 'a> ModuleRewriter<'a, 'b> {
         Self {
             resolver,
             module_id: ModuleIndex::new(u16::MAX as usize),
+            span: Default::default(),
             invoked: Default::default(),
-            source_file: None,
         }
     }
 
@@ -48,7 +47,7 @@ impl<'a, 'b: 'a> ModuleRewriter<'a, 'b> {
         module: &mut Module,
     ) -> Result<(), AssemblyError> {
         self.module_id = module_id;
-        self.source_file = module.source_file();
+        self.span = module.span();
 
         if let ControlFlow::Break(err) = self.visit_mut_module(module) {
             return Err(err);
@@ -64,7 +63,6 @@ impl<'a, 'b: 'a> ModuleRewriter<'a, 'b> {
     ) -> ControlFlow<AssemblyError> {
         let caller = CallerInfo {
             span: target.span(),
-            source_file: self.source_file.clone(),
             module: self.module_id,
             kind,
         };

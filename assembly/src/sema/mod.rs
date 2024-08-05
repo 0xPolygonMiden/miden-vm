@@ -31,7 +31,7 @@ pub fn analyze(
     let mut analyzer = AnalysisContext::new(source.clone());
     analyzer.set_warnings_as_errors(warnings_as_errors);
 
-    let mut module = Box::new(Module::new(kind, path).with_source_file(Some(source)));
+    let mut module = Box::new(Module::new(kind, path).with_span(source.source_span()));
 
     let mut forms = VecDeque::from(forms);
     let mut docs = None;
@@ -89,11 +89,9 @@ pub fn analyze(
             },
             Form::Begin(body) if matches!(kind, ModuleKind::Executable) => {
                 let docs = docs.take();
-                let source_file = analyzer.source_file();
                 let procedure =
                     Procedure::new(body.span(), Visibility::Public, ProcedureName::main(), 0, body)
-                        .with_docs(docs)
-                        .with_source_file(Some(source_file));
+                        .with_docs(docs);
                 define_procedure(Export::Procedure(procedure), &mut module, &mut analyzer)?;
             }
             Form::Begin(body) => {

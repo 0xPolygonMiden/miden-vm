@@ -13,10 +13,9 @@ pub use self::resolver::{LocalNameResolver, ResolvedProcedure};
 
 use crate::{
     ast::{AstSerdeOptions, Invoke},
-    diagnostics::SourceFile,
     ByteReader, ByteWriter, DeserializationError, SourceSpan, Span, Spanned,
 };
-use alloc::{string::String, sync::Arc};
+use alloc::string::String;
 
 // EXPORT
 // ================================================================================================
@@ -40,23 +39,6 @@ impl Export {
         match self {
             Self::Procedure(proc) => Self::Procedure(proc.with_docs(docs)),
             Self::Alias(alias) => Self::Alias(alias.with_docs(docs)),
-        }
-    }
-
-    /// Adds the source file in which this export was defined, which will allow diagnostics to
-    /// contain source snippets when emitted.
-    pub fn with_source_file(self, source_file: Option<Arc<SourceFile>>) -> Self {
-        match self {
-            Self::Procedure(proc) => Self::Procedure(proc.with_source_file(source_file)),
-            Self::Alias(alias) => Self::Alias(alias.with_source_file(source_file)),
-        }
-    }
-
-    /// Returns the source file in which this export was defined.
-    pub fn source_file(&self) -> Option<Arc<SourceFile>> {
-        match self {
-            Self::Procedure(ref proc) => proc.source_file(),
-            Self::Alias(ref alias) => alias.source_file(),
         }
     }
 

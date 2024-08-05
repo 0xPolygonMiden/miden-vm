@@ -102,6 +102,17 @@ impl BasicBlockDataBuilder {
                 self.data.push(assembly_op.num_cycles());
                 self.data.write_bool(assembly_op.should_break());
 
+                // source location
+                let loc = assembly_op.location();
+                self.data.write_bool(loc.is_some());
+                if let Some(loc) = loc {
+                    let str_index_in_table =
+                        self.string_table_builder.add_string(loc.path.as_ref());
+                    self.data.write_usize(str_index_in_table);
+                    self.data.write_u32(loc.start.to_u32());
+                    self.data.write_u32(loc.end.to_u32());
+                }
+
                 // context name
                 {
                     let str_index_in_table =

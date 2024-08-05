@@ -3,8 +3,8 @@ use alloc::{collections::BTreeSet, sync::Arc};
 use super::GlobalProcedureIndex;
 use crate::{
     ast::{ProcedureName, QualifiedProcedureName, Visibility},
-    diagnostics::SourceFile,
-    AssemblyError, LibraryPath, RpoDigest, SourceSpan, Spanned,
+    diagnostics::{SourceManager, SourceSpan, Spanned},
+    AssemblyError, LibraryPath, RpoDigest,
 };
 use vm_core::mast::MastNodeId;
 
@@ -15,9 +15,9 @@ pub type CallSet = BTreeSet<RpoDigest>;
 
 /// Information about a procedure currently being compiled.
 pub struct ProcedureContext {
+    source_manager: Arc<dyn SourceManager>,
     gid: GlobalProcedureIndex,
     span: SourceSpan,
-    source_file: Option<Arc<SourceFile>>,
     name: QualifiedProcedureName,
     visibility: Visibility,
     num_locals: u16,
@@ -31,11 +31,12 @@ impl ProcedureContext {
         gid: GlobalProcedureIndex,
         name: QualifiedProcedureName,
         visibility: Visibility,
+        source_manager: Arc<dyn SourceManager>,
     ) -> Self {
         Self {
+            source_manager,
             gid,
             span: name.span(),
-            source_file: None,
             name,
             visibility,
             num_locals: 0,
@@ -50,11 +51,6 @@ impl ProcedureContext {
 
     pub fn with_span(mut self, span: SourceSpan) -> Self {
         self.span = span;
-        self
-    }
-
-    pub fn with_source_file(mut self, source_file: Option<Arc<SourceFile>>) -> Self {
-        self.source_file = source_file;
         self
     }
 }
@@ -79,12 +75,13 @@ impl ProcedureContext {
         &self.name.module
     }
 
-    pub fn source_file(&self) -> Option<Arc<SourceFile>> {
-        self.source_file.clone()
-    }
-
     pub fn is_kernel(&self) -> bool {
         self.visibility.is_syscall()
+    }
+
+    #[inline(always)]
+    pub fn source_manager(&self) -> &dyn SourceManager {
+        self.source_manager.as_ref()
     }
 }
 
@@ -136,7 +133,6 @@ impl ProcedureContext {
     pub fn into_procedure(self, mast_root: RpoDigest, mast_node_id: MastNodeId) -> Procedure {
         Procedure::new(self.name, self.visibility, self.num_locals as u32, mast_root, mast_node_id)
             .with_span(self.span)
-            .with_source_file(self.source_file)
             .with_callset(self.callset)
     }
 }
@@ -162,7 +158,6 @@ impl Spanned for ProcedureContext {
 #[derive(Clone, Debug)]
 pub struct Procedure {
     span: SourceSpan,
-    source_file: Option<Arc<SourceFile>>,
     path: QualifiedProcedureName,
     visibility: Visibility,
     num_locals: u32,
@@ -186,7 +181,6 @@ impl Procedure {
     ) -> Self {
         Self {
             span: SourceSpan::default(),
-            source_file: None,
             path,
             visibility,
             num_locals,
@@ -198,11 +192,6 @@ impl Procedure {
 
     pub(crate) fn with_span(mut self, span: SourceSpan) -> Self {
         self.span = span;
-        self
-    }
-
-    pub(crate) fn with_source_file(mut self, source_file: Option<Arc<SourceFile>>) -> Self {
-        self.source_file = source_file;
         self
     }
 
@@ -234,13 +223,6 @@ impl Procedure {
     /// Returns a reference to the fully-qualified module path of this procedure
     pub fn path(&self) -> &LibraryPath {
         &self.path.module
-    }
-
-    /// Returns a reference to the Miden Assembly source file from which this
-    /// procedure was compiled, if available.
-    #[allow(unused)]
-    pub fn source_file(&self) -> Option<Arc<SourceFile>> {
-        self.source_file.clone()
     }
 
     /// Returns the number of memory locals reserved by the procedure.

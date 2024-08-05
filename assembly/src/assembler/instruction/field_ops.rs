@@ -93,8 +93,9 @@ pub fn div_imm(
     imm: Span<Felt>,
 ) -> Result<(), AssemblyError> {
     if imm == ZERO {
-        let source_file = proc_ctx.source_file();
-        let error = Report::new(crate::parser::ParsingError::DivisionByZero { span: imm.span() });
+        let source_span = imm.span();
+        let source_file = proc_ctx.source_manager().get(source_span.source_id()).ok();
+        let error = Report::new(crate::parser::ParsingError::DivisionByZero { span: source_span });
         return Err(if let Some(source_file) = source_file {
             AssemblyError::Other(RelatedError::new(error.with_source_code(source_file)))
         } else {

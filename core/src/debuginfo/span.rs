@@ -5,14 +5,34 @@ use core::{
     ops::{Bound, Deref, DerefMut, Index, Range, RangeBounds},
 };
 
-use crate::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable};
+use super::{ByteIndex, ByteOffset, SourceId};
+use crate::utils::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable};
 
 /// This trait should be implemented for any type that has an associated [SourceSpan].
 pub trait Spanned {
     fn span(&self) -> SourceSpan;
 }
 
-impl<T: Spanned> Spanned for &T {
+impl Spanned for SourceSpan {
+    #[inline(always)]
+    fn span(&self) -> SourceSpan {
+        *self
+    }
+}
+
+impl<T: ?Sized + Spanned> Spanned for alloc::boxed::Box<T> {
+    fn span(&self) -> SourceSpan {
+        (**self).span()
+    }
+}
+
+impl<T: ?Sized + Spanned> Spanned for alloc::rc::Rc<T> {
+    fn span(&self) -> SourceSpan {
+        (**self).span()
+    }
+}
+
+impl<T: ?Sized + Spanned> Spanned for alloc::sync::Arc<T> {
     fn span(&self) -> SourceSpan {
         (**self).span()
     }
@@ -57,9 +77,10 @@ impl<T> Span<T> {
 
     /// Creates a span for `spanned` representing a single location, `offset`.
     #[inline]
-    pub fn at(offset: usize, spanned: T) -> Self {
+    pub fn at(source_id: SourceId, offset: usize, spanned: T) -> Self {
+        let offset = u32::try_from(offset).expect("invalid source offset: too large");
         Self {
-            span: SourceSpan::at(offset.try_into().expect("invalid source offset: too large")),
+            span: SourceSpan::at(source_id, offset),
             spanned,
         }
     }
@@ -76,6 +97,12 @@ impl<T> Span<T> {
     #[inline(always)]
     pub const fn span(&self) -> SourceSpan {
         self.span
+    }
+
+    /// Gets a reference to the spanned item.
+    #[inline(always)]
+    pub const fn inner(&self) -> &T {
+        &self.spanned
     }
 
     /// Applies a transformation to the spanned value while retaining the same [SourceSpan].
@@ -113,16 +140,14 @@ impl<T> Span<T> {
 
     /// Shifts the span right by `count` units
     #[inline]
-    pub fn shift(&mut self, count: usize) {
-        let count: u32 = count.try_into().expect("invalid count: must be smaller than 2^32");
+    pub fn shift(&mut self, count: ByteOffset) {
         self.span.start += count;
         self.span.end += count;
     }
 
     /// Extends the end of the span by `count` units.
     #[inline]
-    pub fn extend(&mut self, count: usize) {
-        let count: u32 = count.try_into().expect("invalid count: must be smaller than 2^32");
+    pub fn extend(&mut self, count: ByteOffset) {
         self.span.end += count;
     }
 
@@ -229,29 +254,12 @@ impl<T: Hash> Hash for Span<T> {
     }
 }
 
-/// Serialization
 impl<T: Serializable> Span<T> {
-    pub fn write_into<W: ByteWriter>(&self, target: &mut W, options: crate::ast::AstSerdeOptions) {
-        if options.debug_info {
+    pub fn write_into_with_options<W: ByteWriter>(&self, target: &mut W, debug: bool) {
+        if debug {
             self.span.write_into(target);
         }
         self.spanned.write_into(target);
-    }
-}
-
-/// Deserialization
-impl<T: Deserializable> Span<T> {
-    pub fn read_from<R: ByteReader>(
-        source: &mut R,
-        options: crate::ast::AstSerdeOptions,
-    ) -> Result<Self, DeserializationError> {
-        let span = if options.debug_info {
-            SourceSpan::read_from(source)?
-        } else {
-            SourceSpan::default()
-        };
-        let spanned = T::read_from(source)?;
-        Ok(Self { span, spanned })
     }
 }
 
@@ -259,6 +267,21 @@ impl<T: Serializable> Serializable for Span<T> {
     fn write_into<W: ByteWriter>(&self, target: &mut W) {
         self.span.write_into(target);
         self.spanned.write_into(target);
+    }
+}
+
+impl<T: Deserializable> Span<T> {
+    pub fn read_from_with_options<R: ByteReader>(
+        source: &mut R,
+        debug: bool,
+    ) -> Result<Self, DeserializationError> {
+        let span = if debug {
+            SourceSpan::read_from(source)?
+        } else {
+            SourceSpan::default()
+        };
+        let spanned = T::read_from(source)?;
+        Ok(Self { span, spanned })
     }
 }
 
@@ -286,43 +309,89 @@ impl<T: Deserializable> Deserializable for Span<T> {
 /// to produce nice errors with it compared to this representation.
 #[derive(Debug, Default, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct SourceSpan {
-    start: u32,
-    end: u32,
+    source_id: SourceId,
+    start: ByteIndex,
+    end: ByteIndex,
 }
 
+#[derive(Debug, thiserror::Error)]
+#[error("invalid byte index range: maximum supported byte index is 2^32")]
+pub struct InvalidByteIndexRange;
+
 impl SourceSpan {
+    /// A sentinel [SourceSpan] that indicates the span is unknown/invalid
+    pub const UNKNOWN: Self = Self {
+        source_id: SourceId::UNKNOWN,
+        start: ByteIndex::new(0),
+        end: ByteIndex::new(0),
+    };
+
     /// Creates a new [SourceSpan] from the given range.
-    pub fn new(range: Range<u32>) -> Self {
+    pub fn new<B>(source_id: SourceId, range: Range<B>) -> Self
+    where
+        B: Into<ByteIndex>,
+    {
         Self {
-            start: range.start,
-            end: range.end,
+            source_id,
+            start: range.start.into(),
+            end: range.end.into(),
         }
     }
 
     /// Creates a new [SourceSpan] for a specific offset.
-    pub fn at(offset: u32) -> Self {
+    pub fn at(source_id: SourceId, offset: impl Into<ByteIndex>) -> Self {
+        let offset = offset.into();
         Self {
+            source_id,
             start: offset,
             end: offset,
         }
     }
 
+    /// Try to create a new [SourceSpan] from the given range with `usize` bounds.
+    pub fn try_from_range(
+        source_id: SourceId,
+        range: Range<usize>,
+    ) -> Result<Self, InvalidByteIndexRange> {
+        const MAX: usize = u32::MAX as usize;
+        if range.start > MAX || range.end > MAX {
+            return Err(InvalidByteIndexRange);
+        }
+
+        Ok(SourceSpan {
+            source_id,
+            start: ByteIndex::from(range.start as u32),
+            end: ByteIndex::from(range.end as u32),
+        })
+    }
+
+    /// Returns `true` if this [SourceSpan] represents the unknown span
+    pub const fn is_unknown(&self) -> bool {
+        self.source_id.is_unknown()
+    }
+
+    /// Get the [SourceId] associated with this source span
+    #[inline(always)]
+    pub fn source_id(&self) -> SourceId {
+        self.source_id
+    }
+
     /// Gets the offset in bytes corresponding to the start of this span (inclusive).
     #[inline(always)]
-    pub fn start(&self) -> usize {
-        self.start as usize
+    pub fn start(&self) -> ByteIndex {
+        self.start
     }
 
     /// Gets the offset in bytes corresponding to the end of this span (exclusive).
     #[inline(always)]
-    pub fn end(&self) -> usize {
-        self.end as usize
+    pub fn end(&self) -> ByteIndex {
+        self.end
     }
 
     /// Gets the length of this span in bytes.
     #[inline(always)]
     pub fn len(&self) -> usize {
-        (self.end - self.start) as usize
+        self.end.to_usize() - self.start.to_usize()
     }
 
     /// Returns true if this span is empty.
@@ -333,44 +402,41 @@ impl SourceSpan {
     /// Converts this span into a [`Range<u32>`].
     #[inline]
     pub fn into_range(self) -> Range<u32> {
-        self.start..self.end
+        self.start.to_u32()..self.end.to_u32()
+    }
+
+    /// Converts this span into a [`Range<usize>`].
+    #[inline]
+    pub fn into_slice_index(self) -> Range<usize> {
+        self.start.to_usize()..self.end.to_usize()
+    }
+}
+
+#[cfg(feature = "diagnostics")]
+impl From<SourceSpan> for miette::SourceSpan {
+    fn from(span: SourceSpan) -> Self {
+        Self::new(miette::SourceOffset::from(span.start().to_usize()), span.len())
     }
 }
 
 impl Serializable for SourceSpan {
     fn write_into<W: ByteWriter>(&self, target: &mut W) {
-        target.write_u32(self.start);
-        target.write_u32(self.end)
+        target.write_u32(self.source_id.to_u32());
+        target.write_u32(self.start.into());
+        target.write_u32(self.end.into())
     }
 }
 
 impl Deserializable for SourceSpan {
     fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
-        let start = source.read_u32()?;
-        let end = source.read_u32()?;
-        Ok(Self { start, end })
-    }
-}
-
-impl TryFrom<Range<usize>> for SourceSpan {
-    type Error = ();
-
-    fn try_from(range: Range<usize>) -> Result<Self, Self::Error> {
-        const MAX: usize = u32::MAX as usize;
-        if range.start > MAX || range.end > MAX {
-            return Err(());
-        }
-        Ok(SourceSpan {
-            start: range.start as u32,
-            end: range.end as u32,
+        let source_id = SourceId::new_unchecked(source.read_u32()?);
+        let start = ByteIndex::from(source.read_u32()?);
+        let end = ByteIndex::from(source.read_u32()?);
+        Ok(Self {
+            source_id,
+            start,
+            end,
         })
-    }
-}
-
-impl From<Range<u32>> for SourceSpan {
-    #[inline(always)]
-    fn from(range: Range<u32>) -> Self {
-        Self::new(range)
     }
 }
 
@@ -381,10 +447,10 @@ impl From<SourceSpan> for Range<u32> {
     }
 }
 
-impl From<SourceSpan> for miette::SourceSpan {
-    #[inline]
+impl From<SourceSpan> for Range<usize> {
+    #[inline(always)]
     fn from(span: SourceSpan) -> Self {
-        miette::SourceSpan::new(miette::SourceOffset::from(span.start as usize), span.len())
+        span.into_slice_index()
     }
 }
 
@@ -393,18 +459,18 @@ impl Index<SourceSpan> for [u8] {
 
     #[inline]
     fn index(&self, index: SourceSpan) -> &Self::Output {
-        &self[index.start()..index.end()]
+        &self[index.start().to_usize()..index.end().to_usize()]
     }
 }
 
-impl RangeBounds<u32> for SourceSpan {
+impl RangeBounds<ByteIndex> for SourceSpan {
     #[inline(always)]
-    fn start_bound(&self) -> Bound<&u32> {
+    fn start_bound(&self) -> Bound<&ByteIndex> {
         Bound::Included(&self.start)
     }
 
     #[inline(always)]
-    fn end_bound(&self) -> Bound<&u32> {
+    fn end_bound(&self) -> Bound<&ByteIndex> {
         Bound::Excluded(&self.end)
     }
 }

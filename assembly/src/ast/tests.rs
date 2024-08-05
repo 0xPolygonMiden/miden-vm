@@ -288,9 +288,9 @@ macro_rules! assert_program_diagnostic_lines {
 /// Tests the AST parsing
 #[test]
 fn test_ast_parsing_program_simple() -> Result<(), Report> {
-    let mut context = TestContext::new();
+    let context = TestContext::new();
 
-    let source = source_file!("begin push.0 assertz add.1 end");
+    let source = source_file!(&context, "begin push.0 assertz add.1 end");
     let forms = module!(begin!(inst!(PushU8(0)), inst!(Assertz), inst!(Incr)));
 
     assert_eq!(context.parse_forms(source)?, forms);
@@ -300,9 +300,10 @@ fn test_ast_parsing_program_simple() -> Result<(), Report> {
 
 #[test]
 fn test_ast_parsing_program_push() -> Result<(), Report> {
-    let mut context = TestContext::new();
+    let context = TestContext::new();
 
     let source = source_file!(
+        &context,
         r#"
     begin
         push.10 push.500 push.70000 push.5000000000
@@ -338,11 +339,11 @@ fn test_ast_parsing_program_push() -> Result<(), Report> {
     assert_eq!(context.parse_forms(source)?, forms);
 
     // Push a hexadecimal string containing more than 4 values
-    let source_too_long = source_file!("begin push.0x00000000000000001000000000000000200000000000000030000000000000004000000000000000");
+    let source_too_long = source_file!(&context, "begin push.0x00000000000000001000000000000000200000000000000030000000000000004000000000000000");
     assert_parse_diagnostic!(source_too_long, "long hex strings must contain exactly 64 digits");
 
     // Push a hexadecimal string containing less than 4 values
-    let source_too_long = source_file!("begin push.0x00000000000000001000000000000000");
+    let source_too_long = source_file!(&context, "begin push.0x00000000000000001000000000000000");
     assert_parse_diagnostic!(source_too_long, "expected 2, 4, 8, 16, or 64 hex digits");
 
     Ok(())
@@ -350,9 +351,10 @@ fn test_ast_parsing_program_push() -> Result<(), Report> {
 
 #[test]
 fn test_ast_parsing_program_u32() -> Result<(), Report> {
-    let mut context = TestContext::new();
+    let context = TestContext::new();
 
     let source = source_file!(
+        &context,
         r#"
     begin
         push.3
@@ -385,9 +387,10 @@ fn test_ast_parsing_program_u32() -> Result<(), Report> {
 
 #[test]
 fn test_ast_parsing_program_proc() -> Result<(), Report> {
-    let mut context = TestContext::new();
+    let context = TestContext::new();
 
     let source = source_file!(
+        &context,
         r#"
     proc.foo.1
         loc_load.0
@@ -413,8 +416,9 @@ fn test_ast_parsing_program_proc() -> Result<(), Report> {
 
 #[test]
 fn test_ast_parsing_module() -> Result<(), Report> {
-    let mut context = TestContext::new();
+    let context = TestContext::new();
     let source = source_file!(
+        &context,
         r#"
     export.foo.1
         loc_load.0
@@ -427,8 +431,8 @@ fn test_ast_parsing_module() -> Result<(), Report> {
 
 #[test]
 fn test_ast_parsing_adv_ops() -> Result<(), Report> {
-    let mut context = TestContext::new();
-    let source = source_file!("begin adv_push.1 adv_loadw end");
+    let context = TestContext::new();
+    let source = source_file!(&context, "begin adv_push.1 adv_loadw end");
     let forms = module!(begin!(inst!(AdvPush(1u8.into())), inst!(AdvLoadW)));
     assert_eq!(context.parse_forms(source)?, forms);
     Ok(())
@@ -438,9 +442,11 @@ fn test_ast_parsing_adv_ops() -> Result<(), Report> {
 fn test_ast_parsing_adv_injection() -> Result<(), Report> {
     use super::AdviceInjectorNode::*;
 
-    let mut context = TestContext::new();
-    let source =
-        source_file!("begin adv.push_u64div adv.push_mapval adv.push_smtget adv.insert_mem end");
+    let context = TestContext::new();
+    let source = source_file!(
+        &context,
+        "begin adv.push_u64div adv.push_mapval adv.push_smtget adv.insert_mem end"
+    );
     let forms = module!(begin!(
         inst!(AdvInject(PushU64Div)),
         inst!(AdvInject(PushMapVal)),
@@ -453,8 +459,8 @@ fn test_ast_parsing_adv_injection() -> Result<(), Report> {
 
 #[test]
 fn test_ast_parsing_bitwise_counters() -> Result<(), Report> {
-    let mut context = TestContext::new();
-    let source = source_file!("begin u32clz u32ctz u32clo u32cto end");
+    let context = TestContext::new();
+    let source = source_file!(&context, "begin u32clz u32ctz u32clo u32cto end");
     let forms = module!(begin!(inst!(U32Clz), inst!(U32Ctz), inst!(U32Clo), inst!(U32Cto)));
 
     assert_eq!(context.parse_forms(source)?, forms);
@@ -463,8 +469,8 @@ fn test_ast_parsing_bitwise_counters() -> Result<(), Report> {
 
 #[test]
 fn test_ast_parsing_ilog2() -> Result<(), Report> {
-    let mut context = TestContext::new();
-    let source = source_file!("begin push.8 ilog2 end");
+    let context = TestContext::new();
+    let source = source_file!(&context, "begin push.8 ilog2 end");
     let forms = module!(begin!(inst!(PushU8(8)), inst!(ILog2)));
 
     assert_eq!(context.parse_forms(source)?, forms);
@@ -473,8 +479,9 @@ fn test_ast_parsing_ilog2() -> Result<(), Report> {
 
 #[test]
 fn test_ast_parsing_use() -> Result<(), Report> {
-    let mut context = TestContext::new();
+    let context = TestContext::new();
     let source = source_file!(
+        &context,
         r#"
     use.std::abc::foo
     begin
@@ -489,8 +496,9 @@ fn test_ast_parsing_use() -> Result<(), Report> {
 
 #[test]
 fn test_ast_parsing_module_nested_if() -> Result<(), Report> {
-    let mut context = TestContext::new();
+    let context = TestContext::new();
     let source = source_file!(
+        &context,
         r#"
     proc.foo
         push.1
@@ -532,8 +540,9 @@ fn test_ast_parsing_module_nested_if() -> Result<(), Report> {
 
 #[test]
 fn test_ast_parsing_module_sequential_if() -> Result<(), Report> {
-    let mut context = TestContext::new();
+    let context = TestContext::new();
     let source = source_file!(
+        &context,
         r#"
     proc.foo
         push.1
@@ -567,8 +576,9 @@ fn test_ast_parsing_module_sequential_if() -> Result<(), Report> {
 
 #[test]
 fn parsed_while_if_body() {
-    let mut context = TestContext::new();
+    let context = TestContext::new();
     let source = source_file!(
+        &context,
         "\
     begin
         push.1
@@ -600,8 +610,9 @@ fn parsed_while_if_body() {
 
 #[test]
 fn test_missing_import() {
-    let mut context = TestContext::new();
+    let context = TestContext::new();
     let source = source_file!(
+        &context,
         r#"
     begin
         exec.u64::add
@@ -629,7 +640,9 @@ fn test_missing_import() {
 
 #[test]
 fn test_use_in_proc_body() {
+    let context = TestContext::default();
     let source = source_file!(
+        &context,
         r#"
     export.foo.1
         loc_load.0
@@ -653,7 +666,8 @@ fn test_use_in_proc_body() {
 
 #[test]
 fn test_unterminated_proc() {
-    let source = source_file!("proc.foo add mul begin push.1 end");
+    let context = TestContext::default();
+    let source = source_file!(&context, "proc.foo add mul begin push.1 end");
 
     assert_parse_diagnostic_lines!(
         source,
@@ -669,7 +683,8 @@ fn test_unterminated_proc() {
 
 #[test]
 fn test_unterminated_if() {
-    let source = source_file!("proc.foo add mul if.true add.2 begin push.1 end");
+    let context = TestContext::default();
+    let source = source_file!(&context, "proc.foo add mul if.true add.2 begin push.1 end");
 
     assert_parse_diagnostic_lines!(
         source,
@@ -688,8 +703,9 @@ fn test_unterminated_if() {
 
 #[test]
 fn test_ast_parsing_simple_docs() -> Result<(), Report> {
-    let mut context = TestContext::new();
+    let context = TestContext::new();
     let source = source_file!(
+        &context,
         r#"
     #! proc doc
     export.foo.1
@@ -704,9 +720,10 @@ fn test_ast_parsing_simple_docs() -> Result<(), Report> {
 
 #[test]
 fn test_ast_parsing_module_docs_valid() {
-    let mut context = TestContext::new();
+    let context = TestContext::new();
 
     let source = source_file!(
+        &context,
         "\
 #! Test documentation for the whole module in parsing test. Lorem ipsum dolor sit amet,
 #! consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.
@@ -783,8 +800,9 @@ end"
 
 #[test]
 fn test_ast_parsing_module_docs_fail() {
-    let mut context = TestContext::new();
+    let context = TestContext::new();
     let source = source_file!(
+        &context,
         "\
     #! module doc
 
@@ -813,6 +831,7 @@ fn test_ast_parsing_module_docs_fail() {
     );
 
     let source = source_file!(
+        &context,
         "\
     #! proc doc
     export.foo.1
@@ -839,6 +858,7 @@ fn test_ast_parsing_module_docs_fail() {
     );
 
     let source = source_file!(
+        &context,
         "\
     #! module doc
 
@@ -862,6 +882,7 @@ fn test_ast_parsing_module_docs_fail() {
     );
 
     let source = source_file!(
+        &context,
         "\
     export.foo.1
         loc_load.0
@@ -887,6 +908,7 @@ fn test_ast_parsing_module_docs_fail() {
     );
 
     let source = source_file!(
+        &context,
         "\
     #! module doc
 
@@ -914,6 +936,7 @@ fn test_ast_parsing_module_docs_fail() {
     );
 
     let source = source_file!(
+        &context,
         "\
     #! proc doc
     export.foo.1
@@ -943,7 +966,9 @@ fn test_ast_parsing_module_docs_fail() {
 
 #[test]
 fn assert_parsing_line_unmatched_begin() {
+    let context = TestContext::default();
     let source = source_file!(
+        &context,
         "\
         begin
           push.1.2
@@ -964,7 +989,9 @@ fn assert_parsing_line_unmatched_begin() {
 
 #[test]
 fn assert_parsing_line_extra_param() {
+    let context = TestContext::default();
     let source = source_file!(
+        &context,
         "\
         begin
           add.1.2
@@ -986,7 +1013,9 @@ fn assert_parsing_line_extra_param() {
 
 #[test]
 fn assert_parsing_line_invalid_op() {
+    let context = TestContext::default();
     let source = source_file!(
+        &context,
         "\
     begin
         repeat.3
@@ -1036,7 +1065,9 @@ fn assert_parsing_line_invalid_op() {
 
 #[test]
 fn assert_parsing_line_unexpected_token() {
+    let context = TestContext::default();
     let source = source_file!(
+        &context,
         "\
     proc.foo
       add

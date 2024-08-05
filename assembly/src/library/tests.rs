@@ -1,27 +1,27 @@
-use alloc::{string::ToString, sync::Arc, vec::Vec};
+use alloc::{string::ToString, vec::Vec};
 
 use vm_core::utils::SliceReader;
 
-use super::LibraryPath;
+use super::*;
 use crate::{
     ast::{AstSerdeOptions, Module, ModuleKind, ProcedureName},
-    diagnostics::{IntoDiagnostic, Report, SourceFile},
-    library::CompiledLibrary,
+    diagnostics::{IntoDiagnostic, Report},
     testing::TestContext,
     Assembler, Deserializable,
 };
 
 macro_rules! parse_module {
-    ($path:literal, $source:expr) => {{
+    ($context:expr, $path:literal, $source:expr) => {{
         let path = LibraryPath::new($path).into_diagnostic()?;
-        let source_file = Arc::from(SourceFile::new(concat!("test", line!()), $source.to_string()));
+        let source_file =
+            $context.source_manager().load(concat!("test", line!()), $source.to_string());
         Module::parse(path, ModuleKind::Library, source_file)?
     }};
 }
 
 #[test]
 fn masl_locations_serialization() -> Result<(), Report> {
-    let _context = TestContext::new();
+    let context = TestContext::new();
     // declare foo module
     let foo = r#"
         export.foo
@@ -31,7 +31,7 @@ fn masl_locations_serialization() -> Result<(), Report> {
             mul
         end
     "#;
-    let foo = parse_module!("test::foo", foo);
+    let foo = parse_module!(&context, "test::foo", foo);
 
     // declare bar module
     let bar = r#"
@@ -42,11 +42,13 @@ fn masl_locations_serialization() -> Result<(), Report> {
             mul
         end
     "#;
-    let bar = parse_module!("test::bar", bar);
+    let bar = parse_module!(&context, "test::bar", bar);
     let modules = [foo, bar];
 
     // serialize/deserialize the bundle with locations
-    let bundle = Assembler::default().assemble_library(modules.iter().cloned()).unwrap();
+    let bundle = Assembler::new(context.source_manager())
+        .assemble_library(modules.iter().cloned())
+        .unwrap();
 
     let mut bytes = Vec::new();
     bundle.write_into_with_options(&mut bytes, AstSerdeOptions::new(true, true));
@@ -54,7 +56,9 @@ fn masl_locations_serialization() -> Result<(), Report> {
     assert_eq!(bundle, deserialized);
 
     // serialize/deserialize the bundle without locations
-    let bundle = Assembler::default().assemble_library(modules.iter().cloned()).unwrap();
+    let bundle = Assembler::new(context.source_manager())
+        .assemble_library(modules.iter().cloned())
+        .unwrap();
 
     // serialize/deserialize the bundle
     let mut bytes = Vec::new();
@@ -67,18 +71,20 @@ fn masl_locations_serialization() -> Result<(), Report> {
 
 #[test]
 fn get_module_by_path() -> Result<(), Report> {
-    let _context = TestContext::new();
+    let context = TestContext::new();
     // declare foo module
     let foo_source = r#"
         export.foo
             add
         end
     "#;
-    let foo = parse_module!("test::foo", foo_source);
+    let foo = parse_module!(&context, "test::foo", foo_source);
     let modules = [foo];
 
     // create the bundle with locations
-    let bundle = Assembler::default().assemble_library(modules.iter().cloned()).unwrap();
+    let bundle = Assembler::new(context.source_manager())
+        .assemble_library(modules.iter().cloned())
+        .unwrap();
 
     let foo_module_info = bundle.module_infos().next().unwrap();
     assert_eq!(foo_module_info.path(), &LibraryPath::new("test::foo").unwrap());

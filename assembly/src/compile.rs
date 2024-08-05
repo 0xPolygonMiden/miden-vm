@@ -8,7 +8,10 @@ use alloc::{
 
 use crate::{
     ast::{Module, ModuleKind},
-    diagnostics::{IntoDiagnostic, NamedSource, Report, SourceCode, SourceFile, WrapErr},
+    diagnostics::{
+        IntoDiagnostic, NamedSource, Report, SourceCode, SourceContent, SourceFile, SourceManager,
+        WrapErr,
+    },
     library::{LibraryNamespace, LibraryPath},
 };
 
@@ -93,8 +96,8 @@ pub trait Compile: Sized {
     ///
     /// See [Compile::compile_with_options()] for more details.
     #[inline]
-    fn compile(self) -> Result<Box<Module>, Report> {
-        self.compile_with_options(Options::default())
+    fn compile(self, source_manager: &dyn SourceManager) -> Result<Box<Module>, Report> {
+        self.compile_with_options(source_manager, Options::default())
     }
 
     /// Compile (or convert) `self` into a [Module] using the provided `options`.
@@ -104,7 +107,11 @@ pub trait Compile: Sized {
     /// an executable module).
     ///
     /// See the documentation for [Options] to see how compilation can be configured.
-    fn compile_with_options(self, options: Options) -> Result<Box<Module>, Report>;
+    fn compile_with_options(
+        self,
+        source_manager: &dyn SourceManager,
+        options: Options,
+    ) -> Result<Box<Module>, Report>;
 }
 
 // COMPILE IMPLEMENTATIONS FOR MODULES
@@ -112,20 +119,32 @@ pub trait Compile: Sized {
 
 impl Compile for Module {
     #[inline(always)]
-    fn compile_with_options(self, options: Options) -> Result<Box<Module>, Report> {
-        Box::new(self).compile_with_options(options)
+    fn compile_with_options(
+        self,
+        source_manager: &dyn SourceManager,
+        options: Options,
+    ) -> Result<Box<Module>, Report> {
+        Box::new(self).compile_with_options(source_manager, options)
     }
 }
 
 impl<'a> Compile for &'a Module {
     #[inline(always)]
-    fn compile_with_options(self, options: Options) -> Result<Box<Module>, Report> {
-        Box::new(self.clone()).compile_with_options(options)
+    fn compile_with_options(
+        self,
+        source_manager: &dyn SourceManager,
+        options: Options,
+    ) -> Result<Box<Module>, Report> {
+        Box::new(self.clone()).compile_with_options(source_manager, options)
     }
 }
 
 impl Compile for Box<Module> {
-    fn compile_with_options(mut self, options: Options) -> Result<Box<Module>, Report> {
+    fn compile_with_options(
+        mut self,
+        _source_manager: &dyn SourceManager,
+        options: Options,
+    ) -> Result<Box<Module>, Report> {
         let actual = self.kind();
         if actual == options.kind {
             if let Some(path) = options.path {
@@ -143,8 +162,12 @@ impl Compile for Box<Module> {
 
 impl Compile for Arc<Module> {
     #[inline(always)]
-    fn compile_with_options(self, options: Options) -> Result<Box<Module>, Report> {
-        Box::new(Arc::unwrap_or_clone(self)).compile_with_options(options)
+    fn compile_with_options(
+        self,
+        source_manager: &dyn SourceManager,
+        options: Options,
+    ) -> Result<Box<Module>, Report> {
+        Box::new(Arc::unwrap_or_clone(self)).compile_with_options(source_manager, options)
     }
 }
 
@@ -152,7 +175,152 @@ impl Compile for Arc<Module> {
 // ------------------------------------------------------------------------------------------------
 
 impl Compile for Arc<SourceFile> {
-    fn compile_with_options(self, options: Options) -> Result<Box<Module>, Report> {
+    fn compile_with_options(
+        self,
+        source_manager: &dyn SourceManager,
+        options: Options,
+    ) -> Result<Box<Module>, Report> {
+        let source_file = source_manager.copy_into(&self);
+        let path = match options.path {
+            Some(path) => path,
+            None => source_file
+                .name()
+                .parse::<LibraryPath>()
+                .into_diagnostic()
+                .wrap_err("cannot compile module as it has an invalid path/name")?,
+        };
+        let mut parser = Module::parser(options.kind);
+        parser.set_warnings_as_errors(options.warnings_as_errors);
+        parser.parse(path, source_file)
+    }
+}
+
+impl<'a> Compile for &'a str {
+    #[inline(always)]
+    fn compile_with_options(
+        self,
+        source_manager: &dyn SourceManager,
+        options: Options,
+    ) -> Result<Box<Module>, Report> {
+        self.to_string().into_boxed_str().compile_with_options(source_manager, options)
+    }
+}
+
+impl<'a> Compile for &'a String {
+    #[inline(always)]
+    fn compile_with_options(
+        self,
+        source_manager: &dyn SourceManager,
+        options: Options,
+    ) -> Result<Box<Module>, Report> {
+        self.clone().into_boxed_str().compile_with_options(source_manager, options)
+    }
+}
+
+impl Compile for String {
+    fn compile_with_options(
+        self,
+        source_manager: &dyn SourceManager,
+        options: Options,
+    ) -> Result<Box<Module>, Report> {
+        self.into_boxed_str().compile_with_options(source_manager, options)
+    }
+}
+
+impl Compile for Box<str> {
+    fn compile_with_options(
+        self,
+        source_manager: &dyn SourceManager,
+        options: Options,
+    ) -> Result<Box<Module>, Report> {
+        let path = options.path.unwrap_or_else(|| {
+            LibraryPath::from(match options.kind {
+                ModuleKind::Library => LibraryNamespace::Anon,
+                ModuleKind::Executable => LibraryNamespace::Exec,
+                ModuleKind::Kernel => LibraryNamespace::Kernel,
+            })
+        });
+        let name = Arc::<str>::from(path.path().into_owned().into_boxed_str());
+        let mut parser = Module::parser(options.kind);
+        parser.set_warnings_as_errors(options.warnings_as_errors);
+        let content = SourceContent::new(name.clone(), self);
+        let source_file = source_manager.load_from_raw_parts(name, content);
+        parser.parse(path, source_file)
+    }
+}
+
+impl<'a> Compile for Cow<'a, str> {
+    #[inline(always)]
+    fn compile_with_options(
+        self,
+        source_manager: &dyn SourceManager,
+        options: Options,
+    ) -> Result<Box<Module>, Report> {
+        self.into_owned().into_boxed_str().compile_with_options(source_manager, options)
+    }
+}
+
+// COMPILE IMPLEMENTATIONS FOR BYTES
+// ------------------------------------------------------------------------------------------------
+
+impl<'a> Compile for &'a [u8] {
+    #[inline]
+    fn compile_with_options(
+        self,
+        source_manager: &dyn SourceManager,
+        options: Options,
+    ) -> Result<Box<Module>, Report> {
+        core::str::from_utf8(self)
+            .map_err(|err| {
+                Report::from(crate::parser::ParsingError::from_utf8_error(Default::default(), err))
+                    .with_source_code(self.to_vec())
+            })
+            .wrap_err("parsing failed: invalid source code")
+            .and_then(|source| source.compile_with_options(source_manager, options))
+    }
+}
+
+impl Compile for Vec<u8> {
+    #[inline]
+    fn compile_with_options(
+        self,
+        source_manager: &dyn SourceManager,
+        options: Options,
+    ) -> Result<Box<Module>, Report> {
+        String::from_utf8(self)
+            .map_err(|err| {
+                let error = crate::parser::ParsingError::from_utf8_error(
+                    Default::default(),
+                    err.utf8_error(),
+                );
+                Report::from(error).with_source_code(err.into_bytes())
+            })
+            .wrap_err("parsing failed: invalid source code")
+            .and_then(|source| {
+                source.into_boxed_str().compile_with_options(source_manager, options)
+            })
+    }
+}
+impl Compile for Box<[u8]> {
+    #[inline(always)]
+    fn compile_with_options(
+        self,
+        source_manager: &dyn SourceManager,
+        options: Options,
+    ) -> Result<Box<Module>, Report> {
+        Vec::from(self).compile_with_options(source_manager, options)
+    }
+}
+
+impl<T> Compile for NamedSource<T>
+where
+    T: SourceCode + AsRef<[u8]>,
+{
+    fn compile_with_options(
+        self,
+        source_manager: &dyn SourceManager,
+        options: Options,
+    ) -> Result<Box<Module>, Report> {
         let path = match options.path {
             Some(path) => path,
             None => self
@@ -161,91 +329,18 @@ impl Compile for Arc<SourceFile> {
                 .into_diagnostic()
                 .wrap_err("cannot compile module as it has an invalid path/name")?,
         };
-        let mut parser = Module::parser(options.kind);
-        parser.set_warnings_as_errors(options.warnings_as_errors);
-        parser.parse(path, self)
-    }
-}
-
-impl<'a> Compile for &'a str {
-    #[inline(always)]
-    fn compile_with_options(self, options: Options) -> Result<Box<Module>, Report> {
-        self.to_string().compile_with_options(options)
-    }
-}
-
-impl<'a> Compile for &'a String {
-    #[inline(always)]
-    fn compile_with_options(self, options: Options) -> Result<Box<Module>, Report> {
-        self.clone().compile_with_options(options)
-    }
-}
-
-impl Compile for String {
-    fn compile_with_options(self, options: Options) -> Result<Box<Module>, Report> {
-        let mut parser = Module::parser(options.kind);
-        parser.set_warnings_as_errors(options.warnings_as_errors);
-        if let Some(path) = options.path {
-            let source = Arc::new(SourceFile::new(path.path(), self));
-            return parser.parse(path, source);
-        }
-        let path = LibraryPath::from(match options.kind {
-            ModuleKind::Library => LibraryNamespace::Anon,
-            ModuleKind::Executable => LibraryNamespace::Exec,
-            ModuleKind::Kernel => LibraryNamespace::Kernel,
-        });
-        let source = Arc::new(SourceFile::new(path.path(), self));
-        parser.parse(path, source)
-    }
-}
-
-impl<'a> Compile for Cow<'a, str> {
-    #[inline(always)]
-    fn compile_with_options(self, options: Options) -> Result<Box<Module>, Report> {
-        self.into_owned().compile_with_options(options)
-    }
-}
-
-// COMPILE IMPLEMENTATIONS FOR BYTES
-// ------------------------------------------------------------------------------------------------
-
-impl<'a> Compile for &'a [u8] {
-    #[inline(always)]
-    fn compile_with_options(self, options: Options) -> Result<Box<Module>, Report> {
-        core::str::from_utf8(self)
+        let content = core::str::from_utf8(self.inner().as_ref())
             .map_err(|err| {
-                Report::from(crate::parser::ParsingError::from(err)).with_source_code(self.to_vec())
-            })
-            .wrap_err("parsing failed: invalid source code")
-            .and_then(|source| source.compile_with_options(options))
-    }
-}
-
-impl Compile for Vec<u8> {
-    #[inline(always)]
-    fn compile_with_options(self, options: Options) -> Result<Box<Module>, Report> {
-        String::from_utf8(self)
-            .map_err(|err| {
-                let error = crate::parser::ParsingError::from(err.utf8_error());
-                Report::from(error).with_source_code(err.into_bytes())
-            })
-            .wrap_err("parsing failed: invalid source code")
-            .and_then(|source| source.compile_with_options(options))
-    }
-}
-
-impl<T> Compile for NamedSource<T>
-where
-    T: SourceCode + AsRef<[u8]>,
-{
-    fn compile_with_options(self, options: Options) -> Result<Box<Module>, Report> {
-        let content = String::from_utf8(self.inner().as_ref().to_vec())
-            .map_err(|err| {
-                let error = crate::parser::ParsingError::from(err.utf8_error());
-                Report::from(error).with_source_code(err.into_bytes())
+                let error = crate::parser::ParsingError::from_utf8_error(Default::default(), err);
+                Report::from(error)
             })
             .wrap_err("parsing failed: expected source code to be valid utf-8")?;
-        Arc::new(SourceFile::new(self.name(), content)).compile_with_options(options)
+        let name = Arc::<str>::from(self.name());
+        let content = SourceContent::new(name.clone(), content.to_string().into_boxed_str());
+        let source_file = source_manager.load_from_raw_parts(name, content);
+        let mut parser = Module::parser(options.kind);
+        parser.set_warnings_as_errors(options.warnings_as_errors);
+        parser.parse(path, source_file)
     }
 }
 
@@ -254,9 +349,14 @@ where
 
 #[cfg(feature = "std")]
 impl<'a> Compile for &'a std::path::Path {
-    fn compile_with_options(self, options: Options) -> Result<Box<Module>, Report> {
+    fn compile_with_options(
+        self,
+        source_manager: &dyn SourceManager,
+        options: Options,
+    ) -> Result<Box<Module>, Report> {
         use crate::{ast::Ident, library::PathError};
         use std::path::Component;
+        use vm_core::debuginfo::SourceManagerExt;
 
         let path = match options.path {
             Some(path) => path,
@@ -292,15 +392,23 @@ impl<'a> Compile for &'a std::path::Path {
                 LibraryPath::new_from_components(ns, parts)
             }
         };
+        let source_file = source_manager
+            .load_file(self)
+            .into_diagnostic()
+            .wrap_err("source manager is unable to load file")?;
         let mut parser = Module::parser(options.kind);
-        parser.parse_file(path, self)
+        parser.parse(path, source_file)
     }
 }
 
 #[cfg(feature = "std")]
 impl Compile for std::path::PathBuf {
     #[inline(always)]
-    fn compile_with_options(self, options: Options) -> Result<Box<Module>, Report> {
-        self.as_path().compile_with_options(options)
+    fn compile_with_options(
+        self,
+        source_manager: &dyn SourceManager,
+        options: Options,
+    ) -> Result<Box<Module>, Report> {
+        self.as_path().compile_with_options(source_manager, options)
     }
 }

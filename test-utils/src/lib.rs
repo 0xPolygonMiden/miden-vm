@@ -27,10 +27,7 @@ use vm_core::{chiplets::hasher::apply_permutation, ProgramInfo};
 // EXPORTS
 // ================================================================================================
 
-pub use assembly::{
-    diagnostics::{Report, SourceFile},
-    LibraryPath,
-};
+pub use assembly::{diagnostics::Report, LibraryPath, SourceFile, SourceManager};
 pub use pretty_assertions::{assert_eq, assert_ne, assert_str_eq};
 pub use processor::{
     AdviceInputs, AdviceProvider, ContextId, DefaultHost, ExecutionError, ExecutionOptions,
@@ -176,8 +173,9 @@ macro_rules! assert_assembler_diagnostic {
 /// - Execution error test: check that running a program compiled from the given source causes an
 ///   ExecutionError which contains the specified substring.
 pub struct Test {
+    pub source_manager: Arc<dyn SourceManager>,
     pub source: Arc<SourceFile>,
-    pub kernel_source: Option<String>,
+    pub kernel_source: Option<Arc<SourceFile>>,
     pub stack_inputs: StackInputs,
     pub advice_inputs: AdviceInputs,
     pub in_debug_mode: bool,
@@ -191,8 +189,11 @@ impl Test {
 
     /// Creates the simplest possible new test, with only a source string and no inputs.
     pub fn new(name: &str, source: &str, in_debug_mode: bool) -> Self {
+        let source_manager = Arc::new(assembly::DefaultSourceManager::default());
+        let source = source_manager.load(name, source.to_string());
         Test {
-            source: Arc::new(SourceFile::new(name, source.to_string())),
+            source_manager,
+            source,
             kernel_source: None,
             stack_inputs: StackInputs::default(),
             advice_inputs: AdviceInputs::default(),
@@ -289,13 +290,17 @@ impl Test {
     pub fn compile(&self) -> Result<(Program, Option<MastForest>), Report> {
         use assembly::{ast::ModuleKind, Assembler, CompileOptions};
 
-        let (assembler, compiled_kernel) = if let Some(kernel) = self.kernel_source.as_ref() {
-            let kernel_lib = Assembler::default().assemble_kernel(kernel).unwrap();
+        let (assembler, compiled_kernel) = if let Some(kernel) = self.kernel_source.clone() {
+            let kernel_lib =
+                Assembler::new(self.source_manager.clone()).assemble_kernel(kernel).unwrap();
             let compiled_kernel = kernel_lib.mast_forest().clone();
 
-            (Assembler::with_kernel(kernel_lib), Some(compiled_kernel))
+            (
+                Assembler::with_kernel(self.source_manager.clone(), kernel_lib),
+                Some(compiled_kernel),
+            )
         } else {
-            (Assembler::default(), None)
+            (Assembler::new(self.source_manager.clone()), None)
         };
         let mut assembler = self
             .add_modules

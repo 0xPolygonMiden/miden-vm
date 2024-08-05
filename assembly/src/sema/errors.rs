@@ -1,7 +1,4 @@
-use crate::{
-    diagnostics::{Diagnostic, SourceFile},
-    SourceSpan,
-};
+use crate::{diagnostics::Diagnostic, SourceFile, SourceSpan};
 use alloc::{sync::Arc, vec::Vec};
 use core::fmt;
 
@@ -20,7 +17,7 @@ use core::fmt;
 #[diagnostic(help("see emitted diagnostics for details"))]
 pub struct SyntaxError {
     #[source_code]
-    pub input: Arc<SourceFile>,
+    pub source_file: Arc<SourceFile>,
     #[related]
     pub errors: Vec<SemanticAnalysisError>,
 }
@@ -35,7 +32,7 @@ pub struct SyntaxError {
 #[diagnostic(help("see below for details"))]
 pub struct SyntaxWarning {
     #[source_code]
-    pub input: Arc<SourceFile>,
+    pub source_file: Arc<SourceFile>,
     #[related]
     pub errors: Vec<SemanticAnalysisError>,
 }

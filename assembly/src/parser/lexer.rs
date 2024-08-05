@@ -1,10 +1,13 @@
-use crate::Felt;
 use alloc::string::String;
 use core::{num::IntErrorKind, ops::Range};
 
 use super::{
     BinEncodedValue, BinErrorKind, DocumentationType, HexEncodedValue, HexErrorKind,
-    LiteralErrorKind, ParsingError, Scanner, SourceSpan, Token,
+    LiteralErrorKind, ParsingError, Scanner, Token,
+};
+use crate::{
+    diagnostics::{ByteOffset, SourceId, SourceSpan},
+    Felt,
 };
 
 /// The value produced by the [Lexer] when iterated
@@ -55,6 +58,9 @@ macro_rules! pop2 {
 /// guarantee that parsing them will produce meaningful results, it is primarily to assist in
 /// gathering as many errors as possible.
 pub struct Lexer<'input> {
+    /// The [SourceId] of the file being lexed, for use in producing spans in lexer diagnostics
+    source_id: SourceId,
+
     /// The scanner produces a sequence of chars + location, and can be controlled
     /// The location type is usize
     scanner: Scanner<'input>,
@@ -90,10 +96,11 @@ pub struct Lexer<'input> {
 impl<'input> Lexer<'input> {
     /// Produces an instance of the lexer with the lexical analysis to be performed on the `input`
     /// string. Note that no lexical analysis occurs until the lexer has been iterated over.
-    pub fn new(scanner: Scanner<'input>) -> Self {
+    pub fn new(source_id: SourceId, scanner: Scanner<'input>) -> Self {
         let start = scanner.start();
         let keywords = Token::keyword_searcher();
         let mut lexer = Self {
+            source_id,
             scanner,
             token: Token::Eof,
             token_start: start,
@@ -206,7 +213,7 @@ impl<'input> Lexer<'input> {
     fn span(&self) -> SourceSpan {
         assert!(self.token_start <= self.token_end, "invalid range");
         assert!(self.token_end <= u32::MAX as usize, "file too large");
-        SourceSpan::from((self.token_start as u32)..(self.token_end as u32))
+        SourceSpan::new(self.source_id, (self.token_start as u32)..(self.token_end as u32))
     }
 
     #[inline]
@@ -411,18 +418,18 @@ impl<'input> Lexer<'input> {
         // Skip quotation mark
         self.skip();
 
-        let quote_size = '"'.len_utf8() as u32;
+        let quote_size = ByteOffset::from_char_len('"');
         loop {
             match self.read() {
                 '\0' | '\n' => {
                     break Err(ParsingError::UnclosedQuote {
-                        start: SourceSpan::at(self.span().start() as u32),
+                        start: SourceSpan::at(self.source_id, self.span().start()),
                     });
                 }
                 '"' => {
                     let span = self.span();
-                    let start = span.start() as u32 + quote_size;
-                    let span = SourceSpan::from(start..(span.end() as u32));
+                    let start = span.start() + quote_size;
+                    let span = SourceSpan::new(self.source_id, start..span.end());
 
                     self.skip();
                     break Ok(Token::QuotedIdent(self.slice_span(span)));
@@ -436,9 +443,9 @@ impl<'input> Lexer<'input> {
                     continue;
                 }
                 c => {
-                    let loc = self.span().end() - c.len_utf8();
+                    let loc = self.span().end() - ByteOffset::from_char_len(c);
                     break Err(ParsingError::InvalidIdentCharacter {
-                        span: SourceSpan::at(loc as u32),
+                        span: SourceSpan::at(self.source_id, loc),
                     });
                 }
             }
@@ -522,11 +529,11 @@ impl<'input> Lexer<'input> {
         }
 
         let span = self.span();
-        let start = span.start() as u32;
-        let digit_start = start + 2;
-        let end = span.end() as u32;
-        let span = SourceSpan::from(start..end);
-        let value = parse_hex(span, self.slice_span(digit_start..end))?;
+        let start = span.start();
+        let end = span.end();
+        let digit_start = start.to_u32() + 2;
+        let span = SourceSpan::new(span.source_id(), start..end);
+        let value = parse_hex(span, self.slice_span(digit_start..end.to_u32()))?;
         Ok(Token::HexValue(value))
     }
 
@@ -544,11 +551,11 @@ impl<'input> Lexer<'input> {
         }
 
         let span = self.span();
-        let start = span.start() as u32;
-        let digit_start = start + 2;
-        let end = span.end() as u32;
-        let span = SourceSpan::from(start..end);
-        let value = parse_bin(span, self.slice_span(digit_start..end))?;
+        let start = span.start();
+        let digit_start = start.to_u32() + 2;
+        let end = span.end();
+        let span = SourceSpan::new(span.source_id(), start..end);
+        let value = parse_bin(span, self.slice_span(digit_start..end.to_u32()))?;
         Ok(Token::BinValue(value))
     }
 }

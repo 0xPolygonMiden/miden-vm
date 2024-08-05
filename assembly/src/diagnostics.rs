@@ -7,7 +7,7 @@ pub use tracing;
 use alloc::{borrow::Cow, boxed::Box, sync::Arc, vec::Vec};
 use core::{fmt, ops::Range};
 
-pub type SourceFile = NamedSource<alloc::string::String>;
+pub use vm_core::debuginfo::*;
 
 // LABEL
 // ================================================================================================
@@ -166,7 +166,7 @@ impl RelatedLabel {
         self
     }
 
-    pub fn with_labeled_span<S>(self, span: super::SourceSpan, message: S) -> Self
+    pub fn with_labeled_span<S>(self, span: SourceSpan, message: S) -> Self
     where
         Cow<'static, str>: From<S>,
     {

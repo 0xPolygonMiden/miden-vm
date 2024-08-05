@@ -1,4 +1,4 @@
-use crate::{ast::Instruction, AssemblyError};
+use crate::{ast::Instruction, AssemblyError, Span};
 
 use super::{
     mast_forest_builder::MastForestBuilder, BodyWrapper, Decorator, DecoratorList, ProcedureContext,
@@ -83,12 +83,18 @@ impl BasicBlockBuilder {
     ///
     /// This indicates that the provided instruction should be tracked and the cycle count for
     /// this instruction will be computed when the call to set_instruction_cycle_count() is made.
-    pub fn track_instruction(&mut self, instruction: &Instruction, proc_ctx: &ProcedureContext) {
+    pub fn track_instruction(
+        &mut self,
+        instruction: &Span<Instruction>,
+        proc_ctx: &ProcedureContext,
+    ) {
+        let span = instruction.span();
+        let location = proc_ctx.source_manager().location(span).ok();
         let context_name = proc_ctx.name().to_string();
         let num_cycles = 0;
         let op = instruction.to_string();
         let should_break = instruction.should_break();
-        let op = AssemblyOp::new(context_name, num_cycles, op, should_break);
+        let op = AssemblyOp::new(location, context_name, num_cycles, op, should_break);
         self.push_decorator(Decorator::AsmOp(op));
         self.last_asmop_pos = self.decorators.len() - 1;
     }

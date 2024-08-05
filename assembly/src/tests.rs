@@ -34,8 +34,8 @@ macro_rules! assert_assembler_diagnostic {
 
 #[test]
 fn simple_instructions() -> TestResult {
-    let mut context = TestContext::default();
-    let source = source_file!("begin push.0 assertz end");
+    let context = TestContext::default();
+    let source = source_file!(&context, "begin push.0 assertz end");
     let program = context.assemble(source)?;
     let expected = "\
 begin
@@ -43,7 +43,7 @@ begin
 end";
     assert_str_eq!(format!("{program}"), expected);
 
-    let source = source_file!("begin push.10 push.50 push.2 u32wrapping_madd end");
+    let source = source_file!(&context, "begin push.10 push.50 push.2 u32wrapping_madd end");
     let program = context.assemble(source)?;
     let expected = "\
 begin
@@ -51,7 +51,7 @@ begin
 end";
     assert_str_eq!(format!("{program}"), expected);
 
-    let source = source_file!("begin push.10 push.50 push.2 u32wrapping_add3 end");
+    let source = source_file!(&context, "begin push.10 push.50 push.2 u32wrapping_add3 end");
     let program = context.assemble(source)?;
     let expected = "\
 begin
@@ -65,8 +65,8 @@ end";
 #[test]
 #[ignore]
 fn empty_program() -> TestResult {
-    let mut context = TestContext::default();
-    let source = source_file!("begin end");
+    let context = TestContext::default();
+    let source = source_file!(&context, "begin end");
     let program = context.assemble(source)?;
     let expected = "begin basic_block noop end end";
     assert_eq!(expected, format!("{}", program));
@@ -75,8 +75,8 @@ fn empty_program() -> TestResult {
 
 #[test]
 fn empty_if() -> TestResult {
-    let mut context = TestContext::default();
-    let source = source_file!("begin if.true end end");
+    let context = TestContext::default();
+    let source = source_file!(&context, "begin if.true end end");
     assert_assembler_diagnostic!(
         context,
         source,
@@ -94,8 +94,8 @@ fn empty_if() -> TestResult {
 
 #[test]
 fn empty_if_true_then_branch() -> TestResult {
-    let mut context = TestContext::default();
-    let source = source_file!("begin if.true nop end end");
+    let context = TestContext::default();
+    let source = source_file!(&context, "begin if.true nop end end");
     let program = context.assemble(source)?;
     let expected = "\
 begin
@@ -113,8 +113,8 @@ end";
 #[test]
 #[ignore]
 fn empty_while() -> TestResult {
-    let mut context = TestContext::default();
-    let source = source_file!("begin while.true end end");
+    let context = TestContext::default();
+    let source = source_file!(&context, "begin while.true end end");
     let program = context.assemble(source)?;
     let expected = "\
 begin
@@ -130,8 +130,8 @@ end";
 #[test]
 #[ignore]
 fn empty_repeat() -> TestResult {
-    let mut context = TestContext::default();
-    let source = source_file!("begin repeat.5 end end");
+    let context = TestContext::default();
+    let source = source_file!(&context, "begin repeat.5 end end");
     let program = context.assemble(source)?;
     let expected = "\
 begin
@@ -143,8 +143,8 @@ end";
 
 #[test]
 fn single_basic_block() -> TestResult {
-    let mut context = TestContext::default();
-    let source = source_file!("begin push.1 push.2 add end");
+    let context = TestContext::default();
+    let source = source_file!(&context, "begin push.1 push.2 add end");
     let program = context.assemble(source)?;
     let expected = "\
 begin
@@ -156,10 +156,10 @@ end";
 
 #[test]
 fn basic_block_and_simple_if_true() -> TestResult {
-    let mut context = TestContext::default();
+    let context = TestContext::default();
 
     // if with else
-    let source = source_file!("begin push.2 push.3 if.true add else mul end end");
+    let source = source_file!(&context, "begin push.2 push.3 if.true add else mul end end");
     let program = context.assemble(source)?;
     let expected = "\
 begin
@@ -175,7 +175,7 @@ end";
     assert_str_eq!(format!("{program}"), expected);
 
     // if without else
-    let source = source_file!("begin push.2 push.3 if.true add end end");
+    let source = source_file!(&context, "begin push.2 push.3 if.true add end end");
     let program = context.assemble(source)?;
     let expected = "\
 begin
@@ -194,10 +194,10 @@ end";
 
 #[test]
 fn basic_block_and_simple_if_false() -> TestResult {
-    let mut context = TestContext::default();
+    let context = TestContext::default();
 
     // if with else
-    let source = source_file!("begin push.2 push.3 if.false add else mul end end");
+    let source = source_file!(&context, "begin push.2 push.3 if.false add else mul end end");
     let program = context.assemble(source)?;
     let expected = "\
 begin
@@ -213,7 +213,7 @@ end";
     assert_str_eq!(format!("{program}"), expected);
 
     // if without else
-    let source = source_file!("begin push.2 push.3 if.false add end end");
+    let source = source_file!(&context, "begin push.2 push.3 if.false add end end");
     let program = context.assemble(source)?;
     let expected = "\
 begin
@@ -242,6 +242,7 @@ fn simple_main_call() -> TestResult {
     let account_code = context.parse_module_with_path(
         account_path,
         source_file!(
+            &context,
             "\
         export.account_method_1
             push.2.1 add
@@ -258,6 +259,7 @@ fn simple_main_call() -> TestResult {
 
     // compile note 1 program
     context.assemble(source_file!(
+        &context,
         "
         use.context::account
         begin
@@ -268,6 +270,7 @@ fn simple_main_call() -> TestResult {
 
     // compile note 2 program
     context.assemble(source_file!(
+        &context,
         "
         use.context::account
         begin
@@ -282,12 +285,13 @@ fn simple_main_call() -> TestResult {
 #[ignore]
 #[test]
 fn call_without_path() -> TestResult {
-    let mut context = TestContext::default();
+    let context = TestContext::default();
 
     // compile first module
     context.assemble_module(
         "account_code1".parse().unwrap(),
         source_file!(
+            &context,
             "\
     export.account_method_1
         push.2.1 add
@@ -306,6 +310,7 @@ fn call_without_path() -> TestResult {
     context.assemble_module(
         "account_code2".parse().unwrap(),
         source_file!(
+            &context,
             "\
     export.account_method_1
         push.2.2 add
@@ -322,6 +327,7 @@ fn call_without_path() -> TestResult {
 
     // compile program in which functions from different modules but with equal names are called
     context.assemble(source_file!(
+        &context,
         "
         begin
             # call the account_method_1 from the first module (account_code1)
@@ -351,6 +357,7 @@ fn procref_call() -> TestResult {
     context.add_module_from_source(
         "module::path::one".parse().unwrap(),
         source_file!(
+            &context,
             "
         export.aaa
             push.7.8
@@ -366,6 +373,7 @@ fn procref_call() -> TestResult {
     context.add_module_from_source(
         "module::path::two".parse().unwrap(),
         source_file!(
+            &context,
             "
         use.module::path::one
         export.one::foo
@@ -378,6 +386,7 @@ fn procref_call() -> TestResult {
 
     // compile program with procref calls
     context.assemble(source_file!(
+        &context,
         "
         use.module::path::two
 
@@ -396,11 +405,12 @@ fn procref_call() -> TestResult {
 
 #[test]
 fn get_proc_name_of_unknown_module() -> TestResult {
-    let mut context = TestContext::default();
+    let context = TestContext::default();
     // Module `two` is unknown. This program should return
     // `AssemblyError::UndefinedProcedure`, referencing the
     // use of `bar`
     let module_source1 = source_file!(
+        &context,
         "
     use.module::path::two
 
@@ -411,7 +421,7 @@ fn get_proc_name_of_unknown_module() -> TestResult {
     let module_path_one = "module::path::one".parse().unwrap();
     let module1 = context.parse_module_with_path(module_path_one, module_source1)?;
 
-    let report = Assembler::default()
+    let report = Assembler::new(context.source_manager())
         .assemble_library(core::iter::once(module1))
         .expect_err("expected unknown module error");
 
@@ -434,8 +444,9 @@ fn get_proc_name_of_unknown_module() -> TestResult {
 
 #[test]
 fn simple_constant() -> TestResult {
-    let mut context = TestContext::default();
+    let context = TestContext::default();
     let source = source_file!(
+        &context,
         "\
     const.TEST_CONSTANT=7
     begin
@@ -453,8 +464,9 @@ end";
 
 #[test]
 fn multiple_constants_push() -> TestResult {
-    let mut context = TestContext::default();
+    let context = TestContext::default();
     let source = source_file!(
+        &context,
         "const.CONSTANT_1=21 \
     const.CONSTANT_2=44 \
     begin \
@@ -472,8 +484,9 @@ end";
 
 #[test]
 fn constant_numeric_expression() -> TestResult {
-    let mut context = TestContext::default();
+    let context = TestContext::default();
     let source = source_file!(
+        &context,
         "const.TEST_CONSTANT=11-2+4*(12-(10+1))+9+8//4*2 \
     begin \
     push.TEST_CONSTANT \
@@ -491,8 +504,9 @@ end";
 
 #[test]
 fn constant_alphanumeric_expression() -> TestResult {
-    let mut context = TestContext::default();
+    let context = TestContext::default();
     let source = source_file!(
+        &context,
         "const.TEST_CONSTANT_1=(18-1+10)*6-((13+7)*2) \
     const.TEST_CONSTANT_2=11-2+4*(12-(10+1))+9
     const.TEST_CONSTANT_3=(TEST_CONSTANT_1-(TEST_CONSTANT_2+10))//5+3
@@ -512,8 +526,9 @@ end";
 
 #[test]
 fn constant_hexadecimal_value() -> TestResult {
-    let mut context = TestContext::default();
+    let context = TestContext::default();
     let source = source_file!(
+        &context,
         "const.TEST_CONSTANT=0xFF \
     begin \
     push.TEST_CONSTANT \
@@ -531,8 +546,9 @@ end";
 
 #[test]
 fn constant_field_division() -> TestResult {
-    let mut context = TestContext::default();
+    let context = TestContext::default();
     let source = source_file!(
+        &context,
         "const.TEST_CONSTANT=(17//4)/4*(1//2)+2 \
     begin \
     push.TEST_CONSTANT \
@@ -550,8 +566,9 @@ end";
 
 #[test]
 fn constant_err_const_not_initialized() -> TestResult {
-    let mut context = TestContext::default();
+    let context = TestContext::default();
     let source = source_file!(
+        &context,
         "const.TEST_CONSTANT=5+A \
     begin \
     push.TEST_CONSTANT \
@@ -573,8 +590,9 @@ fn constant_err_const_not_initialized() -> TestResult {
 
 #[test]
 fn constant_err_div_by_zero() -> TestResult {
-    let mut context = TestContext::default();
+    let context = TestContext::default();
     let source = source_file!(
+        &context,
         "const.TEST_CONSTANT=5/0 \
     begin \
     push.TEST_CONSTANT \
@@ -591,6 +609,7 @@ fn constant_err_div_by_zero() -> TestResult {
     );
 
     let source = source_file!(
+        &context,
         "const.TEST_CONSTANT=5//0 \
     begin \
     push.TEST_CONSTANT \
@@ -610,8 +629,9 @@ fn constant_err_div_by_zero() -> TestResult {
 
 #[test]
 fn constants_must_be_uppercase() -> TestResult {
-    let mut context = TestContext::default();
+    let context = TestContext::default();
     let source = source_file!(
+        &context,
         "const.constant_1=12 \
     begin \
     push.constant_1 \
@@ -634,8 +654,9 @@ fn constants_must_be_uppercase() -> TestResult {
 
 #[test]
 fn duplicate_constant_name() -> TestResult {
-    let mut context = TestContext::default();
+    let context = TestContext::default();
     let source = source_file!(
+        &context,
         "const.CONSTANT=12 \
     const.CONSTANT=14 \
     begin \
@@ -661,8 +682,9 @@ fn duplicate_constant_name() -> TestResult {
 
 #[test]
 fn constant_must_be_valid_felt() -> TestResult {
-    let mut context = TestContext::default();
+    let context = TestContext::default();
     let source = source_file!(
+        &context,
         "const.CONSTANT=1122INVALID \
     begin \
     push.CONSTANT \
@@ -686,8 +708,9 @@ or \"export\", or \"proc\", or \"use\", or end of file, or doc comment"
 
 #[test]
 fn constant_must_be_within_valid_felt_range() -> TestResult {
-    let mut context = TestContext::default();
+    let context = TestContext::default();
     let source = source_file!(
+        &context,
         "const.CONSTANT=18446744073709551615 \
     begin \
     push.CONSTANT \
@@ -708,8 +731,9 @@ fn constant_must_be_within_valid_felt_range() -> TestResult {
 
 #[test]
 fn constants_defined_in_global_scope() -> TestResult {
-    let mut context = TestContext::default();
+    let context = TestContext::default();
     let source = source_file!(
+        &context,
         "
     begin \
     const.CONSTANT=12
@@ -735,8 +759,9 @@ fn constants_defined_in_global_scope() -> TestResult {
 
 #[test]
 fn constant_not_found() -> TestResult {
-    let mut context = TestContext::default();
+    let context = TestContext::new();
     let source = source_file!(
+        &context,
         "
     begin \
     push.CONSTANT \
@@ -760,7 +785,7 @@ fn constant_not_found() -> TestResult {
 
 #[test]
 fn mem_operations_with_constants() -> TestResult {
-    let mut context = TestContext::default();
+    let context = TestContext::default();
 
     // Define constant values
     const PROC_LOC_STORE_PTR: u64 = 0;
@@ -772,8 +797,10 @@ fn mem_operations_with_constants() -> TestResult {
     const GLOBAL_STOREW_PTR: u64 = 6;
     const GLOBAL_LOADW_PTR: u64 = 7;
 
-    let source = source_file!(format!(
-        "\
+    let source = source_file!(
+        &context,
+        format!(
+            "\
     const.PROC_LOC_STORE_PTR={PROC_LOC_STORE_PTR}
     const.PROC_LOC_LOAD_PTR={PROC_LOC_LOAD_PTR}
     const.PROC_LOC_STOREW_PTR={PROC_LOC_STOREW_PTR}
@@ -817,12 +844,15 @@ fn mem_operations_with_constants() -> TestResult {
         mem_loadw.GLOBAL_LOADW_PTR
     end
     "
-    ));
+        )
+    );
     let program = context.assemble(source)?;
 
     // Define expected
-    let expected = source_file!(format!(
-        "\
+    let expected = source_file!(
+        &context,
+        format!(
+            "\
     proc.test_const_loc.4
         # constant should resolve using locaddr operation
         locaddr.{PROC_LOC_STORE_PTR}
@@ -857,7 +887,8 @@ fn mem_operations_with_constants() -> TestResult {
         mem_loadw.{GLOBAL_LOADW_PTR}
     end
     "
-    ));
+        )
+    );
     let expected_program = context.assemble(expected)?;
     assert_str_eq!(expected_program.to_string(), program.to_string());
     Ok(())
@@ -868,8 +899,11 @@ fn const_conversion_failed_to_u16() -> TestResult {
     // Define constant value greater than u16::MAX
     let constant_value: u64 = u16::MAX as u64 + 1;
 
-    let source = source_file!(format!(
-        "\
+    let context = TestContext::default();
+    let source = source_file!(
+        &context,
+        format!(
+            "\
     const.CONSTANT={constant_value}
 
     proc.test_constant_overflow.1
@@ -880,8 +914,8 @@ fn const_conversion_failed_to_u16() -> TestResult {
         exec.test_constant_overflow
     end
     "
-    ));
-    let mut context = TestContext::default();
+        )
+    );
 
     assert_assembler_diagnostic!(
         context,
@@ -901,19 +935,22 @@ fn const_conversion_failed_to_u16() -> TestResult {
 
 #[test]
 fn const_conversion_failed_to_u32() -> TestResult {
-    let mut context = TestContext::default();
+    let context = TestContext::default();
     // Define constant value greater than u16::MAX
     let constant_value: u64 = u32::MAX as u64 + 1;
 
-    let source = source_file!(format!(
-        "\
+    let source = source_file!(
+        &context,
+        format!(
+            "\
     const.CONSTANT={constant_value}
 
     begin
         mem_load.CONSTANT
     end
     "
-    ));
+        )
+    );
 
     assert_assembler_diagnostic!(
         context,
@@ -936,7 +973,9 @@ fn const_conversion_failed_to_u32() -> TestResult {
 
 #[test]
 fn assert_with_code() -> TestResult {
+    let context = TestContext::default();
     let source = source_file!(
+        &context,
         "\
     const.ERR1=1
 
@@ -947,7 +986,6 @@ fn assert_with_code() -> TestResult {
     end
     "
     );
-    let mut context = TestContext::default();
     let program = context.assemble(source)?;
 
     let expected = "\
@@ -960,7 +998,9 @@ end";
 
 #[test]
 fn assertz_with_code() -> TestResult {
+    let context = TestContext::default();
     let source = source_file!(
+        &context,
         "\
     const.ERR1=1
 
@@ -971,7 +1011,6 @@ fn assertz_with_code() -> TestResult {
     end
     "
     );
-    let mut context = TestContext::default();
     let program = context.assemble(source)?;
 
     let expected = "\
@@ -984,7 +1023,9 @@ end";
 
 #[test]
 fn assert_eq_with_code() -> TestResult {
+    let context = TestContext::default();
     let source = source_file!(
+        &context,
         "\
     const.ERR1=1
 
@@ -995,7 +1036,6 @@ fn assert_eq_with_code() -> TestResult {
     end
     "
     );
-    let mut context = TestContext::default();
     let program = context.assemble(source)?;
 
     let expected = "\
@@ -1008,7 +1048,9 @@ end";
 
 #[test]
 fn assert_eqw_with_code() -> TestResult {
+    let context = TestContext::default();
     let source = source_file!(
+        &context,
         "\
     const.ERR1=1
 
@@ -1019,7 +1061,6 @@ fn assert_eqw_with_code() -> TestResult {
     end
     "
     );
-    let mut context = TestContext::default();
     let program = context.assemble(source)?;
 
     let expected = "\
@@ -1066,7 +1107,9 @@ end";
 
 #[test]
 fn u32assert_with_code() -> TestResult {
+    let context = TestContext::default();
     let source = source_file!(
+        &context,
         "\
     const.ERR1=1
 
@@ -1077,7 +1120,6 @@ fn u32assert_with_code() -> TestResult {
     end
     "
     );
-    let mut context = TestContext::default();
     let program = context.assemble(source)?;
 
     let expected = "\
@@ -1100,7 +1142,9 @@ end";
 
 #[test]
 fn u32assert2_with_code() -> TestResult {
+    let context = TestContext::default();
     let source = source_file!(
+        &context,
         "\
     const.ERR1=1
 
@@ -1111,7 +1155,6 @@ fn u32assert2_with_code() -> TestResult {
     end
     "
     );
-    let mut context = TestContext::default();
     let program = context.assemble(source)?;
 
     let expected = "\
@@ -1124,7 +1167,9 @@ end";
 
 #[test]
 fn u32assertw_with_code() -> TestResult {
+    let context = TestContext::default();
     let source = source_file!(
+        &context,
         "\
     const.ERR1=1
 
@@ -1135,7 +1180,6 @@ fn u32assertw_with_code() -> TestResult {
     end
     "
     );
-    let mut context = TestContext::default();
     let program = context.assemble(source)?;
 
     let expected = "\
@@ -1167,7 +1211,9 @@ end";
 
 #[test]
 fn mtree_verify_with_code() -> TestResult {
+    let context = TestContext::default();
     let source = source_file!(
+        &context,
         "\
     const.ERR1=1
 
@@ -1179,7 +1225,6 @@ fn mtree_verify_with_code() -> TestResult {
     "
     );
 
-    let mut context = TestContext::default();
     let program = context.assemble(source)?;
 
     let expected = "\
@@ -1195,10 +1240,11 @@ end";
 
 #[test]
 fn nested_control_blocks() -> TestResult {
-    let mut context = TestContext::default();
+    let context = TestContext::default();
 
     // if with else
     let source = source_file!(
+        &context,
         "begin \
         push.2 push.3 \
         if.true \
@@ -1251,9 +1297,11 @@ end";
 
 #[test]
 fn program_with_one_procedure() -> TestResult {
-    let mut context = TestContext::default();
-    let source =
-        source_file!("proc.foo push.3 push.7 mul end begin push.2 push.3 add exec.foo end");
+    let context = TestContext::default();
+    let source = source_file!(
+        &context,
+        "proc.foo push.3 push.7 mul end begin push.2 push.3 add exec.foo end"
+    );
     let program = context.assemble(source)?;
     let expected = "\
 begin
@@ -1268,8 +1316,9 @@ end";
 
 #[test]
 fn program_with_nested_procedure() -> TestResult {
-    let mut context = TestContext::default();
+    let context = TestContext::default();
     let source = source_file!(
+        &context,
         "\
         proc.foo push.3 push.7 mul end \
         proc.bar push.5 exec.foo add end \
@@ -1304,8 +1353,9 @@ end";
 
 #[test]
 fn program_with_proc_locals() -> TestResult {
-    let mut context = TestContext::default();
+    let context = TestContext::default();
     let source = source_file!(
+        &context,
         "\
         proc.foo.1 \
             loc_store.0 \
@@ -1346,8 +1396,9 @@ end";
 
 #[test]
 fn program_with_proc_locals_fail() -> TestResult {
-    let mut context = TestContext::default();
+    let context = TestContext::default();
     let source = source_file!(
+        &context,
         "\
         proc.foo \
             loc_store.0 \
@@ -1371,9 +1422,11 @@ fn program_with_proc_locals_fail() -> TestResult {
 
 #[test]
 fn program_with_exported_procedure() -> TestResult {
-    let mut context = TestContext::default();
-    let source =
-        source_file!("export.foo push.3 push.7 mul end begin push.2 push.3 add exec.foo end");
+    let context = TestContext::default();
+    let source = source_file!(
+        &context,
+        "export.foo push.3 push.7 mul end begin push.2 push.3 add exec.foo end"
+    );
 
     assert_assembler_diagnostic!(
         context,
@@ -1394,8 +1447,8 @@ fn program_with_exported_procedure() -> TestResult {
 
 #[test]
 fn program_with_dynamic_code_execution() -> TestResult {
-    let mut context = TestContext::default();
-    let source = source_file!("begin dynexec end");
+    let context = TestContext::default();
+    let source = source_file!(&context, "begin dynexec end");
     let program = context.assemble(source)?;
     let expected = "\
 begin
@@ -1407,8 +1460,8 @@ end";
 
 #[test]
 fn program_with_dynamic_code_execution_in_new_context() -> TestResult {
-    let mut context = TestContext::default();
-    let source = source_file!("begin dyncall end");
+    let context = TestContext::default();
+    let source = source_file!(&context, "begin dyncall end");
     let program = context.assemble(source)?;
     let expected = "\
 begin
@@ -1423,8 +1476,8 @@ end";
 
 #[test]
 fn program_with_incorrect_mast_root_length() -> TestResult {
-    let mut context = TestContext::default();
-    let source = source_file!("begin call.0x1234 end");
+    let context = TestContext::default();
+    let source = source_file!(&context, "begin call.0x1234 end");
 
     assert_assembler_diagnostic!(
         context,
@@ -1440,8 +1493,9 @@ fn program_with_incorrect_mast_root_length() -> TestResult {
 
 #[test]
 fn program_with_invalid_mast_root_chars() {
-    let mut context = TestContext::default();
+    let context = TestContext::default();
     let source = source_file!(
+        &context,
         "begin call.0xc2545da99d3a1f3f38d957c7893c44d78998d8ea8b11aba7e22c8c2b2a21xyzb end"
     );
 
@@ -1458,8 +1512,9 @@ fn program_with_invalid_mast_root_chars() {
 
 #[test]
 fn program_with_invalid_rpo_digest_call() {
-    let mut context = TestContext::default();
+    let context = TestContext::default();
     let source = source_file!(
+        &context,
         "begin call.0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff end"
     );
 
@@ -1476,13 +1531,14 @@ fn program_with_invalid_rpo_digest_call() {
 
 #[test]
 fn program_with_phantom_mast_call() -> TestResult {
-    let mut context = TestContext::default();
+    let context = TestContext::default();
     let source = source_file!(
+        &context,
         "begin call.0xc2545da99d3a1f3f38d957c7893c44d78998d8ea8b11aba7e22c8c2b2a213dae end"
     );
     let ast = context.parse_program(source)?;
 
-    let assembler = Assembler::default().with_debug_mode(true);
+    let assembler = Assembler::new(context.source_manager()).with_debug_mode(true);
     assembler.assemble_program(ast)?;
     Ok(())
 }
@@ -1505,20 +1561,26 @@ fn program_with_one_import_and_hex_call() -> TestResult {
 
     let mut context = TestContext::default();
     let path = MODULE.parse().unwrap();
-    let ast = context.parse_module_with_path(path, source_file!(PROCEDURE.to_string()))?;
-    let library = Assembler::default().assemble_library(core::iter::once(ast)).unwrap();
+    let ast =
+        context.parse_module_with_path(path, source_file!(&context, PROCEDURE.to_string()))?;
+    let library = Assembler::new(context.source_manager())
+        .assemble_library(core::iter::once(ast))
+        .unwrap();
 
     context.add_library(&library)?;
 
-    let source = source_file!(format!(
-        r#"
+    let source = source_file!(
+        &context,
+        format!(
+            r#"
         use.{MODULE}
         begin
             push.4 push.3
             exec.u256::iszero_unsafe
             call.0x20234ee941e53a15886e733cc8e041198c6e90d2a16ea18ce1030e8c3596dd38
         end"#
-    ));
+        )
+    );
     let program = context.assemble(source)?;
 
     let expected = "\
@@ -1559,20 +1621,26 @@ fn program_with_two_imported_procs_with_same_mast_root() -> TestResult {
 
     let mut context = TestContext::default();
     let path = MODULE.parse().unwrap();
-    let ast = context.parse_module_with_path(path, source_file!(PROCEDURE.to_string()))?;
-    let library = Assembler::default().assemble_library(core::iter::once(ast)).unwrap();
+    let ast =
+        context.parse_module_with_path(path, source_file!(&context, PROCEDURE.to_string()))?;
+    let library = Assembler::new(context.source_manager())
+        .assemble_library(core::iter::once(ast))
+        .unwrap();
 
     context.add_library(&library)?;
 
-    let source = source_file!(format!(
-        r#"
+    let source = source_file!(
+        &context,
+        format!(
+            r#"
         use.{MODULE}
         begin
             push.4 push.3
             exec.u256::iszero_unsafe
             exec.u256::iszero_unsafe_dup
         end"#
-    ));
+        )
+    );
     context.assemble(source)?;
     Ok(())
 }
@@ -1609,7 +1677,10 @@ fn program_with_reexported_proc_in_same_library() -> TestResult {
     "#;
 
     let mut context = TestContext::new();
-    let ast = Module::parse_str(MODULE.parse().unwrap(), ModuleKind::Library, MODULE_BODY).unwrap();
+    let mut parser = Module::parser(ModuleKind::Library);
+    let ast = parser
+        .parse_str(MODULE.parse().unwrap(), MODULE_BODY, &context.source_manager())
+        .unwrap();
 
     // check docs
     let docs_checked_eqz =
@@ -1625,23 +1696,29 @@ fn program_with_reexported_proc_in_same_library() -> TestResult {
         "unchecked_eqz checks if the value is zero and returns 1 if it is, 0 otherwise\n"
     );
 
-    let ref_ast =
-        Module::parse_str(REF_MODULE.parse().unwrap(), ModuleKind::Library, REF_MODULE_BODY)
-            .unwrap();
+    let mut parser = Module::parser(ModuleKind::Library);
+    let ref_ast = parser
+        .parse_str(REF_MODULE.parse().unwrap(), REF_MODULE_BODY, &context.source_manager())
+        .unwrap();
 
-    let library = Assembler::default().assemble_library([ast, ref_ast]).unwrap();
+    let library = Assembler::new(context.source_manager())
+        .assemble_library([ast, ref_ast])
+        .unwrap();
 
     context.add_library(&library)?;
 
-    let source = source_file!(format!(
-        r#"
+    let source = source_file!(
+        &context,
+        format!(
+            r#"
         use.{MODULE}
         begin
             push.4 push.3
             exec.u256::checked_eqz
             exec.u256::notchecked_eqz
         end"#
-    ));
+        )
+    );
     let program = context.assemble(source)?;
     let expected = "\
 begin
@@ -1685,26 +1762,32 @@ fn program_with_reexported_proc_in_another_library() -> TestResult {
     "#;
 
     let mut context = TestContext::default();
+    let mut parser = Module::parser(ModuleKind::Library);
+    let source_manager = context.source_manager();
     // We reference code in this module
     let ref_ast =
-        Module::parse_str(REF_MODULE.parse().unwrap(), ModuleKind::Library, REF_MODULE_BODY)?;
+        parser.parse_str(REF_MODULE.parse().unwrap(), REF_MODULE_BODY, &source_manager)?;
     // But only exports from this module are exposed by the library
-    let ast = Module::parse_str(MODULE.parse().unwrap(), ModuleKind::Library, MODULE_BODY)?;
+    let ast = parser.parse_str(MODULE.parse().unwrap(), MODULE_BODY, &source_manager)?;
 
-    let dummy_library = Assembler::default().with_module(ref_ast)?.assemble_library([ast])?;
+    let dummy_library =
+        Assembler::new(source_manager).with_module(ref_ast)?.assemble_library([ast])?;
 
     // Now we want to use the the library we've compiled
     context.add_library(&dummy_library)?;
 
-    let source = source_file!(format!(
-        r#"
+    let source = source_file!(
+        &context,
+        format!(
+            r#"
         use.{MODULE}
         begin
             push.4 push.3
             exec.u256::checked_eqz
             exec.u256::notchecked_eqz
         end"#
-    ));
+        )
+    );
     let program = context.assemble(source)?;
 
     let expected = "\
@@ -1723,15 +1806,18 @@ end";
     let mut context = TestContext::default();
     context.add_library(dummy_library)?;
 
-    let source = source_file!(format!(
-        r#"
+    let source = source_file!(
+        &context,
+        format!(
+            r#"
         use.{REF_MODULE}
         begin
             push.4 push.3
             exec.u64::checked_eqz
             exec.u64::notchecked_eqz
         end"#
-    ));
+        )
+    );
     assert_assembler_diagnostic!(context, source, "undefined module 'dummy2::math::u64'");
     Ok(())
 }
@@ -1754,12 +1840,15 @@ fn module_alias() -> TestResult {
         end"#;
 
     let mut context = TestContext::default();
-    let ast = Module::parse_str(MODULE.parse().unwrap(), ModuleKind::Library, PROCEDURE).unwrap();
-    let library = Assembler::default().assemble_library([ast]).unwrap();
+    let source_manager = context.source_manager();
+    let mut parser = Module::parser(ModuleKind::Library);
+    let ast = parser.parse_str(MODULE.parse().unwrap(), PROCEDURE, &source_manager).unwrap();
+    let library = Assembler::new(source_manager).assemble_library([ast]).unwrap();
 
     context.add_library(&library)?;
 
     let source = source_file!(
+        &context,
         "
         use.dummy::math::u64->bigint
 
@@ -1782,6 +1871,7 @@ end";
 
     // --- invalid module alias -----------------------------------------------
     let source = source_file!(
+        &context,
         "
         use.dummy::math::u64->bigint->invalidname
 
@@ -1807,6 +1897,7 @@ end";
 
     // --- duplicate module import --------------------------------------------
     let source = source_file!(
+        &context,
         "
         use.dummy::math::u64
         use.dummy::math::u64->bigint
@@ -1840,6 +1931,7 @@ end";
     // fail for the time being
     /*
     let source = source_file!(
+    &context,
         "
         use.dummy::math::u64->bigint
         use.dummy::math::u64->bigint2
@@ -1857,9 +1949,10 @@ end";
 
 #[test]
 fn program_with_import_errors() {
-    let mut context = TestContext::default();
+    let context = TestContext::default();
     // --- non-existent import ------------------------------------------------
     let source = source_file!(
+        &context,
         "\
         use.std::math::u512
         begin \
@@ -1881,6 +1974,7 @@ fn program_with_import_errors() {
 
     // --- non-existent procedure in import -----------------------------------
     let source = source_file!(
+        &context,
         "\
         use.std::math::u256
         begin \
@@ -1906,8 +2000,8 @@ fn program_with_import_errors() {
 
 #[test]
 fn comment_simple() -> TestResult {
-    let mut context = TestContext::default();
-    let source = source_file!("begin # simple comment \n push.1 push.2 add end");
+    let context = TestContext::default();
+    let source = source_file!(&context, "begin # simple comment \n push.1 push.2 add end");
     let program = context.assemble(source)?;
     let expected = "\
 begin
@@ -1919,10 +2013,11 @@ end";
 
 #[test]
 fn comment_in_nested_control_blocks() -> TestResult {
-    let mut context = TestContext::default();
+    let context = TestContext::default();
 
     // if with else
     let source = source_file!(
+        &context,
         "begin \
         push.1 push.2 \
         if.true \
@@ -1974,8 +2069,8 @@ end";
 
 #[test]
 fn comment_before_program() -> TestResult {
-    let mut context = TestContext::default();
-    let source = source_file!(" # starting comment \n begin push.1 push.2 add end");
+    let context = TestContext::default();
+    let source = source_file!(&context, " # starting comment \n begin push.1 push.2 add end");
     let program = context.assemble(source)?;
     let expected = "\
 begin
@@ -1987,8 +2082,8 @@ end";
 
 #[test]
 fn comment_after_program() -> TestResult {
-    let mut context = TestContext::default();
-    let source = source_file!("begin push.1 push.2 add end # closing comment");
+    let context = TestContext::default();
+    let source = source_file!(&context, "begin push.1 push.2 add end # closing comment");
     let program = context.assemble(source)?;
     let expected = "\
 begin
@@ -2003,10 +2098,10 @@ end";
 
 #[test]
 fn invalid_empty_program() {
-    let mut context = TestContext::default();
+    let context = TestContext::default();
     assert_assembler_diagnostic!(
         context,
-        source_file!(""),
+        source_file!(&context, ""),
         "unexpected end of file",
         regex!(r#",-\[test[\d]+:1:1\]"#),
         "`----",
@@ -2015,7 +2110,7 @@ fn invalid_empty_program() {
 
     assert_assembler_diagnostic!(
         context,
-        source_file!(""),
+        source_file!(&context, ""),
         "unexpected end of file",
         regex!(r#",-\[test[\d]+:1:1\]"#),
         "  `----",
@@ -2025,10 +2120,10 @@ fn invalid_empty_program() {
 
 #[test]
 fn invalid_program_unrecognized_token() {
-    let mut context = TestContext::default();
+    let context = TestContext::default();
     assert_assembler_diagnostic!(
         context,
-        source_file!("none"),
+        source_file!(&context, "none"),
         "invalid syntax",
         regex!(r#",-\[test[\d]+:1:1\]"#),
         "1 | none",
@@ -2041,10 +2136,10 @@ fn invalid_program_unrecognized_token() {
 
 #[test]
 fn invalid_program_unmatched_begin() {
-    let mut context = TestContext::default();
+    let context = TestContext::default();
     assert_assembler_diagnostic!(
         context,
-        source_file!("begin add"),
+        source_file!(&context, "begin add"),
         "unexpected end of file",
         regex!(r#",-\[test[\d]+:1:10\]"#),
         "1 | begin add",
@@ -2055,10 +2150,10 @@ fn invalid_program_unmatched_begin() {
 
 #[test]
 fn invalid_program_invalid_top_level_token() {
-    let mut context = TestContext::default();
+    let context = TestContext::default();
     assert_assembler_diagnostic!(
         context,
-        source_file!("begin add end mul"),
+        source_file!(&context, "begin add end mul"),
         "invalid syntax",
         regex!(r#",-\[test[\d]+:1:15\]"#),
         "1 | begin add end mul",
@@ -2071,8 +2166,8 @@ fn invalid_program_invalid_top_level_token() {
 
 #[test]
 fn invalid_proc_missing_end_unexpected_begin() {
-    let mut context = TestContext::default();
-    let source = source_file!("proc.foo add mul begin push.1 end");
+    let context = TestContext::default();
+    let source = source_file!(&context, "proc.foo add mul begin push.1 end");
     assert_assembler_diagnostic!(
         context,
         source,
@@ -2088,8 +2183,8 @@ fn invalid_proc_missing_end_unexpected_begin() {
 
 #[test]
 fn invalid_proc_missing_end_unexpected_proc() {
-    let mut context = TestContext::default();
-    let source = source_file!("proc.foo add mul proc.bar push.3 end begin push.1 end");
+    let context = TestContext::default();
+    let source = source_file!(&context, "proc.foo add mul proc.bar push.3 end begin push.1 end");
     assert_assembler_diagnostic!(
         context,
         source,
@@ -2105,8 +2200,8 @@ fn invalid_proc_missing_end_unexpected_proc() {
 
 #[test]
 fn invalid_proc_undefined_local() {
-    let mut context = TestContext::default();
-    let source = source_file!("proc.foo add mul end begin push.1 exec.bar end");
+    let context = TestContext::default();
+    let source = source_file!(&context, "proc.foo add mul end begin push.1 exec.bar end");
     assert_assembler_diagnostic!(
         context,
         source,
@@ -2123,8 +2218,8 @@ fn invalid_proc_undefined_local() {
 
 #[test]
 fn invalid_proc_invalid_numeric_name() {
-    let mut context = TestContext::default();
-    let source = source_file!("proc.123 add mul end begin push.1 exec.123 end");
+    let context = TestContext::default();
+    let source = source_file!(&context, "proc.123 add mul end begin push.1 exec.123 end");
     assert_assembler_diagnostic!(
         context,
         source,
@@ -2141,8 +2236,9 @@ fn invalid_proc_invalid_numeric_name() {
 
 #[test]
 fn invalid_proc_duplicate_procedure_name() {
-    let mut context = TestContext::default();
-    let source = source_file!("proc.foo add mul end proc.foo push.3 end begin push.1 end");
+    let context = TestContext::default();
+    let source =
+        source_file!(&context, "proc.foo add mul end proc.foo push.3 end begin push.1 end");
     assert_assembler_diagnostic!(
         context,
         source,
@@ -2160,8 +2256,8 @@ fn invalid_proc_duplicate_procedure_name() {
 
 #[test]
 fn invalid_if_missing_end_no_else() {
-    let mut context = TestContext::default();
-    let source = source_file!("begin push.1 add if.true mul");
+    let context = TestContext::default();
+    let source = source_file!(&context, "begin push.1 add if.true mul");
     assert_assembler_diagnostic!(
         context,
         source,
@@ -2175,8 +2271,8 @@ fn invalid_if_missing_end_no_else() {
 
 #[test]
 fn invalid_else_with_no_if() {
-    let mut context = TestContext::default();
-    let source = source_file!("begin push.1 add else mul end");
+    let context = TestContext::default();
+    let source = source_file!(&context, "begin push.1 add else mul end");
     assert_assembler_diagnostic!(
         context,
         source,
@@ -2189,7 +2285,7 @@ fn invalid_else_with_no_if() {
         r#" help: expected primitive opcode (e.g. "add"), or "end", or control flow opcode (e.g. "if.true")"#
     );
 
-    let source = source_file!("begin push.1 while.true add else mul end end");
+    let source = source_file!(&context, "begin push.1 while.true add else mul end end");
     assert_assembler_diagnostic!(
         context,
         source,
@@ -2205,9 +2301,10 @@ fn invalid_else_with_no_if() {
 
 #[test]
 fn invalid_unmatched_else_within_if_else() {
-    let mut context = TestContext::default();
+    let context = TestContext::default();
 
-    let source = source_file!("begin push.1 if.true add else mul else push.1 end end end");
+    let source =
+        source_file!(&context, "begin push.1 if.true add else mul else push.1 end end end");
     assert_assembler_diagnostic!(
         context,
         source,
@@ -2223,9 +2320,9 @@ fn invalid_unmatched_else_within_if_else() {
 
 #[test]
 fn invalid_if_else_no_matching_end() {
-    let mut context = TestContext::default();
+    let context = TestContext::default();
 
-    let source = source_file!("begin push.1 add if.true mul else add");
+    let source = source_file!(&context, "begin push.1 add if.true mul else add");
     assert_assembler_diagnostic!(
         context,
         source,
@@ -2239,10 +2336,10 @@ fn invalid_if_else_no_matching_end() {
 
 #[test]
 fn invalid_repeat() -> TestResult {
-    let mut context = TestContext::default();
+    let context = TestContext::default();
 
     // unmatched repeat
-    let source = source_file!("begin push.1 add repeat.10 mul");
+    let source = source_file!(&context, "begin push.1 add repeat.10 mul");
     assert_assembler_diagnostic!(
         context,
         source,
@@ -2254,7 +2351,7 @@ fn invalid_repeat() -> TestResult {
     );
 
     // invalid iter count
-    let source = source_file!("begin push.1 add repeat.23x3 mul end end");
+    let source = source_file!(&context, "begin push.1 add repeat.23x3 mul end end");
     assert_assembler_diagnostic!(
         context,
         source,
@@ -2272,9 +2369,9 @@ fn invalid_repeat() -> TestResult {
 
 #[test]
 fn invalid_while() -> TestResult {
-    let mut context = TestContext::default();
+    let context = TestContext::default();
 
-    let source = source_file!("begin push.1 add while mul end end");
+    let source = source_file!(&context, "begin push.1 add while mul end end");
     assert_assembler_diagnostic!(
         context,
         source,
@@ -2287,7 +2384,7 @@ fn invalid_while() -> TestResult {
         r#" help: expected ".""#
     );
 
-    let source = source_file!("begin push.1 add while.abc mul end end");
+    let source = source_file!(&context, "begin push.1 add while.abc mul end end");
     assert_assembler_diagnostic!(
         context,
         source,
@@ -2300,7 +2397,7 @@ fn invalid_while() -> TestResult {
         r#" help: expected "true""#
     );
 
-    let source = source_file!("begin push.1 add while.true mul");
+    let source = source_file!(&context, "begin push.1 add while.true mul");
     assert_assembler_diagnostic!(
         context,
         source,
@@ -2317,9 +2414,11 @@ fn invalid_while() -> TestResult {
 // ================================================================================================
 #[test]
 fn test_compiled_library() {
+    let context = TestContext::new();
     let mut mod_parser = ModuleParser::new(ModuleKind::Library);
     let mod1 = {
         let source = source_file!(
+            &context,
             "
     proc.internal
         push.5
@@ -2339,6 +2438,7 @@ fn test_compiled_library() {
 
     let mod2 = {
         let source = source_file!(
+            &context,
             "
     export.foo
         push.7
@@ -2355,14 +2455,14 @@ fn test_compiled_library() {
     };
 
     let compiled_library = {
-        let assembler = Assembler::default();
+        let assembler = Assembler::new(context.source_manager());
         assembler.assemble_library([mod1, mod2]).unwrap()
     };
 
     assert_eq!(compiled_library.exports().count(), 4);
 
     // Compile program that uses compiled library
-    let mut assembler = Assembler::default();
+    let mut assembler = Assembler::new(context.source_manager());
 
     assembler.add_compiled_library(&compiled_library).unwrap();
 

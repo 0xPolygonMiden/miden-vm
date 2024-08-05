@@ -19,7 +19,7 @@ use crate::ast::InvokeKind;
 use crate::{
     ast::{Export, InvocationTarget, Module, ProcedureIndex, ProcedureName, ResolvedProcedure},
     library::{ModuleInfo, ProcedureInfo},
-    AssemblyError, LibraryNamespace, LibraryPath, RpoDigest, Spanned,
+    AssemblyError, LibraryNamespace, LibraryPath, RpoDigest, SourceManager, Spanned,
 };
 
 // WRAPPER STRUCTS
@@ -140,7 +140,7 @@ impl PendingWrappedModule {
 // MODULE GRAPH
 // ================================================================================================
 
-#[derive(Default, Clone)]
+#[derive(Clone)]
 pub struct ModuleGraph {
     modules: Vec<WrappedModule>,
     /// The set of modules pending additional processing before adding them to the graph.
@@ -160,11 +160,25 @@ pub struct ModuleGraph {
     roots: BTreeMap<RpoDigest, SmallVec<[GlobalProcedureIndex; 1]>>,
     kernel_index: Option<ModuleIndex>,
     kernel: Kernel,
+    source_manager: Arc<dyn SourceManager>,
 }
 
 // ------------------------------------------------------------------------------------------------
 /// Constructors
 impl ModuleGraph {
+    /// Instantiate a new [ModuleGraph], using the provided [SourceManager] to resolve source info.
+    pub fn new(source_manager: Arc<dyn SourceManager>) -> Self {
+        Self {
+            modules: Default::default(),
+            pending: Default::default(),
+            callgraph: Default::default(),
+            roots: Default::default(),
+            kernel_index: None,
+            kernel: Default::default(),
+            source_manager,
+        }
+    }
+
     /// Adds all module infos to the graph.
     pub fn add_compiled_modules(
         &mut self,
@@ -245,13 +259,17 @@ impl ModuleGraph {
     /// Note: it is assumed that kernel and kernel_module are consistent, but this is not checked.
     ///
     /// TODO: consider passing `KerneLibrary` into this constructor as a parameter instead.
-    pub(super) fn with_kernel(kernel: Kernel, kernel_module: ModuleInfo) -> Self {
+    pub(super) fn with_kernel(
+        source_manager: Arc<dyn SourceManager>,
+        kernel: Kernel,
+        kernel_module: ModuleInfo,
+    ) -> Self {
         assert!(!kernel.is_empty());
         assert_eq!(kernel_module.path(), &LibraryPath::from(LibraryNamespace::Kernel));
 
         // add kernel module to the graph
         // TODO: simplify this to avoid using Self::add_compiled_modules()
-        let mut graph = Self::default();
+        let mut graph = Self::new(source_manager);
         let module_indexes = graph
             .add_compiled_modules([kernel_module])
             .expect("failed to add kernel module to the module graph");
@@ -392,7 +410,6 @@ impl ModuleGraph {
                         if let Export::Alias(ref alias) = procedure {
                             let caller = CallerInfo {
                                 span: alias.span(),
-                                source_file: ast_module.source_file(),
                                 module: module_id,
                                 kind: InvokeKind::ProcRef,
                             };
@@ -408,7 +425,6 @@ impl ModuleGraph {
                         for invoke in procedure.invoked() {
                             let caller = CallerInfo {
                                 span: invoke.span(),
-                                source_file: ast_module.source_file(),
                                 module: module_id,
                                 kind: invoke.kind,
                             };

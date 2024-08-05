@@ -17,6 +17,7 @@ use std::{
     fs,
     io::Write,
     path::{Path, PathBuf},
+    sync::Arc,
 };
 use stdlib::StdLibrary;
 pub use tracing::{event, instrument, Level};
@@ -386,20 +387,35 @@ impl OutputFile {
 pub struct ProgramFile {
     ast: Box<Module>,
     path: PathBuf,
+    source_manager: Arc<dyn assembly::SourceManager>,
 }
 
 /// Helper methods to interact with masm program file.
 impl ProgramFile {
     /// Reads the masm file at the specified path and parses it into a [ProgramFile].
-    #[instrument(name = "read_program_file", fields(path = %path.display()))]
-    pub fn read(path: &PathBuf) -> Result<Self, Report> {
+    pub fn read(path: impl AsRef<Path>) -> Result<Self, Report> {
+        let source_manager = Arc::new(assembly::DefaultSourceManager::default());
+        Self::read_with(path, source_manager)
+    }
+
+    /// Reads the masm file at the specified path and parses it into a [ProgramFile], using the
+    /// provided [assembly::SourceManager] implementation.
+    #[instrument(name = "read_program_file", skip(source_manager), fields(path = %path.as_ref().display()))]
+    pub fn read_with(
+        path: impl AsRef<Path>,
+        source_manager: Arc<dyn assembly::SourceManager>,
+    ) -> Result<Self, Report> {
         // parse the program into an AST
-        let ast = Module::parse_file(LibraryNamespace::Exec.into(), ModuleKind::Executable, path)
+        let path = path.as_ref();
+        let mut parser = Module::parser(ModuleKind::Executable);
+        let ast = parser
+            .parse_file(LibraryNamespace::Exec.into(), path, &source_manager)
             .wrap_err_with(|| format!("Failed to parse program file `{}`", path.display()))?;
 
         Ok(Self {
             ast,
-            path: path.clone(),
+            path: path.to_path_buf(),
+            source_manager,
         })
     }
 
@@ -410,7 +426,8 @@ impl ProgramFile {
         I: IntoIterator<Item = &'a CompiledLibrary>,
     {
         // compile program
-        let mut assembler = Assembler::default().with_debug_mode(debug.is_on());
+        let mut assembler =
+            Assembler::new(self.source_manager.clone()).with_debug_mode(debug.is_on());
         assembler
             .add_compiled_library(StdLibrary::default())
             .wrap_err("Failed to load stdlib")?;

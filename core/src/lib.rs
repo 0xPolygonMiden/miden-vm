@@ -50,6 +50,7 @@ assertion failed: `(left matches right)`
 }
 
 pub mod chiplets;
+pub mod debuginfo;
 pub mod errors;
 
 mod program;

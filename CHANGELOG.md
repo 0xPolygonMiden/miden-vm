@@ -27,11 +27,19 @@
 - Added `Assembler::assemble_library()` (#1413).
 - Added `Assembler::assemble_kernel()` (#1418).
 - Added `miden_core::prettier::pretty_print_csv` helper, for formatting of iterators over `PrettyPrint` values as comma-separated items
+- Added source location tracking to assembled MAST (#1419)
+- Added source code management primitives in `miden-core` (#1419)
+- Added `make test-fast` and `make test-skip-proptests` Makefile targets for faster testing during local development
+- Added `ProgramFile::read_with` constructor that takes a `SourceManager` impl to use for source management
 
 #### Changed
 
 - When using `if.(true|false) .. end`, the parser used to emit an empty block for the branch that was elided. The parser now emits a block containing a single `nop` instruction instead, which is equivalent to the code emitted by the assembler when lowering to MAST.
 - `internals` configuration feature was renamed to `testing` (#1399).
+- The `AssemblyOp` decorator now contains an optional `Location` (#1419)
+- The `Assembler` now requires passing in a `Arc<dyn SourceManager>`, for use in rendering diagnostics
+- The `Module::parse_file` and `Module::parse_str` functions have been removed in favor of calling `Module::parser` and then using the `ModuleParser` methods
+- The `Compile` trait now requires passing a `SourceManager` reference along with the item to be compiled
 
 ## 0.9.2 (2024-05-22) - `stdlib` crate only
 

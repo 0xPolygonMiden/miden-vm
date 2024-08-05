@@ -3,19 +3,38 @@ use crate::{
 };
 
 use super::{decorator::EncodedDecoratorVariant, DataOffset, StringIndex};
-use alloc::{string::String, vec::Vec};
+use alloc::{string::String, sync::Arc, vec::Vec};
+use core::cell::RefCell;
 use miden_crypto::Felt;
 use winter_utils::{ByteReader, Deserializable, DeserializationError, SliceReader};
 
 pub struct BasicBlockDataDecoder<'a> {
     data: &'a [u8],
     strings: &'a [DataOffset],
+    /// This field is used to allocate an `Arc` for any string in `strings` where the decoder
+    /// requests a reference-counted string rather than a fresh allocation as a `String`.
+    ///
+    /// Currently, this is only used for debug information (source file names), but most cases
+    /// where strings are stored in MAST are stored as `Arc` in practice, we just haven't yet
+    /// updated all of the decoders.
+    ///
+    /// We lazily allocate an `Arc` when strings are decoded as an `Arc`, but the underlying
+    /// string data corresponds to the same index in `strings`. All future requests for a
+    /// ref-counted string we've allocated an `Arc` for, will clone the `Arc` rather than
+    /// allocate a fresh string.
+    refc_strings: Vec<RefCell<Option<Arc<str>>>>,
 }
 
 /// Constructors
 impl<'a> BasicBlockDataDecoder<'a> {
     pub fn new(data: &'a [u8], strings: &'a [DataOffset]) -> Self {
-        Self { data, strings }
+        let mut refc_strings = Vec::with_capacity(strings.len());
+        refc_strings.resize(strings.len(), RefCell::new(None));
+        Self {
+            data,
+            strings,
+            refc_strings,
+        }
     }
 }
 
@@ -139,6 +158,21 @@ impl<'a> BasicBlockDataDecoder<'a> {
                 let num_cycles = data_reader.read_u8()?;
                 let should_break = data_reader.read_bool()?;
 
+                // source location
+                let location = if data_reader.read_bool()? {
+                    let str_index_in_table = data_reader.read_usize()?;
+                    let path = self.read_arc_str(str_index_in_table)?;
+                    let start = data_reader.read_u32()?;
+                    let end = data_reader.read_u32()?;
+                    Some(crate::debuginfo::Location {
+                        path,
+                        start: start.into(),
+                        end: end.into(),
+                    })
+                } else {
+                    None
+                };
+
                 let context_name = {
                     let str_index_in_table = data_reader.read_usize()?;
                     self.read_string(str_index_in_table)?
@@ -149,7 +183,13 @@ impl<'a> BasicBlockDataDecoder<'a> {
                     self.read_string(str_index_in_table)?
                 };
 
-                Ok(Decorator::AsmOp(AssemblyOp::new(context_name, num_cycles, op, should_break)))
+                Ok(Decorator::AsmOp(AssemblyOp::new(
+                    location,
+                    context_name,
+                    num_cycles,
+                    op,
+                    should_break,
+                )))
             }
             EncodedDecoratorVariant::DebugOptionsStackAll => {
                 Ok(Decorator::Debug(DebugOptions::StackAll))
@@ -186,6 +226,17 @@ impl<'a> BasicBlockDataDecoder<'a> {
                 Ok(Decorator::Trace(value))
             }
         }
+    }
+
+    fn read_arc_str(&self, str_idx: StringIndex) -> Result<Arc<str>, DeserializationError> {
+        if let Some(cached) = self.refc_strings.get(str_idx).and_then(|cell| cell.borrow().clone())
+        {
+            return Ok(cached);
+        }
+
+        let string = Arc::from(self.read_string(str_idx)?.into_boxed_str());
+        *self.refc_strings[str_idx].borrow_mut() = Some(Arc::clone(&string));
+        Ok(string)
     }
 
     fn read_string(&self, str_idx: StringIndex) -> Result<String, DeserializationError> {

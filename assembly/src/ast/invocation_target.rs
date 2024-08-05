@@ -122,7 +122,7 @@ impl InvocationTarget {
     pub fn write_into_with_options<W: ByteWriter>(&self, target: &mut W, options: AstSerdeOptions) {
         target.write_u8(self.tag());
         match self {
-            Self::MastRoot(spanned) => spanned.write_into(target, options),
+            Self::MastRoot(spanned) => spanned.write_into_with_options(target, options.debug_info),
             Self::ProcedureName(name) => name.write_into_with_options(target, options),
             Self::ProcedurePath { name, module } => {
                 name.write_into_with_options(target, options);
@@ -142,7 +142,7 @@ impl InvocationTarget {
     ) -> Result<Self, DeserializationError> {
         match source.read_u8()? {
             0 => {
-                let root = Span::<RpoDigest>::read_from(source, options)?;
+                let root = Span::<RpoDigest>::read_from_with_options(source, options.debug_info)?;
                 Ok(Self::MastRoot(root))
             }
             1 => {

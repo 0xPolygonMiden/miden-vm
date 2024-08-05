@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use super::DebugCommand;
 use miden_vm::{
     math::Felt, DefaultHost, MemAdviceProvider, Program, StackInputs, VmState, VmStateIterator,
@@ -7,6 +9,9 @@ use miden_vm::{
 pub struct DebugExecutor {
     vm_state_iter: VmStateIterator,
     vm_state: VmState,
+    // TODO(pauls): Use this to render source-level diagnostics when program errors are encountered
+    #[allow(unused)]
+    source_manager: Arc<dyn assembly::SourceManager>,
 }
 
 impl DebugExecutor {
@@ -20,6 +25,7 @@ impl DebugExecutor {
         program: Program,
         stack_inputs: StackInputs,
         advice_provider: MemAdviceProvider,
+        source_manager: Arc<dyn assembly::SourceManager>,
     ) -> Result<Self, String> {
         let mut vm_state_iter =
             processor::execute_iter(&program, stack_inputs, DefaultHost::new(advice_provider));
@@ -34,6 +40,7 @@ impl DebugExecutor {
         Ok(Self {
             vm_state_iter,
             vm_state,
+            source_manager,
         })
     }
 

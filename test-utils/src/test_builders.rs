@@ -82,16 +82,18 @@ macro_rules! build_test_by_mode {
         $crate::Test::new(&name, $source, $in_debug_mode)
     }};
     ($in_debug_mode:expr, $source:expr, $stack_inputs:expr) => {{
+        use ::assembly::SourceManager;
+
         let stack_inputs: Vec<u64> = $stack_inputs.to_vec();
         let stack_inputs = $crate::StackInputs::try_from_ints(stack_inputs).unwrap();
         let advice_inputs = $crate::AdviceInputs::default();
         let name = format!("test{}", line!());
+        let source_manager = ::alloc::sync::Arc::new(::assembly::DefaultSourceManager::default());
+        let source = source_manager.load(&name, ::alloc::string::String::from($source));
 
         $crate::Test {
-            source: ::alloc::sync::Arc::new(::assembly::diagnostics::SourceFile::new(
-                name,
-                ::alloc::string::String::from($source),
-            )),
+            source_manager,
+            source,
             kernel_source: None,
             stack_inputs,
             advice_inputs,
@@ -103,6 +105,8 @@ macro_rules! build_test_by_mode {
     (
         $in_debug_mode:expr, $source:expr, $stack_inputs:expr, $advice_stack:expr
     ) => {{
+        use ::assembly::SourceManager;
+
         let stack_inputs: Vec<u64> = $stack_inputs.to_vec();
         let stack_inputs = $crate::StackInputs::try_from_ints(stack_inputs).unwrap();
         let stack_values: Vec<u64> = $advice_stack.to_vec();
@@ -112,12 +116,12 @@ macro_rules! build_test_by_mode {
             .unwrap()
             .with_merkle_store(store);
         let name = format!("test{}", line!());
+        let source_manager = ::alloc::sync::Arc::new(::assembly::DefaultSourceManager::default());
+        let source = source_manager.load(&name, ::alloc::string::String::from($source));
 
         $crate::Test {
-            source: ::alloc::sync::Arc::new(::assembly::diagnostics::SourceFile::new(
-                name,
-                ::alloc::string::String::from($source),
-            )),
+            source_manager,
+            source,
             kernel_source: None,
             stack_inputs,
             advice_inputs,
@@ -129,6 +133,8 @@ macro_rules! build_test_by_mode {
     (
         $in_debug_mode:expr, $source:expr, $stack_inputs:expr, $advice_stack:expr, $advice_merkle_store:expr
     ) => {{
+        use ::assembly::SourceManager;
+
         let stack_inputs: Vec<u64> = $stack_inputs.to_vec();
         let stack_inputs = $crate::StackInputs::try_from_ints(stack_inputs).unwrap();
         let stack_values: Vec<u64> = $advice_stack.to_vec();
@@ -137,12 +143,12 @@ macro_rules! build_test_by_mode {
             .unwrap()
             .with_merkle_store($advice_merkle_store);
         let name = format!("test{}", line!());
+        let source_manager = ::alloc::sync::Arc::new(::assembly::DefaultSourceManager::default());
+        let source = source_manager.load(&name, ::alloc::string::String::from($source));
 
         $crate::Test {
-            source: ::alloc::sync::Arc::new(::assembly::diagnostics::SourceFile::new(
-                name,
-                String::from($source),
-            )),
+            source_manager,
+            source,
             kernel_source: None,
             stack_inputs,
             advice_inputs,
@@ -152,6 +158,8 @@ macro_rules! build_test_by_mode {
         }
     }};
     ($in_debug_mode:expr, $source:expr, $stack_inputs:expr, $advice_stack:expr, $advice_merkle_store:expr, $advice_map:expr) => {{
+        use ::assembly::SourceManager;
+
         let stack_inputs: Vec<u64> = $stack_inputs.to_vec();
         let stack_inputs = $crate::StackInputs::try_from_ints(stack_inputs).unwrap();
         let stack_values: Vec<u64> = $advice_stack.to_vec();
@@ -161,12 +169,12 @@ macro_rules! build_test_by_mode {
             .with_merkle_store($advice_merkle_store)
             .with_map($advice_map);
         let name = format!("test{}", line!());
+        let source_manager = ::alloc::sync::Arc::new(::assembly::DefaultSourceManager::default());
+        let source = source_manager.load(&name, ::alloc::string::String::from($source));
 
         $crate::Test {
-            source: ::alloc::sync::Arc::new(::assembly::diagnostics::SourceFile::new(
-                name,
-                ::alloc::string::String::from($source),
-            )),
+            source_manager,
+            source,
             kernel_source: None,
             stack_inputs,
             advice_inputs,
