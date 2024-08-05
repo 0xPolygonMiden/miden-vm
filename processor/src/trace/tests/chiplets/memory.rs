@@ -1,7 +1,3 @@
-use super::{
-    build_trace_from_ops, rand_array, ExecutionTrace, Felt, FieldElement, Operation, Trace, Word,
-    AUX_TRACE_RAND_ELEMENTS, CHIPLETS_AUX_TRACE_OFFSET, NUM_RAND_ROWS, ONE, ZERO,
-};
 use miden_air::{
     trace::chiplets::{
         memory::{MEMORY_READ_LABEL, MEMORY_WRITE, MEMORY_WRITE_LABEL, NUM_ELEMENTS},
@@ -9,6 +5,11 @@ use miden_air::{
         MEMORY_V_COL_RANGE,
     },
     RowIndex,
+};
+
+use super::{
+    build_trace_from_ops, rand_array, ExecutionTrace, Felt, FieldElement, Operation, Trace, Word,
+    AUX_TRACE_RAND_ELEMENTS, CHIPLETS_AUX_TRACE_OFFSET, NUM_RAND_ROWS, ONE, ZERO,
 };
 
 /// Tests the generation of the `b_chip` bus column when only memory lookups are included. It

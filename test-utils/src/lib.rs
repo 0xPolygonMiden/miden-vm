@@ -8,34 +8,30 @@ extern crate std;
 // IMPORTS
 // ================================================================================================
 
-use assembly::library::CompiledLibrary;
-use processor::{MastForest, Program};
-
-#[cfg(not(target_family = "wasm"))]
-use proptest::prelude::{Arbitrary, Strategy};
-
 #[cfg(not(target_family = "wasm"))]
 use alloc::format;
-
 use alloc::{
     string::{String, ToString},
     sync::Arc,
     vec::Vec,
 };
-use vm_core::{chiplets::hasher::apply_permutation, ProgramInfo};
 
+use assembly::library::CompiledLibrary;
 // EXPORTS
 // ================================================================================================
-
 pub use assembly::{diagnostics::Report, LibraryPath, SourceFile, SourceManager};
 pub use pretty_assertions::{assert_eq, assert_ne, assert_str_eq};
 pub use processor::{
     AdviceInputs, AdviceProvider, ContextId, DefaultHost, ExecutionError, ExecutionOptions,
     ExecutionTrace, Process, ProcessState, StackInputs, VmStateIterator,
 };
+use processor::{MastForest, Program};
+#[cfg(not(target_family = "wasm"))]
+use proptest::prelude::{Arbitrary, Strategy};
 pub use prover::{prove, MemAdviceProvider, ProvingOptions};
 pub use test_case::test_case;
 pub use verifier::{verify, AcceptableOptions, VerifierError};
+use vm_core::{chiplets::hasher::apply_permutation, ProgramInfo};
 pub use vm_core::{
     chiplets::hasher::{hash_elements, STATE_WIDTH},
     stack::STACK_TOP_SIZE,

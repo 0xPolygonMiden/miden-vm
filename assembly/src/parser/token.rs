@@ -828,7 +828,7 @@ impl<'input> Token<'input> {
                     "quoted identifier" => Ok(Token::QuotedIdent("")),
                     _ => Err(()),
                 }
-            }
+            },
             // We matched a keyword
             token => Ok(token),
         }

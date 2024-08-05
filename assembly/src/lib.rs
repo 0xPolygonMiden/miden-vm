@@ -9,13 +9,13 @@ extern crate std;
 
 use vm_core::{
     crypto::hash::RpoDigest,
+    prettier,
     utils::{
-        ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable, SliceReader,
+        ByteReader, ByteWriter, Deserializable, DeserializationError, DisplayHex, Serializable,
+        SliceReader,
     },
     Felt, Word, ONE, ZERO,
 };
-
-use vm_core::{prettier, utils::DisplayHex};
 
 mod assembler;
 pub mod ast;
@@ -30,17 +30,20 @@ pub mod testing;
 #[cfg(test)]
 mod tests;
 
-pub use self::assembler::Assembler;
-pub use self::compile::{Compile, Options as CompileOptions};
-pub use self::diagnostics::{
-    DefaultSourceManager, Report, SourceFile, SourceId, SourceManager, SourceSpan, Span, Spanned,
-};
-pub use self::errors::{AssemblyError, CompiledLibraryError};
-pub use self::library::{LibraryError, LibraryNamespace, LibraryPath, PathError, Version};
-pub use self::parser::ModuleParser;
-
 /// Re-exported for downstream crates
 pub use vm_core::utils;
+
+pub use self::{
+    assembler::Assembler,
+    compile::{Compile, Options as CompileOptions},
+    diagnostics::{
+        DefaultSourceManager, Report, SourceFile, SourceId, SourceManager, SourceSpan, Span,
+        Spanned,
+    },
+    errors::{AssemblyError, CompiledLibraryError},
+    library::{LibraryError, LibraryNamespace, LibraryPath, PathError, Version},
+    parser::ModuleParser,
+};
 
 // CONSTANTS
 // ================================================================================================

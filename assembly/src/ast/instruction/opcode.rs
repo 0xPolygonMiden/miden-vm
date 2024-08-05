@@ -1,5 +1,6 @@
-use crate::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable};
 use alloc::string::ToString;
+
+use crate::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable};
 
 /// NOTE: If the number or order of variants in this enumeration changes, then the version number
 /// of the serialized format must be incremented, and explicit handling must be present to

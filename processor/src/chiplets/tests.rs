@@ -1,7 +1,5 @@
-use crate::{
-    DefaultHost, ExecutionOptions, ExecutionTrace, Kernel, Operation, Process, StackInputs,
-};
 use alloc::vec::Vec;
+
 use miden_air::trace::{
     chiplets::{
         bitwise::{BITWISE_XOR, OP_CYCLE_LEN, TRACE_WIDTH as BITWISE_TRACE_WIDTH},
@@ -13,6 +11,10 @@ use miden_air::trace::{
     CHIPLETS_RANGE, CHIPLETS_WIDTH,
 };
 use vm_core::{mast::MastForest, Felt, Program, ONE, ZERO};
+
+use crate::{
+    DefaultHost, ExecutionOptions, ExecutionTrace, Kernel, Operation, Process, StackInputs,
+};
 
 type ChipletsTrace = [Vec<Felt>; CHIPLETS_WIDTH];
 
@@ -122,7 +124,7 @@ fn build_trace(
     };
     process.execute(&program).unwrap();
 
-    let (trace, _, _) = ExecutionTrace::test_finalize_trace(process);
+    let (trace, ..) = ExecutionTrace::test_finalize_trace(process);
     let trace_len = trace.num_rows() - ExecutionTrace::NUM_RAND_ROWS;
 
     (
@@ -148,18 +150,18 @@ fn validate_hasher_trace(trace: &ChipletsTrace, start: usize, end: usize) {
                 // in the first row, the expected start of the trace should hold the initial
                 // selectors
                 assert_eq!(LINEAR_HASH, [trace[1][row], trace[2][row], trace[3][row]]);
-            }
+            },
             7 => {
                 // in the last row, the expected start of the trace should hold the final selectors
                 assert_eq!(RETURN_STATE, [trace[1][row], trace[2][row], trace[3][row]]);
-            }
+            },
             _ => {
                 // in the other rows, the expected start of the trace should hold the mid selectors
                 assert_eq!(
                     [ZERO, LINEAR_HASH[1], LINEAR_HASH[2]],
                     [trace[1][row], trace[2][row], trace[3][row]]
                 );
-            }
+            },
         }
     }
 }

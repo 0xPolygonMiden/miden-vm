@@ -1,4 +1,5 @@
 use alloc::vec::Vec;
+
 use miden_air::{
     trace::{
         chiplets::{
@@ -207,7 +208,7 @@ impl<E: FieldElement<BaseField = Felt>> AuxColumnBuilder<E> for BusColumnBuilder
         match op_code {
             OPCODE_JOIN | OPCODE_SPLIT | OPCODE_LOOP | OPCODE_DYN | OPCODE_CALL => {
                 build_control_block_request(main_trace, op_code_felt, alphas, row)
-            }
+            },
             OPCODE_SYSCALL => build_syscall_block_request(main_trace, op_code_felt, alphas, row),
             OPCODE_SPAN => build_span_block_request(main_trace, alphas, row),
             OPCODE_RESPAN => build_respan_block_request(main_trace, alphas, row),

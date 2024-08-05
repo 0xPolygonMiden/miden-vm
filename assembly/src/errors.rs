@@ -1,4 +1,5 @@
 use alloc::{string::String, sync::Arc, vec::Vec};
+
 use vm_core::mast::MastForestError;
 
 use crate::{
@@ -87,8 +88,5 @@ impl From<Report> for AssemblyError {
 pub enum CompiledLibraryError {
     #[error("Invalid exports: MAST forest has {roots_len} procedure roots, but exports have {exports_len}")]
     #[diagnostic()]
-    InvalidExports {
-        exports_len: usize,
-        roots_len: usize,
-    },
+    InvalidExports { exports_len: usize, roots_len: usize },
 }

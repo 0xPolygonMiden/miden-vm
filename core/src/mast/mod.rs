@@ -1,6 +1,6 @@
+use alloc::vec::Vec;
 use core::{fmt, ops::Index};
 
-use alloc::vec::Vec;
 use miden_crypto::hash::rpo::RpoDigest;
 
 mod node;
@@ -71,7 +71,7 @@ impl MastForest {
         match decorators {
             Some(decorators) => {
                 self.add_node(MastNode::new_basic_block_with_decorators(operations, decorators))
-            }
+            },
             None => self.add_node(MastNode::new_basic_block(operations)),
         }
     }

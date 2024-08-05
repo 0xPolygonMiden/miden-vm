@@ -1,11 +1,13 @@
-use super::cli::InputFile;
+use core::fmt;
+use std::{fs, path::PathBuf};
+
 use assembly::diagnostics::{IntoDiagnostic, Report, WrapErr};
 use clap::Parser;
-use core::fmt;
 use miden_vm::{Assembler, DefaultHost, Host, Operation, StackInputs};
 use processor::{AsmOpInfo, TraceLenSummary};
-use std::{fs, path::PathBuf};
 use stdlib::StdLibrary;
+
+use super::cli::InputFile;
 
 // CLI
 // ================================================================================================
@@ -119,7 +121,7 @@ impl ExecutionDetails {
                     self.asm_op_stats[*pos].incr_frequency();
                     self.asm_op_stats[*pos].add_vm_cycles(asmop_info.num_cycles());
                 }
-            }
+            },
             Err(pos) => {
                 self.asm_op_stats.insert(
                     *pos,
@@ -129,7 +131,7 @@ impl ExecutionDetails {
                         asmop_info.num_cycles() as usize,
                     ),
                 );
-            }
+            },
         }
     }
 
@@ -250,11 +252,7 @@ impl AsmOpStats {
     /// number of cycles it takes to execute the assembly instruction and the number of times
     /// the assembly instruction is executed.
     pub fn new(op: String, frequency: usize, total_vm_cycles: usize) -> Self {
-        Self {
-            op,
-            frequency,
-            total_vm_cycles,
-        }
+        Self { op, frequency, total_vm_cycles }
     }
 
     /// Returns the assembly instruction corresponding to this decorator.
@@ -291,8 +289,9 @@ impl AsmOpStats {
 
 #[cfg(test)]
 mod tests {
-    use super::{AsmOpStats, ExecutionDetails, StackInputs};
     use processor::{ChipletsLengths, DefaultHost, TraceLenSummary};
+
+    use super::{AsmOpStats, ExecutionDetails, StackInputs};
 
     #[test]
     fn analyze_test() {

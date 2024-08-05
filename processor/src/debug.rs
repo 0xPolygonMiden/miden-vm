@@ -3,8 +3,8 @@ use alloc::{
     vec::Vec,
 };
 use core::fmt;
-use miden_air::RowIndex;
 
+use miden_air::RowIndex;
 use vm_core::{AssemblyOp, Operation, StackOutputs, Word};
 
 use crate::{
@@ -209,7 +209,7 @@ impl Iterator for VmStateIterator {
                 Some(_) => {
                     let error = core::mem::take(&mut self.error);
                     return Some(Err(error.unwrap()));
-                }
+                },
                 None => return None,
             }
         }

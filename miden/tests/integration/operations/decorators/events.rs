@@ -1,6 +1,7 @@
-use super::TestHost;
 use assembly::Assembler;
 use processor::{ExecutionOptions, Program};
+
+use super::TestHost;
 
 #[test]
 fn test_event_handling() {

@@ -1,5 +1,6 @@
-use super::{ExecutionError, Felt, FieldElement, Host, Operation, Process};
 use vm_core::stack::STACK_TOP_SIZE;
+
+use super::{ExecutionError, Felt, FieldElement, Host, Operation, Process};
 
 mod comb_ops;
 mod crypto_ops;
@@ -174,10 +175,10 @@ where
 
 #[cfg(test)]
 pub mod testing {
-    use super::*;
     use miden_air::ExecutionOptions;
     use vm_core::StackInputs;
 
+    use super::*;
     use crate::{AdviceInputs, DefaultHost, MemAdviceProvider};
 
     impl Process<DefaultHost<MemAdviceProvider>> {

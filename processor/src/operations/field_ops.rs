@@ -1,5 +1,6 @@
-use super::{utils::assert_binary, ExecutionError, Felt, FieldElement, Host, Process};
 use vm_core::{Operation, ONE, ZERO};
+
+use super::{utils::assert_binary, ExecutionError, Felt, FieldElement, Host, Process};
 
 // FIELD OPERATIONS
 // ================================================================================================
@@ -222,13 +223,14 @@ where
 
 #[cfg(test)]
 mod tests {
+    use test_utils::rand::rand_value;
+    use vm_core::{ONE, ZERO};
+
     use super::{
         super::{Felt, FieldElement, Operation, STACK_TOP_SIZE},
         Process,
     };
     use crate::{AdviceInputs, StackInputs};
-    use test_utils::rand::rand_value;
-    use vm_core::{ONE, ZERO};
 
     // ARITHMETIC OPERATIONS
     // --------------------------------------------------------------------------------------------

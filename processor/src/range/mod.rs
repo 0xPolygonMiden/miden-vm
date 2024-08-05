@@ -1,4 +1,5 @@
 use alloc::{collections::BTreeMap, vec::Vec};
+
 use miden_air::RowIndex;
 
 use super::{trace::NUM_RAND_ROWS, Felt, FieldElement, RangeCheckTrace, ZERO};
@@ -57,10 +58,7 @@ impl RangeChecker {
         // range checker table are initialized. this simplifies trace table building later on.
         lookups.insert(0, 0);
         lookups.insert(u16::MAX, 0);
-        Self {
-            lookups,
-            cycle_lookups: BTreeMap::new(),
-        }
+        Self { lookups, cycle_lookups: BTreeMap::new() }
     }
 
     // TRACE MUTATORS

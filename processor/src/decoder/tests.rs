@@ -1,11 +1,5 @@
-use super::{
-    super::{
-        ExecutionOptions, ExecutionTrace, Felt, Kernel, Operation, Process, StackInputs, Word,
-    },
-    build_op_group,
-};
-use crate::DefaultHost;
 use alloc::vec::Vec;
+
 use miden_air::trace::{
     decoder::{
         ADDR_COL_IDX, GROUP_COUNT_COL_IDX, HASHER_STATE_RANGE, IN_SPAN_COL_IDX, NUM_HASHER_COLUMNS,
@@ -21,6 +15,14 @@ use vm_core::{
     mast::{BasicBlockNode, MastForest, MastNode, OP_BATCH_SIZE},
     Program, EMPTY_WORD, ONE, ZERO,
 };
+
+use super::{
+    super::{
+        ExecutionOptions, ExecutionTrace, Felt, Kernel, Operation, Process, StackInputs, Word,
+    },
+    build_op_group,
+};
+use crate::DefaultHost;
 
 // CONSTANTS
 // ================================================================================================
@@ -1336,7 +1338,7 @@ fn build_trace(stack_inputs: &[u64], program: &Program) -> (DecoderTrace, usize)
         Process::new(Kernel::default(), stack_inputs, host, ExecutionOptions::default());
     process.execute(program).unwrap();
 
-    let (trace, _, _) = ExecutionTrace::test_finalize_trace(process);
+    let (trace, ..) = ExecutionTrace::test_finalize_trace(process);
     let trace_len = trace.num_rows() - ExecutionTrace::NUM_RAND_ROWS;
 
     (
@@ -1356,7 +1358,7 @@ fn build_dyn_trace(stack_inputs: &[u64], program: &Program) -> (DecoderTrace, us
 
     process.execute(program).unwrap();
 
-    let (trace, _, _) = ExecutionTrace::test_finalize_trace(process);
+    let (trace, ..) = ExecutionTrace::test_finalize_trace(process);
     let trace_len = trace.num_rows() - ExecutionTrace::NUM_RAND_ROWS;
 
     (
@@ -1375,7 +1377,7 @@ fn build_call_trace(program: &Program, kernel: Kernel) -> (SystemTrace, DecoderT
 
     process.execute(program).unwrap();
 
-    let (trace, _, _) = ExecutionTrace::test_finalize_trace(process);
+    let (trace, ..) = ExecutionTrace::test_finalize_trace(process);
     let trace_len = trace.num_rows() - ExecutionTrace::NUM_RAND_ROWS;
 
     let sys_trace = trace

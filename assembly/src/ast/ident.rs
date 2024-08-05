@@ -183,10 +183,7 @@ impl FromStr for Ident {
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         Self::validate(s)?;
         let name = Arc::from(s.to_string().into_boxed_str());
-        Ok(Self {
-            span: SourceSpan::default(),
-            name,
-        })
+        Ok(Self { span: SourceSpan::default(), name })
     }
 }
 

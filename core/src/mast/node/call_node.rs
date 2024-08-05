@@ -48,11 +48,7 @@ impl CallNode {
             hasher::merge_in_domain(&[callee_digest, RpoDigest::default()], Self::CALL_DOMAIN)
         };
 
-        Ok(Self {
-            callee,
-            is_syscall: false,
-            digest,
-        })
+        Ok(Self { callee, is_syscall: false, digest })
     }
 
     /// Returns a new [`CallNode`] instantiated with the specified callee and marked as a kernel
@@ -70,11 +66,7 @@ impl CallNode {
             hasher::merge_in_domain(&[callee_digest, RpoDigest::default()], Self::SYSCALL_DOMAIN)
         };
 
-        Ok(Self {
-            callee,
-            is_syscall: true,
-            digest,
-        })
+        Ok(Self { callee, is_syscall: true, digest })
     }
 }
 
@@ -131,17 +123,11 @@ impl CallNode {
         &'a self,
         mast_forest: &'a MastForest,
     ) -> impl PrettyPrint + 'a {
-        CallNodePrettyPrint {
-            call_node: self,
-            mast_forest,
-        }
+        CallNodePrettyPrint { call_node: self, mast_forest }
     }
 
     pub(super) fn to_display<'a>(&'a self, mast_forest: &'a MastForest) -> impl fmt::Display + 'a {
-        CallNodePrettyPrint {
-            call_node: self,
-            mast_forest,
-        }
+        CallNodePrettyPrint { call_node: self, mast_forest }
     }
 }
 

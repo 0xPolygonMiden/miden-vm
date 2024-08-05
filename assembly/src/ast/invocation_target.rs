@@ -67,10 +67,7 @@ pub enum InvocationTarget {
     ProcedurePath { name: ProcedureName, module: Ident } = 2,
     /// A fully-resolved procedure path, which refers to a specific externally-defined procedure
     /// with its full path.
-    AbsoluteProcedurePath {
-        name: ProcedureName,
-        path: LibraryPath,
-    } = 3,
+    AbsoluteProcedurePath { name: ProcedureName, path: LibraryPath } = 3,
 }
 
 impl Spanned for InvocationTarget {
@@ -80,15 +77,16 @@ impl Spanned for InvocationTarget {
             Self::ProcedureName(ref spanned) => spanned.span(),
             Self::ProcedurePath { ref name, .. } | Self::AbsoluteProcedurePath { ref name, .. } => {
                 name.span()
-            }
+            },
         }
     }
 }
 
 impl crate::prettier::PrettyPrint for InvocationTarget {
     fn render(&self) -> crate::prettier::Document {
-        use crate::prettier::*;
         use vm_core::utils::DisplayHex;
+
+        use crate::prettier::*;
 
         match self {
             Self::MastRoot(digest) => display(DisplayHex(digest.as_bytes().as_slice())),
@@ -96,7 +94,7 @@ impl crate::prettier::PrettyPrint for InvocationTarget {
             Self::ProcedurePath { name, module } => display(format_args!("{}::{}", module, name)),
             Self::AbsoluteProcedurePath { name, path } => {
                 display(format_args!("::{}::{}", path, name))
-            }
+            },
         }
     }
 }
@@ -127,11 +125,11 @@ impl InvocationTarget {
             Self::ProcedurePath { name, module } => {
                 name.write_into_with_options(target, options);
                 module.write_into(target);
-            }
+            },
             Self::AbsoluteProcedurePath { name, path } => {
                 name.write_into_with_options(target, options);
                 path.write_into(target);
-            }
+            },
         }
     }
 
@@ -144,21 +142,21 @@ impl InvocationTarget {
             0 => {
                 let root = Span::<RpoDigest>::read_from_with_options(source, options.debug_info)?;
                 Ok(Self::MastRoot(root))
-            }
+            },
             1 => {
                 let name = ProcedureName::read_from_with_options(source, options)?;
                 Ok(Self::ProcedureName(name))
-            }
+            },
             2 => {
                 let name = ProcedureName::read_from_with_options(source, options)?;
                 let module = Ident::read_from(source)?;
                 Ok(Self::ProcedurePath { name, module })
-            }
+            },
             3 => {
                 let name = ProcedureName::read_from_with_options(source, options)?;
                 let path = LibraryPath::read_from(source)?;
                 Ok(Self::AbsoluteProcedurePath { name, path })
-            }
+            },
             n => Err(DeserializationError::InvalidValue(format!(
                 "{} is not a valid invocation target type",
                 n

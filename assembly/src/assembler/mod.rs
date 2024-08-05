@@ -1,3 +1,9 @@
+use alloc::{collections::BTreeMap, sync::Arc, vec::Vec};
+
+use mast_forest_builder::MastForestBuilder;
+use module_graph::{ProcedureWrapper, WrappedModule};
+use vm_core::{mast::MastNodeId, Decorator, DecoratorList, Felt, Kernel, Operation, Program};
+
 use crate::{
     ast::{self, Export, InvocationTarget, InvokeKind, ModuleKind, QualifiedProcedureName},
     diagnostics::Report,
@@ -6,10 +12,6 @@ use crate::{
     AssemblyError, Compile, CompileOptions, LibraryNamespace, LibraryPath, RpoDigest,
     SourceManager, Spanned,
 };
-use alloc::{collections::BTreeMap, sync::Arc, vec::Vec};
-use mast_forest_builder::MastForestBuilder;
-use module_graph::{ProcedureWrapper, WrappedModule};
-use vm_core::{mast::MastNodeId, Decorator, DecoratorList, Felt, Kernel, Operation, Program};
 
 mod basic_block_builder;
 mod id;
@@ -20,11 +22,14 @@ mod procedure;
 #[cfg(test)]
 mod tests;
 
-pub use self::id::{GlobalProcedureIndex, ModuleIndex};
-pub use self::procedure::{Procedure, ProcedureContext};
-
-use self::basic_block_builder::BasicBlockBuilder;
-use self::module_graph::{CallerInfo, ModuleGraph, ResolvedTarget};
+use self::{
+    basic_block_builder::BasicBlockBuilder,
+    module_graph::{CallerInfo, ModuleGraph, ResolvedTarget},
+};
+pub use self::{
+    id::{GlobalProcedureIndex, ModuleIndex},
+    procedure::{Procedure, ProcedureContext},
+};
 
 // ASSEMBLER
 // ================================================================================================
@@ -339,10 +344,7 @@ impl Assembler {
         let entrypoint = self.module_graph[ast_module_index]
             .unwrap_ast()
             .index_of(|p| p.is_main())
-            .map(|index| GlobalProcedureIndex {
-                module: ast_module_index,
-                index,
-            })
+            .map(|index| GlobalProcedureIndex { module: ast_module_index, index })
             .ok_or(SemanticAnalysisError::MissingEntrypoint)?;
 
         // Compile the module graph rooted at the entrypoint
@@ -436,7 +438,7 @@ impl Assembler {
                     // Cache the compiled procedure.
                     self.module_graph.register_mast_root(procedure_gid, procedure.mast_root())?;
                     mast_forest_builder.insert_procedure(procedure_gid, procedure)?;
-                }
+                },
                 Export::Alias(proc_alias) => {
                     let name = QualifiedProcedureName {
                         span: proc_alias.span(),
@@ -460,7 +462,7 @@ impl Assembler {
                     // Make the MAST root available to all dependents
                     self.module_graph.register_mast_root(procedure_gid, proc_alias_root)?;
                     mast_forest_builder.insert_procedure_hash(procedure_gid, proc_alias_root)?;
-                }
+                },
             }
         }
 
@@ -532,11 +534,9 @@ impl Assembler {
 
                         mast_node_ids.push(mast_node_id);
                     }
-                }
+                },
 
-                Op::If {
-                    then_blk, else_blk, ..
-                } => {
+                Op::If { then_blk, else_blk, .. } => {
                     if let Some(basic_block_id) =
                         basic_block_builder.make_basic_block(mast_forest_builder)?
                     {
@@ -550,7 +550,7 @@ impl Assembler {
 
                     let split_node_id = mast_forest_builder.ensure_split(then_blk, else_blk)?;
                     mast_node_ids.push(split_node_id);
-                }
+                },
 
                 Op::Repeat { count, body, .. } => {
                     if let Some(basic_block_id) =
@@ -565,7 +565,7 @@ impl Assembler {
                     for _ in 0..*count {
                         mast_node_ids.push(repeat_node_id);
                     }
-                }
+                },
 
                 Op::While { body, .. } => {
                     if let Some(basic_block_id) =
@@ -579,7 +579,7 @@ impl Assembler {
 
                     let loop_node_id = mast_forest_builder.ensure_loop(loop_body_node_id)?;
                     mast_node_ids.push(loop_node_id);
-                }
+                },
             }
         }
 

@@ -1,5 +1,6 @@
-use super::{super::QuadFelt, ExecutionError, Felt, Host, Operation, Process};
 use vm_core::{ExtensionOf, FieldElement, StarkField, ONE, ZERO};
+
+use super::{super::QuadFelt, ExecutionError, Felt, Host, Operation, Process};
 
 // CONSTANTS
 // ================================================================================================
@@ -242,14 +243,16 @@ fn fold2(f_x: QuadFelt, f_neg_x: QuadFelt, ep: QuadFelt) -> QuadFelt {
 
 #[cfg(test)]
 mod tests {
-    use super::{
-        ExtensionOf, Felt, FieldElement, Operation, Process, QuadFelt, StarkField, TWO, TWO_INV,
-    };
     use alloc::vec::Vec;
+
     use test_utils::rand::{rand_array, rand_value, rand_vector};
     use vm_core::StackInputs;
     use winter_prover::math::{fft, get_power_series_with_offset};
     use winter_utils::transpose_slice;
+
+    use super::{
+        ExtensionOf, Felt, FieldElement, Operation, Process, QuadFelt, StarkField, TWO, TWO_INV,
+    };
 
     #[test]
     fn fold4() {
@@ -280,7 +283,7 @@ mod tests {
         let pos = 3;
         let x = domain[pos];
         let ev = alpha.mul_base(x.inv());
-        let (result, _, _) = super::fold4(transposed_evaluations[pos], ev, ev.square());
+        let (result, ..) = super::fold4(transposed_evaluations[pos], ev, ev.square());
 
         // make sure the results of fold4 are the same as results form Winterfell
         assert_eq!(folded_evaluations[pos], result)

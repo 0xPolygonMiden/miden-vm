@@ -1,10 +1,11 @@
-use crate::{ast::Instruction, AssemblyError, Span};
+use alloc::{borrow::Borrow, string::ToString, vec::Vec};
+
+use vm_core::{mast::MastNodeId, AdviceInjector, AssemblyOp, Operation};
 
 use super::{
     mast_forest_builder::MastForestBuilder, BodyWrapper, Decorator, DecoratorList, ProcedureContext,
 };
-use alloc::{borrow::Borrow, string::ToString, vec::Vec};
-use vm_core::{mast::MastNodeId, AdviceInjector, AssemblyOp, Operation};
+use crate::{ast::Instruction, AssemblyError, Span};
 
 // BASIC BLOCK BUILDER
 // ================================================================================================

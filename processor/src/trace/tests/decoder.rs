@@ -1,3 +1,13 @@
+use miden_air::trace::{
+    decoder::{P1_COL_IDX, P2_COL_IDX, P3_COL_IDX},
+    AUX_TRACE_RAND_ELEMENTS,
+};
+use test_utils::rand::rand_array;
+use vm_core::{
+    mast::{MastForest, MastNode},
+    FieldElement, Operation, Program, Word, ONE, ZERO,
+};
+
 use super::{
     super::{
         tests::{build_trace_from_ops, build_trace_from_program},
@@ -9,15 +19,6 @@ use super::{
 use crate::{
     decoder::{build_op_group, BlockHashTableRow},
     ContextId,
-};
-use miden_air::trace::{
-    decoder::{P1_COL_IDX, P2_COL_IDX, P3_COL_IDX},
-    AUX_TRACE_RAND_ELEMENTS,
-};
-use test_utils::rand::rand_array;
-use vm_core::{
-    mast::{MastForest, MastNode},
-    FieldElement, Operation, Program, Word, ONE, ZERO,
 };
 
 // BLOCK STACK TABLE TESTS
@@ -866,11 +867,7 @@ pub struct OpGroupTableRow {
 impl OpGroupTableRow {
     /// Returns a new [OpGroupTableRow] instantiated with the specified parameters.
     pub fn new(batch_id: Felt, group_pos: Felt, group_value: Felt) -> Self {
-        Self {
-            batch_id,
-            group_pos,
-            group_value,
-        }
+        Self { batch_id, group_pos, group_value }
     }
 }
 

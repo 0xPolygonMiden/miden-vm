@@ -5,17 +5,19 @@ mod name;
 mod procedure;
 mod resolver;
 
-pub use self::alias::{AliasTarget, ProcedureAlias};
-pub use self::id::ProcedureIndex;
-pub use self::name::{ProcedureName, QualifiedProcedureName};
-pub use self::procedure::{Procedure, Visibility};
-pub use self::resolver::{LocalNameResolver, ResolvedProcedure};
+use alloc::string::String;
 
+pub use self::{
+    alias::{AliasTarget, ProcedureAlias},
+    id::ProcedureIndex,
+    name::{ProcedureName, QualifiedProcedureName},
+    procedure::{Procedure, Visibility},
+    resolver::{LocalNameResolver, ResolvedProcedure},
+};
 use crate::{
     ast::{AstSerdeOptions, Invoke},
     ByteReader, ByteWriter, DeserializationError, SourceSpan, Span, Spanned,
 };
-use alloc::string::String;
 
 // EXPORT
 // ================================================================================================
@@ -123,7 +125,7 @@ impl Export {
             1 => ProcedureAlias::read_from_with_options(source, options).map(Self::Alias),
             n => {
                 Err(DeserializationError::InvalidValue(format!("invalid procedure kind tag: {n}")))
-            }
+            },
         }
     }
 

@@ -1,9 +1,11 @@
+use alloc::vec::Vec;
+
+use miden_crypto::hash::rpo::RpoDigest;
+
 use crate::{
     errors::KernelError,
     utils::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable},
 };
-use alloc::vec::Vec;
-use miden_crypto::hash::rpo::RpoDigest;
 
 // KERNEL
 // ================================================================================================

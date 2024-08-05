@@ -3,10 +3,12 @@ use alloc::{
     vec::Vec,
 };
 
-use vm_core::crypto::hash::RpoDigest;
-use vm_core::mast::{MastForest, MastNodeId};
-use vm_core::utils::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable};
-use vm_core::Kernel;
+use vm_core::{
+    crypto::hash::RpoDigest,
+    mast::{MastForest, MastNodeId},
+    utils::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable},
+    Kernel,
+};
 
 use crate::ast::{AstSerdeOptions, ProcedureIndex, ProcedureName, QualifiedProcedureName};
 
@@ -17,10 +19,12 @@ mod namespace;
 mod path;
 mod version;
 
-pub use self::error::{CompiledLibraryError, LibraryError};
-pub use self::namespace::{LibraryNamespace, LibraryNamespaceError};
-pub use self::path::{LibraryPath, LibraryPathComponent, PathError};
-pub use self::version::{Version, VersionError};
+pub use self::{
+    error::{CompiledLibraryError, LibraryError},
+    namespace::{LibraryNamespace, LibraryNamespaceError},
+    path::{LibraryPath, LibraryPathComponent, PathError},
+    version::{Version, VersionError},
+};
 
 #[cfg(test)]
 mod tests;
@@ -85,10 +89,10 @@ impl CompiledLibrary {
             match mast_forest.find_procedure_root(mast_root) {
                 Some(node_id) => {
                     fqn_to_export.insert(fqn, Export::Local(node_id));
-                }
+                },
                 None => {
                     fqn_to_export.insert(fqn, Export::External(mast_root));
-                }
+                },
             }
         }
 
@@ -156,11 +160,7 @@ impl CompiledLibrary {
 impl CompiledLibrary {
     /// Serialize to `target` using `options`
     pub fn write_into_with_options<W: ByteWriter>(&self, target: &mut W, options: AstSerdeOptions) {
-        let Self {
-            digest: _,
-            exports,
-            mast_forest,
-        } = self;
+        let Self { digest: _, exports, mast_forest } = self;
 
         options.write_into(target);
         mast_forest.write_into(target);
@@ -195,11 +195,7 @@ impl Deserializable for CompiledLibrary {
 
         let digest = content_hash(&exports, &mast_forest);
 
-        Ok(Self {
-            digest,
-            exports,
-            mast_forest,
-        })
+        Ok(Self { digest, exports, mast_forest })
     }
 }
 
@@ -216,16 +212,18 @@ fn content_hash(
 
 #[cfg(feature = "std")]
 mod use_std_library {
+    use std::{collections::btree_map::Entry, fs, io, path::Path, sync::Arc};
+
+    use masl::{LibraryEntry, WalkLibrary};
+    use miette::{Context, Report};
+    use vm_core::utils::ReadAdapter;
+
     use super::*;
     use crate::{
         ast::{self, ModuleKind},
         diagnostics::{IntoDiagnostic, SourceManager},
         Assembler,
     };
-    use masl::{LibraryEntry, WalkLibrary};
-    use miette::{Context, Report};
-    use std::{collections::btree_map::Entry, fs, io, path::Path, sync::Arc};
-    use vm_core::utils::ReadAdapter;
 
     impl CompiledLibrary {
         /// File extension for the Assembly Library.
@@ -337,10 +335,7 @@ mod use_std_library {
                 .into_diagnostic()
                 .wrap_err_with(|| format!("failed to load library from '{}'", dir.display()))?;
             for entry in walker {
-                let LibraryEntry {
-                    mut name,
-                    source_path,
-                } = entry?;
+                let LibraryEntry { mut name, source_path } = entry?;
                 if name.last() == Self::MOD {
                     name.pop();
                 }
@@ -351,10 +346,10 @@ mod use_std_library {
                     Entry::Occupied(ref entry) => {
                         return Err(LibraryError::DuplicateModulePath(entry.key().clone()))
                             .into_diagnostic();
-                    }
+                    },
                     Entry::Vacant(entry) => {
                         entry.insert(ast);
-                    }
+                    },
                 }
             }
 
@@ -432,7 +427,7 @@ impl Export {
                     )));
                 }
                 Ok(Self::Local(node_id))
-            }
+            },
             1 => RpoDigest::read_from(source).map(Self::External),
             n => Err(DeserializationError::InvalidValue(format!(
                 "{} is not a valid compiled library export entry",
@@ -507,11 +502,7 @@ impl TryFrom<CompiledLibrary> for KernelLibrary {
 impl KernelLibrary {
     /// Serialize to `target` using `options`
     pub fn write_into_with_options<W: ByteWriter>(&self, target: &mut W, options: AstSerdeOptions) {
-        let Self {
-            kernel: _,
-            kernel_info: _,
-            library,
-        } = self;
+        let Self { kernel: _, kernel_info: _, library } = self;
 
         library.write_into_with_options(target, options);
     }
@@ -583,10 +574,7 @@ impl ModuleInfo {
     /// Note: this constructor assumes that the fully-qualified names of the provided procedures
     /// are consistent with the provided module path, but this is not checked.
     fn new(path: LibraryPath, procedures: Vec<ProcedureInfo>) -> Self {
-        Self {
-            path,
-            procedure_infos: procedures,
-        }
+        Self { path, procedure_infos: procedures }
     }
 
     /// Adds a [`ProcedureInfo`] to the module.

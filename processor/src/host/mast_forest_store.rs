@@ -1,4 +1,5 @@
 use alloc::{collections::BTreeMap, sync::Arc};
+
 use vm_core::{crypto::hash::RpoDigest, mast::MastForest};
 
 /// A set of [`MastForest`]s available to the prover that programs may refer to (by means of an

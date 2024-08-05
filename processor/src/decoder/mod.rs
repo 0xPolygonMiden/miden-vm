@@ -1,8 +1,5 @@
-use super::{
-    ExecutionError, Felt, Host, OpBatch, Operation, Process, Word, EMPTY_WORD, MIN_TRACE_LEN, ONE,
-    ZERO,
-};
 use alloc::vec::Vec;
+
 use miden_air::{
     trace::{
         chiplets::hasher::DIGEST_LEN,
@@ -21,18 +18,21 @@ use vm_core::{
     AssemblyOp,
 };
 
+use super::{
+    ExecutionError, Felt, Host, OpBatch, Operation, Process, Word, EMPTY_WORD, MIN_TRACE_LEN, ONE,
+    ZERO,
+};
+
 mod trace;
 use trace::DecoderTrace;
 
 mod aux_trace;
 pub use aux_trace::AuxTraceBuilder;
-
 #[cfg(test)]
 pub use aux_trace::BlockHashTableRow;
 
 mod block_stack;
 use block_stack::{BlockStack, BlockType, ExecutionContextInfo};
-
 #[cfg(test)]
 use miden_air::trace::decoder::NUM_USER_OP_HELPERS;
 
@@ -65,16 +65,12 @@ where
         // row addr + 7.
         let child1_hash = program
             .get_node_by_id(node.first())
-            .ok_or(ExecutionError::MastNodeNotFoundInForest {
-                node_id: node.first(),
-            })?
+            .ok_or(ExecutionError::MastNodeNotFoundInForest { node_id: node.first() })?
             .digest()
             .into();
         let child2_hash = program
             .get_node_by_id(node.second())
-            .ok_or(ExecutionError::MastNodeNotFoundInForest {
-                node_id: node.second(),
-            })?
+            .ok_or(ExecutionError::MastNodeNotFoundInForest { node_id: node.second() })?
             .digest()
             .into();
 
@@ -117,16 +113,12 @@ where
         // row addr + 7.
         let child1_hash = program
             .get_node_by_id(node.on_true())
-            .ok_or(ExecutionError::MastNodeNotFoundInForest {
-                node_id: node.on_true(),
-            })?
+            .ok_or(ExecutionError::MastNodeNotFoundInForest { node_id: node.on_true() })?
             .digest()
             .into();
         let child2_hash = program
             .get_node_by_id(node.on_false())
-            .ok_or(ExecutionError::MastNodeNotFoundInForest {
-                node_id: node.on_false(),
-            })?
+            .ok_or(ExecutionError::MastNodeNotFoundInForest { node_id: node.on_false() })?
             .digest()
             .into();
         let addr = self.chiplets.hash_control_block(
@@ -170,9 +162,7 @@ where
         // row addr + 7.
         let body_hash = program
             .get_node_by_id(node.body())
-            .ok_or(ExecutionError::MastNodeNotFoundInForest {
-                node_id: node.body(),
-            })?
+            .ok_or(ExecutionError::MastNodeNotFoundInForest { node_id: node.body() })?
             .digest()
             .into();
         let addr = self.chiplets.hash_control_block(
@@ -231,9 +221,7 @@ where
         // expected to be in row addr + 7.
         let callee_hash = program
             .get_node_by_id(node.callee())
-            .ok_or(ExecutionError::MastNodeNotFoundInForest {
-                node_id: node.callee(),
-            })?
+            .ok_or(ExecutionError::MastNodeNotFoundInForest { node_id: node.callee() })?
             .digest()
             .into();
         let addr =

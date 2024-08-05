@@ -1,11 +1,12 @@
 use alloc::string::ToString;
 use core::fmt;
 
+use vm_core::AdviceInjector;
+
 use crate::{
     ast::{ImmU8, MAX_STACK_WORD_OFFSET},
     ByteReader, ByteWriter, Deserializable, DeserializationError, Felt, Serializable, Span, ZERO,
 };
-use vm_core::AdviceInjector;
 
 // CONSTANTS
 // ================================================================================================
@@ -74,24 +75,14 @@ impl From<&AdviceInjectorNode> for AdviceInjector {
             PushSmtGet => Self::SmtGet,
             PushSmtSet => Self::SmtSet,
             PushSmtPeek => Self::SmtPeek,
-            PushMapVal => Self::MapValueToStack {
-                include_len: false,
-                key_offset: 0,
-            },
-            PushMapValImm {
-                offset: ImmU8::Value(offset),
-            } => Self::MapValueToStack {
+            PushMapVal => Self::MapValueToStack { include_len: false, key_offset: 0 },
+            PushMapValImm { offset: ImmU8::Value(offset) } => Self::MapValueToStack {
                 include_len: false,
                 key_offset: offset.into_inner() as usize,
             },
             PushMapValImm { offset } => panic!("unresolved constant '{offset}'"),
-            PushMapValN => Self::MapValueToStack {
-                include_len: true,
-                key_offset: 0,
-            },
-            PushMapValNImm {
-                offset: ImmU8::Value(offset),
-            } => Self::MapValueToStack {
+            PushMapValN => Self::MapValueToStack { include_len: true, key_offset: 0 },
+            PushMapValNImm { offset: ImmU8::Value(offset) } => Self::MapValueToStack {
                 include_len: true,
                 key_offset: offset.into_inner() as usize,
             },
@@ -99,16 +90,12 @@ impl From<&AdviceInjectorNode> for AdviceInjector {
             PushMtNode => Self::MerkleNodeToStack,
             InsertMem => Self::MemToMap,
             InsertHdword => Self::HdwordToMap { domain: ZERO },
-            InsertHdwordImm {
-                domain: ImmU8::Value(domain),
-            } => Self::HdwordToMap {
-                domain: Felt::from(domain.into_inner()),
+            InsertHdwordImm { domain: ImmU8::Value(domain) } => {
+                Self::HdwordToMap { domain: Felt::from(domain.into_inner()) }
             },
             InsertHdwordImm { domain } => panic!("unresolved constant '{domain}'"),
             InsertHperm => Self::HpermToMap,
-            PushSignature { kind } => Self::SigToStack {
-                kind: (*kind).into(),
-            },
+            PushSignature { kind } => Self::SigToStack { kind: (*kind).into() },
         }
     }
 }
@@ -159,23 +146,17 @@ impl Serializable for AdviceInjectorNode {
             | Self::InsertMem
             | Self::InsertHdword
             | Self::InsertHperm => (),
-            Self::PushMapValImm {
-                offset: ImmU8::Value(offset),
-            } => {
+            Self::PushMapValImm { offset: ImmU8::Value(offset) } => {
                 target.write_u8(offset.into_inner());
-            }
+            },
             Self::PushMapValImm { offset } => panic!("unresolved constant '{offset}'"),
-            Self::PushMapValNImm {
-                offset: ImmU8::Value(offset),
-            } => {
+            Self::PushMapValNImm { offset: ImmU8::Value(offset) } => {
                 target.write_u8(offset.into_inner());
-            }
+            },
             Self::PushMapValNImm { offset } => panic!("unresolved constant '{offset}'"),
-            Self::InsertHdwordImm {
-                domain: ImmU8::Value(domain),
-            } => {
+            Self::InsertHdwordImm { domain: ImmU8::Value(domain) } => {
                 target.write_u8(domain.into_inner());
-            }
+            },
             Self::InsertHdwordImm { domain } => panic!("unresolved constant '{domain}'"),
             Self::PushSignature { kind } => kind.write_into(target),
         }
@@ -199,7 +180,7 @@ impl Deserializable for AdviceInjectorNode {
                 Ok(Self::PushMapValImm {
                     offset: ImmU8::Value(Span::unknown(offset)),
                 })
-            }
+            },
             PUSH_MAPVALN => Ok(Self::PushMapValN),
             PUSH_MAPVALN_IMM => {
                 let offset = source.read_u8()?;
@@ -209,7 +190,7 @@ impl Deserializable for AdviceInjectorNode {
                 Ok(Self::PushMapValNImm {
                     offset: ImmU8::Value(Span::unknown(offset)),
                 })
-            }
+            },
             PUSH_MTNODE => Ok(Self::PushMtNode),
             INSERT_MEM => Ok(Self::InsertMem),
             INSERT_HDWORD => Ok(Self::InsertHdword),
@@ -218,11 +199,9 @@ impl Deserializable for AdviceInjectorNode {
                 Ok(Self::InsertHdwordImm {
                     domain: ImmU8::Value(Span::unknown(domain)),
                 })
-            }
+            },
             INSERT_HPERM => Ok(Self::InsertHperm),
-            PUSH_SIG => Ok(Self::PushSignature {
-                kind: SignatureKind::read_from(source)?,
-            }),
+            PUSH_SIG => Ok(Self::PushSignature { kind: SignatureKind::read_from(source)? }),
             val => Err(DeserializationError::InvalidValue(val.to_string())),
         }
     }

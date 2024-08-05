@@ -1,8 +1,10 @@
-use super::data::{InputFile, OutputFile, ProgramHash, ProofFile};
+use std::{path::PathBuf, time::Instant};
+
 use assembly::diagnostics::{IntoDiagnostic, Report, WrapErr};
 use clap::Parser;
 use miden_vm::{Kernel, ProgramInfo};
-use std::{path::PathBuf, time::Instant};
+
+use super::data::{InputFile, OutputFile, ProgramHash, ProofFile};
 
 #[derive(Debug, Clone, Parser)]
 #[clap(about = "Verify a miden program")]

@@ -1,3 +1,5 @@
+use std::{path::PathBuf, sync::Arc};
+
 use assembly::{
     ast::AstSerdeOptions,
     diagnostics::{IntoDiagnostic, Report},
@@ -5,7 +7,6 @@ use assembly::{
     LibraryNamespace, Version,
 };
 use clap::Parser;
-use std::{path::PathBuf, sync::Arc};
 
 #[derive(Debug, Clone, Parser)]
 #[clap(

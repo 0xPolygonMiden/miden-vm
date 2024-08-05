@@ -1,10 +1,9 @@
+use super::Instruction;
 use crate::{
     ast::{Immediate, InvocationTarget},
     prettier::{Document, PrettyPrint},
     DisplayHex, Span,
 };
-
-use super::Instruction;
 
 impl PrettyPrint for Instruction {
     fn render(&self) -> Document {
@@ -15,19 +14,19 @@ impl PrettyPrint for Instruction {
             Self::Assert => const_text("assert"),
             Self::AssertWithError(err_code) => {
                 flatten(const_text("assert.err") + const_text("=") + display(err_code))
-            }
+            },
             Self::AssertEq => const_text("assert_eq"),
             Self::AssertEqWithError(err_code) => {
                 flatten(const_text("assert_eq.err") + const_text("=") + display(err_code))
-            }
+            },
             Self::AssertEqw => const_text("assert_eqw"),
             Self::AssertEqwWithError(err_code) => {
                 flatten(const_text("assert_eqw.err") + const_text("=") + display(err_code))
-            }
+            },
             Self::Assertz => const_text("assertz"),
             Self::AssertzWithError(err_code) => {
                 flatten(const_text("assertz.err") + const_text("=") + display(err_code))
-            }
+            },
             Self::Add => const_text("add"),
             Self::AddImm(value) => inst_with_felt_imm("add", value),
             Self::Sub => const_text("sub"),
@@ -73,15 +72,15 @@ impl PrettyPrint for Instruction {
             Self::U32Assert => const_text("u32assert"),
             Self::U32AssertWithError(err_code) => {
                 flatten(const_text("u32assert.err") + const_text("=") + display(err_code))
-            }
+            },
             Self::U32Assert2 => const_text("u32assert2"),
             Self::U32Assert2WithError(err_code) => {
                 flatten(const_text("u32assert2.err") + const_text("=") + display(err_code))
-            }
+            },
             Self::U32AssertW => const_text("u32assertw"),
             Self::U32AssertWWithError(err_code) => {
                 flatten(const_text("u32assertw.err") + const_text("=") + display(err_code))
-            }
+            },
             Self::U32Split => const_text("u32split"),
             Self::U32Cast => const_text("u32cast"),
             Self::U32WrappingAdd => const_text("u32wrapping_add"),
@@ -217,7 +216,7 @@ impl PrettyPrint for Instruction {
             Self::PushU32(value) => inst_with_imm("push", value),
             Self::PushFelt(value) => {
                 inst_with_felt_imm("push", &Immediate::Value(Span::unknown(*value)))
-            }
+            },
             Self::PushWord(values) => inst_with_pretty_felt_params("push", values),
             Self::PushU8List(values) => inst_with_pretty_params("push", values),
             Self::PushU16List(values) => inst_with_pretty_params("push", values),
@@ -261,7 +260,7 @@ impl PrettyPrint for Instruction {
             Self::MTreeVerify => const_text("mtree_verify"),
             Self::MTreeVerifyWithError(err_code) => {
                 flatten(const_text("mtree_verify.err") + const_text("=") + display(err_code))
-            }
+            },
 
             // ----- STARK proof verification -----------------------------------------------------
             Self::FriExt2Fold4 => const_text("fri_ext2fold4"),
@@ -275,49 +274,49 @@ impl PrettyPrint for Instruction {
             ),
             Self::Exec(InvocationTarget::ProcedureName(name)) => {
                 flatten(const_text("exec") + const_text(".") + text(name))
-            }
+            },
             Self::Exec(InvocationTarget::ProcedurePath { name, module }) => {
                 const_text("exec") + const_text(".") + text(format!("{}::{}", module, name))
-            }
+            },
             Self::Exec(InvocationTarget::AbsoluteProcedurePath { name, path }) => {
                 const_text("exec") + const_text(".") + text(format!("::{}::{}", path, name))
-            }
+            },
             Self::Call(InvocationTarget::MastRoot(root)) => {
                 const_text("call")
                     + const_text(".")
                     + text(format!("{:#x}", DisplayHex(root.as_bytes().as_slice())))
-            }
+            },
             Self::Call(InvocationTarget::ProcedureName(name)) => {
                 flatten(const_text("call") + const_text(".") + text(name))
-            }
+            },
             Self::Call(InvocationTarget::ProcedurePath { name, module }) => {
                 const_text("call") + const_text(".") + text(format!("{}::{}", module, name))
-            }
+            },
             Self::Call(InvocationTarget::AbsoluteProcedurePath { name, path }) => {
                 const_text("call") + const_text(".") + text(format!("::{}::{}", path, name))
-            }
+            },
             Self::SysCall(InvocationTarget::MastRoot(root)) => {
                 const_text("syscall")
                     + const_text(".")
                     + text(format!("{:#x}", DisplayHex(root.as_bytes().as_slice())))
-            }
+            },
             Self::SysCall(InvocationTarget::ProcedureName(name)) => {
                 flatten(const_text("syscall") + const_text(".") + text(format!("{}", name)))
-            }
+            },
             Self::SysCall(InvocationTarget::ProcedurePath { name, module }) => {
                 const_text("syscall") + const_text(".") + text(format!("{}::{}", module, name))
-            }
+            },
             Self::SysCall(InvocationTarget::AbsoluteProcedurePath { name, path }) => {
                 const_text("syscall") + const_text(".") + text(format!("::{}::{}", path, name))
-            }
+            },
             Self::DynExec => const_text("dynexec"),
             Self::DynCall => const_text("dyncall"),
             Self::ProcRef(InvocationTarget::MastRoot(_)) => {
                 panic!("invalid procref instruction: expected name not MAST root")
-            }
+            },
             Self::ProcRef(InvocationTarget::ProcedureName(name)) => {
                 flatten(const_text("procref") + const_text(".") + text(name))
-            }
+            },
             Self::ProcRef(InvocationTarget::ProcedurePath { name, module }) => flatten(
                 const_text("procref") + const_text(".") + text(format!("{}::{}", module, name)),
             ),
@@ -397,8 +396,9 @@ fn inst_with_pretty_params<P: PrettyPrint>(inst: &'static str, params: &[P]) -> 
 
 #[cfg(test)]
 mod tests {
-    use crate::{ast::*, Felt, Span};
     use vm_core::crypto::hash::Rpo256;
+
+    use crate::{ast::*, Felt, Span};
 
     #[test]
     fn test_instruction_display() {

@@ -1,9 +1,10 @@
+use alloc::vec::Vec;
+
 use super::{op_flags::OpFlags, EvaluationFrame, FieldElement, TransitionConstraintDegree};
 use crate::{
     stack::EvaluationFrameExt,
     utils::{are_equal, is_binary},
 };
-use alloc::vec::Vec;
 
 #[cfg(test)]
 pub mod tests;

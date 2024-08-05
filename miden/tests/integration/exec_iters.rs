@@ -1,5 +1,4 @@
-use processor::RowIndex;
-use processor::{AsmOpInfo, ContextId, VmState};
+use processor::{AsmOpInfo, ContextId, RowIndex, VmState};
 use test_utils::{assert_eq, build_debug_test, Felt, ToElements, ONE};
 use vm_core::{debuginfo::Location, AssemblyOp, Operation};
 

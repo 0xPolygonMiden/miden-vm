@@ -1,4 +1,5 @@
 use alloc::{string::String, vec::Vec};
+
 use vm_core::errors::KernelError;
 
 use crate::{
@@ -72,9 +73,7 @@ pub enum CompiledLibraryError {
     #[error("exports are not in the same namespace; all namespaces: {namespaces:?}")]
     InconsistentNamespaces { namespaces: Vec<LibraryNamespace> },
     #[error("invalid export in kernel library: {procedure_path}")]
-    InvalidKernelExport {
-        procedure_path: QualifiedProcedureName,
-    },
+    InvalidKernelExport { procedure_path: QualifiedProcedureName },
     #[error(transparent)]
     Kernel(#[from] KernelError),
     #[error("no MAST roots for the following exports: {}", pretty_print_csv(missing_exports.as_slice()))]

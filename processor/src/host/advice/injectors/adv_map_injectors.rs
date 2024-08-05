@@ -1,10 +1,12 @@
-use super::super::{AdviceProvider, ExecutionError, Felt, HostResponse};
-use crate::ProcessState;
 use alloc::vec::Vec;
+
 use vm_core::{
     crypto::hash::{Rpo256, RpoDigest},
     EMPTY_WORD, WORD_SIZE,
 };
+
+use super::super::{AdviceProvider, ExecutionError, Felt, HostResponse};
+use crate::ProcessState;
 
 // ADVICE MAP INJECTORS
 // ================================================================================================
@@ -178,10 +180,7 @@ fn get_mem_addr_range<S: ProcessState>(
     }
 
     if start_addr > end_addr {
-        return Err(ExecutionError::InvalidMemoryRange {
-            start_addr,
-            end_addr,
-        });
+        return Err(ExecutionError::InvalidMemoryRange { start_addr, end_addr });
     }
 
     Ok((start_addr as u32, end_addr as u32))

@@ -1,5 +1,6 @@
-use super::BasicBlockBuilder;
 use vm_core::{AdviceInjector, Operation::*};
+
+use super::BasicBlockBuilder;
 
 // HASHING
 // ================================================================================================

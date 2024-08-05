@@ -1,12 +1,11 @@
+use alloc::{borrow::Cow, boxed::Box, sync::Arc, vec::Vec};
+use core::{fmt, ops::Range};
+
 pub use miette::{
     self, Diagnostic, IntoDiagnostic, LabeledSpan, NamedSource, Report, Result, Severity,
     SourceCode, WrapErr,
 };
 pub use tracing;
-
-use alloc::{borrow::Cow, boxed::Box, sync::Arc, vec::Vec};
-use core::{fmt, ops::Range};
-
 pub use vm_core::debuginfo::*;
 
 // LABEL
@@ -30,10 +29,7 @@ impl Label {
         Range<usize>: From<R>,
     {
         let range = Range::<usize>::from(range);
-        Self {
-            span: range.into(),
-            label: None,
-        }
+        Self { span: range.into(), label: None }
     }
 
     /// Construct a label which points to a specific offset in the source file.
@@ -312,10 +308,10 @@ impl RelatedError {
 /// Rendering and error reporting implementation details.
 pub mod reporting {
     use core::fmt;
+
     pub use miette::{
         set_hook, DebugReportHandler, JSONReportHandler, NarratableReportHandler, ReportHandler,
     };
-
     #[cfg(feature = "std")]
     pub use miette::{set_panic_hook, GraphicalReportHandler, GraphicalTheme};
 
@@ -335,10 +331,7 @@ pub mod reporting {
 
     impl<D: AsRef<dyn super::Diagnostic>> PrintDiagnostic<D> {
         pub fn new(diag: D) -> Self {
-            Self {
-                handler: Default::default(),
-                diag,
-            }
+            Self { handler: Default::default(), diag }
         }
         #[cfg(feature = "std")]
         pub fn new_without_color(diag: D) -> Self {
@@ -364,10 +357,7 @@ pub mod reporting {
 
     impl<D: AsRef<dyn super::Diagnostic>> PrintDiagnostic<D, JSONReportHandler> {
         pub fn json(diag: D) -> Self {
-            Self {
-                handler: JSONReportHandler,
-                diag,
-            }
+            Self { handler: JSONReportHandler, diag }
         }
     }
 

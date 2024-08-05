@@ -1,9 +1,10 @@
+use alloc::vec::Vec;
+
 use super::{op_flags::OpFlags, EvaluationFrame, Felt, FieldElement, TransitionConstraintDegree};
 use crate::{
     stack::EvaluationFrameExt,
     utils::{are_equal, is_binary},
 };
-use alloc::vec::Vec;
 
 #[cfg(test)]
 pub mod tests;
@@ -339,12 +340,7 @@ impl<E: FieldElement<BaseField = Felt>> LimbCompositions<E> {
 
         let v64 = E::from(TWO_48) * frame.user_op_helper(3) + v48;
 
-        Self {
-            v_hi,
-            v_lo,
-            v48,
-            v64,
-        }
+        Self { v_hi, v_lo, v48, v64 }
     }
 
     /// Returns v_hi intermediate flag value.

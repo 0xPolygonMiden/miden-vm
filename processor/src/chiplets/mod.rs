@@ -1,15 +1,16 @@
-use crate::system::ContextId;
-
-use super::{
-    crypto::MerklePath, utils, ChipletsTrace, ExecutionError, Felt, FieldElement, RangeChecker,
-    TraceFragment, Word, CHIPLETS_WIDTH, EMPTY_WORD, ONE, ZERO,
-};
 use alloc::vec::Vec;
+
 use miden_air::{
     trace::chiplets::hasher::{Digest, HasherState},
     RowIndex,
 };
 use vm_core::{mast::OpBatch, Kernel};
+
+use super::{
+    crypto::MerklePath, utils, ChipletsTrace, ExecutionError, Felt, FieldElement, RangeChecker,
+    TraceFragment, Word, CHIPLETS_WIDTH, EMPTY_WORD, ONE, ZERO,
+};
+use crate::system::ContextId;
 
 mod bitwise;
 use bitwise::Bitwise;
@@ -451,25 +452,25 @@ impl Chiplets {
                 1 | 15..=17 => {
                     // columns 1 and 15 - 17 are relevant only for the hasher
                     hasher_fragment.push_column_slice(column, hasher.trace_len());
-                }
+                },
                 2 => {
                     // column 2 is relevant to the hasher and to bitwise chiplet
                     let rest = hasher_fragment.push_column_slice(column, hasher.trace_len());
                     bitwise_fragment.push_column_slice(rest, bitwise.trace_len());
-                }
+                },
                 3 | 10..=14 => {
                     // columns 3 and 10 - 14 are relevant for hasher, bitwise, and memory chiplets
                     let rest = hasher_fragment.push_column_slice(column, hasher.trace_len());
                     let rest = bitwise_fragment.push_column_slice(rest, bitwise.trace_len());
                     memory_fragment.push_column_slice(rest, memory.trace_len());
-                }
+                },
                 4..=9 => {
                     // columns 4 - 9 are relevant to all chiplets
                     let rest = hasher_fragment.push_column_slice(column, hasher.trace_len());
                     let rest = bitwise_fragment.push_column_slice(rest, bitwise.trace_len());
                     let rest = memory_fragment.push_column_slice(rest, memory.trace_len());
                     kernel_rom_fragment.push_column_slice(rest, kernel_rom.trace_len());
-                }
+                },
                 _ => panic!("invalid column index"),
             }
         }

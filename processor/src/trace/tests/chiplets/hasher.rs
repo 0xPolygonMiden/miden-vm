@@ -1,11 +1,6 @@
-use super::{
-    build_span_with_respan_ops, build_trace_from_ops_with_inputs, build_trace_from_program,
-    init_state_from_words, rand_array, AdviceInputs, ExecutionTrace, Felt, FieldElement, Operation,
-    Trace, AUX_TRACE_RAND_ELEMENTS, CHIPLETS_AUX_TRACE_OFFSET, NUM_RAND_ROWS, ONE, ZERO,
-};
-use crate::StackInputs;
 use alloc::vec::Vec;
 use core::ops::Range;
+
 use miden_air::{
     trace::{
         chiplets::{
@@ -29,6 +24,13 @@ use vm_core::{
     utils::range,
     Program, Word,
 };
+
+use super::{
+    build_span_with_respan_ops, build_trace_from_ops_with_inputs, build_trace_from_program,
+    init_state_from_words, rand_array, AdviceInputs, ExecutionTrace, Felt, FieldElement, Operation,
+    Trace, AUX_TRACE_RAND_ELEMENTS, CHIPLETS_AUX_TRACE_OFFSET, NUM_RAND_ROWS, ONE, ZERO,
+};
+use crate::StackInputs;
 
 // CONSTANTS
 // ================================================================================================

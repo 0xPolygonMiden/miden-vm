@@ -1,5 +1,6 @@
-use super::{Example, ONE, ZERO};
 use miden_vm::{math::Felt, Assembler, DefaultHost, MemAdviceProvider, Program, StackInputs};
+
+use super::{Example, ONE, ZERO};
 
 // EXAMPLE BUILDER
 // ================================================================================================
@@ -59,9 +60,10 @@ fn compute_fibonacci(n: usize) -> Felt {
 
 #[cfg(test)]
 mod tests {
+    use prover::ProvingOptions;
+
     use super::*;
     use crate::examples::{test_example, test_example_with_options};
-    use prover::ProvingOptions;
 
     #[test]
     fn test_fib_example() {

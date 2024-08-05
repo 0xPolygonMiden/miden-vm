@@ -1,7 +1,9 @@
+use alloc::string::ToString;
+
+use vm_core::{Felt, Operation::*};
+
 use super::{push_felt, push_u32_value, validate_param, BasicBlockBuilder};
 use crate::{assembler::ProcedureContext, diagnostics::Report, AssemblyError};
-use alloc::string::ToString;
-use vm_core::{Felt, Operation::*};
 
 // INSTRUCTION PARSERS
 // ================================================================================================

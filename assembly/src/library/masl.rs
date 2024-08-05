@@ -17,11 +17,7 @@ impl<'a> WalkLibrary<'a> {
 
         let stack = VecDeque::from_iter(std::fs::read_dir(path)?);
 
-        Ok(Self {
-            namespace,
-            root: path,
-            stack,
-        })
+        Ok(Self { namespace, root: path, stack })
     }
 
     fn next_entry(
@@ -29,11 +25,12 @@ impl<'a> WalkLibrary<'a> {
         entry: &std::fs::DirEntry,
         ty: &std::fs::FileType,
     ) -> Result<Option<LibraryEntry>, crate::diagnostics::Report> {
+        use std::{ffi::OsStr, fs};
+
         use crate::{
             diagnostics::{IntoDiagnostic, Report},
             LibraryPath,
         };
-        use std::{ffi::OsStr, fs};
 
         if ty.is_dir() {
             let dir = entry.path();
@@ -72,10 +69,7 @@ impl<'a> WalkLibrary<'a> {
             })?;
             libpath.push(component).into_diagnostic()?;
         }
-        Ok(Some(LibraryEntry {
-            name: libpath,
-            source_path: entry.path(),
-        }))
+        Ok(Some(LibraryEntry { name: libpath, source_path: entry.path() }))
     }
 }
 
@@ -96,7 +90,7 @@ impl<'a> Iterator for WalkLibrary<'a> {
                         None => continue,
                         result => break result,
                     }
-                }
+                },
                 Err(err) => break Some(Err(err)),
             }
         }

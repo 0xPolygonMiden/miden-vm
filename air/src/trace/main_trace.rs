@@ -1,4 +1,8 @@
-use crate::RowIndex;
+#[cfg(any(test, feature = "testing"))]
+use alloc::vec::Vec;
+use core::ops::{Deref, Range};
+
+use vm_core::{utils::range, Felt, Word, ONE, ZERO};
 
 use super::{
     super::ColMatrix,
@@ -18,11 +22,7 @@ use super::{
     CHIPLETS_OFFSET, CLK_COL_IDX, CTX_COL_IDX, DECODER_TRACE_OFFSET, FMP_COL_IDX, FN_HASH_OFFSET,
     STACK_TRACE_OFFSET,
 };
-use core::ops::{Deref, Range};
-use vm_core::{utils::range, Felt, Word, ONE, ZERO};
-
-#[cfg(any(test, feature = "testing"))]
-use alloc::vec::Vec;
+use crate::RowIndex;
 
 // CONSTANTS
 // ================================================================================================
@@ -47,9 +47,7 @@ impl Deref for MainTrace {
 
 impl MainTrace {
     pub fn new(main_trace: ColMatrix<Felt>) -> Self {
-        Self {
-            columns: main_trace,
-        }
+        Self { columns: main_trace }
     }
 
     pub fn num_rows(&self) -> usize {

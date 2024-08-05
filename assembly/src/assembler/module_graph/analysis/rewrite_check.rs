@@ -33,10 +33,7 @@ impl<'a, 'b: 'a> MaybeRewriteCheck<'a, 'b> {
     /// Run the analysis, returning either a boolean answer, or an error that was found during
     /// analysis.
     pub fn check(&self, module_id: ModuleIndex, module: &Module) -> Result<bool, AssemblyError> {
-        let mut visitor = RewriteCheckVisitor {
-            resolver: self.resolver,
-            module_id,
-        };
+        let mut visitor = RewriteCheckVisitor { resolver: self.resolver, module_id };
         match visitor.visit_module(module) {
             ControlFlow::Break(result) => result,
             ControlFlow::Continue(_) => Ok(false),
@@ -68,7 +65,7 @@ impl<'a, 'b: 'a> RewriteCheckVisitor<'a, 'b> {
             Ok(ResolvedTarget::Resolved { .. }) => ControlFlow::Break(Ok(true)),
             Ok(ResolvedTarget::Exact { .. } | ResolvedTarget::Phantom(_)) => {
                 ControlFlow::Continue(())
-            }
+            },
         }
     }
 }

@@ -1,9 +1,7 @@
-use super::{Felt, Word, ZERO};
 use alloc::vec::Vec;
 
 // RE-EXPORTS
 // ================================================================================================
-
 pub use vm_core::crypto::{
     dsa::*,
     hash::{Rpo256, RpoDigest},
@@ -12,10 +10,11 @@ pub use vm_core::crypto::{
         MmrPeaks, NodeIndex, PartialMerkleTree, SimpleSmt, Smt,
     },
 };
-
 pub use winter_prover::crypto::{
     BatchMerkleProof, DefaultRandomCoin as WinterRandomCoin, ElementHasher, Hasher, RandomCoin,
 };
+
+use super::{Felt, Word, ZERO};
 
 // CRYPTO HELPER FUNCTIONS
 // ================================================================================================

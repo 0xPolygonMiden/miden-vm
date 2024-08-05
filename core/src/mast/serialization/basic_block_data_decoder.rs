@@ -1,12 +1,13 @@
+use alloc::{string::String, sync::Arc, vec::Vec};
+use core::cell::RefCell;
+
+use miden_crypto::Felt;
+use winter_utils::{ByteReader, Deserializable, DeserializationError, SliceReader};
+
+use super::{decorator::EncodedDecoratorVariant, DataOffset, StringIndex};
 use crate::{
     AdviceInjector, AssemblyOp, DebugOptions, Decorator, DecoratorList, Operation, SignatureKind,
 };
-
-use super::{decorator::EncodedDecoratorVariant, DataOffset, StringIndex};
-use alloc::{string::String, sync::Arc, vec::Vec};
-use core::cell::RefCell;
-use miden_crypto::Felt;
-use winter_utils::{ByteReader, Deserializable, DeserializationError, SliceReader};
 
 pub struct BasicBlockDataDecoder<'a> {
     data: &'a [u8],
@@ -30,11 +31,7 @@ impl<'a> BasicBlockDataDecoder<'a> {
     pub fn new(data: &'a [u8], strings: &'a [DataOffset]) -> Self {
         let mut refc_strings = Vec::with_capacity(strings.len());
         refc_strings.resize(strings.len(), RefCell::new(None));
-        Self {
-            data,
-            strings,
-            refc_strings,
-        }
+        Self { data, strings, refc_strings }
     }
 }
 
@@ -84,58 +81,55 @@ impl<'a> BasicBlockDataDecoder<'a> {
         match decorator_variant {
             EncodedDecoratorVariant::AdviceInjectorMerkleNodeMerge => {
                 Ok(Decorator::Advice(AdviceInjector::MerkleNodeMerge))
-            }
+            },
             EncodedDecoratorVariant::AdviceInjectorMerkleNodeToStack => {
                 Ok(Decorator::Advice(AdviceInjector::MerkleNodeToStack))
-            }
+            },
             EncodedDecoratorVariant::AdviceInjectorUpdateMerkleNode => {
                 Ok(Decorator::Advice(AdviceInjector::UpdateMerkleNode))
-            }
+            },
             EncodedDecoratorVariant::AdviceInjectorMapValueToStack => {
                 let include_len = data_reader.read_bool()?;
                 let key_offset = data_reader.read_usize()?;
 
-                Ok(Decorator::Advice(AdviceInjector::MapValueToStack {
-                    include_len,
-                    key_offset,
-                }))
-            }
+                Ok(Decorator::Advice(AdviceInjector::MapValueToStack { include_len, key_offset }))
+            },
             EncodedDecoratorVariant::AdviceInjectorU64Div => {
                 Ok(Decorator::Advice(AdviceInjector::U64Div))
-            }
+            },
             EncodedDecoratorVariant::AdviceInjectorExt2Inv => {
                 Ok(Decorator::Advice(AdviceInjector::Ext2Inv))
-            }
+            },
             EncodedDecoratorVariant::AdviceInjectorExt2Intt => {
                 Ok(Decorator::Advice(AdviceInjector::Ext2Intt))
-            }
+            },
             EncodedDecoratorVariant::AdviceInjectorSmtGet => {
                 Ok(Decorator::Advice(AdviceInjector::SmtGet))
-            }
+            },
             EncodedDecoratorVariant::AdviceInjectorSmtSet => {
                 Ok(Decorator::Advice(AdviceInjector::SmtSet))
-            }
+            },
             EncodedDecoratorVariant::AdviceInjectorSmtPeek => {
                 Ok(Decorator::Advice(AdviceInjector::SmtPeek))
-            }
+            },
             EncodedDecoratorVariant::AdviceInjectorU32Clz => {
                 Ok(Decorator::Advice(AdviceInjector::U32Clz))
-            }
+            },
             EncodedDecoratorVariant::AdviceInjectorU32Ctz => {
                 Ok(Decorator::Advice(AdviceInjector::U32Ctz))
-            }
+            },
             EncodedDecoratorVariant::AdviceInjectorU32Clo => {
                 Ok(Decorator::Advice(AdviceInjector::U32Clo))
-            }
+            },
             EncodedDecoratorVariant::AdviceInjectorU32Cto => {
                 Ok(Decorator::Advice(AdviceInjector::U32Cto))
-            }
+            },
             EncodedDecoratorVariant::AdviceInjectorILog2 => {
                 Ok(Decorator::Advice(AdviceInjector::ILog2))
-            }
+            },
             EncodedDecoratorVariant::AdviceInjectorMemToMap => {
                 Ok(Decorator::Advice(AdviceInjector::MemToMap))
-            }
+            },
             EncodedDecoratorVariant::AdviceInjectorHdwordToMap => {
                 let domain = data_reader.read_u64()?;
                 let domain = Felt::try_from(domain).map_err(|err| {
@@ -145,15 +139,15 @@ impl<'a> BasicBlockDataDecoder<'a> {
                 })?;
 
                 Ok(Decorator::Advice(AdviceInjector::HdwordToMap { domain }))
-            }
+            },
             EncodedDecoratorVariant::AdviceInjectorHpermToMap => {
                 Ok(Decorator::Advice(AdviceInjector::HpermToMap))
-            }
+            },
             EncodedDecoratorVariant::AdviceInjectorSigToStack => {
                 Ok(Decorator::Advice(AdviceInjector::SigToStack {
                     kind: SignatureKind::RpoFalcon512,
                 }))
-            }
+            },
             EncodedDecoratorVariant::AssemblyOp => {
                 let num_cycles = data_reader.read_u8()?;
                 let should_break = data_reader.read_bool()?;
@@ -190,41 +184,41 @@ impl<'a> BasicBlockDataDecoder<'a> {
                     op,
                     should_break,
                 )))
-            }
+            },
             EncodedDecoratorVariant::DebugOptionsStackAll => {
                 Ok(Decorator::Debug(DebugOptions::StackAll))
-            }
+            },
             EncodedDecoratorVariant::DebugOptionsStackTop => {
                 let value = data_reader.read_u8()?;
 
                 Ok(Decorator::Debug(DebugOptions::StackTop(value)))
-            }
+            },
             EncodedDecoratorVariant::DebugOptionsMemAll => {
                 Ok(Decorator::Debug(DebugOptions::MemAll))
-            }
+            },
             EncodedDecoratorVariant::DebugOptionsMemInterval => {
                 let start = data_reader.read_u32()?;
                 let end = data_reader.read_u32()?;
 
                 Ok(Decorator::Debug(DebugOptions::MemInterval(start, end)))
-            }
+            },
             EncodedDecoratorVariant::DebugOptionsLocalInterval => {
                 let start = data_reader.read_u16()?;
                 let second = data_reader.read_u16()?;
                 let end = data_reader.read_u16()?;
 
                 Ok(Decorator::Debug(DebugOptions::LocalInterval(start, second, end)))
-            }
+            },
             EncodedDecoratorVariant::Event => {
                 let value = data_reader.read_u32()?;
 
                 Ok(Decorator::Event(value))
-            }
+            },
             EncodedDecoratorVariant::Trace => {
                 let value = data_reader.read_u32()?;
 
                 Ok(Decorator::Trace(value))
-            }
+            },
         }
     }
 

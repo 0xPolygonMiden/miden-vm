@@ -1,12 +1,13 @@
 use alloc::{collections::BTreeSet, sync::Arc};
 
+use vm_core::mast::MastNodeId;
+
 use super::GlobalProcedureIndex;
 use crate::{
     ast::{ProcedureName, QualifiedProcedureName, Visibility},
     diagnostics::{SourceManager, SourceSpan, Spanned},
     AssemblyError, LibraryPath, RpoDigest,
 };
-use vm_core::mast::MastNodeId;
 
 pub type CallSet = BTreeSet<RpoDigest>;
 

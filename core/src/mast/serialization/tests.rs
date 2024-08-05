@@ -1,4 +1,5 @@
 use alloc::{string::ToString, sync::Arc};
+
 use miden_crypto::{hash::rpo::RpoDigest, Felt};
 
 use super::*;
@@ -110,10 +111,7 @@ fn confirm_operation_and_decorator_structure() {
             AdviceInjector::MerkleNodeMerge => (),
             AdviceInjector::MerkleNodeToStack => (),
             AdviceInjector::UpdateMerkleNode => (),
-            AdviceInjector::MapValueToStack {
-                include_len: _,
-                key_offset: _,
-            } => (),
+            AdviceInjector::MapValueToStack { include_len: _, key_offset: _ } => (),
             AdviceInjector::U64Div => (),
             AdviceInjector::Ext2Inv => (),
             AdviceInjector::Ext2Intt => (),
@@ -135,8 +133,8 @@ fn confirm_operation_and_decorator_structure() {
             DebugOptions::StackAll => (),
             DebugOptions::StackTop(_) => (),
             DebugOptions::MemAll => (),
-            DebugOptions::MemInterval(_, _) => (),
-            DebugOptions::LocalInterval(_, _, _) => (),
+            DebugOptions::MemInterval(..) => (),
+            DebugOptions::LocalInterval(..) => (),
         },
         Decorator::Event(_) => (),
         Decorator::Trace(_) => (),
@@ -265,18 +263,11 @@ fn serialize_deserialize_all_nodes() {
             (10, Decorator::Advice(AdviceInjector::U32Cto)),
             (10, Decorator::Advice(AdviceInjector::ILog2)),
             (10, Decorator::Advice(AdviceInjector::MemToMap)),
-            (
-                10,
-                Decorator::Advice(AdviceInjector::HdwordToMap {
-                    domain: Felt::new(423),
-                }),
-            ),
+            (10, Decorator::Advice(AdviceInjector::HdwordToMap { domain: Felt::new(423) })),
             (15, Decorator::Advice(AdviceInjector::HpermToMap)),
             (
                 15,
-                Decorator::Advice(AdviceInjector::SigToStack {
-                    kind: SignatureKind::RpoFalcon512,
-                }),
+                Decorator::Advice(AdviceInjector::SigToStack { kind: SignatureKind::RpoFalcon512 }),
             ),
             (
                 15,

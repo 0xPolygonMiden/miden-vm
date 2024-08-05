@@ -1,3 +1,11 @@
+use std::{
+    collections::{BTreeMap, HashMap},
+    fs,
+    io::Write,
+    path::{Path, PathBuf},
+    sync::Arc,
+};
+
 use assembly::{
     ast::{Module, ModuleKind},
     diagnostics::{IntoDiagnostic, Report, WrapErr},
@@ -12,13 +20,6 @@ use miden_vm::{
     Word,
 };
 use serde_derive::{Deserialize, Serialize};
-use std::{
-    collections::{BTreeMap, HashMap},
-    fs,
-    io::Write,
-    path::{Path, PathBuf},
-    sync::Arc,
-};
 use stdlib::StdLibrary;
 pub use tracing::{event, instrument, Level};
 
@@ -214,7 +215,7 @@ impl InputFile {
                         "Added Merkle tree with root {} to the Merkle store",
                         tree.root()
                     );
-                }
+                },
                 MerkleData::SparseMerkleTree(data) => {
                     let entries = Self::parse_sparse_merkle_tree(data)?;
                     let tree = SimpleSmt::<SIMPLE_SMT_DEPTH>::with_leaves(entries)
@@ -225,7 +226,7 @@ impl InputFile {
                         "Added Sparse Merkle tree with root {} to the Merkle store",
                         tree.root()
                     );
-                }
+                },
                 MerkleData::PartialMerkleTree(data) => {
                     let entries = Self::parse_partial_merkle_tree(data)?;
                     let tree = PartialMerkleTree::with_leaves(entries)
@@ -236,7 +237,7 @@ impl InputFile {
                         "Added Partial Merkle tree with root {} to the Merkle store",
                         tree.root()
                     );
-                }
+                },
             }
         }
 

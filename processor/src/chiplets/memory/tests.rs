@@ -1,9 +1,5 @@
-use super::{
-    super::ZERO, Felt, FieldElement, Memory, TraceFragment, ADDR_COL_IDX, CLK_COL_IDX, CTX_COL_IDX,
-    D0_COL_IDX, D1_COL_IDX, D_INV_COL_IDX, EMPTY_WORD, ONE, V_COL_RANGE,
-};
-use crate::ContextId;
 use alloc::vec::Vec;
+
 use miden_air::{
     trace::chiplets::memory::{
         Selectors, MEMORY_COPY_READ, MEMORY_INIT_READ, MEMORY_WRITE,
@@ -12,6 +8,12 @@ use miden_air::{
     RowIndex,
 };
 use vm_core::Word;
+
+use super::{
+    super::ZERO, Felt, FieldElement, Memory, TraceFragment, ADDR_COL_IDX, CLK_COL_IDX, CTX_COL_IDX,
+    D0_COL_IDX, D1_COL_IDX, D_INV_COL_IDX, EMPTY_WORD, ONE, V_COL_RANGE,
+};
+use crate::ContextId;
 
 #[test]
 fn mem_init() {
@@ -341,12 +343,7 @@ fn build_trace_row(
     op_selectors: Selectors,
     prev_row: [Felt; MEMORY_TRACE_WIDTH],
 ) -> [Felt; MEMORY_TRACE_WIDTH] {
-    let MemoryAccess {
-        ctx,
-        addr,
-        clk,
-        word: new_val,
-    } = *memory_access;
+    let MemoryAccess { ctx, addr, clk, word: new_val } = *memory_access;
 
     let mut row = [ZERO; MEMORY_TRACE_WIDTH];
 

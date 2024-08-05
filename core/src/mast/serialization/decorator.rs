@@ -63,10 +63,9 @@ impl From<&Decorator> for EncodedDecoratorVariant {
                 AdviceInjector::MerkleNodeMerge => Self::AdviceInjectorMerkleNodeMerge,
                 AdviceInjector::MerkleNodeToStack => Self::AdviceInjectorMerkleNodeToStack,
                 AdviceInjector::UpdateMerkleNode => Self::AdviceInjectorUpdateMerkleNode,
-                AdviceInjector::MapValueToStack {
-                    include_len: _,
-                    key_offset: _,
-                } => Self::AdviceInjectorMapValueToStack,
+                AdviceInjector::MapValueToStack { include_len: _, key_offset: _ } => {
+                    Self::AdviceInjectorMapValueToStack
+                },
                 AdviceInjector::U64Div => Self::AdviceInjectorU64Div,
                 AdviceInjector::Ext2Inv => Self::AdviceInjectorExt2Inv,
                 AdviceInjector::Ext2Intt => Self::AdviceInjectorExt2Intt,
@@ -88,8 +87,8 @@ impl From<&Decorator> for EncodedDecoratorVariant {
                 DebugOptions::StackAll => Self::DebugOptionsStackAll,
                 DebugOptions::StackTop(_) => Self::DebugOptionsStackTop,
                 DebugOptions::MemAll => Self::DebugOptionsMemAll,
-                DebugOptions::MemInterval(_, _) => Self::DebugOptionsMemInterval,
-                DebugOptions::LocalInterval(_, _, _) => Self::DebugOptionsLocalInterval,
+                DebugOptions::MemInterval(..) => Self::DebugOptionsMemInterval,
+                DebugOptions::LocalInterval(..) => Self::DebugOptionsLocalInterval,
             },
             Decorator::Event(_) => Self::Event,
             Decorator::Trace(_) => Self::Trace,

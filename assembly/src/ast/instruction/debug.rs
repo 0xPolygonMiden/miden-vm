@@ -60,12 +60,12 @@ impl TryFrom<DebugOptions> for vm_core::DebugOptions {
             DebugOptions::MemAll => Ok(Self::MemAll),
             DebugOptions::MemInterval(ImmU32::Value(start), ImmU32::Value(end)) => {
                 Ok(Self::MemInterval(start.into_inner(), end.into_inner()))
-            }
+            },
             DebugOptions::LocalInterval(ImmU16::Value(start), ImmU16::Value(end)) => {
                 let start = start.into_inner();
                 let end = end.into_inner();
                 Ok(Self::LocalInterval(start, end, end - start))
-            }
+            },
             _ => Err(()),
         }
     }
@@ -82,7 +82,7 @@ impl fmt::Display for DebugOptions {
             Self::LocalRangeFrom(start) => write!(f, "local.{start}"),
             Self::LocalInterval(start, end) => {
                 write!(f, "local.{start}.{end}")
-            }
+            },
         }
     }
 }
@@ -94,22 +94,22 @@ impl Serializable for DebugOptions {
             Self::StackAll | Self::MemAll | Self::LocalAll => (),
             Self::StackTop(ImmU8::Value(n)) => {
                 target.write_u8(n.into_inner());
-            }
+            },
             Self::MemInterval(ImmU32::Value(n), ImmU32::Value(m)) => {
                 target.write_u32(n.into_inner());
                 target.write_u32(m.into_inner());
-            }
+            },
             Self::LocalRangeFrom(ImmU16::Value(start)) => {
                 let start = start.into_inner();
                 target.write_u16(start);
-            }
+            },
             Self::LocalInterval(ImmU16::Value(start), ImmU16::Value(end)) => {
                 let start = start.into_inner();
                 let end = end.into_inner();
                 target.write_u16(start);
                 target.write_u16(end);
                 target.write_u16(end - start);
-            }
+            },
             options => unimplemented!("unimplemented debug options: {options}"),
         }
     }
@@ -125,13 +125,13 @@ impl Deserializable for DebugOptions {
                     return Err(DeserializationError::InvalidValue(n.to_string()));
                 }
                 Ok(Self::StackTop(n.into()))
-            }
+            },
             MEM_ALL => Ok(Self::MemAll),
             MEM_INTERVAL => {
                 let n = source.read_u32()?;
                 let m = source.read_u32()?;
                 Ok(Self::MemInterval(n.into(), m.into()))
-            }
+            },
             LOCAL_INTERVAL => {
                 let n = source.read_u16()?;
                 let m = source.read_u16()?;
@@ -141,11 +141,11 @@ impl Deserializable for DebugOptions {
                     (n, u16::MAX) => Ok(Self::LocalRangeFrom(n.into())),
                     (n, m) => Ok(Self::LocalInterval(n.into(), m.into())),
                 }
-            }
+            },
             LOCAL_RANGE_FROM => {
                 let n = source.read_u16()?;
                 Ok(Self::LocalRangeFrom(n.into()))
-            }
+            },
             LOCAL_ALL => Ok(Self::LocalAll),
             val => Err(DeserializationError::InvalidValue(val.to_string())),
         }

@@ -5,12 +5,9 @@ mod opcode;
 mod print;
 mod serialize;
 
-pub use self::advice::AdviceInjectorNode;
-pub use self::debug::DebugOptions;
-pub use self::opcode::OpCode;
-
 use alloc::vec::Vec;
 
+pub use self::{advice::AdviceInjectorNode, debug::DebugOptions, opcode::OpCode};
 use crate::{
     ast::{immediate::*, InvocationTarget},
     Felt, Word,

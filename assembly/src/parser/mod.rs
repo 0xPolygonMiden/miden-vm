@@ -19,17 +19,19 @@ mod lexer;
 mod scanner;
 mod token;
 
-pub use self::error::{BinErrorKind, HexErrorKind, LiteralErrorKind, ParsingError};
-pub use self::lexer::Lexer;
-pub use self::scanner::Scanner;
-pub use self::token::{BinEncodedValue, DocumentationType, HexEncodedValue, Token};
+use alloc::{boxed::Box, collections::BTreeSet, string::ToString, sync::Arc, vec::Vec};
 
+pub use self::{
+    error::{BinErrorKind, HexErrorKind, LiteralErrorKind, ParsingError},
+    lexer::Lexer,
+    scanner::Scanner,
+    token::{BinEncodedValue, DocumentationType, HexEncodedValue, Token},
+};
 use crate::{
     ast,
     diagnostics::{Report, SourceFile, SourceSpan, Span, Spanned},
     sema, LibraryPath, SourceManager,
 };
-use alloc::{boxed::Box, collections::BTreeSet, string::ToString, sync::Arc, vec::Vec};
 
 type ParseError<'a> = lalrpop_util::ParseError<u32, Token<'a>, ParsingError>;
 
@@ -103,8 +105,9 @@ impl ModuleParser {
     where
         P: AsRef<std::path::Path>,
     {
-        use crate::diagnostics::{IntoDiagnostic, WrapErr};
         use vm_core::debuginfo::SourceManagerExt;
+
+        use crate::diagnostics::{IntoDiagnostic, WrapErr};
 
         let path = path.as_ref();
         let source_file = source_manager
@@ -161,9 +164,10 @@ fn parse_forms_internal(
 
 #[cfg(test)]
 mod tests {
+    use vm_core::assert_matches;
+
     use super::*;
     use crate::SourceId;
-    use vm_core::assert_matches;
 
     // This test checks the lexer behavior with regard to tokenizing `exp(.u?[\d]+)?`
     #[test]

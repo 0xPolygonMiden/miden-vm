@@ -1,10 +1,11 @@
+use std::{env, path::Path, sync::Arc};
+
 use assembly::{
     ast::AstSerdeOptions,
     diagnostics::{IntoDiagnostic, Result},
     library::CompiledLibrary,
     LibraryNamespace, Version,
 };
-use std::{env, path::Path, sync::Arc};
 
 // CONSTANTS
 // ================================================================================================

@@ -1,8 +1,9 @@
+use alloc::vec::Vec;
+
 use super::super::{
     EvaluationFrame, Felt, FieldElement, TransitionConstraintDegree, CHIPLETS_OFFSET,
 };
 use crate::utils::{are_equal, binary_not, is_binary};
-use alloc::vec::Vec;
 
 mod bitwise;
 mod hasher;

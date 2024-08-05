@@ -1,8 +1,3 @@
-use crate::{
-    ast::*,
-    diagnostics::{Diagnostic, Severity},
-    Felt, SourceFile, Span, Spanned,
-};
 use alloc::{
     collections::{BTreeMap, BTreeSet},
     sync::Arc,
@@ -10,6 +5,11 @@ use alloc::{
 };
 
 use super::{SemanticAnalysisError, SyntaxError};
+use crate::{
+    ast::*,
+    diagnostics::{Diagnostic, Severity},
+    Felt, SourceFile, Span, Spanned,
+};
 
 /// This maintains the state for semantic analysis of a single [Module].
 pub struct AnalysisContext {
@@ -64,7 +64,7 @@ impl AnalysisContext {
                 constant.value = ConstantExpr::Literal(Span::new(constant.span(), value));
                 self.constants.insert(constant.name.clone(), constant);
                 Ok(())
-            }
+            },
             Err(err) => {
                 self.errors.push(err);
                 let errors = core::mem::take(&mut self.errors);
@@ -72,7 +72,7 @@ impl AnalysisContext {
                     source_file: self.source_file.clone(),
                     errors,
                 })
-            }
+            },
         }
     }
 
@@ -80,12 +80,7 @@ impl AnalysisContext {
         match value {
             ConstantExpr::Literal(value) => Ok(value.into_inner()),
             ConstantExpr::Var(ref name) => self.get_constant(name),
-            ConstantExpr::BinaryOp {
-                op,
-                ref lhs,
-                ref rhs,
-                ..
-            } => {
+            ConstantExpr::BinaryOp { op, ref lhs, ref rhs, .. } => {
                 let rhs = self.const_eval(rhs)?;
                 let lhs = self.const_eval(lhs)?;
                 match op {
@@ -95,7 +90,7 @@ impl AnalysisContext {
                     ConstantOp::Div => Ok(lhs / rhs),
                     ConstantOp::IntDiv => Ok(Felt::new(lhs.as_int() / rhs.as_int())),
                 }
-            }
+            },
         }
     }
 

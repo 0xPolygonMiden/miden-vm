@@ -210,7 +210,7 @@ where
                     *self = Self::Empty;
                 }
                 result
-            }
+            },
         }
     }
 }

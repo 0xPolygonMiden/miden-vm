@@ -33,7 +33,7 @@ impl fmt::Display for LiteralErrorKind {
             Self::FeltOverflow => f.write_str("value overflowed the field modulus"),
             Self::InvalidBitSize => {
                 f.write_str("expected value to be a valid bit size, e.g. 0..63")
-            }
+            },
         }
     }
 }
@@ -59,7 +59,7 @@ impl fmt::Display for HexErrorKind {
         match self {
             Self::MissingDigits => {
                 f.write_str("expected number of hex digits to be a multiple of 2")
-            }
+            },
             Self::Invalid => f.write_str("expected 2, 4, 8, 16, or 64 hex digits"),
             Self::Overflow => f.write_str("value overflowed the field modulus"),
             Self::TooLong => f.write_str(
@@ -257,7 +257,7 @@ impl PartialEq for ParsingError {
             (Self::InvalidLiteral { kind: l, .. }, Self::InvalidLiteral { kind: r, .. }) => l == r,
             (Self::InvalidHexLiteral { kind: l, .. }, Self::InvalidHexLiteral { kind: r, .. }) => {
                 l == r
-            }
+            },
             (
                 Self::InvalidLibraryPath { message: l, .. },
                 Self::InvalidLibraryPath { message: r, .. },
@@ -268,27 +268,15 @@ impl PartialEq for ParsingError {
             ) => l == r,
             (Self::PushOverflow { count: l, .. }, Self::PushOverflow { count: r, .. }) => l == r,
             (
-                Self::UnrecognizedToken {
-                    token: ltok,
-                    expected: lexpect,
-                    ..
-                },
-                Self::UnrecognizedToken {
-                    token: rtok,
-                    expected: rexpect,
-                    ..
-                },
+                Self::UnrecognizedToken { token: ltok, expected: lexpect, .. },
+                Self::UnrecognizedToken { token: rtok, expected: rexpect, .. },
             ) => ltok == rtok && lexpect == rexpect,
             (Self::ExtraToken { token: ltok, .. }, Self::ExtraToken { token: rtok, .. }) => {
                 ltok == rtok
-            }
+            },
             (
-                Self::UnrecognizedEof {
-                    expected: lexpect, ..
-                },
-                Self::UnrecognizedEof {
-                    expected: rexpect, ..
-                },
+                Self::UnrecognizedEof { expected: lexpect, .. },
+                Self::UnrecognizedEof { expected: rexpect, .. },
             ) => lexpect == rexpect,
             (x, y) => x.tag() == y.tag(),
         }
@@ -299,9 +287,7 @@ impl ParsingError {
     pub fn from_utf8_error(source_id: SourceId, err: core::str::Utf8Error) -> Self {
         let start = u32::try_from(err.valid_up_to()).ok().unwrap_or(u32::MAX);
         match err.error_len() {
-            None => Self::IncompleteUtf8 {
-                span: SourceSpan::at(source_id, start),
-            },
+            None => Self::IncompleteUtf8 { span: SourceSpan::at(source_id, start) },
             Some(len) => Self::InvalidUtf8 {
                 span: SourceSpan::new(source_id, start..(start + len as u32)),
             },
@@ -312,32 +298,27 @@ impl ParsingError {
         use super::Token;
 
         match err {
-            ParseError::InvalidToken { location: at } => Self::InvalidToken {
-                span: SourceSpan::at(source_id, at),
+            ParseError::InvalidToken { location: at } => {
+                Self::InvalidToken { span: SourceSpan::at(source_id, at) }
             },
-            ParseError::UnrecognizedToken {
-                token: (l, Token::Eof, r),
-                expected,
-            } => Self::UnrecognizedEof {
-                span: SourceSpan::new(source_id, l..r),
-                expected: simplify_expected_tokens(expected),
+            ParseError::UnrecognizedToken { token: (l, Token::Eof, r), expected } => {
+                Self::UnrecognizedEof {
+                    span: SourceSpan::new(source_id, l..r),
+                    expected: simplify_expected_tokens(expected),
+                }
             },
-            ParseError::UnrecognizedToken {
-                token: (l, tok, r),
-                expected,
-            } => Self::UnrecognizedToken {
-                span: SourceSpan::new(source_id, l..r),
-                token: tok.to_string(),
-                expected: simplify_expected_tokens(expected),
+            ParseError::UnrecognizedToken { token: (l, tok, r), expected } => {
+                Self::UnrecognizedToken {
+                    span: SourceSpan::new(source_id, l..r),
+                    token: tok.to_string(),
+                    expected: simplify_expected_tokens(expected),
+                }
             },
             ParseError::ExtraToken { token: (l, tok, r) } => Self::ExtraToken {
                 span: SourceSpan::new(source_id, l..r),
                 token: tok.to_string(),
             },
-            ParseError::UnrecognizedEof {
-                location: at,
-                expected,
-            } => Self::UnrecognizedEof {
+            ParseError::UnrecognizedEof { location: at, expected } => Self::UnrecognizedEof {
                 span: SourceSpan::new(source_id, at..at),
                 expected: simplify_expected_tokens(expected),
             },
@@ -378,7 +359,7 @@ fn simplify_expected_tokens(expected: Vec<String>) -> Vec<String> {
                     } else {
                         None
                     }
-                }
+                },
                 Some(tok) if tok.is_instruction() => {
                     if !has_instruction {
                         has_instruction = true;
@@ -386,7 +367,7 @@ fn simplify_expected_tokens(expected: Vec<String>) -> Vec<String> {
                     } else {
                         None
                     }
-                }
+                },
                 _ => Some(t),
             }
         })

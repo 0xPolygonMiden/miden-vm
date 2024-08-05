@@ -1,9 +1,8 @@
 use miden_crypto::hash::rpo::RpoDigest;
 use winter_utils::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable};
 
-use crate::mast::{MastForest, MastNode, MastNodeId};
-
 use super::{basic_block_data_decoder::BasicBlockDataDecoder, DataOffset};
+use crate::mast::{MastForest, MastNode, MastNodeId};
 
 // MAST NODE INFO
 // ================================================================================================
@@ -23,10 +22,7 @@ impl MastNodeInfo {
     pub fn new(mast_node: &MastNode, basic_block_offset: DataOffset) -> Self {
         let ty = MastNodeType::new(mast_node, basic_block_offset);
 
-        Self {
-            ty,
-            digest: mast_node.digest(),
-        }
+        Self { ty, digest: mast_node.digest() }
     }
 
     pub fn try_into_mast_node(
@@ -43,42 +39,36 @@ impl MastNodeInfo {
                     .decode_operations_and_decorators(offset, num_operations_and_decorators)?;
 
                 Ok(MastNode::new_basic_block_with_decorators(operations, decorators))
-            }
-            MastNodeType::Join {
-                left_child_id,
-                right_child_id,
-            } => {
+            },
+            MastNodeType::Join { left_child_id, right_child_id } => {
                 let left_child = MastNodeId::from_u32_safe(left_child_id, mast_forest)?;
                 let right_child = MastNodeId::from_u32_safe(right_child_id, mast_forest)?;
 
                 Ok(MastNode::new_join(left_child, right_child, mast_forest)
                     .expect("invalid node id"))
-            }
-            MastNodeType::Split {
-                if_branch_id,
-                else_branch_id,
-            } => {
+            },
+            MastNodeType::Split { if_branch_id, else_branch_id } => {
                 let if_branch = MastNodeId::from_u32_safe(if_branch_id, mast_forest)?;
                 let else_branch = MastNodeId::from_u32_safe(else_branch_id, mast_forest)?;
 
                 Ok(MastNode::new_split(if_branch, else_branch, mast_forest)
                     .expect("invalid node id"))
-            }
+            },
             MastNodeType::Loop { body_id } => {
                 let body_id = MastNodeId::from_u32_safe(body_id, mast_forest)?;
 
                 Ok(MastNode::new_loop(body_id, mast_forest).expect("invalid node id"))
-            }
+            },
             MastNodeType::Call { callee_id } => {
                 let callee_id = MastNodeId::from_u32_safe(callee_id, mast_forest)?;
 
                 Ok(MastNode::new_call(callee_id, mast_forest).expect("invalid node id"))
-            }
+            },
             MastNodeType::SysCall { callee_id } => {
                 let callee_id = MastNodeId::from_u32_safe(callee_id, mast_forest)?;
 
                 Ok(MastNode::new_syscall(callee_id, mast_forest).expect("invalid node id"))
-            }
+            },
             MastNodeType::Dyn => Ok(MastNode::new_dyn()),
             MastNodeType::External => Ok(MastNode::new_external(self.digest)),
         }?;
@@ -171,11 +161,8 @@ impl MastNodeType {
             Block(block_node) => {
                 let len = block_node.num_operations_and_decorators();
 
-                Self::Block {
-                    len,
-                    offset: basic_block_offset,
-                }
-            }
+                Self::Block { len, offset: basic_block_offset }
+            },
             Join(join_node) => Self::Join {
                 left_child_id: join_node.first().0,
                 right_child_id: join_node.second().0,
@@ -184,20 +171,14 @@ impl MastNodeType {
                 if_branch_id: split_node.on_true().0,
                 else_branch_id: split_node.on_false().0,
             },
-            Loop(loop_node) => Self::Loop {
-                body_id: loop_node.body().0,
-            },
+            Loop(loop_node) => Self::Loop { body_id: loop_node.body().0 },
             Call(call_node) => {
                 if call_node.is_syscall() {
-                    Self::SysCall {
-                        callee_id: call_node.callee().0,
-                    }
+                    Self::SysCall { callee_id: call_node.callee().0 }
                 } else {
-                    Self::Call {
-                        callee_id: call_node.callee().0,
-                    }
+                    Self::Call { callee_id: call_node.callee().0 }
                 }
-            }
+            },
             Dyn => Self::Dyn,
             External(_) => Self::External,
         }
@@ -274,7 +255,7 @@ impl Deserializable for MastNodeType {
             // 4 bits
             let discriminant = (value >> 60) as u8;
             // 60 bits
-            let payload = value & 0x0F_FF_FF_FF_FF_FF_FF_FF;
+            let payload = value & 0x0f_ff_ff_ff_ff_ff_ff_ff;
 
             (discriminant, payload)
         };
@@ -282,34 +263,28 @@ impl Deserializable for MastNodeType {
         match discriminant {
             JOIN => {
                 let (left_child_id, right_child_id) = Self::decode_u32_pair(payload);
-                Ok(Self::Join {
-                    left_child_id,
-                    right_child_id,
-                })
-            }
+                Ok(Self::Join { left_child_id, right_child_id })
+            },
             SPLIT => {
                 let (if_branch_id, else_branch_id) = Self::decode_u32_pair(payload);
-                Ok(Self::Split {
-                    if_branch_id,
-                    else_branch_id,
-                })
-            }
+                Ok(Self::Split { if_branch_id, else_branch_id })
+            },
             LOOP => {
                 let body_id = Self::decode_u32_payload(payload)?;
                 Ok(Self::Loop { body_id })
-            }
+            },
             BLOCK => {
                 let (offset, len) = Self::decode_u32_pair(payload);
                 Ok(Self::Block { offset, len })
-            }
+            },
             CALL => {
                 let callee_id = Self::decode_u32_payload(payload)?;
                 Ok(Self::Call { callee_id })
-            }
+            },
             SYSCALL => {
                 let callee_id = Self::decode_u32_payload(payload)?;
                 Ok(Self::SysCall { callee_id })
-            }
+            },
             DYN => Ok(Self::Dyn),
             EXTERNAL => Ok(Self::External),
             _ => Err(DeserializationError::InvalidValue(format!(
@@ -324,7 +299,7 @@ impl MastNodeType {
     /// Decodes two `u32` numbers from a 60-bit payload.
     fn decode_u32_pair(payload: u64) -> (u32, u32) {
         let left_value = (payload >> 30) as u32;
-        let right_value = (payload & 0x3F_FF_FF_FF) as u32;
+        let right_value = (payload & 0x3f_ff_ff_ff) as u32;
 
         (left_value, right_value)
     }
@@ -351,8 +326,8 @@ mod tests {
     fn serialize_deserialize_60_bit_payload() {
         // each child needs 30 bits
         let mast_node_type = MastNodeType::Join {
-            left_child_id: 0x3F_FF_FF_FF,
-            right_child_id: 0x3F_FF_FF_FF,
+            left_child_id: 0x3f_ff_ff_ff,
+            right_child_id: 0x3f_ff_ff_ff,
         };
 
         let serialized = mast_node_type.to_bytes();
@@ -366,7 +341,7 @@ mod tests {
     fn serialize_large_payloads_fails_1() {
         // left child needs 31 bits
         let mast_node_type = MastNodeType::Join {
-            left_child_id: 0x4F_FF_FF_FF,
+            left_child_id: 0x4f_ff_ff_ff,
             right_child_id: 0x0,
         };
 
@@ -380,7 +355,7 @@ mod tests {
         // right child needs 31 bits
         let mast_node_type = MastNodeType::Join {
             left_child_id: 0x0,
-            right_child_id: 0x4F_FF_FF_FF,
+            right_child_id: 0x4f_ff_ff_ff,
         };
 
         // must panic

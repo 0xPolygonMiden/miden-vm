@@ -1,6 +1,7 @@
+use std::time::Duration;
+
 use assembly::Assembler;
 use criterion::{criterion_group, criterion_main, Criterion};
-use std::time::Duration;
 use stdlib::StdLibrary;
 
 fn program_compilation(c: &mut Criterion) {

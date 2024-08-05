@@ -69,10 +69,7 @@ impl<T> Span<T> {
     /// Creates a span for `spanned` with `span`.
     #[inline]
     pub fn new(span: impl Into<SourceSpan>, spanned: T) -> Self {
-        Self {
-            span: span.into(),
-            spanned,
-        }
+        Self { span: span.into(), spanned }
     }
 
     /// Creates a span for `spanned` representing a single location, `offset`.
@@ -87,10 +84,7 @@ impl<T> Span<T> {
 
     /// Creates a [Span] from a value with an unknown/default location.
     pub fn unknown(spanned: T) -> Self {
-        Self {
-            span: Default::default(),
-            spanned,
-        }
+        Self { span: Default::default(), spanned }
     }
 
     /// Gets the associated [SourceSpan] for this spanned item.
@@ -132,10 +126,7 @@ impl<T> Span<T> {
 
     /// Gets a new [Span] that borrows the inner value.
     pub fn as_ref(&self) -> Span<&T> {
-        Span {
-            span: self.span,
-            spanned: &self.spanned,
-        }
+        Span { span: self.span, spanned: &self.spanned }
     }
 
     /// Shifts the span right by `count` units
@@ -341,11 +332,7 @@ impl SourceSpan {
     /// Creates a new [SourceSpan] for a specific offset.
     pub fn at(source_id: SourceId, offset: impl Into<ByteIndex>) -> Self {
         let offset = offset.into();
-        Self {
-            source_id,
-            start: offset,
-            end: offset,
-        }
+        Self { source_id, start: offset, end: offset }
     }
 
     /// Try to create a new [SourceSpan] from the given range with `usize` bounds.
@@ -432,11 +419,7 @@ impl Deserializable for SourceSpan {
         let source_id = SourceId::new_unchecked(source.read_u32()?);
         let start = ByteIndex::from(source.read_u32()?);
         let end = ByteIndex::from(source.read_u32()?);
-        Ok(Self {
-            source_id,
-            start,
-            end,
-        })
+        Ok(Self { source_id, start, end })
     }
 }
 

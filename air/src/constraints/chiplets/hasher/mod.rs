@@ -1,3 +1,5 @@
+use alloc::vec::Vec;
+
 use super::{EvaluationFrame, Felt, FieldElement, TransitionConstraintDegree};
 use crate::{
     trace::chiplets::{
@@ -10,7 +12,6 @@ use crate::{
     utils::{are_equal, binary_not, is_binary, EvaluationResult},
     ONE, ZERO,
 };
-use alloc::vec::Vec;
 
 #[cfg(test)]
 mod tests;

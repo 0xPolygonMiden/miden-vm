@@ -1,9 +1,9 @@
+use alloc::vec::Vec;
 use core::ops::Range;
 
-use alloc::vec::Vec;
+use vm_core::utils::range as create_range;
 
 use super::FieldElement;
-use vm_core::utils::range as create_range;
 
 // BASIC CONSTRAINT OPERATORS
 // ================================================================================================
@@ -70,11 +70,7 @@ impl TransitionConstraintRange {
         let range_checker = create_range(stack.end, range_checker_len);
         let chiplets = create_range(range_checker.end, chiplets_len);
 
-        Self {
-            stack,
-            range_checker,
-            chiplets,
-        }
+        Self { stack, range_checker, chiplets }
     }
 }
 
@@ -92,8 +88,9 @@ macro_rules! select_result_range {
 // ================================================================================================
 #[cfg(test)]
 mod tests {
-    use super::TransitionConstraintRange;
     use vm_core::utils::range as create_range;
+
+    use super::TransitionConstraintRange;
 
     #[test]
     fn transition_constraint_ranges() {

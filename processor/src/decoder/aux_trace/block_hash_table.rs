@@ -49,7 +49,7 @@ impl<E: FieldElement<BaseField = Felt>> AuxColumnBuilder<E> for BlockHashTableCo
 
                 // Note: this adds the 2 rows separately to the block hash table.
                 left_child_row.collapse(alphas) * right_child_row.collapse(alphas)
-            }
+            },
             OPCODE_SPLIT => BlockHashTableRow::from_split(main_trace, row).collapse(alphas),
             OPCODE_LOOP => BlockHashTableRow::from_loop(main_trace, row)
                 .map(|row| row.collapse(alphas))

@@ -240,11 +240,11 @@ where
             0 => {
                 self.stack.set(0, b);
                 self.stack.set(1, a);
-            }
+            },
             1 => {
                 self.stack.set(0, a);
                 self.stack.set(1, b);
-            }
+            },
             _ => return Err(ExecutionError::NotBinaryValue(c)),
         }
 
@@ -278,7 +278,7 @@ where
                 self.stack.set(5, a1);
                 self.stack.set(6, a2);
                 self.stack.set(7, a3);
-            }
+            },
             1 => {
                 self.stack.set(0, a0);
                 self.stack.set(1, a1);
@@ -288,7 +288,7 @@ where
                 self.stack.set(5, b1);
                 self.stack.set(6, b2);
                 self.stack.set(7, b3);
-            }
+            },
             _ => return Err(ExecutionError::NotBinaryValue(c)),
         }
 

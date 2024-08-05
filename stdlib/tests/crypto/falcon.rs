@@ -1,20 +1,20 @@
-use processor::{Program, ProgramInfo};
-use rand::{thread_rng, Rng};
+use std::vec;
 
 use assembly::{utils::Serializable, Assembler};
 use miden_air::{Felt, ProvingOptions};
 use miden_stdlib::StdLibrary;
 use processor::{
     crypto::RpoRandomCoin, AdviceInputs, DefaultHost, Digest, ExecutionError, MemAdviceProvider,
-    StackInputs,
+    Program, ProgramInfo, StackInputs,
 };
-use std::vec;
-use test_utils::crypto::Rpo256;
-use test_utils::rand::rand_value;
+use rand::{thread_rng, Rng};
 use test_utils::{
-    crypto::{rpo_falcon512::Polynomial, rpo_falcon512::SecretKey, MerkleStore},
+    crypto::{
+        rpo_falcon512::{Polynomial, SecretKey},
+        MerkleStore, Rpo256,
+    },
     expect_exec_error,
-    rand::rand_vector,
+    rand::{rand_value, rand_vector},
     FieldElement, QuadFelt, Word, WORD_SIZE,
 };
 

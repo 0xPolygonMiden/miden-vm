@@ -2,6 +2,7 @@
 // ================================================================================================
 
 use alloc::vec::Vec;
+
 use miden_air::ProcessorAir;
 use test_utils::{
     crypto::{BatchMerkleProof, MerklePath, PartialMerkleTree, Rpo256, RpoDigest},
@@ -407,10 +408,7 @@ impl ConstraintQueries {
                 ))
             })?;
 
-        Ok(Self {
-            query_proofs,
-            evaluations,
-        })
+        Ok(Self { query_proofs, evaluations })
     }
 }
 

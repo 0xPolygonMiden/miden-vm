@@ -234,7 +234,6 @@ impl CallGraph {
 #[cfg(test)]
 mod tests {
     use super::*;
-
     use crate::{
         assembler::{GlobalProcedureIndex, ModuleIndex},
         ast::ProcedureIndex,
@@ -245,30 +244,12 @@ mod tests {
     const P1: ProcedureIndex = ProcedureIndex::const_new(1);
     const P2: ProcedureIndex = ProcedureIndex::const_new(2);
     const P3: ProcedureIndex = ProcedureIndex::const_new(3);
-    const A1: GlobalProcedureIndex = GlobalProcedureIndex {
-        module: A,
-        index: P1,
-    };
-    const A2: GlobalProcedureIndex = GlobalProcedureIndex {
-        module: A,
-        index: P2,
-    };
-    const A3: GlobalProcedureIndex = GlobalProcedureIndex {
-        module: A,
-        index: P3,
-    };
-    const B1: GlobalProcedureIndex = GlobalProcedureIndex {
-        module: B,
-        index: P1,
-    };
-    const B2: GlobalProcedureIndex = GlobalProcedureIndex {
-        module: B,
-        index: P2,
-    };
-    const B3: GlobalProcedureIndex = GlobalProcedureIndex {
-        module: B,
-        index: P3,
-    };
+    const A1: GlobalProcedureIndex = GlobalProcedureIndex { module: A, index: P1 };
+    const A2: GlobalProcedureIndex = GlobalProcedureIndex { module: A, index: P2 };
+    const A3: GlobalProcedureIndex = GlobalProcedureIndex { module: A, index: P3 };
+    const B1: GlobalProcedureIndex = GlobalProcedureIndex { module: B, index: P1 };
+    const B2: GlobalProcedureIndex = GlobalProcedureIndex { module: B, index: P2 };
+    const B3: GlobalProcedureIndex = GlobalProcedureIndex { module: B, index: P3 };
 
     #[test]
     fn callgraph_add_edge() {

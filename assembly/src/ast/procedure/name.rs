@@ -57,7 +57,7 @@ impl FromStr for QualifiedProcedureName {
                 let name = name.parse::<ProcedureName>().into_diagnostic()?;
                 let path = path.parse::<LibraryPath>().into_diagnostic()?;
                 Ok(Self::new(path, name))
-            }
+            },
         }
     }
 }
@@ -325,7 +325,7 @@ impl FromStr for ProcedureName {
                             }
                             let tok = &s[1..pos];
                             break Ok(Arc::from(tok.to_string().into_boxed_str()));
-                        }
+                        },
                         c if c.is_alphanumeric() => continue,
                         '_' | '$' | '-' | '!' | '?' | '<' | '>' | ':' | '.' => continue,
                         _ => break Err(IdentError::InvalidChars),
@@ -344,7 +344,7 @@ impl FromStr for ProcedureName {
                 } else {
                     Ok(Arc::from(s.to_string().into_boxed_str()))
                 }
-            }
+            },
             Some((_, c)) if c.is_ascii_uppercase() => Err(IdentError::Casing(CaseKindError::Snake)),
             Some(_) => Err(IdentError::InvalidChars),
         }?;

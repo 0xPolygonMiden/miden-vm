@@ -1,7 +1,8 @@
-use super::Example;
 use miden_vm::{Assembler, DefaultHost, MemAdviceProvider, Program, StackInputs};
 use stdlib::StdLibrary;
 use vm_core::{utils::group_slice_elements, Felt};
+
+use super::Example;
 
 // CONSTANTS
 // ================================================================================================

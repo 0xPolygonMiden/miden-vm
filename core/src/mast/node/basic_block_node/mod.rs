@@ -1,6 +1,6 @@
+use alloc::vec::Vec;
 use core::fmt;
 
-use alloc::vec::Vec;
 use miden_crypto::{hash::rpo::RpoDigest, Felt, ZERO};
 use miden_formatting::prettier::PrettyPrint;
 use winter_utils::flatten_slice_elements;
@@ -102,11 +102,7 @@ impl BasicBlockNode {
         validate_decorators(&operations, &decorators);
 
         let (op_batches, digest) = batch_ops(operations);
-        Self {
-            op_batches,
-            digest,
-            decorators,
-        }
+        Self { op_batches, digest, decorators }
     }
 }
 

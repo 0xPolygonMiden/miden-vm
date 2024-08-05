@@ -4,20 +4,23 @@ mod debug;
 mod name_resolver;
 mod rewrites;
 
-pub use self::callgraph::{CallGraph, CycleError};
-pub use self::name_resolver::{CallerInfo, ResolvedTarget};
-
 use alloc::{boxed::Box, collections::BTreeMap, sync::Arc, vec::Vec};
 use core::ops::Index;
-use vm_core::Kernel;
 
 use smallvec::{smallvec, SmallVec};
+use vm_core::Kernel;
 
 use self::{analysis::MaybeRewriteCheck, name_resolver::NameResolver, rewrites::ModuleRewriter};
+pub use self::{
+    callgraph::{CallGraph, CycleError},
+    name_resolver::{CallerInfo, ResolvedTarget},
+};
 use super::{GlobalProcedureIndex, ModuleIndex};
-use crate::ast::InvokeKind;
 use crate::{
-    ast::{Export, InvocationTarget, Module, ProcedureIndex, ProcedureName, ResolvedProcedure},
+    ast::{
+        Export, InvocationTarget, InvokeKind, Module, ProcedureIndex, ProcedureName,
+        ResolvedProcedure,
+    },
     library::{ModuleInfo, ProcedureInfo},
     AssemblyError, LibraryNamespace, LibraryPath, RpoDigest, SourceManager, Spanned,
 };
@@ -92,7 +95,7 @@ impl WrappedModule {
             Self::Ast(module) => module,
             Self::Info(_) => {
                 panic!("expected module to be in AST representation, but was compiled")
-            }
+            },
         }
     }
 
@@ -104,7 +107,7 @@ impl WrappedModule {
         match self {
             Self::Ast(_) => {
                 panic!("expected module to be compiled, but was in AST representation")
-            }
+            },
             Self::Info(module) => module,
         }
     }
@@ -115,7 +118,7 @@ impl WrappedModule {
             WrappedModule::Ast(module) => module.resolve(name),
             WrappedModule::Info(module) => {
                 module.get_proc_digest_by_name(name).map(ResolvedProcedure::MastRoot)
-            }
+            },
         }
     }
 }
@@ -194,10 +197,7 @@ impl ModuleGraph {
         // Register all procedures as roots
         for &module_index in module_indices.iter() {
             for (proc_index, proc) in self[module_index].unwrap_info().clone().procedure_infos() {
-                let gid = GlobalProcedureIndex {
-                    module: module_index,
-                    index: proc_index,
-                };
+                let gid = GlobalProcedureIndex { module: module_index, index: proc_index };
 
                 self.register_mast_root(gid, proc.digest)?;
             }
@@ -231,9 +231,7 @@ impl ModuleGraph {
         let is_duplicate =
             self.is_pending(module.path()) || self.find_module_index(module.path()).is_some();
         if is_duplicate {
-            return Err(AssemblyError::DuplicateModule {
-                path: module.path().clone(),
-            });
+            return Err(AssemblyError::DuplicateModule { path: module.path().clone() });
         }
 
         let module_id = self.next_module_id();
@@ -356,26 +354,22 @@ impl ModuleGraph {
                 PendingWrappedModule::Ast(pending_module) => {
                     for (index, _) in pending_module.procedures().enumerate() {
                         let procedure_id = ProcedureIndex::new(index);
-                        let global_id = GlobalProcedureIndex {
-                            module: module_id,
-                            index: procedure_id,
-                        };
+                        let global_id =
+                            GlobalProcedureIndex { module: module_id, index: procedure_id };
 
                         // Ensure all entrypoints and exported symbols are represented in the call
                         // graph, even if they have no edges, we need them
                         // in the graph for the topological sort
                         self.callgraph.get_or_insert_node(global_id);
                     }
-                }
+                },
                 PendingWrappedModule::Info(pending_module) => {
                     for (proc_index, _procedure) in pending_module.procedure_infos() {
-                        let global_id = GlobalProcedureIndex {
-                            module: module_id,
-                            index: proc_index,
-                        };
+                        let global_id =
+                            GlobalProcedureIndex { module: module_id, index: proc_index };
                         self.callgraph.get_or_insert_node(global_id);
                     }
-                }
+                },
             }
         }
 
@@ -401,10 +395,7 @@ impl ModuleGraph {
 
                     for (index, procedure) in ast_module.procedures().enumerate() {
                         let procedure_id = ProcedureIndex::new(index);
-                        let gid = GlobalProcedureIndex {
-                            module: module_id,
-                            index: procedure_id,
-                        };
+                        let gid = GlobalProcedureIndex { module: module_id, index: procedure_id };
 
                         // Add edge to the call graph to represent dependency on aliased procedures
                         if let Export::Alias(ref alias) = procedure {
@@ -437,10 +428,10 @@ impl ModuleGraph {
                     }
 
                     finished.push(WrappedModule::Ast(Arc::new(*ast_module)))
-                }
+                },
                 PendingWrappedModule::Info(module) => {
                     finished.push(WrappedModule::Info(module));
-                }
+                },
             }
         }
 
@@ -526,7 +517,7 @@ impl ModuleGraph {
             WrappedModule::Ast(m) => ProcedureWrapper::Ast(&m[id.index]),
             WrappedModule::Info(m) => {
                 ProcedureWrapper::Info(m.get_proc_info_by_index(id.index).unwrap())
-            }
+            },
         }
     }
 
@@ -568,10 +559,10 @@ impl ModuleGraph {
                     // Multiple procedures with the same root, but compatible
                     entry.get_mut().push(id);
                 }
-            }
+            },
             Entry::Vacant(entry) => {
                 entry.insert(smallvec![id]);
-            }
+            },
         }
 
         Ok(())
