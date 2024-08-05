@@ -255,7 +255,7 @@ impl Deserializable for MastNodeType {
             // 4 bits
             let discriminant = (value >> 60) as u8;
             // 60 bits
-            let payload = value & 0x0F_FF_FF_FF_FF_FF_FF_FF;
+            let payload = value & 0x0f_ff_ff_ff_ff_ff_ff_ff;
 
             (discriminant, payload)
         };
@@ -299,7 +299,7 @@ impl MastNodeType {
     /// Decodes two `u32` numbers from a 60-bit payload.
     fn decode_u32_pair(payload: u64) -> (u32, u32) {
         let left_value = (payload >> 30) as u32;
-        let right_value = (payload & 0x3F_FF_FF_FF) as u32;
+        let right_value = (payload & 0x3f_ff_ff_ff) as u32;
 
         (left_value, right_value)
     }
@@ -326,8 +326,8 @@ mod tests {
     fn serialize_deserialize_60_bit_payload() {
         // each child needs 30 bits
         let mast_node_type = MastNodeType::Join {
-            left_child_id: 0x3F_FF_FF_FF,
-            right_child_id: 0x3F_FF_FF_FF,
+            left_child_id: 0x3f_ff_ff_ff,
+            right_child_id: 0x3f_ff_ff_ff,
         };
 
         let serialized = mast_node_type.to_bytes();
@@ -341,7 +341,7 @@ mod tests {
     fn serialize_large_payloads_fails_1() {
         // left child needs 31 bits
         let mast_node_type = MastNodeType::Join {
-            left_child_id: 0x4F_FF_FF_FF,
+            left_child_id: 0x4f_ff_ff_ff,
             right_child_id: 0x0,
         };
 
@@ -355,7 +355,7 @@ mod tests {
         // right child needs 31 bits
         let mast_node_type = MastNodeType::Join {
             left_child_id: 0x0,
-            right_child_id: 0x4F_FF_FF_FF,
+            right_child_id: 0x4f_ff_ff_ff,
         };
 
         // must panic
