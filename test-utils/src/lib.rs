@@ -188,9 +188,8 @@ impl Test {
     // --------------------------------------------------------------------------------------------
 
     /// Creates the simplest possible new test, with only a source string and no inputs.
-    #[allow(clippy::arc_with_non_send_sync)]
     pub fn new(name: &str, source: &str, in_debug_mode: bool) -> Self {
-        let source_manager = Arc::new(assembly::SingleThreadedSourceManager::default());
+        let source_manager = Arc::new(assembly::DefaultSourceManager::default());
         let source = source_manager.load(name, source.to_string());
         Test {
             source_manager,

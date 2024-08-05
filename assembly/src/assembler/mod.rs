@@ -60,10 +60,8 @@ pub struct Assembler {
 }
 
 impl Default for Assembler {
-    #[allow(clippy::arc_with_non_send_sync)]
     fn default() -> Self {
-        use vm_core::debuginfo::SingleThreadedSourceManager;
-        let source_manager = Arc::new(SingleThreadedSourceManager::default());
+        let source_manager = Arc::new(crate::DefaultSourceManager::default());
         let module_graph = ModuleGraph::new(source_manager.clone());
         Self {
             source_manager,

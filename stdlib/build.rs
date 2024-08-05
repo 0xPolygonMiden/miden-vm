@@ -17,7 +17,6 @@ const ASL_DIR_PATH: &str = "assets";
 
 /// Read and parse the contents from `./asm` into a `LibraryContents` struct, serializing it into
 /// `assets` folder under `std` namespace.
-#[allow(clippy::arc_with_non_send_sync)]
 fn main() -> Result<()> {
     // re-build the `[OUT_DIR]/assets/std.masl` file iff something in the `./asm` directory
     // or its builder changed:
@@ -27,7 +26,7 @@ fn main() -> Result<()> {
     let manifest_dir = env!("CARGO_MANIFEST_DIR");
     let asm_dir = Path::new(manifest_dir).join(ASM_DIR_PATH);
 
-    let source_manager = Arc::new(assembly::SingleThreadedSourceManager::default());
+    let source_manager = Arc::new(assembly::DefaultSourceManager::default());
     let namespace = "std".parse::<LibraryNamespace>().expect("invalid base namespace");
     // TODO: Add version to `Library`
     let _version = env!("CARGO_PKG_VERSION").parse::<Version>().expect("invalid cargo version");

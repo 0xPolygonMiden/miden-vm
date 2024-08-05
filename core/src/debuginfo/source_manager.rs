@@ -4,7 +4,6 @@ use alloc::{
     sync::Arc,
     vec::Vec,
 };
-use core::cell::RefCell;
 
 use super::*;
 
@@ -217,20 +216,11 @@ impl<T: ?Sized + SourceManager> SourceManagerExt for T {}
 use crate::utils::sync::RwLock;
 
 #[derive(Default)]
-pub struct MultiThreadedSourceManager(RwLock<DefaultSourceManagerImpl>);
-impl Clone for MultiThreadedSourceManager {
+pub struct DefaultSourceManager(RwLock<DefaultSourceManagerImpl>);
+impl Clone for DefaultSourceManager {
     fn clone(&self) -> Self {
         let manager = self.0.read();
         Self(RwLock::new(manager.clone()))
-    }
-}
-
-#[derive(Default)]
-pub struct SingleThreadedSourceManager(RefCell<DefaultSourceManagerImpl>);
-impl Clone for SingleThreadedSourceManager {
-    fn clone(&self) -> Self {
-        let manager = self.0.borrow();
-        Self(RefCell::new(manager.clone()))
     }
 }
 
@@ -315,7 +305,7 @@ impl DefaultSourceManagerImpl {
     }
 }
 
-impl SourceManager for MultiThreadedSourceManager {
+impl SourceManager for DefaultSourceManager {
     fn load_from_raw_parts(&self, name: Arc<str>, content: SourceContent) -> Arc<SourceFile> {
         let mut manager = self.0.write();
         manager.insert(name, content)
@@ -364,68 +354,6 @@ impl SourceManager for MultiThreadedSourceManager {
             .ok_or(SourceManagerError::InvalidSourceId)
             .map(|file| file.as_str() as *const str)?;
         drop(manager);
-        // SAFETY: Because the lifetime of the returned reference is bound to the manager, and
-        // because we can only ever add files, not modify/remove them, this is safe. Exclusive
-        // access to the manager does _not_ mean exclusive access to the contents of previously
-        // added source files
-        Ok(unsafe { &*ptr })
-    }
-
-    fn source_slice(&self, span: SourceSpan) -> Result<&str, SourceManagerError> {
-        self.source(span.source_id())?
-            .get(span.into_slice_index())
-            .ok_or(SourceManagerError::InvalidBounds)
-    }
-}
-
-impl SourceManager for SingleThreadedSourceManager {
-    fn load_from_raw_parts(&self, name: Arc<str>, content: SourceContent) -> Arc<SourceFile> {
-        let mut manager = self.0.borrow_mut();
-        manager.insert(name, content)
-    }
-
-    fn get(&self, id: SourceId) -> Result<Arc<SourceFile>, SourceManagerError> {
-        let manager = self.0.borrow();
-        manager.get(id)
-    }
-
-    fn get_by_path(&self, path: &str) -> Option<Arc<SourceFile>> {
-        let manager = self.0.borrow();
-        manager.get_by_path(path)
-    }
-
-    fn find(&self, name: &str) -> Option<SourceId> {
-        let manager = self.0.borrow();
-        manager.find(name)
-    }
-
-    fn file_line_col_to_span(&self, loc: FileLineCol) -> Option<SourceSpan> {
-        let manager = self.0.borrow();
-        manager.file_line_col_to_span(loc)
-    }
-
-    fn file_line_col(&self, span: SourceSpan) -> Result<FileLineCol, SourceManagerError> {
-        let manager = self.0.borrow();
-        manager.file_line_col(span)
-    }
-
-    fn location_to_span(&self, loc: Location) -> Option<SourceSpan> {
-        let manager = self.0.borrow();
-        manager.location_to_span(loc)
-    }
-
-    fn location(&self, span: SourceSpan) -> Result<Location, SourceManagerError> {
-        let manager = self.0.borrow();
-        manager.location(span)
-    }
-
-    fn source(&self, id: SourceId) -> Result<&str, SourceManagerError> {
-        let manager = self.0.borrow();
-        let ptr = manager
-            .files
-            .get(id.to_usize())
-            .ok_or(SourceManagerError::InvalidSourceId)
-            .map(|file| file.as_str() as *const str)?;
         // SAFETY: Because the lifetime of the returned reference is bound to the manager, and
         // because we can only ever add files, not modify/remove them, this is safe. Exclusive
         // access to the manager does _not_ mean exclusive access to the contents of previously

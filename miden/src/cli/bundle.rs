@@ -25,7 +25,6 @@ pub struct BundleCmd {
 }
 
 impl BundleCmd {
-    #[allow(clippy::arc_with_non_send_sync)]
     pub fn execute(&self) -> Result<(), Report> {
         println!("============================================================");
         println!("Build library");
@@ -41,7 +40,7 @@ impl BundleCmd {
                 .into_owned(),
         };
 
-        let source_manager = Arc::new(assembly::SingleThreadedSourceManager::default());
+        let source_manager = Arc::new(assembly::DefaultSourceManager::default());
         let library_namespace =
             namespace.parse::<LibraryNamespace>().expect("invalid base namespace");
         // TODO: Add version to `Library`

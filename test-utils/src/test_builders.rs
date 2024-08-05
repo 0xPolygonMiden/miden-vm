@@ -88,8 +88,7 @@ macro_rules! build_test_by_mode {
         let stack_inputs = $crate::StackInputs::try_from_ints(stack_inputs).unwrap();
         let advice_inputs = $crate::AdviceInputs::default();
         let name = format!("test{}", line!());
-        let source_manager =
-            ::alloc::sync::Arc::new(::assembly::SingleThreadedSourceManager::default());
+        let source_manager = ::alloc::sync::Arc::new(::assembly::DefaultSourceManager::default());
         let source = source_manager.load(&name, ::alloc::string::String::from($source));
 
         $crate::Test {
@@ -117,8 +116,7 @@ macro_rules! build_test_by_mode {
             .unwrap()
             .with_merkle_store(store);
         let name = format!("test{}", line!());
-        let source_manager =
-            ::alloc::sync::Arc::new(::assembly::SingleThreadedSourceManager::default());
+        let source_manager = ::alloc::sync::Arc::new(::assembly::DefaultSourceManager::default());
         let source = source_manager.load(&name, ::alloc::string::String::from($source));
 
         $crate::Test {
@@ -145,8 +143,7 @@ macro_rules! build_test_by_mode {
             .unwrap()
             .with_merkle_store($advice_merkle_store);
         let name = format!("test{}", line!());
-        let source_manager =
-            ::alloc::sync::Arc::new(::assembly::SingleThreadedSourceManager::default());
+        let source_manager = ::alloc::sync::Arc::new(::assembly::DefaultSourceManager::default());
         let source = source_manager.load(&name, ::alloc::string::String::from($source));
 
         $crate::Test {
@@ -172,8 +169,7 @@ macro_rules! build_test_by_mode {
             .with_merkle_store($advice_merkle_store)
             .with_map($advice_map);
         let name = format!("test{}", line!());
-        let source_manager =
-            ::alloc::sync::Arc::new(::assembly::SingleThreadedSourceManager::default());
+        let source_manager = ::alloc::sync::Arc::new(::assembly::DefaultSourceManager::default());
         let source = source_manager.load(&name, ::alloc::string::String::from($source));
 
         $crate::Test {

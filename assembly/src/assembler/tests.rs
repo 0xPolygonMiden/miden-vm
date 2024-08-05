@@ -1,5 +1,3 @@
-#![allow(clippy::arc_with_non_send_sync)]
-
 use pretty_assertions::assert_eq;
 use vm_core::{assert_matches, mast::MastForest, Program};
 

@@ -183,7 +183,6 @@ impl Default for TestContext {
 }
 
 impl TestContext {
-    #[allow(clippy::arc_with_non_send_sync)]
     pub fn new() -> Self {
         #[cfg(feature = "std")]
         {
@@ -198,7 +197,7 @@ impl TestContext {
         {
             let _ = set_hook(Box::new(|_| Box::new(ReportHandlerOpts::new().build())));
         }
-        let source_manager = Arc::new(crate::SingleThreadedSourceManager::default());
+        let source_manager = Arc::new(crate::DefaultSourceManager::default());
         let assembler = Assembler::new(source_manager.clone())
             .with_debug_mode(true)
             .with_warnings_as_errors(true);

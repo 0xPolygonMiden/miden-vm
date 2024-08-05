@@ -2,7 +2,7 @@ use clap::Parser;
 
 use super::data::{Debug, Libraries, ProgramFile};
 use assembly::diagnostics::Report;
-use std::{path::PathBuf, sync::Arc};
+use std::path::PathBuf;
 
 #[derive(Debug, Clone, Parser)]
 #[clap(about = "Compile a miden program")]
@@ -19,23 +19,19 @@ pub struct CompileCmd {
 }
 
 impl CompileCmd {
-    #[allow(clippy::arc_with_non_send_sync)]
     pub fn execute(&self) -> Result<(), Report> {
         println!("============================================================");
         println!("Compile program");
         println!("============================================================");
 
-        let source_manager = Arc::new(assembly::SingleThreadedSourceManager::default());
-
         // load the program from file and parse it
-        let program = ProgramFile::read(&self.assembly_file, &source_manager)?;
+        let program = ProgramFile::read(&self.assembly_file)?;
 
         // load libraries from files
         let libraries = Libraries::new(&self.library_paths)?;
 
         // compile the program
-        let compiled_program =
-            program.compile(&Debug::Off, &libraries.libraries, source_manager)?;
+        let compiled_program = program.compile(&Debug::Off, &libraries.libraries)?;
 
         // report program hash to user
         let program_hash: [u8; 32] = compiled_program.hash().into();

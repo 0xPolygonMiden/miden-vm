@@ -28,23 +28,19 @@ pub struct DebugCmd {
 }
 
 impl DebugCmd {
-    #[allow(clippy::arc_with_non_send_sync)]
     pub fn execute(&self) -> Result<(), Report> {
         println!("============================================================");
         println!("Debug program");
         println!("============================================================");
 
-        let source_manager = Arc::new(assembly::SingleThreadedSourceManager::default());
+        let source_manager = Arc::new(assembly::DefaultSourceManager::default());
 
         // load libraries from files
         let libraries = Libraries::new(&self.library_paths)?;
 
         // load program from file and compile
-        let program = ProgramFile::read(&self.assembly_file, &source_manager)?.compile(
-            &Debug::On,
-            &libraries.libraries,
-            source_manager.clone(),
-        )?;
+        let program = ProgramFile::read_with(self.assembly_file.clone(), source_manager.clone())?
+            .compile(&Debug::On, &libraries.libraries)?;
 
         let program_hash: [u8; 32] = program.hash().into();
         println!("Debugging program with hash {}...", hex::encode(program_hash));
@@ -58,7 +54,8 @@ impl DebugCmd {
 
         // Instantiate DebugExecutor
         let mut debug_executor =
-            DebugExecutor::new(program, stack_inputs, advice_provider).map_err(Report::msg)?;
+            DebugExecutor::new(program, stack_inputs, advice_provider, source_manager)
+                .map_err(Report::msg)?;
 
         // build readline config
         let mut rl_config = Config::builder().auto_add_history(true);

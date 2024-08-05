@@ -33,8 +33,7 @@ mod tests;
 pub use self::assembler::Assembler;
 pub use self::compile::{Compile, Options as CompileOptions};
 pub use self::diagnostics::{
-    MultiThreadedSourceManager, Report, SingleThreadedSourceManager, SourceFile, SourceId,
-    SourceManager, SourceSpan, Span, Spanned,
+    DefaultSourceManager, Report, SourceFile, SourceId, SourceManager, SourceSpan, Span, Spanned,
 };
 pub use self::errors::{AssemblyError, CompiledLibraryError};
 pub use self::library::{LibraryError, LibraryNamespace, LibraryPath, PathError, Version};
