@@ -54,6 +54,5 @@ loom = "0.7"
 [target.'cfg(loom)'.dependencies]
 loom = "0.7"
 
-# Enable once the VM reaches Rust 1.80+
-#[lints.rust]
-#unexpected_cfgs = { level = "warn", check-cfg = ['cfg(loom)'] }
+[lints.rust]
+unexpected_cfgs = { level = "warn", check-cfg = ['cfg(loom)'] }
