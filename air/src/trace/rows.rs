@@ -120,14 +120,6 @@ impl Sub<usize> for RowIndex {
     }
 }
 
-impl Sub<RowIndex> for usize {
-    type Output = RowIndex;
-
-    fn sub(self, rhs: RowIndex) -> Self::Output {
-        (self - rhs.0 as usize).into()
-    }
-}
-
 impl SubAssign<u32> for RowIndex {
     fn sub_assign(&mut self, rhs: u32) {
         self.0 -= rhs;
