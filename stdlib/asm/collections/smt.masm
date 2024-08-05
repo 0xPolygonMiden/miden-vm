@@ -291,24 +291,32 @@ end
 export.set
     # Prepare stack for adv.push_mtnode
     # (X cycles)
-    movupw.2 dup.8 push.LEAF_DEPTH
+    # movupw.2 dup.8 push.LEAF_DEPTH
     # => [depth, leaf_index, R, V, K]
+
+    # Perform adv.push_smtget
+    # TODO(raneet10): calculate cycles
+    adv.push_smtget adv_push.2
+    # => [flag, leaf_size, V, K, R]
 
     # Push MT node on advice stack, cleanup operand stack, and then
     # push MT node on operand stack (NV)
     # (X cycles)
-    adv.push_mtnode drop drop movdnw.2 adv_push.4
+    # adv.push_mtnode drop drop movdnw.2 adv_push.4
     # => [NV, V, K, R]
 
     # (X cycles)
-    padw eqw
-    # => [NV == ZERO, ZERO, NV, V, K, R]
+    # padw eqw
+    # TODO(raneet10): calculate cycles
+    push.0 eq
+    # => [flag == zero, zero, flag, leaf_size, V, K, R]
 
     if.true
         # empty leaf
 
-        # (8 cycles)
-        dropw dropw
+        # TODO(raneet10): calculate cycles
+        # dropw dropw
+        drop drop drop
         #=> [V, K, R]
 
         # (insert empty value: X cycles)
@@ -317,14 +325,14 @@ export.set
     else
         # Single or Multiple leaf
 
-        # (X cycles)
-        dropw
-        # => [NV, V, K, R]
+        # TODO(raneet10): calculate cycles
+        drop
+        # => [flag, leaf_size, V, K, R]
 
         # Retrieve leaf pre-image on advice stack, and push leaf size on stack
         # Note: the rest of the leaf pre-image will be pulled out later
         # (4 cycles)
-        adv.push_mapvaln dropw adv_push.1
+        # adv.push_mapvaln dropw adv_push.1
         # => [leaf_size, V, K, R]
 
         # Leaf size will be a multiple of 8 (each kv-pair in a leaf is 8 elements)
@@ -374,25 +382,30 @@ end
 export.get
     # Prepare for `mtree_get`
     # (6 cycles)
-    dupw.1 dup.4 push.LEAF_DEPTH
+    # dupw.1 dup.4 push.LEAF_DEPTH
     # => [depth, K[3], R, K, R]
 
     # Retrieve node value from merkle store
     # (14 cycles)
-    mtree_get swapw dropw
+    # mtree_get swapw dropw
     # => [NV, K, R]
+
+    # TODO(raneet10): calculate cycles
+    adv.push_smtget adv_loadw
+    # => [V, R]
+
 
     # Check if value is empty; if so, return empty value
     # (19 cycles)
-    padw eqw
+    # padw eqw
     # => [NV == 0, ZERO, V, K, R]
 
-    if.true
+    # if.true
         # Return empty value
         # (9 cycles)
         dropw swapw dropw
         # => [NV, R]
-    else
+    # else
         # Drop extra ZERO word
         # (4 cycles)
         dropw
