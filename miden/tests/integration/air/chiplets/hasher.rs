@@ -92,8 +92,8 @@ fn mtree_merge() {
     store.extend(tree_b.inner_nodes());
 
     let stack_inputs = vec![
-        0xBEEF,
-        0xDEAD,
+        0xbeef,
+        0xdead,
         root_a[0].as_int(),
         root_a[1].as_int(),
         root_a[2].as_int(),
@@ -105,8 +105,8 @@ fn mtree_merge() {
     ];
 
     let stack_outputs = vec![
-        0xBEEF,
-        0xDEAD,
+        0xbeef,
+        0xdead,
         root_merged[0].as_int(),
         root_merged[1].as_int(),
         root_merged[2].as_int(),
