@@ -290,7 +290,7 @@ impl Stack {
     /// overwritten with random values. This parameter is unused because last rows are just
     /// duplicates of the prior rows and thus can be safely overwritten.
     pub fn into_trace(self, trace_len: usize, num_rand_rows: usize) -> super::StackTrace {
-        let clk = usize::from(self.current_clk());
+        let clk = self.current_clk().as_usize();
         // make sure that only the duplicate rows will be overwritten with random values
         assert!(clk + num_rand_rows <= trace_len, "target trace length too small");
 

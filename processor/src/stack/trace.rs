@@ -49,20 +49,20 @@ impl StackTrace {
     /// Returns a copy of the item at the top of the stack at the specified clock cycle.
     #[inline(always)]
     pub fn peek_at(&self, clk: RowIndex) -> Felt {
-        self.stack[0][usize::from(clk)]
+        self.stack[0][clk.as_usize()]
     }
 
     /// Returns the value located at the specified position on the stack at the specified clock
     /// cycle.
     #[inline(always)]
     pub fn get_stack_value_at(&self, clk: RowIndex, pos: usize) -> Felt {
-        self.stack[pos][usize::from(clk)]
+        self.stack[pos][clk.as_usize()]
     }
 
     /// Sets the value at the specified position on the stack at the specified cycle.
     #[inline(always)]
     pub fn set_stack_value_at(&mut self, clk: RowIndex, pos: usize, value: Felt) {
-        self.stack[pos][usize::from(clk)] = value;
+        self.stack[pos][clk.as_usize()] = value;
     }
 
     /// Copies the stack values starting at the specified position at the specified clock cycle to
@@ -106,7 +106,7 @@ impl StackTrace {
         last_value: Felt,
         next_overflow_addr: Option<Felt>,
     ) {
-        let clk = usize::from(clk);
+        let clk = clk.as_usize();
 
         // update stack top columns
         for i in start_pos..=MAX_TOP_IDX {
@@ -137,7 +137,7 @@ impl StackTrace {
     /// - Set h0 to (depth - 16). Inverses of these values will be computed in into_array() method
     ///   after the entire trace is constructed.
     pub fn stack_shift_right_at(&mut self, clk: RowIndex, start_pos: usize) {
-        let clk = usize::from(clk);
+        let clk = clk.as_usize();
 
         // update stack top columns
         for i in start_pos..MAX_TOP_IDX {
@@ -158,7 +158,7 @@ impl StackTrace {
     pub fn ensure_trace_capacity(&mut self, clk: RowIndex) {
         let current_capacity = get_trace_len(&self.stack);
         // current_capacity as trace_length can not be bigger than clk, so it is safe to cast to u32
-        if u32::from(clk + 1) >= current_capacity as u32 {
+        if (clk + 1) >= current_capacity {
             let new_length = current_capacity * 2;
             for column in self.stack.iter_mut().chain(self.helpers.iter_mut()) {
                 column.resize(new_length, ZERO);
@@ -169,7 +169,7 @@ impl StackTrace {
     /// Appends stack top state (16 items) at the specified clock cycle into the provided vector.
     pub fn append_state_into(&self, result: &mut Vec<Felt>, clk: RowIndex) {
         for column in self.stack.iter() {
-            result.push(column[usize::from(clk)]);
+            result.push(column[clk.as_usize()]);
         }
     }
 
@@ -207,7 +207,7 @@ impl StackTrace {
     pub fn get_stack_state_at(&self, clk: RowIndex) -> [Felt; STACK_TOP_SIZE] {
         let mut result = [ZERO; STACK_TOP_SIZE];
         for (result, column) in result.iter_mut().zip(self.stack.iter()) {
-            *result = column[usize::from(clk)];
+            *result = column[clk.as_usize()];
         }
         result
     }
@@ -217,7 +217,7 @@ impl StackTrace {
     pub fn get_helpers_state_at(&self, clk: RowIndex) -> [Felt; NUM_STACK_HELPER_COLS] {
         let mut result = [ZERO; NUM_STACK_HELPER_COLS];
         for (result, column) in result.iter_mut().zip(self.helpers.iter()) {
-            *result = column[usize::from(clk)];
+            *result = column[clk.as_usize()];
         }
         result
     }

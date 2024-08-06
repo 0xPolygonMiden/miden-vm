@@ -255,7 +255,7 @@ pub fn get_test_frame_with_two_ops(
 /// which is the number of the `current` row within the operation cycle.
 fn get_row_shifts(cycle_row: RowIndex) -> (usize, usize, usize) {
     // Define the shift amount for output in this row and the next row.
-    let current_shift = NUM_DECOMP_BITS * (OP_CYCLE_LEN - usize::from(cycle_row) - 1);
+    let current_shift = NUM_DECOMP_BITS * (OP_CYCLE_LEN - cycle_row.as_usize() - 1);
     let previous_shift = current_shift + NUM_DECOMP_BITS;
     let next_shift = current_shift - NUM_DECOMP_BITS;
 

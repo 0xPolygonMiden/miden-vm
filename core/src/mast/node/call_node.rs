@@ -39,7 +39,7 @@ impl CallNode {
 impl CallNode {
     /// Returns a new [`CallNode`] instantiated with the specified callee.
     pub fn new(callee: MastNodeId, mast_forest: &MastForest) -> Result<Self, MastForestError> {
-        if usize::from(callee) >= mast_forest.nodes.len() {
+        if callee.as_usize() >= mast_forest.nodes.len() {
             return Err(MastForestError::NodeIdOverflow(callee, mast_forest.nodes.len()));
         }
         let digest = {
@@ -57,7 +57,7 @@ impl CallNode {
         callee: MastNodeId,
         mast_forest: &MastForest,
     ) -> Result<Self, MastForestError> {
-        if usize::from(callee) >= mast_forest.nodes.len() {
+        if callee.as_usize() >= mast_forest.nodes.len() {
             return Err(MastForestError::NodeIdOverflow(callee, mast_forest.nodes.len()));
         }
         let digest = {

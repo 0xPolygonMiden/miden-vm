@@ -105,12 +105,12 @@ impl VmStateIterator {
         // when the clock cycle is less than the clock cycle of the first asmop.
         let (curr_asmop, cycle_idx) = if self.asmop_idx > 0 {
             let a = self.clk;
-            let b = assembly_ops[self.asmop_idx - 1].0 as u32;
+            let b = RowIndex::from(assembly_ops[self.asmop_idx - 1].0);
             (
                 &assembly_ops[self.asmop_idx - 1],
                 // difference between current clock cycle and start clock cycle of the current
                 // asmop
-                u32::from(a.max(b) - usize::from(a.min(b.into()))) as u8,
+                (a.max(b) - a.min(b)) as u8,
             )
         } else {
             (next_asmop, 0) //dummy value, never used.
@@ -118,7 +118,7 @@ impl VmStateIterator {
 
         // if this is the first op in the sequence corresponding to the next asmop, returns a new
         // instance of [AsmOp] instantiated with next asmop, num_cycles and cycle_idx of 1.
-        if next_asmop.0 as u32 == u32::from(self.clk - 1) {
+        if next_asmop.0 == (self.clk - 1).as_usize() {
             // cycle_idx starts at 1 instead of 0 to remove ambiguity
             let cycle_idx = 1;
             let asmop = AsmOpInfo::new(next_asmop.1.clone(), cycle_idx);
@@ -225,7 +225,7 @@ impl Iterator for VmStateIterator {
         let op = if self.clk == 0 {
             None
         } else {
-            Some(self.decoder.debug_info().operations()[usize::from(self.clk) - 1])
+            Some(self.decoder.debug_info().operations()[self.clk - 1])
         };
 
         let (asmop, is_start) = self.get_asmop();
