@@ -38,8 +38,7 @@ impl Analyze {
         // fetch the stack and program inputs from the arguments
         let stack_inputs = input_data.parse_stack_inputs().map_err(Report::msg)?;
         let mut host = DefaultHost::new(input_data.parse_advice_provider().map_err(Report::msg)?);
-        let stdlib = StdLibrary::default();
-        host.load_mast_forest(stdlib.as_ref().mast_forest().clone());
+        host.load_mast_forest(StdLibrary::default().into());
 
         let execution_details: ExecutionDetails = analyze(program.as_str(), stack_inputs, host)
             .expect("Could not retrieve execution details");

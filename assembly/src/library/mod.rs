@@ -161,6 +161,12 @@ impl Library {
     }
 }
 
+impl From<Library> for MastForest {
+    fn from(value: Library) -> Self {
+        value.mast_forest
+    }
+}
+
 impl Serializable for Library {
     fn write_into<W: ByteWriter>(&self, target: &mut W) {
         self.write_into_with_options(target, AstSerdeOptions::default())
@@ -492,6 +498,12 @@ impl KernelLibrary {
         let Self { kernel: _, kernel_info: _, library } = self;
 
         library.write_into_with_options(target, options);
+    }
+}
+
+impl From<KernelLibrary> for MastForest {
+    fn from(value: KernelLibrary) -> Self {
+        value.library.mast_forest
     }
 }
 

@@ -2,7 +2,7 @@
 
 extern crate alloc;
 
-use assembly::{library::Library, utils::Deserializable};
+use assembly::{library::Library, mast::MastForest, utils::Deserializable};
 
 // STANDARD LIBRARY
 // ================================================================================================
@@ -19,6 +19,12 @@ impl AsRef<Library> for StdLibrary {
 impl From<StdLibrary> for Library {
     fn from(value: StdLibrary) -> Self {
         value.0
+    }
+}
+
+impl From<StdLibrary> for MastForest {
+    fn from(value: StdLibrary) -> Self {
+        value.0.into()
     }
 }
 

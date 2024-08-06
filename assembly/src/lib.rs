@@ -31,6 +31,7 @@ pub mod testing;
 mod tests;
 
 /// Re-exported for downstream crates
+pub use vm_core::mast;
 pub use vm_core::utils;
 
 pub use self::{
