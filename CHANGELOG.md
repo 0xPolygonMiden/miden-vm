@@ -1,42 +1,44 @@
 # Changelog
 
-## 0.10.0 (TBD)
+## 0.10.0 (2024-08-06)
+
+#### Features
+
+- Added source location tracking to assembled MAST (#1419).
+- Added error codes support for the `mtree_verify` instruction (#1328).
+- Added support for immediate values for `lt`, `lte`, `gt`, `gte` comparison instructions (#1346).
+- Added support for immediate values for `u32lt`, `u32lte`, `u32gt`, `u32gte`, `u32min` and `u32max` comparison instructions (#1358).
+- Added support for the `nop` instruction, which corresponds to the VM opcode of the same name, and has the same semantics.
+- Added support for the `if.false` instruction, which can be used in the same manner as `if.true`
+- Added support for immediate values for `u32and`, `u32or`, `u32xor` and `u32not` bitwise instructions (#1362).
+- [BREAKING] Assembler: add the ability to compile MAST libraries, and to assemble a program using compiled libraries (#1401)
 
 #### Enhancements
 
-- Added error codes support for the `mtree_verify` instruction (#1328).
-- Added support for immediate values for `lt`, `lte`, `gt`, `gte` comparison instructions (#1346).
-- Changed MAST to a table-based representation (#1349)
-- Introduced `MastForestStore` (#1359)
-- Adjusted prover's metal acceleration code to work with 0.9 versions of the crates (#1357)
-- Added support for immediate values for `u32lt`, `u32lte`, `u32gt`, `u32gte`, `u32min` and `u32max` comparison instructions (#1358).
-- Added support for the `nop` instruction, which corresponds to the VM opcode of the same name, and has the same semantics. This is implemented for use by compilers primarily.
-- Added support for the `if.false` instruction, which can be used in the same manner as `if.true`
-- Relaxed the parser to allow one branch of an `if.(true|false)` to be empty
-- Added support for immediate values for `u32and`, `u32or`, `u32xor` and `u32not` bitwise instructions (#1362).
+- Changed MAST to a table-based representation (#1349).
+- Introduced `MastForestStore` (#1359).
+- Adjusted prover's metal acceleration code to work with 0.9 versions of the crates (#1357).
+- Relaxed the parser to allow one branch of an `if.(true|false)` to be empty.
 - Optimized `std::sys::truncate_stuck` procedure (#1384).
 - Updated CI and Makefile to standardize it across Miden repositories (#1342).
 - Add serialization/deserialization for `MastForest` (#1370)
-- Assembler: add the ability to compile MAST libraries, and to assemble a program using compiled libraries (#1401)
 - Updated CI to support `CHANGELOG.md` modification checking and `no changelog` label (#1406)
 - Introduced `MastForestError` to enforce `MastForest` node count invariant (#1394)
 - Added functions to `MastForestBuilder` to allow ensuring of nodes with fewer LOC (#1404)
 - [BREAKING] Made `Assembler` single-use (#1409).
 - Removed `ProcedureCache` from the assembler (#1411).
 - Added functions to `MastForest` and `MastForestBuilder` to add and ensure nodes with fewer LOC (#1404, #1412)
-- Added `Assembler::assemble_library()` (#1413).
-- Added `Assembler::assemble_kernel()` (#1418).
-- Added `miden_core::prettier::pretty_print_csv` helper, for formatting of iterators over `PrettyPrint` values as comma-separated items
-- Added source location tracking to assembled MAST (#1419)
+- Added `Assembler::assemble_library()` and `Assembler::assemble_kernel()`  (#1413, #1418).
+- Added `miden_core::prettier::pretty_print_csv` helper, for formatting of iterators over `PrettyPrint` values as comma-separated items.
 - Added source code management primitives in `miden-core` (#1419)
-- Added `make test-fast` and `make test-skip-proptests` Makefile targets for faster testing during local development
-- Added `ProgramFile::read_with` constructor that takes a `SourceManager` impl to use for source management
-- Added `RowIndex(u32)` (#1408)
+- Added `make test-fast` and `make test-skip-proptests` Makefile targets for faster testing during local development.
+- Added `ProgramFile::read_with` constructor that takes a `SourceManager` impl to use for source management.
+- Added `RowIndex(u32)` (#1408).
 
 #### Changed
 
-- When using `if.(true|false) .. end`, the parser used to emit an empty block for the branch that was elided. The parser now emits a block containing a single `nop` instruction instead, which is equivalent to the code emitted by the assembler when lowering to MAST.
-- `internals` configuration feature was renamed to `testing` (#1399).
+- When using `if.(true|false) .. end`, the parser used to emit an empty block for the branch that was elided. The parser now emits a block containing a single `nop` instruction instead.
+- [BREAKING] `internals` configuration feature was renamed to `testing` (#1399).
 - The `AssemblyOp` decorator now contains an optional `Location` (#1419)
 - The `Assembler` now requires passing in a `Arc<dyn SourceManager>`, for use in rendering diagnostics.
 - The `Module::parse_file` and `Module::parse_str` functions have been removed in favor of calling `Module::parser` and then using the `ModuleParser` methods.
