@@ -14,7 +14,7 @@ $$
 xor(a, b) = a + b - 2 \cdot a \cdot b
 $$
 
-To compute bitwise operations for multi-bit values, we will decompose the values into individual bits, apply the operations to single bits, and then aggregate the bitwsie results into the final result.
+To compute bitwise operations for multi-bit values, we will decompose the values into individual bits, apply the operations to single bits, and then aggregate the bitwise results into the final result.
 
 To perform this operation we will use a table with 12 columns, and computing a single AND or XOR operation will require 8 table rows. We will also rely on two periodic columns as shown below.
 
