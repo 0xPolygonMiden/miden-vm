@@ -7,7 +7,7 @@ use vm_core::{mast::MastNodeId, Decorator, DecoratorList, Felt, Kernel, Operatio
 use crate::{
     ast::{self, Export, InvocationTarget, InvokeKind, ModuleKind, QualifiedProcedureName},
     diagnostics::Report,
-    library::{CompiledLibrary, KernelLibrary},
+    library::{KernelLibrary, Library},
     sema::SemanticAnalysisError,
     AssemblyError, Compile, CompileOptions, LibraryNamespace, LibraryPath, RpoDigest,
     SourceManager, Spanned,
@@ -177,7 +177,7 @@ impl Assembler {
     }
 
     /// Adds the compiled library to provide modules for the compilation.
-    pub fn add_library(&mut self, library: impl AsRef<CompiledLibrary>) -> Result<(), Report> {
+    pub fn add_library(&mut self, library: impl AsRef<Library>) -> Result<(), Report> {
         self.module_graph
             .add_compiled_modules(library.as_ref().module_infos())
             .map_err(Report::from)?;
@@ -185,7 +185,7 @@ impl Assembler {
     }
 
     /// Adds the compiled library to provide modules for the compilation.
-    pub fn with_library(mut self, library: impl AsRef<CompiledLibrary>) -> Result<Self, Report> {
+    pub fn with_library(mut self, library: impl AsRef<Library>) -> Result<Self, Report> {
         self.add_library(library)?;
         Ok(self)
     }
@@ -221,7 +221,7 @@ impl Assembler {
 // ------------------------------------------------------------------------------------------------
 /// Compilation/Assembly
 impl Assembler {
-    /// Assembles a set of modules into a [CompiledLibrary].
+    /// Assembles a set of modules into a [Library].
     ///
     /// # Errors
     ///
@@ -229,7 +229,7 @@ impl Assembler {
     pub fn assemble_library(
         mut self,
         modules: impl IntoIterator<Item = impl Compile>,
-    ) -> Result<CompiledLibrary, Report> {
+    ) -> Result<Library, Report> {
         let ast_module_indices =
             modules.into_iter().try_fold(Vec::default(), |mut acc, module| {
                 module
@@ -269,7 +269,7 @@ impl Assembler {
             exports
         };
 
-        Ok(CompiledLibrary::new(mast_forest_builder.build(), exports)?)
+        Ok(Library::new(mast_forest_builder.build(), exports)?)
     }
 
     /// Assembles the provided module into a [KernelLibrary] intended to be used as a Kernel.
@@ -308,7 +308,7 @@ impl Assembler {
             })
             .collect::<Result<BTreeMap<QualifiedProcedureName, RpoDigest>, Report>>()?;
 
-        let library = CompiledLibrary::new(mast_forest_builder.build(), exports)?;
+        let library = Library::new(mast_forest_builder.build(), exports)?;
         Ok(library.try_into()?)
     }
 

@@ -41,7 +41,7 @@ impl<'a> WalkLibrary<'a> {
         let mut file_path = entry.path();
         let is_module = file_path
             .extension()
-            .map(|ext| ext == AsRef::<OsStr>::as_ref(CompiledLibrary::MODULE_EXTENSION))
+            .map(|ext| ext == AsRef::<OsStr>::as_ref(Library::MODULE_EXTENSION))
             .unwrap_or(false);
         if !is_module {
             return Ok(None);

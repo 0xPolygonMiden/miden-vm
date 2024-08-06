@@ -3,7 +3,7 @@ use std::{env, path::Path, sync::Arc};
 use assembly::{
     ast::AstSerdeOptions,
     diagnostics::{IntoDiagnostic, Result},
-    library::CompiledLibrary,
+    library::Library,
     LibraryNamespace, Version,
 };
 
@@ -31,7 +31,7 @@ fn main() -> Result<()> {
     let namespace = "std".parse::<LibraryNamespace>().expect("invalid base namespace");
     // TODO: Add version to `Library`
     let _version = env!("CARGO_PKG_VERSION").parse::<Version>().expect("invalid cargo version");
-    let stdlib = CompiledLibrary::from_dir(asm_dir, namespace, source_manager)?;
+    let stdlib = Library::from_dir(asm_dir, namespace, source_manager)?;
 
     // write the masl output
     let build_dir = env::var("OUT_DIR").unwrap();
@@ -40,7 +40,7 @@ fn main() -> Result<()> {
     let output_file = build_dir
         .join(ASL_DIR_PATH)
         .join("std")
-        .with_extension(CompiledLibrary::LIBRARY_EXTENSION);
+        .with_extension(Library::LIBRARY_EXTENSION);
     stdlib.write_to_file(output_file, options).into_diagnostic()?;
 
     Ok(())

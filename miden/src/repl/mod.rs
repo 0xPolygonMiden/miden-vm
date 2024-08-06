@@ -1,6 +1,6 @@
 use std::{collections::BTreeSet, path::PathBuf};
 
-use assembly::{library::CompiledLibrary, Assembler};
+use assembly::{library::Library, Assembler};
 use miden_vm::{math::Felt, DefaultHost, StackInputs, Word};
 use processor::ContextId;
 use rustyline::{error::ReadlineError, DefaultEditor};
@@ -152,7 +152,7 @@ pub fn start_repl(library_paths: &Vec<PathBuf>, use_stdlib: bool) {
     // load libraries from files
     let mut provided_libraries = Vec::new();
     for path in library_paths {
-        let library = CompiledLibrary::deserialize_from_file(path)
+        let library = Library::deserialize_from_file(path)
             .map_err(|e| format!("Failed to read library: {e}"))
             .unwrap();
         provided_libraries.push(library);
@@ -304,7 +304,7 @@ pub fn start_repl(library_paths: &Vec<PathBuf>, use_stdlib: bool) {
 #[allow(clippy::type_complexity)]
 fn execute(
     program: String,
-    provided_libraries: &[CompiledLibrary],
+    provided_libraries: &[Library],
 ) -> Result<(Vec<(u64, Word)>, Vec<Felt>), String> {
     // compile program
     let mut assembler = Assembler::default();
@@ -361,7 +361,7 @@ fn read_mem_address(mem_str: &str) -> Result<u64, String> {
 /// all available modules if no module name was provided.
 fn handle_use_command(
     line: String,
-    provided_libraries: &[CompiledLibrary],
+    provided_libraries: &[Library],
     imported_modules: &mut BTreeSet<String>,
 ) {
     let tokens: Vec<&str> = line.split_whitespace().collect();

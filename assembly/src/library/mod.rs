@@ -23,7 +23,7 @@ mod version;
 pub use module::{ModuleInfo, ProcedureInfo};
 
 pub use self::{
-    error::{CompiledLibraryError, LibraryError},
+    error::LibraryError,
     namespace::{LibraryNamespace, LibraryNamespaceError},
     path::{LibraryPath, LibraryPathComponent, PathError},
     version::{Version, VersionError},
@@ -32,7 +32,7 @@ pub use self::{
 #[cfg(test)]
 mod tests;
 
-// COMPILED LIBRARY
+// LIBRARY
 // ================================================================================================
 
 /// Represents a library where all modules were compiled into a [`MastForest`].
@@ -40,7 +40,7 @@ mod tests;
 /// A library exports a set of one or more procedures. Currently, all exported procedures belong
 /// to the same top-level namespace.
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct CompiledLibrary {
+pub struct Library {
     /// The content hash of this library, formed by hashing the roots of all exports in
     /// lexicographical order (by digest, not procedure name)
     digest: RpoDigest,
@@ -52,9 +52,9 @@ pub struct CompiledLibrary {
     mast_forest: MastForest,
 }
 
-impl AsRef<CompiledLibrary> for CompiledLibrary {
+impl AsRef<Library> for Library {
     #[inline(always)]
-    fn as_ref(&self) -> &CompiledLibrary {
+    fn as_ref(&self) -> &Library {
         self
     }
 }
@@ -69,8 +69,8 @@ enum Export {
 }
 
 /// Constructors
-impl CompiledLibrary {
-    /// Constructs a new [`CompiledLibrary`] from the provided MAST forest and a set of exports.
+impl Library {
+    /// Constructs a new [`Library`] from the provided MAST forest and a set of exports.
     ///
     /// # Errors
     ///
@@ -80,9 +80,9 @@ impl CompiledLibrary {
     pub fn new(
         mast_forest: MastForest,
         exports: BTreeMap<QualifiedProcedureName, RpoDigest>,
-    ) -> Result<Self, CompiledLibraryError> {
+    ) -> Result<Self, LibraryError> {
         if exports.is_empty() {
-            return Err(CompiledLibraryError::EmptyExports);
+            return Err(LibraryError::EmptyExports);
         }
 
         let mut fqn_to_export = BTreeMap::new();
@@ -110,7 +110,7 @@ impl CompiledLibrary {
 }
 
 /// Accessors
-impl CompiledLibrary {
+impl Library {
     /// Returns the [RpoDigest] representing the content hash of this library
     pub fn digest(&self) -> &RpoDigest {
         &self.digest
@@ -128,7 +128,7 @@ impl CompiledLibrary {
 }
 
 /// Conversions
-impl CompiledLibrary {
+impl Library {
     /// Returns an iterator over the module infos of the library.
     pub fn module_infos(&self) -> impl Iterator<Item = ModuleInfo> {
         let mut modules_by_path: BTreeMap<LibraryPath, ModuleInfo> = BTreeMap::new();
@@ -155,7 +155,7 @@ impl CompiledLibrary {
 }
 
 /// Serialization
-impl CompiledLibrary {
+impl Library {
     /// Serialize to `target` using `options`
     pub fn write_into_with_options<W: ByteWriter>(&self, target: &mut W, options: AstSerdeOptions) {
         let Self { digest: _, exports, mast_forest } = self;
@@ -171,13 +171,13 @@ impl CompiledLibrary {
     }
 }
 
-impl Serializable for CompiledLibrary {
+impl Serializable for Library {
     fn write_into<W: ByteWriter>(&self, target: &mut W) {
         self.write_into_with_options(target, AstSerdeOptions::default())
     }
 }
 
-impl Deserializable for CompiledLibrary {
+impl Deserializable for Library {
     fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
         let options = AstSerdeOptions::read_from(source)?;
         let mast_forest = MastForest::read_from(source)?;
@@ -223,7 +223,7 @@ mod use_std_library {
         Assembler,
     };
 
-    impl CompiledLibrary {
+    impl Library {
         /// File extension for the Assembly Library.
         pub const LIBRARY_EXTENSION: &'static str = "masl";
 
@@ -267,7 +267,7 @@ mod use_std_library {
             })?
         }
 
-        /// Create a [CompiledLibrary] from a standard Miden Assembly project layout.
+        /// Create a [Library] from a standard Miden Assembly project layout.
         ///
         /// The standard layout dictates that a given path is the root of a namespace, and the
         /// directory hierarchy corresponds to the namespace hierarchy. A `.masm` file found in a
@@ -280,7 +280,7 @@ mod use_std_library {
         /// For example, let's say I call this function like so:
         ///
         /// ```rust
-        /// CompiledLibrary::from_dir(
+        /// Library::from_dir(
         ///     "~/masm/std",
         ///     LibraryNamespace::new("std").unwrap()
         ///     Arc::new(crate::DefaultSourceManager::default()),
@@ -352,7 +352,7 @@ mod use_std_library {
             }
 
             if modules.is_empty() {
-                return Err(LibraryError::Empty(namespace.clone()).into());
+                return Err(LibraryError::EmptyModules(namespace.clone()).into());
             }
             if modules.len() > MAX_MODULES {
                 return Err(LibraryError::TooManyModulesInLibrary {
@@ -440,13 +440,13 @@ impl Export {
 
 /// Represents a library containing a Miden VM kernel.
 ///
-/// This differs from the regular [CompiledLibrary] as follows:
+/// This differs from the regular [Library] as follows:
 /// - All exported procedures must be exported directly from the kernel namespace (i.e., `#sys`).
 /// - The number of exported procedures cannot exceed [Kernel::MAX_NUM_PROCEDURES] (i.e., 256).
 pub struct KernelLibrary {
     kernel: Kernel,
     kernel_info: ModuleInfo,
-    library: CompiledLibrary,
+    library: Library,
 }
 
 impl KernelLibrary {
@@ -461,10 +461,10 @@ impl KernelLibrary {
     }
 }
 
-impl TryFrom<CompiledLibrary> for KernelLibrary {
-    type Error = CompiledLibraryError;
+impl TryFrom<Library> for KernelLibrary {
+    type Error = LibraryError;
 
-    fn try_from(library: CompiledLibrary) -> Result<Self, Self::Error> {
+    fn try_from(library: Library) -> Result<Self, Self::Error> {
         let kernel_path = LibraryPath::from(LibraryNamespace::Kernel);
         let mut proc_digests = Vec::with_capacity(library.exports.len());
 
@@ -473,7 +473,7 @@ impl TryFrom<CompiledLibrary> for KernelLibrary {
         for (proc_path, export) in library.exports.iter() {
             // make sure all procedures are exported only from the kernel root
             if proc_path.module != kernel_path {
-                return Err(CompiledLibraryError::InvalidKernelExport {
+                return Err(LibraryError::InvalidKernelExport {
                     procedure_path: proc_path.clone(),
                 });
             }
@@ -511,7 +511,7 @@ impl Serializable for KernelLibrary {
 
 impl Deserializable for KernelLibrary {
     fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
-        let library = CompiledLibrary::read_from(source)?;
+        let library = Library::read_from(source)?;
 
         Self::try_from(library).map_err(|err| {
             DeserializationError::InvalidValue(format!(
@@ -540,14 +540,13 @@ mod use_std_kernel {
 
         /// Create a [KernelLibrary] from a standard Miden Assembly project layout.
         ///
-        /// This is essentially a wrapper around [CompiledLibrary::from_dir], which then validates
-        /// that the resulting [CompiledLibrary] is a valid [KernelLibrary].
+        /// This is essentially a wrapper around [Library::from_dir], which then validates
+        /// that the resulting [Library] is a valid [KernelLibrary].
         pub fn from_dir(
             path: impl AsRef<Path>,
             source_manager: Arc<dyn SourceManager>,
         ) -> Result<Self, Report> {
-            let library =
-                CompiledLibrary::from_dir(path, LibraryNamespace::Kernel, source_manager)?;
+            let library = Library::from_dir(path, LibraryNamespace::Kernel, source_manager)?;
 
             Ok(Self::try_from(library)?)
         }

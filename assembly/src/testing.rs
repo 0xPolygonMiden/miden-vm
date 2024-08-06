@@ -12,7 +12,7 @@ use crate::{
         reporting::{set_hook, ReportHandlerOpts},
         Report, SourceFile, SourceManager,
     },
-    library::CompiledLibrary,
+    library::Library,
     Compile, CompileOptions, LibraryPath, RpoDigest,
 };
 
@@ -315,7 +315,7 @@ impl TestContext {
 
     /// Add the modules of `library` to the [Assembler] constructed by this context.
     #[track_caller]
-    pub fn add_library(&mut self, library: impl AsRef<CompiledLibrary>) -> Result<(), Report> {
+    pub fn add_library(&mut self, library: impl AsRef<Library>) -> Result<(), Report> {
         self.assembler.add_library(library)
     }
 
@@ -328,7 +328,7 @@ impl TestContext {
         self.assembler.clone().assemble_program(source)
     }
 
-    /// Compile a [CompiledLibrary] from `modules` using the [Assembler] constructed by this
+    /// Compile a [Library] from `modules` using the [Assembler] constructed by this
     /// context.
     ///
     /// NOTE: Any modules added by, e.g. `add_module`, will be available to the library
@@ -336,7 +336,7 @@ impl TestContext {
     pub fn assemble_library(
         &self,
         modules: impl IntoIterator<Item = Box<Module>>,
-    ) -> Result<CompiledLibrary, Report> {
+    ) -> Result<Library, Report> {
         self.assembler.clone().assemble_library(modules)
     }
 

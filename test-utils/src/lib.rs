@@ -16,7 +16,7 @@ use alloc::{
     vec::Vec,
 };
 
-use assembly::library::CompiledLibrary;
+use assembly::library::Library;
 // EXPORTS
 // ================================================================================================
 pub use assembly::{diagnostics::Report, LibraryPath, SourceFile, SourceManager};
@@ -175,7 +175,7 @@ pub struct Test {
     pub stack_inputs: StackInputs,
     pub advice_inputs: AdviceInputs,
     pub in_debug_mode: bool,
-    pub libraries: Vec<CompiledLibrary>,
+    pub libraries: Vec<Library>,
     pub add_modules: Vec<(LibraryPath, String)>,
 }
 
