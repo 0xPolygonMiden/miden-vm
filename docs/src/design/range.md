@@ -164,7 +164,7 @@ $$
 
 As previously mentioned, constraints cannot include divisions, so the actual constraint which is applied will be the equivalent expression in which all denominators have been multiplied through, which is degree 9.
 
-If $b_{range}$ is initialized to $1$ and the values sent to the bus by other VM components match those that are range-checked in the the trace, then at the end of the trace we should end up with $b_{range} = 1$.
+If $b_{range}$ is initialized to $1$ and the values sent to the bus by other VM components match those that are range-checked in the trace, then at the end of the trace we should end up with $b_{range} = 1$.
 
 Therefore, in addition to the transition constraint described above, we also need to enforce the following boundary constraints:
 
