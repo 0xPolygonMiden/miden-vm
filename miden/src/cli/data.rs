@@ -9,7 +9,7 @@ use std::{
 use assembly::{
     ast::{Module, ModuleKind},
     diagnostics::{IntoDiagnostic, Report, WrapErr},
-    library::CompiledLibrary,
+    library::Library,
     Assembler, LibraryNamespace,
 };
 use miden_vm::{
@@ -424,17 +424,15 @@ impl ProgramFile {
     #[instrument(name = "compile_program", skip_all)]
     pub fn compile<'a, I>(&self, debug: &Debug, libraries: I) -> Result<Program, Report>
     where
-        I: IntoIterator<Item = &'a CompiledLibrary>,
+        I: IntoIterator<Item = &'a Library>,
     {
         // compile program
         let mut assembler =
             Assembler::new(self.source_manager.clone()).with_debug_mode(debug.is_on());
-        assembler
-            .add_compiled_library(StdLibrary::default())
-            .wrap_err("Failed to load stdlib")?;
+        assembler.add_library(StdLibrary::default()).wrap_err("Failed to load stdlib")?;
 
         for library in libraries {
-            assembler.add_compiled_library(library).wrap_err("Failed to load libraries")?;
+            assembler.add_library(library).wrap_err("Failed to load libraries")?;
         }
 
         let program: Program = assembler
@@ -547,7 +545,7 @@ impl ProgramHash {
 // LIBRARY FILE
 // ================================================================================================
 pub struct Libraries {
-    pub libraries: Vec<CompiledLibrary>,
+    pub libraries: Vec<Library>,
 }
 
 impl Libraries {
@@ -563,7 +561,7 @@ impl Libraries {
         for path in paths {
             // TODO(plafer): How to create a `Report` from an error that doesn't derive
             // `Diagnostic`?
-            let library = CompiledLibrary::deserialize_from_file(path).unwrap();
+            let library = Library::deserialize_from_file(path).unwrap();
             libraries.push(library);
         }
 

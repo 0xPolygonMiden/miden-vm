@@ -34,7 +34,7 @@ fn nested_blocks() -> Result<(), Report> {
             .unwrap();
 
         let mut assembler = Assembler::with_kernel(context.source_manager(), kernel_lib);
-        assembler.add_compiled_library(dummy_library).unwrap();
+        assembler.add_library(dummy_library).unwrap();
 
         assembler
     };
@@ -255,9 +255,7 @@ fn explicit_fully_qualified_procedure_references() -> Result<(), Report> {
     let baz = context.parse_module_with_path(BAZ_NAME.parse().unwrap(), BAZ)?;
     let library = context.assemble_library([bar, baz]).unwrap();
 
-    let assembler = Assembler::new(context.source_manager())
-        .with_compiled_library(&library)
-        .unwrap();
+    let assembler = Assembler::new(context.source_manager()).with_library(&library).unwrap();
 
     let program = r#"
     begin
@@ -291,9 +289,7 @@ fn re_exports() -> Result<(), Report> {
     let baz = context.parse_module_with_path(BAZ_NAME.parse().unwrap(), BAZ)?;
     let library = context.assemble_library([bar, baz]).unwrap();
 
-    let assembler = Assembler::new(context.source_manager())
-        .with_compiled_library(&library)
-        .unwrap();
+    let assembler = Assembler::new(context.source_manager()).with_library(&library).unwrap();
 
     let program = r#"
     use.foo::baz

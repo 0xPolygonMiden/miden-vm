@@ -24,7 +24,7 @@ fn test_memcopy() {
 
     let stdlib = StdLibrary::default();
     let assembler = assembly::Assembler::default()
-        .with_compiled_library(&stdlib)
+        .with_library(&stdlib)
         .expect("failed to load stdlib");
 
     let program: Program =

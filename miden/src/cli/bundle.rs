@@ -3,7 +3,7 @@ use std::{path::PathBuf, sync::Arc};
 use assembly::{
     ast::AstSerdeOptions,
     diagnostics::{IntoDiagnostic, Report},
-    library::CompiledLibrary,
+    library::Library,
     LibraryNamespace, Version,
 };
 use clap::Parser;
@@ -46,14 +46,14 @@ impl BundleCmd {
             namespace.parse::<LibraryNamespace>().expect("invalid base namespace");
         // TODO: Add version to `Library`
         let _version = self.version.parse::<Version>().expect("invalid cargo version");
-        let stdlib = CompiledLibrary::from_dir(&self.dir, library_namespace, source_manager)?;
+        let stdlib = Library::from_dir(&self.dir, library_namespace, source_manager)?;
 
         // write the masl output
         let options = AstSerdeOptions::new(false, false);
         let output_file = self
             .dir
             .join(self.namespace.as_deref().unwrap_or("out"))
-            .with_extension(CompiledLibrary::LIBRARY_EXTENSION);
+            .with_extension(Library::LIBRARY_EXTENSION);
         stdlib.write_to_file(output_file, options).into_diagnostic()?;
 
         println!("Built library {}", namespace);

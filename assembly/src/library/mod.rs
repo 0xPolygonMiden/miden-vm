@@ -10,17 +10,20 @@ use vm_core::{
     Kernel,
 };
 
-use crate::ast::{AstSerdeOptions, ProcedureIndex, ProcedureName, QualifiedProcedureName};
+use crate::ast::{AstSerdeOptions, QualifiedProcedureName};
 
 mod error;
 #[cfg(feature = "std")]
 mod masl;
+mod module;
 mod namespace;
 mod path;
 mod version;
 
+pub use module::{ModuleInfo, ProcedureInfo};
+
 pub use self::{
-    error::{CompiledLibraryError, LibraryError},
+    error::LibraryError,
     namespace::{LibraryNamespace, LibraryNamespaceError},
     path::{LibraryPath, LibraryPathComponent, PathError},
     version::{Version, VersionError},
@@ -29,7 +32,7 @@ pub use self::{
 #[cfg(test)]
 mod tests;
 
-// COMPILED LIBRARY
+// LIBRARY
 // ================================================================================================
 
 /// Represents a library where all modules were compiled into a [`MastForest`].
@@ -37,7 +40,7 @@ mod tests;
 /// A library exports a set of one or more procedures. Currently, all exported procedures belong
 /// to the same top-level namespace.
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct CompiledLibrary {
+pub struct Library {
     /// The content hash of this library, formed by hashing the roots of all exports in
     /// lexicographical order (by digest, not procedure name)
     digest: RpoDigest,
@@ -49,9 +52,9 @@ pub struct CompiledLibrary {
     mast_forest: MastForest,
 }
 
-impl AsRef<CompiledLibrary> for CompiledLibrary {
+impl AsRef<Library> for Library {
     #[inline(always)]
-    fn as_ref(&self) -> &CompiledLibrary {
+    fn as_ref(&self) -> &Library {
         self
     }
 }
@@ -66,22 +69,12 @@ enum Export {
 }
 
 /// Constructors
-impl CompiledLibrary {
-    /// Constructs a new [`CompiledLibrary`] from the provided MAST forest and a set of exports.
-    ///
-    /// # Errors
-    ///
-    /// Returns an error if:
-    /// - The set of exported procedures is empty.
-    /// - Not all exported procedures are present in the MAST forest.
+impl Library {
+    /// Constructs a new [`Library`] from the provided MAST forest and a set of exports.
     pub fn new(
         mast_forest: MastForest,
         exports: BTreeMap<QualifiedProcedureName, RpoDigest>,
-    ) -> Result<Self, CompiledLibraryError> {
-        if exports.is_empty() {
-            return Err(CompiledLibraryError::EmptyExports);
-        }
-
+    ) -> Self {
         let mut fqn_to_export = BTreeMap::new();
 
         // convert fqn |-> mast_root map into fqn |-> mast_node_id map
@@ -98,16 +91,16 @@ impl CompiledLibrary {
 
         let digest = content_hash(&fqn_to_export, &mast_forest);
 
-        Ok(Self {
+        Self {
             digest,
             exports: fqn_to_export,
             mast_forest,
-        })
+        }
     }
 }
 
 /// Accessors
-impl CompiledLibrary {
+impl Library {
     /// Returns the [RpoDigest] representing the content hash of this library
     pub fn digest(&self) -> &RpoDigest {
         &self.digest
@@ -125,7 +118,7 @@ impl CompiledLibrary {
 }
 
 /// Conversions
-impl CompiledLibrary {
+impl Library {
     /// Returns an iterator over the module infos of the library.
     pub fn module_infos(&self) -> impl Iterator<Item = ModuleInfo> {
         let mut modules_by_path: BTreeMap<LibraryPath, ModuleInfo> = BTreeMap::new();
@@ -135,20 +128,15 @@ impl CompiledLibrary {
                 .entry(proc_name.module.clone())
                 .and_modify(|compiled_module| {
                     let proc_digest = export.digest(&self.mast_forest);
-
-                    compiled_module.add_procedure_info(ProcedureInfo {
-                        name: proc_name.name.clone(),
-                        digest: proc_digest,
-                    })
+                    compiled_module.add_procedure(proc_name.name.clone(), proc_digest);
                 })
                 .or_insert_with(|| {
-                    let proc_digest = export.digest(&self.mast_forest);
-                    let proc = ProcedureInfo {
-                        name: proc_name.name.clone(),
-                        digest: proc_digest,
-                    };
+                    let mut module_info = ModuleInfo::new(proc_name.module.clone());
 
-                    ModuleInfo::new(proc_name.module.clone(), vec![proc])
+                    let proc_digest = export.digest(&self.mast_forest);
+                    module_info.add_procedure(proc_name.name.clone(), proc_digest);
+
+                    module_info
                 });
         }
 
@@ -157,7 +145,7 @@ impl CompiledLibrary {
 }
 
 /// Serialization
-impl CompiledLibrary {
+impl Library {
     /// Serialize to `target` using `options`
     pub fn write_into_with_options<W: ByteWriter>(&self, target: &mut W, options: AstSerdeOptions) {
         let Self { digest: _, exports, mast_forest } = self;
@@ -173,13 +161,13 @@ impl CompiledLibrary {
     }
 }
 
-impl Serializable for CompiledLibrary {
+impl Serializable for Library {
     fn write_into<W: ByteWriter>(&self, target: &mut W) {
         self.write_into_with_options(target, AstSerdeOptions::default())
     }
 }
 
-impl Deserializable for CompiledLibrary {
+impl Deserializable for Library {
     fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
         let options = AstSerdeOptions::read_from(source)?;
         let mast_forest = MastForest::read_from(source)?;
@@ -225,7 +213,7 @@ mod use_std_library {
         Assembler,
     };
 
-    impl CompiledLibrary {
+    impl Library {
         /// File extension for the Assembly Library.
         pub const LIBRARY_EXTENSION: &'static str = "masl";
 
@@ -269,7 +257,7 @@ mod use_std_library {
             })?
         }
 
-        /// Create a [CompiledLibrary] from a standard Miden Assembly project layout.
+        /// Create a [Library] from a standard Miden Assembly project layout.
         ///
         /// The standard layout dictates that a given path is the root of a namespace, and the
         /// directory hierarchy corresponds to the namespace hierarchy. A `.masm` file found in a
@@ -282,7 +270,7 @@ mod use_std_library {
         /// For example, let's say I call this function like so:
         ///
         /// ```rust
-        /// CompiledLibrary::from_dir(
+        /// Library::from_dir(
         ///     "~/masm/std",
         ///     LibraryNamespace::new("std").unwrap()
         ///     Arc::new(crate::DefaultSourceManager::default()),
@@ -353,9 +341,6 @@ mod use_std_library {
                 }
             }
 
-            if modules.is_empty() {
-                return Err(LibraryError::Empty(namespace.clone()).into());
-            }
             if modules.len() > MAX_MODULES {
                 return Err(LibraryError::TooManyModulesInLibrary {
                     name: namespace.clone(),
@@ -442,13 +427,14 @@ impl Export {
 
 /// Represents a library containing a Miden VM kernel.
 ///
-/// This differs from the regular [CompiledLibrary] as follows:
+/// This differs from the regular [Library] as follows:
 /// - All exported procedures must be exported directly from the kernel namespace (i.e., `#sys`).
+/// - There must be at least one exported procedure.
 /// - The number of exported procedures cannot exceed [Kernel::MAX_NUM_PROCEDURES] (i.e., 256).
 pub struct KernelLibrary {
     kernel: Kernel,
     kernel_info: ModuleInfo,
-    library: CompiledLibrary,
+    library: Library,
 }
 
 impl KernelLibrary {
@@ -463,36 +449,37 @@ impl KernelLibrary {
     }
 }
 
-impl TryFrom<CompiledLibrary> for KernelLibrary {
-    type Error = CompiledLibraryError;
+impl TryFrom<Library> for KernelLibrary {
+    type Error = LibraryError;
 
-    fn try_from(library: CompiledLibrary) -> Result<Self, Self::Error> {
+    fn try_from(library: Library) -> Result<Self, Self::Error> {
+        if library.exports.is_empty() {
+            return Err(LibraryError::EmptyKernel);
+        }
+
         let kernel_path = LibraryPath::from(LibraryNamespace::Kernel);
-        let mut kernel_procs = Vec::with_capacity(library.exports.len());
         let mut proc_digests = Vec::with_capacity(library.exports.len());
+
+        let mut kernel_module = ModuleInfo::new(kernel_path.clone());
 
         for (proc_path, export) in library.exports.iter() {
             // make sure all procedures are exported only from the kernel root
             if proc_path.module != kernel_path {
-                return Err(CompiledLibraryError::InvalidKernelExport {
+                return Err(LibraryError::InvalidKernelExport {
                     procedure_path: proc_path.clone(),
                 });
             }
 
             let proc_digest = export.digest(&library.mast_forest);
             proc_digests.push(proc_digest);
-            kernel_procs.push(ProcedureInfo {
-                name: proc_path.name.clone(),
-                digest: proc_digest,
-            });
+            kernel_module.add_procedure(proc_path.name.clone(), proc_digest);
         }
 
         let kernel = Kernel::new(&proc_digests)?;
-        let module_info = ModuleInfo::new(kernel_path, kernel_procs);
 
         Ok(Self {
             kernel,
-            kernel_info: module_info,
+            kernel_info: kernel_module,
             library,
         })
     }
@@ -516,7 +503,7 @@ impl Serializable for KernelLibrary {
 
 impl Deserializable for KernelLibrary {
     fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
-        let library = CompiledLibrary::read_from(source)?;
+        let library = Library::read_from(source)?;
 
         Self::try_from(library).map_err(|err| {
             DeserializationError::InvalidValue(format!(
@@ -545,89 +532,17 @@ mod use_std_kernel {
 
         /// Create a [KernelLibrary] from a standard Miden Assembly project layout.
         ///
-        /// This is essentially a wrapper around [CompiledLibrary::from_dir], which then validates
-        /// that the resulting [CompiledLibrary] is a valid [KernelLibrary].
+        /// This is essentially a wrapper around [Library::from_dir], which then validates
+        /// that the resulting [Library] is a valid [KernelLibrary].
         pub fn from_dir(
             path: impl AsRef<Path>,
             source_manager: Arc<dyn SourceManager>,
         ) -> Result<Self, Report> {
-            let library =
-                CompiledLibrary::from_dir(path, LibraryNamespace::Kernel, source_manager)?;
+            let library = Library::from_dir(path, LibraryNamespace::Kernel, source_manager)?;
 
             Ok(Self::try_from(library)?)
         }
     }
-}
-
-// MODULE INFO
-// ================================================================================================
-
-#[derive(Debug, Clone)]
-pub struct ModuleInfo {
-    path: LibraryPath,
-    procedure_infos: Vec<ProcedureInfo>,
-}
-
-impl ModuleInfo {
-    /// Returns a new [`ModuleInfo`] instantiated from the provided procedures.
-    ///
-    /// Note: this constructor assumes that the fully-qualified names of the provided procedures
-    /// are consistent with the provided module path, but this is not checked.
-    fn new(path: LibraryPath, procedures: Vec<ProcedureInfo>) -> Self {
-        Self { path, procedure_infos: procedures }
-    }
-
-    /// Adds a [`ProcedureInfo`] to the module.
-    pub fn add_procedure_info(&mut self, procedure: ProcedureInfo) {
-        self.procedure_infos.push(procedure);
-    }
-
-    /// Returns the module's library path.
-    pub fn path(&self) -> &LibraryPath {
-        &self.path
-    }
-
-    /// Returns the number of procedures in the module.
-    pub fn num_procedures(&self) -> usize {
-        self.procedure_infos.len()
-    }
-
-    /// Returns an iterator over the procedure infos in the module with their corresponding
-    /// procedure index in the module.
-    pub fn procedure_infos(&self) -> impl Iterator<Item = (ProcedureIndex, &ProcedureInfo)> {
-        self.procedure_infos
-            .iter()
-            .enumerate()
-            .map(|(idx, proc)| (ProcedureIndex::new(idx), proc))
-    }
-
-    /// Returns an iterator over the MAST roots of procedures defined in this module.
-    pub fn procedure_digests(&self) -> impl Iterator<Item = RpoDigest> + '_ {
-        self.procedure_infos.iter().map(|p| p.digest)
-    }
-
-    /// Returns the [`ProcedureInfo`] of the procedure at the provided index, if any.
-    pub fn get_proc_info_by_index(&self, index: ProcedureIndex) -> Option<&ProcedureInfo> {
-        self.procedure_infos.get(index.as_usize())
-    }
-
-    /// Returns the digest of the procedure with the provided name, if any.
-    pub fn get_proc_digest_by_name(&self, name: &ProcedureName) -> Option<RpoDigest> {
-        self.procedure_infos.iter().find_map(|proc_info| {
-            if &proc_info.name == name {
-                Some(proc_info.digest)
-            } else {
-                None
-            }
-        })
-    }
-}
-
-/// Stores the name and digest of a procedure.
-#[derive(Debug, Clone)]
-pub struct ProcedureInfo {
-    pub name: ProcedureName,
-    pub digest: RpoDigest,
 }
 
 /// Maximum number of modules in a library.

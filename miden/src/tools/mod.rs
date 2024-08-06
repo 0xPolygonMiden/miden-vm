@@ -217,7 +217,7 @@ where
     let stdlib = StdLibrary::default();
     let program = Assembler::default()
         .with_debug_mode(true)
-        .with_compiled_library(&stdlib)?
+        .with_library(&stdlib)?
         .assemble_program(program)?;
     let mut execution_details = ExecutionDetails::default();
 

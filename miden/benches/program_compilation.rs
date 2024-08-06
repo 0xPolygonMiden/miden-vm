@@ -18,8 +18,7 @@ fn program_compilation(c: &mut Criterion) {
             end";
         bench.iter(|| {
             let mut assembler = Assembler::default();
-            assembler.add_compiled_library(&stdlib).expect("failed to load stdlib");
-
+            assembler.add_library(&stdlib).expect("failed to load stdlib");
             assembler.assemble_program(source).expect("Failed to compile test source.")
         });
     });

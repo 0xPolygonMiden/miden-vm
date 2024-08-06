@@ -2,21 +2,21 @@
 
 extern crate alloc;
 
-use assembly::{library::CompiledLibrary, utils::Deserializable};
+use assembly::{library::Library, utils::Deserializable};
 
 // STANDARD LIBRARY
 // ================================================================================================
 
 /// TODO: add docs
-pub struct StdLibrary(CompiledLibrary);
+pub struct StdLibrary(Library);
 
-impl AsRef<CompiledLibrary> for StdLibrary {
-    fn as_ref(&self) -> &CompiledLibrary {
+impl AsRef<Library> for StdLibrary {
+    fn as_ref(&self) -> &Library {
         &self.0
     }
 }
 
-impl From<StdLibrary> for CompiledLibrary {
+impl From<StdLibrary> for Library {
     fn from(value: StdLibrary) -> Self {
         value.0
     }
@@ -25,7 +25,7 @@ impl From<StdLibrary> for CompiledLibrary {
 impl Default for StdLibrary {
     fn default() -> Self {
         let bytes = include_bytes!(concat!(env!("OUT_DIR"), "/assets/std.masl"));
-        let contents = CompiledLibrary::read_from_bytes(bytes).expect("failed to read std masl!");
+        let contents = Library::read_from_bytes(bytes).expect("failed to read std masl!");
         Self(contents)
     }
 }
@@ -42,7 +42,7 @@ mod tests {
         let stdlib = StdLibrary::default();
         let exists = stdlib.0.module_infos().any(|module| {
             module
-                .procedure_infos()
+                .procedures()
                 .any(|(_, proc)| module.path().clone().append(&proc.name).unwrap() == path)
         });
 

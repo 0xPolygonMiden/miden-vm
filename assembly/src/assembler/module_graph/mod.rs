@@ -117,7 +117,7 @@ impl WrappedModule {
         match self {
             WrappedModule::Ast(module) => module.resolve(name),
             WrappedModule::Info(module) => {
-                module.get_proc_digest_by_name(name).map(ResolvedProcedure::MastRoot)
+                module.get_procedure_digest_by_name(name).map(ResolvedProcedure::MastRoot)
             },
         }
     }
@@ -196,9 +196,8 @@ impl ModuleGraph {
 
         // Register all procedures as roots
         for &module_index in module_indices.iter() {
-            for (proc_index, proc) in self[module_index].unwrap_info().clone().procedure_infos() {
-                let gid = GlobalProcedureIndex { module: module_index, index: proc_index };
-
+            for (proc_index, proc) in self[module_index].unwrap_info().clone().procedures() {
+                let gid = module_index + proc_index;
                 self.register_mast_root(gid, proc.digest)?;
             }
         }
@@ -364,7 +363,7 @@ impl ModuleGraph {
                     }
                 },
                 PendingWrappedModule::Info(pending_module) => {
-                    for (proc_index, _procedure) in pending_module.procedure_infos() {
+                    for (proc_index, _procedure) in pending_module.procedures() {
                         let global_id =
                             GlobalProcedureIndex { module: module_id, index: proc_index };
                         self.callgraph.get_or_insert_node(global_id);
@@ -516,7 +515,7 @@ impl ModuleGraph {
         match &self.modules[id.module.as_usize()] {
             WrappedModule::Ast(m) => ProcedureWrapper::Ast(&m[id.index]),
             WrappedModule::Info(m) => {
-                ProcedureWrapper::Info(m.get_proc_info_by_index(id.index).unwrap())
+                ProcedureWrapper::Info(m.get_procedure_by_index(id.index).unwrap())
             },
         }
     }

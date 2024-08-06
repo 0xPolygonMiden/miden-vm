@@ -16,7 +16,7 @@ use alloc::{
     vec::Vec,
 };
 
-use assembly::library::CompiledLibrary;
+use assembly::library::Library;
 // EXPORTS
 // ================================================================================================
 pub use assembly::{diagnostics::Report, LibraryPath, SourceFile, SourceManager};
@@ -175,7 +175,7 @@ pub struct Test {
     pub stack_inputs: StackInputs,
     pub advice_inputs: AdviceInputs,
     pub in_debug_mode: bool,
-    pub libraries: Vec<CompiledLibrary>,
+    pub libraries: Vec<Library>,
     pub add_modules: Vec<(LibraryPath, String)>,
 }
 
@@ -311,7 +311,7 @@ impl Test {
             })
             .with_debug_mode(self.in_debug_mode);
         for library in &self.libraries {
-            assembler.add_compiled_library(library).unwrap();
+            assembler.add_library(library).unwrap();
         }
 
         Ok((assembler.assemble_program(self.source.clone())?, compiled_kernel))

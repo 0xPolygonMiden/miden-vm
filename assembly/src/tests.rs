@@ -2464,7 +2464,7 @@ fn test_compiled_library() {
     // Compile program that uses compiled library
     let mut assembler = Assembler::new(context.source_manager());
 
-    assembler.add_compiled_library(&compiled_library).unwrap();
+    assembler.add_library(&compiled_library).unwrap();
 
     let program_source = "
     use.mylib::mod1

@@ -52,7 +52,7 @@ fn masl_locations_serialization() -> Result<(), Report> {
 
     let mut bytes = Vec::new();
     bundle.write_into_with_options(&mut bytes, AstSerdeOptions::new(true, true));
-    let deserialized = CompiledLibrary::read_from(&mut SliceReader::new(&bytes)).unwrap();
+    let deserialized = Library::read_from(&mut SliceReader::new(&bytes)).unwrap();
     assert_eq!(bundle, deserialized);
 
     // serialize/deserialize the bundle without locations
@@ -63,7 +63,7 @@ fn masl_locations_serialization() -> Result<(), Report> {
     // serialize/deserialize the bundle
     let mut bytes = Vec::new();
     bundle.write_into_with_options(&mut bytes, AstSerdeOptions::new(true, false));
-    let deserialized = CompiledLibrary::read_from(&mut SliceReader::new(&bytes)).unwrap();
+    let deserialized = Library::read_from(&mut SliceReader::new(&bytes)).unwrap();
     assert_eq!(bundle, deserialized);
 
     Ok(())
@@ -89,7 +89,7 @@ fn get_module_by_path() -> Result<(), Report> {
     let foo_module_info = bundle.module_infos().next().unwrap();
     assert_eq!(foo_module_info.path(), &LibraryPath::new("test::foo").unwrap());
 
-    let (_, foo_proc) = foo_module_info.procedure_infos().next().unwrap();
+    let (_, foo_proc) = foo_module_info.procedures().next().unwrap();
     assert_eq!(foo_proc.name, ProcedureName::new("foo").unwrap());
 
     Ok(())
