@@ -56,7 +56,7 @@ The arithmetic operations below are performed in a 64-bit [prime field](https://
 
 ### Extension Field Operations
 
-| Instruction                        | Stack Input           | Stack Output    | Notes                                                                                                               |
+| Instruction                        | Stack_input           | Stack_output    | Notes                                                                                                               |
 | ---------------------------------- | --------------------- | --------------- | ------------------------------------------------------------------------------------------------------------------- |
 | ext2add <br> - *(5 cycles)*   <br> | [b1, b0, a1, a0, ...] | [c1, c0, ...]   | $c1 \leftarrow (a1 + b1) \mod p$ and <br> $c0 \leftarrow (a0 + b0) \mod p$                                          |
 | ext2sub <br> - *(7 cycles)*   <br> | [b1, b0, a1, a0, ...] | [c1, c0, ...]   | $c1 \leftarrow (a1 - b1) \mod p$ and <br> $c0 \leftarrow (a0 - b0) \mod p$                                          |
