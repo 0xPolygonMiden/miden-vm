@@ -2,7 +2,7 @@ use std::time::Duration;
 
 use criterion::{criterion_group, criterion_main, Criterion};
 use miden_vm::{Assembler, DefaultHost, StackInputs};
-use processor::{execute, ExecutionOptions, Program};
+use processor::{execute, ExecutionOptions};
 use stdlib::StdLibrary;
 
 fn program_execution(c: &mut Criterion) {
@@ -21,9 +21,8 @@ fn program_execution(c: &mut Criterion) {
                 exec.sha256::hash_2to1
             end";
         let mut assembler = Assembler::default();
-        assembler.add_compiled_library(&stdlib).expect("failed to load stdlib");
-        let program: Program =
-            assembler.assemble_program(source).expect("Failed to compile test source.");
+        assembler.add_library(&stdlib).expect("failed to load stdlib");
+        let program = assembler.assemble_program(source).expect("Failed to compile test source.");
         bench.iter(|| {
             execute(&program, StackInputs::default(), host.clone(), ExecutionOptions::default())
         });

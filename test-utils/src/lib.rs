@@ -311,7 +311,7 @@ impl Test {
             })
             .with_debug_mode(self.in_debug_mode);
         for library in &self.libraries {
-            assembler.add_compiled_library(library).unwrap();
+            assembler.add_library(library).unwrap();
         }
 
         Ok((assembler.assemble_program(self.source.clone())?, compiled_kernel))

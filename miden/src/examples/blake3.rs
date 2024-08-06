@@ -46,7 +46,7 @@ fn generate_blake3_program(n: usize) -> Program {
     );
 
     Assembler::default()
-        .with_compiled_library(StdLibrary::default())
+        .with_library(StdLibrary::default())
         .unwrap()
         .assemble_program(program)
         .unwrap()

@@ -310,7 +310,7 @@ fn execute(
     let mut assembler = Assembler::default();
 
     for library in provided_libraries {
-        assembler.add_compiled_library(library).map_err(|err| format!("{err}"))?;
+        assembler.add_library(library).map_err(|err| format!("{err}"))?;
     }
 
     let program = assembler.assemble_program(program).map_err(|err| format!("{err}"))?;

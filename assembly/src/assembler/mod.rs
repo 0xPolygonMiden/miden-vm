@@ -177,10 +177,7 @@ impl Assembler {
     }
 
     /// Adds the compiled library to provide modules for the compilation.
-    pub fn add_compiled_library(
-        &mut self,
-        library: impl AsRef<CompiledLibrary>,
-    ) -> Result<(), Report> {
+    pub fn add_library(&mut self, library: impl AsRef<CompiledLibrary>) -> Result<(), Report> {
         self.module_graph
             .add_compiled_modules(library.as_ref().module_infos())
             .map_err(Report::from)?;
@@ -188,11 +185,8 @@ impl Assembler {
     }
 
     /// Adds the compiled library to provide modules for the compilation.
-    pub fn with_compiled_library(
-        mut self,
-        library: impl AsRef<CompiledLibrary>,
-    ) -> Result<Self, Report> {
-        self.add_compiled_library(library)?;
+    pub fn with_library(mut self, library: impl AsRef<CompiledLibrary>) -> Result<Self, Report> {
+        self.add_library(library)?;
         Ok(self)
     }
 }
