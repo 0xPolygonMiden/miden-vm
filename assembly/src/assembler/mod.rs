@@ -50,8 +50,8 @@ pub use self::{
 ///   [Assembler::assemble_program].
 /// * If you want to link your executable to a few other modules that implement supporting
 ///   procedures, build the assembler with them first, using the various builder methods on
-///   [Assembler], e.g. [Assembler::with_module], [Assembler::with_compiled_library], etc. Then,
-///   call [Assembler::assemble_program] to get your compiled program.
+///   [Assembler], e.g. [Assembler::with_module], [Assembler::with_library], etc. Then, call
+///   [Assembler::assemble_program] to get your compiled program.
 #[derive(Clone)]
 pub struct Assembler {
     /// The source manager to use for compilation and source location information
@@ -269,7 +269,9 @@ impl Assembler {
             exports
         };
 
-        Ok(Library::new(mast_forest_builder.build(), exports)?)
+        // TODO: show a warning if library exports are empty?
+
+        Ok(Library::new(mast_forest_builder.build(), exports))
     }
 
     /// Assembles the provided module into a [KernelLibrary] intended to be used as a Kernel.
@@ -308,7 +310,9 @@ impl Assembler {
             })
             .collect::<Result<BTreeMap<QualifiedProcedureName, RpoDigest>, Report>>()?;
 
-        let library = Library::new(mast_forest_builder.build(), exports)?;
+        // TODO: show a warning if library exports are empty?
+
+        let library = Library::new(mast_forest_builder.build(), exports);
         Ok(library.try_into()?)
     }
 

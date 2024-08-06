@@ -71,20 +71,10 @@ enum Export {
 /// Constructors
 impl Library {
     /// Constructs a new [`Library`] from the provided MAST forest and a set of exports.
-    ///
-    /// # Errors
-    ///
-    /// Returns an error if:
-    /// - The set of exported procedures is empty.
-    /// - Not all exported procedures are present in the MAST forest.
     pub fn new(
         mast_forest: MastForest,
         exports: BTreeMap<QualifiedProcedureName, RpoDigest>,
-    ) -> Result<Self, LibraryError> {
-        if exports.is_empty() {
-            return Err(LibraryError::EmptyExports);
-        }
-
+    ) -> Self {
         let mut fqn_to_export = BTreeMap::new();
 
         // convert fqn |-> mast_root map into fqn |-> mast_node_id map
@@ -101,11 +91,11 @@ impl Library {
 
         let digest = content_hash(&fqn_to_export, &mast_forest);
 
-        Ok(Self {
+        Self {
             digest,
             exports: fqn_to_export,
             mast_forest,
-        })
+        }
     }
 }
 
@@ -351,9 +341,6 @@ mod use_std_library {
                 }
             }
 
-            if modules.is_empty() {
-                return Err(LibraryError::EmptyModules(namespace.clone()).into());
-            }
             if modules.len() > MAX_MODULES {
                 return Err(LibraryError::TooManyModulesInLibrary {
                     name: namespace.clone(),
@@ -442,6 +429,7 @@ impl Export {
 ///
 /// This differs from the regular [Library] as follows:
 /// - All exported procedures must be exported directly from the kernel namespace (i.e., `#sys`).
+/// - There must be at least one exported procedure.
 /// - The number of exported procedures cannot exceed [Kernel::MAX_NUM_PROCEDURES] (i.e., 256).
 pub struct KernelLibrary {
     kernel: Kernel,
@@ -465,6 +453,10 @@ impl TryFrom<Library> for KernelLibrary {
     type Error = LibraryError;
 
     fn try_from(library: Library) -> Result<Self, Self::Error> {
+        if library.exports.is_empty() {
+            return Err(LibraryError::EmptyKernel);
+        }
+
         let kernel_path = LibraryPath::from(LibraryNamespace::Kernel);
         let mut proc_digests = Vec::with_capacity(library.exports.len());
 

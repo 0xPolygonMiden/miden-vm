@@ -4,12 +4,9 @@ use crate::{ast::QualifiedProcedureName, diagnostics::Diagnostic, LibraryNamespa
 
 #[derive(Debug, thiserror::Error, Diagnostic)]
 pub enum LibraryError {
-    #[error("library must contain at least one exported procedure")]
+    #[error("kernel library must contain at least one exported procedure")]
     #[diagnostic()]
-    EmptyExports,
-    #[error("library '{0}' does not contain any modules")]
-    #[diagnostic()]
-    EmptyModules(LibraryNamespace),
+    EmptyKernel,
     #[error("duplicate module '{0}'")]
     #[diagnostic()]
     DuplicateModulePath(LibraryPath),

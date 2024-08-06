@@ -17,7 +17,7 @@ pub struct ModuleInfo {
 
 impl ModuleInfo {
     /// Returns a new [`ModuleInfo`] instantiated library path.
-    pub(super) fn new(path: LibraryPath) -> Self {
+    pub fn new(path: LibraryPath) -> Self {
         Self { path, procedures: Vec::new() }
     }
 
