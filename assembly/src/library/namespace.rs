@@ -9,6 +9,9 @@ use crate::{
     DeserializationError, LibraryPath, Serializable, Span,
 };
 
+// LIBRARY NAMESPACE
+// ================================================================================================
+
 /// Represents an error when parsing or validating a library namespace
 #[derive(Debug, thiserror::Error, Diagnostic, PartialEq, Eq)]
 pub enum LibraryNamespaceError {
@@ -43,6 +46,8 @@ pub enum LibraryNamespace {
     User(Arc<str>),
 }
 
+// ------------------------------------------------------------------------------------------------
+/// Constants
 impl LibraryNamespace {
     /// Namespaces must be 255 bytes or less
     pub const MAX_LENGTH: usize = u8::MAX as usize;
@@ -55,7 +60,11 @@ impl LibraryNamespace {
 
     /// Path for a module without library path.
     pub const ANON_PATH: &'static str = "#anon";
+}
 
+// ------------------------------------------------------------------------------------------------
+/// Constructors
+impl LibraryNamespace {
     /// Construct a new [LibraryNamespace] from `source`
     pub fn new<S>(source: S) -> Result<Self, LibraryNamespaceError>
     where
@@ -84,36 +93,12 @@ impl LibraryNamespace {
             None => path.parse().map(|ns| (ns, "")),
         }
     }
+}
 
-    /// Get the string representation of this namespace
-    pub fn as_str(&self) -> &str {
-        match self {
-            Self::Kernel => Self::KERNEL_PATH,
-            Self::Exec => Self::EXEC_PATH,
-            Self::Anon => Self::ANON_PATH,
-            Self::User(ref path) => path,
-        }
-    }
-
-    /// Get an [`Arc<str>`] representing this namespace
-    pub fn as_refcounted_str(&self) -> Arc<str> {
-        match self {
-            Self::User(ref path) => path.clone(),
-            other => Arc::from(other.as_str().to_string().into_boxed_str()),
-        }
-    }
-
-    /// Create a [LibraryPath] representing this [LibraryNamespace]
-    pub fn to_path(&self) -> LibraryPath {
-        LibraryPath::from(self.clone())
-    }
-
-    /// Create an [Ident] representing this namespace
-    pub fn to_ident(&self) -> Ident {
-        Ident::new_unchecked(Span::unknown(self.as_refcounted_str()))
-    }
-
-    /// Returns true if this namespace is a reserved namespace
+// ------------------------------------------------------------------------------------------------
+/// Public accessors
+impl LibraryNamespace {
+    /// Returns true if this namespace is a reserved namespace.
     pub fn is_reserved(&self) -> bool {
         !matches!(self, Self::User(_))
     }
@@ -137,6 +122,38 @@ impl LibraryNamespace {
             return Err(LibraryNamespaceError::InvalidChars);
         }
         Ok(())
+    }
+}
+
+// ------------------------------------------------------------------------------------------------
+/// Conversions
+impl LibraryNamespace {
+    /// Get the string representation of this namespace.
+    pub fn as_str(&self) -> &str {
+        match self {
+            Self::Kernel => Self::KERNEL_PATH,
+            Self::Exec => Self::EXEC_PATH,
+            Self::Anon => Self::ANON_PATH,
+            Self::User(ref path) => path,
+        }
+    }
+
+    /// Get an [`Arc<str>`] representing this namespace.
+    pub fn as_refcounted_str(&self) -> Arc<str> {
+        match self {
+            Self::User(ref path) => path.clone(),
+            other => Arc::from(other.as_str().to_string().into_boxed_str()),
+        }
+    }
+
+    /// Create a [LibraryPath] representing this [LibraryNamespace].
+    pub fn to_path(&self) -> LibraryPath {
+        LibraryPath::from(self.clone())
+    }
+
+    /// Create an [Ident] representing this namespace.
+    pub fn to_ident(&self) -> Ident {
+        Ident::new_unchecked(Span::unknown(self.as_refcounted_str()))
     }
 }
 
@@ -187,6 +204,9 @@ impl TryFrom<Ident> for LibraryNamespace {
         }
     }
 }
+
+// SERIALIZATION / DESERIALIZATION
+// ------------------------------------------------------------------------------------------------
 
 impl Serializable for LibraryNamespace {
     fn write_into<W: ByteWriter>(&self, target: &mut W) {

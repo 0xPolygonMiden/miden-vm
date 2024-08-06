@@ -42,7 +42,7 @@ mod tests {
         let stdlib = StdLibrary::default();
         let exists = stdlib.0.module_infos().any(|module| {
             module
-                .procedure_infos()
+                .procedures()
                 .any(|(_, proc)| module.path().clone().append(&proc.name).unwrap() == path)
         });
 

@@ -89,7 +89,7 @@ fn get_module_by_path() -> Result<(), Report> {
     let foo_module_info = bundle.module_infos().next().unwrap();
     assert_eq!(foo_module_info.path(), &LibraryPath::new("test::foo").unwrap());
 
-    let (_, foo_proc) = foo_module_info.procedure_infos().next().unwrap();
+    let (_, foo_proc) = foo_module_info.procedures().next().unwrap();
     assert_eq!(foo_proc.name, ProcedureName::new("foo").unwrap());
 
     Ok(())

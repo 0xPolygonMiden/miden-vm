@@ -10,14 +10,17 @@ use vm_core::{
     Kernel,
 };
 
-use crate::ast::{AstSerdeOptions, ProcedureIndex, ProcedureName, QualifiedProcedureName};
+use crate::ast::{AstSerdeOptions, QualifiedProcedureName};
 
 mod error;
 #[cfg(feature = "std")]
 mod masl;
+mod module;
 mod namespace;
 mod path;
 mod version;
+
+pub use module::{ModuleInfo, ProcedureInfo};
 
 pub use self::{
     error::{CompiledLibraryError, LibraryError},
@@ -135,20 +138,15 @@ impl CompiledLibrary {
                 .entry(proc_name.module.clone())
                 .and_modify(|compiled_module| {
                     let proc_digest = export.digest(&self.mast_forest);
-
-                    compiled_module.add_procedure_info(ProcedureInfo {
-                        name: proc_name.name.clone(),
-                        digest: proc_digest,
-                    })
+                    compiled_module.add_procedure(proc_name.name.clone(), proc_digest);
                 })
                 .or_insert_with(|| {
-                    let proc_digest = export.digest(&self.mast_forest);
-                    let proc = ProcedureInfo {
-                        name: proc_name.name.clone(),
-                        digest: proc_digest,
-                    };
+                    let mut module_info = ModuleInfo::new(proc_name.module.clone());
 
-                    ModuleInfo::new(proc_name.module.clone(), vec![proc])
+                    let proc_digest = export.digest(&self.mast_forest);
+                    module_info.add_procedure(proc_name.name.clone(), proc_digest);
+
+                    module_info
                 });
         }
 
@@ -468,8 +466,9 @@ impl TryFrom<CompiledLibrary> for KernelLibrary {
 
     fn try_from(library: CompiledLibrary) -> Result<Self, Self::Error> {
         let kernel_path = LibraryPath::from(LibraryNamespace::Kernel);
-        let mut kernel_procs = Vec::with_capacity(library.exports.len());
         let mut proc_digests = Vec::with_capacity(library.exports.len());
+
+        let mut kernel_module = ModuleInfo::new(kernel_path.clone());
 
         for (proc_path, export) in library.exports.iter() {
             // make sure all procedures are exported only from the kernel root
@@ -481,18 +480,14 @@ impl TryFrom<CompiledLibrary> for KernelLibrary {
 
             let proc_digest = export.digest(&library.mast_forest);
             proc_digests.push(proc_digest);
-            kernel_procs.push(ProcedureInfo {
-                name: proc_path.name.clone(),
-                digest: proc_digest,
-            });
+            kernel_module.add_procedure(proc_path.name.clone(), proc_digest);
         }
 
         let kernel = Kernel::new(&proc_digests)?;
-        let module_info = ModuleInfo::new(kernel_path, kernel_procs);
 
         Ok(Self {
             kernel,
-            kernel_info: module_info,
+            kernel_info: kernel_module,
             library,
         })
     }
@@ -557,77 +552,6 @@ mod use_std_kernel {
             Ok(Self::try_from(library)?)
         }
     }
-}
-
-// MODULE INFO
-// ================================================================================================
-
-#[derive(Debug, Clone)]
-pub struct ModuleInfo {
-    path: LibraryPath,
-    procedure_infos: Vec<ProcedureInfo>,
-}
-
-impl ModuleInfo {
-    /// Returns a new [`ModuleInfo`] instantiated from the provided procedures.
-    ///
-    /// Note: this constructor assumes that the fully-qualified names of the provided procedures
-    /// are consistent with the provided module path, but this is not checked.
-    fn new(path: LibraryPath, procedures: Vec<ProcedureInfo>) -> Self {
-        Self { path, procedure_infos: procedures }
-    }
-
-    /// Adds a [`ProcedureInfo`] to the module.
-    pub fn add_procedure_info(&mut self, procedure: ProcedureInfo) {
-        self.procedure_infos.push(procedure);
-    }
-
-    /// Returns the module's library path.
-    pub fn path(&self) -> &LibraryPath {
-        &self.path
-    }
-
-    /// Returns the number of procedures in the module.
-    pub fn num_procedures(&self) -> usize {
-        self.procedure_infos.len()
-    }
-
-    /// Returns an iterator over the procedure infos in the module with their corresponding
-    /// procedure index in the module.
-    pub fn procedure_infos(&self) -> impl Iterator<Item = (ProcedureIndex, &ProcedureInfo)> {
-        self.procedure_infos
-            .iter()
-            .enumerate()
-            .map(|(idx, proc)| (ProcedureIndex::new(idx), proc))
-    }
-
-    /// Returns an iterator over the MAST roots of procedures defined in this module.
-    pub fn procedure_digests(&self) -> impl Iterator<Item = RpoDigest> + '_ {
-        self.procedure_infos.iter().map(|p| p.digest)
-    }
-
-    /// Returns the [`ProcedureInfo`] of the procedure at the provided index, if any.
-    pub fn get_proc_info_by_index(&self, index: ProcedureIndex) -> Option<&ProcedureInfo> {
-        self.procedure_infos.get(index.as_usize())
-    }
-
-    /// Returns the digest of the procedure with the provided name, if any.
-    pub fn get_proc_digest_by_name(&self, name: &ProcedureName) -> Option<RpoDigest> {
-        self.procedure_infos.iter().find_map(|proc_info| {
-            if &proc_info.name == name {
-                Some(proc_info.digest)
-            } else {
-                None
-            }
-        })
-    }
-}
-
-/// Stores the name and digest of a procedure.
-#[derive(Debug, Clone)]
-pub struct ProcedureInfo {
-    pub name: ProcedureName,
-    pub digest: RpoDigest,
 }
 
 /// Maximum number of modules in a library.

@@ -3,11 +3,8 @@ use alloc::{string::String, vec::Vec};
 use vm_core::errors::KernelError;
 
 use crate::{
-    ast::QualifiedProcedureName,
-    diagnostics::Diagnostic,
-    library::{LibraryNamespaceError, VersionError},
-    prettier::pretty_print_csv,
-    DeserializationError, LibraryNamespace, LibraryPath, PathError,
+    ast::QualifiedProcedureName, diagnostics::Diagnostic, library::LibraryNamespaceError,
+    prettier::pretty_print_csv, DeserializationError, LibraryNamespace, LibraryPath, PathError,
 };
 
 #[derive(Debug, thiserror::Error, Diagnostic)]
@@ -56,9 +53,6 @@ pub enum LibraryError {
     #[error(transparent)]
     #[diagnostic()]
     Path(#[from] PathError),
-    #[error(transparent)]
-    #[diagnostic()]
-    Version(#[from] VersionError),
     #[error(transparent)]
     #[diagnostic()]
     #[cfg(feature = "std")]
