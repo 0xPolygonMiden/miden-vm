@@ -41,13 +41,13 @@ mod tests;
 /// chiplet selectors.
 ///
 /// The module's trace can be thought of as 5 stacked chiplet segments in the following form:
-/// * Hasher segment: contains the trace and selector for the hasher chiplet. This segment fills
-///   the first rows of the trace up to the length of the hasher `trace_len`.
+/// * Hasher segment: contains the trace and selector for the hasher chiplet. This segment fills the
+///   first rows of the trace up to the length of the hasher `trace_len`.
 ///   - column 0: selector column with values set to ZERO
 ///   - columns 1-17: execution trace of hash chiplet
-/// * Bitwise segment: contains the trace and selectors for the bitwise chiplet. This segment
-///   begins at the end of the hasher segment and fills the next rows of the trace for the
-///   `trace_len` of the bitwise chiplet.
+/// * Bitwise segment: contains the trace and selectors for the bitwise chiplet. This segment begins
+///   at the end of the hasher segment and fills the next rows of the trace for the `trace_len` of
+///   the bitwise chiplet.
 ///   - column 0: selector column with values set to ONE
 ///   - column 1: selector column with values set to ZERO
 ///   - columns 2-14: execution trace of bitwise chiplet
