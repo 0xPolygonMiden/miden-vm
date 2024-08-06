@@ -1,7 +1,7 @@
-use super::{
-    mem_ops::local_to_absolute_addr, push_felt, AssemblyContext, AssemblyError, CodeBlock, Felt,
-    Operation::*, SpanBuilder,
-};
+use vm_core::Operation::*;
+
+use super::{mem_ops::local_to_absolute_addr, push_felt, BasicBlockBuilder};
+use crate::{assembler::ProcedureContext, AssemblyError, Felt, SourceSpan};
 
 // CONSTANT INPUTS
 // ================================================================================================
@@ -11,12 +11,11 @@ use super::{
 /// In cases when the immediate value is 0, `PUSH` operation is replaced with `PAD`. Also, in cases
 /// when immediate value is 1, `PUSH` operation is replaced with `PAD INCR` because in most cases
 /// this will be more efficient than doing a `PUSH`.
-pub fn push_one<T>(imm: T, span: &mut SpanBuilder) -> Result<Option<CodeBlock>, AssemblyError>
+pub fn push_one<T>(imm: T, span: &mut BasicBlockBuilder)
 where
     T: Into<Felt>,
 {
     push_felt(span, imm.into());
-    Ok(None)
 }
 
 /// Appends `PUSH` operations to the span block to push two or more provided constant values onto
@@ -25,12 +24,11 @@ where
 /// In cases when the immediate value is 0, `PUSH` operation is replaced with `PAD`. Also, in cases
 /// when immediate value is 1, `PUSH` operation is replaced with `PAD INCR` because in most cases
 /// this will be more efficient than doing a `PUSH`.
-pub fn push_many<T>(imms: &[T], span: &mut SpanBuilder) -> Result<Option<CodeBlock>, AssemblyError>
+pub fn push_many<T>(imms: &[T], span: &mut BasicBlockBuilder)
 where
     T: Into<Felt> + Copy,
 {
     imms.iter().for_each(|imm| push_felt(span, (*imm).into()));
-    Ok(None)
 }
 
 // ENVIRONMENT INPUTS
@@ -42,12 +40,11 @@ where
 /// # Errors
 /// Returns an error if index is greater than the number of procedure locals.
 pub fn locaddr(
-    span: &mut SpanBuilder,
+    span: &mut BasicBlockBuilder,
     index: u16,
-    context: &AssemblyContext,
-) -> Result<Option<CodeBlock>, AssemblyError> {
-    local_to_absolute_addr(span, index, context.num_proc_locals())?;
-    Ok(None)
+    proc_ctx: &ProcedureContext,
+) -> Result<(), AssemblyError> {
+    local_to_absolute_addr(span, index, proc_ctx.num_locals())
 }
 
 /// Appends CALLER operation to the span which puts the hash of the function which initiated the
@@ -56,11 +53,16 @@ pub fn locaddr(
 /// # Errors
 /// Returns an error if the instruction is being executed outside of kernel context.
 pub fn caller(
-    span: &mut SpanBuilder,
-    context: &AssemblyContext,
-) -> Result<Option<CodeBlock>, AssemblyError> {
-    if !context.is_kernel() {
-        return Err(AssemblyError::caller_out_of_kernel());
+    span: &mut BasicBlockBuilder,
+    proc_ctx: &ProcedureContext,
+    source_span: SourceSpan,
+) -> Result<(), AssemblyError> {
+    if !proc_ctx.is_kernel() {
+        return Err(AssemblyError::CallerOutsideOfKernel {
+            span: source_span,
+            source_file: proc_ctx.source_manager().get(source_span.source_id()).ok(),
+        });
     }
-    span.add_op(Caller)
+    span.push_op(Caller);
+    Ok(())
 }

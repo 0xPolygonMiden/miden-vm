@@ -1,3 +1,5 @@
+use alloc::vec::Vec;
+
 use miden_air::ProcessorAir;
 use processor::crypto::RpoRandomCoin;
 use test_utils::{
@@ -5,7 +7,7 @@ use test_utils::{
     math::{fft, FieldElement, QuadExtension, StarkField, ToElements},
     Felt, VerifierError,
 };
-use winter_air::{proof::StarkProof, Air, AuxTraceRandElements};
+use winter_air::{proof::Proof, Air};
 
 mod channel;
 use channel::VerifierChannel;
@@ -22,7 +24,7 @@ pub struct VerifierData {
 }
 
 pub fn generate_advice_inputs(
-    proof: StarkProof,
+    proof: Proof,
     pub_inputs: <ProcessorAir as Air>::PublicInputs,
 ) -> Result<VerifierData, VerifierError> {
     //// build a seed for the public coin; the initial seed is the hash of public inputs and proof
@@ -44,7 +46,7 @@ pub fn generate_advice_inputs(
     tape.extend_from_slice(&pub_inputs_int[..]);
 
     // create AIR instance for the computation specified in the proof
-    let air = ProcessorAir::new(proof.get_trace_info(), pub_inputs, proof.options().clone());
+    let air = ProcessorAir::new(proof.trace_info().to_owned(), pub_inputs, proof.options().clone());
     let seed_digest = Rpo256::hash_elements(&public_coin_seed);
     let mut public_coin: RpoRandomCoin = RpoRandomCoin::new(seed_digest.into());
     let mut channel = VerifierChannel::new(&air, proof)?;
@@ -57,12 +59,12 @@ pub fn generate_advice_inputs(
     tape.extend_from_slice(&digest_to_int_vec(trace_commitments));
 
     // process auxiliary trace segments, to build a set of random elements for each segment
-    let mut aux_trace_rand_elements = AuxTraceRandElements::<QuadExt>::new();
-    for (i, commitment) in trace_commitments.iter().skip(1).enumerate() {
-        let rand_elements = air
-            .get_aux_trace_segment_random_elements(i, &mut public_coin)
+    let mut aux_trace_rand_elements = vec![];
+    for commitment in trace_commitments.iter().skip(1) {
+        let rand_elements: Vec<QuadExt> = air
+            .get_aux_rand_elements(&mut public_coin)
             .map_err(|_| VerifierError::RandomCoinError)?;
-        aux_trace_rand_elements.add_segment_elements(rand_elements);
+        aux_trace_rand_elements.push(rand_elements);
         public_coin.reseed(*commitment);
     }
     // build random coefficients for the composition polynomial
@@ -80,8 +82,9 @@ pub fn generate_advice_inputs(
     let _ood_main_trace_frame = ood_trace_frame.main_frame();
     let _ood_aux_trace_frame = ood_trace_frame.aux_frame();
 
-    tape.extend_from_slice(&to_int_vec(ood_trace_frame.values()));
-    public_coin.reseed(Rpo256::hash_elements(ood_trace_frame.values()));
+    // TODO: fix
+    tape.extend_from_slice(&to_int_vec(ood_trace_frame.current_row()));
+    public_coin.reseed(Rpo256::hash_elements(ood_trace_frame.current_row()));
 
     // read evaluations of composition polynomial columns
     let ood_constraint_evaluations = channel.read_ood_constraint_evaluations();
@@ -120,7 +123,8 @@ pub fn generate_advice_inputs(
         .draw_integers(air.options().num_queries(), air.lde_domain_size(), pow_nonce)
         .map_err(|_| VerifierError::RandomCoinError)?;
 
-    // read advice maps and Merkle paths related to trace and constraint composition polynomial evaluations
+    // read advice maps and Merkle paths related to trace and constraint composition polynomial
+    // evaluations
     let (mut advice_map, mut partial_trees_traces) =
         channel.read_queried_trace_states(&query_positions)?;
     let (mut adv_map_constraint, partial_tree_constraint) =
@@ -138,20 +142,14 @@ pub fn generate_advice_inputs(
     for partial_tree in &partial_trees_fri {
         store.extend(partial_tree.inner_nodes());
     }
-    Ok(VerifierData {
-        initial_stack,
-        tape,
-        store,
-        advice_map,
-    })
+    Ok(VerifierData { initial_stack, tape, store, advice_map })
 }
 
 // Helpers
 pub fn digest_to_int_vec(digest: &[RpoDigest]) -> Vec<u64> {
     digest
         .iter()
-        .map(|digest| digest.as_elements().iter().map(|e| e.as_int()))
-        .flatten()
+        .flat_map(|digest| digest.as_elements().iter().map(|e| e.as_int()))
         .collect()
 }
 

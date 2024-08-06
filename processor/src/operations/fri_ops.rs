@@ -1,5 +1,6 @@
-use super::{super::QuadFelt, ExecutionError, Felt, Host, Operation, Process};
 use vm_core::{ExtensionOf, FieldElement, StarkField, ONE, ZERO};
+
+use super::{super::QuadFelt, ExecutionError, Felt, Host, Operation, Process};
 
 // CONSTANTS
 // ================================================================================================
@@ -30,7 +31,8 @@ where
     /// FRI verification procedure.
     ///
     /// Specifically:
-    /// - Folds 4 query values (v0, v1), (v2, v3), (v4, v5), (v6, v7) into a single value (ne0, ne1).
+    /// - Folds 4 query values (v0, v1), (v2, v3), (v4, v5), (v6, v7) into a single value (ne0,
+    ///   ne1).
     /// - Computes new value of the domain generator power: poe' = poe^4.
     /// - Increments layer pointer (cptr) by 2.
     /// - Checks that the previous folding was done correctly.
@@ -42,7 +44,8 @@ where
     /// [v7, v6, v5, v4, v3, v2, v1, v0, f_pos, d_seg, poe, pe1, pe0, a1, a0, cptr, ...]
     ///
     /// Output:
-    /// [t1, t0, s1, s0, df3, df2, df1, df0, poe^2, f_tau, cptr+2, poe^4, f_pos, ne1, ne0, eptr, ...]
+    /// [t1, t0, s1, s0, df3, df2, df1, df0, poe^2, f_tau, cptr+2, poe^4, f_pos, ne1, ne0, eptr,
+    /// ...]
     ///
     /// In the above, eptr is moved from the stack overflow table and is expected to be the address
     /// of the final FRI layer.
@@ -240,14 +243,16 @@ fn fold2(f_x: QuadFelt, f_neg_x: QuadFelt, ep: QuadFelt) -> QuadFelt {
 
 #[cfg(test)]
 mod tests {
-    use super::{
-        ExtensionOf, Felt, FieldElement, Operation, Process, QuadFelt, StarkField, TWO, TWO_INV,
-    };
     use alloc::vec::Vec;
+
     use test_utils::rand::{rand_array, rand_value, rand_vector};
     use vm_core::StackInputs;
     use winter_prover::math::{fft, get_power_series_with_offset};
     use winter_utils::transpose_slice;
+
+    use super::{
+        ExtensionOf, Felt, FieldElement, Operation, Process, QuadFelt, StarkField, TWO, TWO_INV,
+    };
 
     #[test]
     fn fold4() {
@@ -278,7 +283,7 @@ mod tests {
         let pos = 3;
         let x = domain[pos];
         let ev = alpha.mul_base(x.inv());
-        let (result, _, _) = super::fold4(transposed_evaluations[pos], ev, ev.square());
+        let (result, ..) = super::fold4(transposed_evaluations[pos], ev, ev.square());
 
         // make sure the results of fold4 are the same as results form Winterfell
         assert_eq!(folded_evaluations[pos], result)

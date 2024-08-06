@@ -1,8 +1,9 @@
-use assembly::AssemblyError;
+use assembly::regex;
 use processor::ExecutionError;
 use test_utils::{
-    build_op_test, prop_randw, proptest::prelude::*, rand::rand_value, Felt, FieldElement,
-    StarkField, TestError, ONE, WORD_SIZE,
+    assert_assembler_diagnostic, assert_diagnostic_lines, build_op_test, expect_exec_error,
+    prop_randw, proptest::prelude::*, rand::rand_value, Felt, FieldElement, StarkField, ONE,
+    WORD_SIZE,
 };
 
 // FIELD OPS ARITHMETIC - MANUAL TESTS
@@ -181,9 +182,15 @@ fn div_b() {
     test.expect_stack(&[77]);
 
     let test = build_op_test!(build_asm_op(0), &[14]);
-    test.expect_error(TestError::AssemblyError(AssemblyError::ParsingError(String::from(
-        "malformed instruction 'div.0', parameter 0 is invalid: division by zero",
-    ))));
+
+    assert_assembler_diagnostic!(
+        test,
+        "invalid constant expression: division by zero",
+        regex!(r#",-\[test[\d]+:[\d]+:[\d]+\]"#),
+        "1 | begin div.0 end",
+        "  :       ^^^^^",
+        "  `----"
+    );
 
     let test = build_op_test!(build_asm_op(2), &[4]);
     test.expect_stack(&[2]);
@@ -205,7 +212,7 @@ fn div_fail() {
 
     // --- test divide by zero --------------------------------------------------------------------
     let test = build_op_test!(asm_op, &[1, 0]);
-    test.expect_error(TestError::ExecutionError(ExecutionError::DivideByZero(1)));
+    expect_exec_error!(test, ExecutionError::DivideByZero(1.into()));
 }
 
 #[test]
@@ -234,9 +241,17 @@ fn neg_fail() {
 
     // --- test illegal argument -------------------------------------------------------------------
     let test = build_op_test!(asm_op, &[1]);
-    test.expect_error(TestError::AssemblyError(AssemblyError::ParsingError(String::from(
-        "malformed instruction 'neg.1': too many parameters provided",
-    ))));
+
+    assert_assembler_diagnostic!(
+        test,
+        "invalid syntax",
+        regex!(r#",-\[test[\d]+:[\d]+:[\d]+\]"#),
+        "1 | begin neg.1 end",
+        "  :          |",
+        "  :          `-- found a . here",
+        "  `----",
+        r#" help: expected primitive opcode (e.g. "add"), or "end", or control flow opcode (e.g. "if.true")"#
+    );
 }
 
 #[test]
@@ -262,15 +277,23 @@ fn inv_fail() {
 
     // --- test no inv on 0 -----------------------------------------------------------------------
     let test = build_op_test!(asm_op, &[0]);
-    test.expect_error(TestError::ExecutionError(ExecutionError::DivideByZero(1)));
+    expect_exec_error!(test, ExecutionError::DivideByZero(1.into()));
 
     let asm_op = "inv.1";
 
     // --- test illegal argument -----------------------------------------------------------------
     let test = build_op_test!(asm_op, &[1]);
-    test.expect_error(TestError::AssemblyError(AssemblyError::ParsingError(String::from(
-        "malformed instruction 'inv.1': too many parameters provided",
-    ))));
+
+    assert_assembler_diagnostic!(
+        test,
+        "invalid syntax",
+        regex!(r#",-\[test[\d]+:[\d]+:[\d]+\]"#),
+        "1 | begin inv.1 end",
+        "  :          |",
+        "  :          `-- found a . here",
+        "  `----",
+        r#" help: expected primitive opcode (e.g. "add"), or "end", or control flow opcode (e.g. "if.true")"#
+    );
 }
 
 #[test]
@@ -291,13 +314,15 @@ fn pow2_fail() {
     let mut value = rand_value::<u32>() as u64;
     value += (u32::MAX as u64) + 1;
 
-    build_op_test!(asm_op, &[value]).expect_error(TestError::ExecutionError(
+    let test = build_op_test!(asm_op, &[value]);
+    expect_exec_error!(
+        test,
         ExecutionError::FailedAssertion {
-            clk: 16,
+            clk: 16.into(),
             err_code: 0,
             err_msg: None,
-        },
-    ));
+        }
+    );
 }
 
 #[test]
@@ -323,13 +348,16 @@ fn exp_bits_length_fail() {
     let base = 9;
     let pow = 1021; // pow is a 10 bit number
 
-    build_op_test!(build_asm_op(9), &[base, pow]).expect_error(TestError::ExecutionError(
+    let test = build_op_test!(build_asm_op(9), &[base, pow]);
+
+    expect_exec_error!(
+        test,
         ExecutionError::FailedAssertion {
-            clk: 18,
+            clk: 18.into(),
             err_code: 0,
-            err_msg: None,
-        },
-    ));
+            err_msg: None
+        }
+    );
 
     //---------------------- exp containing more than 64 bits -------------------------------------
 
@@ -337,7 +365,15 @@ fn exp_bits_length_fail() {
     let pow = 1021; // pow is a 10 bit number
 
     let test = build_op_test!(build_asm_op(65), &[base, pow]);
-    test.expect_error(TestError::AssemblyError(AssemblyError::ParsingError(String::from("malformed instruction 'exp.u65', parameter u65 is invalid: parameter can at max be a u64 but found u65"))));
+
+    assert_assembler_diagnostic!(
+        test,
+        "invalid literal: expected value to be a valid bit size, e.g. 0..63",
+        regex!(r#",-\[test[\d]+:[\d]+:[\d]+\]"#),
+        "1 | begin exp.u65 end",
+        "  :            ^^",
+        "  `----"
+    );
 }
 
 #[test]
@@ -365,8 +401,8 @@ fn ilog2() {
 fn ilog2_fail() {
     let asm_op = "ilog2";
 
-    build_op_test!(asm_op, &[0])
-        .expect_error(TestError::ExecutionError(ExecutionError::LogArgumentZero(1)));
+    let test = build_op_test!(asm_op, &[0]);
+    expect_exec_error!(test, ExecutionError::LogArgumentZero(1.into()));
 }
 
 // FIELD OPS BOOLEAN - MANUAL TESTS
@@ -389,7 +425,7 @@ fn not_fail() {
 
     // --- test value > 1 --------------------------------------------------------------------
     let test = build_op_test!(asm_op, &[2]);
-    test.expect_error(TestError::ExecutionError(ExecutionError::NotBinaryValue(Felt::new(2))));
+    expect_exec_error!(test, ExecutionError::NotBinaryValue(Felt::new(2)));
 }
 
 #[test]
@@ -415,13 +451,13 @@ fn and_fail() {
 
     // --- test value > 1 --------------------------------------------------------------------
     let test = build_op_test!(asm_op, &[2, 3]);
-    test.expect_error(TestError::ExecutionError(ExecutionError::NotBinaryValue(Felt::new(3))));
+    expect_exec_error!(test, ExecutionError::NotBinaryValue(Felt::new(3)));
 
     let test = build_op_test!(asm_op, &[2, 0]);
-    test.expect_error(TestError::ExecutionError(ExecutionError::NotBinaryValue(Felt::new(2))));
+    expect_exec_error!(test, ExecutionError::NotBinaryValue(Felt::new(2)));
 
     let test = build_op_test!(asm_op, &[0, 2]);
-    test.expect_error(TestError::ExecutionError(ExecutionError::NotBinaryValue(Felt::new(2))));
+    expect_exec_error!(test, ExecutionError::NotBinaryValue(Felt::new(2)));
 }
 
 #[test]
@@ -446,14 +482,16 @@ fn or_fail() {
     let asm_op = "or";
 
     // --- test value > 1 --------------------------------------------------------------------
+    let expected_value = Felt::new(3);
     let test = build_op_test!(asm_op, &[2, 3]);
-    test.expect_error(TestError::ExecutionError(ExecutionError::NotBinaryValue(Felt::new(3))));
+    expect_exec_error!(test, ExecutionError::NotBinaryValue(expected_value));
 
+    let expected_value = Felt::new(2);
     let test = build_op_test!(asm_op, &[2, 0]);
-    test.expect_error(TestError::ExecutionError(ExecutionError::NotBinaryValue(Felt::new(2))));
+    expect_exec_error!(test, ExecutionError::NotBinaryValue(expected_value));
 
     let test = build_op_test!(asm_op, &[0, 2]);
-    test.expect_error(TestError::ExecutionError(ExecutionError::NotBinaryValue(Felt::new(2))));
+    expect_exec_error!(test, ExecutionError::NotBinaryValue(expected_value));
 }
 
 #[test]
@@ -477,15 +515,16 @@ fn xor() {
 fn xor_fail() {
     let asm_op = "xor";
 
+    let expected_value = Felt::new(2);
     // --- test value > 1 --------------------------------------------------------------------
     let test = build_op_test!(asm_op, &[2, 3]);
-    test.expect_error(TestError::ExecutionError(ExecutionError::NotBinaryValue(Felt::new(2))));
+    expect_exec_error!(test, ExecutionError::NotBinaryValue(expected_value));
 
     let test = build_op_test!(asm_op, &[2, 0]);
-    test.expect_error(TestError::ExecutionError(ExecutionError::NotBinaryValue(Felt::new(2))));
+    expect_exec_error!(test, ExecutionError::NotBinaryValue(expected_value));
 
     let test = build_op_test!(asm_op, &[0, 2]);
-    test.expect_error(TestError::ExecutionError(ExecutionError::NotBinaryValue(Felt::new(2))));
+    expect_exec_error!(test, ExecutionError::NotBinaryValue(expected_value));
 }
 
 // FIELD OPS COMPARISON - MANUAL TESTS
@@ -501,6 +540,19 @@ fn eq() {
 
     // --- test when two elements are unequal ----------------------------------------------------
     let test = build_op_test!(asm_op, &[25, 100]);
+    test.expect_stack(&[0]);
+}
+
+#[test]
+fn eq_b() {
+    let build_asm_op = |param: u64| format!("eq.{param}");
+
+    // --- test when two elements are equal ------------------------------------------------------
+    let test = build_op_test!(build_asm_op(100), &[100]);
+    test.expect_stack(&[1]);
+
+    // --- test when two elements are unequal ----------------------------------------------------
+    let test = build_op_test!(build_asm_op(25), &[100]);
     test.expect_stack(&[0]);
 }
 
@@ -809,6 +861,9 @@ proptest! {
 /// both the high and low 32 bits, the upper 32 bits must not be all 1s. Therefore, for testing
 /// it's sufficient to use elements with one high bit and one low bit set.
 fn test_felt_comparison_op(asm_op: &str, expect_if_lt: u64, expect_if_eq: u64, expect_if_gt: u64) {
+    // create an operation with an immediate value
+    let build_asm_op = |param: u64| format!("{asm_op}.{param}");
+
     // create vars with a variety of high and low bit relationships for testing
     let low_bit = 1;
     let high_bit = 1 << 48;
@@ -826,30 +881,51 @@ fn test_felt_comparison_op(asm_op: &str, expect_if_lt: u64, expect_if_eq: u64, e
     // a is smaller in the low bits (equal in high bits)
     let test = build_op_test!(asm_op, &[smaller, hi_eq_lo_gt]);
     test.expect_stack(&[expect_if_lt]);
+    // run the same test using instruction with an immediate value
+    let test = build_op_test!(build_asm_op(hi_eq_lo_gt), &[smaller]);
+    test.expect_stack(&[expect_if_lt]);
 
     // a is smaller in the high bits and equal in the low bits
     let test = build_op_test!(asm_op, &[smaller, hi_gt_lo_eq]);
     test.expect_stack(&[expect_if_lt]);
+    // run the same test using instruction with an immediate value
+    let test = build_op_test!(build_asm_op(hi_gt_lo_eq), &[smaller]);
+    test.expect_stack(&[expect_if_lt]);
 
     // a is smaller in the high bits but bigger in the low bits
     let test = build_op_test!(asm_op, &[smaller, hi_gt_lo_lt]);
+    test.expect_stack(&[expect_if_lt]);
+    // run the same test using instruction with an immediate value
+    let test = build_op_test!(build_asm_op(hi_gt_lo_lt), &[smaller]);
     test.expect_stack(&[expect_if_lt]);
 
     // --- a = b ----------------------------------------------------------------------------------
     // high and low bits are both set
     let test = build_op_test!(asm_op, &[hi_gt_lo_eq, hi_gt_lo_eq]);
     test.expect_stack(&[expect_if_eq]);
+    // run the same test using instruction with an immediate value
+    let test = build_op_test!(build_asm_op(hi_gt_lo_eq), &[hi_gt_lo_eq]);
+    test.expect_stack(&[expect_if_eq]);
 
     // --- a > b ----------------------------------------------------------------------------------
     // a is bigger in the low bits (equal in high bits)
     let test = build_op_test!(asm_op, &[hi_eq_lo_gt, smaller]);
     test.expect_stack(&[expect_if_gt]);
+    // run the same test using instruction with an immediate value
+    let test = build_op_test!(build_asm_op(smaller), &[hi_eq_lo_gt]);
+    test.expect_stack(&[expect_if_gt]);
 
     // a is bigger in the high bits and equal in the low bits
     let test = build_op_test!(asm_op, &[hi_gt_lo_eq, smaller]);
     test.expect_stack(&[expect_if_gt]);
+    // run the same test using instruction with an immediate value
+    let test = build_op_test!(build_asm_op(smaller), &[hi_gt_lo_eq]);
+    test.expect_stack(&[expect_if_gt]);
 
     // a is bigger in the high bits but smaller in the low bits
     let test = build_op_test!(asm_op, &[hi_gt_lo_lt, smaller]);
+    test.expect_stack(&[expect_if_gt]);
+    // run the same test using instruction with an immediate value
+    let test = build_op_test!(build_asm_op(smaller), &[hi_gt_lo_lt]);
     test.expect_stack(&[expect_if_gt]);
 }

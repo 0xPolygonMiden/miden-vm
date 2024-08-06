@@ -1,4 +1,5 @@
 use core::ops::Mul;
+
 use test_utils::rand::rand_array;
 
 /// Secp256k1 scalar field element, kept in Montgomery form
@@ -219,8 +220,8 @@ impl Mul for ScalarField {
         c[8..16].copy_from_slice(&d[0..8]);
 
         let mut one = Self::one().limbs;
-        for i in 0..8 {
-            one[i] *= pc;
+        for limb in one.iter_mut() {
+            *limb *= pc;
         }
 
         pc = 0;
@@ -262,12 +263,8 @@ fn test_secp256k1_scalar_field_mul() {
         exec.scalar_field::mul
     end";
 
-    let elm0 = ScalarField {
-        limbs: rand_array::<u32, 8>(),
-    };
-    let elm1 = ScalarField {
-        limbs: rand_array::<u32, 8>(),
-    };
+    let elm0 = ScalarField { limbs: rand_array::<u32, 8>() };
+    let elm1 = ScalarField { limbs: rand_array::<u32, 8>() };
     let elm2 = elm0 * elm1;
 
     let mut stack = [0u64; 16];
@@ -292,9 +289,7 @@ fn test_secp256k1_scalar_field_inv() {
         exec.scalar_field::mul
     end";
 
-    let elm0 = ScalarField {
-        limbs: rand_array::<u32, 8>(),
-    };
+    let elm0 = ScalarField { limbs: rand_array::<u32, 8>() };
     let elm1 = elm0.inv();
 
     let elm2 = elm0 * elm1;

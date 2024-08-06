@@ -33,13 +33,14 @@ where
 #[cfg(test)]
 mod tests {
     type QuadFelt = QuadExtension<Felt>;
+    use test_utils::rand::rand_value;
+    use vm_core::QuadExtension;
+
     use super::{
         super::{Felt, Operation, STACK_TOP_SIZE},
         Process,
     };
     use crate::{StackInputs, ZERO};
-    use test_utils::rand::rand_value;
-    use vm_core::QuadExtension;
 
     // ARITHMETIC OPERATIONS
     // --------------------------------------------------------------------------------------------

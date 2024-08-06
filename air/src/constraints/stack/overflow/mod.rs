@@ -1,6 +1,7 @@
+use alloc::vec::Vec;
+
 use super::{op_flags::OpFlags, EvaluationFrame, FieldElement, TransitionConstraintDegree};
 use crate::stack::EvaluationFrameExt;
-use alloc::vec::Vec;
 
 #[cfg(test)]
 pub mod tests;
@@ -92,8 +93,7 @@ pub fn enforce_stack_depth_constraints<E: FieldElement>(
 
 /// Enforces constraints on the overflow flag h0. Therefore, the following constraints
 /// are enforced:
-/// - If overflow table has values, then, h0 should be set to ONE, otherwise it should
-///   be ZERO.
+/// - If overflow table has values, then, h0 should be set to ONE, otherwise it should be ZERO.
 pub fn enforce_overflow_flag_constraints<E: FieldElement>(
     frame: &EvaluationFrame<E>,
     result: &mut [E],
@@ -107,8 +107,8 @@ pub fn enforce_overflow_flag_constraints<E: FieldElement>(
 }
 
 /// Enforces constraints on the bookkeeping index `b1`. The following constraints are enforced:
-/// - In the case of a right shift operation, the next b1 index should be updated with current
-///   `clk` value.
+/// - In the case of a right shift operation, the next b1 index should be updated with current `clk`
+///   value.
 /// - In the case of a left shift operation, the last stack item should be set to ZERO when the
 ///   depth of the stack is 16.
 pub fn enforce_overflow_index_constraints<E: FieldElement>(

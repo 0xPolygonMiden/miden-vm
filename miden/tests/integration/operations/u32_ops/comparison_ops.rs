@@ -1,6 +1,8 @@
-use super::test_unchecked_execution;
 use core::cmp::Ordering;
+
 use test_utils::{build_op_test, proptest::prelude::*, rand::rand_value};
+
+use super::test_unchecked_execution;
 
 // U32 OPERATIONS TESTS - MANUAL - COMPARISON OPERATIONS
 // ================================================================================================
@@ -157,12 +159,25 @@ fn test_comparison_op(asm_op: &str, expected_lt: u64, expected_eq: u64, expected
     let test = build_op_test!(asm_op, &[0, 1]);
     test.expect_stack(&[expected_lt]);
 
+    // same test with immediate value
+    let test = build_op_test!(format!("{asm_op}.1"), &[0]);
+    test.expect_stack(&[expected_lt]);
+
     // a = b should put the expected value on the stack for the equal-to case
     let test = build_op_test!(asm_op, &[0, 0]);
     test.expect_stack(&[expected_eq]);
 
+    // same test with immediate value
+    let asm_op_imm = format!("{asm_op}.0");
+    let test = build_op_test!(asm_op_imm, &[0]);
+    test.expect_stack(&[expected_eq]);
+
     // a > b should put the expected value on the stack for the greater-than case
     let test = build_op_test!(asm_op, &[1, 0]);
+    test.expect_stack(&[expected_gt]);
+
+    // same test with immediate value
+    let test = build_op_test!(asm_op_imm, &[1]);
     test.expect_stack(&[expected_gt]);
 
     // --- random u32 values ----------------------------------------------------------------------
@@ -177,10 +192,19 @@ fn test_comparison_op(asm_op: &str, expected_lt: u64, expected_eq: u64, expected
     let test = build_op_test!(asm_op, &[a as u64, b as u64]);
     test.expect_stack(&[expected]);
 
+    // same test with immediate value
+    let asm_op_imm = format!("{asm_op}.{b}");
+    let test = build_op_test!(asm_op_imm, &[a as u64]);
+    test.expect_stack(&[expected]);
+
     // --- test that the rest of the stack isn't affected -----------------------------------------
     let c = rand_value::<u64>();
 
     let test = build_op_test!(asm_op, &[c, a as u64, b as u64]);
+    test.expect_stack(&[expected, c]);
+
+    // same test with immediate value
+    let test = build_op_test!(asm_op_imm, &[c, a as u64]);
     test.expect_stack(&[expected, c]);
 }
 
@@ -192,12 +216,22 @@ fn test_min(asm_op: &str) {
     let test = build_op_test!(asm_op, &[0, 1]);
     test.expect_stack(&[0]);
 
+    let test = build_op_test!(format!("{asm_op}.1"), &[0]);
+    test.expect_stack(&[0]);
+
     // a = b should put b on the stack
     let test = build_op_test!(asm_op, &[0, 0]);
     test.expect_stack(&[0]);
 
+    let asm_op_imm = format!("{asm_op}.0");
+    let test = build_op_test!(asm_op_imm, &[0]);
+    test.expect_stack(&[0]);
+
     // a > b should put b on the stack
     let test = build_op_test!(asm_op, &[1, 0]);
+    test.expect_stack(&[0]);
+
+    let test = build_op_test!(asm_op_imm, &[1]);
     test.expect_stack(&[0]);
 
     // --- random u32 values ----------------------------------------------------------------------
@@ -212,10 +246,17 @@ fn test_min(asm_op: &str) {
     let test = build_op_test!(asm_op, &[a as u64, b as u64]);
     test.expect_stack(&[expected as u64]);
 
+    let asm_op_imm = format!("{asm_op}.{b}");
+    let test = build_op_test!(asm_op_imm, &[a as u64]);
+    test.expect_stack(&[expected as u64]);
+
     // --- test that the rest of the stack isn't affected -----------------------------------------
     let c = rand_value::<u64>();
 
     let test = build_op_test!(asm_op, &[c, a as u64, b as u64]);
+    test.expect_stack(&[expected as u64, c]);
+
+    let test = build_op_test!(asm_op_imm, &[c, a as u64]);
     test.expect_stack(&[expected as u64, c]);
 }
 
@@ -227,12 +268,22 @@ fn test_max(asm_op: &str) {
     let test = build_op_test!(asm_op, &[0, 1]);
     test.expect_stack(&[1]);
 
+    let test = build_op_test!(format!("{asm_op}.1"), &[0]);
+    test.expect_stack(&[1]);
+
     // a = b should put b on the stack
     let test = build_op_test!(asm_op, &[0, 0]);
     test.expect_stack(&[0]);
 
+    let asm_op_imm = format!("{asm_op}.0");
+    let test = build_op_test!(asm_op_imm, &[0]);
+    test.expect_stack(&[0]);
+
     // a > b should put a on the stack
     let test = build_op_test!(asm_op, &[1, 0]);
+    test.expect_stack(&[1]);
+
+    let test = build_op_test!(asm_op_imm, &[1]);
     test.expect_stack(&[1]);
 
     // --- random u32 values ----------------------------------------------------------------------
@@ -247,9 +298,16 @@ fn test_max(asm_op: &str) {
     let test = build_op_test!(asm_op, &[a as u64, b as u64]);
     test.expect_stack(&[expected as u64]);
 
+    let asm_op_imm = format!("{asm_op}.{b}");
+    let test = build_op_test!(asm_op_imm, &[a as u64]);
+    test.expect_stack(&[expected as u64]);
+
     // --- test that the rest of the stack isn't affected -----------------------------------------
     let c = rand_value::<u64>();
 
     let test = build_op_test!(asm_op, &[c, a as u64, b as u64]);
+    test.expect_stack(&[expected as u64, c]);
+
+    let test = build_op_test!(asm_op_imm, &[c, a as u64]);
     test.expect_stack(&[expected as u64, c]);
 }

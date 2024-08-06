@@ -1,6 +1,7 @@
+use core::fmt;
+
 use super::SignatureKind;
 use crate::Felt;
-use core::fmt;
 
 // ADVICE INJECTORS
 // ================================================================================================
@@ -60,7 +61,7 @@ pub enum AdviceInjector {
     ///  Operand stack: [OLD_NODE, depth, index, OLD_ROOT, NEW_NODE, ...]
     ///  Advice stack: [...]
     ///  Merkle store: {path, ...}
-    ///  Return: [path]
+    ///  Return: \[path\]
     UpdateMerkleNode,
 
     /// Pushes a list of field elements onto the advice stack. The list is looked up in the advice
@@ -83,10 +84,7 @@ pub enum AdviceInjector {
     /// etc.
     ///
     /// The valid values of `key_offset` are 0 through 12 (inclusive).
-    MapValueToStack {
-        include_len: bool,
-        key_offset: usize,
-    },
+    MapValueToStack { include_len: bool, key_offset: usize },
 
     /// Pushes the result of [u64] division (both the quotient and the remainder) onto the advice
     /// stack.
@@ -274,11 +272,17 @@ pub enum AdviceInjector {
     ///
     /// Outputs:
     ///   Operand stack: [PK, MSG, ...]
-    ///   Advice stack: [SIG_DATA]
+    ///   Advice stack: \[SIG_DATA\]
     ///
     /// Where PK is the public key corresponding to the signing key, MSG is the message, SIG_DATA
     /// is the signature data.
     SigToStack { kind: SignatureKind },
+}
+
+impl crate::prettier::PrettyPrint for AdviceInjector {
+    fn render(&self) -> crate::prettier::Document {
+        crate::prettier::display(self)
+    }
 }
 
 impl fmt::Display for AdviceInjector {
@@ -288,17 +292,14 @@ impl fmt::Display for AdviceInjector {
             Self::MerkleNodeToStack => write!(f, "merkle_node_to_stack"),
             Self::UpdateMerkleNode => {
                 write!(f, "update_merkle_node")
-            }
-            Self::MapValueToStack {
-                include_len,
-                key_offset,
-            } => {
+            },
+            Self::MapValueToStack { include_len, key_offset } => {
                 if *include_len {
                     write!(f, "map_value_to_stack_with_len.{key_offset}")
                 } else {
                     write!(f, "map_value_to_stack.{key_offset}")
                 }
-            }
+            },
             Self::U64Div => write!(f, "div_u64"),
             Self::Ext2Inv => write!(f, "ext2_inv"),
             Self::Ext2Intt => write!(f, "ext2_intt"),

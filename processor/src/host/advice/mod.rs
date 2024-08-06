@@ -1,7 +1,6 @@
-use super::HostResponse;
-use crate::{ExecutionError, Felt, InputError, ProcessState, Word};
 use alloc::vec::Vec;
 use core::borrow::Borrow;
+
 use vm_core::{
     crypto::{
         hash::RpoDigest,
@@ -9,6 +8,9 @@ use vm_core::{
     },
     AdviceInjector, SignatureKind,
 };
+
+use super::HostResponse;
+use crate::{ExecutionError, Felt, InputError, ProcessState, Word};
 
 mod extractors;
 pub use extractors::AdviceExtractor;
@@ -58,10 +60,9 @@ pub trait AdviceProvider: Sized {
         match advice_injector {
             AdviceInjector::MerkleNodeMerge => self.merge_merkle_nodes(process),
             AdviceInjector::MerkleNodeToStack => self.copy_merkle_node_to_adv_stack(process),
-            AdviceInjector::MapValueToStack {
-                include_len,
-                key_offset,
-            } => self.copy_map_value_to_adv_stack(process, *include_len, *key_offset),
+            AdviceInjector::MapValueToStack { include_len, key_offset } => {
+                self.copy_map_value_to_adv_stack(process, *include_len, *key_offset)
+            },
             AdviceInjector::UpdateMerkleNode => self.update_operand_stack_merkle_node(process),
             AdviceInjector::U64Div => self.push_u64_div_result(process),
             AdviceInjector::Ext2Inv => self.push_ext2_inv_result(process),
@@ -78,7 +79,7 @@ pub trait AdviceProvider: Sized {
             AdviceInjector::MemToMap => self.insert_mem_values_into_adv_map(process),
             AdviceInjector::HdwordToMap { domain } => {
                 self.insert_hdword_into_adv_map(process, *domain)
-            }
+            },
             AdviceInjector::HpermToMap => self.insert_hperm_into_adv_map(process),
             AdviceInjector::SigToStack { kind } => self.push_signature(process, *kind),
         }
@@ -94,7 +95,7 @@ pub trait AdviceProvider: Sized {
             AdviceExtractor::PopStack => self.pop_stack(process).map(HostResponse::Element),
             AdviceExtractor::PopStackDWord => {
                 self.pop_stack_dword(process).map(HostResponse::DoubleWord)
-            }
+            },
             AdviceExtractor::PopStackWord => self.pop_stack_word(process).map(HostResponse::Word),
             AdviceExtractor::GetMerklePath => self.get_operand_stack_merkle_path(process),
         }
@@ -210,8 +211,8 @@ pub trait AdviceProvider: Sized {
     /// # Errors
     /// Returns an error if:
     /// - Merkle tree for the specified root cannot be found in the advice provider.
-    /// - The specified depth is either zero or greater than the depth of the Merkle tree
-    ///   identified by the specified root.
+    /// - The specified depth is either zero or greater than the depth of the Merkle tree identified
+    ///   by the specified root.
     /// - Value of the node at the specified depth and index is not known to the advice provider.
     fn copy_merkle_node_to_adv_stack<S: ProcessState>(
         &mut self,
@@ -320,14 +321,14 @@ pub trait AdviceProvider: Sized {
     ///   Operand stack: [output_size, input_size, input_start_ptr, ...]
     ///   Advice stack: [coefficients...]
     ///
-    /// - `input_size` is the number of evaluations (each evaluation is 2 base field elements).
-    ///   Must be a power of 2 and greater 1.
+    /// - `input_size` is the number of evaluations (each evaluation is 2 base field elements). Must
+    ///   be a power of 2 and greater 1.
     /// - `output_size` is the number of coefficients in the interpolated polynomial (each
     ///   coefficient is 2 base field elements). Must be smaller than or equal to the number of
     ///   input evaluations.
     /// - `input_start_ptr` is the memory address of the first evaluation.
-    /// - `coefficients` are the coefficients of the interpolated polynomial such that lowest
-    ///   degree coefficients are located at the top of the advice stack.
+    /// - `coefficients` are the coefficients of the interpolated polynomial such that lowest degree
+    ///   coefficients are located at the top of the advice stack.
     ///
     /// # Errors
     /// Returns an error if:
@@ -342,7 +343,8 @@ pub trait AdviceProvider: Sized {
         injectors::adv_stack_injectors::push_ext2_intt_result(self, process)
     }
 
-    /// Pushes values onto the advice stack which are required for verification of a DSA in Miden VM.
+    /// Pushes values onto the advice stack which are required for verification of a DSA in Miden
+    /// VM.
     ///
     /// Inputs:
     ///   Operand stack: [PK, MSG, ...]
@@ -350,7 +352,7 @@ pub trait AdviceProvider: Sized {
     ///
     /// Outputs:
     ///   Operand stack: [PK, MSG, ...]
-    ///   Advice stack: [DATA]
+    ///   Advice stack: \[DATA\]
     ///
     /// Where:
     /// - PK is the digest of an expanded public.
@@ -460,7 +462,7 @@ pub trait AdviceProvider: Sized {
     ///  Operand stack: [OLD_NODE, depth, index, OLD_ROOT, NEW_NODE, ...]
     ///  Advice stack: [...]
     ///  Merkle store: {path, ...}
-    ///  Return: [path]
+    ///  Return: \[path\]
     fn update_operand_stack_merkle_node<S: ProcessState>(
         &mut self,
         process: &S,
@@ -488,7 +490,7 @@ pub trait AdviceProvider: Sized {
     ///  Advice stack: [...]
     ///  Advice map: {...}
     ///  Merkle store: {path, ...}
-    ///  Return: [path]
+    ///  Return: \[path\]
     fn get_operand_stack_merkle_path<S: ProcessState>(
         &mut self,
         process: &S,
@@ -638,8 +640,8 @@ pub trait AdviceProvider: Sized {
     /// # Errors
     /// Returns an error if:
     /// - A Merkle tree for the specified root cannot be found in this advice provider.
-    /// - The specified depth is either zero or greater than the depth of the Merkle tree
-    ///   identified by the specified root.
+    /// - The specified depth is either zero or greater than the depth of the Merkle tree identified
+    ///   by the specified root.
     /// - Value of the node at the specified depth and index is not known to this advice provider.
     fn get_tree_node(&self, root: Word, depth: &Felt, index: &Felt)
         -> Result<Word, ExecutionError>;
@@ -650,8 +652,8 @@ pub trait AdviceProvider: Sized {
     /// # Errors
     /// Returns an error if:
     /// - A Merkle tree for the specified root cannot be found in this advice provider.
-    /// - The specified depth is either zero or greater than the depth of the Merkle tree
-    ///   identified by the specified root.
+    /// - The specified depth is either zero or greater than the depth of the Merkle tree identified
+    ///   by the specified root.
     /// - Path to the node at the specified depth and index is not known to this advice provider.
     fn get_merkle_path(
         &self,
@@ -684,8 +686,8 @@ pub trait AdviceProvider: Sized {
     /// # Errors
     /// Returns an error if:
     /// - A Merkle tree for the specified root cannot be found in this advice provider.
-    /// - The specified depth is either zero or greater than the depth of the Merkle tree
-    ///   identified by the specified root.
+    /// - The specified depth is either zero or greater than the depth of the Merkle tree identified
+    ///   by the specified root.
     /// - Path to the leaf at the specified index in the specified Merkle tree is not known to this
     ///   advice provider.
     fn update_merkle_node(

@@ -1,9 +1,11 @@
 use super::{EvaluationFrame, ExtensionOf, Felt, FieldElement};
-use crate::trace::{
-    chiplets::{MEMORY_D0_COL_IDX, MEMORY_D1_COL_IDX},
-    decoder::{DECODER_OP_BITS_OFFSET, DECODER_USER_OP_HELPERS_OFFSET},
+use crate::{
+    trace::{
+        chiplets::{MEMORY_D0_COL_IDX, MEMORY_D1_COL_IDX},
+        decoder::{DECODER_OP_BITS_OFFSET, DECODER_USER_OP_HELPERS_OFFSET},
+    },
+    utils::binary_not,
 };
-use crate::utils::binary_not;
 
 pub mod chiplets;
 pub mod range;
@@ -21,7 +23,7 @@ where
     /// Returns true when a u32 stack operation that requires range checks is being performed.
     fn u32_rc_op(&self) -> F;
 
-    // --- Range check lookup accessors -----------------------------------------------------------------------
+    // --- Range check lookup accessors -----------------------------------------------------------
 
     /// The value required for the first memory lookup when the memory chiplet requests range
     /// checks. The value returned is the denominator used for including the value into the LogUp

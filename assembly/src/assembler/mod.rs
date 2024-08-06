@@ -1,107 +1,203 @@
-use super::{
-    ast::{instrument, Instruction, ModuleAst, Node, ProcedureAst, ProgramAst},
-    crypto::hash::RpoDigest,
-    AssemblyError, CallSet, CodeBlock, CodeBlockTable, Felt, Kernel, Library, LibraryError,
-    LibraryPath, Module, NamedProcedure, Operation, Procedure, ProcedureId, ProcedureName, Program,
-    ONE, ZERO,
+use alloc::{collections::BTreeMap, sync::Arc, vec::Vec};
+
+use mast_forest_builder::MastForestBuilder;
+use module_graph::{ProcedureWrapper, WrappedModule};
+use vm_core::{mast::MastNodeId, Decorator, DecoratorList, Felt, Kernel, Operation, Program};
+
+use crate::{
+    ast::{self, Export, InvocationTarget, InvokeKind, ModuleKind, QualifiedProcedureName},
+    diagnostics::Report,
+    library::{KernelLibrary, Library},
+    sema::SemanticAnalysisError,
+    AssemblyError, Compile, CompileOptions, LibraryNamespace, LibraryPath, RpoDigest,
+    SourceManager, Spanned,
 };
-use alloc::collections::BTreeMap;
-use alloc::vec::Vec;
-use core::{borrow::Borrow, cell::RefCell};
-use vm_core::{Decorator, DecoratorList};
 
+mod basic_block_builder;
+mod id;
 mod instruction;
-
-mod module_provider;
-use module_provider::ModuleProvider;
-
-mod span_builder;
-use span_builder::SpanBuilder;
-
-mod context;
-pub use context::AssemblyContext;
-
-mod procedure_cache;
-use procedure_cache::ProcedureCache;
-
+mod mast_forest_builder;
+mod module_graph;
+mod procedure;
 #[cfg(test)]
 mod tests;
 
+use self::{
+    basic_block_builder::BasicBlockBuilder,
+    module_graph::{CallerInfo, ModuleGraph, ResolvedTarget},
+};
+pub use self::{
+    id::{GlobalProcedureIndex, ModuleIndex},
+    procedure::{Procedure, ProcedureContext},
+};
+
 // ASSEMBLER
 // ================================================================================================
-/// Miden Assembler which can be used to convert Miden assembly source code into program MAST.
+
+/// The [Assembler] is the primary interface for compiling Miden Assembly to the Miden Abstract
+/// Syntax Tree (MAST).
 ///
-/// The assembler can be instantiated in several ways using a "builder" pattern. Specifically:
-/// - If `with_kernel()` or `with_kernel_module()` methods are not used, the assembler will be
-///   instantiated with a default empty kernel. Programs compiled using such assembler
-///   cannot make calls to kernel procedures via `syscall` instruction.
-#[derive(Default)]
+/// # Usage
+///
+/// Depending on your needs, there are multiple ways of using the assembler, and whether or not you
+/// want to provide a custom kernel.
+///
+/// <div class="warning">
+/// Programs compiled with an empty kernel cannot use the `syscall` instruction.
+/// </div>
+///
+/// * If you have a single executable module you want to compile, just call
+///   [Assembler::assemble_program].
+/// * If you want to link your executable to a few other modules that implement supporting
+///   procedures, build the assembler with them first, using the various builder methods on
+///   [Assembler], e.g. [Assembler::with_module], [Assembler::with_library], etc. Then, call
+///   [Assembler::assemble_program] to get your compiled program.
+#[derive(Clone)]
 pub struct Assembler {
-    kernel: Kernel,
-    module_provider: ModuleProvider,
-    proc_cache: RefCell<ProcedureCache>,
+    /// The source manager to use for compilation and source location information
+    source_manager: Arc<dyn SourceManager>,
+    /// The global [ModuleGraph] for this assembler.
+    module_graph: ModuleGraph,
+    /// Whether to treat warning diagnostics as errors
+    warnings_as_errors: bool,
+    /// Whether the assembler enables extra debugging information.
     in_debug_mode: bool,
 }
 
-impl Assembler {
-    // CONSTRUCTORS
-    // --------------------------------------------------------------------------------------------
+impl Default for Assembler {
+    fn default() -> Self {
+        let source_manager = Arc::new(crate::DefaultSourceManager::default());
+        let module_graph = ModuleGraph::new(source_manager.clone());
+        Self {
+            source_manager,
+            module_graph,
+            warnings_as_errors: false,
+            in_debug_mode: false,
+        }
+    }
+}
 
-    /// Puts the assembler into the debug mode.
-    pub fn with_debug_mode(mut self, in_debug_mode: bool) -> Self {
-        self.in_debug_mode = in_debug_mode;
+// ------------------------------------------------------------------------------------------------
+/// Constructors
+impl Assembler {
+    /// Start building an [Assembler]
+    pub fn new(source_manager: Arc<dyn SourceManager>) -> Self {
+        let module_graph = ModuleGraph::new(source_manager.clone());
+        Self {
+            source_manager,
+            module_graph,
+            warnings_as_errors: false,
+            in_debug_mode: false,
+        }
+    }
+
+    /// Start building an [`Assembler`] with a kernel defined by the provided [KernelLibrary].
+    pub fn with_kernel(source_manager: Arc<dyn SourceManager>, kernel_lib: KernelLibrary) -> Self {
+        let (kernel, kernel_module, _) = kernel_lib.into_parts();
+        let module_graph = ModuleGraph::with_kernel(source_manager.clone(), kernel, kernel_module);
+        Self {
+            source_manager,
+            module_graph,
+            ..Default::default()
+        }
+    }
+
+    /// Sets the default behavior of this assembler with regard to warning diagnostics.
+    ///
+    /// When true, any warning diagnostics that are emitted will be promoted to errors.
+    pub fn with_warnings_as_errors(mut self, yes: bool) -> Self {
+        self.warnings_as_errors = yes;
         self
     }
 
-    /// Adds the library to provide modules for the compilation.
-    pub fn with_library<L>(mut self, library: &L) -> Result<Self, AssemblyError>
-    where
-        L: Library,
-    {
-        self.module_provider.add_library(library)?;
-        Ok(self)
+    /// Puts the assembler into the debug mode.
+    pub fn with_debug_mode(mut self, yes: bool) -> Self {
+        self.in_debug_mode = yes;
+        self
     }
 
-    /// Adds a library bundle to provide modules for the compilation.
-    pub fn with_libraries<I, L>(self, mut libraries: I) -> Result<Self, AssemblyError>
-    where
-        L: Library,
-        I: Iterator<Item = L>,
-    {
-        libraries.try_fold(self, |slf, library| slf.with_library(&library))
+    /// Sets the debug mode flag of the assembler
+    pub fn set_debug_mode(&mut self, yes: bool) {
+        self.in_debug_mode = yes;
     }
 
-    /// Sets the kernel for the assembler to the kernel defined by the provided source.
+    /// Adds `module` to the module graph of the assembler.
     ///
-    /// # Errors
-    /// Returns an error if compiling kernel source results in an error.
-    ///
-    /// # Panics
-    /// Panics if the assembler has already been used to compile programs.
-    pub fn with_kernel(self, kernel_source: &str) -> Result<Self, AssemblyError> {
-        let kernel_ast = ModuleAst::parse(kernel_source)?;
-        self.with_kernel_module(kernel_ast)
-    }
-
-    /// Sets the kernel for the assembler to the kernel defined by the provided module.
-    ///
-    /// # Errors
-    /// Returns an error if compiling kernel source results in an error.
-    pub fn with_kernel_module(mut self, module: ModuleAst) -> Result<Self, AssemblyError> {
-        // compile the kernel; this adds all exported kernel procedures to the procedure cache
-        let mut context = AssemblyContext::for_module(true);
-        let kernel = Module::kernel(module);
-        self.compile_module(&kernel.ast, Some(&kernel.path), &mut context)?;
-
-        // convert the context into Kernel; this builds the kernel from hashes of procedures
-        // exported form the kernel module
-        self.kernel = context.into_kernel();
+    /// The given module must be a library module, or an error will be returned.
+    #[inline]
+    pub fn with_module(mut self, module: impl Compile) -> Result<Self, Report> {
+        self.add_module(module)?;
 
         Ok(self)
     }
 
-    // PUBLIC ACCESSORS
-    // --------------------------------------------------------------------------------------------
+    /// Adds `module` to the module graph of the assembler with the given options.
+    ///
+    /// The given module must be a library module, or an error will be returned.
+    #[inline]
+    pub fn with_module_and_options(
+        mut self,
+        module: impl Compile,
+        options: CompileOptions,
+    ) -> Result<Self, Report> {
+        self.add_module_with_options(module, options)?;
+
+        Ok(self)
+    }
+
+    /// Adds `module` to the module graph of the assembler.
+    ///
+    /// The given module must be a library module, or an error will be returned.
+    #[inline]
+    pub fn add_module(&mut self, module: impl Compile) -> Result<(), Report> {
+        self.add_module_with_options(module, CompileOptions::for_library())
+    }
+
+    /// Adds `module` to the module graph of the assembler, using the provided options.
+    ///
+    /// The given module must be a library or kernel module, or an error will be returned
+    pub fn add_module_with_options(
+        &mut self,
+        module: impl Compile,
+        options: CompileOptions,
+    ) -> Result<(), Report> {
+        let kind = options.kind;
+        if kind != ModuleKind::Library {
+            return Err(Report::msg(
+                "only library modules are supported by `add_module_with_options`",
+            ));
+        }
+
+        let module = module.compile_with_options(&self.source_manager, options)?;
+        assert_eq!(module.kind(), kind, "expected module kind to match compilation options");
+
+        self.module_graph.add_ast_module(module)?;
+
+        Ok(())
+    }
+
+    /// Adds the compiled library to provide modules for the compilation.
+    pub fn add_library(&mut self, library: impl AsRef<Library>) -> Result<(), Report> {
+        self.module_graph
+            .add_compiled_modules(library.as_ref().module_infos())
+            .map_err(Report::from)?;
+        Ok(())
+    }
+
+    /// Adds the compiled library to provide modules for the compilation.
+    pub fn with_library(mut self, library: impl AsRef<Library>) -> Result<Self, Report> {
+        self.add_library(library)?;
+        Ok(self)
+    }
+}
+
+// ------------------------------------------------------------------------------------------------
+/// Public Accessors
+impl Assembler {
+    /// Returns true if this assembler promotes warning diagnostics as errors by default.
+    pub fn warnings_as_errors(&self) -> bool {
+        self.warnings_as_errors
+    }
 
     /// Returns true if this assembler was instantiated in debug mode.
     pub fn in_debug_mode(&self) -> bool {
@@ -112,322 +208,421 @@ impl Assembler {
     ///
     /// If the assembler was instantiated without a kernel, the internal kernel will be empty.
     pub fn kernel(&self) -> &Kernel {
-        &self.kernel
+        self.module_graph.kernel()
     }
 
-    // PROGRAM COMPILER
-    // --------------------------------------------------------------------------------------------
-
-    /// Compiles the provided source code into a [Program]. The resulting program can be executed
-    /// on Miden VM.
-    ///
-    /// # Errors
-    /// Returns an error if parsing or compilation of the specified program fails.
-    pub fn compile<S>(&self, source: S) -> Result<Program, AssemblyError>
-    where
-        S: AsRef<str>,
-    {
-        // parse the program into an AST
-        let source = source.as_ref();
-        let program = ProgramAst::parse(source)?;
-
-        // compile the program and return
-        self.compile_ast(&program)
+    #[cfg(any(test, feature = "testing"))]
+    #[doc(hidden)]
+    pub fn module_graph(&self) -> &ModuleGraph {
+        &self.module_graph
     }
+}
 
-    /// Compiles the provided abstract syntax tree into a [Program]. The resulting program can be
-    /// executed on Miden VM.
+// ------------------------------------------------------------------------------------------------
+/// Compilation/Assembly
+impl Assembler {
+    /// Assembles a set of modules into a [Library].
     ///
     /// # Errors
-    /// Returns an error if the compilation of the specified program fails.
-    #[instrument("compile_ast", skip_all)]
-    pub fn compile_ast(&self, program: &ProgramAst) -> Result<Program, AssemblyError> {
-        // compile the program
-        let mut context = AssemblyContext::for_program(Some(program));
-        let program_root = self.compile_in_context(program, &mut context)?;
-
-        // convert the context into a call block table for the program
-        let cb_table = context.into_cb_table(&self.proc_cache.borrow())?;
-
-        // build and return the program
-        Ok(Program::with_kernel(program_root, self.kernel.clone(), cb_table))
-    }
-
-    /// Compiles the provided [ProgramAst] into a program and returns the program root
-    /// ([CodeBlock]). Mutates the provided context by adding all of the call targets of
-    /// the program to the [CallSet].
     ///
-    /// # Errors
-    /// - If the provided context is not appropriate for compiling a program.
-    /// - If any of the local procedures defined in the program are exported.
-    /// - If compilation of any of the local procedures fails.
-    /// - if compilation of the program body fails.
-    pub fn compile_in_context(
-        &self,
-        program: &ProgramAst,
-        context: &mut AssemblyContext,
-    ) -> Result<CodeBlock, AssemblyError> {
-        // check to ensure that the context is appropriate for compiling a program
-        if context.current_context_name() != ProcedureName::main().as_str() {
-            return Err(AssemblyError::InvalidProgramAssemblyContext);
-        }
-
-        // compile all local procedures; this will add the procedures to the specified context
-        for proc_ast in program.procedures() {
-            if proc_ast.is_export {
-                return Err(AssemblyError::exported_proc_in_program(&proc_ast.name));
-            }
-            self.compile_procedure(proc_ast, context)?;
-        }
-
-        // compile the program body
-        let program_root = self.compile_body(program.body().nodes().iter(), context, None)?;
-
-        Ok(program_root)
-    }
-
-    // MODULE COMPILER
-    // --------------------------------------------------------------------------------------------
-
-    /// Compiles all procedures in the specified module and adds them to the procedure cache.
-    /// Returns a vector of procedure digests for all exported procedures in the module.
-    ///
-    /// # Errors
-    /// - If a module with the same path already exists in the module stack of the
-    ///   [AssemblyContext].
-    /// - If a lock to the [ProcedureCache] can not be attained.
-    #[instrument(level = "trace",
-                 name = "compile_module",
-                 fields(module = path.unwrap_or(&LibraryPath::anon_path()).path()), skip_all)]
-    pub fn compile_module(
-        &self,
-        module: &ModuleAst,
-        path: Option<&LibraryPath>,
-        context: &mut AssemblyContext,
-    ) -> Result<Vec<RpoDigest>, AssemblyError> {
-        // a variable to track MAST roots of all procedures exported from this module
-        let mut proc_roots = Vec::new();
-        context.begin_module(path.unwrap_or(&LibraryPath::anon_path()), module)?;
-
-        // process all re-exported procedures
-        for reexporteed_proc in module.reexported_procs().iter() {
-            // make sure the re-exported procedure is loaded into the procedure cache
-            let ref_proc_id = reexporteed_proc.proc_id();
-            self.ensure_procedure_is_in_cache(&ref_proc_id, context).map_err(|_| {
-                AssemblyError::ReExportedProcModuleNotFound(reexporteed_proc.clone())
+    /// Returns an error if parsing or compilation of the specified modules fails.
+    pub fn assemble_library(
+        mut self,
+        modules: impl IntoIterator<Item = impl Compile>,
+    ) -> Result<Library, Report> {
+        let ast_module_indices =
+            modules.into_iter().try_fold(Vec::default(), |mut acc, module| {
+                module
+                    .compile_with_options(&self.source_manager, CompileOptions::for_library())
+                    .and_then(|module| {
+                        self.module_graph.add_ast_module(module).map_err(Report::from)
+                    })
+                    .map(move |module_id| {
+                        acc.push(module_id);
+                        acc
+                    })
             })?;
 
-            // if the library path is provided, build procedure ID for the alias and add it to the
-            // procedure cache
-            let proc_mast_root = if let Some(path) = path {
-                let proc_name = reexporteed_proc.name();
-                let alias_proc_id = ProcedureId::from_name(proc_name, path);
-                self.proc_cache
-                    .try_borrow_mut()
-                    .map_err(|_| AssemblyError::InvalidCacheLock)?
-                    .insert_proc_alias(alias_proc_id, ref_proc_id)?
-            } else {
-                self.proc_cache
-                    .try_borrow_mut()
-                    .map_err(|_| AssemblyError::InvalidCacheLock)?
-                    .get_proc_root_by_id(&ref_proc_id)
-                    .expect("procedure ID not in cache")
-            };
+        self.module_graph.recompute()?;
 
-            // add the MAST root of the re-exported procedure to the set of procedures exported
-            // from this module
-            proc_roots.push(proc_mast_root);
-        }
+        let mut mast_forest_builder = MastForestBuilder::default();
 
-        // compile all local (internal end exported) procedures in the module; once the compilation
-        // is complete, we get all compiled procedures (and their combined callset) from the
-        // context
-        for proc_ast in module.procs().iter() {
-            self.compile_procedure(proc_ast, context)?;
-        }
-        let (module_procs, module_callset) = context.complete_module()?;
+        let exports = {
+            let mut exports = BTreeMap::new();
 
-        // add the compiled procedures to the assembler's cache. the procedures are added to the
-        // cache only if:
-        // - a procedure is exported from the module, or
-        // - a procedure is present in the combined callset - i.e., it is an internal procedure
-        //   which has been invoked via a local call instruction.
-        for (proc_index, proc) in module_procs.into_iter().enumerate() {
-            if proc.is_export() {
-                proc_roots.push(proc.mast_root());
+            for module_idx in ast_module_indices {
+                // Note: it is safe to use `unwrap_ast()` here, since all of the modules contained
+                // in `ast_module_indices` are in AST form by definition.
+                let ast_module = self.module_graph[module_idx].unwrap_ast().clone();
+
+                for (proc_idx, fqn) in ast_module.exported_procedures() {
+                    let gid = module_idx + proc_idx;
+                    self.compile_subgraph(gid, &mut mast_forest_builder)?;
+
+                    let proc_hash = mast_forest_builder
+                        .get_procedure_hash(gid)
+                        .expect("compilation succeeded but root not found in cache");
+                    exports.insert(fqn, proc_hash);
+                }
             }
 
-            if proc.is_export() || module_callset.contains(&proc.mast_root()) {
-                // build the procedure ID if this module has the library path
-                let proc_id = build_procedure_id(path, &proc, proc_index);
+            exports
+        };
 
-                // this is safe because we fail if the cache is borrowed.
-                self.proc_cache
-                    .try_borrow_mut()
-                    .map_err(|_| AssemblyError::InvalidCacheLock)?
-                    .insert(proc, proc_id)?;
-            }
-        }
+        // TODO: show a warning if library exports are empty?
 
-        Ok(proc_roots)
+        Ok(Library::new(mast_forest_builder.build(), exports))
     }
 
-    // PROCEDURE COMPILER
-    // --------------------------------------------------------------------------------------------
+    /// Assembles the provided module into a [KernelLibrary] intended to be used as a Kernel.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if parsing or compilation of the specified modules fails.
+    pub fn assemble_kernel(mut self, module: impl Compile) -> Result<KernelLibrary, Report> {
+        let options = CompileOptions {
+            kind: ModuleKind::Kernel,
+            warnings_as_errors: self.warnings_as_errors,
+            path: Some(LibraryPath::from(LibraryNamespace::Kernel)),
+        };
 
-    /// Compiles procedure AST into MAST and adds the complied procedure to the provided context.
+        let module = module.compile_with_options(&self.source_manager, options)?;
+        let module_idx = self.module_graph.add_ast_module(module)?;
+
+        self.module_graph.recompute()?;
+
+        let mut mast_forest_builder = MastForestBuilder::default();
+
+        // Note: it is safe to use `unwrap_ast()` here, since all modules looped over are
+        // AST (we just added them to the module graph)
+        let ast_module = self.module_graph[module_idx].unwrap_ast().clone();
+
+        let exports = ast_module
+            .exported_procedures()
+            .map(|(proc_idx, fqn)| {
+                let gid = module_idx + proc_idx;
+                self.compile_subgraph(gid, &mut mast_forest_builder)?;
+
+                let proc_hash = mast_forest_builder
+                    .get_procedure_hash(gid)
+                    .expect("compilation succeeded but root not found in cache");
+                Ok((fqn, proc_hash))
+            })
+            .collect::<Result<BTreeMap<QualifiedProcedureName, RpoDigest>, Report>>()?;
+
+        // TODO: show a warning if library exports are empty?
+
+        let library = Library::new(mast_forest_builder.build(), exports);
+        Ok(library.try_into()?)
+    }
+
+    /// Compiles the provided module into a [`Program`]. The resulting program can be executed on
+    /// Miden VM.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if parsing or compilation of the specified program fails, or if the source
+    /// doesn't have an entrypoint.
+    pub fn assemble_program(mut self, source: impl Compile) -> Result<Program, Report> {
+        let options = CompileOptions {
+            kind: ModuleKind::Executable,
+            warnings_as_errors: self.warnings_as_errors,
+            path: Some(LibraryPath::from(LibraryNamespace::Exec)),
+        };
+
+        let program = source.compile_with_options(&self.source_manager, options)?;
+        assert!(program.is_executable());
+
+        // Recompute graph with executable module, and start compiling
+        let ast_module_index = self.module_graph.add_ast_module(program)?;
+        self.module_graph.recompute()?;
+
+        // Find the executable entrypoint Note: it is safe to use `unwrap_ast()` here, since this is
+        // the module we just added, which is in AST representation.
+        let entrypoint = self.module_graph[ast_module_index]
+            .unwrap_ast()
+            .index_of(|p| p.is_main())
+            .map(|index| GlobalProcedureIndex { module: ast_module_index, index })
+            .ok_or(SemanticAnalysisError::MissingEntrypoint)?;
+
+        // Compile the module graph rooted at the entrypoint
+        let mut mast_forest_builder = MastForestBuilder::default();
+        self.compile_subgraph(entrypoint, &mut mast_forest_builder)?;
+        let entry_procedure = mast_forest_builder
+            .get_procedure(entrypoint)
+            .expect("compilation succeeded but root not found in cache");
+
+        Ok(Program::with_kernel(
+            mast_forest_builder.build(),
+            entry_procedure.body_node_id(),
+            self.module_graph.kernel().clone(),
+        ))
+    }
+
+    /// Compile the uncompiled procedure in the module graph which are members of the subgraph
+    /// rooted at `root`, placing them in the MAST forest builder once compiled.
+    ///
+    /// Returns an error if any of the provided Miden Assembly is invalid.
+    fn compile_subgraph(
+        &mut self,
+        root: GlobalProcedureIndex,
+        mast_forest_builder: &mut MastForestBuilder,
+    ) -> Result<(), Report> {
+        let mut worklist: Vec<GlobalProcedureIndex> = self
+            .module_graph
+            .topological_sort_from_root(root)
+            .map_err(|cycle| {
+                let iter = cycle.into_node_ids();
+                let mut nodes = Vec::with_capacity(iter.len());
+                for node in iter {
+                    let module = self.module_graph[node.module].path();
+                    let proc = self.module_graph.get_procedure_unsafe(node);
+                    nodes.push(format!("{}::{}", module, proc.name()));
+                }
+                AssemblyError::Cycle { nodes }
+            })?
+            .into_iter()
+            .filter(|&gid| self.module_graph.get_procedure_unsafe(gid).is_ast())
+            .collect();
+
+        assert!(!worklist.is_empty());
+
+        self.process_graph_worklist(&mut worklist, mast_forest_builder)
+    }
+
+    /// Compiles all procedures in the `worklist`.
+    fn process_graph_worklist(
+        &mut self,
+        worklist: &mut Vec<GlobalProcedureIndex>,
+        mast_forest_builder: &mut MastForestBuilder,
+    ) -> Result<(), Report> {
+        // Process the topological ordering in reverse order (bottom-up), so that
+        // each procedure is compiled with all of its dependencies fully compiled
+        while let Some(procedure_gid) = worklist.pop() {
+            // If we have already compiled this procedure, do not recompile
+            if let Some(proc) = mast_forest_builder.get_procedure(procedure_gid) {
+                self.module_graph.register_mast_root(procedure_gid, proc.mast_root())?;
+                continue;
+            }
+            // Fetch procedure metadata from the graph
+            let module = match &self.module_graph[procedure_gid.module] {
+                WrappedModule::Ast(ast_module) => ast_module,
+                // Note: if the containing module is in `Info` representation, there is nothing to
+                // compile.
+                WrappedModule::Info(_) => continue,
+            };
+
+            let export = &module[procedure_gid.index];
+            match export {
+                Export::Procedure(proc) => {
+                    let num_locals = proc.num_locals();
+                    let name = QualifiedProcedureName {
+                        span: proc.span(),
+                        module: module.path().clone(),
+                        name: proc.name().clone(),
+                    };
+                    let pctx = ProcedureContext::new(
+                        procedure_gid,
+                        name,
+                        proc.visibility(),
+                        self.source_manager.clone(),
+                    )
+                    .with_num_locals(num_locals)
+                    .with_span(proc.span());
+
+                    // Compile this procedure
+                    let procedure = self.compile_procedure(pctx, mast_forest_builder)?;
+
+                    // Cache the compiled procedure.
+                    self.module_graph.register_mast_root(procedure_gid, procedure.mast_root())?;
+                    mast_forest_builder.insert_procedure(procedure_gid, procedure)?;
+                },
+                Export::Alias(proc_alias) => {
+                    let name = QualifiedProcedureName {
+                        span: proc_alias.span(),
+                        module: module.path().clone(),
+                        name: proc_alias.name().clone(),
+                    };
+                    let pctx = ProcedureContext::new(
+                        procedure_gid,
+                        name,
+                        ast::Visibility::Public,
+                        self.source_manager.clone(),
+                    )
+                    .with_span(proc_alias.span());
+
+                    let proc_alias_root = self.resolve_target(
+                        InvokeKind::ProcRef,
+                        &proc_alias.target().into(),
+                        &pctx,
+                        mast_forest_builder,
+                    )?;
+                    // Make the MAST root available to all dependents
+                    self.module_graph.register_mast_root(procedure_gid, proc_alias_root)?;
+                    mast_forest_builder.insert_procedure_hash(procedure_gid, proc_alias_root)?;
+                },
+            }
+        }
+
+        Ok(())
+    }
+
+    /// Compiles a single Miden Assembly procedure to its MAST representation.
     fn compile_procedure(
         &self,
-        proc: &ProcedureAst,
-        context: &mut AssemblyContext,
-    ) -> Result<(), AssemblyError> {
-        context.begin_proc(&proc.name, proc.is_export, proc.num_locals)?;
-        let code = if proc.num_locals > 0 {
+        mut proc_ctx: ProcedureContext,
+        mast_forest_builder: &mut MastForestBuilder,
+    ) -> Result<Procedure, Report> {
+        // Make sure the current procedure context is available during codegen
+        let gid = proc_ctx.id();
+        let num_locals = proc_ctx.num_locals();
+
+        let wrapper_proc = self.module_graph.get_procedure_unsafe(gid);
+        let proc = wrapper_proc.unwrap_ast().unwrap_procedure();
+        let proc_body_id = if num_locals > 0 {
             // for procedures with locals, we need to update fmp register before and after the
             // procedure body is executed. specifically:
             // - to allocate procedure locals we need to increment fmp by the number of locals
             // - to deallocate procedure locals we need to decrement it by the same amount
-            let num_locals = Felt::from(proc.num_locals);
+            let num_locals = Felt::from(num_locals);
             let wrapper = BodyWrapper {
                 prologue: vec![Operation::Push(num_locals), Operation::FmpUpdate],
                 epilogue: vec![Operation::Push(-num_locals), Operation::FmpUpdate],
             };
-            self.compile_body(proc.body.nodes().iter(), context, Some(wrapper))?
+            self.compile_body(proc.iter(), &mut proc_ctx, Some(wrapper), mast_forest_builder)?
         } else {
-            self.compile_body(proc.body.nodes().iter(), context, None)?
+            self.compile_body(proc.iter(), &mut proc_ctx, None, mast_forest_builder)?
         };
 
-        context.complete_proc(code);
-
-        Ok(())
+        let proc_body_node = mast_forest_builder
+            .get_mast_node(proc_body_id)
+            .expect("no MAST node for compiled procedure");
+        Ok(proc_ctx.into_procedure(proc_body_node.digest(), proc_body_id))
     }
 
-    // CODE BODY COMPILER
-    // --------------------------------------------------------------------------------------------
-
-    /// TODO: add comments
-    fn compile_body<A, N>(
+    fn compile_body<'a, I>(
         &self,
-        body: A,
-        context: &mut AssemblyContext,
+        body: I,
+        proc_ctx: &mut ProcedureContext,
         wrapper: Option<BodyWrapper>,
-    ) -> Result<CodeBlock, AssemblyError>
+        mast_forest_builder: &mut MastForestBuilder,
+    ) -> Result<MastNodeId, Report>
     where
-        A: Iterator<Item = N>,
-        N: Borrow<Node>,
+        I: Iterator<Item = &'a ast::Op>,
     {
-        let mut blocks: Vec<CodeBlock> = Vec::new();
-        let mut span = SpanBuilder::new(wrapper);
+        use ast::Op;
 
-        for node in body {
-            match node.borrow() {
-                Node::Instruction(inner) => {
-                    if let Some(block) = self.compile_instruction(inner, &mut span, context)? {
-                        span.extract_span_into(&mut blocks);
-                        blocks.push(block);
+        let mut mast_node_ids: Vec<MastNodeId> = Vec::new();
+        let mut basic_block_builder = BasicBlockBuilder::new(wrapper);
+
+        for op in body {
+            match op {
+                Op::Inst(inst) => {
+                    if let Some(mast_node_id) = self.compile_instruction(
+                        inst,
+                        &mut basic_block_builder,
+                        proc_ctx,
+                        mast_forest_builder,
+                    )? {
+                        if let Some(basic_block_id) =
+                            basic_block_builder.make_basic_block(mast_forest_builder)?
+                        {
+                            mast_node_ids.push(basic_block_id);
+                        }
+
+                        mast_node_ids.push(mast_node_id);
                     }
-                }
+                },
 
-                Node::IfElse {
-                    true_case,
-                    false_case,
-                } => {
-                    span.extract_span_into(&mut blocks);
-
-                    let true_case = self.compile_body(true_case.nodes().iter(), context, None)?;
-
-                    // else is an exception because it is optional; hence, will have to be replaced
-                    // by noop span
-                    let false_case = if !false_case.nodes().is_empty() {
-                        self.compile_body(false_case.nodes().iter(), context, None)?
-                    } else {
-                        CodeBlock::new_span(vec![Operation::Noop])
-                    };
-
-                    let block = CodeBlock::new_split(true_case, false_case);
-
-                    blocks.push(block);
-                }
-
-                Node::Repeat { times, body } => {
-                    span.extract_span_into(&mut blocks);
-
-                    let block = self.compile_body(body.nodes().iter(), context, None)?;
-
-                    for _ in 0..*times {
-                        blocks.push(block.clone());
+                Op::If { then_blk, else_blk, .. } => {
+                    if let Some(basic_block_id) =
+                        basic_block_builder.make_basic_block(mast_forest_builder)?
+                    {
+                        mast_node_ids.push(basic_block_id);
                     }
-                }
 
-                Node::While { body } => {
-                    span.extract_span_into(&mut blocks);
+                    let then_blk =
+                        self.compile_body(then_blk.iter(), proc_ctx, None, mast_forest_builder)?;
+                    let else_blk =
+                        self.compile_body(else_blk.iter(), proc_ctx, None, mast_forest_builder)?;
 
-                    let block = self.compile_body(body.nodes().iter(), context, None)?;
-                    let block = CodeBlock::new_loop(block);
+                    let split_node_id = mast_forest_builder.ensure_split(then_blk, else_blk)?;
+                    mast_node_ids.push(split_node_id);
+                },
 
-                    blocks.push(block);
-                }
+                Op::Repeat { count, body, .. } => {
+                    if let Some(basic_block_id) =
+                        basic_block_builder.make_basic_block(mast_forest_builder)?
+                    {
+                        mast_node_ids.push(basic_block_id);
+                    }
+
+                    let repeat_node_id =
+                        self.compile_body(body.iter(), proc_ctx, None, mast_forest_builder)?;
+
+                    for _ in 0..*count {
+                        mast_node_ids.push(repeat_node_id);
+                    }
+                },
+
+                Op::While { body, .. } => {
+                    if let Some(basic_block_id) =
+                        basic_block_builder.make_basic_block(mast_forest_builder)?
+                    {
+                        mast_node_ids.push(basic_block_id);
+                    }
+
+                    let loop_body_node_id =
+                        self.compile_body(body.iter(), proc_ctx, None, mast_forest_builder)?;
+
+                    let loop_node_id = mast_forest_builder.ensure_loop(loop_body_node_id)?;
+                    mast_node_ids.push(loop_node_id);
+                },
             }
         }
 
-        span.extract_final_span_into(&mut blocks);
-        Ok(if blocks.is_empty() {
-            CodeBlock::new_span(vec![Operation::Noop])
+        if let Some(basic_block_id) =
+            basic_block_builder.try_into_basic_block(mast_forest_builder)?
+        {
+            mast_node_ids.push(basic_block_id);
+        }
+
+        Ok(if mast_node_ids.is_empty() {
+            mast_forest_builder.ensure_block(vec![Operation::Noop], None)?
         } else {
-            combine_blocks(blocks)
+            combine_mast_node_ids(mast_node_ids, mast_forest_builder)?
         })
     }
 
-    // PROCEDURE CACHE
-    // --------------------------------------------------------------------------------------------
-
-    /// Ensures that a procedure with the specified [ProcedureId] exists in the cache. Otherwise,
-    /// attempt to fetch it from the module provider, compile, and check again.
-    ///
-    /// If `Ok` is returned, the procedure can be safely unwrapped from the cache.
-    ///
-    /// # Panics
-    ///
-    /// This function will panic if the internal procedure cache is mutably borrowed somewhere.
-    fn ensure_procedure_is_in_cache(
+    pub(super) fn resolve_target(
         &self,
-        proc_id: &ProcedureId,
-        context: &mut AssemblyContext,
-    ) -> Result<(), AssemblyError> {
-        if !self.proc_cache.borrow().contains_id(proc_id) {
-            // if procedure is not in cache, try to get its module and compile it
-            let module = self.module_provider.get_module(proc_id).ok_or_else(|| {
-                let proc_name = context.get_imported_procedure_name(proc_id);
-                AssemblyError::imported_proc_module_not_found(proc_id, proc_name)
-            })?;
-            self.compile_module(&module.ast, Some(&module.path), context)?;
-            // if the procedure is still not in cache, then there was some error
-            if !self.proc_cache.borrow().contains_id(proc_id) {
-                return Err(AssemblyError::imported_proc_not_found_in_module(
-                    proc_id,
-                    &module.path,
-                ));
+        kind: InvokeKind,
+        target: &InvocationTarget,
+        proc_ctx: &ProcedureContext,
+        mast_forest_builder: &MastForestBuilder,
+    ) -> Result<RpoDigest, AssemblyError> {
+        let caller = CallerInfo {
+            span: target.span(),
+            module: proc_ctx.id().module,
+            kind,
+        };
+        let resolved = self.module_graph.resolve_target(&caller, target)?;
+        match resolved {
+            ResolvedTarget::Phantom(digest) => Ok(digest),
+            ResolvedTarget::Exact { gid } | ResolvedTarget::Resolved { gid, .. } => {
+                match mast_forest_builder.get_procedure_hash(gid) {
+                    Some(proc_hash) => Ok(proc_hash),
+                    None => match self.module_graph.get_procedure_unsafe(gid) {
+                        ProcedureWrapper::Info(p) => Ok(p.digest),
+                        ProcedureWrapper::Ast(_) => panic!("Did not find procedure {gid:?} neither in module graph nor procedure cache"),
+                    },
+                }
             }
         }
-
-        Ok(())
-    }
-
-    // CODE BLOCK BUILDER
-    // --------------------------------------------------------------------------------------------
-    /// Returns the [CodeBlockTable] associated with the [AssemblyContext].
-    ///
-    /// # Errors
-    /// Returns an error if a required procedure is not found in the [Assembler] procedure cache.
-    pub fn build_cb_table(
-        &self,
-        context: AssemblyContext,
-    ) -> Result<CodeBlockTable, AssemblyError> {
-        context.into_cb_table(&self.proc_cache.borrow())
     }
 }
 
-// BODY WRAPPER
+// HELPERS
 // ================================================================================================
 
 /// Contains a set of operations which need to be executed before and after a sequence of AST
@@ -437,94 +632,35 @@ struct BodyWrapper {
     epilogue: Vec<Operation>,
 }
 
-// HELPER FUNCTIONS
-// ================================================================================================
-
-fn combine_blocks(mut blocks: Vec<CodeBlock>) -> CodeBlock {
-    debug_assert!(!blocks.is_empty(), "cannot combine empty block list");
-    // merge consecutive Span blocks.
-    let mut merged_blocks: Vec<CodeBlock> = Vec::with_capacity(blocks.len());
-    // Keep track of all the consecutive Span blocks and are merged together when
-    // there is a discontinuity.
-    let mut contiguous_spans: Vec<CodeBlock> = Vec::new();
-
-    blocks.drain(0..).for_each(|block| {
-        if block.is_span() {
-            contiguous_spans.push(block);
-        } else {
-            if !contiguous_spans.is_empty() {
-                merged_blocks.push(combine_spans(&mut contiguous_spans));
-            }
-            merged_blocks.push(block);
-        }
-    });
-    if !contiguous_spans.is_empty() {
-        merged_blocks.push(combine_spans(&mut contiguous_spans));
-    }
+fn combine_mast_node_ids(
+    mut mast_node_ids: Vec<MastNodeId>,
+    mast_forest_builder: &mut MastForestBuilder,
+) -> Result<MastNodeId, AssemblyError> {
+    debug_assert!(!mast_node_ids.is_empty(), "cannot combine empty MAST node id list");
 
     // build a binary tree of blocks joining them using JOIN blocks
-    let mut blocks = merged_blocks;
-    while blocks.len() > 1 {
-        let last_block = if blocks.len() % 2 == 0 { None } else { blocks.pop() };
-
-        let mut source_blocks = Vec::new();
-        core::mem::swap(&mut blocks, &mut source_blocks);
-
-        let mut source_block_iter = source_blocks.drain(0..);
-        while let (Some(left), Some(right)) = (source_block_iter.next(), source_block_iter.next()) {
-            blocks.push(CodeBlock::new_join([left, right]));
-        }
-
-        if let Some(block) = last_block {
-            blocks.push(block);
-        }
-    }
-
-    debug_assert!(!blocks.is_empty(), "no blocks");
-    blocks.remove(0)
-}
-
-/// Combines a vector of SPAN blocks into a single SPAN block.
-///
-/// # Panics
-/// Panics if any of the provided blocks is not a SPAN block.
-fn combine_spans(spans: &mut Vec<CodeBlock>) -> CodeBlock {
-    if spans.len() == 1 {
-        return spans.remove(0);
-    }
-
-    let mut ops = Vec::<Operation>::new();
-    let mut decorators = DecoratorList::new();
-    spans.drain(0..).for_each(|block| {
-        if let CodeBlock::Span(span) = block {
-            for decorator in span.decorators() {
-                decorators.push((decorator.0 + ops.len(), decorator.1.clone()));
-            }
-            for batch in span.op_batches() {
-                ops.extend_from_slice(batch.ops());
-            }
+    while mast_node_ids.len() > 1 {
+        let last_mast_node_id = if mast_node_ids.len() % 2 == 0 {
+            None
         } else {
-            panic!("CodeBlock was expected to be a Span Block, got {block:?}.");
-        }
-    });
-    CodeBlock::new_span_with_decorators(ops, decorators)
-}
+            mast_node_ids.pop()
+        };
 
-/// Builds a procedure ID based on the provided parameters.
-///
-/// Returns [ProcedureId] if `path` is provided, [None] otherwise.
-fn build_procedure_id(
-    path: Option<&LibraryPath>,
-    proc: &NamedProcedure,
-    proc_index: usize,
-) -> Option<ProcedureId> {
-    let mut proc_id = None;
-    if let Some(path) = path {
-        if proc.is_export() {
-            proc_id = Some(ProcedureId::from_name(proc.name(), path));
-        } else {
-            proc_id = Some(ProcedureId::from_index(proc_index as u16, path))
+        let mut source_mast_node_ids = Vec::new();
+        core::mem::swap(&mut mast_node_ids, &mut source_mast_node_ids);
+
+        let mut source_mast_node_iter = source_mast_node_ids.drain(0..);
+        while let (Some(left), Some(right)) =
+            (source_mast_node_iter.next(), source_mast_node_iter.next())
+        {
+            let join_mast_node_id = mast_forest_builder.ensure_join(left, right)?;
+
+            mast_node_ids.push(join_mast_node_id);
+        }
+        if let Some(mast_node_id) = last_mast_node_id {
+            mast_node_ids.push(mast_node_id);
         }
     }
-    proc_id
+
+    Ok(mast_node_ids.remove(0))
 }

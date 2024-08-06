@@ -1,3 +1,7 @@
+use alloc::vec::Vec;
+
+use winter_air::TransitionConstraintDegree;
+
 use super::{EvaluationFrame, FieldElement};
 use crate::{
     trace::chiplets::{
@@ -7,8 +11,6 @@ use crate::{
     },
     utils::{binary_not, is_binary, EvaluationResult},
 };
-use alloc::vec::Vec;
-use winter_air::TransitionConstraintDegree;
 
 #[cfg(test)]
 mod tests;

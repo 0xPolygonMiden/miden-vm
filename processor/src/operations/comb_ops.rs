@@ -35,8 +35,8 @@ where
     /// +------+------+------+------+------+------+------+------+------+------+------+------+------+------+------+---+
     ///
     ///
-    /// Output:                                                      
-    ///                                                    
+    /// Output:
+    ///
     /// +------+------+------+------+------+------+------+------+------+------+------+------+------+--------+--------+---+
     /// |  T0  |  T7  |  T6  |  T5  |  T4  |  T3  |  T2  |  T1  |  p1' |  p0' |  r1' |  r0' |x_addr|z_addr+1|a_addr+1| - |
     /// +------+------+------+------+------+------+------+------+------+------+------+------+------+--------+--------+---+
@@ -52,10 +52,10 @@ where
     ///    with common denominator (x - gz).
     /// 4. x_addr is the memory address from which we are loading the Ti's using the MSTREAM
     ///    instruction.
-    /// 5. z_addr is the memory address to the i-th OOD evaluations at z and gz
-    ///    i.e. T_i(z):= (T_i(z)0, T_i(z)1) and T_i(gz):= (T_i(gz)0, T_i(gz)1).
-    /// 6. a_addr is the memory address of the i-th random element alpha_i used in batching
-    ///    the trace polynomial quotients.
+    /// 5. z_addr is the memory address to the i-th OOD evaluations at z and gz i.e. T_i(z):=
+    ///    (T_i(z)0, T_i(z)1) and T_i(gz):= (T_i(gz)0, T_i(gz)1).
+    /// 6. a_addr is the memory address of the i-th random element alpha_i used in batching the
+    ///    trace polynomial quotients.
     ///
     /// The instruction also makes use of the helper registers to hold the values of T_i(z), T_i(gz)
     /// and alpha_i during the course of its execution.
@@ -171,11 +171,12 @@ where
 
 #[cfg(test)]
 mod tests {
-    use crate::{ContextId, Process, QuadFelt};
-    use alloc::borrow::ToOwned;
-    use alloc::vec::Vec;
+    use alloc::{borrow::ToOwned, vec::Vec};
+
     use test_utils::{build_test, rand::rand_array};
     use vm_core::{Felt, FieldElement, Operation, StackInputs, ONE, ZERO};
+
+    use crate::{ContextId, Process, QuadFelt};
 
     #[test]
     fn rcombine_main() {

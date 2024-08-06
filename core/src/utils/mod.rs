@@ -1,22 +1,25 @@
-use crate::Felt;
-use alloc::{string::String, vec::Vec};
+pub mod sync;
+
+use alloc::vec::Vec;
 use core::{
-    fmt::{self, Debug, Write},
+    fmt::Debug,
     ops::{Bound, Range},
 };
 
 // RE-EXPORTS
 // ================================================================================================
-
-pub use winter_utils::{group_slice_elements, group_vector_elements};
-
 pub use miden_crypto::utils::{
     collections, uninit_vector, ByteReader, ByteWriter, Deserializable, DeserializationError,
     Serializable, SliceReader,
 };
+pub use winter_utils::group_slice_elements;
+#[cfg(feature = "std")]
+pub use winter_utils::ReadAdapter;
+
+use crate::Felt;
 
 pub mod math {
-    pub use math::{batch_inversion, log2};
+    pub use math::batch_inversion;
 }
 
 // TO ELEMENTS
@@ -77,10 +80,7 @@ impl<T: Copy> PushMany<T> for Vec<T> {
 
 /// Returns a [Range] initialized with the specified `start` and with `end` set to `start` + `len`.
 pub const fn range(start: usize, len: usize) -> Range<usize> {
-    Range {
-        start,
-        end: start + len,
-    }
+    Range { start, end: start + len }
 }
 
 /// Converts and parses a [Bound] into an included u64 value.
@@ -97,7 +97,7 @@ where
             } else {
                 u64::MAX
             }
-        }
+        },
     }
 }
 
@@ -129,22 +129,4 @@ fn debug_assert_is_checked() {
 // FORMATTING
 // ================================================================================================
 
-/// Utility to convert a sequence of bytes to hex.
-pub fn to_hex(bytes: &[u8]) -> Result<String, fmt::Error> {
-    let mut s = String::with_capacity(bytes.len() * 2);
-
-    for byte in bytes {
-        write!(s, "{byte:02x}")?;
-    }
-
-    Ok(s)
-}
-
-/// Writes a hex string representation of provided bytes into the formatter.
-pub fn write_hex_bytes(f: &mut fmt::Formatter<'_>, bytes: &[u8]) -> fmt::Result {
-    write!(f, "0x")?;
-    for byte in bytes {
-        write!(f, "{byte:02x}")?;
-    }
-    Ok(())
-}
+pub use miden_formatting::hex::{to_hex, DisplayHex, ToHex};

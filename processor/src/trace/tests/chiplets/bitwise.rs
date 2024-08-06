@@ -1,10 +1,14 @@
+use miden_air::{
+    trace::chiplets::{
+        bitwise::{BITWISE_AND, BITWISE_AND_LABEL, BITWISE_XOR, BITWISE_XOR_LABEL, OP_CYCLE_LEN},
+        BITWISE_A_COL_IDX, BITWISE_B_COL_IDX, BITWISE_OUTPUT_COL_IDX, BITWISE_TRACE_OFFSET,
+    },
+    RowIndex,
+};
+
 use super::{
     build_trace_from_ops, rand_array, rand_value, ExecutionTrace, Felt, FieldElement, Operation,
     Trace, AUX_TRACE_RAND_ELEMENTS, CHIPLETS_AUX_TRACE_OFFSET, HASH_CYCLE_LEN, NUM_RAND_ROWS, ONE,
-};
-use miden_air::trace::chiplets::{
-    bitwise::{BITWISE_AND, BITWISE_AND_LABEL, BITWISE_XOR, BITWISE_XOR_LABEL, OP_CYCLE_LEN},
-    BITWISE_A_COL_IDX, BITWISE_B_COL_IDX, BITWISE_OUTPUT_COL_IDX, BITWISE_TRACE_OFFSET,
 };
 
 /// Tests the generation of the `b_chip` bus column when only bitwise lookups are included. It
@@ -46,10 +50,10 @@ fn b_chip_trace_bitwise() {
         Operation::Drop,
         Operation::Drop,
     ];
-    let mut trace = build_trace_from_ops(operations, &stack);
+    let trace = build_trace_from_ops(operations, &stack);
 
     let rand_elements = rand_array::<Felt, AUX_TRACE_RAND_ELEMENTS>();
-    let aux_columns = trace.build_aux_segment(&[], &rand_elements).unwrap();
+    let aux_columns = trace.build_aux_trace(&rand_elements).unwrap();
     let b_chip = aux_columns.get_column(CHIPLETS_AUX_TRACE_OFFSET);
 
     assert_eq!(trace.length(), b_chip.len());
@@ -121,7 +125,8 @@ fn b_chip_trace_bitwise() {
         Felt::from(a ^ b),
     );
     expected *= value.inv();
-    expected *= build_expected_bitwise_from_trace(&trace, &rand_elements, response_1_row - 1);
+    expected *=
+        build_expected_bitwise_from_trace(&trace, &rand_elements, (response_1_row - 1).into());
     assert_eq!(expected, b_chip[response_1_row]);
 
     // Nothing changes until the decoder requests the result of the `SPAN` hash at cycle 21.
@@ -142,7 +147,8 @@ fn b_chip_trace_bitwise() {
 
     // At the end of the next bitwise cycle, the response for `U32and` is provided by the Bitwise
     // chiplet.
-    expected *= build_expected_bitwise_from_trace(&trace, &rand_elements, response_2_row - 1);
+    expected *=
+        build_expected_bitwise_from_trace(&trace, &rand_elements, (response_2_row - 1).into());
     assert_eq!(expected, b_chip[response_2_row]);
 
     // Nothing changes until the next time the Bitwise chiplet responds.
@@ -152,7 +158,8 @@ fn b_chip_trace_bitwise() {
 
     // At the end of the next bitwise cycle, the response for `U32and` is provided by the Bitwise
     // chiplet.
-    expected *= build_expected_bitwise_from_trace(&trace, &rand_elements, response_3_row - 1);
+    expected *=
+        build_expected_bitwise_from_trace(&trace, &rand_elements, (response_3_row - 1).into());
     assert_eq!(expected, b_chip[response_3_row]);
 
     // The value in b_chip should be ONE now and for the rest of the trace.
@@ -168,7 +175,11 @@ fn build_expected_bitwise(alphas: &[Felt], label: Felt, a: Felt, b: Felt, result
     alphas[0] + alphas[1] * label + alphas[2] * a + alphas[3] * b + alphas[4] * result
 }
 
-fn build_expected_bitwise_from_trace(trace: &ExecutionTrace, alphas: &[Felt], row: usize) -> Felt {
+fn build_expected_bitwise_from_trace(
+    trace: &ExecutionTrace,
+    alphas: &[Felt],
+    row: RowIndex,
+) -> Felt {
     let selector = trace.main_trace.get_column(BITWISE_TRACE_OFFSET)[row];
 
     let op_id = if selector == BITWISE_AND {

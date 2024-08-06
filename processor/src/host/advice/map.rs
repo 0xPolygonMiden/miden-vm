@@ -1,8 +1,11 @@
-use super::Felt;
-use alloc::collections::btree_map::IntoIter;
-use alloc::collections::BTreeMap;
-use alloc::vec::Vec;
+use alloc::{
+    collections::{btree_map::IntoIter, BTreeMap},
+    vec::Vec,
+};
+
 use vm_core::crypto::hash::RpoDigest;
+
+use super::Felt;
 
 // ADVICE MAP
 // ================================================================================================

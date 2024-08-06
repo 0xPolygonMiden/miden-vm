@@ -1,6 +1,8 @@
-use super::DECODER_AUX_TRACE_OFFSET;
 use core::ops::Range;
+
 use vm_core::{utils::range, Felt, Operation, ONE, ZERO};
+
+use super::DECODER_AUX_TRACE_OFFSET;
 
 // CONSTANTS
 // ================================================================================================

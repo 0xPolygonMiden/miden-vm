@@ -1,8 +1,14 @@
+use alloc::{collections::BTreeMap, vec::Vec};
+
+use miden_air::{
+    trace::{
+        main_trace::MainTrace,
+        range::{M_COL_IDX, V_COL_IDX},
+    },
+    RowIndex,
+};
+
 use super::{uninit_vector, Felt, FieldElement, NUM_RAND_ROWS};
-use alloc::collections::BTreeMap;
-use alloc::vec::Vec;
-use miden_air::trace::main_trace::MainTrace;
-use miden_air::trace::range::{M_COL_IDX, V_COL_IDX};
 
 // AUXILIARY TRACE BUILDER
 // ================================================================================================
@@ -14,7 +20,7 @@ pub struct AuxTraceBuilder {
     lookup_values: Vec<u16>,
     /// Range check lookups performed by all user operations, grouped and sorted by the clock cycle
     /// at which they are requested.
-    cycle_lookups: BTreeMap<u32, Vec<u16>>,
+    cycle_lookups: BTreeMap<RowIndex, Vec<u16>>,
     // The index of the first row of Range Checker's trace when the padded rows end and values to
     // be range checked start.
     values_start: usize,
@@ -25,7 +31,7 @@ impl AuxTraceBuilder {
     // --------------------------------------------------------------------------------------------
     pub fn new(
         lookup_values: Vec<u16>,
-        cycle_lookups: BTreeMap<u32, Vec<u16>>,
+        cycle_lookups: BTreeMap<RowIndex, Vec<u16>>,
         values_start: usize,
     ) -> Self {
         Self {
@@ -70,8 +76,10 @@ impl AuxTraceBuilder {
         let mut b_range_idx = 0_usize;
 
         // the first half of the trace only includes values from the operations.
-        for (clk, range_checks) in self.cycle_lookups.range(0..self.values_start as u32) {
-            let clk = *clk as usize;
+        for (clk, range_checks) in
+            self.cycle_lookups.range(RowIndex::from(0)..RowIndex::from(self.values_start))
+        {
+            let clk: usize = (*clk).into();
 
             // if we skipped some cycles since the last update was processed, values in the last
             // updated row should be copied over until the current cycle.
@@ -120,7 +128,7 @@ impl AuxTraceBuilder {
             }
 
             // subtract the range checks requested by operations
-            if let Some(range_checks) = self.cycle_lookups.get(&(row_idx as u32)) {
+            if let Some(range_checks) = self.cycle_lookups.get(&(row_idx as u32).into()) {
                 for lookup in range_checks.iter() {
                     let value = divisors.get(lookup).expect("invalid lookup value");
                     b_range[b_range_idx] -= *value;

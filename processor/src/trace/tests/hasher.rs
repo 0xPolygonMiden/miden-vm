@@ -1,10 +1,5 @@
-use super::{
-    super::{Trace, NUM_RAND_ROWS},
-    build_trace_from_ops_with_inputs, rand_array, AdviceInputs, Felt, Operation, Word, ONE, ZERO,
-};
-
-use crate::StackInputs;
 use alloc::vec::Vec;
+
 use miden_air::trace::{
     chiplets::hasher::P1_COL_IDX, main_trace::MainTrace, AUX_TRACE_RAND_ELEMENTS,
 };
@@ -12,6 +7,12 @@ use vm_core::{
     crypto::merkle::{MerkleStore, MerkleTree, NodeIndex},
     FieldElement,
 };
+
+use super::{
+    super::NUM_RAND_ROWS, build_trace_from_ops_with_inputs, rand_array, AdviceInputs, Felt,
+    Operation, Word, ONE, ZERO,
+};
+use crate::StackInputs;
 
 // SIBLING TABLE TESTS
 // ================================================================================================
@@ -33,10 +34,10 @@ fn hasher_p1_mp_verify() {
     let advice_inputs = AdviceInputs::default().with_merkle_store(store);
 
     // build execution trace and extract the sibling table column from it
-    let ops = vec![Operation::MpVerify];
-    let mut trace = build_trace_from_ops_with_inputs(ops, stack_inputs, advice_inputs);
+    let ops = vec![Operation::MpVerify(0)];
+    let trace = build_trace_from_ops_with_inputs(ops, stack_inputs, advice_inputs);
     let alphas = rand_array::<Felt, AUX_TRACE_RAND_ELEMENTS>();
-    let aux_columns = trace.build_aux_segment(&[], &alphas).unwrap();
+    let aux_columns = trace.build_aux_trace(&alphas).unwrap();
     let p1 = aux_columns.get_column(P1_COL_IDX);
 
     // executing MPVERIFY does not affect the sibling table - so, all values in the column must be
@@ -69,9 +70,9 @@ fn hasher_p1_mr_update() {
 
     // build execution trace and extract the sibling table column from it
     let ops = vec![Operation::MrUpdate];
-    let mut trace = build_trace_from_ops_with_inputs(ops, stack_inputs, advice_inputs);
+    let trace = build_trace_from_ops_with_inputs(ops, stack_inputs, advice_inputs);
     let alphas = rand_array::<Felt, AUX_TRACE_RAND_ELEMENTS>();
-    let aux_columns = trace.build_aux_segment(&[], &alphas).unwrap();
+    let aux_columns = trace.build_aux_trace(&alphas).unwrap();
     let p1 = aux_columns.get_column(P1_COL_IDX);
 
     let row_values = [

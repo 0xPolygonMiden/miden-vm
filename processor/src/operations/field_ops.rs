@@ -1,5 +1,6 @@
-use super::{utils::assert_binary, ExecutionError, Felt, FieldElement, Host, Process};
 use vm_core::{Operation, ONE, ZERO};
+
+use super::{utils::assert_binary, ExecutionError, Felt, FieldElement, Host, Process};
 
 // FIELD OPERATIONS
 // ================================================================================================
@@ -123,15 +124,17 @@ where
         let b = self.stack.get(0);
         let a = self.stack.get(1);
 
-        // helper variable provided by the prover. If top elements are same, then, it can be set to anything
-        // otherwise set it to the reciprocal of the difference between the top two elements.
+        // helper variable provided by the prover. If top elements are same, then, it can be set to
+        // anything otherwise set it to the reciprocal of the difference between the top two
+        // elements.
         let mut h0 = ZERO;
 
         if a == b {
             self.stack.set(0, ONE);
         } else {
             self.stack.set(0, ZERO);
-            // setting h0 to the inverse of the difference between the top two elements of the stack.
+            // setting h0 to the inverse of the difference between the top two elements of the
+            // stack.
             h0 = (b - a).inv();
         }
 
@@ -147,8 +150,8 @@ where
     pub(super) fn op_eqz(&mut self) -> Result<(), ExecutionError> {
         let a = self.stack.get(0);
 
-        // helper variable provided by the prover. If the top element is zero, then, h0 can be set to anything
-        // otherwise set it to the inverse of the top element in the stack.
+        // helper variable provided by the prover. If the top element is zero, then, h0 can be set
+        // to anything otherwise set it to the inverse of the top element in the stack.
         let mut h0 = ZERO;
 
         if a == ZERO {
@@ -220,13 +223,14 @@ where
 
 #[cfg(test)]
 mod tests {
+    use test_utils::rand::rand_value;
+    use vm_core::{ONE, ZERO};
+
     use super::{
         super::{Felt, FieldElement, Operation, STACK_TOP_SIZE},
         Process,
     };
     use crate::{AdviceInputs, StackInputs};
-    use test_utils::rand::rand_value;
-    use vm_core::{ONE, ZERO};
 
     // ARITHMETIC OPERATIONS
     // --------------------------------------------------------------------------------------------
@@ -524,7 +528,7 @@ mod tests {
         let expected = build_expected(&[ZERO, Felt::new(16), Felt::new(32), Felt::new(a >> 1)]);
         assert_eq!(expected, process.stack.trace_state());
 
-        // --- test when bit from b is 1 ---------------------------------------------------------------------------
+        // --- test when bit from b is 1 ----------------------------------------------------------
 
         let a = 3;
         let b = 1;
@@ -539,7 +543,8 @@ mod tests {
         let expected = build_expected(&[ONE, Felt::new(256), Felt::new(16), Felt::new(a >> 1)]);
         assert_eq!(expected, process.stack.trace_state());
 
-        // --- test when bit from b is 1 & exp is 2**32. exp will overflow the field after this operation -----------
+        // --- test when bit from b is 1 & exp is 2**32 -------------------------------------------
+        // exp will overflow the field after this operation.
 
         let a = 17;
         let b = 5;

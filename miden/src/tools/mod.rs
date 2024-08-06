@@ -1,10 +1,13 @@
-use super::{cli::InputFile, ProgramError};
-use clap::Parser;
 use core::fmt;
+use std::{fs, path::PathBuf};
+
+use assembly::diagnostics::{IntoDiagnostic, Report, WrapErr};
+use clap::Parser;
 use miden_vm::{Assembler, DefaultHost, Host, Operation, StackInputs};
 use processor::{AsmOpInfo, TraceLenSummary};
-use std::{fs, path::PathBuf};
 use stdlib::StdLibrary;
+
+use super::cli::InputFile;
 
 // CLI
 // ================================================================================================
@@ -23,16 +26,19 @@ pub struct Analyze {
 
 /// Implements CLI execution logic
 impl Analyze {
-    pub fn execute(&self) -> Result<(), String> {
-        let program = fs::read_to_string(&self.assembly_file)
-            .map_err(|e| format!("could not read masm file: {e}"))?;
+    pub fn execute(&self) -> Result<(), Report> {
+        let program =
+            fs::read_to_string(&self.assembly_file).into_diagnostic().wrap_err_with(|| {
+                format!("could not read masm file: {}", self.assembly_file.display())
+            })?;
 
         // load input data from file
         let input_data = InputFile::read(&self.input_file, &self.assembly_file)?;
 
         // fetch the stack and program inputs from the arguments
-        let stack_inputs = input_data.parse_stack_inputs()?;
-        let host = DefaultHost::new(input_data.parse_advice_provider()?);
+        let stack_inputs = input_data.parse_stack_inputs().map_err(Report::msg)?;
+        let mut host = DefaultHost::new(input_data.parse_advice_provider().map_err(Report::msg)?);
+        host.load_mast_forest(StdLibrary::default().into());
 
         let execution_details: ExecutionDetails = analyze(program.as_str(), stack_inputs, host)
             .expect("Could not retrieve execution details");
@@ -114,7 +120,7 @@ impl ExecutionDetails {
                     self.asm_op_stats[*pos].incr_frequency();
                     self.asm_op_stats[*pos].add_vm_cycles(asmop_info.num_cycles());
                 }
-            }
+            },
             Err(pos) => {
                 self.asm_op_stats.insert(
                     *pos,
@@ -124,7 +130,7 @@ impl ExecutionDetails {
                         asmop_info.num_cycles() as usize,
                     ),
                 );
-            }
+            },
         }
     }
 
@@ -135,6 +141,7 @@ impl ExecutionDetails {
 }
 
 impl fmt::Display for ExecutionDetails {
+    #[allow(clippy::write_literal)]
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         // calculate the percentage of padded rows
         let padding_percentage = (self.trace_len_summary().padded_trace_len()
@@ -202,27 +209,22 @@ impl fmt::Display for ExecutionDetails {
 }
 
 /// Returns program analysis of a given program.
-pub fn analyze<H>(
-    program: &str,
-    stack_inputs: StackInputs,
-    host: H,
-) -> Result<ExecutionDetails, ProgramError>
+fn analyze<H>(program: &str, stack_inputs: StackInputs, host: H) -> Result<ExecutionDetails, Report>
 where
     H: Host,
 {
+    let stdlib = StdLibrary::default();
     let program = Assembler::default()
         .with_debug_mode(true)
-        .with_library(&StdLibrary::default())
-        .map_err(ProgramError::AssemblyError)?
-        .compile(program)
-        .map_err(ProgramError::AssemblyError)?;
+        .with_library(&stdlib)?
+        .assemble_program(program)?;
     let mut execution_details = ExecutionDetails::default();
 
     let vm_state_iterator = processor::execute_iter(&program, stack_inputs, host);
     execution_details.set_trace_len_summary(vm_state_iterator.trace_len_summary());
 
     for state in vm_state_iterator {
-        let vm_state = state.map_err(ProgramError::ExecutionError)?;
+        let vm_state = state.into_diagnostic().wrap_err("execution error")?;
         if matches!(vm_state.op, Some(Operation::Noop)) {
             execution_details.incr_noop_count();
         }
@@ -249,11 +251,7 @@ impl AsmOpStats {
     /// number of cycles it takes to execute the assembly instruction and the number of times
     /// the assembly instruction is executed.
     pub fn new(op: String, frequency: usize, total_vm_cycles: usize) -> Self {
-        Self {
-            op,
-            frequency,
-            total_vm_cycles,
-        }
+        Self { op, frequency, total_vm_cycles }
     }
 
     /// Returns the assembly instruction corresponding to this decorator.
@@ -290,8 +288,9 @@ impl AsmOpStats {
 
 #[cfg(test)]
 mod tests {
-    use super::{AsmOpStats, ExecutionDetails, StackInputs};
     use processor::{ChipletsLengths, DefaultHost, TraceLenSummary};
+
+    use super::{AsmOpStats, ExecutionDetails, StackInputs};
 
     #[test]
     fn analyze_test() {

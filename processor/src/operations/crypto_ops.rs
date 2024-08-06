@@ -1,6 +1,7 @@
+use vm_core::AdviceInjector;
+
 use super::{ExecutionError, Host, Operation, Process};
 use crate::crypto::MerklePath;
-use vm_core::AdviceInjector;
 
 // CRYPTOGRAPHIC OPERATIONS
 // ================================================================================================
@@ -61,13 +62,13 @@ where
     /// # Errors
     /// Returns an error if:
     /// - Merkle tree for the specified root cannot be found in the advice provider.
-    /// - The specified depth is either zero or greater than the depth of the Merkle tree
-    ///   identified by the specified root.
+    /// - The specified depth is either zero or greater than the depth of the Merkle tree identified
+    ///   by the specified root.
     /// - Path to the node at the specified depth and index is not known to the advice provider.
     ///
     /// # Panics
     /// Panics if the computed root does not match the root provided via the stack.
-    pub(super) fn op_mpverify(&mut self) -> Result<(), ExecutionError> {
+    pub(super) fn op_mpverify(&mut self, err_code: u32) -> Result<(), ExecutionError> {
         // read node value, depth, index and root value from the stack
         let node = [self.stack.get(3), self.stack.get(2), self.stack.get(1), self.stack.get(0)];
         let index = self.stack.get(5);
@@ -82,7 +83,7 @@ where
 
         // save address(r) of the hasher trace from when the computation starts in the decoder
         // helper registers.
-        self.decoder.set_user_op_helpers(Operation::MpVerify, &[addr]);
+        self.decoder.set_user_op_helpers(Operation::MpVerify(err_code), &[addr]);
 
         if root != computed_root {
             // If the hasher chiplet doesn't compute the same root (using the same path),
@@ -91,6 +92,7 @@ where
                 value: node,
                 index,
                 root: root.into(),
+                err_code,
             });
         }
 
@@ -110,8 +112,8 @@ where
     /// To perform the operation we do the following:
     /// 1. Update the node at the specified index in the Merkle tree with the specified root, and
     ///    get the Merkle path to it.
-    /// 2. Use the hasher to update the root of the Merkle path for the specified node. For this
-    ///    we need to provide the old and the new node value.
+    /// 2. Use the hasher to update the root of the Merkle path for the specified node. For this we
+    ///    need to provide the old and the new node value.
     /// 3. Verify that the computed old root is equal to the input root provided via the stack.
     /// 4. Replace the old node value with the computed new root.
     ///
@@ -126,8 +128,8 @@ where
     /// # Errors
     /// Returns an error if:
     /// - Merkle tree for the specified root cannot be found in the advice provider.
-    /// - The specified depth is either zero or greater than the depth of the Merkle tree
-    ///   identified by the specified root.
+    /// - The specified depth is either zero or greater than the depth of the Merkle tree identified
+    ///   by the specified root.
     /// - Path to the node at the specified depth and index is not known to the advice provider.
     ///
     /// # Panics
@@ -180,17 +182,19 @@ where
 
 #[cfg(test)]
 mod tests {
-    use super::{
-        super::{Felt, Operation},
-        Process,
-    };
-    use crate::{AdviceInputs, StackInputs, Word, ZERO};
     use alloc::vec::Vec;
+
     use test_utils::rand::rand_vector;
     use vm_core::{
         chiplets::hasher::{apply_permutation, STATE_WIDTH},
         crypto::merkle::{MerkleStore, MerkleTree, NodeIndex},
     };
+
+    use super::{
+        super::{Felt, Operation},
+        Process,
+    };
+    use crate::{AdviceInputs, StackInputs, Word, ZERO};
 
     #[test]
     fn op_hperm() {
@@ -264,7 +268,7 @@ mod tests {
         let mut process =
             Process::new_dummy_with_inputs_and_decoder_helpers(stack_inputs, advice_inputs);
 
-        process.execute_op(Operation::MpVerify).unwrap();
+        process.execute_op(Operation::MpVerify(0)).unwrap();
         let expected_stack = build_expected(&[
             node[3], node[2], node[1], node[0], depth, index, root[3], root[2], root[1], root[0],
         ]);

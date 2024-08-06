@@ -397,7 +397,7 @@ The above constraint reduces to the following under various flag conditions:
 Note that the degree of the above constraint is $7$.
 
 #### Sibling table constraints
-*Note: Although this table is described independently, it is implemented as part of the [chiplets virtual table](../chiplets/main.md#chiplets-virtual-table), which combines all virtual tables required by the any of the chiplets into a single master table.*
+*Note: Although this table is described independently, it is implemented as part of the [chiplets virtual table](../chiplets/main.md#chiplets-virtual-table), which combines all virtual tables required by any of the chiplets into a single master table.*
 
 As mentioned previously, the sibling table (represented by running column $p_1$) is used to keep track of sibling nodes used during Merkle root update computations. For this computation, we need to enforce the following rules:
 * When computing the old Merkle root, whenever a new sibling node is absorbed into the hasher state (i.e., $f_{mv} + f_{mva} = 1$), an entry for this sibling should be included into $p_1$.

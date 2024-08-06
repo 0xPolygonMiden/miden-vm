@@ -1,6 +1,12 @@
-use assembly::{LibraryNamespace, MaslLibrary, Version};
+use std::{path::PathBuf, sync::Arc};
+
+use assembly::{
+    ast::AstSerdeOptions,
+    diagnostics::{IntoDiagnostic, Report},
+    library::Library,
+    LibraryNamespace, Version,
+};
 use clap::Parser;
-use std::path::PathBuf;
 
 #[derive(Debug, Clone, Parser)]
 #[clap(
@@ -20,7 +26,7 @@ pub struct BundleCmd {
 }
 
 impl BundleCmd {
-    pub fn execute(&self) -> Result<(), String> {
+    pub fn execute(&self) -> Result<(), Report> {
         println!("============================================================");
         println!("Build library");
         println!("============================================================");
@@ -35,20 +41,20 @@ impl BundleCmd {
                 .into_owned(),
         };
 
+        let source_manager = Arc::new(assembly::DefaultSourceManager::default());
         let library_namespace =
-            LibraryNamespace::try_from(namespace.clone()).expect("invalid base namespace");
-        let version = Version::try_from(self.version.as_ref()).expect("invalid cargo version");
-        let with_source_locations = true;
-        let stdlib = MaslLibrary::read_from_dir(
-            self.dir.clone(),
-            library_namespace,
-            with_source_locations,
-            version,
-        )
-        .map_err(|e| e.to_string())?;
+            namespace.parse::<LibraryNamespace>().expect("invalid base namespace");
+        // TODO: Add version to `Library`
+        let _version = self.version.parse::<Version>().expect("invalid cargo version");
+        let stdlib = Library::from_dir(&self.dir, library_namespace, source_manager)?;
 
         // write the masl output
-        stdlib.write_to_dir(self.dir.clone()).map_err(|e| e.to_string())?;
+        let options = AstSerdeOptions::new(false, false);
+        let output_file = self
+            .dir
+            .join(self.namespace.as_deref().unwrap_or("out"))
+            .with_extension(Library::LIBRARY_EXTENSION);
+        stdlib.write_to_file(output_file, options).into_diagnostic()?;
 
         println!("Built library {}", namespace);
 

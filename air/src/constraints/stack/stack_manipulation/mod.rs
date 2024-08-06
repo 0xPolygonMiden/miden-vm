@@ -1,9 +1,10 @@
+use alloc::vec::Vec;
+
 use super::{op_flags::OpFlags, EvaluationFrame, FieldElement, TransitionConstraintDegree};
 use crate::{
     stack::EvaluationFrameExt,
     utils::{are_equal, binary_not},
 };
-use alloc::vec::Vec;
 
 #[cfg(test)]
 pub mod tests;
@@ -93,8 +94,8 @@ pub fn enforce_pad_constraints<E: FieldElement>(
 /// Enforces constraints of the DUPn and MOVUPn operations. The DUPn operation copies the element
 /// at depth n in the stack and pushes the copy onto the stack, whereas MOVUPn opearation moves the
 /// element at depth n to the top of the stack. Therefore, the following constraints are enforced:
-/// - The top element in the next frame should be equal to the element at depth n in the
-///   current frame. s0` - sn = 0.
+/// - The top element in the next frame should be equal to the element at depth n in the current
+///   frame. s0` - sn = 0.
 pub fn enforce_dup_movup_n_constraints<E: FieldElement>(
     frame: &EvaluationFrame<E>,
     result: &mut [E],
@@ -165,10 +166,10 @@ pub fn enforce_dup_movup_n_constraints<E: FieldElement>(
 
 /// Enforces constraints of the SWAP operation. The SWAP operation swaps the first
 /// two elements in the stack. Therefore, the following constraints are enforced:
-/// - The first element in the current frame should be equal to the second element in the
-///   next frame.
-/// - The second element in the current frame should be equal to the first element in the
-///   next frame.
+/// - The first element in the current frame should be equal to the second element in the next
+///   frame.
+/// - The second element in the current frame should be equal to the first element in the next
+///   frame.
 pub fn enforce_swap_constraints<E: FieldElement>(
     frame: &EvaluationFrame<E>,
     result: &mut [E],
@@ -190,17 +191,16 @@ pub fn enforce_swap_constraints<E: FieldElement>(
 /// - The SWAPW operation swaps the elements 0,1,2,3 with 4,5,6,7 in the stack.
 /// - The SWAPW2 operation swaps the elements 0,1,2,3 with 8,9,10,11 in the stack.
 /// - The SWAPW3 operation swaps the elements 0,1,2,3 with 12,13,14,15 in the stack.
-/// - The SWAPDW operation swaps the elements 0,1,2,3,4,5,6,7 with 8,9,10,11,12,13,14,15
-///   in the stack.
+/// - The SWAPDW operation swaps the elements 0,1,2,3,4,5,6,7 with 8,9,10,11,12,13,14,15 in the
+///   stack.
 ///
 /// Therefore, the following constraints are enforced:
-/// - During any frame, only one of these operation can be present (it is possible that
-///   none of these operations are present), therefore, the respective stack item can only
-///   transition into certain state and we can use this to combine these transition into
-///   one constraints where each transition are weighted by their respective flag. for eg.
-///   in the case of SWAPW3 the first item of the stack gets replaced with the 12 items and
-///   vice versa, therefore, only SWAPW3 transition will be ONE and rest all flags would be
-///   ZERO.
+/// - During any frame, only one of these operation can be present (it is possible that none of
+///   these operations are present), therefore, the respective stack item can only transition into
+///   certain state and we can use this to combine these transition into one constraints where each
+///   transition are weighted by their respective flag. for eg. in the case of SWAPW3 the first item
+///   of the stack gets replaced with the 12 items and vice versa, therefore, only SWAPW3 transition
+///   will be ONE and rest all flags would be ZERO.
 #[allow(clippy::needless_range_loop)]
 pub fn enforce_swapwx_constraints<E: FieldElement>(
     frame: &EvaluationFrame<E>,
@@ -245,8 +245,8 @@ pub fn enforce_swapwx_constraints<E: FieldElement>(
 
 /// Enforces constraints of the MOVDNn operation. The MOVDNn operation moves the top element
 /// to depth n in the stack. Therefore, the following constraints are enforced:
-/// - The top element in the current frame should be equal to the element at depth n in the
-///   next frame. s0 - sn` = 0.
+/// - The top element in the current frame should be equal to the element at depth n in the next
+///   frame. s0 - sn` = 0.
 pub fn enforce_movdnn_constraints<E: FieldElement>(
     frame: &EvaluationFrame<E>,
     result: &mut [E],
@@ -274,9 +274,8 @@ pub fn enforce_movdnn_constraints<E: FieldElement>(
 ///   is 1. The stack remains the same if the top element is 0.
 ///
 /// Therefore, the following constraints are enforced:
-/// - The top two elements or elements 1,2,3,4 should be swapped in the case of CSWAP and
-///   CSWAPW respectively if the top element is 1, the state remains the same if the top
-///   element is 0.
+/// - The top two elements or elements 1,2,3,4 should be swapped in the case of CSWAP and CSWAPW
+///   respectively if the top element is 1, the state remains the same if the top element is 0.
 #[allow(clippy::needless_range_loop)]
 pub fn enforce_cswapx_constraints<E: FieldElement>(
     frame: &EvaluationFrame<E>,

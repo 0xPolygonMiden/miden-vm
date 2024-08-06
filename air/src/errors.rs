@@ -1,6 +1,7 @@
-use crate::trace::MIN_TRACE_LEN;
 use alloc::string::String;
 use core::fmt::{Display, Formatter};
+
+use crate::trace::MIN_TRACE_LEN;
 
 // EXECUTION ERROR
 // ================================================================================================
@@ -19,10 +20,10 @@ impl Display for ExecutionOptionsError {
         match self {
             ExpectedCyclesTooBig(max, expected) => {
                 write!(f, "The expected number of cycles must be smaller than the maximum number of cycles: maximum is {max}, but expectd is {expected}")
-            }
+            },
             MaxCycleNumTooSmall(max) => {
                 write!(f, "The maximum number of cycles must be greater than the minimum number of cycles: minimum is {MIN_TRACE_LEN}, but maximum is {max}")
-            }
+            },
             OtherErrors(error) => write!(f, "{error}"),
         }
     }

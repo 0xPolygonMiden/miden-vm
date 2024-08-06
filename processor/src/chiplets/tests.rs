@@ -1,8 +1,5 @@
-use crate::{
-    CodeBlock, DefaultHost, ExecutionOptions, ExecutionTrace, Kernel, Operation, Process,
-    StackInputs,
-};
 use alloc::vec::Vec;
+
 use miden_air::trace::{
     chiplets::{
         bitwise::{BITWISE_XOR, OP_CYCLE_LEN, TRACE_WIDTH as BITWISE_TRACE_WIDTH},
@@ -13,7 +10,11 @@ use miden_air::trace::{
     },
     CHIPLETS_RANGE, CHIPLETS_WIDTH,
 };
-use vm_core::{CodeBlockTable, Felt, ONE, ZERO};
+use vm_core::{mast::MastForest, Felt, Program, ONE, ZERO};
+
+use crate::{
+    DefaultHost, ExecutionOptions, ExecutionTrace, Kernel, Operation, Process, StackInputs,
+};
 
 type ChipletsTrace = [Vec<Felt>; CHIPLETS_WIDTH];
 
@@ -114,10 +115,16 @@ fn build_trace(
     let stack_inputs = StackInputs::try_from_ints(stack_inputs.iter().copied()).unwrap();
     let host = DefaultHost::default();
     let mut process = Process::new(kernel, stack_inputs, host, ExecutionOptions::default());
-    let program = CodeBlock::new_span(operations);
-    process.execute_code_block(&program, &CodeBlockTable::default()).unwrap();
+    let program = {
+        let mut mast_forest = MastForest::new();
 
-    let (trace, _, _) = ExecutionTrace::test_finalize_trace(process);
+        let basic_block_id = mast_forest.add_block(operations, None).unwrap();
+
+        Program::new(mast_forest, basic_block_id)
+    };
+    process.execute(&program).unwrap();
+
+    let (trace, ..) = ExecutionTrace::test_finalize_trace(process);
     let trace_len = trace.num_rows() - ExecutionTrace::NUM_RAND_ROWS;
 
     (
@@ -140,20 +147,21 @@ fn validate_hasher_trace(trace: &ChipletsTrace, start: usize, end: usize) {
 
         match row % HASH_CYCLE_LEN {
             0 => {
-                // in the first row, the expected start of the trace should hold the initial selectors
+                // in the first row, the expected start of the trace should hold the initial
+                // selectors
                 assert_eq!(LINEAR_HASH, [trace[1][row], trace[2][row], trace[3][row]]);
-            }
+            },
             7 => {
                 // in the last row, the expected start of the trace should hold the final selectors
                 assert_eq!(RETURN_STATE, [trace[1][row], trace[2][row], trace[3][row]]);
-            }
+            },
             _ => {
                 // in the other rows, the expected start of the trace should hold the mid selectors
                 assert_eq!(
                     [ZERO, LINEAR_HASH[1], LINEAR_HASH[2]],
                     [trace[1][row], trace[2][row], trace[3][row]]
                 );
-            }
+            },
         }
     }
 }

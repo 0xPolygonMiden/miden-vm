@@ -1,14 +1,17 @@
+use core::ops::Neg;
+
+use proptest::prelude::*;
+use rand_utils::rand_value;
+use vm_core::{Felt, FieldElement, Operation, ONE, ZERO};
+
 use super::{
     super::{DECODER_TRACE_OFFSET, STACK_TRACE_OFFSET},
     enforce_constraints, EvaluationFrame, NUM_CONSTRAINTS,
 };
-use crate::stack::op_flags::{generate_evaluation_frame, OpFlags};
-use crate::trace::decoder::USER_OP_HELPERS_OFFSET;
-use core::ops::Neg;
-use rand_utils::rand_value;
-use vm_core::{Felt, FieldElement, Operation, ONE, ZERO};
-
-use proptest::prelude::*;
+use crate::{
+    stack::op_flags::{generate_evaluation_frame, OpFlags},
+    trace::decoder::USER_OP_HELPERS_OFFSET,
+};
 
 // RANDOMIZED TESTS
 // ================================================================================================
@@ -156,14 +159,14 @@ fn test_not_stack_operation() {
 fn test_and_stack_operation() {
     let expected = [ZERO; NUM_CONSTRAINTS];
 
-    // ----------------- top elements are 0 and 0 -----------------------------------------------------
+    // ----------------- top elements are 0 and 0 -------------------------------------------------
     let a = ZERO;
     let b = ZERO;
     let frame = get_and_test_frame(a, b);
     let result = get_constraint_evaluation(frame);
     assert_eq!(expected, result);
 
-    // ----------------- top elements are 0 and 1 -----------------------------------------------------
+    // ----------------- top elements are 0 and 1 -------------------------------------------------
 
     let a = ZERO;
     let b = ONE;
@@ -171,7 +174,7 @@ fn test_and_stack_operation() {
     let result = get_constraint_evaluation(frame);
     assert_eq!(expected, result);
 
-    // ----------------- top elements are 1 and 0 -----------------------------------------------------
+    // ----------------- top elements are 1 and 0 -------------------------------------------------
 
     let a = ONE;
     let b = ZERO;
@@ -179,7 +182,7 @@ fn test_and_stack_operation() {
     let result = get_constraint_evaluation(frame);
     assert_eq!(expected, result);
 
-    // ----------------- top elements are 1 and 1 -----------------------------------------------------
+    // ----------------- top elements are 1 and 1 -------------------------------------------------
 
     let a = ONE;
     let b = ONE;
@@ -194,14 +197,14 @@ fn test_and_stack_operation() {
 fn test_or_stack_operation() {
     let expected = [ZERO; NUM_CONSTRAINTS];
 
-    // ----------------- top elements are 0 and 0 -----------------------------------------------------
+    // ----------------- top elements are 0 and 0 -------------------------------------------------
     let a = ZERO;
     let b = ZERO;
     let frame = get_or_test_frame(a, b);
     let result = get_constraint_evaluation(frame);
     assert_eq!(expected, result);
 
-    // ----------------- top elements are 0 and 1 -----------------------------------------------------
+    // ----------------- top elements are 0 and 1 -------------------------------------------------
 
     let a = ZERO;
     let b = ONE;
@@ -209,7 +212,7 @@ fn test_or_stack_operation() {
     let result = get_constraint_evaluation(frame);
     assert_eq!(expected, result);
 
-    // ----------------- top elements are 1 and 0 -----------------------------------------------------
+    // ----------------- top elements are 1 and 0 -------------------------------------------------
 
     let a = ONE;
     let b = ZERO;
@@ -217,7 +220,7 @@ fn test_or_stack_operation() {
     let result = get_constraint_evaluation(frame);
     assert_eq!(expected, result);
 
-    // ----------------- top elements are 1 and 1 -----------------------------------------------------
+    // ----------------- top elements are 1 and 1 -------------------------------------------------
 
     let a = ONE;
     let b = ONE;
@@ -254,12 +257,12 @@ pub fn get_eqz_test_frame(a: u64) -> EvaluationFrame<Felt> {
             frame.current_mut()[DECODER_TRACE_OFFSET + USER_OP_HELPERS_OFFSET] =
                 Felt::new(rand_value::<u64>());
             frame.next_mut()[STACK_TRACE_OFFSET] = ONE;
-        }
+        },
         _ => {
             frame.current_mut()[STACK_TRACE_OFFSET] = Felt::new(a);
             frame.current_mut()[DECODER_TRACE_OFFSET + USER_OP_HELPERS_OFFSET] = Felt::new(a).inv();
             frame.next_mut()[STACK_TRACE_OFFSET] = ZERO;
-        }
+        },
     }
 
     frame

@@ -1,9 +1,10 @@
-use super::{build_trace_from_ops, Felt, FieldElement, Trace, NUM_RAND_ROWS, ONE, ZERO};
 use miden_air::trace::{
     chiplets::hasher::HASH_CYCLE_LEN, range::B_RANGE_COL_IDX, AUX_TRACE_RAND_ELEMENTS,
 };
 use test_utils::rand::rand_array;
 use vm_core::{ExtensionOf, Operation};
+
+use super::{build_trace_from_ops, Felt, FieldElement, Trace, NUM_RAND_ROWS, ONE, ZERO};
 
 /// This test checks that range check lookups from stack operations are balanced by the range checks
 /// processed in the Range Checker.
@@ -13,11 +14,11 @@ use vm_core::{ExtensionOf, Operation};
 fn b_range_trace_stack() {
     let stack = [1, 255];
     let operations = vec![Operation::U32add];
-    let mut trace = build_trace_from_ops(operations, &stack);
+    let trace = build_trace_from_ops(operations, &stack);
 
     let rand_elements = rand_array::<Felt, AUX_TRACE_RAND_ELEMENTS>();
     let alpha = rand_elements[0];
-    let aux_columns = trace.build_aux_segment(&[], &rand_elements).unwrap();
+    let aux_columns = trace.build_aux_trace(&rand_elements).unwrap();
     let b_range = aux_columns.get_column(B_RANGE_COL_IDX);
 
     assert_eq!(trace.length(), b_range.len());
@@ -58,7 +59,7 @@ fn b_range_trace_stack() {
     expected += (alpha - Felt::new(256)).inv();
     assert_eq!(expected, b_range[values_start + 5]);
 
-    // --- Check the last value of the b_range column is one. ------------------------------------------
+    // --- Check the last value of the b_range column is one --------------------------------------
 
     let last_row = b_range.len() - NUM_RAND_ROWS - 1;
     assert_eq!(ONE, b_range[last_row]);
@@ -81,11 +82,11 @@ fn b_range_trace_mem() {
         Operation::Drop,
         Operation::MLoadW,
     ];
-    let mut trace = build_trace_from_ops(operations, &stack);
+    let trace = build_trace_from_ops(operations, &stack);
 
     let rand_elements = rand_array::<Felt, AUX_TRACE_RAND_ELEMENTS>();
     let alpha = rand_elements[0];
-    let aux_columns = trace.build_aux_segment(&[], &rand_elements).unwrap();
+    let aux_columns = trace.build_aux_trace(&rand_elements).unwrap();
     let b_range = aux_columns.get_column(B_RANGE_COL_IDX);
 
     assert_eq!(trace.length(), b_range.len());

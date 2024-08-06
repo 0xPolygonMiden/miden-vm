@@ -1,15 +1,19 @@
+use miden_air::{
+    trace::chiplets::{
+        memory::{MEMORY_READ_LABEL, MEMORY_WRITE, MEMORY_WRITE_LABEL, NUM_ELEMENTS},
+        MEMORY_ADDR_COL_IDX, MEMORY_CLK_COL_IDX, MEMORY_CTX_COL_IDX, MEMORY_SELECTORS_COL_IDX,
+        MEMORY_V_COL_RANGE,
+    },
+    RowIndex,
+};
+
 use super::{
     build_trace_from_ops, rand_array, ExecutionTrace, Felt, FieldElement, Operation, Trace, Word,
     AUX_TRACE_RAND_ELEMENTS, CHIPLETS_AUX_TRACE_OFFSET, NUM_RAND_ROWS, ONE, ZERO,
 };
-use miden_air::trace::chiplets::{
-    memory::{MEMORY_READ_LABEL, MEMORY_WRITE, MEMORY_WRITE_LABEL, NUM_ELEMENTS},
-    MEMORY_ADDR_COL_IDX, MEMORY_CLK_COL_IDX, MEMORY_CTX_COL_IDX, MEMORY_SELECTORS_COL_IDX,
-    MEMORY_V_COL_RANGE,
-};
 
-/// Tests the generation of the `b_chip` bus column when only memory lookups are included. It ensures
-/// that trace generation is correct when all of the following are true.
+/// Tests the generation of the `b_chip` bus column when only memory lookups are included. It
+/// ensures that trace generation is correct when all of the following are true.
 ///
 /// - All possible memory operations are called by the stack.
 /// - Some requests from the Stack and responses from Memory occur at the same cycle.
@@ -38,10 +42,10 @@ fn b_chip_trace_mem() {
         Operation::Drop,      // ensure the stack overflow table is empty
         Operation::MStream,   // read 2 words starting at address 0
     ];
-    let mut trace = build_trace_from_ops(operations, &stack);
+    let trace = build_trace_from_ops(operations, &stack);
 
     let rand_elements = rand_array::<Felt, AUX_TRACE_RAND_ELEMENTS>();
-    let aux_columns = trace.build_aux_segment(&[], &rand_elements).unwrap();
+    let aux_columns = trace.build_aux_trace(&rand_elements).unwrap();
     let b_chip = aux_columns.get_column(CHIPLETS_AUX_TRACE_OFFSET);
 
     assert_eq!(trace.length(), b_chip.len());
@@ -83,15 +87,15 @@ fn b_chip_trace_mem() {
     let value =
         build_expected_memory(&rand_elements, MEMORY_READ_LABEL, ZERO, ZERO, Felt::new(8), word);
     expected *= value.inv();
-    expected *= build_expected_memory_from_trace(&trace, &rand_elements, 8);
+    expected *= build_expected_memory_from_trace(&trace, &rand_elements, 8.into());
     assert_eq!(expected, b_chip[9]);
 
     // At cycle 9, `MLoad` is provided by memory.
-    expected *= build_expected_memory_from_trace(&trace, &rand_elements, 9);
+    expected *= build_expected_memory_from_trace(&trace, &rand_elements, 9.into());
     assert_eq!(expected, b_chip[10]);
 
     // At cycle 10,  `MLoadW` is provided by memory.
-    expected *= build_expected_memory_from_trace(&trace, &rand_elements, 10);
+    expected *= build_expected_memory_from_trace(&trace, &rand_elements, 10.into());
     assert_eq!(expected, b_chip[11]);
 
     // At cycle 11, `MStore` is requested by the stack and the first read of `MStream` is provided
@@ -105,11 +109,11 @@ fn b_chip_trace_mem() {
         [ONE, ZERO, ZERO, ZERO],
     );
     expected *= value.inv();
-    expected *= build_expected_memory_from_trace(&trace, &rand_elements, 11);
+    expected *= build_expected_memory_from_trace(&trace, &rand_elements, 11.into());
     assert_eq!(expected, b_chip[12]);
 
     // At cycle 12, `MStore` is provided by the memory
-    expected *= build_expected_memory_from_trace(&trace, &rand_elements, 12);
+    expected *= build_expected_memory_from_trace(&trace, &rand_elements, 12.into());
     assert_eq!(expected, b_chip[13]);
 
     // At cycle 13, `MStream` is requested by the stack, and the second read of `MStream` is
@@ -125,7 +129,7 @@ fn b_chip_trace_mem() {
         [ONE, ZERO, ZERO, ZERO],
     );
     expected *= (value1 * value2).inv();
-    expected *= build_expected_memory_from_trace(&trace, &rand_elements, 13);
+    expected *= build_expected_memory_from_trace(&trace, &rand_elements, 13.into());
     assert_eq!(expected, b_chip[14]);
 
     // At cycle 14 the decoder requests the span hash. We set this as the inverse of the previously
@@ -164,7 +168,11 @@ fn build_expected_memory(
         + word_value
 }
 
-fn build_expected_memory_from_trace(trace: &ExecutionTrace, alphas: &[Felt], row: usize) -> Felt {
+fn build_expected_memory_from_trace(
+    trace: &ExecutionTrace,
+    alphas: &[Felt],
+    row: RowIndex,
+) -> Felt {
     // get the memory access operation
     let s0 = trace.main_trace.get_column(MEMORY_SELECTORS_COL_IDX)[row];
     let s1 = trace.main_trace.get_column(MEMORY_SELECTORS_COL_IDX + 1)[row];

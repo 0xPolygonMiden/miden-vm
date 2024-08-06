@@ -1,8 +1,10 @@
-use super::{Felt, RangeChecker, ZERO};
-use crate::{utils::get_trace_len, RangeCheckTrace};
 use alloc::{collections::BTreeMap, vec::Vec};
+
 use test_utils::rand::rand_array;
 use vm_core::utils::ToElements;
+
+use super::{Felt, RangeChecker, ZERO};
+use crate::{utils::get_trace_len, RangeCheckTrace};
 
 #[test]
 fn range_checks() {
@@ -15,10 +17,7 @@ fn range_checks() {
         checker.add_value(value.as_int() as u16);
     }
 
-    let RangeCheckTrace {
-        trace,
-        aux_builder: _,
-    } = checker.into_trace(64, 0);
+    let RangeCheckTrace { trace, aux_builder: _ } = checker.into_trace(64, 0);
     validate_trace(&trace, &values);
 
     // skip the padded rows
@@ -57,10 +56,7 @@ fn range_checks_rand() {
     }
 
     let trace_len = checker.trace_len().next_power_of_two();
-    let RangeCheckTrace {
-        trace,
-        aux_builder: _,
-    } = checker.into_trace(trace_len, 0);
+    let RangeCheckTrace { trace, aux_builder: _ } = checker.into_trace(trace_len, 0);
     validate_trace(&trace, &values);
 }
 
@@ -98,7 +94,8 @@ fn validate_trace(trace: &[Vec<Felt>], lookups: &[Felt]) {
         assert!(value <= 65535, "not a 16-bit value");
         let value = value as u16;
 
-        // make sure the delta between this and the previous value is 0 or a power of 3 and at most 3^7
+        // make sure the delta between this and the previous value is 0 or a power of 3 and at most
+        // 3^7
         let delta = value - prev_value;
         assert!(valid_delta(delta));
 

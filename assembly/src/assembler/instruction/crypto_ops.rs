@@ -1,5 +1,6 @@
-use super::{AssemblyError, CodeBlock, Operation::*, SpanBuilder};
-use vm_core::AdviceInjector;
+use vm_core::{AdviceInjector, Operation::*};
+
+use super::BasicBlockBuilder;
 
 // HASHING
 // ================================================================================================
@@ -13,17 +14,17 @@ use vm_core::AdviceInjector;
 ///
 /// To perform the operation we do the following:
 /// 1. Prepare the stack with 12 elements for HPERM by pushing 4 more elements for the capacity,
-///    then reordering the stack and pushing an additional 4 elements so that the stack looks
-///    like: [0, 0, 0, 1, a3, a2, a1, a0, 0, 0, 0, 1, ...].  The first capacity element is set to
-///    ONE as we are hashing a number of elements which is not a multiple of the rate width. We
-///    also set the next element in the rate after `A` to ONE.  All other capacity and rate
-///    elements are set to ZERO, in accordance with the RPO rules.
+///    then reordering the stack and pushing an additional 4 elements so that the stack looks like:
+///    [0, 0, 0, 1, a3, a2, a1, a0, 0, 0, 0, 1, ...].  The first capacity element is set to ONE as
+///    we are hashing a number of elements which is not a multiple of the rate width. We also set
+///    the next element in the rate after `A` to ONE.  All other capacity and rate elements are set
+///    to ZERO, in accordance with the RPO rules.
 /// 2. Append the HPERM operation, which performs a permutation of RPO on the top 12 elements and
 ///    leaves the an output of [D, C, B, ...] on the stack.  C is our 1-to-1 has result.
 /// 3. Drop D and B to achieve our result [C, ...]
 ///
 /// This operation takes 20 VM cycles.
-pub(super) fn hash(span: &mut SpanBuilder) -> Result<Option<CodeBlock>, AssemblyError> {
+pub(super) fn hash(span: &mut BasicBlockBuilder) {
     #[rustfmt::skip]
     let ops = [
         // add 4 elements to the stack to be used as the capacity elements for the RPO permutation
@@ -47,7 +48,7 @@ pub(super) fn hash(span: &mut SpanBuilder) -> Result<Option<CodeBlock>, Assembly
         // Drop 4 elements (the capacity portion)
         Drop, Drop, Drop, Drop,
     ];
-    span.add_ops(ops)
+    span.push_ops(ops);
 }
 
 /// Appends HPERM and stack manipulation operations to the span block as required to compute a
@@ -64,13 +65,12 @@ pub(super) fn hash(span: &mut SpanBuilder) -> Result<Option<CodeBlock>, Assembly
 ///    elements are set to ZERO, in accordance with the RPO padding rule for when the input length
 ///    is a multiple of the rate.
 /// 2. Reorder the top 2 words to restore the order of the elements to be hashed to [B, A, C, ...].
-/// 3. Append the HPERM operation, which performs a permutation of Rescue Prime Optimized on the
-///    top 12 elements and leaves an output of [F, E, D, ...] on the stack. E is our 2-to-1 hash
-///    result.
+/// 3. Append the HPERM operation, which performs a permutation of Rescue Prime Optimized on the top
+///    12 elements and leaves an output of [F, E, D, ...] on the stack. E is our 2-to-1 hash result.
 /// 4. Drop F and D to return our result [E, ...].
 ///
 /// This operation takes 16 VM cycles.
-pub(super) fn hmerge(span: &mut SpanBuilder) -> Result<Option<CodeBlock>, AssemblyError> {
+pub(super) fn hmerge(span: &mut BasicBlockBuilder) {
     #[rustfmt::skip]
     let ops = [
         // Add 4 elements to the stack to prepare the capacity portion for the RPO permutation
@@ -93,7 +93,7 @@ pub(super) fn hmerge(span: &mut SpanBuilder) -> Result<Option<CodeBlock>, Assemb
         // Drop 4 elements (the capacity portion)
         Drop, Drop, Drop, Drop,
     ];
-    span.add_ops(ops)
+    span.push_ops(ops);
 }
 
 // MERKLE TREES
@@ -111,7 +111,7 @@ pub(super) fn hmerge(span: &mut SpanBuilder) -> Result<Option<CodeBlock>, Assemb
 /// - root of the tree, 4 elements.
 ///
 /// This operation takes 9 VM cycles.
-pub(super) fn mtree_get(span: &mut SpanBuilder) -> Result<Option<CodeBlock>, AssemblyError> {
+pub(super) fn mtree_get(span: &mut BasicBlockBuilder) {
     // stack: [d, i, R, ...]
     // pops the value of the node we are looking for from the advice stack
     read_mtree_node(span);
@@ -119,13 +119,13 @@ pub(super) fn mtree_get(span: &mut SpanBuilder) -> Result<Option<CodeBlock>, Ass
     let ops = [
         // verify the node V for root R with depth d and index i
         // => [V, d, i, R, ...]
-        MpVerify,
+        MpVerify(0),
 
         // move d, i back to the top of the stack and are dropped since they are
         // no longer needed => [V, R, ...]
         MovUp4, Drop, MovUp4, Drop,
     ];
-    span.add_ops(ops)
+    span.push_ops(ops);
 }
 
 /// Appends the MRUPDATE op with a parameter of "false" and stack manipulations to the span block
@@ -141,11 +141,11 @@ pub(super) fn mtree_get(span: &mut SpanBuilder) -> Result<Option<CodeBlock>, Ass
 /// - new root of the tree after the update, 4 elements
 ///
 /// This operation takes 29 VM cycles.
-pub(super) fn mtree_set(span: &mut SpanBuilder) -> Result<Option<CodeBlock>, AssemblyError> {
+pub(super) fn mtree_set(span: &mut BasicBlockBuilder) {
     // stack: [d, i, R_old, V_new, ...]
 
     // stack: [V_old, R_new, ...] (29 cycles)
-    update_mtree(span)
+    update_mtree(span);
 }
 
 /// Creates a new Merkle tree in the advice provider by combining trees with the specified roots.
@@ -161,7 +161,7 @@ pub(super) fn mtree_set(span: &mut SpanBuilder) -> Result<Option<CodeBlock>, Ass
 /// It is not checked whether the provided roots exist as Merkle trees in the advide providers.
 ///
 /// This operation takes 16 VM cycles.
-pub(super) fn mtree_merge(span: &mut SpanBuilder) -> Result<Option<CodeBlock>, AssemblyError> {
+pub(super) fn mtree_merge(span: &mut BasicBlockBuilder) {
     // stack input:  [R_rhs, R_lhs, ...]
     // stack output: [R_merged, ...]
 
@@ -170,22 +170,7 @@ pub(super) fn mtree_merge(span: &mut SpanBuilder) -> Result<Option<CodeBlock>, A
     span.push_advice_injector(AdviceInjector::MerkleNodeMerge);
 
     // perform the `hmerge`, updating the operand stack
-    hmerge(span)
-}
-
-/// Verifies if the node value `V`, on depth `d` and index `i` opens to the root `R` of a Merkle
-/// tree by appending a [Operation::MpVerify]. The stack is expected to be arranged as follows
-/// (from the top):
-/// - node value `V`, 4 elements
-/// - depth of the node `d`, 1 element
-/// - index of the node `i`, 1 element
-/// - root of the tree `R`, 4 elements
-///
-/// After the operation is executed, the stack remains unchanged.
-///
-/// This operation takes 1 VM cycle.
-pub(super) fn mtree_verify(span: &mut SpanBuilder) -> Result<Option<CodeBlock>, AssemblyError> {
-    span.add_op(MpVerify)
+    hmerge(span);
 }
 
 // MERKLE TREES - HELPERS
@@ -208,7 +193,7 @@ pub(super) fn mtree_verify(span: &mut SpanBuilder) -> Result<Option<CodeBlock>, 
 /// - new value of the node, 4 elements (only in the case of mtree_set)
 ///
 /// This operation takes 4 VM cycles.
-fn read_mtree_node(span: &mut SpanBuilder) {
+fn read_mtree_node(span: &mut BasicBlockBuilder) {
     // The stack should be arranged in the following way: [d, i, R, ...] so that the decorator
     // can fetch the node value from the root. In the `mtree.get` operation we have the stack in
     // the following format: [d, i, R], whereas in the case of `mtree.set` we would also have the
@@ -226,7 +211,7 @@ fn read_mtree_node(span: &mut SpanBuilder) {
 /// and perform the mutation on the copied tree.
 ///
 /// This operation takes 29 VM cycles.
-fn update_mtree(span: &mut SpanBuilder) -> Result<Option<CodeBlock>, AssemblyError> {
+fn update_mtree(span: &mut BasicBlockBuilder) {
     // stack: [d, i, R_old, V_new, ...]
     // output: [R_new, R_old, V_new, V_old, ...]
 
@@ -294,5 +279,5 @@ fn update_mtree(span: &mut SpanBuilder) -> Result<Option<CodeBlock>, AssemblyErr
     ];
 
     // stack: [V_old, R_new, ...] (25 cycles)
-    span.add_ops(ops)
+    span.push_ops(ops);
 }

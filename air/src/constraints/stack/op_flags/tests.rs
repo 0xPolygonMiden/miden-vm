@@ -1,12 +1,11 @@
-use crate::stack::op_flags::get_op_index;
+use vm_core::{Operation, ONE, ZERO};
 
 use super::{
     generate_evaluation_frame, OpFlags, DECODER_TRACE_OFFSET, DEGREE_4_OPCODE_ENDS,
     DEGREE_4_OPCODE_STARTS, DEGREE_6_OPCODE_ENDS, DEGREE_6_OPCODE_STARTS, DEGREE_7_OPCODE_ENDS,
     DEGREE_7_OPCODE_STARTS, NUM_DEGREE_4_OPS, NUM_DEGREE_5_OPS, NUM_DEGREE_6_OPS, NUM_DEGREE_7_OPS,
 };
-use crate::trace::decoder::IS_LOOP_FLAG_COL_IDX;
-use vm_core::{Operation, ONE, ZERO};
+use crate::{stack::op_flags::get_op_index, trace::decoder::IS_LOOP_FLAG_COL_IDX};
 
 /// Asserts the op flag to ONE for degree 7 operation which is being executed in the current
 /// frame; assert all the other operation flags to ZERO as they are not present in the current
@@ -145,7 +144,7 @@ fn degree_4_op_flags() {
 fn composite_flags() {
     // ------ no change 0 ---------------------------------------------------------------------
 
-    let op_no_change_0 = [Operation::MpVerify, Operation::Span, Operation::Halt];
+    let op_no_change_0 = [Operation::MpVerify(0), Operation::Span, Operation::Halt];
     for op in op_no_change_0 {
         // frame initialised with an op operation.
         let frame = generate_evaluation_frame(op.op_code().into());
@@ -169,7 +168,7 @@ fn composite_flags() {
         assert_eq!(op_flags.left_shift(), ZERO);
         assert_eq!(op_flags.top_binary(), ZERO);
 
-        if op == Operation::MpVerify {
+        if op == Operation::MpVerify(0) {
             assert_eq!(op_flags.control_flow(), ZERO);
         } else if op == Operation::Span || op == Operation::Halt {
             assert_eq!(op_flags.control_flow(), ONE);
@@ -568,7 +567,7 @@ fn composite_flags() {
     assert_eq!(op_flags.control_flow(), ONE);
     assert_eq!(op_flags.top_binary(), ZERO);
 
-    // ----------------------------------- left shift -----------------------------------------------
+    // ----------------------------------- left shift ---------------------------------------------
 
     frame.current_mut()[DECODER_TRACE_OFFSET + IS_LOOP_FLAG_COL_IDX] = ONE;
 

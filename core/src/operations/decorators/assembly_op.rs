@@ -1,28 +1,43 @@
 use alloc::string::String;
 use core::fmt;
 
+use crate::debuginfo::Location;
+
 // ASSEMBLY OP
 // ================================================================================================
 
 /// Contains information corresponding to an assembly instruction (only applicable in debug mode).
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct AssemblyOp {
+    location: Option<Location>,
     context_name: String,
-    num_cycles: u8,
     op: String,
+    num_cycles: u8,
     should_break: bool,
 }
 
 impl AssemblyOp {
     /// Returns [AssemblyOp] instantiated with the specified assembly instruction string and number
     /// of cycles it takes to execute the assembly instruction.
-    pub fn new(context_name: String, num_cycles: u8, op: String, should_break: bool) -> Self {
+    pub fn new(
+        location: Option<Location>,
+        context_name: String,
+        num_cycles: u8,
+        op: String,
+        should_break: bool,
+    ) -> Self {
         Self {
+            location,
             context_name,
-            num_cycles,
             op,
+            num_cycles,
             should_break,
         }
+    }
+
+    /// Returns the [Location] for this operation, if known
+    pub fn location(&self) -> Option<&Location> {
+        self.location.as_ref()
     }
 
     /// Returns the context name for this operation.
@@ -51,6 +66,11 @@ impl AssemblyOp {
     /// Change cycles corresponding to an AsmOp decorator to the specified number of cycles.
     pub fn set_num_cycles(&mut self, num_cycles: u8) {
         self.num_cycles = num_cycles;
+    }
+
+    /// Change the [Location] of this [AssemblyOp]
+    pub fn set_location(&mut self, location: Location) {
+        self.location = Some(location);
     }
 }
 

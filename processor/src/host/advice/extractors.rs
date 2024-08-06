@@ -23,7 +23,7 @@ pub enum AdviceExtractor {
     ///  Advice stack: [...]
     ///  Advice map: {...}
     ///  Merkle store: {...}
-    ///  Return: [value]
+    ///  Return: \[value\]
     PopStack,
 
     /// Pops a word (4 elements) from the advice stack and returns it.
@@ -88,7 +88,7 @@ pub enum AdviceExtractor {
     ///  Advice stack: [...]
     ///  Advice map: {...}
     ///  Merkle store: {path, ...}
-    ///  Return: [path]
+    ///  Return: \[path\]
     GetMerklePath,
 }
 
@@ -100,7 +100,7 @@ impl fmt::Display for AdviceExtractor {
             Self::PopStackDWord => write!(f, "pop_stack_dword"),
             Self::GetMerklePath => {
                 write!(f, "get_merkle_path")
-            }
+            },
         }
     }
 }

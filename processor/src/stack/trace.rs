@@ -1,9 +1,13 @@
-use super::{
-    super::utils::get_trace_len, Felt, FieldElement, MAX_TOP_IDX, ONE, STACK_TRACE_WIDTH, ZERO,
-};
-use crate::utils::math::batch_inversion;
 use alloc::vec::Vec;
-use miden_air::trace::stack::{H0_COL_IDX, NUM_STACK_HELPER_COLS, STACK_TOP_SIZE};
+
+use miden_air::{
+    trace::stack::{H0_COL_IDX, NUM_STACK_HELPER_COLS, STACK_TOP_SIZE},
+    RowIndex,
+};
+use vm_core::FieldElement;
+
+use super::{super::utils::get_trace_len, Felt, MAX_TOP_IDX, ONE, STACK_TRACE_WIDTH, ZERO};
+use crate::utils::math::batch_inversion;
 
 // STACK TRACE
 // ================================================================================================
@@ -44,21 +48,21 @@ impl StackTrace {
 
     /// Returns a copy of the item at the top of the stack at the specified clock cycle.
     #[inline(always)]
-    pub fn peek_at(&self, clk: u32) -> Felt {
-        self.stack[0][clk as usize]
+    pub fn peek_at(&self, clk: RowIndex) -> Felt {
+        self.stack[0][clk.as_usize()]
     }
 
     /// Returns the value located at the specified position on the stack at the specified clock
     /// cycle.
     #[inline(always)]
-    pub fn get_stack_value_at(&self, clk: u32, pos: usize) -> Felt {
-        self.stack[pos][clk as usize]
+    pub fn get_stack_value_at(&self, clk: RowIndex, pos: usize) -> Felt {
+        self.stack[pos][clk.as_usize()]
     }
 
     /// Sets the value at the specified position on the stack at the specified cycle.
     #[inline(always)]
-    pub fn set_stack_value_at(&mut self, clk: u32, pos: usize, value: Felt) {
-        self.stack[pos][clk as usize] = value;
+    pub fn set_stack_value_at(&mut self, clk: RowIndex, pos: usize, value: Felt) {
+        self.stack[pos][clk.as_usize()] = value;
     }
 
     /// Copies the stack values starting at the specified position at the specified clock cycle to
@@ -68,13 +72,11 @@ impl StackTrace {
     /// stack depth and overflow address.
     pub fn copy_stack_state_at(
         &mut self,
-        clk: u32,
+        clk: usize,
         start_pos: usize,
         stack_depth: Felt,
         next_overflow_addr: Felt,
     ) {
-        let clk = clk as usize;
-
         // copy over stack top columns
         for i in start_pos..STACK_TOP_SIZE {
             self.stack[i][clk + 1] = self.stack[i][clk];
@@ -99,12 +101,12 @@ impl StackTrace {
     ///   after the entire trace is constructed.
     pub fn stack_shift_left_at(
         &mut self,
-        clk: u32,
+        clk: RowIndex,
         start_pos: usize,
         last_value: Felt,
         next_overflow_addr: Option<Felt>,
     ) {
-        let clk = clk as usize;
+        let clk = clk.as_usize();
 
         // update stack top columns
         for i in start_pos..=MAX_TOP_IDX {
@@ -134,8 +136,8 @@ impl StackTrace {
     ///   cycle.
     /// - Set h0 to (depth - 16). Inverses of these values will be computed in into_array() method
     ///   after the entire trace is constructed.
-    pub fn stack_shift_right_at(&mut self, clk: u32, start_pos: usize) {
-        let clk = clk as usize;
+    pub fn stack_shift_right_at(&mut self, clk: RowIndex, start_pos: usize) {
+        let clk = clk.as_usize();
 
         // update stack top columns
         for i in start_pos..MAX_TOP_IDX {
@@ -153,10 +155,10 @@ impl StackTrace {
     /// Makes sure there is enough memory allocated for the trace to accommodate a new row.
     ///
     /// Trace length is doubled every time it needs to be increased.
-    pub fn ensure_trace_capacity(&mut self, clk: u32) {
+    pub fn ensure_trace_capacity(&mut self, clk: RowIndex) {
         let current_capacity = get_trace_len(&self.stack);
         // current_capacity as trace_length can not be bigger than clk, so it is safe to cast to u32
-        if clk + 1 >= current_capacity as u32 {
+        if (clk + 1) >= current_capacity {
             let new_length = current_capacity * 2;
             for column in self.stack.iter_mut().chain(self.helpers.iter_mut()) {
                 column.resize(new_length, ZERO);
@@ -165,9 +167,9 @@ impl StackTrace {
     }
 
     /// Appends stack top state (16 items) at the specified clock cycle into the provided vector.
-    pub fn append_state_into(&self, result: &mut Vec<Felt>, clk: u32) {
+    pub fn append_state_into(&self, result: &mut Vec<Felt>, clk: RowIndex) {
         for column in self.stack.iter() {
-            result.push(column[clk as usize]);
+            result.push(column[clk.as_usize()]);
         }
     }
 
@@ -201,21 +203,21 @@ impl StackTrace {
     // --------------------------------------------------------------------------------------------
 
     /// Returns the stack trace state at the specified clock cycle.
-    #[cfg(any(test, feature = "internals"))]
-    pub fn get_stack_state_at(&self, clk: u32) -> [Felt; STACK_TOP_SIZE] {
+    #[cfg(any(test, feature = "testing"))]
+    pub fn get_stack_state_at(&self, clk: RowIndex) -> [Felt; STACK_TOP_SIZE] {
         let mut result = [ZERO; STACK_TOP_SIZE];
         for (result, column) in result.iter_mut().zip(self.stack.iter()) {
-            *result = column[clk as usize];
+            *result = column[clk.as_usize()];
         }
         result
     }
 
     /// Returns the trace state of the stack helper columns at the specified clock cycle.
     #[cfg(test)]
-    pub fn get_helpers_state_at(&self, clk: u32) -> [Felt; NUM_STACK_HELPER_COLS] {
+    pub fn get_helpers_state_at(&self, clk: RowIndex) -> [Felt; NUM_STACK_HELPER_COLS] {
         let mut result = [ZERO; NUM_STACK_HELPER_COLS];
         for (result, column) in result.iter_mut().zip(self.helpers.iter()) {
-            *result = column[clk as usize];
+            *result = column[clk.as_usize()];
         }
         result
     }
@@ -231,7 +233,7 @@ fn init_stack_columns(
 ) -> [Vec<Felt>; STACK_TOP_SIZE] {
     let mut stack: Vec<Vec<Felt>> = Vec::with_capacity(STACK_TOP_SIZE);
     for i in 0..STACK_TOP_SIZE {
-        let mut column = Felt::zeroed_vector(init_trace_capacity);
+        let mut column = vec![Felt::ZERO; init_trace_capacity];
         if i < init_values.len() {
             column[0] = init_values[i];
         }
@@ -248,15 +250,15 @@ fn init_helper_columns(
     init_overflow_addr: Felt,
 ) -> [Vec<Felt>; NUM_STACK_HELPER_COLS] {
     // initialize b0 to the initial stack depth.
-    let mut b0 = Felt::zeroed_vector(init_trace_capacity);
+    let mut b0 = vec![Felt::ZERO; init_trace_capacity];
     b0[0] = Felt::new(init_depth as u64);
 
     // initialize b1 to the address of the last row in the stack overflow table.
-    let mut b1 = Felt::zeroed_vector(init_trace_capacity);
+    let mut b1 = vec![Felt::ZERO; init_trace_capacity];
     b1[0] = init_overflow_addr;
 
     // if the overflow table is not empty, set h0 to (init_depth - 16)
-    let mut h0 = Felt::zeroed_vector(init_trace_capacity);
+    let mut h0 = vec![Felt::ZERO; init_trace_capacity];
     // TODO: change type of `init_depth` to `u32`
     h0[0] = Felt::try_from((init_depth - STACK_TOP_SIZE) as u64)
         .expect("value is greater than or equal to the field modulus");

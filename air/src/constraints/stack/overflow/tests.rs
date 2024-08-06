@@ -1,11 +1,14 @@
-use super::{enforce_constraints, EvaluationFrame, NUM_CONSTRAINTS};
-use crate::stack::{
-    op_flags::{generate_evaluation_frame, OpFlags},
-    B0_COL_IDX, B1_COL_IDX, CLK_COL_IDX, DECODER_TRACE_OFFSET, H0_COL_IDX, STACK_TRACE_OFFSET,
-};
-use crate::trace::decoder::IS_CALL_FLAG_COL_IDX;
 use rand_utils::rand_value;
 use vm_core::{Felt, FieldElement, Operation, ONE, ZERO};
+
+use super::{enforce_constraints, EvaluationFrame, NUM_CONSTRAINTS};
+use crate::{
+    stack::{
+        op_flags::{generate_evaluation_frame, OpFlags},
+        B0_COL_IDX, B1_COL_IDX, CLK_COL_IDX, DECODER_TRACE_OFFSET, H0_COL_IDX, STACK_TRACE_OFFSET,
+    },
+    trace::decoder::IS_CALL_FLAG_COL_IDX,
+};
 
 // UNIT TESTS
 // ================================================================================================
@@ -14,7 +17,7 @@ use vm_core::{Felt, FieldElement, Operation, ONE, ZERO};
 fn test_stack_overflow_constraints() {
     let expected = [ZERO; NUM_CONSTRAINTS];
 
-    // ------------------ right shift operation ----------------------------------------------------
+    // ------------------ right shift operation ---------------------------------------------------
 
     let depth = 16 + rand_value::<u32>() as u64;
     let mut frame = generate_evaluation_frame(Operation::Pad.op_code().into());
@@ -33,7 +36,7 @@ fn test_stack_overflow_constraints() {
     let result = get_constraint_evaluation(frame);
     assert_eq!(expected, result);
 
-    // ------------------ left shift operation- depth 16 ----------------------------------------------------
+    // ------------------ left shift operation- depth 16 ------------------------------------------
 
     let depth = 16;
     let mut frame = generate_evaluation_frame(Operation::Drop.op_code().into());
@@ -52,7 +55,7 @@ fn test_stack_overflow_constraints() {
     let result = get_constraint_evaluation(frame);
     assert_eq!(expected, result);
 
-    // ------------------ left shift operation- depth 17 ----------------------------------------------------
+    // ------------------ left shift operation- depth 17 ------------------------------------------
 
     let depth = 17;
     let mut frame = generate_evaluation_frame(Operation::Drop.op_code().into());
@@ -99,9 +102,10 @@ fn test_stack_depth_air() {
     // block with a control block opcode.
     let mut frame = generate_evaluation_frame(Operation::Split.op_code().into());
 
-    // At the start of a control block, the second part of the hasher state gets populated with h2. Therefore, the 7th
-    // hasher element alone can't be used as a flag if it's the end of a call block, and the stack depth air constraint
-    // will fail in all control flow operations, which shifts the stack either to the right or left.
+    // At the start of a control block, the second part of the hasher state gets populated with h2.
+    // Therefore, the 7th hasher element alone can't be used as a flag if it's the end of a call
+    // block, and the stack depth air constraint will fail in all control flow operations, which
+    // shifts the stack either to the right or left.
     frame.current_mut()[CLK_COL_IDX] = ZERO;
     frame.current_mut()[B0_COL_IDX] = Felt::new(depth);
     frame.current_mut()[STACK_TRACE_OFFSET] = ONE;

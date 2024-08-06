@@ -1,10 +1,11 @@
+use alloc::vec::Vec;
+
+use miden_air::trace::{AUX_TRACE_RAND_ELEMENTS, STACK_AUX_TRACE_OFFSET};
+
 use super::{
-    build_trace_from_ops, rand_array, Felt, FieldElement, Operation, Trace, NUM_RAND_ROWS, ONE,
-    ZERO,
+    build_trace_from_ops, rand_array, Felt, FieldElement, Operation, NUM_RAND_ROWS, ONE, ZERO,
 };
 use crate::stack::OverflowTableRow;
-use alloc::vec::Vec;
-use miden_air::trace::{AUX_TRACE_RAND_ELEMENTS, STACK_AUX_TRACE_OFFSET};
 
 // CONSTANTS
 // ================================================================================================
@@ -32,9 +33,9 @@ fn p1_trace() {
         Operation::Drop,   // left shift, clk 11
     ];
     let init_stack = (1..17).collect::<Vec<_>>();
-    let mut trace = build_trace_from_ops(ops, &init_stack);
+    let trace = build_trace_from_ops(ops, &init_stack);
     let alphas = rand_array::<Felt, AUX_TRACE_RAND_ELEMENTS>();
-    let aux_columns = trace.build_aux_segment(&[], &alphas).unwrap();
+    let aux_columns = trace.build_aux_trace(&alphas).unwrap();
     let p1 = aux_columns.get_column(P1_COL_IDX);
 
     let row_values = [

@@ -1,82 +1,47 @@
-use assembly::{ast::ModuleAst, Library, LibraryNamespace, MaslLibrary, Version};
-use std::{collections::BTreeMap, env, fs, io, path::Path};
+use std::{env, path::Path, sync::Arc};
 
-mod md_renderer;
-use md_renderer::MarkdownRenderer;
+use assembly::{
+    ast::AstSerdeOptions,
+    diagnostics::{IntoDiagnostic, Result},
+    library::Library,
+    LibraryNamespace, Version,
+};
 
 // CONSTANTS
 // ================================================================================================
 
-const ASM_DIR_PATH: &str = "./asm";
-const ASL_DIR_PATH: &str = "./assets";
-const DOC_DIR_PATH: &str = "./docs";
-
-// TYPE ALIASES and HELPER STRUCTS
-// ================================================================================================
-
-type ModuleMap = BTreeMap<String, ModuleAst>;
+const ASM_DIR_PATH: &str = "asm";
+const ASL_DIR_PATH: &str = "assets";
 
 // PRE-PROCESSING
 // ================================================================================================
 
 /// Read and parse the contents from `./asm` into a `LibraryContents` struct, serializing it into
 /// `assets` folder under `std` namespace.
-fn main() -> io::Result<()> {
+fn main() -> Result<()> {
     // re-build the `[OUT_DIR]/assets/std.masl` file iff something in the `./asm` directory
     // or its builder changed:
     println!("cargo:rerun-if-changed=asm");
     println!("cargo:rerun-if-changed=../assembly/src");
 
-    let namespace = LibraryNamespace::try_from("std".to_string()).expect("invalid base namespace");
-    let version = Version::try_from(env!("CARGO_PKG_VERSION")).expect("invalid cargo version");
-    let locations = true; // store & load locations by default
-    let stdlib = MaslLibrary::read_from_dir(ASM_DIR_PATH, namespace, locations, version)?;
-    let docs = stdlib
-        .modules()
-        .map(|module| (module.path.to_string(), module.ast.clone()))
-        .collect();
+    let manifest_dir = env!("CARGO_MANIFEST_DIR");
+    let asm_dir = Path::new(manifest_dir).join(ASM_DIR_PATH);
+
+    let source_manager = Arc::new(assembly::DefaultSourceManager::default());
+    let namespace = "std".parse::<LibraryNamespace>().expect("invalid base namespace");
+    // TODO: Add version to `Library`
+    let _version = env!("CARGO_PKG_VERSION").parse::<Version>().expect("invalid cargo version");
+    let stdlib = Library::from_dir(asm_dir, namespace, source_manager)?;
 
     // write the masl output
     let build_dir = env::var("OUT_DIR").unwrap();
-    stdlib.write_to_dir(Path::new(&build_dir).join(ASL_DIR_PATH))?;
-
-    // updates the documentation of these modules. Only do so when this is not docs.rs building the
-    // documentation.
-    if env::var("DOCS_RS").is_err() {
-        build_stdlib_docs(&docs, DOC_DIR_PATH)?;
-    }
-
-    Ok(())
-}
-
-// STDLIB DOCUMENTATION
-// ================================================================================================
-
-/// A renderer renders a ModuleSourceMap into a particular doc format and index (e.g: markdown, etc)
-trait Renderer {
-    // Render writes out the document files into the output directory
-    fn render(stdlib: &ModuleMap, output_dir: &str);
-}
-
-/// Writes Miden standard library modules documentation markdown files based on the available modules and comments.
-pub fn build_stdlib_docs(module_map: &ModuleMap, output_dir: &str) -> io::Result<()> {
-    // Clean the output folder. This only deletes the folder's content, and not the folder itself,
-    // because removing the folder fails on docs.rs
-    for entry in fs::read_dir(output_dir)? {
-        let entry = entry?;
-        let metadata = entry.metadata()?;
-
-        if metadata.is_dir() {
-            fs::remove_dir_all(entry.path())?;
-        } else {
-            assert!(metadata.is_file());
-            fs::remove_file(entry.path())?;
-        }
-    }
-
-    // Render the stdlib struct into markdown
-    // TODO: Make the renderer choice pluggable.
-    MarkdownRenderer::render(module_map, output_dir);
+    let build_dir = Path::new(&build_dir);
+    let options = AstSerdeOptions::new(false, false);
+    let output_file = build_dir
+        .join(ASL_DIR_PATH)
+        .join("std")
+        .with_extension(Library::LIBRARY_EXTENSION);
+    stdlib.write_to_file(output_file, options).into_diagnostic()?;
 
     Ok(())
 }

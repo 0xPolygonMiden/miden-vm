@@ -1,6 +1,8 @@
-use super::{Digest, ExecutionError, Felt, Kernel, TraceFragment, Word, ONE, ZERO};
 use alloc::collections::BTreeMap;
-use miden_air::trace::chiplets::kernel_rom::TRACE_WIDTH;
+
+use miden_air::{trace::chiplets::kernel_rom::TRACE_WIDTH, RowIndex};
+
+use super::{Digest, ExecutionError, Felt, Kernel, TraceFragment, Word, ONE, ZERO};
 
 #[cfg(test)]
 mod tests;
@@ -28,14 +30,14 @@ type ProcHashBytes = [u8; 32];
 ///
 /// In the above, the meaning of columns is as follows:
 /// - `s0` is a selector column which indicates whether a procedure in a given row should count
-///   toward kernel access. ONE indicates that a procedure should be counted as a single access,
-///   and ZERO indicates that it shouldn't.
+///   toward kernel access. ONE indicates that a procedure should be counted as a single access, and
+///   ZERO indicates that it shouldn't.
 /// - `idx` is a procedure index in the kernel. Values in this column start at ZERO and are
-///   incremented by ONE for every new procedure. Said another way, if `idx` does not change,
-///   values in `h0` - `h3` must remain the same, but when `idx` is incremented values in `h0` -
-///   `h3` can change.
-/// - `h0` - `h3` columns contain roots of procedures in a given kernel. Together with `idx`
-///   column, these form tuples (index, procedure root) for all procedures in the kernel.
+///   incremented by ONE for every new procedure. Said another way, if `idx` does not change, values
+///   in `h0` - `h3` must remain the same, but when `idx` is incremented values in `h0` - `h3` can
+///   change.
+/// - `h0` - `h3` columns contain roots of procedures in a given kernel. Together with `idx` column,
+///   these form tuples (index, procedure root) for all procedures in the kernel.
 pub struct KernelRom {
     access_map: BTreeMap<ProcHashBytes, ProcAccessInfo>,
     kernel: Kernel,
@@ -56,11 +58,7 @@ impl KernelRom {
             access_map.insert(proc_hash.into(), ProcAccessInfo::new(proc_hash));
         }
 
-        Self {
-            access_map,
-            kernel,
-            trace_len,
-        }
+        Self { access_map, kernel, trace_len }
     }
 
     // PUBLIC ACCESSORS
@@ -99,7 +97,7 @@ impl KernelRom {
     /// Populates the provided execution trace fragment with execution trace of this kernel ROM.
     pub fn fill_trace(self, trace: &mut TraceFragment) {
         debug_assert_eq!(TRACE_WIDTH, trace.width(), "inconsistent trace fragment width");
-        let mut row = 0;
+        let mut row: RowIndex = 0.into();
         for (idx, access_info) in self.access_map.values().enumerate() {
             let idx = Felt::from(idx as u16);
 
@@ -145,7 +143,7 @@ impl ProcAccessInfo {
     }
 
     /// Writes a single row into the provided trace fragment for this procedure access entry.
-    pub fn write_into_trace(&self, trace: &mut TraceFragment, row: usize, idx: Felt) {
+    pub fn write_into_trace(&self, trace: &mut TraceFragment, row: RowIndex, idx: Felt) {
         let s0 = if self.num_accesses == 0 { ZERO } else { ONE };
         trace.set(row, 0, s0);
         trace.set(row, 1, idx);

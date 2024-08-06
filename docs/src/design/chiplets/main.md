@@ -187,7 +187,7 @@ The expected boundary values for each chiplet's portion of the virtual table mus
 
 For the sibling table to be properly constrained, the value of the running product column must be $1$ when the sibling table starts and finishes. This can be achieved by:
 - enforcing a boundary constraint for $vt_{chip}=1$ at the first row
-- using the the following transition constraint to enforce that the value is once again $1$ at the last cycle of the hash chiplet.
+- using the following transition constraint to enforce that the value is once again $1$ at the last cycle of the hash chiplet.
 
 > $$
 (s'_0 - s_0) \cdot (1 - vt_{chip}) = 0 \text{ | degree} = 2

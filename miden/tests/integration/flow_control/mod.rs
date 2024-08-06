@@ -1,8 +1,11 @@
-use assembly::{Assembler, AssemblyContext, LibraryPath};
-use miden_vm::ModuleAst;
+use alloc::sync::Arc;
+
+use assembly::{ast::ModuleKind, Assembler, LibraryPath, Report, SourceManager};
+use miden_vm::Module;
 use processor::ExecutionError;
+use prover::Digest;
 use stdlib::StdLibrary;
-use test_utils::{build_test, AdviceInputs, StackInputs, Test, TestError};
+use test_utils::{build_test, expect_exec_error, StackInputs, Test};
 
 // SIMPLE FLOW CONTROL TESTS
 // ================================================================================================
@@ -137,8 +140,8 @@ fn local_fn_call() {
             call.foo
         end";
 
-    let expected_err = TestError::ExecutionError(ExecutionError::InvalidStackDepthOnReturn(17));
-    build_test!(source, &[1, 2]).expect_error(expected_err);
+    let build_test = build_test!(source, &[1, 2]);
+    expect_exec_error!(build_test, ExecutionError::InvalidStackDepthOnReturn(17));
 
     // dropping values from the stack in the current execution context should not affect values
     // in the overflow table from the parent execution context
@@ -201,14 +204,12 @@ fn simple_syscall() {
         end";
 
     // TODO: update and use macro?
-    let test = Test {
-        source: program_source.to_string(),
-        kernel: Some(kernel_source.to_string()),
-        stack_inputs: StackInputs::try_from_ints([1, 2]).unwrap(),
-        advice_inputs: AdviceInputs::default(),
-        in_debug_mode: false,
-        libraries: Vec::default(),
-    };
+    let mut test = Test::new(&format!("test{}", line!()), program_source, false);
+    test.stack_inputs = StackInputs::try_from_ints([1, 2]).unwrap();
+    test.kernel_source = Some(
+        test.source_manager
+            .load(&format!("kernel{}", line!()), kernel_source.to_string()),
+    );
     test.expect_stack(&[3]);
 
     test.prove_and_verify(vec![1, 2], false);
@@ -249,8 +250,6 @@ fn simple_dyn_exec() {
     //   [16045159387802755434, 10308872899350860082, 17306481765929021384, 16642043361554117790]
 
     let test = Test {
-        source: program_source.to_string(),
-        kernel: None,
         stack_inputs: StackInputs::try_from_ints([
             3,
             // put the hash of foo on the stack
@@ -262,9 +261,7 @@ fn simple_dyn_exec() {
             2,
         ])
         .unwrap(),
-        advice_inputs: AdviceInputs::default(),
-        in_debug_mode: false,
-        libraries: Vec::default(),
+        ..Test::new(&format!("test{}", line!()), program_source, false)
     };
 
     test.expect_stack(&[6]);
@@ -286,9 +283,10 @@ fn simple_dyn_exec() {
 #[test]
 fn dynexec_with_procref() {
     let program_source = "
-    use.std::math::u64
+    use.external::module
 
     proc.foo
+        dropw
         push.1.2
         u32wrapping_add
     end
@@ -297,22 +295,27 @@ fn dynexec_with_procref() {
         procref.foo
         dynexec
 
-        procref.u64::wrapping_add
+        procref.module::func
         dynexec
+
+        dup
+        push.4
+        assert_eq.err=101
     end";
 
     let mut test = build_test!(program_source, &[]);
     test.libraries = vec![StdLibrary::default().into()];
+    test.add_module(
+        "external::module".parse().unwrap(),
+        "\
+        export.func
+            dropw
+            u32wrapping_add.1
+        end
+        ",
+    );
 
-    test.expect_stack(&[
-        1719755471,
-        1057995821,
-        3,
-        12973202366681443424,
-        7933716460165146367,
-        14382661273226268231,
-        15818904913409383971,
-    ]);
+    test.expect_stack(&[4]);
 }
 
 #[test]
@@ -355,8 +358,6 @@ fn simple_dyncall() {
     //   [8324248212344458853, 17691992706129158519, 18131640149172243086, 16129275750103409835]
 
     let test = Test {
-        source: program_source.to_string(),
-        kernel: None,
         stack_inputs: StackInputs::try_from_ints([
             3,
             // put the hash of foo on the stack
@@ -368,9 +369,7 @@ fn simple_dyncall() {
             2,
         ])
         .unwrap(),
-        advice_inputs: AdviceInputs::default(),
-        in_debug_mode: false,
-        libraries: Vec::default(),
+        ..Test::new(&format!("test{}", line!()), program_source, false)
     };
 
     test.expect_stack(&[6]);
@@ -393,9 +392,7 @@ fn simple_dyncall() {
 // ================================================================================================
 
 #[test]
-fn procref() {
-    let assembler = Assembler::default().with_library(&StdLibrary::default()).unwrap();
-
+fn procref() -> Result<(), Report> {
     let module_source = "
     use.std::math::u64
     export.u64::overflowing_add
@@ -406,11 +403,21 @@ fn procref() {
     ";
 
     // obtain procedures' MAST roots by compiling them as module
-    let module_ast = ModuleAst::parse(module_source).unwrap();
-    let module_path = LibraryPath::new("test::foo").unwrap();
-    let mast_roots = assembler
-        .compile_module(&module_ast, Some(&module_path), &mut AssemblyContext::for_module(false))
-        .unwrap();
+    let mast_roots: Vec<Digest> = {
+        let source_manager = Arc::new(assembly::DefaultSourceManager::default());
+        let module_path = "test::foo".parse::<LibraryPath>().unwrap();
+        let mut parser = Module::parser(ModuleKind::Library);
+        let module = parser.parse_str(module_path, module_source, &source_manager)?;
+        let library = Assembler::new(source_manager)
+            .with_library(StdLibrary::default())
+            .unwrap()
+            .assemble_library([module])
+            .unwrap();
+
+        let module_info = library.module_infos().next().unwrap();
+
+        module_info.procedure_digests().collect()
+    };
 
     let source = "
     use.std::math::u64
@@ -429,16 +436,17 @@ fn procref() {
     test.libraries = vec![StdLibrary::default().into()];
 
     test.expect_stack(&[
-        mast_roots[1][3].as_int(),
-        mast_roots[1][2].as_int(),
-        mast_roots[1][1].as_int(),
-        mast_roots[1][0].as_int(),
-        0,
         mast_roots[0][3].as_int(),
         mast_roots[0][2].as_int(),
         mast_roots[0][1].as_int(),
         mast_roots[0][0].as_int(),
+        0,
+        mast_roots[1][3].as_int(),
+        mast_roots[1][2].as_int(),
+        mast_roots[1][1].as_int(),
+        mast_roots[1][0].as_int(),
     ]);
 
     test.prove_and_verify(vec![], false);
+    Ok(())
 }

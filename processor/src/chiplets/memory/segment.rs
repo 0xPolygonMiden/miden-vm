@@ -1,6 +1,8 @@
 use alloc::{collections::BTreeMap, vec::Vec};
-use miden_air::trace::chiplets::memory::{
-    Selectors, MEMORY_COPY_READ, MEMORY_INIT_READ, MEMORY_WRITE,
+
+use miden_air::{
+    trace::chiplets::memory::{Selectors, MEMORY_COPY_READ, MEMORY_INIT_READ, MEMORY_WRITE},
+    RowIndex,
 };
 
 use super::{Felt, Word, INIT_MEM_VALUE};
@@ -33,7 +35,7 @@ impl MemorySegmentTrace {
     }
 
     /// Returns the entire memory state at the beginning of the specified cycle.
-    pub fn get_state_at(&self, clk: u32) -> Vec<(u64, Word)> {
+    pub fn get_state_at(&self, clk: RowIndex) -> Vec<(u64, Word)> {
         let mut result: Vec<(u64, Word)> = Vec::new();
 
         if clk == 0 {
@@ -43,7 +45,7 @@ impl MemorySegmentTrace {
         // since we record memory state at the end of a given cycle, to get memory state at the end
         // of a cycle, we need to look at the previous cycle. that is, memory state at the end of
         // the previous cycle is the same as memory state the the beginning of the current cycle.
-        let search_clk = (clk - 1) as u64;
+        let search_clk: u64 = (clk - 1).into();
 
         for (&addr, addr_trace) in self.0.iter() {
             match addr_trace.binary_search_by(|access| access.clk().as_int().cmp(&search_clk)) {
@@ -55,7 +57,7 @@ impl MemorySegmentTrace {
                     if i > 0 {
                         result.push((addr.into(), addr_trace[i - 1].value()));
                     }
-                }
+                },
             }
         }
 

@@ -1,3 +1,5 @@
+use alloc::vec::Vec;
+
 use super::{EvaluationFrame, Felt, FieldElement, TransitionConstraintDegree};
 use crate::{
     trace::chiplets::{
@@ -10,7 +12,6 @@ use crate::{
     utils::{are_equal, binary_not, is_binary, EvaluationResult},
     ONE, ZERO,
 };
-use alloc::vec::Vec;
 
 #[cfg(test)]
 mod tests;
@@ -100,8 +101,8 @@ pub fn get_transition_constraint_count() -> usize {
 
 /// Enforces constraints for the hasher chiplet.
 ///
-/// - The `hasher_flag` determines if the hasher chiplet is currently enabled. It should be
-///   computed by the caller and set to `Felt::ONE`
+/// - The `hasher_flag` determines if the hasher chiplet is currently enabled. It should be computed
+///   by the caller and set to `Felt::ONE`
 /// - The `transition_flag` indicates whether this is the last row this chiplet's execution trace,
 ///   and therefore the constraints should not be enforced.
 pub fn enforce_constraints<E: FieldElement<BaseField = Felt>>(

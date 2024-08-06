@@ -1,10 +1,11 @@
-use crate::utils::{range, ByteReader, Deserializable, DeserializationError};
 use alloc::vec::Vec;
+
 use miden_crypto::{Word, ZERO};
 
 use super::{
     ByteWriter, Felt, OutputError, Serializable, StackTopState, ToElements, STACK_TOP_SIZE,
 };
+use crate::utils::{range, ByteReader, Deserializable, DeserializationError};
 
 // STACK OUTPUTS
 // ================================================================================================
@@ -68,10 +69,7 @@ impl StackOutputs {
             stack.resize(STACK_TOP_SIZE, ZERO);
         }
 
-        Ok(Self {
-            stack,
-            overflow_addrs,
-        })
+        Ok(Self { stack, overflow_addrs })
     }
 
     /// Attempts to create [StackOutputs] struct from the provided stack elements and overflow
@@ -239,9 +237,6 @@ impl Deserializable for StackOutputs {
         let count = get_overflow_addrs_len(stack.len());
         let overflow_addrs = source.read_many::<Felt>(count)?;
 
-        Ok(Self {
-            stack,
-            overflow_addrs,
-        })
+        Ok(Self { stack, overflow_addrs })
     }
 }

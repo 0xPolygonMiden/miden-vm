@@ -1,12 +1,15 @@
-use super::super::{
-    Assertion, AuxTraceRandElements, EvaluationFrame, Felt, FieldElement,
-    TransitionConstraintDegree, CLK_COL_IDX, DECODER_TRACE_OFFSET, FMP_COL_IDX, ONE,
-    STACK_AUX_TRACE_OFFSET, STACK_TRACE_OFFSET, ZERO,
-};
-use crate::decoder::{IS_CALL_FLAG_COL_IDX, IS_SYSCALL_FLAG_COL_IDX, USER_OP_HELPERS_OFFSET};
-use crate::utils::{are_equal, is_binary};
 use alloc::vec::Vec;
+
 use vm_core::{stack::STACK_TOP_SIZE, StackOutputs};
+
+use super::super::{
+    Assertion, EvaluationFrame, Felt, FieldElement, TransitionConstraintDegree, CLK_COL_IDX,
+    DECODER_TRACE_OFFSET, FMP_COL_IDX, ONE, STACK_AUX_TRACE_OFFSET, STACK_TRACE_OFFSET, ZERO,
+};
+use crate::{
+    decoder::{IS_CALL_FLAG_COL_IDX, IS_SYSCALL_FLAG_COL_IDX, USER_OP_HELPERS_OFFSET},
+    utils::{are_equal, is_binary},
+};
 
 pub mod field_ops;
 pub mod io_ops;
@@ -35,10 +38,10 @@ pub const NUM_GENERAL_CONSTRAINTS: usize = 17;
 /// The degrees of constraints in the general stack operations. Each operation being executed
 /// either shifts the stack to the left, right or doesn't effect it at all. Therefore, majority
 /// of the general transitions of a stack item would be common across the operations and composite
-/// flags were introduced to compute the individual stack item transition. A particular item lets say
-/// at depth ith in the next stack frame can be transitioned into from ith depth (no shift op) or
-/// (i+1)th depth(left shift) or (i-1)th depth(right shift) in the current frame. Therefore, the VM
-/// would require only 16 general constraints to encompass all the 16 stack positions.
+/// flags were introduced to compute the individual stack item transition. A particular item lets
+/// say at depth ith in the next stack frame can be transitioned into from ith depth (no shift op)
+/// or (i+1)th depth(left shift) or (i-1)th depth(right shift) in the current frame. Therefore, the
+/// VM would require only 16 general constraints to encompass all the 16 stack positions.
 /// The last constraint checks if the top element in the stack is a binary or not.
 pub const CONSTRAINT_DEGREES: [usize; NUM_GENERAL_CONSTRAINTS] = [
     // Each degree are being multiplied with the respective composite flags which are of degree 7.
@@ -230,14 +233,14 @@ pub fn get_assertions_last_step(
 /// Returns the stack's boundary assertions for auxiliary columns at the first step.
 pub fn get_aux_assertions_first_step<E>(
     result: &mut Vec<Assertion<E>>,
-    alphas: &AuxTraceRandElements<E>,
+    alphas: &[E],
     stack_inputs: &[Felt],
 ) where
     E: FieldElement<BaseField = Felt>,
 {
     let step = 0;
     let value = if stack_inputs.len() > STACK_TOP_SIZE {
-        get_overflow_table_init(alphas.get_segment_elements(0), &stack_inputs[STACK_TOP_SIZE..])
+        get_overflow_table_init(alphas, &stack_inputs[STACK_TOP_SIZE..])
     } else {
         E::ONE
     };
@@ -248,14 +251,14 @@ pub fn get_aux_assertions_first_step<E>(
 /// Returns the stack's boundary assertions for auxiliary columns at the last step.
 pub fn get_aux_assertions_last_step<E>(
     result: &mut Vec<Assertion<E>>,
-    alphas: &AuxTraceRandElements<E>,
+    alphas: &[E],
     stack_outputs: &StackOutputs,
     step: usize,
 ) where
     E: FieldElement<BaseField = Felt>,
 {
     let value = if stack_outputs.has_overflow() {
-        get_overflow_table_final(alphas.get_segment_elements(0), stack_outputs)
+        get_overflow_table_final(alphas, stack_outputs)
     } else {
         E::ONE
     };

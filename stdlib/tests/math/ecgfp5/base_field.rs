@@ -1,4 +1,5 @@
 use core::ops::{Add, Div, Mul, Neg, Sub};
+
 use test_utils::{rand::rand_value, Felt, FieldElement, StarkField, ONE, ZERO};
 
 // Given an element v ∈ Z_q | q = 2^64 - 2^32 + 1, this routine raises
@@ -36,7 +37,7 @@ pub fn bv_or(a: Felt, b: Felt) -> Felt {
     let flg_a = (a == ZERO) | (a == ONE);
     let flg_b = (b == ZERO) | (b == ONE);
 
-    assert_eq!(flg_a & flg_b, true);
+    assert!(flg_a & flg_b);
 
     let c = a.as_int() | b.as_int();
     Felt::new(c)
@@ -340,6 +341,7 @@ impl Mul for Ext5 {
 impl Div for Ext5 {
     type Output = Self;
 
+    #[allow(clippy::suspicious_arithmetic_impl)]
     fn div(self, rhs: Self) -> Self::Output {
         self * rhs.inv()
     }
@@ -354,16 +356,6 @@ impl PartialEq for Ext5 {
         let flg4 = self.a4 == other.a4;
 
         flg0 & flg1 & flg2 & flg3 & flg4
-    }
-
-    fn ne(&self, other: &Self) -> bool {
-        let flg0 = self.a0 != other.a0;
-        let flg1 = self.a1 != other.a1;
-        let flg2 = self.a2 != other.a2;
-        let flg3 = self.a3 != other.a3;
-        let flg4 = self.a4 != other.a4;
-
-        flg0 | flg1 | flg2 | flg3 | flg4
     }
 }
 

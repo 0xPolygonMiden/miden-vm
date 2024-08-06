@@ -1,6 +1,7 @@
-use super::{validate_param, AssemblyError, SpanBuilder};
-use crate::{ast::AdviceInjectorNode, ADVICE_READ_LIMIT};
-use vm_core::{code_blocks::CodeBlock, Operation};
+use vm_core::Operation;
+
+use super::{validate_param, BasicBlockBuilder};
+use crate::{ast::AdviceInjectorNode, AssemblyError, ADVICE_READ_LIMIT};
 
 // NON-DETERMINISTIC (ADVICE) INPUTS
 // ================================================================================================
@@ -12,20 +13,16 @@ use vm_core::{code_blocks::CodeBlock, Operation};
 /// # Errors
 /// Returns an error if the specified number of values to pushed is smaller than 1 or greater
 /// than 16.
-pub fn adv_push(span: &mut SpanBuilder, n: u8) -> Result<Option<CodeBlock>, AssemblyError> {
+pub fn adv_push(span: &mut BasicBlockBuilder, n: u8) -> Result<(), AssemblyError> {
     validate_param(n, 1..=ADVICE_READ_LIMIT)?;
     span.push_op_many(Operation::AdvPop, n as usize);
-    Ok(None)
+    Ok(())
 }
 
 // ADVICE INJECTORS
 // ================================================================================================
 
 /// Appends advice injector decorator to the span.
-pub fn adv_inject(
-    span: &mut SpanBuilder,
-    injector: &AdviceInjectorNode,
-) -> Result<Option<CodeBlock>, AssemblyError> {
+pub fn adv_inject(span: &mut BasicBlockBuilder, injector: &AdviceInjectorNode) {
     span.push_advice_injector(injector.into());
-    Ok(None)
 }

@@ -1,7 +1,9 @@
+use alloc::{collections::BTreeMap, vec::Vec};
+
+use miden_air::RowIndex;
+
 use super::{trace::NUM_RAND_ROWS, Felt, FieldElement, RangeCheckTrace, ZERO};
 use crate::utils::uninit_vector;
-use alloc::collections::BTreeMap;
-use alloc::vec::Vec;
 
 mod aux_trace;
 pub use aux_trace::AuxTraceBuilder;
@@ -28,9 +30,9 @@ mod tests;
 /// ├─────┴─────┤
 ///
 /// In the above, the meaning of the columns is as follows:
-/// - Column `v` contains the value being range-checked where `v` must be a 16-bit value. The
-///   values must be in increasing order and the jump allowed between two values should be a power
-///   of 3 less than or equal to 3^7, and duplicates are allowed.
+/// - Column `v` contains the value being range-checked where `v` must be a 16-bit value. The values
+///   must be in increasing order and the jump allowed between two values should be a power of 3
+///   less than or equal to 3^7, and duplicates are allowed.
 /// - Column `m` specifies the lookup multiplicity, which is how many lookups are to be included for
 ///   a given value.
 ///
@@ -41,9 +43,9 @@ pub struct RangeChecker {
     /// Tracks lookup count for each checked value.
     lookups: BTreeMap<u16, usize>,
     /// Range check lookups performed by all user operations, grouped and sorted by clock cycle.
-    /// Each cycle is mapped to a vector of the range checks requested at that cycle, which can come
-    /// from the stack, memory, or both.
-    cycle_lookups: BTreeMap<u32, Vec<u16>>,
+    /// Each cycle is mapped to a vector of the range checks requested at that cycle, which can
+    /// come from the stack, memory, or both.
+    cycle_lookups: BTreeMap<RowIndex, Vec<u16>>,
 }
 
 impl RangeChecker {
@@ -56,10 +58,7 @@ impl RangeChecker {
         // range checker table are initialized. this simplifies trace table building later on.
         lookups.insert(0, 0);
         lookups.insert(u16::MAX, 0);
-        Self {
-            lookups,
-            cycle_lookups: BTreeMap::new(),
-        }
+        Self { lookups, cycle_lookups: BTreeMap::new() }
     }
 
     // TRACE MUTATORS
@@ -71,7 +70,7 @@ impl RangeChecker {
     }
 
     /// Adds range check lookups from the stack or memory to this [RangeChecker] instance.
-    pub fn add_range_checks(&mut self, clk: u32, values: &[u16]) {
+    pub fn add_range_checks(&mut self, clk: RowIndex, values: &[u16]) {
         // range checks requests only come from memory or from the stack, which always request 2 or
         // 4 lookups respectively.
         debug_assert!(values.len() == 2 || values.len() == 4);

@@ -1,21 +1,26 @@
 // VERIFIER CHANNEL
 // ================================================================================================
 
+use alloc::vec::Vec;
+
 use miden_air::ProcessorAir;
 use test_utils::{
     crypto::{BatchMerkleProof, MerklePath, PartialMerkleTree, Rpo256, RpoDigest},
-    group_vector_elements,
+    group_slice_elements,
     math::{FieldElement, QuadExtension, StarkField},
     Felt, VerifierError, EMPTY_WORD,
 };
 use winter_air::{
-    proof::{Queries, StarkProof, Table},
-    Air, EvaluationFrame,
+    proof::{Proof, Queries, Table, TraceOodFrame},
+    Air,
 };
 use winter_fri::{folding::fold_positions, VerifierChannel as FriVerifierChannel};
 
 pub type QuadExt = QuadExtension<Felt>;
-/// A view into a [StarkProof] for a computation structured to simulate an "interactive" channel.
+
+type AdvMap = Vec<(RpoDigest, Vec<Felt>)>;
+
+/// A view into a [Proof] for a computation structured to simulate an "interactive" channel.
 ///
 /// A channel is instantiated for a specific proof, which is parsed into structs over the
 /// appropriate field (specified by type parameter `E`). This also validates that the proof is
@@ -44,8 +49,8 @@ impl VerifierChannel {
     // CONSTRUCTOR
     // --------------------------------------------------------------------------------------------
     /// Creates and returns a new [VerifierChannel] initialized from the specified `proof`.
-    pub fn new(air: &ProcessorAir, proof: StarkProof) -> Result<Self, VerifierError> {
-        let StarkProof {
+    pub fn new(air: &ProcessorAir, proof: Proof) -> Result<Self, VerifierError> {
+        let Proof {
             context,
             commitments,
             trace_queries,
@@ -54,6 +59,7 @@ impl VerifierChannel {
             fri_proof,
             pow_nonce,
             num_unique_queries,
+            gkr_proof: _,
         } = proof;
 
         // make AIR and proof base fields are the same
@@ -61,9 +67,9 @@ impl VerifierChannel {
             return Err(VerifierError::InconsistentBaseField);
         }
 
-        let num_trace_segments = air.trace_layout().num_segments();
-        let main_trace_width = air.trace_layout().main_trace_width();
-        let aux_trace_width = air.trace_layout().aux_trace_width();
+        let num_trace_segments = air.trace_info().num_segments();
+        let main_trace_width = air.trace_info().main_trace_width();
+        let aux_trace_width = air.trace_info().aux_segment_width();
         let lde_domain_size = air.lde_domain_size();
         let fri_options = air.options().to_fri_options();
         let constraint_frame_width = air.context().num_constraint_composition_columns();
@@ -90,8 +96,6 @@ impl VerifierChannel {
         let (ood_trace_evaluations, ood_constraint_evaluations) = ood_frame
             .parse(main_trace_width, aux_trace_width, constraint_frame_width)
             .map_err(|err| VerifierError::ProofDeserializationError(err.to_string()))?;
-        let ood_trace_frame =
-            TraceOodFrame::new(ood_trace_evaluations, main_trace_width, aux_trace_width);
 
         Ok(VerifierChannel {
             // trace queries
@@ -107,7 +111,7 @@ impl VerifierChannel {
             fri_remainder: Some(fri_remainder),
             fri_num_partitions,
             // out-of-domain evaluation
-            ood_trace_frame: Some(ood_trace_frame),
+            ood_trace_frame: Some(ood_trace_evaluations),
             ood_constraint_evaluations: Some(ood_constraint_evaluations),
             // query seed
             pow_nonce,
@@ -161,7 +165,7 @@ impl VerifierChannel {
     pub fn read_queried_trace_states(
         &mut self,
         positions: &[usize],
-    ) -> Result<(Vec<(RpoDigest, Vec<Felt>)>, Vec<PartialMerkleTree>), VerifierError> {
+    ) -> Result<(AdvMap, Vec<PartialMerkleTree>), VerifierError> {
         let queries = self.trace_queries.take().expect("already read");
         let mut trees = Vec::new();
 
@@ -191,7 +195,7 @@ impl VerifierChannel {
     pub fn read_constraint_evaluations(
         &mut self,
         positions: &[usize],
-    ) -> Result<(Vec<(RpoDigest, Vec<Felt>)>, PartialMerkleTree), VerifierError> {
+    ) -> Result<(AdvMap, PartialMerkleTree), VerifierError> {
         let queries = self.constraint_queries.take().expect("already read");
         let proof = queries.query_proofs;
 
@@ -234,13 +238,13 @@ impl VerifierChannel {
         let mut adv_key_map = Vec::new();
         let mut partial_trees = Vec::new();
         let mut layer_proofs = self.layer_proofs();
-        for i in 0..depth {
+        for query in queries.iter().take(depth) {
             let mut folded_positions = fold_positions(&positions, current_domain_size, N);
 
             let layer_proof = layer_proofs.remove(0);
 
             let mut unbatched_proof = layer_proof.into_paths(&folded_positions).unwrap();
-            let x = group_vector_elements::<QuadExt, N>(queries[i].clone());
+            let x = group_slice_elements::<QuadExt, N>(query);
             assert_eq!(x.len(), unbatched_proof.len());
 
             let nodes: Vec<[Felt; 4]> = unbatched_proof
@@ -268,19 +272,15 @@ impl VerifierChannel {
                 PartialMerkleTree::with_paths(tmp_vec).expect("should not fail from paths");
             partial_trees.push(new_pmt);
 
-            let _empty: () = nodes
-                .into_iter()
-                .zip(x.iter())
-                .map(|(a, b)| {
-                    let mut value = QuadExt::slice_as_base_elements(b).to_owned();
-                    value.extend(EMPTY_WORD);
+            nodes.into_iter().zip(x.iter()).for_each(|(a, b)| {
+                let mut value = QuadExt::slice_as_base_elements(b).to_owned();
+                value.extend(EMPTY_WORD);
 
-                    adv_key_map.push((a.to_owned().into(), value));
-                })
-                .collect();
+                adv_key_map.push((a.to_owned().into(), value));
+            });
 
             core::mem::swap(&mut positions, &mut folded_positions);
-            current_domain_size = current_domain_size / N;
+            current_domain_size /= N;
         }
 
         (partial_trees, adv_key_map)
@@ -336,17 +336,9 @@ impl TraceQueries {
         air: &ProcessorAir,
         num_queries: usize,
     ) -> Result<Self, VerifierError> {
-        assert_eq!(
-            queries.len(),
-            air.trace_layout().num_segments(),
-            "expected {} trace segment queries, but received {}",
-            air.trace_layout().num_segments(),
-            queries.len()
-        );
-
         // parse main trace segment queries; parsing also validates that hashes of each table row
         // form the leaves of Merkle authentication paths in the proofs
-        let main_segment_width = air.trace_layout().main_trace_width();
+        let main_segment_width = air.trace_info().main_trace_width();
         let main_segment_queries = queries.remove(0);
         let (main_segment_query_proofs, main_segment_states) = main_segment_queries
             .parse::<Rpo256, Felt>(air.lde_domain_size(), num_queries, main_segment_width)
@@ -359,27 +351,24 @@ impl TraceQueries {
         // all query proofs will be aggregated into a single vector
         let mut query_proofs = vec![main_segment_query_proofs];
 
-        // parse auxiliary trace segment queries (if any), and merge resulting tables into a
-        // single table; parsing also validates that hashes of each table row form the leaves
-        // of Merkle authentication paths in the proofs
+        // parse auxiliary trace segment queries (if any); parsing also validates that hashes of
+        // each table row form the leaves of Merkle authentication paths in the proofs
         let aux_trace_states = if air.trace_info().is_multi_segment() {
-            let mut aux_trace_states = Vec::new();
-            for (i, segment_queries) in queries.into_iter().enumerate() {
-                let segment_width = air.trace_layout().get_aux_segment_width(i);
-                let (segment_query_proof, segment_trace_states) = segment_queries
-                    .parse::<Rpo256, QuadExt>(air.lde_domain_size(), num_queries, segment_width)
-                    .map_err(|err| {
-                        VerifierError::ProofDeserializationError(format!(
-                            "auxiliary trace segment query deserialization failed: {err}"
-                        ))
-                    })?;
+            assert_eq!(queries.len(), 1);
+            let segment_width = air.trace_info().aux_segment_width();
+            let aux_segment_queries = queries.remove(0);
 
-                query_proofs.push(segment_query_proof);
-                aux_trace_states.push(segment_trace_states);
-            }
+            let (segment_query_proof, segment_trace_states) = aux_segment_queries
+                .parse::<Rpo256, QuadExt>(air.lde_domain_size(), num_queries, segment_width)
+                .map_err(|err| {
+                    VerifierError::ProofDeserializationError(format!(
+                        "auxiliary trace segment query deserialization failed: {err}"
+                    ))
+                })?;
 
-            // merge tables for each auxiliary segment into a single table
-            Some(Table::merge(aux_trace_states))
+            query_proofs.push(segment_query_proof);
+
+            Some(segment_trace_states)
         } else {
             None
         };
@@ -419,60 +408,7 @@ impl ConstraintQueries {
                 ))
             })?;
 
-        Ok(Self {
-            query_proofs,
-            evaluations,
-        })
-    }
-}
-
-// TRACE OUT-OF-DOMAIN FRAME
-// ================================================================================================
-
-pub struct TraceOodFrame<E: FieldElement> {
-    values: Vec<E>,
-    main_trace_width: usize,
-    aux_trace_width: usize,
-}
-
-impl<E: FieldElement> TraceOodFrame<E> {
-    pub fn new(values: Vec<E>, main_trace_width: usize, aux_trace_width: usize) -> Self {
-        Self {
-            values,
-            main_trace_width,
-            aux_trace_width,
-        }
-    }
-
-    pub fn main_frame(&self) -> EvaluationFrame<E> {
-        let mut current = vec![E::ZERO; self.main_trace_width];
-        let mut next = vec![E::ZERO; self.main_trace_width];
-
-        for (i, a) in self.values.chunks(2).take(self.main_trace_width).enumerate() {
-            current[i] = a[0];
-            next[i] = a[1];
-        }
-
-        EvaluationFrame::from_rows(current, next)
-    }
-
-    pub fn aux_frame(&self) -> Option<EvaluationFrame<E>> {
-        if self.aux_trace_width == 0 {
-            None
-        } else {
-            let mut current_aux = vec![E::ZERO; self.aux_trace_width];
-            let mut next_aux = vec![E::ZERO; self.aux_trace_width];
-
-            for (i, a) in self.values.chunks(2).skip(self.main_trace_width).enumerate() {
-                current_aux[i] = a[0];
-                next_aux[i] = a[1];
-            }
-            Some(EvaluationFrame::from_rows(current_aux, next_aux))
-        }
-    }
-
-    pub fn values(&self) -> &[E] {
-        &self.values
+        Ok(Self { query_proofs, evaluations })
     }
 }
 
@@ -506,14 +442,10 @@ pub fn unbatch_to_partial_mt(
         tmp_vec.push((p, RpoDigest::from(*node), path));
     }
 
-    let _empty: () = nodes
-        .into_iter()
-        .zip(queries.iter())
-        .map(|(a, b)| {
-            let data = b.to_owned();
-            adv_key_map.push((a.to_owned().into(), data));
-        })
-        .collect();
+    nodes.into_iter().zip(queries.iter()).for_each(|(a, b)| {
+        let data = b.to_owned();
+        adv_key_map.push((a.to_owned().into(), data));
+    });
 
     (
         PartialMerkleTree::with_paths(tmp_vec).expect("should not fail from paths"),

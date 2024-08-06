@@ -1,25 +1,23 @@
+use alloc::vec::Vec;
+use core::ops::Range;
+
+#[cfg(test)]
+use miden_air::trace::decoder::NUM_USER_OP_HELPERS;
+use vm_core::utils::new_array_vec;
+
 use super::{
     super::utils::get_trace_len, get_num_groups_in_next_batch, Felt, Operation, Word, DIGEST_LEN,
     MIN_TRACE_LEN, NUM_HASHER_COLUMNS, NUM_OP_BATCH_FLAGS, NUM_OP_BITS, NUM_OP_BITS_EXTRA_COLS,
     ONE, OP_BATCH_1_GROUPS, OP_BATCH_2_GROUPS, OP_BATCH_4_GROUPS, OP_BATCH_8_GROUPS, OP_BATCH_SIZE,
     ZERO,
 };
-use alloc::vec::Vec;
-use core::ops::Range;
-use vm_core::utils::new_array_vec;
-
-#[cfg(test)]
-use miden_air::trace::decoder::NUM_USER_OP_HELPERS;
 
 // CONSTANTS
 // ================================================================================================
 
 /// The range of columns in the decoder's `hasher_trace` which is available for use as helper
 /// registers during user operations.
-pub const USER_OP_HELPERS: Range<usize> = Range {
-    start: 2,
-    end: NUM_HASHER_COLUMNS,
-};
+pub const USER_OP_HELPERS: Range<usize> = Range { start: 2, end: NUM_HASHER_COLUMNS };
 
 // DECODER TRACE
 // ================================================================================================
@@ -29,11 +27,11 @@ pub const USER_OP_HELPERS: Range<usize> = Range {
 /// The trace currently consists of 24 columns grouped logically as follows:
 /// - 1 column for code block ID / related hasher table row address.
 /// - 7 columns for the binary representation of an opcode.
-/// - 8 columns used for providing inputs to, and reading results from the hasher, but also used
-///   for other purposes when inside a SPAN block.
+/// - 8 columns used for providing inputs to, and reading results from the hasher, but also used for
+///   other purposes when inside a SPAN block.
 /// - 1 column for the flag indicating whether we are in a SPAN block or not.
-/// - 1 column to keep track of the number of operation groups left to decode in the current
-///   SPAN block.
+/// - 1 column to keep track of the number of operation groups left to decode in the current SPAN
+///   block.
 /// - 1 column to keep track of the index of a currently executing operation within an operation
 ///   group.
 /// - 3 columns for keeping track of operation batch flags.
@@ -91,13 +89,12 @@ impl DecoderTrace {
     ///
     /// When a control block is starting, we do the following:
     /// - Set the address to the address of the parent block. This is not necessarily equal to the
-    ///   address from the previous row because in a SPLIT block, the second child follows the
-    ///   first child, rather than the parent.
+    ///   address from the previous row because in a SPLIT block, the second child follows the first
+    ///   child, rather than the parent.
     /// - Set op_bits to opcode of the specified block (e.g., JOIN, SPLIT, LOOP, CALL, SYSCALL).
-    /// - Set the first half of the hasher state to the h1 parameter. For JOIN and SPLIT blocks
-    ///   this will contain the hash of the left child; for LOOP block this will contain hash of
-    ///   the loop's body, for CALL and SYSCALL block this will contain hash of the called
-    ///   function.
+    /// - Set the first half of the hasher state to the h1 parameter. For JOIN and SPLIT blocks this
+    ///   will contain the hash of the left child; for LOOP block this will contain hash of the
+    ///   loop's body, for CALL and SYSCALL block this will contain hash of the called function.
     /// - Set the second half of the hasher state to the h2 parameter. For JOIN and SPLIT blocks
     ///   this will contain hash of the right child.
     /// - Set is_span to ZERO.
@@ -185,9 +182,8 @@ impl DecoderTrace {
     /// When we start a new loop iteration, we do the following:
     /// - Set the block address to the address of the loop block.
     /// - Set op_bits to REPEAT opcode.
-    /// - Copy over the hasher state from the previous row. Technically, we need to copy over
-    ///   only the first 5 elements of the hasher state, but it is easier to copy over the whole
-    ///   row.
+    /// - Copy over the hasher state from the previous row. Technically, we need to copy over only
+    ///   the first 5 elements of the hasher state, but it is easier to copy over the whole row.
     /// - Set in_span to ZERO.
     /// - Set op group count register to the ZERO.
     /// - Set operation index register to ZERO.
@@ -214,8 +210,8 @@ impl DecoderTrace {
     ///
     /// When a SPAN block is starting, we do the following:
     /// - Set the address to the address of the parent block. This is not necessarily equal to the
-    ///   address from the previous row because in a SPLIT block, the second child follows the
-    ///   first child, rather than the parent.
+    ///   address from the previous row because in a SPLIT block, the second child follows the first
+    ///   child, rather than the parent.
     /// - Set op_bits to SPAN opcode.
     /// - Set hasher state to op groups of the first op batch of the SPAN.
     /// - Set is_span to ZERO. is_span will be set to one in the following row.
@@ -247,8 +243,8 @@ impl DecoderTrace {
     /// Appends a trace row marking a RESPAN operation.
     ///
     /// When a RESPAN operation is executed, we do the following:
-    /// - Copy over the block address from the previous row. The SPAN address will be updated in
-    ///   the following row.
+    /// - Copy over the block address from the previous row. The SPAN address will be updated in the
+    ///   following row.
     /// - Set op_bits to RESPAN opcode.
     /// - Set hasher state to op groups of the next op batch of the SPAN.
     /// - Set in_span to ZERO.
@@ -283,21 +279,21 @@ impl DecoderTrace {
     /// - Set the second hasher state register to the address of the SPAN's parent block.
     /// - Set the remaining hasher state registers to ZEROs.
     /// - Set is_span to ONE.
-    /// - Set the number of groups remaining to be processed. This number of groups changes if
-    ///   in the previous row an operation with an immediate value was executed or if this
-    ///   operation is a start of a new operation group.
+    /// - Set the number of groups remaining to be processed. This number of groups changes if in
+    ///   the previous row an operation with an immediate value was executed or if this operation is
+    ///   a start of a new operation group.
     /// - Set the operation's index within the current operation group.
     /// - Set op_batch_flags to ZEROs.
     pub fn append_user_op(
         &mut self,
         op: Operation,
-        span_addr: Felt,
+        basic_block_addr: Felt,
         parent_addr: Felt,
         num_groups_left: Felt,
         group_ops_left: Felt,
         op_idx: Felt,
     ) {
-        self.addr_trace.push(span_addr);
+        self.addr_trace.push(basic_block_addr);
         self.append_opcode(op);
 
         self.hasher_trace[0].push(group_ops_left);
@@ -322,8 +318,8 @@ impl DecoderTrace {
     /// - Copy over the block address from the previous row.
     /// - Set op_bits to END opcode.
     /// - Put the hash of the span block into the first 4 registers of the hasher state.
-    /// - Put a flag indicating whether the SPAN block was a body of a loop into the 5th
-    ///   register of the hasher state.
+    /// - Put a flag indicating whether the SPAN block was a body of a loop into the 5th register of
+    ///   the hasher state.
     /// - Set in_span to ZERO to indicate that the span block is completed.
     /// - Copy over op group count from the previous row. This group count must be ZERO.
     /// - Set operation index register to ZERO.

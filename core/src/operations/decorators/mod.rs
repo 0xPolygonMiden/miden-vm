@@ -32,8 +32,14 @@ pub enum Decorator {
     Debug(DebugOptions),
     /// Emits an event to the host.
     Event(u32),
-    /// Emmits a trace to the host.
+    /// Emits a trace to the host.
     Trace(u32),
+}
+
+impl crate::prettier::PrettyPrint for Decorator {
+    fn render(&self) -> crate::prettier::Document {
+        crate::prettier::display(self)
+    }
 }
 
 impl fmt::Display for Decorator {
@@ -42,7 +48,7 @@ impl fmt::Display for Decorator {
             Self::Advice(injector) => write!(f, "advice({injector})"),
             Self::AsmOp(assembly_op) => {
                 write!(f, "asmOp({}, {})", assembly_op.op(), assembly_op.num_cycles())
-            }
+            },
             Self::Debug(options) => write!(f, "debug({options})"),
             Self::Event(event_id) => write!(f, "event({})", event_id),
             Self::Trace(trace_id) => write!(f, "trace({})", trace_id),
@@ -50,7 +56,8 @@ impl fmt::Display for Decorator {
     }
 }
 
-/// Vector consisting of a tuple of operation index (within a span block) and decorator at that index
+/// Vector consisting of a tuple of operation index (within a span block) and decorator at that
+/// index
 pub type DecoratorList = Vec<(usize, Decorator)>;
 
 /// Iterator used to iterate through the decorator list of a span block

@@ -55,11 +55,7 @@ impl ProvingOptions {
             fri_remainder_max_degree,
         );
         let exec_options = ExecutionOptions::default();
-        Self {
-            exec_options,
-            proof_options,
-            hash_fn,
-        }
+        Self { exec_options, proof_options, hash_fn }
     }
 
     /// Creates a new preset instance of [ProvingOptions] targeting 96-bit security level.
@@ -83,6 +79,16 @@ impl ProvingOptions {
         }
     }
 
+    /// Creates a new preset instance of [ProvingOptions] targeting 96-bit security level,
+    /// using the RPX hashing function.
+    pub fn with_96_bit_security_rpx() -> Self {
+        Self {
+            exec_options: ExecutionOptions::default(),
+            proof_options: Self::RECURSIVE_96_BITS,
+            hash_fn: HashFunction::Rpx256,
+        }
+    }
+
     /// Creates a new preset instance of [ProvingOptions] targeting 128-bit security level.
     ///
     /// If `recursive` flag is set to true, proofs will be generated using an arithmetization-
@@ -101,6 +107,16 @@ impl ProvingOptions {
                 proof_options: Self::REGULAR_128_BITS,
                 hash_fn: HashFunction::Blake3_256,
             }
+        }
+    }
+
+    /// Creates a new preset instance of [ProvingOptions] targeting 128-bit security level,
+    /// using the RPX hashing function.
+    pub fn with_128_bit_security_rpx() -> Self {
+        Self {
+            exec_options: ExecutionOptions::default(),
+            proof_options: Self::RECURSIVE_128_BITS,
+            hash_fn: HashFunction::Rpx256,
         }
     }
 
@@ -207,8 +223,8 @@ impl ExecutionOptions {
     ///
     /// In debug mode the VM does the following:
     /// - Executes `debug` instructions (these are ignored in regular mode).
-    /// - Records additional info about program execution (e.g., keeps track of stack state at
-    ///   every cycle of the VM) which enables stepping through the program forward and backward.
+    /// - Records additional info about program execution (e.g., keeps track of stack state at every
+    ///   cycle of the VM) which enables stepping through the program forward and backward.
     pub fn with_debugging(mut self) -> Self {
         self.enable_debugging = true;
         self

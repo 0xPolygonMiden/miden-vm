@@ -1,18 +1,25 @@
-use super::{
-    super::{
-        tests::{build_trace_from_block, build_trace_from_ops},
-        utils::build_span_with_respan_ops,
-        Trace, NUM_RAND_ROWS,
-    },
-    Felt,
-};
-use crate::{decoder::build_op_group, ContextId};
 use miden_air::trace::{
     decoder::{P1_COL_IDX, P2_COL_IDX, P3_COL_IDX},
     AUX_TRACE_RAND_ELEMENTS,
 };
 use test_utils::rand::rand_array;
-use vm_core::{code_blocks::CodeBlock, FieldElement, Operation, Word, ONE, ZERO};
+use vm_core::{
+    mast::{MastForest, MastNode},
+    FieldElement, Operation, Program, Word, ONE, ZERO,
+};
+
+use super::{
+    super::{
+        tests::{build_trace_from_ops, build_trace_from_program},
+        utils::build_span_with_respan_ops,
+        NUM_RAND_ROWS,
+    },
+    Felt,
+};
+use crate::{
+    decoder::{build_op_group, BlockHashTableRow},
+    ContextId,
+};
 
 // BLOCK STACK TABLE TESTS
 // ================================================================================================
@@ -21,9 +28,9 @@ use vm_core::{code_blocks::CodeBlock, FieldElement, Operation, Word, ONE, ZERO};
 #[allow(clippy::needless_range_loop)]
 fn decoder_p1_span_with_respan() {
     let (ops, _) = build_span_with_respan_ops();
-    let mut trace = build_trace_from_ops(ops, &[]);
+    let trace = build_trace_from_ops(ops, &[]);
     let alphas = rand_array::<Felt, AUX_TRACE_RAND_ELEMENTS>();
-    let aux_columns = trace.build_aux_segment(&[], &alphas).unwrap();
+    let aux_columns = trace.build_aux_trace(&alphas).unwrap();
     let p1 = aux_columns.get_column(P1_COL_IDX);
 
     let row_values = [
@@ -63,13 +70,21 @@ fn decoder_p1_span_with_respan() {
 #[test]
 #[allow(clippy::needless_range_loop)]
 fn decoder_p1_join() {
-    let span1 = CodeBlock::new_span(vec![Operation::Mul]);
-    let span2 = CodeBlock::new_span(vec![Operation::Add]);
-    let program = CodeBlock::new_join([span1, span2]);
+    let program = {
+        let mut mast_forest = MastForest::new();
 
-    let mut trace = build_trace_from_block(&program, &[]);
+        let basic_block_1_id = mast_forest.add_block(vec![Operation::Mul], None).unwrap();
+
+        let basic_block_2_id = mast_forest.add_block(vec![Operation::Add], None).unwrap();
+
+        let join_id = mast_forest.add_join(basic_block_1_id, basic_block_2_id).unwrap();
+
+        Program::new(mast_forest, join_id)
+    };
+
+    let trace = build_trace_from_program(&program, &[]);
     let alphas = rand_array::<Felt, AUX_TRACE_RAND_ELEMENTS>();
-    let aux_columns = trace.build_aux_segment(&[], &alphas).unwrap();
+    let aux_columns = trace.build_aux_trace(&alphas).unwrap();
     let p1 = aux_columns.get_column(P1_COL_IDX);
 
     let a_9 = Felt::new(9);
@@ -123,13 +138,21 @@ fn decoder_p1_join() {
 #[test]
 #[allow(clippy::needless_range_loop)]
 fn decoder_p1_split() {
-    let span1 = CodeBlock::new_span(vec![Operation::Mul]);
-    let span2 = CodeBlock::new_span(vec![Operation::Add]);
-    let program = CodeBlock::new_split(span1, span2);
+    let program = {
+        let mut mast_forest = MastForest::new();
 
-    let mut trace = build_trace_from_block(&program, &[1]);
+        let basic_block_1_id = mast_forest.add_block(vec![Operation::Mul], None).unwrap();
+
+        let basic_block_2_id = mast_forest.add_block(vec![Operation::Add], None).unwrap();
+
+        let split_id = mast_forest.add_split(basic_block_1_id, basic_block_2_id).unwrap();
+
+        Program::new(mast_forest, split_id)
+    };
+
+    let trace = build_trace_from_program(&program, &[1]);
     let alphas = rand_array::<Felt, AUX_TRACE_RAND_ELEMENTS>();
-    let aux_columns = trace.build_aux_segment(&[], &alphas).unwrap();
+    let aux_columns = trace.build_aux_trace(&alphas).unwrap();
     let p1 = aux_columns.get_column(P1_COL_IDX);
 
     let a_9 = Felt::new(9);
@@ -170,14 +193,23 @@ fn decoder_p1_split() {
 #[test]
 #[allow(clippy::needless_range_loop)]
 fn decoder_p1_loop_with_repeat() {
-    let span1 = CodeBlock::new_span(vec![Operation::Pad]);
-    let span2 = CodeBlock::new_span(vec![Operation::Drop]);
-    let body = CodeBlock::new_join([span1, span2]);
-    let program = CodeBlock::new_loop(body);
+    let program = {
+        let mut mast_forest = MastForest::new();
 
-    let mut trace = build_trace_from_block(&program, &[0, 1, 1]);
+        let basic_block_1_id = mast_forest.add_block(vec![Operation::Pad], None).unwrap();
+
+        let basic_block_2_id = mast_forest.add_block(vec![Operation::Drop], None).unwrap();
+
+        let join_id = mast_forest.add_join(basic_block_1_id, basic_block_2_id).unwrap();
+
+        let loop_node_id = mast_forest.add_loop(join_id).unwrap();
+
+        Program::new(mast_forest, loop_node_id)
+    };
+
+    let trace = build_trace_from_program(&program, &[0, 1, 1]);
     let alphas = rand_array::<Felt, AUX_TRACE_RAND_ELEMENTS>();
-    let aux_columns = trace.build_aux_segment(&[], &alphas).unwrap();
+    let aux_columns = trace.build_aux_trace(&alphas).unwrap();
     let p1 = aux_columns.get_column(P1_COL_IDX);
 
     let a_9 = Felt::new(9); // address of the JOIN block in the first iteration
@@ -287,15 +319,22 @@ fn decoder_p1_loop_with_repeat() {
 #[test]
 #[allow(clippy::needless_range_loop)]
 fn decoder_p2_span_with_respan() {
-    let (ops, _) = build_span_with_respan_ops();
-    let span = CodeBlock::new_span(ops);
-    let mut trace = build_trace_from_block(&span, &[]);
+    let program = {
+        let mut mast_forest = MastForest::new();
+
+        let (ops, _) = build_span_with_respan_ops();
+        let basic_block_id = mast_forest.add_block(ops, None).unwrap();
+
+        Program::new(mast_forest, basic_block_id)
+    };
+    let trace = build_trace_from_program(&program, &[]);
     let alphas = rand_array::<Felt, AUX_TRACE_RAND_ELEMENTS>();
-    let aux_columns = trace.build_aux_segment(&[], &alphas).unwrap();
+    let aux_columns = trace.build_aux_trace(&alphas).unwrap();
     let p2 = aux_columns.get_column(P2_COL_IDX);
 
-    let row_values =
-        [BlockHashTableRow::new_test(ZERO, span.hash().into(), false, false).to_value(&alphas)];
+    let row_values = [
+        BlockHashTableRow::new_test(ZERO, program.hash().into(), false, false).collapse(&alphas)
+    ];
 
     // make sure the first entry is initialized to program hash
     let mut expected_value = row_values[0];
@@ -317,19 +356,30 @@ fn decoder_p2_span_with_respan() {
 #[test]
 #[allow(clippy::needless_range_loop)]
 fn decoder_p2_join() {
-    let span1 = CodeBlock::new_span(vec![Operation::Mul]);
-    let span2 = CodeBlock::new_span(vec![Operation::Add]);
-    let program = CodeBlock::new_join([span1.clone(), span2.clone()]);
+    let mut mast_forest = MastForest::new();
 
-    let mut trace = build_trace_from_block(&program, &[]);
+    let basic_block_1 = MastNode::new_basic_block(vec![Operation::Mul]);
+    let basic_block_1_id = mast_forest.add_node(basic_block_1.clone()).unwrap();
+
+    let basic_block_2 = MastNode::new_basic_block(vec![Operation::Add]);
+    let basic_block_2_id = mast_forest.add_node(basic_block_2.clone()).unwrap();
+
+    let join = MastNode::new_join(basic_block_1_id, basic_block_2_id, &mast_forest).unwrap();
+    let join_id = mast_forest.add_node(join.clone()).unwrap();
+
+    let program = Program::new(mast_forest, join_id);
+
+    let trace = build_trace_from_program(&program, &[]);
     let alphas = rand_array::<Felt, AUX_TRACE_RAND_ELEMENTS>();
-    let aux_columns = trace.build_aux_segment(&[], &alphas).unwrap();
+    let aux_columns = trace.build_aux_trace(&alphas).unwrap();
     let p2 = aux_columns.get_column(P2_COL_IDX);
 
     let row_values = [
-        BlockHashTableRow::new_test(ZERO, program.hash().into(), false, false).to_value(&alphas),
-        BlockHashTableRow::new_test(ONE, span1.hash().into(), true, false).to_value(&alphas),
-        BlockHashTableRow::new_test(ONE, span2.hash().into(), false, false).to_value(&alphas),
+        BlockHashTableRow::new_test(ZERO, join.digest().into(), false, false).collapse(&alphas),
+        BlockHashTableRow::new_test(ONE, basic_block_1.digest().into(), true, false)
+            .collapse(&alphas),
+        BlockHashTableRow::new_test(ONE, basic_block_2.digest().into(), false, false)
+            .collapse(&alphas),
     ];
 
     // make sure the first entry is initialized to program hash
@@ -370,18 +420,28 @@ fn decoder_p2_join() {
 #[test]
 #[allow(clippy::needless_range_loop)]
 fn decoder_p2_split_true() {
-    let span1 = CodeBlock::new_span(vec![Operation::Mul]);
-    let span2 = CodeBlock::new_span(vec![Operation::Add]);
-    let program = CodeBlock::new_split(span1.clone(), span2);
+    // build program
+    let mut mast_forest = MastForest::new();
 
-    let mut trace = build_trace_from_block(&program, &[1]);
+    let basic_block_1 = MastNode::new_basic_block(vec![Operation::Mul]);
+    let basic_block_1_id = mast_forest.add_node(basic_block_1.clone()).unwrap();
+
+    let basic_block_2_id = mast_forest.add_block(vec![Operation::Add], None).unwrap();
+
+    let split_id = mast_forest.add_split(basic_block_1_id, basic_block_2_id).unwrap();
+
+    let program = Program::new(mast_forest, split_id);
+
+    // build trace from program
+    let trace = build_trace_from_program(&program, &[1]);
     let alphas = rand_array::<Felt, AUX_TRACE_RAND_ELEMENTS>();
-    let aux_columns = trace.build_aux_segment(&[], &alphas).unwrap();
+    let aux_columns = trace.build_aux_trace(&alphas).unwrap();
     let p2 = aux_columns.get_column(P2_COL_IDX);
 
     let row_values = [
-        BlockHashTableRow::new_test(ZERO, program.hash().into(), false, false).to_value(&alphas),
-        BlockHashTableRow::new_test(ONE, span1.hash().into(), false, false).to_value(&alphas),
+        BlockHashTableRow::new_test(ZERO, program.hash().into(), false, false).collapse(&alphas),
+        BlockHashTableRow::new_test(ONE, basic_block_1.digest().into(), false, false)
+            .collapse(&alphas),
     ];
 
     // make sure the first entry is initialized to program hash
@@ -414,18 +474,29 @@ fn decoder_p2_split_true() {
 #[test]
 #[allow(clippy::needless_range_loop)]
 fn decoder_p2_split_false() {
-    let span1 = CodeBlock::new_span(vec![Operation::Mul]);
-    let span2 = CodeBlock::new_span(vec![Operation::Add]);
-    let program = CodeBlock::new_split(span1, span2.clone());
+    // build program
+    let mut mast_forest = MastForest::new();
 
-    let mut trace = build_trace_from_block(&program, &[0]);
+    let basic_block_1 = MastNode::new_basic_block(vec![Operation::Mul]);
+    let basic_block_1_id = mast_forest.add_node(basic_block_1.clone()).unwrap();
+
+    let basic_block_2 = MastNode::new_basic_block(vec![Operation::Add]);
+    let basic_block_2_id = mast_forest.add_node(basic_block_2.clone()).unwrap();
+
+    let split_id = mast_forest.add_split(basic_block_1_id, basic_block_2_id).unwrap();
+
+    let program = Program::new(mast_forest, split_id);
+
+    // build trace from program
+    let trace = build_trace_from_program(&program, &[0]);
     let alphas = rand_array::<Felt, AUX_TRACE_RAND_ELEMENTS>();
-    let aux_columns = trace.build_aux_segment(&[], &alphas).unwrap();
+    let aux_columns = trace.build_aux_trace(&alphas).unwrap();
     let p2 = aux_columns.get_column(P2_COL_IDX);
 
     let row_values = [
-        BlockHashTableRow::new_test(ZERO, program.hash().into(), false, false).to_value(&alphas),
-        BlockHashTableRow::new_test(ONE, span2.hash().into(), false, false).to_value(&alphas),
+        BlockHashTableRow::new_test(ZERO, program.hash().into(), false, false).collapse(&alphas),
+        BlockHashTableRow::new_test(ONE, basic_block_2.digest().into(), false, false)
+            .collapse(&alphas),
     ];
 
     // make sure the first entry is initialized to program hash
@@ -458,25 +529,41 @@ fn decoder_p2_split_false() {
 #[test]
 #[allow(clippy::needless_range_loop)]
 fn decoder_p2_loop_with_repeat() {
-    let span1 = CodeBlock::new_span(vec![Operation::Pad]);
-    let span2 = CodeBlock::new_span(vec![Operation::Drop]);
-    let body = CodeBlock::new_join([span1.clone(), span2.clone()]);
-    let program = CodeBlock::new_loop(body.clone());
+    // build program
+    let mut mast_forest = MastForest::new();
 
-    let mut trace = build_trace_from_block(&program, &[0, 1, 1]);
+    let basic_block_1 = MastNode::new_basic_block(vec![Operation::Pad]);
+    let basic_block_1_id = mast_forest.add_node(basic_block_1.clone()).unwrap();
+
+    let basic_block_2 = MastNode::new_basic_block(vec![Operation::Drop]);
+    let basic_block_2_id = mast_forest.add_node(basic_block_2.clone()).unwrap();
+
+    let join = MastNode::new_join(basic_block_1_id, basic_block_2_id, &mast_forest).unwrap();
+    let join_id = mast_forest.add_node(join.clone()).unwrap();
+
+    let loop_node_id = mast_forest.add_loop(join_id).unwrap();
+
+    let program = Program::new(mast_forest, loop_node_id);
+
+    // build trace from program
+    let trace = build_trace_from_program(&program, &[0, 1, 1]);
     let alphas = rand_array::<Felt, AUX_TRACE_RAND_ELEMENTS>();
-    let aux_columns = trace.build_aux_segment(&[], &alphas).unwrap();
+    let aux_columns = trace.build_aux_trace(&alphas).unwrap();
     let p2 = aux_columns.get_column(P2_COL_IDX);
 
     let a_9 = Felt::new(9); // address of the JOIN block in the first iteration
     let a_33 = Felt::new(33); // address of the JOIN block in the second iteration
     let row_values = [
-        BlockHashTableRow::new_test(ZERO, program.hash().into(), false, false).to_value(&alphas),
-        BlockHashTableRow::new_test(ONE, body.hash().into(), false, true).to_value(&alphas),
-        BlockHashTableRow::new_test(a_9, span1.hash().into(), true, false).to_value(&alphas),
-        BlockHashTableRow::new_test(a_9, span2.hash().into(), false, false).to_value(&alphas),
-        BlockHashTableRow::new_test(a_33, span1.hash().into(), true, false).to_value(&alphas),
-        BlockHashTableRow::new_test(a_33, span2.hash().into(), false, false).to_value(&alphas),
+        BlockHashTableRow::new_test(ZERO, program.hash().into(), false, false).collapse(&alphas),
+        BlockHashTableRow::new_test(ONE, join.digest().into(), false, true).collapse(&alphas),
+        BlockHashTableRow::new_test(a_9, basic_block_1.digest().into(), true, false)
+            .collapse(&alphas),
+        BlockHashTableRow::new_test(a_9, basic_block_2.digest().into(), false, false)
+            .collapse(&alphas),
+        BlockHashTableRow::new_test(a_33, basic_block_1.digest().into(), true, false)
+            .collapse(&alphas),
+        BlockHashTableRow::new_test(a_33, basic_block_2.digest().into(), false, false)
+            .collapse(&alphas),
     ];
 
     // make sure the first entry is initialized to program hash
@@ -561,10 +648,10 @@ fn decoder_p2_loop_with_repeat() {
 fn decoder_p3_trace_empty_table() {
     let stack = [1, 2];
     let operations = vec![Operation::Add];
-    let mut trace = build_trace_from_ops(operations, &stack);
+    let trace = build_trace_from_ops(operations, &stack);
 
     let rand_elements = rand_array::<Felt, AUX_TRACE_RAND_ELEMENTS>();
-    let aux_columns = trace.build_aux_segment(&[], &rand_elements).unwrap();
+    let aux_columns = trace.build_aux_trace(&rand_elements).unwrap();
 
     // no rows should have been added or removed from the op group table, and thus, all values
     // in the column must be ONE
@@ -592,9 +679,9 @@ fn decoder_p3_trace_one_batch() {
         Operation::Mul,
         Operation::Add,
     ];
-    let mut trace = build_trace_from_ops(ops.clone(), &stack);
+    let trace = build_trace_from_ops(ops.clone(), &stack);
     let alphas = rand_array::<Felt, AUX_TRACE_RAND_ELEMENTS>();
-    let aux_columns = trace.build_aux_segment(&[], &alphas).unwrap();
+    let aux_columns = trace.build_aux_trace(&alphas).unwrap();
     let p3 = aux_columns.get_column(P3_COL_IDX);
 
     // make sure the first entry is ONE
@@ -644,9 +731,9 @@ fn decoder_p3_trace_one_batch() {
 #[allow(clippy::needless_range_loop)]
 fn decoder_p3_trace_two_batches() {
     let (ops, iv) = build_span_with_respan_ops();
-    let mut trace = build_trace_from_ops(ops, &[]);
+    let trace = build_trace_from_ops(ops, &[]);
     let alphas = rand_array::<Felt, AUX_TRACE_RAND_ELEMENTS>();
-    let aux_columns = trace.build_aux_segment(&[], &alphas).unwrap();
+    let aux_columns = trace.build_aux_trace(&alphas).unwrap();
     let p3 = aux_columns.get_column(P3_COL_IDX);
 
     // make sure the first entry is ONE
@@ -768,51 +855,6 @@ impl BlockStackTableRow {
     }
 }
 
-/// Describes a single entry in the block hash table. An entry in the block hash table is a tuple
-/// (parent_id, block_hash, is_first_child, is_loop_body).
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct BlockHashTableRow {
-    parent_id: Felt,
-    block_hash: Word,
-    is_first_child: bool,
-    is_loop_body: bool,
-}
-
-impl BlockHashTableRow {
-    /// Returns a new [BlockHashTableRow] instantiated with the specified parameters. This is
-    /// used for test purpose only.
-    pub fn new_test(
-        parent_id: Felt,
-        block_hash: Word,
-        is_first_child: bool,
-        is_loop_body: bool,
-    ) -> Self {
-        Self {
-            parent_id,
-            block_hash,
-            is_first_child,
-            is_loop_body,
-        }
-    }
-}
-
-impl BlockHashTableRow {
-    /// Reduces this row to a single field element in the field specified by E. This requires
-    /// at least 8 alpha values.
-    pub fn to_value<E: FieldElement<BaseField = Felt>>(&self, alphas: &[E]) -> E {
-        let is_first_child = if self.is_first_child { ONE } else { ZERO };
-        let is_loop_body = if self.is_loop_body { ONE } else { ZERO };
-        alphas[0]
-            + alphas[1].mul_base(self.parent_id)
-            + alphas[2].mul_base(self.block_hash[0])
-            + alphas[3].mul_base(self.block_hash[1])
-            + alphas[4].mul_base(self.block_hash[2])
-            + alphas[5].mul_base(self.block_hash[3])
-            + alphas[6].mul_base(is_first_child)
-            + alphas[7].mul_base(is_loop_body)
-    }
-}
-
 /// Describes a single entry in the op group table. An entry in the op group table is a tuple
 /// (batch_id, group_pos, group_value).
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -825,11 +867,7 @@ pub struct OpGroupTableRow {
 impl OpGroupTableRow {
     /// Returns a new [OpGroupTableRow] instantiated with the specified parameters.
     pub fn new(batch_id: Felt, group_pos: Felt, group_value: Felt) -> Self {
-        Self {
-            batch_id,
-            group_pos,
-            group_value,
-        }
+        Self { batch_id, group_pos, group_value }
     }
 }
 

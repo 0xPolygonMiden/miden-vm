@@ -1,12 +1,17 @@
+use alloc::{collections::BTreeMap, vec::Vec};
+
+use miden_air::{
+    trace::chiplets::memory::{
+        ADDR_COL_IDX, CLK_COL_IDX, CTX_COL_IDX, D0_COL_IDX, D1_COL_IDX, D_INV_COL_IDX, V_COL_RANGE,
+    },
+    RowIndex,
+};
+
 use super::{
     utils::{split_element_u32_into_u16, split_u32_into_u16},
     Felt, FieldElement, RangeChecker, TraceFragment, Word, EMPTY_WORD, ONE,
 };
 use crate::system::ContextId;
-use alloc::{collections::BTreeMap, vec::Vec};
-use miden_air::trace::chiplets::memory::{
-    ADDR_COL_IDX, CLK_COL_IDX, CTX_COL_IDX, D0_COL_IDX, D1_COL_IDX, D_INV_COL_IDX, V_COL_RANGE,
-};
 
 mod segment;
 use segment::MemorySegmentTrace;
@@ -47,14 +52,14 @@ const INIT_MEM_VALUE: Word = EMPTY_WORD;
 /// - `s0` is a selector column used to identify whether the memory access is a read or a write. A
 ///   value of ZERO indicates a write, and ONE indicates a read.
 /// - `s1` is a selector column used to identify whether the memory access is a read of an existing
-///   memory value or not (i.e., this context/addr combination already existed and is being read).
-///   A value of ONE indicates a read of existing memory, meaning the previous value must be copied.
+///   memory value or not (i.e., this context/addr combination already existed and is being read). A
+///   value of ONE indicates a read of existing memory, meaning the previous value must be copied.
 /// - `ctx` contains execution context ID. Values in this column must increase monotonically but
 ///   there can be gaps between two consecutive context IDs of up to 2^32. Also, two consecutive
 ///   values can be the same.
-/// - `addr` contains memory address. Values in this column must increase monotonically for a
-///   given context but there can be gaps between two consecutive values of up to 2^32. Also,
-///   two consecutive values can be the same.
+/// - `addr` contains memory address. Values in this column must increase monotonically for a given
+///   context but there can be gaps between two consecutive values of up to 2^32. Also, two
+///   consecutive values can be the same.
 /// - `clk` contains clock cycle at which a memory operation happened. Values in this column must
 ///   increase monotonically for a given context and memory address but there can be gaps between
 ///   two consecutive values of up to 2^32.
@@ -63,10 +68,10 @@ const INIT_MEM_VALUE: Word = EMPTY_WORD;
 /// - Columns `d0` and `d1` contain lower and upper 16 bits of the delta between two consecutive
 ///   context IDs, addresses, or clock cycles. Specifically:
 ///   - When the context changes, these columns contain (`new_ctx` - `old_ctx`).
-///   - When the context remains the same but the address changes, these columns contain
-///     (`new_addr` - `old-addr`).
-///   - When both the context and the address remain the same, these columns contain
-///     (`new_clk` - `old_clk` - 1).
+///   - When the context remains the same but the address changes, these columns contain (`new_addr`
+///     - `old-addr`).
+///   - When both the context and the address remain the same, these columns contain (`new_clk` -
+///     `old_clk` - 1).
 /// - `d_inv` contains the inverse of the delta between two consecutive context IDs, addresses, or
 ///   clock cycles computed as described above.
 ///
@@ -103,8 +108,9 @@ impl Memory {
         }
     }
 
-    /// Returns the word at the specified context/address which should be used as the "old value" for a
-    /// write request. It will be the previously stored value, if one exists, or initialized memory.
+    /// Returns the word at the specified context/address which should be used as the "old value"
+    /// for a write request. It will be the previously stored value, if one exists, or
+    /// initialized memory.
     pub fn get_old_value(&self, ctx: ContextId, addr: u32) -> Word {
         // get the stored word or return [0, 0, 0, 0], since the memory is initialized with zeros
         self.get_value(ctx, addr).unwrap_or(INIT_MEM_VALUE)
@@ -113,7 +119,7 @@ impl Memory {
     /// Returns the entire memory state for the specified execution context at the specified cycle.
     /// The state is returned as a vector of (address, value) tuples, and includes addresses which
     /// have been accessed at least once.
-    pub fn get_state_at(&self, ctx: ContextId, clk: u32) -> Vec<(u64, Word)> {
+    pub fn get_state_at(&self, ctx: ContextId, clk: RowIndex) -> Vec<(u64, Word)> {
         if clk == 0 {
             return vec![];
         }
@@ -131,13 +137,13 @@ impl Memory {
     ///
     /// If the specified address hasn't been previously written to, four ZERO elements are
     /// returned. This effectively implies that memory is initialized to ZERO.
-    pub fn read(&mut self, ctx: ContextId, addr: u32, clk: u32) -> Word {
+    pub fn read(&mut self, ctx: ContextId, addr: u32, clk: RowIndex) -> Word {
         self.num_trace_rows += 1;
         self.trace.entry(ctx).or_default().read(addr, Felt::from(clk))
     }
 
     /// Writes the provided word at the specified context/address.
-    pub fn write(&mut self, ctx: ContextId, addr: u32, clk: u32, value: Word) {
+    pub fn write(&mut self, ctx: ContextId, addr: u32, clk: RowIndex, value: Word) {
         self.num_trace_rows += 1;
         self.trace.entry(ctx).or_default().write(addr, Felt::from(clk), value);
     }
@@ -147,7 +153,7 @@ impl Memory {
 
     /// Adds all of the range checks required by the [Memory] chiplet to the provided
     /// [RangeChecker] chiplet instance, along with their row in the finalized execution trace.
-    pub fn append_range_checks(&self, memory_start_row: usize, range: &mut RangeChecker) {
+    pub fn append_range_checks(&self, memory_start_row: RowIndex, range: &mut RangeChecker) {
         // set the previous address and clock cycle to the first address and clock cycle of the
         // trace; we also adjust the clock cycle so that delta value for the first row would end
         // up being ZERO. if the trace is empty, return without any further processing.
@@ -157,12 +163,12 @@ impl Memory {
         };
 
         // op range check index
-        let mut row = memory_start_row as u32;
+        let mut row = memory_start_row;
 
         for (&ctx, segment) in self.trace.iter() {
             for (&addr, addr_trace) in segment.inner().iter() {
-                // when we start a new address, we set the previous value to all zeros. the effect of
-                // this is that memory is always initialized to zero.
+                // when we start a new address, we set the previous value to all zeros. the effect
+                // of this is that memory is always initialized to zero.
                 for memory_access in addr_trace {
                     let clk = memory_access.clk().as_int();
 
@@ -170,7 +176,7 @@ impl Memory {
                     let delta = if prev_ctx != ctx {
                         (u32::from(ctx) - u32::from(prev_ctx)).into()
                     } else if prev_addr != addr {
-                        (addr - prev_addr) as u64
+                        u64::from(addr - prev_addr)
                     } else {
                         clk - prev_clk - 1
                     };
@@ -202,13 +208,13 @@ impl Memory {
 
         // iterate through addresses in ascending order, and write trace row for each memory access
         // into the trace. we expect the trace to be 14 columns wide.
-        let mut row = 0;
+        let mut row: RowIndex = 0.into();
 
         for (ctx, segment) in self.trace {
             let ctx = Felt::from(ctx);
             for (addr, addr_trace) in segment.into_inner() {
-                // when we start a new address, we set the previous value to all zeros. the effect of
-                // this is that memory is always initialized to zero.
+                // when we start a new address, we set the previous value to all zeros. the effect
+                // of this is that memory is always initialized to zero.
                 let felt_addr = Felt::from(addr);
                 for memory_access in addr_trace {
                     let clk = memory_access.clk();
