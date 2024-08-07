@@ -2486,3 +2486,60 @@ fn test_compiled_library() {
 
     let _program = assembler.assemble_program(program_source).unwrap();
 }
+
+#[test]
+fn test_reexported_proc_with_same_name_as_local_proc_diff_locals() {
+    let context = TestContext::new();
+    let mut mod_parser = ModuleParser::new(ModuleKind::Library);
+    let mod1 = {
+        let source = source_file!(
+            &context,
+            "export.foo.2
+    push.1
+    drop
+end
+"
+        );
+        mod_parser.parse(LibraryPath::new("test::mod1").unwrap(), source).unwrap()
+    };
+
+    let mod2 = {
+        let source = source_file!(
+            &context,
+            "use.test::mod1
+export.foo
+    exec.mod1::foo
+end
+"
+        );
+        mod_parser.parse(LibraryPath::new("test::mod2").unwrap(), source).unwrap()
+    };
+
+    let compiled_library = {
+        let assembler = Assembler::new(context.source_manager());
+        assembler.assemble_library([mod1, mod2]).unwrap()
+    };
+
+    assert_eq!(compiled_library.exports().count(), 2);
+
+    // Compile program that uses compiled library
+    let mut assembler = Assembler::new(context.source_manager());
+
+    assembler.add_library(&compiled_library).unwrap();
+
+    let program_source = "
+    use.test::mod1
+    use.test::mod2
+
+    proc.foo.1
+        exec.mod1::foo
+        exec.mod2::foo
+    end
+
+    begin
+        exec.foo
+    end
+    ";
+
+    let _program = assembler.assemble_program(program_source).unwrap();
+}
