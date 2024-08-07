@@ -31,7 +31,10 @@ testing = ["dep:regex"]
 [dependencies]
 aho-corasick = { version = "1.1", default-features = false }
 lalrpop-util = { version = "0.20", default-features = false }
-miette = { package = "miden-miette", version = "7.1", default-features = false, features = ["fancy-no-syscall", "derive"], optional = true }
+miette = { package = "miden-miette", version = "7.1", default-features = false, features = [
+    "fancy-no-syscall",
+    "derive"
+] }
 regex = { version = "1.10", optional = true, default-features = false, features = ["unicode", "perf"] }
 smallvec = { version = "1.13", features = [
     "union",
@@ -49,7 +52,7 @@ vm-core = { package = "miden-core", path = "../core", version = "0.10", default-
 
 [dev-dependencies]
 pretty_assertions = "1.4"
-regex = { version = "1.10", default-features = false, features = [ "unicode","perf"] }
+regex = { version = "1.10", default-features = false, features = [ "unicode", "perf"] }
 
 [build-dependencies]
 lalrpop = { version = "0.20", default-features = false }
