@@ -34,7 +34,7 @@ testing = []
 vm-core = { package = "miden-core", path = "../core", version = "0.10", default-features = false }
 winter-air = { package = "winter-air", version = "0.9", default-features = false }
 winter-prover = { package = "winter-prover", version = "0.9", default-features = false }
-thiserror = { version = "1.0", git = "https://github.com/bitwalker/thiserror", branch = "no-std", default-features = false }
+thiserror = { package = "miden-thiserror", version = "1.0", default-features = false }
 
 [dev-dependencies]
 criterion = "0.5"

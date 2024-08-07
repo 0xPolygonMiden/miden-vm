@@ -31,14 +31,8 @@ testing = ["dep:regex"]
 [dependencies]
 aho-corasick = { version = "1.1", default-features = false }
 lalrpop-util = { version = "0.20", default-features = false }
-miette = { version = "7.1.0", git = "https://github.com/bitwalker/miette", branch = "no-std", default-features = false, features = [
-    "fancy-no-syscall",
-    "derive",
-] }
-regex = { version = "1.10", optional = true, default-features = false, features = [
-    "unicode",
-    "perf",
-] }
+miette = { package = "miden-miette", version = "7.1", default-features = false, features = ["fancy-no-syscall", "derive"], optional = true }
+regex = { version = "1.10", optional = true, default-features = false, features = ["unicode", "perf"] }
 smallvec = { version = "1.13", features = [
     "union",
     "const_generics",
@@ -47,7 +41,7 @@ smallvec = { version = "1.13", features = [
 tracing = { version = "0.1", default-features = false, features = [
     "attributes",
 ] }
-thiserror = { version = "1.0", git = "https://github.com/bitwalker/thiserror", branch = "no-std", default-features = false }
+thiserror = { package = "miden-thiserror", version = "1.0", default-features = false }
 unicode-width = { version = "0.1", features = ["no_std"] }
 vm-core = { package = "miden-core", path = "../core", version = "0.10", default-features = false, features = [
     "diagnostics",
@@ -55,11 +49,8 @@ vm-core = { package = "miden-core", path = "../core", version = "0.10", default-
 
 [dev-dependencies]
 pretty_assertions = "1.4"
-regex = { version = "1.10", default-features = false, features = [
-    "unicode",
-    "perf",
-] }
+regex = { version = "1.10", default-features = false, features = [ "unicode","perf"] }
 
 [build-dependencies]
 lalrpop = { version = "0.20", default-features = false }
-rustc_version = "0.2"
+rustc_version = "0.4"
