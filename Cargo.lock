@@ -1089,9 +1089,9 @@ dependencies = [
 
 [[package]]
 name = "miden-miette"
-version = "7.1.0"
+version = "7.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "00dd11dd9b90f0b750ba2366a09e63796cdb6e8167a90251544b2560bf222d87"
+checksum = "c532250422d933f15b148fb81e4522a5d649c178ab420d0d596c86228da35570"
 dependencies = [
  "backtrace",
  "backtrace-ext",
@@ -1099,8 +1099,8 @@ dependencies = [
  "futures",
  "indenter",
  "lazy_static",
+ "miden-miette-derive",
  "miden-thiserror",
- "miette-derive",
  "owo-colors",
  "regex",
  "rustc_version 0.2.3",
@@ -1116,6 +1116,17 @@ dependencies = [
  "textwrap",
  "trybuild",
  "unicode-width",
+]
+
+[[package]]
+name = "miden-miette-derive"
+version = "7.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1cc759f0a2947acae217a2f32f722105cacc57d17d5f93bc16362142943a4edd"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn",
 ]
 
 [[package]]
@@ -1241,17 +1252,6 @@ dependencies = [
  "tracing-forest",
  "tracing-subscriber",
  "winter-fri 0.8.3",
-]
-
-[[package]]
-name = "miette-derive"
-version = "7.1.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f301c3f54f98abc6c212ee722f5e5c62e472a334415840669e356f04850051ec"
-dependencies = [
- "proc-macro2",
- "quote",
- "syn",
 ]
 
 [[package]]
