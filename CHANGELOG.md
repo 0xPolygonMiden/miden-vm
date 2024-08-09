@@ -21,19 +21,20 @@
 - Relaxed the parser to allow one branch of an `if.(true|false)` to be empty.
 - Optimized `std::sys::truncate_stuck` procedure (#1384).
 - Updated CI and Makefile to standardize it across Miden repositories (#1342).
-- Add serialization/deserialization for `MastForest` (#1370)
-- Updated CI to support `CHANGELOG.md` modification checking and `no changelog` label (#1406)
-- Introduced `MastForestError` to enforce `MastForest` node count invariant (#1394)
-- Added functions to `MastForestBuilder` to allow ensuring of nodes with fewer LOC (#1404)
+- Add serialization/deserialization for `MastForest` (#1370).
+- Updated CI to support `CHANGELOG.md` modification checking and `no changelog` label (#1406).
+- Introduced `MastForestError` to enforce `MastForest` node count invariant (#1394).
+- Added functions to `MastForestBuilder` to allow ensuring of nodes with fewer LOC (#1404).
 - [BREAKING] Made `Assembler` single-use (#1409).
 - Removed `ProcedureCache` from the assembler (#1411).
-- Added functions to `MastForest` and `MastForestBuilder` to add and ensure nodes with fewer LOC (#1404, #1412)
+- Added functions to `MastForest` and `MastForestBuilder` to add and ensure nodes with fewer LOC (#1404, #1412).
 - Added `Assembler::assemble_library()` and `Assembler::assemble_kernel()`  (#1413, #1418).
 - Added `miden_core::prettier::pretty_print_csv` helper, for formatting of iterators over `PrettyPrint` values as comma-separated items.
-- Added source code management primitives in `miden-core` (#1419)
+- Added source code management primitives in `miden-core` (#1419).
 - Added `make test-fast` and `make test-skip-proptests` Makefile targets for faster testing during local development.
 - Added `ProgramFile::read_with` constructor that takes a `SourceManager` impl to use for source management.
 - Added `RowIndex(u32)` (#1408).
+- Removed linear search of trace rows from `BlockHashTableRow::table_init()` (#1439).
 
 #### Changed
 

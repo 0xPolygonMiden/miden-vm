@@ -25,7 +25,7 @@ pub struct BlockHashTableColumnBuilder {}
 
 impl<E: FieldElement<BaseField = Felt>> AuxColumnBuilder<E> for BlockHashTableColumnBuilder {
     fn init_responses(&self, main_trace: &MainTrace, alphas: &[E]) -> E {
-        BlockHashTableRow::table_init(main_trace).collapse(alphas)
+        BlockHashTableRow::table_init(main_trace.program_hash()).collapse(alphas)
     }
 
     /// Removes a row from the block hash table.
@@ -86,17 +86,8 @@ impl BlockHashTableRow {
     // CONSTRUCTORS
     // ----------------------------------------------------------------------------------------------
 
-    // Computes the initial row in the block hash table.
-    pub fn table_init(main_trace: &MainTrace) -> Self {
-        let program_hash = {
-            let row_with_halt = main_trace
-                .row_iter()
-                .find(|&row| main_trace.get_op_code(row) == Felt::from(OPCODE_HALT))
-                .expect("execution trace must include at least one occurrence of HALT");
-
-            main_trace.decoder_hasher_state_first_half(row_with_halt)
-        };
-
+    // Instantiates the initial row in the block hash table.
+    pub fn table_init(program_hash: Word) -> Self {
         Self {
             parent_block_id: ZERO,
             child_block_hash: program_hash,
