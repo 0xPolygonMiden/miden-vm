@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased
+
+#### Enhancements
+
+- Exposed some pretty printing internals for `MastNode`
+- Made `KernelLibrary` impl `Clone` and `AsRef<Library>`
+
 ## 0.10.0 (2024-08-06)
 
 #### Features

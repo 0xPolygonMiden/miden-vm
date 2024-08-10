@@ -113,10 +113,7 @@ impl MastNode {
         matches!(self, Self::Block(_))
     }
 
-    pub(crate) fn to_pretty_print<'a>(
-        &'a self,
-        mast_forest: &'a MastForest,
-    ) -> impl PrettyPrint + 'a {
+    pub fn to_pretty_print<'a>(&'a self, mast_forest: &'a MastForest) -> impl PrettyPrint + 'a {
         match self {
             MastNode::Block(basic_block_node) => {
                 MastNodePrettyPrint::new(Box::new(basic_block_node))
