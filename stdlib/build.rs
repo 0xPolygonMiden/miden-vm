@@ -36,7 +36,7 @@ fn main() -> Result<()> {
     // write the masl output
     let build_dir = env::var("OUT_DIR").unwrap();
     let build_dir = Path::new(&build_dir);
-    let options = AstSerdeOptions::new(false, false);
+    let options = AstSerdeOptions::new(false);
     let output_file = build_dir
         .join(ASL_DIR_PATH)
         .join("std")

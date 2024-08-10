@@ -465,11 +465,9 @@ impl Module {
         }
         self.kind.write_into(target);
         self.path.write_into(target);
-        if options.serialize_imports {
-            target.write_usize(self.imports.len());
-            for import in self.imports.iter() {
-                import.write_into_with_options(target, options);
-            }
+        target.write_usize(self.imports.len());
+        for import in self.imports.iter() {
+            import.write_into_with_options(target, options);
         }
         target.write_usize(self.procedures.len());
         for export in self.procedures.iter() {
@@ -512,10 +510,7 @@ impl Module {
         // that has to happen upstream in winterfell
         std::panic::catch_unwind(|| match std::fs::File::create(path) {
             Ok(ref mut file) => {
-                let options = AstSerdeOptions {
-                    serialize_imports: true,
-                    debug_info: true,
-                };
+                let options = AstSerdeOptions { debug_info: true };
                 self.write_into_with_options(file, options);
                 Ok(())
             },
@@ -534,7 +529,7 @@ impl Module {
 
 impl Serializable for Module {
     fn write_into<W: ByteWriter>(&self, target: &mut W) {
-        self.write_into_with_options(target, AstSerdeOptions::new(true, true))
+        self.write_into_with_options(target, AstSerdeOptions::new(true))
     }
 }
 
@@ -552,7 +547,7 @@ impl Deserializable for Module {
         };
         let kind = ModuleKind::read_from(source)?;
         let path = LibraryPath::read_from(source)?;
-        let imports = if options.serialize_imports {
+        let imports = {
             let num_imports = source.read_usize()?;
             let mut imports = Vec::with_capacity(num_imports);
             for _ in 0..num_imports {
@@ -560,8 +555,6 @@ impl Deserializable for Module {
                 imports.push(import);
             }
             imports
-        } else {
-            Vec::new()
         };
         let num_procedures = source.read_usize()?;
         let mut procedures = Vec::with_capacity(num_procedures);

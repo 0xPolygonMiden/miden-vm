@@ -167,12 +167,12 @@ impl InvocationTarget {
 
 impl Serializable for InvocationTarget {
     fn write_into<W: ByteWriter>(&self, target: &mut W) {
-        self.write_into_with_options(target, AstSerdeOptions::new(false, true));
+        self.write_into_with_options(target, AstSerdeOptions::new(true));
     }
 }
 
 impl Deserializable for InvocationTarget {
     fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
-        Self::read_from_with_options(source, AstSerdeOptions::new(false, true))
+        Self::read_from_with_options(source, AstSerdeOptions::new(true))
     }
 }

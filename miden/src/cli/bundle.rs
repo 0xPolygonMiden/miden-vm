@@ -49,7 +49,7 @@ impl BundleCmd {
         let stdlib = Library::from_dir(&self.dir, library_namespace, source_manager)?;
 
         // write the masl output
-        let options = AstSerdeOptions::new(false, false);
+        let options = AstSerdeOptions::new(false);
         let output_file = self
             .dir
             .join(self.namespace.as_deref().unwrap_or("out"))

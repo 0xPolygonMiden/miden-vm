@@ -51,7 +51,7 @@ fn masl_locations_serialization() -> Result<(), Report> {
         .unwrap();
 
     let mut bytes = Vec::new();
-    bundle.write_into_with_options(&mut bytes, AstSerdeOptions::new(true, true));
+    bundle.write_into_with_options(&mut bytes, AstSerdeOptions::new(true));
     let deserialized = Library::read_from(&mut SliceReader::new(&bytes)).unwrap();
     assert_eq!(bundle, deserialized);
 
@@ -62,7 +62,7 @@ fn masl_locations_serialization() -> Result<(), Report> {
 
     // serialize/deserialize the bundle
     let mut bytes = Vec::new();
-    bundle.write_into_with_options(&mut bytes, AstSerdeOptions::new(true, false));
+    bundle.write_into_with_options(&mut bytes, AstSerdeOptions::new(false));
     let deserialized = Library::read_from(&mut SliceReader::new(&bytes)).unwrap();
     assert_eq!(bundle, deserialized);
 
