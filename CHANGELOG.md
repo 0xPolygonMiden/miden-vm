@@ -4,8 +4,14 @@
 
 #### Changes
 
-- Added serialization to the `Program` struct (#1442).
 - [BREAKING] Removed serialization of AST structs (#1442).
+
+#### Enhancements
+
+- Exposed some pretty printing internals for `MastNode` (#1441).
+- Made `KernelLibrary` impl `Clone` and `AsRef<Library>` (#1441).
+- Added serialization to the `Program` struct (#1442).
+
 
 ## 0.10.0 (2024-08-06)
 
