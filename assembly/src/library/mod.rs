@@ -437,10 +437,18 @@ impl Export {
 /// - All exported procedures must be exported directly from the kernel namespace (i.e., `#sys`).
 /// - There must be at least one exported procedure.
 /// - The number of exported procedures cannot exceed [Kernel::MAX_NUM_PROCEDURES] (i.e., 256).
+#[derive(Clone)]
 pub struct KernelLibrary {
     kernel: Kernel,
     kernel_info: ModuleInfo,
     library: Library,
+}
+
+impl AsRef<Library> for KernelLibrary {
+    #[inline(always)]
+    fn as_ref(&self) -> &Library {
+        &self.library
+    }
 }
 
 impl KernelLibrary {
