@@ -1,8 +1,8 @@
 use alloc::{
     collections::{BTreeMap, BTreeSet},
+    string::{String, ToString},
     vec::Vec,
 };
-use alloc::string::{String, ToString};
 
 use vm_core::{
     crypto::hash::RpoDigest,
