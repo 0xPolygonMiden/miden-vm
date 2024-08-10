@@ -312,9 +312,6 @@ where
     let trace_len_summary =
         TraceLenSummary::new(clk.into(), range_table_len, ChipletsLengths::new(&chiplets));
 
-    // Extract the program hash before moving the decoder into a trace
-    let program_hash = decoder.program_hash();
-
     // Combine all trace segments into the main trace
     let system_trace = system.into_trace(trace_len, NUM_RAND_ROWS);
     let decoder_trace = decoder.into_trace(trace_len, NUM_RAND_ROWS);
@@ -346,7 +343,7 @@ where
         chiplets: chiplets_trace.aux_builder,
     };
 
-    let main_trace = MainTrace::new(ColMatrix::new(trace), program_hash);
+    let main_trace = MainTrace::new(ColMatrix::new(trace), clk);
 
     (main_trace, aux_trace_hints, trace_len_summary)
 }
