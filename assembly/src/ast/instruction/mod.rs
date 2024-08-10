@@ -1,17 +1,17 @@
 pub mod advice;
 pub mod debug;
-mod deserialize;
-mod opcode;
 mod print;
-mod serialize;
 
 use alloc::vec::Vec;
 
-pub use self::{advice::AdviceInjectorNode, debug::DebugOptions, opcode::OpCode};
+pub use self::{advice::AdviceInjectorNode, debug::DebugOptions};
 use crate::{
     ast::{immediate::*, InvocationTarget},
     Felt, Word,
 };
+
+// INSTRUCTION
+// ================================================================================================
 
 /// Represents the set of primitive instructions in Miden Assembly syntax.
 ///

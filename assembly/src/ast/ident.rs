@@ -5,10 +5,7 @@ use core::{
     str::FromStr,
 };
 
-use crate::{
-    ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable, SourceSpan, Span,
-    Spanned,
-};
+use crate::{SourceSpan, Span, Spanned};
 
 /// Represents the types of errors that can occur when parsing/validating an [Ident]
 #[derive(Debug, thiserror::Error, PartialEq, Eq)]
@@ -184,59 +181,5 @@ impl FromStr for Ident {
         Self::validate(s)?;
         let name = Arc::from(s.to_string().into_boxed_str());
         Ok(Self { span: SourceSpan::default(), name })
-    }
-}
-
-/// Serialization
-impl Ident {
-    pub fn write_into_with_options<W: ByteWriter>(
-        &self,
-        target: &mut W,
-        options: crate::ast::AstSerdeOptions,
-    ) {
-        if options.debug_info {
-            self.span.write_into(target);
-        }
-        target.write_usize(self.name.as_bytes().len());
-        target.write_bytes(self.name.as_bytes());
-    }
-
-    pub fn read_from_with_options<R: ByteReader>(
-        source: &mut R,
-        options: crate::ast::AstSerdeOptions,
-    ) -> Result<Self, DeserializationError> {
-        let span = if options.debug_info {
-            SourceSpan::read_from(source)?
-        } else {
-            SourceSpan::default()
-        };
-        let nlen = source.read_usize()?;
-        let name = source.read_slice(nlen)?;
-        let name = core::str::from_utf8(name)
-            .map_err(|e| DeserializationError::InvalidValue(e.to_string()))?;
-        name.parse::<Ident>()
-            .map_err(|e| DeserializationError::InvalidValue(e.to_string()))
-            .map(|id| id.with_span(span))
-    }
-}
-
-impl Serializable for Ident {
-    fn write_into<W: ByteWriter>(&self, target: &mut W) {
-        self.span.write_into(target);
-        target.write_usize(self.name.as_bytes().len());
-        target.write_bytes(self.name.as_bytes());
-    }
-}
-
-impl Deserializable for Ident {
-    fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
-        let span = SourceSpan::read_from(source)?;
-        let nlen = source.read_usize()?;
-        let name = source.read_slice(nlen)?;
-        let name = core::str::from_utf8(name)
-            .map_err(|e| DeserializationError::InvalidValue(e.to_string()))?;
-        name.parse::<Ident>()
-            .map_err(|e| DeserializationError::InvalidValue(e.to_string()))
-            .map(|id| id.with_span(span))
     }
 }

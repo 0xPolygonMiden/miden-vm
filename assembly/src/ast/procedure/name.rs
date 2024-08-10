@@ -6,10 +6,9 @@ use core::{
 };
 
 use crate::{
-    ast::{AstSerdeOptions, CaseKindError, Ident, IdentError},
+    ast::{CaseKindError, Ident, IdentError},
     diagnostics::{IntoDiagnostic, Report},
-    ByteReader, ByteWriter, Deserializable, DeserializationError, LibraryNamespace, LibraryPath,
-    Serializable, SourceSpan, Span, Spanned,
+    LibraryNamespace, LibraryPath, SourceSpan, Span, Spanned,
 };
 
 // QUALIFIED PROCEDURE NAME
@@ -117,33 +116,6 @@ impl fmt::Display for QualifiedProcedureName {
     }
 }
 
-/// Serialization
-impl QualifiedProcedureName {
-    /// Serialize to `target` using `options`
-    pub fn write_into_with_options<W: ByteWriter>(&self, target: &mut W, options: AstSerdeOptions) {
-        if options.debug_info {
-            self.span.write_into(target);
-        }
-        self.module.write_into(target);
-        self.name.write_into_with_options(target, options);
-    }
-
-    /// Deserialize from `source` using `options`
-    pub fn read_from_with_options<R: ByteReader>(
-        source: &mut R,
-        options: AstSerdeOptions,
-    ) -> Result<Self, DeserializationError> {
-        let span = if options.debug_info {
-            SourceSpan::read_from(source)?
-        } else {
-            SourceSpan::default()
-        };
-        let module = LibraryPath::read_from(source)?;
-        let name = ProcedureName::read_from_with_options(source, options)?;
-        Ok(Self { span, module, name })
-    }
-}
-
 // PROCEDURE NAME
 // ================================================================================================
 
@@ -226,6 +198,11 @@ impl ProcedureName {
     /// Is this the reserved name for the executable entrypoint (i.e. `main`)?
     pub fn is_main(&self) -> bool {
         self.0.as_str() == Self::MAIN_PROC_NAME
+    }
+
+    /// Returns a string reference for this procedure name.
+    pub fn as_str(&self) -> &str {
+        self.as_ref()
     }
 }
 
@@ -349,50 +326,5 @@ impl FromStr for ProcedureName {
             Some(_) => Err(IdentError::InvalidChars),
         }?;
         Ok(Self(Ident::new_unchecked(Span::unknown(raw))))
-    }
-}
-
-/// Serialization
-impl ProcedureName {
-    pub fn write_into_with_options<W: ByteWriter>(
-        &self,
-        target: &mut W,
-        options: crate::ast::AstSerdeOptions,
-    ) {
-        if options.debug_info {
-            self.span().write_into(target);
-        }
-        target.write_usize(self.0.as_bytes().len());
-        target.write_bytes(self.0.as_bytes());
-    }
-
-    pub fn read_from_with_options<R: ByteReader>(
-        source: &mut R,
-        options: crate::ast::AstSerdeOptions,
-    ) -> Result<Self, DeserializationError> {
-        let span = if options.debug_info {
-            SourceSpan::read_from(source)?
-        } else {
-            SourceSpan::default()
-        };
-        let nlen = source.read_usize()?;
-        let name = source.read_slice(nlen)?;
-        let name = core::str::from_utf8(name)
-            .map_err(|e| DeserializationError::InvalidValue(e.to_string()))?;
-        name.parse::<Self>()
-            .map_err(|e| DeserializationError::InvalidValue(e.to_string()))
-            .map(|id| id.with_span(span))
-    }
-}
-
-impl Serializable for ProcedureName {
-    fn write_into<W: ByteWriter>(&self, target: &mut W) {
-        self.write_into_with_options(target, Default::default())
-    }
-}
-
-impl Deserializable for ProcedureName {
-    fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
-        Self::read_from_with_options(source, Default::default())
     }
 }

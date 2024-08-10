@@ -1,7 +1,6 @@
 use std::{path::PathBuf, sync::Arc};
 
 use assembly::{
-    ast::AstSerdeOptions,
     diagnostics::{IntoDiagnostic, Report},
     library::Library,
     LibraryNamespace, Version,
@@ -49,12 +48,11 @@ impl BundleCmd {
         let stdlib = Library::from_dir(&self.dir, library_namespace, source_manager)?;
 
         // write the masl output
-        let options = AstSerdeOptions::new(false);
         let output_file = self
             .dir
             .join(self.namespace.as_deref().unwrap_or("out"))
             .with_extension(Library::LIBRARY_EXTENSION);
-        stdlib.write_to_file(output_file, options).into_diagnostic()?;
+        stdlib.write_to_file(output_file).into_diagnostic()?;
 
         println!("Built library {}", namespace);
 

@@ -11,7 +11,6 @@ mod invocation_target;
 mod module;
 mod op;
 mod procedure;
-mod serde;
 #[cfg(test)]
 mod tests;
 pub mod visit;
@@ -23,12 +22,11 @@ pub use self::{
     ident::{CaseKindError, Ident, IdentError},
     immediate::{ErrorCode, ImmFelt, ImmU16, ImmU32, ImmU8, Immediate},
     imports::Import,
-    instruction::{advice::SignatureKind, AdviceInjectorNode, DebugOptions, Instruction, OpCode},
+    instruction::{advice::SignatureKind, AdviceInjectorNode, DebugOptions, Instruction},
     invocation_target::{InvocationTarget, Invoke, InvokeKind},
     module::{Module, ModuleKind},
     op::Op,
     procedure::*,
-    serde::AstSerdeOptions,
     visit::{Visit, VisitMut},
 };
 

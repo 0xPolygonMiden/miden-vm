@@ -4,7 +4,7 @@ use vm_core::utils::SliceReader;
 
 use super::*;
 use crate::{
-    ast::{AstSerdeOptions, Module, ModuleKind, ProcedureName},
+    ast::{Module, ModuleKind, ProcedureName},
     diagnostics::{IntoDiagnostic, Report},
     testing::TestContext,
     Assembler, Deserializable,
@@ -20,7 +20,7 @@ macro_rules! parse_module {
 }
 
 #[test]
-fn masl_locations_serialization() -> Result<(), Report> {
+fn library_serialization() -> Result<(), Report> {
     let context = TestContext::new();
     // declare foo module
     let foo = r#"
@@ -51,18 +51,7 @@ fn masl_locations_serialization() -> Result<(), Report> {
         .unwrap();
 
     let mut bytes = Vec::new();
-    bundle.write_into_with_options(&mut bytes, AstSerdeOptions::new(true));
-    let deserialized = Library::read_from(&mut SliceReader::new(&bytes)).unwrap();
-    assert_eq!(bundle, deserialized);
-
-    // serialize/deserialize the bundle without locations
-    let bundle = Assembler::new(context.source_manager())
-        .assemble_library(modules.iter().cloned())
-        .unwrap();
-
-    // serialize/deserialize the bundle
-    let mut bytes = Vec::new();
-    bundle.write_into_with_options(&mut bytes, AstSerdeOptions::new(false));
+    bundle.write_into(&mut bytes);
     let deserialized = Library::read_from(&mut SliceReader::new(&bytes)).unwrap();
     assert_eq!(bundle, deserialized);
 

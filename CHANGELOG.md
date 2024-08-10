@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased
+
+#### Changes
+
+- Added serialization to the `Program` struct (#1442).
+- [BREAKING] Removed serialization of AST structs (#1442).
+
 ## 0.10.0 (2024-08-06)
 
 #### Features

@@ -394,6 +394,9 @@ fn inst_with_pretty_params<P: PrettyPrint>(inst: &'static str, params: &[P]) -> 
     single_line | multi_line
 }
 
+// TESTS
+// ================================================================================================
+
 #[cfg(test)]
 mod tests {
     use vm_core::crypto::hash::Rpo256;

@@ -3,9 +3,8 @@ use core::fmt;
 
 use super::ProcedureName;
 use crate::{
-    ast::{AstSerdeOptions, Block, Invoke},
-    ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable, SourceSpan, Span,
-    Spanned,
+    ast::{Block, Invoke},
+    SourceSpan, Span, Spanned,
 };
 
 // PROCEDURE VISIBILITY
@@ -43,23 +42,6 @@ impl Visibility {
     /// Returns true if the procedure is a syscall export
     pub fn is_syscall(&self) -> bool {
         matches!(self, Self::Syscall)
-    }
-}
-
-impl Serializable for Visibility {
-    fn write_into<W: ByteWriter>(&self, target: &mut W) {
-        target.write_u8(*self as u8)
-    }
-}
-
-impl Deserializable for Visibility {
-    fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
-        match source.read_u8()? {
-            0 => Ok(Self::Public),
-            1 => Ok(Self::Syscall),
-            2 => Ok(Self::Private),
-            n => Err(DeserializationError::InvalidValue(format!("invalid visibility tag: {n}"))),
-        }
     }
 }
 
@@ -212,44 +194,6 @@ where
                 result
             },
         }
-    }
-}
-
-/// Serialization
-impl Procedure {
-    pub fn write_into_with_options<W: ByteWriter>(&self, target: &mut W, options: AstSerdeOptions) {
-        if options.debug_info {
-            self.span.write_into(target);
-        }
-        self.name.write_into_with_options(target, options);
-        self.visibility.write_into(target);
-        target.write_u16(self.num_locals);
-        self.body.write_into_with_options(target, options);
-    }
-
-    pub fn read_from_with_options<R: ByteReader>(
-        source: &mut R,
-        options: AstSerdeOptions,
-    ) -> Result<Self, DeserializationError> {
-        let span = if options.debug_info {
-            SourceSpan::read_from(source)?
-        } else {
-            SourceSpan::default()
-        };
-
-        let name = ProcedureName::read_from_with_options(source, options)?;
-        let visibility = Visibility::read_from(source)?;
-        let num_locals = source.read_u16()?;
-        let body = Block::read_from_with_options(source, options)?;
-        Ok(Self {
-            span,
-            docs: None,
-            name,
-            visibility,
-            num_locals,
-            invoked: Default::default(),
-            body,
-        })
     }
 }
 
