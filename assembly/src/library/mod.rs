@@ -2,7 +2,7 @@ use alloc::{
     collections::{BTreeMap, BTreeSet},
     vec::Vec,
 };
-use std::string::{String, ToString};
+use alloc::string::{String, ToString};
 
 use vm_core::{
     crypto::hash::RpoDigest,
