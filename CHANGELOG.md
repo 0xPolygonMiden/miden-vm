@@ -1,17 +1,17 @@
 # Changelog
 
-## Unreleased
-
-#### Changes
-
-- [BREAKING] Removed serialization of AST structs (#1442).
+## 0.10.1 (2024-08-10)
 
 #### Enhancements
 
+- Removed linear search of trace rows from `BlockHashTableRow::table_init()` (#1439).
 - Exposed some pretty printing internals for `MastNode` (#1441).
 - Made `KernelLibrary` impl `Clone` and `AsRef<Library>` (#1441).
 - Added serialization to the `Program` struct (#1442).
 
+#### Changes
+
+- [BREAKING] Removed serialization of AST structs (#1442).
 
 ## 0.10.0 (2024-08-06)
 
@@ -47,7 +47,6 @@
 - Added `make test-fast` and `make test-skip-proptests` Makefile targets for faster testing during local development.
 - Added `ProgramFile::read_with` constructor that takes a `SourceManager` impl to use for source management.
 - Added `RowIndex(u32)` (#1408).
-- Removed linear search of trace rows from `BlockHashTableRow::table_init()` (#1439).
 
 #### Changed
 

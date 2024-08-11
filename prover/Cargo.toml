@@ -1,11 +1,11 @@
 [package]
 name = "miden-prover"
-version = "0.10.0"
+version = "0.10.2"
 description = "Miden VM prover"
-documentation = "https://docs.rs/miden-prover/0.10.0"
+documentation = "https://docs.rs/miden-prover/0.10.2"
+readme = "README.md"
 categories = ["cryptography", "emulators", "no-std"]
 keywords = ["miden", "prover", "stark", "zkp"]
-readme.workspace = true
 license.workspace = true
 authors.workspace = true
 homepage.workspace = true

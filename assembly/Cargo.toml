@@ -1,11 +1,11 @@
 [package]
 name = "miden-assembly"
-version = "0.10.0"
+version = "0.10.2"
 description = "Miden VM assembly language"
-documentation = "https://docs.rs/miden-assembly/0.10.0"
+documentation = "https://docs.rs/miden-assembly/0.10.2"
+readme = "README.md"
 categories = ["compilers", "no-std"]
 keywords = ["assembler", "assembly", "language", "miden"]
-readme.workspace = true
 license.workspace = true
 authors.workspace = true
 homepage.workspace = true
@@ -19,35 +19,20 @@ doctest = false
 
 [features]
 default = ["std"]
-std = [
-    "aho-corasick/std",
-    "vm-core/std",
-    "miette/fancy",
-    "thiserror/std",
-    "miette/std",
-]
+std = ["aho-corasick/std", "miette/fancy", "miette/std", "thiserror/std", "vm-core/std"]
 testing = ["dep:regex"]
 
 [dependencies]
 aho-corasick = { version = "1.1", default-features = false }
 lalrpop-util = { version = "0.20", default-features = false }
-miette = { version = "7.1.0", git = "https://github.com/bitwalker/miette", branch = "no-std", default-features = false, features = [
+miette = { package = "miden-miette", version = "7.1", default-features = false, features = [
     "fancy-no-syscall",
-    "derive",
+    "derive"
 ] }
-regex = { version = "1.10", optional = true, default-features = false, features = [
-    "unicode",
-    "perf",
-] }
-smallvec = { version = "1.13", features = [
-    "union",
-    "const_generics",
-    "const_new",
-] }
-tracing = { version = "0.1", default-features = false, features = [
-    "attributes",
-] }
-thiserror = { version = "1.0", git = "https://github.com/bitwalker/thiserror", branch = "no-std", default-features = false }
+regex = { version = "1.10", optional = true, default-features = false, features = ["unicode", "perf"] }
+smallvec = { version = "1.13", features = ["union", "const_generics", "const_new"] }
+thiserror = { package = "miden-thiserror", version = "1.0", default-features = false }
+tracing = { version = "0.1", default-features = false, features = ["attributes"] }
 unicode-width = { version = "0.1", features = ["no_std"] }
 vm-core = { package = "miden-core", path = "../core", version = "0.10", default-features = false, features = [
     "diagnostics",
@@ -55,11 +40,8 @@ vm-core = { package = "miden-core", path = "../core", version = "0.10", default-
 
 [dev-dependencies]
 pretty_assertions = "1.4"
-regex = { version = "1.10", default-features = false, features = [
-    "unicode",
-    "perf",
-] }
+regex = { version = "1.10", default-features = false, features = [ "unicode", "perf"] }
 
 [build-dependencies]
 lalrpop = { version = "0.20", default-features = false }
-rustc_version = "0.2"
+rustc_version = "0.4"

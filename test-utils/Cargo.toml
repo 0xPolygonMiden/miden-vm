@@ -2,9 +2,9 @@
 name = "miden-test-utils"
 version = "0.1.0"
 description = "Test utilities for Miden VM programs"
+readme = "README.md"
 categories = ["development-tools::testing", "no-std"]
 keywords = ["miden", "test", "virtual-machine"]
-readme.workspace = true
 license.workspace = true
 authors.workspace = true
 homepage.workspace = true

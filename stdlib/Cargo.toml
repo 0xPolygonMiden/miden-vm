@@ -1,9 +1,9 @@
 [package]
 name = "miden-stdlib"
-version = "0.10.0"
+version = "0.10.2"
 description = "Miden VM standard library"
+documentation = "https://docs.rs/miden-stdlib/0.10.2"
 readme = "README.md"
-documentation = "https://docs.rs/miden-stdlib/0.10.0"
 categories = ["cryptography", "mathematics"]
 keywords = ["miden", "program", "stdlib"]
 license.workspace = true
