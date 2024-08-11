@@ -25,10 +25,11 @@ fn main() -> Result<()> {
     let manifest_dir = env!("CARGO_MANIFEST_DIR");
     let asm_dir = Path::new(manifest_dir).join(ASM_DIR_PATH);
 
+    let assembler = Assembler::default().with_debug_mode(true);
     let namespace = "std".parse::<LibraryNamespace>().expect("invalid base namespace");
     // TODO: Add version to `Library`
     //let version = env!("CARGO_PKG_VERSION").parse::<Version>().expect("invalid cargo version");
-    let stdlib = Library::from_dir(asm_dir, namespace, Assembler::default())?;
+    let stdlib = Library::from_dir(asm_dir, namespace, assembler)?;
 
     // write the masl output
     let build_dir = env::var("OUT_DIR").unwrap();

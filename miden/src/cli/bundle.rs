@@ -39,18 +39,19 @@ impl BundleCmd {
                 .into_owned(),
         };
 
+        let assembler = Assembler::default().with_debug_mode(true);
         let library_namespace =
             namespace.parse::<LibraryNamespace>().expect("invalid base namespace");
         // TODO: Add version to `Library`
         // let version = self.version.parse::<Version>().expect("invalid cargo version");
-        let stdlib = Library::from_dir(&self.dir, library_namespace, Assembler::default())?;
+        let library = Library::from_dir(&self.dir, library_namespace, assembler)?;
 
         // write the masl output
         let output_file = self
             .dir
             .join(self.namespace.as_deref().unwrap_or("out"))
             .with_extension(Library::LIBRARY_EXTENSION);
-        stdlib.write_to_file(output_file).into_diagnostic()?;
+        library.write_to_file(output_file).into_diagnostic()?;
 
         println!("Built library {}", namespace);
 
