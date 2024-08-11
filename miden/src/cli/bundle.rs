@@ -1,9 +1,8 @@
-use std::{path::PathBuf, sync::Arc};
+use std::path::PathBuf;
 
 use assembly::{
     diagnostics::{IntoDiagnostic, Report},
-    library::Library,
-    LibraryNamespace, Version,
+    Assembler, Library, LibraryNamespace,
 };
 use clap::Parser;
 
@@ -40,12 +39,11 @@ impl BundleCmd {
                 .into_owned(),
         };
 
-        let source_manager = Arc::new(assembly::DefaultSourceManager::default());
         let library_namespace =
             namespace.parse::<LibraryNamespace>().expect("invalid base namespace");
         // TODO: Add version to `Library`
-        let _version = self.version.parse::<Version>().expect("invalid cargo version");
-        let stdlib = Library::from_dir(&self.dir, library_namespace, source_manager)?;
+        // let version = self.version.parse::<Version>().expect("invalid cargo version");
+        let stdlib = Library::from_dir(&self.dir, library_namespace, Assembler::default())?;
 
         // write the masl output
         let output_file = self

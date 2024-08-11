@@ -211,6 +211,11 @@ impl Assembler {
         self.module_graph.kernel()
     }
 
+    /// Returns a link to the source manager used by this assembler.
+    pub fn source_manager(&self) -> Arc<dyn SourceManager> {
+        self.source_manager.clone()
+    }
+
     #[cfg(any(test, feature = "testing"))]
     #[doc(hidden)]
     pub fn module_graph(&self) -> &ModuleGraph {

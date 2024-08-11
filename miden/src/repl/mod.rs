@@ -1,6 +1,6 @@
 use std::{collections::BTreeSet, path::PathBuf};
 
-use assembly::{library::Library, Assembler};
+use assembly::{Assembler, Library};
 use miden_vm::{math::Felt, DefaultHost, StackInputs, Word};
 use processor::ContextId;
 use rustyline::{error::ReadlineError, DefaultEditor};

@@ -21,7 +21,7 @@ pub mod ast;
 mod compile;
 pub mod diagnostics;
 mod errors;
-pub mod library;
+mod library;
 mod parser;
 mod sema;
 #[cfg(any(test, feature = "testing"))]
@@ -29,7 +29,9 @@ pub mod testing;
 #[cfg(test)]
 mod tests;
 
-/// Re-exported for downstream crates
+// Re-exported for downstream crates
+
+/// Merkelized abstract syntax tree (MAST) components defining Miden VM programs.
 pub use vm_core::mast;
 pub use vm_core::utils;
 
@@ -40,8 +42,11 @@ pub use self::{
         DefaultSourceManager, Report, SourceFile, SourceId, SourceManager, SourceSpan, Span,
         Spanned,
     },
-    errors::{AssemblyError, CompiledLibraryError},
-    library::{LibraryError, LibraryNamespace, LibraryPath, PathError, Version},
+    errors::AssemblyError,
+    library::{
+        KernelLibrary, Library, LibraryError, LibraryNamespace, LibraryPath, LibraryPathComponent,
+        PathError, Version, VersionError,
+    },
     parser::ModuleParser,
 };
 

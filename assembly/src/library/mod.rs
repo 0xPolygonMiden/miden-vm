@@ -202,7 +202,7 @@ fn content_hash(
 
 #[cfg(feature = "std")]
 mod use_std_library {
-    use std::{collections::btree_map::Entry, fs, io, path::Path, sync::Arc};
+    use std::{collections::btree_map::Entry, fs, io, path::Path};
 
     use masl::{LibraryEntry, WalkLibrary};
     use miette::{Context, Report};
@@ -211,7 +211,7 @@ mod use_std_library {
     use super::*;
     use crate::{
         ast::{self, ModuleKind},
-        diagnostics::{IntoDiagnostic, SourceManager},
+        diagnostics::IntoDiagnostic,
         Assembler,
     };
 
@@ -284,7 +284,7 @@ mod use_std_library {
         pub fn from_dir(
             path: impl AsRef<Path>,
             namespace: LibraryNamespace,
-            source_manager: Arc<dyn SourceManager>,
+            assembler: Assembler,
         ) -> Result<Self, Report> {
             let path = path.as_ref();
             if !path.is_dir() {
@@ -299,7 +299,7 @@ mod use_std_library {
                 return Err(Report::msg("mod.masm is not allowed in the root directory"));
             }
 
-            Self::compile_modules_from_dir(namespace, path, source_manager)
+            Self::compile_modules_from_dir(namespace, path, assembler)
         }
 
         /// Read the contents (modules) of this library from `dir`, returning any errors that occur
@@ -312,7 +312,7 @@ mod use_std_library {
         fn compile_modules_from_dir(
             namespace: LibraryNamespace,
             dir: &Path,
-            source_manager: Arc<dyn SourceManager>,
+            assembler: Assembler,
         ) -> Result<Self, Report> {
             let mut modules = BTreeMap::default();
 
@@ -326,7 +326,8 @@ mod use_std_library {
                 }
                 // Parse module at the given path
                 let mut parser = ast::Module::parser(ModuleKind::Library);
-                let ast = parser.parse_file(name.clone(), &source_path, &source_manager)?;
+                let ast =
+                    parser.parse_file(name.clone(), &source_path, &assembler.source_manager())?;
                 match modules.entry(name) {
                     Entry::Occupied(ref entry) => {
                         return Err(LibraryError::DuplicateModulePath(entry.key().clone()))
@@ -347,9 +348,7 @@ mod use_std_library {
                 .into());
             }
 
-            Assembler::new(source_manager)
-                .with_debug_mode(true)
-                .assemble_library(modules.into_values())
+            assembler.assemble_library(modules.into_values())
         }
 
         pub fn deserialize_from_file(path: impl AsRef<Path>) -> Result<Self, DeserializationError> {
@@ -518,10 +517,10 @@ impl Deserializable for KernelLibrary {
 
 #[cfg(feature = "std")]
 mod use_std_kernel {
-    use std::{io, path::Path, sync::Arc};
+    use std::{io, path::Path};
 
     use super::*;
-    use crate::diagnostics::{Report, SourceManager};
+    use crate::{diagnostics::Report, Assembler};
 
     impl KernelLibrary {
         /// Write the library to a target file
@@ -533,11 +532,8 @@ mod use_std_kernel {
         ///
         /// This is essentially a wrapper around [Library::from_dir], which then validates
         /// that the resulting [Library] is a valid [KernelLibrary].
-        pub fn from_dir(
-            path: impl AsRef<Path>,
-            source_manager: Arc<dyn SourceManager>,
-        ) -> Result<Self, Report> {
-            let library = Library::from_dir(path, LibraryNamespace::Kernel, source_manager)?;
+        pub fn from_dir(path: impl AsRef<Path>, assembler: Assembler) -> Result<Self, Report> {
+            let library = Library::from_dir(path, LibraryNamespace::Kernel, assembler)?;
 
             Ok(Self::try_from(library)?)
         }
