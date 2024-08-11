@@ -25,7 +25,7 @@ fn main() -> Result<()> {
     let manifest_dir = env!("CARGO_MANIFEST_DIR");
     let asm_dir = Path::new(manifest_dir).join(ASM_DIR_PATH);
 
-    let assembler = Assembler::default().with_debug_mode(true);
+    let assembler = Assembler::default().with_debug_mode(cfg!(feature = "with-debug-info"));
     let namespace = "std".parse::<LibraryNamespace>().expect("invalid base namespace");
     // TODO: Add version to `Library`
     //let version = env!("CARGO_PKG_VERSION").parse::<Version>().expect("invalid cargo version");

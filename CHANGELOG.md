@@ -4,12 +4,12 @@
 
 #### Enhancements
 
-- Exposed `KernelLibrary` struct publicly. (#1443).
+- Added `with-debug-info` feature to `miden-stdlib` (#1445).
 
 #### Changes
 
-- [BREAKING] Replaced `SourceManager` parameter with `Assembler` in `Library::from_dir` (#1443).
-- [BREAKING] Moved `Library` export to the root of the `miden-assembly` crate. (#1443).
+- [BREAKING] Replaced `SourceManager` parameter with `Assembler` in `Library::from_dir` (#1445).
+- [BREAKING] Moved `Library` and `KernelLibrary` exports to the root of the `miden-assembly` crate. (#1445).
 
 ## 0.10.2 (2024-08-10)
 
