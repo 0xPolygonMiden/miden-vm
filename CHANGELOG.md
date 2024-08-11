@@ -1,6 +1,17 @@
 # Changelog
 
-## 0.10.1 (2024-08-10)
+## 0.10.3 (2024-08-11)
+
+#### Enhancements
+
+- Exposed `KernelLibrary` struct publicly. (#1443).
+
+#### Changes
+
+- [BREAKING] Replaced `SourceManager` parameter with `Assembler` in `Library::from_dir` (#1443).
+- [BREAKING] Moved `Library` export to the root of the `miden-assembly` crate. (#1443).
+
+## 0.10.2 (2024-08-10)
 
 #### Enhancements
 
