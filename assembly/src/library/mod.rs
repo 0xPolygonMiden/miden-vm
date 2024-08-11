@@ -1,5 +1,6 @@
 use alloc::{
     collections::{BTreeMap, BTreeSet},
+    string::{String, ToString},
     vec::Vec,
 };
 
@@ -10,7 +11,7 @@ use vm_core::{
     Kernel,
 };
 
-use crate::ast::{AstSerdeOptions, QualifiedProcedureName};
+use crate::ast::{ProcedureName, QualifiedProcedureName};
 
 mod error;
 #[cfg(feature = "std")]
@@ -144,23 +145,6 @@ impl Library {
     }
 }
 
-/// Serialization
-impl Library {
-    /// Serialize to `target` using `options`
-    pub fn write_into_with_options<W: ByteWriter>(&self, target: &mut W, options: AstSerdeOptions) {
-        let Self { digest: _, exports, mast_forest } = self;
-
-        options.write_into(target);
-        mast_forest.write_into(target);
-
-        target.write_usize(exports.len());
-        for (proc_name, export) in exports {
-            proc_name.write_into_with_options(target, options);
-            export.write_into(target);
-        }
-    }
-}
-
 impl From<Library> for MastForest {
     fn from(value: Library) -> Self {
         value.mast_forest
@@ -169,19 +153,31 @@ impl From<Library> for MastForest {
 
 impl Serializable for Library {
     fn write_into<W: ByteWriter>(&self, target: &mut W) {
-        self.write_into_with_options(target, AstSerdeOptions::default())
+        let Self { digest: _, exports, mast_forest } = self;
+
+        mast_forest.write_into(target);
+
+        target.write_usize(exports.len());
+        for (proc_name, export) in exports {
+            proc_name.module.write_into(target);
+            proc_name.name.as_str().write_into(target);
+            export.write_into(target);
+        }
     }
 }
 
 impl Deserializable for Library {
     fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
-        let options = AstSerdeOptions::read_from(source)?;
         let mast_forest = MastForest::read_from(source)?;
 
         let num_exports = source.read_usize()?;
         let mut exports = BTreeMap::new();
         for _ in 0..num_exports {
-            let proc_name = QualifiedProcedureName::read_from_with_options(source, options)?;
+            let proc_module = source.read()?;
+            let proc_name: String = source.read()?;
+            let proc_name = ProcedureName::new(proc_name)
+                .map_err(|err| DeserializationError::InvalidValue(err.to_string()))?;
+            let proc_name = QualifiedProcedureName::new(proc_module, proc_name);
             let export = Export::read_with_forest(source, &mast_forest)?;
 
             exports.insert(proc_name, export);
@@ -234,24 +230,19 @@ mod use_std_library {
         /// NOTE: It is up to the caller to use the correct file extension, but there is no
         /// specific requirement that the extension be set, or the same as
         /// [`Self::LIBRARY_EXTENSION`].
-        pub fn write_to_file(
-            &self,
-            path: impl AsRef<Path>,
-            options: AstSerdeOptions,
-        ) -> io::Result<()> {
+        pub fn write_to_file(&self, path: impl AsRef<Path>) -> io::Result<()> {
             let path = path.as_ref();
 
             if let Some(dir) = path.parent() {
                 fs::create_dir_all(dir)?;
             }
 
-            // NOTE: We catch panics due to i/o errors here due to the fact
-            // that the ByteWriter trait does not provide fallible APIs, so
-            // WriteAdapter will panic if the underlying writes fail. This
-            // needs to be addressed in winterfall at some point
+            // NOTE: We catch panics due to i/o errors here due to the fact that the ByteWriter
+            // trait does not provide fallible APIs, so WriteAdapter will panic if the underlying
+            // writes fail. This needs to be addressed in winterfell at some point
             std::panic::catch_unwind(|| {
                 let mut file = fs::File::create(path)?;
-                self.write_into_with_options(&mut file, options);
+                self.write_into(&mut file);
                 Ok(())
             })
             .map_err(|p| {
@@ -499,16 +490,6 @@ impl TryFrom<Library> for KernelLibrary {
     }
 }
 
-/// Serialization
-impl KernelLibrary {
-    /// Serialize to `target` using `options`
-    pub fn write_into_with_options<W: ByteWriter>(&self, target: &mut W, options: AstSerdeOptions) {
-        let Self { kernel: _, kernel_info: _, library } = self;
-
-        library.write_into_with_options(target, options);
-    }
-}
-
 impl From<KernelLibrary> for MastForest {
     fn from(value: KernelLibrary) -> Self {
         value.library.mast_forest
@@ -517,7 +498,9 @@ impl From<KernelLibrary> for MastForest {
 
 impl Serializable for KernelLibrary {
     fn write_into<W: ByteWriter>(&self, target: &mut W) {
-        self.write_into_with_options(target, AstSerdeOptions::default())
+        let Self { kernel: _, kernel_info: _, library } = self;
+
+        library.write_into(target);
     }
 }
 
@@ -542,12 +525,8 @@ mod use_std_kernel {
 
     impl KernelLibrary {
         /// Write the library to a target file
-        pub fn write_to_file(
-            &self,
-            path: impl AsRef<Path>,
-            options: AstSerdeOptions,
-        ) -> io::Result<()> {
-            self.library.write_to_file(path, options)
+        pub fn write_to_file(&self, path: impl AsRef<Path>) -> io::Result<()> {
+            self.library.write_to_file(path)
         }
 
         /// Create a [KernelLibrary] from a standard Miden Assembly project layout.

@@ -387,7 +387,6 @@ impl OutputFile {
 
 pub struct ProgramFile {
     ast: Box<Module>,
-    path: PathBuf,
     source_manager: Arc<dyn assembly::SourceManager>,
 }
 
@@ -413,11 +412,7 @@ impl ProgramFile {
             .parse_file(LibraryNamespace::Exec.into(), path, &source_manager)
             .wrap_err_with(|| format!("Failed to parse program file `{}`", path.display()))?;
 
-        Ok(Self {
-            ast,
-            path: path.to_path_buf(),
-            source_manager,
-        })
+        Ok(Self { ast, source_manager })
     }
 
     /// Compiles this program file into a [Program].
@@ -440,21 +435,6 @@ impl ProgramFile {
             .wrap_err("Failed to compile program")?;
 
         Ok(program)
-    }
-
-    /// Writes this file into the specified path, if one is provided. If the path is not provided,
-    /// writes the file into the same directory as the source file, but with `.masb` extension.
-    pub fn write(&self, out_path: Option<PathBuf>) -> Result<(), Report> {
-        let out_path = out_path.unwrap_or_else(|| {
-            let mut out_file = self.path.clone();
-            out_file.set_extension("masb");
-            out_file
-        });
-
-        self.ast
-            .write_to_file(out_path)
-            .into_diagnostic()
-            .wrap_err("Failed to write the compiled file")
     }
 }
 

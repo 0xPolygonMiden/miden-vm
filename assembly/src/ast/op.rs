@@ -1,10 +1,7 @@
 use core::fmt;
 
 use super::{Block, Instruction};
-use crate::{
-    ast::AstSerdeOptions, ByteReader, ByteWriter, Deserializable, DeserializationError,
-    Serializable, SourceSpan, Span, Spanned,
-};
+use crate::{SourceSpan, Span, Spanned};
 
 /// Represents the Miden Assembly instruction set syntax
 ///
@@ -36,74 +33,6 @@ pub enum Op {
     } = 2,
     /// A primitive operation, e.g. `add`
     Inst(Span<Instruction>) = 3,
-}
-
-/// Serialization
-impl Op {
-    pub fn write_into_with_options<W: ByteWriter>(&self, target: &mut W, options: AstSerdeOptions) {
-        if options.debug_info {
-            self.span().write_into(target);
-        }
-        target.write_u8(self.tag());
-        match self {
-            Self::If { ref then_blk, ref else_blk, .. } => {
-                then_blk.write_into_with_options(target, options);
-                else_blk.write_into_with_options(target, options);
-            },
-            Self::While { ref body, .. } => {
-                body.write_into_with_options(target, options);
-            },
-            Self::Repeat { count, ref body, .. } => {
-                target.write_u32(*count);
-                body.write_into_with_options(target, options);
-            },
-            Self::Inst(ref inst) => {
-                (**inst).write_into(target);
-            },
-        }
-    }
-
-    pub fn read_from_with_options<R: ByteReader>(
-        source: &mut R,
-        options: AstSerdeOptions,
-    ) -> Result<Self, DeserializationError> {
-        let span = if options.debug_info {
-            SourceSpan::read_from(source)?
-        } else {
-            SourceSpan::default()
-        };
-        match source.read_u8()? {
-            0 => {
-                let then_blk = Block::read_from_with_options(source, options)?;
-                let else_blk = Block::read_from_with_options(source, options)?;
-                Ok(Self::If { span, then_blk, else_blk })
-            },
-            1 => {
-                let body = Block::read_from_with_options(source, options)?;
-                Ok(Self::While { span, body })
-            },
-            2 => {
-                let count = source.read_u32()?;
-                let body = Block::read_from_with_options(source, options)?;
-                Ok(Self::Repeat { span, count, body })
-            },
-            3 => {
-                let inst = Instruction::read_from(source)?;
-                Ok(Self::Inst(Span::new(span, inst)))
-            },
-            n => Err(DeserializationError::InvalidValue(format!("{n} is not a valid op tag"))),
-        }
-    }
-
-    fn tag(&self) -> u8 {
-        // SAFETY: This is safe because we have given this enum a
-        // primitive representation with #[repr(u8)], with the first
-        // field of the underlying union-of-structs the discriminant.
-        //
-        // See the section on "accessing the numeric value of the discriminant"
-        // here: https://doc.rust-lang.org/std/mem/fn.discriminant.html
-        unsafe { *<*const _>::from(self).cast::<u8>() }
-    }
 }
 
 impl crate::prettier::PrettyPrint for Op {

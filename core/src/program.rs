@@ -94,6 +94,59 @@ impl Program {
     }
 }
 
+/// Serialization
+impl Program {
+    /// Writes this [Program] to the provided file path.
+    #[cfg(feature = "std")]
+    pub fn write_to_file<P>(&self, path: P) -> std::io::Result<()>
+    where
+        P: AsRef<std::path::Path>,
+    {
+        let path = path.as_ref();
+        if let Some(dir) = path.parent() {
+            std::fs::create_dir_all(dir)?;
+        }
+
+        // NOTE: We're protecting against unwinds here due to i/o errors that will get turned into
+        // panics if writing to the underlying file fails. This is because ByteWriter does not have
+        // fallible APIs, thus WriteAdapter has to panic if writes fail. This could be fixed, but
+        // that has to happen upstream in winterfell
+        std::panic::catch_unwind(|| match std::fs::File::create(path) {
+            Ok(ref mut file) => {
+                self.write_into(file);
+                Ok(())
+            },
+            Err(err) => Err(err),
+        })
+        .map_err(|p| {
+            match p.downcast::<std::io::Error>() {
+                // SAFETY: It is guaranteed to be safe to read Box<std::io::Error>
+                Ok(err) => unsafe { core::ptr::read(&*err) },
+                // Propagate unknown panics
+                Err(err) => std::panic::resume_unwind(err),
+            }
+        })?
+    }
+}
+
+impl Serializable for Program {
+    fn write_into<W: ByteWriter>(&self, target: &mut W) {
+        self.mast_forest.write_into(target);
+        self.kernel.write_into(target);
+        target.write_u32(self.entrypoint.as_u32());
+    }
+}
+
+impl Deserializable for Program {
+    fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
+        let mast_forest = source.read()?;
+        let kernel = source.read()?;
+        let entrypoint = MastNodeId::from_u32_safe(source.read_u32()?, &mast_forest)?;
+
+        Ok(Self { mast_forest, kernel, entrypoint })
+    }
+}
+
 impl Index<MastNodeId> for Program {
     type Output = MastNode;
 
