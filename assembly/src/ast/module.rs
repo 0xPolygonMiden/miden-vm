@@ -6,7 +6,7 @@ use super::{
     ResolvedProcedure,
 };
 use crate::{
-    ast::{AliasTarget, AstSerdeOptions, Ident},
+    ast::{AliasTarget, Ident},
     diagnostics::{Report, SourceFile},
     parser::ModuleParser,
     sema::SemanticAnalysisError,
@@ -452,131 +452,6 @@ impl PartialEq for Module {
             && self.docs == other.docs
             && self.imports == other.imports
             && self.procedures == other.procedures
-    }
-}
-
-/// Serialization
-impl Module {
-    /// Serialization this module to `target`, using `options`.
-    pub fn write_into_with_options<W: ByteWriter>(&self, target: &mut W, options: AstSerdeOptions) {
-        options.write_into(target);
-        if options.debug_info {
-            self.span.write_into(target);
-        }
-        self.kind.write_into(target);
-        self.path.write_into(target);
-        if options.serialize_imports {
-            target.write_usize(self.imports.len());
-            for import in self.imports.iter() {
-                import.write_into_with_options(target, options);
-            }
-        }
-        target.write_usize(self.procedures.len());
-        for export in self.procedures.iter() {
-            export.write_into_with_options(target, options);
-        }
-    }
-
-    /// Returns byte representation of this [Module].
-    ///
-    /// The serde options are serialized as header information for the purposes of deserialization.
-    pub fn to_bytes(&self, options: AstSerdeOptions) -> Vec<u8> {
-        let mut target = Vec::<u8>::with_capacity(256);
-        self.write_into_with_options(&mut target, options);
-        target
-    }
-
-    /// Returns a [Module] struct deserialized from the provided bytes.
-    ///
-    /// Assumes that the module was encoded using [Module::write_into] or
-    /// [Module::write_into_with_options]
-    pub fn from_bytes(bytes: &[u8]) -> Result<Self, DeserializationError> {
-        let mut source = crate::SliceReader::new(bytes);
-        Self::read_from(&mut source)
-    }
-
-    /// Writes this [Module] to the provided file path
-    #[cfg(feature = "std")]
-    pub fn write_to_file<P>(&self, path: P) -> std::io::Result<()>
-    where
-        P: AsRef<std::path::Path>,
-    {
-        let path = path.as_ref();
-        if let Some(dir) = path.parent() {
-            std::fs::create_dir_all(dir)?;
-        }
-
-        // NOTE: We're protecting against unwinds here due to i/o errors that will get turned into
-        // panics if writing to the underlying file fails. This is because ByteWriter does not have
-        // fallible APIs, thus WriteAdapter has to panic if writes fail. This could be fixed, but
-        // that has to happen upstream in winterfell
-        std::panic::catch_unwind(|| match std::fs::File::create(path) {
-            Ok(ref mut file) => {
-                let options = AstSerdeOptions {
-                    serialize_imports: true,
-                    debug_info: true,
-                };
-                self.write_into_with_options(file, options);
-                Ok(())
-            },
-            Err(err) => Err(err),
-        })
-        .map_err(|p| {
-            match p.downcast::<std::io::Error>() {
-                // SAFETY: It is guaranteed to be safe to read Box<std::io::Error>
-                Ok(err) => unsafe { core::ptr::read(&*err) },
-                // Propagate unknown panics
-                Err(err) => std::panic::resume_unwind(err),
-            }
-        })?
-    }
-}
-
-impl Serializable for Module {
-    fn write_into<W: ByteWriter>(&self, target: &mut W) {
-        self.write_into_with_options(target, AstSerdeOptions::new(true, true))
-    }
-}
-
-impl Deserializable for Module {
-    /// Deserialize a [Module] from `source`
-    ///
-    /// Assumes that the module was encoded using [Serializable::write_into] or
-    /// [Module::write_into_with_options]
-    fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
-        let options = AstSerdeOptions::read_from(source)?;
-        let span = if options.debug_info {
-            SourceSpan::read_from(source)?
-        } else {
-            SourceSpan::default()
-        };
-        let kind = ModuleKind::read_from(source)?;
-        let path = LibraryPath::read_from(source)?;
-        let imports = if options.serialize_imports {
-            let num_imports = source.read_usize()?;
-            let mut imports = Vec::with_capacity(num_imports);
-            for _ in 0..num_imports {
-                let import = Import::read_from_with_options(source, options)?;
-                imports.push(import);
-            }
-            imports
-        } else {
-            Vec::new()
-        };
-        let num_procedures = source.read_usize()?;
-        let mut procedures = Vec::with_capacity(num_procedures);
-        for _ in 0..num_procedures {
-            let export = Export::read_from_with_options(source, options)?;
-            procedures.push(export);
-        }
-        Ok(Self {
-            span,
-            docs: None,
-            path,
-            kind,
-            imports,
-            procedures,
-        })
     }
 }
 

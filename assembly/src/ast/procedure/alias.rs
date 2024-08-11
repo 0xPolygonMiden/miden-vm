@@ -3,9 +3,9 @@ use core::fmt;
 
 use super::{ProcedureName, QualifiedProcedureName};
 use crate::{
-    ast::{AstSerdeOptions, InvocationTarget},
+    ast::InvocationTarget,
     diagnostics::{SourceSpan, Span, Spanned},
-    ByteReader, ByteWriter, DeserializationError, RpoDigest,
+    RpoDigest,
 };
 
 // PROCEDURE ALIAS
@@ -87,23 +87,6 @@ impl ProcedureAlias {
     }
 }
 
-/// Serialization
-impl ProcedureAlias {
-    pub fn write_into_with_options<W: ByteWriter>(&self, target: &mut W, options: AstSerdeOptions) {
-        self.name.write_into_with_options(target, options);
-        self.target.write_into_with_options(target, options);
-    }
-
-    pub fn read_from_with_options<R: ByteReader>(
-        source: &mut R,
-        options: AstSerdeOptions,
-    ) -> Result<Self, DeserializationError> {
-        let name = ProcedureName::read_from_with_options(source, options)?;
-        let target = AliasTarget::read_from_with_options(source, options)?;
-        Ok(Self { docs: None, name, target })
-    }
-}
-
 impl Spanned for ProcedureAlias {
     fn span(&self) -> SourceSpan {
         self.target.span()
@@ -141,7 +124,6 @@ impl crate::prettier::PrettyPrint for ProcedureAlias {
 
 /// A fully-qualified external procedure that is the target of a procedure alias
 #[derive(Debug, Clone, PartialEq, Eq)]
-#[repr(u8)]
 pub enum AliasTarget {
     /// An alias of the procedure whose root is the given digest
     ///
@@ -243,51 +225,5 @@ impl fmt::Display for AliasTarget {
         use crate::prettier::PrettyPrint;
 
         self.pretty_print(f)
-    }
-}
-
-impl AliasTarget {
-    fn tag(&self) -> u8 {
-        // SAFETY: This is safe because we have given this enum a primitive representation with
-        // #[repr(u8)], with the first field of the underlying union-of-structs the discriminant.
-        //
-        // See the section on "accessing the numeric value of the discriminant"
-        // here: https://doc.rust-lang.org/std/mem/fn.discriminant.html
-        unsafe { *<*const _>::from(self).cast::<u8>() }
-    }
-
-    /// Serialize to `target` using `options`
-    pub fn write_into_with_options<W: ByteWriter>(&self, target: &mut W, options: AstSerdeOptions) {
-        target.write_u8(self.tag());
-        match self {
-            Self::MastRoot(spanned) => spanned.write_into_with_options(target, options.debug_info),
-            Self::ProcedurePath(path) => path.write_into_with_options(target, options),
-            Self::AbsoluteProcedurePath(path) => path.write_into_with_options(target, options),
-        }
-    }
-
-    /// Deserialize from `source` using `options`
-    pub fn read_from_with_options<R: ByteReader>(
-        source: &mut R,
-        options: AstSerdeOptions,
-    ) -> Result<Self, DeserializationError> {
-        match source.read_u8()? {
-            0 => {
-                let root = Span::<RpoDigest>::read_from_with_options(source, options.debug_info)?;
-                Ok(Self::MastRoot(root))
-            },
-            1 => {
-                let path = QualifiedProcedureName::read_from_with_options(source, options)?;
-                Ok(Self::ProcedurePath(path))
-            },
-            2 => {
-                let path = QualifiedProcedureName::read_from_with_options(source, options)?;
-                Ok(Self::AbsoluteProcedurePath(path))
-            },
-            n => Err(DeserializationError::InvalidValue(format!(
-                "{} is not a valid alias target type",
-                n
-            ))),
-        }
     }
 }

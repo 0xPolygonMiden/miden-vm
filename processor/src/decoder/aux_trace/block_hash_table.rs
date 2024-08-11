@@ -86,17 +86,10 @@ impl BlockHashTableRow {
     // CONSTRUCTORS
     // ----------------------------------------------------------------------------------------------
 
-    // Computes the initial row in the block hash table.
+    // Instantiates the initial row in the block hash table.
     pub fn table_init(main_trace: &MainTrace) -> Self {
-        let program_hash = {
-            let row_with_halt = main_trace
-                .row_iter()
-                .find(|&row| main_trace.get_op_code(row) == Felt::from(OPCODE_HALT))
-                .expect("execution trace must include at least one occurrence of HALT");
-
-            main_trace.decoder_hasher_state_first_half(row_with_halt)
-        };
-
+        let program_hash =
+            main_trace.decoder_hasher_state_first_half(main_trace.last_program_row());
         Self {
             parent_block_id: ZERO,
             child_block_hash: program_hash,

@@ -14,10 +14,7 @@ pub use self::{
     procedure::{Procedure, Visibility},
     resolver::{LocalNameResolver, ResolvedProcedure},
 };
-use crate::{
-    ast::{AstSerdeOptions, Invoke},
-    ByteReader, ByteWriter, DeserializationError, SourceSpan, Span, Spanned,
-};
+use crate::{ast::Invoke, SourceSpan, Span, Spanned};
 
 // EXPORT
 // ================================================================================================
@@ -27,12 +24,11 @@ use crate::{
 /// Currently only procedures (either locally-defined or re-exported) are exportable, but in the
 /// future this may be expanded.
 #[derive(Debug, Clone, PartialEq, Eq)]
-#[repr(u8)]
 pub enum Export {
     /// A locally-defined procedure.
-    Procedure(Procedure) = 0,
+    Procedure(Procedure),
     /// An alias for an externally-defined procedure, i.e. a re-exported import.
-    Alias(ProcedureAlias) = 1,
+    Alias(ProcedureAlias),
 }
 
 impl Export {
@@ -103,39 +99,6 @@ impl Export {
             Self::Procedure(ref proc) => procedure::InvokedIter::NonEmpty(proc.invoked.iter()),
             Self::Alias(_) => procedure::InvokedIter::Empty,
         }
-    }
-}
-
-/// Serialization
-impl Export {
-    pub fn write_into_with_options<W: ByteWriter>(&self, target: &mut W, options: AstSerdeOptions) {
-        target.write_u8(self.tag());
-        match self {
-            Self::Procedure(ref proc) => proc.write_into_with_options(target, options),
-            Self::Alias(ref proc) => proc.write_into_with_options(target, options),
-        }
-    }
-
-    pub fn read_from_with_options<R: ByteReader>(
-        source: &mut R,
-        options: AstSerdeOptions,
-    ) -> Result<Self, DeserializationError> {
-        match source.read_u8()? {
-            0 => Procedure::read_from_with_options(source, options).map(Self::Procedure),
-            1 => ProcedureAlias::read_from_with_options(source, options).map(Self::Alias),
-            n => {
-                Err(DeserializationError::InvalidValue(format!("invalid procedure kind tag: {n}")))
-            },
-        }
-    }
-
-    fn tag(&self) -> u8 {
-        // SAFETY: This is safe because we have given this enum a primitive representation with
-        // #[repr(u8)], with the first field of the underlying union-of-structs the discriminant.
-        //
-        // See the section on "accessing the numeric value of the discriminant"
-        // here: https://doc.rust-lang.org/std/mem/fn.discriminant.html
-        unsafe { *<*const _>::from(self).cast::<u8>() }
     }
 }
 

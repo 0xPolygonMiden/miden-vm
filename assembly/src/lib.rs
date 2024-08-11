@@ -12,7 +12,6 @@ use vm_core::{
     prettier,
     utils::{
         ByteReader, ByteWriter, Deserializable, DeserializationError, DisplayHex, Serializable,
-        SliceReader,
     },
     Felt, Word, ONE, ZERO,
 };
@@ -48,9 +47,6 @@ pub use self::{
 
 // CONSTANTS
 // ================================================================================================
-
-/// The maximum number of constant inputs allowed for the `push` instruction.
-const MAX_PUSH_INPUTS: usize = 16;
 
 /// The maximum number of elements that can be popped from the advice stack in a single `adv_push`
 /// instruction.
