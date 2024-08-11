@@ -35,6 +35,7 @@ const DECODER_HASHER_RANGE: Range<usize> =
 
 pub struct MainTrace {
     columns: ColMatrix<Felt>,
+    last_program_row: RowIndex,
 }
 
 impl Deref for MainTrace {
@@ -46,12 +47,16 @@ impl Deref for MainTrace {
 }
 
 impl MainTrace {
-    pub fn new(main_trace: ColMatrix<Felt>) -> Self {
-        Self { columns: main_trace }
+    pub fn new(main_trace: ColMatrix<Felt>, last_program_row: RowIndex) -> Self {
+        Self { columns: main_trace, last_program_row }
     }
 
     pub fn num_rows(&self) -> usize {
         self.columns.num_rows()
+    }
+
+    pub fn last_program_row(&self) -> RowIndex {
+        self.last_program_row
     }
 
     #[cfg(any(test, feature = "testing"))]
