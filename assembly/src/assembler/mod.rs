@@ -430,6 +430,7 @@ impl Assembler {
                         procedure_gid,
                         name,
                         proc.visibility(),
+                        module.is_kernel(),
                         self.source_manager.clone(),
                     )
                     .with_num_locals(num_locals)
@@ -452,6 +453,7 @@ impl Assembler {
                         procedure_gid,
                         name,
                         ast::Visibility::Public,
+                        module.is_kernel(),
                         self.source_manager.clone(),
                     )
                     .with_span(proc_alias.span());
