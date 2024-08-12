@@ -193,8 +193,7 @@ impl Assembler {
         namespace: crate::LibraryNamespace,
         dir: &std::path::Path,
     ) -> Result<(), Report> {
-        let source_manager = self.source_manager.clone();
-        for module in crate::parser::read_modules_from_dir(namespace, dir, source_manager)? {
+        for module in crate::parser::read_modules_from_dir(namespace, dir, &self.source_manager)? {
             self.module_graph.add_ast_module(module)?;
         }
 

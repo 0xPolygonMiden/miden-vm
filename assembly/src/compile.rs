@@ -6,6 +6,8 @@ use alloc::{
     vec::Vec,
 };
 
+use miette::miette;
+
 use crate::{
     ast::{Module, ModuleKind},
     diagnostics::{
@@ -152,10 +154,10 @@ impl Compile for Box<Module> {
             }
             Ok(self)
         } else {
-            Err(Report::msg(format!(
+            Err(miette!(
                 "compilation failed: expected a {} module, but got a {actual} module",
                 options.kind
-            )))
+            ))
         }
     }
 }

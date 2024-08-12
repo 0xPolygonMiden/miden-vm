@@ -42,8 +42,6 @@ impl BundleCmd {
         let assembler = Assembler::default().with_debug_mode(true);
         let library_namespace =
             namespace.parse::<LibraryNamespace>().expect("invalid base namespace");
-        // TODO: Add version to `Library`
-        // let version = self.version.parse::<Version>().expect("invalid cargo version");
         let library = Library::from_dir(&self.dir, library_namespace, assembler)?;
 
         // write the masl output
