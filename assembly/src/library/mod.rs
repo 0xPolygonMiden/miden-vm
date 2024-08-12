@@ -14,8 +14,6 @@ use vm_core::{
 use crate::ast::{ProcedureName, QualifiedProcedureName};
 
 mod error;
-#[cfg(feature = "std")]
-mod masl;
 mod module;
 mod namespace;
 mod path;
@@ -32,13 +30,6 @@ pub use self::{
 
 #[cfg(test)]
 mod tests;
-
-// CONSTANTS
-// ================================================================================================
-
-/// Maximum number of modules in a library.
-#[cfg(feature = "std")]
-const MAX_MODULES: usize = u16::MAX as usize;
 
 // LIBRARY
 // ================================================================================================
@@ -209,28 +200,17 @@ fn content_hash(
 
 #[cfg(feature = "std")]
 mod use_std_library {
-    use std::{boxed::Box, collections::btree_map::Entry, fs, io, path::Path, sync::Arc};
+    use std::{fs, io, path::Path};
 
-    use masl::{LibraryEntry, WalkLibrary};
-    use miette::{Context, Report};
+    use miette::Report;
     use vm_core::utils::ReadAdapter;
 
     use super::*;
-    use crate::{
-        ast::{self, ModuleKind},
-        diagnostics::IntoDiagnostic,
-        Assembler, SourceManager,
-    };
+    use crate::Assembler;
 
     impl Library {
         /// File extension for the Assembly Library.
         pub const LIBRARY_EXTENSION: &'static str = "masl";
-
-        /// File extension for the Assembly Module.
-        pub const MODULE_EXTENSION: &'static str = "masm";
-
-        /// Name of the root module.
-        pub const MOD: &'static str = "mod";
 
         /// Write the library to a target file
         ///
@@ -294,68 +274,10 @@ mod use_std_library {
             assembler: Assembler,
         ) -> Result<Self, Report> {
             let path = path.as_ref();
-            let modules = Self::read_modules_from_dir(namespace, path, assembler.source_manager())?;
+
+            let modules =
+                crate::parser::read_modules_from_dir(namespace, path, assembler.source_manager())?;
             assembler.assemble_library(modules)
-        }
-
-        /// Read the contents (modules) of this library from `dir`, returning any errors that occur
-        /// while traversing the file system.
-        ///
-        /// Errors may also be returned if traversal discovers issues with the library, such as
-        /// invalid names, etc.
-        ///
-        /// Returns an iterator over all parsed modules.
-        pub(super) fn read_modules_from_dir(
-            namespace: LibraryNamespace,
-            dir: &Path,
-            source_manager: Arc<dyn SourceManager>,
-        ) -> Result<impl Iterator<Item = Box<ast::Module>>, Report> {
-            if !dir.is_dir() {
-                return Err(Report::msg(format!(
-                    "the provided path '{}' is not a valid directory",
-                    dir.display()
-                )));
-            }
-
-            // mod.masm is not allowed in the root directory
-            if dir.join("mod.masm").exists() {
-                return Err(Report::msg("mod.masm is not allowed in the root directory"));
-            }
-
-            let mut modules = BTreeMap::default();
-
-            let walker = WalkLibrary::new(namespace.clone(), dir)
-                .into_diagnostic()
-                .wrap_err_with(|| format!("failed to load library from '{}'", dir.display()))?;
-            for entry in walker {
-                let LibraryEntry { mut name, source_path } = entry?;
-                if name.last() == Self::MOD {
-                    name.pop();
-                }
-                // Parse module at the given path
-                let mut parser = ast::Module::parser(ModuleKind::Library);
-                let ast = parser.parse_file(name.clone(), &source_path, &source_manager)?;
-                match modules.entry(name) {
-                    Entry::Occupied(ref entry) => {
-                        return Err(LibraryError::DuplicateModulePath(entry.key().clone()))
-                            .into_diagnostic();
-                    },
-                    Entry::Vacant(entry) => {
-                        entry.insert(ast);
-                    },
-                }
-            }
-
-            if modules.len() > MAX_MODULES {
-                return Err(LibraryError::TooManyModulesInLibrary {
-                    name: namespace.clone(),
-                    count: modules.len(),
-                    max: MAX_MODULES,
-                }
-                .into());
-            }
-
-            Ok(modules.into_values())
         }
 
         pub fn deserialize_from_file(path: impl AsRef<Path>) -> Result<Self, DeserializationError> {
@@ -557,12 +479,7 @@ mod use_std_kernel {
             if let Some(lib_dir) = lib_dir {
                 let lib_dir = lib_dir.as_ref();
                 let namespace = LibraryNamespace::new("kernel").expect("invalid namespace");
-                let modules =
-                    Library::read_modules_from_dir(namespace, lib_dir, assembler.source_manager())?;
-
-                for module in modules {
-                    assembler.add_module(module)?;
-                }
+                assembler.add_modules_from_dir(namespace, lib_dir)?;
             }
 
             assembler.assemble_kernel(sys_module_path.as_ref())

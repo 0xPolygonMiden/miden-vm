@@ -5,6 +5,7 @@
 #### Enhancements
 
 - Added `with-debug-info` feature to `miden-stdlib` (#1445).
+- Added `Assembler::add_modules_from_dir()` method (#1445).
 - [BREAKING] Implemented building of multi-module kernels (#1445).
 
 #### Changes

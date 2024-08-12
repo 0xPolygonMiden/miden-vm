@@ -176,6 +176,31 @@ impl Assembler {
         Ok(())
     }
 
+    /// Adds all modules (defined by ".masm" files) from the specified directory to the module
+    /// of this assembler graph.
+    ///
+    /// The modules will be added under the specified namespace, but otherwise preserving the
+    /// structure of the directory. Any module named `mod.masm` will be added using parent
+    /// directory path For example, if `namespace` = "ns", modules from the ~/masm directory
+    /// will be added as follows:
+    ///
+    /// - ~/masm/foo.masm        -> "ns::foo"
+    /// - ~/masm/bar/mod.masm    -> "ns::bar"
+    /// - ~/masm/bar/baz.masm    -> "ns::bar::baz"
+    #[cfg(feature = "std")]
+    pub fn add_modules_from_dir(
+        &mut self,
+        namespace: crate::LibraryNamespace,
+        dir: &std::path::Path,
+    ) -> Result<(), Report> {
+        let source_manager = self.source_manager.clone();
+        for module in crate::parser::read_modules_from_dir(namespace, dir, source_manager)? {
+            self.module_graph.add_ast_module(module)?;
+        }
+
+        Ok(())
+    }
+
     /// Adds the compiled library to provide modules for the compilation.
     pub fn add_library(&mut self, library: impl AsRef<Library>) -> Result<(), Report> {
         self.module_graph
