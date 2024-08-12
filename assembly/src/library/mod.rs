@@ -33,6 +33,13 @@ pub use self::{
 #[cfg(test)]
 mod tests;
 
+// CONSTANTS
+// ================================================================================================
+
+/// Maximum number of modules in a library.
+#[cfg(feature = "std")]
+const MAX_MODULES: usize = u16::MAX as usize;
+
 // LIBRARY
 // ================================================================================================
 
@@ -202,7 +209,7 @@ fn content_hash(
 
 #[cfg(feature = "std")]
 mod use_std_library {
-    use std::{collections::btree_map::Entry, fs, io, path::Path};
+    use std::{boxed::Box, collections::btree_map::Entry, fs, io, path::Path, sync::Arc};
 
     use masl::{LibraryEntry, WalkLibrary};
     use miette::{Context, Report};
@@ -212,7 +219,7 @@ mod use_std_library {
     use crate::{
         ast::{self, ModuleKind},
         diagnostics::IntoDiagnostic,
-        Assembler,
+        Assembler, SourceManager,
     };
 
     impl Library {
@@ -287,19 +294,8 @@ mod use_std_library {
             assembler: Assembler,
         ) -> Result<Self, Report> {
             let path = path.as_ref();
-            if !path.is_dir() {
-                return Err(Report::msg(format!(
-                    "the provided path '{}' is not a valid directory",
-                    path.display()
-                )));
-            }
-
-            // mod.masm is not allowed in the root directory
-            if path.join("mod.masm").exists() {
-                return Err(Report::msg("mod.masm is not allowed in the root directory"));
-            }
-
-            Self::compile_modules_from_dir(namespace, path, assembler)
+            let modules = Self::read_modules_from_dir(namespace, path, assembler.source_manager())?;
+            assembler.assemble_library(modules)
         }
 
         /// Read the contents (modules) of this library from `dir`, returning any errors that occur
@@ -308,12 +304,24 @@ mod use_std_library {
         /// Errors may also be returned if traversal discovers issues with the library, such as
         /// invalid names, etc.
         ///
-        /// Returns a library built from the set of modules that were compiled.
-        fn compile_modules_from_dir(
+        /// Returns an iterator over all parsed modules.
+        pub(super) fn read_modules_from_dir(
             namespace: LibraryNamespace,
             dir: &Path,
-            assembler: Assembler,
-        ) -> Result<Self, Report> {
+            source_manager: Arc<dyn SourceManager>,
+        ) -> Result<impl Iterator<Item = Box<ast::Module>>, Report> {
+            if !dir.is_dir() {
+                return Err(Report::msg(format!(
+                    "the provided path '{}' is not a valid directory",
+                    dir.display()
+                )));
+            }
+
+            // mod.masm is not allowed in the root directory
+            if dir.join("mod.masm").exists() {
+                return Err(Report::msg("mod.masm is not allowed in the root directory"));
+            }
+
             let mut modules = BTreeMap::default();
 
             let walker = WalkLibrary::new(namespace.clone(), dir)
@@ -326,8 +334,7 @@ mod use_std_library {
                 }
                 // Parse module at the given path
                 let mut parser = ast::Module::parser(ModuleKind::Library);
-                let ast =
-                    parser.parse_file(name.clone(), &source_path, &assembler.source_manager())?;
+                let ast = parser.parse_file(name.clone(), &source_path, &source_manager)?;
                 match modules.entry(name) {
                     Entry::Occupied(ref entry) => {
                         return Err(LibraryError::DuplicateModulePath(entry.key().clone()))
@@ -348,7 +355,7 @@ mod use_std_library {
                 .into());
             }
 
-            assembler.assemble_library(modules.into_values())
+            Ok(modules.into_values())
         }
 
         pub fn deserialize_from_file(path: impl AsRef<Path>) -> Result<Self, DeserializationError> {
@@ -528,18 +535,37 @@ mod use_std_kernel {
             self.library.write_to_file(path)
         }
 
-        /// Create a [KernelLibrary] from a standard Miden Assembly project layout.
+        /// Create a [KernelLibrary] from a standard Miden Assembly kernel project layout.
         ///
-        /// This is essentially a wrapper around [Library::from_dir], which then validates
-        /// that the resulting [Library] is a valid [KernelLibrary].
-        pub fn from_dir(path: impl AsRef<Path>, assembler: Assembler) -> Result<Self, Report> {
-            let library = Library::from_dir(path, LibraryNamespace::Kernel, assembler)?;
+        /// The kernel library will export procedures defined by the module at `sys_module_path`.
+        /// If the optional `lib_dir` is provided, all modules under this directory will be
+        /// available from the kernel module under the `kernel` namespace. For example, if
+        /// `lib_dir` is set to "~/masm/lib", the files will be accessible in the kernel module as
+        /// follows:
+        ///
+        /// - ~/masm/lib/foo.masm        -> Can be imported as "kernel::foo"
+        /// - ~/masm/lib/bar/baz.masm    -> Can be imported as "kernel::bar::baz"
+        ///
+        /// Note: this is a temporary structure which will likely change once
+        /// <https://github.com/0xPolygonMiden/miden-vm/issues/1436> is implemented.
+        pub fn from_dir(
+            sys_module_path: impl AsRef<Path>,
+            lib_dir: Option<impl AsRef<Path>>,
+            mut assembler: Assembler,
+        ) -> Result<Self, Report> {
+            // if library directory is provided, add modules from this directory to the assembler
+            if let Some(lib_dir) = lib_dir {
+                let lib_dir = lib_dir.as_ref();
+                let namespace = LibraryNamespace::new("kernel").expect("invalid namespace");
+                let modules =
+                    Library::read_modules_from_dir(namespace, lib_dir, assembler.source_manager())?;
 
-            Ok(Self::try_from(library)?)
+                for module in modules {
+                    assembler.add_module(module)?;
+                }
+            }
+
+            assembler.assemble_kernel(sys_module_path.as_ref())
         }
     }
 }
-
-/// Maximum number of modules in a library.
-#[cfg(feature = "std")]
-const MAX_MODULES: usize = u16::MAX as usize;
