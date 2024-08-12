@@ -21,6 +21,7 @@ pub struct ProcedureContext {
     span: SourceSpan,
     name: QualifiedProcedureName,
     visibility: Visibility,
+    is_kernel: bool,
     num_locals: u16,
     callset: CallSet,
 }
@@ -32,6 +33,7 @@ impl ProcedureContext {
         gid: GlobalProcedureIndex,
         name: QualifiedProcedureName,
         visibility: Visibility,
+        is_kernel: bool,
         source_manager: Arc<dyn SourceManager>,
     ) -> Self {
         Self {
@@ -40,6 +42,7 @@ impl ProcedureContext {
             span: name.span(),
             name,
             visibility,
+            is_kernel,
             num_locals: 0,
             callset: Default::default(),
         }
@@ -76,8 +79,9 @@ impl ProcedureContext {
         &self.name.module
     }
 
+    /// Returns true if the procedure is being assembled for a kernel.
     pub fn is_kernel(&self) -> bool {
-        self.visibility.is_syscall()
+        self.is_kernel
     }
 
     #[inline(always)]
