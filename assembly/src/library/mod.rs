@@ -371,6 +371,11 @@ impl AsRef<Library> for KernelLibrary {
 }
 
 impl KernelLibrary {
+    /// Returns the [Kernel] for this kernel library.
+    pub fn kernel(&self) -> &Kernel {
+        &self.kernel
+    }
+
     /// Returns the inner [`MastForest`].
     pub fn mast_forest(&self) -> &MastForest {
         self.library.mast_forest()
