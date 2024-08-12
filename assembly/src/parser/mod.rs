@@ -21,6 +21,8 @@ mod token;
 
 use alloc::{boxed::Box, collections::BTreeSet, string::ToString, sync::Arc, vec::Vec};
 
+use miette::miette;
+
 pub use self::{
     error::{BinErrorKind, HexErrorKind, LiteralErrorKind, ParsingError},
     lexer::Lexer,
@@ -32,6 +34,9 @@ use crate::{
     diagnostics::{Report, SourceFile, SourceSpan, Span, Spanned},
     sema, LibraryPath, SourceManager,
 };
+
+// TYPE ALIASES
+// ================================================================================================
 
 type ParseError<'a> = lalrpop_util::ParseError<u32, Token<'a>, ParsingError>;
 
@@ -173,7 +178,7 @@ fn parse_forms_internal(
 pub fn read_modules_from_dir(
     namespace: crate::LibraryNamespace,
     dir: &std::path::Path,
-    source_manager: Arc<dyn SourceManager>,
+    source_manager: &dyn SourceManager,
 ) -> Result<impl Iterator<Item = Box<ast::Module>>, Report> {
     use std::collections::{btree_map::Entry, BTreeMap};
 
@@ -182,18 +187,12 @@ pub fn read_modules_from_dir(
     use crate::diagnostics::{IntoDiagnostic, WrapErr};
 
     if !dir.is_dir() {
-        return Err(Report::msg(format!(
-            "the provided path '{}' is not a valid directory",
-            dir.display()
-        )));
+        return Err(miette!("the provided path '{}' is not a valid directory", dir.display()));
     }
 
     // mod.masm is not allowed in the root directory
     if dir.join(ast::Module::ROOT_FILENAME).exists() {
-        return Err(Report::msg(format!(
-            "{} is not allowed in the root directory",
-            ast::Module::ROOT_FILENAME
-        )));
+        return Err(miette!("{} is not allowed in the root directory", ast::Module::ROOT_FILENAME));
     }
 
     let mut modules = BTreeMap::default();
@@ -209,10 +208,10 @@ pub fn read_modules_from_dir(
 
         // Parse module at the given path
         let mut parser = ModuleParser::new(ast::ModuleKind::Library);
-        let ast = parser.parse_file(name.clone(), &source_path, &source_manager)?;
+        let ast = parser.parse_file(name.clone(), &source_path, source_manager)?;
         match modules.entry(name) {
             Entry::Occupied(ref entry) => {
-                return Err(Report::msg(format!("duplicate module '{0}'", entry.key().clone())));
+                return Err(miette!("duplicate module '{0}'", entry.key().clone()));
             },
             Entry::Vacant(entry) => {
                 entry.insert(ast);
@@ -233,6 +232,7 @@ mod module_walker {
         path::{Path, PathBuf},
     };
 
+    use super::miette;
     use crate::{
         ast::Module,
         diagnostics::{IntoDiagnostic, Report},
@@ -282,10 +282,10 @@ mod module_walker {
             // Remove the file extension and the root prefix, leaving a namespace-relative path
             file_path.set_extension("");
             if file_path.is_dir() {
-                return Err(Report::msg(format!(
+                return Err(miette!(
                     "file and directory with same name are not allowed: {}",
                     file_path.display()
-                )));
+                ));
             }
             let relative_path = file_path
                 .strip_prefix(self.root)
@@ -296,7 +296,7 @@ mod module_walker {
             for component in relative_path.iter() {
                 let component = component.to_str().ok_or_else(|| {
                     let p = entry.path();
-                    Report::msg(format!("{} is an invalid directory entry", p.display()))
+                    miette!("{} is an invalid directory entry", p.display())
                 })?;
                 libpath.push(component).into_diagnostic()?;
             }

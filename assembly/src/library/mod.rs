@@ -276,7 +276,7 @@ mod use_std_library {
             let path = path.as_ref();
 
             let modules =
-                crate::parser::read_modules_from_dir(namespace, path, assembler.source_manager())?;
+                crate::parser::read_modules_from_dir(namespace, path, &assembler.source_manager())?;
             assembler.assemble_library(modules)
         }
 
