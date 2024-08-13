@@ -1,8 +1,8 @@
 [package]
 name = "miden-processor"
-version = "0.10.2"
+version = "0.10.3"
 description = "Miden VM processor"
-documentation = "https://docs.rs/miden-processor/0.10.2"
+documentation = "https://docs.rs/miden-processor/0.10.3"
 readme = "README.md"
 categories = ["emulators", "no-std"]
 keywords = ["miden", "virtual-machine"]
