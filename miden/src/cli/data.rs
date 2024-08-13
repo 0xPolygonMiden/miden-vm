@@ -9,8 +9,7 @@ use std::{
 use assembly::{
     ast::{Module, ModuleKind},
     diagnostics::{IntoDiagnostic, Report, WrapErr},
-    library::Library,
-    Assembler, LibraryNamespace,
+    Assembler, Library, LibraryNamespace,
 };
 use miden_vm::{
     crypto::{MerkleStore, MerkleTree, NodeIndex, PartialMerkleTree, RpoDigest, SimpleSmt},

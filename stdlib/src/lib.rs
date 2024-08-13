@@ -2,7 +2,7 @@
 
 extern crate alloc;
 
-use assembly::{library::Library, mast::MastForest, utils::Deserializable};
+use assembly::{mast::MastForest, utils::Deserializable, Library};
 
 // STANDARD LIBRARY
 // ================================================================================================

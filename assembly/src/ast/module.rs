@@ -126,6 +126,18 @@ pub struct Module {
     pub(crate) procedures: Vec<Export>,
 }
 
+/// Constants
+impl Module {
+    /// File extension for a Assembly Module.
+    pub const FILE_EXTENSION: &'static str = "masm";
+
+    /// Name of the root module.
+    pub const ROOT: &'static str = "mod";
+
+    /// File name of the root module.
+    pub const ROOT_FILENAME: &'static str = "mod.masm";
+}
+
 /// Construction
 impl Module {
     /// Creates a new [Module] with the specified `kind` and fully-qualified path, e.g.

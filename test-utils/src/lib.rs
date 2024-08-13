@@ -16,7 +16,7 @@ use alloc::{
     vec::Vec,
 };
 
-use assembly::library::Library;
+use assembly::Library;
 // EXPORTS
 // ================================================================================================
 pub use assembly::{diagnostics::Report, LibraryPath, SourceFile, SourceManager};

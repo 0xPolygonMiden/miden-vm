@@ -24,6 +24,7 @@ path = "tests/main.rs"
 [features]
 default = ["std"]
 std = ["assembly/std"]
+with-debug-info = []
 
 [dependencies]
 assembly = { package = "miden-assembly", path = "../assembly", version = "0.11", default-features = false }

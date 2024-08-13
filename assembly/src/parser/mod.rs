@@ -21,6 +21,8 @@ mod token;
 
 use alloc::{boxed::Box, collections::BTreeSet, string::ToString, sync::Arc, vec::Vec};
 
+use miette::miette;
+
 pub use self::{
     error::{BinErrorKind, HexErrorKind, LiteralErrorKind, ParsingError},
     lexer::Lexer,
@@ -32,6 +34,9 @@ use crate::{
     diagnostics::{Report, SourceFile, SourceSpan, Span, Spanned},
     sema, LibraryPath, SourceManager,
 };
+
+// TYPE ALIASES
+// ================================================================================================
 
 type ParseError<'a> = lalrpop_util::ParseError<u32, Token<'a>, ParsingError>;
 
@@ -157,6 +162,171 @@ fn parse_forms_internal(
     grammar::FormsParser::new()
         .parse(&source, interned, core::marker::PhantomData, lexer)
         .map_err(|err| ParsingError::from_parse_error(source_id, err))
+}
+
+// DIRECTORY PARSER
+// ================================================================================================
+
+/// Read the contents (modules) of this library from `dir`, returning any errors that occur
+/// while traversing the file system.
+///
+/// Errors may also be returned if traversal discovers issues with the modules, such as
+/// invalid names, etc.
+///
+/// Returns an iterator over all parsed modules.
+#[cfg(feature = "std")]
+pub fn read_modules_from_dir(
+    namespace: crate::LibraryNamespace,
+    dir: &std::path::Path,
+    source_manager: &dyn SourceManager,
+) -> Result<impl Iterator<Item = Box<ast::Module>>, Report> {
+    use std::collections::{btree_map::Entry, BTreeMap};
+
+    use module_walker::{ModuleEntry, WalkModules};
+
+    use crate::diagnostics::{IntoDiagnostic, WrapErr};
+
+    if !dir.is_dir() {
+        return Err(miette!("the provided path '{}' is not a valid directory", dir.display()));
+    }
+
+    // mod.masm is not allowed in the root directory
+    if dir.join(ast::Module::ROOT_FILENAME).exists() {
+        return Err(miette!("{} is not allowed in the root directory", ast::Module::ROOT_FILENAME));
+    }
+
+    let mut modules = BTreeMap::default();
+
+    let walker = WalkModules::new(namespace.clone(), dir)
+        .into_diagnostic()
+        .wrap_err_with(|| format!("failed to load modules from '{}'", dir.display()))?;
+    for entry in walker {
+        let ModuleEntry { mut name, source_path } = entry?;
+        if name.last() == ast::Module::ROOT {
+            name.pop();
+        }
+
+        // Parse module at the given path
+        let mut parser = ModuleParser::new(ast::ModuleKind::Library);
+        let ast = parser.parse_file(name.clone(), &source_path, source_manager)?;
+        match modules.entry(name) {
+            Entry::Occupied(ref entry) => {
+                return Err(miette!("duplicate module '{0}'", entry.key().clone()));
+            },
+            Entry::Vacant(entry) => {
+                entry.insert(ast);
+            },
+        }
+    }
+
+    Ok(modules.into_values())
+}
+
+#[cfg(feature = "std")]
+mod module_walker {
+
+    use std::{
+        ffi::OsStr,
+        fs::{self, DirEntry, FileType},
+        io,
+        path::{Path, PathBuf},
+    };
+
+    use super::miette;
+    use crate::{
+        ast::Module,
+        diagnostics::{IntoDiagnostic, Report},
+        LibraryNamespace, LibraryPath,
+    };
+
+    pub struct ModuleEntry {
+        pub name: LibraryPath,
+        pub source_path: PathBuf,
+    }
+
+    pub struct WalkModules<'a> {
+        namespace: LibraryNamespace,
+        root: &'a Path,
+        stack: alloc::collections::VecDeque<io::Result<DirEntry>>,
+    }
+
+    impl<'a> WalkModules<'a> {
+        pub fn new(namespace: LibraryNamespace, path: &'a Path) -> io::Result<Self> {
+            use alloc::collections::VecDeque;
+
+            let stack = VecDeque::from_iter(fs::read_dir(path)?);
+
+            Ok(Self { namespace, root: path, stack })
+        }
+
+        fn next_entry(
+            &mut self,
+            entry: &DirEntry,
+            ty: &FileType,
+        ) -> Result<Option<ModuleEntry>, Report> {
+            if ty.is_dir() {
+                let dir = entry.path();
+                self.stack.extend(fs::read_dir(dir).into_diagnostic()?);
+                return Ok(None);
+            }
+
+            let mut file_path = entry.path();
+            let is_module = file_path
+                .extension()
+                .map(|ext| ext == AsRef::<OsStr>::as_ref(Module::FILE_EXTENSION))
+                .unwrap_or(false);
+            if !is_module {
+                return Ok(None);
+            }
+
+            // Remove the file extension and the root prefix, leaving a namespace-relative path
+            file_path.set_extension("");
+            if file_path.is_dir() {
+                return Err(miette!(
+                    "file and directory with same name are not allowed: {}",
+                    file_path.display()
+                ));
+            }
+            let relative_path = file_path
+                .strip_prefix(self.root)
+                .expect("expected path to be a child of the root directory");
+
+            // Construct a [LibraryPath] from the path components, after validating them
+            let mut libpath = LibraryPath::from(self.namespace.clone());
+            for component in relative_path.iter() {
+                let component = component.to_str().ok_or_else(|| {
+                    let p = entry.path();
+                    miette!("{} is an invalid directory entry", p.display())
+                })?;
+                libpath.push(component).into_diagnostic()?;
+            }
+            Ok(Some(ModuleEntry { name: libpath, source_path: entry.path() }))
+        }
+    }
+
+    impl<'a> Iterator for WalkModules<'a> {
+        type Item = Result<ModuleEntry, Report>;
+
+        fn next(&mut self) -> Option<Self::Item> {
+            loop {
+                let entry = self
+                    .stack
+                    .pop_front()?
+                    .and_then(|entry| entry.file_type().map(|ft| (entry, ft)))
+                    .into_diagnostic();
+
+                match entry {
+                    Ok((ref entry, ref file_type)) => {
+                        match self.next_entry(entry, file_type).transpose() {
+                            None => continue,
+                            result => break result,
+                        }
+                    },
+                    Err(err) => break Some(Err(err)),
+                }
+            }
+        }
+    }
 }
 
 // TESTS

@@ -2,7 +2,20 @@
 
 ## 0.11.0 (TBD)
 
-## 0.10.1 (2024-08-10)
+## 0.10.3 (2024-08-12)
+
+#### Enhancements
+
+- Added `with-debug-info` feature to `miden-stdlib` (#1445).
+- Added `Assembler::add_modules_from_dir()` method (#1445).
+- [BREAKING] Implemented building of multi-module kernels (#1445).
+
+#### Changes
+
+- [BREAKING] Replaced `SourceManager` parameter with `Assembler` in `Library::from_dir` (#1445).
+- [BREAKING] Moved `Library` and `KernelLibrary` exports to the root of the `miden-assembly` crate. (#1445).
+
+## 0.10.2 (2024-08-10)
 
 #### Enhancements
 
