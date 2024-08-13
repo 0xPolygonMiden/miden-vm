@@ -1948,6 +1948,64 @@ end";
 }
 
 #[test]
+fn reexport_proc_from_module_alias() -> TestResult {
+    const MODULE: &str = "dummy::math::u64";
+    const PROCEDURE: &str = r#"
+        export.checked_add
+            swap
+            movup.3
+            u32assert2
+            u32overflowing_add
+            movup.3
+            movup.3
+            u32assert2
+            u32overflowing_add3
+            eq.0
+            assert
+        end"#;
+    
+    const MODULE_2: &str = "other::module::reexports";
+    const PROCEDURE_2: &str = "
+        use.dummy::math::u64->my_reexport
+
+        export.my_reexport::checked_add
+    ";
+
+    let mut context = TestContext::default();
+    let source_manager = context.source_manager();
+    let mut parser = Module::parser(ModuleKind::Library);
+    let ast_1 = parser.parse_str(MODULE.parse().unwrap(), PROCEDURE, &source_manager).unwrap();
+    let ast_2 = parser.parse_str(MODULE_2.parse().unwrap(), PROCEDURE_2, &source_manager).unwrap();
+    let library = Assembler::new(source_manager).assemble_library([ast_1, ast_2]).unwrap();
+
+    context.add_library(&library)?;
+
+    let source = source_file!(
+        &context,
+        "
+        use.other::module::reexports->bigint
+
+        begin
+            push.1.0
+            push.2.0
+            exec.bigint::checked_add
+        end"
+    );
+
+    let program = context.assemble(source)?;
+    let expected = "\
+begin
+    join
+        basic_block pad incr pad push(2) pad end
+        external.0x3cff5b58a573dc9d25fd3c57130cc57e5b1b381dc58b5ae3594b390c59835e63
+    end
+end";
+    assert_str_eq!(format!("{program}"), expected);
+
+    Ok(())
+}
+
+#[test]
 fn program_with_import_errors() {
     let context = TestContext::default();
     // --- non-existent import ------------------------------------------------
