@@ -141,6 +141,20 @@ end";
     Ok(())
 }
 
+/// This test ensures that all iterations of a repeat control block are merged into a single basic block.
+#[test]
+fn repeat_basic_blocks_merged() -> TestResult {
+    let context = TestContext::default();
+    let source = source_file!(&context, "begin mul repeat.5 add end end");
+    let program = context.assemble(source)?;
+    let expected = "\
+begin
+    basic_block mul add add add add add end
+end";
+    assert_str_eq!(format!("{}", program), expected);
+    Ok(())
+}
+
 #[test]
 fn single_basic_block() -> TestResult {
     let context = TestContext::default();
