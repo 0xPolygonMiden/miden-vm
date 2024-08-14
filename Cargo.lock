@@ -1016,6 +1016,7 @@ name = "miden-assembly"
 version = "0.11.0"
 dependencies = [
  "aho-corasick",
+ "criterion",
  "lalrpop",
  "lalrpop-util",
  "miden-core",

@@ -7,14 +7,10 @@ extern crate alloc;
 #[cfg(any(test, feature = "std"))]
 extern crate std;
 
-use vm_core::{
-    crypto::hash::RpoDigest,
-    prettier,
-    utils::{
-        ByteReader, ByteWriter, Deserializable, DeserializationError, DisplayHex, Serializable,
-    },
-    Felt, Word, ONE, ZERO,
+pub use vm_core::utils::{
+    ByteReader, ByteWriter, Deserializable, DeserializationError, DisplayHex, Serializable,
 };
+use vm_core::{crypto::hash::RpoDigest, prettier, Felt, Word, ONE, ZERO};
 
 mod assembler;
 pub mod ast;
