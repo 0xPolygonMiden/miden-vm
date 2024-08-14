@@ -2,7 +2,7 @@ use miden_crypto::hash::rpo::RpoDigest;
 use winter_utils::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable};
 
 use super::{basic_block_data_decoder::BasicBlockDataDecoder, DataOffset};
-use crate::mast::{MastForest, MastNode, MastNodeId};
+use crate::mast::{CallNode, JoinNode, LoopNode, MastForest, MastNode, MastNodeId, SplitNode};
 
 // MAST NODE INFO
 // ================================================================================================
@@ -35,6 +35,7 @@ impl MastNodeInfo {
                 offset,
                 len: num_operations_and_decorators,
             } => {
+                // TODO(serge): Decode operation batches directly
                 let (operations, decorators) = basic_block_data_decoder
                     .decode_operations_and_decorators(offset, num_operations_and_decorators)?;
 
@@ -44,30 +45,28 @@ impl MastNodeInfo {
                 let left_child = MastNodeId::from_u32_safe(left_child_id, mast_forest)?;
                 let right_child = MastNodeId::from_u32_safe(right_child_id, mast_forest)?;
 
-                Ok(MastNode::new_join(left_child, right_child, mast_forest)
-                    .expect("invalid node id"))
+                Ok(MastNode::Join(JoinNode::new_unsafe([left_child, right_child], self.digest)))
             },
             MastNodeType::Split { if_branch_id, else_branch_id } => {
                 let if_branch = MastNodeId::from_u32_safe(if_branch_id, mast_forest)?;
                 let else_branch = MastNodeId::from_u32_safe(else_branch_id, mast_forest)?;
 
-                Ok(MastNode::new_split(if_branch, else_branch, mast_forest)
-                    .expect("invalid node id"))
+                Ok(MastNode::Split(SplitNode::new_unsafe([if_branch, else_branch], self.digest)))
             },
             MastNodeType::Loop { body_id } => {
                 let body_id = MastNodeId::from_u32_safe(body_id, mast_forest)?;
 
-                Ok(MastNode::new_loop(body_id, mast_forest).expect("invalid node id"))
+                Ok(MastNode::Loop(LoopNode::new_unsafe(body_id, self.digest)))
             },
             MastNodeType::Call { callee_id } => {
                 let callee_id = MastNodeId::from_u32_safe(callee_id, mast_forest)?;
 
-                Ok(MastNode::new_call(callee_id, mast_forest).expect("invalid node id"))
+                Ok(MastNode::Call(CallNode::new_unsafe(callee_id, self.digest)))
             },
             MastNodeType::SysCall { callee_id } => {
                 let callee_id = MastNodeId::from_u32_safe(callee_id, mast_forest)?;
 
-                Ok(MastNode::new_syscall(callee_id, mast_forest).expect("invalid node id"))
+                Ok(MastNode::Call(CallNode::new_syscall_unsafe(callee_id, self.digest)))
             },
             MastNodeType::Dyn => Ok(MastNode::new_dyn()),
             MastNodeType::External => Ok(MastNode::new_external(self.digest)),

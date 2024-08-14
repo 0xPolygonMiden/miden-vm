@@ -88,6 +88,18 @@ impl BasicBlockNode {
         Self::with_decorators(operations, DecoratorList::new())
     }
 
+    /// Returns a new [`BasicBlockNode`] from values that are assumed to be correct.
+    /// Should only be used when the source of the inputs is trusted (e.g. deserialization).
+    pub fn new_unsafe(
+        operations: Vec<Operation>,
+        decorators: DecoratorList,
+        digest: RpoDigest,
+    ) -> Self {
+        // TODO(serge): Receive operation batches instead of generating them
+        let (op_batches, _) = batch_ops(operations);
+        Self { op_batches, digest, decorators }
+    }
+
     /// Returns a new [`BasicBlockNode`] instantiated with the specified operations and decorators.
     ///
     /// # Errors (TODO)
