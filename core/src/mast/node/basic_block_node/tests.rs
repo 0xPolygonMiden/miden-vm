@@ -5,7 +5,7 @@ use crate::{Decorator, ONE};
 fn batch_ops() {
     // --- one operation ----------------------------------------------------------------------
     let ops = vec![Operation::Add];
-    let (batches, hash) = super::batch_ops(ops.clone());
+    let (batches, hash) = super::batch_and_hash_ops(ops.clone());
     assert_eq!(1, batches.len());
 
     let batch = &batches[0];
@@ -21,7 +21,7 @@ fn batch_ops() {
 
     // --- two operations ---------------------------------------------------------------------
     let ops = vec![Operation::Add, Operation::Mul];
-    let (batches, hash) = super::batch_ops(ops.clone());
+    let (batches, hash) = super::batch_and_hash_ops(ops.clone());
     assert_eq!(1, batches.len());
 
     let batch = &batches[0];
@@ -37,7 +37,7 @@ fn batch_ops() {
 
     // --- one group with one immediate value -------------------------------------------------
     let ops = vec![Operation::Add, Operation::Push(Felt::new(12345678))];
-    let (batches, hash) = super::batch_ops(ops.clone());
+    let (batches, hash) = super::batch_and_hash_ops(ops.clone());
     assert_eq!(1, batches.len());
 
     let batch = &batches[0];
@@ -63,7 +63,7 @@ fn batch_ops() {
         Operation::Push(Felt::new(7)),
         Operation::Add,
     ];
-    let (batches, hash) = super::batch_ops(ops.clone());
+    let (batches, hash) = super::batch_and_hash_ops(ops.clone());
     assert_eq!(1, batches.len());
 
     let batch = &batches[0];
@@ -98,7 +98,7 @@ fn batch_ops() {
         Operation::Add,
         Operation::Push(Felt::new(7)),
     ];
-    let (batches, hash) = super::batch_ops(ops.clone());
+    let (batches, hash) = super::batch_and_hash_ops(ops.clone());
     assert_eq!(2, batches.len());
 
     let batch0 = &batches[0];
@@ -147,7 +147,7 @@ fn batch_ops() {
         Operation::Add,
     ];
 
-    let (batches, hash) = super::batch_ops(ops.clone());
+    let (batches, hash) = super::batch_and_hash_ops(ops.clone());
     assert_eq!(1, batches.len());
 
     let batch = &batches[0];
@@ -181,7 +181,7 @@ fn batch_ops() {
         Operation::Add,
         Operation::Push(Felt::new(11)),
     ];
-    let (batches, hash) = super::batch_ops(ops.clone());
+    let (batches, hash) = super::batch_and_hash_ops(ops.clone());
     assert_eq!(1, batches.len());
 
     let batch = &batches[0];
@@ -215,7 +215,7 @@ fn batch_ops() {
         Operation::Push(ONE),
         Operation::Push(Felt::new(2)),
     ];
-    let (batches, hash) = super::batch_ops(ops.clone());
+    let (batches, hash) = super::batch_and_hash_ops(ops.clone());
     assert_eq!(1, batches.len());
 
     let batch = &batches[0];
@@ -260,7 +260,7 @@ fn batch_ops() {
         Operation::Pad,
     ];
 
-    let (batches, hash) = super::batch_ops(ops.clone());
+    let (batches, hash) = super::batch_and_hash_ops(ops.clone());
     assert_eq!(2, batches.len());
 
     let batch0 = &batches[0];

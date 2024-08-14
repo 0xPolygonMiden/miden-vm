@@ -2,7 +2,9 @@ use miden_crypto::hash::rpo::RpoDigest;
 use winter_utils::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable};
 
 use super::{basic_block_data_decoder::BasicBlockDataDecoder, DataOffset};
-use crate::mast::{CallNode, JoinNode, LoopNode, MastForest, MastNode, MastNodeId, SplitNode};
+use crate::mast::{
+    BasicBlockNode, CallNode, JoinNode, LoopNode, MastForest, MastNode, MastNodeId, SplitNode,
+};
 
 // MAST NODE INFO
 // ================================================================================================
@@ -35,11 +37,10 @@ impl MastNodeInfo {
                 offset,
                 len: num_operations_and_decorators,
             } => {
-                // TODO(serge): Decode operation batches directly
                 let (operations, decorators) = basic_block_data_decoder
                     .decode_operations_and_decorators(offset, num_operations_and_decorators)?;
 
-                Ok(MastNode::new_basic_block_with_decorators(operations, decorators))
+                Ok(MastNode::Block(BasicBlockNode::new_unsafe(operations, decorators, self.digest)))
             },
             MastNodeType::Join { left_child_id, right_child_id } => {
                 let left_child = MastNodeId::from_u32_safe(left_child_id, mast_forest)?;

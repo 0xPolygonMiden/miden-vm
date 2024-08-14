@@ -95,7 +95,6 @@ impl BasicBlockNode {
         decorators: DecoratorList,
         digest: RpoDigest,
     ) -> Self {
-        // TODO(serge): Receive operation batches instead of generating them
         let (op_batches, _) = batch_ops(operations);
         Self { op_batches, digest, decorators }
     }
@@ -113,7 +112,7 @@ impl BasicBlockNode {
         #[cfg(debug_assertions)]
         validate_decorators(&operations, &decorators);
 
-        let (op_batches, digest) = batch_ops(operations);
+        let (op_batches, digest) = batch_and_hash_ops(operations);
         Self { op_batches, digest, decorators }
     }
 }
@@ -304,18 +303,29 @@ impl<'a> Iterator for OperationOrDecoratorIterator<'a> {
 // HELPER FUNCTIONS
 // ================================================================================================
 
+/// Groups the provided operations into batches and computes the hash of the block.
+fn batch_and_hash_ops(ops: Vec<Operation>) -> (Vec<OpBatch>, RpoDigest) {
+    // Group the operations into batches.
+    let (batches, batch_groups) = batch_ops(ops);
+
+    // Compute the hash of all operation groups.
+    let op_groups = &flatten_slice_elements(&batch_groups);
+    let hash = hasher::hash_elements(op_groups);
+
+    (batches, hash)
+}
+
 /// Groups the provided operations into batches as described in the docs for this module (i.e.,
 /// up to 9 operations per group, and 8 groups per batch).
-///
-/// After the operations have been grouped, computes the hash of the block.
-fn batch_ops(ops: Vec<Operation>) -> (Vec<OpBatch>, RpoDigest) {
-    let mut batch_acc = OpBatchAccumulator::new();
+/// Returns a list of operation batches and a list of operation groups.
+fn batch_ops(ops: Vec<Operation>) -> (Vec<OpBatch>, Vec<[Felt; BATCH_SIZE]>) {
     let mut batches = Vec::<OpBatch>::new();
+    let mut batch_acc = OpBatchAccumulator::new();
     let mut batch_groups = Vec::<[Felt; BATCH_SIZE]>::new();
 
     for op in ops {
-        // if the operation cannot be accepted into the current accumulator, add the contents of
-        // the accumulator to the list of batches and start a new accumulator
+        // If the operation cannot be accepted into the current accumulator, add the contents of
+        // the accumulator to the list of batches and start a new accumulator.
         if !batch_acc.can_accept_op(op) {
             let batch = batch_acc.into_batch();
             batch_acc = OpBatchAccumulator::new();
@@ -324,22 +334,17 @@ fn batch_ops(ops: Vec<Operation>) -> (Vec<OpBatch>, RpoDigest) {
             batches.push(batch);
         }
 
-        // add the operation to the accumulator
+        // Add the operation to the accumulator.
         batch_acc.add_op(op);
     }
 
-    // make sure we finished processing the last batch
+    // Make sure we finished processing the last batch.
     if !batch_acc.is_empty() {
         let batch = batch_acc.into_batch();
         batch_groups.push(*batch.groups());
         batches.push(batch);
     }
-
-    // compute the hash of all operation groups
-    let op_groups = &flatten_slice_elements(&batch_groups);
-    let hash = hasher::hash_elements(op_groups);
-
-    (batches, hash)
+    (batches, batch_groups)
 }
 
 /// Checks if a given decorators list is valid (only checked in debug mode)
