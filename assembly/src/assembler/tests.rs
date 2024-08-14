@@ -92,22 +92,6 @@ fn nested_blocks() -> Result<(), Report> {
 
     let program = assembler.assemble_program(program).unwrap();
 
-    let exec_bar_node_id = {
-        // bar procedure
-        let basic_block_1_id = expected_mast_forest_builder
-            .ensure_block(vec![Operation::Push(17_u32.into())], None)
-            .unwrap();
-
-        // Basic block representing the `foo` procedure
-        let basic_block_2_id = expected_mast_forest_builder
-            .ensure_block(vec![Operation::Push(19_u32.into())], None)
-            .unwrap();
-
-        expected_mast_forest_builder
-            .ensure_join(basic_block_1_id, basic_block_2_id)
-            .unwrap()
-    };
-
     // basic block representing foo::bar.baz procedure
     let exec_foo_bar_baz_node_id = expected_mast_forest_builder
         .ensure_block(vec![Operation::Push(29_u32.into())], None)
@@ -134,13 +118,15 @@ fn nested_blocks() -> Result<(), Report> {
     let r#true2 = expected_mast_forest_builder.ensure_split(r#true3, r#false3).unwrap();
 
     let r#while = {
-        let push_basic_block_id = {
-            expected_mast_forest_builder
-                .ensure_block(vec![Operation::Push(23u32.into())], None)
-                .unwrap()
-        };
         let body_node_id = expected_mast_forest_builder
-            .ensure_join(exec_bar_node_id, push_basic_block_id)
+            .ensure_block(
+                vec![
+                    Operation::Push(17u32.into()),
+                    Operation::Push(19u32.into()),
+                    Operation::Push(23u32.into()),
+                ],
+                None,
+            )
             .unwrap();
 
         expected_mast_forest_builder.ensure_loop(body_node_id).unwrap()

@@ -746,7 +746,8 @@ fn merge_basic_blocks(
     let mut decorators = DecoratorList::new();
 
     for &basic_block_node_id in contiguous_basic_block_ids {
-        // TODO(plafer): document unwraps
+        // It is safe to unwrap here, since we already checked that all IDs in
+        // `contiguous_basic_block_ids` are `BasicBlockNode`s
         let basic_block_node = mast_forest_builder
             .get_mast_node(basic_block_node_id)
             .unwrap()
