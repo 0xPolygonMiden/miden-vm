@@ -3,7 +3,7 @@ use vm_core::{assert_matches, mast::MastForest, Program};
 
 use super::{Assembler, Operation};
 use crate::{
-    assembler::{combine_mast_node_ids, mast_forest_builder::MastForestBuilder},
+    assembler::{join_mast_node_ids, mast_forest_builder::MastForestBuilder},
     diagnostics::Report,
     testing::TestContext,
 };
@@ -154,7 +154,7 @@ fn nested_blocks() -> Result<(), Report> {
         .unwrap();
     let nested = expected_mast_forest_builder.ensure_split(r#true2, r#false2).unwrap();
 
-    let combined_node_id = combine_mast_node_ids(
+    let combined_node_id = join_mast_node_ids(
         vec![before, r#if1, nested, exec_foo_bar_baz_node_id, syscall_foo_node_id],
         &mut expected_mast_forest_builder,
     )

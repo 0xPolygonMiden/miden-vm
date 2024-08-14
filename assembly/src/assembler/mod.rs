@@ -2,7 +2,7 @@ use alloc::{collections::BTreeMap, sync::Arc, vec::Vec};
 
 use mast_forest_builder::MastForestBuilder;
 use module_graph::{ProcedureWrapper, WrappedModule};
-use vm_core::{mast::MastNodeId, Decorator, DecoratorList, Felt, Kernel, Operation, Program};
+use vm_core::{mast::MastNodeId, DecoratorList, Felt, Kernel, Operation, Program};
 
 use crate::{
     ast::{self, Export, InvocationTarget, InvokeKind, ModuleKind, QualifiedProcedureName},
@@ -621,7 +621,7 @@ impl Assembler {
         Ok(if mast_node_ids.is_empty() {
             mast_forest_builder.ensure_block(vec![Operation::Noop], None)?
         } else {
-            combine_mast_node_ids(mast_node_ids, mast_forest_builder)?
+            join_mast_node_ids(mast_node_ids, mast_forest_builder)?
         })
     }
 
@@ -663,11 +663,15 @@ struct BodyWrapper {
     epilogue: Vec<Operation>,
 }
 
-fn combine_mast_node_ids(
-    mut mast_node_ids: Vec<MastNodeId>,
+/// Builds a tree of `JOIN` operations to combine all the top-level MAST node IDs of the procedure
+/// body.
+fn join_mast_node_ids(
+    mast_node_ids: Vec<MastNodeId>,
     mast_forest_builder: &mut MastForestBuilder,
 ) -> Result<MastNodeId, AssemblyError> {
     debug_assert!(!mast_node_ids.is_empty(), "cannot combine empty MAST node id list");
+
+    let mut mast_node_ids = merge_contiguous_basic_blocks(mast_node_ids, mast_forest_builder)?;
 
     // build a binary tree of blocks joining them using JOIN blocks
     while mast_node_ids.len() > 1 {
@@ -694,4 +698,69 @@ fn combine_mast_node_ids(
     }
 
     Ok(mast_node_ids.remove(0))
+}
+
+fn merge_contiguous_basic_blocks(
+    mast_node_ids: Vec<MastNodeId>,
+    mast_forest_builder: &mut MastForestBuilder,
+) -> Result<Vec<MastNodeId>, AssemblyError> {
+    let mut merged_mast_node_ids = Vec::with_capacity(mast_node_ids.len());
+    let mut contiguous_basic_block_ids: Vec<MastNodeId> = Vec::new();
+
+    for mast_node_id in mast_node_ids {
+        if mast_forest_builder.get_mast_node(mast_node_id).unwrap().is_basic_block() {
+            contiguous_basic_block_ids.push(mast_node_id);
+        } else {
+            if let Some(merged_basic_block_id) =
+                merge_basic_blocks(&contiguous_basic_block_ids, mast_forest_builder)?
+            {
+                merged_mast_node_ids.push(merged_basic_block_id)
+            }
+            contiguous_basic_block_ids.clear();
+
+            merged_mast_node_ids.push(mast_node_id);
+        }
+    }
+
+    if let Some(merged_basic_block_id) =
+        merge_basic_blocks(&contiguous_basic_block_ids, mast_forest_builder)?
+    {
+        merged_mast_node_ids.push(merged_basic_block_id)
+    }
+
+    Ok(merged_mast_node_ids)
+}
+
+fn merge_basic_blocks(
+    contiguous_basic_block_ids: &[MastNodeId],
+    mast_forest_builder: &mut MastForestBuilder,
+) -> Result<Option<MastNodeId>, AssemblyError> {
+    if contiguous_basic_block_ids.is_empty() {
+        return Ok(None);
+    }
+    if contiguous_basic_block_ids.len() == 1 {
+        return Ok(Some(contiguous_basic_block_ids[0]));
+    }
+
+    let mut operations: Vec<Operation> = Vec::new();
+    let mut decorators = DecoratorList::new();
+
+    for &basic_block_node_id in contiguous_basic_block_ids {
+        // TODO(plafer): document unwraps
+        let basic_block_node = mast_forest_builder
+            .get_mast_node(basic_block_node_id)
+            .unwrap()
+            .get_basic_block()
+            .unwrap();
+
+        for (op_idx, decorator) in basic_block_node.decorators() {
+            decorators.push((*op_idx + operations.len(), decorator.clone()));
+        }
+        for batch in basic_block_node.op_batches() {
+            operations.extend_from_slice(batch.ops());
+        }
+    }
+
+    let merged_basic_block = mast_forest_builder.ensure_block(operations, Some(decorators))?;
+    Ok(Some(merged_basic_block))
 }

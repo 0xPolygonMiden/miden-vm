@@ -141,7 +141,8 @@ end";
     Ok(())
 }
 
-/// This test ensures that all iterations of a repeat control block are merged into a single basic block.
+/// This test ensures that all iterations of a repeat control block are merged into a single basic
+/// block.
 #[test]
 fn repeat_basic_blocks_merged() -> TestResult {
     let context = TestContext::default();
