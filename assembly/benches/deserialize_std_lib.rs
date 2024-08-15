@@ -65,6 +65,6 @@ fn deserialize_std_lib(c: &mut Criterion) -> Result<(), Report> {
     Ok(())
 }
 
-// TODO(serge): fix clippy nouse complaint
-criterion_group!(op_flags_group, deserialize_std_lib);
-criterion_main!(op_flags_group);
+// TODO(serge): fix clippy no use complaint
+criterion_group!(std_lib_group, deserialize_std_lib);
+criterion_main!(std_lib_group);
