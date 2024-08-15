@@ -400,8 +400,8 @@ where
         let callee_hash = self.stack.get_word(0);
         self.start_dyn_node(callee_hash)?;
 
-        // if the callee is not in the current MAST forest, try to find a MAST forest for it in the
-        // host; if not found in the host, return an error
+        // if the callee is not in the program's MAST forest, try to find a MAST forest for it in the
+        // host (corresponding to an external library loaded in the host); if none are found, return an error.
         match program.find_procedure_root(callee_hash.into()) {
             Some(callee_id) => self.execute_mast_node(callee_id, program)?,
             None => {
