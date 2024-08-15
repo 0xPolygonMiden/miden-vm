@@ -153,6 +153,9 @@ begin
     basic_block mul add add add add add end
 end";
     assert_str_eq!(format!("{}", program), expected);
+
+    // Also ensure that dead code elimination works properly
+    assert_eq!(program.mast_forest().num_nodes(), 1);
     Ok(())
 }
 

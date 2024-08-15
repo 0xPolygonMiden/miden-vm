@@ -1,5 +1,6 @@
 use alloc::{collections::BTreeMap, sync::Arc, vec::Vec};
 
+use dead_code_elimination::dead_code_elimination;
 use mast_forest_builder::MastForestBuilder;
 use module_graph::{ProcedureWrapper, WrappedModule};
 use vm_core::{mast::MastNodeId, DecoratorList, Felt, Kernel, Operation, Program};
@@ -14,11 +15,13 @@ use crate::{
 };
 
 mod basic_block_builder;
+mod dead_code_elimination;
 mod id;
 mod instruction;
 mod mast_forest_builder;
 mod module_graph;
 mod procedure;
+
 #[cfg(test)]
 mod tests;
 
@@ -299,8 +302,8 @@ impl Assembler {
         };
 
         // TODO: show a warning if library exports are empty?
-
-        Ok(Library::new(mast_forest_builder.build(), exports))
+        let (mast_forest, _) = dead_code_elimination(mast_forest_builder.build());
+        Ok(Library::new(mast_forest, exports))
     }
 
     /// Assembles the provided module into a [KernelLibrary] intended to be used as a Kernel.
@@ -341,7 +344,8 @@ impl Assembler {
 
         // TODO: show a warning if library exports are empty?
 
-        let library = Library::new(mast_forest_builder.build(), exports);
+        let (mast_forest, _) = dead_code_elimination(mast_forest_builder.build());
+        let library = Library::new(mast_forest, exports);
         Ok(library.try_into()?)
     }
 
@@ -381,9 +385,18 @@ impl Assembler {
             .get_procedure(entrypoint)
             .expect("compilation succeeded but root not found in cache");
 
+        let (mast_forest, id_remappings) = dead_code_elimination(mast_forest_builder.build());
+        let entry_node_id = {
+            let old_entry_node_id = entry_procedure.body_node_id();
+
+            id_remappings
+                .map(|id_remappings| id_remappings[&old_entry_node_id])
+                .unwrap_or(old_entry_node_id)
+        };
+
         Ok(Program::with_kernel(
-            mast_forest_builder.build(),
-            entry_procedure.body_node_id(),
+            mast_forest,
+            entry_node_id,
             self.module_graph.kernel().clone(),
         ))
     }
@@ -708,7 +721,7 @@ fn merge_contiguous_basic_blocks(
     let mut contiguous_basic_block_ids: Vec<MastNodeId> = Vec::new();
 
     for mast_node_id in mast_node_ids {
-        if mast_forest_builder.get_mast_node(mast_node_id).unwrap().is_basic_block() {
+        if mast_forest_builder[mast_node_id].is_basic_block() {
             contiguous_basic_block_ids.push(mast_node_id);
         } else {
             if let Some(merged_basic_block_id) =
@@ -748,11 +761,7 @@ fn merge_basic_blocks(
     for &basic_block_node_id in contiguous_basic_block_ids {
         // It is safe to unwrap here, since we already checked that all IDs in
         // `contiguous_basic_block_ids` are `BasicBlockNode`s
-        let basic_block_node = mast_forest_builder
-            .get_mast_node(basic_block_node_id)
-            .unwrap()
-            .get_basic_block()
-            .unwrap();
+        let basic_block_node = mast_forest_builder[basic_block_node_id].get_basic_block().unwrap();
 
         for (op_idx, decorator) in basic_block_node.decorators() {
             decorators.push((*op_idx + operations.len(), decorator.clone()));

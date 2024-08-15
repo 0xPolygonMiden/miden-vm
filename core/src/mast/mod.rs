@@ -180,6 +180,20 @@ impl MastForest {
             .try_into()
             .expect("MAST forest contains more than 2^32 procedures.")
     }
+
+    /// Returns the number of nodes in this MAST forest.
+    pub fn num_nodes(&self) -> u32 {
+        self.nodes.len() as u32
+    }
+}
+
+/// Destructors
+impl MastForest {
+    pub fn into_parts(self) -> (Vec<MastNode>, Vec<MastNodeId>) {
+        let Self { nodes, roots } = self;
+
+        (nodes, roots)
+    }
 }
 
 impl Index<MastNodeId> for MastForest {
@@ -249,6 +263,12 @@ impl From<MastNodeId> for u32 {
 impl From<&MastNodeId> for u32 {
     fn from(value: &MastNodeId) -> Self {
         value.0
+    }
+}
+
+impl From<u32> for MastNodeId {
+    fn from(value: u32) -> Self {
+        Self(value)
     }
 }
 
