@@ -39,35 +39,35 @@ impl MastNodeInfo {
             } => {
                 let (operations, decorators) = basic_block_data_decoder
                     .decode_operations_and_decorators(offset, num_operations_and_decorators)?;
-
-                Ok(MastNode::Block(BasicBlockNode::new_unsafe(operations, decorators, self.digest)))
+                let block = BasicBlockNode::new_unsafe(operations, decorators, self.digest);
+                Ok(MastNode::Block(block))
             },
             MastNodeType::Join { left_child_id, right_child_id } => {
                 let left_child = MastNodeId::from_u32_safe(left_child_id, mast_forest)?;
                 let right_child = MastNodeId::from_u32_safe(right_child_id, mast_forest)?;
-
-                Ok(MastNode::Join(JoinNode::new_unsafe([left_child, right_child], self.digest)))
+                let join = JoinNode::new_unsafe([left_child, right_child], self.digest);
+                Ok(MastNode::Join(join))
             },
             MastNodeType::Split { if_branch_id, else_branch_id } => {
                 let if_branch = MastNodeId::from_u32_safe(if_branch_id, mast_forest)?;
                 let else_branch = MastNodeId::from_u32_safe(else_branch_id, mast_forest)?;
-
-                Ok(MastNode::Split(SplitNode::new_unsafe([if_branch, else_branch], self.digest)))
+                let split = SplitNode::new_unsafe([if_branch, else_branch], self.digest);
+                Ok(MastNode::Split(split))
             },
             MastNodeType::Loop { body_id } => {
                 let body_id = MastNodeId::from_u32_safe(body_id, mast_forest)?;
-
-                Ok(MastNode::Loop(LoopNode::new_unsafe(body_id, self.digest)))
+                let loop_node = LoopNode::new_unsafe(body_id, self.digest);
+                Ok(MastNode::Loop(loop_node))
             },
             MastNodeType::Call { callee_id } => {
                 let callee_id = MastNodeId::from_u32_safe(callee_id, mast_forest)?;
-
-                Ok(MastNode::Call(CallNode::new_unsafe(callee_id, self.digest)))
+                let call = CallNode::new_unsafe(callee_id, self.digest);
+                Ok(MastNode::Call(call))
             },
             MastNodeType::SysCall { callee_id } => {
                 let callee_id = MastNodeId::from_u32_safe(callee_id, mast_forest)?;
-
-                Ok(MastNode::Call(CallNode::new_syscall_unsafe(callee_id, self.digest)))
+                let syscall = CallNode::new_syscall_unsafe(callee_id, self.digest);
+                Ok(MastNode::Call(syscall))
             },
             MastNodeType::Dyn => Ok(MastNode::new_dyn()),
             MastNodeType::External => Ok(MastNode::new_external(self.digest)),
