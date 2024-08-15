@@ -32,7 +32,7 @@ impl MastNodeInfo {
         mast_forest: &MastForest,
         basic_block_data_decoder: &BasicBlockDataDecoder,
     ) -> Result<MastNode, DeserializationError> {
-        let mast_node = match self.ty {
+        match self.ty {
             MastNodeType::Block {
                 offset,
                 len: num_operations_and_decorators,
@@ -71,16 +71,6 @@ impl MastNodeInfo {
             },
             MastNodeType::Dyn => Ok(MastNode::new_dyn()),
             MastNodeType::External => Ok(MastNode::new_external(self.digest)),
-        }?;
-
-        if mast_node.digest() == self.digest {
-            Ok(mast_node)
-        } else {
-            Err(DeserializationError::InvalidValue(format!(
-                "MastNodeInfo's digest '{}' doesn't match deserialized MastNode's digest '{}'",
-                self.digest,
-                mast_node.digest()
-            )))
         }
     }
 }
