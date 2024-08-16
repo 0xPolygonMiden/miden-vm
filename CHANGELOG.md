@@ -1,6 +1,6 @@
 # Changelog
 
-## 0.10.4 (2024-08-15)
+## 0.10.4 (2024-08-15) - `miden-processor` crate only
 
 #### Enhancements
 
