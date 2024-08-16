@@ -78,7 +78,17 @@ fn helper_write_read() {
 
 #[test]
 fn update() {
-    let source = "begin push.0.0.0.0 mem_loadw.0 mem_storew.0 swapw end";
+    let source = "
+    use.std::sys
+
+    begin 
+        push.0.0.0.0 
+        mem_loadw.0 
+        mem_storew.0 
+        swapw 
+
+        exec.sys::truncate_stack
+    end";
     let pub_inputs = vec![8, 7, 6, 5, 4, 3, 2, 1];
 
     build_test!(source, &pub_inputs).prove_and_verify(pub_inputs, false);

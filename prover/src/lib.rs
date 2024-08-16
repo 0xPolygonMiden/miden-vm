@@ -167,7 +167,7 @@ where
     /// Validates the stack outputs against the provided execution trace and returns true if valid.
     fn are_outputs_valid(&self, trace: &ExecutionTrace) -> bool {
         self.stack_outputs
-            .stack_top()
+            .stack()
             .iter()
             .zip(trace.last_stack_state().iter())
             .all(|(l, r)| l == r)

@@ -1,15 +1,10 @@
-use test_utils::{build_test, rand::rand_array, Felt, FieldElement};
+use test_utils::{build_test, push_inputs, rand::rand_array, Felt, FieldElement};
 
 // FRI_EXT2FOLD4
 // ================================================================================================
 
 #[test]
 fn fri_ext2fold4() {
-    let source = "
-        begin
-            fri_ext2fold4
-        end";
-
     // create a set of random inputs
     let mut inputs = rand_array::<Felt, 17>().iter().map(|v| v.as_int()).collect::<Vec<_>>();
     inputs[7] = 2; // domain segment must be < 4
@@ -23,8 +18,21 @@ fn fri_ext2fold4() {
     let poe = inputs[6];
     let f_pos = inputs[8];
 
+    let source = format!(
+        "
+        use.std::sys
+        
+        begin
+            {inputs}
+            fri_ext2fold4
+
+            exec.sys::truncate_stack
+        end",
+        inputs = push_inputs(&inputs)
+    );
+
     // execute the program
-    let test = build_test!(source, &inputs);
+    let test = build_test!(source, &[]);
 
     // check some items in the state transition; full state transition is checked in the
     // processor tests
@@ -36,5 +44,5 @@ fn fri_ext2fold4() {
     assert_eq!(stack_state[15], Felt::new(end_ptr));
 
     // make sure STARK proof can be generated and verified
-    test.prove_and_verify(inputs, false);
+    test.prove_and_verify(vec![], false);
 }

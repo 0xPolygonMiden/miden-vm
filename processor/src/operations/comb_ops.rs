@@ -272,46 +272,61 @@ mod tests {
 
     #[test]
     fn prove_verify() {
-        let source = "  begin
-                            # I) Prepare memory and stack
+        let source = "
+            begin
+                # I) Prepare memory and stack
 
-                            # 1) Load T_i(x) for i=0,..,7
-                            push.0 padw
-                            adv_pipe
+                # 1) Load T_i(x) for i=0,..,7
+                push.0 padw
+                adv_pipe
 
-                            # 2) Load [T_i(z), T_i(gz)] for i=0,..,7
-                            repeat.4
-                                adv_pipe
-                            end
+                # 2) Load [T_i(z), T_i(gz)] for i=0,..,7
+                repeat.4
+                    adv_pipe
+                end
 
-                            # 3) Load [a0, a1, 0, 0] for i=0,..,7
-                            repeat.4
-                                adv_pipe
-                            end
+                # 3) Load [a0, a1, 0, 0] for i=0,..,7
+                repeat.4
+                    adv_pipe
+                end
 
-                            # 4) Clean up stack
-                            dropw dropw dropw drop
+                # 4) Clean up stack
+                dropw dropw dropw drop
 
-                            # 5) Prepare stack
+                # 5) Prepare stack
 
-                            ## a) Push pointers
-                            push.10     # a_ptr
-                            push.2      # z_ptr
-                            push.0      # x_ptr
+                ## a) Push pointers
+                push.10     # a_ptr
+                push.2      # z_ptr
+                push.0      # x_ptr
 
-                            ## b) Push accumulators
-                            padw
+                ## b) Push accumulators
+                padw
 
-                            ## c) Add padding for mem_stream
-                            padw padw
+                ## c) Add padding for mem_stream
+                padw padw
 
-                            # II) Execute `rcomb_base` op
-                            mem_stream
-                            repeat.8
-                                rcomb_base
-                            end
-                        end
-                        ";
+                # II) Execute `rcomb_base` op
+                mem_stream
+                repeat.8
+                    rcomb_base
+                end
+
+                # drop the excess values from the stack so that the result fits into the
+                # top 16 values
+                # 
+                # note: use std::sys.truncate_stack if stdlib is available
+                mem_storew.0 dropw
+                mem_storew.1 dropw
+                mem_storew.2 dropw
+                mem_storew.3 dropw
+
+                mem_loadw.3 swapw
+                mem_loadw.2 swapdw
+                mem_loadw.1 swapw
+                mem_loadw.0
+            end
+        ";
 
         // generate the data
         let tx: [Felt; 8] = rand_array();

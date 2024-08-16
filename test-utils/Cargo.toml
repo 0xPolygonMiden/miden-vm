@@ -32,6 +32,7 @@ processor = { package = "miden-processor", path = "../processor", version = "0.1
     "testing",
 ] }
 prover = { package = "miden-prover", path = "../prover", version = "0.10", default-features = false }
+stdlib = { package = "miden-stdlib", path = "../stdlib", version = "0.10", default-features = false }
 test-case = "3.2"
 verifier = { package = "miden-verifier", path = "../verifier", version = "0.10", default-features = false }
 vm-core = { package = "miden-core", path = "../core", version = "0.10", default-features = false }

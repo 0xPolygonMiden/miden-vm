@@ -4,11 +4,9 @@ use miden_air::trace::{
     stack::{B0_COL_IDX, B1_COL_IDX, H0_COL_IDX, NUM_STACK_HELPER_COLS},
     STACK_TRACE_WIDTH,
 };
-use vm_core::{FieldElement, StarkField};
+use vm_core::FieldElement;
 
-use super::{
-    super::StackTopState, Felt, OverflowTableRow, Stack, StackInputs, ONE, STACK_TOP_SIZE, ZERO,
-};
+use super::{super::StackTopState, Felt, Stack, StackInputs, STACK_TOP_SIZE, ZERO};
 
 // TYPE ALIASES
 // ================================================================================================
@@ -35,41 +33,6 @@ fn initialize() {
 
     // Check the helper columns.
     assert_eq!(stack.helpers_state(), expected_helpers);
-}
-
-#[test]
-fn initialize_overflow() {
-    // Initialize a new stack with enough initial values that the overflow table is non-empty.
-    let mut stack_inputs = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19];
-    let stack = StackInputs::try_from_ints(stack_inputs).unwrap();
-    let stack = Stack::new(&stack, 4, false);
-
-    // Prepare the expected results.
-    stack_inputs.reverse();
-    let expected_stack = build_stack(&stack_inputs[..STACK_TOP_SIZE]);
-    let expected_depth = stack_inputs.len() as u64;
-    let expected_helpers = [
-        Felt::new(expected_depth),
-        -ONE,
-        Felt::new(expected_depth - STACK_TOP_SIZE as u64),
-    ];
-    let init_addr = Felt::MODULUS - 3;
-    let expected_overflow_rows = vec![
-        OverflowTableRow::new(Felt::new(init_addr), ONE, ZERO),
-        OverflowTableRow::new(Felt::new(init_addr + 1), Felt::new(2), Felt::new(init_addr)),
-        OverflowTableRow::new(Felt::new(init_addr + 2), Felt::new(3), Felt::new(init_addr + 1)),
-    ];
-    let expected_overflow_active_rows = vec![0, 1, 2];
-
-    // Check the stack state.
-    assert_eq!(stack.trace_state(), expected_stack);
-
-    // Check the helper columns.
-    assert_eq!(stack.helpers_state(), expected_helpers);
-
-    // Check the overflow table state.
-    assert_eq!(stack.overflow.active_rows(), expected_overflow_active_rows);
-    assert_eq!(stack.overflow.all_rows(), expected_overflow_rows);
 }
 
 // SHIFT LEFT TEST

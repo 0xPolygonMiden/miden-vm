@@ -181,7 +181,7 @@ fn build_bar_hash() -> [u64; 4] {
 #[test]
 fn clk() {
     let test = build_op_test!("clk");
-    test.expect_stack(&[1]);
+    test.expect_stack(&[2]);
 
     let source = "
         proc.foo

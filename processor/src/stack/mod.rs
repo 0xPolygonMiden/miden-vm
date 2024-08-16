@@ -140,14 +140,11 @@ impl Stack {
         result
     }
 
-    /// Returns [StackOutputs] consisting of all values on the stack and all addresses in the
-    /// overflow table that are required to rebuild the rows in the overflow table.
+    /// Returns [StackOutputs] consisting of all values on the stack.
     pub fn build_stack_outputs(&self) -> StackOutputs {
         let mut stack_items = Vec::with_capacity(self.active_depth);
         self.trace.append_state_into(&mut stack_items, self.clk);
-        self.overflow.append_into(&mut stack_items);
-        StackOutputs::new(stack_items, self.overflow.get_addrs())
-            .expect("processor stack handling logic is valid")
+        StackOutputs::new(stack_items).expect("processor stack handling logic is valid")
     }
 
     // TRACE ACCESSORS AND MUTATORS

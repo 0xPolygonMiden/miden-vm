@@ -225,7 +225,7 @@ pub fn get_assertions_last_step(
     stack_outputs: &StackOutputs,
 ) {
     // stack columns at the last step should be set to stack outputs, excluding overflow outputs
-    for (i, value) in stack_outputs.stack_top().iter().enumerate() {
+    for (i, value) in stack_outputs.stack().iter().enumerate() {
         result.push(Assertion::single(STACK_TRACE_OFFSET + i, step, *value));
     }
 }
@@ -233,92 +233,19 @@ pub fn get_assertions_last_step(
 // --- AUXILIARY COLUMNS --------------------------------------------------------------------------
 
 /// Returns the stack's boundary assertions for auxiliary columns at the first step.
-pub fn get_aux_assertions_first_step<E>(
-    result: &mut Vec<Assertion<E>>,
-    alphas: &[E],
-    stack_inputs: &[Felt],
-) where
+pub fn get_aux_assertions_first_step<E>(result: &mut Vec<Assertion<E>>)
+where
     E: FieldElement<BaseField = Felt>,
 {
-    let step = 0;
-    let value = if stack_inputs.len() > STACK_TOP_SIZE {
-        get_overflow_table_init(alphas, &stack_inputs[STACK_TOP_SIZE..])
-    } else {
-        E::ONE
-    };
-
-    result.push(Assertion::single(STACK_AUX_TRACE_OFFSET, step, value));
+    result.push(Assertion::single(STACK_AUX_TRACE_OFFSET, 0, E::ONE));
 }
 
 /// Returns the stack's boundary assertions for auxiliary columns at the last step.
-pub fn get_aux_assertions_last_step<E>(
-    result: &mut Vec<Assertion<E>>,
-    alphas: &[E],
-    stack_outputs: &StackOutputs,
-    step: usize,
-) where
-    E: FieldElement<BaseField = Felt>,
-{
-    let value = if stack_outputs.has_overflow() {
-        get_overflow_table_final(alphas, stack_outputs)
-    } else {
-        E::ONE
-    };
-
-    result.push(Assertion::single(STACK_AUX_TRACE_OFFSET, step, value));
-}
-
-// BOUNDARY CONSTRAINT HELPERS
-// ================================================================================================
-
-// --- AUX TRACE ----------------------------------------------------------------------------------
-
-/// Gets the initial value of the overflow table auxiliary column from the provided sets of initial
-/// values and random elements.
-fn get_overflow_table_init<E>(alphas: &[E], init_values: &[Felt]) -> E
+pub fn get_aux_assertions_last_step<E>(result: &mut Vec<Assertion<E>>, step: usize)
 where
     E: FieldElement<BaseField = Felt>,
 {
-    let mut value = E::ONE;
-    let mut prev_clk = ZERO;
-    let mut clk = -Felt::from(init_values.len() as u32);
-
-    // the values are in the overflow table in reverse order, since the deepest stack
-    // value is added to the overflow table first.
-    for &input in init_values.iter().rev() {
-        value *= alphas[0]
-            + alphas[1].mul_base(clk)
-            + alphas[2].mul_base(input)
-            + alphas[3].mul_base(prev_clk);
-        prev_clk = clk;
-        clk += ONE;
-    }
-
-    value
-}
-
-/// Gets the final value of the overflow table auxiliary column from the provided program outputs
-/// and random elements.
-fn get_overflow_table_final<E>(alphas: &[E], stack_outputs: &StackOutputs) -> E
-where
-    E: FieldElement<BaseField = Felt>,
-{
-    let mut value = E::ONE;
-
-    // When the overflow table is non-empty, we expect at least 2 addresses (the `prev` value of
-    // the first row and the address value(s) of the row(s)) and more than STACK_TOP_SIZE
-    // elements in the stack.
-    let mut prev = stack_outputs.overflow_prev();
-    for (clk, val) in stack_outputs.stack_overflow() {
-        value *= alphas[0]
-            + alphas[1].mul_base(clk)
-            + alphas[2].mul_base(val)
-            + alphas[3].mul_base(prev);
-
-        prev = clk;
-    }
-
-    value
+    result.push(Assertion::single(STACK_AUX_TRACE_OFFSET, step, E::ONE));
 }
 
 // STACK OPERATION EXTENSION TRAIT

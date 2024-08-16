@@ -1,16 +1,34 @@
 use sha2::{Digest, Sha256};
 use test_utils::{
-    group_slice_elements,
+    group_slice_elements, push_inputs,
     rand::{rand_array, rand_value, rand_vector},
     Felt, IntoBytes,
 };
 
 #[test]
 fn sha256_hash_memory() {
-    let source = "
+    let length = rand_value::<u64>() & 1023; // length: 0-1023
+    let ibytes: Vec<u8> = rand_vector(length as usize);
+    let ipadding: Vec<u8> = vec![0; (4 - (length as usize % 4)) % 4];
+
+    let ifelts = [
+        group_slice_elements::<u8, 4>(&[ibytes.clone(), ipadding].concat())
+            .iter()
+            .map(|&bytes| u32::from_be_bytes(bytes) as u64)
+            .rev()
+            .collect::<Vec<u64>>(),
+        vec![length as u64; 1],
+    ]
+    .concat();
+
+    let source = format!(
+        "
     use.std::crypto::hashes::sha256
 
     begin
+        # push inputs on the stack 
+        {inputs}
+
         # mem.0 - input data address
         push.10000 mem_store.0
 
@@ -32,21 +50,9 @@ fn sha256_hash_memory() {
         mem_load.1
         push.10000
         exec.sha256::hash_memory
-    end";
-
-    let length = rand_value::<u64>() & 1023; // length: 0-1023
-    let ibytes: Vec<u8> = rand_vector(length as usize);
-    let ipadding: Vec<u8> = vec![0; (4 - (length as usize % 4)) % 4];
-
-    let ifelts = [
-        group_slice_elements::<u8, 4>(&[ibytes.clone(), ipadding].concat())
-            .iter()
-            .map(|&bytes| u32::from_be_bytes(bytes) as u64)
-            .rev()
-            .collect::<Vec<u64>>(),
-        vec![length as u64; 1],
-    ]
-    .concat();
+    end",
+        inputs = push_inputs(&ifelts)
+    );
 
     let mut hasher = Sha256::new();
     hasher.update(ibytes);
@@ -57,7 +63,7 @@ fn sha256_hash_memory() {
         .map(|&bytes| u32::from_be_bytes(bytes) as u64)
         .collect::<Vec<u64>>();
 
-    let test = build_test!(source, &ifelts);
+    let test = build_test!(source, &[]);
     test.expect_stack(&ofelts);
 }
 

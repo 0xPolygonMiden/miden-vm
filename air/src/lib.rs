@@ -165,18 +165,14 @@ impl Air for ProcessorAir {
 
     fn get_aux_assertions<E: FieldElement<BaseField = Self::BaseField>>(
         &self,
-        aux_rand_elements: &[E],
+        _aux_rand_elements: &[E],
     ) -> Vec<Assertion<E>> {
         let mut result: Vec<Assertion<E>> = Vec::new();
 
         // --- set assertions for the first step --------------------------------------------------
 
         // add initial assertions for the stack's auxiliary columns.
-        stack::get_aux_assertions_first_step(
-            &mut result,
-            aux_rand_elements,
-            self.stack_inputs.values(),
-        );
+        stack::get_aux_assertions_first_step(&mut result);
 
         // Add initial assertions for the range checker's auxiliary columns.
         range::get_aux_assertions_first_step::<E>(&mut result);
@@ -185,12 +181,7 @@ impl Air for ProcessorAir {
         let last_step = self.last_step();
 
         // add the stack's auxiliary column assertions for the last step.
-        stack::get_aux_assertions_last_step(
-            &mut result,
-            aux_rand_elements,
-            &self.stack_outputs,
-            last_step,
-        );
+        stack::get_aux_assertions_last_step(&mut result, last_step);
 
         // Add the range checker's auxiliary column assertions for the last step.
         range::get_aux_assertions_last_step::<E>(&mut result, last_step);

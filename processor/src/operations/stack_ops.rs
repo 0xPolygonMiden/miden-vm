@@ -464,17 +464,12 @@ mod tests {
     fn op_swapw3() {
         // push a few items onto the stack
         let stack =
-            StackInputs::try_from_ints([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17])
+            StackInputs::try_from_ints([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16])
                 .unwrap();
         let mut process = Process::new_dummy(stack);
 
         process.execute_op(Operation::SwapW3).unwrap();
-        let expected = build_expected(&[5, 4, 3, 2, 13, 12, 11, 10, 9, 8, 7, 6, 17, 16, 15, 14]);
-        assert_eq!(expected, process.stack.trace_state());
-
-        // value should remain on the overflow table
-        process.execute_op(Operation::Drop).unwrap();
-        let expected = build_expected(&[4, 3, 2, 13, 12, 11, 10, 9, 8, 7, 6, 17, 16, 15, 14, 1]);
+        let expected = build_expected(&[4, 3, 2, 1, 12, 11, 10, 9, 8, 7, 6, 5, 16, 15, 14, 13]);
         assert_eq!(expected, process.stack.trace_state());
 
         // swapping with a minimum stack should be ok

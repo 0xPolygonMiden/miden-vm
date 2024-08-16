@@ -32,7 +32,7 @@ fn adv_push() {
 fn adv_push_invalid() {
     // attempting to read from empty advice stack should throw an error
     let test = build_op_test!("adv_push.1");
-    expect_exec_error!(test, ExecutionError::AdviceStackReadFailed(1.into()));
+    expect_exec_error!(test, ExecutionError::AdviceStackReadFailed(2.into()));
 }
 
 // OVERWRITING VALUES ON THE STACK (LOAD)
@@ -53,7 +53,7 @@ fn adv_loadw() {
 fn adv_loadw_invalid() {
     // attempting to read from empty advice stack should throw an error
     let test = build_op_test!("adv_loadw", &[0, 0, 0, 0]);
-    expect_exec_error!(test, AdviceStackReadFailed(1.into()));
+    expect_exec_error!(test, AdviceStackReadFailed(2.into()));
 }
 
 // MOVING ELEMENTS TO MEMORY VIA THE STACK (PIPE)

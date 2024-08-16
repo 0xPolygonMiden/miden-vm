@@ -5,7 +5,7 @@ use miden_vm::Module;
 use processor::ExecutionError;
 use prover::Digest;
 use stdlib::StdLibrary;
-use test_utils::{build_test, expect_exec_error, StackInputs, Test};
+use test_utils::{build_test, expect_exec_error, push_inputs, StackInputs, Test};
 
 // SIMPLE FLOW CONTROL TESTS
 // ================================================================================================
@@ -143,9 +143,14 @@ fn local_fn_call() {
     let build_test = build_test!(source, &[1, 2]);
     expect_exec_error!(build_test, ExecutionError::InvalidStackDepthOnReturn(17));
 
+    let inputs = (1_u64..18).collect::<Vec<_>>();
+
     // dropping values from the stack in the current execution context should not affect values
     // in the overflow table from the parent execution context
-    let source = "
+    let source = format!(
+        "
+        use.std::sys
+        
         proc.foo
             repeat.20
                 drop
@@ -153,19 +158,22 @@ fn local_fn_call() {
         end
 
         begin
+            {inputs}
             push.18
             call.foo
             repeat.16
                 drop
             end
-        end";
 
-    let inputs = (1_u64..18).collect::<Vec<_>>();
+            exec.sys::truncate_stack
+        end",
+        inputs = push_inputs(&inputs)
+    );
 
-    let test = build_test!(source, &inputs);
+    let test = build_test!(source, &[]);
     test.expect_stack(&[2, 1]);
 
-    test.prove_and_verify(inputs, false);
+    test.prove_and_verify(vec![], false);
 }
 
 #[test]
@@ -173,6 +181,8 @@ fn local_fn_call_with_mem_access() {
     // foo should be executed in a different memory context; thus, when we read from memory after
     // calling foo, the value saved into memory[0] before calling foo should still be there.
     let source = "
+        use.std::sys
+
         proc.foo
             mem_store.0
         end
@@ -182,6 +192,8 @@ fn local_fn_call_with_mem_access() {
             call.foo
             mem_load.0
             eq.7
+            
+            exec.sys::truncate_stack
         end";
 
     let test = build_test!(source, &[3, 7]);
@@ -321,6 +333,8 @@ fn dynexec_with_procref() {
 #[test]
 fn simple_dyncall() {
     let program_source = "
+        use.std::sys
+
         proc.foo
             # drop the top 4 values, since that will be the code hash when we call this dynamically
             dropw
@@ -345,6 +359,8 @@ fn simple_dyncall() {
 
             # use dyncall to call foo again via its hash, which is on the stack
             dyncall
+
+            exec.sys::truncate_stack
         end";
 
     // The hash of foo can be obtained from the code block table by:
@@ -369,6 +385,7 @@ fn simple_dyncall() {
             2,
         ])
         .unwrap(),
+        libraries: vec![StdLibrary::default().into()],
         ..Test::new(&format!("test{}", line!()), program_source, false)
     };
 
@@ -421,6 +438,7 @@ fn procref() -> Result<(), Report> {
 
     let source = "
     use.std::math::u64
+    use.std::sys
 
     proc.foo.4
         push.3.4
@@ -430,6 +448,8 @@ fn procref() -> Result<(), Report> {
         procref.u64::overflowing_add
         push.0
         procref.foo
+
+        exec.sys::truncate_stack
     end";
 
     let mut test = build_test!(source, &[]);

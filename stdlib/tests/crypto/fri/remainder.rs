@@ -1,5 +1,6 @@
 use test_utils::{
-    math::fft, rand::rand_vector, test_case, Felt, FieldElement, QuadFelt, StarkField, ONE,
+    math::fft, push_inputs, rand::rand_vector, test_case, Felt, FieldElement, QuadFelt, StarkField,
+    ONE,
 };
 
 #[test_case(8, 1; "poly_8 |> evaluated_8 |> interpolated_8")]
@@ -18,6 +19,18 @@ fn test_decorator_ext2intt(in_poly_len: usize, blowup: usize) {
     let eval_len = in_poly_len * blowup;
     let eval_mem_req = (eval_len * 2) / 4;
     let out_mem_req = (in_poly_len * 2) / 4;
+
+    let poly = rand_vector::<QuadFelt>(in_poly_len);
+    let twiddles = fft::get_twiddles(poly.len());
+    let evals = fft::evaluate_poly_with_offset(&poly, &twiddles, ONE, blowup);
+
+    let ifelts = QuadFelt::slice_as_base_elements(&evals);
+    let iu64s = ifelts.iter().map(|v| v.as_int()).collect::<Vec<u64>>();
+    let ou64s = QuadFelt::slice_as_base_elements(&poly)
+        .iter()
+        .rev()
+        .map(|v| v.as_int())
+        .collect::<Vec<u64>>();
 
     let source = format!(
         "
@@ -48,6 +61,7 @@ fn test_decorator_ext2intt(in_poly_len: usize, blowup: usize) {
     end
 
     begin
+        {inputs}
         exec.helper
     end
     ",
@@ -56,28 +70,28 @@ fn test_decorator_ext2intt(in_poly_len: usize, blowup: usize) {
         eval_mem_req,
         eval_len,
         in_poly_len,
-        out_mem_req
+        out_mem_req,
+        inputs = push_inputs(&iu64s)
     );
 
-    let poly = rand_vector::<QuadFelt>(in_poly_len);
-    let twiddles = fft::get_twiddles(poly.len());
-    let evals = fft::evaluate_poly_with_offset(&poly, &twiddles, ONE, blowup);
-
-    let ifelts = QuadFelt::slice_as_base_elements(&evals);
-    let iu64s = ifelts.iter().map(|v| v.as_int()).collect::<Vec<u64>>();
-    let ou64s = QuadFelt::slice_as_base_elements(&poly)
-        .iter()
-        .rev()
-        .map(|v| v.as_int())
-        .collect::<Vec<u64>>();
-
-    let test = build_test!(&source, &iu64s);
+    let test = build_test!(&source, &[]);
     test.expect_stack(&ou64s);
 }
 
 #[test]
 fn test_verify_remainder_64() {
-    let source = "
+    let poly = rand_vector::<QuadFelt>(8);
+    let twiddles = fft::get_twiddles(poly.len());
+    let evals = fft::evaluate_poly_with_offset(&poly, &twiddles, Felt::GENERATOR, 8);
+    let tau = rand_vector::<QuadFelt>(1);
+
+    let mut ifelts = QuadFelt::slice_as_base_elements(&tau).to_vec();
+    ifelts.extend_from_slice(QuadFelt::slice_as_base_elements(&evals));
+    ifelts.extend_from_slice(QuadFelt::slice_as_base_elements(&poly));
+    let iu64s = ifelts.iter().map(|v| v.as_int()).collect::<Vec<u64>>();
+
+    let source = format!(
+        "
     use.std::crypto::fri::ext2fri
 
     proc.helper.36
@@ -96,11 +110,20 @@ fn test_verify_remainder_64() {
     end
 
     begin
+        {inputs}
         exec.helper
     end
-    ";
+    ",
+        inputs = push_inputs(&iu64s)
+    );
 
-    let poly = rand_vector::<QuadFelt>(8);
+    let test = build_test!(source, &[]);
+    test.expect_stack(&[]);
+}
+
+#[test]
+fn test_verify_remainder_32() {
+    let poly = rand_vector::<QuadFelt>(4);
     let twiddles = fft::get_twiddles(poly.len());
     let evals = fft::evaluate_poly_with_offset(&poly, &twiddles, Felt::GENERATOR, 8);
     let tau = rand_vector::<QuadFelt>(1);
@@ -110,13 +133,8 @@ fn test_verify_remainder_64() {
     ifelts.extend_from_slice(QuadFelt::slice_as_base_elements(&poly));
     let iu64s = ifelts.iter().map(|v| v.as_int()).collect::<Vec<u64>>();
 
-    let test = build_test!(source, &iu64s);
-    test.expect_stack(&[]);
-}
-
-#[test]
-fn test_verify_remainder_32() {
-    let source = "
+    let source = format!(
+        "
     use.std::crypto::fri::ext2fri
 
     proc.helper.18
@@ -135,20 +153,13 @@ fn test_verify_remainder_32() {
     end
 
     begin
+        {inputs}
         exec.helper
     end
-    ";
+    ",
+        inputs = push_inputs(&iu64s)
+    );
 
-    let poly = rand_vector::<QuadFelt>(4);
-    let twiddles = fft::get_twiddles(poly.len());
-    let evals = fft::evaluate_poly_with_offset(&poly, &twiddles, Felt::GENERATOR, 8);
-    let tau = rand_vector::<QuadFelt>(1);
-
-    let mut ifelts = QuadFelt::slice_as_base_elements(&tau).to_vec();
-    ifelts.extend_from_slice(QuadFelt::slice_as_base_elements(&evals));
-    ifelts.extend_from_slice(QuadFelt::slice_as_base_elements(&poly));
-    let iu64s = ifelts.iter().map(|v| v.as_int()).collect::<Vec<u64>>();
-
-    let test = build_test!(source, &iu64s);
+    let test = build_test!(source, &[]);
     test.expect_stack(&[]);
 }

@@ -1,6 +1,6 @@
 use alloc::{collections::BTreeMap, vec::Vec};
 
-use vm_core::{utils::uninit_vector, StarkField};
+use vm_core::StarkField;
 
 use super::{AuxTraceBuilder, Felt, FieldElement, ZERO};
 
@@ -172,26 +172,6 @@ impl OverflowTable {
         }
     }
 
-    /// Returns the addresses of active rows in the table required to reconstruct the table (when
-    /// combined with the values). This is a vector of all of the `clk` values (the address of each
-    /// row), preceded by the `prev` value in the first row of the table. (It's also equivalent to
-    /// all of the `prev` values followed by the `clk` value in the last row of the table.)
-    pub(super) fn get_addrs(&self) -> Vec<Felt> {
-        if self.active_rows.is_empty() {
-            return Vec::new();
-        }
-
-        let mut addrs = unsafe { uninit_vector(self.active_rows.len() + 1) };
-        // add the previous address of the first row in the overflow table.
-        addrs[0] = self.all_rows[self.active_rows[0]].prev;
-        // add the address for all the rows in the overflow table.
-        for (i, &row_idx) in self.active_rows.iter().enumerate() {
-            addrs[i + 1] = self.all_rows[row_idx].clk;
-        }
-
-        addrs
-    }
-
     // AUX TRACE BUILDER GENERATION
     // --------------------------------------------------------------------------------------------
 
@@ -212,19 +192,6 @@ impl OverflowTable {
         debug_assert!(self.trace_enabled, "overflow table trace not enabled");
         let current_state = self.active_rows.iter().map(|&idx| self.all_rows[idx].val).collect();
         self.trace.insert(clk, current_state);
-    }
-
-    // TEST ACCESSORS
-    // --------------------------------------------------------------------------------------------
-
-    #[cfg(test)]
-    pub fn all_rows(&self) -> &[OverflowTableRow] {
-        &self.all_rows
-    }
-
-    #[cfg(test)]
-    pub fn active_rows(&self) -> &[usize] {
-        &self.active_rows
     }
 }
 

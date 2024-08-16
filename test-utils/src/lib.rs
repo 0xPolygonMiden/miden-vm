@@ -24,6 +24,7 @@ pub use processor::{
 #[cfg(not(target_family = "wasm"))]
 use proptest::prelude::{Arbitrary, Strategy};
 pub use prover::{prove, MemAdviceProvider, ProvingOptions};
+pub use stdlib::StdLibrary;
 pub use test_case::test_case;
 pub use verifier::{verify, AcceptableOptions, VerifierError};
 use vm_core::{chiplets::hasher::apply_permutation, ProgramInfo};
@@ -451,4 +452,13 @@ pub fn build_expected_hash(values: &[u64]) -> [Felt; 4] {
     expected.reverse();
 
     expected
+}
+
+// Generates the MASM code which pushes the input values during the execution of the program.
+#[cfg(all(feature = "std", not(target_family = "wasm")))]
+pub fn push_inputs(inputs: &[u64]) -> String {
+    let mut result = String::new();
+
+    inputs.iter().for_each(|v| result.push_str(&format!("push.{}\n", v)));
+    result
 }
