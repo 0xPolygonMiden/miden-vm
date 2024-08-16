@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.10.4 (2024-08-15)
+
+#### Enhancements
+
+- Added support for executing `Dyn` nodes from external MAST forests (#1455).
+
 ## 0.10.3 (2024-08-12)
 
 #### Enhancements
