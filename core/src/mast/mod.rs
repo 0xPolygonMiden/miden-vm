@@ -68,12 +68,8 @@ impl MastForest {
         operations: Vec<Operation>,
         decorators: Option<DecoratorList>,
     ) -> Result<MastNodeId, MastForestError> {
-        match decorators {
-            Some(decorators) => {
-                self.add_node(MastNode::new_basic_block_with_decorators(operations, decorators))
-            },
-            None => self.add_node(MastNode::new_basic_block(operations)),
-        }
+        let block = MastNode::new_basic_block(operations, decorators)?;
+        self.add_node(block)
     }
 
     /// Adds a join node to the forest, and returns the [`MastNodeId`] associated with it.
@@ -271,4 +267,16 @@ pub enum MastForestError {
     TooManyNodes,
     #[error("node id: {0} is greater than or equal to forest length: {1}")]
     NodeIdOverflow(MastNodeId, usize),
+    #[error(transparent)]
+    Node(#[from] MastNodeError),
+}
+
+// MAST NODE ERROR
+// ================================================================================================
+
+/// Represents the types of errors that can occur when dealing with MAST nodes directly.
+#[derive(Debug, thiserror::Error, PartialEq)]
+pub enum MastNodeError {
+    #[error("basic block cannot be created from an empty list of operations")]
+    EmptyBasicBlock,
 }

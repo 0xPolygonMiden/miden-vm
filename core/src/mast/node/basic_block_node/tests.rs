@@ -306,7 +306,7 @@ fn operation_or_decorator_iterator() {
         (4, Decorator::Event(4)),
     ];
 
-    let node = BasicBlockNode::with_decorators(operations, decorators);
+    let node = BasicBlockNode::new(operations, Some(decorators)).unwrap();
 
     let mut iterator = node.iter();
 

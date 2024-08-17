@@ -5,7 +5,9 @@ use miden_crypto::{hash::rpo::RpoDigest, Felt, ZERO};
 use miden_formatting::prettier::PrettyPrint;
 use winter_utils::flatten_slice_elements;
 
-use crate::{chiplets::hasher, Decorator, DecoratorIterator, DecoratorList, Operation};
+use crate::{
+    chiplets::hasher, mast::MastNodeError, Decorator, DecoratorIterator, DecoratorList, Operation,
+};
 
 mod op_batch;
 pub use op_batch::OpBatch;
@@ -77,15 +79,27 @@ impl BasicBlockNode {
 // ------------------------------------------------------------------------------------------------
 /// Constructors
 impl BasicBlockNode {
-    /// Returns a new [`BasicBlockNode`] instantiated with the specified operations.
+    /// Returns a new [`BasicBlockNode`] instantiated with the specified operations and decorators.
     ///
-    /// # Errors (TODO)
     /// Returns an error if:
     /// - `operations` vector is empty.
-    /// - `operations` vector contains any number of system operations.
-    pub fn new(operations: Vec<Operation>) -> Self {
-        assert!(!operations.is_empty()); // TODO: return error
-        Self::with_decorators(operations, DecoratorList::new())
+    pub fn new(
+        operations: Vec<Operation>,
+        decorators: Option<DecoratorList>,
+    ) -> Result<Self, MastNodeError> {
+        if operations.is_empty() {
+            return Err(MastNodeError::EmptyBasicBlock);
+        }
+
+        // None is equivalent to an empty list of decorators moving forward.
+        let decorators = decorators.unwrap_or_default();
+
+        // Validate decorators list (only in debug mode).
+        #[cfg(debug_assertions)]
+        validate_decorators(&operations, &decorators);
+
+        let (op_batches, digest) = batch_and_hash_ops(operations);
+        Ok(Self { op_batches, digest, decorators })
     }
 
     /// Returns a new [`BasicBlockNode`] from values that are assumed to be correct.
@@ -96,23 +110,6 @@ impl BasicBlockNode {
         digest: RpoDigest,
     ) -> Self {
         let (op_batches, _) = batch_ops(operations);
-        Self { op_batches, digest, decorators }
-    }
-
-    /// Returns a new [`BasicBlockNode`] instantiated with the specified operations and decorators.
-    ///
-    /// # Errors (TODO)
-    /// Returns an error if:
-    /// - `operations` vector is empty.
-    /// - `operations` vector contains any number of system operations.
-    pub fn with_decorators(operations: Vec<Operation>, decorators: DecoratorList) -> Self {
-        assert!(!operations.is_empty()); // TODO: return error
-
-        // validate decorators list (only in debug mode)
-        #[cfg(debug_assertions)]
-        validate_decorators(&operations, &decorators);
-
-        let (op_batches, digest) = batch_and_hash_ops(operations);
         Self { op_batches, digest, decorators }
     }
 }

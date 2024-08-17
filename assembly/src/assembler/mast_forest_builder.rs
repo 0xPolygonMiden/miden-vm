@@ -170,12 +170,8 @@ impl MastForestBuilder {
         operations: Vec<Operation>,
         decorators: Option<DecoratorList>,
     ) -> Result<MastNodeId, AssemblyError> {
-        match decorators {
-            Some(decorators) => {
-                self.ensure_node(MastNode::new_basic_block_with_decorators(operations, decorators))
-            },
-            None => self.ensure_node(MastNode::new_basic_block(operations)),
-        }
+        let block = MastNode::new_basic_block(operations, decorators)?;
+        self.ensure_node(block)
     }
 
     /// Adds a join node to the forest, and returns the [`MastNodeId`] associated with it.
