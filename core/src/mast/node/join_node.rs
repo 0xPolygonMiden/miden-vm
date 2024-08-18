@@ -49,8 +49,9 @@ impl JoinNode {
         Ok(Self { children, digest })
     }
 
-    #[cfg(test)]
-    pub fn new_test(children: [MastNodeId; 2], digest: RpoDigest) -> Self {
+    /// Returns a new [`JoinNode`] from values that are assumed to be correct.
+    /// Should only be used when the source of the inputs is trusted (e.g. deserialization).
+    pub fn new_unsafe(children: [MastNodeId; 2], digest: RpoDigest) -> Self {
         Self { children, digest }
     }
 }

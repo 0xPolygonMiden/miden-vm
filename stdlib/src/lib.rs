@@ -28,10 +28,15 @@ impl From<StdLibrary> for MastForest {
     }
 }
 
+impl StdLibrary {
+    pub const SERIALIZED: &'static [u8] =
+        include_bytes!(concat!(env!("OUT_DIR"), "/assets/std.masl"));
+}
+
 impl Default for StdLibrary {
     fn default() -> Self {
-        let bytes = include_bytes!(concat!(env!("OUT_DIR"), "/assets/std.masl"));
-        let contents = Library::read_from_bytes(bytes).expect("failed to read std masl!");
+        let contents =
+            Library::read_from_bytes(Self::SERIALIZED).expect("failed to read std masl!");
         Self(contents)
     }
 }

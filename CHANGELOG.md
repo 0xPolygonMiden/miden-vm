@@ -2,6 +2,15 @@
 
 ## 0.11.0 (TBD)
 
+#### Enhancements
+
+- Updated `MastForest::read_from` to deserialize without computing node hashes unnecessarily (#1453).
+
+#### Changes
+
+- Added `new_unsafe()` constructors to MAST node types which do not compute node hashes (#1453).
+- Consolidated `BasicBlockNode` constructors and converted assert flow to `MastForestError::EmptyBasicBlock` (#1453).
+
 ## 0.10.3 (2024-08-12)
 
 #### Enhancements

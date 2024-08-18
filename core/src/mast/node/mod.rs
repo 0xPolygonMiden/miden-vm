@@ -50,15 +50,12 @@ pub enum MastNode {
 // ------------------------------------------------------------------------------------------------
 /// Constructors
 impl MastNode {
-    pub fn new_basic_block(operations: Vec<Operation>) -> Self {
-        Self::Block(BasicBlockNode::new(operations))
-    }
-
-    pub fn new_basic_block_with_decorators(
+    pub fn new_basic_block(
         operations: Vec<Operation>,
-        decorators: DecoratorList,
-    ) -> Self {
-        Self::Block(BasicBlockNode::with_decorators(operations, decorators))
+        decorators: Option<DecoratorList>,
+    ) -> Result<Self, MastForestError> {
+        let block = BasicBlockNode::new(operations, decorators)?;
+        Ok(Self::Block(block))
     }
 
     pub fn new_join(
