@@ -109,6 +109,7 @@ impl BasicBlockNode {
         decorators: DecoratorList,
         digest: RpoDigest,
     ) -> Self {
+        assert!(!operations.is_empty());
         let (op_batches, _) = batch_ops(operations);
         Self { op_batches, digest, decorators }
     }
