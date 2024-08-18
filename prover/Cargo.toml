@@ -17,7 +17,8 @@ edition.workspace = true
 concurrent = ["processor/concurrent", "std", "winter-prover/concurrent"]
 default = ["std"]
 metal = ["dep:miden-gpu", "dep:elsa", "dep:pollster", "concurrent", "std"]
-std = ["air/std", "processor/std", "winter-prover/std"]
+webgpu = ["dep:miden-gpu", "miden-gpu/webgpu"]
+std = ["air/std", "processor/std", "winter-prover/std", "miden-gpu/std"]
 
 [dependencies]
 air = { package = "miden-air", path = "../air", version = "0.10", default-features = false }
@@ -27,5 +28,8 @@ winter-prover = { package = "winter-prover", version = "0.9", default-features =
 
 [target.'cfg(all(target_arch = "aarch64", target_os = "macos"))'.dependencies]
 elsa = { version = "1.9", optional = true }
-miden-gpu = { version = "0.2", optional = true }
+miden-gpu = { git = "https://github.com/0xPolygonMiden/miden-gpu", rev = "b0d809bd6c02a38c8075575edc9190c5ac7f0dd9", default-features = false, optional = true }
 pollster = { version = "0.3", optional = true }
+
+[target.'cfg(target_family = "wasm")'.dependencies]
+miden-gpu = { git = "https://github.com/0xPolygonMiden/miden-gpu", rev = "b0d809bd6c02a38c8075575edc9190c5ac7f0dd9", default-features = false, optional = true }
