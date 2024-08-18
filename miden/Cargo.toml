@@ -92,6 +92,3 @@ test-utils = { package = "miden-test-utils", path = "../test-utils" }
 vm-core = { package = "miden-core", path = "../core", version = "0.11" }
 winter-fri = { package = "winter-fri", version = "0.9" }
 rand_chacha = "0.3.1"
-
-[build-dependencies]
-assembly = { package = "miden-assembly", path = "../assembly", version = "0.11" }
