@@ -17,10 +17,6 @@ edition.workspace = true
 bench = false
 doctest = false
 
-[[bench]]
-name = "deserialize_std_lib"
-harness = false
-
 [features]
 default = ["std"]
 std = [
@@ -58,7 +54,6 @@ vm-core = { package = "miden-core", path = "../core", version = "0.11", default-
 ] }
 
 [dev-dependencies]
-criterion = "0.5"
 pretty_assertions = "1.4"
 regex = { version = "1.10", default-features = false, features = [
     "unicode",
