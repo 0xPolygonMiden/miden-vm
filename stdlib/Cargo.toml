@@ -21,6 +21,10 @@ doctest = false
 name = "stdlib"
 path = "tests/main.rs"
 
+[[bench]]
+name = "deserialize_std_lib"
+harness = false
+
 [features]
 default = ["std"]
 std = ["assembly/std"]
@@ -31,6 +35,7 @@ assembly = { package = "miden-assembly", path = "../assembly", version = "0.11",
 
 [dev-dependencies]
 blake3 = "1.5"
+criterion = "0.5"
 miden-air = { package = "miden-air", path = "../air", version = "0.11", default-features = false }
 num = "0.4.1"
 num-bigint = "0.4"
