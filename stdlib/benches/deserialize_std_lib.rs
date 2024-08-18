@@ -9,7 +9,7 @@ fn deserialize_std_lib(c: &mut Criterion) {
 
     // Setup and run the benchmarks.
     let mut group = c.benchmark_group("deserialize_std_lib");
-    group.measurement_time(Duration::from_secs(10));
+    group.measurement_time(Duration::from_secs(15));
     group.bench_function("read_from_bytes", |bench| {
         bench.iter(|| {
             let _ = Library::read_from_bytes(bytes).expect("failed to read std masl!");
