@@ -50,6 +50,9 @@ fn sha256_hash_memory() {
         mem_load.1
         push.10000
         exec.sha256::hash_memory
+        
+        # truncate the stack 
+        swapdw dropw dropw
     end",
         inputs = push_inputs(&ifelts)
     );

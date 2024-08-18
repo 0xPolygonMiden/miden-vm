@@ -34,6 +34,8 @@ fn test_decorator_ext2intt(in_poly_len: usize, blowup: usize) {
 
     let source = format!(
         "
+    use.std::sys
+    
     proc.helper.{}
         locaddr.{}
         repeat.{}
@@ -63,6 +65,8 @@ fn test_decorator_ext2intt(in_poly_len: usize, blowup: usize) {
     begin
         {inputs}
         exec.helper
+
+        exec.sys::truncate_stack
     end
     ",
         eval_mem_req,

@@ -65,7 +65,7 @@ fn write_read() {
 #[test]
 fn helper_write_read() {
     // Sequence of operations: [Span, Pad, MStorew, Drop, Drop, Drop, Drop, Pad, MLoad, ... ]
-    let source = "begin mem_storew.0 dropw mem_load.0 swapw end";
+    let source = "begin mem_storew.0 dropw mem_load.0 movup.4 drop end";
     let pub_inputs = vec![4, 3, 2, 1];
 
     let trace = build_test!(source, &pub_inputs).execute().unwrap();
@@ -79,15 +79,11 @@ fn helper_write_read() {
 #[test]
 fn update() {
     let source = "
-    use.std::sys
-
     begin 
         push.0.0.0.0 
         mem_loadw.0 
         mem_storew.0 
-        swapw 
-
-        exec.sys::truncate_stack
+        swapw dropw
     end";
     let pub_inputs = vec![8, 7, 6, 5, 4, 3, 2, 1];
 

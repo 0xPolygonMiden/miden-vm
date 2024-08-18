@@ -70,13 +70,16 @@ fn test_mmr_get_single_peak() -> Result<(), MerkleError> {
 
     for pos in 0..(leaves.len() as u64) {
         let source = format!(
-            "use.std::collections::mmr
+            "
+            use.std::collections::mmr
 
             begin
                 push.{num_leaves} push.1000 mem_store # leaves count
                 adv_push.4 push.1001 mem_storew dropw # MMR single peak
 
                 push.1000 push.{pos} exec.mmr::get
+
+                swapw dropw
             end",
             num_leaves = leaves.len(),
             pos = pos,
@@ -127,7 +130,8 @@ fn test_mmr_get_two_peaks() -> Result<(), MerkleError> {
 
     for (absolute_pos, leaf) in examples {
         let source = format!(
-            "use.std::collections::mmr
+            "
+            use.std::collections::mmr
 
             begin
                 push.{num_leaves} push.1000 mem_store # leaves count
@@ -135,6 +139,8 @@ fn test_mmr_get_two_peaks() -> Result<(), MerkleError> {
                 adv_push.4 push.1002 mem_storew dropw # MMR second peak
 
                 push.1000 push.{pos} exec.mmr::get
+
+                swapw dropw
             end",
             num_leaves = num_leaves,
             pos = absolute_pos,
@@ -176,13 +182,16 @@ fn test_mmr_tree_with_one_element() -> Result<(), MerkleError> {
     // Test case for single element MMR
     let advice_stack: Vec<u64> = merkle_root3.iter().map(StarkField::as_int).collect();
     let source = format!(
-        "use.std::collections::mmr
+        "
+        use.std::collections::mmr
 
         begin
             push.{num_leaves} push.1000 mem_store # leaves count
             adv_push.4 push.1001 mem_storew dropw # MMR first peak
 
             push.1000 push.{pos} exec.mmr::get
+
+            swapw dropw 
         end",
         num_leaves = leaves3.len(),
         pos = 0,
@@ -199,7 +208,8 @@ fn test_mmr_tree_with_one_element() -> Result<(), MerkleError> {
         .collect();
     let num_leaves = leaves1.len() + leaves2.len() + leaves3.len();
     let source = format!(
-        "use.std::collections::mmr
+        "
+        use.std::collections::mmr
 
         begin
             push.{num_leaves} push.1000 mem_store # leaves count
@@ -208,6 +218,8 @@ fn test_mmr_tree_with_one_element() -> Result<(), MerkleError> {
             adv_push.4 push.1003 mem_storew dropw # MMR third peak
 
             push.1000 push.{pos} exec.mmr::get
+
+            swapw dropw
         end",
         num_leaves = num_leaves,
         pos = num_leaves - 1,
@@ -454,9 +466,12 @@ fn test_mmr_pack_roundtrip() {
 
     let source = "
         use.std::collections::mmr
+
         begin
             exec.mmr::unpack
             exec.mmr::pack
+
+            swapw dropw
         end
     ";
     let test = build_test!(source, &stack, advice_stack, store, advice_map.iter().cloned());
@@ -486,6 +501,8 @@ fn test_mmr_pack() {
             push.2.1002 mem_store  # peak2
 
             push.1000 exec.mmr::pack
+
+            swapw dropw
         end
     ";
 
@@ -587,6 +604,8 @@ fn test_mmr_large() {
             push.{mmr_ptr}.0.0.0.7 exec.mmr::add
 
             push.{mmr_ptr} exec.mmr::pack
+
+            swapw dropw
         end
     "
     );
@@ -658,6 +677,8 @@ fn test_mmr_large_add_roundtrip() {
             exec.mmr::unpack
             push.{mmr_ptr}.0.0.0.8 exec.mmr::add
             push.{mmr_ptr} exec.mmr::pack
+
+            swapw dropw
         end
     "
     );

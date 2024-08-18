@@ -98,7 +98,9 @@ fn test_memcopy() {
 fn test_pipe_double_words_to_memory() {
     let mem_addr = 1000;
     let source = format!(
-        "use.std::mem
+        "
+        use.std::mem
+        use.std::sys
 
         begin
             push.1002       # end_addr
@@ -106,6 +108,8 @@ fn test_pipe_double_words_to_memory() {
             padw padw padw  # hasher state
 
             exec.mem::pipe_double_words_to_memory
+
+            exec.sys::truncate_stack
         end",
         mem_addr
     );
@@ -133,6 +137,7 @@ fn test_pipe_words_to_memory() {
             push.1  # number of words
 
             exec.mem::pipe_words_to_memory
+            swapdw dropw dropw
         end",
         mem_addr
     );
@@ -155,6 +160,7 @@ fn test_pipe_words_to_memory() {
             push.3  # number of words
 
             exec.mem::pipe_words_to_memory
+            swapdw dropw dropw
         end",
         mem_addr
     );
@@ -182,6 +188,7 @@ fn test_pipe_preimage_to_memory() {
             push.3     # number of words
 
             exec.mem::pipe_preimage_to_memory
+            swap drop
         end",
         mem_addr
     );

@@ -4,7 +4,9 @@ use core::cmp;
 use miden_air::RowIndex;
 use vm_core::{stack::STACK_TOP_SIZE, Word, WORD_SIZE};
 
-use super::{Felt, FieldElement, StackInputs, StackOutputs, ONE, STACK_TRACE_WIDTH, ZERO};
+use super::{
+    ExecutionError, Felt, FieldElement, StackInputs, StackOutputs, ONE, STACK_TRACE_WIDTH, ZERO,
+};
 
 mod trace;
 use trace::StackTrace;
@@ -141,10 +143,14 @@ impl Stack {
     }
 
     /// Returns [StackOutputs] consisting of all values on the stack.
-    pub fn build_stack_outputs(&self) -> StackOutputs {
+    pub fn build_stack_outputs(&self) -> Result<StackOutputs, ExecutionError> {
+        if self.overflow.active_rows_len() != 0 {
+            return Err(ExecutionError::OutputStackOverflow(self.overflow.active_rows_len()));
+        }
+
         let mut stack_items = Vec::with_capacity(self.active_depth);
         self.trace.append_state_into(&mut stack_items, self.clk);
-        StackOutputs::new(stack_items).expect("processor stack handling logic is valid")
+        Ok(StackOutputs::new(stack_items).expect("processor stack handling logic is valid"))
     }
 
     // TRACE ACCESSORS AND MUTATORS

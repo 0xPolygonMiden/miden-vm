@@ -62,9 +62,13 @@ fn adv_loadw_invalid() {
 #[test]
 fn adv_pipe() {
     let source = "
+        use.std::sys
+
         begin
             push.12.11.10.9.8.7.6.5.4.3.2.1
             adv_pipe
+
+            exec.sys::truncate_stack
         end";
 
     let advice_stack = [1, 2, 3, 4, 5, 6, 7, 8];
@@ -89,9 +93,13 @@ fn adv_pipe() {
 #[test]
 fn adv_pipe_with_hperm() {
     let source = "
+        use.std::sys
+
         begin
             push.12.11.10.9.8.7.6.5.4.3.2.1
             adv_pipe hperm
+
+            exec.sys::truncate_stack
         end";
 
     let advice_stack = [1, 2, 3, 4, 5, 6, 7, 8];

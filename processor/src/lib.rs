@@ -254,7 +254,7 @@ where
 
         self.execute_mast_node(program.entrypoint(), &program.mast_forest().clone())?;
 
-        Ok(self.stack.build_stack_outputs())
+        self.stack.build_stack_outputs()
     }
 
     // NODE EXECUTORS

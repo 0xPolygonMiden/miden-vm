@@ -172,6 +172,11 @@ impl OverflowTable {
         }
     }
 
+    /// Returns the number of overflowing stack elements at the current clock cycle.
+    pub fn active_rows_len(&self) -> usize {
+        self.active_rows.len()
+    }
+
     // AUX TRACE BUILDER GENERATION
     // --------------------------------------------------------------------------------------------
 

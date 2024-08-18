@@ -11,6 +11,7 @@ fn test_event_handling() {
         emit.1
         push.2
         emit.2
+        swapw dropw
     end";
 
     // compile and execute program
@@ -31,6 +32,7 @@ fn test_trace_handling() {
         trace.1
         push.2
         trace.2
+        swapw dropw
     end";
 
     // compile program

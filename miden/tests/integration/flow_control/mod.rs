@@ -65,7 +65,7 @@ fn counter_controlled_loop() {
             repeat.10
                 dup.1 mul
             end
-            swap drop
+            movdn.2 drop drop
         end";
 
     let test = build_test!(source);
@@ -149,8 +149,6 @@ fn local_fn_call() {
     // in the overflow table from the parent execution context
     let source = format!(
         "
-        use.std::sys
-        
         proc.foo
             repeat.20
                 drop
@@ -165,7 +163,7 @@ fn local_fn_call() {
                 drop
             end
 
-            exec.sys::truncate_stack
+            swapw dropw
         end",
         inputs = push_inputs(&inputs)
     );
@@ -181,8 +179,6 @@ fn local_fn_call_with_mem_access() {
     // foo should be executed in a different memory context; thus, when we read from memory after
     // calling foo, the value saved into memory[0] before calling foo should still be there.
     let source = "
-        use.std::sys
-
         proc.foo
             mem_store.0
         end
@@ -193,7 +189,7 @@ fn local_fn_call_with_mem_access() {
             mem_load.0
             eq.7
             
-            exec.sys::truncate_stack
+            swap drop
         end";
 
     let test = build_test!(source, &[3, 7]);
@@ -313,6 +309,8 @@ fn dynexec_with_procref() {
         dup
         push.4
         assert_eq.err=101
+
+        swap drop
     end";
 
     let mut test = build_test!(program_source, &[]);
@@ -333,8 +331,6 @@ fn dynexec_with_procref() {
 #[test]
 fn simple_dyncall() {
     let program_source = "
-        use.std::sys
-
         proc.foo
             # drop the top 4 values, since that will be the code hash when we call this dynamically
             dropw
@@ -360,7 +356,7 @@ fn simple_dyncall() {
             # use dyncall to call foo again via its hash, which is on the stack
             dyncall
 
-            exec.sys::truncate_stack
+            swapw dropw
         end";
 
     // The hash of foo can be obtained from the code block table by:

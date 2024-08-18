@@ -93,7 +93,13 @@ fn basic_block_one_group() {
 #[test]
 fn basic_block_small() {
     let iv = [ONE, TWO];
-    let ops = vec![Operation::Push(iv[0]), Operation::Push(iv[1]), Operation::Add];
+    let ops = vec![
+        Operation::Push(iv[0]),
+        Operation::Push(iv[1]),
+        Operation::Add,
+        Operation::Swap,
+        Operation::Drop,
+    ];
     let basic_block = BasicBlockNode::new(ops.clone(), None).unwrap();
     let program = {
         let mut mast_forest = MastForest::new();
@@ -112,20 +118,26 @@ fn basic_block_small() {
     check_op_decoding(&trace, 1, INIT_ADDR, Operation::Push(iv[0]), 3, 0, 1);
     check_op_decoding(&trace, 2, INIT_ADDR, Operation::Push(iv[1]), 2, 1, 1);
     check_op_decoding(&trace, 3, INIT_ADDR, Operation::Add, 1, 2, 1);
+    check_op_decoding(&trace, 4, INIT_ADDR, Operation::Swap, 1, 3, 1);
+    check_op_decoding(&trace, 5, INIT_ADDR, Operation::Drop, 1, 4, 1);
+
     // starting new group: NOOP group is inserted by the processor to make sure number of groups
     // is a power of two
-    check_op_decoding(&trace, 4, INIT_ADDR, Operation::Noop, 0, 0, 1);
-    check_op_decoding(&trace, 5, INIT_ADDR, Operation::End, 0, 0, 0);
-    check_op_decoding(&trace, 6, ZERO, Operation::Halt, 0, 0, 0);
+    check_op_decoding(&trace, 6, INIT_ADDR, Operation::Noop, 0, 0, 1);
+    check_op_decoding(&trace, 7, INIT_ADDR, Operation::End, 0, 0, 0);
+    check_op_decoding(&trace, 8, ZERO, Operation::Halt, 0, 0, 0);
 
     // --- check hasher state columns -------------------------------------------------------------
     let program_hash: Word = program.hash().into();
+
     check_hasher_state(
         &trace,
         vec![
             basic_block.op_batches()[0].groups().to_vec(),
             vec![build_op_group(&ops[1..])],
             vec![build_op_group(&ops[2..])],
+            vec![build_op_group(&ops[3..])],
+            vec![build_op_group(&ops[4..])],
             vec![],
             vec![],
             program_hash.to_vec(), // last row should contain program hash
@@ -133,7 +145,7 @@ fn basic_block_small() {
     );
 
     // HALT opcode and program hash gets propagated to the last row
-    for i in 7..trace_len {
+    for i in 8..trace_len {
         assert!(contains_op(&trace, i, Operation::Halt));
         assert_eq!(ZERO, trace[OP_BITS_EXTRA_COLS_RANGE.start][i]);
         assert_eq!(ONE, trace[OP_BITS_EXTRA_COLS_RANGE.start + 1][i]);
@@ -157,6 +169,8 @@ fn basic_block() {
         Operation::Mul,
         Operation::Add,
         Operation::Inv,
+        Operation::Swap,
+        Operation::Drop,
     ];
     let basic_block = BasicBlockNode::new(ops.clone(), None).unwrap();
     let program = {
@@ -187,10 +201,13 @@ fn basic_block() {
     check_op_decoding(&trace, 11, INIT_ADDR, Operation::Mul, 1, 1, 1);
     check_op_decoding(&trace, 12, INIT_ADDR, Operation::Add, 1, 2, 1);
     check_op_decoding(&trace, 13, INIT_ADDR, Operation::Inv, 1, 3, 1);
+    check_op_decoding(&trace, 14, INIT_ADDR, Operation::Swap, 1, 4, 1);
+    check_op_decoding(&trace, 15, INIT_ADDR, Operation::Drop, 1, 5, 1);
+
     // NOOP inserted by the processor to make sure the number of groups is a power of two
-    check_op_decoding(&trace, 14, INIT_ADDR, Operation::Noop, 0, 0, 1);
-    check_op_decoding(&trace, 15, INIT_ADDR, Operation::End, 0, 0, 0);
-    check_op_decoding(&trace, 16, ZERO, Operation::Halt, 0, 0, 0);
+    check_op_decoding(&trace, 16, INIT_ADDR, Operation::Noop, 0, 0, 1);
+    check_op_decoding(&trace, 17, INIT_ADDR, Operation::End, 0, 0, 0);
+    check_op_decoding(&trace, 18, ZERO, Operation::Halt, 0, 0, 0);
 
     // --- check hasher state columns -------------------------------------------------------------
     let program_hash: Word = program.hash().into();
@@ -210,6 +227,8 @@ fn basic_block() {
             vec![build_op_group(&ops[9..])], // next group starts
             vec![build_op_group(&ops[10..])],
             vec![build_op_group(&ops[11..])],
+            vec![build_op_group(&ops[12..])],
+            vec![build_op_group(&ops[13..])],
             vec![],
             vec![],                // a group with single NOOP added at the end
             program_hash.to_vec(), // last row should contain program hash
@@ -217,7 +236,7 @@ fn basic_block() {
     );
 
     // HALT opcode and program hash gets propagated to the last row
-    for i in 17..trace_len {
+    for i in 18..trace_len {
         assert!(contains_op(&trace, i, Operation::Halt));
         assert_eq!(ZERO, trace[OP_BITS_EXTRA_COLS_RANGE.start][i]);
         assert_eq!(ONE, trace[OP_BITS_EXTRA_COLS_RANGE.start + 1][i]);
@@ -250,6 +269,15 @@ fn span_block_with_respan() {
         Operation::Push(iv[7]),
         Operation::Add,
         Operation::Push(iv[8]),
+        Operation::SwapDW,
+        Operation::Drop,
+        Operation::Drop,
+        Operation::Drop,
+        Operation::Drop,
+        Operation::Drop,
+        Operation::Drop,
+        Operation::Drop,
+        Operation::Drop,
     ];
     let basic_block = BasicBlockNode::new(ops.clone(), None).unwrap();
     let program = {
@@ -280,15 +308,27 @@ fn span_block_with_respan() {
     check_op_decoding(&trace, 10, batch1_addr, Operation::Push(iv[7]), 3, 0, 1);
     check_op_decoding(&trace, 11, batch1_addr, Operation::Add, 2, 1, 1);
     check_op_decoding(&trace, 12, batch1_addr, Operation::Push(iv[8]), 2, 2, 1);
+
+    check_op_decoding(&trace, 13, batch1_addr, Operation::SwapDW, 1, 3, 1);
+    check_op_decoding(&trace, 14, batch1_addr, Operation::Drop, 1, 4, 1);
+    check_op_decoding(&trace, 15, batch1_addr, Operation::Drop, 1, 5, 1);
+    check_op_decoding(&trace, 16, batch1_addr, Operation::Drop, 1, 6, 1);
+    check_op_decoding(&trace, 17, batch1_addr, Operation::Drop, 1, 7, 1);
+    check_op_decoding(&trace, 18, batch1_addr, Operation::Drop, 1, 8, 1);
+    check_op_decoding(&trace, 19, batch1_addr, Operation::Drop, 0, 0, 1);
+    check_op_decoding(&trace, 20, batch1_addr, Operation::Drop, 0, 1, 1);
+    check_op_decoding(&trace, 21, batch1_addr, Operation::Drop, 0, 2, 1);
+
     // NOOP inserted by the processor to make sure the group doesn't end with a PUSH
-    check_op_decoding(&trace, 13, batch1_addr, Operation::Noop, 1, 3, 1);
+    // check_op_decoding(&trace, 22, batch1_addr, Operation::Noop, 0, 3, 1);
     // NOOP inserted by the processor to make sure the number of groups is a power of two
-    check_op_decoding(&trace, 14, batch1_addr, Operation::Noop, 0, 0, 1);
-    check_op_decoding(&trace, 15, batch1_addr, Operation::End, 0, 0, 0);
-    check_op_decoding(&trace, 16, ZERO, Operation::Halt, 0, 0, 0);
+    // check_op_decoding(&trace, 22, batch1_addr, Operation::Noop, 0, 0, 1);
+    check_op_decoding(&trace, 22, batch1_addr, Operation::End, 0, 0, 0);
+    check_op_decoding(&trace, 23, ZERO, Operation::Halt, 0, 0, 0);
 
     // --- check hasher state columns -------------------------------------------------------------
     let program_hash: Word = program.hash().into();
+
     check_hasher_state(
         &trace,
         vec![
@@ -302,17 +342,24 @@ fn span_block_with_respan() {
             vec![],
             vec![], // a NOOP inserted after last PUSH
             basic_block.op_batches()[1].groups().to_vec(),
-            vec![build_op_group(&ops[8..])], // next group starts
-            vec![build_op_group(&ops[9..])],
+            vec![build_op_group(&ops[8..16])], // next group starts
+            vec![build_op_group(&ops[9..16])],
+            vec![build_op_group(&ops[10..16])],
+            vec![build_op_group(&ops[11..16])],
+            vec![build_op_group(&ops[12..16])],
+            vec![build_op_group(&ops[13..16])],
+            vec![build_op_group(&ops[14..16])],
+            vec![build_op_group(&ops[15..16])],
             vec![],
-            vec![],                // a NOOP is inserted after last PUSH
-            vec![],                // a group with single NOOP added at the end
+            vec![build_op_group(&ops[17..])],
+            vec![build_op_group(&ops[18..])],
+            vec![],
             program_hash.to_vec(), // last row should contain program hash
         ],
     );
 
     // HALT opcode and program hash gets propagated to the last row
-    for i in 17..trace_len {
+    for i in 23..trace_len {
         assert!(contains_op(&trace, i, Operation::Halt));
         assert_eq!(ZERO, trace[OP_BITS_EXTRA_COLS_RANGE.start][i]);
         assert_eq!(ONE, trace[OP_BITS_EXTRA_COLS_RANGE.start + 1][i]);
@@ -677,6 +724,8 @@ fn call_block() {
     //    fmp <- fmp + 2
     //    call.foo
     //    stack[0] <- fmp
+    //    swap
+    //    drop
     // end
 
     let mut mast_forest = MastForest::new();
@@ -693,7 +742,7 @@ fn call_block() {
     ], None).unwrap();
     let foo_root_node_id = mast_forest.add_node(foo_root_node.clone()).unwrap();
 
-    let last_basic_block = MastNode::new_basic_block(vec![Operation::FmpAdd], None).unwrap();
+    let last_basic_block = MastNode::new_basic_block(vec![Operation::FmpAdd, Operation::Swap, Operation::Drop], None).unwrap();
     let last_basic_block_id = mast_forest.add_node(last_basic_block.clone()).unwrap();
 
     let foo_call_node = MastNode::new_call(foo_root_node_id, &mast_forest).unwrap();
@@ -739,10 +788,13 @@ fn call_block() {
     let last_basic_block_addr = foo_root_addr + EIGHT;
     check_op_decoding(&dec_trace, 14, INIT_ADDR, Operation::Span, 1, 0, 0);
     check_op_decoding(&dec_trace, 15, last_basic_block_addr, Operation::FmpAdd, 0, 0, 1);
-    check_op_decoding(&dec_trace, 16, last_basic_block_addr, Operation::End, 0, 0, 0);
+    check_op_decoding(&dec_trace, 16, last_basic_block_addr, Operation::Swap, 0, 1, 1);
+    check_op_decoding(&dec_trace, 17, last_basic_block_addr, Operation::Drop, 0, 2, 1);
+
+    check_op_decoding(&dec_trace, 18, last_basic_block_addr, Operation::End, 0, 0, 0);
     // ending the program
-    check_op_decoding(&dec_trace, 17, INIT_ADDR, Operation::End, 0, 0, 0);
-    check_op_decoding(&dec_trace, 18, ZERO, Operation::Halt, 0, 0, 0);
+    check_op_decoding(&dec_trace, 19, INIT_ADDR, Operation::End, 0, 0, 0);
+    check_op_decoding(&dec_trace, 20, ZERO, Operation::Halt, 0, 0, 0);
 
     // --- check hasher state columns -------------------------------------------------------------
     // in the first row, the hasher state is set to hashes of (join1, span3)
@@ -780,16 +832,16 @@ fn call_block() {
     assert_eq!(EMPTY_WORD, get_hasher_state2(&dec_trace, 13));
 
     // span3 ends in the 14th row
-    assert_eq!(last_basic_block_hash, get_hasher_state1(&dec_trace, 16));
-    assert_eq!(EMPTY_WORD, get_hasher_state2(&dec_trace, 16));
+    assert_eq!(last_basic_block_hash, get_hasher_state1(&dec_trace, 18));
+    assert_eq!(EMPTY_WORD, get_hasher_state2(&dec_trace, 18));
 
-    // the program ends in the 17th row
+    // the program ends in the 19th row
     let program_hash: Word = program.hash().into();
-    assert_eq!(program_hash, get_hasher_state1(&dec_trace, 17));
-    assert_eq!(EMPTY_WORD, get_hasher_state2(&dec_trace, 17));
+    assert_eq!(program_hash, get_hasher_state1(&dec_trace, 19));
+    assert_eq!(EMPTY_WORD, get_hasher_state2(&dec_trace, 19));
 
     // HALT opcode and program hash gets propagated to the last row
-    for i in 18..trace_len {
+    for i in 20..trace_len {
         assert!(contains_op(&dec_trace, i, Operation::Halt));
         assert_eq!(ZERO, dec_trace[OP_BITS_EXTRA_COLS_RANGE.start][i]);
         assert_eq!(ONE, dec_trace[OP_BITS_EXTRA_COLS_RANGE.start + 1][i]);
@@ -890,6 +942,8 @@ fn syscall_block() {
     //    fmp <- fmp + 1
     //    syscall.bar
     //    stack[0] <- fmp
+    //    swap
+    //    drop
     // end
 
     let mut mast_forest = MastForest::new();
@@ -919,7 +973,7 @@ fn syscall_block() {
     ], None).unwrap();
     let first_basic_block_id = mast_forest.add_node(first_basic_block.clone()).unwrap();
 
-    let last_basic_block = MastNode::new_basic_block(vec![Operation::FmpAdd], None).unwrap();
+    let last_basic_block = MastNode::new_basic_block(vec![Operation::FmpAdd, Operation::Swap, Operation::Drop], None).unwrap();
     let last_basic_block_id = mast_forest.add_node(last_basic_block.clone()).unwrap();
 
     let bar_call_node = MastNode::new_call(bar_root_node_id, &mast_forest).unwrap();
@@ -986,11 +1040,13 @@ fn syscall_block() {
     let last_basic_block_addr = syscall_basic_block_addr + EIGHT;
     check_op_decoding(&dec_trace, 22, INIT_ADDR, Operation::Span, 1, 0, 0);
     check_op_decoding(&dec_trace, 23, last_basic_block_addr, Operation::FmpAdd, 0, 0, 1);
-    check_op_decoding(&dec_trace, 24, last_basic_block_addr, Operation::End, 0, 0, 0);
+    check_op_decoding(&dec_trace, 24, last_basic_block_addr, Operation::Swap, 0, 1, 1);
+    check_op_decoding(&dec_trace, 25, last_basic_block_addr, Operation::Drop, 0, 2, 1);
+    check_op_decoding(&dec_trace, 26, last_basic_block_addr, Operation::End, 0, 0, 0);
 
     // ending the program
-    check_op_decoding(&dec_trace, 25, INIT_ADDR, Operation::End, 0, 0, 0);
-    check_op_decoding(&dec_trace, 26, ZERO, Operation::Halt, 0, 0, 0);
+    check_op_decoding(&dec_trace, 27, INIT_ADDR, Operation::End, 0, 0, 0);
+    check_op_decoding(&dec_trace, 28, ZERO, Operation::Halt, 0, 0, 0);
 
     // --- check hasher state columns -------------------------------------------------------------
     // in the first row, the hasher state is set to hashes of (inner_join, last_span)
@@ -1051,17 +1107,17 @@ fn syscall_block() {
     assert_eq!(inner_join_hash, get_hasher_state1(&dec_trace, 21));
     assert_eq!(EMPTY_WORD, get_hasher_state2(&dec_trace, 21));
 
-    // last span ends in the 24th row
-    assert_eq!(last_span_hash, get_hasher_state1(&dec_trace, 24));
-    assert_eq!(EMPTY_WORD, get_hasher_state2(&dec_trace, 24));
+    // last span ends in the 26th row
+    assert_eq!(last_span_hash, get_hasher_state1(&dec_trace, 26));
+    assert_eq!(EMPTY_WORD, get_hasher_state2(&dec_trace, 26));
 
-    // the program ends in the 25th row
+    // the program ends in the 27th row
     let program_hash: Word = program_root_node.digest().into();
-    assert_eq!(program_hash, get_hasher_state1(&dec_trace, 25));
-    assert_eq!(EMPTY_WORD, get_hasher_state2(&dec_trace, 25));
+    assert_eq!(program_hash, get_hasher_state1(&dec_trace, 27));
+    assert_eq!(EMPTY_WORD, get_hasher_state2(&dec_trace, 27));
 
     // HALT opcode and program hash gets propagated to the last row
-    for i in 26..trace_len {
+    for i in 28..trace_len {
         assert!(contains_op(&dec_trace, i, Operation::Halt));
         assert_eq!(ZERO, dec_trace[OP_BITS_EXTRA_COLS_RANGE.start][i]);
         assert_eq!(ONE, dec_trace[OP_BITS_EXTRA_COLS_RANGE.start + 1][i]);

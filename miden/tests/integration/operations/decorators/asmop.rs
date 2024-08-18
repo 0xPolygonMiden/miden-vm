@@ -413,7 +413,8 @@ fn asmop_repeat_test() {
 
 #[test]
 fn asmop_conditional_execution_test() {
-    let source = "begin
+    let source = "
+        begin
             eq
             if.true
                 push.1 push.2 add

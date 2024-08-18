@@ -79,6 +79,7 @@ pub enum ExecutionError {
     MerkleStoreUpdateFailed(MerkleError),
     NotBinaryValue(Felt),
     NotU32Value(Felt, Felt),
+    OutputStackOverflow(usize),
     ProgramAlreadyExecuted,
     ProverError(ProverError),
     SmtNodeNotFound(Word),
@@ -199,6 +200,9 @@ impl Display for ExecutionError {
                     f,
                     "An operation expected a u32 value, but received {v} (error code: {err_code})"
                 )
+            },
+            OutputStackOverflow(n) => {
+                write!(f, "Overflow table should be empty at the end of program execution, but has {n} rows")
             },
             SmtNodeNotFound(node) => {
                 let node_hex = to_hex(Felt::elements_as_bytes(node));

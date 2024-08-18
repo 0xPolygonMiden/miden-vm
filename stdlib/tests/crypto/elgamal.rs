@@ -39,9 +39,12 @@ fn test_elgamal_keygen() {
 
     let source = "
         use.std::crypto::elgamal_ecgfp5
+        use.std::sys
 
         begin
             exec.elgamal_ecgfp5::gen_privatekey
+
+            exec.sys::truncate_stack
         end
     ";
 
@@ -94,9 +97,12 @@ fn test_elgamal_encrypt() {
 
     let source = "
         use.std::crypto::elgamal_ecgfp5
+        use.std::sys
 
         begin
             exec.elgamal_ecgfp5::encrypt_ca
+
+            exec.sys::truncate_stack
         end
     ";
 
@@ -169,10 +175,13 @@ fn test_elgamal_encrypt() {
     let source = format!(
         "
         use.std::crypto::elgamal_ecgfp5
+        use.std::sys
 
         begin
             {inputs}
             exec.elgamal_ecgfp5::encrypt_cb
+
+            exec.sys::truncate_stack
         end
     ",
         inputs = push_inputs(&stack)
@@ -258,10 +267,13 @@ fn test_elgamal_remask() {
     let source = format!(
         "
         use.std::crypto::elgamal_ecgfp5
+        use.std::sys
 
         begin
             {inputs}
             exec.elgamal_ecgfp5::remask_ca
+
+            exec.sys::truncate_stack
         end
     ",
         inputs = push_inputs(&stack)
@@ -321,10 +333,13 @@ fn test_elgamal_remask() {
     let source = format!(
         "
         use.std::crypto::elgamal_ecgfp5
+        use.std::sys
 
         begin
             {inputs}
             exec.elgamal_ecgfp5::remask_cb
+
+            exec.sys::truncate_stack
         end
     ",
         inputs = push_inputs(&stack)

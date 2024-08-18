@@ -185,14 +185,16 @@ fn clk() {
 
     let source = "
         proc.foo
+            push.6
             push.5
-            push.4
             clk
         end
+
         begin
             exec.foo
+            swapw dropw
         end";
 
     let test = build_test!(source, &[]);
-    test.expect_stack(&[3, 4, 5]);
+    test.expect_stack(&[4, 5, 6]);
 }

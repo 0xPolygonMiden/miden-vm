@@ -35,6 +35,7 @@ fn keccak256_2_to_1_hash() {
 
     begin
         exec.keccak256::hash
+        swapdw dropw dropw
     end
     ";
 
