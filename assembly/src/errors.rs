@@ -1,6 +1,6 @@
 use alloc::{string::String, sync::Arc, vec::Vec};
 
-use vm_core::mast::{MastForestError, MastNodeError};
+use vm_core::mast::MastForestError;
 
 use crate::{
     ast::QualifiedProcedureName,
@@ -76,8 +76,6 @@ pub enum AssemblyError {
     Other(#[from] RelatedError),
     #[error(transparent)]
     Forest(#[from] MastForestError),
-    #[error(transparent)]
-    Node(#[from] MastNodeError),
 }
 
 impl From<Report> for AssemblyError {

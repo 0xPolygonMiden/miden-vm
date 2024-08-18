@@ -6,7 +6,7 @@ use miden_formatting::prettier::PrettyPrint;
 use winter_utils::flatten_slice_elements;
 
 use crate::{
-    chiplets::hasher, mast::MastNodeError, Decorator, DecoratorIterator, DecoratorList, Operation,
+    chiplets::hasher, mast::MastForestError, Decorator, DecoratorIterator, DecoratorList, Operation,
 };
 
 mod op_batch;
@@ -86,9 +86,9 @@ impl BasicBlockNode {
     pub fn new(
         operations: Vec<Operation>,
         decorators: Option<DecoratorList>,
-    ) -> Result<Self, MastNodeError> {
+    ) -> Result<Self, MastForestError> {
         if operations.is_empty() {
-            return Err(MastNodeError::EmptyBasicBlock);
+            return Err(MastForestError::EmptyBasicBlock);
         }
 
         // None is equivalent to an empty list of decorators moving forward.

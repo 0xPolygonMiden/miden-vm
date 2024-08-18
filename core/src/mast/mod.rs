@@ -267,16 +267,6 @@ pub enum MastForestError {
     TooManyNodes,
     #[error("node id: {0} is greater than or equal to forest length: {1}")]
     NodeIdOverflow(MastNodeId, usize),
-    #[error(transparent)]
-    Node(#[from] MastNodeError),
-}
-
-// MAST NODE ERROR
-// ================================================================================================
-
-/// Represents the types of errors that can occur when dealing with MAST nodes directly.
-#[derive(Debug, thiserror::Error, PartialEq)]
-pub enum MastNodeError {
     #[error("basic block cannot be created from an empty list of operations")]
     EmptyBasicBlock,
 }

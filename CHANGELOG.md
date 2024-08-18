@@ -9,7 +9,7 @@
 #### Changes
 
 - Added `new_unsafe()` constructors to MAST node types which do not compute node hashes (#1453).
-- Consolidated `BasicBlockNode` constructors and converted assert flow to new error type `MastNodeError` (#1453).
+- Consolidated `BasicBlockNode` constructors and converted assert flow to `MastForestError::EmptyBasicBlock` (#1453).
 
 ## 0.10.3 (2024-08-12)
 

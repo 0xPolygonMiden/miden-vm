@@ -27,7 +27,7 @@ pub use split_node::SplitNode;
 mod loop_node;
 pub use loop_node::LoopNode;
 
-use super::{MastForestError, MastNodeError};
+use super::MastForestError;
 use crate::{
     mast::{MastForest, MastNodeId},
     DecoratorList, Operation,
@@ -53,7 +53,7 @@ impl MastNode {
     pub fn new_basic_block(
         operations: Vec<Operation>,
         decorators: Option<DecoratorList>,
-    ) -> Result<Self, MastNodeError> {
+    ) -> Result<Self, MastForestError> {
         let block = BasicBlockNode::new(operations, decorators)?;
         Ok(Self::Block(block))
     }
