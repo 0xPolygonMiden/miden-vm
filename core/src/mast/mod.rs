@@ -1,5 +1,5 @@
 use alloc::{
-    collections::{BTreeMap, BTreeSet, VecDeque},
+    collections::{BTreeMap, BTreeSet},
     vec::Vec,
 };
 use core::{fmt, mem, ops::Index};
@@ -136,77 +136,46 @@ impl MastForest {
         }
     }
 
-    /// Removes all nodes that are unreachable from all procedures are removed.
+    /// Removes all nodes in the provided set from the MAST forest.
     ///
-    /// It also returns the map from old node IDs to new node IDs; or `None` if the `MastForest` was
-    /// unchanged. Any [`MastNodeId`] used in reference to the old [`MastForest`] should be remapped
-    /// using this map.
-    pub fn prune_unreachable_nodes(&mut self) -> Option<BTreeMap<MastNodeId, MastNodeId>> {
-        let live_ids = self.compute_live_ids();
-        if live_ids.len() == self.num_nodes() as usize {
+    /// It also returns the map from old node IDs to new node IDs; or `None` if the set of nodes to
+    /// remove was empty. Any [`MastNodeId`] used in reference to the old [`MastForest`] should be
+    /// remapped using this map.
+    pub fn remove_nodes(
+        &mut self,
+        nodes_to_remove: &BTreeSet<MastNodeId>,
+    ) -> Option<BTreeMap<MastNodeId, MastNodeId>> {
+        if nodes_to_remove.is_empty() {
             return None;
         }
 
         let old_nodes = mem::take(&mut self.nodes);
         let old_root_ids = mem::take(&mut self.roots);
-        let (live_nodes, id_remappings) = prune_nodes(old_nodes, live_ids);
+        let (pruned_nodes, id_remappings) = remove_nodes(old_nodes, nodes_to_remove);
 
-        self.add_remapped_live_nodes(live_nodes, &id_remappings);
-        self.add_remapped_roots(old_root_ids, &id_remappings);
+        self.remap_and_add_nodes(pruned_nodes, &id_remappings);
+        self.remap_and_add_roots(old_root_ids, &id_remappings);
         Some(id_remappings)
     }
 }
 
 /// Helpers
 impl MastForest {
-    /// Computes the set of [`MastNodeId`]s which are "live"; that is, that are reached by at least
-    /// one procedure in the MAST forest.
-    fn compute_live_ids(&self) -> BTreeSet<MastNodeId> {
-        let mut live_ids = BTreeSet::new();
-
-        let mut worklist = VecDeque::from_iter(self.procedure_roots().iter().copied());
-        while let Some(mast_node_id) = worklist.pop_front() {
-            if !live_ids.insert(mast_node_id) {
-                continue;
-            }
-
-            match &self[mast_node_id] {
-                MastNode::Join(node) => {
-                    worklist.push_back(node.first());
-                    worklist.push_back(node.second());
-                },
-                MastNode::Split(node) => {
-                    worklist.push_back(node.on_true());
-                    worklist.push_back(node.on_false());
-                },
-                MastNode::Loop(node) => {
-                    worklist.push_back(node.body());
-                },
-                MastNode::Call(node) => {
-                    worklist.push_back(node.callee());
-                },
-                MastNode::Block(_) | MastNode::Dyn | MastNode::External(_) => (),
-            }
-        }
-
-        live_ids
-    }
-
     /// Adds all live nodes to the internal set of nodes, remapping all [`MastNodeId`] references in
     /// those nodes.
     ///
     /// # Panics
     /// - Panics if the internal set of nodes is not empty.
-    fn add_remapped_live_nodes(
+    fn remap_and_add_nodes(
         &mut self,
-        live_nodes: Vec<MastNode>,
+        nodes_to_add: Vec<MastNode>,
         id_remappings: &BTreeMap<MastNodeId, MastNodeId>,
     ) {
         assert!(self.nodes.is_empty());
 
-        // Add each live node to the new MAST forest, making sure to rewrite any outdated internal
+        // Add each node to the new MAST forest, making sure to rewrite any outdated internal
         // `MastNodeId`s
-        for live_node in live_nodes {
+        for live_node in nodes_to_add {
             match &live_node {
                 MastNode::Join(join_node) => {
                     let first_child =
@@ -259,7 +228,7 @@ impl MastForest {
     ///
     /// # Panics
     /// - Panics if the internal set of roots is not empty.
-    fn add_remapped_roots(
+    fn remap_and_add_roots(
         &mut self,
         old_root_ids: Vec<MastNodeId>,
         id_remappings: &BTreeMap<MastNodeId, MastNodeId>,
@@ -275,9 +244,9 @@ impl MastForest {
 
 /// Returns the set of nodes that are live, as well as the mapping from "old ID" to "new ID" for all
 /// live nodes.
-fn prune_nodes(
+fn remove_nodes(
     mast_nodes: Vec<MastNode>,
-    live_ids: BTreeSet<MastNodeId>,
+    nodes_to_remove: &BTreeSet<MastNodeId>,
 ) -> (Vec<MastNode>, BTreeMap<MastNodeId, MastNodeId>) {
     // Note: this allows us to safely use `usize as u32`, guaranteeing that it won't wrap around.
     assert!(mast_nodes.len() < u32::MAX as usize);
@@ -288,7 +257,7 @@ fn prune_nodes(
     for (old_node_index, old_node) in mast_nodes.into_iter().enumerate() {
         let old_node_id: MastNodeId = (old_node_index as u32).into();
 
-        if live_ids.contains(&old_node_id) {
+        if !nodes_to_remove.contains(&old_node_id) {
             let new_node_id: MastNodeId = (pruned_nodes.len() as u32).into();
             id_remappings.insert(old_node_id, new_node_id);
 
@@ -346,6 +315,11 @@ impl MastForest {
     /// Returns the number of nodes in this MAST forest.
     pub fn num_nodes(&self) -> u32 {
         self.nodes.len() as u32
+    }
+
+    /// Returns the underlying nodes in this MAST forest.
+    pub fn nodes(&self) -> &[MastNode] {
+        &self.nodes
     }
 }
 

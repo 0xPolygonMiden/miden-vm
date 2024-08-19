@@ -300,8 +300,7 @@ impl Assembler {
         };
 
         // TODO: show a warning if library exports are empty?
-        let mut mast_forest = mast_forest_builder.build();
-        mast_forest.prune_unreachable_nodes();
+        let (mast_forest, _) = mast_forest_builder.prune_and_build();
         Ok(Library::new(mast_forest, exports))
     }
 
@@ -343,8 +342,7 @@ impl Assembler {
 
         // TODO: show a warning if library exports are empty?
 
-        let mut mast_forest = mast_forest_builder.build();
-        mast_forest.prune_unreachable_nodes();
+        let (mast_forest, _) = mast_forest_builder.prune_and_build();
         let library = Library::new(mast_forest, exports);
         Ok(library.try_into()?)
     }
@@ -385,8 +383,7 @@ impl Assembler {
             .get_procedure(entrypoint)
             .expect("compilation succeeded but root not found in cache");
 
-        let mut mast_forest = mast_forest_builder.build();
-        let id_remappings = mast_forest.prune_unreachable_nodes();
+        let (mast_forest, id_remappings) = mast_forest_builder.prune_and_build();
         let entry_node_id = {
             let old_entry_node_id = entry_procedure.body_node_id();
 

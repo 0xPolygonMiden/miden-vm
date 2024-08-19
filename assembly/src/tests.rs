@@ -1300,7 +1300,7 @@ begin
         basic_block push(3) add end
     end
 end";
-    assert_str_eq!(format!("{program}"), expected);
+    assert_str_eq!(expected, format!("{program}"));
     Ok(())
 }
 
@@ -2063,7 +2063,7 @@ begin
         basic_block push(3) add end
     end
 end";
-    assert_str_eq!(format!("{program}"), expected);
+    assert_str_eq!(expected, format!("{program}"));
     Ok(())
 }
 

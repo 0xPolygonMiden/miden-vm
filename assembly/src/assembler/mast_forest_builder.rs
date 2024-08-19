@@ -1,4 +1,8 @@
-use alloc::{collections::BTreeMap, sync::Arc, vec::Vec};
+use alloc::{
+    collections::{BTreeMap, BTreeSet},
+    sync::Arc,
+    vec::Vec,
+};
 use core::ops::Index;
 
 use vm_core::{
@@ -21,12 +25,75 @@ pub struct MastForestBuilder {
     procedures: BTreeMap<GlobalProcedureIndex, Arc<Procedure>>,
     procedure_hashes: BTreeMap<GlobalProcedureIndex, RpoDigest>,
     proc_gid_by_hash: BTreeMap<RpoDigest, GlobalProcedureIndex>,
+    merged_node_ids: BTreeSet<MastNodeId>,
 }
 
 impl MastForestBuilder {
+    /// Returns the inner MAST forest.
+    #[allow(dead_code)]
     pub fn build(self) -> MastForest {
         self.mast_forest
     }
+
+    /// Removes the unused nodes that were created as part of the assembly process, and returns the
+    /// resulting MAST forest.
+    ///
+    /// It also returns the map from old node IDs to new node IDs; or `None` if the `MastForest` was
+    /// unchanged. Any [`MastNodeId`] used in reference to the old [`MastForest`] should be remapped
+    /// using this map.
+    pub fn prune_and_build(mut self) -> (MastForest, Option<BTreeMap<MastNodeId, MastNodeId>>) {
+        let nodes_to_remove = get_nodes_to_remove(self.merged_node_ids, &self.mast_forest);
+        let id_remappings = self.mast_forest.remove_nodes(&nodes_to_remove);
+
+        (self.mast_forest, id_remappings)
+    }
+}
+
+/// Takes the set of MAST node ids (all basic blocks) that were merged as part of the assembly
+/// process (i.e. they were contiguous and were merged into a single basic block), and returns the
+/// subset of nodes that can be removed from the MAST forest.
+///
+/// Specifically, MAST node ids can be reused, so merging a basic block doesn't mean it should be
+/// removed (specifically in the case where another node refers to it). Hence, we cycle through all
+/// nodes of the forest and only mark for removal those nodes that are not referenced by any node.
+fn get_nodes_to_remove(
+    merged_node_ids: BTreeSet<MastNodeId>,
+    mast_forest: &MastForest,
+) -> BTreeSet<MastNodeId> {
+    let mut nodes_to_remove = merged_node_ids;
+    for node in mast_forest.nodes() {
+        match node {
+            MastNode::Join(node) => {
+                if nodes_to_remove.contains(&node.first()) {
+                    nodes_to_remove.remove(&node.first());
+                }
+                if nodes_to_remove.contains(&node.second()) {
+                    nodes_to_remove.remove(&node.second());
+                }
+            },
+            MastNode::Split(node) => {
+                if nodes_to_remove.contains(&node.on_true()) {
+                    nodes_to_remove.remove(&node.on_true());
+                }
+                if nodes_to_remove.contains(&node.on_false()) {
+                    nodes_to_remove.remove(&node.on_false());
+                }
+            },
+            MastNode::Loop(node) => {
+                if nodes_to_remove.contains(&node.body()) {
+                    nodes_to_remove.remove(&node.body());
+                }
+            },
+            MastNode::Call(node) => {
+                if nodes_to_remove.contains(&node.callee()) {
+                    nodes_to_remove.remove(&node.callee());
+                }
+            },
+            MastNode::Block(_) | MastNode::Dyn | MastNode::External(_) => (),
+        }
+    }
+
+    nodes_to_remove
 }
 
 // ------------------------------------------------------------------------------------------------
@@ -240,6 +307,13 @@ impl MastForestBuilder {
                 operations.extend_from_slice(batch.ops());
             }
         }
+
+        // Mark the removed basic blocks as merged, making sure not to remove procedure roots
+        self.merged_node_ids.extend(
+            contiguous_basic_block_ids
+                .iter()
+                .filter(|&&mast_node_id| !self.mast_forest.is_procedure_root(mast_node_id)),
+        );
 
         let merged_basic_block = self.ensure_block(operations, Some(decorators))?;
         Ok(Some(merged_basic_block))
