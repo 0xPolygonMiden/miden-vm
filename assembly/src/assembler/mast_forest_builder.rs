@@ -140,6 +140,73 @@ impl MastForestBuilder {
     pub fn make_root(&mut self, new_root_id: MastNodeId) {
         self.mast_forest.make_root(new_root_id)
     }
+
+    /// Returns a list of [`MastNodeId`]s built from merging the contiguous basic blocks
+    /// found in the provided list of [`MastNodeId`]s.
+    pub fn merge_contiguous_basic_blocks(
+        &mut self,
+        mast_node_ids: Vec<MastNodeId>,
+    ) -> Result<Vec<MastNodeId>, AssemblyError> {
+        let mut merged_mast_node_ids = Vec::with_capacity(mast_node_ids.len());
+        let mut contiguous_basic_block_ids: Vec<MastNodeId> = Vec::new();
+
+        for mast_node_id in mast_node_ids {
+            if self[mast_node_id].is_basic_block() {
+                contiguous_basic_block_ids.push(mast_node_id);
+            } else {
+                if let Some(merged_basic_block_id) =
+                    self.merge_basic_blocks(&contiguous_basic_block_ids)?
+                {
+                    merged_mast_node_ids.push(merged_basic_block_id)
+                }
+                contiguous_basic_block_ids.clear();
+
+                merged_mast_node_ids.push(mast_node_id);
+            }
+        }
+
+        if let Some(merged_basic_block_id) = self.merge_basic_blocks(&contiguous_basic_block_ids)? {
+            merged_mast_node_ids.push(merged_basic_block_id)
+        }
+
+        Ok(merged_mast_node_ids)
+    }
+
+    /// Creates a new basic block by appending all operations and decorators in the provided list of
+    /// basic blocks (which are assumed to be contiguous).
+    ///
+    /// # Panics
+    /// - Panics if a provided [`MastNodeId`] doesn't refer to a basic block node.
+    fn merge_basic_blocks(
+        &mut self,
+        contiguous_basic_block_ids: &[MastNodeId],
+    ) -> Result<Option<MastNodeId>, AssemblyError> {
+        if contiguous_basic_block_ids.is_empty() {
+            return Ok(None);
+        }
+        if contiguous_basic_block_ids.len() == 1 {
+            return Ok(Some(contiguous_basic_block_ids[0]));
+        }
+
+        let mut operations: Vec<Operation> = Vec::new();
+        let mut decorators = DecoratorList::new();
+
+        for &basic_block_node_id in contiguous_basic_block_ids {
+            // It is safe to unwrap here, since we already checked that all IDs in
+            // `contiguous_basic_block_ids` are `BasicBlockNode`s
+            let basic_block_node = self[basic_block_node_id].get_basic_block().unwrap();
+
+            for (op_idx, decorator) in basic_block_node.decorators() {
+                decorators.push((*op_idx + operations.len(), decorator.clone()));
+            }
+            for batch in basic_block_node.op_batches() {
+                operations.extend_from_slice(batch.ops());
+            }
+        }
+
+        let merged_basic_block = self.ensure_block(operations, Some(decorators))?;
+        Ok(Some(merged_basic_block))
+    }
 }
 
 // ------------------------------------------------------------------------------------------------
