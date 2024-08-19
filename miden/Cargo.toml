@@ -33,6 +33,10 @@ harness = false
 name = "program_execution"
 harness = false
 
+[[bench]]
+name = "deserialize_std_lib"
+harness = false
+
 [[test]]
 name = "miden"
 path = "tests/integration/main.rs"

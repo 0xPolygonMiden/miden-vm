@@ -51,6 +51,12 @@ impl CallNode {
         Ok(Self { callee, is_syscall: false, digest })
     }
 
+    /// Returns a new [`CallNode`] from values that are assumed to be correct.
+    /// Should only be used when the source of the inputs is trusted (e.g. deserialization).
+    pub fn new_unsafe(callee: MastNodeId, digest: RpoDigest) -> Self {
+        Self { callee, is_syscall: false, digest }
+    }
+
     /// Returns a new [`CallNode`] instantiated with the specified callee and marked as a kernel
     /// call.
     pub fn new_syscall(
@@ -67,6 +73,12 @@ impl CallNode {
         };
 
         Ok(Self { callee, is_syscall: true, digest })
+    }
+
+    /// Returns a new syscall [`CallNode`] from values that are assumed to be correct.
+    /// Should only be used when the source of the inputs is trusted (e.g. deserialization).
+    pub fn new_syscall_unsafe(callee: MastNodeId, digest: RpoDigest) -> Self {
+        Self { callee, is_syscall: true, digest }
     }
 }
 
