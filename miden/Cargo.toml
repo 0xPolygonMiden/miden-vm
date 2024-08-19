@@ -59,7 +59,7 @@ std = ["assembly/std", "processor/std", "prover/std", "verifier/std"]
 [dependencies]
 assembly = { package = "miden-assembly", path = "../assembly", version = "0.10", default-features = false }
 blake3 = "1.5"
-clap = { version = "4.4", features = ["derive"], optional = true }
+clap = { version = "4.5", features = ["derive"], optional = true }
 hex = { version = "0.4", optional = true }
 processor = { package = "miden-processor", path = "../processor", version = "0.10", default-features = false }
 prover = { package = "miden-prover", path = "../prover", version = "0.10", default-features = false }
