@@ -1,6 +1,5 @@
 use alloc::{collections::BTreeMap, sync::Arc, vec::Vec};
 
-use dead_code_elimination::dead_code_elimination;
 use mast_forest_builder::MastForestBuilder;
 use module_graph::{ProcedureWrapper, WrappedModule};
 use vm_core::{mast::MastNodeId, DecoratorList, Felt, Kernel, Operation, Program};
@@ -15,7 +14,6 @@ use crate::{
 };
 
 mod basic_block_builder;
-mod dead_code_elimination;
 mod id;
 mod instruction;
 mod mast_forest_builder;
@@ -302,7 +300,8 @@ impl Assembler {
         };
 
         // TODO: show a warning if library exports are empty?
-        let (mast_forest, _) = dead_code_elimination(mast_forest_builder.build());
+        let mut mast_forest = mast_forest_builder.build();
+        mast_forest.prune_unreachable_nodes();
         Ok(Library::new(mast_forest, exports))
     }
 
@@ -344,7 +343,8 @@ impl Assembler {
 
         // TODO: show a warning if library exports are empty?
 
-        let (mast_forest, _) = dead_code_elimination(mast_forest_builder.build());
+        let mut mast_forest = mast_forest_builder.build();
+        mast_forest.prune_unreachable_nodes();
         let library = Library::new(mast_forest, exports);
         Ok(library.try_into()?)
     }
@@ -385,7 +385,8 @@ impl Assembler {
             .get_procedure(entrypoint)
             .expect("compilation succeeded but root not found in cache");
 
-        let (mast_forest, id_remappings) = dead_code_elimination(mast_forest_builder.build());
+        let mut mast_forest = mast_forest_builder.build();
+        let id_remappings = mast_forest.prune_unreachable_nodes();
         let entry_node_id = {
             let old_entry_node_id = entry_procedure.body_node_id();
 
