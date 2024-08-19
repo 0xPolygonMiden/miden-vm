@@ -319,10 +319,6 @@ fn span_block_with_respan() {
     check_op_decoding(&trace, 20, batch1_addr, Operation::Drop, 0, 1, 1);
     check_op_decoding(&trace, 21, batch1_addr, Operation::Drop, 0, 2, 1);
 
-    // NOOP inserted by the processor to make sure the group doesn't end with a PUSH
-    // check_op_decoding(&trace, 22, batch1_addr, Operation::Noop, 0, 3, 1);
-    // NOOP inserted by the processor to make sure the number of groups is a power of two
-    // check_op_decoding(&trace, 22, batch1_addr, Operation::Noop, 0, 0, 1);
     check_op_decoding(&trace, 22, batch1_addr, Operation::End, 0, 0, 0);
     check_op_decoding(&trace, 23, ZERO, Operation::Halt, 0, 0, 0);
 

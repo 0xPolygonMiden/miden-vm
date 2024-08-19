@@ -38,6 +38,9 @@ fn mem_stream_pipe() {
             dropw
             movup.4
             drop
+
+            # truncate the stack
+            swapdw dropw dropw
         end";
 
     let advice_stack = [1, 2, 3, 4, 5, 6, 7, 8];

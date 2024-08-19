@@ -23,7 +23,19 @@ fn sdepth() {
 
     // --- overflowed stack -----------------------------------------------------------------------
     // push 2 values to increase the lenth of the stack beyond 16
-    let source = format!("begin push.1 push.1 {test_op} end");
+    let source = format!(
+        "
+    use.std::sys
+
+    begin 
+        push.1 
+        push.1 
+        {test_op} 
+        
+        exec.sys::truncate_stack 
+    end
+    "
+    );
     let test = build_test!(&source, &[0, 1, 2, 3, 4, 5, 6, 7, 0, 1, 2, 3, 4, 5, 6, 7]);
     test.expect_stack(&[18, 1, 1, 7, 6, 5, 4, 3, 2, 1, 0, 7, 6, 5, 4, 3]);
 }
@@ -41,6 +53,7 @@ fn locaddr() {
         end
         begin
             exec.foo
+            swapw dropw
         end";
 
     let test = build_test!(source, &[10]);
@@ -60,6 +73,7 @@ fn locaddr() {
         end
         begin
             exec.foo
+            swapdw dropw dropw
         end";
 
     let test = build_test!(source, &[10, 1, 2, 3, 4, 5]);
@@ -67,6 +81,8 @@ fn locaddr() {
 
     // --- locaddr returns expected addresses in nested procedures --------------------------------
     let source = "
+        use.std::sys
+
         proc.foo.3
             locaddr.0
             locaddr.1
@@ -80,6 +96,8 @@ fn locaddr() {
         begin
             exec.bar
             exec.foo
+
+            exec.sys::truncate_stack
         end";
 
     let test = build_test!(source, &[10]);
@@ -118,6 +136,7 @@ fn locaddr() {
         end
         begin
             exec.bar
+            swapdw dropw dropw
         end";
 
     let test = build_test!(source, &[10, 1, 2, 3, 4, 5, 6, 7]);
@@ -185,8 +204,8 @@ fn clk() {
 
     let source = "
         proc.foo
-            push.6
             push.5
+            push.4
             clk
         end
 
@@ -196,5 +215,5 @@ fn clk() {
         end";
 
     let test = build_test!(source, &[]);
-    test.expect_stack(&[4, 5, 6]);
+    test.expect_stack(&[3, 4, 5]);
 }

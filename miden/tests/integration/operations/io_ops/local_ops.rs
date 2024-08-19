@@ -9,8 +9,10 @@ fn push_local() {
         proc.foo.1
             loc_load.0
         end
+
         begin
             exec.foo
+            movup.5 drop
         end";
 
     // --- 1 value is pushed & the rest of the stack is unchanged ---------------------------------
@@ -37,6 +39,7 @@ fn pop_local() {
         end
         begin
             exec.foo
+            swapw dropw
         end";
 
     let test = build_test!(source, &[1, 2, 3, 4]);
@@ -87,6 +90,8 @@ fn loadw_local() {
 fn storew_local() {
     // --- test write to local memory -------------------------------------------------------------
     let source = "
+        use.std::sys
+
         proc.foo.2
             loc_storew.0
             swapw
@@ -99,6 +104,8 @@ fn storew_local() {
         end
         begin
             exec.foo
+
+            exec.sys::truncate_stack
         end";
 
     let test = build_test!(source, &[1, 2, 3, 4, 5, 6, 7, 8]);
@@ -133,8 +140,10 @@ fn inverse_operations() {
             loc_store.0
             loc_load.0
         end
+
         begin
             exec.foo
+            movup.5 drop
         end";
     let inputs = [0, 1, 2, 3, 4];
     let mut final_stack = inputs;
@@ -151,10 +160,12 @@ fn inverse_operations() {
             push.0.0.0.0
             loc_loadw.0
         end
+
         begin
             exec.foo
+            swapw dropw
         end";
-    let inputs = [0, 1, 2, 3, 4];
+    let inputs = [1, 2, 3, 4];
     let mut final_stack = inputs;
     final_stack.reverse();
 
@@ -167,6 +178,7 @@ fn inverse_operations() {
             loc_storew.0
             loc_loadw.0
         end
+
         begin
             exec.foo
         end";
@@ -188,6 +200,7 @@ fn read_after_write() {
         end
         begin
             exec.foo
+            movup.5 drop
         end";
 
     let test = build_test!(source, &[1, 2, 3, 4]);
@@ -202,6 +215,7 @@ fn read_after_write() {
         end
         begin
             exec.foo
+            swapdw dropw dropw
         end";
 
     let test = build_test!(source, &[1, 2, 3, 4]);
@@ -229,13 +243,16 @@ fn nested_procedures() {
         proc.foo.1
             loc_store.0
         end
+
         proc.bar.1
             loc_store.0
             exec.foo
             loc_load.0
         end
+
         begin
             exec.bar
+            movup.3 drop
         end";
     let inputs = [0, 1, 2, 3];
 
@@ -257,6 +274,7 @@ fn nested_procedures() {
         end
         begin
             exec.bar
+            swapw dropw
         end";
     let inputs = [0, 1, 2, 3, 4, 5, 6, 7];
 
@@ -276,6 +294,7 @@ fn nested_procedures() {
         end
         begin
             exec.bar
+            movup.7 movup.7 drop drop
         end";
     let inputs = [0, 1, 2, 3];
 
@@ -301,6 +320,8 @@ fn free_memory_pointer() {
             mem_load.2
             mem_load.1
             mem_load.0
+
+            movupw.2 dropw
         end";
     let inputs = [1, 2, 3, 4, 5, 6, 7];
 
