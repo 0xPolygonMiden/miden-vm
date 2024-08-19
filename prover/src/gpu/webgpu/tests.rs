@@ -27,6 +27,7 @@ async fn build_trace_commitment_on_gpu_with_padding_matches_cpu<
 >(
     hash_fn: HashFn,
 ) {
+    console_error_panic_hook::set_once();
     let is_rpx = matches!(hash_fn, HashFn::Rpx256);
 
     let cpu_prover = create_test_prover::<R, H>(is_rpx);
@@ -58,6 +59,7 @@ async fn build_trace_commitment_on_gpu_without_padding_matches_cpu<
 >(
     hash_fn: HashFn,
 ) {
+    console_error_panic_hook::set_once();
     let is_rpx = matches!(hash_fn, HashFn::Rpx256);
 
     let cpu_prover = create_test_prover::<R, H>(is_rpx);
@@ -89,6 +91,7 @@ async fn build_constraint_commitment_on_gpu_with_padding_matches_cpu<
 >(
     hash_fn: HashFn,
 ) {
+    console_error_panic_hook::set_once();
     let is_rpx = matches!(hash_fn, HashFn::Rpx256);
 
     let cpu_prover = create_test_prover::<R, H>(is_rpx);
@@ -117,6 +120,7 @@ async fn build_constraint_commitment_on_gpu_without_padding_matches_cpu<
 >(
     hash_fn: HashFn,
 ) {
+    console_error_panic_hook::set_once();
     let is_rpx = matches!(hash_fn, HashFn::Rpx256);
 
     let cpu_prover = create_test_prover::<R, H>(is_rpx);

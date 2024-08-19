@@ -21,17 +21,14 @@ use air::{AuxRandElements, LagrangeKernelEvaluationFrame};
 use elsa::FrozenVec;
 use maybe_async::maybe_async;
 use miden_gpu::{
-    webgpu::{
-        build_merkle_tree, get_dispatch_linear, get_wgpu_helper, init_wgpu_helper, RowHasher,
-        WebGpuHelper,
-    },
+    webgpu::{build_merkle_tree, get_wgpu_helper, RowHasher},
     HashFn,
 };
 use processor::{
     crypto::{ElementHasher, Hasher},
     ONE,
 };
-use tracing::{event, info_span, Level};
+use tracing::info_span;
 use winter_prover::{
     crypto::{Digest, MerkleTree},
     matrix::{get_evaluation_offsets, ColMatrix, RowMatrix, Segment},
@@ -247,7 +244,7 @@ where
         let rpo_requires_padding = num_base_columns % RATE != 0;
         let rpo_padded_segment_idx = rpo_requires_padding.then_some(num_base_columns / RATE);
         let mut row_hasher =
-            RowHasher::new(&helper, lde_domain_size, rpo_requires_padding, self.webgpu_hash_fn);
+            RowHasher::new(helper, lde_domain_size, rpo_requires_padding, self.webgpu_hash_fn);
         let mut rpo_padded_segment: Vec<[Felt; RATE]>;
         for (segment_idx, segment) in segments.iter().enumerate() {
             // check if the segment requires padding
@@ -260,7 +257,7 @@ where
                 rpo_padded_segment = segment
                     .iter()
                     .map(|x| {
-                        let mut s = x.clone();
+                        let mut s = *x;
                         s[rpo_pad_column] = ONE;
                         s
                     })
@@ -270,15 +267,14 @@ where
                     let rpo_pad_column = num_base_columns % RATE;
                     rpo_padded_segment.iter_mut().for_each(|row| row[rpo_pad_column] = ONE);
                 }
-                row_hasher.update(&helper, &rpo_padded_segment);
+                row_hasher.update(helper, &rpo_padded_segment);
                 assert_eq!(segments.len() - 1, segment_idx, "padded segment should be the last");
                 break;
             }
-            row_hasher.update(&helper, segment);
+            row_hasher.update(helper, segment);
         }
-        let row_hashes = row_hasher.finish(&helper).await.unwrap();
-        let tree_nodes =
-            build_merkle_tree(&helper, &row_hashes, self.webgpu_hash_fn).await.unwrap();
+        let row_hashes = row_hasher.finish(helper).await.unwrap();
+        let tree_nodes = build_merkle_tree(helper, &row_hashes, self.webgpu_hash_fn).await.unwrap();
         // aggregate segments at the same time as the GPU generates the merkle tree nodes
         let composed_evaluations = RowMatrix::<E>::from_segments(segments, num_base_columns);
         let nodes = tree_nodes.into_iter().map(|dig| H::Digest::from(&dig)).collect();
@@ -613,7 +609,7 @@ async fn build_trace_commitment<
     let rpo_requires_padding = num_base_columns % RATE != 0;
     let rpo_padded_segment_idx = rpo_requires_padding.then_some(num_base_columns / RATE);
     let mut row_hasher =
-        RowHasher::new(&get_wgpu_helper().unwrap(), lde_domain_size, rpo_requires_padding, hash_fn);
+        RowHasher::new(get_wgpu_helper().unwrap(), lde_domain_size, rpo_requires_padding, hash_fn);
     let mut rpo_padded_segment: Vec<[Felt; RATE]>;
     let mut lde_segment_generator = SegmentGenerator::new(trace_polys, domain);
     let mut lde_segment_iter = lde_segment_generator.gen_segment_iter().enumerate();
@@ -628,7 +624,7 @@ async fn build_trace_commitment<
             rpo_padded_segment = segment
                 .iter()
                 .map(|x| {
-                    let mut s = x.clone();
+                    let mut s = *x;
                     s[rpo_pad_column] = ONE;
                     s
                 })
@@ -638,14 +634,14 @@ async fn build_trace_commitment<
                 let rpo_pad_column = num_base_columns % RATE;
                 rpo_padded_segment.iter_mut().for_each(|row| row[rpo_pad_column] = ONE);
             }
-            row_hasher.update(&get_wgpu_helper().unwrap(), &rpo_padded_segment);
+            row_hasher.update(get_wgpu_helper().unwrap(), &rpo_padded_segment);
             assert!(lde_segment_iter.next().is_none(), "padded segment should be the last");
             break;
         }
-        row_hasher.update(&get_wgpu_helper().unwrap(), segment);
+        row_hasher.update(get_wgpu_helper().unwrap(), segment);
     }
-    let row_hashes = row_hasher.finish(&get_wgpu_helper().unwrap()).await.unwrap();
-    let tree_nodes = build_merkle_tree(&get_wgpu_helper().unwrap(), &row_hashes, hash_fn)
+    let row_hashes = row_hasher.finish(get_wgpu_helper().unwrap()).await.unwrap();
+    let tree_nodes = build_merkle_tree(get_wgpu_helper().unwrap(), &row_hashes, hash_fn)
         .await
         .unwrap();
     // aggregate segments at the same time as the GPU generates the merkle tree nodes
