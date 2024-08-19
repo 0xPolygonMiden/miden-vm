@@ -9,6 +9,7 @@ use core::marker::PhantomData;
 use maybe_async::maybe_async;
 
 use air::{AuxRandElements, ProcessorAir, PublicInputs};
+#[cfg(any(feature = "metal", feature = "webgpu"))]
 use miden_gpu::HashFn;
 use processor::{
     crypto::{
