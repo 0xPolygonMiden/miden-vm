@@ -5,7 +5,7 @@ use alloc::{
 
 use vm_core::mast::{MastForest, MastNode, MastNodeId};
 
-/// Returns a `MastForest` where all nodes that are unreachable from all procedures are removed.
+/// Returns a `MastForest` where nodes that are unreachable from all procedures are removed.
 ///
 /// It also returns the map from old node IDs to new node IDs; or `None` if the `MastForest` was
 /// unchanged. Any [`MastNodeId`] used in reference to the old [`MastForest`] should be remapped
