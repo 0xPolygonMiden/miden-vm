@@ -37,6 +37,7 @@ use winter_prover::{
     DefaultConstraintEvaluator, EvaluationFrame, Prover, StarkDomain, TraceInfo, TraceLde,
     TracePolyTable,
 };
+use tracing::{event, Level};
 
 use crate::{
     crypto::{RandomCoin, Rpo256},
