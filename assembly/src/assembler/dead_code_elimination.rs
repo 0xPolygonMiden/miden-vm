@@ -1,5 +1,5 @@
 use alloc::{
-    collections::{BTreeMap, BTreeSet},
+    collections::{BTreeMap, BTreeSet, VecDeque},
     vec::Vec,
 };
 
@@ -27,42 +27,35 @@ pub fn dead_code_elimination(
     )
 }
 
-/// Compute all [`MastNodeId`]s that are "live"; that is, accessed by at least one procedure in the
-/// MAST forest.
 fn compute_live_ids(mast_forest: &MastForest) -> BTreeSet<MastNodeId> {
     let mut live_ids = BTreeSet::new();
 
-    for &procedure_root in mast_forest.procedure_roots() {
-        compute_live_ids_for_node(procedure_root, mast_forest, &mut live_ids);
+    let mut worklist = VecDeque::from_iter(mast_forest.procedure_roots().iter().copied());
+    while let Some(mast_node_id) = worklist.pop_front() {
+        if !live_ids.insert(mast_node_id) {
+            continue;
+        }
+
+        match &mast_forest[mast_node_id] {
+            MastNode::Join(node) => {
+                worklist.push_back(node.first());
+                worklist.push_back(node.second());
+            },
+            MastNode::Split(node) => {
+                worklist.push_back(node.on_true());
+                worklist.push_back(node.on_false());
+            },
+            MastNode::Loop(node) => {
+                worklist.push_back(node.body());
+            },
+            MastNode::Call(node) => {
+                worklist.push_back(node.callee());
+            },
+            MastNode::Block(_) | MastNode::Dyn | MastNode::External(_) => (),
+        }
     }
 
     live_ids
-}
-
-fn compute_live_ids_for_node(
-    mast_node_id: MastNodeId,
-    mast_forest: &MastForest,
-    live_ids: &mut BTreeSet<MastNodeId>,
-) {
-    live_ids.insert(mast_node_id);
-
-    match &mast_forest[mast_node_id] {
-        MastNode::Join(node) => {
-            compute_live_ids_for_node(node.first(), mast_forest, live_ids);
-            compute_live_ids_for_node(node.second(), mast_forest, live_ids);
-        },
-        MastNode::Split(node) => {
-            compute_live_ids_for_node(node.on_true(), mast_forest, live_ids);
-            compute_live_ids_for_node(node.on_false(), mast_forest, live_ids);
-        },
-        MastNode::Loop(node) => {
-            compute_live_ids_for_node(node.body(), mast_forest, live_ids);
-        },
-        MastNode::Call(node) => {
-            compute_live_ids_for_node(node.callee(), mast_forest, live_ids);
-        },
-        MastNode::Block(_) | MastNode::Dyn | MastNode::External(_) => (),
-    }
 }
 
 /// Returns the set of nodes that are live, as well as the mapping from "old ID" to "new ID" for all
