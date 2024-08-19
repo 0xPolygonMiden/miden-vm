@@ -141,9 +141,46 @@ impl MastForestBuilder {
         self.mast_forest.make_root(new_root_id)
     }
 
+    /// Builds a tree of `JOIN` operations to combine all the top-level MAST node IDs of the
+    /// procedure body.
+    pub fn join_mast_node_ids(
+        &mut self,
+        mast_node_ids: Vec<MastNodeId>,
+    ) -> Result<MastNodeId, AssemblyError> {
+        debug_assert!(!mast_node_ids.is_empty(), "cannot combine empty MAST node id list");
+
+        let mut mast_node_ids = self.merge_contiguous_basic_blocks(mast_node_ids)?;
+
+        // build a binary tree of blocks joining them using JOIN blocks
+        while mast_node_ids.len() > 1 {
+            let last_mast_node_id = if mast_node_ids.len() % 2 == 0 {
+                None
+            } else {
+                mast_node_ids.pop()
+            };
+
+            let mut source_mast_node_ids = Vec::new();
+            core::mem::swap(&mut mast_node_ids, &mut source_mast_node_ids);
+
+            let mut source_mast_node_iter = source_mast_node_ids.drain(0..);
+            while let (Some(left), Some(right)) =
+                (source_mast_node_iter.next(), source_mast_node_iter.next())
+            {
+                let join_mast_node_id = self.ensure_join(left, right)?;
+
+                mast_node_ids.push(join_mast_node_id);
+            }
+            if let Some(mast_node_id) = last_mast_node_id {
+                mast_node_ids.push(mast_node_id);
+            }
+        }
+
+        Ok(mast_node_ids.remove(0))
+    }
+
     /// Returns a list of [`MastNodeId`]s built from merging the contiguous basic blocks
     /// found in the provided list of [`MastNodeId`]s.
-    pub fn merge_contiguous_basic_blocks(
+    fn merge_contiguous_basic_blocks(
         &mut self,
         mast_node_ids: Vec<MastNodeId>,
     ) -> Result<Vec<MastNodeId>, AssemblyError> {

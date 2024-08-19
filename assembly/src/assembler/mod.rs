@@ -635,7 +635,7 @@ impl Assembler {
         Ok(if mast_node_ids.is_empty() {
             mast_forest_builder.ensure_block(vec![Operation::Noop], None)?
         } else {
-            join_mast_node_ids(mast_node_ids, mast_forest_builder)?
+            mast_forest_builder.join_mast_node_ids(mast_node_ids)?
         })
     }
 
@@ -675,41 +675,4 @@ impl Assembler {
 struct BodyWrapper {
     prologue: Vec<Operation>,
     epilogue: Vec<Operation>,
-}
-
-/// Builds a tree of `JOIN` operations to combine all the top-level MAST node IDs of the procedure
-/// body.
-fn join_mast_node_ids(
-    mast_node_ids: Vec<MastNodeId>,
-    mast_forest_builder: &mut MastForestBuilder,
-) -> Result<MastNodeId, AssemblyError> {
-    debug_assert!(!mast_node_ids.is_empty(), "cannot combine empty MAST node id list");
-
-    let mut mast_node_ids = mast_forest_builder.merge_contiguous_basic_blocks(mast_node_ids)?;
-
-    // build a binary tree of blocks joining them using JOIN blocks
-    while mast_node_ids.len() > 1 {
-        let last_mast_node_id = if mast_node_ids.len() % 2 == 0 {
-            None
-        } else {
-            mast_node_ids.pop()
-        };
-
-        let mut source_mast_node_ids = Vec::new();
-        core::mem::swap(&mut mast_node_ids, &mut source_mast_node_ids);
-
-        let mut source_mast_node_iter = source_mast_node_ids.drain(0..);
-        while let (Some(left), Some(right)) =
-            (source_mast_node_iter.next(), source_mast_node_iter.next())
-        {
-            let join_mast_node_id = mast_forest_builder.ensure_join(left, right)?;
-
-            mast_node_ids.push(join_mast_node_id);
-        }
-        if let Some(mast_node_id) = last_mast_node_id {
-            mast_node_ids.push(mast_node_id);
-        }
-    }
-
-    Ok(mast_node_ids.remove(0))
 }
