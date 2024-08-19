@@ -41,5 +41,6 @@ winter-verifier = { git = "https://github.com/GopherJ/winterfell", rev = "50a9a0
 winter-fri = { git = "https://github.com/GopherJ/winterfell", rev = "50a9a088d30ff58e88cf19805f4dfa13b4be356e" }
 winter-crypto = { git = "https://github.com/GopherJ/winterfell", rev = "50a9a088d30ff58e88cf19805f4dfa13b4be356e" }
 winter-math = { git = "https://github.com/GopherJ/winterfell", rev = "50a9a088d30ff58e88cf19805f4dfa13b4be356e" }
+winter-maybe-async = { git = "https://github.com/GopherJ/winterfell", rev = "50a9a088d30ff58e88cf19805f4dfa13b4be356e" }
 winter-rand-utils = { git = "https://github.com/GopherJ/winterfell", rev = "50a9a088d30ff58e88cf19805f4dfa13b4be356e" }
 miden-crypto = { git = "https://github.com/GopherJ/miden-crypto", rev = "657b4922f3abe3577d1b0de1f6ae6ad52400cb11" }

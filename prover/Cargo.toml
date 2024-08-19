@@ -15,10 +15,10 @@ edition.workspace = true
 
 [features]
 concurrent = ["processor/concurrent", "std", "winter-prover/concurrent"]
-default = ["webgpu"]
+default = ["std"]
 metal = ["dep:miden-gpu", "dep:elsa", "dep:pollster", "concurrent", "std"]
 webgpu = ["dep:miden-gpu", "dep:elsa", "miden-gpu/webgpu", "async"]
-async = ["maybe-async/async", "winter-prover/async", "winter-prover/async-trait", "dep:async-trait"]
+async = ["maybe-async/async", "winter-prover/async", "dep:async-trait"]
 std = ["air/std", "processor/std", "winter-prover/std", "miden-gpu/std", "tracing/std"]
 
 [dependencies]

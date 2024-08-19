@@ -13,7 +13,7 @@ use crate::*;
 
 type CubeFelt = CubeExtension<Felt>;
 
-fn build_trace_commitment_on_gpu_with_padding_matches_cpu<
+async fn build_trace_commitment_on_gpu_with_padding_matches_cpu<
     R: RandomCoin<BaseField = Felt, Hasher = H> + Send,
     H: ElementHasher<BaseField = Felt> + Hasher<Digest = D>,
     D: Digest + for<'a> From<&'a [Felt; DIGEST_SIZE]>,
@@ -30,9 +30,9 @@ fn build_trace_commitment_on_gpu_with_padding_matches_cpu<
     let domain = StarkDomain::from_twiddles(fft::get_twiddles(num_rows), 8, Felt::GENERATOR);
 
     let (cpu_trace_lde, cpu_polys) =
-        cpu_prover.new_trace_lde::<CubeFelt>(&trace_info, &trace, &domain);
+        cpu_prover.new_trace_lde::<CubeFelt>(&trace_info, &trace, &domain).await;
     let (gpu_trace_lde, gpu_polys) =
-        gpu_prover.new_trace_lde::<CubeFelt>(&trace_info, &trace, &domain);
+        gpu_prover.new_trace_lde::<CubeFelt>(&trace_info, &trace, &domain).await;
 
     assert_eq!(
         cpu_trace_lde.get_main_trace_commitment(),
@@ -44,7 +44,7 @@ fn build_trace_commitment_on_gpu_with_padding_matches_cpu<
     );
 }
 
-fn build_trace_commitment_on_gpu_without_padding_matches_cpu<
+async fn build_trace_commitment_on_gpu_without_padding_matches_cpu<
     R: RandomCoin<BaseField = Felt, Hasher = H> + Send,
     H: ElementHasher<BaseField = Felt> + Hasher<Digest = D>,
     D: Digest + for<'a> From<&'a [Felt; DIGEST_SIZE]>,
@@ -61,9 +61,9 @@ fn build_trace_commitment_on_gpu_without_padding_matches_cpu<
     let domain = StarkDomain::from_twiddles(fft::get_twiddles(num_rows), 8, Felt::GENERATOR);
 
     let (cpu_trace_lde, cpu_polys) =
-        cpu_prover.new_trace_lde::<CubeFelt>(&trace_info, &trace, &domain);
+        cpu_prover.new_trace_lde::<CubeFelt>(&trace_info, &trace, &domain).await;
     let (gpu_trace_lde, gpu_polys) =
-        gpu_prover.new_trace_lde::<CubeFelt>(&trace_info, &trace, &domain);
+        gpu_prover.new_trace_lde::<CubeFelt>(&trace_info, &trace, &domain).await;
 
     assert_eq!(
         cpu_trace_lde.get_main_trace_commitment(),
@@ -75,7 +75,7 @@ fn build_trace_commitment_on_gpu_without_padding_matches_cpu<
     );
 }
 
-fn build_constraint_commitment_on_gpu_with_padding_matches_cpu<
+async fn build_constraint_commitment_on_gpu_with_padding_matches_cpu<
     R: RandomCoin<BaseField = Felt, Hasher = H> + Send,
     H: ElementHasher<BaseField = Felt> + Hasher<Digest = D>,
     D: Digest + for<'a> From<&'a [Felt; DIGEST_SIZE]>,
@@ -95,16 +95,16 @@ fn build_constraint_commitment_on_gpu_with_padding_matches_cpu<
         CompositionPolyTrace::new(values.clone()),
         2,
         &domain,
-    );
+    ).await;
     let (commitment_gpu, composition_poly_gpu) =
-        gpu_prover.build_constraint_commitment(CompositionPolyTrace::new(values), 2, &domain);
+        gpu_prover.build_constraint_commitment(CompositionPolyTrace::new(values), 2, &domain).await;
 
     assert_eq!(commitment_cpu.root(), commitment_gpu.root());
     assert_ne!(0, composition_poly_cpu.data().num_base_cols() % RATE);
     assert_eq!(composition_poly_cpu.into_columns(), composition_poly_gpu.into_columns());
 }
 
-fn build_constraint_commitment_on_gpu_without_padding_matches_cpu<
+async fn build_constraint_commitment_on_gpu_without_padding_matches_cpu<
     R: RandomCoin<BaseField = Felt, Hasher = H> + Send,
     H: ElementHasher<BaseField = Felt> + Hasher<Digest = D>,
     D: Digest + for<'a> From<&'a [Felt; DIGEST_SIZE]>,
@@ -124,9 +124,9 @@ fn build_constraint_commitment_on_gpu_without_padding_matches_cpu<
         CompositionPolyTrace::new(values.clone()),
         8,
         &domain,
-    );
+    ).await;
     let (commitment_gpu, composition_poly_gpu) =
-        gpu_prover.build_constraint_commitment(CompositionPolyTrace::new(values), 8, &domain);
+        gpu_prover.build_constraint_commitment(CompositionPolyTrace::new(values), 8, &domain).await;
 
     assert_eq!(commitment_cpu.root(), commitment_gpu.root());
     assert_eq!(0, composition_poly_cpu.data().num_base_cols() % RATE);
