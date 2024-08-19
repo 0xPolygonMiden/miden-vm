@@ -1,3 +1,5 @@
+#![cfg(target_family = "wasm")]
+
 use alloc::vec::Vec;
 
 use air::{ProvingOptions, StarkField};
@@ -10,6 +12,11 @@ use processor::{
 use winter_prover::{crypto::Digest, math::fields::CubeExtension, CompositionPolyTrace, TraceLde};
 
 use crate::*;
+
+use wasm_bindgen::prelude::*;
+use wasm_bindgen_test::*;
+
+wasm_bindgen_test_configure!(run_in_browser);
 
 type CubeFelt = CubeExtension<Felt>;
 
@@ -91,13 +98,12 @@ async fn build_constraint_commitment_on_gpu_with_padding_matches_cpu<
     let values = get_random_values::<CubeFelt>(num_rows * ce_blowup_factor);
     let domain = StarkDomain::from_twiddles(fft::get_twiddles(num_rows), 8, Felt::GENERATOR);
 
-    let (commitment_cpu, composition_poly_cpu) = cpu_prover.build_constraint_commitment(
-        CompositionPolyTrace::new(values.clone()),
-        2,
-        &domain,
-    ).await;
-    let (commitment_gpu, composition_poly_gpu) =
-        gpu_prover.build_constraint_commitment(CompositionPolyTrace::new(values), 2, &domain).await;
+    let (commitment_cpu, composition_poly_cpu) = cpu_prover
+        .build_constraint_commitment(CompositionPolyTrace::new(values.clone()), 2, &domain)
+        .await;
+    let (commitment_gpu, composition_poly_gpu) = gpu_prover
+        .build_constraint_commitment(CompositionPolyTrace::new(values), 2, &domain)
+        .await;
 
     assert_eq!(commitment_cpu.root(), commitment_gpu.root());
     assert_ne!(0, composition_poly_cpu.data().num_base_cols() % RATE);
@@ -120,77 +126,96 @@ async fn build_constraint_commitment_on_gpu_without_padding_matches_cpu<
     let values = get_random_values::<Felt>(num_rows * ce_blowup_factor);
     let domain = StarkDomain::from_twiddles(fft::get_twiddles(num_rows), 8, Felt::GENERATOR);
 
-    let (commitment_cpu, composition_poly_cpu) = cpu_prover.build_constraint_commitment(
-        CompositionPolyTrace::new(values.clone()),
-        8,
-        &domain,
-    ).await;
-    let (commitment_gpu, composition_poly_gpu) =
-        gpu_prover.build_constraint_commitment(CompositionPolyTrace::new(values), 8, &domain).await;
+    let (commitment_cpu, composition_poly_cpu) = cpu_prover
+        .build_constraint_commitment(CompositionPolyTrace::new(values.clone()), 8, &domain)
+        .await;
+    let (commitment_gpu, composition_poly_gpu) = gpu_prover
+        .build_constraint_commitment(CompositionPolyTrace::new(values), 8, &domain)
+        .await;
 
     assert_eq!(commitment_cpu.root(), commitment_gpu.root());
     assert_eq!(0, composition_poly_cpu.data().num_base_cols() % RATE);
     assert_eq!(composition_poly_cpu.into_columns(), composition_poly_gpu.into_columns());
 }
 
-#[test]
+#[wasm_bindgen_test::wasm_bindgen_test]
 fn rpo_build_trace_commitment_on_gpu_with_padding_matches_cpu() {
-    build_trace_commitment_on_gpu_with_padding_matches_cpu::<RpoRandomCoin, Rpo256, RpoDigest>(
-        HashFn::Rpo256,
-    );
-}
-
-#[test]
-fn rpx_build_trace_commitment_on_gpu_with_padding_matches_cpu() {
-    build_trace_commitment_on_gpu_with_padding_matches_cpu::<RpxRandomCoin, Rpx256, RpxDigest>(
-        HashFn::Rpx256,
-    );
-}
-
-#[test]
-fn rpo_build_trace_commitment_on_gpu_without_padding_matches_cpu() {
-    build_trace_commitment_on_gpu_without_padding_matches_cpu::<RpoRandomCoin, Rpo256, RpoDigest>(
-        HashFn::Rpo256,
-    );
-}
-
-#[test]
-fn rpx_build_trace_commitment_on_gpu_without_padding_matches_cpu() {
-    build_trace_commitment_on_gpu_without_padding_matches_cpu::<RpxRandomCoin, Rpx256, RpxDigest>(
-        HashFn::Rpx256,
-    );
-}
-
-#[test]
-fn rpo_build_constraint_commitment_on_gpu_with_padding_matches_cpu() {
-    build_constraint_commitment_on_gpu_with_padding_matches_cpu::<RpoRandomCoin, Rpo256, RpoDigest>(
-        HashFn::Rpo256,
-    );
-}
-
-#[test]
-fn rpx_build_constraint_commitment_on_gpu_with_padding_matches_cpu() {
-    build_constraint_commitment_on_gpu_with_padding_matches_cpu::<RpxRandomCoin, Rpx256, RpxDigest>(
-        HashFn::Rpx256,
-    );
-}
-
-#[test]
-fn rpo_build_constraint_commitment_on_gpu_without_padding_matches_cpu() {
-    build_constraint_commitment_on_gpu_without_padding_matches_cpu::<
+    wasm_bindgen_futures::spawn_local(build_trace_commitment_on_gpu_with_padding_matches_cpu::<
         RpoRandomCoin,
         Rpo256,
         RpoDigest,
-    >(HashFn::Rpo256);
+    >(HashFn::Rpo256));
 }
 
-#[test]
-fn rpx_build_constraint_commitment_on_gpu_without_padding_matches_cpu() {
-    build_constraint_commitment_on_gpu_without_padding_matches_cpu::<
+#[wasm_bindgen_test::wasm_bindgen_test]
+fn rpx_build_trace_commitment_on_gpu_with_padding_matches_cpu() {
+    wasm_bindgen_futures::spawn_local(build_trace_commitment_on_gpu_with_padding_matches_cpu::<
         RpxRandomCoin,
         Rpx256,
         RpxDigest,
-    >(HashFn::Rpx256);
+    >(HashFn::Rpx256));
+}
+
+#[wasm_bindgen_test::wasm_bindgen_test]
+fn rpo_build_trace_commitment_on_gpu_without_padding_matches_cpu() {
+    wasm_bindgen_futures::spawn_local(build_trace_commitment_on_gpu_without_padding_matches_cpu::<
+        RpoRandomCoin,
+        Rpo256,
+        RpoDigest,
+    >(HashFn::Rpo256));
+}
+
+#[wasm_bindgen_test::wasm_bindgen_test]
+fn rpx_build_trace_commitment_on_gpu_without_padding_matches_cpu() {
+    wasm_bindgen_futures::spawn_local(build_trace_commitment_on_gpu_without_padding_matches_cpu::<
+        RpxRandomCoin,
+        Rpx256,
+        RpxDigest,
+    >(HashFn::Rpx256));
+}
+
+#[wasm_bindgen_test::wasm_bindgen_test]
+fn rpo_build_constraint_commitment_on_gpu_with_padding_matches_cpu() {
+    wasm_bindgen_futures::spawn_local(
+        build_constraint_commitment_on_gpu_with_padding_matches_cpu::<
+            RpoRandomCoin,
+            Rpo256,
+            RpoDigest,
+        >(HashFn::Rpo256),
+    );
+}
+
+#[wasm_bindgen_test::wasm_bindgen_test]
+fn rpx_build_constraint_commitment_on_gpu_with_padding_matches_cpu() {
+    wasm_bindgen_futures::spawn_local(
+        build_constraint_commitment_on_gpu_with_padding_matches_cpu::<
+            RpxRandomCoin,
+            Rpx256,
+            RpxDigest,
+        >(HashFn::Rpx256),
+    );
+}
+
+#[wasm_bindgen_test::wasm_bindgen_test]
+fn rpo_build_constraint_commitment_on_gpu_without_padding_matches_cpu() {
+    wasm_bindgen_futures::spawn_local(
+        build_constraint_commitment_on_gpu_without_padding_matches_cpu::<
+            RpoRandomCoin,
+            Rpo256,
+            RpoDigest,
+        >(HashFn::Rpo256),
+    );
+}
+
+#[wasm_bindgen_test::wasm_bindgen_test]
+fn rpx_build_constraint_commitment_on_gpu_without_padding_matches_cpu() {
+    wasm_bindgen_futures::spawn_local(
+        build_constraint_commitment_on_gpu_without_padding_matches_cpu::<
+            RpxRandomCoin,
+            Rpx256,
+            RpxDigest,
+        >(HashFn::Rpx256),
+    );
 }
 
 fn gen_random_trace(num_rows: usize, num_cols: usize) -> ColMatrix<Felt> {

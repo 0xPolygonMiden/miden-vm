@@ -13,11 +13,14 @@ repository.workspace = true
 rust-version.workspace = true
 edition.workspace = true
 
+[lib]
+crate-type = ["cdylib", "rlib"]
+
 [features]
 concurrent = ["processor/concurrent", "std", "winter-prover/concurrent"]
-default = ["std"]
-metal = ["dep:miden-gpu", "dep:elsa", "dep:pollster", "concurrent", "std"]
-webgpu = ["dep:miden-gpu", "dep:elsa", "miden-gpu/webgpu", "async"]
+default = ["webgpu", "async"]
+metal = ["dep:miden-gpu", "dep:pollster", "concurrent", "std"]
+webgpu = ["dep:miden-gpu", "miden-gpu/webgpu", "async"]
 async = ["maybe-async/async", "winter-prover/async", "dep:async-trait"]
 std = ["air/std", "processor/std", "winter-prover/std", "miden-gpu/std", "tracing/std"]
 
@@ -28,11 +31,18 @@ tracing = { version = "0.1", default-features = false, features = ["attributes"]
 winter-prover = { package = "winter-prover", version = "0.9", default-features = false }
 maybe-async = { package = "winter-maybe-async", version = "0.9", default-features = false }
 async-trait = { version = "0.1", optional = true }
+elsa = { version = "1.9" }
 
 [target.'cfg(all(target_arch = "aarch64", target_os = "macos"))'.dependencies]
-elsa = { version = "1.9", optional = true }
-miden-gpu = { git = "https://github.com/0xPolygonMiden/miden-gpu", rev = "b77b4709d69d42ef663ed5ea41f48f8b165f59f2", default-features = false, optional = true }
+miden-gpu = { git = "https://github.com/0xPolygonMiden/miden-gpu", rev = "9a55000ff8cc113c1f4acb42115c542c1bb8533c", default-features = false, optional = true }
 pollster = { version = "0.3", optional = true }
 
 [target.'cfg(target_family = "wasm")'.dependencies]
-miden-gpu = { git = "https://github.com/0xPolygonMiden/miden-gpu", rev = "b77b4709d69d42ef663ed5ea41f48f8b165f59f2", default-features = false, optional = true }
+miden-gpu = { git = "https://github.com/0xPolygonMiden/miden-gpu", rev = "9a55000ff8cc113c1f4acb42115c542c1bb8533c", default-features = false, optional = true }
+
+[target.'cfg(target_family = "wasm")'.dev-dependencies]
+wasm-bindgen-test = "0.3"
+wasm-bindgen-futures = "0.4"
+wasm-bindgen = "0.2"
+wee_alloc = "0.4"
+console_error_panic_hook = "0.1"

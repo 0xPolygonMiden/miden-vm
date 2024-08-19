@@ -81,18 +81,24 @@ where
 
     // generate STARK proof
     let proof = match hash_fn {
-        HashFunction::Blake3_192 => ExecutionProver::<Blake3_192, WinterRandomCoin<_>>::new(
-            options,
-            stack_inputs,
-            stack_outputs.clone(),
-        )
-        .prove(trace).await,
-        HashFunction::Blake3_256 => ExecutionProver::<Blake3_256, WinterRandomCoin<_>>::new(
-            options,
-            stack_inputs,
-            stack_outputs.clone(),
-        )
-        .prove(trace).await,
+        HashFunction::Blake3_192 => {
+            ExecutionProver::<Blake3_192, WinterRandomCoin<_>>::new(
+                options,
+                stack_inputs,
+                stack_outputs.clone(),
+            )
+            .prove(trace)
+            .await
+        },
+        HashFunction::Blake3_256 => {
+            ExecutionProver::<Blake3_256, WinterRandomCoin<_>>::new(
+                options,
+                stack_inputs,
+                stack_outputs.clone(),
+            )
+            .prove(trace)
+            .await
+        },
         HashFunction::Rpo256 => {
             let prover = ExecutionProver::<Rpo256, RpoRandomCoin>::new(
                 options,
