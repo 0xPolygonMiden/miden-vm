@@ -113,7 +113,7 @@ impl MastNode {
         matches!(self, Self::Block(_))
     }
 
-    /// Returns the inner basic block node is the [`MastNode`] wraps a [`BasicBlockNode`]; `None`
+    /// Returns the inner basic block node if the [`MastNode`] wraps a [`BasicBlockNode`]; `None`
     /// otherwise.
     pub fn get_basic_block(&self) -> Option<&BasicBlockNode> {
         match self {
