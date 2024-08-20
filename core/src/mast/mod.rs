@@ -136,7 +136,10 @@ impl MastForest {
         }
     }
 
-    /// Removes all nodes in the provided set from the MAST forest.
+    /// Removes all nodes in the provided set from the MAST forest. The nodes MUST be orphaned (i.e.
+    /// have no parent). Otherwise, this parent's reference is considered "dangling" after the
+    /// removal (i.e. will point to an incorrect node after the removal), and this removal operation
+    /// would result in an invalid [`MastForest`].
     ///
     /// It also returns the map from old node IDs to new node IDs; or `None` if the set of nodes to
     /// remove was empty. Any [`MastNodeId`] used in reference to the old [`MastForest`] should be
