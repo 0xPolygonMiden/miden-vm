@@ -19,7 +19,7 @@ use air::{AuxRandElements, LagrangeKernelEvaluationFrame};
 use elsa::FrozenVec;
 use maybe_async::maybe_async;
 use miden_gpu::{
-    webgpu::{build_merkle_tree, get_or_init_wgpu_helper, init_wgpu_helper, RowHasher},
+    webgpu::{build_merkle_tree, get_or_init_wgpu_helper, RowHasher},
     HashFn,
 };
 use processor::{
@@ -27,6 +27,7 @@ use processor::{
     ONE,
 };
 use tracing::info_span;
+#[cfg(feature = "std")]
 use tracing::{event, Level};
 use winter_prover::{
     crypto::{Digest, MerkleTree},
@@ -248,9 +249,10 @@ where
         let num_base_columns =
             composition_poly.num_columns() * <E as FieldElement>::EXTENSION_DEGREE;
         let rpo_requires_padding = num_base_columns % RATE != 0;
+        let is_rpo = self.webgpu_hash_fn == HashFn::Rpo256;
         let rpo_padded_segment_idx = rpo_requires_padding.then_some(num_base_columns / RATE);
         let mut row_hasher =
-            RowHasher::new(helper, lde_domain_size, rpo_requires_padding, self.webgpu_hash_fn);
+            RowHasher::new(helper, lde_domain_size, num_base_columns, self.webgpu_hash_fn);
         let rpo_padded_segment: Vec<[Felt; RATE]>;
         for (segment_idx, segment) in segments.iter().enumerate() {
             // check if the segment requires padding
@@ -260,14 +262,18 @@ where
                 // padded with "0"s we only need to add the "1"s.
                 let rpo_pad_column = num_base_columns % RATE;
 
-                rpo_padded_segment = segment
-                    .iter()
-                    .map(|x| {
-                        let mut s = *x;
-                        s[rpo_pad_column] = ONE;
-                        s
-                    })
-                    .collect();
+                rpo_padded_segment = if is_rpo {
+                    segment
+                        .iter()
+                        .map(|x| {
+                            let mut s = *x;
+                            s[rpo_pad_column] = ONE;
+                            s
+                        })
+                        .collect()
+                } else {
+                    segment.iter().map(|x| *x).collect()
+                };
                 row_hasher.update(helper, &rpo_padded_segment);
                 assert_eq!(segments.len() - 1, segment_idx, "padded segment should be the last");
                 break;
@@ -337,7 +343,6 @@ impl<
         domain: &StarkDomain<Felt>,
         webgpu_hash_fn: HashFn,
     ) -> (Self, TracePolyTable<E>) {
-        init_wgpu_helper().await;
         // extend the main execution trace and build a Merkle tree from the extended trace
         let (main_segment_lde, main_segment_tree, main_segment_polys) =
             build_trace_commitment_sync::<E, Felt, H>(main_trace, domain);
@@ -410,28 +415,27 @@ impl<
     /// This function will panic if any of the following are true:
     /// - the number of rows in the provided `aux_trace` does not match the main trace.
     /// - this segment would exceed the number of segments specified by the trace layout.
-    async fn set_aux_trace(
+    fn set_aux_trace(
         &mut self,
         aux_trace: &ColMatrix<E>,
         domain: &StarkDomain<Felt>,
     ) -> (ColMatrix<E>, D) {
-        todo!()
-        // // extend the auxiliary trace segment and build a Merkle tree from the extended trace
-        // let (aux_segment_lde, aux_segment_tree, aux_segment_polys) =
-        //     build_trace_commitment::<E, H, D>(aux_trace, domain, self.webgpu_hash_fn).await;
-        //
-        // assert_eq!(
-        //     self.main_segment_lde.num_rows(),
-        //     aux_segment_lde.num_rows(),
-        //     "the number of rows in the auxiliary segment must be the same as in the main segment"
-        // );
-        //
-        // // save the lde and commitment
-        // self.aux_segment_lde = Some(aux_segment_lde);
-        // let root_hash = *aux_segment_tree.root();
-        // self.aux_segment_tree = Some(aux_segment_tree);
-        //
-        // (aux_segment_polys, root_hash)
+        // extend the auxiliary trace segment and build a Merkle tree from the extended trace
+        let (aux_segment_lde, aux_segment_tree, aux_segment_polys) =
+            build_trace_commitment_sync::<E, E, H>(aux_trace, domain);
+
+        assert_eq!(
+            self.main_segment_lde.num_rows(),
+            aux_segment_lde.num_rows(),
+            "the number of rows in the auxiliary segment must be the same as in the main segment"
+        );
+
+        // save the lde and commitment
+        self.aux_segment_lde = Some(aux_segment_lde);
+        let root_hash = *aux_segment_tree.root();
+        self.aux_segment_tree = Some(aux_segment_tree);
+
+        (aux_segment_polys, root_hash)
     }
 
     /// Reads current and next rows from the main trace segment into the specified frame.
@@ -610,8 +614,9 @@ async fn build_trace_commitment<
     let lde_domain_size = domain.lde_domain_size();
     let num_base_columns = trace.num_base_cols();
     let rpo_requires_padding = num_base_columns % RATE != 0;
+    let is_rpo = hash_fn == HashFn::Rpo256;
     let rpo_padded_segment_idx = rpo_requires_padding.then_some(num_base_columns / RATE);
-    let mut row_hasher = RowHasher::new(&helper, lde_domain_size, rpo_requires_padding, hash_fn);
+    let mut row_hasher = RowHasher::new(&helper, lde_domain_size, num_base_columns, hash_fn);
     let rpo_padded_segment: Vec<[Felt; RATE]>;
     let mut lde_segment_generator = SegmentGenerator::new(trace_polys, domain);
     let mut lde_segment_iter = lde_segment_generator.gen_segment_iter().enumerate();
@@ -623,14 +628,18 @@ async fn build_trace_commitment<
             // rule ("1" followed by "0"s). Our segments are already
             // padded with "0"s we only need to add the "1"s.
             let rpo_pad_column = num_base_columns % RATE;
-            rpo_padded_segment = segment
-                .iter()
-                .map(|x| {
-                    let mut s = *x;
-                    s[rpo_pad_column] = ONE;
-                    s
-                })
-                .collect();
+            rpo_padded_segment = if is_rpo {
+                segment
+                    .iter()
+                    .map(|x| {
+                        let mut s = *x;
+                        s[rpo_pad_column] = ONE;
+                        s
+                    })
+                    .collect()
+            } else {
+                segment.iter().map(|x| *x).collect()
+            };
             row_hasher.update(&helper, &rpo_padded_segment);
             assert!(lde_segment_iter.next().is_none(), "padded segment should be the last");
             break;
