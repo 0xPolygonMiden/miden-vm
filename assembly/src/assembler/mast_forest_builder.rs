@@ -50,11 +50,18 @@ impl MastForestBuilder {
 /// Specifically, MAST node ids can be reused, so merging a basic block doesn't mean it should be
 /// removed (specifically in the case where another node refers to it). Hence, we cycle through all
 /// nodes of the forest and only mark for removal those nodes that are not referenced by any node.
+/// We also ensure that procedure roots are not removed.
 fn get_nodes_to_remove(
     merged_node_ids: BTreeSet<MastNodeId>,
     mast_forest: &MastForest,
 ) -> BTreeSet<MastNodeId> {
-    let mut nodes_to_remove = merged_node_ids;
+    // make sure not to remove procedure roots
+    let mut nodes_to_remove: BTreeSet<MastNodeId> = merged_node_ids
+        .iter()
+        .filter(|&&mast_node_id| !mast_forest.is_procedure_root(mast_node_id))
+        .copied()
+        .collect();
+
     for node in mast_forest.nodes() {
         match node {
             MastNode::Join(node) => {
@@ -297,12 +304,8 @@ impl MastForestBuilder {
             }
         }
 
-        // Mark the removed basic blocks as merged, making sure not to remove procedure roots
-        self.merged_node_ids.extend(
-            contiguous_basic_block_ids
-                .iter()
-                .filter(|&&mast_node_id| !self.mast_forest.is_procedure_root(mast_node_id)),
-        );
+        // Mark the removed basic blocks as merged
+        self.merged_node_ids.extend(contiguous_basic_block_ids.iter());
 
         let merged_basic_block = self.ensure_block(operations, Some(decorators))?;
         Ok(Some(merged_basic_block))
