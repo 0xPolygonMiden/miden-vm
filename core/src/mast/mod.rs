@@ -151,9 +151,9 @@ impl MastForest {
 
         let old_nodes = mem::take(&mut self.nodes);
         let old_root_ids = mem::take(&mut self.roots);
-        let (pruned_nodes, id_remappings) = remove_nodes(old_nodes, nodes_to_remove);
+        let (retained_nodes, id_remappings) = remove_nodes(old_nodes, nodes_to_remove);
 
-        self.remap_and_add_nodes(pruned_nodes, &id_remappings);
+        self.remap_and_add_nodes(retained_nodes, &id_remappings);
         self.remap_and_add_roots(old_root_ids, &id_remappings);
         Some(id_remappings)
     }
