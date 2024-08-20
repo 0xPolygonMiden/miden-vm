@@ -161,8 +161,8 @@ impl MastForest {
 
 /// Helpers
 impl MastForest {
-    /// Adds all live nodes to the internal set of nodes, remapping all [`MastNodeId`] references in
-    /// those nodes.
+    /// Adds all provided nodes to the internal set of nodes, remapping all [`MastNodeId`]
+    /// references in those nodes.
     ///
     /// # Panics
     /// - Panics if the internal set of nodes is not empty.
