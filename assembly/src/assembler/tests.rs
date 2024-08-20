@@ -139,13 +139,7 @@ fn nested_blocks() -> Result<(), Report> {
     let nested = expected_mast_forest_builder.ensure_split(r#true2, r#false2).unwrap();
 
     let combined_node_id = expected_mast_forest_builder
-        .join_mast_node_ids(vec![
-            before,
-            r#if1,
-            nested,
-            exec_foo_bar_baz_node_id,
-            syscall_foo_node_id,
-        ])
+        .join_nodes(vec![before, r#if1, nested, exec_foo_bar_baz_node_id, syscall_foo_node_id])
         .unwrap();
 
     let expected_program = Program::new(expected_mast_forest_builder.build().0, combined_node_id);

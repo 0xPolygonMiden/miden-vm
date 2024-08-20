@@ -632,7 +632,7 @@ impl Assembler {
         Ok(if mast_node_ids.is_empty() {
             mast_forest_builder.ensure_block(vec![Operation::Noop], None)?
         } else {
-            mast_forest_builder.join_mast_node_ids(mast_node_ids)?
+            mast_forest_builder.join_nodes(mast_node_ids)?
         })
     }
 
