@@ -148,7 +148,7 @@ fn nested_blocks() -> Result<(), Report> {
         ])
         .unwrap();
 
-    let expected_program = Program::new(expected_mast_forest_builder.build(), combined_node_id);
+    let expected_program = Program::new(expected_mast_forest_builder.build().0, combined_node_id);
     assert_eq!(expected_program.hash(), program.hash());
 
     // also check that the program has the right number of procedures (which excludes the dummy

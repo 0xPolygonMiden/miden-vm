@@ -300,7 +300,7 @@ impl Assembler {
         };
 
         // TODO: show a warning if library exports are empty?
-        let (mast_forest, _) = mast_forest_builder.prune_and_build();
+        let (mast_forest, _) = mast_forest_builder.build();
         Ok(Library::new(mast_forest, exports))
     }
 
@@ -342,7 +342,7 @@ impl Assembler {
 
         // TODO: show a warning if library exports are empty?
 
-        let (mast_forest, _) = mast_forest_builder.prune_and_build();
+        let (mast_forest, _) = mast_forest_builder.build();
         let library = Library::new(mast_forest, exports);
         Ok(library.try_into()?)
     }
@@ -383,7 +383,7 @@ impl Assembler {
             .get_procedure(entrypoint)
             .expect("compilation succeeded but root not found in cache");
 
-        let (mast_forest, id_remappings) = mast_forest_builder.prune_and_build();
+        let (mast_forest, id_remappings) = mast_forest_builder.build();
         let entry_node_id = {
             let old_entry_node_id = entry_procedure.body_node_id();
 
