@@ -210,22 +210,19 @@ impl MastForestBuilder {
     }
 
     /// Builds a tree of `JOIN` operations to combine the provided MAST node IDs.
-    pub fn join_nodes(
-        &mut self,
-        mast_node_ids: Vec<MastNodeId>,
-    ) -> Result<MastNodeId, AssemblyError> {
-        debug_assert!(!mast_node_ids.is_empty(), "cannot combine empty MAST node id list");
+    pub fn join_nodes(&mut self, node_ids: Vec<MastNodeId>) -> Result<MastNodeId, AssemblyError> {
+        debug_assert!(!node_ids.is_empty(), "cannot combine empty MAST node id list");
 
-        let mut node_ids = self.merge_contiguous_basic_blocks(mast_node_ids)?;
+        let mut node_ids = self.merge_contiguous_basic_blocks(node_ids)?;
 
         // build a binary tree of blocks joining them using JOIN blocks
         while node_ids.len() > 1 {
             let last_mast_node_id = if node_ids.len() % 2 == 0 { None } else { node_ids.pop() };
 
-            let mut source_mast_node_ids = Vec::new();
-            core::mem::swap(&mut node_ids, &mut source_mast_node_ids);
+            let mut source_node_ids = Vec::new();
+            core::mem::swap(&mut node_ids, &mut source_node_ids);
 
-            let mut source_mast_node_iter = source_mast_node_ids.drain(0..);
+            let mut source_mast_node_iter = source_node_ids.drain(0..);
             while let (Some(left), Some(right)) =
                 (source_mast_node_iter.next(), source_mast_node_iter.next())
             {
@@ -245,31 +242,31 @@ impl MastForestBuilder {
     /// found in the provided list of [`MastNodeId`]s.
     fn merge_contiguous_basic_blocks(
         &mut self,
-        mast_node_ids: Vec<MastNodeId>,
+        node_ids: Vec<MastNodeId>,
     ) -> Result<Vec<MastNodeId>, AssemblyError> {
-        let mut merged_mast_node_ids = Vec::with_capacity(mast_node_ids.len());
+        let mut merged_node_ids = Vec::with_capacity(node_ids.len());
         let mut contiguous_basic_block_ids: Vec<MastNodeId> = Vec::new();
 
-        for mast_node_id in mast_node_ids {
+        for mast_node_id in node_ids {
             if self[mast_node_id].is_basic_block() {
                 contiguous_basic_block_ids.push(mast_node_id);
             } else {
                 if let Some(merged_basic_block_id) =
                     self.merge_basic_blocks(&contiguous_basic_block_ids)?
                 {
-                    merged_mast_node_ids.push(merged_basic_block_id)
+                    merged_node_ids.push(merged_basic_block_id)
                 }
                 contiguous_basic_block_ids.clear();
 
-                merged_mast_node_ids.push(mast_node_id);
+                merged_node_ids.push(mast_node_id);
             }
         }
 
         if let Some(merged_basic_block_id) = self.merge_basic_blocks(&contiguous_basic_block_ids)? {
-            merged_mast_node_ids.push(merged_basic_block_id)
+            merged_node_ids.push(merged_basic_block_id)
         }
 
-        Ok(merged_mast_node_ids)
+        Ok(merged_node_ids)
     }
 
     /// Creates a new basic block by appending all operations and decorators in the provided list of

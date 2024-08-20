@@ -554,7 +554,7 @@ impl Assembler {
     {
         use ast::Op;
 
-        let mut mast_node_ids: Vec<MastNodeId> = Vec::new();
+        let mut node_ids: Vec<MastNodeId> = Vec::new();
         let mut basic_block_builder = BasicBlockBuilder::new(wrapper);
 
         for op in body {
@@ -569,10 +569,10 @@ impl Assembler {
                         if let Some(basic_block_id) =
                             basic_block_builder.make_basic_block(mast_forest_builder)?
                         {
-                            mast_node_ids.push(basic_block_id);
+                            node_ids.push(basic_block_id);
                         }
 
-                        mast_node_ids.push(mast_node_id);
+                        node_ids.push(mast_node_id);
                     }
                 },
 
@@ -580,7 +580,7 @@ impl Assembler {
                     if let Some(basic_block_id) =
                         basic_block_builder.make_basic_block(mast_forest_builder)?
                     {
-                        mast_node_ids.push(basic_block_id);
+                        node_ids.push(basic_block_id);
                     }
 
                     let then_blk =
@@ -589,21 +589,21 @@ impl Assembler {
                         self.compile_body(else_blk.iter(), proc_ctx, None, mast_forest_builder)?;
 
                     let split_node_id = mast_forest_builder.ensure_split(then_blk, else_blk)?;
-                    mast_node_ids.push(split_node_id);
+                    node_ids.push(split_node_id);
                 },
 
                 Op::Repeat { count, body, .. } => {
                     if let Some(basic_block_id) =
                         basic_block_builder.make_basic_block(mast_forest_builder)?
                     {
-                        mast_node_ids.push(basic_block_id);
+                        node_ids.push(basic_block_id);
                     }
 
                     let repeat_node_id =
                         self.compile_body(body.iter(), proc_ctx, None, mast_forest_builder)?;
 
                     for _ in 0..*count {
-                        mast_node_ids.push(repeat_node_id);
+                        node_ids.push(repeat_node_id);
                     }
                 },
 
@@ -611,14 +611,14 @@ impl Assembler {
                     if let Some(basic_block_id) =
                         basic_block_builder.make_basic_block(mast_forest_builder)?
                     {
-                        mast_node_ids.push(basic_block_id);
+                        node_ids.push(basic_block_id);
                     }
 
                     let loop_body_node_id =
                         self.compile_body(body.iter(), proc_ctx, None, mast_forest_builder)?;
 
                     let loop_node_id = mast_forest_builder.ensure_loop(loop_body_node_id)?;
-                    mast_node_ids.push(loop_node_id);
+                    node_ids.push(loop_node_id);
                 },
             }
         }
@@ -626,13 +626,13 @@ impl Assembler {
         if let Some(basic_block_id) =
             basic_block_builder.try_into_basic_block(mast_forest_builder)?
         {
-            mast_node_ids.push(basic_block_id);
+            node_ids.push(basic_block_id);
         }
 
-        Ok(if mast_node_ids.is_empty() {
+        Ok(if node_ids.is_empty() {
             mast_forest_builder.ensure_block(vec![Operation::Noop], None)?
         } else {
-            mast_forest_builder.join_nodes(mast_node_ids)?
+            mast_forest_builder.join_nodes(node_ids)?
         })
     }
 
