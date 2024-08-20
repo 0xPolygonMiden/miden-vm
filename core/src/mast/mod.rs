@@ -255,10 +255,10 @@ fn remove_nodes(
     let mut id_remappings = BTreeMap::new();
 
     for (old_node_index, old_node) in mast_nodes.into_iter().enumerate() {
-        let old_node_id: MastNodeId = (old_node_index as u32).into();
+        let old_node_id: MastNodeId = MastNodeId(old_node_index as u32);
 
         if !nodes_to_remove.contains(&old_node_id) {
-            let new_node_id: MastNodeId = (pruned_nodes.len() as u32).into();
+            let new_node_id: MastNodeId = MastNodeId(pruned_nodes.len() as u32);
             id_remappings.insert(old_node_id, new_node_id);
 
             pruned_nodes.push(old_node);
@@ -390,12 +390,6 @@ impl From<MastNodeId> for u32 {
 impl From<&MastNodeId> for u32 {
     fn from(value: &MastNodeId) -> Self {
         value.0
-    }
-}
-
-impl From<u32> for MastNodeId {
-    fn from(value: u32) -> Self {
-        Self(value)
     }
 }
 
