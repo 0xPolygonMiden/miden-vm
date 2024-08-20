@@ -4,7 +4,7 @@ use assembly::{Assembler, Library, LibraryNamespace};
 use criterion::{criterion_group, criterion_main, Criterion};
 
 fn stdlib_compilation(c: &mut Criterion) {
-    let mut group = c.benchmark_group("stdlib");
+    let mut group = c.benchmark_group("compile_stdlib");
     group.measurement_time(Duration::from_secs(10));
 
     // Compiles the entire standard library
