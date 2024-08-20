@@ -1,5 +1,8 @@
-use alloc::vec::Vec;
-use core::{fmt, ops::Index};
+use alloc::{
+    collections::{BTreeMap, BTreeSet},
+    vec::Vec,
+};
+use core::{fmt, mem, ops::Index};
 
 use miden_crypto::hash::rpo::RpoDigest;
 
@@ -132,9 +135,144 @@ impl MastForest {
             self.roots.push(new_root_id);
         }
     }
+
+    /// Removes all nodes in the provided set from the MAST forest. The nodes MUST be orphaned (i.e.
+    /// have no parent). Otherwise, this parent's reference is considered "dangling" after the
+    /// removal (i.e. will point to an incorrect node after the removal), and this removal operation
+    /// would result in an invalid [`MastForest`].
+    ///
+    /// It also returns the map from old node IDs to new node IDs; or `None` if the set of nodes to
+    /// remove was empty. Any [`MastNodeId`] used in reference to the old [`MastForest`] should be
+    /// remapped using this map.
+    pub fn remove_nodes(
+        &mut self,
+        nodes_to_remove: &BTreeSet<MastNodeId>,
+    ) -> Option<BTreeMap<MastNodeId, MastNodeId>> {
+        if nodes_to_remove.is_empty() {
+            return None;
+        }
+
+        let old_nodes = mem::take(&mut self.nodes);
+        let old_root_ids = mem::take(&mut self.roots);
+        let (retained_nodes, id_remappings) = remove_nodes(old_nodes, nodes_to_remove);
+
+        self.remap_and_add_nodes(retained_nodes, &id_remappings);
+        self.remap_and_add_roots(old_root_ids, &id_remappings);
+        Some(id_remappings)
+    }
+}
+
+/// Helpers
+impl MastForest {
+    /// Adds all provided nodes to the internal set of nodes, remapping all [`MastNodeId`]
+    /// references in those nodes.
+    ///
+    /// # Panics
+    /// - Panics if the internal set of nodes is not empty.
+    fn remap_and_add_nodes(
+        &mut self,
+        nodes_to_add: Vec<MastNode>,
+        id_remappings: &BTreeMap<MastNodeId, MastNodeId>,
+    ) {
+        assert!(self.nodes.is_empty());
+
+        // Add each node to the new MAST forest, making sure to rewrite any outdated internal
+        // `MastNodeId`s
+        for live_node in nodes_to_add {
+            match &live_node {
+                MastNode::Join(join_node) => {
+                    let first_child =
+                        id_remappings.get(&join_node.first()).copied().unwrap_or(join_node.first());
+                    let second_child = id_remappings
+                        .get(&join_node.second())
+                        .copied()
+                        .unwrap_or(join_node.second());
+
+                    self.add_join(first_child, second_child).unwrap();
+                },
+                MastNode::Split(split_node) => {
+                    let on_true_child = id_remappings
+                        .get(&split_node.on_true())
+                        .copied()
+                        .unwrap_or(split_node.on_true());
+                    let on_false_child = id_remappings
+                        .get(&split_node.on_false())
+                        .copied()
+                        .unwrap_or(split_node.on_false());
+
+                    self.add_split(on_true_child, on_false_child).unwrap();
+                },
+                MastNode::Loop(loop_node) => {
+                    let body_id =
+                        id_remappings.get(&loop_node.body()).copied().unwrap_or(loop_node.body());
+
+                    self.add_loop(body_id).unwrap();
+                },
+                MastNode::Call(call_node) => {
+                    let callee_id = id_remappings
+                        .get(&call_node.callee())
+                        .copied()
+                        .unwrap_or(call_node.callee());
+
+                    if call_node.is_syscall() {
+                        self.add_syscall(callee_id).unwrap();
+                    } else {
+                        self.add_call(callee_id).unwrap();
+                    }
+                },
+                MastNode::Block(_) | MastNode::Dyn | MastNode::External(_) => {
+                    self.add_node(live_node).unwrap();
+                },
+            }
+        }
+    }
+
+    /// Remaps and adds all old root ids to the internal set of roots.
+    ///
+    /// # Panics
+    /// - Panics if the internal set of roots is not empty.
+    fn remap_and_add_roots(
+        &mut self,
+        old_root_ids: Vec<MastNodeId>,
+        id_remappings: &BTreeMap<MastNodeId, MastNodeId>,
+    ) {
+        assert!(self.roots.is_empty());
+
+        for old_root_id in old_root_ids {
+            let new_root_id = id_remappings.get(&old_root_id).copied().unwrap_or(old_root_id);
+            self.make_root(new_root_id);
+        }
+    }
+}
+
+/// Returns the set of nodes that are live, as well as the mapping from "old ID" to "new ID" for all
+/// live nodes.
+fn remove_nodes(
+    mast_nodes: Vec<MastNode>,
+    nodes_to_remove: &BTreeSet<MastNodeId>,
+) -> (Vec<MastNode>, BTreeMap<MastNodeId, MastNodeId>) {
+    // Note: this allows us to safely use `usize as u32`, guaranteeing that it won't wrap around.
+    assert!(mast_nodes.len() < u32::MAX as usize);
+
+    let mut retained_nodes = Vec::with_capacity(mast_nodes.len());
+    let mut id_remappings = BTreeMap::new();
+
+    for (old_node_index, old_node) in mast_nodes.into_iter().enumerate() {
+        let old_node_id: MastNodeId = MastNodeId(old_node_index as u32);
+
+        if !nodes_to_remove.contains(&old_node_id) {
+            let new_node_id: MastNodeId = MastNodeId(retained_nodes.len() as u32);
+            id_remappings.insert(old_node_id, new_node_id);
+
+            retained_nodes.push(old_node);
+        }
+    }
+
+    (retained_nodes, id_remappings)
 }
 
 // ------------------------------------------------------------------------------------------------
+
 /// Public accessors
 impl MastForest {
     /// Returns the [`MastNode`] associated with the provided [`MastNodeId`] if valid, or else
@@ -175,6 +313,16 @@ impl MastForest {
             .len()
             .try_into()
             .expect("MAST forest contains more than 2^32 procedures.")
+    }
+
+    /// Returns the number of nodes in this MAST forest.
+    pub fn num_nodes(&self) -> u32 {
+        self.nodes.len() as u32
+    }
+
+    /// Returns the underlying nodes in this MAST forest.
+    pub fn nodes(&self) -> &[MastNode] {
+        &self.nodes
     }
 }
 

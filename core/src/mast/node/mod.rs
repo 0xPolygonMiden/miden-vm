@@ -110,6 +110,15 @@ impl MastNode {
         matches!(self, Self::Block(_))
     }
 
+    /// Returns the inner basic block node if the [`MastNode`] wraps a [`BasicBlockNode`]; `None`
+    /// otherwise.
+    pub fn get_basic_block(&self) -> Option<&BasicBlockNode> {
+        match self {
+            MastNode::Block(basic_block_node) => Some(basic_block_node),
+            _ => None,
+        }
+    }
+
     pub fn to_pretty_print<'a>(&'a self, mast_forest: &'a MastForest) -> impl PrettyPrint + 'a {
         match self {
             MastNode::Block(basic_block_node) => {

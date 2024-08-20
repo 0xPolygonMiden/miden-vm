@@ -1,6 +1,7 @@
 # Changelog
 
 ## 0.11.0 (TBD)
+- Assembler: Merge contiguous basic blocks (#1454)
 
 #### Enhancements
 
