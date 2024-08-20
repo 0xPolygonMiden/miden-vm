@@ -251,21 +251,21 @@ fn remove_nodes(
     // Note: this allows us to safely use `usize as u32`, guaranteeing that it won't wrap around.
     assert!(mast_nodes.len() < u32::MAX as usize);
 
-    let mut pruned_nodes = Vec::with_capacity(mast_nodes.len());
+    let mut retained_nodes = Vec::with_capacity(mast_nodes.len());
     let mut id_remappings = BTreeMap::new();
 
     for (old_node_index, old_node) in mast_nodes.into_iter().enumerate() {
         let old_node_id: MastNodeId = MastNodeId(old_node_index as u32);
 
         if !nodes_to_remove.contains(&old_node_id) {
-            let new_node_id: MastNodeId = MastNodeId(pruned_nodes.len() as u32);
+            let new_node_id: MastNodeId = MastNodeId(retained_nodes.len() as u32);
             id_remappings.insert(old_node_id, new_node_id);
 
-            pruned_nodes.push(old_node);
+            retained_nodes.push(old_node);
         }
     }
 
-    (pruned_nodes, id_remappings)
+    (retained_nodes, id_remappings)
 }
 
 // ------------------------------------------------------------------------------------------------
