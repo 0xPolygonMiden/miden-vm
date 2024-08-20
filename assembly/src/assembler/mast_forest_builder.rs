@@ -14,6 +14,12 @@ use vm_core::{
 use super::{GlobalProcedureIndex, Procedure};
 use crate::AssemblyError;
 
+// CONSTANTS
+// ================================================================================================
+
+/// Constant that decides when we should keep merging basic blocks, or start a new one.
+const MAX_OPERATIONS_PER_BASIC_BLOCK_WHEN_MERGING: usize = 2500;
+
 // MAST FOREST BUILDER
 // ================================================================================================
 
@@ -251,20 +257,14 @@ impl MastForestBuilder {
             if self[mast_node_id].is_basic_block() {
                 contiguous_basic_block_ids.push(mast_node_id);
             } else {
-                if let Some(merged_basic_block_id) =
-                    self.merge_basic_blocks(&contiguous_basic_block_ids)?
-                {
-                    merged_node_ids.push(merged_basic_block_id)
-                }
+                merged_node_ids.extend(self.merge_basic_blocks(&contiguous_basic_block_ids)?);
                 contiguous_basic_block_ids.clear();
 
                 merged_node_ids.push(mast_node_id);
             }
         }
 
-        if let Some(merged_basic_block_id) = self.merge_basic_blocks(&contiguous_basic_block_ids)? {
-            merged_node_ids.push(merged_basic_block_id)
-        }
+        merged_node_ids.extend(self.merge_basic_blocks(&contiguous_basic_block_ids)?);
 
         Ok(merged_node_ids)
     }
@@ -277,21 +277,36 @@ impl MastForestBuilder {
     fn merge_basic_blocks(
         &mut self,
         contiguous_basic_block_ids: &[MastNodeId],
-    ) -> Result<Option<MastNodeId>, AssemblyError> {
+    ) -> Result<Vec<MastNodeId>, AssemblyError> {
         if contiguous_basic_block_ids.is_empty() {
-            return Ok(None);
+            return Ok(Vec::new());
         }
         if contiguous_basic_block_ids.len() == 1 {
-            return Ok(Some(contiguous_basic_block_ids[0]));
+            return Ok(contiguous_basic_block_ids.to_vec());
         }
 
         let mut operations: Vec<Operation> = Vec::new();
         let mut decorators = DecoratorList::new();
 
+        let mut merged_basic_blocks: Vec<MastNodeId> = Vec::new();
+
         for &basic_block_node_id in contiguous_basic_block_ids {
             // It is safe to unwrap here, since we already checked that all IDs in
             // `contiguous_basic_block_ids` are `BasicBlockNode`s
-            let basic_block_node = self[basic_block_node_id].get_basic_block().unwrap();
+            let basic_block_node = self[basic_block_node_id].get_basic_block().unwrap().clone();
+
+            if !operations.is_empty()
+                && operations.len() + basic_block_node.num_operations() as usize
+                    > MAX_OPERATIONS_PER_BASIC_BLOCK_WHEN_MERGING
+            {
+                // merging this block would exceed the maximum number of allowed operations, so wrap
+                // the current block up and create a new one.
+                let block_ops = core::mem::take(&mut operations);
+                let block_decorators = core::mem::take(&mut decorators);
+                let merged_basic_block = self.ensure_block(block_ops, Some(block_decorators))?;
+
+                merged_basic_blocks.push(merged_basic_block);
+            }
 
             for (op_idx, decorator) in basic_block_node.decorators() {
                 decorators.push((*op_idx + operations.len(), decorator.clone()));
@@ -304,8 +319,12 @@ impl MastForestBuilder {
         // Mark the removed basic blocks as merged
         self.merged_node_ids.extend(contiguous_basic_block_ids.iter());
 
-        let merged_basic_block = self.ensure_block(operations, Some(decorators))?;
-        Ok(Some(merged_basic_block))
+        if !operations.is_empty() || !decorators.is_empty() {
+            let merged_basic_block = self.ensure_block(operations, Some(decorators))?;
+            merged_basic_blocks.push(merged_basic_block);
+        }
+
+        Ok(merged_basic_blocks)
     }
 }
 

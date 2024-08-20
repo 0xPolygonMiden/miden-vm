@@ -156,9 +156,15 @@ impl BasicBlockNode {
         DecoratorIterator::new(&self.decorators)
     }
 
+    pub fn num_operations(&self) -> u32 {
+        let num_ops: usize = self.op_batches.iter().map(|batch| batch.ops().len()).sum();
+
+        num_ops.try_into().expect("basic block contains more than 2^32 operations")
+    }
+
     /// Returns the total number of operations and decorators in this basic block.
     pub fn num_operations_and_decorators(&self) -> u32 {
-        let num_ops: usize = self.op_batches.iter().map(|batch| batch.ops().len()).sum();
+        let num_ops: usize = self.num_operations() as usize;
         let num_decorators = self.decorators.len();
 
         (num_ops + num_decorators)
