@@ -297,9 +297,23 @@ impl MastForest {
         self.roots.contains(&node_id)
     }
 
-    /// Returns an iterator over the digest of the procedures in this MAST forest.
+    /// Returns an iterator over the digests of all procedures in this MAST forest.
     pub fn procedure_digests(&self) -> impl Iterator<Item = RpoDigest> + '_ {
         self.roots.iter().map(|&root_id| self[root_id].digest())
+    }
+
+    /// Returns an iterator over the digests of local procedures in this MAST forest.
+    ///
+    /// A local procedure is defined as a procedure which is not a single external or dyn node.
+    pub fn local_procedure_digests(&self) -> impl Iterator<Item = RpoDigest> + '_ {
+        self.roots.iter().filter_map(|&root_id| {
+            let node = &self[root_id];
+            if node.is_local() {
+                Some(node.digest())
+            } else {
+                None
+            }
+        })
     }
 
     /// Returns an iterator over the IDs of the procedures in this MAST forest.
