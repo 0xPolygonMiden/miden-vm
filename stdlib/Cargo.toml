@@ -1,8 +1,8 @@
 [package]
 name = "miden-stdlib"
-version = "0.10.3"
+version = "0.10.5"
 description = "Miden VM standard library"
-documentation = "https://docs.rs/miden-stdlib/0.10.3"
+documentation = "https://docs.rs/miden-stdlib/0.10.5"
 readme = "README.md"
 categories = ["cryptography", "mathematics"]
 keywords = ["miden", "program", "stdlib"]
@@ -16,6 +16,10 @@ edition.workspace = true
 [lib]
 bench = false
 doctest = false
+
+[[bench]]
+name = "compilation"
+harness = false
 
 [[test]]
 name = "stdlib"
@@ -31,6 +35,7 @@ assembly = { package = "miden-assembly", path = "../assembly", version = "0.10",
 
 [dev-dependencies]
 blake3 = "1.5"
+criterion = "0.5"
 miden-air = { package = "miden-air", path = "../air", version = "0.10", default-features = false }
 num = "0.4.1"
 num-bigint = "0.4"

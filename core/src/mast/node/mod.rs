@@ -50,15 +50,12 @@ pub enum MastNode {
 // ------------------------------------------------------------------------------------------------
 /// Constructors
 impl MastNode {
-    pub fn new_basic_block(operations: Vec<Operation>) -> Self {
-        Self::Block(BasicBlockNode::new(operations))
-    }
-
-    pub fn new_basic_block_with_decorators(
+    pub fn new_basic_block(
         operations: Vec<Operation>,
-        decorators: DecoratorList,
-    ) -> Self {
-        Self::Block(BasicBlockNode::with_decorators(operations, decorators))
+        decorators: Option<DecoratorList>,
+    ) -> Result<Self, MastForestError> {
+        let block = BasicBlockNode::new(operations, decorators)?;
+        Ok(Self::Block(block))
     }
 
     pub fn new_join(
@@ -109,8 +106,28 @@ impl MastNode {
 // ------------------------------------------------------------------------------------------------
 /// Public accessors
 impl MastNode {
+    /// Returns true if this node is an external node.
+    pub fn is_external(&self) -> bool {
+        matches!(self, MastNode::External(_))
+    }
+
+    /// Returns true if this node is a Dyn node.
+    pub fn is_dyn(&self) -> bool {
+        matches!(self, MastNode::Dyn)
+    }
+
+    /// Returns true if this node is a basic block.
     pub fn is_basic_block(&self) -> bool {
         matches!(self, Self::Block(_))
+    }
+
+    /// Returns the inner basic block node if the [`MastNode`] wraps a [`BasicBlockNode`]; `None`
+    /// otherwise.
+    pub fn get_basic_block(&self) -> Option<&BasicBlockNode> {
+        match self {
+            MastNode::Block(basic_block_node) => Some(basic_block_node),
+            _ => None,
+        }
     }
 
     pub fn to_pretty_print<'a>(&'a self, mast_forest: &'a MastForest) -> impl PrettyPrint + 'a {

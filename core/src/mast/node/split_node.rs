@@ -52,8 +52,9 @@ impl SplitNode {
         Ok(Self { branches, digest })
     }
 
-    #[cfg(test)]
-    pub fn new_test(branches: [MastNodeId; 2], digest: RpoDigest) -> Self {
+    /// Returns a new [`SplitNode`] from values that are assumed to be correct.
+    /// Should only be used when the source of the inputs is trusted (e.g. deserialization).
+    pub fn new_unsafe(branches: [MastNodeId; 2], digest: RpoDigest) -> Self {
         Self { branches, digest }
     }
 }

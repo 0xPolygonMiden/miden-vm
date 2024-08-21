@@ -1,4 +1,8 @@
-use alloc::{collections::BTreeMap, sync::Arc, vec::Vec};
+use alloc::{
+    collections::{BTreeMap, BTreeSet},
+    sync::Arc,
+    vec::Vec,
+};
 use core::ops::Index;
 
 use vm_core::{
@@ -9,6 +13,12 @@ use vm_core::{
 
 use super::{GlobalProcedureIndex, Procedure};
 use crate::AssemblyError;
+
+// CONSTANTS
+// ================================================================================================
+
+/// Constant that decides how many operation batches disqualify a procedure from inlining.
+const PROCEDURE_INLINING_THRESHOLD: usize = 32;
 
 // MAST FOREST BUILDER
 // ================================================================================================
@@ -21,12 +31,76 @@ pub struct MastForestBuilder {
     procedures: BTreeMap<GlobalProcedureIndex, Arc<Procedure>>,
     procedure_hashes: BTreeMap<GlobalProcedureIndex, RpoDigest>,
     proc_gid_by_hash: BTreeMap<RpoDigest, GlobalProcedureIndex>,
+    merged_node_ids: BTreeSet<MastNodeId>,
 }
 
 impl MastForestBuilder {
-    pub fn build(self) -> MastForest {
-        self.mast_forest
+    /// Removes the unused nodes that were created as part of the assembly process, and returns the
+    /// resulting MAST forest.
+    ///
+    /// It also returns the map from old node IDs to new node IDs; or `None` if the `MastForest` was
+    /// unchanged. Any [`MastNodeId`] used in reference to the old [`MastForest`] should be remapped
+    /// using this map.
+    pub fn build(mut self) -> (MastForest, Option<BTreeMap<MastNodeId, MastNodeId>>) {
+        let nodes_to_remove = get_nodes_to_remove(self.merged_node_ids, &self.mast_forest);
+        let id_remappings = self.mast_forest.remove_nodes(&nodes_to_remove);
+
+        (self.mast_forest, id_remappings)
     }
+}
+
+/// Takes the set of MAST node ids (all basic blocks) that were merged as part of the assembly
+/// process (i.e. they were contiguous and were merged into a single basic block), and returns the
+/// subset of nodes that can be removed from the MAST forest.
+///
+/// Specifically, MAST node ids can be reused, so merging a basic block doesn't mean it should be
+/// removed (specifically in the case where another node refers to it). Hence, we cycle through all
+/// nodes of the forest and only mark for removal those nodes that are not referenced by any node.
+/// We also ensure that procedure roots are not removed.
+fn get_nodes_to_remove(
+    merged_node_ids: BTreeSet<MastNodeId>,
+    mast_forest: &MastForest,
+) -> BTreeSet<MastNodeId> {
+    // make sure not to remove procedure roots
+    let mut nodes_to_remove: BTreeSet<MastNodeId> = merged_node_ids
+        .iter()
+        .filter(|&&mast_node_id| !mast_forest.is_procedure_root(mast_node_id))
+        .copied()
+        .collect();
+
+    for node in mast_forest.nodes() {
+        match node {
+            MastNode::Join(node) => {
+                if nodes_to_remove.contains(&node.first()) {
+                    nodes_to_remove.remove(&node.first());
+                }
+                if nodes_to_remove.contains(&node.second()) {
+                    nodes_to_remove.remove(&node.second());
+                }
+            },
+            MastNode::Split(node) => {
+                if nodes_to_remove.contains(&node.on_true()) {
+                    nodes_to_remove.remove(&node.on_true());
+                }
+                if nodes_to_remove.contains(&node.on_false()) {
+                    nodes_to_remove.remove(&node.on_false());
+                }
+            },
+            MastNode::Loop(node) => {
+                if nodes_to_remove.contains(&node.body()) {
+                    nodes_to_remove.remove(&node.body());
+                }
+            },
+            MastNode::Call(node) => {
+                if nodes_to_remove.contains(&node.callee()) {
+                    nodes_to_remove.remove(&node.callee());
+                }
+            },
+            MastNode::Block(_) | MastNode::Dyn | MastNode::External(_) => (),
+        }
+    }
+
+    nodes_to_remove
 }
 
 // ------------------------------------------------------------------------------------------------
@@ -140,6 +214,123 @@ impl MastForestBuilder {
     pub fn make_root(&mut self, new_root_id: MastNodeId) {
         self.mast_forest.make_root(new_root_id)
     }
+
+    /// Builds a tree of `JOIN` operations to combine the provided MAST node IDs.
+    pub fn join_nodes(&mut self, node_ids: Vec<MastNodeId>) -> Result<MastNodeId, AssemblyError> {
+        debug_assert!(!node_ids.is_empty(), "cannot combine empty MAST node id list");
+
+        let mut node_ids = self.merge_contiguous_basic_blocks(node_ids)?;
+
+        // build a binary tree of blocks joining them using JOIN blocks
+        while node_ids.len() > 1 {
+            let last_mast_node_id = if node_ids.len() % 2 == 0 { None } else { node_ids.pop() };
+
+            let mut source_node_ids = Vec::new();
+            core::mem::swap(&mut node_ids, &mut source_node_ids);
+
+            let mut source_mast_node_iter = source_node_ids.drain(0..);
+            while let (Some(left), Some(right)) =
+                (source_mast_node_iter.next(), source_mast_node_iter.next())
+            {
+                let join_mast_node_id = self.ensure_join(left, right)?;
+
+                node_ids.push(join_mast_node_id);
+            }
+            if let Some(mast_node_id) = last_mast_node_id {
+                node_ids.push(mast_node_id);
+            }
+        }
+
+        Ok(node_ids.remove(0))
+    }
+
+    /// Returns a list of [`MastNodeId`]s built from merging the contiguous basic blocks
+    /// found in the provided list of [`MastNodeId`]s.
+    fn merge_contiguous_basic_blocks(
+        &mut self,
+        node_ids: Vec<MastNodeId>,
+    ) -> Result<Vec<MastNodeId>, AssemblyError> {
+        let mut merged_node_ids = Vec::with_capacity(node_ids.len());
+        let mut contiguous_basic_block_ids: Vec<MastNodeId> = Vec::new();
+
+        for mast_node_id in node_ids {
+            if self[mast_node_id].is_basic_block() {
+                contiguous_basic_block_ids.push(mast_node_id);
+            } else {
+                merged_node_ids.extend(self.merge_basic_blocks(&contiguous_basic_block_ids)?);
+                contiguous_basic_block_ids.clear();
+
+                merged_node_ids.push(mast_node_id);
+            }
+        }
+
+        merged_node_ids.extend(self.merge_basic_blocks(&contiguous_basic_block_ids)?);
+
+        Ok(merged_node_ids)
+    }
+
+    /// Creates a new basic block by appending all operations and decorators in the provided list of
+    /// basic blocks (which are assumed to be contiguous).
+    ///
+    /// # Panics
+    /// - Panics if a provided [`MastNodeId`] doesn't refer to a basic block node.
+    fn merge_basic_blocks(
+        &mut self,
+        contiguous_basic_block_ids: &[MastNodeId],
+    ) -> Result<Vec<MastNodeId>, AssemblyError> {
+        if contiguous_basic_block_ids.is_empty() {
+            return Ok(Vec::new());
+        }
+        if contiguous_basic_block_ids.len() == 1 {
+            return Ok(contiguous_basic_block_ids.to_vec());
+        }
+
+        let mut operations: Vec<Operation> = Vec::new();
+        let mut decorators = DecoratorList::new();
+
+        let mut merged_basic_blocks: Vec<MastNodeId> = Vec::new();
+
+        for &basic_block_id in contiguous_basic_block_ids {
+            // It is safe to unwrap here, since we already checked that all IDs in
+            // `contiguous_basic_block_ids` are `BasicBlockNode`s
+            let basic_block_node = self[basic_block_id].get_basic_block().unwrap().clone();
+
+            // check if the block should be merged with other blocks
+            if should_merge(
+                self.mast_forest.is_procedure_root(basic_block_id),
+                basic_block_node.num_op_batches(),
+            ) {
+                for (op_idx, decorator) in basic_block_node.decorators() {
+                    decorators.push((*op_idx + operations.len(), decorator.clone()));
+                }
+                for batch in basic_block_node.op_batches() {
+                    operations.extend_from_slice(batch.ops());
+                }
+            } else {
+                // if we don't want to merge this block, we flush the buffer of operations into a
+                // new block, and add the un-merged block after it
+                if !operations.is_empty() {
+                    let block_ops = core::mem::take(&mut operations);
+                    let block_decorators = core::mem::take(&mut decorators);
+                    let merged_basic_block_id =
+                        self.ensure_block(block_ops, Some(block_decorators))?;
+
+                    merged_basic_blocks.push(merged_basic_block_id);
+                }
+                merged_basic_blocks.push(basic_block_id);
+            }
+        }
+
+        // Mark the removed basic blocks as merged
+        self.merged_node_ids.extend(contiguous_basic_block_ids.iter());
+
+        if !operations.is_empty() || !decorators.is_empty() {
+            let merged_basic_block = self.ensure_block(operations, Some(decorators))?;
+            merged_basic_blocks.push(merged_basic_block);
+        }
+
+        Ok(merged_basic_blocks)
+    }
 }
 
 // ------------------------------------------------------------------------------------------------
@@ -170,12 +361,8 @@ impl MastForestBuilder {
         operations: Vec<Operation>,
         decorators: Option<DecoratorList>,
     ) -> Result<MastNodeId, AssemblyError> {
-        match decorators {
-            Some(decorators) => {
-                self.ensure_node(MastNode::new_basic_block_with_decorators(operations, decorators))
-            },
-            None => self.ensure_node(MastNode::new_basic_block(operations)),
-        }
+        let block = MastNode::new_basic_block(operations, decorators)?;
+        self.ensure_node(block)
     }
 
     /// Adds a join node to the forest, and returns the [`MastNodeId`] associated with it.
@@ -233,5 +420,27 @@ impl Index<MastNodeId> for MastForestBuilder {
     #[inline(always)]
     fn index(&self, node_id: MastNodeId) -> &Self::Output {
         &self.mast_forest[node_id]
+    }
+}
+
+// HELPER FUNCTIONS
+// ================================================================================================
+
+/// Determines if we want to merge a block with other blocks. Currently, this works as follows:
+/// - If the block is a procedure, we merge it only if the number of operation batches is smaller
+///   then the threshold (currently set at 32). The reasoning is based on an estimate of the the
+///   runtime penalty of not inlining the procedure. We assume that this penalty is roughly 3 extra
+///   nodes in the MAST and so would require 3 additional hashes at runtime. Since hashing each
+///   operation batch requires 1 hash, this basically implies that if the runtime penalty is more
+///   than 10%, we inline the block, but if it is less than 10% we accept the penalty to make
+///   deserialization faster.
+/// - If the block is not a procedure, we always merge it because: (1) if it is a large block, it is
+///   likely to be unique and, thus, the original block will be orphaned and removed later; (2) if
+///   it is a small block, there is a large run-time benefit for inlining it.
+fn should_merge(is_procedure: bool, num_op_batches: usize) -> bool {
+    if is_procedure {
+        num_op_batches < PROCEDURE_INLINING_THRESHOLD
+    } else {
+        true
     }
 }

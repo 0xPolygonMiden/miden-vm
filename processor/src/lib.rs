@@ -277,20 +277,24 @@ where
             MastNode::Call(node) => self.execute_call_node(node, program),
             MastNode::Dyn => self.execute_dyn_node(program),
             MastNode::External(external_node) => {
-                let mast_forest =
-                    self.host.borrow().get_mast_forest(&external_node.digest()).ok_or_else(
-                        || ExecutionError::MastForestNotFound {
-                            root_digest: external_node.digest(),
-                        },
-                    )?;
+                let node_digest = external_node.digest();
+                let mast_forest = self
+                    .host
+                    .borrow()
+                    .get_mast_forest(&node_digest)
+                    .ok_or(ExecutionError::MastForestNotFound { root_digest: node_digest })?;
 
                 // We limit the parts of the program that can be called externally to procedure
                 // roots, even though MAST doesn't have that restriction.
-                let root_id = mast_forest.find_procedure_root(external_node.digest()).ok_or(
-                    ExecutionError::MalformedMastForestInHost {
-                        root_digest: external_node.digest(),
-                    },
+                let root_id = mast_forest.find_procedure_root(node_digest).ok_or(
+                    ExecutionError::MalformedMastForestInHost { root_digest: node_digest },
                 )?;
+
+                // if the node that we got by looking up an external reference is also an External
+                // node, we are about to enter into an infinite loop - so, return an error
+                if mast_forest[root_id].is_external() {
+                    return Err(ExecutionError::CircularExternalNode(node_digest));
+                }
 
                 self.execute_mast_node(root_id, &mast_forest)
             },

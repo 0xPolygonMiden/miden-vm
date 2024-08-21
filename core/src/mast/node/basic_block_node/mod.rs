@@ -5,7 +5,9 @@ use miden_crypto::{hash::rpo::RpoDigest, Felt, ZERO};
 use miden_formatting::prettier::PrettyPrint;
 use winter_utils::flatten_slice_elements;
 
-use crate::{chiplets::hasher, Decorator, DecoratorIterator, DecoratorList, Operation};
+use crate::{
+    chiplets::hasher, mast::MastForestError, Decorator, DecoratorIterator, DecoratorList, Operation,
+};
 
 mod op_batch;
 pub use op_batch::OpBatch;
@@ -77,31 +79,38 @@ impl BasicBlockNode {
 // ------------------------------------------------------------------------------------------------
 /// Constructors
 impl BasicBlockNode {
-    /// Returns a new [`BasicBlockNode`] instantiated with the specified operations.
-    ///
-    /// # Errors (TODO)
-    /// Returns an error if:
-    /// - `operations` vector is empty.
-    /// - `operations` vector contains any number of system operations.
-    pub fn new(operations: Vec<Operation>) -> Self {
-        assert!(!operations.is_empty()); // TODO: return error
-        Self::with_decorators(operations, DecoratorList::new())
-    }
-
     /// Returns a new [`BasicBlockNode`] instantiated with the specified operations and decorators.
     ///
-    /// # Errors (TODO)
     /// Returns an error if:
     /// - `operations` vector is empty.
-    /// - `operations` vector contains any number of system operations.
-    pub fn with_decorators(operations: Vec<Operation>, decorators: DecoratorList) -> Self {
-        assert!(!operations.is_empty()); // TODO: return error
+    pub fn new(
+        operations: Vec<Operation>,
+        decorators: Option<DecoratorList>,
+    ) -> Result<Self, MastForestError> {
+        if operations.is_empty() {
+            return Err(MastForestError::EmptyBasicBlock);
+        }
 
-        // validate decorators list (only in debug mode)
+        // None is equivalent to an empty list of decorators moving forward.
+        let decorators = decorators.unwrap_or_default();
+
+        // Validate decorators list (only in debug mode).
         #[cfg(debug_assertions)]
         validate_decorators(&operations, &decorators);
 
-        let (op_batches, digest) = batch_ops(operations);
+        let (op_batches, digest) = batch_and_hash_ops(operations);
+        Ok(Self { op_batches, digest, decorators })
+    }
+
+    /// Returns a new [`BasicBlockNode`] from values that are assumed to be correct.
+    /// Should only be used when the source of the inputs is trusted (e.g. deserialization).
+    pub fn new_unsafe(
+        operations: Vec<Operation>,
+        decorators: DecoratorList,
+        digest: RpoDigest,
+    ) -> Self {
+        assert!(!operations.is_empty());
+        let (op_batches, _) = batch_ops(operations);
         Self { op_batches, digest, decorators }
     }
 }
@@ -119,6 +128,11 @@ impl BasicBlockNode {
         &self.op_batches
     }
 
+    /// Returns the number of operation batches in this basic block.
+    pub fn num_op_batches(&self) -> usize {
+        self.op_batches.len()
+    }
+
     /// Returns the total number of operation groups in this basic block.
     ///
     /// Then number of operation groups is computed as follows:
@@ -131,6 +145,12 @@ impl BasicBlockNode {
     pub fn num_op_groups(&self) -> usize {
         let last_batch_num_groups = self.op_batches.last().expect("no last group").num_groups();
         (self.op_batches.len() - 1) * BATCH_SIZE + last_batch_num_groups.next_power_of_two()
+    }
+
+    /// Returns the number of operations in this basic block.
+    pub fn num_operations(&self) -> u32 {
+        let num_ops: usize = self.op_batches.iter().map(|batch| batch.ops().len()).sum();
+        num_ops.try_into().expect("basic block contains more than 2^32 operations")
     }
 
     /// Returns a list of decorators in this basic block node.
@@ -149,7 +169,7 @@ impl BasicBlockNode {
 
     /// Returns the total number of operations and decorators in this basic block.
     pub fn num_operations_and_decorators(&self) -> u32 {
-        let num_ops: usize = self.op_batches.iter().map(|batch| batch.ops().len()).sum();
+        let num_ops: usize = self.num_operations() as usize;
         let num_decorators = self.decorators.len();
 
         (num_ops + num_decorators)
@@ -292,18 +312,29 @@ impl<'a> Iterator for OperationOrDecoratorIterator<'a> {
 // HELPER FUNCTIONS
 // ================================================================================================
 
+/// Groups the provided operations into batches and computes the hash of the block.
+fn batch_and_hash_ops(ops: Vec<Operation>) -> (Vec<OpBatch>, RpoDigest) {
+    // Group the operations into batches.
+    let (batches, batch_groups) = batch_ops(ops);
+
+    // Compute the hash of all operation groups.
+    let op_groups = &flatten_slice_elements(&batch_groups);
+    let hash = hasher::hash_elements(op_groups);
+
+    (batches, hash)
+}
+
 /// Groups the provided operations into batches as described in the docs for this module (i.e.,
 /// up to 9 operations per group, and 8 groups per batch).
-///
-/// After the operations have been grouped, computes the hash of the block.
-fn batch_ops(ops: Vec<Operation>) -> (Vec<OpBatch>, RpoDigest) {
-    let mut batch_acc = OpBatchAccumulator::new();
+/// Returns a list of operation batches and a list of operation groups.
+fn batch_ops(ops: Vec<Operation>) -> (Vec<OpBatch>, Vec<[Felt; BATCH_SIZE]>) {
     let mut batches = Vec::<OpBatch>::new();
+    let mut batch_acc = OpBatchAccumulator::new();
     let mut batch_groups = Vec::<[Felt; BATCH_SIZE]>::new();
 
     for op in ops {
-        // if the operation cannot be accepted into the current accumulator, add the contents of
-        // the accumulator to the list of batches and start a new accumulator
+        // If the operation cannot be accepted into the current accumulator, add the contents of
+        // the accumulator to the list of batches and start a new accumulator.
         if !batch_acc.can_accept_op(op) {
             let batch = batch_acc.into_batch();
             batch_acc = OpBatchAccumulator::new();
@@ -312,22 +343,17 @@ fn batch_ops(ops: Vec<Operation>) -> (Vec<OpBatch>, RpoDigest) {
             batches.push(batch);
         }
 
-        // add the operation to the accumulator
+        // Add the operation to the accumulator.
         batch_acc.add_op(op);
     }
 
-    // make sure we finished processing the last batch
+    // Make sure we finished processing the last batch.
     if !batch_acc.is_empty() {
         let batch = batch_acc.into_batch();
         batch_groups.push(*batch.groups());
         batches.push(batch);
     }
-
-    // compute the hash of all operation groups
-    let op_groups = &flatten_slice_elements(&batch_groups);
-    let hash = hasher::hash_elements(op_groups);
-
-    (batches, hash)
+    (batches, batch_groups)
 }
 
 /// Checks if a given decorators list is valid (only checked in debug mode)
