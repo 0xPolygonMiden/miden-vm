@@ -26,10 +26,6 @@ bench = false
 doctest = false
 
 [[bench]]
-name = "program_compilation"
-harness = false
-
-[[bench]]
 name = "program_execution"
 harness = false
 

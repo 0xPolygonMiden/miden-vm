@@ -128,6 +128,11 @@ impl BasicBlockNode {
         &self.op_batches
     }
 
+    /// Returns the number of operation batches in this basic block.
+    pub fn num_op_batches(&self) -> usize {
+        self.op_batches.len()
+    }
+
     /// Returns the total number of operation groups in this basic block.
     ///
     /// Then number of operation groups is computed as follows:
@@ -142,6 +147,12 @@ impl BasicBlockNode {
         (self.op_batches.len() - 1) * BATCH_SIZE + last_batch_num_groups.next_power_of_two()
     }
 
+    /// Returns the number of operations in this basic block.
+    pub fn num_operations(&self) -> u32 {
+        let num_ops: usize = self.op_batches.iter().map(|batch| batch.ops().len()).sum();
+        num_ops.try_into().expect("basic block contains more than 2^32 operations")
+    }
+
     /// Returns a list of decorators in this basic block node.
     ///
     /// Each decorator is accompanied by the operation index specifying the operation prior to
@@ -154,12 +165,6 @@ impl BasicBlockNode {
     /// this basic block node while executing operation batches of this basic block node.
     pub fn decorator_iter(&self) -> DecoratorIterator {
         DecoratorIterator::new(&self.decorators)
-    }
-
-    pub fn num_operations(&self) -> u32 {
-        let num_ops: usize = self.op_batches.iter().map(|batch| batch.ops().len()).sum();
-
-        num_ops.try_into().expect("basic block contains more than 2^32 operations")
     }
 
     /// Returns the total number of operations and decorators in this basic block.
