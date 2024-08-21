@@ -304,14 +304,14 @@ impl MastForest {
 
     /// Returns an iterator over the digests of local procedures in this MAST forest.
     ///
-    /// A local procedure is defined as a procedure which is not a single external or dyn node.
+    /// A local procedure is defined as a procedure which is not a single external node.
     pub fn local_procedure_digests(&self) -> impl Iterator<Item = RpoDigest> + '_ {
         self.roots.iter().filter_map(|&root_id| {
             let node = &self[root_id];
-            if node.is_local() {
-                Some(node.digest())
-            } else {
+            if node.is_external() {
                 None
+            } else {
+                Some(node.digest())
             }
         })
     }
