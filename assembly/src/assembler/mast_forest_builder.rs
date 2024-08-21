@@ -307,7 +307,7 @@ impl MastForestBuilder {
                     operations.extend_from_slice(batch.ops());
                 }
             } else {
-                // if we don't want to merge this block, the flush the buffer of operations into a
+                // if we don't want to merge this block, we flush the buffer of operations into a
                 // new block, and add the un-merged block after it
                 if !operations.is_empty() {
                     let block_ops = core::mem::take(&mut operations);
