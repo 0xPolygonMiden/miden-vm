@@ -106,6 +106,17 @@ impl MastNode {
 // ------------------------------------------------------------------------------------------------
 /// Public accessors
 impl MastNode {
+    /// Returns true if this node is an external node.
+    pub fn is_external(&self) -> bool {
+        matches!(self, MastNode::External(_))
+    }
+
+    /// Returns true if this node is a Dyn node.
+    pub fn is_dyn(&self) -> bool {
+        matches!(self, MastNode::Dyn)
+    }
+
+    /// Returns true if this node is a basic block.
     pub fn is_basic_block(&self) -> bool {
         matches!(self, Self::Block(_))
     }
