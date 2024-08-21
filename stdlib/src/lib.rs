@@ -6,10 +6,13 @@ use alloc::sync::Arc;
 
 use assembly::{mast::MastForest, utils::Deserializable, Library};
 
+static STDLIB: spin::Once<StdLibrary> = spin::Once::new();
+
 // STANDARD LIBRARY
 // ================================================================================================
 
 /// TODO: add docs
+#[derive(Clone)]
 pub struct StdLibrary(Library);
 
 impl AsRef<Library> for StdLibrary {
@@ -37,7 +40,13 @@ impl StdLibrary {
 
 impl Default for StdLibrary {
     fn default() -> Self {
-        Self(Library::read_from_bytes(Self::SERIALIZED).expect("failed to deserialize stdlib"))
+        STDLIB
+            .call_once(|| {
+                let contents =
+                    Library::read_from_bytes(Self::SERIALIZED).expect("failed to read std masl!");
+                Self(contents)
+            })
+            .clone()
     }
 }
 
