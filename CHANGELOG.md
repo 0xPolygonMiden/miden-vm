@@ -16,6 +16,7 @@
 #### Fixes
 
 - Fixed an issue with registering non-local procedures in `MemMastForestStore` (#1462).
+- Added a check for circular external node lookups in the processor (#1464).
 
 ## 0.10.4 (2024-08-15) - `miden-processor` crate only
 
