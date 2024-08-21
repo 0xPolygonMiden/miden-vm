@@ -1,17 +1,23 @@
 # Changelog
 
-## 0.11.0 (TBD)
-- Assembler: Merge contiguous basic blocks (#1454)
-- Assembler: Add a threshold number of operations after which we stop merging more in the same block (#1461)
+## 0.10.5 (2024-08-21)
 
 #### Enhancements
 
 - Updated `MastForest::read_from` to deserialize without computing node hashes unnecessarily (#1453).
+- Assembler: Merge contiguous basic blocks (#1454).
+- Assembler: Add a threshold number of operations after which we stop merging more in the same block (#1461).
 
 #### Changes
 
 - Added `new_unsafe()` constructors to MAST node types which do not compute node hashes (#1453).
 - Consolidated `BasicBlockNode` constructors and converted assert flow to `MastForestError::EmptyBasicBlock` (#1453).
+
+## 0.10.4 (2024-08-15) - `miden-processor` crate only
+
+#### Enhancements
+
+- Added support for executing `Dyn` nodes from external MAST forests (#1455).
 
 ## 0.10.3 (2024-08-12)
 
