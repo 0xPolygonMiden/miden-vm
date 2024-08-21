@@ -2,6 +2,7 @@
 
 ## 0.11.0 (TBD)
 - Assembler: Merge contiguous basic blocks (#1454)
+- Assembler: Add a threshold number of operations after which we stop merging more in the same block (#1461)
 
 #### Enhancements
 

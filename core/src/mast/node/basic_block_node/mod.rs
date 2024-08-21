@@ -128,6 +128,11 @@ impl BasicBlockNode {
         &self.op_batches
     }
 
+    /// Returns the number of operation batches in this basic block.
+    pub fn num_op_batches(&self) -> usize {
+        self.op_batches.len()
+    }
+
     /// Returns the total number of operation groups in this basic block.
     ///
     /// Then number of operation groups is computed as follows:
@@ -140,6 +145,12 @@ impl BasicBlockNode {
     pub fn num_op_groups(&self) -> usize {
         let last_batch_num_groups = self.op_batches.last().expect("no last group").num_groups();
         (self.op_batches.len() - 1) * BATCH_SIZE + last_batch_num_groups.next_power_of_two()
+    }
+
+    /// Returns the number of operations in this basic block.
+    pub fn num_operations(&self) -> u32 {
+        let num_ops: usize = self.op_batches.iter().map(|batch| batch.ops().len()).sum();
+        num_ops.try_into().expect("basic block contains more than 2^32 operations")
     }
 
     /// Returns a list of decorators in this basic block node.
@@ -158,7 +169,7 @@ impl BasicBlockNode {
 
     /// Returns the total number of operations and decorators in this basic block.
     pub fn num_operations_and_decorators(&self) -> u32 {
-        let num_ops: usize = self.op_batches.iter().map(|batch| batch.ops().len()).sum();
+        let num_ops: usize = self.num_operations() as usize;
         let num_decorators = self.decorators.len();
 
         (num_ops + num_decorators)
