@@ -13,7 +13,7 @@ pub use node::{
 };
 use winter_utils::DeserializationError;
 
-use crate::{DecoratorList, Operation};
+use crate::{Decorator, DecoratorList, Operation};
 
 mod serialization;
 
@@ -34,6 +34,9 @@ pub struct MastForest {
 
     /// Roots of procedures defined within this MAST forest.
     roots: Vec<MastNodeId>,
+
+    /// All the decorators included in the MAST forest.
+    decorators: Vec<Decorator>,
 }
 
 // ------------------------------------------------------------------------------------------------
@@ -50,6 +53,18 @@ impl MastForest {
 impl MastForest {
     /// The maximum number of nodes that can be stored in a single MAST forest.
     const MAX_NODES: usize = (1 << 30) - 1;
+
+    /// Adds a decorator to the forest, and returns the associated [`DecoratorId`].
+    pub fn add_decorator(&mut self, decorator: Decorator) -> Result<DecoratorId, MastForestError> {
+        if self.decorators.len() >= u32::MAX as usize {
+            return Err(MastForestError::TooManyDecorators);
+        }
+
+        let new_decorator_id = DecoratorId(self.decorators.len() as u32);
+        self.decorators.push(decorator);
+
+        Ok(new_decorator_id)
+    }
 
     /// Adds a node to the forest, and returns the associated [`MastNodeId`].
     ///
@@ -416,12 +431,78 @@ impl fmt::Display for MastNodeId {
     }
 }
 
+// DECORATOR ID
+// ================================================================================================
+
+/// An opaque handle to a [`Decorator`] in some [`MastForest`]. It is the responsibility of the user
+/// to use a given [`DecoratorId`] with the corresponding [`MastForest`].
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub struct DecoratorId(u32);
+
+impl DecoratorId {
+    /// Returns a new `DecoratorId` with the provided inner value, or an error if the provided
+    /// `value` is greater than the number of nodes in the forest.
+    ///
+    /// For use in deserialization.
+    pub fn from_u32_safe(
+        value: u32,
+        mast_forest: &MastForest,
+    ) -> Result<Self, DeserializationError> {
+        if (value as usize) < mast_forest.decorators.len() {
+            Ok(Self(value))
+        } else {
+            Err(DeserializationError::InvalidValue(format!(
+                "Invalid deserialized MAST decorator id '{}', but only {} decorators in the forest",
+                value,
+                mast_forest.nodes.len(),
+            )))
+        }
+    }
+
+    pub fn as_usize(&self) -> usize {
+        self.0 as usize
+    }
+
+    pub fn as_u32(&self) -> u32 {
+        self.0
+    }
+}
+
+impl From<DecoratorId> for usize {
+    fn from(value: DecoratorId) -> Self {
+        value.0 as usize
+    }
+}
+
+impl From<DecoratorId> for u32 {
+    fn from(value: DecoratorId) -> Self {
+        value.0
+    }
+}
+
+impl From<&DecoratorId> for u32 {
+    fn from(value: &DecoratorId) -> Self {
+        value.0
+    }
+}
+
+impl fmt::Display for DecoratorId {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "DecoratorId({})", self.0)
+    }
+}
+
 // MAST FOREST ERROR
 // ================================================================================================
 
 /// Represents the types of errors that can occur when dealing with MAST forest.
 #[derive(Debug, thiserror::Error, PartialEq)]
 pub enum MastForestError {
+    #[error(
+        "invalid decorator count: MAST forest exceeds the maximum of {} decorators",
+        u32::MAX
+    )]
+    TooManyDecorators,
     #[error(
         "invalid node count: MAST forest exceeds the maximum of {} nodes",
         MastForest::MAX_NODES

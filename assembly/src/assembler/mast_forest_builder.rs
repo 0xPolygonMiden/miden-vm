@@ -7,8 +7,8 @@ use core::ops::Index;
 
 use vm_core::{
     crypto::hash::RpoDigest,
-    mast::{MastForest, MastNode, MastNodeId},
-    DecoratorList, Operation,
+    mast::{DecoratorId, MastForest, MastNode, MastNodeId},
+    Decorator, DecoratorList, Operation,
 };
 
 use super::{GlobalProcedureIndex, Procedure};
@@ -336,6 +336,13 @@ impl MastForestBuilder {
 // ------------------------------------------------------------------------------------------------
 /// Node inserters
 impl MastForestBuilder {
+    /// Adds a decorator to the forest, and returns the [`Decorator`] associated with it.
+    fn add_decorator(&mut self, decorator: Decorator) -> Result<DecoratorId, AssemblyError> {
+        let decorator_id = self.mast_forest.add_decorator(decorator)?;
+
+        Ok(decorator_id)
+    }
+
     /// Adds a node to the forest, and returns the [`MastNodeId`] associated with it.
     ///
     /// If a [`MastNode`] which is equal to the current node was previously added, the previously
