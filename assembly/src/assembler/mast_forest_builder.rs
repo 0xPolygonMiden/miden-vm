@@ -3,7 +3,7 @@ use alloc::{
     sync::Arc,
     vec::Vec,
 };
-use core::ops::Index;
+use core::ops::{Index, IndexMut};
 
 use vm_core::{
     crypto::hash::RpoDigest,
@@ -337,7 +337,7 @@ impl MastForestBuilder {
 /// Node inserters
 impl MastForestBuilder {
     /// Adds a decorator to the forest, and returns the [`Decorator`] associated with it.
-    fn add_decorator(&mut self, decorator: Decorator) -> Result<DecoratorId, AssemblyError> {
+    pub fn add_decorator(&mut self, decorator: Decorator) -> Result<DecoratorId, AssemblyError> {
         let decorator_id = self.mast_forest.add_decorator(decorator)?;
 
         Ok(decorator_id)
@@ -427,6 +427,22 @@ impl Index<MastNodeId> for MastForestBuilder {
     #[inline(always)]
     fn index(&self, node_id: MastNodeId) -> &Self::Output {
         &self.mast_forest[node_id]
+    }
+}
+
+impl Index<DecoratorId> for MastForestBuilder {
+    type Output = Decorator;
+
+    #[inline(always)]
+    fn index(&self, decorator_id: DecoratorId) -> &Self::Output {
+        &self.mast_forest[decorator_id]
+    }
+}
+
+impl IndexMut<DecoratorId> for MastForestBuilder {
+    #[inline(always)]
+    fn index_mut(&mut self, decorator_id: DecoratorId) -> &mut Self::Output {
+        &mut self.mast_forest[decorator_id]
     }
 }
 

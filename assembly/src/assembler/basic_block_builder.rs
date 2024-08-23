@@ -71,13 +71,24 @@ impl BasicBlockBuilder {
 /// Decorators
 impl BasicBlockBuilder {
     /// Add the specified decorator to the list of basic block decorators.
-    pub fn push_decorator(&mut self, decorator: Decorator) {
-        self.decorators.push((self.ops.len(), decorator));
+    pub fn push_decorator(
+        &mut self,
+        decorator: Decorator,
+        mast_forest_builder: &mut MastForestBuilder,
+    ) -> Result<(), AssemblyError> {
+        let decorator_id = mast_forest_builder.add_decorator(decorator)?;
+        self.decorators.push((self.ops.len(), decorator_id));
+
+        Ok(())
     }
 
     /// Adds the specified advice injector to the list of basic block decorators.
-    pub fn push_advice_injector(&mut self, injector: AdviceInjector) {
-        self.push_decorator(Decorator::Advice(injector));
+    pub fn push_advice_injector(
+        &mut self,
+        injector: AdviceInjector,
+        mast_forest_builder: &mut MastForestBuilder,
+    ) -> Result<(), AssemblyError> {
+        self.push_decorator(Decorator::Advice(injector), mast_forest_builder)
     }
 
     /// Adds an AsmOp decorator to the list of basic block decorators.
@@ -88,7 +99,8 @@ impl BasicBlockBuilder {
         &mut self,
         instruction: &Span<Instruction>,
         proc_ctx: &ProcedureContext,
-    ) {
+        mast_forest_builder: &mut MastForestBuilder,
+    ) -> Result<(), AssemblyError> {
         let span = instruction.span();
         let location = proc_ctx.source_manager().location(span).ok();
         let context_name = proc_ctx.name().to_string();
@@ -96,8 +108,10 @@ impl BasicBlockBuilder {
         let op = instruction.to_string();
         let should_break = instruction.should_break();
         let op = AssemblyOp::new(location, context_name, num_cycles, op, should_break);
-        self.push_decorator(Decorator::AsmOp(op));
+        self.push_decorator(Decorator::AsmOp(op), mast_forest_builder)?;
         self.last_asmop_pos = self.decorators.len() - 1;
+
+        Ok(())
     }
 
     /// Computes the number of cycles elapsed since the last invocation of track_instruction()
@@ -106,10 +120,12 @@ impl BasicBlockBuilder {
     /// If the cycle count is 0, the original decorator is removed from the list. This can happen
     /// for instructions which do not contribute any operations to the span block - e.g., exec,
     /// call, and syscall.
-    pub fn set_instruction_cycle_count(&mut self) {
+    pub fn set_instruction_cycle_count(&mut self, mast_forest_builder: &mut MastForestBuilder) {
         // get the last asmop decorator and the cycle at which it was added
-        let (op_start, assembly_op) =
+        let (op_start, assembly_op_id) =
             self.decorators.get_mut(self.last_asmop_pos).expect("no asmop decorator");
+
+        let assembly_op = &mut mast_forest_builder[*assembly_op_id];
         assert!(matches!(assembly_op, Decorator::AsmOp(_)));
 
         // compute the cycle count for the instruction

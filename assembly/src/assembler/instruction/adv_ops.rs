@@ -1,7 +1,10 @@
 use vm_core::Operation;
 
 use super::{validate_param, BasicBlockBuilder};
-use crate::{ast::AdviceInjectorNode, AssemblyError, ADVICE_READ_LIMIT};
+use crate::{
+    assembler::mast_forest_builder::MastForestBuilder, ast::AdviceInjectorNode, AssemblyError,
+    ADVICE_READ_LIMIT,
+};
 
 // NON-DETERMINISTIC (ADVICE) INPUTS
 // ================================================================================================
@@ -23,6 +26,10 @@ pub fn adv_push(span: &mut BasicBlockBuilder, n: u8) -> Result<(), AssemblyError
 // ================================================================================================
 
 /// Appends advice injector decorator to the span.
-pub fn adv_inject(span: &mut BasicBlockBuilder, injector: &AdviceInjectorNode) {
-    span.push_advice_injector(injector.into());
+pub fn adv_inject(
+    span: &mut BasicBlockBuilder,
+    injector: &AdviceInjectorNode,
+    mast_forest_builder: &mut MastForestBuilder,
+) -> Result<(), AssemblyError> {
+    span.push_advice_injector(injector.into(), mast_forest_builder)
 }

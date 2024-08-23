@@ -270,7 +270,7 @@ where
             .ok_or(ExecutionError::MastNodeNotFoundInForest { node_id })?;
 
         match node {
-            MastNode::Block(node) => self.execute_basic_block_node(node),
+            MastNode::Block(node) => self.execute_basic_block_node(node, program),
             MastNode::Join(node) => self.execute_join_node(node, program),
             MastNode::Split(node) => self.execute_split_node(node, program),
             MastNode::Loop(node) => self.execute_loop_node(node, program),
@@ -434,14 +434,20 @@ where
     fn execute_basic_block_node(
         &mut self,
         basic_block: &BasicBlockNode,
+        program: &MastForest,
     ) -> Result<(), ExecutionError> {
         self.start_basic_block_node(basic_block)?;
 
         let mut op_offset = 0;
-        let mut decorators = basic_block.decorator_iter();
+        let mut decorator_ids = basic_block.decorator_iter();
 
         // execute the first operation batch
-        self.execute_op_batch(&basic_block.op_batches()[0], &mut decorators, op_offset)?;
+        self.execute_op_batch(
+            &basic_block.op_batches()[0],
+            &mut decorator_ids,
+            op_offset,
+            program,
+        )?;
         op_offset += basic_block.op_batches()[0].ops().len();
 
         // if the span contains more operation batches, execute them. each additional batch is
@@ -450,7 +456,7 @@ where
         for op_batch in basic_block.op_batches().iter().skip(1) {
             self.respan(op_batch);
             self.execute_op(Operation::Noop)?;
-            self.execute_op_batch(op_batch, &mut decorators, op_offset)?;
+            self.execute_op_batch(op_batch, &mut decorator_ids, op_offset, program)?;
             op_offset += op_batch.ops().len();
         }
 
@@ -460,7 +466,10 @@ where
         // can happen for decorators appearing after all operations in a block. these decorators
         // are executed after SPAN block is closed to make sure the VM clock cycle advances beyond
         // the last clock cycle of the SPAN block ops.
-        for decorator in decorators {
+        for &decorator_id in decorator_ids {
+            let decorator = program
+                .get_decorator_by_id(decorator_id)
+                .ok_or(ExecutionError::DecoratorNotFoundInForest { decorator_id })?;
             self.execute_decorator(decorator)?;
         }
 
@@ -479,6 +488,7 @@ where
         batch: &OpBatch,
         decorators: &mut DecoratorIterator,
         op_offset: usize,
+        program: &MastForest,
     ) -> Result<(), ExecutionError> {
         let op_counts = batch.op_counts();
         let mut op_idx = 0;
@@ -492,7 +502,10 @@ where
 
         // execute operations in the batch one by one
         for (i, &op) in batch.ops().iter().enumerate() {
-            while let Some(decorator) = decorators.next_filtered(i + op_offset) {
+            while let Some(&decorator_id) = decorators.next_filtered(i + op_offset) {
+                let decorator = program
+                    .get_decorator_by_id(decorator_id)
+                    .ok_or(ExecutionError::DecoratorNotFoundInForest { decorator_id })?;
                 self.execute_decorator(decorator)?;
             }
 

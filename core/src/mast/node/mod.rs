@@ -101,6 +101,16 @@ impl MastNode {
     pub fn new_external(mast_root: RpoDigest) -> Self {
         Self::External(ExternalNode::new(mast_root))
     }
+
+    #[cfg(test)]
+    pub fn new_basic_block_with_raw_decorators(
+        operations: Vec<Operation>,
+        decorators: Vec<(usize, crate::Decorator)>,
+        mast_forest: &mut MastForest,
+    ) -> Result<Self, MastForestError> {
+        let block = BasicBlockNode::new_with_raw_decorators(operations, decorators, mast_forest)?;
+        Ok(Self::Block(block))
+    }
 }
 
 // ------------------------------------------------------------------------------------------------

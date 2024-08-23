@@ -2,7 +2,10 @@ use alloc::{
     collections::{BTreeMap, BTreeSet},
     vec::Vec,
 };
-use core::{fmt, mem, ops::Index};
+use core::{
+    fmt, mem,
+    ops::{Index, IndexMut},
+};
 
 use miden_crypto::hash::rpo::RpoDigest;
 
@@ -175,6 +178,18 @@ impl MastForest {
         self.remap_and_add_roots(old_root_ids, &id_remappings);
         Some(id_remappings)
     }
+
+    /// Adds a basic block node to the forest, and returns the [`MastNodeId`] associated with it.
+    #[cfg(test)]
+    pub fn add_block_with_raw_decorators(
+        &mut self,
+        operations: Vec<Operation>,
+        decorators: Vec<(usize, Decorator)>,
+    ) -> Result<MastNodeId, MastForestError> {
+        let block =
+            MastNode::new_basic_block_with_raw_decorators(operations, decorators, self)?;
+        self.add_node(block)
+    }
 }
 
 /// Helpers
@@ -290,10 +305,21 @@ fn remove_nodes(
 
 /// Public accessors
 impl MastForest {
+    /// Returns the [`Decorator`] associated with the provided [`DecoratorId`] if valid, or else
+    /// `None`.
+    ///
+    /// This is the fallible version of indexing (e.g. `mast_forest[decorator_id]`).
+    #[inline(always)]
+    pub fn get_decorator_by_id(&self, decorator_id: DecoratorId) -> Option<&Decorator> {
+        let idx = decorator_id.0 as usize;
+
+        self.decorators.get(idx)
+    }
+
     /// Returns the [`MastNode`] associated with the provided [`MastNodeId`] if valid, or else
     /// `None`.
     ///
-    /// This is the failable version of indexing (e.g. `mast_forest[node_id]`).
+    /// This is the fallible version of indexing (e.g. `mast_forest[node_id]`).
     #[inline(always)]
     pub fn get_node_by_id(&self, node_id: MastNodeId) -> Option<&MastNode> {
         let idx = node_id.0 as usize;
@@ -363,6 +389,25 @@ impl Index<MastNodeId> for MastForest {
         let idx = node_id.0 as usize;
 
         &self.nodes[idx]
+    }
+}
+
+impl Index<DecoratorId> for MastForest {
+    type Output = Decorator;
+
+    #[inline(always)]
+    fn index(&self, decorator_id: DecoratorId) -> &Self::Output {
+        let idx = decorator_id.0 as usize;
+
+        &self.decorators[idx]
+    }
+}
+
+impl IndexMut<DecoratorId> for MastForest {
+    #[inline(always)]
+    fn index_mut(&mut self, decorator_id: DecoratorId) -> &mut Self::Output {
+        let idx = decorator_id.0 as usize;
+        &mut self.decorators[idx]
     }
 }
 

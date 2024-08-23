@@ -6,7 +6,9 @@ use miden_formatting::prettier::PrettyPrint;
 use winter_utils::flatten_slice_elements;
 
 use crate::{
-    chiplets::hasher, mast::MastForestError, Decorator, DecoratorIterator, DecoratorList, Operation,
+    chiplets::hasher,
+    mast::{DecoratorId, MastForestError},
+    DecoratorIterator, DecoratorList, Operation,
 };
 
 mod op_batch;
@@ -112,6 +114,21 @@ impl BasicBlockNode {
         assert!(!operations.is_empty());
         let (op_batches, _) = batch_ops(operations);
         Self { op_batches, digest, decorators }
+    }
+
+    /// Returns a new [`BasicBlockNode`] instantiated with the specified operations and decorators.
+    #[cfg(test)]
+    pub fn new_with_raw_decorators(
+        operations: Vec<Operation>,
+        decorators: Vec<(usize, crate::Decorator)>,
+        mast_forest: &mut crate::mast::MastForest,
+    ) -> Result<Self, MastForestError> {
+        let mut decorator_list = Vec::new();
+        for (idx, decorator) in decorators {
+            decorator_list.push((idx, mast_forest.add_decorator(decorator)?));
+        }
+
+        Self::new(operations, Some(decorator_list))
     }
 }
 
@@ -245,7 +262,7 @@ impl fmt::Display for BasicBlockNode {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum OperationOrDecorator<'a> {
     Operation(&'a Operation),
-    Decorator(&'a Decorator),
+    Decorator(&'a DecoratorId),
 }
 
 struct OperationOrDecoratorIterator<'a> {

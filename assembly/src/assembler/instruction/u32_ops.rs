@@ -5,7 +5,7 @@ use vm_core::{
 
 use super::{field_ops::append_pow2_op, push_u32_value, validate_param, BasicBlockBuilder};
 use crate::{
-    assembler::ProcedureContext,
+    assembler::{mast_forest_builder::MastForestBuilder, ProcedureContext},
     diagnostics::{RelatedError, Report},
     AssemblyError, Span, MAX_U32_ROTATE_VALUE, MAX_U32_SHIFT_VALUE,
 };
@@ -298,11 +298,15 @@ pub fn u32popcnt(span_builder: &mut BasicBlockBuilder) {
 /// provider).
 ///
 /// This operation takes 37 VM cycles.
-pub fn u32clz(span: &mut BasicBlockBuilder) {
-    span.push_advice_injector(AdviceInjector::U32Clz);
+pub fn u32clz(
+    span: &mut BasicBlockBuilder,
+    mast_forest_builder: &mut MastForestBuilder,
+) -> Result<(), AssemblyError> {
+    span.push_advice_injector(AdviceInjector::U32Clz, mast_forest_builder)?;
     span.push_op(AdvPop); // [clz, n, ...]
 
     calculate_clz(span);
+    Ok(())
 }
 
 /// Translates `u32ctz` assembly instruction to VM operations. `u32ctz` counts the number of
@@ -310,11 +314,16 @@ pub fn u32clz(span: &mut BasicBlockBuilder) {
 /// provider).
 ///
 /// This operation takes 34 VM cycles.
-pub fn u32ctz(span: &mut BasicBlockBuilder) {
-    span.push_advice_injector(AdviceInjector::U32Ctz);
+pub fn u32ctz(
+    span: &mut BasicBlockBuilder,
+    mast_forest_builder: &mut MastForestBuilder,
+) -> Result<(), AssemblyError> {
+    span.push_advice_injector(AdviceInjector::U32Ctz, mast_forest_builder)?;
     span.push_op(AdvPop); // [ctz, n, ...]
 
     calculate_ctz(span);
+
+    Ok(())
 }
 
 /// Translates `u32clo` assembly instruction to VM operations. `u32clo` counts the number of
@@ -322,11 +331,15 @@ pub fn u32ctz(span: &mut BasicBlockBuilder) {
 /// provider).
 ///
 /// This operation takes 36 VM cycles.
-pub fn u32clo(span: &mut BasicBlockBuilder) {
-    span.push_advice_injector(AdviceInjector::U32Clo);
+pub fn u32clo(
+    span: &mut BasicBlockBuilder,
+    mast_forest_builder: &mut MastForestBuilder,
+) -> Result<(), AssemblyError> {
+    span.push_advice_injector(AdviceInjector::U32Clo, mast_forest_builder)?;
     span.push_op(AdvPop); // [clo, n, ...]
 
     calculate_clo(span);
+    Ok(())
 }
 
 /// Translates `u32cto` assembly instruction to VM operations. `u32cto` counts the number of
@@ -334,11 +347,16 @@ pub fn u32clo(span: &mut BasicBlockBuilder) {
 /// provider).
 ///
 /// This operation takes 33 VM cycles.
-pub fn u32cto(span: &mut BasicBlockBuilder) {
-    span.push_advice_injector(AdviceInjector::U32Cto);
+pub fn u32cto(
+    span: &mut BasicBlockBuilder,
+    mast_forest_builder: &mut MastForestBuilder,
+) -> Result<(), AssemblyError> {
+    span.push_advice_injector(AdviceInjector::U32Cto, mast_forest_builder)?;
     span.push_op(AdvPop); // [cto, n, ...]
 
     calculate_cto(span);
+
+    Ok(())
 }
 
 /// Specifically handles these specific inputs per the spec.
