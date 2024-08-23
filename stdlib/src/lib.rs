@@ -2,6 +2,8 @@
 
 extern crate alloc;
 
+use alloc::sync::Arc;
+
 use assembly::{mast::MastForest, utils::Deserializable, Library};
 
 // STANDARD LIBRARY
@@ -22,22 +24,20 @@ impl From<StdLibrary> for Library {
     }
 }
 
-impl From<StdLibrary> for MastForest {
-    fn from(value: StdLibrary) -> Self {
-        value.0.into()
-    }
-}
-
 impl StdLibrary {
+    /// Serialized representation of the Miden standard library.
     pub const SERIALIZED: &'static [u8] =
         include_bytes!(concat!(env!("OUT_DIR"), "/assets/std.masl"));
+
+    /// Returns a reference to the [MastForest] underlying the Miden standard library.
+    pub fn mast_forest(&self) -> Arc<MastForest> {
+        self.0.mast_forest()
+    }
 }
 
 impl Default for StdLibrary {
     fn default() -> Self {
-        let contents =
-            Library::read_from_bytes(Self::SERIALIZED).expect("failed to read std masl!");
-        Self(contents)
+        Self(Library::read_from_bytes(Self::SERIALIZED).expect("failed to deserialize stdlib"))
     }
 }
 

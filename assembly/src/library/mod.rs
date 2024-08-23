@@ -1,6 +1,7 @@
 use alloc::{
     collections::{BTreeMap, BTreeSet},
     string::{String, ToString},
+    sync::Arc,
     vec::Vec,
 };
 
@@ -48,7 +49,7 @@ pub struct Library {
     /// any paths.
     exports: BTreeMap<QualifiedProcedureName, Export>,
     /// The MAST forest underlying this library.
-    mast_forest: MastForest,
+    mast_forest: Arc<MastForest>,
 }
 
 impl AsRef<Library> for Library {
@@ -71,7 +72,7 @@ enum Export {
 impl Library {
     /// Constructs a new [`Library`] from the provided MAST forest and a set of exports.
     pub fn new(
-        mast_forest: MastForest,
+        mast_forest: Arc<MastForest>,
         exports: BTreeMap<QualifiedProcedureName, RpoDigest>,
     ) -> Self {
         let mut fqn_to_export = BTreeMap::new();
@@ -111,8 +112,8 @@ impl Library {
     }
 
     /// Returns the inner [`MastForest`].
-    pub fn mast_forest(&self) -> &MastForest {
-        &self.mast_forest
+    pub fn mast_forest(&self) -> Arc<MastForest> {
+        self.mast_forest.clone()
     }
 }
 
@@ -143,12 +144,6 @@ impl Library {
     }
 }
 
-impl From<Library> for MastForest {
-    fn from(value: Library) -> Self {
-        value.mast_forest
-    }
-}
-
 impl Serializable for Library {
     fn write_into<W: ByteWriter>(&self, target: &mut W) {
         let Self { digest: _, exports, mast_forest } = self;
@@ -166,7 +161,7 @@ impl Serializable for Library {
 
 impl Deserializable for Library {
     fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
-        let mast_forest = MastForest::read_from(source)?;
+        let mast_forest = Arc::new(MastForest::read_from(source)?);
 
         let num_exports = source.read_usize()?;
         let mut exports = BTreeMap::new();
@@ -356,7 +351,7 @@ impl Export {
 /// - All exported procedures must be exported directly from the kernel namespace (i.e., `#sys`).
 /// - There must be at least one exported procedure.
 /// - The number of exported procedures cannot exceed [Kernel::MAX_NUM_PROCEDURES] (i.e., 256).
-#[derive(Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct KernelLibrary {
     kernel: Kernel,
     kernel_info: ModuleInfo,
@@ -377,12 +372,12 @@ impl KernelLibrary {
     }
 
     /// Returns the inner [`MastForest`].
-    pub fn mast_forest(&self) -> &MastForest {
+    pub fn mast_forest(&self) -> Arc<MastForest> {
         self.library.mast_forest()
     }
 
     /// Destructures this kernel library into individual parts.
-    pub fn into_parts(self) -> (Kernel, ModuleInfo, MastForest) {
+    pub fn into_parts(self) -> (Kernel, ModuleInfo, Arc<MastForest>) {
         (self.kernel, self.kernel_info, self.library.mast_forest)
     }
 }
@@ -420,12 +415,6 @@ impl TryFrom<Library> for KernelLibrary {
             kernel_info: kernel_module,
             library,
         })
-    }
-}
-
-impl From<KernelLibrary> for MastForest {
-    fn from(value: KernelLibrary) -> Self {
-        value.library.mast_forest
     }
 }
 

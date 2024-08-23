@@ -79,7 +79,7 @@ fn decoder_p1_join() {
 
         let join_id = mast_forest.add_join(basic_block_1_id, basic_block_2_id).unwrap();
 
-        Program::new(mast_forest, join_id)
+        Program::new(mast_forest.into(), join_id)
     };
 
     let trace = build_trace_from_program(&program, &[]);
@@ -147,7 +147,7 @@ fn decoder_p1_split() {
 
         let split_id = mast_forest.add_split(basic_block_1_id, basic_block_2_id).unwrap();
 
-        Program::new(mast_forest, split_id)
+        Program::new(mast_forest.into(), split_id)
     };
 
     let trace = build_trace_from_program(&program, &[1]);
@@ -204,7 +204,7 @@ fn decoder_p1_loop_with_repeat() {
 
         let loop_node_id = mast_forest.add_loop(join_id).unwrap();
 
-        Program::new(mast_forest, loop_node_id)
+        Program::new(mast_forest.into(), loop_node_id)
     };
 
     let trace = build_trace_from_program(&program, &[0, 1, 1]);
@@ -325,7 +325,7 @@ fn decoder_p2_span_with_respan() {
         let (ops, _) = build_span_with_respan_ops();
         let basic_block_id = mast_forest.add_block(ops, None).unwrap();
 
-        Program::new(mast_forest, basic_block_id)
+        Program::new(mast_forest.into(), basic_block_id)
     };
     let trace = build_trace_from_program(&program, &[]);
     let alphas = rand_array::<Felt, AUX_TRACE_RAND_ELEMENTS>();
@@ -367,7 +367,7 @@ fn decoder_p2_join() {
     let join = MastNode::new_join(basic_block_1_id, basic_block_2_id, &mast_forest).unwrap();
     let join_id = mast_forest.add_node(join.clone()).unwrap();
 
-    let program = Program::new(mast_forest, join_id);
+    let program = Program::new(mast_forest.into(), join_id);
 
     let trace = build_trace_from_program(&program, &[]);
     let alphas = rand_array::<Felt, AUX_TRACE_RAND_ELEMENTS>();
@@ -430,7 +430,7 @@ fn decoder_p2_split_true() {
 
     let split_id = mast_forest.add_split(basic_block_1_id, basic_block_2_id).unwrap();
 
-    let program = Program::new(mast_forest, split_id);
+    let program = Program::new(mast_forest.into(), split_id);
 
     // build trace from program
     let trace = build_trace_from_program(&program, &[1]);
@@ -485,7 +485,7 @@ fn decoder_p2_split_false() {
 
     let split_id = mast_forest.add_split(basic_block_1_id, basic_block_2_id).unwrap();
 
-    let program = Program::new(mast_forest, split_id);
+    let program = Program::new(mast_forest.into(), split_id);
 
     // build trace from program
     let trace = build_trace_from_program(&program, &[0]);
@@ -543,7 +543,7 @@ fn decoder_p2_loop_with_repeat() {
 
     let loop_node_id = mast_forest.add_loop(join_id).unwrap();
 
-    let program = Program::new(mast_forest, loop_node_id);
+    let program = Program::new(mast_forest.into(), loop_node_id);
 
     // build trace from program
     let trace = build_trace_from_program(&program, &[0, 1, 1]);

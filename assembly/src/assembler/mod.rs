@@ -301,7 +301,7 @@ impl Assembler {
 
         // TODO: show a warning if library exports are empty?
         let (mast_forest, _) = mast_forest_builder.build();
-        Ok(Library::new(mast_forest, exports))
+        Ok(Library::new(mast_forest.into(), exports))
     }
 
     /// Assembles the provided module into a [KernelLibrary] intended to be used as a Kernel.
@@ -343,7 +343,7 @@ impl Assembler {
         // TODO: show a warning if library exports are empty?
 
         let (mast_forest, _) = mast_forest_builder.build();
-        let library = Library::new(mast_forest, exports);
+        let library = Library::new(mast_forest.into(), exports);
         Ok(library.try_into()?)
     }
 
@@ -393,7 +393,7 @@ impl Assembler {
         };
 
         Ok(Program::with_kernel(
-            mast_forest,
+            mast_forest.into(),
             entry_node_id,
             self.module_graph.kernel().clone(),
         ))
