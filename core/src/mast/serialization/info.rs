@@ -173,7 +173,7 @@ impl MastNodeType {
                     Self::Call { callee_id: call_node.callee().0 }
                 }
             },
-            Dyn => Self::Dyn,
+            Dyn(_) => Self::Dyn,
             External(_) => Self::External,
         }
     }

@@ -186,8 +186,7 @@ impl MastForest {
         operations: Vec<Operation>,
         decorators: Vec<(usize, Decorator)>,
     ) -> Result<MastNodeId, MastForestError> {
-        let block =
-            MastNode::new_basic_block_with_raw_decorators(operations, decorators, self)?;
+        let block = MastNode::new_basic_block_with_raw_decorators(operations, decorators, self)?;
         self.add_node(block)
     }
 }
@@ -250,7 +249,7 @@ impl MastForest {
                         self.add_call(callee_id).unwrap();
                     }
                 },
-                MastNode::Block(_) | MastNode::Dyn | MastNode::External(_) => {
+                MastNode::Block(_) | MastNode::Dyn(_) | MastNode::External(_) => {
                     self.add_node(live_node).unwrap();
                 },
             }

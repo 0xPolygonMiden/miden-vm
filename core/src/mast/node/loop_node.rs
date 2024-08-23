@@ -1,3 +1,4 @@
+use alloc::vec::Vec;
 use core::fmt;
 
 use miden_crypto::{hash::rpo::RpoDigest, Felt};
@@ -5,7 +6,7 @@ use miden_formatting::prettier::PrettyPrint;
 
 use crate::{
     chiplets::hasher,
-    mast::{MastForest, MastForestError, MastNodeId},
+    mast::{DecoratorId, MastForest, MastForestError, MastNodeId},
     OPCODE_LOOP,
 };
 
@@ -22,6 +23,8 @@ use crate::{
 pub struct LoopNode {
     body: MastNodeId,
     digest: RpoDigest,
+    before_enter: Vec<DecoratorId>,
+    after_exit: Vec<DecoratorId>,
 }
 
 /// Constants
@@ -43,13 +46,23 @@ impl LoopNode {
             hasher::merge_in_domain(&[body_hash, RpoDigest::default()], Self::DOMAIN)
         };
 
-        Ok(Self { body, digest })
+        Ok(Self {
+            body,
+            digest,
+            before_enter: Vec::new(),
+            after_exit: Vec::new(),
+        })
     }
 
     /// Returns a new [`LoopNode`] from values that are assumed to be correct.
     /// Should only be used when the source of the inputs is trusted (e.g. deserialization).
     pub fn new_unsafe(body: MastNodeId, digest: RpoDigest) -> Self {
-        Self { body, digest }
+        Self {
+            body,
+            digest,
+            before_enter: Vec::new(),
+            after_exit: Vec::new(),
+        }
     }
 }
 
@@ -71,6 +84,16 @@ impl LoopNode {
     /// Returns the ID of the node presenting the body of the loop.
     pub fn body(&self) -> MastNodeId {
         self.body
+    }
+
+    /// Returns the decorators to be executed before this node is executed.
+    pub fn before_enter(&self) -> &[DecoratorId] {
+        &self.before_enter
+    }
+
+    /// Returns the decorators to be executed after this node is executed.
+    pub fn after_exit(&self) -> &[DecoratorId] {
+        &self.after_exit
     }
 }
 

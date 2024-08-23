@@ -1,10 +1,11 @@
+use alloc::vec::Vec;
 use core::fmt;
 
 use miden_crypto::{hash::rpo::RpoDigest, Felt};
 
 use crate::{
     chiplets::hasher,
-    mast::{MastForest, MastForestError, MastNodeId},
+    mast::{DecoratorId, MastForest, MastForestError, MastNodeId},
     prettier::PrettyPrint,
     OPCODE_JOIN,
 };
@@ -18,6 +19,8 @@ use crate::{
 pub struct JoinNode {
     children: [MastNodeId; 2],
     digest: RpoDigest,
+    before_enter: Vec<DecoratorId>,
+    after_exit: Vec<DecoratorId>,
 }
 
 /// Constants
@@ -46,13 +49,23 @@ impl JoinNode {
             hasher::merge_in_domain(&[left_child_hash, right_child_hash], Self::DOMAIN)
         };
 
-        Ok(Self { children, digest })
+        Ok(Self {
+            children,
+            digest,
+            before_enter: Vec::new(),
+            after_exit: Vec::new(),
+        })
     }
 
     /// Returns a new [`JoinNode`] from values that are assumed to be correct.
     /// Should only be used when the source of the inputs is trusted (e.g. deserialization).
     pub fn new_unsafe(children: [MastNodeId; 2], digest: RpoDigest) -> Self {
-        Self { children, digest }
+        Self {
+            children,
+            digest,
+            before_enter: Vec::new(),
+            after_exit: Vec::new(),
+        }
     }
 }
 
@@ -82,6 +95,16 @@ impl JoinNode {
     /// defined by the first node completes.
     pub fn second(&self) -> MastNodeId {
         self.children[1]
+    }
+
+    /// Returns the decorators to be executed before this node is executed.
+    pub fn before_enter(&self) -> &[DecoratorId] {
+        &self.before_enter
+    }
+
+    /// Returns the decorators to be executed after this node is executed.
+    pub fn after_exit(&self) -> &[DecoratorId] {
+        &self.after_exit
     }
 }
 

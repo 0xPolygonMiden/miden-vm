@@ -269,13 +269,17 @@ where
             .get_node_by_id(node_id)
             .ok_or(ExecutionError::MastNodeNotFoundInForest { node_id })?;
 
+        for &decorator_id in node.before_enter() {
+            self.execute_decorator(&program[decorator_id])?;
+        }
+
         match node {
-            MastNode::Block(node) => self.execute_basic_block_node(node, program),
-            MastNode::Join(node) => self.execute_join_node(node, program),
-            MastNode::Split(node) => self.execute_split_node(node, program),
-            MastNode::Loop(node) => self.execute_loop_node(node, program),
-            MastNode::Call(node) => self.execute_call_node(node, program),
-            MastNode::Dyn => self.execute_dyn_node(program),
+            MastNode::Block(node) => self.execute_basic_block_node(node, program)?,
+            MastNode::Join(node) => self.execute_join_node(node, program)?,
+            MastNode::Split(node) => self.execute_split_node(node, program)?,
+            MastNode::Loop(node) => self.execute_loop_node(node, program)?,
+            MastNode::Call(node) => self.execute_call_node(node, program)?,
+            MastNode::Dyn(_) => self.execute_dyn_node(program)?,
             MastNode::External(external_node) => {
                 let node_digest = external_node.digest();
                 let mast_forest = self
@@ -296,9 +300,15 @@ where
                     return Err(ExecutionError::CircularExternalNode(node_digest));
                 }
 
-                self.execute_mast_node(root_id, &mast_forest)
+                self.execute_mast_node(root_id, &mast_forest)?;
             },
         }
+
+        for &decorator_id in node.after_exit() {
+            self.execute_decorator(&program[decorator_id])?;
+        }
+
+        Ok(())
     }
 
     /// Executes the specified [JoinNode].

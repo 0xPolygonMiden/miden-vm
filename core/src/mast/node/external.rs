@@ -1,8 +1,9 @@
+use alloc::vec::Vec;
 use core::fmt;
 
 use miden_crypto::hash::rpo::RpoDigest;
 
-use crate::mast::MastForest;
+use crate::mast::{DecoratorId, MastForest};
 
 // EXTERNAL NODE
 // ================================================================================================
@@ -18,12 +19,18 @@ use crate::mast::MastForest;
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct ExternalNode {
     digest: RpoDigest,
+    before_enter: Vec<DecoratorId>,
+    after_exit: Vec<DecoratorId>,
 }
 
 impl ExternalNode {
     /// Returns a new [`ExternalNode`] instantiated with the specified procedure hash.
     pub fn new(procedure_hash: RpoDigest) -> Self {
-        Self { digest: procedure_hash }
+        Self {
+            digest: procedure_hash,
+            before_enter: Vec::new(),
+            after_exit: Vec::new(),
+        }
     }
 }
 
@@ -31,6 +38,16 @@ impl ExternalNode {
     /// Returns the commitment to the MAST node referenced by this external node.
     pub fn digest(&self) -> RpoDigest {
         self.digest
+    }
+
+    /// Returns the decorators to be executed before this node is executed.
+    pub fn before_enter(&self) -> &[DecoratorId] {
+        &self.before_enter
+    }
+
+    /// Returns the decorators to be executed after this node is executed.
+    pub fn after_exit(&self) -> &[DecoratorId] {
+        &self.after_exit
     }
 }
 
