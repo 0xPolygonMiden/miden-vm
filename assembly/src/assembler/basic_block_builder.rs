@@ -1,22 +1,22 @@
 use alloc::{borrow::Borrow, string::ToString, vec::Vec};
 
-use vm_core::{mast::MastNodeId, AdviceInjector, AssemblyOp, Operation};
+use vm_core::{mast::MastNodeId, AdviceInjector, AssemblyOp, Decorator, Operation};
 
-use super::{
-    mast_forest_builder::MastForestBuilder, BodyWrapper, Decorator, DecoratorList, ProcedureContext,
-};
+use super::{mast_forest_builder::MastForestBuilder, BodyWrapper, DecoratorList, ProcedureContext};
 use crate::{ast::Instruction, AssemblyError, Span};
 
 // BASIC BLOCK BUILDER
 // ================================================================================================
 
-/// A helper struct for constructing SPAN blocks while compiling procedure bodies.
+/// A helper struct for constructing basic blocks while compiling procedure bodies.
 ///
-/// Operations and decorators can be added to a span builder via various `add_*()` and `push_*()`
-/// methods, and then SPAN blocks can be extracted from the builder via `extract_*()` methods.
+/// Operations and decorators can be added to a basic block builder via various `add_*()` and
+/// `push_*()` methods, and then basic blocks can be extracted from the builder via `extract_*()`
+/// methods.
 ///
-/// The same span builder can be used to construct many blocks. It is expected that when the last
-/// SPAN block in a procedure's body is constructed `extract_final_span_into()` will be used.
+/// The same basic block builder can be used to construct many blocks. It is expected that when the
+/// last basic block in a procedure's body is constructed [`Self::try_into_basic_block`] will be
+/// used.
 #[derive(Default)]
 pub struct BasicBlockBuilder {
     ops: Vec<Operation>,
@@ -27,11 +27,11 @@ pub struct BasicBlockBuilder {
 
 /// Constructors
 impl BasicBlockBuilder {
-    /// Returns a new [SpanBuilder] instantiated with the specified optional wrapper.
+    /// Returns a new [`BasicBlockBuilder`] instantiated with the specified optional wrapper.
     ///
     /// If the wrapper is provided, the prologue of the wrapper is immediately appended to the
-    /// vector of span operations. The epilogue of the wrapper is appended to the list of
-    /// operations upon consumption of the builder via `extract_final_span_into()` method.
+    /// vector of span operations. The epilogue of the wrapper is appended to the list of operations
+    /// upon consumption of the builder via the [`Self::try_into_basic_block`] method.
     pub(super) fn new(wrapper: Option<BodyWrapper>) -> Self {
         match wrapper {
             Some(wrapper) => Self {
@@ -47,12 +47,12 @@ impl BasicBlockBuilder {
 
 /// Operations
 impl BasicBlockBuilder {
-    /// Adds the specified operation to the list of span operations.
+    /// Adds the specified operation to the list of basic block operations.
     pub fn push_op(&mut self, op: Operation) {
         self.ops.push(op);
     }
 
-    /// Adds the specified sequence of operations to the list of span operations.
+    /// Adds the specified sequence of operations to the list of basic block operations.
     pub fn push_ops<I, O>(&mut self, ops: I)
     where
         I: IntoIterator<Item = O>,
@@ -61,7 +61,7 @@ impl BasicBlockBuilder {
         self.ops.extend(ops.into_iter().map(|o| *o.borrow()));
     }
 
-    /// Adds the specified operation n times to the list of span operations.
+    /// Adds the specified operation n times to the list of basic block operations.
     pub fn push_op_many(&mut self, op: Operation, n: usize) {
         let new_len = self.ops.len() + n;
         self.ops.resize(new_len, op);
@@ -70,17 +70,17 @@ impl BasicBlockBuilder {
 
 /// Decorators
 impl BasicBlockBuilder {
-    /// Add the specified decorator to the list of span decorators.
+    /// Add the specified decorator to the list of basic block decorators.
     pub fn push_decorator(&mut self, decorator: Decorator) {
         self.decorators.push((self.ops.len(), decorator));
     }
 
-    /// Adds the specified advice injector to the list of span decorators.
+    /// Adds the specified advice injector to the list of basic block decorators.
     pub fn push_advice_injector(&mut self, injector: AdviceInjector) {
         self.push_decorator(Decorator::Advice(injector));
     }
 
-    /// Adds an AsmOp decorator to the list of span decorators.
+    /// Adds an AsmOp decorator to the list of basic block decorators.
     ///
     /// This indicates that the provided instruction should be tracked and the cycle count for
     /// this instruction will be computed when the call to set_instruction_cycle_count() is made.

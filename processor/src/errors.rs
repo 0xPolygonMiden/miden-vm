@@ -21,6 +21,7 @@ pub enum ExecutionError {
     AdviceMapKeyNotFound(Word),
     AdviceStackReadFailed(RowIndex),
     CallerNotInSyscall,
+    CircularExternalNode(Digest),
     CycleLimitExceeded(u32),
     DivideByZero(RowIndex),
     DynamicNodeNotFound(Digest),
@@ -90,6 +91,9 @@ impl Display for ExecutionError {
             AdviceStackReadFailed(step) => write!(f, "Advice stack read failed at step {step}"),
             CallerNotInSyscall => {
                 write!(f, "Instruction `caller` used outside of kernel context")
+            },
+            CircularExternalNode(mast_root) => {
+                write!(f, "External node with root {mast_root} resolved to an external node")
             },
             CycleLimitExceeded(max_cycles) => {
                 write!(f, "Exceeded the allowed number of cycles (max cycles = {max_cycles})")

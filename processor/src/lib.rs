@@ -24,9 +24,7 @@ pub use vm_core::{
     StackInputs, StackOutputs, Word, EMPTY_WORD, ONE, ZERO,
 };
 use vm_core::{
-    mast::{
-        BasicBlockNode, CallNode, DynNode, JoinNode, LoopNode, OpBatch, SplitNode, OP_GROUP_SIZE,
-    },
+    mast::{BasicBlockNode, CallNode, JoinNode, LoopNode, OpBatch, SplitNode, OP_GROUP_SIZE},
     Decorator, DecoratorIterator, FieldElement, StackTopState,
 };
 pub use winter_prover::matrix::ColMatrix;
@@ -267,11 +265,11 @@ where
         node_id: MastNodeId,
         program: &MastForest,
     ) -> Result<(), ExecutionError> {
-        let wrapper_node = &program
+        let node = program
             .get_node_by_id(node_id)
             .ok_or(ExecutionError::MastNodeNotFoundInForest { node_id })?;
 
-        match wrapper_node {
+        match node {
             MastNode::Block(node) => self.execute_basic_block_node(node),
             MastNode::Join(node) => self.execute_join_node(node, program),
             MastNode::Split(node) => self.execute_split_node(node, program),
@@ -279,26 +277,31 @@ where
             MastNode::Call(node) => self.execute_call_node(node, program),
             MastNode::Dyn => self.execute_dyn_node(program),
             MastNode::External(external_node) => {
-                let mast_forest =
-                    self.host.borrow().get_mast_forest(&external_node.digest()).ok_or_else(
-                        || ExecutionError::MastForestNotFound {
-                            root_digest: external_node.digest(),
-                        },
-                    )?;
+                let node_digest = external_node.digest();
+                let mast_forest = self
+                    .host
+                    .borrow()
+                    .get_mast_forest(&node_digest)
+                    .ok_or(ExecutionError::MastForestNotFound { root_digest: node_digest })?;
 
-                // We temporarily limit the parts of the program that can be called externally to
-                // procedure roots, even though MAST doesn't have that restriction.
-                let root_id = mast_forest.find_procedure_root(external_node.digest()).ok_or(
-                    ExecutionError::MalformedMastForestInHost {
-                        root_digest: external_node.digest(),
-                    },
+                // We limit the parts of the program that can be called externally to procedure
+                // roots, even though MAST doesn't have that restriction.
+                let root_id = mast_forest.find_procedure_root(node_digest).ok_or(
+                    ExecutionError::MalformedMastForestInHost { root_digest: node_digest },
                 )?;
+
+                // if the node that we got by looking up an external reference is also an External
+                // node, we are about to enter into an infinite loop - so, return an error
+                if mast_forest[root_id].is_external() {
+                    return Err(ExecutionError::CircularExternalNode(node_digest));
+                }
 
                 self.execute_mast_node(root_id, &mast_forest)
             },
         }
     }
 
+    /// Executes the specified [JoinNode].
     #[inline(always)]
     fn execute_join_node(
         &mut self,
@@ -314,6 +317,7 @@ where
         self.end_join_node(node)
     }
 
+    /// Executes the specified [SplitNode].
     #[inline(always)]
     fn execute_split_node(
         &mut self,
@@ -335,7 +339,7 @@ where
         self.end_split_node(node)
     }
 
-    /// Executes the specified [Loop] block.
+    /// Executes the specified [LoopNode].
     #[inline(always)]
     fn execute_loop_node(
         &mut self,
@@ -370,55 +374,62 @@ where
         }
     }
 
-    /// Executes the specified [Call] block.
+    /// Executes the specified [CallNode].
     #[inline(always)]
     fn execute_call_node(
         &mut self,
         call_node: &CallNode,
         program: &MastForest,
     ) -> Result<(), ExecutionError> {
-        let callee_digest = {
+        // if this is a syscall, make sure the call target exists in the kernel
+        if call_node.is_syscall() {
             let callee = program.get_node_by_id(call_node.callee()).ok_or_else(|| {
                 ExecutionError::MastNodeNotFoundInForest { node_id: call_node.callee() }
             })?;
-
-            callee.digest()
-        };
-
-        // if this is a syscall, make sure the call target exists in the kernel
-        if call_node.is_syscall() {
-            self.chiplets.access_kernel_proc(callee_digest)?;
+            self.chiplets.access_kernel_proc(callee.digest())?;
         }
 
         self.start_call_node(call_node, program)?;
-
-        // if this is a dyncall, execute the dynamic code block
-        if callee_digest == DynNode.digest() {
-            self.execute_dyn_node(program)?;
-        } else {
-            self.execute_mast_node(call_node.callee(), program)?;
-        }
-
+        self.execute_mast_node(call_node.callee(), program)?;
         self.end_call_node(call_node)
     }
 
-    /// Executes the specified [DynNode] node.
+    /// Executes the specified [vm_core::mast::DynNode].
+    ///
+    /// The MAST root of the callee is assumed to be at the top of the stack, and the callee is
+    /// expected to be either in the current `program` or in the host.
     #[inline(always)]
     fn execute_dyn_node(&mut self, program: &MastForest) -> Result<(), ExecutionError> {
         // get target hash from the stack
         let callee_hash = self.stack.get_word(0);
         self.start_dyn_node(callee_hash)?;
 
-        // get dynamic code from the code block table and execute it
-        let callee_id = program
-            .find_procedure_root(callee_hash.into())
-            .ok_or_else(|| ExecutionError::DynamicNodeNotFound(callee_hash.into()))?;
-        self.execute_mast_node(callee_id, program)?;
+        // if the callee is not in the program's MAST forest, try to find a MAST forest for it in
+        // the host (corresponding to an external library loaded in the host); if none are
+        // found, return an error.
+        match program.find_procedure_root(callee_hash.into()) {
+            Some(callee_id) => self.execute_mast_node(callee_id, program)?,
+            None => {
+                let mast_forest = self
+                    .host
+                    .borrow()
+                    .get_mast_forest(&callee_hash.into())
+                    .ok_or_else(|| ExecutionError::DynamicNodeNotFound(callee_hash.into()))?;
+
+                // We limit the parts of the program that can be called externally to procedure
+                // roots, even though MAST doesn't have that restriction.
+                let root_id = mast_forest.find_procedure_root(callee_hash.into()).ok_or(
+                    ExecutionError::MalformedMastForestInHost { root_digest: callee_hash.into() },
+                )?;
+
+                self.execute_mast_node(root_id, &mast_forest)?
+            },
+        }
 
         self.end_dyn_node()
     }
 
-    /// Executes the specified [`BasicBlockNode`] block.
+    /// Executes the specified [BasicBlockNode].
     #[inline(always)]
     fn execute_basic_block_node(
         &mut self,

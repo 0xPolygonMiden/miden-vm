@@ -141,6 +141,24 @@ end";
     Ok(())
 }
 
+/// This test ensures that all iterations of a repeat control block are merged into a single basic
+/// block.
+#[test]
+fn repeat_basic_blocks_merged() -> TestResult {
+    let context = TestContext::default();
+    let source = source_file!(&context, "begin mul repeat.5 add end end");
+    let program = context.assemble(source)?;
+    let expected = "\
+begin
+    basic_block mul add add add add add end
+end";
+    assert_str_eq!(format!("{}", program), expected);
+
+    // Also ensure that dead code elimination works properly
+    assert_eq!(program.mast_forest().num_nodes(), 1);
+    Ok(())
+}
+
 #[test]
 fn single_basic_block() -> TestResult {
     let context = TestContext::default();
@@ -1270,17 +1288,11 @@ begin
                 end
             else
                 join
-                    join
+                    basic_block mul push(8) push(8) end
+                    if.true
                         basic_block mul end
-                        basic_block push(8) end
-                    end
-                    join
-                        basic_block push(8) end
-                        if.true
-                            basic_block mul end
-                        else
-                            basic_block noop end
-                        end
+                    else
+                        basic_block noop end
                     end
                 end
             end
@@ -1288,7 +1300,7 @@ begin
         basic_block push(3) add end
     end
 end";
-    assert_str_eq!(format!("{program}"), expected);
+    assert_str_eq!(expected, format!("{program}"));
     Ok(())
 }
 
@@ -1305,10 +1317,7 @@ fn program_with_one_procedure() -> TestResult {
     let program = context.assemble(source)?;
     let expected = "\
 begin
-    join
-        basic_block push(2) push(3) add end
-        basic_block push(3) push(7) mul end
-    end
+    basic_block push(2) push(3) add push(3) push(7) mul end
 end";
     assert_str_eq!(format!("{program}"), expected);
     Ok(())
@@ -1327,24 +1336,21 @@ fn program_with_nested_procedure() -> TestResult {
     let program = context.assemble(source)?;
     let expected = "\
 begin
-    join
-        join
-            join
-                basic_block push(2) push(4) add end
-                basic_block push(3) push(7) mul end
-            end
-            join
-                basic_block push(11) end
-                join
-                    join
-                        basic_block push(5) end
-                        basic_block push(3) push(7) mul end
-                    end
-                    basic_block add end
-                end
-            end
-        end
-        basic_block neg add end
+    basic_block
+        push(2)
+        push(4)
+        add
+        push(3)
+        push(7)
+        mul
+        push(11)
+        push(5)
+        push(3)
+        push(7)
+        mul
+        add
+        neg
+        add
     end
 end";
     assert_str_eq!(format!("{program}"), expected);
@@ -1371,23 +1377,23 @@ fn program_with_proc_locals() -> TestResult {
     let program = context.assemble(source)?;
     let expected = "\
 begin
-    join
-        basic_block push(4) push(3) push(2) end
-        basic_block
-            push(1)
-            fmpupdate
-            pad
-            fmpadd
-            mstore
-            drop
-            add
-            pad
-            fmpadd
-            mload
-            mul
-            push(18446744069414584320)
-            fmpupdate
-        end
+    basic_block
+        push(4)
+        push(3)
+        push(2)
+        push(1)
+        fmpupdate
+        pad
+        fmpadd
+        mstore
+        drop
+        add
+        pad
+        fmpadd
+        mload
+        mul
+        push(18446744069414584320)
+        fmpupdate
     end
 end";
     assert_str_eq!(format!("{program}"), expected);
@@ -1588,7 +1594,7 @@ begin
     join
         join
             basic_block push(4) push(3) end
-            external.0x20234ee941e53a15886e733cc8e041198c6e90d2a16ea18ce1030e8c3596dd38
+            external.0xc2545da99d3a1f3f38d957c7893c44d78998d8ea8b11aba7e22c8c2b2a213dae
         end
         call.0x20234ee941e53a15886e733cc8e041198c6e90d2a16ea18ce1030e8c3596dd38
     end
@@ -2045,17 +2051,11 @@ begin
                 end
             else
                 join
-                    join
+                    basic_block mul push(8) push(8) end
+                    if.true
                         basic_block mul end
-                        basic_block push(8) end
-                    end
-                    join
-                        basic_block push(8) end
-                        if.true
-                            basic_block mul end
-                        else
-                            basic_block noop end
-                        end
+                    else
+                        basic_block noop end
                     end
                 end
             end
@@ -2063,7 +2063,7 @@ begin
         basic_block push(3) add end
     end
 end";
-    assert_str_eq!(format!("{program}"), expected);
+    assert_str_eq!(expected, format!("{program}"));
     Ok(())
 }
 

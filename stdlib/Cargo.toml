@@ -1,8 +1,8 @@
 [package]
 name = "miden-stdlib"
-version = "0.11.0"
+version = "0.10.5"
 description = "Miden VM standard library"
-documentation = "https://docs.rs/miden-stdlib/0.11.0"
+documentation = "https://docs.rs/miden-stdlib/0.10.5"
 readme = "README.md"
 categories = ["cryptography", "mathematics"]
 keywords = ["miden", "program", "stdlib"]
@@ -17,6 +17,10 @@ edition.workspace = true
 bench = false
 doctest = false
 
+[[bench]]
+name = "compilation"
+harness = false
+
 [[test]]
 name = "stdlib"
 path = "tests/main.rs"
@@ -27,15 +31,16 @@ std = ["assembly/std"]
 with-debug-info = []
 
 [dependencies]
-assembly = { package = "miden-assembly", path = "../assembly", version = "0.11", default-features = false }
+assembly = { package = "miden-assembly", path = "../assembly", version = "0.10", default-features = false }
 
 [dev-dependencies]
 blake3 = "1.5"
-miden-air = { package = "miden-air", path = "../air", version = "0.11", default-features = false }
+criterion = "0.5"
+miden-air = { package = "miden-air", path = "../air", version = "0.10", default-features = false }
 num = "0.4.1"
 num-bigint = "0.4"
 pretty_assertions = "1.4"
-processor = { package = "miden-processor", path = "../processor", version = "0.11", default-features = false, features = [
+processor = { package = "miden-processor", path = "../processor", version = "0.10", default-features = false, features = [
     "testing",
 ] }
 rand = { version = "0.8.5", default-features = false }
@@ -48,4 +53,4 @@ winter-fri = { package = "winter-fri", version = "0.9" }
 
 
 [build-dependencies]
-assembly = { package = "miden-assembly", path = "../assembly", version = "0.11" }
+assembly = { package = "miden-assembly", path = "../assembly", version = "0.10" }

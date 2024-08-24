@@ -311,9 +311,9 @@ checksum = "37b2a672a2cb129a2e41c10b1224bb368f9f37a2b16b612598138befd7b37eb5"
 
 [[package]]
 name = "cc"
-version = "1.1.13"
+version = "1.1.14"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "72db2f7947ecee9b03b510377e8bb9077afa27176fdbff55c51027e976fdcc48"
+checksum = "50d2eb3cd3d1bf4529e31c215ee6f93ec5a3d536d9f578f93d9d33ee19562932"
 dependencies = [
  "jobserver",
  "libc",
@@ -725,9 +725,9 @@ dependencies = [
 
 [[package]]
 name = "fastrand"
-version = "2.1.0"
+version = "2.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9fc0510504f03c51ada170672ac806f1f105a88aa97a5281117e1ddc3368e51a"
+checksum = "e8c02a5121d4ea3eb16a80748c74f5549a5665e4c21333c6098f283870fbdea6"
 
 [[package]]
 name = "fixedbitset"
@@ -1320,7 +1320,7 @@ dependencies = [
 
 [[package]]
 name = "miden-air"
-version = "0.11.0"
+version = "0.10.5"
 dependencies = [
  "criterion",
  "miden-core",
@@ -1333,7 +1333,7 @@ dependencies = [
 
 [[package]]
 name = "miden-assembly"
-version = "0.11.0"
+version = "0.10.5"
 dependencies = [
  "aho-corasick",
  "lalrpop",
@@ -1351,7 +1351,7 @@ dependencies = [
 
 [[package]]
 name = "miden-core"
-version = "0.11.0"
+version = "0.10.5"
 dependencies = [
  "lock_api",
  "loom",
@@ -1458,7 +1458,7 @@ dependencies = [
 
 [[package]]
 name = "miden-processor"
-version = "0.11.0"
+version = "0.10.5"
 dependencies = [
  "logtest",
  "miden-air",
@@ -1473,7 +1473,7 @@ dependencies = [
 
 [[package]]
 name = "miden-prover"
-version = "0.11.0"
+version = "0.10.5"
 dependencies = [
  "async-trait",
  "console_error_panic_hook",
@@ -1493,9 +1493,10 @@ dependencies = [
 
 [[package]]
 name = "miden-stdlib"
-version = "0.11.0"
+version = "0.10.5"
 dependencies = [
  "blake3",
+ "criterion",
  "miden-air",
  "miden-assembly",
  "miden-processor",
@@ -1550,7 +1551,7 @@ dependencies = [
 
 [[package]]
 name = "miden-verifier"
-version = "0.11.0"
+version = "0.10.5"
 dependencies = [
  "miden-air",
  "miden-core",
@@ -1560,7 +1561,7 @@ dependencies = [
 
 [[package]]
 name = "miden-vm"
-version = "0.11.0"
+version = "0.10.5"
 dependencies = [
  "assert_cmd",
  "blake3",
@@ -2010,9 +2011,9 @@ checksum = "a1d01941d82fa2ab50be1e79e6714289dd7cde78eba4c074bc5a4374f650dfe0"
 
 [[package]]
 name = "quote"
-version = "1.0.36"
+version = "1.0.37"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0fa76aaf39101c457836aec0ce2316dbdc3ab723cdda1c6bd4e6ad4208acaca7"
+checksum = "b5b9d34b8991d19d98081b46eacdd8eb58c6f2b201139f7c5f643cc155a633af"
 dependencies = [
  "proc-macro2",
 ]
@@ -2308,9 +2309,9 @@ dependencies = [
 
 [[package]]
 name = "serde_json"
-version = "1.0.125"
+version = "1.0.127"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "83c8e735a073ccf5be70aa8066aa984eaf2fa000db6c8d0100ae605b366d31ed"
+checksum = "8043c06d9f82bd7271361ed64f415fe5e12a77fdb52e573e7f06a516dea329ad"
 dependencies = [
  "itoa",
  "memchr",
