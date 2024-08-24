@@ -3,7 +3,6 @@ use alloc::{
     sync::Arc,
     vec::Vec,
 };
-use core::ops::Index;
 
 use vm_core::{
     crypto::hash::RpoDigest,
@@ -141,6 +140,8 @@ impl MastForestBuilder {
     }
 }
 
+// ------------------------------------------------------------------------------------------------
+/// Procedure insertion
 impl MastForestBuilder {
     pub fn insert_procedure_hash(
         &mut self,
@@ -149,6 +150,10 @@ impl MastForestBuilder {
     ) -> Result<(), AssemblyError> {
         // TODO(plafer): Check if exists
         self.procedure_hashes.insert(gid, proc_hash);
+        if !self.proc_gid_by_hash.contains_key(&proc_hash) {
+            let node_id = self.ensure_external(proc_hash)?;
+            self.make_root(node_id);
+        }
 
         Ok(())
     }
@@ -211,10 +216,14 @@ impl MastForestBuilder {
     }
 
     /// Marks the given [`MastNodeId`] as being the root of a procedure.
-    pub fn make_root(&mut self, new_root_id: MastNodeId) {
+    fn make_root(&mut self, new_root_id: MastNodeId) {
         self.mast_forest.make_root(new_root_id)
     }
+}
 
+// ------------------------------------------------------------------------------------------------
+/// Joining nodes
+impl MastForestBuilder {
     /// Builds a tree of `JOIN` operations to combine the provided MAST node IDs.
     pub fn join_nodes(&mut self, node_ids: Vec<MastNodeId>) -> Result<MastNodeId, AssemblyError> {
         debug_assert!(!node_ids.is_empty(), "cannot combine empty MAST node id list");
@@ -254,7 +263,7 @@ impl MastForestBuilder {
         let mut contiguous_basic_block_ids: Vec<MastNodeId> = Vec::new();
 
         for mast_node_id in node_ids {
-            if self[mast_node_id].is_basic_block() {
+            if self.mast_forest[mast_node_id].is_basic_block() {
                 contiguous_basic_block_ids.push(mast_node_id);
             } else {
                 merged_node_ids.extend(self.merge_basic_blocks(&contiguous_basic_block_ids)?);
@@ -293,7 +302,8 @@ impl MastForestBuilder {
         for &basic_block_id in contiguous_basic_block_ids {
             // It is safe to unwrap here, since we already checked that all IDs in
             // `contiguous_basic_block_ids` are `BasicBlockNode`s
-            let basic_block_node = self[basic_block_id].get_basic_block().unwrap().clone();
+            let basic_block_node =
+                self.mast_forest[basic_block_id].get_basic_block().unwrap().clone();
 
             // check if the block should be merged with other blocks
             if should_merge(
@@ -411,15 +421,6 @@ impl MastForestBuilder {
     /// Adds an external node to the forest, and returns the [`MastNodeId`] associated with it.
     pub fn ensure_external(&mut self, mast_root: RpoDigest) -> Result<MastNodeId, AssemblyError> {
         self.ensure_node(MastNode::new_external(mast_root))
-    }
-}
-
-impl Index<MastNodeId> for MastForestBuilder {
-    type Output = MastNode;
-
-    #[inline(always)]
-    fn index(&self, node_id: MastNodeId) -> &Self::Output {
-        &self.mast_forest[node_id]
     }
 }
 
