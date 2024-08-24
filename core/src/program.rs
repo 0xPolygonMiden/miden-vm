@@ -33,26 +33,23 @@ impl Program {
     ///
     /// # Panics:
     /// - if `mast_forest` doesn't contain the specified entrypoint.
+    /// - if the specified entrypoint is not a procedure root in the `mast_forest`.
     pub fn new(mast_forest: Arc<MastForest>, entrypoint: MastNodeId) -> Self {
-        assert!(mast_forest.get_node_by_id(entrypoint).is_some());
-
-        Self {
-            mast_forest,
-            entrypoint,
-            kernel: Kernel::default(),
-        }
+        Self::with_kernel(mast_forest, entrypoint, Kernel::default())
     }
 
     /// Construct a new [`Program`] from the given MAST forest, entrypoint, and kernel.
     ///
     /// # Panics:
     /// - if `mast_forest` doesn't contain the specified entrypoint.
+    /// - if the specified entrypoint is not a procedure root in the `mast_forest`.
     pub fn with_kernel(
         mast_forest: Arc<MastForest>,
         entrypoint: MastNodeId,
         kernel: Kernel,
     ) -> Self {
-        assert!(mast_forest.get_node_by_id(entrypoint).is_some());
+        assert!(mast_forest.get_node_by_id(entrypoint).is_some(), "invalid entrypoint");
+        assert!(mast_forest.is_procedure_root(entrypoint), "entrypoint not a procedure");
 
         Self { mast_forest, entrypoint, kernel }
     }
@@ -61,6 +58,18 @@ impl Program {
 // ------------------------------------------------------------------------------------------------
 /// Public accessors
 impl Program {
+    /// Returns the hash of the program's entrypoint.
+    ///
+    /// Equivalently, returns the hash of the root of the entrypoint procedure.
+    pub fn hash(&self) -> RpoDigest {
+        self.mast_forest[self.entrypoint].digest()
+    }
+
+    /// Returns the entrypoint associated with this program.
+    pub fn entrypoint(&self) -> MastNodeId {
+        self.entrypoint
+    }
+
     /// Returns the underlying [`MastForest`].
     pub fn mast_forest(&self) -> Arc<MastForest> {
         self.mast_forest.clone()
@@ -69,18 +78,6 @@ impl Program {
     /// Returns the kernel associated with this program.
     pub fn kernel(&self) -> &Kernel {
         &self.kernel
-    }
-
-    /// Returns the entrypoint associated with this program.
-    pub fn entrypoint(&self) -> MastNodeId {
-        self.entrypoint
-    }
-
-    /// Returns the hash of the program's entrypoint.
-    ///
-    /// Equivalently, returns the hash of the root of the entrypoint procedure.
-    pub fn hash(&self) -> RpoDigest {
-        self.mast_forest[self.entrypoint].digest()
     }
 
     /// Returns the [`MastNode`] associated with the provided [`MastNodeId`] if valid, or else
@@ -153,6 +150,12 @@ impl Deserializable for Program {
         let mast_forest = Arc::new(source.read()?);
         let kernel = source.read()?;
         let entrypoint = MastNodeId::from_u32_safe(source.read_u32()?, &mast_forest)?;
+
+        if mast_forest.is_procedure_root(entrypoint) {
+            return Err(DeserializationError::InvalidValue(format!(
+                "entrypoint {entrypoint} is not a procedure"
+            )));
+        }
 
         Ok(Self::with_kernel(mast_forest, entrypoint, kernel))
     }
