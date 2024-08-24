@@ -1305,21 +1305,6 @@ checksum = "8452105ba047068f40ff7093dd1d9da90898e63dd61736462e9cdda6a90ad3c3"
 
 [[package]]
 name = "metal"
-version = "0.27.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c43f73953f8cbe511f021b58f18c3ce1c3d1ae13fe953293e13345bf83217f25"
-dependencies = [
- "bitflags 2.6.0",
- "block",
- "core-graphics-types",
- "foreign-types",
- "log",
- "objc",
- "paste",
-]
-
-[[package]]
-name = "metal"
 version = "0.29.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7ecfd3296f8c56b7c1f6fbac3c71cefa9d78ce009850c45000015f206dc7fa21"
@@ -1414,16 +1399,19 @@ dependencies = [
 
 [[package]]
 name = "miden-gpu"
-version = "0.2.0"
-source = "git+https://github.com/0xPolygonMiden/miden-gpu?rev=ee2e51bf1ed54a40212d60ddb55a5b97bfdfae5b#ee2e51bf1ed54a40212d60ddb55a5b97bfdfae5b"
+version = "0.3.0"
+source = "git+https://github.com/0xPolygonMiden/miden-gpu?rev=71b573879024d3626e399926b89199b7549c0e13#71b573879024d3626e399926b89199b7549c0e13"
 dependencies = [
  "bytemuck",
+ "cc",
  "elsa",
  "flume",
- "metal 0.27.0",
+ "miden-crypto",
  "once_cell",
+ "tracing",
  "wgpu",
  "winter-math",
+ "winterfell",
 ]
 
 [[package]]
@@ -1783,16 +1771,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "915b1b472bc21c53464d6c8461c9d3af805ba1ef837e1cac254428f4a77177b1"
 dependencies = [
  "malloc_buf",
- "objc_exception",
-]
-
-[[package]]
-name = "objc_exception"
-version = "0.1.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ad970fb455818ad6cba4c122ad012fae53ae8b4795f86378bce65e4f6bab2ca4"
-dependencies = [
- "cc",
 ]
 
 [[package]]
@@ -3080,7 +3058,7 @@ dependencies = [
  "libc",
  "libloading",
  "log",
- "metal 0.29.0",
+ "metal",
  "naga",
  "ndk-sys",
  "objc",
@@ -3489,6 +3467,17 @@ dependencies = [
  "winter-fri",
  "winter-math",
  "winter-utils",
+]
+
+[[package]]
+name = "winterfell"
+version = "0.9.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "01151ac5fe2d783950743e8a110e0a2f26994f888b4cbe848699142cb3ea1e5b"
+dependencies = [
+ "winter-air",
+ "winter-prover",
+ "winter-verifier",
 ]
 
 [[package]]
