@@ -59,13 +59,18 @@ impl AsRef<Library> for Library {
     }
 }
 
+// ------------------------------------------------------------------------------------------------
 /// Constructors
 impl Library {
     /// Constructs a new [`Library`] from the provided MAST forest and a set of exports.
+    ///
+    /// # Errors
+    /// Returns an error if any of the specified exports do not have a corresponding procedure root
+    /// in the provided MAST forest.
     pub fn new(
         mast_forest: Arc<MastForest>,
         exports: BTreeMap<QualifiedProcedureName, RpoDigest>,
-    ) -> Self {
+    ) -> Result<Self, LibraryError> {
         let mut fqn_to_export = BTreeMap::new();
 
         // convert fqn |-> mast_root map into fqn |-> mast_node_id map
@@ -73,21 +78,22 @@ impl Library {
             if let Some(proc_node_id) = mast_forest.find_procedure_root(mast_root) {
                 fqn_to_export.insert(fqn, proc_node_id);
             } else {
-                panic!("export {fqn} not a procedure root");
+                return Err(LibraryError::NoProcedureRootForExport { procedure_path: fqn });
             }
         }
 
         let digest = compute_content_hash(&fqn_to_export, &mast_forest);
 
-        Self {
+        Ok(Self {
             digest,
             exports: fqn_to_export,
             mast_forest,
-        }
+        })
     }
 }
 
-/// Accessors
+// ------------------------------------------------------------------------------------------------
+/// Public accessors
 impl Library {
     /// Returns the [RpoDigest] representing the content hash of this library
     pub fn digest(&self) -> &RpoDigest {
@@ -99,10 +105,15 @@ impl Library {
         self.exports.keys()
     }
 
-    pub fn get_export_node_id(&self, proc_name: &QualifiedProcedureName) -> Option<MastNodeId> {
-        self.exports.get(proc_name).cloned()
+    /// Returns a MAST node ID associated with the specified exported procedure.
+    ///
+    /// # Panics
+    /// Panics if the specified procedure is not exported from this library.
+    pub fn get_export_node_id(&self, proc_name: &QualifiedProcedureName) -> MastNodeId {
+        *self.exports.get(proc_name).expect("procedure not exported from the library")
     }
 
+    /// Returns true if the specified exported procedure is re-exported from a dependency.
     pub fn is_reexport(&self, proc_name: &QualifiedProcedureName) -> bool {
         self.exports
             .get(proc_name)
