@@ -105,6 +105,11 @@ impl Library {
         self.exports.keys()
     }
 
+    /// Returns the number of exports in this library.
+    pub fn num_exports(&self) -> usize {
+        self.exports.len()
+    }
+
     /// Returns a MAST node ID associated with the specified exported procedure.
     ///
     /// # Panics

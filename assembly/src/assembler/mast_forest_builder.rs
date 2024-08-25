@@ -35,12 +35,17 @@ pub struct MastForestBuilder {
     /// nodes added to the MAST forest builder are also immediately added to the underlying MAST
     /// forest.
     mast_forest: MastForest,
-    /// A map of MAST node digests to their corresponding positions in the MAST forests. It is
+    /// A map of MAST node digests to their corresponding positions in the MAST forest. It is
     /// guaranteed that a given digests maps to exactly one node in the MAST forest.
     node_id_by_hash: BTreeMap<RpoDigest, MastNodeId>,
-    /// A set of procedures added to the MAST forests.
+    /// A map of all procedures added to the MAST forest indexed by their global procedure ID.
+    /// This includes all local, exported, and re-exported procedures. In case multiple procedures
+    /// with the same digest are added to the MAST forest builder, only the first procedure is
+    /// added to the map, and all subsequent insertions are ignored.
     procedures: BTreeMap<GlobalProcedureIndex, Procedure>,
-    procedure_hashes: BTreeMap<GlobalProcedureIndex, RpoDigest>,
+    /// A map from procedure MAST root to its global procedure index. Similar to the `procedures`
+    /// map, this map contains only the first inserted procedure for procedures with the same MAST
+    /// root.
     proc_gid_by_hash: BTreeMap<RpoDigest, GlobalProcedureIndex>,
     /// A set of IDs for basic blocks which have been merged into a bigger basic blocks. This is
     /// used as a candidate set of nodes that may be eliminated if the are not referenced by any
@@ -131,7 +136,7 @@ impl MastForestBuilder {
     /// such a procedure is not present in this MAST forest builder.
     #[inline(always)]
     pub fn get_procedure_hash(&self, gid: GlobalProcedureIndex) -> Option<RpoDigest> {
-        self.procedure_hashes.get(&gid).cloned()
+        self.procedures.get(&gid).map(|proc| proc.mast_root())
     }
 
     /// Returns a reference to the procedure with the specified MAST root, or None
@@ -158,21 +163,6 @@ impl MastForestBuilder {
 // ------------------------------------------------------------------------------------------------
 /// Procedure insertion
 impl MastForestBuilder {
-    pub fn insert_procedure_hash(
-        &mut self,
-        gid: GlobalProcedureIndex,
-        proc_hash: RpoDigest,
-    ) -> Result<(), AssemblyError> {
-        // TODO(plafer): Check if exists
-        self.procedure_hashes.insert(gid, proc_hash);
-        if !self.proc_gid_by_hash.contains_key(&proc_hash) {
-            let node_id = self.ensure_external(proc_hash)?;
-            self.mast_forest.make_root(node_id);
-        }
-
-        Ok(())
-    }
-
     /// Inserts a procedure into this MAST forest builder.
     ///
     /// If the procedure with the same ID already exists in this forest builder, this will have
@@ -224,7 +214,6 @@ impl MastForestBuilder {
 
         self.mast_forest.make_root(procedure.body_node_id());
         self.proc_gid_by_hash.insert(proc_root, gid);
-        self.insert_procedure_hash(gid, procedure.mast_root())?;
         self.procedures.insert(gid, procedure);
 
         Ok(())

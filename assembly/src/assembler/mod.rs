@@ -471,8 +471,13 @@ impl Assembler {
 
                     // Compile this procedure
                     let procedure = self.compile_procedure(pctx, mast_forest_builder)?;
+                    // TODO: if a re-exported procedure with the same MAST root had been previously
+                    // added to the builder, this will result in unreachable nodes added to the
+                    // MAST forest. This is because while we won't insert a duplicate node for the
+                    // procedure body node itself, all nodes that make up the procedure body would
+                    // be added to the forest.
 
-                    // Cache the compiled procedure.
+                    // Cache the compiled procedure
                     self.module_graph.register_mast_root(procedure_gid, procedure.mast_root())?;
                     mast_forest_builder.insert_procedure(procedure_gid, procedure)?;
                 },
@@ -491,15 +496,22 @@ impl Assembler {
                     )
                     .with_span(proc_alias.span());
 
-                    let proc_alias_root = self.resolve_target(
+                    let proc_mast_root = self.resolve_target(
                         InvokeKind::ProcRef,
                         &proc_alias.target().into(),
                         &pctx,
                         mast_forest_builder,
                     )?;
+
+                    // insert external node into the MAST forest for this procedure; if a procedure
+                    // with the same MAST rood had been previously added to the builder, this will
+                    // have no effect
+                    let proc_node_id = mast_forest_builder.ensure_external(proc_mast_root)?;
+                    let procedure = pctx.into_procedure(proc_mast_root, proc_node_id);
+
                     // Make the MAST root available to all dependents
-                    self.module_graph.register_mast_root(procedure_gid, proc_alias_root)?;
-                    mast_forest_builder.insert_procedure_hash(procedure_gid, proc_alias_root)?;
+                    self.module_graph.register_mast_root(procedure_gid, proc_mast_root)?;
+                    mast_forest_builder.insert_procedure(procedure_gid, procedure)?;
                 },
             }
         }

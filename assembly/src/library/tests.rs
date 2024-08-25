@@ -18,6 +18,9 @@ macro_rules! parse_module {
     }};
 }
 
+// TESTS
+// ================================================================================================
+
 #[test]
 fn library_exports() -> Result<(), Report> {
     let context = TestContext::new();
@@ -109,6 +112,60 @@ fn library_exports() -> Result<(), Report> {
     assert!(!lib2.is_reexport(&bar2));
     assert!(!lib2.is_reexport(&bar3));
     assert!(!lib2.is_reexport(&bar5));
+
+    Ok(())
+}
+
+#[test]
+fn library_procedure_collision() -> Result<(), Report> {
+    let context = TestContext::new();
+
+    // build the first library
+    let foo = r#"
+        export.foo1
+            push.1
+            if.true
+                push.1 push.2 add
+            else
+                push.1 push.2 mul
+            end
+        end
+    "#;
+    let foo = parse_module!(&context, "lib1::foo", foo);
+    let lib1 = Assembler::new(context.source_manager()).assemble_library([foo])?;
+
+    // build the second library which defines the same procedure as the first one
+    let bar = r#"
+        use.lib1::foo
+
+        export.foo::foo1->bar1
+
+        export.bar2
+            push.1
+            if.true
+                push.1 push.2 add
+            else
+                push.1 push.2 mul
+            end
+        end
+    "#;
+    let bar = parse_module!(&context, "lib2::bar", bar);
+    let lib2 = Assembler::new(context.source_manager())
+        .with_library(lib1)?
+        .assemble_library([bar])?;
+
+    let bar1 = QualifiedProcedureName::from_str("lib2::bar::bar1").unwrap();
+    let bar2 = QualifiedProcedureName::from_str("lib2::bar::bar2").unwrap();
+
+    // make sure lib2 has the expected exports (i.e., bar1 and bar2)
+    assert_eq!(lib2.num_exports(), 2);
+    assert_eq!(lib2.get_export_node_id(&bar1), lib2.get_export_node_id(&bar2));
+
+    // make sure only one node was added to the forest
+    // NOTE: the MAST forest should actually have only 1 node (external node for the re-exported
+    // procedure), because nodes for the local procedure nodes should be pruned from the forest,
+    // but this is not implemented yet
+    assert_eq!(lib2.mast_forest().num_nodes(), 5);
 
     Ok(())
 }
