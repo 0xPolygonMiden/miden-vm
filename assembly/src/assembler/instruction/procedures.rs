@@ -71,9 +71,9 @@ impl Assembler {
                             })
                         }
                     })?;
-                proc_ctx.register_external_call(&proc, false)?;
+                proc_ctx.register_external_call(proc, false)?;
             },
-            Some(proc) => proc_ctx.register_external_call(&proc, false)?,
+            Some(proc) => proc_ctx.register_external_call(proc, false)?,
             None => (),
         }
 
@@ -169,7 +169,7 @@ impl Assembler {
         // with the referenced procedure later
 
         if let Some(proc) = mast_forest_builder.find_procedure(&mast_root) {
-            proc_ctx.register_external_call(&proc, false)?;
+            proc_ctx.register_external_call(proc, false)?;
         }
 
         // Create an array with `Push` operations containing root elements

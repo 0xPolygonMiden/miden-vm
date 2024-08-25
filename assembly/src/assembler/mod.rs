@@ -379,18 +379,16 @@ impl Assembler {
         // Compile the module graph rooted at the entrypoint
         let mut mast_forest_builder = MastForestBuilder::default();
         self.compile_subgraph(entrypoint, &mut mast_forest_builder)?;
-        let entry_procedure = mast_forest_builder
+        let entry_node_id = mast_forest_builder
             .get_procedure(entrypoint)
-            .expect("compilation succeeded but root not found in cache");
+            .expect("compilation succeeded but root not found in cache")
+            .body_node_id();
 
+        // in case the node IDs changed, update the entrypoint ID to the new value
         let (mast_forest, id_remappings) = mast_forest_builder.build();
-        let entry_node_id = {
-            let old_entry_node_id = entry_procedure.body_node_id();
-
-            id_remappings
-                .map(|id_remappings| id_remappings[&old_entry_node_id])
-                .unwrap_or(old_entry_node_id)
-        };
+        let entry_node_id = id_remappings
+            .map(|id_remappings| id_remappings[&entry_node_id])
+            .unwrap_or(entry_node_id);
 
         Ok(Program::with_kernel(
             mast_forest.into(),
