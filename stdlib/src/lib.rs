@@ -2,11 +2,9 @@
 
 extern crate alloc;
 
-use alloc::sync::Arc;
+use alloc::{boxed::Box, sync::Arc};
 
 use assembly::{mast::MastForest, utils::Deserializable, Library};
-
-static STDLIB: spin::Once<StdLibrary> = spin::Once::new();
 
 // STANDARD LIBRARY
 // ================================================================================================
@@ -40,11 +38,12 @@ impl StdLibrary {
 
 impl Default for StdLibrary {
     fn default() -> Self {
+        static STDLIB: once_cell::race::OnceBox<StdLibrary> = once_cell::race::OnceBox::new();
         STDLIB
-            .call_once(|| {
+            .get_or_init(|| {
                 let contents =
                     Library::read_from_bytes(Self::SERIALIZED).expect("failed to read std masl!");
-                Self(contents)
+                Box::new(Self(contents))
             })
             .clone()
     }
