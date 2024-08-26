@@ -1400,7 +1400,7 @@ dependencies = [
 [[package]]
 name = "miden-gpu"
 version = "0.3.0"
-source = "git+https://github.com/0xPolygonMiden/miden-gpu?rev=71b573879024d3626e399926b89199b7549c0e13#71b573879024d3626e399926b89199b7549c0e13"
+source = "git+https://github.com/0xPolygonMiden/miden-gpu?rev=834c7973893bf6d6a93f4035de4fbf6faadc9c1d#834c7973893bf6d6a93f4035de4fbf6faadc9c1d"
 dependencies = [
  "bytemuck",
  "cc",

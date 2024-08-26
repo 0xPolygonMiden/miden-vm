@@ -18,7 +18,7 @@ crate-type = ["cdylib", "rlib"]
 
 [features]
 concurrent = ["processor/concurrent", "std", "winter-prover/concurrent"]
-default = ["std"]
+default = ["webgpu","std"]
 metal = ["dep:miden-gpu", "dep:pollster", "concurrent", "std"]
 webgpu = ["dep:miden-gpu", "miden-gpu/webgpu", "async"]
 async = ["maybe-async/async", "winter-prover/async", "dep:async-trait"]
@@ -34,11 +34,11 @@ async-trait = { version = "0.1", optional = true }
 elsa = { version = "1.9" }
 
 [target.'cfg(all(target_arch = "aarch64", target_os = "macos"))'.dependencies]
-miden-gpu = { git = "https://github.com/0xPolygonMiden/miden-gpu", rev = "71b573879024d3626e399926b89199b7549c0e13", default-features = false, optional = true }
+miden-gpu = { git = "https://github.com/0xPolygonMiden/miden-gpu", rev = "834c7973893bf6d6a93f4035de4fbf6faadc9c1d", default-features = false, optional = true }
 pollster = { version = "0.3", optional = true }
 
 [target.'cfg(target_family = "wasm")'.dependencies]
-miden-gpu = { git = "https://github.com/0xPolygonMiden/miden-gpu", rev = "71b573879024d3626e399926b89199b7549c0e13", default-features = false, optional = true }
+miden-gpu = { git = "https://github.com/0xPolygonMiden/miden-gpu", rev = "834c7973893bf6d6a93f4035de4fbf6faadc9c1d", default-features = false, optional = true }
 
 [target.'cfg(target_family = "wasm")'.dev-dependencies]
 wasm-bindgen-test = "0.3"
