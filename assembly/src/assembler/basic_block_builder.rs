@@ -1,6 +1,9 @@
 use alloc::{borrow::Borrow, string::ToString, vec::Vec};
 
-use vm_core::{mast::MastNodeId, AdviceInjector, AssemblyOp, Decorator, Operation};
+use vm_core::{
+    mast::{DecoratorId, MastNodeId},
+    AdviceInjector, AssemblyOp, Decorator, Operation,
+};
 
 use super::{mast_forest_builder::MastForestBuilder, BodyWrapper, DecoratorList, ProcedureContext};
 use crate::{ast::Instruction, AssemblyError, Span};
@@ -150,21 +153,20 @@ impl BasicBlockBuilder {
     pub fn make_basic_block(
         &mut self,
         mast_forest_builder: &mut MastForestBuilder,
-    ) -> Result<Option<MastNodeId>, AssemblyError> {
+    ) -> Result<BasicBlockOrDecorators, AssemblyError> {
         if !self.ops.is_empty() {
             let ops = self.ops.drain(..).collect();
             let decorators = self.decorators.drain(..).collect();
 
             let basic_block_node_id = mast_forest_builder.ensure_block(ops, Some(decorators))?;
 
-            Ok(Some(basic_block_node_id))
+            Ok(BasicBlockOrDecorators::BasicBlock(basic_block_node_id))
         } else if !self.decorators.is_empty() {
-            // this is a bug in the assembler. we shouldn't have decorators added without their
-            // associated operations
-            // TODO: change this to an error or allow decorators in empty span blocks
-            unreachable!("decorators in an empty SPAN block")
+            Ok(BasicBlockOrDecorators::Decorators(
+                self.decorators.iter().map(|&(_, decorator_id)| decorator_id).collect(),
+            ))
         } else {
-            Ok(None)
+            Ok(BasicBlockOrDecorators::Nothing)
         }
     }
 
@@ -178,8 +180,16 @@ impl BasicBlockBuilder {
     pub fn try_into_basic_block(
         mut self,
         mast_forest_builder: &mut MastForestBuilder,
-    ) -> Result<Option<MastNodeId>, AssemblyError> {
+    ) -> Result<BasicBlockOrDecorators, AssemblyError> {
         self.ops.append(&mut self.epilogue);
         self.make_basic_block(mast_forest_builder)
     }
+}
+
+// TODO(plafer): document, and fix docs for `make_basic_block` and `try_into_basic_block`
+// TODO(plafer): rename `make_basic_block`?
+pub enum BasicBlockOrDecorators {
+    BasicBlock(MastNodeId),
+    Decorators(Vec<DecoratorId>),
+    Nothing,
 }

@@ -179,6 +179,10 @@ impl MastForest {
         Some(id_remappings)
     }
 
+    pub fn set_before_enter(&mut self, node_id: MastNodeId, decorator_ids: Vec<DecoratorId>) {
+        self[node_id].set_before_enter(decorator_ids)
+    }
+
     /// Adds a basic block node to the forest, and returns the [`MastNodeId`] associated with it.
     #[cfg(test)]
     pub fn add_block_with_raw_decorators(
@@ -388,6 +392,15 @@ impl Index<MastNodeId> for MastForest {
         let idx = node_id.0 as usize;
 
         &self.nodes[idx]
+    }
+}
+
+impl IndexMut<MastNodeId> for MastForest {
+    #[inline(always)]
+    fn index_mut(&mut self, node_id: MastNodeId) -> &mut Self::Output {
+        let idx = node_id.0 as usize;
+
+        &mut self.nodes[idx]
     }
 }
 

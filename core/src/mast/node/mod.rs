@@ -227,6 +227,13 @@ impl MastNode {
     }
 }
 
+/// Mutators
+impl MastNode {
+    pub fn set_before_enter(&mut self, decorator_ids: Vec<DecoratorId>) {
+        todo!()
+    }
+}
+
 // PRETTY PRINTING
 // ================================================================================================
 

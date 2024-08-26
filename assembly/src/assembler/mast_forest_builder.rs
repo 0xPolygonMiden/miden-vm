@@ -419,6 +419,14 @@ impl MastForestBuilder {
     pub fn ensure_external(&mut self, mast_root: RpoDigest) -> Result<MastNodeId, AssemblyError> {
         self.ensure_node(MastNode::new_external(mast_root))
     }
+
+    pub fn set_before_enter(&mut self, node_id: MastNodeId, decorator_ids: Vec<DecoratorId>) {
+        self.mast_forest[node_id].set_before_enter(decorator_ids)
+    }
+
+    pub fn set_after_exit(&mut self, node_id: MastNodeId, decorator_ids: Vec<DecoratorId>) {
+        todo!()
+    }
 }
 
 impl Index<MastNodeId> for MastForestBuilder {
