@@ -30,7 +30,7 @@ impl StdLibrary {
         include_bytes!(concat!(env!("OUT_DIR"), "/assets/std.masl"));
 
     /// Returns a reference to the [MastForest] underlying the Miden standard library.
-    pub fn mast_forest(&self) -> Arc<MastForest> {
+    pub fn mast_forest(&self) -> &Arc<MastForest> {
         self.0.mast_forest()
     }
 }

@@ -70,9 +70,9 @@ impl Program {
         self.entrypoint
     }
 
-    /// Returns the underlying [`MastForest`].
-    pub fn mast_forest(&self) -> Arc<MastForest> {
-        self.mast_forest.clone()
+    /// Returns a reference to the underlying [`MastForest`].
+    pub fn mast_forest(&self) -> &Arc<MastForest> {
+        &self.mast_forest
     }
 
     /// Returns the kernel associated with this program.

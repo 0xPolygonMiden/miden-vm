@@ -129,7 +129,9 @@ impl ProcedureContext {
     ///
     /// The passed-in `mast_root` defines the MAST root of the procedure's body while
     /// `mast_node_id` specifies the ID of the procedure's body node in the MAST forest in
-    /// which the procedure is defined.
+    /// which the procedure is defined. Note that if the procedure is re-exported (i.e., the body
+    /// of the procedure is defined in some other MAST forest) `mast_node_id` will point to a
+    /// single `External` node.
     ///
     /// <div class="warning">
     /// `mast_root` and `mast_node_id` must be consistent. That is, the node located in the MAST

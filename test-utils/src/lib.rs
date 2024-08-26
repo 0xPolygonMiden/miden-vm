@@ -225,10 +225,10 @@ impl Test {
         let (program, kernel) = self.compile().expect("Failed to compile test source.");
         let mut host = DefaultHost::new(MemAdviceProvider::from(self.advice_inputs.clone()));
         if let Some(kernel) = kernel {
-            host.load_mast_forest(kernel.mast_forest());
+            host.load_mast_forest(kernel.mast_forest().clone());
         }
         for library in &self.libraries {
-            host.load_mast_forest(library.mast_forest());
+            host.load_mast_forest(library.mast_forest().clone());
         }
 
         // execute the test
@@ -323,10 +323,10 @@ impl Test {
         let (program, kernel) = self.compile().expect("Failed to compile test source.");
         let mut host = DefaultHost::new(MemAdviceProvider::from(self.advice_inputs.clone()));
         if let Some(kernel) = kernel {
-            host.load_mast_forest(kernel.mast_forest());
+            host.load_mast_forest(kernel.mast_forest().clone());
         }
         for library in &self.libraries {
-            host.load_mast_forest(library.mast_forest());
+            host.load_mast_forest(library.mast_forest().clone());
         }
         processor::execute(&program, self.stack_inputs.clone(), host, ExecutionOptions::default())
     }
@@ -339,10 +339,10 @@ impl Test {
         let (program, kernel) = self.compile().expect("Failed to compile test source.");
         let mut host = DefaultHost::new(MemAdviceProvider::from(self.advice_inputs.clone()));
         if let Some(kernel) = kernel {
-            host.load_mast_forest(kernel.mast_forest());
+            host.load_mast_forest(kernel.mast_forest().clone());
         }
         for library in &self.libraries {
-            host.load_mast_forest(library.mast_forest());
+            host.load_mast_forest(library.mast_forest().clone());
         }
 
         let mut process = Process::new(
@@ -363,10 +363,10 @@ impl Test {
         let (program, kernel) = self.compile().expect("Failed to compile test source.");
         let mut host = DefaultHost::new(MemAdviceProvider::from(self.advice_inputs.clone()));
         if let Some(kernel) = kernel {
-            host.load_mast_forest(kernel.mast_forest());
+            host.load_mast_forest(kernel.mast_forest().clone());
         }
         for library in &self.libraries {
-            host.load_mast_forest(library.mast_forest());
+            host.load_mast_forest(library.mast_forest().clone());
         }
         let (mut stack_outputs, proof) =
             prover::prove(&program, stack_inputs.clone(), host, ProvingOptions::default()).unwrap();
@@ -388,10 +388,10 @@ impl Test {
         let (program, kernel) = self.compile().expect("Failed to compile test source.");
         let mut host = DefaultHost::new(MemAdviceProvider::from(self.advice_inputs.clone()));
         if let Some(kernel) = kernel {
-            host.load_mast_forest(kernel.mast_forest());
+            host.load_mast_forest(kernel.mast_forest().clone());
         }
         for library in &self.libraries {
-            host.load_mast_forest(library.mast_forest());
+            host.load_mast_forest(library.mast_forest().clone());
         }
         processor::execute_iter(&program, self.stack_inputs.clone(), host)
     }

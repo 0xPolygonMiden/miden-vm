@@ -126,9 +126,9 @@ impl Library {
             .unwrap_or(false)
     }
 
-    /// Returns the inner [`MastForest`].
-    pub fn mast_forest(&self) -> Arc<MastForest> {
-        self.mast_forest.clone()
+    /// Returns a reference to the inner [`MastForest`].
+    pub fn mast_forest(&self) -> &Arc<MastForest> {
+        &self.mast_forest
     }
 }
 
@@ -334,8 +334,8 @@ impl KernelLibrary {
         &self.kernel
     }
 
-    /// Returns the inner [`MastForest`].
-    pub fn mast_forest(&self) -> Arc<MastForest> {
+    /// Returns a reference to the inner [`MastForest`].
+    pub fn mast_forest(&self) -> &Arc<MastForest> {
         self.library.mast_forest()
     }
 
