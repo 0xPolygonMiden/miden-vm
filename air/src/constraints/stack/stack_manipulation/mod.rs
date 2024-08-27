@@ -91,9 +91,11 @@ pub fn enforce_pad_constraints<E: FieldElement>(
     1
 }
 
-/// Enforces constraints of the DUPn and MOVUPn operations. The DUPn operation copies the element
-/// at depth n in the stack and pushes the copy onto the stack, whereas MOVUPn opearation moves the
-/// element at depth n to the top of the stack. Therefore, the following constraints are enforced:
+/// Enforces constraints of the DUPn and MOVUPn operations.
+///
+/// The DUPn operation copies the element at depth n in the stack and pushes the copy onto the
+/// stack, whereas MOVUPn opearation moves the element at depth n to the top of the stack.
+/// Therefore, the following constraints are enforced:
 /// - The top element in the next frame should be equal to the element at depth n in the current
 ///   frame. s0` - sn = 0.
 pub fn enforce_dup_movup_n_constraints<E: FieldElement>(

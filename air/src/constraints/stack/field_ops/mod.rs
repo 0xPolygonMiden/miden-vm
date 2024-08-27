@@ -358,9 +358,11 @@ pub fn enforce_expacc_constraints<E: FieldElement>(
     4
 }
 
-/// Enforces constraints of the EXT2MUL operation. The EXT2MUL operation computes the product of
-/// two elements in the extension field of degree 2. Therefore, the following constraints are
-/// enforced, assuming the first 4 elements of the stack in the current frame are a1, a0, b1, b0:
+/// Enforces constraints of the EXT2MUL operation.
+///
+/// The EXT2MUL operation computes the product of two elements in the extension field of degree 2.
+/// Therefore, the following constraints are enforced, assuming the first 4 elements of the stack in
+/// the current frame are a1, a0, b1, b0:
 /// - The first element in the next frame should be a1.
 /// - The second element in the next frame should be a0.
 /// - The third element in the next frame should be equal to (b0 + b1) * (a0 + a1) - b0 * a0.
