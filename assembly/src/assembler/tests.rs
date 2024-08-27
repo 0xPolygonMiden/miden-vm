@@ -142,7 +142,9 @@ fn nested_blocks() -> Result<(), Report> {
         .join_nodes(vec![before, r#if1, nested, exec_foo_bar_baz_node_id, syscall_foo_node_id])
         .unwrap();
 
-    let expected_program = Program::new(expected_mast_forest_builder.build().0, combined_node_id);
+    let mut expected_mast_forest = expected_mast_forest_builder.build().0;
+    expected_mast_forest.make_root(combined_node_id);
+    let expected_program = Program::new(expected_mast_forest.into(), combined_node_id);
     assert_eq!(expected_program.hash(), program.hash());
 
     // also check that the program has the right number of procedures (which excludes the dummy
@@ -214,7 +216,7 @@ fn duplicate_nodes() {
 
     expected_mast_forest.make_root(root_id);
 
-    let expected_program = Program::new(expected_mast_forest, root_id);
+    let expected_program = Program::new(expected_mast_forest.into(), root_id);
 
     assert_eq!(program, expected_program);
 }

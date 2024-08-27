@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.11.0 (TBD)
+
+#### Changes
+
+- [BREAKING] Wrapped `MastForest`s in `Program` and `Library` structs in `Arc` (#1465).
+
+
 ## 0.10.5 (2024-08-21)
 
 #### Enhancements

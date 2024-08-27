@@ -301,7 +301,7 @@ impl Assembler {
 
         // TODO: show a warning if library exports are empty?
         let (mast_forest, _) = mast_forest_builder.build();
-        Ok(Library::new(mast_forest, exports))
+        Ok(Library::new(mast_forest.into(), exports)?)
     }
 
     /// Assembles the provided module into a [KernelLibrary] intended to be used as a Kernel.
@@ -343,7 +343,7 @@ impl Assembler {
         // TODO: show a warning if library exports are empty?
 
         let (mast_forest, _) = mast_forest_builder.build();
-        let library = Library::new(mast_forest, exports);
+        let library = Library::new(mast_forest.into(), exports)?;
         Ok(library.try_into()?)
     }
 
@@ -379,21 +379,19 @@ impl Assembler {
         // Compile the module graph rooted at the entrypoint
         let mut mast_forest_builder = MastForestBuilder::default();
         self.compile_subgraph(entrypoint, &mut mast_forest_builder)?;
-        let entry_procedure = mast_forest_builder
+        let entry_node_id = mast_forest_builder
             .get_procedure(entrypoint)
-            .expect("compilation succeeded but root not found in cache");
+            .expect("compilation succeeded but root not found in cache")
+            .body_node_id();
 
+        // in case the node IDs changed, update the entrypoint ID to the new value
         let (mast_forest, id_remappings) = mast_forest_builder.build();
-        let entry_node_id = {
-            let old_entry_node_id = entry_procedure.body_node_id();
-
-            id_remappings
-                .map(|id_remappings| id_remappings[&old_entry_node_id])
-                .unwrap_or(old_entry_node_id)
-        };
+        let entry_node_id = id_remappings
+            .map(|id_remappings| id_remappings[&entry_node_id])
+            .unwrap_or(entry_node_id);
 
         Ok(Program::with_kernel(
-            mast_forest,
+            mast_forest.into(),
             entry_node_id,
             self.module_graph.kernel().clone(),
         ))
@@ -473,8 +471,13 @@ impl Assembler {
 
                     // Compile this procedure
                     let procedure = self.compile_procedure(pctx, mast_forest_builder)?;
+                    // TODO: if a re-exported procedure with the same MAST root had been previously
+                    // added to the builder, this will result in unreachable nodes added to the
+                    // MAST forest. This is because while we won't insert a duplicate node for the
+                    // procedure body node itself, all nodes that make up the procedure body would
+                    // be added to the forest.
 
-                    // Cache the compiled procedure.
+                    // Cache the compiled procedure
                     self.module_graph.register_mast_root(procedure_gid, procedure.mast_root())?;
                     mast_forest_builder.insert_procedure(procedure_gid, procedure)?;
                 },
@@ -493,15 +496,22 @@ impl Assembler {
                     )
                     .with_span(proc_alias.span());
 
-                    let proc_alias_root = self.resolve_target(
+                    let proc_mast_root = self.resolve_target(
                         InvokeKind::ProcRef,
                         &proc_alias.target().into(),
                         &pctx,
                         mast_forest_builder,
                     )?;
+
+                    // insert external node into the MAST forest for this procedure; if a procedure
+                    // with the same MAST rood had been previously added to the builder, this will
+                    // have no effect
+                    let proc_node_id = mast_forest_builder.ensure_external(proc_mast_root)?;
+                    let procedure = pctx.into_procedure(proc_mast_root, proc_node_id);
+
                     // Make the MAST root available to all dependents
-                    self.module_graph.register_mast_root(procedure_gid, proc_alias_root)?;
-                    mast_forest_builder.insert_procedure_hash(procedure_gid, proc_alias_root)?;
+                    self.module_graph.register_mast_root(procedure_gid, proc_mast_root)?;
+                    mast_forest_builder.insert_procedure(procedure_gid, procedure)?;
                 },
             }
         }
