@@ -80,11 +80,11 @@ fn library_exports() -> Result<(), Report> {
         end
     "#;
     let bar = parse_module!(&context, "lib2::bar", bar);
-    let modules = [foo, bar];
+    let lib2_modules = [foo, bar];
 
     let lib2 = Assembler::new(context.source_manager())
         .with_library(lib1)?
-        .assemble_library(modules.iter().cloned())?;
+        .assemble_library(lib2_modules.iter().cloned())?;
 
     let foo2 = QualifiedProcedureName::from_str("lib2::foo::foo2").unwrap();
     let foo3 = QualifiedProcedureName::from_str("lib2::foo::foo3").unwrap();

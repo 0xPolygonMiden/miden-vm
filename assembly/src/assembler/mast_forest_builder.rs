@@ -25,8 +25,6 @@ const PROCEDURE_INLINING_THRESHOLD: usize = 32;
 ///
 /// The purpose of the builder is to ensure that the underlying MAST forest contains as little
 /// information as possible needed to adequately describe the logical MAST forest. Specifically:
-/// - The builder ensures that only one copy of a given node exists in the MAST forest (i.e., no two
-///   nodes have the same hash).
 /// - The builder tries to merge adjacent basic blocks and eliminate the source block whenever this
 ///   does not have an impact on other nodes in the forest.
 #[derive(Clone, Debug, Default)]
@@ -35,9 +33,6 @@ pub struct MastForestBuilder {
     /// nodes added to the MAST forest builder are also immediately added to the underlying MAST
     /// forest.
     mast_forest: MastForest,
-    /// A map of MAST node digests to their corresponding positions in the MAST forest. It is
-    /// guaranteed that a given digests maps to exactly one node in the MAST forest.
-    node_id_by_hash: BTreeMap<RpoDigest, MastNodeId>,
     /// A map of all procedures added to the MAST forest indexed by their global procedure ID.
     /// This includes all local, exported, and re-exported procedures. In case multiple procedures
     /// with the same digest are added to the MAST forest builder, only the first procedure is
@@ -46,7 +41,8 @@ pub struct MastForestBuilder {
     /// A map from procedure MAST root to its global procedure index. Similar to the `procedures`
     /// map, this map contains only the first inserted procedure for procedures with the same MAST
     /// root.
-    proc_gid_by_hash: BTreeMap<RpoDigest, GlobalProcedureIndex>,
+    /// TODO(plafer): fix docs
+    proc_gid_by_node_id: BTreeMap<MastNodeId, GlobalProcedureIndex>,
     /// A set of IDs for basic blocks which have been merged into a bigger basic blocks. This is
     /// used as a candidate set of nodes that may be eliminated if the are not referenced by any
     /// other node in the forest and are not a root of any procedure.
@@ -142,8 +138,8 @@ impl MastForestBuilder {
     /// Returns a reference to the procedure with the specified MAST root, or None
     /// if such a procedure is not present in this MAST forest builder.
     #[inline(always)]
-    pub fn find_procedure(&self, mast_root: &RpoDigest) -> Option<&Procedure> {
-        self.proc_gid_by_hash.get(mast_root).and_then(|gid| self.get_procedure(*gid))
+    pub fn find_procedure(&self, node_id: MastNodeId) -> Option<&Procedure> {
+        self.proc_gid_by_node_id.get(&node_id).and_then(|gid| self.get_procedure(*gid))
     }
 
     /// Returns the [`MastNodeId`] of the procedure associated with a given MAST root, or None
@@ -172,8 +168,6 @@ impl MastForestBuilder {
         gid: GlobalProcedureIndex,
         procedure: Procedure,
     ) -> Result<(), AssemblyError> {
-        let proc_root = self.mast_forest[procedure.body_node_id()].digest();
-
         // Check if an entry is already in this cache slot.
         //
         // If there is already a cache entry, but it conflicts with what we're trying to cache,
@@ -191,7 +185,7 @@ impl MastForestBuilder {
 
         // We don't have a cache entry yet, but we do want to make sure we don't have a conflicting
         // cache entry with the same MAST root:
-        if let Some(cached) = self.find_procedure(&proc_root) {
+        if let Some(cached) = self.find_procedure(procedure.body_node_id()) {
             // Handle the case where a procedure with no locals is lowered to a MastForest
             // consisting only of an `External` node to another procedure which has one or more
             // locals. This will result in the calling procedure having the same digest as the
@@ -213,7 +207,7 @@ impl MastForestBuilder {
         }
 
         self.mast_forest.make_root(procedure.body_node_id());
-        self.proc_gid_by_hash.insert(proc_root, gid);
+        self.proc_gid_by_node_id.insert(procedure.body_node_id(), gid);
         self.procedures.insert(gid, procedure);
 
         Ok(())
@@ -346,22 +340,11 @@ impl MastForestBuilder {
 /// Node inserters
 impl MastForestBuilder {
     /// Adds a node to the forest, and returns the [`MastNodeId`] associated with it.
-    ///
-    /// If a [`MastNode`] which is equal to the current node was previously added, the previously
-    /// returned [`MastNodeId`] will be returned. This enforces this invariant that equal
-    /// [`MastNode`]s have equal [`MastNodeId`]s.
-    fn ensure_node(&mut self, node: MastNode) -> Result<MastNodeId, AssemblyError> {
-        let node_digest = node.digest();
-
-        if let Some(node_id) = self.node_id_by_hash.get(&node_digest) {
-            // node already exists in the forest; return previously assigned id
-            Ok(*node_id)
-        } else {
-            let new_node_id = self.mast_forest.add_node(node)?;
-            self.node_id_by_hash.insert(node_digest, new_node_id);
-
-            Ok(new_node_id)
-        }
+    /// 
+    /// Note adding the same [`MastNode`] twice will result in two different [`MastNodeId`]s being
+    /// returned.
+    fn add_node(&mut self, node: MastNode) -> Result<MastNodeId, AssemblyError> {
+        Ok(self.mast_forest.add_node(node)?)
     }
 
     /// Adds a basic block node to the forest, and returns the [`MastNodeId`] associated with it.
@@ -371,7 +354,7 @@ impl MastForestBuilder {
         decorators: Option<DecoratorList>,
     ) -> Result<MastNodeId, AssemblyError> {
         let block = MastNode::new_basic_block(operations, decorators)?;
-        self.ensure_node(block)
+        self.add_node(block)
     }
 
     /// Adds a join node to the forest, and returns the [`MastNodeId`] associated with it.
@@ -381,7 +364,7 @@ impl MastForestBuilder {
         right_child: MastNodeId,
     ) -> Result<MastNodeId, AssemblyError> {
         let join = MastNode::new_join(left_child, right_child, &self.mast_forest)?;
-        self.ensure_node(join)
+        self.add_node(join)
     }
 
     /// Adds a split node to the forest, and returns the [`MastNodeId`] associated with it.
@@ -391,35 +374,35 @@ impl MastForestBuilder {
         else_branch: MastNodeId,
     ) -> Result<MastNodeId, AssemblyError> {
         let split = MastNode::new_split(if_branch, else_branch, &self.mast_forest)?;
-        self.ensure_node(split)
+        self.add_node(split)
     }
 
     /// Adds a loop node to the forest, and returns the [`MastNodeId`] associated with it.
     pub fn ensure_loop(&mut self, body: MastNodeId) -> Result<MastNodeId, AssemblyError> {
         let loop_node = MastNode::new_loop(body, &self.mast_forest)?;
-        self.ensure_node(loop_node)
+        self.add_node(loop_node)
     }
 
     /// Adds a call node to the forest, and returns the [`MastNodeId`] associated with it.
     pub fn ensure_call(&mut self, callee: MastNodeId) -> Result<MastNodeId, AssemblyError> {
         let call = MastNode::new_call(callee, &self.mast_forest)?;
-        self.ensure_node(call)
+        self.add_node(call)
     }
 
     /// Adds a syscall node to the forest, and returns the [`MastNodeId`] associated with it.
     pub fn ensure_syscall(&mut self, callee: MastNodeId) -> Result<MastNodeId, AssemblyError> {
         let syscall = MastNode::new_syscall(callee, &self.mast_forest)?;
-        self.ensure_node(syscall)
+        self.add_node(syscall)
     }
 
     /// Adds a dyn node to the forest, and returns the [`MastNodeId`] associated with it.
     pub fn ensure_dyn(&mut self) -> Result<MastNodeId, AssemblyError> {
-        self.ensure_node(MastNode::new_dyn())
+        self.add_node(MastNode::new_dyn())
     }
 
     /// Adds an external node to the forest, and returns the [`MastNodeId`] associated with it.
     pub fn ensure_external(&mut self, mast_root: RpoDigest) -> Result<MastNodeId, AssemblyError> {
-        self.ensure_node(MastNode::new_external(mast_root))
+        self.add_node(MastNode::new_external(mast_root))
     }
 }
 
