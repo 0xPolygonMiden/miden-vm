@@ -10,7 +10,7 @@ A STARK-based virtual machine.
 
 **WARNING:** This project is in an alpha stage. It has not been audited and may contain bugs and security flaws. This implementation is NOT ready for production use.
 
-**WARNING:** For `no_std`, only the WASM environment is officially supported.
+**WARNING:** For `no_std`, only the `wasm32-unknown-unknown` and `wasm32-wasip1` targets are officially supported.
 
 ## Overview
 
