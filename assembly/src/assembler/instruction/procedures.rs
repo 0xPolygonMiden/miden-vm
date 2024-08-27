@@ -19,7 +19,7 @@ impl Assembler {
     ) -> Result<Option<MastNodeId>, AssemblyError> {
         let span = callee.span();
         let digest = self.resolve_target(kind, callee, proc_ctx, mast_forest_builder)?;
-        self.invoke_mast_root(kind, span, digest, proc_ctx, mast_forest_builder)
+        self.invoke_mast_root(kind, span, digest, mast_forest_builder)
     }
 
     fn invoke_mast_root(
@@ -27,14 +27,12 @@ impl Assembler {
         kind: InvokeKind,
         span: SourceSpan,
         mast_root: RpoDigest,
-        proc_ctx: &mut ProcedureContext,
         mast_forest_builder: &mut MastForestBuilder,
     ) -> Result<Option<MastNodeId>, AssemblyError> {
         // Get the procedure from the assembler
         let current_source_file = self.source_manager.get(span.source_id()).ok();
 
-        // If the procedure is cached, register the call to ensure the callset
-        // is updated correctly.
+        // If the procedure is cached and is a system call, ensure that the call is valid.
         match mast_forest_builder.find_procedure(&mast_root) {
             Some(proc) if matches!(kind, InvokeKind::SysCall) => {
                 // Verify if this is a syscall, that the callee is a kernel procedure
@@ -71,10 +69,8 @@ impl Assembler {
                             })
                         }
                     })?;
-                proc_ctx.register_external_call(proc, false)?;
             },
-            Some(proc) => proc_ctx.register_external_call(proc, false)?,
-            None => (),
+            Some(_) | None => (),
         }
 
         let mast_root_node_id = {
@@ -150,34 +146,25 @@ impl Assembler {
         &self,
         callee: &InvocationTarget,
         proc_ctx: &mut ProcedureContext,
-        span_builder: &mut BasicBlockBuilder,
+        basic_block_builder: &mut BasicBlockBuilder,
         mast_forest_builder: &MastForestBuilder,
     ) -> Result<(), AssemblyError> {
         let digest =
             self.resolve_target(InvokeKind::ProcRef, callee, proc_ctx, mast_forest_builder)?;
-        self.procref_mast_root(digest, proc_ctx, span_builder, mast_forest_builder)
+        self.procref_mast_root(digest, basic_block_builder)
     }
 
     fn procref_mast_root(
         &self,
         mast_root: RpoDigest,
-        proc_ctx: &mut ProcedureContext,
-        span_builder: &mut BasicBlockBuilder,
-        mast_forest_builder: &MastForestBuilder,
+        basic_block_builder: &mut BasicBlockBuilder,
     ) -> Result<(), AssemblyError> {
-        // Add the root to the callset to be able to use dynamic instructions
-        // with the referenced procedure later
-
-        if let Some(proc) = mast_forest_builder.find_procedure(&mast_root) {
-            proc_ctx.register_external_call(proc, false)?;
-        }
-
         // Create an array with `Push` operations containing root elements
         let ops = mast_root
             .iter()
             .map(|elem| Operation::Push(*elem))
             .collect::<SmallVec<[_; 4]>>();
-        span_builder.push_ops(ops);
+        basic_block_builder.push_ops(ops);
         Ok(())
     }
 }
