@@ -277,7 +277,7 @@ impl Assembler {
 
         let mut mast_forest_builder = MastForestBuilder::default();
 
-        let exports = {
+        let mut exports = {
             let mut exports = BTreeMap::new();
 
             for module_idx in ast_module_indices {
@@ -289,10 +289,11 @@ impl Assembler {
                     let gid = module_idx + proc_idx;
                     self.compile_subgraph(gid, &mut mast_forest_builder)?;
 
-                    let proc_hash = mast_forest_builder
-                        .get_procedure_hash(gid)
-                        .expect("compilation succeeded but root not found in cache");
-                    exports.insert(fqn, proc_hash);
+                    let proc_root_node_id = mast_forest_builder
+                        .get_procedure(gid)
+                        .expect("compilation succeeded but root not found in cache")
+                        .body_node_id();
+                    exports.insert(fqn, proc_root_node_id);
                 }
             }
 
@@ -300,7 +301,15 @@ impl Assembler {
         };
 
         // TODO: show a warning if library exports are empty?
-        let (mast_forest, _) = mast_forest_builder.build();
+        let (mast_forest, id_remappings) = mast_forest_builder.build();
+        if let Some(id_remappings) = id_remappings {
+            for (_proc_name, node_id) in exports.iter_mut() {
+                if let Some(&new_node_id) = id_remappings.get(&node_id) {
+                    *node_id = new_node_id;
+                }
+            }
+        }
+
         Ok(Library::new(mast_forest.into(), exports)?)
     }
 
@@ -327,22 +336,29 @@ impl Assembler {
         // AST (we just added them to the module graph)
         let ast_module = self.module_graph[module_idx].unwrap_ast().clone();
 
-        let exports = ast_module
+        let mut exports = ast_module
             .exported_procedures()
             .map(|(proc_idx, fqn)| {
                 let gid = module_idx + proc_idx;
                 self.compile_subgraph(gid, &mut mast_forest_builder)?;
 
-                let proc_hash = mast_forest_builder
-                    .get_procedure_hash(gid)
-                    .expect("compilation succeeded but root not found in cache");
-                Ok((fqn, proc_hash))
+                let proc_root_node_id = mast_forest_builder
+                    .get_procedure(gid)
+                    .expect("compilation succeeded but root not found in cache")
+                    .body_node_id();
+                Ok((fqn, proc_root_node_id))
             })
-            .collect::<Result<BTreeMap<QualifiedProcedureName, RpoDigest>, Report>>()?;
+            .collect::<Result<BTreeMap<_, _>, Report>>()?;
 
         // TODO: show a warning if library exports are empty?
-
-        let (mast_forest, _) = mast_forest_builder.build();
+        let (mast_forest, id_remappings) = mast_forest_builder.build();
+        if let Some(id_remappings) = id_remappings {
+            for (_proc_name, node_id) in exports.iter_mut() {
+                if let Some(&new_node_id) = id_remappings.get(&node_id) {
+                    *node_id = new_node_id;
+                }
+            }
+        }
         let library = Library::new(mast_forest.into(), exports)?;
         Ok(library.try_into()?)
     }

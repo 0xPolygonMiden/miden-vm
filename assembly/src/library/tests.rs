@@ -98,10 +98,6 @@ fn library_exports() -> Result<(), Report> {
     let actual_exports: BTreeSet<_> = lib2.exports().collect();
     assert_eq!(expected_exports, actual_exports);
 
-    // make sure foo2, bar2, and bar3 map to the same MastNode
-    assert_eq!(lib2.get_export_node_id(&foo2), lib2.get_export_node_id(&bar2));
-    assert_eq!(lib2.get_export_node_id(&foo2), lib2.get_export_node_id(&bar3));
-
     // make sure there are 6 roots in the MAST (foo1, foo2, foo3, bar1, bar4, and bar5)
     assert_eq!(lib2.mast_forest.num_procedures(), 6);
 

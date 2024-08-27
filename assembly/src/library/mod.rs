@@ -69,24 +69,13 @@ impl Library {
     /// in the provided MAST forest.
     pub fn new(
         mast_forest: Arc<MastForest>,
-        exports: BTreeMap<QualifiedProcedureName, RpoDigest>,
+        exports: BTreeMap<QualifiedProcedureName, MastNodeId>,
     ) -> Result<Self, LibraryError> {
-        let mut fqn_to_export = BTreeMap::new();
-
-        // convert fqn |-> mast_root map into fqn |-> mast_node_id map
-        for (fqn, mast_root) in exports.into_iter() {
-            if let Some(proc_node_id) = mast_forest.find_procedure_root(mast_root) {
-                fqn_to_export.insert(fqn, proc_node_id);
-            } else {
-                return Err(LibraryError::NoProcedureRootForExport { procedure_path: fqn });
-            }
-        }
-
-        let digest = compute_content_hash(&fqn_to_export, &mast_forest);
+        let digest = compute_content_hash(&exports, &mast_forest);
 
         Ok(Self {
             digest,
-            exports: fqn_to_export,
+            exports,
             mast_forest,
         })
     }
