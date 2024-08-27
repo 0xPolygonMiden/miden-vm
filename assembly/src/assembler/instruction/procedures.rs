@@ -16,7 +16,7 @@ impl Assembler {
         callee: &InvocationTarget,
         proc_ctx: &mut ProcedureContext,
         mast_forest_builder: &mut MastForestBuilder,
-    ) -> Result<Option<MastNodeId>, AssemblyError> {
+    ) -> Result<MastNodeId, AssemblyError> {
         let span = callee.span();
         let digest = self.resolve_target(kind, callee, proc_ctx, mast_forest_builder)?;
         self.invoke_mast_root(kind, span, digest, mast_forest_builder)
@@ -28,7 +28,7 @@ impl Assembler {
         span: SourceSpan,
         mast_root: RpoDigest,
         mast_forest_builder: &mut MastForestBuilder,
-    ) -> Result<Option<MastNodeId>, AssemblyError> {
+    ) -> Result<MastNodeId, AssemblyError> {
         // Get the procedure from the assembler
         let current_source_file = self.source_manager.get(span.source_id()).ok();
 
@@ -116,7 +116,7 @@ impl Assembler {
             }
         };
 
-        Ok(Some(mast_root_node_id))
+        Ok(mast_root_node_id)
     }
 
     /// Creates a new DYN block for the dynamic code execution and return.
