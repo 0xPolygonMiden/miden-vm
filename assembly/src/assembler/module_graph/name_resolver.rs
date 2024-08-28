@@ -219,12 +219,6 @@ impl<'a> NameResolver<'a> {
                     None => Ok(ResolvedTarget::Phantom(*digest)),
                 }
             },
-            Some(ResolvedProcedure::BodyNodeId { mast_root, body_id }) => {
-                match self.graph.get_procedure_index_by_node_id(body_id) {
-                    Some(gid) => Ok(ResolvedTarget::Exact { gid }),
-                    None => Ok(ResolvedTarget::Phantom(mast_root)),
-                }
-            },
             None => Err(AssemblyError::Failed {
                 labels: vec![RelatedLabel::error("undefined procedure")
                     .with_source_file(self.graph.source_manager.get(caller.span.source_id()).ok())
@@ -385,14 +379,6 @@ impl<'a> NameResolver<'a> {
                                 ),
                         ],
                     });
-                },
-                Some(ResolvedProcedure::BodyNodeId { mast_root, body_id }) => {
-                    break Ok(self
-                        .graph
-                        .get_procedure_index_by_node_id(body_id)
-                        .unwrap_or_else( ||
-                            panic!("internal error: resolved procedure with MAST root {mast_root} and body_id {body_id} not found in module graph")
-                        ));
                 },
                 None if matches!(current_caller.kind, InvokeKind::SysCall) => {
                     if self.graph.has_nonempty_kernel() {
