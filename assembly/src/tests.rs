@@ -1,4 +1,5 @@
 use alloc::string::ToString;
+use vm_core::mast::{MastNode, MastNodeId};
 
 use crate::{
     assert_diagnostic_lines,
@@ -1306,6 +1307,56 @@ end";
 
 // PROGRAMS WITH PROCEDURES
 // ================================================================================================
+
+/// If the program has 2 procedures with the same MAST root (but possibly different decorators), the
+/// correct procedure is chosen on exec
+#[test]
+fn ensure_correct_procedure_selection_on_collision() -> TestResult {
+    let context = TestContext::default();
+
+    // if with else
+    let source = source_file!(
+        &context,
+        "
+        proc.f
+            add
+        end
+
+        proc.g
+            trace.2
+            add
+        end
+
+        begin
+            if.true
+                exec.f
+            else
+                exec.g
+            end
+        end"
+    );
+    let program = context.assemble(source)?;
+
+    let expected_f_node_id =
+        MastNodeId::from_u32_safe(0_u32, program.mast_forest().as_ref()).unwrap();
+    let expected_g_node_id =
+        MastNodeId::from_u32_safe(1_u32, program.mast_forest().as_ref()).unwrap();
+
+    let (f_node_id, g_node_id) = {
+        let split_node_id = program.entrypoint();
+        let split_node = match &program.mast_forest()[split_node_id] {
+            MastNode::Split(split_node) => split_node,
+            _ => panic!("expected split node"),
+        };
+
+        (split_node.on_true(), split_node.on_false())
+    };
+
+    assert_eq!(expected_f_node_id, f_node_id);
+    assert_eq!(expected_g_node_id, g_node_id);
+
+    Ok(())
+}
 
 #[test]
 fn program_with_one_procedure() -> TestResult {
