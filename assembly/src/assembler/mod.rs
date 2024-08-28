@@ -455,7 +455,11 @@ impl Assembler {
         while let Some(procedure_gid) = worklist.pop() {
             // If we have already compiled this procedure, do not recompile
             if let Some(proc) = mast_forest_builder.get_procedure(procedure_gid) {
-                self.module_graph.register_procedure_root(procedure_gid, proc.mast_root())?;
+                self.module_graph.register_procedure_root(
+                    procedure_gid,
+                    proc.body_node_id(),
+                    proc.mast_root(),
+                )?;
                 continue;
             }
             // Fetch procedure metadata from the graph
@@ -494,7 +498,11 @@ impl Assembler {
                     // be added to the forest.
 
                     // Cache the compiled procedure
-                    self.module_graph.register_procedure_root(procedure_gid, procedure.mast_root())?;
+                    self.module_graph.register_procedure_root(
+                        procedure_gid,
+                        procedure.body_node_id(),
+                        procedure.mast_root(),
+                    )?;
                     mast_forest_builder.insert_procedure(procedure_gid, procedure)?;
                 },
                 Export::Alias(proc_alias) => {
@@ -526,7 +534,11 @@ impl Assembler {
                     let procedure = pctx.into_procedure(proc_mast_root, proc_node_id);
 
                     // Make the MAST root available to all dependents
-                    self.module_graph.register_procedure_root(procedure_gid, proc_mast_root)?;
+                    self.module_graph.register_procedure_root(
+                        procedure_gid,
+                        proc_node_id,
+                        proc_mast_root,
+                    )?;
                     mast_forest_builder.insert_procedure(procedure_gid, procedure)?;
                 },
             }

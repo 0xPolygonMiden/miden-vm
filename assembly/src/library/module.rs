@@ -1,4 +1,5 @@
 use alloc::vec::Vec;
+use vm_core::mast::MastNodeId;
 
 use super::LibraryPath;
 use crate::{
@@ -22,8 +23,8 @@ impl ModuleInfo {
     }
 
     /// Adds a procedure to the module.
-    pub fn add_procedure(&mut self, name: ProcedureName, digest: RpoDigest) {
-        self.procedures.push(ProcedureInfo { name, digest });
+    pub fn add_procedure(&mut self, name: ProcedureName, body_node_id: MastNodeId, digest: RpoDigest) {
+        self.procedures.push(ProcedureInfo { name, body_node_id, digest });
     }
 
     /// Returns the module's library path.
@@ -71,5 +72,6 @@ impl ModuleInfo {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ProcedureInfo {
     pub name: ProcedureName,
+    pub body_node_id: MastNodeId,
     pub digest: RpoDigest,
 }

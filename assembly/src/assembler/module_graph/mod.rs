@@ -4,7 +4,12 @@ mod debug;
 mod name_resolver;
 mod rewrites;
 
-use alloc::{boxed::Box, collections::BTreeMap, sync::Arc, vec::Vec};
+use alloc::{
+    boxed::Box,
+    collections::{btree_map::Entry, BTreeMap},
+    sync::Arc,
+    vec::Vec,
+};
 use core::ops::Index;
 
 use smallvec::{smallvec, SmallVec};
@@ -161,7 +166,7 @@ pub struct ModuleGraph {
     /// The set of MAST node ids which have procedure definitions in this graph. There can be
     /// multiple procedures bound to the same root due to having identical code.
     procedure_root_digests: BTreeMap<RpoDigest, SmallVec<[GlobalProcedureIndex; 1]>>,
-    /// The set of MAST node ids which have procedure definitions in this graph. 
+    /// The set of MAST node ids which have procedure definitions in this graph.
     procedure_root_ids: BTreeMap<MastNodeId, GlobalProcedureIndex>,
     kernel_index: Option<ModuleIndex>,
     kernel: Kernel,
@@ -201,7 +206,7 @@ impl ModuleGraph {
         for &module_index in module_indices.iter() {
             for (proc_index, proc) in self[module_index].unwrap_info().clone().procedures() {
                 let gid = module_index + proc_index;
-                self.register_procedure_root(gid, proc.digest)?;
+                self.register_procedure_root(gid, proc.body_node_id, proc.digest)?;
             }
         }
 
@@ -531,7 +536,7 @@ impl ModuleGraph {
     }
 
     /// Returns a procedure index which corresponds to the provided procedure digest.
-    /// 
+    ///
     /// Note that there can be many procedures with the same digest - due to having the same code,
     /// and/or using different decorators which don't affect the MAST root. This method returns an
     /// arbitrary one.
@@ -554,6 +559,7 @@ impl ModuleGraph {
         resolver.resolve_target(caller, target)
     }
 
+    // TODO(plafer): fix docs
     /// Registers a [MastNodeId] as corresponding to a given [GlobalProcedureIndex].
     ///
     /// # SAFETY
@@ -564,21 +570,27 @@ impl ModuleGraph {
     /// of the referenced procedure, i.e. they are referentially transparent.
     pub(crate) fn register_procedure_root(
         &mut self,
-        id: GlobalProcedureIndex,
-        // TODO(plafer): all `procedure_root_id` field, and add to `self.procedure_root_ids`
+        gid: GlobalProcedureIndex,
+        procedure_root_id: MastNodeId,
         procedure_root_digest: RpoDigest,
     ) -> Result<(), AssemblyError> {
-        use alloc::collections::btree_map::Entry;
+        if let Some(old_gid) = self.procedure_root_ids.insert(procedure_root_id, gid) {
+            assert!(
+                old_gid == gid, 
+                "internal error: procedure root id {procedure_root_id:?} is associated with two procedure indices: {old_gid:?} and {gid:?}"
+            );
+        }
+
         match self.procedure_root_digests.entry(procedure_root_digest) {
             Entry::Occupied(ref mut entry) => {
                 let prev_id = entry.get()[0];
-                if prev_id != id {
+                if prev_id != gid {
                     // Multiple procedures with the same root, but compatible
-                    entry.get_mut().push(id);
+                    entry.get_mut().push(gid);
                 }
             },
             Entry::Vacant(entry) => {
-                entry.insert(smallvec![id]);
+                entry.insert(smallvec![gid]);
             },
         }
 

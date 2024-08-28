@@ -28,6 +28,7 @@ pub enum AssemblyError {
     #[error("found a cycle in the call graph, involving these procedures: {}", nodes.as_slice().join(", "))]
     #[diagnostic()]
     Cycle { nodes: Vec<String> },
+    // TODO(plafer): remove this error?
     #[error("two procedures found with same mast root, but conflicting definitions ('{first}' and '{second}')")]
     #[diagnostic()]
     ConflictingDefinitions {
