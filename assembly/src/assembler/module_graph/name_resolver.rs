@@ -214,6 +214,7 @@ impl<'a> NameResolver<'a> {
                 })
             },
             Some(ResolvedProcedure::MastRoot(ref digest)) => {
+                // TODO(plafer): use `get_procedure_by_node_id()` once we switch `ResolvedProcedure::MastRoot` to being a `MastNodeId`
                 match self.graph.get_procedure_index_by_digest(digest) {
                     Some(gid) => Ok(ResolvedTarget::Exact { gid }),
                     None => Ok(ResolvedTarget::Phantom(*digest)),
@@ -351,6 +352,7 @@ impl<'a> NameResolver<'a> {
                     current_callee = Cow::Owned(fqn);
                 },
                 Some(ResolvedProcedure::MastRoot(ref digest)) => {
+                    // TODO(plafer): use `get_procedure_by_node_id()` once we switch `ResolvedProcedure::MastRoot` to being a `MastNodeId`
                     if let Some(id) = self.graph.get_procedure_index_by_digest(digest) {
                         break Ok(id);
                     }

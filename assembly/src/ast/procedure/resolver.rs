@@ -14,6 +14,7 @@ pub enum ResolvedProcedure {
     /// The name was resolved to a procedure exported from another module
     External(QualifiedProcedureName),
     /// The name was resolved to a procedure with a known MAST root
+    /// TODO(plafer): I think this needs to be a `MastNodeId`
     MastRoot(RpoDigest),
 }
 
