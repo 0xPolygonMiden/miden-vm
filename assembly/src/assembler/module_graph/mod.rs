@@ -117,14 +117,7 @@ impl WrappedModule {
         match self {
             WrappedModule::Ast(module) => module.resolve(name),
             WrappedModule::Info(module) => {
-                let body_id = module.get_procedure_body_id_by_name(name);
-                let mast_root = module.get_procedure_digest_by_name(name);
-
-                if let (Some(body_id), Some(mast_root)) = (body_id, mast_root) {
-                    Some(ResolvedProcedure::BodyNodeId { mast_root, body_id })
-                } else {
-                    None
-                }
+                module.get_procedure_digest_by_name(name).map(ResolvedProcedure::MastRoot)
             },
         }
     }
@@ -168,7 +161,7 @@ pub struct ModuleGraph {
     /// The set of MAST node ids which have procedure definitions in this graph. There can be
     /// multiple procedures bound to the same root due to having identical code.
     procedure_root_digests: BTreeMap<RpoDigest, SmallVec<[GlobalProcedureIndex; 1]>>,
-    /// The set of MAST node ids which have procedure definitions in this graph. 
+    /// The set of MAST node ids which have procedure definitions in this graph.
     procedure_root_ids: BTreeMap<MastNodeId, GlobalProcedureIndex>,
     kernel_index: Option<ModuleIndex>,
     kernel: Kernel,
@@ -538,7 +531,7 @@ impl ModuleGraph {
     }
 
     /// Returns a procedure index which corresponds to the provided procedure digest.
-    /// 
+    ///
     /// Note that there can be many procedures with the same digest - due to having the same code,
     /// and/or using different decorators which don't affect the MAST root. This method returns an
     /// arbitrary one.

@@ -98,10 +98,8 @@ fn library_exports() -> Result<(), Report> {
     let actual_exports: BTreeSet<_> = lib2.exports().collect();
     assert_eq!(expected_exports, actual_exports);
 
-    // make sure there are 7 roots in the MAST (foo1, foo2, foo3, bar1, bar2, bar4, and bar5)
-    // Note that bar3 compiles to the same procedure as foo2, since `exec` returns the root node
-    // that is being exec'd.
-    assert_eq!(lib2.mast_forest.num_procedures(), 7);
+    // make sure there are 8 roots in the MAST (foo1, foo2, foo3, bar1, bar2, bar3, bar4, and bar5)
+    assert_eq!(lib2.mast_forest.num_procedures(), 8);
 
     // bar1 and bar2 should be the only re-exports
     assert!(!lib2.is_reexport(&foo2));
