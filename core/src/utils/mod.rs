@@ -138,6 +138,5 @@ pub use miden_formatting::hex::{to_hex, DisplayHex, ToHex};
 #[derive(Debug, Clone, Copy)]
 pub enum Either<L, R> {
     Left(L),
-    Right(R)
+    Right(R),
 }
-

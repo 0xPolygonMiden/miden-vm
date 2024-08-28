@@ -73,11 +73,7 @@ impl Library {
     ) -> Result<Self, LibraryError> {
         let digest = compute_content_hash(&exports, &mast_forest);
 
-        Ok(Self {
-            digest,
-            exports,
-            mast_forest,
-        })
+        Ok(Self { digest, exports, mast_forest })
     }
 }
 

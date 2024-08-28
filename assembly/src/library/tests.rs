@@ -155,7 +155,7 @@ fn library_procedure_collision() -> Result<(), Report> {
 
     // make sure lib2 has the expected exports (i.e., bar1 and bar2)
     assert_eq!(lib2.num_exports(), 2);
-    
+
     // make sure that bar1 and bar2 are different nodes in the MAST forest (since they could differ
     // in their use of decorators)
     assert_ne!(lib2.get_export_node_id(&lib2_bar_bar1), lib2.get_export_node_id(&lib2_bar_bar2));

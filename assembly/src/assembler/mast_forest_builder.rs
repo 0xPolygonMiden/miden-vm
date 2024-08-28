@@ -340,7 +340,7 @@ impl MastForestBuilder {
 /// Node inserters
 impl MastForestBuilder {
     /// Adds a node to the forest, and returns the [`MastNodeId`] associated with it.
-    /// 
+    ///
     /// Note adding the same [`MastNode`] twice will result in two different [`MastNodeId`]s being
     /// returned.
     pub fn add_node(&mut self, node: MastNode) -> Result<MastNodeId, AssemblyError> {
