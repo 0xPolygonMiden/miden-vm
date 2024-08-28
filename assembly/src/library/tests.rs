@@ -98,14 +98,16 @@ fn library_exports() -> Result<(), Report> {
     let actual_exports: BTreeSet<_> = lib2.exports().collect();
     assert_eq!(expected_exports, actual_exports);
 
-    // make sure there are 6 roots in the MAST (foo1, foo2, foo3, bar1, bar4, and bar5)
-    assert_eq!(lib2.mast_forest.num_procedures(), 6);
+    // make sure there are 7 roots in the MAST (foo1, foo2, foo3, bar1, bar2, bar4, and bar5)
+    // Note that bar3 compiles to the same procedure as foo2, since `exec` returns the root node
+    // that is being exec'd.
+    assert_eq!(lib2.mast_forest.num_procedures(), 7);
 
-    // bar1 should be the only re-export
+    // bar1 and bar2 should be the only re-exports
     assert!(!lib2.is_reexport(&foo2));
     assert!(!lib2.is_reexport(&foo3));
     assert!(lib2.is_reexport(&bar1));
-    assert!(!lib2.is_reexport(&bar2));
+    assert!(lib2.is_reexport(&bar2));
     assert!(!lib2.is_reexport(&bar3));
     assert!(!lib2.is_reexport(&bar5));
 
@@ -150,18 +152,15 @@ fn library_procedure_collision() -> Result<(), Report> {
         .with_library(lib1)?
         .assemble_library([bar])?;
 
-    let bar1 = QualifiedProcedureName::from_str("lib2::bar::bar1").unwrap();
-    let bar2 = QualifiedProcedureName::from_str("lib2::bar::bar2").unwrap();
+    let lib2_bar_bar1 = QualifiedProcedureName::from_str("lib2::bar::bar1").unwrap();
+    let lib2_bar_bar2 = QualifiedProcedureName::from_str("lib2::bar::bar2").unwrap();
 
     // make sure lib2 has the expected exports (i.e., bar1 and bar2)
     assert_eq!(lib2.num_exports(), 2);
-    assert_eq!(lib2.get_export_node_id(&bar1), lib2.get_export_node_id(&bar2));
-
-    // make sure only one node was added to the forest
-    // NOTE: the MAST forest should actually have only 1 node (external node for the re-exported
-    // procedure), because nodes for the local procedure nodes should be pruned from the forest,
-    // but this is not implemented yet
-    assert_eq!(lib2.mast_forest().num_nodes(), 5);
+    
+    // make sure that bar1 and bar2 are different nodes in the MAST forest (since they could differ
+    // in their use of decorators)
+    assert_ne!(lib2.get_export_node_id(&lib2_bar_bar1), lib2.get_export_node_id(&lib2_bar_bar2));
 
     Ok(())
 }
