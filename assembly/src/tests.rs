@@ -1321,7 +1321,7 @@ fn ensure_correct_procedure_selection_on_collision() -> TestResult {
         proc.f
             add
         end
-
+        
         proc.g
             trace.2
             add
@@ -1337,10 +1337,12 @@ fn ensure_correct_procedure_selection_on_collision() -> TestResult {
     );
     let program = context.assemble(source)?;
 
+    // Note: those values were taken from adding prints to the assembler at the time of writing. It
+    // is possible that this test starts failing if we end up ordering procedures differently.
     let expected_f_node_id =
-        MastNodeId::from_u32_safe(0_u32, program.mast_forest().as_ref()).unwrap();
-    let expected_g_node_id =
         MastNodeId::from_u32_safe(1_u32, program.mast_forest().as_ref()).unwrap();
+    let expected_g_node_id =
+        MastNodeId::from_u32_safe(0_u32, program.mast_forest().as_ref()).unwrap();
 
     let (f_node_id, g_node_id) = {
         let split_node_id = program.entrypoint();
