@@ -73,7 +73,11 @@ impl Library {
     ) -> Result<Self, LibraryError> {
         let digest = compute_content_hash(&exports, &mast_forest);
 
-        Ok(Self { digest, exports, mast_forest })
+        Ok(Self {
+            digest,
+            exports,
+            mast_forest,
+        })
     }
 }
 
@@ -128,21 +132,13 @@ impl Library {
                 .entry(proc_name.module.clone())
                 .and_modify(|compiled_module| {
                     let proc_digest = self.mast_forest[proc_root_node_id].digest();
-                    compiled_module.add_procedure(
-                        proc_name.name.clone(),
-                        proc_root_node_id,
-                        proc_digest,
-                    );
+                    compiled_module.add_procedure(proc_name.name.clone(), proc_digest);
                 })
                 .or_insert_with(|| {
                     let mut module_info = ModuleInfo::new(proc_name.module.clone());
 
                     let proc_digest = self.mast_forest[proc_root_node_id].digest();
-                    module_info.add_procedure(
-                        proc_name.name.clone(),
-                        proc_root_node_id,
-                        proc_digest,
-                    );
+                    module_info.add_procedure(proc_name.name.clone(), proc_digest);
 
                     module_info
                 });
@@ -361,7 +357,7 @@ impl TryFrom<Library> for KernelLibrary {
 
             let proc_digest = library.mast_forest[proc_node_id].digest();
             proc_digests.push(proc_digest);
-            kernel_module.add_procedure(proc_path.name.clone(), proc_node_id, proc_digest);
+            kernel_module.add_procedure(proc_path.name.clone(), proc_digest);
         }
 
         let kernel = Kernel::new(&proc_digests)?;
