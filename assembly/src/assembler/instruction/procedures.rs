@@ -20,7 +20,21 @@ impl Assembler {
         let span = callee.span();
         let node_id_or_digest = self.resolve_target(kind, callee, proc_ctx, mast_forest_builder)?;
         match node_id_or_digest {
-            Either::Left(node_id) => Ok(node_id),
+            // TODO(plafer): reconcile with `invoke_mast_root` impl
+            Either::Left(node_id) => match kind {
+                InvokeKind::ProcRef => Ok(node_id),
+                InvokeKind::Exec => {
+                    // We make sure to copy the root node so that the `exec` is associated
+                    // with a different `MastNodeId` than the procedure it is referencing.
+                    // Currently the only purpose of this is so that simple procedures that
+                    // only have an `exec` have a different body node id than the procedure
+                    // they're executing.
+                    let root_node = mast_forest_builder.get_mast_node(node_id).unwrap();
+                    Ok(mast_forest_builder.add_node(root_node.clone())?)
+                },
+                InvokeKind::Call => Ok(mast_forest_builder.add_call(node_id)?),
+                InvokeKind::SysCall => Ok(mast_forest_builder.add_syscall(node_id)?),
+            },
             Either::Right(digest) => self.invoke_mast_root(kind, span, digest, mast_forest_builder),
         }
     }
