@@ -52,6 +52,16 @@ impl ModuleInfo {
             }
         })
     }
+    /// Returns the digest of the procedure with the provided name, if any.
+    pub fn get_procedure_body_id_by_name(&self, name: &ProcedureName) -> Option<MastNodeId> {
+        self.procedures.iter().find_map(|proc_info| {
+            if &proc_info.name == name {
+                Some(proc_info.body_node_id)
+            } else {
+                None
+            }
+        })
+    }
 
     /// Returns an iterator over the procedure infos in the module with their corresponding
     /// procedure index in the module.

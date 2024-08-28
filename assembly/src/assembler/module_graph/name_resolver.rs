@@ -214,10 +214,15 @@ impl<'a> NameResolver<'a> {
                 })
             },
             Some(ResolvedProcedure::MastRoot(ref digest)) => {
-                // TODO(plafer): use `get_procedure_by_node_id()` once we switch `ResolvedProcedure::MastRoot` to being a `MastNodeId`
                 match self.graph.get_procedure_index_by_digest(digest) {
                     Some(gid) => Ok(ResolvedTarget::Exact { gid }),
                     None => Ok(ResolvedTarget::Phantom(*digest)),
+                }
+            },
+            Some(ResolvedProcedure::BodyNodeId { mast_root, body_id }) => {
+                match self.graph.get_procedure_index_by_node_id(body_id) {
+                    Some(gid) => Ok(ResolvedTarget::Exact { gid }),
+                    None => Ok(ResolvedTarget::Phantom(mast_root)),
                 }
             },
             None => Err(AssemblyError::Failed {
@@ -352,7 +357,6 @@ impl<'a> NameResolver<'a> {
                     current_callee = Cow::Owned(fqn);
                 },
                 Some(ResolvedProcedure::MastRoot(ref digest)) => {
-                    // TODO(plafer): use `get_procedure_by_node_id()` once we switch `ResolvedProcedure::MastRoot` to being a `MastNodeId`
                     if let Some(id) = self.graph.get_procedure_index_by_digest(digest) {
                         break Ok(id);
                     }
@@ -381,6 +385,14 @@ impl<'a> NameResolver<'a> {
                                 ),
                         ],
                     });
+                },
+                Some(ResolvedProcedure::BodyNodeId { mast_root, body_id }) => {
+                    break Ok(self
+                        .graph
+                        .get_procedure_index_by_node_id(body_id)
+                        .unwrap_or_else( ||
+                            panic!("internal error: resolved procedure with MAST root {mast_root} and body_id {body_id} not found in module graph")
+                        ));
                 },
                 None if matches!(current_caller.kind, InvokeKind::SysCall) => {
                     if self.graph.has_nonempty_kernel() {

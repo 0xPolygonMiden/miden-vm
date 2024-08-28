@@ -1,4 +1,5 @@
 use alloc::{collections::BTreeMap, vec::Vec};
+use vm_core::mast::MastNodeId;
 
 use super::{ProcedureIndex, ProcedureName, QualifiedProcedureName};
 use crate::{ast::Ident, LibraryPath, RpoDigest, SourceSpan, Span, Spanned};
@@ -14,8 +15,12 @@ pub enum ResolvedProcedure {
     /// The name was resolved to a procedure exported from another module
     External(QualifiedProcedureName),
     /// The name was resolved to a procedure with a known MAST root
-    /// TODO(plafer): I think this needs to be a `MastNodeId`
     MastRoot(RpoDigest),
+    // TODO(plafer): rename and document
+    BodyNodeId {
+        mast_root: RpoDigest,
+        body_id: MastNodeId,
+    },
 }
 
 impl Spanned for ResolvedProcedure {
@@ -24,6 +29,7 @@ impl Spanned for ResolvedProcedure {
             ResolvedProcedure::Local(p) => p.span(),
             ResolvedProcedure::External(p) => p.span(),
             ResolvedProcedure::MastRoot(_) => SourceSpan::default(),
+            ResolvedProcedure::BodyNodeId { mast_root: _, body_id: _ } => SourceSpan::default(),
         }
     }
 }

@@ -122,7 +122,14 @@ impl WrappedModule {
         match self {
             WrappedModule::Ast(module) => module.resolve(name),
             WrappedModule::Info(module) => {
-                module.get_procedure_digest_by_name(name).map(ResolvedProcedure::MastRoot)
+                let body_id = module.get_procedure_body_id_by_name(name);
+                let mast_root = module.get_procedure_digest_by_name(name);
+
+                if let (Some(body_id), Some(mast_root)) = (body_id, mast_root) {
+                    Some(ResolvedProcedure::BodyNodeId { mast_root, body_id })
+                } else {
+                    None
+                }
             },
         }
     }
