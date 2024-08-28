@@ -2,7 +2,7 @@ use alloc::{collections::BTreeMap, sync::Arc, vec::Vec};
 
 use mast_forest_builder::MastForestBuilder;
 use module_graph::{ProcedureWrapper, WrappedModule};
-use vm_core::{mast::MastNodeId, DecoratorList, Felt, Kernel, Operation, Program};
+use vm_core::{mast::MastNodeId, utils::Either, DecoratorList, Felt, Kernel, Operation, Program};
 
 use crate::{
     ast::{self, Export, InvocationTarget, InvokeKind, ModuleKind, QualifiedProcedureName},
@@ -494,7 +494,8 @@ impl Assembler {
                     // be added to the forest.
 
                     // Cache the compiled procedure
-                    self.module_graph.register_procedure_root(procedure_gid, procedure.mast_root())?;
+                    self.module_graph
+                        .register_procedure_root(procedure_gid, procedure.mast_root())?;
                     mast_forest_builder.insert_procedure(procedure_gid, procedure)?;
                 },
                 Export::Alias(proc_alias) => {
@@ -512,12 +513,17 @@ impl Assembler {
                     )
                     .with_span(proc_alias.span());
 
-                    let proc_mast_root = self.resolve_target(
+                    let proc_mast_root = match self.resolve_target(
                         InvokeKind::ProcRef,
                         &proc_alias.target().into(),
                         &pctx,
                         mast_forest_builder,
-                    )?;
+                    )? {
+                        Either::Left(node_id) => {
+                            mast_forest_builder.get_mast_node(node_id).unwrap().digest()
+                        },
+                        Either::Right(digest) => digest,
+                    };
 
                     // insert external node into the MAST forest for this procedure; if a procedure
                     // with the same MAST rood had been previously added to the builder, this will
@@ -668,7 +674,7 @@ impl Assembler {
         target: &InvocationTarget,
         proc_ctx: &ProcedureContext,
         mast_forest_builder: &MastForestBuilder,
-    ) -> Result<RpoDigest, AssemblyError> {
+    ) -> Result<Either<MastNodeId, RpoDigest>, AssemblyError> {
         let caller = CallerInfo {
             span: target.span(),
             module: proc_ctx.id().module,
@@ -676,16 +682,18 @@ impl Assembler {
         };
         let resolved = self.module_graph.resolve_target(&caller, target)?;
         match resolved {
-            ResolvedTarget::Phantom(digest) => Ok(digest),
+            ResolvedTarget::Phantom(digest) => Ok(Either::Right(digest)),
             ResolvedTarget::Exact { gid } | ResolvedTarget::Resolved { gid, .. } => {
-                match mast_forest_builder.get_procedure_hash(gid) {
-                    Some(proc_hash) => Ok(proc_hash),
+                match mast_forest_builder.get_procedure(gid) {
+                    Some(proc) => Ok(Either::Left(proc.body_node_id())),
+                    // We didn't find the procedure in our current MAST forest. We still need to
+                    // check if it exists in one of a library dependency.
                     None => match self.module_graph.get_procedure_unsafe(gid) {
-                        ProcedureWrapper::Info(p) => Ok(p.digest),
-                        ProcedureWrapper::Ast(_) => panic!("Did not find procedure {gid:?} neither in module graph nor procedure cache"),
+                        ProcedureWrapper::Info(p) => Ok(Either::Right(p.digest)),
+                        ProcedureWrapper::Ast(_) => panic!("AST procedure {gid:?} exits in the module graph but not in the MastForestBuilder"),
                     },
                 }
-            }
+            },
         }
     }
 }

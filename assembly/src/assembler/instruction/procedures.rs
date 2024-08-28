@@ -1,5 +1,5 @@
 use smallvec::SmallVec;
-use vm_core::mast::MastNodeId;
+use vm_core::{mast::MastNodeId, utils::Either};
 
 use super::{Assembler, BasicBlockBuilder, Operation};
 use crate::{
@@ -18,8 +18,11 @@ impl Assembler {
         mast_forest_builder: &mut MastForestBuilder,
     ) -> Result<MastNodeId, AssemblyError> {
         let span = callee.span();
-        let digest = self.resolve_target(kind, callee, proc_ctx, mast_forest_builder)?;
-        self.invoke_mast_root(kind, span, digest, mast_forest_builder)
+        let node_id_or_digest = self.resolve_target(kind, callee, proc_ctx, mast_forest_builder)?;
+        match node_id_or_digest {
+            Either::Left(node_id) => Ok(node_id),
+            Either::Right(digest) => self.invoke_mast_root(kind, span, digest, mast_forest_builder),
+        }
     }
 
     fn invoke_mast_root(
@@ -168,8 +171,15 @@ impl Assembler {
         basic_block_builder: &mut BasicBlockBuilder,
         mast_forest_builder: &MastForestBuilder,
     ) -> Result<(), AssemblyError> {
-        let digest =
-            self.resolve_target(InvokeKind::ProcRef, callee, proc_ctx, mast_forest_builder)?;
+        let digest = match self.resolve_target(
+            InvokeKind::ProcRef,
+            callee,
+            proc_ctx,
+            mast_forest_builder,
+        )? {
+            Either::Left(node_id) => mast_forest_builder.get_mast_node(node_id).unwrap().digest(),
+            Either::Right(digest) => digest,
+        };
         self.procref_mast_root(digest, basic_block_builder)
     }
 
