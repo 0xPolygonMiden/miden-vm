@@ -343,7 +343,7 @@ impl MastForestBuilder {
     /// 
     /// Note adding the same [`MastNode`] twice will result in two different [`MastNodeId`]s being
     /// returned.
-    fn add_node(&mut self, node: MastNode) -> Result<MastNodeId, AssemblyError> {
+    pub fn add_node(&mut self, node: MastNode) -> Result<MastNodeId, AssemblyError> {
         Ok(self.mast_forest.add_node(node)?)
     }
 

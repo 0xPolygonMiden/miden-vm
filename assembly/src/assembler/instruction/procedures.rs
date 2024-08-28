@@ -75,14 +75,32 @@ impl Assembler {
         // }
 
         let mast_root_node_id = {
+            // Note that here we rely on the fact that we topologically sorted the
+            // procedures, such that when we assemble a procedure, all
+            // procedures that it calls will have been assembled, and
+            // hence be present in the `MastForest`.
             match kind {
-                InvokeKind::Exec | InvokeKind::ProcRef => {
-                    // Note that here we rely on the fact that we topologically sorted the
-                    // procedures, such that when we assemble a procedure, all
-                    // procedures that it calls will have been assembled, and
-                    // hence be present in the `MastForest`.
+                InvokeKind::ProcRef => {
                     match mast_forest_builder.find_procedure_node_id(mast_root) {
                         Some(root) => root,
+                        None => {
+                            // If the MAST root called isn't known to us, make it an external
+                            // reference.
+                            mast_forest_builder.ensure_external(mast_root)?
+                        },
+                    }
+                },
+                InvokeKind::Exec => {
+                    match mast_forest_builder.find_procedure_node_id(mast_root) {
+                        Some(root) => {
+                            // We make sure to copy the root node so that the `exec` is associated
+                            // with a different `MastNodeId` than the procedure it is referencing.
+                            // Currently the only purpose of this is so that simple procedures that
+                            // only have an `exec` have a different body node id than the procedure
+                            // they're executing.
+                            let root_node = mast_forest_builder.get_mast_node(root).unwrap();
+                            mast_forest_builder.add_node(root_node.clone())?
+                        },
                         None => {
                             // If the MAST root called isn't known to us, make it an external
                             // reference.

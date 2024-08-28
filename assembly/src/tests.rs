@@ -2546,10 +2546,10 @@ fn test_reexported_proc_with_same_name_as_local_proc_diff_locals() {
         let source = source_file!(
             &context,
             "export.foo.2
-    push.1
-    drop
-end
-"
+                push.1
+                drop
+            end
+            "
         );
         mod_parser.parse(LibraryPath::new("test::mod1").unwrap(), source).unwrap()
     };
@@ -2558,10 +2558,10 @@ end
         let source = source_file!(
             &context,
             "use.test::mod1
-export.foo
-    exec.mod1::foo
-end
-"
+            export.foo
+                exec.mod1::foo
+            end
+            "
         );
         mod_parser.parse(LibraryPath::new("test::mod2").unwrap(), source).unwrap()
     };
