@@ -231,7 +231,7 @@ impl ExecutionTrace {
         let mut rng = RpoRandomCoin::new(self.program_hash().into());
         for i in self.length() - NUM_RAND_ROWS..self.length() {
             for column in aux_columns.iter_mut() {
-                column[i] = rng.draw().expect("failed to draw a random value");
+                //column[i] = rng.draw().expect("failed to draw a random value");
             }
         }
 
@@ -332,7 +332,7 @@ where
     // Inject random values into the last rows of the trace
     for i in trace_len - NUM_RAND_ROWS..trace_len {
         for column in trace.iter_mut() {
-            column[i] = rng.draw().expect("failed to draw a random value");
+            //column[i] = rng.draw().expect("failed to draw a random value");
         }
     }
 
