@@ -8,7 +8,7 @@ use alloc::{boxed::Box, collections::BTreeMap, sync::Arc, vec::Vec};
 use core::ops::Index;
 
 use smallvec::{smallvec, SmallVec};
-use vm_core::{crypto::hash::RpoDigest, mast::MastNodeId, Kernel};
+use vm_core::{crypto::hash::RpoDigest, Kernel};
 
 use self::{analysis::MaybeRewriteCheck, name_resolver::NameResolver, rewrites::ModuleRewriter};
 pub use self::{
@@ -161,8 +161,6 @@ pub struct ModuleGraph {
     /// The set of MAST node ids which have procedure definitions in this graph. There can be
     /// multiple procedures bound to the same root due to having identical code.
     procedure_root_digests: BTreeMap<RpoDigest, SmallVec<[GlobalProcedureIndex; 1]>>,
-    /// The set of MAST node ids which have procedure definitions in this graph.
-    procedure_root_ids: BTreeMap<MastNodeId, GlobalProcedureIndex>,
     kernel_index: Option<ModuleIndex>,
     kernel: Kernel,
     source_manager: Arc<dyn SourceManager>,
@@ -178,7 +176,6 @@ impl ModuleGraph {
             pending: Default::default(),
             callgraph: Default::default(),
             procedure_root_digests: Default::default(),
-            procedure_root_ids: Default::default(),
             kernel_index: None,
             kernel: Default::default(),
             source_manager,
@@ -521,13 +518,6 @@ impl ModuleGraph {
                 ProcedureWrapper::Info(m.get_procedure_by_index(id.index).unwrap())
             },
         }
-    }
-
-    pub fn get_procedure_index_by_node_id(
-        &self,
-        node_id: MastNodeId,
-    ) -> Option<GlobalProcedureIndex> {
-        self.procedure_root_ids.get(&node_id).copied()
     }
 
     /// Returns a procedure index which corresponds to the provided procedure digest.

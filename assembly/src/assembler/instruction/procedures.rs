@@ -35,47 +35,46 @@ impl Assembler {
         // Get the procedure from the assembler
         let current_source_file = self.source_manager.get(span.source_id()).ok();
 
-        // TODO(plafer): bring back
         // If the procedure is cached and is a system call, ensure that the call is valid.
-        // match mast_forest_builder.find_procedure(&mast_root) {
-        //     Some(proc) if matches!(kind, InvokeKind::SysCall) => {
-        //         // Verify if this is a syscall, that the callee is a kernel procedure
-        //         //
-        //         // NOTE: The assembler is expected to know the full set of all kernel
-        //         // procedures at this point, so if we can't identify the callee as a
-        //         // kernel procedure, it is a definite error.
-        //         if !proc.visibility().is_syscall() {
-        //             return Err(AssemblyError::InvalidSysCallTarget {
-        //                 span,
-        //                 source_file: current_source_file,
-        //                 callee: proc.fully_qualified_name().clone(),
-        //             });
-        //         }
-        //         let maybe_kernel_path = proc.path();
-        //         self.module_graph
-        //             .find_module(maybe_kernel_path)
-        //             .ok_or_else(|| AssemblyError::InvalidSysCallTarget {
-        //                 span,
-        //                 source_file: current_source_file.clone(),
-        //                 callee: proc.fully_qualified_name().clone(),
-        //             })
-        //             .and_then(|module| {
-        //                 // Note: this module is guaranteed to be of AST variant, since we have
-        // the                 // AST of a procedure contained in it (i.e. `proc`). Hence,
-        // it must be that                 // the entire module is in AST representation as
-        // well.                 if module.unwrap_ast().is_kernel() {
-        //                     Ok(())
-        //                 } else {
-        //                     Err(AssemblyError::InvalidSysCallTarget {
-        //                         span,
-        //                         source_file: current_source_file.clone(),
-        //                         callee: proc.fully_qualified_name().clone(),
-        //                     })
-        //                 }
-        //             })?;
-        //     },
-        //     Some(_) | None => (),
-        // }
+        match mast_forest_builder.find_procedure_by_digest(&mast_root) {
+            Some(proc) if matches!(kind, InvokeKind::SysCall) => {
+                // Verify if this is a syscall, that the callee is a kernel procedure
+                //
+                // NOTE: The assembler is expected to know the full set of all kernel
+                // procedures at this point, so if we can't identify the callee as a
+                // kernel procedure, it is a definite error.
+                if !proc.visibility().is_syscall() {
+                    return Err(AssemblyError::InvalidSysCallTarget {
+                        span,
+                        source_file: current_source_file,
+                        callee: proc.fully_qualified_name().clone(),
+                    });
+                }
+                let maybe_kernel_path = proc.path();
+                self.module_graph
+                    .find_module(maybe_kernel_path)
+                    .ok_or_else(|| AssemblyError::InvalidSysCallTarget {
+                        span,
+                        source_file: current_source_file.clone(),
+                        callee: proc.fully_qualified_name().clone(),
+                    })
+                    .and_then(|module| {
+                        // Note: this module is guaranteed to be of AST variant, since we have the
+                        // AST of a procedure contained in it (i.e. `proc`). Hence, it must be
+                        // thatthe entire module is in AST representation as well.
+                        if module.unwrap_ast().is_kernel() {
+                            Ok(())
+                        } else {
+                            Err(AssemblyError::InvalidSysCallTarget {
+                                span,
+                                source_file: current_source_file.clone(),
+                                callee: proc.fully_qualified_name().clone(),
+                            })
+                        }
+                    })?;
+            },
+            Some(_) | None => (),
+        }
 
         let mast_root_node_id = {
             // Note that here we rely on the fact that we topologically sorted the

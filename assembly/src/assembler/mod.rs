@@ -304,7 +304,7 @@ impl Assembler {
         let (mast_forest, id_remappings) = mast_forest_builder.build();
         if let Some(id_remappings) = id_remappings {
             for (_proc_name, node_id) in exports.iter_mut() {
-                if let Some(&new_node_id) = id_remappings.get(&node_id) {
+                if let Some(&new_node_id) = id_remappings.get(node_id) {
                     *node_id = new_node_id;
                 }
             }
@@ -354,7 +354,7 @@ impl Assembler {
         let (mast_forest, id_remappings) = mast_forest_builder.build();
         if let Some(id_remappings) = id_remappings {
             for (_proc_name, node_id) in exports.iter_mut() {
-                if let Some(&new_node_id) = id_remappings.get(&node_id) {
+                if let Some(&new_node_id) = id_remappings.get(node_id) {
                     *node_id = new_node_id;
                 }
             }

@@ -43,6 +43,10 @@ pub struct MastForestBuilder {
     /// root.
     /// TODO(plafer): fix docs
     proc_gid_by_node_id: BTreeMap<MastNodeId, GlobalProcedureIndex>,
+    /// A map from procedure MAST root to its global procedure index. Similar to the `procedures`
+    /// map, this map contains only the first inserted procedure for procedures with the same MAST
+    /// root.
+    proc_gid_by_digest: BTreeMap<RpoDigest, GlobalProcedureIndex>,
     /// A set of IDs for basic blocks which have been merged into a bigger basic blocks. This is
     /// used as a candidate set of nodes that may be eliminated if the are not referenced by any
     /// other node in the forest and are not a root of any procedure.
@@ -128,18 +132,18 @@ impl MastForestBuilder {
         self.procedures.get(&gid)
     }
 
-    /// Returns the hash of the procedure with the specified [`GlobalProcedureIndex`], or None if
-    /// such a procedure is not present in this MAST forest builder.
+    /// Returns a reference to the procedure with the specified [`MastNodeId`], or None
+    /// if such a procedure is not present in this MAST forest builder.
     #[inline(always)]
-    pub fn get_procedure_hash(&self, gid: GlobalProcedureIndex) -> Option<RpoDigest> {
-        self.procedures.get(&gid).map(|proc| proc.mast_root())
+    pub fn find_procedure_by_id(&self, node_id: MastNodeId) -> Option<&Procedure> {
+        self.proc_gid_by_node_id.get(&node_id).and_then(|gid| self.get_procedure(*gid))
     }
 
     /// Returns a reference to the procedure with the specified MAST root, or None
     /// if such a procedure is not present in this MAST forest builder.
     #[inline(always)]
-    pub fn find_procedure(&self, node_id: MastNodeId) -> Option<&Procedure> {
-        self.proc_gid_by_node_id.get(&node_id).and_then(|gid| self.get_procedure(*gid))
+    pub fn find_procedure_by_digest(&self, digest: &RpoDigest) -> Option<&Procedure> {
+        self.proc_gid_by_digest.get(digest).and_then(|gid| self.get_procedure(*gid))
     }
 
     /// Returns the [`MastNodeId`] of the procedure associated with a given MAST root, or None
@@ -185,7 +189,7 @@ impl MastForestBuilder {
 
         // We don't have a cache entry yet, but we do want to make sure we don't have a conflicting
         // cache entry with the same MAST root:
-        if let Some(cached) = self.find_procedure(procedure.body_node_id()) {
+        if let Some(cached) = self.find_procedure_by_id(procedure.body_node_id()) {
             // Handle the case where a procedure with no locals is lowered to a MastForest
             // consisting only of an `External` node to another procedure which has one or more
             // locals. This will result in the calling procedure having the same digest as the
@@ -208,6 +212,7 @@ impl MastForestBuilder {
 
         self.mast_forest.make_root(procedure.body_node_id());
         self.proc_gid_by_node_id.insert(procedure.body_node_id(), gid);
+        self.proc_gid_by_digest.insert(procedure.mast_root(), gid);
         self.procedures.insert(gid, procedure);
 
         Ok(())
