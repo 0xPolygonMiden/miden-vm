@@ -50,7 +50,7 @@ impl Assembler {
         let current_source_file = self.source_manager.get(span.source_id()).ok();
 
         // If the procedure is cached and is a system call, ensure that the call is valid.
-        match mast_forest_builder.find_procedure_by_digest(&mast_root) {
+        match mast_forest_builder.find_procedure_by_mast_root(&mast_root) {
             Some(proc) if matches!(kind, InvokeKind::SysCall) => {
                 // Verify if this is a syscall, that the callee is a kernel procedure
                 //
