@@ -19,18 +19,23 @@ impl Assembler {
     ) -> Result<MastNodeId, AssemblyError> {
         let span = callee.span();
         let node_id_or_digest = self.resolve_target(kind, callee, proc_ctx, mast_forest_builder)?;
-        match node_id_or_digest {
-            // TODO(plafer): reconcile with `invoke_mast_root` impl
-            Either::Left(node_id) => match kind {
-                InvokeKind::ProcRef | InvokeKind::Exec => Ok(node_id),
-                InvokeKind::Call => Ok(mast_forest_builder.ensure_call(node_id)?),
-                InvokeKind::SysCall => Ok(mast_forest_builder.ensure_syscall(node_id)?),
+        let invoked_proc_node_id = match node_id_or_digest {
+            Either::Left(node_id) => node_id,
+            Either::Right(mast_root) => {
+                self.get_proc_root_id_from_mast_root(kind, span, mast_root, mast_forest_builder)?
             },
-            Either::Right(digest) => self.invoke_mast_root(kind, span, digest, mast_forest_builder),
+        };
+
+        match kind {
+            InvokeKind::ProcRef | InvokeKind::Exec => Ok(invoked_proc_node_id),
+            InvokeKind::Call => mast_forest_builder.ensure_call(invoked_proc_node_id),
+            InvokeKind::SysCall => mast_forest_builder.ensure_syscall(invoked_proc_node_id),
         }
     }
 
-    fn invoke_mast_root(
+    /// Returns the [`MastNodeId`] associated with the provided MAST root if known, or wraps the
+    /// MAST root in a [`vm_core::mast::ExternalNode`] and returns it.
+    fn get_proc_root_id_from_mast_root(
         &self,
         kind: InvokeKind,
         span: SourceSpan,
@@ -81,68 +86,20 @@ impl Assembler {
             Some(_) | None => (),
         }
 
-        let mast_root_node_id = {
-            // Note that here we rely on the fact that we topologically sorted the
-            // procedures, such that when we assemble a procedure, all
-            // procedures that it calls will have been assembled, and
-            // hence be present in the `MastForest`.
-            match kind {
-                InvokeKind::ProcRef => {
-                    match mast_forest_builder.find_procedure_node_id(mast_root) {
-                        Some(root) => root,
-                        None => {
-                            // If the MAST root called isn't known to us, make it an external
-                            // reference.
-                            mast_forest_builder.ensure_external(mast_root)?
-                        },
-                    }
-                },
-                InvokeKind::Exec => {
-                    match mast_forest_builder.find_procedure_node_id(mast_root) {
-                        Some(root) => {
-                            // We make sure to copy the root node so that the `exec` is associated
-                            // with a different `MastNodeId` than the procedure it is referencing.
-                            // Currently the only purpose of this is so that simple procedures that
-                            // only have an `exec` have a different body node id than the procedure
-                            // they're executing.
-                            let root_node = mast_forest_builder.get_mast_node(root).unwrap();
-                            mast_forest_builder.ensure_node(root_node.clone())?
-                        },
-                        None => {
-                            // If the MAST root called isn't known to us, make it an external
-                            // reference.
-                            mast_forest_builder.ensure_external(mast_root)?
-                        },
-                    }
-                },
-                InvokeKind::Call => {
-                    let callee_id = match mast_forest_builder.find_procedure_node_id(mast_root) {
-                        Some(callee_id) => callee_id,
-                        None => {
-                            // If the MAST root called isn't known to us, make it an external
-                            // reference.
-                            mast_forest_builder.ensure_external(mast_root)?
-                        },
-                    };
-
-                    mast_forest_builder.ensure_call(callee_id)?
-                },
-                InvokeKind::SysCall => {
-                    let callee_id = match mast_forest_builder.find_procedure_node_id(mast_root) {
-                        Some(callee_id) => callee_id,
-                        None => {
-                            // If the MAST root called isn't known to us, make it an external
-                            // reference.
-                            mast_forest_builder.ensure_external(mast_root)?
-                        },
-                    };
-
-                    mast_forest_builder.ensure_syscall(callee_id)?
-                },
-            }
+        // Note that here we rely on the fact that we topologically sorted the
+        // procedures, such that when we assemble a procedure, all
+        // procedures that it calls will have been assembled, and
+        // hence be present in the `MastForest`.
+        let invoked_node_id = match mast_forest_builder.find_procedure_node_id(mast_root) {
+            Some(root) => root,
+            None => {
+                // If the MAST root called isn't known to us, make it an external
+                // reference.
+                mast_forest_builder.ensure_external(mast_root)?
+            },
         };
 
-        Ok(mast_root_node_id)
+        Ok(invoked_node_id)
     }
 
     /// Creates a new DYN block for the dynamic code execution and return.
