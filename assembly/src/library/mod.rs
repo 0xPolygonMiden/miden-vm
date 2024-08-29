@@ -45,12 +45,13 @@ pub struct Library {
     /// lexicographical order (by digest, not procedure name)
     digest: RpoDigest,
     /// A map between procedure paths and the corresponding procedure roots in the MAST forest.
-    /// Multiple paths can map to the same root, and also, some roots may not be associated with
-    /// any paths.
+    /// Multiple paths can map to the same root, and also, some roots may not be associated with any
+    /// paths.
     ///
-    /// Note that we use `MastNodeId` as a unique identifier for procedures instead of MAST root,
-    /// since 2 different procedures with the same MAST root can be different due to the decorators
-    /// they contain.
+    /// Note that we use `MastNodeId` as an identifier for procedures instead of MAST root, since 2
+    /// different procedures with the same MAST root can be different due to the decorators they
+    /// contain. However, note that `MastNodeId` is also not a unique identifier for procedures; if
+    /// the procedures have the same MAST root and decorators, they will have the same `MastNodeId`.
     exports: BTreeMap<QualifiedProcedureName, MastNodeId>,
     /// The MAST forest underlying this library.
     mast_forest: Arc<MastForest>,
