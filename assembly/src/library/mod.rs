@@ -255,10 +255,15 @@ mod use_std_library {
         /// For example, let's say I call this function like so:
         ///
         /// ```rust
+        /// use std::sync::Arc;
+        ///
+        /// use miden_assembly::{Assembler, Library, LibraryNamespace};
+        /// use vm_core::debuginfo::DefaultSourceManager;
+        ///
         /// Library::from_dir(
         ///     "~/masm/std",
-        ///     LibraryNamespace::new("std").unwrap()
-        ///     Arc::new(crate::DefaultSourceManager::default()),
+        ///     LibraryNamespace::new("std").unwrap(),
+        ///     Assembler::new(Arc::new(DefaultSourceManager::default())),
         /// );
         /// ```
         ///
