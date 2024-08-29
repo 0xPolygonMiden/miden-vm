@@ -621,11 +621,17 @@ impl Assembler {
                 },
 
                 Op::Repeat { count, body, .. } => {
-                    if let Some(basic_block_id) =
-                        basic_block_builder.make_basic_block(mast_forest_builder)?
-                    {
-                        node_ids.push(basic_block_id);
-                    }
+                    let maybe_pre_decorators: Option<Vec<DecoratorId>> = match basic_block_builder
+                        .make_basic_block(
+                        mast_forest_builder,
+                    )? {
+                        BasicBlockOrDecorators::BasicBlock(basic_block_id) => {
+                            node_ids.push(basic_block_id);
+                            None
+                        },
+                        BasicBlockOrDecorators::Decorators(decorator_ids) => Some(decorator_ids),
+                        BasicBlockOrDecorators::Nothing => None,
+                    };
 
                     let repeat_node_id =
                         self.compile_body(body.iter(), proc_ctx, None, mast_forest_builder)?;
