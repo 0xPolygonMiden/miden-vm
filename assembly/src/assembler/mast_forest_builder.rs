@@ -38,9 +38,6 @@ pub struct MastForestBuilder {
     /// with the same digest are added to the MAST forest builder, only the first procedure is
     /// added to the map, and all subsequent insertions are ignored.
     procedures: BTreeMap<GlobalProcedureIndex, Procedure>,
-    /// A map from procedure body node id to its global procedure index. We guarantee that unique
-    /// procedures have a unique body node id.
-    proc_gid_by_node_id: BTreeMap<MastNodeId, GlobalProcedureIndex>,
     /// A map from procedure MAST root to its global procedure index. Similar to the `procedures`
     /// map, this map contains only the first inserted procedure for procedures with the same MAST
     /// root.
@@ -130,13 +127,6 @@ impl MastForestBuilder {
         self.procedures.get(&gid)
     }
 
-    /// Returns a reference to the procedure with the specified [`MastNodeId`], or None
-    /// if such a procedure is not present in this MAST forest builder.
-    #[inline(always)]
-    pub fn find_procedure_by_id(&self, node_id: MastNodeId) -> Option<&Procedure> {
-        self.proc_gid_by_node_id.get(&node_id).and_then(|gid| self.get_procedure(*gid))
-    }
-
     /// Returns a reference to the procedure with the specified MAST root, or None
     /// if such a procedure is not present in this MAST forest builder.
     #[inline(always)]
@@ -187,7 +177,7 @@ impl MastForestBuilder {
 
         // We don't have a cache entry yet, but we do want to make sure we don't have a conflicting
         // cache entry with the same MAST root:
-        if let Some(cached) = self.find_procedure_by_id(procedure.body_node_id()) {
+        if let Some(cached) = self.find_procedure_by_digest(&procedure.mast_root()) {
             // Handle the case where a procedure with no locals is lowered to a MastForest
             // consisting only of an `External` node to another procedure which has one or more
             // locals. This will result in the calling procedure having the same digest as the
@@ -209,7 +199,6 @@ impl MastForestBuilder {
         }
 
         self.mast_forest.make_root(procedure.body_node_id());
-        self.proc_gid_by_node_id.insert(procedure.body_node_id(), gid);
         self.proc_gid_by_digest.insert(procedure.mast_root(), gid);
         self.procedures.insert(gid, procedure);
 
