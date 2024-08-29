@@ -529,8 +529,6 @@ impl ModuleGraph {
         &self,
         procedure_digest: &RpoDigest,
     ) -> Option<GlobalProcedureIndex> {
-        // TODO(plafer): emit warning if more than one?
-        // TODO(plafer): return the whole vec?
         self.procedure_root_digests.get(procedure_digest).map(|indices| indices[0])
     }
 
@@ -555,7 +553,6 @@ impl ModuleGraph {
     pub(crate) fn register_procedure_root(
         &mut self,
         id: GlobalProcedureIndex,
-        // TODO(plafer): all `procedure_root_id` field, and add to `self.procedure_root_ids`
         procedure_root_digest: RpoDigest,
     ) -> Result<(), AssemblyError> {
         use alloc::collections::btree_map::Entry;
