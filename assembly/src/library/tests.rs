@@ -160,7 +160,7 @@ fn library_procedure_collision() -> Result<(), Report> {
     // make sure lib2 has the expected exports (i.e., bar1 and bar2)
     assert_eq!(lib2.num_exports(), 2);
 
-    // make sure that bar1 and bar2 are equal nodes in the MAST forest 
+    // make sure that bar1 and bar2 are equal nodes in the MAST forest
     assert_eq!(lib2.get_export_node_id(&lib2_bar_bar1), lib2.get_export_node_id(&lib2_bar_bar2));
 
     // make sure only one node was added to the forest
