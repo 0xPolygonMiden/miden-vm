@@ -5,9 +5,6 @@ extern crate alloc;
 #[cfg(feature = "std")]
 extern crate std;
 
-// IMPORTS
-// ================================================================================================
-
 #[cfg(not(target_family = "wasm"))]
 use alloc::format;
 use alloc::{
@@ -16,16 +13,14 @@ use alloc::{
     vec::Vec,
 };
 
-use assembly::Library;
-// EXPORTS
-// ================================================================================================
 pub use assembly::{diagnostics::Report, LibraryPath, SourceFile, SourceManager};
+use assembly::{KernelLibrary, Library};
 pub use pretty_assertions::{assert_eq, assert_ne, assert_str_eq};
+use processor::Program;
 pub use processor::{
     AdviceInputs, AdviceProvider, ContextId, DefaultHost, ExecutionError, ExecutionOptions,
     ExecutionTrace, Process, ProcessState, StackInputs, VmStateIterator,
 };
-use processor::{MastForest, Program};
 #[cfg(not(target_family = "wasm"))]
 use proptest::prelude::{Arbitrary, Strategy};
 pub use prover::{prove, MemAdviceProvider, ProvingOptions};
@@ -119,11 +114,12 @@ macro_rules! expect_exec_error {
     };
 }
 
-/// Like [assembly::assert_diagnostic], but matches each non-empty line of the rendered output
-/// to a corresponding pattern. So if the output has 3 lines, the second of which is
-/// empty, and you provide 2 patterns, the assertion passes if the first line matches
-/// the first pattern, and the third line matches the second pattern - the second
-/// line is ignored because it is empty.
+/// Like [assembly::assert_diagnostic], but matches each non-empty line of the rendered output to a
+/// corresponding pattern.
+///
+/// So if the output has 3 lines, the second of which is empty, and you provide 2 patterns, the
+/// assertion passes if the first line matches the first pattern, and the third line matches the
+/// second pattern - the second line is ignored because it is empty.
 #[cfg(all(feature = "std", not(target_family = "wasm")))]
 #[macro_export]
 macro_rules! assert_diagnostic_lines {
@@ -230,7 +226,7 @@ impl Test {
         let (program, kernel) = self.compile().expect("Failed to compile test source.");
         let mut host = DefaultHost::new(MemAdviceProvider::from(self.advice_inputs.clone()));
         if let Some(kernel) = kernel {
-            host.load_mast_forest(kernel);
+            host.load_mast_forest(kernel.mast_forest().clone());
         }
         for library in &self.libraries {
             host.load_mast_forest(library.mast_forest().clone());
@@ -282,22 +278,26 @@ impl Test {
     // UTILITY METHODS
     // --------------------------------------------------------------------------------------------
 
-    /// Compiles a test's source and returns the resulting Program or Assembly error.
-    pub fn compile(&self) -> Result<(Program, Option<MastForest>), Report> {
+    /// Compiles a test's source and returns the resulting Program together with the associated
+    /// kernel library (when specified).
+    ///
+    /// # Errors
+    /// Returns an error if compilation of the program source or the kernel fails.
+    pub fn compile(&self) -> Result<(Program, Option<KernelLibrary>), Report> {
         use assembly::{ast::ModuleKind, Assembler, CompileOptions};
 
-        let (assembler, compiled_kernel) = if let Some(kernel) = self.kernel_source.clone() {
+        let (assembler, kernel_lib) = if let Some(kernel) = self.kernel_source.clone() {
             let kernel_lib =
                 Assembler::new(self.source_manager.clone()).assemble_kernel(kernel).unwrap();
-            let compiled_kernel = kernel_lib.mast_forest().clone();
 
             (
-                Assembler::with_kernel(self.source_manager.clone(), kernel_lib),
-                Some(compiled_kernel),
+                Assembler::with_kernel(self.source_manager.clone(), kernel_lib.clone()),
+                Some(kernel_lib),
             )
         } else {
             (Assembler::new(self.source_manager.clone()), None)
         };
+
         let mut assembler = self
             .add_modules
             .iter()
@@ -314,7 +314,7 @@ impl Test {
             assembler.add_library(library).unwrap();
         }
 
-        Ok((assembler.assemble_program(self.source.clone())?, compiled_kernel))
+        Ok((assembler.assemble_program(self.source.clone())?, kernel_lib))
     }
 
     /// Compiles the test's source to a Program and executes it with the tests inputs. Returns a
@@ -324,7 +324,7 @@ impl Test {
         let (program, kernel) = self.compile().expect("Failed to compile test source.");
         let mut host = DefaultHost::new(MemAdviceProvider::from(self.advice_inputs.clone()));
         if let Some(kernel) = kernel {
-            host.load_mast_forest(kernel);
+            host.load_mast_forest(kernel.mast_forest().clone());
         }
         for library in &self.libraries {
             host.load_mast_forest(library.mast_forest().clone());
@@ -340,7 +340,7 @@ impl Test {
         let (program, kernel) = self.compile().expect("Failed to compile test source.");
         let mut host = DefaultHost::new(MemAdviceProvider::from(self.advice_inputs.clone()));
         if let Some(kernel) = kernel {
-            host.load_mast_forest(kernel);
+            host.load_mast_forest(kernel.mast_forest().clone());
         }
         for library in &self.libraries {
             host.load_mast_forest(library.mast_forest().clone());
@@ -364,7 +364,7 @@ impl Test {
         let (program, kernel) = self.compile().expect("Failed to compile test source.");
         let mut host = DefaultHost::new(MemAdviceProvider::from(self.advice_inputs.clone()));
         if let Some(kernel) = kernel {
-            host.load_mast_forest(kernel);
+            host.load_mast_forest(kernel.mast_forest().clone());
         }
         for library in &self.libraries {
             host.load_mast_forest(library.mast_forest().clone());
@@ -389,7 +389,7 @@ impl Test {
         let (program, kernel) = self.compile().expect("Failed to compile test source.");
         let mut host = DefaultHost::new(MemAdviceProvider::from(self.advice_inputs.clone()));
         if let Some(kernel) = kernel {
-            host.load_mast_forest(kernel);
+            host.load_mast_forest(kernel.mast_forest().clone());
         }
         for library in &self.libraries {
             host.load_mast_forest(library.mast_forest().clone());

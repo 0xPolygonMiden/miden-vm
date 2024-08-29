@@ -1,6 +1,5 @@
 use alloc::{
     collections::{BTreeMap, BTreeSet},
-    sync::Arc,
     vec::Vec,
 };
 use core::ops::{Index, IndexMut};
@@ -24,14 +23,35 @@ const PROCEDURE_INLINING_THRESHOLD: usize = 32;
 // ================================================================================================
 
 /// Builder for a [`MastForest`].
+///
+/// The purpose of the builder is to ensure that the underlying MAST forest contains as little
+/// information as possible needed to adequately describe the logical MAST forest. Specifically:
+/// - The builder ensures that only one copy of a given node exists in the MAST forest (i.e., no two
+///   nodes have the same hash).
+/// - The builder tries to merge adjacent basic blocks and eliminate the source block whenever this
+///   does not have an impact on other nodes in the forest.
 #[derive(Clone, Debug, Default)]
 pub struct MastForestBuilder {
+    /// The MAST forest being built by this builder; this MAST forest is up-to-date - i.e., all
+    /// nodes added to the MAST forest builder are also immediately added to the underlying MAST
+    /// forest.
     mast_forest: MastForest,
+    /// A map of MAST node digests to their corresponding positions in the MAST forest. It is
+    /// guaranteed that a given digests maps to exactly one node in the MAST forest.
     node_id_by_hash: BTreeMap<RpoDigest, MastNodeId>,
-    procedures: BTreeMap<GlobalProcedureIndex, Arc<Procedure>>,
-    procedure_hashes: BTreeMap<GlobalProcedureIndex, RpoDigest>,
+    /// A map of all procedures added to the MAST forest indexed by their global procedure ID.
+    /// This includes all local, exported, and re-exported procedures. In case multiple procedures
+    /// with the same digest are added to the MAST forest builder, only the first procedure is
+    /// added to the map, and all subsequent insertions are ignored.
+    procedures: BTreeMap<GlobalProcedureIndex, Procedure>,
+    /// A map from procedure MAST root to its global procedure index. Similar to the `procedures`
+    /// map, this map contains only the first inserted procedure for procedures with the same MAST
+    /// root.
     proc_gid_by_hash: BTreeMap<RpoDigest, GlobalProcedureIndex>,
-    merged_node_ids: BTreeSet<MastNodeId>,
+    /// A set of IDs for basic blocks which have been merged into a bigger basic blocks. This is
+    /// used as a candidate set of nodes that may be eliminated if the are not referenced by any
+    /// other node in the forest and are not a root of any procedure.
+    merged_basic_block_ids: BTreeSet<MastNodeId>,
 }
 
 impl MastForestBuilder {
@@ -42,7 +62,7 @@ impl MastForestBuilder {
     /// unchanged. Any [`MastNodeId`] used in reference to the old [`MastForest`] should be remapped
     /// using this map.
     pub fn build(mut self) -> (MastForest, Option<BTreeMap<MastNodeId, MastNodeId>>) {
-        let nodes_to_remove = get_nodes_to_remove(self.merged_node_ids, &self.mast_forest);
+        let nodes_to_remove = get_nodes_to_remove(self.merged_basic_block_ids, &self.mast_forest);
         let id_remappings = self.mast_forest.remove_nodes(&nodes_to_remove);
 
         (self.mast_forest, id_remappings)
@@ -109,21 +129,21 @@ impl MastForestBuilder {
     /// Returns a reference to the procedure with the specified [`GlobalProcedureIndex`], or None
     /// if such a procedure is not present in this MAST forest builder.
     #[inline(always)]
-    pub fn get_procedure(&self, gid: GlobalProcedureIndex) -> Option<Arc<Procedure>> {
-        self.procedures.get(&gid).cloned()
+    pub fn get_procedure(&self, gid: GlobalProcedureIndex) -> Option<&Procedure> {
+        self.procedures.get(&gid)
     }
 
     /// Returns the hash of the procedure with the specified [`GlobalProcedureIndex`], or None if
     /// such a procedure is not present in this MAST forest builder.
     #[inline(always)]
     pub fn get_procedure_hash(&self, gid: GlobalProcedureIndex) -> Option<RpoDigest> {
-        self.procedure_hashes.get(&gid).cloned()
+        self.procedures.get(&gid).map(|proc| proc.mast_root())
     }
 
     /// Returns a reference to the procedure with the specified MAST root, or None
     /// if such a procedure is not present in this MAST forest builder.
     #[inline(always)]
-    pub fn find_procedure(&self, mast_root: &RpoDigest) -> Option<Arc<Procedure>> {
+    pub fn find_procedure(&self, mast_root: &RpoDigest) -> Option<&Procedure> {
         self.proc_gid_by_hash.get(mast_root).and_then(|gid| self.get_procedure(*gid))
     }
 
@@ -141,18 +161,9 @@ impl MastForestBuilder {
     }
 }
 
+// ------------------------------------------------------------------------------------------------
+/// Procedure insertion
 impl MastForestBuilder {
-    pub fn insert_procedure_hash(
-        &mut self,
-        gid: GlobalProcedureIndex,
-        proc_hash: RpoDigest,
-    ) -> Result<(), AssemblyError> {
-        // TODO(plafer): Check if exists
-        self.procedure_hashes.insert(gid, proc_hash);
-
-        Ok(())
-    }
-
     /// Inserts a procedure into this MAST forest builder.
     ///
     /// If the procedure with the same ID already exists in this forest builder, this will have
@@ -202,19 +213,17 @@ impl MastForestBuilder {
             }
         }
 
-        self.make_root(procedure.body_node_id());
+        self.mast_forest.make_root(procedure.body_node_id());
         self.proc_gid_by_hash.insert(proc_root, gid);
-        self.insert_procedure_hash(gid, procedure.mast_root())?;
-        self.procedures.insert(gid, Arc::new(procedure));
+        self.procedures.insert(gid, procedure);
 
         Ok(())
     }
+}
 
-    /// Marks the given [`MastNodeId`] as being the root of a procedure.
-    pub fn make_root(&mut self, new_root_id: MastNodeId) {
-        self.mast_forest.make_root(new_root_id)
-    }
-
+// ------------------------------------------------------------------------------------------------
+/// Joining nodes
+impl MastForestBuilder {
     /// Builds a tree of `JOIN` operations to combine the provided MAST node IDs.
     pub fn join_nodes(&mut self, node_ids: Vec<MastNodeId>) -> Result<MastNodeId, AssemblyError> {
         debug_assert!(!node_ids.is_empty(), "cannot combine empty MAST node id list");
@@ -254,7 +263,7 @@ impl MastForestBuilder {
         let mut contiguous_basic_block_ids: Vec<MastNodeId> = Vec::new();
 
         for mast_node_id in node_ids {
-            if self[mast_node_id].is_basic_block() {
+            if self.mast_forest[mast_node_id].is_basic_block() {
                 contiguous_basic_block_ids.push(mast_node_id);
             } else {
                 merged_node_ids.extend(self.merge_basic_blocks(&contiguous_basic_block_ids)?);
@@ -293,7 +302,8 @@ impl MastForestBuilder {
         for &basic_block_id in contiguous_basic_block_ids {
             // It is safe to unwrap here, since we already checked that all IDs in
             // `contiguous_basic_block_ids` are `BasicBlockNode`s
-            let basic_block_node = self[basic_block_id].get_basic_block().unwrap().clone();
+            let basic_block_node =
+                self.mast_forest[basic_block_id].get_basic_block().unwrap().clone();
 
             // check if the block should be merged with other blocks
             if should_merge(
@@ -322,7 +332,7 @@ impl MastForestBuilder {
         }
 
         // Mark the removed basic blocks as merged
-        self.merged_node_ids.extend(contiguous_basic_block_ids.iter());
+        self.merged_basic_block_ids.extend(contiguous_basic_block_ids.iter());
 
         if !operations.is_empty() || !decorators.is_empty() {
             let merged_basic_block = self.ensure_block(operations, Some(decorators))?;
