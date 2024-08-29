@@ -1,11 +1,13 @@
 mod basic_block_node;
 use alloc::{boxed::Box, vec::Vec};
 use core::fmt;
+use std::string::ToString;
 
 pub use basic_block_node::{
     BasicBlockNode, OpBatch, OperationOrDecorator, BATCH_SIZE as OP_BATCH_SIZE,
     GROUP_SIZE as OP_GROUP_SIZE,
 };
+use num_traits::ToBytes;
 
 mod call_node;
 pub use call_node::CallNode;
@@ -20,7 +22,13 @@ mod join_node;
 pub use join_node::JoinNode;
 
 mod split_node;
-use miden_crypto::{hash::rpo::RpoDigest, Felt};
+use miden_crypto::{
+    hash::{
+        blake::{Blake3Digest, Blake3_256},
+        rpo::RpoDigest,
+    },
+    Felt,
+};
 use miden_formatting::prettier::{Document, PrettyPrint};
 pub use split_node::SplitNode;
 
@@ -30,7 +38,7 @@ pub use loop_node::LoopNode;
 use super::MastForestError;
 use crate::{
     mast::{MastForest, MastNodeId},
-    DecoratorList, Operation,
+    Decorator, DecoratorList, Operation,
 };
 
 // MAST NODE
@@ -185,6 +193,50 @@ impl MastNode {
             MastNode::Call(node) => MastNodeDisplay::new(node.to_display(mast_forest)),
             MastNode::Dyn => MastNodeDisplay::new(DynNode),
             MastNode::External(node) => MastNodeDisplay::new(node.to_display(mast_forest)),
+        }
+    }
+
+    /// Returns the Blake3 hash of this node, to be used for equality testing.
+    ///
+    /// Specifically, two nodes with the same MAST root but different decorators will have a
+    /// different hash.
+    pub fn eq_hash(&self) -> Blake3Digest<32> {
+        match self {
+            MastNode::Block(node) => {
+                let mut bytes_to_hash = node.digest().as_bytes().to_vec();
+
+                for (idx, decorator) in node.decorators() {
+                    bytes_to_hash.extend(idx.to_le_bytes());
+
+                    match decorator {
+                        Decorator::Advice(advice) => {
+                            bytes_to_hash.extend(advice.to_string().as_bytes())
+                        },
+                        Decorator::AsmOp(asm_op) => {
+                            bytes_to_hash.extend(asm_op.context_name().as_bytes());
+                            bytes_to_hash.extend(asm_op.op().as_bytes());
+                            bytes_to_hash.push(asm_op.num_cycles());
+                        },
+                        Decorator::Debug(debug) => {
+                            bytes_to_hash.extend(debug.to_string().as_bytes())
+                        },
+                        Decorator::Event(event) => {
+                            bytes_to_hash.extend(event.to_le_bytes());
+                        },
+                        Decorator::Trace(trace) => {
+                            bytes_to_hash.extend(trace.to_le_bytes());
+                        },
+                    }
+                }
+
+                Blake3_256::hash(&bytes_to_hash)
+            },
+            MastNode::Join(node) => Blake3_256::hash(&node.digest().as_bytes()),
+            MastNode::Split(node) => Blake3_256::hash(&node.digest().as_bytes()),
+            MastNode::Loop(node) => Blake3_256::hash(&node.digest().as_bytes()),
+            MastNode::Call(node) => Blake3_256::hash(&node.digest().as_bytes()),
+            MastNode::Dyn => Blake3_256::hash(&MastNode::Dyn.digest().as_bytes()),
+            MastNode::External(node) => Blake3_256::hash(&node.digest().as_bytes()),
         }
     }
 }

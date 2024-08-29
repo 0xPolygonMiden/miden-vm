@@ -202,7 +202,7 @@ impl Assembler {
     }
 
     /// Adds the compiled library to provide modules for the compilation.
-    /// 
+    ///
     /// We only current support adding non-vendored libraries - that is, the source code of exported
     /// procedures is not included in the program that compiles against the library. The library's
     /// source code is instead expected to be loaded in the processor at execution time. Hence, all
@@ -219,7 +219,7 @@ impl Assembler {
     }
 
     /// Adds the compiled library to provide modules for the compilation.
-    /// 
+    ///
     /// See [`Self::add_library`] for more detailed information.
     pub fn with_library(mut self, library: impl AsRef<Library>) -> Result<Self, Report> {
         self.add_library(library)?;
