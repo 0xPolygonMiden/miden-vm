@@ -38,10 +38,8 @@ pub struct MastForestBuilder {
     /// with the same digest are added to the MAST forest builder, only the first procedure is
     /// added to the map, and all subsequent insertions are ignored.
     procedures: BTreeMap<GlobalProcedureIndex, Procedure>,
-    /// A map from procedure MAST root to its global procedure index. Similar to the `procedures`
-    /// map, this map contains only the first inserted procedure for procedures with the same MAST
-    /// root.
-    /// TODO(plafer): fix docs
+    /// A map from procedure body node id to its global procedure index. We guarantee that unique
+    /// procedures have a unique body node id.
     proc_gid_by_node_id: BTreeMap<MastNodeId, GlobalProcedureIndex>,
     /// A map from procedure MAST root to its global procedure index. Similar to the `procedures`
     /// map, this map contains only the first inserted procedure for procedures with the same MAST
