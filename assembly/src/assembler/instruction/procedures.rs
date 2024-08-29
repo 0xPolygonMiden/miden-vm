@@ -22,16 +22,7 @@ impl Assembler {
         match node_id_or_digest {
             // TODO(plafer): reconcile with `invoke_mast_root` impl
             Either::Left(node_id) => match kind {
-                InvokeKind::ProcRef => Ok(node_id),
-                InvokeKind::Exec => {
-                    // We make sure to copy the root node so that the `exec` is associated
-                    // with a different `MastNodeId` than the procedure it is referencing.
-                    // Currently the only purpose of this is so that simple procedures that
-                    // only have an `exec` have a different body node id than the procedure
-                    // they're executing.
-                    let root_node = mast_forest_builder.get_mast_node(node_id).unwrap();
-                    Ok(mast_forest_builder.ensure_node(root_node.clone())?)
-                },
+                InvokeKind::ProcRef | InvokeKind::Exec => Ok(node_id),
                 InvokeKind::Call => Ok(mast_forest_builder.ensure_call(node_id)?),
                 InvokeKind::SysCall => Ok(mast_forest_builder.ensure_syscall(node_id)?),
             },
