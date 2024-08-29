@@ -202,6 +202,15 @@ impl Assembler {
     }
 
     /// Adds the compiled library to provide modules for the compilation.
+    /// 
+    /// We only current support adding non-vendored libraries - that is, the source code of exported
+    /// procedures is not included in the program that compiles against the library. The library's
+    /// source code is instead expected to be loaded in the processor at execution time. Hence, all
+    /// calls to library procedures will be compiled down to a [`vm_core::mast::ExternalNode`] (i.e.
+    /// a reference to the procedure's MAST root). This means that when executing a program compiled
+    /// against a library, the processor will not be able to differentiate procedures with the same
+    /// MAST root but different decorators. Hence, it is not recommended to export two procedures
+    /// that have the same MAST root (i.e. are identical except for their decorators).
     pub fn add_library(&mut self, library: impl AsRef<Library>) -> Result<(), Report> {
         self.module_graph
             .add_compiled_modules(library.as_ref().module_infos())
@@ -210,6 +219,8 @@ impl Assembler {
     }
 
     /// Adds the compiled library to provide modules for the compilation.
+    /// 
+    /// See [`Self::add_library`] for more detailed information.
     pub fn with_library(mut self, library: impl AsRef<Library>) -> Result<Self, Report> {
         self.add_library(library)?;
         Ok(self)
