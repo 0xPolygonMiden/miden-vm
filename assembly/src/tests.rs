@@ -1355,8 +1355,8 @@ fn ensure_correct_procedure_selection_on_collision() -> TestResult {
         (split_node.on_true(), split_node.on_false())
     };
 
-    assert_eq!(expected_f_node_id, f_node_id);
-    assert_eq!(expected_g_node_id, g_node_id);
+    assert_eq!(program.mast_forest()[expected_f_node_id], program.mast_forest()[f_node_id]);
+    assert_eq!(program.mast_forest()[expected_g_node_id], program.mast_forest()[g_node_id]);
 
     Ok(())
 }
