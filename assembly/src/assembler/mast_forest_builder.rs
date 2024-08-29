@@ -4,7 +4,7 @@ use alloc::{
 };
 
 use vm_core::{
-    crypto::hash::RpoDigest,
+    crypto::hash::{Blake3Digest, RpoDigest},
     mast::{MastForest, MastNode, MastNodeId},
     DecoratorList, Operation,
 };
@@ -42,6 +42,8 @@ pub struct MastForestBuilder {
     /// map, this map contains only the first inserted procedure for procedures with the same MAST
     /// root.
     proc_gid_by_mast_root: BTreeMap<RpoDigest, GlobalProcedureIndex>,
+    /// A map of MAST node hashes to their corresponding positions in the MAST forest.
+    node_id_by_hash: BTreeMap<Blake3Digest<32>, MastNodeId>,
     /// A set of IDs for basic blocks which have been merged into a bigger basic blocks. This is
     /// used as a candidate set of nodes that may be eliminated if the are not referenced by any
     /// other node in the forest and are not a root of any procedure.
@@ -228,7 +230,7 @@ impl MastForestBuilder {
             while let (Some(left), Some(right)) =
                 (source_mast_node_iter.next(), source_mast_node_iter.next())
             {
-                let join_mast_node_id = self.add_join(left, right)?;
+                let join_mast_node_id = self.ensure_join(left, right)?;
 
                 node_ids.push(join_mast_node_id);
             }
@@ -310,7 +312,7 @@ impl MastForestBuilder {
                     let block_ops = core::mem::take(&mut operations);
                     let block_decorators = core::mem::take(&mut decorators);
                     let merged_basic_block_id =
-                        self.add_block(block_ops, Some(block_decorators))?;
+                        self.ensure_block(block_ops, Some(block_decorators))?;
 
                     merged_basic_blocks.push(merged_basic_block_id);
                 }
@@ -322,7 +324,7 @@ impl MastForestBuilder {
         self.merged_basic_block_ids.extend(contiguous_basic_block_ids.iter());
 
         if !operations.is_empty() || !decorators.is_empty() {
-            let merged_basic_block = self.add_block(operations, Some(decorators))?;
+            let merged_basic_block = self.ensure_block(operations, Some(decorators))?;
             merged_basic_blocks.push(merged_basic_block);
         }
 
@@ -337,66 +339,76 @@ impl MastForestBuilder {
     ///
     /// Note adding the same [`MastNode`] twice will result in two different [`MastNodeId`]s being
     /// returned.
-    pub fn add_node(&mut self, node: MastNode) -> Result<MastNodeId, AssemblyError> {
-        Ok(self.mast_forest.add_node(node)?)
+    pub fn ensure_node(&mut self, node: MastNode) -> Result<MastNodeId, AssemblyError> {
+        let node_hash = node.eq_hash();
+
+        if let Some(node_id) = self.node_id_by_hash.get(&node_hash) {
+            // node already exists in the forest; return previously assigned id
+            Ok(*node_id)
+        } else {
+            let new_node_id = self.mast_forest.add_node(node)?;
+            self.node_id_by_hash.insert(node_hash, new_node_id);
+
+            Ok(new_node_id)
+        }
     }
 
     /// Adds a basic block node to the forest, and returns the [`MastNodeId`] associated with it.
-    pub fn add_block(
+    pub fn ensure_block(
         &mut self,
         operations: Vec<Operation>,
         decorators: Option<DecoratorList>,
     ) -> Result<MastNodeId, AssemblyError> {
         let block = MastNode::new_basic_block(operations, decorators)?;
-        self.add_node(block)
+        self.ensure_node(block)
     }
 
     /// Adds a join node to the forest, and returns the [`MastNodeId`] associated with it.
-    pub fn add_join(
+    pub fn ensure_join(
         &mut self,
         left_child: MastNodeId,
         right_child: MastNodeId,
     ) -> Result<MastNodeId, AssemblyError> {
         let join = MastNode::new_join(left_child, right_child, &self.mast_forest)?;
-        self.add_node(join)
+        self.ensure_node(join)
     }
 
     /// Adds a split node to the forest, and returns the [`MastNodeId`] associated with it.
-    pub fn add_split(
+    pub fn ensure_split(
         &mut self,
         if_branch: MastNodeId,
         else_branch: MastNodeId,
     ) -> Result<MastNodeId, AssemblyError> {
         let split = MastNode::new_split(if_branch, else_branch, &self.mast_forest)?;
-        self.add_node(split)
+        self.ensure_node(split)
     }
 
     /// Adds a loop node to the forest, and returns the [`MastNodeId`] associated with it.
-    pub fn add_loop(&mut self, body: MastNodeId) -> Result<MastNodeId, AssemblyError> {
+    pub fn ensure_loop(&mut self, body: MastNodeId) -> Result<MastNodeId, AssemblyError> {
         let loop_node = MastNode::new_loop(body, &self.mast_forest)?;
-        self.add_node(loop_node)
+        self.ensure_node(loop_node)
     }
 
     /// Adds a call node to the forest, and returns the [`MastNodeId`] associated with it.
-    pub fn add_call(&mut self, callee: MastNodeId) -> Result<MastNodeId, AssemblyError> {
+    pub fn ensure_call(&mut self, callee: MastNodeId) -> Result<MastNodeId, AssemblyError> {
         let call = MastNode::new_call(callee, &self.mast_forest)?;
-        self.add_node(call)
+        self.ensure_node(call)
     }
 
     /// Adds a syscall node to the forest, and returns the [`MastNodeId`] associated with it.
-    pub fn add_syscall(&mut self, callee: MastNodeId) -> Result<MastNodeId, AssemblyError> {
+    pub fn ensure_syscall(&mut self, callee: MastNodeId) -> Result<MastNodeId, AssemblyError> {
         let syscall = MastNode::new_syscall(callee, &self.mast_forest)?;
-        self.add_node(syscall)
+        self.ensure_node(syscall)
     }
 
     /// Adds a dyn node to the forest, and returns the [`MastNodeId`] associated with it.
-    pub fn add_dyn(&mut self) -> Result<MastNodeId, AssemblyError> {
-        self.add_node(MastNode::new_dyn())
+    pub fn ensure_dyn(&mut self) -> Result<MastNodeId, AssemblyError> {
+        self.ensure_node(MastNode::new_dyn())
     }
 
     /// Adds an external node to the forest, and returns the [`MastNodeId`] associated with it.
-    pub fn add_external(&mut self, mast_root: RpoDigest) -> Result<MastNodeId, AssemblyError> {
-        self.add_node(MastNode::new_external(mast_root))
+    pub fn ensure_external(&mut self, mast_root: RpoDigest) -> Result<MastNodeId, AssemblyError> {
+        self.ensure_node(MastNode::new_external(mast_root))
     }
 }
 

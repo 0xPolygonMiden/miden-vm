@@ -30,10 +30,10 @@ impl Assembler {
                     // only have an `exec` have a different body node id than the procedure
                     // they're executing.
                     let root_node = mast_forest_builder.get_mast_node(node_id).unwrap();
-                    Ok(mast_forest_builder.add_node(root_node.clone())?)
+                    Ok(mast_forest_builder.ensure_node(root_node.clone())?)
                 },
-                InvokeKind::Call => Ok(mast_forest_builder.add_call(node_id)?),
-                InvokeKind::SysCall => Ok(mast_forest_builder.add_syscall(node_id)?),
+                InvokeKind::Call => Ok(mast_forest_builder.ensure_call(node_id)?),
+                InvokeKind::SysCall => Ok(mast_forest_builder.ensure_syscall(node_id)?),
             },
             Either::Right(digest) => self.invoke_mast_root(kind, span, digest, mast_forest_builder),
         }
@@ -102,7 +102,7 @@ impl Assembler {
                         None => {
                             // If the MAST root called isn't known to us, make it an external
                             // reference.
-                            mast_forest_builder.add_external(mast_root)?
+                            mast_forest_builder.ensure_external(mast_root)?
                         },
                     }
                 },
@@ -115,12 +115,12 @@ impl Assembler {
                             // only have an `exec` have a different body node id than the procedure
                             // they're executing.
                             let root_node = mast_forest_builder.get_mast_node(root).unwrap();
-                            mast_forest_builder.add_node(root_node.clone())?
+                            mast_forest_builder.ensure_node(root_node.clone())?
                         },
                         None => {
                             // If the MAST root called isn't known to us, make it an external
                             // reference.
-                            mast_forest_builder.add_external(mast_root)?
+                            mast_forest_builder.ensure_external(mast_root)?
                         },
                     }
                 },
@@ -130,11 +130,11 @@ impl Assembler {
                         None => {
                             // If the MAST root called isn't known to us, make it an external
                             // reference.
-                            mast_forest_builder.add_external(mast_root)?
+                            mast_forest_builder.ensure_external(mast_root)?
                         },
                     };
 
-                    mast_forest_builder.add_call(callee_id)?
+                    mast_forest_builder.ensure_call(callee_id)?
                 },
                 InvokeKind::SysCall => {
                     let callee_id = match mast_forest_builder.find_procedure_node_id(mast_root) {
@@ -142,11 +142,11 @@ impl Assembler {
                         None => {
                             // If the MAST root called isn't known to us, make it an external
                             // reference.
-                            mast_forest_builder.add_external(mast_root)?
+                            mast_forest_builder.ensure_external(mast_root)?
                         },
                     };
 
-                    mast_forest_builder.add_syscall(callee_id)?
+                    mast_forest_builder.ensure_syscall(callee_id)?
                 },
             }
         };
@@ -159,7 +159,7 @@ impl Assembler {
         &self,
         mast_forest_builder: &mut MastForestBuilder,
     ) -> Result<Option<MastNodeId>, AssemblyError> {
-        let dyn_node_id = mast_forest_builder.add_dyn()?;
+        let dyn_node_id = mast_forest_builder.ensure_dyn()?;
 
         Ok(Some(dyn_node_id))
     }
@@ -170,8 +170,8 @@ impl Assembler {
         mast_forest_builder: &mut MastForestBuilder,
     ) -> Result<Option<MastNodeId>, AssemblyError> {
         let dyn_call_node_id = {
-            let dyn_node_id = mast_forest_builder.add_dyn()?;
-            mast_forest_builder.add_call(dyn_node_id)?
+            let dyn_node_id = mast_forest_builder.ensure_dyn()?;
+            mast_forest_builder.ensure_call(dyn_node_id)?
         };
 
         Ok(Some(dyn_call_node_id))

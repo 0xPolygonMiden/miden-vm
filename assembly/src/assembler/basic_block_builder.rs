@@ -139,7 +139,7 @@ impl BasicBlockBuilder {
             let ops = self.ops.drain(..).collect();
             let decorators = self.decorators.drain(..).collect();
 
-            let basic_block_node_id = mast_forest_builder.add_block(ops, Some(decorators))?;
+            let basic_block_node_id = mast_forest_builder.ensure_block(ops, Some(decorators))?;
 
             Ok(Some(basic_block_node_id))
         } else if !self.decorators.is_empty() {

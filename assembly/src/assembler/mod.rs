@@ -539,7 +539,7 @@ impl Assembler {
                     // insert external node into the MAST forest for this procedure; if a procedure
                     // with the same MAST rood had been previously added to the builder, this will
                     // have no effect
-                    let proc_node_id = mast_forest_builder.add_external(proc_mast_root)?;
+                    let proc_node_id = mast_forest_builder.ensure_external(proc_mast_root)?;
                     let procedure = pctx.into_procedure(proc_mast_root, proc_node_id);
 
                     // Make the MAST root available to all dependents
@@ -631,7 +631,7 @@ impl Assembler {
                     let else_blk =
                         self.compile_body(else_blk.iter(), proc_ctx, None, mast_forest_builder)?;
 
-                    let split_node_id = mast_forest_builder.add_split(then_blk, else_blk)?;
+                    let split_node_id = mast_forest_builder.ensure_split(then_blk, else_blk)?;
                     node_ids.push(split_node_id);
                 },
 
@@ -660,7 +660,7 @@ impl Assembler {
                     let loop_body_node_id =
                         self.compile_body(body.iter(), proc_ctx, None, mast_forest_builder)?;
 
-                    let loop_node_id = mast_forest_builder.add_loop(loop_body_node_id)?;
+                    let loop_node_id = mast_forest_builder.ensure_loop(loop_body_node_id)?;
                     node_ids.push(loop_node_id);
                 },
             }
@@ -673,7 +673,7 @@ impl Assembler {
         }
 
         Ok(if node_ids.is_empty() {
-            mast_forest_builder.add_block(vec![Operation::Noop], None)?
+            mast_forest_builder.ensure_block(vec![Operation::Noop], None)?
         } else {
             mast_forest_builder.join_nodes(node_ids)?
         })
