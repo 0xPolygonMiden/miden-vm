@@ -1,7 +1,6 @@
 mod basic_block_node;
-use alloc::{boxed::Box, vec::Vec};
+use alloc::{boxed::Box, string::ToString, vec::Vec};
 use core::fmt;
-use std::string::ToString;
 
 pub use basic_block_node::{
     BasicBlockNode, OpBatch, OperationOrDecorator, BATCH_SIZE as OP_BATCH_SIZE,
