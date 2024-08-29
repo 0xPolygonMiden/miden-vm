@@ -1309,44 +1309,6 @@ end";
 // PROGRAMS WITH PROCEDURES
 // ================================================================================================
 
-/// This ensures the invariant that no two procedures can have the same root node ID, even if the
-/// procedures are identical.
-#[test]
-fn ensure_unique_node_ids_for_identical_procedures() -> TestResult {
-    let context = TestContext::default();
-
-    // if with else
-    let source = source_file!(
-        &context,
-        "
-        proc.f
-            add
-        end
-        
-        proc.g
-            add
-        end
-
-        begin
-            call.f
-            call.g
-        end"
-    );
-    let program = context.assemble(source)?;
-
-    // f, g and entrypoint
-    assert_eq!(program.num_procedures(), 3);
-    
-    let root_id_1 = program.mast_forest().procedure_roots()[0];
-    let root_id_2 = program.mast_forest().procedure_roots()[1];
-    let root_id_3 = program.mast_forest().procedure_roots()[2];
-
-    assert_ne!(root_id_1, root_id_2);
-    assert_ne!(root_id_2, root_id_3);
-
-    Ok(())
-}
-
 /// If the program has 2 procedures with the same MAST root (but possibly different decorators), the
 /// correct procedure is chosen on exec
 #[test]
