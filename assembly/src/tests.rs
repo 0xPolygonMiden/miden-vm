@@ -1345,7 +1345,7 @@ fn ensure_correct_procedure_selection_on_collision() -> TestResult {
     let expected_g_node_id =
         MastNodeId::from_u32_safe(0_u32, program.mast_forest().as_ref()).unwrap();
 
-    let (f_node_id, g_node_id) = {
+    let (exec_f_node_id, exec_g_node_id) = {
         let split_node_id = program.entrypoint();
         let split_node = match &program.mast_forest()[split_node_id] {
             MastNode::Split(split_node) => split_node,
@@ -1355,8 +1355,8 @@ fn ensure_correct_procedure_selection_on_collision() -> TestResult {
         (split_node.on_true(), split_node.on_false())
     };
 
-    assert_eq!(program.mast_forest()[expected_f_node_id], program.mast_forest()[f_node_id]);
-    assert_eq!(program.mast_forest()[expected_g_node_id], program.mast_forest()[g_node_id]);
+    assert_eq!(program.mast_forest()[expected_f_node_id], program.mast_forest()[exec_f_node_id]);
+    assert_eq!(program.mast_forest()[expected_g_node_id], program.mast_forest()[exec_g_node_id]);
 
     Ok(())
 }
