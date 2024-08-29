@@ -128,4 +128,4 @@ pub mod utils;
 // TYPE ALIASES
 // ================================================================================================
 
-pub type StackTopState = [Felt; stack::STACK_TOP_SIZE];
+pub type StackTopState = [Felt; stack::MIN_STACK_DEPTH];

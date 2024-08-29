@@ -116,7 +116,7 @@ where
 #[cfg(test)]
 mod tests {
     use super::{
-        super::{Operation, STACK_TOP_SIZE},
+        super::{Operation, MIN_STACK_DEPTH},
         Felt, Process, FMP_MAX, FMP_MIN,
     };
     use crate::{StackInputs, ONE, ZERO};
@@ -212,27 +212,27 @@ mod tests {
         // stack is empty
         let mut process = Process::new_dummy_with_empty_stack();
         process.execute_op(Operation::SDepth).unwrap();
-        let expected = build_expected_stack(&[STACK_TOP_SIZE as u64]);
+        let expected = build_expected_stack(&[MIN_STACK_DEPTH as u64]);
         assert_eq!(expected, process.stack.trace_state());
-        assert_eq!(STACK_TOP_SIZE + 1, process.stack.depth());
+        assert_eq!(MIN_STACK_DEPTH + 1, process.stack.depth());
 
         // stack has one item
         process.execute_op(Operation::SDepth).unwrap();
-        let expected = build_expected_stack(&[STACK_TOP_SIZE as u64 + 1, STACK_TOP_SIZE as u64]);
+        let expected = build_expected_stack(&[MIN_STACK_DEPTH as u64 + 1, MIN_STACK_DEPTH as u64]);
         assert_eq!(expected, process.stack.trace_state());
-        assert_eq!(STACK_TOP_SIZE + 2, process.stack.depth());
+        assert_eq!(MIN_STACK_DEPTH + 2, process.stack.depth());
 
         // stack has 3 items
         process.execute_op(Operation::Pad).unwrap();
         process.execute_op(Operation::SDepth).unwrap();
         let expected = build_expected_stack(&[
-            STACK_TOP_SIZE as u64 + 3,
+            MIN_STACK_DEPTH as u64 + 3,
             0,
-            STACK_TOP_SIZE as u64 + 1,
-            STACK_TOP_SIZE as u64,
+            MIN_STACK_DEPTH as u64 + 1,
+            MIN_STACK_DEPTH as u64,
         ]);
         assert_eq!(expected, process.stack.trace_state());
-        assert_eq!(STACK_TOP_SIZE + 4, process.stack.depth());
+        assert_eq!(MIN_STACK_DEPTH + 4, process.stack.depth());
     }
 
     #[test]

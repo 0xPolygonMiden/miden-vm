@@ -30,7 +30,7 @@ pub use verifier::{verify, AcceptableOptions, VerifierError};
 use vm_core::{chiplets::hasher::apply_permutation, ProgramInfo};
 pub use vm_core::{
     chiplets::hasher::{hash_elements, STATE_WIDTH},
-    stack::STACK_TOP_SIZE,
+    stack::MIN_STACK_DEPTH,
     utils::{collections, group_slice_elements, IntoBytes, ToElements},
     Felt, FieldElement, StarkField, Word, EMPTY_WORD, ONE, WORD_SIZE, ZERO,
 };
@@ -400,7 +400,7 @@ impl Test {
 
     /// Returns the last state of the stack after executing a test.
     #[track_caller]
-    pub fn get_last_stack_state(&self) -> [Felt; STACK_TOP_SIZE] {
+    pub fn get_last_stack_state(&self) -> [Felt; MIN_STACK_DEPTH] {
         let trace = self.execute().unwrap();
 
         trace.last_stack_state()
@@ -417,7 +417,7 @@ pub fn stack_to_ints(values: &[Felt]) -> Vec<u64> {
 
 pub fn stack_top_to_ints(values: &[u64]) -> Vec<u64> {
     let mut result: Vec<u64> = values.to_vec();
-    result.resize(STACK_TOP_SIZE, 0);
+    result.resize(MIN_STACK_DEPTH, 0);
     result
 }
 

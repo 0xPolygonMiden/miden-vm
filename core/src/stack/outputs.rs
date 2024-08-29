@@ -2,7 +2,9 @@ use alloc::vec::Vec;
 
 use miden_crypto::{Word, ZERO};
 
-use super::{ByteWriter, Felt, OutputError, Serializable, ToElements, STACK_DEPTH};
+use super::{
+    get_stack_values_num, ByteWriter, Felt, OutputError, Serializable, ToElements, MIN_STACK_DEPTH,
+};
 use crate::utils::{range, ByteReader, Deserializable, DeserializationError};
 
 // STACK OUTPUTS
@@ -17,8 +19,7 @@ use crate::utils::{range, ByteReader, Deserializable, DeserializationError};
 /// of the rest of the output elements will also match the order on the stack.
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct StackOutputs {
-    /// The elements on the stack at the end of execution.
-    stack: [Felt; STACK_DEPTH],
+    elements: [Felt; MIN_STACK_DEPTH],
 }
 
 impl StackOutputs {
@@ -28,18 +29,15 @@ impl StackOutputs {
     /// Constructs a new [StackOutputs] struct from the provided stack elements.
     ///
     /// # Errors
-    ///  Returns an error if the number of stack elements is greater than `STACK_DEPTH` (16).
-    pub fn new(stack: Vec<Felt>) -> Result<Self, OutputError> {
+    ///  Returns an error if the number of stack elements is greater than `MIN_STACK_DEPTH` (16).
+    pub fn new(mut stack: Vec<Felt>) -> Result<Self, OutputError> {
         // validate stack length
-        if stack.len() > STACK_DEPTH {
+        if stack.len() > MIN_STACK_DEPTH {
             return Err(OutputError::OutputSizeTooBig(stack.len()));
         }
+        stack.resize(MIN_STACK_DEPTH, ZERO);
 
-        let mut stack_arr = [ZERO; 16];
-        // pad stack to the `STACK_DEPTH`
-        stack.iter().enumerate().for_each(|(i, v)| stack_arr[i] = *v);
-
-        Ok(Self { stack: stack_arr })
+        Ok(Self { elements: stack.try_into().unwrap() })
     }
 
     /// Attempts to create [StackOutputs] struct from the provided stack elements represented as
@@ -65,7 +63,7 @@ impl StackOutputs {
     /// Returns the element located at the specified position on the stack or `None` if out of
     /// bounds.
     pub fn get_stack_item(&self, idx: usize) -> Option<Felt> {
-        self.stack.get(idx).cloned()
+        self.elements.get(idx).cloned()
     }
 
     /// Returns the word located starting at the specified Felt position on the stack or `None` if
@@ -86,17 +84,16 @@ impl StackOutputs {
         Some(word_elements)
     }
 
-    /// Returns the stack outputs, which is state of the stack at the end of execution converted to
-    /// integers.
-    pub fn stack(&self) -> &[Felt] {
-        &self.stack
+    /// Returns the stack outputs, which is state of the stack at the end of execution.
+    pub fn elements(&self) -> &[Felt] {
+        &self.elements
     }
 
     /// Returns the number of requested stack outputs or returns the full stack if fewer than the
     /// requested number of stack values exist.
     pub fn stack_truncated(&self, num_outputs: usize) -> &[Felt] {
-        let len = self.stack.len().min(num_outputs);
-        &self.stack[..len]
+        let len = self.elements.len().min(num_outputs);
+        &self.elements[..len]
     }
 
     // PUBLIC MUTATORS
@@ -106,7 +103,7 @@ impl StackOutputs {
     /// TODO: this should be marked with #[cfg(test)] attribute, but that currently won't work with
     /// the integration test handler util.
     pub fn stack_mut(&mut self) -> &mut [Felt] {
-        &mut self.stack
+        &mut self.elements
     }
 }
 
@@ -115,7 +112,7 @@ impl StackOutputs {
 
 impl ToElements<Felt> for StackOutputs {
     fn to_elements(&self) -> Vec<Felt> {
-        self.stack.to_vec()
+        self.elements.to_vec()
     }
 }
 
@@ -124,17 +121,18 @@ impl ToElements<Felt> for StackOutputs {
 
 impl Serializable for StackOutputs {
     fn write_into<W: ByteWriter>(&self, target: &mut W) {
-        debug_assert!(self.stack.len() == STACK_DEPTH);
-        target.write_many(self.stack);
+        target.write_u8(get_stack_values_num(self.elements()));
+        target.write_many(self.elements);
     }
 }
 
 impl Deserializable for StackOutputs {
     fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
-        let stack = source
-            .read_many::<Felt>(STACK_DEPTH)?
-            .try_into()
-            .expect("Invalid output stack depth: expected 16");
-        Ok(Self { stack })
+        let elements_num = source.read_u8()?;
+        let mut elements = source.read_many::<Felt>(elements_num.into())?;
+
+        elements.resize(MIN_STACK_DEPTH, ZERO);
+
+        Ok(Self { elements: elements.try_into().unwrap() })
     }
 }

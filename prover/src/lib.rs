@@ -158,7 +158,7 @@ where
     /// Validates the stack inputs against the provided execution trace and returns true if valid.
     fn are_inputs_valid(&self, trace: &ExecutionTrace) -> bool {
         self.stack_inputs
-            .values()
+            .elements()
             .iter()
             .zip(trace.init_stack_state().iter())
             .all(|(l, r)| l == r)
@@ -167,7 +167,7 @@ where
     /// Validates the stack outputs against the provided execution trace and returns true if valid.
     fn are_outputs_valid(&self, trace: &ExecutionTrace) -> bool {
         self.stack_outputs
-            .stack()
+            .elements()
             .iter()
             .zip(trace.last_stack_state().iter())
             .all(|(l, r)| l == r)

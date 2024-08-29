@@ -1,8 +1,6 @@
 use alloc::{collections::BTreeMap, vec::Vec};
 
-use vm_core::StarkField;
-
-use super::{AuxTraceBuilder, Felt, FieldElement, ZERO};
+use super::{Felt, FieldElement, ZERO};
 
 // OVERFLOW TABLE
 // ================================================================================================
@@ -26,8 +24,6 @@ pub struct OverflowTable {
     /// whenever an update happens. This is set to true only when executing programs for debug
     /// purposes.
     trace_enabled: bool,
-    /// The number of rows in the overflow table when execution begins.
-    num_init_rows: usize,
     /// Holds the address (the clock cycle) of the row at to top of the overflow table. When
     /// entering new execution context, this value is set to ZERO, and thus, will differ from the
     /// row address actually at the top of the table.
@@ -44,28 +40,8 @@ impl OverflowTable {
             active_rows: Vec::new(),
             trace: BTreeMap::new(),
             trace_enabled: enable_trace,
-            num_init_rows: 0,
             last_row_addr: ZERO,
         }
-    }
-
-    /// Returns a new [OverflowTable]. The returned table contains a row for each of the provided
-    /// initial values, using a "negative" (mod p) `clk` value as the address for each of the rows,
-    /// since they are added before the first execution cycle.
-    ///
-    /// `init_values` is expected to be ordered such that values will be pushed onto the stack one
-    /// by one. Thus, the first item in the list will become the deepest item in the stack.
-    pub fn new_with_inputs(enable_trace: bool, init_values: &[Felt]) -> Self {
-        let mut overflow_table = Self::new(enable_trace);
-        overflow_table.num_init_rows = init_values.len();
-
-        let mut clk = Felt::MODULUS - init_values.len() as u64;
-        for &val in init_values.iter().rev() {
-            overflow_table.push(val, Felt::new(clk));
-            clk += 1;
-        }
-
-        overflow_table
     }
 
     // STATE MUTATORS
@@ -173,20 +149,8 @@ impl OverflowTable {
     }
 
     /// Returns the number of overflowing stack elements at the current clock cycle.
-    pub fn active_rows_len(&self) -> usize {
+    pub fn num_active_rows(&self) -> usize {
         self.active_rows.len()
-    }
-
-    // AUX TRACE BUILDER GENERATION
-    // --------------------------------------------------------------------------------------------
-
-    /// Converts this [OverflowTable] into an auxiliary trace builder which can be used to construct
-    /// the auxiliary trace column describing the state of the overflow table at every cycle.
-    pub fn into_aux_builder(self) -> AuxTraceBuilder {
-        AuxTraceBuilder {
-            num_init_rows: self.num_init_rows,
-            overflow_table_rows: self.all_rows,
-        }
     }
 
     // HELPER METHODS
@@ -197,6 +161,19 @@ impl OverflowTable {
         debug_assert!(self.trace_enabled, "overflow table trace not enabled");
         let current_state = self.active_rows.iter().map(|&idx| self.all_rows[idx].val).collect();
         self.trace.insert(clk, current_state);
+    }
+
+    // TEST ACCESSORS
+    // --------------------------------------------------------------------------------------------
+
+    #[cfg(test)]
+    pub fn all_rows(&self) -> &[OverflowTableRow] {
+        &self.all_rows
+    }
+
+    #[cfg(test)]
+    pub fn active_rows(&self) -> &[usize] {
+        &self.active_rows
     }
 }
 

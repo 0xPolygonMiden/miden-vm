@@ -1,6 +1,6 @@
 use assembly::SourceManager;
 use processor::FMP_MIN;
-use test_utils::{build_op_test, build_test, StackInputs, Test, Word, STACK_TOP_SIZE};
+use test_utils::{build_op_test, build_test, StackInputs, Test, Word, MIN_STACK_DEPTH};
 use vm_core::{
     mast::{MastForest, MastNode},
     Operation,
@@ -15,11 +15,11 @@ fn sdepth() {
 
     // --- empty stack ----------------------------------------------------------------------------
     let test = build_op_test!(test_op);
-    test.expect_stack(&[STACK_TOP_SIZE as u64]);
+    test.expect_stack(&[MIN_STACK_DEPTH as u64]);
 
     // --- multi-element stack --------------------------------------------------------------------
     let test = build_op_test!(test_op, &[2, 4, 6, 8, 10]);
-    test.expect_stack(&[STACK_TOP_SIZE as u64, 10, 8, 6, 4, 2]);
+    test.expect_stack(&[MIN_STACK_DEPTH as u64, 10, 8, 6, 4, 2]);
 
     // --- overflowed stack -----------------------------------------------------------------------
     // push 2 values to increase the lenth of the stack beyond 16

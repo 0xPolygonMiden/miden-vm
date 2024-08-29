@@ -6,7 +6,7 @@ use miden_air::trace::{
     AUX_TRACE_RAND_ELEMENTS, AUX_TRACE_WIDTH, DECODER_TRACE_OFFSET, MIN_TRACE_LEN,
     STACK_TRACE_OFFSET, TRACE_WIDTH,
 };
-use vm_core::{stack::STACK_TOP_SIZE, ProgramInfo, StackOutputs, ZERO};
+use vm_core::{stack::MIN_STACK_DEPTH, ProgramInfo, StackOutputs, ZERO};
 use winter_prover::{crypto::RandomCoin, EvaluationFrame, Trace, TraceInfo};
 
 use super::{
@@ -122,7 +122,7 @@ impl ExecutionTrace {
 
     /// Returns the initial state of the top 16 stack registers.
     pub fn init_stack_state(&self) -> StackTopState {
-        let mut result = [ZERO; STACK_TOP_SIZE];
+        let mut result = [ZERO; MIN_STACK_DEPTH];
         for (i, result) in result.iter_mut().enumerate() {
             *result = self.main_trace.get_column(i + STACK_TRACE_OFFSET)[0];
         }
@@ -132,7 +132,7 @@ impl ExecutionTrace {
     /// Returns the final state of the top 16 stack registers.
     pub fn last_stack_state(&self) -> StackTopState {
         let last_step = self.last_step();
-        let mut result = [ZERO; STACK_TOP_SIZE];
+        let mut result = [ZERO; MIN_STACK_DEPTH];
         for (i, result) in result.iter_mut().enumerate() {
             *result = self.main_trace.get_column(i + STACK_TRACE_OFFSET)[last_step];
         }
@@ -338,7 +338,7 @@ where
 
     let aux_trace_hints = AuxTraceBuilders {
         decoder: decoder_trace.aux_builder,
-        stack: stack_trace.aux_builder,
+        stack: StackAuxTraceBuilder,
         range: range_check_trace.aux_builder,
         chiplets: chiplets_trace.aux_builder,
     };

@@ -13,7 +13,7 @@ mod operations;
 
 #[test]
 fn simple_program() {
-    build_test!("begin push.1 push.2 add swap drop swap drop end").expect_stack(&[3]);
+    build_test!("begin push.1 push.2 add swap drop end").expect_stack(&[3]);
 }
 
 #[test]

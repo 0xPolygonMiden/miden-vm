@@ -1,19 +1,22 @@
 use alloc::vec::Vec;
 use core::slice;
 
-use super::{super::ZERO, ByteWriter, Felt, InputError, Serializable, ToElements, STACK_DEPTH};
+use super::{
+    super::ZERO, get_stack_values_num, ByteWriter, Felt, InputError, Serializable, ToElements,
+    MIN_STACK_DEPTH,
+};
 use crate::utils::{ByteReader, Deserializable, DeserializationError};
 
 // STACK INPUTS
 // ================================================================================================
 
-/// Initial state of the stack to support program execution.
+/// Defines the initial state of the VM's operand stack.
 ///
-/// The program execution expects the inputs to be a stack on the VM, and it will be stored in
-/// reversed order on this struct.
+/// The values in the struct are stored in the "stack order" - i.e., the last input is at the top
+/// of the stack (in position 0).
 #[derive(Clone, Debug, Default)]
 pub struct StackInputs {
-    values: [Felt; STACK_DEPTH],
+    elements: [Felt; MIN_STACK_DEPTH],
 }
 
 impl StackInputs {
@@ -25,15 +28,13 @@ impl StackInputs {
     /// # Errors
     /// Returns an error if the number of input values exceeds the allowed maximum.
     pub fn new(mut values: Vec<Felt>) -> Result<Self, InputError> {
-        if values.len() > STACK_DEPTH {
-            return Err(InputError::InputLengthExceeded(STACK_DEPTH, values.len()));
+        if values.len() > MIN_STACK_DEPTH {
+            return Err(InputError::InputLengthExceeded(MIN_STACK_DEPTH, values.len()));
         }
         values.reverse();
+        values.resize(MIN_STACK_DEPTH, ZERO);
 
-        let mut values_arr = [ZERO; STACK_DEPTH];
-        values.iter().enumerate().for_each(|(i, v)| values_arr[i] = *v);
-
-        Ok(Self { values: values_arr })
+        Ok(Self { elements: values.try_into().unwrap() })
     }
 
     /// Attempts to create stack inputs from an iterator of integers.
@@ -57,9 +58,9 @@ impl StackInputs {
     // PUBLIC ACCESSORS
     // --------------------------------------------------------------------------------------------
 
-    /// Returns the initial stack values in stack/reversed order.
-    pub fn values(&self) -> &[Felt] {
-        &self.values
+    /// Returns the initial stack elements in stack/reversed order.
+    pub fn elements(&self) -> &[Felt] {
+        &self.elements
     }
 }
 
@@ -68,7 +69,7 @@ impl<'a> IntoIterator for &'a StackInputs {
     type IntoIter = slice::Iter<'a, Felt>;
 
     fn into_iter(self) -> Self::IntoIter {
-        self.values.iter()
+        self.elements.iter()
     }
 }
 
@@ -77,13 +78,13 @@ impl IntoIterator for StackInputs {
     type IntoIter = core::array::IntoIter<Felt, 16>;
 
     fn into_iter(self) -> Self::IntoIter {
-        self.values.into_iter()
+        self.elements.into_iter()
     }
 }
 
 impl ToElements<Felt> for StackInputs {
     fn to_elements(&self) -> Vec<Felt> {
-        self.values.to_vec()
+        self.elements.to_vec()
     }
 }
 
@@ -92,17 +93,18 @@ impl ToElements<Felt> for StackInputs {
 
 impl Serializable for StackInputs {
     fn write_into<W: ByteWriter>(&self, target: &mut W) {
-        debug_assert!(self.values.len() == STACK_DEPTH);
-        target.write_many(self.values);
+        target.write_u8(get_stack_values_num(self.elements()));
+        target.write_many(self.elements);
     }
 }
 
 impl Deserializable for StackInputs {
     fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
-        let values = source
-            .read_many::<Felt>(STACK_DEPTH)?
-            .try_into()
-            .expect("Invalid input stack depth: expected 16");
-        Ok(StackInputs { values })
+        let elements_num = source.read_u8()?;
+        let mut elements = source.read_many::<Felt>(elements_num.into())?;
+
+        elements.resize(MIN_STACK_DEPTH, ZERO);
+
+        Ok(StackInputs { elements: elements.try_into().unwrap() })
     }
 }

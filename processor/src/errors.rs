@@ -6,7 +6,7 @@ use std::error::Error;
 use miden_air::RowIndex;
 use vm_core::{
     mast::{DecoratorId, MastNodeId},
-    stack::STACK_TOP_SIZE,
+    stack::MIN_STACK_DEPTH,
     utils::to_hex,
 };
 use winter_prover::{math::FieldElement, ProverError};
@@ -145,7 +145,7 @@ impl Display for ExecutionError {
                 write!(f, "Memory range start address cannot exceed end address, but was ({start_addr}, {end_addr})")
             },
             InvalidStackDepthOnReturn(depth) => {
-                write!(f, "When returning from a call, stack depth must be {STACK_TOP_SIZE}, but was {depth}")
+                write!(f, "When returning from a call, stack depth must be {MIN_STACK_DEPTH}, but was {depth}")
             },
             InvalidStackWordOffset(offset) => {
                 write!(f, "Stack word offset cannot exceed 12, but was {offset}")
@@ -202,7 +202,7 @@ impl Display for ExecutionError {
                 )
             },
             OutputStackOverflow(n) => {
-                write!(f, "Overflow table should be empty at the end of program execution, but has {n} rows")
+                write!(f, "The stack should have at most {MIN_STACK_DEPTH} elements at the end of program execution, but had {} elements", MIN_STACK_DEPTH + n)
             },
             SmtNodeNotFound(node) => {
                 let node_hex = to_hex(Felt::elements_as_bytes(node));

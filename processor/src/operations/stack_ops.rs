@@ -1,4 +1,4 @@
-use super::{ExecutionError, Host, Process, STACK_TOP_SIZE};
+use super::{ExecutionError, Host, Process, MIN_STACK_DEPTH};
 use crate::ZERO;
 
 impl<H> Process<H>
@@ -185,7 +185,7 @@ where
     ///
     /// Elements between 0 and n are shifted right by one slot.
     pub(super) fn op_movup(&mut self, n: usize) -> Result<(), ExecutionError> {
-        debug_assert!(n < STACK_TOP_SIZE - 1, "n too large");
+        debug_assert!(n < MIN_STACK_DEPTH - 1, "n too large");
 
         // move the nth value to the top of the stack
         let value = self.stack.get(n);
@@ -206,7 +206,7 @@ where
     ///
     /// Elements between 0 and n are shifted left by one slot.
     pub(super) fn op_movdn(&mut self, n: usize) -> Result<(), ExecutionError> {
-        debug_assert!(n < STACK_TOP_SIZE - 1, "n too large");
+        debug_assert!(n < MIN_STACK_DEPTH - 1, "n too large");
 
         // move the value at the top of the stack to the nth position
         let value = self.stack.get(0);
@@ -304,7 +304,7 @@ where
 mod tests {
     use super::{
         super::{Operation, Process},
-        STACK_TOP_SIZE,
+        MIN_STACK_DEPTH,
     };
     use crate::{Felt, StackInputs, ONE, ZERO};
 
@@ -322,7 +322,7 @@ mod tests {
         process.execute_op(Operation::Pad).unwrap();
         let expected = build_expected(&[0, 1]);
 
-        assert_eq!(STACK_TOP_SIZE + 2, process.stack.depth());
+        assert_eq!(MIN_STACK_DEPTH + 2, process.stack.depth());
         assert_eq!(3, process.stack.current_clk());
         assert_eq!(expected, process.stack.trace_state());
 
@@ -330,7 +330,7 @@ mod tests {
         process.execute_op(Operation::Pad).unwrap();
         let expected = build_expected(&[0, 0, 1]);
 
-        assert_eq!(STACK_TOP_SIZE + 3, process.stack.depth());
+        assert_eq!(MIN_STACK_DEPTH + 3, process.stack.depth());
         assert_eq!(4, process.stack.current_clk());
         assert_eq!(expected, process.stack.trace_state());
     }
@@ -347,13 +347,13 @@ mod tests {
         process.execute_op(Operation::Drop).unwrap();
         let expected = build_expected(&[1]);
         assert_eq!(expected, process.stack.trace_state());
-        assert_eq!(STACK_TOP_SIZE + 1, process.stack.depth());
+        assert_eq!(MIN_STACK_DEPTH + 1, process.stack.depth());
 
         // drop the next value
         process.execute_op(Operation::Drop).unwrap();
         let expected = build_expected(&[]);
         assert_eq!(expected, process.stack.trace_state());
-        assert_eq!(STACK_TOP_SIZE, process.stack.depth());
+        assert_eq!(MIN_STACK_DEPTH, process.stack.depth());
 
         // calling drop with a minimum stack depth should be ok
         assert!(process.execute_op(Operation::Drop).is_ok());
@@ -404,7 +404,7 @@ mod tests {
         process.execute_op(Operation::Drop).unwrap();
         process.execute_op(Operation::Drop).unwrap();
 
-        assert_eq!(STACK_TOP_SIZE + 15, process.stack.depth());
+        assert_eq!(MIN_STACK_DEPTH + 15, process.stack.depth());
 
         assert_eq!(&expected[2..], &process.stack.trace_state()[..14]);
         assert_eq!(ONE, process.stack.trace_state()[14]);

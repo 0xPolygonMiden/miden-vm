@@ -103,7 +103,6 @@ pub struct DecoderTrace {
 
 pub struct StackTrace {
     trace: [Vec<Felt>; STACK_TRACE_WIDTH],
-    aux_builder: stack::AuxTraceBuilder,
 }
 
 pub struct RangeCheckTrace {

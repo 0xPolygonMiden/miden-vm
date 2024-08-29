@@ -1,7 +1,7 @@
 use sha3::{Digest, Keccak256};
 use test_utils::{
     rand::{rand_array, rand_value},
-    Felt, IntoBytes, STACK_TOP_SIZE,
+    Felt, IntoBytes, MIN_STACK_DEPTH,
 };
 
 /// Equivalent to https://github.com/itzmeanjan/merklize-sha/blob/1d35aae/include/test_bit_interleaving.hpp#L12-L34
@@ -56,13 +56,13 @@ fn keccak256_2_to_1_hash() {
 
     // 32 -bytes digest represented in terms eight ( little endian )
     // 32 -bit integers such that it's easy to compare against final stack trace
-    let mut expected_stack = [0u64; STACK_TOP_SIZE >> 1];
+    let mut expected_stack = [0u64; MIN_STACK_DEPTH >> 1];
     to_stack(&digest, &mut expected_stack);
 
     // 64 -bytes input represented in terms of sixteen ( little endian ) 32 -bit
     // integers so that miden assembly implementation of keccak256 2-to-1 hash can
     // consume it and produce 32 -bytes digest
-    let mut in_stack = [0u64; STACK_TOP_SIZE];
+    let mut in_stack = [0u64; MIN_STACK_DEPTH];
     to_stack(&i_digest, &mut in_stack);
     in_stack.reverse();
 

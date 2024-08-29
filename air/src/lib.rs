@@ -146,7 +146,7 @@ impl Air for ProcessorAir {
         result.push(Assertion::single(FMP_COL_IDX, 0, Felt::new(2u64.pow(30))));
 
         // add initial assertions for the stack.
-        stack::get_assertions_first_step(&mut result, self.stack_inputs.values());
+        stack::get_assertions_first_step(&mut result, self.stack_inputs.elements());
 
         // Add initial assertions for the range checker.
         range::get_assertions_first_step(&mut result);

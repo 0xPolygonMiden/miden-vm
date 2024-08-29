@@ -1,6 +1,6 @@
 use alloc::vec::Vec;
 
-use vm_core::{stack::STACK_TOP_SIZE, StackOutputs};
+use vm_core::{stack::MIN_STACK_DEPTH, StackOutputs};
 
 use super::super::{
     Assertion, EvaluationFrame, Felt, FieldElement, TransitionConstraintDegree, CLK_COL_IDX,
@@ -22,7 +22,7 @@ pub mod u32_ops;
 // CONSTANTS
 // ================================================================================================
 
-const B0_COL_IDX: usize = STACK_TRACE_OFFSET + STACK_TOP_SIZE;
+const B0_COL_IDX: usize = STACK_TRACE_OFFSET + MIN_STACK_DEPTH;
 const B1_COL_IDX: usize = B0_COL_IDX + 1;
 const H0_COL_IDX: usize = B1_COL_IDX + 1;
 
@@ -30,7 +30,7 @@ const H0_COL_IDX: usize = B1_COL_IDX + 1;
 
 /// The number of boundary constraints required by the Stack, which is all stack positions for
 /// inputs and outputs as well as the initial values of the bookkeeping columns.
-pub const NUM_ASSERTIONS: usize = 2 * STACK_TOP_SIZE + 2;
+pub const NUM_ASSERTIONS: usize = 2 * MIN_STACK_DEPTH + 2;
 
 /// The number of general constraints in the stack operations.
 pub const NUM_GENERAL_CONSTRAINTS: usize = 17;
@@ -193,19 +193,19 @@ pub fn enforce_general_constraints<E: FieldElement>(
 /// Returns the stack's boundary assertions for the main trace at the first step.
 pub fn get_assertions_first_step(result: &mut Vec<Assertion<Felt>>, stack_inputs: &[Felt]) {
     // stack columns at the first step should be set to stack inputs, excluding overflow inputs.
-    for (i, &value) in stack_inputs.iter().take(STACK_TOP_SIZE).enumerate() {
+    for (i, &value) in stack_inputs.iter().take(MIN_STACK_DEPTH).enumerate() {
         result.push(Assertion::single(STACK_TRACE_OFFSET + i, 0, value));
     }
 
     // if there are remaining slots on top of the stack without specified values, set them to ZERO.
-    for i in stack_inputs.len()..STACK_TOP_SIZE {
+    for i in stack_inputs.len()..MIN_STACK_DEPTH {
         result.push(Assertion::single(STACK_TRACE_OFFSET + i, 0, ZERO));
     }
 
     // get the initial values for the bookkeeping columns.
-    let mut depth = STACK_TOP_SIZE;
+    let mut depth = MIN_STACK_DEPTH;
     let mut overflow_addr = ZERO;
-    if stack_inputs.len() > STACK_TOP_SIZE {
+    if stack_inputs.len() > MIN_STACK_DEPTH {
         depth = stack_inputs.len();
         overflow_addr = -ONE;
     }
@@ -225,7 +225,7 @@ pub fn get_assertions_last_step(
     stack_outputs: &StackOutputs,
 ) {
     // stack columns at the last step should be set to stack outputs, excluding overflow outputs
-    for (i, value) in stack_outputs.stack().iter().enumerate() {
+    for (i, value) in stack_outputs.elements().iter().enumerate() {
         result.push(Assertion::single(STACK_TRACE_OFFSET + i, step, *value));
     }
 }

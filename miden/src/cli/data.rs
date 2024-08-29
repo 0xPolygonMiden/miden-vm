@@ -321,7 +321,7 @@ impl OutputFile {
     /// Returns a new [OutputFile] from the specified outputs vectors
     pub fn new(stack_outputs: &StackOutputs) -> Self {
         Self {
-            stack: stack_outputs.stack().iter().map(|&v| v.to_string()).collect::<Vec<String>>(),
+            stack: stack_outputs.elements().iter().map(|&v| v.to_string()).collect::<Vec<String>>(),
         }
     }
 
