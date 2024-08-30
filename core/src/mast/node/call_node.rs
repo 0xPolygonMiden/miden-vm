@@ -199,19 +199,39 @@ struct CallNodePrettyPrint<'a> {
 }
 
 impl<'a> PrettyPrint for CallNodePrettyPrint<'a> {
-    #[rustfmt::skip]
     fn render(&self) -> crate::prettier::Document {
         use crate::prettier::*;
         use miden_formatting::hex::ToHex;
 
+        let pre_decorators = self
+            .call_node
+            .before_enter()
+            .iter()
+            .map(|&decorator_id| self.mast_forest[decorator_id].render())
+            .reduce(|acc, doc| acc + const_text(" ") + doc)
+            .unwrap_or_default();
+
+        let post_decorators = self
+            .call_node
+            .after_exit()
+            .iter()
+            .map(|&decorator_id| self.mast_forest[decorator_id].render())
+            .reduce(|acc, doc| acc + const_text(" ") + doc)
+            .unwrap_or_default();
+
         let callee_digest = self.mast_forest[self.call_node.callee].digest();
 
-        let doc = if self.call_node.is_syscall {
+        let call_or_syscall = if self.call_node.is_syscall {
             const_text("syscall")
         } else {
             const_text("call")
         };
-        doc + const_text(".") + text(callee_digest.as_bytes().to_hex_with_prefix())
+
+        pre_decorators
+            + call_or_syscall
+            + const_text(".")
+            + text(callee_digest.as_bytes().to_hex_with_prefix())
+            + post_decorators
     }
 }
 

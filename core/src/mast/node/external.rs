@@ -1,5 +1,6 @@
 use alloc::vec::Vec;
 use core::fmt;
+use miden_formatting::prettier::PrettyPrint;
 
 use miden_crypto::hash::rpo::RpoDigest;
 
@@ -68,21 +69,53 @@ impl ExternalNode {
 // ================================================================================================
 
 impl ExternalNode {
-    pub(super) fn to_display<'a>(&'a self, _mast_forest: &'a MastForest) -> impl fmt::Display + 'a {
-        self
+    pub(super) fn to_display<'a>(&'a self, mast_forest: &'a MastForest) -> impl fmt::Display + 'a {
+        ExternalNodePrettyPrint { external_node: self, mast_forest }
+    }
+
+    pub(super) fn to_pretty_print<'a>(
+        &'a self,
+        mast_forest: &'a MastForest,
+    ) -> impl PrettyPrint + 'a {
+        ExternalNodePrettyPrint { external_node: self, mast_forest }
     }
 }
 
-impl crate::prettier::PrettyPrint for ExternalNode {
+struct ExternalNodePrettyPrint<'a> {
+    external_node: &'a ExternalNode,
+    mast_forest: &'a MastForest,
+}
+
+impl<'a> crate::prettier::PrettyPrint for ExternalNodePrettyPrint<'a> {
     fn render(&self) -> crate::prettier::Document {
+        use crate::prettier::*;
         use miden_formatting::hex::ToHex;
 
-        use crate::prettier::*;
-        const_text("external") + const_text(".") + text(self.digest.as_bytes().to_hex_with_prefix())
+        let pre_decorators = self
+            .external_node
+            .before_enter()
+            .iter()
+            .map(|&decorator_id| self.mast_forest[decorator_id].render())
+            .reduce(|acc, doc| acc + const_text(" ") + doc)
+            .unwrap_or_default();
+
+        let post_decorators = self
+            .external_node
+            .after_exit()
+            .iter()
+            .map(|&decorator_id| self.mast_forest[decorator_id].render())
+            .reduce(|acc, doc| acc + const_text(" ") + doc)
+            .unwrap_or_default();
+
+        pre_decorators
+            + const_text("external")
+            + const_text(".")
+            + text(self.external_node.digest.as_bytes().to_hex_with_prefix())
+            + post_decorators
     }
 }
 
-impl fmt::Display for ExternalNode {
+impl<'a> fmt::Display for ExternalNodePrettyPrint<'a> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         use crate::prettier::PrettyPrint;
         self.pretty_print(f)

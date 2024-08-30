@@ -1,9 +1,10 @@
 use alloc::vec::Vec;
+use miden_formatting::prettier::PrettyPrint;
 use core::fmt;
 
 use miden_crypto::{hash::rpo::RpoDigest, Felt};
 
-use crate::{mast::DecoratorId, OPCODE_DYN};
+use crate::{mast::{DecoratorId, MastForest}, OPCODE_DYN};
 
 // DYN NODE
 // ================================================================================================
@@ -69,16 +70,49 @@ impl DynNode {
 // PRETTY PRINTING
 // ================================================================================================
 
-impl crate::prettier::PrettyPrint for DynNode {
-    fn render(&self) -> crate::prettier::Document {
-        use crate::prettier::*;
-        const_text("dyn")
+impl DynNode {
+    pub(super) fn to_display<'a>(&'a self, mast_forest: &'a MastForest) -> impl fmt::Display + 'a {
+        DynNodePrettyPrint { dyn_node: self, mast_forest }
+    }
+
+    pub(super) fn to_pretty_print<'a>(
+        &'a self,
+        mast_forest: &'a MastForest,
+    ) -> impl PrettyPrint + 'a {
+        DynNodePrettyPrint { dyn_node: self, mast_forest }
     }
 }
 
-impl fmt::Display for DynNode {
+struct DynNodePrettyPrint<'a> {
+    dyn_node: &'a DynNode,
+    mast_forest: &'a MastForest,
+}
+
+impl<'a> crate::prettier::PrettyPrint for DynNodePrettyPrint<'a> {
+    fn render(&self) -> crate::prettier::Document {
+        use crate::prettier::*;
+        let pre_decorators = self
+            .dyn_node
+            .before_enter()
+            .iter()
+            .map(|&decorator_id| self.mast_forest[decorator_id].render())
+            .reduce(|acc, doc| acc + const_text(" ") + doc)
+            .unwrap_or_default();
+
+        let post_decorators = self
+            .dyn_node
+            .after_exit()
+            .iter()
+            .map(|&decorator_id| self.mast_forest[decorator_id].render())
+            .reduce(|acc, doc| acc + const_text(" ") + doc)
+            .unwrap_or_default();
+
+        pre_decorators + const_text("dyn") + post_decorators
+    }
+}
+
+impl<'a> fmt::Display for DynNodePrettyPrint<'a> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        use miden_formatting::prettier::PrettyPrint;
         self.pretty_print(f)
     }
 }

@@ -157,8 +157,12 @@ impl MastNode {
             MastNode::Call(call_node) => {
                 MastNodePrettyPrint::new(Box::new(call_node.to_pretty_print(mast_forest)))
             },
-            MastNode::Dyn(dyn_node) => MastNodePrettyPrint::new(Box::new(dyn_node)),
-            MastNode::External(external_node) => MastNodePrettyPrint::new(Box::new(external_node)),
+            MastNode::Dyn(dyn_node) => {
+                MastNodePrettyPrint::new(Box::new(dyn_node.to_pretty_print(mast_forest)))
+            },
+            MastNode::External(external_node) => {
+                MastNodePrettyPrint::new(Box::new(external_node.to_pretty_print(mast_forest)))
+            },
         }
     }
 
@@ -193,7 +197,7 @@ impl MastNode {
             MastNode::Split(node) => MastNodeDisplay::new(node.to_display(mast_forest)),
             MastNode::Loop(node) => MastNodeDisplay::new(node.to_display(mast_forest)),
             MastNode::Call(node) => MastNodeDisplay::new(node.to_display(mast_forest)),
-            MastNode::Dyn(node) => MastNodeDisplay::new(node),
+            MastNode::Dyn(node) => MastNodeDisplay::new(node.to_display(mast_forest)),
             MastNode::External(node) => MastNodeDisplay::new(node.to_display(mast_forest)),
         }
     }

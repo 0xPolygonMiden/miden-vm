@@ -149,12 +149,43 @@ impl<'a> PrettyPrint for SplitNodePrettyPrint<'a> {
     fn render(&self) -> crate::prettier::Document {
         use crate::prettier::*;
 
+        let pre_decorators = {
+            let mut pre_decorators = self
+                .split_node
+                .before_enter()
+                .iter()
+                .map(|&decorator_id| self.mast_forest[decorator_id].render())
+                .reduce(|acc, doc| acc + const_text(" ") + doc)
+                .unwrap_or_default();
+            if !pre_decorators.is_empty() {
+                pre_decorators += nl();
+            }
+
+            pre_decorators
+        };
+
+        let post_decorators = {
+            let mut post_decorators = self
+                .split_node
+                .after_exit()
+                .iter()
+                .map(|&decorator_id| self.mast_forest[decorator_id].render())
+                .reduce(|acc, doc| acc + const_text(" ") + doc)
+                .unwrap_or_default();
+            if !post_decorators.is_empty() {
+                post_decorators = nl() + post_decorators;
+            }
+
+            post_decorators
+        };
+
         let true_branch = self.mast_forest[self.split_node.on_true()].to_pretty_print(self.mast_forest);
         let false_branch = self.mast_forest[self.split_node.on_false()].to_pretty_print(self.mast_forest);
 
-        let mut doc = indent(4, const_text("if.true") + nl() + true_branch.render()) + nl();
+        let mut doc = indent(4, pre_decorators + const_text("if.true") + nl() + true_branch.render()) + nl();
         doc += indent(4, const_text("else") + nl() + false_branch.render());
-        doc + nl() + const_text("end")
+        doc += nl() + const_text("end");
+        doc + post_decorators
     }
 }
 
