@@ -5,7 +5,13 @@ use std::marker::PhantomData;
 use air::AuxRandElements;
 use miden_gpu::{cuda::trace_lde::CudaTraceLde, HashFn};
 use processor::crypto::{ElementHasher, Hasher};
-use winter_prover::{crypto::Digest, matrix::{ColMatrix, RowMatrix}, CompositionPoly, CompositionPolyTrace, ConstraintCommitment, ConstraintCompositionCoefficients, DefaultConstraintEvaluator, Prover, StarkDomain, Trace, TraceInfo, TraceLde, TracePolyTable};
+use winter_prover::{
+    crypto::Digest,
+    matrix::{ColMatrix, RowMatrix},
+    CompositionPoly, CompositionPolyTrace, ConstraintCommitment, ConstraintCompositionCoefficients,
+    DefaultConstraintEvaluator, Prover, StarkDomain, Trace, TraceInfo, TraceLde, TracePolyTable,
+};
+
 use crate::{
     crypto::{RandomCoin, Rpo256},
     ExecutionProver, ExecutionTrace, Felt, FieldElement, ProcessorAir, PublicInputs,
@@ -94,9 +100,13 @@ where
             .new_evaluator(air, aux_rand_elements, composition_coefficients)
     }
 
-    fn build_aux_trace<E>(&self, main_trace: &Self::Trace, aux_rand_elements: &AuxRandElements<E>) -> ColMatrix<E>
+    fn build_aux_trace<E>(
+        &self,
+        main_trace: &Self::Trace,
+        aux_rand_elements: &AuxRandElements<E>,
+    ) -> ColMatrix<E>
     where
-        E: FieldElement<BaseField=Self::BaseField>,
+        E: FieldElement<BaseField = Self::BaseField>,
     {
         main_trace.build_aux_trace(aux_rand_elements.rand_elements()).unwrap()
     }
