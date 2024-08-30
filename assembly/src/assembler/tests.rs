@@ -154,8 +154,7 @@ fn nested_blocks() -> Result<(), Report> {
     Ok(())
 }
 
-/// Ensures that adding procedures with the same MAST root results in 2 different procedures in the
-/// assembled program.
+/// Since `foo` and `bar` have the same body, we only expect them to be added once to the program.
 #[test]
 fn duplicate_procedure() {
     let context = TestContext::new();
@@ -179,7 +178,7 @@ fn duplicate_procedure() {
     "#;
 
     let program = context.assemble(program_source).unwrap();
-    assert_eq!(program.num_procedures(), 3);
+    assert_eq!(program.num_procedures(), 2);
 }
 
 /// Ensures that equal MAST nodes don't get added twice to a MAST forest
