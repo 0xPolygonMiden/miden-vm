@@ -1,6 +1,5 @@
-use alloc::vec::Vec;
+use alloc::{string::ToString, vec::Vec};
 use core::fmt;
-use std::string::ToString;
 
 use miden_crypto::hash::blake::{Blake3Digest, Blake3_256};
 
