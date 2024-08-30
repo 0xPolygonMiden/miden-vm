@@ -29,7 +29,7 @@ impl MastNodeInfo {
 
     pub fn try_into_mast_node(
         self,
-        mast_forest: &MastForest,
+        mast_forest: &mut MastForest,
         basic_block_data_decoder: &BasicBlockDataDecoder,
     ) -> Result<MastNode, DeserializationError> {
         match self.ty {
@@ -38,7 +38,11 @@ impl MastNodeInfo {
                 len: num_operations_and_decorators,
             } => {
                 let (operations, decorators) = basic_block_data_decoder
-                    .decode_operations_and_decorators(offset, num_operations_and_decorators)?;
+                    .decode_operations_and_decorators(
+                        offset,
+                        num_operations_and_decorators,
+                        mast_forest,
+                    )?;
                 let block = BasicBlockNode::new_unsafe(operations, decorators, self.digest);
                 Ok(MastNode::Block(block))
             },
@@ -169,7 +173,7 @@ impl MastNodeType {
                     Self::Call { callee_id: call_node.callee().0 }
                 }
             },
-            Dyn => Self::Dyn,
+            Dyn(_) => Self::Dyn,
             External(_) => Self::External,
         }
     }

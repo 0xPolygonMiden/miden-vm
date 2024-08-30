@@ -1,8 +1,12 @@
 use alloc::{collections::BTreeMap, sync::Arc, vec::Vec};
 
+use basic_block_builder::BasicBlockOrDecorators;
 use mast_forest_builder::MastForestBuilder;
 use module_graph::{ProcedureWrapper, WrappedModule};
-use vm_core::{mast::MastNodeId, utils::Either, DecoratorList, Felt, Kernel, Operation, Program};
+use vm_core::{
+    mast::{DecoratorId, MastNodeId},
+    DecoratorList, Felt, Kernel, Operation, Program,
+};
 
 use crate::{
     ast::{self, Export, InvocationTarget, InvokeKind, ModuleKind, QualifiedProcedureName},
@@ -603,28 +607,38 @@ impl Assembler {
         for op in body {
             match op {
                 Op::Inst(inst) => {
-                    if let Some(mast_node_id) = self.compile_instruction(
+                    if let Some(node_id) = self.compile_instruction(
                         inst,
                         &mut basic_block_builder,
                         proc_ctx,
                         mast_forest_builder,
                     )? {
-                        if let Some(basic_block_id) =
-                            basic_block_builder.make_basic_block(mast_forest_builder)?
-                        {
-                            node_ids.push(basic_block_id);
+                        match basic_block_builder.make_basic_block(mast_forest_builder)? {
+                            BasicBlockOrDecorators::BasicBlock(basic_block_id) => {
+                                node_ids.push(basic_block_id);
+                            },
+                            BasicBlockOrDecorators::Decorators(decorator_ids) => {
+                                mast_forest_builder.set_before_enter(node_id, decorator_ids);
+                            },
+                            BasicBlockOrDecorators::Nothing => (),
                         }
 
-                        node_ids.push(mast_node_id);
+                        node_ids.push(node_id);
                     }
                 },
 
                 Op::If { then_blk, else_blk, .. } => {
-                    if let Some(basic_block_id) =
-                        basic_block_builder.make_basic_block(mast_forest_builder)?
-                    {
-                        node_ids.push(basic_block_id);
-                    }
+                    let maybe_pre_decorators: Option<Vec<DecoratorId>> = match basic_block_builder
+                        .make_basic_block(
+                        mast_forest_builder,
+                    )? {
+                        BasicBlockOrDecorators::BasicBlock(basic_block_id) => {
+                            node_ids.push(basic_block_id);
+                            None
+                        },
+                        BasicBlockOrDecorators::Decorators(decorator_ids) => Some(decorator_ids),
+                        BasicBlockOrDecorators::Nothing => None,
+                    };
 
                     let then_blk =
                         self.compile_body(then_blk.iter(), proc_ctx, None, mast_forest_builder)?;
@@ -632,15 +646,25 @@ impl Assembler {
                         self.compile_body(else_blk.iter(), proc_ctx, None, mast_forest_builder)?;
 
                     let split_node_id = mast_forest_builder.ensure_split(then_blk, else_blk)?;
+                    if let Some(pre_decorator_ids) = maybe_pre_decorators {
+                        mast_forest_builder.set_before_enter(split_node_id, pre_decorator_ids)
+                    }
+
                     node_ids.push(split_node_id);
                 },
 
                 Op::Repeat { count, body, .. } => {
-                    if let Some(basic_block_id) =
-                        basic_block_builder.make_basic_block(mast_forest_builder)?
-                    {
-                        node_ids.push(basic_block_id);
-                    }
+                    let maybe_pre_decorators: Option<Vec<DecoratorId>> = match basic_block_builder
+                        .make_basic_block(
+                        mast_forest_builder,
+                    )? {
+                        BasicBlockOrDecorators::BasicBlock(basic_block_id) => {
+                            node_ids.push(basic_block_id);
+                            None
+                        },
+                        BasicBlockOrDecorators::Decorators(decorator_ids) => Some(decorator_ids),
+                        BasicBlockOrDecorators::Nothing => None,
+                    };
 
                     let repeat_node_id =
                         self.compile_body(body.iter(), proc_ctx, None, mast_forest_builder)?;
@@ -651,32 +675,67 @@ impl Assembler {
                 },
 
                 Op::While { body, .. } => {
-                    if let Some(basic_block_id) =
-                        basic_block_builder.make_basic_block(mast_forest_builder)?
-                    {
-                        node_ids.push(basic_block_id);
+                    let maybe_pre_decorators: Option<Vec<DecoratorId>> = match basic_block_builder
+                        .make_basic_block(
+                        mast_forest_builder,
+                    )? {
+                        BasicBlockOrDecorators::BasicBlock(basic_block_id) => {
+                            node_ids.push(basic_block_id);
+                            None
+                        },
+                        BasicBlockOrDecorators::Decorators(decorator_ids) => Some(decorator_ids),
+                        BasicBlockOrDecorators::Nothing => None,
+                    };
+
+                    let loop_node_id = {
+                        let loop_body_node_id =
+                            self.compile_body(body.iter(), proc_ctx, None, mast_forest_builder)?;
+                        mast_forest_builder.ensure_loop(loop_body_node_id)?
+                    };
+                    if let Some(pre_decorator_ids) = maybe_pre_decorators {
+                        mast_forest_builder.set_before_enter(loop_node_id, pre_decorator_ids)
                     }
 
-                    let loop_body_node_id =
-                        self.compile_body(body.iter(), proc_ctx, None, mast_forest_builder)?;
-
-                    let loop_node_id = mast_forest_builder.ensure_loop(loop_body_node_id)?;
                     node_ids.push(loop_node_id);
                 },
             }
         }
 
-        if let Some(basic_block_id) =
-            basic_block_builder.try_into_basic_block(mast_forest_builder)?
-        {
-            node_ids.push(basic_block_id);
-        }
+        let maybe_post_decorators: Option<Vec<DecoratorId>> =
+            match basic_block_builder.try_into_basic_block(mast_forest_builder)? {
+                BasicBlockOrDecorators::BasicBlock(basic_block_id) => {
+                    node_ids.push(basic_block_id);
+                    None
+                },
+                BasicBlockOrDecorators::Decorators(decorator_ids) => {
+                    // the procedure body ends with a list of decorators
+                    Some(decorator_ids)
+                },
+                BasicBlockOrDecorators::Nothing => None,
+            };
 
-        Ok(if node_ids.is_empty() {
+        let procedure_body_id = if node_ids.is_empty() {
+            // We cannot allow only decorators in a procedure body, since decorators don't change
+            // the MAST digest of a node. Hence, two empty procedures with different decorators
+            // would look the same to the `MastForestBuilder`.
+            if maybe_post_decorators.is_some() {
+                return Err(AssemblyError::EmptyProcedureBodyWithDecorators {
+                    span: proc_ctx.span(),
+                    source_file: proc_ctx.source_manager().get(proc_ctx.span().source_id()).ok(),
+                })?;
+            }
+
             mast_forest_builder.ensure_block(vec![Operation::Noop], None)?
         } else {
             mast_forest_builder.join_nodes(node_ids)?
-        })
+        };
+
+        // Make sure that any post decorators are added at the end of the procedure body
+        if let Some(post_decorator_ids) = maybe_post_decorators {
+            mast_forest_builder.set_after_exit(procedure_body_id, post_decorator_ids);
+        }
+
+        Ok(procedure_body_id)
     }
 
     pub(super) fn resolve_target(

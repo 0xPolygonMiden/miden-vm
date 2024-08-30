@@ -297,7 +297,7 @@ where
             EMPTY_WORD,
             EMPTY_WORD,
             DynNode::DOMAIN,
-            DynNode.digest(),
+            DynNode::default().digest(),
         );
 
         self.decoder.start_dyn(callee_hash, addr);
@@ -308,7 +308,7 @@ where
     pub(super) fn end_dyn_node(&mut self) -> Result<(), ExecutionError> {
         // this appends a row with END operation to the decoder trace. when the END operation is
         // executed the rest of the VM state does not change
-        self.decoder.end_control_block(DynNode.digest().into());
+        self.decoder.end_control_block(DynNode::default().digest().into());
 
         self.execute_op(Operation::Noop)
     }

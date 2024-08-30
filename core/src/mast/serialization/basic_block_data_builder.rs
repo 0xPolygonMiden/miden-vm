@@ -5,7 +5,7 @@ use winter_utils::{ByteWriter, Serializable};
 
 use super::{decorator::EncodedDecoratorVariant, DataOffset, StringIndex};
 use crate::{
-    mast::{BasicBlockNode, OperationOrDecorator},
+    mast::{BasicBlockNode, MastForest, OperationOrDecorator},
     AdviceInjector, DebugOptions, Decorator, SignatureKind,
 };
 
@@ -37,12 +37,14 @@ impl BasicBlockDataBuilder {
 /// Mutators
 impl BasicBlockDataBuilder {
     /// Encodes a [`BasicBlockNode`] into the serialized [`crate::mast::MastForest`] data field.
-    pub fn encode_basic_block(&mut self, basic_block: &BasicBlockNode) {
+    pub fn encode_basic_block(&mut self, basic_block: &BasicBlockNode, mast_forest: &MastForest) {
         // 2nd part of `mast_node_to_info()` (inside the match)
         for op_or_decorator in basic_block.iter() {
             match op_or_decorator {
                 OperationOrDecorator::Operation(operation) => operation.write_into(&mut self.data),
-                OperationOrDecorator::Decorator(decorator) => self.encode_decorator(decorator),
+                OperationOrDecorator::Decorator(&decorator_id) => {
+                    self.encode_decorator(&mast_forest[decorator_id])
+                },
             }
         }
     }

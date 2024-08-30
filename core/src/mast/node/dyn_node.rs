@@ -1,15 +1,19 @@
+use alloc::vec::Vec;
 use core::fmt;
 
 use miden_crypto::{hash::rpo::RpoDigest, Felt};
 
-use crate::OPCODE_DYN;
+use crate::{mast::DecoratorId, OPCODE_DYN};
 
 // DYN NODE
 // ================================================================================================
 
 /// A Dyn node specifies that the node to be executed next is defined dynamically via the stack.
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
-pub struct DynNode;
+pub struct DynNode {
+    before_enter: Vec<DecoratorId>,
+    after_exit: Vec<DecoratorId>,
+}
 
 /// Constants
 impl DynNode {
@@ -36,6 +40,16 @@ impl DynNode {
             Felt::new(15015806788322198710),
             Felt::new(16575543461540527115),
         ])
+    }
+
+    /// Returns the decorators to be executed before this node is executed.
+    pub fn before_enter(&self) -> &[DecoratorId] {
+        &self.before_enter
+    }
+
+    /// Returns the decorators to be executed after this node is executed.
+    pub fn after_exit(&self) -> &[DecoratorId] {
+        &self.after_exit
     }
 }
 
@@ -70,7 +84,7 @@ mod tests {
     #[test]
     pub fn test_dyn_node_digest() {
         assert_eq!(
-            DynNode.digest(),
+            DynNode::default().digest(),
             Rpo256::merge_in_domain(&[RpoDigest::default(), RpoDigest::default()], DynNode::DOMAIN)
         );
     }

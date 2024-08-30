@@ -2,11 +2,12 @@ use alloc::{
     collections::{BTreeMap, BTreeSet},
     vec::Vec,
 };
+use core::ops::{Index, IndexMut};
 
 use vm_core::{
     crypto::hash::{Blake3Digest, RpoDigest},
-    mast::{MastForest, MastNode, MastNodeId},
-    DecoratorList, Operation,
+    mast::{DecoratorId, MastForest, MastNode, MastNodeId},
+    Decorator, DecoratorList, Operation,
 };
 
 use super::{GlobalProcedureIndex, Procedure};
@@ -112,7 +113,7 @@ fn get_nodes_to_remove(
                     nodes_to_remove.remove(&node.callee());
                 }
             },
-            MastNode::Block(_) | MastNode::Dyn | MastNode::External(_) => (),
+            MastNode::Block(_) | MastNode::Dyn(_) | MastNode::External(_) => (),
         }
     }
 
@@ -299,8 +300,8 @@ impl MastForestBuilder {
                 self.mast_forest.is_procedure_root(basic_block_id),
                 basic_block_node.num_op_batches(),
             ) {
-                for (op_idx, decorator) in basic_block_node.decorators() {
-                    decorators.push((*op_idx + operations.len(), decorator.clone()));
+                for &(op_idx, decorator) in basic_block_node.decorators() {
+                    decorators.push((op_idx + operations.len(), decorator));
                 }
                 for batch in basic_block_node.op_batches() {
                     operations.extend_from_slice(batch.ops());
@@ -335,6 +336,13 @@ impl MastForestBuilder {
 // ------------------------------------------------------------------------------------------------
 /// Node inserters
 impl MastForestBuilder {
+    /// Adds a decorator to the forest, and returns the [`Decorator`] associated with it.
+    pub fn add_decorator(&mut self, decorator: Decorator) -> Result<DecoratorId, AssemblyError> {
+        let decorator_id = self.mast_forest.add_decorator(decorator)?;
+
+        Ok(decorator_id)
+    }
+
     /// Adds a node to the forest, and returns the [`MastNodeId`] associated with it.
     ///
     /// Note adding the same [`MastNode`] twice will result in two different [`MastNodeId`]s being
@@ -409,6 +417,39 @@ impl MastForestBuilder {
     /// Adds an external node to the forest, and returns the [`MastNodeId`] associated with it.
     pub fn ensure_external(&mut self, mast_root: RpoDigest) -> Result<MastNodeId, AssemblyError> {
         self.ensure_node(MastNode::new_external(mast_root))
+    }
+
+    pub fn set_before_enter(&mut self, node_id: MastNodeId, decorator_ids: Vec<DecoratorId>) {
+        self.mast_forest[node_id].set_before_enter(decorator_ids)
+    }
+
+    pub fn set_after_exit(&mut self, node_id: MastNodeId, decorator_ids: Vec<DecoratorId>) {
+        todo!()
+    }
+}
+
+impl Index<MastNodeId> for MastForestBuilder {
+    type Output = MastNode;
+
+    #[inline(always)]
+    fn index(&self, node_id: MastNodeId) -> &Self::Output {
+        &self.mast_forest[node_id]
+    }
+}
+
+impl Index<DecoratorId> for MastForestBuilder {
+    type Output = Decorator;
+
+    #[inline(always)]
+    fn index(&self, decorator_id: DecoratorId) -> &Self::Output {
+        &self.mast_forest[decorator_id]
+    }
+}
+
+impl IndexMut<DecoratorId> for MastForestBuilder {
+    #[inline(always)]
+    fn index_mut(&mut self, decorator_id: DecoratorId) -> &mut Self::Output {
+        &mut self.mast_forest[decorator_id]
     }
 }
 

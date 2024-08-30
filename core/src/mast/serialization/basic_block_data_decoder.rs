@@ -6,7 +6,8 @@ use winter_utils::{ByteReader, Deserializable, DeserializationError, SliceReader
 
 use super::{decorator::EncodedDecoratorVariant, DataOffset, StringIndex};
 use crate::{
-    AdviceInjector, AssemblyOp, DebugOptions, Decorator, DecoratorList, Operation, SignatureKind,
+    mast::MastForest, AdviceInjector, AssemblyOp, DebugOptions, Decorator, DecoratorList,
+    Operation, SignatureKind,
 };
 
 pub struct BasicBlockDataDecoder<'a> {
@@ -41,6 +42,7 @@ impl<'a> BasicBlockDataDecoder<'a> {
         &self,
         offset: DataOffset,
         num_to_decode: u32,
+        mast_forest: &mut MastForest,
     ) -> Result<(Vec<Operation>, DecoratorList), DeserializationError> {
         let mut operations: Vec<Operation> = Vec::new();
         let mut decorators: DecoratorList = Vec::new();
@@ -55,7 +57,12 @@ impl<'a> BasicBlockDataDecoder<'a> {
             } else {
                 // decorator.
                 let decorator = self.decode_decorator(&mut data_reader)?;
-                decorators.push((operations.len(), decorator));
+                let decorator_id = mast_forest.add_decorator(decorator).map_err(|err| {
+                    DeserializationError::InvalidValue(format!(
+                        "failed to add decorator to MAST forest: {err}"
+                    ))
+                })?;
+                decorators.push((operations.len(), decorator_id));
             }
         }
 

@@ -1,6 +1,9 @@
 use alloc::{borrow::Borrow, string::ToString, vec::Vec};
 
-use vm_core::{mast::MastNodeId, AdviceInjector, AssemblyOp, Decorator, Operation};
+use vm_core::{
+    mast::{DecoratorId, MastNodeId},
+    AdviceInjector, AssemblyOp, Decorator, Operation,
+};
 
 use super::{mast_forest_builder::MastForestBuilder, BodyWrapper, DecoratorList, ProcedureContext};
 use crate::{ast::Instruction, AssemblyError, Span};
@@ -71,13 +74,24 @@ impl BasicBlockBuilder {
 /// Decorators
 impl BasicBlockBuilder {
     /// Add the specified decorator to the list of basic block decorators.
-    pub fn push_decorator(&mut self, decorator: Decorator) {
-        self.decorators.push((self.ops.len(), decorator));
+    pub fn push_decorator(
+        &mut self,
+        decorator: Decorator,
+        mast_forest_builder: &mut MastForestBuilder,
+    ) -> Result<(), AssemblyError> {
+        let decorator_id = mast_forest_builder.add_decorator(decorator)?;
+        self.decorators.push((self.ops.len(), decorator_id));
+
+        Ok(())
     }
 
     /// Adds the specified advice injector to the list of basic block decorators.
-    pub fn push_advice_injector(&mut self, injector: AdviceInjector) {
-        self.push_decorator(Decorator::Advice(injector));
+    pub fn push_advice_injector(
+        &mut self,
+        injector: AdviceInjector,
+        mast_forest_builder: &mut MastForestBuilder,
+    ) -> Result<(), AssemblyError> {
+        self.push_decorator(Decorator::Advice(injector), mast_forest_builder)
     }
 
     /// Adds an AsmOp decorator to the list of basic block decorators.
@@ -88,7 +102,8 @@ impl BasicBlockBuilder {
         &mut self,
         instruction: &Span<Instruction>,
         proc_ctx: &ProcedureContext,
-    ) {
+        mast_forest_builder: &mut MastForestBuilder,
+    ) -> Result<(), AssemblyError> {
         let span = instruction.span();
         let location = proc_ctx.source_manager().location(span).ok();
         let context_name = proc_ctx.name().to_string();
@@ -96,8 +111,10 @@ impl BasicBlockBuilder {
         let op = instruction.to_string();
         let should_break = instruction.should_break();
         let op = AssemblyOp::new(location, context_name, num_cycles, op, should_break);
-        self.push_decorator(Decorator::AsmOp(op));
+        self.push_decorator(Decorator::AsmOp(op), mast_forest_builder)?;
         self.last_asmop_pos = self.decorators.len() - 1;
+
+        Ok(())
     }
 
     /// Computes the number of cycles elapsed since the last invocation of track_instruction()
@@ -106,10 +123,12 @@ impl BasicBlockBuilder {
     /// If the cycle count is 0, the original decorator is removed from the list. This can happen
     /// for instructions which do not contribute any operations to the span block - e.g., exec,
     /// call, and syscall.
-    pub fn set_instruction_cycle_count(&mut self) {
+    pub fn set_instruction_cycle_count(&mut self, mast_forest_builder: &mut MastForestBuilder) {
         // get the last asmop decorator and the cycle at which it was added
-        let (op_start, assembly_op) =
+        let (op_start, assembly_op_id) =
             self.decorators.get_mut(self.last_asmop_pos).expect("no asmop decorator");
+
+        let assembly_op = &mut mast_forest_builder[*assembly_op_id];
         assert!(matches!(assembly_op, Decorator::AsmOp(_)));
 
         // compute the cycle count for the instruction
@@ -134,21 +153,20 @@ impl BasicBlockBuilder {
     pub fn make_basic_block(
         &mut self,
         mast_forest_builder: &mut MastForestBuilder,
-    ) -> Result<Option<MastNodeId>, AssemblyError> {
+    ) -> Result<BasicBlockOrDecorators, AssemblyError> {
         if !self.ops.is_empty() {
             let ops = self.ops.drain(..).collect();
             let decorators = self.decorators.drain(..).collect();
 
             let basic_block_node_id = mast_forest_builder.ensure_block(ops, Some(decorators))?;
 
-            Ok(Some(basic_block_node_id))
+            Ok(BasicBlockOrDecorators::BasicBlock(basic_block_node_id))
         } else if !self.decorators.is_empty() {
-            // this is a bug in the assembler. we shouldn't have decorators added without their
-            // associated operations
-            // TODO: change this to an error or allow decorators in empty span blocks
-            unreachable!("decorators in an empty SPAN block")
+            Ok(BasicBlockOrDecorators::Decorators(
+                self.decorators.iter().map(|&(_, decorator_id)| decorator_id).collect(),
+            ))
         } else {
-            Ok(None)
+            Ok(BasicBlockOrDecorators::Nothing)
         }
     }
 
@@ -162,8 +180,16 @@ impl BasicBlockBuilder {
     pub fn try_into_basic_block(
         mut self,
         mast_forest_builder: &mut MastForestBuilder,
-    ) -> Result<Option<MastNodeId>, AssemblyError> {
+    ) -> Result<BasicBlockOrDecorators, AssemblyError> {
         self.ops.append(&mut self.epilogue);
         self.make_basic_block(mast_forest_builder)
     }
+}
+
+// TODO(plafer): document, and fix docs for `make_basic_block` and `try_into_basic_block`
+// TODO(plafer): rename `make_basic_block`?
+pub enum BasicBlockOrDecorators {
+    BasicBlock(MastNodeId),
+    Decorators(Vec<DecoratorId>),
+    Nothing,
 }

@@ -2,7 +2,7 @@ use vm_core::{AdviceInjector, FieldElement, Operation::*};
 
 use super::{validate_param, BasicBlockBuilder};
 use crate::{
-    assembler::ProcedureContext,
+    assembler::{mast_forest_builder::MastForestBuilder, ProcedureContext},
     diagnostics::{RelatedError, Report},
     AssemblyError, Felt, Span, MAX_EXP_BITS, ONE, ZERO,
 };
@@ -259,8 +259,11 @@ fn perform_exp_for_small_power(span_builder: &mut BasicBlockBuilder, pow: u64) {
 ///
 /// # Errors
 /// Returns an error if the logarithm argument (top stack element) equals ZERO.
-pub fn ilog2(span: &mut BasicBlockBuilder) {
-    span.push_advice_injector(AdviceInjector::ILog2);
+pub fn ilog2(
+    span: &mut BasicBlockBuilder,
+    mast_forest_builder: &mut MastForestBuilder,
+) -> Result<(), AssemblyError> {
+    span.push_advice_injector(AdviceInjector::ILog2, mast_forest_builder)?;
     span.push_op(AdvPop); // [ilog2, n, ...]
 
     // compute the power-of-two for the value given in the advice tape (17 cycles)
@@ -290,6 +293,8 @@ pub fn ilog2(span: &mut BasicBlockBuilder) {
     ];
 
     span.push_ops(ops);
+
+    Ok(())
 }
 
 // COMPARISON OPERATIONS

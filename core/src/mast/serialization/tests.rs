@@ -292,7 +292,7 @@ fn serialize_deserialize_all_nodes() {
             (num_operations, Decorator::Trace(55)),
         ];
 
-        mast_forest.add_block(operations, Some(decorators)).unwrap()
+        mast_forest.add_block_with_raw_decorators(operations, decorators).unwrap()
     };
 
     let call_node_id = mast_forest.add_call(basic_block_id).unwrap();

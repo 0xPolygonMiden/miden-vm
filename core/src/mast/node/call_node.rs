@@ -1,3 +1,4 @@
+use alloc::vec::Vec;
 use core::fmt;
 
 use miden_crypto::{hash::rpo::RpoDigest, Felt};
@@ -5,7 +6,7 @@ use miden_formatting::prettier::PrettyPrint;
 
 use crate::{
     chiplets::hasher,
-    mast::{MastForest, MastForestError, MastNodeId},
+    mast::{DecoratorId, MastForest, MastForestError, MastNodeId},
     OPCODE_CALL, OPCODE_SYSCALL,
 };
 
@@ -23,6 +24,8 @@ pub struct CallNode {
     callee: MastNodeId,
     is_syscall: bool,
     digest: RpoDigest,
+    before_enter: Vec<DecoratorId>,
+    after_exit: Vec<DecoratorId>,
 }
 
 //-------------------------------------------------------------------------------------------------
@@ -48,13 +51,25 @@ impl CallNode {
             hasher::merge_in_domain(&[callee_digest, RpoDigest::default()], Self::CALL_DOMAIN)
         };
 
-        Ok(Self { callee, is_syscall: false, digest })
+        Ok(Self {
+            callee,
+            is_syscall: false,
+            digest,
+            before_enter: Vec::new(),
+            after_exit: Vec::new(),
+        })
     }
 
     /// Returns a new [`CallNode`] from values that are assumed to be correct.
     /// Should only be used when the source of the inputs is trusted (e.g. deserialization).
     pub fn new_unsafe(callee: MastNodeId, digest: RpoDigest) -> Self {
-        Self { callee, is_syscall: false, digest }
+        Self {
+            callee,
+            is_syscall: false,
+            digest,
+            before_enter: Vec::new(),
+            after_exit: Vec::new(),
+        }
     }
 
     /// Returns a new [`CallNode`] instantiated with the specified callee and marked as a kernel
@@ -72,13 +87,25 @@ impl CallNode {
             hasher::merge_in_domain(&[callee_digest, RpoDigest::default()], Self::SYSCALL_DOMAIN)
         };
 
-        Ok(Self { callee, is_syscall: true, digest })
+        Ok(Self {
+            callee,
+            is_syscall: true,
+            digest,
+            before_enter: Vec::new(),
+            after_exit: Vec::new(),
+        })
     }
 
     /// Returns a new syscall [`CallNode`] from values that are assumed to be correct.
     /// Should only be used when the source of the inputs is trusted (e.g. deserialization).
     pub fn new_syscall_unsafe(callee: MastNodeId, digest: RpoDigest) -> Self {
-        Self { callee, is_syscall: true, digest }
+        Self {
+            callee,
+            is_syscall: true,
+            digest,
+            before_enter: Vec::new(),
+            after_exit: Vec::new(),
+        }
     }
 }
 
@@ -124,6 +151,16 @@ impl CallNode {
         } else {
             Self::CALL_DOMAIN
         }
+    }
+
+    /// Returns the decorators to be executed before this node is executed.
+    pub fn before_enter(&self) -> &[DecoratorId] {
+        &self.before_enter
+    }
+
+    /// Returns the decorators to be executed after this node is executed.
+    pub fn after_exit(&self) -> &[DecoratorId] {
+        &self.after_exit
     }
 }
 
