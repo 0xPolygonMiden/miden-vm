@@ -301,7 +301,7 @@ impl<'a> fmt::Display for BasicBlockNodePrettyPrint<'a> {
 // OPERATION OR DECORATOR
 // ================================================================================================
 
-/// Encodes either an [`Operation`] or a [`Decorator`].
+/// Encodes either an [`Operation`] or a [`crate::Decorator`].
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum OperationOrDecorator<'a> {
     Operation(&'a Operation),

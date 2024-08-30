@@ -145,8 +145,10 @@ impl BasicBlockBuilder {
 
 /// Span Constructors
 impl BasicBlockBuilder {
-    /// Creates and returns a new BASIC BLOCK node from the operations and decorators currently in
-    /// this builder. If the builder is empty, then no node is created and `None` is returned.
+    /// Creates and returns a new basic block node from the operations and decorators currently in
+    /// this builder. If there are no operations however, we return the decorators that were
+    /// accumulated up until this point. If the builder is empty, then no node is created and
+    /// `Nothing` is returned.
     ///
     /// This consumes all operations and decorators in the builder, but does not touch the
     /// operations in the epilogue of the builder.
@@ -170,10 +172,12 @@ impl BasicBlockBuilder {
         }
     }
 
-    /// Creates and returns a new BASIC BLOCK node from the operations and decorators currently in
-    /// this builder. If the builder is empty, then no node is created and `None` is returned.
+    /// Creates and returns a new basic block node from the operations and decorators currently in
+    /// this builder. If there are no operations however, we return the decorators that were
+    /// accumulated up until this point. If the builder is empty, then no node is created and
+    /// `Nothing` is returned.
     ///
-    /// The main differences with [`Self::to_basic_block`] are:
+    /// The main differences with [`Self::make_basic_block`] are:
     /// - Operations contained in the epilogue of the builder are appended to the list of ops which
     ///   go into the new BASIC BLOCK node.
     /// - The builder is consumed in the process.
@@ -186,8 +190,8 @@ impl BasicBlockBuilder {
     }
 }
 
-// TODO(plafer): document, and fix docs for `make_basic_block` and `try_into_basic_block`
-// TODO(plafer): rename `make_basic_block`?
+/// Holds either the node id of a basic block, or a list of decorators that are currently not
+/// attached to any node.
 pub enum BasicBlockOrDecorators {
     BasicBlock(MastNodeId),
     Decorators(Vec<DecoratorId>),
