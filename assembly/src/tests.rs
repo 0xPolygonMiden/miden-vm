@@ -5,7 +5,7 @@ use vm_core::mast::{MastNode, MastNodeId};
 use crate::{
     assert_diagnostic_lines,
     ast::{Module, ModuleKind},
-    diagnostics::Report,
+    diagnostics::{IntoDiagnostic, Report},
     regex, source_file,
     testing::{Pattern, TestContext},
     Assembler, LibraryPath, ModuleParser,
@@ -28,6 +28,15 @@ macro_rules! assert_assembler_diagnostic {
             .assemble($source)
             .expect_err("expected diagnostic to be raised, but compilation succeeded");
         assert_diagnostic_lines!(error, $($expected),*);
+    }};
+}
+
+macro_rules! parse_module {
+    ($context:expr, $path:literal, $source:expr) => {{
+        let path = LibraryPath::new($path).into_diagnostic()?;
+        let source_file =
+            $context.source_manager().load(concat!("test", line!()), $source.to_string());
+        Module::parse(path, ModuleKind::Library, source_file)?
     }};
 }
 
@@ -1102,6 +1111,42 @@ end";
     Ok(())
 }
 
+#[test]
+fn decorators_external() -> TestResult {
+    let context = TestContext::default();
+    let baz = r#"
+        export.f
+            push.7 push.8 sub
+        end
+    "#;
+    let baz = parse_module!(&context, "lib::baz", baz);
+
+    let lib = Assembler::new(context.source_manager()).assemble_library([baz])?;
+
+    let program_source = source_file!(
+        &context,
+        "\
+    use.lib::baz
+    begin
+        trace.0
+        exec.baz::f
+        trace.1
+    end"
+    );
+
+    let expected = "\
+begin
+    trace(0)
+    external.0x178d0a56b911f3eb23bbf18fb9f130130ba0c5d321e420610f64bb41790ca070
+    trace(1)
+end";
+    let program = Assembler::new(context.source_manager())
+        .with_library(lib)?
+        .assemble_program(program_source)?;
+    assert_str_eq!(expected, format!("{program}"));
+
+    Ok(())
+}
 
 // ASSERTIONS
 // ================================================================================================

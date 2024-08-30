@@ -1,6 +1,9 @@
 use alloc::vec::Vec;
 use core::fmt;
-use miden_formatting::prettier::PrettyPrint;
+use miden_formatting::{
+    hex::ToHex,
+    prettier::{const_text, nl, text, Document, PrettyPrint},
+};
 
 use miden_crypto::hash::rpo::RpoDigest;
 
@@ -70,48 +73,74 @@ impl ExternalNode {
 
 impl ExternalNode {
     pub(super) fn to_display<'a>(&'a self, mast_forest: &'a MastForest) -> impl fmt::Display + 'a {
-        ExternalNodePrettyPrint { external_node: self, mast_forest }
+        ExternalNodePrettyPrint { node: self, mast_forest }
     }
 
     pub(super) fn to_pretty_print<'a>(
         &'a self,
         mast_forest: &'a MastForest,
     ) -> impl PrettyPrint + 'a {
-        ExternalNodePrettyPrint { external_node: self, mast_forest }
+        ExternalNodePrettyPrint { node: self, mast_forest }
     }
 }
 
 struct ExternalNodePrettyPrint<'a> {
-    external_node: &'a ExternalNode,
+    node: &'a ExternalNode,
     mast_forest: &'a MastForest,
+}
+
+impl<'a> ExternalNodePrettyPrint<'a> {
+    /// Concatenates the provided decorators in a single line. If the list of decorators is not
+    /// empty, prepends `prepend` and appends `append` to the decorator document.
+    fn concatenate_decorators(
+        &self,
+        decorator_ids: &[DecoratorId],
+        prepend: Document,
+        append: Document,
+    ) -> Document {
+        let decorators = decorator_ids
+            .iter()
+            .map(|&decorator_id| self.mast_forest[decorator_id].render())
+            .reduce(|acc, doc| acc + const_text(" ") + doc)
+            .unwrap_or_default();
+
+        if decorators.is_empty() {
+            decorators
+        } else {
+            prepend + decorators + append
+        }
+    }
+
+    fn single_line_pre_decorators(&self) -> Document {
+        self.concatenate_decorators(self.node.before_enter(), Document::Empty, const_text(" "))
+    }
+
+    fn single_line_post_decorators(&self) -> Document {
+        self.concatenate_decorators(self.node.after_exit(), const_text(" "), Document::Empty)
+    }
+
+    fn multi_line_pre_decorators(&self) -> Document {
+        self.concatenate_decorators(self.node.before_enter(), Document::Empty, nl())
+    }
+
+    fn multi_line_post_decorators(&self) -> Document {
+        self.concatenate_decorators(self.node.after_exit(), nl(), Document::Empty)
+    }
 }
 
 impl<'a> crate::prettier::PrettyPrint for ExternalNodePrettyPrint<'a> {
     fn render(&self) -> crate::prettier::Document {
-        use crate::prettier::*;
-        use miden_formatting::hex::ToHex;
-
-        let pre_decorators = self
-            .external_node
-            .before_enter()
-            .iter()
-            .map(|&decorator_id| self.mast_forest[decorator_id].render())
-            .reduce(|acc, doc| acc + const_text(" ") + doc)
-            .unwrap_or_default();
-
-        let post_decorators = self
-            .external_node
-            .after_exit()
-            .iter()
-            .map(|&decorator_id| self.mast_forest[decorator_id].render())
-            .reduce(|acc, doc| acc + const_text(" ") + doc)
-            .unwrap_or_default();
-
-        pre_decorators
-            + const_text("external")
+        let external = const_text("external")
             + const_text(".")
-            + text(self.external_node.digest.as_bytes().to_hex_with_prefix())
-            + post_decorators
+            + text(self.node.digest.as_bytes().to_hex_with_prefix());
+
+        let single_line = self.single_line_pre_decorators()
+            + external.clone()
+            + self.single_line_post_decorators();
+        let multi_line =
+            self.multi_line_pre_decorators() + external + self.multi_line_post_decorators();
+
+        single_line | multi_line
     }
 }
 
