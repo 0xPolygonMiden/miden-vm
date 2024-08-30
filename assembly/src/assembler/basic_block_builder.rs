@@ -163,7 +163,7 @@ impl BasicBlockBuilder {
             Ok(BasicBlockOrDecorators::BasicBlock(basic_block_node_id))
         } else if !self.decorators.is_empty() {
             Ok(BasicBlockOrDecorators::Decorators(
-                self.decorators.iter().map(|&(_, decorator_id)| decorator_id).collect(),
+                self.decorators.drain(..).map(|(_, decorator_id)| decorator_id).collect(),
             ))
         } else {
             Ok(BasicBlockOrDecorators::Nothing)

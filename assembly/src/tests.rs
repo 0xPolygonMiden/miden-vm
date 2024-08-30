@@ -988,6 +988,55 @@ fn const_conversion_failed_to_u32() -> TestResult {
     Ok(())
 }
 
+// DECORATORS
+// ================================================================================================
+
+#[test]
+fn decorators_basic_block() -> TestResult {
+    let context = TestContext::default();
+    let source = source_file!(
+        &context,
+        "\
+    begin
+        trace.0
+        add
+        trace.1
+        mul
+        trace.2
+    end"
+    );
+    let expected = "\
+begin
+    basic_block trace(0) add trace(1) mul trace(2) end
+end";
+    let program = context.assemble(source)?;
+    assert_str_eq!(expected, format!("{program}"));
+    Ok(())
+}
+
+#[test]
+fn decorators_repeat() -> TestResult {
+    let context = TestContext::default();
+    let source = source_file!(
+        &context,
+        "\
+    begin
+        trace.0
+        repeat.2 add end
+        trace.1
+        repeat.2 mul end
+        trace.2
+    end"
+    );
+    let expected = "\
+begin
+    basic_block trace(0) add add trace(1) mul mul trace(2) end
+end";
+    let program = context.assemble(source)?;
+    assert_str_eq!(expected, format!("{program}"));
+    Ok(())
+}
+
 // ASSERTIONS
 // ================================================================================================
 
