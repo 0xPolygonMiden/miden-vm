@@ -1,4 +1,5 @@
 use alloc::{string::ToString, vec::Vec};
+use num_traits::ToBytes;
 use core::fmt;
 
 use miden_crypto::hash::blake::{Blake3Digest, Blake3_256};
@@ -46,9 +47,15 @@ impl Decorator {
             Self::Advice(advice) => Blake3_256::hash(advice.to_string().as_bytes()),
             Self::AsmOp(asm_op) => {
                 let mut bytes_to_hash = Vec::new();
+                if let Some(location) = asm_op.location() {
+                    bytes_to_hash.extend(location.path.as_bytes());
+                    bytes_to_hash.extend(location.start.to_u32().to_le_bytes());
+                    bytes_to_hash.extend(location.end.to_u32().to_le_bytes());
+                }
                 bytes_to_hash.extend(asm_op.context_name().as_bytes());
                 bytes_to_hash.extend(asm_op.op().as_bytes());
                 bytes_to_hash.push(asm_op.num_cycles());
+                bytes_to_hash.push(asm_op.should_break() as u8);
 
                 Blake3_256::hash(&bytes_to_hash)
             },
