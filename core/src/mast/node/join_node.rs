@@ -147,10 +147,28 @@ impl<'a> PrettyPrint for JoinNodePrettyPrint<'a> {
     fn render(&self) -> crate::prettier::Document {
         use crate::prettier::*;
 
-        let first_child = self.mast_forest[self.join_node.first()].to_pretty_print(self.mast_forest);
-        let second_child = self.mast_forest[self.join_node.second()].to_pretty_print(self.mast_forest);
+        let pre_decorators = self
+            .join_node
+            .before_enter()
+            .iter()
+            .map(|&decorator_id| self.mast_forest[decorator_id].render())
+            .reduce(|acc, doc| acc + const_text(" ") + doc)
+            .unwrap_or_default();
+        let post_decorators = self
+            .join_node
+            .after_exit()
+            .iter()
+            .map(|&decorator_id| self.mast_forest[decorator_id].render())
+            .reduce(|acc, doc| acc + const_text(" ") + doc)
+            .unwrap_or_default();
 
-        indent(
+        let first_child =
+            self.mast_forest[self.join_node.first()].to_pretty_print(self.mast_forest);
+        let second_child =
+            self.mast_forest[self.join_node.second()].to_pretty_print(self.mast_forest);
+ 
+        pre_decorators
+        + indent(
             4,
             const_text("join")
             + nl()
@@ -158,6 +176,7 @@ impl<'a> PrettyPrint for JoinNodePrettyPrint<'a> {
             + nl()
             + second_child.render(),
         ) + nl() + const_text("end")
+        + post_decorators
     }
 }
 
