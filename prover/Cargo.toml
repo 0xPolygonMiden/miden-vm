@@ -18,6 +18,7 @@ async = ["winter-maybe-async/async"]
 concurrent = ["processor/concurrent", "std", "winter-prover/concurrent"]
 default = ["std"]
 metal = ["dep:miden-gpu", "dep:elsa", "dep:pollster", "concurrent", "std"]
+cuda = ["dep:miden-gpu", "std"]
 std = ["air/std", "processor/std", "winter-prover/std"]
 
 [dependencies]
@@ -31,3 +32,9 @@ winter-prover = { package = "winter-prover", version = "0.10", default-features 
 elsa = { version = "1.9", optional = true }
 miden-gpu = { version = "0.3", optional = true }
 pollster = { version = "0.4", optional = true }
+
+[target.'cfg(target_arch = "x86_64")'.dependencies]
+miden-gpu = { path = "../../miden-gpu", features = ["cuda"], optional = true }
+
+[dev-dependencies]
+serial_test = "3.1"
