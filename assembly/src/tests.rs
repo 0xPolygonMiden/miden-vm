@@ -1038,26 +1038,22 @@ end";
 }
 
 #[test]
-fn decorators_join() -> TestResult {
+fn decorators_call() -> TestResult {
     let context = TestContext::default();
     let source = source_file!(
         &context,
         "\
     begin
-        trace.0
+        trace.0 trace.1
         call.0xdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeef
-        call.0xbaadfeedbaadfeedbaadfeedbaadfeedbaadfeedbaadfeedbaadfeedbaadfeed
-        trace.1
+        trace.2
     end"
     );
     let expected = "\
 begin
-    trace(0)
-    join
-        call.0xdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeef
-        call.0xbaadfeedbaadfeedbaadfeedbaadfeedbaadfeedbaadfeedbaadfeedbaadfeed
-    end
-    trace(1)
+    trace(0) trace(1)
+    call.0xdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeef
+    trace(2)
 end";
     let program = context.assemble(source)?;
     assert_str_eq!(expected, format!("{program}"));

@@ -2,7 +2,10 @@ use alloc::vec::Vec;
 use core::fmt;
 
 use miden_crypto::{hash::rpo::RpoDigest, Felt};
-use miden_formatting::prettier::PrettyPrint;
+use miden_formatting::{
+    hex::ToHex,
+    prettier::{const_text, nl, text, Document, PrettyPrint},
+};
 
 use crate::{
     chiplets::hasher,
@@ -185,53 +188,80 @@ impl CallNode {
         &'a self,
         mast_forest: &'a MastForest,
     ) -> impl PrettyPrint + 'a {
-        CallNodePrettyPrint { call_node: self, mast_forest }
+        CallNodePrettyPrint { node: self, mast_forest }
     }
 
     pub(super) fn to_display<'a>(&'a self, mast_forest: &'a MastForest) -> impl fmt::Display + 'a {
-        CallNodePrettyPrint { call_node: self, mast_forest }
+        CallNodePrettyPrint { node: self, mast_forest }
     }
 }
 
 struct CallNodePrettyPrint<'a> {
-    call_node: &'a CallNode,
+    node: &'a CallNode,
     mast_forest: &'a MastForest,
 }
 
-impl<'a> PrettyPrint for CallNodePrettyPrint<'a> {
-    fn render(&self) -> crate::prettier::Document {
-        use crate::prettier::*;
-        use miden_formatting::hex::ToHex;
-
-        let pre_decorators = self
-            .call_node
-            .before_enter()
+impl<'a> CallNodePrettyPrint<'a> {
+    /// Concatenates the provided decorators in a single line. If the list of decorators is not
+    /// empty, prepends `prepend` and appends `append` to the decorator document.
+    fn concatenate_decorators(
+        &self,
+        decorator_ids: &[DecoratorId],
+        prepend: Document,
+        append: Document,
+    ) -> Document {
+        let decorators = decorator_ids
             .iter()
             .map(|&decorator_id| self.mast_forest[decorator_id].render())
             .reduce(|acc, doc| acc + const_text(" ") + doc)
             .unwrap_or_default();
 
-        let post_decorators = self
-            .call_node
-            .after_exit()
-            .iter()
-            .map(|&decorator_id| self.mast_forest[decorator_id].render())
-            .reduce(|acc, doc| acc + const_text(" ") + doc)
-            .unwrap_or_default();
-
-        let callee_digest = self.mast_forest[self.call_node.callee].digest();
-
-        let call_or_syscall = if self.call_node.is_syscall {
-            const_text("syscall")
+        if decorators.is_empty() {
+            decorators
         } else {
-            const_text("call")
+            prepend + decorators + append
+        }
+    }
+
+    fn single_line_pre_decorators(&self) -> Document {
+        self.concatenate_decorators(self.node.before_enter(), Document::Empty, const_text(" "))
+    }
+
+    fn single_line_post_decorators(&self) -> Document {
+        self.concatenate_decorators(self.node.after_exit(), const_text(" "), Document::Empty)
+    }
+
+    fn multi_line_pre_decorators(&self) -> Document {
+        self.concatenate_decorators(self.node.before_enter(), Document::Empty, nl())
+    }
+
+    fn multi_line_post_decorators(&self) -> Document {
+        self.concatenate_decorators(self.node.after_exit(), nl(), Document::Empty)
+    }
+}
+
+impl<'a> PrettyPrint for CallNodePrettyPrint<'a> {
+    fn render(&self) -> Document {
+        let call_or_syscall = {
+            let callee_digest = self.mast_forest[self.node.callee].digest();
+            if self.node.is_syscall {
+                const_text("syscall")
+                    + const_text(".")
+                    + text(callee_digest.as_bytes().to_hex_with_prefix())
+            } else {
+                const_text("call")
+                    + const_text(".")
+                    + text(callee_digest.as_bytes().to_hex_with_prefix())
+            }
         };
 
-        pre_decorators
-            + call_or_syscall
-            + const_text(".")
-            + text(callee_digest.as_bytes().to_hex_with_prefix())
-            + post_decorators
+        let single_line = self.single_line_pre_decorators()
+            + call_or_syscall.clone()
+            + self.single_line_post_decorators();
+        let multi_line =
+            self.multi_line_pre_decorators() + call_or_syscall + self.multi_line_post_decorators();
+
+        single_line | multi_line
     }
 }
 
