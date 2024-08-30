@@ -7,6 +7,10 @@
 - [BREAKING] Wrapped `MastForest`s in `Program` and `Library` structs in `Arc` (#1465).
 - `MastForestBuilder`: use `MastNodeId` instead of MAST root to uniquely identify procedures (#1473)
 
+#### Fixes
+
+- Decorators are now allowed in empty basic blocks (#1466)
+
 ## 0.10.5 (2024-08-21)
 
 #### Enhancements
