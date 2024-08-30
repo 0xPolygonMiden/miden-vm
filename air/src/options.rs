@@ -66,7 +66,7 @@ impl ProvingOptions {
     pub fn with_96_bit_security(recursive: bool) -> Self {
         if recursive {
             Self {
-                exec_options: ExecutionOptions::default(),
+                exec_options: ExecutionOptions::new(Some(20), 20, false)?,
                 proof_options: Self::RECURSIVE_96_BITS,
                 hash_fn: HashFunction::Rpo256,
             }
