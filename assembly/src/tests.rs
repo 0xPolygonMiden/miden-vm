@@ -1060,6 +1060,49 @@ end";
     Ok(())
 }
 
+#[test]
+fn decorators_dyn() -> TestResult {
+    // single line
+    let context = TestContext::default();
+    let source = source_file!(
+        &context,
+        "\
+    begin
+        trace.0
+        dynexec
+        trace.1
+    end"
+    );
+    let expected = "\
+begin
+    trace(0) dyn trace(1)
+end";
+    let program = context.assemble(source)?;
+    assert_str_eq!(expected, format!("{program}"));
+
+    // multi line
+    let context = TestContext::default();
+    let source = source_file!(
+        &context,
+        "\
+    begin
+        trace.0 trace.1 trace.2 trace.3 trace.4
+        dynexec
+        trace.5 trace.6 trace.7 trace.8 trace.9
+    end"
+    );
+    let expected = "\
+begin
+    trace(0) trace(1) trace(2) trace(3) trace(4)
+    dyn
+    trace(5) trace(6) trace(7) trace(8) trace(9)
+end";
+    let program = context.assemble(source)?;
+    assert_str_eq!(expected, format!("{program}"));
+    Ok(())
+}
+
+
 // ASSERTIONS
 // ================================================================================================
 

@@ -1,10 +1,13 @@
 use alloc::vec::Vec;
-use miden_formatting::prettier::PrettyPrint;
 use core::fmt;
+use miden_formatting::prettier::{const_text, nl, Document, PrettyPrint};
 
 use miden_crypto::{hash::rpo::RpoDigest, Felt};
 
-use crate::{mast::{DecoratorId, MastForest}, OPCODE_DYN};
+use crate::{
+    mast::{DecoratorId, MastForest},
+    OPCODE_DYN,
+};
 
 // DYN NODE
 // ================================================================================================
@@ -72,42 +75,72 @@ impl DynNode {
 
 impl DynNode {
     pub(super) fn to_display<'a>(&'a self, mast_forest: &'a MastForest) -> impl fmt::Display + 'a {
-        DynNodePrettyPrint { dyn_node: self, mast_forest }
+        DynNodePrettyPrint { node: self, mast_forest }
     }
 
     pub(super) fn to_pretty_print<'a>(
         &'a self,
         mast_forest: &'a MastForest,
     ) -> impl PrettyPrint + 'a {
-        DynNodePrettyPrint { dyn_node: self, mast_forest }
+        DynNodePrettyPrint { node: self, mast_forest }
     }
 }
 
 struct DynNodePrettyPrint<'a> {
-    dyn_node: &'a DynNode,
+    node: &'a DynNode,
     mast_forest: &'a MastForest,
+}
+
+impl<'a> DynNodePrettyPrint<'a> {
+    /// Concatenates the provided decorators in a single line. If the list of decorators is not
+    /// empty, prepends `prepend` and appends `append` to the decorator document.
+    fn concatenate_decorators(
+        &self,
+        decorator_ids: &[DecoratorId],
+        prepend: Document,
+        append: Document,
+    ) -> Document {
+        let decorators = decorator_ids
+            .iter()
+            .map(|&decorator_id| self.mast_forest[decorator_id].render())
+            .reduce(|acc, doc| acc + const_text(" ") + doc)
+            .unwrap_or_default();
+
+        if decorators.is_empty() {
+            decorators
+        } else {
+            prepend + decorators + append
+        }
+    }
+
+    fn single_line_pre_decorators(&self) -> Document {
+        self.concatenate_decorators(self.node.before_enter(), Document::Empty, const_text(" "))
+    }
+
+    fn single_line_post_decorators(&self) -> Document {
+        self.concatenate_decorators(self.node.after_exit(), const_text(" "), Document::Empty)
+    }
+
+    fn multi_line_pre_decorators(&self) -> Document {
+        self.concatenate_decorators(self.node.before_enter(), Document::Empty, nl())
+    }
+
+    fn multi_line_post_decorators(&self) -> Document {
+        self.concatenate_decorators(self.node.after_exit(), nl(), Document::Empty)
+    }
 }
 
 impl<'a> crate::prettier::PrettyPrint for DynNodePrettyPrint<'a> {
     fn render(&self) -> crate::prettier::Document {
-        use crate::prettier::*;
-        let pre_decorators = self
-            .dyn_node
-            .before_enter()
-            .iter()
-            .map(|&decorator_id| self.mast_forest[decorator_id].render())
-            .reduce(|acc, doc| acc + const_text(" ") + doc)
-            .unwrap_or_default();
+        let dyn_text = const_text("dyn");
 
-        let post_decorators = self
-            .dyn_node
-            .after_exit()
-            .iter()
-            .map(|&decorator_id| self.mast_forest[decorator_id].render())
-            .reduce(|acc, doc| acc + const_text(" ") + doc)
-            .unwrap_or_default();
+        let single_line = self.single_line_pre_decorators()
+            + dyn_text.clone()
+            + self.single_line_post_decorators();
+        let multi_line =
+            self.multi_line_pre_decorators() + dyn_text + self.multi_line_post_decorators();
 
-        pre_decorators + const_text("dyn") + post_decorators
+        single_line | multi_line
     }
 }
 
