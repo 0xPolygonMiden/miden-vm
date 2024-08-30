@@ -1148,6 +1148,51 @@ end";
     Ok(())
 }
 
+#[test]
+fn decorators_join_and_split() -> TestResult {
+    let context = TestContext::default();
+    let source = source_file!(
+        &context,
+        "\
+    begin
+        trace.0 trace.1
+        if.true
+            trace.2 add trace.3
+        else
+            trace.4 mul trace.5
+        end
+        trace.6
+        if.true
+            trace.7 push.42 trace.8
+        else
+            trace.9 push.22 trace.10
+        end
+        trace.11
+    end"
+    );
+    let expected = "\
+begin
+    join
+        trace(0) trace(1)
+        if.true
+            basic_block trace(2) add trace(3) end
+        else
+            basic_block trace(4) mul trace(5) end
+        end
+        trace(6)
+        if.true
+            basic_block trace(7) push(42) trace(8) end
+        else
+            basic_block trace(9) push(22) trace(10) end
+        end
+    end
+    trace(11)
+end";
+    let program = context.assemble(source)?;
+    assert_str_eq!(expected, format!("{program}"));
+    Ok(())
+}
+
 // ASSERTIONS
 // ================================================================================================
 

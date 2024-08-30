@@ -182,7 +182,8 @@ impl<'a> PrettyPrint for SplitNodePrettyPrint<'a> {
         let true_branch = self.mast_forest[self.split_node.on_true()].to_pretty_print(self.mast_forest);
         let false_branch = self.mast_forest[self.split_node.on_false()].to_pretty_print(self.mast_forest);
 
-        let mut doc = indent(4, pre_decorators + const_text("if.true") + nl() + true_branch.render()) + nl();
+        let mut doc = pre_decorators;
+        doc += indent(4, const_text("if.true") + nl() + true_branch.render()) + nl();
         doc += indent(4, const_text("else") + nl() + false_branch.render());
         doc += nl() + const_text("end");
         doc + post_decorators
