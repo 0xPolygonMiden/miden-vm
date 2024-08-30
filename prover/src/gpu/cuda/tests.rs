@@ -1,19 +1,20 @@
-
 use alloc::vec::Vec;
 use std::vec;
-use miden_gpu::cuda::util::{DIGEST_SIZE, RATE};
-use miden_gpu::HashFn;
-use serial_test::serial;
+
 use air::{ProvingOptions, StarkField};
+use miden_gpu::{
+    cuda::util::{DIGEST_SIZE, RATE},
+    HashFn,
+};
 use processor::{
     crypto::{Hasher, RpoDigest, RpoRandomCoin, Rpx256, RpxDigest, RpxRandomCoin},
     math::fft,
     StackInputs, StackOutputs,
 };
+use serial_test::serial;
 use winter_prover::{crypto::Digest, CompositionPolyTrace, TraceLde};
 
-use crate::*;
-use crate::gpu::cuda::CudaExecutionProver;
+use crate::{gpu::cuda::CudaExecutionProver, *};
 
 fn build_trace_commitment_on_gpu_with_padding_matches_cpu<
     R: RandomCoin<BaseField = Felt, Hasher = H> + Send,
@@ -31,10 +32,8 @@ fn build_trace_commitment_on_gpu_with_padding_matches_cpu<
     let trace = gen_random_trace(num_rows, RATE + 1);
     let domain = StarkDomain::from_twiddles(fft::get_twiddles(num_rows), 8, Felt::GENERATOR);
 
-    let (cpu_trace_lde, cpu_polys) =
-        cpu_prover.new_trace_lde::<Felt>(&trace_info, &trace, &domain);
-    let (gpu_trace_lde, gpu_polys) =
-        gpu_prover.new_trace_lde::<Felt>(&trace_info, &trace, &domain);
+    let (cpu_trace_lde, cpu_polys) = cpu_prover.new_trace_lde::<Felt>(&trace_info, &trace, &domain);
+    let (gpu_trace_lde, gpu_polys) = gpu_prover.new_trace_lde::<Felt>(&trace_info, &trace, &domain);
 
     assert_eq!(
         cpu_trace_lde.get_main_trace_commitment(),
@@ -62,10 +61,8 @@ fn build_trace_commitment_on_gpu_without_padding_matches_cpu<
     let trace = gen_random_trace(num_rows, RATE);
     let domain = StarkDomain::from_twiddles(fft::get_twiddles(num_rows), 8, Felt::GENERATOR);
 
-    let (cpu_trace_lde, cpu_polys) =
-        cpu_prover.new_trace_lde::<Felt>(&trace_info, &trace, &domain);
-    let (gpu_trace_lde, gpu_polys) =
-        gpu_prover.new_trace_lde::<Felt>(&trace_info, &trace, &domain);
+    let (cpu_trace_lde, cpu_polys) = cpu_prover.new_trace_lde::<Felt>(&trace_info, &trace, &domain);
+    let (gpu_trace_lde, gpu_polys) = gpu_prover.new_trace_lde::<Felt>(&trace_info, &trace, &domain);
 
     assert_eq!(
         cpu_trace_lde.get_main_trace_commitment(),

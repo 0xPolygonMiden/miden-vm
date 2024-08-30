@@ -9,7 +9,10 @@ extern crate std;
 use core::marker::PhantomData;
 
 use air::{AuxRandElements, ProcessorAir, PublicInputs};
-#[cfg(any(all(feature = "metal", target_arch = "aarch64", target_os = "macos"), all(feature = "cuda", target_arch = "x86_64")))]
+#[cfg(any(
+    all(feature = "metal", target_arch = "aarch64", target_os = "macos"),
+    all(feature = "cuda", target_arch = "x86_64")
+))]
 use miden_gpu::HashFn;
 use processor::{
     crypto::{
