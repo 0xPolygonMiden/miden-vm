@@ -79,7 +79,7 @@ impl BasicBlockBuilder {
         decorator: Decorator,
         mast_forest_builder: &mut MastForestBuilder,
     ) -> Result<(), AssemblyError> {
-        let decorator_id = mast_forest_builder.add_decorator(decorator)?;
+        let decorator_id = mast_forest_builder.ensure_decorator(decorator)?;
         self.decorators.push((self.ops.len(), decorator_id));
 
         Ok(())

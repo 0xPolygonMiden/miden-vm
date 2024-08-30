@@ -45,6 +45,8 @@ pub struct MastForestBuilder {
     proc_gid_by_mast_root: BTreeMap<RpoDigest, GlobalProcedureIndex>,
     /// A map of MAST node hashes to their corresponding positions in the MAST forest.
     node_id_by_hash: BTreeMap<Blake3Digest<32>, MastNodeId>,
+    /// A map of decorator hashes to their corresponding positions in the MAST forest.
+    decorator_id_by_hash: BTreeMap<Blake3Digest<32>, DecoratorId>,
     /// A set of IDs for basic blocks which have been merged into a bigger basic blocks. This is
     /// used as a candidate set of nodes that may be eliminated if the are not referenced by any
     /// other node in the forest and are not a root of any procedure.
@@ -337,10 +339,18 @@ impl MastForestBuilder {
 /// Node inserters
 impl MastForestBuilder {
     /// Adds a decorator to the forest, and returns the [`Decorator`] associated with it.
-    pub fn add_decorator(&mut self, decorator: Decorator) -> Result<DecoratorId, AssemblyError> {
-        let decorator_id = self.mast_forest.add_decorator(decorator)?;
+    pub fn ensure_decorator(&mut self, decorator: Decorator) -> Result<DecoratorId, AssemblyError> {
+        let decorator_hash = decorator.eq_hash();
 
-        Ok(decorator_id)
+        if let Some(decorator_id) = self.decorator_id_by_hash.get(&decorator_hash) {
+            // decorator already exists in the forest; return previously assigned id
+            Ok(*decorator_id)
+        } else {
+            let new_decorator_id = self.mast_forest.add_decorator(decorator)?;
+            self.decorator_id_by_hash.insert(decorator_hash, new_decorator_id);
+
+            Ok(new_decorator_id)
+        }
     }
 
     /// Adds a node to the forest, and returns the [`MastNodeId`] associated with it.
