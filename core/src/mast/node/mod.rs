@@ -212,9 +212,15 @@ impl MastNode {
                             bytes_to_hash.extend(advice.to_string().as_bytes())
                         },
                         Decorator::AsmOp(asm_op) => {
+                            if let Some(location) = asm_op.location() {
+                                bytes_to_hash.extend(location.path.as_bytes());
+                                bytes_to_hash.extend(location.start.to_u32().to_le_bytes());
+                                bytes_to_hash.extend(location.end.to_u32().to_le_bytes());
+                            }
                             bytes_to_hash.extend(asm_op.context_name().as_bytes());
                             bytes_to_hash.extend(asm_op.op().as_bytes());
                             bytes_to_hash.push(asm_op.num_cycles());
+                            bytes_to_hash.push(asm_op.should_break() as u8);
                         },
                         Decorator::Debug(debug) => {
                             bytes_to_hash.extend(debug.to_string().as_bytes())
