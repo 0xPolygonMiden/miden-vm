@@ -7,7 +7,7 @@ use winter_utils::flatten_slice_elements;
 
 use crate::{
     chiplets::hasher,
-    mast::{DecoratorId, MastForestError},
+    mast::{DecoratorId, MastForest, MastForestError},
     DecoratorIterator, DecoratorList, Operation,
 };
 
@@ -225,7 +225,25 @@ impl BasicBlockNode {
 // PRETTY PRINTING
 // ================================================================================================
 
-impl PrettyPrint for BasicBlockNode {
+impl BasicBlockNode {
+    pub(super) fn to_display<'a>(&'a self, mast_forest: &'a MastForest) -> impl fmt::Display + 'a {
+        BasicBlockNodePrettyPrint { block_node: self, mast_forest }
+    }
+
+    pub(super) fn to_pretty_print<'a>(
+        &'a self,
+        mast_forest: &'a MastForest,
+    ) -> impl PrettyPrint + 'a {
+        BasicBlockNodePrettyPrint { block_node: self, mast_forest }
+    }
+}
+
+struct BasicBlockNodePrettyPrint<'a> {
+    block_node: &'a BasicBlockNode,
+    mast_forest: &'a MastForest,
+}
+
+impl<'a> PrettyPrint for BasicBlockNodePrettyPrint<'a> {
     #[rustfmt::skip]
     fn render(&self) -> crate::prettier::Document {
         use crate::prettier::*;
@@ -233,11 +251,13 @@ impl PrettyPrint for BasicBlockNode {
         // e.g. `basic_block a b c end`
         let single_line = const_text("basic_block")
             + const_text(" ")
-            + self
-                .op_batches
+            + self.
+                block_node
                 .iter()
-                .flat_map(|batch| batch.ops().iter())
-                .map(|p| p.render())
+                .map(|op_or_dec| match op_or_dec {
+                    OperationOrDecorator::Operation(op) => op.render(),
+                    OperationOrDecorator::Decorator(&decorator_id) => self.mast_forest[decorator_id].render(),
+                })
                 .reduce(|acc, doc| acc + const_text(" ") + doc)
                 .unwrap_or_default()
             + const_text(" ")
@@ -256,10 +276,12 @@ impl PrettyPrint for BasicBlockNode {
             const_text("basic_block")
                 + nl()
                 + self
-                    .op_batches
+                    .block_node
                     .iter()
-                    .flat_map(|batch| batch.ops().iter())
-                    .map(|p| p.render())
+                    .map(|op_or_dec| match op_or_dec {
+                        OperationOrDecorator::Operation(op) => op.render(),
+                        OperationOrDecorator::Decorator(&decorator_id) => self.mast_forest[decorator_id].render(),
+                    })
                     .reduce(|acc, doc| acc + nl() + doc)
                     .unwrap_or_default(),
         ) + nl()
@@ -269,7 +291,7 @@ impl PrettyPrint for BasicBlockNode {
     }
 }
 
-impl fmt::Display for BasicBlockNode {
+impl<'a> fmt::Display for BasicBlockNodePrettyPrint<'a> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         use crate::prettier::PrettyPrint;
         self.pretty_print(f)

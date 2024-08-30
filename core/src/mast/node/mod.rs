@@ -143,7 +143,7 @@ impl MastNode {
     pub fn to_pretty_print<'a>(&'a self, mast_forest: &'a MastForest) -> impl PrettyPrint + 'a {
         match self {
             MastNode::Block(basic_block_node) => {
-                MastNodePrettyPrint::new(Box::new(basic_block_node))
+                MastNodePrettyPrint::new(Box::new(basic_block_node.to_pretty_print(mast_forest)))
             },
             MastNode::Join(join_node) => {
                 MastNodePrettyPrint::new(Box::new(join_node.to_pretty_print(mast_forest)))
@@ -188,7 +188,7 @@ impl MastNode {
 
     pub fn to_display<'a>(&'a self, mast_forest: &'a MastForest) -> impl fmt::Display + 'a {
         match self {
-            MastNode::Block(node) => MastNodeDisplay::new(node),
+            MastNode::Block(node) => MastNodeDisplay::new(node.to_display(mast_forest)),
             MastNode::Join(node) => MastNodeDisplay::new(node.to_display(mast_forest)),
             MastNode::Split(node) => MastNodeDisplay::new(node.to_display(mast_forest)),
             MastNode::Loop(node) => MastNodeDisplay::new(node.to_display(mast_forest)),
