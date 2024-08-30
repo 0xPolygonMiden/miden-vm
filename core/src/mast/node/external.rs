@@ -1,11 +1,11 @@
 use alloc::vec::Vec;
 use core::fmt;
+
+use miden_crypto::hash::rpo::RpoDigest;
 use miden_formatting::{
     hex::ToHex,
     prettier::{const_text, nl, text, Document, PrettyPrint},
 };
-
-use miden_crypto::hash::rpo::RpoDigest;
 
 use crate::mast::{DecoratorId, MastForest};
 

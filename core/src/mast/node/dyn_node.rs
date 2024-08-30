@@ -1,8 +1,8 @@
 use alloc::vec::Vec;
 use core::fmt;
-use miden_formatting::prettier::{const_text, nl, Document, PrettyPrint};
 
 use miden_crypto::{hash::rpo::RpoDigest, Felt};
+use miden_formatting::prettier::{const_text, nl, Document, PrettyPrint};
 
 use crate::{
     mast::{DecoratorId, MastForest},

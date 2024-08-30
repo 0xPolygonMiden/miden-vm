@@ -181,7 +181,7 @@ impl<'a> PrettyPrint for JoinNodePrettyPrint<'a> {
             self.mast_forest[self.join_node.first()].to_pretty_print(self.mast_forest);
         let second_child =
             self.mast_forest[self.join_node.second()].to_pretty_print(self.mast_forest);
- 
+
         pre_decorators
         + indent(
             4,

@@ -1,8 +1,8 @@
 use alloc::{string::ToString, vec::Vec};
-use num_traits::ToBytes;
 use core::fmt;
 
 use miden_crypto::hash::blake::{Blake3Digest, Blake3_256};
+use num_traits::ToBytes;
 
 mod advice;
 pub use advice::AdviceInjector;
