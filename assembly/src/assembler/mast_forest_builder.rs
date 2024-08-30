@@ -442,13 +442,44 @@ impl MastForestBuilder {
 
                 Blake3_256::hash(&bytes_to_hash)
             },
-            MastNode::Join(node) => Blake3_256::hash(&node.digest().as_bytes()),
-            MastNode::Split(node) => Blake3_256::hash(&node.digest().as_bytes()),
-            MastNode::Loop(node) => Blake3_256::hash(&node.digest().as_bytes()),
-            MastNode::Call(node) => Blake3_256::hash(&node.digest().as_bytes()),
-            MastNode::Dyn(node) => Blake3_256::hash(&node.digest().as_bytes()),
-            MastNode::External(node) => Blake3_256::hash(&node.digest().as_bytes()),
+            MastNode::Join(node) => {
+                self.eq_hash_from_parts(node.before_enter(), node.after_exit(), node.digest())
+            },
+            MastNode::Split(node) => {
+                self.eq_hash_from_parts(node.before_enter(), node.after_exit(), node.digest())
+            },
+            MastNode::Loop(node) => {
+                self.eq_hash_from_parts(node.before_enter(), node.after_exit(), node.digest())
+            },
+            MastNode::Call(node) => {
+                self.eq_hash_from_parts(node.before_enter(), node.after_exit(), node.digest())
+            },
+            MastNode::Dyn(node) => {
+                self.eq_hash_from_parts(node.before_enter(), node.after_exit(), node.digest())
+            },
+            MastNode::External(node) => {
+                self.eq_hash_from_parts(node.before_enter(), node.after_exit(), node.digest())
+            },
         }
+    }
+
+    fn eq_hash_from_parts(
+        &self,
+        before_enter_ids: &[DecoratorId],
+        after_exit_ids: &[DecoratorId],
+        node_digest: RpoDigest,
+    ) -> Blake3Digest<32> {
+        let pre_decorator_hash_bytes =
+            before_enter_ids.iter().flat_map(|&id| self[id].eq_hash().as_bytes());
+        let post_decorator_hash_bytes =
+            after_exit_ids.iter().flat_map(|&id| self[id].eq_hash().as_bytes());
+
+        let bytes_to_hash: Vec<u8> = pre_decorator_hash_bytes
+            .chain(post_decorator_hash_bytes)
+            .chain(node_digest.as_bytes())
+            .collect();
+
+        Blake3_256::hash(&bytes_to_hash)
     }
 }
 

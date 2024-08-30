@@ -1024,7 +1024,7 @@ end";
 }
 
 #[test]
-fn decorators_repeat() -> TestResult {
+fn decorators_repeat_one_basic_block() -> TestResult {
     let context = TestContext::default();
     let source = source_file!(
         &context,
@@ -1040,6 +1040,49 @@ fn decorators_repeat() -> TestResult {
     let expected = "\
 begin
     basic_block trace(0) add add trace(1) mul mul trace(2) end
+end";
+    let program = context.assemble(source)?;
+    assert_str_eq!(expected, format!("{program}"));
+    Ok(())
+}
+
+#[test]
+fn decorators_repeat_split() -> TestResult {
+    let context = TestContext::default();
+    let source = source_file!(
+        &context,
+        "\
+    begin
+        trace.0
+        repeat.2 
+            if.true
+                trace.1 push.42 trace.2
+            else
+                trace.3 push.22 trace.3
+            end
+            trace.4
+        end
+        trace.5
+    end"
+    );
+    let expected = "\
+begin
+    join
+        trace(0)
+        if.true
+            basic_block trace(1) push(42) trace(2) end
+        else
+            basic_block trace(3) push(22) trace(3) end
+        end
+        trace(4)
+        if.true
+            basic_block trace(1) push(42) trace(2) end
+        else
+            basic_block trace(3) push(22) trace(3) end
+        end
+        trace(4)
+    end
+    trace(5)
 end";
     let program = context.assemble(source)?;
     assert_str_eq!(expected, format!("{program}"));
