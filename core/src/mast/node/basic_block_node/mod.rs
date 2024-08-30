@@ -1,5 +1,5 @@
 use alloc::vec::Vec;
-use core::fmt;
+use core::{fmt, mem};
 
 use miden_crypto::{hash::rpo::RpoDigest, Felt, ZERO};
 use miden_formatting::prettier::PrettyPrint;
@@ -198,6 +198,27 @@ impl BasicBlockNode {
     /// the program.
     pub fn iter(&self) -> impl Iterator<Item = OperationOrDecorator> {
         OperationOrDecoratorIterator::new(self)
+    }
+}
+
+/// Mutators
+impl BasicBlockNode {
+    /// Sets the provided list of decorators to be executed before all existing decorators.
+    pub fn prepend_decorators(&mut self, decorator_ids: Vec<DecoratorId>) {
+        let mut new_decorators: DecoratorList =
+            decorator_ids.into_iter().map(|decorator_id| (0, decorator_id)).collect();
+        new_decorators.extend(mem::take(&mut self.decorators));
+
+        self.decorators = new_decorators;
+    }
+
+    /// Sets the provided list of decorators to be executed after all existing decorators.
+    pub fn append_decorators(&mut self, decorator_ids: Vec<DecoratorId>) {
+        let after_last_op_idx = self.num_operations() as usize;
+
+        self.decorators.extend(
+            decorator_ids.into_iter().map(|decorator_id| (after_last_op_idx, decorator_id)),
+        );
     }
 }
 

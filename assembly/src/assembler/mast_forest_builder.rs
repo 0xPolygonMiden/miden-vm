@@ -424,7 +424,7 @@ impl MastForestBuilder {
     }
 
     pub fn set_after_exit(&mut self, node_id: MastNodeId, decorator_ids: Vec<DecoratorId>) {
-        todo!()
+        self.mast_forest[node_id].set_after_exit(decorator_ids)
     }
 }
 
