@@ -5,6 +5,7 @@ use mast_forest_builder::MastForestBuilder;
 use module_graph::{ProcedureWrapper, WrappedModule};
 use vm_core::{
     mast::{DecoratorId, MastNodeId},
+    utils::Either,
     DecoratorList, Felt, Kernel, Operation, Program,
 };
 

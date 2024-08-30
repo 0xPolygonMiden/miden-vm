@@ -5,7 +5,7 @@ use alloc::{
 use core::ops::{Index, IndexMut};
 
 use vm_core::{
-    crypto::hash::{Blake3Digest, RpoDigest},
+    crypto::hash::{Blake3Digest, Blake3_256, Digest, RpoDigest},
     mast::{DecoratorId, MastForest, MastNode, MastNodeId},
     Decorator, DecoratorList, Operation,
 };
@@ -348,7 +348,7 @@ impl MastForestBuilder {
     /// Note adding the same [`MastNode`] twice will result in two different [`MastNodeId`]s being
     /// returned.
     pub fn ensure_node(&mut self, node: MastNode) -> Result<MastNodeId, AssemblyError> {
-        let node_hash = node.eq_hash();
+        let node_hash = self.eq_hash_for_node(&node);
 
         if let Some(node_id) = self.node_id_by_hash.get(&node_hash) {
             // node already exists in the forest; return previously assigned id
@@ -425,6 +425,30 @@ impl MastForestBuilder {
 
     pub fn set_after_exit(&mut self, node_id: MastNodeId, decorator_ids: Vec<DecoratorId>) {
         todo!()
+    }
+}
+
+/// Helpers
+impl MastForestBuilder {
+    fn eq_hash_for_node(&self, node: &MastNode) -> Blake3Digest<32> {
+        match node {
+            MastNode::Block(node) => {
+                let mut bytes_to_hash = node.digest().as_bytes().to_vec();
+
+                for &(idx, decorator_id) in node.decorators() {
+                    bytes_to_hash.extend(idx.to_le_bytes());
+                    bytes_to_hash.extend(self[decorator_id].eq_hash().as_bytes());
+                }
+
+                Blake3_256::hash(&bytes_to_hash)
+            },
+            MastNode::Join(node) => Blake3_256::hash(&node.digest().as_bytes()),
+            MastNode::Split(node) => Blake3_256::hash(&node.digest().as_bytes()),
+            MastNode::Loop(node) => Blake3_256::hash(&node.digest().as_bytes()),
+            MastNode::Call(node) => Blake3_256::hash(&node.digest().as_bytes()),
+            MastNode::Dyn(node) => Blake3_256::hash(&node.digest().as_bytes()),
+            MastNode::External(node) => Blake3_256::hash(&node.digest().as_bytes()),
+        }
     }
 }
 

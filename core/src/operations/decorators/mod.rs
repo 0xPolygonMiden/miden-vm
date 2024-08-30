@@ -1,5 +1,8 @@
 use alloc::vec::Vec;
 use core::fmt;
+use std::string::ToString;
+
+use miden_crypto::hash::blake::{Blake3Digest, Blake3_256};
 
 mod advice;
 pub use advice::AdviceInjector;
@@ -36,6 +39,25 @@ pub enum Decorator {
     Event(u32),
     /// Emits a trace to the host.
     Trace(u32),
+}
+
+impl Decorator {
+    pub fn eq_hash(&self) -> Blake3Digest<32> {
+        match self {
+            Self::Advice(advice) => Blake3_256::hash(advice.to_string().as_bytes()),
+            Self::AsmOp(asm_op) => {
+                let mut bytes_to_hash = Vec::new();
+                bytes_to_hash.extend(asm_op.context_name().as_bytes());
+                bytes_to_hash.extend(asm_op.op().as_bytes());
+                bytes_to_hash.push(asm_op.num_cycles());
+
+                Blake3_256::hash(&bytes_to_hash)
+            },
+            Self::Debug(debug) => Blake3_256::hash(debug.to_string().as_bytes()),
+            Self::Event(event) => Blake3_256::hash(&event.to_le_bytes()),
+            Self::Trace(trace) => Blake3_256::hash(&trace.to_le_bytes()),
+        }
+    }
 }
 
 impl crate::prettier::PrettyPrint for Decorator {
