@@ -2,9 +2,11 @@ use core::{
     cell::UnsafeCell,
     marker::PhantomData,
     mem::ManuallyDrop,
+    ops::Deref,
     ptr,
     sync::atomic::{AtomicPtr, Ordering},
 };
+use std::boxed::Box;
 
 pub struct LazyLock<T, F>
 where
@@ -43,6 +45,19 @@ where
         unsafe { &*ptr }
     }
 
+    fn get(&self) -> Option<&T> {
+        let ptr = self.inner.load(Ordering::Acquire);
+        if ptr.is_null() {
+            None
+        } else {
+            unsafe { Some(&*ptr) }
+        }
+    }
+
+    //pub fn into_inner(mut this: Self) -> Result<&'static T, F> {
+    //    this.get().ok_or_else(|| this.f)
+    //}
+
     //    pub fn get_or_init(&self, init: F) -> &T {
     //	let mut ptr = self.inner.load(core::sync::atomic::Ordering::Acquire);
     //	if ptr.is_null() {
@@ -61,6 +76,34 @@ where
     //	}
     //	unsafe { &*ptr }
     //    }
+}
+
+impl<T, F> Deref for LazyLock<T, F>
+where
+    F: Fn() -> T,
+{
+    type Target = T;
+
+    /// Dereferences the value.
+    ///
+    /// This method will block the calling thread if another initialization
+    /// routine is currently running.
+    #[inline]
+    fn deref(&self) -> &T {
+        LazyLock::force(self)
+    }
+}
+
+impl<T, F> Drop for LazyLock<T, F>
+where
+    F: Fn() -> T,
+{
+    fn drop(&mut self) {
+        let ptr = *self.inner.get_mut();
+        if !ptr.is_null() {
+            drop(unsafe { Box::from_raw(ptr) })
+        }
+    }
 }
 
 #[cfg(test)]
