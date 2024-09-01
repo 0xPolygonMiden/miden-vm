@@ -1,3 +1,4 @@
+pub mod lazylock;
 pub mod sync;
 
 use alloc::vec::Vec;
