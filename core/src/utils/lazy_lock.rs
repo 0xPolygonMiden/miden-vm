@@ -44,15 +44,6 @@ where
 
         unsafe { &*ptr }
     }
-
-    fn get(&self) -> Option<&T> {
-        let ptr = self.inner.load(Ordering::Acquire);
-        if ptr.is_null() {
-            None
-        } else {
-            unsafe { Some(&*ptr) }
-        }
-    }
 }
 
 impl<T, F> Deref for LazyLock<T, F>

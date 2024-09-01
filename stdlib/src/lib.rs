@@ -2,14 +2,13 @@
 
 extern crate alloc;
 
-use alloc::{borrow::ToOwned, boxed::Box, sync::Arc};
+use alloc::{boxed::Box, sync::Arc};
 
 use assembly::{
     mast::MastForest,
     utils::{lazy_lock::LazyLock, Deserializable},
     Library,
 };
-use once_cell::sync::Lazy;
 
 // STANDARD LIBRARY
 // ================================================================================================

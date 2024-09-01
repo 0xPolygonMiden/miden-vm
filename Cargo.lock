@@ -1171,7 +1171,6 @@ dependencies = [
  "miden-test-utils",
  "num",
  "num-bigint",
- "once_cell",
  "pretty_assertions",
  "rand",
  "serde_json",
