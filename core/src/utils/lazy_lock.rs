@@ -1,16 +1,13 @@
+use alloc::boxed::Box;
 use core::{
-    cell::UnsafeCell,
-    marker::PhantomData,
-    mem::ManuallyDrop,
     ops::Deref,
     ptr,
     sync::atomic::{AtomicPtr, Ordering},
 };
-use std::boxed::Box;
 
-pub struct LazyLock<T, F>
+pub struct LazyLock<T, F = fn() -> Box<T>>
 where
-    F: Fn() -> T,
+    F: Fn() -> Box<T>,
 {
     inner: AtomicPtr<T>,
     f: F,
@@ -18,7 +15,7 @@ where
 
 impl<T, F> LazyLock<T, F>
 where
-    F: Fn() -> T,
+    F: Fn() -> Box<T>,
 {
     pub const fn new(f: F) -> Self {
         Self {
@@ -30,7 +27,9 @@ where
         let mut ptr = this.inner.load(Ordering::Acquire);
 
         if ptr.is_null() {
-            ptr = &(this.f)() as *const T as *mut T;
+            //ptr = &(this.f)() as *const T as *mut T;
+            let val = (this.f)();
+            ptr = Box::into_raw(val);
             let exchange = this.inner.compare_exchange(
                 ptr::null_mut(),
                 ptr,
@@ -38,6 +37,7 @@ where
                 Ordering::Acquire,
             );
             if let Err(old) = exchange {
+                drop(unsafe { Box::from_raw(ptr) });
                 ptr = old;
             }
         }
@@ -53,41 +53,14 @@ where
             unsafe { Some(&*ptr) }
         }
     }
-
-    //pub fn into_inner(mut this: Self) -> Result<&'static T, F> {
-    //    this.get().ok_or_else(|| this.f)
-    //}
-
-    //    pub fn get_or_init(&self, init: F) -> &T {
-    //	let mut ptr = self.inner.load(core::sync::atomic::Ordering::Acquire);
-    //	if ptr.is_null() {
-    //	    let data = unsafe { &mut *self.data.get() };
-    //	    ptr = match ptr.is_null() {
-    //		true => {
-    //		    let value = ManuallyDrop::new(unsafe { init() });
-    //		    let ptr = &*value as *const T as *mut T;
-    //		    core::sync::atomic::fence(core::sync::atomic::Ordering::Release);
-    //		    data.value = value;
-    //		    ptr
-    //		}
-    //		false => ptr,
-    //	    };
-    //	    self.inner.store(ptr, core::sync::atomic::Ordering::Release);
-    //	}
-    //	unsafe { &*ptr }
-    //    }
 }
 
 impl<T, F> Deref for LazyLock<T, F>
 where
-    F: Fn() -> T,
+    F: Fn() -> Box<T>,
 {
     type Target = T;
 
-    /// Dereferences the value.
-    ///
-    /// This method will block the calling thread if another initialization
-    /// routine is currently running.
     #[inline]
     fn deref(&self) -> &T {
         LazyLock::force(self)
@@ -96,12 +69,12 @@ where
 
 impl<T, F> Drop for LazyLock<T, F>
 where
-    F: Fn() -> T,
+    F: Fn() -> Box<T>,
 {
     fn drop(&mut self) {
         let ptr = *self.inner.get_mut();
         if !ptr.is_null() {
-            drop(unsafe { Box::from_raw(ptr) })
+            drop(unsafe { Box::from_raw(ptr) });
         }
     }
 }
@@ -111,8 +84,8 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_lazylock() {
-        let once = LazyLock::new(|| 42);
+    fn test_lazylock_force() {
+        let once = LazyLock::new(|| Box::new(42));
         let value = LazyLock::force(&once);
         assert_eq!(*value, 42);
     }

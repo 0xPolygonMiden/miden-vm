@@ -2,9 +2,14 @@
 
 extern crate alloc;
 
-use alloc::{boxed::Box, sync::Arc};
+use alloc::{borrow::ToOwned, boxed::Box, sync::Arc};
 
-use assembly::{mast::MastForest, utils::Deserializable, Library};
+use assembly::{
+    mast::MastForest,
+    utils::{lazy_lock::LazyLock, Deserializable},
+    Library,
+};
+use once_cell::sync::Lazy;
 
 // STANDARD LIBRARY
 // ================================================================================================
@@ -38,14 +43,12 @@ impl StdLibrary {
 
 impl Default for StdLibrary {
     fn default() -> Self {
-        static STDLIB: once_cell::race::OnceBox<StdLibrary> = once_cell::race::OnceBox::new();
-        STDLIB
-            .get_or_init(|| {
-                let contents =
-                    Library::read_from_bytes(Self::SERIALIZED).expect("failed to read std masl!");
-                Box::new(Self(contents))
-            })
-            .clone()
+        static STDLIB: LazyLock<StdLibrary> = LazyLock::new(|| {
+            let contents =
+                Library::read_from_bytes(StdLibrary::SERIALIZED).expect("failed to read std masl!");
+            Box::new(StdLibrary(contents))
+        });
+        STDLIB.clone()
     }
 }
 
