@@ -5,7 +5,7 @@ use core::{
     sync::atomic::{AtomicPtr, Ordering},
 };
 
-pub struct LazyLock<T, F = fn() -> T>
+pub struct RacyLock<T, F = fn() -> T>
 where
     F: Fn() -> T,
 {
@@ -13,21 +13,21 @@ where
     f: F,
 }
 
-impl<T, F> LazyLock<T, F>
+impl<T, F> RacyLock<T, F>
 where
     F: Fn() -> T,
 {
     pub const fn new(f: F) -> Self {
         Self {
-            inner: AtomicPtr::new(core::ptr::null_mut()),
+            inner: AtomicPtr::new(ptr::null_mut()),
             f,
         }
     }
-    pub fn force(this: &LazyLock<T, F>) -> &T {
+
+    pub fn force(this: &RacyLock<T, F>) -> &T {
         let mut ptr = this.inner.load(Ordering::Acquire);
 
         if ptr.is_null() {
-            //ptr = &(this.f)() as *const T as *mut T;
             let val = (this.f)();
             ptr = Box::into_raw(Box::new(val));
             let exchange = this.inner.compare_exchange(
@@ -46,7 +46,7 @@ where
     }
 }
 
-impl<T, F> Deref for LazyLock<T, F>
+impl<T, F> Deref for RacyLock<T, F>
 where
     F: Fn() -> T,
 {
@@ -54,11 +54,11 @@ where
 
     #[inline]
     fn deref(&self) -> &T {
-        LazyLock::force(self)
+        RacyLock::force(self)
     }
 }
 
-impl<T, F> Drop for LazyLock<T, F>
+impl<T, F> Drop for RacyLock<T, F>
 where
     F: Fn() -> T,
 {
@@ -75,9 +75,14 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_lazylock_force() {
-        let once = LazyLock::new(|| 42);
-        let value = LazyLock::force(&once);
-        assert_eq!(*value, 42);
+    fn test_lazylock_copy() {
+        let lock = RacyLock::new(|| 42);
+        assert_eq!(*lock, 42);
+    }
+
+    #[test]
+    fn test_lazylock_move() {
+        let lock = RacyLock::new(|| vec![1, 2, 3]);
+        assert_eq!(*lock, vec![1, 2, 3]);
     }
 }

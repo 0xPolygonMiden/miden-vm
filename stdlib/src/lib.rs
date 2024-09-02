@@ -6,7 +6,7 @@ use alloc::sync::Arc;
 
 use assembly::{
     mast::MastForest,
-    utils::{lazy_lock::LazyLock, Deserializable},
+    utils::{Deserializable, LazyLock},
     Library,
 };
 
