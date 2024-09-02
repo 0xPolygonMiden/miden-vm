@@ -5,9 +5,9 @@ use core::{
     sync::atomic::{AtomicPtr, Ordering},
 };
 
-pub struct LazyLock<T, F = fn() -> Box<T>>
+pub struct LazyLock<T, F = fn() -> T>
 where
-    F: Fn() -> Box<T>,
+    F: Fn() -> T,
 {
     inner: AtomicPtr<T>,
     f: F,
@@ -15,7 +15,7 @@ where
 
 impl<T, F> LazyLock<T, F>
 where
-    F: Fn() -> Box<T>,
+    F: Fn() -> T,
 {
     pub const fn new(f: F) -> Self {
         Self {
@@ -29,7 +29,7 @@ where
         if ptr.is_null() {
             //ptr = &(this.f)() as *const T as *mut T;
             let val = (this.f)();
-            ptr = Box::into_raw(val);
+            ptr = Box::into_raw(Box::new(val));
             let exchange = this.inner.compare_exchange(
                 ptr::null_mut(),
                 ptr,
@@ -48,7 +48,7 @@ where
 
 impl<T, F> Deref for LazyLock<T, F>
 where
-    F: Fn() -> Box<T>,
+    F: Fn() -> T,
 {
     type Target = T;
 
@@ -60,7 +60,7 @@ where
 
 impl<T, F> Drop for LazyLock<T, F>
 where
-    F: Fn() -> Box<T>,
+    F: Fn() -> T,
 {
     fn drop(&mut self) {
         let ptr = *self.inner.get_mut();
@@ -76,7 +76,7 @@ mod tests {
 
     #[test]
     fn test_lazylock_force() {
-        let once = LazyLock::new(|| Box::new(42));
+        let once = LazyLock::new(|| 42);
         let value = LazyLock::force(&once);
         assert_eq!(*value, 42);
     }

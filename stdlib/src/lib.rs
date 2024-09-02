@@ -2,7 +2,7 @@
 
 extern crate alloc;
 
-use alloc::{boxed::Box, sync::Arc};
+use alloc::sync::Arc;
 
 use assembly::{
     mast::MastForest,
@@ -45,7 +45,7 @@ impl Default for StdLibrary {
         static STDLIB: LazyLock<StdLibrary> = LazyLock::new(|| {
             let contents =
                 Library::read_from_bytes(StdLibrary::SERIALIZED).expect("failed to read std masl!");
-            Box::new(StdLibrary(contents))
+            StdLibrary(contents)
         });
         STDLIB.clone()
     }
