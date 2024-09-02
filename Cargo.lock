@@ -867,7 +867,7 @@ dependencies = [
  "bit-set",
  "ena",
  "itertools 0.11.0",
- "lalrpop-util",
+ "lalrpop-util 0.20.2",
  "petgraph",
  "regex",
  "regex-syntax 0.8.4",
@@ -883,6 +883,12 @@ name = "lalrpop-util"
 version = "0.20.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "507460a910eb7b32ee961886ff48539633b788a36b65692b95f225b844c82553"
+
+[[package]]
+name = "lalrpop-util"
+version = "0.21.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "108dc8f5dabad92c65a03523055577d847f5dcc00f3e7d3a68bc4d48e01d8fe1"
 
 [[package]]
 name = "lazy_static"
@@ -1018,7 +1024,7 @@ version = "0.10.5"
 dependencies = [
  "aho-corasick",
  "lalrpop",
- "lalrpop-util",
+ "lalrpop-util 0.21.0",
  "miden-core",
  "miden-miette",
  "miden-thiserror",
