@@ -6,12 +6,12 @@ use core::{
     ops::{Bound, Range},
 };
 
+// RE-EXPORTS
+// ================================================================================================
 pub use miden_crypto::utils::{
     collections, uninit_vector, ByteReader, ByteWriter, Deserializable, DeserializationError,
     Serializable, SliceReader,
 };
-// RE-EXPORTS
-// ================================================================================================
 #[cfg(not(feature = "std"))]
 mod racy_lock;
 #[cfg(feature = "std")]
