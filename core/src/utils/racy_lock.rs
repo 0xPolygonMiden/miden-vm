@@ -5,6 +5,14 @@ use core::{
     sync::atomic::{AtomicPtr, Ordering},
 };
 
+/// Thread-safe, non-blocking, "first one wins" flavor of `once_cell::sync::OnceCell`
+/// with the same interface as `std::sync::LazyLock`.
+///
+/// The underlying implementation is based on `once_cell::sync::race::OnceBox` which relies on
+/// `core::atomic::AtomicPtr` to ensure that the data race results in a single successful
+/// write to the relevant pointer, namely the first write.
+///
+/// Performs lazy evaluation and can be used for statics.
 pub struct RacyLock<T, F = fn() -> T>
 where
     F: Fn() -> T,
@@ -17,6 +25,7 @@ impl<T, F> RacyLock<T, F>
 where
     F: Fn() -> T,
 {
+    /// Creates a new lazy, racy value with the given initializing function.
     pub const fn new(f: F) -> Self {
         Self {
             inner: AtomicPtr::new(ptr::null_mut()),
@@ -24,18 +33,29 @@ where
         }
     }
 
+    /// Forces the evaluation of the locked value and returns a reference to
+    /// the result. This is equivalent to the `Deref` impl, but is explicit.
+    ///
+    /// This method will not block the calling thread if another initialization
+    /// routine is currently running.
     pub fn force(this: &RacyLock<T, F>) -> &T {
         let mut ptr = this.inner.load(Ordering::Acquire);
 
+        // Pointer is not yet set, attempt to set it ourselves.
         if ptr.is_null() {
+            // Execute the initialization function and allocate.
             let val = (this.f)();
             ptr = Box::into_raw(Box::new(val));
+
+            // Attempt atomic store.
             let exchange = this.inner.compare_exchange(
                 ptr::null_mut(),
                 ptr,
                 Ordering::AcqRel,
                 Ordering::Acquire,
             );
+
+            // Pointer already set, load.
             if let Err(old) = exchange {
                 drop(unsafe { Box::from_raw(ptr) });
                 ptr = old;
@@ -52,6 +72,10 @@ where
 {
     type Target = T;
 
+    /// Dereferences the value.
+    ///
+    /// This method will not block the calling thread if another initialization
+    /// routine is currently running.
     #[inline]
     fn deref(&self) -> &T {
         RacyLock::force(self)
