@@ -158,7 +158,7 @@ pub struct ModuleGraph {
     /// The global call graph of calls, not counting those that are performed directly via MAST
     /// root.
     callgraph: CallGraph,
-    /// The set of MAST node ids which have procedure definitions in this graph. There can be
+    /// The set of MAST roots which have procedure definitions in this graph. There can be
     /// multiple procedures bound to the same root due to having identical code.
     procedure_root_digests: BTreeMap<RpoDigest, SmallVec<[GlobalProcedureIndex; 1]>>,
     kernel_index: Option<ModuleIndex>,
