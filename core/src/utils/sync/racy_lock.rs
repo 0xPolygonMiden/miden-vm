@@ -102,14 +102,14 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_deref_copy() {
+    fn deref_copy() {
         // Lock a copy type and validate value.
         let lock = RacyLock::new(|| 42);
         assert_eq!(*lock, 42);
     }
 
     #[test]
-    fn test_deref_clone() {
+    fn deref_clone() {
         // Lock a no copy type.
         let lock = RacyLock::new(|| Vec::from([1, 2, 3]));
 
@@ -122,7 +122,7 @@ mod tests {
     }
 
     #[test]
-    fn test_deref_static() {
+    fn deref_static() {
         // Create a static lock.
         static VEC: RacyLock<Vec<i32>> = RacyLock::new(|| Vec::from([1, 2, 3]));
 
@@ -135,13 +135,13 @@ mod tests {
     }
 
     #[test]
-    fn test_type_inference() {
+    fn type_inference() {
         // Check that we can infer `T` from closure's type.
         let _ = RacyLock::new(|| ());
     }
 
     #[test]
-    fn test_sync_send() {
+    fn is_sync_send() {
         fn assert_traits<T: Send + Sync>() {}
         assert_traits::<RacyLock<Vec<i32>>>();
     }
