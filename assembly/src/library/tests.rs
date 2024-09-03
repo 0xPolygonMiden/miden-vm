@@ -154,20 +154,13 @@ fn library_procedure_collision() -> Result<(), Report> {
         .with_library(lib1)?
         .assemble_library([bar])?;
 
-    let lib2_bar_bar1 = QualifiedProcedureName::from_str("lib2::bar::bar1").unwrap();
-    let lib2_bar_bar2 = QualifiedProcedureName::from_str("lib2::bar::bar2").unwrap();
-
     // make sure lib2 has the expected exports (i.e., bar1 and bar2)
     assert_eq!(lib2.num_exports(), 2);
 
-    // make sure that bar1 and bar2 are equal nodes in the MAST forest
-    assert_eq!(lib2.get_export_node_id(&lib2_bar_bar1), lib2.get_export_node_id(&lib2_bar_bar2));
-
-    // make sure only one node was added to the forest
-    // NOTE: the MAST forest should actually have only 1 node (external node for the re-exported
-    // procedure), because nodes for the local procedure nodes should be pruned from the forest,
-    // but this is not implemented yet
-    assert_eq!(lib2.mast_forest().num_nodes(), 5);
+    // make sure that the bar module contains 6 nodes:
+    // - 1 for the external node from the `foo1->bar1` reexport
+    // - 5 for bar2: join, basic block, split, basic block (true), basic block (false)
+    assert_eq!(lib2.mast_forest().num_nodes(), 6);
 
     Ok(())
 }

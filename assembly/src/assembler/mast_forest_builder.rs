@@ -45,6 +45,9 @@ pub struct MastForestBuilder {
     proc_gid_by_mast_root: BTreeMap<RpoDigest, GlobalProcedureIndex>,
     /// A map of MAST node hashes to their corresponding positions in the MAST forest.
     node_id_by_hash: BTreeMap<Blake3Digest<32>, MastNodeId>,
+    /// The reverse mapping of `node_id_by_hash`. This map caches the blake 3 hash of all nodes
+    /// (for performance reasons).
+    hash_by_node_id: BTreeMap<MastNodeId, Blake3Digest<32>>,
     /// A map of decorator hashes to their corresponding positions in the MAST forest.
     decorator_id_by_hash: BTreeMap<Blake3Digest<32>, DecoratorId>,
     /// A set of IDs for basic blocks which have been merged into a bigger basic blocks. This is
@@ -366,6 +369,7 @@ impl MastForestBuilder {
         } else {
             let new_node_id = self.mast_forest.add_node(node)?;
             self.node_id_by_hash.insert(node_hash, new_node_id);
+            self.hash_by_node_id.insert(new_node_id, node_hash);
 
             Ok(new_node_id)
         }
@@ -430,11 +434,17 @@ impl MastForestBuilder {
     }
 
     pub fn set_before_enter(&mut self, node_id: MastNodeId, decorator_ids: Vec<DecoratorId>) {
-        self.mast_forest[node_id].set_before_enter(decorator_ids)
+        self.mast_forest[node_id].set_before_enter(decorator_ids);
+
+        let new_node_hash = self.eq_hash_for_node(&self[node_id]);
+        self.hash_by_node_id.insert(node_id, new_node_hash);
     }
 
     pub fn set_after_exit(&mut self, node_id: MastNodeId, decorator_ids: Vec<DecoratorId>) {
-        self.mast_forest[node_id].set_after_exit(decorator_ids)
+        self.mast_forest[node_id].set_after_exit(decorator_ids);
+
+        let new_node_hash = self.eq_hash_for_node(&self[node_id]);
+        self.hash_by_node_id.insert(node_id, new_node_hash);
     }
 }
 
@@ -452,23 +462,35 @@ impl MastForestBuilder {
 
                 Blake3_256::hash(&bytes_to_hash)
             },
-            MastNode::Join(node) => {
-                self.eq_hash_from_parts(node.before_enter(), node.after_exit(), node.digest())
-            },
-            MastNode::Split(node) => {
-                self.eq_hash_from_parts(node.before_enter(), node.after_exit(), node.digest())
-            },
-            MastNode::Loop(node) => {
-                self.eq_hash_from_parts(node.before_enter(), node.after_exit(), node.digest())
-            },
-            MastNode::Call(node) => {
-                self.eq_hash_from_parts(node.before_enter(), node.after_exit(), node.digest())
-            },
+            MastNode::Join(node) => self.eq_hash_from_parts(
+                node.before_enter(),
+                node.after_exit(),
+                &[node.first(), node.second()],
+                node.digest(),
+            ),
+            MastNode::Split(node) => self.eq_hash_from_parts(
+                node.before_enter(),
+                node.after_exit(),
+                &[node.on_true(), node.on_false()],
+                node.digest(),
+            ),
+            MastNode::Loop(node) => self.eq_hash_from_parts(
+                node.before_enter(),
+                node.after_exit(),
+                &[node.body()],
+                node.digest(),
+            ),
+            MastNode::Call(node) => self.eq_hash_from_parts(
+                node.before_enter(),
+                node.after_exit(),
+                &[node.callee()],
+                node.digest(),
+            ),
             MastNode::Dyn(node) => {
-                self.eq_hash_from_parts(node.before_enter(), node.after_exit(), node.digest())
+                self.eq_hash_from_parts(node.before_enter(), node.after_exit(), &[], node.digest())
             },
             MastNode::External(node) => {
-                self.eq_hash_from_parts(node.before_enter(), node.after_exit(), node.digest())
+                self.eq_hash_from_parts(node.before_enter(), node.after_exit(), &[], node.digest())
             },
         }
     }
@@ -477,15 +499,20 @@ impl MastForestBuilder {
         &self,
         before_enter_ids: &[DecoratorId],
         after_exit_ids: &[DecoratorId],
+        children_ids: &[MastNodeId],
         node_digest: RpoDigest,
     ) -> Blake3Digest<32> {
         let pre_decorator_hash_bytes =
             before_enter_ids.iter().flat_map(|&id| self[id].eq_hash().as_bytes());
         let post_decorator_hash_bytes =
             after_exit_ids.iter().flat_map(|&id| self[id].eq_hash().as_bytes());
+        let children_eq_hashes = children_ids
+            .iter()
+            .flat_map(|child_id| self.hash_by_node_id[child_id].as_bytes());
 
         let bytes_to_hash: Vec<u8> = pre_decorator_hash_bytes
             .chain(post_decorator_hash_bytes)
+            .chain(children_eq_hashes)
             .chain(node_digest.as_bytes())
             .collect();
 
