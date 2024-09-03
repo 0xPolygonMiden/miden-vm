@@ -63,6 +63,7 @@ impl Assembler {
         let mast_root = {
             let proc_body_id =
                 self.resolve_target(InvokeKind::ProcRef, callee, proc_ctx, mast_forest_builder)?;
+            // Note: it's ok to `unwrap()` here since `proc_body_id` was returned from `mast_forest_builder`
             mast_forest_builder.get_mast_node(proc_body_id).unwrap().digest()
         };
 
