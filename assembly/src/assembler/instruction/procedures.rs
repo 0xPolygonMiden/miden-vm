@@ -12,7 +12,9 @@ use crate::{
 impl Assembler {
     /// Returns the [`MastNodeId`] of the invoked procedure specified by `callee`.
     ///
-    /// For example, given `exec.f`, this method would return the procedure body id of `f`.
+    /// For example, given `exec.f`, this method would return the procedure body id of `f`. If the
+    /// only representation of `f` that we have is its MAST root, then this method will also insert
+    /// a [`core::mast::ExternalNode`] that wraps `f`'s MAST root and return the corresponding id.
     pub(super) fn invoke(
         &self,
         kind: InvokeKind,
