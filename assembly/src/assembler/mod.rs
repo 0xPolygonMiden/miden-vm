@@ -680,6 +680,9 @@ impl Assembler {
     }
 
     /// Resolves the specified target to the corresponding procedure root [`MastNodeId`].
+    /// 
+    /// If no [`MastNodeId`] exists for that procedure root, we wrap the root in an
+    /// [`crate::mast::ExternalNode`], and return the resulting [`MastNodeId`].
     pub(super) fn resolve_target(
         &self,
         kind: InvokeKind,
