@@ -141,13 +141,6 @@ impl MastForestBuilder {
             .and_then(|gid| self.get_procedure(*gid))
     }
 
-    /// Returns the [`MastNodeId`] of the procedure associated with a given MAST root, or None
-    /// if such a procedure is not present in this MAST forest builder.
-    #[inline(always)]
-    pub fn find_procedure_node_id(&self, mast_root: RpoDigest) -> Option<MastNodeId> {
-        self.mast_forest.find_procedure_root(mast_root)
-    }
-
     /// Returns the [`MastNode`] for the provided MAST node ID, or None if a node with this ID is
     /// not present in this MAST forest builder.
     pub fn get_mast_node(&self, id: MastNodeId) -> Option<&MastNode> {
