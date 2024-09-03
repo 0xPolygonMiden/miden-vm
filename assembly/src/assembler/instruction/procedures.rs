@@ -10,11 +10,14 @@ use crate::{
 
 /// Procedure Invocation
 impl Assembler {
+    /// Returns the [`MastNodeId`] of the invoked procedure specified by `callee`.
+    /// 
+    /// For example, given `exec.f`, this method would return the procedure body id of `f`.
     pub(super) fn invoke(
         &self,
         kind: InvokeKind,
         callee: &InvocationTarget,
-        proc_ctx: &mut ProcedureContext,
+        proc_ctx: &ProcedureContext,
         mast_forest_builder: &mut MastForestBuilder,
     ) -> Result<MastNodeId, AssemblyError> {
         let invoked_proc_node_id =
