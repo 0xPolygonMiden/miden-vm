@@ -1,3 +1,4 @@
+mod racy_lock;
 pub mod sync;
 
 use alloc::vec::Vec;
@@ -5,6 +6,8 @@ use core::{
     fmt::Debug,
     ops::{Bound, Range},
 };
+#[cfg(feature = "std")]
+pub use std::sync::LazyLock;
 
 // RE-EXPORTS
 // ================================================================================================
@@ -12,11 +15,6 @@ pub use miden_crypto::utils::{
     collections, uninit_vector, ByteReader, ByteWriter, Deserializable, DeserializationError,
     Serializable, SliceReader,
 };
-#[cfg(not(feature = "std"))]
-mod racy_lock;
-#[cfg(feature = "std")]
-pub use std::sync::LazyLock;
-
 #[cfg(not(feature = "std"))]
 pub use racy_lock::RacyLock as LazyLock;
 pub use winter_utils::group_slice_elements;
