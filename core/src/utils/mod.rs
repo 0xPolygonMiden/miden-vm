@@ -1,4 +1,4 @@
-mod racy_lock;
+pub mod racy_lock;
 pub mod sync;
 
 use alloc::vec::Vec;
