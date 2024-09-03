@@ -11,6 +11,7 @@ use core::{
 /// The underlying implementation is based on `once_cell::sync::race::OnceBox` which relies on
 /// `core::atomic::AtomicPtr` to ensure that the data race results in a single successful
 /// write to the relevant pointer, namely the first write.
+/// See https://github.com/matklad/once_cell/blob/v1.19.0/src/race.rs#L294.
 ///
 /// Performs lazy evaluation and can be used for statics.
 pub struct RacyLock<T, F = fn() -> T>
