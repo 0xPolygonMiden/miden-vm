@@ -1,5 +1,9 @@
 use pretty_assertions::assert_eq;
-use vm_core::{assert_matches, mast::MastForest, Program};
+use vm_core::{
+    assert_matches,
+    mast::{MastForest, MastNode},
+    Program,
+};
 
 use super::{Assembler, Operation};
 use crate::{
@@ -179,6 +183,38 @@ fn duplicate_procedure() {
 
     let program = context.assemble(program_source).unwrap();
     assert_eq!(program.num_procedures(), 2);
+}
+
+#[test]
+fn distinguish_grandchildren_correctly() {
+    let context = TestContext::new();
+
+    let program_source = r#"
+    begin
+        if.true
+            while.true
+                trace.1234
+                push.1
+            end
+        end
+        
+        if.true
+            while.true
+                push.1
+            end
+        end
+    end
+    "#;
+
+    let program = context.assemble(program_source).unwrap();
+
+    let join_node = match &program.mast_forest()[program.entrypoint()] {
+        MastNode::Join(node) => node,
+        _ => panic!("expected join node"),
+    };
+
+    // Make sure that both `if.true` blocks compile down to a different MAST node.
+    assert_ne!(join_node.first(), join_node.second());
 }
 
 /// Ensures that equal MAST nodes don't get added twice to a MAST forest
