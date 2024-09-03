@@ -526,21 +526,18 @@ impl Assembler {
                     )
                     .with_span(proc_alias.span());
 
-                    let proc_mast_root = {
-                        let node_id = self.resolve_target(
-                            InvokeKind::ProcRef,
-                            &proc_alias.target().into(),
-                            &pctx,
-                            mast_forest_builder,
-                        )?;
-                        mast_forest_builder.get_mast_node(node_id).unwrap().digest()
-                    };
+                    let proc_node_id = self.resolve_target(
+                        InvokeKind::ProcRef,
+                        &proc_alias.target().into(),
+                        &pctx,
+                        mast_forest_builder,
+                    )?;
+                    let proc_mast_root = mast_forest_builder.get_mast_node(proc_node_id).unwrap().digest();
 
                     // insert external node into the MAST forest for this procedure; if a procedure
                     // with the same MAST root had been previously added to the builder, this will
                     // have no effect
-                    let external_node_id = mast_forest_builder.ensure_external(proc_mast_root)?;
-                    let procedure = pctx.into_procedure(proc_mast_root, external_node_id);
+                    let procedure = pctx.into_procedure(proc_mast_root, proc_node_id);
 
                     // Make the MAST root available to all dependents
                     self.module_graph.register_procedure_root(procedure_gid, proc_mast_root)?;
