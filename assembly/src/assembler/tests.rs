@@ -200,10 +200,8 @@ fn duplicate_nodes() {
 
     let mut expected_mast_forest = MastForest::new();
 
-    // basic block: mul
     let mul_basic_block_id = expected_mast_forest.add_block(vec![Operation::Mul], None).unwrap();
 
-    // basic block: add and mul
     let add_basic_block_id = expected_mast_forest.add_block(vec![Operation::Add], None).unwrap();
 
     // inner split: `if.true add else mul end`
