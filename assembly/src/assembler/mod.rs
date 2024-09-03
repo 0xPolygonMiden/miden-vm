@@ -2,15 +2,17 @@ use alloc::{collections::BTreeMap, sync::Arc, vec::Vec};
 
 use mast_forest_builder::MastForestBuilder;
 use module_graph::{ProcedureWrapper, WrappedModule};
-use vm_core::{mast::MastNodeId, utils::Either, DecoratorList, Felt, Kernel, Operation, Program};
+use vm_core::{
+    crypto::hash::RpoDigest, debuginfo::SourceSpan, mast::MastNodeId, DecoratorList, Felt, Kernel,
+    Operation, Program,
+};
 
 use crate::{
     ast::{self, Export, InvocationTarget, InvokeKind, ModuleKind, QualifiedProcedureName},
     diagnostics::Report,
     library::{KernelLibrary, Library},
     sema::SemanticAnalysisError,
-    AssemblyError, Compile, CompileOptions, LibraryNamespace, LibraryPath, RpoDigest,
-    SourceManager, Spanned,
+    AssemblyError, Compile, CompileOptions, LibraryNamespace, LibraryPath, SourceManager, Spanned,
 };
 
 mod basic_block_builder;
@@ -524,23 +526,21 @@ impl Assembler {
                     )
                     .with_span(proc_alias.span());
 
-                    let proc_mast_root = match self.resolve_target(
-                        InvokeKind::ProcRef,
-                        &proc_alias.target().into(),
-                        &pctx,
-                        mast_forest_builder,
-                    )? {
-                        Either::Left(node_id) => {
-                            mast_forest_builder.get_mast_node(node_id).unwrap().digest()
-                        },
-                        Either::Right(digest) => digest,
+                    let proc_mast_root = {
+                        let node_id = self.resolve_target(
+                            InvokeKind::ProcRef,
+                            &proc_alias.target().into(),
+                            &pctx,
+                            mast_forest_builder,
+                        )?;
+                        mast_forest_builder.get_mast_node(node_id).unwrap().digest()
                     };
 
                     // insert external node into the MAST forest for this procedure; if a procedure
                     // with the same MAST rood had been previously added to the builder, this will
                     // have no effect
-                    let proc_node_id = mast_forest_builder.ensure_external(proc_mast_root)?;
-                    let procedure = pctx.into_procedure(proc_mast_root, proc_node_id);
+                    let external_node_id = mast_forest_builder.ensure_external(proc_mast_root)?;
+                    let procedure = pctx.into_procedure(proc_mast_root, external_node_id);
 
                     // Make the MAST root available to all dependents
                     self.module_graph.register_procedure_root(procedure_gid, proc_mast_root)?;
@@ -679,13 +679,14 @@ impl Assembler {
         })
     }
 
+    /// Resolves the specified target to the corresponding procedure root [`MastNodeId`].
     pub(super) fn resolve_target(
         &self,
         kind: InvokeKind,
         target: &InvocationTarget,
         proc_ctx: &ProcedureContext,
-        mast_forest_builder: &MastForestBuilder,
-    ) -> Result<Either<MastNodeId, RpoDigest>, AssemblyError> {
+        mast_forest_builder: &mut MastForestBuilder,
+    ) -> Result<MastNodeId, AssemblyError> {
         let caller = CallerInfo {
             span: target.span(),
             module: proc_ctx.id().module,
@@ -693,19 +694,97 @@ impl Assembler {
         };
         let resolved = self.module_graph.resolve_target(&caller, target)?;
         match resolved {
-            ResolvedTarget::Phantom(digest) => Ok(Either::Right(digest)),
+            ResolvedTarget::Phantom(mast_root) => self.get_proc_root_id_from_mast_root(
+                kind,
+                target.span(),
+                mast_root,
+                mast_forest_builder,
+            ),
             ResolvedTarget::Exact { gid } | ResolvedTarget::Resolved { gid, .. } => {
                 match mast_forest_builder.get_procedure(gid) {
-                    Some(proc) => Ok(Either::Left(proc.body_node_id())),
+                    Some(proc) => Ok(proc.body_node_id()),
                     // We didn't find the procedure in our current MAST forest. We still need to
                     // check if it exists in one of a library dependency.
                     None => match self.module_graph.get_procedure_unsafe(gid) {
-                        ProcedureWrapper::Info(p) => Ok(Either::Right(p.digest)),
+                        ProcedureWrapper::Info(p) => self.get_proc_root_id_from_mast_root(
+                            kind,
+                            target.span(),
+                            p.digest,
+                            mast_forest_builder,
+                        ),
                         ProcedureWrapper::Ast(_) => panic!("AST procedure {gid:?} exits in the module graph but not in the MastForestBuilder"),
                     },
                 }
             },
         }
+    }
+
+    /// Returns the [`MastNodeId`] associated with the provided MAST root if known, or wraps the
+    /// MAST root in a [`vm_core::mast::ExternalNode`] and returns it.
+    fn get_proc_root_id_from_mast_root(
+        &self,
+        kind: InvokeKind,
+        span: SourceSpan,
+        mast_root: RpoDigest,
+        mast_forest_builder: &mut MastForestBuilder,
+    ) -> Result<MastNodeId, AssemblyError> {
+        // Get the procedure from the assembler
+        let current_source_file = self.source_manager.get(span.source_id()).ok();
+
+        // If the procedure is cached and is a system call, ensure that the call is valid.
+        match mast_forest_builder.find_procedure_by_mast_root(&mast_root) {
+            Some(proc) if matches!(kind, InvokeKind::SysCall) => {
+                // Verify if this is a syscall, that the callee is a kernel procedure
+                //
+                // NOTE: The assembler is expected to know the full set of all kernel
+                // procedures at this point, so if we can't identify the callee as a
+                // kernel procedure, it is a definite error.
+                if !proc.visibility().is_syscall() {
+                    return Err(AssemblyError::InvalidSysCallTarget {
+                        span,
+                        source_file: current_source_file,
+                        callee: proc.fully_qualified_name().clone(),
+                    });
+                }
+                let maybe_kernel_path = proc.path();
+                self.module_graph
+                    .find_module(maybe_kernel_path)
+                    .ok_or_else(|| AssemblyError::InvalidSysCallTarget {
+                        span,
+                        source_file: current_source_file.clone(),
+                        callee: proc.fully_qualified_name().clone(),
+                    })
+                    .and_then(|module| {
+                        // Note: this module is guaranteed to be of AST variant, since we have the
+                        // AST of a procedure contained in it (i.e. `proc`). Hence, it must be that
+                        // the entire module is in AST representation as well.
+                        if module.unwrap_ast().is_kernel() {
+                            Ok(())
+                        } else {
+                            Err(AssemblyError::InvalidSysCallTarget {
+                                span,
+                                source_file: current_source_file.clone(),
+                                callee: proc.fully_qualified_name().clone(),
+                            })
+                        }
+                    })?;
+            },
+            Some(_) | None => (),
+        }
+
+        // Note that here we rely on the fact that we topologically sorted the procedures, such that
+        // when we assemble a procedure, all procedures that it calls will have been assembled, and
+        // hence be present in the `MastForest`.
+        let invoked_node_id = match mast_forest_builder.find_procedure_node_id(mast_root) {
+            Some(root) => root,
+            None => {
+                // If the MAST root called isn't known to us, make it an external
+                // reference.
+                mast_forest_builder.ensure_external(mast_root)?
+            },
+        };
+
+        Ok(invoked_node_id)
     }
 }
 
