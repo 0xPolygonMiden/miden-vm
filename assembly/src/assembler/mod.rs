@@ -537,7 +537,7 @@ impl Assembler {
                     };
 
                     // insert external node into the MAST forest for this procedure; if a procedure
-                    // with the same MAST rood had been previously added to the builder, this will
+                    // with the same MAST root had been previously added to the builder, this will
                     // have no effect
                     let external_node_id = mast_forest_builder.ensure_external(proc_mast_root)?;
                     let procedure = pctx.into_procedure(proc_mast_root, external_node_id);
@@ -697,32 +697,25 @@ impl Assembler {
         };
         let resolved = self.module_graph.resolve_target(&caller, target)?;
         match resolved {
-            ResolvedTarget::Phantom(mast_root) => {
-                self.ensure_valid_procedure_mast_root(
-                    kind,
-                    target.span(),
-                    mast_root,
-                    mast_forest_builder,
-                )?;
-
-                mast_forest_builder.ensure_external(mast_root)
-            },
+            ResolvedTarget::Phantom(mast_root) => self.ensure_valid_procedure_mast_root(
+                kind,
+                target.span(),
+                mast_root,
+                mast_forest_builder,
+            ),
             ResolvedTarget::Exact { gid } | ResolvedTarget::Resolved { gid, .. } => {
                 match mast_forest_builder.get_procedure(gid) {
                     Some(proc) => Ok(proc.body_node_id()),
                     // We didn't find the procedure in our current MAST forest. We still need to
                     // check if it exists in one of a library dependency.
                     None => match self.module_graph.get_procedure_unsafe(gid) {
-                        ProcedureWrapper::Info(p) => {
-                            self.ensure_valid_procedure_mast_root(
+                        ProcedureWrapper::Info(p) => self.ensure_valid_procedure_mast_root(
                             kind,
                             target.span(),
                             p.digest,
                             mast_forest_builder,
-                        )?;
-
-                        mast_forest_builder.ensure_external(p.digest)
-                    },
+                        )
+                    ,
                         ProcedureWrapper::Ast(_) => panic!("AST procedure {gid:?} exits in the module graph but not in the MastForestBuilder"),
                     },
                 }
@@ -730,14 +723,15 @@ impl Assembler {
         }
     }
 
-    /// Verifies the validity of the MAST root as a procedure root.
+    /// Verifies the validity of the MAST root as a procedure root hash, and returns the ID of the
+    /// [`core::mast::ExternalNode`] that wraps it.
     fn ensure_valid_procedure_mast_root(
         &self,
         kind: InvokeKind,
         span: SourceSpan,
         mast_root: RpoDigest,
         mast_forest_builder: &mut MastForestBuilder,
-    ) -> Result<(), AssemblyError> {
+    ) -> Result<MastNodeId, AssemblyError> {
         // Get the procedure from the assembler
         let current_source_file = self.source_manager.get(span.source_id()).ok();
 
@@ -782,7 +776,7 @@ impl Assembler {
             Some(_) | None => (),
         }
 
-        Ok(())
+        mast_forest_builder.ensure_external(mast_root)
     }
 }
 
