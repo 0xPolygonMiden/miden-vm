@@ -160,7 +160,7 @@ pub struct ModuleGraph {
     callgraph: CallGraph,
     /// The set of MAST roots which have procedure definitions in this graph. There can be
     /// multiple procedures bound to the same root due to having identical code.
-    procedure_root_digests: BTreeMap<RpoDigest, SmallVec<[GlobalProcedureIndex; 1]>>,
+    procedures_by_mast_root: BTreeMap<RpoDigest, SmallVec<[GlobalProcedureIndex; 1]>>,
     kernel_index: Option<ModuleIndex>,
     kernel: Kernel,
     source_manager: Arc<dyn SourceManager>,
@@ -175,7 +175,7 @@ impl ModuleGraph {
             modules: Default::default(),
             pending: Default::default(),
             callgraph: Default::default(),
-            procedure_root_digests: Default::default(),
+            procedures_by_mast_root: Default::default(),
             kernel_index: None,
             kernel: Default::default(),
             source_manager,
@@ -529,7 +529,7 @@ impl ModuleGraph {
         &self,
         procedure_digest: &RpoDigest,
     ) -> Option<GlobalProcedureIndex> {
-        self.procedure_root_digests.get(procedure_digest).map(|indices| indices[0])
+        self.procedures_by_mast_root.get(procedure_digest).map(|indices| indices[0])
     }
 
     /// Resolves `target` from the perspective of `caller`.
@@ -553,10 +553,10 @@ impl ModuleGraph {
     pub(crate) fn register_procedure_root(
         &mut self,
         id: GlobalProcedureIndex,
-        procedure_root_digest: RpoDigest,
+        procedure_mast_root: RpoDigest,
     ) -> Result<(), AssemblyError> {
         use alloc::collections::btree_map::Entry;
-        match self.procedure_root_digests.entry(procedure_root_digest) {
+        match self.procedures_by_mast_root.entry(procedure_mast_root) {
             Entry::Occupied(ref mut entry) => {
                 let prev_id = entry.get()[0];
                 if prev_id != id {
