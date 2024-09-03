@@ -532,7 +532,8 @@ impl Assembler {
                         &pctx,
                         mast_forest_builder,
                     )?;
-                    let proc_mast_root = mast_forest_builder.get_mast_node(proc_node_id).unwrap().digest();
+                    let proc_mast_root =
+                        mast_forest_builder.get_mast_node(proc_node_id).unwrap().digest();
 
                     // insert external node into the MAST forest for this procedure; if a procedure
                     // with the same MAST root had been previously added to the builder, this will
