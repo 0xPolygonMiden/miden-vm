@@ -70,8 +70,8 @@ impl Assembler {
                     })
                     .and_then(|module| {
                         // Note: this module is guaranteed to be of AST variant, since we have the
-                        // AST of a procedure contained in it (i.e. `proc`). Hence, it must be
-                        // thatthe entire module is in AST representation as well.
+                        // AST of a procedure contained in it (i.e. `proc`). Hence, it must be that
+                        // the entire module is in AST representation as well.
                         if module.unwrap_ast().is_kernel() {
                             Ok(())
                         } else {
@@ -86,9 +86,8 @@ impl Assembler {
             Some(_) | None => (),
         }
 
-        // Note that here we rely on the fact that we topologically sorted the
-        // procedures, such that when we assemble a procedure, all
-        // procedures that it calls will have been assembled, and
+        // Note that here we rely on the fact that we topologically sorted the procedures, such that
+        // when we assemble a procedure, all procedures that it calls will have been assembled, and
         // hence be present in the `MastForest`.
         let invoked_node_id = match mast_forest_builder.find_procedure_node_id(mast_root) {
             Some(root) => root,
