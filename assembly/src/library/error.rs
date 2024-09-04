@@ -11,4 +11,6 @@ pub enum LibraryError {
     InvalidKernelExport { procedure_path: QualifiedProcedureName },
     #[error(transparent)]
     Kernel(#[from] KernelError),
+    #[error("invalid export: no procedure root for {procedure_path} procedure")]
+    NoProcedureRootForExport { procedure_path: QualifiedProcedureName },
 }

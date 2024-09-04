@@ -77,6 +77,12 @@ impl Library {
         mast_forest: Arc<MastForest>,
         exports: BTreeMap<QualifiedProcedureName, MastNodeId>,
     ) -> Result<Self, LibraryError> {
+        for (fqn, &proc_body_id) in exports.iter() {
+            if !mast_forest.is_procedure_root(proc_body_id) {
+                return Err(LibraryError::NoProcedureRootForExport { procedure_path: fqn.clone() });
+            }
+        }
+
         let digest = compute_content_hash(&exports, &mast_forest);
 
         Ok(Self { digest, exports, mast_forest })

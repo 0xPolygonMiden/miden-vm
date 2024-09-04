@@ -26,6 +26,9 @@ const PROCEDURE_INLINING_THRESHOLD: usize = 32;
 ///
 /// The purpose of the builder is to ensure that the underlying MAST forest contains as little
 /// information as possible needed to adequately describe the logical MAST forest. Specifically:
+/// - The builder ensures that only one copy of nodes that have the same MAST root and decorators is
+///   added to the MAST forest (i.e., two nodes that have the same MAST root and decorators will
+///   have the same [`MastNodeId`]).
 /// - The builder tries to merge adjacent basic blocks and eliminate the source block whenever this
 ///   does not have an impact on other nodes in the forest.
 #[derive(Clone, Debug, Default)]
@@ -142,13 +145,6 @@ impl MastForestBuilder {
         self.proc_gid_by_mast_root
             .get(mast_root)
             .and_then(|gid| self.get_procedure(*gid))
-    }
-
-    /// Returns the [`MastNodeId`] of the procedure associated with a given MAST root, or None
-    /// if such a procedure is not present in this MAST forest builder.
-    #[inline(always)]
-    pub fn find_procedure_node_id(&self, mast_root: RpoDigest) -> Option<MastNodeId> {
-        self.mast_forest.find_procedure_root(mast_root)
     }
 
     /// Returns the [`MastNode`] for the provided MAST node ID, or None if a node with this ID is
