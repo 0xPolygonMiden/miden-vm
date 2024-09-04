@@ -69,7 +69,7 @@ where
 }
 
 impl<T: Default> Default for RacyLock<T> {
-    /// Creates a new lock that will evaluate the underlying value base on `T::default`.
+    /// Creates a new lock that will evaluate the underlying value based on `T::default`.
     #[inline]
     fn default() -> RacyLock<T> {
         RacyLock::new(T::default)
