@@ -1,17 +1,18 @@
 use alloc::boxed::Box;
 use core::{
+    fmt,
     ops::Deref,
     ptr,
     sync::atomic::{AtomicPtr, Ordering},
 };
 
 /// Thread-safe, non-blocking, "first one wins" flavor of `once_cell::sync::OnceCell`
-/// with the same interface as `std::sync::LazyLock`.
+/// with the same interface as `std::sync::RacyLock`.
 ///
 /// The underlying implementation is based on `once_cell::sync::race::OnceBox` which relies on
 /// `core::atomic::AtomicPtr` to ensure that the data race results in a single successful
 /// write to the relevant pointer, namely the first write.
-/// See https://github.com/matklad/once_cell/blob/v1.19.0/src/race.rs#L294.
+/// See <https://github.com/matklad/once_cell/blob/v1.19.0/src/race.rs#L294>.
 ///
 /// Performs lazy evaluation and can be used for statics.
 pub struct RacyLock<T, F = fn() -> T>
@@ -67,6 +68,24 @@ where
     }
 }
 
+impl<T: Default> Default for RacyLock<T> {
+    /// Creates a new lock that will evaluate the underlying value base on `T::default`.
+    #[inline]
+    fn default() -> RacyLock<T> {
+        RacyLock::new(T::default)
+    }
+}
+
+impl<T, F> fmt::Debug for RacyLock<T, F>
+where
+    T: fmt::Debug,
+    F: Fn() -> T,
+{
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "RacyLock({:?})", self.inner.load(Ordering::Relaxed))
+    }
+}
+
 impl<T, F> Deref for RacyLock<T, F>
 where
     F: Fn() -> T,
@@ -100,6 +119,13 @@ mod tests {
     use alloc::vec::Vec;
 
     use super::*;
+
+    #[test]
+    fn deref_default() {
+        // Lock a copy type and validate default value.
+        let lock: RacyLock<i32> = RacyLock::default();
+        assert_eq!(*lock, 0);
+    }
 
     #[test]
     fn deref_copy() {
