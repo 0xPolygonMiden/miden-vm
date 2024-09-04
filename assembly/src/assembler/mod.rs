@@ -2,15 +2,17 @@ use alloc::{collections::BTreeMap, sync::Arc, vec::Vec};
 
 use mast_forest_builder::MastForestBuilder;
 use module_graph::{ProcedureWrapper, WrappedModule};
-use vm_core::{mast::MastNodeId, DecoratorList, Felt, Kernel, Operation, Program};
+use vm_core::{
+    crypto::hash::RpoDigest, debuginfo::SourceSpan, mast::MastNodeId, DecoratorList, Felt, Kernel,
+    Operation, Program,
+};
 
 use crate::{
     ast::{self, Export, InvocationTarget, InvokeKind, ModuleKind, QualifiedProcedureName},
     diagnostics::Report,
     library::{KernelLibrary, Library},
     sema::SemanticAnalysisError,
-    AssemblyError, Compile, CompileOptions, LibraryNamespace, LibraryPath, RpoDigest,
-    SourceManager, Spanned,
+    AssemblyError, Compile, CompileOptions, LibraryNamespace, LibraryPath, SourceManager, Spanned,
 };
 
 mod basic_block_builder;
@@ -202,6 +204,15 @@ impl Assembler {
     }
 
     /// Adds the compiled library to provide modules for the compilation.
+    ///
+    /// We only current support adding non-vendored libraries - that is, the source code of exported
+    /// procedures is not included in the program that compiles against the library. The library's
+    /// source code is instead expected to be loaded in the processor at execution time. Hence, all
+    /// calls to library procedures will be compiled down to a [`vm_core::mast::ExternalNode`] (i.e.
+    /// a reference to the procedure's MAST root). This means that when executing a program compiled
+    /// against a library, the processor will not be able to differentiate procedures with the same
+    /// MAST root but different decorators. Hence, it is not recommended to export two procedures
+    /// that have the same MAST root (i.e. are identical except for their decorators).
     pub fn add_library(&mut self, library: impl AsRef<Library>) -> Result<(), Report> {
         self.module_graph
             .add_compiled_modules(library.as_ref().module_infos())
@@ -210,6 +221,8 @@ impl Assembler {
     }
 
     /// Adds the compiled library to provide modules for the compilation.
+    ///
+    /// See [`Self::add_library`] for more detailed information.
     pub fn with_library(mut self, library: impl AsRef<Library>) -> Result<Self, Report> {
         self.add_library(library)?;
         Ok(self)
@@ -277,7 +290,7 @@ impl Assembler {
 
         let mut mast_forest_builder = MastForestBuilder::default();
 
-        let exports = {
+        let mut exports = {
             let mut exports = BTreeMap::new();
 
             for module_idx in ast_module_indices {
@@ -289,10 +302,11 @@ impl Assembler {
                     let gid = module_idx + proc_idx;
                     self.compile_subgraph(gid, &mut mast_forest_builder)?;
 
-                    let proc_hash = mast_forest_builder
-                        .get_procedure_hash(gid)
-                        .expect("compilation succeeded but root not found in cache");
-                    exports.insert(fqn, proc_hash);
+                    let proc_root_node_id = mast_forest_builder
+                        .get_procedure(gid)
+                        .expect("compilation succeeded but root not found in cache")
+                        .body_node_id();
+                    exports.insert(fqn, proc_root_node_id);
                 }
             }
 
@@ -300,7 +314,15 @@ impl Assembler {
         };
 
         // TODO: show a warning if library exports are empty?
-        let (mast_forest, _) = mast_forest_builder.build();
+        let (mast_forest, id_remappings) = mast_forest_builder.build();
+        if let Some(id_remappings) = id_remappings {
+            for (_proc_name, node_id) in exports.iter_mut() {
+                if let Some(&new_node_id) = id_remappings.get(node_id) {
+                    *node_id = new_node_id;
+                }
+            }
+        }
+
         Ok(Library::new(mast_forest.into(), exports)?)
     }
 
@@ -327,22 +349,29 @@ impl Assembler {
         // AST (we just added them to the module graph)
         let ast_module = self.module_graph[module_idx].unwrap_ast().clone();
 
-        let exports = ast_module
+        let mut exports = ast_module
             .exported_procedures()
             .map(|(proc_idx, fqn)| {
                 let gid = module_idx + proc_idx;
                 self.compile_subgraph(gid, &mut mast_forest_builder)?;
 
-                let proc_hash = mast_forest_builder
-                    .get_procedure_hash(gid)
-                    .expect("compilation succeeded but root not found in cache");
-                Ok((fqn, proc_hash))
+                let proc_root_node_id = mast_forest_builder
+                    .get_procedure(gid)
+                    .expect("compilation succeeded but root not found in cache")
+                    .body_node_id();
+                Ok((fqn, proc_root_node_id))
             })
-            .collect::<Result<BTreeMap<QualifiedProcedureName, RpoDigest>, Report>>()?;
+            .collect::<Result<BTreeMap<_, _>, Report>>()?;
 
         // TODO: show a warning if library exports are empty?
-
-        let (mast_forest, _) = mast_forest_builder.build();
+        let (mast_forest, id_remappings) = mast_forest_builder.build();
+        if let Some(id_remappings) = id_remappings {
+            for (_proc_name, node_id) in exports.iter_mut() {
+                if let Some(&new_node_id) = id_remappings.get(node_id) {
+                    *node_id = new_node_id;
+                }
+            }
+        }
         let library = Library::new(mast_forest.into(), exports)?;
         Ok(library.try_into()?)
     }
@@ -439,7 +468,7 @@ impl Assembler {
         while let Some(procedure_gid) = worklist.pop() {
             // If we have already compiled this procedure, do not recompile
             if let Some(proc) = mast_forest_builder.get_procedure(procedure_gid) {
-                self.module_graph.register_mast_root(procedure_gid, proc.mast_root())?;
+                self.module_graph.register_procedure_root(procedure_gid, proc.mast_root())?;
                 continue;
             }
             // Fetch procedure metadata from the graph
@@ -478,7 +507,8 @@ impl Assembler {
                     // be added to the forest.
 
                     // Cache the compiled procedure
-                    self.module_graph.register_mast_root(procedure_gid, procedure.mast_root())?;
+                    self.module_graph
+                        .register_procedure_root(procedure_gid, procedure.mast_root())?;
                     mast_forest_builder.insert_procedure(procedure_gid, procedure)?;
                 },
                 Export::Alias(proc_alias) => {
@@ -496,21 +526,22 @@ impl Assembler {
                     )
                     .with_span(proc_alias.span());
 
-                    let proc_mast_root = self.resolve_target(
+                    let proc_node_id = self.resolve_target(
                         InvokeKind::ProcRef,
                         &proc_alias.target().into(),
                         &pctx,
                         mast_forest_builder,
                     )?;
+                    let proc_mast_root =
+                        mast_forest_builder.get_mast_node(proc_node_id).unwrap().digest();
 
                     // insert external node into the MAST forest for this procedure; if a procedure
-                    // with the same MAST rood had been previously added to the builder, this will
+                    // with the same MAST root had been previously added to the builder, this will
                     // have no effect
-                    let proc_node_id = mast_forest_builder.ensure_external(proc_mast_root)?;
                     let procedure = pctx.into_procedure(proc_mast_root, proc_node_id);
 
                     // Make the MAST root available to all dependents
-                    self.module_graph.register_mast_root(procedure_gid, proc_mast_root)?;
+                    self.module_graph.register_procedure_root(procedure_gid, proc_mast_root)?;
                     mast_forest_builder.insert_procedure(procedure_gid, procedure)?;
                 },
             }
@@ -646,13 +677,17 @@ impl Assembler {
         })
     }
 
+    /// Resolves the specified target to the corresponding procedure root [`MastNodeId`].
+    ///
+    /// If no [`MastNodeId`] exists for that procedure root, we wrap the root in an
+    /// [`crate::mast::ExternalNode`], and return the resulting [`MastNodeId`].
     pub(super) fn resolve_target(
         &self,
         kind: InvokeKind,
         target: &InvocationTarget,
         proc_ctx: &ProcedureContext,
-        mast_forest_builder: &MastForestBuilder,
-    ) -> Result<RpoDigest, AssemblyError> {
+        mast_forest_builder: &mut MastForestBuilder,
+    ) -> Result<MastNodeId, AssemblyError> {
         let caller = CallerInfo {
             span: target.span(),
             module: proc_ctx.id().module,
@@ -660,17 +695,86 @@ impl Assembler {
         };
         let resolved = self.module_graph.resolve_target(&caller, target)?;
         match resolved {
-            ResolvedTarget::Phantom(digest) => Ok(digest),
+            ResolvedTarget::Phantom(mast_root) => self.ensure_valid_procedure_mast_root(
+                kind,
+                target.span(),
+                mast_root,
+                mast_forest_builder,
+            ),
             ResolvedTarget::Exact { gid } | ResolvedTarget::Resolved { gid, .. } => {
-                match mast_forest_builder.get_procedure_hash(gid) {
-                    Some(proc_hash) => Ok(proc_hash),
+                match mast_forest_builder.get_procedure(gid) {
+                    Some(proc) => Ok(proc.body_node_id()),
+                    // We didn't find the procedure in our current MAST forest. We still need to
+                    // check if it exists in one of a library dependency.
                     None => match self.module_graph.get_procedure_unsafe(gid) {
-                        ProcedureWrapper::Info(p) => Ok(p.digest),
-                        ProcedureWrapper::Ast(_) => panic!("Did not find procedure {gid:?} neither in module graph nor procedure cache"),
+                        ProcedureWrapper::Info(p) => self.ensure_valid_procedure_mast_root(
+                            kind,
+                            target.span(),
+                            p.digest,
+                            mast_forest_builder,
+                        )
+                    ,
+                        ProcedureWrapper::Ast(_) => panic!("AST procedure {gid:?} exits in the module graph but not in the MastForestBuilder"),
                     },
                 }
-            }
+            },
         }
+    }
+
+    /// Verifies the validity of the MAST root as a procedure root hash, and returns the ID of the
+    /// [`core::mast::ExternalNode`] that wraps it.
+    fn ensure_valid_procedure_mast_root(
+        &self,
+        kind: InvokeKind,
+        span: SourceSpan,
+        mast_root: RpoDigest,
+        mast_forest_builder: &mut MastForestBuilder,
+    ) -> Result<MastNodeId, AssemblyError> {
+        // Get the procedure from the assembler
+        let current_source_file = self.source_manager.get(span.source_id()).ok();
+
+        // If the procedure is cached and is a system call, ensure that the call is valid.
+        match mast_forest_builder.find_procedure_by_mast_root(&mast_root) {
+            Some(proc) if matches!(kind, InvokeKind::SysCall) => {
+                // Verify if this is a syscall, that the callee is a kernel procedure
+                //
+                // NOTE: The assembler is expected to know the full set of all kernel
+                // procedures at this point, so if we can't identify the callee as a
+                // kernel procedure, it is a definite error.
+                if !proc.visibility().is_syscall() {
+                    return Err(AssemblyError::InvalidSysCallTarget {
+                        span,
+                        source_file: current_source_file,
+                        callee: proc.fully_qualified_name().clone(),
+                    });
+                }
+                let maybe_kernel_path = proc.path();
+                self.module_graph
+                    .find_module(maybe_kernel_path)
+                    .ok_or_else(|| AssemblyError::InvalidSysCallTarget {
+                        span,
+                        source_file: current_source_file.clone(),
+                        callee: proc.fully_qualified_name().clone(),
+                    })
+                    .and_then(|module| {
+                        // Note: this module is guaranteed to be of AST variant, since we have the
+                        // AST of a procedure contained in it (i.e. `proc`). Hence, it must be that
+                        // the entire module is in AST representation as well.
+                        if module.unwrap_ast().is_kernel() {
+                            Ok(())
+                        } else {
+                            Err(AssemblyError::InvalidSysCallTarget {
+                                span,
+                                source_file: current_source_file.clone(),
+                                callee: proc.fully_qualified_name().clone(),
+                            })
+                        }
+                    })?;
+            },
+            Some(_) | None => (),
+        }
+
+        mast_forest_builder.ensure_external(mast_root)
     }
 }
 

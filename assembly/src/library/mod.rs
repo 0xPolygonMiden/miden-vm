@@ -47,6 +47,12 @@ pub struct Library {
     /// A map between procedure paths and the corresponding procedure roots in the MAST forest.
     /// Multiple paths can map to the same root, and also, some roots may not be associated with
     /// any paths.
+    ///
+    /// Note that we use `MastNodeId` as an identifier for procedures instead of MAST root, since 2
+    /// different procedures with the same MAST root can be different due to the decorators they
+    /// contain. However, note that `MastNodeId` is also not a unique identifier for procedures; if
+    /// the procedures have the same MAST root and decorators, they will have the same
+    /// `MastNodeId`.
     exports: BTreeMap<QualifiedProcedureName, MastNodeId>,
     /// The MAST forest underlying this library.
     mast_forest: Arc<MastForest>,
@@ -69,26 +75,17 @@ impl Library {
     /// in the provided MAST forest.
     pub fn new(
         mast_forest: Arc<MastForest>,
-        exports: BTreeMap<QualifiedProcedureName, RpoDigest>,
+        exports: BTreeMap<QualifiedProcedureName, MastNodeId>,
     ) -> Result<Self, LibraryError> {
-        let mut fqn_to_export = BTreeMap::new();
-
-        // convert fqn |-> mast_root map into fqn |-> mast_node_id map
-        for (fqn, mast_root) in exports.into_iter() {
-            if let Some(proc_node_id) = mast_forest.find_procedure_root(mast_root) {
-                fqn_to_export.insert(fqn, proc_node_id);
-            } else {
-                return Err(LibraryError::NoProcedureRootForExport { procedure_path: fqn });
+        for (fqn, &proc_body_id) in exports.iter() {
+            if !mast_forest.is_procedure_root(proc_body_id) {
+                return Err(LibraryError::NoProcedureRootForExport { procedure_path: fqn.clone() });
             }
         }
 
-        let digest = compute_content_hash(&fqn_to_export, &mast_forest);
+        let digest = compute_content_hash(&exports, &mast_forest);
 
-        Ok(Self {
-            digest,
-            exports: fqn_to_export,
-            mast_forest,
-        })
+        Ok(Self { digest, exports, mast_forest })
     }
 }
 
@@ -264,10 +261,15 @@ mod use_std_library {
         /// For example, let's say I call this function like so:
         ///
         /// ```rust
+        /// use std::sync::Arc;
+        ///
+        /// use miden_assembly::{Assembler, Library, LibraryNamespace};
+        /// use vm_core::debuginfo::DefaultSourceManager;
+        ///
         /// Library::from_dir(
         ///     "~/masm/std",
-        ///     LibraryNamespace::new("std").unwrap()
-        ///     Arc::new(crate::DefaultSourceManager::default()),
+        ///     LibraryNamespace::new("std").unwrap(),
+        ///     Assembler::new(Arc::new(DefaultSourceManager::default())),
         /// );
         /// ```
         ///

@@ -80,11 +80,11 @@ fn library_exports() -> Result<(), Report> {
         end
     "#;
     let bar = parse_module!(&context, "lib2::bar", bar);
-    let modules = [foo, bar];
+    let lib2_modules = [foo, bar];
 
     let lib2 = Assembler::new(context.source_manager())
         .with_library(lib1)?
-        .assemble_library(modules.iter().cloned())?;
+        .assemble_library(lib2_modules.iter().cloned())?;
 
     let foo2 = QualifiedProcedureName::from_str("lib2::foo::foo2").unwrap();
     let foo3 = QualifiedProcedureName::from_str("lib2::foo::foo3").unwrap();
@@ -105,7 +105,7 @@ fn library_exports() -> Result<(), Report> {
     // make sure there are 6 roots in the MAST (foo1, foo2, foo3, bar1, bar4, and bar5)
     assert_eq!(lib2.mast_forest.num_procedures(), 6);
 
-    // bar1 should be the only re-export
+    // bar1 should be the only re-export (i.e. the only procedure re-exported from a dependency)
     assert!(!lib2.is_reexport(&foo2));
     assert!(!lib2.is_reexport(&foo3));
     assert!(lib2.is_reexport(&bar1));
@@ -154,12 +154,14 @@ fn library_procedure_collision() -> Result<(), Report> {
         .with_library(lib1)?
         .assemble_library([bar])?;
 
-    let bar1 = QualifiedProcedureName::from_str("lib2::bar::bar1").unwrap();
-    let bar2 = QualifiedProcedureName::from_str("lib2::bar::bar2").unwrap();
+    let lib2_bar_bar1 = QualifiedProcedureName::from_str("lib2::bar::bar1").unwrap();
+    let lib2_bar_bar2 = QualifiedProcedureName::from_str("lib2::bar::bar2").unwrap();
 
     // make sure lib2 has the expected exports (i.e., bar1 and bar2)
     assert_eq!(lib2.num_exports(), 2);
-    assert_eq!(lib2.get_export_node_id(&bar1), lib2.get_export_node_id(&bar2));
+
+    // make sure that bar1 and bar2 are equal nodes in the MAST forest
+    assert_eq!(lib2.get_export_node_id(&lib2_bar_bar1), lib2.get_export_node_id(&lib2_bar_bar2));
 
     // make sure only one node was added to the forest
     // NOTE: the MAST forest should actually have only 1 node (external node for the re-exported

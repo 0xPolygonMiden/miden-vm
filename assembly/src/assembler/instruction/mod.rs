@@ -433,13 +433,19 @@ impl Assembler {
 
             // ----- exec/call instructions -------------------------------------------------------
             Instruction::Exec(ref callee) => {
-                return self.invoke(InvokeKind::Exec, callee, proc_ctx, mast_forest_builder)
+                return self
+                    .invoke(InvokeKind::Exec, callee, proc_ctx, mast_forest_builder)
+                    .map(Into::into);
             },
             Instruction::Call(ref callee) => {
-                return self.invoke(InvokeKind::Call, callee, proc_ctx, mast_forest_builder)
+                return self
+                    .invoke(InvokeKind::Call, callee, proc_ctx, mast_forest_builder)
+                    .map(Into::into);
             },
             Instruction::SysCall(ref callee) => {
-                return self.invoke(InvokeKind::SysCall, callee, proc_ctx, mast_forest_builder)
+                return self
+                    .invoke(InvokeKind::SysCall, callee, proc_ctx, mast_forest_builder)
+                    .map(Into::into);
             },
             Instruction::DynExec => return self.dynexec(mast_forest_builder),
             Instruction::DynCall => return self.dyncall(mast_forest_builder),

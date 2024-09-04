@@ -130,3 +130,13 @@ fn debug_assert_is_checked() {
 // ================================================================================================
 
 pub use miden_formatting::hex::{to_hex, DisplayHex, ToHex};
+
+// EITHER
+// ================================================================================================
+
+/// Generic container for a choice between two types.
+#[derive(Debug, Clone, Copy)]
+pub enum Either<L, R> {
+    Left(L),
+    Right(R),
+}

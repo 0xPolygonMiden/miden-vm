@@ -154,8 +154,7 @@ fn nested_blocks() -> Result<(), Report> {
     Ok(())
 }
 
-/// Ensures that a single copy of procedures with the same MAST root are added only once to the MAST
-/// forest.
+/// Since `foo` and `bar` have the same body, we only expect them to be added once to the program.
 #[test]
 fn duplicate_procedure() {
     let context = TestContext::new();
@@ -201,10 +200,8 @@ fn duplicate_nodes() {
 
     let mut expected_mast_forest = MastForest::new();
 
-    // basic block: mul
     let mul_basic_block_id = expected_mast_forest.add_block(vec![Operation::Mul], None).unwrap();
 
-    // basic block: add
     let add_basic_block_id = expected_mast_forest.add_block(vec![Operation::Add], None).unwrap();
 
     // inner split: `if.true add else mul end`
@@ -218,7 +215,7 @@ fn duplicate_nodes() {
 
     let expected_program = Program::new(expected_mast_forest.into(), root_id);
 
-    assert_eq!(program, expected_program);
+    assert_eq!(expected_program, program);
 }
 
 #[test]
