@@ -7,7 +7,7 @@ use core::{
 };
 
 /// Thread-safe, non-blocking, "first one wins" flavor of `once_cell::sync::OnceCell`
-/// with the same interface as `std::sync::RacyLock`.
+/// with the same interface as `std::sync::LazyLock`.
 ///
 /// The underlying implementation is based on `once_cell::sync::race::OnceBox` which relies on
 /// `core::atomic::AtomicPtr` to ensure that the data race results in a single successful
