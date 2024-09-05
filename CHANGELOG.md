@@ -7,6 +7,10 @@
 - [BREAKING] Wrapped `MastForest`s in `Program` and `Library` structs in `Arc` (#1465).
 - `MastForestBuilder`: use `MastNodeId` instead of MAST root to uniquely identify procedures (#1473)
 
+#### Fixes
+
+- Fixed an issue with formatting of blocks in Miden Assembly syntax
+
 ## 0.10.5 (2024-08-21)
 
 #### Enhancements

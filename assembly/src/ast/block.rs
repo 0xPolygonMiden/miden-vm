@@ -70,7 +70,7 @@ impl crate::prettier::PrettyPrint for Block {
         .map(PrettyPrint::render)
         .reduce(|acc, doc| acc + nl() + doc);
 
-        body.map(|body| indent(4, body)).unwrap_or(Document::Empty)
+        body.map(|body| indent(4, nl() + body)).unwrap_or(Document::Empty)
     }
 }
 
