@@ -6,10 +6,13 @@ use core::{
     sync::atomic::{AtomicPtr, Ordering},
 };
 
-/// Thread-safe, non-blocking, "first one wins" flavor of `once_cell::sync::OnceCell`
-/// with the same interface as `std::sync::LazyLock`.
+/// Thread-safe, non-blocking, lazily evaluated lock with the same interface as
+/// `std::sync::LazyLock`.
 ///
-/// The underlying implementation is based on `once_cell::sync::race::OnceBox` which relies on
+/// Concurrent threads will race to set the value atomically, and memory allocated by losing threads
+/// will be dropped immediately after they fail to set the pointer.
+///
+/// The underlying implementation is based on `once_cell::race::OnceBox` which relies on
 /// `core::atomic::AtomicPtr` to ensure that the data race results in a single successful
 /// write to the relevant pointer, namely the first write.
 /// See <https://github.com/matklad/once_cell/blob/v1.19.0/src/race.rs#L294>.
@@ -41,6 +44,9 @@ where
     /// There is no blocking involved in this operation. Instead, concurrent
     /// threads will race to set the underlying pointer. Memory allocated by
     /// losing threads will be dropped immediately after they fail to set the pointer.
+    ///
+    /// This function's interface is designed around [`std::sync::LazyLock::force`] but
+    /// the implementation is derived from `once_cell::race::OnceBox::get_or_try_init`.
     pub fn force(this: &RacyLock<T, F>) -> &T {
         let mut ptr = this.inner.load(Ordering::Acquire);
 
@@ -108,8 +114,14 @@ where
 {
     /// Drops the underlying pointer.
     ///
-    /// This operation is safe because the underlying pointer is owned by the lock.
-    /// It is not possible for the pointer to be shared between multiple locks.
+    /// # SAFETY
+    ///
+    /// For any given value of `ptr`, we are guaranteed to have at most a single instance of
+    /// `RacyLock` holding that value. Hence, synchronizing threads in `drop()` is not
+    /// necessary, and we are guaranteed never to double-free. In short, since `RacyLock`
+    /// doesn't implement `Clone`, the only scenario where there can be multiple instances of
+    /// `RacyLock` across multiple threads referring to the same `ptr` value is when `RacyLock`
+    /// is used in a static variable.
     fn drop(&mut self) {
         let ptr = *self.inner.get_mut();
         if !ptr.is_null() {
