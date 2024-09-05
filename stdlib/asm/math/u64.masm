@@ -572,9 +572,7 @@ end
 export.rotr
     push.31
     dup.1
-    u32overflowing_sub
-    swap
-    drop
+    u32lt
     movdn.3
 
     # Shift the low limb left by 32-b.
@@ -582,17 +580,19 @@ export.rotr
     u32and
     push.32
     swap
-    u32overflowing_sub
-    drop
+    u32wrapping_sub
     pow2
     dup
     movup.3
-    u32overflowing_mul
+    mul
+    u32split
 
     # Shift the high limb left by 32-b.
     movup.3
     movup.3
-    u32overflowing_madd
+    mul
+    add
+    u32split
 
     # Carry the overflow shift to the low bits.
     movup.2

@@ -462,10 +462,6 @@ fn u32rotl() {
 
     let test = build_op_test!(asm_op, &[a as u64, b as u64]);
     test.expect_stack(&[a.rotate_left(b) as u64]);
-
-    // --- test out of bounds inputs (should not fail) --------------------------------------------
-    let test = build_op_test!(asm_op, &[U32_BOUND, 1]);
-    assert!(test.execute().is_ok());
 }
 
 #[test]
@@ -510,10 +506,6 @@ fn u32rotr() {
 
     let test = build_op_test!(asm_op, &[a as u64, b as u64]);
     test.expect_stack(&[a.rotate_right(b) as u64]);
-
-    // --- test out of bounds inputs (should not fail) --------------------------------------------
-    let test = build_op_test!(asm_op, &[U32_BOUND, 1]);
-    assert!(test.execute().is_ok());
 }
 
 #[test]

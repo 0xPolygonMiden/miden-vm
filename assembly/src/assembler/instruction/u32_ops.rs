@@ -236,25 +236,25 @@ pub fn u32rotl(span_builder: &mut BasicBlockBuilder, imm: Option<u8>) -> Result<
 /// b is the shift amount, then adding the overflow limb to the shifted limb.
 ///
 /// VM cycles per mode:
-/// - u32rotr: 22 cycles
+/// - u32rotr: 23 cycles
 /// - u32rotr.b: 3 cycles
 pub fn u32rotr(span_builder: &mut BasicBlockBuilder, imm: Option<u8>) -> Result<(), AssemblyError> {
     match imm {
         Some(0) => {
             // if rotation is performed by 0, do nothing (Noop)
             span_builder.push_op(Noop);
-            return Ok(());
         },
         Some(imm) => {
             validate_param(imm, 1..=MAX_U32_ROTATE_VALUE)?;
             span_builder.push_op(Push(Felt::new(1 << (32 - imm))));
+            span_builder.push_ops([U32mul, Add]);
         },
         None => {
             span_builder.push_ops([Push(Felt::new(32)), Swap, U32sub, Drop]);
             append_pow2_op(span_builder);
+            span_builder.push_ops([Mul, U32split, Add]);
         },
     }
-    span_builder.push_ops([U32mul, Add]);
     Ok(())
 }
 
