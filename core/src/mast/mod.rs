@@ -186,6 +186,9 @@ impl MastForest {
     }
 
     /// Adds a basic block node to the forest, and returns the [`MastNodeId`] associated with it.
+    /// 
+    /// It is assumed that the decorators have not already been added to the MAST forest. If they
+    /// were, they will be added again (and result in a different set of [`DecoratorId`]s).
     #[cfg(test)]
     pub fn add_block_with_raw_decorators(
         &mut self,
