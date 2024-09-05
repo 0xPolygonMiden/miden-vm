@@ -113,18 +113,15 @@ where
     F: Fn() -> T,
 {
     /// Drops the underlying pointer.
-    ///
-    /// # SAFETY
-    ///
-    /// For any given value of `ptr`, we are guaranteed to have at most a single instance of
-    /// `RacyLock` holding that value. Hence, synchronizing threads in `drop()` is not
-    /// necessary, and we are guaranteed never to double-free. In short, since `RacyLock`
-    /// doesn't implement `Clone`, the only scenario where there can be multiple instances of
-    /// `RacyLock` across multiple threads referring to the same `ptr` value is when `RacyLock`
-    /// is used in a static variable.
     fn drop(&mut self) {
         let ptr = *self.inner.get_mut();
         if !ptr.is_null() {
+            // SAFETY: for any given value of `ptr`, we are guaranteed to have at most a single
+            // instance of `RacyLock` holding that value. Hence, synchronizing threads
+            // in `drop()` is not necessary, and we are guaranteed never to double-free.
+            // In short, since `RacyLock` doesn't implement `Clone`, the only scenario
+            // where there can be multiple instances of `RacyLock` across multiple threads
+            // referring to the same `ptr` value is when `RacyLock` is used in a static variable.
             drop(unsafe { Box::from_raw(ptr) });
         }
     }
