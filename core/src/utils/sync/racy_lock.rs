@@ -36,10 +36,11 @@ where
     }
 
     /// Forces the evaluation of the locked value and returns a reference to
-    /// the result. This is equivalent to the `Deref` impl, but is explicit.
+    /// the result. This is equivalent to the [`Self::deref`].
     ///
-    /// This method will not block the calling thread if another initialization
-    /// routine is currently running.
+    /// There is no blocking involved in this operation. Instead, concurrent
+    /// threads will race to set the underlying pointer. Memory allocated by
+    /// losing threads will be dropped immediately after they fail to set the pointer.
     pub fn force(this: &RacyLock<T, F>) -> &T {
         let mut ptr = this.inner.load(Ordering::Acquire);
 
@@ -92,10 +93,9 @@ where
 {
     type Target = T;
 
-    /// Dereferences the value.
+    /// Either sets or retrieves the value, and dereferences it.
     ///
-    /// This method will not block the calling thread if another initialization
-    /// routine is currently running.
+    /// See [`Self::force`] for more details.
     #[inline]
     fn deref(&self) -> &T {
         RacyLock::force(self)
@@ -106,6 +106,10 @@ impl<T, F> Drop for RacyLock<T, F>
 where
     F: Fn() -> T,
 {
+    /// Drops the underlying pointer.
+    ///
+    /// This operation is safe because the underlying pointer is owned by the lock.
+    /// It is not possible for the pointer to be shared between multiple locks.
     fn drop(&mut self) {
         let ptr = *self.inner.get_mut();
         if !ptr.is_null() {
