@@ -618,7 +618,7 @@ export.clz
         drop
         u32clz
         add.32 # clz(n_lo) + 32
-    else 
+    else
         swap
         drop
         u32clz # clz(n_hi)
@@ -639,7 +639,7 @@ export.ctz
         drop
         u32ctz
         add.32 # ctz(n_hi) + 32
-    else 
+    else
         swap
         drop
         u32ctz # ctz(n_lo)
@@ -659,7 +659,7 @@ export.clo
         drop
         u32clo
         add.32 # clo(n_lo) + 32
-    else 
+    else
         swap
         drop
         u32clo # clo(n_hi)
@@ -680,7 +680,7 @@ export.cto
         drop
         u32cto
         add.32 # cto(n_hi) + 32
-    else 
+    else
         swap
         drop
         u32cto # ctz(n_lo)

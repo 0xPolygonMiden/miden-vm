@@ -297,7 +297,7 @@ pub fn u32popcnt(span_builder: &mut BasicBlockBuilder) {
 /// leading zeros of the value using non-deterministic technique (i.e. it takes help of advice
 /// provider).
 ///
-/// This operation takes 37 VM cycles.
+/// This operation takes 42 VM cycles.
 pub fn u32clz(span: &mut BasicBlockBuilder) {
     span.push_advice_injector(AdviceInjector::U32Clz);
     span.push_op(AdvPop); // [clz, n, ...]
@@ -449,41 +449,47 @@ fn prepare_bitwise<const MAX_VALUE: u8>(
 ///
 /// `[clz, n, ... ] -> [clz, ... ]`
 ///
-/// VM cycles: 36
+/// VM cycles: 42
 fn calculate_clz(span: &mut BasicBlockBuilder) {
     // [clz, n, ...]
     #[rustfmt::skip]
     let ops_group_1 = [
-        Swap, Push(32u8.into()), Dup2, Neg, Add // [32 - clz, n, clz, ...]
+        Push(32u8.into()), Dup1, Neg, Add // [32 - clz, clz, n, ...]
     ];
     span.push_ops(ops_group_1);
 
-    append_pow2_op(span); // [pow2(32 - clz), n, clz, ...]
+    append_pow2_op(span); // [pow2(32 - clz), clz, n, ...]
 
     #[rustfmt::skip]
     let ops_group_2 = [
-        Push(Felt::new(u32::MAX as u64 + 1)), // [2^32, pow2(32 - clz), n, clz, ...]
-
-        Dup1, Neg, Add, // [2^32 - pow2(32 - clz), pow2(32 - clz), n, clz, ...]
-                        // `2^32 - pow2(32 - clz)` is equal to `clz` leading ones and `32 - clz`
-                        // zeros:
-                        // 1111111111...1110000...0
-                        // └─ `clz` ones ─┘
-
-        Swap, Push(2u8.into()), U32div, Drop, // [pow2(32 - clz) / 2, 2^32 - pow2(32 - clz), n, clz, ...]
-                                              // pow2(32 - clz) / 2 is equal to `clz` leading
-                                              // zeros, `1` one and all other zeros.
-
-        Swap, Dup1, Add, // [bit_mask, pow2(32 - clz) / 2, n, clz, ...]
-                         // 1111111111...111000...0 <-- bitmask
-                         // └─  clz ones ─┘│
-                         //                └─ additional one
-
-        MovUp2, U32and, // [m, pow2(32 - clz) / 2, clz]
-                        // If calcualtion of `clz` is correct, m should be equal to
-                        // pow2(32 - clz) / 2
-
-        Eq, Assert(0) // [clz, ...]
+        // 1. Obtain a mask for all `32 - clz` trailing bits
+        //
+        // #=> [2^(32 - clz) - 1, clz, n]
+        Push(1u8.into()), Neg, Add,
+        // 2. Compute a value that represents setting the first non-zero bit to 1, i.e. if there
+        // are 2 leading zeros, this would set the 3rd most significant bit to 1, with all other
+        // bits set to zero.
+        //
+        // NOTE: This first step is an intermediate computation.
+        //
+        // #=> [(2^(32 - clz) - 1) / 2, clz, n, ...]
+        Push(2u8.into()), U32div, Drop,
+        // Save the intermediate result of dividing by 2 for reuse in the next step
+        //
+        // #=> [((2^(32 - clz) - 1) / 2) + 1, (2^(32 - clz) - 1) / 2, clz, n, ...]
+        Dup0, Incr,
+        // 3. Obtain a mask for `clz + 1` leading bits
+        //
+        // #=> [u32::MAX - (2^(32 - clz) - 1 / 2), ((2^(32 - clz) - 1) / 2) + 1, clz, n, ...]
+        Push(u32::MAX.into()), MovUp2, Neg, Add,
+        // 4. Set zero flag if input was zero, and apply the mask to the input value
+        //
+        // #=> [n & mask, (2^(32 - clz) - 1 / 2) + 1, clz, is_zero]
+        Dup3, Eqz, MovDn3, MovUp4, U32and,
+        // 6. Assert that the masked input, and the mask representing `clz` leading zeros, followed
+        // by at least one trailing one, if `clz < 32`, are equal; OR that the input was zero if `clz`
+        // is 32.
+        Eq, MovUp2, Or, Assert(0),
     ];
 
     span.push_ops(ops_group_2);
