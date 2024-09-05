@@ -600,23 +600,22 @@ impl Assembler {
         use ast::Op;
 
         let mut body_node_ids: Vec<MastNodeId> = Vec::new();
-        let mut basic_block_builder = BasicBlockBuilder::new(wrapper);
+        let mut basic_block_builder = BasicBlockBuilder::new(wrapper, mast_forest_builder);
 
         for op in body {
             match op {
                 Op::Inst(inst) => {
-                    if let Some(node_id) = self.compile_instruction(
-                        inst,
-                        &mut basic_block_builder,
-                        proc_ctx,
-                        mast_forest_builder,
-                    )? {
-                        match basic_block_builder.make_basic_block(mast_forest_builder)? {
+                    if let Some(node_id) =
+                        self.compile_instruction(inst, &mut basic_block_builder, proc_ctx)?
+                    {
+                        match basic_block_builder.make_basic_block()? {
                             BasicBlockOrDecorators::BasicBlock(basic_block_id) => {
                                 body_node_ids.push(basic_block_id);
                             },
                             BasicBlockOrDecorators::Decorators(decorator_ids) => {
-                                mast_forest_builder.set_before_enter(node_id, decorator_ids);
+                                basic_block_builder
+                                    .mast_forest_builder_mut()
+                                    .set_before_enter(node_id, decorator_ids);
                             },
                             BasicBlockOrDecorators::Nothing => (),
                         }
@@ -627,9 +626,8 @@ impl Assembler {
 
                 Op::If { then_blk, else_blk, .. } => {
                     let maybe_pre_decorators: Option<Vec<DecoratorId>> = match basic_block_builder
-                        .make_basic_block(
-                        mast_forest_builder,
-                    )? {
+                        .make_basic_block()?
+                    {
                         BasicBlockOrDecorators::BasicBlock(basic_block_id) => {
                             body_node_ids.push(basic_block_id);
                             None
@@ -638,14 +636,26 @@ impl Assembler {
                         BasicBlockOrDecorators::Nothing => None,
                     };
 
-                    let then_blk =
-                        self.compile_body(then_blk.iter(), proc_ctx, None, mast_forest_builder)?;
-                    let else_blk =
-                        self.compile_body(else_blk.iter(), proc_ctx, None, mast_forest_builder)?;
+                    let then_blk = self.compile_body(
+                        then_blk.iter(),
+                        proc_ctx,
+                        None,
+                        basic_block_builder.mast_forest_builder_mut(),
+                    )?;
+                    let else_blk = self.compile_body(
+                        else_blk.iter(),
+                        proc_ctx,
+                        None,
+                        basic_block_builder.mast_forest_builder_mut(),
+                    )?;
 
-                    let split_node_id = mast_forest_builder.ensure_split(then_blk, else_blk)?;
+                    let split_node_id = basic_block_builder
+                        .mast_forest_builder_mut()
+                        .ensure_split(then_blk, else_blk)?;
                     if let Some(pre_decorator_ids) = maybe_pre_decorators {
-                        mast_forest_builder.set_before_enter(split_node_id, pre_decorator_ids)
+                        basic_block_builder
+                            .mast_forest_builder_mut()
+                            .set_before_enter(split_node_id, pre_decorator_ids)
                     }
 
                     body_node_ids.push(split_node_id);
@@ -653,9 +663,8 @@ impl Assembler {
 
                 Op::Repeat { count, body, .. } => {
                     let maybe_pre_decorators: Option<Vec<DecoratorId>> = match basic_block_builder
-                        .make_basic_block(
-                        mast_forest_builder,
-                    )? {
+                        .make_basic_block()?
+                    {
                         BasicBlockOrDecorators::BasicBlock(basic_block_id) => {
                             body_node_ids.push(basic_block_id);
                             None
@@ -664,15 +673,21 @@ impl Assembler {
                         BasicBlockOrDecorators::Nothing => None,
                     };
 
-                    let repeat_node_id =
-                        self.compile_body(body.iter(), proc_ctx, None, mast_forest_builder)?;
+                    let repeat_node_id = self.compile_body(
+                        body.iter(),
+                        proc_ctx,
+                        None,
+                        basic_block_builder.mast_forest_builder_mut(),
+                    )?;
 
                     if let Some(pre_decorators) = maybe_pre_decorators {
                         // Attach the decorators before the first instance of the repeated node
-                        let mut first_repeat_node = mast_forest_builder[repeat_node_id].clone();
+                        let mut first_repeat_node =
+                            basic_block_builder.mast_forest_builder_mut()[repeat_node_id].clone();
                         first_repeat_node.set_before_enter(pre_decorators);
-                        let first_repeat_node_id =
-                            mast_forest_builder.ensure_node(first_repeat_node)?;
+                        let first_repeat_node_id = basic_block_builder
+                            .mast_forest_builder_mut()
+                            .ensure_node(first_repeat_node)?;
 
                         body_node_ids.push(first_repeat_node_id);
                         for _ in 0..(*count - 1) {
@@ -687,9 +702,8 @@ impl Assembler {
 
                 Op::While { body, .. } => {
                     let maybe_pre_decorators: Option<Vec<DecoratorId>> = match basic_block_builder
-                        .make_basic_block(
-                        mast_forest_builder,
-                    )? {
+                        .make_basic_block()?
+                    {
                         BasicBlockOrDecorators::BasicBlock(basic_block_id) => {
                             body_node_ids.push(basic_block_id);
                             None
@@ -699,12 +713,20 @@ impl Assembler {
                     };
 
                     let loop_node_id = {
-                        let loop_body_node_id =
-                            self.compile_body(body.iter(), proc_ctx, None, mast_forest_builder)?;
-                        mast_forest_builder.ensure_loop(loop_body_node_id)?
+                        let loop_body_node_id = self.compile_body(
+                            body.iter(),
+                            proc_ctx,
+                            None,
+                            basic_block_builder.mast_forest_builder_mut(),
+                        )?;
+                        basic_block_builder
+                            .mast_forest_builder_mut()
+                            .ensure_loop(loop_body_node_id)?
                     };
                     if let Some(pre_decorator_ids) = maybe_pre_decorators {
-                        mast_forest_builder.set_before_enter(loop_node_id, pre_decorator_ids)
+                        basic_block_builder
+                            .mast_forest_builder_mut()
+                            .set_before_enter(loop_node_id, pre_decorator_ids)
                     }
 
                     body_node_ids.push(loop_node_id);
@@ -713,7 +735,7 @@ impl Assembler {
         }
 
         let maybe_post_decorators: Option<Vec<DecoratorId>> =
-            match basic_block_builder.try_into_basic_block(mast_forest_builder)? {
+            match basic_block_builder.try_into_basic_block()? {
                 BasicBlockOrDecorators::BasicBlock(basic_block_id) => {
                     body_node_ids.push(basic_block_id);
                     None

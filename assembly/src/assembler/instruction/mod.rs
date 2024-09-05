@@ -3,10 +3,7 @@ use core::ops::RangeBounds;
 use miette::miette;
 use vm_core::{mast::MastNodeId, Decorator, ONE, ZERO};
 
-use super::{
-    ast::InvokeKind, mast_forest_builder::MastForestBuilder, Assembler, BasicBlockBuilder, Felt,
-    Operation, ProcedureContext,
-};
+use super::{ast::InvokeKind, Assembler, BasicBlockBuilder, Felt, Operation, ProcedureContext};
 use crate::{ast::Instruction, utils::bound_into_included_u64, AssemblyError, Span};
 
 mod adv_ops;
@@ -25,27 +22,21 @@ impl Assembler {
     pub(super) fn compile_instruction(
         &self,
         instruction: &Span<Instruction>,
-        span_builder: &mut BasicBlockBuilder,
+        basic_block_builder: &mut BasicBlockBuilder,
         proc_ctx: &mut ProcedureContext,
-        mast_forest_builder: &mut MastForestBuilder,
     ) -> Result<Option<MastNodeId>, AssemblyError> {
         // if the assembler is in debug mode, start tracking the instruction about to be executed;
         // this will allow us to map the instruction to the sequence of operations which were
         // executed as a part of this instruction.
         if self.in_debug_mode() {
-            span_builder.track_instruction(instruction, proc_ctx, mast_forest_builder)?;
+            basic_block_builder.track_instruction(instruction, proc_ctx)?;
         }
 
-        let result = self.compile_instruction_impl(
-            instruction,
-            span_builder,
-            proc_ctx,
-            mast_forest_builder,
-        )?;
+        let result = self.compile_instruction_impl(instruction, basic_block_builder, proc_ctx)?;
 
         // compute and update the cycle count of the instruction which just finished executing
         if self.in_debug_mode() {
-            span_builder.set_instruction_cycle_count(mast_forest_builder);
+            basic_block_builder.set_instruction_cycle_count();
         }
 
         Ok(result)
@@ -56,7 +47,6 @@ impl Assembler {
         instruction: &Span<Instruction>,
         basic_block_builder: &mut BasicBlockBuilder,
         proc_ctx: &mut ProcedureContext,
-        mast_forest_builder: &mut MastForestBuilder,
     ) -> Result<Option<MastNodeId>, AssemblyError> {
         use Operation::*;
 
@@ -101,7 +91,7 @@ impl Assembler {
             Instruction::ExpBitLength(num_pow_bits) => {
                 field_ops::exp(basic_block_builder, *num_pow_bits)?
             },
-            Instruction::ILog2 => field_ops::ilog2(basic_block_builder, mast_forest_builder)?,
+            Instruction::ILog2 => field_ops::ilog2(basic_block_builder)?,
 
             Instruction::Not => basic_block_builder.push_op(Not),
             Instruction::And => basic_block_builder.push_op(And),
@@ -125,9 +115,9 @@ impl Assembler {
             Instruction::Ext2Add => ext2_ops::ext2_add(basic_block_builder),
             Instruction::Ext2Sub => ext2_ops::ext2_sub(basic_block_builder),
             Instruction::Ext2Mul => ext2_ops::ext2_mul(basic_block_builder),
-            Instruction::Ext2Div => ext2_ops::ext2_div(basic_block_builder, mast_forest_builder)?,
+            Instruction::Ext2Div => ext2_ops::ext2_div(basic_block_builder)?,
             Instruction::Ext2Neg => ext2_ops::ext2_neg(basic_block_builder),
-            Instruction::Ext2Inv => ext2_ops::ext2_inv(basic_block_builder, mast_forest_builder)?,
+            Instruction::Ext2Inv => ext2_ops::ext2_inv(basic_block_builder)?,
 
             // ----- u32 manipulation -------------------------------------------------------------
             Instruction::U32Test => basic_block_builder.push_ops([Dup0, U32split, Swap, Drop, Eqz]),
@@ -218,10 +208,10 @@ impl Assembler {
                 u32_ops::u32rotr(basic_block_builder, Some(v.expect_value()))?
             },
             Instruction::U32Popcnt => u32_ops::u32popcnt(basic_block_builder),
-            Instruction::U32Clz => u32_ops::u32clz(basic_block_builder, mast_forest_builder)?,
-            Instruction::U32Ctz => u32_ops::u32ctz(basic_block_builder, mast_forest_builder)?,
-            Instruction::U32Clo => u32_ops::u32clo(basic_block_builder, mast_forest_builder)?,
-            Instruction::U32Cto => u32_ops::u32cto(basic_block_builder, mast_forest_builder)?,
+            Instruction::U32Clz => u32_ops::u32clz(basic_block_builder)?,
+            Instruction::U32Ctz => u32_ops::u32ctz(basic_block_builder)?,
+            Instruction::U32Clo => u32_ops::u32clo(basic_block_builder)?,
+            Instruction::U32Cto => u32_ops::u32cto(basic_block_builder)?,
             Instruction::U32Lt => u32_ops::u32lt(basic_block_builder),
             Instruction::U32Lte => u32_ops::u32lte(basic_block_builder),
             Instruction::U32Gt => u32_ops::u32gt(basic_block_builder),
@@ -413,23 +403,15 @@ impl Assembler {
                 false,
             )?,
 
-            Instruction::AdvInject(injector) => {
-                adv_ops::adv_inject(basic_block_builder, injector, mast_forest_builder)?
-            },
+            Instruction::AdvInject(injector) => adv_ops::adv_inject(basic_block_builder, injector)?,
 
             // ----- cryptographic instructions ---------------------------------------------------
             Instruction::Hash => crypto_ops::hash(basic_block_builder),
             Instruction::HPerm => basic_block_builder.push_op(HPerm),
             Instruction::HMerge => crypto_ops::hmerge(basic_block_builder),
-            Instruction::MTreeGet => {
-                crypto_ops::mtree_get(basic_block_builder, mast_forest_builder)?
-            },
-            Instruction::MTreeSet => {
-                crypto_ops::mtree_set(basic_block_builder, mast_forest_builder)?
-            },
-            Instruction::MTreeMerge => {
-                crypto_ops::mtree_merge(basic_block_builder, mast_forest_builder)?
-            },
+            Instruction::MTreeGet => crypto_ops::mtree_get(basic_block_builder)?,
+            Instruction::MTreeSet => crypto_ops::mtree_set(basic_block_builder)?,
+            Instruction::MTreeMerge => crypto_ops::mtree_merge(basic_block_builder)?,
             Instruction::MTreeVerify => basic_block_builder.push_op(MpVerify(0)),
             Instruction::MTreeVerifyWithError(err_code) => {
                 basic_block_builder.push_op(MpVerify(err_code.expect_value()))
@@ -442,60 +424,68 @@ impl Assembler {
             // ----- exec/call instructions -------------------------------------------------------
             Instruction::Exec(ref callee) => {
                 return self
-                    .invoke(InvokeKind::Exec, callee, proc_ctx, mast_forest_builder)
+                    .invoke(
+                        InvokeKind::Exec,
+                        callee,
+                        proc_ctx,
+                        basic_block_builder.mast_forest_builder_mut(),
+                    )
                     .map(Into::into);
             },
             Instruction::Call(ref callee) => {
                 return self
-                    .invoke(InvokeKind::Call, callee, proc_ctx, mast_forest_builder)
+                    .invoke(
+                        InvokeKind::Call,
+                        callee,
+                        proc_ctx,
+                        basic_block_builder.mast_forest_builder_mut(),
+                    )
                     .map(Into::into);
             },
             Instruction::SysCall(ref callee) => {
                 return self
-                    .invoke(InvokeKind::SysCall, callee, proc_ctx, mast_forest_builder)
+                    .invoke(
+                        InvokeKind::SysCall,
+                        callee,
+                        proc_ctx,
+                        basic_block_builder.mast_forest_builder_mut(),
+                    )
                     .map(Into::into);
             },
-            Instruction::DynExec => return self.dynexec(mast_forest_builder),
-            Instruction::DynCall => return self.dyncall(mast_forest_builder),
+            Instruction::DynExec => {
+                return self.dynexec(basic_block_builder.mast_forest_builder_mut())
+            },
+            Instruction::DynCall => {
+                return self.dyncall(basic_block_builder.mast_forest_builder_mut())
+            },
             Instruction::ProcRef(ref callee) => {
-                self.procref(callee, proc_ctx, basic_block_builder, mast_forest_builder)?
+                self.procref(callee, proc_ctx, basic_block_builder)?
             },
 
             // ----- debug decorators -------------------------------------------------------------
             Instruction::Breakpoint => {
                 if self.in_debug_mode() {
                     basic_block_builder.push_op(Noop);
-                    basic_block_builder.track_instruction(
-                        instruction,
-                        proc_ctx,
-                        mast_forest_builder,
-                    )?;
+                    basic_block_builder.track_instruction(instruction, proc_ctx)?;
                 }
             },
 
             Instruction::Debug(options) => {
                 if self.in_debug_mode() {
-                    basic_block_builder.push_decorator(
-                        Decorator::Debug(options.clone().try_into().expect("unresolved constant")),
-                        mast_forest_builder,
-                    )?;
+                    basic_block_builder.push_decorator(Decorator::Debug(
+                        options.clone().try_into().expect("unresolved constant"),
+                    ))?;
                 }
             },
 
             // ----- emit instruction -------------------------------------------------------------
             Instruction::Emit(event_id) => {
-                basic_block_builder.push_decorator(
-                    Decorator::Event(event_id.expect_value()),
-                    mast_forest_builder,
-                )?;
+                basic_block_builder.push_decorator(Decorator::Event(event_id.expect_value()))?;
             },
 
             // ----- trace instruction ------------------------------------------------------------
             Instruction::Trace(trace_id) => {
-                basic_block_builder.push_decorator(
-                    Decorator::Trace(trace_id.expect_value()),
-                    mast_forest_builder,
-                )?;
+                basic_block_builder.push_decorator(Decorator::Trace(trace_id.expect_value()))?;
             },
         }
 

@@ -1,7 +1,7 @@
 use vm_core::{AdviceInjector::Ext2Inv, Operation::*};
 
 use super::BasicBlockBuilder;
-use crate::{assembler::mast_forest_builder::MastForestBuilder, AssemblyError};
+use crate::AssemblyError;
 
 /// Given a stack in the following initial configuration [b1, b0, a1, a0, ...] where a = (a0, a1)
 /// and b = (b0, b1) represent elements in the extension field of degree 2, this series of
@@ -53,11 +53,8 @@ pub fn ext2_mul(span: &mut BasicBlockBuilder) {
 /// operations outputs the result c = (c1, c0) where c = a * b^-1.
 ///
 /// This operation takes 11 VM cycles.
-pub fn ext2_div(
-    span: &mut BasicBlockBuilder,
-    mast_forest_builder: &mut MastForestBuilder,
-) -> Result<(), AssemblyError> {
-    span.push_advice_injector(Ext2Inv, mast_forest_builder)?;
+pub fn ext2_div(basic_block_builder: &mut BasicBlockBuilder) -> Result<(), AssemblyError> {
+    basic_block_builder.push_advice_injector(Ext2Inv)?;
     #[rustfmt::skip]
     let ops = [
         AdvPop,         // [b0', b1, b0, a1, a0, ...]
@@ -72,7 +69,7 @@ pub fn ext2_div(
         Drop,           // [b0', a1*b1', a0*b0'...]
         Drop            // [a1*b1', a0*b0'...]
     ];
-    span.push_ops(ops);
+    basic_block_builder.push_ops(ops);
 
     Ok(())
 }
@@ -118,11 +115,8 @@ pub fn ext2_neg(span: &mut BasicBlockBuilder) {
 /// assert b  = (1, 0) | (1, 0) is the multiplicative identity of extension field.
 ///
 /// This operation takes 8 VM cycles.
-pub fn ext2_inv(
-    span: &mut BasicBlockBuilder,
-    mast_forest_builder: &mut MastForestBuilder,
-) -> Result<(), AssemblyError> {
-    span.push_advice_injector(Ext2Inv, mast_forest_builder)?;
+pub fn ext2_inv(basic_block_builder: &mut BasicBlockBuilder) -> Result<(), AssemblyError> {
+    basic_block_builder.push_advice_injector(Ext2Inv)?;
     #[rustfmt::skip]
     let ops = [
         AdvPop,         // [a0', a1, a0, ...]
@@ -134,7 +128,7 @@ pub fn ext2_inv(
         MovUp2,         // [1, a1', a0', ...]
         Assert(0),      // [a1', a0', ...]
     ];
-    span.push_ops(ops);
+    basic_block_builder.push_ops(ops);
 
     Ok(())
 }

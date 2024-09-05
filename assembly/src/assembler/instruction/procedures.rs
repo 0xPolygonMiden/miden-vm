@@ -60,14 +60,21 @@ impl Assembler {
         callee: &InvocationTarget,
         proc_ctx: &mut ProcedureContext,
         basic_block_builder: &mut BasicBlockBuilder,
-        mast_forest_builder: &mut MastForestBuilder,
     ) -> Result<(), AssemblyError> {
         let mast_root = {
-            let proc_body_id =
-                self.resolve_target(InvokeKind::ProcRef, callee, proc_ctx, mast_forest_builder)?;
+            let proc_body_id = self.resolve_target(
+                InvokeKind::ProcRef,
+                callee,
+                proc_ctx,
+                basic_block_builder.mast_forest_builder_mut(),
+            )?;
             // Note: it's ok to `unwrap()` here since `proc_body_id` was returned from
             // `mast_forest_builder`
-            mast_forest_builder.get_mast_node(proc_body_id).unwrap().digest()
+            basic_block_builder
+                .mast_forest_builder()
+                .get_mast_node(proc_body_id)
+                .unwrap()
+                .digest()
         };
 
         self.procref_mast_root(mast_root, basic_block_builder)

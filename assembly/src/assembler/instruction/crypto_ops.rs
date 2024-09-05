@@ -1,7 +1,7 @@
 use vm_core::{AdviceInjector, Operation::*};
 
 use super::BasicBlockBuilder;
-use crate::{assembler::mast_forest_builder::MastForestBuilder, AssemblyError};
+use crate::AssemblyError;
 
 // HASHING
 // ================================================================================================
@@ -112,13 +112,10 @@ pub(super) fn hmerge(span: &mut BasicBlockBuilder) {
 /// - root of the tree, 4 elements.
 ///
 /// This operation takes 9 VM cycles.
-pub(super) fn mtree_get(
-    span: &mut BasicBlockBuilder,
-    mast_forest_builder: &mut MastForestBuilder,
-) -> Result<(), AssemblyError> {
+pub(super) fn mtree_get(basic_block_builder: &mut BasicBlockBuilder) -> Result<(), AssemblyError> {
     // stack: [d, i, R, ...]
     // pops the value of the node we are looking for from the advice stack
-    read_mtree_node(span, mast_forest_builder)?;
+    read_mtree_node(basic_block_builder)?;
     #[rustfmt::skip]
     let ops = [
         // verify the node V for root R with depth d and index i
@@ -129,7 +126,7 @@ pub(super) fn mtree_get(
         // no longer needed => [V, R, ...]
         MovUp4, Drop, MovUp4, Drop,
     ];
-    span.push_ops(ops);
+    basic_block_builder.push_ops(ops);
 
     Ok(())
 }
@@ -147,14 +144,11 @@ pub(super) fn mtree_get(
 /// - new root of the tree after the update, 4 elements
 ///
 /// This operation takes 29 VM cycles.
-pub(super) fn mtree_set(
-    span: &mut BasicBlockBuilder,
-    mast_forest_builder: &mut MastForestBuilder,
-) -> Result<(), AssemblyError> {
+pub(super) fn mtree_set(basic_block_builder: &mut BasicBlockBuilder) -> Result<(), AssemblyError> {
     // stack: [d, i, R_old, V_new, ...]
 
     // stack: [V_old, R_new, ...] (29 cycles)
-    update_mtree(span, mast_forest_builder)
+    update_mtree(basic_block_builder)
 }
 
 /// Creates a new Merkle tree in the advice provider by combining trees with the specified roots.
@@ -171,18 +165,17 @@ pub(super) fn mtree_set(
 ///
 /// This operation takes 16 VM cycles.
 pub(super) fn mtree_merge(
-    span: &mut BasicBlockBuilder,
-    mast_forest_builder: &mut MastForestBuilder,
+    basic_block_builder: &mut BasicBlockBuilder,
 ) -> Result<(), AssemblyError> {
     // stack input:  [R_rhs, R_lhs, ...]
     // stack output: [R_merged, ...]
 
     // invoke the advice provider function to merge 2 Merkle trees defined by the roots on the top
     // of the operand stack
-    span.push_advice_injector(AdviceInjector::MerkleNodeMerge, mast_forest_builder)?;
+    basic_block_builder.push_advice_injector(AdviceInjector::MerkleNodeMerge)?;
 
     // perform the `hmerge`, updating the operand stack
-    hmerge(span);
+    hmerge(basic_block_builder);
 
     Ok(())
 }
@@ -207,17 +200,14 @@ pub(super) fn mtree_merge(
 /// - new value of the node, 4 elements (only in the case of mtree_set)
 ///
 /// This operation takes 4 VM cycles.
-fn read_mtree_node(
-    span: &mut BasicBlockBuilder,
-    mast_forest_builder: &mut MastForestBuilder,
-) -> Result<(), AssemblyError> {
+fn read_mtree_node(span: &mut BasicBlockBuilder) -> Result<(), AssemblyError> {
     // The stack should be arranged in the following way: [d, i, R, ...] so that the decorator
     // can fetch the node value from the root. In the `mtree.get` operation we have the stack in
     // the following format: [d, i, R], whereas in the case of `mtree.set` we would also have the
     // new node value post the tree root: [d, i, R, V_new]
     //
     // pops the value of the node we are looking for from the advice stack
-    span.push_advice_injector(AdviceInjector::MerkleNodeToStack, mast_forest_builder)?;
+    span.push_advice_injector(AdviceInjector::MerkleNodeToStack)?;
 
     // pops the old node value from advice the stack => MPVERIFY: [V_old, d, i, R, ...]
     // MRUPDATE: [V_old, d, i, R, V_new, ...]
@@ -230,16 +220,13 @@ fn read_mtree_node(
 /// and perform the mutation on the copied tree.
 ///
 /// This operation takes 29 VM cycles.
-fn update_mtree(
-    span: &mut BasicBlockBuilder,
-    mast_forest_builder: &mut MastForestBuilder,
-) -> Result<(), AssemblyError> {
+fn update_mtree(basic_block_builder: &mut BasicBlockBuilder) -> Result<(), AssemblyError> {
     // stack: [d, i, R_old, V_new, ...]
     // output: [R_new, R_old, V_new, V_old, ...]
 
     // Inject the old node value onto the stack for the call to MRUPDATE.
     // stack: [V_old, d, i, R_old, V_new, ...] (4 cycles)
-    read_mtree_node(span, mast_forest_builder)?;
+    read_mtree_node(basic_block_builder)?;
 
     #[rustfmt::skip]
     let ops = [
@@ -301,7 +288,7 @@ fn update_mtree(
     ];
 
     // stack: [V_old, R_new, ...] (25 cycles)
-    span.push_ops(ops);
+    basic_block_builder.push_ops(ops);
 
     Ok(())
 }
