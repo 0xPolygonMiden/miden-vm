@@ -314,14 +314,14 @@ pub fn u32ctz(span: &mut BasicBlockBuilder) {
     span.push_advice_injector(AdviceInjector::U32Ctz);
     span.push_op(AdvPop); // [ctz, n, ...]
 
-    calculate_ctz(span);
+    verify_ctz(span);
 }
 
 /// Translates `u32clo` assembly instruction to VM operations. `u32clo` counts the number of
 /// leading ones of the value using non-deterministic technique (i.e. it takes help of advice
 /// provider).
 ///
-/// This operation takes 36 VM cycles.
+/// This operation takes 41 VM cycles.
 pub fn u32clo(span: &mut BasicBlockBuilder) {
     span.push_advice_injector(AdviceInjector::U32Clo);
     span.push_op(AdvPop); // [clo, n, ...]
@@ -530,41 +530,41 @@ fn calculate_clz(span: &mut BasicBlockBuilder) {
 ///
 /// `[clo, n, ... ] -> [clo, ... ]`
 ///
-/// VM cycles: 35
+/// VM cycle: 40
 fn calculate_clo(span: &mut BasicBlockBuilder) {
     // [clo, n, ...]
     #[rustfmt::skip]
     let ops_group_1 = [
-        Swap, Push(32u8.into()), Dup2, Neg, Add // [32 - clo, n, clo, ...]
+        Push(32u8.into()), Dup1, Neg, Add // [32 - clo, clo, n, ...]
     ];
     span.push_ops(ops_group_1);
 
-    append_pow2_op(span); // [pow2(32 - clo), n, clo, ...]
+    append_pow2_op(span); // [pow2(32 - clo), clo, n, ...]
 
     #[rustfmt::skip]
     let ops_group_2 = [
-        Push(Felt::new(u32::MAX as u64 + 1)), // [2^32, pow2(32 - clo), n, clo, ...]
-
-        Dup1, Neg, Add, // [2^32 - pow2(32 - clo), pow2(32 - clo), n, clo, ...]
-                        // `2^32 - pow2(32 - clo)` is equal to `clo` leading ones and `32 - clo`
-                        // zeros:
-                        // 11111111...1110000...0
-                        // └─ clo ones ─┘
-
-        Swap, Push(2u8.into()), U32div, Drop, // [pow2(32 - clo) / 2, 2^32 - pow2(32 - clo), n, clo, ...]
-                                              // pow2(32 - clo) / 2 is equal to `clo` leading
-                                              // zeros, `1` one and all other zeros.
-
-        Dup1, Add, // [bit_mask, 2^32 - pow2(32 - clo), n, clo, ...]
-                   // 111111111...111000...0 <-- bitmask
-                   // └─ clo ones ─┘│
-                   //               └─ additional one
-
-        MovUp2, U32and, // [m, 2^32 - pow2(32 - clo), clo]
-                        // If calcualtion of `clo` is correct, m should be equal to
-                        // 2^32 - pow2(32 - clo)
-
-        Eq, Assert(0) // [clo, ...]
+        // 1. Obtain a mask for all `32 - clo` trailing bits
+        //
+        // #=> [2^(32 - clo) - 1, clo, n]
+        Push(1u8.into()), Neg, Add,
+        // 2. Obtain a mask for `32 - clo - 1` trailing bits
+        //
+        // #=> [(2^(32 - clo) - 1) / 2, 2^(32 - clo) - 1, clo, n]
+        Dup0, Push(2u8.into()), U32div, Drop,
+        // 3. Invert the mask from Step 2, to get one that covers `clo + 1` leading bits
+        //
+        // #=> [u32::MAX - ((2^(32 - clo) - 1) / 2), 2^(32 - clo) - 1, clo, n]
+        Push(u32::MAX.into()), Swap, Neg, Add,
+        // 4. Apply the mask to the input value
+        //
+        // #=> [n & mask, 2^(32 - clo) - 1, clo]
+        MovUp3, U32and,
+        // 5. Invert the mask from Step 1, to get one  that covers `clo` leading bits
+        //
+        // #=> [u32::MAX - 2^(32 - clo) - 1, n & mask, clo]
+        Push(u32::MAX.into()), MovUp2, Neg, Add,
+        // 6. Assert that the masked input, and the mask representing `clo` leading ones, are equal
+        Eq, Assert(0),
     ];
 
     span.push_ops(ops_group_2);
