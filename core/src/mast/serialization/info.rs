@@ -1,7 +1,7 @@
 use miden_crypto::hash::rpo::RpoDigest;
 use winter_utils::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable};
 
-use super::{basic_block_data_decoder::BasicBlockDataDecoder, DataOffset};
+use super::{basic_block_data_decoder::BasicBlockDataDecoder, NodeDataOffset};
 use crate::mast::{
     BasicBlockNode, CallNode, JoinNode, LoopNode, MastForest, MastNode, MastNodeId, SplitNode,
 };
@@ -21,7 +21,7 @@ pub struct MastNodeInfo {
 }
 
 impl MastNodeInfo {
-    pub fn new(mast_node: &MastNode, basic_block_offset: DataOffset) -> Self {
+    pub fn new(mast_node: &MastNode, basic_block_offset: NodeDataOffset) -> Self {
         let ty = MastNodeType::new(mast_node, basic_block_offset);
 
         Self { ty, digest: mast_node.digest() }

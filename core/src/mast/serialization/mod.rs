@@ -21,11 +21,11 @@ mod tests;
 // TYPE ALIASES
 // ================================================================================================
 
-/// Specifies an offset into the `data` section of an encoded [`MastForest`].
-type DataOffset = u32;
+/// Specifies an offset into the `node_data` section of an encoded [`MastForest`].
+type NodeDataOffset = u32;
 
-/// Specifies an offset into the `strings` table of an encoded [`MastForest`]
-type StringIndex = usize;
+/// Specifies an offset into the `strings_data` section of an encoded [`MastForest`].
+type StringDataOffset = usize;
 
 // CONSTANTS
 // ================================================================================================
@@ -75,10 +75,10 @@ impl Serializable for MastForest {
             })
             .collect();
 
-        let (data, string_table) = basic_block_data_builder.into_parts();
+        let (node_data, strings_data) = basic_block_data_builder.into_parts();
 
-        string_table.write_into(target);
-        data.write_into(target);
+        node_data.write_into(target);
+        strings_data.write_into(target);
 
         for mast_node_info in mast_node_infos {
             mast_node_info.write_into(target);
@@ -105,10 +105,10 @@ impl Deserializable for MastForest {
 
         let node_count = source.read_usize()?;
         let roots: Vec<u32> = Deserializable::read_from(source)?;
-        let strings: Vec<DataOffset> = Deserializable::read_from(source)?;
-        let data: Vec<u8> = Deserializable::read_from(source)?;
+        let node_data: Vec<u8> = Deserializable::read_from(source)?;
+        let strings_data: Vec<u8> = Deserializable::read_from(source)?;
 
-        let basic_block_data_decoder = BasicBlockDataDecoder::new(&data, &strings);
+        let basic_block_data_decoder = BasicBlockDataDecoder::new(&node_data, &strings_data);
 
         let mast_forest = {
             let mut mast_forest = MastForest::new();

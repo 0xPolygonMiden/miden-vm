@@ -4,15 +4,15 @@ use core::cell::RefCell;
 use miden_crypto::Felt;
 use winter_utils::{ByteReader, Deserializable, DeserializationError, SliceReader};
 
-use super::{decorator::EncodedDecoratorVariant, DataOffset, StringIndex};
+use super::{decorator::EncodedDecoratorVariant, NodeDataOffset, StringDataOffset};
 use crate::{
     mast::MastForest, AdviceInjector, AssemblyOp, DebugOptions, Decorator, DecoratorList,
     Operation, SignatureKind,
 };
 
 pub struct BasicBlockDataDecoder<'a> {
-    data: &'a [u8],
-    strings: &'a [DataOffset],
+    node_data: &'a [u8],
+    strings_data: &'a [u8],
     /// This field is used to allocate an `Arc` for any string in `strings` where the decoder
     /// requests a reference-counted string rather than a fresh allocation as a `String`.
     ///
@@ -29,10 +29,10 @@ pub struct BasicBlockDataDecoder<'a> {
 
 /// Constructors
 impl<'a> BasicBlockDataDecoder<'a> {
-    pub fn new(data: &'a [u8], strings: &'a [DataOffset]) -> Self {
-        let mut refc_strings = Vec::with_capacity(strings.len());
-        refc_strings.resize(strings.len(), RefCell::new(None));
-        Self { data, strings, refc_strings }
+    pub fn new(node_data: &'a [u8], strings_data: &'a [u8]) -> Self {
+        let mut refc_strings = Vec::with_capacity(strings_data.len());
+        refc_strings.resize(strings_data.len(), RefCell::new(None));
+        Self { node_data, strings_data, refc_strings }
     }
 }
 
@@ -40,14 +40,14 @@ impl<'a> BasicBlockDataDecoder<'a> {
 impl<'a> BasicBlockDataDecoder<'a> {
     pub fn decode_operations_and_decorators(
         &self,
-        offset: DataOffset,
+        offset: NodeDataOffset,
         num_to_decode: u32,
         mast_forest: &mut MastForest,
     ) -> Result<(Vec<Operation>, DecoratorList), DeserializationError> {
         let mut operations: Vec<Operation> = Vec::new();
         let mut decorators: DecoratorList = Vec::new();
 
-        let mut data_reader = SliceReader::new(&self.data[offset as usize..]);
+        let mut data_reader = SliceReader::new(&self.node_data[offset as usize..]);
         for _ in 0..num_to_decode {
             let first_byte = data_reader.peek_u8()?;
 
@@ -229,23 +229,20 @@ impl<'a> BasicBlockDataDecoder<'a> {
         }
     }
 
-    fn read_arc_str(&self, str_idx: StringIndex) -> Result<Arc<str>, DeserializationError> {
-        if let Some(cached) = self.refc_strings.get(str_idx).and_then(|cell| cell.borrow().clone())
+    fn read_arc_str(&self, str_offset: StringDataOffset) -> Result<Arc<str>, DeserializationError> {
+        if let Some(cached) =
+            self.refc_strings.get(str_offset).and_then(|cell| cell.borrow().clone())
         {
             return Ok(cached);
         }
 
-        let string = Arc::from(self.read_string(str_idx)?.into_boxed_str());
-        *self.refc_strings[str_idx].borrow_mut() = Some(Arc::clone(&string));
+        let string = Arc::from(self.read_string(str_offset)?.into_boxed_str());
+        *self.refc_strings[str_offset].borrow_mut() = Some(Arc::clone(&string));
         Ok(string)
     }
 
-    fn read_string(&self, str_idx: StringIndex) -> Result<String, DeserializationError> {
-        let str_offset = self.strings.get(str_idx).copied().ok_or_else(|| {
-            DeserializationError::InvalidValue(format!("invalid index in strings table: {str_idx}"))
-        })? as usize;
-
-        let mut reader = SliceReader::new(&self.data[str_offset..]);
+    fn read_string(&self, str_offset: StringDataOffset) -> Result<String, DeserializationError> {
+        let mut reader = SliceReader::new(&self.strings_data[str_offset..]);
         reader.read()
     }
 }
