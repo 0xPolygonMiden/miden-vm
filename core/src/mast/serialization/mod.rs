@@ -10,7 +10,7 @@ mod info;
 use info::MastNodeInfo;
 
 mod basic_block_data_builder;
-use basic_block_data_builder::BasicBlockDataBuilder;
+use basic_block_data_builder::{BasicBlockDataBuilder, StringTableBuilder};
 
 mod basic_block_data_decoder;
 use basic_block_data_decoder::BasicBlockDataDecoder;
@@ -46,6 +46,7 @@ const VERSION: [u8; 3] = [0, 0, 0];
 impl Serializable for MastForest {
     fn write_into<W: ByteWriter>(&self, target: &mut W) {
         let mut basic_block_data_builder = BasicBlockDataBuilder::new();
+        let mut string_table_builder = StringTableBuilder::default();
 
         // magic & version
         target.write_bytes(MAGIC);
@@ -68,14 +69,19 @@ impl Serializable for MastForest {
                     MastNodeInfo::new(mast_node, basic_block_data_builder.get_offset());
 
                 if let MastNode::Block(basic_block) = mast_node {
-                    basic_block_data_builder.encode_basic_block(basic_block, self);
+                    basic_block_data_builder.encode_basic_block(
+                        basic_block,
+                        self,
+                        &mut string_table_builder,
+                    );
                 }
 
                 mast_node_info
             })
             .collect();
 
-        let (node_data, strings_data) = basic_block_data_builder.into_parts();
+        let node_data = basic_block_data_builder.finalize();
+        let strings_data = string_table_builder.into_table();
 
         node_data.write_into(target);
         strings_data.write_into(target);

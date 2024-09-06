@@ -16,7 +16,6 @@ use crate::{
 #[derive(Debug, Default)]
 pub struct BasicBlockDataBuilder {
     node_data: Vec<u8>,
-    string_table_builder: StringTableBuilder,
 }
 
 /// Constructors
@@ -37,7 +36,12 @@ impl BasicBlockDataBuilder {
 /// Mutators
 impl BasicBlockDataBuilder {
     /// Encodes a [`BasicBlockNode`] into the serialized [`crate::mast::MastForest`] data field.
-    pub fn encode_basic_block(&mut self, basic_block: &BasicBlockNode, mast_forest: &MastForest) {
+    pub fn encode_basic_block(
+        &mut self,
+        basic_block: &BasicBlockNode,
+        mast_forest: &MastForest,
+        string_table_builder: &mut StringTableBuilder,
+    ) {
         // 2nd part of `mast_node_to_info()` (inside the match)
         for op_or_decorator in basic_block.iter() {
             match op_or_decorator {
@@ -45,23 +49,25 @@ impl BasicBlockDataBuilder {
                     operation.write_into(&mut self.node_data)
                 },
                 OperationOrDecorator::Decorator(&decorator_id) => {
-                    self.encode_decorator(&mast_forest[decorator_id])
+                    self.encode_decorator(&mast_forest[decorator_id], string_table_builder)
                 },
             }
         }
     }
 
-    // TODO(plafer): Make nice types for `Vec<u8>`
-    /// Returns the serialized [`crate::mast::MastForest`] data field, as well as the string table.
-    pub fn into_parts(self) -> (Vec<u8>, Vec<u8>) {
-        let string_table = self.string_table_builder.into_table();
-        (self.node_data, string_table)
+    /// Returns the serialized [`crate::mast::MastForest`] nod data field.
+    pub fn finalize(self) -> Vec<u8> {
+        self.node_data
     }
 }
 
 /// Helpers
 impl BasicBlockDataBuilder {
-    fn encode_decorator(&mut self, decorator: &Decorator) {
+    fn encode_decorator(
+        &mut self,
+        decorator: &Decorator,
+        string_table_builder: &mut StringTableBuilder,
+    ) {
         // Set the first byte to the decorator discriminant.
         {
             let decorator_variant: EncodedDecoratorVariant = decorator.into();
@@ -108,7 +114,7 @@ impl BasicBlockDataBuilder {
                 let loc = assembly_op.location();
                 self.node_data.write_bool(loc.is_some());
                 if let Some(loc) = loc {
-                    let str_offset = self.string_table_builder.add_string(loc.path.as_ref());
+                    let str_offset = string_table_builder.add_string(loc.path.as_ref());
                     self.node_data.write_usize(str_offset);
                     self.node_data.write_u32(loc.start.to_u32());
                     self.node_data.write_u32(loc.end.to_u32());
@@ -116,14 +122,13 @@ impl BasicBlockDataBuilder {
 
                 // context name
                 {
-                    let str_offset =
-                        self.string_table_builder.add_string(assembly_op.context_name());
+                    let str_offset = string_table_builder.add_string(assembly_op.context_name());
                     self.node_data.write_usize(str_offset);
                 }
 
                 // op
                 {
-                    let str_index_in_table = self.string_table_builder.add_string(assembly_op.op());
+                    let str_index_in_table = string_table_builder.add_string(assembly_op.op());
                     self.node_data.write_usize(str_index_in_table);
                 }
             },
@@ -151,7 +156,7 @@ impl BasicBlockDataBuilder {
 // ================================================================================================
 
 #[derive(Debug, Default)]
-struct StringTableBuilder {
+pub struct StringTableBuilder {
     str_to_offset: BTreeMap<Blake3Digest<32>, StringDataOffset>,
     strings_data: Vec<u8>,
 }
