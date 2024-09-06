@@ -1,6 +1,5 @@
-use core::cell::RefCell;
-
 use alloc::{collections::BTreeMap, string::String, sync::Arc, vec::Vec};
+use core::cell::RefCell;
 
 use miden_crypto::hash::blake::{Blake3Digest, Blake3_256};
 use winter_utils::{
@@ -30,14 +29,18 @@ impl StringTable {
     pub fn new(data: Vec<u8>) -> Self {
         // TODO(plafer): we no longer store the strings table (i.e. where all strings start), so
         // this is *way* bigger than it needs to be. It is currently *correct* but very memory
-        // inefficient. Bring back string table (with offsets), or use a `BTreeMap<usize, RefCell<_>>`.
+        // inefficient. Bring back string table (with offsets), or use a `BTreeMap<usize,
+        // RefCell<_>>`.
         let mut refc_strings = Vec::with_capacity(data.len());
         refc_strings.resize(data.len(), RefCell::new(None));
 
         Self { data, refc_strings }
     }
 
-    pub fn read_arc_str(&self, str_offset: StringDataOffset) -> Result<Arc<str>, DeserializationError> {
+    pub fn read_arc_str(
+        &self,
+        str_offset: StringDataOffset,
+    ) -> Result<Arc<str>, DeserializationError> {
         if let Some(cached) =
             self.refc_strings.get(str_offset).and_then(|cell| cell.borrow().clone())
         {
@@ -49,7 +52,10 @@ impl StringTable {
         Ok(string)
     }
 
-    pub fn read_string(&self, str_offset: StringDataOffset) -> Result<String, DeserializationError> {
+    pub fn read_string(
+        &self,
+        str_offset: StringDataOffset,
+    ) -> Result<String, DeserializationError> {
         let mut reader = SliceReader::new(&self.data[str_offset..]);
         reader.read()
     }

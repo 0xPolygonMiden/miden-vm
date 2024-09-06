@@ -214,8 +214,8 @@ impl Assembler {
     /// calls to library procedures will be compiled down to a [`vm_core::mast::ExternalNode`] (i.e.
     /// a reference to the procedure's MAST root). This means that when executing a program compiled
     /// against a library, the processor will not be able to differentiate procedures with the same
-    /// MAST root but different decorators. 
-    /// 
+    /// MAST root but different decorators.
+    ///
     /// Hence, it is not recommended to export two procedures that have the same MAST root (i.e. are
     /// identical except for their decorators). Note however that we don't expect this scenario to
     /// be frequent in practice. For example, this could occur when APIs are being renamed and/or
