@@ -1,9 +1,8 @@
-use alloc::{collections::BTreeMap, vec::Vec};
+use alloc::vec::Vec;
 
-use miden_crypto::hash::blake::{Blake3Digest, Blake3_256};
 use winter_utils::{ByteWriter, Serializable};
 
-use super::{decorator::EncodedDecoratorVariant, NodeDataOffset, StringDataOffset};
+use super::{decorator::EncodedDecoratorVariant, string_table::StringTableBuilder, NodeDataOffset};
 use crate::{
     mast::{BasicBlockNode, MastForest, OperationOrDecorator},
     AdviceInjector, DebugOptions, Decorator, SignatureKind,
@@ -149,36 +148,5 @@ impl BasicBlockDataBuilder {
                 self.node_data.extend(value.to_le_bytes())
             },
         }
-    }
-}
-
-// STRING TABLE BUILDER
-// ================================================================================================
-
-#[derive(Debug, Default)]
-pub struct StringTableBuilder {
-    str_to_offset: BTreeMap<Blake3Digest<32>, StringDataOffset>,
-    strings_data: Vec<u8>,
-}
-
-impl StringTableBuilder {
-    pub fn add_string(&mut self, string: &str) -> StringDataOffset {
-        if let Some(str_idx) = self.str_to_offset.get(&Blake3_256::hash(string.as_bytes())) {
-            // return already interned string
-            *str_idx
-        } else {
-            // add new string to table
-            let str_offset = self.strings_data.len();
-            assert!(str_offset <= u32::MAX as usize, "strings table larger than 2^32 bytes");
-
-            string.write_into(&mut self.strings_data);
-            self.str_to_offset.insert(Blake3_256::hash(string.as_bytes()), str_offset);
-
-            str_offset
-        }
-    }
-
-    pub fn into_table(self) -> Vec<u8> {
-        self.strings_data
     }
 }

@@ -1,5 +1,6 @@
 use alloc::vec::Vec;
 
+use string_table::{StringTable, StringTableBuilder};
 use winter_utils::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable};
 
 use super::{MastForest, MastNode, MastNodeId};
@@ -10,10 +11,12 @@ mod info;
 use info::MastNodeInfo;
 
 mod basic_block_data_builder;
-use basic_block_data_builder::{BasicBlockDataBuilder, StringTableBuilder};
+use basic_block_data_builder::BasicBlockDataBuilder;
 
 mod basic_block_data_decoder;
 use basic_block_data_decoder::BasicBlockDataDecoder;
+
+mod string_table;
 
 #[cfg(test)]
 mod tests;
@@ -81,10 +84,10 @@ impl Serializable for MastForest {
             .collect();
 
         let node_data = basic_block_data_builder.finalize();
-        let strings_data = string_table_builder.into_table();
+        let string_table = string_table_builder.into_table();
 
         node_data.write_into(target);
-        strings_data.write_into(target);
+        string_table.write_into(target);
 
         for mast_node_info in mast_node_infos {
             mast_node_info.write_into(target);
@@ -112,9 +115,9 @@ impl Deserializable for MastForest {
         let node_count = source.read_usize()?;
         let roots: Vec<u32> = Deserializable::read_from(source)?;
         let node_data: Vec<u8> = Deserializable::read_from(source)?;
-        let strings_data: Vec<u8> = Deserializable::read_from(source)?;
+        let string_table: StringTable = Deserializable::read_from(source)?;
 
-        let basic_block_data_decoder = BasicBlockDataDecoder::new(&node_data, &strings_data);
+        let basic_block_data_decoder = BasicBlockDataDecoder::new(&node_data, &string_table);
 
         let mast_forest = {
             let mut mast_forest = MastForest::new();
