@@ -6,6 +6,8 @@
 
 - [BREAKING] Wrapped `MastForest`s in `Program` and `Library` structs in `Arc` (#1465).
 - `MastForestBuilder`: use `MastNodeId` instead of MAST root to uniquely identify procedures (#1473)
+- Added `miden_core::utils::sync::racy_lock` module (#1463).
+- Updated `miden_core::utils` to re-export `std::sync::LazyLock` and `racy_lock::RacyLock as LazyLock` for std and no_std environments, respectively (#1463).
 
 #### Fixes
 

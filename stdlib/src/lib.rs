@@ -4,12 +4,17 @@ extern crate alloc;
 
 use alloc::sync::Arc;
 
-use assembly::{mast::MastForest, utils::Deserializable, Library};
+use assembly::{
+    mast::MastForest,
+    utils::{sync::LazyLock, Deserializable},
+    Library,
+};
 
 // STANDARD LIBRARY
 // ================================================================================================
 
 /// TODO: add docs
+#[derive(Clone)]
 pub struct StdLibrary(Library);
 
 impl AsRef<Library> for StdLibrary {
@@ -37,7 +42,12 @@ impl StdLibrary {
 
 impl Default for StdLibrary {
     fn default() -> Self {
-        Self(Library::read_from_bytes(Self::SERIALIZED).expect("failed to deserialize stdlib"))
+        static STDLIB: LazyLock<StdLibrary> = LazyLock::new(|| {
+            let contents =
+                Library::read_from_bytes(StdLibrary::SERIALIZED).expect("failed to read std masl!");
+            StdLibrary(contents)
+        });
+        STDLIB.clone()
     }
 }
 
