@@ -6,14 +6,14 @@ use core::{
     sync::atomic::{AtomicPtr, Ordering},
 };
 
-/// Thread-safe, non-blocking, lazily evaluated lock with the same interface as
-/// `std::sync::LazyLock`.
+/// Thread-safe, non-blocking, lazily evaluated lock with the same interface
+/// as [`std::sync::LazyLock`].
 ///
 /// Concurrent threads will race to set the value atomically, and memory allocated by losing threads
 /// will be dropped immediately after they fail to set the pointer.
 ///
 /// The underlying implementation is based on `once_cell::race::OnceBox` which relies on
-/// `core::atomic::AtomicPtr` to ensure that the data race results in a single successful
+/// [`core::sync::atomic::AtomicPtr`] to ensure that the data race results in a single successful
 /// write to the relevant pointer, namely the first write.
 /// See <https://github.com/matklad/once_cell/blob/v1.19.0/src/race.rs#L294>.
 ///
