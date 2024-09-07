@@ -568,7 +568,7 @@ end
 #! error.
 #! Stack transition looks as follows:
 #! [b, a_hi, a_lo, ...] -> [c_hi, c_lo, ...], where c = a << b mod 2^64.
-#! This takes 40 cycles.
+#! This takes 44 cycles.
 export.rotr
     push.31
     dup.1
@@ -609,7 +609,7 @@ end
 #! The input value is assumed to be represented using 32 bit limbs, but this is not checked.
 #! Stack transition looks as follows:
 #! [n_hi, n_lo, ...] -> [clz, ...], where clz is a number of leading zeros of value n.
-#! This takes 43 cycles.
+#! This takes 48 cycles.
 export.clz
     dup.0
     eq.0
@@ -650,7 +650,7 @@ end
 #! The input value is assumed to be represented using 32 bit limbs, but this is not checked.
 #! Stack transition looks as follows:
 #! [n_hi, n_lo, ...] -> [clo, ...], where clo is a number of leading ones of value n.
-#! This takes 42 cycles.
+#! This takes 47 cycles.
 export.clo
     dup.0
     eq.4294967295
