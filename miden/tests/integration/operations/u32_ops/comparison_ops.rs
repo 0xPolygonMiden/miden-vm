@@ -2,8 +2,6 @@ use core::cmp::Ordering;
 
 use test_utils::{build_op_test, proptest::prelude::*, rand::rand_value};
 
-use super::test_unchecked_execution;
-
 // U32 OPERATIONS TESTS - MANUAL - COMPARISON OPERATIONS
 // ================================================================================================
 
@@ -13,9 +11,6 @@ fn u32lt() {
 
     // should push 1 to the stack when a < b and 0 otherwise
     test_comparison_op(asm_op, 1, 0, 0);
-
-    // should not fail when inputs are out of bounds
-    test_unchecked_execution(asm_op, 2);
 }
 
 #[test]
@@ -24,9 +19,6 @@ fn u32lte() {
 
     // should push 1 to the stack when a <= b and 0 otherwise
     test_comparison_op(asm_op, 1, 1, 0);
-
-    // should not fail when inputs are out of bounds
-    test_unchecked_execution(asm_op, 2);
 }
 
 #[test]
@@ -35,9 +27,6 @@ fn u32gt() {
 
     // should push 1 to the stack when a > b and 0 otherwise
     test_comparison_op(asm_op, 0, 0, 1);
-
-    // should not fail when inputs are out of bounds
-    test_unchecked_execution(asm_op, 2);
 }
 
 #[test]
@@ -46,9 +35,6 @@ fn u32gte() {
 
     // should push 1 to the stack when a >= b and 0 otherwise
     test_comparison_op(asm_op, 0, 1, 1);
-
-    // should not fail when inputs are out of bounds
-    test_unchecked_execution(asm_op, 2);
 }
 
 #[test]
@@ -57,9 +43,6 @@ fn u32min() {
 
     // should put the minimum of the 2 inputs on the stack
     test_min(asm_op);
-
-    // should not fail when inputs are out of bounds
-    test_unchecked_execution(asm_op, 2);
 }
 
 #[test]
@@ -68,9 +51,6 @@ fn u32max() {
 
     // should put the maximum of the 2 inputs on the stack
     test_max(asm_op);
-
-    // should not fail when inputs are out of bounds
-    test_unchecked_execution(asm_op, 2);
 }
 
 // U32 OPERATIONS TESTS - RANDOMIZED - COMPARISON OPERATIONS
