@@ -302,7 +302,7 @@ pub fn u32clz(span: &mut BasicBlockBuilder) {
     span.push_advice_injector(AdviceInjector::U32Clz);
     span.push_op(AdvPop); // [clz, n, ...]
 
-    calculate_clz(span);
+    verify_clz(span);
 }
 
 /// Translates `u32ctz` assembly instruction to VM operations. `u32ctz` counts the number of
@@ -326,7 +326,7 @@ pub fn u32clo(span: &mut BasicBlockBuilder) {
     span.push_advice_injector(AdviceInjector::U32Clo);
     span.push_op(AdvPop); // [clo, n, ...]
 
-    calculate_clo(span);
+    verify_clo(span);
 }
 
 /// Translates `u32cto` assembly instruction to VM operations. `u32cto` counts the number of
@@ -338,7 +338,7 @@ pub fn u32cto(span: &mut BasicBlockBuilder) {
     span.push_advice_injector(AdviceInjector::U32Cto);
     span.push_op(AdvPop); // [cto, n, ...]
 
-    calculate_cto(span);
+    verify_cto(span);
 }
 
 /// Specifically handles these specific inputs per the spec.
@@ -450,7 +450,7 @@ fn prepare_bitwise<const MAX_VALUE: u8>(
 /// `[clz, n, ... ] -> [clz, ... ]`
 ///
 /// VM cycles: 42
-fn calculate_clz(span: &mut BasicBlockBuilder) {
+fn verify_clz(span: &mut BasicBlockBuilder) {
     // [clz, n, ...]
     #[rustfmt::skip]
     let ops_group_1 = [
@@ -531,7 +531,7 @@ fn calculate_clz(span: &mut BasicBlockBuilder) {
 /// `[clo, n, ... ] -> [clo, ... ]`
 ///
 /// VM cycle: 40
-fn calculate_clo(span: &mut BasicBlockBuilder) {
+fn verify_clo(span: &mut BasicBlockBuilder) {
     // [clo, n, ...]
     #[rustfmt::skip]
     let ops_group_1 = [
@@ -606,7 +606,7 @@ fn calculate_clo(span: &mut BasicBlockBuilder) {
 /// `[ctz, n, ... ] -> [ctz, ... ]`
 ///
 /// VM cycles: 33
-fn calculate_ctz(span: &mut BasicBlockBuilder) {
+fn verify_ctz(span: &mut BasicBlockBuilder) {
     // [ctz, n, ...]
     #[rustfmt::skip]
     let ops_group_1 = [
@@ -680,7 +680,7 @@ fn calculate_ctz(span: &mut BasicBlockBuilder) {
 /// `[cto, n, ... ] -> [cto, ... ]`
 ///
 /// VM cycles: 32
-fn calculate_cto(span: &mut BasicBlockBuilder) {
+fn verify_cto(span: &mut BasicBlockBuilder) {
     // [cto, n, ...]
     #[rustfmt::skip]
     let ops_group_1 = [
