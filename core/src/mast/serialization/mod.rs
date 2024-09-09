@@ -11,11 +11,8 @@ mod decorator;
 mod info;
 use info::MastNodeInfo;
 
-mod basic_block_data_builder;
-use basic_block_data_builder::BasicBlockDataBuilder;
-
-mod basic_block_data_decoder;
-use basic_block_data_decoder::BasicBlockDataDecoder;
+mod basic_blocks;
+use basic_blocks::{BasicBlockDataBuilder, BasicBlockDataDecoder};
 
 mod string_table;
 
