@@ -6,10 +6,12 @@ use winter_utils::{
     ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable, SliceReader,
 };
 
-use super::StringDataOffset;
+use super::{StringDataOffset, StringIndex};
 
 pub struct StringTable {
     data: Vec<u8>,
+
+    table: Vec<StringIndex>,
 
     /// This field is used to allocate an `Arc` for any string in `strings` where the decoder
     /// requests a reference-counted string rather than a fresh allocation as a `String`.
@@ -26,36 +28,29 @@ pub struct StringTable {
 }
 
 impl StringTable {
-    pub fn new(data: Vec<u8>) -> Self {
-        // TODO(plafer): we no longer store the strings table (i.e. where all strings start), so
-        // this is *way* bigger than it needs to be. It is currently *correct* but very memory
-        // inefficient. Bring back string table (with offsets), or use a `BTreeMap<usize,
-        // RefCell<_>>`.
-        let mut refc_strings = Vec::with_capacity(data.len());
-        refc_strings.resize(data.len(), RefCell::new(None));
+    pub fn new(table: Vec<StringIndex>, data: Vec<u8>) -> Self {
+        let mut refc_strings = Vec::with_capacity(table.len());
+        refc_strings.resize(table.len(), RefCell::new(None));
 
-        Self { data, refc_strings }
+        Self { table, data, refc_strings }
     }
 
-    pub fn read_arc_str(
-        &self,
-        str_offset: StringDataOffset,
-    ) -> Result<Arc<str>, DeserializationError> {
-        if let Some(cached) =
-            self.refc_strings.get(str_offset).and_then(|cell| cell.borrow().clone())
+    pub fn read_arc_str(&self, str_idx: StringIndex) -> Result<Arc<str>, DeserializationError> {
+        if let Some(cached) = self.refc_strings.get(str_idx).and_then(|cell| cell.borrow().clone())
         {
             return Ok(cached);
         }
 
-        let string = Arc::from(self.read_string(str_offset)?.into_boxed_str());
-        *self.refc_strings[str_offset].borrow_mut() = Some(Arc::clone(&string));
+        let string = Arc::from(self.read_string(str_idx)?.into_boxed_str());
+        *self.refc_strings[str_idx].borrow_mut() = Some(Arc::clone(&string));
         Ok(string)
     }
 
-    pub fn read_string(
-        &self,
-        str_offset: StringDataOffset,
-    ) -> Result<String, DeserializationError> {
+    pub fn read_string(&self, str_idx: StringIndex) -> Result<String, DeserializationError> {
+        let str_offset = self.table.get(str_idx).copied().ok_or_else(|| {
+            DeserializationError::InvalidValue(format!("invalid index in strings table: {str_idx}"))
+        })? as usize;
+
         let mut reader = SliceReader::new(&self.data[str_offset..]);
         reader.read()
     }
@@ -63,17 +58,19 @@ impl StringTable {
 
 impl Serializable for StringTable {
     fn write_into<W: ByteWriter>(&self, target: &mut W) {
-        let Self { data, refc_strings: _ } = self;
+        let Self { table, data, refc_strings: _ } = self;
 
+        table.write_into(target);
         data.write_into(target);
     }
 }
 
 impl Deserializable for StringTable {
     fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
+        let table = source.read()?;
         let data = source.read()?;
 
-        Ok(Self::new(data))
+        Ok(Self::new(table, data))
     }
 }
 
@@ -82,28 +79,35 @@ impl Deserializable for StringTable {
 
 #[derive(Debug, Default)]
 pub struct StringTableBuilder {
-    str_to_offset: BTreeMap<Blake3Digest<32>, StringDataOffset>,
+    table: Vec<StringDataOffset>,
+    str_to_index: BTreeMap<Blake3Digest<32>, StringIndex>,
     strings_data: Vec<u8>,
 }
 
 impl StringTableBuilder {
-    pub fn add_string(&mut self, string: &str) -> StringDataOffset {
-        if let Some(str_idx) = self.str_to_offset.get(&Blake3_256::hash(string.as_bytes())) {
+    pub fn add_string(&mut self, string: &str) -> StringIndex {
+        if let Some(str_idx) = self.str_to_index.get(&Blake3_256::hash(string.as_bytes())) {
             // return already interned string
             *str_idx
         } else {
             // add new string to table
-            let str_offset = self.strings_data.len();
-            assert!(str_offset <= u32::MAX as usize, "strings table larger than 2^32 bytes");
+            let str_offset = self
+                .strings_data
+                .len()
+                .try_into()
+                .expect("strings table larger than 2^32 bytes");
+
+            let str_idx = self.table.len();
 
             string.write_into(&mut self.strings_data);
-            self.str_to_offset.insert(Blake3_256::hash(string.as_bytes()), str_offset);
+            self.table.push(str_offset);
+            self.str_to_index.insert(Blake3_256::hash(string.as_bytes()), str_idx);
 
-            str_offset
+            str_idx
         }
     }
 
     pub fn into_table(self) -> StringTable {
-        StringTable::new(self.strings_data)
+        StringTable::new(self.table, self.strings_data)
     }
 }

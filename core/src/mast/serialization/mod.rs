@@ -34,6 +34,9 @@ type DecoratorDataOffset = u32;
 /// Specifies an offset into the `strings_data` section of an encoded [`MastForest`].
 type StringDataOffset = usize;
 
+/// Specifies an offset into the strings table of an encoded [`MastForest`].
+type StringIndex = usize;
+
 // CONSTANTS
 // ================================================================================================
 
