@@ -1,3 +1,29 @@
+//! The serialization format of MastForest is as follows:
+//!
+//! (Metadata)
+//! - MAGIC
+//! - VERSION
+//!
+//! (lengths)
+//! - decorators length (`usize`)
+//! - nodes length (`usize`)
+//!
+//! (procedure roots)
+//! - procedure roots (`Vec<MastNodeId>`)
+//!
+//! (raw data)
+//! - Decorator data
+//! - Node data
+//! - String table
+//!
+//! (info structs)
+//! - decorator infos (`Vec<DecoratorInfo>`)
+//! - MAST node infos (`Vec<MastNodeInfo>`)
+//!
+//! (Decorator ID maps)
+//! - before enter map (`BTreeMap<MastNodeId, Vec<DecoratorId>>`)
+//! - after exit map (`BTreeMap<MastNodeId, Vec<DecoratorId>>`)
+
 use alloc::{collections::BTreeMap, string::ToString, vec::Vec};
 
 use decorator::{DecoratorDataBuilder, DecoratorInfo};
