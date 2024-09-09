@@ -2817,9 +2817,9 @@ dependencies = [
 
 [[package]]
 name = "winter-utils"
-version = "0.9.1"
+version = "0.9.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0568612a95bcae3c94fb14da2686f8279ca77723dbdf1e97cf3673798faf6485"
+checksum = "c3d71ec2c97685c7e7460a30e27f955d26b8426e7c2db0ddb55a6e0537141f53"
 dependencies = [
  "rayon",
 ]
