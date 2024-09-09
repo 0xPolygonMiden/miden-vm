@@ -14,7 +14,7 @@ pub use node::{
     BasicBlockNode, CallNode, DynNode, ExternalNode, JoinNode, LoopNode, MastNode, OpBatch,
     OperationOrDecorator, SplitNode, OP_BATCH_SIZE, OP_GROUP_SIZE,
 };
-use winter_utils::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable};
+use winter_utils::{ByteWriter, DeserializationError, Serializable};
 
 use crate::{Decorator, DecoratorList, Operation};
 
@@ -559,12 +559,6 @@ impl fmt::Display for DecoratorId {
 impl Serializable for DecoratorId {
     fn write_into<W: ByteWriter>(&self, target: &mut W) {
         self.0.write_into(target)
-    }
-}
-
-impl Deserializable for DecoratorId {
-    fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
-        Ok(Self(source.read()?))
     }
 }
 

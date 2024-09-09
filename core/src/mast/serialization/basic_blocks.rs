@@ -4,7 +4,7 @@ use winter_utils::{ByteReader, DeserializationError, Serializable, SliceReader};
 
 use super::{DecoratorDataOffset, NodeDataOffset};
 use crate::{
-    mast::{BasicBlockNode, MastForest},
+    mast::{BasicBlockNode, DecoratorId, MastForest},
     DecoratorList, Operation,
 };
 
@@ -80,6 +80,7 @@ impl<'a> BasicBlockDataDecoder<'a> {
         &self,
         ops_offset: NodeDataOffset,
         decorator_list_offset: NodeDataOffset,
+        mast_forest: &MastForest,
     ) -> Result<(Vec<Operation>, DecoratorList), DeserializationError> {
         // Read ops
         let mut ops_data_reader = SliceReader::new(&self.node_data[ops_offset as usize..]);
@@ -92,7 +93,16 @@ impl<'a> BasicBlockDataDecoder<'a> {
             let mut decorators_data_reader =
                 SliceReader::new(&self.node_data[decorator_list_offset as usize..]);
 
-            decorators_data_reader.read()?
+            let num_decorators: usize = decorators_data_reader.read()?;
+            (0..num_decorators)
+                .map(|_| {
+                    let decorator_loc: usize = decorators_data_reader.read()?;
+                    let decorator_id =
+                        DecoratorId::from_u32_safe(decorators_data_reader.read()?, mast_forest)?;
+
+                    Ok((decorator_loc, decorator_id))
+                })
+                .collect::<Result<DecoratorList, _>>()?
         };
 
         Ok((operations, decorators))

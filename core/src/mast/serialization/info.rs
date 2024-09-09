@@ -44,7 +44,11 @@ impl MastNodeInfo {
         match self.ty {
             MastNodeType::Block { ops_offset, decorator_list_offset } => {
                 let (operations, decorators) = basic_block_data_decoder
-                    .decode_operations_and_decorators(ops_offset, decorator_list_offset)?;
+                    .decode_operations_and_decorators(
+                        ops_offset,
+                        decorator_list_offset,
+                        mast_forest,
+                    )?;
                 let block = BasicBlockNode::new_unsafe(operations, decorators, self.digest);
                 Ok(MastNode::Block(block))
             },
