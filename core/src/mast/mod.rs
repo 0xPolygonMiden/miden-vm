@@ -187,6 +187,10 @@ impl MastForest {
         self[node_id].set_before_enter(decorator_ids)
     }
 
+    pub fn set_after_exit(&mut self, node_id: MastNodeId, decorator_ids: Vec<DecoratorId>) {
+        self[node_id].set_after_exit(decorator_ids)
+    }
+
     /// Adds a basic block node to the forest, and returns the [`MastNodeId`] associated with it.
     ///
     /// It is assumed that the decorators have not already been added to the MAST forest. If they
