@@ -51,7 +51,7 @@ impl BasicBlockDataBuilder {
         }
     }
 
-    /// Returns the serialized [`crate::mast::MastForest`] nod data field.
+    /// Returns the serialized [`crate::mast::MastForest`] node data field.
     pub fn finalize(self) -> Vec<u8> {
         self.node_data
     }
