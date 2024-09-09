@@ -1,9 +1,9 @@
 use alloc::vec::Vec;
 
-use winter_utils::{ByteWriter, Serializable};
+use winter_utils::Serializable;
 
 use super::{DecoratorDataOffset, NodeDataOffset};
-use crate::mast::{BasicBlockNode, OperationOrDecorator};
+use crate::{mast::BasicBlockNode, Operation};
 
 // BASIC BLOCK DATA BUILDER
 // ================================================================================================
@@ -38,19 +38,8 @@ impl BasicBlockDataBuilder {
     ) -> (NodeDataOffset, Option<DecoratorDataOffset>) {
         let ops_offset = self.node_data.len() as NodeDataOffset;
 
-        // TODO(plafer): implement an `Operation` iterator
-        // TODO(plafer): Store `Vec<Operation>` instead of explicitly storing length
-        self.node_data.write_usize(basic_block.num_operations() as usize);
-        for op_or_decorator in basic_block.iter() {
-            match op_or_decorator {
-                OperationOrDecorator::Operation(operation) => {
-                    operation.write_into(&mut self.node_data)
-                },
-                OperationOrDecorator::Decorator(_) => {
-                    // do nothing
-                },
-            }
-        }
+        let operations: Vec<Operation> = basic_block.operation_iter().copied().collect();
+        operations.write_into(&mut self.node_data);
 
         if basic_block.decorators().is_empty() {
             (ops_offset, None)

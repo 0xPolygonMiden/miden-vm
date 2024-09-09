@@ -49,7 +49,7 @@ impl StringTable {
     pub fn read_string(&self, str_idx: StringIndex) -> Result<String, DeserializationError> {
         let str_offset = self.table.get(str_idx).copied().ok_or_else(|| {
             DeserializationError::InvalidValue(format!("invalid index in strings table: {str_idx}"))
-        })? as usize;
+        })?;
 
         let mut reader = SliceReader::new(&self.data[str_offset..]);
         reader.read()
@@ -91,11 +91,12 @@ impl StringTableBuilder {
             *str_idx
         } else {
             // add new string to table
-            let str_offset = self
-                .strings_data
-                .len()
-                .try_into()
-                .expect("strings table larger than 2^32 bytes");
+            let str_offset = self.strings_data.len();
+
+            assert!(
+                str_offset + string.len() < u32::MAX as usize,
+                "strings table larger than 2^32 bytes"
+            );
 
             let str_idx = self.table.len();
 
