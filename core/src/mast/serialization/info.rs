@@ -21,6 +21,11 @@ pub struct MastNodeInfo {
 }
 
 impl MastNodeInfo {
+    /// Constructs a new [`MastNodeInfo`] from a [`MastNode`], along with an `ops_offset` and
+    /// `decorator_list_offset` in the case of [`BasicBlockNode`].
+    ///
+    /// If the represented [`MastNode`] is a [`BasicBlockNode`] that has an empty decorator list,
+    /// use `MastForest::MAX_DECORATORS` for the value of `decorator_list_offset`.
     pub fn new(
         mast_node: &MastNode,
         ops_offset: NodeDataOffset,
@@ -144,8 +149,10 @@ pub enum MastNodeType {
 
 /// Constructors
 impl MastNodeType {
-    // TODO(plafer): cleanup constructor; args are only for Block
     /// Constructs a new [`MastNodeType`] from a [`MastNode`].
+    ///
+    /// If the represented [`MastNode`] is a [`BasicBlockNode`] that has an empty decorator list,
+    /// use `MastForest::MAX_DECORATORS` for the value of `decorator_list_offset`.
     pub fn new(
         mast_node: &MastNode,
         ops_offset: NodeDataOffset,

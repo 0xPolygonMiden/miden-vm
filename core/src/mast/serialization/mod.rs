@@ -97,11 +97,10 @@ impl Serializable for MastForest {
                         (basic_block_data_builder.get_offset(), None)
                     };
 
-                // Note: use `MastForest::MAX_DECORATORS` to indicate "no decorators".
                 MastNodeInfo::new(
                     mast_node,
                     ops_offset,
-                    decorator_data_offset.unwrap_or(MastForest::MAX_NODES as u32),
+                    decorator_data_offset.unwrap_or(MastForest::MAX_DECORATORS as u32),
                 )
             })
             .collect();
