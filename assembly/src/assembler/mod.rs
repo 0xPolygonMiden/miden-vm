@@ -610,16 +610,12 @@ impl Assembler {
                     if let Some(node_id) =
                         self.compile_instruction(inst, &mut block_builder, proc_ctx)?
                     {
-                        match block_builder.make_basic_block()? {
-                            BasicBlockOrDecorators::BasicBlock(basic_block_id) => {
-                                body_node_ids.push(basic_block_id);
-                            },
-                            BasicBlockOrDecorators::Decorators(decorator_ids) => {
-                                block_builder
-                                    .mast_forest_builder_mut()
-                                    .set_before_enter(node_id, decorator_ids);
-                            },
-                            BasicBlockOrDecorators::Nothing => (),
+                        if let Some(basic_block_id) = block_builder.make_basic_block()? {
+                            body_node_ids.push(basic_block_id);
+                        } else if let Some(decorator_ids) = block_builder.drain_decorators() {
+                            block_builder
+                                .mast_forest_builder_mut()
+                                .set_before_enter(node_id, decorator_ids);
                         }
 
                         body_node_ids.push(node_id);
@@ -627,16 +623,9 @@ impl Assembler {
                 },
 
                 Op::If { then_blk, else_blk, .. } => {
-                    let maybe_pre_decorators: Option<Vec<DecoratorId>> = match block_builder
-                        .make_basic_block()?
-                    {
-                        BasicBlockOrDecorators::BasicBlock(basic_block_id) => {
-                            body_node_ids.push(basic_block_id);
-                            None
-                        },
-                        BasicBlockOrDecorators::Decorators(decorator_ids) => Some(decorator_ids),
-                        BasicBlockOrDecorators::Nothing => None,
-                    };
+                    if let Some(basic_block_id) = block_builder.make_basic_block()? {
+                        body_node_ids.push(basic_block_id);
+                    }
 
                     let then_blk = self.compile_body(
                         then_blk.iter(),
@@ -653,26 +642,19 @@ impl Assembler {
 
                     let split_node_id =
                         block_builder.mast_forest_builder_mut().ensure_split(then_blk, else_blk)?;
-                    if let Some(pre_decorator_ids) = maybe_pre_decorators {
+                    if let Some(decorator_ids) = block_builder.drain_decorators() {
                         block_builder
                             .mast_forest_builder_mut()
-                            .set_before_enter(split_node_id, pre_decorator_ids)
+                            .set_before_enter(split_node_id, decorator_ids)
                     }
 
                     body_node_ids.push(split_node_id);
                 },
 
                 Op::Repeat { count, body, .. } => {
-                    let maybe_pre_decorators: Option<Vec<DecoratorId>> = match block_builder
-                        .make_basic_block()?
-                    {
-                        BasicBlockOrDecorators::BasicBlock(basic_block_id) => {
-                            body_node_ids.push(basic_block_id);
-                            None
-                        },
-                        BasicBlockOrDecorators::Decorators(decorator_ids) => Some(decorator_ids),
-                        BasicBlockOrDecorators::Nothing => None,
-                    };
+                    if let Some(basic_block_id) = block_builder.make_basic_block()? {
+                        body_node_ids.push(basic_block_id);
+                    }
 
                     let repeat_node_id = self.compile_body(
                         body.iter(),
@@ -681,11 +663,11 @@ impl Assembler {
                         block_builder.mast_forest_builder_mut(),
                     )?;
 
-                    if let Some(pre_decorators) = maybe_pre_decorators {
+                    if let Some(decorator_ids) = block_builder.drain_decorators() {
                         // Attach the decorators before the first instance of the repeated node
                         let mut first_repeat_node =
                             block_builder.mast_forest_builder_mut()[repeat_node_id].clone();
-                        first_repeat_node.set_before_enter(pre_decorators);
+                        first_repeat_node.set_before_enter(decorator_ids);
                         let first_repeat_node_id = block_builder
                             .mast_forest_builder_mut()
                             .ensure_node(first_repeat_node)?;
@@ -702,16 +684,9 @@ impl Assembler {
                 },
 
                 Op::While { body, .. } => {
-                    let maybe_pre_decorators: Option<Vec<DecoratorId>> = match block_builder
-                        .make_basic_block()?
-                    {
-                        BasicBlockOrDecorators::BasicBlock(basic_block_id) => {
-                            body_node_ids.push(basic_block_id);
-                            None
-                        },
-                        BasicBlockOrDecorators::Decorators(decorator_ids) => Some(decorator_ids),
-                        BasicBlockOrDecorators::Nothing => None,
-                    };
+                    if let Some(basic_block_id) = block_builder.make_basic_block()? {
+                        body_node_ids.push(basic_block_id);
+                    }
 
                     let loop_node_id = {
                         let loop_body_node_id = self.compile_body(
@@ -722,10 +697,10 @@ impl Assembler {
                         )?;
                         block_builder.mast_forest_builder_mut().ensure_loop(loop_body_node_id)?
                     };
-                    if let Some(pre_decorator_ids) = maybe_pre_decorators {
+                    if let Some(decorator_ids) = block_builder.drain_decorators() {
                         block_builder
                             .mast_forest_builder_mut()
-                            .set_before_enter(loop_node_id, pre_decorator_ids)
+                            .set_before_enter(loop_node_id, decorator_ids)
                     }
 
                     body_node_ids.push(loop_node_id);

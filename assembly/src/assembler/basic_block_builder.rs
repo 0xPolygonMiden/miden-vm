@@ -161,27 +161,28 @@ impl<'a> BasicBlockBuilder<'a> {
 /// Span Constructors
 impl<'a> BasicBlockBuilder<'a> {
     /// Creates and returns a new basic block node from the operations and decorators currently in
-    /// this builder. If there are no operations however, we return the decorators that were
-    /// accumulated up until this point. If the builder is empty, then no node is created and
-    /// `Nothing` is returned.
+    /// this builder.
     ///
-    /// This consumes all operations and decorators in the builder, but does not touch the
-    /// operations in the epilogue of the builder.
-    pub fn make_basic_block(&mut self) -> Result<BasicBlockOrDecorators, AssemblyError> {
+    /// If there are no operations however, then no node is created, the decorators are left
+    /// untouched and `None` is returned. Use [`Self::drain_decorators`] to retrieve the decorators
+    /// in this case.
+    ///
+    /// This consumes all operations in the builder, but does not touch the operations in the
+    /// epilogue of the builder.
+    pub fn make_basic_block(&mut self) -> Result<Option<MastNodeId>, AssemblyError> {
         if !self.ops.is_empty() {
             let ops = self.ops.drain(..).collect();
-            let decorators = self.decorators.drain(..).collect();
+            let decorators = if !self.decorators.is_empty() {
+                Some(self.decorators.drain(..).collect())
+            } else {
+                None
+            };
 
-            let basic_block_node_id =
-                self.mast_forest_builder.ensure_block(ops, Some(decorators))?;
+            let basic_block_node_id = self.mast_forest_builder.ensure_block(ops, decorators)?;
 
-            Ok(BasicBlockOrDecorators::BasicBlock(basic_block_node_id))
-        } else if !self.decorators.is_empty() {
-            Ok(BasicBlockOrDecorators::Decorators(
-                self.decorators.drain(..).map(|(_, decorator_id)| decorator_id).collect(),
-            ))
+            Ok(Some(basic_block_node_id))
         } else {
-            Ok(BasicBlockOrDecorators::Nothing)
+            Ok(None)
         }
     }
 
@@ -194,9 +195,34 @@ impl<'a> BasicBlockBuilder<'a> {
     /// - Operations contained in the epilogue of the builder are appended to the list of ops which
     ///   go into the new BASIC BLOCK node.
     /// - The builder is consumed in the process.
+    /// - Hence, any remaining decorators if no basic block was created are drained and returned.
     pub fn try_into_basic_block(mut self) -> Result<BasicBlockOrDecorators, AssemblyError> {
         self.ops.append(&mut self.epilogue);
-        self.make_basic_block()
+
+        if let Some(basic_block_node_id) = self.make_basic_block()? {
+            Ok(BasicBlockOrDecorators::BasicBlock(basic_block_node_id))
+        } else if let Some(decorator_ids) = self.drain_decorators() {
+            Ok(BasicBlockOrDecorators::Decorators(decorator_ids))
+        } else {
+            Ok(BasicBlockOrDecorators::Nothing)
+        }
+    }
+
+    /// Drains and returns the decorators in the builder, if any.
+    ///
+    /// This should only be called after [`Self::make_basic_block`], when no blocks were created.
+    /// In other words, there MUST NOT be any operations left in the builder when this is called.
+    ///
+    /// # Panics
+    ///
+    /// Panics if there are still operations left in the builder.
+    pub fn drain_decorators(&mut self) -> Option<Vec<DecoratorId>> {
+        assert!(self.ops.is_empty());
+        if !self.decorators.is_empty() {
+            Some(self.decorators.drain(..).map(|(_, decorator_id)| decorator_id).collect())
+        } else {
+            None
+        }
     }
 }
 
