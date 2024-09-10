@@ -66,7 +66,7 @@ impl<'a> BasicBlockDataDecoder<'a> {
     }
 }
 
-/// Mutators
+/// Decoding methods
 impl<'a> BasicBlockDataDecoder<'a> {
     pub fn decode_operations_and_decorators(
         &self,
