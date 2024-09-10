@@ -1477,6 +1477,131 @@ end";
     Ok(())
 }
 
+/// Ensure that there is no collision between `Assert`, `U32assert2`, and `MpVerify`  instructions
+/// with different inner values (which all don't contribute to the MAST root).
+#[test]
+fn asserts_and_mpverify_with_code_in_duplicate_procedure() -> TestResult {
+    let context = TestContext::default();
+    let source = source_file!(
+        &context,
+        "\
+    proc.f1
+        u32assert.err=1
+    end
+    proc.f2
+        u32assert.err=2
+    end
+    proc.f12
+        u32assert.err=1
+        u32assert.err=2
+    end
+    proc.f21
+        u32assert.err=2
+        u32assert.err=1
+    end
+    proc.g1
+        assert.err=1
+    end
+    proc.g2
+        assert.err=2
+    end
+    proc.g12
+        assert.err=1
+        assert.err=2
+    end
+    proc.g21
+        assert.err=2
+        assert.err=1
+    end
+    proc.fg
+        assert.err=1
+        u32assert.err=1
+        assert.err=2
+        u32assert.err=2
+
+        u32assert.err=1
+        assert.err=1
+        u32assert.err=2
+        assert.err=2
+    end
+
+    proc.mpverify
+        mtree_verify.err=1
+        mtree_verify.err=2
+        mtree_verify.err=2
+        mtree_verify.err=1
+    end
+
+    begin
+        exec.f1
+        exec.f2
+        exec.f12
+        exec.f21
+        exec.g1
+        exec.g2
+        exec.g12
+        exec.g21
+        exec.fg
+        exec.mpverify
+    end
+    "
+    );
+    let program = context.assemble(source)?;
+
+    let expected = "\
+begin
+    basic_block
+        pad
+        u32assert2(1)
+        drop
+        pad
+        u32assert2(2)
+        drop
+        pad
+        u32assert2(1)
+        drop
+        pad
+        u32assert2(2)
+        drop
+        pad
+        u32assert2(2)
+        drop
+        pad
+        u32assert2(1)
+        drop
+        assert(1)
+        assert(2)
+        assert(1)
+        assert(2)
+        assert(2)
+        assert(1)
+        assert(1)
+        pad
+        u32assert2(1)
+        drop
+        assert(2)
+        pad
+        u32assert2(2)
+        drop
+        pad
+        u32assert2(1)
+        drop
+        assert(1)
+        pad
+        u32assert2(2)
+        drop
+        assert(2)
+        mpverify(1)
+        mpverify(2)
+        mpverify(2)
+        mpverify(1)
+    end
+end";
+
+    assert_str_eq!(expected, format!("{program}"));
+    Ok(())
+}
+
 #[test]
 fn mtree_verify_with_code() -> TestResult {
     let context = TestContext::default();
