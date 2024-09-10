@@ -185,7 +185,7 @@ impl BasicBlockNode {
     }
 
     /// Returns an iterator over the operations in the order in which they appear in the program.
-    pub fn operation_iter(&self) -> impl Iterator<Item = &Operation> {
+    pub fn operations(&self) -> impl Iterator<Item = &Operation> {
         self.op_batches.iter().flat_map(|batch| batch.ops())
     }
 

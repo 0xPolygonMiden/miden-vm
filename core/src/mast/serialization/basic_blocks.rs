@@ -41,7 +41,7 @@ impl BasicBlockDataBuilder {
     ) -> (NodeDataOffset, Option<DecoratorDataOffset>) {
         let ops_offset = self.node_data.len() as NodeDataOffset;
 
-        let operations: Vec<Operation> = basic_block.operation_iter().copied().collect();
+        let operations: Vec<Operation> = basic_block.operations().copied().collect();
         operations.write_into(&mut self.node_data);
 
         if basic_block.decorators().is_empty() {
