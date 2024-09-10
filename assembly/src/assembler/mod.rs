@@ -602,20 +602,20 @@ impl Assembler {
         use ast::Op;
 
         let mut body_node_ids: Vec<MastNodeId> = Vec::new();
-        let mut basic_block_builder = BasicBlockBuilder::new(wrapper, mast_forest_builder);
+        let mut block_builder = BasicBlockBuilder::new(wrapper, mast_forest_builder);
 
         for op in body {
             match op {
                 Op::Inst(inst) => {
                     if let Some(node_id) =
-                        self.compile_instruction(inst, &mut basic_block_builder, proc_ctx)?
+                        self.compile_instruction(inst, &mut block_builder, proc_ctx)?
                     {
-                        match basic_block_builder.make_basic_block()? {
+                        match block_builder.make_basic_block()? {
                             BasicBlockOrDecorators::BasicBlock(basic_block_id) => {
                                 body_node_ids.push(basic_block_id);
                             },
                             BasicBlockOrDecorators::Decorators(decorator_ids) => {
-                                basic_block_builder
+                                block_builder
                                     .mast_forest_builder_mut()
                                     .set_before_enter(node_id, decorator_ids);
                             },
@@ -627,7 +627,7 @@ impl Assembler {
                 },
 
                 Op::If { then_blk, else_blk, .. } => {
-                    let maybe_pre_decorators: Option<Vec<DecoratorId>> = match basic_block_builder
+                    let maybe_pre_decorators: Option<Vec<DecoratorId>> = match block_builder
                         .make_basic_block()?
                     {
                         BasicBlockOrDecorators::BasicBlock(basic_block_id) => {
@@ -642,20 +642,20 @@ impl Assembler {
                         then_blk.iter(),
                         proc_ctx,
                         None,
-                        basic_block_builder.mast_forest_builder_mut(),
+                        block_builder.mast_forest_builder_mut(),
                     )?;
                     let else_blk = self.compile_body(
                         else_blk.iter(),
                         proc_ctx,
                         None,
-                        basic_block_builder.mast_forest_builder_mut(),
+                        block_builder.mast_forest_builder_mut(),
                     )?;
 
-                    let split_node_id = basic_block_builder
+                    let split_node_id = block_builder
                         .mast_forest_builder_mut()
                         .ensure_split(then_blk, else_blk)?;
                     if let Some(pre_decorator_ids) = maybe_pre_decorators {
-                        basic_block_builder
+                        block_builder
                             .mast_forest_builder_mut()
                             .set_before_enter(split_node_id, pre_decorator_ids)
                     }
@@ -664,7 +664,7 @@ impl Assembler {
                 },
 
                 Op::Repeat { count, body, .. } => {
-                    let maybe_pre_decorators: Option<Vec<DecoratorId>> = match basic_block_builder
+                    let maybe_pre_decorators: Option<Vec<DecoratorId>> = match block_builder
                         .make_basic_block()?
                     {
                         BasicBlockOrDecorators::BasicBlock(basic_block_id) => {
@@ -679,15 +679,15 @@ impl Assembler {
                         body.iter(),
                         proc_ctx,
                         None,
-                        basic_block_builder.mast_forest_builder_mut(),
+                        block_builder.mast_forest_builder_mut(),
                     )?;
 
                     if let Some(pre_decorators) = maybe_pre_decorators {
                         // Attach the decorators before the first instance of the repeated node
                         let mut first_repeat_node =
-                            basic_block_builder.mast_forest_builder_mut()[repeat_node_id].clone();
+                            block_builder.mast_forest_builder_mut()[repeat_node_id].clone();
                         first_repeat_node.set_before_enter(pre_decorators);
-                        let first_repeat_node_id = basic_block_builder
+                        let first_repeat_node_id = block_builder
                             .mast_forest_builder_mut()
                             .ensure_node(first_repeat_node)?;
 
@@ -703,7 +703,7 @@ impl Assembler {
                 },
 
                 Op::While { body, .. } => {
-                    let maybe_pre_decorators: Option<Vec<DecoratorId>> = match basic_block_builder
+                    let maybe_pre_decorators: Option<Vec<DecoratorId>> = match block_builder
                         .make_basic_block()?
                     {
                         BasicBlockOrDecorators::BasicBlock(basic_block_id) => {
@@ -719,14 +719,14 @@ impl Assembler {
                             body.iter(),
                             proc_ctx,
                             None,
-                            basic_block_builder.mast_forest_builder_mut(),
+                            block_builder.mast_forest_builder_mut(),
                         )?;
-                        basic_block_builder
+                        block_builder
                             .mast_forest_builder_mut()
                             .ensure_loop(loop_body_node_id)?
                     };
                     if let Some(pre_decorator_ids) = maybe_pre_decorators {
-                        basic_block_builder
+                        block_builder
                             .mast_forest_builder_mut()
                             .set_before_enter(loop_node_id, pre_decorator_ids)
                     }
@@ -737,7 +737,7 @@ impl Assembler {
         }
 
         let maybe_post_decorators: Option<Vec<DecoratorId>> =
-            match basic_block_builder.try_into_basic_block()? {
+            match block_builder.try_into_basic_block()? {
                 BasicBlockOrDecorators::BasicBlock(basic_block_id) => {
                     body_node_ids.push(basic_block_id);
                     None

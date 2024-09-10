@@ -13,9 +13,9 @@ use crate::{ast::AdviceInjectorNode, AssemblyError, ADVICE_READ_LIMIT};
 /// # Errors
 /// Returns an error if the specified number of values to pushed is smaller than 1 or greater
 /// than 16.
-pub fn adv_push(span: &mut BasicBlockBuilder, n: u8) -> Result<(), AssemblyError> {
+pub fn adv_push(block_builder: &mut BasicBlockBuilder, n: u8) -> Result<(), AssemblyError> {
     validate_param(n, 1..=ADVICE_READ_LIMIT)?;
-    span.push_op_many(Operation::AdvPop, n as usize);
+    block_builder.push_op_many(Operation::AdvPop, n as usize);
     Ok(())
 }
 
@@ -24,8 +24,8 @@ pub fn adv_push(span: &mut BasicBlockBuilder, n: u8) -> Result<(), AssemblyError
 
 /// Appends advice injector decorator to the span.
 pub fn adv_inject(
-    basic_block_builder: &mut BasicBlockBuilder,
+    block_builder: &mut BasicBlockBuilder,
     injector: &AdviceInjectorNode,
 ) -> Result<(), AssemblyError> {
-    basic_block_builder.push_advice_injector(injector.into())
+    block_builder.push_advice_injector(injector.into())
 }
