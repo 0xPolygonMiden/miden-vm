@@ -25,12 +25,18 @@ impl MastNodeInfo {
     /// `decorator_list_offset` in the case of [`BasicBlockNode`].
     ///
     /// If the represented [`MastNode`] is a [`BasicBlockNode`] that has an empty decorator list,
-    /// use `MastForest::MAX_DECORATORS` for the value of `decorator_list_offset`.
+    /// use `MastForest::MAX_DECORATORS` for the value of `decorator_list_offset`. For non-basic
+    /// block nodes, `ops_offset` and `decorator_list_offset` are ignored, and should be set to 0.
     pub fn new(
         mast_node: &MastNode,
         ops_offset: NodeDataOffset,
         decorator_list_offset: NodeDataOffset,
     ) -> Self {
+        if !matches!(mast_node, &MastNode::Block(_)) {
+            debug_assert_eq!(ops_offset, 0);
+            debug_assert_eq!(decorator_list_offset, 0);
+        }
+
         let ty = MastNodeType::new(mast_node, ops_offset, decorator_list_offset);
 
         Self { ty, digest: mast_node.digest() }

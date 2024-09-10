@@ -128,15 +128,17 @@ impl Serializable for MastForest {
 
                 let (ops_offset, decorator_data_offset) =
                     if let MastNode::Block(basic_block) = mast_node {
-                        basic_block_data_builder.encode_basic_block(basic_block)
+                        let (ops_offset, decorator_data_offset) = basic_block_data_builder.encode_basic_block(basic_block);
+
+                        (ops_offset, decorator_data_offset.unwrap_or(MastForest::MAX_DECORATORS as u32))
                     } else {
-                        (basic_block_data_builder.get_offset(), None)
+                        (0, 0)
                     };
 
                 MastNodeInfo::new(
                     mast_node,
                     ops_offset,
-                    decorator_data_offset.unwrap_or(MastForest::MAX_DECORATORS as u32),
+                    decorator_data_offset
                 )
             })
             .collect();

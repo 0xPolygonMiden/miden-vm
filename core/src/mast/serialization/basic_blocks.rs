@@ -24,14 +24,6 @@ impl BasicBlockDataBuilder {
     }
 }
 
-/// Accessors
-impl BasicBlockDataBuilder {
-    /// Returns the current offset into the data buffer.
-    pub fn get_offset(&self) -> NodeDataOffset {
-        self.node_data.len() as NodeDataOffset
-    }
-}
-
 /// Mutators
 impl BasicBlockDataBuilder {
     /// Encodes a [`BasicBlockNode`] into the serialized [`crate::mast::MastForest`] data field.
