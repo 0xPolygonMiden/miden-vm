@@ -14,7 +14,7 @@ pub use node::{
     BasicBlockNode, CallNode, DynNode, ExternalNode, JoinNode, LoopNode, MastNode, OpBatch,
     OperationOrDecorator, SplitNode, OP_BATCH_SIZE, OP_GROUP_SIZE,
 };
-use winter_utils::DeserializationError;
+use winter_utils::{ByteWriter, DeserializationError, Serializable};
 
 use crate::{Decorator, DecoratorList, Operation};
 
@@ -56,6 +56,8 @@ impl MastForest {
 impl MastForest {
     /// The maximum number of nodes that can be stored in a single MAST forest.
     const MAX_NODES: usize = (1 << 30) - 1;
+    /// The maximum number of decorators that can be stored in a single MAST forest.
+    const MAX_DECORATORS: usize = Self::MAX_NODES;
 
     /// Adds a decorator to the forest, and returns the associated [`DecoratorId`].
     pub fn add_decorator(&mut self, decorator: Decorator) -> Result<DecoratorId, MastForestError> {
@@ -183,6 +185,10 @@ impl MastForest {
 
     pub fn set_before_enter(&mut self, node_id: MastNodeId, decorator_ids: Vec<DecoratorId>) {
         self[node_id].set_before_enter(decorator_ids)
+    }
+
+    pub fn set_after_exit(&mut self, node_id: MastNodeId, decorator_ids: Vec<DecoratorId>) {
+        self[node_id].set_after_exit(decorator_ids)
     }
 
     /// Adds a basic block node to the forest, and returns the [`MastNodeId`] associated with it.
@@ -551,6 +557,12 @@ impl From<&DecoratorId> for u32 {
 impl fmt::Display for DecoratorId {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "DecoratorId({})", self.0)
+    }
+}
+
+impl Serializable for DecoratorId {
+    fn write_into<W: ByteWriter>(&self, target: &mut W) {
+        self.0.write_into(target)
     }
 }
 
