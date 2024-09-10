@@ -85,9 +85,7 @@ impl Assembler {
 
             Instruction::Pow2 => field_ops::pow2(block_builder),
             Instruction::Exp => field_ops::exp(block_builder, 64)?,
-            Instruction::ExpImm(pow) => {
-                field_ops::exp_imm(block_builder, pow.expect_value())?
-            },
+            Instruction::ExpImm(pow) => field_ops::exp_imm(block_builder, pow.expect_value())?,
             Instruction::ExpBitLength(num_pow_bits) => {
                 field_ops::exp(block_builder, *num_pow_bits)?
             },
@@ -96,9 +94,7 @@ impl Assembler {
             Instruction::Not => block_builder.push_op(Not),
             Instruction::And => block_builder.push_op(And),
             Instruction::Or => block_builder.push_op(Or),
-            Instruction::Xor => {
-                block_builder.push_ops([Dup0, Dup2, Or, MovDn2, And, Not, And])
-            },
+            Instruction::Xor => block_builder.push_ops([Dup0, Dup2, Or, MovDn2, And, Not, And]),
 
             Instruction::Eq => block_builder.push_op(Eq),
             Instruction::EqImm(imm) => field_ops::eq_imm(block_builder, imm.expect_value()),
@@ -138,9 +134,7 @@ impl Assembler {
             Instruction::U32Cast => block_builder.push_ops([U32split, Drop]),
             Instruction::U32Split => block_builder.push_op(U32split),
 
-            Instruction::U32OverflowingAdd => {
-                u32_ops::u32add(block_builder, Overflowing, None)
-            },
+            Instruction::U32OverflowingAdd => u32_ops::u32add(block_builder, Overflowing, None),
             Instruction::U32OverflowingAddImm(v) => {
                 u32_ops::u32add(block_builder, Overflowing, Some(v.expect_value()))
             },
@@ -151,9 +145,7 @@ impl Assembler {
             Instruction::U32OverflowingAdd3 => block_builder.push_op(U32add3),
             Instruction::U32WrappingAdd3 => block_builder.push_ops([U32add3, Drop]),
 
-            Instruction::U32OverflowingSub => {
-                u32_ops::u32sub(block_builder, Overflowing, None)
-            },
+            Instruction::U32OverflowingSub => u32_ops::u32sub(block_builder, Overflowing, None),
             Instruction::U32OverflowingSubImm(v) => {
                 u32_ops::u32sub(block_builder, Overflowing, Some(v.expect_value()))
             },
@@ -162,9 +154,7 @@ impl Assembler {
                 u32_ops::u32sub(block_builder, Wrapping, Some(v.expect_value()))
             },
 
-            Instruction::U32OverflowingMul => {
-                u32_ops::u32mul(block_builder, Overflowing, None)
-            },
+            Instruction::U32OverflowingMul => u32_ops::u32mul(block_builder, Overflowing, None),
             Instruction::U32OverflowingMulImm(v) => {
                 u32_ops::u32mul(block_builder, Overflowing, Some(v.expect_value()))
             },
@@ -192,21 +182,13 @@ impl Assembler {
             Instruction::U32Xor => block_builder.push_op(U32xor),
             Instruction::U32Not => u32_ops::u32not(block_builder),
             Instruction::U32Shl => u32_ops::u32shl(block_builder, None)?,
-            Instruction::U32ShlImm(v) => {
-                u32_ops::u32shl(block_builder, Some(v.expect_value()))?
-            },
+            Instruction::U32ShlImm(v) => u32_ops::u32shl(block_builder, Some(v.expect_value()))?,
             Instruction::U32Shr => u32_ops::u32shr(block_builder, None)?,
-            Instruction::U32ShrImm(v) => {
-                u32_ops::u32shr(block_builder, Some(v.expect_value()))?
-            },
+            Instruction::U32ShrImm(v) => u32_ops::u32shr(block_builder, Some(v.expect_value()))?,
             Instruction::U32Rotl => u32_ops::u32rotl(block_builder, None)?,
-            Instruction::U32RotlImm(v) => {
-                u32_ops::u32rotl(block_builder, Some(v.expect_value()))?
-            },
+            Instruction::U32RotlImm(v) => u32_ops::u32rotl(block_builder, Some(v.expect_value()))?,
             Instruction::U32Rotr => u32_ops::u32rotr(block_builder, None)?,
-            Instruction::U32RotrImm(v) => {
-                u32_ops::u32rotr(block_builder, Some(v.expect_value()))?
-            },
+            Instruction::U32RotrImm(v) => u32_ops::u32rotr(block_builder, Some(v.expect_value()))?,
             Instruction::U32Popcnt => u32_ops::u32popcnt(block_builder),
             Instruction::U32Clz => u32_ops::u32clz(block_builder)?,
             Instruction::U32Ctz => u32_ops::u32ctz(block_builder)?,
@@ -251,9 +233,7 @@ impl Assembler {
             Instruction::Swap6 => block_builder.push_ops([MovDn5, MovUp6]),
             Instruction::Swap7 => block_builder.push_ops([MovDn6, MovUp7]),
             Instruction::Swap8 => block_builder.push_ops([MovDn7, MovUp8]),
-            Instruction::Swap9 => {
-                block_builder.push_ops([MovDn8, SwapDW, Swap, SwapDW, MovUp8])
-            },
+            Instruction::Swap9 => block_builder.push_ops([MovDn8, SwapDW, Swap, SwapDW, MovUp8]),
             Instruction::Swap10 => {
                 block_builder.push_ops([MovDn8, SwapDW, Swap, MovUp2, SwapDW, MovUp8])
             },
@@ -326,38 +306,24 @@ impl Assembler {
             Instruction::PushU32List(imms) => env_ops::push_many(imms, block_builder),
             Instruction::PushFeltList(imms) => env_ops::push_many(imms, block_builder),
             Instruction::Sdepth => block_builder.push_op(SDepth),
-            Instruction::Caller => {
-                env_ops::caller(block_builder, proc_ctx, instruction.span())?
-            },
+            Instruction::Caller => env_ops::caller(block_builder, proc_ctx, instruction.span())?,
             Instruction::Clk => block_builder.push_op(Clk),
             Instruction::AdvPipe => block_builder.push_op(Pipe),
             Instruction::AdvPush(n) => adv_ops::adv_push(block_builder, n.expect_value())?,
             Instruction::AdvLoadW => block_builder.push_op(AdvPopW),
 
             Instruction::MemStream => block_builder.push_op(MStream),
-            Instruction::Locaddr(v) => {
-                env_ops::locaddr(block_builder, v.expect_value(), proc_ctx)?
+            Instruction::Locaddr(v) => env_ops::locaddr(block_builder, v.expect_value(), proc_ctx)?,
+            Instruction::MemLoad => mem_ops::mem_read(block_builder, proc_ctx, None, false, true)?,
+            Instruction::MemLoadImm(v) => {
+                mem_ops::mem_read(block_builder, proc_ctx, Some(v.expect_value()), false, true)?
             },
-            Instruction::MemLoad => {
-                mem_ops::mem_read(block_builder, proc_ctx, None, false, true)?
-            },
-            Instruction::MemLoadImm(v) => mem_ops::mem_read(
-                block_builder,
-                proc_ctx,
-                Some(v.expect_value()),
-                false,
-                true,
-            )?,
             Instruction::MemLoadW => {
                 mem_ops::mem_read(block_builder, proc_ctx, None, false, false)?
             },
-            Instruction::MemLoadWImm(v) => mem_ops::mem_read(
-                block_builder,
-                proc_ctx,
-                Some(v.expect_value()),
-                false,
-                false,
-            )?,
+            Instruction::MemLoadWImm(v) => {
+                mem_ops::mem_read(block_builder, proc_ctx, Some(v.expect_value()), false, false)?
+            },
             Instruction::LocLoad(v) => mem_ops::mem_read(
                 block_builder,
                 proc_ctx,
@@ -374,20 +340,12 @@ impl Assembler {
             )?,
             Instruction::MemStore => block_builder.push_ops([MStore, Drop]),
             Instruction::MemStoreW => block_builder.push_ops([MStoreW]),
-            Instruction::MemStoreImm(v) => mem_ops::mem_write_imm(
-                block_builder,
-                proc_ctx,
-                v.expect_value(),
-                false,
-                true,
-            )?,
-            Instruction::MemStoreWImm(v) => mem_ops::mem_write_imm(
-                block_builder,
-                proc_ctx,
-                v.expect_value(),
-                false,
-                false,
-            )?,
+            Instruction::MemStoreImm(v) => {
+                mem_ops::mem_write_imm(block_builder, proc_ctx, v.expect_value(), false, true)?
+            },
+            Instruction::MemStoreWImm(v) => {
+                mem_ops::mem_write_imm(block_builder, proc_ctx, v.expect_value(), false, false)?
+            },
             Instruction::LocStore(v) => mem_ops::mem_write_imm(
                 block_builder,
                 proc_ctx,
@@ -452,15 +410,9 @@ impl Assembler {
                     )
                     .map(Into::into);
             },
-            Instruction::DynExec => {
-                return self.dynexec(block_builder.mast_forest_builder_mut())
-            },
-            Instruction::DynCall => {
-                return self.dyncall(block_builder.mast_forest_builder_mut())
-            },
-            Instruction::ProcRef(ref callee) => {
-                self.procref(callee, proc_ctx, block_builder)?
-            },
+            Instruction::DynExec => return self.dynexec(block_builder.mast_forest_builder_mut()),
+            Instruction::DynCall => return self.dyncall(block_builder.mast_forest_builder_mut()),
+            Instruction::ProcRef(ref callee) => self.procref(callee, proc_ctx, block_builder)?,
 
             // ----- debug decorators -------------------------------------------------------------
             Instruction::Breakpoint => {

@@ -651,9 +651,8 @@ impl Assembler {
                         block_builder.mast_forest_builder_mut(),
                     )?;
 
-                    let split_node_id = block_builder
-                        .mast_forest_builder_mut()
-                        .ensure_split(then_blk, else_blk)?;
+                    let split_node_id =
+                        block_builder.mast_forest_builder_mut().ensure_split(then_blk, else_blk)?;
                     if let Some(pre_decorator_ids) = maybe_pre_decorators {
                         block_builder
                             .mast_forest_builder_mut()
@@ -721,9 +720,7 @@ impl Assembler {
                             None,
                             block_builder.mast_forest_builder_mut(),
                         )?;
-                        block_builder
-                            .mast_forest_builder_mut()
-                            .ensure_loop(loop_body_node_id)?
+                        block_builder.mast_forest_builder_mut().ensure_loop(loop_body_node_id)?
                     };
                     if let Some(pre_decorator_ids) = maybe_pre_decorators {
                         block_builder

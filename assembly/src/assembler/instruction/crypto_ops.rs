@@ -164,9 +164,7 @@ pub(super) fn mtree_set(block_builder: &mut BasicBlockBuilder) -> Result<(), Ass
 /// It is not checked whether the provided roots exist as Merkle trees in the advide providers.
 ///
 /// This operation takes 16 VM cycles.
-pub(super) fn mtree_merge(
-    block_builder: &mut BasicBlockBuilder,
-) -> Result<(), AssemblyError> {
+pub(super) fn mtree_merge(block_builder: &mut BasicBlockBuilder) -> Result<(), AssemblyError> {
     // stack input:  [R_rhs, R_lhs, ...]
     // stack output: [R_merged, ...]
 
