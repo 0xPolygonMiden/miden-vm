@@ -13,6 +13,8 @@ use vm_core::crypto::{
     hash::{Blake3_192, Blake3_256, Rpo256, Rpx256},
     random::{RpoRandomCoin, RpxRandomCoin, WinterRandomCoin},
 };
+use winter_verifier::{crypto::MerkleTree, verify as verify_proof};
+
 // EXPORTS
 // ================================================================================================
 pub use vm_core::{chiplets::hasher::Digest, Kernel, ProgramInfo, StackInputs, StackOutputs, Word};
@@ -69,26 +71,34 @@ pub fn verify(
     match hash_fn {
         HashFunction::Blake3_192 => {
             let opts = AcceptableOptions::OptionSet(vec![ProvingOptions::REGULAR_96_BITS]);
-            verify_proof::<ProcessorAir, Blake3_192, WinterRandomCoin<_>>(proof, pub_inputs, &opts)
-        },
+            verify_proof::<ProcessorAir, Blake3_192, WinterRandomCoin<_>, MerkleTree<_>>(
+                proof, pub_inputs, &opts,
+            )
+        }
         HashFunction::Blake3_256 => {
             let opts = AcceptableOptions::OptionSet(vec![ProvingOptions::REGULAR_128_BITS]);
-            verify_proof::<ProcessorAir, Blake3_256, WinterRandomCoin<_>>(proof, pub_inputs, &opts)
-        },
+            verify_proof::<ProcessorAir, Blake3_256, WinterRandomCoin<_>, MerkleTree<_>>(
+                proof, pub_inputs, &opts,
+            )
+        }
         HashFunction::Rpo256 => {
             let opts = AcceptableOptions::OptionSet(vec![
                 ProvingOptions::RECURSIVE_96_BITS,
                 ProvingOptions::RECURSIVE_128_BITS,
             ]);
-            verify_proof::<ProcessorAir, Rpo256, RpoRandomCoin>(proof, pub_inputs, &opts)
-        },
+            verify_proof::<ProcessorAir, Rpo256, RpoRandomCoin, MerkleTree<_>>(
+                proof, pub_inputs, &opts,
+            )
+        }
         HashFunction::Rpx256 => {
             let opts = AcceptableOptions::OptionSet(vec![
                 ProvingOptions::RECURSIVE_96_BITS,
                 ProvingOptions::RECURSIVE_128_BITS,
             ]);
-            verify_proof::<ProcessorAir, Rpx256, RpxRandomCoin>(proof, pub_inputs, &opts)
-        },
+            verify_proof::<ProcessorAir, Rpx256, RpxRandomCoin, MerkleTree<_>>(
+                proof, pub_inputs, &opts,
+            )
+        }
     }
     .map_err(VerificationError::VerifierError)?;
 

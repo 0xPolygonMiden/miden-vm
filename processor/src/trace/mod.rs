@@ -228,7 +228,7 @@ impl ExecutionTrace {
             .collect::<Vec<_>>();
 
         // inject random values into the last rows of the trace
-        let mut rng = RpoRandomCoin::new(self.program_hash().into());
+        let rng = RpoRandomCoin::new(self.program_hash().into());
         for i in self.length() - NUM_RAND_ROWS..self.length() {
             for column in aux_columns.iter_mut() {
                 //column[i] = rng.draw().expect("failed to draw a random value");
@@ -277,7 +277,7 @@ impl Trace for ExecutionTrace {
 ///   in turn, ensures that polynomial degrees of all columns are stable.
 fn finalize_trace<H>(
     process: Process<H>,
-    mut rng: RpoRandomCoin,
+    rng: RpoRandomCoin,
 ) -> (MainTrace, AuxTraceBuilders, TraceLenSummary)
 where
     H: Host,

@@ -21,9 +21,9 @@ use processor::{
 };
 use tracing::instrument;
 use winter_prover::{
-    matrix::ColMatrix, ConstraintCompositionCoefficients, DefaultConstraintEvaluator,
-    DefaultTraceLde, ProofOptions as WinterProofOptions, Prover, StarkDomain, TraceInfo,
-    TracePolyTable,
+    crypto::MerkleTree as MerkleTreeVC, matrix::ColMatrix, ConstraintCompositionCoefficients,
+    DefaultConstraintEvaluator, DefaultTraceLde, ProofOptions as WinterProofOptions, Prover,
+    StarkDomain, TraceInfo, TracePolyTable,
 };
 #[cfg(feature = "std")]
 use {std::time::Instant, winter_prover::Trace};
@@ -176,7 +176,7 @@ where
 
 impl<H, R> Prover for ExecutionProver<H, R>
 where
-    H: ElementHasher<BaseField = Felt>,
+    H: ElementHasher<BaseField = Felt> + Sync,
     R: RandomCoin<BaseField = Felt, Hasher = H> + Send,
 {
     type BaseField = Felt;
@@ -184,9 +184,11 @@ where
     type Trace = ExecutionTrace;
     type HashFn = H;
     type RandomCoin = R;
-    type TraceLde<E: FieldElement<BaseField = Felt>> = DefaultTraceLde<E, H>;
+    type TraceLde<E: FieldElement<BaseField = Felt>> = DefaultTraceLde<E, H, Self::VC>;
     type ConstraintEvaluator<'a, E: FieldElement<BaseField = Felt>> =
         DefaultConstraintEvaluator<'a, ProcessorAir, E>;
+
+    type VC = MerkleTreeVC<Self::HashFn>;
 
     fn options(&self) -> &WinterProofOptions {
         &self.options
