@@ -323,9 +323,8 @@ fn batch_and_hash_ops(ops: Vec<Operation>) -> (Vec<OpBatch>, RpoDigest) {
     (batches, hash)
 }
 
-/// Groups the provided operations into batches as described in the docs for this module (i.e.,
-/// up to 9 operations per group, and 8 groups per batch).
-/// Returns a list of operation batches and a list of operation groups.
+/// Groups the provided operations into batches as described in the docs for this module (i.e., up
+/// to 9 operations per group, and 8 groups per batch).
 fn batch_ops(ops: Vec<Operation>) -> Vec<OpBatch> {
     let mut batches = Vec::<OpBatch>::new();
     let mut batch_acc = OpBatchAccumulator::new();
