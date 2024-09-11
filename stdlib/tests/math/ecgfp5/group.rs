@@ -1,6 +1,8 @@
-use super::base_field::{bv_or, Ext5};
 use std::ops::Add;
+
 use test_utils::{test_case, Felt, ONE, ZERO};
+
+use super::base_field::{bv_or, Ext5};
 
 #[derive(PartialEq, Eq, Copy, Clone, Debug)]
 pub struct ECExt5 {

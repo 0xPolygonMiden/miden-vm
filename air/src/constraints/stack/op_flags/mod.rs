@@ -1,11 +1,14 @@
-use super::{EvaluationFrame, B0_COL_IDX};
-use crate::trace::{
-    decoder::{IS_LOOP_FLAG_COL_IDX, NUM_OP_BITS, OP_BITS_EXTRA_COLS_RANGE, OP_BITS_RANGE},
-    stack::H0_COL_IDX,
-    DECODER_TRACE_OFFSET, STACK_TRACE_OFFSET, TRACE_WIDTH,
-};
-use crate::utils::binary_not;
 use vm_core::{Felt, FieldElement, Operation, ONE, ZERO};
+
+use super::{EvaluationFrame, B0_COL_IDX};
+use crate::{
+    trace::{
+        decoder::{IS_LOOP_FLAG_COL_IDX, NUM_OP_BITS, OP_BITS_EXTRA_COLS_RANGE, OP_BITS_RANGE},
+        stack::H0_COL_IDX,
+        DECODER_TRACE_OFFSET, STACK_TRACE_OFFSET, TRACE_WIDTH,
+    },
+    utils::binary_not,
+};
 #[cfg(test)]
 pub mod tests;
 
@@ -100,7 +103,7 @@ impl<E: FieldElement> OpFlags<E> {
     /// - composite flag for the stack if the stack has been shifted to the right.
     /// - composite flag if the current operation being executed is a control flow operation or not.
     /// - composite flag if the current operation being executed has a binary element constraint on
-    /// the top element in the stack.
+    ///   the top element in the stack.
     pub fn new(frame: &EvaluationFrame<E>) -> Self {
         // intermediary array to cache the value of intermediate flags.
         let mut degree7_op_flags = [E::ZERO; NUM_DEGREE_7_OPS];
@@ -840,7 +843,7 @@ impl<E: FieldElement> OpFlags<E> {
     /// Operation Flag of U32ASSERT2 operation.
     #[inline(always)]
     pub fn u32assert2(&self) -> E {
-        self.degree6_op_flags[get_op_index(Operation::U32assert2(ZERO).op_code())]
+        self.degree6_op_flags[get_op_index(Operation::U32assert2(0).op_code())]
     }
 
     /// Operation Flag of U32ADD3 operation.
@@ -866,7 +869,7 @@ impl<E: FieldElement> OpFlags<E> {
     /// Operation Flag of MPVERIFY operation.
     #[inline(always)]
     pub fn mpverify(&self) -> E {
-        self.degree5_op_flags[get_op_index(Operation::MpVerify.op_code())]
+        self.degree5_op_flags[get_op_index(Operation::MpVerify(0).op_code())]
     }
 
     /// Operation Flag of SPLIT operation.

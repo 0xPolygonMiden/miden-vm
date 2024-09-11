@@ -6,19 +6,21 @@ use core::{
 };
 
 use crate::{
-    ast::{AstSerdeOptions, CaseKindError, Ident, IdentError},
+    ast::{CaseKindError, Ident, IdentError},
     diagnostics::{IntoDiagnostic, Report},
-    ByteReader, ByteWriter, Deserializable, DeserializationError, LibraryPath, Serializable,
-    SourceSpan, Span, Spanned,
+    LibraryNamespace, LibraryPath, SourceSpan, Span, Spanned,
 };
 
-// FULLY QUALIFIED PROCEDURE NAME
+// QUALIFIED PROCEDURE NAME
 // ================================================================================================
 
-/// Represents a fully-qualified procedure name, e.g. `std::math::u64::add`, parsed into it's
+/// Represents a qualified procedure name, e.g. `std::math::u64::add`, parsed into it's
 /// constituent [LibraryPath] and [ProcedureName] components.
+///
+/// A qualified procedure name can be context-sensitive, i.e. the module path might refer
+/// to an imported
 #[derive(Clone)]
-pub struct FullyQualifiedProcedureName {
+pub struct QualifiedProcedureName {
     /// The source span associated with this identifier.
     pub span: SourceSpan,
     /// The module path for this procedure.
@@ -27,8 +29,8 @@ pub struct FullyQualifiedProcedureName {
     pub name: ProcedureName,
 }
 
-impl FullyQualifiedProcedureName {
-    /// Create a new [FullyQualifiedProcedureName] with the given fully-qualified module path
+impl QualifiedProcedureName {
+    /// Create a new [QualifiedProcedureName] with the given fully-qualified module path
     /// and procedure name.
     pub fn new(module: LibraryPath, name: ProcedureName) -> Self {
         Self {
@@ -37,9 +39,14 @@ impl FullyQualifiedProcedureName {
             name,
         }
     }
+
+    /// Returns the namespace of this fully-qualified procedure name.
+    pub fn namespace(&self) -> &LibraryNamespace {
+        self.module.namespace()
+    }
 }
 
-impl FromStr for FullyQualifiedProcedureName {
+impl FromStr for QualifiedProcedureName {
     type Err = Report;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
@@ -49,44 +56,44 @@ impl FromStr for FullyQualifiedProcedureName {
                 let name = name.parse::<ProcedureName>().into_diagnostic()?;
                 let path = path.parse::<LibraryPath>().into_diagnostic()?;
                 Ok(Self::new(path, name))
-            }
+            },
         }
     }
 }
 
-impl Eq for FullyQualifiedProcedureName {}
+impl Eq for QualifiedProcedureName {}
 
-impl PartialEq for FullyQualifiedProcedureName {
+impl PartialEq for QualifiedProcedureName {
     fn eq(&self, other: &Self) -> bool {
         self.name == other.name && self.module == other.module
     }
 }
 
-impl Ord for FullyQualifiedProcedureName {
+impl Ord for QualifiedProcedureName {
     fn cmp(&self, other: &Self) -> core::cmp::Ordering {
         self.module.cmp(&other.module).then_with(|| self.name.cmp(&other.name))
     }
 }
 
-impl PartialOrd for FullyQualifiedProcedureName {
+impl PartialOrd for QualifiedProcedureName {
     fn partial_cmp(&self, other: &Self) -> Option<core::cmp::Ordering> {
         Some(self.cmp(other))
     }
 }
 
-impl From<FullyQualifiedProcedureName> for miette::SourceSpan {
-    fn from(fqn: FullyQualifiedProcedureName) -> Self {
+impl From<QualifiedProcedureName> for miette::SourceSpan {
+    fn from(fqn: QualifiedProcedureName) -> Self {
         fqn.span.into()
     }
 }
 
-impl Spanned for FullyQualifiedProcedureName {
+impl Spanned for QualifiedProcedureName {
     fn span(&self) -> SourceSpan {
         self.span
     }
 }
 
-impl fmt::Debug for FullyQualifiedProcedureName {
+impl fmt::Debug for QualifiedProcedureName {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         f.debug_struct("FullyQualifiedProcedureName")
             .field("module", &self.module)
@@ -95,36 +102,17 @@ impl fmt::Debug for FullyQualifiedProcedureName {
     }
 }
 
-impl fmt::Display for FullyQualifiedProcedureName {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{}::{}", &self.module, &self.name)
+impl crate::prettier::PrettyPrint for QualifiedProcedureName {
+    fn render(&self) -> vm_core::prettier::Document {
+        use crate::prettier::*;
+
+        display(self)
     }
 }
 
-/// Serialization
-impl FullyQualifiedProcedureName {
-    /// Serialize to `target` using `options`
-    pub fn write_into_with_options<W: ByteWriter>(&self, target: &mut W, options: AstSerdeOptions) {
-        if options.debug_info {
-            self.span.write_into(target);
-        }
-        self.module.write_into(target);
-        self.name.write_into_with_options(target, options);
-    }
-
-    /// Deserialize from `source` using `options`
-    pub fn read_from_with_options<R: ByteReader>(
-        source: &mut R,
-        options: AstSerdeOptions,
-    ) -> Result<Self, DeserializationError> {
-        let span = if options.debug_info {
-            SourceSpan::read_from(source)?
-        } else {
-            SourceSpan::default()
-        };
-        let module = LibraryPath::read_from(source)?;
-        let name = ProcedureName::read_from_with_options(source, options)?;
-        Ok(Self { span, module, name })
+impl fmt::Display for QualifiedProcedureName {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{}::{}", &self.module, &self.name)
     }
 }
 
@@ -210,6 +198,11 @@ impl ProcedureName {
     /// Is this the reserved name for the executable entrypoint (i.e. `main`)?
     pub fn is_main(&self) -> bool {
         self.0.as_str() == Self::MAIN_PROC_NAME
+    }
+
+    /// Returns a string reference for this procedure name.
+    pub fn as_str(&self) -> &str {
+        self.as_ref()
     }
 }
 
@@ -309,9 +302,9 @@ impl FromStr for ProcedureName {
                             }
                             let tok = &s[1..pos];
                             break Ok(Arc::from(tok.to_string().into_boxed_str()));
-                        }
+                        },
                         c if c.is_alphanumeric() => continue,
-                        '_' | '$' | '-' | '!' | '?' => continue,
+                        '_' | '$' | '-' | '!' | '?' | '<' | '>' | ':' | '.' => continue,
                         _ => break Err(IdentError::InvalidChars),
                     }
                 } else {
@@ -328,55 +321,10 @@ impl FromStr for ProcedureName {
                 } else {
                     Ok(Arc::from(s.to_string().into_boxed_str()))
                 }
-            }
+            },
             Some((_, c)) if c.is_ascii_uppercase() => Err(IdentError::Casing(CaseKindError::Snake)),
             Some(_) => Err(IdentError::InvalidChars),
         }?;
         Ok(Self(Ident::new_unchecked(Span::unknown(raw))))
-    }
-}
-
-/// Serialization
-impl ProcedureName {
-    pub fn write_into_with_options<W: ByteWriter>(
-        &self,
-        target: &mut W,
-        options: crate::ast::AstSerdeOptions,
-    ) {
-        if options.debug_info {
-            self.span().write_into(target);
-        }
-        target.write_usize(self.0.as_bytes().len());
-        target.write_bytes(self.0.as_bytes());
-    }
-
-    pub fn read_from_with_options<R: ByteReader>(
-        source: &mut R,
-        options: crate::ast::AstSerdeOptions,
-    ) -> Result<Self, DeserializationError> {
-        let span = if options.debug_info {
-            SourceSpan::read_from(source)?
-        } else {
-            SourceSpan::default()
-        };
-        let nlen = source.read_usize()?;
-        let name = source.read_slice(nlen)?;
-        let name = core::str::from_utf8(name)
-            .map_err(|e| DeserializationError::InvalidValue(e.to_string()))?;
-        name.parse::<Self>()
-            .map_err(|e| DeserializationError::InvalidValue(e.to_string()))
-            .map(|id| id.with_span(span))
-    }
-}
-
-impl Serializable for ProcedureName {
-    fn write_into<W: ByteWriter>(&self, target: &mut W) {
-        self.write_into_with_options(target, Default::default())
-    }
-}
-
-impl Deserializable for ProcedureName {
-    fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
-        Self::read_from_with_options(source, Default::default())
     }
 }

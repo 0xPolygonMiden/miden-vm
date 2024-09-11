@@ -1,8 +1,9 @@
+use std::path::PathBuf;
+
+use assembly::diagnostics::{IntoDiagnostic, Report, WrapErr};
 use clap::Parser;
 
 use super::data::{Debug, Libraries, ProgramFile};
-use assembly::diagnostics::Report;
-use std::path::PathBuf;
 
 #[derive(Debug, Clone, Parser)]
 #[clap(about = "Compile a miden program")]
@@ -37,7 +38,18 @@ impl CompileCmd {
         let program_hash: [u8; 32] = compiled_program.hash().into();
         println!("program hash is {}", hex::encode(program_hash));
 
-        // write the compiled file
-        program.write(self.output_file.clone())
+        // write the compiled program into the specified path if one is provided; if the path is
+        // not provided, writes the file into the same directory as the source file, but with
+        // `.masb` extension.
+        let out_path = self.output_file.clone().unwrap_or_else(|| {
+            let mut out_file = self.assembly_file.clone();
+            out_file.set_extension("masb");
+            out_file
+        });
+
+        compiled_program
+            .write_to_file(out_path)
+            .into_diagnostic()
+            .wrap_err("Failed to write the compiled file")
     }
 }

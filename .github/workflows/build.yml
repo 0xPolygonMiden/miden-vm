@@ -1,0 +1,25 @@
+# Runs build related jobs.
+
+name: build
+
+on:
+  push:
+    branches: [main, next]
+  pull_request:
+    types: [opened, reopened, synchronize]
+
+jobs:
+  no-std:
+    name: Build for no-std
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        toolchain: [stable, nightly]
+    steps:
+      - uses: actions/checkout@main
+      - name: Build for no-std
+        run: |
+          rustup update --no-self-update ${{ matrix.toolchain }}
+          rustup target add wasm32-unknown-unknown
+          make build-no-std

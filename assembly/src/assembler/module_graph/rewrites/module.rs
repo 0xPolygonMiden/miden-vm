@@ -1,31 +1,32 @@
-use alloc::{collections::BTreeSet, sync::Arc};
+use alloc::collections::BTreeSet;
 use core::ops::ControlFlow;
 
 use crate::{
     assembler::{
-        module_graph::{CallerInfo, NameResolver, PhantomCall},
+        module_graph::{CallerInfo, NameResolver},
         ModuleIndex, ResolvedTarget,
     },
     ast::{
         visit::{self, VisitMut},
-        InvocationTarget, Invoke, InvokeKind, Module, Procedure,
+        AliasTarget, InvocationTarget, Invoke, InvokeKind, Module, Procedure,
     },
-    diagnostics::SourceFile,
-    AssemblyError, Span, Spanned,
+    AssemblyError, SourceSpan, Spanned,
 };
+
+// MODULE REWRITE CHECK
+// ================================================================================================
 
 /// A [ModuleRewriter] handles applying all of the module-wide rewrites to a [Module] that is being
 /// added to a [ModuleGraph]. These rewrites include:
 ///
 /// * Resolving, at least partially, all of the invocation targets in procedures of the module, and
-/// rewriting those targets as concretely as possible OR as phantom calls representing procedures
-/// referenced by MAST root for which we have no definition.
+///   rewriting those targets as concretely as possible OR as phantom calls representing procedures
+///   referenced by MAST root for which we have no definition.
 pub struct ModuleRewriter<'a, 'b: 'a> {
     resolver: &'a NameResolver<'b>,
     module_id: ModuleIndex,
+    span: SourceSpan,
     invoked: BTreeSet<Invoke>,
-    phantoms: BTreeSet<PhantomCall>,
-    source_file: Option<Arc<SourceFile>>,
 }
 
 impl<'a, 'b: 'a> ModuleRewriter<'a, 'b> {
@@ -34,9 +35,8 @@ impl<'a, 'b: 'a> ModuleRewriter<'a, 'b> {
         Self {
             resolver,
             module_id: ModuleIndex::new(u16::MAX as usize),
+            span: Default::default(),
             invoked: Default::default(),
-            phantoms: Default::default(),
-            source_file: None,
         }
     }
 
@@ -47,18 +47,13 @@ impl<'a, 'b: 'a> ModuleRewriter<'a, 'b> {
         module: &mut Module,
     ) -> Result<(), AssemblyError> {
         self.module_id = module_id;
-        self.source_file = module.source_file();
+        self.span = module.span();
 
         if let ControlFlow::Break(err) = self.visit_mut_module(module) {
             return Err(err);
         }
 
         Ok(())
-    }
-
-    /// Take the set of accumulated phantom calls out of this rewriter
-    pub fn phantoms(&mut self) -> BTreeSet<PhantomCall> {
-        core::mem::take(&mut self.phantoms)
     }
 
     fn rewrite_target(
@@ -68,42 +63,19 @@ impl<'a, 'b: 'a> ModuleRewriter<'a, 'b> {
     ) -> ControlFlow<AssemblyError> {
         let caller = CallerInfo {
             span: target.span(),
-            source_file: self.source_file.clone(),
             module: self.module_id,
             kind,
         };
         match self.resolver.resolve_target(&caller, target) {
             Err(err) => return ControlFlow::Break(err),
-            Ok(ResolvedTarget::Cached { digest, .. }) => {
-                *target = InvocationTarget::MastRoot(Span::new(target.span(), digest));
-                self.invoked.insert(Invoke {
-                    kind,
-                    target: target.clone(),
-                });
-            }
-            Ok(ResolvedTarget::Phantom(callee)) => {
-                let call = PhantomCall {
-                    span: target.span(),
-                    source_file: self.source_file.clone(),
-                    callee,
-                };
-                self.phantoms.insert(call);
-            }
+            Ok(ResolvedTarget::Phantom(_)) => (),
             Ok(ResolvedTarget::Exact { .. }) => {
-                self.invoked.insert(Invoke {
-                    kind,
-                    target: target.clone(),
-                });
-            }
-            Ok(ResolvedTarget::Resolved {
-                target: new_target, ..
-            }) => {
+                self.invoked.insert(Invoke { kind, target: target.clone() });
+            },
+            Ok(ResolvedTarget::Resolved { target: new_target, .. }) => {
                 *target = new_target;
-                self.invoked.insert(Invoke {
-                    kind,
-                    target: target.clone(),
-                });
-            }
+                self.invoked.insert(Invoke { kind, target: target.clone() });
+            },
         }
 
         ControlFlow::Continue(())
@@ -129,5 +101,15 @@ impl<'a, 'b: 'a> VisitMut<AssemblyError> for ModuleRewriter<'a, 'b> {
         target: &mut InvocationTarget,
     ) -> ControlFlow<AssemblyError> {
         self.rewrite_target(InvokeKind::Exec, target)
+    }
+    fn visit_mut_alias_target(&mut self, target: &mut AliasTarget) -> ControlFlow<AssemblyError> {
+        if matches!(target, AliasTarget::MastRoot(_)) {
+            return ControlFlow::Continue(());
+        }
+        let mut invoke_target = (target as &AliasTarget).into();
+        self.rewrite_target(InvokeKind::ProcRef, &mut invoke_target)?;
+        // This will always succeed, as the original target is qualified by construction
+        *target = AliasTarget::try_from(invoke_target).unwrap();
+        ControlFlow::Continue(())
     }
 }

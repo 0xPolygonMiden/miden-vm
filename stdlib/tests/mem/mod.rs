@@ -1,4 +1,4 @@
-use processor::{ContextId, DefaultHost, ProcessState};
+use processor::{ContextId, DefaultHost, ProcessState, Program};
 use test_utils::{
     build_expected_hash, build_expected_perm, stack_to_ints, ExecutionOptions, Process,
     StackInputs, ONE, ZERO,
@@ -22,16 +22,21 @@ fn test_memcopy() {
     end
     ";
 
-    let mut assembler = assembly::Assembler::default()
-        .with_library(&StdLibrary::default())
+    let stdlib = StdLibrary::default();
+    let assembler = assembly::Assembler::default()
+        .with_library(&stdlib)
         .expect("failed to load stdlib");
 
-    let program = assembler.assemble(source).expect("Failed to compile test source.");
+    let program: Program =
+        assembler.assemble_program(source).expect("Failed to compile test source.");
+
+    let mut host = DefaultHost::default();
+    host.load_mast_forest(stdlib.mast_forest().clone());
 
     let mut process = Process::new(
         program.kernel().clone(),
         StackInputs::default(),
-        DefaultHost::default(),
+        host,
         ExecutionOptions::default(),
     );
     process.execute(&program).unwrap();

@@ -1,5 +1,9 @@
-use assembly::{ast::ModuleKind, Assembler, AssemblyContext, LibraryPath};
+use alloc::sync::Arc;
+
+use assembly::{ast::ModuleKind, Assembler, LibraryPath, Report, SourceManager};
+use miden_vm::Module;
 use processor::ExecutionError;
+use prover::Digest;
 use stdlib::StdLibrary;
 use test_utils::{build_test, expect_exec_error, StackInputs, Test};
 
@@ -200,11 +204,12 @@ fn simple_syscall() {
         end";
 
     // TODO: update and use macro?
-    let test = Test {
-        kernel: Some(kernel_source.to_string()),
-        stack_inputs: StackInputs::try_from_ints([1, 2]).unwrap(),
-        ..Test::new(&format!("test{}", line!()), program_source, false)
-    };
+    let mut test = Test::new(&format!("test{}", line!()), program_source, false);
+    test.stack_inputs = StackInputs::try_from_ints([1, 2]).unwrap();
+    test.kernel_source = Some(
+        test.source_manager
+            .load(&format!("kernel{}", line!()), kernel_source.to_string()),
+    );
     test.expect_stack(&[3]);
 
     test.prove_and_verify(vec![1, 2], false);
@@ -387,9 +392,7 @@ fn simple_dyncall() {
 // ================================================================================================
 
 #[test]
-fn procref() {
-    let mut assembler = Assembler::default().with_library(&StdLibrary::default()).unwrap();
-
+fn procref() -> Result<(), Report> {
     let module_source = "
     use.std::math::u64
     export.u64::overflowing_add
@@ -400,10 +403,21 @@ fn procref() {
     ";
 
     // obtain procedures' MAST roots by compiling them as module
-    let module_path = "test::foo".parse::<LibraryPath>().unwrap();
-    let mut context = AssemblyContext::for_library(&module_path);
-    let opts = assembly::CompileOptions::new(ModuleKind::Library, module_path).unwrap();
-    let mast_roots = assembler.assemble_module(module_source, opts, &mut context).unwrap();
+    let mast_roots: Vec<Digest> = {
+        let source_manager = Arc::new(assembly::DefaultSourceManager::default());
+        let module_path = "test::foo".parse::<LibraryPath>().unwrap();
+        let mut parser = Module::parser(ModuleKind::Library);
+        let module = parser.parse_str(module_path, module_source, &source_manager)?;
+        let library = Assembler::new(source_manager)
+            .with_library(StdLibrary::default())
+            .unwrap()
+            .assemble_library([module])
+            .unwrap();
+
+        let module_info = library.module_infos().next().unwrap();
+
+        module_info.procedure_digests().collect()
+    };
 
     let source = "
     use.std::math::u64
@@ -422,16 +436,17 @@ fn procref() {
     test.libraries = vec![StdLibrary::default().into()];
 
     test.expect_stack(&[
-        mast_roots[1][3].as_int(),
-        mast_roots[1][2].as_int(),
-        mast_roots[1][1].as_int(),
-        mast_roots[1][0].as_int(),
-        0,
         mast_roots[0][3].as_int(),
         mast_roots[0][2].as_int(),
         mast_roots[0][1].as_int(),
         mast_roots[0][0].as_int(),
+        0,
+        mast_roots[1][3].as_int(),
+        mast_roots[1][2].as_int(),
+        mast_roots[1][1].as_int(),
+        mast_roots[1][0].as_int(),
     ]);
 
     test.prove_and_verify(vec![], false);
+    Ok(())
 }

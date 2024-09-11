@@ -1,19 +1,20 @@
-use crate::{
-    assembler::{Assembler, AssemblyContext, ProcedureCache},
-    ast::{Form, FullyQualifiedProcedureName, Module, ModuleKind},
-    diagnostics::{
-        reporting::{set_hook, ReportHandlerOpts},
-        Report, SourceFile,
-    },
-    Compile, CompileOptions, Library, LibraryPath, RpoDigest,
-};
+use alloc::{boxed::Box, string::String, sync::Arc, vec::Vec};
+use core::fmt;
+
+use vm_core::Program;
 
 #[cfg(feature = "std")]
 use crate::diagnostics::reporting::set_panic_hook;
-
-use alloc::{boxed::Box, string::String, sync::Arc, vec::Vec};
-use core::fmt;
-use vm_core::{utils::DisplayHex, Program};
+use crate::{
+    assembler::Assembler,
+    ast::{Form, Module, ModuleKind},
+    diagnostics::{
+        reporting::{set_hook, ReportHandlerOpts},
+        Report, SourceFile, SourceManager,
+    },
+    library::Library,
+    Compile, CompileOptions, LibraryPath, RpoDigest,
+};
 
 /// Represents a pattern for matching text abstractly
 /// for use in asserting contents of complex diagnostics
@@ -124,17 +125,11 @@ macro_rules! regex {
 /// the source file was constructed.
 #[macro_export]
 macro_rules! source_file {
-    ($source:literal) => {
-        ::alloc::sync::Arc::new($crate::diagnostics::SourceFile::new(
-            concat!("test", line!()),
-            $source.to_string(),
-        ))
+    ($context:expr, $source:literal) => {
+        $context.source_manager().load(concat!("test", line!()), $source.to_string())
     };
-    ($source:expr) => {
-        ::alloc::sync::Arc::new($crate::diagnostics::SourceFile::new(
-            concat!("test", line!()),
-            $source,
-        ))
+    ($context:expr, $source:expr) => {
+        $context.source_manager().load(concat!("test", line!()), $source.to_string())
     };
 }
 
@@ -153,11 +148,12 @@ macro_rules! assert_diagnostic {
     }};
 }
 
-/// Like [assert_diagnostic], but matches each non-empty line of the rendered output
-/// to a corresponding pattern. So if the output has 3 lines, the second of which is
-/// empty, and you provide 2 patterns, the assertion passes if the first line matches
-/// the first pattern, and the third line matches the second pattern - the second
-/// line is ignored because it is empty.
+/// Like [assert_diagnostic], but matches each non-empty line of the rendered output to a
+/// corresponding pattern.
+///
+/// So if the output has 3 lines, the second of which is empty, and you provide 2 patterns, the
+/// assertion passes if the first line matches the first pattern, and the third line matches the
+/// second pattern - the second line is ignored because it is empty.
 #[macro_export]
 macro_rules! assert_diagnostic_lines {
     ($diagnostic:expr, $($expected:expr),+) => {{
@@ -177,6 +173,7 @@ macro_rules! assert_diagnostic_lines {
 ///
 /// Some of the assertion macros defined above require a [TestContext], so be aware of that.
 pub struct TestContext {
+    source_manager: Arc<dyn SourceManager>,
     assembler: Assembler,
 }
 
@@ -201,9 +198,21 @@ impl TestContext {
         {
             let _ = set_hook(Box::new(|_| Box::new(ReportHandlerOpts::new().build())));
         }
-        Self {
-            assembler: Assembler::default().with_debug_mode(true).with_warnings_as_errors(true),
-        }
+        let source_manager = Arc::new(crate::DefaultSourceManager::default());
+        // Note: we do not set debug mode by default because we do not want AsmOp decorators to be
+        // inserted in our programs
+        let assembler = Assembler::new(source_manager.clone()).with_warnings_as_errors(true);
+        Self { source_manager, assembler }
+    }
+
+    pub fn with_debug_info(mut self, yes: bool) -> Self {
+        self.assembler.set_debug_mode(yes);
+        self
+    }
+
+    #[inline(always)]
+    pub fn source_manager(&self) -> Arc<dyn SourceManager> {
+        self.source_manager.clone()
     }
 
     /// Parse the given source file into a vector of top-level [Form]s.
@@ -211,7 +220,7 @@ impl TestContext {
     /// This does not run semantic analysis, or construct a [Module] from the parsed
     /// forms, and is largely intended for low-level testing of the parser.
     #[track_caller]
-    pub fn parse_forms(&mut self, source: Arc<SourceFile>) -> Result<Vec<Form>, Report> {
+    pub fn parse_forms(&self, source: Arc<SourceFile>) -> Result<Vec<Form>, Report> {
         crate::parser::parse_forms(source.clone())
             .map_err(|err| Report::new(err).with_source_code(source))
     }
@@ -221,11 +230,14 @@ impl TestContext {
     /// This runs semantic analysis, and the returned module is guaranteed to be syntactically
     /// valid.
     #[track_caller]
-    pub fn parse_program(&mut self, source: impl Compile) -> Result<Box<Module>, Report> {
-        source.compile_with_options(CompileOptions {
-            warnings_as_errors: self.assembler.warnings_as_errors(),
-            ..Default::default()
-        })
+    pub fn parse_program(&self, source: impl Compile) -> Result<Box<Module>, Report> {
+        source.compile_with_options(
+            self.source_manager.as_ref(),
+            CompileOptions {
+                warnings_as_errors: self.assembler.warnings_as_errors(),
+                ..Default::default()
+            },
+        )
     }
 
     /// Parse the given source file into a kernel [Module].
@@ -234,11 +246,14 @@ impl TestContext {
     /// valid.
     #[allow(unused)]
     #[track_caller]
-    pub fn parse_kernel(&mut self, source: impl Compile) -> Result<Box<Module>, Report> {
-        source.compile_with_options(CompileOptions {
-            warnings_as_errors: self.assembler.warnings_as_errors(),
-            ..CompileOptions::for_kernel()
-        })
+    pub fn parse_kernel(&self, source: impl Compile) -> Result<Box<Module>, Report> {
+        source.compile_with_options(
+            self.source_manager.as_ref(),
+            CompileOptions {
+                warnings_as_errors: self.assembler.warnings_as_errors(),
+                ..CompileOptions::for_kernel()
+            },
+        )
     }
 
     /// Parse the given source file into an anonymous library [Module].
@@ -246,24 +261,30 @@ impl TestContext {
     /// This runs semantic analysis, and the returned module is guaranteed to be syntactically
     /// valid.
     #[track_caller]
-    pub fn parse_module(&mut self, source: impl Compile) -> Result<Box<Module>, Report> {
-        source.compile_with_options(CompileOptions {
-            warnings_as_errors: self.assembler.warnings_as_errors(),
-            ..CompileOptions::for_library()
-        })
+    pub fn parse_module(&self, source: impl Compile) -> Result<Box<Module>, Report> {
+        source.compile_with_options(
+            self.source_manager.as_ref(),
+            CompileOptions {
+                warnings_as_errors: self.assembler.warnings_as_errors(),
+                ..CompileOptions::for_library()
+            },
+        )
     }
 
     /// Parse the given source file into a library [Module] with the given fully-qualified path.
     #[track_caller]
     pub fn parse_module_with_path(
-        &mut self,
+        &self,
         path: LibraryPath,
         source: impl Compile,
     ) -> Result<Box<Module>, Report> {
-        source.compile_with_options(CompileOptions {
-            warnings_as_errors: self.assembler.warnings_as_errors(),
-            ..CompileOptions::new(ModuleKind::Library, path).unwrap()
-        })
+        source.compile_with_options(
+            self.source_manager.as_ref(),
+            CompileOptions {
+                warnings_as_errors: self.assembler.warnings_as_errors(),
+                ..CompileOptions::new(ModuleKind::Library, path).unwrap()
+            },
+        )
     }
 
     /// Add `module` to the [Assembler] constructed by this context, making it available to
@@ -295,10 +316,7 @@ impl TestContext {
 
     /// Add the modules of `library` to the [Assembler] constructed by this context.
     #[track_caller]
-    pub fn add_library<L>(&mut self, library: &L) -> Result<(), Report>
-    where
-        L: ?Sized + Library + 'static,
-    {
+    pub fn add_library(&mut self, library: impl AsRef<Library>) -> Result<(), Report> {
         self.assembler.add_library(library)
     }
 
@@ -307,54 +325,31 @@ impl TestContext {
     /// NOTE: Any modules added by, e.g. `add_module`, will be available to the executable
     /// module represented in `source`.
     #[track_caller]
-    pub fn assemble(&mut self, source: impl Compile) -> Result<Program, Report> {
-        self.assembler.assemble(source)
+    pub fn assemble(&self, source: impl Compile) -> Result<Program, Report> {
+        self.assembler.clone().assemble_program(source)
+    }
+
+    /// Compile a [Library] from `modules` using the [Assembler] constructed by this
+    /// context.
+    ///
+    /// NOTE: Any modules added by, e.g. `add_module`, will be available to the library
+    #[track_caller]
+    pub fn assemble_library(
+        &self,
+        modules: impl IntoIterator<Item = Box<Module>>,
+    ) -> Result<Library, Report> {
+        self.assembler.clone().assemble_library(modules)
     }
 
     /// Compile a module from `source`, with the fully-qualified name `path`, to MAST, returning
     /// the MAST roots of all the exported procedures of that module.
     #[track_caller]
     pub fn assemble_module(
-        &mut self,
-        path: LibraryPath,
-        module: impl Compile,
-    ) -> Result<Vec<RpoDigest>, Report> {
-        let mut context = AssemblyContext::for_library(&path);
-        context.set_warnings_as_errors(self.assembler.warnings_as_errors());
-
-        let options = CompileOptions {
-            path: Some(path),
-            warnings_as_errors: self.assembler.warnings_as_errors(),
-            ..CompileOptions::for_library()
-        };
-        self.assembler.assemble_module(module, options, &mut context)
-    }
-
-    /// Get a reference to the [ProcedureCache] of the [Assembler] constructed by this context.
-    pub fn procedure_cache(&self) -> &ProcedureCache {
-        self.assembler.procedure_cache()
-    }
-
-    /// Display the MAST root associated with `name` in the procedure cache of the [Assembler]
-    /// constructed by this context.
-    ///
-    /// It is expected that the module containing `name` was previously compiled by the assembler,
-    /// and is thus in the cache. This function will panic if that is not the case.
-    pub fn display_digest_from_cache(
         &self,
-        name: &FullyQualifiedProcedureName,
-    ) -> impl fmt::Display {
-        self.procedure_cache()
-            .get_by_name(name)
-            .map(|p| p.code().hash())
-            .map(DisplayDigest)
-            .unwrap_or_else(|| panic!("procedure '{}' is not in the procedure cache", name))
-    }
-}
-
-struct DisplayDigest(RpoDigest);
-impl fmt::Display for DisplayDigest {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{:#x}", DisplayHex(self.0.as_bytes().as_slice()))
+        _path: LibraryPath,
+        _module: impl Compile,
+    ) -> Result<Vec<RpoDigest>, Report> {
+        // This API will change after we implement `Assembler::add_library()`
+        unimplemented!()
     }
 }

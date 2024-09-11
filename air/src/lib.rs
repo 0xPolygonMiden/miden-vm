@@ -23,6 +23,7 @@ pub use constraints::stack;
 use constraints::{chiplets, range};
 
 pub mod trace;
+pub use trace::rows::RowIndex;
 use trace::*;
 
 mod errors;
@@ -30,19 +31,17 @@ mod options;
 mod proof;
 
 mod utils;
-use utils::TransitionConstraintRange;
-
 // RE-EXPORTS
 // ================================================================================================
-
 pub use errors::ExecutionOptionsError;
 pub use options::{ExecutionOptions, ProvingOptions};
 pub use proof::{ExecutionProof, HashFunction};
+use utils::TransitionConstraintRange;
 pub use vm_core::{
     utils::{DeserializationError, ToElements},
     Felt, FieldElement, StarkField,
 };
-pub use winter_air::{AuxRandElements, FieldExtension};
+pub use winter_air::{AuxRandElements, FieldExtension, LagrangeKernelEvaluationFrame};
 
 // PROCESSOR AIR
 // ================================================================================================

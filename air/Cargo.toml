@@ -1,16 +1,17 @@
 [package]
 name = "miden-air"
-version = "0.8.0"
+version = "0.10.5"
 description = "Algebraic intermediate representation of Miden VM processor"
-authors = ["miden contributors"]
+documentation = "https://docs.rs/miden-air/0.10.5"
 readme = "README.md"
-license = "MIT"
-repository = "https://github.com/0xPolygonMiden/miden-vm"
-documentation = "https://docs.rs/miden-air/0.8.0"
 categories = ["cryptography", "no-std"]
 keywords = ["air", "arithmetization", "crypto", "miden"]
-edition = "2021"
-rust-version = "1.75"
+license.workspace = true
+authors.workspace = true
+homepage.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+edition.workspace = true
 
 [lib]
 bench = false
@@ -26,11 +27,12 @@ harness = false
 
 [features]
 default = ["std"]
-std = ["vm-core/std", "winter-air/std"]
-internals = []
+std = ["vm-core/std", "winter-air/std", "thiserror/std"]
+testing = []
 
 [dependencies]
-vm-core = { package = "miden-core", path = "../core", version = "0.8", default-features = false }
+thiserror = { package = "miden-thiserror", version = "1.0", default-features = false }
+vm-core = { package = "miden-core", path = "../core", version = "0.10", default-features = false }
 winter-air = { package = "winter-air", version = "0.9", default-features = false }
 winter-prover = { package = "winter-prover", version = "0.9", default-features = false }
 

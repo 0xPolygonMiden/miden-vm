@@ -18,7 +18,7 @@ fn test_invalid_end_addr() {
     expect_exec_error!(
         test,
         ExecutionError::FailedAssertion {
-            clk: 18,
+            clk: 18.into(),
             err_code: 0,
             err_msg: None,
         }
@@ -39,7 +39,7 @@ fn test_invalid_end_addr() {
     expect_exec_error!(
         test,
         ExecutionError::FailedAssertion {
-            clk: 18,
+            clk: 18.into(),
             err_code: 0,
             err_msg: None,
         }

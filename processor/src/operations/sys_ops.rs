@@ -115,7 +115,10 @@ where
 
 #[cfg(test)]
 mod tests {
-    use super::{super::Operation, super::STACK_TOP_SIZE, Felt, Process, FMP_MAX, FMP_MIN};
+    use super::{
+        super::{Operation, STACK_TOP_SIZE},
+        Felt, Process, FMP_MAX, FMP_MIN,
+    };
     use crate::{StackInputs, ONE, ZERO};
 
     const MAX_PROC_LOCALS: u64 = 2_u64.pow(31) - 1;

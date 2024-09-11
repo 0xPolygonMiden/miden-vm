@@ -30,18 +30,3 @@ pub fn test_inputs_out_of_bounds(asm_op: &str, input_count: usize) {
         expect_exec_error!(test, ExecutionError::NotU32Value(Felt::new(U32_BOUND), ZERO));
     }
 }
-
-/// This helper function tests that when the given u32 assembly instruction is executed on
-/// out-of-bounds inputs it does not fail. Each input is tested independently.
-pub fn test_unchecked_execution(asm_op: &str, input_count: usize) {
-    let values = vec![1_u64; input_count];
-
-    for i in 0..input_count {
-        let mut i_values = values.clone();
-        // should execute successfully when the value of the input at index i is out of bounds
-        i_values[i] = U32_BOUND;
-
-        let test = build_op_test!(asm_op, &i_values);
-        assert!(test.execute().is_ok());
-    }
-}

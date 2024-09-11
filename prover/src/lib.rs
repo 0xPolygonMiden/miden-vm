@@ -6,8 +6,9 @@ extern crate alloc;
 #[cfg(feature = "std")]
 extern crate std;
 
-use air::{AuxRandElements, ProcessorAir, PublicInputs};
 use core::marker::PhantomData;
+
+use air::{AuxRandElements, ProcessorAir, PublicInputs};
 #[cfg(all(feature = "metal", target_arch = "aarch64", target_os = "macos"))]
 use miden_gpu::HashFn;
 use processor::{
@@ -16,7 +17,7 @@ use processor::{
         RpxRandomCoin, WinterRandomCoin,
     },
     math::{Felt, FieldElement},
-    ExecutionTrace,
+    ExecutionTrace, Program,
 };
 use tracing::instrument;
 use winter_prover::{
@@ -24,7 +25,6 @@ use winter_prover::{
     DefaultTraceLde, ProofOptions as WinterProofOptions, Prover, StarkDomain, TraceInfo,
     TracePolyTable,
 };
-
 #[cfg(feature = "std")]
 use {std::time::Instant, winter_prover::Trace};
 mod gpu;
@@ -35,7 +35,7 @@ mod gpu;
 pub use air::{DeserializationError, ExecutionProof, FieldExtension, HashFunction, ProvingOptions};
 pub use processor::{
     crypto, math, utils, AdviceInputs, Digest, ExecutionError, Host, InputError, MemAdviceProvider,
-    Program, StackInputs, StackOutputs, Word,
+    StackInputs, StackOutputs, Word,
 };
 pub use winter_prover::Proof;
 
@@ -102,7 +102,7 @@ where
             #[cfg(all(feature = "metal", target_arch = "aarch64", target_os = "macos"))]
             let prover = gpu::metal::MetalExecutionProver::new(prover, HashFn::Rpo256);
             prover.prove(trace)
-        }
+        },
         HashFunction::Rpx256 => {
             let prover = ExecutionProver::<Rpx256, RpxRandomCoin>::new(
                 options,
@@ -112,7 +112,7 @@ where
             #[cfg(all(feature = "metal", target_arch = "aarch64", target_os = "macos"))]
             let prover = gpu::metal::MetalExecutionProver::new(prover, HashFn::Rpx256);
             prover.prove(trace)
-        }
+        },
     }
     .map_err(ExecutionError::ProverError)?;
     let proof = ExecutionProof::new(proof, hash_fn);

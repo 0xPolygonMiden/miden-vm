@@ -1,6 +1,8 @@
-use super::{Digest, ExecutionError, Felt, Kernel, TraceFragment, Word, ONE, ZERO};
 use alloc::collections::BTreeMap;
-use miden_air::trace::chiplets::kernel_rom::TRACE_WIDTH;
+
+use miden_air::{trace::chiplets::kernel_rom::TRACE_WIDTH, RowIndex};
+
+use super::{Digest, ExecutionError, Felt, Kernel, TraceFragment, Word, ONE, ZERO};
 
 #[cfg(test)]
 mod tests;
@@ -56,11 +58,7 @@ impl KernelRom {
             access_map.insert(proc_hash.into(), ProcAccessInfo::new(proc_hash));
         }
 
-        Self {
-            access_map,
-            kernel,
-            trace_len,
-        }
+        Self { access_map, kernel, trace_len }
     }
 
     // PUBLIC ACCESSORS
@@ -99,7 +97,7 @@ impl KernelRom {
     /// Populates the provided execution trace fragment with execution trace of this kernel ROM.
     pub fn fill_trace(self, trace: &mut TraceFragment) {
         debug_assert_eq!(TRACE_WIDTH, trace.width(), "inconsistent trace fragment width");
-        let mut row = 0;
+        let mut row: RowIndex = 0.into();
         for (idx, access_info) in self.access_map.values().enumerate() {
             let idx = Felt::from(idx as u16);
 
@@ -145,7 +143,7 @@ impl ProcAccessInfo {
     }
 
     /// Writes a single row into the provided trace fragment for this procedure access entry.
-    pub fn write_into_trace(&self, trace: &mut TraceFragment, row: usize, idx: Felt) {
+    pub fn write_into_trace(&self, trace: &mut TraceFragment, row: RowIndex, idx: Felt) {
         let s0 = if self.num_accesses == 0 { ZERO } else { ONE };
         trace.set(row, 0, s0);
         trace.set(row, 1, idx);

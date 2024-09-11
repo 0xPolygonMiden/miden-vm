@@ -63,11 +63,11 @@ impl<'a> VerifyInvokeTargets<'a> {
                     name: name.clone(),
                     path: import.path.clone(),
                 })
-            }
+            },
             None => {
                 self.analyzer.error(SemanticAnalysisError::MissingImport { span: name.span() });
                 None
-            }
+            },
         }
     }
 }
@@ -80,7 +80,7 @@ impl<'a> VisitMut for VerifyInvokeTargets<'a> {
             Instruction::Caller => {
                 self.analyzer.error(SemanticAnalysisError::CallerInKernel { span });
                 ControlFlow::Continue(())
-            }
+            },
             _ => visit::visit_mut_inst(self, inst),
         }
     }
@@ -97,9 +97,8 @@ impl<'a> VisitMut for VerifyInvokeTargets<'a> {
     }
     fn visit_mut_syscall(&mut self, target: &mut InvocationTarget) -> ControlFlow<()> {
         if self.module.is_kernel() {
-            self.analyzer.error(SemanticAnalysisError::SyscallInKernel {
-                span: target.span(),
-            });
+            self.analyzer
+                .error(SemanticAnalysisError::SyscallInKernel { span: target.span() });
         }
         match target {
             // Do not analyze syscalls referencing a local name, these
@@ -115,9 +114,7 @@ impl<'a> VisitMut for VerifyInvokeTargets<'a> {
     }
     fn visit_mut_call(&mut self, target: &mut InvocationTarget) -> ControlFlow<()> {
         if self.module.is_kernel() {
-            self.analyzer.error(SemanticAnalysisError::CallInKernel {
-                span: target.span(),
-            });
+            self.analyzer.error(SemanticAnalysisError::CallInKernel { span: target.span() });
         }
         self.visit_mut_invoke_target(target)?;
         self.invoked.insert(Invoke::new(InvokeKind::Call, target.clone()));
@@ -136,21 +133,23 @@ impl<'a> VisitMut for VerifyInvokeTargets<'a> {
     fn visit_mut_invoke_target(&mut self, target: &mut InvocationTarget) -> ControlFlow<()> {
         let span = target.span();
         match target {
-            InvocationTarget::MastRoot(_) | InvocationTarget::AbsoluteProcedurePath { .. } => (),
+            InvocationTarget::MastRoot(_) => (),
+            InvocationTarget::AbsoluteProcedurePath { name, path } => {
+                if self.module.path() == path && &self.current_procedure == name {
+                    self.analyzer.error(SemanticAnalysisError::SelfRecursive { span });
+                }
+            },
             InvocationTarget::ProcedureName(ref name) if name == &self.current_procedure => {
                 self.analyzer.error(SemanticAnalysisError::SelfRecursive { span });
-            }
+            },
             InvocationTarget::ProcedureName(ref name) => {
                 return self.resolve_local(name);
-            }
-            InvocationTarget::ProcedurePath {
-                ref name,
-                ref module,
-            } => {
+            },
+            InvocationTarget::ProcedurePath { ref name, ref module } => {
                 if let Some(new_target) = self.resolve_external(name, module) {
                     *target = new_target;
                 }
-            }
+            },
         }
         ControlFlow::Continue(())
     }

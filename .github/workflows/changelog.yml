@@ -1,0 +1,23 @@
+# Runs changelog related jobs.
+# CI job heavily inspired by: https://github.com/tarides/changelog-check-action
+
+name: changelog
+
+on:
+  pull_request:
+    types: [opened, reopened, synchronize, labeled, unlabeled]
+
+jobs:
+  changelog:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@main
+        with:
+          fetch-depth: 0
+      - name: Check for changes in changelog
+        env:
+          BASE_REF: ${{ github.event.pull_request.base.ref }}
+          NO_CHANGELOG_LABEL: ${{ contains(github.event.pull_request.labels.*.name, 'no changelog') }}
+        run: ./scripts/check-changelog.sh "${{ inputs.changelog }}"
+        shell: bash

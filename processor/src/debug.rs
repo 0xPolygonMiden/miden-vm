@@ -4,6 +4,7 @@ use alloc::{
 };
 use core::fmt;
 
+use miden_air::RowIndex;
 use vm_core::{AssemblyOp, Operation, StackOutputs, Word};
 
 use crate::{
@@ -14,7 +15,7 @@ use crate::{
 /// VmState holds a current process state information at a specific clock cycle.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct VmState {
-    pub clk: u32,
+    pub clk: RowIndex,
     pub ctx: ContextId,
     pub op: Option<Operation>,
     pub asmop: Option<AsmOpInfo>,
@@ -46,24 +47,23 @@ impl fmt::Display for VmState {
 }
 
 /// Iterator that iterates through vm state at each step of the execution.
-/// This allows debugging or replaying ability to view various process state
-/// at each clock cycle.
-/// If the execution returned an error, it returns that error on the clock cycle
-/// it stopped.
+///
+/// This allows debugging or replaying ability to view various process state at each clock cycle. If
+/// the execution returned an error, it returns that error on the clock cycle it stopped.
 pub struct VmStateIterator {
     chiplets: Chiplets,
     decoder: Decoder,
     stack: Stack,
     system: System,
     error: Option<ExecutionError>,
-    clk: u32,
+    clk: RowIndex,
     asmop_idx: usize,
     forward: bool,
     trace_len_summary: TraceLenSummary,
 }
 
 impl VmStateIterator {
-    pub(super) fn new<H>(process: Process<H>, result: Result<StackOutputs, ExecutionError>) -> Self
+    pub fn new<H>(process: Process<H>, result: Result<StackOutputs, ExecutionError>) -> Self
     where
         H: Host,
     {
@@ -76,7 +76,7 @@ impl VmStateIterator {
             stack,
             system,
             error: result.err(),
-            clk: 0,
+            clk: RowIndex::from(0),
             asmop_idx: 0,
             forward: true,
             trace_len_summary,
@@ -104,7 +104,7 @@ impl VmStateIterator {
         // when the clock cycle is less than the clock cycle of the first asmop.
         let (curr_asmop, cycle_idx) = if self.asmop_idx > 0 {
             let a = self.clk;
-            let b = assembly_ops[self.asmop_idx - 1].0 as u32;
+            let b = RowIndex::from(assembly_ops[self.asmop_idx - 1].0);
             (
                 &assembly_ops[self.asmop_idx - 1],
                 // difference between current clock cycle and start clock cycle of the current
@@ -117,7 +117,7 @@ impl VmStateIterator {
 
         // if this is the first op in the sequence corresponding to the next asmop, returns a new
         // instance of [AsmOp] instantiated with next asmop, num_cycles and cycle_idx of 1.
-        if next_asmop.0 as u32 == self.clk - 1 {
+        if next_asmop.0 == (self.clk - 1).as_usize() {
             // cycle_idx starts at 1 instead of 0 to remove ambiguity
             let cycle_idx = 1;
             let asmop = AsmOpInfo::new(next_asmop.1.clone(), cycle_idx);
@@ -154,7 +154,7 @@ impl VmStateIterator {
         let op = if self.clk == 0 {
             None
         } else {
-            Some(self.decoder.debug_info().operations()[self.clk as usize - 1])
+            Some(self.decoder.debug_info().operations()[self.clk - 1])
         };
 
         let (asmop, is_start) = self.get_asmop();
@@ -195,7 +195,7 @@ impl VmStateIterator {
         let range_table_len = range.get_number_range_checker_rows();
         chiplets.append_range_checks(range);
 
-        TraceLenSummary::new(clk as usize, range_table_len, ChipletsLengths::new(chiplets))
+        TraceLenSummary::new(clk.into(), range_table_len, ChipletsLengths::new(chiplets))
     }
 }
 
@@ -208,7 +208,7 @@ impl Iterator for VmStateIterator {
                 Some(_) => {
                     let error = core::mem::take(&mut self.error);
                     return Some(Err(error.unwrap()));
-                }
+                },
                 None => return None,
             }
         }
@@ -224,7 +224,7 @@ impl Iterator for VmStateIterator {
         let op = if self.clk == 0 {
             None
         } else {
-            Some(self.decoder.debug_info().operations()[self.clk as usize - 1])
+            Some(self.decoder.debug_info().operations()[self.clk - 1])
         };
 
         let (asmop, is_start) = self.get_asmop();
@@ -314,5 +314,12 @@ impl AsmOpInfo {
 impl fmt::Display for AsmOpInfo {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{}, cycles={}", self.asmop, self.cycle_idx)
+    }
+}
+
+impl AsRef<AssemblyOp> for AsmOpInfo {
+    #[inline]
+    fn as_ref(&self) -> &AssemblyOp {
+        &self.asmop
     }
 }

@@ -1,12 +1,18 @@
-use super::DebugCommand;
+use std::sync::Arc;
+
 use miden_vm::{
     math::Felt, DefaultHost, MemAdviceProvider, Program, StackInputs, VmState, VmStateIterator,
 };
+
+use super::DebugCommand;
 
 /// Holds debugger state and iterator used for debugging.
 pub struct DebugExecutor {
     vm_state_iter: VmStateIterator,
     vm_state: VmState,
+    // TODO(pauls): Use this to render source-level diagnostics when program errors are encountered
+    #[allow(unused)]
+    source_manager: Arc<dyn assembly::SourceManager>,
 }
 
 impl DebugExecutor {
@@ -20,20 +26,19 @@ impl DebugExecutor {
         program: Program,
         stack_inputs: StackInputs,
         advice_provider: MemAdviceProvider,
+        source_manager: Arc<dyn assembly::SourceManager>,
     ) -> Result<Self, String> {
         let mut vm_state_iter =
             processor::execute_iter(&program, stack_inputs, DefaultHost::new(advice_provider));
         let vm_state = vm_state_iter
             .next()
-            .ok_or(format!(
+            .ok_or(
                 "Failed to instantiate DebugExecutor - `VmStateIterator` is not yielding!"
-            ))?
+                    .to_string(),
+            )?
             .expect("initial state of vm must be healthy!");
 
-        Ok(Self {
-            vm_state_iter,
-            vm_state,
-        })
+        Ok(Self { vm_state_iter, vm_state, source_manager })
     }
 
     // MODIFIERS
@@ -50,7 +55,7 @@ impl DebugExecutor {
                     }
                 }
                 self.print_vm_state();
-            }
+            },
             DebugCommand::Next(cycles) => {
                 for _cycle in 0..cycles {
                     match self.next_vm_state() {
@@ -59,18 +64,18 @@ impl DebugExecutor {
                             if self.should_break() {
                                 break;
                             }
-                        }
+                        },
                         None => break,
                     }
                 }
                 self.print_vm_state();
-            }
+            },
             DebugCommand::Rewind => {
                 while let Some(new_vm_state) = self.vm_state_iter.back() {
                     self.vm_state = new_vm_state;
                 }
                 self.print_vm_state();
-            }
+            },
             DebugCommand::Back(cycles) => {
                 for _cycle in 0..cycles {
                     match self.vm_state_iter.back() {
@@ -79,12 +84,12 @@ impl DebugExecutor {
                             if self.should_break() {
                                 break;
                             }
-                        }
+                        },
                         None => break,
                     }
                 }
                 self.print_vm_state()
-            }
+            },
             DebugCommand::PrintState => self.print_vm_state(),
             DebugCommand::PrintStack => self.print_stack(),
             DebugCommand::PrintStackItem(index) => self.print_stack_item(index),
@@ -105,12 +110,12 @@ impl DebugExecutor {
                 Err(err) => {
                     println!("Execution error: {err:?}");
                     None
-                }
+                },
             },
             None => {
                 println!("Program execution complete.");
                 None
-            }
+            },
         }
     }
 

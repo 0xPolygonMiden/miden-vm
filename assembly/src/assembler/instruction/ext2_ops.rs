@@ -1,12 +1,13 @@
-use super::SpanBuilder;
 use vm_core::{AdviceInjector::Ext2Inv, Operation::*};
+
+use super::BasicBlockBuilder;
 
 /// Given a stack in the following initial configuration [b1, b0, a1, a0, ...] where a = (a0, a1)
 /// and b = (b0, b1) represent elements in the extension field of degree 2, this series of
 /// operations outputs the result c = (c1, c0) where c1 = a1 + b1 and c0 = a0 + b0.
 ///
 /// This operation takes 5 VM cycles.
-pub fn ext2_add(span: &mut SpanBuilder) {
+pub fn ext2_add(span: &mut BasicBlockBuilder) {
     #[rustfmt::skip]
     let ops = [
         Swap,           // [b0, b1, a1, a0, ...]
@@ -23,7 +24,7 @@ pub fn ext2_add(span: &mut SpanBuilder) {
 /// operations outputs the result c = (c1, c0) where c1 = a1 - b1 and c0 = a0 - b0.
 ///
 /// This operation takes 7 VM cycles.
-pub fn ext2_sub(span: &mut SpanBuilder) {
+pub fn ext2_sub(span: &mut BasicBlockBuilder) {
     #[rustfmt::skip]
     let ops = [
         Neg,        // [-b1, b0, a1, a0, ...]
@@ -42,7 +43,7 @@ pub fn ext2_sub(span: &mut SpanBuilder) {
 /// outputs the product c = (c1, c0) where c0 = a0b0 - 2(a1b1) and c1 = (a0 + a1)(b0 + b1) - a0b0
 ///
 /// This operation takes 3 VM cycles.
-pub fn ext2_mul(span: &mut SpanBuilder) {
+pub fn ext2_mul(span: &mut BasicBlockBuilder) {
     span.push_ops([Ext2Mul, Drop, Drop]);
 }
 
@@ -51,7 +52,7 @@ pub fn ext2_mul(span: &mut SpanBuilder) {
 /// operations outputs the result c = (c1, c0) where c = a * b^-1.
 ///
 /// This operation takes 11 VM cycles.
-pub fn ext2_div(span: &mut SpanBuilder) {
+pub fn ext2_div(span: &mut BasicBlockBuilder) {
     span.push_advice_injector(Ext2Inv);
     #[rustfmt::skip]
     let ops = [
@@ -75,7 +76,7 @@ pub fn ext2_div(span: &mut SpanBuilder) {
 /// [-a1, -a0, ...]
 ///
 /// This operation takes 4 VM cycles.
-pub fn ext2_neg(span: &mut SpanBuilder) {
+pub fn ext2_neg(span: &mut BasicBlockBuilder) {
     #[rustfmt::skip]
     let ops = [
         Neg,            // [a1, a0, ...]
@@ -111,7 +112,7 @@ pub fn ext2_neg(span: &mut SpanBuilder) {
 /// assert b  = (1, 0) | (1, 0) is the multiplicative identity of extension field.
 ///
 /// This operation takes 8 VM cycles.
-pub fn ext2_inv(span: &mut SpanBuilder) {
+pub fn ext2_inv(span: &mut BasicBlockBuilder) {
     span.push_advice_injector(Ext2Inv);
     #[rustfmt::skip]
     let ops = [

@@ -1,5 +1,7 @@
 use alloc::{string::ToString, sync::Arc, vec::Vec};
 
+use pretty_assertions::assert_eq;
+
 use crate::{
     assert_diagnostic, assert_diagnostic_lines,
     ast::*,
@@ -9,10 +11,8 @@ use crate::{
     Felt, Span,
 };
 
-use pretty_assertions::assert_eq;
-
 macro_rules! inst {
-    ($inst:ident ($value:expr)) => {
+    ($inst:ident($value:expr)) => {
         Op::Inst(Span::unknown(Instruction::$inst($value)))
     };
 
@@ -35,10 +35,7 @@ macro_rules! exec {
             Ident::new_unchecked(Span::unknown(Arc::from(name.to_string().into_boxed_str())));
         let name = ProcedureName::new_unchecked(name);
 
-        inst!(Exec(InvocationTarget::ProcedurePath {
-            name,
-            module: module.parse().unwrap(),
-        }))
+        inst!(Exec(InvocationTarget::ProcedurePath { name, module: module.parse().unwrap() }))
     }};
 }
 
@@ -109,10 +106,7 @@ macro_rules! if_true {
 
 macro_rules! while_true {
     ($body:expr) => {
-        Op::While {
-            span: Default::default(),
-            body: $body,
-        }
+        Op::While { span: Default::default(), body: $body }
     };
 }
 
@@ -210,7 +204,7 @@ macro_rules! assert_forms {
 {}",
                     crate::diagnostics::reporting::PrintDiagnostic::new_without_color(report)
                 );
-            }
+            },
         }
     };
 }
@@ -288,9 +282,9 @@ macro_rules! assert_program_diagnostic_lines {
 /// Tests the AST parsing
 #[test]
 fn test_ast_parsing_program_simple() -> Result<(), Report> {
-    let mut context = TestContext::new();
+    let context = TestContext::new();
 
-    let source = source_file!("begin push.0 assertz add.1 end");
+    let source = source_file!(&context, "begin push.0 assertz add.1 end");
     let forms = module!(begin!(inst!(PushU8(0)), inst!(Assertz), inst!(Incr)));
 
     assert_eq!(context.parse_forms(source)?, forms);
@@ -300,9 +294,10 @@ fn test_ast_parsing_program_simple() -> Result<(), Report> {
 
 #[test]
 fn test_ast_parsing_program_push() -> Result<(), Report> {
-    let mut context = TestContext::new();
+    let context = TestContext::new();
 
     let source = source_file!(
+        &context,
         r#"
     begin
         push.10 push.500 push.70000 push.5000000000
@@ -338,11 +333,11 @@ fn test_ast_parsing_program_push() -> Result<(), Report> {
     assert_eq!(context.parse_forms(source)?, forms);
 
     // Push a hexadecimal string containing more than 4 values
-    let source_too_long = source_file!("begin push.0x00000000000000001000000000000000200000000000000030000000000000004000000000000000");
+    let source_too_long = source_file!(&context, "begin push.0x00000000000000001000000000000000200000000000000030000000000000004000000000000000");
     assert_parse_diagnostic!(source_too_long, "long hex strings must contain exactly 64 digits");
 
     // Push a hexadecimal string containing less than 4 values
-    let source_too_long = source_file!("begin push.0x00000000000000001000000000000000");
+    let source_too_long = source_file!(&context, "begin push.0x00000000000000001000000000000000");
     assert_parse_diagnostic!(source_too_long, "expected 2, 4, 8, 16, or 64 hex digits");
 
     Ok(())
@@ -350,9 +345,10 @@ fn test_ast_parsing_program_push() -> Result<(), Report> {
 
 #[test]
 fn test_ast_parsing_program_u32() -> Result<(), Report> {
-    let mut context = TestContext::new();
+    let context = TestContext::new();
 
     let source = source_file!(
+        &context,
         r#"
     begin
         push.3
@@ -385,9 +381,10 @@ fn test_ast_parsing_program_u32() -> Result<(), Report> {
 
 #[test]
 fn test_ast_parsing_program_proc() -> Result<(), Report> {
-    let mut context = TestContext::new();
+    let context = TestContext::new();
 
     let source = source_file!(
+        &context,
         r#"
     proc.foo.1
         loc_load.0
@@ -413,8 +410,9 @@ fn test_ast_parsing_program_proc() -> Result<(), Report> {
 
 #[test]
 fn test_ast_parsing_module() -> Result<(), Report> {
-    let mut context = TestContext::new();
+    let context = TestContext::new();
     let source = source_file!(
+        &context,
         r#"
     export.foo.1
         loc_load.0
@@ -427,8 +425,8 @@ fn test_ast_parsing_module() -> Result<(), Report> {
 
 #[test]
 fn test_ast_parsing_adv_ops() -> Result<(), Report> {
-    let mut context = TestContext::new();
-    let source = source_file!("begin adv_push.1 adv_loadw end");
+    let context = TestContext::new();
+    let source = source_file!(&context, "begin adv_push.1 adv_loadw end");
     let forms = module!(begin!(inst!(AdvPush(1u8.into())), inst!(AdvLoadW)));
     assert_eq!(context.parse_forms(source)?, forms);
     Ok(())
@@ -438,9 +436,11 @@ fn test_ast_parsing_adv_ops() -> Result<(), Report> {
 fn test_ast_parsing_adv_injection() -> Result<(), Report> {
     use super::AdviceInjectorNode::*;
 
-    let mut context = TestContext::new();
-    let source =
-        source_file!("begin adv.push_u64div adv.push_mapval adv.push_smtget adv.insert_mem end");
+    let context = TestContext::new();
+    let source = source_file!(
+        &context,
+        "begin adv.push_u64div adv.push_mapval adv.push_smtget adv.insert_mem end"
+    );
     let forms = module!(begin!(
         inst!(AdvInject(PushU64Div)),
         inst!(AdvInject(PushMapVal)),
@@ -453,8 +453,8 @@ fn test_ast_parsing_adv_injection() -> Result<(), Report> {
 
 #[test]
 fn test_ast_parsing_bitwise_counters() -> Result<(), Report> {
-    let mut context = TestContext::new();
-    let source = source_file!("begin u32clz u32ctz u32clo u32cto end");
+    let context = TestContext::new();
+    let source = source_file!(&context, "begin u32clz u32ctz u32clo u32cto end");
     let forms = module!(begin!(inst!(U32Clz), inst!(U32Ctz), inst!(U32Clo), inst!(U32Cto)));
 
     assert_eq!(context.parse_forms(source)?, forms);
@@ -463,8 +463,8 @@ fn test_ast_parsing_bitwise_counters() -> Result<(), Report> {
 
 #[test]
 fn test_ast_parsing_ilog2() -> Result<(), Report> {
-    let mut context = TestContext::new();
-    let source = source_file!("begin push.8 ilog2 end");
+    let context = TestContext::new();
+    let source = source_file!(&context, "begin push.8 ilog2 end");
     let forms = module!(begin!(inst!(PushU8(8)), inst!(ILog2)));
 
     assert_eq!(context.parse_forms(source)?, forms);
@@ -473,8 +473,9 @@ fn test_ast_parsing_ilog2() -> Result<(), Report> {
 
 #[test]
 fn test_ast_parsing_use() -> Result<(), Report> {
-    let mut context = TestContext::new();
+    let context = TestContext::new();
     let source = source_file!(
+        &context,
         r#"
     use.std::abc::foo
     begin
@@ -489,8 +490,9 @@ fn test_ast_parsing_use() -> Result<(), Report> {
 
 #[test]
 fn test_ast_parsing_module_nested_if() -> Result<(), Report> {
-    let mut context = TestContext::new();
+    let context = TestContext::new();
     let source = source_file!(
+        &context,
         r#"
     proc.foo
         push.1
@@ -513,14 +515,17 @@ fn test_ast_parsing_module_nested_if() -> Result<(), Report> {
         0,
         block!(
             inst!(PushU8(1)),
-            if_true!(block!(
-                inst!(PushU8(0)),
-                inst!(PushU8(1)),
-                if_true!(
-                    block!(inst!(PushU8(0)), inst!(Sub)),
-                    block!(inst!(PushU8(1)), inst!(Sub))
-                )
-            ))
+            if_true!(
+                block!(
+                    inst!(PushU8(0)),
+                    inst!(PushU8(1)),
+                    if_true!(
+                        block!(inst!(PushU8(0)), inst!(Sub)),
+                        block!(inst!(PushU8(1)), inst!(Sub))
+                    )
+                ),
+                block!(inst!(Nop))
+            )
         )
     ));
     assert_eq!(context.parse_forms(source)?, forms);
@@ -529,8 +534,9 @@ fn test_ast_parsing_module_nested_if() -> Result<(), Report> {
 
 #[test]
 fn test_ast_parsing_module_sequential_if() -> Result<(), Report> {
-    let mut context = TestContext::new();
+    let context = TestContext::new();
     let source = source_file!(
+        &context,
         r#"
     proc.foo
         push.1
@@ -553,7 +559,7 @@ fn test_ast_parsing_module_sequential_if() -> Result<(), Report> {
         0,
         block!(
             inst!(PushU8(1)),
-            if_true!(block!(inst!(PushU8(5)), inst!(PushU8(1)))),
+            if_true!(block!(inst!(PushU8(5)), inst!(PushU8(1))), block!(inst!(Nop))),
             if_true!(block!(inst!(PushU8(0)), inst!(Sub)), block!(inst!(PushU8(1)), inst!(Sub)))
         )
     ));
@@ -564,8 +570,9 @@ fn test_ast_parsing_module_sequential_if() -> Result<(), Report> {
 
 #[test]
 fn parsed_while_if_body() {
-    let mut context = TestContext::new();
+    let context = TestContext::new();
     let source = source_file!(
+        &context,
         "\
     begin
         push.1
@@ -585,7 +592,7 @@ fn parsed_while_if_body() {
         inst!(PushU8(1)),
         while_true!(block!(inst!(Mul))),
         inst!(Add),
-        if_true!(block!(inst!(Div))),
+        if_true!(block!(inst!(Div)), block!(inst!(Nop))),
         inst!(Mul)
     ));
 
@@ -597,8 +604,9 @@ fn parsed_while_if_body() {
 
 #[test]
 fn test_missing_import() {
-    let mut context = TestContext::new();
+    let context = TestContext::new();
     let source = source_file!(
+        &context,
         r#"
     begin
         exec.u64::add
@@ -626,7 +634,9 @@ fn test_missing_import() {
 
 #[test]
 fn test_use_in_proc_body() {
+    let context = TestContext::default();
     let source = source_file!(
+        &context,
         r#"
     export.foo.1
         loc_load.0
@@ -650,7 +660,8 @@ fn test_use_in_proc_body() {
 
 #[test]
 fn test_unterminated_proc() {
-    let source = source_file!("proc.foo add mul begin push.1 end");
+    let context = TestContext::default();
+    let source = source_file!(&context, "proc.foo add mul begin push.1 end");
 
     assert_parse_diagnostic_lines!(
         source,
@@ -666,7 +677,8 @@ fn test_unterminated_proc() {
 
 #[test]
 fn test_unterminated_if() {
-    let source = source_file!("proc.foo add mul if.true add.2 begin push.1 end");
+    let context = TestContext::default();
+    let source = source_file!(&context, "proc.foo add mul if.true add.2 begin push.1 end");
 
     assert_parse_diagnostic_lines!(
         source,
@@ -685,8 +697,9 @@ fn test_unterminated_if() {
 
 #[test]
 fn test_ast_parsing_simple_docs() -> Result<(), Report> {
-    let mut context = TestContext::new();
+    let context = TestContext::new();
     let source = source_file!(
+        &context,
         r#"
     #! proc doc
     export.foo.1
@@ -701,9 +714,10 @@ fn test_ast_parsing_simple_docs() -> Result<(), Report> {
 
 #[test]
 fn test_ast_parsing_module_docs_valid() {
-    let mut context = TestContext::new();
+    let context = TestContext::new();
 
     let source = source_file!(
+        &context,
         "\
 #! Test documentation for the whole module in parsing test. Lorem ipsum dolor sit amet,
 #! consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.
@@ -780,8 +794,9 @@ end"
 
 #[test]
 fn test_ast_parsing_module_docs_fail() {
-    let mut context = TestContext::new();
+    let context = TestContext::new();
     let source = source_file!(
+        &context,
         "\
     #! module doc
 
@@ -810,6 +825,7 @@ fn test_ast_parsing_module_docs_fail() {
     );
 
     let source = source_file!(
+        &context,
         "\
     #! proc doc
     export.foo.1
@@ -836,6 +852,7 @@ fn test_ast_parsing_module_docs_fail() {
     );
 
     let source = source_file!(
+        &context,
         "\
     #! module doc
 
@@ -859,6 +876,7 @@ fn test_ast_parsing_module_docs_fail() {
     );
 
     let source = source_file!(
+        &context,
         "\
     export.foo.1
         loc_load.0
@@ -884,6 +902,7 @@ fn test_ast_parsing_module_docs_fail() {
     );
 
     let source = source_file!(
+        &context,
         "\
     #! module doc
 
@@ -911,6 +930,7 @@ fn test_ast_parsing_module_docs_fail() {
     );
 
     let source = source_file!(
+        &context,
         "\
     #! proc doc
     export.foo.1
@@ -940,7 +960,9 @@ fn test_ast_parsing_module_docs_fail() {
 
 #[test]
 fn assert_parsing_line_unmatched_begin() {
+    let context = TestContext::default();
     let source = source_file!(
+        &context,
         "\
         begin
           push.1.2
@@ -961,7 +983,9 @@ fn assert_parsing_line_unmatched_begin() {
 
 #[test]
 fn assert_parsing_line_extra_param() {
+    let context = TestContext::default();
     let source = source_file!(
+        &context,
         "\
         begin
           add.1.2
@@ -983,7 +1007,9 @@ fn assert_parsing_line_extra_param() {
 
 #[test]
 fn assert_parsing_line_invalid_op() {
+    let context = TestContext::default();
     let source = source_file!(
+        &context,
         "\
     begin
         repeat.3
@@ -1033,7 +1059,9 @@ fn assert_parsing_line_invalid_op() {
 
 #[test]
 fn assert_parsing_line_unexpected_token() {
+    let context = TestContext::default();
     let source = source_file!(
+        &context,
         "\
     proc.foo
       add
@@ -1052,254 +1080,4 @@ fn assert_parsing_line_unexpected_token() {
         "  `----",
         r#" help: expected "begin", or "const", or "export", or "proc", or "use", or end of file, or doc comment"#
     );
-}
-
-// SERIALIZATION AND DESERIALIZATION TESTS
-// ================================================================================================
-
-#[cfg(feature = "nope")]
-mod serialization {
-
-    #[test]
-    fn test_ast_program_serde_simple() {
-        let source = "begin push.0xabc234 push.0 assertz end";
-        assert_correct_program_serialization(source, true);
-    }
-
-    #[test]
-    fn test_ast_program_serde_local_procs() {
-        let source = "\
-    proc.foo.1
-        loc_load.0
-    end
-    proc.bar.2
-        padw
-    end
-    begin
-        exec.foo
-        exec.bar
-    end";
-        assert_correct_program_serialization(source, true);
-    }
-
-    #[test]
-    fn test_ast_program_serde_exported_procs() {
-        let source = "\
-    export.foo.1
-        loc_load.0
-    end
-    export.bar.2
-        padw
-    end";
-        assert_correct_module_serialization(source, true);
-    }
-
-    #[test]
-    fn test_ast_program_serde_control_flow() {
-        let source = "\
-    begin
-        repeat.3
-            push.1
-            push.0.1
-        end
-
-        if.true
-            and
-            loc_store.0
-        else
-            padw
-        end
-
-        while.true
-            push.5.7
-            u32wrapping_add
-            loc_store.1
-            push.0
-        end
-
-        repeat.3
-            push.2
-            u32overflowing_mul
-        end
-
-    end";
-        assert_correct_program_serialization(source, true);
-    }
-
-    #[test]
-    fn test_ast_program_serde_imports_serialized() {
-        let source = "\
-    use.std::math::u64
-    use.std::crypto::fri
-
-    begin
-        push.0
-        push.1
-        exec.u64::wrapping_add
-    end";
-        assert_correct_program_serialization(source, true);
-    }
-
-    #[test]
-    fn test_ast_program_serde_imports_not_serialized() {
-        let source = "\
-    use.std::math::u64
-    use.std::crypto::fri
-
-    begin
-        push.0
-        push.1
-        exec.u64::wrapping_add
-    end";
-        assert_correct_program_serialization(source, false);
-    }
-
-    #[test]
-    fn test_ast_module_serde_imports_serialized() {
-        let source = "\
-    use.std::math::u64
-    use.std::crypto::fri
-
-    proc.foo.2
-        push.0
-        push.1
-        exec.u64::wrapping_add
-    end";
-        assert_correct_module_serialization(source, true);
-    }
-
-    #[test]
-    fn test_ast_module_serde_imports_not_serialized() {
-        let source = "\
-    use.std::math::u64
-    use.std::crypto::fri
-
-    proc.foo.2
-        push.0
-        push.1
-        exec.u64::wrapping_add
-    end";
-        assert_correct_module_serialization(source, false);
-    }
-
-    #[test]
-    fn test_repeat_with_constant_count() {
-        let source = "\
-    const.A=3
-    const.B=A*3+5
-
-    begin
-        repeat.A
-            push.1
-        end
-
-        repeat.B
-            push.0
-        end
-    end";
-
-        assert_correct_program_serialization(source, false);
-
-        let nodes: Vec<Node> = vec![
-            Node::Repeat {
-                times: 3,
-                body: CodeBody::new(vec![Node::Instruction(Instruction::PushU8(1))]),
-            },
-            Node::Repeat {
-                times: 14,
-                body: CodeBody::new(vec![Node::Instruction(Instruction::PushU8(0))]),
-            },
-        ];
-
-        assert_program_output(source, BTreeMap::new(), nodes);
-    }
-
-    /// Clears the module's imports.
-    ///
-    /// Serialization of imports is optional, so if they are not serialized, then they have to be
-    /// cleared before testing for equality
-    fn clear_imports_module(module: &mut ModuleAst) {
-        module.clear_imports();
-    }
-
-    /// Clears the program's imports.
-    ///
-    /// Serialization of imports is optional, so if they are not serialized, then they have to be
-    /// cleared before testing for equality
-    fn clear_imports_program(program: &mut ProgramAst) {
-        program.clear_imports();
-    }
-
-    fn assert_correct_program_serialization(source: &str, serialize_imports: bool) {
-        let program = ProgramAst::parse(source).unwrap();
-
-        // assert the correct program serialization
-        let program_serialized = program.to_bytes(AstSerdeOptions::new(serialize_imports));
-        let mut program_deserialized =
-            ProgramAst::from_bytes(program_serialized.as_slice()).unwrap();
-        let mut clear_program = clear_procs_loc_program(program.clone());
-        if !serialize_imports {
-            clear_imports_program(&mut clear_program);
-        }
-        assert_eq!(clear_program, program_deserialized);
-
-        // assert the correct locations serialization
-        let mut locations = Vec::new();
-        program.write_source_locations(&mut locations);
-
-        // assert empty locations
-        {
-            let mut locations = program_deserialized.source_locations();
-            let start = locations.next().unwrap();
-            assert_eq!(start, &SourceLocation::default());
-            assert!(locations.next().is_none());
-        }
-
-        program_deserialized
-            .load_source_locations(&mut SliceReader::new(&locations))
-            .unwrap();
-
-        let program_deserialized = if !serialize_imports {
-            program_deserialized.with_import_info(program.import_info().clone())
-        } else {
-            program_deserialized
-        };
-
-        assert_eq!(program, program_deserialized);
-    }
-
-    fn assert_correct_module_serialization(source: &str, serialize_imports: bool) {
-        let module = ModuleAst::parse(source).unwrap();
-        let module_serialized = module.to_bytes(AstSerdeOptions::new(serialize_imports));
-        let mut module_deserialized = ModuleAst::from_bytes(module_serialized.as_slice()).unwrap();
-        let mut clear_module = clear_procs_loc_module(module.clone());
-        if !serialize_imports {
-            clear_imports_module(&mut clear_module);
-        }
-        assert_eq!(clear_module, module_deserialized);
-
-        // assert the correct locations serialization
-        let mut locations = Vec::new();
-        module.write_source_locations(&mut locations);
-
-        // assert module locations are empty
-        module_deserialized.procs().iter().for_each(|m| {
-            let mut locations = m.source_locations();
-            let start = locations.next().unwrap();
-            assert_eq!(start, &SourceLocation::default());
-            assert!(locations.next().is_none());
-        });
-
-        module_deserialized
-            .load_source_locations(&mut SliceReader::new(&locations))
-            .unwrap();
-
-        module_deserialized = if !serialize_imports {
-            module_deserialized.with_import_info(module.import_info().clone())
-        } else {
-            module_deserialized
-        };
-
-        assert_eq!(module, module_deserialized);
-    }
 }

@@ -1,26 +1,24 @@
 pub mod advice;
 pub mod debug;
-mod deserialize;
-mod opcode;
 mod print;
-mod serialize;
-
-pub use self::advice::AdviceInjectorNode;
-pub use self::debug::DebugOptions;
-pub use self::opcode::OpCode;
 
 use alloc::vec::Vec;
 
+pub use self::{advice::AdviceInjectorNode, debug::DebugOptions};
 use crate::{
     ast::{immediate::*, InvocationTarget},
     Felt, Word,
 };
+
+// INSTRUCTION
+// ================================================================================================
 
 /// Represents the set of primitive instructions in Miden Assembly syntax.
 ///
 /// NOTE: For control flow instructions, see [crate::ast::Op].
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub enum Instruction {
+    Nop,
     Assert,
     AssertWithError(ErrorCode),
     AssertEq,
@@ -60,7 +58,7 @@ pub enum Instruction {
     Gte,
     IsOdd,
 
-    // ----- ext2 operations ----------------------------------------------------------------------
+    // ----- ext2 operations ---------------------------------------------------------------------
     Ext2Add,
     Ext2Sub,
     Ext2Mul,
@@ -68,7 +66,7 @@ pub enum Instruction {
     Ext2Neg,
     Ext2Inv,
 
-    // ----- u32 manipulation ---------------------------------------------------------------------
+    // ----- u32 manipulation --------------------------------------------------------------------
     U32Test,
     U32TestW,
     U32Assert,
@@ -125,7 +123,7 @@ pub enum Instruction {
     U32Min,
     U32Max,
 
-    // ----- stack manipulation -------------------------------------------------------------------
+    // ----- stack manipulation ------------------------------------------------------------------
     Drop,
     DropW,
     PadW,
@@ -205,7 +203,7 @@ pub enum Instruction {
     CDrop,
     CDropW,
 
-    // ----- input / output operations ------------------------------------------------------------
+    // ----- input / output operations -----------------------------------------------------------
     Push(ImmFelt),
     PushU8(u8),
     PushU16(u16),
@@ -243,7 +241,7 @@ pub enum Instruction {
 
     AdvInject(AdviceInjectorNode),
 
-    // ----- cryptographic operations -------------------------------------------------------------
+    // ----- cryptographic operations ------------------------------------------------------------
     Hash,
     HMerge,
     HPerm,
@@ -251,12 +249,13 @@ pub enum Instruction {
     MTreeSet,
     MTreeMerge,
     MTreeVerify,
+    MTreeVerifyWithError(ErrorCode),
 
-    // ----- STARK proof verification -------------------------------------------------------------
+    // ----- STARK proof verification ------------------------------------------------------------
     FriExt2Fold4,
     RCombBase,
 
-    // ----- exec / call --------------------------------------------------------------------------
+    // ----- exec / call -------------------------------------------------------------------------
     Exec(InvocationTarget),
     Call(InvocationTarget),
     SysCall(InvocationTarget),
@@ -264,11 +263,11 @@ pub enum Instruction {
     DynCall,
     ProcRef(InvocationTarget),
 
-    // ----- debug decorators ---------------------------------------------------------------------
+    // ----- debug decorators --------------------------------------------------------------------
     Breakpoint,
     Debug(DebugOptions),
 
-    // ----- event decorators ---------------------------------------------------------------------
+    // ----- event decorators --------------------------------------------------------------------
     Emit(ImmU32),
     Trace(ImmU32),
 }

@@ -5,7 +5,7 @@ use alloc::{
 use core::{fmt, ops::Range};
 
 use super::{ParseError, SourceSpan};
-use crate::diagnostics::Diagnostic;
+use crate::{diagnostics::Diagnostic, SourceId};
 
 // LITERAL ERROR KIND
 // ================================================================================================
@@ -33,7 +33,7 @@ impl fmt::Display for LiteralErrorKind {
             Self::FeltOverflow => f.write_str("value overflowed the field modulus"),
             Self::InvalidBitSize => {
                 f.write_str("expected value to be a valid bit size, e.g. 0..63")
-            }
+            },
         }
     }
 }
@@ -59,11 +59,30 @@ impl fmt::Display for HexErrorKind {
         match self {
             Self::MissingDigits => {
                 f.write_str("expected number of hex digits to be a multiple of 2")
-            }
+            },
             Self::Invalid => f.write_str("expected 2, 4, 8, 16, or 64 hex digits"),
             Self::Overflow => f.write_str("value overflowed the field modulus"),
             Self::TooLong => f.write_str(
                 "value has too many digits, long hex strings must contain exactly 64 digits",
+            ),
+        }
+    }
+}
+
+// BINARY ERROR KIND
+// ================================================================================================
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+pub enum BinErrorKind {
+    /// Occurs when the bin-encoded value is > 32 digits
+    TooLong,
+}
+
+impl fmt::Display for BinErrorKind {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            Self::TooLong => f.write_str(
+                "value has too many digits, binary string can contain no more than 32 digits",
             ),
         }
     }
@@ -162,6 +181,13 @@ pub enum ParsingError {
         span: SourceSpan,
         kind: HexErrorKind,
     },
+    #[error("invalid literal: {}", kind)]
+    #[diagnostic()]
+    InvalidBinaryLiteral {
+        #[label]
+        span: SourceSpan,
+        kind: BinErrorKind,
+    },
     #[error("invalid MAST root literal")]
     InvalidMastRoot {
         #[label]
@@ -203,6 +229,11 @@ pub enum ParsingError {
         #[label]
         span: SourceSpan,
     },
+    #[error("re-exporting a procedure identified by digest requires giving it a name, e.g. `export.DIGEST->foo`")]
+    UnnamedReexportOfMastRoot {
+        #[label]
+        span: SourceSpan,
+    },
 }
 
 impl ParsingError {
@@ -226,7 +257,7 @@ impl PartialEq for ParsingError {
             (Self::InvalidLiteral { kind: l, .. }, Self::InvalidLiteral { kind: r, .. }) => l == r,
             (Self::InvalidHexLiteral { kind: l, .. }, Self::InvalidHexLiteral { kind: r, .. }) => {
                 l == r
-            }
+            },
             (
                 Self::InvalidLibraryPath { message: l, .. },
                 Self::InvalidLibraryPath { message: r, .. },
@@ -237,78 +268,58 @@ impl PartialEq for ParsingError {
             ) => l == r,
             (Self::PushOverflow { count: l, .. }, Self::PushOverflow { count: r, .. }) => l == r,
             (
-                Self::UnrecognizedToken {
-                    token: ltok,
-                    expected: lexpect,
-                    ..
-                },
-                Self::UnrecognizedToken {
-                    token: rtok,
-                    expected: rexpect,
-                    ..
-                },
+                Self::UnrecognizedToken { token: ltok, expected: lexpect, .. },
+                Self::UnrecognizedToken { token: rtok, expected: rexpect, .. },
             ) => ltok == rtok && lexpect == rexpect,
             (Self::ExtraToken { token: ltok, .. }, Self::ExtraToken { token: rtok, .. }) => {
                 ltok == rtok
-            }
+            },
             (
-                Self::UnrecognizedEof {
-                    expected: lexpect, ..
-                },
-                Self::UnrecognizedEof {
-                    expected: rexpect, ..
-                },
+                Self::UnrecognizedEof { expected: lexpect, .. },
+                Self::UnrecognizedEof { expected: rexpect, .. },
             ) => lexpect == rexpect,
             (x, y) => x.tag() == y.tag(),
         }
     }
 }
 
-impl From<core::str::Utf8Error> for ParsingError {
-    fn from(err: core::str::Utf8Error) -> Self {
+impl ParsingError {
+    pub fn from_utf8_error(source_id: SourceId, err: core::str::Utf8Error) -> Self {
         let start = u32::try_from(err.valid_up_to()).ok().unwrap_or(u32::MAX);
         match err.error_len() {
-            None => Self::IncompleteUtf8 {
-                span: SourceSpan::at(start),
-            },
+            None => Self::IncompleteUtf8 { span: SourceSpan::at(source_id, start) },
             Some(len) => Self::InvalidUtf8 {
-                span: SourceSpan::new(start..(start + len as u32)),
+                span: SourceSpan::new(source_id, start..(start + len as u32)),
             },
         }
     }
-}
 
-impl<'a> From<ParseError<'a>> for ParsingError {
-    fn from(err: ParseError) -> Self {
+    pub fn from_parse_error(source_id: SourceId, err: ParseError<'_>) -> Self {
         use super::Token;
+
         match err {
-            ParseError::InvalidToken { location: at } => Self::InvalidToken {
-                span: SourceSpan::from(at..at),
+            ParseError::InvalidToken { location: at } => {
+                Self::InvalidToken { span: SourceSpan::at(source_id, at) }
             },
-            ParseError::UnrecognizedToken {
-                token: (l, Token::Eof, r),
-                expected,
-            } => Self::UnrecognizedEof {
-                span: SourceSpan::from(l..r),
-                expected: simplify_expected_tokens(expected),
+            ParseError::UnrecognizedToken { token: (l, Token::Eof, r), expected } => {
+                Self::UnrecognizedEof {
+                    span: SourceSpan::new(source_id, l..r),
+                    expected: simplify_expected_tokens(expected),
+                }
             },
-            ParseError::UnrecognizedToken {
-                token: (l, tok, r),
-                expected,
-            } => Self::UnrecognizedToken {
-                span: SourceSpan::from(l..r),
-                token: tok.to_string(),
-                expected: simplify_expected_tokens(expected),
+            ParseError::UnrecognizedToken { token: (l, tok, r), expected } => {
+                Self::UnrecognizedToken {
+                    span: SourceSpan::new(source_id, l..r),
+                    token: tok.to_string(),
+                    expected: simplify_expected_tokens(expected),
+                }
             },
             ParseError::ExtraToken { token: (l, tok, r) } => Self::ExtraToken {
-                span: SourceSpan::from(l..r),
+                span: SourceSpan::new(source_id, l..r),
                 token: tok.to_string(),
             },
-            ParseError::UnrecognizedEof {
-                location: at,
-                expected,
-            } => Self::UnrecognizedEof {
-                span: SourceSpan::from(at..at),
+            ParseError::UnrecognizedEof { location: at, expected } => Self::UnrecognizedEof {
+                span: SourceSpan::new(source_id, at..at),
                 expected: simplify_expected_tokens(expected),
             },
             ParseError::User { error } => error,
@@ -335,6 +346,7 @@ fn simplify_expected_tokens(expected: Vec<String>) -> Vec<String> {
                 "quoted_ident" => return Some("quoted identifier".to_string()),
                 "doc_comment" => return Some("doc comment".to_string()),
                 "hex_value" => return Some("hex-encoded literal".to_string()),
+                "bin_value" => return Some("bin-encoded literal".to_string()),
                 "uint" => return Some("integer literal".to_string()),
                 "EOF" => return Some("end of file".to_string()),
                 other => other[1..].strip_suffix('"').and_then(|t| Token::parse(t).ok()),
@@ -347,7 +359,7 @@ fn simplify_expected_tokens(expected: Vec<String>) -> Vec<String> {
                     } else {
                         None
                     }
-                }
+                },
                 Some(tok) if tok.is_instruction() => {
                     if !has_instruction {
                         has_instruction = true;
@@ -355,7 +367,7 @@ fn simplify_expected_tokens(expected: Vec<String>) -> Vec<String> {
                     } else {
                         None
                     }
-                }
+                },
                 _ => Some(t),
             }
         })

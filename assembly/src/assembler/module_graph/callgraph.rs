@@ -3,7 +3,7 @@ use alloc::{
     vec::Vec,
 };
 
-use crate::assembler::{GlobalProcedureIndex, ModuleIndex};
+use crate::assembler::GlobalProcedureIndex;
 
 /// Represents the inability to construct a topological ordering of the nodes in a [CallGraph]
 /// due to a cycle in the graph, which can happen due to recursion.
@@ -78,19 +78,6 @@ impl CallGraph {
         }
 
         callees.push(callee);
-    }
-
-    /// Removes all edges to/from a procedure in `module`
-    ///
-    /// NOTE: If a procedure that is removed has predecessors (callers) in the graph, this will
-    /// remove those edges, and the graph will be incomplete and not reflect the "true" call graph.
-    /// In practice, we are recomputing the graph after making such modifications, so this a
-    /// temporary state of affairs - still, it is important to be aware of this behavior.
-    pub fn remove_edges_for_module(&mut self, module: ModuleIndex) {
-        for (_, out_edges) in self.nodes.iter_mut() {
-            out_edges.retain(|gid| gid.module != module);
-        }
-        self.nodes.retain(|gid, _| gid.module != module);
     }
 
     /// Removes the edge between `caller` and `callee` from the graph
@@ -247,7 +234,6 @@ impl CallGraph {
 #[cfg(test)]
 mod tests {
     use super::*;
-
     use crate::{
         assembler::{GlobalProcedureIndex, ModuleIndex},
         ast::ProcedureIndex,
@@ -258,30 +244,12 @@ mod tests {
     const P1: ProcedureIndex = ProcedureIndex::const_new(1);
     const P2: ProcedureIndex = ProcedureIndex::const_new(2);
     const P3: ProcedureIndex = ProcedureIndex::const_new(3);
-    const A1: GlobalProcedureIndex = GlobalProcedureIndex {
-        module: A,
-        index: P1,
-    };
-    const A2: GlobalProcedureIndex = GlobalProcedureIndex {
-        module: A,
-        index: P2,
-    };
-    const A3: GlobalProcedureIndex = GlobalProcedureIndex {
-        module: A,
-        index: P3,
-    };
-    const B1: GlobalProcedureIndex = GlobalProcedureIndex {
-        module: B,
-        index: P1,
-    };
-    const B2: GlobalProcedureIndex = GlobalProcedureIndex {
-        module: B,
-        index: P2,
-    };
-    const B3: GlobalProcedureIndex = GlobalProcedureIndex {
-        module: B,
-        index: P3,
-    };
+    const A1: GlobalProcedureIndex = GlobalProcedureIndex { module: A, index: P1 };
+    const A2: GlobalProcedureIndex = GlobalProcedureIndex { module: A, index: P2 };
+    const A3: GlobalProcedureIndex = GlobalProcedureIndex { module: A, index: P3 };
+    const B1: GlobalProcedureIndex = GlobalProcedureIndex { module: B, index: P1 };
+    const B2: GlobalProcedureIndex = GlobalProcedureIndex { module: B, index: P2 };
+    const B3: GlobalProcedureIndex = GlobalProcedureIndex { module: B, index: P3 };
 
     #[test]
     fn callgraph_add_edge() {

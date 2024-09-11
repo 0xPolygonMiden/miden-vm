@@ -1,7 +1,15 @@
+use std::{
+    collections::{BTreeMap, HashMap},
+    fs,
+    io::Write,
+    path::{Path, PathBuf},
+    sync::Arc,
+};
+
 use assembly::{
     ast::{Module, ModuleKind},
     diagnostics::{IntoDiagnostic, Report, WrapErr},
-    Assembler, Library, LibraryNamespace, MaslLibrary,
+    Assembler, Library, LibraryNamespace,
 };
 use miden_vm::{
     crypto::{MerkleStore, MerkleTree, NodeIndex, PartialMerkleTree, RpoDigest, SimpleSmt},
@@ -11,12 +19,6 @@ use miden_vm::{
     Word,
 };
 use serde_derive::{Deserialize, Serialize};
-use std::{
-    collections::{BTreeMap, HashMap},
-    fs,
-    io::Write,
-    path::{Path, PathBuf},
-};
 use stdlib::StdLibrary;
 pub use tracing::{event, instrument, Level};
 
@@ -45,6 +47,7 @@ impl Debug {
 
 /// Struct used to deserialize merkle data from input file. Merkle data can be represented as a
 /// merkle tree or a Sparse Merkle Tree.
+#[allow(clippy::enum_variant_names)]
 #[derive(Deserialize, Debug)]
 pub enum MerkleData {
     /// String representation of a merkle tree. The merkle tree is represented as a vector of
@@ -151,8 +154,7 @@ impl InputFile {
     /// Parse advice stack data from the input file.
     fn parse_advice_stack(&self) -> Result<Vec<u64>, String> {
         self.advice_stack
-            .as_ref()
-            .map(Vec::as_slice)
+            .as_deref()
             .unwrap_or(&[])
             .iter()
             .map(|v| {
@@ -212,7 +214,7 @@ impl InputFile {
                         "Added Merkle tree with root {} to the Merkle store",
                         tree.root()
                     );
-                }
+                },
                 MerkleData::SparseMerkleTree(data) => {
                     let entries = Self::parse_sparse_merkle_tree(data)?;
                     let tree = SimpleSmt::<SIMPLE_SMT_DEPTH>::with_leaves(entries)
@@ -223,7 +225,7 @@ impl InputFile {
                         "Added Sparse Merkle tree with root {} to the Merkle store",
                         tree.root()
                     );
-                }
+                },
                 MerkleData::PartialMerkleTree(data) => {
                     let entries = Self::parse_partial_merkle_tree(data)?;
                     let tree = PartialMerkleTree::with_leaves(entries)
@@ -234,7 +236,7 @@ impl InputFile {
                         "Added Partial Merkle tree with root {} to the Merkle store",
                         tree.root()
                     );
-                }
+                },
             }
         }
 
@@ -384,60 +386,54 @@ impl OutputFile {
 
 pub struct ProgramFile {
     ast: Box<Module>,
-    path: PathBuf,
+    source_manager: Arc<dyn assembly::SourceManager>,
 }
 
 /// Helper methods to interact with masm program file.
 impl ProgramFile {
-    /// Reads the masm file at the specified path and parses it into a [ProgramAst].
-    #[instrument(name = "read_program_file", fields(path = %path.display()))]
-    pub fn read(path: &PathBuf) -> Result<Self, Report> {
+    /// Reads the masm file at the specified path and parses it into a [ProgramFile].
+    pub fn read(path: impl AsRef<Path>) -> Result<Self, Report> {
+        let source_manager = Arc::new(assembly::DefaultSourceManager::default());
+        Self::read_with(path, source_manager)
+    }
+
+    /// Reads the masm file at the specified path and parses it into a [ProgramFile], using the
+    /// provided [assembly::SourceManager] implementation.
+    #[instrument(name = "read_program_file", skip(source_manager), fields(path = %path.as_ref().display()))]
+    pub fn read_with(
+        path: impl AsRef<Path>,
+        source_manager: Arc<dyn assembly::SourceManager>,
+    ) -> Result<Self, Report> {
         // parse the program into an AST
-        let ast = Module::parse_file(LibraryNamespace::Exec.into(), ModuleKind::Executable, path)
+        let path = path.as_ref();
+        let mut parser = Module::parser(ModuleKind::Executable);
+        let ast = parser
+            .parse_file(LibraryNamespace::Exec.into(), path, &source_manager)
             .wrap_err_with(|| format!("Failed to parse program file `{}`", path.display()))?;
 
-        Ok(Self {
-            ast,
-            path: path.clone(),
-        })
+        Ok(Self { ast, source_manager })
     }
 
     /// Compiles this program file into a [Program].
     #[instrument(name = "compile_program", skip_all)]
-    pub fn compile<'a, I, L>(&self, debug: &Debug, libraries: I) -> Result<Program, Report>
+    pub fn compile<'a, I>(&self, debug: &Debug, libraries: I) -> Result<Program, Report>
     where
-        I: IntoIterator<Item = &'a L>,
-        L: ?Sized + Library + 'static,
+        I: IntoIterator<Item = &'a Library>,
     {
         // compile program
-        let mut assembler = Assembler::default()
-            .with_debug_mode(debug.is_on())
-            .with_library(&StdLibrary::default())
-            .wrap_err("Failed to load stdlib")?;
+        let mut assembler =
+            Assembler::new(self.source_manager.clone()).with_debug_mode(debug.is_on());
+        assembler.add_library(StdLibrary::default()).wrap_err("Failed to load stdlib")?;
 
-        assembler = assembler
-            .with_libraries(libraries.into_iter())
-            .wrap_err("Failed to load libraries")?;
+        for library in libraries {
+            assembler.add_library(library).wrap_err("Failed to load libraries")?;
+        }
 
-        let program =
-            assembler.assemble(self.ast.as_ref()).wrap_err("Failed to compile program")?;
+        let program: Program = assembler
+            .assemble_program(self.ast.as_ref())
+            .wrap_err("Failed to compile program")?;
 
         Ok(program)
-    }
-
-    /// Writes this file into the specified path, if one is provided. If the path is not provided,
-    /// writes the file into the same directory as the source file, but with `.masb` extension.
-    pub fn write(&self, out_path: Option<PathBuf>) -> Result<(), Report> {
-        let out_path = out_path.unwrap_or_else(|| {
-            let mut out_file = self.path.clone();
-            out_file.set_extension("masb");
-            out_file
-        });
-
-        self.ast
-            .write_to_file(out_path)
-            .into_diagnostic()
-            .wrap_err("Failed to write the compiled file")
     }
 }
 
@@ -528,7 +524,7 @@ impl ProgramHash {
 // LIBRARY FILE
 // ================================================================================================
 pub struct Libraries {
-    pub libraries: Vec<MaslLibrary>,
+    pub libraries: Vec<Library>,
 }
 
 impl Libraries {
@@ -542,7 +538,9 @@ impl Libraries {
         let mut libraries = Vec::new();
 
         for path in paths {
-            let library = MaslLibrary::read_from_file(path)?;
+            // TODO(plafer): How to create a `Report` from an error that doesn't derive
+            // `Diagnostic`?
+            let library = Library::deserialize_from_file(path).unwrap();
             libraries.push(library);
         }
 

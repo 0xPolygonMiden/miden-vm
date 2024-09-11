@@ -1,8 +1,9 @@
 use alloc::{boxed::Box, string::String};
 use core::fmt;
 
-use crate::{ast::Ident, parser::ParsingError, Felt, SourceSpan, Span, Spanned};
 use vm_core::FieldElement;
+
+use crate::{ast::Ident, parser::ParsingError, Felt, SourceSpan, Span, Spanned};
 
 // CONSTANT
 // ================================================================================================
@@ -22,12 +23,7 @@ pub struct Constant {
 impl Constant {
     /// Creates a new [Constant] from the given source span, name, and value.
     pub fn new(span: SourceSpan, name: Ident, value: ConstantExpr) -> Self {
-        Self {
-            span,
-            docs: None,
-            name,
-            value,
-        }
+        Self { span, docs: None, name, value }
     }
 
     /// Adds documentation to this constant declaration.
@@ -142,22 +138,22 @@ impl ConstantExpr {
                                     match op {
                                         ConstantOp::Add => {
                                             Ok(Self::Literal(Span::new(span, lhs + rhs)))
-                                        }
+                                        },
                                         ConstantOp::Sub => {
                                             Ok(Self::Literal(Span::new(span, lhs - rhs)))
-                                        }
+                                        },
                                         ConstantOp::Mul => {
                                             Ok(Self::Literal(Span::new(span, lhs * rhs)))
-                                        }
+                                        },
                                         ConstantOp::Div => {
                                             Ok(Self::Literal(Span::new(span, lhs / rhs)))
-                                        }
+                                        },
                                         ConstantOp::IntDiv => Ok(Self::Literal(Span::new(
                                             span,
                                             Felt::new(lhs.as_int() / rhs.as_int()),
                                         ))),
                                     }
-                                }
+                                },
                                 lhs => Ok(Self::BinaryOp {
                                     span,
                                     op,
@@ -165,7 +161,7 @@ impl ConstantExpr {
                                     rhs: Box::new(Self::Literal(rhs)),
                                 }),
                             }
-                        }
+                        },
                         rhs => {
                             let lhs = Self::into_inner(lhs).try_fold()?;
                             Ok(Self::BinaryOp {
@@ -174,18 +170,13 @@ impl ConstantExpr {
                                 lhs: Box::new(lhs),
                                 rhs: Box::new(rhs),
                             })
-                        }
+                        },
                     }
                 } else {
                     let lhs = Self::into_inner(lhs).try_fold()?;
-                    Ok(Self::BinaryOp {
-                        span,
-                        op,
-                        lhs: Box::new(lhs),
-                        rhs,
-                    })
+                    Ok(Self::BinaryOp { span, op, lhs: Box::new(lhs), rhs })
                 }
-            }
+            },
         }
     }
 
@@ -212,18 +203,8 @@ impl PartialEq for ConstantExpr {
             (Self::Literal(l), Self::Literal(y)) => l == y,
             (Self::Var(l), Self::Var(y)) => l == y,
             (
-                Self::BinaryOp {
-                    op: lop,
-                    lhs: llhs,
-                    rhs: lrhs,
-                    ..
-                },
-                Self::BinaryOp {
-                    op: rop,
-                    lhs: rlhs,
-                    rhs: rrhs,
-                    ..
-                },
+                Self::BinaryOp { op: lop, lhs: llhs, rhs: lrhs, .. },
+                Self::BinaryOp { op: rop, lhs: rlhs, rhs: rrhs, .. },
             ) => lop == rop && llhs == rlhs && lrhs == rrhs,
             _ => false,
         }
@@ -235,12 +216,9 @@ impl fmt::Debug for ConstantExpr {
         match self {
             Self::Literal(ref lit) => fmt::Debug::fmt(&**lit, f),
             Self::Var(ref name) => fmt::Debug::fmt(&**name, f),
-            Self::BinaryOp {
-                ref op,
-                ref lhs,
-                ref rhs,
-                ..
-            } => f.debug_tuple(op.name()).field(lhs).field(rhs).finish(),
+            Self::BinaryOp { ref op, ref lhs, ref rhs, .. } => {
+                f.debug_tuple(op.name()).field(lhs).field(rhs).finish()
+            },
         }
     }
 }
@@ -256,7 +234,7 @@ impl crate::prettier::PrettyPrint for ConstantExpr {
                 let single_line = lhs.render() + display(op) + rhs.render();
                 let multi_line = lhs.render() + nl() + (display(op)) + rhs.render();
                 single_line | multi_line
-            }
+            },
         }
     }
 }

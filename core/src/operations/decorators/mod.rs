@@ -32,7 +32,7 @@ pub enum Decorator {
     Debug(DebugOptions),
     /// Emits an event to the host.
     Event(u32),
-    /// Emmits a trace to the host.
+    /// Emits a trace to the host.
     Trace(u32),
 }
 
@@ -48,7 +48,7 @@ impl fmt::Display for Decorator {
             Self::Advice(injector) => write!(f, "advice({injector})"),
             Self::AsmOp(assembly_op) => {
                 write!(f, "asmOp({}, {})", assembly_op.op(), assembly_op.num_cycles())
-            }
+            },
             Self::Debug(options) => write!(f, "debug({options})"),
             Self::Event(event_id) => write!(f, "event({})", event_id),
             Self::Trace(trace_id) => write!(f, "trace({})", trace_id),

@@ -9,21 +9,19 @@ extern crate std;
 
 use vm_core::{
     crypto::hash::RpoDigest,
-    errors::KernelError,
+    prettier,
     utils::{
-        ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable, SliceReader,
+        ByteReader, ByteWriter, Deserializable, DeserializationError, DisplayHex, Serializable,
     },
     Felt, Word, ONE, ZERO,
 };
-
-use vm_core::{prettier, utils::DisplayHex};
 
 mod assembler;
 pub mod ast;
 mod compile;
 pub mod diagnostics;
 mod errors;
-pub mod library;
+mod library;
 mod parser;
 mod sema;
 #[cfg(any(test, feature = "testing"))]
@@ -31,22 +29,29 @@ pub mod testing;
 #[cfg(test)]
 mod tests;
 
-pub use self::assembler::{ArtifactKind, Assembler, AssemblyContext};
-pub use self::compile::{Compile, Options as CompileOptions};
-pub use self::errors::AssemblyError;
-pub use self::library::{
-    Library, LibraryError, LibraryNamespace, LibraryPath, MaslLibrary, PathError, Version,
-};
-pub use self::parser::{SourceLocation, SourceSpan, Span, Spanned};
+// Re-exported for downstream crates
 
-/// Re-exported for downstream crates
+/// Merkelized abstract syntax tree (MAST) components defining Miden VM programs.
+pub use vm_core::mast;
 pub use vm_core::utils;
+
+pub use self::{
+    assembler::Assembler,
+    compile::{Compile, Options as CompileOptions},
+    diagnostics::{
+        DefaultSourceManager, Report, SourceFile, SourceId, SourceManager, SourceSpan, Span,
+        Spanned,
+    },
+    errors::AssemblyError,
+    library::{
+        KernelLibrary, Library, LibraryError, LibraryNamespace, LibraryPath, LibraryPathComponent,
+        PathError, Version, VersionError,
+    },
+    parser::ModuleParser,
+};
 
 // CONSTANTS
 // ================================================================================================
-
-/// The maximum number of constant inputs allowed for the `push` instruction.
-const MAX_PUSH_INPUTS: usize = 16;
 
 /// The maximum number of elements that can be popped from the advice stack in a single `adv_push`
 /// instruction.

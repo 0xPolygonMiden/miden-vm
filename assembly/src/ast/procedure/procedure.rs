@@ -1,12 +1,10 @@
-use alloc::{collections::BTreeSet, string::String, sync::Arc};
+use alloc::{collections::BTreeSet, string::String};
 use core::fmt;
 
 use super::ProcedureName;
 use crate::{
-    ast::{AstSerdeOptions, Block, Invoke},
-    diagnostics::SourceFile,
-    ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable, SourceSpan, Span,
-    Spanned,
+    ast::{Block, Invoke},
+    SourceSpan, Span, Spanned,
 };
 
 // PROCEDURE VISIBILITY
@@ -47,23 +45,6 @@ impl Visibility {
     }
 }
 
-impl Serializable for Visibility {
-    fn write_into<W: ByteWriter>(&self, target: &mut W) {
-        target.write_u8(*self as u8)
-    }
-}
-
-impl Deserializable for Visibility {
-    fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
-        match source.read_u8()? {
-            0 => Ok(Self::Public),
-            1 => Ok(Self::Syscall),
-            2 => Ok(Self::Private),
-            n => Err(DeserializationError::InvalidValue(format!("invalid visibility tag: {n}"))),
-        }
-    }
-}
-
 // PROCEDURE
 // ================================================================================================
 
@@ -72,8 +53,6 @@ impl Deserializable for Visibility {
 pub struct Procedure {
     /// The source span of the full procedure body
     span: SourceSpan,
-    /// The source file in which this procedure was defined, if available
-    source_file: Option<Arc<SourceFile>>,
     /// The documentation attached to this procedure
     docs: Option<Span<String>>,
     /// The local name of this procedure
@@ -101,7 +80,6 @@ impl Procedure {
     ) -> Self {
         Self {
             span,
-            source_file: None,
             docs: None,
             name,
             visibility,
@@ -117,18 +95,6 @@ impl Procedure {
         self
     }
 
-    /// Adds source code to this procedure definition so we can render source snippets
-    /// in diagnostics.
-    pub fn with_source_file(mut self, source_file: Option<Arc<SourceFile>>) -> Self {
-        self.source_file = source_file;
-        self
-    }
-
-    /// Like [Procedure::with_source_file], but does not require ownership of the procedure.
-    pub fn set_source_file(&mut self, source_file: Arc<SourceFile>) {
-        self.source_file = Some(source_file);
-    }
-
     /// Modifies the visibility of this procedure.
     ///
     /// This is made crate-local as the visibility of a procedure is virtually always determined
@@ -142,11 +108,6 @@ impl Procedure {
 
 /// Metadata
 impl Procedure {
-    /// Returns the source file associated with this procedure.
-    pub fn source_file(&self) -> Option<Arc<SourceFile>> {
-        self.source_file.clone()
-    }
-
     /// Returns the name of this procedure within its containing module.
     pub fn name(&self) -> &ProcedureName {
         &self.name
@@ -231,47 +192,8 @@ where
                     *self = Self::Empty;
                 }
                 result
-            }
+            },
         }
-    }
-}
-
-/// Serialization
-impl Procedure {
-    pub fn write_into_with_options<W: ByteWriter>(&self, target: &mut W, options: AstSerdeOptions) {
-        if options.debug_info {
-            self.span.write_into(target);
-        }
-        self.name.write_into_with_options(target, options);
-        self.visibility.write_into(target);
-        target.write_u16(self.num_locals);
-        self.body.write_into_with_options(target, options);
-    }
-
-    pub fn read_from_with_options<R: ByteReader>(
-        source: &mut R,
-        options: AstSerdeOptions,
-    ) -> Result<Self, DeserializationError> {
-        let span = if options.debug_info {
-            SourceSpan::read_from(source)?
-        } else {
-            SourceSpan::default()
-        };
-
-        let name = ProcedureName::read_from_with_options(source, options)?;
-        let visibility = Visibility::read_from(source)?;
-        let num_locals = source.read_u16()?;
-        let body = Block::read_from_with_options(source, options)?;
-        Ok(Self {
-            span,
-            source_file: None,
-            docs: None,
-            name,
-            visibility,
-            num_locals,
-            invoked: Default::default(),
-            body,
-        })
     }
 }
 

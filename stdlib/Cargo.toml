@@ -1,20 +1,25 @@
 [package]
 name = "miden-stdlib"
-version = "0.8.0"
+version = "0.10.5"
 description = "Miden VM standard library"
-authors = ["miden contributors"]
+documentation = "https://docs.rs/miden-stdlib/0.10.5"
 readme = "README.md"
-license = "MIT"
-repository = "https://github.com/0xPolygonMiden/miden-vm"
-documentation = "https://docs.rs/miden-stdlib/0.8.0"
 categories = ["cryptography", "mathematics"]
 keywords = ["miden", "program", "stdlib"]
-edition = "2021"
-rust-version = "1.75"
+license.workspace = true
+authors.workspace = true
+homepage.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+edition.workspace = true
 
 [lib]
 bench = false
 doctest = false
+
+[[bench]]
+name = "compilation"
+harness = false
 
 [[test]]
 name = "stdlib"
@@ -23,18 +28,20 @@ path = "tests/main.rs"
 [features]
 default = ["std"]
 std = ["assembly/std"]
+with-debug-info = []
 
 [dependencies]
-assembly = { package = "miden-assembly", path = "../assembly", version = "0.8", default-features = false }
+assembly = { package = "miden-assembly", path = "../assembly", version = "0.10", default-features = false }
 
 [dev-dependencies]
 blake3 = "1.5"
-miden-air = { package = "miden-air", path = "../air", version = "0.8", default-features = false }
+criterion = "0.5"
+miden-air = { package = "miden-air", path = "../air", version = "0.10", default-features = false }
 num = "0.4.1"
 num-bigint = "0.4"
 pretty_assertions = "1.4"
-processor = { package = "miden-processor", path = "../processor", version = "0.8", default-features = false, features = [
-    "internals",
+processor = { package = "miden-processor", path = "../processor", version = "0.10", default-features = false, features = [
+    "testing",
 ] }
 rand = { version = "0.8.5", default-features = false }
 serde_json = "1.0"
@@ -46,4 +53,4 @@ winter-fri = { package = "winter-fri", version = "0.9" }
 
 
 [build-dependencies]
-assembly = { package = "miden-assembly", path = "../assembly", version = "0.8" }
+assembly = { package = "miden-assembly", path = "../assembly", version = "0.10" }

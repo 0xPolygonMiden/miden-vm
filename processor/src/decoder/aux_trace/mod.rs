@@ -1,33 +1,21 @@
+use alloc::vec::Vec;
+
+use miden_air::trace::main_trace::MainTrace;
+use vm_core::FieldElement;
+
 use super::{Felt, ONE, ZERO};
 use crate::trace::AuxColumnBuilder;
-use alloc::vec::Vec;
-use miden_air::trace::main_trace::MainTrace;
-use vm_core::{FieldElement, Operation};
 
 mod block_hash_table;
 use block_hash_table::BlockHashTableColumnBuilder;
+#[cfg(test)]
+pub use block_hash_table::BlockHashTableRow;
 
 mod block_stack_table;
 use block_stack_table::BlockStackColumnBuilder;
 
 mod op_group_table;
 use op_group_table::OpGroupTableColumnBuilder;
-
-// CONSTANTS
-// ================================================================================================
-
-const JOIN: u8 = Operation::Join.op_code();
-const SPLIT: u8 = Operation::Split.op_code();
-const LOOP: u8 = Operation::Loop.op_code();
-const REPEAT: u8 = Operation::Repeat.op_code();
-const DYN: u8 = Operation::Dyn.op_code();
-const CALL: u8 = Operation::Call.op_code();
-const SYSCALL: u8 = Operation::SysCall.op_code();
-const SPAN: u8 = Operation::Span.op_code();
-const RESPAN: u8 = Operation::Respan.op_code();
-const PUSH: u8 = Operation::Push(ZERO).op_code();
-const END: u8 = Operation::End.op_code();
-const HALT: u8 = Operation::Halt.op_code();
 
 // AUXILIARY TRACE BUILDER
 // ================================================================================================

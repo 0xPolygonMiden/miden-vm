@@ -1,9 +1,10 @@
+use std::path::PathBuf;
+
 use assembly::{
     diagnostics::{IntoDiagnostic, Report},
-    LibraryNamespace, MaslLibrary, Version,
+    Assembler, Library, LibraryNamespace,
 };
 use clap::Parser;
-use std::path::PathBuf;
 
 #[derive(Debug, Clone, Parser)]
 #[clap(
@@ -38,13 +39,17 @@ impl BundleCmd {
                 .into_owned(),
         };
 
+        let assembler = Assembler::default().with_debug_mode(true);
         let library_namespace =
             namespace.parse::<LibraryNamespace>().expect("invalid base namespace");
-        let version = self.version.parse::<Version>().expect("invalid cargo version");
-        let stdlib = MaslLibrary::read_from_dir(&self.dir, library_namespace, version)?;
+        let library = Library::from_dir(&self.dir, library_namespace, assembler)?;
 
         // write the masl output
-        stdlib.write_to_dir(self.dir.clone()).into_diagnostic()?;
+        let output_file = self
+            .dir
+            .join(self.namespace.as_deref().unwrap_or("out"))
+            .with_extension(Library::LIBRARY_EXTENSION);
+        library.write_to_file(output_file).into_diagnostic()?;
 
         println!("Built library {}", namespace);
 

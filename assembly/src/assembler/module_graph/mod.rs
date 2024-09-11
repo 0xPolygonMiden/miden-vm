@@ -2,46 +2,150 @@ mod analysis;
 mod callgraph;
 mod debug;
 mod name_resolver;
-mod phantom;
-mod procedure_cache;
 mod rewrites;
 
-pub use self::callgraph::{CallGraph, CycleError};
-pub use self::name_resolver::{CallerInfo, ResolvedTarget};
-pub use self::procedure_cache::ProcedureCache;
-
-use alloc::{
-    borrow::Cow,
-    boxed::Box,
-    collections::{BTreeMap, BTreeSet},
-    sync::Arc,
-    vec::Vec,
-};
+use alloc::{boxed::Box, collections::BTreeMap, sync::Arc, vec::Vec};
 use core::ops::Index;
 
 use smallvec::{smallvec, SmallVec};
-use vm_core::Kernel;
+use vm_core::{crypto::hash::RpoDigest, Kernel};
 
-use self::{
-    analysis::MaybeRewriteCheck, name_resolver::NameResolver, phantom::PhantomCall,
-    rewrites::ModuleRewriter,
+use self::{analysis::MaybeRewriteCheck, name_resolver::NameResolver, rewrites::ModuleRewriter};
+pub use self::{
+    callgraph::{CallGraph, CycleError},
+    name_resolver::{CallerInfo, ResolvedTarget},
 };
 use super::{GlobalProcedureIndex, ModuleIndex};
 use crate::{
     ast::{
-        Export, FullyQualifiedProcedureName, InvocationTarget, Module, Procedure, ProcedureIndex,
-        ProcedureName, ResolvedProcedure,
+        Export, InvocationTarget, InvokeKind, Module, ProcedureIndex, ProcedureName,
+        ResolvedProcedure,
     },
-    diagnostics::{RelatedLabel, SourceFile},
-    AssemblyError, LibraryPath, RpoDigest, Spanned,
+    library::{ModuleInfo, ProcedureInfo},
+    AssemblyError, LibraryNamespace, LibraryPath, SourceManager, Spanned,
 };
+
+// WRAPPER STRUCTS
+// ================================================================================================
+
+/// Wraps all supported representations of a procedure in the module graph.
+///
+/// Currently, there are two supported representations:
+/// - `Ast`: wraps a procedure for which we have access to the entire AST,
+/// - `Info`: stores the procedure's name and digest (resulting from previously compiled
+///   procedures).
+pub enum ProcedureWrapper<'a> {
+    Ast(&'a Export),
+    Info(&'a ProcedureInfo),
+}
+
+impl<'a> ProcedureWrapper<'a> {
+    /// Returns the name of the procedure.
+    pub fn name(&self) -> &ProcedureName {
+        match self {
+            Self::Ast(p) => p.name(),
+            Self::Info(p) => &p.name,
+        }
+    }
+
+    /// Returns the wrapped procedure if in the `Ast` representation, or panics otherwise.
+    ///
+    /// # Panics
+    /// - Panics if the wrapped procedure is not in the `Ast` representation.
+    pub fn unwrap_ast(&self) -> &Export {
+        match self {
+            Self::Ast(proc) => proc,
+            Self::Info(_) => panic!("expected AST procedure, but was compiled"),
+        }
+    }
+
+    /// Returns true if the wrapped procedure is in the `Ast` representation.
+    pub fn is_ast(&self) -> bool {
+        matches!(self, Self::Ast(_))
+    }
+}
+
+/// Wraps all supported representations of a module in the module graph.
+///
+/// Currently, there are two supported representations:
+/// - `Ast`: wraps a module for which we have access to the entire AST,
+/// - `Info`: stores only the necessary information about a module (resulting from previously
+///   compiled modules).
+#[derive(Clone)]
+pub enum WrappedModule {
+    Ast(Arc<Module>),
+    Info(ModuleInfo),
+}
+
+impl WrappedModule {
+    /// Returns the library path of the wrapped module.
+    pub fn path(&self) -> &LibraryPath {
+        match self {
+            Self::Ast(m) => m.path(),
+            Self::Info(m) => m.path(),
+        }
+    }
+
+    /// Returns the wrapped module if in the `Ast` representation, or panics otherwise.
+    ///
+    /// # Panics
+    /// - Panics if the wrapped module is not in the `Ast` representation.
+    pub fn unwrap_ast(&self) -> &Arc<Module> {
+        match self {
+            Self::Ast(module) => module,
+            Self::Info(_) => {
+                panic!("expected module to be in AST representation, but was compiled")
+            },
+        }
+    }
+
+    /// Returns the wrapped module if in the `Info` representation, or panics otherwise.
+    ///
+    /// # Panics
+    /// - Panics if the wrapped module is not in the `Info` representation.
+    pub fn unwrap_info(&self) -> &ModuleInfo {
+        match self {
+            Self::Ast(_) => {
+                panic!("expected module to be compiled, but was in AST representation")
+            },
+            Self::Info(module) => module,
+        }
+    }
+
+    /// Resolves `name` to a procedure within the local scope of this module.
+    pub fn resolve(&self, name: &ProcedureName) -> Option<ResolvedProcedure> {
+        match self {
+            WrappedModule::Ast(module) => module.resolve(name),
+            WrappedModule::Info(module) => {
+                module.get_procedure_digest_by_name(name).map(ResolvedProcedure::MastRoot)
+            },
+        }
+    }
+}
+
+/// Wraps modules that are pending in the [`ModuleGraph`].
+#[derive(Clone)]
+pub enum PendingWrappedModule {
+    Ast(Box<Module>),
+    Info(ModuleInfo),
+}
+
+impl PendingWrappedModule {
+    /// Returns the library path of the wrapped module.
+    pub fn path(&self) -> &LibraryPath {
+        match self {
+            Self::Ast(m) => m.path(),
+            Self::Info(m) => m.path(),
+        }
+    }
+}
 
 // MODULE GRAPH
 // ================================================================================================
 
-#[derive(Default, Clone)]
+#[derive(Clone)]
 pub struct ModuleGraph {
-    modules: Vec<Arc<Module>>,
+    modules: Vec<WrappedModule>,
     /// The set of modules pending additional processing before adding them to the graph.
     ///
     /// When adding a set of inter-dependent modules to the graph, we process them as a group, so
@@ -50,31 +154,57 @@ pub struct ModuleGraph {
     ///
     /// Once added to the graph, modules become immutable, and any additional modules added after
     /// that must by definition only depend on modules in the graph, and not be depended upon.
-    #[allow(clippy::vec_box)]
-    pending: Vec<Box<Module>>,
+    pending: Vec<PendingWrappedModule>,
     /// The global call graph of calls, not counting those that are performed directly via MAST
     /// root.
     callgraph: CallGraph,
-    /// The computed topological ordering of the call graph
-    topo: Vec<GlobalProcedureIndex>,
     /// The set of MAST roots which have procedure definitions in this graph. There can be
     /// multiple procedures bound to the same root due to having identical code.
-    roots: BTreeMap<RpoDigest, SmallVec<[GlobalProcedureIndex; 1]>>,
-    /// The set of procedures in this graph which have known MAST roots
-    digests: BTreeMap<GlobalProcedureIndex, RpoDigest>,
-    /// The set of procedures which have no known definition in the graph, aka "phantom calls".
-    /// Since we know the hash of these functions, we can proceed with compilation, but in some
-    /// contexts we wish to disallow them and raise an error if any such calls are present.
-    ///
-    /// When we merge graphs, we attempt to resolve phantoms by attempting to find definitions in
-    /// the opposite graph.
-    phantoms: BTreeSet<PhantomCall>,
+    procedures_by_mast_root: BTreeMap<RpoDigest, SmallVec<[GlobalProcedureIndex; 1]>>,
     kernel_index: Option<ModuleIndex>,
     kernel: Kernel,
+    source_manager: Arc<dyn SourceManager>,
 }
 
-/// Construction
+// ------------------------------------------------------------------------------------------------
+/// Constructors
 impl ModuleGraph {
+    /// Instantiate a new [ModuleGraph], using the provided [SourceManager] to resolve source info.
+    pub fn new(source_manager: Arc<dyn SourceManager>) -> Self {
+        Self {
+            modules: Default::default(),
+            pending: Default::default(),
+            callgraph: Default::default(),
+            procedures_by_mast_root: Default::default(),
+            kernel_index: None,
+            kernel: Default::default(),
+            source_manager,
+        }
+    }
+
+    /// Adds all module infos to the graph.
+    pub fn add_compiled_modules(
+        &mut self,
+        module_infos: impl IntoIterator<Item = ModuleInfo>,
+    ) -> Result<Vec<ModuleIndex>, AssemblyError> {
+        let module_indices: Vec<ModuleIndex> = module_infos
+            .into_iter()
+            .map(|module| self.add_module(PendingWrappedModule::Info(module)))
+            .collect::<Result<_, _>>()?;
+
+        self.recompute()?;
+
+        // Register all procedures as roots
+        for &module_index in module_indices.iter() {
+            for (proc_index, proc) in self[module_index].unwrap_info().clone().procedures() {
+                let gid = module_index + proc_index;
+                self.register_procedure_root(gid, proc.digest)?;
+            }
+        }
+
+        Ok(module_indices)
+    }
+
     /// Add `module` to the graph.
     ///
     /// NOTE: This operation only adds a module to the graph, but does not perform the
@@ -92,69 +222,20 @@ impl ModuleGraph {
     ///
     /// This function will panic if the number of modules exceeds the maximum representable
     /// [ModuleIndex] value, `u16::MAX`.
-    pub fn add_module(&mut self, module: Box<Module>) -> Result<ModuleIndex, AssemblyError> {
+    pub fn add_ast_module(&mut self, module: Box<Module>) -> Result<ModuleIndex, AssemblyError> {
+        self.add_module(PendingWrappedModule::Ast(module))
+    }
+
+    fn add_module(&mut self, module: PendingWrappedModule) -> Result<ModuleIndex, AssemblyError> {
         let is_duplicate =
             self.is_pending(module.path()) || self.find_module_index(module.path()).is_some();
         if is_duplicate {
-            return Err(AssemblyError::DuplicateModule {
-                path: module.path().clone(),
-            });
+            return Err(AssemblyError::DuplicateModule { path: module.path().clone() });
         }
 
         let module_id = self.next_module_id();
         self.pending.push(module);
         Ok(module_id)
-    }
-
-    /// Remove a module from the graph by discarding any edges involving that module. We do not
-    /// remove the module from the node set by default, so as to preserve the stability of indices
-    /// in the graph. However, we do remove the module from the set if it is the most recently
-    /// added module, as that matches the most common case of compiling multiple programs in a row,
-    /// where we discard the executable module each time.
-    pub fn remove_module(&mut self, index: ModuleIndex) {
-        use alloc::collections::btree_map::Entry;
-
-        // If the given index is a pending module, we just remove it from the pending set and call
-        // it a day
-        let pending_offset = self.modules.len();
-        if index.as_usize() >= pending_offset {
-            self.pending.remove(index.as_usize() - pending_offset);
-            return;
-        }
-
-        self.callgraph.remove_edges_for_module(index);
-
-        // We remove all nodes from the topological sort that belong to the given module. The
-        // resulting sort is still valid, but may change the next time it is computed
-        self.topo.retain(|gid| gid.module != index);
-
-        // Remove any cached procedure roots for the given module
-        for (gid, digest) in self.digests.iter() {
-            if gid.module != index {
-                continue;
-            }
-            if let Entry::Occupied(mut entry) = self.roots.entry(*digest) {
-                if entry.get().iter().all(|gid| gid.module == index) {
-                    entry.remove();
-                } else {
-                    entry.get_mut().retain(|gid| gid.module != index);
-                }
-            }
-        }
-        self.digests.retain(|gid, _| gid.module != index);
-        self.roots.retain(|_, gids| !gids.is_empty());
-
-        // Handle removing the kernel module
-        if self.kernel_index == Some(index) {
-            self.kernel_index = None;
-            self.kernel = Default::default();
-        }
-
-        // If the module being removed comes last in the node set, remove it from the set to avoid
-        // growing the set unnecessarily over time.
-        if index.as_usize() == self.modules.len().saturating_sub(1) {
-            self.modules.pop();
-        }
     }
 
     fn is_pending(&self, path: &LibraryPath) -> bool {
@@ -167,47 +248,46 @@ impl ModuleGraph {
     }
 }
 
+// ------------------------------------------------------------------------------------------------
 /// Kernels
 impl ModuleGraph {
-    pub(super) fn set_kernel(&mut self, kernel_index: Option<ModuleIndex>, kernel: Kernel) {
-        self.kernel_index = kernel_index;
-        self.kernel = kernel;
+    /// Returns a new [ModuleGraph] instantiated from the provided kernel and kernel info module.
+    ///
+    /// Note: it is assumed that kernel and kernel_module are consistent, but this is not checked.
+    ///
+    /// TODO: consider passing `KerneLibrary` into this constructor as a parameter instead.
+    pub(super) fn with_kernel(
+        source_manager: Arc<dyn SourceManager>,
+        kernel: Kernel,
+        kernel_module: ModuleInfo,
+    ) -> Self {
+        assert!(!kernel.is_empty());
+        assert_eq!(kernel_module.path(), &LibraryPath::from(LibraryNamespace::Kernel));
+
+        // add kernel module to the graph
+        // TODO: simplify this to avoid using Self::add_compiled_modules()
+        let mut graph = Self::new(source_manager);
+        let module_indexes = graph
+            .add_compiled_modules([kernel_module])
+            .expect("failed to add kernel module to the module graph");
+        assert_eq!(module_indexes[0], ModuleIndex::new(0), "kernel should be the first module");
+
+        graph.kernel_index = Some(module_indexes[0]);
+        graph.kernel = kernel;
+
+        graph
     }
 
     pub fn kernel(&self) -> &Kernel {
         &self.kernel
     }
 
-    #[allow(unused)]
-    pub fn kernel_index(&self) -> Option<ModuleIndex> {
-        self.kernel_index
-    }
-
     pub fn has_nonempty_kernel(&self) -> bool {
         self.kernel_index.is_some() || !self.kernel.is_empty()
     }
-
-    #[allow(unused)]
-    pub fn is_kernel_procedure_root(&self, digest: &RpoDigest) -> bool {
-        self.kernel.contains_proc(*digest)
-    }
-
-    #[allow(unused)]
-    pub fn is_kernel_procedure(&self, name: &ProcedureName) -> bool {
-        self.kernel_index
-            .map(|index| self[index].resolve(name).is_some())
-            .unwrap_or(false)
-    }
-
-    #[allow(unused)]
-    pub fn is_kernel_procedure_fully_qualified(&self, name: &FullyQualifiedProcedureName) -> bool {
-        self.find_module_index(&name.module)
-            .filter(|module_index| self.kernel_index == Some(*module_index))
-            .map(|module_index| self[module_index].resolve(&name.name).is_some())
-            .unwrap_or(false)
-    }
 }
 
+// ------------------------------------------------------------------------------------------------
 /// Analysis
 impl ModuleGraph {
     /// Recompute the module graph.
@@ -261,9 +341,6 @@ impl ModuleGraph {
             return Ok(());
         }
 
-        // Remove previous topological sort, since it is no longer valid
-        self.topo.clear();
-
         // Visit all of the pending modules, assigning them ids, and adding them to the module
         // graph after rewriting any calls to use absolute paths
         let high_water_mark = self.modules.len();
@@ -272,18 +349,26 @@ impl ModuleGraph {
             let module_id = ModuleIndex::new(high_water_mark + pending_index);
 
             // Apply module to call graph
-            for (index, procedure) in pending_module.procedures().enumerate() {
-                let procedure_id = ProcedureIndex::new(index);
-                let global_id = GlobalProcedureIndex {
-                    module: module_id,
-                    index: procedure_id,
-                };
+            match pending_module {
+                PendingWrappedModule::Ast(pending_module) => {
+                    for (index, _) in pending_module.procedures().enumerate() {
+                        let procedure_id = ProcedureIndex::new(index);
+                        let global_id =
+                            GlobalProcedureIndex { module: module_id, index: procedure_id };
 
-                // Ensure all entrypoints and exported symbols are represented in the call graph,
-                // even if they have no edges, we need them in the graph for the topological sort
-                if matches!(procedure, Export::Procedure(_)) {
-                    self.callgraph.get_or_insert_node(global_id);
-                }
+                        // Ensure all entrypoints and exported symbols are represented in the call
+                        // graph, even if they have no edges, we need them
+                        // in the graph for the topological sort
+                        self.callgraph.get_or_insert_node(global_id);
+                    }
+                },
+                PendingWrappedModule::Info(pending_module) => {
+                    for (proc_index, _procedure) in pending_module.procedures() {
+                        let global_id =
+                            GlobalProcedureIndex { module: module_id, index: proc_index };
+                        self.callgraph.get_or_insert_node(global_id);
+                    }
+                },
             }
         }
 
@@ -291,84 +376,101 @@ impl ModuleGraph {
         // before they are added to the graph
         let mut resolver = NameResolver::new(self);
         for module in pending.iter() {
-            resolver.push_pending(module);
-        }
-        let mut phantoms = BTreeSet::default();
-        let mut edges = Vec::new();
-        let mut finished = Vec::<Arc<Module>>::new();
-
-        // Visit all of the newly-added modules and perform any rewrites
-        for (pending_index, mut module) in pending.into_iter().enumerate() {
-            let module_id = ModuleIndex::new(high_water_mark + pending_index);
-
-            let mut rewriter = ModuleRewriter::new(&resolver);
-            rewriter.apply(module_id, &mut module)?;
-
-            // Gather the phantom calls found while rewriting the module
-            phantoms.extend(rewriter.phantoms());
-
-            for (index, procedure) in module.procedures().enumerate() {
-                let procedure_id = ProcedureIndex::new(index);
-                let gid = GlobalProcedureIndex {
-                    module: module_id,
-                    index: procedure_id,
-                };
-
-                for invoke in procedure.invoked() {
-                    let caller = CallerInfo {
-                        span: invoke.span(),
-                        source_file: module.source_file(),
-                        module: module_id,
-                        kind: invoke.kind,
-                    };
-                    if let Some(callee) =
-                        resolver.resolve_target(&caller, &invoke.target)?.into_global_id()
-                    {
-                        edges.push((gid, callee));
-                    }
-                }
+            if let PendingWrappedModule::Ast(module) = module {
+                resolver.push_pending(module);
             }
+        }
+        let mut edges = Vec::new();
+        let mut finished: Vec<WrappedModule> = Vec::new();
 
-            finished.push(Arc::from(module));
+        // Visit all of the newly-added modules and perform any rewrites to AST modules.
+        for (pending_index, module) in pending.into_iter().enumerate() {
+            match module {
+                PendingWrappedModule::Ast(mut ast_module) => {
+                    let module_id = ModuleIndex::new(high_water_mark + pending_index);
+
+                    let mut rewriter = ModuleRewriter::new(&resolver);
+                    rewriter.apply(module_id, &mut ast_module)?;
+
+                    for (index, procedure) in ast_module.procedures().enumerate() {
+                        let procedure_id = ProcedureIndex::new(index);
+                        let gid = GlobalProcedureIndex { module: module_id, index: procedure_id };
+
+                        // Add edge to the call graph to represent dependency on aliased procedures
+                        if let Export::Alias(ref alias) = procedure {
+                            let caller = CallerInfo {
+                                span: alias.span(),
+                                module: module_id,
+                                kind: InvokeKind::ProcRef,
+                            };
+                            let target = alias.target().into();
+                            if let Some(callee) =
+                                resolver.resolve_target(&caller, &target)?.into_global_id()
+                            {
+                                edges.push((gid, callee));
+                            }
+                        }
+
+                        // Add edges to all transitive dependencies of this procedure due to calls
+                        for invoke in procedure.invoked() {
+                            let caller = CallerInfo {
+                                span: invoke.span(),
+                                module: module_id,
+                                kind: invoke.kind,
+                            };
+                            if let Some(callee) =
+                                resolver.resolve_target(&caller, &invoke.target)?.into_global_id()
+                            {
+                                edges.push((gid, callee));
+                            }
+                        }
+                    }
+
+                    finished.push(WrappedModule::Ast(Arc::new(*ast_module)))
+                },
+                PendingWrappedModule::Info(module) => {
+                    finished.push(WrappedModule::Info(module));
+                },
+            }
         }
 
         // Release the graph again
         drop(resolver);
 
         // Extend the graph with all of the new additions
-        self.phantoms.extend(phantoms);
         self.modules.append(&mut finished);
         edges
             .into_iter()
-            .for_each(|(callee, caller)| self.callgraph.add_edge(callee, caller));
+            .for_each(|(caller, callee)| self.callgraph.add_edge(caller, callee));
 
-        // Visit all of the modules in the base module graph, and modify them if any of the
-        // pending modules allow additional information to be inferred (such as the absolute path
-        // of imports, etc)
+        // Visit all of the (AST) modules in the base module graph, and modify them if any of the
+        // pending modules allow additional information to be inferred (such as the absolute path of
+        // imports, etc)
         for module_index in 0..high_water_mark {
             let module_id = ModuleIndex::new(module_index);
             let module = self.modules[module_id.as_usize()].clone();
 
-            // Re-analyze the module, and if we needed to clone-on-write, the new module will be
-            // returned. Otherwise, `Ok(None)` indicates that the module is unchanged, and `Err`
-            // indicates that re-analysis has found an issue with this module.
-            if let Some(new_module) = self.reanalyze_module(module_id, module)? {
-                self.modules[module_id.as_usize()] = new_module;
+            if let WrappedModule::Ast(module) = module {
+                // Re-analyze the module, and if we needed to clone-on-write, the new module will be
+                // returned. Otherwise, `Ok(None)` indicates that the module is unchanged, and `Err`
+                // indicates that re-analysis has found an issue with this module.
+                if let Some(new_module) = self.reanalyze_module(module_id, module)? {
+                    self.modules[module_id.as_usize()] = WrappedModule::Ast(new_module);
+                }
             }
         }
 
         // Make sure the graph is free of cycles
-        let topo = self.callgraph.toposort().map_err(|cycle| {
+        self.callgraph.toposort().map_err(|cycle| {
             let iter = cycle.into_node_ids();
             let mut nodes = Vec::with_capacity(iter.len());
             for node in iter {
                 let module = self[node.module].path();
-                let proc = self[node].name();
-                nodes.push(format!("{}::{}", module, proc));
+                let proc = self.get_procedure_unsafe(node);
+                nodes.push(format!("{}::{}", module, proc.name()));
             }
             AssemblyError::Cycle { nodes }
         })?;
-        self.topo = topo;
 
         Ok(())
     }
@@ -387,8 +489,6 @@ impl ModuleGraph {
             let mut rewriter = ModuleRewriter::new(&resolver);
             rewriter.apply(module_id, &mut module)?;
 
-            self.phantoms.extend(rewriter.phantoms());
-
             Ok(Some(Arc::from(module)))
         } else {
             Ok(None)
@@ -396,18 +496,9 @@ impl ModuleGraph {
     }
 }
 
+// ------------------------------------------------------------------------------------------------
 /// Accessors/Queries
 impl ModuleGraph {
-    /// Get a slice representing the topological ordering of this graph.
-    ///
-    /// The slice is ordered such that when a node is encountered, all of its dependencies come
-    /// after it in the slice. Thus, by walking the slice in reverse, we visit the leaves of the
-    /// graph before any of the dependents of those leaves. We use this property to resolve MAST
-    /// roots for the entire program, bottom-up.
-    pub fn topological_sort(&self) -> &[GlobalProcedureIndex] {
-        self.topo.as_slice()
-    }
-
     /// Compute the topological sort of the callgraph rooted at `caller`
     pub fn topological_sort_from_root(
         &self,
@@ -416,53 +507,29 @@ impl ModuleGraph {
         self.callgraph.toposort_caller(caller)
     }
 
-    /// Fetch a [Module] by [ModuleIndex]
-    #[allow(unused)]
-    pub fn get_module(&self, id: ModuleIndex) -> Option<Arc<Module>> {
-        self.modules.get(id.as_usize()).cloned()
-    }
-
-    /// Fetch a [Module] by [ModuleIndex]
-    pub fn contains_module(&self, id: ModuleIndex) -> bool {
-        self.modules.get(id.as_usize()).is_some()
-    }
-
-    /// Fetch a [Export] by [GlobalProcedureIndex]
-    #[allow(unused)]
-    pub fn get_procedure(&self, id: GlobalProcedureIndex) -> Option<&Export> {
-        self.modules.get(id.module.as_usize()).and_then(|m| m.get(id.index))
-    }
-
-    /// Fetches a [Procedure] by [RpoDigest].
+    /// Fetch a [WrapperProcedure] by [GlobalProcedureIndex].
     ///
-    /// NOTE: This implicitly chooses the first definition for a procedure if the same digest is
-    /// shared for multiple definitions.
-    #[allow(unused)]
-    pub fn get_procedure_by_digest(&self, digest: &RpoDigest) -> Option<&Procedure> {
-        self.roots
-            .get(digest)
-            .and_then(|indices| match self.get_procedure(indices[0])? {
-                Export::Procedure(ref proc) => Some(proc),
-                Export::Alias(_) => None,
-            })
+    /// # Panics
+    /// - Panics if index is invalid.
+    pub fn get_procedure_unsafe(&self, id: GlobalProcedureIndex) -> ProcedureWrapper {
+        match &self.modules[id.module.as_usize()] {
+            WrappedModule::Ast(m) => ProcedureWrapper::Ast(&m[id.index]),
+            WrappedModule::Info(m) => {
+                ProcedureWrapper::Info(m.get_procedure_by_index(id.index).unwrap())
+            },
+        }
     }
 
+    /// Returns a procedure index which corresponds to the provided procedure digest.
+    ///
+    /// Note that there can be many procedures with the same digest - due to having the same code,
+    /// and/or using different decorators which don't affect the MAST root. This method returns an
+    /// arbitrary one.
     pub fn get_procedure_index_by_digest(
         &self,
-        digest: &RpoDigest,
+        procedure_digest: &RpoDigest,
     ) -> Option<GlobalProcedureIndex> {
-        self.roots.get(digest).map(|indices| indices[0])
-    }
-
-    /// Look up the [RpoDigest] associated with the given [GlobalProcedureIndex], if one is known
-    /// at this point in time.
-    pub fn get_mast_root(&self, id: GlobalProcedureIndex) -> Option<&RpoDigest> {
-        self.digests.get(&id)
-    }
-
-    #[allow(unused)]
-    pub fn callees(&self, gid: GlobalProcedureIndex) -> &[GlobalProcedureIndex] {
-        self.callgraph.out_edges(gid)
+        self.procedures_by_mast_root.get(procedure_digest).map(|indices| indices[0])
     }
 
     /// Resolves `target` from the perspective of `caller`.
@@ -475,7 +542,7 @@ impl ModuleGraph {
         resolver.resolve_target(caller, target)
     }
 
-    /// Registers a [RpoDigest] as corresponding to a given [GlobalProcedureIndex].
+    /// Registers a [MastNodeId] as corresponding to a given [GlobalProcedureIndex].
     ///
     /// # SAFETY
     ///
@@ -483,110 +550,26 @@ impl ModuleGraph {
     /// procedure. It is fine if there are multiple procedures with the same digest, but it _must_
     /// be the case that if a given digest is specified, it can be used as if it was the definition
     /// of the referenced procedure, i.e. they are referentially transparent.
-    pub(crate) fn register_mast_root(
+    pub(crate) fn register_procedure_root(
         &mut self,
         id: GlobalProcedureIndex,
-        digest: RpoDigest,
+        procedure_mast_root: RpoDigest,
     ) -> Result<(), AssemblyError> {
         use alloc::collections::btree_map::Entry;
-        match self.roots.entry(digest) {
+        match self.procedures_by_mast_root.entry(procedure_mast_root) {
             Entry::Occupied(ref mut entry) => {
                 let prev_id = entry.get()[0];
                 if prev_id != id {
-                    // Multiple procedures with the same root, but incompatible
-                    let prev = &self.modules[prev_id.module.as_usize()][prev_id.index];
-                    let current = &self.modules[id.module.as_usize()][id.index];
-                    if prev.num_locals() != current.num_locals() {
-                        let prev_module = self.modules[prev_id.module.as_usize()].path();
-                        let prev_name = FullyQualifiedProcedureName {
-                            span: prev.span(),
-                            module: prev_module.clone(),
-                            name: prev.name().clone(),
-                        };
-                        let current_module = self.modules[id.module.as_usize()].path();
-                        let current_name = FullyQualifiedProcedureName {
-                            span: current.span(),
-                            module: current_module.clone(),
-                            name: current.name().clone(),
-                        };
-                        return Err(AssemblyError::ConflictingDefinitions {
-                            first: prev_name,
-                            second: current_name,
-                        });
-                    }
-
                     // Multiple procedures with the same root, but compatible
                     entry.get_mut().push(id);
                 }
-            }
+            },
             Entry::Vacant(entry) => {
                 entry.insert(smallvec![id]);
-            }
-        }
-
-        match self.digests.entry(id) {
-            Entry::Occupied(ref entry) => {
-                assert_eq!(
-                    entry.get(),
-                    &digest,
-                    "attempted to register the same procedure with different digests!"
-                );
-            }
-            Entry::Vacant(entry) => {
-                entry.insert(digest);
-            }
+            },
         }
 
         Ok(())
-    }
-
-    /// Resolves a [FullyQualifiedProcedureName] to its defining [Procedure].
-    pub fn find(
-        &self,
-        source_file: Option<Arc<SourceFile>>,
-        name: &FullyQualifiedProcedureName,
-    ) -> Result<GlobalProcedureIndex, AssemblyError> {
-        let mut next = Cow::Borrowed(name);
-        let mut caller = source_file.clone();
-        loop {
-            let module_index = self.find_module_index(&next.module).ok_or_else(|| {
-                AssemblyError::UndefinedModule {
-                    span: next.span(),
-                    source_file: caller.clone(),
-                    path: name.module.clone(),
-                }
-            })?;
-            let module = &self.modules[module_index.as_usize()];
-            match module.resolve(&next.name) {
-                Some(ResolvedProcedure::Local(index)) => {
-                    let id = GlobalProcedureIndex {
-                        module: module_index,
-                        index: index.into_inner(),
-                    };
-                    break Ok(id);
-                }
-                Some(ResolvedProcedure::External(fqn)) => {
-                    // If we see that we're about to enter an infinite resolver loop because of a
-                    // recursive alias, return an error
-                    if name == &fqn {
-                        break Err(AssemblyError::RecursiveAlias {
-                            source_file: caller.clone(),
-                            name: name.clone(),
-                        });
-                    }
-                    next = Cow::Owned(fqn);
-                    caller = module.source_file();
-                }
-                None => {
-                    // No such procedure known to `module`
-                    break Err(AssemblyError::Failed {
-                        labels: vec![RelatedLabel::error("undefined procedure")
-                            .with_source_file(source_file)
-                            .with_labeled_span(next.span(), "unable to resolve this reference")],
-                    });
-                }
-            }
-        }
     }
 
     /// Resolve a [LibraryPath] to a [ModuleIndex] in this graph
@@ -595,59 +578,15 @@ impl ModuleGraph {
     }
 
     /// Resolve a [LibraryPath] to a [Module] in this graph
-    pub fn find_module(&self, name: &LibraryPath) -> Option<Arc<Module>> {
+    pub fn find_module(&self, name: &LibraryPath) -> Option<WrappedModule> {
         self.modules.iter().find(|m| m.path() == name).cloned()
-    }
-
-    /// Returns an iterator over the set of [Module]s in this graph, and their indices
-    #[allow(unused)]
-    pub fn modules(&self) -> impl Iterator<Item = (ModuleIndex, Arc<Module>)> + '_ {
-        self.modules
-            .iter()
-            .enumerate()
-            .map(|(idx, m)| (ModuleIndex::new(idx), m.clone()))
-    }
-
-    /// Like [modules], but returns a reference to the module, rather than an owned pointer
-    #[allow(unused)]
-    pub fn modules_by_ref(&self) -> impl Iterator<Item = (ModuleIndex, &Module)> + '_ {
-        self.modules
-            .iter()
-            .enumerate()
-            .map(|(idx, m)| (ModuleIndex::new(idx), m.as_ref()))
-    }
-
-    /// Returns an iterator over the set of [Procedure]s in this graph, and their indices
-    #[allow(unused)]
-    pub fn procedures(&self) -> impl Iterator<Item = (GlobalProcedureIndex, &Procedure)> + '_ {
-        self.modules_by_ref().flat_map(|(module_index, module)| {
-            module.procedures().enumerate().filter_map(move |(index, p)| {
-                let index = ProcedureIndex::new(index);
-                let id = GlobalProcedureIndex {
-                    module: module_index,
-                    index,
-                };
-                match p {
-                    Export::Procedure(ref p) => Some((id, p)),
-                    Export::Alias(_) => None,
-                }
-            })
-        })
     }
 }
 
 impl Index<ModuleIndex> for ModuleGraph {
-    type Output = Arc<Module>;
+    type Output = WrappedModule;
 
     fn index(&self, index: ModuleIndex) -> &Self::Output {
         self.modules.index(index.as_usize())
-    }
-}
-
-impl Index<GlobalProcedureIndex> for ModuleGraph {
-    type Output = Export;
-
-    fn index(&self, index: GlobalProcedureIndex) -> &Self::Output {
-        self.modules[index.module.as_usize()].index(index.index)
     }
 }

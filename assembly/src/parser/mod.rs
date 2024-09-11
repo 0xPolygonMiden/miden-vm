@@ -1,10 +1,10 @@
 /// Simple macro used in the grammar definition for constructing spans
 macro_rules! span {
-    ($l:expr, $r:expr) => {
-        crate::SourceSpan::new($l..$r)
+    ($id:expr, $l:expr, $r:expr) => {
+        crate::SourceSpan::new($id, $l..$r)
     };
-    ($i:expr) => {
-        crate::SourceSpan::new($i..$i)
+    ($id:expr, $i:expr) => {
+        crate::SourceSpan::at($id, $i)
     };
 }
 
@@ -16,24 +16,27 @@ lalrpop_util::lalrpop_mod!(
 
 mod error;
 mod lexer;
-mod location;
 mod scanner;
-mod span;
 mod token;
 
-pub use self::error::{HexErrorKind, LiteralErrorKind, ParsingError};
-pub use self::lexer::Lexer;
-pub use self::location::SourceLocation;
-pub use self::scanner::Scanner;
-pub use self::span::{SourceSpan, Span, Spanned};
-pub use self::token::{DocumentationType, HexEncodedValue, Token};
+use alloc::{boxed::Box, collections::BTreeSet, string::ToString, sync::Arc, vec::Vec};
 
+use miette::miette;
+
+pub use self::{
+    error::{BinErrorKind, HexErrorKind, LiteralErrorKind, ParsingError},
+    lexer::Lexer,
+    scanner::Scanner,
+    token::{BinEncodedValue, DocumentationType, HexEncodedValue, Token},
+};
 use crate::{
     ast,
-    diagnostics::{Report, SourceFile},
-    sema, LibraryPath,
+    diagnostics::{Report, SourceFile, SourceSpan, Span, Spanned},
+    sema, LibraryPath, SourceManager,
 };
-use alloc::{boxed::Box, collections::BTreeSet, string::ToString, sync::Arc, vec::Vec};
+
+// TYPE ALIASES
+// ================================================================================================
 
 type ParseError<'a> = lalrpop_util::ParseError<u32, Token<'a>, ParsingError>;
 
@@ -41,10 +44,7 @@ type ParseError<'a> = lalrpop_util::ParseError<u32, Token<'a>, ParsingError>;
 // ================================================================================================
 
 /// This is a wrapper around the lower-level parser infrastructure which handles orchestrating all
-/// of the pieces needed to parse a [Module] from source, and run semantic analysis on it.
-///
-/// In the vast majority of cases though, you will want to use the more ergonomic
-/// [Module::parse_str] or [Module::parse_file] APIs instead.
+/// of the pieces needed to parse a [ast::Module] from source, and run semantic analysis on it.
 #[derive(Default)]
 pub struct ModuleParser {
     /// The kind of module we're parsing.
@@ -74,7 +74,7 @@ pub struct ModuleParser {
 }
 
 impl ModuleParser {
-    /// Construct a new parser for the given `kind` of [Module]
+    /// Construct a new parser for the given `kind` of [ast::Module].
     pub fn new(kind: ast::ModuleKind) -> Self {
         Self {
             kind,
@@ -88,7 +88,7 @@ impl ModuleParser {
         self.warnings_as_errors = yes;
     }
 
-    /// Parse a [Module] from `source`, and give it the provided `path`.
+    /// Parse a [ast::Module] from `source`, and give it the provided `path`.
     pub fn parse(
         &mut self,
         path: LibraryPath,
@@ -99,36 +99,47 @@ impl ModuleParser {
         sema::analyze(source, self.kind, path, forms, self.warnings_as_errors).map_err(Report::new)
     }
 
-    /// Parse a [Module], `name`, from `path`.
+    /// Parse a [ast::Module], `name`, from `path`.
     #[cfg(feature = "std")]
-    pub fn parse_file<P>(&mut self, name: LibraryPath, path: P) -> Result<Box<ast::Module>, Report>
+    pub fn parse_file<P>(
+        &mut self,
+        name: LibraryPath,
+        path: P,
+        source_manager: &dyn SourceManager,
+    ) -> Result<Box<ast::Module>, Report>
     where
         P: AsRef<std::path::Path>,
     {
+        use vm_core::debuginfo::SourceManagerExt;
+
         use crate::diagnostics::{IntoDiagnostic, WrapErr};
 
         let path = path.as_ref();
-        let filename = path.to_string_lossy();
-        let source = std::fs::read_to_string(path)
+        let source_file = source_manager
+            .load_file(path)
             .into_diagnostic()
-            .wrap_err_with(|| format!("failed to parse module from '{filename}'"))?;
-        let source_file = Arc::new(SourceFile::new(filename, source));
+            .wrap_err_with(|| format!("failed to load source file from '{}'", path.display()))?;
         self.parse(name, source_file)
     }
 
-    /// Parse a [Module], `name`, from `source`.
+    /// Parse a [ast::Module], `name`, from `source`.
     pub fn parse_str(
         &mut self,
         name: LibraryPath,
         source: impl ToString,
+        source_manager: &dyn SourceManager,
     ) -> Result<Box<ast::Module>, Report> {
-        let source = source.to_string();
-        let source_file = Arc::new(SourceFile::new(name.path(), source));
+        use vm_core::debuginfo::SourceContent;
+
+        let path = Arc::from(name.path().into_owned().into_boxed_str());
+        let content = SourceContent::new(Arc::clone(&path), source.to_string().into_boxed_str());
+        let source_file = source_manager.load_from_raw_parts(path, content);
         self.parse(name, source_file)
     }
 }
 
-/// This is used in tests to parse `source` as a set of raw [ast::Form]s rather than as a [Module].
+/// This is used in tests to parse `source` as a set of raw [ast::Form]s rather than as a
+/// [ast::Module].
 ///
 /// NOTE: This does _not_ run semantic analysis.
 #[cfg(any(test, feature = "testing"))]
@@ -145,11 +156,177 @@ fn parse_forms_internal(
     source: Arc<SourceFile>,
     interned: &mut BTreeSet<Arc<str>>,
 ) -> Result<Vec<ast::Form>, ParsingError> {
-    let scanner = Scanner::new(source.inner().as_ref());
-    let lexer = Lexer::new(scanner);
+    let source_id = source.id();
+    let scanner = Scanner::new(source.as_str());
+    let lexer = Lexer::new(source_id, scanner);
     grammar::FormsParser::new()
         .parse(&source, interned, core::marker::PhantomData, lexer)
-        .map_err(ParsingError::from)
+        .map_err(|err| ParsingError::from_parse_error(source_id, err))
+}
+
+// DIRECTORY PARSER
+// ================================================================================================
+
+/// Read the contents (modules) of this library from `dir`, returning any errors that occur
+/// while traversing the file system.
+///
+/// Errors may also be returned if traversal discovers issues with the modules, such as
+/// invalid names, etc.
+///
+/// Returns an iterator over all parsed modules.
+#[cfg(feature = "std")]
+pub fn read_modules_from_dir(
+    namespace: crate::LibraryNamespace,
+    dir: &std::path::Path,
+    source_manager: &dyn SourceManager,
+) -> Result<impl Iterator<Item = Box<ast::Module>>, Report> {
+    use std::collections::{btree_map::Entry, BTreeMap};
+
+    use module_walker::{ModuleEntry, WalkModules};
+
+    use crate::diagnostics::{IntoDiagnostic, WrapErr};
+
+    if !dir.is_dir() {
+        return Err(miette!("the provided path '{}' is not a valid directory", dir.display()));
+    }
+
+    // mod.masm is not allowed in the root directory
+    if dir.join(ast::Module::ROOT_FILENAME).exists() {
+        return Err(miette!("{} is not allowed in the root directory", ast::Module::ROOT_FILENAME));
+    }
+
+    let mut modules = BTreeMap::default();
+
+    let walker = WalkModules::new(namespace.clone(), dir)
+        .into_diagnostic()
+        .wrap_err_with(|| format!("failed to load modules from '{}'", dir.display()))?;
+    for entry in walker {
+        let ModuleEntry { mut name, source_path } = entry?;
+        if name.last() == ast::Module::ROOT {
+            name.pop();
+        }
+
+        // Parse module at the given path
+        let mut parser = ModuleParser::new(ast::ModuleKind::Library);
+        let ast = parser.parse_file(name.clone(), &source_path, source_manager)?;
+        match modules.entry(name) {
+            Entry::Occupied(ref entry) => {
+                return Err(miette!("duplicate module '{0}'", entry.key().clone()));
+            },
+            Entry::Vacant(entry) => {
+                entry.insert(ast);
+            },
+        }
+    }
+
+    Ok(modules.into_values())
+}
+
+#[cfg(feature = "std")]
+mod module_walker {
+
+    use std::{
+        ffi::OsStr,
+        fs::{self, DirEntry, FileType},
+        io,
+        path::{Path, PathBuf},
+    };
+
+    use super::miette;
+    use crate::{
+        ast::Module,
+        diagnostics::{IntoDiagnostic, Report},
+        LibraryNamespace, LibraryPath,
+    };
+
+    pub struct ModuleEntry {
+        pub name: LibraryPath,
+        pub source_path: PathBuf,
+    }
+
+    pub struct WalkModules<'a> {
+        namespace: LibraryNamespace,
+        root: &'a Path,
+        stack: alloc::collections::VecDeque<io::Result<DirEntry>>,
+    }
+
+    impl<'a> WalkModules<'a> {
+        pub fn new(namespace: LibraryNamespace, path: &'a Path) -> io::Result<Self> {
+            use alloc::collections::VecDeque;
+
+            let stack = VecDeque::from_iter(fs::read_dir(path)?);
+
+            Ok(Self { namespace, root: path, stack })
+        }
+
+        fn next_entry(
+            &mut self,
+            entry: &DirEntry,
+            ty: &FileType,
+        ) -> Result<Option<ModuleEntry>, Report> {
+            if ty.is_dir() {
+                let dir = entry.path();
+                self.stack.extend(fs::read_dir(dir).into_diagnostic()?);
+                return Ok(None);
+            }
+
+            let mut file_path = entry.path();
+            let is_module = file_path
+                .extension()
+                .map(|ext| ext == AsRef::<OsStr>::as_ref(Module::FILE_EXTENSION))
+                .unwrap_or(false);
+            if !is_module {
+                return Ok(None);
+            }
+
+            // Remove the file extension and the root prefix, leaving a namespace-relative path
+            file_path.set_extension("");
+            if file_path.is_dir() {
+                return Err(miette!(
+                    "file and directory with same name are not allowed: {}",
+                    file_path.display()
+                ));
+            }
+            let relative_path = file_path
+                .strip_prefix(self.root)
+                .expect("expected path to be a child of the root directory");
+
+            // Construct a [LibraryPath] from the path components, after validating them
+            let mut libpath = LibraryPath::from(self.namespace.clone());
+            for component in relative_path.iter() {
+                let component = component.to_str().ok_or_else(|| {
+                    let p = entry.path();
+                    miette!("{} is an invalid directory entry", p.display())
+                })?;
+                libpath.push(component).into_diagnostic()?;
+            }
+            Ok(Some(ModuleEntry { name: libpath, source_path: entry.path() }))
+        }
+    }
+
+    impl<'a> Iterator for WalkModules<'a> {
+        type Item = Result<ModuleEntry, Report>;
+
+        fn next(&mut self) -> Option<Self::Item> {
+            loop {
+                let entry = self
+                    .stack
+                    .pop_front()?
+                    .and_then(|entry| entry.file_type().map(|ft| (entry, ft)))
+                    .into_diagnostic();
+
+                match entry {
+                    Ok((ref entry, ref file_type)) => {
+                        match self.next_entry(entry, file_type).transpose() {
+                            None => continue,
+                            result => break result,
+                        }
+                    },
+                    Err(err) => break Some(Err(err)),
+                }
+            }
+        }
+    }
 }
 
 // TESTS
@@ -157,14 +334,17 @@ fn parse_forms_internal(
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use vm_core::assert_matches;
+
+    use super::*;
+    use crate::SourceId;
 
     // This test checks the lexer behavior with regard to tokenizing `exp(.u?[\d]+)?`
     #[test]
     fn lex_exp() {
+        let source_id = SourceId::default();
         let scanner = Scanner::new("begin exp.u9 end");
-        let mut lexer = Lexer::new(scanner).map(|result| result.map(|(_, t, _)| t));
+        let mut lexer = Lexer::new(source_id, scanner).map(|result| result.map(|(_, t, _)| t));
         assert_matches!(lexer.next(), Some(Ok(Token::Begin)));
         assert_matches!(lexer.next(), Some(Ok(Token::ExpU)));
         assert_matches!(lexer.next(), Some(Ok(Token::Int(n))) if n == 9);
@@ -173,6 +353,7 @@ mod tests {
 
     #[test]
     fn lex_block() {
+        let source_id = SourceId::default();
         let scanner = Scanner::new(
             "\
 const.ERR1=1
@@ -184,7 +365,7 @@ begin
 end
 ",
         );
-        let mut lexer = Lexer::new(scanner).map(|result| result.map(|(_, t, _)| t));
+        let mut lexer = Lexer::new(source_id, scanner).map(|result| result.map(|(_, t, _)| t));
         assert_matches!(lexer.next(), Some(Ok(Token::Const)));
         assert_matches!(lexer.next(), Some(Ok(Token::Dot)));
         assert_matches!(lexer.next(), Some(Ok(Token::ConstantIdent("ERR1"))));
@@ -208,6 +389,7 @@ end
 
     #[test]
     fn lex_emit() {
+        let source_id = SourceId::default();
         let scanner = Scanner::new(
             "\
 begin
@@ -216,7 +398,7 @@ begin
 end
 ",
         );
-        let mut lexer = Lexer::new(scanner).map(|result| result.map(|(_, t, _)| t));
+        let mut lexer = Lexer::new(source_id, scanner).map(|result| result.map(|(_, t, _)| t));
         assert_matches!(lexer.next(), Some(Ok(Token::Begin)));
         assert_matches!(lexer.next(), Some(Ok(Token::Push)));
         assert_matches!(lexer.next(), Some(Ok(Token::Dot)));

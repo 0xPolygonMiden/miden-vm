@@ -92,10 +92,10 @@ where
         match source {
             AdviceSource::Value(value) => {
                 self.stack.push(value);
-            }
+            },
             AdviceSource::Word(word) => {
                 self.stack.extend(word.iter().rev());
-            }
+            },
             AdviceSource::Map { key, include_len } => {
                 let values =
                     self.map.get(&key.into()).ok_or(ExecutionError::AdviceMapKeyNotFound(key))?;
@@ -105,7 +105,7 @@ where
                     self.stack
                         .push(Felt::try_from(values.len() as u64).expect("value length too big"));
                 }
-            }
+            },
         }
 
         Ok(())
@@ -148,12 +148,8 @@ where
         depth: &Felt,
         index: &Felt,
     ) -> Result<Word, ExecutionError> {
-        let index = NodeIndex::from_elements(depth, index).map_err(|_| {
-            ExecutionError::InvalidTreeNodeIndex {
-                depth: *depth,
-                value: *index,
-            }
-        })?;
+        let index = NodeIndex::from_elements(depth, index)
+            .map_err(|_| ExecutionError::InvalidTreeNodeIndex { depth: *depth, value: *index })?;
         self.store
             .get_node(root.into(), index)
             .map(|v| v.into())
@@ -166,12 +162,8 @@ where
         depth: &Felt,
         index: &Felt,
     ) -> Result<MerklePath, ExecutionError> {
-        let index = NodeIndex::from_elements(depth, index).map_err(|_| {
-            ExecutionError::InvalidTreeNodeIndex {
-                depth: *depth,
-                value: *index,
-            }
-        })?;
+        let index = NodeIndex::from_elements(depth, index)
+            .map_err(|_| ExecutionError::InvalidTreeNodeIndex { depth: *depth, value: *index })?;
         self.store
             .get_path(root.into(), index)
             .map(|value| value.path)
@@ -198,12 +190,8 @@ where
         index: &Felt,
         value: Word,
     ) -> Result<(MerklePath, Word), ExecutionError> {
-        let node_index = NodeIndex::from_elements(depth, index).map_err(|_| {
-            ExecutionError::InvalidTreeNodeIndex {
-                depth: *depth,
-                value: *index,
-            }
-        })?;
+        let node_index = NodeIndex::from_elements(depth, index)
+            .map_err(|_| ExecutionError::InvalidTreeNodeIndex { depth: *depth, value: *index })?;
         self.store
             .set_node(root.into(), node_index, value.into())
             .map(|root| (root.path, root.root.into()))
@@ -243,7 +231,7 @@ impl From<AdviceInputs> for MemAdviceProvider {
 }
 
 /// Accessors to internal data structures of the provider used for testing purposes.
-#[cfg(any(test, feature = "internals"))]
+#[cfg(any(test, feature = "testing"))]
 impl MemAdviceProvider {
     /// Returns the current state of the advice stack.
     pub fn stack(&self) -> &[Felt] {
@@ -356,15 +344,12 @@ impl From<AdviceInputs> for RecAdviceProvider {
     fn from(inputs: AdviceInputs) -> Self {
         let init_stack = inputs.stack().to_vec();
         let provider = inputs.into();
-        Self {
-            provider,
-            init_stack,
-        }
+        Self { provider, init_stack }
     }
 }
 
 /// Accessors to internal data structures of the provider used for testing purposes.
-#[cfg(any(test, feature = "internals"))]
+#[cfg(any(test, feature = "testing"))]
 impl RecAdviceProvider {
     /// Returns the current state of the advice stack.
     pub fn stack(&self) -> &[Felt] {
@@ -462,10 +447,7 @@ impl RecAdviceProvider {
     /// The `Vec<Felt>`, `SimpleAdviceMap`, and `MerkleStore` represent the stack, map, and Merkle
     /// store of the advice provider at the time of finalization.
     pub fn finalize(self) -> (AdviceInputs, Vec<Felt>, SimpleAdviceMap, MerkleStore) {
-        let Self {
-            provider,
-            init_stack,
-        } = self;
+        let Self { provider, init_stack } = self;
         let BaseAdviceProvider { stack, map, store } = provider;
 
         let (map, map_proof) = map.finalize();
