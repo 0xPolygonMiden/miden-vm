@@ -3,7 +3,9 @@ use alloc::{
     vec::Vec,
 };
 
+use miden_air::DeserializationError;
 use vm_core::crypto::hash::RpoDigest;
+use winter_utils::{ByteReader, ByteWriter, Deserializable, Serializable};
 
 use super::Felt;
 
@@ -58,5 +60,28 @@ impl IntoIterator for AdviceMap {
 impl Extend<(RpoDigest, Vec<Felt>)> for AdviceMap {
     fn extend<T: IntoIterator<Item = (RpoDigest, Vec<Felt>)>>(&mut self, iter: T) {
         self.0.extend(iter)
+    }
+}
+
+impl Serializable for AdviceMap {
+    fn write_into<W: ByteWriter>(&self, target: &mut W) {
+        target.write_u32(self.0.len() as u32);
+        for (key, values) in self.0.iter() {
+            key.write_into(target);
+            values.write_into(target);
+        }
+    }
+}
+
+impl Deserializable for AdviceMap {
+    fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
+        let mut map = BTreeMap::new();
+        let count = source.read_u32()?;
+        for _ in 0..count {
+            let key = RpoDigest::read_from(source)?;
+            let values = Vec::<Felt>::read_from(source)?;
+            map.insert(key, values);
+        }
+        Ok(Self(map))
     }
 }

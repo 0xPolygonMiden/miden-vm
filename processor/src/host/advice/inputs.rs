@@ -1,6 +1,8 @@
 use alloc::vec::Vec;
 
+use miden_air::DeserializationError;
 use vm_core::crypto::hash::RpoDigest;
+use winter_utils::{ByteReader, ByteWriter, Deserializable, Serializable};
 
 use super::{AdviceMap, Felt, InnerNodeInfo, InputError, MerkleStore};
 
@@ -19,7 +21,7 @@ use super::{AdviceMap, Felt, InnerNodeInfo, InputError, MerkleStore};
 /// 3. Merkle store, which is used to provide nondeterministic inputs for instructions that operates
 ///    with Merkle trees.
 #[cfg(not(feature = "testing"))]
-#[derive(Clone, Debug, Default)]
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct AdviceInputs {
     stack: Vec<Felt>,
     map: AdviceMap,
@@ -132,11 +134,29 @@ impl AdviceInputs {
     }
 }
 
+impl Serializable for AdviceInputs {
+    fn write_into<W: ByteWriter>(&self, target: &mut W) {
+        let Self { stack, map, store } = self;
+        stack.write_into(target);
+        map.write_into(target);
+        store.write_into(target);
+    }
+}
+
+impl Deserializable for AdviceInputs {
+    fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
+        let stack = Vec::<Felt>::read_from(source)?;
+        let map = AdviceMap::read_from(source)?;
+        let store = MerkleStore::read_from(source)?;
+        Ok(Self { stack, map, store })
+    }
+}
+
 // TESTING
 // ================================================================================================
 
 #[cfg(feature = "testing")]
-#[derive(Clone, Debug, Default)]
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct AdviceInputs {
     pub stack: Vec<Felt>,
     pub map: AdviceMap,

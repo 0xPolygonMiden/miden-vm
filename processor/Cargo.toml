@@ -21,7 +21,7 @@ doctest = false
 concurrent = ["std", "winter-prover/concurrent"]
 default = ["std"]
 testing = ["miden-air/testing"]
-std = ["vm-core/std", "winter-prover/std"]
+std = ["vm-core/std", "winter-prover/std", "winter-utils/std"]
 
 [dependencies]
 miden-air = { package = "miden-air", path = "../air", version = "0.10", default-features = false }
@@ -34,4 +34,4 @@ assembly = { package = "miden-assembly", path = "../assembly", version = "0.10",
 logtest = { version = "2.0", default-features = false }
 test-utils = { package = "miden-test-utils", path = "../test-utils" }
 winter-fri = { package = "winter-fri", version = "0.9" }
-winter-utils = { package = "winter-utils", version = "0.9" }
+winter-utils = { package = "winter-utils", version = "0.9", default-features = false }
