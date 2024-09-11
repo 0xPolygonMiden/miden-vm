@@ -20,7 +20,6 @@ use processor::{
     ExecutionTrace, Program,
 };
 use tracing::instrument;
-use winter_maybe_async::maybe_async;
 use winter_prover::{
     crypto::MerkleTree as MerkleTreeVC, matrix::ColMatrix, ConstraintCompositionCoefficients,
     DefaultConstraintEvaluator, DefaultTraceLde, ProofOptions as WinterProofOptions, Prover,
@@ -210,7 +209,6 @@ where
         PublicInputs::new(program_info, self.stack_inputs.clone(), self.stack_outputs.clone())
     }
 
-    #[maybe_async]
     fn new_trace_lde<E: FieldElement<BaseField = Felt>>(
         &self,
         trace_info: &TraceInfo,
@@ -220,7 +218,6 @@ where
         DefaultTraceLde::new(trace_info, main_trace, domain)
     }
 
-    #[maybe_async]
     fn new_evaluator<'a, E: FieldElement<BaseField = Felt>>(
         &self,
         air: &'a ProcessorAir,
@@ -230,7 +227,6 @@ where
         DefaultConstraintEvaluator::new(air, aux_rand_elements, composition_coefficients)
     }
 
-    #[maybe_async]
     fn build_aux_trace<E>(&self, trace: &Self::Trace, aux_rand_elements: &[E]) -> ColMatrix<E>
     where
         E: FieldElement<BaseField = Self::BaseField>,

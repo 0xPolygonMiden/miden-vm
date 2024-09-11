@@ -89,7 +89,7 @@ impl ExecutionTrace {
             AUX_TRACE_RAND_ELEMENTS,
             main_trace.num_rows(),
             vec![],
-            false,
+            true,
         );
 
         Self {
