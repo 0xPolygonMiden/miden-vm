@@ -69,7 +69,7 @@ impl VerifierChannel {
         }
 
         let num_trace_segments = air.trace_info().num_segments();
-        let main_trace_width = air.trace_info().main_trace_width();
+        let main_trace_width = air.trace_info().main_segment_width();
         let aux_trace_width = air.trace_info().aux_segment_width();
         let lde_domain_size = air.lde_domain_size();
         let fri_options = air.options().to_fri_options();
@@ -337,7 +337,7 @@ impl TraceQueries {
     ) -> Result<Self, VerifierError> {
         // parse main trace segment queries; parsing also validates that hashes of each table row
         // form the leaves of Merkle authentication paths in the proofs
-        let main_segment_width = air.trace_info().main_trace_width();
+        let main_segment_width = air.trace_info().main_segment_width();
         let main_segment_queries = queries.remove(0);
         let (main_segment_query_proofs, main_segment_states) = main_segment_queries
             .parse::<Felt, Rpo256, MerkleTreeVC<Rpo256>>(

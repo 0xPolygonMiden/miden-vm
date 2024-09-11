@@ -48,7 +48,7 @@ pub use winter_air::{AuxRandElements, FieldExtension, LagrangeKernelEvaluationFr
 
 /// TODO: add docs
 pub struct ProcessorAir {
-    context: AirContext<Felt>,
+    context: AirContext<Felt, PublicInputs>,
     stack_inputs: StackInputs,
     stack_outputs: StackOutputs,
     constraint_ranges: TransitionConstraintRange,
@@ -62,8 +62,6 @@ impl ProcessorAir {
 }
 
 impl Air for ProcessorAir {
-    type GkrProof = ();
-    type GkrVerifier = ();
     type BaseField = Felt;
     type PublicInputs = PublicInputs;
 
@@ -106,11 +104,11 @@ impl Air for ProcessorAir {
         // allows us to inject random values into the last row of the execution trace.
         let context = AirContext::new_multi_segment(
             trace_info,
+            pub_inputs.clone(),
             main_degrees,
             aux_degrees,
             num_main_assertions,
             num_aux_assertions,
-            None,
             options,
         )
         .set_num_transition_exemptions(2);
@@ -254,7 +252,7 @@ impl Air for ProcessorAir {
         );
     }
 
-    fn context(&self) -> &AirContext<Felt> {
+    fn context(&self) -> &AirContext<Felt, PublicInputs> {
         &self.context
     }
 }
@@ -262,7 +260,7 @@ impl Air for ProcessorAir {
 // PUBLIC INPUTS
 // ================================================================================================
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct PublicInputs {
     program_info: ProgramInfo,
     stack_inputs: StackInputs,

@@ -20,6 +20,7 @@ use processor::{
     ExecutionTrace, Program,
 };
 use tracing::instrument;
+use winter_maybe_async::maybe_async;
 use winter_prover::{
     crypto::MerkleTree as MerkleTreeVC, matrix::ColMatrix, ConstraintCompositionCoefficients,
     DefaultConstraintEvaluator, DefaultTraceLde, ProofOptions as WinterProofOptions, Prover,
@@ -70,7 +71,7 @@ where
     tracing::event!(
         tracing::Level::INFO,
         "Generated execution trace of {} columns and {} steps ({}% padded) in {} ms",
-        trace.info().main_trace_width(),
+        trace.info().main_segment_width(),
         trace.trace_len_summary().padded_trace_len(),
         trace.trace_len_summary().padding_percentage(),
         now.elapsed().as_millis()
@@ -209,6 +210,7 @@ where
         PublicInputs::new(program_info, self.stack_inputs.clone(), self.stack_outputs.clone())
     }
 
+    #[maybe_async]
     fn new_trace_lde<E: FieldElement<BaseField = Felt>>(
         &self,
         trace_info: &TraceInfo,
@@ -218,6 +220,7 @@ where
         DefaultTraceLde::new(trace_info, main_trace, domain)
     }
 
+    #[maybe_async]
     fn new_evaluator<'a, E: FieldElement<BaseField = Felt>>(
         &self,
         air: &'a ProcessorAir,
@@ -227,14 +230,11 @@ where
         DefaultConstraintEvaluator::new(air, aux_rand_elements, composition_coefficients)
     }
 
-    fn build_aux_trace<E>(
-        &self,
-        trace: &Self::Trace,
-        aux_rand_elements: &AuxRandElements<E>,
-    ) -> ColMatrix<E>
+    #[maybe_async]
+    fn build_aux_trace<E>(&self, trace: &Self::Trace, aux_rand_elements: &[E]) -> ColMatrix<E>
     where
         E: FieldElement<BaseField = Self::BaseField>,
     {
-        trace.build_aux_trace(aux_rand_elements.rand_elements()).unwrap()
+        trace.build_aux_trace(aux_rand_elements).unwrap()
     }
 }
