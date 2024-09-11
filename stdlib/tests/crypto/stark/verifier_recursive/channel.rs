@@ -247,9 +247,11 @@ impl VerifierChannel {
 
             let layer_proof = layer_proofs.remove(0);
 
-            let mut unbatched_proof = layer_proof.into_paths(&folded_positions).unwrap();
-            let x = group_slice_elements::<QuadExt, N>(query);
-            assert_eq!(x.len(), unbatched_proof.len());
+            let x = group_slice_elements::<QuadExt, N>(&query);
+            let leaves: Vec<RpoDigest> =
+                x.iter().map(|row| Rpo256::hash_elements(row)).collect();
+            let unbatched_proof = layer_proof.into_openings(&leaves, &folded_positions).unwrap();
+
 
             let nodes: Vec<[Felt; 4]> =
                 leaves.iter().map(|leaf| [leaf[0], leaf[1], leaf[2], leaf[3]]).collect();

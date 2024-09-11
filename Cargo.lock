@@ -688,6 +688,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "generator"
+version = "0.8.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "dbb949699c3e4df3a183b1d2142cb24277057055ed23c68ed58894f76c517223"
+dependencies = [
+ "cfg-if",
+ "libc",
+ "log",
+ "rustversion",
+ "windows",
+]
+
+[[package]]
 name = "generic-array"
 version = "0.14.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -935,6 +948,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "loom"
+version = "0.7.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "419e0dc8046cb947daa77eb95ae174acfbddb7673b4151f56d1eed8e93fbfaca"
+dependencies = [
+ "cfg-if",
+ "generator",
+ "scoped-tls",
+ "tracing",
+ "tracing-subscriber",
+]
+
+[[package]]
 name = "malloc_buf"
 version = "0.0.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -975,10 +1001,11 @@ dependencies = [
 
 [[package]]
 name = "miden-air"
-version = "0.8.0"
+version = "0.10.5"
 dependencies = [
  "criterion",
  "miden-core",
+ "miden-thiserror",
  "proptest",
  "winter-air",
  "winter-prover",
@@ -987,31 +1014,38 @@ dependencies = [
 
 [[package]]
 name = "miden-assembly"
-version = "0.8.0"
+version = "0.10.5"
 dependencies = [
  "aho-corasick",
  "lalrpop",
  "lalrpop-util",
  "miden-core",
- "miette",
+ "miden-miette",
+ "miden-thiserror",
  "pretty_assertions",
  "regex",
- "rustc_version",
+ "rustc_version 0.4.1",
  "smallvec",
- "thiserror",
  "tracing",
  "unicode-width",
 ]
 
 [[package]]
 name = "miden-core"
-version = "0.8.0"
+version = "0.10.5"
 dependencies = [
+ "lock_api",
+ "loom",
+ "memchr",
  "miden-crypto",
  "miden-formatting",
+ "miden-miette",
+ "miden-thiserror",
+ "num-derive",
+ "num-traits",
+ "parking_lot",
  "proptest",
- "thiserror",
- "winter-math 0.9.0",
+ "winter-math 0.9.0 (git+https://github.com/facebook/winterfell?branch=logup-gkr)",
  "winter-rand-utils",
  "winter-utils 0.9.1",
 ]
@@ -1029,8 +1063,8 @@ dependencies = [
  "rand",
  "rand_core",
  "sha3",
- "winter-crypto 0.9.0",
- "winter-math 0.9.0",
+ "winter-crypto 0.9.0 (git+https://github.com/facebook/winterfell?branch=logup-gkr)",
+ "winter-math 0.9.0 (git+https://github.com/facebook/winterfell?branch=logup-gkr)",
  "winter-utils 0.9.1",
 ]
 
@@ -1045,18 +1079,60 @@ dependencies = [
 
 [[package]]
 name = "miden-gpu"
-version = "0.1.0"
+version = "0.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "691737dedab2cffdf575364792392f3e6876b9d44f92fd59a59baa10b3aebbd3"
+checksum = "ade33603aa2eaf78c6f06fd60f4dfe22b7ae1f5606698e386baf71eb9d246d50"
 dependencies = [
  "metal",
  "once_cell",
- "winter-math 0.8.4",
+ "winter-math 0.9.0 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
+name = "miden-miette"
+version = "7.1.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c532250422d933f15b148fb81e4522a5d649c178ab420d0d596c86228da35570"
+dependencies = [
+ "backtrace",
+ "backtrace-ext",
+ "cfg-if",
+ "futures",
+ "indenter",
+ "lazy_static",
+ "miden-miette-derive",
+ "miden-thiserror",
+ "owo-colors",
+ "regex",
+ "rustc_version 0.2.3",
+ "rustversion",
+ "serde_json",
+ "spin",
+ "strip-ansi-escapes",
+ "supports-color",
+ "supports-hyperlinks",
+ "supports-unicode",
+ "syn",
+ "terminal_size",
+ "textwrap",
+ "trybuild",
+ "unicode-width",
+]
+
+[[package]]
+name = "miden-miette-derive"
+version = "7.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1cc759f0a2947acae217a2f32f722105cacc57d17d5f93bc16362142943a4edd"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn",
 ]
 
 [[package]]
 name = "miden-processor"
-version = "0.8.0"
+version = "0.10.5"
 dependencies = [
  "logtest",
  "miden-air",
@@ -1064,14 +1140,14 @@ dependencies = [
  "miden-core",
  "miden-test-utils",
  "tracing",
- "winter-fri 0.9.0",
+ "winter-fri 0.9.0 (git+https://github.com/facebook/winterfell?branch=logup-gkr)",
  "winter-prover",
  "winter-utils 0.9.1",
 ]
 
 [[package]]
 name = "miden-prover"
-version = "0.8.0"
+version = "0.10.5"
 dependencies = [
  "elsa",
  "miden-air",
@@ -1085,9 +1161,10 @@ dependencies = [
 
 [[package]]
 name = "miden-stdlib"
-version = "0.8.0"
+version = "0.10.5"
 dependencies = [
  "blake3",
+ "criterion",
  "miden-air",
  "miden-assembly",
  "miden-processor",
@@ -1100,14 +1177,15 @@ dependencies = [
  "sha2",
  "sha3",
  "winter-air",
- "winter-crypto 0.9.0",
- "winter-fri 0.9.0",
+ "winter-crypto 0.9.0 (git+https://github.com/facebook/winterfell?branch=logup-gkr)",
+ "winter-fri 0.9.0 (git+https://github.com/facebook/winterfell?branch=logup-gkr)",
 ]
 
 [[package]]
 name = "miden-test-utils"
 version = "0.1.0"
 dependencies = [
+ "miden-air",
  "miden-assembly",
  "miden-core",
  "miden-processor",
@@ -1121,8 +1199,28 @@ dependencies = [
 ]
 
 [[package]]
+name = "miden-thiserror"
+version = "1.0.59"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "183ff8de338956ecfde3a38573241eb7a6f3d44d73866c210e5629c07fa00253"
+dependencies = [
+ "miden-thiserror-impl",
+]
+
+[[package]]
+name = "miden-thiserror-impl"
+version = "1.0.59"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "0ee4176a0f2e7d29d2a8ee7e60b6deb14ce67a20e94c3e2c7275cdb8804e1862"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn",
+]
+
+[[package]]
 name = "miden-verifier"
-version = "0.8.0"
+version = "0.10.5"
 dependencies = [
  "miden-air",
  "miden-core",
@@ -1132,7 +1230,7 @@ dependencies = [
 
 [[package]]
 name = "miden-vm"
-version = "0.8.0"
+version = "0.10.5"
 dependencies = [
  "assert_cmd",
  "blake3",
@@ -1157,47 +1255,7 @@ dependencies = [
  "tracing",
  "tracing-forest",
  "tracing-subscriber",
- "winter-fri 0.8.3",
-]
-
-[[package]]
-name = "miette"
-version = "7.1.0"
-source = "git+https://github.com/bitwalker/miette?branch=no-std#e918fbde6c9853fe5e0db8e8e05bf7fbc8d2cc15"
-dependencies = [
- "backtrace",
- "backtrace-ext",
- "cfg-if",
- "futures",
- "indenter",
- "lazy_static",
- "miette-derive",
- "owo-colors",
- "regex",
- "rustc_version",
- "rustversion",
- "serde_json",
- "spin",
- "strip-ansi-escapes",
- "supports-color",
- "supports-hyperlinks",
- "supports-unicode",
- "syn",
- "terminal_size",
- "textwrap",
- "thiserror",
- "trybuild",
- "unicode-width",
-]
-
-[[package]]
-name = "miette-derive"
-version = "7.1.0"
-source = "git+https://github.com/bitwalker/miette?branch=no-std#e918fbde6c9853fe5e0db8e8e05bf7fbc8d2cc15"
-dependencies = [
- "proc-macro2",
- "quote",
- "syn",
+ "winter-fri 0.9.0 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
@@ -1273,6 +1331,17 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "73f88a1307638156682bada9d7604135552957b7818057dcef22705b4d509495"
 dependencies = [
  "num-traits",
+]
+
+[[package]]
+name = "num-derive"
+version = "0.4.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ed3955f1a9c7c0c15e092f9c887db08b1fc683305fdf6eb6684f22555355e202"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn",
 ]
 
 [[package]]
@@ -1637,7 +1706,7 @@ checksum = "ba009ff324d1fc1b900bd1fdb31564febe58a8ccc8a6fdbb93b543d33b13ca43"
 dependencies = [
  "getrandom",
  "libredox",
- "thiserror",
+ "thiserror 1.0.63",
 ]
 
 [[package]]
@@ -1696,7 +1765,16 @@ version = "0.2.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "138e3e0acb6c9fb258b19b67cb8abd63c00679d2851805ea151465464fe9030a"
 dependencies = [
- "semver",
+ "semver 0.9.0",
+]
+
+[[package]]
+name = "rustc_version"
+version = "0.4.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "cfcb3a22ef46e85b45de6ee7e79d063319ebb6594faafcf1c225ea92ab6e9b92"
+dependencies = [
+ "semver 1.0.23",
 ]
 
 [[package]]
@@ -1765,6 +1843,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "scoped-tls"
+version = "1.0.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e1cf6437eb19a8f4a6cc0f7dca544973b0b78843adbfeb3683d1a94a0024a294"
+
+[[package]]
 name = "scopeguard"
 version = "1.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1778,6 +1862,12 @@ checksum = "1d7eb9ef2c18661902cc47e535f9bc51b78acd254da71d375c2f6720d9a40403"
 dependencies = [
  "semver-parser",
 ]
+
+[[package]]
+name = "semver"
+version = "1.0.23"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "61697e0a1c7e512e84a621326239844a24d8207b4669b41bc18b32ea5cbf988b"
 
 [[package]]
 name = "semver-parser"
@@ -2050,13 +2140,33 @@ name = "thiserror"
 version = "1.0.59"
 source = "git+https://github.com/bitwalker/thiserror?branch=no-std#444c920234c683b73e1da67ba371a7084ae11725"
 dependencies = [
- "thiserror-impl",
+ "thiserror-impl 1.0.59",
+]
+
+[[package]]
+name = "thiserror"
+version = "1.0.63"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c0342370b38b6a11b6cc11d6a805569958d54cfa061a29969c3b5ce2ea405724"
+dependencies = [
+ "thiserror-impl 1.0.63",
 ]
 
 [[package]]
 name = "thiserror-impl"
 version = "1.0.59"
 source = "git+https://github.com/bitwalker/thiserror?branch=no-std#444c920234c683b73e1da67ba371a7084ae11725"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn",
+]
+
+[[package]]
+name = "thiserror-impl"
+version = "1.0.63"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a4558b58466b9ad7ca0f102865eccc95938dca1a74a856f2b57b6629050da261"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -2166,7 +2276,7 @@ checksum = "ee40835db14ddd1e3ba414292272eddde9dad04d3d4b65509656414d1c42592f"
 dependencies = [
  "ansi_term",
  "smallvec",
- "thiserror",
+ "thiserror 1.0.63",
  "tracing",
  "tracing-subscriber",
 ]
@@ -2423,6 +2533,70 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "712e227841d057c1ee1cd2fb22fa7e5a5461ae8e48fa2ca79ec42cfc1931183f"
 
 [[package]]
+name = "windows"
+version = "0.58.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "dd04d41d93c4992d421894c18c8b43496aa748dd4c081bac0dc93eb0489272b6"
+dependencies = [
+ "windows-core",
+ "windows-targets 0.52.6",
+]
+
+[[package]]
+name = "windows-core"
+version = "0.58.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6ba6d44ec8c2591c134257ce647b7ea6b20335bf6379a27dac5f1641fcf59f99"
+dependencies = [
+ "windows-implement",
+ "windows-interface",
+ "windows-result",
+ "windows-strings",
+ "windows-targets 0.52.6",
+]
+
+[[package]]
+name = "windows-implement"
+version = "0.58.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2bbd5b46c938e506ecbce286b6628a02171d56153ba733b6c741fc627ec9579b"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn",
+]
+
+[[package]]
+name = "windows-interface"
+version = "0.58.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "053c4c462dc91d3b1504c6fe5a726dd15e216ba718e84a0e46a88fbe5ded3515"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn",
+]
+
+[[package]]
+name = "windows-result"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1d1043d8214f791817bab27572aaa8af63732e11bf84aa21a45a78d6c317ae0e"
+dependencies = [
+ "windows-targets 0.52.6",
+]
+
+[[package]]
+name = "windows-strings"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "4cd9b125c486025df0eabcb585e62173c6c9eddcec5d117d3b6e8c30e2ee4d10"
+dependencies = [
+ "windows-result",
+ "windows-targets 0.52.6",
+]
+
+[[package]]
 name = "windows-sys"
 version = "0.48.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2585,22 +2759,22 @@ version = "0.9.0"
 source = "git+https://github.com/facebook/winterfell?branch=logup-gkr#b5f64cc281b8b95ff76c86c97412b783b2573877"
 dependencies = [
  "libm",
- "winter-crypto 0.9.0",
- "winter-fri 0.9.0",
- "winter-math 0.9.0",
+ "winter-crypto 0.9.0 (git+https://github.com/facebook/winterfell?branch=logup-gkr)",
+ "winter-fri 0.9.0 (git+https://github.com/facebook/winterfell?branch=logup-gkr)",
+ "winter-math 0.9.0 (git+https://github.com/facebook/winterfell?branch=logup-gkr)",
  "winter-utils 0.9.1",
 ]
 
 [[package]]
 name = "winter-crypto"
-version = "0.8.3"
+version = "0.9.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6aea508aa819e934c837f24bb706e69d890b9be2db82da39cde887e6f0a37246"
+checksum = "00fbb724d2d9fbfd3aa16ea27f5e461d4fe1d74b0c9e0ed1bf79e9e2a955f4d5"
 dependencies = [
  "blake3",
  "sha3",
- "winter-math 0.8.4",
- "winter-utils 0.8.5",
+ "winter-math 0.9.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "winter-utils 0.9.2",
 ]
 
 [[package]]
@@ -2610,19 +2784,19 @@ source = "git+https://github.com/facebook/winterfell?branch=logup-gkr#b5f64cc281
 dependencies = [
  "blake3",
  "sha3",
- "winter-math 0.9.0",
+ "winter-math 0.9.0 (git+https://github.com/facebook/winterfell?branch=logup-gkr)",
  "winter-utils 0.9.1",
 ]
 
 [[package]]
 name = "winter-fri"
-version = "0.8.3"
+version = "0.9.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "660f47c5c9f5872940ac07a724b1df426590dcffad26776e0528466f2e3095f8"
+checksum = "3ab6077cf4c23c0411f591f4ba29378e27f26acb8cef3c51cadd93daaf6080b3"
 dependencies = [
- "winter-crypto 0.8.3",
- "winter-math 0.8.4",
- "winter-utils 0.8.5",
+ "winter-crypto 0.9.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "winter-math 0.9.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "winter-utils 0.9.2",
 ]
 
 [[package]]
@@ -2630,18 +2804,18 @@ name = "winter-fri"
 version = "0.9.0"
 source = "git+https://github.com/facebook/winterfell?branch=logup-gkr#b5f64cc281b8b95ff76c86c97412b783b2573877"
 dependencies = [
- "winter-crypto 0.9.0",
- "winter-math 0.9.0",
+ "winter-crypto 0.9.0 (git+https://github.com/facebook/winterfell?branch=logup-gkr)",
+ "winter-math 0.9.0 (git+https://github.com/facebook/winterfell?branch=logup-gkr)",
  "winter-utils 0.9.1",
 ]
 
 [[package]]
 name = "winter-math"
-version = "0.8.4"
+version = "0.9.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9c36d2a04b4f79f2c8c6945aab6545b7310a0cd6ae47b9210750400df6775a04"
+checksum = "004f85bb051ce986ec0b9a2bd90aaf81b83e3c67464becfdf7db31f14c1019ba"
 dependencies = [
- "winter-utils 0.8.5",
+ "winter-utils 0.9.2",
 ]
 
 [[package]]
@@ -2666,12 +2840,12 @@ name = "winter-prover"
 version = "0.9.0"
 source = "git+https://github.com/facebook/winterfell?branch=logup-gkr#b5f64cc281b8b95ff76c86c97412b783b2573877"
 dependencies = [
- "thiserror",
+ "thiserror 1.0.59",
  "tracing",
  "winter-air",
- "winter-crypto 0.9.0",
- "winter-fri 0.9.0",
- "winter-math 0.9.0",
+ "winter-crypto 0.9.0 (git+https://github.com/facebook/winterfell?branch=logup-gkr)",
+ "winter-fri 0.9.0 (git+https://github.com/facebook/winterfell?branch=logup-gkr)",
+ "winter-math 0.9.0 (git+https://github.com/facebook/winterfell?branch=logup-gkr)",
  "winter-maybe-async",
  "winter-sumcheck",
  "winter-utils 0.9.1",
@@ -2692,18 +2866,12 @@ version = "0.1.0"
 source = "git+https://github.com/facebook/winterfell?branch=logup-gkr#b5f64cc281b8b95ff76c86c97412b783b2573877"
 dependencies = [
  "smallvec",
- "thiserror",
+ "thiserror 1.0.59",
  "winter-air",
- "winter-crypto 0.9.0",
- "winter-math 0.9.0",
+ "winter-crypto 0.9.0 (git+https://github.com/facebook/winterfell?branch=logup-gkr)",
+ "winter-math 0.9.0 (git+https://github.com/facebook/winterfell?branch=logup-gkr)",
  "winter-utils 0.9.1",
 ]
-
-[[package]]
-name = "winter-utils"
-version = "0.8.5"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ef7d7195967f35140fc2542b44813572e0907cde8a818507177ba8db666e7f17"
 
 [[package]]
 name = "winter-utils"
@@ -2714,15 +2882,21 @@ dependencies = [
 ]
 
 [[package]]
+name = "winter-utils"
+version = "0.9.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c3d71ec2c97685c7e7460a30e27f955d26b8426e7c2db0ddb55a6e0537141f53"
+
+[[package]]
 name = "winter-verifier"
 version = "0.9.0"
 source = "git+https://github.com/facebook/winterfell?branch=logup-gkr#b5f64cc281b8b95ff76c86c97412b783b2573877"
 dependencies = [
- "thiserror",
+ "thiserror 1.0.59",
  "winter-air",
- "winter-crypto 0.9.0",
- "winter-fri 0.9.0",
- "winter-math 0.9.0",
+ "winter-crypto 0.9.0 (git+https://github.com/facebook/winterfell?branch=logup-gkr)",
+ "winter-fri 0.9.0 (git+https://github.com/facebook/winterfell?branch=logup-gkr)",
+ "winter-math 0.9.0 (git+https://github.com/facebook/winterfell?branch=logup-gkr)",
  "winter-sumcheck",
  "winter-utils 0.9.1",
 ]

@@ -64,7 +64,7 @@ pub fn fri_prove_verify_fold4_ext2(trace_length_e: usize) -> Result<FriResult, V
 
     let options = FriOptions::new(lde_blowup, folding_factor, max_remainder_size);
     let mut channel = build_prover_channel(trace_length, &options);
-    let evaluations = build_evaluations(trace_length, lde_blowup);
+    let evaluations: Vec<QuadExt> = build_evaluations(trace_length, lde_blowup);
 
     // instantiate the prover and generate the proof
     let mut prover = FriProver::<_, _, _, MerkleTreeVC<MidenHasher>>::new(options.clone());
