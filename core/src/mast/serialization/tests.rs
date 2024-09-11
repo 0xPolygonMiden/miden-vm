@@ -292,19 +292,47 @@ fn serialize_deserialize_all_nodes() {
             (num_operations, Decorator::Trace(55)),
         ];
 
-        mast_forest.add_block(operations, Some(decorators)).unwrap()
+        mast_forest.add_block_with_raw_decorators(operations, decorators).unwrap()
     };
 
+    // Decorators to add to following nodes
+    let decorator_id1 = mast_forest.add_decorator(Decorator::Trace(1)).unwrap();
+    let decorator_id2 = mast_forest.add_decorator(Decorator::Trace(2)).unwrap();
+
+    // Call node
     let call_node_id = mast_forest.add_call(basic_block_id).unwrap();
+    mast_forest[call_node_id].set_before_enter(vec![decorator_id1]);
+    mast_forest[call_node_id].set_after_exit(vec![decorator_id2]);
 
+    // Syscall node
     let syscall_node_id = mast_forest.add_syscall(basic_block_id).unwrap();
+    mast_forest[syscall_node_id].set_before_enter(vec![decorator_id1]);
+    mast_forest[syscall_node_id].set_after_exit(vec![decorator_id2]);
 
+    // Loop node
     let loop_node_id = mast_forest.add_loop(basic_block_id).unwrap();
-    let join_node_id = mast_forest.add_join(basic_block_id, call_node_id).unwrap();
-    let split_node_id = mast_forest.add_split(basic_block_id, call_node_id).unwrap();
-    let dyn_node_id = mast_forest.add_dyn().unwrap();
+    mast_forest[loop_node_id].set_before_enter(vec![decorator_id1]);
+    mast_forest[loop_node_id].set_after_exit(vec![decorator_id2]);
 
+    // Join node
+    let join_node_id = mast_forest.add_join(basic_block_id, call_node_id).unwrap();
+    mast_forest[join_node_id].set_before_enter(vec![decorator_id1]);
+    mast_forest[join_node_id].set_after_exit(vec![decorator_id2]);
+
+    // Split node
+    let split_node_id = mast_forest.add_split(basic_block_id, call_node_id).unwrap();
+    mast_forest[split_node_id].set_before_enter(vec![decorator_id1]);
+    mast_forest[split_node_id].set_after_exit(vec![decorator_id2]);
+
+    // Dyn node
+    let dyn_node_id = mast_forest.add_dyn().unwrap();
+    mast_forest[dyn_node_id].set_before_enter(vec![decorator_id1]);
+    mast_forest[dyn_node_id].set_after_exit(vec![decorator_id2]);
+
+    // External node
     let external_node_id = mast_forest.add_external(RpoDigest::default()).unwrap();
+    mast_forest[external_node_id].set_before_enter(vec![decorator_id1]);
+    mast_forest[external_node_id].set_after_exit(vec![decorator_id2]);
 
     mast_forest.make_root(join_node_id);
     mast_forest.make_root(syscall_node_id);

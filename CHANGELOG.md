@@ -14,6 +14,10 @@
 
 - Fixed an issue with formatting of blocks in Miden Assembly syntax
 
+#### Fixes
+
+- Decorators are now allowed in empty basic blocks (#1466)
+
 ## 0.10.5 (2024-08-21)
 
 #### Enhancements

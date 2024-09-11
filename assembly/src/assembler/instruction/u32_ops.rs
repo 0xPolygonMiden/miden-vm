@@ -298,11 +298,12 @@ pub fn u32popcnt(span_builder: &mut BasicBlockBuilder) {
 /// provider).
 ///
 /// This operation takes 42 VM cycles.
-pub fn u32clz(span: &mut BasicBlockBuilder) {
-    span.push_advice_injector(AdviceInjector::U32Clz);
-    span.push_op(AdvPop); // [clz, n, ...]
+pub fn u32clz(block_builder: &mut BasicBlockBuilder) -> Result<(), AssemblyError> {
+    block_builder.push_advice_injector(AdviceInjector::U32Clz)?;
+    block_builder.push_op(AdvPop); // [clz, n, ...]
 
-    verify_clz(span);
+    verify_clz(block_builder);
+    Ok(())
 }
 
 /// Translates `u32ctz` assembly instruction to VM operations. `u32ctz` counts the number of
@@ -310,11 +311,12 @@ pub fn u32clz(span: &mut BasicBlockBuilder) {
 /// provider).
 ///
 /// This operation takes 34 VM cycles.
-pub fn u32ctz(span: &mut BasicBlockBuilder) {
-    span.push_advice_injector(AdviceInjector::U32Ctz);
-    span.push_op(AdvPop); // [ctz, n, ...]
+pub fn u32ctz(block_builder: &mut BasicBlockBuilder) -> Result<(), AssemblyError> {
+    block_builder.push_advice_injector(AdviceInjector::U32Ctz)?;
+    block_builder.push_op(AdvPop); // [ctz, n, ...]
 
-    verify_ctz(span);
+    verify_ctz(block_builder);
+    Ok(())
 }
 
 /// Translates `u32clo` assembly instruction to VM operations. `u32clo` counts the number of
@@ -322,11 +324,12 @@ pub fn u32ctz(span: &mut BasicBlockBuilder) {
 /// provider).
 ///
 /// This operation takes 41 VM cycles.
-pub fn u32clo(span: &mut BasicBlockBuilder) {
-    span.push_advice_injector(AdviceInjector::U32Clo);
-    span.push_op(AdvPop); // [clo, n, ...]
+pub fn u32clo(block_builder: &mut BasicBlockBuilder) -> Result<(), AssemblyError> {
+    block_builder.push_advice_injector(AdviceInjector::U32Clo)?;
+    block_builder.push_op(AdvPop); // [clo, n, ...]
 
-    verify_clo(span);
+    verify_clo(block_builder);
+    Ok(())
 }
 
 /// Translates `u32cto` assembly instruction to VM operations. `u32cto` counts the number of
@@ -334,11 +337,12 @@ pub fn u32clo(span: &mut BasicBlockBuilder) {
 /// provider).
 ///
 /// This operation takes 33 VM cycles.
-pub fn u32cto(span: &mut BasicBlockBuilder) {
-    span.push_advice_injector(AdviceInjector::U32Cto);
-    span.push_op(AdvPop); // [cto, n, ...]
+pub fn u32cto(block_builder: &mut BasicBlockBuilder) -> Result<(), AssemblyError> {
+    block_builder.push_advice_injector(AdviceInjector::U32Cto)?;
+    block_builder.push_op(AdvPop); // [cto, n, ...]
 
-    verify_cto(span);
+    verify_cto(block_builder);
+    Ok(())
 }
 
 /// Specifically handles these specific inputs per the spec.
@@ -347,27 +351,27 @@ pub fn u32cto(span: &mut BasicBlockBuilder) {
 /// - Overflowing: does not check if the inputs are u32 values; overflow or underflow bits are
 ///   pushed onto the stack.
 fn handle_arithmetic_operation(
-    span_builder: &mut BasicBlockBuilder,
+    block_builder: &mut BasicBlockBuilder,
     op: Operation,
     op_mode: U32OpMode,
     imm: Option<u32>,
 ) {
     if let Some(imm) = imm {
-        push_u32_value(span_builder, imm);
+        push_u32_value(block_builder, imm);
     }
 
-    span_builder.push_op(op);
+    block_builder.push_op(op);
 
     // in the wrapping mode, drop high 32 bits
     if matches!(op_mode, U32OpMode::Wrapping) {
-        span_builder.push_op(Drop);
+        block_builder.push_op(Drop);
     }
 }
 
 /// Handles common parts of u32div, u32mod, and u32divmod operations, including handling of
 /// immediate parameters.
 fn handle_division(
-    span_builder: &mut BasicBlockBuilder,
+    block_builder: &mut BasicBlockBuilder,
     proc_ctx: &ProcedureContext,
     imm: Option<Span<u32>>,
 ) -> Result<(), AssemblyError> {
@@ -382,10 +386,10 @@ fn handle_division(
                 Err(AssemblyError::Other(RelatedError::new(error)))
             };
         }
-        push_u32_value(span_builder, imm.into_inner());
+        push_u32_value(block_builder, imm.into_inner());
     }
 
-    span_builder.push_op(U32div);
+    block_builder.push_op(U32div);
     Ok(())
 }
 
@@ -395,20 +399,20 @@ fn handle_division(
 /// Mutate the first two elements of the stack from `[b, a, ..]` into `[2^b, a, ..]`, with `b`
 /// either as a provided immediate value, or as an element that already exists in the stack.
 fn prepare_bitwise<const MAX_VALUE: u8>(
-    span_builder: &mut BasicBlockBuilder,
+    block_builder: &mut BasicBlockBuilder,
     imm: Option<u8>,
 ) -> Result<(), AssemblyError> {
     match imm {
         Some(0) => {
             // if shift/rotation is performed by 0, do nothing (Noop)
-            span_builder.push_op(Noop);
+            block_builder.push_op(Noop);
         },
         Some(imm) => {
             validate_param(imm, 1..=MAX_VALUE)?;
-            span_builder.push_op(Push(Felt::new(1 << imm)));
+            block_builder.push_op(Push(Felt::new(1 << imm)));
         },
         None => {
-            append_pow2_op(span_builder);
+            append_pow2_op(block_builder);
         },
     }
     Ok(())
@@ -450,15 +454,15 @@ fn prepare_bitwise<const MAX_VALUE: u8>(
 /// `[clz, n, ... ] -> [clz, ... ]`
 ///
 /// VM cycles: 42
-fn verify_clz(span: &mut BasicBlockBuilder) {
+fn verify_clz(block_builder: &mut BasicBlockBuilder) {
     // [clz, n, ...]
     #[rustfmt::skip]
     let ops_group_1 = [
         Push(32u8.into()), Dup1, Neg, Add // [32 - clz, clz, n, ...]
     ];
-    span.push_ops(ops_group_1);
+    block_builder.push_ops(ops_group_1);
 
-    append_pow2_op(span); // [pow2(32 - clz), clz, n, ...]
+    append_pow2_op(block_builder); // [pow2(32 - clz), clz, n, ...]
 
     #[rustfmt::skip]
     let ops_group_2 = [
@@ -492,7 +496,7 @@ fn verify_clz(span: &mut BasicBlockBuilder) {
         Eq, MovUp2, Or, Assert(0),
     ];
 
-    span.push_ops(ops_group_2);
+    block_builder.push_ops(ops_group_2);
 }
 
 /// Appends relevant operations to the span block for the correctness check of the `U32Clo`
@@ -531,15 +535,15 @@ fn verify_clz(span: &mut BasicBlockBuilder) {
 /// `[clo, n, ... ] -> [clo, ... ]`
 ///
 /// VM cycle: 40
-fn verify_clo(span: &mut BasicBlockBuilder) {
+fn verify_clo(block_builder: &mut BasicBlockBuilder) {
     // [clo, n, ...]
     #[rustfmt::skip]
     let ops_group_1 = [
         Push(32u8.into()), Dup1, Neg, Add // [32 - clo, clo, n, ...]
     ];
-    span.push_ops(ops_group_1);
+    block_builder.push_ops(ops_group_1);
 
-    append_pow2_op(span); // [pow2(32 - clo), clo, n, ...]
+    append_pow2_op(block_builder); // [pow2(32 - clo), clo, n, ...]
 
     #[rustfmt::skip]
     let ops_group_2 = [
@@ -567,7 +571,7 @@ fn verify_clo(span: &mut BasicBlockBuilder) {
         Eq, Assert(0),
     ];
 
-    span.push_ops(ops_group_2);
+    block_builder.push_ops(ops_group_2);
 }
 
 /// Appends relevant operations to the span block for the correctness check of the `U32Ctz`
@@ -606,15 +610,15 @@ fn verify_clo(span: &mut BasicBlockBuilder) {
 /// `[ctz, n, ... ] -> [ctz, ... ]`
 ///
 /// VM cycles: 33
-fn verify_ctz(span: &mut BasicBlockBuilder) {
+fn verify_ctz(block_builder: &mut BasicBlockBuilder) {
     // [ctz, n, ...]
     #[rustfmt::skip]
     let ops_group_1 = [
         Swap, Dup1, // [ctz, n, ctz, ...]
     ];
-    span.push_ops(ops_group_1);
+    block_builder.push_ops(ops_group_1);
 
-    append_pow2_op(span); // [pow2(ctz), n, ctz, ...]
+    append_pow2_op(block_builder); // [pow2(ctz), n, ctz, ...]
 
     #[rustfmt::skip]
     let ops_group_2 = [
@@ -641,7 +645,7 @@ fn verify_ctz(span: &mut BasicBlockBuilder) {
         Eq, Assert(0), // [ctz, ...]
     ];
 
-    span.push_ops(ops_group_2);
+    block_builder.push_ops(ops_group_2);
 }
 
 /// Appends relevant operations to the span block for the correctness check of the `U32Cto`
@@ -680,15 +684,15 @@ fn verify_ctz(span: &mut BasicBlockBuilder) {
 /// `[cto, n, ... ] -> [cto, ... ]`
 ///
 /// VM cycles: 32
-fn verify_cto(span: &mut BasicBlockBuilder) {
+fn verify_cto(block_builder: &mut BasicBlockBuilder) {
     // [cto, n, ...]
     #[rustfmt::skip]
     let ops_group_1 = [
         Swap, Dup1, // [cto, n, cto, ...]
     ];
-    span.push_ops(ops_group_1);
+    block_builder.push_ops(ops_group_1);
 
-    append_pow2_op(span); // [pow2(cto), n, cto, ...]
+    append_pow2_op(block_builder); // [pow2(cto), n, cto, ...]
 
     #[rustfmt::skip]
     let ops_group_2 = [
@@ -715,7 +719,7 @@ fn verify_cto(span: &mut BasicBlockBuilder) {
         Eq, Assert(0), // [cto, ...]
     ];
 
-    span.push_ops(ops_group_2);
+    block_builder.push_ops(ops_group_2);
 }
 
 // COMPARISON OPERATIONS
@@ -726,8 +730,8 @@ fn verify_cto(span: &mut BasicBlockBuilder) {
 /// This operation takes:
 /// - 3 cycles without immediate value.
 /// - 4 cycles with immediate value.
-pub fn u32lt(span_builder: &mut BasicBlockBuilder) {
-    compute_lt(span_builder);
+pub fn u32lt(block_builder: &mut BasicBlockBuilder) {
+    compute_lt(block_builder);
 }
 
 /// Translates u32lte assembly instruction to VM operations.
@@ -735,13 +739,13 @@ pub fn u32lt(span_builder: &mut BasicBlockBuilder) {
 /// This operation takes:
 /// - 5 cycles without immediate value.
 /// - 6 cycles with immediate value.
-pub fn u32lte(span_builder: &mut BasicBlockBuilder) {
+pub fn u32lte(block_builder: &mut BasicBlockBuilder) {
     // Compute the lt with reversed number to get a gt check
-    span_builder.push_op(Swap);
-    compute_lt(span_builder);
+    block_builder.push_op(Swap);
+    compute_lt(block_builder);
 
     // Flip the final results to get the lte results.
-    span_builder.push_op(Not);
+    block_builder.push_op(Not);
 }
 
 /// Translates u32gt assembly instruction to VM operations.
@@ -749,11 +753,11 @@ pub fn u32lte(span_builder: &mut BasicBlockBuilder) {
 /// This operation takes:
 /// - 4 cycles without immediate value.
 /// - 5 cycles with immediate value.
-pub fn u32gt(span_builder: &mut BasicBlockBuilder) {
+pub fn u32gt(block_builder: &mut BasicBlockBuilder) {
     // Reverse the numbers so we can get a gt check.
-    span_builder.push_op(Swap);
+    block_builder.push_op(Swap);
 
-    compute_lt(span_builder);
+    compute_lt(block_builder);
 }
 
 /// Translates u32gte assembly instruction to VM operations.
@@ -761,11 +765,11 @@ pub fn u32gt(span_builder: &mut BasicBlockBuilder) {
 /// This operation takes:
 /// - 4 cycles without immediate value.
 /// - 5 cycles with immediate value.
-pub fn u32gte(span_builder: &mut BasicBlockBuilder) {
-    compute_lt(span_builder);
+pub fn u32gte(block_builder: &mut BasicBlockBuilder) {
+    compute_lt(block_builder);
 
     // Flip the final results to get the gte results.
-    span_builder.push_op(Not);
+    block_builder.push_op(Not);
 }
 
 /// Translates u32min assembly instruction to VM operations.
@@ -777,11 +781,11 @@ pub fn u32gte(span_builder: &mut BasicBlockBuilder) {
 /// This operation takes:
 /// - 8 cycles without immediate value.
 /// - 9 cycles with immediate value.
-pub fn u32min(span_builder: &mut BasicBlockBuilder) {
-    compute_max_and_min(span_builder);
+pub fn u32min(block_builder: &mut BasicBlockBuilder) {
+    compute_max_and_min(block_builder);
 
     // Drop the max and keep the min
-    span_builder.push_op(Drop);
+    block_builder.push_op(Drop);
 }
 
 /// Translates u32max assembly instruction to VM operations.
@@ -793,11 +797,11 @@ pub fn u32min(span_builder: &mut BasicBlockBuilder) {
 /// This operation takes:
 /// - 9 cycles without immediate value.
 /// - 10 cycles with immediate value.
-pub fn u32max(span_builder: &mut BasicBlockBuilder) {
-    compute_max_and_min(span_builder);
+pub fn u32max(block_builder: &mut BasicBlockBuilder) {
+    compute_max_and_min(block_builder);
 
     // Drop the min and keep the max
-    span_builder.push_ops([Swap, Drop]);
+    block_builder.push_ops([Swap, Drop]);
 }
 
 // COMPARISON OPERATIONS - HELPERS
@@ -805,8 +809,8 @@ pub fn u32max(span_builder: &mut BasicBlockBuilder) {
 
 /// Inserts the VM operations to check if the second element is less than
 /// the top element. This takes 3 cycles.
-fn compute_lt(span_builder: &mut BasicBlockBuilder) {
-    span_builder.push_ops([
+fn compute_lt(block_builder: &mut BasicBlockBuilder) {
+    block_builder.push_ops([
         U32sub, Swap, Drop, // Perform the operations
     ])
 }
@@ -814,12 +818,12 @@ fn compute_lt(span_builder: &mut BasicBlockBuilder) {
 /// Duplicate the top two elements in the stack and determine the min and max between them.
 ///
 /// The maximum number will be at the top of the stack and minimum will be at the 2nd index.
-fn compute_max_and_min(span_builder: &mut BasicBlockBuilder) {
+fn compute_max_and_min(block_builder: &mut BasicBlockBuilder) {
     // Copy top two elements of the stack.
-    span_builder.push_ops([Dup1, Dup1]);
+    block_builder.push_ops([Dup1, Dup1]);
 
     #[rustfmt::skip]
-    span_builder.push_ops([
+    block_builder.push_ops([
         U32sub, Swap, Drop,
 
         // Check the underflow flag, if it's zero
