@@ -1,8 +1,7 @@
 use alloc::vec::Vec;
 
-use miden_air::DeserializationError;
 use vm_core::crypto::hash::RpoDigest;
-use winter_utils::{ByteReader, ByteWriter, Deserializable, Serializable};
+use vm_core::utils::{ByteReader, ByteWriter, Deserializable, Serializable, DeserializationError};
 
 use super::{AdviceMap, Felt, InnerNodeInfo, InputError, MerkleStore};
 

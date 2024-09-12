@@ -3,9 +3,8 @@ use alloc::{
     vec::Vec,
 };
 
-use miden_air::DeserializationError;
 use vm_core::crypto::hash::RpoDigest;
-use winter_utils::{ByteReader, ByteWriter, Deserializable, Serializable};
+use vm_core::utils::{Serializable, Deserializable, ByteReader, ByteWriter, DeserializationError};
 
 use super::Felt;
 
@@ -17,7 +16,7 @@ use super::Felt;
 /// Each key maps to one or more field element. To access the elements, the VM can move the values
 /// associated with a given key onto the advice stack using `adv.push_mapval` instruction. The VM
 /// can also insert new values into the advice map during execution.
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct AdviceMap(BTreeMap<RpoDigest, Vec<Felt>>);
 
 impl AdviceMap {
