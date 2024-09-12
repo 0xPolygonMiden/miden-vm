@@ -3,8 +3,7 @@ use alloc::vec::Vec;
 use vm_core::{Felt, ZERO};
 
 use crate::{
-    trace::range::V_COL_IDX,
-    Assertion, EvaluationFrame, FieldElement, TransitionConstraintDegree,
+    trace::range::V_COL_IDX, Assertion, EvaluationFrame, FieldElement, TransitionConstraintDegree,
 };
 
 // CONSTANTS
@@ -21,15 +20,6 @@ pub const NUM_CONSTRAINTS: usize = 1;
 pub const CONSTRAINT_DEGREES: [usize; NUM_CONSTRAINTS] = [
     9, // Enforce values of column v transition.
 ];
-
-// --- Auxiliary column constraints for multiset checks -------------------------------------------
-
-/// The number of auxiliary assertions for multiset checks.
-pub const NUM_AUX_ASSERTIONS: usize = 2;
-/// The number of transition constraints required by multiset checks for the Range Checker.
-pub const NUM_AUX_CONSTRAINTS: usize = 1;
-/// The degrees of the Range Checker's auxiliary column constraints, used for multiset checks.
-pub const AUX_CONSTRAINT_DEGREES: [usize; NUM_AUX_CONSTRAINTS] = [9];
 
 // BOUNDARY CONSTRAINTS
 // ================================================================================================
@@ -78,18 +68,6 @@ pub fn enforce_constraints<E: FieldElement>(frame: &EvaluationFrame<E>, result: 
         * (frame.change(V_COL_IDX) - E::from(729_u16))
         * (frame.change(V_COL_IDX) - E::from(2187_u16));
 }
-
-// --- AUXILIARY COLUMNS (FOR MULTISET CHECKS) ----------------------------------------------------
-
-/// Returns the transition constraint degrees for the range checker's auxiliary columns, used for
-/// multiset checks.
-pub fn get_aux_transition_constraint_degrees() -> Vec<TransitionConstraintDegree> {
-    AUX_CONSTRAINT_DEGREES
-        .iter()
-        .map(|&degree| TransitionConstraintDegree::new(degree))
-        .collect()
-}
-
 
 // RANGE CHECKER FRAME EXTENSION TRAIT
 // ================================================================================================

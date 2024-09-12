@@ -9,8 +9,7 @@ use vm_core::{
 };
 
 use super::{
-    build_trace_from_ops_with_inputs, rand_array, AdviceInputs, Felt,
-    Operation, Word, ONE, ZERO,
+    build_trace_from_ops_with_inputs, rand_array, AdviceInputs, Felt, Operation, Word, ONE, ZERO,
 };
 use crate::StackInputs;
 

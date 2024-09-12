@@ -2,11 +2,8 @@ use alloc::{collections::BTreeMap, vec::Vec};
 
 use miden_air::RowIndex;
 
-use super::{Felt, FieldElement, RangeCheckTrace, ZERO};
+use super::{Felt, RangeCheckTrace, ZERO};
 use crate::utils::uninit_vector;
-
-mod aux_trace;
-pub use aux_trace::AuxTraceBuilder;
 
 #[cfg(test)]
 mod tests;
@@ -107,11 +104,7 @@ impl RangeChecker {
     /// # Panics
     /// Panics if `target_len` is not a power of two or is smaller than the trace length needed
     /// to represent all lookups in this range checker.
-    pub fn into_trace_with_table(
-        self,
-        trace_len: usize,
-        target_len: usize,
-    ) -> RangeCheckTrace {
+    pub fn into_trace_with_table(self, trace_len: usize, target_len: usize) -> RangeCheckTrace {
         assert!(target_len.is_power_of_two(), "target trace length is not a power of two");
 
         // determine the length of the trace required to support all the lookups in this range
@@ -144,14 +137,7 @@ impl RangeChecker {
         // the "current" row of the main trace but placed into the "next" row of the bus column.)
         write_trace_row(&mut trace, &mut i, 0, (u16::MAX).into());
 
-        RangeCheckTrace {
-            trace,
-            aux_builder: AuxTraceBuilder::new(
-                self.lookups.keys().cloned().collect(),
-                self.cycle_lookups,
-                num_padding_rows,
-            ),
-        }
+        RangeCheckTrace { trace }
     }
 
     // PUBLIC ACCESSORS

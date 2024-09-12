@@ -240,7 +240,7 @@ impl System {
     pub fn into_trace(mut self, trace_len: usize) -> SysTrace {
         let clk: usize = self.clk().into();
         // make sure that only the duplicate rows will be overwritten with random values
-        assert!(clk  <= trace_len, "target trace length too small");
+        assert!(clk <= trace_len, "target trace length too small");
 
         // complete the clk column by filling in all values after the last clock cycle. The values
         // in the clk column are equal to the index of the row in the trace table.

@@ -6,9 +6,8 @@ extern crate alloc;
 #[cfg(feature = "std")]
 extern crate std;
 
-use core::marker::PhantomData;
-
 use alloc::vec::Vec;
+use core::marker::PhantomData;
 
 use decoder::{DECODER_OP_BITS_OFFSET, DECODER_USER_OP_HELPERS_OFFSET};
 use vm_core::{
@@ -16,7 +15,8 @@ use vm_core::{
     ExtensionOf, ProgramInfo, StackInputs, StackOutputs, ONE, ZERO,
 };
 use winter_air::{
-    Air, AirContext, Assertion, EvaluationFrame, LogUpGkrEvaluator, LogUpGkrOracle, ProofOptions as WinterProofOptions, TraceInfo, TransitionConstraintDegree
+    Air, AirContext, Assertion, EvaluationFrame, LogUpGkrEvaluator, LogUpGkrOracle,
+    ProofOptions as WinterProofOptions, TraceInfo, TransitionConstraintDegree,
 };
 use winter_prover::matrix::ColMatrix;
 
@@ -26,7 +26,11 @@ use constraints::{chiplets, range};
 
 pub mod trace;
 pub use trace::rows::RowIndex;
-use trace::{chiplets::{MEMORY_D0_COL_IDX, MEMORY_D1_COL_IDX}, range::{M_COL_IDX, V_COL_IDX}, *};
+use trace::{
+    chiplets::{MEMORY_D0_COL_IDX, MEMORY_D1_COL_IDX},
+    range::{M_COL_IDX, V_COL_IDX},
+    *,
+};
 
 mod errors;
 mod options;
@@ -81,9 +85,6 @@ impl Air for ProcessorAir {
         let mut range_checker_degrees = range::get_transition_constraint_degrees();
         main_degrees.append(&mut range_checker_degrees);
 
-        let aux_degrees = range::get_aux_transition_constraint_degrees();
-        let aux_degrees = vec![];
-
         // --- chiplets (hasher, bitwise, memory) -------------------------
         let mut chiplets_degrees = chiplets::get_transition_constraint_degrees();
         main_degrees.append(&mut chiplets_degrees);
@@ -101,7 +102,7 @@ impl Air for ProcessorAir {
         let num_main_assertions = 2 + stack::NUM_ASSERTIONS + range::NUM_ASSERTIONS;
 
         // Define the number of boundary constraints for the auxiliary execution trace segment.
-        let num_aux_assertions = stack::NUM_AUX_ASSERTIONS + range::NUM_AUX_ASSERTIONS;
+        //let num_aux_assertions = stack::NUM_AUX_ASSERTIONS;
         let num_aux_assertions = 0;
 
         // Create the context and set the number of transition constraint exemptions to two; this
@@ -110,7 +111,7 @@ impl Air for ProcessorAir {
             trace_info,
             pub_inputs.clone(),
             main_degrees,
-            aux_degrees,
+            vec![],
             num_main_assertions,
             num_aux_assertions,
             options,
@@ -233,22 +234,15 @@ impl Air for ProcessorAir {
 
     fn evaluate_aux_transition<F, E>(
         &self,
-        main_frame: &EvaluationFrame<F>,
-        aux_frame: &EvaluationFrame<E>,
+        _main_frame: &EvaluationFrame<F>,
+        _aux_frame: &EvaluationFrame<E>,
         _periodic_values: &[F],
-        aux_rand_elements: &AuxRandElements<E>,
-        result: &mut [E],
+        _aux_rand_elements: &AuxRandElements<E>,
+        _result: &mut [E],
     ) where
         F: FieldElement<BaseField = Felt>,
         E: FieldElement<BaseField = Felt> + ExtensionOf<F>,
     {
-        //// --- range checker ----------------------------------------------------------------------
-        //range::enforce_aux_constraints::<F, E>(
-            //main_frame,
-            //aux_frame,
-            //aux_rand_elements.rand_elements(),
-            //result,
-        //);
     }
 
     fn context(&self) -> &AirContext<Felt, PublicInputs> {
@@ -256,11 +250,10 @@ impl Air for ProcessorAir {
     }
 
     fn get_logup_gkr_evaluator(
-            &self,
-        ) -> impl  LogUpGkrEvaluator<BaseField = Self::BaseField, PublicInputs = Self::PublicInputs> {
-
-            MidenLogUpGkrEval::new()
-        
+        &self,
+    ) -> impl LogUpGkrEvaluator<BaseField = Self::BaseField, PublicInputs = Self::PublicInputs>
+    {
+        MidenLogUpGkrEval::new()
     }
 }
 
@@ -322,7 +315,8 @@ impl Deserializable for PublicInputs {
     }
 }
 
-
+// LOGUP-GKR
+// ================================================================================================
 
 #[derive(Clone, Default)]
 pub struct MidenLogUpGkrEval<B: FieldElement + StarkField> {
@@ -332,7 +326,7 @@ pub struct MidenLogUpGkrEval<B: FieldElement + StarkField> {
 
 impl<B: FieldElement + StarkField> MidenLogUpGkrEval<B> {
     pub fn new() -> Self {
-        let oracles = (0..TRACE_WIDTH).map(|col_idx| LogUpGkrOracle::CurrentRow(col_idx)).collect();
+        let oracles = (0..TRACE_WIDTH).map(LogUpGkrOracle::CurrentRow).collect();
         Self { oracles, _field: PhantomData }
     }
 }
@@ -378,7 +372,7 @@ impl LogUpGkrEvaluator for MidenLogUpGkrEval<Felt> {
     {
         assert_eq!(numerator.len(), 8);
         assert_eq!(denominator.len(), 8);
-        assert_eq!(query.len(), 70);
+        assert_eq!(query.len(), TRACE_WIDTH);
 
         // numerators
         let multiplicity = query[M_COL_IDX];
@@ -416,13 +410,13 @@ impl LogUpGkrEvaluator for MidenLogUpGkrEval<Felt> {
         let stack_value_denom_2 = -(alpha - E::from(query[DECODER_USER_OP_HELPERS_OFFSET + 2]));
         let stack_value_denom_3 = -(alpha - E::from(query[DECODER_USER_OP_HELPERS_OFFSET + 3]));
 
-        denominator[0] = E::from(table_denom);
-        denominator[1] = E::from(memory_denom_0);
-        denominator[2] = E::from(memory_denom_1);
-        denominator[3] = E::from(stack_value_denom_0);
-        denominator[4] = E::from(stack_value_denom_1);
-        denominator[5] = E::from(stack_value_denom_2);
-        denominator[6] = E::from(stack_value_denom_3);
+        denominator[0] = table_denom;
+        denominator[1] = memory_denom_0;
+        denominator[2] = memory_denom_1;
+        denominator[3] = stack_value_denom_0;
+        denominator[4] = stack_value_denom_1;
+        denominator[5] = stack_value_denom_2;
+        denominator[6] = stack_value_denom_3;
         denominator[7] = E::ONE;
     }
 

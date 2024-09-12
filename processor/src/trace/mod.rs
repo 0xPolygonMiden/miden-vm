@@ -12,7 +12,6 @@ use winter_prover::{EvaluationFrame, Trace, TraceInfo};
 use super::{
     chiplets::AuxTraceBuilder as ChipletsAuxTraceBuilder,
     decoder::AuxTraceBuilder as DecoderAuxTraceBuilder,
-    range::AuxTraceBuilder as RangeCheckerAuxTraceBuilder,
     stack::AuxTraceBuilder as StackAuxTraceBuilder, ColMatrix, Digest, Felt, FieldElement, Host,
     Process, StackTopState,
 };
@@ -29,7 +28,6 @@ mod tests;
 pub struct AuxTraceBuilders {
     pub(crate) decoder: DecoderAuxTraceBuilder,
     pub(crate) stack: StackAuxTraceBuilder,
-    pub(crate) range: RangeCheckerAuxTraceBuilder,
     pub(crate) chiplets: ChipletsAuxTraceBuilder,
 }
 
@@ -294,14 +292,13 @@ where
         .chain(chiplets_trace.trace)
         .collect::<Vec<_>>();
 
-    let aux_trace_hints = AuxTraceBuilders {
+    let aux_trace_builders = AuxTraceBuilders {
         decoder: decoder_trace.aux_builder,
         stack: stack_trace.aux_builder,
-        range: range_check_trace.aux_builder,
         chiplets: chiplets_trace.aux_builder,
     };
 
     let main_trace = MainTrace::new(ColMatrix::new(trace), clk);
 
-    (main_trace, aux_trace_hints, trace_len_summary)
+    (main_trace, aux_trace_builders, trace_len_summary)
 }
