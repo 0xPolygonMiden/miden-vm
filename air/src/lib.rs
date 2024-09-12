@@ -84,7 +84,6 @@ impl Air for ProcessorAir {
 
         let aux_degrees = range::get_aux_transition_constraint_degrees();
         let aux_degrees = vec![];
-        println!("aux degree {:?}", aux_degrees);
 
         // --- chiplets (hasher, bitwise, memory) -------------------------
         let mut chiplets_degrees = chiplets::get_transition_constraint_degrees();
