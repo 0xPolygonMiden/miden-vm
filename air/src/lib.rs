@@ -7,7 +7,6 @@ extern crate alloc;
 extern crate std;
 
 use core::marker::PhantomData;
-use std::println;
 
 use alloc::vec::Vec;
 
@@ -181,9 +180,6 @@ impl Air for ProcessorAir {
             self.stack_inputs.values(),
         );
 
-        // Add initial assertions for the range checker's auxiliary columns.
-        range::get_aux_assertions_first_step::<E>(&mut result);
-
         // --- set assertions for the last step ---------------------------------------------------
         let last_step = self.last_step();
 
@@ -194,9 +190,6 @@ impl Air for ProcessorAir {
             &self.stack_outputs,
             last_step,
         );
-
-        // Add the range checker's auxiliary column assertions for the last step.
-        range::get_aux_assertions_last_step::<E>(&mut result, last_step);
 
         //result
         vec![]

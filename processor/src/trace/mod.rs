@@ -29,7 +29,7 @@ use super::EMPTY_WORD;
 // ================================================================================================
 
 /// Number of rows at the end of an execution trace which are injected with random values.
-pub const NUM_RAND_ROWS: usize = 1;
+pub const NUM_RAND_ROWS: usize = 0;
 
 // VM EXECUTION TRACE
 // ================================================================================================
@@ -210,10 +210,6 @@ impl ExecutionTrace {
         let stack_aux_columns =
             self.aux_trace_builders.stack.build_aux_columns(&self.main_trace, rand_elements);
 
-        // add the range checker's running product columns
-        let range_aux_columns =
-            self.aux_trace_builders.range.build_aux_columns(&self.main_trace, rand_elements);
-
         // add the running product columns for the chiplets
         let chiplets = self
             .aux_trace_builders
@@ -224,7 +220,6 @@ impl ExecutionTrace {
         let mut aux_columns = decoder_aux_columns
             .into_iter()
             .chain(stack_aux_columns)
-            .chain(range_aux_columns)
             .chain(chiplets)
             .collect::<Vec<_>>();
 
@@ -233,6 +228,7 @@ impl ExecutionTrace {
         for i in self.length() - NUM_RAND_ROWS..self.length() {
             for column in aux_columns.iter_mut() {
                 //column[i] = rng.draw().expect("failed to draw a random value");
+                column[i] = E::ZERO;
             }
         }
 
@@ -334,6 +330,7 @@ where
     for i in trace_len - NUM_RAND_ROWS..trace_len {
         for column in trace.iter_mut() {
             //column[i] = rng.draw().expect("failed to draw a random value");
+            column[i] = Felt::ZERO;
         }
     }
 
