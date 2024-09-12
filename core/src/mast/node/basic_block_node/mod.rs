@@ -3,7 +3,6 @@ use core::{fmt, mem};
 
 use miden_crypto::{hash::rpo::RpoDigest, Felt, ZERO};
 use miden_formatting::prettier::PrettyPrint;
-use winter_utils::flatten_slice_elements;
 
 use crate::{
     chiplets::hasher,
@@ -112,7 +111,7 @@ impl BasicBlockNode {
         digest: RpoDigest,
     ) -> Self {
         assert!(!operations.is_empty());
-        let (op_batches, _) = batch_ops(operations);
+        let op_batches = batch_ops(operations);
         Self { op_batches, digest, decorators }
     }
 
@@ -380,22 +379,20 @@ impl<'a> Iterator for OperationOrDecoratorIterator<'a> {
 /// Groups the provided operations into batches and computes the hash of the block.
 fn batch_and_hash_ops(ops: Vec<Operation>) -> (Vec<OpBatch>, RpoDigest) {
     // Group the operations into batches.
-    let (batches, batch_groups) = batch_ops(ops);
+    let batches = batch_ops(ops);
 
     // Compute the hash of all operation groups.
-    let op_groups = &flatten_slice_elements(&batch_groups);
-    let hash = hasher::hash_elements(op_groups);
+    let op_groups: Vec<Felt> = batches.iter().flat_map(|batch| batch.groups).collect();
+    let hash = hasher::hash_elements(&op_groups);
 
     (batches, hash)
 }
 
-/// Groups the provided operations into batches as described in the docs for this module (i.e.,
-/// up to 9 operations per group, and 8 groups per batch).
-/// Returns a list of operation batches and a list of operation groups.
-fn batch_ops(ops: Vec<Operation>) -> (Vec<OpBatch>, Vec<[Felt; BATCH_SIZE]>) {
+/// Groups the provided operations into batches as described in the docs for this module (i.e., up
+/// to 9 operations per group, and 8 groups per batch).
+fn batch_ops(ops: Vec<Operation>) -> Vec<OpBatch> {
     let mut batches = Vec::<OpBatch>::new();
     let mut batch_acc = OpBatchAccumulator::new();
-    let mut batch_groups = Vec::<[Felt; BATCH_SIZE]>::new();
 
     for op in ops {
         // If the operation cannot be accepted into the current accumulator, add the contents of
@@ -404,7 +401,6 @@ fn batch_ops(ops: Vec<Operation>) -> (Vec<OpBatch>, Vec<[Felt; BATCH_SIZE]>) {
             let batch = batch_acc.into_batch();
             batch_acc = OpBatchAccumulator::new();
 
-            batch_groups.push(*batch.groups());
             batches.push(batch);
         }
 
@@ -415,10 +411,10 @@ fn batch_ops(ops: Vec<Operation>) -> (Vec<OpBatch>, Vec<[Felt; BATCH_SIZE]>) {
     // Make sure we finished processing the last batch.
     if !batch_acc.is_empty() {
         let batch = batch_acc.into_batch();
-        batch_groups.push(*batch.groups());
         batches.push(batch);
     }
-    (batches, batch_groups)
+
+    batches
 }
 
 /// Checks if a given decorators list is valid (only checked in debug mode)
