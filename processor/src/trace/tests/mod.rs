@@ -5,7 +5,6 @@ use vm_core::{mast::MastForest, Kernel, Operation, Program, StackOutputs, Word, 
 
 use super::{
     super::chiplets::init_state_from_words, ExecutionTrace, Felt, FieldElement, Process, 
-    NUM_RAND_ROWS,
 };
 use crate::{AdviceInputs, DefaultHost, ExecutionOptions, MemAdviceProvider, StackInputs};
 

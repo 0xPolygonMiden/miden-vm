@@ -23,12 +23,6 @@ pub use utils::{AuxColumnBuilder, ChipletsLengths, TraceFragment, TraceLenSummar
 #[cfg(test)]
 mod tests;
 
-// CONSTANTS
-// ================================================================================================
-
-/// Number of rows at the end of an execution trace which are injected with random values.
-pub const NUM_RAND_ROWS: usize = 0;
-
 // VM EXECUTION TRACE
 // ================================================================================================
 
@@ -157,7 +151,7 @@ impl ExecutionTrace {
 
     /// Returns the index of the last row in the trace.
     fn last_step(&self) -> usize {
-        self.length() - NUM_RAND_ROWS - 1
+        self.length() - 1
     }
 
     // TEST HELPERS
@@ -273,7 +267,7 @@ where
 
     // Pad the trace length to the next power of two and ensure that there is space for the
     // Rows to hold random values
-    let trace_len = (max_len + NUM_RAND_ROWS).next_power_of_two();
+    let trace_len = max_len.next_power_of_two();
     assert!(
         trace_len >= MIN_TRACE_LEN,
         "trace length must be at least {MIN_TRACE_LEN}, but was {trace_len}",
@@ -284,15 +278,15 @@ where
         TraceLenSummary::new(clk.into(), range_table_len, ChipletsLengths::new(&chiplets));
 
     // Combine all trace segments into the main trace
-    let system_trace = system.into_trace(trace_len, NUM_RAND_ROWS);
-    let decoder_trace = decoder.into_trace(trace_len, NUM_RAND_ROWS);
-    let stack_trace = stack.into_trace(trace_len, NUM_RAND_ROWS);
-    let chiplets_trace = chiplets.into_trace(trace_len, NUM_RAND_ROWS);
+    let system_trace = system.into_trace(trace_len);
+    let decoder_trace = decoder.into_trace(trace_len);
+    let stack_trace = stack.into_trace(trace_len);
+    let chiplets_trace = chiplets.into_trace(trace_len);
 
     // Combine the range trace segment using the support lookup table
-    let range_check_trace = range.into_trace_with_table(range_table_len, trace_len, NUM_RAND_ROWS);
+    let range_check_trace = range.into_trace_with_table(range_table_len, trace_len);
 
-    let mut trace = system_trace
+    let trace = system_trace
         .into_iter()
         .chain(decoder_trace.trace)
         .chain(stack_trace.trace)

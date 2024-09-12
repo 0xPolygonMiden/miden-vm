@@ -8,7 +8,7 @@ use miden_air::{
     RowIndex,
 };
 
-use super::{uninit_vector, Felt, FieldElement, NUM_RAND_ROWS};
+use super::{uninit_vector, Felt, FieldElement};
 
 // AUXILIARY TRACE BUILDER
 // ================================================================================================
@@ -114,7 +114,7 @@ impl AuxTraceBuilder {
             .iter()
             .zip(main_trace.get_column(V_COL_IDX).iter())
             .enumerate()
-            .take(main_trace.num_rows() - NUM_RAND_ROWS)
+            .take(main_trace.num_rows())
             .skip(self.values_start)
         {
             b_range_idx = row_idx + 1;
