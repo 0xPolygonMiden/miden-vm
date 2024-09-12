@@ -66,10 +66,9 @@ impl Extend<(RpoDigest, Vec<Felt>)> for AdviceMap {
 
 impl Serializable for AdviceMap {
     fn write_into<W: ByteWriter>(&self, target: &mut W) {
-        target.write_u32(self.0.len() as u32);
+        target.write_usize(self.0.len());
         for (key, values) in self.0.iter() {
-            key.write_into(target);
-            values.write_into(target);
+            target.write((key, values));
         }
     }
 }
@@ -77,10 +76,9 @@ impl Serializable for AdviceMap {
 impl Deserializable for AdviceMap {
     fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
         let mut map = BTreeMap::new();
-        let count = source.read_u32()?;
+        let count = source.read_usize()?;
         for _ in 0..count {
-            let key = RpoDigest::read_from(source)?;
-            let values = Vec::<Felt>::read_from(source)?;
+            let (key, values) = source.read()?;
             map.insert(key, values);
         }
         Ok(Self(map))
