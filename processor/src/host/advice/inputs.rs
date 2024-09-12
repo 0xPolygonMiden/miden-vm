@@ -171,7 +171,7 @@ pub struct AdviceInputs {
 mod tests {
     use winter_utils::{Deserializable, Serializable};
 
-    use crate::{host::advice, AdviceInputs};
+    use crate::AdviceInputs;
 
     #[test]
     fn test_advice_inputs_eq() {
