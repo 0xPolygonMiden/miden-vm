@@ -7,10 +7,10 @@ use miden_air::trace::{
     STACK_TRACE_OFFSET, TRACE_WIDTH,
 };
 use vm_core::{stack::STACK_TOP_SIZE, ProgramInfo, StackOutputs, ZERO};
-use winter_prover::{crypto::RandomCoin, EvaluationFrame, Trace, TraceInfo};
+use winter_prover::{EvaluationFrame, Trace, TraceInfo};
 
 use super::{
-    chiplets::AuxTraceBuilder as ChipletsAuxTraceBuilder, crypto::RpoRandomCoin,
+    chiplets::AuxTraceBuilder as ChipletsAuxTraceBuilder,
     decoder::AuxTraceBuilder as DecoderAuxTraceBuilder,
     range::AuxTraceBuilder as RangeCheckerAuxTraceBuilder,
     stack::AuxTraceBuilder as StackAuxTraceBuilder, ColMatrix, Digest, Felt, FieldElement, Host,
@@ -22,8 +22,6 @@ pub use utils::{AuxColumnBuilder, ChipletsLengths, TraceFragment, TraceLenSummar
 
 #[cfg(test)]
 mod tests;
-#[cfg(test)]
-use super::EMPTY_WORD;
 
 // CONSTANTS
 // ================================================================================================
@@ -59,12 +57,6 @@ pub struct ExecutionTrace {
 }
 
 impl ExecutionTrace {
-    // CONSTANTS
-    // --------------------------------------------------------------------------------------------
-
-    /// Number of rows at the end of an execution trace which are injected with random values.
-    pub const NUM_RAND_ROWS: usize = NUM_RAND_ROWS;
-
     // CONSTRUCTOR
     // --------------------------------------------------------------------------------------------
     /// Builds an execution trace for the provided process.
@@ -72,17 +64,12 @@ impl ExecutionTrace {
     where
         H: Host,
     {
-        // use program hash to initialize random element generator; this generator will be used
-        // to inject random values at the end of the trace; using program hash here is OK because
-        // we are using random values only to stabilize constraint degrees, and not to achieve
-        // perfect zero knowledge.
         let program_hash = process.decoder.program_hash();
-        let rng = RpoRandomCoin::new(program_hash);
 
         // create a new program info instance with the underlying kernel
         let kernel = process.kernel().clone();
         let program_info = ProgramInfo::new(program_hash.into(), kernel);
-        let (main_trace, aux_trace_builders, trace_len_summary) = finalize_trace(process, rng);
+        let (main_trace, aux_trace_builders, trace_len_summary) = finalize_trace(process);
         let trace_info = TraceInfo::new_multi_segment(
             TRACE_WIDTH,
             AUX_TRACE_WIDTH,
@@ -192,8 +179,7 @@ impl ExecutionTrace {
     where
         H: Host,
     {
-        let rng = RpoRandomCoin::new(EMPTY_WORD);
-        finalize_trace(process, rng)
+        finalize_trace(process)
     }
 
     pub fn build_aux_trace<E>(&self, rand_elements: &[E]) -> Option<ColMatrix<E>>
@@ -217,20 +203,11 @@ impl ExecutionTrace {
             .build_aux_columns(&self.main_trace, rand_elements);
 
         // combine all auxiliary columns into a single vector
-        let mut aux_columns = decoder_aux_columns
+        let aux_columns = decoder_aux_columns
             .into_iter()
             .chain(stack_aux_columns)
             .chain(chiplets)
             .collect::<Vec<_>>();
-
-        // inject random values into the last rows of the trace
-        let mut rng = RpoRandomCoin::new(self.program_hash().into());
-        for i in self.length() - NUM_RAND_ROWS..self.length() {
-            for column in aux_columns.iter_mut() {
-                //column[i] = rng.draw().expect("failed to draw a random value");
-                column[i] = E::ZERO;
-            }
-        }
 
         Some(ColMatrix::new(aux_columns))
     }
@@ -272,10 +249,7 @@ impl Trace for ExecutionTrace {
 /// - Inserting random values in the last row of all columns. This helps ensure that there are no
 ///   repeating patterns in each column and each column contains a least two distinct values. This,
 ///   in turn, ensures that polynomial degrees of all columns are stable.
-fn finalize_trace<H>(
-    process: Process<H>,
-    mut rng: RpoRandomCoin,
-) -> (MainTrace, AuxTraceBuilders, TraceLenSummary)
+fn finalize_trace<H>(process: Process<H>) -> (MainTrace, AuxTraceBuilders, TraceLenSummary)
 where
     H: Host,
 {
@@ -325,14 +299,6 @@ where
         .chain(range_check_trace.trace)
         .chain(chiplets_trace.trace)
         .collect::<Vec<_>>();
-
-    // Inject random values into the last rows of the trace
-    for i in trace_len - NUM_RAND_ROWS..trace_len {
-        for column in trace.iter_mut() {
-            //column[i] = rng.draw().expect("failed to draw a random value");
-            column[i] = Felt::ZERO;
-        }
-    }
 
     let aux_trace_hints = AuxTraceBuilders {
         decoder: decoder_trace.aux_builder,
