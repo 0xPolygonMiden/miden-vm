@@ -1,7 +1,9 @@
 use alloc::vec::Vec;
 
-use vm_core::crypto::hash::RpoDigest;
-use vm_core::utils::{ByteReader, ByteWriter, Deserializable, Serializable, DeserializationError};
+use vm_core::{
+    crypto::hash::RpoDigest,
+    utils::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable},
+};
 
 use super::{AdviceMap, Felt, InnerNodeInfo, InputError, MerkleStore};
 
@@ -160,4 +162,36 @@ pub struct AdviceInputs {
     pub stack: Vec<Felt>,
     pub map: AdviceMap,
     pub store: MerkleStore,
+}
+
+// TESTS
+// ================================================================================================
+
+#[cfg(test)]
+mod tests {
+    use winter_utils::{Deserializable, Serializable};
+
+    use crate::{host::advice, AdviceInputs};
+
+    #[test]
+    fn test_advice_inputs_eq() {
+        let advice1 = AdviceInputs::default();
+        let advice2 = AdviceInputs::default();
+
+        assert_eq!(advice1, advice2);
+
+        let advice1 = AdviceInputs::default().with_stack_values([1, 2, 3].iter().copied()).unwrap();
+        let advice2 = AdviceInputs::default().with_stack_values([1, 2, 3].iter().copied()).unwrap();
+
+        assert_eq!(advice1, advice2);
+    }
+
+    #[test]
+    fn test_advice_inputs_serialization() {
+        let advice1 = AdviceInputs::default().with_stack_values([1, 2, 3].iter().copied()).unwrap();
+        let bytes = advice1.to_bytes();
+        let advice2 = AdviceInputs::read_from_bytes(&bytes).unwrap();
+
+        assert_eq!(advice1, advice2);
+    }
 }

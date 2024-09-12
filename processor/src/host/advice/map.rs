@@ -3,8 +3,10 @@ use alloc::{
     vec::Vec,
 };
 
-use vm_core::crypto::hash::RpoDigest;
-use vm_core::utils::{Serializable, Deserializable, ByteReader, ByteWriter, DeserializationError};
+use vm_core::{
+    crypto::hash::RpoDigest,
+    utils::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable},
+};
 
 use super::Felt;
 
@@ -82,5 +84,22 @@ impl Deserializable for AdviceMap {
             map.insert(key, values);
         }
         Ok(Self(map))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_advice_map_serialization() {
+        let mut map1 = AdviceMap::new();
+        map1.insert(RpoDigest::default(), vec![Felt::from(1u32), Felt::from(2u32)]);
+
+        let bytes = map1.to_bytes();
+
+        let map2 = AdviceMap::read_from_bytes(&bytes).unwrap();
+
+        assert_eq!(map1, map2);
     }
 }
