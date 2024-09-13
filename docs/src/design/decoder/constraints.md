@@ -610,8 +610,8 @@ p_3' \cdot (f_{dg} \cdot u + 1 - f_{dg}) = p_3 \cdot (f_{g2} \cdot v_1 + f_{g4} 
 $$
 
 The above constraint specifies that:
-* When `SPAN` or `RESPAN` operations are executed, we add between $1$ and $7$ groups to the op group table.
-* When group count is decremented inside a *span* block, we remove a group from the op group table.
+* When `SPAN` or `RESPAN` operations are executed, we add between $1$ and $7$ groups to the op group table; else, leave $p3$ untouched.
+* When group count is decremented inside a *span* block, we remove a group from the op group table; else, leave $p3'$ untouched.
 
 The degree of this constraint is $9$.
 
