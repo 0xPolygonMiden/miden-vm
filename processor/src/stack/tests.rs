@@ -6,9 +6,7 @@ use miden_air::trace::{
 };
 use vm_core::FieldElement;
 
-use super::{
-    super::StackTopState, Felt, OverflowTableRow, Stack, StackInputs, MIN_STACK_DEPTH, ONE, ZERO,
-};
+use super::{Felt, OverflowTableRow, Stack, StackInputs, MIN_STACK_DEPTH, ONE, ZERO};
 
 // TYPE ALIASES
 // ================================================================================================
@@ -396,7 +394,7 @@ fn generate_trace() {
 
 /// Builds a [StackTopState] that starts with the provided stack inputs and is padded with zeros
 /// until the minimum stack depth.
-fn build_stack(stack_inputs: &[u64]) -> StackTopState {
+fn build_stack(stack_inputs: &[u64]) -> [Felt; MIN_STACK_DEPTH] {
     let mut result = [ZERO; MIN_STACK_DEPTH];
     for (idx, &input) in stack_inputs.iter().enumerate() {
         result[idx] = Felt::new(input);
@@ -426,7 +424,7 @@ fn build_helpers_partial(num_overflow: usize, next_overflow_addr: usize) -> Stac
 }
 
 /// Returns values in stack top columns of the provided trace at the specified row.
-fn read_stack_top(trace: &[Vec<Felt>; STACK_TRACE_WIDTH], row: usize) -> StackTopState {
+fn read_stack_top(trace: &[Vec<Felt>; STACK_TRACE_WIDTH], row: usize) -> [Felt; MIN_STACK_DEPTH] {
     let mut result = [ZERO; MIN_STACK_DEPTH];
     for (value, column) in result.iter_mut().zip(trace) {
         *value = column[row];

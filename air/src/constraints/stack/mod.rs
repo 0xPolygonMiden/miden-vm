@@ -225,7 +225,7 @@ pub fn get_assertions_last_step(
     stack_outputs: &StackOutputs,
 ) {
     // stack columns at the last step should be set to stack outputs, excluding overflow outputs
-    for (i, value) in stack_outputs.elements().iter().enumerate() {
+    for (i, value) in stack_outputs.iter().enumerate() {
         result.push(Assertion::single(STACK_TRACE_OFFSET + i, step, *value));
     }
 }

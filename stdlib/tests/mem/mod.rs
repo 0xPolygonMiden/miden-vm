@@ -1,6 +1,6 @@
 use processor::{ContextId, DefaultHost, ProcessState, Program};
 use test_utils::{
-    build_expected_hash, build_expected_perm, stack_to_ints, ExecutionOptions, Process,
+    build_expected_hash, build_expected_perm, felt_vec_to_ints, ExecutionOptions, Process,
     StackInputs, ONE, ZERO,
 };
 
@@ -117,7 +117,7 @@ fn test_pipe_double_words_to_memory() {
     let operand_stack = &[];
     let data = &[1, 2, 3, 4, 5, 6, 7, 8];
     let mut expected_stack =
-        stack_to_ints(&build_expected_perm(&[0, 0, 0, 0, 1, 2, 3, 4, 5, 6, 7, 8]));
+        felt_vec_to_ints(&build_expected_perm(&[0, 0, 0, 0, 1, 2, 3, 4, 5, 6, 7, 8]));
     expected_stack.push(1002);
     build_test!(source, operand_stack, &data).expect_stack_and_memory(
         &expected_stack,
@@ -144,7 +144,7 @@ fn test_pipe_words_to_memory() {
 
     let operand_stack = &[];
     let data = &[1, 2, 3, 4];
-    let mut expected_stack = stack_to_ints(&build_expected_hash(data));
+    let mut expected_stack = felt_vec_to_ints(&build_expected_hash(data));
     expected_stack.push(1001);
     build_test!(one_word, operand_stack, &data).expect_stack_and_memory(
         &expected_stack,
@@ -167,7 +167,7 @@ fn test_pipe_words_to_memory() {
 
     let operand_stack = &[];
     let data = &[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
-    let mut expected_stack = stack_to_ints(&build_expected_hash(data));
+    let mut expected_stack = felt_vec_to_ints(&build_expected_hash(data));
     expected_stack.push(1003);
     build_test!(three_words, operand_stack, &data).expect_stack_and_memory(
         &expected_stack,
@@ -195,7 +195,7 @@ fn test_pipe_preimage_to_memory() {
 
     let operand_stack = &[];
     let data = &[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
-    let mut advice_stack = stack_to_ints(&build_expected_hash(data));
+    let mut advice_stack = felt_vec_to_ints(&build_expected_hash(data));
     advice_stack.reverse();
     advice_stack.extend(data);
     build_test!(three_words, operand_stack, &advice_stack).expect_stack_and_memory(
@@ -221,7 +221,7 @@ fn test_pipe_preimage_to_memory_invalid_preimage() {
 
     let operand_stack = &[];
     let data = &[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
-    let mut advice_stack = stack_to_ints(&build_expected_hash(data));
+    let mut advice_stack = felt_vec_to_ints(&build_expected_hash(data));
     advice_stack.reverse();
     advice_stack[0] += 1; // corrupt the expected hash
     advice_stack.extend(data);

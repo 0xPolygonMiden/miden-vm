@@ -3,7 +3,7 @@ use test_utils::{
         init_merkle_leaf, init_merkle_leaves, MerkleError, MerkleStore, MerkleTree, Mmr, NodeIndex,
         RpoDigest,
     },
-    hash_elements, stack_to_ints, Felt, StarkField, Word, EMPTY_WORD, ONE, ZERO,
+    felt_vec_to_ints, hash_elements, Felt, StarkField, Word, EMPTY_WORD, ONE, ZERO,
 };
 
 // TESTS
@@ -259,7 +259,7 @@ fn test_mmr_unpack() {
     let hash = hash_elements(&hash_data.concat());
 
     // Set up the VM stack with the MMR hash, and its target address
-    let mut stack = stack_to_ints(&*hash);
+    let mut stack = felt_vec_to_ints(&*hash);
     let mmr_ptr = 1000_u32;
     stack.insert(0, mmr_ptr as u64);
 
@@ -321,7 +321,7 @@ fn test_mmr_unpack_invalid_hash() {
     let hash = hash_elements(&hash_data.concat());
 
     // Set up the VM stack with the MMR hash, and its target address
-    let mut stack = stack_to_ints(&*hash);
+    let mut stack = felt_vec_to_ints(&*hash);
     let mmr_ptr = 1000;
     stack.insert(0, mmr_ptr);
 
@@ -383,7 +383,7 @@ fn test_mmr_unpack_large_mmr() {
     let hash = hash_elements(&hash_data.concat());
 
     // Set up the VM stack with the MMR hash, and its target address
-    let mut stack = stack_to_ints(&*hash);
+    let mut stack = felt_vec_to_ints(&*hash);
     let mmr_ptr = 1000_u32;
     stack.insert(0, mmr_ptr as u64);
 
@@ -443,7 +443,7 @@ fn test_mmr_pack_roundtrip() {
     let hash = accumulator.hash_peaks();
 
     // Set up the VM stack with the MMR hash, and its target address
-    let mut stack = stack_to_ints(hash.as_elements());
+    let mut stack = felt_vec_to_ints(&*hash);
     let mmr_ptr = 1000;
     stack.insert(0, mmr_ptr); // first value is used by unpack, to load data to memory
     stack.insert(0, mmr_ptr); // second is used by pack, to load data from memory
@@ -526,7 +526,7 @@ fn test_mmr_pack() {
 
     let host = process.host.borrow_mut();
     let advice_data = host.advice_provider().map().get(&hash_u8).unwrap();
-    assert_eq!(stack_to_ints(advice_data), stack_to_ints(&expect_data));
+    assert_eq!(advice_data, &expect_data);
 }
 
 #[test]
@@ -648,7 +648,7 @@ fn test_mmr_large_add_roundtrip() {
     let hash = old_accumulator.hash_peaks();
 
     // Set up the VM stack with the MMR hash, and its target address
-    let mut stack = stack_to_ints(hash.as_elements());
+    let mut stack = felt_vec_to_ints(&*hash);
     stack.insert(0, mmr_ptr as u64);
 
     // both the advice stack and merkle store start empty (data is available in

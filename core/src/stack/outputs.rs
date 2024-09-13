@@ -1,10 +1,9 @@
 use alloc::vec::Vec;
+use core::ops::Deref;
 
 use miden_crypto::{Word, ZERO};
 
-use super::{
-    get_stack_values_num, ByteWriter, Felt, OutputError, Serializable, ToElements, MIN_STACK_DEPTH,
-};
+use super::{get_num_stack_values, ByteWriter, Felt, OutputError, Serializable, MIN_STACK_DEPTH};
 use crate::utils::{range, ByteReader, Deserializable, DeserializationError};
 
 // STACK OUTPUTS
@@ -84,11 +83,6 @@ impl StackOutputs {
         Some(word_elements)
     }
 
-    /// Returns the stack outputs, which is state of the stack at the end of execution.
-    pub fn elements(&self) -> &[Felt] {
-        &self.elements
-    }
-
     /// Returns the number of requested stack outputs or returns the full stack if fewer than the
     /// requested number of stack values exist.
     pub fn stack_truncated(&self, num_outputs: usize) -> &[Felt] {
@@ -100,19 +94,27 @@ impl StackOutputs {
     // --------------------------------------------------------------------------------------------
 
     /// Returns mutable access to the stack outputs, to be used for testing or running examples.
-    /// TODO: this should be marked with #[cfg(test)] attribute, but that currently won't work with
-    /// the integration test handler util.
     pub fn stack_mut(&mut self) -> &mut [Felt] {
         &mut self.elements
     }
+
+    /// Converts the [`StackOutputs`] into the vector of `u64` values.
+    pub fn as_int_vec(&self) -> Vec<u64> {
+        self.elements.iter().map(|e| (*e).as_int()).collect()
+    }
 }
 
-// HELPER FUNCTIONS
-// ================================================================================================
+impl Deref for StackOutputs {
+    type Target = [Felt; 16];
 
-impl ToElements<Felt> for StackOutputs {
-    fn to_elements(&self) -> Vec<Felt> {
-        self.elements.to_vec()
+    fn deref(&self) -> &Self::Target {
+        &self.elements
+    }
+}
+
+impl From<[Felt; MIN_STACK_DEPTH]> for StackOutputs {
+    fn from(value: [Felt; MIN_STACK_DEPTH]) -> Self {
+        Self { elements: value }
     }
 }
 
@@ -121,16 +123,24 @@ impl ToElements<Felt> for StackOutputs {
 
 impl Serializable for StackOutputs {
     fn write_into<W: ByteWriter>(&self, target: &mut W) {
-        target.write_u8(get_stack_values_num(self.elements()));
+        target.write_u8(get_num_stack_values(self));
         target.write_many(self.elements);
     }
 }
 
 impl Deserializable for StackOutputs {
     fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
-        let elements_num = source.read_u8()?;
-        let mut elements = source.read_many::<Felt>(elements_num.into())?;
+        let num_elements = source.read_u8()?;
 
+        // check that `num_elements` is valid
+        if num_elements > MIN_STACK_DEPTH as u8 {
+            return Err(DeserializationError::InvalidValue(format!(
+                "number of stack elements should not be greater than {}, but {} was found",
+                MIN_STACK_DEPTH, num_elements
+            )));
+        }
+
+        let mut elements = source.read_many::<Felt>(num_elements.into())?;
         elements.resize(MIN_STACK_DEPTH, ZERO);
 
         Ok(Self { elements: elements.try_into().unwrap() })

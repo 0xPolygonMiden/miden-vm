@@ -26,11 +26,6 @@ impl AuxTraceBuilder {
 }
 
 impl<E: FieldElement<BaseField = Felt>> AuxColumnBuilder<E> for AuxTraceBuilder {
-    /// Initializes the overflow stack auxiliary column.
-    fn init_responses(&self, _main_trace: &MainTrace, _alphas: &[E]) -> E {
-        E::ONE
-    }
-
     /// Removes a row from the stack overflow table.
     fn get_requests_at(&self, main_trace: &MainTrace, alphas: &[E], i: RowIndex) -> E {
         let is_left_shift = main_trace.is_left_shift(i);

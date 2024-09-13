@@ -25,7 +25,7 @@ pub use vm_core::{
 };
 use vm_core::{
     mast::{BasicBlockNode, CallNode, JoinNode, LoopNode, OpBatch, SplitNode, OP_GROUP_SIZE},
-    Decorator, DecoratorIterator, FieldElement, StackTopState,
+    Decorator, DecoratorIterator, FieldElement,
 };
 pub use winter_prover::matrix::ColMatrix;
 

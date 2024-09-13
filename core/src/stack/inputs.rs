@@ -1,9 +1,8 @@
 use alloc::vec::Vec;
-use core::slice;
+use core::{ops::Deref, slice};
 
 use super::{
-    super::ZERO, get_stack_values_num, ByteWriter, Felt, InputError, Serializable, ToElements,
-    MIN_STACK_DEPTH,
+    super::ZERO, get_num_stack_values, ByteWriter, Felt, InputError, Serializable, MIN_STACK_DEPTH,
 };
 use crate::utils::{ByteReader, Deserializable, DeserializationError};
 
@@ -54,13 +53,19 @@ impl StackInputs {
 
         Self::new(values)
     }
+}
 
-    // PUBLIC ACCESSORS
-    // --------------------------------------------------------------------------------------------
+impl Deref for StackInputs {
+    type Target = [Felt; MIN_STACK_DEPTH];
 
-    /// Returns the initial stack elements in stack/reversed order.
-    pub fn elements(&self) -> &[Felt] {
+    fn deref(&self) -> &Self::Target {
         &self.elements
+    }
+}
+
+impl From<[Felt; MIN_STACK_DEPTH]> for StackInputs {
+    fn from(value: [Felt; MIN_STACK_DEPTH]) -> Self {
+        Self { elements: value }
     }
 }
 
@@ -82,27 +87,29 @@ impl IntoIterator for StackInputs {
     }
 }
 
-impl ToElements<Felt> for StackInputs {
-    fn to_elements(&self) -> Vec<Felt> {
-        self.elements.to_vec()
-    }
-}
-
 // SERIALIZATION
 // ================================================================================================
 
 impl Serializable for StackInputs {
     fn write_into<W: ByteWriter>(&self, target: &mut W) {
-        target.write_u8(get_stack_values_num(self.elements()));
+        target.write_u8(get_num_stack_values(self));
         target.write_many(self.elements);
     }
 }
 
 impl Deserializable for StackInputs {
     fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
-        let elements_num = source.read_u8()?;
-        let mut elements = source.read_many::<Felt>(elements_num.into())?;
+        let num_elements = source.read_u8()?;
 
+        // check that `num_elements` is valid
+        if num_elements > MIN_STACK_DEPTH as u8 {
+            return Err(DeserializationError::InvalidValue(format!(
+                "number of stack elements should not be greater than {}, but {} was found",
+                MIN_STACK_DEPTH, num_elements
+            )));
+        }
+
+        let mut elements = source.read_many::<Felt>(num_elements.into())?;
         elements.resize(MIN_STACK_DEPTH, ZERO);
 
         Ok(StackInputs { elements: elements.try_into().unwrap() })

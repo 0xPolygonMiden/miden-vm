@@ -72,9 +72,8 @@ impl Stack {
         init_trace_capacity: usize,
         keep_overflow_trace: bool,
     ) -> Self {
-        let init_values = inputs.elements();
         let overflow = OverflowTable::new(keep_overflow_trace);
-        let trace = StackTrace::new(init_values, init_trace_capacity, MIN_STACK_DEPTH, ZERO);
+        let trace = StackTrace::new(&**inputs, init_trace_capacity, MIN_STACK_DEPTH, ZERO);
 
         Self {
             clk: RowIndex::from(0),

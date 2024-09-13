@@ -1,6 +1,6 @@
 use super::{
     errors::{InputError, OutputError},
-    Felt, ToElements,
+    Felt,
 };
 use crate::utils::{ByteWriter, Serializable};
 
@@ -26,14 +26,14 @@ pub const MIN_STACK_DEPTH: usize = 16;
 // ================================================================================================
 
 /// Get the number of non-zero stack elements.
-fn get_stack_values_num(values: &[Felt]) -> u8 {
-    let mut acc = 0;
+fn get_num_stack_values(values: &[Felt; MIN_STACK_DEPTH]) -> u8 {
+    let mut num_trailing_zeros = 0;
     for v in values.iter().rev() {
         if v.as_int() == 0 {
-            acc += 1;
+            num_trailing_zeros += 1;
         } else {
             break;
         }
     }
-    (MIN_STACK_DEPTH - acc) as u8
+    (MIN_STACK_DEPTH - num_trailing_zeros) as u8
 }
