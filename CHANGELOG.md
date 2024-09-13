@@ -18,6 +18,14 @@
 
 - Decorators are now allowed in empty basic blocks (#1466)
 
+
+## 0.10.6 (2024-09-12) - `miden-processor` crate only.
+
+#### Enhancements
+
+- Added `PartialEq`, `Eq`, `Serialize` and `Deserialize` to `AdviceMap` and `AdviceInputs` structs (#1494).
+
+
 ## 0.10.5 (2024-08-21)
 
 #### Enhancements
