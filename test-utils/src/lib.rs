@@ -114,7 +114,6 @@ macro_rules! expect_exec_error {
     };
 }
 
-
 /// Like [assembly::assert_diagnostic], but matches each non-empty line of the rendered output to a
 /// corresponding pattern.
 ///
