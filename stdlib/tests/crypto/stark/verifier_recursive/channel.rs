@@ -247,7 +247,7 @@ impl VerifierChannel {
 
             let layer_proof = layer_proofs.remove(0);
 
-            let x = group_slice_elements::<QuadExt, N>(&query);
+            let x = group_slice_elements::<QuadExt, N>(query);
             let leaves: Vec<RpoDigest> = x.iter().map(|row| Rpo256::hash_elements(row)).collect();
             let unbatched_proof = layer_proof.into_openings(&leaves, &folded_positions).unwrap();
 
@@ -431,7 +431,7 @@ pub fn unbatch_to_partial_mt(
     queries: Vec<Vec<Felt>>,
     proof: BatchMerkleProof<Rpo256>,
 ) -> (PartialMerkleTree, Vec<(RpoDigest, Vec<Felt>)>) {
-    let leaves: Vec<RpoDigest> = queries.iter().map(|row| Rpo256::hash_elements(&row)).collect();
+    let leaves: Vec<RpoDigest> = queries.iter().map(|row| Rpo256::hash_elements(row)).collect();
 
     let unbatched_proof = proof.into_openings(&leaves, &positions).unwrap();
     let mut adv_key_map = Vec::new();
