@@ -102,12 +102,11 @@ impl Air for ProcessorAir {
         let num_main_assertions = 2 + stack::NUM_ASSERTIONS + range::NUM_ASSERTIONS;
 
         // Define the number of boundary constraints for the auxiliary execution trace segment.
-        //let num_aux_assertions = stack::NUM_AUX_ASSERTIONS;
-        let num_aux_assertions = 0;
+        let num_aux_assertions = stack::NUM_AUX_ASSERTIONS;
 
         // Create the context and set the number of transition constraint exemptions to two; this
         // allows us to inject random values into the last row of the execution trace.
-        let context = AirContext::with_logup_gkr(
+        let context = AirContext::new_multi_segment(
             trace_info,
             pub_inputs.clone(),
             main_degrees,
@@ -192,8 +191,7 @@ impl Air for ProcessorAir {
             last_step,
         );
 
-        //result
-        vec![]
+        result
     }
 
     // TRANSITION CONSTRAINTS
