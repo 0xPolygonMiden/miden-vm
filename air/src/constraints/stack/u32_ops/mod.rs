@@ -209,9 +209,10 @@ pub fn enforce_u32mul_constraints<E: FieldElement<BaseField = Felt>>(
     1
 }
 
-/// Enforces constraints of the U32MADD operation. The U32MADD operation adds the third
-/// element to the product of the first two elements in the current trace. Therefore, the
-/// following constraints are enforced:
+/// Enforces constraints of the U32MADD operation.
+///
+/// The U32MADD operation adds the third element to the product of the first two elements in the
+/// current trace. Therefore, the following constraints are enforced:
 /// - The aggregation of all the limbs in the helper registers is equal to the sum of the third
 ///   element with the product of the first two elements in the current trace.
 pub fn enforce_u32madd_constraints<E: FieldElement<BaseField = Felt>>(

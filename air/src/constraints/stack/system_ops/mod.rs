@@ -74,8 +74,10 @@ pub fn enforce_assert_constraints<E: FieldElement>(
     1
 }
 
-/// Enforces unique constraints of the FMPADD operation. The FMPADD operation increments the top
-/// element in the stack by `fmp` register value. Therefore, the following constraints are enforced:
+/// Enforces unique constraints of the FMPADD operation.
+///
+/// The FMPADD operation increments the top element in the stack by `fmp` register value. Therefore,
+/// the following constraints are enforced:
 /// - The first element in the next frame should be equal to the addition of the first element in
 ///   the current frame and the fmp value. s0` - (s0 + fmp) = 0
 pub fn enforce_fmpadd_constraints<E: FieldElement>(
@@ -89,9 +91,10 @@ pub fn enforce_fmpadd_constraints<E: FieldElement>(
     1
 }
 
-/// Enforces constraints of the FMPUPDATE operation. The FMPUPDATE operation increments the fmp
-/// register value by the first element value in the current trace. Therefore, the following
-/// constraints are enforced:
+/// Enforces constraints of the FMPUPDATE operation.
+///
+/// The FMPUPDATE operation increments the fmp register value by the first element value in the
+/// current trace. Therefore, the following constraints are enforced:
 /// - The fmp register value in the next frame should be equal to the sum of the fmp register value
 ///   and the top stack element in the current frame. fmp` - (s0 + fmp) = 0.
 pub fn enforce_fmpupdate_constraints<E: FieldElement>(
@@ -105,8 +108,10 @@ pub fn enforce_fmpupdate_constraints<E: FieldElement>(
     1
 }
 
-/// Enforces constraints of the CLK operation. The CLK operation pushes the current cycle number to
-/// the stack. Therefore, the following constraints are enforced:
+/// Enforces constraints of the CLK operation.
+///
+/// The CLK operation pushes the current cycle number to the stack. Therefore, the following
+/// constraints are enforced:
 /// - The first element in the next frame should be equal to the current cycle number. s0' - (cycle)
 ///   = 0.
 pub fn enforce_clk_constraints<E: FieldElement>(

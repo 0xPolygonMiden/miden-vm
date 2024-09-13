@@ -83,12 +83,12 @@ impl From<Label> for LabeledSpan {
 // RELATED LABEL
 // ================================================================================================
 
-/// This type is used to associate a more complex label or set of labels with some other error. In
-/// particular, it is used to reference related bits of source code distinct from that of the
-/// original error.
+/// This type is used to associate a more complex label or set of labels with some other error.
 ///
-/// A related label can have a distinct severity, its own message, and its own sub-labels, and may
-/// reference code in a completely different source file that the original error.
+/// In particular, it is used to reference related bits of source code distinct from that of the
+/// original error. A related label can have a distinct severity, its own message, and its own
+/// sub-labels, and may reference code in a completely different source file that the original
+/// error.
 #[derive(Debug)]
 pub struct RelatedLabel {
     /// The severity for this related label
