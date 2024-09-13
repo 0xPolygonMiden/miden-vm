@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.10.6 (TBD)
+
+#### Enhancements
+
+- Added `PartialEq`, `Eq`, `Serialize` and `Deserialize` to `AdviceMap` and `AdviceInputs` structs (#1494).
+
 ## 0.10.5 (2024-08-21)
 
 #### Enhancements
