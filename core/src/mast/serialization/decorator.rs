@@ -178,11 +178,6 @@ impl DecoratorInfo {
 
                 Ok(Decorator::Debug(DebugOptions::LocalInterval(start, second, end)))
             },
-            EncodedDecoratorVariant::Event => {
-                let value = data_reader.read_u32()?;
-
-                Ok(Decorator::Event(value))
-            },
             EncodedDecoratorVariant::Trace => {
                 let value = data_reader.read_u32()?;
 
@@ -245,7 +240,6 @@ pub enum EncodedDecoratorVariant {
     DebugOptionsMemAll,
     DebugOptionsMemInterval,
     DebugOptionsLocalInterval,
-    Event,
     Trace,
 }
 
@@ -298,7 +292,6 @@ impl From<&Decorator> for EncodedDecoratorVariant {
                 DebugOptions::MemInterval(..) => Self::DebugOptionsMemInterval,
                 DebugOptions::LocalInterval(..) => Self::DebugOptionsLocalInterval,
             },
-            Decorator::Event(_) => Self::Event,
             Decorator::Trace(_) => Self::Trace,
         }
     }
@@ -432,7 +425,7 @@ impl DecoratorDataBuilder {
                 },
                 DebugOptions::StackAll | DebugOptions::MemAll => None,
             },
-            Decorator::Event(value) | Decorator::Trace(value) => {
+            Decorator::Trace(value) => {
                 self.decorator_data.extend(value.to_le_bytes());
 
                 Some(data_offset)

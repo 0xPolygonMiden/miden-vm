@@ -35,8 +35,6 @@ pub enum Decorator {
     /// Prints out information about the state of the VM based on the specified options. This
     /// decorator is executed only in debug mode.
     Debug(DebugOptions),
-    /// Emits an event to the host.
-    Event(u32),
     /// Emits a trace to the host.
     Trace(u32),
 }
@@ -60,7 +58,6 @@ impl Decorator {
                 Blake3_256::hash(&bytes_to_hash)
             },
             Self::Debug(debug) => Blake3_256::hash(debug.to_string().as_bytes()),
-            Self::Event(event) => Blake3_256::hash(&event.to_le_bytes()),
             Self::Trace(trace) => Blake3_256::hash(&trace.to_le_bytes()),
         }
     }
@@ -80,7 +77,6 @@ impl fmt::Display for Decorator {
                 write!(f, "asmOp({}, {})", assembly_op.op(), assembly_op.num_cycles())
             },
             Self::Debug(options) => write!(f, "debug({options})"),
-            Self::Event(event_id) => write!(f, "event({})", event_id),
             Self::Trace(trace_id) => write!(f, "trace({})", trace_id),
         }
     }
