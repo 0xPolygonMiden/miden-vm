@@ -196,6 +196,7 @@ where
     pub host: RefCell<H>,
     pub max_cycles: u32,
     pub enable_tracing: bool,
+    pub enable_debugging: bool,
 }
 
 impl<H> Process<H>
@@ -240,6 +241,7 @@ where
             host: RefCell::new(host),
             max_cycles: execution_options.max_cycles(),
             enable_tracing: execution_options.enable_tracing(),
+            enable_debugging: execution_options.enable_debugging()
         }
     }
 
@@ -584,7 +586,9 @@ where
                 self.host.borrow_mut().set_advice(self, *injector)?;
             },
             Decorator::Debug(options) => {
-                self.host.borrow_mut().on_debug(self, options)?;
+                if self.enable_debugging {
+                    self.host.borrow_mut().on_debug(self, options)?;
+                }
             },
             Decorator::AsmOp(assembly_op) => {
                 if self.decoder.in_debug_mode() {

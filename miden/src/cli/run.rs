@@ -40,6 +40,10 @@ pub struct RunCmd {
     /// Enable tracing to monitor execution of the VM
     #[clap(short = 't', long = "tracing")]
     tracing: bool,
+
+    /// Enable tracing to monitor execution of the VM
+    #[clap(short = 'd', long = "debug")]
+    debug: bool,
 }
 
 impl RunCmd {
@@ -113,9 +117,13 @@ fn run_program(params: &RunCmd) -> Result<(ExecutionTrace, [u8; 32]), Report> {
     let input_data = InputFile::read(&params.input_file, &params.assembly_file)?;
 
     // get execution options
-    let execution_options =
+    let mut execution_options =
         ExecutionOptions::new(Some(params.max_cycles), params.expected_cycles, params.tracing)
             .into_diagnostic()?;
+
+    if params.debug {
+        execution_options = execution_options.with_debugging()
+    }
 
     // fetch the stack and program inputs from the arguments
     let stack_inputs = input_data.parse_stack_inputs().map_err(Report::msg)?;

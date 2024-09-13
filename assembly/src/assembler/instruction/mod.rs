@@ -423,11 +423,9 @@ impl Assembler {
             },
 
             Instruction::Debug(options) => {
-                if self.in_debug_mode() {
-                    block_builder.push_decorator(Decorator::Debug(
-                        options.clone().try_into().expect("unresolved constant"),
-                    ))?;
-                }
+                block_builder.push_decorator(Decorator::Debug(
+                    options.clone().try_into().expect("unresolved constant"),
+                ))?;
             },
 
             // ----- emit instruction -------------------------------------------------------------
