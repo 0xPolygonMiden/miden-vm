@@ -1,6 +1,6 @@
 # Changelog
 
-## 0.10.6 (TBD)
+## 0.10.6 (2024-09-12) - `miden-processor` crate only.
 
 #### Enhancements
 
