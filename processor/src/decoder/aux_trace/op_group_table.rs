@@ -2,7 +2,7 @@ use miden_air::{
     trace::decoder::{OP_BATCH_2_GROUPS, OP_BATCH_4_GROUPS, OP_BATCH_8_GROUPS},
     RowIndex,
 };
-use vm_core::{OPCODE_PUSH, OPCODE_RESPAN, OPCODE_SPAN};
+use vm_core::{OPCODE_EMIT, OPCODE_PUSH, OPCODE_RESPAN, OPCODE_SPAN};
 
 use super::{AuxColumnBuilder, Felt, FieldElement, MainTrace, ONE};
 
@@ -88,18 +88,23 @@ fn get_op_group_table_removal_multiplicand<E: FieldElement<BaseField = Felt>>(
 ) -> E {
     let group_count = main_trace.group_count(i);
     let block_id = main_trace.addr(i);
+    let group_value = {
+        let op_code = main_trace.get_op_code(i);
 
-    let op_code = main_trace.get_op_code(i);
-    let tmp = if op_code == Felt::from(OPCODE_PUSH) {
-        main_trace.stack_element(0, i + 1)
-    } else {
-        let h0 = main_trace.decoder_hasher_state_first_half(i + 1)[0];
+        if op_code == Felt::from(OPCODE_PUSH) {
+            main_trace.stack_element(0, i + 1)
+        } else if op_code == Felt::from(OPCODE_EMIT) {
+            main_trace.helper_register(0, i)
+        } else {
+            let h0 = main_trace.decoder_hasher_state_first_half(i + 1)[0];
 
-        let op_prime = main_trace.get_op_code(i + 1);
-        h0.mul_small(1 << 7) + op_prime
+            let op_prime = main_trace.get_op_code(i + 1);
+            h0.mul_small(1 << 7) + op_prime
+        }
     };
+
     alphas[0]
         + alphas[1].mul_base(block_id)
         + alphas[2].mul_base(group_count)
-        + alphas[3].mul_base(tmp)
+        + alphas[3].mul_base(group_value)
 }

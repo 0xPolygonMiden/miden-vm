@@ -1,6 +1,9 @@
+use alloc::vec::Vec;
+
 use pretty_assertions::assert_eq;
 use vm_core::{
     assert_matches,
+    crypto::hash::RpoDigest,
     mast::{MastForest, MastNode},
     Program,
 };
@@ -156,6 +159,40 @@ fn nested_blocks() -> Result<(), Report> {
     assert_eq!(program.num_procedures(), 3);
 
     Ok(())
+}
+
+/// Ensures that the arguments of `emit` do indeed modify the digest of a basic block
+#[test]
+fn emit_instruction_digest() {
+    let context = TestContext::new();
+
+    let program_source = r#"
+        proc.foo
+            emit.1
+        end
+
+        proc.bar
+            emit.2
+        end
+
+        begin
+            # specific impl irrelevant
+            exec.foo
+            exec.bar
+        end
+    "#;
+
+    let program = context.assemble(program_source).unwrap();
+
+    let procedure_digests: Vec<RpoDigest> = program.mast_forest().procedure_digests().collect();
+
+    // foo, bar and entrypoint
+    assert_eq!(3, procedure_digests.len());
+
+    // Ensure that foo, bar and entrypoint all have different digests
+    assert_ne!(procedure_digests[0], procedure_digests[1]);
+    assert_ne!(procedure_digests[0], procedure_digests[2]);
+    assert_ne!(procedure_digests[1], procedure_digests[2]);
 }
 
 /// Since `foo` and `bar` have the same body, we only expect them to be added once to the program.

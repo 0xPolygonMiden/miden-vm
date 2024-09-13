@@ -104,6 +104,7 @@ fn confirm_operation_and_decorator_structure() {
         Operation::MrUpdate => (),
         Operation::FriE2F4 => (),
         Operation::RCombBase => (),
+        Operation::Emit(_) => (),
     };
 
     match Decorator::Event(0) {
@@ -236,6 +237,7 @@ fn serialize_deserialize_all_nodes() {
             Operation::MrUpdate,
             Operation::FriE2F4,
             Operation::RCombBase,
+            Operation::Emit(42),
         ];
 
         let num_operations = operations.len();
