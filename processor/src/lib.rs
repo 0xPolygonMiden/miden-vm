@@ -181,6 +181,7 @@ where
     host: RefCell<H>,
     max_cycles: u32,
     enable_tracing: bool,
+    pub enable_debugging: bool,
 }
 
 #[cfg(any(test, feature = "testing"))]
