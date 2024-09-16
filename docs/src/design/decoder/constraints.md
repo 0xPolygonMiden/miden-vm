@@ -549,8 +549,8 @@ $$
 
 When neither `SPAN` nor `RESPAN` is executed, all batch flags must be set to $0$.
 
-> $$
-(1 - (f_{span} + f_{respan})) \cdot (1 - bc_0) \cdot (1 - bc_1) \cdot (1 - bc_2) = 0 \text{ | degree} = 8
+$$
+(1 - (f_{span} + f_{respan})) \cdot (bc_0 + bc_1 + bc_2) = 0 \text{ | degree} = 6
 $$
 
 When we have at most 4 groups in a batch, registers $h_4, ..., h_7$ should be set to $0$'s.
