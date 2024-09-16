@@ -6,6 +6,8 @@ use vm_core::{
     Operation,
 };
 
+use super::TRUNCATE_STACK;
+
 // SDEPTH INSTRUCTION
 // ================================================================================================
 
@@ -25,14 +27,14 @@ fn sdepth() {
     // push 2 values to increase the lenth of the stack beyond 16
     let source = format!(
         "
-    use.std::sys
+    {TRUNCATE_STACK}
 
     begin 
         push.1 
         push.1 
         {test_op} 
         
-        exec.sys::truncate_stack 
+        exec.truncate_stack 
     end
     "
     );
@@ -80,8 +82,9 @@ fn locaddr() {
     test.expect_stack(&[4, 3, 2, 1, 5, 10]);
 
     // --- locaddr returns expected addresses in nested procedures --------------------------------
-    let source = "
-        use.std::sys
+    let source = format!(
+        "
+        {TRUNCATE_STACK}
 
         proc.foo.3
             locaddr.0
@@ -97,8 +100,9 @@ fn locaddr() {
             exec.bar
             exec.foo
 
-            exec.sys::truncate_stack
-        end";
+            exec.truncate_stack
+        end"
+    );
 
     let test = build_test!(source, &[10]);
     test.expect_stack(&[

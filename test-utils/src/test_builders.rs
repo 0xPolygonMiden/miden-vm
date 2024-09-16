@@ -17,11 +17,39 @@
 #[macro_export]
 macro_rules! build_op_test {
     ($op_str:expr) => {{
-        let source = format!("use.std::sys begin {} exec.sys::truncate_stack end", $op_str);
+        let source = format!("
+proc.truncate_stack.1
+    loc_storew.0 dropw movupw.3
+    sdepth neq.16
+    while.true
+        dropw movupw.3
+        sdepth neq.16
+    end
+    loc_loadw.0
+end
+
+begin {} exec.truncate_stack end
+        ",
+            $op_str
+        );
         $crate::build_test!(&source)
     }};
     ($op_str:expr, $($tail:tt)+) => {{
-        let source = format!("use.std::sys begin {} exec.sys::truncate_stack end", $op_str);
+        let source = format!("
+proc.truncate_stack.1
+    loc_storew.0 dropw movupw.3
+    sdepth neq.16
+    while.true
+        dropw movupw.3
+        sdepth neq.16
+    end
+    loc_loadw.0
+end
+
+begin {} exec.truncate_stack end
+        ",
+            $op_str
+        );
         $crate::build_test!(&source, $($tail)+)
     }};
 }
@@ -42,9 +70,7 @@ macro_rules! build_op_test {
 #[macro_export]
 macro_rules! build_test {
     ($($params:tt)+) => {{
-        let mut test = $crate::build_test_by_mode!(false, $($params)+);
-        test.libraries = vec![$crate::StdLibrary::default().into()];
-        test
+        $crate::build_test_by_mode!(false, $($params)+)
     }}
 }
 
@@ -64,9 +90,7 @@ macro_rules! build_test {
 #[macro_export]
 macro_rules! build_debug_test {
     ($($params:tt)+) => {{
-        let mut test = $crate::build_test_by_mode!(true, $($params)+);
-        test.libraries = vec![$crate::StdLibrary::default().into()];
-        test
+        $crate::build_test_by_mode!(true, $($params)+)
     }}
 }
 

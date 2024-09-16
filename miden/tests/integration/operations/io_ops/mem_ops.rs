@@ -1,4 +1,4 @@
-use super::{apply_permutation, build_op_test, build_test, Felt, ToElements};
+use super::{apply_permutation, build_op_test, build_test, Felt, ToElements, TRUNCATE_STACK};
 
 // LOADING SINGLE ELEMENT ONTO THE STACK (MLOAD)
 // ================================================================================================
@@ -91,8 +91,9 @@ fn mem_storew() {
 
 #[test]
 fn mem_stream() {
-    let source = "
-        use.std::sys
+    let source = format!(
+        "
+        {TRUNCATE_STACK}
 
         begin
             push.1
@@ -104,8 +105,9 @@ fn mem_stream() {
             push.12.11.10.9.8.7.6.5.4.3.2.1
             mem_stream
 
-            exec.sys::truncate_stack
-        end";
+            exec.truncate_stack
+        end"
+    );
 
     let inputs = [1, 2, 3, 4, 5, 6, 7, 8];
 
@@ -128,8 +130,9 @@ fn mem_stream() {
 
 #[test]
 fn mem_stream_with_hperm() {
-    let source = "
-        use.std::sys
+    let source = format!(
+        "
+        {TRUNCATE_STACK}
 
         begin
             push.1
@@ -141,8 +144,9 @@ fn mem_stream_with_hperm() {
             push.12.11.10.9.8.7.6.5.4.3.2.1
             mem_stream hperm
 
-            exec.sys::truncate_stack
-        end";
+            exec.truncate_stack
+        end"
+    );
 
     let inputs = [1, 2, 3, 4, 5, 6, 7, 8];
 

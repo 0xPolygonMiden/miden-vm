@@ -63,8 +63,10 @@ fn dupn_fail() {
         test,
         "invalid immediate: value must be in the range 0..16 (exclusive)",
         regex!(r#",-\[test[\d]+:[\d]+:[\d]+\]"#),
-        "1 | use.std::sys begin dup.16 exec.sys::truncate_stack end",
-        "  :                        ^^",
+        "11 |",
+        "12 | begin dup.16 exec.truncate_stack end",
+        "   :           ^^",
+        "13 |",
         "  `----"
     );
 }
@@ -98,8 +100,10 @@ fn dupwn_fail() {
         test,
         "invalid immediate: value must be in the range 0..4 (exclusive)",
         regex!(r#",-\[test[\d]+:[\d]+:[\d]+\]"#),
-        "1 | use.std::sys begin dupw.4 exec.sys::truncate_stack end",
-        "  :                         ^",
+        "11 |",
+        "12 | begin dupw.4 exec.truncate_stack end",
+        "   :            ^",
+        "13 |",
         "  `----"
     );
 }
@@ -133,8 +137,10 @@ fn swapn_fail() {
         test,
         "invalid immediate: value must be in the range 1..16 (exclusive)",
         regex!(r#",-\[test[\d]+:[\d]+:[\d]+\]"#),
-        "1 | use.std::sys begin swap.16 exec.sys::truncate_stack end",
-        "  :                         ^^",
+        "11 |",
+        "12 | begin swap.16 exec.truncate_stack end",
+        "   :            ^^",
+        "13 |",
         "  `----"
     );
 }
@@ -168,9 +174,11 @@ fn swapwn_fail() {
         test,
         "invalid immediate: value must be in the range 1..4 (exclusive)",
         regex!(r#",-\[test[\d]+:[\d]+:[\d]+\]"#),
-        "1 | use.std::sys begin swapw.4 exec.sys::truncate_stack end",
-        "  :                          ^",
-        "  `----"
+        "11 |",
+        "12 | begin swapw.4 exec.truncate_stack end",
+        "   :             ^",
+        "13 |",
+        "   `----"
     );
 }
 
@@ -200,8 +208,10 @@ fn movup_fail() {
         test,
         "invalid immediate: value must be in the range 2..16 (exclusive)",
         regex!(r#",-\[test[\d]+:[\d]+:[\d]+\]"#),
-        "1 | use.std::sys begin movup.0 exec.sys::truncate_stack end",
-        "  :                          ^",
+        "11 |",
+        "12 | begin movup.0 exec.truncate_stack end",
+        "   :             ^",
+        "13 |",
         "  `----"
     );
 
@@ -212,8 +222,10 @@ fn movup_fail() {
         test,
         "invalid immediate: value must be in the range 2..16 (exclusive)",
         regex!(r#",-\[test[\d]+:[\d]+:[\d]+\]"#),
-        "1 | use.std::sys begin movup.1 exec.sys::truncate_stack end",
-        "  :                          ^",
+        "11 |",
+        "12 | begin movup.1 exec.truncate_stack end",
+        "   :             ^",
+        "13 |",
         "  `----"
     );
 
@@ -224,8 +236,10 @@ fn movup_fail() {
         test,
         "invalid immediate: value must be in the range 2..16 (exclusive)",
         regex!(r#",-\[test[\d]+:[\d]+:[\d]+\]"#),
-        "1 | use.std::sys begin movup.16 exec.sys::truncate_stack end",
-        "  :                          ^^",
+        "11 |",
+        "12 | begin movup.16 exec.truncate_stack end",
+        "   :             ^^",
+        "13 |",
         "  `----"
     );
 }
@@ -247,8 +261,10 @@ fn movupw_fail() {
         test,
         "invalid immediate: value must be in the range 2..4 (exclusive)",
         regex!(r#",-\[test[\d]+:[\d]+:[\d]+\]"#),
-        "1 | use.std::sys begin movupw.0 exec.sys::truncate_stack end",
-        "  :                           ^",
+        "11 |",
+        "12 | begin movupw.0 exec.truncate_stack end",
+        "   :              ^",
+        "13 |",
         "  `----"
     );
 
@@ -259,8 +275,10 @@ fn movupw_fail() {
         test,
         "invalid immediate: value must be in the range 2..4 (exclusive)",
         regex!(r#",-\[test[\d]+:[\d]+:[\d]+\]"#),
-        "1 | use.std::sys begin movupw.1 exec.sys::truncate_stack end",
-        "  :                           ^",
+        "11 |",
+        "12 | begin movupw.1 exec.truncate_stack end",
+        "   :              ^",
+        "13 |",
         "  `----"
     );
 
@@ -271,8 +289,10 @@ fn movupw_fail() {
         test,
         "invalid immediate: value must be in the range 2..4 (exclusive)",
         regex!(r#",-\[test[\d]+:[\d]+:[\d]+\]"#),
-        "1 | use.std::sys begin movupw.4 exec.sys::truncate_stack end",
-        "  :                           ^",
+        "11 |",
+        "12 | begin movupw.4 exec.truncate_stack end",
+        "   :              ^",
+        "13 |",
         "  `----"
     );
 }
@@ -294,8 +314,10 @@ fn movdn_fail() {
         test,
         "invalid immediate: value must be in the range 2..16 (exclusive)",
         regex!(r#",-\[test[\d]+:[\d]+:[\d]+\]"#),
-        "1 | use.std::sys begin movdn.0 exec.sys::truncate_stack end",
-        "  :                          ^",
+        "11 |",
+        "12 | begin movdn.0 exec.truncate_stack end",
+        "   :             ^",
+        "13 |",
         "  `----"
     );
 
@@ -306,8 +328,10 @@ fn movdn_fail() {
         test,
         "invalid immediate: value must be in the range 2..16 (exclusive)",
         regex!(r#",-\[test[\d]+:[\d]+:[\d]+\]"#),
-        "1 | use.std::sys begin movdn.1 exec.sys::truncate_stack end",
-        "  :                          ^",
+        "11 |",
+        "12 | begin movdn.1 exec.truncate_stack end",
+        "   :             ^",
+        "13 |",
         "  `----"
     );
 
@@ -318,8 +342,10 @@ fn movdn_fail() {
         test,
         "invalid immediate: value must be in the range 2..16 (exclusive)",
         regex!(r#",-\[test[\d]+:[\d]+:[\d]+\]"#),
-        "1 | use.std::sys begin movdn.16 exec.sys::truncate_stack end",
-        "  :                          ^^",
+        "11 |",
+        "12 | begin movdn.16 exec.truncate_stack end",
+        "   :             ^^",
+        "13 |",
         "  `----"
     );
 }
@@ -341,8 +367,10 @@ fn movdnw_fail() {
         test,
         "invalid immediate: value must be in the range 2..4 (exclusive)",
         regex!(r#",-\[test[\d]+:[\d]+:[\d]+\]"#),
-        "1 | use.std::sys begin movdnw.0 exec.sys::truncate_stack end",
-        "  :                           ^",
+        "11 |",
+        "12 | begin movdnw.0 exec.truncate_stack end",
+        "   :              ^",
+        "13 |",
         "  `----"
     );
 
@@ -353,8 +381,10 @@ fn movdnw_fail() {
         test,
         "invalid immediate: value must be in the range 2..4 (exclusive)",
         regex!(r#",-\[test[\d]+:[\d]+:[\d]+\]"#),
-        "1 | use.std::sys begin movdnw.1 exec.sys::truncate_stack end",
-        "  :                           ^",
+        "11 |",
+        "12 | begin movdnw.1 exec.truncate_stack end",
+        "   :              ^",
+        "13 |",
         "  `----"
     );
 
@@ -365,8 +395,10 @@ fn movdnw_fail() {
         test,
         "invalid immediate: value must be in the range 2..4 (exclusive)",
         regex!(r#",-\[test[\d]+:[\d]+:[\d]+\]"#),
-        "1 | use.std::sys begin movdnw.4 exec.sys::truncate_stack end",
-        "  :                           ^",
+        "11 |",
+        "12 | begin movdnw.4 exec.truncate_stack end",
+        "   :              ^",
+        "13 |",
         "  `----"
     );
 }

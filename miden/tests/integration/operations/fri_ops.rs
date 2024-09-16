@@ -1,4 +1,4 @@
-use test_utils::{build_test, push_inputs, rand::rand_array, Felt, FieldElement};
+use test_utils::{build_test, push_inputs, rand::rand_array, Felt, FieldElement, TRUNCATE_STACK};
 
 // FRI_EXT2FOLD4
 // ================================================================================================
@@ -20,13 +20,13 @@ fn fri_ext2fold4() {
 
     let source = format!(
         "
-        use.std::sys
+        {TRUNCATE_STACK}
         
         begin
             {inputs}
             fri_ext2fold4
 
-            exec.sys::truncate_stack
+            exec.truncate_stack
         end",
         inputs = push_inputs(&inputs)
     );

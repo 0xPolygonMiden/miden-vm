@@ -187,9 +187,12 @@ fn div_b() {
         test,
         "invalid constant expression: division by zero",
         regex!(r#",-\[test[\d]+:[\d]+:[\d]+\]"#),
-        "1 | use.std::sys begin div.0 exec.sys::truncate_stack end",
-        "  :                    ^^^^^",
-        "  `----"
+        "11 |",
+        "12 | begin div.0 exec.truncate_stack end",
+        "   :       ^^^^^",
+        "13 |",
+        "   `----",
+        r#" help: expected primitive opcode (e.g. "add"), or "end", or control flow opcode (e.g. "if.true")"#
     );
 
     let test = build_op_test!(build_asm_op(2), &[4]);
@@ -246,10 +249,12 @@ fn neg_fail() {
         test,
         "invalid syntax",
         regex!(r#",-\[test[\d]+:[\d]+:[\d]+\]"#),
-        "1 | use.std::sys begin neg.1 exec.sys::truncate_stack end",
-        "  :                       |",
-        "  :                       `-- found a . here",
-        "  `----",
+        "11 |",
+        "12 | begin neg.1 exec.truncate_stack end",
+        "   :          |",
+        "   :          `-- found a . here",
+        "13 |",
+        "   `----",
         r#" help: expected primitive opcode (e.g. "add"), or "end", or control flow opcode (e.g. "if.true")"#
     );
 }
@@ -288,10 +293,12 @@ fn inv_fail() {
         test,
         "invalid syntax",
         regex!(r#",-\[test[\d]+:[\d]+:[\d]+\]"#),
-        "1 | use.std::sys begin inv.1 exec.sys::truncate_stack end",
-        "  :                       |",
-        "  :                       `-- found a . here",
-        "  `----",
+        "11 |",
+        "12 | begin inv.1 exec.truncate_stack end",
+        "   :          |",
+        "   :          `-- found a . here",
+        "13 |",
+        "   `----",
         r#" help: expected primitive opcode (e.g. "add"), or "end", or control flow opcode (e.g. "if.true")"#
     );
 }
@@ -370,9 +377,12 @@ fn exp_bits_length_fail() {
         test,
         "invalid literal: expected value to be a valid bit size, e.g. 0..63",
         regex!(r#",-\[test[\d]+:[\d]+:[\d]+\]"#),
-        "1 | use.std::sys begin exp.u65 exec.sys::truncate_stack end",
-        "  :                         ^^",
-        "  `----"
+        "11 |",
+        "12 | begin exp.u65 exec.truncate_stack end",
+        "   :            ^^",
+        "13 |",
+        "   `----",
+        r#" help: expected primitive opcode (e.g. "add"), or "end", or control flow opcode (e.g. "if.true")"#
     );
 }
 

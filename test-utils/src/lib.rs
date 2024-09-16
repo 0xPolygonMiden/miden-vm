@@ -24,7 +24,6 @@ pub use processor::{
 #[cfg(not(target_family = "wasm"))]
 use proptest::prelude::{Arbitrary, Strategy};
 pub use prover::{prove, MemAdviceProvider, ProvingOptions};
-pub use stdlib::StdLibrary;
 pub use test_case::test_case;
 pub use verifier::{verify, AcceptableOptions, VerifierError};
 use vm_core::{chiplets::hasher::apply_permutation, ProgramInfo};
@@ -68,6 +67,19 @@ pub type QuadFelt = vm_core::QuadExtension<Felt>;
 
 /// A value just over what a [u32] integer can hold.
 pub const U32_BOUND: u64 = u32::MAX as u64 + 1;
+
+/// A source code of the `truncate_stack` procedure.
+pub const TRUNCATE_STACK: &str = "
+proc.truncate_stack.1
+    loc_storew.0 dropw movupw.3
+    sdepth neq.16
+    while.true
+        dropw movupw.3
+        sdepth neq.16
+    end
+    loc_loadw.0
+end
+";
 
 // TEST HANDLER
 // ================================================================================================

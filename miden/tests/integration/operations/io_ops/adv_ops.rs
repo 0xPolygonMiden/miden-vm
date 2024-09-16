@@ -2,7 +2,7 @@ use processor::{ExecutionError, ExecutionError::AdviceStackReadFailed};
 use test_utils::expect_exec_error;
 use vm_core::{chiplets::hasher::apply_permutation, utils::ToElements, Felt};
 
-use super::{build_op_test, build_test};
+use super::{build_op_test, build_test, TRUNCATE_STACK};
 
 // PUSHING VALUES ONTO THE STACK (PUSH)
 // ================================================================================================
@@ -61,15 +61,17 @@ fn adv_loadw_invalid() {
 
 #[test]
 fn adv_pipe() {
-    let source = "
-        use.std::sys
+    let source = format!(
+        "
+        {TRUNCATE_STACK}
 
         begin
             push.12.11.10.9.8.7.6.5.4.3.2.1
             adv_pipe
 
-            exec.sys::truncate_stack
-        end";
+            exec.truncate_stack
+        end"
+    );
 
     let advice_stack = [1, 2, 3, 4, 5, 6, 7, 8];
 
@@ -92,15 +94,17 @@ fn adv_pipe() {
 
 #[test]
 fn adv_pipe_with_hperm() {
-    let source = "
-        use.std::sys
+    let source = format!(
+        "
+        {TRUNCATE_STACK}
 
         begin
             push.12.11.10.9.8.7.6.5.4.3.2.1
             adv_pipe hperm
 
-            exec.sys::truncate_stack
-        end";
+            exec.truncate_stack
+        end"
+    );
 
     let advice_stack = [1, 2, 3, 4, 5, 6, 7, 8];
 

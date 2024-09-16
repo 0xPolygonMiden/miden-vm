@@ -1,4 +1,4 @@
-use super::build_test;
+use super::{build_test, TRUNCATE_STACK};
 
 // PUSHING VALUES ONTO THE STACK (PUSH)
 // ================================================================================================
@@ -89,8 +89,9 @@ fn loadw_local() {
 #[test]
 fn storew_local() {
     // --- test write to local memory -------------------------------------------------------------
-    let source = "
-        use.std::sys
+    let source = format!(
+        "
+        {TRUNCATE_STACK}
 
         proc.foo.2
             loc_storew.0
@@ -105,8 +106,9 @@ fn storew_local() {
         begin
             exec.foo
 
-            exec.sys::truncate_stack
-        end";
+            exec.truncate_stack
+        end"
+    );
 
     let test = build_test!(source, &[1, 2, 3, 4, 5, 6, 7, 8]);
     test.expect_stack(&[4, 3, 2, 1, 8, 7, 6, 5, 8, 7, 6, 5, 4, 3, 2, 1]);

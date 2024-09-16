@@ -7,7 +7,7 @@ use test_utils::{
     expect_exec_error,
     rand::{rand_array, rand_value},
     serde::Serializable,
-    Felt,
+    Felt, TRUNCATE_STACK,
 };
 
 const ADVICE_PUSH_SIG: &str = "
@@ -65,8 +65,9 @@ fn advice_push_u64div_repeat() {
     // - reads quotient from advice stack to the stack
     // - push 2_u64 to the stack divided into 2 32 bit limbs
     // Finally the first 2 elements of the stack are removed
-    let source = "
-    use.std::sys
+    let source = format!(
+        "
+    {TRUNCATE_STACK}
     
     begin
         repeat.7
@@ -78,8 +79,9 @@ fn advice_push_u64div_repeat() {
         end
         drop drop
 
-        exec.sys::truncate_stack
-    end";
+        exec.truncate_stack
+    end"
+    );
 
     let mut a = 256;
     let a_hi = 0;
