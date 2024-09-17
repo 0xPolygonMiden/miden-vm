@@ -104,6 +104,18 @@ impl RunCmd {
 // HELPER FUNCTIONS
 // ================================================================================================
 
+pub fn create_execution_options(cmd: &RunCmd) -> Result<ExecutionOptions, Report> {
+    let mut execution_options =
+        ExecutionOptions::new(Some(cmd.max_cycles), cmd.expected_cycles, cmd.tracing)
+            .into_diagnostic()?;
+
+    if cmd.debug {
+        execution_options = execution_options.with_debugging();
+    }
+
+    Ok(execution_options)
+}
+
 #[instrument(name = "run_program", skip_all)]
 fn run_program(params: &RunCmd) -> Result<(ExecutionTrace, [u8; 32]), Report> {
     // load libraries from files
@@ -116,14 +128,7 @@ fn run_program(params: &RunCmd) -> Result<(ExecutionTrace, [u8; 32]), Report> {
     // load input data from file
     let input_data = InputFile::read(&params.input_file, &params.assembly_file)?;
 
-    // get execution options
-    let mut execution_options =
-        ExecutionOptions::new(Some(params.max_cycles), params.expected_cycles, params.tracing)
-            .into_diagnostic()?;
-
-    if params.debug {
-        execution_options = execution_options.with_debugging()
-    }
+    let execution_options = create_execution_options(params)?;
 
     // fetch the stack and program inputs from the arguments
     let stack_inputs = input_data.parse_stack_inputs().map_err(Report::msg)?;
@@ -137,4 +142,78 @@ fn run_program(params: &RunCmd) -> Result<(ExecutionTrace, [u8; 32]), Report> {
         .wrap_err("Failed to generate execution trace")?;
 
     Ok((trace, program_hash))
+}
+
+// TESTS
+// ================================================================================================
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_create_execution_options_with_default_settings() {
+        let cmd = RunCmd {
+            assembly_file: PathBuf::from("test.masm"),
+            expected_cycles: 64,
+            input_file: None,
+            library_paths: vec![],
+            max_cycles: 4294967295,
+            num_outputs: 16,
+            output_file: None,
+            tracing: false,
+            debug: false,
+        };
+
+        let result = create_execution_options(&cmd);
+        assert!(result.is_ok(), "Expected Ok, but got Err");
+
+        let options = result.unwrap();
+        assert_eq!(options.max_cycles(), cmd.max_cycles);
+        assert_eq!(options.expected_cycles(), cmd.expected_cycles);
+        assert!(!options.enable_tracing(), "Tracing should be disabled");
+        assert!(!options.enable_debugging(), "Debugging should be disabled");
+    }
+
+    #[test]
+    fn test_create_execution_options_with_tracing() {
+        let cmd = RunCmd {
+            assembly_file: PathBuf::from("test.masm"),
+            expected_cycles: 64,
+            input_file: None,
+            library_paths: vec![],
+            max_cycles: 4294967295,
+            num_outputs: 16,
+            output_file: None,
+            tracing: true,
+            debug: false,
+        };
+
+        let result = create_execution_options(&cmd);
+        assert!(result.is_ok(), "Expected Ok, but got Err");
+
+        let options = result.unwrap();
+        assert!(options.enable_tracing(), "Tracing should be enabled");
+    }
+
+    #[test]
+    fn test_create_execution_options_with_debugging() {
+        let cmd = RunCmd {
+            assembly_file: PathBuf::from("test.masm"),
+            expected_cycles: 64,
+            input_file: None,
+            library_paths: vec![],
+            max_cycles: 4294967295,
+            num_outputs: 16,
+            output_file: None,
+            tracing: false,
+            debug: true,
+        };
+
+        let result = create_execution_options(&cmd);
+        assert!(result.is_ok(), "Expected Ok, but got Err");
+
+        let options: ExecutionOptions = result.unwrap();
+        assert!(options.enable_debugging(), "Debugging should be enabled");
+    }
 }

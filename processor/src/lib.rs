@@ -242,7 +242,7 @@ where
             host: RefCell::new(host),
             max_cycles: execution_options.max_cycles(),
             enable_tracing: execution_options.enable_tracing(),
-            enable_debugging: execution_options.enable_debugging()
+            enable_debugging: execution_options.enable_debugging(),
         }
     }
 
