@@ -422,18 +422,18 @@ Inside a *span* block, group count can either stay the same or decrease by one:
 sp \cdot \Delta gc \cdot (\Delta gc - 1) = 0 \text{ | degree} = 3
 $$
 
-When group count is decremented inside a *span* block, either $h_0$ must be $0$ (we consumed all operations in a group) or we must be executing `PUSH` operation:
+When group count is decremented inside a *span* block, either $h_0$ must be $0$ (we consumed all operations in a group) or we must be executing an operation with an immediate value:
 
 > $$
-sp \cdot \Delta gc \cdot (1 - f_{push})\cdot h_0 = 0 \text{ | degree} = 7
+sp \cdot \Delta gc \cdot (1 - f_{imm})\cdot h_0 = 0 \text{ | degree} = 8
 $$
 
-Notice that the above constraint does not preclude $f_{push} = 1$ and $h_0 = 0$ from being true at the same time. If this happens, op group decoding constraints (described [here](#op-group-decoding-constraints)) will force that the operation following the `PUSH` operation is a `NOOP`.
+Notice that the above constraint does not preclude $f_{imm} = 1$ and $h_0 = 0$ from being true at the same time. If this happens, op group decoding constraints (described [here](#op-group-decoding-constraints)) will force that the operation following the operation with an immediate value is a `NOOP`.
 
-When executing a `SPAN`, a `RESPAN`, or a `PUSH` operation, group count must be decremented by $1$:
+When executing a `SPAN`, a `RESPAN`, or an operation with an immediate value, group count must be decremented by $1$:
 
 > $$
-(f_{span} + f_{respan} + f_{push}) \cdot (\Delta gc - 1) = 0 \text{ | degree} = 6
+(f_{span} + f_{respan} + f_{imm}) \cdot (\Delta gc - 1) = 0 \text{ | degree} = 6
 $$
 
 If the next operation is either an `END` or a `RESPAN`, group count must remain the same:
@@ -467,17 +467,17 @@ op = \sum_{i=0}^6 (b_i \cdot 2^i) \\
 f_{sgc} = sp \cdot sp' \cdot (1 - \Delta gc)
 $$
 
-$op$ is just an opcode value implied by the values in `op_bits` registers. $f_{sgc}$ is a flag which is set to $1$ when the group count within a *span* block does not change. We multiply it by $sp'$ to make sure the flag is $0$ when we are about to end decoding of an operation batch. Note that $f_{sgc}$ flag is mutually exclusive with $f_{span}$, $f_{respan}$, and $f_{push}$ flags as these three operations decrement the group count.
+$op$ is just an opcode value implied by the values in `op_bits` registers. $f_{sgc}$ is a flag which is set to $1$ when the group count within a *span* block does not change. We multiply it by $sp'$ to make sure the flag is $0$ when we are about to end decoding of an operation batch. Note that $f_{sgc}$ flag is mutually exclusive with $f_{span}$, $f_{respan}$, and $f_{imm}$ flags as these three operations decrement the group count.
 
 Using these variables, we can describe operation group decoding constraints as follows:
 
-When a `SPAN`, a `RESPAN`, or a `PUSH` operation is executed or when the group count does not change, the value in $h_0$ should be decremented by the value of the opcode in the next row.
+When a `SPAN`, a `RESPAN`, or an operation with an immediate value is executed or when the group count does not change, the value in $h_0$ should be decremented by the value of the opcode in the next row.
 
 > $$
-(f_{span} + f_{respan} + f_{push} + f_{sgc}) \cdot (h_0 - h_0' \cdot 2^7 - op') = 0 \text{ | degree} = 6
+(f_{span} + f_{respan} + f_{imm} + f_{sgc}) \cdot (h_0 - h_0' \cdot 2^7 - op') = 0 \text{ | degree} = 6
 $$
 
-Notice that when the group count does change, and we are not executing $f_{span}$, $f_{respan}$, or $f_{push}$ operations, no constraints are placed against $h_0$, and thus, the prover can populate this register non-deterministically.
+Notice that when the group count does change, and we are not executing $f_{span}$, $f_{respan}$, or $f_{imm}$ operations, no constraints are placed against $h_0$, and thus, the prover can populate this register non-deterministically.
 
 When we are in a *span* block and the next operation is `END` or `RESPAN`, the current value in $h_0$ column must be $0$.
 
@@ -491,11 +491,11 @@ The `op_index` column (denoted as $ox$) tracks index of an operation within its 
 To simplify the description of the constraints, we will define the following variables:
 
 $$
-ng = \Delta gc - f_{push} \\
+ng = \Delta gc - f_{imm} \\
 \Delta ox = ox' - ox
 $$
 
-The value of $ng$ is set to $1$ when we are about to start executing a new operation group (i.e., group count is decremented but we did not execute a `PUSH` operation). Using these variables, we can describe the constraints against the $ox$ column as follows.
+The value of $ng$ is set to $1$ when we are about to start executing a new operation group (i.e., group count is decremented but we did not execute an operation with an immediate value). Using these variables, we can describe the constraints against the $ox$ column as follows.
 
 When executing `SPAN` or `RESPAN` operations the next value of `op_index` must be set to $0$:
 
@@ -590,10 +590,10 @@ Where $i \in [1, 8)$. Thus, $v_1$ defines row value for group in $h_1$, $v_2$ de
 We compute the value of the row to be removed from the op group table as follows:
 
 $$
-u = \alpha_0 + \alpha_1 \cdot a + \alpha_2 \cdot gc + \alpha_3 \cdot ((h_0' \cdot 2^7 + op') \cdot (1 - f_{push}) + s_0' \cdot f_{push}) \text{ | degree} = 5
+u = \alpha_0 + \alpha_1 \cdot a + \alpha_2 \cdot gc + \alpha_3 \cdot ((h_0' \cdot 2^7 + op') \cdot (1 - f_{imm}) + s_0' \cdot f_{push} + h_2 \cdot f_{emit}) \text{ | degree} = 6
 $$
 
-In the above, the value of the group is computed as $(h_0' \cdot 2^7 + op') \cdot (1 - f_{push}) + s_0' \cdot f_{push}$. This basically says that when we execute a `PUSH` operation we need to remove the immediate value from the table. This value is at the top of the stack (column $s_0$) in the next row. However, when we are not executing a `PUSH` operation, the value to be removed is an op group value which is a combination of values in $h_0$ and `op_bits` columns (also in the next row). Note also that value for batch address comes from the current value in the block address column ($a$), and the group position comes from the current value of the group count column ($gc$).
+In the above, the value of the group is computed as $(h_0' \cdot 2^7 + op') \cdot (1 - f_{push}) + s_0' \cdot f_{push} + h_2 \cdot f_{emit}$. This basically says that when we execute a `PUSH` or `EMIT` operation we need to remove the immediate value from the table. For `PUSH`, this value is at the top of the stack (column $s_0$) in the next row; for `EMIT`, it is found in $h_2$. However, when we are executing neither a `PUSH` nor `EMIT` operation, the value to be removed is an op group value which is a combination of values in $h_0$ and `op_bits` columns (also in the next row). Note also that value for batch address comes from the current value in the block address column ($a$), and the group position comes from the current value of the group count column ($gc$).
 
 We also define a flag which is set to $1$ when a group needs to be removed from the op group table.
 

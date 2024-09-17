@@ -294,3 +294,13 @@ $$
 $$
 f_{ctrl} = f_{span,join,split,loop} + f_{end,repeat,respan,halt} + f_{dyn} + f_{call} + f_{syscall} \text{ | degree} = 5
 $$
+
+### Immediate value flag
+
+The immediate value flag $f_{imm}$ is set to 1 when an operation has an immediate value, and 0 otherwise:
+
+$$
+f_{imm} = f_{push} + f_{emit} \text{ | degree} = 5
+$$
+
+Note that the `ASSERT`, `MPVERIFY` and other operations have immediate values too. However, these immediate values are not included in the MAST digest, and hence are not considered for the $f_{imm}$ flag.
