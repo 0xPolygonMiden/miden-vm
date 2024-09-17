@@ -547,6 +547,12 @@ When `SPAN` or `RESPAN` operations is executed, one of the batch flags must be s
 (f_{span} + f_{respan}) - (f_{g1} + f_{g2} + f_{g4} + f_{g8}) = 0 \text{ | degree} = 5
 $$
 
+When neither `SPAN` nor `RESPAN` is executed, all batch flags must be set to $0$.
+
+$$
+(1 - (f_{span} + f_{respan})) \cdot (bc_0 + bc_1 + bc_2) = 0 \text{ | degree} = 6
+$$
+
 When we have at most 4 groups in a batch, registers $h_4, ..., h_7$ should be set to $0$'s.
 
 > $$
@@ -592,7 +598,7 @@ In the above, the value of the group is computed as $(h_0' \cdot 2^7 + op') \cdo
 We also define a flag which is set to $1$ when a group needs to be removed from the op group table.
 
 $$
-f_{dg} = sp \cdot \Delta gc
+f_{dg} = sp \cdot \Delta gc \text{ | degree} = 2
 $$
 
 The above says that we remove groups from the op group table whenever group count is decremented. We multiply by $sp$ to exclude the cases when the group count is decremented due to `SPAN` or `RESPAN` operations.
@@ -600,12 +606,12 @@ The above says that we remove groups from the op group table whenever group coun
 Using the above variables together with flags $f_{g2}$, $f_{g4}$, $f_{g8}$ defined in the previous section, we describe the constraint for updating op group table as follows (note that we do not use $f_{g1}$ flag as when a batch consists of a single group, nothing is added to the op group table):
 
 > $$
-p_3' \cdot (f_{dg} \cdot u + 1 - f_{dg}) = p_3 \cdot (f_{g2} \cdot v_1 + f_{g4} \cdot \prod_{i=1}^3 v_i + f_{g8} \cdot \prod_{i=1}^7 v_i - 1 + (f_{span} + f_{respan}))
+p_3' \cdot (f_{dg} \cdot u + 1 - f_{dg}) = p_3 \cdot (f_{g2} \cdot v_1 + f_{g4} \cdot \prod_{i=1}^3 v_i + f_{g8} \cdot (\prod_{i=1}^7 v_i) + 1 - (f_{span} + f_{respan}))
 $$
 
 The above constraint specifies that:
-* When `SPAN` or `RESPAN` operations are executed, we add between $1$ and $7$ groups to the op group table.
-* When group count is decremented inside a *span* block, we remove a group from the op group table.
+* When `SPAN` or `RESPAN` operations are executed, we add between $1$ and $7$ groups to the op group table; else, leave $p3$ untouched.
+* When group count is decremented inside a *span* block, we remove a group from the op group table; else, leave $p3'$ untouched.
 
 The degree of this constraint is $9$.
 
