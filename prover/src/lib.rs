@@ -22,8 +22,8 @@ use processor::{
 use tracing::instrument;
 use winter_prover::{
     crypto::MerkleTree as MerkleTreeVC, matrix::ColMatrix, ConstraintCompositionCoefficients,
-    DefaultConstraintEvaluator, DefaultTraceLde, ProofOptions as WinterProofOptions, Prover,
-    StarkDomain, TraceInfo, TracePolyTable,
+    DefaultTraceLde, LogUpGkrConstraintEvaluator,
+    ProofOptions as WinterProofOptions, Prover, StarkDomain, TraceInfo, TracePolyTable,
 };
 #[cfg(feature = "std")]
 use {std::time::Instant, winter_prover::Trace};
@@ -186,7 +186,7 @@ where
     type RandomCoin = R;
     type TraceLde<E: FieldElement<BaseField = Felt>> = DefaultTraceLde<E, H, Self::VC>;
     type ConstraintEvaluator<'a, E: FieldElement<BaseField = Felt>> =
-        DefaultConstraintEvaluator<'a, ProcessorAir, E>;
+        LogUpGkrConstraintEvaluator<'a, ProcessorAir, E>;
 
     type VC = MerkleTreeVC<Self::HashFn>;
 
@@ -224,7 +224,11 @@ where
         aux_rand_elements: Option<AuxRandElements<E>>,
         composition_coefficients: ConstraintCompositionCoefficients<E>,
     ) -> Self::ConstraintEvaluator<'a, E> {
-        DefaultConstraintEvaluator::new(air, aux_rand_elements, composition_coefficients)
+        LogUpGkrConstraintEvaluator::new(
+            air,
+            aux_rand_elements.expect("should contain randomness"),
+            composition_coefficients,
+        )
     }
 
     fn build_aux_trace<E>(&self, trace: &Self::Trace, aux_rand_elements: &[E]) -> ColMatrix<E>
