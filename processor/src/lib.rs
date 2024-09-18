@@ -591,9 +591,6 @@ where
                     self.decoder.append_asmop(self.system.clk(), assembly_op.clone());
                 }
             },
-            Decorator::Event(id) => {
-                self.host.borrow_mut().on_event(self, *id)?;
-            },
             Decorator::Trace(id) => {
                 if self.enable_tracing {
                     self.host.borrow_mut().on_trace(self, *id)?;

@@ -92,8 +92,7 @@ fn basic_block_one_group() {
 
 #[test]
 fn basic_block_small() {
-    let iv = [ONE, TWO];
-    let ops = vec![Operation::Push(iv[0]), Operation::Push(iv[1]), Operation::Add];
+    let ops = vec![Operation::Push(ONE), Operation::Emit(1), Operation::Add];
     let basic_block = BasicBlockNode::new(ops.clone(), None).unwrap();
     let program = {
         let mut mast_forest = MastForest::new();
@@ -109,8 +108,8 @@ fn basic_block_small() {
 
     // --- check block address, op_bits, group count, op_index, and in_span columns ---------------
     check_op_decoding(&trace, 0, ZERO, Operation::Span, 4, 0, 0);
-    check_op_decoding(&trace, 1, INIT_ADDR, Operation::Push(iv[0]), 3, 0, 1);
-    check_op_decoding(&trace, 2, INIT_ADDR, Operation::Push(iv[1]), 2, 1, 1);
+    check_op_decoding(&trace, 1, INIT_ADDR, Operation::Push(ONE), 3, 0, 1);
+    check_op_decoding(&trace, 2, INIT_ADDR, Operation::Emit(1), 2, 1, 1);
     check_op_decoding(&trace, 3, INIT_ADDR, Operation::Add, 1, 2, 1);
     // starting new group: NOOP group is inserted by the processor to make sure number of groups
     // is a power of two
@@ -125,7 +124,8 @@ fn basic_block_small() {
         vec![
             basic_block.op_batches()[0].groups().to_vec(),
             vec![build_op_group(&ops[1..])],
-            vec![build_op_group(&ops[2..])],
+            // emit(1)
+            vec![build_op_group(&ops[2..]), ZERO, ONE],
             vec![],
             vec![],
             program_hash.to_vec(), // last row should contain program hash

@@ -41,6 +41,7 @@ where
             Operation::Caller => self.op_caller()?,
 
             Operation::Clk => self.op_clk()?,
+            Operation::Emit(event_id) => self.op_emit(event_id)?,
 
             // ----- flow control operations ------------------------------------------------------
             // control flow operations are never executed directly
