@@ -23,7 +23,8 @@ AIR constraints for the decoder involve operations listed in the table below. Fo
 | `SYSCALL` | $f_{syscall}$ | 4      | Stack remains unchanged.                                                                         |
 | `END`     | $f_{end}$     | 4      | When exiting a loop block, top stack element is dropped; otherwise, the stack remains unchanged. |
 | `HALT`    | $f_{halt}$    | 4      | Stack remains unchanged.                                                                         |
-| `PUSH`    | $f_{push}$    | 4      | An immediate value is pushed onto the stack.                                                     |
+| `PUSH`    | $f_{push}$    | 5      | An immediate value is pushed onto the stack.                                                     |
+| `EMIT`    | $f_{emit}$    | 5      | Stack remains unchanged.                                                                         |
 
 We also use the [control flow flag](../stack/op_constraints.md#control-flow-flag) $f_{ctrl}$ exposed by the VM, which is set when any one of the above control flow operations is being executed. It has degree $5$.
 
@@ -404,9 +405,9 @@ In the beginning of a span block (i.e., when `SPAN` operation is executed), the 
 The rules for decrementing values in the $gc$ column are as follows:
 * The count cannot be decremented by more than $1$ in a single row.
 * When an operation group is fully executed (which happens when $h_0 = 0$ inside a span block), the count is decremented by $1$.
-* When `SPAN`, `RESPAN`, or `PUSH` operations are executed, the count is decremented by $1$.
+* When `SPAN`, `RESPAN`, `EMIT` or `PUSH` operations are executed, the count is decremented by $1$.
 
-Note that these rules imply that `PUSH` operation cannot be the last operation in an operation group (otherwise the count would have to be decremented by $2$).
+Note that these rules imply that the `EMIT` and `PUSH` operations cannot be the last operation in an operation group (otherwise the count would have to be decremented by $2$).
 
 To simplify the description of the constraints, we will define the following variable:
 
@@ -425,7 +426,7 @@ $$
 When group count is decremented inside a *span* block, either $h_0$ must be $0$ (we consumed all operations in a group) or we must be executing an operation with an immediate value:
 
 > $$
-sp \cdot \Delta gc \cdot (1 - f_{imm})\cdot h_0 = 0 \text{ | degree} = 8
+sp \cdot \Delta gc \cdot (1 - f_{imm})\cdot h_0 = 0 \text{ | degree} = 7
 $$
 
 Notice that the above constraint does not preclude $f_{imm} = 1$ and $h_0 = 0$ from being true at the same time. If this happens, op group decoding constraints (described [here](#op-group-decoding-constraints)) will force that the operation following the operation with an immediate value is a `NOOP`.

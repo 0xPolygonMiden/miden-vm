@@ -110,9 +110,10 @@ pub(super) mod opcode_constants {
     pub const OPCODE_DYN: u8        = 0b0101_1000;
     pub const OPCODE_RCOMBBASE: u8  = 0b0101_1001;
     pub const OPCODE_EMIT: u8       = 0b0101_1010;
+    pub const OPCODE_PUSH: u8       = 0b0101_1011;
 
     pub const OPCODE_MRUPDATE: u8   = 0b0110_0000;
-    pub const OPCODE_PUSH: u8       = 0b0110_0100;
+    /* unused:                        0b0110_0100 */
     pub const OPCODE_SYSCALL: u8    = 0b0110_1000;
     pub const OPCODE_CALL: u8       = 0b0110_1100;
     pub const OPCODE_END: u8        = 0b0111_0000;

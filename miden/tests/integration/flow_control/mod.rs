@@ -347,12 +347,12 @@ fn simple_dyncall() {
             dyncall
         end";
 
-    // The hash of foo can be obtained from the code block table by:
-    // let program = test.compile();
-    // let cb_table = program.cb_table();
-    // Result:
-    //   [BaseElement(3961142802598954486), BaseElement(5305628994393606376),
-    //    BaseElement(7971171833137344204), BaseElement(10465350313512331391)]
+    // The hash of foo can be obtained with:
+    // let context = TestContext::new();
+    // let program = context.assemble(program_source).unwrap();
+    // let procedure_digests: Vec<Digest> = program.mast_forest().procedure_digests().collect();
+    // let foo_digest = procedure_digests[0];
+    //
     // Integer values can be obtained via Felt::from_mont(14592192105906586403).as_int(), etc.
     // As ints:
     //   [8324248212344458853, 17691992706129158519, 18131640149172243086, 16129275750103409835]

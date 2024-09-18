@@ -1180,7 +1180,7 @@ fn decorators_external() -> TestResult {
     let expected = "\
 begin
     trace(0)
-    external.0x178d0a56b911f3eb23bbf18fb9f130130ba0c5d321e420610f64bb41790ca070
+    external.0xe776df8dc02329acc43a09fe8e510b44a87dfd876e375ad383891470ece4f6de
     trace(1)
 end";
     let program = Assembler::new(context.source_manager())
