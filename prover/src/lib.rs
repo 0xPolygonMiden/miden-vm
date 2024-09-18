@@ -22,8 +22,8 @@ use processor::{
 use tracing::instrument;
 use winter_prover::{
     crypto::MerkleTree as MerkleTreeVC, matrix::ColMatrix, ConstraintCompositionCoefficients,
-    DefaultTraceLde, LogUpGkrConstraintEvaluator,
-    ProofOptions as WinterProofOptions, Prover, StarkDomain, TraceInfo, TracePolyTable,
+    DefaultTraceLde, LogUpGkrConstraintEvaluator, ProofOptions as WinterProofOptions, Prover,
+    StarkDomain, TraceInfo, TracePolyTable,
 };
 #[cfg(feature = "std")]
 use {std::time::Instant, winter_prover::Trace};
