@@ -1,5 +1,5 @@
 use super::*;
-use crate::{Decorator, ONE};
+use crate::{mast::MastForest, Decorator, ONE};
 
 #[test]
 fn batch_ops() {
@@ -295,24 +295,26 @@ fn batch_ops() {
 
 #[test]
 fn operation_or_decorator_iterator() {
+    let mut mast_forest = MastForest::new();
     let operations = vec![Operation::Add, Operation::Mul, Operation::MovDn2, Operation::MovDn3];
 
     // Note: there are 2 decorators after the last instruction
     let decorators = vec![
-        (0, Decorator::Event(0)),
-        (0, Decorator::Event(1)),
-        (3, Decorator::Event(2)),
-        (4, Decorator::Event(3)),
-        (4, Decorator::Event(4)),
+        (0, Decorator::Trace(0)), // ID: 0
+        (0, Decorator::Trace(1)), // ID: 1
+        (3, Decorator::Trace(2)), // ID: 2
+        (4, Decorator::Trace(3)), // ID: 3
+        (4, Decorator::Trace(4)), // ID: 4
     ];
 
-    let node = BasicBlockNode::new(operations, Some(decorators)).unwrap();
+    let node =
+        BasicBlockNode::new_with_raw_decorators(operations, decorators, &mut mast_forest).unwrap();
 
     let mut iterator = node.iter();
 
     // operation index 0
-    assert_eq!(iterator.next(), Some(OperationOrDecorator::Decorator(&Decorator::Event(0))));
-    assert_eq!(iterator.next(), Some(OperationOrDecorator::Decorator(&Decorator::Event(1))));
+    assert_eq!(iterator.next(), Some(OperationOrDecorator::Decorator(&DecoratorId(0))));
+    assert_eq!(iterator.next(), Some(OperationOrDecorator::Decorator(&DecoratorId(1))));
     assert_eq!(iterator.next(), Some(OperationOrDecorator::Operation(&Operation::Add)));
 
     // operations indices 1, 2
@@ -320,12 +322,12 @@ fn operation_or_decorator_iterator() {
     assert_eq!(iterator.next(), Some(OperationOrDecorator::Operation(&Operation::MovDn2)));
 
     // operation index 3
-    assert_eq!(iterator.next(), Some(OperationOrDecorator::Decorator(&Decorator::Event(2))));
+    assert_eq!(iterator.next(), Some(OperationOrDecorator::Decorator(&DecoratorId(2))));
     assert_eq!(iterator.next(), Some(OperationOrDecorator::Operation(&Operation::MovDn3)));
 
     // after last operation
-    assert_eq!(iterator.next(), Some(OperationOrDecorator::Decorator(&Decorator::Event(3))));
-    assert_eq!(iterator.next(), Some(OperationOrDecorator::Decorator(&Decorator::Event(4))));
+    assert_eq!(iterator.next(), Some(OperationOrDecorator::Decorator(&DecoratorId(3))));
+    assert_eq!(iterator.next(), Some(OperationOrDecorator::Decorator(&DecoratorId(4))));
     assert_eq!(iterator.next(), None);
 }
 
