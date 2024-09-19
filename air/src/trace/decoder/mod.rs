@@ -97,10 +97,15 @@ pub const P1_COL_IDX: usize = DECODER_AUX_TRACE_OFFSET;
 /// Running product column representing block hash table
 pub const P2_COL_IDX: usize = DECODER_AUX_TRACE_OFFSET + 1;
 
-/// Running product column representing op group table.
-pub const P3_COL_IDX: usize = DECODER_AUX_TRACE_OFFSET + 2;
-
 // --- GLOBALLY-INDEXED DECODER COLUMN ACCESSORS --------------------------------------------------
+pub const DECODER_ADDR_COL_IDX: usize = super::DECODER_TRACE_OFFSET + ADDR_COL_IDX;
 pub const DECODER_OP_BITS_OFFSET: usize = super::DECODER_TRACE_OFFSET + OP_BITS_OFFSET;
+pub const DECODER_HASHER_STATE_OFFSET: usize = super::DECODER_TRACE_OFFSET + HASHER_STATE_OFFSET;
 pub const DECODER_USER_OP_HELPERS_OFFSET: usize =
     super::DECODER_TRACE_OFFSET + USER_OP_HELPERS_OFFSET;
+pub const DECODER_IN_SPAN_COL_IDX: usize = super::DECODER_TRACE_OFFSET + IN_SPAN_COL_IDX;
+pub const DECODER_GROUP_COUNT_COL_IDX: usize = super::DECODER_TRACE_OFFSET + GROUP_COUNT_COL_IDX;
+pub const DECODER_OP_BATCH_FLAGS_OFFSET: usize =
+    super::DECODER_TRACE_OFFSET + OP_BATCH_FLAGS_OFFSET;
+pub const DECODER_OP_BITS_EXTRA_COLS_OFFSET: usize =
+    super::DECODER_TRACE_OFFSET + OP_BITS_EXTRA_COLS_OFFSET;

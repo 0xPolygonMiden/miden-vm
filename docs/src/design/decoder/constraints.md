@@ -534,9 +534,9 @@ Operation batch flag columns (denoted $bc_0$, $bc_1$, and $bc_2$) are used to sp
 These columns are used to define the following 4 flags:
 
 * $f_{g8} = bc_0$: there are 8 operation groups in the batch.
-* $f_{g4} = (1 - bc_0) \cdot bc_1 \cdot bc_2$:  there are 4 operation groups in the batch.
+* $f_{g4} = (1 - bc_0) \cdot bc_1 \cdot (1 - bc_2)$:  there are 4 operation groups in the batch.
 * $f_{g2} = (1 - bc_0) \cdot (1 - bc_1) \cdot bc_2$: there are 2 operation groups in the batch.
-* $f_{g1} = (1 - bc_0) \cdot bc_1 \cdot (1 - bc_2)$: there is only 1 operation groups in the batch.
+* $f_{g1} = (1 - bc_0) \cdot bc_1 \cdot bc_2$: there is only 1 operation groups in the batch.
 
 Notice that the degree of $f_{g8}$ is $1$, while the degree of the remaining flags is $3$.
 

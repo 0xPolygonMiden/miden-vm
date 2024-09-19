@@ -2756,7 +2756,7 @@ dependencies = [
 [[package]]
 name = "winter-air"
 version = "0.9.0"
-source = "git+https://github.com/facebook/winterfell?branch=logup-gkr#8b95c8a10f05686db785e67ed0d3b467611e7066"
+source = "git+https://github.com/facebook/winterfell?branch=logup-gkr#3d095e56f8559dd7a57c3d60c7319801d88a4429"
 dependencies = [
  "libm",
  "winter-crypto 0.9.0 (git+https://github.com/facebook/winterfell?branch=logup-gkr)",
@@ -2780,7 +2780,7 @@ dependencies = [
 [[package]]
 name = "winter-crypto"
 version = "0.9.0"
-source = "git+https://github.com/facebook/winterfell?branch=logup-gkr#8b95c8a10f05686db785e67ed0d3b467611e7066"
+source = "git+https://github.com/facebook/winterfell?branch=logup-gkr#3d095e56f8559dd7a57c3d60c7319801d88a4429"
 dependencies = [
  "blake3",
  "sha3",
@@ -2802,7 +2802,7 @@ dependencies = [
 [[package]]
 name = "winter-fri"
 version = "0.9.0"
-source = "git+https://github.com/facebook/winterfell?branch=logup-gkr#8b95c8a10f05686db785e67ed0d3b467611e7066"
+source = "git+https://github.com/facebook/winterfell?branch=logup-gkr#3d095e56f8559dd7a57c3d60c7319801d88a4429"
 dependencies = [
  "winter-crypto 0.9.0 (git+https://github.com/facebook/winterfell?branch=logup-gkr)",
  "winter-math 0.9.0 (git+https://github.com/facebook/winterfell?branch=logup-gkr)",
@@ -2821,7 +2821,7 @@ dependencies = [
 [[package]]
 name = "winter-math"
 version = "0.9.0"
-source = "git+https://github.com/facebook/winterfell?branch=logup-gkr#8b95c8a10f05686db785e67ed0d3b467611e7066"
+source = "git+https://github.com/facebook/winterfell?branch=logup-gkr#3d095e56f8559dd7a57c3d60c7319801d88a4429"
 dependencies = [
  "winter-utils 0.9.1",
 ]
@@ -2829,7 +2829,7 @@ dependencies = [
 [[package]]
 name = "winter-maybe-async"
 version = "0.10.0"
-source = "git+https://github.com/facebook/winterfell?branch=logup-gkr#8b95c8a10f05686db785e67ed0d3b467611e7066"
+source = "git+https://github.com/facebook/winterfell?branch=logup-gkr#3d095e56f8559dd7a57c3d60c7319801d88a4429"
 dependencies = [
  "quote",
  "syn",
@@ -2838,7 +2838,7 @@ dependencies = [
 [[package]]
 name = "winter-prover"
 version = "0.9.0"
-source = "git+https://github.com/facebook/winterfell?branch=logup-gkr#8b95c8a10f05686db785e67ed0d3b467611e7066"
+source = "git+https://github.com/facebook/winterfell?branch=logup-gkr#3d095e56f8559dd7a57c3d60c7319801d88a4429"
 dependencies = [
  "thiserror 1.0.59",
  "tracing",
@@ -2854,7 +2854,7 @@ dependencies = [
 [[package]]
 name = "winter-rand-utils"
 version = "0.9.0"
-source = "git+https://github.com/facebook/winterfell?branch=logup-gkr#8b95c8a10f05686db785e67ed0d3b467611e7066"
+source = "git+https://github.com/facebook/winterfell?branch=logup-gkr#3d095e56f8559dd7a57c3d60c7319801d88a4429"
 dependencies = [
  "rand",
  "winter-utils 0.9.1",
@@ -2863,7 +2863,7 @@ dependencies = [
 [[package]]
 name = "winter-sumcheck"
 version = "0.1.0"
-source = "git+https://github.com/facebook/winterfell?branch=logup-gkr#8b95c8a10f05686db785e67ed0d3b467611e7066"
+source = "git+https://github.com/facebook/winterfell?branch=logup-gkr#3d095e56f8559dd7a57c3d60c7319801d88a4429"
 dependencies = [
  "smallvec",
  "thiserror 1.0.59",
@@ -2876,7 +2876,7 @@ dependencies = [
 [[package]]
 name = "winter-utils"
 version = "0.9.1"
-source = "git+https://github.com/facebook/winterfell?branch=logup-gkr#8b95c8a10f05686db785e67ed0d3b467611e7066"
+source = "git+https://github.com/facebook/winterfell?branch=logup-gkr#3d095e56f8559dd7a57c3d60c7319801d88a4429"
 dependencies = [
  "rayon",
 ]
@@ -2890,7 +2890,7 @@ checksum = "c3d71ec2c97685c7e7460a30e27f955d26b8426e7c2db0ddb55a6e0537141f53"
 [[package]]
 name = "winter-verifier"
 version = "0.9.0"
-source = "git+https://github.com/facebook/winterfell?branch=logup-gkr#8b95c8a10f05686db785e67ed0d3b467611e7066"
+source = "git+https://github.com/facebook/winterfell?branch=logup-gkr#3d095e56f8559dd7a57c3d60c7319801d88a4429"
 dependencies = [
  "thiserror 1.0.59",
  "winter-air",
