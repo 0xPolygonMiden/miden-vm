@@ -19,7 +19,7 @@ pub struct VerifyCmd {
     #[clap(short = 'p', long = "proof", value_parser)]
     proof_file: PathBuf,
     /// Program hash (hex)
-    #[clap(short = 'h', long = "program-hash")]
+    #[clap(short = 'x', long = "program-hash")]
     program_hash: String,
 }
 
