@@ -33,7 +33,7 @@ regex = { version = "1.10", optional = true, default-features = false, features 
 smallvec = { version = "1.13", features = ["union", "const_generics", "const_new"] }
 thiserror = { package = "miden-thiserror", version = "1.0", default-features = false }
 tracing = { version = "0.1", default-features = false, features = ["attributes"] }
-unicode-width = { version = "0.1", features = ["no_std"] }
+unicode-width = { version = "0.2", features = ["no_std"] }
 vm-core = { package = "miden-core", path = "../core", version = "0.10", default-features = false, features = [
     "diagnostics",
 ] }
