@@ -323,9 +323,12 @@ end
 <ol>
 <li>Pops the top item from the stack.</li>
 <li>If the value of the item is <span class="katex"><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.6444em;"></span><span class="mord">1</span></span></span></span>, <code>instructions</code> in the loop body are executed.
-a. After the body is executed, the stack is popped again, and if the popped value is <span class="katex"><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.6444em;"></span><span class="mord">1</span></span></span></span>, the body is executed again.
-b. If the popped value is <span class="katex"><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.6444em;"></span><span class="mord">0</span></span></span></span>, the loop is exited.
-c. If the popped value is not binary, the execution fails.</li>
+<ol>
+<li>After the body is executed, the stack is popped again, and if the popped value is <span class="katex"><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.6444em;"></span><span class="mord">1</span></span></span></span>, the body is executed again.</li>
+<li>If the popped value is <span class="katex"><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.6444em;"></span><span class="mord">0</span></span></span></span>, the loop is exited.</li>
+<li>If the popped value is not binary, the execution fails.</li>
+</ol>
+</li>
 <li>If the value of the item is <span class="katex"><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.6444em;"></span><span class="mord">0</span></span></span></span>, execution of loop body is skipped.</li>
 <li>If the value is not binary, the execution fails.</li>
 </ol>
