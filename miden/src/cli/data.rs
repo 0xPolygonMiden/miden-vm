@@ -42,6 +42,15 @@ impl Debug {
     }
 }
 
+impl From<bool> for Debug {
+    fn from(value: bool) -> Self {
+        match value {
+            true => Debug::On,
+            false => Debug::Off,
+        }
+    }
+}
+
 // MERKLE DATA
 // ================================================================================================
 
@@ -625,5 +634,22 @@ mod test {
         let inputs: InputFile = serde_json::from_str(program_with_merkle_tree).unwrap();
         let merkle_store = inputs.parse_merkle_store().unwrap();
         assert!(merkle_store.is_some());
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_debug_from_true() {
+        let debug_mode: Debug = true.into(); // true.into() will also test Debug.from(true)
+        assert!(matches!(debug_mode, Debug::On));
+    }
+
+    #[test]
+    fn test_debug_from_false() {
+        let debug_mode: Debug = false.into(); // false.into() will also test Debug.from(false)
+        assert!(matches!(debug_mode, Debug::Off));
     }
 }
