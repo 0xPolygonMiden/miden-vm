@@ -19,7 +19,7 @@ use crate::{gpu::cuda::CudaExecutionProver, *};
 fn build_trace_commitment_on_gpu_with_padding_matches_cpu<
     R: RandomCoin<BaseField = Felt, Hasher = H> + Send,
     H: ElementHasher<BaseField = Felt> + Hasher<Digest = D> + Send + Sync,
-    D: Digest + for<'a> From<&'a [Felt; DIGEST_SIZE]>,
+    D: Digest + From<[Felt; DIGEST_SIZE]>,
 >(
     hash_fn: HashFn,
 ) {
@@ -28,7 +28,7 @@ fn build_trace_commitment_on_gpu_with_padding_matches_cpu<
     let cpu_prover = create_test_prover::<R, H>(is_rpx);
     let gpu_prover = CudaExecutionProver::new(create_test_prover::<R, H>(is_rpx), hash_fn);
     let num_rows = 1 << 8;
-    let trace_info = get_trace_info(9, num_rows);
+    let trace_info = get_trace_info(1, num_rows);
     let trace = gen_random_trace(num_rows, RATE + 1);
     let domain = StarkDomain::from_twiddles(fft::get_twiddles(num_rows), 8, Felt::GENERATOR);
 
@@ -48,7 +48,7 @@ fn build_trace_commitment_on_gpu_with_padding_matches_cpu<
 fn build_trace_commitment_on_gpu_without_padding_matches_cpu<
     R: RandomCoin<BaseField = Felt, Hasher = H> + Send,
     H: ElementHasher<BaseField = Felt> + Hasher<Digest = D> + Send + Sync,
-    D: Digest + for<'a> From<&'a [Felt; DIGEST_SIZE]>,
+    D: Digest + From<[Felt; DIGEST_SIZE]>,
 >(
     hash_fn: HashFn,
 ) {
@@ -77,7 +77,7 @@ fn build_trace_commitment_on_gpu_without_padding_matches_cpu<
 fn build_constraint_commitment_on_gpu_with_padding_matches_cpu<
     R: RandomCoin<BaseField = Felt, Hasher = H> + Send,
     H: ElementHasher<BaseField = Felt> + Hasher<Digest = D> + Send + Sync,
-    D: Digest + for<'a> From<&'a [Felt; DIGEST_SIZE]>,
+    D: Digest + From<[Felt; DIGEST_SIZE]>,
 >(
     hash_fn: HashFn,
 ) {
@@ -106,7 +106,7 @@ fn build_constraint_commitment_on_gpu_with_padding_matches_cpu<
 fn build_constraint_commitment_on_gpu_without_padding_matches_cpu<
     R: RandomCoin<BaseField = Felt, Hasher = H> + Send,
     H: ElementHasher<BaseField = Felt> + Hasher<Digest = D> + Send + Sync,
-    D: Digest + for<'a> From<&'a [Felt; DIGEST_SIZE]>,
+    D: Digest + From<[Felt; DIGEST_SIZE]>,
 >(
     hash_fn: HashFn,
 ) {
