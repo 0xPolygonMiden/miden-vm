@@ -287,10 +287,10 @@ Graphically, this looks like so:
 In a similar manner, we define a value representing the result of hash computation as follows:
 
 $$
-bh = \alpha_0 + \alpha_1 \cdot a + \sum_{i=0}^3(\alpha_{i+2} \cdot h_i) + \alpha_7 \cdot h_4 \text{ | degree} = 1
+bh = \alpha_0 + \alpha_1 \cdot a' + \sum_{i=0}^3(\alpha_{i+2} \cdot h_i) + \alpha_7 \cdot f_{is\_loop\_body} \text{ | degree} = 1
 $$
 
-Note that in the above we use $a$ (block address from the current row) rather than $a'$ (block address from the next row) as we did for for values of $ch_1$ and $ch_2$. Also, note that we are not adding a flag indicating whether the block is the first child of a join block (i.e., $\alpha_6$ term is missing). It will be added later on.
+Above, $f_{is\_loop\_body}$ refers to the value in the `IS_LOOP_BODY` column (already constrained to be 0 or 1), located in $h_4$. Also, note that we are not adding a flag indicating whether the block is the first child of a join block (i.e., $\alpha_6$ term is missing). It will be added later on.
 
 Using the above variables, we define row values to be added to and removed from the block hash table as follows.
 
@@ -326,17 +326,23 @@ $$
 v_{dyn} = f_{dyn} \cdot ch_{dyn}  \text{ | degree} = 6
 $$
 
-When `END` operation is executed, hash of the completed block is removed from the block hash table. However, we also need to differentiate between removing the first and the second child of a *join* block. We do this by looking at the next operation. Specifically, if the next operation is neither `END` nor `REPEAT` we know that another block is about to be executed, and thus, we have just finished executing the first child of a *join* block. Thus, if the next operation is neither `END` nor `REPEAT` we need to set the term for $\alpha_6$ coefficient to $1$ as shown below:
+When the `CALL` or `SYSCALL` operation is executed, the hash of the callee is added to the block hash table.
 
 $$
-u_{end} = f_{end} \cdot (bh + \alpha_6 \cdot (1 - (f_{end}' + f_{repeat}'))) \text{ | } \text{degree} = 8
+v_{call\_or\_syscall} = (f_{call} + f_{syscall}) \cdot ch_1  \text{ | degree} = 5
+$$
+
+When `END` operation is executed, hash of the completed block is removed from the block hash table. However, we also need to differentiate between removing the first and the second child of a *join* block. We do this by looking at the next operation. Specifically, if the next operation is neither `END` nor `REPEAT` nor `HALT`, we know that another block is about to be executed, and thus, we have just finished executing the first child of a *join* block. Thus, if the next operation is neither `END` nor `REPEAT` nor `HALT` we need to set the term for $\alpha_6$ coefficient to $1$ as shown below:
+
+$$
+u_{end} = f_{end} \cdot (bh + \alpha_6 \cdot (1 - (f_{end}' + f_{repeat}' + f_{halt}'))) \text{ | } \text{degree} = 8
 $$
 
 Using the above definitions, we can describe the constraint for updating the block hash table as follows:
 
 > $$
 p_2' \cdot (u_{end} + 1 - f_{end}) = \\
-p_2 \cdot (v_{join} + v_{split} + v_{loop} + v_{repeat} + v_{dyn} + 1 - (f_{join} + f_{split} + f_{loop} + f_{repeat} + f_{dyn}))
+p_2 \cdot (v_{join} + v_{split} + v_{loop} + v_{repeat} + v_{dyn} + v_{call\_or\_syscall} + 1 - (f_{join} + f_{split} + f_{loop} + f_{repeat} + f_{dyn} + f_{call} + f_{syscall}))
 $$
 
 We need to add $1$ and subtract the sum of the relevant operation flags from each side to ensure that when none of the flags is set to $1$, the above constraint reduces to $p_2' = p_2$.

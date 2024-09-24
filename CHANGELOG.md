@@ -14,6 +14,7 @@
 #### Fixes
 
 - Fixed an issue with formatting of blocks in Miden Assembly syntax
+- Fixed the construction of the block hash table (#1506)
 
 #### Fixes
 
