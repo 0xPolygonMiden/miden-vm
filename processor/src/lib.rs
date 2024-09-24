@@ -584,7 +584,9 @@ where
                 self.host.borrow_mut().set_advice(self, *injector)?;
             },
             Decorator::Debug(options) => {
-                self.host.borrow_mut().on_debug(self, options)?;
+                if self.decoder.in_debug_mode() {
+                    self.host.borrow_mut().on_debug(self, options)?;
+                }
             },
             Decorator::AsmOp(assembly_op) => {
                 if self.decoder.in_debug_mode() {

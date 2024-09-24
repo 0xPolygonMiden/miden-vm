@@ -10,6 +10,10 @@
 - Updated `miden_core::utils` to re-export `std::sync::LazyLock` and `racy_lock::RacyLock as LazyLock` for std and no_std environments, respectively (#1463).
 - Made the undocumented behavior of the VM with regard to undefined behavior of u32 operations, stricter (#1480)
 - Introduced the `Emit` instruction (#1496)
+- Debug instructions can be enabled in the cli `run` command using `--debug` flag (#1502)
+- [BREAKING] ExecutionOptions::new constructor requires a boolean to explicitly set debug mode (#1502)
+- [BREAKING] The `run` and the `prove` commands in the cli will accept `--trace` flag instead of `--tracing` (#1502)
+
 
 #### Fixes
 
@@ -26,7 +30,6 @@
 #### Enhancements
 
 - Added `PartialEq`, `Eq`, `Serialize` and `Deserialize` to `AdviceMap` and `AdviceInputs` structs (#1494).
-
 
 ## 0.10.5 (2024-08-21)
 
