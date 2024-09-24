@@ -267,7 +267,7 @@
 <h3 id="controlling-parallelism"><a class="header" href="#controlling-parallelism">Controlling parallelism</a></h3>
 <p>Internally, Miden VM uses <a href="https://github.com/rayon-rs/rayon">rayon</a> for parallel computations. To control the number of threads used to generate a STARK proof, you can use <code>RAYON_NUM_THREADS</code> environment variable.</p>
 <h3 id="gpu-acceleration"><a class="header" href="#gpu-acceleration">GPU acceleration</a></h3>
-<p>Miden VM proof generation can be accelerated via GPUs. Currently, GPU acceleration is enabled only on Apple silicon hardware (via <a href="https://en.wikipedia.org/wiki/Metal_(API)">Metal</a>). To compile Miden VM with Metal acceleration enabled, you can run the following command:</p>
+<p>Miden VM proof generation can be accelerated via GPUs. Currently, GPU acceleration is enabled only on Apple Silicon hardware (via <a href="https://en.wikipedia.org/wiki/Metal_(API)">Metal</a>). To compile Miden VM with Metal acceleration enabled, you can run the following command:</p>
 <pre><code>make exec-metal
 </code></pre>
 <p>Similar to <code>make exec</code> command, this will place the resulting <code>miden</code> executable into the <code>./target/optimized</code> directory.</p>
@@ -295,7 +295,7 @@
 <li><code>debug</code> - this will instantiate a <a href="../tools/debugger.html">Miden debugger</a> against the specified Miden assembly program and inputs.</li>
 <li><code>analyze</code> - this will run a Miden assembly program against specific inputs and will output stats about its execution.</li>
 <li><code>repl</code> - this will initiate the <a href="../tools/repl.html">Miden REPL</a> tool.</li>
-<li><code>example</code> - this will execute a Miden assembly example program, generate a STARK proof of execution and verify it. Currently it is possible to run <code>blake3</code> and <code>fibonacci</code> examples.</li>
+<li><code>example</code> - this will execute a Miden assembly example program, generate a STARK proof of execution and verify it. Currently, it is possible to run <code>blake3</code> and <code>fibonacci</code> examples.</li>
 </ul>
 <p>All of the above subcommands require various parameters to be provided. To get more detailed help on what is needed for a given subcommand, you can run the following:</p>
 <pre><code>./target/optimized/miden [subcommand] --help
@@ -309,6 +309,10 @@
 <pre><code>MIDEN_LOG=trace ./target/optimized/miden [subcommand] [parameters]
 </code></pre>
 <p>If the level is not specified, <code>warn</code> level is set as default.</p>
+<h4 id="enable-debugging-features"><a class="header" href="#enable-debugging-features">Enable Debugging features</a></h4>
+<p>You can use the run command with <code>--debug</code> parameter to enable debugging with the <a href="../user_docs/assembly/debugging.html">debug instruction</a> such as <code>debug.stack</code>:</p>
+<pre><code class="language-shell">./target/optimized/miden run -a [path_to.masm] --debug
+</code></pre>
 <h3 id="inputs"><a class="header" href="#inputs">Inputs</a></h3>
 <p>As described <a href="https://0xpolygonmiden.github.io/miden-vm/intro/overview.html#inputs-and-outputs">here</a> the Miden VM can consume public and secret inputs.</p>
 <ul>
@@ -335,13 +339,19 @@
 <p>After a program finishes executing, the elements that remain on the stack become the outputs of the program, along with the overflow addresses (<code>overflow_addrs</code>) that are required to reconstruct the <a href="../design/stack/main.html#overflow-table">stack overflow table</a>.</p>
 <h2 id="fibonacci-example"><a class="header" href="#fibonacci-example">Fibonacci example</a></h2>
 <p>In the <code>miden/examples/fib</code> directory, we provide a very simple Fibonacci calculator example. This example computes the 1001st term of the Fibonacci sequence. You can execute this example on Miden VM like so:</p>
-<pre><code>./target/optimized/miden run -a miden/examples/fib/fib.masm -n 1
+<pre><code class="language-shell">./target/optimized/miden run -a miden/examples/fib/fib.masm -n 1
 </code></pre>
+<h3 id="capturing-output"><a class="header" href="#capturing-output">Capturing Output</a></h3>
 <p>This will run the example code to completion and will output the top element remaining on the stack.</p>
 <p>If you want the output of the program in a file, you can use the <code>--output</code> or <code>-o</code> flag and specify the path to the output file. For example:</p>
-<pre><code>./target/optimized/miden run -a miden/examples/fib/fib.masm -o fib.out
+<pre><code class="language-shell">./target/optimized/miden run -a miden/examples/fib/fib.masm -o fib.out
 </code></pre>
 <p>This will dump the output of the program into the <code>fib.out</code> file. The output file will contain the state of the stack at the end of the program execution.</p>
+<h3 id="running-with-debug-instruction-enabled"><a class="header" href="#running-with-debug-instruction-enabled">Running with debug instruction enabled</a></h3>
+<p>Inside <code>miden/examples/fib/fib.masm</code>, insert <code>debug.stack</code> instruction anywhere between <code>begin</code> and <code>end</code>. Then run:</p>
+<pre><code class="language-shell">./target/optimized/miden run -a miden/examples/fib/fib.masm -n 1 --debug
+</code></pre>
+<p>You should see output similar to "Stack state before step ..."</p>
 
                     </main>
 
