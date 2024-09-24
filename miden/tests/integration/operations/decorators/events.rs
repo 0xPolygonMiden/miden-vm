@@ -67,7 +67,8 @@ fn test_debug_with_debugging() {
     end";
 
     // compile and execute program
-    let program: Program = Assembler::default().with_debug_mode(true).assemble_program(source).unwrap();
+    let program: Program =
+        Assembler::default().with_debug_mode(true).assemble_program(source).unwrap();
     let mut host = TestHost::default();
     processor::execute(
         &program,

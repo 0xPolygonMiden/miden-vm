@@ -4,7 +4,7 @@ use assembly::diagnostics::{IntoDiagnostic, Report, WrapErr};
 use clap::Parser;
 use processor::{DefaultHost, ExecutionOptions, ExecutionTrace};
 
-use super::data::{instrument, Debug, InputFile, Libraries, OutputFile, ProgramFile};
+use super::data::{instrument, InputFile, Libraries, OutputFile, ProgramFile};
 
 #[derive(Debug, Clone, Parser)]
 #[clap(about = "Run a miden program")]
@@ -38,8 +38,8 @@ pub struct RunCmd {
     output_file: Option<PathBuf>,
 
     /// Enable tracing to monitor execution of the VM
-    #[clap(short = 't', long = "tracing")]
-    tracing: bool,
+    #[clap(short = 't', long = "trace")]
+    trace: bool,
 
     /// Enable debug instructions
     #[clap(short = 'd', long = "debug")]
@@ -111,7 +111,7 @@ fn run_program(params: &RunCmd) -> Result<(ExecutionTrace, [u8; 32]), Report> {
 
     // load program from file and compile
     let program = ProgramFile::read(&params.assembly_file)?
-        .compile(&Debug::from(params.debug), &libraries.libraries)?;
+        .compile(params.debug.into(), &libraries.libraries)?;
 
     // load input data from file
     let input_data = InputFile::read(&params.input_file, &params.assembly_file)?;
@@ -119,7 +119,7 @@ fn run_program(params: &RunCmd) -> Result<(ExecutionTrace, [u8; 32]), Report> {
     let execution_options = ExecutionOptions::new(
         Some(params.max_cycles),
         params.expected_cycles,
-        params.tracing,
+        params.trace,
         params.debug,
     )
     .into_diagnostic()?;
