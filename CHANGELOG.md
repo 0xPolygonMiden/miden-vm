@@ -11,7 +11,7 @@
 - Made the undocumented behavior of the VM with regard to undefined behavior of u32 operations, stricter (#1480)
 - Debug instructions can be enabled in the cli `run` command using `--debug` flag (#1502)
 - [BREAKING] ExecutionOptions::new constructor requires a boolean to explicitly set debug mode (#1502)
-- [BREAKING] The `run` command in the cli will accept `--trace` flag instead of `--tracing` (#1502)
+- [BREAKING] The `run` and the `prove` commands in the cli will accept `--trace` flag instead of `--tracing` (#1502)
 
 #### Fixes
 

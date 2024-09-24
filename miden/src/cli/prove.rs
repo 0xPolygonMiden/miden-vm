@@ -55,18 +55,14 @@ pub struct ProveCmd {
     security: String,
 
     /// Enable tracing to monitor execution of the VM
-    #[clap(short = 't', long = "tracing")]
-    tracing: bool,
+    #[clap(short = 't', long = "trace")]
+    trace: bool,
 }
 
 impl ProveCmd {
     pub fn get_proof_options(&self) -> Result<ProvingOptions, ExecutionOptionsError> {
-        let exec_options = ExecutionOptions::new(
-            Some(self.max_cycles),
-            self.expected_cycles,
-            self.tracing,
-            false,
-        )?;
+        let exec_options =
+            ExecutionOptions::new(Some(self.max_cycles), self.expected_cycles, self.trace, false)?;
         Ok(match self.security.as_str() {
             "96bits" => {
                 if self.rpx {
