@@ -41,6 +41,9 @@ impl AuxTraceBuilder {
         let p2 = block_hash_column_builder.build_aux_column(main_trace, rand_elements);
         let p3 = op_group_table_column_builder.build_aux_column(main_trace, rand_elements);
 
+        debug_assert_eq!(*p2.last().unwrap(), E::ONE);
+        debug_assert_eq!(*p3.last().unwrap(), E::ONE);
+
         vec![p1, p2, p3]
     }
 }
