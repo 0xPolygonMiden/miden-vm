@@ -28,8 +28,6 @@ use trace::DecoderTrace;
 
 mod aux_trace;
 pub use aux_trace::AuxTraceBuilder;
-#[cfg(test)]
-pub use aux_trace::BlockHashTableRow;
 
 mod block_stack;
 use block_stack::{BlockStack, BlockType, ExecutionContextInfo};

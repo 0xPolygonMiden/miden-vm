@@ -94,9 +94,6 @@ pub const IS_SYSCALL_FLAG_COL_IDX: usize = HASHER_STATE_RANGE.start + 7;
 /// Running product column representing block stack table.
 pub const P1_COL_IDX: usize = DECODER_AUX_TRACE_OFFSET;
 
-/// Running product column representing block hash table
-pub const P2_COL_IDX: usize = DECODER_AUX_TRACE_OFFSET + 1;
-
 // --- GLOBALLY-INDEXED DECODER COLUMN ACCESSORS --------------------------------------------------
 pub const DECODER_ADDR_COL_IDX: usize = super::DECODER_TRACE_OFFSET + ADDR_COL_IDX;
 pub const DECODER_OP_BITS_OFFSET: usize = super::DECODER_TRACE_OFFSET + OP_BITS_OFFSET;
@@ -109,3 +106,5 @@ pub const DECODER_OP_BATCH_FLAGS_OFFSET: usize =
     super::DECODER_TRACE_OFFSET + OP_BATCH_FLAGS_OFFSET;
 pub const DECODER_OP_BITS_EXTRA_COLS_OFFSET: usize =
     super::DECODER_TRACE_OFFSET + OP_BITS_EXTRA_COLS_OFFSET;
+pub const DECODER_IS_LOOP_BODY_FLAG_COL_IDX: usize =
+    super::DECODER_TRACE_OFFSET + IS_LOOP_BODY_FLAG_COL_IDX;

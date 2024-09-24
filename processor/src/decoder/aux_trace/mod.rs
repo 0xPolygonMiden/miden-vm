@@ -6,11 +6,6 @@ use vm_core::FieldElement;
 use super::{Felt, ONE, ZERO};
 use crate::trace::AuxColumnBuilder;
 
-mod block_hash_table;
-use block_hash_table::BlockHashTableColumnBuilder;
-#[cfg(test)]
-pub use block_hash_table::BlockHashTableRow;
-
 mod block_stack_table;
 use block_stack_table::BlockStackColumnBuilder;
 
@@ -31,12 +26,9 @@ impl AuxTraceBuilder {
         rand_elements: &[E],
     ) -> Vec<Vec<E>> {
         let block_stack_column_builder = BlockStackColumnBuilder::default();
-        let block_hash_column_builder = BlockHashTableColumnBuilder::default();
-
         let p1 = block_stack_column_builder.build_aux_column(main_trace, rand_elements);
-        let p2 = block_hash_column_builder.build_aux_column(main_trace, rand_elements);
 
         debug_assert_eq!(*p1.last().unwrap(), E::ONE);
-        vec![p1, p2]
+        vec![p1]
     }
 }

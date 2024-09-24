@@ -60,12 +60,12 @@ pub const TRACE_WIDTH: usize = CHIPLETS_OFFSET + CHIPLETS_WIDTH;
 // ------------------------------------------------------------------------------------------------
 
 //      decoder         stack           hasher         chiplets
-//    (2 columns)     (1 column)      (1 column)       (1 column)
+//    (1 columns)     (1 column)      (1 column)       (1 column)
 // ├───────────────┴──────────────┴─────────────────┴───────────────┤
 
 // Decoder auxiliary columns
 pub const DECODER_AUX_TRACE_OFFSET: usize = 0;
-pub const DECODER_AUX_TRACE_WIDTH: usize = 2;
+pub const DECODER_AUX_TRACE_WIDTH: usize = 1;
 pub const DECODER_AUX_TRACE_RANGE: Range<usize> =
     range(DECODER_AUX_TRACE_OFFSET, DECODER_AUX_TRACE_WIDTH);
 
