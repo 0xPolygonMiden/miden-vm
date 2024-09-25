@@ -7,15 +7,18 @@ use winter_air::{EvaluationFrame, LogUpGkrEvaluator, LogUpGkrOracle};
 use crate::{
     decoder::{
         DECODER_ADDR_COL_IDX, DECODER_GROUP_COUNT_COL_IDX, DECODER_HASHER_STATE_OFFSET,
-        DECODER_IN_SPAN_COL_IDX, DECODER_IS_LOOP_BODY_FLAG_COL_IDX, DECODER_OP_BATCH_FLAGS_OFFSET,
-        DECODER_OP_BITS_EXTRA_COLS_OFFSET, DECODER_OP_BITS_OFFSET, DECODER_USER_OP_HELPERS_OFFSET,
+        DECODER_IN_SPAN_COL_IDX, DECODER_IS_CALL_FLAG_COL_IDX, DECODER_IS_LOOP_BODY_FLAG_COL_IDX,
+        DECODER_IS_LOOP_FLAG_COL_IDX, DECODER_IS_SYSCALL_FLAG_COL_IDX,
+        DECODER_OP_BATCH_FLAGS_OFFSET, DECODER_OP_BITS_EXTRA_COLS_OFFSET, DECODER_OP_BITS_OFFSET,
+        DECODER_USER_OP_HELPERS_OFFSET,
     },
     trace::{
         chiplets::{MEMORY_D0_COL_IDX, MEMORY_D1_COL_IDX},
         range::{M_COL_IDX, V_COL_IDX},
-        stack::STACK_TOP_OFFSET,
+        stack::{B0_COL_IDX, B1_COL_IDX, STACK_TOP_OFFSET},
     },
-    PublicInputs, CHIPLETS_OFFSET, STACK_TRACE_OFFSET, TRACE_WIDTH,
+    PublicInputs, CHIPLETS_OFFSET, CTX_COL_IDX, FMP_COL_IDX, FN_HASH_RANGE, STACK_TRACE_OFFSET,
+    TRACE_WIDTH,
 };
 
 // CONSTANTS
@@ -33,8 +36,12 @@ pub const BLOCK_HASH_TABLE_RAND_VALUES_OFFSET: usize =
     OP_GROUP_TABLE_RAND_VALUES_OFFSET + OP_GROUP_TABLE_NUM_RAND_VALUES;
 pub const BLOCK_HASH_TABLE_NUM_RAND_VALUES: usize = 8;
 
-pub const TOTAL_NUM_RAND_VALUES: usize =
+pub const BLOCK_STACK_TABLE_RAND_VALUES_OFFSET: usize =
     BLOCK_HASH_TABLE_RAND_VALUES_OFFSET + BLOCK_HASH_TABLE_NUM_RAND_VALUES;
+pub const BLOCK_STACK_TABLE_NUM_RAND_VALUES: usize = 12;
+
+pub const TOTAL_NUM_RAND_VALUES: usize =
+    BLOCK_STACK_TABLE_RAND_VALUES_OFFSET + BLOCK_STACK_TABLE_NUM_RAND_VALUES;
 
 // Fractions
 
@@ -49,8 +56,12 @@ pub const BLOCK_HASH_TABLE_FRACTIONS_OFFSET: usize =
     OP_GROUP_TABLE_FRACTIONS_OFFSET + OP_GROUP_TABLE_NUM_FRACTIONS;
 pub const BLOCK_HASH_TABLE_NUM_FRACTIONS: usize = 8;
 
-pub const PADDING_FRACTIONS_OFFSET: usize =
+pub const BLOCK_STACK_TABLE_FRACTIONS_OFFSET: usize =
     BLOCK_HASH_TABLE_FRACTIONS_OFFSET + BLOCK_HASH_TABLE_NUM_FRACTIONS;
+pub const BLOCK_STACK_TABLE_NUM_FRACTIONS: usize = 7;
+
+pub const PADDING_FRACTIONS_OFFSET: usize =
+    BLOCK_STACK_TABLE_FRACTIONS_OFFSET + BLOCK_STACK_TABLE_NUM_FRACTIONS;
 pub const PADDING_NUM_FRACTIONS: usize = TOTAL_NUM_FRACTIONS - PADDING_FRACTIONS_OFFSET;
 
 pub const TOTAL_NUM_FRACTIONS: usize = 32;
@@ -155,6 +166,17 @@ impl LogUpGkrEvaluator for MidenLogUpGkrEval<Felt> {
                 [range(BLOCK_HASH_TABLE_FRACTIONS_OFFSET, BLOCK_HASH_TABLE_NUM_FRACTIONS)],
             &mut denominator
                 [range(BLOCK_HASH_TABLE_FRACTIONS_OFFSET, BLOCK_HASH_TABLE_NUM_FRACTIONS)],
+        );
+        block_stack_table(
+            query_current,
+            query_next,
+            &op_flags_current,
+            &rand_values
+                [range(BLOCK_STACK_TABLE_RAND_VALUES_OFFSET, BLOCK_STACK_TABLE_NUM_RAND_VALUES)],
+            &mut numerator
+                [range(BLOCK_STACK_TABLE_FRACTIONS_OFFSET, BLOCK_STACK_TABLE_NUM_FRACTIONS)],
+            &mut denominator
+                [range(BLOCK_STACK_TABLE_FRACTIONS_OFFSET, BLOCK_STACK_TABLE_NUM_FRACTIONS)],
         );
         padding(
             &mut numerator[range(PADDING_FRACTIONS_OFFSET, PADDING_NUM_FRACTIONS)],
@@ -381,6 +403,105 @@ fn block_hash_table<F, E>(
     denominator[7] = child1;
 }
 
+#[inline(always)]
+fn block_stack_table<F, E>(
+    query_current: &[F],
+    query_next: &[F],
+    op_flags_current: &LogUpOpFlags<F>,
+    alphas: &[E],
+    numerator: &mut [E],
+    denominator: &mut [E],
+) where
+    F: FieldElement,
+    E: FieldElement + ExtensionOf<F>,
+{
+    // numerators
+    let f_respan: E = op_flags_current.f_respan().into();
+    let f_end: E = op_flags_current.f_end().into();
+    let f_call_or_syscall_flags: E = (query_current[DECODER_IS_CALL_FLAG_COL_IDX]
+        + query_current[DECODER_IS_SYSCALL_FLAG_COL_IDX])
+        .into();
+
+    numerator[0] = f_respan;
+    numerator[1] = f_end * (E::ONE - f_call_or_syscall_flags);
+    numerator[2] = f_end * f_call_or_syscall_flags;
+
+    numerator[3] = (op_flags_current.f_call() + op_flags_current.f_syscall()).into();
+    numerator[4] = op_flags_current.f_loop().into();
+    numerator[5] = f_respan;
+    numerator[6] = (op_flags_current.f_join()
+        + op_flags_current.f_split()
+        + op_flags_current.f_span()
+        + op_flags_current.f_dyn())
+    .into();
+
+    // removal denominators
+    {
+        let block_id = query_current[DECODER_ADDR_COL_IDX];
+        let parent_id_respan = query_next[DECODER_HASHER_STATE_OFFSET + 1];
+        let parent_id_end = query_next[DECODER_ADDR_COL_IDX];
+        let f_is_loop = query_current[DECODER_IS_LOOP_FLAG_COL_IDX];
+        let parent_ctx = query_next[CTX_COL_IDX];
+        let parent_fmp = query_next[FMP_COL_IDX];
+        let parent_stack_depth = query_next[STACK_TRACE_OFFSET + B0_COL_IDX];
+        let parent_next_overflow_addr = query_next[STACK_TRACE_OFFSET + B1_COL_IDX];
+        let parent_fn_hash = &query_next[FN_HASH_RANGE];
+
+        let call_or_syscall_inner_product = alphas[4].mul_base(parent_ctx)
+            + alphas[5].mul_base(parent_fmp)
+            + alphas[6].mul_base(parent_stack_depth)
+            + alphas[7].mul_base(parent_next_overflow_addr)
+            + inner_product(&alphas[8..12], parent_fn_hash);
+        let v_respan = alphas[0]
+            + alphas[1].mul_base(block_id)
+            + alphas[2].mul_base(parent_id_respan);
+        let v_end = alphas[0]
+            + alphas[1].mul_base(block_id)
+            + alphas[2].mul_base(parent_id_end)
+            + alphas[3].mul_base(f_is_loop);
+        let v_end_call_or_syscall = v_end + call_or_syscall_inner_product;
+
+        denominator[0] = -v_respan;
+        denominator[1] = -v_end;
+        denominator[2] = -v_end_call_or_syscall;
+    }
+
+    // insertion denominators
+    {
+        let block_id = query_next[DECODER_ADDR_COL_IDX];
+        let parent_id_respan = query_next[DECODER_HASHER_STATE_OFFSET + 1];
+        let parent_id_not_respan = query_current[DECODER_ADDR_COL_IDX];
+        let stack_element_0 = query_current[STACK_TRACE_OFFSET + STACK_TOP_OFFSET];
+        let parent_ctx = query_current[CTX_COL_IDX];
+        let parent_fmp = query_current[FMP_COL_IDX];
+        let parent_stack_depth = query_current[STACK_TRACE_OFFSET + B0_COL_IDX];
+        let parent_next_overflow_addr = query_current[STACK_TRACE_OFFSET + B1_COL_IDX];
+        let parent_fn_hash = &query_current[FN_HASH_RANGE];
+
+        let v_call_or_syscall = alphas[0]
+            + alphas[1].mul_base(block_id)
+            + alphas[2].mul_base(parent_id_not_respan)
+            + alphas[4].mul_base(parent_ctx)
+            + alphas[5].mul_base(parent_fmp)
+            + alphas[6].mul_base(parent_stack_depth)
+            + alphas[7].mul_base(parent_next_overflow_addr)
+            + inner_product(&alphas[8..12], parent_fn_hash);
+        let v_loop = alphas[0]
+            + alphas[1].mul_base(block_id)
+            + alphas[2].mul_base(parent_id_not_respan)
+            + alphas[3].mul_base(stack_element_0);
+        let v_respan =
+            alphas[0] + alphas[1].mul_base(block_id) + alphas[2].mul_base(parent_id_respan);
+        let v_join_split_span_dyn =
+            alphas[0] + alphas[1].mul_base(block_id) + alphas[2].mul_base(parent_id_not_respan);
+
+        denominator[3] = v_call_or_syscall;
+        denominator[4] = v_loop;
+        denominator[5] = v_respan;
+        denominator[6] = v_join_split_span_dyn;
+    }
+}
+
 /// TODO(plafer): docs
 fn padding<E>(numerator: &mut [E], denominator: &mut [E])
 where
@@ -456,6 +577,10 @@ impl<F: FieldElement> LogUpOpFlags<F> {
         self.e0 * (F::ONE - self.b3) * self.b2 * (F::ONE - self.b1) * self.b0
     }
 
+    pub fn f_span(&self) -> F {
+        self.e0 * (F::ONE - self.b3) * self.b2 * self.b1 * (F::ONE - self.b0)
+    }
+
     pub fn f_dyn(&self) -> F {
         self.e0 * self.b3 * (F::ONE - self.b2) * (F::ONE - self.b1) * (F::ONE - self.b0)
     }
@@ -474,6 +599,10 @@ impl<F: FieldElement> LogUpOpFlags<F> {
 
     pub fn f_call(&self) -> F {
         self.e1 * (F::ONE - self.b4) * self.b3 * self.b2
+    }
+
+    pub fn f_respan(&self) -> F {
+        self.e1 * self.b4 * self.b3 * (F::ONE - self.b2)
     }
 
     pub fn f_halt(&self) -> F {

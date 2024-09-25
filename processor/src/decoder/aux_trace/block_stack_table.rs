@@ -62,6 +62,7 @@ fn get_block_stack_table_removal_multiplicand<E: FieldElement<BaseField = Felt>>
     };
 
     let elements = if main_trace.is_call_flag(i) == ONE || main_trace.is_syscall_flag(i) == ONE {
+        // ERROR: this theoretically can happen in a RESPAN too
         let parent_ctx = main_trace.ctx(i + 1);
         let parent_fmp = main_trace.fmp(i + 1);
         let parent_stack_depth = main_trace.stack_depth(i + 1);
