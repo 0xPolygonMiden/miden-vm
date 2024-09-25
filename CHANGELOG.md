@@ -19,6 +19,7 @@
 
 - Fixed an issue with formatting of blocks in Miden Assembly syntax
 - Fixed the construction of the block hash table (#1506)
+- Fixed a bug in the block stack table (#1511)
 
 #### Fixes
 
