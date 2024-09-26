@@ -5,6 +5,7 @@ use vm_core::{utils::range, ExtensionOf, Felt, FieldElement, StarkField};
 use winter_air::{EvaluationFrame, LogUpGkrEvaluator, LogUpGkrOracle};
 
 use crate::{
+    constraints::chiplets::hasher::{HASH_K0_MASK, HASH_K1_MASK, HASH_K2_MASK},
     decoder::{
         DECODER_ADDR_COL_IDX, DECODER_GROUP_COUNT_COL_IDX, DECODER_HASHER_STATE_OFFSET,
         DECODER_IN_SPAN_COL_IDX, DECODER_IS_CALL_FLAG_COL_IDX, DECODER_IS_LOOP_BODY_FLAG_COL_IDX,
@@ -13,7 +14,10 @@ use crate::{
         DECODER_USER_OP_HELPERS_OFFSET,
     },
     trace::{
-        chiplets::{MEMORY_D0_COL_IDX, MEMORY_D1_COL_IDX},
+        chiplets::{
+            HASHER_NODE_INDEX_COL_IDX, HASHER_SELECTOR_COL_RANGE, HASHER_STATE_COL_RANGE,
+            MEMORY_D0_COL_IDX, MEMORY_D1_COL_IDX,
+        },
         range::{M_COL_IDX, V_COL_IDX},
         stack::{B0_COL_IDX, B1_COL_IDX, STACK_TOP_OFFSET},
     },
@@ -23,6 +27,8 @@ use crate::{
 
 // CONSTANTS
 // ===============================================================================================
+
+// TODO(plafer): only generate a new alpha_0 for each table
 
 // Random values
 
@@ -40,8 +46,12 @@ pub const BLOCK_STACK_TABLE_RAND_VALUES_OFFSET: usize =
     BLOCK_HASH_TABLE_RAND_VALUES_OFFSET + BLOCK_HASH_TABLE_NUM_RAND_VALUES;
 pub const BLOCK_STACK_TABLE_NUM_RAND_VALUES: usize = 12;
 
-pub const TOTAL_NUM_RAND_VALUES: usize =
+pub const HASHER_TABLE_RAND_VALUES_OFFSET: usize =
     BLOCK_STACK_TABLE_RAND_VALUES_OFFSET + BLOCK_STACK_TABLE_NUM_RAND_VALUES;
+pub const HASHER_TABLE_NUM_RAND_VALUES: usize = 16;
+
+pub const TOTAL_NUM_RAND_VALUES: usize =
+    HASHER_TABLE_RAND_VALUES_OFFSET + HASHER_TABLE_NUM_RAND_VALUES;
 
 // Fractions
 
@@ -60,11 +70,15 @@ pub const BLOCK_STACK_TABLE_FRACTIONS_OFFSET: usize =
     BLOCK_HASH_TABLE_FRACTIONS_OFFSET + BLOCK_HASH_TABLE_NUM_FRACTIONS;
 pub const BLOCK_STACK_TABLE_NUM_FRACTIONS: usize = 7;
 
-pub const PADDING_FRACTIONS_OFFSET: usize =
+pub const HASHER_TABLE_FRACTIONS_OFFSET: usize =
     BLOCK_STACK_TABLE_FRACTIONS_OFFSET + BLOCK_STACK_TABLE_NUM_FRACTIONS;
+pub const HASHER_TABLE_NUM_FRACTIONS: usize = 4;
+
+pub const PADDING_FRACTIONS_OFFSET: usize =
+    HASHER_TABLE_FRACTIONS_OFFSET + HASHER_TABLE_NUM_FRACTIONS;
 pub const PADDING_NUM_FRACTIONS: usize = TOTAL_NUM_FRACTIONS - PADDING_FRACTIONS_OFFSET;
 
-pub const TOTAL_NUM_FRACTIONS: usize = 32;
+pub const TOTAL_NUM_FRACTIONS: usize = 64;
 
 // LogUp GKR Evaluator
 // ===============================================================================================
@@ -97,6 +111,10 @@ impl LogUpGkrEvaluator for MidenLogUpGkrEval<Felt> {
         &self.oracles
     }
 
+    fn get_periodic_column_values(&self) -> Vec<Vec<Self::BaseField>> {
+        vec![HASH_K0_MASK.to_vec(), HASH_K1_MASK.to_vec(), HASH_K2_MASK.to_vec()]
+    }
+
     fn get_num_rand_values(&self) -> usize {
         TOTAL_NUM_RAND_VALUES
     }
@@ -122,7 +140,7 @@ impl LogUpGkrEvaluator for MidenLogUpGkrEval<Felt> {
     fn evaluate_query<F, E>(
         &self,
         query: &[F],
-        _periodic_values: &[F],
+        periodic_values: &[F],
         rand_values: &[E],
         numerator: &mut [E],
         denominator: &mut [E],
@@ -177,6 +195,14 @@ impl LogUpGkrEvaluator for MidenLogUpGkrEval<Felt> {
                 [range(BLOCK_STACK_TABLE_FRACTIONS_OFFSET, BLOCK_STACK_TABLE_NUM_FRACTIONS)],
             &mut denominator
                 [range(BLOCK_STACK_TABLE_FRACTIONS_OFFSET, BLOCK_STACK_TABLE_NUM_FRACTIONS)],
+        );
+        hasher_table(
+            query_current,
+            query_next,
+            periodic_values,
+            &rand_values[range(HASHER_TABLE_RAND_VALUES_OFFSET, HASHER_TABLE_NUM_RAND_VALUES)],
+            &mut numerator[range(HASHER_TABLE_FRACTIONS_OFFSET, HASHER_TABLE_NUM_FRACTIONS)],
+            &mut denominator[range(HASHER_TABLE_FRACTIONS_OFFSET, HASHER_TABLE_NUM_FRACTIONS)],
         );
         padding(
             &mut numerator[range(PADDING_FRACTIONS_OFFSET, PADDING_NUM_FRACTIONS)],
@@ -498,6 +524,70 @@ fn block_stack_table<F, E>(
         denominator[4] = v_loop;
         denominator[5] = v_respan;
         denominator[6] = v_join_split_span_dyn;
+    }
+}
+
+#[inline(always)]
+fn hasher_table<F, E>(
+    query_current: &[F],
+    query_next: &[F],
+    periodic_values: &[F],
+    alphas: &[E],
+    numerator: &mut [E],
+    denominator: &mut [E],
+) where
+    F: FieldElement,
+    E: FieldElement + ExtensionOf<F>,
+{
+    // numerators
+    {
+        let (f_mu, f_mua, f_mv, f_mva) = {
+            let s = &query_current[HASHER_SELECTOR_COL_RANGE];
+            let k = periodic_values;
+
+            (
+                E::from(k[2] * s[0] * s[1] * s[2]),
+                E::from(k[0] * s[0] * s[1] * s[2]),
+                E::from(k[2] * s[0] * s[1] * (F::ONE - s[2])),
+                E::from(k[0] * s[0] * s[1] * (F::ONE - s[2])),
+            )
+        };
+
+        let is_hasher_chiplet = E::ONE - query_current[CHIPLETS_OFFSET].into();
+
+        let index = query_current[HASHER_NODE_INDEX_COL_IDX];
+        let index_next = query_next[HASHER_NODE_INDEX_COL_IDX];
+        // The value of the bit which is discarded when the node index is shifted by one bit to the
+        // right.
+        let index_lsb = E::from(index - F::from(2_u32) * index_next);
+        let not_index_lsb = E::ONE - index_lsb;
+
+        numerator[0] = is_hasher_chiplet * not_index_lsb * (f_mv - f_mu);
+        numerator[1] = is_hasher_chiplet * index_lsb * (f_mv - f_mu);
+        numerator[2] = is_hasher_chiplet * not_index_lsb * (f_mva - f_mua);
+        numerator[3] = is_hasher_chiplet * index_lsb * (f_mva - f_mua);
+    }
+
+    // denominator
+    {
+        let prefix = {
+            let index = query_current[HASHER_NODE_INDEX_COL_IDX];
+            alphas[0] + alphas[3].mul_base(index)
+        };
+        let hasher_state = &query_current[HASHER_STATE_COL_RANGE];
+        let hasher_state_next = &query_next[HASHER_STATE_COL_RANGE];
+
+        let sibling = &hasher_state[8..12];
+        denominator[0] = prefix + inner_product(&alphas[12..16], sibling);
+
+        let sibling = &hasher_state[4..8];
+        denominator[1] = prefix + inner_product(&alphas[8..12], sibling);
+
+        let sibling = &hasher_state_next[8..12];
+        denominator[2] = prefix + inner_product(&alphas[12..16], sibling);
+
+        let sibling = &hasher_state_next[4..8];
+        denominator[3] = prefix + inner_product(&alphas[8..12], sibling);
     }
 }
 

@@ -69,129 +69,17 @@ impl AuxTraceBuilder {
 pub struct ChipletsVTableColBuilder {}
 
 impl<E: FieldElement<BaseField = Felt>> AuxColumnBuilder<E> for ChipletsVTableColBuilder {
-    fn get_requests_at(&self, main_trace: &MainTrace, alphas: &[E], row: RowIndex) -> E {
-        chiplets_vtable_remove_sibling(main_trace, alphas, row)
+    fn get_requests_at(&self, _main_trace: &MainTrace, _alphas: &[E], _row: RowIndex) -> E {
+        E::ONE
     }
 
     fn get_responses_at(&self, main_trace: &MainTrace, alphas: &[E], row: RowIndex) -> E {
-        chiplets_vtable_add_sibling(main_trace, alphas, row)
-            * build_kernel_procedure_table_inclusions(main_trace, alphas, row)
-    }
-}
-
-// VIRTUAL TABLE REQUESTS
-// ================================================================================================
-
-/// Constructs the removals from the table when the hasher absorbs a new sibling node while
-/// computing the new Merkle root.
-fn chiplets_vtable_remove_sibling<E>(main_trace: &MainTrace, alphas: &[E], row: RowIndex) -> E
-where
-    E: FieldElement<BaseField = Felt>,
-{
-    let f_mu: bool = main_trace.f_mu(row);
-    let f_mua: bool = main_trace.f_mua(row);
-
-    if f_mu {
-        let index = main_trace.chiplet_node_index(row);
-        let lsb = index.as_int() & 1;
-        if lsb == 0 {
-            let sibling = &main_trace.chiplet_hasher_state(row)[DIGEST_RANGE.end..];
-            alphas[0]
-                + alphas[3].mul_base(index)
-                + alphas[12].mul_base(sibling[0])
-                + alphas[13].mul_base(sibling[1])
-                + alphas[14].mul_base(sibling[2])
-                + alphas[15].mul_base(sibling[3])
-        } else {
-            let sibling = &main_trace.chiplet_hasher_state(row)[DIGEST_RANGE];
-            alphas[0]
-                + alphas[3].mul_base(index)
-                + alphas[8].mul_base(sibling[0])
-                + alphas[9].mul_base(sibling[1])
-                + alphas[10].mul_base(sibling[2])
-                + alphas[11].mul_base(sibling[3])
-        }
-    } else if f_mua {
-        let index = main_trace.chiplet_node_index(row);
-        let lsb = index.as_int() & 1;
-        if lsb == 0 {
-            let sibling = &main_trace.chiplet_hasher_state(row + 1)[DIGEST_RANGE.end..];
-            alphas[0]
-                + alphas[3].mul_base(index)
-                + alphas[12].mul_base(sibling[0])
-                + alphas[13].mul_base(sibling[1])
-                + alphas[14].mul_base(sibling[2])
-                + alphas[15].mul_base(sibling[3])
-        } else {
-            let sibling = &main_trace.chiplet_hasher_state(row + 1)[DIGEST_RANGE];
-            alphas[0]
-                + alphas[3].mul_base(index)
-                + alphas[8].mul_base(sibling[0])
-                + alphas[9].mul_base(sibling[1])
-                + alphas[10].mul_base(sibling[2])
-                + alphas[11].mul_base(sibling[3])
-        }
-    } else {
-        E::ONE
+        build_kernel_procedure_table_inclusions(main_trace, alphas, row)
     }
 }
 
 // VIRTUAL TABLE RESPONSES
 // ================================================================================================
-
-/// Constructs the inclusions to the table when the hasher absorbs a new sibling node while
-/// computing the old Merkle root.
-fn chiplets_vtable_add_sibling<E>(main_trace: &MainTrace, alphas: &[E], row: RowIndex) -> E
-where
-    E: FieldElement<BaseField = Felt>,
-{
-    let f_mv: bool = main_trace.f_mv(row);
-    let f_mva: bool = main_trace.f_mva(row);
-
-    if f_mv {
-        let index = main_trace.chiplet_node_index(row);
-        let lsb = index.as_int() & 1;
-        if lsb == 0 {
-            let sibling = &main_trace.chiplet_hasher_state(row)[DIGEST_RANGE.end..];
-            alphas[0]
-                + alphas[3].mul_base(index)
-                + alphas[12].mul_base(sibling[0])
-                + alphas[13].mul_base(sibling[1])
-                + alphas[14].mul_base(sibling[2])
-                + alphas[15].mul_base(sibling[3])
-        } else {
-            let sibling = &main_trace.chiplet_hasher_state(row)[DIGEST_RANGE];
-            alphas[0]
-                + alphas[3].mul_base(index)
-                + alphas[8].mul_base(sibling[0])
-                + alphas[9].mul_base(sibling[1])
-                + alphas[10].mul_base(sibling[2])
-                + alphas[11].mul_base(sibling[3])
-        }
-    } else if f_mva {
-        let index = main_trace.chiplet_node_index(row);
-        let lsb = index.as_int() & 1;
-        if lsb == 0 {
-            let sibling = &main_trace.chiplet_hasher_state(row + 1)[DIGEST_RANGE.end..];
-            alphas[0]
-                + alphas[3].mul_base(index)
-                + alphas[12].mul_base(sibling[0])
-                + alphas[13].mul_base(sibling[1])
-                + alphas[14].mul_base(sibling[2])
-                + alphas[15].mul_base(sibling[3])
-        } else {
-            let sibling = &main_trace.chiplet_hasher_state(row + 1)[DIGEST_RANGE];
-            alphas[0]
-                + alphas[3].mul_base(index)
-                + alphas[8].mul_base(sibling[0])
-                + alphas[9].mul_base(sibling[1])
-                + alphas[10].mul_base(sibling[2])
-                + alphas[11].mul_base(sibling[3])
-        }
-    } else {
-        E::ONE
-    }
-}
 
 /// Builds the inclusions to the kernel procedure table at `row`.
 fn build_kernel_procedure_table_inclusions<E>(
