@@ -53,6 +53,8 @@ impl AuxTraceBuilder {
         let bus_col_builder = BusColumnBuilder::default();
         let t_chip = v_table_col_builder.build_aux_column(main_trace, rand_elements);
         let b_chip = bus_col_builder.build_aux_column(main_trace, rand_elements);
+
+        debug_assert_eq!(*t_chip.last().unwrap(), E::ONE);
         vec![t_chip, b_chip]
     }
 }
@@ -86,14 +88,10 @@ where
     E: FieldElement<BaseField = Felt>,
 {
     let f_mu: bool = main_trace.f_mu(row);
-    let f_mua: bool = if row == 0 { false } else { main_trace.f_mua(row - 1) };
+    let f_mua: bool = main_trace.f_mua(row);
 
-    if f_mu || f_mua {
-        let index = if f_mua {
-            main_trace.chiplet_node_index(row - 1)
-        } else {
-            main_trace.chiplet_node_index(row)
-        };
+    if f_mu {
+        let index = main_trace.chiplet_node_index(row);
         let lsb = index.as_int() & 1;
         if lsb == 0 {
             let sibling = &main_trace.chiplet_hasher_state(row)[DIGEST_RANGE.end..];
@@ -105,6 +103,26 @@ where
                 + alphas[15].mul_base(sibling[3])
         } else {
             let sibling = &main_trace.chiplet_hasher_state(row)[DIGEST_RANGE];
+            alphas[0]
+                + alphas[3].mul_base(index)
+                + alphas[8].mul_base(sibling[0])
+                + alphas[9].mul_base(sibling[1])
+                + alphas[10].mul_base(sibling[2])
+                + alphas[11].mul_base(sibling[3])
+        }
+    } else if f_mua {
+        let index = main_trace.chiplet_node_index(row);
+        let lsb = index.as_int() & 1;
+        if lsb == 0 {
+            let sibling = &main_trace.chiplet_hasher_state(row + 1)[DIGEST_RANGE.end..];
+            alphas[0]
+                + alphas[3].mul_base(index)
+                + alphas[12].mul_base(sibling[0])
+                + alphas[13].mul_base(sibling[1])
+                + alphas[14].mul_base(sibling[2])
+                + alphas[15].mul_base(sibling[3])
+        } else {
+            let sibling = &main_trace.chiplet_hasher_state(row + 1)[DIGEST_RANGE];
             alphas[0]
                 + alphas[3].mul_base(index)
                 + alphas[8].mul_base(sibling[0])
@@ -127,14 +145,10 @@ where
     E: FieldElement<BaseField = Felt>,
 {
     let f_mv: bool = main_trace.f_mv(row);
-    let f_mva: bool = if row == 0 { false } else { main_trace.f_mva(row - 1) };
+    let f_mva: bool = main_trace.f_mva(row);
 
-    if f_mv || f_mva {
-        let index = if f_mva {
-            main_trace.chiplet_node_index(row - 1)
-        } else {
-            main_trace.chiplet_node_index(row)
-        };
+    if f_mv {
+        let index = main_trace.chiplet_node_index(row);
         let lsb = index.as_int() & 1;
         if lsb == 0 {
             let sibling = &main_trace.chiplet_hasher_state(row)[DIGEST_RANGE.end..];
@@ -146,6 +160,26 @@ where
                 + alphas[15].mul_base(sibling[3])
         } else {
             let sibling = &main_trace.chiplet_hasher_state(row)[DIGEST_RANGE];
+            alphas[0]
+                + alphas[3].mul_base(index)
+                + alphas[8].mul_base(sibling[0])
+                + alphas[9].mul_base(sibling[1])
+                + alphas[10].mul_base(sibling[2])
+                + alphas[11].mul_base(sibling[3])
+        }
+    } else if f_mva {
+        let index = main_trace.chiplet_node_index(row);
+        let lsb = index.as_int() & 1;
+        if lsb == 0 {
+            let sibling = &main_trace.chiplet_hasher_state(row + 1)[DIGEST_RANGE.end..];
+            alphas[0]
+                + alphas[3].mul_base(index)
+                + alphas[12].mul_base(sibling[0])
+                + alphas[13].mul_base(sibling[1])
+                + alphas[14].mul_base(sibling[2])
+                + alphas[15].mul_base(sibling[3])
+        } else {
+            let sibling = &main_trace.chiplet_hasher_state(row + 1)[DIGEST_RANGE];
             alphas[0]
                 + alphas[3].mul_base(index)
                 + alphas[8].mul_base(sibling[0])
