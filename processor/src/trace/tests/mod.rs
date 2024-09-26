@@ -7,7 +7,6 @@ use super::{super::chiplets::init_state_from_words, ExecutionTrace, Felt, FieldE
 use crate::{AdviceInputs, DefaultHost, ExecutionOptions, MemAdviceProvider, StackInputs};
 
 mod chiplets;
-mod decoder;
 mod hasher;
 mod stack;
 

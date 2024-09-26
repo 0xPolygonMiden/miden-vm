@@ -26,9 +26,6 @@ use super::{
 mod trace;
 use trace::DecoderTrace;
 
-mod aux_trace;
-pub use aux_trace::AuxTraceBuilder;
-
 mod block_stack;
 use block_stack::{BlockStack, BlockType, ExecutionContextInfo};
 #[cfg(test)]
@@ -680,9 +677,8 @@ impl Decoder {
             .into_vec(trace_len)
             .try_into()
             .expect("failed to convert vector to array");
-        let aux_builder = AuxTraceBuilder::default();
 
-        super::DecoderTrace { trace, aux_builder }
+        super::DecoderTrace { trace }
     }
 
     // HELPERS

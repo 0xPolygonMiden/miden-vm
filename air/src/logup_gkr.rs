@@ -452,9 +452,8 @@ fn block_stack_table<F, E>(
             + alphas[6].mul_base(parent_stack_depth)
             + alphas[7].mul_base(parent_next_overflow_addr)
             + inner_product(&alphas[8..12], parent_fn_hash);
-        let v_respan = alphas[0]
-            + alphas[1].mul_base(block_id)
-            + alphas[2].mul_base(parent_id_respan);
+        let v_respan =
+            alphas[0] + alphas[1].mul_base(block_id) + alphas[2].mul_base(parent_id_respan);
         let v_end = alphas[0]
             + alphas[1].mul_base(block_id)
             + alphas[2].mul_base(parent_id_end)

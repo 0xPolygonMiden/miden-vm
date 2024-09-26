@@ -98,7 +98,6 @@ type SysTrace = [Vec<Felt>; SYS_TRACE_WIDTH];
 
 pub struct DecoderTrace {
     trace: [Vec<Felt>; DECODER_TRACE_WIDTH],
-    aux_builder: decoder::AuxTraceBuilder,
 }
 
 pub struct StackTrace {
