@@ -2,6 +2,10 @@
 
 ## 0.11.0 (TBD)
 
+#### Enhancements
+
+- Added support for procedure annotation (attribute) syntax to Miden Assembly
+
 #### Changes
 
 - [BREAKING] Wrapped `MastForest`s in `Program` and `Library` structs in `Arc` (#1465).

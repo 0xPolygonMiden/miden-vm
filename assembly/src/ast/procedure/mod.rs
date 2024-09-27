@@ -14,7 +14,10 @@ pub use self::{
     procedure::{Procedure, Visibility},
     resolver::{LocalNameResolver, ResolvedProcedure},
 };
-use crate::{ast::Invoke, SourceSpan, Span, Spanned};
+use crate::{
+    ast::{AttributeSet, Invoke},
+    SourceSpan, Span, Spanned,
+};
 
 // EXPORT
 // ================================================================================================
@@ -53,6 +56,14 @@ impl Export {
         match self {
             Self::Procedure(ref proc) => proc.docs().map(|spanned| spanned.as_deref().into_inner()),
             Self::Alias(ref alias) => alias.docs().map(|spanned| spanned.as_deref().into_inner()),
+        }
+    }
+
+    /// Returns the attributes for this procedure.
+    pub fn attributes(&self) -> Option<&AttributeSet> {
+        match self {
+            Self::Procedure(ref proc) => Some(proc.attributes()),
+            Self::Alias(_) => None,
         }
     }
 
