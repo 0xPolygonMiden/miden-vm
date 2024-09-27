@@ -5,7 +5,7 @@ use vm_core::mast::{MastNode, MastNodeId};
 use crate::{
     assert_diagnostic_lines,
     ast::{Module, ModuleKind},
-    diagnostics::Report,
+    diagnostics::{IntoDiagnostic, Report},
     regex, source_file,
     testing::{Pattern, TestContext},
     Assembler, LibraryPath, ModuleParser,
@@ -28,6 +28,15 @@ macro_rules! assert_assembler_diagnostic {
             .assemble($source)
             .expect_err("expected diagnostic to be raised, but compilation succeeded");
         assert_diagnostic_lines!(error, $($expected),*);
+    }};
+}
+
+macro_rules! parse_module {
+    ($context:expr, $path:literal, $source:expr) => {{
+        let path = LibraryPath::new($path).into_diagnostic()?;
+        let source_file =
+            $context.source_manager().load(concat!("test", line!()), $source.to_string());
+        Module::parse(path, ModuleKind::Library, source_file)?
     }};
 }
 
@@ -720,7 +729,7 @@ fn constant_must_be_valid_felt() -> TestResult {
         "  :                    ^^^|^^^",
         "  :                       `-- found a constant identifier here",
         "  `----",
-        " help: expected \"*\", or \"+\", or \"-\", or \"/\", or \"//\", or \"begin\", or \"const\", \
+        " help: expected \"*\", or \"+\", or \"-\", or \"/\", or \"//\", or \"@\", or \"begin\", or \"const\", \
 or \"export\", or \"proc\", or \"use\", or end of file, or doc comment"
     );
     Ok(())
@@ -988,6 +997,245 @@ fn const_conversion_failed_to_u32() -> TestResult {
     Ok(())
 }
 
+// DECORATORS
+// ================================================================================================
+
+#[test]
+fn decorators_basic_block() -> TestResult {
+    let context = TestContext::default();
+    let source = source_file!(
+        &context,
+        "\
+    begin
+        trace.0
+        add
+        trace.1
+        mul
+        trace.2
+    end"
+    );
+    let expected = "\
+begin
+    basic_block trace(0) add trace(1) mul trace(2) end
+end";
+    let program = context.assemble(source)?;
+    assert_str_eq!(expected, format!("{program}"));
+    Ok(())
+}
+
+#[test]
+fn decorators_repeat_one_basic_block() -> TestResult {
+    let context = TestContext::default();
+    let source = source_file!(
+        &context,
+        "\
+    begin
+        trace.0
+        repeat.2 add end
+        trace.1
+        repeat.2 mul end
+        trace.2
+    end"
+    );
+    let expected = "\
+begin
+    basic_block trace(0) add add trace(1) mul mul trace(2) end
+end";
+    let program = context.assemble(source)?;
+    assert_str_eq!(expected, format!("{program}"));
+    Ok(())
+}
+
+#[test]
+fn decorators_repeat_split() -> TestResult {
+    let context = TestContext::default();
+    let source = source_file!(
+        &context,
+        "\
+    begin
+        trace.0
+        repeat.2
+            if.true
+                trace.1 push.42 trace.2
+            else
+                trace.3 push.22 trace.3
+            end
+            trace.4
+        end
+        trace.5
+    end"
+    );
+    let expected = "\
+begin
+    join
+        trace(0)
+        if.true
+            basic_block trace(1) push(42) trace(2) end
+        else
+            basic_block trace(3) push(22) trace(3) end
+        end
+        trace(4)
+        if.true
+            basic_block trace(1) push(42) trace(2) end
+        else
+            basic_block trace(3) push(22) trace(3) end
+        end
+        trace(4)
+    end
+    trace(5)
+end";
+    let program = context.assemble(source)?;
+    assert_str_eq!(expected, format!("{program}"));
+    Ok(())
+}
+
+#[test]
+fn decorators_call() -> TestResult {
+    let context = TestContext::default();
+    let source = source_file!(
+        &context,
+        "\
+    begin
+        trace.0 trace.1
+        call.0xdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeef
+        trace.2
+    end"
+    );
+    let expected = "\
+begin
+    trace(0) trace(1)
+    call.0xdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeef
+    trace(2)
+end";
+    let program = context.assemble(source)?;
+    assert_str_eq!(expected, format!("{program}"));
+    Ok(())
+}
+
+#[test]
+fn decorators_dyn() -> TestResult {
+    // single line
+    let context = TestContext::default();
+    let source = source_file!(
+        &context,
+        "\
+    begin
+        trace.0
+        dynexec
+        trace.1
+    end"
+    );
+    let expected = "\
+begin
+    trace(0) dyn trace(1)
+end";
+    let program = context.assemble(source)?;
+    assert_str_eq!(expected, format!("{program}"));
+
+    // multi line
+    let context = TestContext::default();
+    let source = source_file!(
+        &context,
+        "\
+    begin
+        trace.0 trace.1 trace.2 trace.3 trace.4
+        dynexec
+        trace.5 trace.6 trace.7 trace.8 trace.9
+    end"
+    );
+    let expected = "\
+begin
+    trace(0) trace(1) trace(2) trace(3) trace(4)
+    dyn
+    trace(5) trace(6) trace(7) trace(8) trace(9)
+end";
+    let program = context.assemble(source)?;
+    assert_str_eq!(expected, format!("{program}"));
+    Ok(())
+}
+
+#[test]
+fn decorators_external() -> TestResult {
+    let context = TestContext::default();
+    let baz = r#"
+        export.f
+            push.7 push.8 sub
+        end
+    "#;
+    let baz = parse_module!(&context, "lib::baz", baz);
+
+    let lib = Assembler::new(context.source_manager()).assemble_library([baz])?;
+
+    let program_source = source_file!(
+        &context,
+        "\
+    use.lib::baz
+    begin
+        trace.0
+        exec.baz::f
+        trace.1
+    end"
+    );
+
+    let expected = "\
+begin
+    trace(0)
+    external.0xe776df8dc02329acc43a09fe8e510b44a87dfd876e375ad383891470ece4f6de
+    trace(1)
+end";
+    let program = Assembler::new(context.source_manager())
+        .with_library(lib)?
+        .assemble_program(program_source)?;
+    assert_str_eq!(expected, format!("{program}"));
+
+    Ok(())
+}
+
+#[test]
+fn decorators_join_and_split() -> TestResult {
+    let context = TestContext::default();
+    let source = source_file!(
+        &context,
+        "\
+    begin
+        trace.0 trace.1
+        if.true
+            trace.2 add trace.3
+        else
+            trace.4 mul trace.5
+        end
+        trace.6
+        if.true
+            trace.7 push.42 trace.8
+        else
+            trace.9 push.22 trace.10
+        end
+        trace.11
+    end"
+    );
+    let expected = "\
+begin
+    join
+        trace(0) trace(1)
+        if.true
+            basic_block trace(2) add trace(3) end
+        else
+            basic_block trace(4) mul trace(5) end
+        end
+        trace(6)
+        if.true
+            basic_block trace(7) push(42) trace(8) end
+        else
+            basic_block trace(9) push(22) trace(10) end
+        end
+    end
+    trace(11)
+end";
+    let program = context.assemble(source)?;
+    assert_str_eq!(expected, format!("{program}"));
+    Ok(())
+}
+
 // ASSERTIONS
 // ================================================================================================
 
@@ -1229,6 +1477,131 @@ end";
     Ok(())
 }
 
+/// Ensure that there is no collision between `Assert`, `U32assert2`, and `MpVerify`  instructions
+/// with different inner values (which all don't contribute to the MAST root).
+#[test]
+fn asserts_and_mpverify_with_code_in_duplicate_procedure() -> TestResult {
+    let context = TestContext::default();
+    let source = source_file!(
+        &context,
+        "\
+    proc.f1
+        u32assert.err=1
+    end
+    proc.f2
+        u32assert.err=2
+    end
+    proc.f12
+        u32assert.err=1
+        u32assert.err=2
+    end
+    proc.f21
+        u32assert.err=2
+        u32assert.err=1
+    end
+    proc.g1
+        assert.err=1
+    end
+    proc.g2
+        assert.err=2
+    end
+    proc.g12
+        assert.err=1
+        assert.err=2
+    end
+    proc.g21
+        assert.err=2
+        assert.err=1
+    end
+    proc.fg
+        assert.err=1
+        u32assert.err=1
+        assert.err=2
+        u32assert.err=2
+
+        u32assert.err=1
+        assert.err=1
+        u32assert.err=2
+        assert.err=2
+    end
+
+    proc.mpverify
+        mtree_verify.err=1
+        mtree_verify.err=2
+        mtree_verify.err=2
+        mtree_verify.err=1
+    end
+
+    begin
+        exec.f1
+        exec.f2
+        exec.f12
+        exec.f21
+        exec.g1
+        exec.g2
+        exec.g12
+        exec.g21
+        exec.fg
+        exec.mpverify
+    end
+    "
+    );
+    let program = context.assemble(source)?;
+
+    let expected = "\
+begin
+    basic_block
+        pad
+        u32assert2(1)
+        drop
+        pad
+        u32assert2(2)
+        drop
+        pad
+        u32assert2(1)
+        drop
+        pad
+        u32assert2(2)
+        drop
+        pad
+        u32assert2(2)
+        drop
+        pad
+        u32assert2(1)
+        drop
+        assert(1)
+        assert(2)
+        assert(1)
+        assert(2)
+        assert(2)
+        assert(1)
+        assert(1)
+        pad
+        u32assert2(1)
+        drop
+        assert(2)
+        pad
+        u32assert2(2)
+        drop
+        pad
+        u32assert2(1)
+        drop
+        assert(1)
+        pad
+        u32assert2(2)
+        drop
+        assert(2)
+        mpverify(1)
+        mpverify(2)
+        mpverify(2)
+        mpverify(1)
+    end
+end";
+
+    assert_str_eq!(expected, format!("{program}"));
+    Ok(())
+}
+
 #[test]
 fn mtree_verify_with_code() -> TestResult {
     let context = TestContext::default();
@@ -1322,7 +1695,7 @@ fn ensure_correct_procedure_selection_on_collision() -> TestResult {
         proc.f
             add
         end
-        
+
         proc.g
             trace.2
             add
@@ -1952,7 +2325,7 @@ end";
         "  :                                      `-- found a -> here",
         "3 |",
         "  `----",
-        r#" help: expected "begin", or "const", or "export", or "proc", or "use", or end of file, or doc comment"#
+        r#" help: expected "@", or "begin", or "const", or "export", or "proc", or "use", or end of file, or doc comment"#
     );
 
     // --- duplicate module import --------------------------------------------
@@ -2159,7 +2532,7 @@ fn invalid_empty_program() {
         "unexpected end of file",
         regex!(r#",-\[test[\d]+:1:1\]"#),
         "`----",
-        r#" help: expected "begin", or "const", or "export", or "proc", or "use", or doc comment"#
+        r#" help: expected "@", or "begin", or "const", or "export", or "proc", or "use", or doc comment"#
     );
 
     assert_assembler_diagnostic!(
@@ -2168,7 +2541,7 @@ fn invalid_empty_program() {
         "unexpected end of file",
         regex!(r#",-\[test[\d]+:1:1\]"#),
         "  `----",
-        r#" help: expected "begin", or "const", or "export", or "proc", or "use", or doc comment"#
+        r#" help: expected "@", or "begin", or "const", or "export", or "proc", or "use", or doc comment"#
     );
 }
 
@@ -2184,7 +2557,7 @@ fn invalid_program_unrecognized_token() {
         "  : ^^|^",
         "  :   `-- found a identifier here",
         "  `----",
-        r#" help: expected "begin", or "const", or "export", or "proc", or "use", or doc comment"#
+        r#" help: expected "@", or "begin", or "const", or "export", or "proc", or "use", or doc comment"#
     );
 }
 
@@ -2214,7 +2587,7 @@ fn invalid_program_invalid_top_level_token() {
         "  :               ^|^",
         "  :                `-- found a mul here",
         "  `----",
-        r#" help: expected "begin", or "const", or "export", or "proc", or "use", or end of file, or doc comment"#
+        r#" help: expected "@", or "begin", or "const", or "export", or "proc", or "use", or end of file, or doc comment"#
     );
 }
 

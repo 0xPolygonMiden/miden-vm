@@ -42,6 +42,15 @@ impl Debug {
     }
 }
 
+impl From<bool> for Debug {
+    fn from(value: bool) -> Self {
+        match value {
+            true => Debug::On,
+            false => Debug::Off,
+        }
+    }
+}
+
 // MERKLE DATA
 // ================================================================================================
 
@@ -416,7 +425,7 @@ impl ProgramFile {
 
     /// Compiles this program file into a [Program].
     #[instrument(name = "compile_program", skip_all)]
-    pub fn compile<'a, I>(&self, debug: &Debug, libraries: I) -> Result<Program, Report>
+    pub fn compile<'a, I>(&self, debug: Debug, libraries: I) -> Result<Program, Report>
     where
         I: IntoIterator<Item = &'a Library>,
     {
@@ -552,7 +561,7 @@ impl Libraries {
 // ================================================================================================
 #[cfg(test)]
 mod test {
-    use super::InputFile;
+    use super::{Debug, InputFile};
 
     #[test]
     fn test_merkle_data_parsing() {
@@ -625,5 +634,17 @@ mod test {
         let inputs: InputFile = serde_json::from_str(program_with_merkle_tree).unwrap();
         let merkle_store = inputs.parse_merkle_store().unwrap();
         assert!(merkle_store.is_some());
+    }
+
+    #[test]
+    fn test_debug_from_true() {
+        let debug_mode: Debug = true.into(); // true.into() will also test Debug.from(true)
+        assert!(matches!(debug_mode, Debug::On));
+    }
+
+    #[test]
+    fn test_debug_from_false() {
+        let debug_mode: Debug = false.into(); // false.into() will also test Debug.from(false)
+        assert!(matches!(debug_mode, Debug::Off));
     }
 }

@@ -1,10 +1,13 @@
 use alloc::{collections::BTreeMap, sync::Arc, vec::Vec};
 
+use basic_block_builder::BasicBlockOrDecorators;
 use mast_forest_builder::MastForestBuilder;
 use module_graph::{ProcedureWrapper, WrappedModule};
 use vm_core::{
-    crypto::hash::RpoDigest, debuginfo::SourceSpan, mast::MastNodeId, DecoratorList, Felt, Kernel,
-    Operation, Program,
+    crypto::hash::RpoDigest,
+    debuginfo::SourceSpan,
+    mast::{DecoratorId, MastNodeId},
+    DecoratorList, Felt, Kernel, Operation, Program,
 };
 
 use crate::{
@@ -211,8 +214,14 @@ impl Assembler {
     /// calls to library procedures will be compiled down to a [`vm_core::mast::ExternalNode`] (i.e.
     /// a reference to the procedure's MAST root). This means that when executing a program compiled
     /// against a library, the processor will not be able to differentiate procedures with the same
-    /// MAST root but different decorators. Hence, it is not recommended to export two procedures
-    /// that have the same MAST root (i.e. are identical except for their decorators).
+    /// MAST root but different decorators.
+    ///
+    /// Hence, it is not recommended to export two procedures that have the same MAST root (i.e. are
+    /// identical except for their decorators). Note however that we don't expect this scenario to
+    /// be frequent in practice. For example, this could occur when APIs are being renamed and/or
+    /// moved between modules, and for some deprecation period, the same is exported under both its
+    /// old and new paths. Or possibly with common small functions that are implemented by the main
+    /// program and one of its dependencies.
     pub fn add_library(&mut self, library: impl AsRef<Library>) -> Result<(), Report> {
         self.module_graph
             .add_compiled_modules(library.as_ref().module_infos())
@@ -535,9 +544,6 @@ impl Assembler {
                     let proc_mast_root =
                         mast_forest_builder.get_mast_node(proc_node_id).unwrap().digest();
 
-                    // insert external node into the MAST forest for this procedure; if a procedure
-                    // with the same MAST root had been previously added to the builder, this will
-                    // have no effect
                     let procedure = pctx.into_procedure(proc_mast_root, proc_node_id);
 
                     // Make the MAST root available to all dependents
@@ -595,86 +601,148 @@ impl Assembler {
     {
         use ast::Op;
 
-        let mut node_ids: Vec<MastNodeId> = Vec::new();
-        let mut basic_block_builder = BasicBlockBuilder::new(wrapper);
+        let mut body_node_ids: Vec<MastNodeId> = Vec::new();
+        let mut block_builder = BasicBlockBuilder::new(wrapper, mast_forest_builder);
 
         for op in body {
             match op {
                 Op::Inst(inst) => {
-                    if let Some(mast_node_id) = self.compile_instruction(
-                        inst,
-                        &mut basic_block_builder,
-                        proc_ctx,
-                        mast_forest_builder,
-                    )? {
-                        if let Some(basic_block_id) =
-                            basic_block_builder.make_basic_block(mast_forest_builder)?
-                        {
-                            node_ids.push(basic_block_id);
+                    if let Some(node_id) =
+                        self.compile_instruction(inst, &mut block_builder, proc_ctx)?
+                    {
+                        if let Some(basic_block_id) = block_builder.make_basic_block()? {
+                            body_node_ids.push(basic_block_id);
+                        } else if let Some(decorator_ids) = block_builder.drain_decorators() {
+                            block_builder
+                                .mast_forest_builder_mut()
+                                .set_before_enter(node_id, decorator_ids);
                         }
 
-                        node_ids.push(mast_node_id);
+                        body_node_ids.push(node_id);
                     }
                 },
 
                 Op::If { then_blk, else_blk, .. } => {
-                    if let Some(basic_block_id) =
-                        basic_block_builder.make_basic_block(mast_forest_builder)?
-                    {
-                        node_ids.push(basic_block_id);
+                    if let Some(basic_block_id) = block_builder.make_basic_block()? {
+                        body_node_ids.push(basic_block_id);
                     }
 
-                    let then_blk =
-                        self.compile_body(then_blk.iter(), proc_ctx, None, mast_forest_builder)?;
-                    let else_blk =
-                        self.compile_body(else_blk.iter(), proc_ctx, None, mast_forest_builder)?;
+                    let then_blk = self.compile_body(
+                        then_blk.iter(),
+                        proc_ctx,
+                        None,
+                        block_builder.mast_forest_builder_mut(),
+                    )?;
+                    let else_blk = self.compile_body(
+                        else_blk.iter(),
+                        proc_ctx,
+                        None,
+                        block_builder.mast_forest_builder_mut(),
+                    )?;
 
-                    let split_node_id = mast_forest_builder.ensure_split(then_blk, else_blk)?;
-                    node_ids.push(split_node_id);
+                    let split_node_id =
+                        block_builder.mast_forest_builder_mut().ensure_split(then_blk, else_blk)?;
+                    if let Some(decorator_ids) = block_builder.drain_decorators() {
+                        block_builder
+                            .mast_forest_builder_mut()
+                            .set_before_enter(split_node_id, decorator_ids)
+                    }
+
+                    body_node_ids.push(split_node_id);
                 },
 
                 Op::Repeat { count, body, .. } => {
-                    if let Some(basic_block_id) =
-                        basic_block_builder.make_basic_block(mast_forest_builder)?
-                    {
-                        node_ids.push(basic_block_id);
+                    if let Some(basic_block_id) = block_builder.make_basic_block()? {
+                        body_node_ids.push(basic_block_id);
                     }
 
-                    let repeat_node_id =
-                        self.compile_body(body.iter(), proc_ctx, None, mast_forest_builder)?;
+                    let repeat_node_id = self.compile_body(
+                        body.iter(),
+                        proc_ctx,
+                        None,
+                        block_builder.mast_forest_builder_mut(),
+                    )?;
 
-                    for _ in 0..*count {
-                        node_ids.push(repeat_node_id);
+                    if let Some(decorator_ids) = block_builder.drain_decorators() {
+                        // Attach the decorators before the first instance of the repeated node
+                        let mut first_repeat_node =
+                            block_builder.mast_forest_builder_mut()[repeat_node_id].clone();
+                        first_repeat_node.set_before_enter(decorator_ids);
+                        let first_repeat_node_id = block_builder
+                            .mast_forest_builder_mut()
+                            .ensure_node(first_repeat_node)?;
+
+                        body_node_ids.push(first_repeat_node_id);
+                        for _ in 0..(*count - 1) {
+                            body_node_ids.push(repeat_node_id);
+                        }
+                    } else {
+                        for _ in 0..*count {
+                            body_node_ids.push(repeat_node_id);
+                        }
                     }
                 },
 
                 Op::While { body, .. } => {
-                    if let Some(basic_block_id) =
-                        basic_block_builder.make_basic_block(mast_forest_builder)?
-                    {
-                        node_ids.push(basic_block_id);
+                    if let Some(basic_block_id) = block_builder.make_basic_block()? {
+                        body_node_ids.push(basic_block_id);
                     }
 
-                    let loop_body_node_id =
-                        self.compile_body(body.iter(), proc_ctx, None, mast_forest_builder)?;
+                    let loop_node_id = {
+                        let loop_body_node_id = self.compile_body(
+                            body.iter(),
+                            proc_ctx,
+                            None,
+                            block_builder.mast_forest_builder_mut(),
+                        )?;
+                        block_builder.mast_forest_builder_mut().ensure_loop(loop_body_node_id)?
+                    };
+                    if let Some(decorator_ids) = block_builder.drain_decorators() {
+                        block_builder
+                            .mast_forest_builder_mut()
+                            .set_before_enter(loop_node_id, decorator_ids)
+                    }
 
-                    let loop_node_id = mast_forest_builder.ensure_loop(loop_body_node_id)?;
-                    node_ids.push(loop_node_id);
+                    body_node_ids.push(loop_node_id);
                 },
             }
         }
 
-        if let Some(basic_block_id) =
-            basic_block_builder.try_into_basic_block(mast_forest_builder)?
-        {
-            node_ids.push(basic_block_id);
-        }
+        let maybe_post_decorators: Option<Vec<DecoratorId>> =
+            match block_builder.try_into_basic_block()? {
+                BasicBlockOrDecorators::BasicBlock(basic_block_id) => {
+                    body_node_ids.push(basic_block_id);
+                    None
+                },
+                BasicBlockOrDecorators::Decorators(decorator_ids) => {
+                    // the procedure body ends with a list of decorators
+                    Some(decorator_ids)
+                },
+                BasicBlockOrDecorators::Nothing => None,
+            };
 
-        Ok(if node_ids.is_empty() {
+        let procedure_body_id = if body_node_ids.is_empty() {
+            // We cannot allow only decorators in a procedure body, since decorators don't change
+            // the MAST digest of a node. Hence, two empty procedures with different decorators
+            // would look the same to the `MastForestBuilder`.
+            if maybe_post_decorators.is_some() {
+                return Err(AssemblyError::EmptyProcedureBodyWithDecorators {
+                    span: proc_ctx.span(),
+                    source_file: proc_ctx.source_manager().get(proc_ctx.span().source_id()).ok(),
+                })?;
+            }
+
             mast_forest_builder.ensure_block(vec![Operation::Noop], None)?
         } else {
-            mast_forest_builder.join_nodes(node_ids)?
-        })
+            mast_forest_builder.join_nodes(body_node_ids)?
+        };
+
+        // Make sure that any post decorators are added at the end of the procedure body
+        if let Some(post_decorator_ids) = maybe_post_decorators {
+            mast_forest_builder.set_after_exit(procedure_body_id, post_decorator_ids);
+        }
+
+        Ok(procedure_body_id)
     }
 
     /// Resolves the specified target to the corresponding procedure root [`MastNodeId`].

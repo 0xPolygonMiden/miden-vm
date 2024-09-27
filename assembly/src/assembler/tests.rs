@@ -1,5 +1,12 @@
+use alloc::vec::Vec;
+
 use pretty_assertions::assert_eq;
-use vm_core::{assert_matches, mast::MastForest, Program};
+use vm_core::{
+    assert_matches,
+    crypto::hash::RpoDigest,
+    mast::{MastForest, MastNode},
+    Program,
+};
 
 use super::{Assembler, Operation};
 use crate::{
@@ -154,6 +161,40 @@ fn nested_blocks() -> Result<(), Report> {
     Ok(())
 }
 
+/// Ensures that the arguments of `emit` do indeed modify the digest of a basic block
+#[test]
+fn emit_instruction_digest() {
+    let context = TestContext::new();
+
+    let program_source = r#"
+        proc.foo
+            emit.1
+        end
+
+        proc.bar
+            emit.2
+        end
+
+        begin
+            # specific impl irrelevant
+            exec.foo
+            exec.bar
+        end
+    "#;
+
+    let program = context.assemble(program_source).unwrap();
+
+    let procedure_digests: Vec<RpoDigest> = program.mast_forest().procedure_digests().collect();
+
+    // foo, bar and entrypoint
+    assert_eq!(3, procedure_digests.len());
+
+    // Ensure that foo, bar and entrypoint all have different digests
+    assert_ne!(procedure_digests[0], procedure_digests[1]);
+    assert_ne!(procedure_digests[0], procedure_digests[2]);
+    assert_ne!(procedure_digests[1], procedure_digests[2]);
+}
+
 /// Since `foo` and `bar` have the same body, we only expect them to be added once to the program.
 #[test]
 fn duplicate_procedure() {
@@ -179,6 +220,38 @@ fn duplicate_procedure() {
 
     let program = context.assemble(program_source).unwrap();
     assert_eq!(program.num_procedures(), 2);
+}
+
+#[test]
+fn distinguish_grandchildren_correctly() {
+    let context = TestContext::new();
+
+    let program_source = r#"
+    begin
+        if.true
+            while.true
+                trace.1234
+                push.1
+            end
+        end
+        
+        if.true
+            while.true
+                push.1
+            end
+        end
+    end
+    "#;
+
+    let program = context.assemble(program_source).unwrap();
+
+    let join_node = match &program.mast_forest()[program.entrypoint()] {
+        MastNode::Join(node) => node,
+        _ => panic!("expected join node"),
+    };
+
+    // Make sure that both `if.true` blocks compile down to a different MAST node.
+    assert_ne!(join_node.first(), join_node.second());
 }
 
 /// Ensures that equal MAST nodes don't get added twice to a MAST forest

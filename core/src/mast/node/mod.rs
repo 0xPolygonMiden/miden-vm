@@ -1,12 +1,11 @@
 mod basic_block_node;
-use alloc::{boxed::Box, string::ToString, vec::Vec};
+use alloc::{boxed::Box, vec::Vec};
 use core::fmt;
 
 pub use basic_block_node::{
     BasicBlockNode, OpBatch, OperationOrDecorator, BATCH_SIZE as OP_BATCH_SIZE,
     GROUP_SIZE as OP_GROUP_SIZE,
 };
-use num_traits::ToBytes;
 
 mod call_node;
 pub use call_node::CallNode;
@@ -21,23 +20,17 @@ mod join_node;
 pub use join_node::JoinNode;
 
 mod split_node;
-use miden_crypto::{
-    hash::{
-        blake::{Blake3Digest, Blake3_256},
-        rpo::RpoDigest,
-    },
-    Felt,
-};
+use miden_crypto::{hash::rpo::RpoDigest, Felt};
 use miden_formatting::prettier::{Document, PrettyPrint};
 pub use split_node::SplitNode;
 
 mod loop_node;
 pub use loop_node::LoopNode;
 
-use super::MastForestError;
+use super::{DecoratorId, MastForestError};
 use crate::{
     mast::{MastForest, MastNodeId},
-    Decorator, DecoratorList, Operation,
+    DecoratorList, Operation,
 };
 
 // MAST NODE
@@ -50,7 +43,7 @@ pub enum MastNode {
     Split(SplitNode),
     Loop(LoopNode),
     Call(CallNode),
-    Dyn,
+    Dyn(DynNode),
     External(ExternalNode),
 }
 
@@ -102,11 +95,21 @@ impl MastNode {
     }
 
     pub fn new_dyn() -> Self {
-        Self::Dyn
+        Self::Dyn(DynNode::default())
     }
 
     pub fn new_external(mast_root: RpoDigest) -> Self {
         Self::External(ExternalNode::new(mast_root))
+    }
+
+    #[cfg(test)]
+    pub fn new_basic_block_with_raw_decorators(
+        operations: Vec<Operation>,
+        decorators: Vec<(usize, crate::Decorator)>,
+        mast_forest: &mut MastForest,
+    ) -> Result<Self, MastForestError> {
+        let block = BasicBlockNode::new_with_raw_decorators(operations, decorators, mast_forest)?;
+        Ok(Self::Block(block))
     }
 }
 
@@ -120,7 +123,7 @@ impl MastNode {
 
     /// Returns true if this node is a Dyn node.
     pub fn is_dyn(&self) -> bool {
-        matches!(self, MastNode::Dyn)
+        matches!(self, MastNode::Dyn(_))
     }
 
     /// Returns true if this node is a basic block.
@@ -140,7 +143,7 @@ impl MastNode {
     pub fn to_pretty_print<'a>(&'a self, mast_forest: &'a MastForest) -> impl PrettyPrint + 'a {
         match self {
             MastNode::Block(basic_block_node) => {
-                MastNodePrettyPrint::new(Box::new(basic_block_node))
+                MastNodePrettyPrint::new(Box::new(basic_block_node.to_pretty_print(mast_forest)))
             },
             MastNode::Join(join_node) => {
                 MastNodePrettyPrint::new(Box::new(join_node.to_pretty_print(mast_forest)))
@@ -154,8 +157,12 @@ impl MastNode {
             MastNode::Call(call_node) => {
                 MastNodePrettyPrint::new(Box::new(call_node.to_pretty_print(mast_forest)))
             },
-            MastNode::Dyn => MastNodePrettyPrint::new(Box::new(DynNode)),
-            MastNode::External(external_node) => MastNodePrettyPrint::new(Box::new(external_node)),
+            MastNode::Dyn(dyn_node) => {
+                MastNodePrettyPrint::new(Box::new(dyn_node.to_pretty_print(mast_forest)))
+            },
+            MastNode::External(external_node) => {
+                MastNodePrettyPrint::new(Box::new(external_node.to_pretty_print(mast_forest)))
+            },
         }
     }
 
@@ -166,7 +173,7 @@ impl MastNode {
             MastNode::Split(_) => SplitNode::DOMAIN,
             MastNode::Loop(_) => LoopNode::DOMAIN,
             MastNode::Call(call_node) => call_node.domain(),
-            MastNode::Dyn => DynNode::DOMAIN,
+            MastNode::Dyn(_) => DynNode::DOMAIN,
             MastNode::External(_) => panic!("Can't fetch domain for an `External` node."),
         }
     }
@@ -178,70 +185,77 @@ impl MastNode {
             MastNode::Split(node) => node.digest(),
             MastNode::Loop(node) => node.digest(),
             MastNode::Call(node) => node.digest(),
-            MastNode::Dyn => DynNode.digest(),
+            MastNode::Dyn(node) => node.digest(),
             MastNode::External(node) => node.digest(),
         }
     }
 
     pub fn to_display<'a>(&'a self, mast_forest: &'a MastForest) -> impl fmt::Display + 'a {
         match self {
-            MastNode::Block(node) => MastNodeDisplay::new(node),
+            MastNode::Block(node) => MastNodeDisplay::new(node.to_display(mast_forest)),
             MastNode::Join(node) => MastNodeDisplay::new(node.to_display(mast_forest)),
             MastNode::Split(node) => MastNodeDisplay::new(node.to_display(mast_forest)),
             MastNode::Loop(node) => MastNodeDisplay::new(node.to_display(mast_forest)),
             MastNode::Call(node) => MastNodeDisplay::new(node.to_display(mast_forest)),
-            MastNode::Dyn => MastNodeDisplay::new(DynNode),
+            MastNode::Dyn(node) => MastNodeDisplay::new(node.to_display(mast_forest)),
             MastNode::External(node) => MastNodeDisplay::new(node.to_display(mast_forest)),
         }
     }
 
-    /// Returns the Blake3 hash of this node, to be used for equality testing.
-    ///
-    /// Specifically, two nodes with the same MAST root but different decorators will have a
-    /// different hash.
-    pub fn eq_hash(&self) -> Blake3Digest<32> {
+    /// Returns the decorators to be executed before this node is executed.
+    pub fn before_enter(&self) -> &[DecoratorId] {
+        use MastNode::*;
         match self {
-            MastNode::Block(node) => {
-                let mut bytes_to_hash = node.digest().as_bytes().to_vec();
+            Block(_) => &[],
+            Join(node) => node.before_enter(),
+            Split(node) => node.before_enter(),
+            Loop(node) => node.before_enter(),
+            Call(node) => node.before_enter(),
+            Dyn(node) => node.before_enter(),
+            External(node) => node.before_enter(),
+        }
+    }
 
-                for (idx, decorator) in node.decorators() {
-                    bytes_to_hash.extend(idx.to_le_bytes());
+    /// Returns the decorators to be executed after this node is executed.
+    pub fn after_exit(&self) -> &[DecoratorId] {
+        use MastNode::*;
+        match self {
+            Block(_) => &[],
+            Join(node) => node.after_exit(),
+            Split(node) => node.after_exit(),
+            Loop(node) => node.after_exit(),
+            Call(node) => node.after_exit(),
+            Dyn(node) => node.after_exit(),
+            External(node) => node.after_exit(),
+        }
+    }
+}
 
-                    match decorator {
-                        Decorator::Advice(advice) => {
-                            bytes_to_hash.extend(advice.to_string().as_bytes())
-                        },
-                        Decorator::AsmOp(asm_op) => {
-                            if let Some(location) = asm_op.location() {
-                                bytes_to_hash.extend(location.path.as_bytes());
-                                bytes_to_hash.extend(location.start.to_u32().to_le_bytes());
-                                bytes_to_hash.extend(location.end.to_u32().to_le_bytes());
-                            }
-                            bytes_to_hash.extend(asm_op.context_name().as_bytes());
-                            bytes_to_hash.extend(asm_op.op().as_bytes());
-                            bytes_to_hash.push(asm_op.num_cycles());
-                            bytes_to_hash.push(asm_op.should_break() as u8);
-                        },
-                        Decorator::Debug(debug) => {
-                            bytes_to_hash.extend(debug.to_string().as_bytes())
-                        },
-                        Decorator::Event(event) => {
-                            bytes_to_hash.extend(event.to_le_bytes());
-                        },
-                        Decorator::Trace(trace) => {
-                            bytes_to_hash.extend(trace.to_le_bytes());
-                        },
-                    }
-                }
+/// Mutators
+impl MastNode {
+    /// Sets the list of decorators to be executed before this node.
+    pub fn set_before_enter(&mut self, decorator_ids: Vec<DecoratorId>) {
+        match self {
+            MastNode::Block(node) => node.prepend_decorators(decorator_ids),
+            MastNode::Join(node) => node.set_before_enter(decorator_ids),
+            MastNode::Split(node) => node.set_before_enter(decorator_ids),
+            MastNode::Loop(node) => node.set_before_enter(decorator_ids),
+            MastNode::Call(node) => node.set_before_enter(decorator_ids),
+            MastNode::Dyn(node) => node.set_before_enter(decorator_ids),
+            MastNode::External(node) => node.set_before_enter(decorator_ids),
+        }
+    }
 
-                Blake3_256::hash(&bytes_to_hash)
-            },
-            MastNode::Join(node) => Blake3_256::hash(&node.digest().as_bytes()),
-            MastNode::Split(node) => Blake3_256::hash(&node.digest().as_bytes()),
-            MastNode::Loop(node) => Blake3_256::hash(&node.digest().as_bytes()),
-            MastNode::Call(node) => Blake3_256::hash(&node.digest().as_bytes()),
-            MastNode::Dyn => Blake3_256::hash(&MastNode::Dyn.digest().as_bytes()),
-            MastNode::External(node) => Blake3_256::hash(&node.digest().as_bytes()),
+    /// Sets the list of decorators to be executed after this node.
+    pub fn set_after_exit(&mut self, decorator_ids: Vec<DecoratorId>) {
+        match self {
+            MastNode::Block(node) => node.append_decorators(decorator_ids),
+            MastNode::Join(node) => node.set_after_exit(decorator_ids),
+            MastNode::Split(node) => node.set_after_exit(decorator_ids),
+            MastNode::Loop(node) => node.set_after_exit(decorator_ids),
+            MastNode::Call(node) => node.set_after_exit(decorator_ids),
+            MastNode::Dyn(node) => node.set_after_exit(decorator_ids),
+            MastNode::External(node) => node.set_after_exit(decorator_ids),
         }
     }
 }

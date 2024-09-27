@@ -73,7 +73,7 @@ pub mod crypto {
             blake::{Blake3Digest, Blake3_160, Blake3_192, Blake3_256},
             rpo::{Rpo256, RpoDigest},
             rpx::{Rpx256, RpxDigest},
-            ElementHasher, Hasher,
+            Digest, ElementHasher, Hasher,
         };
     }
 

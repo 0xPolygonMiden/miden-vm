@@ -65,6 +65,10 @@ test-skip-proptests: ## Runs all tests, except property-based tests
 test-loom: ## Runs all loom-based tests
 	RUSTFLAGS="--cfg loom" cargo nextest run --cargo-profile test-release --features testing -E 'test(#*loom)'
 
+.PHONY: test-package
+test-package: ## Tests specific package: make test-package package=miden-vm
+	$(DEBUG_ASSERTIONS) cargo nextest run --cargo-profile test-release --features testing -p $(package)
+
 # --- checking ------------------------------------------------------------------------------------
 
 .PHONY: check

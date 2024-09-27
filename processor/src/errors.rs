@@ -4,7 +4,11 @@ use core::fmt::{Display, Formatter};
 use std::error::Error;
 
 use miden_air::RowIndex;
-use vm_core::{mast::MastNodeId, stack::STACK_TOP_SIZE, utils::to_hex};
+use vm_core::{
+    mast::{DecoratorId, MastNodeId},
+    stack::STACK_TOP_SIZE,
+    utils::to_hex,
+};
 use winter_prover::{math::FieldElement, ProverError};
 
 use super::{
@@ -23,6 +27,9 @@ pub enum ExecutionError {
     CallerNotInSyscall,
     CircularExternalNode(Digest),
     CycleLimitExceeded(u32),
+    DecoratorNotFoundInForest {
+        decorator_id: DecoratorId,
+    },
     DivideByZero(RowIndex),
     DynamicNodeNotFound(Digest),
     EventError(String),
@@ -97,6 +104,9 @@ impl Display for ExecutionError {
             },
             CycleLimitExceeded(max_cycles) => {
                 write!(f, "Exceeded the allowed number of cycles (max cycles = {max_cycles})")
+            },
+            DecoratorNotFoundInForest { decorator_id } => {
+                write!(f, "Malformed MAST forest, decorator id {decorator_id} doesn't exist")
             },
             DivideByZero(clk) => write!(f, "Division by zero at clock cycle {clk}"),
             DynamicNodeNotFound(digest) => {

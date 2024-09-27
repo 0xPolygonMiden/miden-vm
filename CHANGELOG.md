@@ -2,6 +2,10 @@
 
 ## 0.11.0 (TBD)
 
+#### Enhancements
+
+- Added support for procedure annotation (attribute) syntax to Miden Assembly
+
 #### Changes
 
 - [BREAKING] Wrapped `MastForest`s in `Program` and `Library` structs in `Arc` (#1465).
@@ -9,10 +13,29 @@
 - Added `miden_core::utils::sync::racy_lock` module (#1463).
 - Updated `miden_core::utils` to re-export `std::sync::LazyLock` and `racy_lock::RacyLock as LazyLock` for std and no_std environments, respectively (#1463).
 - Made the undocumented behavior of the VM with regard to undefined behavior of u32 operations, stricter (#1480)
+- Introduced the `Emit` instruction (#1496)
+- Debug instructions can be enabled in the cli `run` command using `--debug` flag (#1502)
+- [BREAKING] ExecutionOptions::new constructor requires a boolean to explicitly set debug mode (#1502)
+- [BREAKING] The `run` and the `prove` commands in the cli will accept `--trace` flag instead of `--tracing` (#1502)
+
 
 #### Fixes
 
 - Fixed an issue with formatting of blocks in Miden Assembly syntax
+- Fixed the construction of the block hash table (#1506)
+- Fixed a bug in the block stack table (#1511)
+- Fixed the construction of the chiplets virtual table (#1514)
+
+#### Fixes
+
+- Decorators are now allowed in empty basic blocks (#1466)
+
+
+## 0.10.6 (2024-09-12) - `miden-processor` crate only.
+
+#### Enhancements
+
+- Added `PartialEq`, `Eq`, `Serialize` and `Deserialize` to `AdviceMap` and `AdviceInputs` structs (#1494).
 
 ## 0.10.5 (2024-08-21)
 

@@ -59,31 +59,38 @@ impl Assembler {
         &self,
         callee: &InvocationTarget,
         proc_ctx: &mut ProcedureContext,
-        basic_block_builder: &mut BasicBlockBuilder,
-        mast_forest_builder: &mut MastForestBuilder,
+        block_builder: &mut BasicBlockBuilder,
     ) -> Result<(), AssemblyError> {
         let mast_root = {
-            let proc_body_id =
-                self.resolve_target(InvokeKind::ProcRef, callee, proc_ctx, mast_forest_builder)?;
+            let proc_body_id = self.resolve_target(
+                InvokeKind::ProcRef,
+                callee,
+                proc_ctx,
+                block_builder.mast_forest_builder_mut(),
+            )?;
             // Note: it's ok to `unwrap()` here since `proc_body_id` was returned from
             // `mast_forest_builder`
-            mast_forest_builder.get_mast_node(proc_body_id).unwrap().digest()
+            block_builder
+                .mast_forest_builder()
+                .get_mast_node(proc_body_id)
+                .unwrap()
+                .digest()
         };
 
-        self.procref_mast_root(mast_root, basic_block_builder)
+        self.procref_mast_root(mast_root, block_builder)
     }
 
     fn procref_mast_root(
         &self,
         mast_root: RpoDigest,
-        basic_block_builder: &mut BasicBlockBuilder,
+        block_builder: &mut BasicBlockBuilder,
     ) -> Result<(), AssemblyError> {
         // Create an array with `Push` operations containing root elements
         let ops = mast_root
             .iter()
             .map(|elem| Operation::Push(*elem))
             .collect::<SmallVec<[_; 4]>>();
-        basic_block_builder.push_ops(ops);
+        block_builder.push_ops(ops);
         Ok(())
     }
 }
