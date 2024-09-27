@@ -28,34 +28,45 @@ use crate::{
 // CONSTANTS
 // ===============================================================================================
 
-// TODO(plafer): only generate a new alpha_0 for each table
+const fn const_max(a: usize, b: usize) -> usize {
+    // NOTE: `[(a < b) as usize]` evaluates to 0 or 1, selection `a` or `b` accordingly
+    [a, b][(a < b) as usize]
+}
 
 // Random values
 
-pub const RANGE_CHECKER_RAND_VALUES_OFFSET: usize = 0;
-pub const RANGE_CHECKER_NUM_RAND_VALUES: usize = 1;
+/// The number of random values used as offsets (alpha_0 is our docs)
+pub const NUM_OFFSET_RAND_VALUES: usize = 6;
 
-pub const OP_GROUP_TABLE_RAND_VALUES_OFFSET: usize = 1;
-pub const OP_GROUP_TABLE_NUM_RAND_VALUES: usize = 4;
+const RANGE_CHECKER_NUM_RAND_LINCOMB_VALUES: usize = 0;
+const OP_GROUP_TABLE_NUM_RAND_LINCOMB_VALUES: usize = 3;
+const BLOCK_HASH_TABLE_NUM_RAND_LINCOMB_VALUES: usize = 7;
+const BLOCK_STACK_TABLE_NUM_RAND_LINCOMB_VALUES: usize = 11;
+const HASHER_TABLE_NUM_RAND_LINCOMB_VALUES: usize = 15;
+const KERNEL_PROC_TABLE_NUM_RAND_LINCOMB_VALUES: usize = 5;
 
-pub const BLOCK_HASH_TABLE_RAND_VALUES_OFFSET: usize =
-    OP_GROUP_TABLE_RAND_VALUES_OFFSET + OP_GROUP_TABLE_NUM_RAND_VALUES;
-pub const BLOCK_HASH_TABLE_NUM_RAND_VALUES: usize = 8;
+/// The number of random values to generate to support all random linear combinations. All tables
+/// are allowed to share the same random linear combination coefficients since each table is offset
+/// by a different random value.
+pub const MAX_RAND_LINCOMB_VALUES: usize = const_max(
+    const_max(
+        const_max(
+            const_max(
+                const_max(
+                    RANGE_CHECKER_NUM_RAND_LINCOMB_VALUES,
+                    OP_GROUP_TABLE_NUM_RAND_LINCOMB_VALUES,
+                ),
+                BLOCK_HASH_TABLE_NUM_RAND_LINCOMB_VALUES,
+            ),
+            BLOCK_STACK_TABLE_NUM_RAND_LINCOMB_VALUES,
+        ),
+        HASHER_TABLE_NUM_RAND_LINCOMB_VALUES,
+    ),
+    KERNEL_PROC_TABLE_NUM_RAND_LINCOMB_VALUES,
+);
 
-pub const BLOCK_STACK_TABLE_RAND_VALUES_OFFSET: usize =
-    BLOCK_HASH_TABLE_RAND_VALUES_OFFSET + BLOCK_HASH_TABLE_NUM_RAND_VALUES;
-pub const BLOCK_STACK_TABLE_NUM_RAND_VALUES: usize = 12;
-
-pub const HASHER_TABLE_RAND_VALUES_OFFSET: usize =
-    BLOCK_STACK_TABLE_RAND_VALUES_OFFSET + BLOCK_STACK_TABLE_NUM_RAND_VALUES;
-pub const HASHER_TABLE_NUM_RAND_VALUES: usize = 16;
-
-pub const KERNEL_PROC_TABLE_RAND_VALUES_OFFSET: usize =
-    HASHER_TABLE_RAND_VALUES_OFFSET + HASHER_TABLE_NUM_RAND_VALUES;
-pub const KERNEL_PROC_TABLE_NUM_RAND_VALUES: usize = 6;
-
-pub const TOTAL_NUM_RAND_VALUES: usize =
-    KERNEL_PROC_TABLE_RAND_VALUES_OFFSET + KERNEL_PROC_TABLE_NUM_RAND_VALUES;
+/// The total number of random values to generate
+pub const TOTAL_NUM_RAND_VALUES: usize = NUM_OFFSET_RAND_VALUES + MAX_RAND_LINCOMB_VALUES;
 
 // Fractions
 
@@ -166,62 +177,87 @@ impl LogUpGkrEvaluator for MidenLogUpGkrEval<Felt> {
         let op_flags_current = LogUpOpFlags::new(query_current);
         let op_flags_next = LogUpOpFlags::new(query_next);
 
+        let offset_rand_values = &rand_values[0..NUM_OFFSET_RAND_VALUES];
+        let mut alphas = {
+            let lin_comb_rand_values = &rand_values[NUM_OFFSET_RAND_VALUES..];
+            let mut alphas = [E::ZERO; 1 + MAX_RAND_LINCOMB_VALUES];
+            // `alphas[0]` will be reassigned before each table
+            alphas[0] = offset_rand_values[0];
+            alphas[1..].copy_from_slice(lin_comb_rand_values);
+
+            alphas
+        };
+
         range_checker(
             query_current,
             &op_flags_current,
-            rand_values[RANGE_CHECKER_FRACTIONS_OFFSET],
+            alphas[0],
             &mut numerator[range(RANGE_CHECKER_FRACTIONS_OFFSET, RANGE_CHECKER_NUM_FRACTIONS)],
             &mut denominator[range(RANGE_CHECKER_FRACTIONS_OFFSET, RANGE_CHECKER_NUM_FRACTIONS)],
         );
-        op_group_table(
-            query_current,
-            query_next,
-            &op_flags_current,
-            &rand_values[range(OP_GROUP_TABLE_RAND_VALUES_OFFSET, OP_GROUP_TABLE_NUM_RAND_VALUES)],
-            &mut numerator[range(OP_GROUP_TABLE_FRACTIONS_OFFSET, OP_GROUP_TABLE_NUM_FRACTIONS)],
-            &mut denominator[range(OP_GROUP_TABLE_FRACTIONS_OFFSET, OP_GROUP_TABLE_NUM_FRACTIONS)],
-        );
-        block_hash_table(
-            query_current,
-            query_next,
-            &op_flags_current,
-            &op_flags_next,
-            &rand_values
-                [range(BLOCK_HASH_TABLE_RAND_VALUES_OFFSET, BLOCK_HASH_TABLE_NUM_RAND_VALUES)],
-            &mut numerator
-                [range(BLOCK_HASH_TABLE_FRACTIONS_OFFSET, BLOCK_HASH_TABLE_NUM_FRACTIONS)],
-            &mut denominator
-                [range(BLOCK_HASH_TABLE_FRACTIONS_OFFSET, BLOCK_HASH_TABLE_NUM_FRACTIONS)],
-        );
-        block_stack_table(
-            query_current,
-            query_next,
-            &op_flags_current,
-            &rand_values
-                [range(BLOCK_STACK_TABLE_RAND_VALUES_OFFSET, BLOCK_STACK_TABLE_NUM_RAND_VALUES)],
-            &mut numerator
-                [range(BLOCK_STACK_TABLE_FRACTIONS_OFFSET, BLOCK_STACK_TABLE_NUM_FRACTIONS)],
-            &mut denominator
-                [range(BLOCK_STACK_TABLE_FRACTIONS_OFFSET, BLOCK_STACK_TABLE_NUM_FRACTIONS)],
-        );
-        hasher_table(
-            query_current,
-            query_next,
-            periodic_values,
-            &rand_values[range(HASHER_TABLE_RAND_VALUES_OFFSET, HASHER_TABLE_NUM_RAND_VALUES)],
-            &mut numerator[range(HASHER_TABLE_FRACTIONS_OFFSET, HASHER_TABLE_NUM_FRACTIONS)],
-            &mut denominator[range(HASHER_TABLE_FRACTIONS_OFFSET, HASHER_TABLE_NUM_FRACTIONS)],
-        );
-        kernel_proc_table(
-            query_current,
-            query_next,
-            &rand_values
-                [range(KERNEL_PROC_TABLE_RAND_VALUES_OFFSET, KERNEL_PROC_TABLE_NUM_RAND_VALUES)],
-            &mut numerator
-                [range(KERNEL_PROC_TABLE_FRACTIONS_OFFSET, KERNEL_PROC_TABLE_NUM_FRACTIONS)],
-            &mut denominator
-                [range(KERNEL_PROC_TABLE_FRACTIONS_OFFSET, KERNEL_PROC_TABLE_NUM_FRACTIONS)],
-        );
+        {
+            alphas[0] = offset_rand_values[1];
+            op_group_table(
+                query_current,
+                query_next,
+                &op_flags_current,
+                &alphas,
+                &mut numerator
+                    [range(OP_GROUP_TABLE_FRACTIONS_OFFSET, OP_GROUP_TABLE_NUM_FRACTIONS)],
+                &mut denominator
+                    [range(OP_GROUP_TABLE_FRACTIONS_OFFSET, OP_GROUP_TABLE_NUM_FRACTIONS)],
+            );
+        }
+        {
+            alphas[0] = offset_rand_values[2];
+            block_hash_table(
+                query_current,
+                query_next,
+                &op_flags_current,
+                &op_flags_next,
+                &alphas,
+                &mut numerator
+                    [range(BLOCK_HASH_TABLE_FRACTIONS_OFFSET, BLOCK_HASH_TABLE_NUM_FRACTIONS)],
+                &mut denominator
+                    [range(BLOCK_HASH_TABLE_FRACTIONS_OFFSET, BLOCK_HASH_TABLE_NUM_FRACTIONS)],
+            );
+        }
+        {
+            alphas[0] = offset_rand_values[3];
+            block_stack_table(
+                query_current,
+                query_next,
+                &op_flags_current,
+                &alphas,
+                &mut numerator
+                    [range(BLOCK_STACK_TABLE_FRACTIONS_OFFSET, BLOCK_STACK_TABLE_NUM_FRACTIONS)],
+                &mut denominator
+                    [range(BLOCK_STACK_TABLE_FRACTIONS_OFFSET, BLOCK_STACK_TABLE_NUM_FRACTIONS)],
+            );
+        }
+        {
+            alphas[0] = offset_rand_values[4];
+            hasher_table(
+                query_current,
+                query_next,
+                periodic_values,
+                &alphas,
+                &mut numerator[range(HASHER_TABLE_FRACTIONS_OFFSET, HASHER_TABLE_NUM_FRACTIONS)],
+                &mut denominator[range(HASHER_TABLE_FRACTIONS_OFFSET, HASHER_TABLE_NUM_FRACTIONS)],
+            );
+        }
+        {
+            alphas[0] = offset_rand_values[5];
+            kernel_proc_table(
+                query_current,
+                query_next,
+                &alphas,
+                &mut numerator
+                    [range(KERNEL_PROC_TABLE_FRACTIONS_OFFSET, KERNEL_PROC_TABLE_NUM_FRACTIONS)],
+                &mut denominator
+                    [range(KERNEL_PROC_TABLE_FRACTIONS_OFFSET, KERNEL_PROC_TABLE_NUM_FRACTIONS)],
+            );
+        }
         padding(
             &mut numerator[range(PADDING_FRACTIONS_OFFSET, PADDING_NUM_FRACTIONS)],
             &mut denominator[range(PADDING_FRACTIONS_OFFSET, PADDING_NUM_FRACTIONS)],
@@ -232,10 +268,19 @@ impl LogUpGkrEvaluator for MidenLogUpGkrEval<Felt> {
     where
         E: FieldElement<BaseField = Self::BaseField>,
     {
+        let offset_rand_values = &rand_values[0..NUM_OFFSET_RAND_VALUES];
+        let mut alphas = {
+            let lin_comb_rand_values = &rand_values[NUM_OFFSET_RAND_VALUES..];
+            let mut alphas = [E::ZERO; 1 + MAX_RAND_LINCOMB_VALUES];
+            // `alphas[0]` will be reassigned before each table
+            alphas[0] = offset_rand_values[0];
+            alphas[1..].copy_from_slice(lin_comb_rand_values);
+
+            alphas
+        };
         // block hash table
         let block_hash_table_claim = {
-            let alphas = &rand_values
-                [range(BLOCK_HASH_TABLE_RAND_VALUES_OFFSET, BLOCK_HASH_TABLE_NUM_RAND_VALUES)];
+            alphas[0] = offset_rand_values[2];
             let program_hash = inputs.program_info.program_hash();
 
             -(alphas[0] + inner_product(&alphas[2..6], program_hash.as_elements()))
