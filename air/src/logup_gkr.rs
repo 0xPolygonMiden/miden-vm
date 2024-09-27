@@ -45,9 +45,10 @@ const BLOCK_STACK_TABLE_NUM_RAND_LINCOMB_VALUES: usize = 11;
 const HASHER_TABLE_NUM_RAND_LINCOMB_VALUES: usize = 15;
 const KERNEL_PROC_TABLE_NUM_RAND_LINCOMB_VALUES: usize = 5;
 
-/// The number of random values to generate to support all random linear combinations. All tables
-/// are allowed to share the same random linear combination coefficients since each table is offset
-/// by a different random value.
+/// The number of random values to generate to support all random linear combinations.
+///
+/// All tables are allowed to share the same random linear combination coefficients since each table
+/// is offset by a different random value.
 pub const MAX_RAND_LINCOMB_VALUES: usize = const_max(
     const_max(
         const_max(
@@ -174,8 +175,7 @@ impl LogUpGkrEvaluator for MidenLogUpGkrEval<Felt> {
         let query_current = &query[0..TRACE_WIDTH];
         let query_next = &query[TRACE_WIDTH..];
 
-        let op_flags_current = LogUpOpFlags::new(query_current);
-        let op_flags_next = LogUpOpFlags::new(query_next);
+        let op_flags = LogUpOpFlags::new(query_current, query_next);
 
         let offset_rand_values = &rand_values[0..NUM_OFFSET_RAND_VALUES];
         let mut alphas = {
@@ -190,7 +190,7 @@ impl LogUpGkrEvaluator for MidenLogUpGkrEval<Felt> {
 
         range_checker(
             query_current,
-            &op_flags_current,
+            &op_flags,
             alphas[0],
             &mut numerator[range(RANGE_CHECKER_FRACTIONS_OFFSET, RANGE_CHECKER_NUM_FRACTIONS)],
             &mut denominator[range(RANGE_CHECKER_FRACTIONS_OFFSET, RANGE_CHECKER_NUM_FRACTIONS)],
@@ -200,7 +200,7 @@ impl LogUpGkrEvaluator for MidenLogUpGkrEval<Felt> {
             op_group_table(
                 query_current,
                 query_next,
-                &op_flags_current,
+                &op_flags,
                 &alphas,
                 &mut numerator
                     [range(OP_GROUP_TABLE_FRACTIONS_OFFSET, OP_GROUP_TABLE_NUM_FRACTIONS)],
@@ -213,8 +213,7 @@ impl LogUpGkrEvaluator for MidenLogUpGkrEval<Felt> {
             block_hash_table(
                 query_current,
                 query_next,
-                &op_flags_current,
-                &op_flags_next,
+                &op_flags,
                 &alphas,
                 &mut numerator
                     [range(BLOCK_HASH_TABLE_FRACTIONS_OFFSET, BLOCK_HASH_TABLE_NUM_FRACTIONS)],
@@ -227,7 +226,7 @@ impl LogUpGkrEvaluator for MidenLogUpGkrEval<Felt> {
             block_stack_table(
                 query_current,
                 query_next,
-                &op_flags_current,
+                &op_flags,
                 &alphas,
                 &mut numerator
                     [range(BLOCK_STACK_TABLE_FRACTIONS_OFFSET, BLOCK_STACK_TABLE_NUM_FRACTIONS)],
@@ -294,7 +293,7 @@ impl LogUpGkrEvaluator for MidenLogUpGkrEval<Felt> {
 #[inline(always)]
 fn range_checker<F, E>(
     query_current: &[F],
-    op_flags_current: &LogUpOpFlags<F>,
+    op_flags: &LogUpOpFlags<F>,
     alpha: E,
     numerator: &mut [E],
     denominator: &mut [E],
@@ -312,7 +311,7 @@ fn range_checker<F, E>(
         E::from(mem_selec0 * mem_selec1 * (F::ONE - mem_selec2))
     };
 
-    let f_rc: E = op_flags_current.f_range_check().into();
+    let f_rc: E = op_flags.f_range_check().into();
     numerator[0] = E::from(multiplicity);
     numerator[1] = f_m;
     numerator[2] = f_m;
@@ -344,7 +343,7 @@ fn range_checker<F, E>(
 fn op_group_table<F, E>(
     query_current: &[F],
     query_next: &[F],
-    op_flags_current: &LogUpOpFlags<F>,
+    op_flags: &LogUpOpFlags<F>,
     alphas: &[E],
     numerator: &mut [E],
     denominator: &mut [E],
@@ -385,7 +384,7 @@ fn op_group_table<F, E>(
     let addr_next = query_next[DECODER_ADDR_COL_IDX];
     let group_count = query_current[DECODER_GROUP_COUNT_COL_IDX];
     let h0_next = query_next[DECODER_HASHER_STATE_OFFSET];
-    let op_next = LogUpOpFlags::new(query_next).op_value();
+    let op_next = op_flags.op_value_next();
     let h2 = query_current[DECODER_HASHER_STATE_OFFSET + 2];
     let s0_next = query_next[STACK_TRACE_OFFSET + STACK_TOP_OFFSET];
     let (v1, v2, v3, v4, v5, v6, v7) = {
@@ -399,9 +398,9 @@ fn op_group_table<F, E>(
         (v(1), v(2), v(3), v(4), v(5), v(6), v(7))
     };
 
-    let f_push = op_flags_current.f_push();
-    let f_emit = op_flags_current.f_emit();
-    let f_imm = op_flags_current.f_imm();
+    let f_push = op_flags.f_push();
+    let f_emit = op_flags.f_emit();
+    let f_imm = op_flags.f_imm();
 
     denominator[0] = -(alphas[0]
         + alphas[1].mul_base(addr)
@@ -424,8 +423,7 @@ fn op_group_table<F, E>(
 fn block_hash_table<F, E>(
     query_current: &[F],
     query_next: &[F],
-    op_flags_current: &LogUpOpFlags<F>,
-    op_flags_next: &LogUpOpFlags<F>,
+    op_flags: &LogUpOpFlags<F>,
     alphas: &[E],
     numerator: &mut [E],
     denominator: &mut [E],
@@ -436,17 +434,17 @@ fn block_hash_table<F, E>(
     let stack_0 = query_current[STACK_TRACE_OFFSET + STACK_TOP_OFFSET];
 
     // numerators
-    let f_join: E = op_flags_current.f_join().into();
+    let f_join: E = op_flags.f_join().into();
 
-    numerator[0] = op_flags_current.f_end().into();
+    numerator[0] = op_flags.f_end().into();
     numerator[1] = f_join;
     numerator[2] = f_join;
-    numerator[3] = op_flags_current.f_split().into();
-    numerator[4] = (op_flags_current.f_loop() * stack_0).into();
-    numerator[5] = op_flags_current.f_repeat().into();
-    numerator[6] = op_flags_current.f_dyn().into();
+    numerator[3] = op_flags.f_split().into();
+    numerator[4] = (op_flags.f_loop() * stack_0).into();
+    numerator[5] = op_flags.f_repeat().into();
+    numerator[6] = op_flags.f_dyn().into();
     // TODO(plafer): update docs (no mention of call or syscall)
-    numerator[7] = (op_flags_current.f_call() + op_flags_current.f_syscall()).into();
+    numerator[7] = (op_flags.f_call() + op_flags.f_syscall()).into();
 
     // denominators
     let addr_next = query_next[DECODER_ADDR_COL_IDX];
@@ -463,7 +461,7 @@ fn block_hash_table<F, E>(
     let u_end = {
         // TODO(plafer): update docs (f_halt missing)
         let is_first_child =
-            F::ONE - (op_flags_next.f_end() + op_flags_next.f_repeat() + op_flags_next.f_halt());
+            F::ONE - (op_flags.f_end_next() + op_flags.f_repeat_next() + op_flags.f_halt_next());
 
         // TODO(plafer): Double check addr_next; docs inconsistent with BlockHashTableRow
         alphas[0]
@@ -496,7 +494,7 @@ fn block_hash_table<F, E>(
 fn block_stack_table<F, E>(
     query_current: &[F],
     query_next: &[F],
-    op_flags_current: &LogUpOpFlags<F>,
+    op_flags: &LogUpOpFlags<F>,
     alphas: &[E],
     numerator: &mut [E],
     denominator: &mut [E],
@@ -505,8 +503,8 @@ fn block_stack_table<F, E>(
     E: FieldElement + ExtensionOf<F>,
 {
     // numerators
-    let f_respan: E = op_flags_current.f_respan().into();
-    let f_end: E = op_flags_current.f_end().into();
+    let f_respan: E = op_flags.f_respan().into();
+    let f_end: E = op_flags.f_end().into();
     let f_call_or_syscall_flags: E = (query_current[DECODER_IS_CALL_FLAG_COL_IDX]
         + query_current[DECODER_IS_SYSCALL_FLAG_COL_IDX])
         .into();
@@ -515,14 +513,11 @@ fn block_stack_table<F, E>(
     numerator[1] = f_end * (E::ONE - f_call_or_syscall_flags);
     numerator[2] = f_end * f_call_or_syscall_flags;
 
-    numerator[3] = (op_flags_current.f_call() + op_flags_current.f_syscall()).into();
-    numerator[4] = op_flags_current.f_loop().into();
+    numerator[3] = (op_flags.f_call() + op_flags.f_syscall()).into();
+    numerator[4] = op_flags.f_loop().into();
     numerator[5] = f_respan;
-    numerator[6] = (op_flags_current.f_join()
-        + op_flags_current.f_split()
-        + op_flags_current.f_span()
-        + op_flags_current.f_dyn())
-    .into();
+    numerator[6] =
+        (op_flags.f_join() + op_flags.f_split() + op_flags.f_span() + op_flags.f_dyn()).into();
 
     // removal denominators
     {
@@ -681,100 +676,183 @@ where
 
 // TODO(plafer): save intermediary values between flags instead of recomputing
 struct LogUpOpFlags<F: FieldElement> {
-    b0: F,
-    b1: F,
-    b2: F,
-    b3: F,
-    b4: F,
-    b5: F,
-    b6: F,
-    e0: F,
-    e1: F,
+    f_push: F,
+    f_emit: F,
+    f_dyn: F,
+    f_split: F,
+    f_loop: F,
+    f_span: F,
+    f_join: F,
+    f_imm: F,
+    f_repeat: F,
+    f_end: F,
+    f_syscall: F,
+    f_call: F,
+    f_respan: F,
+    f_range_check: F,
+    op_value_next: F,
+    f_repeat_next: F,
+    f_end_next: F,
+    f_halt_next: F,
 }
 
 impl<F: FieldElement> LogUpOpFlags<F> {
-    pub fn new(query: &[F]) -> Self {
+    pub fn new(query_current: &[F], query_next: &[F]) -> Self {
+        // current
+        // --------------------------------------------------------------------
+        let b0 = query_current[DECODER_OP_BITS_OFFSET];
+        let b1 = query_current[DECODER_OP_BITS_OFFSET + 1];
+        let b2 = query_current[DECODER_OP_BITS_OFFSET + 2];
+        let b3 = query_current[DECODER_OP_BITS_OFFSET + 3];
+        let b4 = query_current[DECODER_OP_BITS_OFFSET + 4];
+        let b5 = query_current[DECODER_OP_BITS_OFFSET + 5];
+        let b6 = query_current[DECODER_OP_BITS_OFFSET + 6];
+        let e0 = query_current[DECODER_OP_BITS_EXTRA_COLS_OFFSET];
+        let e1 = query_current[DECODER_OP_BITS_EXTRA_COLS_OFFSET + 1];
+
+        // degree 5 flags
+        let e0_b3_nb2 = e0 * b3 * (F::ONE - b2);
+        let e0_b3_nb2_b1 = e0_b3_nb2 * b1;
+        let f_push = e0_b3_nb2_b1 * b0;
+        let f_emit = e0_b3_nb2_b1 * (F::ONE - b0);
+
+        let e0_nb3_b2 = e0 * (F::ONE - b3) * b2;
+        let e0_nb3_b2_b1 = e0_nb3_b2 * b1;
+        let e0_nb3_b2_nb1 = e0_nb3_b2 * (F::ONE - b1);
+
+        // degree 4 flags
+        let e1_b4 = e1 * b4;
+        let e1_b4_nb3 = e1_b4 * (F::ONE - b3);
+
+        let e1_nb4_b3 = e1 * (F::ONE - b4) * b3;
+
+        // next
+        // --------------------------------------------------------------------
+        let b0_next = query_next[DECODER_OP_BITS_OFFSET];
+        let b1_next = query_next[DECODER_OP_BITS_OFFSET + 1];
+        let b2_next = query_next[DECODER_OP_BITS_OFFSET + 2];
+        let b3_next = query_next[DECODER_OP_BITS_OFFSET + 3];
+        let b4_next = query_next[DECODER_OP_BITS_OFFSET + 4];
+        let b5_next = query_next[DECODER_OP_BITS_OFFSET + 5];
+        let b6_next = query_next[DECODER_OP_BITS_OFFSET + 6];
+        let e1_next = query_next[DECODER_OP_BITS_EXTRA_COLS_OFFSET + 1];
+
+        let e1_b4_next = e1_next * b4_next;
+        let e1_b4_nb3_next = e1_b4_next * (F::ONE - b3_next);
+
         Self {
-            b0: query[DECODER_OP_BITS_OFFSET],
-            b1: query[DECODER_OP_BITS_OFFSET + 1],
-            b2: query[DECODER_OP_BITS_OFFSET + 2],
-            b3: query[DECODER_OP_BITS_OFFSET + 3],
-            b4: query[DECODER_OP_BITS_OFFSET + 4],
-            b5: query[DECODER_OP_BITS_OFFSET + 5],
-            b6: query[DECODER_OP_BITS_OFFSET + 6],
-            e0: query[DECODER_OP_BITS_EXTRA_COLS_OFFSET],
-            e1: query[DECODER_OP_BITS_EXTRA_COLS_OFFSET + 1],
+            // degree 5 flags
+            f_push,
+            f_emit,
+            f_imm: f_push + f_emit,
+            f_dyn: e0_b3_nb2 * (F::ONE - b1) * (F::ONE - b0),
+            f_split: e0_nb3_b2_nb1 * (F::ONE - b0),
+            f_loop: e0_nb3_b2_nb1 * b0,
+            f_span: e0_nb3_b2_b1 * (F::ONE - b0),
+            f_join: e0_nb3_b2_b1 * b0,
+
+            // degree 4 flags
+            f_repeat: e1_b4_nb3 * b2,
+            f_end: e1_b4_nb3 * (F::ONE - b2),
+            f_respan: e1_b4 * b3 * (F::ONE - b2),
+            f_syscall: e1_nb4_b3 * (F::ONE - b2),
+            f_call: e1_nb4_b3 * b2,
+
+            // misc
+            f_range_check: (F::ONE - b4) * (F::ONE - b5) * b6,
+
+            // next
+            op_value_next: b0_next
+                + F::from(2_u32) * b1_next
+                + F::from(4_u32) * b2_next
+                + F::from(8_u32) * b3_next
+                + F::from(16_u32) * b4_next
+                + F::from(32_u32) * b5_next
+                + F::from(64_u32) * b6_next,
+            f_repeat_next: e1_b4_nb3_next * b2_next,
+            f_end_next: e1_b4_nb3_next * (F::ONE - b2_next),
+            f_halt_next: e1_b4_next * b3_next * b2_next,
         }
     }
 
-    pub fn op_value(&self) -> F {
-        self.b0
-            + F::from(2_u32) * self.b1
-            + F::from(4_u32) * self.b2
-            + F::from(8_u32) * self.b3
-            + F::from(16_u32) * self.b4
-            + F::from(32_u32) * self.b5
-            + F::from(64_u32) * self.b6
-    }
+    // flag degree 5
 
     pub fn f_push(&self) -> F {
-        self.e0 * self.b3 * (F::ONE - self.b2) * self.b1 * self.b0
+        self.f_push
     }
 
     pub fn f_emit(&self) -> F {
-        self.e0 * self.b3 * (F::ONE - self.b2) * self.b1 * (F::ONE - self.b0)
-    }
-
-    pub fn f_imm(&self) -> F {
-        self.f_push() + self.f_emit()
-    }
-
-    pub fn f_range_check(&self) -> F {
-        (F::ONE - self.b4) * (F::ONE - self.b5) * self.b6
-    }
-
-    pub fn f_join(&self) -> F {
-        self.e0 * (F::ONE - self.b3) * self.b2 * self.b1 * self.b0
-    }
-
-    pub fn f_split(&self) -> F {
-        self.e0 * (F::ONE - self.b3) * self.b2 * (F::ONE - self.b1) * (F::ONE - self.b0)
-    }
-
-    pub fn f_loop(&self) -> F {
-        self.e0 * (F::ONE - self.b3) * self.b2 * (F::ONE - self.b1) * self.b0
-    }
-
-    pub fn f_span(&self) -> F {
-        self.e0 * (F::ONE - self.b3) * self.b2 * self.b1 * (F::ONE - self.b0)
+        self.f_emit
     }
 
     pub fn f_dyn(&self) -> F {
-        self.e0 * self.b3 * (F::ONE - self.b2) * (F::ONE - self.b1) * (F::ONE - self.b0)
+        self.f_dyn
     }
 
+    pub fn f_split(&self) -> F {
+        self.f_split
+    }
+
+    pub fn f_loop(&self) -> F {
+        self.f_loop
+    }
+
+    pub fn f_span(&self) -> F {
+        self.f_span
+    }
+
+    pub fn f_join(&self) -> F {
+        self.f_join
+    }
+
+    pub fn f_imm(&self) -> F {
+        self.f_imm
+    }
+
+    // degree 4 flags
+
     pub fn f_repeat(&self) -> F {
-        self.e1 * self.b4 * (F::ONE - self.b3) * self.b2
+        self.f_repeat
     }
 
     pub fn f_end(&self) -> F {
-        self.e1 * self.b4 * (F::ONE - self.b3) * (F::ONE - self.b2)
-    }
-
-    pub fn f_syscall(&self) -> F {
-        self.e1 * (F::ONE - self.b4) * self.b3 * (F::ONE - self.b2)
-    }
-
-    pub fn f_call(&self) -> F {
-        self.e1 * (F::ONE - self.b4) * self.b3 * self.b2
+        self.f_end
     }
 
     pub fn f_respan(&self) -> F {
-        self.e1 * self.b4 * self.b3 * (F::ONE - self.b2)
+        self.f_respan
     }
 
-    pub fn f_halt(&self) -> F {
-        self.e1 * self.b4 * self.b3 * self.b2
+    pub fn f_syscall(&self) -> F {
+        self.f_syscall
+    }
+
+    pub fn f_call(&self) -> F {
+        self.f_call
+    }
+
+    // misc
+
+    pub fn f_range_check(&self) -> F {
+        self.f_range_check
+    }
+
+    // next
+
+    pub fn op_value_next(&self) -> F {
+        self.op_value_next
+    }
+
+    pub fn f_repeat_next(&self) -> F {
+        self.f_repeat_next
+    }
+
+    pub fn f_end_next(&self) -> F {
+        self.f_end_next
+    }
+
+    pub fn f_halt_next(&self) -> F {
+        self.f_halt_next
     }
 }
 
