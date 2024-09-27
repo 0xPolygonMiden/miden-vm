@@ -49,66 +49,11 @@ impl AuxTraceBuilder {
         main_trace: &MainTrace,
         rand_elements: &[E],
     ) -> Vec<Vec<E>> {
-        let v_table_col_builder = ChipletsVTableColBuilder::default();
         let bus_col_builder = BusColumnBuilder::default();
-        let t_chip = v_table_col_builder.build_aux_column(main_trace, rand_elements);
         let b_chip = bus_col_builder.build_aux_column(main_trace, rand_elements);
 
-        debug_assert_eq!(*t_chip.last().unwrap(), E::ONE);
         debug_assert_eq!(*b_chip.last().unwrap(), E::ONE);
-        vec![t_chip, b_chip]
-    }
-}
-
-// VIRTUAL TABLE COLUMN BUILDER
-// ================================================================================================
-
-/// Describes how to construct the execution trace of the chiplets virtual table auxiliary trace
-/// column.
-#[derive(Default)]
-pub struct ChipletsVTableColBuilder {}
-
-impl<E: FieldElement<BaseField = Felt>> AuxColumnBuilder<E> for ChipletsVTableColBuilder {
-    fn get_requests_at(&self, _main_trace: &MainTrace, _alphas: &[E], _row: RowIndex) -> E {
-        E::ONE
-    }
-
-    fn get_responses_at(&self, main_trace: &MainTrace, alphas: &[E], row: RowIndex) -> E {
-        build_kernel_procedure_table_inclusions(main_trace, alphas, row)
-    }
-}
-
-// VIRTUAL TABLE RESPONSES
-// ================================================================================================
-
-/// Builds the inclusions to the kernel procedure table at `row`.
-fn build_kernel_procedure_table_inclusions<E>(
-    main_trace: &MainTrace,
-    alphas: &[E],
-    row: RowIndex,
-) -> E
-where
-    E: FieldElement<BaseField = Felt>,
-{
-    if main_trace.is_kernel_row(row) {
-        let addr = main_trace.chiplet_kernel_addr(row);
-        let addr_nxt = main_trace.chiplet_kernel_addr(row + 1);
-        let addr_delta = addr_nxt - addr;
-        let root0 = main_trace.chiplet_kernel_root_0(row);
-        let root1 = main_trace.chiplet_kernel_root_1(row);
-        let root2 = main_trace.chiplet_kernel_root_2(row);
-        let root3 = main_trace.chiplet_kernel_root_3(row);
-
-        let v = alphas[0]
-            + alphas[1].mul_base(addr)
-            + alphas[2].mul_base(root0)
-            + alphas[3].mul_base(root1)
-            + alphas[4].mul_base(root2)
-            + alphas[5].mul_base(root3);
-
-        v.mul_base(addr_delta) + E::from(ONE - addr_delta)
-    } else {
-        E::ONE
+        vec![b_chip]
     }
 }
 

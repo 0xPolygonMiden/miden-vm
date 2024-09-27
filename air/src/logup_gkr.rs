@@ -50,8 +50,12 @@ pub const HASHER_TABLE_RAND_VALUES_OFFSET: usize =
     BLOCK_STACK_TABLE_RAND_VALUES_OFFSET + BLOCK_STACK_TABLE_NUM_RAND_VALUES;
 pub const HASHER_TABLE_NUM_RAND_VALUES: usize = 16;
 
-pub const TOTAL_NUM_RAND_VALUES: usize =
+pub const KERNEL_PROC_TABLE_RAND_VALUES_OFFSET: usize =
     HASHER_TABLE_RAND_VALUES_OFFSET + HASHER_TABLE_NUM_RAND_VALUES;
+pub const KERNEL_PROC_TABLE_NUM_RAND_VALUES: usize = 6;
+
+pub const TOTAL_NUM_RAND_VALUES: usize =
+    KERNEL_PROC_TABLE_RAND_VALUES_OFFSET + KERNEL_PROC_TABLE_NUM_RAND_VALUES;
 
 // Fractions
 
@@ -74,8 +78,12 @@ pub const HASHER_TABLE_FRACTIONS_OFFSET: usize =
     BLOCK_STACK_TABLE_FRACTIONS_OFFSET + BLOCK_STACK_TABLE_NUM_FRACTIONS;
 pub const HASHER_TABLE_NUM_FRACTIONS: usize = 4;
 
-pub const PADDING_FRACTIONS_OFFSET: usize =
+pub const KERNEL_PROC_TABLE_FRACTIONS_OFFSET: usize =
     HASHER_TABLE_FRACTIONS_OFFSET + HASHER_TABLE_NUM_FRACTIONS;
+pub const KERNEL_PROC_TABLE_NUM_FRACTIONS: usize = 1;
+
+pub const PADDING_FRACTIONS_OFFSET: usize =
+    KERNEL_PROC_TABLE_FRACTIONS_OFFSET + KERNEL_PROC_TABLE_NUM_FRACTIONS;
 pub const PADDING_NUM_FRACTIONS: usize = TOTAL_NUM_FRACTIONS - PADDING_FRACTIONS_OFFSET;
 
 pub const TOTAL_NUM_FRACTIONS: usize = 64;
@@ -203,6 +211,16 @@ impl LogUpGkrEvaluator for MidenLogUpGkrEval<Felt> {
             &rand_values[range(HASHER_TABLE_RAND_VALUES_OFFSET, HASHER_TABLE_NUM_RAND_VALUES)],
             &mut numerator[range(HASHER_TABLE_FRACTIONS_OFFSET, HASHER_TABLE_NUM_FRACTIONS)],
             &mut denominator[range(HASHER_TABLE_FRACTIONS_OFFSET, HASHER_TABLE_NUM_FRACTIONS)],
+        );
+        kernel_proc_table(
+            query_current,
+            query_next,
+            &rand_values
+                [range(KERNEL_PROC_TABLE_RAND_VALUES_OFFSET, KERNEL_PROC_TABLE_NUM_RAND_VALUES)],
+            &mut numerator
+                [range(KERNEL_PROC_TABLE_FRACTIONS_OFFSET, KERNEL_PROC_TABLE_NUM_FRACTIONS)],
+            &mut denominator
+                [range(KERNEL_PROC_TABLE_FRACTIONS_OFFSET, KERNEL_PROC_TABLE_NUM_FRACTIONS)],
         );
         padding(
             &mut numerator[range(PADDING_FRACTIONS_OFFSET, PADDING_NUM_FRACTIONS)],
@@ -589,6 +607,22 @@ fn hasher_table<F, E>(
         let sibling = &hasher_state_next[4..8];
         denominator[3] = prefix + inner_product(&alphas[8..12], sibling);
     }
+}
+
+// Note: the kernel proc implementation is broken (issue #1515), so this is just padding for now.
+#[inline(always)]
+fn kernel_proc_table<F, E>(
+    _query_current: &[F],
+    _query_next: &[F],
+    _alphas: &[E],
+    numerator: &mut [E],
+    denominator: &mut [E],
+) where
+    F: FieldElement,
+    E: FieldElement + ExtensionOf<F>,
+{
+    numerator[0] = E::ZERO;
+    denominator[0] = E::ONE;
 }
 
 /// TODO(plafer): docs
