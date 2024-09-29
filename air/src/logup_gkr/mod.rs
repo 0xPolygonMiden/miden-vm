@@ -5,7 +5,10 @@ use vm_core::{utils::range, ExtensionOf, Felt, FieldElement, StarkField};
 use winter_air::{EvaluationFrame, LogUpGkrEvaluator, LogUpGkrOracle};
 
 use crate::{
-    constraints::chiplets::hasher::{HASH_K0_MASK, HASH_K1_MASK, HASH_K2_MASK},
+    constraints::chiplets::{
+        bitwise::{BITWISE_K0_MASK, BITWISE_K1_MASK},
+        hasher::{HASH_K0_MASK, HASH_K1_MASK, HASH_K2_MASK},
+    },
     decoder::{
         DECODER_ADDR_COL_IDX, DECODER_GROUP_COUNT_COL_IDX, DECODER_HASHER_STATE_OFFSET,
         DECODER_IN_SPAN_COL_IDX, DECODER_IS_CALL_FLAG_COL_IDX, DECODER_IS_LOOP_BODY_FLAG_COL_IDX,
@@ -25,6 +28,8 @@ use crate::{
     TRACE_WIDTH,
 };
 
+mod chiplets_bus;
+
 // CONSTANTS
 // ===============================================================================================
 
@@ -36,7 +41,7 @@ const fn const_max(a: usize, b: usize) -> usize {
 // Random values
 
 /// The number of random values used as offsets (alpha_0 is our docs)
-pub const NUM_OFFSET_RAND_VALUES: usize = 6;
+pub const NUM_OFFSET_RAND_VALUES: usize = 7;
 
 const RANGE_CHECKER_NUM_RAND_LINCOMB_VALUES: usize = 0;
 const OP_GROUP_TABLE_NUM_RAND_LINCOMB_VALUES: usize = 3;
@@ -44,6 +49,7 @@ const BLOCK_HASH_TABLE_NUM_RAND_LINCOMB_VALUES: usize = 7;
 const BLOCK_STACK_TABLE_NUM_RAND_LINCOMB_VALUES: usize = 11;
 const HASHER_TABLE_NUM_RAND_LINCOMB_VALUES: usize = 15;
 const KERNEL_PROC_TABLE_NUM_RAND_LINCOMB_VALUES: usize = 5;
+const CHIPLETS_BUS_NUM_RAND_LINCOMB_VALUES: usize = 16;
 
 /// The number of random values to generate to support all random linear combinations.
 ///
@@ -54,16 +60,19 @@ pub const MAX_RAND_LINCOMB_VALUES: usize = const_max(
         const_max(
             const_max(
                 const_max(
-                    RANGE_CHECKER_NUM_RAND_LINCOMB_VALUES,
-                    OP_GROUP_TABLE_NUM_RAND_LINCOMB_VALUES,
+                    const_max(
+                        RANGE_CHECKER_NUM_RAND_LINCOMB_VALUES,
+                        OP_GROUP_TABLE_NUM_RAND_LINCOMB_VALUES,
+                    ),
+                    BLOCK_HASH_TABLE_NUM_RAND_LINCOMB_VALUES,
                 ),
-                BLOCK_HASH_TABLE_NUM_RAND_LINCOMB_VALUES,
+                BLOCK_STACK_TABLE_NUM_RAND_LINCOMB_VALUES,
             ),
-            BLOCK_STACK_TABLE_NUM_RAND_LINCOMB_VALUES,
+            HASHER_TABLE_NUM_RAND_LINCOMB_VALUES,
         ),
-        HASHER_TABLE_NUM_RAND_LINCOMB_VALUES,
+        KERNEL_PROC_TABLE_NUM_RAND_LINCOMB_VALUES,
     ),
-    KERNEL_PROC_TABLE_NUM_RAND_LINCOMB_VALUES,
+    CHIPLETS_BUS_NUM_RAND_LINCOMB_VALUES,
 );
 
 /// The total number of random values to generate
@@ -94,8 +103,12 @@ pub const KERNEL_PROC_TABLE_FRACTIONS_OFFSET: usize =
     HASHER_TABLE_FRACTIONS_OFFSET + HASHER_TABLE_NUM_FRACTIONS;
 pub const KERNEL_PROC_TABLE_NUM_FRACTIONS: usize = 1;
 
-pub const PADDING_FRACTIONS_OFFSET: usize =
+pub const CHIPLETS_BUS_FRACTIONS_OFFSET: usize =
     KERNEL_PROC_TABLE_FRACTIONS_OFFSET + KERNEL_PROC_TABLE_NUM_FRACTIONS;
+pub const CHIPLETS_BUS_NUM_FRACTIONS: usize = 16;
+
+pub const PADDING_FRACTIONS_OFFSET: usize =
+    CHIPLETS_BUS_FRACTIONS_OFFSET + CHIPLETS_BUS_NUM_FRACTIONS;
 pub const PADDING_NUM_FRACTIONS: usize = TOTAL_NUM_FRACTIONS - PADDING_FRACTIONS_OFFSET;
 
 pub const TOTAL_NUM_FRACTIONS: usize = 64;
@@ -132,7 +145,13 @@ impl LogUpGkrEvaluator for MidenLogUpGkrEval<Felt> {
     }
 
     fn get_periodic_column_values(&self) -> Vec<Vec<Self::BaseField>> {
-        vec![HASH_K0_MASK.to_vec(), HASH_K1_MASK.to_vec(), HASH_K2_MASK.to_vec()]
+        vec![
+            HASH_K0_MASK.to_vec(),
+            HASH_K1_MASK.to_vec(),
+            HASH_K2_MASK.to_vec(),
+            BITWISE_K0_MASK.to_vec(),
+            BITWISE_K1_MASK.to_vec(),
+        ]
     }
 
     fn get_num_rand_values(&self) -> usize {
@@ -174,6 +193,9 @@ impl LogUpGkrEvaluator for MidenLogUpGkrEval<Felt> {
 
         let query_current = &query[0..TRACE_WIDTH];
         let query_next = &query[TRACE_WIDTH..];
+
+        let hasher_periodic_values = &periodic_values[0..3];
+        let bitwise_periodic_values = &periodic_values[3..5];
 
         let op_flags = LogUpOpFlags::new(query_current, query_next);
 
@@ -239,7 +261,7 @@ impl LogUpGkrEvaluator for MidenLogUpGkrEval<Felt> {
             hasher_table(
                 query_current,
                 query_next,
-                periodic_values,
+                hasher_periodic_values,
                 &alphas,
                 &mut numerator[range(HASHER_TABLE_FRACTIONS_OFFSET, HASHER_TABLE_NUM_FRACTIONS)],
                 &mut denominator[range(HASHER_TABLE_FRACTIONS_OFFSET, HASHER_TABLE_NUM_FRACTIONS)],
@@ -255,6 +277,18 @@ impl LogUpGkrEvaluator for MidenLogUpGkrEval<Felt> {
                     [range(KERNEL_PROC_TABLE_FRACTIONS_OFFSET, KERNEL_PROC_TABLE_NUM_FRACTIONS)],
                 &mut denominator
                     [range(KERNEL_PROC_TABLE_FRACTIONS_OFFSET, KERNEL_PROC_TABLE_NUM_FRACTIONS)],
+            );
+        }
+        {
+            alphas[0] = offset_rand_values[6];
+            chiplets_bus::bus(
+                query_current,
+                query_next,
+                bitwise_periodic_values,
+                &op_flags,
+                &alphas,
+                &mut numerator[range(CHIPLETS_BUS_FRACTIONS_OFFSET, CHIPLETS_BUS_NUM_FRACTIONS)],
+                &mut denominator[range(CHIPLETS_BUS_FRACTIONS_OFFSET, CHIPLETS_BUS_NUM_FRACTIONS)],
             );
         }
         padding(
@@ -674,8 +708,19 @@ where
     denominator.fill(E::ONE);
 }
 
+// OP FLAGS
+// ===============================================================================================
+
 // TODO(plafer): save intermediary values between flags instead of recomputing
 struct LogUpOpFlags<F: FieldElement> {
+    // degree 7 flags
+    f_u32_and: F,
+    f_u32_xor: F,
+    f_mload: F,
+    f_mstore: F,
+    f_mloadw: F,
+    f_mstorew: F,
+    // degree 5 flags
     f_push: F,
     f_emit: F,
     f_dyn: F,
@@ -684,6 +729,10 @@ struct LogUpOpFlags<F: FieldElement> {
     f_span: F,
     f_join: F,
     f_imm: F,
+    f_pipe: F,
+    f_mstream: F,
+    f_rcombbase: F,
+    // degree 4 flags
     f_repeat: F,
     f_end: F,
     f_syscall: F,
@@ -710,15 +759,26 @@ impl<F: FieldElement> LogUpOpFlags<F> {
         let e0 = query_current[DECODER_OP_BITS_EXTRA_COLS_OFFSET];
         let e1 = query_current[DECODER_OP_BITS_EXTRA_COLS_OFFSET + 1];
 
+        // degree 7 flags
+        let f_u32_and =
+            (F::ONE - b6) * b5 * (F::ONE - b4) * (F::ONE - b3) * b2 * b1 * (F::ONE - b0);
+        let f_u32_xor = (F::ONE - b6) * b5 * (F::ONE - b4) * (F::ONE - b3) * b2 * b1 * b0;
+        let f_mload = (F::ONE - b6) * (F::ONE - b5) * (F::ONE - b4) * (F::ONE - b3) * b2 * b1 * b0;
+        let f_mstore = (F::ONE - b6) * b5 * (F::ONE - b4) * b3 * b2 * (F::ONE - b1) * b0;
+        let f_mloadw = (F::ONE - b6) * b5 * (F::ONE - b4) * b3 * b2 * (F::ONE - b1) * (F::ONE - b0);
+        let f_mstorew = (F::ONE - b6) * b5 * (F::ONE - b4) * b3 * b2 * b1 * (F::ONE - b0);
+
         // degree 5 flags
         let e0_b3_nb2 = e0 * b3 * (F::ONE - b2);
         let e0_b3_nb2_b1 = e0_b3_nb2 * b1;
         let f_push = e0_b3_nb2_b1 * b0;
         let f_emit = e0_b3_nb2_b1 * (F::ONE - b0);
 
-        let e0_nb3_b2 = e0 * (F::ONE - b3) * b2;
+        let e0_nb3 = e0 * (F::ONE - b3);
+        let e0_nb3_b2 = e0_nb3 * b2;
         let e0_nb3_b2_b1 = e0_nb3_b2 * b1;
         let e0_nb3_b2_nb1 = e0_nb3_b2 * (F::ONE - b1);
+        let e0_nb3_nb2_b1 = e0 * (F::ONE - b3) * (F::ONE - b2) * b1;
 
         // degree 4 flags
         let e1_b4 = e1 * b4;
@@ -741,6 +801,13 @@ impl<F: FieldElement> LogUpOpFlags<F> {
         let e1_b4_nb3_next = e1_b4_next * (F::ONE - b3_next);
 
         Self {
+            // degree 7 flags
+            f_u32_and,
+            f_u32_xor,
+            f_mload,
+            f_mstore,
+            f_mloadw,
+            f_mstorew,
             // degree 5 flags
             f_push,
             f_emit,
@@ -750,6 +817,9 @@ impl<F: FieldElement> LogUpOpFlags<F> {
             f_loop: e0_nb3_b2_nb1 * b0,
             f_span: e0_nb3_b2_b1 * (F::ONE - b0),
             f_join: e0_nb3_b2_b1 * b0,
+            f_rcombbase: e0_b3_nb2 * (F::ONE - b1) * b0,
+            f_pipe: e0_nb3_nb2_b1 * (F::ONE - b0),
+            f_mstream: e0_nb3_nb2_b1 * b0,
 
             // degree 4 flags
             f_repeat: e1_b4_nb3 * b2,
@@ -773,6 +843,31 @@ impl<F: FieldElement> LogUpOpFlags<F> {
             f_end_next: e1_b4_nb3_next * (F::ONE - b2_next),
             f_halt_next: e1_b4_next * b3_next * b2_next,
         }
+    }
+    // flag degree 7
+
+    pub fn f_u32_and(&self) -> F {
+        self.f_u32_and
+    }
+
+    pub fn f_u32_xor(&self) -> F {
+        self.f_u32_xor
+    }
+
+    pub fn f_mload(&self) -> F {
+        self.f_mload
+    }
+
+    pub fn f_mstore(&self) -> F {
+        self.f_mstore
+    }
+
+    pub fn f_mloadw(&self) -> F {
+        self.f_mloadw
+    }
+
+    pub fn f_mstorew(&self) -> F {
+        self.f_mstorew
     }
 
     // flag degree 5
@@ -807,6 +902,18 @@ impl<F: FieldElement> LogUpOpFlags<F> {
 
     pub fn f_imm(&self) -> F {
         self.f_imm
+    }
+
+    pub fn f_pipe(&self) -> F {
+        self.f_pipe
+    }
+
+    pub fn f_mstream(&self) -> F {
+        self.f_mstream
+    }
+
+    pub fn f_rcombbase(&self) -> F {
+        self.f_rcombbase
     }
 
     // degree 4 flags
