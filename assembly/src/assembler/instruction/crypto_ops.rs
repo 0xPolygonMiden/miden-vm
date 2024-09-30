@@ -1,4 +1,3 @@
-use super::SpanBuilder;
 use vm_core::{AdviceInjector, Felt, Operation::*};
 
 use super::BasicBlockBuilder;

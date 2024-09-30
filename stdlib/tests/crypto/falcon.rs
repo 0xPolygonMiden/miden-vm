@@ -173,8 +173,7 @@ fn test_falcon512_probabilistic_product_failure() {
     expect_exec_error!(
         test,
         ExecutionError::FailedAssertion {
-            //clk: 17490.into(),
-            clk: 17498,
+            clk: 17490.into(),
             err_code: 0,
             err_msg: None,
         }
