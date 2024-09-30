@@ -1,5 +1,5 @@
 use.std::mem
-use.std::crypto::hashes::native
+use.std::crypto::hashes::rpo
 use.std::math::u64
 
 #! Loads the leaf at the absolute `pos` in the MMR.
@@ -165,7 +165,7 @@ export.unpack
   # => [C, B, A, mmr_ptr+17, HASH, ...]
 
   # drop anything but the hash result, word B (11 cycles)
-  dropw swapw dropw movup.4 drop
+  exec.rpo::squeeze_digest movup.4 drop
   # => [B, HASH, ...]
 
   # assert on the resulting hash (11 cycles)
@@ -196,8 +196,8 @@ export.pack
 
   # hash the memory contents (25 + 3 * num_peaks)
   padw padw padw
-  exec.native::hash_memory_even
-  exec.native::state_to_digest
+  exec.rpo::absorb_double_words_from_memory
+  exec.rpo::squeeze_digest
   # => [HASH, peaks_end, peaks_end, mmr_ptr, ...]
 
   # prepare stack for adv.insert_mem (4 cycles)

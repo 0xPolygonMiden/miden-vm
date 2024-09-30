@@ -1,6 +1,6 @@
 use.std::crypto::stark::constants
 use.std::crypto::stark::utils
-
+use.std::crypto::hashes::rpo
 
 #! Helper procedure to compute addition of two words component-wise.
 #! Input: [b3, b2, b1, b0, a3, a2, a1, a0]
@@ -665,7 +665,7 @@ export.generate_list_indices
     exec.get_rate_2
     hperm
 
-    dropw swapw dropw
+    exec.rpo::squeeze_digest
     #=> [R1, query_ptr, mask, depth, num_queries, ...]
 
 
@@ -698,7 +698,7 @@ export.generate_list_indices
         exec.get_rate_2
         hperm
 
-        dropw swapw dropw
+        exec.rpo::squeeze_digest
         #=> [R1, query_ptr, mask, depth, num_queries, ...]
         movup.7 sub.1 dup movdn.8
         push.0 neq
