@@ -1,8 +1,3 @@
-use crate::{
-    ast::{Ident, IdentError},
-    ByteReader, ByteWriter, Deserializable, DeserializationError, LibraryNamespace, Serializable,
-    Span,
-};
 use alloc::{
     borrow::Cow,
     string::{String, ToString},
@@ -13,7 +8,14 @@ use core::{
     fmt,
     str::{self, FromStr},
 };
+
 use smallvec::smallvec;
+
+use crate::{
+    ast::{Ident, IdentError},
+    ByteReader, ByteWriter, Deserializable, DeserializationError, LibraryNamespace, Serializable,
+    Span,
+};
 
 /// Represents errors that can occur when creating, parsing, or manipulating [LibraryPath]s
 #[derive(Debug, PartialEq, Eq, thiserror::Error)]
@@ -41,6 +43,26 @@ pub enum LibraryPathComponent<'a> {
     Namespace(&'a LibraryNamespace),
     /// A non-namespace component of the path
     Normal(&'a Ident),
+}
+
+impl<'a> LibraryPathComponent<'a> {
+    /// Get this component as a [prim@str]
+    #[inline(always)]
+    pub fn as_str(&self) -> &'a str {
+        match self {
+            Self::Namespace(ns) => ns.as_str(),
+            Self::Normal(id) => id.as_str(),
+        }
+    }
+
+    /// Get this component as an [Ident]
+    #[inline]
+    pub fn to_ident(&self) -> Ident {
+        match self {
+            Self::Namespace(ns) => ns.to_ident(),
+            Self::Normal(id) => Ident::clone(id),
+        }
+    }
 }
 
 impl<'a> Eq for LibraryPathComponent<'a> {}
@@ -73,6 +95,13 @@ impl<'a> AsRef<str> for LibraryPathComponent<'a> {
 impl<'a> fmt::Display for LibraryPathComponent<'a> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         f.write_str(self.as_ref())
+    }
+}
+
+impl From<LibraryPathComponent<'_>> for Ident {
+    #[inline]
+    fn from(component: LibraryPathComponent<'_>) -> Self {
+        component.to_ident()
     }
 }
 
@@ -182,13 +211,18 @@ impl LibraryPath {
         &self.inner.ns
     }
 
-    /// Returns the last component of the path.
+    /// Returns the last component of the path as a `str`
     pub fn last(&self) -> &str {
+        self.last_component().as_str()
+    }
+
+    /// Returns the last component of the path.
+    pub fn last_component(&self) -> LibraryPathComponent<'_> {
         self.inner
             .components
             .last()
-            .map(|component| component.as_str())
-            .unwrap_or_else(|| self.inner.ns.as_str())
+            .map(LibraryPathComponent::Normal)
+            .unwrap_or_else(|| LibraryPathComponent::Namespace(&self.inner.ns))
     }
 
     /// Returns the number of components in the path.
@@ -234,7 +268,7 @@ impl LibraryPath {
                     if a != b {
                         break false;
                     }
-                }
+                },
             }
         }
     }
@@ -344,7 +378,7 @@ impl LibraryPath {
                 let mut components = self.inner.components.clone();
                 components.pop();
                 Some(Self::make(ns, components))
-            }
+            },
         }
     }
 
@@ -403,7 +437,7 @@ impl<'a> TryFrom<Vec<LibraryPathComponent<'a>>> for LibraryPath {
                 LibraryPathComponent::Normal(ident) => components.push(ident.clone()),
                 LibraryPathComponent::Namespace(LibraryNamespace::User(name)) => {
                     components.push(Ident::new_unchecked(Span::unknown(name.clone())));
-                }
+                },
                 LibraryPathComponent::Namespace(_) => return Err(PathError::UnsupportedJoin),
             }
         }
@@ -501,8 +535,9 @@ fn validate_component(component: &str) -> Result<(), PathError> {
 /// Tests
 #[cfg(test)]
 mod tests {
-    use super::{super::LibraryNamespaceError, IdentError, LibraryPath, PathError};
     use vm_core::assert_matches;
+
+    use super::{super::LibraryNamespaceError, IdentError, LibraryPath, PathError};
 
     #[test]
     fn new_path() {

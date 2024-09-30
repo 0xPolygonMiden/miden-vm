@@ -1,3 +1,7 @@
+use alloc::vec::Vec;
+
+use winter_air::TransitionConstraintDegree;
+
 use super::{EvaluationFrame, Felt, FieldElement};
 use crate::{
     trace::chiplets::{
@@ -8,8 +12,6 @@ use crate::{
     utils::{are_equal, binary_not, is_binary, is_zero, EvaluationResult},
     ONE, ZERO,
 };
-use alloc::vec::Vec;
-use winter_air::TransitionConstraintDegree;
 
 #[cfg(test)]
 pub mod tests;
@@ -418,16 +420,3 @@ pub fn agg_bits<E: FieldElement>(row: &[E], start_idx: usize) -> E {
 pub const BITWISE_K0_MASK: [Felt; OP_CYCLE_LEN] = [ONE, ZERO, ZERO, ZERO, ZERO, ZERO, ZERO, ZERO];
 
 pub const BITWISE_K1_MASK: [Felt; OP_CYCLE_LEN] = [ONE, ONE, ONE, ONE, ONE, ONE, ONE, ZERO];
-
-// TEST HELPERS
-// ================================================================================================
-
-/// Returns the values from the bitwise periodic columns for the specified cycle row.
-#[cfg(test)]
-fn get_periodic_values(cycle_row: usize) -> [Felt; 2] {
-    match cycle_row {
-        0 => [ONE, ONE],
-        8 => [ZERO, ZERO],
-        _ => [ZERO, ONE],
-    }
-}

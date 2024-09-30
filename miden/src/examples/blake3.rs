@@ -1,7 +1,8 @@
-use super::Example;
 use miden_vm::{Assembler, DefaultHost, MemAdviceProvider, Program, StackInputs};
 use stdlib::StdLibrary;
 use vm_core::{utils::group_slice_elements, Felt};
+
+use super::Example;
 
 // CONSTANTS
 // ================================================================================================
@@ -20,11 +21,16 @@ pub fn get_example(n: usize) -> Example<DefaultHost<MemAdviceProvider>> {
         n, expected_result
     );
 
+    let mut host = DefaultHost::default();
+    host.load_mast_forest(StdLibrary::default().mast_forest().clone());
+
+    let stack_inputs =
+        StackInputs::try_from_ints(INITIAL_HASH_VALUE.iter().map(|&v| v as u64)).unwrap();
+
     Example {
         program,
-        stack_inputs: StackInputs::try_from_ints(INITIAL_HASH_VALUE.iter().map(|&v| v as u64))
-            .unwrap(),
-        host: DefaultHost::default(),
+        stack_inputs,
+        host,
         expected_result,
         num_outputs: 8,
     }
@@ -45,9 +51,9 @@ fn generate_blake3_program(n: usize) -> Program {
     );
 
     Assembler::default()
-        .with_library(&StdLibrary::default())
+        .with_library(StdLibrary::default())
         .unwrap()
-        .assemble(program)
+        .assemble_program(program)
         .unwrap()
 }
 

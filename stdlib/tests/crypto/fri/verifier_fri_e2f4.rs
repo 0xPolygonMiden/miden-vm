@@ -1,5 +1,5 @@
-use super::channel::{MidenFriVerifierChannel, UnBatch};
 use core::{marker::PhantomData, mem};
+
 use processor::{
     crypto::{Hasher, RandomCoin, RpoDigest, WinterRandomCoin},
     Digest as MidenDigest,
@@ -13,6 +13,8 @@ use test_utils::{
 use winter_fri::{
     folding::fold_positions, DefaultProverChannel, FriOptions, FriProof, FriProver, VerifierError,
 };
+
+use super::channel::{MidenFriVerifierChannel, UnBatch};
 
 type AdvMap = Vec<(RpoDigest, Vec<Felt>)>;
 
@@ -411,7 +413,7 @@ impl UnBatch<QuadExt, MidenHasher> for MidenFriVerifierChannel<QuadExt, MidenHas
             let layer_proof = layer_proofs.remove(0);
 
             let mut unbatched_proof = layer_proof.into_paths(&folded_positions).unwrap();
-            let x = group_slice_elements::<QuadExt, N>(&query);
+            let x = group_slice_elements::<QuadExt, N>(query);
             assert_eq!(x.len(), unbatched_proof.len());
 
             let nodes: Vec<[Felt; 4]> = unbatched_proof

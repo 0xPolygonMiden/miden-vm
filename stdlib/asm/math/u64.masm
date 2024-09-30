@@ -568,13 +568,11 @@ end
 #! error.
 #! Stack transition looks as follows:
 #! [b, a_hi, a_lo, ...] -> [c_hi, c_lo, ...], where c = a << b mod 2^64.
-#! This takes 40 cycles.
+#! This takes 44 cycles.
 export.rotr
     push.31
     dup.1
-    u32overflowing_sub
-    swap
-    drop
+    u32lt
     movdn.3
 
     # Shift the low limb left by 32-b.
@@ -582,17 +580,19 @@ export.rotr
     u32and
     push.32
     swap
-    u32overflowing_sub
-    drop
+    u32wrapping_sub
     pow2
     dup
     movup.3
-    u32overflowing_mul
+    mul
+    u32split
 
     # Shift the high limb left by 32-b.
     movup.3
     movup.3
-    u32overflowing_madd
+    mul
+    add
+    u32split
 
     # Carry the overflow shift to the low bits.
     movup.2
@@ -609,7 +609,7 @@ end
 #! The input value is assumed to be represented using 32 bit limbs, but this is not checked.
 #! Stack transition looks as follows:
 #! [n_hi, n_lo, ...] -> [clz, ...], where clz is a number of leading zeros of value n.
-#! This takes 43 cycles.
+#! This takes 48 cycles.
 export.clz
     dup.0
     eq.0
@@ -618,7 +618,7 @@ export.clz
         drop
         u32clz
         add.32 # clz(n_lo) + 32
-    else 
+    else
         swap
         drop
         u32clz # clz(n_hi)
@@ -639,7 +639,7 @@ export.ctz
         drop
         u32ctz
         add.32 # ctz(n_hi) + 32
-    else 
+    else
         swap
         drop
         u32ctz # ctz(n_lo)
@@ -650,7 +650,7 @@ end
 #! The input value is assumed to be represented using 32 bit limbs, but this is not checked.
 #! Stack transition looks as follows:
 #! [n_hi, n_lo, ...] -> [clo, ...], where clo is a number of leading ones of value n.
-#! This takes 42 cycles.
+#! This takes 47 cycles.
 export.clo
     dup.0
     eq.4294967295
@@ -659,7 +659,7 @@ export.clo
         drop
         u32clo
         add.32 # clo(n_lo) + 32
-    else 
+    else
         swap
         drop
         u32clo # clo(n_hi)
@@ -680,7 +680,7 @@ export.cto
         drop
         u32cto
         add.32 # cto(n_hi) + 32
-    else 
+    else
         swap
         drop
         u32cto # ctz(n_lo)

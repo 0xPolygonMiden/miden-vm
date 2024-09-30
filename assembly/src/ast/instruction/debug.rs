@@ -1,47 +1,20 @@
-use alloc::string::ToString;
 use core::fmt;
 
-use crate::{
-    ast::{ImmU16, ImmU32, ImmU8},
-    ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable,
-};
-
-// CONSTANTS
-// ================================================================================================
-
-const STACK_ALL: u8 = 0;
-const STACK_TOP: u8 = 1;
-const MEM_ALL: u8 = 2;
-const MEM_INTERVAL: u8 = 3;
-const LOCAL_INTERVAL: u8 = 4;
-const LOCAL_RANGE_FROM: u8 = 5;
-const LOCAL_ALL: u8 = 6;
+use crate::ast::{ImmU16, ImmU32, ImmU8};
 
 // DEBUG OPTIONS
 // ================================================================================================
 
 /// A proxy for [vm_core::DebugOptions], but with [super::Immediate] values.
 #[derive(Clone, Debug, Eq, PartialEq)]
-#[repr(u8)]
 pub enum DebugOptions {
-    StackAll = STACK_ALL,
-    StackTop(ImmU8) = STACK_TOP,
-    MemAll = MEM_ALL,
-    MemInterval(ImmU32, ImmU32) = MEM_INTERVAL,
-    LocalInterval(ImmU16, ImmU16) = LOCAL_INTERVAL,
-    LocalRangeFrom(ImmU16) = LOCAL_RANGE_FROM,
-    LocalAll = LOCAL_ALL,
-}
-
-impl DebugOptions {
-    fn tag(&self) -> u8 {
-        // SAFETY: This is safe because we have given this enum a primitive representation with
-        // #[repr(u8)], with the first field of the underlying union-of-structs the discriminant.
-        //
-        // See the section on "accessing the numeric value of the discriminant"
-        // here: https://doc.rust-lang.org/std/mem/fn.discriminant.html
-        unsafe { *<*const _>::from(self).cast::<u8>() }
-    }
+    StackAll,
+    StackTop(ImmU8),
+    MemAll,
+    MemInterval(ImmU32, ImmU32),
+    LocalInterval(ImmU16, ImmU16),
+    LocalRangeFrom(ImmU16),
+    LocalAll,
 }
 
 impl crate::prettier::PrettyPrint for DebugOptions {
@@ -60,12 +33,12 @@ impl TryFrom<DebugOptions> for vm_core::DebugOptions {
             DebugOptions::MemAll => Ok(Self::MemAll),
             DebugOptions::MemInterval(ImmU32::Value(start), ImmU32::Value(end)) => {
                 Ok(Self::MemInterval(start.into_inner(), end.into_inner()))
-            }
+            },
             DebugOptions::LocalInterval(ImmU16::Value(start), ImmU16::Value(end)) => {
                 let start = start.into_inner();
                 let end = end.into_inner();
                 Ok(Self::LocalInterval(start, end, end - start))
-            }
+            },
             _ => Err(()),
         }
     }
@@ -82,72 +55,7 @@ impl fmt::Display for DebugOptions {
             Self::LocalRangeFrom(start) => write!(f, "local.{start}"),
             Self::LocalInterval(start, end) => {
                 write!(f, "local.{start}.{end}")
-            }
-        }
-    }
-}
-
-impl Serializable for DebugOptions {
-    fn write_into<W: ByteWriter>(&self, target: &mut W) {
-        target.write_u8(self.tag());
-        match self {
-            Self::StackAll | Self::MemAll | Self::LocalAll => (),
-            Self::StackTop(ImmU8::Value(n)) => {
-                target.write_u8(n.into_inner());
-            }
-            Self::MemInterval(ImmU32::Value(n), ImmU32::Value(m)) => {
-                target.write_u32(n.into_inner());
-                target.write_u32(m.into_inner());
-            }
-            Self::LocalRangeFrom(ImmU16::Value(start)) => {
-                let start = start.into_inner();
-                target.write_u16(start);
-            }
-            Self::LocalInterval(ImmU16::Value(start), ImmU16::Value(end)) => {
-                let start = start.into_inner();
-                let end = end.into_inner();
-                target.write_u16(start);
-                target.write_u16(end);
-                target.write_u16(end - start);
-            }
-            options => unimplemented!("unimplemented debug options: {options}"),
-        }
-    }
-}
-
-impl Deserializable for DebugOptions {
-    fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
-        match source.read_u8()? {
-            STACK_ALL => Ok(Self::StackAll),
-            STACK_TOP => {
-                let n = source.read_u8()?;
-                if n == 0 {
-                    return Err(DeserializationError::InvalidValue(n.to_string()));
-                }
-                Ok(Self::StackTop(n.into()))
-            }
-            MEM_ALL => Ok(Self::MemAll),
-            MEM_INTERVAL => {
-                let n = source.read_u32()?;
-                let m = source.read_u32()?;
-                Ok(Self::MemInterval(n.into(), m.into()))
-            }
-            LOCAL_INTERVAL => {
-                let n = source.read_u16()?;
-                let m = source.read_u16()?;
-                source.read_u16()?;
-                match (n, m) {
-                    (0, u16::MAX) => Ok(Self::LocalAll),
-                    (n, u16::MAX) => Ok(Self::LocalRangeFrom(n.into())),
-                    (n, m) => Ok(Self::LocalInterval(n.into(), m.into())),
-                }
-            }
-            LOCAL_RANGE_FROM => {
-                let n = source.read_u16()?;
-                Ok(Self::LocalRangeFrom(n.into()))
-            }
-            LOCAL_ALL => Ok(Self::LocalAll),
-            val => Err(DeserializationError::InvalidValue(val.to_string())),
+            },
         }
     }
 }

@@ -1,3 +1,5 @@
+use vm_core::Operation;
+
 use super::{
     super::{
         system::{FMP_MAX, FMP_MIN},
@@ -108,6 +110,18 @@ where
         self.stack.shift_right(0);
         Ok(())
     }
+
+    // EVENTS
+    // --------------------------------------------------------------------------------------------
+
+    /// Forwards the emitted event id to the host.
+    pub(super) fn op_emit(&mut self, event_id: u32) -> Result<(), ExecutionError> {
+        self.stack.copy_state(0);
+        self.decoder.set_user_op_helpers(Operation::Emit(event_id), &[event_id.into()]);
+        self.host.borrow_mut().on_event(self, event_id)?;
+
+        Ok(())
+    }
 }
 
 // TESTS
@@ -115,7 +129,10 @@ where
 
 #[cfg(test)]
 mod tests {
-    use super::{super::Operation, super::STACK_TOP_SIZE, Felt, Process, FMP_MAX, FMP_MIN};
+    use super::{
+        super::{Operation, STACK_TOP_SIZE},
+        Felt, Process, FMP_MAX, FMP_MIN,
+    };
     use crate::{StackInputs, ONE, ZERO};
 
     const MAX_PROC_LOCALS: u64 = 2_u64.pow(31) - 1;

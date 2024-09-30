@@ -1,12 +1,22 @@
+use alloc::sync::Arc;
+
+use vm_core::{
+    crypto::{hash::RpoDigest, merkle::MerklePath},
+    mast::MastForest,
+    AdviceInjector, DebugOptions, Word,
+};
+
 use super::{ExecutionError, Felt, ProcessState};
 use crate::MemAdviceProvider;
-use vm_core::{crypto::merkle::MerklePath, AdviceInjector, DebugOptions, Word};
 
 pub(super) mod advice;
 use advice::{AdviceExtractor, AdviceProvider};
 
 #[cfg(feature = "std")]
 mod debug;
+
+mod mast_forest_store;
+pub use mast_forest_store::{MastForestStore, MemMastForestStore};
 
 // HOST TRAIT
 // ================================================================================================
@@ -25,18 +35,22 @@ pub trait Host {
     // --------------------------------------------------------------------------------------------
 
     /// Returns the requested advice, specified by [AdviceExtractor], from the host to the VM.
-    fn get_advice<S: ProcessState>(
+    fn get_advice<P: ProcessState>(
         &mut self,
-        process: &S,
+        process: &P,
         extractor: AdviceExtractor,
     ) -> Result<HostResponse, ExecutionError>;
 
     /// Sets the requested advice, specified by [AdviceInjector], on the host.
-    fn set_advice<S: ProcessState>(
+    fn set_advice<P: ProcessState>(
         &mut self,
-        process: &S,
+        process: &P,
         injector: AdviceInjector,
     ) -> Result<HostResponse, ExecutionError>;
+
+    /// Returns MAST forest corresponding to the specified digest, or None if the MAST forest for
+    /// this digest could not be found in this [Host].
+    fn get_mast_forest(&self, node_digest: &RpoDigest) -> Option<Arc<MastForest>>;
 
     // PROVIDED METHODS
     // --------------------------------------------------------------------------------------------
@@ -82,7 +96,7 @@ pub trait Host {
         Ok(HostResponse::None)
     }
 
-    /// Handles the trace emmited from the VM.
+    /// Handles the trace emitted from the VM.
     fn on_trace<S: ProcessState>(
         &mut self,
         _process: &S,
@@ -182,6 +196,10 @@ where
         H::set_advice(self, process, injector)
     }
 
+    fn get_mast_forest(&self, node_digest: &RpoDigest) -> Option<Arc<MastForest>> {
+        H::get_mast_forest(self, node_digest)
+    }
+
     fn on_debug<S: ProcessState>(
         &mut self,
         process: &S,
@@ -266,27 +284,48 @@ impl From<HostResponse> for Felt {
 /// A default [Host] implementation that provides the essential functionality required by the VM.
 pub struct DefaultHost<A> {
     adv_provider: A,
+    store: MemMastForestStore,
+}
+
+impl<A: Clone> Clone for DefaultHost<A> {
+    fn clone(&self) -> Self {
+        Self {
+            adv_provider: self.adv_provider.clone(),
+            store: self.store.clone(),
+        }
+    }
 }
 
 impl Default for DefaultHost<MemAdviceProvider> {
     fn default() -> Self {
         Self {
             adv_provider: MemAdviceProvider::default(),
+            store: MemMastForestStore::default(),
         }
     }
 }
 
-impl<A: AdviceProvider> DefaultHost<A> {
+impl<A> DefaultHost<A>
+where
+    A: AdviceProvider,
+{
     pub fn new(adv_provider: A) -> Self {
-        Self { adv_provider }
+        Self {
+            adv_provider,
+            store: MemMastForestStore::default(),
+        }
     }
 
-    #[cfg(any(test, feature = "internals"))]
+    pub fn load_mast_forest(&mut self, mast_forest: Arc<MastForest>) {
+        self.store.insert(mast_forest)
+    }
+
+    #[cfg(any(test, feature = "testing"))]
     pub fn advice_provider(&self) -> &A {
         &self.adv_provider
     }
 
-    #[cfg(any(test, feature = "internals"))]
+    #[cfg(any(test, feature = "testing"))]
     pub fn advice_provider_mut(&mut self) -> &mut A {
         &mut self.adv_provider
     }
@@ -296,20 +335,27 @@ impl<A: AdviceProvider> DefaultHost<A> {
     }
 }
 
-impl<A: AdviceProvider> Host for DefaultHost<A> {
-    fn get_advice<S: ProcessState>(
+impl<A> Host for DefaultHost<A>
+where
+    A: AdviceProvider,
+{
+    fn get_advice<P: ProcessState>(
         &mut self,
-        process: &S,
+        process: &P,
         extractor: AdviceExtractor,
     ) -> Result<HostResponse, ExecutionError> {
         self.adv_provider.get_advice(process, &extractor)
     }
 
-    fn set_advice<S: ProcessState>(
+    fn set_advice<P: ProcessState>(
         &mut self,
-        process: &S,
+        process: &P,
         injector: AdviceInjector,
     ) -> Result<HostResponse, ExecutionError> {
         self.adv_provider.set_advice(process, &injector)
+    }
+
+    fn get_mast_forest(&self, node_digest: &RpoDigest) -> Option<Arc<MastForest>> {
+        self.store.get(node_digest)
     }
 }

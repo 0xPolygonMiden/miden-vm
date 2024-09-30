@@ -1,9 +1,9 @@
+use std::time::Instant;
+
 use assembly::diagnostics::{IntoDiagnostic, Report};
 use clap::Parser;
 use miden_vm::{ExecutionProof, Host, Program, ProgramInfo, ProvingOptions, StackInputs};
 use processor::{ExecutionOptions, ExecutionOptionsError, Felt, ONE, ZERO};
-
-use std::time::Instant;
 
 pub mod blake3;
 pub mod fibonacci;
@@ -76,8 +76,12 @@ pub enum ExampleType {
 
 impl ExampleOptions {
     pub fn get_proof_options(&self) -> Result<ProvingOptions, ExecutionOptionsError> {
-        let exec_options =
-            ExecutionOptions::new(Some(self.max_cycles), self.expected_cycles, self.tracing)?;
+        let exec_options = ExecutionOptions::new(
+            Some(self.max_cycles),
+            self.expected_cycles,
+            self.tracing,
+            false,
+        )?;
         Ok(match self.security.as_str() {
             "96bits" => {
                 if self.rpx {
@@ -85,14 +89,14 @@ impl ExampleOptions {
                 } else {
                     ProvingOptions::with_96_bit_security(self.recursive)
                 }
-            }
+            },
             "128bits" => {
                 if self.rpx {
                     ProvingOptions::with_128_bit_security_rpx()
                 } else {
                     ProvingOptions::with_128_bit_security(self.recursive)
                 }
-            }
+            },
             other => panic!("{} is not a valid security level", other),
         }
         .with_execution_options(exec_options))
@@ -162,7 +166,7 @@ impl ExampleOptions {
 // ================================================================================================
 
 #[cfg(test)]
-pub fn test_example<H>(example: Example<H>, fail: bool)
+pub fn test_example_with_options<H>(example: Example<H>, fail: bool, options: ProvingOptions)
 where
     H: Host,
 {
@@ -175,7 +179,7 @@ where
     } = example;
 
     let (mut outputs, proof) =
-        miden_vm::prove(&program, stack_inputs.clone(), host, ProvingOptions::default()).unwrap();
+        miden_vm::prove(&program, stack_inputs.clone(), host, options).unwrap();
 
     assert_eq!(
         expected_result,
@@ -192,4 +196,12 @@ where
     } else {
         assert!(miden_vm::verify(program_info, stack_inputs, outputs, proof).is_ok());
     }
+}
+
+#[cfg(test)]
+pub fn test_example<H>(example: Example<H>, fail: bool)
+where
+    H: Host,
+{
+    test_example_with_options(example, fail, ProvingOptions::default());
 }

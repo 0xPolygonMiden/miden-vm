@@ -1,137 +1,96 @@
-use super::{Assembler, AssemblyContext, CodeBlock, Operation, SpanBuilder};
-use crate::{
-    ast::{InvocationTarget, InvokeKind},
-    AssemblyError, RpoDigest, SourceSpan, Span, Spanned,
-};
-
 use smallvec::SmallVec;
+use vm_core::mast::MastNodeId;
+
+use super::{Assembler, BasicBlockBuilder, Operation};
+use crate::{
+    assembler::{mast_forest_builder::MastForestBuilder, ProcedureContext},
+    ast::{InvocationTarget, InvokeKind},
+    AssemblyError, RpoDigest,
+};
 
 /// Procedure Invocation
 impl Assembler {
+    /// Returns the [`MastNodeId`] of the invoked procedure specified by `callee`.
+    ///
+    /// For example, given `exec.f`, this method would return the procedure body id of `f`. If the
+    /// only representation of `f` that we have is its MAST root, then this method will also insert
+    /// a [`core::mast::ExternalNode`] that wraps `f`'s MAST root and return the corresponding id.
     pub(super) fn invoke(
         &self,
         kind: InvokeKind,
         callee: &InvocationTarget,
-        context: &mut AssemblyContext,
-    ) -> Result<Option<CodeBlock>, AssemblyError> {
-        let span = callee.span();
-        let digest = self.resolve_target(kind, callee, context)?;
-        self.invoke_mast_root(kind, span, digest, context)
-    }
+        proc_ctx: &ProcedureContext,
+        mast_forest_builder: &mut MastForestBuilder,
+    ) -> Result<MastNodeId, AssemblyError> {
+        let invoked_proc_node_id =
+            self.resolve_target(kind, callee, proc_ctx, mast_forest_builder)?;
 
-    fn invoke_mast_root(
-        &self,
-        kind: InvokeKind,
-        span: SourceSpan,
-        mast_root: RpoDigest,
-        context: &mut AssemblyContext,
-    ) -> Result<Option<CodeBlock>, AssemblyError> {
-        // Get the procedure from the assembler
-        let cache = &self.procedure_cache;
-        let current_source_file = context.unwrap_current_procedure().source_file();
-
-        // If the procedure is cached, register the call to ensure the callset
-        // is updated correctly. Otherwise, register a phantom call.
-        match cache.get_by_mast_root(&mast_root) {
-            Some(proc) if matches!(kind, InvokeKind::SysCall) => {
-                // Verify if this is a syscall, that the callee is a kernel procedure
-                //
-                // NOTE: The assembler is expected to know the full set of all kernel
-                // procedures at this point, so if we can't identify the callee as a
-                // kernel procedure, it is a definite error.
-                if !proc.visibility().is_syscall() {
-                    return Err(AssemblyError::InvalidSysCallTarget {
-                        span,
-                        source_file: current_source_file,
-                        callee: proc.fully_qualified_name().clone(),
-                    });
-                }
-                let maybe_kernel_path = proc.path();
-                self.module_graph
-                    .find_module(maybe_kernel_path)
-                    .ok_or_else(|| AssemblyError::InvalidSysCallTarget {
-                        span,
-                        source_file: current_source_file.clone(),
-                        callee: proc.fully_qualified_name().clone(),
-                    })
-                    .and_then(|module| {
-                        if module.is_kernel() {
-                            Ok(())
-                        } else {
-                            Err(AssemblyError::InvalidSysCallTarget {
-                                span,
-                                source_file: current_source_file.clone(),
-                                callee: proc.fully_qualified_name().clone(),
-                            })
-                        }
-                    })?;
-                context.register_external_call(&proc, false)?;
-            }
-            Some(proc) => context.register_external_call(&proc, false)?,
-            None if matches!(kind, InvokeKind::SysCall) => {
-                return Err(AssemblyError::UnknownSysCallTarget {
-                    span,
-                    source_file: current_source_file,
-                    callee: mast_root,
-                });
-            }
-            None => context.register_phantom_call(Span::new(span, mast_root))?,
+        match kind {
+            InvokeKind::ProcRef | InvokeKind::Exec => Ok(invoked_proc_node_id),
+            InvokeKind::Call => mast_forest_builder.ensure_call(invoked_proc_node_id),
+            InvokeKind::SysCall => mast_forest_builder.ensure_syscall(invoked_proc_node_id),
         }
+    }
 
-        let block = match kind {
-            // For `exec`, we use a PROXY block to reflect that the root is
-            // conceptually inlined at this location
-            InvokeKind::Exec => CodeBlock::new_proxy(mast_root),
-            // For `call`, we just use the corresponding CALL block
-            InvokeKind::Call => CodeBlock::new_call(mast_root),
-            // For `syscall`, we just use the corresponding SYSCALL block
-            InvokeKind::SysCall => CodeBlock::new_syscall(mast_root),
+    /// Creates a new DYN block for the dynamic code execution and return.
+    pub(super) fn dynexec(
+        &self,
+        mast_forest_builder: &mut MastForestBuilder,
+    ) -> Result<Option<MastNodeId>, AssemblyError> {
+        let dyn_node_id = mast_forest_builder.ensure_dyn()?;
+
+        Ok(Some(dyn_node_id))
+    }
+
+    /// Creates a new CALL block whose target is DYN.
+    pub(super) fn dyncall(
+        &self,
+        mast_forest_builder: &mut MastForestBuilder,
+    ) -> Result<Option<MastNodeId>, AssemblyError> {
+        let dyn_call_node_id = {
+            let dyn_node_id = mast_forest_builder.ensure_dyn()?;
+            mast_forest_builder.ensure_call(dyn_node_id)?
         };
-        Ok(Some(block))
-    }
 
-    pub(super) fn dynexec(&self) -> Result<Option<CodeBlock>, AssemblyError> {
-        // create a new DYN block for the dynamic code execution and return
-        Ok(Some(CodeBlock::new_dyn()))
-    }
-
-    pub(super) fn dyncall(&self) -> Result<Option<CodeBlock>, AssemblyError> {
-        // create a new CALL block whose target is DYN
-        Ok(Some(CodeBlock::new_dyncall()))
+        Ok(Some(dyn_call_node_id))
     }
 
     pub(super) fn procref(
         &self,
         callee: &InvocationTarget,
-        context: &mut AssemblyContext,
-        span_builder: &mut SpanBuilder,
+        proc_ctx: &mut ProcedureContext,
+        block_builder: &mut BasicBlockBuilder,
     ) -> Result<(), AssemblyError> {
-        let span = callee.span();
-        let digest = self.resolve_target(InvokeKind::Exec, callee, context)?;
-        self.procref_mast_root(span, digest, context, span_builder)
+        let mast_root = {
+            let proc_body_id = self.resolve_target(
+                InvokeKind::ProcRef,
+                callee,
+                proc_ctx,
+                block_builder.mast_forest_builder_mut(),
+            )?;
+            // Note: it's ok to `unwrap()` here since `proc_body_id` was returned from
+            // `mast_forest_builder`
+            block_builder
+                .mast_forest_builder()
+                .get_mast_node(proc_body_id)
+                .unwrap()
+                .digest()
+        };
+
+        self.procref_mast_root(mast_root, block_builder)
     }
 
     fn procref_mast_root(
         &self,
-        span: SourceSpan,
         mast_root: RpoDigest,
-        context: &mut AssemblyContext,
-        span_builder: &mut SpanBuilder,
+        block_builder: &mut BasicBlockBuilder,
     ) -> Result<(), AssemblyError> {
-        // Add the root to the callset to be able to use dynamic instructions
-        // with the referenced procedure later
-        let cache = &self.procedure_cache;
-        match cache.get_by_mast_root(&mast_root) {
-            Some(proc) => context.register_external_call(&proc, false)?,
-            None => context.register_phantom_call(Span::new(span, mast_root))?,
-        }
-
         // Create an array with `Push` operations containing root elements
         let ops = mast_root
             .iter()
             .map(|elem| Operation::Push(*elem))
             .collect::<SmallVec<[_; 4]>>();
-        span_builder.push_ops(ops);
+        block_builder.push_ops(ops);
         Ok(())
     }
 }

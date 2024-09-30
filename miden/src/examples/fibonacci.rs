@@ -1,5 +1,6 @@
-use super::{Example, ONE, ZERO};
 use miden_vm::{math::Felt, Assembler, DefaultHost, MemAdviceProvider, Program, StackInputs};
+
+use super::{Example, ONE, ZERO};
 
 // EXAMPLE BUILDER
 // ================================================================================================
@@ -39,7 +40,7 @@ fn generate_fibonacci_program(n: usize) -> Program {
         n - 1
     );
 
-    Assembler::default().assemble(program).unwrap()
+    Assembler::default().assemble_program(program).unwrap()
 }
 
 /// Computes the `n`-th term of Fibonacci sequence
@@ -57,14 +58,28 @@ fn compute_fibonacci(n: usize) -> Felt {
 // EXAMPLE TESTER
 // ================================================================================================
 
-#[test]
-fn test_fib_example() {
-    let example = get_example(16);
-    super::test_example(example, false);
-}
+#[cfg(test)]
+mod tests {
+    use prover::ProvingOptions;
 
-#[test]
-fn test_fib_example_fail() {
-    let example = get_example(16);
-    super::test_example(example, true);
+    use super::*;
+    use crate::examples::{test_example, test_example_with_options};
+
+    #[test]
+    fn test_fib_example() {
+        let example = get_example(16);
+        test_example(example, false);
+    }
+
+    #[test]
+    fn test_fib_example_fail() {
+        let example = get_example(16);
+        test_example(example, true);
+    }
+
+    #[test]
+    fn test_fib_example_rpo() {
+        let example = get_example(16);
+        test_example_with_options(example, false, ProvingOptions::with_96_bit_security(true));
+    }
 }

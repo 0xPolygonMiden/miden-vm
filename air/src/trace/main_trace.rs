@@ -1,3 +1,9 @@
+#[cfg(any(test, feature = "testing"))]
+use alloc::vec::Vec;
+use core::ops::{Deref, Range};
+
+use vm_core::{utils::range, Felt, Word, ONE, ZERO};
+
 use super::{
     super::ColMatrix,
     chiplets::{
@@ -16,9 +22,7 @@ use super::{
     CHIPLETS_OFFSET, CLK_COL_IDX, CTX_COL_IDX, DECODER_TRACE_OFFSET, FMP_COL_IDX, FN_HASH_OFFSET,
     STACK_TRACE_OFFSET,
 };
-use alloc::vec::Vec;
-use core::ops::{Deref, Range};
-use vm_core::{utils::range, Felt, ONE, ZERO};
+use crate::RowIndex;
 
 // CONSTANTS
 // ================================================================================================
@@ -31,6 +35,7 @@ const DECODER_HASHER_RANGE: Range<usize> =
 
 pub struct MainTrace {
     columns: ColMatrix<Felt>,
+    last_program_row: RowIndex,
 }
 
 impl Deref for MainTrace {
@@ -42,17 +47,19 @@ impl Deref for MainTrace {
 }
 
 impl MainTrace {
-    pub fn new(main_trace: ColMatrix<Felt>) -> Self {
-        Self {
-            columns: main_trace,
-        }
+    pub fn new(main_trace: ColMatrix<Felt>, last_program_row: RowIndex) -> Self {
+        Self { columns: main_trace, last_program_row }
     }
 
     pub fn num_rows(&self) -> usize {
         self.columns.num_rows()
     }
 
-    #[cfg(any(test, feature = "internals"))]
+    pub fn last_program_row(&self) -> RowIndex {
+        self.last_program_row
+    }
+
+    #[cfg(any(test, feature = "testing"))]
     pub fn get_column_range(&self, range: Range<usize>) -> Vec<Vec<Felt>> {
         range.fold(vec![], |mut acc, col_idx| {
             acc.push(self.get_column(col_idx).to_vec());
@@ -64,17 +71,17 @@ impl MainTrace {
     // --------------------------------------------------------------------------------------------
 
     /// Returns the value of the clk column at row i.
-    pub fn clk(&self, i: usize) -> Felt {
+    pub fn clk(&self, i: RowIndex) -> Felt {
         self.columns.get_column(CLK_COL_IDX)[i]
     }
 
     /// Returns the value of the fmp column at row i.
-    pub fn fmp(&self, i: usize) -> Felt {
+    pub fn fmp(&self, i: RowIndex) -> Felt {
         self.columns.get_column(FMP_COL_IDX)[i]
     }
 
     /// Returns the value of the ctx column at row i.
-    pub fn ctx(&self, i: usize) -> Felt {
+    pub fn ctx(&self, i: RowIndex) -> Felt {
         self.columns.get_column(CTX_COL_IDX)[i]
     }
 
@@ -82,22 +89,22 @@ impl MainTrace {
     // --------------------------------------------------------------------------------------------
 
     /// Returns the value in the block address column at the row i.
-    pub fn addr(&self, i: usize) -> Felt {
+    pub fn addr(&self, i: RowIndex) -> Felt {
         self.columns.get_column(DECODER_TRACE_OFFSET)[i]
     }
 
     /// Helper method to detect change of address.
-    pub fn is_addr_change(&self, i: usize) -> bool {
+    pub fn is_addr_change(&self, i: RowIndex) -> bool {
         self.addr(i) != self.addr(i + 1)
     }
 
     /// The i-th decoder helper register at `row`.
-    pub fn helper_register(&self, i: usize, row: usize) -> Felt {
+    pub fn helper_register(&self, i: usize, row: RowIndex) -> Felt {
         self.columns.get_column(DECODER_TRACE_OFFSET + USER_OP_HELPERS_OFFSET + i)[row]
     }
 
     /// Returns the hasher state at row i.
-    pub fn decoder_hasher_state(&self, i: usize) -> [Felt; NUM_HASHER_COLUMNS] {
+    pub fn decoder_hasher_state(&self, i: RowIndex) -> [Felt; NUM_HASHER_COLUMNS] {
         let mut state = [ZERO; NUM_HASHER_COLUMNS];
         for (idx, col_idx) in DECODER_HASHER_RANGE.enumerate() {
             let column = self.columns.get_column(col_idx);
@@ -107,7 +114,7 @@ impl MainTrace {
     }
 
     /// Returns the first half of the hasher state at row i.
-    pub fn decoder_hasher_state_first_half(&self, i: usize) -> [Felt; DIGEST_LEN] {
+    pub fn decoder_hasher_state_first_half(&self, i: RowIndex) -> Word {
         let mut state = [ZERO; DIGEST_LEN];
         for (col, s) in state.iter_mut().enumerate() {
             *s = self.columns.get_column(DECODER_TRACE_OFFSET + HASHER_STATE_OFFSET + col)[i];
@@ -115,13 +122,26 @@ impl MainTrace {
         state
     }
 
+    /// Returns the second half of the hasher state at row i.
+    pub fn decoder_hasher_state_second_half(&self, i: RowIndex) -> Word {
+        const SECOND_WORD_OFFSET: usize = 4;
+        let mut state = [ZERO; DIGEST_LEN];
+        for (col, s) in state.iter_mut().enumerate() {
+            *s = self
+                .columns
+                .get_column(DECODER_TRACE_OFFSET + HASHER_STATE_OFFSET + SECOND_WORD_OFFSET + col)
+                [i];
+        }
+        state
+    }
+
     /// Returns a specific element from the hasher state at row i.
-    pub fn decoder_hasher_state_element(&self, element: usize, i: usize) -> Felt {
+    pub fn decoder_hasher_state_element(&self, element: usize, i: RowIndex) -> Felt {
         self.columns.get_column(DECODER_TRACE_OFFSET + HASHER_STATE_OFFSET + element)[i + 1]
     }
 
     /// Returns the current function hash (i.e., root) at row i.
-    pub fn fn_hash(&self, i: usize) -> [Felt; DIGEST_LEN] {
+    pub fn fn_hash(&self, i: RowIndex) -> [Felt; DIGEST_LEN] {
         let mut state = [ZERO; DIGEST_LEN];
         for (col, s) in state.iter_mut().enumerate() {
             *s = self.columns.get_column(FN_HASH_OFFSET + col)[i];
@@ -130,53 +150,53 @@ impl MainTrace {
     }
 
     /// Returns the `is_loop_body` flag at row i.
-    pub fn is_loop_body_flag(&self, i: usize) -> Felt {
+    pub fn is_loop_body_flag(&self, i: RowIndex) -> Felt {
         self.columns.get_column(DECODER_TRACE_OFFSET + IS_LOOP_BODY_FLAG_COL_IDX)[i]
     }
 
     /// Returns the `is_loop` flag at row i.
-    pub fn is_loop_flag(&self, i: usize) -> Felt {
+    pub fn is_loop_flag(&self, i: RowIndex) -> Felt {
         self.columns.get_column(DECODER_TRACE_OFFSET + IS_LOOP_FLAG_COL_IDX)[i]
     }
 
     /// Returns the `is_call` flag at row i.
-    pub fn is_call_flag(&self, i: usize) -> Felt {
+    pub fn is_call_flag(&self, i: RowIndex) -> Felt {
         self.columns.get_column(DECODER_TRACE_OFFSET + IS_CALL_FLAG_COL_IDX)[i]
     }
 
     /// Returns the `is_syscall` flag at row i.
-    pub fn is_syscall_flag(&self, i: usize) -> Felt {
+    pub fn is_syscall_flag(&self, i: RowIndex) -> Felt {
         self.columns.get_column(DECODER_TRACE_OFFSET + IS_SYSCALL_FLAG_COL_IDX)[i]
     }
 
     /// Returns the operation batch flags at row i. This indicates the number of op groups in
     /// the current batch that is being processed.
-    pub fn op_batch_flag(&self, i: usize) -> [Felt; NUM_OP_BATCH_FLAGS] {
+    pub fn op_batch_flag(&self, i: RowIndex) -> [Felt; NUM_OP_BATCH_FLAGS] {
         [
-            self.columns.get(DECODER_TRACE_OFFSET + OP_BATCH_FLAGS_OFFSET, i),
-            self.columns.get(DECODER_TRACE_OFFSET + OP_BATCH_FLAGS_OFFSET + 1, i),
-            self.columns.get(DECODER_TRACE_OFFSET + OP_BATCH_FLAGS_OFFSET + 2, i),
+            self.columns.get(DECODER_TRACE_OFFSET + OP_BATCH_FLAGS_OFFSET, i.into()),
+            self.columns.get(DECODER_TRACE_OFFSET + OP_BATCH_FLAGS_OFFSET + 1, i.into()),
+            self.columns.get(DECODER_TRACE_OFFSET + OP_BATCH_FLAGS_OFFSET + 2, i.into()),
         ]
     }
 
     /// Returns the operation group count. This indicates the number of operation that remain
     /// to be executed in the current span block.
-    pub fn group_count(&self, i: usize) -> Felt {
+    pub fn group_count(&self, i: RowIndex) -> Felt {
         self.columns.get_column(DECODER_TRACE_OFFSET + GROUP_COUNT_COL_IDX)[i]
     }
 
     /// Returns the delta between the current and next group counts.
-    pub fn delta_group_count(&self, i: usize) -> Felt {
+    pub fn delta_group_count(&self, i: RowIndex) -> Felt {
         self.group_count(i) - self.group_count(i + 1)
     }
 
     /// Returns the `in_span` flag at row i.
-    pub fn is_in_span(&self, i: usize) -> Felt {
+    pub fn is_in_span(&self, i: RowIndex) -> Felt {
         self.columns.get_column(DECODER_TRACE_OFFSET + IN_SPAN_COL_IDX)[i]
     }
 
     /// Constructs the i-th op code value from its individual bits.
-    pub fn get_op_code(&self, i: usize) -> Felt {
+    pub fn get_op_code(&self, i: RowIndex) -> Felt {
         let col_b0 = self.columns.get_column(DECODER_TRACE_OFFSET + 1);
         let col_b1 = self.columns.get_column(DECODER_TRACE_OFFSET + 2);
         let col_b2 = self.columns.get_column(DECODER_TRACE_OFFSET + 3);
@@ -194,18 +214,23 @@ impl MainTrace {
             + b6.mul_small(64)
     }
 
+    /// Returns an iterator of [`RowIndex`] values over the row indices of this trace.
+    pub fn row_iter(&self) -> impl Iterator<Item = RowIndex> {
+        (0..self.num_rows()).map(RowIndex::from)
+    }
+
     /// Returns a flag indicating whether the current operation induces a left shift of the operand
     /// stack.
-    pub fn is_left_shift(&self, i: usize) -> bool {
-        let b0 = self.columns.get(DECODER_TRACE_OFFSET + 1, i);
-        let b1 = self.columns.get(DECODER_TRACE_OFFSET + 2, i);
-        let b2 = self.columns.get(DECODER_TRACE_OFFSET + 3, i);
-        let b3 = self.columns.get(DECODER_TRACE_OFFSET + 4, i);
-        let b4 = self.columns.get(DECODER_TRACE_OFFSET + 5, i);
-        let b5 = self.columns.get(DECODER_TRACE_OFFSET + 6, i);
-        let b6 = self.columns.get(DECODER_TRACE_OFFSET + 7, i);
-        let e0 = self.columns.get(DECODER_TRACE_OFFSET + OP_BITS_EXTRA_COLS_OFFSET, i);
-        let h5 = self.columns.get(DECODER_TRACE_OFFSET + IS_LOOP_FLAG_COL_IDX, i);
+    pub fn is_left_shift(&self, i: RowIndex) -> bool {
+        let b0 = self.columns.get(DECODER_TRACE_OFFSET + 1, i.into());
+        let b1 = self.columns.get(DECODER_TRACE_OFFSET + 2, i.into());
+        let b2 = self.columns.get(DECODER_TRACE_OFFSET + 3, i.into());
+        let b3 = self.columns.get(DECODER_TRACE_OFFSET + 4, i.into());
+        let b4 = self.columns.get(DECODER_TRACE_OFFSET + 5, i.into());
+        let b5 = self.columns.get(DECODER_TRACE_OFFSET + 6, i.into());
+        let b6 = self.columns.get(DECODER_TRACE_OFFSET + 7, i.into());
+        let e0 = self.columns.get(DECODER_TRACE_OFFSET + OP_BITS_EXTRA_COLS_OFFSET, i.into());
+        let h5 = self.columns.get(DECODER_TRACE_OFFSET + IS_LOOP_FLAG_COL_IDX, i.into());
 
         // group with left shift effect grouped by a common prefix
         ([b6, b5, b4] == [ZERO, ONE, ZERO])||
@@ -221,43 +246,43 @@ impl MainTrace {
 
     /// Returns a flag indicating whether the current operation induces a right shift of the operand
     /// stack.
-    pub fn is_right_shift(&self, i: usize) -> bool {
-        let b0 = self.columns.get(DECODER_TRACE_OFFSET + 1, i);
-        let b1 = self.columns.get(DECODER_TRACE_OFFSET + 2, i);
-        let b2 = self.columns.get(DECODER_TRACE_OFFSET + 3, i);
-        let b3 = self.columns.get(DECODER_TRACE_OFFSET + 4, i);
-        let b4 = self.columns.get(DECODER_TRACE_OFFSET + 5, i);
-        let b5 = self.columns.get(DECODER_TRACE_OFFSET + 6, i);
-        let b6 = self.columns.get(DECODER_TRACE_OFFSET + 7, i);
+    pub fn is_right_shift(&self, i: RowIndex) -> bool {
+        let b0 = self.columns.get(DECODER_TRACE_OFFSET + 1, i.into());
+        let b1 = self.columns.get(DECODER_TRACE_OFFSET + 2, i.into());
+        let b2 = self.columns.get(DECODER_TRACE_OFFSET + 3, i.into());
+        let b3 = self.columns.get(DECODER_TRACE_OFFSET + 4, i.into());
+        let b4 = self.columns.get(DECODER_TRACE_OFFSET + 5, i.into());
+        let b5 = self.columns.get(DECODER_TRACE_OFFSET + 6, i.into());
+        let b6 = self.columns.get(DECODER_TRACE_OFFSET + 7, i.into());
 
         // group with right shift effect grouped by a common prefix
         [b6, b5, b4] == [ZERO, ONE, ONE]||
         // u32SPLIT 100_1000
         ([b6, b5, b4, b3, b2, b1, b0] == [ONE, ZERO, ZERO, ONE, ZERO, ZERO, ZERO]) ||
-        // PUSH i.e., 110_0100
-        ([b6, b5, b4, b3, b2, b1, b0] == [ONE, ONE, ZERO, ZERO, ONE, ZERO, ZERO])
+        // PUSH i.e., 101_1011
+        ([b6, b5, b4, b3, b2, b1, b0] == [ONE, ZERO, ONE, ONE, ZERO, ONE, ONE])
     }
 
     // STACK COLUMNS
     // --------------------------------------------------------------------------------------------
 
     /// Returns the value of the stack depth column at row i.
-    pub fn stack_depth(&self, i: usize) -> Felt {
+    pub fn stack_depth(&self, i: RowIndex) -> Felt {
         self.columns.get_column(STACK_TRACE_OFFSET + B0_COL_IDX)[i]
     }
 
     /// Returns the element at row i in a given stack trace column.
-    pub fn stack_element(&self, column: usize, i: usize) -> Felt {
+    pub fn stack_element(&self, column: usize, i: RowIndex) -> Felt {
         self.columns.get_column(STACK_TRACE_OFFSET + column)[i]
     }
 
     /// Returns the address of the top element in the stack overflow table at row i.
-    pub fn parent_overflow_address(&self, i: usize) -> Felt {
+    pub fn parent_overflow_address(&self, i: RowIndex) -> Felt {
         self.columns.get_column(STACK_TRACE_OFFSET + B1_COL_IDX)[i]
     }
 
     /// Returns a flag indicating whether the overflow stack is non-empty.
-    pub fn is_non_empty_overflow(&self, i: usize) -> bool {
+    pub fn is_non_empty_overflow(&self, i: RowIndex) -> bool {
         let b0 = self.columns.get_column(STACK_TRACE_OFFSET + B0_COL_IDX)[i];
         let h0 = self.columns.get_column(STACK_TRACE_OFFSET + H0_COL_IDX)[i];
         (b0 - Felt::new(16)) * h0 == ONE
@@ -267,37 +292,37 @@ impl MainTrace {
     // --------------------------------------------------------------------------------------------
 
     /// Returns chiplet column number 0 at row i.
-    pub fn chiplet_selector_0(&self, i: usize) -> Felt {
+    pub fn chiplet_selector_0(&self, i: RowIndex) -> Felt {
         self.columns.get_column(CHIPLETS_OFFSET)[i]
     }
 
     /// Returns chiplet column number 1 at row i.
-    pub fn chiplet_selector_1(&self, i: usize) -> Felt {
+    pub fn chiplet_selector_1(&self, i: RowIndex) -> Felt {
         self.columns.get_column(CHIPLETS_OFFSET + 1)[i]
     }
 
     /// Returns chiplet column number 2 at row i.
-    pub fn chiplet_selector_2(&self, i: usize) -> Felt {
+    pub fn chiplet_selector_2(&self, i: RowIndex) -> Felt {
         self.columns.get_column(CHIPLETS_OFFSET + 2)[i]
     }
 
     /// Returns chiplet column number 3 at row i.
-    pub fn chiplet_selector_3(&self, i: usize) -> Felt {
+    pub fn chiplet_selector_3(&self, i: RowIndex) -> Felt {
         self.columns.get_column(CHIPLETS_OFFSET + 3)[i]
     }
 
     /// Returns chiplet column number 4 at row i.
-    pub fn chiplet_selector_4(&self, i: usize) -> Felt {
+    pub fn chiplet_selector_4(&self, i: RowIndex) -> Felt {
         self.columns.get_column(CHIPLETS_OFFSET + 4)[i]
     }
 
     /// Returns `true` if a row is part of the hash chiplet.
-    pub fn is_hash_row(&self, i: usize) -> bool {
+    pub fn is_hash_row(&self, i: RowIndex) -> bool {
         self.chiplet_selector_0(i) == ZERO
     }
 
     /// Returns the (full) state of the hasher chiplet at row i.
-    pub fn chiplet_hasher_state(&self, i: usize) -> [Felt; STATE_WIDTH] {
+    pub fn chiplet_hasher_state(&self, i: RowIndex) -> [Felt; STATE_WIDTH] {
         let mut state = [ZERO; STATE_WIDTH];
         for (idx, col_idx) in HASHER_STATE_COL_RANGE.enumerate() {
             let column = self.columns.get_column(col_idx);
@@ -307,74 +332,74 @@ impl MainTrace {
     }
 
     /// Returns the hasher's node index column at row i
-    pub fn chiplet_node_index(&self, i: usize) -> Felt {
-        self.columns.get(HASHER_NODE_INDEX_COL_IDX, i)
+    pub fn chiplet_node_index(&self, i: RowIndex) -> Felt {
+        self.columns.get(HASHER_NODE_INDEX_COL_IDX, i.into())
     }
 
     /// Returns `true` if a row is part of the bitwise chiplet.
-    pub fn is_bitwise_row(&self, i: usize) -> bool {
+    pub fn is_bitwise_row(&self, i: RowIndex) -> bool {
         self.chiplet_selector_0(i) == ONE && self.chiplet_selector_1(i) == ZERO
     }
 
     /// Returns the bitwise column holding the aggregated value of input `a` at row i.
-    pub fn chiplet_bitwise_a(&self, i: usize) -> Felt {
+    pub fn chiplet_bitwise_a(&self, i: RowIndex) -> Felt {
         self.columns.get_column(BITWISE_A_COL_IDX)[i]
     }
 
     /// Returns the bitwise column holding the aggregated value of input `b` at row i.
-    pub fn chiplet_bitwise_b(&self, i: usize) -> Felt {
+    pub fn chiplet_bitwise_b(&self, i: RowIndex) -> Felt {
         self.columns.get_column(BITWISE_B_COL_IDX)[i]
     }
 
     /// Returns the bitwise column holding the aggregated value of the output at row i.
-    pub fn chiplet_bitwise_z(&self, i: usize) -> Felt {
+    pub fn chiplet_bitwise_z(&self, i: RowIndex) -> Felt {
         self.columns.get_column(BITWISE_OUTPUT_COL_IDX)[i]
     }
 
     /// Returns `true` if a row is part of the memory chiplet.
-    pub fn is_memory_row(&self, i: usize) -> bool {
+    pub fn is_memory_row(&self, i: RowIndex) -> bool {
         self.chiplet_selector_0(i) == ONE
             && self.chiplet_selector_1(i) == ONE
             && self.chiplet_selector_2(i) == ZERO
     }
 
     /// Returns the i-th row of the chiplet column containing memory context.
-    pub fn chiplet_memory_ctx(&self, i: usize) -> Felt {
+    pub fn chiplet_memory_ctx(&self, i: RowIndex) -> Felt {
         self.columns.get_column(MEMORY_CTX_COL_IDX)[i]
     }
 
     /// Returns the i-th row of the chiplet column containing memory address.
-    pub fn chiplet_memory_addr(&self, i: usize) -> Felt {
+    pub fn chiplet_memory_addr(&self, i: RowIndex) -> Felt {
         self.columns.get_column(MEMORY_ADDR_COL_IDX)[i]
     }
 
     /// Returns the i-th row of the chiplet column containing clock cycle.
-    pub fn chiplet_memory_clk(&self, i: usize) -> Felt {
+    pub fn chiplet_memory_clk(&self, i: RowIndex) -> Felt {
         self.columns.get_column(MEMORY_CLK_COL_IDX)[i]
     }
 
     /// Returns the i-th row of the chiplet column containing the zeroth memory value element.
-    pub fn chiplet_memory_value_0(&self, i: usize) -> Felt {
+    pub fn chiplet_memory_value_0(&self, i: RowIndex) -> Felt {
         self.columns.get_column(MEMORY_V_COL_RANGE.start)[i]
     }
 
     /// Returns the i-th row of the chiplet column containing the first memory value element.
-    pub fn chiplet_memory_value_1(&self, i: usize) -> Felt {
+    pub fn chiplet_memory_value_1(&self, i: RowIndex) -> Felt {
         self.columns.get_column(MEMORY_V_COL_RANGE.start + 1)[i]
     }
 
     /// Returns the i-th row of the chiplet column containing the second memory value element.
-    pub fn chiplet_memory_value_2(&self, i: usize) -> Felt {
+    pub fn chiplet_memory_value_2(&self, i: RowIndex) -> Felt {
         self.columns.get_column(MEMORY_V_COL_RANGE.start + 2)[i]
     }
 
     /// Returns the i-th row of the chiplet column containing the third memory value element.
-    pub fn chiplet_memory_value_3(&self, i: usize) -> Felt {
+    pub fn chiplet_memory_value_3(&self, i: RowIndex) -> Felt {
         self.columns.get_column(MEMORY_V_COL_RANGE.start + 3)[i]
     }
 
     /// Returns `true` if a row is part of the kernel chiplet.
-    pub fn is_kernel_row(&self, i: usize) -> bool {
+    pub fn is_kernel_row(&self, i: RowIndex) -> bool {
         self.chiplet_selector_0(i) == ONE
             && self.chiplet_selector_1(i) == ONE
             && self.chiplet_selector_2(i) == ONE
@@ -382,31 +407,31 @@ impl MainTrace {
     }
 
     /// Returns the i-th row of the kernel chiplet `addr` column.
-    pub fn chiplet_kernel_addr(&self, i: usize) -> Felt {
+    pub fn chiplet_kernel_addr(&self, i: RowIndex) -> Felt {
         self.columns.get_column(CHIPLETS_OFFSET + 5)[i]
     }
 
     /// Returns the i-th row of the chiplet column containing the zeroth element of the kernel
     /// procedure root.
-    pub fn chiplet_kernel_root_0(&self, i: usize) -> Felt {
+    pub fn chiplet_kernel_root_0(&self, i: RowIndex) -> Felt {
         self.columns.get_column(CHIPLETS_OFFSET + 6)[i]
     }
 
     /// Returns the i-th row of the chiplet column containing the first element of the kernel
     /// procedure root.
-    pub fn chiplet_kernel_root_1(&self, i: usize) -> Felt {
+    pub fn chiplet_kernel_root_1(&self, i: RowIndex) -> Felt {
         self.columns.get_column(CHIPLETS_OFFSET + 7)[i]
     }
 
     /// Returns the i-th row of the chiplet column containing the second element of the kernel
     /// procedure root.
-    pub fn chiplet_kernel_root_2(&self, i: usize) -> Felt {
+    pub fn chiplet_kernel_root_2(&self, i: RowIndex) -> Felt {
         self.columns.get_column(CHIPLETS_OFFSET + 8)[i]
     }
 
     /// Returns the i-th row of the chiplet column containing the third element of the kernel
     /// procedure root.
-    pub fn chiplet_kernel_root_3(&self, i: usize) -> Felt {
+    pub fn chiplet_kernel_root_3(&self, i: RowIndex) -> Felt {
         self.columns.get_column(CHIPLETS_OFFSET + 9)[i]
     }
 
@@ -415,8 +440,8 @@ impl MainTrace {
 
     /// Returns `true` if the hasher chiplet flags indicate the initialization of verifying
     /// a Merkle path to an old node during Merkle root update procedure (MRUPDATE).
-    pub fn f_mv(&self, i: usize) -> bool {
-        (i % HASH_CYCLE_LEN == 0)
+    pub fn f_mv(&self, i: RowIndex) -> bool {
+        (i.as_usize() % HASH_CYCLE_LEN == 0)
             && self.chiplet_selector_0(i) == ZERO
             && self.chiplet_selector_1(i) == ONE
             && self.chiplet_selector_2(i) == ONE
@@ -425,8 +450,8 @@ impl MainTrace {
 
     /// Returns `true` if the hasher chiplet flags indicate the continuation of verifying
     /// a Merkle path to an old node during Merkle root update procedure (MRUPDATE).
-    pub fn f_mva(&self, i: usize) -> bool {
-        (i % HASH_CYCLE_LEN == HASH_CYCLE_LEN - 1)
+    pub fn f_mva(&self, i: RowIndex) -> bool {
+        (i.as_usize() % HASH_CYCLE_LEN == HASH_CYCLE_LEN - 1)
             && self.chiplet_selector_0(i) == ZERO
             && self.chiplet_selector_1(i) == ONE
             && self.chiplet_selector_2(i) == ONE
@@ -435,8 +460,8 @@ impl MainTrace {
 
     /// Returns `true` if the hasher chiplet flags indicate the initialization of verifying
     /// a Merkle path to a new node during Merkle root update procedure (MRUPDATE).
-    pub fn f_mu(&self, i: usize) -> bool {
-        (i % HASH_CYCLE_LEN == 0)
+    pub fn f_mu(&self, i: RowIndex) -> bool {
+        (i.as_usize() % HASH_CYCLE_LEN == 0)
             && self.chiplet_selector_0(i) == ZERO
             && self.chiplet_selector_1(i) == ONE
             && self.chiplet_selector_2(i) == ONE
@@ -445,8 +470,8 @@ impl MainTrace {
 
     /// Returns `true` if the hasher chiplet flags indicate the continuation of verifying
     /// a Merkle path to a new node during Merkle root update procedure (MRUPDATE).
-    pub fn f_mua(&self, i: usize) -> bool {
-        (i % HASH_CYCLE_LEN == HASH_CYCLE_LEN - 1)
+    pub fn f_mua(&self, i: RowIndex) -> bool {
+        (i.as_usize() % HASH_CYCLE_LEN == HASH_CYCLE_LEN - 1)
             && self.chiplet_selector_0(i) == ZERO
             && self.chiplet_selector_1(i) == ONE
             && self.chiplet_selector_2(i) == ONE

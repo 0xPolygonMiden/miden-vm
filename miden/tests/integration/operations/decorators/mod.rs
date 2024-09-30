@@ -1,8 +1,10 @@
+use std::sync::Arc;
+
 use processor::{
-    AdviceExtractor, AdviceProvider, ExecutionError, Host, HostResponse, MemAdviceProvider,
-    ProcessState,
+    AdviceExtractor, AdviceProvider, ExecutionError, Host, HostResponse, MastForest,
+    MemAdviceProvider, ProcessState,
 };
-use vm_core::AdviceInjector;
+use vm_core::{AdviceInjector, DebugOptions};
 
 mod advice;
 mod asmop;
@@ -14,6 +16,7 @@ pub struct TestHost<A> {
     pub adv_provider: A,
     pub event_handler: Vec<u32>,
     pub trace_handler: Vec<u32>,
+    pub debug_handler: Vec<String>,
 }
 
 impl Default for TestHost<MemAdviceProvider> {
@@ -22,6 +25,7 @@ impl Default for TestHost<MemAdviceProvider> {
             adv_provider: MemAdviceProvider::default(),
             event_handler: Vec::new(),
             trace_handler: Vec::new(),
+            debug_handler: Vec::new(),
         }
     }
 }
@@ -59,5 +63,19 @@ impl<A: AdviceProvider> Host for TestHost<A> {
     ) -> Result<HostResponse, ExecutionError> {
         self.trace_handler.push(trace_id);
         Ok(HostResponse::None)
+    }
+
+    fn on_debug<S: ProcessState>(
+        &mut self,
+        _process: &S,
+        _options: &DebugOptions,
+    ) -> Result<HostResponse, ExecutionError> {
+        self.debug_handler.push(_options.to_string());
+        Ok(HostResponse::None)
+    }
+
+    fn get_mast_forest(&self, _node_digest: &prover::Digest) -> Option<Arc<MastForest>> {
+        // Empty MAST forest store
+        None
     }
 }

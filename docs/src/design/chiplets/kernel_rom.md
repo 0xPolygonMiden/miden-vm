@@ -70,7 +70,7 @@ $$
 Thus, when $s_0 = 0$ this reduces to $b'_{chip} = b_{chip}$, but when $s_0=1$ it becomes $b'_{chip} = b_{chip} \cdot u$.
 
 ## Kernel procedure table constraints
-*Note: Although this table is described independently, it is implemented as part of the [chiplets virtual table](../chiplets/main.md#chiplets-virtual-table), which combines all virtual tables required by the any of the chiplets into a single master table.*
+*Note: Although this table is described independently, it is implemented as part of the [chiplets virtual table](../chiplets/main.md#chiplets-virtual-table), which combines all virtual tables required by any of the chiplets into a single master table.*
 
 This kernel procedure table keeps track of all *unique* kernel function roots. The values in this table will be updated only when the value in the address column changes.
 

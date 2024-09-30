@@ -2,62 +2,71 @@
 
 extern crate alloc;
 
+use alloc::sync::Arc;
+
 use assembly::{
-    ast::Module, utils::Deserializable, Library, LibraryNamespace, LibraryPath, MaslLibrary,
-    Version,
+    mast::MastForest,
+    utils::{sync::LazyLock, Deserializable},
+    Library,
 };
 
 // STANDARD LIBRARY
 // ================================================================================================
 
 /// TODO: add docs
-pub struct StdLibrary(MaslLibrary);
+#[derive(Clone)]
+pub struct StdLibrary(Library);
 
-impl From<StdLibrary> for MaslLibrary {
+impl AsRef<Library> for StdLibrary {
+    fn as_ref(&self) -> &Library {
+        &self.0
+    }
+}
+
+impl From<StdLibrary> for Library {
     fn from(value: StdLibrary) -> Self {
         value.0
     }
 }
 
+impl StdLibrary {
+    /// Serialized representation of the Miden standard library.
+    pub const SERIALIZED: &'static [u8] =
+        include_bytes!(concat!(env!("OUT_DIR"), "/assets/std.masl"));
+
+    /// Returns a reference to the [MastForest] underlying the Miden standard library.
+    pub fn mast_forest(&self) -> &Arc<MastForest> {
+        self.0.mast_forest()
+    }
+}
+
 impl Default for StdLibrary {
     fn default() -> Self {
-        let bytes = include_bytes!(concat!(env!("OUT_DIR"), "/assets/std.masl"));
-        let contents = MaslLibrary::read_from_bytes(bytes).expect("failed to read std masl!");
-        Self(contents)
+        static STDLIB: LazyLock<StdLibrary> = LazyLock::new(|| {
+            let contents =
+                Library::read_from_bytes(StdLibrary::SERIALIZED).expect("failed to read std masl!");
+            StdLibrary(contents)
+        });
+        STDLIB.clone()
     }
 }
 
-impl Library for StdLibrary {
-    fn root_ns(&self) -> &LibraryNamespace {
-        self.0.root_ns()
+#[cfg(test)]
+mod tests {
+    use assembly::LibraryPath;
+
+    use super::*;
+
+    #[test]
+    fn test_compile() {
+        let path = "std::math::u64::overflowing_add".parse::<LibraryPath>().unwrap();
+        let stdlib = StdLibrary::default();
+        let exists = stdlib.0.module_infos().any(|module| {
+            module
+                .procedures()
+                .any(|(_, proc)| module.path().clone().append(&proc.name).unwrap() == path)
+        });
+
+        assert!(exists);
     }
-
-    fn version(&self) -> &Version {
-        self.0.version()
-    }
-
-    fn modules(&self) -> impl ExactSizeIterator<Item = &Module> + '_ {
-        self.0.modules()
-    }
-
-    fn dependencies(&self) -> &[assembly::LibraryNamespace] {
-        self.0.dependencies()
-    }
-
-    fn get_module(&self, path: &LibraryPath) -> Option<&Module> {
-        self.0.get_module(path)
-    }
-}
-
-#[test]
-fn test_compile() {
-    let path = "std::math::u64::overflowing_add".parse::<LibraryPath>().unwrap();
-    let stdlib = StdLibrary::default();
-    let exists = stdlib.modules().any(|module| {
-        module
-            .procedures()
-            .any(|proc| module.path().clone().append(proc.name()).unwrap() == path)
-    });
-
-    assert!(exists);
 }

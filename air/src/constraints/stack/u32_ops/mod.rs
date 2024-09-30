@@ -1,9 +1,10 @@
+use alloc::vec::Vec;
+
 use super::{op_flags::OpFlags, EvaluationFrame, Felt, FieldElement, TransitionConstraintDegree};
 use crate::{
     stack::EvaluationFrameExt,
     utils::{are_equal, is_binary},
 };
-use alloc::vec::Vec;
 
 #[cfg(test)]
 pub mod tests;
@@ -119,8 +120,8 @@ pub fn enforce_u32split_constraints<E: FieldElement<BaseField = Felt>>(
 /// Enforces constraints of the U32ADD operation. The U32ADD operation adds the top two
 /// elements in the current trace of the stack. Therefore, the following constraints are
 /// enforced:
-/// - The aggregation of limbs from the helper registers is equal to the sum of the top two
-///   element in the stack.
+/// - The aggregation of limbs from the helper registers is equal to the sum of the top two element
+///   in the stack.
 pub fn enforce_u32add_constraints<E: FieldElement<BaseField = Felt>>(
     frame: &EvaluationFrame<E>,
     result: &mut [E],
@@ -208,9 +209,10 @@ pub fn enforce_u32mul_constraints<E: FieldElement<BaseField = Felt>>(
     1
 }
 
-/// Enforces constraints of the U32MADD operation. The U32MADD operation adds the third
-/// element to the product of the first two elements in the current trace. Therefore, the
-/// following constraints are enforced:
+/// Enforces constraints of the U32MADD operation.
+///
+/// The U32MADD operation adds the third element to the product of the first two elements in the
+/// current trace. Therefore, the following constraints are enforced:
 /// - The aggregation of all the limbs in the helper registers is equal to the sum of the third
 ///   element with the product of the first two elements in the current trace.
 pub fn enforce_u32madd_constraints<E: FieldElement<BaseField = Felt>>(
@@ -230,8 +232,10 @@ pub fn enforce_u32madd_constraints<E: FieldElement<BaseField = Felt>>(
     1
 }
 
-/// Enforces constraints of the U32DIV operation. The U32DIV operation divides the second element
-/// with the first element in the current trace. Therefore, the following constraints are enforced:
+/// Enforces constraints of the U32DIV operation.
+///
+/// The U32DIV operation divides the second element with the first element in the current trace.
+/// Therefore, the following constraints are enforced:
 /// - The second element in the current trace should be equal to the sum of the first element in the
 ///   next trace with the product of the first element in the current trace and second element in
 ///   the next trace.
@@ -289,8 +293,7 @@ pub fn enforce_check_element_validity<E: FieldElement<BaseField = Felt>>(
 /// Enforces constraints of the general operation. The constaints checks if the lower 16-bits limbs
 /// are aggregated correctly or not. Therefore, the following constraints are enforced:
 /// - The aggregation of lower two lower 16-bits limbs in the helper registers is equal to the
-///   second
-///   element in the next row.
+///   second element in the next row.
 /// - The aggregation of lower two upper 16-bits limbs in the helper registers is equal to the first
 ///   element in the next row.
 pub fn enforce_limbs_agg<E: FieldElement<BaseField = Felt>>(
@@ -340,12 +343,7 @@ impl<E: FieldElement<BaseField = Felt>> LimbCompositions<E> {
 
         let v64 = E::from(TWO_48) * frame.user_op_helper(3) + v48;
 
-        Self {
-            v_hi,
-            v_lo,
-            v48,
-            v64,
-        }
+        Self { v_hi, v_lo, v48, v64 }
     }
 
     /// Returns v_hi intermediate flag value.

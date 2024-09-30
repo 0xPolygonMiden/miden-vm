@@ -1,127 +1,146 @@
-use assembly::{Assembler, Library, MaslLibrary};
+use std::{collections::BTreeSet, path::PathBuf};
+
+use assembly::{Assembler, Library};
 use miden_vm::{math::Felt, DefaultHost, StackInputs, Word};
 use processor::ContextId;
 use rustyline::{error::ReadlineError, DefaultEditor};
-use std::{collections::BTreeSet, path::PathBuf};
 use stdlib::StdLibrary;
 
-/// This work is in continuation to the amazing work done by team `Scribe`
-/// [here](https://github.com/ControlCplusControlV/Scribe/blob/main/transpiler/src/repl.rs#L8)
-///
-/// The Miden Read–eval–print loop (REPL) is a Miden shell that allows for quick and easy debugging
-/// of Miden assembly. To use the repl, simply type "miden repl" after building it with feature
-/// "executable" (cargo build --release --feature executable) when in the miden home
-/// crate and the repl will launch. After the REPL gets initialized, you can execute any Miden
-/// instruction, undo executed instructions, check the state of the stack and memory at a given
-/// point, and do many other useful things! When the REPL is exited, a `history.txt` file is saved.
-/// One thing to note is that all the REPL native commands start with an `!` to differentiate them
-/// from regular assembly instructions.
-///
-/// Miden Instructions
-/// All Miden instructions mentioned in the
-/// [Miden Assembly section](https://0xpolygonmiden.github.io/miden-vm/user_docs/assembly/main.html)
-/// are valid.
-/// One can either input instructions one by one or multiple instructions in one input.
-/// For example, the below two commands will result in the same output.
-/// >> push.1
-/// >> push.2
-/// >> push.3
-///
-///  >> push.1 push.2 push.3
-///
-/// In order to execute a control flow operation, one needs to write the entire flow operation in
-/// a single line with spaces between individual operations.
-/// Ex.
-/// `repeat.20
-///     pow2
-/// end`
-/// should be written as
-/// `repeat.20 pow2 end`
-///
-/// To execute a control flow operation, one must write the entire statement in a single line with
-/// spaces between individual operations.
-/// >> repeat.20
-///       pow2
-///    end
-///
-/// The above example should be written as follows in the REPL tool:
-/// >> repeat.20 pow2 end
-///
-/// `!stack`
-/// The `!stack` command prints out the state of the stack at the last executed instruction. Since
-/// the stack always contains at least 16 elements, 16 or more elements will be printed out (even
-/// if all of them are zeros).
-/// >> push.1 push.2 push.3 push.4 push.5
-/// >> exp
-/// >> u32wrapping_mul
-/// >> swap
-/// >> eq.2
-/// >> assert
-///
-/// The `!stack` command will print out the following state of the stack:
-/// >> !stack
-/// 3072 1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
-///
-/// `!undo`
-/// The `!undo` command reverts to the previous state of the stack and memory by dropping off the
-/// last executed assembly instruction from the program. One could use `!undo` as often as they want
-/// to restore the state of a stack and memory $n$ instructions ago (provided there are $n$
-/// instructions in the program). The `!undo` command will result in an error if no remaining
-/// instructions are left in  the miden program.
-/// >> push.1 push.2 push.3
-/// >> push.4
-/// >> !stack
-/// 4 3 2 1 0 0 0 0 0 0 0 0 0 0 0 0
-/// >> push.5
-/// >> !stack
-/// 5 4 3 2 1 0 0 0 0 0 0 0 0 0 0 0
-/// >> !undo
-/// 4 3 2 1 0 0 0 0 0 0 0 0 0 0 0 0
-/// >> !undo
-/// 3 2 1 0 0 0 0 0 0 0 0 0 0 0 0 0
-///
-///`!program`
-/// The `!program` command prints out the entire miden program getting executed. E.g., in the below
-/// scenario: >> push.1
-/// >> push.2
-/// >> push.3
-/// >> add
-/// >> add
-/// >> !program
-/// begin
-///    push.1
-///    push.2
-///    push.3
-///    add
-///    add
-/// end
-///
-/// `!help`
-/// The `!help` command prints out all the available commands in the REPL tool.
-///
-/// `!mem`
-/// The `!mem` command prints out the contents of all initialized memory locations. For each such
-/// location, the address, along with its memory values, is printed. Recall that four elements are
-/// stored at each memory address.
-/// If the memory has at least one value that has been initialized:
-/// >> !mem
-/// 7: [1, 2, 0, 3]
-/// 8: [5, 7, 3, 32]
-/// 9: [9, 10, 2, 0]
-///
-/// If the memory is not yet been initialized:
-/// >> !mem
-/// The memory has not been initialized yet
-///
-/// `!mem[addr]`
-/// The `!mem[addr]` command prints out memory contents at the address specified by `addr`.
-/// If the `addr` has been initialized:
-/// >> !mem[9]
-/// 9: [9, 10, 2, 0]
-///
-/// If the `addr` has not been initialized:
-/// >> !mem[87]
-/// Memory at address 87 is empty
+// This work is in continuation to the amazing work done by team `Scribe`
+// [here](https://github.com/ControlCplusControlV/Scribe/blob/main/transpiler/src/repl.rs#L8)
+//
+// The Miden Read–eval–print loop (REPL) is a Miden shell that allows for quick and easy debugging
+// of Miden assembly. To use the repl, simply type "miden repl" after building it with feature
+// "executable" (cargo build --release --feature executable) when in the miden home
+// crate and the repl will launch. After the REPL gets initialized, you can execute any Miden
+// instruction, undo executed instructions, check the state of the stack and memory at a given
+// point, and do many other useful things! When the REPL is exited, a `history.txt` file is saved.
+// One thing to note is that all the REPL native commands start with an `!` to differentiate them
+// from regular assembly instructions.
+//
+// Miden Instructions
+// All Miden instructions mentioned in the
+// [Miden Assembly section](https://0xpolygonmiden.github.io/miden-vm/user_docs/assembly/main.html)
+// are valid.
+// One can either input instructions one by one or multiple instructions in one input.
+// For example, the below two commands will result in the same output.
+// >> push.1
+// >> push.2
+// >> push.3
+//
+//  >> push.1 push.2 push.3
+//
+// In order to execute a control flow operation, one needs to write the entire flow operation in
+// a single line with spaces between individual operations.
+// Ex.
+// ```
+// repeat.20
+//     pow2
+// end
+// ```
+// should be written as
+// `repeat.20 pow2 end`
+//
+// To execute a control flow operation, one must write the entire statement in a single line with
+// spaces between individual operations.
+// ```
+// >> repeat.20
+//       pow2
+//    end
+// ```
+//
+// The above example should be written as follows in the REPL tool:
+// >> repeat.20 pow2 end
+//
+// `!stack`
+// The `!stack` command prints out the state of the stack at the last executed instruction. Since
+// the stack always contains at least 16 elements, 16 or more elements will be printed out (even
+// if all of them are zeros).
+// >> push.1 push.2 push.3 push.4 push.5
+// >> exp
+// >> u32wrapping_mul
+// >> swap
+// >> eq.2
+// >> assert
+//
+// The `!stack` command will print out the following state of the stack:
+// ```
+// >> !stack
+// 3072 1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+// ```
+//
+// `!undo`
+// The `!undo` command reverts to the previous state of the stack and memory by dropping off the
+// last executed assembly instruction from the program. One could use `!undo` as often as they want
+// to restore the state of a stack and memory $n$ instructions ago (provided there are $n$
+// instructions in the program). The `!undo` command will result in an error if no remaining
+// instructions are left in  the miden program.
+// ```
+// >> push.1 push.2 push.3
+// >> push.4
+// >> !stack
+// 4 3 2 1 0 0 0 0 0 0 0 0 0 0 0 0
+// >> push.5
+// >> !stack
+// 5 4 3 2 1 0 0 0 0 0 0 0 0 0 0 0
+// >> !undo
+// 4 3 2 1 0 0 0 0 0 0 0 0 0 0 0 0
+// >> !undo
+// 3 2 1 0 0 0 0 0 0 0 0 0 0 0 0 0
+// ```
+//
+//`!program`
+// The `!program` command prints out the entire miden program getting executed. E.g., in the below
+// ```
+// scenario: >> push.1
+// >> push.2
+// >> push.3
+// >> add
+// >> add
+// >> !program
+// begin
+//    push.1
+//    push.2
+//    push.3
+//    add
+//    add
+// end
+// ```
+//
+// `!help`
+// The `!help` command prints out all the available commands in the REPL tool.
+//
+// `!mem`
+// The `!mem` command prints out the contents of all initialized memory locations. For each such
+// location, the address, along with its memory values, is printed. Recall that four elements are
+// stored at each memory address.
+// If the memory has at least one value that has been initialized:
+// ```
+// >> !mem
+// 7: [1, 2, 0, 3]
+// 8: [5, 7, 3, 32]
+// 9: [9, 10, 2, 0]
+// ```
+//
+// If the memory is not yet been initialized:
+// ```
+// >> !mem
+// The memory has not been initialized yet
+// ```
+//
+// `!mem[addr]`
+// The `!mem[addr]` command prints out memory contents at the address specified by `addr`.
+// If the `addr` has been initialized:
+// ```
+// >> !mem[9]
+// 9: [9, 10, 2, 0]
+// ```
+//
+// If the `addr` has not been initialized:
+// ```
+// >> !mem[87]
+// Memory at address 87 is empty
+// ```
 
 /// Initiates the Miden Repl tool.
 pub fn start_repl(library_paths: &Vec<PathBuf>, use_stdlib: bool) {
@@ -133,13 +152,13 @@ pub fn start_repl(library_paths: &Vec<PathBuf>, use_stdlib: bool) {
     // load libraries from files
     let mut provided_libraries = Vec::new();
     for path in library_paths {
-        let library = MaslLibrary::read_from_file(path)
+        let library = Library::deserialize_from_file(path)
             .map_err(|e| format!("Failed to read library: {e}"))
             .unwrap();
         provided_libraries.push(library);
     }
     if use_stdlib {
-        provided_libraries.push(MaslLibrary::from(StdLibrary::default()));
+        provided_libraries.push(StdLibrary::default().into());
     }
 
     println!("========================== Miden REPL ============================");
@@ -180,11 +199,11 @@ pub fn start_repl(library_paths: &Vec<PathBuf>, use_stdlib: bool) {
                         print_stack(stack_state);
                     }
                     memory = mem;
-                }
+                },
                 Err(e) => {
                     println!("Error running program: {:?}", e);
                     program_lines.pop();
-                }
+                },
             }
         } else if should_print_stack {
             println!("{}", str::repeat("0 ", 16));
@@ -232,7 +251,7 @@ pub fn start_repl(library_paths: &Vec<PathBuf>, use_stdlib: bool) {
                             if !mem_at_addr_present {
                                 println!("Memory at address {} is empty", addr);
                             }
-                        }
+                        },
                         Err(msg) => println!("{}", msg),
                     }
 
@@ -242,11 +261,11 @@ pub fn start_repl(library_paths: &Vec<PathBuf>, use_stdlib: bool) {
                         Some(last_line) => {
                             println!("Undoing {}", last_line);
                             should_print_stack = true;
-                        }
+                        },
                         None => {
                             println!("There's no previously executed command");
                             should_print_stack = false;
-                        }
+                        },
                     };
                 } else if line == "!stack" {
                     should_print_stack = true;
@@ -257,46 +276,50 @@ pub fn start_repl(library_paths: &Vec<PathBuf>, use_stdlib: bool) {
                     program_lines.push(line.clone());
                     should_print_stack = true;
                 }
-            }
+            },
             Err(ReadlineError::Interrupted) => {
                 println!("CTRL-C");
                 break;
-            }
+            },
             Err(ReadlineError::Eof) => {
                 println!("CTRL-D");
                 break;
-            }
+            },
             Err(err) => {
                 println!("Error: {:?}", err);
                 break;
-            }
+            },
         };
     }
     rl.save_history("history.txt")
         .expect("Couldn't dump the program into the history file");
 }
 
-/// HELPER METHODS
-/// --------------------------------------------------------------------------------------------
+// HELPER METHODS
+// --------------------------------------------------------------------------------------------
 
 /// Compiles and executes a compiled Miden program, returning the stack, memory and any Miden
 /// errors. The program is passed in as a String, passed to the Miden Assembler, and then passed
 /// into the Miden Processor to be executed.
+#[allow(clippy::type_complexity)]
 fn execute(
     program: String,
-    provided_libraries: &[MaslLibrary],
+    provided_libraries: &[Library],
 ) -> Result<(Vec<(u64, Word)>, Vec<Felt>), String> {
     // compile program
     let mut assembler = Assembler::default();
 
-    assembler = assembler
-        .with_libraries(provided_libraries.iter())
-        .map_err(|err| format!("{err}"))?;
+    for library in provided_libraries {
+        assembler.add_library(library).map_err(|err| format!("{err}"))?;
+    }
 
-    let program = assembler.assemble(program).map_err(|err| format!("{err}"))?;
+    let program = assembler.assemble_program(program).map_err(|err| format!("{err}"))?;
 
     let stack_inputs = StackInputs::default();
-    let host = DefaultHost::default();
+    let mut host = DefaultHost::default();
+    for library in provided_libraries {
+        host.load_mast_forest(library.mast_forest().clone());
+    }
 
     let state_iter = processor::execute_iter(&program, stack_inputs, host);
     let (system, _, stack, chiplets, err) = state_iter.into_parts();
@@ -312,7 +335,7 @@ fn execute(
     Ok((mem_state, stack_state))
 }
 
-/// Parses the address in integer form from "!mem[addr]" command, otherwise throws an error.
+/// Parses the address in integer form from `!mem[addr]` command, otherwise throws an error.
 fn read_mem_address(mem_str: &str) -> Result<u64, String> {
     // the first five characters is "!mem[" and the digit character should start from 6th
     // element.
@@ -338,7 +361,7 @@ fn read_mem_address(mem_str: &str) -> Result<u64, String> {
 /// all available modules if no module name was provided.
 fn handle_use_command(
     line: String,
-    provided_libraries: &Vec<MaslLibrary>,
+    provided_libraries: &[Library],
     imported_modules: &mut BTreeSet<String>,
 ) {
     let tokens: Vec<&str> = line.split_whitespace().collect();
@@ -347,12 +370,12 @@ fn handle_use_command(
         1 => {
             println!("Modules available for importing:");
             for lib in provided_libraries {
-                lib.modules().for_each(|module| println!("{}", module.path()));
+                lib.module_infos().for_each(|module| println!("{}", module.path()));
             }
-        }
+        },
         2 => {
             imported_modules.insert(format!("use.{}", tokens[1]).to_string());
-        }
+        },
         _ => println!("malformed instruction '!use': too many parameters provided"),
     }
 }

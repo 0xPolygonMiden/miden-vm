@@ -1,16 +1,17 @@
 [package]
 name = "miden-core"
-version = "0.8.0"
+version = "0.10.5"
 description = "Miden VM core components"
-authors = ["miden contributors"]
+documentation = "https://docs.rs/miden-core/0.10.5"
 readme = "README.md"
-license = "MIT"
-repository = "https://github.com/0xPolygonMiden/miden-vm"
-documentation = "https://docs.rs/miden-core/0.8.0"
 categories = ["emulators", "no-std"]
 keywords = ["instruction-set", "miden", "program"]
-edition = "2021"
-rust-version = "1.75"
+license.workspace = true
+authors.workspace = true
+homepage.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+edition.workspace = true
 
 [lib]
 bench = false
@@ -18,7 +19,10 @@ doctest = false
 
 [features]
 default = ["std"]
+diagnostics = ["dep:miette"]
 std = [
+    "dep:parking_lot",
+    "memchr/std",
     "miden-crypto/std",
     "miden-formatting/std",
     "math/std",
@@ -27,13 +31,29 @@ std = [
 ]
 
 [dependencies]
+lock_api = { version = "0.4", features = ["arc_lock"] }
 math = { package = "winter-math", version = "0.9", default-features = false }
-#miden-crypto = { version = "0.9", default-features = false }
+memchr = { version = "2.7", default-features = false }
+#miden-crypto = { version = "0.10", default-features = false }
 miden-crypto = { git = "https://github.com/0xPolygonMiden/crypto", branch = "al-rpo-new-padding-rule", default-features = false }
 miden-formatting = { version = "0.1", default-features = false }
-thiserror = { version = "1.0", git = "https://github.com/bitwalker/thiserror", branch = "no-std", default-features = false }
+miette = { package = "miden-miette", version = "7.1", default-features = false, features = [
+    "fancy-no-syscall",
+    "derive"
+], optional = true }
+num-derive = { version = "0.4", default-features = false }
+num-traits = { version = "0.2", default-features = false }
+parking_lot = { version = "0.12", optional = true }
+thiserror = { package = "miden-thiserror", version = "1.0", default-features = false }
 winter-utils = { package = "winter-utils", version = "0.9", default-features = false }
 
 [dev-dependencies]
-proptest = "1.3"
+loom = "0.7"
+proptest = "1.5"
 rand_utils = { version = "0.9", package = "winter-rand-utils" }
+
+[target.'cfg(loom)'.dependencies]
+loom = "0.7"
+
+[lints.rust]
+unexpected_cfgs = { level = "warn", check-cfg = ['cfg(loom)'] }

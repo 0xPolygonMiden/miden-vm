@@ -1,16 +1,17 @@
 [package]
 name = "miden-prover"
-version = "0.8.0"
+version = "0.10.5"
 description = "Miden VM prover"
-authors = ["miden contributors"]
+documentation = "https://docs.rs/miden-prover/0.10.5"
 readme = "README.md"
-license = "MIT"
-repository = "https://github.com/0xPolygonMiden/miden-vm"
-documentation = "https://docs.rs/miden-prover/0.8.0"
 categories = ["cryptography", "emulators", "no-std"]
 keywords = ["miden", "prover", "stark", "zkp"]
-edition = "2021"
-rust-version = "1.75"
+license.workspace = true
+authors.workspace = true
+homepage.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+edition.workspace = true
 
 [features]
 concurrent = ["processor/concurrent", "std", "winter-prover/concurrent"]
@@ -19,12 +20,12 @@ metal = ["dep:miden-gpu", "dep:elsa", "dep:pollster", "concurrent", "std"]
 std = ["air/std", "processor/std", "winter-prover/std"]
 
 [dependencies]
-air = { package = "miden-air", path = "../air", version = "0.8", default-features = false }
-processor = { package = "miden-processor", path = "../processor", version = "0.8", default-features = false }
+air = { package = "miden-air", path = "../air", version = "0.10", default-features = false }
+processor = { package = "miden-processor", path = "../processor", version = "0.10", default-features = false }
 tracing = { version = "0.1", default-features = false, features = ["attributes"] }
 winter-prover = { package = "winter-prover", version = "0.9", default-features = false }
 
 [target.'cfg(all(target_arch = "aarch64", target_os = "macos"))'.dependencies]
 elsa = { version = "1.9", optional = true }
-miden-gpu = { version = "0.1", optional = true }
+miden-gpu = { version = "0.2", optional = true }
 pollster = { version = "0.3", optional = true }

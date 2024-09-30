@@ -2,6 +2,7 @@
 // ================================================================================================
 
 use alloc::vec::Vec;
+
 use miden_air::ProcessorAir;
 use test_utils::{
     crypto::{BatchMerkleProof, MerklePath, PartialMerkleTree, Rpo256, RpoDigest},
@@ -243,7 +244,7 @@ impl VerifierChannel {
             let layer_proof = layer_proofs.remove(0);
 
             let mut unbatched_proof = layer_proof.into_paths(&folded_positions).unwrap();
-            let x = group_slice_elements::<QuadExt, N>(&query);
+            let x = group_slice_elements::<QuadExt, N>(query);
             assert_eq!(x.len(), unbatched_proof.len());
 
             let nodes: Vec<[Felt; 4]> = unbatched_proof
@@ -407,10 +408,7 @@ impl ConstraintQueries {
                 ))
             })?;
 
-        Ok(Self {
-            query_proofs,
-            evaluations,
-        })
+        Ok(Self { query_proofs, evaluations })
     }
 }
 

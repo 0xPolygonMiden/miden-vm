@@ -1,10 +1,6 @@
 use core::fmt;
 
-use crate::{
-    ast::{AstSerdeOptions, Ident},
-    ByteReader, ByteWriter, Deserializable, DeserializationError, LibraryNamespace, LibraryPath,
-    Serializable, SourceSpan, Spanned,
-};
+use crate::{ast::Ident, LibraryNamespace, LibraryPath, SourceSpan, Spanned};
 
 // IMPORT
 // ================================================================================================
@@ -44,39 +40,6 @@ impl Import {
     /// Returns true if this import has at least one use in its containing module.
     pub fn is_used(&self) -> bool {
         self.uses > 0
-    }
-}
-
-/// Serialization
-impl Import {
-    /// Serializes this import to `target` with `options`
-    pub fn write_into_with_options<W: ByteWriter>(&self, target: &mut W, options: AstSerdeOptions) {
-        if options.debug_info {
-            self.span.write_into(target);
-        }
-        self.name.write_into_with_options(target, options);
-        self.path.write_into(target);
-    }
-
-    /// Deserializes this import from `source` with `options`.
-    pub fn read_from_with_options<R: ByteReader>(
-        source: &mut R,
-        options: AstSerdeOptions,
-    ) -> Result<Self, DeserializationError> {
-        let span = if options.debug_info {
-            SourceSpan::read_from(source)?
-        } else {
-            SourceSpan::default()
-        };
-
-        let name = Ident::read_from_with_options(source, options)?;
-        let path = LibraryPath::read_from(source)?;
-        Ok(Self {
-            span,
-            name,
-            path,
-            uses: 0,
-        })
     }
 }
 

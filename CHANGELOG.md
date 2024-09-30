@@ -1,16 +1,168 @@
 # Changelog
 
-## 0.9.0 (TBD)
+## 0.11.0 (TBD)
+
+#### Enhancements
+
+- Added support for procedure annotation (attribute) syntax to Miden Assembly
+
+#### Changes
+
+- [BREAKING] Wrapped `MastForest`s in `Program` and `Library` structs in `Arc` (#1465).
+- `MastForestBuilder`: use `MastNodeId` instead of MAST root to uniquely identify procedures (#1473)
+- Added `miden_core::utils::sync::racy_lock` module (#1463).
+- Updated `miden_core::utils` to re-export `std::sync::LazyLock` and `racy_lock::RacyLock as LazyLock` for std and no_std environments, respectively (#1463).
+- Made the undocumented behavior of the VM with regard to undefined behavior of u32 operations, stricter (#1480)
+- Introduced the `Emit` instruction (#1496)
+- Debug instructions can be enabled in the cli `run` command using `--debug` flag (#1502)
+- [BREAKING] ExecutionOptions::new constructor requires a boolean to explicitly set debug mode (#1502)
+- [BREAKING] The `run` and the `prove` commands in the cli will accept `--trace` flag instead of `--tracing` (#1502)
+- Migrated to new padding rule for RPO (#1343).
+
+
+#### Fixes
+
+- Fixed an issue with formatting of blocks in Miden Assembly syntax
+- Fixed the construction of the block hash table (#1506)
+- Fixed a bug in the block stack table (#1511)
+- Fixed the construction of the chiplets virtual table (#1514)
+
+#### Fixes
+
+- Decorators are now allowed in empty basic blocks (#1466)
+
+
+## 0.10.6 (2024-09-12) - `miden-processor` crate only.
+
+#### Enhancements
+
+- Added `PartialEq`, `Eq`, `Serialize` and `Deserialize` to `AdviceMap` and `AdviceInputs` structs (#1494).
+
+## 0.10.5 (2024-08-21)
+
+#### Enhancements
+
+- Updated `MastForest::read_from` to deserialize without computing node hashes unnecessarily (#1453).
+- Assembler: Merge contiguous basic blocks (#1454).
+- Assembler: Add a threshold number of operations after which we stop merging more in the same block (#1461).
+
+#### Changes
+
+- Added `new_unsafe()` constructors to MAST node types which do not compute node hashes (#1453).
+- Consolidated `BasicBlockNode` constructors and converted assert flow to `MastForestError::EmptyBasicBlock` (#1453).
+
+#### Fixes
+
+- Fixed an issue with registering non-local procedures in `MemMastForestStore` (#1462).
+- Added a check for circular external node lookups in the processor (#1464).
+
+## 0.10.4 (2024-08-15) - `miden-processor` crate only
+
+#### Enhancements
+
+- Added support for executing `Dyn` nodes from external MAST forests (#1455).
+
+## 0.10.3 (2024-08-12)
+
+#### Enhancements
+
+- Added `with-debug-info` feature to `miden-stdlib` (#1445).
+- Added `Assembler::add_modules_from_dir()` method (#1445).
+- [BREAKING] Implemented building of multi-module kernels (#1445).
+
+#### Changes
+
+- [BREAKING] Replaced `SourceManager` parameter with `Assembler` in `Library::from_dir` (#1445).
+- [BREAKING] Moved `Library` and `KernelLibrary` exports to the root of the `miden-assembly` crate. (#1445).
+
+## 0.10.2 (2024-08-10)
+
+#### Enhancements
+
+- Removed linear search of trace rows from `BlockHashTableRow::table_init()` (#1439).
+- Exposed some pretty printing internals for `MastNode` (#1441).
+- Made `KernelLibrary` impl `Clone` and `AsRef<Library>` (#1441).
+- Added serialization to the `Program` struct (#1442).
+
+#### Changes
+
+- [BREAKING] Removed serialization of AST structs (#1442).
+
+## 0.10.0 (2024-08-06)
+
+#### Features
+
+- Added source location tracking to assembled MAST (#1419).
+- Added error codes support for the `mtree_verify` instruction (#1328).
+- Added support for immediate values for `lt`, `lte`, `gt`, `gte` comparison instructions (#1346).
+- Added support for immediate values for `u32lt`, `u32lte`, `u32gt`, `u32gte`, `u32min` and `u32max` comparison instructions (#1358).
+- Added support for the `nop` instruction, which corresponds to the VM opcode of the same name, and has the same semantics.
+- Added support for the `if.false` instruction, which can be used in the same manner as `if.true`
+- Added support for immediate values for `u32and`, `u32or`, `u32xor` and `u32not` bitwise instructions (#1362).
+- [BREAKING] Assembler: add the ability to compile MAST libraries, and to assemble a program using compiled libraries (#1401)
+
+#### Enhancements
+
+- Changed MAST to a table-based representation (#1349).
+- Introduced `MastForestStore` (#1359).
+- Adjusted prover's metal acceleration code to work with 0.9 versions of the crates (#1357).
+- Relaxed the parser to allow one branch of an `if.(true|false)` to be empty.
+- Optimized `std::sys::truncate_stuck` procedure (#1384).
+- Updated CI and Makefile to standardize it across Miden repositories (#1342).
+- Add serialization/deserialization for `MastForest` (#1370).
+- Updated CI to support `CHANGELOG.md` modification checking and `no changelog` label (#1406).
+- Introduced `MastForestError` to enforce `MastForest` node count invariant (#1394).
+- Added functions to `MastForestBuilder` to allow ensuring of nodes with fewer LOC (#1404).
+- [BREAKING] Made `Assembler` single-use (#1409).
+- Removed `ProcedureCache` from the assembler (#1411).
+- Added functions to `MastForest` and `MastForestBuilder` to add and ensure nodes with fewer LOC (#1404, #1412).
+- Added `Assembler::assemble_library()` and `Assembler::assemble_kernel()`  (#1413, #1418).
+- Added `miden_core::prettier::pretty_print_csv` helper, for formatting of iterators over `PrettyPrint` values as comma-separated items.
+- Added source code management primitives in `miden-core` (#1419).
+- Added `make test-fast` and `make test-skip-proptests` Makefile targets for faster testing during local development.
+- Added `ProgramFile::read_with` constructor that takes a `SourceManager` impl to use for source management.
+- Added `RowIndex(u32)` (#1408).
+
+#### Changed
+
+- When using `if.(true|false) .. end`, the parser used to emit an empty block for the branch that was elided. The parser now emits a block containing a single `nop` instruction instead.
+- [BREAKING] `internals` configuration feature was renamed to `testing` (#1399).
+- The `AssemblyOp` decorator now contains an optional `Location` (#1419)
+- The `Assembler` now requires passing in a `Arc<dyn SourceManager>`, for use in rendering diagnostics.
+- The `Module::parse_file` and `Module::parse_str` functions have been removed in favor of calling `Module::parser` and then using the `ModuleParser` methods.
+- The `Compile` trait now requires passing a `SourceManager` reference along with the item to be compiled.
+- Update minimum supported Rust version to 1.80 (#1425).
+
+## 0.9.2 (2024-05-22) - `stdlib` crate only
+
+- Skip writing MASM documentation to file when building on docs.rs (#1341).
+
+## 0.9.2 (2024-05-09) - `assembly` crate only
+
+- Remove usage of `group_vector_elements()` from `combine_blocks()` (#1331).
+
+## 0.9.2 (2024-04-25) - `air` and `processor` crates only
+
+- Allowed enabling debug mode via `ExecutionOptions` (#1316).
+
+## 0.9.1 (2024-04-04)
+
+- Added additional trait implementations to error types (#1306).
+
+## 0.9.0 (2024-04-03)
 
 #### Packaging
+
 - [BREAKING] The package `miden-vm` crate was renamed from `miden` to `miden-vm`. Now the package and crate names match (#1271).
 
 #### Stdlib
+
 - Added `init_no_padding` procedure to `std::crypto::hashes::native` (#1313).
 - [BREAKING] `native` module was renamed to the `pro`, `hash_memory` procedure was renamed to the `hash_memory_words` (#1368).
 - Added `hash_memory` procedure to `std::crypto::hashes::rpo` (#1368).
 
 #### VM Internals
+
 - Removed unused `find_lone_leaf()` function from the Advice Provider (#1262).
 - [BREAKING] Changed fields type of the `StackOutputs` struct from `Vec<u64>` to `Vec<Felt>` (#1268).
 - [BREAKING] Migrated to `miden-crypto` v0.9.0 (#1287).
@@ -18,6 +170,7 @@
 ## 0.8.0 (02-26-2024)
 
 #### Assembly
+
 - Expanded capabilities of the `debug` decorator. Added `debug.mem` and `debug.local` variations (#1103).
 - Introduced the `emit.<event_id>` assembly instruction (#1119).
 - Introduced the `procref.<proc_name>` assembly instruction (#1113).
@@ -28,7 +181,8 @@
 - Added the `RCombBase` instruction (#1216).
 
 #### Stdlib
-- Introduced `std::utils` module with `is_empty_word` procedure.  Refactored `std::collections::smt`
+
+- Introduced `std::utils` module with `is_empty_word` procedure. Refactored `std::collections::smt`
   and `std::collections::smt64` to use the procedure (#1107).
 - [BREAKING] Removed `checked` versions of the instructions in the `std::math::u64` module (#1142).
 - Introduced `clz`, `ctz`, `clo` and `cto` instructions in the `std::math::u64` module (#1179).
@@ -36,6 +190,7 @@
 - [BREAKING] Removed `std::collections::smt64` (#1249)
 
 #### VM Internals
+
 - Introduced the `Event` decorator and an associated `on_event` handler on the `Host` trait (#1119).
 - Added methods `StackOutputs::get_stack_item()` and `StackOutputs::get_stack_word()` (#1155).
 - Added [Tracing](https://crates.io/crates/tracing) logger to the VM (#1139).
@@ -47,12 +202,14 @@
 - Increased min version of `rustc` to 1.75.
 
 #### CLI
+
 - Introduced the `!use` command for the Miden REPL (#1162).
 - Introduced a `BLAKE3` hashing example (#1180).
 
 ## 0.7.0 (2023-10-11)
 
 #### Assembly
+
 - Added ability to attach doc comments to re-exported procedures (#994).
 - Added support for nested modules (#992).
 - Added support for the arithmetic expressions in constant values (#1026).
@@ -63,9 +220,11 @@
 - Refactored `push` instruction so now it parses long hex string in little-endian (#1076).
 
 #### CLI
+
 - Implemented ability to output compiled `.masb` files to disk (#1102).
 
 #### VM Internals
+
 - Simplified range checker and removed 1 main and 1 auxiliary trace column (#949).
 - Migrated range checker lookups to use LogUp and reduced the number of trace columns to 2 main and
   1 auxiliary (#1027).
@@ -79,6 +238,7 @@
 - [BREAKING] Refactored `AdviceProvider` interface into `Host` interface (#1082).
 
 #### Stdlib
+
 - Completed `std::collections::smt` module by implementing `insert` and `set` procedures (#1036, #1038, #1046).
 - Added new module `std::crypto::dsa::rpo_falcon512` to support Falcon signature verification (#1000, #1094)
 
@@ -89,6 +249,7 @@
 ## 0.6.0 (2023-06-28)
 
 #### Assembly
+
 - Added new instructions: `mtree_verify`.
 - [BREAKING] Refactored `adv.mem` decorator to use parameters from operand stack instead of immediate values.
 - [BREAKING] Refactored `mem_stream` and `adv_pipe` instructions.
@@ -99,10 +260,12 @@
 - Implemented procedure re-exports from modules.
 
 #### CLI
+
 - Implemented support for all types of nondeterministic inputs (advice stack, advice map, and Merkle store).
 - Implemented ability to generate proofs suitable for recursion.
 
 #### Stdlib
+
 - Added new module: `std::collections::smt` (only `smt::get` available).
 - Added new module: `std::collections::mmr`.
 - Added new module: `std::collections::smt64`.
@@ -111,6 +274,7 @@
 - Greatly optimized recursive STARK verifier (reduced number of cycles by 6x - 8x).
 
 #### VM Internals
+
 - Moved test framework from `miden-vm` crate to `miden-test-utils` crate.
 - Updated Winterfell dependency to v0.6.4.
 - Added support for GPU acceleration on Apple silicon (Metal).
@@ -122,16 +286,19 @@
 ## 0.5.0 (2023-03-29)
 
 #### CLI
+
 - Renamed `ProgramInfo` to `ExecutionDetails` since there is another `ProgramInfo` struct in the source code.
 - [BREAKING] renamed `stack_init` and `advice_tape` to `operand_stack` and `advice_stack` in input files.
 - Enabled specifying additional advice provider inputs (i.e., advice map and Merkle store) via the input files.
 
 #### Assembly
+
 - Added new instructions: `is_odd`, `assert_eqw`, `mtree_merge`.
 - [BREAKING] Removed `mtree_cwm` instruction.
 - Added `breakpoint` instruction to help with debugging.
 
 #### VM Internals
+
 - [BREAKING] Renamed `Read`, `ReadW` operations into `AdvPop`, `AdvPopW`.
 - [BREAKING] Replaced `AdviceSet` with `MerkleStore`.
 - Updated Winterfell dependency to v0.6.0.
@@ -140,15 +307,18 @@
 ## 0.4.0 (2023-02-27)
 
 #### Advice provider
+
 - [BREAKING] Converted `AdviceProvider` into a trait which can be provided to the processor.
 - Added a decorator for interpolating polynomials over degree 2 extension field (`ext2intt`).
 - Added `AdviceSource` enum for greater future flexibility of advice injectors.
 
 #### CLI
+
 - Added `debug` subcommand to enable stepping through program execution forward/backward.
 - Added cycle count to the output of program execution.
 
 #### Assembly
+
 - Added support for constant declarations.
 - Added new instructions: `clk`, `ext2*`, `fri_ext2fold4`, `hash`, `u32checked_popcnt`, `u32unchecked_popcnt`.
 - [BREAKING] Renamed `rpperm` to `hperm` and `rphash` to `hmerge`.
@@ -157,15 +327,18 @@
 - [BREAKING] Replaced `ModuleProvider` with `Library` to improve 3rd party library support.
 
 #### Processor, Prover, and Verifier
+
 - [BREAKING] Refactored `execute()`, `prove()`, `verify()` functions to take `StackInputs` as one of the parameters.
 - [BREAKING] Refactored `prove()` function to return `ExecutionProof` (which is a wrapper for `StarkProof`).
 - [BREAKING] Refactored `verify()` function to take `ProgramInfo`, `StackInputs`, and `ExecutionProof` as parameters and return a `u32` indicating security level of the verified proof.
 
 #### Stdlib
+
 - Added `std::mem::memcopy` procedure for copying regions of memory.
 - Added `std::crypto::fri::frie2f4::verify` for verifying FRI proofs over degree 2 extension field.
 
 #### VM Internals
+
 - [BREAKING] Migrated to Rescue Prime Optimized hash function.
 - Updated Winterfell backend to v0.5.1
 

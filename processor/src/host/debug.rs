@@ -1,6 +1,7 @@
 use alloc::vec::Vec;
 use std::{print, println};
 
+use miden_air::RowIndex;
 use vm_core::{DebugOptions, Word};
 
 use super::ProcessState;
@@ -15,19 +16,19 @@ pub fn print_debug_info<S: ProcessState>(process: &S, options: &DebugOptions) {
     match options {
         DebugOptions::StackAll => {
             printer.print_vm_stack(process, None);
-        }
+        },
         DebugOptions::StackTop(n) => {
             printer.print_vm_stack(process, Some(*n as usize));
-        }
+        },
         DebugOptions::MemAll => {
             printer.print_mem_all(process);
-        }
+        },
         DebugOptions::MemInterval(n, m) => {
             printer.print_mem_interval(process, *n, *m);
-        }
+        },
         DebugOptions::LocalInterval(n, m, num_locals) => {
             printer.print_local_interval(process, (*n as u32, *m as u32), *num_locals as u32);
-        }
+        },
     }
 }
 
@@ -35,18 +36,14 @@ pub fn print_debug_info<S: ProcessState>(process: &S, options: &DebugOptions) {
 // ================================================================================================
 
 struct Printer {
-    clk: u32,
+    clk: RowIndex,
     ctx: ContextId,
     fmp: u32,
 }
 
 impl Printer {
-    fn new(clk: u32, ctx: ContextId, fmp: u64) -> Self {
-        Self {
-            clk,
-            ctx,
-            fmp: fmp as u32,
-        }
+    fn new(clk: RowIndex, ctx: ContextId, fmp: u64) -> Self {
+        Self { clk, ctx, fmp: fmp as u32 }
     }
 
     /// Prints the number of stack items specified by `n` if it is provided, otherwise prints

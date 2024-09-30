@@ -5,40 +5,33 @@ extern crate alloc;
 #[cfg(feature = "std")]
 extern crate std;
 
-// IMPORTS
-// ================================================================================================
-
 #[cfg(not(target_family = "wasm"))]
-use proptest::prelude::{Arbitrary, Strategy};
-
+use alloc::format;
 use alloc::{
-    format,
     string::{String, ToString},
     sync::Arc,
     vec::Vec,
 };
-use vm_core::chiplets::hasher::apply_permutation;
 
-// EXPORTS
-// ================================================================================================
-
-pub use assembly::{
-    diagnostics::{Report, SourceFile},
-    Library, LibraryPath, MaslLibrary,
-};
+pub use assembly::{diagnostics::Report, LibraryPath, SourceFile, SourceManager};
+use assembly::{KernelLibrary, Library};
 pub use pretty_assertions::{assert_eq, assert_ne, assert_str_eq};
+use processor::Program;
 pub use processor::{
     AdviceInputs, AdviceProvider, ContextId, DefaultHost, ExecutionError, ExecutionOptions,
     ExecutionTrace, Process, ProcessState, StackInputs, VmStateIterator,
 };
+#[cfg(not(target_family = "wasm"))]
+use proptest::prelude::{Arbitrary, Strategy};
 pub use prover::{prove, MemAdviceProvider, ProvingOptions};
 pub use test_case::test_case;
-pub use verifier::{verify, AcceptableOptions, ProgramInfo, VerifierError};
+pub use verifier::{verify, AcceptableOptions, VerifierError};
+use vm_core::{chiplets::hasher::apply_permutation, ProgramInfo};
 pub use vm_core::{
     chiplets::hasher::{hash_elements, STATE_WIDTH},
     stack::STACK_TOP_SIZE,
     utils::{collections, group_slice_elements, IntoBytes, ToElements},
-    Felt, FieldElement, Program, StarkField, Word, EMPTY_WORD, ONE, WORD_SIZE, ZERO,
+    Felt, FieldElement, StarkField, Word, EMPTY_WORD, ONE, WORD_SIZE, ZERO,
 };
 
 pub mod math {
@@ -121,11 +114,12 @@ macro_rules! expect_exec_error {
     };
 }
 
-/// Like [assembly::assert_diagnostic], but matches each non-empty line of the rendered output
-/// to a corresponding pattern. So if the output has 3 lines, the second of which is
-/// empty, and you provide 2 patterns, the assertion passes if the first line matches
-/// the first pattern, and the third line matches the second pattern - the second
-/// line is ignored because it is empty.
+/// Like [assembly::assert_diagnostic], but matches each non-empty line of the rendered output to a
+/// corresponding pattern.
+///
+/// So if the output has 3 lines, the second of which is empty, and you provide 2 patterns, the
+/// assertion passes if the first line matches the first pattern, and the third line matches the
+/// second pattern - the second line is ignored because it is empty.
 #[cfg(all(feature = "std", not(target_family = "wasm")))]
 #[macro_export]
 macro_rules! assert_diagnostic_lines {
@@ -166,17 +160,18 @@ macro_rules! assert_assembler_diagnostic {
 /// - Proptest: run an execution test inside a proptest.
 ///
 /// Types of failure tests:
-/// - Assembly error test: check that attempting to compile the given source causes an
-///   AssemblyError which contains the specified substring.
+/// - Assembly error test: check that attempting to compile the given source causes an AssemblyError
+///   which contains the specified substring.
 /// - Execution error test: check that running a program compiled from the given source causes an
 ///   ExecutionError which contains the specified substring.
 pub struct Test {
+    pub source_manager: Arc<dyn SourceManager>,
     pub source: Arc<SourceFile>,
-    pub kernel: Option<String>,
+    pub kernel_source: Option<Arc<SourceFile>>,
     pub stack_inputs: StackInputs,
     pub advice_inputs: AdviceInputs,
     pub in_debug_mode: bool,
-    pub libraries: Vec<MaslLibrary>,
+    pub libraries: Vec<Library>,
     pub add_modules: Vec<(LibraryPath, String)>,
 }
 
@@ -186,9 +181,12 @@ impl Test {
 
     /// Creates the simplest possible new test, with only a source string and no inputs.
     pub fn new(name: &str, source: &str, in_debug_mode: bool) -> Self {
+        let source_manager = Arc::new(assembly::DefaultSourceManager::default());
+        let source = source_manager.load(name, source.to_string());
         Test {
-            source: Arc::new(SourceFile::new(name, source.to_string())),
-            kernel: None,
+            source_manager,
+            source,
+            kernel_source: None,
             stack_inputs: StackInputs::default(),
             advice_inputs: AdviceInputs::default(),
             in_debug_mode,
@@ -217,6 +215,7 @@ impl Test {
     /// Executes the test and validates that the process memory has the elements of `expected_mem`
     /// at address `mem_start_addr` and that the end of the stack execution trace matches the
     /// `final_stack`.
+    #[track_caller]
     pub fn expect_stack_and_memory(
         &self,
         final_stack: &[u64],
@@ -224,8 +223,14 @@ impl Test {
         expected_mem: &[u64],
     ) {
         // compile the program
-        let program = self.compile().expect("Failed to compile test source.");
-        let host = DefaultHost::new(MemAdviceProvider::from(self.advice_inputs.clone()));
+        let (program, kernel) = self.compile().expect("Failed to compile test source.");
+        let mut host = DefaultHost::new(MemAdviceProvider::from(self.advice_inputs.clone()));
+        if let Some(kernel) = kernel {
+            host.load_mast_forest(kernel.mast_forest().clone());
+        }
+        for library in &self.libraries {
+            host.load_mast_forest(library.mast_forest().clone());
+        }
 
         // execute the test
         let mut process = Process::new(
@@ -273,14 +278,26 @@ impl Test {
     // UTILITY METHODS
     // --------------------------------------------------------------------------------------------
 
-    /// Compiles a test's source and returns the resulting Program or Assembly error.
-    pub fn compile(&self) -> Result<Program, Report> {
-        use assembly::{ast::ModuleKind, CompileOptions};
-        let assembler = if let Some(kernel) = self.kernel.as_ref() {
-            assembly::Assembler::with_kernel_from_module(kernel).expect("invalid kernel")
+    /// Compiles a test's source and returns the resulting Program together with the associated
+    /// kernel library (when specified).
+    ///
+    /// # Errors
+    /// Returns an error if compilation of the program source or the kernel fails.
+    pub fn compile(&self) -> Result<(Program, Option<KernelLibrary>), Report> {
+        use assembly::{ast::ModuleKind, Assembler, CompileOptions};
+
+        let (assembler, kernel_lib) = if let Some(kernel) = self.kernel_source.clone() {
+            let kernel_lib =
+                Assembler::new(self.source_manager.clone()).assemble_kernel(kernel).unwrap();
+
+            (
+                Assembler::with_kernel(self.source_manager.clone(), kernel_lib.clone()),
+                Some(kernel_lib),
+            )
         } else {
-            assembly::Assembler::default()
+            (Assembler::new(self.source_manager.clone()), None)
         };
+
         let mut assembler = self
             .add_modules
             .iter()
@@ -292,19 +309,26 @@ impl Test {
                     )
                     .expect("invalid masm source code")
             })
-            .with_debug_mode(self.in_debug_mode)
-            .with_libraries(self.libraries.iter())
-            .expect("failed to load stdlib");
+            .with_debug_mode(self.in_debug_mode);
+        for library in &self.libraries {
+            assembler.add_library(library).unwrap();
+        }
 
-        assembler.assemble(self.source.clone())
+        Ok((assembler.assemble_program(self.source.clone())?, kernel_lib))
     }
 
     /// Compiles the test's source to a Program and executes it with the tests inputs. Returns a
     /// resulting execution trace or error.
     #[track_caller]
     pub fn execute(&self) -> Result<ExecutionTrace, ExecutionError> {
-        let program = self.compile().expect("Failed to compile test source.");
-        let host = DefaultHost::new(MemAdviceProvider::from(self.advice_inputs.clone()));
+        let (program, kernel) = self.compile().expect("Failed to compile test source.");
+        let mut host = DefaultHost::new(MemAdviceProvider::from(self.advice_inputs.clone()));
+        if let Some(kernel) = kernel {
+            host.load_mast_forest(kernel.mast_forest().clone());
+        }
+        for library in &self.libraries {
+            host.load_mast_forest(library.mast_forest().clone());
+        }
         processor::execute(&program, self.stack_inputs.clone(), host, ExecutionOptions::default())
     }
 
@@ -313,8 +337,15 @@ impl Test {
     pub fn execute_process(
         &self,
     ) -> Result<Process<DefaultHost<MemAdviceProvider>>, ExecutionError> {
-        let program = self.compile().expect("Failed to compile test source.");
-        let host = DefaultHost::new(MemAdviceProvider::from(self.advice_inputs.clone()));
+        let (program, kernel) = self.compile().expect("Failed to compile test source.");
+        let mut host = DefaultHost::new(MemAdviceProvider::from(self.advice_inputs.clone()));
+        if let Some(kernel) = kernel {
+            host.load_mast_forest(kernel.mast_forest().clone());
+        }
+        for library in &self.libraries {
+            host.load_mast_forest(library.mast_forest().clone());
+        }
+
         let mut process = Process::new(
             program.kernel().clone(),
             self.stack_inputs.clone(),
@@ -330,8 +361,14 @@ impl Test {
     /// is true, this function will force a failure by modifying the first output.
     pub fn prove_and_verify(&self, pub_inputs: Vec<u64>, test_fail: bool) {
         let stack_inputs = StackInputs::try_from_ints(pub_inputs).unwrap();
-        let program = self.compile().expect("Failed to compile test source.");
-        let host = DefaultHost::new(MemAdviceProvider::from(self.advice_inputs.clone()));
+        let (program, kernel) = self.compile().expect("Failed to compile test source.");
+        let mut host = DefaultHost::new(MemAdviceProvider::from(self.advice_inputs.clone()));
+        if let Some(kernel) = kernel {
+            host.load_mast_forest(kernel.mast_forest().clone());
+        }
+        for library in &self.libraries {
+            host.load_mast_forest(library.mast_forest().clone());
+        }
         let (mut stack_outputs, proof) =
             prover::prove(&program, stack_inputs.clone(), host, ProvingOptions::default()).unwrap();
 
@@ -349,8 +386,14 @@ impl Test {
     /// VmStateIterator that allows us to iterate through each clock cycle and inspect the process
     /// state.
     pub fn execute_iter(&self) -> VmStateIterator {
-        let program = self.compile().expect("Failed to compile test source.");
-        let host = DefaultHost::new(MemAdviceProvider::from(self.advice_inputs.clone()));
+        let (program, kernel) = self.compile().expect("Failed to compile test source.");
+        let mut host = DefaultHost::new(MemAdviceProvider::from(self.advice_inputs.clone()));
+        if let Some(kernel) = kernel {
+            host.load_mast_forest(kernel.mast_forest().clone());
+        }
+        for library in &self.libraries {
+            host.load_mast_forest(library.mast_forest().clone());
+        }
         processor::execute_iter(&program, self.stack_inputs.clone(), host)
     }
 

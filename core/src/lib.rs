@@ -50,8 +50,14 @@ assertion failed: `(left matches right)`
 }
 
 pub mod chiplets;
+pub mod debuginfo;
 pub mod errors;
 
+mod program;
+pub use program::{Program, ProgramInfo};
+
+mod kernel;
+pub use kernel::Kernel;
 pub use miden_crypto::{Word, EMPTY_WORD, ONE, WORD_SIZE, ZERO};
 pub mod crypto {
     pub mod merkle {
@@ -67,7 +73,7 @@ pub mod crypto {
             blake::{Blake3Digest, Blake3_160, Blake3_192, Blake3_256},
             rpo::{Rpo256, RpoDigest},
             rpx::{Rpx256, RpxDigest},
-            ElementHasher, Hasher,
+            Digest, ElementHasher, Hasher,
         };
     }
 
@@ -82,6 +88,8 @@ pub mod crypto {
     }
 }
 
+pub mod mast;
+
 pub use math::{
     fields::{f64::BaseElement as Felt, QuadExtension},
     polynom, ExtensionOf, FieldElement, StarkField, ToElements,
@@ -89,15 +97,27 @@ pub use math::{
 
 pub mod prettier {
     pub use miden_formatting::{prettier::*, pretty_via_display, pretty_via_to_string};
-}
 
-mod program;
-pub use program::{blocks as code_blocks, CodeBlockTable, Kernel, Program, ProgramInfo};
+    /// Pretty-print a list of [PrettyPrint] values as comma-separated items.
+    pub fn pretty_print_csv<'a, T>(items: impl IntoIterator<Item = &'a T>) -> Document
+    where
+        T: PrettyPrint + 'a,
+    {
+        let mut doc = Document::Empty;
+        for (i, item) in items.into_iter().enumerate() {
+            if i > 0 {
+                doc += const_text(", ");
+            }
+            doc += item.render();
+        }
+        doc
+    }
+}
 
 mod operations;
 pub use operations::{
-    AdviceInjector, AssemblyOp, DebugOptions, Decorator, DecoratorIterator, DecoratorList,
-    Operation, SignatureKind,
+    opcode_constants::*, AdviceInjector, AssemblyOp, DebugOptions, Decorator, DecoratorIterator,
+    DecoratorList, Operation, SignatureKind,
 };
 
 pub mod stack;

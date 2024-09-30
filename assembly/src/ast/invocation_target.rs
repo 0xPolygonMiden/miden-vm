@@ -1,7 +1,8 @@
+use core::fmt;
+
 use crate::{
-    ast::{AstSerdeOptions, Ident, ProcedureName},
-    ByteReader, ByteWriter, Deserializable, DeserializationError, LibraryPath, RpoDigest,
-    Serializable, SourceSpan, Span, Spanned,
+    ast::{Ident, ProcedureName},
+    LibraryPath, RpoDigest, SourceSpan, Span, Spanned,
 };
 
 // INVOKE
@@ -14,6 +15,7 @@ pub enum InvokeKind {
     Exec = 0,
     Call,
     SysCall,
+    ProcRef,
 }
 
 /// Represents a specific invocation
@@ -51,23 +53,19 @@ impl Invoke {
 ///
 /// All other combinations will result in an error.
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
-#[repr(u8)]
 pub enum InvocationTarget {
     /// An absolute procedure reference, but opaque in that we do not know where the callee is
     /// defined. However, it does not actually matter, we consider such references to be _a priori_
     /// valid.
-    MastRoot(Span<RpoDigest>) = 0,
+    MastRoot(Span<RpoDigest>),
     /// A locally-defined procedure.
-    ProcedureName(ProcedureName) = 1,
+    ProcedureName(ProcedureName),
     /// A context-sensitive procedure path, which references the name of an import in the
     /// containing module.
-    ProcedurePath { name: ProcedureName, module: Ident } = 2,
+    ProcedurePath { name: ProcedureName, module: Ident },
     /// A fully-resolved procedure path, which refers to a specific externally-defined procedure
     /// with its full path.
-    AbsoluteProcedurePath {
-        name: ProcedureName,
-        path: LibraryPath,
-    } = 3,
+    AbsoluteProcedurePath { name: ProcedureName, path: LibraryPath },
 }
 
 impl Spanned for InvocationTarget {
@@ -77,78 +75,31 @@ impl Spanned for InvocationTarget {
             Self::ProcedureName(ref spanned) => spanned.span(),
             Self::ProcedurePath { ref name, .. } | Self::AbsoluteProcedurePath { ref name, .. } => {
                 name.span()
-            }
+            },
         }
     }
 }
 
-impl InvocationTarget {
-    fn tag(&self) -> u8 {
-        // SAFETY: This is safe because we have given this enum a primitive representation with
-        // #[repr(u8)], with the first field of the underlying union-of-structs the discriminant.
-        //
-        // See the section on "accessing the numeric value of the discriminant"
-        // here: https://doc.rust-lang.org/std/mem/fn.discriminant.html
-        unsafe { *<*const _>::from(self).cast::<u8>() }
-    }
-}
+impl crate::prettier::PrettyPrint for InvocationTarget {
+    fn render(&self) -> crate::prettier::Document {
+        use vm_core::utils::DisplayHex;
 
-impl Serializable for InvocationTarget {
-    fn write_into<W: ByteWriter>(&self, target: &mut W) {
-        target.write_u8(self.tag());
+        use crate::prettier::*;
+
         match self {
-            Self::MastRoot(spanned) => {
-                spanned.write_into(target, AstSerdeOptions::new(false, true))
-            }
-            Self::ProcedureName(name) => {
-                name.write_into_with_options(target, AstSerdeOptions::new(false, true))
-            }
-            Self::ProcedurePath { name, module } => {
-                name.write_into_with_options(target, AstSerdeOptions::new(false, true));
-                module.write_into(target);
-            }
+            Self::MastRoot(digest) => display(DisplayHex(digest.as_bytes().as_slice())),
+            Self::ProcedureName(name) => display(name),
+            Self::ProcedurePath { name, module } => display(format_args!("{}::{}", module, name)),
             Self::AbsoluteProcedurePath { name, path } => {
-                name.write_into_with_options(target, AstSerdeOptions::new(false, true));
-                path.write_into(target);
-            }
+                display(format_args!("::{}::{}", path, name))
+            },
         }
     }
 }
+impl fmt::Display for InvocationTarget {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        use crate::prettier::PrettyPrint;
 
-impl Deserializable for InvocationTarget {
-    fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
-        match source.read_u8()? {
-            0 => {
-                let root = Span::<RpoDigest>::read_from(source, AstSerdeOptions::new(false, true))?;
-                Ok(Self::MastRoot(root))
-            }
-            1 => {
-                let name = ProcedureName::read_from_with_options(
-                    source,
-                    AstSerdeOptions::new(false, true),
-                )?;
-                Ok(Self::ProcedureName(name))
-            }
-            2 => {
-                let name = ProcedureName::read_from_with_options(
-                    source,
-                    AstSerdeOptions::new(false, true),
-                )?;
-                let module = Ident::read_from(source)?;
-                Ok(Self::ProcedurePath { name, module })
-            }
-            3 => {
-                let name = ProcedureName::read_from_with_options(
-                    source,
-                    AstSerdeOptions::new(false, true),
-                )?;
-                let path = LibraryPath::read_from(source)?;
-                Ok(Self::AbsoluteProcedurePath { name, path })
-            }
-            n => Err(DeserializationError::InvalidValue(format!(
-                "{} is not a valid invocation target type",
-                n
-            ))),
-        }
+        self.pretty_print(f)
     }
 }

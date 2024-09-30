@@ -32,7 +32,7 @@ Having a small number elements to describe public inputs and outputs of a progra
 
 ## Usage
 
-Miden crate exposes several functions which can be used to execute programs, generate proofs of their correct execution, and verify the generated proofs. How to do this is explained below, but you can also take a look at working examples [here](examples) and find instructions for running them via CLI [here](#fibonacci-example).
+Miden crate exposes several functions which can be used to execute programs, generate proofs of their correct execution, and verify the generated proofs. How to do this is explained below, but you can also take a look at working examples [here](examples/) and find instructions for running them via CLI [here](#fibonacci-example).
 
 ### Executing programs
 
@@ -50,14 +50,14 @@ The `execute_iter()` function takes similar arguments (but without the `options`
 For example:
 
 ```rust
-use miden_vm::{Assembler, execute, execute_iter, DefaultHost, StackInputs};
+use miden_vm::{Assembler, execute, execute_iter, DefaultHost, Program, StackInputs};
 use processor::ExecutionOptions;
 
 // instantiate the assembler
 let mut assembler = Assembler::default();
 
 // compile Miden assembly source code into a program
-let program = assembler.assemble("begin push.3 push.5 add end").unwrap();
+let program = assembler.assemble_program("begin push.3 push.5 add end").unwrap();
 
 // use an empty list as initial stack
 let stack_inputs = StackInputs::default();
@@ -99,13 +99,13 @@ If the program is executed successfully, the function returns a tuple with 2 ele
 Here is a simple example of executing a program which pushes two numbers onto the stack and computes their sum:
 
 ```rust
-use miden_vm::{Assembler, DefaultHost, ProvingOptions, prove, StackInputs};
+use miden_vm::{Assembler, DefaultHost, ProvingOptions, Program, prove, StackInputs};
 
 // instantiate the assembler
 let mut assembler = Assembler::default();
 
 // this is our program, we compile it from assembly code
-let program = assembler.assemble("begin push.3 push.5 add end").unwrap();
+let program = assembler.assemble_program("begin push.3 push.5 add end").unwrap();
 
 // let's execute it and generate a STARK proof
 let (outputs, proof) = prove(
@@ -177,7 +177,7 @@ add         // stack state: 3 2
 Notice that except for the first 2 operations which initialize the stack, the sequence of `swap dup.1 add` operations repeats over and over. In fact, we can repeat these operations an arbitrary number of times to compute an arbitrary Fibonacci number. In Rust, it would look like this (this is actually a simplified version of the example in [fibonacci.rs](src/examples/src/fibonacci.rs)):
 
 ```rust
-use miden_vm::{Assembler, DefaultHost, ProvingOptions, StackInputs};
+use miden_vm::{Assembler, DefaultHost, Program, ProvingOptions, StackInputs};
 
 // set the number of terms to compute
 let n = 50;
@@ -193,7 +193,7 @@ let source = format!(
     n - 1
 );
 let mut assembler = Assembler::default();
-let program = assembler.assemble(&source).unwrap();
+let program = assembler.assemble_program(&source).unwrap();
 
 // initialize a default host (with an empty advice provider)
 let host = DefaultHost::default();
@@ -225,20 +225,20 @@ If you want to execute, prove, and verify programs on Miden VM, but don't want t
 
 ### Compiling Miden VM
 
-First, make sure you have Rust [installed](https://www.rust-lang.org/tools/install). The current version of Miden VM requires Rust version **1.67** or later.
+First, make sure you have Rust [installed](https://www.rust-lang.org/tools/install). The current version of Miden VM requires Rust version **1.80** or later.
 
-Then, to compile Miden VM into a binary, run the following command:
+Then, to compile Miden VM into a binary, run the following `make` command:
 
 ```shell
-cargo build --profile optimized --features executable
+make exec
 ```
 
 This will place `miden` executable in the `./target/optimized` directory.
 
-By default, the executable will be compiled in the single-threaded mode. If you would like to enable multi-threaded proof generation, you can compile Miden VM using the following command:
+By default, the executable will be compiled in the multi-threaded mode. If you would like to enable single-threaded proof generation, you can compile Miden VM using the following command:
 
 ```shell
-cargo build --profile optimized --features concurrent,executable
+make exec-single
 ```
 
 We also provide a number of `make` commands to simplify building Miden VM for various targets:
@@ -250,11 +250,14 @@ make exec
 # build an executable for Apple silicon (concurrent+metal)
 make exec-metal
 
-# built an executable for targets with AVX2 instructions (concurrent)
+# build an executable for targets with AVX2 instructions (concurrent)
 make exec-avx2
 
-# built an executable for targets with SVE instructions (concurrent)
+# build an executable for targets with SVE instructions (concurrent)
 make exec-sve
+
+# build an executable with log tree enabled
+make exec-info
 ```
 
 ### Running Miden VM
@@ -305,6 +308,7 @@ Miden VM can be compiled with the following features:
 - `executable` - required for building Miden VM binary as described above. Implies `std`.
 - `metal` - enables [Metal](<https://en.wikipedia.org/wiki/Metal_(API)>)-based acceleration of proof generation (for recursive proofs) on supported platforms (e.g., Apple silicon).
 - `no_std` does not rely on the Rust standard library and enables compilation to WebAssembly.
+    - Only the `wasm32-unknown-unknown` and `wasm32-wasip1` targets are officially supported.
 
 To compile with `no_std`, disable default features via `--no-default-features` flag.
 

@@ -1,12 +1,11 @@
 mod verifier_recursive;
-use verifier_recursive::{generate_advice_inputs, VerifierData};
-
 use assembly::Assembler;
 use miden_air::{FieldExtension, HashFunction, PublicInputs};
-use processor::DefaultHost;
+use processor::{DefaultHost, Program, ProgramInfo};
 use test_utils::{
-    prove, AdviceInputs, MemAdviceProvider, ProgramInfo, ProvingOptions, StackInputs, VerifierError,
+    prove, AdviceInputs, MemAdviceProvider, ProvingOptions, StackInputs, VerifierError,
 };
+use verifier_recursive::{generate_advice_inputs, VerifierData};
 
 // Note: Changes to MidenVM may cause this test to fail when some of the assumptions documented
 // in `stdlib/asm/crypto/stark/verifier.masm` are violated.
@@ -26,12 +25,8 @@ fn stark_verifier_e2f4() {
     stack_inputs[15] = 0;
     stack_inputs[14] = 1;
 
-    let VerifierData {
-        initial_stack,
-        tape,
-        store,
-        advice_map,
-    } = generate_recursive_verifier_data(example_source, stack_inputs).unwrap();
+    let VerifierData { initial_stack, tape, store, advice_map } =
+        generate_recursive_verifier_data(example_source, stack_inputs).unwrap();
 
     // Verify inside Miden VM
     let source = "
@@ -51,7 +46,7 @@ pub fn generate_recursive_verifier_data(
     source: &str,
     stack_inputs: Vec<u64>,
 ) -> Result<VerifierData, VerifierError> {
-    let program = Assembler::default().assemble(source).unwrap();
+    let program: Program = Assembler::default().assemble_program(source).unwrap();
     let stack_inputs = StackInputs::try_from_ints(stack_inputs).unwrap();
     let advice_inputs = AdviceInputs::default();
     let advice_provider = MemAdviceProvider::from(advice_inputs);

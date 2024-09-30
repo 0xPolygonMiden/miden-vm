@@ -1,11 +1,5 @@
-use super::{
-    chiplets::AuxTraceBuilder as ChipletsAuxTraceBuilder, crypto::RpoRandomCoin,
-    decoder::AuxTraceBuilder as DecoderAuxTraceBuilder,
-    range::AuxTraceBuilder as RangeCheckerAuxTraceBuilder,
-    stack::AuxTraceBuilder as StackAuxTraceBuilder, ColMatrix, Digest, Felt, FieldElement, Host,
-    Process, StackTopState,
-};
 use alloc::vec::Vec;
+
 use miden_air::trace::{
     decoder::{NUM_USER_OP_HELPERS, USER_OP_HELPERS_OFFSET},
     main_trace::MainTrace,
@@ -14,6 +8,14 @@ use miden_air::trace::{
 };
 use vm_core::{stack::STACK_TOP_SIZE, ProgramInfo, StackOutputs, ZERO};
 use winter_prover::{crypto::RandomCoin, EvaluationFrame, Trace, TraceInfo};
+
+use super::{
+    chiplets::AuxTraceBuilder as ChipletsAuxTraceBuilder, crypto::RpoRandomCoin,
+    decoder::AuxTraceBuilder as DecoderAuxTraceBuilder,
+    range::AuxTraceBuilder as RangeCheckerAuxTraceBuilder,
+    stack::AuxTraceBuilder as StackAuxTraceBuilder, ColMatrix, Digest, Felt, FieldElement, Host,
+    Process, StackTopState,
+};
 
 mod utils;
 pub use utils::{AuxColumnBuilder, ChipletsLengths, TraceFragment, TraceLenSummary};
@@ -66,7 +68,7 @@ impl ExecutionTrace {
     // CONSTRUCTOR
     // --------------------------------------------------------------------------------------------
     /// Builds an execution trace for the provided process.
-    pub(super) fn new<H>(process: Process<H>, stack_outputs: StackOutputs) -> Self
+    pub fn new<H>(process: Process<H>, stack_outputs: StackOutputs) -> Self
     where
         H: Host,
     {
@@ -284,10 +286,10 @@ where
 
     let clk = system.clk();
 
-    // trace lengths of system and stack components must be equal to the number of executed cycles
-    assert_eq!(clk as usize, system.trace_len(), "inconsistent system trace lengths");
-    assert_eq!(clk as usize, decoder.trace_len(), "inconsistent decoder trace length");
-    assert_eq!(clk as usize, stack.trace_len(), "inconsistent stack trace lengths");
+    // Trace lengths of system and stack components must be equal to the number of executed cycles
+    assert_eq!(clk.as_usize(), system.trace_len(), "inconsistent system trace lengths");
+    assert_eq!(clk.as_usize(), decoder.trace_len(), "inconsistent decoder trace length");
+    assert_eq!(clk.as_usize(), stack.trace_len(), "inconsistent stack trace lengths");
 
     // Add the range checks required by the chiplets to the range checker.
     chiplets.append_range_checks(&mut range);
@@ -296,27 +298,27 @@ where
     let range_table_len = range.get_number_range_checker_rows();
 
     // Get the trace length required to hold all execution trace steps.
-    let max_len = range_table_len.max(clk as usize).max(chiplets.trace_len());
+    let max_len = range_table_len.max(clk.into()).max(chiplets.trace_len());
 
-    // pad the trace length to the next power of two and ensure that there is space for the
-    // rows to hold random values
+    // Pad the trace length to the next power of two and ensure that there is space for the
+    // Rows to hold random values
     let trace_len = (max_len + NUM_RAND_ROWS).next_power_of_two();
     assert!(
         trace_len >= MIN_TRACE_LEN,
         "trace length must be at least {MIN_TRACE_LEN}, but was {trace_len}",
     );
 
-    // get the lengths of the traces: main, range, and chiplets
+    // Get the lengths of the traces: main, range, and chiplets
     let trace_len_summary =
-        TraceLenSummary::new(clk as usize, range_table_len, ChipletsLengths::new(&chiplets));
+        TraceLenSummary::new(clk.into(), range_table_len, ChipletsLengths::new(&chiplets));
 
-    // combine all trace segments into the main trace
+    // Combine all trace segments into the main trace
     let system_trace = system.into_trace(trace_len, NUM_RAND_ROWS);
     let decoder_trace = decoder.into_trace(trace_len, NUM_RAND_ROWS);
     let stack_trace = stack.into_trace(trace_len, NUM_RAND_ROWS);
     let chiplets_trace = chiplets.into_trace(trace_len, NUM_RAND_ROWS);
 
-    // combine the range trace segment using the support lookup table
+    // Combine the range trace segment using the support lookup table
     let range_check_trace = range.into_trace_with_table(range_table_len, trace_len, NUM_RAND_ROWS);
 
     let mut trace = system_trace
@@ -327,7 +329,7 @@ where
         .chain(chiplets_trace.trace)
         .collect::<Vec<_>>();
 
-    // inject random values into the last rows of the trace
+    // Inject random values into the last rows of the trace
     for i in trace_len - NUM_RAND_ROWS..trace_len {
         for column in trace.iter_mut() {
             column[i] = rng.draw().expect("failed to draw a random value");
@@ -341,7 +343,7 @@ where
         chiplets: chiplets_trace.aux_builder,
     };
 
-    let main_trace = MainTrace::new(ColMatrix::new(trace));
+    let main_trace = MainTrace::new(ColMatrix::new(trace), clk);
 
     (main_trace, aux_trace_hints, trace_len_summary)
 }

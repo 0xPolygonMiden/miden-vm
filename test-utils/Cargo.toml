@@ -2,14 +2,15 @@
 name = "miden-test-utils"
 version = "0.1.0"
 description = "Test utilities for Miden VM programs"
-authors = ["miden contributors"]
 readme = "README.md"
-license = "MIT"
-repository = "https://github.com/0xPolygonMiden/miden-vm"
 categories = ["development-tools::testing", "no-std"]
 keywords = ["miden", "test", "virtual-machine"]
-edition = "2021"
-rust-version = "1.75"
+license.workspace = true
+authors.workspace = true
+homepage.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+edition.workspace = true
 
 [features]
 default = ["std"]
@@ -23,16 +24,17 @@ std = [
 ]
 
 [dependencies]
-assembly = { package = "miden-assembly", path = "../assembly", version = "0.8", default-features = false, features = [
+air = { package = "miden-air", path = "../air", version = "0.10", default-features = false }
+assembly = { package = "miden-assembly", path = "../assembly", version = "0.10", default-features = false, features = [
     "testing",
 ] }
-processor = { package = "miden-processor", path = "../processor", version = "0.8", default-features = false, features = [
-    "internals",
+processor = { package = "miden-processor", path = "../processor", version = "0.10", default-features = false, features = [
+    "testing",
 ] }
-prover = { package = "miden-prover", path = "../prover", version = "0.8", default-features = false }
+prover = { package = "miden-prover", path = "../prover", version = "0.10", default-features = false }
 test-case = "3.2"
-verifier = { package = "miden-verifier", path = "../verifier", version = "0.8", default-features = false }
-vm-core = { package = "miden-core", path = "../core", version = "0.8", default-features = false }
+verifier = { package = "miden-verifier", path = "../verifier", version = "0.10", default-features = false }
+vm-core = { package = "miden-core", path = "../core", version = "0.10", default-features = false }
 winter-prover = { package = "winter-prover", version = "0.9", default-features = false }
 
 [target.'cfg(target_family = "wasm")'.dependencies]

@@ -1,9 +1,10 @@
+use alloc::vec::Vec;
+
 use super::{op_flags::OpFlags, EvaluationFrame, FieldElement, TransitionConstraintDegree};
 use crate::{
     stack::EvaluationFrameExt,
     utils::{are_equal, binary_not},
 };
-use alloc::vec::Vec;
 
 #[cfg(test)]
 pub mod tests;
@@ -76,8 +77,10 @@ pub fn enforce_constraints<E: FieldElement>(
 // TRANSITION CONSTRAINT HELPERS
 // ================================================================================================
 
-/// Enforces constraints of the PAD operation. The PAD operation pushes a ZERO onto
-/// the stack. Therefore, the following constraints are enforced:
+/// Enforces constraints of the PAD operation.
+///
+/// The PAD operation pushes a ZERO onto the stack. Therefore, the following constraints are
+/// enforced:
 /// - The top element in the next frame should be ZERO. s0` = 0.
 pub fn enforce_pad_constraints<E: FieldElement>(
     frame: &EvaluationFrame<E>,
@@ -90,11 +93,13 @@ pub fn enforce_pad_constraints<E: FieldElement>(
     1
 }
 
-/// Enforces constraints of the DUPn and MOVUPn operations. The DUPn operation copies the element
-/// at depth n in the stack and pushes the copy onto the stack, whereas MOVUPn opearation moves the
-/// element at depth n to the top of the stack. Therefore, the following constraints are enforced:
-/// - The top element in the next frame should be equal to the element at depth n in the
-///   current frame. s0` - sn = 0.
+/// Enforces constraints of the DUPn and MOVUPn operations.
+///
+/// The DUPn operation copies the element at depth n in the stack and pushes the copy onto the
+/// stack, whereas MOVUPn opearation moves the element at depth n to the top of the stack.
+/// Therefore, the following constraints are enforced:
+/// - The top element in the next frame should be equal to the element at depth n in the current
+///   frame. s0` - sn = 0.
 pub fn enforce_dup_movup_n_constraints<E: FieldElement>(
     frame: &EvaluationFrame<E>,
     result: &mut [E],
@@ -163,8 +168,10 @@ pub fn enforce_dup_movup_n_constraints<E: FieldElement>(
     13
 }
 
-/// Enforces constraints of the SWAP operation. The SWAP operation swaps the first
-/// two elements in the stack. Therefore, the following constraints are enforced:
+/// Enforces constraints of the SWAP operation.
+///
+/// The SWAP operation swaps the first two elements in the stack. Therefore, the following
+/// constraints are enforced:
 /// - The first element in the current frame should be equal to the second element in the next
 ///   frame.
 /// - The second element in the current frame should be equal to the first element in the next
@@ -244,8 +251,8 @@ pub fn enforce_swapwx_constraints<E: FieldElement>(
 
 /// Enforces constraints of the MOVDNn operation. The MOVDNn operation moves the top element
 /// to depth n in the stack. Therefore, the following constraints are enforced:
-/// - The top element in the current frame should be equal to the element at depth n in the
-///   next frame. s0 - sn` = 0.
+/// - The top element in the current frame should be equal to the element at depth n in the next
+///   frame. s0 - sn` = 0.
 pub fn enforce_movdnn_constraints<E: FieldElement>(
     frame: &EvaluationFrame<E>,
     result: &mut [E],

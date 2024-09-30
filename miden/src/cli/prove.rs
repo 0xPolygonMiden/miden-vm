@@ -1,10 +1,11 @@
-use super::data::{instrument, Debug, InputFile, Libraries, OutputFile, ProgramFile, ProofFile};
+use std::{path::PathBuf, time::Instant};
+
 use assembly::diagnostics::{IntoDiagnostic, Report, WrapErr};
 use clap::Parser;
 use miden_vm::ProvingOptions;
 use processor::{DefaultHost, ExecutionOptions, ExecutionOptionsError, Program};
 
-use std::{path::PathBuf, time::Instant};
+use super::data::{instrument, Debug, InputFile, Libraries, OutputFile, ProgramFile, ProofFile};
 
 #[derive(Debug, Clone, Parser)]
 #[clap(about = "Prove a miden program")]
@@ -54,14 +55,14 @@ pub struct ProveCmd {
     security: String,
 
     /// Enable tracing to monitor execution of the VM
-    #[clap(short = 't', long = "tracing")]
-    tracing: bool,
+    #[clap(short = 't', long = "trace")]
+    trace: bool,
 }
 
 impl ProveCmd {
     pub fn get_proof_options(&self) -> Result<ProvingOptions, ExecutionOptionsError> {
         let exec_options =
-            ExecutionOptions::new(Some(self.max_cycles), self.expected_cycles, self.tracing)?;
+            ExecutionOptions::new(Some(self.max_cycles), self.expected_cycles, self.trace, false)?;
         Ok(match self.security.as_str() {
             "96bits" => {
                 if self.rpx {
@@ -69,14 +70,14 @@ impl ProveCmd {
                 } else {
                     ProvingOptions::with_96_bit_security(self.recursive)
                 }
-            }
+            },
             "128bits" => {
                 if self.rpx {
                     ProvingOptions::with_128_bit_security_rpx()
                 } else {
                     ProvingOptions::with_128_bit_security(self.recursive)
                 }
-            }
+            },
             other => panic!("{} is not a valid security setting", other),
         }
         .with_execution_options(exec_options))
@@ -144,7 +145,7 @@ fn load_data(params: &ProveCmd) -> Result<(Program, InputFile), Report> {
 
     // load program from file and compile
     let program =
-        ProgramFile::read(&params.assembly_file)?.compile(&Debug::Off, &libraries.libraries)?;
+        ProgramFile::read(&params.assembly_file)?.compile(Debug::Off, &libraries.libraries)?;
 
     // load input data from file
     let input_data = InputFile::read(&params.input_file, &params.assembly_file)?;

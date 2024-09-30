@@ -1,6 +1,6 @@
-use crate::*;
-use air::{ProvingOptions, StarkField};
 use alloc::vec::Vec;
+
+use air::{ProvingOptions, StarkField};
 use gpu::metal::{MetalExecutionProver, DIGEST_SIZE, RATE};
 use processor::{
     crypto::{Hasher, RpoDigest, RpoRandomCoin, Rpx256, RpxDigest, RpxRandomCoin},
@@ -9,10 +9,12 @@ use processor::{
 };
 use winter_prover::{crypto::Digest, math::fields::CubeExtension, CompositionPolyTrace, TraceLde};
 
+use crate::*;
+
 type CubeFelt = CubeExtension<Felt>;
 
 fn build_trace_commitment_on_gpu_with_padding_matches_cpu<
-    R: RandomCoin<BaseField = Felt, Hasher = H>,
+    R: RandomCoin<BaseField = Felt, Hasher = H> + Send,
     H: ElementHasher<BaseField = Felt> + Hasher<Digest = D>,
     D: Digest + for<'a> From<&'a [Felt; DIGEST_SIZE]>,
 >(
@@ -43,7 +45,7 @@ fn build_trace_commitment_on_gpu_with_padding_matches_cpu<
 }
 
 fn build_trace_commitment_on_gpu_without_padding_matches_cpu<
-    R: RandomCoin<BaseField = Felt, Hasher = H>,
+    R: RandomCoin<BaseField = Felt, Hasher = H> + Send,
     H: ElementHasher<BaseField = Felt> + Hasher<Digest = D>,
     D: Digest + for<'a> From<&'a [Felt; DIGEST_SIZE]>,
 >(
@@ -74,7 +76,7 @@ fn build_trace_commitment_on_gpu_without_padding_matches_cpu<
 }
 
 fn build_constraint_commitment_on_gpu_with_padding_matches_cpu<
-    R: RandomCoin<BaseField = Felt, Hasher = H>,
+    R: RandomCoin<BaseField = Felt, Hasher = H> + Send,
     H: ElementHasher<BaseField = Felt> + Hasher<Digest = D>,
     D: Digest + for<'a> From<&'a [Felt; DIGEST_SIZE]>,
 >(
@@ -103,7 +105,7 @@ fn build_constraint_commitment_on_gpu_with_padding_matches_cpu<
 }
 
 fn build_constraint_commitment_on_gpu_without_padding_matches_cpu<
-    R: RandomCoin<BaseField = Felt, Hasher = H>,
+    R: RandomCoin<BaseField = Felt, Hasher = H> + Send,
     H: ElementHasher<BaseField = Felt> + Hasher<Digest = D>,
     D: Digest + for<'a> From<&'a [Felt; DIGEST_SIZE]>,
 >(
@@ -204,7 +206,7 @@ fn get_trace_info(num_cols: usize, num_rows: usize) -> TraceInfo {
 }
 
 fn create_test_prover<
-    R: RandomCoin<BaseField = Felt, Hasher = H>,
+    R: RandomCoin<BaseField = Felt, Hasher = H> + Send,
     H: ElementHasher<BaseField = Felt>,
 >(
     use_rpx: bool,

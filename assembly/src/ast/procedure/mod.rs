@@ -5,18 +5,19 @@ mod name;
 mod procedure;
 mod resolver;
 
-pub use self::alias::ProcedureAlias;
-pub use self::id::ProcedureIndex;
-pub use self::name::{FullyQualifiedProcedureName, ProcedureName};
-pub use self::procedure::{Procedure, Visibility};
-pub use self::resolver::{LocalNameResolver, ResolvedProcedure};
+use alloc::string::String;
 
-use crate::{
-    ast::{AstSerdeOptions, Invoke},
-    diagnostics::SourceFile,
-    ByteReader, ByteWriter, DeserializationError, SourceSpan, Span, Spanned,
+pub use self::{
+    alias::{AliasTarget, ProcedureAlias},
+    id::ProcedureIndex,
+    name::{ProcedureName, QualifiedProcedureName},
+    procedure::{Procedure, Visibility},
+    resolver::{LocalNameResolver, ResolvedProcedure},
 };
-use alloc::{string::String, sync::Arc};
+use crate::{
+    ast::{AttributeSet, Invoke},
+    SourceSpan, Span, Spanned,
+};
 
 // EXPORT
 // ================================================================================================
@@ -26,12 +27,11 @@ use alloc::{string::String, sync::Arc};
 /// Currently only procedures (either locally-defined or re-exported) are exportable, but in the
 /// future this may be expanded.
 #[derive(Debug, Clone, PartialEq, Eq)]
-#[repr(u8)]
 pub enum Export {
     /// A locally-defined procedure.
-    Procedure(Procedure) = 0,
+    Procedure(Procedure),
     /// An alias for an externally-defined procedure, i.e. a re-exported import.
-    Alias(ProcedureAlias) = 1,
+    Alias(ProcedureAlias),
 }
 
 impl Export {
@@ -40,23 +40,6 @@ impl Export {
         match self {
             Self::Procedure(proc) => Self::Procedure(proc.with_docs(docs)),
             Self::Alias(alias) => Self::Alias(alias.with_docs(docs)),
-        }
-    }
-
-    /// Adds the source file in which this export was defined, which will allow diagnostics to
-    /// contain source snippets when emitted.
-    pub fn with_source_file(self, source_file: Option<Arc<SourceFile>>) -> Self {
-        match self {
-            Self::Procedure(proc) => Self::Procedure(proc.with_source_file(source_file)),
-            Self::Alias(alias) => Self::Alias(alias.with_source_file(source_file)),
-        }
-    }
-
-    /// Returns the source file in which this export was defined.
-    pub fn source_file(&self) -> Option<Arc<SourceFile>> {
-        match self {
-            Self::Procedure(ref proc) => proc.source_file(),
-            Self::Alias(ref alias) => alias.source_file(),
         }
     }
 
@@ -73,6 +56,14 @@ impl Export {
         match self {
             Self::Procedure(ref proc) => proc.docs().map(|spanned| spanned.as_deref().into_inner()),
             Self::Alias(ref alias) => alias.docs().map(|spanned| spanned.as_deref().into_inner()),
+        }
+    }
+
+    /// Returns the attributes for this procedure.
+    pub fn attributes(&self) -> Option<&AttributeSet> {
+        match self {
+            Self::Procedure(ref proc) => Some(proc.attributes()),
+            Self::Alias(_) => None,
         }
     }
 
@@ -119,39 +110,6 @@ impl Export {
             Self::Procedure(ref proc) => procedure::InvokedIter::NonEmpty(proc.invoked.iter()),
             Self::Alias(_) => procedure::InvokedIter::Empty,
         }
-    }
-}
-
-/// Serialization
-impl Export {
-    pub fn write_into_with_options<W: ByteWriter>(&self, target: &mut W, options: AstSerdeOptions) {
-        target.write_u8(self.tag());
-        match self {
-            Self::Procedure(ref proc) => proc.write_into_with_options(target, options),
-            Self::Alias(ref proc) => proc.write_into_with_options(target, options),
-        }
-    }
-
-    pub fn read_from_with_options<R: ByteReader>(
-        source: &mut R,
-        options: AstSerdeOptions,
-    ) -> Result<Self, DeserializationError> {
-        match source.read_u8()? {
-            0 => Procedure::read_from_with_options(source, options).map(Self::Procedure),
-            1 => ProcedureAlias::read_from_with_options(source, options).map(Self::Alias),
-            n => {
-                Err(DeserializationError::InvalidValue(format!("invalid procedure kind tag: {n}")))
-            }
-        }
-    }
-
-    fn tag(&self) -> u8 {
-        // SAFETY: This is safe because we have given this enum a primitive representation with
-        // #[repr(u8)], with the first field of the underlying union-of-structs the discriminant.
-        //
-        // See the section on "accessing the numeric value of the discriminant"
-        // here: https://doc.rust-lang.org/std/mem/fn.discriminant.html
-        unsafe { *<*const _>::from(self).cast::<u8>() }
     }
 }
 

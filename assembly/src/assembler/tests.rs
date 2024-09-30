@@ -1,81 +1,63 @@
-use alloc::{boxed::Box, vec::Vec};
+use alloc::vec::Vec;
 
-use super::{combine_blocks, Assembler, CodeBlock, Library, Operation};
+use pretty_assertions::assert_eq;
+use vm_core::{
+    assert_matches,
+    crypto::hash::RpoDigest,
+    mast::{MastForest, MastNode},
+    Program,
+};
+
+use super::{Assembler, Operation};
 use crate::{
-    ast::{Module, ModuleKind},
-    LibraryNamespace, Version,
+    assembler::mast_forest_builder::MastForestBuilder, diagnostics::Report, testing::TestContext,
 };
 
 // TESTS
 // ================================================================================================
 
 #[test]
-fn nested_blocks() {
-    const MODULE: &str = "foo::bar";
+fn nested_blocks() -> Result<(), Report> {
     const KERNEL: &str = r#"
         export.foo
             add
         end"#;
-    const PROCEDURE: &str = r#"
+    const MODULE: &str = "foo::bar";
+    const MODULE_PROCEDURE: &str = r#"
         export.baz
             push.29
         end"#;
 
-    pub struct DummyLibrary {
-        namespace: LibraryNamespace,
-        #[allow(clippy::vec_box)]
-        modules: Vec<Box<Module>>,
-        dependencies: Vec<LibraryNamespace>,
-    }
+    let context = TestContext::new();
+    let assembler = {
+        let kernel_lib = Assembler::new(context.source_manager()).assemble_kernel(KERNEL).unwrap();
 
-    impl Default for DummyLibrary {
-        fn default() -> Self {
-            let ast =
-                Module::parse_str(MODULE.parse().unwrap(), ModuleKind::Library, PROCEDURE).unwrap();
-            let namespace = ast.namespace().clone();
-            Self {
-                namespace,
-                modules: vec![ast],
-                dependencies: Vec::new(),
-            }
-        }
-    }
+        let dummy_module =
+            context.parse_module_with_path(MODULE.parse().unwrap(), MODULE_PROCEDURE)?;
+        let dummy_library = Assembler::new(context.source_manager())
+            .assemble_library([dummy_module])
+            .unwrap();
 
-    impl Library for DummyLibrary {
-        fn root_ns(&self) -> &LibraryNamespace {
-            &self.namespace
-        }
+        let mut assembler = Assembler::with_kernel(context.source_manager(), kernel_lib);
+        assembler.add_library(dummy_library).unwrap();
 
-        fn version(&self) -> &Version {
-            const MIN: Version = Version::min();
-            &MIN
-        }
+        assembler
+    };
 
-        fn modules(&self) -> impl ExactSizeIterator<Item = &Module> + '_ {
-            self.modules.iter().map(|m| m.as_ref())
-        }
-
-        fn dependencies(&self) -> &[LibraryNamespace] {
-            &self.dependencies
-        }
-    }
-
-    let mut assembler = Assembler::with_kernel_from_module(KERNEL)
-        .unwrap()
-        .with_library(&DummyLibrary::default())
-        .unwrap();
-
-    // the assembler should have a single kernel proc in its cache before the compilation of the
-    // source
-    assert_eq!(assembler.procedure_cache().len(), 1);
+    // The expected `MastForest` for the program (that we will build by hand)
+    let mut expected_mast_forest_builder = MastForestBuilder::default();
 
     // fetch the kernel digest and store into a syscall block
-    let syscall = assembler
-        .procedure_cache()
-        .entries()
-        .next()
-        .map(|p| CodeBlock::new_syscall(p.mast_root()))
-        .unwrap();
+    //
+    // Note: this assumes the current internal implementation detail that `assembler.mast_forest`
+    // contains the MAST nodes for the kernel after a call to
+    // `Assembler::with_kernel_from_module()`.
+    let syscall_foo_node_id = {
+        let kernel_foo_node_id =
+            expected_mast_forest_builder.ensure_block(vec![Operation::Add], None).unwrap();
+
+        expected_mast_forest_builder.ensure_syscall(kernel_foo_node_id).unwrap()
+    };
 
     let program = r#"
     use.foo::bar
@@ -113,38 +95,266 @@ fn nested_blocks() {
         syscall.foo
     end"#;
 
-    let program = assembler.assemble(program).unwrap();
+    let program = assembler.assemble_program(program).unwrap();
 
-    let exec_bar = assembler
-        .procedure_cache()
-        .get_by_name(&"#exec::bar".parse().unwrap())
-        .map(|p| CodeBlock::new_proxy(p.code().hash()))
+    // basic block representing foo::bar.baz procedure
+    let exec_foo_bar_baz_node_id = expected_mast_forest_builder
+        .ensure_block(vec![Operation::Push(29_u32.into())], None)
         .unwrap();
 
-    let exec_foo_bar_baz = assembler
-        .procedure_cache()
-        .get_by_name(&"foo::bar::baz".parse().unwrap())
-        .map(|p| CodeBlock::new_proxy(p.code().hash()))
+    let before = expected_mast_forest_builder
+        .ensure_block(vec![Operation::Push(2u32.into())], None)
         .unwrap();
 
-    let before = CodeBlock::new_span(vec![Operation::Push(2u32.into())]);
+    let r#true1 = expected_mast_forest_builder
+        .ensure_block(vec![Operation::Push(3u32.into())], None)
+        .unwrap();
+    let r#false1 = expected_mast_forest_builder
+        .ensure_block(vec![Operation::Push(5u32.into())], None)
+        .unwrap();
+    let r#if1 = expected_mast_forest_builder.ensure_split(r#true1, r#false1).unwrap();
 
-    let r#true = CodeBlock::new_span(vec![Operation::Push(3u32.into())]);
-    let r#false = CodeBlock::new_span(vec![Operation::Push(5u32.into())]);
-    let r#if = CodeBlock::new_split(r#true, r#false);
+    let r#true3 = expected_mast_forest_builder
+        .ensure_block(vec![Operation::Push(7u32.into())], None)
+        .unwrap();
+    let r#false3 = expected_mast_forest_builder
+        .ensure_block(vec![Operation::Push(11u32.into())], None)
+        .unwrap();
+    let r#true2 = expected_mast_forest_builder.ensure_split(r#true3, r#false3).unwrap();
 
-    let r#true = CodeBlock::new_span(vec![Operation::Push(7u32.into())]);
-    let r#false = CodeBlock::new_span(vec![Operation::Push(11u32.into())]);
-    let r#true = CodeBlock::new_split(r#true, r#false);
+    let r#while = {
+        let body_node_id = expected_mast_forest_builder
+            .ensure_block(
+                vec![
+                    Operation::Push(17u32.into()),
+                    Operation::Push(19u32.into()),
+                    Operation::Push(23u32.into()),
+                ],
+                None,
+            )
+            .unwrap();
 
-    let r#while =
-        CodeBlock::new_join([exec_bar, CodeBlock::new_span(vec![Operation::Push(23u32.into())])]);
-    let r#while = CodeBlock::new_loop(r#while);
-    let span = CodeBlock::new_span(vec![Operation::Push(13u32.into())]);
-    let r#false = CodeBlock::new_join([span, r#while]);
-    let nested = CodeBlock::new_split(r#true, r#false);
+        expected_mast_forest_builder.ensure_loop(body_node_id).unwrap()
+    };
+    let push_13_basic_block_id = expected_mast_forest_builder
+        .ensure_block(vec![Operation::Push(13u32.into())], None)
+        .unwrap();
 
-    let combined = combine_blocks(vec![before, r#if, nested, exec_foo_bar_baz, syscall]);
+    let r#false2 = expected_mast_forest_builder
+        .ensure_join(push_13_basic_block_id, r#while)
+        .unwrap();
+    let nested = expected_mast_forest_builder.ensure_split(r#true2, r#false2).unwrap();
 
-    assert_eq!(combined.hash(), program.hash());
+    let combined_node_id = expected_mast_forest_builder
+        .join_nodes(vec![before, r#if1, nested, exec_foo_bar_baz_node_id, syscall_foo_node_id])
+        .unwrap();
+
+    let mut expected_mast_forest = expected_mast_forest_builder.build().0;
+    expected_mast_forest.make_root(combined_node_id);
+    let expected_program = Program::new(expected_mast_forest.into(), combined_node_id);
+    assert_eq!(expected_program.hash(), program.hash());
+
+    // also check that the program has the right number of procedures (which excludes the dummy
+    // library and kernel)
+    assert_eq!(program.num_procedures(), 3);
+
+    Ok(())
+}
+
+/// Ensures that the arguments of `emit` do indeed modify the digest of a basic block
+#[test]
+fn emit_instruction_digest() {
+    let context = TestContext::new();
+
+    let program_source = r#"
+        proc.foo
+            emit.1
+        end
+
+        proc.bar
+            emit.2
+        end
+
+        begin
+            # specific impl irrelevant
+            exec.foo
+            exec.bar
+        end
+    "#;
+
+    let program = context.assemble(program_source).unwrap();
+
+    let procedure_digests: Vec<RpoDigest> = program.mast_forest().procedure_digests().collect();
+
+    // foo, bar and entrypoint
+    assert_eq!(3, procedure_digests.len());
+
+    // Ensure that foo, bar and entrypoint all have different digests
+    assert_ne!(procedure_digests[0], procedure_digests[1]);
+    assert_ne!(procedure_digests[0], procedure_digests[2]);
+    assert_ne!(procedure_digests[1], procedure_digests[2]);
+}
+
+/// Since `foo` and `bar` have the same body, we only expect them to be added once to the program.
+#[test]
+fn duplicate_procedure() {
+    let context = TestContext::new();
+
+    let program_source = r#"
+        proc.foo
+            add
+            mul
+        end
+
+        proc.bar
+            add
+            mul
+        end
+
+        begin
+            # specific impl irrelevant
+            exec.foo
+            exec.bar
+        end
+    "#;
+
+    let program = context.assemble(program_source).unwrap();
+    assert_eq!(program.num_procedures(), 2);
+}
+
+#[test]
+fn distinguish_grandchildren_correctly() {
+    let context = TestContext::new();
+
+    let program_source = r#"
+    begin
+        if.true
+            while.true
+                trace.1234
+                push.1
+            end
+        end
+        
+        if.true
+            while.true
+                push.1
+            end
+        end
+    end
+    "#;
+
+    let program = context.assemble(program_source).unwrap();
+
+    let join_node = match &program.mast_forest()[program.entrypoint()] {
+        MastNode::Join(node) => node,
+        _ => panic!("expected join node"),
+    };
+
+    // Make sure that both `if.true` blocks compile down to a different MAST node.
+    assert_ne!(join_node.first(), join_node.second());
+}
+
+/// Ensures that equal MAST nodes don't get added twice to a MAST forest
+#[test]
+fn duplicate_nodes() {
+    let context = TestContext::new().with_debug_info(false);
+
+    let program_source = r#"
+    begin
+        if.true
+            mul
+        else
+            if.true add else mul end
+        end
+    end
+    "#;
+
+    let program = context.assemble(program_source).unwrap();
+
+    let mut expected_mast_forest = MastForest::new();
+
+    let mul_basic_block_id = expected_mast_forest.add_block(vec![Operation::Mul], None).unwrap();
+
+    let add_basic_block_id = expected_mast_forest.add_block(vec![Operation::Add], None).unwrap();
+
+    // inner split: `if.true add else mul end`
+    let inner_split_id =
+        expected_mast_forest.add_split(add_basic_block_id, mul_basic_block_id).unwrap();
+
+    // root: outer split
+    let root_id = expected_mast_forest.add_split(mul_basic_block_id, inner_split_id).unwrap();
+
+    expected_mast_forest.make_root(root_id);
+
+    let expected_program = Program::new(expected_mast_forest.into(), root_id);
+
+    assert_eq!(expected_program, program);
+}
+
+#[test]
+fn explicit_fully_qualified_procedure_references() -> Result<(), Report> {
+    const BAR_NAME: &str = "foo::bar";
+    const BAR: &str = r#"
+        export.bar
+            add
+        end"#;
+    const BAZ_NAME: &str = "foo::baz";
+    const BAZ: &str = r#"
+        export.baz
+            exec.::foo::bar::bar
+        end"#;
+
+    let context = TestContext::default();
+    let bar = context.parse_module_with_path(BAR_NAME.parse().unwrap(), BAR)?;
+    let baz = context.parse_module_with_path(BAZ_NAME.parse().unwrap(), BAZ)?;
+    let library = context.assemble_library([bar, baz]).unwrap();
+
+    let assembler = Assembler::new(context.source_manager()).with_library(&library).unwrap();
+
+    let program = r#"
+    begin
+        exec.::foo::baz::baz
+    end"#;
+
+    assert_matches!(assembler.assemble_program(program), Ok(_));
+    Ok(())
+}
+
+#[test]
+fn re_exports() -> Result<(), Report> {
+    const BAR_NAME: &str = "foo::bar";
+    const BAR: &str = r#"
+        export.bar
+            add
+        end"#;
+
+    const BAZ_NAME: &str = "foo::baz";
+    const BAZ: &str = r#"
+        use.foo::bar
+
+        export.bar::bar
+
+        export.baz
+            push.1 push.2 add
+        end"#;
+
+    let context = TestContext::new();
+    let bar = context.parse_module_with_path(BAR_NAME.parse().unwrap(), BAR)?;
+    let baz = context.parse_module_with_path(BAZ_NAME.parse().unwrap(), BAZ)?;
+    let library = context.assemble_library([bar, baz]).unwrap();
+
+    let assembler = Assembler::new(context.source_manager()).with_library(&library).unwrap();
+
+    let program = r#"
+    use.foo::baz
+
+    begin
+        push.1 push.2
+        exec.baz::baz
+        push.3 push.4
+        exec.baz::bar
+    end"#;
+
+    assert_matches!(assembler.assemble_program(program), Ok(_));
+    Ok(())
 }

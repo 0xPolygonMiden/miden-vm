@@ -1,6 +1,7 @@
+use alloc::vec::Vec;
+
 use super::{Felt, Word, ONE, ZERO};
 use crate::system::ContextId;
-use alloc::vec::Vec;
 
 // BLOCK STACK
 // ================================================================================================
@@ -41,12 +42,12 @@ impl BlockStack {
                 BlockType::Loop(loop_entered) => {
                     debug_assert!(loop_entered, "parent is un-entered loop");
                     (parent.addr, true, false)
-                }
+                },
                 // if the parent block is a JOIN block, figure out if the new block is the first
                 // or the second child
                 BlockType::Join(first_child_executed) => {
                     (parent.addr, false, !first_child_executed)
-                }
+                },
                 _ => (parent.addr, false, false),
             },
             // if the block stack is empty, a new block is neither a body of a loop nor the first

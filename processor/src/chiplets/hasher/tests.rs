@@ -1,8 +1,3 @@
-use super::{
-    init_state_from_words, Digest, Felt, Hasher, HasherState, MerklePath, Selectors, TraceFragment,
-    Word, LINEAR_HASH, MP_VERIFY, MR_UPDATE_NEW, MR_UPDATE_OLD, RETURN_HASH, RETURN_STATE,
-    TRACE_WIDTH,
-};
 use alloc::vec::Vec;
 
 use miden_air::trace::chiplets::hasher::{
@@ -11,9 +6,15 @@ use miden_air::trace::chiplets::hasher::{
 use test_utils::rand::rand_array;
 use vm_core::{
     chiplets::hasher,
-    code_blocks::CodeBlock,
     crypto::merkle::{MerkleTree, NodeIndex},
+    mast::{MastForest, MastNode},
     Operation, ONE, ZERO,
+};
+
+use super::{
+    init_state_from_words, Digest, Felt, Hasher, HasherState, MerklePath, Selectors, TraceFragment,
+    Word, LINEAR_HASH, MP_VERIFY, MR_UPDATE_NEW, MR_UPDATE_OLD, RETURN_HASH, RETURN_STATE,
+    TRACE_WIDTH,
 };
 
 // LINEAR HASH TESTS
@@ -246,48 +247,58 @@ fn hash_memoization_control_blocks() {
     //        /      \
     //      Split1     Split2 (memoized)
 
-    let t_branch = CodeBlock::new_span(vec![Operation::Push(ZERO)]);
-    let f_branch = CodeBlock::new_span(vec![Operation::Push(ONE)]);
-    let split1_block = CodeBlock::new_split(t_branch.clone(), f_branch.clone());
-    let split2_block = CodeBlock::new_split(t_branch.clone(), f_branch.clone());
-    let join_block = CodeBlock::new_join([split1_block.clone(), split2_block.clone()]);
+    let mut mast_forest = MastForest::new();
+
+    let t_branch = MastNode::new_basic_block(vec![Operation::Push(ZERO)], None).unwrap();
+    let t_branch_id = mast_forest.add_node(t_branch.clone()).unwrap();
+
+    let f_branch = MastNode::new_basic_block(vec![Operation::Push(ONE)], None).unwrap();
+    let f_branch_id = mast_forest.add_node(f_branch.clone()).unwrap();
+
+    let split1 = MastNode::new_split(t_branch_id, f_branch_id, &mast_forest).unwrap();
+    let split1_id = mast_forest.add_node(split1.clone()).unwrap();
+
+    let split2 = MastNode::new_split(t_branch_id, f_branch_id, &mast_forest).unwrap();
+    let split2_id = mast_forest.add_node(split2.clone()).unwrap();
+
+    let join_node = MastNode::new_join(split1_id, split2_id, &mast_forest).unwrap();
+    let _join_node_id = mast_forest.add_node(join_node.clone()).unwrap();
 
     let mut hasher = Hasher::default();
-    let h1: [Felt; DIGEST_LEN] = split1_block
-        .hash()
+    let h1: [Felt; DIGEST_LEN] = split1
+        .digest()
         .as_elements()
         .try_into()
         .expect("Could not convert slice to array");
-    let h2: [Felt; DIGEST_LEN] = split2_block
-        .hash()
+    let h2: [Felt; DIGEST_LEN] = split2
+        .digest()
         .as_elements()
         .try_into()
         .expect("Could not convert slice to array");
 
-    let expected_hash = join_block.hash();
+    let expected_hash = join_node.digest();
 
     // builds the trace of the join block.
-    let (_, final_state) = hasher.hash_control_block(h1, h2, join_block.domain(), expected_hash);
+    let (_, final_state) = hasher.hash_control_block(h1, h2, join_node.domain(), expected_hash);
 
     // make sure the hash of the final state is the same as the expected hash.
     assert_eq!(Digest::new(final_state), expected_hash);
 
     let h1: [Felt; DIGEST_LEN] = t_branch
-        .hash()
+        .digest()
         .as_elements()
         .try_into()
         .expect("Could not convert slice to array");
     let h2: [Felt; DIGEST_LEN] = f_branch
-        .hash()
+        .digest()
         .as_elements()
         .try_into()
         .expect("Could not convert slice to array");
 
-    let expected_hash = split1_block.hash();
+    let expected_hash = split1.digest();
 
     // builds the hash execution trace of the first split block from scratch.
-    let (addr, final_state) =
-        hasher.hash_control_block(h1, h2, split1_block.domain(), expected_hash);
+    let (addr, final_state) = hasher.hash_control_block(h1, h2, split1.domain(), expected_hash);
 
     let first_block_final_state = final_state;
 
@@ -299,21 +310,20 @@ fn hash_memoization_control_blocks() {
     let end_row = hasher.trace_len() - 1;
 
     let h1: [Felt; DIGEST_LEN] = t_branch
-        .hash()
+        .digest()
         .as_elements()
         .try_into()
         .expect("Could not convert slice to array");
     let h2: [Felt; DIGEST_LEN] = f_branch
-        .hash()
+        .digest()
         .as_elements()
         .try_into()
         .expect("Could not convert slice to array");
-    let expected_hash = split2_block.hash();
+    let expected_hash = split2.digest();
 
     // builds the hash execution trace of the second split block by copying it from the trace of
     // the first split block.
-    let (addr, final_state) =
-        hasher.hash_control_block(h1, h2, split2_block.domain(), expected_hash);
+    let (addr, final_state) = hasher.hash_control_block(h1, h2, split2.domain(), expected_hash);
 
     // make sure the hash of the final state of the second split block is the same as the expected
     // hash.
@@ -337,14 +347,16 @@ fn hash_memoization_control_blocks() {
 }
 
 #[test]
-fn hash_memoization_span_blocks() {
-    // --- span block with 1 batch ----------------------------------------------------------------
-    let span_block = CodeBlock::new_span(vec![Operation::Push(Felt::new(10)), Operation::Drop]);
+fn hash_memoization_basic_blocks() {
+    // --- basic block with 1 batch ----------------------------------------------------------------
+    let basic_block =
+        MastNode::new_basic_block(vec![Operation::Push(Felt::new(10)), Operation::Drop], None)
+            .unwrap();
 
-    hash_memoization_span_blocks_check(span_block);
+    hash_memoization_basic_blocks_check(basic_block);
 
-    // --- span block with multiple batches -------------------------------------------------------
-    let span_block = CodeBlock::new_span(vec![
+    // --- basic block with multiple batches -------------------------------------------------------
+    let ops = vec![
         Operation::Push(ONE),
         Operation::Push(Felt::new(2)),
         Operation::Push(Felt::new(3)),
@@ -381,45 +393,59 @@ fn hash_memoization_span_blocks() {
         Operation::Drop,
         Operation::Drop,
         Operation::Drop,
-    ]);
+    ];
+    let basic_block = MastNode::new_basic_block(ops, None).unwrap();
 
-    hash_memoization_span_blocks_check(span_block);
+    hash_memoization_basic_blocks_check(basic_block);
 }
 
-fn hash_memoization_span_blocks_check(span_block: CodeBlock) {
-    // Join block with a join and span block as children. The span child of the first join
-    // child block is the same as the span child of root join block. Here the hash execution
-    // trace of the second span block is built by copying the trace built for the first same
-    // span block.
+fn hash_memoization_basic_blocks_check(basic_block: MastNode) {
+    // Join block with a join and basic block as children. The child of the first join
+    // child node is the same as the basic block child of root join node. Here the hash execution
+    // trace of the second basic block is built by copying the trace built for the first same
+    // basic block.
     //           Join1
     //          /    \
     //         /     \
     //        /      \
-    //      Join2     Span2 (memoized)
+    //      Join2     BB2 (memoized)
     //       / \
     //      /   \
     //     /     \
-    //  Span1   Loop
+    //  BB1      Loop
 
-    let span1_block = span_block.clone();
-    let loop_body = CodeBlock::new_span(vec![Operation::Pad, Operation::Eq, Operation::Not]);
-    let loop_block = CodeBlock::new_loop(loop_body);
-    let join2_block = CodeBlock::new_join([span1_block.clone(), loop_block.clone()]);
-    let span2_block = span_block;
-    let join1_block = CodeBlock::new_join([join2_block.clone(), span2_block.clone()]);
+    let mut mast_forest = MastForest::new();
+
+    let basic_block_1 = basic_block.clone();
+    let basic_block_1_id = mast_forest.add_node(basic_block_1.clone()).unwrap();
+
+    let loop_body_id = mast_forest
+        .add_block(vec![Operation::Pad, Operation::Eq, Operation::Not], None)
+        .unwrap();
+
+    let loop_block = MastNode::new_loop(loop_body_id, &mast_forest).unwrap();
+    let loop_block_id = mast_forest.add_node(loop_block.clone()).unwrap();
+
+    let join2_block = MastNode::new_join(basic_block_1_id, loop_block_id, &mast_forest).unwrap();
+    let join2_block_id = mast_forest.add_node(join2_block.clone()).unwrap();
+
+    let basic_block_2 = basic_block;
+    let basic_block_2_id = mast_forest.add_node(basic_block_2.clone()).unwrap();
+
+    let join1_block = MastNode::new_join(join2_block_id, basic_block_2_id, &mast_forest).unwrap();
 
     let mut hasher = Hasher::default();
     let h1: [Felt; DIGEST_LEN] = join2_block
-        .hash()
+        .digest()
         .as_elements()
         .try_into()
         .expect("Could not convert slice to array");
-    let h2: [Felt; DIGEST_LEN] = span2_block
-        .hash()
+    let h2: [Felt; DIGEST_LEN] = basic_block_2
+        .digest()
         .as_elements()
         .try_into()
         .expect("Could not convert slice to array");
-    let expected_hash = join1_block.hash();
+    let expected_hash = join1_block.digest();
 
     // builds the trace of the Join1 block.
     let (_, final_state) = hasher.hash_control_block(h1, h2, join1_block.domain(), expected_hash);
@@ -427,63 +453,61 @@ fn hash_memoization_span_blocks_check(span_block: CodeBlock) {
     // make sure the hash of the final state of Join1 is the same as the expected hash.
     assert_eq!(Digest::new(final_state), expected_hash);
 
-    let h1: [Felt; DIGEST_LEN] = span1_block
-        .hash()
+    let h1: [Felt; DIGEST_LEN] = basic_block_1
+        .digest()
         .as_elements()
         .try_into()
         .expect("Could not convert slice to array");
     let h2: [Felt; DIGEST_LEN] = loop_block
-        .hash()
+        .digest()
         .as_elements()
         .try_into()
         .expect("Could not convert slice to array");
-    let expected_hash = join2_block.hash();
+    let expected_hash = join2_block.digest();
 
     let (_, final_state) = hasher.hash_control_block(h1, h2, join2_block.domain(), expected_hash);
 
     // make sure the hash of the final state of Join2 is the same as the expected hash.
     assert_eq!(Digest::new(final_state), expected_hash);
 
-    let span1_block_val = if let CodeBlock::Span(span) = span1_block.clone() {
-        span
+    let basic_block_1_val = if let MastNode::Block(basic_block) = basic_block_1.clone() {
+        basic_block
     } else {
         unreachable!()
     };
 
-    // builds the hash execution trace of the first span block from scratch.
+    // builds the hash execution trace of the first basic block from scratch.
     let (addr, final_state) =
-        hasher.hash_span_block(span1_block_val.op_batches(), span1_block.hash());
+        hasher.hash_basic_block(basic_block_1_val.op_batches(), basic_block_1.digest());
 
-    let _num_batches = span1_block_val.op_batches().len();
+    let first_basic_block_final_state = final_state;
 
-    let first_span_block_final_state = final_state;
-
-    // make sure the hash of the final state of Span1 block is the same as the expected hash.
-    let expected_hash = span1_block.hash();
+    // make sure the hash of the final state of basic block 1 is the same as the expected hash.
+    let expected_hash = basic_block_1.digest();
     assert_eq!(Digest::new(final_state), expected_hash);
 
     let start_row = addr.as_int() as usize - 1;
     let end_row = hasher.trace_len() - 1;
 
-    let span2_block_val = if let CodeBlock::Span(span) = span2_block.clone() {
-        span
+    let basic_block_2_val = if let MastNode::Block(basic_block) = basic_block_2.clone() {
+        basic_block
     } else {
         unreachable!()
     };
 
-    // builds the hash execution trace of the second span block by copying the sections of the
-    // trace corresponding to the first span block with the same hash.
+    // builds the hash execution trace of the second basic block by copying the sections of the
+    // trace corresponding to the first basic block with the same hash.
     let (addr, final_state) =
-        hasher.hash_span_block(span2_block_val.op_batches(), span2_block.hash());
+        hasher.hash_basic_block(basic_block_2_val.op_batches(), basic_block_2.digest());
 
-    let _num_batches = span2_block_val.op_batches().len();
+    let _num_batches = basic_block_2_val.op_batches().len();
 
-    let expected_hash = span2_block.hash();
-    // make sure the hash of the final state of Span2 block is the same as the expected hash.
+    let expected_hash = basic_block_2.digest();
+    // make sure the hash of the final state of basic block 2 is the same as the expected hash.
     assert_eq!(Digest::new(final_state), expected_hash);
 
-    // make sure the hash of the first and second span blocks is the same.
-    assert_eq!(first_span_block_final_state, final_state);
+    // make sure the hash of the first and second basic blocks is the same.
+    assert_eq!(first_basic_block_final_state, final_state);
 
     let copied_start_row = addr.as_int() as usize - 1;
     let copied_end_row = hasher.trace_len() - 1;
@@ -587,7 +611,6 @@ fn check_hasher_state_trace(trace: &[Vec<Felt>], row_idx: usize, init_state: Has
     }
 }
 
-/// Makes sure that the trace is copied correctly on memoization
 fn check_memoized_trace(
     trace: &[Vec<Felt>],
     start_row: usize,

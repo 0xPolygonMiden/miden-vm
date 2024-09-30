@@ -1,8 +1,10 @@
-use super::data::{Debug, InputFile, Libraries, ProgramFile};
+use std::{path::PathBuf, sync::Arc};
+
 use assembly::diagnostics::Report;
 use clap::Parser;
 use rustyline::{error::ReadlineError, Config, DefaultEditor, EditMode};
-use std::path::PathBuf;
+
+use super::data::{Debug, InputFile, Libraries, ProgramFile};
 
 mod command;
 use command::DebugCommand;
@@ -33,12 +35,14 @@ impl DebugCmd {
         println!("Debug program");
         println!("============================================================");
 
+        let source_manager = Arc::new(assembly::DefaultSourceManager::default());
+
         // load libraries from files
         let libraries = Libraries::new(&self.library_paths)?;
 
         // load program from file and compile
-        let program =
-            ProgramFile::read(&self.assembly_file)?.compile(&Debug::On, &libraries.libraries)?;
+        let program = ProgramFile::read_with(self.assembly_file.clone(), source_manager.clone())?
+            .compile(Debug::On, &libraries.libraries)?;
 
         let program_hash: [u8; 32] = program.hash().into();
         println!("Debugging program with hash {}...", hex::encode(program_hash));
@@ -52,7 +56,8 @@ impl DebugCmd {
 
         // Instantiate DebugExecutor
         let mut debug_executor =
-            DebugExecutor::new(program, stack_inputs, advice_provider).map_err(Report::msg)?;
+            DebugExecutor::new(program, stack_inputs, advice_provider, source_manager)
+                .map_err(Report::msg)?;
 
         // build readline config
         let mut rl_config = Config::builder().auto_add_history(true);
@@ -75,18 +80,18 @@ impl DebugCmd {
                             println!("Debugging complete");
                             break;
                         }
-                    }
+                    },
                     Ok(None) => (),
                     Err(err) => eprintln!("{err}"),
                 },
                 Err(ReadlineError::Interrupted) => {
                     // ctrl+c is a transparent interruption and should provide not feedback or
                     // action.
-                }
+                },
                 Err(ReadlineError::Eof) => {
                     eprintln!("CTRL-D");
                     break;
-                }
+                },
                 Err(err) => eprintln!("malformed command - failed to read user input: {}", err),
             }
         }

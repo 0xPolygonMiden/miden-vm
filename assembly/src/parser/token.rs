@@ -50,6 +50,84 @@ pub enum HexEncodedValue {
     /// A set of 4 field elements, 32 bytes, encoded as a contiguous string of 64 hex digits
     Word([Felt; 4]),
 }
+impl fmt::Display for HexEncodedValue {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::U8(value) => write!(f, "{value}"),
+            Self::U16(value) => write!(f, "{value}"),
+            Self::U32(value) => write!(f, "{value:#04x}"),
+            Self::Felt(value) => write!(f, "{:#08x}", &value.as_int().to_be()),
+            Self::Word(value) => write!(
+                f,
+                "{:#08x}{:08x}{:08x}{:08x}",
+                &value[0].as_int(),
+                &value[1].as_int(),
+                &value[2].as_int(),
+                &value[3].as_int(),
+            ),
+        }
+    }
+}
+impl PartialOrd for HexEncodedValue {
+    fn partial_cmp(&self, other: &Self) -> Option<core::cmp::Ordering> {
+        Some(self.cmp(other))
+    }
+}
+impl Ord for HexEncodedValue {
+    fn cmp(&self, other: &Self) -> core::cmp::Ordering {
+        use core::cmp::Ordering;
+        match (self, other) {
+            (Self::U8(l), Self::U8(r)) => l.cmp(r),
+            (Self::U8(_), _) => Ordering::Less,
+            (Self::U16(_), Self::U8(_)) => Ordering::Greater,
+            (Self::U16(l), Self::U16(r)) => l.cmp(r),
+            (Self::U16(_), _) => Ordering::Less,
+            (Self::U32(_), Self::U8(_) | Self::U16(_)) => Ordering::Greater,
+            (Self::U32(l), Self::U32(r)) => l.cmp(r),
+            (Self::U32(_), _) => Ordering::Less,
+            (Self::Felt(_), Self::U8(_) | Self::U16(_) | Self::U32(_)) => Ordering::Greater,
+            (Self::Felt(l), Self::Felt(r)) => l.as_int().cmp(&r.as_int()),
+            (Self::Felt(_), _) => Ordering::Less,
+            (Self::Word([l0, l1, l2, l3]), Self::Word([r0, r1, r2, r3])) => l0
+                .as_int()
+                .cmp(&r0.as_int())
+                .then_with(|| l1.as_int().cmp(&r1.as_int()))
+                .then_with(|| l2.as_int().cmp(&r2.as_int()))
+                .then_with(|| l3.as_int().cmp(&r3.as_int())),
+            (Self::Word(_), _) => Ordering::Greater,
+        }
+    }
+}
+
+impl core::hash::Hash for HexEncodedValue {
+    fn hash<H: core::hash::Hasher>(&self, state: &mut H) {
+        core::mem::discriminant(self).hash(state);
+        match self {
+            Self::U8(value) => value.hash(state),
+            Self::U16(value) => value.hash(state),
+            Self::U32(value) => value.hash(state),
+            Self::Felt(value) => value.as_int().hash(state),
+            Self::Word([a, b, c, d]) => {
+                [a.as_int(), b.as_int(), c.as_int(), d.as_int()].hash(state)
+            },
+        }
+    }
+}
+
+// BINARY ENCODED VALUE
+// ================================================================================================
+
+/// Represents one of the various types of values that have a hex-encoded representation in Miden
+/// Assembly source files.
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+pub enum BinEncodedValue {
+    /// A tiny value
+    U8(u8),
+    /// A small value
+    U16(u16),
+    /// A u32 constant, typically represents a memory address
+    U32(u32),
+}
 
 // TOKEN
 // ================================================================================================
@@ -112,6 +190,7 @@ pub enum Token<'input> {
     Export,
     Exp,
     ExpU,
+    False,
     FriExt2Fold4,
     Gt,
     Gte,
@@ -148,6 +227,7 @@ pub enum Token<'input> {
     Neg,
     Neq,
     Not,
+    Nop,
     Or,
     Padw,
     Pow2,
@@ -208,24 +288,30 @@ pub enum Token<'input> {
     U32Xor,
     While,
     Xor,
+    At,
     Bang,
     ColonColon,
     Dot,
+    Comma,
     Equal,
     Lparen,
+    Lbracket,
     Minus,
     Plus,
     SlashSlash,
     Slash,
     Star,
     Rparen,
+    Rbracket,
     Rstab,
     DocComment(DocumentationType),
     HexValue(HexEncodedValue),
+    BinValue(BinEncodedValue),
     Int(u64),
     Ident(&'input str),
     ConstantIdent(&'input str),
     QuotedIdent(&'input str),
+    QuotedString(&'input str),
     Comment,
     Eof,
 }
@@ -288,6 +374,7 @@ impl<'input> fmt::Display for Token<'input> {
             Token::Exp => write!(f, "exp"),
             Token::ExpU => write!(f, "exp.u"),
             Token::Export => write!(f, "export"),
+            Token::False => write!(f, "false"),
             Token::FriExt2Fold4 => write!(f, "fri_ext2fold4"),
             Token::Gt => write!(f, "gt"),
             Token::Gte => write!(f, "gte"),
@@ -324,6 +411,7 @@ impl<'input> fmt::Display for Token<'input> {
             Token::Neg => write!(f, "neg"),
             Token::Neq => write!(f, "neq"),
             Token::Not => write!(f, "not"),
+            Token::Nop => write!(f, "nop"),
             Token::Or => write!(f, "or"),
             Token::Padw => write!(f, "padw"),
             Token::Pow2 => write!(f, "pow2"),
@@ -384,25 +472,31 @@ impl<'input> fmt::Display for Token<'input> {
             Token::U32Xor => write!(f, "u32xor"),
             Token::While => write!(f, "while"),
             Token::Xor => write!(f, "xor"),
+            Token::At => write!(f, "@"),
             Token::Bang => write!(f, "!"),
             Token::ColonColon => write!(f, "::"),
             Token::Dot => write!(f, "."),
+            Token::Comma => write!(f, ","),
             Token::Equal => write!(f, "="),
             Token::Lparen => write!(f, "("),
+            Token::Lbracket => write!(f, "["),
             Token::Minus => write!(f, "-"),
             Token::Plus => write!(f, "+"),
             Token::SlashSlash => write!(f, "//"),
             Token::Slash => write!(f, "/"),
             Token::Star => write!(f, "*"),
             Token::Rparen => write!(f, ")"),
+            Token::Rbracket => write!(f, "]"),
             Token::Rstab => write!(f, "->"),
             Token::DocComment(DocumentationType::Module(_)) => f.write_str("module doc"),
             Token::DocComment(DocumentationType::Form(_)) => f.write_str("doc comment"),
             Token::HexValue(_) => f.write_str("hex-encoded value"),
+            Token::BinValue(_) => f.write_str("bin-encoded value"),
             Token::Int(_) => f.write_str("integer"),
             Token::Ident(_) => f.write_str("identifier"),
             Token::ConstantIdent(_) => f.write_str("constant identifier"),
             Token::QuotedIdent(_) => f.write_str("quoted identifier"),
+            Token::QuotedString(_) => f.write_str("quoted string"),
             Token::Comment => f.write_str("comment"),
             Token::Eof => write!(f, "end of file"),
         }
@@ -501,6 +595,7 @@ impl<'input> Token<'input> {
                 | Token::Neg
                 | Token::Neq
                 | Token::Not
+                | Token::Nop
                 | Token::Or
                 | Token::Padw
                 | Token::Pow2
@@ -615,6 +710,7 @@ impl<'input> Token<'input> {
         ("exp", Token::Exp),
         ("exp.u", Token::ExpU),
         ("export", Token::Export),
+        ("false", Token::False),
         ("fri_ext2fold4", Token::FriExt2Fold4),
         ("gt", Token::Gt),
         ("gte", Token::Gte),
@@ -651,6 +747,7 @@ impl<'input> Token<'input> {
         ("neg", Token::Neg),
         ("neq", Token::Neq),
         ("not", Token::Not),
+        ("nop", Token::Nop),
         ("or", Token::Or),
         ("padw", Token::Padw),
         ("pow2", Token::Pow2),
@@ -780,30 +877,36 @@ impl<'input> Token<'input> {
             Token::Ident(_) => {
                 // Nope, try again
                 match s {
+                    "@" => Ok(Token::At),
                     "!" => Ok(Token::Bang),
                     "::" => Ok(Token::ColonColon),
                     "." => Ok(Token::Dot),
+                    "," => Ok(Token::Comma),
                     "=" => Ok(Token::Equal),
                     "(" => Ok(Token::Lparen),
+                    "[" => Ok(Token::Lbracket),
                     "-" => Ok(Token::Minus),
                     "+" => Ok(Token::Plus),
                     "//" => Ok(Token::SlashSlash),
                     "/" => Ok(Token::Slash),
                     "*" => Ok(Token::Star),
                     ")" => Ok(Token::Rparen),
+                    "]" => Ok(Token::Rbracket),
                     "->" => Ok(Token::Rstab),
                     "end of file" => Ok(Token::Eof),
                     "module doc" => Ok(Token::DocComment(DocumentationType::Module(String::new()))),
                     "doc comment" => Ok(Token::DocComment(DocumentationType::Form(String::new()))),
                     "comment" => Ok(Token::Comment),
                     "hex-encoded value" => Ok(Token::HexValue(HexEncodedValue::U8(0))),
+                    "bin-encoded value" => Ok(Token::BinValue(BinEncodedValue::U8(0))),
                     "integer" => Ok(Token::Int(0)),
                     "identifier" => Ok(Token::Ident("")),
                     "constant identifier" => Ok(Token::ConstantIdent("")),
                     "quoted identifier" => Ok(Token::QuotedIdent("")),
+                    "quoted string" => Ok(Token::QuotedString("")),
                     _ => Err(()),
                 }
-            }
+            },
             // We matched a keyword
             token => Ok(token),
         }

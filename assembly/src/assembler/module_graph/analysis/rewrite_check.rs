@@ -1,4 +1,3 @@
-use alloc::sync::Arc;
 use core::ops::ControlFlow;
 
 use crate::{
@@ -7,19 +6,21 @@ use crate::{
         ModuleIndex, ResolvedTarget,
     },
     ast::{visit::Visit, InvocationTarget, InvokeKind, Module},
-    diagnostics::SourceFile,
     AssemblyError, Spanned,
 };
+
+// MAYBE REWRITE CHECK
+// ================================================================================================
 
 /// [MaybeRewriteCheck] is a simple analysis pass over a [Module], that looks for evidence that new
 /// information has been found that would result in at least one rewrite to the module body.
 ///
-/// This pass is intended for modules that were already added to a [ModuleGraph], and so have been
-/// rewritten at least once before. When new modules are added to the graph, the introduction of
-/// those modules may allow us to resolve invocation targets that were previously unresolvable, or
-/// that resolved as phantoms due to missing definitions. When that occurs, we want to go back and
-/// rewrite all of the modules that can be further refined as a result of that additional
-/// information.
+/// This pass is intended for modules that were already added to a [super::super::ModuleGraph], and
+/// so have been rewritten at least once before. When new modules are added to the graph, the
+/// introduction of those modules may allow us to resolve invocation targets that were previously
+/// unresolvable, or that resolved as phantoms due to missing definitions. When that occurs, we
+/// want to go back and rewrite all of the modules that can be further refined as a result of that
+/// additional information.
 pub struct MaybeRewriteCheck<'a, 'b: 'a> {
     resolver: &'a NameResolver<'b>,
 }
@@ -32,11 +33,7 @@ impl<'a, 'b: 'a> MaybeRewriteCheck<'a, 'b> {
     /// Run the analysis, returning either a boolean answer, or an error that was found during
     /// analysis.
     pub fn check(&self, module_id: ModuleIndex, module: &Module) -> Result<bool, AssemblyError> {
-        let mut visitor = RewriteCheckVisitor {
-            resolver: self.resolver,
-            module_id,
-            source_file: module.source_file(),
-        };
+        let mut visitor = RewriteCheckVisitor { resolver: self.resolver, module_id };
         match visitor.visit_module(module) {
             ControlFlow::Break(result) => result,
             ControlFlow::Continue(_) => Ok(false),
@@ -44,10 +41,12 @@ impl<'a, 'b: 'a> MaybeRewriteCheck<'a, 'b> {
     }
 }
 
+// REWRITE CHECK VISITOR
+// ================================================================================================
+
 struct RewriteCheckVisitor<'a, 'b: 'a> {
     resolver: &'a NameResolver<'b>,
     module_id: ModuleIndex,
-    source_file: Option<Arc<SourceFile>>,
 }
 
 impl<'a, 'b: 'a> RewriteCheckVisitor<'a, 'b> {
@@ -58,7 +57,6 @@ impl<'a, 'b: 'a> RewriteCheckVisitor<'a, 'b> {
     ) -> ControlFlow<Result<bool, AssemblyError>> {
         let caller = CallerInfo {
             span: target.span(),
-            source_file: self.source_file.clone(),
             module: self.module_id,
             kind,
         };
@@ -67,14 +65,7 @@ impl<'a, 'b: 'a> RewriteCheckVisitor<'a, 'b> {
             Ok(ResolvedTarget::Resolved { .. }) => ControlFlow::Break(Ok(true)),
             Ok(ResolvedTarget::Exact { .. } | ResolvedTarget::Phantom(_)) => {
                 ControlFlow::Continue(())
-            }
-            Ok(ResolvedTarget::Cached { .. }) => {
-                if let InvocationTarget::MastRoot(_) = target {
-                    ControlFlow::Continue(())
-                } else {
-                    ControlFlow::Break(Ok(true))
-                }
-            }
+            },
         }
     }
 }

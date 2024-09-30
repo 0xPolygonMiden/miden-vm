@@ -1,5 +1,6 @@
 //! Abstract syntax tree (AST) components of Miden programs, modules, and procedures.
 
+mod attribute;
 mod block;
 mod constants;
 mod form;
@@ -11,26 +12,28 @@ mod invocation_target;
 mod module;
 mod op;
 mod procedure;
-mod serde;
 #[cfg(test)]
 mod tests;
 pub mod visit;
 
-pub use self::block::Block;
-pub use self::constants::{Constant, ConstantExpr, ConstantOp};
-pub use self::form::Form;
-pub use self::ident::{CaseKindError, Ident, IdentError};
-pub use self::immediate::{ErrorCode, ImmFelt, ImmU16, ImmU32, ImmU8, Immediate};
-pub use self::imports::Import;
-pub use self::instruction::{
-    advice::SignatureKind, AdviceInjectorNode, DebugOptions, Instruction, OpCode,
+pub use self::{
+    attribute::{
+        Attribute, AttributeSet, AttributeSetEntry, BorrowedMeta, Meta, MetaExpr, MetaItem,
+        MetaKeyValue, MetaList,
+    },
+    block::Block,
+    constants::{Constant, ConstantExpr, ConstantOp},
+    form::Form,
+    ident::{CaseKindError, Ident, IdentError},
+    immediate::{ErrorCode, ImmFelt, ImmU16, ImmU32, ImmU8, Immediate},
+    imports::Import,
+    instruction::{advice::SignatureKind, AdviceInjectorNode, DebugOptions, Instruction},
+    invocation_target::{InvocationTarget, Invoke, InvokeKind},
+    module::{Module, ModuleKind},
+    op::Op,
+    procedure::*,
+    visit::{Visit, VisitMut},
 };
-pub use self::invocation_target::{InvocationTarget, Invoke, InvokeKind};
-pub use self::module::{Module, ModuleKind};
-pub use self::op::Op;
-pub use self::procedure::*;
-pub use self::serde::AstSerdeOptions;
-pub use self::visit::{Visit, VisitMut};
 
 pub(crate) type SmallOpsVec = smallvec::SmallVec<[Op; 1]>;
 

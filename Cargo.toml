@@ -12,6 +12,16 @@ members = [
 ]
 resolver = "2"
 
+[workspace.package]
+edition = "2021"
+rust-version = "1.80"
+license = "MIT"
+readme = "README.md"
+authors = ["Miden contributors"]
+homepage = "https://polygon.technology/polygon-miden"
+repository = "https://github.com/0xPolygonMiden/miden-vm"
+exclude = [".github/"]
+
 [profile.optimized]
 inherits = "release"
 codegen-units = 1
@@ -22,7 +32,3 @@ inherits = "release"
 debug = true
 debug-assertions = true
 overflow-checks = true
-
-[patch.crates-io]
-thiserror = { git = "https://github.com/bitwalker/thiserror", branch = "no-std" }
-miette = { git = "https://github.com/bitwalker/miette", branch = "no-std" }

@@ -68,7 +68,7 @@ use crate::{ast::*, Felt, Span};
 /// information you need at the parent. It is just important to be aware that this is one of the
 /// elements placed in the hands of the visitor implementation.
 ///
-/// The methods of this trait all return [core::ops::ControlFlow<T>], which can be used to break out
+/// The methods of this trait all return [core::ops::ControlFlow], which can be used to break out
 /// of the traversal early via `ControlFlow::Break`. The `T` type parameter of this trait controls
 /// what the value associated with an early return will be. In most cases, the default of `()` is
 /// all you need - but in some cases it can be useful to return an error or other value, that
@@ -118,6 +118,9 @@ pub trait Visit<T = ()> {
     }
     fn visit_invoke_target(&mut self, target: &InvocationTarget) -> ControlFlow<T> {
         visit_invoke_target(self, target)
+    }
+    fn visit_alias_target(&mut self, target: &AliasTarget) -> ControlFlow<T> {
+        visit_alias_target(self, target)
     }
     fn visit_immediate_u8(&mut self, imm: &Immediate<u8>) -> ControlFlow<T> {
         visit_immediate_u8(self, imm)
@@ -185,6 +188,9 @@ where
     fn visit_invoke_target(&mut self, target: &InvocationTarget) -> ControlFlow<T> {
         (**self).visit_invoke_target(target)
     }
+    fn visit_alias_target(&mut self, target: &AliasTarget) -> ControlFlow<T> {
+        (**self).visit_alias_target(target)
+    }
     fn visit_immediate_u8(&mut self, imm: &Immediate<u8>) -> ControlFlow<T> {
         (**self).visit_immediate_u8(imm)
     }
@@ -242,11 +248,11 @@ where
 }
 
 #[inline(always)]
-pub fn visit_procedure_alias<V, T>(_visitor: &mut V, _alias: &ProcedureAlias) -> ControlFlow<T>
+pub fn visit_procedure_alias<V, T>(visitor: &mut V, alias: &ProcedureAlias) -> ControlFlow<T>
 where
     V: ?Sized + Visit<T>,
 {
-    ControlFlow::Continue(())
+    visitor.visit_alias_target(alias.target())
 }
 
 pub fn visit_block<V, T>(visitor: &mut V, block: &Block) -> ControlFlow<T>
@@ -264,14 +270,10 @@ where
     V: ?Sized + Visit<T>,
 {
     match op {
-        Op::If {
-            ref then_blk,
-            ref else_blk,
-            ..
-        } => {
+        Op::If { ref then_blk, ref else_blk, .. } => {
             visitor.visit_block(then_blk)?;
             visitor.visit_block(else_blk)
-        }
+        },
         Op::While { ref body, .. } | Op::Repeat { ref body, .. } => visitor.visit_block(body),
         Op::Inst(ref inst) => visitor.visit_inst(inst),
     }
@@ -294,7 +296,8 @@ where
         | AssertzWithError(ref code)
         | U32AssertWithError(ref code)
         | U32Assert2WithError(ref code)
-        | U32AssertWWithError(ref code) => visitor.visit_immediate_error_code(code),
+        | U32AssertWWithError(ref code)
+        | MTreeVerifyWithError(ref code) => visitor.visit_immediate_error_code(code),
         AddImm(ref imm) | SubImm(ref imm) | MulImm(ref imm) | DivImm(ref imm) | ExpImm(ref imm)
         | EqImm(ref imm) | NeqImm(ref imm) | Push(ref imm) => visitor.visit_immediate_felt(imm),
         U32WrappingAddImm(ref imm)
@@ -318,11 +321,11 @@ where
         SysCall(ref target) => visitor.visit_syscall(target),
         ProcRef(ref target) => visitor.visit_procref(target),
         Debug(ref options) => visitor.visit_debug_options(Span::new(span, options)),
-        Assert | AssertEq | AssertEqw | Assertz | Add | Sub | Mul | Div | Neg | ILog2 | Inv
-        | Incr | Pow2 | Exp | ExpBitLength(_) | Not | And | Or | Xor | Eq | Neq | Eqw | Lt
-        | Lte | Gt | Gte | IsOdd | Ext2Add | Ext2Sub | Ext2Mul | Ext2Div | Ext2Neg | Ext2Inv
-        | U32Test | U32TestW | U32Assert | U32Assert2 | U32AssertW | U32Split | U32Cast
-        | U32WrappingAdd | U32OverflowingAdd | U32OverflowingAdd3 | U32WrappingAdd3
+        Nop | Assert | AssertEq | AssertEqw | Assertz | Add | Sub | Mul | Div | Neg | ILog2
+        | Inv | Incr | Pow2 | Exp | ExpBitLength(_) | Not | And | Or | Xor | Eq | Neq | Eqw
+        | Lt | Lte | Gt | Gte | IsOdd | Ext2Add | Ext2Sub | Ext2Mul | Ext2Div | Ext2Neg
+        | Ext2Inv | U32Test | U32TestW | U32Assert | U32Assert2 | U32AssertW | U32Split
+        | U32Cast | U32WrappingAdd | U32OverflowingAdd | U32OverflowingAdd3 | U32WrappingAdd3
         | U32WrappingSub | U32OverflowingSub | U32WrappingMul | U32OverflowingMul
         | U32OverflowingMadd | U32WrappingMadd | U32Div | U32Mod | U32DivMod | U32And | U32Or
         | U32Xor | U32Not | U32Shr | U32Shl | U32Rotr | U32Rotl | U32Popcnt | U32Clz | U32Ctz
@@ -355,7 +358,7 @@ where
         | AdviceInjectorNode::PushMapValNImm { offset: ref imm }
         | AdviceInjectorNode::InsertHdwordImm { domain: ref imm } => {
             visitor.visit_immediate_u8(imm)
-        }
+        },
         AdviceInjectorNode::PushU64Div
         | AdviceInjectorNode::PushExt2intt
         | AdviceInjectorNode::PushSmtGet
@@ -381,14 +384,14 @@ where
         DebugOptions::MemInterval(ref imm1, ref imm2) => {
             visitor.visit_immediate_u32(imm1)?;
             visitor.visit_immediate_u32(imm2)
-        }
+        },
         DebugOptions::LocalInterval(ref imm1, ref imm2) => {
             visitor.visit_immediate_u16(imm1)?;
             visitor.visit_immediate_u16(imm2)
-        }
+        },
         DebugOptions::StackAll | DebugOptions::MemAll | DebugOptions::LocalAll => {
             ControlFlow::Continue(())
-        }
+        },
     }
 }
 
@@ -426,6 +429,14 @@ where
 
 #[inline(always)]
 pub fn visit_invoke_target<V, T>(_visitor: &mut V, _target: &InvocationTarget) -> ControlFlow<T>
+where
+    V: ?Sized + Visit<T>,
+{
+    ControlFlow::Continue(())
+}
+
+#[inline(always)]
+pub fn visit_alias_target<V, T>(_visitor: &mut V, _target: &AliasTarget) -> ControlFlow<T>
 where
     V: ?Sized + Visit<T>,
 {
@@ -490,7 +501,7 @@ where
 /// do not need to visit any of the children. It is just important to be aware that this is one of
 /// the elements placed in the hands of the visitor implementation.
 ///
-/// The methods of this trait all return [core::ops::ControlFlow<T>], which can be used to break out
+/// The methods of this trait all return [core::ops::ControlFlow], which can be used to break out
 /// of the traversal early via `ControlFlow::Break`. The `T` type parameter of this trait controls
 /// what the value associated with an early return will be. In most cases, the default of `()` is
 /// all you need - but in some cases it can be useful to return an error or other value, that
@@ -543,6 +554,9 @@ pub trait VisitMut<T = ()> {
     }
     fn visit_mut_invoke_target(&mut self, target: &mut InvocationTarget) -> ControlFlow<T> {
         visit_mut_invoke_target(self, target)
+    }
+    fn visit_mut_alias_target(&mut self, target: &mut AliasTarget) -> ControlFlow<T> {
+        visit_mut_alias_target(self, target)
     }
     fn visit_mut_immediate_u8(&mut self, imm: &mut Immediate<u8>) -> ControlFlow<T> {
         visit_mut_immediate_u8(self, imm)
@@ -613,6 +627,9 @@ where
     fn visit_mut_invoke_target(&mut self, target: &mut InvocationTarget) -> ControlFlow<T> {
         (**self).visit_mut_invoke_target(target)
     }
+    fn visit_mut_alias_target(&mut self, target: &mut AliasTarget) -> ControlFlow<T> {
+        (**self).visit_mut_alias_target(target)
+    }
     fn visit_mut_immediate_u8(&mut self, imm: &mut Immediate<u8>) -> ControlFlow<T> {
         (**self).visit_mut_immediate_u8(imm)
     }
@@ -671,13 +688,13 @@ where
 
 #[inline(always)]
 pub fn visit_mut_procedure_alias<V, T>(
-    _visitor: &mut V,
-    _alias: &mut ProcedureAlias,
+    visitor: &mut V,
+    alias: &mut ProcedureAlias,
 ) -> ControlFlow<T>
 where
     V: ?Sized + VisitMut<T>,
 {
-    ControlFlow::Continue(())
+    visitor.visit_mut_alias_target(alias.target_mut())
 }
 
 pub fn visit_mut_block<V, T>(visitor: &mut V, block: &mut Block) -> ControlFlow<T>
@@ -695,17 +712,13 @@ where
     V: ?Sized + VisitMut<T>,
 {
     match op {
-        Op::If {
-            ref mut then_blk,
-            ref mut else_blk,
-            ..
-        } => {
+        Op::If { ref mut then_blk, ref mut else_blk, .. } => {
             visitor.visit_mut_block(then_blk)?;
             visitor.visit_mut_block(else_blk)
-        }
+        },
         Op::While { ref mut body, .. } | Op::Repeat { ref mut body, .. } => {
             visitor.visit_mut_block(body)
-        }
+        },
         Op::Inst(ref mut inst) => visitor.visit_mut_inst(inst),
     }
 }
@@ -733,11 +746,12 @@ where
         | AssertzWithError(ref mut code)
         | U32AssertWithError(ref mut code)
         | U32Assert2WithError(ref mut code)
-        | U32AssertWWithError(ref mut code) => visitor.visit_mut_immediate_error_code(code),
+        | U32AssertWWithError(ref mut code)
+        | MTreeVerifyWithError(ref mut code) => visitor.visit_mut_immediate_error_code(code),
         AddImm(ref mut imm) | SubImm(ref mut imm) | MulImm(ref mut imm) | DivImm(ref mut imm)
         | ExpImm(ref mut imm) | EqImm(ref mut imm) | NeqImm(ref mut imm) | Push(ref mut imm) => {
             visitor.visit_mut_immediate_felt(imm)
-        }
+        },
         U32WrappingAddImm(ref mut imm)
         | U32OverflowingAddImm(ref mut imm)
         | U32WrappingSubImm(ref mut imm)
@@ -759,11 +773,11 @@ where
         SysCall(ref mut target) => visitor.visit_mut_syscall(target),
         ProcRef(ref mut target) => visitor.visit_mut_procref(target),
         Debug(ref mut options) => visitor.visit_mut_debug_options(Span::new(span, options)),
-        Assert | AssertEq | AssertEqw | Assertz | Add | Sub | Mul | Div | Neg | ILog2 | Inv
-        | Incr | Pow2 | Exp | ExpBitLength(_) | Not | And | Or | Xor | Eq | Neq | Eqw | Lt
-        | Lte | Gt | Gte | IsOdd | Ext2Add | Ext2Sub | Ext2Mul | Ext2Div | Ext2Neg | Ext2Inv
-        | U32Test | U32TestW | U32Assert | U32Assert2 | U32AssertW | U32Split | U32Cast
-        | U32WrappingAdd | U32OverflowingAdd | U32OverflowingAdd3 | U32WrappingAdd3
+        Nop | Assert | AssertEq | AssertEqw | Assertz | Add | Sub | Mul | Div | Neg | ILog2
+        | Inv | Incr | Pow2 | Exp | ExpBitLength(_) | Not | And | Or | Xor | Eq | Neq | Eqw
+        | Lt | Lte | Gt | Gte | IsOdd | Ext2Add | Ext2Sub | Ext2Mul | Ext2Div | Ext2Neg
+        | Ext2Inv | U32Test | U32TestW | U32Assert | U32Assert2 | U32AssertW | U32Split
+        | U32Cast | U32WrappingAdd | U32OverflowingAdd | U32OverflowingAdd3 | U32WrappingAdd3
         | U32WrappingSub | U32OverflowingSub | U32WrappingMul | U32OverflowingMul
         | U32OverflowingMadd | U32WrappingMadd | U32Div | U32Mod | U32DivMod | U32And | U32Or
         | U32Xor | U32Not | U32Shr | U32Shl | U32Rotr | U32Rotl | U32Popcnt | U32Clz | U32Ctz
@@ -792,15 +806,11 @@ where
     V: ?Sized + VisitMut<T>,
 {
     match node.into_inner() {
-        AdviceInjectorNode::PushMapValImm {
-            offset: ref mut imm,
-        }
-        | AdviceInjectorNode::PushMapValNImm {
-            offset: ref mut imm,
-        }
-        | AdviceInjectorNode::InsertHdwordImm {
-            domain: ref mut imm,
-        } => visitor.visit_mut_immediate_u8(imm),
+        AdviceInjectorNode::PushMapValImm { offset: ref mut imm }
+        | AdviceInjectorNode::PushMapValNImm { offset: ref mut imm }
+        | AdviceInjectorNode::InsertHdwordImm { domain: ref mut imm } => {
+            visitor.visit_mut_immediate_u8(imm)
+        },
         AdviceInjectorNode::PushU64Div
         | AdviceInjectorNode::PushExt2intt
         | AdviceInjectorNode::PushSmtGet
@@ -829,14 +839,14 @@ where
         DebugOptions::MemInterval(ref mut imm1, ref mut imm2) => {
             visitor.visit_mut_immediate_u32(imm1)?;
             visitor.visit_mut_immediate_u32(imm2)
-        }
+        },
         DebugOptions::LocalInterval(ref mut imm1, ref mut imm2) => {
             visitor.visit_mut_immediate_u16(imm1)?;
             visitor.visit_mut_immediate_u16(imm2)
-        }
+        },
         DebugOptions::StackAll | DebugOptions::MemAll | DebugOptions::LocalAll => {
             ControlFlow::Continue(())
-        }
+        },
     }
 }
 
@@ -877,6 +887,14 @@ pub fn visit_mut_invoke_target<V, T>(
     _visitor: &mut V,
     _target: &mut InvocationTarget,
 ) -> ControlFlow<T>
+where
+    V: ?Sized + VisitMut<T>,
+{
+    ControlFlow::Continue(())
+}
+
+#[inline(always)]
+pub fn visit_mut_alias_target<V, T>(_visitor: &mut V, _target: &mut AliasTarget) -> ControlFlow<T>
 where
     V: ?Sized + VisitMut<T>,
 {

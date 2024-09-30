@@ -1,15 +1,14 @@
-use alloc::{
-    boxed::Box,
-    string::{String, ToString},
-    sync::Arc,
-    vec::Vec,
-};
+use alloc::{boxed::Box, string::String, sync::Arc, vec::Vec};
 use core::fmt;
 
-use super::{Export, Import, LocalNameResolver, ProcedureIndex, ProcedureName, ResolvedProcedure};
+use super::{
+    Export, Import, LocalNameResolver, ProcedureIndex, ProcedureName, QualifiedProcedureName,
+    ResolvedProcedure,
+};
 use crate::{
-    ast::{AstSerdeOptions, Ident},
+    ast::{AliasTarget, Ident},
     diagnostics::{Report, SourceFile},
+    parser::ModuleParser,
     sema::SemanticAnalysisError,
     ByteReader, ByteWriter, Deserializable, DeserializationError, LibraryNamespace, LibraryPath,
     Serializable, SourceSpan, Span, Spanned,
@@ -46,8 +45,8 @@ pub enum ModuleKind {
     /// A kernel is like a library module, but is special in a few ways:
     ///
     /// * Its code always executes in the root context, so it is stateful in a way that normal
-    ///   libraries cannot replicate. This can be used to provide core services that would otherwise
-    ///   not be possible to implement.
+    ///   libraries cannot replicate. This can be used to provide core services that would
+    ///   otherwise not be possible to implement.
     ///
     /// * The procedures exported from the kernel may be the target of the `syscall` instruction,
     ///   and in fact _must_ be called that way.
@@ -108,12 +107,6 @@ impl Deserializable for ModuleKind {
 pub struct Module {
     /// The span covering the entire definition of this module.
     span: SourceSpan,
-    /// If available/known, the source contents from which this module was parsed. This is used
-    /// to provide rich diagnostics output during semantic analysis.
-    ///
-    /// In cases where this file is not available, diagnostics will revert to a simple form with
-    /// a helpful message, but without source code snippets.
-    source_file: Option<Arc<SourceFile>>,
     /// The documentation associated with this module.
     ///
     /// Module documentation is provided in Miden Assembly as a documentation comment starting on
@@ -133,6 +126,18 @@ pub struct Module {
     pub(crate) procedures: Vec<Export>,
 }
 
+/// Constants
+impl Module {
+    /// File extension for a Assembly Module.
+    pub const FILE_EXTENSION: &'static str = "masm";
+
+    /// Name of the root module.
+    pub const ROOT: &'static str = "mod";
+
+    /// File name of the root module.
+    pub const ROOT_FILENAME: &'static str = "mod.masm";
+}
+
 /// Construction
 impl Module {
     /// Creates a new [Module] with the specified `kind` and fully-qualified path, e.g.
@@ -140,7 +145,6 @@ impl Module {
     pub fn new(kind: ModuleKind, path: LibraryPath) -> Self {
         Self {
             span: Default::default(),
-            source_file: None,
             docs: None,
             path,
             kind,
@@ -159,24 +163,11 @@ impl Module {
         Self::new(ModuleKind::Executable, LibraryNamespace::Exec.into())
     }
 
-    /// Builds this [Module] with the given source file in which it was defined.
-    ///
-    /// When a source file is given, diagnostics will contain source code snippets.
-    pub fn with_source_file(mut self, source_file: Option<Arc<SourceFile>>) -> Self {
-        self.source_file = source_file;
-        self
-    }
-
     /// Specifies the source span in the source file in which this module was defined, that covers
     /// the full definition of this module.
     pub fn with_span(mut self, span: SourceSpan) -> Self {
         self.span = span;
         self
-    }
-
-    /// Like [Module::with_source_file], but does not require ownership of the [Module].
-    pub fn set_source_file(&mut self, source_file: Arc<SourceFile>) {
-        self.source_file = Some(source_file);
     }
 
     /// Sets the [LibraryPath] for this module
@@ -203,16 +194,11 @@ impl Module {
     /// previous definition
     pub fn define_procedure(&mut self, export: Export) -> Result<(), SemanticAnalysisError> {
         if self.is_kernel() && matches!(export, Export::Alias(_)) {
-            return Err(SemanticAnalysisError::ReexportFromKernel {
-                span: export.span(),
-            });
+            return Err(SemanticAnalysisError::ReexportFromKernel { span: export.span() });
         }
         if let Some(prev) = self.resolve(export.name()) {
             let prev_span = prev.span();
-            Err(SemanticAnalysisError::SymbolConflict {
-                span: export.span(),
-                prev_span,
-            })
+            Err(SemanticAnalysisError::SymbolConflict { span: export.span(), prev_span })
         } else {
             self.procedures.push(export);
             Ok(())
@@ -224,18 +210,12 @@ impl Module {
     pub fn define_import(&mut self, import: Import) -> Result<(), SemanticAnalysisError> {
         if let Some(prev_import) = self.resolve_import(&import.name) {
             let prev_span = prev_import.span;
-            return Err(SemanticAnalysisError::ImportConflict {
-                span: import.span,
-                prev_span,
-            });
+            return Err(SemanticAnalysisError::ImportConflict { span: import.span, prev_span });
         }
 
         if let Some(prev_defined) = self.procedures.iter().find(|e| e.name().eq(&import.name)) {
             let prev_span = prev_defined.span();
-            return Err(SemanticAnalysisError::SymbolConflict {
-                span: import.span,
-                prev_span,
-            });
+            return Err(SemanticAnalysisError::SymbolConflict { span: import.span, prev_span });
         }
 
         self.imports.push(import);
@@ -246,26 +226,6 @@ impl Module {
 
 /// Parsing
 impl Module {
-    /// Parse a [Module], `name`, of the given [ModuleKind], from `path`.
-    #[cfg(feature = "std")]
-    pub fn parse_file<P>(name: LibraryPath, kind: ModuleKind, path: P) -> Result<Box<Self>, Report>
-    where
-        P: AsRef<std::path::Path>,
-    {
-        let mut parser = Self::parser(kind);
-        parser.parse_file(name, path)
-    }
-
-    /// Parse a [Module], `name`, of the given [ModuleKind], from `source`.
-    pub fn parse_str(
-        name: LibraryPath,
-        kind: ModuleKind,
-        source: impl ToString,
-    ) -> Result<Box<Self>, Report> {
-        let mut parser = Self::parser(kind);
-        parser.parse_str(name, source)
-    }
-
     /// Parse a [Module], `name`, of the given [ModuleKind], from `source_file`.
     pub fn parse(
         name: LibraryPath,
@@ -277,28 +237,13 @@ impl Module {
     }
 
     /// Get a [ModuleParser] for parsing modules of the provided [ModuleKind]
-    ///
-    /// This is mostly useful when you want tighter control over the parser configuration, otherwise
-    /// it is generally more convenient to use [Module::parse_file] or [Module::parse_str] for most
-    /// use cases.
-    pub fn parser(kind: ModuleKind) -> crate::parser::ModuleParser {
-        crate::parser::ModuleParser::new(kind)
+    pub fn parser(kind: ModuleKind) -> ModuleParser {
+        ModuleParser::new(kind)
     }
 }
 
 /// Metadata
 impl Module {
-    /// Get the source code for this module, if available
-    ///
-    /// The source code will not be available in the following situations:
-    ///
-    /// * The module was constructed in-memory via AST structures, and not derived from source code.
-    /// * The module was serialized without debug info, and then deserialized. Without debug info,
-    ///   the source code is lost when round-tripping through serialization.
-    pub fn source_file(&self) -> Option<Arc<SourceFile>> {
-        self.source_file.clone()
-    }
-
     /// Get the name of this specific module, i.e. the last component of the [LibraryPath] that
     /// represents the fully-qualified name of the module, e.g. `u64` in `std::math::u64`
     pub fn name(&self) -> &str {
@@ -364,6 +309,26 @@ impl Module {
         self.procedures.iter_mut()
     }
 
+    /// Returns procedures exported from this module.
+    ///
+    /// Each exported procedure is represented by its local procedure index and a fully qualified
+    /// name.
+    pub fn exported_procedures(
+        &self,
+    ) -> impl Iterator<Item = (ProcedureIndex, QualifiedProcedureName)> + '_ {
+        self.procedures.iter().enumerate().filter_map(|(proc_idx, p)| {
+            // skip un-exported procedures
+            if !p.visibility().is_exported() {
+                return None;
+            }
+
+            let proc_idx = ProcedureIndex::new(proc_idx);
+            let fqn = QualifiedProcedureName::new(self.path().clone(), p.name().clone());
+
+            Some((proc_idx, fqn))
+        })
+    }
+
     /// Get an iterator over the imports declared in this module.
     ///
     /// See [Import] for details on what information is available for imports.
@@ -371,7 +336,7 @@ impl Module {
         self.imports.iter()
     }
 
-    /// Same as [imports], but returns mutable references to each import.
+    /// Same as [Self::imports], but returns mutable references to each import.
     pub fn imports_mut(&mut self) -> core::slice::IterMut<'_, Import> {
         self.imports.iter_mut()
     }
@@ -379,8 +344,9 @@ impl Module {
     /// Get an iterator over the "dependencies" of a module, i.e. what library namespaces we expect
     /// to find imported procedures in.
     ///
-    /// For example, if we have imported `std::math::u64`, then we would expect to import that
-    /// module from a [crate::Library] with the namespace `std`.
+    /// For example, if we have imported `std::math::u64`, then we would expect to find a library
+    /// on disk named `std.masl`, although that isn't a strict requirement. This notion of
+    /// dependencies may go away with future packaging-related changed.
     pub fn dependencies(&self) -> impl Iterator<Item = &LibraryNamespace> {
         self.import_paths().map(|import| import.namespace())
     }
@@ -417,8 +383,13 @@ impl Module {
         match &self.procedures[index.as_usize()] {
             Export::Procedure(ref proc) => {
                 Some(ResolvedProcedure::Local(Span::new(proc.name().span(), index)))
-            }
-            Export::Alias(ref alias) => Some(ResolvedProcedure::External(alias.target.clone())),
+            },
+            Export::Alias(ref alias) => match alias.target() {
+                AliasTarget::MastRoot(digest) => Some(ResolvedProcedure::MastRoot(**digest)),
+                AliasTarget::ProcedurePath(path) | AliasTarget::AbsoluteProcedurePath(path) => {
+                    Some(ResolvedProcedure::External(path.clone()))
+                },
+            },
         }
     }
 
@@ -430,8 +401,14 @@ impl Module {
                 ResolvedProcedure::Local(Span::new(p.name().span(), ProcedureIndex::new(i))),
             ),
             Export::Alias(ref p) => {
-                (p.name().clone(), ResolvedProcedure::External(p.target.clone()))
-            }
+                let target = match p.target() {
+                    AliasTarget::MastRoot(digest) => ResolvedProcedure::MastRoot(**digest),
+                    AliasTarget::ProcedurePath(path) | AliasTarget::AbsoluteProcedurePath(path) => {
+                        ResolvedProcedure::External(path.clone())
+                    },
+                };
+                (p.name().clone(), target)
+            },
         }))
         .with_imports(
             self.imports
@@ -487,163 +464,6 @@ impl PartialEq for Module {
             && self.docs == other.docs
             && self.imports == other.imports
             && self.procedures == other.procedures
-    }
-}
-
-/// Serialization
-impl Module {
-    /// Serialization this module to `target`, using `options`.
-    pub fn write_into_with_options<W: ByteWriter>(&self, target: &mut W, options: AstSerdeOptions) {
-        options.write_into(target);
-        if options.debug_info {
-            self.span.write_into(target);
-            if let Some(source_file) = self.source_file.as_ref() {
-                target.write_u8(1);
-                let source_name = source_file.name();
-                let source_bytes = source_file.inner().as_bytes();
-                target.write_usize(source_name.as_bytes().len());
-                target.write_bytes(source_name.as_bytes());
-                target.write_usize(source_bytes.len());
-                target.write_bytes(source_bytes);
-            } else {
-                target.write_u8(0);
-            }
-        }
-        self.kind.write_into(target);
-        self.path.write_into(target);
-        if options.serialize_imports {
-            target.write_usize(self.imports.len());
-            for import in self.imports.iter() {
-                import.write_into_with_options(target, options);
-            }
-        }
-        target.write_usize(self.procedures.len());
-        for export in self.procedures.iter() {
-            export.write_into_with_options(target, options);
-        }
-    }
-
-    /// Returns byte representation of this [Module].
-    ///
-    /// The serde options are serialized as header information for the purposes of deserialization.
-    pub fn to_bytes(&self, options: AstSerdeOptions) -> Vec<u8> {
-        let mut target = Vec::<u8>::with_capacity(256);
-        self.write_into_with_options(&mut target, options);
-        target
-    }
-
-    /// Returns a [Module] struct deserialized from the provided bytes.
-    ///
-    /// Assumes that the module was encoded using [Module::write_into] or
-    /// [Module::write_into_with_options]
-    pub fn from_bytes(bytes: &[u8]) -> Result<Self, DeserializationError> {
-        let mut source = crate::SliceReader::new(bytes);
-        Self::read_from(&mut source)
-    }
-
-    /// Writes this [Module] to the provided file path
-    #[cfg(feature = "std")]
-    pub fn write_to_file<P>(&self, path: P) -> std::io::Result<()>
-    where
-        P: AsRef<std::path::Path>,
-    {
-        let path = path.as_ref();
-        if let Some(dir) = path.parent() {
-            std::fs::create_dir_all(dir)?;
-        }
-
-        // NOTE: We're protecting against unwinds here due to i/o errors that will get turned into
-        // panics if writing to the underlying file fails. This is because ByteWriter does not have
-        // fallible APIs, thus WriteAdapter has to panic if writes fail. This could be fixed, but
-        // that has to happen upstream in winterfell
-        std::panic::catch_unwind(|| match std::fs::File::create(path) {
-            Ok(ref mut file) => {
-                let options = AstSerdeOptions {
-                    serialize_imports: true,
-                    debug_info: true,
-                };
-                self.write_into_with_options(file, options);
-                Ok(())
-            }
-            Err(err) => Err(err),
-        })
-        .map_err(|p| {
-            match p.downcast::<std::io::Error>() {
-                // SAFETY: It is guaranteed to be safe to read Box<std::io::Error>
-                Ok(err) => unsafe { core::ptr::read(&*err) },
-                // Propagate unknown panics
-                Err(err) => std::panic::resume_unwind(err),
-            }
-        })?
-    }
-}
-
-impl Serializable for Module {
-    fn write_into<W: ByteWriter>(&self, target: &mut W) {
-        self.write_into_with_options(target, AstSerdeOptions::new(true, true))
-    }
-}
-
-impl Deserializable for Module {
-    /// Deserialize a [Module] from `source`
-    ///
-    /// Assumes that the module was encoded using [Serializable::write_into] or
-    /// [Module::write_into_with_options]
-    fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
-        let options = AstSerdeOptions::read_from(source)?;
-        let (span, source_file) = if options.debug_info {
-            let span = SourceSpan::read_from(source)?;
-            match source.read_u8()? {
-                0 => (span, None),
-                1 => {
-                    let nlen = source.read_usize()?;
-                    let source_name = core::str::from_utf8(source.read_slice(nlen)?)
-                        .map(|s| s.to_string())
-                        .map_err(|e| DeserializationError::InvalidValue(e.to_string()))?;
-                    let clen = source.read_usize()?;
-                    let source_content = core::str::from_utf8(source.read_slice(clen)?)
-                        .map_err(|e| DeserializationError::InvalidValue(e.to_string()))?;
-                    let source_file =
-                        Arc::new(SourceFile::new(source_name, source_content.to_string()));
-                    (span, Some(source_file))
-                }
-                n => {
-                    return Err(DeserializationError::InvalidValue(format!(
-                        "invalid option tag: '{n}'"
-                    )));
-                }
-            }
-        } else {
-            (SourceSpan::default(), None)
-        };
-        let kind = ModuleKind::read_from(source)?;
-        let path = LibraryPath::read_from(source)?;
-        let imports = if options.serialize_imports {
-            let num_imports = source.read_usize()?;
-            let mut imports = Vec::with_capacity(num_imports);
-            for _ in 0..num_imports {
-                let import = Import::read_from_with_options(source, options)?;
-                imports.push(import);
-            }
-            imports
-        } else {
-            Vec::new()
-        };
-        let num_procedures = source.read_usize()?;
-        let mut procedures = Vec::with_capacity(num_procedures);
-        for _ in 0..num_procedures {
-            let export = Export::read_from_with_options(source, options)?;
-            procedures.push(export.with_source_file(source_file.clone()));
-        }
-        Ok(Self {
-            span,
-            source_file,
-            docs: None,
-            path,
-            kind,
-            imports,
-            procedures,
-        })
     }
 }
 

@@ -1,11 +1,14 @@
-use super::{EvaluationFrame, B0_COL_IDX};
-use crate::trace::{
-    decoder::{IS_LOOP_FLAG_COL_IDX, NUM_OP_BITS, OP_BITS_EXTRA_COLS_RANGE, OP_BITS_RANGE},
-    stack::H0_COL_IDX,
-    DECODER_TRACE_OFFSET, STACK_TRACE_OFFSET, TRACE_WIDTH,
-};
-use crate::utils::binary_not;
 use vm_core::{Felt, FieldElement, Operation, ONE, ZERO};
+
+use super::{EvaluationFrame, B0_COL_IDX};
+use crate::{
+    trace::{
+        decoder::{IS_LOOP_FLAG_COL_IDX, NUM_OP_BITS, OP_BITS_EXTRA_COLS_RANGE, OP_BITS_RANGE},
+        stack::H0_COL_IDX,
+        DECODER_TRACE_OFFSET, STACK_TRACE_OFFSET, TRACE_WIDTH,
+    },
+    utils::binary_not,
+};
 #[cfg(test)]
 pub mod tests;
 
@@ -264,7 +267,7 @@ impl<E: FieldElement> OpFlags<E> {
 
         // degree 6 flags do not use the first two bits (op_bits[0], op_bits[1])
         degree4_op_flags[0] = not_2_not_3; // MRUPDATE
-        degree4_op_flags[1] = yes_2_not_3; // PUSH
+        degree4_op_flags[1] = yes_2_not_3; // (unused)
         degree4_op_flags[2] = not_2_yes_3; // SYSCALL
         degree4_op_flags[3] = yes_2_yes_3; // CALL
 
@@ -289,6 +292,7 @@ impl<E: FieldElement> OpFlags<E> {
             + degree5_op_flags[1] // MPVERIFY
             + degree5_op_flags[6] // SPAN
             + degree5_op_flags[7] // JOIN
+            + degree5_op_flags[10] // EMIT
             + degree4_op_flags[6] // RESPAN
             + degree4_op_flags[7] // HALT
             + degree4_op_flags[3] // CALL
@@ -372,7 +376,7 @@ impl<E: FieldElement> OpFlags<E> {
             + degree7_op_flags[22]
             + degree7_op_flags[26];
 
-        right_shift_flags[0] = f011 + degree4_op_flags[1] + movupn_flag;
+        right_shift_flags[0] = f011 + degree5_op_flags[11] + movupn_flag; // degree 5: PUSH
 
         right_shift_flags[1] = right_shift_flags[0] + degree6_op_flags[4]; // degree 6: U32SPLIT
 
@@ -392,7 +396,7 @@ impl<E: FieldElement> OpFlags<E> {
         right_shift_flags[15] = right_shift_flags[8];
 
         // Flag if the stack has been shifted to the right.
-        let right_shift = f011 + degree4_op_flags[1] + degree6_op_flags[4]; // PUSH; U32SPLIT
+        let right_shift = f011 + degree5_op_flags[11] + degree6_op_flags[4]; // PUSH; U32SPLIT
 
         // Flag if the stack has been shifted to the left.
         let left_shift =
@@ -840,7 +844,7 @@ impl<E: FieldElement> OpFlags<E> {
     /// Operation Flag of U32ASSERT2 operation.
     #[inline(always)]
     pub fn u32assert2(&self) -> E {
-        self.degree6_op_flags[get_op_index(Operation::U32assert2(ZERO).op_code())]
+        self.degree6_op_flags[get_op_index(Operation::U32assert2(0).op_code())]
     }
 
     /// Operation Flag of U32ADD3 operation.
@@ -866,7 +870,7 @@ impl<E: FieldElement> OpFlags<E> {
     /// Operation Flag of MPVERIFY operation.
     #[inline(always)]
     pub fn mpverify(&self) -> E {
-        self.degree5_op_flags[get_op_index(Operation::MpVerify.op_code())]
+        self.degree5_op_flags[get_op_index(Operation::MpVerify(0).op_code())]
     }
 
     /// Operation Flag of SPLIT operation.
@@ -904,7 +908,7 @@ impl<E: FieldElement> OpFlags<E> {
     /// Operation Flag of PUSH operation.
     #[inline(always)]
     pub fn push(&self) -> E {
-        self.degree4_op_flags[get_op_index(Operation::Push(ONE).op_code())]
+        self.degree5_op_flags[get_op_index(Operation::Push(ONE).op_code())]
     }
 
     /// Operation Flag of CALL operation.

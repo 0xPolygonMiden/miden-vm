@@ -1,12 +1,14 @@
-use super::{
-    super::StackTopState, Felt, OverflowTableRow, Stack, StackInputs, ONE, STACK_TOP_SIZE, ZERO,
-};
 use alloc::vec::Vec;
+
 use miden_air::trace::{
     stack::{B0_COL_IDX, B1_COL_IDX, H0_COL_IDX, NUM_STACK_HELPER_COLS},
     STACK_TRACE_WIDTH,
 };
 use vm_core::{FieldElement, StarkField};
+
+use super::{
+    super::StackTopState, Felt, OverflowTableRow, Stack, StackInputs, ONE, STACK_TOP_SIZE, ZERO,
+};
 
 // TYPE ALIASES
 // ================================================================================================
@@ -97,7 +99,7 @@ fn shift_left() {
 
     // Shift right twice to add 2 items to the overflow table.
     stack.shift_right(0);
-    let prev_overflow_addr = stack.current_clk() as usize;
+    let prev_overflow_addr: usize = stack.current_clk().into();
     stack.advance_clock();
     stack.shift_right(0);
     stack.advance_clock();
@@ -137,7 +139,7 @@ fn shift_right() {
 
     // ---- right shift an entire stack of minimum depth ------------------------------------------
     let expected_stack = build_stack(&[0, 4, 3, 2, 1]);
-    let expected_helpers = build_helpers_partial(1, stack.current_clk() as usize);
+    let expected_helpers = build_helpers_partial(1, stack.current_clk().into());
 
     stack.shift_right(0);
     stack.advance_clock();
@@ -150,7 +152,7 @@ fn shift_right() {
 
     // ---- right shift when the overflow table is non-empty --------------------------------------
     let expected_stack = build_stack(&[0, 0, 4, 3, 2, 1]);
-    let expected_helpers = build_helpers_partial(2, stack.current_clk() as usize);
+    let expected_helpers = build_helpers_partial(2, stack.current_clk().into());
 
     stack.shift_right(0);
     stack.advance_clock();

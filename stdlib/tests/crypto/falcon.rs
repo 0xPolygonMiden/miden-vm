@@ -1,20 +1,21 @@
-use rand::{thread_rng, Rng};
+use std::vec;
 
 use assembly::{utils::Serializable, Assembler};
 use miden_air::{Felt, ProvingOptions};
 use miden_stdlib::StdLibrary;
 use processor::{
     crypto::RpoRandomCoin, AdviceInputs, DefaultHost, Digest, ExecutionError, MemAdviceProvider,
-    StackInputs,
+    Program, ProgramInfo, StackInputs,
 };
-use std::vec;
-use test_utils::crypto::Rpo256;
-use test_utils::rand::rand_value;
+use rand::{thread_rng, Rng};
 use test_utils::{
-    crypto::{rpo_falcon512::Polynomial, rpo_falcon512::SecretKey, MerkleStore},
+    crypto::{
+        rpo_falcon512::{Polynomial, SecretKey},
+        MerkleStore, Rpo256,
+    },
     expect_exec_error,
-    rand::rand_vector,
-    FieldElement, ProgramInfo, QuadFelt, Word, WORD_SIZE,
+    rand::{rand_value, rand_vector},
+    FieldElement, QuadFelt, Word, WORD_SIZE,
 };
 
 /// Modulus used for rpo falcon 512.
@@ -172,7 +173,7 @@ fn test_falcon512_probabilistic_product_failure() {
     expect_exec_error!(
         test,
         ExecutionError::FailedAssertion {
-            clk: 17498,
+            clk: 17490.into(),
             err_code: 0,
             err_msg: None,
         }
@@ -198,10 +199,10 @@ fn falcon_prove_verify() {
     let message = rand_vector::<Felt>(4).try_into().unwrap();
     let (source, op_stack, _, _, advice_map) = generate_test(sk, message);
 
-    let program = Assembler::default()
-        .with_library(&StdLibrary::default())
+    let program: Program = Assembler::default()
+        .with_library(StdLibrary::default())
         .expect("failed to load stdlib")
-        .assemble(source)
+        .assemble_program(source)
         .expect("failed to compile test source");
 
     let stack_inputs = StackInputs::try_from_ints(op_stack).expect("failed to create stack inputs");

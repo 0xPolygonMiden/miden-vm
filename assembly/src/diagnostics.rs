@@ -1,13 +1,12 @@
+use alloc::{borrow::Cow, boxed::Box, sync::Arc, vec::Vec};
+use core::{fmt, ops::Range};
+
 pub use miette::{
     self, Diagnostic, IntoDiagnostic, LabeledSpan, NamedSource, Report, Result, Severity,
     SourceCode, WrapErr,
 };
 pub use tracing;
-
-use alloc::{borrow::Cow, boxed::Box, sync::Arc, vec::Vec};
-use core::{fmt, ops::Range};
-
-pub type SourceFile = NamedSource<alloc::string::String>;
+pub use vm_core::debuginfo::*;
 
 // LABEL
 // ================================================================================================
@@ -24,16 +23,13 @@ pub struct Label {
 
 impl Label {
     /// Construct a label for the given range of bytes, expressible as any type which can be
-    /// converted to a [`Range<usize>`], e.g. [SourceSpan].
+    /// converted to a [`Range<usize>`], e.g. [miette::SourceSpan].
     pub fn at<R>(range: R) -> Self
     where
         Range<usize>: From<R>,
     {
         let range = Range::<usize>::from(range);
-        Self {
-            span: range.into(),
-            label: None,
-        }
+        Self { span: range.into(), label: None }
     }
 
     /// Construct a label which points to a specific offset in the source file.
@@ -87,12 +83,12 @@ impl From<Label> for LabeledSpan {
 // RELATED LABEL
 // ================================================================================================
 
-/// This type is used to associate a more complex label or set of labels with some other error. In
-/// particular, it is used to reference related bits of source code distinct from that of the
-/// original error.
+/// This type is used to associate a more complex label or set of labels with some other error.
 ///
-/// A related label can have a distinct severity, its own message, and its own sub-labels, and may
-/// reference code in a completely different source file that the original error.
+/// In particular, it is used to reference related bits of source code distinct from that of the
+/// original error. A related label can have a distinct severity, its own message, and its own
+/// sub-labels, and may reference code in a completely different source file that the original
+/// error.
 #[derive(Debug)]
 pub struct RelatedLabel {
     /// The severity for this related label
@@ -166,7 +162,7 @@ impl RelatedLabel {
         self
     }
 
-    pub fn with_labeled_span<S>(self, span: super::SourceSpan, message: S) -> Self
+    pub fn with_labeled_span<S>(self, span: SourceSpan, message: S) -> Self
     where
         Cow<'static, str>: From<S>,
     {
@@ -312,10 +308,10 @@ impl RelatedError {
 /// Rendering and error reporting implementation details.
 pub mod reporting {
     use core::fmt;
+
     pub use miette::{
         set_hook, DebugReportHandler, JSONReportHandler, NarratableReportHandler, ReportHandler,
     };
-
     #[cfg(feature = "std")]
     pub use miette::{set_panic_hook, GraphicalReportHandler, GraphicalTheme};
 
@@ -327,7 +323,7 @@ pub mod reporting {
     #[cfg(not(feature = "std"))]
     pub type DefaultReportHandler = miette::DebugReportHandler;
 
-    /// A type that can be used to render a [Diagnostic] via [core::fmt::Display]
+    /// A type that can be used to render a [super::Diagnostic] via [core::fmt::Display]
     pub struct PrintDiagnostic<D, R = DefaultReportHandler> {
         handler: R,
         diag: D,
@@ -335,10 +331,7 @@ pub mod reporting {
 
     impl<D: AsRef<dyn super::Diagnostic>> PrintDiagnostic<D> {
         pub fn new(diag: D) -> Self {
-            Self {
-                handler: Default::default(),
-                diag,
-            }
+            Self { handler: Default::default(), diag }
         }
         #[cfg(feature = "std")]
         pub fn new_without_color(diag: D) -> Self {
@@ -364,10 +357,7 @@ pub mod reporting {
 
     impl<D: AsRef<dyn super::Diagnostic>> PrintDiagnostic<D, JSONReportHandler> {
         pub fn json(diag: D) -> Self {
-            Self {
-                handler: JSONReportHandler,
-                diag,
-            }
+            Self { handler: JSONReportHandler, diag }
         }
     }
 

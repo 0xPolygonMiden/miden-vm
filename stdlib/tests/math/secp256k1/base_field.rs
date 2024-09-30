@@ -1,4 +1,5 @@
 use core::ops::{Add, Mul, Neg, Sub};
+
 use test_utils::rand::rand_array;
 
 /// Secp256k1 base field element, kept in Montgomery form
@@ -9,9 +10,7 @@ struct BaseField {
 
 impl BaseField {
     fn one() -> Self {
-        Self {
-            limbs: [977, 1, 0, 0, 0, 0, 0, 0],
-        }
+        Self { limbs: [977, 1, 0, 0, 0, 0, 0, 0] }
     }
 
     /// See https://github.com/itzmeanjan/secp256k1/blob/6e5e654823a073add7d62b21ed88e9de9bb06869/field/base_field_utils.py#L41-L46
@@ -347,12 +346,8 @@ fn test_secp256k1_base_field_mul() {
         exec.base_field::mul
     end";
 
-    let elm0 = BaseField {
-        limbs: rand_array::<u32, 8>(),
-    };
-    let elm1 = BaseField {
-        limbs: rand_array::<u32, 8>(),
-    };
+    let elm0 = BaseField { limbs: rand_array::<u32, 8>() };
+    let elm1 = BaseField { limbs: rand_array::<u32, 8>() };
     let elm2 = elm0 * elm1;
 
     let mut stack = [0u64; 16];
@@ -373,12 +368,8 @@ fn test_secp256k1_base_field_add() {
         exec.base_field::add
     end";
 
-    let elm0 = BaseField {
-        limbs: rand_array::<u32, 8>(),
-    };
-    let elm1 = BaseField {
-        limbs: rand_array::<u32, 8>(),
-    };
+    let elm0 = BaseField { limbs: rand_array::<u32, 8>() };
+    let elm1 = BaseField { limbs: rand_array::<u32, 8>() };
     let elm2 = elm0 + elm1;
 
     let mut stack = [0u64; 16];
@@ -400,9 +391,7 @@ fn test_secp256k1_base_field_neg() {
         exec.base_field::neg
     end";
 
-    let elm0 = BaseField {
-        limbs: rand_array::<u32, 8>(),
-    };
+    let elm0 = BaseField { limbs: rand_array::<u32, 8>() };
     let elm1 = -elm0;
 
     let mut stack = [0u64; 8];
@@ -422,12 +411,8 @@ fn test_secp256k1_base_field_sub() {
         exec.base_field::sub
     end";
 
-    let elm0 = BaseField {
-        limbs: rand_array::<u32, 8>(),
-    };
-    let elm1 = BaseField {
-        limbs: rand_array::<u32, 8>(),
-    };
+    let elm0 = BaseField { limbs: rand_array::<u32, 8>() };
+    let elm1 = BaseField { limbs: rand_array::<u32, 8>() };
     let elm2 = elm0 - elm1;
 
     let mut stack = [0u64; 16];
@@ -455,12 +440,8 @@ fn test_secp256k1_base_field_add_then_sub() {
         exec.base_field::sub
     end";
 
-    let elm0 = BaseField {
-        limbs: rand_array::<u32, 8>(),
-    }; // a
-    let elm1 = BaseField {
-        limbs: rand_array::<u32, 8>(),
-    }; // b
+    let elm0 = BaseField { limbs: rand_array::<u32, 8>() }; // a
+    let elm1 = BaseField { limbs: rand_array::<u32, 8>() }; // b
 
     let mut stack = [0u64; 16];
     stack[..8].copy_from_slice(&elm0.limbs.map(|v| v as u64));
@@ -505,9 +486,7 @@ fn test_secp256k1_base_field_inv() {
         exec.base_field::mul
     end";
 
-    let elm0 = BaseField {
-        limbs: rand_array::<u32, 8>(),
-    };
+    let elm0 = BaseField { limbs: rand_array::<u32, 8>() };
     let elm1 = BaseField::one();
 
     let mut stack = [0u64; 8];

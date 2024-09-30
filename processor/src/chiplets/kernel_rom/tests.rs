@@ -1,5 +1,6 @@
-use super::{Felt, Kernel, KernelRom, TraceFragment, Word, ONE, TRACE_WIDTH, ZERO};
 use alloc::vec::Vec;
+
+use super::{Felt, Kernel, KernelRom, TraceFragment, Word, ONE, TRACE_WIDTH, ZERO};
 
 // CONSTANTS
 // ================================================================================================
