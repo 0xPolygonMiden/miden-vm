@@ -10,6 +10,9 @@ pub use inputs::StackInputs;
 mod outputs;
 pub use outputs::StackOutputs;
 
+#[cfg(test)]
+mod tests;
+
 // CONSTANTS
 // ================================================================================================
 

@@ -45,11 +45,14 @@ impl StackOutputs {
     /// # Errors
     /// Returns an error if:
     /// - Any of the provided stack elements are invalid field elements.
-    pub fn try_from_ints(stack: Vec<u64>) -> Result<Self, OutputError> {
+    pub fn try_from_ints<I>(iter: I) -> Result<Self, OutputError>
+    where
+        I: IntoIterator<Item = u64>,
+    {
         // Validate stack elements
-        let stack = stack
-            .iter()
-            .map(|v| Felt::try_from(*v))
+        let stack = iter
+            .into_iter()
+            .map(Felt::try_from)
             .collect::<Result<Vec<Felt>, _>>()
             .map_err(OutputError::InvalidStackElement)?;
 
@@ -123,8 +126,9 @@ impl From<[Felt; MIN_STACK_DEPTH]> for StackOutputs {
 
 impl Serializable for StackOutputs {
     fn write_into<W: ByteWriter>(&self, target: &mut W) {
-        target.write_u8(get_num_stack_values(self));
-        target.write_many(self.elements);
+        let num_stack_values = get_num_stack_values(self);
+        target.write_u8(num_stack_values);
+        target.write_many(&self.elements[..num_stack_values as usize]);
     }
 }
 
@@ -132,17 +136,13 @@ impl Deserializable for StackOutputs {
     fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
         let num_elements = source.read_u8()?;
 
-        // check that `num_elements` is valid
-        if num_elements > MIN_STACK_DEPTH as u8 {
-            return Err(DeserializationError::InvalidValue(format!(
+        let elements = source.read_many::<Felt>(num_elements.into())?;
+
+        StackOutputs::new(elements).map_err(|_| {
+            DeserializationError::InvalidValue(format!(
                 "number of stack elements should not be greater than {}, but {} was found",
                 MIN_STACK_DEPTH, num_elements
-            )));
-        }
-
-        let mut elements = source.read_many::<Felt>(num_elements.into())?;
-        elements.resize(MIN_STACK_DEPTH, ZERO);
-
-        Ok(Self { elements: elements.try_into().unwrap() })
+            ))
+        })
     }
 }
