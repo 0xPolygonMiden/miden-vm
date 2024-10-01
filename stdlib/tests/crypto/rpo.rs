@@ -353,7 +353,7 @@ fn test_hash_memory() {
 }
 
 #[test]
-fn test_hash_memory_fail() {
+fn test_hash_memory_empty() {
     // try to hash 0 values
     let compute_inputs_hash = "
     use.std::crypto::hashes::rpo
@@ -365,5 +365,5 @@ fn test_hash_memory_fail() {
     end
     ";
 
-    assert!(build_test!(compute_inputs_hash, &[]).execute().is_err());
+    build_test!(compute_inputs_hash, &[]).expect_stack(&[0; 16]);
 }

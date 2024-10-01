@@ -158,7 +158,7 @@
 #### Stdlib
 
 - Added `init_no_padding` procedure to `std::crypto::hashes::native` (#1313).
-- [BREAKING] `native` module was renamed to the `pro`, `hash_memory` procedure was renamed to the `hash_memory_words` (#1368).
+- [BREAKING] `native` module was renamed to the `rpo`, `hash_memory` procedure was renamed to the `hash_memory_words` (#1368).
 - Added `hash_memory` procedure to `std::crypto::hashes::rpo` (#1368).
 
 #### VM Internals

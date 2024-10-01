@@ -5,6 +5,7 @@
 #!
 #! Input: []
 #! Ouptut: [PERM, PERM, PERM, ...]
+#!
 #! Cycles: 12
 export.init_no_padding
    padw padw padw
@@ -14,7 +15,11 @@ end
 #!
 #! Input: [C, B, A, ...]
 #! Ouptut: [HASH, ...]
-#! where: For the native RPO hasher HASH is B.
+#!
+#! Where :
+#! - `A` is the capacity word that will be used by the hashing function.
+#! - `B` is the hash output.
+#!
 #! Cycles: 9
 export.squeeze_digest
   # drop the first rate word (4 cycles)
@@ -32,12 +37,14 @@ end
 #! This requires that `end_addr=start_addr + 2n + 1`, otherwise the procedure will enter an infinite
 #! loop. `end_addr` is not inclusive.
 #!
-#! Stack transition:
 #! Input: [C, B, A, start_addr, end_addr, ...]
 #! Output: [C', B', A', end_addr, end_addr ...]
-#! Cycles: 4 + 3 * words, where `words` is the `start_addr - end_addr - 1`
 #!
-#! Where `A` is the capacity word that will be used by the hashing function, and `B'` the hash output.
+#! Where :
+#! - `A` is the capacity word that will be used by the hashing function.
+#! - `B` is the hash output.
+#!
+#! Cycles: 4 + 3 * words, where `words` is the `start_addr - end_addr - 1`
 export.absorb_double_words_from_memory
   dup.13 dup.13 neq  # (4 cycles )
   while.true
@@ -50,12 +57,13 @@ end
 #!
 #! Requires `start_addr < end_addr`, `end_addr` is not inclusive.
 #!
-#! Stack transition:
 #! Input: [start_addr, end_addr, ...]
 #! Output: [H, ...]
+#!
 #! Cycles:
-#! even words: 49 cycles + 3 * words
-#! odd words: 61 cycles + 3 * words
+#! - even words: 49 cycles + 3 * words
+#! - odd words: 61 cycles + 3 * words
+#! where `words` is the `start_addr - end_addr - 1`
 export.hash_memory_words
   # enforce `start_addr < end_addr`
   dup.1 dup.1 u32assert2 u32gt assert
@@ -109,18 +117,14 @@ end
 #!
 #! Inputs:  [ptr, num_elements]
 #! Outputs: [HASH]
+#!
 #! Cycles: 
 #! - If number of elements divides by 8: 47 cycles + 3 * words
 #! - Else: 180 cycles + 3 * words
-#!
-#! Panics if number of inputs equals 0.
+#! where `words` is the number of quads of input values.
 export.hash_memory
     # move number of inputs to the top of the stack 
     swap
-    # => [num_elements, ptr]
-
-    # check that number of inputs greater than 0
-    dup eq.0 assertz
     # => [num_elements, ptr]
 
     # get the number of double words
