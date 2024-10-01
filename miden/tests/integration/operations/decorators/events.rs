@@ -66,6 +66,7 @@ fn test_debug_with_debugging() {
         push.1
         debug.stack
         debug.mem
+        drop
     end";
 
     // compile and execute program
@@ -92,6 +93,7 @@ fn test_debug_without_debugging() {
         push.1
         debug.stack
         debug.mem
+        drop
     end";
 
     // compile and execute program

@@ -116,7 +116,7 @@ fn basic_block_small() {
     // --- check block address, op_bits, group count, op_index, and in_span columns ---------------
     check_op_decoding(&trace, 0, ZERO, Operation::Span, 4, 0, 0);
     check_op_decoding(&trace, 1, INIT_ADDR, Operation::Push(ONE), 3, 0, 1);
-    check_op_decoding(&trace, 2, INIT_ADDR, Operation::Emit(1), 2, 1, 1);
+    check_op_decoding(&trace, 2, INIT_ADDR, Operation::Push(TWO), 2, 1, 1);
     check_op_decoding(&trace, 3, INIT_ADDR, Operation::Add, 1, 2, 1);
     check_op_decoding(&trace, 4, INIT_ADDR, Operation::Swap, 1, 3, 1);
     check_op_decoding(&trace, 5, INIT_ADDR, Operation::Drop, 1, 4, 1);

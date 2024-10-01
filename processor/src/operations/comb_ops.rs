@@ -273,6 +273,16 @@ mod tests {
     #[test]
     fn prove_verify() {
         let source = "
+            proc.truncate_stack.1
+                loc_storew.0 dropw movupw.3
+                sdepth neq.16
+                while.true
+                    dropw movupw.3
+                    sdepth neq.16
+                end
+                loc_loadw.0
+            end
+
             begin
                 # I) Prepare memory and stack
 
@@ -312,19 +322,7 @@ mod tests {
                     rcomb_base
                 end
 
-                # drop the excess values from the stack so that the result fits into the
-                # top 16 values
-                # 
-                # note: use std::sys.truncate_stack if stdlib is available
-                mem_storew.0 dropw
-                mem_storew.1 dropw
-                mem_storew.2 dropw
-                mem_storew.3 dropw
-
-                mem_loadw.3 swapw
-                mem_loadw.2 swapdw
-                mem_loadw.1 swapw
-                mem_loadw.0
+                exec.truncate_stack
             end
         ";
 
