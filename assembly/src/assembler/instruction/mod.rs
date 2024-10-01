@@ -432,7 +432,7 @@ impl Assembler {
 
             // ----- emit instruction -------------------------------------------------------------
             Instruction::Emit(event_id) => {
-                block_builder.push_decorator(Decorator::Event(event_id.expect_value()))?;
+                block_builder.push_op(Operation::Emit(event_id.expect_value()));
             },
 
             // ----- trace instruction ------------------------------------------------------------

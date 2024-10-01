@@ -3,7 +3,7 @@ use core::fmt;
 
 use super::ProcedureName;
 use crate::{
-    ast::{Block, Invoke},
+    ast::{Attribute, AttributeSet, Block, Invoke},
     SourceSpan, Span, Spanned,
 };
 
@@ -55,6 +55,8 @@ pub struct Procedure {
     span: SourceSpan,
     /// The documentation attached to this procedure
     docs: Option<Span<String>>,
+    /// The attributes attached to this procedure
+    attrs: AttributeSet,
     /// The local name of this procedure
     name: ProcedureName,
     /// The visibility of this procedure (i.e. whether it is exported or not)
@@ -81,6 +83,7 @@ impl Procedure {
         Self {
             span,
             docs: None,
+            attrs: Default::default(),
             name,
             visibility,
             num_locals,
@@ -92,6 +95,15 @@ impl Procedure {
     /// Adds documentation to this procedure definition
     pub fn with_docs(mut self, docs: Option<Span<String>>) -> Self {
         self.docs = docs;
+        self
+    }
+
+    /// Adds attributes to this procedure definition
+    pub fn with_attributes<I>(mut self, attrs: I) -> Self
+    where
+        I: IntoIterator<Item = Attribute>,
+    {
+        self.attrs.extend(attrs);
         self
     }
 
@@ -132,6 +144,30 @@ impl Procedure {
     /// Returns the documentation for this procedure, if present.
     pub fn docs(&self) -> Option<&Span<String>> {
         self.docs.as_ref()
+    }
+
+    /// Get the attributes attached to this procedure
+    #[inline]
+    pub fn attributes(&self) -> &AttributeSet {
+        &self.attrs
+    }
+
+    /// Get the attributes attached to this procedure, mutably
+    #[inline]
+    pub fn attributes_mut(&mut self) -> &mut AttributeSet {
+        &mut self.attrs
+    }
+
+    /// Returns true if this procedure has an attribute named `name`
+    #[inline]
+    pub fn has_attribute(&self, name: impl AsRef<str>) -> bool {
+        self.attrs.has(name)
+    }
+
+    /// Returns the attribute named `name`, if present
+    #[inline]
+    pub fn get_attribute(&self, name: impl AsRef<str>) -> Option<&Attribute> {
+        self.attrs.get(name)
     }
 
     /// Returns a reference to the [Block] containing the body of this procedure.
@@ -216,6 +252,15 @@ impl crate::prettier::PrettyPrint for Procedure {
                 .unwrap_or(Document::Empty);
         }
 
+        if !self.attrs.is_empty() {
+            doc = self
+                .attrs
+                .iter()
+                .map(|attr| attr.render())
+                .reduce(|acc, attr| acc + nl() + attr)
+                .unwrap_or(Document::Empty);
+        }
+
         doc += display(self.visibility) + const_text(".") + display(&self.name);
         if self.num_locals > 0 {
             doc += const_text(".") + display(self.num_locals);
@@ -231,6 +276,7 @@ impl fmt::Debug for Procedure {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         f.debug_struct("Procedure")
             .field("docs", &self.docs)
+            .field("attrs", &self.attrs)
             .field("name", &self.name)
             .field("visibility", &self.visibility)
             .field("num_locals", &self.num_locals)
@@ -248,6 +294,7 @@ impl PartialEq for Procedure {
             && self.visibility == other.visibility
             && self.num_locals == other.num_locals
             && self.body == other.body
+            && self.attrs == other.attrs
             && self.docs == other.docs
     }
 }

@@ -81,3 +81,12 @@ fn assert_eq_fail() {
         }
     );
 }
+
+// EMITTING EVENTS
+// ================================================================================================
+
+#[test]
+fn emit() {
+    let test = build_op_test!("emit.42", &[0, 0, 0, 0]);
+    test.prove_and_verify(vec![], false);
+}

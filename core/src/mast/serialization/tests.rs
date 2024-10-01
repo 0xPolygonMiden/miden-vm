@@ -104,9 +104,10 @@ fn confirm_operation_and_decorator_structure() {
         Operation::MrUpdate => (),
         Operation::FriE2F4 => (),
         Operation::RCombBase => (),
+        Operation::Emit(_) => (),
     };
 
-    match Decorator::Event(0) {
+    match Decorator::Trace(0) {
         Decorator::Advice(advice) => match advice {
             AdviceInjector::MerkleNodeMerge => (),
             AdviceInjector::MerkleNodeToStack => (),
@@ -136,7 +137,6 @@ fn confirm_operation_and_decorator_structure() {
             DebugOptions::MemInterval(..) => (),
             DebugOptions::LocalInterval(..) => (),
         },
-        Decorator::Event(_) => (),
         Decorator::Trace(_) => (),
     };
 }
@@ -236,6 +236,7 @@ fn serialize_deserialize_all_nodes() {
             Operation::MrUpdate,
             Operation::FriE2F4,
             Operation::RCombBase,
+            Operation::Emit(42),
         ];
 
         let num_operations = operations.len();
@@ -288,7 +289,6 @@ fn serialize_deserialize_all_nodes() {
             (15, Decorator::Debug(DebugOptions::MemAll)),
             (15, Decorator::Debug(DebugOptions::MemInterval(0, 16))),
             (17, Decorator::Debug(DebugOptions::LocalInterval(1, 2, 3))),
-            (num_operations, Decorator::Event(45)),
             (num_operations, Decorator::Trace(55)),
         ];
 

@@ -234,6 +234,26 @@ pub enum ParsingError {
         #[label]
         span: SourceSpan,
     },
+    #[error("conflicting attributes for procedure definition")]
+    #[diagnostic()]
+    AttributeConflict {
+        #[label(
+            "conflict occurs because an attribute with the same name has already been defined"
+        )]
+        span: SourceSpan,
+        #[label("previously defined here")]
+        prev: SourceSpan,
+    },
+    #[error("conflicting key-value attributes for procedure definition")]
+    #[diagnostic()]
+    AttributeKeyValueConflict {
+        #[label(
+            "conflict occurs because a key with the same name has already been set in a previous declaration"
+        )]
+        span: SourceSpan,
+        #[label("previously defined here")]
+        prev: SourceSpan,
+    },
 }
 
 impl ParsingError {

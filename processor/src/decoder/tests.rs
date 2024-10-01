@@ -115,8 +115,8 @@ fn basic_block_small() {
 
     // --- check block address, op_bits, group count, op_index, and in_span columns ---------------
     check_op_decoding(&trace, 0, ZERO, Operation::Span, 4, 0, 0);
-    check_op_decoding(&trace, 1, INIT_ADDR, Operation::Push(iv[0]), 3, 0, 1);
-    check_op_decoding(&trace, 2, INIT_ADDR, Operation::Push(iv[1]), 2, 1, 1);
+    check_op_decoding(&trace, 1, INIT_ADDR, Operation::Push(ONE), 3, 0, 1);
+    check_op_decoding(&trace, 2, INIT_ADDR, Operation::Emit(1), 2, 1, 1);
     check_op_decoding(&trace, 3, INIT_ADDR, Operation::Add, 1, 2, 1);
     check_op_decoding(&trace, 4, INIT_ADDR, Operation::Swap, 1, 3, 1);
     check_op_decoding(&trace, 5, INIT_ADDR, Operation::Drop, 1, 4, 1);
@@ -146,6 +146,57 @@ fn basic_block_small() {
 
     // HALT opcode and program hash gets propagated to the last row
     for i in 8..trace_len {
+        assert!(contains_op(&trace, i, Operation::Halt));
+        assert_eq!(ZERO, trace[OP_BITS_EXTRA_COLS_RANGE.start][i]);
+        assert_eq!(ONE, trace[OP_BITS_EXTRA_COLS_RANGE.start + 1][i]);
+        assert_eq!(program_hash, get_hasher_state1(&trace, i));
+    }
+}
+
+#[test]
+fn basic_block_small_with_emit() {
+    let ops = vec![Operation::Push(ONE), Operation::Emit(1), Operation::Add];
+    let basic_block = BasicBlockNode::new(ops.clone(), None).unwrap();
+    let program = {
+        let mut mast_forest = MastForest::new();
+
+        let basic_block_node = MastNode::Block(basic_block.clone());
+        let basic_block_id = mast_forest.add_node(basic_block_node).unwrap();
+        mast_forest.make_root(basic_block_id);
+
+        Program::new(mast_forest.into(), basic_block_id)
+    };
+
+    let (trace, trace_len) = build_trace(&[], &program);
+
+    // --- check block address, op_bits, group count, op_index, and in_span columns ---------------
+    check_op_decoding(&trace, 0, ZERO, Operation::Span, 4, 0, 0);
+    check_op_decoding(&trace, 1, INIT_ADDR, Operation::Push(ONE), 3, 0, 1);
+    check_op_decoding(&trace, 2, INIT_ADDR, Operation::Emit(1), 2, 1, 1);
+    check_op_decoding(&trace, 3, INIT_ADDR, Operation::Add, 1, 2, 1);
+    // starting new group: NOOP group is inserted by the processor to make sure number of groups
+    // is a power of two
+    check_op_decoding(&trace, 4, INIT_ADDR, Operation::Noop, 0, 0, 1);
+    check_op_decoding(&trace, 5, INIT_ADDR, Operation::End, 0, 0, 0);
+    check_op_decoding(&trace, 6, ZERO, Operation::Halt, 0, 0, 0);
+
+    // --- check hasher state columns -------------------------------------------------------------
+    let program_hash: Word = program.hash().into();
+    check_hasher_state(
+        &trace,
+        vec![
+            basic_block.op_batches()[0].groups().to_vec(),
+            vec![build_op_group(&ops[1..])],
+            // emit(1)
+            vec![build_op_group(&ops[2..]), ZERO, ONE],
+            vec![],
+            vec![],
+            program_hash.to_vec(), // last row should contain program hash
+        ],
+    );
+
+    // HALT opcode and program hash gets propagated to the last row
+    for i in 7..trace_len {
         assert!(contains_op(&trace, i, Operation::Halt));
         assert_eq!(ZERO, trace[OP_BITS_EXTRA_COLS_RANGE.start][i]);
         assert_eq!(ONE, trace[OP_BITS_EXTRA_COLS_RANGE.start + 1][i]);
