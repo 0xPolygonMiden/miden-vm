@@ -25,6 +25,7 @@
 - Fixed the construction of the block hash table (#1506)
 - Fixed a bug in the block stack table (#1511)
 - Fixed the construction of the chiplets virtual table (#1514)
+- Fixed the construction of the chiplets bus (#1516)
 
 #### Fixes
 
