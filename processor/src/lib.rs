@@ -410,9 +410,10 @@ where
     /// expected to be either in the current `program` or in the host.
     #[inline(always)]
     fn execute_dyn_node(&mut self, program: &MastForest) -> Result<(), ExecutionError> {
+        self.start_dyn_node()?;
+
         // get target hash from the stack
         let callee_hash = self.stack.get_word(0);
-        self.start_dyn_node(callee_hash)?;
 
         // if the callee is not in the program's MAST forest, try to find a MAST forest for it in
         // the host (corresponding to an external library loaded in the host); if none are

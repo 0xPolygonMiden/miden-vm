@@ -1277,9 +1277,9 @@ fn dyn_block() {
     assert_eq!(join_hash, get_hasher_state1(&trace, 8));
     assert_eq!([ZERO, ZERO, ZERO, ZERO], get_hasher_state2(&trace, 8));
 
-    // at the start of the DYN block, the hasher state is set to the hash of its child (foo span)
+    // at the start of the DYN block, the hasher state is set to ZERO
     let foo_hash: Word = foo_root_node.digest().into();
-    assert_eq!(foo_hash, get_hasher_state1(&trace, 9));
+    assert_eq!([ZERO, ZERO, ZERO, ZERO], get_hasher_state1(&trace, 9));
     assert_eq!([ZERO, ZERO, ZERO, ZERO], get_hasher_state2(&trace, 9));
 
     // at the end of the DYN SPAN, the hasher state is set to the hash of the foo span
