@@ -13,7 +13,7 @@ use super::{Felt, OverflowTableRow, Stack, StackInputs, MIN_STACK_DEPTH, ONE, ZE
 
 type StackHelpersState = [Felt; NUM_STACK_HELPER_COLS];
 
-// INITIALIZATION TESTS
+// INITIALIZATION TEST
 // ================================================================================================
 
 #[test]
@@ -35,8 +35,11 @@ fn initialize() {
     assert_eq!(stack.helpers_state(), expected_helpers);
 }
 
+// OVERFLOW TEST
+// ================================================================================================
+
 #[test]
-fn initialize_overflow() {
+fn stack_overflow() {
     // Initialize a new fully loaded stack.
     let mut stack_values_holder: [u64; 19] =
         [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19];
@@ -185,8 +188,7 @@ fn shift_right() {
 
 #[test]
 fn start_restore_context() {
-    let stack_init = (0..16).map(|v| v as u64 + 1);
-    let stack = StackInputs::try_from_ints(stack_init).unwrap();
+    let stack = StackInputs::try_from_ints(1..17).unwrap();
     let mut stack = Stack::new(&stack, 8, false);
 
     // ----- when overflow table is empty -------------------------------------

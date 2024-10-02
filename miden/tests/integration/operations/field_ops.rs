@@ -190,9 +190,7 @@ fn div_b() {
         "11 |",
         "12 | begin div.0 exec.truncate_stack end",
         "   :       ^^^^^",
-        "13 |",
-        "   `----",
-        r#" help: expected primitive opcode (e.g. "add"), or "end", or control flow opcode (e.g. "if.true")"#
+        "   `----"
     );
 
     let test = build_op_test!(build_asm_op(2), &[4]);
@@ -253,7 +251,6 @@ fn neg_fail() {
         "12 | begin neg.1 exec.truncate_stack end",
         "   :          |",
         "   :          `-- found a . here",
-        "13 |",
         "   `----",
         r#" help: expected primitive opcode (e.g. "add"), or "end", or control flow opcode (e.g. "if.true")"#
     );
@@ -297,7 +294,6 @@ fn inv_fail() {
         "12 | begin inv.1 exec.truncate_stack end",
         "   :          |",
         "   :          `-- found a . here",
-        "13 |",
         "   `----",
         r#" help: expected primitive opcode (e.g. "add"), or "end", or control flow opcode (e.g. "if.true")"#
     );
@@ -380,7 +376,6 @@ fn exp_bits_length_fail() {
         "11 |",
         "12 | begin exp.u65 exec.truncate_stack end",
         "   :            ^^",
-        "13 |",
         "   `----",
         r#" help: expected primitive opcode (e.g. "add"), or "end", or control flow opcode (e.g. "if.true")"#
     );

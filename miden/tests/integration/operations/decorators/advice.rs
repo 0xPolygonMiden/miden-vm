@@ -7,7 +7,7 @@ use test_utils::{
     expect_exec_error,
     rand::{rand_array, rand_value},
     serde::Serializable,
-    Felt, TRUNCATE_STACK,
+    Felt, TRUNCATE_STACK_PROC,
 };
 
 const ADVICE_PUSH_SIG: &str = "
@@ -67,7 +67,7 @@ fn advice_push_u64div_repeat() {
     // Finally the first 2 elements of the stack are removed
     let source = format!(
         "
-    {TRUNCATE_STACK}
+    {TRUNCATE_STACK_PROC}
     
     begin
         repeat.7

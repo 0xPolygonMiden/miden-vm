@@ -1,4 +1,4 @@
-use super::{apply_permutation, build_op_test, build_test, Felt, ToElements, TRUNCATE_STACK};
+use super::{apply_permutation, build_op_test, build_test, Felt, ToElements, TRUNCATE_STACK_PROC};
 
 // LOADING SINGLE ELEMENT ONTO THE STACK (MLOAD)
 // ================================================================================================
@@ -93,7 +93,7 @@ fn mem_storew() {
 fn mem_stream() {
     let source = format!(
         "
-        {TRUNCATE_STACK}
+        {TRUNCATE_STACK_PROC}
 
         begin
             push.1
@@ -132,7 +132,7 @@ fn mem_stream() {
 fn mem_stream_with_hperm() {
     let source = format!(
         "
-        {TRUNCATE_STACK}
+        {TRUNCATE_STACK_PROC}
 
         begin
             push.1

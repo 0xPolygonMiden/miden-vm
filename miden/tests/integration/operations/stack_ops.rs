@@ -66,7 +66,6 @@ fn dupn_fail() {
         "11 |",
         "12 | begin dup.16 exec.truncate_stack end",
         "   :           ^^",
-        "13 |",
         "  `----"
     );
 }
@@ -103,7 +102,6 @@ fn dupwn_fail() {
         "11 |",
         "12 | begin dupw.4 exec.truncate_stack end",
         "   :            ^",
-        "13 |",
         "  `----"
     );
 }
@@ -140,7 +138,6 @@ fn swapn_fail() {
         "11 |",
         "12 | begin swap.16 exec.truncate_stack end",
         "   :            ^^",
-        "13 |",
         "  `----"
     );
 }
@@ -177,7 +174,6 @@ fn swapwn_fail() {
         "11 |",
         "12 | begin swapw.4 exec.truncate_stack end",
         "   :             ^",
-        "13 |",
         "   `----"
     );
 }
@@ -211,7 +207,6 @@ fn movup_fail() {
         "11 |",
         "12 | begin movup.0 exec.truncate_stack end",
         "   :             ^",
-        "13 |",
         "  `----"
     );
 
@@ -225,7 +220,6 @@ fn movup_fail() {
         "11 |",
         "12 | begin movup.1 exec.truncate_stack end",
         "   :             ^",
-        "13 |",
         "  `----"
     );
 
@@ -239,7 +233,6 @@ fn movup_fail() {
         "11 |",
         "12 | begin movup.16 exec.truncate_stack end",
         "   :             ^^",
-        "13 |",
         "  `----"
     );
 }
@@ -264,7 +257,6 @@ fn movupw_fail() {
         "11 |",
         "12 | begin movupw.0 exec.truncate_stack end",
         "   :              ^",
-        "13 |",
         "  `----"
     );
 
@@ -278,7 +270,6 @@ fn movupw_fail() {
         "11 |",
         "12 | begin movupw.1 exec.truncate_stack end",
         "   :              ^",
-        "13 |",
         "  `----"
     );
 
@@ -292,7 +283,6 @@ fn movupw_fail() {
         "11 |",
         "12 | begin movupw.4 exec.truncate_stack end",
         "   :              ^",
-        "13 |",
         "  `----"
     );
 }
@@ -317,7 +307,6 @@ fn movdn_fail() {
         "11 |",
         "12 | begin movdn.0 exec.truncate_stack end",
         "   :             ^",
-        "13 |",
         "  `----"
     );
 
@@ -331,7 +320,6 @@ fn movdn_fail() {
         "11 |",
         "12 | begin movdn.1 exec.truncate_stack end",
         "   :             ^",
-        "13 |",
         "  `----"
     );
 
@@ -345,7 +333,6 @@ fn movdn_fail() {
         "11 |",
         "12 | begin movdn.16 exec.truncate_stack end",
         "   :             ^^",
-        "13 |",
         "  `----"
     );
 }
@@ -370,7 +357,6 @@ fn movdnw_fail() {
         "11 |",
         "12 | begin movdnw.0 exec.truncate_stack end",
         "   :              ^",
-        "13 |",
         "  `----"
     );
 
@@ -384,7 +370,6 @@ fn movdnw_fail() {
         "11 |",
         "12 | begin movdnw.1 exec.truncate_stack end",
         "   :              ^",
-        "13 |",
         "  `----"
     );
 
@@ -398,7 +383,6 @@ fn movdnw_fail() {
         "11 |",
         "12 | begin movdnw.4 exec.truncate_stack end",
         "   :              ^",
-        "13 |",
         "  `----"
     );
 }

@@ -128,6 +128,9 @@ impl Stack {
     }
 
     /// Returns [StackOutputs] consisting of all values on the stack.
+    ///
+    /// # Errors
+    /// Returns an error if the overflow table is not empty at the current clock cycle.
     pub fn build_stack_outputs(&self) -> Result<StackOutputs, ExecutionError> {
         if self.overflow.num_active_rows() != 0 {
             return Err(ExecutionError::OutputStackOverflow(self.overflow.num_active_rows()));

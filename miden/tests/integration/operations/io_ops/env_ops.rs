@@ -6,7 +6,7 @@ use vm_core::{
     Operation,
 };
 
-use super::TRUNCATE_STACK;
+use super::TRUNCATE_STACK_PROC;
 
 // SDEPTH INSTRUCTION
 // ================================================================================================
@@ -27,7 +27,7 @@ fn sdepth() {
     // push 2 values to increase the lenth of the stack beyond 16
     let source = format!(
         "
-    {TRUNCATE_STACK}
+    {TRUNCATE_STACK_PROC}
 
     begin 
         push.1 
@@ -84,7 +84,7 @@ fn locaddr() {
     // --- locaddr returns expected addresses in nested procedures --------------------------------
     let source = format!(
         "
-        {TRUNCATE_STACK}
+        {TRUNCATE_STACK_PROC}
 
         proc.foo.3
             locaddr.0

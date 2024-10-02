@@ -2,7 +2,7 @@ use processor::{ExecutionError, ExecutionError::AdviceStackReadFailed};
 use test_utils::expect_exec_error;
 use vm_core::{chiplets::hasher::apply_permutation, utils::ToElements, Felt};
 
-use super::{build_op_test, build_test, TRUNCATE_STACK};
+use super::{build_op_test, build_test, TRUNCATE_STACK_PROC};
 
 // PUSHING VALUES ONTO THE STACK (PUSH)
 // ================================================================================================
@@ -63,7 +63,7 @@ fn adv_loadw_invalid() {
 fn adv_pipe() {
     let source = format!(
         "
-        {TRUNCATE_STACK}
+        {TRUNCATE_STACK_PROC}
 
         begin
             push.12.11.10.9.8.7.6.5.4.3.2.1
@@ -96,7 +96,7 @@ fn adv_pipe() {
 fn adv_pipe_with_hperm() {
     let source = format!(
         "
-        {TRUNCATE_STACK}
+        {TRUNCATE_STACK_PROC}
 
         begin
             push.12.11.10.9.8.7.6.5.4.3.2.1

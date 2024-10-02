@@ -173,7 +173,7 @@ where
 mod tests {
     use alloc::{borrow::ToOwned, vec::Vec};
 
-    use test_utils::{build_test, rand::rand_array};
+    use test_utils::{build_test, rand::rand_array, TRUNCATE_STACK_PROC};
     use vm_core::{Felt, FieldElement, Operation, StackInputs, ONE, ZERO};
 
     use crate::{ContextId, Process, QuadFelt};
@@ -272,16 +272,9 @@ mod tests {
 
     #[test]
     fn prove_verify() {
-        let source = "
-            proc.truncate_stack.1
-                loc_storew.0 dropw movupw.3
-                sdepth neq.16
-                while.true
-                    dropw movupw.3
-                    sdepth neq.16
-                end
-                loc_loadw.0
-            end
+        let source = format!(
+            "
+            {TRUNCATE_STACK_PROC}
 
             begin
                 # I) Prepare memory and stack
@@ -324,7 +317,8 @@ mod tests {
 
                 exec.truncate_stack
             end
-        ";
+        "
+        );
 
         // generate the data
         let tx: [Felt; 8] = rand_array();

@@ -1,4 +1,4 @@
-use super::{build_test, TRUNCATE_STACK};
+use super::{build_test, TRUNCATE_STACK_PROC};
 
 // PUSHING VALUES ONTO THE STACK (PUSH)
 // ================================================================================================
@@ -91,7 +91,7 @@ fn storew_local() {
     // --- test write to local memory -------------------------------------------------------------
     let source = format!(
         "
-        {TRUNCATE_STACK}
+        {TRUNCATE_STACK_PROC}
 
         proc.foo.2
             loc_storew.0

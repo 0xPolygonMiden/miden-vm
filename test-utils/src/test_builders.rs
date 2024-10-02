@@ -28,8 +28,7 @@ proc.truncate_stack.1
     loc_loadw.0
 end
 
-begin {} exec.truncate_stack end
-        ",
+begin {} exec.truncate_stack end",
             $op_str
         );
         $crate::build_test!(&source)
@@ -46,8 +45,7 @@ proc.truncate_stack.1
     loc_loadw.0
 end
 
-begin {} exec.truncate_stack end
-        ",
+begin {} exec.truncate_stack end",
             $op_str
         );
         $crate::build_test!(&source, $($tail)+)

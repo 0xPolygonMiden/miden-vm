@@ -1,4 +1,6 @@
-use test_utils::{build_test, push_inputs, rand::rand_array, Felt, FieldElement, TRUNCATE_STACK};
+use test_utils::{
+    build_test, push_inputs, rand::rand_array, Felt, FieldElement, TRUNCATE_STACK_PROC,
+};
 
 // FRI_EXT2FOLD4
 // ================================================================================================
@@ -20,7 +22,7 @@ fn fri_ext2fold4() {
 
     let source = format!(
         "
-        {TRUNCATE_STACK}
+        {TRUNCATE_STACK_PROC}
         
         begin
             {inputs}

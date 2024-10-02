@@ -69,7 +69,7 @@ pub type QuadFelt = vm_core::QuadExtension<Felt>;
 pub const U32_BOUND: u64 = u32::MAX as u64 + 1;
 
 /// A source code of the `truncate_stack` procedure.
-pub const TRUNCATE_STACK: &str = "
+pub const TRUNCATE_STACK_PROC: &str = "
 proc.truncate_stack.1
     loc_storew.0 dropw movupw.3
     sdepth neq.16
@@ -262,7 +262,7 @@ impl Test {
             let mem_state =
                 process.get_mem_value(ContextId::root(), mem_start_addr).unwrap_or(EMPTY_WORD);
 
-            let mem_state = felt_vec_to_ints(&mem_state);
+            let mem_state = felt_array_to_ints(&mem_state);
             assert_eq!(
                 data, mem_state,
                 "Expected memory [{}] => {:?}, found {:?}",
@@ -424,7 +424,7 @@ impl Test {
 // ================================================================================================
 
 /// Converts an array of Felts into u64
-pub fn felt_vec_to_ints(values: &[Felt]) -> Vec<u64> {
+pub fn felt_array_to_ints(values: &[Felt]) -> Vec<u64> {
     values.iter().map(|e| (*e).as_int()).collect()
 }
 
