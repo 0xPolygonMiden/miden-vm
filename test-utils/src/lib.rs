@@ -262,7 +262,7 @@ impl Test {
             let mem_state =
                 process.get_mem_value(ContextId::root(), mem_start_addr).unwrap_or(EMPTY_WORD);
 
-            let mem_state = felt_array_to_ints(&mem_state);
+            let mem_state = felt_slice_to_ints(&mem_state);
             assert_eq!(
                 data, mem_state,
                 "Expected memory [{}] => {:?}, found {:?}",
@@ -423,8 +423,8 @@ impl Test {
 // HELPER FUNCTIONS
 // ================================================================================================
 
-/// Converts an array of Felts into u64
-pub fn felt_array_to_ints(values: &[Felt]) -> Vec<u64> {
+/// Converts a slice of Felts into a vector of u64 values.
+pub fn felt_slice_to_ints(values: &[Felt]) -> Vec<u64> {
     values.iter().map(|e| (*e).as_int()).collect()
 }
 
