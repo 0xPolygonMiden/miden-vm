@@ -14,7 +14,7 @@ use vm_core::{
     mast::{
         BasicBlockNode, CallNode, DynNode, JoinNode, LoopNode, MastForest, SplitNode, OP_BATCH_SIZE,
     },
-    stack::STACK_TOP_SIZE,
+    stack::MIN_STACK_DEPTH,
     AssemblyOp,
 };
 
@@ -261,7 +261,7 @@ where
     pub(super) fn end_call_node(&mut self, node: &CallNode) -> Result<(), ExecutionError> {
         // when a CALL block ends, stack depth must be exactly 16
         let stack_depth = self.stack.depth();
-        if stack_depth > STACK_TOP_SIZE {
+        if stack_depth > MIN_STACK_DEPTH {
             return Err(ExecutionError::InvalidStackDepthOnReturn(stack_depth));
         }
 

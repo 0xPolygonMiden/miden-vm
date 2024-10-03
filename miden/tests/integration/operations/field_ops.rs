@@ -187,9 +187,10 @@ fn div_b() {
         test,
         "invalid constant expression: division by zero",
         regex!(r#",-\[test[\d]+:[\d]+:[\d]+\]"#),
-        "1 | begin div.0 end",
-        "  :       ^^^^^",
-        "  `----"
+        "11 |",
+        "12 | begin div.0 exec.truncate_stack end",
+        "   :       ^^^^^",
+        "   `----"
     );
 
     let test = build_op_test!(build_asm_op(2), &[4]);
@@ -212,7 +213,7 @@ fn div_fail() {
 
     // --- test divide by zero --------------------------------------------------------------------
     let test = build_op_test!(asm_op, &[1, 0]);
-    expect_exec_error!(test, ExecutionError::DivideByZero(1.into()));
+    expect_exec_error!(test, ExecutionError::DivideByZero(2.into()));
 }
 
 #[test]
@@ -246,10 +247,11 @@ fn neg_fail() {
         test,
         "invalid syntax",
         regex!(r#",-\[test[\d]+:[\d]+:[\d]+\]"#),
-        "1 | begin neg.1 end",
-        "  :          |",
-        "  :          `-- found a . here",
-        "  `----",
+        "11 |",
+        "12 | begin neg.1 exec.truncate_stack end",
+        "   :          |",
+        "   :          `-- found a . here",
+        "   `----",
         r#" help: expected primitive opcode (e.g. "add"), or "end", or control flow opcode (e.g. "if.true")"#
     );
 }
@@ -277,7 +279,7 @@ fn inv_fail() {
 
     // --- test no inv on 0 -----------------------------------------------------------------------
     let test = build_op_test!(asm_op, &[0]);
-    expect_exec_error!(test, ExecutionError::DivideByZero(1.into()));
+    expect_exec_error!(test, ExecutionError::DivideByZero(2.into()));
 
     let asm_op = "inv.1";
 
@@ -288,10 +290,11 @@ fn inv_fail() {
         test,
         "invalid syntax",
         regex!(r#",-\[test[\d]+:[\d]+:[\d]+\]"#),
-        "1 | begin inv.1 end",
-        "  :          |",
-        "  :          `-- found a . here",
-        "  `----",
+        "11 |",
+        "12 | begin inv.1 exec.truncate_stack end",
+        "   :          |",
+        "   :          `-- found a . here",
+        "   `----",
         r#" help: expected primitive opcode (e.g. "add"), or "end", or control flow opcode (e.g. "if.true")"#
     );
 }
@@ -318,7 +321,7 @@ fn pow2_fail() {
     expect_exec_error!(
         test,
         ExecutionError::FailedAssertion {
-            clk: 16.into(),
+            clk: 17.into(),
             err_code: 0,
             err_msg: None,
         }
@@ -353,7 +356,7 @@ fn exp_bits_length_fail() {
     expect_exec_error!(
         test,
         ExecutionError::FailedAssertion {
-            clk: 18.into(),
+            clk: 19.into(),
             err_code: 0,
             err_msg: None
         }
@@ -370,9 +373,11 @@ fn exp_bits_length_fail() {
         test,
         "invalid literal: expected value to be a valid bit size, e.g. 0..63",
         regex!(r#",-\[test[\d]+:[\d]+:[\d]+\]"#),
-        "1 | begin exp.u65 end",
-        "  :            ^^",
-        "  `----"
+        "11 |",
+        "12 | begin exp.u65 exec.truncate_stack end",
+        "   :            ^^",
+        "   `----",
+        r#" help: expected primitive opcode (e.g. "add"), or "end", or control flow opcode (e.g. "if.true")"#
     );
 }
 
@@ -402,7 +407,7 @@ fn ilog2_fail() {
     let asm_op = "ilog2";
 
     let test = build_op_test!(asm_op, &[0]);
-    expect_exec_error!(test, ExecutionError::LogArgumentZero(1.into()));
+    expect_exec_error!(test, ExecutionError::LogArgumentZero(2.into()));
 }
 
 // FIELD OPS BOOLEAN - MANUAL TESTS

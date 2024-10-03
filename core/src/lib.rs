@@ -124,8 +124,3 @@ pub mod stack;
 pub use stack::{StackInputs, StackOutputs};
 
 pub mod utils;
-
-// TYPE ALIASES
-// ================================================================================================
-
-pub type StackTopState = [Felt; stack::STACK_TOP_SIZE];

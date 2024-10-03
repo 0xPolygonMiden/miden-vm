@@ -173,7 +173,7 @@ where
 mod tests {
     use alloc::{borrow::ToOwned, vec::Vec};
 
-    use test_utils::{build_test, rand::rand_array};
+    use test_utils::{build_test, rand::rand_array, TRUNCATE_STACK_PROC};
     use vm_core::{Felt, FieldElement, Operation, StackInputs, ONE, ZERO};
 
     use crate::{ContextId, Process, QuadFelt};
@@ -272,46 +272,53 @@ mod tests {
 
     #[test]
     fn prove_verify() {
-        let source = "  begin
-                            # I) Prepare memory and stack
+        let source = format!(
+            "
+            {TRUNCATE_STACK_PROC}
 
-                            # 1) Load T_i(x) for i=0,..,7
-                            push.0 padw
-                            adv_pipe
+            begin
+                # I) Prepare memory and stack
 
-                            # 2) Load [T_i(z), T_i(gz)] for i=0,..,7
-                            repeat.4
-                                adv_pipe
-                            end
+                # 1) Load T_i(x) for i=0,..,7
+                push.0 padw
+                adv_pipe
 
-                            # 3) Load [a0, a1, 0, 0] for i=0,..,7
-                            repeat.4
-                                adv_pipe
-                            end
+                # 2) Load [T_i(z), T_i(gz)] for i=0,..,7
+                repeat.4
+                    adv_pipe
+                end
 
-                            # 4) Clean up stack
-                            dropw dropw dropw drop
+                # 3) Load [a0, a1, 0, 0] for i=0,..,7
+                repeat.4
+                    adv_pipe
+                end
 
-                            # 5) Prepare stack
+                # 4) Clean up stack
+                dropw dropw dropw drop
 
-                            ## a) Push pointers
-                            push.10     # a_ptr
-                            push.2      # z_ptr
-                            push.0      # x_ptr
+                # 5) Prepare stack
 
-                            ## b) Push accumulators
-                            padw
+                ## a) Push pointers
+                push.10     # a_ptr
+                push.2      # z_ptr
+                push.0      # x_ptr
 
-                            ## c) Add padding for mem_stream
-                            padw padw
+                ## b) Push accumulators
+                padw
 
-                            # II) Execute `rcomb_base` op
-                            mem_stream
-                            repeat.8
-                                rcomb_base
-                            end
-                        end
-                        ";
+                ## c) Add padding for mem_stream
+                padw padw
+
+                # II) Execute `rcomb_base` op
+                mem_stream
+                repeat.8
+                    rcomb_base
+                end
+
+                exec.truncate_stack
+            end
+        "
+        );
 
         // generate the data
         let tx: [Felt; 8] = rand_array();

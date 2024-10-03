@@ -5,7 +5,7 @@ use miden_vm::Module;
 use processor::ExecutionError;
 use prover::Digest;
 use stdlib::StdLibrary;
-use test_utils::{build_test, expect_exec_error, StackInputs, Test};
+use test_utils::{build_test, expect_exec_error, push_inputs, StackInputs, Test};
 
 // SIMPLE FLOW CONTROL TESTS
 // ================================================================================================
@@ -65,7 +65,7 @@ fn counter_controlled_loop() {
             repeat.10
                 dup.1 mul
             end
-            swap drop
+            movdn.2 drop drop
         end";
 
     let test = build_test!(source);
@@ -143,9 +143,12 @@ fn local_fn_call() {
     let build_test = build_test!(source, &[1, 2]);
     expect_exec_error!(build_test, ExecutionError::InvalidStackDepthOnReturn(17));
 
+    let inputs = (1_u64..18).collect::<Vec<_>>();
+
     // dropping values from the stack in the current execution context should not affect values
     // in the overflow table from the parent execution context
-    let source = "
+    let source = format!(
+        "
         proc.foo
             repeat.20
                 drop
@@ -153,19 +156,22 @@ fn local_fn_call() {
         end
 
         begin
+            {inputs}
             push.18
             call.foo
             repeat.16
                 drop
             end
-        end";
 
-    let inputs = (1_u64..18).collect::<Vec<_>>();
+            swapw dropw
+        end",
+        inputs = push_inputs(&inputs)
+    );
 
-    let test = build_test!(source, &inputs);
+    let test = build_test!(source, &[]);
     test.expect_stack(&[2, 1]);
 
-    test.prove_and_verify(inputs, false);
+    test.prove_and_verify(vec![], false);
 }
 
 #[test]
@@ -182,6 +188,8 @@ fn local_fn_call_with_mem_access() {
             call.foo
             mem_load.0
             eq.7
+            
+            swap drop
         end";
 
     let test = build_test!(source, &[3, 7]);
@@ -301,6 +309,8 @@ fn dynexec_with_procref() {
         dup
         push.4
         assert_eq.err=101
+
+        swap drop
     end";
 
     let mut test = build_test!(program_source, &[]);
@@ -345,6 +355,8 @@ fn simple_dyncall() {
 
             # use dyncall to call foo again via its hash, which is on the stack
             dyncall
+
+            swapw dropw
         end";
 
     // The hash of foo can be obtained with:
@@ -369,6 +381,7 @@ fn simple_dyncall() {
             2,
         ])
         .unwrap(),
+        libraries: vec![StdLibrary::default().into()],
         ..Test::new(&format!("test{}", line!()), program_source, false)
     };
 
@@ -421,6 +434,7 @@ fn procref() -> Result<(), Report> {
 
     let source = "
     use.std::math::u64
+    use.std::sys
 
     proc.foo.4
         push.3.4
@@ -430,6 +444,8 @@ fn procref() -> Result<(), Report> {
         procref.u64::overflowing_add
         push.0
         procref.foo
+
+        exec.sys::truncate_stack
     end";
 
     let mut test = build_test!(source, &[]);

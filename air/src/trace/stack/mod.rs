@@ -1,6 +1,6 @@
 use core::ops::Range;
 
-use vm_core::utils::range;
+use vm_core::{stack::MIN_STACK_DEPTH, utils::range};
 
 // CONSTANTS
 // ================================================================================================
@@ -8,12 +8,8 @@ use vm_core::utils::range;
 /// Index at which stack item columns start in the stack trace.
 pub const STACK_TOP_OFFSET: usize = 0;
 
-/// The number of stack registers which can be accessed by the VM directly. This is also the
-/// minimum stack depth enforced by the VM.
-pub const STACK_TOP_SIZE: usize = 16;
-
 /// Location of stack top items in the stack trace.
-pub const STACK_TOP_RANGE: Range<usize> = range(STACK_TOP_OFFSET, STACK_TOP_SIZE);
+pub const STACK_TOP_RANGE: Range<usize> = range(STACK_TOP_OFFSET, MIN_STACK_DEPTH);
 
 /// Number of bookkeeping and helper columns in the stack trace.
 pub const NUM_STACK_HELPER_COLS: usize = 3;

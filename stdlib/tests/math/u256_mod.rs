@@ -13,6 +13,7 @@ fn mul_unsafe() {
         use.std::math::u256
         begin
             exec.u256::mul_unsafe
+            swapdw dropw dropw
         end";
 
     let operands = a

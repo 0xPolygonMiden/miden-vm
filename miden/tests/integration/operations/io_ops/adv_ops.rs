@@ -2,7 +2,7 @@ use processor::{ExecutionError, ExecutionError::AdviceStackReadFailed};
 use test_utils::expect_exec_error;
 use vm_core::{chiplets::hasher::apply_permutation, utils::ToElements, Felt};
 
-use super::{build_op_test, build_test};
+use super::{build_op_test, build_test, TRUNCATE_STACK_PROC};
 
 // PUSHING VALUES ONTO THE STACK (PUSH)
 // ================================================================================================
@@ -32,7 +32,7 @@ fn adv_push() {
 fn adv_push_invalid() {
     // attempting to read from empty advice stack should throw an error
     let test = build_op_test!("adv_push.1");
-    expect_exec_error!(test, ExecutionError::AdviceStackReadFailed(1.into()));
+    expect_exec_error!(test, ExecutionError::AdviceStackReadFailed(2.into()));
 }
 
 // OVERWRITING VALUES ON THE STACK (LOAD)
@@ -53,7 +53,7 @@ fn adv_loadw() {
 fn adv_loadw_invalid() {
     // attempting to read from empty advice stack should throw an error
     let test = build_op_test!("adv_loadw", &[0, 0, 0, 0]);
-    expect_exec_error!(test, AdviceStackReadFailed(1.into()));
+    expect_exec_error!(test, AdviceStackReadFailed(2.into()));
 }
 
 // MOVING ELEMENTS TO MEMORY VIA THE STACK (PIPE)
@@ -61,11 +61,17 @@ fn adv_loadw_invalid() {
 
 #[test]
 fn adv_pipe() {
-    let source = "
+    let source = format!(
+        "
+        {TRUNCATE_STACK_PROC}
+
         begin
             push.12.11.10.9.8.7.6.5.4.3.2.1
             adv_pipe
-        end";
+
+            exec.truncate_stack
+        end"
+    );
 
     let advice_stack = [1, 2, 3, 4, 5, 6, 7, 8];
 
@@ -88,11 +94,17 @@ fn adv_pipe() {
 
 #[test]
 fn adv_pipe_with_hperm() {
-    let source = "
+    let source = format!(
+        "
+        {TRUNCATE_STACK_PROC}
+
         begin
             push.12.11.10.9.8.7.6.5.4.3.2.1
             adv_pipe hperm
-        end";
+
+            exec.truncate_stack
+        end"
+    );
 
     let advice_stack = [1, 2, 3, 4, 5, 6, 7, 8];
 

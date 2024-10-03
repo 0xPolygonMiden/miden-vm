@@ -1,7 +1,7 @@
 use assembly::regex;
 use test_utils::{
     assert_assembler_diagnostic, assert_diagnostic_lines, build_op_test, proptest::prelude::*,
-    STACK_TOP_SIZE, WORD_SIZE,
+    MIN_STACK_DEPTH, WORD_SIZE,
 };
 
 // STACK OPERATIONS TESTS
@@ -63,8 +63,9 @@ fn dupn_fail() {
         test,
         "invalid immediate: value must be in the range 0..16 (exclusive)",
         regex!(r#",-\[test[\d]+:[\d]+:[\d]+\]"#),
-        "1 | begin dup.16 end",
-        "  :           ^^",
+        "11 |",
+        "12 | begin dup.16 exec.truncate_stack end",
+        "   :           ^^",
         "  `----"
     );
 }
@@ -98,8 +99,9 @@ fn dupwn_fail() {
         test,
         "invalid immediate: value must be in the range 0..4 (exclusive)",
         regex!(r#",-\[test[\d]+:[\d]+:[\d]+\]"#),
-        "1 | begin dupw.4 end",
-        "  :            ^",
+        "11 |",
+        "12 | begin dupw.4 exec.truncate_stack end",
+        "   :            ^",
         "  `----"
     );
 }
@@ -133,8 +135,9 @@ fn swapn_fail() {
         test,
         "invalid immediate: value must be in the range 1..16 (exclusive)",
         regex!(r#",-\[test[\d]+:[\d]+:[\d]+\]"#),
-        "1 | begin swap.16 end",
-        "  :            ^^",
+        "11 |",
+        "12 | begin swap.16 exec.truncate_stack end",
+        "   :            ^^",
         "  `----"
     );
 }
@@ -168,9 +171,10 @@ fn swapwn_fail() {
         test,
         "invalid immediate: value must be in the range 1..4 (exclusive)",
         regex!(r#",-\[test[\d]+:[\d]+:[\d]+\]"#),
-        "1 | begin swapw.4 end",
-        "  :             ^",
-        "  `----"
+        "11 |",
+        "12 | begin swapw.4 exec.truncate_stack end",
+        "   :             ^",
+        "   `----"
     );
 }
 
@@ -200,8 +204,9 @@ fn movup_fail() {
         test,
         "invalid immediate: value must be in the range 2..16 (exclusive)",
         regex!(r#",-\[test[\d]+:[\d]+:[\d]+\]"#),
-        "1 | begin movup.0 end",
-        "  :             ^",
+        "11 |",
+        "12 | begin movup.0 exec.truncate_stack end",
+        "   :             ^",
         "  `----"
     );
 
@@ -212,8 +217,9 @@ fn movup_fail() {
         test,
         "invalid immediate: value must be in the range 2..16 (exclusive)",
         regex!(r#",-\[test[\d]+:[\d]+:[\d]+\]"#),
-        "1 | begin movup.1 end",
-        "  :             ^",
+        "11 |",
+        "12 | begin movup.1 exec.truncate_stack end",
+        "   :             ^",
         "  `----"
     );
 
@@ -224,8 +230,9 @@ fn movup_fail() {
         test,
         "invalid immediate: value must be in the range 2..16 (exclusive)",
         regex!(r#",-\[test[\d]+:[\d]+:[\d]+\]"#),
-        "1 | begin movup.16 end",
-        "  :             ^^",
+        "11 |",
+        "12 | begin movup.16 exec.truncate_stack end",
+        "   :             ^^",
         "  `----"
     );
 }
@@ -247,8 +254,9 @@ fn movupw_fail() {
         test,
         "invalid immediate: value must be in the range 2..4 (exclusive)",
         regex!(r#",-\[test[\d]+:[\d]+:[\d]+\]"#),
-        "1 | begin movupw.0 end",
-        "  :              ^",
+        "11 |",
+        "12 | begin movupw.0 exec.truncate_stack end",
+        "   :              ^",
         "  `----"
     );
 
@@ -259,8 +267,9 @@ fn movupw_fail() {
         test,
         "invalid immediate: value must be in the range 2..4 (exclusive)",
         regex!(r#",-\[test[\d]+:[\d]+:[\d]+\]"#),
-        "1 | begin movupw.1 end",
-        "  :              ^",
+        "11 |",
+        "12 | begin movupw.1 exec.truncate_stack end",
+        "   :              ^",
         "  `----"
     );
 
@@ -271,8 +280,9 @@ fn movupw_fail() {
         test,
         "invalid immediate: value must be in the range 2..4 (exclusive)",
         regex!(r#",-\[test[\d]+:[\d]+:[\d]+\]"#),
-        "1 | begin movupw.4 end",
-        "  :              ^",
+        "11 |",
+        "12 | begin movupw.4 exec.truncate_stack end",
+        "   :              ^",
         "  `----"
     );
 }
@@ -294,8 +304,9 @@ fn movdn_fail() {
         test,
         "invalid immediate: value must be in the range 2..16 (exclusive)",
         regex!(r#",-\[test[\d]+:[\d]+:[\d]+\]"#),
-        "1 | begin movdn.0 end",
-        "  :             ^",
+        "11 |",
+        "12 | begin movdn.0 exec.truncate_stack end",
+        "   :             ^",
         "  `----"
     );
 
@@ -306,8 +317,9 @@ fn movdn_fail() {
         test,
         "invalid immediate: value must be in the range 2..16 (exclusive)",
         regex!(r#",-\[test[\d]+:[\d]+:[\d]+\]"#),
-        "1 | begin movdn.1 end",
-        "  :             ^",
+        "11 |",
+        "12 | begin movdn.1 exec.truncate_stack end",
+        "   :             ^",
         "  `----"
     );
 
@@ -318,8 +330,9 @@ fn movdn_fail() {
         test,
         "invalid immediate: value must be in the range 2..16 (exclusive)",
         regex!(r#",-\[test[\d]+:[\d]+:[\d]+\]"#),
-        "1 | begin movdn.16 end",
-        "  :             ^^",
+        "11 |",
+        "12 | begin movdn.16 exec.truncate_stack end",
+        "   :             ^^",
         "  `----"
     );
 }
@@ -341,8 +354,9 @@ fn movdnw_fail() {
         test,
         "invalid immediate: value must be in the range 2..4 (exclusive)",
         regex!(r#",-\[test[\d]+:[\d]+:[\d]+\]"#),
-        "1 | begin movdnw.0 end",
-        "  :              ^",
+        "11 |",
+        "12 | begin movdnw.0 exec.truncate_stack end",
+        "   :              ^",
         "  `----"
     );
 
@@ -353,8 +367,9 @@ fn movdnw_fail() {
         test,
         "invalid immediate: value must be in the range 2..4 (exclusive)",
         regex!(r#",-\[test[\d]+:[\d]+:[\d]+\]"#),
-        "1 | begin movdnw.1 end",
-        "  :              ^",
+        "11 |",
+        "12 | begin movdnw.1 exec.truncate_stack end",
+        "   :              ^",
         "  `----"
     );
 
@@ -365,8 +380,9 @@ fn movdnw_fail() {
         test,
         "invalid immediate: value must be in the range 2..4 (exclusive)",
         regex!(r#",-\[test[\d]+:[\d]+:[\d]+\]"#),
-        "1 | begin movdnw.4 end",
-        "  :              ^",
+        "11 |",
+        "12 | begin movdnw.4 exec.truncate_stack end",
+        "   :              ^",
         "  `----"
     );
 }
@@ -419,27 +435,27 @@ fn cdropw() {
 proptest! {
 
     #[test]
-    fn drop_proptest(test_values in prop::collection::vec(any::<u64>(), STACK_TOP_SIZE)) {
+    fn drop_proptest(test_values in prop::collection::vec(any::<u64>(), MIN_STACK_DEPTH)) {
         let asm_op = "drop";
         let mut expected_values = test_values.clone();
-        expected_values.remove(STACK_TOP_SIZE - 1);
+        expected_values.remove(MIN_STACK_DEPTH - 1);
         expected_values.reverse();
         expected_values.push(0);
         build_op_test!(asm_op, &test_values).prop_expect_stack(&expected_values)?;
     }
 
     #[test]
-    fn dropw_proptest(test_values in prop::collection::vec(any::<u64>(), STACK_TOP_SIZE)) {
+    fn dropw_proptest(test_values in prop::collection::vec(any::<u64>(), MIN_STACK_DEPTH)) {
         let asm_op = "dropw";
         let mut expected_values = test_values.clone();
-        expected_values.truncate(STACK_TOP_SIZE - WORD_SIZE);
+        expected_values.truncate(MIN_STACK_DEPTH - WORD_SIZE);
         expected_values.reverse();
         expected_values.append(&mut vec![0; WORD_SIZE]);
         build_op_test!(asm_op, &test_values).prop_expect_stack(&expected_values)?;
     }
 
     #[test]
-    fn padw_proptest(test_values in prop::collection::vec(any::<u64>(), STACK_TOP_SIZE)) {
+    fn padw_proptest(test_values in prop::collection::vec(any::<u64>(), MIN_STACK_DEPTH)) {
         let asm_op = "padw";
         let mut expected_values = test_values.clone();
         expected_values.drain(0..WORD_SIZE);
@@ -449,7 +465,7 @@ proptest! {
     }
 
     #[test]
-    fn dup_proptest(test_values in prop::collection::vec(any::<u64>(), STACK_TOP_SIZE)) {
+    fn dup_proptest(test_values in prop::collection::vec(any::<u64>(), MIN_STACK_DEPTH)) {
         let asm_op = "dup";
         let mut expected_values = test_values.clone();
         expected_values.remove(0);
@@ -459,10 +475,10 @@ proptest! {
     }
 
     #[test]
-    fn dupn_proptest(test_values in prop::collection::vec(any::<u64>(), STACK_TOP_SIZE), n in 0_usize..STACK_TOP_SIZE) {
+    fn dupn_proptest(test_values in prop::collection::vec(any::<u64>(), MIN_STACK_DEPTH), n in 0_usize..MIN_STACK_DEPTH) {
         let asm_op = format!("dup.{n}");
         let mut expected_values = test_values.clone();
-        let dup_idx = STACK_TOP_SIZE - n - 1;
+        let dup_idx = MIN_STACK_DEPTH - n - 1;
         let a = expected_values[dup_idx];
         expected_values.remove(0);
         expected_values.push(a);
@@ -471,11 +487,11 @@ proptest! {
     }
 
     #[test]
-    fn dupw_proptest(test_values in prop::collection::vec(any::<u64>(), STACK_TOP_SIZE)) {
+    fn dupw_proptest(test_values in prop::collection::vec(any::<u64>(), MIN_STACK_DEPTH)) {
         let asm_op = "dupw";
         let mut expected_values = test_values.clone();
         expected_values.drain(0..WORD_SIZE);
-        let dupw_idx = STACK_TOP_SIZE - WORD_SIZE;
+        let dupw_idx = MIN_STACK_DEPTH - WORD_SIZE;
         let mut a = test_values[dupw_idx..].to_vec();
         expected_values.append(&mut a);
         expected_values.reverse();
@@ -483,12 +499,12 @@ proptest! {
     }
 
     #[test]
-    fn dupwn_proptest(test_values in prop::collection::vec(any::<u64>(), STACK_TOP_SIZE), n in 0_usize..WORD_SIZE) {
+    fn dupwn_proptest(test_values in prop::collection::vec(any::<u64>(), MIN_STACK_DEPTH), n in 0_usize..WORD_SIZE) {
         let asm_op = format!("dupw.{n}");
         let mut expected_values = test_values.clone();
         expected_values.drain(0..WORD_SIZE);
-        let start_dupw_idx = STACK_TOP_SIZE - WORD_SIZE * (n + 1);
-        let end_dupw_idx = STACK_TOP_SIZE - WORD_SIZE * n;
+        let start_dupw_idx = MIN_STACK_DEPTH - WORD_SIZE * (n + 1);
+        let end_dupw_idx = MIN_STACK_DEPTH - WORD_SIZE * n;
         let mut a = test_values[start_dupw_idx..end_dupw_idx].to_vec();
         expected_values.append(&mut a);
         expected_values.reverse();
@@ -496,7 +512,7 @@ proptest! {
     }
 
     #[test]
-    fn swap_proptest(test_values in prop::collection::vec(any::<u64>(), STACK_TOP_SIZE)) {
+    fn swap_proptest(test_values in prop::collection::vec(any::<u64>(), MIN_STACK_DEPTH)) {
         let asm_op = "swap";
         let mut expected_values = test_values.clone();
         expected_values.reverse();
@@ -505,7 +521,7 @@ proptest! {
     }
 
     #[test]
-    fn swapn_proptest(test_values in prop::collection::vec(any::<u64>(), STACK_TOP_SIZE), n in 1_usize..STACK_TOP_SIZE) {
+    fn swapn_proptest(test_values in prop::collection::vec(any::<u64>(), MIN_STACK_DEPTH), n in 1_usize..MIN_STACK_DEPTH) {
         let asm_op = format!("swap.{n}");
         let mut expected_values = test_values.clone();
         expected_values.reverse();
@@ -514,7 +530,7 @@ proptest! {
     }
 
     #[test]
-    fn swapw_proptest(test_values in prop::collection::vec(any::<u64>(), STACK_TOP_SIZE)) {
+    fn swapw_proptest(test_values in prop::collection::vec(any::<u64>(), MIN_STACK_DEPTH)) {
         let asm_op = "swapw";
         let mut expected_values = test_values.clone();
         let mut a = expected_values.split_off(WORD_SIZE * 3);
@@ -526,10 +542,10 @@ proptest! {
     }
 
     #[test]
-    fn swapwn_proptest(test_values in prop::collection::vec(any::<u64>(), STACK_TOP_SIZE), n in 1_usize..WORD_SIZE) {
+    fn swapwn_proptest(test_values in prop::collection::vec(any::<u64>(), MIN_STACK_DEPTH), n in 1_usize..WORD_SIZE) {
         let asm_op = format!("swapw.{n}");
         let mut expected_values = test_values.clone();
-        let start_swapwn_idx = WORD_SIZE * (STACK_TOP_SIZE / WORD_SIZE - n - 1);
+        let start_swapwn_idx = WORD_SIZE * (MIN_STACK_DEPTH / WORD_SIZE - n - 1);
         let mut a = expected_values.split_off(start_swapwn_idx);
         let mut b = a.split_off(WORD_SIZE);
         let mut c = b.split_off(b.len() - WORD_SIZE);
@@ -541,7 +557,7 @@ proptest! {
     }
 
     #[test]
-    fn swapdw_proptest(test_values in prop::collection::vec(any::<u64>(), STACK_TOP_SIZE)) {
+    fn swapdw_proptest(test_values in prop::collection::vec(any::<u64>(), MIN_STACK_DEPTH)) {
         let asm_op = "swapdw";
         let mut expected_values = test_values[..(WORD_SIZE * 2)].to_vec();
         let mut b = test_values[(WORD_SIZE * 2)..].to_vec();
@@ -552,10 +568,10 @@ proptest! {
     }
 
     #[test]
-    fn movup_proptest(test_values in prop::collection::vec(any::<u64>(), STACK_TOP_SIZE), movup_idx in 2_usize..STACK_TOP_SIZE) {
+    fn movup_proptest(test_values in prop::collection::vec(any::<u64>(), MIN_STACK_DEPTH), movup_idx in 2_usize..MIN_STACK_DEPTH) {
         let asm_op = format!("movup.{movup_idx}");
         let mut expected_values = test_values.clone();
-        let idx1 = STACK_TOP_SIZE - movup_idx - 1;
+        let idx1 = MIN_STACK_DEPTH - movup_idx - 1;
         let movup_value = expected_values[idx1];
         expected_values.remove(idx1);
         expected_values.push(movup_value);
@@ -564,10 +580,10 @@ proptest! {
     }
 
     #[test]
-    fn movupw_proptest(test_values in prop::collection::vec(any::<u64>(), STACK_TOP_SIZE), movupw_idx in 2_usize..WORD_SIZE) {
+    fn movupw_proptest(test_values in prop::collection::vec(any::<u64>(), MIN_STACK_DEPTH), movupw_idx in 2_usize..WORD_SIZE) {
         let asm_op = format!("movupw.{movupw_idx}");
-        let start_movupw_idx = STACK_TOP_SIZE - (movupw_idx + 1) * WORD_SIZE;
-        let end_movupw_idx = STACK_TOP_SIZE - movupw_idx * WORD_SIZE;
+        let start_movupw_idx = MIN_STACK_DEPTH - (movupw_idx + 1) * WORD_SIZE;
+        let end_movupw_idx = MIN_STACK_DEPTH - movupw_idx * WORD_SIZE;
         let mut movupw_values = test_values[start_movupw_idx..end_movupw_idx].to_vec();
         let mut expected_values = test_values[..start_movupw_idx].to_vec();
         expected_values.append(&mut test_values[end_movupw_idx..].to_vec());
@@ -577,10 +593,10 @@ proptest! {
     }
 
     #[test]
-    fn movdn_proptest(test_values in prop::collection::vec(any::<u64>(), STACK_TOP_SIZE), movdn_idx in 2_usize..STACK_TOP_SIZE) {
+    fn movdn_proptest(test_values in prop::collection::vec(any::<u64>(), MIN_STACK_DEPTH), movdn_idx in 2_usize..MIN_STACK_DEPTH) {
         let asm_op = format!("movdn.{movdn_idx}");
         let mut expected_values = test_values.clone();
-        let idx1 = STACK_TOP_SIZE - 1;
+        let idx1 = MIN_STACK_DEPTH - 1;
         let movdn_value = expected_values[idx1];
         expected_values.remove(idx1);
         expected_values.insert(idx1 - movdn_idx, movdn_value);
@@ -589,10 +605,10 @@ proptest! {
     }
 
     #[test]
-    fn movdnw_proptest(test_values in prop::collection::vec(any::<u64>(), STACK_TOP_SIZE), movdnw_idx in 2_usize..WORD_SIZE) {
+    fn movdnw_proptest(test_values in prop::collection::vec(any::<u64>(), MIN_STACK_DEPTH), movdnw_idx in 2_usize..WORD_SIZE) {
         let asm_op = format!("movdnw.{movdnw_idx}");
-        let idx1 = STACK_TOP_SIZE - (movdnw_idx + 1) * WORD_SIZE;
-        let movdnw_idx = STACK_TOP_SIZE - WORD_SIZE;
+        let idx1 = MIN_STACK_DEPTH - (movdnw_idx + 1) * WORD_SIZE;
+        let movdnw_idx = MIN_STACK_DEPTH - WORD_SIZE;
         let mut movdnw_values = test_values[movdnw_idx..].to_vec();
         let mut expected_values = test_values[..idx1].to_vec();
         expected_values.append(&mut movdnw_values);
@@ -602,7 +618,7 @@ proptest! {
     }
 
     #[test]
-    fn cswap_proptest(mut test_values in prop::collection::vec(any::<u64>(), STACK_TOP_SIZE - 1), c in 0_u64..2) {
+    fn cswap_proptest(mut test_values in prop::collection::vec(any::<u64>(), MIN_STACK_DEPTH - 1), c in 0_u64..2) {
         let asm_op = "cswap";
         test_values.push(c);
         let mut expected_values = test_values.clone();
@@ -616,7 +632,7 @@ proptest! {
     }
 
     #[test]
-    fn cswapw_proptest(mut test_values in prop::collection::vec(any::<u64>(), STACK_TOP_SIZE - 1), c in 0_u64..2) {
+    fn cswapw_proptest(mut test_values in prop::collection::vec(any::<u64>(), MIN_STACK_DEPTH - 1), c in 0_u64..2) {
         let asm_op = "cswapw";
         let mut a = test_values.clone();
         a.reverse();
@@ -634,7 +650,7 @@ proptest! {
     }
 
     #[test]
-    fn cdrop_proptest(mut test_values in prop::collection::vec(any::<u64>(), STACK_TOP_SIZE - 1), c in 0_u64..2) {
+    fn cdrop_proptest(mut test_values in prop::collection::vec(any::<u64>(), MIN_STACK_DEPTH - 1), c in 0_u64..2) {
         let asm_op = "cdrop";
         test_values.push(c);
         let mut expected_values = test_values.clone();
@@ -651,7 +667,7 @@ proptest! {
     }
 
     #[test]
-    fn cdropw_proptest(mut test_values in prop::collection::vec(any::<u64>(), STACK_TOP_SIZE - 1), c in 0_u64..2) {
+    fn cdropw_proptest(mut test_values in prop::collection::vec(any::<u64>(), MIN_STACK_DEPTH - 1), c in 0_u64..2) {
         let asm_op = "cdropw";
         let mut a = test_values.clone();
         a.reverse();

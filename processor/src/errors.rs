@@ -6,7 +6,7 @@ use std::error::Error;
 use miden_air::RowIndex;
 use vm_core::{
     mast::{DecoratorId, MastNodeId},
-    stack::STACK_TOP_SIZE,
+    stack::MIN_STACK_DEPTH,
     utils::to_hex,
 };
 use winter_prover::{math::FieldElement, ProverError};
@@ -79,6 +79,7 @@ pub enum ExecutionError {
     MerkleStoreUpdateFailed(MerkleError),
     NotBinaryValue(Felt),
     NotU32Value(Felt, Felt),
+    OutputStackOverflow(usize),
     ProgramAlreadyExecuted,
     ProverError(ProverError),
     SmtNodeNotFound(Word),
@@ -144,7 +145,7 @@ impl Display for ExecutionError {
                 write!(f, "Memory range start address cannot exceed end address, but was ({start_addr}, {end_addr})")
             },
             InvalidStackDepthOnReturn(depth) => {
-                write!(f, "When returning from a call, stack depth must be {STACK_TOP_SIZE}, but was {depth}")
+                write!(f, "When returning from a call, stack depth must be {MIN_STACK_DEPTH}, but was {depth}")
             },
             InvalidStackWordOffset(offset) => {
                 write!(f, "Stack word offset cannot exceed 12, but was {offset}")
@@ -199,6 +200,9 @@ impl Display for ExecutionError {
                     f,
                     "An operation expected a u32 value, but received {v} (error code: {err_code})"
                 )
+            },
+            OutputStackOverflow(n) => {
+                write!(f, "The stack should have at most {MIN_STACK_DEPTH} elements at the end of program execution, but had {} elements", MIN_STACK_DEPTH + n)
             },
             SmtNodeNotFound(node) => {
                 let node_hex = to_hex(Felt::elements_as_bytes(node));

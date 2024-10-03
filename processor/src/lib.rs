@@ -25,7 +25,7 @@ pub use vm_core::{
 };
 use vm_core::{
     mast::{BasicBlockNode, CallNode, JoinNode, LoopNode, OpBatch, SplitNode, OP_GROUP_SIZE},
-    Decorator, DecoratorIterator, FieldElement, StackTopState,
+    Decorator, DecoratorIterator, FieldElement,
 };
 pub use winter_prover::matrix::ColMatrix;
 
@@ -103,7 +103,6 @@ pub struct DecoderTrace {
 
 pub struct StackTrace {
     trace: [Vec<Felt>; STACK_TRACE_WIDTH],
-    aux_builder: stack::AuxTraceBuilder,
 }
 
 pub struct RangeCheckTrace {
@@ -254,7 +253,7 @@ where
 
         self.execute_mast_node(program.entrypoint(), &program.mast_forest().clone())?;
 
-        Ok(self.stack.build_stack_outputs())
+        self.stack.build_stack_outputs()
     }
 
     // NODE EXECUTORS
