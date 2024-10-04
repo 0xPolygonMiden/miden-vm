@@ -295,8 +295,7 @@ fn build_control_block_request<E: FieldElement<BaseField = Felt>>(
 ) -> E {
     let op_label = LINEAR_HASH_LABEL;
     let addr_nxt = main_trace.addr(row + 1);
-    let first_cycle_row = addr_to_row_index(addr_nxt) % HASH_CYCLE_LEN == 0;
-    let transition_label = if first_cycle_row { op_label + 16 } else { op_label + 32 };
+    let transition_label = op_label + 16;
 
     let header =
         alphas[0] + alphas[1].mul_base(Felt::from(transition_label)) + alphas[2].mul_base(addr_nxt);
@@ -335,8 +334,7 @@ fn build_span_block_request<E: FieldElement<BaseField = Felt>>(
 ) -> E {
     let op_label = LINEAR_HASH_LABEL;
     let addr_nxt = main_trace.addr(row + 1);
-    let first_cycle_row = addr_to_row_index(addr_nxt) % HASH_CYCLE_LEN == 0;
-    let transition_label = if first_cycle_row { op_label + 16 } else { op_label + 32 };
+    let transition_label = op_label + 16;
 
     let header =
         alphas[0] + alphas[1].mul_base(Felt::from(transition_label)) + alphas[2].mul_base(addr_nxt);
@@ -353,9 +351,7 @@ fn build_respan_block_request<E: FieldElement<BaseField = Felt>>(
 ) -> E {
     let op_label = LINEAR_HASH_LABEL;
     let addr_nxt = main_trace.addr(row + 1);
-
-    let first_cycle_row = addr_to_row_index(addr_nxt - ONE) % HASH_CYCLE_LEN == 0;
-    let transition_label = if first_cycle_row { op_label + 16 } else { op_label + 32 };
+    let transition_label = op_label + 32;
 
     let header = alphas[0]
         + alphas[1].mul_base(Felt::from(transition_label))
@@ -375,9 +371,7 @@ fn build_end_block_request<E: FieldElement<BaseField = Felt>>(
 ) -> E {
     let op_label = RETURN_HASH_LABEL;
     let addr = main_trace.addr(row) + Felt::from(NUM_ROUNDS as u8);
-
-    let first_cycle_row = addr_to_row_index(addr) % HASH_CYCLE_LEN == 0;
-    let transition_label = if first_cycle_row { op_label + 16 } else { op_label + 32 };
+    let transition_label = op_label + 32;
 
     let header =
         alphas[0] + alphas[1].mul_base(Felt::from(transition_label)) + alphas[2].mul_base(addr);
@@ -965,11 +959,6 @@ fn addr_to_hash_cycle(addr: Felt) -> usize {
     debug_assert!(cycle_row == 0 || cycle_row == HASH_CYCLE_LEN - 1, "invalid address for hasher");
 
     cycle_row
-}
-
-/// Convenience method to convert from addresses to rows.
-fn addr_to_row_index(addr: Felt) -> usize {
-    (addr.as_int() - 1) as usize
 }
 
 /// Computes a memory read or write request at `row` given randomness `alphas`, memory address
