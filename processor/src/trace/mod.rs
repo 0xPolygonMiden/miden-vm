@@ -11,7 +11,6 @@ use winter_prover::{EvaluationFrame, Trace, TraceInfo};
 
 use super::{
     chiplets::AuxTraceBuilder as ChipletsAuxTraceBuilder,
-    decoder::AuxTraceBuilder as DecoderAuxTraceBuilder,
     stack::AuxTraceBuilder as StackAuxTraceBuilder, ColMatrix, Digest, Felt, FieldElement, Host,
     Process,
 };
@@ -26,7 +25,6 @@ mod tests;
 // ================================================================================================
 
 pub struct AuxTraceBuilders {
-    pub(crate) decoder: DecoderAuxTraceBuilder,
     pub(crate) stack: StackAuxTraceBuilder,
     pub(crate) chiplets: ChipletsAuxTraceBuilder,
 }
@@ -178,12 +176,6 @@ impl ExecutionTrace {
     where
         E: FieldElement<BaseField = Felt>,
     {
-        // add decoder's running product columns
-        let decoder_aux_columns = self
-            .aux_trace_builders
-            .decoder
-            .build_aux_columns(&self.main_trace, rand_elements);
-
         // add stack's running product columns
         let stack_aux_columns =
             self.aux_trace_builders.stack.build_aux_columns(&self.main_trace, rand_elements);
@@ -195,11 +187,7 @@ impl ExecutionTrace {
             .build_aux_columns(&self.main_trace, rand_elements);
 
         // combine all auxiliary columns into a single vector
-        let aux_columns = decoder_aux_columns
-            .into_iter()
-            .chain(stack_aux_columns)
-            .chain(chiplets)
-            .collect::<Vec<_>>();
+        let aux_columns = stack_aux_columns.into_iter().chain(chiplets).collect::<Vec<_>>();
 
         Some(ColMatrix::new(aux_columns))
     }
@@ -293,7 +281,6 @@ where
         .collect::<Vec<_>>();
 
     let aux_trace_builders = AuxTraceBuilders {
-        decoder: decoder_trace.aux_builder,
         stack: StackAuxTraceBuilder,
         chiplets: chiplets_trace.aux_builder,
     };

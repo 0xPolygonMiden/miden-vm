@@ -4,7 +4,7 @@ use core::ops::Range;
 
 pub use vm_core::crypto::hash::{Rpo256 as Hasher, RpoDigest as Digest};
 
-use super::{create_range, Felt, HASHER_AUX_TRACE_OFFSET, ONE, ZERO};
+use super::{create_range, Felt, ONE, ZERO};
 
 // TYPES ALIASES
 // ================================================================================================
@@ -115,8 +115,3 @@ pub const RETURN_STATE: Selectors = [ZERO, ZERO, ONE];
 /// Unique label computed as 1 plus the full chiplet selector with the bits reversed.
 /// return_state selector=[0, 0, 0, 1] rev(selector)=[1, 0, 0, 0] +1=[1, 0, 0, 1]
 pub const RETURN_STATE_LABEL: u8 = 0b1001;
-
-// --- Column accessors in the auxiliary trace ----------------------------------------------------
-
-/// Index of the auxiliary trace column tracking the state of the sibling table.
-pub const P1_COL_IDX: usize = HASHER_AUX_TRACE_OFFSET;
