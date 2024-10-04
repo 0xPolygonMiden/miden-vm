@@ -316,7 +316,7 @@ pub enum Token<'input> {
     Eof,
 }
 
-impl<'input> fmt::Display for Token<'input> {
+impl fmt::Display for Token<'_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Token::Add => write!(f, "add"),

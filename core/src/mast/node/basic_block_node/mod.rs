@@ -247,7 +247,7 @@ struct BasicBlockNodePrettyPrint<'a> {
     mast_forest: &'a MastForest,
 }
 
-impl<'a> PrettyPrint for BasicBlockNodePrettyPrint<'a> {
+impl PrettyPrint for BasicBlockNodePrettyPrint<'_> {
     #[rustfmt::skip]
     fn render(&self) -> crate::prettier::Document {
         use crate::prettier::*;
@@ -295,7 +295,7 @@ impl<'a> PrettyPrint for BasicBlockNodePrettyPrint<'a> {
     }
 }
 
-impl<'a> fmt::Display for BasicBlockNodePrettyPrint<'a> {
+impl fmt::Display for BasicBlockNodePrettyPrint<'_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         use crate::prettier::PrettyPrint;
         self.pretty_print(f)

@@ -67,7 +67,7 @@ impl<'a> BasicBlockDataDecoder<'a> {
 }
 
 /// Decoding methods
-impl<'a> BasicBlockDataDecoder<'a> {
+impl BasicBlockDataDecoder<'_> {
     pub fn decode_operations_and_decorators(
         &self,
         ops_offset: NodeDataOffset,
