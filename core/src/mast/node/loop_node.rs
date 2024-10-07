@@ -1,3 +1,4 @@
+use alloc::vec::Vec;
 use core::fmt;
 
 use miden_crypto::{hash::rpo::RpoDigest, Felt};
@@ -5,7 +6,7 @@ use miden_formatting::prettier::PrettyPrint;
 
 use crate::{
     chiplets::hasher,
-    mast::{MastForest, MastForestError, MastNodeId},
+    mast::{DecoratorId, MastForest, MastForestError, MastNodeId},
     OPCODE_LOOP,
 };
 
@@ -22,6 +23,8 @@ use crate::{
 pub struct LoopNode {
     body: MastNodeId,
     digest: RpoDigest,
+    before_enter: Vec<DecoratorId>,
+    after_exit: Vec<DecoratorId>,
 }
 
 /// Constants
@@ -43,13 +46,23 @@ impl LoopNode {
             hasher::merge_in_domain(&[body_hash, RpoDigest::default()], Self::DOMAIN)
         };
 
-        Ok(Self { body, digest })
+        Ok(Self {
+            body,
+            digest,
+            before_enter: Vec::new(),
+            after_exit: Vec::new(),
+        })
     }
 
     /// Returns a new [`LoopNode`] from values that are assumed to be correct.
     /// Should only be used when the source of the inputs is trusted (e.g. deserialization).
     pub fn new_unsafe(body: MastNodeId, digest: RpoDigest) -> Self {
-        Self { body, digest }
+        Self {
+            body,
+            digest,
+            before_enter: Vec::new(),
+            after_exit: Vec::new(),
+        }
     }
 }
 
@@ -71,6 +84,29 @@ impl LoopNode {
     /// Returns the ID of the node presenting the body of the loop.
     pub fn body(&self) -> MastNodeId {
         self.body
+    }
+
+    /// Returns the decorators to be executed before this node is executed.
+    pub fn before_enter(&self) -> &[DecoratorId] {
+        &self.before_enter
+    }
+
+    /// Returns the decorators to be executed after this node is executed.
+    pub fn after_exit(&self) -> &[DecoratorId] {
+        &self.after_exit
+    }
+}
+
+/// Mutators
+impl LoopNode {
+    /// Sets the list of decorators to be executed before this node.
+    pub fn set_before_enter(&mut self, decorator_ids: Vec<DecoratorId>) {
+        self.before_enter = decorator_ids;
+    }
+
+    /// Sets the list of decorators to be executed after this node.
+    pub fn set_after_exit(&mut self, decorator_ids: Vec<DecoratorId>) {
+        self.after_exit = decorator_ids;
     }
 }
 
@@ -95,17 +131,51 @@ struct LoopNodePrettyPrint<'a> {
     mast_forest: &'a MastForest,
 }
 
-impl<'a> crate::prettier::PrettyPrint for LoopNodePrettyPrint<'a> {
+impl crate::prettier::PrettyPrint for LoopNodePrettyPrint<'_> {
     fn render(&self) -> crate::prettier::Document {
         use crate::prettier::*;
 
+        let pre_decorators = {
+            let mut pre_decorators = self
+                .loop_node
+                .before_enter()
+                .iter()
+                .map(|&decorator_id| self.mast_forest[decorator_id].render())
+                .reduce(|acc, doc| acc + const_text(" ") + doc)
+                .unwrap_or_default();
+            if !pre_decorators.is_empty() {
+                pre_decorators += nl();
+            }
+
+            pre_decorators
+        };
+
+        let post_decorators = {
+            let mut post_decorators = self
+                .loop_node
+                .after_exit()
+                .iter()
+                .map(|&decorator_id| self.mast_forest[decorator_id].render())
+                .reduce(|acc, doc| acc + const_text(" ") + doc)
+                .unwrap_or_default();
+            if !post_decorators.is_empty() {
+                post_decorators = nl() + post_decorators;
+            }
+
+            post_decorators
+        };
+
         let loop_body = self.mast_forest[self.loop_node.body].to_pretty_print(self.mast_forest);
 
-        indent(4, const_text("while.true") + nl() + loop_body.render()) + nl() + const_text("end")
+        pre_decorators
+            + indent(4, const_text("while.true") + nl() + loop_body.render())
+            + nl()
+            + const_text("end")
+            + post_decorators
     }
 }
 
-impl<'a> fmt::Display for LoopNodePrettyPrint<'a> {
+impl fmt::Display for LoopNodePrettyPrint<'_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         use crate::prettier::PrettyPrint;
         self.pretty_print(f)

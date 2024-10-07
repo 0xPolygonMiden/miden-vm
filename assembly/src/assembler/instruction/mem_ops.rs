@@ -23,7 +23,7 @@ use crate::{assembler::ProcedureContext, diagnostics::Report, AssemblyError};
 /// Returns an error if we are reading from local memory and local memory index is greater than
 /// the number of procedure locals.
 pub fn mem_read(
-    span: &mut BasicBlockBuilder,
+    block_builder: &mut BasicBlockBuilder,
     proc_ctx: &ProcedureContext,
     addr: Option<u32>,
     is_local: bool,
@@ -33,9 +33,9 @@ pub fn mem_read(
     if let Some(addr) = addr {
         if is_local {
             let num_locals = proc_ctx.num_locals();
-            local_to_absolute_addr(span, addr as u16, num_locals)?;
+            local_to_absolute_addr(block_builder, addr as u16, num_locals)?;
         } else {
-            push_u32_value(span, addr);
+            push_u32_value(block_builder, addr);
         }
     } else {
         assert!(!is_local, "local always contains addr value");
@@ -43,9 +43,9 @@ pub fn mem_read(
 
     // load from the memory address on top of the stack
     if is_single {
-        span.push_op(MLoad);
+        block_builder.push_op(MLoad);
     } else {
-        span.push_op(MLoadW);
+        block_builder.push_op(MLoadW);
     }
 
     Ok(())
@@ -74,23 +74,23 @@ pub fn mem_read(
 /// Returns an error if we are writing to local memory and local memory index is greater than
 /// the number of procedure locals.
 pub fn mem_write_imm(
-    span: &mut BasicBlockBuilder,
+    block_builder: &mut BasicBlockBuilder,
     proc_ctx: &ProcedureContext,
     addr: u32,
     is_local: bool,
     is_single: bool,
 ) -> Result<(), AssemblyError> {
     if is_local {
-        local_to_absolute_addr(span, addr as u16, proc_ctx.num_locals())?;
+        local_to_absolute_addr(block_builder, addr as u16, proc_ctx.num_locals())?;
     } else {
-        push_u32_value(span, addr);
+        push_u32_value(block_builder, addr);
     }
 
     if is_single {
-        span.push_op(MStore);
-        span.push_op(Drop);
+        block_builder.push_op(MStore);
+        block_builder.push_op(Drop);
     } else {
-        span.push_op(MStoreW);
+        block_builder.push_op(MStoreW);
     }
 
     Ok(())
@@ -110,7 +110,7 @@ pub fn mem_write_imm(
 /// # Errors
 /// Returns an error if index is greater than the number of procedure locals.
 pub fn local_to_absolute_addr(
-    span: &mut BasicBlockBuilder,
+    block_builder: &mut BasicBlockBuilder,
     index: u16,
     num_proc_locals: u16,
 ) -> Result<(), AssemblyError> {
@@ -127,8 +127,8 @@ pub fn local_to_absolute_addr(
     let max = num_proc_locals - 1;
     validate_param(index, 0..=max)?;
 
-    push_felt(span, -Felt::from(max - index));
-    span.push_op(FmpAdd);
+    push_felt(block_builder, -Felt::from(max - index));
+    block_builder.push_op(FmpAdd);
 
     Ok(())
 }

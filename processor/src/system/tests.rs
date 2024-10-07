@@ -9,7 +9,7 @@ fn cycles_num_exceeded() {
         Kernel::default(),
         stack,
         host,
-        ExecutionOptions::new(Some(64), 64, false).unwrap(),
+        ExecutionOptions::new(Some(64), 64, false, false).unwrap(),
     );
     for _ in 0..64 {
         process.execute_op(Operation::Noop).unwrap();

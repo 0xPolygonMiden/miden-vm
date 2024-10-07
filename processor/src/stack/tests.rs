@@ -4,18 +4,16 @@ use miden_air::trace::{
     stack::{B0_COL_IDX, B1_COL_IDX, H0_COL_IDX, NUM_STACK_HELPER_COLS},
     STACK_TRACE_WIDTH,
 };
-use vm_core::{FieldElement, StarkField};
+use vm_core::FieldElement;
 
-use super::{
-    super::StackTopState, Felt, OverflowTableRow, Stack, StackInputs, ONE, STACK_TOP_SIZE, ZERO,
-};
+use super::{Felt, OverflowTableRow, Stack, StackInputs, MIN_STACK_DEPTH, ONE, ZERO};
 
 // TYPE ALIASES
 // ================================================================================================
 
 type StackHelpersState = [Felt; NUM_STACK_HELPER_COLS];
 
-// INITIALIZATION TESTS
+// INITIALIZATION TEST
 // ================================================================================================
 
 #[test]
@@ -28,7 +26,7 @@ fn initialize() {
     // Prepare the expected results.
     stack_inputs.reverse();
     let expected_stack = build_stack(&stack_inputs);
-    let expected_helpers = [Felt::new(STACK_TOP_SIZE as u64), ZERO, ZERO];
+    let expected_helpers = [Felt::new(MIN_STACK_DEPTH as u64), ZERO, ZERO];
 
     // Check the stack state.
     assert_eq!(stack.trace_state(), expected_stack);
@@ -37,23 +35,44 @@ fn initialize() {
     assert_eq!(stack.helpers_state(), expected_helpers);
 }
 
+// OVERFLOW TEST
+// ================================================================================================
+
 #[test]
-fn initialize_overflow() {
-    // Initialize a new stack with enough initial values that the overflow table is non-empty.
-    let mut stack_inputs = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19];
-    let stack = StackInputs::try_from_ints(stack_inputs).unwrap();
-    let stack = Stack::new(&stack, 4, false);
+fn stack_overflow() {
+    // Initialize a new fully loaded stack.
+    let mut stack_values_holder: [u64; 19] =
+        [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19];
+    let stack = StackInputs::try_from_ints(stack_values_holder[0..16].to_vec()).unwrap();
+    let mut stack = Stack::new(&stack, 5, false);
+
+    // Push additional values to overflow the stack
+    stack.copy_state(0);
+    stack.advance_clock();
+
+    stack.shift_right(0);
+    stack.set(0, Felt::from(17u8));
+    stack.advance_clock();
+
+    stack.shift_right(0);
+    stack.set(0, Felt::from(18u8));
+    stack.advance_clock();
+
+    stack.shift_right(0);
+    stack.set(0, Felt::from(19u8));
+    stack.advance_clock();
 
     // Prepare the expected results.
-    stack_inputs.reverse();
-    let expected_stack = build_stack(&stack_inputs[..STACK_TOP_SIZE]);
-    let expected_depth = stack_inputs.len() as u64;
+    stack_values_holder.reverse();
+    let expected_stack = build_stack(&stack_values_holder[0..16]);
+
+    let expected_depth = stack_values_holder.len() as u64;
     let expected_helpers = [
         Felt::new(expected_depth),
-        -ONE,
-        Felt::new(expected_depth - STACK_TOP_SIZE as u64),
+        Felt::new(3u64),
+        Felt::new(expected_depth - MIN_STACK_DEPTH as u64),
     ];
-    let init_addr = Felt::MODULUS - 3;
+    let init_addr = 1;
     let expected_overflow_rows = vec![
         OverflowTableRow::new(Felt::new(init_addr), ONE, ZERO),
         OverflowTableRow::new(Felt::new(init_addr + 1), Felt::new(2), Felt::new(init_addr)),
@@ -169,8 +188,7 @@ fn shift_right() {
 
 #[test]
 fn start_restore_context() {
-    let stack_init = (0..16).map(|v| v as u64 + 1);
-    let stack = StackInputs::try_from_ints(stack_init).unwrap();
+    let stack = StackInputs::try_from_ints(1..17).unwrap();
     let mut stack = Stack::new(&stack, 8, false);
 
     // ----- when overflow table is empty -------------------------------------
@@ -378,8 +396,8 @@ fn generate_trace() {
 
 /// Builds a [StackTopState] that starts with the provided stack inputs and is padded with zeros
 /// until the minimum stack depth.
-fn build_stack(stack_inputs: &[u64]) -> StackTopState {
-    let mut result = [ZERO; STACK_TOP_SIZE];
+fn build_stack(stack_inputs: &[u64]) -> [Felt; MIN_STACK_DEPTH] {
+    let mut result = [ZERO; MIN_STACK_DEPTH];
     for (idx, &input) in stack_inputs.iter().enumerate() {
         result[idx] = Felt::new(input);
     }
@@ -390,7 +408,7 @@ fn build_stack(stack_inputs: &[u64]) -> StackTopState {
 fn build_helpers(stack_depth: u64, next_overflow_addr: u64) -> StackHelpersState {
     let b0 = Felt::new(stack_depth);
     let b1 = Felt::new(next_overflow_addr);
-    let h0 = (b0 - Felt::new(STACK_TOP_SIZE as u64)).inv();
+    let h0 = (b0 - Felt::new(MIN_STACK_DEPTH as u64)).inv();
 
     [b0, b1, h0]
 }
@@ -399,17 +417,17 @@ fn build_helpers(stack_depth: u64, next_overflow_addr: u64) -> StackHelpersState
 /// The difference between this function and build_helpers() is that this function does not invert
 /// h0 value.
 fn build_helpers_partial(num_overflow: usize, next_overflow_addr: usize) -> StackHelpersState {
-    let depth = STACK_TOP_SIZE + num_overflow;
+    let depth = MIN_STACK_DEPTH + num_overflow;
     let b0 = Felt::new(depth as u64);
     let b1 = Felt::new(next_overflow_addr as u64);
-    let h0 = b0 - Felt::new(STACK_TOP_SIZE as u64);
+    let h0 = b0 - Felt::new(MIN_STACK_DEPTH as u64);
 
     [b0, b1, h0]
 }
 
 /// Returns values in stack top columns of the provided trace at the specified row.
-fn read_stack_top(trace: &[Vec<Felt>; STACK_TRACE_WIDTH], row: usize) -> StackTopState {
-    let mut result = [ZERO; STACK_TOP_SIZE];
+fn read_stack_top(trace: &[Vec<Felt>; STACK_TRACE_WIDTH], row: usize) -> [Felt; MIN_STACK_DEPTH] {
+    let mut result = [ZERO; MIN_STACK_DEPTH];
     for (value, column) in result.iter_mut().zip(trace) {
         *value = column[row];
     }

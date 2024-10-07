@@ -130,7 +130,7 @@ impl Compile for Module {
     }
 }
 
-impl<'a> Compile for &'a Module {
+impl Compile for &Module {
     #[inline(always)]
     fn compile_with_options(
         self,
@@ -197,7 +197,7 @@ impl Compile for Arc<SourceFile> {
     }
 }
 
-impl<'a> Compile for &'a str {
+impl Compile for &str {
     #[inline(always)]
     fn compile_with_options(
         self,
@@ -208,7 +208,7 @@ impl<'a> Compile for &'a str {
     }
 }
 
-impl<'a> Compile for &'a String {
+impl Compile for &String {
     #[inline(always)]
     fn compile_with_options(
         self,
@@ -251,7 +251,7 @@ impl Compile for Box<str> {
     }
 }
 
-impl<'a> Compile for Cow<'a, str> {
+impl Compile for Cow<'_, str> {
     #[inline(always)]
     fn compile_with_options(
         self,
@@ -265,7 +265,7 @@ impl<'a> Compile for Cow<'a, str> {
 // COMPILE IMPLEMENTATIONS FOR BYTES
 // ------------------------------------------------------------------------------------------------
 
-impl<'a> Compile for &'a [u8] {
+impl Compile for &[u8] {
     #[inline]
     fn compile_with_options(
         self,
@@ -350,7 +350,7 @@ where
 // ------------------------------------------------------------------------------------------------
 
 #[cfg(feature = "std")]
-impl<'a> Compile for &'a std::path::Path {
+impl Compile for &std::path::Path {
     fn compile_with_options(
         self,
         source_manager: &dyn SourceManager,

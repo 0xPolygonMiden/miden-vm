@@ -585,6 +585,7 @@ fn test_ext5_sqrt() {
 
     begin
         exec.base_field::sqrt
+        movup.6 drop
     end";
 
     let a = Ext5::rand();

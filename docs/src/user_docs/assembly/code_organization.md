@@ -43,6 +43,8 @@ begin
 end
 ```
 
+Finally, a procedure cannot contain *solely* any number of [advice injectors](./io_operations.md#nondeterministic-inputs), `emit`, `debug` and `trace` instructions. In other words, it must contain at least one instruction which is not in the aforementioned list.
+
 #### Dynamic procedure invocation
 It is also possible to invoke procedures dynamically - i.e., without specifying target procedure labels at compile time. Unlike static procedure invocation, recursion is technically possible using dynamic invocation, but dynamic invocation is more expensive, and has less available operand stack capacity for procedure arguments, as 4 elements are required for the MAST root of the callee. There are two instructions, `dynexec` and `dyncall`, which can be used to execute dynamically-specified code targets. Both instructions expect the [MAST root](../../design/programs.md) of the target to be provided via the stack. The difference between `dynexec` and `dyncall` corresponds to the difference between `exec` and `call`, see the documentation on [procedure invocation semantics](./execution_contexts.md#procedure-invocation-semantics) for more detail.
 

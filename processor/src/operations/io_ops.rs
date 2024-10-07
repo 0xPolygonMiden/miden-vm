@@ -273,7 +273,7 @@ mod tests {
     use vm_core::{utils::ToElements, Word, ONE, ZERO};
 
     use super::{
-        super::{super::AdviceProvider, Operation, STACK_TOP_SIZE},
+        super::{super::AdviceProvider, Operation, MIN_STACK_DEPTH},
         Felt, Host, Process,
     };
     use crate::{AdviceSource, ContextId};
@@ -281,7 +281,7 @@ mod tests {
     #[test]
     fn op_push() {
         let mut process = Process::new_dummy_with_empty_stack();
-        assert_eq!(STACK_TOP_SIZE, process.stack.depth());
+        assert_eq!(MIN_STACK_DEPTH, process.stack.depth());
         assert_eq!(1, process.stack.current_clk());
         assert_eq!([ZERO; 16], process.stack.trace_state());
 
@@ -291,7 +291,7 @@ mod tests {
         let mut expected = [ZERO; 16];
         expected[0] = ONE;
 
-        assert_eq!(STACK_TOP_SIZE + 1, process.stack.depth());
+        assert_eq!(MIN_STACK_DEPTH + 1, process.stack.depth());
         assert_eq!(2, process.stack.current_clk());
         assert_eq!(expected, process.stack.trace_state());
 
@@ -302,7 +302,7 @@ mod tests {
         expected[0] = Felt::new(3);
         expected[1] = ONE;
 
-        assert_eq!(STACK_TOP_SIZE + 2, process.stack.depth());
+        assert_eq!(MIN_STACK_DEPTH + 2, process.stack.depth());
         assert_eq!(3, process.stack.current_clk());
         assert_eq!(expected, process.stack.trace_state());
     }

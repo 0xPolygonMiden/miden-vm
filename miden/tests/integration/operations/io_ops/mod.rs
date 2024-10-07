@@ -1,4 +1,4 @@
-use test_utils::{assert_eq, build_op_test, build_test, Felt, ToElements};
+use test_utils::{assert_eq, build_op_test, build_test, Felt, ToElements, TRUNCATE_STACK_PROC};
 use vm_core::chiplets::hasher::apply_permutation;
 
 mod adv_ops;
@@ -38,6 +38,9 @@ fn mem_stream_pipe() {
             dropw
             movup.4
             drop
+
+            # truncate the stack
+            swapdw dropw dropw
         end";
 
     let advice_stack = [1, 2, 3, 4, 5, 6, 7, 8];
