@@ -43,5 +43,5 @@ pretty_assertions = "1.4"
 regex = { version = "1.10", default-features = false, features = [ "unicode", "perf"] }
 
 [build-dependencies]
-lalrpop = { version = "0.20", default-features = false }
+lalrpop = { version = "0.22", default-features = false }
 rustc_version = "0.4"
