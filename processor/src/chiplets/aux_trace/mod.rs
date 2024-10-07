@@ -554,12 +554,7 @@ fn build_hperm_request<E: FieldElement<BaseField = Felt>>(
         main_trace.stack_element(11, row + 1),
     ];
 
-    let op_label = LINEAR_HASH_LABEL;
-    let op_label = if addr_to_hash_cycle(helper_0) == 0 {
-        op_label + 16
-    } else {
-        op_label + 32
-    };
+    let op_label = LINEAR_HASH_LABEL + 16;
 
     let sum_input = alphas[4..16]
         .iter()
@@ -571,12 +566,7 @@ fn build_hperm_request<E: FieldElement<BaseField = Felt>>(
         + alphas[2].mul_base(helper_0)
         + sum_input;
 
-    let op_label = RETURN_STATE_LABEL;
-    let op_label = if addr_to_hash_cycle(helper_0 + Felt::new(7)) == 0 {
-        op_label + 16
-    } else {
-        op_label + 32
-    };
+    let op_label = RETURN_STATE_LABEL + 32;
 
     let sum_output = alphas[4..16]
         .iter()
@@ -614,12 +604,7 @@ fn build_mpverify_request<E: FieldElement<BaseField = Felt>>(
         main_trace.stack_element(9, row),
     ];
 
-    let op_label = MP_VERIFY_LABEL;
-    let op_label = if addr_to_hash_cycle(helper_0) == 0 {
-        op_label + 16
-    } else {
-        op_label + 32
-    };
+    let op_label = MP_VERIFY_LABEL + 16;
 
     let sum_input = alphas[8..12]
         .iter()
@@ -633,12 +618,7 @@ fn build_mpverify_request<E: FieldElement<BaseField = Felt>>(
         + alphas[3].mul_base(s5)
         + sum_input;
 
-    let op_label = RETURN_HASH_LABEL;
-    let op_label = if (helper_0).as_int() % 8 == 0 {
-        op_label + 16
-    } else {
-        op_label + 32
-    };
+    let op_label = RETURN_HASH_LABEL + 32;
 
     let sum_output = alphas[8..12]
         .iter()
@@ -688,12 +668,7 @@ fn build_mrupdate_request<E: FieldElement<BaseField = Felt>>(
         main_trace.stack_element(13, row),
     ];
 
-    let op_label = MR_UPDATE_OLD_LABEL;
-    let op_label = if addr_to_hash_cycle(helper_0) == 0 {
-        op_label + 16
-    } else {
-        op_label + 32
-    };
+    let op_label = MR_UPDATE_OLD_LABEL + 16;
 
     let sum_input = alphas[8..12]
         .iter()
@@ -706,12 +681,7 @@ fn build_mrupdate_request<E: FieldElement<BaseField = Felt>>(
         + alphas[3].mul_base(s5)
         + sum_input;
 
-    let op_label = RETURN_HASH_LABEL;
-    let op_label = if addr_to_hash_cycle(helper_0 + s4.mul_small(8) - ONE) == 0 {
-        op_label + 16
-    } else {
-        op_label + 32
-    };
+    let op_label = RETURN_HASH_LABEL + 32;
 
     let sum_output = alphas[8..12]
         .iter()
@@ -723,12 +693,7 @@ fn build_mrupdate_request<E: FieldElement<BaseField = Felt>>(
         + alphas[2].mul_base(helper_0 + s4.mul_small(8) - ONE)
         + sum_output;
 
-    let op_label = MR_UPDATE_NEW_LABEL;
-    let op_label = if addr_to_hash_cycle(helper_0 + s4.mul_small(8)) == 0 {
-        op_label + 16
-    } else {
-        op_label + 32
-    };
+    let op_label = MR_UPDATE_NEW_LABEL + 16;
     let sum_input = alphas[8..12]
         .iter()
         .rev()
@@ -740,12 +705,7 @@ fn build_mrupdate_request<E: FieldElement<BaseField = Felt>>(
         + alphas[3].mul_base(s5)
         + sum_input;
 
-    let op_label = RETURN_HASH_LABEL;
-    let op_label = if addr_to_hash_cycle(helper_0 + s4.mul_small(16) - ONE) == 0 {
-        op_label + 16
-    } else {
-        op_label + 32
-    };
+    let op_label = RETURN_HASH_LABEL + 32;
 
     let sum_output = alphas[8..12]
         .iter()
@@ -950,15 +910,6 @@ fn build_value<E: FieldElement<BaseField = Felt>>(alphas: &[E], elements: &[Felt
 /// Returns the operation unique label.
 fn get_op_label(s0: Felt, s1: Felt, s2: Felt, s3: Felt) -> Felt {
     s3.mul_small(1 << 3) + s2.mul_small(1 << 2) + s1.mul_small(2) + s0 + ONE
-}
-
-/// Returns the hash cycle corresponding to the provided Hasher address.
-fn addr_to_hash_cycle(addr: Felt) -> usize {
-    let row = (addr.as_int() - 1) as usize;
-    let cycle_row = row % HASH_CYCLE_LEN;
-    debug_assert!(cycle_row == 0 || cycle_row == HASH_CYCLE_LEN - 1, "invalid address for hasher");
-
-    cycle_row
 }
 
 /// Computes a memory read or write request at `row` given randomness `alphas`, memory address
