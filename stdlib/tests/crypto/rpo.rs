@@ -23,27 +23,6 @@ fn test_invalid_end_addr() {
             err_msg: None,
         }
     );
-
-    // address range can not contain zero elements
-    let empty_range = "
-    use.std::crypto::hashes::rpo
-
-    begin
-        push.1000 # end address
-        push.1000 # start address
-
-        exec.rpo::hash_memory_words
-    end
-    ";
-    let test = build_test!(empty_range, &[]);
-    expect_exec_error!(
-        test,
-        ExecutionError::FailedAssertion {
-            clk: 18.into(),
-            err_code: 0,
-            err_msg: None,
-        }
-    );
 }
 
 #[test]
@@ -354,16 +333,50 @@ fn test_hash_memory() {
 
 #[test]
 fn test_hash_memory_empty() {
-    // try to hash 0 values
-    let compute_inputs_hash = "
+    // absorb_double_words_from_memory
+    let source = "
     use.std::crypto::hashes::rpo
 
     begin
-        push.0.1000
+        push.1000      # end address
+        push.1000      # start address
+        padw padw padw # hasher state
+
+        exec.rpo::absorb_double_words_from_memory
+    end
+    ";
+
+    let mut expected_stack = vec![0; 12];
+    expected_stack.push(1000);
+    expected_stack.push(1000);
+
+    build_test!(source, &[]).expect_stack(&expected_stack);
+
+    // hash_memory_words
+    let source = "
+    use.std::crypto::hashes::rpo
+
+    begin
+        push.1000 # end address
+        push.1000 # start address
+
+        exec.rpo::hash_memory_words
+    end
+    ";
+
+    build_test!(source, &[]).expect_stack(&[0; 4]);
+
+    // hash_memory
+    let source = "
+    use.std::crypto::hashes::rpo
+
+    begin
+        push.0    # number of elements to hash 
+        push.1000 # start address
 
         exec.rpo::hash_memory
     end
     ";
 
-    build_test!(compute_inputs_hash, &[]).expect_stack(&[0; 16]);
+    build_test!(source, &[]).expect_stack(&[0; 16]);
 }
