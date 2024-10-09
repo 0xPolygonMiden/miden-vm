@@ -39,7 +39,7 @@ pub enum ProcedureWrapper<'a> {
     Info(&'a ProcedureInfo),
 }
 
-impl<'a> ProcedureWrapper<'a> {
+impl ProcedureWrapper<'_> {
     /// Returns the name of the procedure.
     pub fn name(&self) -> &ProcedureName {
         match self {

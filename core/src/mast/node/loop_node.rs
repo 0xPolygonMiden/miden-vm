@@ -131,7 +131,7 @@ struct LoopNodePrettyPrint<'a> {
     mast_forest: &'a MastForest,
 }
 
-impl<'a> crate::prettier::PrettyPrint for LoopNodePrettyPrint<'a> {
+impl crate::prettier::PrettyPrint for LoopNodePrettyPrint<'_> {
     fn render(&self) -> crate::prettier::Document {
         use crate::prettier::*;
 
@@ -175,7 +175,7 @@ impl<'a> crate::prettier::PrettyPrint for LoopNodePrettyPrint<'a> {
     }
 }
 
-impl<'a> fmt::Display for LoopNodePrettyPrint<'a> {
+impl fmt::Display for LoopNodePrettyPrint<'_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         use crate::prettier::PrettyPrint;
         self.pretty_print(f)

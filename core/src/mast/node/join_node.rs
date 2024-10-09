@@ -142,7 +142,7 @@ struct JoinNodePrettyPrint<'a> {
     mast_forest: &'a MastForest,
 }
 
-impl<'a> PrettyPrint for JoinNodePrettyPrint<'a> {
+impl PrettyPrint for JoinNodePrettyPrint<'_> {
     #[rustfmt::skip]
     fn render(&self) -> crate::prettier::Document {
         use crate::prettier::*;
@@ -195,7 +195,7 @@ impl<'a> PrettyPrint for JoinNodePrettyPrint<'a> {
     }
 }
 
-impl<'a> fmt::Display for JoinNodePrettyPrint<'a> {
+impl fmt::Display for JoinNodePrettyPrint<'_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         use crate::prettier::PrettyPrint;
         self.pretty_print(f)

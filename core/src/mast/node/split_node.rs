@@ -144,7 +144,7 @@ struct SplitNodePrettyPrint<'a> {
     mast_forest: &'a MastForest,
 }
 
-impl<'a> PrettyPrint for SplitNodePrettyPrint<'a> {
+impl PrettyPrint for SplitNodePrettyPrint<'_> {
     #[rustfmt::skip]
     fn render(&self) -> crate::prettier::Document {
         use crate::prettier::*;
@@ -190,7 +190,7 @@ impl<'a> PrettyPrint for SplitNodePrettyPrint<'a> {
     }
 }
 
-impl<'a> fmt::Display for SplitNodePrettyPrint<'a> {
+impl fmt::Display for SplitNodePrettyPrint<'_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         use crate::prettier::PrettyPrint;
         self.pretty_print(f)

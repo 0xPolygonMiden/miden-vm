@@ -201,7 +201,7 @@ struct CallNodePrettyPrint<'a> {
     mast_forest: &'a MastForest,
 }
 
-impl<'a> CallNodePrettyPrint<'a> {
+impl CallNodePrettyPrint<'_> {
     /// Concatenates the provided decorators in a single line. If the list of decorators is not
     /// empty, prepends `prepend` and appends `append` to the decorator document.
     fn concatenate_decorators(
@@ -240,7 +240,7 @@ impl<'a> CallNodePrettyPrint<'a> {
     }
 }
 
-impl<'a> PrettyPrint for CallNodePrettyPrint<'a> {
+impl PrettyPrint for CallNodePrettyPrint<'_> {
     fn render(&self) -> Document {
         let call_or_syscall = {
             let callee_digest = self.mast_forest[self.node.callee].digest();
@@ -265,7 +265,7 @@ impl<'a> PrettyPrint for CallNodePrettyPrint<'a> {
     }
 }
 
-impl<'a> fmt::Display for CallNodePrettyPrint<'a> {
+impl fmt::Display for CallNodePrettyPrint<'_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         use crate::prettier::PrettyPrint;
         self.pretty_print(f)
