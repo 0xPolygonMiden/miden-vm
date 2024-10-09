@@ -91,7 +91,7 @@ struct DynNodePrettyPrint<'a> {
     mast_forest: &'a MastForest,
 }
 
-impl<'a> DynNodePrettyPrint<'a> {
+impl DynNodePrettyPrint<'_> {
     /// Concatenates the provided decorators in a single line. If the list of decorators is not
     /// empty, prepends `prepend` and appends `append` to the decorator document.
     fn concatenate_decorators(
@@ -130,7 +130,7 @@ impl<'a> DynNodePrettyPrint<'a> {
     }
 }
 
-impl<'a> crate::prettier::PrettyPrint for DynNodePrettyPrint<'a> {
+impl crate::prettier::PrettyPrint for DynNodePrettyPrint<'_> {
     fn render(&self) -> crate::prettier::Document {
         let dyn_text = const_text("dyn");
 
@@ -144,7 +144,7 @@ impl<'a> crate::prettier::PrettyPrint for DynNodePrettyPrint<'a> {
     }
 }
 
-impl<'a> fmt::Display for DynNodePrettyPrint<'a> {
+impl fmt::Display for DynNodePrettyPrint<'_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         self.pretty_print(f)
     }

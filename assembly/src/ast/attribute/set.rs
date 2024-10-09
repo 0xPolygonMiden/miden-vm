@@ -197,7 +197,7 @@ pub struct AttributeSetOccupiedEntry<'a> {
     set: &'a mut AttributeSet,
     index: usize,
 }
-impl<'a> AttributeSetOccupiedEntry<'a> {
+impl AttributeSetOccupiedEntry<'_> {
     #[inline]
     pub fn get(&self) -> &Attribute {
         &self.set.attrs[self.index]
@@ -228,7 +228,7 @@ pub struct AttributeSetVacantEntry<'a> {
     key: Ident,
     index: usize,
 }
-impl<'a> AttributeSetVacantEntry<'a> {
+impl AttributeSetVacantEntry<'_> {
     pub fn insert(self, attr: Attribute) {
         if self.key != attr.id() {
             self.set.insert(attr);
