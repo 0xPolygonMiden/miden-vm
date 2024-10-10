@@ -124,7 +124,7 @@ You can use the run command with `--debug` parameter to enable debugging with th
 As described [here](https://0xpolygonmiden.github.io/miden-vm/intro/overview.html#inputs-and-outputs) the Miden VM can consume public and secret inputs.
 
 - Public inputs:
-  - `operand_stack` - can be supplied to the VM to initialize the stack with the desired values before a program starts executing. There is no limit on the number of stack inputs that can be initialized in this way, although increasing the number of public inputs increases the cost to the verifier.
+  - `operand_stack` - can be supplied to the VM to initialize the stack with the desired values before a program starts executing. If the number of provided input values is less than 16, the input stack will be padded with zeros to the length of 16. The maximum number of the stack inputs is limited by 16 values, providing more than 16 values will cause an error.
 - Secret (or nondeterministic) inputs:
   - `advice_stack` - can be supplied to the VM. There is no limit on how much data the advice provider can hold. This is provided as a string array where each string entry represents a field element.
   - `advice_map` - is supplied as a map of 64-character hex keys, each mapped to an array of numbers. The hex keys are interpreted as 4 field elements and the arrays of numbers are interpreted as arrays of field elements.
@@ -135,7 +135,7 @@ As described [here](https://0xpolygonmiden.github.io/miden-vm/intro/overview.htm
 
 _Check out the [comparison example](https://github.com/0xPolygonMiden/examples/blob/main/examples/comparison.masm) to see how secret inputs work._
 
-After a program finishes executing, the elements that remain on the stack become the outputs of the program, along with the overflow addresses (`overflow_addrs`) that are required to reconstruct the [stack overflow table](../design/stack/main.md#overflow-table).
+After a program finishes executing, the elements that remain on the stack become the outputs of the program. Notice that the number of values on the operand stack at the end of the program execution should not be greater than 16, otherwise the program will return an error. The `sys::truncate_stack` procedure from the standard library could be used to conveniently truncate the stack at the end of the program.
 
 ## Fibonacci example
 
