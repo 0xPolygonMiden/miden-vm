@@ -13,6 +13,8 @@ use winter_prover::{crypto::Digest, math::fields::CubeExtension, CompositionPoly
 
 use crate::*;
 
+use miden_gpu::HashFn;
+
 use wasm_bindgen_test::*;
 
 wasm_bindgen_test_configure!(run_in_browser);
