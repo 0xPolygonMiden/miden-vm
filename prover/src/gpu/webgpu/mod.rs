@@ -19,7 +19,7 @@ use air::{AuxRandElements, LagrangeKernelEvaluationFrame};
 use elsa::FrozenVec;
 use maybe_async::maybe_async;
 use miden_gpu::{
-    webgpu::{build_merkle_tree, get_or_init_wgpu_helper, RowHasher},
+    webgpu::{get_or_init_wgpu_helper, RowHasher},
     HashFn,
 };
 use processor::{
@@ -274,14 +274,14 @@ where
                 } else {
                     segment.iter().map(|x| *x).collect()
                 };
-                row_hasher.update(helper, &rpo_padded_segment);
+                row_hasher.update(&rpo_padded_segment);
                 assert_eq!(segments.len() - 1, segment_idx, "padded segment should be the last");
                 break;
             }
-            row_hasher.update(helper, segment);
+            row_hasher.update(segment);
         }
-        let row_hashes = row_hasher.finish(helper).await.unwrap();
-        let tree_nodes = build_merkle_tree(helper, &row_hashes, self.webgpu_hash_fn).await.unwrap();
+        let row_hashes = row_hasher.finish().await;
+        let tree_nodes = helper.build_merkle_tree(&row_hashes, self.webgpu_hash_fn).await;
         // aggregate segments at the same time as the GPU generates the merkle tree nodes
         let composed_evaluations = RowMatrix::<E>::from_segments(segments, num_base_columns);
         let nodes = tree_nodes.into_iter().map(|dig| H::Digest::from(&dig)).collect();
@@ -640,14 +640,14 @@ async fn build_trace_commitment<
             } else {
                 segment.iter().map(|x| *x).collect()
             };
-            row_hasher.update(&helper, &rpo_padded_segment);
+            row_hasher.update(&rpo_padded_segment);
             assert!(lde_segment_iter.next().is_none(), "padded segment should be the last");
             break;
         }
-        row_hasher.update(&helper, segment);
+        row_hasher.update(segment);
     }
-    let row_hashes = row_hasher.finish(&helper).await.unwrap();
-    let tree_nodes = build_merkle_tree(&helper, &row_hashes, hash_fn).await.unwrap();
+    let row_hashes = row_hasher.finish().await;
+    let tree_nodes = helper.build_merkle_tree(&row_hashes, hash_fn).await;
     // aggregate segments at the same time as the GPU generates the merkle tree nodes
     let lde_segments = lde_segments.into_vec().into_iter().map(|p| *p).collect();
     let trace_lde = RowMatrix::from_segments(lde_segments, num_base_columns);
