@@ -82,9 +82,9 @@ where `instructions` can be a sequence of any instructions, including nested con
 
 1. Pops the top item from the stack.
 2. If the value of the item is $1$, `instructions` in the loop body are executed.
-    a. After the body is executed, the stack is popped again, and if the popped value is $1$, the body is executed again.
-    b. If the popped value is $0$, the loop is exited.
-    c. If the popped value is not binary, the execution fails.
+    1. After the body is executed, the stack is popped again, and if the popped value is $1$, the body is executed again.
+    2. If the popped value is $0$, the loop is exited.
+    3. If the popped value is not binary, the execution fails.
 3. If the value of the item is $0$, execution of loop body is skipped.
 4. If the value is not binary, the execution fails.
 

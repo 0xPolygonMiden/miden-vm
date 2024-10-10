@@ -4,6 +4,22 @@ use super::{
 };
 use crate::ZERO;
 
+const U32_MAX: u64 = u32::MAX as u64;
+
+macro_rules! require_u32_operand {
+    ($stack:expr, $idx:literal) => {
+        require_u32_operand!($stack, $idx, ZERO)
+    };
+
+    ($stack:expr, $idx:literal, $errno:expr) => {{
+        let operand = $stack.get($idx);
+        if operand.as_int() > U32_MAX {
+            return Err(ExecutionError::NotU32Value(operand, $errno));
+        }
+        operand
+    }};
+}
+
 impl<H> Process<H>
 where
     H: Host,
@@ -29,15 +45,8 @@ where
     /// the high values are equal to 0; if they are, puts the original elements back onto the
     /// stack; if they are not, returns an error.
     pub(super) fn op_u32assert2(&mut self, err_code: u32) -> Result<(), ExecutionError> {
-        let a = self.stack.get(0);
-        let b = self.stack.get(1);
-
-        if a.as_int() >> 32 != 0 {
-            return Err(ExecutionError::NotU32Value(a, Felt::from(err_code)));
-        }
-        if b.as_int() >> 32 != 0 {
-            return Err(ExecutionError::NotU32Value(b, Felt::from(err_code)));
-        }
+        let b = require_u32_operand!(self.stack, 0, Felt::from(err_code));
+        let a = require_u32_operand!(self.stack, 1, Felt::from(err_code));
 
         self.add_range_checks(Operation::U32assert2(err_code), a, b, false);
 
@@ -51,11 +60,11 @@ where
     /// Pops two elements off the stack, adds them, splits the result into low and high 32-bit
     /// values, and pushes these values back onto the stack.
     pub(super) fn op_u32add(&mut self) -> Result<(), ExecutionError> {
-        let b = self.stack.get(0);
-        let a = self.stack.get(1);
-        let result = a + b;
-        let (hi, lo) = split_element(result);
+        let b = require_u32_operand!(self.stack, 0).as_int();
+        let a = require_u32_operand!(self.stack, 1).as_int();
 
+        let result = Felt::new(a + b);
+        let (hi, lo) = split_element(result);
         self.add_range_checks(Operation::U32add, lo, hi, false);
 
         self.stack.set(0, hi);
@@ -67,9 +76,9 @@ where
     /// Pops three elements off the stack, adds them, splits the result into low and high 32-bit
     /// values, and pushes these values back onto the stack.
     pub(super) fn op_u32add3(&mut self) -> Result<(), ExecutionError> {
-        let c = self.stack.get(0).as_int();
-        let b = self.stack.get(1).as_int();
-        let a = self.stack.get(2).as_int();
+        let c = require_u32_operand!(self.stack, 0).as_int();
+        let b = require_u32_operand!(self.stack, 1).as_int();
+        let a = require_u32_operand!(self.stack, 2).as_int();
         let result = Felt::new(a + b + c);
         let (hi, lo) = split_element(result);
 
@@ -85,11 +94,11 @@ where
     /// pushes the result as well as a flag indicating whether there was underflow back onto the
     /// stack.
     pub(super) fn op_u32sub(&mut self) -> Result<(), ExecutionError> {
-        let b = self.stack.get(0).as_int();
-        let a = self.stack.get(1).as_int();
+        let b = require_u32_operand!(self.stack, 0).as_int();
+        let a = require_u32_operand!(self.stack, 1).as_int();
         let result = a.wrapping_sub(b);
         let d = Felt::new(result >> 63);
-        let c = Felt::new((result as u32) as u64);
+        let c = Felt::new(result & U32_MAX);
 
         // Force this operation to consume 4 range checks, even though only `lo` is needed.
         // This is required for making the constraints more uniform and grouping the opcodes of
@@ -105,8 +114,8 @@ where
     /// Pops two elements off the stack, multiplies them, splits the result into low and high
     /// 32-bit values, and pushes these values back onto the stack.
     pub(super) fn op_u32mul(&mut self) -> Result<(), ExecutionError> {
-        let b = self.stack.get(0).as_int();
-        let a = self.stack.get(1).as_int();
+        let b = require_u32_operand!(self.stack, 0).as_int();
+        let a = require_u32_operand!(self.stack, 1).as_int();
         let result = Felt::new(a * b);
         let (hi, lo) = split_element(result);
 
@@ -122,9 +131,9 @@ where
     /// the result, splits the result into low and high 32-bit values, and pushes these values
     /// back onto the stack.
     pub(super) fn op_u32madd(&mut self) -> Result<(), ExecutionError> {
-        let b = self.stack.get(0).as_int();
-        let a = self.stack.get(1).as_int();
-        let c = self.stack.get(2).as_int();
+        let b = require_u32_operand!(self.stack, 0).as_int();
+        let a = require_u32_operand!(self.stack, 1).as_int();
+        let c = require_u32_operand!(self.stack, 2).as_int();
         let result = Felt::new(a * b + c);
         let (hi, lo) = split_element(result);
 
@@ -142,8 +151,8 @@ where
     /// # Errors
     /// Returns an error if the divisor is ZERO.
     pub(super) fn op_u32div(&mut self) -> Result<(), ExecutionError> {
-        let b = self.stack.get(0).as_int();
-        let a = self.stack.get(1).as_int();
+        let b = require_u32_operand!(self.stack, 0).as_int();
+        let a = require_u32_operand!(self.stack, 1).as_int();
 
         if b == 0 {
             return Err(ExecutionError::DivideByZero(self.system.clk()));
@@ -170,8 +179,8 @@ where
     /// Pops two elements off the stack, computes their bitwise AND, and pushes the result back
     /// onto the stack.
     pub(super) fn op_u32and(&mut self) -> Result<(), ExecutionError> {
-        let b = self.stack.get(0);
-        let a = self.stack.get(1);
+        let b = require_u32_operand!(self.stack, 0);
+        let a = require_u32_operand!(self.stack, 1);
         let result = self.chiplets.u32and(a, b)?;
 
         self.stack.set(0, result);
@@ -183,8 +192,8 @@ where
     /// Pops two elements off the stack, computes their bitwise XOR, and pushes the result back onto
     /// the stack.
     pub(super) fn op_u32xor(&mut self) -> Result<(), ExecutionError> {
-        let b = self.stack.get(0);
-        let a = self.stack.get(1);
+        let b = require_u32_operand!(self.stack, 0);
+        let a = require_u32_operand!(self.stack, 1);
         let result = self.chiplets.u32xor(a, b)?;
 
         self.stack.set(0, result);
@@ -232,8 +241,9 @@ where
 
 #[cfg(test)]
 mod tests {
-    use miden_air::trace::{decoder::NUM_USER_OP_HELPERS, stack::STACK_TOP_SIZE};
+    use miden_air::trace::decoder::NUM_USER_OP_HELPERS;
     use test_utils::rand::rand_value;
+    use vm_core::stack::MIN_STACK_DEPTH;
 
     use super::{
         super::{Felt, Operation},
@@ -457,8 +467,8 @@ mod tests {
         (d, c, b, a)
     }
 
-    fn build_expected(values: &[u32]) -> [Felt; STACK_TOP_SIZE] {
-        let mut expected = [ZERO; STACK_TOP_SIZE];
+    fn build_expected(values: &[u32]) -> [Felt; MIN_STACK_DEPTH] {
+        let mut expected = [ZERO; MIN_STACK_DEPTH];
         for (&value, result) in values.iter().zip(expected.iter_mut()) {
             *result = Felt::new(value as u64);
         }

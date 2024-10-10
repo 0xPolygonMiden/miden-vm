@@ -25,7 +25,7 @@ pub use vm_core::{
 };
 use vm_core::{
     mast::{BasicBlockNode, CallNode, JoinNode, LoopNode, OpBatch, SplitNode, OP_GROUP_SIZE},
-    Decorator, DecoratorIterator, FieldElement, StackTopState,
+    Decorator, DecoratorIterator, FieldElement,
 };
 pub use winter_prover::matrix::ColMatrix;
 
@@ -103,7 +103,6 @@ pub struct DecoderTrace {
 
 pub struct StackTrace {
     trace: [Vec<Felt>; STACK_TRACE_WIDTH],
-    aux_builder: stack::AuxTraceBuilder,
 }
 
 pub struct RangeCheckTrace {
@@ -252,9 +251,9 @@ where
             return Err(ExecutionError::ProgramAlreadyExecuted);
         }
 
-        self.execute_mast_node(program.entrypoint(), program.mast_forest())?;
+        self.execute_mast_node(program.entrypoint(), &program.mast_forest().clone())?;
 
-        Ok(self.stack.build_stack_outputs())
+        self.stack.build_stack_outputs()
     }
 
     // NODE EXECUTORS
@@ -269,13 +268,17 @@ where
             .get_node_by_id(node_id)
             .ok_or(ExecutionError::MastNodeNotFoundInForest { node_id })?;
 
+        for &decorator_id in node.before_enter() {
+            self.execute_decorator(&program[decorator_id])?;
+        }
+
         match node {
-            MastNode::Block(node) => self.execute_basic_block_node(node),
-            MastNode::Join(node) => self.execute_join_node(node, program),
-            MastNode::Split(node) => self.execute_split_node(node, program),
-            MastNode::Loop(node) => self.execute_loop_node(node, program),
-            MastNode::Call(node) => self.execute_call_node(node, program),
-            MastNode::Dyn => self.execute_dyn_node(program),
+            MastNode::Block(node) => self.execute_basic_block_node(node, program)?,
+            MastNode::Join(node) => self.execute_join_node(node, program)?,
+            MastNode::Split(node) => self.execute_split_node(node, program)?,
+            MastNode::Loop(node) => self.execute_loop_node(node, program)?,
+            MastNode::Call(node) => self.execute_call_node(node, program)?,
+            MastNode::Dyn(_) => self.execute_dyn_node(program)?,
             MastNode::External(external_node) => {
                 let node_digest = external_node.digest();
                 let mast_forest = self
@@ -296,9 +299,15 @@ where
                     return Err(ExecutionError::CircularExternalNode(node_digest));
                 }
 
-                self.execute_mast_node(root_id, &mast_forest)
+                self.execute_mast_node(root_id, &mast_forest)?;
             },
         }
+
+        for &decorator_id in node.after_exit() {
+            self.execute_decorator(&program[decorator_id])?;
+        }
+
+        Ok(())
     }
 
     /// Executes the specified [JoinNode].
@@ -400,9 +409,10 @@ where
     /// expected to be either in the current `program` or in the host.
     #[inline(always)]
     fn execute_dyn_node(&mut self, program: &MastForest) -> Result<(), ExecutionError> {
+        self.start_dyn_node()?;
+
         // get target hash from the stack
         let callee_hash = self.stack.get_word(0);
-        self.start_dyn_node(callee_hash)?;
 
         // if the callee is not in the program's MAST forest, try to find a MAST forest for it in
         // the host (corresponding to an external library loaded in the host); if none are
@@ -434,14 +444,20 @@ where
     fn execute_basic_block_node(
         &mut self,
         basic_block: &BasicBlockNode,
+        program: &MastForest,
     ) -> Result<(), ExecutionError> {
         self.start_basic_block_node(basic_block)?;
 
         let mut op_offset = 0;
-        let mut decorators = basic_block.decorator_iter();
+        let mut decorator_ids = basic_block.decorator_iter();
 
         // execute the first operation batch
-        self.execute_op_batch(&basic_block.op_batches()[0], &mut decorators, op_offset)?;
+        self.execute_op_batch(
+            &basic_block.op_batches()[0],
+            &mut decorator_ids,
+            op_offset,
+            program,
+        )?;
         op_offset += basic_block.op_batches()[0].ops().len();
 
         // if the span contains more operation batches, execute them. each additional batch is
@@ -450,7 +466,7 @@ where
         for op_batch in basic_block.op_batches().iter().skip(1) {
             self.respan(op_batch);
             self.execute_op(Operation::Noop)?;
-            self.execute_op_batch(op_batch, &mut decorators, op_offset)?;
+            self.execute_op_batch(op_batch, &mut decorator_ids, op_offset, program)?;
             op_offset += op_batch.ops().len();
         }
 
@@ -460,7 +476,10 @@ where
         // can happen for decorators appearing after all operations in a block. these decorators
         // are executed after SPAN block is closed to make sure the VM clock cycle advances beyond
         // the last clock cycle of the SPAN block ops.
-        for decorator in decorators {
+        for &decorator_id in decorator_ids {
+            let decorator = program
+                .get_decorator_by_id(decorator_id)
+                .ok_or(ExecutionError::DecoratorNotFoundInForest { decorator_id })?;
             self.execute_decorator(decorator)?;
         }
 
@@ -479,6 +498,7 @@ where
         batch: &OpBatch,
         decorators: &mut DecoratorIterator,
         op_offset: usize,
+        program: &MastForest,
     ) -> Result<(), ExecutionError> {
         let op_counts = batch.op_counts();
         let mut op_idx = 0;
@@ -492,7 +512,10 @@ where
 
         // execute operations in the batch one by one
         for (i, &op) in batch.ops().iter().enumerate() {
-            while let Some(decorator) = decorators.next_filtered(i + op_offset) {
+            while let Some(&decorator_id) = decorators.next_filtered(i + op_offset) {
+                let decorator = program
+                    .get_decorator_by_id(decorator_id)
+                    .ok_or(ExecutionError::DecoratorNotFoundInForest { decorator_id })?;
                 self.execute_decorator(decorator)?;
             }
 
@@ -561,15 +584,14 @@ where
                 self.host.borrow_mut().set_advice(self, *injector)?;
             },
             Decorator::Debug(options) => {
-                self.host.borrow_mut().on_debug(self, options)?;
+                if self.decoder.in_debug_mode() {
+                    self.host.borrow_mut().on_debug(self, options)?;
+                }
             },
             Decorator::AsmOp(assembly_op) => {
                 if self.decoder.in_debug_mode() {
                     self.decoder.append_asmop(self.system.clk(), assembly_op.clone());
                 }
-            },
-            Decorator::Event(id) => {
-                self.host.borrow_mut().on_event(self, *id)?;
             },
             Decorator::Trace(id) => {
                 if self.enable_tracing {

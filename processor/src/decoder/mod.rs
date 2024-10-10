@@ -14,7 +14,7 @@ use vm_core::{
     mast::{
         BasicBlockNode, CallNode, DynNode, JoinNode, LoopNode, MastForest, SplitNode, OP_BATCH_SIZE,
     },
-    stack::STACK_TOP_SIZE,
+    stack::MIN_STACK_DEPTH,
     AssemblyOp,
 };
 
@@ -261,7 +261,7 @@ where
     pub(super) fn end_call_node(&mut self, node: &CallNode) -> Result<(), ExecutionError> {
         // when a CALL block ends, stack depth must be exactly 16
         let stack_depth = self.stack.depth();
-        if stack_depth > STACK_TOP_SIZE {
+        if stack_depth > MIN_STACK_DEPTH {
             return Err(ExecutionError::InvalidStackDepthOnReturn(stack_depth));
         }
 
@@ -292,15 +292,15 @@ where
     // --------------------------------------------------------------------------------------------
 
     /// Starts decoding of a DYN node.
-    pub(super) fn start_dyn_node(&mut self, callee_hash: Word) -> Result<(), ExecutionError> {
+    pub(super) fn start_dyn_node(&mut self) -> Result<(), ExecutionError> {
         let addr = self.chiplets.hash_control_block(
             EMPTY_WORD,
             EMPTY_WORD,
             DynNode::DOMAIN,
-            DynNode.digest(),
+            DynNode::default().digest(),
         );
 
-        self.decoder.start_dyn(callee_hash, addr);
+        self.decoder.start_dyn(addr);
         self.execute_op(Operation::Noop)
     }
 
@@ -308,7 +308,7 @@ where
     pub(super) fn end_dyn_node(&mut self) -> Result<(), ExecutionError> {
         // this appends a row with END operation to the decoder trace. when the END operation is
         // executed the rest of the VM state does not change
-        self.decoder.end_control_block(DynNode.digest().into());
+        self.decoder.end_control_block(DynNode::default().digest().into());
 
         self.execute_op(Operation::Noop)
     }
@@ -534,10 +534,10 @@ impl Decoder {
     ///
     /// This pushes a block with ID=addr onto the block stack and appends execution of a DYN
     /// operation to the trace.
-    pub fn start_dyn(&mut self, dyn_hash: Word, addr: Felt) {
+    pub fn start_dyn(&mut self, addr: Felt) {
         // push DYN block info onto the block stack and append a DYN row to the execution trace
         let parent_addr = self.block_stack.push(addr, BlockType::Dyn, None);
-        self.trace.append_block_start(parent_addr, Operation::Dyn, dyn_hash, [ZERO; 4]);
+        self.trace.append_block_start(parent_addr, Operation::Dyn, [ZERO; 4], [ZERO; 4]);
 
         self.debug_info.append_operation(Operation::Dyn);
     }

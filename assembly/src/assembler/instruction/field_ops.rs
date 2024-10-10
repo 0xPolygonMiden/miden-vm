@@ -259,13 +259,13 @@ fn perform_exp_for_small_power(span_builder: &mut BasicBlockBuilder, pow: u64) {
 ///
 /// # Errors
 /// Returns an error if the logarithm argument (top stack element) equals ZERO.
-pub fn ilog2(span: &mut BasicBlockBuilder) {
-    span.push_advice_injector(AdviceInjector::ILog2);
-    span.push_op(AdvPop); // [ilog2, n, ...]
+pub fn ilog2(block_builder: &mut BasicBlockBuilder) -> Result<(), AssemblyError> {
+    block_builder.push_advice_injector(AdviceInjector::ILog2)?;
+    block_builder.push_op(AdvPop); // [ilog2, n, ...]
 
     // compute the power-of-two for the value given in the advice tape (17 cycles)
-    span.push_op(Dup0);
-    append_pow2_op(span);
+    block_builder.push_op(Dup0);
+    append_pow2_op(block_builder);
     // => [pow2, ilog2, n, ...]
 
     #[rustfmt::skip]
@@ -289,7 +289,9 @@ pub fn ilog2(span: &mut BasicBlockBuilder) {
         // => [ilog2, ...]
     ];
 
-    span.push_ops(ops);
+    block_builder.push_ops(ops);
+
+    Ok(())
 }
 
 // COMPARISON OPERATIONS

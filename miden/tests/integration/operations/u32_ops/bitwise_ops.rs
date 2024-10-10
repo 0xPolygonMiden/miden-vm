@@ -317,10 +317,6 @@ fn u32shl() {
 
     let test = build_op_test!(asm_op, &[a as u64, b as u64]);
     test.expect_stack(&[a.wrapping_shl(b) as u64]);
-
-    // --- test out of bounds input (should not fail) --------------------------------------------
-    let test = build_op_test!(asm_op, &[U32_BOUND, 1]);
-    assert!(test.execute().is_ok());
 }
 
 #[test]
@@ -355,11 +351,6 @@ fn u32shl_b() {
 
     // let test = build_op_test!(get_asm_op(b).as_str(), &[a as u64]);
     // test.expect_stack(&[a.wrapping_shl(b) as u64]);
-
-    // --- test out of bounds input (should not fail) ---------------------------------------------
-    // let b = 1;
-    // let test = build_op_test!(get_asm_op(b).as_str(), &[U32_BOUND]);
-    // assert!(test.execute().is_ok());
 }
 
 #[test]
@@ -393,10 +384,6 @@ fn u32shr() {
 
     let test = build_op_test!(asm_op, &[a as u64, b as u64]);
     test.expect_stack(&[a.wrapping_shr(b) as u64]);
-
-    // --- test out of bounds inputs (should not fail) --------------------------------------------
-    let test = build_op_test!(asm_op, &[U32_BOUND, 1]);
-    assert!(test.execute().is_ok());
 }
 
 #[test]
@@ -431,11 +418,6 @@ fn u32shr_b() {
 
     let test = build_op_test!(get_asm_op(b).as_str(), &[a as u64]);
     test.expect_stack(&[a.wrapping_shr(b) as u64]);
-
-    // --- test out of bounds inputs (should not fail) --------------------------------------------
-    let b = 1;
-    let test = build_op_test!(get_asm_op(b).as_str(), &[U32_BOUND]);
-    assert!(test.execute().is_ok());
 }
 
 #[test]
@@ -480,10 +462,6 @@ fn u32rotl() {
 
     let test = build_op_test!(asm_op, &[a as u64, b as u64]);
     test.expect_stack(&[a.rotate_left(b) as u64]);
-
-    // --- test out of bounds inputs (should not fail) --------------------------------------------
-    let test = build_op_test!(asm_op, &[U32_BOUND, 1]);
-    assert!(test.execute().is_ok());
 }
 
 #[test]
@@ -528,10 +506,6 @@ fn u32rotr() {
 
     let test = build_op_test!(asm_op, &[a as u64, b as u64]);
     test.expect_stack(&[a.rotate_right(b) as u64]);
-
-    // --- test out of bounds inputs (should not fail) --------------------------------------------
-    let test = build_op_test!(asm_op, &[U32_BOUND, 1]);
-    assert!(test.execute().is_ok());
 }
 
 #[test]

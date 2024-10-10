@@ -98,23 +98,23 @@ fn hasher_p1_mr_update() {
     expected_value *= row_values[0];
     assert_eq!(expected_value, p1[9]);
 
-    // and then again for the next 7 steps the value remains the same
-    for i in 10..17 {
+    // and then again for the next 6 steps the value remains the same
+    for i in 10..16 {
         assert_eq!(expected_value, p1[i]);
     }
 
-    // on step 16, the next sibling is added to the table in the following row (step 17)
+    // on step 15, the next sibling is added to the table in the following row (step 16)
     expected_value *= row_values[1];
-    assert_eq!(expected_value, p1[17]);
+    assert_eq!(expected_value, p1[16]);
 
-    // and then again for the next 7 steps the value remains the same
-    for i in 18..25 {
+    // and then again for the next 6 steps the value remains the same
+    for i in 18..24 {
         assert_eq!(expected_value, p1[i]);
     }
 
-    // on step 24, the last sibling is added to the table in the following row (step 25)
+    // on step 23, the last sibling is added to the table in the following row (step 24)
     expected_value *= row_values[2];
-    assert_eq!(expected_value, p1[25]);
+    assert_eq!(expected_value, p1[24]);
 
     // and then again for the next 7 steps the value remains the same
     for i in 25..33 {
@@ -126,23 +126,23 @@ fn hasher_p1_mr_update() {
     expected_value *= row_values[0].inv();
     assert_eq!(expected_value, p1[33]);
 
-    // then, for the next 7 steps the value remains the same
-    for i in 33..41 {
+    // then, for the next 6 steps the value remains the same
+    for i in 33..40 {
         assert_eq!(expected_value, p1[i]);
     }
 
-    // on step 40, the next sibling is removed from the table in the following row (step 41)
+    // on step 39, the next sibling is removed from the table in the following row (step 40)
     expected_value *= row_values[1].inv();
-    assert_eq!(expected_value, p1[41]);
+    assert_eq!(expected_value, p1[40]);
 
-    // and then again for the next 7 steps the value remains the same
-    for i in 41..49 {
+    // and then again for the next 6 steps the value remains the same
+    for i in 41..48 {
         assert_eq!(expected_value, p1[i]);
     }
 
-    // on step 48, the last sibling is removed from the table in the following row (step 49)
+    // on step 47, the last sibling is removed from the table in the following row (step 48)
     expected_value *= row_values[2].inv();
-    assert_eq!(expected_value, p1[49]);
+    assert_eq!(expected_value, p1[48]);
 
     // at this point the table should be empty again, and it should stay empty until the end
     assert_eq!(expected_value, ONE);

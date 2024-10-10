@@ -148,11 +148,12 @@ macro_rules! assert_diagnostic {
     }};
 }
 
-/// Like [assert_diagnostic], but matches each non-empty line of the rendered output
-/// to a corresponding pattern. So if the output has 3 lines, the second of which is
-/// empty, and you provide 2 patterns, the assertion passes if the first line matches
-/// the first pattern, and the third line matches the second pattern - the second
-/// line is ignored because it is empty.
+/// Like [assert_diagnostic], but matches each non-empty line of the rendered output to a
+/// corresponding pattern.
+///
+/// So if the output has 3 lines, the second of which is empty, and you provide 2 patterns, the
+/// assertion passes if the first line matches the first pattern, and the third line matches the
+/// second pattern - the second line is ignored because it is empty.
 #[macro_export]
 macro_rules! assert_diagnostic_lines {
     ($diagnostic:expr, $($expected:expr),+) => {{
@@ -198,9 +199,9 @@ impl TestContext {
             let _ = set_hook(Box::new(|_| Box::new(ReportHandlerOpts::new().build())));
         }
         let source_manager = Arc::new(crate::DefaultSourceManager::default());
-        let assembler = Assembler::new(source_manager.clone())
-            .with_debug_mode(true)
-            .with_warnings_as_errors(true);
+        // Note: we do not set debug mode by default because we do not want AsmOp decorators to be
+        // inserted in our programs
+        let assembler = Assembler::new(source_manager.clone()).with_warnings_as_errors(true);
         Self { source_manager, assembler }
     }
 

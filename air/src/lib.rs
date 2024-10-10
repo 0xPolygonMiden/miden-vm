@@ -146,7 +146,7 @@ impl Air for ProcessorAir {
         result.push(Assertion::single(FMP_COL_IDX, 0, Felt::new(2u64.pow(30))));
 
         // add initial assertions for the stack.
-        stack::get_assertions_first_step(&mut result, self.stack_inputs.values());
+        stack::get_assertions_first_step(&mut result, &*self.stack_inputs);
 
         // Add initial assertions for the range checker.
         range::get_assertions_first_step(&mut result);
@@ -165,18 +165,14 @@ impl Air for ProcessorAir {
 
     fn get_aux_assertions<E: FieldElement<BaseField = Self::BaseField>>(
         &self,
-        aux_rand_elements: &[E],
+        _aux_rand_elements: &[E],
     ) -> Vec<Assertion<E>> {
         let mut result: Vec<Assertion<E>> = Vec::new();
 
         // --- set assertions for the first step --------------------------------------------------
 
         // add initial assertions for the stack's auxiliary columns.
-        stack::get_aux_assertions_first_step(
-            &mut result,
-            aux_rand_elements,
-            self.stack_inputs.values(),
-        );
+        stack::get_aux_assertions_first_step(&mut result);
 
         // Add initial assertions for the range checker's auxiliary columns.
         range::get_aux_assertions_first_step::<E>(&mut result);
@@ -185,12 +181,7 @@ impl Air for ProcessorAir {
         let last_step = self.last_step();
 
         // add the stack's auxiliary column assertions for the last step.
-        stack::get_aux_assertions_last_step(
-            &mut result,
-            aux_rand_elements,
-            &self.stack_outputs,
-            last_step,
-        );
+        stack::get_aux_assertions_last_step(&mut result, last_step);
 
         // Add the range checker's auxiliary column assertions for the last step.
         range::get_aux_assertions_last_step::<E>(&mut result, last_step);
@@ -281,8 +272,8 @@ impl PublicInputs {
 impl vm_core::ToElements<Felt> for PublicInputs {
     fn to_elements(&self) -> Vec<Felt> {
         let mut result = self.program_info.to_elements();
-        result.append(&mut self.stack_inputs.to_elements());
-        result.append(&mut self.stack_outputs.to_elements());
+        result.append(&mut self.stack_inputs.to_vec());
+        result.append(&mut self.stack_outputs.to_vec());
         result
     }
 }

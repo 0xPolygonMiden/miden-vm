@@ -1,4 +1,4 @@
-use alloc::{collections::BTreeSet, sync::Arc};
+use alloc::sync::Arc;
 
 use vm_core::mast::MastNodeId;
 
@@ -6,10 +6,8 @@ use super::GlobalProcedureIndex;
 use crate::{
     ast::{ProcedureName, QualifiedProcedureName, Visibility},
     diagnostics::{SourceManager, SourceSpan, Spanned},
-    AssemblyError, LibraryPath, RpoDigest,
+    LibraryPath, RpoDigest,
 };
-
-pub type CallSet = BTreeSet<RpoDigest>;
 
 // PROCEDURE CONTEXT
 // ================================================================================================
@@ -23,7 +21,6 @@ pub struct ProcedureContext {
     visibility: Visibility,
     is_kernel: bool,
     num_locals: u16,
-    callset: CallSet,
 }
 
 // ------------------------------------------------------------------------------------------------
@@ -44,7 +41,6 @@ impl ProcedureContext {
             visibility,
             is_kernel,
             num_locals: 0,
-            callset: Default::default(),
         }
     }
 
@@ -93,43 +89,13 @@ impl ProcedureContext {
 // ------------------------------------------------------------------------------------------------
 /// State mutators
 impl ProcedureContext {
-    pub fn insert_callee(&mut self, callee: RpoDigest) {
-        self.callset.insert(callee);
-    }
-
-    pub fn extend_callset<I>(&mut self, callees: I)
-    where
-        I: IntoIterator<Item = RpoDigest>,
-    {
-        self.callset.extend(callees);
-    }
-
-    /// Registers a call to an externally-defined procedure which we have previously compiled.
-    ///
-    /// The call set of the callee is added to the call set of the procedure we are currently
-    /// compiling, to reflect that all of the code reachable from the callee is by extension
-    /// reachable by the caller.
-    pub fn register_external_call(
-        &mut self,
-        callee: &Procedure,
-        inlined: bool,
-    ) -> Result<(), AssemblyError> {
-        // If we call the callee, it's callset is by extension part of our callset
-        self.extend_callset(callee.callset().iter().cloned());
-
-        // If the callee is not being inlined, add it to our callset
-        if !inlined {
-            self.insert_callee(callee.mast_root());
-        }
-
-        Ok(())
-    }
-
     /// Transforms this procedure context into a [Procedure].
     ///
     /// The passed-in `mast_root` defines the MAST root of the procedure's body while
     /// `mast_node_id` specifies the ID of the procedure's body node in the MAST forest in
-    /// which the procedure is defined.
+    /// which the procedure is defined. Note that if the procedure is re-exported (i.e., the body
+    /// of the procedure is defined in some other MAST forest) `mast_node_id` will point to a
+    /// single `External` node.
     ///
     /// <div class="warning">
     /// `mast_root` and `mast_node_id` must be consistent. That is, the node located in the MAST
@@ -138,7 +104,6 @@ impl ProcedureContext {
     pub fn into_procedure(self, mast_root: RpoDigest, mast_node_id: MastNodeId) -> Procedure {
         Procedure::new(self.name, self.visibility, self.num_locals as u32, mast_root, mast_node_id)
             .with_span(self.span)
-            .with_callset(self.callset)
     }
 }
 
@@ -170,8 +135,6 @@ pub struct Procedure {
     mast_root: RpoDigest,
     /// The MAST node id which resolves to the above MAST root.
     body_node_id: MastNodeId,
-    /// The set of MAST roots called by this procedure
-    callset: CallSet,
 }
 
 // ------------------------------------------------------------------------------------------------
@@ -191,17 +154,11 @@ impl Procedure {
             num_locals,
             mast_root,
             body_node_id,
-            callset: Default::default(),
         }
     }
 
     pub(crate) fn with_span(mut self, span: SourceSpan) -> Self {
         self.span = span;
-        self
-    }
-
-    pub(crate) fn with_callset(mut self, callset: CallSet) -> Self {
-        self.callset = callset;
         self
     }
 }
@@ -243,12 +200,6 @@ impl Procedure {
     /// Returns a reference to the MAST node ID of this procedure.
     pub fn body_node_id(&self) -> MastNodeId {
         self.body_node_id
-    }
-
-    /// Returns a reference to a set of all procedures (identified by their MAST roots) which may
-    /// be called during the execution of this procedure.
-    pub fn callset(&self) -> &CallSet {
-        &self.callset
     }
 }
 

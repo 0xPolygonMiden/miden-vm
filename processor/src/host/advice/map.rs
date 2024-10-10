@@ -3,7 +3,10 @@ use alloc::{
     vec::Vec,
 };
 
-use vm_core::crypto::hash::RpoDigest;
+use vm_core::{
+    crypto::hash::RpoDigest,
+    utils::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable},
+};
 
 use super::Felt;
 
@@ -15,7 +18,7 @@ use super::Felt;
 /// Each key maps to one or more field element. To access the elements, the VM can move the values
 /// associated with a given key onto the advice stack using `adv.push_mapval` instruction. The VM
 /// can also insert new values into the advice map during execution.
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct AdviceMap(BTreeMap<RpoDigest, Vec<Felt>>);
 
 impl AdviceMap {
@@ -58,5 +61,43 @@ impl IntoIterator for AdviceMap {
 impl Extend<(RpoDigest, Vec<Felt>)> for AdviceMap {
     fn extend<T: IntoIterator<Item = (RpoDigest, Vec<Felt>)>>(&mut self, iter: T) {
         self.0.extend(iter)
+    }
+}
+
+impl Serializable for AdviceMap {
+    fn write_into<W: ByteWriter>(&self, target: &mut W) {
+        target.write_usize(self.0.len());
+        for (key, values) in self.0.iter() {
+            target.write((key, values));
+        }
+    }
+}
+
+impl Deserializable for AdviceMap {
+    fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
+        let mut map = BTreeMap::new();
+        let count = source.read_usize()?;
+        for _ in 0..count {
+            let (key, values) = source.read()?;
+            map.insert(key, values);
+        }
+        Ok(Self(map))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_advice_map_serialization() {
+        let mut map1 = AdviceMap::new();
+        map1.insert(RpoDigest::default(), vec![Felt::from(1u32), Felt::from(2u32)]);
+
+        let bytes = map1.to_bytes();
+
+        let map2 = AdviceMap::read_from_bytes(&bytes).unwrap();
+
+        assert_eq!(map1, map2);
     }
 }

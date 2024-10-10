@@ -192,6 +192,7 @@ impl ExecutionOptions {
         max_cycles: Option<u32>,
         expected_cycles: u32,
         enable_tracing: bool,
+        enable_debugging: bool,
     ) -> Result<Self, ExecutionOptionsError> {
         let max_cycles = max_cycles.unwrap_or(u32::MAX);
         if max_cycles < MIN_TRACE_LEN as u32 {
@@ -209,7 +210,7 @@ impl ExecutionOptions {
             max_cycles,
             expected_cycles,
             enable_tracing,
-            enable_debugging: false,
+            enable_debugging,
         })
     }
 

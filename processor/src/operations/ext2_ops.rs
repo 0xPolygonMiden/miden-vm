@@ -37,7 +37,7 @@ mod tests {
     use vm_core::QuadExtension;
 
     use super::{
-        super::{Felt, Operation, STACK_TOP_SIZE},
+        super::{Felt, Operation, MIN_STACK_DEPTH},
         Process,
     };
     use crate::{StackInputs, ZERO};
@@ -60,7 +60,7 @@ mod tests {
         let c = (b * a).to_base_elements();
         let expected = build_expected(&[b1, b0, c[1], c[0]]);
 
-        assert_eq!(STACK_TOP_SIZE, process.stack.depth());
+        assert_eq!(MIN_STACK_DEPTH, process.stack.depth());
         assert_eq!(2, process.stack.current_clk());
         assert_eq!(expected, process.stack.trace_state());
 

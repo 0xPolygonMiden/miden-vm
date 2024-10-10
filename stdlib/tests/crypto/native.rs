@@ -56,7 +56,7 @@ fn test_hash_empty() {
         mem_stream hperm
 
         # drop everything except the hash
-        dropw swapw dropw movup.4 drop
+        dropw swapw.3 dropw dropw dropw
     end
     ";
 
@@ -76,6 +76,7 @@ fn test_hash_empty() {
         push.1000 # start address
 
         exec.native::hash_memory
+        swapw dropw
     end
     ";
 
@@ -95,7 +96,7 @@ fn test_single_iteration() {
         mem_stream hperm
 
         # drop everything except the hash
-        dropw swapw dropw movup.4 drop
+        dropw swapw.3 dropw dropw dropw
     end
     ";
 
@@ -120,6 +121,7 @@ fn test_single_iteration() {
         push.1000 # start address
 
         exec.native::hash_memory
+        swapw dropw
     end
     ";
 
@@ -148,6 +150,7 @@ fn test_hash_one_word() {
         push.1000 # start address
 
         exec.native::hash_memory
+        swapw dropw
     end
     ";
 
@@ -168,6 +171,7 @@ fn test_hash_even_words() {
         push.1000 # start address
 
         exec.native::hash_memory
+        swapw dropw
     end
     ";
 
@@ -194,6 +198,7 @@ fn test_hash_odd_words() {
         push.1000 # start address
 
         exec.native::hash_memory
+        swapw dropw
     end
     ";
 
@@ -210,6 +215,7 @@ fn test_hash_odd_words() {
 fn test_hash_memory_even() {
     let even_words = "
     use.std::crypto::hashes::native
+    use.std::sys
 
     begin
         push.1.0.0.0.1000 mem_storew dropw
@@ -219,6 +225,8 @@ fn test_hash_memory_even() {
         push.1000      # start address
         padw padw padw # hasher state
         exec.native::hash_memory_even
+
+        exec.sys::truncate_stack
     end
     ";
 
@@ -253,6 +261,7 @@ fn test_state_to_digest() {
         exec.native::hash_memory_even
 
         exec.native::state_to_digest
+        swapdw dropw dropw
     end
     ";
 

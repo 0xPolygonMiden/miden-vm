@@ -1,6 +1,6 @@
 use std::ops::Mul;
 
-use test_utils::rand::rand_value;
+use test_utils::{push_inputs, rand::rand_value};
 
 #[derive(Copy, Clone, Debug)]
 struct Scalar {
@@ -219,13 +219,6 @@ fn test_ec_ext5_scalar_arithmetic() {
 
 #[test]
 fn test_ec_ext5_scalar_mont_mul() {
-    let source = "
-    use.std::math::ecgfp5::scalar_field
-
-    begin
-        exec.scalar_field::mont_mul
-    end";
-
     let a = Scalar {
         limbs: [
             rand_value::<u32>() >> 1,
@@ -263,7 +256,21 @@ fn test_ec_ext5_scalar_mont_mul() {
     }
     stack.reverse();
 
-    let test = build_test!(source, &stack);
+    let source = format!(
+        "
+    use.std::math::ecgfp5::scalar_field
+    use.std::sys
+
+    begin
+        {inputs}
+        exec.scalar_field::mont_mul
+
+        exec.sys::truncate_stack
+    end",
+        inputs = push_inputs(&stack)
+    );
+
+    let test = build_test!(source, &[]);
     let strace = test.get_last_stack_state();
 
     for (i, limb) in c.limbs.iter().enumerate() {
@@ -275,10 +282,13 @@ fn test_ec_ext5_scalar_mont_mul() {
 fn test_ec_ext5_scalar_to_and_from_mont_repr() {
     let source = "
     use.std::math::ecgfp5::scalar_field
+    use.std::sys
 
     begin
         exec.scalar_field::to_mont
         exec.scalar_field::from_mont
+
+        exec.sys::truncate_stack
     end";
 
     let a = Scalar {
@@ -318,9 +328,12 @@ fn test_ec_ext5_scalar_to_and_from_mont_repr() {
 fn test_ec_ext5_scalar_inv() {
     let source = "
     use.std::math::ecgfp5::scalar_field
+    use.std::sys
 
     begin
         exec.scalar_field::inv
+
+        exec.sys::truncate_stack
     end";
 
     let a = Scalar {

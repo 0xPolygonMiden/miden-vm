@@ -1,7 +1,7 @@
 use miden_air::RowIndex;
 use vm_core::{
-    Word, OPCODE_DYN, OPCODE_END, OPCODE_HALT, OPCODE_JOIN, OPCODE_LOOP, OPCODE_REPEAT,
-    OPCODE_SPLIT, ZERO,
+    Word, OPCODE_CALL, OPCODE_DYN, OPCODE_END, OPCODE_HALT, OPCODE_JOIN, OPCODE_LOOP,
+    OPCODE_REPEAT, OPCODE_SPLIT, OPCODE_SYSCALL, ZERO,
 };
 
 use super::{AuxColumnBuilder, Felt, FieldElement, MainTrace, ONE};
@@ -56,6 +56,9 @@ impl<E: FieldElement<BaseField = Felt>> AuxColumnBuilder<E> for BlockHashTableCo
                 .unwrap_or(E::ONE),
             OPCODE_REPEAT => BlockHashTableRow::from_repeat(main_trace, row).collapse(alphas),
             OPCODE_DYN => BlockHashTableRow::from_dyn(main_trace, row).collapse(alphas),
+            OPCODE_CALL | OPCODE_SYSCALL => {
+                BlockHashTableRow::from_call_or_syscall(main_trace, row).collapse(alphas)
+            },
             _ => E::ONE,
         }
     }
@@ -221,6 +224,15 @@ impl BlockHashTableRow {
         Self {
             parent_block_id: main_trace.addr(row + 1),
             child_block_hash,
+            is_first_child: false,
+            is_loop_body: false,
+        }
+    }
+
+    pub fn from_call_or_syscall(main_trace: &MainTrace, row: RowIndex) -> Self {
+        Self {
+            parent_block_id: main_trace.addr(row + 1),
+            child_block_hash: main_trace.decoder_hasher_state_first_half(row),
             is_first_child: false,
             is_loop_body: false,
         }

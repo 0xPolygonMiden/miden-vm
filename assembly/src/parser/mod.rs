@@ -21,8 +21,6 @@ mod token;
 
 use alloc::{boxed::Box, collections::BTreeSet, string::ToString, sync::Arc, vec::Vec};
 
-use miette::miette;
-
 pub use self::{
     error::{BinErrorKind, HexErrorKind, LiteralErrorKind, ParsingError},
     lexer::Lexer,
@@ -182,6 +180,7 @@ pub fn read_modules_from_dir(
 ) -> Result<impl Iterator<Item = Box<ast::Module>>, Report> {
     use std::collections::{btree_map::Entry, BTreeMap};
 
+    use miette::miette;
     use module_walker::{ModuleEntry, WalkModules};
 
     use crate::diagnostics::{IntoDiagnostic, WrapErr};
@@ -232,7 +231,8 @@ mod module_walker {
         path::{Path, PathBuf},
     };
 
-    use super::miette;
+    use miette::miette;
+
     use crate::{
         ast::Module,
         diagnostics::{IntoDiagnostic, Report},
@@ -304,7 +304,7 @@ mod module_walker {
         }
     }
 
-    impl<'a> Iterator for WalkModules<'a> {
+    impl Iterator for WalkModules<'_> {
         type Item = Result<ModuleEntry, Report>;
 
         fn next(&mut self) -> Option<Self::Item> {

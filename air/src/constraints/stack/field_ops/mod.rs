@@ -99,8 +99,10 @@ pub fn enforce_constraints<E: FieldElement>(
 // TRANSITION CONSTRAINT HELPERS
 // ================================================================================================
 
-/// Enforces constraints of the ADD operation. The ADD operation adds the first two elements
-/// in the current trace. Therefore, the following constraints are enforced:
+/// Enforces constraints of the ADD operation.
+///
+/// The ADD operation adds the first two elements in the current trace. Therefore, the following
+/// constraints are enforced:
 /// - The first element in the trace frame should be the addition of the first two elements in the
 ///   current trace. s0` - s0 - s1 = 0.
 pub fn enforce_add_constraints<E: FieldElement>(
@@ -118,8 +120,10 @@ pub fn enforce_add_constraints<E: FieldElement>(
     1
 }
 
-/// Enforces constraints of the NEG operation. The NEG operation updates the top element in the
-/// stack with its inverse. Therefore, the following constraints are enforced:
+/// Enforces constraints of the NEG operation.
+///
+/// The NEG operation updates the top element in the stack with its inverse. Therefore, the
+/// following constraints are enforced:
 /// - The first element in the next frame should be the negation of first element in the current
 ///   frame, therefore, their sum should be 0. s0` + s0 = 0.
 pub fn enforce_neg_constraints<E: FieldElement>(
@@ -134,8 +138,10 @@ pub fn enforce_neg_constraints<E: FieldElement>(
     1
 }
 
-/// Enforces constraints of the MUL operation. The MUL operation multiplies the first two elements
-/// in the current trace. Therefore, the following constraints are enforced:
+/// Enforces constraints of the MUL operation.
+///
+/// The MUL operation multiplies the first two elements in the current trace. Therefore, the
+/// following constraints are enforced:
 /// - The first element in the next frame should be the product of the first two elements in the
 ///   current frame. s0` - s0 * s1 = 0
 pub fn enforce_mul_constraints<E: FieldElement>(
@@ -153,8 +159,10 @@ pub fn enforce_mul_constraints<E: FieldElement>(
     1
 }
 
-/// Enforces constraints of the INV operation. The INV operation updates the top element
-/// in the stack with its inverse. Therefore, the following constraints are enforced:
+/// Enforces constraints of the INV operation.
+///
+/// The INV operation updates the top element in the stack with its inverse. Therefore, the
+/// following constraints are enforced:
 /// - The next element in the next frame should be the inverse of first element in the current
 ///   frame. s0` * s0 = 1.
 pub fn enforce_inv_constraints<E: FieldElement>(
@@ -169,8 +177,10 @@ pub fn enforce_inv_constraints<E: FieldElement>(
     1
 }
 
-/// Enforces constraints of the INCR operation. The INCR operation increments the
-/// top element in the stack by 1. Therefore, the following constraints are enforced:
+/// Enforces constraints of the INCR operation.
+///
+/// The INCR operation increments the top element in the stack by 1. Therefore, the following
+/// constraints are enforced:
 /// - The next element in the next frame should be equal to the addition of first element in the
 ///   current frame with 1. s0` - s0 - 1 = 0.
 pub fn enforce_incr_constraints<E: FieldElement>(
@@ -184,9 +194,10 @@ pub fn enforce_incr_constraints<E: FieldElement>(
     1
 }
 
-/// Enforces constraints of the NOT operation. The NOT operation updates the top element
-/// in the stack with its bitwise not value. Therefore, the following constraints are
-/// enforced:
+/// Enforces constraints of the NOT operation.
+///
+/// The NOT operation updates the top element in the stack with its bitwise not value. Therefore,
+/// the following constraints are enforced:
 /// - The top element should be a binary. It is enforced as a general constraint.
 /// - The first element of the next frame should be a binary not of the first element of the current
 ///   frame. s0` + s0 = 1.
@@ -205,8 +216,10 @@ pub fn enforce_not_constraints<E: FieldElement>(
     1
 }
 
-/// Enforces constraints of the AND operation. The AND operation computes the bitwise and of the
-/// first two elements in the current trace. Therefore, the following constraints are enforced:
+/// Enforces constraints of the AND operation.
+///
+/// The AND operation computes the bitwise and of the first two elements in the current trace.
+/// Therefore, the following constraints are enforced:
 /// - The top two element in the current frame of the stack should be binary. s0^2 - s0 = 0, s1^2 -
 ///   s1 = 0. The top element is binary or not is enforced as a general constraint.
 /// - The first element of the next frame should be a binary and of the first two elements in the
@@ -232,8 +245,10 @@ pub fn enforce_and_constraints<E: FieldElement>(
     2
 }
 
-/// Enforces constraints of the OR operation. The OR operation computes the bitwise or of the
-/// first two elements in the current trace. Therefore, the following constraints are enforced:
+/// Enforces constraints of the OR operation.
+///
+/// The OR operation computes the bitwise or of the first two elements in the current trace.
+/// Therefore, the following constraints are enforced:
 /// - The top two element in the current frame of the stack should be binary. s0^2 - s0 = 0, s1^2 -
 ///   s1 = 0. The top element is binary or not is enforced as a general constraint.
 /// - The first element of the next frame should be a binary or of the first two elements in the
@@ -259,8 +274,10 @@ pub fn enforce_or_constraints<E: FieldElement>(
     2
 }
 
-/// Enforces constraints of the EQ operation. The EQ operation checks if the top two elements in the
-/// current frame are equal or not. Therefore, the following constraints are enforced:
+/// Enforces constraints of the EQ operation.
+///
+/// The EQ operation checks if the top two elements in the current frame are equal or not.
+/// Therefore, the following constraints are enforced:
 /// - (s0 - s1) * s0' = 0
 /// - s0` - (1 - (s0 - s1) * h0) = 0
 pub fn enforce_eq_constraints<E: FieldElement>(
@@ -291,8 +308,10 @@ pub fn enforce_eq_constraints<E: FieldElement>(
     2
 }
 
-/// Enforces constraints of the EQZ operation. The EQZ operation checks if the top element in the
-/// current frame is 0 or not. Therefore, the following constraints are enforced:
+/// Enforces constraints of the EQZ operation.
+///
+/// The EQZ operation checks if the top element in the current frame is 0 or not. Therefore, the
+/// following constraints are enforced:
 /// - s0 * s0` = 0.
 /// - s0` - (1 - h0 * s0) = 0.
 pub fn enforce_eqz_constraints<E: FieldElement>(
@@ -319,8 +338,10 @@ pub fn enforce_eqz_constraints<E: FieldElement>(
     2
 }
 
-/// Enforces constraints of the EXPACC operation. The EXPACC operation computes a single turn of
-/// exponent accumulation for the given inputs. Therefore, the following constraints are enforced:
+/// Enforces constraints of the EXPACC operation.
+///
+/// The EXPACC operation computes a single turn of exponent accumulation for the given inputs.
+/// Therefore, the following constraints are enforced:
 /// - The first element in the next frame should be a binary which is enforced as a general
 ///   constraint.
 /// - The exp value in the next frame should be the square of exp value in the current frame.
@@ -358,9 +379,11 @@ pub fn enforce_expacc_constraints<E: FieldElement>(
     4
 }
 
-/// Enforces constraints of the EXT2MUL operation. The EXT2MUL operation computes the product of
-/// two elements in the extension field of degree 2. Therefore, the following constraints are
-/// enforced, assuming the first 4 elements of the stack in the current frame are a1, a0, b1, b0:
+/// Enforces constraints of the EXT2MUL operation.
+///
+/// The EXT2MUL operation computes the product of two elements in the extension field of degree 2.
+/// Therefore, the following constraints are enforced, assuming the first 4 elements of the stack in
+/// the current frame are a1, a0, b1, b0:
 /// - The first element in the next frame should be a1.
 /// - The second element in the next frame should be a0.
 /// - The third element in the next frame should be equal to (b0 + b1) * (a0 + a1) - b0 * a0.

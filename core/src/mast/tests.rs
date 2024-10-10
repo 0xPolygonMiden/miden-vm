@@ -11,7 +11,7 @@ use crate::{chiplets::hasher, mast::DynNode, Kernel, ProgramInfo, Word};
 fn dyn_hash_is_correct() {
     let expected_constant =
         hasher::merge_in_domain(&[RpoDigest::default(), RpoDigest::default()], DynNode::DOMAIN);
-    assert_eq!(expected_constant, DynNode.digest());
+    assert_eq!(expected_constant, DynNode::default().digest());
 }
 
 proptest! {

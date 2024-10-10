@@ -1,6 +1,6 @@
 use std::ops::Add;
 
-use test_utils::{test_case, Felt, ONE, ZERO};
+use test_utils::{push_inputs, test_case, Felt, ONE, ZERO};
 
 use super::base_field::{bv_or, Ext5};
 
@@ -255,9 +255,12 @@ fn test_ec_ext5_point_validate(a0: u64, a1: u64, a2: u64, a3: u64, a4: u64, shou
 fn test_ec_ext5_point_decode(a0: u64, a1: u64, a2: u64, a3: u64, a4: u64, should_decode: bool) {
     let source = "
     use.std::math::ecgfp5::group
+    use.std::sys
 
     begin
         exec.group::decode
+        
+        exec.sys::truncate_stack
     end";
 
     let w = Ext5::new(a0, a1, a2, a3, a4);
@@ -299,6 +302,7 @@ fn test_ec_ext5_point_encode(a0: u64, a1: u64, a2: u64, a3: u64, a4: u64) {
 
     begin
         exec.group::encode
+        swapdw dropw dropw
     end";
 
     let w = Ext5::new(a0, a1, a2, a3, a4);
@@ -359,13 +363,6 @@ fn test_ec_ext5_point_addition(
     c3: u64,
     c4: u64,
 ) {
-    let source = "
-    use.std::math::ecgfp5::group
-
-    begin
-        exec.group::add
-    end";
-
     let w0 = Ext5::new(a0, a1, a2, a3, a4);
     let w1 = Ext5::new(b0, b1, b2, b3, b4);
     let w2 = Ext5::new(c0, c1, c2, c3, c4);
@@ -403,7 +400,21 @@ fn test_ec_ext5_point_addition(
     ];
     stack.reverse();
 
-    let test = build_test!(source, &stack);
+    let source = format!(
+        "
+    use.std::math::ecgfp5::group
+    use.std::sys
+
+    begin
+        {inputs}
+        exec.group::add
+
+        exec.sys::truncate_stack
+    end",
+        inputs = push_inputs(&stack)
+    );
+
+    let test = build_test!(source, &[]);
     let strace = test.get_last_stack_state();
 
     assert_eq!(strace[0], q2.x.a0);
@@ -437,9 +448,12 @@ fn test_ec_ext5_point_doubling(
 ) {
     let source = "
     use.std::math::ecgfp5::group
+    use.std::sys
 
     begin
         exec.group::double
+
+        exec.sys::truncate_stack
     end";
 
     let w0 = Ext5::new(a0, a1, a2, a3, a4);
@@ -485,13 +499,6 @@ fn test_ec_ext5_point_doubling(
 // Test vectors taken from https://github.com/pornin/ecgfp5/blob/ce059c6/python/ecGFp5.py#L1528-L1558
 #[test]
 fn test_ec_ext5_point_multiplication() {
-    let source = "
-    use.std::math::ecgfp5::group
-
-    begin
-        exec.group::mul
-    end";
-
     let w0 = Ext5::new(
         12539254003028696409,
         15524144070600887654,
@@ -553,7 +560,21 @@ fn test_ec_ext5_point_multiplication() {
     ];
     stack.reverse();
 
-    let test = build_test!(source, &stack);
+    let source = format!(
+        "
+    use.std::math::ecgfp5::group
+    use.std::sys
+
+    begin
+        {inputs}
+        exec.group::mul
+
+        exec.sys::truncate_stack
+    end",
+        inputs = push_inputs(&stack)
+    );
+
+    let test = build_test!(source, &[]);
     let strace = test.get_last_stack_state();
 
     assert_eq!(strace[0], p1.x.a0);
@@ -574,9 +595,12 @@ fn test_ec_ext5_point_multiplication() {
 fn test_ec_ext5_gen_multiplication() {
     let source = "
     use.std::math::ecgfp5::group
+    use.std::sys
 
     begin
         exec.group::gen_mul
+
+        exec.sys::truncate_stack
     end";
 
     // Conventional generator point of this group

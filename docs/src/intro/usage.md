@@ -38,7 +38,7 @@ Internally, Miden VM uses [rayon](https://github.com/rayon-rs/rayon) for paralle
 
 ### GPU acceleration
 
-Miden VM proof generation can be accelerated via GPUs. Currently, GPU acceleration is enabled only on Apple silicon hardware (via [Metal](<https://en.wikipedia.org/wiki/Metal_(API)>)). To compile Miden VM with Metal acceleration enabled, you can run the following command:
+Miden VM proof generation can be accelerated via GPUs. Currently, GPU acceleration is enabled only on Apple Silicon hardware (via [Metal](<https://en.wikipedia.org/wiki/Metal_(API)>)). To compile Miden VM with Metal acceleration enabled, you can run the following command:
 
 ```
 make exec-metal
@@ -85,7 +85,7 @@ Currently, Miden VM can be executed with the following subcommands:
 - `debug` - this will instantiate a [Miden debugger](../tools/debugger.md) against the specified Miden assembly program and inputs.
 - `analyze` - this will run a Miden assembly program against specific inputs and will output stats about its execution.
 - `repl` - this will initiate the [Miden REPL](../tools/repl.md) tool.
-- `example` - this will execute a Miden assembly example program, generate a STARK proof of execution and verify it. Currently it is possible to run `blake3` and `fibonacci` examples.
+- `example` - this will execute a Miden assembly example program, generate a STARK proof of execution and verify it. Currently, it is possible to run `blake3` and `fibonacci` examples.
 
 All of the above subcommands require various parameters to be provided. To get more detailed help on what is needed for a given subcommand, you can run the following:
 
@@ -111,6 +111,14 @@ MIDEN_LOG=trace ./target/optimized/miden [subcommand] [parameters]
 
 If the level is not specified, `warn` level is set as default.
 
+#### Enable Debugging features
+
+You can use the run command with `--debug` parameter to enable debugging with the [debug instruction](../user_docs/assembly/debugging.md) such as `debug.stack`:
+
+```shell
+./target/optimized/miden run -a [path_to.masm] --debug
+```
+
 ### Inputs
 
 As described [here](https://0xpolygonmiden.github.io/miden-vm/intro/overview.html#inputs-and-outputs) the Miden VM can consume public and secret inputs.
@@ -133,16 +141,28 @@ After a program finishes executing, the elements that remain on the stack become
 
 In the `miden/examples/fib` directory, we provide a very simple Fibonacci calculator example. This example computes the 1001st term of the Fibonacci sequence. You can execute this example on Miden VM like so:
 
-```
+```shell
 ./target/optimized/miden run -a miden/examples/fib/fib.masm -n 1
 ```
+
+### Capturing Output
 
 This will run the example code to completion and will output the top element remaining on the stack.
 
 If you want the output of the program in a file, you can use the `--output` or `-o` flag and specify the path to the output file. For example:
 
-```
+```shell
 ./target/optimized/miden run -a miden/examples/fib/fib.masm -o fib.out
 ```
 
 This will dump the output of the program into the `fib.out` file. The output file will contain the state of the stack at the end of the program execution.
+
+### Running with debug instruction enabled
+
+Inside `miden/examples/fib/fib.masm`, insert `debug.stack` instruction anywhere between `begin` and `end`. Then run:
+
+```shell
+./target/optimized/miden run -a miden/examples/fib/fib.masm -n 1 --debug
+```
+
+You should see output similar to "Stack state before step ..."

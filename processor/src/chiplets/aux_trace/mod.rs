@@ -19,8 +19,8 @@ use miden_air::{
 use vm_core::{
     Word, ONE, OPCODE_CALL, OPCODE_DYN, OPCODE_END, OPCODE_HPERM, OPCODE_JOIN, OPCODE_LOOP,
     OPCODE_MLOAD, OPCODE_MLOADW, OPCODE_MPVERIFY, OPCODE_MRUPDATE, OPCODE_MSTORE, OPCODE_MSTOREW,
-    OPCODE_MSTREAM, OPCODE_RCOMBBASE, OPCODE_RESPAN, OPCODE_SPAN, OPCODE_SPLIT, OPCODE_SYSCALL,
-    OPCODE_U32AND, OPCODE_U32XOR, ZERO,
+    OPCODE_MSTREAM, OPCODE_PIPE, OPCODE_RCOMBBASE, OPCODE_RESPAN, OPCODE_SPAN, OPCODE_SPLIT,
+    OPCODE_SYSCALL, OPCODE_U32AND, OPCODE_U32XOR, ZERO,
 };
 
 use super::{super::trace::AuxColumnBuilder, Felt, FieldElement};
@@ -53,6 +53,9 @@ impl AuxTraceBuilder {
         let bus_col_builder = BusColumnBuilder::default();
         let t_chip = v_table_col_builder.build_aux_column(main_trace, rand_elements);
         let b_chip = bus_col_builder.build_aux_column(main_trace, rand_elements);
+
+        debug_assert_eq!(*t_chip.last().unwrap(), E::ONE);
+        debug_assert_eq!(*b_chip.last().unwrap(), E::ONE);
         vec![t_chip, b_chip]
     }
 }
@@ -86,14 +89,10 @@ where
     E: FieldElement<BaseField = Felt>,
 {
     let f_mu: bool = main_trace.f_mu(row);
-    let f_mua: bool = if row == 0 { false } else { main_trace.f_mua(row - 1) };
+    let f_mua: bool = main_trace.f_mua(row);
 
-    if f_mu || f_mua {
-        let index = if f_mua {
-            main_trace.chiplet_node_index(row - 1)
-        } else {
-            main_trace.chiplet_node_index(row)
-        };
+    if f_mu {
+        let index = main_trace.chiplet_node_index(row);
         let lsb = index.as_int() & 1;
         if lsb == 0 {
             let sibling = &main_trace.chiplet_hasher_state(row)[DIGEST_RANGE.end..];
@@ -105,6 +104,26 @@ where
                 + alphas[15].mul_base(sibling[3])
         } else {
             let sibling = &main_trace.chiplet_hasher_state(row)[DIGEST_RANGE];
+            alphas[0]
+                + alphas[3].mul_base(index)
+                + alphas[8].mul_base(sibling[0])
+                + alphas[9].mul_base(sibling[1])
+                + alphas[10].mul_base(sibling[2])
+                + alphas[11].mul_base(sibling[3])
+        }
+    } else if f_mua {
+        let index = main_trace.chiplet_node_index(row);
+        let lsb = index.as_int() & 1;
+        if lsb == 0 {
+            let sibling = &main_trace.chiplet_hasher_state(row + 1)[DIGEST_RANGE.end..];
+            alphas[0]
+                + alphas[3].mul_base(index)
+                + alphas[12].mul_base(sibling[0])
+                + alphas[13].mul_base(sibling[1])
+                + alphas[14].mul_base(sibling[2])
+                + alphas[15].mul_base(sibling[3])
+        } else {
+            let sibling = &main_trace.chiplet_hasher_state(row + 1)[DIGEST_RANGE];
             alphas[0]
                 + alphas[3].mul_base(index)
                 + alphas[8].mul_base(sibling[0])
@@ -127,14 +146,10 @@ where
     E: FieldElement<BaseField = Felt>,
 {
     let f_mv: bool = main_trace.f_mv(row);
-    let f_mva: bool = if row == 0 { false } else { main_trace.f_mva(row - 1) };
+    let f_mva: bool = main_trace.f_mva(row);
 
-    if f_mv || f_mva {
-        let index = if f_mva {
-            main_trace.chiplet_node_index(row - 1)
-        } else {
-            main_trace.chiplet_node_index(row)
-        };
+    if f_mv {
+        let index = main_trace.chiplet_node_index(row);
         let lsb = index.as_int() & 1;
         if lsb == 0 {
             let sibling = &main_trace.chiplet_hasher_state(row)[DIGEST_RANGE.end..];
@@ -146,6 +161,26 @@ where
                 + alphas[15].mul_base(sibling[3])
         } else {
             let sibling = &main_trace.chiplet_hasher_state(row)[DIGEST_RANGE];
+            alphas[0]
+                + alphas[3].mul_base(index)
+                + alphas[8].mul_base(sibling[0])
+                + alphas[9].mul_base(sibling[1])
+                + alphas[10].mul_base(sibling[2])
+                + alphas[11].mul_base(sibling[3])
+        }
+    } else if f_mva {
+        let index = main_trace.chiplet_node_index(row);
+        let lsb = index.as_int() & 1;
+        if lsb == 0 {
+            let sibling = &main_trace.chiplet_hasher_state(row + 1)[DIGEST_RANGE.end..];
+            alphas[0]
+                + alphas[3].mul_base(index)
+                + alphas[12].mul_base(sibling[0])
+                + alphas[13].mul_base(sibling[1])
+                + alphas[14].mul_base(sibling[2])
+                + alphas[15].mul_base(sibling[3])
+        } else {
+            let sibling = &main_trace.chiplet_hasher_state(row + 1)[DIGEST_RANGE];
             alphas[0]
                 + alphas[3].mul_base(index)
                 + alphas[8].mul_base(sibling[0])
@@ -224,6 +259,7 @@ impl<E: FieldElement<BaseField = Felt>> AuxColumnBuilder<E> for BusColumnBuilder
             OPCODE_HPERM => build_hperm_request(main_trace, alphas, row),
             OPCODE_MPVERIFY => build_mpverify_request(main_trace, alphas, row),
             OPCODE_MRUPDATE => build_mrupdate_request(main_trace, alphas, row),
+            OPCODE_PIPE => build_pipe_request(main_trace, alphas, row),
             _ => E::ONE,
         }
     }
@@ -259,8 +295,7 @@ fn build_control_block_request<E: FieldElement<BaseField = Felt>>(
 ) -> E {
     let op_label = LINEAR_HASH_LABEL;
     let addr_nxt = main_trace.addr(row + 1);
-    let first_cycle_row = addr_to_row_index(addr_nxt) % HASH_CYCLE_LEN == 0;
-    let transition_label = if first_cycle_row { op_label + 16 } else { op_label + 32 };
+    let transition_label = op_label + 16;
 
     let header =
         alphas[0] + alphas[1].mul_base(Felt::from(transition_label)) + alphas[2].mul_base(addr_nxt);
@@ -299,14 +334,12 @@ fn build_span_block_request<E: FieldElement<BaseField = Felt>>(
 ) -> E {
     let op_label = LINEAR_HASH_LABEL;
     let addr_nxt = main_trace.addr(row + 1);
-    let first_cycle_row = addr_to_row_index(addr_nxt) % HASH_CYCLE_LEN == 0;
-    let transition_label = if first_cycle_row { op_label + 16 } else { op_label + 32 };
+    let transition_label = op_label + 16;
 
     let header =
         alphas[0] + alphas[1].mul_base(Felt::from(transition_label)) + alphas[2].mul_base(addr_nxt);
 
     let state = main_trace.decoder_hasher_state(row);
-
     header + build_value(&alphas[8..16], &state)
 }
 
@@ -318,19 +351,16 @@ fn build_respan_block_request<E: FieldElement<BaseField = Felt>>(
 ) -> E {
     let op_label = LINEAR_HASH_LABEL;
     let addr_nxt = main_trace.addr(row + 1);
-
-    let first_cycle_row = addr_to_row_index(addr_nxt - ONE) % HASH_CYCLE_LEN == 0;
-    let transition_label = if first_cycle_row { op_label + 16 } else { op_label + 32 };
+    let transition_label = op_label + 32;
 
     let header = alphas[0]
         + alphas[1].mul_base(Felt::from(transition_label))
         + alphas[2].mul_base(addr_nxt - ONE)
         + alphas[3].mul_base(ZERO);
 
-    let state = &main_trace.chiplet_hasher_state(row - 2)[CAPACITY_LEN..];
-    let state_nxt = &main_trace.chiplet_hasher_state(row - 1)[CAPACITY_LEN..];
+    let state = main_trace.decoder_hasher_state(row);
 
-    header + build_value(&alphas[8..16], state_nxt) - build_value(&alphas[8..16], state)
+    header + build_value(&alphas[8..16], &state)
 }
 
 /// Builds requests made to the hasher chiplet at the end of a block.
@@ -341,9 +371,7 @@ fn build_end_block_request<E: FieldElement<BaseField = Felt>>(
 ) -> E {
     let op_label = RETURN_HASH_LABEL;
     let addr = main_trace.addr(row) + Felt::from(NUM_ROUNDS as u8);
-
-    let first_cycle_row = addr_to_row_index(addr) % HASH_CYCLE_LEN == 0;
-    let transition_label = if first_cycle_row { op_label + 16 } else { op_label + 32 };
+    let transition_label = op_label + 32;
 
     let header =
         alphas[0] + alphas[1].mul_base(Felt::from(transition_label)) + alphas[2].mul_base(addr);
@@ -437,6 +465,33 @@ fn build_mstream_request<E: FieldElement<BaseField = Felt>>(
     factor1 * factor2
 }
 
+/// Builds `PIPE` requests made to the memory chiplet.
+fn build_pipe_request<E: FieldElement<BaseField = Felt>>(
+    main_trace: &MainTrace,
+    alphas: &[E],
+    row: RowIndex,
+) -> E {
+    let word1 = [
+        main_trace.stack_element(7, row + 1),
+        main_trace.stack_element(6, row + 1),
+        main_trace.stack_element(5, row + 1),
+        main_trace.stack_element(4, row + 1),
+    ];
+    let word2 = [
+        main_trace.stack_element(3, row + 1),
+        main_trace.stack_element(2, row + 1),
+        main_trace.stack_element(1, row + 1),
+        main_trace.stack_element(0, row + 1),
+    ];
+    let addr = main_trace.stack_element(12, row);
+    let op_label = MEMORY_WRITE_LABEL;
+
+    let factor1 = compute_memory_request(main_trace, op_label, alphas, row, addr, word1);
+    let factor2 = compute_memory_request(main_trace, op_label, alphas, row, addr + ONE, word2);
+
+    factor1 * factor2
+}
+
 /// Builds `RCOMBBASE` requests made to the memory chiplet.
 fn build_rcomb_base_request<E: FieldElement<BaseField = Felt>>(
     main_trace: &MainTrace,
@@ -499,12 +554,7 @@ fn build_hperm_request<E: FieldElement<BaseField = Felt>>(
         main_trace.stack_element(11, row + 1),
     ];
 
-    let op_label = LINEAR_HASH_LABEL;
-    let op_label = if addr_to_hash_cycle(helper_0) == 0 {
-        op_label + 16
-    } else {
-        op_label + 32
-    };
+    let op_label = LINEAR_HASH_LABEL + 16;
 
     let sum_input = alphas[4..16]
         .iter()
@@ -516,12 +566,7 @@ fn build_hperm_request<E: FieldElement<BaseField = Felt>>(
         + alphas[2].mul_base(helper_0)
         + sum_input;
 
-    let op_label = RETURN_STATE_LABEL;
-    let op_label = if addr_to_hash_cycle(helper_0 + Felt::new(7)) == 0 {
-        op_label + 16
-    } else {
-        op_label + 32
-    };
+    let op_label = RETURN_STATE_LABEL + 32;
 
     let sum_output = alphas[4..16]
         .iter()
@@ -559,12 +604,7 @@ fn build_mpverify_request<E: FieldElement<BaseField = Felt>>(
         main_trace.stack_element(9, row),
     ];
 
-    let op_label = MP_VERIFY_LABEL;
-    let op_label = if addr_to_hash_cycle(helper_0) == 0 {
-        op_label + 16
-    } else {
-        op_label + 32
-    };
+    let op_label = MP_VERIFY_LABEL + 16;
 
     let sum_input = alphas[8..12]
         .iter()
@@ -578,12 +618,7 @@ fn build_mpverify_request<E: FieldElement<BaseField = Felt>>(
         + alphas[3].mul_base(s5)
         + sum_input;
 
-    let op_label = RETURN_HASH_LABEL;
-    let op_label = if (helper_0).as_int() % 8 == 0 {
-        op_label + 16
-    } else {
-        op_label + 32
-    };
+    let op_label = RETURN_HASH_LABEL + 32;
 
     let sum_output = alphas[8..12]
         .iter()
@@ -633,12 +668,7 @@ fn build_mrupdate_request<E: FieldElement<BaseField = Felt>>(
         main_trace.stack_element(13, row),
     ];
 
-    let op_label = MR_UPDATE_OLD_LABEL;
-    let op_label = if addr_to_hash_cycle(helper_0) == 0 {
-        op_label + 16
-    } else {
-        op_label + 32
-    };
+    let op_label = MR_UPDATE_OLD_LABEL + 16;
 
     let sum_input = alphas[8..12]
         .iter()
@@ -651,12 +681,7 @@ fn build_mrupdate_request<E: FieldElement<BaseField = Felt>>(
         + alphas[3].mul_base(s5)
         + sum_input;
 
-    let op_label = RETURN_HASH_LABEL;
-    let op_label = if addr_to_hash_cycle(helper_0 + s4.mul_small(8) - ONE) == 0 {
-        op_label + 16
-    } else {
-        op_label + 32
-    };
+    let op_label = RETURN_HASH_LABEL + 32;
 
     let sum_output = alphas[8..12]
         .iter()
@@ -668,12 +693,7 @@ fn build_mrupdate_request<E: FieldElement<BaseField = Felt>>(
         + alphas[2].mul_base(helper_0 + s4.mul_small(8) - ONE)
         + sum_output;
 
-    let op_label = MR_UPDATE_NEW_LABEL;
-    let op_label = if addr_to_hash_cycle(helper_0 + s4.mul_small(8)) == 0 {
-        op_label + 16
-    } else {
-        op_label + 32
-    };
+    let op_label = MR_UPDATE_NEW_LABEL + 16;
     let sum_input = alphas[8..12]
         .iter()
         .rev()
@@ -685,12 +705,7 @@ fn build_mrupdate_request<E: FieldElement<BaseField = Felt>>(
         + alphas[3].mul_base(s5)
         + sum_input;
 
-    let op_label = RETURN_HASH_LABEL;
-    let op_label = if addr_to_hash_cycle(helper_0 + s4.mul_small(16) - ONE) == 0 {
-        op_label + 16
-    } else {
-        op_label + 32
-    };
+    let op_label = RETURN_HASH_LABEL + 32;
 
     let sum_output = alphas[8..12]
         .iter()
@@ -793,13 +808,12 @@ where
 
             let state_nxt = main_trace.chiplet_hasher_state(row + 1);
 
-            // build the value from the difference of the hasher state's just before and right
-            // after the absorption of new elements.
+            // build the value from the hasher state's just right after the absorption of new
+            // elements.
             let next_state_value =
                 build_value(&alphas_state[CAPACITY_LEN..], &state_nxt[CAPACITY_LEN..]);
-            let state_value = build_value(&alphas_state[CAPACITY_LEN..], &state[CAPACITY_LEN..]);
 
-            multiplicand = header + next_state_value - state_value;
+            multiplicand = header + next_state_value;
         }
     }
     multiplicand
@@ -896,20 +910,6 @@ fn build_value<E: FieldElement<BaseField = Felt>>(alphas: &[E], elements: &[Felt
 /// Returns the operation unique label.
 fn get_op_label(s0: Felt, s1: Felt, s2: Felt, s3: Felt) -> Felt {
     s3.mul_small(1 << 3) + s2.mul_small(1 << 2) + s1.mul_small(2) + s0 + ONE
-}
-
-/// Returns the hash cycle corresponding to the provided Hasher address.
-fn addr_to_hash_cycle(addr: Felt) -> usize {
-    let row = (addr.as_int() - 1) as usize;
-    let cycle_row = row % HASH_CYCLE_LEN;
-    debug_assert!(cycle_row == 0 || cycle_row == HASH_CYCLE_LEN - 1, "invalid address for hasher");
-
-    cycle_row
-}
-
-/// Convenience method to convert from addresses to rows.
-fn addr_to_row_index(addr: Felt) -> usize {
-    (addr.as_int() - 1) as usize
 }
 
 /// Computes a memory read or write request at `row` given randomness `alphas`, memory address

@@ -1,11 +1,15 @@
+use alloc::vec::Vec;
 use core::fmt;
 
 use miden_crypto::{hash::rpo::RpoDigest, Felt};
-use miden_formatting::prettier::PrettyPrint;
+use miden_formatting::{
+    hex::ToHex,
+    prettier::{const_text, nl, text, Document, PrettyPrint},
+};
 
 use crate::{
     chiplets::hasher,
-    mast::{MastForest, MastForestError, MastNodeId},
+    mast::{DecoratorId, MastForest, MastForestError, MastNodeId},
     OPCODE_CALL, OPCODE_SYSCALL,
 };
 
@@ -23,6 +27,8 @@ pub struct CallNode {
     callee: MastNodeId,
     is_syscall: bool,
     digest: RpoDigest,
+    before_enter: Vec<DecoratorId>,
+    after_exit: Vec<DecoratorId>,
 }
 
 //-------------------------------------------------------------------------------------------------
@@ -48,13 +54,25 @@ impl CallNode {
             hasher::merge_in_domain(&[callee_digest, RpoDigest::default()], Self::CALL_DOMAIN)
         };
 
-        Ok(Self { callee, is_syscall: false, digest })
+        Ok(Self {
+            callee,
+            is_syscall: false,
+            digest,
+            before_enter: Vec::new(),
+            after_exit: Vec::new(),
+        })
     }
 
     /// Returns a new [`CallNode`] from values that are assumed to be correct.
     /// Should only be used when the source of the inputs is trusted (e.g. deserialization).
     pub fn new_unsafe(callee: MastNodeId, digest: RpoDigest) -> Self {
-        Self { callee, is_syscall: false, digest }
+        Self {
+            callee,
+            is_syscall: false,
+            digest,
+            before_enter: Vec::new(),
+            after_exit: Vec::new(),
+        }
     }
 
     /// Returns a new [`CallNode`] instantiated with the specified callee and marked as a kernel
@@ -72,13 +90,25 @@ impl CallNode {
             hasher::merge_in_domain(&[callee_digest, RpoDigest::default()], Self::SYSCALL_DOMAIN)
         };
 
-        Ok(Self { callee, is_syscall: true, digest })
+        Ok(Self {
+            callee,
+            is_syscall: true,
+            digest,
+            before_enter: Vec::new(),
+            after_exit: Vec::new(),
+        })
     }
 
     /// Returns a new syscall [`CallNode`] from values that are assumed to be correct.
     /// Should only be used when the source of the inputs is trusted (e.g. deserialization).
     pub fn new_syscall_unsafe(callee: MastNodeId, digest: RpoDigest) -> Self {
-        Self { callee, is_syscall: true, digest }
+        Self {
+            callee,
+            is_syscall: true,
+            digest,
+            before_enter: Vec::new(),
+            after_exit: Vec::new(),
+        }
     }
 }
 
@@ -125,6 +155,29 @@ impl CallNode {
             Self::CALL_DOMAIN
         }
     }
+
+    /// Returns the decorators to be executed before this node is executed.
+    pub fn before_enter(&self) -> &[DecoratorId] {
+        &self.before_enter
+    }
+
+    /// Returns the decorators to be executed after this node is executed.
+    pub fn after_exit(&self) -> &[DecoratorId] {
+        &self.after_exit
+    }
+}
+
+/// Mutators
+impl CallNode {
+    /// Sets the list of decorators to be executed before this node.
+    pub fn set_before_enter(&mut self, decorator_ids: Vec<DecoratorId>) {
+        self.before_enter = decorator_ids;
+    }
+
+    /// Sets the list of decorators to be executed after this node.
+    pub fn set_after_exit(&mut self, decorator_ids: Vec<DecoratorId>) {
+        self.after_exit = decorator_ids;
+    }
 }
 
 // PRETTY PRINTING
@@ -135,37 +188,84 @@ impl CallNode {
         &'a self,
         mast_forest: &'a MastForest,
     ) -> impl PrettyPrint + 'a {
-        CallNodePrettyPrint { call_node: self, mast_forest }
+        CallNodePrettyPrint { node: self, mast_forest }
     }
 
     pub(super) fn to_display<'a>(&'a self, mast_forest: &'a MastForest) -> impl fmt::Display + 'a {
-        CallNodePrettyPrint { call_node: self, mast_forest }
+        CallNodePrettyPrint { node: self, mast_forest }
     }
 }
 
 struct CallNodePrettyPrint<'a> {
-    call_node: &'a CallNode,
+    node: &'a CallNode,
     mast_forest: &'a MastForest,
 }
 
-impl<'a> PrettyPrint for CallNodePrettyPrint<'a> {
-    #[rustfmt::skip]
-    fn render(&self) -> crate::prettier::Document {
-        use crate::prettier::*;
-        use miden_formatting::hex::ToHex;
+impl CallNodePrettyPrint<'_> {
+    /// Concatenates the provided decorators in a single line. If the list of decorators is not
+    /// empty, prepends `prepend` and appends `append` to the decorator document.
+    fn concatenate_decorators(
+        &self,
+        decorator_ids: &[DecoratorId],
+        prepend: Document,
+        append: Document,
+    ) -> Document {
+        let decorators = decorator_ids
+            .iter()
+            .map(|&decorator_id| self.mast_forest[decorator_id].render())
+            .reduce(|acc, doc| acc + const_text(" ") + doc)
+            .unwrap_or_default();
 
-        let callee_digest = self.mast_forest[self.call_node.callee].digest();
-
-        let doc = if self.call_node.is_syscall {
-            const_text("syscall")
+        if decorators.is_empty() {
+            decorators
         } else {
-            const_text("call")
-        };
-        doc + const_text(".") + text(callee_digest.as_bytes().to_hex_with_prefix())
+            prepend + decorators + append
+        }
+    }
+
+    fn single_line_pre_decorators(&self) -> Document {
+        self.concatenate_decorators(self.node.before_enter(), Document::Empty, const_text(" "))
+    }
+
+    fn single_line_post_decorators(&self) -> Document {
+        self.concatenate_decorators(self.node.after_exit(), const_text(" "), Document::Empty)
+    }
+
+    fn multi_line_pre_decorators(&self) -> Document {
+        self.concatenate_decorators(self.node.before_enter(), Document::Empty, nl())
+    }
+
+    fn multi_line_post_decorators(&self) -> Document {
+        self.concatenate_decorators(self.node.after_exit(), nl(), Document::Empty)
     }
 }
 
-impl<'a> fmt::Display for CallNodePrettyPrint<'a> {
+impl PrettyPrint for CallNodePrettyPrint<'_> {
+    fn render(&self) -> Document {
+        let call_or_syscall = {
+            let callee_digest = self.mast_forest[self.node.callee].digest();
+            if self.node.is_syscall {
+                const_text("syscall")
+                    + const_text(".")
+                    + text(callee_digest.as_bytes().to_hex_with_prefix())
+            } else {
+                const_text("call")
+                    + const_text(".")
+                    + text(callee_digest.as_bytes().to_hex_with_prefix())
+            }
+        };
+
+        let single_line = self.single_line_pre_decorators()
+            + call_or_syscall.clone()
+            + self.single_line_post_decorators();
+        let multi_line =
+            self.multi_line_pre_decorators() + call_or_syscall + self.multi_line_post_decorators();
+
+        single_line | multi_line
+    }
+}
+
+impl fmt::Display for CallNodePrettyPrint<'_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         use crate::prettier::PrettyPrint;
         self.pretty_print(f)

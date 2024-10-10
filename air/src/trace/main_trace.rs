@@ -259,8 +259,8 @@ impl MainTrace {
         [b6, b5, b4] == [ZERO, ONE, ONE]||
         // u32SPLIT 100_1000
         ([b6, b5, b4, b3, b2, b1, b0] == [ONE, ZERO, ZERO, ONE, ZERO, ZERO, ZERO]) ||
-        // PUSH i.e., 110_0100
-        ([b6, b5, b4, b3, b2, b1, b0] == [ONE, ONE, ZERO, ZERO, ONE, ZERO, ZERO])
+        // PUSH i.e., 101_1011
+        ([b6, b5, b4, b3, b2, b1, b0] == [ONE, ZERO, ONE, ONE, ZERO, ONE, ONE])
     }
 
     // STACK COLUMNS

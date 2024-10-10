@@ -55,19 +55,18 @@ fn get_block_stack_table_removal_multiplicand<E: FieldElement<BaseField = Felt>>
     alphas: &[E],
 ) -> E {
     let block_id = main_trace.addr(i);
-    let parent_id = if is_respan {
-        main_trace.decoder_hasher_state_element(1, i + 1)
+    let (parent_id, is_loop) = if is_respan {
+        (main_trace.decoder_hasher_state_element(1, i + 1), ZERO)
     } else {
-        main_trace.addr(i + 1)
+        (main_trace.addr(i + 1), main_trace.is_loop_flag(i))
     };
-    let is_loop = main_trace.is_loop_flag(i);
 
     let elements = if main_trace.is_call_flag(i) == ONE || main_trace.is_syscall_flag(i) == ONE {
         let parent_ctx = main_trace.ctx(i + 1);
         let parent_fmp = main_trace.fmp(i + 1);
         let parent_stack_depth = main_trace.stack_depth(i + 1);
         let parent_next_overflow_addr = main_trace.parent_overflow_address(i + 1);
-        let parent_fn_hash = main_trace.fn_hash(i);
+        let parent_fn_hash = main_trace.fn_hash(i + 1);
 
         [
             ONE,
@@ -81,7 +80,7 @@ fn get_block_stack_table_removal_multiplicand<E: FieldElement<BaseField = Felt>>
             parent_fn_hash[0],
             parent_fn_hash[1],
             parent_fn_hash[2],
-            parent_fn_hash[0],
+            parent_fn_hash[3],
         ]
     } else {
         let mut result = [ZERO; 12];
@@ -123,7 +122,7 @@ fn get_block_stack_table_inclusion_multiplicand<E: FieldElement<BaseField = Felt
         let parent_fmp = main_trace.fmp(i);
         let parent_stack_depth = main_trace.stack_depth(i);
         let parent_next_overflow_addr = main_trace.parent_overflow_address(i);
-        let parent_fn_hash = main_trace.decoder_hasher_state_first_half(i);
+        let parent_fn_hash = main_trace.fn_hash(i);
         [
             ONE,
             block_id,

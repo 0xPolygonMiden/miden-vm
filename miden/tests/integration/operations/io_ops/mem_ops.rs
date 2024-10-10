@@ -1,4 +1,4 @@
-use super::{apply_permutation, build_op_test, build_test, Felt, ToElements};
+use super::{apply_permutation, build_op_test, build_test, Felt, ToElements, TRUNCATE_STACK_PROC};
 
 // LOADING SINGLE ELEMENT ONTO THE STACK (MLOAD)
 // ================================================================================================
@@ -91,7 +91,10 @@ fn mem_storew() {
 
 #[test]
 fn mem_stream() {
-    let source = "
+    let source = format!(
+        "
+        {TRUNCATE_STACK_PROC}
+
         begin
             push.1
             mem_storew
@@ -101,7 +104,10 @@ fn mem_stream() {
             dropw
             push.12.11.10.9.8.7.6.5.4.3.2.1
             mem_stream
-        end";
+
+            exec.truncate_stack
+        end"
+    );
 
     let inputs = [1, 2, 3, 4, 5, 6, 7, 8];
 
@@ -124,7 +130,10 @@ fn mem_stream() {
 
 #[test]
 fn mem_stream_with_hperm() {
-    let source = "
+    let source = format!(
+        "
+        {TRUNCATE_STACK_PROC}
+
         begin
             push.1
             mem_storew
@@ -134,7 +143,10 @@ fn mem_stream_with_hperm() {
             dropw
             push.12.11.10.9.8.7.6.5.4.3.2.1
             mem_stream hperm
-        end";
+
+            exec.truncate_stack
+        end"
+    );
 
     let inputs = [1, 2, 3, 4, 5, 6, 7, 8];
 
@@ -172,6 +184,8 @@ fn inverse_operations() {
             push.1
             mem_load
             mem_load.0
+
+            movup.6 movup.6 drop drop
         end";
 
     let inputs = [0, 1, 2, 3, 4];

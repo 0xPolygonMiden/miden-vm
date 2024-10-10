@@ -5,122 +5,31 @@ use super::{Assembler, BasicBlockBuilder, Operation};
 use crate::{
     assembler::{mast_forest_builder::MastForestBuilder, ProcedureContext},
     ast::{InvocationTarget, InvokeKind},
-    AssemblyError, RpoDigest, SourceSpan, Spanned,
+    AssemblyError, RpoDigest,
 };
 
 /// Procedure Invocation
 impl Assembler {
+    /// Returns the [`MastNodeId`] of the invoked procedure specified by `callee`.
+    ///
+    /// For example, given `exec.f`, this method would return the procedure body id of `f`. If the
+    /// only representation of `f` that we have is its MAST root, then this method will also insert
+    /// a [`core::mast::ExternalNode`] that wraps `f`'s MAST root and return the corresponding id.
     pub(super) fn invoke(
         &self,
         kind: InvokeKind,
         callee: &InvocationTarget,
-        proc_ctx: &mut ProcedureContext,
+        proc_ctx: &ProcedureContext,
         mast_forest_builder: &mut MastForestBuilder,
-    ) -> Result<Option<MastNodeId>, AssemblyError> {
-        let span = callee.span();
-        let digest = self.resolve_target(kind, callee, proc_ctx, mast_forest_builder)?;
-        self.invoke_mast_root(kind, span, digest, proc_ctx, mast_forest_builder)
-    }
+    ) -> Result<MastNodeId, AssemblyError> {
+        let invoked_proc_node_id =
+            self.resolve_target(kind, callee, proc_ctx, mast_forest_builder)?;
 
-    fn invoke_mast_root(
-        &self,
-        kind: InvokeKind,
-        span: SourceSpan,
-        mast_root: RpoDigest,
-        proc_ctx: &mut ProcedureContext,
-        mast_forest_builder: &mut MastForestBuilder,
-    ) -> Result<Option<MastNodeId>, AssemblyError> {
-        // Get the procedure from the assembler
-        let current_source_file = self.source_manager.get(span.source_id()).ok();
-
-        // If the procedure is cached, register the call to ensure the callset
-        // is updated correctly.
-        match mast_forest_builder.find_procedure(&mast_root) {
-            Some(proc) if matches!(kind, InvokeKind::SysCall) => {
-                // Verify if this is a syscall, that the callee is a kernel procedure
-                //
-                // NOTE: The assembler is expected to know the full set of all kernel
-                // procedures at this point, so if we can't identify the callee as a
-                // kernel procedure, it is a definite error.
-                if !proc.visibility().is_syscall() {
-                    return Err(AssemblyError::InvalidSysCallTarget {
-                        span,
-                        source_file: current_source_file,
-                        callee: proc.fully_qualified_name().clone(),
-                    });
-                }
-                let maybe_kernel_path = proc.path();
-                self.module_graph
-                    .find_module(maybe_kernel_path)
-                    .ok_or_else(|| AssemblyError::InvalidSysCallTarget {
-                        span,
-                        source_file: current_source_file.clone(),
-                        callee: proc.fully_qualified_name().clone(),
-                    })
-                    .and_then(|module| {
-                        // Note: this module is guaranteed to be of AST variant, since we have the
-                        // AST of a procedure contained in it (i.e. `proc`). Hence, it must be that
-                        // the entire module is in AST representation as well.
-                        if module.unwrap_ast().is_kernel() {
-                            Ok(())
-                        } else {
-                            Err(AssemblyError::InvalidSysCallTarget {
-                                span,
-                                source_file: current_source_file.clone(),
-                                callee: proc.fully_qualified_name().clone(),
-                            })
-                        }
-                    })?;
-                proc_ctx.register_external_call(&proc, false)?;
-            },
-            Some(proc) => proc_ctx.register_external_call(&proc, false)?,
-            None => (),
+        match kind {
+            InvokeKind::ProcRef | InvokeKind::Exec => Ok(invoked_proc_node_id),
+            InvokeKind::Call => mast_forest_builder.ensure_call(invoked_proc_node_id),
+            InvokeKind::SysCall => mast_forest_builder.ensure_syscall(invoked_proc_node_id),
         }
-
-        let mast_root_node_id = {
-            match kind {
-                InvokeKind::Exec | InvokeKind::ProcRef => {
-                    // Note that here we rely on the fact that we topologically sorted the
-                    // procedures, such that when we assemble a procedure, all
-                    // procedures that it calls will have been assembled, and
-                    // hence be present in the `MastForest`.
-                    match mast_forest_builder.find_procedure_node_id(mast_root) {
-                        Some(root) => root,
-                        None => {
-                            // If the MAST root called isn't known to us, make it an external
-                            // reference.
-                            mast_forest_builder.ensure_external(mast_root)?
-                        },
-                    }
-                },
-                InvokeKind::Call => {
-                    let callee_id = match mast_forest_builder.find_procedure_node_id(mast_root) {
-                        Some(callee_id) => callee_id,
-                        None => {
-                            // If the MAST root called isn't known to us, make it an external
-                            // reference.
-                            mast_forest_builder.ensure_external(mast_root)?
-                        },
-                    };
-
-                    mast_forest_builder.ensure_call(callee_id)?
-                },
-                InvokeKind::SysCall => {
-                    let callee_id = match mast_forest_builder.find_procedure_node_id(mast_root) {
-                        Some(callee_id) => callee_id,
-                        None => {
-                            // If the MAST root called isn't known to us, make it an external
-                            // reference.
-                            mast_forest_builder.ensure_external(mast_root)?
-                        },
-                    };
-
-                    mast_forest_builder.ensure_syscall(callee_id)?
-                },
-            }
-        };
-
-        Ok(Some(mast_root_node_id))
     }
 
     /// Creates a new DYN block for the dynamic code execution and return.
@@ -150,34 +59,38 @@ impl Assembler {
         &self,
         callee: &InvocationTarget,
         proc_ctx: &mut ProcedureContext,
-        span_builder: &mut BasicBlockBuilder,
-        mast_forest_builder: &MastForestBuilder,
+        block_builder: &mut BasicBlockBuilder,
     ) -> Result<(), AssemblyError> {
-        let digest =
-            self.resolve_target(InvokeKind::ProcRef, callee, proc_ctx, mast_forest_builder)?;
-        self.procref_mast_root(digest, proc_ctx, span_builder, mast_forest_builder)
+        let mast_root = {
+            let proc_body_id = self.resolve_target(
+                InvokeKind::ProcRef,
+                callee,
+                proc_ctx,
+                block_builder.mast_forest_builder_mut(),
+            )?;
+            // Note: it's ok to `unwrap()` here since `proc_body_id` was returned from
+            // `mast_forest_builder`
+            block_builder
+                .mast_forest_builder()
+                .get_mast_node(proc_body_id)
+                .unwrap()
+                .digest()
+        };
+
+        self.procref_mast_root(mast_root, block_builder)
     }
 
     fn procref_mast_root(
         &self,
         mast_root: RpoDigest,
-        proc_ctx: &mut ProcedureContext,
-        span_builder: &mut BasicBlockBuilder,
-        mast_forest_builder: &MastForestBuilder,
+        block_builder: &mut BasicBlockBuilder,
     ) -> Result<(), AssemblyError> {
-        // Add the root to the callset to be able to use dynamic instructions
-        // with the referenced procedure later
-
-        if let Some(proc) = mast_forest_builder.find_procedure(&mast_root) {
-            proc_ctx.register_external_call(&proc, false)?;
-        }
-
         // Create an array with `Push` operations containing root elements
         let ops = mast_root
             .iter()
             .map(|elem| Operation::Push(*elem))
             .collect::<SmallVec<[_; 4]>>();
-        span_builder.push_ops(ops);
+        block_builder.push_ops(ops);
         Ok(())
     }
 }
