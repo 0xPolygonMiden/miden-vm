@@ -105,13 +105,13 @@ where
                 stack_outputs.clone(),
             );
             #[cfg(all(feature = "metal", target_arch = "aarch64", target_os = "macos"))]
-            let prover = gpu::metal::MetalExecutionProver::new(prover, HashFn::Rpo256);
+            let prover = gpu::metal::MetalExecutionProver::new(prover, miden_gpu::HashFn::Rpo256);
             #[cfg(all(
                 feature = "webgpu",
                 any(all(target_arch = "aarch64", target_os = "macos"), target_family = "wasm")
             ))]
             let prover =
-                gpu::webgpu::WebGPUExecutionProver::new(prover, gpu::webgpu::HashFn::Rpo256);
+                gpu::webgpu::WebGPUExecutionProver::new(prover, miden_gpu::HashFn::Rpo256);
             prover.prove(trace).await
         },
         HashFunction::Rpx256 => {
@@ -121,13 +121,13 @@ where
                 stack_outputs.clone(),
             );
             #[cfg(all(feature = "metal", target_arch = "aarch64", target_os = "macos"))]
-            let prover = gpu::metal::MetalExecutionProver::new(prover, HashFn::Rpx256);
+            let prover = gpu::metal::MetalExecutionProver::new(prover, miden_gpu::HashFn::Rpx256);
             #[cfg(all(
                 feature = "webgpu",
                 any(all(target_arch = "aarch64", target_os = "macos"), target_family = "wasm")
             ))]
             let prover =
-                gpu::webgpu::WebGPUExecutionProver::new(prover, gpu::webgpu::HashFn::Rpx256);
+                gpu::webgpu::WebGPUExecutionProver::new(prover, miden_gpu::HashFn::Rpx256);
             prover.prove(trace).await
         },
     }
