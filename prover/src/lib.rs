@@ -1,5 +1,3 @@
-#![no_std]
-
 #[cfg_attr(all(feature = "metal", target_arch = "aarch64", target_os = "macos"), macro_use)]
 extern crate alloc;
 
@@ -8,9 +6,9 @@ extern crate std;
 
 use core::marker::PhantomData;
 
+use maybe_async::maybe_async;
+
 use air::{AuxRandElements, ProcessorAir, PublicInputs};
-#[cfg(all(feature = "metal", target_arch = "aarch64", target_os = "macos"))]
-use miden_gpu::HashFn;
 use processor::{
     crypto::{
         Blake3_192, Blake3_256, ElementHasher, RandomCoin, Rpo256, RpoRandomCoin, Rpx256,
@@ -51,8 +49,9 @@ pub use winter_prover::Proof;
 ///
 /// # Errors
 /// Returns an error if program execution or STARK proof generation fails for any reason.
+#[maybe_async]
 #[instrument("prove_program", skip_all)]
-pub fn prove<H>(
+pub async fn prove<H>(
     program: &Program,
     stack_inputs: StackInputs,
     host: H,
@@ -81,18 +80,24 @@ where
 
     // generate STARK proof
     let proof = match hash_fn {
-        HashFunction::Blake3_192 => ExecutionProver::<Blake3_192, WinterRandomCoin<_>>::new(
-            options,
-            stack_inputs,
-            stack_outputs.clone(),
-        )
-        .prove(trace),
-        HashFunction::Blake3_256 => ExecutionProver::<Blake3_256, WinterRandomCoin<_>>::new(
-            options,
-            stack_inputs,
-            stack_outputs.clone(),
-        )
-        .prove(trace),
+        HashFunction::Blake3_192 => {
+            ExecutionProver::<Blake3_192, WinterRandomCoin<_>>::new(
+                options,
+                stack_inputs,
+                stack_outputs.clone(),
+            )
+            .prove(trace)
+            .await
+        },
+        HashFunction::Blake3_256 => {
+            ExecutionProver::<Blake3_256, WinterRandomCoin<_>>::new(
+                options,
+                stack_inputs,
+                stack_outputs.clone(),
+            )
+            .prove(trace)
+            .await
+        },
         HashFunction::Rpo256 => {
             let prover = ExecutionProver::<Rpo256, RpoRandomCoin>::new(
                 options,
@@ -100,8 +105,14 @@ where
                 stack_outputs.clone(),
             );
             #[cfg(all(feature = "metal", target_arch = "aarch64", target_os = "macos"))]
-            let prover = gpu::metal::MetalExecutionProver::new(prover, HashFn::Rpo256);
-            prover.prove(trace)
+            let prover = gpu::metal::MetalExecutionProver::new(prover, miden_gpu::HashFn::Rpo256);
+            #[cfg(all(
+                feature = "webgpu",
+                any(all(target_arch = "aarch64", target_os = "macos"), target_family = "wasm")
+            ))]
+            let prover =
+                gpu::webgpu::WebGPUExecutionProver::new(prover, miden_gpu::HashFn::Rpo256);
+            prover.prove(trace).await
         },
         HashFunction::Rpx256 => {
             let prover = ExecutionProver::<Rpx256, RpxRandomCoin>::new(
@@ -110,8 +121,14 @@ where
                 stack_outputs.clone(),
             );
             #[cfg(all(feature = "metal", target_arch = "aarch64", target_os = "macos"))]
-            let prover = gpu::metal::MetalExecutionProver::new(prover, HashFn::Rpx256);
-            prover.prove(trace)
+            let prover = gpu::metal::MetalExecutionProver::new(prover, miden_gpu::HashFn::Rpx256);
+            #[cfg(all(
+                feature = "webgpu",
+                any(all(target_arch = "aarch64", target_os = "macos"), target_family = "wasm")
+            ))]
+            let prover =
+                gpu::webgpu::WebGPUExecutionProver::new(prover, miden_gpu::HashFn::Rpx256);
+            prover.prove(trace).await
         },
     }
     .map_err(ExecutionError::ProverError)?;
@@ -172,6 +189,7 @@ where
     }
 }
 
+#[maybe_async]
 impl<H, R> Prover for ExecutionProver<H, R>
 where
     H: ElementHasher<BaseField = Felt>,
@@ -205,7 +223,7 @@ where
         PublicInputs::new(program_info, self.stack_inputs.clone(), self.stack_outputs.clone())
     }
 
-    fn new_trace_lde<E: FieldElement<BaseField = Felt>>(
+    async fn new_trace_lde<E: FieldElement<BaseField = Felt>>(
         &self,
         trace_info: &TraceInfo,
         main_trace: &ColMatrix<Felt>,
@@ -214,7 +232,7 @@ where
         DefaultTraceLde::new(trace_info, main_trace, domain)
     }
 
-    fn new_evaluator<'a, E: FieldElement<BaseField = Felt>>(
+    async fn new_evaluator<'a, E: FieldElement<BaseField = Felt>>(
         &self,
         air: &'a ProcessorAir,
         aux_rand_elements: Option<AuxRandElements<E>>,
@@ -223,7 +241,7 @@ where
         DefaultConstraintEvaluator::new(air, aux_rand_elements, composition_coefficients)
     }
 
-    fn build_aux_trace<E>(
+    async fn build_aux_trace<E>(
         &self,
         trace: &Self::Trace,
         aux_rand_elements: &AuxRandElements<E>,
