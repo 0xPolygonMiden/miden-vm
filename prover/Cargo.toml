@@ -18,7 +18,7 @@ crate-type = ["cdylib", "rlib"]
 
 [features]
 concurrent = ["processor/concurrent", "std", "winter-prover/concurrent"]
-default = ["webgpu","std"]
+default = ["std"]
 metal = ["dep:miden-gpu", "dep:pollster", "concurrent", "std"]
 webgpu = ["dep:miden-gpu", "miden-gpu/webgpu", "async"]
 async = ["maybe-async/async", "winter-prover/async", "dep:async-trait"]

@@ -9,8 +9,6 @@ use core::marker::PhantomData;
 use maybe_async::maybe_async;
 
 use air::{AuxRandElements, ProcessorAir, PublicInputs};
-#[cfg(any(feature = "metal", feature = "webgpu"))]
-use miden_gpu::HashFn;
 use processor::{
     crypto::{
         Blake3_192, Blake3_256, ElementHasher, RandomCoin, Rpo256, RpoRandomCoin, Rpx256,
@@ -108,8 +106,12 @@ where
             );
             #[cfg(all(feature = "metal", target_arch = "aarch64", target_os = "macos"))]
             let prover = gpu::metal::MetalExecutionProver::new(prover, HashFn::Rpo256);
-            #[cfg(feature = "webgpu")]
-            let prover = gpu::webgpu::WebGPUExecutionProver::new(prover, HashFn::Rpo256);
+            #[cfg(all(
+                feature = "webgpu",
+                any(all(target_arch = "aarch64", target_os = "macos"), target_family = "wasm")
+            ))]
+            let prover =
+                gpu::webgpu::WebGPUExecutionProver::new(prover, gpu::webgpu::HashFn::Rpo256);
             prover.prove(trace).await
         },
         HashFunction::Rpx256 => {
@@ -120,8 +122,12 @@ where
             );
             #[cfg(all(feature = "metal", target_arch = "aarch64", target_os = "macos"))]
             let prover = gpu::metal::MetalExecutionProver::new(prover, HashFn::Rpx256);
-            #[cfg(feature = "webgpu")]
-            let prover = gpu::webgpu::WebGPUExecutionProver::new(prover, HashFn::Rpx256);
+            #[cfg(all(
+                feature = "webgpu",
+                any(all(target_arch = "aarch64", target_os = "macos"), target_family = "wasm")
+            ))]
+            let prover =
+                gpu::webgpu::WebGPUExecutionProver::new(prover, gpu::webgpu::HashFn::Rpx256);
             prover.prove(trace).await
         },
     }

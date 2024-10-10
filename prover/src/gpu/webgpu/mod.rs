@@ -8,9 +8,6 @@ use core::marker::PhantomData;
 use std::{boxed::Box, marker::PhantomData, time::Instant, vec::Vec};
 
 #[cfg(not(feature = "std"))]
-extern crate alloc;
-
-#[cfg(not(feature = "std"))]
 use alloc::boxed::Box;
 #[cfg(not(feature = "std"))]
 use alloc::{vec, vec::Vec};
