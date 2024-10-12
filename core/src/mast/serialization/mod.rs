@@ -27,7 +27,7 @@
 use alloc::vec::Vec;
 
 use decorator::{DecoratorDataBuilder, DecoratorInfo};
-use string_table::{StringTable, StringTableBuilder};
+use string_table::StringTable;
 use winter_utils::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable};
 
 use super::{DecoratorId, MastForest, MastNode, MastNodeId};
@@ -81,7 +81,6 @@ impl Serializable for MastForest {
     fn write_into<W: ByteWriter>(&self, target: &mut W) {
         let mut basic_block_data_builder = BasicBlockDataBuilder::new();
         let mut decorator_data_builder = DecoratorDataBuilder::new();
-        let mut string_table_builder = StringTableBuilder::default();
 
         // Set up "before enter" and "after exit" decorators by `MastNodeId`
         let mut before_enter_decorators: Vec<(usize, Vec<DecoratorId>)> = Vec::new();
@@ -98,19 +97,6 @@ impl Serializable for MastForest {
         // roots
         let roots: Vec<u32> = self.roots.iter().map(u32::from).collect();
         roots.write_into(target);
-
-        // decorators
-        let decorator_infos: Vec<DecoratorInfo> = self
-            .decorators
-            .iter()
-            .map(|decorator| {
-                DecoratorInfo::from_decorator(
-                    decorator,
-                    &mut decorator_data_builder,
-                    &mut string_table_builder,
-                )
-            })
-            .collect();
 
         // Prepare MAST node infos, but don't store them yet. We store them at the end to make
         // deserialization more efficient.
@@ -141,9 +127,13 @@ impl Serializable for MastForest {
             })
             .collect();
 
-        let decorator_data = decorator_data_builder.finalize();
+        // decorators
+        self.decorators.iter().for_each(|decorator| {
+            decorator_data_builder.add_decorator(decorator)
+        });
+
+        let(decorator_data, decorator_infos, string_table) = decorator_data_builder.finalize();
         let node_data = basic_block_data_builder.finalize();
-        let string_table = string_table_builder.into_table();
 
         // Write 3 data buffers
         decorator_data.write_into(target);

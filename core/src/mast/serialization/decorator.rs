@@ -26,13 +26,9 @@ pub struct DecoratorInfo {
 impl DecoratorInfo {
     pub fn from_decorator(
         decorator: &Decorator,
-        data_builder: &mut DecoratorDataBuilder,
-        string_table_builder: &mut StringTableBuilder,
+        decorator_data_offset: DecoratorDataOffset,
     ) -> Self {
         let variant = EncodedDecoratorVariant::from(decorator);
-        let decorator_data_offset =
-            data_builder.encode_decorator_data(decorator, string_table_builder).unwrap_or(0);
-
         Self { variant, decorator_data_offset }
     }
 
@@ -210,6 +206,8 @@ impl Deserializable for EncodedDecoratorVariant {
 #[derive(Debug, Default)]
 pub struct DecoratorDataBuilder {
     decorator_data: Vec<u8>,
+    decorator_infos: Vec<DecoratorInfo>,
+    string_table_builder: StringTableBuilder,
 }
 
 /// Constructors
@@ -221,12 +219,20 @@ impl DecoratorDataBuilder {
 
 /// Mutators
 impl DecoratorDataBuilder {
+    pub fn add_decorator(&mut self, decorator: &Decorator) {
+        let decorator_data_offset =
+            self.encode_decorator_data(decorator).unwrap_or(0);
+        self.decorator_infos.push(DecoratorInfo::from_decorator(
+            decorator,
+            decorator_data_offset,
+        ));
+    }
+
     /// If a decorator has extra data to store, encode it in internal data buffer, and return the
     /// offset of the newly added data. If not, return `None`.
     pub fn encode_decorator_data(
         &mut self,
         decorator: &Decorator,
-        string_table_builder: &mut StringTableBuilder,
     ) -> Option<DecoratorDataOffset> {
         let data_offset = self.decorator_data.len() as DecoratorDataOffset;
 
@@ -239,7 +245,7 @@ impl DecoratorDataBuilder {
                 let loc = assembly_op.location();
                 self.decorator_data.write_bool(loc.is_some());
                 if let Some(loc) = loc {
-                    let str_offset = string_table_builder.add_string(loc.path.as_ref());
+                    let str_offset = self.string_table_builder.add_string(loc.path.as_ref());
                     self.decorator_data.write_usize(str_offset);
                     self.decorator_data.write_u32(loc.start.to_u32());
                     self.decorator_data.write_u32(loc.end.to_u32());
@@ -247,13 +253,13 @@ impl DecoratorDataBuilder {
 
                 // context name
                 {
-                    let str_offset = string_table_builder.add_string(assembly_op.context_name());
+                    let str_offset = self.string_table_builder.add_string(assembly_op.context_name());
                     self.decorator_data.write_usize(str_offset);
                 }
 
                 // op
                 {
-                    let str_index_in_table = string_table_builder.add_string(assembly_op.op());
+                    let str_index_in_table = self.string_table_builder.add_string(assembly_op.op());
                     self.decorator_data.write_usize(str_index_in_table);
                 }
 
@@ -288,7 +294,7 @@ impl DecoratorDataBuilder {
     }
 
     /// Returns the serialized [`crate::mast::MastForest`] decorator data field.
-    pub fn finalize(self) -> Vec<u8> {
-        self.decorator_data
+    pub fn finalize(self) -> (Vec<u8>, Vec<DecoratorInfo>, StringTable) {
+        (self.decorator_data, self.decorator_infos, self.string_table_builder.into_table())
     }
 }
