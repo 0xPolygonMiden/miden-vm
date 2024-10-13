@@ -4,21 +4,27 @@
 //! - MAGIC
 //! - VERSION
 //!
-//! (lengths)
-//! - decorators length (`usize`)
+//! (nodes metadata)
 //! - nodes length (`usize`)
 //!
 //! (procedure roots)
 //! - procedure roots (`Vec<MastNodeId>`)
 //!
 //! (raw data)
-//! - Decorator data
 //! - Node data
+//!
+//! (node info structs)
+//! - MAST node infos (`Vec<MastNodeInfo>`)
+//!
+//! (decorators metadata)
+//! - decorators length (`usize`)
+//!
+//! (raw decorator data)
+//! - Decorator data
 //! - String table
 //!
-//! (info structs)
+//! (decorator info structs)
 //! - decorator infos (`Vec<DecoratorInfo>`)
-//! - MAST node infos (`Vec<MastNodeInfo>`)
 //!
 //! (before enter and after exit decorators)
 //! - before enter decorators (`Vec<(MastNodeId, Vec<DecoratorId>)>`)
@@ -136,9 +142,9 @@ impl Serializable for MastForest {
         // write all decorator data below
 
         let mut decorator_data_builder = DecoratorDataBuilder::new();
-        self.decorators
-            .iter()
-            .for_each(|decorator| decorator_data_builder.add_decorator(decorator));
+        for decorator in self.decorators {
+            decorator_data_builder.add_decorator(&decorator)
+        }
 
         let (decorator_data, decorator_infos, string_table) = decorator_data_builder.finalize();
 
