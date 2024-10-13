@@ -80,7 +80,6 @@ const VERSION: [u8; 3] = [0, 0, 0];
 impl Serializable for MastForest {
     fn write_into<W: ByteWriter>(&self, target: &mut W) {
         let mut basic_block_data_builder = BasicBlockDataBuilder::new();
-        let mut decorator_data_builder = DecoratorDataBuilder::new();
 
         // Set up "before enter" and "after exit" decorators by `MastNodeId`
         let mut before_enter_decorators: Vec<(usize, Vec<DecoratorId>)> = Vec::new();
@@ -90,8 +89,7 @@ impl Serializable for MastForest {
         target.write_bytes(MAGIC);
         target.write_bytes(&VERSION);
 
-        // decorator & node counts
-        target.write_usize(self.decorators.len());
+        // node counts
         target.write_usize(self.nodes.len());
 
         // roots
@@ -127,28 +125,35 @@ impl Serializable for MastForest {
             })
             .collect();
 
-        // decorators
-        self.decorators.iter().for_each(|decorator| {
-            decorator_data_builder.add_decorator(decorator)
-        });
-
-        let(decorator_data, decorator_infos, string_table) = decorator_data_builder.finalize();
         let node_data = basic_block_data_builder.finalize();
-
-        // Write 3 data buffers
-        decorator_data.write_into(target);
         node_data.write_into(target);
+
+        // Write node infos
+        for mast_node_info in mast_node_infos {
+            mast_node_info.write_into(target);
+        }
+
+        // write all decorator data below
+
+        let mut decorator_data_builder = DecoratorDataBuilder::new();
+        self.decorators
+            .iter()
+            .for_each(|decorator| decorator_data_builder.add_decorator(decorator));
+
+        let (decorator_data, decorator_infos, string_table) = decorator_data_builder.finalize();
+
+        // decorator count
+        target.write_usize(self.decorators.len());
+
+        // decorator data buffers
+        decorator_data.write_into(target);
         string_table.write_into(target);
 
         self.advice_map.write_into(target);
 
-        // Write decorator and node infos
+        // Write decorator infos
         for decorator_info in decorator_infos {
             decorator_info.write_into(target);
-        }
-
-        for mast_node_info in mast_node_infos {
-            mast_node_info.write_into(target);
         }
 
         // Write "before enter" and "after exit" decorators
@@ -159,35 +164,31 @@ impl Serializable for MastForest {
 
 impl Deserializable for MastForest {
     fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
-        let magic: [u8; 5] = source.read_array()?;
-        if magic != *MAGIC {
-            return Err(DeserializationError::InvalidValue(format!(
-                "Invalid magic bytes. Expected '{:?}', got '{:?}'",
-                *MAGIC, magic
-            )));
-        }
+        read_and_validate_magic(source)?;
+        read_and_validate_version(source)?;
 
-        let version: [u8; 3] = source.read_array()?;
-        if version != VERSION {
-            return Err(DeserializationError::InvalidValue(format!(
-                "Unsupported version. Got '{version:?}', but only '{VERSION:?}' is supported",
-            )));
-        }
+        // Reading nodes
 
-        let decorator_count = source.read_usize()?;
         let node_count = source.read_usize()?;
         let roots: Vec<u32> = Deserializable::read_from(source)?;
-        let decorator_data: Vec<u8> = Deserializable::read_from(source)?;
         let node_data: Vec<u8> = Deserializable::read_from(source)?;
+        let mast_node_infos = read_node_infos(source, node_count)?;
+
+        // Reading Decorators
+
+        let decorator_count = source.read_usize()?;
+        let decorator_data: Vec<u8> = Deserializable::read_from(source)?;
         let string_table: StringTable = Deserializable::read_from(source)?;
+
         let advice_map = AdviceMap::read_from(source)?;
 
+        let decorator_infos: Vec<DecoratorInfo> = read_decorator_infos(source, decorator_count)?;
+
+        // Constructing MastForest
         let mut mast_forest = {
             let mut mast_forest = MastForest::new();
 
-            // decorators
-            for _ in 0..decorator_count {
-                let decorator_info = DecoratorInfo::read_from(source)?;
+            for decorator_info in decorator_infos {
                 let decorator =
                     decorator_info.try_into_decorator(&string_table, &decorator_data)?;
 
@@ -200,8 +201,7 @@ impl Deserializable for MastForest {
 
             // nodes
             let basic_block_data_decoder = BasicBlockDataDecoder::new(&node_data);
-            for _ in 0..node_count {
-                let mast_node_info = MastNodeInfo::read_from(source)?;
+            for mast_node_info in mast_node_infos {
 
                 let node = mast_node_info.try_into_mast_node(
                     &mast_forest,
@@ -255,6 +255,57 @@ impl Deserializable for MastForest {
 
         Ok(mast_forest)
     }
+}
+
+fn read_and_validate_magic<R: ByteReader>(source: &mut R) -> Result<[u8; 5], DeserializationError> {
+    let magic: [u8; 5] = source.read_array()?;
+    if magic != *MAGIC {
+        return Err(DeserializationError::InvalidValue(format!(
+            "Invalid magic bytes. Expected '{:?}', got '{:?}'",
+            *MAGIC, magic
+        )));
+    }
+    Ok(magic)
+}
+
+fn read_and_validate_version<R: ByteReader>(
+    source: &mut R,
+) -> Result<[u8; 3], DeserializationError> {
+    let version: [u8; 3] = source.read_array()?;
+    if version != VERSION {
+        return Err(DeserializationError::InvalidValue(format!(
+            "Unsupported version. Got '{version:?}', but only '{VERSION:?}' is supported",
+        )));
+    }
+    Ok(version)
+}
+
+fn read_decorator_infos<R: ByteReader>(
+    source: &mut R,
+    decorator_count: usize,
+) -> Result<Vec<DecoratorInfo>, DeserializationError> {
+    let mut decorator_infos: Vec<DecoratorInfo> = Vec::new();
+
+    for _ in 0..decorator_count {
+        let decorator_info = DecoratorInfo::read_from(source)?;
+        decorator_infos.push(decorator_info);
+    }
+
+    Ok(decorator_infos)
+}
+
+fn read_node_infos<R: ByteReader>(
+    source: &mut R,
+    node_count: usize,
+) -> Result<Vec<MastNodeInfo>, DeserializationError> {
+    let mut mast_node_infos: Vec<MastNodeInfo> = Vec::new();
+
+    for _ in 0..node_count {
+        let mast_node_info = MastNodeInfo::read_from(source)?;
+        mast_node_infos.push(mast_node_info);
+    }
+
+    Ok(mast_node_infos)
 }
 
 /// Reads the `before_enter_decorators` and `after_exit_decorators` of the serialized `MastForest`

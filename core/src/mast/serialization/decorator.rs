@@ -220,20 +220,14 @@ impl DecoratorDataBuilder {
 /// Mutators
 impl DecoratorDataBuilder {
     pub fn add_decorator(&mut self, decorator: &Decorator) {
-        let decorator_data_offset =
-            self.encode_decorator_data(decorator).unwrap_or(0);
-        self.decorator_infos.push(DecoratorInfo::from_decorator(
-            decorator,
-            decorator_data_offset,
-        ));
+        let decorator_data_offset = self.encode_decorator_data(decorator).unwrap_or(0);
+        self.decorator_infos
+            .push(DecoratorInfo::from_decorator(decorator, decorator_data_offset));
     }
 
     /// If a decorator has extra data to store, encode it in internal data buffer, and return the
     /// offset of the newly added data. If not, return `None`.
-    pub fn encode_decorator_data(
-        &mut self,
-        decorator: &Decorator,
-    ) -> Option<DecoratorDataOffset> {
+    pub fn encode_decorator_data(&mut self, decorator: &Decorator) -> Option<DecoratorDataOffset> {
         let data_offset = self.decorator_data.len() as DecoratorDataOffset;
 
         match decorator {
@@ -253,7 +247,8 @@ impl DecoratorDataBuilder {
 
                 // context name
                 {
-                    let str_offset = self.string_table_builder.add_string(assembly_op.context_name());
+                    let str_offset =
+                        self.string_table_builder.add_string(assembly_op.context_name());
                     self.decorator_data.write_usize(str_offset);
                 }
 
@@ -295,6 +290,10 @@ impl DecoratorDataBuilder {
 
     /// Returns the serialized [`crate::mast::MastForest`] decorator data field.
     pub fn finalize(self) -> (Vec<u8>, Vec<DecoratorInfo>, StringTable) {
-        (self.decorator_data, self.decorator_infos, self.string_table_builder.into_table())
+        (
+            self.decorator_data,
+            self.decorator_infos,
+            self.string_table_builder.into_table(),
+        )
     }
 }
