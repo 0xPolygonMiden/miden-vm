@@ -5,8 +5,8 @@ use alloc::{
 use core::ops::{Index, IndexMut};
 
 use vm_core::{
-    crypto::hash::{Blake3Digest, Blake3_256, Digest, RpoDigest},
-    mast::{DecoratorId, MastForest, MastNode, MastNodeId},
+    crypto::hash::{Blake3Digest, RpoDigest},
+    mast::{DecoratorId, MastForest, MastNode, MastNodeEq, MastNodeId},
     Decorator, DecoratorList, Operation,
 };
 
@@ -47,10 +47,10 @@ pub struct MastForestBuilder {
     /// root.
     proc_gid_by_mast_root: BTreeMap<RpoDigest, GlobalProcedureIndex>,
     /// A map of MAST node eq hashes to their corresponding positions in the MAST forest.
-    node_id_by_hash: BTreeMap<EqHash, MastNodeId>,
+    node_id_by_hash: BTreeMap<MastNodeEq, MastNodeId>,
     /// The reverse mapping of `node_id_by_hash`. This map caches the eq hashes of all nodes (for
     /// performance reasons).
-    hash_by_node_id: BTreeMap<MastNodeId, EqHash>,
+    hash_by_node_id: BTreeMap<MastNodeId, MastNodeEq>,
     /// A map of decorator hashes to their corresponding positions in the MAST forest.
     decorator_id_by_hash: BTreeMap<Blake3Digest<32>, DecoratorId>,
     /// A set of IDs for basic blocks which have been merged into a bigger basic blocks. This is
@@ -445,115 +445,9 @@ impl MastForestBuilder {
     }
 }
 
-/// Helpers
 impl MastForestBuilder {
-    fn eq_hash_for_node(&self, node: &MastNode) -> EqHash {
-        match node {
-            MastNode::Block(node) => {
-                let mut bytes_to_hash = Vec::new();
-
-                for &(idx, decorator_id) in node.decorators() {
-                    bytes_to_hash.extend(idx.to_le_bytes());
-                    bytes_to_hash.extend(self[decorator_id].eq_hash().as_bytes());
-                }
-
-                // Add any `Assert` or `U32assert2` opcodes present, since these are not included in
-                // the MAST root.
-                for (op_idx, op) in node.operations().enumerate() {
-                    if let Operation::U32assert2(inner_value)
-                    | Operation::Assert(inner_value)
-                    | Operation::MpVerify(inner_value) = op
-                    {
-                        let op_idx: u32 = op_idx
-                            .try_into()
-                            .expect("there are more than 2^{32}-1 operations in basic block");
-
-                        // we include the opcode to differentiate between `Assert` and `U32assert2`
-                        bytes_to_hash.push(op.op_code());
-                        // we include the operation index to distinguish between basic blocks that
-                        // would have the same assert instructions, but in a different order
-                        bytes_to_hash.extend(op_idx.to_le_bytes());
-                        bytes_to_hash.extend(inner_value.to_le_bytes());
-                    }
-                }
-
-                if bytes_to_hash.is_empty() {
-                    EqHash::new(node.digest())
-                } else {
-                    let decorator_root = Blake3_256::hash(&bytes_to_hash);
-                    EqHash::with_decorator_root(node.digest(), decorator_root)
-                }
-            },
-            MastNode::Join(node) => self.eq_hash_from_parts(
-                node.before_enter(),
-                node.after_exit(),
-                &[node.first(), node.second()],
-                node.digest(),
-            ),
-            MastNode::Split(node) => self.eq_hash_from_parts(
-                node.before_enter(),
-                node.after_exit(),
-                &[node.on_true(), node.on_false()],
-                node.digest(),
-            ),
-            MastNode::Loop(node) => self.eq_hash_from_parts(
-                node.before_enter(),
-                node.after_exit(),
-                &[node.body()],
-                node.digest(),
-            ),
-            MastNode::Call(node) => self.eq_hash_from_parts(
-                node.before_enter(),
-                node.after_exit(),
-                &[node.callee()],
-                node.digest(),
-            ),
-            MastNode::Dyn(node) => {
-                self.eq_hash_from_parts(node.before_enter(), node.after_exit(), &[], node.digest())
-            },
-            MastNode::External(node) => {
-                self.eq_hash_from_parts(node.before_enter(), node.after_exit(), &[], node.digest())
-            },
-        }
-    }
-
-    fn eq_hash_from_parts(
-        &self,
-        before_enter_ids: &[DecoratorId],
-        after_exit_ids: &[DecoratorId],
-        children_ids: &[MastNodeId],
-        node_digest: RpoDigest,
-    ) -> EqHash {
-        let pre_decorator_hash_bytes =
-            before_enter_ids.iter().flat_map(|&id| self[id].eq_hash().as_bytes());
-        let post_decorator_hash_bytes =
-            after_exit_ids.iter().flat_map(|&id| self[id].eq_hash().as_bytes());
-
-        // Reminder: the `EqHash`'s decorator root will be `None` if and only if there are no
-        // decorators attached to the node, and all children have no decorator roots (meaning that
-        // there are no decorators in all the descendants).
-        if pre_decorator_hash_bytes.clone().next().is_none()
-            && post_decorator_hash_bytes.clone().next().is_none()
-            && children_ids
-                .iter()
-                .filter_map(|child_id| self.hash_by_node_id[child_id].decorator_root)
-                .next()
-                .is_none()
-        {
-            EqHash::new(node_digest)
-        } else {
-            let children_decorator_roots = children_ids
-                .iter()
-                .filter_map(|child_id| self.hash_by_node_id[child_id].decorator_root)
-                .flat_map(|decorator_root| decorator_root.as_bytes());
-            let decorator_bytes_to_hash: Vec<u8> = pre_decorator_hash_bytes
-                .chain(post_decorator_hash_bytes)
-                .chain(children_decorator_roots)
-                .collect();
-
-            let decorator_root = Blake3_256::hash(&decorator_bytes_to_hash);
-            EqHash::with_decorator_root(node_digest, decorator_root)
-        }
+    fn eq_hash_for_node(&self, node: &MastNode) -> MastNodeEq {
+        MastNodeEq::from_mast_node(&self.mast_forest, &self.hash_by_node_id, node)
     }
 }
 
@@ -579,33 +473,6 @@ impl IndexMut<DecoratorId> for MastForestBuilder {
     #[inline(always)]
     fn index_mut(&mut self, decorator_id: DecoratorId) -> &mut Self::Output {
         &mut self.mast_forest[decorator_id]
-    }
-}
-
-// EQ HASH
-// ================================================================================================
-
-/// Represents the hash used to test for equality between [`MastNode`]s.
-///
-/// The decorator root will be `None` if and only if there are no decorators attached to the node,
-/// and all children have no decorator roots (meaning that there are no decorators in all the
-/// descendants).
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
-struct EqHash {
-    mast_root: RpoDigest,
-    decorator_root: Option<Blake3Digest<32>>,
-}
-
-impl EqHash {
-    fn new(mast_root: RpoDigest) -> Self {
-        Self { mast_root, decorator_root: None }
-    }
-
-    fn with_decorator_root(mast_root: RpoDigest, decorator_root: Blake3Digest<32>) -> Self {
-        Self {
-            mast_root,
-            decorator_root: Some(decorator_root),
-        }
     }
 }
 
