@@ -308,7 +308,7 @@ Miden VM can be compiled with the following features:
 - `executable` - required for building Miden VM binary as described above. Implies `std`.
 - `metal` - enables [Metal](<https://en.wikipedia.org/wiki/Metal_(API)>)-based acceleration of proof generation (for recursive proofs) on supported platforms (e.g., Apple silicon).
 - `no_std` does not rely on the Rust standard library and enables compilation to WebAssembly.
-    - Only the `wasm32-unknown-unknown` and `wasm32-wasip1` targets are officially supported.
+  - Only the `wasm32-unknown-unknown` and `wasm32-wasip1` targets are officially supported.
 
 To compile with `no_std`, disable default features via `--no-default-features` flag.
 

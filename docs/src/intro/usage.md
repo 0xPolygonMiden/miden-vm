@@ -16,19 +16,19 @@ The above functionality is also exposed via the single [miden-vm](https://crates
 
 To compile Miden VM into a binary, we have a [Makefile](https://www.gnu.org/software/make/manual/make.html) with the following tasks:
 
-```
+```shell
 make exec
 ```
 
 This will place an optimized, multi-threaded `miden` executable into the `./target/optimized` directory. It is equivalent to executing:
 
-```
+```shell
 cargo build --profile optimized --features concurrent,executable
 ```
 
 If you would like to enable single-threaded mode, you can compile Miden VM using the following command:
 
-```
+```shell
 make exec-single
 ```
 
@@ -40,7 +40,7 @@ Internally, Miden VM uses [rayon](https://github.com/rayon-rs/rayon) for paralle
 
 Miden VM proof generation can be accelerated via GPUs. Currently, GPU acceleration is enabled only on Apple Silicon hardware (via [Metal](<https://en.wikipedia.org/wiki/Metal_(API)>)). To compile Miden VM with Metal acceleration enabled, you can run the following command:
 
-```
+```shell
 make exec-metal
 ```
 
@@ -54,13 +54,13 @@ Miden VM execution and proof generation can be accelerated via vectorized instru
 
 To compile Miden VM with AVX2 acceleration enabled, you can run the following command:
 
-```
+```shell
 make exec-avx2
 ```
 
 To compile Miden VM with SVE acceleration enabled, you can run the following command:
 
-```
+```shell
 make exec-sve
 ```
 
@@ -72,7 +72,7 @@ Similar to Metal acceleration, SVE/AVX2 acceleration is currently applicable onl
 
 Once the executable has been compiled, you can run Miden VM like so:
 
-```
+```shell
 ./target/optimized/miden [subcommand] [parameters]
 ```
 
@@ -89,13 +89,13 @@ Currently, Miden VM can be executed with the following subcommands:
 
 All of the above subcommands require various parameters to be provided. To get more detailed help on what is needed for a given subcommand, you can run the following:
 
-```
+```shell
 ./target/optimized/miden [subcommand] --help
 ```
 
 For example:
 
-```
+```shell
 ./target/optimized/miden prove --help
 ```
 
@@ -105,7 +105,7 @@ To execute a program using the Miden VM there needs to be a `.masm` file contain
 
 You can use `MIDEN_LOG` environment variable to control how much logging output the VM produces. For example:
 
-```
+```shell
 MIDEN_LOG=trace ./target/optimized/miden [subcommand] [parameters]
 ```
 
