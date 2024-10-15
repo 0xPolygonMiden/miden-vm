@@ -37,7 +37,7 @@ pub use processor::{
     crypto, math, utils, AdviceInputs, Digest, ExecutionError, Host, InputError, MemAdviceProvider,
     StackInputs, StackOutputs, Word,
 };
-pub use winter_prover::Proof;
+pub use winter_prover::{crypto::MerkleTree as MerkleTreeVC, Proof};
 
 // PROVER
 // ================================================================================================
@@ -174,15 +174,16 @@ where
 
 impl<H, R> Prover for ExecutionProver<H, R>
 where
-    H: ElementHasher<BaseField = Felt>,
+    H: ElementHasher<BaseField = Felt> + Sync,
     R: RandomCoin<BaseField = Felt, Hasher = H> + Send,
 {
     type BaseField = Felt;
     type Air = ProcessorAir;
     type Trace = ExecutionTrace;
     type HashFn = H;
+    type VC = MerkleTreeVC<Self::HashFn>;
     type RandomCoin = R;
-    type TraceLde<E: FieldElement<BaseField = Felt>> = DefaultTraceLde<E, H>;
+    type TraceLde<E: FieldElement<BaseField = Felt>> = DefaultTraceLde<E, H, Self::VC>;
     type ConstraintEvaluator<'a, E: FieldElement<BaseField = Felt>> =
         DefaultConstraintEvaluator<'a, ProcessorAir, E>;
 

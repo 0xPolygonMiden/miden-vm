@@ -8,7 +8,7 @@ use test_utils::{
     crypto::{BatchMerkleProof, MerklePath, PartialMerkleTree, Rpo256, RpoDigest},
     group_slice_elements,
     math::{FieldElement, QuadExtension, StarkField},
-    Felt, VerifierError, EMPTY_WORD,
+    Felt, MerkleTreeVC, VerifierError, EMPTY_WORD,
 };
 use winter_air::{
     proof::{Proof, Queries, Table, TraceOodFrame},
@@ -89,7 +89,10 @@ impl VerifierChannel {
             .parse_remainder()
             .map_err(|err| VerifierError::ProofDeserializationError(err.to_string()))?;
         let (fri_layer_queries, fri_layer_proofs) = fri_proof
-            .parse_layers::<Rpo256, QuadExt>(lde_domain_size, fri_options.folding_factor())
+            .parse_layers::<QuadExt, Rpo256, MerkleTreeVC<Rpo256>>(
+                lde_domain_size,
+                fri_options.folding_factor(),
+            )
             .map_err(|err| VerifierError::ProofDeserializationError(err.to_string()))?;
 
         // --- parse out-of-domain evaluation frame -----------------------------------------------
@@ -242,22 +245,16 @@ impl VerifierChannel {
             let mut folded_positions = fold_positions(&positions, current_domain_size, N);
 
             let layer_proof = layer_proofs.remove(0);
-
-            let mut unbatched_proof = layer_proof.into_paths(&folded_positions).unwrap();
             let x = group_slice_elements::<QuadExt, N>(query);
+            let leaves: Vec<RpoDigest> = x.iter().map(|row| Rpo256::hash_elements(row)).collect();
+            let unbatched_proof = layer_proof.into_openings(&leaves, &folded_positions).unwrap();
             assert_eq!(x.len(), unbatched_proof.len());
 
-            let nodes: Vec<[Felt; 4]> = unbatched_proof
-                .iter_mut()
-                .map(|list| {
-                    let node = list.remove(0);
-                    let node = node.as_elements().to_owned();
-                    [node[0], node[1], node[2], node[3]]
-                })
-                .collect();
+            let nodes: Vec<[Felt; 4]> =
+                leaves.iter().map(|leaf| [leaf[0], leaf[1], leaf[2], leaf[3]]).collect();
 
             let paths: Vec<MerklePath> =
-                unbatched_proof.into_iter().map(|list| list.into()).collect();
+                unbatched_proof.into_iter().map(|list| list.1.into()).collect();
 
             let iter_pos = folded_positions.iter_mut().map(|a| *a as u64);
             let nodes_tmp = nodes.clone();
@@ -292,6 +289,7 @@ impl VerifierChannel {
 
 impl FriVerifierChannel<QuadExt> for VerifierChannel {
     type Hasher = Rpo256;
+    type VectorCommitment = MerkleTreeVC<Self::Hasher>;
 
     fn read_fri_num_partitions(&self) -> usize {
         self.fri_num_partitions
@@ -341,7 +339,11 @@ impl TraceQueries {
         let main_segment_width = air.trace_info().main_trace_width();
         let main_segment_queries = queries.remove(0);
         let (main_segment_query_proofs, main_segment_states) = main_segment_queries
-            .parse::<Rpo256, Felt>(air.lde_domain_size(), num_queries, main_segment_width)
+            .parse::<Felt, Rpo256, MerkleTreeVC<Rpo256>>(
+                air.lde_domain_size(),
+                num_queries,
+                main_segment_width,
+            )
             .map_err(|err| {
                 VerifierError::ProofDeserializationError(format!(
                     "main trace segment query deserialization failed: {err}"
@@ -359,7 +361,11 @@ impl TraceQueries {
             let aux_segment_queries = queries.remove(0);
 
             let (segment_query_proof, segment_trace_states) = aux_segment_queries
-                .parse::<Rpo256, QuadExt>(air.lde_domain_size(), num_queries, segment_width)
+                .parse::<QuadExt, Rpo256, MerkleTreeVC<Rpo256>>(
+                    air.lde_domain_size(),
+                    num_queries,
+                    segment_width,
+                )
                 .map_err(|err| {
                     VerifierError::ProofDeserializationError(format!(
                         "auxiliary trace segment query deserialization failed: {err}"
@@ -401,7 +407,11 @@ impl ConstraintQueries {
         num_queries: usize,
     ) -> Result<Self, VerifierError> {
         let (query_proofs, evaluations) = queries
-            .parse::<Rpo256, QuadExt>(air.lde_domain_size(), num_queries, air.ce_blowup_factor())
+            .parse::<QuadExt, Rpo256, MerkleTreeVC<Rpo256>>(
+                air.lde_domain_size(),
+                num_queries,
+                air.ce_blowup_factor(),
+            )
             .map_err(|err| {
                 VerifierError::ProofDeserializationError(format!(
                     "constraint evaluation query deserialization failed: {err}"
@@ -420,18 +430,14 @@ pub fn unbatch_to_partial_mt(
     queries: Vec<Vec<Felt>>,
     proof: BatchMerkleProof<Rpo256>,
 ) -> (PartialMerkleTree, Vec<(RpoDigest, Vec<Felt>)>) {
-    let mut unbatched_proof = proof.into_paths(&positions).unwrap();
-    let mut adv_key_map = Vec::new();
-    let nodes: Vec<[Felt; 4]> = unbatched_proof
-        .iter_mut()
-        .map(|list| {
-            let node = list.remove(0);
-            let node = node.as_elements().to_owned();
-            [node[0], node[1], node[2], node[3]]
-        })
-        .collect();
+    let leaves: Vec<RpoDigest> = queries.iter().map(|row| Rpo256::hash_elements(&row)).collect();
 
-    let paths: Vec<MerklePath> = unbatched_proof.into_iter().map(|list| list.into()).collect();
+    let unbatched_proof = proof.into_openings(&leaves, &positions).unwrap();
+    let mut adv_key_map = Vec::new();
+    let nodes: Vec<[Felt; 4]> =
+        queries.iter().map(|node| [node[0], node[1], node[2], node[3]]).collect();
+
+    let paths: Vec<MerklePath> = unbatched_proof.into_iter().map(|list| list.1.into()).collect();
 
     let iter_pos = positions.iter_mut().map(|a| *a as u64);
     let nodes_tmp = nodes.clone();
