@@ -589,8 +589,10 @@ impl Operation {
         }
     }
 
-    /// Returns true if this operation is a control operation.
-    pub fn is_control_op(&self) -> bool {
+    /// Returns true if this operation writes any data to the decoder hasher registers.
+    ///
+    /// In other words, if so, then the user op helper registers are not available.
+    pub fn populates_decoder_hasher_registers(&self) -> bool {
         matches!(
             self,
             Self::End
@@ -603,7 +605,6 @@ impl Operation {
                 | Self::Halt
                 | Self::Call
                 | Self::SysCall
-                | Self::Dyn
         )
     }
 }

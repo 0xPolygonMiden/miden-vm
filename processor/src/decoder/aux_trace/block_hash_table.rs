@@ -212,13 +212,13 @@ impl BlockHashTableRow {
     /// Computes the row to add to the block hash table when encountering a `DYN` operation.
     pub fn from_dyn(main_trace: &MainTrace, row: RowIndex) -> Self {
         let child_block_hash = {
-            // Note: the child block hash is found on the stack, and hence in reverse order.
-            let s0 = main_trace.stack_element(0, row);
-            let s1 = main_trace.stack_element(1, row);
-            let s2 = main_trace.stack_element(2, row);
-            let s3 = main_trace.stack_element(3, row);
+            // the child block hash is found in the helper registers.
+            let h0 = main_trace.helper_register(0, row);
+            let h1 = main_trace.helper_register(1, row);
+            let h2 = main_trace.helper_register(2, row);
+            let h3 = main_trace.helper_register(3, row);
 
-            [s3, s2, s1, s0]
+            [h0, h1, h2, h3]
         };
 
         Self {

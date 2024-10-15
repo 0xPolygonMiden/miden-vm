@@ -301,7 +301,9 @@ where
         );
 
         self.decoder.start_dyn(addr);
-        self.execute_op(Operation::Noop)
+
+        // Pop the memory address off the stack.
+        self.execute_op(Operation::Drop)
     }
 
     /// Ends decoding of a DYN node.
@@ -655,7 +657,10 @@ impl Decoder {
     /// TODO: it might be better to get the operation information from the decoder trace, rather
     /// than passing it in as a parameter.
     pub fn set_user_op_helpers(&mut self, op: Operation, values: &[Felt]) {
-        debug_assert!(!op.is_control_op(), "op is a control operation");
+        debug_assert!(
+            !op.populates_decoder_hasher_registers(),
+            "user op helper registers not available for op"
+        );
         self.trace.set_user_op_helpers(values);
     }
 
