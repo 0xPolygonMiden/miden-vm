@@ -24,6 +24,9 @@ use crate::{Decorator, DecoratorList, Operation};
 
 mod serialization;
 
+mod forest_merger;
+pub use forest_merger::MastForestMerger;
+
 #[cfg(test)]
 mod tests;
 
@@ -193,6 +196,16 @@ impl MastForest {
 
     pub fn set_after_exit(&mut self, node_id: MastNodeId, decorator_ids: Vec<DecoratorId>) {
         self[node_id].set_after_exit(decorator_ids)
+    }
+
+    pub fn merge(&mut self, other_forest: MastForest) -> Result<(), MastForestError> {
+      let forest = std::mem::take(self);
+      let mut merger: MastForestMerger = MastForestMerger::new(forest);
+      merger.merge(other_forest)?;
+      let merged = merger.into_forest();
+      let _ = std::mem::replace(self, merged);
+
+      Ok(())
     }
 
     /// Adds a basic block node to the forest, and returns the [`MastNodeId`] associated with it.
