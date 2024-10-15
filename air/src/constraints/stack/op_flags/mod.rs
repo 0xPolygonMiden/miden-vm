@@ -348,7 +348,8 @@ impl<E: FieldElement> OpFlags<E> {
             + degree7_op_flags[47]
             + degree7_op_flags[46]
             + split_loop_flag
-            + shift_left_on_end;
+            + shift_left_on_end
+            + degree5_op_flags[8]; // DYN
 
         left_shift_flags[2] = left_shift_flags[1] + left_change_1_flag;
         left_shift_flags[3] =
@@ -399,8 +400,12 @@ impl<E: FieldElement> OpFlags<E> {
         let right_shift = f011 + degree5_op_flags[11] + degree6_op_flags[4]; // PUSH; U32SPLIT
 
         // Flag if the stack has been shifted to the left.
-        let left_shift =
-            f010 + add3_madd_flag + split_loop_flag + degree4_op_flags[5] + shift_left_on_end;
+        let left_shift = f010
+            + add3_madd_flag
+            + split_loop_flag
+            + degree4_op_flags[5]
+            + shift_left_on_end
+            + degree5_op_flags[8]; // DYN
 
         // Flag if the current operation being executed is a control flow operation.
         // first row: SPAN, JOIN, SPLIT, LOOP
