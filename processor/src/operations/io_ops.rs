@@ -35,12 +35,11 @@ where
     /// Thus, the net result of the operation is that the stack is shifted left by one item.
     pub(super) fn op_mloadw(&mut self) -> Result<(), ExecutionError> {
         // get the address from the stack and read the word from current memory context
-        let ctx = self.system.ctx();
-        let addr = Self::get_valid_address(self.stack.get(0))?;
-        let word = self.chiplets.read_mem(ctx, addr);
+        let mut word = self.read_mem_word(self.stack.get(0))?;
+        word.reverse();
 
-        // reverse the order of the memory word & update the stack state
-        for (i, &value) in word.iter().rev().enumerate() {
+        // update the stack state
+        for (i, &value) in word.iter().enumerate() {
             self.stack.set(i, value);
         }
         self.stack.shift_left(5);
@@ -62,10 +61,7 @@ where
     /// register 0.
     pub(super) fn op_mload(&mut self) -> Result<(), ExecutionError> {
         // get the address from the stack and read the word from memory
-        let ctx = self.system.ctx();
-        let addr = Self::get_valid_address(self.stack.get(0))?;
-        let mut word = self.chiplets.read_mem(ctx, addr);
-        // put the retrieved word into stack order
+        let mut word = self.read_mem_word(self.stack.get(0))?;
         word.reverse();
 
         // update the stack state
@@ -251,6 +247,15 @@ where
 
     // HELPER FUNCTIONS
     // --------------------------------------------------------------------------------------------
+
+    /// Returns the memory word at address `addr`.
+    pub(crate) fn read_mem_word(&mut self, addr: Felt) -> Result<Word, ExecutionError> {
+        let ctx = self.system.ctx();
+        let mem_addr = Self::get_valid_address(addr)?;
+        let word_at_addr = self.chiplets.read_mem(ctx, mem_addr);
+
+        Ok(word_at_addr)
+    }
 
     /// Checks that provided address is less than u32::MAX and returns it cast to u32.
     ///

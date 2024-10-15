@@ -292,7 +292,10 @@ where
     // --------------------------------------------------------------------------------------------
 
     /// Starts decoding of a DYN node.
-    pub(super) fn start_dyn_node(&mut self) -> Result<(), ExecutionError> {
+    ///
+    /// Note: even though we will write the callee hash to h[0..4] for the chiplets bus and block
+    /// hash table, the issued hash request is still hash([ZERO; 8]).
+    pub(super) fn start_dyn_node(&mut self, callee_hash: Word) -> Result<(), ExecutionError> {
         let addr = self.chiplets.hash_control_block(
             EMPTY_WORD,
             EMPTY_WORD,
@@ -300,8 +303,10 @@ where
             DynNode::default().digest(),
         );
 
-        self.decoder.start_dyn(addr);
-        self.execute_op(Operation::Noop)
+        self.decoder.start_dyn(addr, callee_hash);
+
+        // Pop the memory address off the stack.
+        self.execute_op(Operation::Drop)
     }
 
     /// Ends decoding of a DYN node.
@@ -532,12 +537,20 @@ impl Decoder {
 
     /// Starts decoding of a DYN block.
     ///
+    /// Note that even though the hasher decoder columns are populated, the issued hash request is
+    /// still for [ZERO; 8 | domain=DYN]. This is because a `DYN` node takes its child on the stack,
+    /// and therefore the child hash cannot be included in the `DYN` node hash computation (see
+    /// [`vm_core::mast::DynNode`]). The decoder hasher columns are then not needed for the `DYN`
+    /// node hash computation, and so were used to store the result of the memory read operation for
+    /// the child hash.
+    ///
     /// This pushes a block with ID=addr onto the block stack and appends execution of a DYN
     /// operation to the trace.
-    pub fn start_dyn(&mut self, addr: Felt) {
+    pub fn start_dyn(&mut self, addr: Felt, callee_hash: Word) {
         // push DYN block info onto the block stack and append a DYN row to the execution trace
         let parent_addr = self.block_stack.push(addr, BlockType::Dyn, None);
-        self.trace.append_block_start(parent_addr, Operation::Dyn, [ZERO; 4], [ZERO; 4]);
+        self.trace
+            .append_block_start(parent_addr, Operation::Dyn, callee_hash, [ZERO; 4]);
 
         self.debug_info.append_operation(Operation::Dyn);
     }
@@ -655,7 +668,10 @@ impl Decoder {
     /// TODO: it might be better to get the operation information from the decoder trace, rather
     /// than passing it in as a parameter.
     pub fn set_user_op_helpers(&mut self, op: Operation, values: &[Felt]) {
-        debug_assert!(!op.is_control_op(), "op is a control operation");
+        debug_assert!(
+            !op.populates_decoder_hasher_registers(),
+            "user op helper registers not available for op"
+        );
         self.trace.set_user_op_helpers(values);
     }
 

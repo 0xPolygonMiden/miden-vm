@@ -21,6 +21,8 @@
 - Migrated to `miden-crypto` v0.11.0 (#1343).
 - Implemented `MastForest` merging (#1534)
 - Rename `EqHash` to `MastNodeFingerprint` and make it `pub` (#1539)
+- [BREAKING] `DYN` operation now expects a memory address pointing to the procedure hash (#1535)
+
 
 #### Fixes
 

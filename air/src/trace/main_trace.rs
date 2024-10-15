@@ -240,6 +240,8 @@ impl MainTrace {
         ([e0, b3, b2, b1] == [ONE, ZERO, ONE, ZERO]) ||
         // REPEAT
         ([b6, b5, b4, b3, b2, b1, b0] == [ONE, ONE, ONE, ZERO, ONE, ZERO, ZERO]) ||
+        // DYN
+        ([b6, b5, b4, b3, b2, b1, b0] == [ONE, ZERO, ONE, ONE, ZERO, ZERO, ZERO]) ||
         // END of a loop
         ([b6, b5, b4, b3, b2, b1, b0] == [ONE, ONE, ONE, ZERO, ZERO, ZERO, ZERO] && h5 == ONE)
     }
