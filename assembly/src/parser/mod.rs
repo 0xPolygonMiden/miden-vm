@@ -304,7 +304,7 @@ mod module_walker {
         }
     }
 
-    impl<'a> Iterator for WalkModules<'a> {
+    impl Iterator for WalkModules<'_> {
         type Item = Result<ModuleEntry, Report>;
 
         fn next(&mut self) -> Option<Self::Item> {

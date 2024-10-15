@@ -176,7 +176,7 @@ pub trait Host {
     }
 }
 
-impl<'a, H> Host for &'a mut H
+impl<H> Host for &mut H
 where
     H: Host,
 {

@@ -43,7 +43,7 @@ impl<'a> VerifyInvokeTargets<'a> {
     }
 }
 
-impl<'a> VerifyInvokeTargets<'a> {
+impl VerifyInvokeTargets<'_> {
     fn resolve_local(&mut self, name: &ProcedureName) -> ControlFlow<()> {
         if !self.procedures.contains(name) {
             self.analyzer
@@ -72,7 +72,7 @@ impl<'a> VerifyInvokeTargets<'a> {
     }
 }
 
-impl<'a> VisitMut for VerifyInvokeTargets<'a> {
+impl VisitMut for VerifyInvokeTargets<'_> {
     fn visit_mut_inst(&mut self, inst: &mut Span<Instruction>) -> ControlFlow<()> {
         let span = inst.span();
         match &**inst {

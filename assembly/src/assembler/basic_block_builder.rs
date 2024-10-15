@@ -60,7 +60,7 @@ impl<'a> BasicBlockBuilder<'a> {
 }
 
 /// Accessors
-impl<'a> BasicBlockBuilder<'a> {
+impl BasicBlockBuilder<'_> {
     /// Returns a reference to the internal [`MastForestBuilder`].
     pub fn mast_forest_builder(&self) -> &MastForestBuilder {
         self.mast_forest_builder
@@ -73,7 +73,7 @@ impl<'a> BasicBlockBuilder<'a> {
 }
 
 /// Operations
-impl<'a> BasicBlockBuilder<'a> {
+impl BasicBlockBuilder<'_> {
     /// Adds the specified operation to the list of basic block operations.
     pub fn push_op(&mut self, op: Operation) {
         self.ops.push(op);
@@ -96,7 +96,7 @@ impl<'a> BasicBlockBuilder<'a> {
 }
 
 /// Decorators
-impl<'a> BasicBlockBuilder<'a> {
+impl BasicBlockBuilder<'_> {
     /// Add the specified decorator to the list of basic block decorators.
     pub fn push_decorator(&mut self, decorator: Decorator) -> Result<(), AssemblyError> {
         let decorator_id = self.mast_forest_builder.ensure_decorator(decorator)?;
@@ -159,7 +159,7 @@ impl<'a> BasicBlockBuilder<'a> {
 }
 
 /// Span Constructors
-impl<'a> BasicBlockBuilder<'a> {
+impl BasicBlockBuilder<'_> {
     /// Creates and returns a new basic block node from the operations and decorators currently in
     /// this builder.
     ///

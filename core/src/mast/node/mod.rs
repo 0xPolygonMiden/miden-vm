@@ -273,7 +273,7 @@ impl<'a> MastNodePrettyPrint<'a> {
     }
 }
 
-impl<'a> PrettyPrint for MastNodePrettyPrint<'a> {
+impl PrettyPrint for MastNodePrettyPrint<'_> {
     fn render(&self) -> Document {
         self.node_pretty_print.render()
     }
@@ -289,7 +289,7 @@ impl<'a> MastNodeDisplay<'a> {
     }
 }
 
-impl<'a> fmt::Display for MastNodeDisplay<'a> {
+impl fmt::Display for MastNodeDisplay<'_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         self.node_display.fmt(f)
     }
