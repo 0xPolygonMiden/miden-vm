@@ -3,7 +3,7 @@ use test_utils::{
     crypto::{BatchMerkleProof, ElementHasher, Hasher as HasherTrait, PartialMerkleTree},
     math::fft,
     serde::DeserializationError,
-    Felt, FieldElement, StarkField,
+    Felt, FieldElement, MerkleTreeVC, StarkField,
 };
 use winter_fri::{FriProof, VerifierError};
 
@@ -16,7 +16,10 @@ pub trait UnBatch<E: FieldElement, H: ElementHasher> {
     ) -> (Vec<PartialMerkleTree>, Vec<(Digest, Vec<Felt>)>);
 }
 
-pub struct MidenFriVerifierChannel<E: FieldElement, H: ElementHasher<BaseField = E::BaseField>> {
+pub struct MidenFriVerifierChannel<
+    E: FieldElement<BaseField = Felt>,
+    H: ElementHasher<BaseField = E::BaseField> + ElementHasher,
+> {
     layer_commitments: Vec<H::Digest>,
     layer_proofs: Vec<BatchMerkleProof<H>>,
     layer_queries: Vec<Vec<E>>,
@@ -25,8 +28,8 @@ pub struct MidenFriVerifierChannel<E: FieldElement, H: ElementHasher<BaseField =
 
 impl<E, H> MidenFriVerifierChannel<E, H>
 where
-    E: FieldElement,
-    H: ElementHasher<BaseField = E::BaseField>,
+    E: FieldElement<BaseField = Felt>,
+    H: ElementHasher<BaseField = E::BaseField> + ElementHasher,
 {
     /// Builds a new verifier channel from the specified [FriProof].
     ///
@@ -40,7 +43,7 @@ where
     ) -> Result<Self, DeserializationError> {
         let remainder = proof.parse_remainder()?;
         let (layer_queries, layer_proofs) =
-            proof.parse_layers::<H, E>(domain_size, folding_factor)?;
+            proof.parse_layers::<E, H, MerkleTreeVC<H>>(domain_size, folding_factor)?;
 
         Ok(MidenFriVerifierChannel {
             layer_commitments,
