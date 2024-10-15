@@ -430,7 +430,7 @@ pub fn unbatch_to_partial_mt(
     queries: Vec<Vec<Felt>>,
     proof: BatchMerkleProof<Rpo256>,
 ) -> (PartialMerkleTree, Vec<(RpoDigest, Vec<Felt>)>) {
-    let leaves: Vec<RpoDigest> = queries.iter().map(|row| Rpo256::hash_elements(&row)).collect();
+    let leaves: Vec<RpoDigest> = queries.iter().map(|row| Rpo256::hash_elements(row)).collect();
 
     let unbatched_proof = proof.into_openings(&leaves, &positions).unwrap();
     let mut adv_key_map = Vec::new();

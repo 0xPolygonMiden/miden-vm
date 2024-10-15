@@ -412,7 +412,7 @@ impl UnBatch<QuadExt, MidenHasher> for MidenFriVerifierChannel<QuadExt, MidenHas
 
             let layer_proof = layer_proofs.remove(0);
 
-            let x = group_slice_elements::<QuadExt, N>(&query);
+            let x = group_slice_elements::<QuadExt, N>(query);
             let leaves: Vec<RpoDigest> =
                 x.iter().map(|row| MidenHasher::hash_elements(row)).collect();
             let unbatched_proof = layer_proof.into_openings(&leaves, &folded_positions).unwrap();
