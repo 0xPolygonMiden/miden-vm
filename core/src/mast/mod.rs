@@ -628,23 +628,19 @@ impl Serializable for DecoratorId {
 // MAST NODE EQUALITY
 // ================================================================================================
 
-// TODO: We need to export this so we can use it in MastForestBuilder, but do we really want this to
-// be public? Alternatively we can move move MastForestBuilder into core as well, but this might not
-// be a good fit since it is only used during assembly.
-
 /// Represents the hash used to test for equality between [`MastNode`]s.
 ///
 /// The decorator root will be `None` if and only if there are no decorators attached to the node,
 /// and all children have no decorator roots (meaning that there are no decorators in all the
 /// descendants).
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
-pub struct MastNodeEq {
+pub struct EqHash {
     mast_root: RpoDigest,
     decorator_root: Option<Blake3Digest<32>>,
 }
 
 // TODO: Document public functions and assumptions about forest and the index map.
-impl MastNodeEq {
+impl EqHash {
     pub fn new(mast_root: RpoDigest) -> Self {
         Self { mast_root, decorator_root: None }
     }
@@ -658,9 +654,9 @@ impl MastNodeEq {
 
     pub fn from_mast_node(
         forest: &MastForest,
-        hash_by_node_id: &BTreeMap<MastNodeId, MastNodeEq>,
+        hash_by_node_id: &BTreeMap<MastNodeId, EqHash>,
         node: &MastNode,
-    ) -> MastNodeEq {
+    ) -> EqHash {
         match node {
             MastNode::Block(node) => {
                 let mut bytes_to_hash = Vec::new();
@@ -691,10 +687,10 @@ impl MastNodeEq {
                 }
 
                 if bytes_to_hash.is_empty() {
-                    MastNodeEq::new(node.digest())
+                    EqHash::new(node.digest())
                 } else {
                     let decorator_root = Blake3_256::hash(&bytes_to_hash);
-                    MastNodeEq::with_decorator_root(node.digest(), decorator_root)
+                    EqHash::with_decorator_root(node.digest(), decorator_root)
                 }
             },
             MastNode::Join(node) => eq_hash_from_parts(
@@ -751,12 +747,12 @@ impl MastNodeEq {
 
 fn eq_hash_from_parts(
     forest: &MastForest,
-    hash_by_node_id: &BTreeMap<MastNodeId, MastNodeEq>,
+    hash_by_node_id: &BTreeMap<MastNodeId, EqHash>,
     before_enter_ids: &[DecoratorId],
     after_exit_ids: &[DecoratorId],
     children_ids: &[MastNodeId],
     node_digest: RpoDigest,
-) -> MastNodeEq {
+) -> EqHash {
     let pre_decorator_hash_bytes =
         before_enter_ids.iter().flat_map(|&id| forest[id].eq_hash().as_bytes());
     let post_decorator_hash_bytes =
@@ -773,7 +769,7 @@ fn eq_hash_from_parts(
             .next()
             .is_none()
     {
-        MastNodeEq::new(node_digest)
+        EqHash::new(node_digest)
     } else {
         let children_decorator_roots = children_ids
             .iter()
@@ -785,7 +781,7 @@ fn eq_hash_from_parts(
             .collect();
 
         let decorator_root = Blake3_256::hash(&decorator_bytes_to_hash);
-        MastNodeEq::with_decorator_root(node_digest, decorator_root)
+        EqHash::with_decorator_root(node_digest, decorator_root)
     }
 }
 
