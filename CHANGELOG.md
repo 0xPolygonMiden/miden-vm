@@ -19,6 +19,7 @@
 - [BREAKING] The `run` and the `prove` commands in the cli will accept `--trace` flag instead of `--tracing` (#1502)
 - Migrated to new padding rule for RPO (#1343).
 - Migrated to `miden-crypto` v0.11.0 (#1343).
+- Implemented `MastForest` merging (#1534)
 
 #### Fixes
 
