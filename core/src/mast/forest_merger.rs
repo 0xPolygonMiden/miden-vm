@@ -1,5 +1,4 @@
 use alloc::{collections::BTreeMap, vec::Vec};
-use std::println;
 
 use miden_crypto::hash::blake::Blake3Digest;
 
@@ -27,9 +26,8 @@ impl MastForestMerger {
     }
 
     pub fn merge(&mut self, other_forest: MastForest) -> Result<(), MastForestError> {
-        // TODO: Use Vecs for both of these if we actually map all IDs.
-        let mut decorator_id_remapping = BTreeMap::new();
-        let mut node_id_remapping = BTreeMap::new();
+        let mut decorator_id_remapping = ForestIdMap::new(other_forest.decorators.len());
+        let mut node_id_remapping = ForestIdMap::new(other_forest.nodes.len());
 
         for (merging_id, merging_decorator) in other_forest.decorators.iter().enumerate() {
             let new_decorator_id = if let Some(existing_decorator) =
@@ -58,10 +56,6 @@ impl MastForestMerger {
 
             match self.node_id_by_hash.get_mut(&node_eq) {
                 Some(existing_entry) => {
-                    println!(
-                        "node {} already exists in original forest\n{:?}\n{:?}",
-                        merging_id, node, self.forest[existing_entry.node_id]
-                    );
                     // We have to map any occurence of `merging_id` to `existing_node_id`.
                     node_id_remapping.insert(merging_id, existing_entry.node_id);
 
@@ -102,7 +96,7 @@ impl MastForestMerger {
 
         for root_id in other_forest.roots {
             // Map the previous root to its possibly new id.
-            let new_root = node_id_remapping.get(&root_id).copied().unwrap_or(root_id);
+            let new_root = node_id_remapping.get(&root_id);
             // This will take O(n) every time to check if the root already exists.
             // We could this by keeping a BTreeSet<MastNodeId> of existing roots during merging for
             // a faster check.
@@ -118,58 +112,57 @@ impl MastForestMerger {
 
     fn remap_node(
         node: &MastNode,
-        decorator_id_remapping: &BTreeMap<DecoratorId, DecoratorId>,
-        node_id_remapping: &BTreeMap<MastNodeId, MastNodeId>,
+        decorator_id_remapping: &ForestIdMap<DecoratorId>,
+        node_id_remapping: &ForestIdMap<MastNodeId>,
         mast_forest: &MastForest,
     ) -> MastNode {
-        let map_decorator_id = |decorator_id: &DecoratorId| {
-            decorator_id_remapping.get(decorator_id).copied().expect("TODO")
-        };
+        let map_decorator_id =
+            |decorator_id: &DecoratorId| decorator_id_remapping.get(decorator_id);
         let map_decorators =
             |decorators: &[DecoratorId]| decorators.iter().map(map_decorator_id).collect();
+        let map_node_id = |node_id: MastNodeId| node_id_remapping.get(&node_id);
 
-        // TODO: Is the unwrap_or necessary?
-        let map_node_id_or_previous =
-            |node_id: MastNodeId| node_id_remapping.get(&node_id).copied().unwrap_or(node_id);
-
+        // Due to DFS postorder iteration all children of node's should have been inserted before
+        // their parents which is why we can `expect` the constructor calls here.
         let mut mapped_node = match node {
             MastNode::Join(join_node) => {
-                let new_first = map_node_id_or_previous(join_node.first());
-                let new_second = map_node_id_or_previous(join_node.second());
-                MastNode::new_join(new_first, new_second, mast_forest)
-                    .expect("mapping of JoinNode should succeed")
+                let first = map_node_id(join_node.first());
+                let second = map_node_id(join_node.second());
+
+                MastNode::new_join(first, second, mast_forest)
+                    .expect("JoinNode children should have been mapped to a lower index")
             },
             MastNode::Split(split_node) => {
-                let if_branch = map_node_id_or_previous(split_node.on_true());
-                let else_branch = map_node_id_or_previous(split_node.on_false());
+                let if_branch = map_node_id(split_node.on_true());
+                let else_branch = map_node_id(split_node.on_false());
 
                 MastNode::new_split(if_branch, else_branch, mast_forest)
-                    .expect("mapping of SplitNode should succeed")
+                    .expect("SplitNode children should have been mapped to a lower index")
             },
             MastNode::Loop(loop_node) => {
-                let body = map_node_id_or_previous(loop_node.body());
-                MastNode::new_loop(body, mast_forest).expect("mapping of LoopNode should succeed")
+                let body = map_node_id(loop_node.body());
+                MastNode::new_loop(body, mast_forest)
+                    .expect("LoopNode children should have been mapped to a lower index")
             },
             MastNode::Call(call_node) => {
-                let callee = map_node_id_or_previous(call_node.callee());
-                MastNode::new_call(callee, mast_forest).expect("mapping of CallNode should succeed")
+                let callee = map_node_id(call_node.callee());
+                MastNode::new_call(callee, mast_forest)
+                    .expect("CallNode children should have been mapped to a lower index")
             },
             // Other nodes are simply copied.
-            MastNode::Block(basic_block_node) => {
-                let remapped_block_node = MastNode::new_basic_block(
-                    basic_block_node.operations().copied().collect(),
-                    Some(
-                        basic_block_node
-                            .decorators()
-                            .iter()
-                            .map(|(idx, decorator_id)| (*idx, map_decorator_id(decorator_id)))
-                            .collect(),
-                    ),
-                )
-                .expect("mapping of BasicBlockNode should succeed");
-
-                remapped_block_node
-            },
+            MastNode::Block(basic_block_node) => MastNode::new_basic_block(
+                basic_block_node.operations().copied().collect(),
+                // Operation Indices of decorators stay the same while decorator IDs need to be
+                // mapped.
+                Some(
+                    basic_block_node
+                        .decorators()
+                        .iter()
+                        .map(|(idx, decorator_id)| (*idx, map_decorator_id(decorator_id)))
+                        .collect(),
+                ),
+            )
+            .expect("previously valid BasicBlockNode should still be valid"),
             MastNode::Dyn(_) => MastNode::new_dyn(),
             MastNode::External(external_node) => MastNode::new_external(external_node.digest()),
         };
@@ -187,9 +180,7 @@ impl MastForestMerger {
     /// Helper function to build the initial index of the forest in which others are going to be
     /// merged.
     fn build_index(&mut self) {
-        let dfs = ForestDfsPostOrder::new(&self.forest);
-        for (id, node) in dfs {
-            // SAFETY: This is safe as MastForests are constrained to less than 2^32 nodes.
+        for (id, node) in ForestDfsPostOrder::new(&self.forest) {
             let node_eq = MastNodeEq::from_mast_node(&self.forest, &self.hash_by_node_id, node);
             self.hash_by_node_id.insert(id, node_eq);
             self.node_id_by_hash.insert(
@@ -214,6 +205,68 @@ struct MastForestIndexEntry {
     node_id: MastNodeId,
     is_external: bool,
 }
+
+// MAST FOREST ID MAP
+// ================================================================================================
+
+/// A specialized map from ID -> ID meant to be used with [`DecoratorId`] or [`MastNodeId`].
+///
+/// When mapping Decorator or Mast Node IDs during merging, we always map all IDs of the merging
+/// forest to new ids. Hence it is more efficient to use a `Vec` instead of, say, a `BTreeMap`.
+///
+/// In other words, this type is similar to `BTreeMap<ID, ID>` but takes advantage of the fact that
+/// the keys are contiguous.
+///
+/// This type is meant to encapsulates some guarantees:
+///
+/// - Retrieving any ID from the map is safe if that ID is valid for the corresponding forest, which
+///   is enforced in the `from_u32_safe` functions.
+/// - Similarly, inserting any ID is safe as the map contains a pre-allocated `Vec` of the
+///   appropriate size.
+struct ForestIdMap<T: ForestId> {
+    inner: Vec<Option<T>>,
+}
+
+trait ForestId: Clone + Copy {
+    fn as_usize(&self) -> usize;
+}
+
+impl ForestId for DecoratorId {
+    fn as_usize(&self) -> usize {
+        DecoratorId::as_usize(self)
+    }
+}
+
+impl ForestId for MastNodeId {
+    fn as_usize(&self) -> usize {
+        MastNodeId::as_usize(self)
+    }
+}
+
+impl<T: ForestId> ForestIdMap<T> {
+    fn new(num_ids: usize) -> Self {
+        Self { inner: vec![None; num_ids] }
+    }
+
+    /// Maps the given key to the given value.
+    ///
+    /// It is the caller's responsibility to only pass keys that belong to the forest for which this
+    /// map was originally created.
+    fn insert(&mut self, key: T, value: T) {
+        self.inner[key.as_usize()] = Some(value);
+    }
+
+    /// Retrieves the value for the given key.
+    ///
+    /// It is the caller's responsibility to only pass keys that belong to the forest for which this
+    /// map was originally created.
+    fn get(&self, key: &T) -> T {
+        self.inner[key.as_usize()].expect("every id should have an entry in the map")
+    }
+}
+
+// MAST FOREST DEPTH FIRST SEARCH ITERATOR
+// ================================================================================================
 
 struct ForestDfsPostOrder<'forest> {
     pub mast_forest: &'forest MastForest,
@@ -358,13 +411,8 @@ mod tests {
         let id_bar = forest_b.add_node(block_bar()).unwrap();
         forest_b.add_call(id_bar).unwrap();
 
-        forest_a.debug_print();
-        forest_b.debug_print();
-
         forest_a.merge(forest_b).unwrap();
         let merged = forest_a;
-
-        merged.debug_print();
 
         assert_eq!(merged.nodes().len(), 4);
         assert_eq!(merged.nodes()[0], block_foo());
@@ -492,12 +540,6 @@ mod tests {
         loop_node_b.set_after_exit(vec![deco1_b, deco3_b]);
         forest_b.add_node(loop_node_b).unwrap();
 
-        // forest_a.debug_print();
-        // println!("{:#?}", forest_a);
-        // println!("FOREST B");
-        // println!("{:#?}", forest_b);
-        // forest_b.debug_print();
-
         forest_a.merge(forest_b).unwrap();
 
         // There are 4 unique decorators across both forests.
@@ -530,9 +572,6 @@ mod tests {
         let MastNode::Block(merged_foo_block) = merged_foo_block else {
             panic!("expected basic block node");
         };
-
-        println!("{forest_a:#?}");
-        forest_a.debug_print();
 
         assert_eq!(
             merged_foo_block.decorators().as_slice(),
