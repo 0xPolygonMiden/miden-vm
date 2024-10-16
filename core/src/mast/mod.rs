@@ -27,6 +27,9 @@ mod serialization;
 mod forest_merger;
 pub use forest_merger::MastForestMerger;
 
+mod dfs_iterator;
+pub(crate) use dfs_iterator::*;
+
 #[cfg(test)]
 mod tests;
 
