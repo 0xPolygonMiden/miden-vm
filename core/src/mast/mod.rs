@@ -199,13 +199,13 @@ impl MastForest {
     }
 
     pub fn merge(&mut self, other_forest: MastForest) -> Result<(), MastForestError> {
-      let forest = std::mem::take(self);
-      let mut merger: MastForestMerger = MastForestMerger::new(forest);
-      merger.merge(other_forest)?;
-      let merged = merger.into_forest();
-      let _ = std::mem::replace(self, merged);
+        let forest = std::mem::take(self);
+        let mut merger: MastForestMerger = MastForestMerger::new(forest);
+        merger.merge(other_forest)?;
+        let merged = merger.into_forest();
+        let _ = std::mem::replace(self, merged);
 
-      Ok(())
+        Ok(())
     }
 
     /// Adds a basic block node to the forest, and returns the [`MastNodeId`] associated with it.
