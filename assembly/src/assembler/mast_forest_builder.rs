@@ -6,7 +6,7 @@ use core::ops::{Index, IndexMut};
 
 use vm_core::{
     crypto::hash::{Blake3Digest, RpoDigest},
-    mast::{DecoratorId, MastForest, MastNode, MastNodeEq, MastNodeId},
+    mast::{DecoratorId, EqHash, MastForest, MastNode, MastNodeId},
     Decorator, DecoratorList, Operation,
 };
 
@@ -47,10 +47,10 @@ pub struct MastForestBuilder {
     /// root.
     proc_gid_by_mast_root: BTreeMap<RpoDigest, GlobalProcedureIndex>,
     /// A map of MAST node eq hashes to their corresponding positions in the MAST forest.
-    node_id_by_hash: BTreeMap<MastNodeEq, MastNodeId>,
+    node_id_by_hash: BTreeMap<EqHash, MastNodeId>,
     /// The reverse mapping of `node_id_by_hash`. This map caches the eq hashes of all nodes (for
     /// performance reasons).
-    hash_by_node_id: BTreeMap<MastNodeId, MastNodeEq>,
+    hash_by_node_id: BTreeMap<MastNodeId, EqHash>,
     /// A map of decorator hashes to their corresponding positions in the MAST forest.
     decorator_id_by_hash: BTreeMap<Blake3Digest<32>, DecoratorId>,
     /// A set of IDs for basic blocks which have been merged into a bigger basic blocks. This is
@@ -446,8 +446,8 @@ impl MastForestBuilder {
 }
 
 impl MastForestBuilder {
-    fn eq_hash_for_node(&self, node: &MastNode) -> MastNodeEq {
-        MastNodeEq::from_mast_node(&self.mast_forest, &self.hash_by_node_id, node)
+    fn eq_hash_for_node(&self, node: &MastNode) -> EqHash {
+        EqHash::from_mast_node(&self.mast_forest, &self.hash_by_node_id, node)
     }
 }
 

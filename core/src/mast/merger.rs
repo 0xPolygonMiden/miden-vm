@@ -3,7 +3,7 @@ use alloc::{collections::BTreeMap, vec::Vec};
 use miden_crypto::hash::blake::Blake3Digest;
 
 use crate::mast::{
-    DecoratorId, MastForest, MastForestDfsIter, MastForestError, MastNode, MastNodeEq, MastNodeId,
+    DecoratorId, EqHash, MastForest, MastForestDfsIter, MastForestError, MastNode, MastNodeId,
 };
 
 /// A type that allows merging [`MastForest`]s.
@@ -39,8 +39,8 @@ use crate::mast::{
 /// - [`MastForest::merge_multiple`]
 pub(crate) struct MastForestMerger<'forest> {
     forest: &'forest mut MastForest,
-    node_id_by_hash: BTreeMap<MastNodeEq, MastForestIndexEntry>,
-    hash_by_node_id: BTreeMap<MastNodeId, MastNodeEq>,
+    node_id_by_hash: BTreeMap<EqHash, MastForestIndexEntry>,
+    hash_by_node_id: BTreeMap<MastNodeId, EqHash>,
     decorators_by_hash: BTreeMap<Blake3Digest<32>, DecoratorId>,
 }
 
@@ -84,9 +84,9 @@ impl<'forest> MastForestMerger<'forest> {
         }
 
         for (merging_id, node) in MastForestDfsIter::new(other_forest) {
-            // We need to remap the node prior to computing the MastNodeEq.
+            // We need to remap the node prior to computing the EqHash.
             //
-            // This is because the MastNodeEq computation looks up its descendants and decorators in
+            // This is because the EqHash computation looks up its descendants and decorators in
             // the internal index, and if we were to pass the original node to that
             // computation, it would look up the incorrect descendants and decorators.
             //
@@ -98,7 +98,7 @@ impl<'forest> MastForestMerger<'forest> {
                 Self::remap_node(node, &decorator_id_remapping, &node_id_remapping, self.forest);
 
             let node_eq =
-                MastNodeEq::from_mast_node(self.forest, &self.hash_by_node_id, &remapped_node);
+                EqHash::from_mast_node(self.forest, &self.hash_by_node_id, &remapped_node);
 
             match self.node_id_by_hash.get_mut(&node_eq) {
                 Some(existing_entry) => {
@@ -127,7 +127,7 @@ impl<'forest> MastForestMerger<'forest> {
                     node_id_remapping.insert(merging_id, new_node_id);
 
                     // We need to update the indices with the newly inserted nodes
-                    // since the MastNodeEq computation requires all descendants of a node
+                    // since the EqHash computation requires all descendants of a node
                     // to be in this index. Hence when we encounter a node in the merging forest
                     // which has descendants (Call, Loop, Split, ...), then those need to be in the
                     // indices.
@@ -222,7 +222,7 @@ impl<'forest> MastForestMerger<'forest> {
     /// Builds the index of nodes and decorators of the contained forest.
     fn build_index(&mut self) {
         for (id, node) in MastForestDfsIter::new(self.forest) {
-            let node_eq = MastNodeEq::from_mast_node(self.forest, &self.hash_by_node_id, node);
+            let node_eq = EqHash::from_mast_node(self.forest, &self.hash_by_node_id, node);
             self.hash_by_node_id.insert(id, node_eq);
             self.node_id_by_hash.insert(
                 node_eq,
