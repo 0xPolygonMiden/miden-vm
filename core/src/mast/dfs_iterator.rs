@@ -1,6 +1,3 @@
-// MAST FOREST DEPTH FIRST SEARCH ITERATOR
-// ================================================================================================
-
 use alloc::vec::Vec;
 
 use crate::mast::{MastForest, MastNode, MastNodeId};
@@ -121,6 +118,10 @@ impl<'forest> MastForestDfsIter<'forest> {
     ///
     /// If the unvisited node stack is empty after calling this function, the iteration is complete.
     fn discover_nodes(&mut self) {
+        if self.mast_forest.nodes.is_empty() {
+            return;
+        }
+
         while self.node_visited[self.last_tree_root_idx as usize] {
             if self.last_tree_root_idx + 1 >= self.mast_forest.num_nodes() {
                 return;
@@ -165,6 +166,13 @@ mod tests {
 
     fn random_digest() -> RpoDigest {
         RpoDigest::new([rand_utils::rand_value(); 4])
+    }
+
+    #[test]
+    fn mast_forest_dfs_empty() {
+        let forest = MastForest::new();
+        let mut iterator = MastForestDfsIter::new(&forest);
+        assert!(iterator.next().is_none());
     }
 
     #[test]
