@@ -123,7 +123,7 @@ impl MastForestMerger {
         mast_forest: &MastForest,
     ) -> MastNode {
         let map_decorator_id = |decorator_id: &DecoratorId| {
-            decorator_id_remapping.get(&decorator_id).copied().expect("TODO")
+            decorator_id_remapping.get(decorator_id).copied().expect("TODO")
         };
         let map_decorators =
             |decorators: &[DecoratorId]| decorators.iter().map(map_decorator_id).collect();
@@ -275,20 +275,18 @@ impl<'forest> ForestDfsPostOrder<'forest> {
         }
     }
 
-    fn has_more_nodes(&mut self) -> bool {
+    fn discover_nodes(&mut self) {
         while self.node_visited[self.last_visited_idx] {
             if self.last_visited_idx + 1 >= self.mast_forest.num_nodes() as usize {
-                return false;
+                return;
             }
             self.last_visited_idx += 1;
         }
 
         self.discover_subtree(
-            MastNodeId::from_u32_safe(self.last_visited_idx as u32, &self.mast_forest)
+            MastNodeId::from_u32_safe(self.last_visited_idx as u32, self.mast_forest)
                 .expect("todo"),
         );
-
-        !self.node_stack.is_empty()
     }
 }
 
@@ -296,12 +294,16 @@ impl<'forest> Iterator for ForestDfsPostOrder<'forest> {
     type Item = (MastNodeId, &'forest MastNode);
 
     fn next(&mut self) -> Option<Self::Item> {
-        while !self.node_stack.is_empty() {
-            let next_idx = self.node_stack.pop().expect("node_stack should still contain elements");
-            return Some((next_idx, &self.mast_forest.nodes[next_idx.as_usize()]));
+        if let Some(next_node_id) = self.node_stack.pop() {
+            // SAFETY: We only add valid ids to the stack so it's fine to index the forest nodes
+            // directly.
+            let node = &self.mast_forest.nodes[next_node_id.as_usize()];
+            return Some((next_node_id, node));
         }
 
-        if self.has_more_nodes() {
+        self.discover_nodes();
+
+        if !self.node_stack.is_empty() {
             self.next()
         } else {
             debug_assert!(self.node_visited.iter().all(|visited| *visited));
@@ -322,7 +324,7 @@ mod tests {
     impl MastForest {
         fn debug_print(&self) {
             for (idx, node) in self.nodes().iter().enumerate() {
-                std::println!("Node {idx}\n{}\n", node.to_display(&self));
+                std::println!("Node {idx}\n{}\n", node.to_display(self));
             }
         }
     }
@@ -543,7 +545,7 @@ mod tests {
                 .iter()
                 .filter(|node| {
                     if let MastNode::Loop(loop_node) = node {
-                        loop_node.after_exit() == &[merged_deco0, merged_deco2]
+                        loop_node.after_exit() == [merged_deco0, merged_deco2]
                     } else {
                         false
                     }
@@ -558,7 +560,7 @@ mod tests {
                 .iter()
                 .filter(|node| {
                     if let MastNode::Loop(loop_node) = node {
-                        loop_node.after_exit() == &[merged_deco1, merged_deco3]
+                        loop_node.after_exit() == [merged_deco1, merged_deco3]
                     } else {
                         false
                     }
@@ -568,11 +570,8 @@ mod tests {
         );
     }
 
-    // TODO: Make sure that if forest a + b would exceed the number of max nodes an error is thrown
-    // and no panic.
-
     #[test]
-    fn test_forest_dfs() {
+    fn mast_forest_dfs() {
         let node5_digest = random_digest();
         let node1_digest = random_digest();
         let node2_digest = random_digest();
