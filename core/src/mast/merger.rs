@@ -6,15 +6,50 @@ use crate::mast::{
     DecoratorId, MastForest, MastForestDfsIter, MastForestError, MastNode, MastNodeEq, MastNodeId,
 };
 
-pub struct MastForestMerger {
-    forest: MastForest,
+/// A type that allows merging [`MastForest`]s.
+///
+/// Merging two forests means combining all their constituent parts, i.e. [`MastNode`]s,
+/// [`Decorator`](crate::mast::Decorator)s and roots. During this process, any duplicates are
+/// removed. Additionally, [`MastNodeId`]s of nodes as well as [`DecoratorId`]s of decorators change
+/// and they are remapped to their new location.
+///
+/// For example, consider this representation of a forest's nodes:
+///
+/// ```text
+/// [Block(foo), Block(bar)]
+/// ```
+///
+/// If we merge another forest into it:
+///
+/// ```text
+/// [Block(bar), Call(0)]
+/// ```
+///
+/// then we would expect this forest:
+///
+/// ```text
+/// [Block(foo), Block(bar), Call(1)]
+/// ```
+///
+/// - The `Call` to the `bar` block was remapped to its new index (now 1, previously 0).
+/// - The `Block(bar)` was deduplicated any only exists once in the merged forest.
+///
+/// Note that there are convenience methods for merging on [`MastForest`] itself:
+/// - [`MastForest::merge`]
+/// - [`MastForest::merge_multiple`]
+pub(crate) struct MastForestMerger<'forest> {
+    forest: &'forest mut MastForest,
     node_id_by_hash: BTreeMap<MastNodeEq, MastForestIndexEntry>,
     hash_by_node_id: BTreeMap<MastNodeId, MastNodeEq>,
     decorators_by_hash: BTreeMap<Blake3Digest<32>, DecoratorId>,
 }
 
-impl MastForestMerger {
-    pub fn new(forest: MastForest) -> Self {
+impl<'forest> MastForestMerger<'forest> {
+    /// Creates a new merger from the given mutable reference to a [`MastForest`].
+    ///
+    /// This forest will be used as the base of the merger, meaning any calls to [`Self::merge`]
+    /// will mutate this `forest` in-place.
+    pub(crate) fn new(forest: &'forest mut MastForest) -> Self {
         let mut forest = Self {
             node_id_by_hash: BTreeMap::new(),
             hash_by_node_id: BTreeMap::new(),
@@ -27,7 +62,10 @@ impl MastForestMerger {
         forest
     }
 
-    pub fn merge(&mut self, other_forest: MastForest) -> Result<(), MastForestError> {
+    /// Merges `other_forest` into the forest contained in self.
+    ///
+    /// This will mutate the contained forest in-place.
+    pub(crate) fn merge(&mut self, other_forest: &MastForest) -> Result<(), MastForestError> {
         let mut decorator_id_remapping = ForestIdMap::new(other_forest.decorators.len());
         let mut node_id_remapping = ForestIdMap::new(other_forest.nodes.len());
 
@@ -40,25 +78,27 @@ impl MastForestMerger {
                 self.forest.add_decorator(merging_decorator.clone())?
             };
 
-            let merging_id = DecoratorId::from_u32_safe(merging_id as u32, &other_forest)
+            let merging_id = DecoratorId::from_u32_safe(merging_id as u32, other_forest)
                 .expect("the index should always be less than the number of decorators");
             decorator_id_remapping.insert(merging_id, new_decorator_id);
         }
 
-        for (merging_id, node) in MastForestDfsIter::new(&other_forest) {
+        for (merging_id, node) in MastForestDfsIter::new(other_forest) {
             // We need to remap the node prior to computing the MastNodeEq.
             //
             // This is because the MastNodeEq computation looks up its descendants and decorators in
             // the internal index, and if we were to pass the original node to that
             // computation, it would look up the incorrect descendants and decorators.
             //
-            // Remapping at this point is fine since the DFS iteration means that all children of
-            // the node have been remapped already.
+            // Remapping at this point is going to be "complete", meaning all ids of children will
+            // be remapped since the DFS iteration guarantees that all children of this `node` have
+            // been processed before this node and their indices have been added to the
+            // mappings.
             let remapped_node =
-                Self::remap_node(node, &decorator_id_remapping, &node_id_remapping, &self.forest);
+                Self::remap_node(node, &decorator_id_remapping, &node_id_remapping, self.forest);
 
             let node_eq =
-                MastNodeEq::from_mast_node(&self.forest, &self.hash_by_node_id, &remapped_node);
+                MastNodeEq::from_mast_node(self.forest, &self.hash_by_node_id, &remapped_node);
 
             match self.node_id_by_hash.get_mut(&node_eq) {
                 Some(existing_entry) => {
@@ -100,9 +140,9 @@ impl MastForestMerger {
             }
         }
 
-        for root_id in other_forest.roots {
+        for root_id in other_forest.roots.iter() {
             // Map the previous root to its possibly new id.
-            let new_root = node_id_remapping.get(&root_id);
+            let new_root = node_id_remapping.get(root_id);
             // This will take O(n) every time to check if the root already exists.
             // We could this by keeping a BTreeSet<MastNodeId> of existing roots during merging for
             // a faster check.
@@ -110,10 +150,6 @@ impl MastForestMerger {
         }
 
         Ok(())
-    }
-
-    pub fn into_forest(self) -> MastForest {
-        self.forest
     }
 
     fn remap_node(
@@ -185,8 +221,8 @@ impl MastForestMerger {
 
     /// Builds the index of nodes and decorators of the contained forest.
     fn build_index(&mut self) {
-        for (id, node) in MastForestDfsIter::new(&self.forest) {
-            let node_eq = MastNodeEq::from_mast_node(&self.forest, &self.hash_by_node_id, node);
+        for (id, node) in MastForestDfsIter::new(self.forest) {
+            let node_eq = MastNodeEq::from_mast_node(self.forest, &self.hash_by_node_id, node);
             self.hash_by_node_id.insert(id, node_eq);
             self.node_id_by_hash.insert(
                 node_eq,
@@ -200,7 +236,7 @@ impl MastForestMerger {
         for (id, decorator) in self.forest.decorators.iter().enumerate() {
             self.decorators_by_hash.insert(
                 decorator.eq_hash(),
-                DecoratorId::from_u32_safe(id as u32, &self.forest)
+                DecoratorId::from_u32_safe(id as u32, self.forest)
                     .expect("the index should always be less than the number of decorators"),
             );
         }
@@ -225,9 +261,15 @@ struct MastForestIndexEntry {
 ///
 /// This type is meant to encapsulates some guarantees:
 ///
-/// - Retrieving any ID from the map is safe if that ID is valid for the corresponding forest, which
-///   is enforced in the `from_u32_safe` functions (as long as they are used with the correct
+/// - Indexing into the vector for any ID is safe if that ID is valid for the corresponding forest,
+///   which is enforced in the `from_u32_safe` functions (as long as they are used with the correct
 ///   forest).
+/// - The entry itself can be either None or Some. However:
+///   - For `DecoratorId`s we process them before retrieving any entry, so all entries contain
+///     `Some`.
+///   - For `MastNodeId`s we only `get` those node IDs that we have previously visited due to the
+///     guarantees of DFS iteration, which is why we always find a `Some` entry as well.
+///   - Because of this, we can use `expect` in `get`.
 /// - Similarly, inserting any ID is safe as the map contains a pre-allocated `Vec` of the
 ///   appropriate size.
 struct ForestIdMap<T: ForestId> {
@@ -268,30 +310,17 @@ impl<T: ForestId> ForestIdMap<T> {
     /// It is the caller's responsibility to only pass keys that belong to the forest for which this
     /// map was originally created.
     fn get(&self, key: &T) -> T {
-        self.inner[key.as_usize()].expect("every id should have an entry in the map")
+        self.inner[key.as_usize()]
+            .expect("every id should have a Some entry in the map when calling get")
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use std::println;
-
-    use miden_crypto::hash::rpo::RpoDigest;
+    use miden_crypto::{hash::rpo::RpoDigest, ONE};
 
     use super::*;
     use crate::{Decorator, Operation};
-
-    impl MastForest {
-        fn debug_print(&self) {
-            for (idx, node) in self.nodes().iter().enumerate() {
-                std::println!("Node {idx}\n{}\n", node.to_display(self));
-            }
-        }
-    }
-
-    fn random_digest() -> RpoDigest {
-        RpoDigest::new([rand_utils::rand_value(); 4])
-    }
 
     fn block_foo() -> MastNode {
         MastNode::new_basic_block(vec![Operation::Mul, Operation::Add], None).unwrap()
@@ -299,6 +328,14 @@ mod tests {
 
     fn block_bar() -> MastNode {
         MastNode::new_basic_block(vec![Operation::And, Operation::Eq], None).unwrap()
+    }
+
+    fn block_qux() -> MastNode {
+        MastNode::new_basic_block(vec![Operation::Swap, Operation::Push(ONE)], None).unwrap()
+    }
+
+    fn assert_contains_node_once(forest: &MastForest, digest: RpoDigest) {
+        assert_eq!(forest.nodes.iter().filter(|node| node.digest() == digest).count(), 1);
     }
 
     /// Tests that Call(bar) still correctly calls the remapped bar block.
@@ -318,7 +355,7 @@ mod tests {
         let id_bar = forest_b.add_node(block_bar()).unwrap();
         forest_b.add_call(id_bar).unwrap();
 
-        forest_a.merge(forest_b).unwrap();
+        forest_a.merge(&forest_b).unwrap();
         let merged = forest_a;
 
         assert_eq!(merged.nodes().len(), 4);
@@ -332,14 +369,14 @@ mod tests {
     #[test]
     fn mast_forest_merge_duplicate() {
         let mut forest_a = MastForest::new();
-        let id_external = forest_a.add_external(random_digest()).unwrap();
+        let id_external = forest_a.add_external(block_bar().digest()).unwrap();
         let id_foo = forest_a.add_node(block_foo()).unwrap();
         forest_a.add_call(id_foo).unwrap();
         forest_a.add_loop(id_external).unwrap();
 
         let original = forest_a.clone();
 
-        forest_a.merge(forest_a.clone()).unwrap();
+        forest_a.merge(&original).unwrap();
 
         assert_eq!(forest_a, original);
     }
@@ -369,8 +406,8 @@ mod tests {
         let mut merged_ab = forest_a.clone();
         let mut merged_ba = forest_b.clone();
 
-        merged_ab.merge(forest_b).unwrap();
-        merged_ba.merge(forest_a).unwrap();
+        merged_ab.merge(&forest_b).unwrap();
+        merged_ba.merge(&forest_a).unwrap();
 
         for merged in [merged_ab, merged_ba] {
             assert_eq!(merged.nodes().len(), 2);
@@ -380,6 +417,15 @@ mod tests {
     }
 
     /// Test that roots are preserved and deduplicated if appropriate.
+    ///
+    /// Nodes: [Block(foo), Call(foo)]
+    /// Roots: [Call(foo)]
+    /// +
+    /// Nodes: [Block(foo), Block(bar), Call(foo)]
+    /// Roots: [Block(bar), Call(foo)]
+    /// =
+    /// Nodes: [Block(foo), Block(bar), Call(foo)]
+    /// Roots: [Block(bar), Call(foo)]
     #[test]
     fn mast_forest_merge_roots() {
         let mut forest_a = MastForest::new();
@@ -398,16 +444,91 @@ mod tests {
         let root_digest_bar_b = forest_b.get_node_by_id(id_bar_b).unwrap().digest();
         let root_digest_call_b = forest_b.get_node_by_id(call_b).unwrap().digest();
 
-        forest_a.merge(forest_b).unwrap();
+        forest_a.merge(&forest_b).unwrap();
 
+        // Asserts (together with the other assertions) that the duplicate Call(foo) roots have been
+        // deduplicated.
         assert_eq!(forest_a.procedure_roots().len(), 2);
 
+        // Assert that all root digests from A an B are still roots in the merged forest.
         let root_digests = forest_a.procedure_digests().collect::<Vec<_>>();
         assert!(root_digests.contains(&root_digest_call_a));
         assert!(root_digests.contains(&root_digest_bar_b));
         assert!(root_digests.contains(&root_digest_call_b));
     }
 
+    /// Test that multiple trees can be merged when the same merger is reused.
+    ///
+    /// Nodes: [Block(foo), Call(foo)]
+    /// Roots: [Call(foo)]
+    /// +
+    /// Nodes: [Block(foo), Block(bar), Call(foo)]
+    /// Roots: [Block(bar), Call(foo)]
+    /// +
+    /// Nodes: [Block(foo), Block(qux), Call(foo)]
+    /// Roots: [Block(qux), Call(foo)]
+    /// =
+    /// Nodes: [Block(foo), Block(bar), Block(qux), Call(foo)]
+    /// Roots: [Block(bar), Block(qux), Call(foo)]
+    #[test]
+    fn mast_forest_merge_multiple() {
+        let mut forest_a = MastForest::new();
+        let id_foo_a = forest_a.add_node(block_foo()).unwrap();
+        let call_a = forest_a.add_call(id_foo_a).unwrap();
+        forest_a.make_root(call_a);
+
+        let mut forest_b = MastForest::new();
+        let id_foo_b = forest_b.add_node(block_foo()).unwrap();
+        let id_bar_b = forest_b.add_node(block_bar()).unwrap();
+        let call_b = forest_b.add_call(id_foo_b).unwrap();
+        forest_b.make_root(id_bar_b);
+        forest_b.make_root(call_b);
+
+        let mut forest_c = MastForest::new();
+        let id_foo_c = forest_c.add_node(block_foo()).unwrap();
+        let id_qux_c = forest_c.add_node(block_qux()).unwrap();
+        let call_c = forest_c.add_call(id_foo_c).unwrap();
+        forest_c.make_root(id_qux_c);
+        forest_c.make_root(call_c);
+
+        forest_a.merge_multiple(&[&forest_b, &forest_c]).unwrap();
+
+        let block_foo_digest = forest_b.get_node_by_id(id_foo_b).unwrap().digest();
+        let block_bar_digest = forest_b.get_node_by_id(id_bar_b).unwrap().digest();
+        let call_foo_digest = forest_b.get_node_by_id(call_b).unwrap().digest();
+        let block_qux_digest = forest_c.get_node_by_id(id_qux_c).unwrap().digest();
+
+        assert_eq!(forest_a.procedure_roots().len(), 3);
+
+        let root_digests = forest_a.procedure_digests().collect::<Vec<_>>();
+        assert!(root_digests.contains(&call_foo_digest));
+        assert!(root_digests.contains(&block_bar_digest));
+        assert!(root_digests.contains(&block_qux_digest));
+
+        assert_contains_node_once(&forest_a, block_foo_digest);
+        assert_contains_node_once(&forest_a, block_bar_digest);
+        assert_contains_node_once(&forest_a, block_qux_digest);
+        assert_contains_node_once(&forest_a, call_foo_digest);
+    }
+
+    /// Tests that decorators are merged and that nodes who are identical except for their
+    /// decorators are not deduplicated.
+    ///
+    /// Note in particular that the `Loop` nodes only differ in their decorator which ensures that
+    /// the merging takes decorators into account.
+    ///
+    /// Nodes: [Block(foo, [Trace(1), Trace(2)]), Loop(foo, [Trace(0), Trace(2)])]
+    /// Decorators: [Trace(0), Trace(1), Trace(2)]
+    /// +
+    /// Nodes: [Block(foo, [Trace(1), Trace(2)]), Loop(foo, [Trace(1), Trace(3)])]
+    /// Decorators: [Trace(1), Trace(2), Trace(3)]
+    /// =
+    /// Nodes: [
+    ///   Block(foo, [Trace(1), Trace(2)]),
+    ///   Loop(foo, [Trace(0), Trace(2)]),
+    ///   Loop(foo, [Trace(1), Trace(3)]),
+    /// ]
+    /// Decorators: [Trace(0), Trace(1), Trace(2), Trace(3)]
     #[test]
     fn mast_forest_merge_decorators() {
         let mut forest_a = MastForest::new();
@@ -417,7 +538,6 @@ mod tests {
         let trace3 = Decorator::Trace(3);
 
         // Build Forest A
-
         let deco0_a = forest_a.add_decorator(trace0.clone()).unwrap();
         let deco1_a = forest_a.add_decorator(trace1.clone()).unwrap();
         let deco2_a = forest_a.add_decorator(trace2.clone()).unwrap();
@@ -431,7 +551,6 @@ mod tests {
         forest_a.add_node(loop_node_a).unwrap();
 
         // Build Forest B
-
         let mut forest_b = MastForest::new();
         let deco1_b = forest_b.add_decorator(trace1.clone()).unwrap();
         let deco2_b = forest_b.add_decorator(trace2.clone()).unwrap();
@@ -447,7 +566,7 @@ mod tests {
         loop_node_b.set_after_exit(vec![deco1_b, deco3_b]);
         forest_b.add_node(loop_node_b).unwrap();
 
-        forest_a.merge(forest_b).unwrap();
+        forest_a.merge(&forest_b).unwrap();
 
         // There are 4 unique decorators across both forests.
         assert_eq!(forest_a.decorators.len(), 4);
@@ -485,6 +604,7 @@ mod tests {
             &[(0, merged_deco1), (0, merged_deco2)]
         );
 
+        // Asserts that there exists exactly one Loop Node with the given decorators.
         assert_eq!(
             forest_a
                 .nodes
@@ -500,6 +620,7 @@ mod tests {
             1
         );
 
+        // Asserts that there exists exactly one Loop Node with the given decorators.
         assert_eq!(
             forest_a
                 .nodes
