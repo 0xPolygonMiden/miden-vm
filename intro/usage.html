@@ -256,35 +256,35 @@
 <h2 id="cli-interface"><a class="header" href="#cli-interface">CLI interface</a></h2>
 <h3 id="compiling-miden-vm"><a class="header" href="#compiling-miden-vm">Compiling Miden VM</a></h3>
 <p>To compile Miden VM into a binary, we have a <a href="https://www.gnu.org/software/make/manual/make.html">Makefile</a> with the following tasks:</p>
-<pre><code>make exec
+<pre><code class="language-shell">make exec
 </code></pre>
 <p>This will place an optimized, multi-threaded <code>miden</code> executable into the <code>./target/optimized</code> directory. It is equivalent to executing:</p>
-<pre><code>cargo build --profile optimized --features concurrent,executable
+<pre><code class="language-shell">cargo build --profile optimized --features concurrent,executable
 </code></pre>
 <p>If you would like to enable single-threaded mode, you can compile Miden VM using the following command:</p>
-<pre><code>make exec-single
+<pre><code class="language-shell">make exec-single
 </code></pre>
 <h3 id="controlling-parallelism"><a class="header" href="#controlling-parallelism">Controlling parallelism</a></h3>
 <p>Internally, Miden VM uses <a href="https://github.com/rayon-rs/rayon">rayon</a> for parallel computations. To control the number of threads used to generate a STARK proof, you can use <code>RAYON_NUM_THREADS</code> environment variable.</p>
 <h3 id="gpu-acceleration"><a class="header" href="#gpu-acceleration">GPU acceleration</a></h3>
 <p>Miden VM proof generation can be accelerated via GPUs. Currently, GPU acceleration is enabled only on Apple Silicon hardware (via <a href="https://en.wikipedia.org/wiki/Metal_(API)">Metal</a>). To compile Miden VM with Metal acceleration enabled, you can run the following command:</p>
-<pre><code>make exec-metal
+<pre><code class="language-shell">make exec-metal
 </code></pre>
 <p>Similar to <code>make exec</code> command, this will place the resulting <code>miden</code> executable into the <code>./target/optimized</code> directory.</p>
 <p>Currently, GPU acceleration is applicable only to recursive proofs which can be generated using the <code>-r</code> flag.</p>
 <h3 id="simd-acceleration"><a class="header" href="#simd-acceleration">SIMD acceleration</a></h3>
 <p>Miden VM execution and proof generation can be accelerated via vectorized instructions. Currently, SIMD acceleration can be enabled on platforms supporting <a href="https://en.wikipedia.org/wiki/AArch64#Scalable_Vector_Extension_(SVE)">SVE</a> and <a href="https://en.wikipedia.org/wiki/Advanced_Vector_Extensions#Advanced_Vector_Extensions_2">AVX2</a> instructions.</p>
 <p>To compile Miden VM with AVX2 acceleration enabled, you can run the following command:</p>
-<pre><code>make exec-avx2
+<pre><code class="language-shell">make exec-avx2
 </code></pre>
 <p>To compile Miden VM with SVE acceleration enabled, you can run the following command:</p>
-<pre><code>make exec-sve
+<pre><code class="language-shell">make exec-sve
 </code></pre>
 <p>This will place the resulting <code>miden</code> executable into the <code>./target/optimized</code> directory.</p>
 <p>Similar to Metal acceleration, SVE/AVX2 acceleration is currently applicable only to recursive proofs which can be generated using the <code>-r</code> flag.</p>
 <h3 id="running-miden-vm"><a class="header" href="#running-miden-vm">Running Miden VM</a></h3>
 <p>Once the executable has been compiled, you can run Miden VM like so:</p>
-<pre><code>./target/optimized/miden [subcommand] [parameters]
+<pre><code class="language-shell">./target/optimized/miden [subcommand] [parameters]
 </code></pre>
 <p>Currently, Miden VM can be executed with the following subcommands:</p>
 <ul>
@@ -298,15 +298,15 @@
 <li><code>example</code> - this will execute a Miden assembly example program, generate a STARK proof of execution and verify it. Currently, it is possible to run <code>blake3</code> and <code>fibonacci</code> examples.</li>
 </ul>
 <p>All of the above subcommands require various parameters to be provided. To get more detailed help on what is needed for a given subcommand, you can run the following:</p>
-<pre><code>./target/optimized/miden [subcommand] --help
+<pre><code class="language-shell">./target/optimized/miden [subcommand] --help
 </code></pre>
 <p>For example:</p>
-<pre><code>./target/optimized/miden prove --help
+<pre><code class="language-shell">./target/optimized/miden prove --help
 </code></pre>
 <p>To execute a program using the Miden VM there needs to be a <code>.masm</code> file containing the Miden Assembly code and a <code>.inputs</code> file containing the inputs.</p>
 <h4 id="enabling-logging"><a class="header" href="#enabling-logging">Enabling logging</a></h4>
 <p>You can use <code>MIDEN_LOG</code> environment variable to control how much logging output the VM produces. For example:</p>
-<pre><code>MIDEN_LOG=trace ./target/optimized/miden [subcommand] [parameters]
+<pre><code class="language-shell">MIDEN_LOG=trace ./target/optimized/miden [subcommand] [parameters]
 </code></pre>
 <p>If the level is not specified, <code>warn</code> level is set as default.</p>
 <h4 id="enable-debugging-features"><a class="header" href="#enable-debugging-features">Enable Debugging features</a></h4>
@@ -318,7 +318,7 @@
 <ul>
 <li>Public inputs:
 <ul>
-<li><code>operand_stack</code> - can be supplied to the VM to initialize the stack with the desired values before a program starts executing. There is no limit on the number of stack inputs that can be initialized in this way, although increasing the number of public inputs increases the cost to the verifier.</li>
+<li><code>operand_stack</code> - can be supplied to the VM to initialize the stack with the desired values before a program starts executing. If the number of provided input values is less than 16, the input stack will be padded with zeros to the length of 16. The maximum number of the stack inputs is limited by 16 values, providing more than 16 values will cause an error.</li>
 </ul>
 </li>
 <li>Secret (or nondeterministic) inputs:
@@ -336,7 +336,7 @@
 </li>
 </ul>
 <p><em>Check out the <a href="https://github.com/0xPolygonMiden/examples/blob/main/examples/comparison.masm">comparison example</a> to see how secret inputs work.</em></p>
-<p>After a program finishes executing, the elements that remain on the stack become the outputs of the program, along with the overflow addresses (<code>overflow_addrs</code>) that are required to reconstruct the <a href="../design/stack/main.html#overflow-table">stack overflow table</a>.</p>
+<p>After a program finishes executing, the elements that remain on the stack become the outputs of the program. Notice that the number of values on the operand stack at the end of the program execution can not be greater than 16, otherwise the program will return an error. The <a href="../user_docs/stdlib/sys.html"><code>truncate_stack</code></a> utility procedure from the standard library could be used to conveniently truncate the stack at the end of the program.</p>
 <h2 id="fibonacci-example"><a class="header" href="#fibonacci-example">Fibonacci example</a></h2>
 <p>In the <code>miden/examples/fib</code> directory, we provide a very simple Fibonacci calculator example. This example computes the 1001st term of the Fibonacci sequence. You can execute this example on Miden VM like so:</p>
 <pre><code class="language-shell">./target/optimized/miden run -a miden/examples/fib/fib.masm -n 1
