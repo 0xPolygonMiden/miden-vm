@@ -1,15 +1,23 @@
+use alloc::vec::Vec;
 use core::fmt;
 
 use miden_crypto::{hash::rpo::RpoDigest, Felt};
+use miden_formatting::prettier::{const_text, nl, Document, PrettyPrint};
 
-use crate::OPCODE_DYN;
+use crate::{
+    mast::{DecoratorId, MastForest},
+    OPCODE_DYN,
+};
 
 // DYN NODE
 // ================================================================================================
 
 /// A Dyn node specifies that the node to be executed next is defined dynamically via the stack.
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
-pub struct DynNode;
+pub struct DynNode {
+    before_enter: Vec<DecoratorId>,
+    after_exit: Vec<DecoratorId>,
+}
 
 /// Constants
 impl DynNode {
@@ -37,21 +45,107 @@ impl DynNode {
             Felt::new(16575543461540527115),
         ])
     }
+
+    /// Returns the decorators to be executed before this node is executed.
+    pub fn before_enter(&self) -> &[DecoratorId] {
+        &self.before_enter
+    }
+
+    /// Returns the decorators to be executed after this node is executed.
+    pub fn after_exit(&self) -> &[DecoratorId] {
+        &self.after_exit
+    }
+}
+
+/// Mutators
+impl DynNode {
+    /// Sets the list of decorators to be executed before this node.
+    pub fn set_before_enter(&mut self, decorator_ids: Vec<DecoratorId>) {
+        self.before_enter = decorator_ids;
+    }
+
+    /// Sets the list of decorators to be executed after this node.
+    pub fn set_after_exit(&mut self, decorator_ids: Vec<DecoratorId>) {
+        self.after_exit = decorator_ids;
+    }
 }
 
 // PRETTY PRINTING
 // ================================================================================================
 
-impl crate::prettier::PrettyPrint for DynNode {
-    fn render(&self) -> crate::prettier::Document {
-        use crate::prettier::*;
-        const_text("dyn")
+impl DynNode {
+    pub(super) fn to_display<'a>(&'a self, mast_forest: &'a MastForest) -> impl fmt::Display + 'a {
+        DynNodePrettyPrint { node: self, mast_forest }
+    }
+
+    pub(super) fn to_pretty_print<'a>(
+        &'a self,
+        mast_forest: &'a MastForest,
+    ) -> impl PrettyPrint + 'a {
+        DynNodePrettyPrint { node: self, mast_forest }
     }
 }
 
-impl fmt::Display for DynNode {
+struct DynNodePrettyPrint<'a> {
+    node: &'a DynNode,
+    mast_forest: &'a MastForest,
+}
+
+impl DynNodePrettyPrint<'_> {
+    /// Concatenates the provided decorators in a single line. If the list of decorators is not
+    /// empty, prepends `prepend` and appends `append` to the decorator document.
+    fn concatenate_decorators(
+        &self,
+        decorator_ids: &[DecoratorId],
+        prepend: Document,
+        append: Document,
+    ) -> Document {
+        let decorators = decorator_ids
+            .iter()
+            .map(|&decorator_id| self.mast_forest[decorator_id].render())
+            .reduce(|acc, doc| acc + const_text(" ") + doc)
+            .unwrap_or_default();
+
+        if decorators.is_empty() {
+            decorators
+        } else {
+            prepend + decorators + append
+        }
+    }
+
+    fn single_line_pre_decorators(&self) -> Document {
+        self.concatenate_decorators(self.node.before_enter(), Document::Empty, const_text(" "))
+    }
+
+    fn single_line_post_decorators(&self) -> Document {
+        self.concatenate_decorators(self.node.after_exit(), const_text(" "), Document::Empty)
+    }
+
+    fn multi_line_pre_decorators(&self) -> Document {
+        self.concatenate_decorators(self.node.before_enter(), Document::Empty, nl())
+    }
+
+    fn multi_line_post_decorators(&self) -> Document {
+        self.concatenate_decorators(self.node.after_exit(), nl(), Document::Empty)
+    }
+}
+
+impl crate::prettier::PrettyPrint for DynNodePrettyPrint<'_> {
+    fn render(&self) -> crate::prettier::Document {
+        let dyn_text = const_text("dyn");
+
+        let single_line = self.single_line_pre_decorators()
+            + dyn_text.clone()
+            + self.single_line_post_decorators();
+        let multi_line =
+            self.multi_line_pre_decorators() + dyn_text + self.multi_line_post_decorators();
+
+        single_line | multi_line
+    }
+}
+
+impl fmt::Display for DynNodePrettyPrint<'_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        use miden_formatting::prettier::PrettyPrint;
         self.pretty_print(f)
     }
 }
@@ -70,7 +164,7 @@ mod tests {
     #[test]
     pub fn test_dyn_node_digest() {
         assert_eq!(
-            DynNode.digest(),
+            DynNode::default().digest(),
             Rpo256::merge_in_domain(&[RpoDigest::default(), RpoDigest::default()], DynNode::DOMAIN)
         );
     }

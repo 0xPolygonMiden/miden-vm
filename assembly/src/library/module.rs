@@ -9,7 +9,7 @@ use crate::{
 // MODULE INFO
 // ================================================================================================
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ModuleInfo {
     path: LibraryPath,
     procedures: Vec<ProcedureInfo>,
@@ -68,7 +68,7 @@ impl ModuleInfo {
 }
 
 /// Stores the name and digest of a procedure.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ProcedureInfo {
     pub name: ProcedureName,
     pub digest: RpoDigest,

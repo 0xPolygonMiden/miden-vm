@@ -10,6 +10,17 @@ The `NOOP` operation does not impose any constraints besides the ones needed to 
 s'_i - s_i = 0 \ \text{ for } i \in [0, 16) \text { | degree} = 1
 $$
 
+## EMIT
+Similarly to `NOOP`, the `EMIT` operation advances the cycle counter but does not change the state of the operand stack (i.e., the depth of the stack and the values on the stack remain the same).
+
+The `EMIT` operation does not impose any constraints besides the ones needed to ensure that the entire state of the stack is copied over. This constraint looks like so:
+
+>$$
+s'_i - s_i = 0 \ \text{ for } i \in [0, 16) \text { | degree} = 1
+$$
+
+Additionally, the prover puts `EMIT`'s immediate value in the first user op helper register non-deterministically. The [Op Group Table](../decoder/main.md#op-group-table) is responsible for ensuring that the prover sets the appropriate value.
+
 ## ASSERT
 The `ASSERT` operation pops an element off the stack and checks if the popped element is equal to $1$. If the element is not equal to $1$, program execution fails.
 

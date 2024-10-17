@@ -227,7 +227,7 @@ mod tests {
     use vm_core::{ONE, ZERO};
 
     use super::{
-        super::{Felt, FieldElement, Operation, STACK_TOP_SIZE},
+        super::{Felt, FieldElement, Operation, MIN_STACK_DEPTH},
         Process,
     };
     use crate::{AdviceInputs, StackInputs};
@@ -246,7 +246,7 @@ mod tests {
         process.execute_op(Operation::Add).unwrap();
         let expected = build_expected(&[a + b, c]);
 
-        assert_eq!(STACK_TOP_SIZE, process.stack.depth());
+        assert_eq!(MIN_STACK_DEPTH, process.stack.depth());
         assert_eq!(2, process.stack.current_clk());
         assert_eq!(expected, process.stack.trace_state());
 
@@ -267,7 +267,7 @@ mod tests {
         let expected = build_expected(&[-a, b, c]);
 
         assert_eq!(expected, process.stack.trace_state());
-        assert_eq!(STACK_TOP_SIZE, process.stack.depth());
+        assert_eq!(MIN_STACK_DEPTH, process.stack.depth());
         assert_eq!(2, process.stack.current_clk());
     }
 
@@ -282,7 +282,7 @@ mod tests {
         process.execute_op(Operation::Mul).unwrap();
         let expected = build_expected(&[a * b, c]);
 
-        assert_eq!(STACK_TOP_SIZE, process.stack.depth());
+        assert_eq!(MIN_STACK_DEPTH, process.stack.depth());
         assert_eq!(2, process.stack.current_clk());
         assert_eq!(expected, process.stack.trace_state());
 
@@ -303,7 +303,7 @@ mod tests {
             process.execute_op(Operation::Inv).unwrap();
             let expected = build_expected(&[a.inv(), b, c]);
 
-            assert_eq!(STACK_TOP_SIZE, process.stack.depth());
+            assert_eq!(MIN_STACK_DEPTH, process.stack.depth());
             assert_eq!(2, process.stack.current_clk());
             assert_eq!(expected, process.stack.trace_state());
         }
@@ -324,7 +324,7 @@ mod tests {
         process.execute_op(Operation::Incr).unwrap();
         let expected = build_expected(&[a + ONE, b, c]);
 
-        assert_eq!(STACK_TOP_SIZE, process.stack.depth());
+        assert_eq!(MIN_STACK_DEPTH, process.stack.depth());
         assert_eq!(2, process.stack.current_clk());
         assert_eq!(expected, process.stack.trace_state());
     }

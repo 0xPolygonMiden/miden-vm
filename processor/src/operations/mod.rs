@@ -1,4 +1,4 @@
-use vm_core::stack::STACK_TOP_SIZE;
+use vm_core::stack::MIN_STACK_DEPTH;
 
 use super::{ExecutionError, Felt, FieldElement, Host, Operation, Process};
 
@@ -41,6 +41,7 @@ where
             Operation::Caller => self.op_caller()?,
 
             Operation::Clk => self.op_clk()?,
+            Operation::Emit(event_id) => self.op_emit(event_id)?,
 
             // ----- flow control operations ------------------------------------------------------
             // control flow operations are never executed directly

@@ -11,8 +11,8 @@ pub const NUM_SELECTORS: usize = 2;
 
 /// Type for Memory trace selectors.
 ///
-/// These selectors are used to define which operation and memory state update (init & read / copy
-/// & read / write) is to be applied at a specific row of the memory execution trace.
+/// These selectors are used to define which operation and memory state update (init & read / copy &
+/// read / write) is to be applied at a specific row of the memory execution trace.
 pub type Selectors = [Felt; NUM_SELECTORS];
 
 // --- OPERATION SELECTORS ------------------------------------------------------------------------

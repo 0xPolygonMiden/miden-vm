@@ -17,7 +17,7 @@ impl<'analyzer> ConstEvalVisitor<'analyzer> {
     }
 }
 
-impl<'analyzer> ConstEvalVisitor<'analyzer> {
+impl ConstEvalVisitor<'_> {
     fn eval_const<T>(&mut self, imm: &mut Immediate<T>) -> ControlFlow<()>
     where
         T: TryFrom<u64>,
@@ -45,7 +45,7 @@ impl<'analyzer> ConstEvalVisitor<'analyzer> {
     }
 }
 
-impl<'analyzer> VisitMut for ConstEvalVisitor<'analyzer> {
+impl VisitMut for ConstEvalVisitor<'_> {
     fn visit_mut_immediate_u8(&mut self, imm: &mut Immediate<u8>) -> ControlFlow<()> {
         self.eval_const(imm)
     }

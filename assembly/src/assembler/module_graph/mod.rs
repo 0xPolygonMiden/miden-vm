@@ -8,7 +8,7 @@ use alloc::{boxed::Box, collections::BTreeMap, sync::Arc, vec::Vec};
 use core::ops::Index;
 
 use smallvec::{smallvec, SmallVec};
-use vm_core::Kernel;
+use vm_core::{crypto::hash::RpoDigest, Kernel};
 
 use self::{analysis::MaybeRewriteCheck, name_resolver::NameResolver, rewrites::ModuleRewriter};
 pub use self::{
@@ -22,7 +22,7 @@ use crate::{
         ResolvedProcedure,
     },
     library::{ModuleInfo, ProcedureInfo},
-    AssemblyError, LibraryNamespace, LibraryPath, RpoDigest, SourceManager, Spanned,
+    AssemblyError, LibraryNamespace, LibraryPath, SourceManager, Spanned,
 };
 
 // WRAPPER STRUCTS
@@ -39,7 +39,7 @@ pub enum ProcedureWrapper<'a> {
     Info(&'a ProcedureInfo),
 }
 
-impl<'a> ProcedureWrapper<'a> {
+impl ProcedureWrapper<'_> {
     /// Returns the name of the procedure.
     pub fn name(&self) -> &ProcedureName {
         match self {
@@ -160,7 +160,7 @@ pub struct ModuleGraph {
     callgraph: CallGraph,
     /// The set of MAST roots which have procedure definitions in this graph. There can be
     /// multiple procedures bound to the same root due to having identical code.
-    roots: BTreeMap<RpoDigest, SmallVec<[GlobalProcedureIndex; 1]>>,
+    procedures_by_mast_root: BTreeMap<RpoDigest, SmallVec<[GlobalProcedureIndex; 1]>>,
     kernel_index: Option<ModuleIndex>,
     kernel: Kernel,
     source_manager: Arc<dyn SourceManager>,
@@ -175,7 +175,7 @@ impl ModuleGraph {
             modules: Default::default(),
             pending: Default::default(),
             callgraph: Default::default(),
-            roots: Default::default(),
+            procedures_by_mast_root: Default::default(),
             kernel_index: None,
             kernel: Default::default(),
             source_manager,
@@ -198,7 +198,7 @@ impl ModuleGraph {
         for &module_index in module_indices.iter() {
             for (proc_index, proc) in self[module_index].unwrap_info().clone().procedures() {
                 let gid = module_index + proc_index;
-                self.register_mast_root(gid, proc.digest)?;
+                self.register_procedure_root(gid, proc.digest)?;
             }
         }
 
@@ -520,11 +520,16 @@ impl ModuleGraph {
         }
     }
 
+    /// Returns a procedure index which corresponds to the provided procedure digest.
+    ///
+    /// Note that there can be many procedures with the same digest - due to having the same code,
+    /// and/or using different decorators which don't affect the MAST root. This method returns an
+    /// arbitrary one.
     pub fn get_procedure_index_by_digest(
         &self,
-        digest: &RpoDigest,
+        procedure_digest: &RpoDigest,
     ) -> Option<GlobalProcedureIndex> {
-        self.roots.get(digest).map(|indices| indices[0])
+        self.procedures_by_mast_root.get(procedure_digest).map(|indices| indices[0])
     }
 
     /// Resolves `target` from the perspective of `caller`.
@@ -537,7 +542,7 @@ impl ModuleGraph {
         resolver.resolve_target(caller, target)
     }
 
-    /// Registers a [RpoDigest] as corresponding to a given [GlobalProcedureIndex].
+    /// Registers a [MastNodeId] as corresponding to a given [GlobalProcedureIndex].
     ///
     /// # SAFETY
     ///
@@ -545,13 +550,13 @@ impl ModuleGraph {
     /// procedure. It is fine if there are multiple procedures with the same digest, but it _must_
     /// be the case that if a given digest is specified, it can be used as if it was the definition
     /// of the referenced procedure, i.e. they are referentially transparent.
-    pub(crate) fn register_mast_root(
+    pub(crate) fn register_procedure_root(
         &mut self,
         id: GlobalProcedureIndex,
-        digest: RpoDigest,
+        procedure_mast_root: RpoDigest,
     ) -> Result<(), AssemblyError> {
         use alloc::collections::btree_map::Entry;
-        match self.roots.entry(digest) {
+        match self.procedures_by_mast_root.entry(procedure_mast_root) {
             Entry::Occupied(ref mut entry) => {
                 let prev_id = entry.get()[0];
                 if prev_id != id {

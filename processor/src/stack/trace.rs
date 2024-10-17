@@ -1,10 +1,10 @@
 use alloc::vec::Vec;
 
 use miden_air::{
-    trace::stack::{H0_COL_IDX, NUM_STACK_HELPER_COLS, STACK_TOP_SIZE},
+    trace::stack::{H0_COL_IDX, NUM_STACK_HELPER_COLS},
     RowIndex,
 };
-use vm_core::FieldElement;
+use vm_core::{stack::MIN_STACK_DEPTH, FieldElement};
 
 use super::{super::utils::get_trace_len, Felt, MAX_TOP_IDX, ONE, STACK_TRACE_WIDTH, ZERO};
 use crate::utils::math::batch_inversion;
@@ -18,7 +18,7 @@ use crate::utils::math::batch_inversion;
 /// - 16 stack columns holding the top of the stack.
 /// - 3 columns for bookkeeping and helper values that manage left and right shifts.
 pub struct StackTrace {
-    stack: [Vec<Felt>; STACK_TOP_SIZE],
+    stack: [Vec<Felt>; MIN_STACK_DEPTH],
     helpers: [Vec<Felt>; NUM_STACK_HELPER_COLS],
 }
 
@@ -27,7 +27,7 @@ impl StackTrace {
     // --------------------------------------------------------------------------------------------
     /// Returns a [StackTrace] instantiated with the provided input values.
     ///
-    /// When fewer than `STACK_TOP_SIZE` inputs are provided, the rest of the stack top elements
+    /// When fewer than `MIN_STACK_DEPTH` inputs are provided, the rest of the stack top elements
     /// are set to ZERO. The initial stack depth and initial overflow address are used to
     /// initialize the bookkeeping columns so they are consistent with the initial state of the
     /// overflow table.
@@ -78,7 +78,7 @@ impl StackTrace {
         next_overflow_addr: Felt,
     ) {
         // copy over stack top columns
-        for i in start_pos..STACK_TOP_SIZE {
+        for i in start_pos..MIN_STACK_DEPTH {
             self.stack[i][clk + 1] = self.stack[i][clk];
         }
 
@@ -196,7 +196,7 @@ impl StackTrace {
     fn set_helpers_at(&mut self, clk: usize, stack_depth: Felt, next_overflow_addr: Felt) {
         self.helpers[0][clk + 1] = stack_depth;
         self.helpers[1][clk + 1] = next_overflow_addr;
-        self.helpers[2][clk + 1] = stack_depth - Felt::from(STACK_TOP_SIZE as u32);
+        self.helpers[2][clk + 1] = stack_depth - Felt::from(MIN_STACK_DEPTH as u32);
     }
 
     // TEST HELPERS
@@ -204,8 +204,8 @@ impl StackTrace {
 
     /// Returns the stack trace state at the specified clock cycle.
     #[cfg(any(test, feature = "testing"))]
-    pub fn get_stack_state_at(&self, clk: RowIndex) -> [Felt; STACK_TOP_SIZE] {
-        let mut result = [ZERO; STACK_TOP_SIZE];
+    pub fn get_stack_state_at(&self, clk: RowIndex) -> [Felt; MIN_STACK_DEPTH] {
+        let mut result = [ZERO; MIN_STACK_DEPTH];
         for (result, column) in result.iter_mut().zip(self.stack.iter()) {
             *result = column[clk.as_usize()];
         }
@@ -230,9 +230,9 @@ impl StackTrace {
 fn init_stack_columns(
     init_trace_capacity: usize,
     init_values: &[Felt],
-) -> [Vec<Felt>; STACK_TOP_SIZE] {
-    let mut stack: Vec<Vec<Felt>> = Vec::with_capacity(STACK_TOP_SIZE);
-    for i in 0..STACK_TOP_SIZE {
+) -> [Vec<Felt>; MIN_STACK_DEPTH] {
+    let mut stack: Vec<Vec<Felt>> = Vec::with_capacity(MIN_STACK_DEPTH);
+    for i in 0..MIN_STACK_DEPTH {
         let mut column = vec![Felt::ZERO; init_trace_capacity];
         if i < init_values.len() {
             column[0] = init_values[i];
@@ -260,7 +260,7 @@ fn init_helper_columns(
     // if the overflow table is not empty, set h0 to (init_depth - 16)
     let mut h0 = vec![Felt::ZERO; init_trace_capacity];
     // TODO: change type of `init_depth` to `u32`
-    h0[0] = Felt::try_from((init_depth - STACK_TOP_SIZE) as u64)
+    h0[0] = Felt::try_from((init_depth - MIN_STACK_DEPTH) as u64)
         .expect("value is greater than or equal to the field modulus");
 
     [b0, b1, h0]

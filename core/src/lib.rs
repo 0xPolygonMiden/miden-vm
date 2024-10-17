@@ -73,7 +73,7 @@ pub mod crypto {
             blake::{Blake3Digest, Blake3_160, Blake3_192, Blake3_256},
             rpo::{Rpo256, RpoDigest},
             rpx::{Rpx256, RpxDigest},
-            ElementHasher, Hasher,
+            Digest, ElementHasher, Hasher,
         };
     }
 
@@ -124,8 +124,3 @@ pub mod stack;
 pub use stack::{StackInputs, StackOutputs};
 
 pub mod utils;
-
-// TYPE ALIASES
-// ================================================================================================
-
-pub type StackTopState = [Felt; stack::STACK_TOP_SIZE];

@@ -139,7 +139,7 @@ pub trait Visit<T = ()> {
     }
 }
 
-impl<'a, V, T> Visit<T> for &'a mut V
+impl<V, T> Visit<T> for &mut V
 where
     V: ?Sized + Visit<T>,
 {
@@ -575,7 +575,7 @@ pub trait VisitMut<T = ()> {
     }
 }
 
-impl<'a, V, T> VisitMut<T> for &'a mut V
+impl<V, T> VisitMut<T> for &mut V
 where
     V: ?Sized + VisitMut<T>,
 {

@@ -1,5 +1,5 @@
-use alloc::vec::Vec;
-use core::{fmt, ops::Index};
+use alloc::{sync::Arc, vec::Vec};
+use core::fmt;
 
 use miden_crypto::{hash::rpo::RpoDigest, Felt, WORD_SIZE};
 use winter_utils::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable};
@@ -13,9 +13,14 @@ use crate::{
 // PROGRAM
 // ===============================================================================================
 
+/// An executable program for Miden VM.
+///
+/// A program consists of a MAST forest, an entrypoint defining the MAST node at which the program
+/// execution begins, and a definition of the kernel against which the program must be executed
+/// (the kernel can be an empty kernel).
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Program {
-    mast_forest: MastForest,
+    mast_forest: Arc<MastForest>,
     /// The "entrypoint" is the node where execution of the program begins.
     entrypoint: MastNodeId,
     kernel: Kernel,
@@ -27,32 +32,46 @@ impl Program {
     /// to be empty.
     ///
     /// # Panics:
-    /// - if `mast_forest` doesn't have an entrypoint
-    pub fn new(mast_forest: MastForest, entrypoint: MastNodeId) -> Self {
-        assert!(mast_forest.get_node_by_id(entrypoint).is_some());
-
-        Self {
-            mast_forest,
-            entrypoint,
-            kernel: Kernel::default(),
-        }
+    /// - if `mast_forest` doesn't contain the specified entrypoint.
+    /// - if the specified entrypoint is not a procedure root in the `mast_forest`.
+    pub fn new(mast_forest: Arc<MastForest>, entrypoint: MastNodeId) -> Self {
+        Self::with_kernel(mast_forest, entrypoint, Kernel::default())
     }
 
     /// Construct a new [`Program`] from the given MAST forest, entrypoint, and kernel.
     ///
     /// # Panics:
-    /// - if `mast_forest` doesn't have an entrypoint
-    pub fn with_kernel(mast_forest: MastForest, entrypoint: MastNodeId, kernel: Kernel) -> Self {
-        assert!(mast_forest.get_node_by_id(entrypoint).is_some());
+    /// - if `mast_forest` doesn't contain the specified entrypoint.
+    /// - if the specified entrypoint is not a procedure root in the `mast_forest`.
+    pub fn with_kernel(
+        mast_forest: Arc<MastForest>,
+        entrypoint: MastNodeId,
+        kernel: Kernel,
+    ) -> Self {
+        assert!(mast_forest.get_node_by_id(entrypoint).is_some(), "invalid entrypoint");
+        assert!(mast_forest.is_procedure_root(entrypoint), "entrypoint not a procedure");
 
         Self { mast_forest, entrypoint, kernel }
     }
 }
 
+// ------------------------------------------------------------------------------------------------
 /// Public accessors
 impl Program {
-    /// Returns the underlying [`MastForest`].
-    pub fn mast_forest(&self) -> &MastForest {
+    /// Returns the hash of the program's entrypoint.
+    ///
+    /// Equivalently, returns the hash of the root of the entrypoint procedure.
+    pub fn hash(&self) -> RpoDigest {
+        self.mast_forest[self.entrypoint].digest()
+    }
+
+    /// Returns the entrypoint associated with this program.
+    pub fn entrypoint(&self) -> MastNodeId {
+        self.entrypoint
+    }
+
+    /// Returns a reference to the underlying [`MastForest`].
+    pub fn mast_forest(&self) -> &Arc<MastForest> {
         &self.mast_forest
     }
 
@@ -61,22 +80,10 @@ impl Program {
         &self.kernel
     }
 
-    /// Returns the entrypoint associated with this program.
-    pub fn entrypoint(&self) -> MastNodeId {
-        self.entrypoint
-    }
-
-    /// Returns the hash of the program's entrypoint.
-    ///
-    /// Equivalently, returns the hash of the root of the entrypoint procedure.
-    pub fn hash(&self) -> RpoDigest {
-        self.mast_forest[self.entrypoint].digest()
-    }
-
     /// Returns the [`MastNode`] associated with the provided [`MastNodeId`] if valid, or else
     /// `None`.
     ///
-    /// This is the faillible version of indexing (e.g. `program[node_id]`).
+    /// This is the fallible version of indexing (e.g. `program[node_id]`).
     #[inline(always)]
     pub fn get_node_by_id(&self, node_id: MastNodeId) -> Option<&MastNode> {
         self.mast_forest.get_node_by_id(node_id)
@@ -94,10 +101,11 @@ impl Program {
     }
 }
 
+// ------------------------------------------------------------------------------------------------
 /// Serialization
+#[cfg(feature = "std")]
 impl Program {
     /// Writes this [Program] to the provided file path.
-    #[cfg(feature = "std")]
     pub fn write_to_file<P>(&self, path: P) -> std::io::Result<()>
     where
         P: AsRef<std::path::Path>,
@@ -139,26 +147,27 @@ impl Serializable for Program {
 
 impl Deserializable for Program {
     fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
-        let mast_forest = source.read()?;
+        let mast_forest = Arc::new(source.read()?);
         let kernel = source.read()?;
         let entrypoint = MastNodeId::from_u32_safe(source.read_u32()?, &mast_forest)?;
 
-        Ok(Self { mast_forest, kernel, entrypoint })
+        if mast_forest.is_procedure_root(entrypoint) {
+            return Err(DeserializationError::InvalidValue(format!(
+                "entrypoint {entrypoint} is not a procedure"
+            )));
+        }
+
+        Ok(Self::with_kernel(mast_forest, entrypoint, kernel))
     }
 }
 
-impl Index<MastNodeId> for Program {
-    type Output = MastNode;
-
-    fn index(&self, node_id: MastNodeId) -> &Self::Output {
-        &self.mast_forest[node_id]
-    }
-}
+// ------------------------------------------------------------------------------------------------
+// Pretty-printing
 
 impl crate::prettier::PrettyPrint for Program {
     fn render(&self) -> crate::prettier::Document {
         use crate::prettier::*;
-        let entrypoint = self[self.entrypoint()].to_pretty_print(&self.mast_forest);
+        let entrypoint = self.mast_forest[self.entrypoint()].to_pretty_print(&self.mast_forest);
 
         indent(4, const_text("begin") + nl() + entrypoint.render()) + nl() + const_text("end")
     }
@@ -168,12 +177,6 @@ impl fmt::Display for Program {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         use crate::prettier::PrettyPrint;
         self.pretty_print(f)
-    }
-}
-
-impl From<Program> for MastForest {
-    fn from(program: Program) -> Self {
-        program.mast_forest
     }
 }
 
@@ -195,16 +198,10 @@ pub struct ProgramInfo {
 }
 
 impl ProgramInfo {
-    // CONSTRUCTORS
-    // --------------------------------------------------------------------------------------------
-
     /// Creates a new instance of a program info.
     pub const fn new(program_hash: RpoDigest, kernel: Kernel) -> Self {
         Self { program_hash, kernel }
     }
-
-    // PUBLIC ACCESSORS
-    // --------------------------------------------------------------------------------------------
 
     /// Returns the program hash computed from its code block root.
     pub const fn program_hash(&self) -> &RpoDigest {
@@ -231,8 +228,8 @@ impl From<Program> for ProgramInfo {
     }
 }
 
-// SERIALIZATION
 // ------------------------------------------------------------------------------------------------
+// Serialization
 
 impl Serializable for ProgramInfo {
     fn write_into<W: ByteWriter>(&self, target: &mut W) {
@@ -249,8 +246,8 @@ impl Deserializable for ProgramInfo {
     }
 }
 
-// TO ELEMENTS
 // ------------------------------------------------------------------------------------------------
+// ToElements implementation
 
 impl ToElements for ProgramInfo {
     fn to_elements(&self) -> Vec<Felt> {

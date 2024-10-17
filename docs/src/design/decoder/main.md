@@ -511,7 +511,7 @@ In the above, the batch contains $3$ operation groups. To bring the count up to 
 
 Operation batch flags (denoted as $c_0, c_1, c_2$), encode the number of groups and define how many groups are added to the op group table as follows:
 
-* `(1, 0, 0)` - $8$ groups. Groups in $h_1, ... h_7$ are added to the op group table.
+* `(1, -, -)` - $8$ groups. Groups in $h_1, ... h_7$ are added to the op group table.
 * `(0, 1, 0)` - $4$ groups. Groups in $h_1, ... h_3$ are added to the op group table
 * `(0, 0, 1)` - $2$ groups. Groups in $h_1$ is added to the op group table.
 * `(0, 1, 1)` - $1$ group. Nothing is added to the op group table

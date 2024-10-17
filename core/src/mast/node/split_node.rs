@@ -1,3 +1,4 @@
+use alloc::vec::Vec;
 use core::fmt;
 
 use miden_crypto::{hash::rpo::RpoDigest, Felt};
@@ -5,7 +6,7 @@ use miden_formatting::prettier::PrettyPrint;
 
 use crate::{
     chiplets::hasher,
-    mast::{MastForest, MastForestError, MastNodeId},
+    mast::{DecoratorId, MastForest, MastForestError, MastNodeId},
     OPCODE_SPLIT,
 };
 
@@ -22,6 +23,8 @@ use crate::{
 pub struct SplitNode {
     branches: [MastNodeId; 2],
     digest: RpoDigest,
+    before_enter: Vec<DecoratorId>,
+    after_exit: Vec<DecoratorId>,
 }
 
 /// Constants
@@ -49,13 +52,23 @@ impl SplitNode {
             hasher::merge_in_domain(&[if_branch_hash, else_branch_hash], Self::DOMAIN)
         };
 
-        Ok(Self { branches, digest })
+        Ok(Self {
+            branches,
+            digest,
+            before_enter: Vec::new(),
+            after_exit: Vec::new(),
+        })
     }
 
     /// Returns a new [`SplitNode`] from values that are assumed to be correct.
     /// Should only be used when the source of the inputs is trusted (e.g. deserialization).
     pub fn new_unsafe(branches: [MastNodeId; 2], digest: RpoDigest) -> Self {
-        Self { branches, digest }
+        Self {
+            branches,
+            digest,
+            before_enter: Vec::new(),
+            after_exit: Vec::new(),
+        }
     }
 }
 
@@ -85,6 +98,29 @@ impl SplitNode {
     pub fn on_false(&self) -> MastNodeId {
         self.branches[1]
     }
+
+    /// Returns the decorators to be executed before this node is executed.
+    pub fn before_enter(&self) -> &[DecoratorId] {
+        &self.before_enter
+    }
+
+    /// Returns the decorators to be executed after this node is executed.
+    pub fn after_exit(&self) -> &[DecoratorId] {
+        &self.after_exit
+    }
+}
+
+/// Mutators
+impl SplitNode {
+    /// Sets the list of decorators to be executed before this node.
+    pub fn set_before_enter(&mut self, decorator_ids: Vec<DecoratorId>) {
+        self.before_enter = decorator_ids;
+    }
+
+    /// Sets the list of decorators to be executed after this node.
+    pub fn set_after_exit(&mut self, decorator_ids: Vec<DecoratorId>) {
+        self.after_exit = decorator_ids;
+    }
 }
 
 // PRETTY PRINTING
@@ -108,21 +144,53 @@ struct SplitNodePrettyPrint<'a> {
     mast_forest: &'a MastForest,
 }
 
-impl<'a> PrettyPrint for SplitNodePrettyPrint<'a> {
+impl PrettyPrint for SplitNodePrettyPrint<'_> {
     #[rustfmt::skip]
     fn render(&self) -> crate::prettier::Document {
         use crate::prettier::*;
 
+        let pre_decorators = {
+            let mut pre_decorators = self
+                .split_node
+                .before_enter()
+                .iter()
+                .map(|&decorator_id| self.mast_forest[decorator_id].render())
+                .reduce(|acc, doc| acc + const_text(" ") + doc)
+                .unwrap_or_default();
+            if !pre_decorators.is_empty() {
+                pre_decorators += nl();
+            }
+
+            pre_decorators
+        };
+
+        let post_decorators = {
+            let mut post_decorators = self
+                .split_node
+                .after_exit()
+                .iter()
+                .map(|&decorator_id| self.mast_forest[decorator_id].render())
+                .reduce(|acc, doc| acc + const_text(" ") + doc)
+                .unwrap_or_default();
+            if !post_decorators.is_empty() {
+                post_decorators = nl() + post_decorators;
+            }
+
+            post_decorators
+        };
+
         let true_branch = self.mast_forest[self.split_node.on_true()].to_pretty_print(self.mast_forest);
         let false_branch = self.mast_forest[self.split_node.on_false()].to_pretty_print(self.mast_forest);
 
-        let mut doc = indent(4, const_text("if.true") + nl() + true_branch.render()) + nl();
+        let mut doc = pre_decorators;
+        doc += indent(4, const_text("if.true") + nl() + true_branch.render()) + nl();
         doc += indent(4, const_text("else") + nl() + false_branch.render());
-        doc + nl() + const_text("end")
+        doc += nl() + const_text("end");
+        doc + post_decorators
     }
 }
 
-impl<'a> fmt::Display for SplitNodePrettyPrint<'a> {
+impl fmt::Display for SplitNodePrettyPrint<'_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         use crate::prettier::PrettyPrint;
         self.pretty_print(f)

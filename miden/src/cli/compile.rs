@@ -32,7 +32,7 @@ impl CompileCmd {
         let libraries = Libraries::new(&self.library_paths)?;
 
         // compile the program
-        let compiled_program = program.compile(&Debug::Off, &libraries.libraries)?;
+        let compiled_program = program.compile(Debug::Off, &libraries.libraries)?;
 
         // report program hash to user
         let program_hash: [u8; 32] = compiled_program.hash().into();
