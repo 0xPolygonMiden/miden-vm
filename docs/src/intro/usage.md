@@ -16,19 +16,19 @@ The above functionality is also exposed via the single [miden-vm](https://crates
 
 To compile Miden VM into a binary, we have a [Makefile](https://www.gnu.org/software/make/manual/make.html) with the following tasks:
 
-```
+```shell
 make exec
 ```
 
 This will place an optimized, multi-threaded `miden` executable into the `./target/optimized` directory. It is equivalent to executing:
 
-```
+```shell
 cargo build --profile optimized --features concurrent,executable
 ```
 
 If you would like to enable single-threaded mode, you can compile Miden VM using the following command:
 
-```
+```shell
 make exec-single
 ```
 
@@ -40,7 +40,7 @@ Internally, Miden VM uses [rayon](https://github.com/rayon-rs/rayon) for paralle
 
 Miden VM proof generation can be accelerated via GPUs. Currently, GPU acceleration is enabled only on Apple Silicon hardware (via [Metal](<https://en.wikipedia.org/wiki/Metal_(API)>)). To compile Miden VM with Metal acceleration enabled, you can run the following command:
 
-```
+```shell
 make exec-metal
 ```
 
@@ -54,13 +54,13 @@ Miden VM execution and proof generation can be accelerated via vectorized instru
 
 To compile Miden VM with AVX2 acceleration enabled, you can run the following command:
 
-```
+```shell
 make exec-avx2
 ```
 
 To compile Miden VM with SVE acceleration enabled, you can run the following command:
 
-```
+```shell
 make exec-sve
 ```
 
@@ -72,7 +72,7 @@ Similar to Metal acceleration, SVE/AVX2 acceleration is currently applicable onl
 
 Once the executable has been compiled, you can run Miden VM like so:
 
-```
+```shell
 ./target/optimized/miden [subcommand] [parameters]
 ```
 
@@ -89,13 +89,13 @@ Currently, Miden VM can be executed with the following subcommands:
 
 All of the above subcommands require various parameters to be provided. To get more detailed help on what is needed for a given subcommand, you can run the following:
 
-```
+```shell
 ./target/optimized/miden [subcommand] --help
 ```
 
 For example:
 
-```
+```shell
 ./target/optimized/miden prove --help
 ```
 
@@ -105,7 +105,7 @@ To execute a program using the Miden VM there needs to be a `.masm` file contain
 
 You can use `MIDEN_LOG` environment variable to control how much logging output the VM produces. For example:
 
-```
+```shell
 MIDEN_LOG=trace ./target/optimized/miden [subcommand] [parameters]
 ```
 
@@ -124,7 +124,7 @@ You can use the run command with `--debug` parameter to enable debugging with th
 As described [here](https://0xpolygonmiden.github.io/miden-vm/intro/overview.html#inputs-and-outputs) the Miden VM can consume public and secret inputs.
 
 - Public inputs:
-  - `operand_stack` - can be supplied to the VM to initialize the stack with the desired values before a program starts executing. There is no limit on the number of stack inputs that can be initialized in this way, although increasing the number of public inputs increases the cost to the verifier.
+  - `operand_stack` - can be supplied to the VM to initialize the stack with the desired values before a program starts executing. If the number of provided input values is less than 16, the input stack will be padded with zeros to the length of 16. The maximum number of the stack inputs is limited by 16 values, providing more than 16 values will cause an error.
 - Secret (or nondeterministic) inputs:
   - `advice_stack` - can be supplied to the VM. There is no limit on how much data the advice provider can hold. This is provided as a string array where each string entry represents a field element.
   - `advice_map` - is supplied as a map of 64-character hex keys, each mapped to an array of numbers. The hex keys are interpreted as 4 field elements and the arrays of numbers are interpreted as arrays of field elements.
@@ -135,7 +135,7 @@ As described [here](https://0xpolygonmiden.github.io/miden-vm/intro/overview.htm
 
 _Check out the [comparison example](https://github.com/0xPolygonMiden/examples/blob/main/examples/comparison.masm) to see how secret inputs work._
 
-After a program finishes executing, the elements that remain on the stack become the outputs of the program, along with the overflow addresses (`overflow_addrs`) that are required to reconstruct the [stack overflow table](../design/stack/main.md#overflow-table).
+After a program finishes executing, the elements that remain on the stack become the outputs of the program. Notice that the number of values on the operand stack at the end of the program execution can not be greater than 16, otherwise the program will return an error. The [`truncate_stack`](../user_docs/stdlib/sys.md) utility procedure from the standard library could be used to conveniently truncate the stack at the end of the program.
 
 ## Fibonacci example
 
