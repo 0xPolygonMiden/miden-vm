@@ -7,7 +7,11 @@ use core::{
     ops::{Index, IndexMut},
 };
 
-use miden_crypto::hash::rpo::RpoDigest;
+use miden_crypto::hash::{
+    blake::{Blake3Digest, Blake3_256},
+    rpo::RpoDigest,
+    Digest,
+};
 
 mod node;
 pub use node::{
@@ -19,6 +23,12 @@ use winter_utils::{ByteWriter, DeserializationError, Serializable};
 use crate::{Decorator, DecoratorList, Operation};
 
 mod serialization;
+
+mod merger;
+pub(crate) use merger::MastForestMerger;
+
+mod dfs_iterator;
+pub(crate) use dfs_iterator::*;
 
 #[cfg(test)]
 mod tests;
@@ -189,6 +199,55 @@ impl MastForest {
 
     pub fn set_after_exit(&mut self, node_id: MastNodeId, decorator_ids: Vec<DecoratorId>) {
         self[node_id].set_after_exit(decorator_ids)
+    }
+
+    /// Merges `other_forest` into self. This will mutate self in-place.
+    ///
+    /// Merging two forests means combining all their constituent parts, i.e. [`MastNode`]s,
+    /// [`Decorator`]s and roots. During this process, any duplicates are
+    /// removed. Additionally, [`MastNodeId`]s of nodes as well as [`DecoratorId`]s of decorators
+    /// change and they are remapped to their new location.
+    ///
+    /// For example, consider this representation of a forest's nodes:
+    ///
+    /// ```text
+    /// [Block(foo), Block(bar)]
+    /// ```
+    ///
+    /// If we merge another forest into it:
+    ///
+    /// ```text
+    /// [Block(bar), Call(0)]
+    /// ```
+    ///
+    /// then we would expect this forest:
+    ///
+    /// ```text
+    /// [Block(foo), Block(bar), Call(1)]
+    /// ```
+    ///
+    /// - The `Call` to the `bar` block was remapped to its new index (now 1, previously 0).
+    /// - The `Block(bar)` was deduplicated any only exists once in the merged forest.
+    ///
+    /// Note that if you intend to merge multiple forest into this one, calling
+    /// [`Self::merge_multiple`] is preferred as it is more efficient.
+    pub fn merge(&mut self, other_forest: &MastForest) -> Result<(), MastForestError> {
+        MastForestMerger::new(self).merge(other_forest)
+    }
+
+    /// Merges `other_forest` into the forest contained in self. See [`Self::merge`] for more
+    /// details.
+    ///
+    /// This method is preferred over [`Self::merge`] if the intention is to merge multiple forests,
+    /// with the reason being that the internal merge implementation does not need to rebuild
+    /// indices in between merges but can reuse them instead.
+    pub fn merge_multiple(&mut self, forests: &[&MastForest]) -> Result<(), MastForestError> {
+        let mut merger = MastForestMerger::new(self);
+        for other_forest in forests {
+            merger.merge(other_forest)?;
+        }
+
+        Ok(())
     }
 
     /// Adds a basic block node to the forest, and returns the [`MastNodeId`] associated with it.
@@ -563,6 +622,166 @@ impl fmt::Display for DecoratorId {
 impl Serializable for DecoratorId {
     fn write_into<W: ByteWriter>(&self, target: &mut W) {
         self.0.write_into(target)
+    }
+}
+
+// MAST NODE EQUALITY
+// ================================================================================================
+
+/// Represents the hash used to test for equality between [`MastNode`]s.
+///
+/// The decorator root will be `None` if and only if there are no decorators attached to the node,
+/// and all children have no decorator roots (meaning that there are no decorators in all the
+/// descendants).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+pub struct EqHash {
+    mast_root: RpoDigest,
+    decorator_root: Option<Blake3Digest<32>>,
+}
+
+// TODO: Document public functions and assumptions about forest and the index map.
+impl EqHash {
+    pub fn new(mast_root: RpoDigest) -> Self {
+        Self { mast_root, decorator_root: None }
+    }
+
+    pub fn with_decorator_root(mast_root: RpoDigest, decorator_root: Blake3Digest<32>) -> Self {
+        Self {
+            mast_root,
+            decorator_root: Some(decorator_root),
+        }
+    }
+
+    pub fn from_mast_node(
+        forest: &MastForest,
+        hash_by_node_id: &BTreeMap<MastNodeId, EqHash>,
+        node: &MastNode,
+    ) -> EqHash {
+        match node {
+            MastNode::Block(node) => {
+                let mut bytes_to_hash = Vec::new();
+
+                for &(idx, decorator_id) in node.decorators() {
+                    bytes_to_hash.extend(idx.to_le_bytes());
+                    bytes_to_hash.extend(forest[decorator_id].eq_hash().as_bytes());
+                }
+
+                // Add any `Assert` or `U32assert2` opcodes present, since these are not included in
+                // the MAST root.
+                for (op_idx, op) in node.operations().enumerate() {
+                    if let Operation::U32assert2(inner_value)
+                    | Operation::Assert(inner_value)
+                    | Operation::MpVerify(inner_value) = op
+                    {
+                        let op_idx: u32 = op_idx
+                            .try_into()
+                            .expect("there are more than 2^{32}-1 operations in basic block");
+
+                        // we include the opcode to differentiate between `Assert` and `U32assert2`
+                        bytes_to_hash.push(op.op_code());
+                        // we include the operation index to distinguish between basic blocks that
+                        // would have the same assert instructions, but in a different order
+                        bytes_to_hash.extend(op_idx.to_le_bytes());
+                        bytes_to_hash.extend(inner_value.to_le_bytes());
+                    }
+                }
+
+                if bytes_to_hash.is_empty() {
+                    EqHash::new(node.digest())
+                } else {
+                    let decorator_root = Blake3_256::hash(&bytes_to_hash);
+                    EqHash::with_decorator_root(node.digest(), decorator_root)
+                }
+            },
+            MastNode::Join(node) => eq_hash_from_parts(
+                forest,
+                hash_by_node_id,
+                node.before_enter(),
+                node.after_exit(),
+                &[node.first(), node.second()],
+                node.digest(),
+            ),
+            MastNode::Split(node) => eq_hash_from_parts(
+                forest,
+                hash_by_node_id,
+                node.before_enter(),
+                node.after_exit(),
+                &[node.on_true(), node.on_false()],
+                node.digest(),
+            ),
+            MastNode::Loop(node) => eq_hash_from_parts(
+                forest,
+                hash_by_node_id,
+                node.before_enter(),
+                node.after_exit(),
+                &[node.body()],
+                node.digest(),
+            ),
+            MastNode::Call(node) => eq_hash_from_parts(
+                forest,
+                hash_by_node_id,
+                node.before_enter(),
+                node.after_exit(),
+                &[node.callee()],
+                node.digest(),
+            ),
+            MastNode::Dyn(node) => eq_hash_from_parts(
+                forest,
+                hash_by_node_id,
+                node.before_enter(),
+                node.after_exit(),
+                &[],
+                node.digest(),
+            ),
+            MastNode::External(node) => eq_hash_from_parts(
+                forest,
+                hash_by_node_id,
+                node.before_enter(),
+                node.after_exit(),
+                &[],
+                node.digest(),
+            ),
+        }
+    }
+}
+
+fn eq_hash_from_parts(
+    forest: &MastForest,
+    hash_by_node_id: &BTreeMap<MastNodeId, EqHash>,
+    before_enter_ids: &[DecoratorId],
+    after_exit_ids: &[DecoratorId],
+    children_ids: &[MastNodeId],
+    node_digest: RpoDigest,
+) -> EqHash {
+    let pre_decorator_hash_bytes =
+        before_enter_ids.iter().flat_map(|&id| forest[id].eq_hash().as_bytes());
+    let post_decorator_hash_bytes =
+        after_exit_ids.iter().flat_map(|&id| forest[id].eq_hash().as_bytes());
+
+    // Reminder: the `EqHash`'s decorator root will be `None` if and only if there are no
+    // decorators attached to the node, and all children have no decorator roots (meaning that
+    // there are no decorators in all the descendants).
+    if pre_decorator_hash_bytes.clone().next().is_none()
+        && post_decorator_hash_bytes.clone().next().is_none()
+        && children_ids
+            .iter()
+            .filter_map(|child_id| hash_by_node_id[child_id].decorator_root)
+            .next()
+            .is_none()
+    {
+        EqHash::new(node_digest)
+    } else {
+        let children_decorator_roots = children_ids
+            .iter()
+            .filter_map(|child_id| hash_by_node_id[child_id].decorator_root)
+            .flat_map(|decorator_root| decorator_root.as_bytes());
+        let decorator_bytes_to_hash: Vec<u8> = pre_decorator_hash_bytes
+            .chain(post_decorator_hash_bytes)
+            .chain(children_decorator_roots)
+            .collect();
+
+        let decorator_root = Blake3_256::hash(&decorator_bytes_to_hash);
+        EqHash::with_decorator_root(node_digest, decorator_root)
     }
 }
 
