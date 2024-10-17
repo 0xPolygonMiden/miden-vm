@@ -409,10 +409,16 @@ where
     /// expected to be either in the current `program` or in the host.
     #[inline(always)]
     fn execute_dyn_node(&mut self, program: &MastForest) -> Result<(), ExecutionError> {
+        // TODO(plafer): Refactor. We need to call those before `start_dyn_node()`, since
+        // `start_dyn_node()` advances the clock.
+        let mem_addr = self.stack.get(0);
+        // The callee hash is stored in memory, and the address is specified on the top of the
+        // stack.
+        let callee_hash = self.read_mem_word(mem_addr)?;
+
         self.start_dyn_node()?;
 
-        // get target hash from the stack
-        let callee_hash = self.stack.get_word(0);
+        self.decoder.set_user_op_helpers(Operation::Dyn, &callee_hash);
 
         // if the callee is not in the program's MAST forest, try to find a MAST forest for it in
         // the host (corresponding to an external library loaded in the host); if none are
