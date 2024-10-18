@@ -33,7 +33,7 @@ use crate::mast::{MastForest, MastNode, MastNodeId};
 /// trees and returning nodes from the stack.
 ///
 /// Note: This type could be made more general to implement pre-order or in-order iteration too.
-pub(crate) struct MastForestDfsIter<'forest> {
+pub(crate) struct MastForestNodeIter<'forest> {
     /// The forest that we're iterating.
     pub mast_forest: &'forest MastForest,
     /// The procedure root index at which we last started a tree discovery.
@@ -50,7 +50,7 @@ pub(crate) struct MastForestDfsIter<'forest> {
     pub unvisited_node_stack: Vec<MastNodeId>,
 }
 
-impl<'forest> MastForestDfsIter<'forest> {
+impl<'forest> MastForestNodeIter<'forest> {
     pub(crate) fn new(mast_forest: &'forest MastForest) -> Self {
         let visited = vec![false; mast_forest.num_nodes() as usize];
 
@@ -142,7 +142,7 @@ impl<'forest> MastForestDfsIter<'forest> {
     }
 }
 
-impl<'forest> Iterator for MastForestDfsIter<'forest> {
+impl<'forest> Iterator for MastForestNodeIter<'forest> {
     type Item = (MastNodeId, &'forest MastNode);
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -177,7 +177,7 @@ mod tests {
     #[test]
     fn mast_forest_dfs_empty() {
         let forest = MastForest::new();
-        let mut iterator = MastForestDfsIter::new(&forest);
+        let mut iterator = forest.iter_nodes();
         assert!(iterator.next().is_none());
     }
 
@@ -201,7 +201,7 @@ mod tests {
 
         // Note that the node at index 0 is not visited because it is not reachable from any root
         // and is not a root itself.
-        let mut iterator = MastForestDfsIter::new(&forest);
+        let mut iterator = forest.iter_nodes();
         // Node at id2 should only be visited once.
         assert_matches!(iterator.next().unwrap(), (id, MastNode::External(digest)) if digest.digest() == node2_digest && id == id2);
         assert_matches!(iterator.next().unwrap(), (id, MastNode::External(digest)) if digest.digest() == node3_digest && id == id3);

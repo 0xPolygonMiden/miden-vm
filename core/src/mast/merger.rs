@@ -2,9 +2,7 @@ use alloc::{collections::BTreeMap, vec::Vec};
 
 use miden_crypto::hash::blake::Blake3Digest;
 
-use crate::mast::{
-    DecoratorId, EqHash, MastForest, MastForestDfsIter, MastForestError, MastNode, MastNodeId,
-};
+use crate::mast::{DecoratorId, EqHash, MastForest, MastForestError, MastNode, MastNodeId};
 
 /// A type that allows merging [`MastForest`]s.
 ///
@@ -105,7 +103,7 @@ impl MastForestMerger {
         decorator_id_remapping: &ForestIdMap<DecoratorId>,
         node_id_remapping: &mut ForestIdMap<MastNodeId>,
     ) -> Result<(), MastForestError> {
-        for (merging_id, node) in MastForestDfsIter::new(other_forest) {
+        for (merging_id, node) in other_forest.iter_nodes() {
             // We need to remap the node prior to computing the EqHash.
             //
             // This is because the EqHash computation looks up its descendants and decorators in
