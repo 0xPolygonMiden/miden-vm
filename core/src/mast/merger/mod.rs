@@ -1,4 +1,5 @@
 use alloc::{collections::BTreeMap, vec::Vec};
+use core::ops::ControlFlow;
 
 use miden_crypto::hash::{blake::Blake3Digest, rpo::RpoDigest};
 
@@ -122,13 +123,17 @@ impl MastForestMerger {
             let node_eq =
                 EqHash::from_mast_node(&self.mast_forest, &self.hash_by_node_id, &remapped_node);
 
-            self.merge_external_nodes(
+            match self.merge_external_nodes(
                 merging_id,
                 &node_eq,
                 &remapped_node,
                 node_id_remapping,
-                decorator_id_remapping,
-            )?;
+            )? {
+                // Continue is interpreted as doing nothing.
+                ControlFlow::Continue(_) => (),
+                // Break is interpreted as continue in the loop sense.
+                ControlFlow::Break(_) => continue,
+            }
 
             // If an external node was previously replaced by the remapped node, this will detect
             // them as duplicates here if their fingerprints match exactly and add the appropriate
@@ -208,141 +213,37 @@ impl MastForestMerger {
         node_eq: &EqHash,
         remapped_node: &MastNode,
         node_id_remapping: &mut MastForestIdMap,
-        decorator_id_remapping: &ForestIdMap<DecoratorId>,
-    ) -> Result<(), MastForestError> {
-        // Handle external node in the merging forest.
+    ) -> Result<ControlFlow<()>, MastForestError> {
         if remapped_node.is_external() {
-            // If any non-external node exists, merge them.
-            match self.lookup_non_external_node_by_root(&node_eq) {
+            // If any non-external node exists, use it and drop the external node.
+            match self.lookup_non_external_node_by_root(node_eq) {
                 Some((_, referenced_node_id)) => {
-                    self.merge_external_node(
-                        previous_id,
-                        *node_eq,
-                        &remapped_node,
-                        *referenced_node_id,
-                        decorator_id_remapping,
-                        node_id_remapping,
-                    )?;
+                    node_id_remapping.insert(previous_id, *referenced_node_id);
+                    Ok(ControlFlow::Break(()))
                 },
                 // If no replacement for the external node exists do nothing as `merge_nodes` will
                 // simply add the node to the forest.
-                None => (),
+                None => Ok(ControlFlow::Continue(())),
             }
-        }
+        } else {
+            // Replace all external nodes in self with the given MAST root with the non-external
+            // node from the merging forest.
+            // Any node in the existing forest that pointed to the external node will
+            // have the same MAST root due to the semantics of external nodes.
+            //
+            // By default we assume that no external node will be replaced in which case we want to
+            // `Continue`, otherwis we `Break`.
+            let mut control_flow = ControlFlow::Continue(());
 
-        if !remapped_node.is_external() {
-            // Handle external nodes in self:
-            // Replace all external nodes in self with the given MAST root.
-            for (external_node_fingerprint, external_node_id) in
-                self.lookup_all_external_nodes_by_root(&node_eq).into_iter()
+            for (_, external_node_id) in self.lookup_all_external_nodes_by_root(node_eq).into_iter()
             {
-                self.replace_external_node(
-                    external_node_fingerprint,
-                    external_node_id,
-                    &node_eq,
-                    &remapped_node,
-                    decorator_id_remapping,
-                )?;
+                self.mast_forest[external_node_id] = remapped_node.clone();
+                node_id_remapping.insert(previous_id, external_node_id);
+                control_flow = ControlFlow::Break(());
             }
+
+            Ok(control_flow)
         }
-
-        Ok(())
-    }
-
-    /// Merges an external node from a merging forest into self by merging it with the referenced
-    /// node which must be non-external.
-    fn merge_external_node(
-        &mut self,
-        previous_id: MastNodeId,
-        external_node_fingerprint: EqHash,
-        external_node: &MastNode,
-        referenced_node_id: MastNodeId,
-        decorator_id_remapping: &ForestIdMap<DecoratorId>,
-        node_id_remapping: &mut MastForestIdMap,
-    ) -> Result<(), MastForestError> {
-        let referenced_node = &self.mast_forest[referenced_node_id];
-
-        let map_decorators = |decorators: &[DecoratorId]| {
-            decorators.iter().map(|deco| decorator_id_remapping.get(deco)).collect()
-        };
-
-        let new_node = self.merge_external_node_decorators(
-            map_decorators(external_node.before_enter()),
-            map_decorators(external_node.after_exit()),
-            referenced_node,
-        );
-
-        self.add_merged_node(previous_id, new_node, node_id_remapping, external_node_fingerprint)?;
-
-        Ok(())
-    }
-
-    /// Replace the external node in the existing forest with the non-external node
-    /// from the merging forest.
-    /// Any node in the existing forest that pointed to the external node will
-    /// have the same MAST root due to the semantics of external nodes.
-    fn replace_external_node(
-        &mut self,
-        external_node_fingerprint: EqHash,
-        external_node_id: MastNodeId,
-        merging_node_fingerprint: &EqHash,
-        merging_node: &MastNode,
-        decorator_id_remapping: &ForestIdMap<DecoratorId>,
-    ) -> Result<(), MastForestError> {
-        // Special case: If the fingerprints match, we can replace directly.
-        // Note that the id mapping for the merging node will be updated in `merge_nodes`.
-        if &external_node_fingerprint == merging_node_fingerprint {
-            self.mast_forest[external_node_id] = merging_node.clone();
-
-            return Ok(());
-        }
-
-        let external_node = &self.mast_forest[external_node_id];
-
-        let map_decorators = |decorators: &[DecoratorId]| {
-            decorators.iter().map(|deco| decorator_id_remapping.get(deco)).collect()
-        };
-
-        let replacement_node = self.merge_external_node_decorators(
-            map_decorators(external_node.before_enter()),
-            map_decorators(external_node.before_enter()),
-            merging_node,
-        );
-
-        // This does not need an id mapping entry because the fingerprints did not match and so the
-        // merging node will be added separately to the merged forest.
-        self.mast_forest[external_node_id] = replacement_node;
-
-        Ok(())
-    }
-
-    /// Creates a copy of the given reference node and overwrites its decorators.
-    ///
-    /// Panics if
-    /// - The reference node is an external node.
-    fn merge_external_node_decorators(
-        &self,
-        external_node_before_enter: Vec<DecoratorId>,
-        external_node_after_exit: Vec<DecoratorId>,
-        reference_node: &MastNode,
-    ) -> MastNode {
-        let mut node = match reference_node {
-            MastNode::Block(basic_block_node) => {
-                MastNode::new_basic_block(basic_block_node.operations().copied().collect(), None)
-                    .expect("copying basic block node should succeed")
-            },
-            MastNode::External(_) => {
-                panic!("external node cannot be replaced by other external node")
-            },
-            _ => reference_node.clone(),
-        };
-
-        node.set_before_enter(external_node_before_enter);
-        node.set_after_exit(external_node_after_exit);
-
-        // TODO: Call remap_node here instead of passing in mapped decorators.
-
-        node
     }
 
     /// Remaps a nodes' potentially contained children and decorators to their new IDs according to
@@ -423,26 +324,20 @@ impl MastForestMerger {
     // ================================================================================================
 
     fn lookup_node_by_fingerprint(&self, eq_hash: &EqHash) -> Option<&(EqHash, MastNodeId)> {
-        self.node_id_by_hash
-            .get(&eq_hash.mast_root)
-            .map(|node_ids| {
-                node_ids.iter().find(|(node_fingerprint, _)| node_fingerprint == eq_hash)
-            })
-            .flatten()
+        self.node_id_by_hash.get(&eq_hash.mast_root).and_then(|node_ids| {
+            node_ids.iter().find(|(node_fingerprint, _)| node_fingerprint == eq_hash)
+        })
     }
 
     fn lookup_non_external_node_by_root(
         &self,
         fingerprint: &EqHash,
     ) -> Option<&(EqHash, MastNodeId)> {
-        self.node_id_by_hash
-            .get(&fingerprint.mast_root)
-            .map(|node_ids| {
-                node_ids.iter().find(|(node_fingerprint, node_id)| {
-                    !self.mast_forest[*node_id].is_external() && node_fingerprint != fingerprint
-                })
+        self.node_id_by_hash.get(&fingerprint.mast_root).and_then(|node_ids| {
+            node_ids.iter().find(|(node_fingerprint, node_id)| {
+                !self.mast_forest[*node_id].is_external() && node_fingerprint != fingerprint
             })
-            .flatten()
+        })
     }
 
     fn lookup_all_external_nodes_by_root(&self, fingerprint: &EqHash) -> Vec<(EqHash, MastNodeId)> {
@@ -520,12 +415,6 @@ trait ForestId: Clone + Copy {
 impl ForestId for DecoratorId {
     fn as_usize(&self) -> usize {
         DecoratorId::as_usize(self)
-    }
-}
-
-impl ForestId for MastNodeId {
-    fn as_usize(&self) -> usize {
-        MastNodeId::as_usize(self)
     }
 }
 
