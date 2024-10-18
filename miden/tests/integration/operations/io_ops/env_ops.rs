@@ -1,10 +1,12 @@
 use assembly::SourceManager;
 use processor::FMP_MIN;
-use test_utils::{build_op_test, build_test, StackInputs, Test, Word, STACK_TOP_SIZE};
+use test_utils::{build_op_test, build_test, StackInputs, Test, Word, MIN_STACK_DEPTH};
 use vm_core::{
     mast::{MastForest, MastNode},
     Operation,
 };
+
+use super::TRUNCATE_STACK_PROC;
 
 // SDEPTH INSTRUCTION
 // ================================================================================================
@@ -15,15 +17,27 @@ fn sdepth() {
 
     // --- empty stack ----------------------------------------------------------------------------
     let test = build_op_test!(test_op);
-    test.expect_stack(&[STACK_TOP_SIZE as u64]);
+    test.expect_stack(&[MIN_STACK_DEPTH as u64]);
 
     // --- multi-element stack --------------------------------------------------------------------
     let test = build_op_test!(test_op, &[2, 4, 6, 8, 10]);
-    test.expect_stack(&[STACK_TOP_SIZE as u64, 10, 8, 6, 4, 2]);
+    test.expect_stack(&[MIN_STACK_DEPTH as u64, 10, 8, 6, 4, 2]);
 
     // --- overflowed stack -----------------------------------------------------------------------
     // push 2 values to increase the lenth of the stack beyond 16
-    let source = format!("begin push.1 push.1 {test_op} end");
+    let source = format!(
+        "
+    {TRUNCATE_STACK_PROC}
+
+    begin 
+        push.1 
+        push.1 
+        {test_op} 
+        
+        exec.truncate_stack 
+    end
+    "
+    );
     let test = build_test!(&source, &[0, 1, 2, 3, 4, 5, 6, 7, 0, 1, 2, 3, 4, 5, 6, 7]);
     test.expect_stack(&[18, 1, 1, 7, 6, 5, 4, 3, 2, 1, 0, 7, 6, 5, 4, 3]);
 }
@@ -41,6 +55,7 @@ fn locaddr() {
         end
         begin
             exec.foo
+            swapw dropw
         end";
 
     let test = build_test!(source, &[10]);
@@ -60,13 +75,17 @@ fn locaddr() {
         end
         begin
             exec.foo
+            swapdw dropw dropw
         end";
 
     let test = build_test!(source, &[10, 1, 2, 3, 4, 5]);
     test.expect_stack(&[4, 3, 2, 1, 5, 10]);
 
     // --- locaddr returns expected addresses in nested procedures --------------------------------
-    let source = "
+    let source = format!(
+        "
+        {TRUNCATE_STACK_PROC}
+
         proc.foo.3
             locaddr.0
             locaddr.1
@@ -80,7 +99,10 @@ fn locaddr() {
         begin
             exec.bar
             exec.foo
-        end";
+
+            exec.truncate_stack
+        end"
+    );
 
     let test = build_test!(source, &[10]);
     test.expect_stack(&[
@@ -118,6 +140,7 @@ fn locaddr() {
         end
         begin
             exec.bar
+            swapdw dropw dropw
         end";
 
     let test = build_test!(source, &[10, 1, 2, 3, 4, 5, 6, 7]);
@@ -181,7 +204,7 @@ fn build_bar_hash() -> [u64; 4] {
 #[test]
 fn clk() {
     let test = build_op_test!("clk");
-    test.expect_stack(&[1]);
+    test.expect_stack(&[2]);
 
     let source = "
         proc.foo
@@ -189,8 +212,10 @@ fn clk() {
             push.4
             clk
         end
+
         begin
             exec.foo
+            swapw dropw
         end";
 
     let test = build_test!(source, &[]);

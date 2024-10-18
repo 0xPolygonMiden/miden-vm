@@ -37,7 +37,10 @@ fn test_hash_empty() {
         mem_stream hperm
 
         # drop everything except the hash
-        exec.rpo::squeeze_digest movup.4 drop
+        exec.rpo::squeeze_digest movup.4 drop 
+        
+        # truncate stack
+        swapw dropw
     end
     ";
 
@@ -57,6 +60,9 @@ fn test_hash_empty() {
         push.1000 # start address
 
         exec.rpo::hash_memory_words
+
+        # truncate stack
+        swapw dropw
     end
     ";
 
@@ -79,6 +85,9 @@ fn test_single_iteration() {
 
         # drop everything except the hash
         exec.rpo::squeeze_digest movup.4 drop
+
+        # truncate stack
+        swapw dropw
     end
     ";
 
@@ -103,6 +112,9 @@ fn test_single_iteration() {
         push.1000 # start address
 
         exec.rpo::hash_memory_words
+
+        # truncate stack
+        swapw dropw
     end
     ";
 
@@ -131,6 +143,9 @@ fn test_hash_one_word() {
         push.1000 # start address
 
         exec.rpo::hash_memory_words
+
+        # truncate stack
+        swapw dropw
     end
     ";
 
@@ -151,6 +166,9 @@ fn test_hash_even_words() {
         push.1000 # start address
 
         exec.rpo::hash_memory_words
+
+        # truncate stack
+        swapw dropw
     end
     ";
 
@@ -177,6 +195,9 @@ fn test_hash_odd_words() {
         push.1000 # start address
 
         exec.rpo::hash_memory_words
+
+        # truncate stack
+        swapw dropw
     end
     ";
 
@@ -192,6 +213,7 @@ fn test_hash_odd_words() {
 #[test]
 fn test_absorb_double_words_from_memory() {
     let even_words = "
+    use.std::sys
     use.std::crypto::hashes::rpo
 
     begin
@@ -202,6 +224,9 @@ fn test_absorb_double_words_from_memory() {
         push.1000      # start address
         padw padw padw # hasher state
         exec.rpo::absorb_double_words_from_memory
+
+        # truncate stack
+        exec.sys::truncate_stack
     end
     ";
 
@@ -236,6 +261,9 @@ fn test_squeeze_digest() {
         exec.rpo::absorb_double_words_from_memory
 
         exec.rpo::squeeze_digest
+
+        # truncate stack
+        swapdw dropw dropw
     end
     ";
 
@@ -268,6 +296,9 @@ fn test_hash_memory() {
         push.5.1000
 
         exec.rpo::hash_memory
+
+        # truncate stack
+        swapdw dropw dropw
     end
     ";
 
@@ -291,6 +322,9 @@ fn test_hash_memory() {
         push.8.1000
 
         exec.rpo::hash_memory
+
+        # truncate stack
+        swapdw dropw dropw
     end
     ";
 
@@ -316,6 +350,9 @@ fn test_hash_memory() {
         push.15.1000
 
         exec.rpo::hash_memory
+
+        # truncate stack
+        swapdw dropw dropw
     end
     ";
 
@@ -335,6 +372,7 @@ fn test_hash_memory() {
 fn test_hash_memory_empty() {
     // absorb_double_words_from_memory
     let source = "
+    use.std::sys
     use.std::crypto::hashes::rpo
 
     begin
@@ -343,6 +381,9 @@ fn test_hash_memory_empty() {
         padw padw padw # hasher state
 
         exec.rpo::absorb_double_words_from_memory
+
+        # truncate stack
+        exec.sys::truncate_stack
     end
     ";
 
@@ -361,6 +402,9 @@ fn test_hash_memory_empty() {
         push.1000 # start address
 
         exec.rpo::hash_memory_words
+
+        # truncate stack
+        swapw dropw
     end
     ";
 
@@ -375,6 +419,9 @@ fn test_hash_memory_empty() {
         push.1000 # start address
 
         exec.rpo::hash_memory
+
+        # truncate stack
+        swapw dropw
     end
     ";
 

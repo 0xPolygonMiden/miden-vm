@@ -440,7 +440,7 @@ fn u32div_fail() {
 
     // should fail if b == 0.
     let test = build_op_test!(asm_op, &[1, 0]);
-    expect_exec_error!(test, ExecutionError::DivideByZero(1.into()));
+    expect_exec_error!(test, ExecutionError::DivideByZero(2.into()));
 }
 
 #[test]
@@ -478,7 +478,7 @@ fn u32mod_fail() {
 
     // should fail if b == 0
     let test = build_op_test!(asm_op, &[1, 0]);
-    expect_exec_error!(test, ExecutionError::DivideByZero(1.into()));
+    expect_exec_error!(test, ExecutionError::DivideByZero(2.into()));
 }
 
 #[test]
@@ -521,7 +521,7 @@ fn u32divmod_fail() {
 
     // should fail if b == 0.
     let test = build_op_test!(asm_op, &[1, 0]);
-    expect_exec_error!(test, ExecutionError::DivideByZero(1.into()));
+    expect_exec_error!(test, ExecutionError::DivideByZero(2.into()));
 }
 
 // U32 OPERATIONS TESTS - RANDOMIZED - ARITHMETIC OPERATIONS

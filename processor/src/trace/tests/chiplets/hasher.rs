@@ -810,9 +810,8 @@ fn build_expected(
         // include the entire state (words a, b, c)
         value += build_value(&alphas[4..16], &state);
     } else if label == LINEAR_HASH_LABEL {
-        // include the delta between the next and current rate elements (words b and c)
+        // include the next rate elements
         value += build_value(&alphas[8..16], &next_state[CAPACITY_LEN..]);
-        value -= build_value(&alphas[8..16], &state[CAPACITY_LEN..]);
     } else if label == RETURN_HASH_LABEL {
         // include the digest (word b)
         value += build_value(&alphas[8..12], &state[DIGEST_RANGE]);

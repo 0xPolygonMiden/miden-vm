@@ -55,12 +55,11 @@ fn get_block_stack_table_removal_multiplicand<E: FieldElement<BaseField = Felt>>
     alphas: &[E],
 ) -> E {
     let block_id = main_trace.addr(i);
-    let parent_id = if is_respan {
-        main_trace.decoder_hasher_state_element(1, i + 1)
+    let (parent_id, is_loop) = if is_respan {
+        (main_trace.decoder_hasher_state_element(1, i + 1), ZERO)
     } else {
-        main_trace.addr(i + 1)
+        (main_trace.addr(i + 1), main_trace.is_loop_flag(i))
     };
-    let is_loop = main_trace.is_loop_flag(i);
 
     let elements = if main_trace.is_call_flag(i) == ONE || main_trace.is_syscall_flag(i) == ONE {
         let parent_ctx = main_trace.ctx(i + 1);

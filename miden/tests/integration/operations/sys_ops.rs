@@ -24,7 +24,7 @@ fn assert_with_code() {
     expect_exec_error!(
         test,
         ExecutionError::FailedAssertion {
-            clk: 1.into(),
+            clk: 2.into(),
             err_code: 123,
             err_msg: None,
         }
@@ -39,7 +39,7 @@ fn assert_fail() {
     expect_exec_error!(
         test,
         ExecutionError::FailedAssertion {
-            clk: 1.into(),
+            clk: 2.into(),
             err_code: 0,
             err_msg: None,
         }
@@ -65,7 +65,7 @@ fn assert_eq_fail() {
     expect_exec_error!(
         test,
         ExecutionError::FailedAssertion {
-            clk: 2.into(),
+            clk: 3.into(),
             err_code: 0,
             err_msg: None,
         }
@@ -75,7 +75,7 @@ fn assert_eq_fail() {
     expect_exec_error!(
         test,
         ExecutionError::FailedAssertion {
-            clk: 2.into(),
+            clk: 3.into(),
             err_code: 0,
             err_msg: None,
         }

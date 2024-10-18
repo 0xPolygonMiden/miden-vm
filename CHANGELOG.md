@@ -24,8 +24,9 @@
 
 - Fixed an issue with formatting of blocks in Miden Assembly syntax
 - Fixed the construction of the block hash table (#1506)
-- Fixed a bug in the block stack table (#1511)
+- Fixed a bug in the block stack table (#1511) (#1512)
 - Fixed the construction of the chiplets virtual table (#1514)
+- Fixed the construction of the chiplets bus (#1516) (#1525)
 
 #### Fixes
 
@@ -74,6 +75,7 @@
 
 - [BREAKING] Replaced `SourceManager` parameter with `Assembler` in `Library::from_dir` (#1445).
 - [BREAKING] Moved `Library` and `KernelLibrary` exports to the root of the `miden-assembly` crate. (#1445).
+- [BREAKING] Depth of the input and output stack was restricted to 16 (#1456).
 
 ## 0.10.2 (2024-08-10)
 

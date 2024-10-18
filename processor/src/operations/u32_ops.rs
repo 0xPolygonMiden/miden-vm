@@ -241,8 +241,9 @@ where
 
 #[cfg(test)]
 mod tests {
-    use miden_air::trace::{decoder::NUM_USER_OP_HELPERS, stack::STACK_TOP_SIZE};
+    use miden_air::trace::decoder::NUM_USER_OP_HELPERS;
     use test_utils::rand::rand_value;
+    use vm_core::stack::MIN_STACK_DEPTH;
 
     use super::{
         super::{Felt, Operation},
@@ -466,8 +467,8 @@ mod tests {
         (d, c, b, a)
     }
 
-    fn build_expected(values: &[u32]) -> [Felt; STACK_TOP_SIZE] {
-        let mut expected = [ZERO; STACK_TOP_SIZE];
+    fn build_expected(values: &[u32]) -> [Felt; MIN_STACK_DEPTH] {
+        let mut expected = [ZERO; MIN_STACK_DEPTH];
         for (&value, result) in values.iter().zip(expected.iter_mut()) {
             *result = Felt::new(value as u64);
         }

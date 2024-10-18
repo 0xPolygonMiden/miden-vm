@@ -1,6 +1,6 @@
 use std::ops::Add;
 
-use test_utils::{rand::rand_array, Felt, FieldElement};
+use test_utils::{push_inputs, rand::rand_array, Felt, FieldElement};
 
 use crate::math::ecgfp5::{base_field::Ext5, group::ECExt5};
 
@@ -39,9 +39,12 @@ fn test_elgamal_keygen() {
 
     let source = "
         use.std::crypto::elgamal_ecgfp5
+        use.std::sys
 
         begin
             exec.elgamal_ecgfp5::gen_privatekey
+
+            exec.sys::truncate_stack
         end
     ";
 
@@ -94,9 +97,12 @@ fn test_elgamal_encrypt() {
 
     let source = "
         use.std::crypto::elgamal_ecgfp5
+        use.std::sys
 
         begin
             exec.elgamal_ecgfp5::encrypt_ca
+
+            exec.sys::truncate_stack
         end
     ";
 
@@ -164,18 +170,24 @@ fn test_elgamal_encrypt() {
         pm.y.a4.as_int(),
         pm.point_at_infinity.as_int(),
     ];
-
-    let source = "
-        use.std::crypto::elgamal_ecgfp5
-
-        begin
-            exec.elgamal_ecgfp5::encrypt_cb
-        end
-    ";
-
     stack.reverse();
 
-    let test = build_test!(source, &stack);
+    let source = format!(
+        "
+        use.std::crypto::elgamal_ecgfp5
+        use.std::sys
+
+        begin
+            {inputs}
+            exec.elgamal_ecgfp5::encrypt_cb
+
+            exec.sys::truncate_stack
+        end
+    ",
+        inputs = push_inputs(&stack)
+    );
+
+    let test = build_test!(source, &[]);
     let strace = test.get_last_stack_state();
 
     assert_eq!(strace[0], cb.x.a0);
@@ -227,14 +239,6 @@ fn test_elgamal_remask() {
     let c_prime_a = ca.add(r_prime_g);
     let c_prime_b = cb.add(r_prime_h);
 
-    let source = "
-        use.std::crypto::elgamal_ecgfp5
-
-        begin
-            exec.elgamal_ecgfp5::remask_ca
-        end
-    ";
-
     let mut stack = [
         r_prime[0] as u64,
         r_prime[1] as u64,
@@ -260,7 +264,22 @@ fn test_elgamal_remask() {
     ];
     stack.reverse();
 
-    let test = build_test!(source, &stack);
+    let source = format!(
+        "
+        use.std::crypto::elgamal_ecgfp5
+        use.std::sys
+
+        begin
+            {inputs}
+            exec.elgamal_ecgfp5::remask_ca
+
+            exec.sys::truncate_stack
+        end
+    ",
+        inputs = push_inputs(&stack)
+    );
+
+    let test = build_test!(source, &[]);
     let strace = test.get_last_stack_state();
 
     assert_eq!(strace[0], c_prime_a.x.a0);
@@ -274,14 +293,6 @@ fn test_elgamal_remask() {
     assert_eq!(strace[8], c_prime_a.y.a3);
     assert_eq!(strace[9], c_prime_a.y.a4);
     assert_eq!(strace[10], c_prime_a.point_at_infinity);
-
-    let source = "
-        use.std::crypto::elgamal_ecgfp5
-
-        begin
-            exec.elgamal_ecgfp5::remask_cb
-        end
-    ";
 
     let mut stack = [
         h.x.a0.as_int(),
@@ -319,7 +330,22 @@ fn test_elgamal_remask() {
     ];
     stack.reverse();
 
-    let test = build_test!(source, &stack);
+    let source = format!(
+        "
+        use.std::crypto::elgamal_ecgfp5
+        use.std::sys
+
+        begin
+            {inputs}
+            exec.elgamal_ecgfp5::remask_cb
+
+            exec.sys::truncate_stack
+        end
+    ",
+        inputs = push_inputs(&stack)
+    );
+
+    let test = build_test!(source, &[]);
     let strace = test.get_last_stack_state();
 
     assert_eq!(strace[0], c_prime_b.x.a0);

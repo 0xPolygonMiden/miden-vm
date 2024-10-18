@@ -1,4 +1,4 @@
-use vm_core::stack::STACK_TOP_SIZE;
+use vm_core::stack::MIN_STACK_DEPTH;
 
 use super::{ExecutionError, Felt, FieldElement, Host, Operation, Process};
 
