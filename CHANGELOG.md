@@ -17,7 +17,8 @@
 - Debug instructions can be enabled in the cli `run` command using `--debug` flag (#1502)
 - [BREAKING] ExecutionOptions::new constructor requires a boolean to explicitly set debug mode (#1502)
 - [BREAKING] The `run` and the `prove` commands in the cli will accept `--trace` flag instead of `--tracing` (#1502)
-
+- Migrated to new padding rule for RPO (#1343).
+- Migrated to `miden-crypto` v0.11.0 (#1343).
 
 #### Fixes
 
@@ -26,13 +27,9 @@
 - Fixed a bug in the block stack table (#1511) (#1512)
 - Fixed the construction of the chiplets virtual table (#1514)
 - Fixed the construction of the chiplets bus (#1516) (#1525)
-
-#### Fixes
-
 - Decorators are now allowed in empty basic blocks (#1466)
 
-
-## 0.10.6 (2024-09-12) - `miden-processor` crate only.
+## 0.10.6 (2024-09-12) - `miden-processor` crate only
 
 #### Enhancements
 
@@ -159,6 +156,8 @@
 #### Stdlib
 
 - Added `init_no_padding` procedure to `std::crypto::hashes::native` (#1313).
+- [BREAKING] `native` module was renamed to the `rpo`, `hash_memory` procedure was renamed to the `hash_memory_words` (#1368).
+- Added `hash_memory` procedure to `std::crypto::hashes::rpo` (#1368).
 
 #### VM Internals
 

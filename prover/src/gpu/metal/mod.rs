@@ -688,7 +688,7 @@ where
     E: FieldElement<BaseField = Felt>,
     I: IntoIterator<Item = Vec<E>>;
 
-impl<E, I, const N: usize> Iterator for SegmentIterator<'_, '_, E, I, N>
+impl<E, I, const N: usize> Iterator for SegmentIterator<E, I, N>
 where
     E: FieldElement<BaseField = Felt>,
     I: IntoIterator<Item = Vec<E>>,

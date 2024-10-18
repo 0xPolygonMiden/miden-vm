@@ -1,4 +1,5 @@
 use.std::crypto::stark::constants
+use.std::crypto::hashes::rpo
 
 
 #! Loads OOD evaluation frame, with current and next rows interleaved, into memory. This ouputs
@@ -105,7 +106,7 @@ export.load_constraint_evaluations
 
     hperm
 
-    dropw swapw dropw
+    exec.rpo::squeeze_digest
 end
 
 #! Computes the H(z) evaluation of the constraint composition polynomial at the OOD element z.
