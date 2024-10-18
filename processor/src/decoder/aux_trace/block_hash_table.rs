@@ -1,7 +1,7 @@
 use miden_air::RowIndex;
 use vm_core::{
-    Word, OPCODE_CALL, OPCODE_DYN, OPCODE_END, OPCODE_HALT, OPCODE_JOIN, OPCODE_LOOP,
-    OPCODE_REPEAT, OPCODE_SPLIT, OPCODE_SYSCALL, ZERO,
+    Word, OPCODE_CALL, OPCODE_DYN, OPCODE_DYNCALL, OPCODE_END, OPCODE_HALT, OPCODE_JOIN,
+    OPCODE_LOOP, OPCODE_REPEAT, OPCODE_SPLIT, OPCODE_SYSCALL, ZERO,
 };
 
 use super::{AuxColumnBuilder, Felt, FieldElement, MainTrace, ONE};
@@ -55,7 +55,9 @@ impl<E: FieldElement<BaseField = Felt>> AuxColumnBuilder<E> for BlockHashTableCo
                 .map(|row| row.collapse(alphas))
                 .unwrap_or(E::ONE),
             OPCODE_REPEAT => BlockHashTableRow::from_repeat(main_trace, row).collapse(alphas),
-            OPCODE_DYN => BlockHashTableRow::from_dyn(main_trace, row).collapse(alphas),
+            OPCODE_DYN | OPCODE_DYNCALL => {
+                BlockHashTableRow::from_dyn_or_dyncall(main_trace, row).collapse(alphas)
+            },
             OPCODE_CALL | OPCODE_SYSCALL => {
                 BlockHashTableRow::from_call_or_syscall(main_trace, row).collapse(alphas)
             },
@@ -209,21 +211,12 @@ impl BlockHashTableRow {
         }
     }
 
-    /// Computes the row to add to the block hash table when encountering a `DYN` operation.
-    pub fn from_dyn(main_trace: &MainTrace, row: RowIndex) -> Self {
-        let child_block_hash = {
-            // Note: the child block hash is found on the stack, and hence in reverse order.
-            let s0 = main_trace.stack_element(0, row);
-            let s1 = main_trace.stack_element(1, row);
-            let s2 = main_trace.stack_element(2, row);
-            let s3 = main_trace.stack_element(3, row);
-
-            [s3, s2, s1, s0]
-        };
-
+    /// Computes the row to add to the block hash table when encountering a `DYN` or `DYNCALL`
+    /// operation.
+    pub fn from_dyn_or_dyncall(main_trace: &MainTrace, row: RowIndex) -> Self {
         Self {
             parent_block_id: main_trace.addr(row + 1),
-            child_block_hash,
+            child_block_hash: main_trace.decoder_hasher_state_first_half(row),
             is_first_child: false,
             is_loop_body: false,
         }

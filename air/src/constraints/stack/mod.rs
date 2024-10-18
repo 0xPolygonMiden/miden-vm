@@ -290,8 +290,8 @@ trait EvaluationFrameExt<E: FieldElement> {
     fn user_op_helper(&self, index: usize) -> E;
 
     /// Returns the value if the `h6` helper register in the decoder which is set to ONE if the
-    /// ending block is a `CALL` block.
-    fn is_call_end(&self) -> E;
+    /// ending block is a `CALL` or `DYNCALL` block.
+    fn is_call_or_dyncall_end(&self) -> E;
 
     /// Returns the value if the `h7` helper register in the decoder which is set to ONE if the
     /// ending block is a `SYSCALL` block.
@@ -359,7 +359,7 @@ impl<E: FieldElement> EvaluationFrameExt<E> for &EvaluationFrame<E> {
     }
 
     #[inline]
-    fn is_call_end(&self) -> E {
+    fn is_call_or_dyncall_end(&self) -> E {
         self.current()[DECODER_TRACE_OFFSET + IS_CALL_FLAG_COL_IDX]
     }
 

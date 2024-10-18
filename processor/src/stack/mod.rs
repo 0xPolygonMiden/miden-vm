@@ -244,6 +244,54 @@ impl Stack {
     // CONTEXT MANAGEMENT
     // --------------------------------------------------------------------------------------------
 
+    /// Shifts the stack left, writes the default values for the stack helper registers in the trace
+    /// (stack depth and next overflow address), and returns the value of those helper registers
+    /// before the new context wipe.
+    ///
+    /// This specialized method is needed because the other ones write the updated helper register
+    /// values directly to the trace in the next row. However, the dyncall instruction needs to
+    /// shift the stack left, and start a new context simultaneously (and hence reset the stack
+    /// helper registers to their default value). It is assumed that the caller will write the
+    /// return values somewhere else in the trace.
+    pub fn shift_left_and_start_context(&mut self) -> (usize, Felt) {
+        const START_POSITION: usize = 1;
+
+        // shift stack columns
+        match self.active_depth {
+            0..=MAX_TOP_IDX => unreachable!("stack underflow"),
+            MIN_STACK_DEPTH => {
+                // Shift in a ZERO, to prevent depth shrinking below the minimum stack depth.
+                self.trace.stack_shift_left_no_helpers(self.clk, START_POSITION, ZERO, None);
+            },
+            _ => {
+                // Update the stack & overflow table.
+                let from_overflow = self.overflow.pop(u64::from(self.clk));
+                self.trace.stack_shift_left_no_helpers(
+                    self.clk,
+                    START_POSITION,
+                    from_overflow,
+                    Some(self.overflow.last_row_addr()),
+                );
+
+                // Stack depth only decreases when it is greater than the minimum stack depth.
+                self.active_depth -= 1;
+                self.full_depth -= 1;
+            },
+        }
+
+        // reset the helper columns to their default value, and write those to the trace in the next
+        // row.
+        let (next_depth, next_overflow_addr) = self.start_context();
+        self.trace.set_helpers_at(
+            self.clk.as_usize(),
+            Felt::from(self.active_depth as u32),
+            self.overflow.last_row_addr(),
+        );
+
+        // return the helper registers' state before the new context
+        (next_depth, next_overflow_addr)
+    }
+
     /// Starts a new execution context for this stack and returns a tuple consisting of the current
     /// stack depth and the address of the overflow table row prior to starting the new context.
     ///

@@ -111,6 +111,7 @@ pub(super) mod opcode_constants {
     pub const OPCODE_RCOMBBASE: u8  = 0b0101_1001;
     pub const OPCODE_EMIT: u8       = 0b0101_1010;
     pub const OPCODE_PUSH: u8       = 0b0101_1011;
+    pub const OPCODE_DYNCALL: u8    = 0b0101_1100;
 
     pub const OPCODE_MRUPDATE: u8   = 0b0110_0000;
     /* unused:                        0b0110_0100 */
@@ -183,6 +184,9 @@ pub enum Operation {
 
     /// Marks the beginning of a dynamic code block, where the target is specified by the stack.
     Dyn = OPCODE_DYN,
+
+    /// Marks the beginning of a dynamic function call, where the target is specified by the stack.
+    Dyncall = OPCODE_DYNCALL,
 
     /// Marks the beginning of a kernel call.
     SysCall = OPCODE_SYSCALL,
@@ -589,8 +593,10 @@ impl Operation {
         }
     }
 
-    /// Returns true if this operation is a control operation.
-    pub fn is_control_op(&self) -> bool {
+    /// Returns true if this operation writes any data to the decoder hasher registers.
+    ///
+    /// In other words, if so, then the user op helper registers are not available.
+    pub fn populates_decoder_hasher_registers(&self) -> bool {
         matches!(
             self,
             Self::End
@@ -603,7 +609,6 @@ impl Operation {
                 | Self::Halt
                 | Self::Call
                 | Self::SysCall
-                | Self::Dyn
         )
     }
 }
@@ -634,6 +639,7 @@ impl fmt::Display for Operation {
             Self::Split => write!(f, "split"),
             Self::Loop => write!(f, "loop"),
             Self::Call => writeln!(f, "call"),
+            Self::Dyncall => writeln!(f, "dyncall"),
             Self::SysCall => writeln!(f, "syscall"),
             Self::Dyn => writeln!(f, "dyn"),
             Self::Span => write!(f, "span"),
@@ -771,6 +777,7 @@ impl Serializable for Operation {
             | Operation::Loop
             | Operation::Call
             | Operation::Dyn
+            | Operation::Dyncall
             | Operation::SysCall
             | Operation::Span
             | Operation::End
@@ -950,6 +957,7 @@ impl Deserializable for Operation {
             OPCODE_SPAN => Self::Span,
             OPCODE_JOIN => Self::Join,
             OPCODE_DYN => Self::Dyn,
+            OPCODE_DYNCALL => Self::Dyncall,
             OPCODE_RCOMBBASE => Self::RCombBase,
 
             OPCODE_MRUPDATE => Self::MrUpdate,
