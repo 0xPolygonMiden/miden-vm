@@ -67,7 +67,7 @@ impl MastForestMerger {
     /// Merges `other_forest` into the forest contained in self.
     pub(crate) fn merge(&mut self, other_forest: &MastForest) -> Result<(), MastForestError> {
         let mut decorator_id_remapping = ForestIdMap::new(other_forest.decorators.len());
-        let mut node_id_remapping = ForestIdMap::new(other_forest.nodes.len());
+        let mut node_id_remapping = MastForestIdMap::new();
 
         self.merge_decorators(other_forest, &mut decorator_id_remapping)?;
         self.merge_nodes(other_forest, &decorator_id_remapping, &mut node_id_remapping)?;
@@ -104,7 +104,7 @@ impl MastForestMerger {
         &mut self,
         other_forest: &MastForest,
         decorator_id_remapping: &ForestIdMap<DecoratorId>,
-        node_id_remapping: &mut ForestIdMap<MastNodeId>,
+        node_id_remapping: &mut MastForestIdMap,
     ) -> Result<(), MastForestError> {
         for (merging_id, node) in other_forest.iter_nodes() {
             // We need to remap the node prior to computing the EqHash.
@@ -122,7 +122,13 @@ impl MastForestMerger {
             let node_eq =
                 EqHash::from_mast_node(&self.mast_forest, &self.hash_by_node_id, &remapped_node);
 
-            self.merge_external_nodes(merging_id, &node_eq, &remapped_node, node_id_remapping)?;
+            self.merge_external_nodes(
+                merging_id,
+                &node_eq,
+                &remapped_node,
+                node_id_remapping,
+                decorator_id_remapping,
+            )?;
 
             // If an external node was previously replaced by the remapped node, this will detect
             // them as duplicates here if their fingerprints match exactly and add the appropriate
@@ -144,15 +150,16 @@ impl MastForestMerger {
     fn merge_roots(
         &mut self,
         other_forest: &MastForest,
-        node_id_remapping: &ForestIdMap<MastNodeId>,
+        node_id_remapping: &MastForestIdMap,
     ) -> Result<(), MastForestError> {
         for root_id in other_forest.roots.iter() {
             // Map the previous root to its possibly new id.
-            let new_root = node_id_remapping.get(root_id);
+            let new_root =
+                node_id_remapping.get(root_id).expect("all node ids should have an entry");
             // This will take O(n) every time to check if the root already exists.
             // We could improve this by keeping a BTreeSet<MastNodeId> of existing roots during
             // merging for a faster check.
-            self.mast_forest.make_root(new_root);
+            self.mast_forest.make_root(*new_root);
         }
 
         Ok(())
@@ -162,7 +169,7 @@ impl MastForestMerger {
         &mut self,
         previous_id: MastNodeId,
         node: MastNode,
-        node_id_remapping: &mut ForestIdMap<MastNodeId>,
+        node_id_remapping: &mut MastForestIdMap,
         node_eq: EqHash,
     ) -> Result<(), MastForestError> {
         let new_node_id = self.mast_forest.add_node(node)?;
@@ -200,7 +207,8 @@ impl MastForestMerger {
         previous_id: MastNodeId,
         node_eq: &EqHash,
         remapped_node: &MastNode,
-        node_id_remapping: &mut ForestIdMap<MastNodeId>,
+        node_id_remapping: &mut MastForestIdMap,
+        decorator_id_remapping: &ForestIdMap<DecoratorId>,
     ) -> Result<(), MastForestError> {
         // Handle external node in the merging forest.
         if remapped_node.is_external() {
@@ -212,6 +220,7 @@ impl MastForestMerger {
                         *node_eq,
                         &remapped_node,
                         *referenced_node_id,
+                        decorator_id_remapping,
                         node_id_remapping,
                     )?;
                 },
@@ -232,6 +241,7 @@ impl MastForestMerger {
                     external_node_id,
                     &node_eq,
                     &remapped_node,
+                    decorator_id_remapping,
                 )?;
             }
         }
@@ -247,13 +257,18 @@ impl MastForestMerger {
         external_node_fingerprint: EqHash,
         external_node: &MastNode,
         referenced_node_id: MastNodeId,
-        node_id_remapping: &mut ForestIdMap<MastNodeId>,
+        decorator_id_remapping: &ForestIdMap<DecoratorId>,
+        node_id_remapping: &mut MastForestIdMap,
     ) -> Result<(), MastForestError> {
         let referenced_node = &self.mast_forest[referenced_node_id];
 
+        let map_decorators = |decorators: &[DecoratorId]| {
+            decorators.iter().map(|deco| decorator_id_remapping.get(deco)).collect()
+        };
+
         let new_node = self.merge_external_node_decorators(
-            external_node.before_enter(),
-            external_node.after_exit(),
+            map_decorators(external_node.before_enter()),
+            map_decorators(external_node.after_exit()),
             referenced_node,
         );
 
@@ -272,6 +287,7 @@ impl MastForestMerger {
         external_node_id: MastNodeId,
         merging_node_fingerprint: &EqHash,
         merging_node: &MastNode,
+        decorator_id_remapping: &ForestIdMap<DecoratorId>,
     ) -> Result<(), MastForestError> {
         // Special case: If the fingerprints match, we can replace directly.
         // Note that the id mapping for the merging node will be updated in `merge_nodes`.
@@ -283,9 +299,13 @@ impl MastForestMerger {
 
         let external_node = &self.mast_forest[external_node_id];
 
+        let map_decorators = |decorators: &[DecoratorId]| {
+            decorators.iter().map(|deco| decorator_id_remapping.get(deco)).collect()
+        };
+
         let replacement_node = self.merge_external_node_decorators(
-            external_node.before_enter(),
-            external_node.after_exit(),
+            map_decorators(external_node.before_enter()),
+            map_decorators(external_node.before_enter()),
             merging_node,
         );
 
@@ -302,8 +322,8 @@ impl MastForestMerger {
     /// - The reference node is an external node.
     fn merge_external_node_decorators(
         &self,
-        external_node_before_enter: &[DecoratorId],
-        external_node_after_exit: &[DecoratorId],
+        external_node_before_enter: Vec<DecoratorId>,
+        external_node_after_exit: Vec<DecoratorId>,
         reference_node: &MastNode,
     ) -> MastNode {
         let mut node = match reference_node {
@@ -317,8 +337,10 @@ impl MastForestMerger {
             _ => reference_node.clone(),
         };
 
-        node.set_before_enter(external_node_before_enter.to_vec());
-        node.set_after_exit(external_node_after_exit.to_vec());
+        node.set_before_enter(external_node_before_enter);
+        node.set_after_exit(external_node_after_exit);
+
+        // TODO: Call remap_node here instead of passing in mapped decorators.
 
         node
     }
@@ -329,13 +351,18 @@ impl MastForestMerger {
         &self,
         node: &MastNode,
         decorator_id_remapping: &ForestIdMap<DecoratorId>,
-        node_id_remapping: &ForestIdMap<MastNodeId>,
+        node_id_remapping: &MastForestIdMap,
     ) -> MastNode {
         let map_decorator_id =
             |decorator_id: &DecoratorId| decorator_id_remapping.get(decorator_id);
         let map_decorators =
             |decorators: &[DecoratorId]| decorators.iter().map(map_decorator_id).collect();
-        let map_node_id = |node_id: MastNodeId| node_id_remapping.get(&node_id);
+        let map_node_id = |node_id: MastNodeId| {
+            node_id_remapping
+                .get(&node_id)
+                .copied()
+                .expect("every node id should have an entry")
+        };
 
         // Due to DFS postorder iteration all children of node's should have been inserted before
         // their parents which is why we can `expect` the constructor calls here.
@@ -434,6 +461,27 @@ impl MastForestMerger {
 impl From<MastForestMerger> for MastForest {
     fn from(merger: MastForestMerger) -> Self {
         merger.mast_forest
+    }
+}
+
+// MAST FOREST ID MAP
+// ================================================================================================
+
+pub struct MastForestIdMap {
+    map: BTreeMap<MastNodeId, MastNodeId>,
+}
+
+impl MastForestIdMap {
+    pub(crate) fn new() -> Self {
+        Self { map: BTreeMap::new() }
+    }
+
+    pub(crate) fn insert(&mut self, key: MastNodeId, value: MastNodeId) {
+        self.map.insert(key, value);
+    }
+
+    pub fn get(&self, key: &MastNodeId) -> Option<&MastNodeId> {
+        self.map.get(key)
     }
 }
 
