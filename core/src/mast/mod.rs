@@ -463,6 +463,40 @@ impl MastForest {
     pub fn nodes(&self) -> &[MastNode] {
         &self.nodes
     }
+
+    /// Returns an iterator which traverses over the nodes in a depth-first search and returns nodes
+    /// in postorder.
+    ///
+    /// This iterator iterates through all **reachable** nodes of a forest exactly once.
+    ///
+    /// Since a `MastForest` has multiple possible entrypoints in the form of its roots, a
+    /// depth-first search must visit all of those roots and the trees they form.
+    ///
+    /// For instance, consider this `MastForest`:
+    ///
+    /// ```text
+    /// Nodes: [Join(1, 2), Block(foo), Block(bar), External(qux)]
+    /// Roots: [0]
+    /// ```
+    ///
+    /// The only root is the `Join` node at index 0. The first three nodes of the forest form a
+    /// tree, since the `Join` node references index 1 and 2. This tree is discovered by
+    /// starting at index 0 and following all children until we reach terminal nodes (like
+    /// `Block`s) and build up a stack of the discovered, but unvisited nodes. The stack is
+    /// built such that popping elements off the stack (from the back) yields a postorder.
+    ///
+    /// After the first tree is discovered, the stack looks like this: `[0, 2, 1]`. On each
+    /// call to `next` one element is popped off this stack and returned.
+    ///
+    /// If the stack is exhausted we start another discovery if more unvisited roots exist. Since
+    /// the `External` node is not a root and not referenced by any other tree in the forest, it
+    /// will not be visited.
+    ///
+    /// The iteration on a high-level thus consists of a constant back and forth between discovering
+    /// trees and returning nodes from the stack.
+    pub fn iter_nodes(&self) -> impl Iterator<Item = (MastNodeId, &MastNode)> {
+        MastForestNodeIter::new(self)
+    }
 }
 
 impl Index<MastNodeId> for MastForest {
