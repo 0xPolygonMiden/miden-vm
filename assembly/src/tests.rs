@@ -1901,7 +1901,7 @@ fn program_with_dynamic_code_execution_in_new_context() -> TestResult {
     let program = context.assemble(source)?;
     let expected = "\
 begin
-    call.0xc75c340ec6a69e708457544d38783abbb604d881b7dc62d00bfc2b10f52808e6
+    dyncall
 end";
     assert_str_eq!(format!("{program}"), expected);
     Ok(())

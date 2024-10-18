@@ -86,6 +86,7 @@ impl MastNodeInfo {
                 Ok(MastNode::Call(syscall))
             },
             MastNodeType::Dyn => Ok(MastNode::new_dyn()),
+            MastNodeType::Dyncall => Ok(MastNode::new_dyncall()),
             MastNodeType::External => Ok(MastNode::new_external(self.digest)),
         }
     }
@@ -119,7 +120,8 @@ const BLOCK: u8 = 3;
 const CALL: u8 = 4;
 const SYSCALL: u8 = 5;
 const DYN: u8 = 6;
-const EXTERNAL: u8 = 7;
+const DYNCALL: u8 = 7;
+const EXTERNAL: u8 = 8;
 
 /// Represents the variant of a [`MastNode`], as well as any additional data. For example, for more
 /// efficient decoding, and because of the frequency with which these node types appear, we directly
@@ -154,6 +156,7 @@ pub enum MastNodeType {
         callee_id: u32,
     } = SYSCALL,
     Dyn = DYN,
+    Dyncall = DYNCALL,
     External = EXTERNAL,
 }
 
@@ -188,7 +191,13 @@ impl MastNodeType {
                     Self::Call { callee_id: call_node.callee().0 }
                 }
             },
-            Dyn(_) => Self::Dyn,
+            Dyn(dyn_node) => {
+                if dyn_node.is_dyncall() {
+                    Self::Dyncall
+                } else {
+                    Self::Dyn
+                }
+            },
             External(_) => Self::External,
         }
     }
@@ -215,6 +224,7 @@ impl Serializable for MastNodeType {
             MastNodeType::Call { callee_id } => Self::encode_u32_payload(callee_id),
             MastNodeType::SysCall { callee_id } => Self::encode_u32_payload(callee_id),
             MastNodeType::Dyn => 0,
+            MastNodeType::Dyncall => 0,
             MastNodeType::External => 0,
         };
 
@@ -297,6 +307,7 @@ impl Deserializable for MastNodeType {
                 Ok(Self::SysCall { callee_id })
             },
             DYN => Ok(Self::Dyn),
+            DYNCALL => Ok(Self::Dyncall),
             EXTERNAL => Ok(Self::External),
             _ => Err(DeserializationError::InvalidValue(format!(
                 "Invalid tag for MAST node: {discriminant}"

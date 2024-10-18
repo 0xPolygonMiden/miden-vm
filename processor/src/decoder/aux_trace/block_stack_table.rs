@@ -1,7 +1,7 @@
 use miden_air::RowIndex;
 use vm_core::{
-    OPCODE_CALL, OPCODE_DYN, OPCODE_END, OPCODE_JOIN, OPCODE_LOOP, OPCODE_RESPAN, OPCODE_SPAN,
-    OPCODE_SPLIT, OPCODE_SYSCALL,
+    OPCODE_CALL, OPCODE_DYN, OPCODE_DYNCALL, OPCODE_END, OPCODE_JOIN, OPCODE_LOOP, OPCODE_RESPAN,
+    OPCODE_SPAN, OPCODE_SPLIT, OPCODE_SYSCALL,
 };
 
 use super::{AuxColumnBuilder, Felt, FieldElement, MainTrace, ONE, ZERO};
@@ -35,8 +35,8 @@ impl<E: FieldElement<BaseField = Felt>> AuxColumnBuilder<E> for BlockStackColumn
         let op_code = op_code_felt.as_int() as u8;
 
         match op_code {
-            OPCODE_JOIN | OPCODE_SPLIT | OPCODE_SPAN | OPCODE_DYN | OPCODE_LOOP | OPCODE_RESPAN
-            | OPCODE_CALL | OPCODE_SYSCALL => {
+            OPCODE_JOIN | OPCODE_SPLIT | OPCODE_SPAN | OPCODE_DYN | OPCODE_DYNCALL
+            | OPCODE_LOOP | OPCODE_RESPAN | OPCODE_CALL | OPCODE_SYSCALL => {
                 get_block_stack_table_inclusion_multiplicand(main_trace, i, alphas, op_code)
             },
             _ => E::ONE,
@@ -122,6 +122,29 @@ fn get_block_stack_table_inclusion_multiplicand<E: FieldElement<BaseField = Felt
         let parent_fmp = main_trace.fmp(i);
         let parent_stack_depth = main_trace.stack_depth(i);
         let parent_next_overflow_addr = main_trace.parent_overflow_address(i);
+        let parent_fn_hash = main_trace.fn_hash(i);
+        [
+            ONE,
+            block_id,
+            parent_id,
+            is_loop,
+            parent_ctx,
+            parent_fmp,
+            parent_stack_depth,
+            parent_next_overflow_addr,
+            parent_fn_hash[0],
+            parent_fn_hash[1],
+            parent_fn_hash[2],
+            parent_fn_hash[3],
+        ]
+    } else if op_code == OPCODE_DYNCALL {
+        // dyncall executes a left shift simultaneously with starting a new execution context. The
+        // post-shift stack depth and next overflow address are placed in the decoder hasher state
+        // registers.
+        let parent_ctx = main_trace.ctx(i);
+        let parent_fmp = main_trace.fmp(i);
+        let parent_stack_depth = main_trace.decoder_hasher_state_element(4, i);
+        let parent_next_overflow_addr = main_trace.decoder_hasher_state_element(5, i);
         let parent_fn_hash = main_trace.fn_hash(i);
         [
             ONE,
