@@ -17,10 +17,10 @@ use miden_air::{
     RowIndex,
 };
 use vm_core::{
-    Word, ONE, OPCODE_CALL, OPCODE_DYN, OPCODE_END, OPCODE_HPERM, OPCODE_JOIN, OPCODE_LOOP,
-    OPCODE_MLOAD, OPCODE_MLOADW, OPCODE_MPVERIFY, OPCODE_MRUPDATE, OPCODE_MSTORE, OPCODE_MSTOREW,
-    OPCODE_MSTREAM, OPCODE_PIPE, OPCODE_RCOMBBASE, OPCODE_RESPAN, OPCODE_SPAN, OPCODE_SPLIT,
-    OPCODE_SYSCALL, OPCODE_U32AND, OPCODE_U32XOR, ZERO,
+    Word, ONE, OPCODE_CALL, OPCODE_DYN, OPCODE_DYNCALL, OPCODE_END, OPCODE_HPERM, OPCODE_JOIN,
+    OPCODE_LOOP, OPCODE_MLOAD, OPCODE_MLOADW, OPCODE_MPVERIFY, OPCODE_MRUPDATE, OPCODE_MSTORE,
+    OPCODE_MSTOREW, OPCODE_MSTREAM, OPCODE_PIPE, OPCODE_RCOMBBASE, OPCODE_RESPAN, OPCODE_SPAN,
+    OPCODE_SPLIT, OPCODE_SYSCALL, OPCODE_U32AND, OPCODE_U32XOR, ZERO,
 };
 
 use super::{super::trace::AuxColumnBuilder, Felt, FieldElement};
@@ -248,7 +248,9 @@ impl<E: FieldElement<BaseField = Felt>> AuxColumnBuilder<E> for BusColumnBuilder
                 alphas,
                 row,
             ),
-            OPCODE_DYN => build_dyn_block_request(main_trace, op_code_felt, alphas, row),
+            OPCODE_DYN | OPCODE_DYNCALL => {
+                build_dyn_block_request(main_trace, op_code_felt, alphas, row)
+            },
             OPCODE_SYSCALL => build_syscall_block_request(main_trace, op_code_felt, alphas, row),
             OPCODE_SPAN => build_span_block_request(main_trace, alphas, row),
             OPCODE_RESPAN => build_respan_block_request(main_trace, alphas, row),
@@ -309,7 +311,7 @@ fn build_control_block_request<E: FieldElement<BaseField = Felt>>(
     header + build_value(&alphas[8..16], &decoder_hasher_state) + alphas[5].mul_base(op_code_felt)
 }
 
-/// Builds requests made on a `DYN` operation.
+/// Builds requests made on a `DYN` or `DYNCALL` operation.
 fn build_dyn_block_request<E: FieldElement<BaseField = Felt>>(
     main_trace: &MainTrace,
     op_code_felt: Felt,

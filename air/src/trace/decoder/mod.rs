@@ -83,7 +83,7 @@ pub const IS_LOOP_BODY_FLAG_COL_IDX: usize = HASHER_STATE_RANGE.start + 4;
 /// Index of a flag column which indicates whether an ending block is a LOOP block.
 pub const IS_LOOP_FLAG_COL_IDX: usize = HASHER_STATE_RANGE.start + 5;
 
-/// Index of a flag column which indicates whether an ending block is a CALL block.
+/// Index of a flag column which indicates whether an ending block is a CALL or DYNCALL block.
 pub const IS_CALL_FLAG_COL_IDX: usize = HASHER_STATE_RANGE.start + 6;
 
 /// Index of a flag column which indicates whether an ending block is a SYSCALL block.

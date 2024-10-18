@@ -95,7 +95,10 @@ impl MastNode {
     }
 
     pub fn new_dyn() -> Self {
-        Self::Dyn(DynNode::default())
+        Self::Dyn(DynNode::new_dyn())
+    }
+    pub fn new_dyncall() -> Self {
+        Self::Dyn(DynNode::new_dyncall())
     }
 
     pub fn new_external(mast_root: RpoDigest) -> Self {
@@ -173,7 +176,7 @@ impl MastNode {
             MastNode::Split(_) => SplitNode::DOMAIN,
             MastNode::Loop(_) => LoopNode::DOMAIN,
             MastNode::Call(call_node) => call_node.domain(),
-            MastNode::Dyn(_) => DynNode::DOMAIN,
+            MastNode::Dyn(dyn_node) => dyn_node.domain(),
             MastNode::External(_) => panic!("Can't fetch domain for an `External` node."),
         }
     }

@@ -51,6 +51,7 @@ where
             Operation::Call => unreachable!("control flow operation"),
             Operation::SysCall => unreachable!("control flow operation"),
             Operation::Dyn => unreachable!("control flow operation"),
+            Operation::Dyncall => unreachable!("control flow operation"),
             Operation::Span => unreachable!("control flow operation"),
             Operation::Repeat => unreachable!("control flow operation"),
             Operation::Respan => unreachable!("control flow operation"),
@@ -160,7 +161,7 @@ where
     }
 
     /// Increments the clock cycle for all components of the process.
-    fn advance_clock(&mut self) -> Result<(), ExecutionError> {
+    pub(super) fn advance_clock(&mut self) -> Result<(), ExecutionError> {
         self.system.advance_clock(self.max_cycles)?;
         self.stack.advance_clock();
         self.chiplets.advance_clock();
@@ -168,7 +169,7 @@ where
     }
 
     /// Makes sure there is enough memory allocated for the trace to accommodate a new clock cycle.
-    fn ensure_trace_capacity(&mut self) {
+    pub(super) fn ensure_trace_capacity(&mut self) {
         self.system.ensure_trace_capacity();
         self.stack.ensure_trace_capacity();
     }

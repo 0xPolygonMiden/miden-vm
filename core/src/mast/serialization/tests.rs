@@ -27,6 +27,7 @@ fn confirm_operation_and_decorator_structure() {
         Operation::Loop => (),
         Operation::Call => (),
         Operation::Dyn => (),
+        Operation::Dyncall => (),
         Operation::SysCall => (),
         Operation::Span => (),
         Operation::End => (),
@@ -329,6 +330,11 @@ fn serialize_deserialize_all_nodes() {
     mast_forest[dyn_node_id].set_before_enter(vec![decorator_id1]);
     mast_forest[dyn_node_id].set_after_exit(vec![decorator_id2]);
 
+    // Dyncall node
+    let dyncall_node_id = mast_forest.add_dyncall().unwrap();
+    mast_forest[dyncall_node_id].set_before_enter(vec![decorator_id1]);
+    mast_forest[dyncall_node_id].set_after_exit(vec![decorator_id2]);
+
     // External node
     let external_node_id = mast_forest.add_external(RpoDigest::default()).unwrap();
     mast_forest[external_node_id].set_before_enter(vec![decorator_id1]);
@@ -339,6 +345,7 @@ fn serialize_deserialize_all_nodes() {
     mast_forest.make_root(loop_node_id);
     mast_forest.make_root(split_node_id);
     mast_forest.make_root(dyn_node_id);
+    mast_forest.make_root(dyncall_node_id);
     mast_forest.make_root(external_node_id);
 
     let serialized_mast_forest = mast_forest.to_bytes();

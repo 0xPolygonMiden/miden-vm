@@ -1,6 +1,7 @@
 use alloc::vec::Vec;
 
 use miden_air::{trace::main_trace::MainTrace, RowIndex};
+use vm_core::OPCODE_DYNCALL;
 
 use super::{Felt, FieldElement, OverflowTableRow};
 use crate::trace::AuxColumnBuilder;
@@ -31,6 +32,7 @@ impl<E: FieldElement<BaseField = Felt>> AuxColumnBuilder<E> for AuxTraceBuilder 
     /// Removes a row from the stack overflow table.
     fn get_requests_at(&self, main_trace: &MainTrace, alphas: &[E], i: RowIndex) -> E {
         let is_left_shift = main_trace.is_left_shift(i);
+        let is_dyncall = main_trace.get_op_code(i) == OPCODE_DYNCALL.into();
         let is_non_empty_overflow = main_trace.is_non_empty_overflow(i);
 
         if is_left_shift && is_non_empty_overflow {
@@ -38,8 +40,13 @@ impl<E: FieldElement<BaseField = Felt>> AuxColumnBuilder<E> for AuxTraceBuilder 
             let s15_prime = main_trace.stack_element(15, i + 1);
             let b1_prime = main_trace.parent_overflow_address(i + 1);
 
-            let row = OverflowTableRow::new(b1, s15_prime, b1_prime);
-            row.to_value(alphas)
+            OverflowTableRow::new(b1, s15_prime, b1_prime).to_value(alphas)
+        } else if is_dyncall && is_non_empty_overflow {
+            let b1 = main_trace.parent_overflow_address(i);
+            let s15_prime = main_trace.stack_element(15, i + 1);
+            let b1_prime = main_trace.decoder_hasher_state_element(5, i);
+
+            OverflowTableRow::new(b1, s15_prime, b1_prime).to_value(alphas)
         } else {
             E::ONE
         }
