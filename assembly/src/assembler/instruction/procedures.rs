@@ -42,15 +42,12 @@ impl Assembler {
         Ok(Some(dyn_node_id))
     }
 
-    /// Creates a new CALL block whose target is DYN.
+    /// Creates a new DYNCALL block for the dynamic function call and return.
     pub(super) fn dyncall(
         &self,
         mast_forest_builder: &mut MastForestBuilder,
     ) -> Result<Option<MastNodeId>, AssemblyError> {
-        let dyn_call_node_id = {
-            let dyn_node_id = mast_forest_builder.ensure_dyn()?;
-            mast_forest_builder.ensure_call(dyn_node_id)?
-        };
+        let dyn_call_node_id = mast_forest_builder.ensure_dyncall()?;
 
         Ok(Some(dyn_call_node_id))
     }

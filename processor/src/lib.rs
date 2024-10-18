@@ -24,7 +24,9 @@ pub use vm_core::{
     StackInputs, StackOutputs, Word, EMPTY_WORD, ONE, ZERO,
 };
 use vm_core::{
-    mast::{BasicBlockNode, CallNode, JoinNode, LoopNode, OpBatch, SplitNode, OP_GROUP_SIZE},
+    mast::{
+        BasicBlockNode, CallNode, DynNode, JoinNode, LoopNode, OpBatch, SplitNode, OP_GROUP_SIZE,
+    },
     Decorator, DecoratorIterator, FieldElement,
 };
 pub use winter_prover::matrix::ColMatrix;
@@ -278,7 +280,7 @@ where
             MastNode::Split(node) => self.execute_split_node(node, program)?,
             MastNode::Loop(node) => self.execute_loop_node(node, program)?,
             MastNode::Call(node) => self.execute_call_node(node, program)?,
-            MastNode::Dyn(_) => self.execute_dyn_node(program)?,
+            MastNode::Dyn(node) => self.execute_dyn_node(node, program)?,
             MastNode::External(external_node) => {
                 let node_digest = external_node.digest();
                 let mast_forest = self
@@ -408,15 +410,16 @@ where
     /// The MAST root of the callee is assumed to be at the top of the stack, and the callee is
     /// expected to be either in the current `program` or in the host.
     #[inline(always)]
-    fn execute_dyn_node(&mut self, program: &MastForest) -> Result<(), ExecutionError> {
-        // TODO(plafer): Refactor. We need to call those before `start_dyn_node()`, since
-        // `start_dyn_node()` advances the clock.
-        let mem_addr = self.stack.get(0);
-        // The callee hash is stored in memory, and the address is specified on the top of the
-        // stack.
-        let callee_hash = self.read_mem_word(mem_addr)?;
-
-        self.start_dyn_node(callee_hash)?;
+    fn execute_dyn_node(
+        &mut self,
+        node: &DynNode,
+        program: &MastForest,
+    ) -> Result<(), ExecutionError> {
+        let callee_hash = if node.is_dyncall() {
+            self.start_dyncall_node(node)?
+        } else {
+            self.start_dyn_node(node)?
+        };
 
         // if the callee is not in the program's MAST forest, try to find a MAST forest for it in
         // the host (corresponding to an external library loaded in the host); if none are
@@ -440,7 +443,11 @@ where
             },
         }
 
-        self.end_dyn_node()
+        if node.is_dyncall() {
+            self.end_dyncall_node(node)
+        } else {
+            self.end_dyn_node(node)
+        }
     }
 
     /// Executes the specified [BasicBlockNode].

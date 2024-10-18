@@ -408,15 +408,64 @@ fn simple_dyncall() {
     test.prove_and_verify(
         vec![
             3,
-            8324248212344458853,
-            17691992706129158519,
-            18131640149172243086,
-            16129275750103409835,
+            6751154577850596602,
+            235765701633049111,
+            16334162752640292120,
+            7786442719091086500,
             1,
             2,
         ],
         false,
     );
+}
+
+/// Calls `bar` dynamically, which issues a syscall. We ensure that the `caller` instruction in the
+/// kernel procedure correctly returns the hash of `bar`.
+///
+/// We also populate the stack before `dyncall` to ensure that stack depth is properly restored
+/// after `dyncall`.
+#[test]
+fn dyncall_with_syscall_and_caller() {
+    let kernel_source = "
+        export.foo
+            caller
+        end
+    ";
+
+    let program_source = "
+        proc.bar
+            syscall.foo
+        end
+
+        begin
+            # Populate stack before call
+            push.1 push.2 push.3 push.4 padw
+
+            # Prepare dyncall
+            procref.bar mem_storew.42 dropw push.42
+            dyncall
+
+            # Truncate stack
+            movupw.3 dropw movupw.3 dropw
+        end";
+
+    let mut test = Test::new(&format!("test{}", line!()), program_source, true);
+    test.kernel_source = Some(
+        test.source_manager
+            .load(&format!("kernel{}", line!()), kernel_source.to_string()),
+    );
+    test.expect_stack(&[
+        7618101086444903432,
+        9972424747203251625,
+        14917526361757867843,
+        9845116178182948544,
+        4,
+        3,
+        2,
+        1,
+    ]);
+
+    test.prove_and_verify(vec![], false);
 }
 
 // PROCREF INSTRUCTION

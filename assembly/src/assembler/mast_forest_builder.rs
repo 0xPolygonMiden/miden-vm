@@ -427,6 +427,11 @@ impl MastForestBuilder {
         self.ensure_node(MastNode::new_dyn())
     }
 
+    /// Adds a dyncall node to the forest, and returns the [`MastNodeId`] associated with it.
+    pub fn ensure_dyncall(&mut self) -> Result<MastNodeId, AssemblyError> {
+        self.ensure_node(MastNode::new_dyncall())
+    }
+
     /// Adds an external node to the forest, and returns the [`MastNodeId`] associated with it.
     pub fn ensure_external(&mut self, mast_root: RpoDigest) -> Result<MastNodeId, AssemblyError> {
         self.ensure_node(MastNode::new_external(mast_root))

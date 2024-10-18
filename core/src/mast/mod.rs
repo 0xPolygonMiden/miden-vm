@@ -148,6 +148,11 @@ impl MastForest {
         self.add_node(MastNode::new_dyn())
     }
 
+    /// Adds a dyncall node to the forest, and returns the [`MastNodeId`] associated with it.
+    pub fn add_dyncall(&mut self) -> Result<MastNodeId, MastForestError> {
+        self.add_node(MastNode::new_dyncall())
+    }
+
     /// Adds an external node to the forest, and returns the [`MastNodeId`] associated with it.
     pub fn add_external(&mut self, mast_root: RpoDigest) -> Result<MastNodeId, MastForestError> {
         self.add_node(MastNode::new_external(mast_root))

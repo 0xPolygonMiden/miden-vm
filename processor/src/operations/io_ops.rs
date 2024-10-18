@@ -248,7 +248,7 @@ where
     // HELPER FUNCTIONS
     // --------------------------------------------------------------------------------------------
 
-    /// Returns the memory word at address `addr`.
+    /// Returns the memory word at address `addr` in the current context.
     pub(crate) fn read_mem_word(&mut self, addr: Felt) -> Result<Word, ExecutionError> {
         let ctx = self.system.ctx();
         let mem_addr = Self::get_valid_address(addr)?;
