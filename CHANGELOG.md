@@ -18,7 +18,7 @@
 - [BREAKING] ExecutionOptions::new constructor requires a boolean to explicitly set debug mode (#1502)
 - [BREAKING] The `run` and the `prove` commands in the cli will accept `--trace` flag instead of `--tracing` (#1502)
 - Migrated to new padding rule for RPO (#1343).
-
+- Migrated to `miden-crypto` v0.11.0 (#1343).
 
 #### Fixes
 
@@ -27,13 +27,9 @@
 - Fixed a bug in the block stack table (#1511) (#1512)
 - Fixed the construction of the chiplets virtual table (#1514)
 - Fixed the construction of the chiplets bus (#1516) (#1525)
-
-#### Fixes
-
 - Decorators are now allowed in empty basic blocks (#1466)
 
-
-## 0.10.6 (2024-09-12) - `miden-processor` crate only.
+## 0.10.6 (2024-09-12) - `miden-processor` crate only
 
 #### Enhancements
 

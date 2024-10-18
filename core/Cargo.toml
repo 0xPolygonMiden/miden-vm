@@ -34,8 +34,8 @@ std = [
 lock_api = { version = "0.4", features = ["arc_lock"] }
 math = { package = "winter-math", version = "0.9", default-features = false }
 memchr = { version = "2.7", default-features = false }
-#miden-crypto = { version = "0.10", default-features = false }
-miden-crypto = { git = "https://github.com/0xPolygonMiden/crypto", branch = "al-rpo-new-padding-rule", default-features = false }
+miden-crypto = { version = "0.11", default-features = false }
+#miden-crypto = { git = "https://github.com/0xPolygonMiden/crypto", branch = "al-rpo-new-padding-rule", default-features = false }
 miden-formatting = { version = "0.1", default-features = false }
 miette = { package = "miden-miette", version = "7.1", default-features = false, features = [
     "fancy-no-syscall",
