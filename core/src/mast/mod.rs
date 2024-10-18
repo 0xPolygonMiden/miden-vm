@@ -201,14 +201,16 @@ impl MastForest {
         self[node_id].set_after_exit(decorator_ids)
     }
 
-    /// Merges `other_forest` into self. This will mutate self in-place.
+    /// Merges `other_forest` into self and returns the resulting merged forest.
     ///
     /// Merging two forests means combining all their constituent parts, i.e. [`MastNode`]s,
-    /// [`Decorator`]s and roots. During this process, any duplicates are
-    /// removed. Additionally, [`MastNodeId`]s of nodes as well as [`DecoratorId`]s of decorators
-    /// change and they are remapped to their new location.
+    /// [`Decorator`](crate::mast::Decorator)s and roots. During this process, any duplicate or
+    /// unreachable nodes are removed. Additionally, [`MastNodeId`]s of nodes as well as
+    /// [`DecoratorId`]s of decorators may change and references to them are remapped to their new
+    /// location.
     ///
-    /// For example, consider this representation of a forest's nodes:
+    /// For example, consider this representation of a forest's nodes and all of these nodes being
+    /// roots:
     ///
     /// ```text
     /// [Block(foo), Block(bar)]
@@ -229,25 +231,34 @@ impl MastForest {
     /// - The `Call` to the `bar` block was remapped to its new index (now 1, previously 0).
     /// - The `Block(bar)` was deduplicated any only exists once in the merged forest.
     ///
+    /// If any forest being merged contains an `External(qux)` node and another forest contains a
+    /// node whose digest is `qux`, then the external node will be replaced with the `qux` node,
+    /// which is effectively deduplication.
+    ///
     /// Note that if you intend to merge multiple forest into this one, calling
     /// [`Self::merge_multiple`] is preferred as it is more efficient.
-    pub fn merge(&mut self, other_forest: &MastForest) -> Result<(), MastForestError> {
-        MastForestMerger::new(self).merge(other_forest)
+    pub fn merge(&self, other_forest: &MastForest) -> Result<MastForest, MastForestError> {
+        let mut merger = MastForestMerger::new();
+        merger.merge(self)?;
+        merger.merge(other_forest)?;
+        Ok(merger.into())
     }
 
-    /// Merges `other_forest` into the forest contained in self. See [`Self::merge`] for more
-    /// details.
+    /// Merges all `forests` into self and returns the resulting merged forest. See [`Self::merge`]
+    /// for more details.
     ///
-    /// This method is preferred over [`Self::merge`] if the intention is to merge multiple forests,
-    /// with the reason being that the internal merge implementation does not need to rebuild
-    /// indices in between merges but can reuse them instead.
-    pub fn merge_multiple(&mut self, forests: &[&MastForest]) -> Result<(), MastForestError> {
-        let mut merger = MastForestMerger::new(self);
+    /// This method is preferred over [`Self::merge`] for merging multiple forests at once, because
+    /// the internal merge implementation does not need to rebuild indices in between merges and
+    /// can reuse them instead, making this more efficient.
+    pub fn merge_multiple(&self, forests: &[&MastForest]) -> Result<MastForest, MastForestError> {
+        let mut merger = MastForestMerger::new();
+        merger.merge(self)?;
+
         for other_forest in forests {
             merger.merge(other_forest)?;
         }
 
-        Ok(())
+        Ok(merger.into())
     }
 
     /// Adds a basic block node to the forest, and returns the [`MastNodeId`] associated with it.
