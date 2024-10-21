@@ -1,7 +1,7 @@
 use alloc::{string::ToString, vec::Vec};
 use core::fmt;
 
-use miden_crypto::hash::blake::{Blake3Digest, Blake3_256};
+use miden_crypto::hash::blake::Blake3_256;
 use num_traits::ToBytes;
 
 mod advice;
@@ -13,7 +13,7 @@ pub use assembly_op::AssemblyOp;
 mod debug;
 pub use debug::DebugOptions;
 
-use crate::mast::DecoratorId;
+use crate::mast::{DecoratorFingerprint, DecoratorId};
 
 // DECORATORS
 // ================================================================================================
@@ -40,7 +40,7 @@ pub enum Decorator {
 }
 
 impl Decorator {
-    pub fn eq_hash(&self) -> Blake3Digest<32> {
+    pub fn fingerprint(&self) -> DecoratorFingerprint {
         match self {
             Self::Advice(advice) => Blake3_256::hash(advice.to_string().as_bytes()),
             Self::AsmOp(asm_op) => {

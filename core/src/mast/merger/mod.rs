@@ -3,7 +3,7 @@ use alloc::{collections::BTreeMap, vec::Vec};
 use miden_crypto::hash::blake::Blake3Digest;
 
 use crate::mast::{
-    DecoratorId, EqHash, MastForest, MastForestError, MastNode, MastNodeId,
+    DecoratorId, MastForest, MastForestError, MastNode, MastNodeFingerprint, MastNodeId,
     MultiMastForestIteratorItem, MultiMastForestNodeIter,
 };
 
@@ -15,12 +15,13 @@ mod tests;
 /// This functionality is exposed via [`MastForest::merge`]. See its documentation for more details.
 pub(crate) struct MastForestMerger {
     mast_forest: MastForest,
-    // Internal indices needed for efficient duplicate checking and EqHash computation.
+    // Internal indices needed for efficient duplicate checking and MastNodeFingerprint
+    // computation.
     //
     // These are always in-sync with the nodes in `mast_forest`, i.e. all nodes added to the
     // `mast_forest` are also added to the indices.
-    node_id_by_hash: BTreeMap<EqHash, MastNodeId>,
-    hash_by_node_id: BTreeMap<MastNodeId, EqHash>,
+    node_id_by_hash: BTreeMap<MastNodeFingerprint, MastNodeId>,
+    hash_by_node_id: BTreeMap<MastNodeId, MastNodeFingerprint>,
     decorators_by_hash: BTreeMap<Blake3Digest<32>, DecoratorId>,
     /// Mappings from old decorator and node ids to their new ids.
     ///
@@ -142,7 +143,7 @@ impl MastForestMerger {
         let mut decorator_id_remapping = DecoratorIdMap::new(other_forest.decorators.len());
 
         for (merging_id, merging_decorator) in other_forest.decorators.iter().enumerate() {
-            let merging_decorator_hash = merging_decorator.eq_hash();
+            let merging_decorator_hash = merging_decorator.fingerprint();
             let new_decorator_id = if let Some(existing_decorator) =
                 self.decorators_by_hash.get(&merging_decorator_hash)
             {
@@ -168,12 +169,12 @@ impl MastForestMerger {
         merging_id: MastNodeId,
         node: &MastNode,
     ) -> Result<(), MastForestError> {
-        // We need to remap the node prior to computing the EqHash.
+        // We need to remap the node prior to computing the MastNodeFingerprint.
         //
-        // This is because the EqHash computation looks up its descendants and decorators in
-        // the internal index, and if we were to pass the original node to that
-        // computation, it would look up the incorrect descendants and decorators (since the
-        // descendant's indices may have changed).
+        // This is because the MastNodeFingerprint computation looks up its descendants and
+        // decorators in the internal index, and if we were to pass the original node to
+        // that computation, it would look up the incorrect descendants and decorators
+        // (since the descendant's indices may have changed).
         //
         // Remapping at this point is guaranteed to be "complete", meaning all ids of children
         // will be present in the node id mapping since the DFS iteration guarantees
@@ -181,8 +182,11 @@ impl MastForestMerger {
         // their indices have been added to the mappings.
         let remapped_node = self.remap_node(forest_idx, node)?;
 
-        let node_fingerprint =
-            EqHash::from_mast_node(&self.mast_forest, &self.hash_by_node_id, &remapped_node);
+        let node_fingerprint = MastNodeFingerprint::from_mast_node(
+            &self.mast_forest,
+            &self.hash_by_node_id,
+            &remapped_node,
+        );
 
         match self.lookup_node_by_fingerprint(&node_fingerprint) {
             Some(matching_node_id) => {
@@ -197,7 +201,7 @@ impl MastForestMerger {
                 self.node_id_mappings[forest_idx].insert(merging_id, new_node_id);
 
                 // We need to update the indices with the newly inserted nodes
-                // since the EqHash computation requires all descendants of a node
+                // since the MastNodeFingerprint computation requires all descendants of a node
                 // to be in this index. Hence when we encounter a node in the merging forest
                 // which has descendants (Call, Loop, Split, ...), then their descendants need to be
                 // in the indices.
@@ -314,7 +318,7 @@ impl MastForestMerger {
     // ================================================================================================
 
     /// Returns a slice of nodes in the merged forest which have the given `mast_root`.
-    fn lookup_node_by_fingerprint(&self, fingerprint: &EqHash) -> Option<MastNodeId> {
+    fn lookup_node_by_fingerprint(&self, fingerprint: &MastNodeFingerprint) -> Option<MastNodeId> {
         self.node_id_by_hash.get(fingerprint).copied()
     }
 }

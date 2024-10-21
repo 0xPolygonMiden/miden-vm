@@ -484,12 +484,12 @@ fn mast_forest_merge_external_node_reference_with_decorator() {
     .enumerate()
     {
         let id_foo_a_fingerprint =
-            EqHash::from_mast_node(&forest_a, &BTreeMap::new(), &forest_a[id_foo_a]);
+            MastNodeFingerprint::from_mast_node(&forest_a, &BTreeMap::new(), &forest_a[id_foo_a]);
 
         let fingerprints: Vec<_> = merged
             .nodes()
             .iter()
-            .map(|node| EqHash::from_mast_node(&merged, &BTreeMap::new(), node))
+            .map(|node| MastNodeFingerprint::from_mast_node(&merged, &BTreeMap::new(), node))
             .collect();
 
         assert_eq!(merged.nodes.len(), 1);
@@ -552,12 +552,12 @@ fn mast_forest_merge_external_node_with_decorator() {
         assert_eq!(merged.nodes.len(), 1);
 
         let id_foo_b_fingerprint =
-            EqHash::from_mast_node(&forest_a, &BTreeMap::new(), &forest_b[id_foo_b]);
+            MastNodeFingerprint::from_mast_node(&forest_a, &BTreeMap::new(), &forest_b[id_foo_b]);
 
         let fingerprints: Vec<_> = merged
             .nodes()
             .iter()
-            .map(|node| EqHash::from_mast_node(&merged, &BTreeMap::new(), node))
+            .map(|node| MastNodeFingerprint::from_mast_node(&merged, &BTreeMap::new(), node))
             .collect();
 
         // Block foo should be unmodified.
@@ -622,12 +622,12 @@ fn mast_forest_merge_external_node_and_referenced_node_have_decorators() {
         assert_eq!(merged.nodes.len(), 1);
 
         let id_foo_b_fingerprint =
-            EqHash::from_mast_node(&forest_b, &BTreeMap::new(), &forest_b[id_foo_b]);
+            MastNodeFingerprint::from_mast_node(&forest_b, &BTreeMap::new(), &forest_b[id_foo_b]);
 
         let fingerprints: Vec<_> = merged
             .nodes()
             .iter()
-            .map(|node| EqHash::from_mast_node(&merged, &BTreeMap::new(), node))
+            .map(|node| MastNodeFingerprint::from_mast_node(&merged, &BTreeMap::new(), node))
             .collect();
 
         // Block foo should be unmodified.
@@ -700,12 +700,12 @@ fn mast_forest_merge_multiple_external_nodes_with_decorator() {
         assert_eq!(merged.nodes.len(), 1);
 
         let id_foo_b_fingerprint =
-            EqHash::from_mast_node(&forest_a, &BTreeMap::new(), &forest_b[id_foo_b]);
+            MastNodeFingerprint::from_mast_node(&forest_a, &BTreeMap::new(), &forest_b[id_foo_b]);
 
         let fingerprints: Vec<_> = merged
             .nodes()
             .iter()
-            .map(|node| EqHash::from_mast_node(&merged, &BTreeMap::new(), node))
+            .map(|node| MastNodeFingerprint::from_mast_node(&merged, &BTreeMap::new(), node))
             .collect();
 
         // Block foo should be unmodified.
