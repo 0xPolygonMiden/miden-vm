@@ -360,6 +360,11 @@ impl From<MastForestMerger> for MastForest {
 // MAST FOREST ID MAP
 // ================================================================================================
 
+pub struct MastRootMap {}
+
+// MAST FOREST ID MAP
+// ================================================================================================
+
 pub struct MastForestIdMap {
     map: BTreeMap<MastNodeId, MastNodeId>,
 }
