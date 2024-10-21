@@ -66,9 +66,8 @@ impl MastForestMerger {
                 new_decorator_id
             };
 
-            let merging_id = DecoratorId::from_u32_safe(merging_id as u32, other_forest)
-                .expect("the index should always be less than the number of decorators");
-            decorator_id_remapping.insert(merging_id, new_decorator_id);
+            decorator_id_remapping
+                .insert(DecoratorId::new_unsafe(merging_id as u32), new_decorator_id);
         }
 
         Ok(())
