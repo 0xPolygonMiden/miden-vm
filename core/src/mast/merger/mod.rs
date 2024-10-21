@@ -3,7 +3,9 @@ use core::ops::ControlFlow;
 
 use miden_crypto::hash::{blake::Blake3Digest, rpo::RpoDigest};
 
-use crate::mast::{DecoratorId, EqHash, MastForest, MastForestError, MastNode, MastNodeId};
+use crate::mast::{
+    DecoratorId, MastForest, MastForestError, MastNode, MastNodeFingerprint, MastNodeId,
+};
 
 #[cfg(test)]
 mod tests;
@@ -13,9 +15,10 @@ mod tests;
 /// This functionality is exposed via [`MastForest::merge`]. See its documentation for more details.
 pub(crate) struct MastForestMerger {
     mast_forest: MastForest,
-    // Internal indices needed for efficient duplicate checking and EqHash computation.
-    node_id_by_hash: BTreeMap<RpoDigest, Vec<(EqHash, MastNodeId)>>,
-    hash_by_node_id: BTreeMap<MastNodeId, EqHash>,
+    // Internal indices needed for efficient duplicate checking and MastNodeFingerprint
+    // computation.
+    node_id_by_hash: BTreeMap<RpoDigest, Vec<(MastNodeFingerprint, MastNodeId)>>,
+    hash_by_node_id: BTreeMap<MastNodeId, MastNodeFingerprint>,
     decorators_by_hash: BTreeMap<Blake3Digest<32>, DecoratorId>,
 }
 
@@ -55,7 +58,7 @@ impl MastForestMerger {
         decorator_id_remapping: &mut DecoratorIdMap,
     ) -> Result<(), MastForestError> {
         for (merging_id, merging_decorator) in other_forest.decorators.iter().enumerate() {
-            let merging_decorator_hash = merging_decorator.eq_hash();
+            let merging_decorator_hash = merging_decorator.fingerprint();
             let new_decorator_id = if let Some(existing_decorator) =
                 self.decorators_by_hash.get(&merging_decorator_hash)
             {
@@ -80,12 +83,12 @@ impl MastForestMerger {
         node_id_remapping: &mut MastForestNodeIdMap,
     ) -> Result<(), MastForestError> {
         for (merging_id, node) in other_forest.iter_nodes() {
-            // We need to remap the node prior to computing the EqHash.
+            // We need to remap the node prior to computing the MastNodeFingerprint.
             //
-            // This is because the EqHash computation looks up its descendants and decorators in
-            // the internal index, and if we were to pass the original node to that
-            // computation, it would look up the incorrect descendants and decorators (since the
-            // descendant's indices may have changed).
+            // This is because the MastNodeFingerprint computation looks up its descendants and
+            // decorators in the internal index, and if we were to pass the original
+            // node to that computation, it would look up the incorrect descendants and
+            // decorators (since the descendant's indices may have changed).
             //
             // Remapping at this point is guaranteed to be "complete", meaning all ids of children
             // will be present in `node_id_remapping` since the DFS iteration guarantees
@@ -93,12 +96,15 @@ impl MastForestMerger {
             // their indices have been added to the mappings.
             let remapped_node = self.remap_node(node, decorator_id_remapping, node_id_remapping)?;
 
-            let node_eq =
-                EqHash::from_mast_node(&self.mast_forest, &self.hash_by_node_id, &remapped_node);
+            let node_fingerprint = MastNodeFingerprint::from_mast_node(
+                &self.mast_forest,
+                &self.hash_by_node_id,
+                &remapped_node,
+            );
 
             match self.merge_external_nodes(
                 merging_id,
-                &node_eq,
+                &node_fingerprint,
                 &remapped_node,
                 node_id_remapping,
             )? {
@@ -111,13 +117,18 @@ impl MastForestMerger {
             // If an external node was previously replaced by the remapped node, this will detect
             // them as duplicates here if their fingerprints match exactly and add the appropriate
             // mapping from the merging id to the existing id.
-            match self.lookup_node_by_fingerprint(&node_eq) {
+            match self.lookup_node_by_fingerprint(&node_fingerprint) {
                 Some((_, existing_node_id)) => {
                     // We have to map any occurence of `merging_id` to `existing_node_id`.
                     node_id_remapping.insert(merging_id, *existing_node_id);
                 },
                 None => {
-                    self.add_merged_node(merging_id, remapped_node, node_id_remapping, node_eq)?;
+                    self.add_merged_node(
+                        merging_id,
+                        remapped_node,
+                        node_id_remapping,
+                        node_fingerprint,
+                    )?;
                 },
             }
         }
@@ -148,22 +159,22 @@ impl MastForestMerger {
         previous_id: MastNodeId,
         node: MastNode,
         node_id_remapping: &mut MastForestNodeIdMap,
-        node_eq: EqHash,
+        node_fingerprint: MastNodeFingerprint,
     ) -> Result<(), MastForestError> {
         let new_node_id = self.mast_forest.add_node(node)?;
         node_id_remapping.insert(previous_id, new_node_id);
 
         // We need to update the indices with the newly inserted nodes
-        // since the EqHash computation requires all descendants of a node
+        // since the MastNodeFingerprint computation requires all descendants of a node
         // to be in this index. Hence when we encounter a node in the merging forest
         // which has descendants (Call, Loop, Split, ...), then their descendants need to be in the
         // indices.
         self.node_id_by_hash
-            .entry(node_eq.mast_root)
-            .and_modify(|node_ids| node_ids.push((node_eq, new_node_id)))
-            .or_insert_with(|| vec![(node_eq, new_node_id)]);
+            .entry(*node_fingerprint.mast_root())
+            .and_modify(|node_ids| node_ids.push((node_fingerprint, new_node_id)))
+            .or_insert_with(|| vec![(node_fingerprint, new_node_id)]);
 
-        self.hash_by_node_id.insert(new_node_id, node_eq);
+        self.hash_by_node_id.insert(new_node_id, node_fingerprint);
 
         Ok(())
     }
@@ -181,12 +192,12 @@ impl MastForestMerger {
     fn merge_external_nodes(
         &mut self,
         previous_id: MastNodeId,
-        node_eq: &EqHash,
+        node_fingerprint: &MastNodeFingerprint,
         remapped_node: &MastNode,
         node_id_remapping: &mut MastForestNodeIdMap,
     ) -> Result<ControlFlow<()>, MastForestError> {
         if remapped_node.is_external() {
-            match self.lookup_node_by_root(&node_eq.mast_root) {
+            match self.lookup_node_by_root(node_fingerprint.mast_root()) {
                 // If there already is any node with the same MAST root, map the merging external
                 // node to that existing one.
                 // This code path is also entered if the fingerprints match, so we can skip the
@@ -204,7 +215,7 @@ impl MastForestMerger {
             // node from the merging forest.
             // Any node in the existing forest that pointed to the external node will
             // have the same MAST root due to the semantics of external nodes.
-            match self.lookup_external_node_by_root(node_eq) {
+            match self.lookup_external_node_by_root(node_fingerprint) {
                 Some((_, external_node_id)) => {
                     self.mast_forest[external_node_id] = remapped_node.clone();
                     node_id_remapping.insert(previous_id, external_node_id);
@@ -309,18 +320,27 @@ impl MastForestMerger {
     // HELPERS
     // ================================================================================================
 
-    fn lookup_node_by_fingerprint(&self, eq_hash: &EqHash) -> Option<&(EqHash, MastNodeId)> {
-        self.node_id_by_hash.get(&eq_hash.mast_root).and_then(|node_ids| {
-            node_ids.iter().find(|(node_fingerprint, _)| node_fingerprint == eq_hash)
+    fn lookup_node_by_fingerprint(
+        &self,
+        fingerprint: &MastNodeFingerprint,
+    ) -> Option<&(MastNodeFingerprint, MastNodeId)> {
+        self.node_id_by_hash.get(fingerprint.mast_root()).and_then(|node_ids| {
+            node_ids.iter().find(|(node_fingerprint, _)| node_fingerprint == fingerprint)
         })
     }
 
-    fn lookup_node_by_root(&self, mast_root: &RpoDigest) -> Option<&(EqHash, MastNodeId)> {
+    fn lookup_node_by_root(
+        &self,
+        mast_root: &RpoDigest,
+    ) -> Option<&(MastNodeFingerprint, MastNodeId)> {
         self.node_id_by_hash.get(mast_root).and_then(|node_ids| node_ids.first())
     }
 
-    fn lookup_external_node_by_root(&self, fingerprint: &EqHash) -> Option<(EqHash, MastNodeId)> {
-        self.node_id_by_hash.get(&fingerprint.mast_root).and_then(|ids| {
+    fn lookup_external_node_by_root(
+        &self,
+        fingerprint: &MastNodeFingerprint,
+    ) -> Option<(MastNodeFingerprint, MastNodeId)> {
+        self.node_id_by_hash.get(fingerprint.mast_root()).and_then(|ids| {
             let mut iterator = ids
                 .iter()
                 .filter(|(_, node_id)| self.mast_forest[*node_id].is_external())
