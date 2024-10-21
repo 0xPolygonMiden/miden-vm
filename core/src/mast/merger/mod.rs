@@ -66,15 +66,21 @@ impl MastForestMerger {
     }
 
     /// Merges `other_forest` into the forest contained in self.
-    pub(crate) fn merge(&mut self, other_forest: &MastForest) -> Result<(), MastForestError> {
+    pub(crate) fn merge(
+        &mut self,
+        other_forest: &MastForest,
+    ) -> Result<MastForestRootMap, MastForestError> {
         let mut decorator_id_remapping = DecoratorIdMap::new(other_forest.decorators.len());
-        let mut node_id_remapping = MastForestIdMap::new();
+        let mut node_id_remapping = MastForestNodeIdMap::new();
 
         self.merge_decorators(other_forest, &mut decorator_id_remapping)?;
         self.merge_nodes(other_forest, &decorator_id_remapping, &mut node_id_remapping)?;
         self.merge_roots(other_forest, &node_id_remapping)?;
 
-        Ok(())
+        let root_map =
+            MastForestRootMap::from_node_id_map(node_id_remapping, other_forest.roots.as_slice());
+
+        Ok(root_map)
     }
 
     fn merge_decorators(
@@ -106,7 +112,7 @@ impl MastForestMerger {
         &mut self,
         other_forest: &MastForest,
         decorator_id_remapping: &DecoratorIdMap,
-        node_id_remapping: &mut MastForestIdMap,
+        node_id_remapping: &mut MastForestNodeIdMap,
     ) -> Result<(), MastForestError> {
         for (merging_id, node) in other_forest.iter_nodes() {
             // We need to remap the node prior to computing the EqHash.
@@ -156,7 +162,7 @@ impl MastForestMerger {
     fn merge_roots(
         &mut self,
         other_forest: &MastForest,
-        node_id_remapping: &MastForestIdMap,
+        node_id_remapping: &MastForestNodeIdMap,
     ) -> Result<(), MastForestError> {
         for root_id in other_forest.roots.iter() {
             // Map the previous root to its possibly new id.
@@ -175,7 +181,7 @@ impl MastForestMerger {
         &mut self,
         previous_id: MastNodeId,
         node: MastNode,
-        node_id_remapping: &mut MastForestIdMap,
+        node_id_remapping: &mut MastForestNodeIdMap,
         node_eq: EqHash,
     ) -> Result<(), MastForestError> {
         let new_node_id = self.mast_forest.add_node(node)?;
@@ -211,7 +217,7 @@ impl MastForestMerger {
         previous_id: MastNodeId,
         node_eq: &EqHash,
         remapped_node: &MastNode,
-        node_id_remapping: &mut MastForestIdMap,
+        node_id_remapping: &mut MastForestNodeIdMap,
     ) -> Result<ControlFlow<()>, MastForestError> {
         if remapped_node.is_external() {
             match self.lookup_node_by_root(&node_eq.mast_root) {
@@ -256,7 +262,7 @@ impl MastForestMerger {
         &self,
         node: &MastNode,
         decorator_id_remapping: &DecoratorIdMap,
-        node_id_remapping: &MastForestIdMap,
+        node_id_remapping: &MastForestNodeIdMap,
     ) -> Result<MastNode, MastForestError> {
         let map_decorator_id = |decorator_id: &DecoratorId| {
             decorator_id_remapping.get(decorator_id).ok_or_else(|| {
@@ -368,34 +374,55 @@ impl From<MastForestMerger> for MastForest {
     }
 }
 
+// MAST FOREST ROOT MAP
+// ================================================================================================
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct MastForestRootMap {
+    root_map: BTreeMap<MastNodeId, MastNodeId>,
+}
+
+impl MastForestRootMap {
+    fn from_node_id_map(id_map: MastForestNodeIdMap, roots: &[MastNodeId]) -> Self {
+        let mut root_map = BTreeMap::new();
+
+        for root in roots {
+            let new_id =
+                id_map.get(root).copied().expect("every node id should be mapped to its new id");
+            root_map.insert(*root, new_id);
+        }
+
+        Self { root_map }
+    }
+
+    pub fn map_root(&self, root: &MastNodeId) -> Option<MastNodeId> {
+        self.root_map.get(root).copied()
+    }
+}
+
 // MAST FOREST ID MAP
 // ================================================================================================
 
-#[derive(Debug, Clone)]
-pub struct MastRootMap {}
-
-// MAST FOREST ID MAP
-// ================================================================================================
-
-pub struct MastForestIdMap {
+#[derive(Debug)]
+pub struct MastForestNodeIdMap {
     map: BTreeMap<MastNodeId, MastNodeId>,
 }
 
-impl MastForestIdMap {
-    pub(crate) fn new() -> Self {
+impl MastForestNodeIdMap {
+    fn new() -> Self {
         Self { map: BTreeMap::new() }
     }
 
-    pub(crate) fn insert(&mut self, key: MastNodeId, value: MastNodeId) {
+    fn insert(&mut self, key: MastNodeId, value: MastNodeId) {
         self.map.insert(key, value);
     }
 
-    pub fn get(&self, key: &MastNodeId) -> Option<&MastNodeId> {
+    fn get(&self, key: &MastNodeId) -> Option<&MastNodeId> {
         self.map.get(key)
     }
 }
 
-// MAST FOREST ID MAP
+// DECORATOR ID MAP
 // ================================================================================================
 
 /// A specialized map from ID -> ID meant to be used with [`DecoratorId`] or [`MastNodeId`].

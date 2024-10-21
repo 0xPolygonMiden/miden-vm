@@ -19,6 +19,19 @@ fn assert_contains_node_once(forest: &MastForest, digest: RpoDigest) {
     assert_eq!(forest.nodes.iter().filter(|node| node.digest() == digest).count(), 1);
 }
 
+/// Asserts that every root of an original forest has an id to which it is mapped and that this
+/// mapped root is in the set of roots in the merged forest.
+fn assert_root_mapping(
+    root_map: &MastForestRootMap,
+    original_roots: &[MastNodeId],
+    merged_roots: &[MastNodeId],
+) {
+    for original_root in original_roots {
+        let mapped_root = root_map.map_root(original_root).unwrap();
+        assert!(merged_roots.contains(&mapped_root));
+    }
+}
+
 /// Tests that Call(bar) still correctly calls the remapped bar block.
 ///
 /// [Block(foo), Call(foo)]
@@ -38,13 +51,18 @@ fn mast_forest_merge_remap() {
     let id_call_b = forest_b.add_call(id_bar).unwrap();
     forest_b.make_root(id_call_b);
 
-    let (merged, _) = MastForest::merge([&forest_a, &forest_b]).unwrap();
+    let (merged, root_maps) = MastForest::merge([&forest_a, &forest_b]).unwrap();
 
     assert_eq!(merged.nodes().len(), 4);
     assert_eq!(merged.nodes()[0], block_foo());
     assert_matches!(&merged.nodes()[1], MastNode::Call(call_node) if call_node.callee().as_u32() == 0);
     assert_eq!(merged.nodes()[2], block_bar());
     assert_matches!(&merged.nodes()[3], MastNode::Call(call_node) if call_node.callee().as_u32() == 2);
+
+    let root_map_a = &root_maps[0];
+    let root_map_b = &root_maps[1];
+    assert_eq!(root_map_a.map_root(&id_call_a).unwrap().as_u32(), 1);
+    assert_eq!(root_map_b.map_root(&id_call_b).unwrap().as_u32(), 3);
 }
 
 /// Tests that Forest_A + Forest_A = Forest_A (i.e. duplicates are removed).
@@ -61,11 +79,14 @@ fn mast_forest_merge_duplicate() {
     forest_a.make_root(id_call);
     forest_a.make_root(id_loop);
 
-    let (merged, _) = MastForest::merge([&forest_a, &forest_a]).unwrap();
+    let (merged, root_maps) = MastForest::merge([&forest_a, &forest_a]).unwrap();
 
     for merged_root in merged.procedure_digests() {
         forest_a.procedure_digests().find(|root| root == &merged_root).unwrap();
     }
+
+    // Both maps should map the roots to the same target id.
+    assert_eq!(&root_maps[0], &root_maps[1]);
 
     for merged_node in merged.nodes().iter().map(MastNode::digest) {
         forest_a.nodes.iter().find(|node| node.digest() == merged_node).unwrap();
@@ -100,13 +121,16 @@ fn mast_forest_merge_replace_external() {
     let id_call_b = forest_b.add_call(id_foo_b).unwrap();
     forest_b.make_root(id_call_b);
 
-    let (merged_ab, _) = MastForest::merge([&forest_a, &forest_b]).unwrap();
-    let (merged_ba, _) = MastForest::merge([&forest_b, &forest_a]).unwrap();
+    let (merged_ab, root_maps_ab) = MastForest::merge([&forest_a, &forest_b]).unwrap();
+    let (merged_ba, root_maps_ba) = MastForest::merge([&forest_b, &forest_a]).unwrap();
 
-    for merged in [merged_ab, merged_ba] {
+    for (merged, root_map) in [(merged_ab, root_maps_ab), (merged_ba, root_maps_ba)] {
         assert_eq!(merged.nodes().len(), 2);
         assert_eq!(merged.nodes()[0], block_foo());
         assert_matches!(&merged.nodes()[1], MastNode::Call(call_node) if call_node.callee().as_u32() == 0);
+        // The only root node should be the call node.
+        assert_eq!(merged.roots.len(), 1);
+        assert_eq!(root_map[0].map_root(&merged.roots[0]).unwrap().as_usize(), 1);
     }
 }
 
@@ -138,7 +162,7 @@ fn mast_forest_merge_roots() {
     let root_digest_bar_b = forest_b.get_node_by_id(id_bar_b).unwrap().digest();
     let root_digest_call_b = forest_b.get_node_by_id(call_b).unwrap().digest();
 
-    let (merged, _) = MastForest::merge([&forest_a, &forest_b]).unwrap();
+    let (merged, root_maps) = MastForest::merge([&forest_a, &forest_b]).unwrap();
 
     // Asserts (together with the other assertions) that the duplicate Call(foo) roots have been
     // deduplicated.
@@ -149,6 +173,9 @@ fn mast_forest_merge_roots() {
     assert!(root_digests.contains(&root_digest_call_a));
     assert!(root_digests.contains(&root_digest_bar_b));
     assert!(root_digests.contains(&root_digest_call_b));
+
+    assert_root_mapping(&root_maps[0], &forest_a.roots, &merged.roots);
+    assert_root_mapping(&root_maps[1], &forest_b.roots, &merged.roots);
 }
 
 /// Test that multiple trees can be merged when the same merger is reused.
@@ -185,7 +212,7 @@ fn mast_forest_merge_multiple() {
     forest_c.make_root(id_qux_c);
     forest_c.make_root(call_c);
 
-    let (merged, _) = MastForest::merge([&forest_a, &forest_b, &forest_c]).unwrap();
+    let (merged, root_maps) = MastForest::merge([&forest_a, &forest_b, &forest_c]).unwrap();
 
     let block_foo_digest = forest_b.get_node_by_id(id_foo_b).unwrap().digest();
     let block_bar_digest = forest_b.get_node_by_id(id_bar_b).unwrap().digest();
@@ -203,6 +230,10 @@ fn mast_forest_merge_multiple() {
     assert_contains_node_once(&merged, block_bar_digest);
     assert_contains_node_once(&merged, block_qux_digest);
     assert_contains_node_once(&merged, call_foo_digest);
+
+    assert_root_mapping(&root_maps[0], &forest_a.roots, &merged.roots);
+    assert_root_mapping(&root_maps[1], &forest_b.roots, &merged.roots);
+    assert_root_mapping(&root_maps[2], &forest_c.roots, &merged.roots);
 }
 
 /// Tests that decorators are merged and that nodes who are identical except for their
@@ -264,7 +295,7 @@ fn mast_forest_merge_decorators() {
 
     forest_b.make_root(id_loop_b);
 
-    let (merged, _) = MastForest::merge([&forest_a, &forest_b]).unwrap();
+    let (merged, root_maps) = MastForest::merge([&forest_a, &forest_b]).unwrap();
 
     // There are 4 unique decorators across both forests.
     assert_eq!(merged.decorators.len(), 4);
@@ -333,21 +364,25 @@ fn mast_forest_merge_decorators() {
             .count(),
         1
     );
+
+    assert_root_mapping(&root_maps[0], &forest_a.roots, &merged.roots);
+    assert_root_mapping(&root_maps[1], &forest_b.roots, &merged.roots);
 }
 
-/// TODO
+/// Tests that an external node without decorators is replaced by its referenced node which has
+/// decorators.
 ///
 /// [External(foo)]
 /// +
-/// [Block(foo, [Trace(1)])]
+/// [Block(foo, Trace(1))]
 /// =
-/// [Block(foo, [Trace(1)])]
+/// [Block(foo, Trace(1))]
 /// +
 /// [External(foo)]
 /// =
-/// [Block(foo, [Trace(1)])]
+/// [Block(foo, Trace(1))]
 #[test]
-fn mast_forest_merge_external_node_referenced_node_has_decorator() {
+fn mast_forest_merge_external_node_reference_with_decorator() {
     let mut forest_a = MastForest::new();
     let trace = Decorator::Trace(1);
 
@@ -367,10 +402,13 @@ fn mast_forest_merge_external_node_referenced_node_has_decorator() {
 
     forest_b.make_root(id_external_b);
 
-    for (merged, _) in [
+    for (idx, (merged, root_maps)) in [
         MastForest::merge([&forest_a, &forest_b]).unwrap(),
         MastForest::merge([&forest_b, &forest_a]).unwrap(),
-    ] {
+    ]
+    .into_iter()
+    .enumerate()
+    {
         let id_foo_a_fingerprint =
             EqHash::from_mast_node(&forest_a, &BTreeMap::new(), &forest_a[id_foo_a]);
 
@@ -382,11 +420,31 @@ fn mast_forest_merge_external_node_referenced_node_has_decorator() {
 
         assert_eq!(merged.nodes.len(), 1);
         assert!(fingerprints.contains(&id_foo_a_fingerprint));
+
+        if idx == 0 {
+            assert_root_mapping(&root_maps[0], &forest_a.roots, &merged.roots);
+            assert_root_mapping(&root_maps[1], &forest_b.roots, &merged.roots);
+        } else {
+            assert_root_mapping(&root_maps[0], &forest_b.roots, &merged.roots);
+            assert_root_mapping(&root_maps[1], &forest_a.roots, &merged.roots);
+        }
     }
 }
 
+/// Tests that an external node with decorators is replaced by its referenced node which does not
+/// have decorators.
+///
+/// [External(foo, Trace(1), Trace(2))]
+/// +
+/// [Block(foo)]
+/// =
+/// [Block(foo)]
+/// +
+/// [External(foo, Trace(1), Trace(2))]
+/// =
+/// [Block(foo)]
 #[test]
-fn mast_forest_merge_external_node_has_decorator() {
+fn mast_forest_merge_external_node_with_decorator() {
     let mut forest_a = MastForest::new();
     let trace1 = Decorator::Trace(1);
     let trace2 = Decorator::Trace(2);
@@ -408,10 +466,13 @@ fn mast_forest_merge_external_node_has_decorator() {
 
     forest_b.make_root(id_foo_b);
 
-    for (merged, _) in [
+    for (idx, (merged, root_maps)) in [
         MastForest::merge([&forest_a, &forest_b]).unwrap(),
         MastForest::merge([&forest_b, &forest_a]).unwrap(),
-    ] {
+    ]
+    .into_iter()
+    .enumerate()
+    {
         assert_eq!(merged.nodes.len(), 1);
 
         let id_foo_b_fingerprint =
@@ -425,9 +486,29 @@ fn mast_forest_merge_external_node_has_decorator() {
 
         // Block foo should be unmodified.
         assert!(fingerprints.contains(&id_foo_b_fingerprint));
+
+        if idx == 0 {
+            assert_root_mapping(&root_maps[0], &forest_a.roots, &merged.roots);
+            assert_root_mapping(&root_maps[1], &forest_b.roots, &merged.roots);
+        } else {
+            assert_root_mapping(&root_maps[0], &forest_b.roots, &merged.roots);
+            assert_root_mapping(&root_maps[1], &forest_a.roots, &merged.roots);
+        }
     }
 }
 
+/// Tests that an external node with decorators is replaced by its referenced node which also has
+/// decorators.
+///
+/// [External(foo, Trace(1))]
+/// +
+/// [Block(foo, Trace(2))]
+/// =
+/// [Block(foo, Trace(2))]
+/// +
+/// [External(foo, Trace(1))]
+/// =
+/// [Block(foo, Trace(2))]
 #[test]
 fn mast_forest_merge_external_node_and_referenced_node_have_decorators() {
     let mut forest_a = MastForest::new();
@@ -453,10 +534,13 @@ fn mast_forest_merge_external_node_and_referenced_node_have_decorators() {
 
     forest_b.make_root(id_foo_b);
 
-    for (merged, _) in [
+    for (idx, (merged, root_maps)) in [
         MastForest::merge([&forest_a, &forest_b]).unwrap(),
         MastForest::merge([&forest_b, &forest_a]).unwrap(),
-    ] {
+    ]
+    .into_iter()
+    .enumerate()
+    {
         assert_eq!(merged.nodes.len(), 1);
 
         let id_foo_b_fingerprint =
@@ -470,6 +554,14 @@ fn mast_forest_merge_external_node_and_referenced_node_have_decorators() {
 
         // Block foo should be unmodified.
         assert!(fingerprints.contains(&id_foo_b_fingerprint));
+
+        if idx == 0 {
+            assert_root_mapping(&root_maps[0], &forest_a.roots, &merged.roots);
+            assert_root_mapping(&root_maps[1], &forest_b.roots, &merged.roots);
+        } else {
+            assert_root_mapping(&root_maps[0], &forest_b.roots, &merged.roots);
+            assert_root_mapping(&root_maps[1], &forest_a.roots, &merged.roots);
+        }
     }
 }
 
@@ -518,10 +610,13 @@ fn mast_forest_merge_multiple_external_nodes_with_decorator() {
 
     forest_b.make_root(id_foo_b);
 
-    for (merged, _) in [
+    for (idx, (merged, root_maps)) in [
         MastForest::merge([&forest_a, &forest_b]).unwrap(),
         MastForest::merge([&forest_b, &forest_a]).unwrap(),
-    ] {
+    ]
+    .into_iter()
+    .enumerate()
+    {
         assert_eq!(merged.nodes.len(), 1);
 
         let id_foo_b_fingerprint =
@@ -535,9 +630,19 @@ fn mast_forest_merge_multiple_external_nodes_with_decorator() {
 
         // Block foo should be unmodified.
         assert!(fingerprints.contains(&id_foo_b_fingerprint));
+
+        if idx == 0 {
+            assert_root_mapping(&root_maps[0], &forest_a.roots, &merged.roots);
+            assert_root_mapping(&root_maps[1], &forest_b.roots, &merged.roots);
+        } else {
+            assert_root_mapping(&root_maps[0], &forest_b.roots, &merged.roots);
+            assert_root_mapping(&root_maps[1], &forest_a.roots, &merged.roots);
+        }
     }
 }
 
+/// Tests that a forest with nodes who reference non-existent decorators return an error during
+/// merging and does not panic.
 #[test]
 fn mast_forest_merge_invalid_decorator_index() {
     let trace1 = Decorator::Trace(1);

@@ -20,7 +20,7 @@ pub use node::{
 };
 use winter_utils::{ByteWriter, DeserializationError, Serializable};
 
-use crate::{mast::merger::MastRootMap, Decorator, DecoratorList, Operation};
+use crate::{mast::merger::MastForestRootMap, Decorator, DecoratorList, Operation};
 
 mod serialization;
 
@@ -236,14 +236,15 @@ impl MastForest {
     /// which is effectively deduplication.
     pub fn merge<'forest>(
         forests: impl IntoIterator<Item = &'forest MastForest>,
-    ) -> Result<(MastForest, Vec<MastRootMap>), MastForestError> {
+    ) -> Result<(MastForest, Vec<MastForestRootMap>), MastForestError> {
+        let mut root_maps = Vec::new();
         let mut merger = MastForestMerger::new();
 
         for forest in forests {
-            merger.merge(forest)?;
+            root_maps.push(merger.merge(forest)?);
         }
 
-        Ok((merger.into(), Default::default()))
+        Ok((merger.into(), root_maps))
     }
 
     /// Adds a basic block node to the forest, and returns the [`MastNodeId`] associated with it.
