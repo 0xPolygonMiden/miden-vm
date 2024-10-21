@@ -231,9 +231,25 @@ impl MastForest {
     /// - The `Call` to the `bar` block was remapped to its new index (now 1, previously 0).
     /// - The `Block(bar)` was deduplicated any only exists once in the merged forest.
     ///
+    /// The function also returns a vector of [`MastForestRootMap`]s, whose length equals the number
+    /// of passed `forests`. The indices in the vector correspond to the ones in `forests`. The map
+    /// of a given forest contains the new locations of its roots in the merged forest. To
+    /// illustrate, the above example would return a vector of two maps:
+    ///
+    /// ```text
+    /// vec![{0 -> 0, 1 -> 1}
+    ///      {0 -> 1, 1 -> 2}]
+    /// ```
+    ///
+    /// - The root locations of the original forest are unchanged.
+    /// - For the second forest, the `bar` block has moved from index 0 to index 1 in the merged
+    ///   forest, and the `Call` has moved from index 1 to 2.
+    ///
     /// If any forest being merged contains an `External(qux)` node and another forest contains a
     /// node whose digest is `qux`, then the external node will be replaced with the `qux` node,
-    /// which is effectively deduplication.
+    /// which is effectively deduplication. Decorators are ignored when it comes to merging
+    /// External nodes. This means that an External node with decorators may be replaced by a node
+    /// without decorators or vice versa.
     pub fn merge<'forest>(
         forests: impl IntoIterator<Item = &'forest MastForest>,
     ) -> Result<(MastForest, Vec<MastForestRootMap>), MastForestError> {
