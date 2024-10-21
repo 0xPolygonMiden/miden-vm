@@ -197,16 +197,14 @@ impl MastForestMerger {
 
     /// This will handle two cases:
     ///
-    /// - The existing forest contains a node with MAST root `foo` and the merging External node
-    ///   refers to `foo` and their fingerprints do not match. If their fingerprints match this is
-    ///   the general case of merging (or deduplicating to be precise) and is handled in
-    ///   `merge_nodes` already, so it is not duplicated here.
-    /// - The existing forest contains _one or more_ External nodes with a MAST root `foo` and the
-    ///   merging node's digest is `foo`.
+    /// - The existing forest contains a node (external or non-external) with MAST root `foo` and
+    ///   the merging External node refers to `foo`. In this case, the merging node will be mapped
+    ///   to the existing node and dropped.
+    /// - The existing forest contains an External nodes with a MAST root `foo` and the non-external
+    ///   merging node's digest is `foo`. In this case, the existing external node will be replaced
+    ///   by the merging node.
     ///
-    /// Importantly, this does not handle the case where the fingerprints match as that is the
-    /// general case of merging and is handled in `merge_nodes` already, so it is not duplicated
-    /// here.
+    /// Returns whether the caller should continue in their code path for this node or skip it.
     fn merge_external_nodes(
         &mut self,
         previous_id: MastNodeId,
@@ -215,34 +213,39 @@ impl MastForestMerger {
         node_id_remapping: &mut MastForestIdMap,
     ) -> Result<ControlFlow<()>, MastForestError> {
         if remapped_node.is_external() {
-            // If any non-external node exists, use it and drop the external node.
-            match self.lookup_non_external_node_by_root(node_eq) {
-                Some((_, referenced_node_id)) => {
-                    node_id_remapping.insert(previous_id, *referenced_node_id);
+            match self.lookup_node_by_root(&node_eq.mast_root) {
+                // If there already is any node with the same MAST root, map the merging external
+                // node to that existing one.
+                // This code path is also entered if the fingerprints match, so we can skip the
+                // general merging case by returning `Break`.
+                Some((_, existing_external_node_id)) => {
+                    node_id_remapping.insert(previous_id, *existing_external_node_id);
                     Ok(ControlFlow::Break(()))
                 },
-                // If no replacement for the external node exists do nothing as `merge_nodes` will
-                // simply add the node to the forest.
+                // If no duplicate for the external node exists do nothing as `merge_nodes`
+                // will simply add the node to the forest.
                 None => Ok(ControlFlow::Continue(())),
             }
         } else {
-            // Replace all external nodes in self with the given MAST root with the non-external
+            // Replace an external node in self with the given MAST root with the non-external
             // node from the merging forest.
             // Any node in the existing forest that pointed to the external node will
             // have the same MAST root due to the semantics of external nodes.
-            //
-            // By default we assume that no external node will be replaced in which case we want to
-            // `Continue`, otherwis we `Break`.
-            let mut control_flow = ControlFlow::Continue(());
-
-            for (_, external_node_id) in self.lookup_all_external_nodes_by_root(node_eq).into_iter()
-            {
-                self.mast_forest[external_node_id] = remapped_node.clone();
-                node_id_remapping.insert(previous_id, external_node_id);
-                control_flow = ControlFlow::Break(());
+            match self.lookup_external_node_by_root(node_eq) {
+                Some((_, external_node_id)) => {
+                    self.mast_forest[external_node_id] = remapped_node.clone();
+                    node_id_remapping.insert(previous_id, external_node_id);
+                    // The other branch of this function guarantees that no external and
+                    // non-external node with the same MAST root exist in the
+                    // merged forest, so if we found an external node with a
+                    // given MAST root, it must be the only one in the merged
+                    // forest, so we can skip the remainder of the `merge_nodes` code path.
+                    Ok(ControlFlow::Break(()))
+                },
+                // If we did not find a matching node, we can continue in the `merge_nodes` code
+                // path.
+                None => Ok(ControlFlow::Continue(())),
             }
-
-            Ok(control_flow)
         }
     }
 
@@ -329,27 +332,22 @@ impl MastForestMerger {
         })
     }
 
-    fn lookup_non_external_node_by_root(
-        &self,
-        fingerprint: &EqHash,
-    ) -> Option<&(EqHash, MastNodeId)> {
-        self.node_id_by_hash.get(&fingerprint.mast_root).and_then(|node_ids| {
-            node_ids.iter().find(|(node_fingerprint, node_id)| {
-                !self.mast_forest[*node_id].is_external() && node_fingerprint != fingerprint
-            })
-        })
+    fn lookup_node_by_root(&self, mast_root: &RpoDigest) -> Option<&(EqHash, MastNodeId)> {
+        self.node_id_by_hash.get(mast_root).and_then(|node_ids| node_ids.first())
     }
 
-    fn lookup_all_external_nodes_by_root(&self, fingerprint: &EqHash) -> Vec<(EqHash, MastNodeId)> {
-        self.node_id_by_hash
-            .get(&fingerprint.mast_root)
-            .map(|ids| {
-                ids.iter()
-                    .filter(|(_, node_id)| self.mast_forest[*node_id].is_external())
-                    .copied()
-                    .collect()
-            })
-            .unwrap_or_default()
+    fn lookup_external_node_by_root(&self, fingerprint: &EqHash) -> Option<(EqHash, MastNodeId)> {
+        self.node_id_by_hash.get(&fingerprint.mast_root).and_then(|ids| {
+            let mut iterator = ids
+                .iter()
+                .filter(|(_, node_id)| self.mast_forest[*node_id].is_external())
+                .copied();
+            let external_node = iterator.next();
+            // The merging implementation should guarantee that no two external nodes with the same
+            // MAST root exist.
+            debug_assert!(iterator.next().is_none());
+            external_node
+        })
     }
 }
 

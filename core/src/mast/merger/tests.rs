@@ -463,3 +463,65 @@ fn mast_forest_merge_external_node_and_referenced_node_have_decorators() {
         assert!(fingerprints.contains(&id_foo_b_fingerprint));
     }
 }
+
+/// Tests that two external nodes with the same MAST root are deduplicated during merging and then
+/// replaced by a block with the matching digest.
+///
+/// [External(foo, Trace(1), Trace(2)),
+///  External(foo, Trace(1))]
+/// +
+/// [Block(foo, Trace(1))]
+/// =
+/// [Block(foo, Trace(1))]
+/// +
+/// [External(foo, Trace(1), Trace(2)),
+///  External(foo, Trace(1))]
+/// =
+/// [Block(foo, Trace(1))]
+#[test]
+fn mast_forest_merge_multiple_external_nodes_with_decorator() {
+    let mut forest_a = MastForest::new();
+    let trace1 = Decorator::Trace(1);
+    let trace2 = Decorator::Trace(2);
+
+    // Build Forest A
+    let deco1_a = forest_a.add_decorator(trace1.clone()).unwrap();
+    let deco2_a = forest_a.add_decorator(trace2.clone()).unwrap();
+
+    let mut external_node_a = MastNode::new_external(block_foo().digest());
+    external_node_a.set_before_enter(vec![deco1_a]);
+    external_node_a.set_after_exit(vec![deco2_a]);
+    let id_external_a = forest_a.add_node(external_node_a).unwrap();
+
+    let mut external_node_b = MastNode::new_external(block_foo().digest());
+    external_node_b.set_before_enter(vec![deco1_a]);
+    let id_external_b = forest_a.add_node(external_node_b).unwrap();
+
+    forest_a.make_root(id_external_a);
+    forest_a.make_root(id_external_b);
+
+    // Build Forest B
+    let mut forest_b = MastForest::new();
+    let deco1_b = forest_b.add_decorator(trace1).unwrap();
+    let mut block_foo_b = block_foo();
+    block_foo_b.set_before_enter(vec![deco1_b]);
+    let id_foo_b = forest_b.add_node(block_foo_b).unwrap();
+
+    forest_b.make_root(id_foo_b);
+
+    for merged in [forest_a.merge(&forest_b).unwrap(), forest_b.merge(&forest_a).unwrap()] {
+        assert_eq!(merged.nodes.len(), 1);
+
+        let id_foo_b_fingerprint =
+            EqHash::from_mast_node(&forest_a, &BTreeMap::new(), &forest_b[id_foo_b]);
+
+        let fingerprints: Vec<_> = merged
+            .nodes()
+            .iter()
+            .map(|node| EqHash::from_mast_node(&merged, &BTreeMap::new(), node))
+            .collect();
+
+        // Block foo should be unmodified.
+        assert!(fingerprints.contains(&id_foo_b_fingerprint));
+    }
+}
