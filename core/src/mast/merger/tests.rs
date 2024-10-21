@@ -38,7 +38,7 @@ fn mast_forest_merge_remap() {
     let id_call_b = forest_b.add_call(id_bar).unwrap();
     forest_b.make_root(id_call_b);
 
-    let merged = forest_a.merge(&forest_b).unwrap();
+    let (merged, _) = MastForest::merge([&forest_a, &forest_b]).unwrap();
 
     assert_eq!(merged.nodes().len(), 4);
     assert_eq!(merged.nodes()[0], block_foo());
@@ -61,7 +61,7 @@ fn mast_forest_merge_duplicate() {
     forest_a.make_root(id_call);
     forest_a.make_root(id_loop);
 
-    let merged = forest_a.merge(&forest_a).unwrap();
+    let (merged, _) = MastForest::merge([&forest_a, &forest_a]).unwrap();
 
     for merged_root in merged.procedure_digests() {
         forest_a.procedure_digests().find(|root| root == &merged_root).unwrap();
@@ -100,8 +100,8 @@ fn mast_forest_merge_replace_external() {
     let id_call_b = forest_b.add_call(id_foo_b).unwrap();
     forest_b.make_root(id_call_b);
 
-    let merged_ab = forest_a.merge(&forest_b).unwrap();
-    let merged_ba = forest_b.merge(&forest_a).unwrap();
+    let (merged_ab, _) = MastForest::merge([&forest_a, &forest_b]).unwrap();
+    let (merged_ba, _) = MastForest::merge([&forest_b, &forest_a]).unwrap();
 
     for merged in [merged_ab, merged_ba] {
         assert_eq!(merged.nodes().len(), 2);
@@ -138,7 +138,7 @@ fn mast_forest_merge_roots() {
     let root_digest_bar_b = forest_b.get_node_by_id(id_bar_b).unwrap().digest();
     let root_digest_call_b = forest_b.get_node_by_id(call_b).unwrap().digest();
 
-    let merged = forest_a.merge(&forest_b).unwrap();
+    let (merged, _) = MastForest::merge([&forest_a, &forest_b]).unwrap();
 
     // Asserts (together with the other assertions) that the duplicate Call(foo) roots have been
     // deduplicated.
@@ -185,7 +185,7 @@ fn mast_forest_merge_multiple() {
     forest_c.make_root(id_qux_c);
     forest_c.make_root(call_c);
 
-    let merged = forest_a.merge_multiple(&[&forest_b, &forest_c]).unwrap();
+    let (merged, _) = MastForest::merge([&forest_a, &forest_b, &forest_c]).unwrap();
 
     let block_foo_digest = forest_b.get_node_by_id(id_foo_b).unwrap().digest();
     let block_bar_digest = forest_b.get_node_by_id(id_bar_b).unwrap().digest();
@@ -264,7 +264,7 @@ fn mast_forest_merge_decorators() {
 
     forest_b.make_root(id_loop_b);
 
-    let merged = forest_a.merge(&forest_b).unwrap();
+    let (merged, _) = MastForest::merge([&forest_a, &forest_b]).unwrap();
 
     // There are 4 unique decorators across both forests.
     assert_eq!(merged.decorators.len(), 4);
@@ -367,7 +367,10 @@ fn mast_forest_merge_external_node_referenced_node_has_decorator() {
 
     forest_b.make_root(id_external_b);
 
-    for merged in [forest_a.merge(&forest_b).unwrap(), forest_b.merge(&forest_a).unwrap()] {
+    for (merged, _) in [
+        MastForest::merge([&forest_a, &forest_b]).unwrap(),
+        MastForest::merge([&forest_b, &forest_a]).unwrap(),
+    ] {
         let id_foo_a_fingerprint =
             EqHash::from_mast_node(&forest_a, &BTreeMap::new(), &forest_a[id_foo_a]);
 
@@ -405,7 +408,10 @@ fn mast_forest_merge_external_node_has_decorator() {
 
     forest_b.make_root(id_foo_b);
 
-    for merged in [forest_a.merge(&forest_b).unwrap(), forest_b.merge(&forest_a).unwrap()] {
+    for (merged, _) in [
+        MastForest::merge([&forest_a, &forest_b]).unwrap(),
+        MastForest::merge([&forest_b, &forest_a]).unwrap(),
+    ] {
         assert_eq!(merged.nodes.len(), 1);
 
         let id_foo_b_fingerprint =
@@ -447,7 +453,10 @@ fn mast_forest_merge_external_node_and_referenced_node_have_decorators() {
 
     forest_b.make_root(id_foo_b);
 
-    for merged in [forest_a.merge(&forest_b).unwrap(), forest_b.merge(&forest_a).unwrap()] {
+    for (merged, _) in [
+        MastForest::merge([&forest_a, &forest_b]).unwrap(),
+        MastForest::merge([&forest_b, &forest_a]).unwrap(),
+    ] {
         assert_eq!(merged.nodes.len(), 1);
 
         let id_foo_b_fingerprint =
@@ -509,7 +518,10 @@ fn mast_forest_merge_multiple_external_nodes_with_decorator() {
 
     forest_b.make_root(id_foo_b);
 
-    for merged in [forest_a.merge(&forest_b).unwrap(), forest_b.merge(&forest_a).unwrap()] {
+    for (merged, _) in [
+        MastForest::merge([&forest_a, &forest_b]).unwrap(),
+        MastForest::merge([&forest_b, &forest_a]).unwrap(),
+    ] {
         assert_eq!(merged.nodes.len(), 1);
 
         let id_foo_b_fingerprint =
