@@ -10,44 +10,10 @@ mod tests;
 
 /// A type that allows merging [`MastForest`]s.
 ///
-/// Merging two forests means combining all their constituent parts, i.e. [`MastNode`]s,
-/// [`Decorator`](crate::mast::Decorator)s and roots. During this process, any duplicate or
-/// unreachable nodes are removed. Additionally, [`MastNodeId`]s of nodes as well as
-/// [`DecoratorId`]s of decorators may change and references to them are remapped to their new
-/// location.
-///
-/// For example, consider this representation of a forest's nodes and all of these nodes being
-/// roots:
-///
-/// ```text
-/// [Block(foo), Block(bar)]
-/// ```
-///
-/// If we merge another forest into it:
-///
-/// ```text
-/// [Block(bar), Call(0)]
-/// ```
-///
-/// then we would expect this forest:
-///
-/// ```text
-/// [Block(foo), Block(bar), Call(1)]
-/// ```
-///
-/// - The `Call` to the `bar` block was remapped to its new index (now 1, previously 0).
-/// - The `Block(bar)` was deduplicated any only exists once in the merged forest.
-///
-/// If any forest being merged contains an `External(qux)` node and another forest contains a node
-/// whose digest is `qux`, then the external node will be replaced with the `qux` node, which is
-/// effectively deduplication.
-///
-/// Note that there are convenience methods for merging on [`MastForest`] itself:
-/// - [`MastForest::merge`]
-/// - [`MastForest::merge_multiple`]
+/// This functionality is exposed via [`MastForest::merge`]. See its documentation for more details.
 pub(crate) struct MastForestMerger {
     mast_forest: MastForest,
-    // Internal indices needed for efficient duplicate checking.
+    // Internal indices needed for efficient duplicate checking and EqHash computation.
     node_id_by_hash: BTreeMap<RpoDigest, Vec<(EqHash, MastNodeId)>>,
     hash_by_node_id: BTreeMap<MastNodeId, EqHash>,
     decorators_by_hash: BTreeMap<Blake3Digest<32>, DecoratorId>,
@@ -119,12 +85,13 @@ impl MastForestMerger {
             //
             // This is because the EqHash computation looks up its descendants and decorators in
             // the internal index, and if we were to pass the original node to that
-            // computation, it would look up the incorrect descendants and decorators.
+            // computation, it would look up the incorrect descendants and decorators (since the
+            // descendant's indices may have changed).
             //
-            // Remapping at this point is going to be "complete", meaning all ids of children will
-            // be remapped since the DFS iteration guarantees that all children of this `node` have
-            // been processed before this node and their indices have been added to the
-            // mappings.
+            // Remapping at this point is guaranteed to be "complete", meaning all ids of children
+            // will be present in `node_id_remapping` since the DFS iteration guarantees
+            // that all children of this `node` have been processed before this node and
+            // their indices have been added to the mappings.
             let remapped_node = self.remap_node(node, decorator_id_remapping, node_id_remapping)?;
 
             let node_eq =
@@ -190,7 +157,7 @@ impl MastForestMerger {
         // We need to update the indices with the newly inserted nodes
         // since the EqHash computation requires all descendants of a node
         // to be in this index. Hence when we encounter a node in the merging forest
-        // which has descendants (Call, Loop, Split, ...), then those need to be in the
+        // which has descendants (Call, Loop, Split, ...), then their descendants need to be in the
         // indices.
         self.node_id_by_hash
             .entry(node_eq.mast_root)
@@ -377,6 +344,10 @@ impl From<MastForestMerger> for MastForest {
 // MAST FOREST ROOT MAP
 // ================================================================================================
 
+/// A mapping for the new location of the roots of a [`MastForest`] after a merge.
+///
+/// It maps the roots ([`MastNodeId`]s) of a forest to their new [`MastNodeId`] in the merged
+/// forest. See [`MastForest::merge`] for more details.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct MastForestRootMap {
     root_map: BTreeMap<MastNodeId, MastNodeId>,
@@ -395,39 +366,20 @@ impl MastForestRootMap {
         Self { root_map }
     }
 
+    /// Maps the given root to its new location in the merged forest, if such a mapping exists.
+    ///
+    /// It is guaranteed that every root of the map's corresponding forest is contained in the map.
     pub fn map_root(&self, root: &MastNodeId) -> Option<MastNodeId> {
         self.root_map.get(root).copied()
-    }
-}
-
-// MAST FOREST ID MAP
-// ================================================================================================
-
-#[derive(Debug)]
-pub struct MastForestNodeIdMap {
-    map: BTreeMap<MastNodeId, MastNodeId>,
-}
-
-impl MastForestNodeIdMap {
-    fn new() -> Self {
-        Self { map: BTreeMap::new() }
-    }
-
-    fn insert(&mut self, key: MastNodeId, value: MastNodeId) {
-        self.map.insert(key, value);
-    }
-
-    fn get(&self, key: &MastNodeId) -> Option<&MastNodeId> {
-        self.map.get(key)
     }
 }
 
 // DECORATOR ID MAP
 // ================================================================================================
 
-/// A specialized map from ID -> ID meant to be used with [`DecoratorId`] or [`MastNodeId`].
+/// A specialized map from [`DecoratorId`] -> [`DecoratorId`].
 ///
-/// When mapping Decorator or Mast Node IDs during merging, we always map all IDs of the merging
+/// When mapping Decorator IDs during merging, we always map all IDs of the merging
 /// forest to new ids. Hence it is more efficient to use a `Vec` instead of, say, a `BTreeMap`.
 ///
 /// In other words, this type is similar to `BTreeMap<ID, ID>` but takes advantage of the fact that
@@ -437,15 +389,14 @@ impl MastForestNodeIdMap {
 ///
 /// - Indexing into the vector for any ID is safe if that ID is valid for the corresponding forest,
 ///   which is enforced in the `from_u32_safe` functions (as long as they are used with the correct
-///   forest).
+///   forest). Despite that, we still cannot index unconditionally in case node with invalid
+///   [`DecoratorId`]s is passed to `merge`.
 /// - The entry itself can be either None or Some. However:
-///   - For `DecoratorId`s we process them before retrieving any entry, so all entries contain
-///     `Some`.
-///   - For `MastNodeId`s we only `get` those node IDs that we have previously visited due to the
-///     guarantees of DFS iteration, which is why we always find a `Some` entry as well.
-///   - Because of this, we can use `expect` in `get`.
-/// - Similarly, inserting any ID is safe as the map contains a pre-allocated `Vec` of the
-///   appropriate size.
+///   - For `DecoratorId`s we iterate and insert all decorators into this map before retrieving any
+///     entry, so all entries contain `Some`. Because of this, we can use `expect` in `get` for the
+///     `Option` value.
+/// - Similarly, inserting any ID from the corresponding forest is safe as the map contains a
+///   pre-allocated `Vec` of the appropriate size.
 struct DecoratorIdMap {
     inner: Vec<Option<DecoratorId>>,
 }
@@ -464,9 +415,6 @@ impl DecoratorIdMap {
     }
 
     /// Retrieves the value for the given key.
-    ///
-    /// It is the caller's responsibility to only pass keys that belong to the forest for which this
-    /// map was originally created.
     fn get(&self, key: &DecoratorId) -> Option<DecoratorId> {
         self.inner
             .get(key.as_usize())
@@ -477,3 +425,6 @@ impl DecoratorIdMap {
         self.inner.len()
     }
 }
+
+/// A type definition for increased readability in function signatures.
+type MastForestNodeIdMap = BTreeMap<MastNodeId, MastNodeId>;
