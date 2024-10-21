@@ -537,3 +537,29 @@ fn mast_forest_merge_multiple_external_nodes_with_decorator() {
         assert!(fingerprints.contains(&id_foo_b_fingerprint));
     }
 }
+
+#[test]
+fn mast_forest_merge_invalid_decorator_index() {
+    let trace1 = Decorator::Trace(1);
+    let trace2 = Decorator::Trace(2);
+
+    // Build Forest A
+    let mut forest_a = MastForest::new();
+    let deco1_a = forest_a.add_decorator(trace1.clone()).unwrap();
+    let deco2_a = forest_a.add_decorator(trace2.clone()).unwrap();
+    let id_bar_a = forest_a.add_node(block_bar()).unwrap();
+
+    forest_a.make_root(id_bar_a);
+
+    // Build Forest B
+    let mut forest_b = MastForest::new();
+    let mut block_b = block_foo();
+    // We're using a DecoratorId from forest A which is invalid.
+    block_b.set_before_enter(vec![deco1_a, deco2_a]);
+    let id_foo_b = forest_b.add_node(block_b).unwrap();
+
+    forest_b.make_root(id_foo_b);
+
+    let err = MastForest::merge([&forest_a, &forest_b]).unwrap_err();
+    assert_matches!(err, MastForestError::DecoratorIdOverflow(_, _));
+}

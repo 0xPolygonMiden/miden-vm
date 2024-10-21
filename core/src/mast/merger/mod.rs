@@ -67,7 +67,7 @@ impl MastForestMerger {
 
     /// Merges `other_forest` into the forest contained in self.
     pub(crate) fn merge(&mut self, other_forest: &MastForest) -> Result<(), MastForestError> {
-        let mut decorator_id_remapping = ForestIdMap::new(other_forest.decorators.len());
+        let mut decorator_id_remapping = DecoratorIdMap::new(other_forest.decorators.len());
         let mut node_id_remapping = MastForestIdMap::new();
 
         self.merge_decorators(other_forest, &mut decorator_id_remapping)?;
@@ -80,7 +80,7 @@ impl MastForestMerger {
     fn merge_decorators(
         &mut self,
         other_forest: &MastForest,
-        decorator_id_remapping: &mut ForestIdMap<DecoratorId>,
+        decorator_id_remapping: &mut DecoratorIdMap,
     ) -> Result<(), MastForestError> {
         for (merging_id, merging_decorator) in other_forest.decorators.iter().enumerate() {
             let merging_decorator_hash = merging_decorator.eq_hash();
@@ -89,13 +89,14 @@ impl MastForestMerger {
             {
                 *existing_decorator
             } else {
-                self.mast_forest.add_decorator(merging_decorator.clone())?
+                let new_decorator_id = self.mast_forest.add_decorator(merging_decorator.clone())?;
+                self.decorators_by_hash.insert(merging_decorator_hash, new_decorator_id);
+                new_decorator_id
             };
 
             let merging_id = DecoratorId::from_u32_safe(merging_id as u32, other_forest)
                 .expect("the index should always be less than the number of decorators");
             decorator_id_remapping.insert(merging_id, new_decorator_id);
-            self.decorators_by_hash.insert(merging_decorator_hash, new_decorator_id);
         }
 
         Ok(())
@@ -104,7 +105,7 @@ impl MastForestMerger {
     fn merge_nodes(
         &mut self,
         other_forest: &MastForest,
-        decorator_id_remapping: &ForestIdMap<DecoratorId>,
+        decorator_id_remapping: &DecoratorIdMap,
         node_id_remapping: &mut MastForestIdMap,
     ) -> Result<(), MastForestError> {
         for (merging_id, node) in other_forest.iter_nodes() {
@@ -118,7 +119,7 @@ impl MastForestMerger {
             // be remapped since the DFS iteration guarantees that all children of this `node` have
             // been processed before this node and their indices have been added to the
             // mappings.
-            let remapped_node = self.remap_node(node, decorator_id_remapping, node_id_remapping);
+            let remapped_node = self.remap_node(node, decorator_id_remapping, node_id_remapping)?;
 
             let node_eq =
                 EqHash::from_mast_node(&self.mast_forest, &self.hash_by_node_id, &remapped_node);
@@ -254,13 +255,18 @@ impl MastForestMerger {
     fn remap_node(
         &self,
         node: &MastNode,
-        decorator_id_remapping: &ForestIdMap<DecoratorId>,
+        decorator_id_remapping: &DecoratorIdMap,
         node_id_remapping: &MastForestIdMap,
-    ) -> MastNode {
-        let map_decorator_id =
-            |decorator_id: &DecoratorId| decorator_id_remapping.get(decorator_id);
-        let map_decorators =
-            |decorators: &[DecoratorId]| decorators.iter().map(map_decorator_id).collect();
+    ) -> Result<MastNode, MastForestError> {
+        let map_decorator_id = |decorator_id: &DecoratorId| {
+            decorator_id_remapping.get(decorator_id).ok_or_else(|| {
+                MastForestError::DecoratorIdOverflow(*decorator_id, decorator_id_remapping.len())
+            })
+        };
+        let map_decorators = |decorators: &[DecoratorId]| -> Result<Vec<_>, MastForestError> {
+            decorators.iter().map(map_decorator_id).collect()
+        };
+
         let map_node_id = |node_id: MastNodeId| {
             node_id_remapping
                 .get(&node_id)
@@ -296,19 +302,24 @@ impl MastForestMerger {
                     .expect("CallNode children should have been mapped to a lower index")
             },
             // Other nodes are simply copied.
-            MastNode::Block(basic_block_node) => MastNode::new_basic_block(
-                basic_block_node.operations().copied().collect(),
-                // Operation Indices of decorators stay the same while decorator IDs need to be
-                // mapped.
-                Some(
-                    basic_block_node
-                        .decorators()
-                        .iter()
-                        .map(|(idx, decorator_id)| (*idx, map_decorator_id(decorator_id)))
-                        .collect(),
-                ),
-            )
-            .expect("previously valid BasicBlockNode should still be valid"),
+            MastNode::Block(basic_block_node) => {
+                MastNode::new_basic_block(
+                    basic_block_node.operations().copied().collect(),
+                    // Operation Indices of decorators stay the same while decorator IDs need to be
+                    // mapped.
+                    Some(
+                        basic_block_node
+                            .decorators()
+                            .iter()
+                            .map(|(idx, decorator_id)| match map_decorator_id(decorator_id) {
+                                Ok(mapped_decorator) => Ok((*idx, mapped_decorator)),
+                                Err(err) => Err(err),
+                            })
+                            .collect::<Result<Vec<_>, _>>()?,
+                    ),
+                )
+                .expect("previously valid BasicBlockNode should still be valid")
+            },
             MastNode::Dyn(_) => MastNode::new_dyn(),
             MastNode::External(external_node) => MastNode::new_external(external_node.digest()),
         };
@@ -316,11 +327,11 @@ impl MastForestMerger {
         // Decorators must be handled specially for basic block nodes.
         // For other node types we can handle it centrally.
         if !mapped_node.is_basic_block() {
-            mapped_node.set_before_enter(map_decorators(node.before_enter()));
-            mapped_node.set_after_exit(map_decorators(node.after_exit()));
+            mapped_node.set_before_enter(map_decorators(node.before_enter())?);
+            mapped_node.set_after_exit(map_decorators(node.after_exit())?);
         }
 
-        mapped_node
+        Ok(mapped_node)
     }
 
     // HELPERS
@@ -360,6 +371,7 @@ impl From<MastForestMerger> for MastForest {
 // MAST FOREST ID MAP
 // ================================================================================================
 
+#[derive(Debug, Clone)]
 pub struct MastRootMap {}
 
 // MAST FOREST ID MAP
@@ -407,21 +419,11 @@ impl MastForestIdMap {
 ///   - Because of this, we can use `expect` in `get`.
 /// - Similarly, inserting any ID is safe as the map contains a pre-allocated `Vec` of the
 ///   appropriate size.
-struct ForestIdMap<T: ForestId> {
-    inner: Vec<Option<T>>,
+struct DecoratorIdMap {
+    inner: Vec<Option<DecoratorId>>,
 }
 
-trait ForestId: Clone + Copy {
-    fn as_usize(&self) -> usize;
-}
-
-impl ForestId for DecoratorId {
-    fn as_usize(&self) -> usize {
-        DecoratorId::as_usize(self)
-    }
-}
-
-impl<T: ForestId> ForestIdMap<T> {
+impl DecoratorIdMap {
     fn new(num_ids: usize) -> Self {
         Self { inner: vec![None; num_ids] }
     }
@@ -430,7 +432,7 @@ impl<T: ForestId> ForestIdMap<T> {
     ///
     /// It is the caller's responsibility to only pass keys that belong to the forest for which this
     /// map was originally created.
-    fn insert(&mut self, key: T, value: T) {
+    fn insert(&mut self, key: DecoratorId, value: DecoratorId) {
         self.inner[key.as_usize()] = Some(value);
     }
 
@@ -438,8 +440,13 @@ impl<T: ForestId> ForestIdMap<T> {
     ///
     /// It is the caller's responsibility to only pass keys that belong to the forest for which this
     /// map was originally created.
-    fn get(&self, key: &T) -> T {
-        self.inner[key.as_usize()]
-            .expect("every id should have a Some entry in the map when calling get")
+    fn get(&self, key: &DecoratorId) -> Option<DecoratorId> {
+        self.inner
+            .get(key.as_usize())
+            .map(|id| id.expect("every id should have a Some entry in the map when calling get"))
+    }
+
+    fn len(&self) -> usize {
+        self.inner.len()
     }
 }

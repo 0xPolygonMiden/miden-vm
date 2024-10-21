@@ -833,6 +833,8 @@ pub enum MastForestError {
     TooManyNodes,
     #[error("node id: {0} is greater than or equal to forest length: {1}")]
     NodeIdOverflow(MastNodeId, usize),
+    #[error("decorator id: {0} is greater than or equal to decorator count: {1}")]
+    DecoratorIdOverflow(DecoratorId, usize),
     #[error("basic block cannot be created from an empty list of operations")]
     EmptyBasicBlock,
 }
