@@ -12,17 +12,17 @@ use crate::mast::{MastForest, MastNode, MastNodeId};
 /// For instance, consider this `MastForest`:
 ///
 /// ```text
-/// Nodes: [Join(1, 2), Block(foo), Block(bar), External(qux)]
-/// Roots: [0]
+/// Nodes: [Block(foo), Block(bar), Join(0, 1), External(qux)]
+/// Roots: [2]
 /// ```
 ///
-/// The only root is the `Join` node at index 0. The first three nodes of the forest form a tree,
-/// since the `Join` node references index 1 and 2. This tree is discovered by starting at
-/// index 0 and following all children until we reach terminal nodes (like `Block`s) and build up a
-/// stack of the discovered, but unvisited nodes. The stack is built such that popping elements off
-/// the stack (from the back) yields a postorder.
+/// The only root is the `Join` node at index 2. The first three nodes of the forest form a
+/// tree, since the `Join` node references index 0 and 1. This tree is discovered by
+/// starting at the root at index 2 and following all children until we reach terminal nodes (like
+/// `Block`s) and build up a stack of the discovered, but unvisited nodes. The stack is
+/// built such that popping elements off the stack (from the back) yields a postorder.
 ///
-/// After the first tree is discovered, the stack looks like this: `[0, 2, 1]`. On each
+/// After the first tree is discovered, the stack looks like this: `[2, 1, 0]`. On each
 /// call to `next` one element is popped off this stack and returned.
 ///
 /// If the stack is exhausted we start another discovery if more unvisited roots exist. Since the
