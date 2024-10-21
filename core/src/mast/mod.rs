@@ -20,12 +20,13 @@ pub use node::{
 };
 use winter_utils::{ByteWriter, DeserializationError, Serializable};
 
-use crate::{mast::merger::MastForestRootMap, Decorator, DecoratorList, Operation};
+use crate::{Decorator, DecoratorList, Operation};
 
 mod serialization;
 
 mod merger;
 pub(crate) use merger::MastForestMerger;
+pub use merger::MastForestRootMap;
 
 mod dfs_iterator;
 pub(crate) use dfs_iterator::*;
@@ -204,7 +205,7 @@ impl MastForest {
     /// Merges all `forests` into a new [`MastForest`].
     ///
     /// Merging two forests means combining all their constituent parts, i.e. [`MastNode`]s,
-    /// [`Decorator`](crate::mast::Decorator)s and roots. During this process, any duplicate or
+    /// [`Decorator`]s and roots. During this process, any duplicate or
     /// unreachable nodes are removed. Additionally, [`MastNodeId`]s of nodes as well as
     /// [`DecoratorId`]s of decorators may change and references to them are remapped to their new
     /// location.
