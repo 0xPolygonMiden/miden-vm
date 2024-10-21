@@ -633,6 +633,11 @@ impl DecoratorId {
         }
     }
 
+    /// Creates a new [`DecoratorId`] without checking its validity.
+    pub(crate) fn new_unsafe(value: u32) -> Self {
+        Self(value)
+    }
+
     pub fn as_usize(&self) -> usize {
         self.0 as usize
     }
