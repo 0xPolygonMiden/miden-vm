@@ -51,7 +51,7 @@ fn mast_forest_merge_remap() {
     let id_call_b = forest_b.add_call(id_bar).unwrap();
     forest_b.make_root(id_call_b);
 
-    let (merged, root_maps) = MastForest::merge([&forest_a, &forest_b]).unwrap();
+    let (merged, root_maps) = MastForest::merge([forest_a, forest_b]).unwrap();
 
     assert_eq!(merged.nodes().len(), 4);
     assert_eq!(merged.nodes()[0], block_foo());
@@ -79,7 +79,7 @@ fn mast_forest_merge_duplicate() {
     forest_a.make_root(id_call);
     forest_a.make_root(id_loop);
 
-    let (merged, root_maps) = MastForest::merge([&forest_a, &forest_a]).unwrap();
+    let (merged, root_maps) = MastForest::merge([forest_a.clone(), forest_a.clone()]).unwrap();
 
     for merged_root in merged.procedure_digests() {
         forest_a.procedure_digests().find(|root| root == &merged_root).unwrap();
@@ -121,8 +121,10 @@ fn mast_forest_merge_replace_external() {
     let id_call_b = forest_b.add_call(id_foo_b).unwrap();
     forest_b.make_root(id_call_b);
 
-    let (merged_ab, root_maps_ab) = MastForest::merge([&forest_a, &forest_b]).unwrap();
-    let (merged_ba, root_maps_ba) = MastForest::merge([&forest_b, &forest_a]).unwrap();
+    let (merged_ab, root_maps_ab) =
+        MastForest::merge([forest_a.clone(), forest_b.clone()]).unwrap();
+    let (merged_ba, root_maps_ba) =
+        MastForest::merge([forest_b.clone(), forest_a.clone()]).unwrap();
 
     for (merged, root_map) in [(merged_ab, root_maps_ab), (merged_ba, root_maps_ba)] {
         assert_eq!(merged.nodes().len(), 2);
@@ -162,7 +164,7 @@ fn mast_forest_merge_roots() {
     let root_digest_bar_b = forest_b.get_node_by_id(id_bar_b).unwrap().digest();
     let root_digest_call_b = forest_b.get_node_by_id(call_b).unwrap().digest();
 
-    let (merged, root_maps) = MastForest::merge([&forest_a, &forest_b]).unwrap();
+    let (merged, root_maps) = MastForest::merge([forest_a.clone(), forest_b.clone()]).unwrap();
 
     // Asserts (together with the other assertions) that the duplicate Call(foo) roots have been
     // deduplicated.
@@ -212,7 +214,8 @@ fn mast_forest_merge_multiple() {
     forest_c.make_root(id_qux_c);
     forest_c.make_root(call_c);
 
-    let (merged, root_maps) = MastForest::merge([&forest_a, &forest_b, &forest_c]).unwrap();
+    let (merged, root_maps) =
+        MastForest::merge([forest_a.clone(), forest_b.clone(), forest_c.clone()]).unwrap();
 
     let block_foo_digest = forest_b.get_node_by_id(id_foo_b).unwrap().digest();
     let block_bar_digest = forest_b.get_node_by_id(id_bar_b).unwrap().digest();
@@ -295,7 +298,7 @@ fn mast_forest_merge_decorators() {
 
     forest_b.make_root(id_loop_b);
 
-    let (merged, root_maps) = MastForest::merge([&forest_a, &forest_b]).unwrap();
+    let (merged, root_maps) = MastForest::merge([forest_a.clone(), forest_b.clone()]).unwrap();
 
     // There are 4 unique decorators across both forests.
     assert_eq!(merged.decorators.len(), 4);
@@ -403,8 +406,8 @@ fn mast_forest_merge_external_node_reference_with_decorator() {
     forest_b.make_root(id_external_b);
 
     for (idx, (merged, root_maps)) in [
-        MastForest::merge([&forest_a, &forest_b]).unwrap(),
-        MastForest::merge([&forest_b, &forest_a]).unwrap(),
+        MastForest::merge([forest_a.clone(), forest_b.clone()]).unwrap(),
+        MastForest::merge([forest_b.clone(), forest_a.clone()]).unwrap(),
     ]
     .into_iter()
     .enumerate()
@@ -467,8 +470,8 @@ fn mast_forest_merge_external_node_with_decorator() {
     forest_b.make_root(id_foo_b);
 
     for (idx, (merged, root_maps)) in [
-        MastForest::merge([&forest_a, &forest_b]).unwrap(),
-        MastForest::merge([&forest_b, &forest_a]).unwrap(),
+        MastForest::merge([forest_a.clone(), forest_b.clone()]).unwrap(),
+        MastForest::merge([forest_b.clone(), forest_a.clone()]).unwrap(),
     ]
     .into_iter()
     .enumerate()
@@ -535,8 +538,8 @@ fn mast_forest_merge_external_node_and_referenced_node_have_decorators() {
     forest_b.make_root(id_foo_b);
 
     for (idx, (merged, root_maps)) in [
-        MastForest::merge([&forest_a, &forest_b]).unwrap(),
-        MastForest::merge([&forest_b, &forest_a]).unwrap(),
+        MastForest::merge([forest_a.clone(), forest_b.clone()]).unwrap(),
+        MastForest::merge([forest_b.clone(), forest_a.clone()]).unwrap(),
     ]
     .into_iter()
     .enumerate()
@@ -611,8 +614,8 @@ fn mast_forest_merge_multiple_external_nodes_with_decorator() {
     forest_b.make_root(id_foo_b);
 
     for (idx, (merged, root_maps)) in [
-        MastForest::merge([&forest_a, &forest_b]).unwrap(),
-        MastForest::merge([&forest_b, &forest_a]).unwrap(),
+        MastForest::merge([forest_a.clone(), forest_b.clone()]).unwrap(),
+        MastForest::merge([forest_b.clone(), forest_a.clone()]).unwrap(),
     ]
     .into_iter()
     .enumerate()
@@ -665,6 +668,6 @@ fn mast_forest_merge_invalid_decorator_index() {
 
     forest_b.make_root(id_foo_b);
 
-    let err = MastForest::merge([&forest_a, &forest_b]).unwrap_err();
+    let err = MastForest::merge([forest_a.clone(), forest_b.clone()]).unwrap_err();
     assert_matches!(err, MastForestError::DecoratorIdOverflow(_, _));
 }

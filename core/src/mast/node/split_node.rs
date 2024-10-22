@@ -121,6 +121,21 @@ impl SplitNode {
     pub fn set_after_exit(&mut self, decorator_ids: Vec<DecoratorId>) {
         self.after_exit = decorator_ids;
     }
+
+    /// Set the branches of this node.
+    pub(crate) fn set_branches(&mut self, on_true: MastNodeId, on_false: MastNodeId) {
+        self.branches = [on_true, on_false];
+    }
+
+    /// Returns a mutable reference to the decorators to be executed after this node is executed.
+    pub(crate) fn after_exit_mut(&mut self) -> &mut [DecoratorId] {
+        &mut self.after_exit
+    }
+
+    /// Returns a mutable reference to the decorators to be executed before this node is executed.
+    pub(crate) fn before_enter_mut(&mut self) -> &mut [DecoratorId] {
+        &mut self.before_enter
+    }
 }
 
 // PRETTY PRINTING

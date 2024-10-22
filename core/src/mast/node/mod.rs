@@ -258,6 +258,53 @@ impl MastNode {
             MastNode::External(node) => node.set_after_exit(decorator_ids),
         }
     }
+
+    /// Returns a mutable reference to the decorators to be executed before this node is executed.
+    pub(crate) fn before_enter_mut(&mut self) -> &mut [DecoratorId] {
+        match self {
+            MastNode::Block(_) => &mut [],
+            MastNode::Join(join_node) => join_node.before_enter_mut(),
+            MastNode::Split(split_node) => split_node.before_enter_mut(),
+            MastNode::Loop(loop_node) => loop_node.before_enter_mut(),
+            MastNode::Call(call_node) => call_node.before_enter_mut(),
+            MastNode::Dyn(dyn_node) => dyn_node.before_enter_mut(),
+            MastNode::External(external_node) => external_node.before_enter_mut(),
+        }
+    }
+
+    /// Returns a mutable reference to the decorators to be executed after this node is executed.
+    pub(crate) fn after_exit_mut(&mut self) -> &mut [DecoratorId] {
+        match self {
+            MastNode::Block(_) => &mut [],
+            MastNode::Join(join_node) => join_node.after_exit_mut(),
+            MastNode::Split(split_node) => split_node.after_exit_mut(),
+            MastNode::Loop(loop_node) => loop_node.after_exit_mut(),
+            MastNode::Call(call_node) => call_node.after_exit_mut(),
+            MastNode::Dyn(dyn_node) => dyn_node.after_exit_mut(),
+            MastNode::External(external_node) => external_node.after_exit_mut(),
+        }
+    }
+
+    /// Applies the given function to every [`DecoratorId`] in self.
+    pub fn map_decorators_ids<E>(
+        &mut self,
+        decorator_map: impl Fn(&DecoratorId) -> Result<DecoratorId, E>,
+    ) -> Result<(), E> {
+        if let Self::Block(basic_block_node) = self {
+            for (_, decorator) in basic_block_node.decorator_list_mut() {
+                *decorator = decorator_map(decorator)?;
+            }
+        } else {
+            for decorator in self.before_enter_mut() {
+                *decorator = decorator_map(decorator)?;
+            }
+            for decorator in self.after_exit_mut() {
+                *decorator = decorator_map(decorator)?;
+            }
+        }
+
+        Ok(())
+    }
 }
 
 // PRETTY PRINTING
