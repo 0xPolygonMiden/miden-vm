@@ -251,8 +251,8 @@ impl MastForest {
     /// which is effectively deduplication. Decorators are ignored when it comes to merging
     /// External nodes. This means that an External node with decorators may be replaced by a node
     /// without decorators or vice versa.
-    pub fn merge<'forest>(
-        forests: impl IntoIterator<Item = &'forest MastForest>,
+    pub fn merge(
+        forests: impl IntoIterator<Item = MastForest>,
     ) -> Result<(MastForest, Vec<MastForestRootMap>), MastForestError> {
         let mut root_maps = Vec::new();
         let mut merger = MastForestMerger::new();
@@ -497,7 +497,7 @@ impl MastForest {
     ///
     /// The iteration on a high-level thus consists of a constant back and forth between discovering
     /// trees and returning nodes from the stack.
-    pub fn iter_nodes(&self) -> impl Iterator<Item = (MastNodeId, &MastNode)> {
+    pub fn iter_nodes(self) -> impl Iterator<Item = (MastNodeId, MastNode)> {
         MastForestNodeIter::new(self)
     }
 }

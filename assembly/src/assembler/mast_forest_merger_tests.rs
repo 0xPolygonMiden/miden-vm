@@ -20,7 +20,7 @@ fn merge_programs(
     let lib_b = assembler.assemble_library([program_b])?.mast_forest().as_ref().clone();
     let lib_a = lib_a.mast_forest().as_ref().clone();
 
-    let merged = MastForest::merge([&lib_a, &lib_b]).into_diagnostic()?;
+    let merged = MastForest::merge([lib_a.clone(), lib_b.clone()]).into_diagnostic()?;
 
     Ok((lib_a, lib_b, merged))
 }

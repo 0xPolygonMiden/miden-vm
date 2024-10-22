@@ -33,9 +33,9 @@ use crate::mast::{MastForest, MastNode, MastNodeId};
 /// trees and returning nodes from the stack.
 ///
 /// Note: This type could be made more general to implement pre-order or in-order iteration too.
-pub(crate) struct MastForestNodeIter<'forest> {
+pub(crate) struct MastForestNodeIter {
     /// The forest that we're iterating.
-    pub mast_forest: &'forest MastForest,
+    pub mast_forest: MastForest,
     /// The procedure root index at which we last started a tree discovery.
     ///
     /// This value iterates through 0..mast_forest.num_procedures() which guarantees that we visit
@@ -50,8 +50,8 @@ pub(crate) struct MastForestNodeIter<'forest> {
     pub unvisited_node_stack: Vec<MastNodeId>,
 }
 
-impl<'forest> MastForestNodeIter<'forest> {
-    pub(crate) fn new(mast_forest: &'forest MastForest) -> Self {
+impl MastForestNodeIter {
+    pub(crate) fn new(mast_forest: MastForest) -> Self {
         let visited = vec![false; mast_forest.num_nodes() as usize];
 
         Self {
@@ -93,22 +93,32 @@ impl<'forest> MastForestNodeIter<'forest> {
                 self.mark_for_visit(root_idx);
             },
             MastNode::Join(join_node) => {
+                let second = join_node.second();
+                let first = join_node.first();
+
                 self.mark_for_visit(root_idx);
-                self.discover_tree(join_node.second());
-                self.discover_tree(join_node.first());
+                self.discover_tree(second);
+                self.discover_tree(first);
             },
             MastNode::Split(split_node) => {
+                let on_false = split_node.on_false();
+                let on_true = split_node.on_true();
+
                 self.mark_for_visit(root_idx);
-                self.discover_tree(split_node.on_false());
-                self.discover_tree(split_node.on_true());
+                self.discover_tree(on_false);
+                self.discover_tree(on_true);
             },
             MastNode::Loop(loop_node) => {
+                let body = loop_node.body();
+
                 self.mark_for_visit(root_idx);
-                self.discover_tree(loop_node.body());
+                self.discover_tree(body);
             },
             MastNode::Call(call_node) => {
+                let callee = call_node.callee();
+
                 self.mark_for_visit(root_idx);
-                self.discover_tree(call_node.callee());
+                self.discover_tree(callee);
             },
             MastNode::Dyn(_) => {
                 self.mark_for_visit(root_idx);
@@ -142,14 +152,20 @@ impl<'forest> MastForestNodeIter<'forest> {
     }
 }
 
-impl<'forest> Iterator for MastForestNodeIter<'forest> {
-    type Item = (MastNodeId, &'forest MastNode);
+impl Iterator for MastForestNodeIter {
+    type Item = (MastNodeId, MastNode);
 
     fn next(&mut self) -> Option<Self::Item> {
         if let Some(next_node_id) = self.unvisited_node_stack.pop() {
             // SAFETY: We only add valid ids to the stack so it's fine to index the forest nodes
             // directly.
-            let node = &self.mast_forest.nodes[next_node_id.as_usize()];
+            let node = core::mem::replace(
+                &mut self.mast_forest.nodes[next_node_id.as_usize()],
+                // A Dyn node is the `MastNode` with the smallest memory footprint so we use it to
+                // replace the node we take out.
+                // Since we visit each node exactly once, this is fine.
+                MastNode::new_dyn(),
+            );
             return Some((next_node_id, node));
         }
 
