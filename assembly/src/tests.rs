@@ -1,6 +1,9 @@
-use alloc::string::ToString;
+use alloc::{string::ToString, vec::Vec};
 
-use vm_core::mast::{MastNode, MastNodeId};
+use vm_core::{
+    mast::{MastNode, MastNodeId},
+    Program,
+};
 
 use crate::{
     assert_diagnostic_lines,
@@ -8,7 +11,7 @@ use crate::{
     diagnostics::{IntoDiagnostic, Report},
     regex, source_file,
     testing::{Pattern, TestContext},
-    Assembler, LibraryPath, ModuleParser,
+    Assembler, Deserializable, LibraryPath, ModuleParser, Serializable,
 };
 
 type TestResult = Result<(), Report>;
@@ -2969,4 +2972,59 @@ fn test_reexported_proc_with_same_name_as_local_proc_diff_locals() {
     ";
 
     let _program = assembler.assemble_program(program_source).unwrap();
+}
+
+// PROGRAM SERIALIZATION AND DESERIALIZATION
+// ================================================================================================
+#[test]
+fn test_program_serde_simple() {
+    let source = "
+    begin
+        push.1.2
+        add
+        drop
+    end
+    ";
+
+    let assembler = Assembler::default();
+    let original_program = assembler.assemble_program(source).unwrap();
+
+    let mut target = Vec::new();
+    original_program.write_into(&mut target);
+    let deserialized_program = Program::read_from_bytes(&target).unwrap();
+
+    assert_eq!(original_program, deserialized_program);
+}
+
+#[test]
+fn test_program_serde_with_decorators() {
+    let source = "
+    const.DEFAULT_CONST=100
+
+    proc.foo
+        push.1.2 add
+        debug.stack.8
+    end
+
+    begin
+        emit.DEFAULT_CONST
+
+        exec.foo
+
+        debug.stack.4
+
+        drop
+
+        trace.DEFAULT_CONST
+    end
+    ";
+
+    let assembler = Assembler::default().with_debug_mode(true);
+    let original_program = assembler.assemble_program(source).unwrap();
+
+    let mut target = Vec::new();
+    original_program.write_into(&mut target);
+    let deserialized_program = Program::read_from_bytes(&target).unwrap();
+
+    assert_eq!(original_program, deserialized_program);
 }

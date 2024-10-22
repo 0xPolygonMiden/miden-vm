@@ -151,7 +151,7 @@ impl Deserializable for Program {
         let kernel = source.read()?;
         let entrypoint = MastNodeId::from_u32_safe(source.read_u32()?, &mast_forest)?;
 
-        if mast_forest.is_procedure_root(entrypoint) {
+        if !mast_forest.is_procedure_root(entrypoint) {
             return Err(DeserializationError::InvalidValue(format!(
                 "entrypoint {entrypoint} is not a procedure"
             )));
