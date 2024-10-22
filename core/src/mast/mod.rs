@@ -28,8 +28,8 @@ mod merger;
 pub(crate) use merger::MastForestMerger;
 pub use merger::MastForestRootMap;
 
-mod dfs_iterator;
-pub(crate) use dfs_iterator::*;
+mod node_iterator;
+pub(crate) use node_iterator::*;
 
 #[cfg(test)]
 mod tests;
