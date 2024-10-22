@@ -541,6 +541,32 @@ impl MastNodeId {
         Self(value)
     }
 
+    /// Returns a new [`MastNodeId`] with the provided `id`, or an error if `id` is greater or equal
+    /// to `node_count`.
+    ///
+    /// This function can be used when deserializing an id whose corresponding node is not yet in
+    /// the forest and [`Self::from_u32_safe`] would fail. For instance, when deserializing the ids
+    /// referenced by the Join node in this forest:
+    ///
+    /// ```text
+    /// [Join(1, 2), Block(foo), Block(bar)]
+    /// ```
+    ///
+    /// Since it is less safe than [`Self::from_u32_safe`] and usually not needed it is not public.
+    pub(super) fn from_u32_with_node_count(
+        id: u32,
+        node_count: usize,
+    ) -> Result<Self, DeserializationError> {
+        if (id as usize) < node_count {
+            Ok(Self(id))
+        } else {
+            Err(DeserializationError::InvalidValue(format!(
+                "Invalid deserialized MAST node ID '{}', but {} is the number of nodes in the forest",
+                id, node_count,
+            )))
+        }
+    }
+
     pub fn as_usize(&self) -> usize {
         self.0 as usize
     }

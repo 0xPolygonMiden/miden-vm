@@ -354,6 +354,51 @@ fn serialize_deserialize_all_nodes() {
     assert_eq!(mast_forest, deserialized_mast_forest);
 }
 
+/// Test that a forest with a node whose child ids are larger than its own id serializes and
+/// deserializes successfully.
+#[test]
+fn mast_forest_serialize_deserialize_with_child_ids_exceeding_parent_id() {
+    let mut forest = MastForest::new();
+    let deco0 = forest.add_decorator(Decorator::Trace(0)).unwrap();
+    let deco1 = forest.add_decorator(Decorator::Trace(1)).unwrap();
+    let zero = forest.add_block(vec![Operation::U32div], None).unwrap();
+    let first = forest.add_block(vec![Operation::U32add], Some(vec![(0, deco0)])).unwrap();
+    let second = forest.add_block(vec![Operation::U32and], Some(vec![(1, deco1)])).unwrap();
+    forest.add_join(first, second).unwrap();
+
+    // Move the Join node before its child nodes and remove the temporary zero node.
+    forest.nodes.swap_remove(zero.as_usize());
+
+    MastForest::read_from_bytes(&forest.to_bytes()).unwrap();
+}
+
+/// Test that a forest with a node whose referenced index is >= the max number of nodes in
+/// the forest returns an error during deserialization.
+#[test]
+fn mast_forest_serialize_deserialize_with_overflowing_ids_fails() {
+    let mut overflow_forest = MastForest::new();
+    let id0 = overflow_forest.add_block(vec![Operation::Eqz], None).unwrap();
+    overflow_forest.add_block(vec![Operation::Eqz], None).unwrap();
+    let id2 = overflow_forest.add_block(vec![Operation::Eqz], None).unwrap();
+    let id_join = overflow_forest.add_join(id0, id2).unwrap();
+
+    let join_node = overflow_forest[id_join].clone();
+
+    // Add the Join(0, 2) to this forest which does not have a node with index 2.
+    let mut forest = MastForest::new();
+    let deco0 = forest.add_decorator(Decorator::Trace(0)).unwrap();
+    let deco1 = forest.add_decorator(Decorator::Trace(1)).unwrap();
+    forest
+        .add_block(vec![Operation::U32add], Some(vec![(0, deco0), (1, deco1)]))
+        .unwrap();
+    forest.add_node(join_node).unwrap();
+
+    assert_matches!(
+        MastForest::read_from_bytes(&forest.to_bytes()),
+        Err(DeserializationError::InvalidValue(msg)) if msg.contains("number of nodes")
+    );
+}
+
 #[test]
 fn mast_forest_invalid_node_id() {
     // Hydrate a forest smaller than the second
