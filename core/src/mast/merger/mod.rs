@@ -204,7 +204,7 @@ impl MastForestMerger {
             // node from the merging forest.
             // Any node in the existing forest that pointed to the external node will
             // have the same MAST root due to the semantics of external nodes.
-            match self.lookup_external_node_by_root(node_eq) {
+            match self.lookup_external_node_by_root(&node_eq.mast_root) {
                 Some((_, external_node_id)) => {
                     self.mast_forest[external_node_id] = remapped_node.clone();
                     node_id_remapping.insert(previous_id, external_node_id);
@@ -319,8 +319,8 @@ impl MastForestMerger {
         self.node_id_by_hash.get(mast_root).and_then(|node_ids| node_ids.first())
     }
 
-    fn lookup_external_node_by_root(&self, fingerprint: &EqHash) -> Option<(EqHash, MastNodeId)> {
-        self.node_id_by_hash.get(&fingerprint.mast_root).and_then(|ids| {
+    fn lookup_external_node_by_root(&self, mast_root: &RpoDigest) -> Option<(EqHash, MastNodeId)> {
+        self.node_id_by_hash.get(mast_root).and_then(|ids| {
             let mut iterator = ids
                 .iter()
                 .filter(|(_, node_id)| self.mast_forest[*node_id].is_external())
