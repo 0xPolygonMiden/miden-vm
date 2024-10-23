@@ -21,6 +21,10 @@ doctest = false
 default = ["std"]
 std = ["aho-corasick/std", "miette/fancy", "miette/std", "vm-core/std", "thiserror/std"]
 testing = ["dep:regex"]
+serde = [
+    "dep:serde",
+    "smallvec/serde",
+]
 
 [dependencies]
 aho-corasick = { version = "1.1", default-features = false }
@@ -37,6 +41,7 @@ unicode-width = { version = "0.2", features = ["no_std"] }
 vm-core = { package = "miden-core", path = "../core", version = "0.11", default-features = false, features = [
     "diagnostics",
 ] }
+serde = { version = "1.0.208", features = ["alloc", "rc", "serde_derive"], optional = true }
 
 [dev-dependencies]
 pretty_assertions = "1.4"
