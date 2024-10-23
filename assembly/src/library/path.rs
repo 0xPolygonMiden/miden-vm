@@ -113,6 +113,7 @@ type Components = smallvec::SmallVec<[Ident; 1]>;
 
 /// Path to a module or a procedure.
 #[derive(Default, Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct LibraryPath {
     inner: Arc<LibraryPathInner>,
 }
@@ -120,6 +121,7 @@ pub struct LibraryPath {
 /// The data of a [LibraryPath] is allocated on the heap to make a [LibraryPath] the size of a
 /// pointer, rather than the size of 4 pointers. This makes them cheap to clone and move around.
 #[derive(Default, Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 struct LibraryPathInner {
     /// The namespace of this library path
     ns: LibraryNamespace,

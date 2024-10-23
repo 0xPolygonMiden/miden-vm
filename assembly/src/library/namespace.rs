@@ -33,6 +33,7 @@ pub enum LibraryNamespaceError {
 
 /// Represents the root component of a library path, akin to a Rust crate name
 #[derive(Default, Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[repr(u8)]
 pub enum LibraryNamespace {
     /// A reserved namespace for kernel modules

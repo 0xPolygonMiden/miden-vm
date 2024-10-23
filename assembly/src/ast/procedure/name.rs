@@ -20,8 +20,10 @@ use crate::{
 /// A qualified procedure name can be context-sensitive, i.e. the module path might refer
 /// to an imported
 #[derive(Clone)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct QualifiedProcedureName {
     /// The source span associated with this identifier.
+    #[cfg_attr(feature = "serde", serde(skip))]
     pub span: SourceSpan,
     /// The module path for this procedure.
     pub module: LibraryPath,
@@ -156,6 +158,7 @@ impl fmt::Display for QualifiedProcedureName {
 /// end
 /// ```
 #[derive(Debug, Clone)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct ProcedureName(Ident);
 
 impl ProcedureName {
