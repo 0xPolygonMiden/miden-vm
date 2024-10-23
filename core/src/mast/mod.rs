@@ -28,8 +28,8 @@ mod merger;
 pub(crate) use merger::MastForestMerger;
 pub use merger::MastForestRootMap;
 
-mod node_iterator;
-pub(crate) use node_iterator::*;
+mod multi_forest_node_iterator;
+pub(crate) use multi_forest_node_iterator::*;
 
 #[cfg(test)]
 mod tests;
@@ -254,14 +254,7 @@ impl MastForest {
     pub fn merge<'forest>(
         forests: impl IntoIterator<Item = &'forest MastForest>,
     ) -> Result<(MastForest, Vec<MastForestRootMap>), MastForestError> {
-        let mut root_maps = Vec::new();
-        let mut merger = MastForestMerger::new();
-
-        for forest in forests {
-            root_maps.push(merger.merge(forest)?);
-        }
-
-        Ok((merger.into(), root_maps))
+        MastForestMerger::merge(forests)
     }
 
     /// Adds a basic block node to the forest, and returns the [`MastNodeId`] associated with it.
@@ -467,39 +460,40 @@ impl MastForest {
         &self.nodes
     }
 
-    /// Returns an iterator which traverses over the nodes in a depth-first search and returns nodes
-    /// in postorder.
-    ///
-    /// This iterator iterates through all **reachable** nodes of a forest exactly once.
-    ///
-    /// Since a `MastForest` has multiple possible entrypoints in the form of its roots, a
-    /// depth-first search must visit all of those roots and the trees they form.
-    ///
-    /// For instance, consider this `MastForest`:
-    ///
-    /// ```text
-    /// Nodes: [Block(foo), Block(bar), Join(0, 1), External(qux)]
-    /// Roots: [2]
-    /// ```
-    ///
-    /// The only root is the `Join` node at index 2. The first three nodes of the forest form a
-    /// tree, since the `Join` node references index 0 and 1. This tree is discovered by
-    /// starting at the root at index 2 and following all children until we reach terminal nodes
-    /// (like `Block`s) and build up a stack of the discovered, but unvisited nodes. The stack
-    /// is built such that popping elements off the stack (from the back) yields a postorder.
-    ///
-    /// After the first tree is discovered, the stack looks like this: `[2, 1, 0]`. On each
-    /// call to `next` one element is popped off this stack and returned.
-    ///
-    /// If the stack is exhausted we start another discovery if more unvisited roots exist. Since
-    /// the `External` node is not a root and not referenced by any other tree in the forest, it
-    /// will not be visited.
-    ///
-    /// The iteration on a high-level thus consists of a constant back and forth between discovering
-    /// trees and returning nodes from the stack.
-    pub fn iter_nodes(&self) -> impl Iterator<Item = (MastNodeId, &MastNode)> {
-        MastForestNodeIter::new(self)
-    }
+    // TODO: Replace with Multi iterator?
+    // /// Returns an iterator which traverses over the nodes in a depth-first search and returns nodes
+    // /// in postorder.
+    // ///
+    // /// This iterator iterates through all **reachable** nodes of a forest exactly once.
+    // ///
+    // /// Since a `MastForest` has multiple possible entrypoints in the form of its roots, a
+    // /// depth-first search must visit all of those roots and the trees they form.
+    // ///
+    // /// For instance, consider this `MastForest`:
+    // ///
+    // /// ```text
+    // /// Nodes: [Block(foo), Block(bar), Join(0, 1), External(qux)]
+    // /// Roots: [2]
+    // /// ```
+    // ///
+    // /// The only root is the `Join` node at index 2. The first three nodes of the forest form a
+    // /// tree, since the `Join` node references index 0 and 1. This tree is discovered by
+    // /// starting at the root at index 2 and following all children until we reach terminal nodes
+    // /// (like `Block`s) and build up a stack of the discovered, but unvisited nodes. The stack
+    // /// is built such that popping elements off the stack (from the back) yields a postorder.
+    // ///
+    // /// After the first tree is discovered, the stack looks like this: `[2, 1, 0]`. On each
+    // /// call to `next` one element is popped off this stack and returned.
+    // ///
+    // /// If the stack is exhausted we start another discovery if more unvisited roots exist. Since
+    // /// the `External` node is not a root and not referenced by any other tree in the forest, it
+    // /// will not be visited.
+    // ///
+    // /// The iteration on a high-level thus consists of a constant back and forth between discovering
+    // /// trees and returning nodes from the stack.
+    // pub fn iter_nodes(&self) -> impl Iterator<Item = (MastNodeId, &MastNode)> {
+    //     MultiMastForestNodeIter::new(self)
+    // }
 }
 
 impl Index<MastNodeId> for MastForest {
@@ -571,6 +565,11 @@ impl MastNodeId {
                 mast_forest.nodes.len(),
             )))
         }
+    }
+
+    #[cfg(test)]
+    pub fn new_unsafe(value: u32) -> Self {
+        Self(value)
     }
 
     pub fn as_usize(&self) -> usize {
