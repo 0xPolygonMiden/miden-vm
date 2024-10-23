@@ -119,21 +119,6 @@ impl JoinNode {
     pub fn set_after_exit(&mut self, decorator_ids: Vec<DecoratorId>) {
         self.after_exit = decorator_ids;
     }
-
-    /// Set the children of this node.
-    pub(crate) fn set_children(&mut self, first: MastNodeId, second: MastNodeId) {
-        self.children = [first, second];
-    }
-
-    /// Returns a mutable reference to the decorators to be executed after this node is executed.
-    pub(crate) fn after_exit_mut(&mut self) -> &mut [DecoratorId] {
-        &mut self.after_exit
-    }
-
-    /// Returns a mutable reference to the decorators to be executed before this node is executed.
-    pub(crate) fn before_enter_mut(&mut self) -> &mut [DecoratorId] {
-        &mut self.before_enter
-    }
 }
 
 // PRETTY PRINTING
