@@ -140,7 +140,9 @@ fn get_block_stack_table_inclusion_multiplicand<E: FieldElement<BaseField = Felt
     } else if op_code == OPCODE_DYNCALL {
         // dyncall executes a left shift simultaneously with starting a new execution context. The
         // post-shift stack depth and next overflow address are placed in the decoder hasher state
-        // registers.
+        // registers. Note that these are different from what is written to the B0 and B1 registers
+        // in the next row (the first row of the new execution context); the values placed here are
+        // the values that will be restored when the new execution context terminates.
         let parent_ctx = main_trace.ctx(i);
         let parent_fmp = main_trace.fmp(i);
         let parent_stack_depth = main_trace.decoder_hasher_state_element(4, i);

@@ -290,7 +290,7 @@ trait EvaluationFrameExt<E: FieldElement> {
     fn user_op_helper(&self, index: usize) -> E;
 
     /// Returns ONE if the block being `END`ed is a `CALL` or `DYNCALL`, or ZERO otherwise.
-    /// 
+    ///
     /// This must only be used when an `END` operation is being executed.
     fn is_call_or_dyncall_end(&self) -> E;
 
