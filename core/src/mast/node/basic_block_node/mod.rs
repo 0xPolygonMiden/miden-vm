@@ -224,11 +224,6 @@ impl BasicBlockNode {
             decorator_ids.into_iter().map(|decorator_id| (after_last_op_idx, decorator_id)),
         );
     }
-
-    /// Returns a mutable reference to the [`DecoratorList`] of this block.
-    pub(crate) fn decorator_list_mut(&mut self) -> &mut DecoratorList {
-        &mut self.decorators
-    }
 }
 
 // PRETTY PRINTING
