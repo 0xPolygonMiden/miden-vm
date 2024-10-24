@@ -1,4 +1,4 @@
-use vm_core::{AdviceInjector, Operation::*};
+use vm_core::{AdviceInjector, Felt, Operation::*};
 
 use super::BasicBlockBuilder;
 use crate::AssemblyError;
@@ -16,10 +16,10 @@ use crate::AssemblyError;
 /// To perform the operation we do the following:
 /// 1. Prepare the stack with 12 elements for HPERM by pushing 4 more elements for the capacity,
 ///    then reordering the stack and pushing an additional 4 elements so that the stack looks like:
-///    [0, 0, 0, 1, a3, a2, a1, a0, 0, 0, 0, 1, ...].  The first capacity element is set to ONE as
-///    we are hashing a number of elements which is not a multiple of the rate width. We also set
-///    the next element in the rate after `A` to ONE.  All other capacity and rate elements are set
-///    to ZERO, in accordance with the RPO rules.
+///    [0, 0, 0, 0, a3, a2, a1, a0, 0, 0, 0, 4, ...].  The first capacity element is set to Felt(4)
+///    as we are hashing a number of elements which is equal to 4 modulo the rate width, while the
+///    other capacity elements are set to ZERO. A sequence of 4 ZERO elements is used as padding.
+///    The padding rule used follows the one described in this [work](https://eprint.iacr.org/2023/1045).
 /// 2. Append the HPERM operation, which performs a permutation of RPO on the top 12 elements and
 ///    leaves the an output of [D, C, B, ...] on the stack.  C is our 1-to-1 has result.
 /// 3. Drop D and B to achieve our result [C, ...]
@@ -28,14 +28,15 @@ use crate::AssemblyError;
 pub(super) fn hash(block_builder: &mut BasicBlockBuilder) {
     #[rustfmt::skip]
     let ops = [
-        // add 4 elements to the stack to be used as the capacity elements for the RPO permutation
-        Pad, Incr, Pad, Pad, Pad,
+        // add 4 elements to the stack to be used as the capacity elements for the RPO permutation.
+        // Since we are hashing 4 field elements, the first capacity element is set to 4.
+        Push(Felt::from(4_u32)), Pad, Pad, Pad,
 
         // swap capacity elements such that they are below the elements to be hashed
         SwapW,
 
-        // Duplicate capacity elements in the rate portion of the stack
-        Dup7, Dup7, Dup7, Dup7,
+        // add 4 ZERO elements for the second half of the rate portion
+        Pad, Dup7, Dup7, Dup7,
 
         // Apply a hashing permutation on the top 12 elements in the stack
         HPerm,

@@ -74,6 +74,7 @@ mod tests;
 ///   - columns 3-17: unused columns padded with ZERO
 ///
 /// The following is a pictorial representation of the chiplet module:
+/// ```text
 ///             +---+-------------------------------------------------------+-------------+
 ///             | 0 |                   |                                   |-------------|
 ///             | . |  Hash chiplet     |       Hash chiplet                |-------------|
@@ -111,6 +112,7 @@ mod tests;
 ///             | . | . | . | . |---------------------------------------------------------|
 ///             | 1 | 1 | 1 | 1 |---------------------------------------------------------|
 ///             +---+---+---+---+---------------------------------------------------------+
+/// ```
 pub struct Chiplets {
     /// Current clock cycle of the VM.
     clk: RowIndex,

@@ -1,3 +1,5 @@
+use.std::crypto::hashes::rpo
+
 # CONSTANTS
 # =================================================================================================
 
@@ -224,7 +226,7 @@ export.load_h_s2_and_product.1
     end
 
     # 6) Return the challenge point and the incremented pointer
-    dropw swapw dropw
+    exec.rpo::squeeze_digest
     drop drop
     #=> [tau1, tau0, ptr + 512]
 end
