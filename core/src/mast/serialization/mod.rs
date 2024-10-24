@@ -209,8 +209,11 @@ impl Deserializable for MastForest {
             for _ in 0..node_count {
                 let mast_node_info = MastNodeInfo::read_from(source)?;
 
-                let node = mast_node_info
-                    .try_into_mast_node(&mut mast_forest, &basic_block_data_decoder)?;
+                let node = mast_node_info.try_into_mast_node(
+                    &mast_forest,
+                    node_count,
+                    &basic_block_data_decoder,
+                )?;
 
                 mast_forest.add_node(node).map_err(|e| {
                     DeserializationError::InvalidValue(format!(
