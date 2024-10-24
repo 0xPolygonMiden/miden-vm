@@ -24,8 +24,9 @@ fn test_smt_get() {
     fn expect_value_from_get(key: RpoDigest, value: Word, smt: &Smt) {
         let source = "
             use.std::collections::smt
+
             begin
-            exec.smt::get
+                exec.smt::get
             end
         ";
         let mut initial_stack = Vec::new();
@@ -61,8 +62,10 @@ fn test_smt_set() {
 
         let source = "
             use.std::collections::smt
+
             begin
-            exec.smt::set
+                exec.smt::set
+                movupw.2 dropw
             end
         ";
 
@@ -240,8 +243,10 @@ fn test_set_empty_key_in_non_empty_leaf() {
 
     let source = "
     use.std::collections::smt
+
     begin
-      exec.smt::set
+        exec.smt::set
+        movupw.2 dropw
     end
     ";
     let (init_stack, final_stack, store, advice_map) =

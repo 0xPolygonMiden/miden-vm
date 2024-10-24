@@ -299,6 +299,8 @@ impl DecoderTrace {
         self.hasher_trace[0].push(group_ops_left);
         self.hasher_trace[1].push(parent_addr);
 
+        // Note: use `Decoder::set_user_op_helpers()` when processing an instruction to set any of
+        // these values to something other than 0
         for idx in USER_OP_HELPERS {
             self.hasher_trace[idx].push(ZERO);
         }

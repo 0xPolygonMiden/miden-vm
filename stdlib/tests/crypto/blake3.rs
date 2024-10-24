@@ -7,6 +7,7 @@ fn blake3_hash_64_bytes() {
 
     begin
         exec.blake3::hash_2to1
+        swapdw dropw dropw
     end
     ";
 
@@ -41,6 +42,7 @@ fn blake3_hash_32_bytes() {
 
     begin
         exec.blake3::hash_1to1
+        swapdw dropw dropw
     end
     ";
 

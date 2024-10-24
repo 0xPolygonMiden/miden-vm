@@ -17,11 +17,37 @@
 #[macro_export]
 macro_rules! build_op_test {
     ($op_str:expr) => {{
-        let source = format!("begin {} end", $op_str);
+        let source = format!("
+proc.truncate_stack.1
+    loc_storew.0 dropw movupw.3
+    sdepth neq.16
+    while.true
+        dropw movupw.3
+        sdepth neq.16
+    end
+    loc_loadw.0
+end
+
+begin {} exec.truncate_stack end",
+            $op_str
+        );
         $crate::build_test!(&source)
     }};
     ($op_str:expr, $($tail:tt)+) => {{
-        let source = format!("begin {} end", $op_str);
+        let source = format!("
+proc.truncate_stack.1
+    loc_storew.0 dropw movupw.3
+    sdepth neq.16
+    while.true
+        dropw movupw.3
+        sdepth neq.16
+    end
+    loc_loadw.0
+end
+
+begin {} exec.truncate_stack end",
+            $op_str
+        );
         $crate::build_test!(&source, $($tail)+)
     }};
 }

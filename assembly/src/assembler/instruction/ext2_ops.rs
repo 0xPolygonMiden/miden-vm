@@ -1,13 +1,14 @@
 use vm_core::{AdviceInjector::Ext2Inv, Operation::*};
 
 use super::BasicBlockBuilder;
+use crate::AssemblyError;
 
 /// Given a stack in the following initial configuration [b1, b0, a1, a0, ...] where a = (a0, a1)
 /// and b = (b0, b1) represent elements in the extension field of degree 2, this series of
 /// operations outputs the result c = (c1, c0) where c1 = a1 + b1 and c0 = a0 + b0.
 ///
 /// This operation takes 5 VM cycles.
-pub fn ext2_add(span: &mut BasicBlockBuilder) {
+pub fn ext2_add(block_builder: &mut BasicBlockBuilder) {
     #[rustfmt::skip]
     let ops = [
         Swap,           // [b0, b1, a1, a0, ...]
@@ -16,7 +17,7 @@ pub fn ext2_add(span: &mut BasicBlockBuilder) {
         MovDn2,         // [b1, a1, a0+b0, ...]
         Add             // [b1+a1, a0+b0, ...]
     ];
-    span.push_ops(ops);
+    block_builder.push_ops(ops);
 }
 
 /// Given a stack in the following initial configuration [b1, b0, a1, a0, ...] where a = (a0, a1)
@@ -24,7 +25,7 @@ pub fn ext2_add(span: &mut BasicBlockBuilder) {
 /// operations outputs the result c = (c1, c0) where c1 = a1 - b1 and c0 = a0 - b0.
 ///
 /// This operation takes 7 VM cycles.
-pub fn ext2_sub(span: &mut BasicBlockBuilder) {
+pub fn ext2_sub(block_builder: &mut BasicBlockBuilder) {
     #[rustfmt::skip]
     let ops = [
         Neg,        // [-b1, b0, a1, a0, ...]
@@ -35,7 +36,7 @@ pub fn ext2_sub(span: &mut BasicBlockBuilder) {
         MovDn2,     // [-b1, a1, a0-b0, ...]
         Add         // [a1-b1, a0-b0, ...]
     ];
-    span.push_ops(ops);
+    block_builder.push_ops(ops);
 }
 
 /// Given a stack with initial configuration given by [b1, b0, a1, a0, ...] where a = (a0, a1) and
@@ -43,8 +44,8 @@ pub fn ext2_sub(span: &mut BasicBlockBuilder) {
 /// outputs the product c = (c1, c0) where c0 = a0b0 - 2(a1b1) and c1 = (a0 + a1)(b0 + b1) - a0b0
 ///
 /// This operation takes 3 VM cycles.
-pub fn ext2_mul(span: &mut BasicBlockBuilder) {
-    span.push_ops([Ext2Mul, Drop, Drop]);
+pub fn ext2_mul(block_builder: &mut BasicBlockBuilder) {
+    block_builder.push_ops([Ext2Mul, Drop, Drop]);
 }
 
 /// Given a stack in the following initial configuration [b1, b0, a1, a0, ...] where a = (a0, a1)
@@ -52,8 +53,8 @@ pub fn ext2_mul(span: &mut BasicBlockBuilder) {
 /// operations outputs the result c = (c1, c0) where c = a * b^-1.
 ///
 /// This operation takes 11 VM cycles.
-pub fn ext2_div(span: &mut BasicBlockBuilder) {
-    span.push_advice_injector(Ext2Inv);
+pub fn ext2_div(block_builder: &mut BasicBlockBuilder) -> Result<(), AssemblyError> {
+    block_builder.push_advice_injector(Ext2Inv)?;
     #[rustfmt::skip]
     let ops = [
         AdvPop,         // [b0', b1, b0, a1, a0, ...]
@@ -68,7 +69,9 @@ pub fn ext2_div(span: &mut BasicBlockBuilder) {
         Drop,           // [b0', a1*b1', a0*b0'...]
         Drop            // [a1*b1', a0*b0'...]
     ];
-    span.push_ops(ops);
+    block_builder.push_ops(ops);
+
+    Ok(())
 }
 
 /// Given a stack with initial configuration given by [a1, a0, ...] where a = (a0, a1) represents
@@ -76,7 +79,7 @@ pub fn ext2_div(span: &mut BasicBlockBuilder) {
 /// [-a1, -a0, ...]
 ///
 /// This operation takes 4 VM cycles.
-pub fn ext2_neg(span: &mut BasicBlockBuilder) {
+pub fn ext2_neg(block_builder: &mut BasicBlockBuilder) {
     #[rustfmt::skip]
     let ops = [
         Neg,            // [a1, a0, ...]
@@ -84,7 +87,7 @@ pub fn ext2_neg(span: &mut BasicBlockBuilder) {
         Neg,            // [-a0, -a1, ...]
         Swap            // [-a1, -a0, ...]
     ];
-    span.push_ops(ops);
+    block_builder.push_ops(ops);
 }
 
 /// Given an invertible quadratic extension field element on the stack, this routine computes
@@ -112,8 +115,8 @@ pub fn ext2_neg(span: &mut BasicBlockBuilder) {
 /// assert b  = (1, 0) | (1, 0) is the multiplicative identity of extension field.
 ///
 /// This operation takes 8 VM cycles.
-pub fn ext2_inv(span: &mut BasicBlockBuilder) {
-    span.push_advice_injector(Ext2Inv);
+pub fn ext2_inv(block_builder: &mut BasicBlockBuilder) -> Result<(), AssemblyError> {
+    block_builder.push_advice_injector(Ext2Inv)?;
     #[rustfmt::skip]
     let ops = [
         AdvPop,         // [a0', a1, a0, ...]
@@ -125,5 +128,7 @@ pub fn ext2_inv(span: &mut BasicBlockBuilder) {
         MovUp2,         // [1, a1', a0', ...]
         Assert(0),      // [a1', a0', ...]
     ];
-    span.push_ops(ops);
+    block_builder.push_ops(ops);
+
+    Ok(())
 }

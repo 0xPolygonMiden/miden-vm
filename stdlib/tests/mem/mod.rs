@@ -1,6 +1,6 @@
 use processor::{ContextId, DefaultHost, ProcessState, Program};
 use test_utils::{
-    build_expected_hash, build_expected_perm, stack_to_ints, ExecutionOptions, Process,
+    build_expected_hash, build_expected_perm, felt_slice_to_ints, ExecutionOptions, Process,
     StackInputs, ONE, ZERO,
 };
 
@@ -31,7 +31,7 @@ fn test_memcopy() {
         assembler.assemble_program(source).expect("Failed to compile test source.");
 
     let mut host = DefaultHost::default();
-    host.load_mast_forest(stdlib.into());
+    host.load_mast_forest(stdlib.mast_forest().clone());
 
     let mut process = Process::new(
         program.kernel().clone(),
@@ -98,7 +98,9 @@ fn test_memcopy() {
 fn test_pipe_double_words_to_memory() {
     let mem_addr = 1000;
     let source = format!(
-        "use.std::mem
+        "
+        use.std::mem
+        use.std::sys
 
         begin
             push.1002       # end_addr
@@ -106,6 +108,8 @@ fn test_pipe_double_words_to_memory() {
             padw padw padw  # hasher state
 
             exec.mem::pipe_double_words_to_memory
+
+            exec.sys::truncate_stack
         end",
         mem_addr
     );
@@ -113,7 +117,7 @@ fn test_pipe_double_words_to_memory() {
     let operand_stack = &[];
     let data = &[1, 2, 3, 4, 5, 6, 7, 8];
     let mut expected_stack =
-        stack_to_ints(&build_expected_perm(&[0, 0, 0, 0, 1, 2, 3, 4, 5, 6, 7, 8]));
+        felt_slice_to_ints(&build_expected_perm(&[0, 0, 0, 0, 1, 2, 3, 4, 5, 6, 7, 8]));
     expected_stack.push(1002);
     build_test!(source, operand_stack, &data).expect_stack_and_memory(
         &expected_stack,
@@ -126,20 +130,26 @@ fn test_pipe_double_words_to_memory() {
 fn test_pipe_words_to_memory() {
     let mem_addr = 1000;
     let one_word = format!(
-        "use.std::mem
+        "
+        use.std::mem
+        use.std::crypto::hashes::rpo
 
         begin
             push.{} # target address
             push.1  # number of words
 
             exec.mem::pipe_words_to_memory
+            exec.rpo::squeeze_digest
+
+            # truncate stack
+            swapdw dropw dropw
         end",
         mem_addr
     );
 
     let operand_stack = &[];
     let data = &[1, 2, 3, 4];
-    let mut expected_stack = stack_to_ints(&build_expected_hash(data));
+    let mut expected_stack = felt_slice_to_ints(&build_expected_hash(data));
     expected_stack.push(1001);
     build_test!(one_word, operand_stack, &data).expect_stack_and_memory(
         &expected_stack,
@@ -148,20 +158,26 @@ fn test_pipe_words_to_memory() {
     );
 
     let three_words = format!(
-        "use.std::mem
+        "
+        use.std::mem
+        use.std::crypto::hashes::rpo
 
         begin
             push.{} # target address
             push.3  # number of words
 
             exec.mem::pipe_words_to_memory
+            exec.rpo::squeeze_digest
+
+            # truncate stack
+            swapdw dropw dropw
         end",
         mem_addr
     );
 
     let operand_stack = &[];
     let data = &[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
-    let mut expected_stack = stack_to_ints(&build_expected_hash(data));
+    let mut expected_stack = felt_slice_to_ints(&build_expected_hash(data));
     expected_stack.push(1003);
     build_test!(three_words, operand_stack, &data).expect_stack_and_memory(
         &expected_stack,
@@ -182,13 +198,14 @@ fn test_pipe_preimage_to_memory() {
             push.3     # number of words
 
             exec.mem::pipe_preimage_to_memory
+            swap drop
         end",
         mem_addr
     );
 
     let operand_stack = &[];
     let data = &[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
-    let mut advice_stack = stack_to_ints(&build_expected_hash(data));
+    let mut advice_stack = felt_slice_to_ints(&build_expected_hash(data));
     advice_stack.reverse();
     advice_stack.extend(data);
     build_test!(three_words, operand_stack, &advice_stack).expect_stack_and_memory(
@@ -214,7 +231,7 @@ fn test_pipe_preimage_to_memory_invalid_preimage() {
 
     let operand_stack = &[];
     let data = &[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
-    let mut advice_stack = stack_to_ints(&build_expected_hash(data));
+    let mut advice_stack = felt_slice_to_ints(&build_expected_hash(data));
     advice_stack.reverse();
     advice_stack[0] += 1; // corrupt the expected hash
     advice_stack.extend(data);

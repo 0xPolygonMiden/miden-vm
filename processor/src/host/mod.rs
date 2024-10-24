@@ -176,7 +176,7 @@ pub trait Host {
     }
 }
 
-impl<'a, H> Host for &'a mut H
+impl<H> Host for &mut H
 where
     H: Host,
 {
@@ -316,7 +316,7 @@ where
         }
     }
 
-    pub fn load_mast_forest(&mut self, mast_forest: MastForest) {
+    pub fn load_mast_forest(&mut self, mast_forest: Arc<MastForest>) {
         self.store.insert(mast_forest)
     }
 

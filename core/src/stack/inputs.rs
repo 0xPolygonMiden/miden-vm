@@ -1,27 +1,24 @@
 use alloc::vec::Vec;
-use core::slice;
+use core::{ops::Deref, slice};
 
-use super::{ByteWriter, Felt, InputError, Serializable, ToElements};
+use super::{
+    super::ZERO, get_num_stack_values, ByteWriter, Felt, InputError, Serializable, MIN_STACK_DEPTH,
+};
 use crate::utils::{ByteReader, Deserializable, DeserializationError};
 
 // STACK INPUTS
 // ================================================================================================
 
-/// Initial state of the stack to support program execution.
+/// Defines the initial state of the VM's operand stack.
 ///
-/// The program execution expects the inputs to be a stack on the VM, and it will be stored in
-/// reversed order on this struct.
+/// The values in the struct are stored in the "stack order" - i.e., the last input is at the top
+/// of the stack (in position 0).
 #[derive(Clone, Debug, Default)]
 pub struct StackInputs {
-    values: Vec<Felt>,
+    elements: [Felt; MIN_STACK_DEPTH],
 }
 
 impl StackInputs {
-    // CONSTANTS
-    // --------------------------------------------------------------------------------------------
-
-    pub const MAX_LEN: usize = u16::MAX as usize;
-
     // CONSTRUCTORS
     // --------------------------------------------------------------------------------------------
 
@@ -30,12 +27,13 @@ impl StackInputs {
     /// # Errors
     /// Returns an error if the number of input values exceeds the allowed maximum.
     pub fn new(mut values: Vec<Felt>) -> Result<Self, InputError> {
-        if values.len() > Self::MAX_LEN {
-            return Err(InputError::InputLengthExceeded(Self::MAX_LEN, values.len()));
+        if values.len() > MIN_STACK_DEPTH {
+            return Err(InputError::InputLengthExceeded(MIN_STACK_DEPTH, values.len()));
         }
         values.reverse();
+        values.resize(MIN_STACK_DEPTH, ZERO);
 
-        Ok(Self { values })
+        Ok(Self { elements: values.try_into().unwrap() })
     }
 
     /// Attempts to create stack inputs from an iterator of integers.
@@ -55,13 +53,19 @@ impl StackInputs {
 
         Self::new(values)
     }
+}
 
-    // PUBLIC ACCESSORS
-    // --------------------------------------------------------------------------------------------
+impl Deref for StackInputs {
+    type Target = [Felt; MIN_STACK_DEPTH];
 
-    /// Returns the initial stack values in stack/reversed order.
-    pub fn values(&self) -> &[Felt] {
-        &self.values
+    fn deref(&self) -> &Self::Target {
+        &self.elements
+    }
+}
+
+impl From<[Felt; MIN_STACK_DEPTH]> for StackInputs {
+    fn from(value: [Felt; MIN_STACK_DEPTH]) -> Self {
+        Self { elements: value }
     }
 }
 
@@ -70,22 +74,16 @@ impl<'a> IntoIterator for &'a StackInputs {
     type IntoIter = slice::Iter<'a, Felt>;
 
     fn into_iter(self) -> Self::IntoIter {
-        self.values.iter()
+        self.elements.iter()
     }
 }
 
 impl IntoIterator for StackInputs {
     type Item = Felt;
-    type IntoIter = alloc::vec::IntoIter<Felt>;
+    type IntoIter = core::array::IntoIter<Felt, 16>;
 
     fn into_iter(self) -> Self::IntoIter {
-        self.values.into_iter()
-    }
-}
-
-impl ToElements<Felt> for StackInputs {
-    fn to_elements(&self) -> Vec<Felt> {
-        self.values.to_vec()
+        self.elements.into_iter()
     }
 }
 
@@ -94,27 +92,24 @@ impl ToElements<Felt> for StackInputs {
 
 impl Serializable for StackInputs {
     fn write_into<W: ByteWriter>(&self, target: &mut W) {
-        // TODO the length of the stack, by design, will not be greater than `u32::MAX`. however,
-        // we must define a common serialization format as we might diverge from the implementation
-        // here and the one provided by default from winterfell.
-
-        debug_assert!(self.values.len() <= Self::MAX_LEN);
-        target.write_usize(self.values.len());
-        target.write_many(&self.values);
+        let num_stack_values = get_num_stack_values(self);
+        target.write_u8(num_stack_values);
+        target.write_many(&self.elements[..num_stack_values as usize]);
     }
 }
 
 impl Deserializable for StackInputs {
     fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
-        let count = source.read_usize()?;
-        if count > Self::MAX_LEN {
-            return Err(DeserializationError::InvalidValue(format!(
-                "Number of values on the input stack can not be more than {}, but {} was found",
-                Self::MAX_LEN,
-                count
-            )));
-        }
-        let values = source.read_many::<Felt>(count)?;
-        Ok(StackInputs { values })
+        let num_elements = source.read_u8()?;
+
+        let mut elements = source.read_many::<Felt>(num_elements.into())?;
+        elements.reverse();
+
+        StackInputs::new(elements).map_err(|_| {
+            DeserializationError::InvalidValue(format!(
+                "number of stack elements should not be greater than {}, but {} was found",
+                MIN_STACK_DEPTH, num_elements
+            ))
+        })
     }
 }

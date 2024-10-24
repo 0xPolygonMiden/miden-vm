@@ -1,12 +1,13 @@
 use alloc::vec::Vec;
-use core::fmt;
+use core::{fmt, mem};
 
 use miden_crypto::{hash::rpo::RpoDigest, Felt, ZERO};
 use miden_formatting::prettier::PrettyPrint;
-use winter_utils::flatten_slice_elements;
 
 use crate::{
-    chiplets::hasher, mast::MastForestError, Decorator, DecoratorIterator, DecoratorList, Operation,
+    chiplets::hasher,
+    mast::{DecoratorId, MastForest, MastForestError},
+    DecoratorIterator, DecoratorList, Operation,
 };
 
 mod op_batch;
@@ -110,8 +111,23 @@ impl BasicBlockNode {
         digest: RpoDigest,
     ) -> Self {
         assert!(!operations.is_empty());
-        let (op_batches, _) = batch_ops(operations);
+        let op_batches = batch_ops(operations);
         Self { op_batches, digest, decorators }
+    }
+
+    /// Returns a new [`BasicBlockNode`] instantiated with the specified operations and decorators.
+    #[cfg(test)]
+    pub fn new_with_raw_decorators(
+        operations: Vec<Operation>,
+        decorators: Vec<(usize, crate::Decorator)>,
+        mast_forest: &mut crate::mast::MastForest,
+    ) -> Result<Self, MastForestError> {
+        let mut decorator_list = Vec::new();
+        for (idx, decorator) in decorators {
+            decorator_list.push((idx, mast_forest.add_decorator(decorator)?));
+        }
+
+        Self::new(operations, Some(decorator_list))
     }
 }
 
@@ -167,6 +183,11 @@ impl BasicBlockNode {
         DecoratorIterator::new(&self.decorators)
     }
 
+    /// Returns an iterator over the operations in the order in which they appear in the program.
+    pub fn operations(&self) -> impl Iterator<Item = &Operation> {
+        self.op_batches.iter().flat_map(|batch| batch.ops())
+    }
+
     /// Returns the total number of operations and decorators in this basic block.
     pub fn num_operations_and_decorators(&self) -> u32 {
         let num_ops: usize = self.num_operations() as usize;
@@ -184,10 +205,49 @@ impl BasicBlockNode {
     }
 }
 
+/// Mutators
+impl BasicBlockNode {
+    /// Sets the provided list of decorators to be executed before all existing decorators.
+    pub fn prepend_decorators(&mut self, decorator_ids: Vec<DecoratorId>) {
+        let mut new_decorators: DecoratorList =
+            decorator_ids.into_iter().map(|decorator_id| (0, decorator_id)).collect();
+        new_decorators.extend(mem::take(&mut self.decorators));
+
+        self.decorators = new_decorators;
+    }
+
+    /// Sets the provided list of decorators to be executed after all existing decorators.
+    pub fn append_decorators(&mut self, decorator_ids: Vec<DecoratorId>) {
+        let after_last_op_idx = self.num_operations() as usize;
+
+        self.decorators.extend(
+            decorator_ids.into_iter().map(|decorator_id| (after_last_op_idx, decorator_id)),
+        );
+    }
+}
+
 // PRETTY PRINTING
 // ================================================================================================
 
-impl PrettyPrint for BasicBlockNode {
+impl BasicBlockNode {
+    pub(super) fn to_display<'a>(&'a self, mast_forest: &'a MastForest) -> impl fmt::Display + 'a {
+        BasicBlockNodePrettyPrint { block_node: self, mast_forest }
+    }
+
+    pub(super) fn to_pretty_print<'a>(
+        &'a self,
+        mast_forest: &'a MastForest,
+    ) -> impl PrettyPrint + 'a {
+        BasicBlockNodePrettyPrint { block_node: self, mast_forest }
+    }
+}
+
+struct BasicBlockNodePrettyPrint<'a> {
+    block_node: &'a BasicBlockNode,
+    mast_forest: &'a MastForest,
+}
+
+impl PrettyPrint for BasicBlockNodePrettyPrint<'_> {
     #[rustfmt::skip]
     fn render(&self) -> crate::prettier::Document {
         use crate::prettier::*;
@@ -195,11 +255,13 @@ impl PrettyPrint for BasicBlockNode {
         // e.g. `basic_block a b c end`
         let single_line = const_text("basic_block")
             + const_text(" ")
-            + self
-                .op_batches
+            + self.
+                block_node
                 .iter()
-                .flat_map(|batch| batch.ops().iter())
-                .map(|p| p.render())
+                .map(|op_or_dec| match op_or_dec {
+                    OperationOrDecorator::Operation(op) => op.render(),
+                    OperationOrDecorator::Decorator(&decorator_id) => self.mast_forest[decorator_id].render(),
+                })
                 .reduce(|acc, doc| acc + const_text(" ") + doc)
                 .unwrap_or_default()
             + const_text(" ")
@@ -218,10 +280,12 @@ impl PrettyPrint for BasicBlockNode {
             const_text("basic_block")
                 + nl()
                 + self
-                    .op_batches
+                    .block_node
                     .iter()
-                    .flat_map(|batch| batch.ops().iter())
-                    .map(|p| p.render())
+                    .map(|op_or_dec| match op_or_dec {
+                        OperationOrDecorator::Operation(op) => op.render(),
+                        OperationOrDecorator::Decorator(&decorator_id) => self.mast_forest[decorator_id].render(),
+                    })
                     .reduce(|acc, doc| acc + nl() + doc)
                     .unwrap_or_default(),
         ) + nl()
@@ -231,7 +295,7 @@ impl PrettyPrint for BasicBlockNode {
     }
 }
 
-impl fmt::Display for BasicBlockNode {
+impl fmt::Display for BasicBlockNodePrettyPrint<'_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         use crate::prettier::PrettyPrint;
         self.pretty_print(f)
@@ -241,11 +305,11 @@ impl fmt::Display for BasicBlockNode {
 // OPERATION OR DECORATOR
 // ================================================================================================
 
-/// Encodes either an [`Operation`] or a [`Decorator`].
+/// Encodes either an [`Operation`] or a [`crate::Decorator`].
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum OperationOrDecorator<'a> {
     Operation(&'a Operation),
-    Decorator(&'a Decorator),
+    Decorator(&'a DecoratorId),
 }
 
 struct OperationOrDecoratorIterator<'a> {
@@ -315,22 +379,20 @@ impl<'a> Iterator for OperationOrDecoratorIterator<'a> {
 /// Groups the provided operations into batches and computes the hash of the block.
 fn batch_and_hash_ops(ops: Vec<Operation>) -> (Vec<OpBatch>, RpoDigest) {
     // Group the operations into batches.
-    let (batches, batch_groups) = batch_ops(ops);
+    let batches = batch_ops(ops);
 
     // Compute the hash of all operation groups.
-    let op_groups = &flatten_slice_elements(&batch_groups);
-    let hash = hasher::hash_elements(op_groups);
+    let op_groups: Vec<Felt> = batches.iter().flat_map(|batch| batch.groups).collect();
+    let hash = hasher::hash_elements(&op_groups);
 
     (batches, hash)
 }
 
-/// Groups the provided operations into batches as described in the docs for this module (i.e.,
-/// up to 9 operations per group, and 8 groups per batch).
-/// Returns a list of operation batches and a list of operation groups.
-fn batch_ops(ops: Vec<Operation>) -> (Vec<OpBatch>, Vec<[Felt; BATCH_SIZE]>) {
+/// Groups the provided operations into batches as described in the docs for this module (i.e., up
+/// to 9 operations per group, and 8 groups per batch).
+fn batch_ops(ops: Vec<Operation>) -> Vec<OpBatch> {
     let mut batches = Vec::<OpBatch>::new();
     let mut batch_acc = OpBatchAccumulator::new();
-    let mut batch_groups = Vec::<[Felt; BATCH_SIZE]>::new();
 
     for op in ops {
         // If the operation cannot be accepted into the current accumulator, add the contents of
@@ -339,7 +401,6 @@ fn batch_ops(ops: Vec<Operation>) -> (Vec<OpBatch>, Vec<[Felt; BATCH_SIZE]>) {
             let batch = batch_acc.into_batch();
             batch_acc = OpBatchAccumulator::new();
 
-            batch_groups.push(*batch.groups());
             batches.push(batch);
         }
 
@@ -350,10 +411,10 @@ fn batch_ops(ops: Vec<Operation>) -> (Vec<OpBatch>, Vec<[Felt; BATCH_SIZE]>) {
     // Make sure we finished processing the last batch.
     if !batch_acc.is_empty() {
         let batch = batch_acc.into_batch();
-        batch_groups.push(*batch.groups());
         batches.push(batch);
     }
-    (batches, batch_groups)
+
+    batches
 }
 
 /// Checks if a given decorators list is valid (only checked in debug mode)

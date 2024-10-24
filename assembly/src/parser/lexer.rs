@@ -274,15 +274,19 @@ impl<'input> Lexer<'input> {
         }
 
         match self.read() {
+            '@' => pop!(self, Token::At),
             '!' => pop!(self, Token::Bang),
             ':' => match self.peek() {
                 ':' => pop2!(self, Token::ColonColon),
                 _ => Err(ParsingError::InvalidToken { span: self.span() }),
             },
             '.' => pop!(self, Token::Dot),
+            ',' => pop!(self, Token::Comma),
             '=' => pop!(self, Token::Equal),
             '(' => pop!(self, Token::Lparen),
+            '[' => pop!(self, Token::Lbracket),
             ')' => pop!(self, Token::Rparen),
+            ']' => pop!(self, Token::Rbracket),
             '-' => match self.peek() {
                 '>' => pop2!(self, Token::Rstab),
                 _ => pop!(self, Token::Minus),
@@ -293,7 +297,7 @@ impl<'input> Lexer<'input> {
                 _ => pop!(self, Token::Slash),
             },
             '*' => pop!(self, Token::Star),
-            '"' => self.lex_quoted_identifier(),
+            '"' => self.lex_quoted_identifier_or_string(),
             '0' => match self.peek() {
                 'x' => {
                     self.skip();
@@ -414,10 +418,11 @@ impl<'input> Lexer<'input> {
         }
     }
 
-    fn lex_quoted_identifier(&mut self) -> Result<Token<'input>, ParsingError> {
+    fn lex_quoted_identifier_or_string(&mut self) -> Result<Token<'input>, ParsingError> {
         // Skip quotation mark
         self.skip();
 
+        let mut is_identifier = true;
         let quote_size = ByteOffset::from_char_len('"');
         loop {
             match self.read() {
@@ -426,27 +431,37 @@ impl<'input> Lexer<'input> {
                         start: SourceSpan::at(self.source_id, self.span().start()),
                     });
                 },
+                '\\' => {
+                    is_identifier = false;
+                    self.skip();
+                    match self.read() {
+                        '"' | '\n' => {
+                            self.skip();
+                        },
+                        _ => (),
+                    }
+                },
                 '"' => {
                     let span = self.span();
                     let start = span.start() + quote_size;
                     let span = SourceSpan::new(self.source_id, start..span.end());
 
                     self.skip();
-                    break Ok(Token::QuotedIdent(self.slice_span(span)));
+                    break Ok(if is_identifier {
+                        Token::QuotedIdent(self.slice_span(span))
+                    } else {
+                        Token::QuotedString(self.slice_span(span))
+                    });
                 },
                 c if c.is_ascii_alphanumeric() => {
                     self.skip();
-                    continue;
                 },
                 '_' | '$' | '-' | '!' | '?' | '<' | '>' | ':' | '.' => {
                     self.skip();
-                    continue;
                 },
-                c => {
-                    let loc = self.span().end() - ByteOffset::from_char_len(c);
-                    break Err(ParsingError::InvalidIdentCharacter {
-                        span: SourceSpan::at(self.source_id, loc),
-                    });
+                _ => {
+                    is_identifier = false;
+                    self.skip();
                 },
             }
         }

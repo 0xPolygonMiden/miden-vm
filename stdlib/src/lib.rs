@@ -2,12 +2,19 @@
 
 extern crate alloc;
 
-use assembly::{mast::MastForest, utils::Deserializable, Library};
+use alloc::sync::Arc;
+
+use assembly::{
+    mast::MastForest,
+    utils::{sync::LazyLock, Deserializable},
+    Library,
+};
 
 // STANDARD LIBRARY
 // ================================================================================================
 
 /// TODO: add docs
+#[derive(Clone)]
 pub struct StdLibrary(Library);
 
 impl AsRef<Library> for StdLibrary {
@@ -22,22 +29,25 @@ impl From<StdLibrary> for Library {
     }
 }
 
-impl From<StdLibrary> for MastForest {
-    fn from(value: StdLibrary) -> Self {
-        value.0.into()
-    }
-}
-
 impl StdLibrary {
+    /// Serialized representation of the Miden standard library.
     pub const SERIALIZED: &'static [u8] =
         include_bytes!(concat!(env!("OUT_DIR"), "/assets/std.masl"));
+
+    /// Returns a reference to the [MastForest] underlying the Miden standard library.
+    pub fn mast_forest(&self) -> &Arc<MastForest> {
+        self.0.mast_forest()
+    }
 }
 
 impl Default for StdLibrary {
     fn default() -> Self {
-        let contents =
-            Library::read_from_bytes(Self::SERIALIZED).expect("failed to read std masl!");
-        Self(contents)
+        static STDLIB: LazyLock<StdLibrary> = LazyLock::new(|| {
+            let contents =
+                Library::read_from_bytes(StdLibrary::SERIALIZED).expect("failed to read std masl!");
+            StdLibrary(contents)
+        });
+        STDLIB.clone()
     }
 }
 

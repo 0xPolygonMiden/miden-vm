@@ -3,8 +3,6 @@ use test_utils::{
     build_op_test, expect_exec_error, proptest::prelude::*, rand::rand_value, U32_BOUND,
 };
 
-use super::test_unchecked_execution;
-
 // U32 OPERATIONS TESTS - MANUAL - ARITHMETIC OPERATIONS
 // ================================================================================================
 
@@ -112,9 +110,6 @@ fn u32overflowing_add() {
     let e = rand_value::<u64>();
     let test = build_op_test!(asm_op, &[e, a as u64, b as u64]);
     test.expect_stack(&[d, c as u64, e]);
-
-    // should not fail when inputs are out of bounds.
-    test_unchecked_execution(asm_op, 2);
 }
 
 #[test]
@@ -169,20 +164,6 @@ fn u32overflowing_add3() {
     let f = rand_value::<u64>();
     let test = build_op_test!(asm_op, &[f, c as u64, a as u64, b as u64]);
     test.expect_stack(&[e, d as u64, f]);
-
-    // --- test that out of bounds inputs do not cause a failure ----------------------------------
-
-    // should not fail if a >= 2^32.
-    let test = build_op_test!(asm_op, &[0, 0, U32_BOUND]);
-    assert!(test.execute().is_ok());
-
-    // should not fail if b >= 2^32.
-    let test = build_op_test!(asm_op, &[0, U32_BOUND, 0]);
-    assert!(test.execute().is_ok());
-
-    // should not fail if c >= 2^32.
-    let test = build_op_test!(asm_op, &[U32_BOUND, 0, 0]);
-    assert!(test.execute().is_ok());
 }
 
 #[test]
@@ -283,9 +264,6 @@ fn u32overflowing_sub() {
     let e = rand_value::<u64>();
     let test = build_op_test!(asm_op, &[e, a as u64, b as u64]);
     test.expect_stack(&[d, c as u64, e]);
-
-    // should not fail when inputs are out of bounds.
-    test_unchecked_execution(asm_op, 2);
 }
 
 #[test]
@@ -384,9 +362,6 @@ fn u32overflowing_mul() {
     let e = rand_value::<u64>();
     let test = build_op_test!(asm_op, &[e, a as u64, b as u64]);
     test.expect_stack(&[d, c as u64, e]);
-
-    // should not fail when inputs are out of bounds.
-    test_unchecked_execution(asm_op, 2);
 }
 
 #[test]
@@ -425,9 +400,6 @@ fn u32overflowing_madd() {
     let f = rand_value::<u64>();
     let test = build_op_test!(asm_op, &[f, c as u64, a as u64, b as u64]);
     test.expect_stack(&[e, d, f]);
-
-    // should not fail when inputs are out of bounds.
-    test_unchecked_execution(asm_op, 3);
 }
 
 #[test]
@@ -460,9 +432,6 @@ fn u32div() {
     let e = rand_value::<u64>();
     let test = build_op_test!("u32div", &[e, a as u64, b as u64]);
     test.expect_stack(&[quot, e]);
-
-    // should not fail when inputs are out of bounds.
-    test_unchecked_execution("u32div", 2);
 }
 
 #[test]
@@ -471,7 +440,7 @@ fn u32div_fail() {
 
     // should fail if b == 0.
     let test = build_op_test!(asm_op, &[1, 0]);
-    expect_exec_error!(test, ExecutionError::DivideByZero(1.into()));
+    expect_exec_error!(test, ExecutionError::DivideByZero(2.into()));
 }
 
 #[test]
@@ -501,9 +470,6 @@ fn u32mod() {
     let c = rand_value::<u64>();
     let test = build_op_test!("u32mod", &[c, a as u64, b as u64]);
     test.expect_stack(&[expected as u64, c]);
-
-    // should not fail when inputs are out of bounds.
-    test_unchecked_execution("u32mod", 2);
 }
 
 #[test]
@@ -512,7 +478,7 @@ fn u32mod_fail() {
 
     // should fail if b == 0
     let test = build_op_test!(asm_op, &[1, 0]);
-    expect_exec_error!(test, ExecutionError::DivideByZero(1.into()));
+    expect_exec_error!(test, ExecutionError::DivideByZero(2.into()));
 }
 
 #[test]
@@ -547,9 +513,6 @@ fn u32divmod() {
     let e = rand_value::<u64>();
     let test = build_op_test!("u32divmod", &[e, a as u64, b as u64]);
     test.expect_stack(&[rem, quot, e]);
-
-    // should not fail when inputs are out of bounds.
-    test_unchecked_execution("u32divmod", 2);
 }
 
 #[test]
@@ -558,7 +521,7 @@ fn u32divmod_fail() {
 
     // should fail if b == 0.
     let test = build_op_test!(asm_op, &[1, 0]);
-    expect_exec_error!(test, ExecutionError::DivideByZero(1.into()));
+    expect_exec_error!(test, ExecutionError::DivideByZero(2.into()));
 }
 
 // U32 OPERATIONS TESTS - RANDOMIZED - ARITHMETIC OPERATIONS
