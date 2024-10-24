@@ -1,6 +1,6 @@
 use alloc::{collections::BTreeMap, vec::Vec};
 
-use miden_crypto::hash::{blake::Blake3Digest, rpo::RpoDigest};
+use miden_crypto::hash::blake::Blake3Digest;
 
 use crate::mast::{
     DecoratorId, EqHash, MastForest, MastForestError, MastNode, MastNodeId,
@@ -16,7 +16,7 @@ mod tests;
 pub(crate) struct MastForestMerger {
     mast_forest: MastForest,
     // Internal indices needed for efficient duplicate checking and EqHash computation.
-    node_id_by_hash: BTreeMap<RpoDigest, Vec<(EqHash, MastNodeId)>>,
+    node_id_by_hash: BTreeMap<EqHash, MastNodeId>,
     hash_by_node_id: BTreeMap<MastNodeId, EqHash>,
     decorators_by_hash: BTreeMap<Blake3Digest<32>, DecoratorId>,
     // Mappings from old decorator and node ids to their new ids.
@@ -176,24 +176,7 @@ impl MastForestMerger {
         let node_fingerprint =
             EqHash::from_mast_node(&self.mast_forest, &self.hash_by_node_id, &remapped_node);
 
-        // If no node with a matching root exists, then the merging node is unique and we can add it
-        // to the merged forest.
-        let Some(matching_nodes) = self.lookup_all_nodes_by_root(&node_fingerprint.mast_root)
-        else {
-            return self.add_merged_node(forest_idx, merging_id, remapped_node, node_fingerprint);
-        };
-
-        match matching_nodes
-            .iter()
-            .find_map(|(matching_node_fingerprint, node_id)| {
-                if matching_node_fingerprint == &node_fingerprint {
-                    Some(node_id)
-                } else {
-                    None
-                }
-            })
-            .copied()
-        {
+        match self.lookup_node_by_fingerprint(&node_fingerprint) {
             Some(matching_node_id) => {
                 // If a node with a matching fingerprint exists, then the merging node is a
                 // duplicate and we remap it to the existing node.
@@ -202,7 +185,16 @@ impl MastForestMerger {
             None => {
                 // If no node with a matching fingerprint exists, then the merging node is
                 // unique and we can add it to the merged forest.
-                self.add_merged_node(forest_idx, merging_id, remapped_node, node_fingerprint)?;
+                let new_node_id = self.mast_forest.add_node(remapped_node)?;
+                self.node_id_mappings[forest_idx].insert(merging_id, new_node_id);
+
+                // We need to update the indices with the newly inserted nodes
+                // since the EqHash computation requires all descendants of a node
+                // to be in this index. Hence when we encounter a node in the merging forest
+                // which has descendants (Call, Loop, Split, ...), then their descendants need to be
+                // in the indices.
+                self.node_id_by_hash.insert(node_fingerprint, new_node_id);
+                self.hash_by_node_id.insert(new_node_id, node_fingerprint);
             },
         }
 
@@ -224,32 +216,6 @@ impl MastForestMerger {
             // merging for a faster check.
             self.mast_forest.make_root(*new_root);
         }
-
-        Ok(())
-    }
-
-    /// Adds a `node` to the merged forest and adds it to the internal indices.
-    fn add_merged_node(
-        &mut self,
-        forest_idx: usize,
-        merging_id: MastNodeId,
-        node: MastNode,
-        node_eq: EqHash,
-    ) -> Result<(), MastForestError> {
-        let new_node_id = self.mast_forest.add_node(node)?;
-        self.node_id_mappings[forest_idx].insert(merging_id, new_node_id);
-
-        // We need to update the indices with the newly inserted nodes
-        // since the EqHash computation requires all descendants of a node
-        // to be in this index. Hence when we encounter a node in the merging forest
-        // which has descendants (Call, Loop, Split, ...), then their descendants need to be in the
-        // indices.
-        self.node_id_by_hash
-            .entry(node_eq.mast_root)
-            .and_modify(|node_ids| node_ids.push((node_eq, new_node_id)))
-            .or_insert_with(|| vec![(node_eq, new_node_id)]);
-
-        self.hash_by_node_id.insert(new_node_id, node_eq);
 
         Ok(())
     }
@@ -340,8 +306,8 @@ impl MastForestMerger {
     // ================================================================================================
 
     /// Returns a slice of nodes in the merged forest which have the given `mast_root`.
-    fn lookup_all_nodes_by_root(&self, mast_root: &RpoDigest) -> Option<&[(EqHash, MastNodeId)]> {
-        self.node_id_by_hash.get(mast_root).map(|node_ids| node_ids.as_slice())
+    fn lookup_node_by_fingerprint(&self, fingerprint: &EqHash) -> Option<MastNodeId> {
+        self.node_id_by_hash.get(fingerprint).copied()
     }
 }
 
