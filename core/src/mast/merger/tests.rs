@@ -685,9 +685,15 @@ fn mast_forest_merge_multiple_external_nodes_with_decorator() {
     }
 }
 
+/// Tests that dependencies between External nodes are correctly resolved.
+///
 /// [External(foo), Call(0) = qux]
 /// +
 /// [External(qux), Call(0), Block(foo)]
+/// =
+/// [External(qux), Call(0), Block(foo)]
+/// +
+/// [External(foo), Call(0) = qux]
 /// =
 /// [Block(foo), Call(0), Call(1)]
 #[test]
