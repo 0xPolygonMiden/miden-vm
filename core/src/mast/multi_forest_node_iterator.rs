@@ -102,7 +102,7 @@ impl<'forest> MultiMastForestNodeIter<'forest> {
             for (node_idx, node) in forest.nodes().iter().enumerate() {
                 // SAFETY: The passed id comes from the iterator over the nodes, so we never exceed
                 // the forest's number of nodes.
-                let node_id = MastNodeId::new_unsafe(node_idx as u32);
+                let node_id = MastNodeId::new_unchecked(node_idx as u32);
                 if !node.is_external() {
                     non_external_nodes.insert(node.digest(), (forest_idx, node_id));
                 }
@@ -419,7 +419,7 @@ mod tests {
             nodes[0],
             MultiMastForestIteratorItem::Node {
                 forest_idx: 1,
-                node_id: MastNodeId::new_unsafe(2)
+                node_id: MastNodeId::new_unchecked(2)
             }
         );
         // The external node replaced by the block foo from forest B.
@@ -427,9 +427,9 @@ mod tests {
             nodes[1],
             MultiMastForestIteratorItem::ExternalNodeReplacement {
                 replacement_forest_idx: 1,
-                replacement_mast_node_id: MastNodeId::new_unsafe(2),
+                replacement_mast_node_id: MastNodeId::new_unchecked(2),
                 replaced_forest_idx: 0,
-                replaced_mast_node_id: MastNodeId::new_unsafe(0)
+                replaced_mast_node_id: MastNodeId::new_unchecked(0)
             }
         );
         // The call from forest A.
@@ -437,7 +437,7 @@ mod tests {
             nodes[2],
             MultiMastForestIteratorItem::Node {
                 forest_idx: 0,
-                node_id: MastNodeId::new_unsafe(1)
+                node_id: MastNodeId::new_unchecked(1)
             }
         );
         // The replacement for the external node that is replaced by the Call in forest A.
@@ -445,9 +445,9 @@ mod tests {
             nodes[3],
             MultiMastForestIteratorItem::ExternalNodeReplacement {
                 replacement_forest_idx: 0,
-                replacement_mast_node_id: MastNodeId::new_unsafe(1),
+                replacement_mast_node_id: MastNodeId::new_unchecked(1),
                 replaced_forest_idx: 1,
-                replaced_mast_node_id: MastNodeId::new_unsafe(0)
+                replaced_mast_node_id: MastNodeId::new_unchecked(0)
             }
         );
         // The call from forest B.
@@ -455,7 +455,7 @@ mod tests {
             nodes[4],
             MultiMastForestIteratorItem::Node {
                 forest_idx: 1,
-                node_id: MastNodeId::new_unsafe(1)
+                node_id: MastNodeId::new_unchecked(1)
             }
         );
     }

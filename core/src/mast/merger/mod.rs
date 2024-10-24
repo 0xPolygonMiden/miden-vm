@@ -142,7 +142,7 @@ impl MastForestMerger {
             };
 
             decorator_id_remapping
-                .insert(DecoratorId::new_unsafe(merging_id as u32), new_decorator_id);
+                .insert(DecoratorId::new_unchecked(merging_id as u32), new_decorator_id);
         }
 
         self.decorator_id_mappings.push(decorator_id_remapping);
