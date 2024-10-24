@@ -459,4 +459,50 @@ mod tests {
             }
         );
     }
+
+    /// Tests that a node which appears twice in a tree is returned in the required order.
+    ///
+    /// In this test we have a MastForest with a tree like this:
+    ///
+    ///     3 <- Split Node
+    ///    / \
+    ///   1   2
+    ///  /     \
+    /// 0       0
+    ///
+    /// In a previous implementation we marked the nodes that we discovered as visited immediately
+    /// and did not add them again when encountering them again. This was not correct because of
+    /// this example. In the iterator, we need to discover nodes in reverse so we can later pop
+    /// them off the stack in postorder. So we first descend down child 2 of the split node.
+    /// This means we would mark 0 as visited and then add 2 to the stack. Then we descend down
+    /// child 1 but do not add 0 again because it is already visited and we add 1. So we end up
+    /// with this stack for the tree: [3, 2, 0, 1]. This means when we pop off nodes from the
+    /// stack we get to 1 before we get to 0 and that violates the guarantees from this
+    /// iterator.
+    ///
+    /// Hence this test to ensure that we do return nodes in the right order.
+    ///
+    /// This test and example is essentially a copy from a part of the MastForest of the Miden
+    /// Stdlib where this error occured.
+    #[test]
+    fn multi_mast_forest_child_duplicate() {
+        let block_foo = MastNode::new_basic_block(vec![Operation::Drop], None).unwrap();
+        let mut forest = MastForest::new();
+        let id_foo = forest.add_external(block_foo.digest()).unwrap();
+        let id_call1 = forest.add_call(id_foo).unwrap();
+        let id_call2 = forest.add_call(id_foo).unwrap();
+        let id_split = forest.add_split(id_call1, id_call2).unwrap();
+        forest.make_root(id_split);
+
+        let nodes = MultiMastForestNodeIter::new(vec![&forest]).collect::<Vec<_>>();
+
+        // The foo node should be yielded first and it should not be yielded twice.
+        for (i, expected_node_id) in [id_foo, id_call1, id_call2, id_split].into_iter().enumerate()
+        {
+            assert_eq!(
+                nodes[i],
+                MultiMastForestIteratorItem::Node { forest_idx: 0, node_id: expected_node_id }
+            );
+        }
+    }
 }
