@@ -31,10 +31,18 @@ fn mast_forest_merge_assembler() {
   export.foo
       push.19
   end
+
+  export.qux
+      swap drop
+  end
 "#;
 
     let lib_b = r#"
   use.lib::mod
+
+  export.qux_duplicate
+      swap drop
+  end
 
   export.bar
       push.2
@@ -55,7 +63,7 @@ fn mast_forest_merge_assembler() {
         for root in forest.procedure_roots() {
             let original_digest = forest.nodes()[root.as_usize()].digest();
             let new_root = root_maps.map_root(forest_idx, root).unwrap();
-            let new_digest = forest.nodes()[new_root.as_usize()].digest();
+            let new_digest = merged.nodes()[new_root.as_usize()].digest();
             assert_eq!(original_digest, new_digest);
         }
     }
