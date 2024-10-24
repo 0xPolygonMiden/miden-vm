@@ -102,8 +102,9 @@ impl<'forest> MultiMastForestNodeIter<'forest> {
 
         for (forest_idx, forest) in mast_forests.iter().enumerate() {
             for (node_idx, node) in forest.nodes().iter().enumerate() {
-                let node_id = MastNodeId::from_u32_safe(node_idx as u32, mast_forests[forest_idx])
-                    .expect("the passed id should be a valid node in the forest");
+                // SAFETY: The passed id comes from the iterator over the nodes, so we never exceed
+                // the forest's number of nodes.
+                let node_id = MastNodeId::new_unsafe(node_idx as u32);
                 if !node.is_external() {
                     non_external_nodes.insert(node.digest(), (forest_idx, node_id));
                 }
@@ -334,6 +335,9 @@ pub(crate) enum MultiMastForestIteratorItem {
         replaced_mast_node_id: MastNodeId,
     },
 }
+
+// TESTS
+// ================================================================================================
 
 #[cfg(test)]
 mod tests {

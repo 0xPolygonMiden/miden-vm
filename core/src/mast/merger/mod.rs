@@ -357,9 +357,8 @@ impl MastForestRootMap {
 ///
 /// This type is meant to encapsulates some guarantees:
 ///
-/// - Indexing into the vector for any ID is safe if that ID is valid for the corresponding forest,
-///   which is enforced in the `from_u32_safe` functions (as long as they are used with the correct
-///   forest). Despite that, we still cannot index unconditionally in case a node with invalid
+/// - Indexing into the vector for any ID is safe if that ID is valid for the corresponding forest.
+///   Despite that, we still cannot index unconditionally in case a node with invalid
 ///   [`DecoratorId`]s is passed to `merge`.
 /// - The entry itself can be either None or Some. However:
 ///   - For `DecoratorId`s we iterate and insert all decorators into this map before retrieving any

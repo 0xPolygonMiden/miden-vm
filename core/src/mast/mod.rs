@@ -532,8 +532,8 @@ impl MastNodeId {
         }
     }
 
-    #[cfg(test)]
-    pub fn new_unsafe(value: u32) -> Self {
+    /// Returns a new [`MastNodeId`] from the given `value` without checking its validity.
+    pub(crate) fn new_unsafe(value: u32) -> Self {
         Self(value)
     }
 
