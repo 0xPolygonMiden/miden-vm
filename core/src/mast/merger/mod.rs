@@ -54,10 +54,7 @@ impl MastForestMerger {
         Ok((mast_forest, root_maps))
     }
 
-    fn merge_inner<'forest>(
-        &mut self,
-        forests: Vec<&'forest MastForest>,
-    ) -> Result<(), MastForestError> {
+    fn merge_inner(&mut self, forests: Vec<&MastForest>) -> Result<(), MastForestError> {
         for other_forest in forests.iter() {
             self.merge_decorators(other_forest)?;
         }
@@ -87,7 +84,7 @@ impl MastForestMerger {
         }
 
         for (forest_idx, forest) in forests.iter().enumerate() {
-            self.merge_roots(forest_idx, &forest)?;
+            self.merge_roots(forest_idx, forest)?;
         }
 
         Ok(())
@@ -158,12 +155,12 @@ impl MastForestMerger {
             // It should never be the case that the MAST root of the merging node matches
             // the referenced MAST root of an External node in the merged forest due to the
             // preprocessing of external nodes.
-            debug_assert!(matching_nodes.into_iter().all(|(_, matching_node_id)| {
+            debug_assert!(matching_nodes.iter().all(|(_, matching_node_id)| {
                 !self.mast_forest[*matching_node_id].is_external()
             }));
 
             match matching_nodes
-                .into_iter()
+                .iter()
                 .find_map(|(matching_node_fingerprint, node_id)| {
                     if matching_node_fingerprint == &node_fingerprint {
                         Some(node_id)
