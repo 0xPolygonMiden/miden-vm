@@ -1,5 +1,4 @@
-use alloc::vec::Vec;
-use std::collections::BTreeMap;
+use alloc::{collections::BTreeMap, vec::Vec};
 
 use miden_crypto::hash::rpo::RpoDigest;
 
@@ -68,7 +67,7 @@ impl<'forest> MultiMastForestNodeIter<'forest> {
 
         for (forest_idx, forest) in mast_forests.iter().enumerate() {
             for (node_idx, node) in forest.nodes().iter().enumerate() {
-                let node_id = MastNodeId::from_u32_safe(node_idx as u32, &mast_forests[forest_idx])
+                let node_id = MastNodeId::from_u32_safe(node_idx as u32, mast_forests[forest_idx])
                     .expect("the passed id should be a valid node in the forest");
                 if !node.is_external() {
                     non_external_nodes.insert(node.digest(), (forest_idx, node_id));
@@ -218,7 +217,7 @@ impl<'forest> MultiMastForestNodeIter<'forest> {
     }
 }
 
-impl<'forest> Iterator for MultiMastForestNodeIter<'forest> {
+impl Iterator for MultiMastForestNodeIter<'_> {
     type Item = MultiMastForestIteratorItem;
 
     fn next(&mut self) -> Option<Self::Item> {

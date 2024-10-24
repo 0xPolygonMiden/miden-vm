@@ -461,8 +461,8 @@ impl MastForest {
     }
 
     // TODO: Replace with Multi iterator?
-    // /// Returns an iterator which traverses over the nodes in a depth-first search and returns nodes
-    // /// in postorder.
+    // /// Returns an iterator which traverses over the nodes in a depth-first search and returns
+    // nodes /// in postorder.
     // ///
     // /// This iterator iterates through all **reachable** nodes of a forest exactly once.
     // ///
@@ -489,8 +489,8 @@ impl MastForest {
     // /// the `External` node is not a root and not referenced by any other tree in the forest, it
     // /// will not be visited.
     // ///
-    // /// The iteration on a high-level thus consists of a constant back and forth between discovering
-    // /// trees and returning nodes from the stack.
+    // /// The iteration on a high-level thus consists of a constant back and forth between
+    // discovering /// trees and returning nodes from the stack.
     // pub fn iter_nodes(&self) -> impl Iterator<Item = (MastNodeId, &MastNode)> {
     //     MultiMastForestNodeIter::new(self)
     // }

@@ -704,12 +704,11 @@ fn mast_forest_merge_external_dependencies() {
     forest_b.make_root(id_call_b);
     forest_b.make_root(id_qux_b);
 
-    for (_, (merged, _)) in [
+    for (merged, _) in [
         MastForest::merge([&forest_a, &forest_b]).unwrap(),
         MastForest::merge([&forest_b, &forest_a]).unwrap(),
     ]
     .into_iter()
-    .enumerate()
     {
         let digests = merged.nodes().iter().map(|node| node.digest()).collect::<Vec<_>>();
         assert_eq!(merged.nodes().len(), 3);
