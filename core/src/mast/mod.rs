@@ -533,7 +533,7 @@ impl MastNodeId {
     }
 
     /// Returns a new [`MastNodeId`] from the given `value` without checking its validity.
-    pub(crate) fn new_unsafe(value: u32) -> Self {
+    pub(crate) fn new_unchecked(value: u32) -> Self {
         Self(value)
     }
 
@@ -599,7 +599,7 @@ impl DecoratorId {
     }
 
     /// Creates a new [`DecoratorId`] without checking its validity.
-    pub(crate) fn new_unsafe(value: u32) -> Self {
+    pub(crate) fn new_unchecked(value: u32) -> Self {
         Self(value)
     }
 
