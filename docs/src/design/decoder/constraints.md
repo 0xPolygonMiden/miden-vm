@@ -138,10 +138,10 @@ $$
 In the above, $a$ represents the address value in the decoder which corresponds to the hasher chiplet address at which the hasher was initialized (or the last absorption took place).  As such, $a + 7$ corresponds to the hasher chiplet address at which the result is returned.
 
 $$
-f_{ctrli} = f_{join} + f_{split} + f_{loop} + f_{dyn} + f_{call} \text{ | degree} = 5
+f_{ctrli} = f_{join} + f_{split} + f_{loop} + f_{call} \text{ | degree} = 5
 $$
 
-In the above, $f_{ctrli}$ is set to $1$ when a control flow operation that signifies the initialization of a control block is being executed on the VM.  Otherwise, it is set to $0$. An exception is made for the `SYSCALL` operation. Although it also signifies the initialization of a control block, it must additionally send a procedure access request to the [kernel ROM chiplet](../chiplets/kernel_rom.md) via the chiplets bus. Therefore, it is excluded from this flag and its communication with the chiplets bus is handled separately.
+In the above, $f_{ctrli}$ is set to $1$ when a control flow operation that signifies the initialization of a control block is being executed on the VM (only those control blocks that don't do any concurrent requests to the chiplets but).  Otherwise, it is set to $0$. An exception is made for the `DYN`, `DYNCALL`, and `SYSCALL` operations, since although they initialize a control block, they also run another concurrent bus request, and so are handled separately. 
 
 $$
 d = \sum_{b=0}^6(b_i \cdot 2^i)
@@ -151,7 +151,7 @@ In the above, $d$ represents the opcode value of the opcode being executed on th
 
 Using the above variables, we define operation values as described below.
 
-When a control block initializer operation (`JOIN`, `SPLIT`, `LOOP`, `DYN`, `CALL`, `SYSCALL`) is executed, a new hasher is initialized and the contents of $h_0, ..., h_7$ are absorbed into the hasher. As mentioned above, the opcode value $d$ is populated in the second capacity resister via the $\alpha_5$ term.
+When a control block initializer operation (`JOIN`, `SPLIT`, `LOOP`, `CALL`) is executed, a new hasher is initialized and the contents of $h_0, ..., h_7$ are absorbed into the hasher. As mentioned above, the opcode value $d$ is populated in the second capacity register via the $\alpha_5$ term.
 
 $$
 u_{ctrli} = f_{ctrli} \cdot (h_{init} + \alpha_5 \cdot d) \text{ | degree} = 6
@@ -170,6 +170,22 @@ u_{syscall} = f_{syscall} \cdot (h_{init} + \alpha_5 \cdot d) \cdot k_{proc} \te
 $$
 
 The above value sends both the hash initialization request and the kernel procedure access request to the chiplets bus when the `SYSCALL` operation is executed.
+
+Similar to `SYSCALL`, `DYN` and `DYNCALL` are handled separately, since in addition to communicating with the hash chiplet they must also issue a memory read operation for the hash of the procedure being called. 
+
+$$
+h_{dynordyncall} = \alpha_0 + \alpha_1 \cdot m_{bp} + \alpha_2 \cdot a' 
+$$
+
+$$
+m_{dynordyncall} = \alpha_0 + \alpha_1 \cdot m_{read} + \alpha_2 \cdot ctx + \alpha_3 \cdot s_0 + \alpha_4 \cdot clk + <[\alpha_5 \dots \alpha_8], h[0 \dots 4]>
+$$
+
+$$
+u_{dynordyncall} = (f_{dyn} + f_{dyncall}) (h_{dynordyncall} \cdot m_{dynordyncall})
+$$
+
+In the above, $h_{dynordyncall}$ can be thought of as $h_{init}$, but where the values used for the hasher decoder trace registers is all 0's. $m_{dynordyncall}$ represents a memory read request from memory address $s_0$ (the top stack element), where the result is placed in the first half of the decoder hasher trace, and where $m_{read}$ is a label that represents a memory read request.
 
 When `SPAN` operation is executed, a new hasher is initialized and contents of $h_0, ..., h_7$ are absorbed into the hasher. The number of operation groups to be hashed is padded to a multiple of the rate width ($8$) and so the $\alpha_4$ is set to 0:
 
@@ -192,8 +208,8 @@ $$
 Using the above definitions, we can describe the constraint for computing block hashes as follows:
 
 > $$
-b_{chip}' \cdot (u_{ctrli} + u_{syscall} + u_{span} + u_{respan} + u_{end} + \\
-1 - (f_{ctrli} + f_{syscall} + f_{span} + f_{respan} + f_{end})) = b_{chip}
+b_{chip}' \cdot (u_{ctrli} + u_{syscall} + u_{dynordyncall} + u_{span} + u_{respan} + u_{end} + \\
+1 - (f_{ctrli} + f_{syscall} + f_{dyn} + f_{dyncall} + f_{span} + f_{respan} + f_{end})) = b_{chip}
 $$
 
 We need to add $1$ and subtract the sum of the relevant operation flags to ensure that when none of the flags is set to $1$, the above constraint reduces to $b_{chip}' = b_{chip}$.
@@ -249,21 +265,30 @@ $$
 v_{dyn} = f_{dyn} \cdot (\alpha_0 + \alpha_1 \cdot a' + \alpha_2 \cdot a) \text{ | degree} = 6
 $$
 
-When a `CALL` or `SYSCALL` operation is executed, row $(a', a, 0, ctx, fmp, b_0, b_1, fn\_hash[0..3])$ is added to the block stack table:
+When a `DYNCALL` operation is executed, row $(a', a, 0, ctx, fmp, b_0, b_1, \mathrm{fnhash}[0..3])$ is added to the block stack table:
+
+$$
+\begin{align*}
+v_{dyncall} &= f_{dyncall} \cdot (\alpha_0 + \alpha_1 \cdot a + \alpha_2 \cdot a' + \alpha_4 \cdot ctx \\
+&+ \alpha_5 \cdot fmp + \alpha_6 \cdot b_0 + \alpha_7 \cdot b_1 + <[\alpha_8, \alpha_{11}], \mathrm{fnhash}[0..3]>) \text{ | degree} = 6
+\end{align*}
+$$
+
+When a `CALL` or `SYSCALL` operation is executed, row $(a', a, 0, ctx, fmp, b_0, b_1, \mathrm{fnhash}[0..3])$ is added to the block stack table:
 
 $$
 \begin{align*}
 v_{callorsyscall} &= (f_{call} + f_{syscall}) \cdot (\alpha_0 + \alpha_1 \cdot a + \alpha_2 \cdot a' + \alpha_4 \cdot ctx \\
-&+ \alpha_5 \cdot fmp + \alpha_6 \cdot b_0 + \alpha_7 \cdot b_1 + <[\alpha_8, \alpha_{11}], fn\_hash[0..3]>) \text{ | degree} = 5
+&+ \alpha_5 \cdot fmp + \alpha_6 \cdot b_0 + \alpha_7 \cdot b_1 + <[\alpha_8, \alpha_{11}], \mathrm{fnhash}[0..3]>) \text{ | degree} = 5
 \end{align*}
 $$
 
-When `END` operation is executed, how we construct the row will depend on whether the `IS_CALL` or `IS_SYSCALL` values are set (stored in registers $h_6$ and $h_7$ respectively). If they are not set, then row $(a, a', h_5)$ is removed from the block span table (where $h_5$ contains the `is_loop` flag); otherwise, row $(a ,a', 0, ctx', fmp', b_0', b_1', fn\_hash'[0..3])$.
+When `END` operation is executed, how we construct the row will depend on whether the `IS_CALL` or `IS_SYSCALL` values are set (stored in registers $h_6$ and $h_7$ respectively). If they are not set, then row $(a, a', h_5)$ is removed from the block span table (where $h_5$ contains the `is_loop` flag); otherwise, row $(a ,a', 0, ctx', fmp', b_0', b_1', \mathrm{fnhash}'[0..3])$.
 
 $$
 \begin{align*}
 u_{endnocall} &=\alpha_0 + \alpha_1 \cdot a + \alpha_2 \cdot a' \\
-u_{endcall} &= u_{endnocall} + \alpha_4 \cdot ctx' + \alpha_5 \cdot fmp' + \alpha_6 \cdot b_0' + \alpha_7 \cdot b_1' + <[\alpha_8, \alpha_{11}], fn\_hash'[0..3]>\\
+u_{endcall} &= u_{endnocall} + \alpha_4 \cdot ctx' + \alpha_5 \cdot fmp' + \alpha_6 \cdot b_0' + \alpha_7 \cdot b_1' + <[\alpha_8, \alpha_{11}], \mathrm{fnhash}'[0..3]>\\
 u_{end} &= f_{end} \cdot ((1 - h_6 - h_7) \cdot u_{endnocall} + (h_6 + h_7) \cdot u_{endcall} ) \text{ | degree} = 6
 \end{align*}
 $$
@@ -272,8 +297,8 @@ Using the above definitions, we can describe the constraint for updating the blo
 
 > $$
 p_1' \cdot (u_{end} + u_{respan} + 1 - (f_{end} + f_{respan})) = p_1 \cdot \\
-(v_{join} + v_{split} + v_{loop} + v_{span} + v_{respan} + v_{dyn} + v_{callorsyscall} + 1 - \\
-(f_{join} + f_{split} + f_{loop} + f_{span} + f_{respan} + f_{dyn} + f_{call} + f_{syscall}))
+(v_{join} + v_{split} + v_{loop} + v_{span} + v_{respan} + v_{dyn} + v_{dyncall} + v_{callorsyscall} + 1 - \\
+(f_{join} + f_{split} + f_{loop} + f_{span} + f_{respan} + f_{dyn} + f_{dyncall} + f_{call} + f_{syscall}))
 $$
 
 We need to add $1$ and subtract the sum of the relevant operation flags from each side to ensure that when none of the flags is set to $1$, the above constraint reduces to $p_1' = p_1$.
@@ -332,20 +357,10 @@ When `REPEAT` operation is executed, hash of loop body is added to the block has
 
 $$v_{repeat} = f_{repeat} \cdot (ch_1 + \alpha_7) \text{ | } \text{degree} = 5$$
 
-When the `DYN` operation is executed, the hash of the dynamic child is added to the block hash table. Since the child is dynamically specified by the top four elements of the stack, the value representing the *dyn* block's child must be computed based on the stack rather than from the decoder's hasher registers:
+When `DYN`, `DYNCALL`, `CALL` or `SYSCALL` operation is executed, the hash of the child is added to the block hash table. In all cases, this child is found in the first half of the decoder hasher state.
 
 $$
-ch_{dyn} = \alpha_0 + \alpha_1 \cdot a' + \sum_{i=0}^3(\alpha_{i+2} \cdot s_{3-i}) \text{ | degree} = 1
-$$
-
-$$
-v_{dyn} = f_{dyn} \cdot ch_{dyn}  \text{ | degree} = 6
-$$
-
-When the `CALL` or `SYSCALL` operation is executed, the hash of the callee is added to the block hash table.
-
-$$
-v_{callorsyscall} = (f_{call} + f_{syscall}) \cdot ch_1  \text{ | degree} = 5
+v_{allcalls} = (f_{dyn} + f_{dyncall} + f_{call} + f_{syscall}) \cdot ch_1  \text{ | degree} = 6
 $$
 
 When `END` operation is executed, hash of the completed block is removed from the block hash table. However, we also need to differentiate between removing the first and the second child of a *join* block. We do this by looking at the next operation. Specifically, if the next operation is neither `END` nor `REPEAT` nor `HALT`, we know that another block is about to be executed, and thus, we have just finished executing the first child of a *join* block. Thus, if the next operation is neither `END` nor `REPEAT` nor `HALT` we need to set the term for $\alpha_6$ coefficient to $1$ as shown below:
@@ -358,7 +373,7 @@ Using the above definitions, we can describe the constraint for updating the blo
 
 > $$
 p_2' \cdot (u_{end} + 1 - f_{end}) = \\
-p_2 \cdot (v_{join} + v_{split} + v_{loop} + v_{repeat} + v_{dyn} + v_{callorsyscall} + 1 - (f_{join} + f_{split} + f_{loop} + f_{repeat} + f_{dyn} + f_{call} + f_{syscall}))
+p_2 \cdot (v_{join} + v_{split} + v_{loop} + v_{repeat} + v_{allcalls} + 1 - (f_{join} + f_{split} + f_{loop} + f_{repeat} + f_{dyn} + f_{dyncall} + f_{call} + f_{syscall}))
 $$
 
 We need to add $1$ and subtract the sum of the relevant operation flags from each side to ensure that when none of the flags is set to $1$, the above constraint reduces to $p_2' = p_2$.

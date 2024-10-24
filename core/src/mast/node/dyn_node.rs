@@ -6,15 +6,16 @@ use miden_formatting::prettier::{const_text, nl, Document, PrettyPrint};
 
 use crate::{
     mast::{DecoratorId, MastForest},
-    OPCODE_DYN,
+    OPCODE_DYN, OPCODE_DYNCALL,
 };
 
 // DYN NODE
 // ================================================================================================
 
 /// A Dyn node specifies that the node to be executed next is defined dynamically via the stack.
-#[derive(Debug, Clone, Default, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct DynNode {
+    is_dyncall: bool,
     before_enter: Vec<DecoratorId>,
     after_exit: Vec<DecoratorId>,
 }
@@ -22,28 +23,73 @@ pub struct DynNode {
 /// Constants
 impl DynNode {
     /// The domain of the Dyn block (used for control block hashing).
-    pub const DOMAIN: Felt = Felt::new(OPCODE_DYN as u64);
+    pub const DYN_DOMAIN: Felt = Felt::new(OPCODE_DYN as u64);
+
+    /// The domain of the Dyncall block (used for control block hashing).
+    pub const DYNCALL_DOMAIN: Felt = Felt::new(OPCODE_DYNCALL as u64);
 }
 
 /// Public accessors
 impl DynNode {
+    /// Creates a new [`DynNode`] representing a dynexec operation.
+    pub fn new_dyn() -> Self {
+        Self {
+            is_dyncall: false,
+            before_enter: Vec::new(),
+            after_exit: Vec::new(),
+        }
+    }
+
+    /// Creates a new [`DynNode`] representing a dyncall operation.
+    pub fn new_dyncall() -> Self {
+        Self {
+            is_dyncall: true,
+            before_enter: Vec::new(),
+            after_exit: Vec::new(),
+        }
+    }
+
+    /// Returns true if the [`DynNode`] represents a dyncall operation, and false for dynexec.
+    pub fn is_dyncall(&self) -> bool {
+        self.is_dyncall
+    }
+
+    /// Returns the domain of this dyn node.
+    pub fn domain(&self) -> Felt {
+        if self.is_dyncall() {
+            Self::DYNCALL_DOMAIN
+        } else {
+            Self::DYN_DOMAIN
+        }
+    }
+
     /// Returns a commitment to a Dyn node.
     ///
     /// The commitment is computed by hashing two empty words ([ZERO; 4]) in the domain defined
-    /// by [Self::DOMAIN], i.e.:
+    /// by [Self::DYN_DOMAIN] or [Self::DYNCALL_DOMAIN], i.e.:
     ///
     /// ```
     /// # use miden_core::mast::DynNode;
     /// # use miden_crypto::{hash::rpo::{RpoDigest as Digest, Rpo256 as Hasher}};
-    /// Hasher::merge_in_domain(&[Digest::default(), Digest::default()], DynNode::DOMAIN);
+    /// Hasher::merge_in_domain(&[Digest::default(), Digest::default()], DynNode::DYN_DOMAIN);
+    /// Hasher::merge_in_domain(&[Digest::default(), Digest::default()], DynNode::DYNCALL_DOMAIN);
     /// ```
     pub fn digest(&self) -> RpoDigest {
-        RpoDigest::new([
-            Felt::new(8115106948140260551),
-            Felt::new(13491227816952616836),
-            Felt::new(15015806788322198710),
-            Felt::new(16575543461540527115),
-        ])
+        if self.is_dyncall {
+            RpoDigest::new([
+                Felt::new(8751004906421739448),
+                Felt::new(13469709002495534233),
+                Felt::new(12584249374630430826),
+                Felt::new(7624899870831503004),
+            ])
+        } else {
+            RpoDigest::new([
+                Felt::new(8115106948140260551),
+                Felt::new(13491227816952616836),
+                Felt::new(15015806788322198710),
+                Felt::new(16575543461540527115),
+            ])
+        }
     }
 
     /// Returns the decorators to be executed before this node is executed.
@@ -132,7 +178,11 @@ impl DynNodePrettyPrint<'_> {
 
 impl crate::prettier::PrettyPrint for DynNodePrettyPrint<'_> {
     fn render(&self) -> crate::prettier::Document {
-        let dyn_text = const_text("dyn");
+        let dyn_text = if self.node.is_dyncall() {
+            const_text("dyncall")
+        } else {
+            const_text("dyn")
+        };
 
         let single_line = self.single_line_pre_decorators()
             + dyn_text.clone()
@@ -164,8 +214,19 @@ mod tests {
     #[test]
     pub fn test_dyn_node_digest() {
         assert_eq!(
-            DynNode::default().digest(),
-            Rpo256::merge_in_domain(&[RpoDigest::default(), RpoDigest::default()], DynNode::DOMAIN)
+            DynNode::new_dyn().digest(),
+            Rpo256::merge_in_domain(
+                &[RpoDigest::default(), RpoDigest::default()],
+                DynNode::DYN_DOMAIN
+            )
+        );
+
+        assert_eq!(
+            DynNode::new_dyncall().digest(),
+            Rpo256::merge_in_domain(
+                &[RpoDigest::default(), RpoDigest::default()],
+                DynNode::DYNCALL_DOMAIN
+            )
         );
     }
 }

@@ -178,8 +178,8 @@ impl System {
     /// - Sets the free memory pointer to its initial value (FMP_MIN).
     /// - Sets the hash of the function which initiated the current context to the provided value.
     ///
-    /// A CALL cannot be started when the VM is executing a SYSCALL.
-    pub fn start_call(&mut self, fn_hash: Word) {
+    /// A CALL or DYNCALL cannot be started when the VM is executing a SYSCALL.
+    pub fn start_call_or_dyncall(&mut self, fn_hash: Word) {
         debug_assert!(!self.in_syscall, "call in syscall");
         self.ctx = (self.clk + 1).into();
         self.fmp = Felt::new(FMP_MIN);
