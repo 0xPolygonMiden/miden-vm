@@ -1,5 +1,3 @@
-use std::vec::Vec;
-
 use miette::{IntoDiagnostic, Report};
 use vm_core::mast::{MastForest, MastForestRootMap};
 
@@ -9,7 +7,7 @@ use crate::{testing::TestContext, Assembler};
 fn merge_programs(
     program_a: &str,
     program_b: &str,
-) -> Result<(MastForest, MastForest, (MastForest, Vec<MastForestRootMap>)), Report> {
+) -> Result<(MastForest, MastForest, MastForest, MastForestRootMap), Report> {
     let context = TestContext::new();
     let module = context.parse_module_with_path("lib::mod".parse().unwrap(), program_a)?;
 
@@ -20,9 +18,9 @@ fn merge_programs(
     let lib_b = assembler.assemble_library([program_b])?.mast_forest().as_ref().clone();
     let lib_a = lib_a.mast_forest().as_ref().clone();
 
-    let merged = MastForest::merge([&lib_a, &lib_b]).into_diagnostic()?;
+    let (merged, root_maps) = MastForest::merge([&lib_a, &lib_b]).into_diagnostic()?;
 
-    Ok((lib_a, lib_b, merged))
+    Ok((lib_a, lib_b, merged, root_maps))
 }
 
 /// Tests that an assembler-produced library's forests can be merged and that external nodes are
@@ -51,12 +49,12 @@ fn mast_forest_merge_assembler() {
       exec.mod::foo
   end"#;
 
-    let (forest_a, forest_b, (merged, root_maps)) = merge_programs(lib_a, lib_b).unwrap();
+    let (forest_a, forest_b, merged, root_maps) = merge_programs(lib_a, lib_b).unwrap();
 
-    for (forest, root_map) in [(forest_a, &root_maps[0]), (forest_b, &root_maps[1])] {
+    for (forest_idx, forest) in [forest_a, forest_b].into_iter().enumerate() {
         for root in forest.procedure_roots() {
             let original_digest = forest.nodes()[root.as_usize()].digest();
-            let new_root = root_map.map_root(root).unwrap();
+            let new_root = root_maps.map_root(forest_idx, root).unwrap();
             let new_digest = forest.nodes()[new_root.as_usize()].digest();
             assert_eq!(original_digest, new_digest);
         }

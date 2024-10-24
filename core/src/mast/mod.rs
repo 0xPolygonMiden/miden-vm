@@ -253,7 +253,7 @@ impl MastForest {
     /// without decorators or vice versa.
     pub fn merge<'forest>(
         forests: impl IntoIterator<Item = &'forest MastForest>,
-    ) -> Result<(MastForest, Vec<MastForestRootMap>), MastForestError> {
+    ) -> Result<(MastForest, MastForestRootMap), MastForestError> {
         MastForestMerger::merge(forests)
     }
 

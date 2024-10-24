@@ -29,7 +29,7 @@ impl MastForestMerger {
     /// [`MastForest`]s are merged.
     pub(crate) fn merge<'forest>(
         forests: impl IntoIterator<Item = &'forest MastForest>,
-    ) -> Result<(MastForest, Vec<MastForestRootMap>), MastForestError> {
+    ) -> Result<(MastForest, MastForestRootMap), MastForestError> {
         let forests = forests.into_iter().collect::<Vec<_>>();
         let decorator_id_mappings = Vec::with_capacity(forests.len());
         let node_id_mappings = vec![MastForestNodeIdMap::new(); forests.len()];
@@ -47,11 +47,7 @@ impl MastForestMerger {
 
         let Self { mast_forest, node_id_mappings, .. } = merger;
 
-        let mut root_maps = Vec::new();
-        for (forest_idx, mapping) in node_id_mappings.into_iter().enumerate() {
-            let forest = forests[forest_idx];
-            root_maps.push(MastForestRootMap::from_node_id_map(mapping, &forest.roots));
-        }
+        let root_maps = MastForestRootMap::from_node_id_map(node_id_mappings, forests);
 
         Ok((mast_forest, root_maps))
     }
@@ -320,27 +316,31 @@ impl MastForestMerger {
 /// forest. See [`MastForest::merge`] for more details.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct MastForestRootMap {
-    root_map: BTreeMap<MastNodeId, MastNodeId>,
+    root_maps: Vec<BTreeMap<MastNodeId, MastNodeId>>,
 }
 
 impl MastForestRootMap {
-    fn from_node_id_map(id_map: MastForestNodeIdMap, roots: &[MastNodeId]) -> Self {
-        let mut root_map = BTreeMap::new();
+    fn from_node_id_map(id_map: Vec<MastForestNodeIdMap>, forests: Vec<&MastForest>) -> Self {
+        let mut root_maps = vec![BTreeMap::new(); forests.len()];
 
-        for root in roots {
-            let new_id =
-                id_map.get(root).copied().expect("every node id should be mapped to its new id");
-            root_map.insert(*root, new_id);
+        for (forest_idx, forest) in forests.into_iter().enumerate() {
+            for root in forest.procedure_roots() {
+                let new_id = id_map[forest_idx]
+                    .get(root)
+                    .copied()
+                    .expect("every node id should be mapped to its new id");
+                root_maps[forest_idx].insert(*root, new_id);
+            }
         }
 
-        Self { root_map }
+        Self { root_maps }
     }
 
     /// Maps the given root to its new location in the merged forest, if such a mapping exists.
     ///
     /// It is guaranteed that every root of the map's corresponding forest is contained in the map.
-    pub fn map_root(&self, root: &MastNodeId) -> Option<MastNodeId> {
-        self.root_map.get(root).copied()
+    pub fn map_root(&self, forest_index: usize, root: &MastNodeId) -> Option<MastNodeId> {
+        self.root_maps.get(forest_index).and_then(|map| map.get(root)).copied()
     }
 }
 

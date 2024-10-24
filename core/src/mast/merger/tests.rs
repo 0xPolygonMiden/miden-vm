@@ -16,45 +16,81 @@ fn block_qux() -> MastNode {
         .unwrap()
 }
 
-fn assert_contains_node_once(forest: &MastForest, digest: RpoDigest) {
-    assert_eq!(forest.nodes.iter().filter(|node| node.digest() == digest).count(), 1);
+/// Asserts that the given forest contains exactly one node with the given digest.
+///
+/// Returns a Result which can be unwrapped in the calling test function to assert. This way, if
+/// this assertion fails it'll be clear which exact call failed.
+fn assert_contains_node_once(forest: &MastForest, digest: RpoDigest) -> Result<(), &str> {
+    if forest.nodes.iter().filter(|node| node.digest() == digest).count() != 1 {
+        return Err("node digest contained more than once in the forest");
+    }
+
+    Ok(())
 }
 
 /// Asserts that every root of an original forest has an id to which it is mapped and that this
 /// mapped root is in the set of roots in the merged forest.
+///
+/// Returns a Result which can be unwrapped in the calling test function to assert. This way, if
+/// this assertion fails it'll be clear which exact call failed.
 fn assert_root_mapping(
     root_map: &MastForestRootMap,
-    original_roots: &[MastNodeId],
+    original_roots: Vec<&[MastNodeId]>,
     merged_roots: &[MastNodeId],
-) {
-    for original_root in original_roots {
-        let mapped_root = root_map.map_root(original_root).unwrap();
-        assert!(merged_roots.contains(&mapped_root));
+) -> Result<(), &'static str> {
+    for (forest_idx, original_root) in original_roots.into_iter().enumerate() {
+        for root in original_root {
+            let mapped_root = root_map.map_root(forest_idx, root).unwrap();
+            if !merged_roots.contains(&mapped_root) {
+                return Err("merged root does not contain mapped root");
+            }
+        }
     }
+
+    Ok(())
 }
 
-fn assert_child_id_lt_parent_id(forest: &MastForest) {
-    for (idx, node) in forest.nodes().iter().enumerate() {
+/// Asserts that all children of nodes in the given forest have an id that is less than the parent's
+/// ID.
+///
+/// Returns a Result which can be unwrapped in the calling test function to assert. This way, if
+/// this assertion fails it'll be clear which exact call failed.
+fn assert_child_id_lt_parent_id(forest: &MastForest) -> Result<(), &str> {
+    for (mast_node_id, node) in forest.nodes().iter().enumerate() {
         match node {
             MastNode::Join(join_node) => {
-                assert!(join_node.first().as_usize() < idx);
-                assert!(join_node.second().as_usize() < idx);
+                if !join_node.first().as_usize() < mast_node_id {
+                    return Err("join node first child id is not < parent id");
+                };
+                if !join_node.second().as_usize() < mast_node_id {
+                    return Err("join node second child id is not < parent id");
+                }
             },
             MastNode::Split(split_node) => {
-                assert!(split_node.on_true().as_usize() < idx);
-                assert!(split_node.on_false().as_usize() < idx);
+                if !split_node.on_true().as_usize() < mast_node_id {
+                    return Err("split node on true id is not < parent id");
+                }
+                if !split_node.on_false().as_usize() < mast_node_id {
+                    return Err("split node on false id is not < parent id");
+                }
             },
             MastNode::Loop(loop_node) => {
-                assert!(loop_node.body().as_usize() < idx);
+                if !loop_node.body().as_usize() < mast_node_id {
+                    return Err("loop node body id is not < parent id");
+                }
             },
             MastNode::Call(call_node) => {
-                assert!(call_node.callee().as_usize() < idx);
+                if !call_node.callee().as_usize() < mast_node_id {
+                    return Err("call node callee id is not < parent id");
+                }
             },
             MastNode::Block(_) => (),
             MastNode::Dyn(_) => (),
             MastNode::External(_) => (),
         }
     }
+
+    Ok(())
 }
 
 /// Tests that Call(bar) still correctly calls the remapped bar block.
@@ -84,12 +120,10 @@ fn mast_forest_merge_remap() {
     assert_eq!(merged.nodes()[2], block_bar());
     assert_matches!(&merged.nodes()[3], MastNode::Call(call_node) if call_node.callee().as_u32() == 2);
 
-    let root_map_a = &root_maps[0];
-    let root_map_b = &root_maps[1];
-    assert_eq!(root_map_a.map_root(&id_call_a).unwrap().as_u32(), 1);
-    assert_eq!(root_map_b.map_root(&id_call_b).unwrap().as_u32(), 3);
+    assert_eq!(root_maps.map_root(0, &id_call_a).unwrap().as_u32(), 1);
+    assert_eq!(root_maps.map_root(1, &id_call_b).unwrap().as_u32(), 3);
 
-    assert_child_id_lt_parent_id(&merged);
+    assert_child_id_lt_parent_id(&merged).unwrap();
 }
 
 /// Tests that Forest_A + Forest_A = Forest_A (i.e. duplicates are removed).
@@ -113,7 +147,9 @@ fn mast_forest_merge_duplicate() {
     }
 
     // Both maps should map the roots to the same target id.
-    assert_eq!(&root_maps[0], &root_maps[1]);
+    for original_root in forest_a.procedure_roots() {
+        assert_eq!(&root_maps.map_root(0, original_root), &root_maps.map_root(1, original_root));
+    }
 
     for merged_node in merged.nodes().iter().map(MastNode::digest) {
         forest_a.nodes.iter().find(|node| node.digest() == merged_node).unwrap();
@@ -123,7 +159,7 @@ fn mast_forest_merge_duplicate() {
         assert!(forest_a.decorators.contains(merged_decorator));
     }
 
-    assert_child_id_lt_parent_id(&merged);
+    assert_child_id_lt_parent_id(&merged).unwrap();
 }
 
 /// Tests that External(foo) is replaced by Block(foo) whether it is in forest A or B, and the
@@ -159,8 +195,9 @@ fn mast_forest_merge_replace_external() {
         assert_matches!(&merged.nodes()[1], MastNode::Call(call_node) if call_node.callee().as_u32() == 0);
         // The only root node should be the call node.
         assert_eq!(merged.roots.len(), 1);
-        assert_eq!(root_map[0].map_root(&merged.roots[0]).unwrap().as_usize(), 1);
-        assert_child_id_lt_parent_id(&merged);
+        assert_eq!(root_map.map_root(0, &id_call_a).unwrap().as_usize(), 1);
+        assert_eq!(root_map.map_root(1, &id_call_b).unwrap().as_usize(), 1);
+        assert_child_id_lt_parent_id(&merged).unwrap();
     }
 }
 
@@ -204,10 +241,9 @@ fn mast_forest_merge_roots() {
     assert!(root_digests.contains(&root_digest_bar_b));
     assert!(root_digests.contains(&root_digest_call_b));
 
-    assert_root_mapping(&root_maps[0], &forest_a.roots, &merged.roots);
-    assert_root_mapping(&root_maps[1], &forest_b.roots, &merged.roots);
+    assert_root_mapping(&root_maps, vec![&forest_a.roots, &forest_b.roots], &merged.roots).unwrap();
 
-    assert_child_id_lt_parent_id(&merged);
+    assert_child_id_lt_parent_id(&merged).unwrap();
 }
 
 /// Test that multiple trees can be merged when the same merger is reused.
@@ -258,16 +294,19 @@ fn mast_forest_merge_multiple() {
     assert!(root_digests.contains(&block_bar_digest));
     assert!(root_digests.contains(&block_qux_digest));
 
-    assert_contains_node_once(&merged, block_foo_digest);
-    assert_contains_node_once(&merged, block_bar_digest);
-    assert_contains_node_once(&merged, block_qux_digest);
-    assert_contains_node_once(&merged, call_foo_digest);
+    assert_contains_node_once(&merged, block_foo_digest).unwrap();
+    assert_contains_node_once(&merged, block_bar_digest).unwrap();
+    assert_contains_node_once(&merged, block_qux_digest).unwrap();
+    assert_contains_node_once(&merged, call_foo_digest).unwrap();
 
-    assert_root_mapping(&root_maps[0], &forest_a.roots, &merged.roots);
-    assert_root_mapping(&root_maps[1], &forest_b.roots, &merged.roots);
-    assert_root_mapping(&root_maps[2], &forest_c.roots, &merged.roots);
+    assert_root_mapping(
+        &root_maps,
+        vec![&forest_a.roots, &forest_b.roots, &forest_c.roots],
+        &merged.roots,
+    )
+    .unwrap();
 
-    assert_child_id_lt_parent_id(&merged);
+    assert_child_id_lt_parent_id(&merged).unwrap();
 }
 
 /// Tests that decorators are merged and that nodes who are identical except for their
@@ -399,10 +438,9 @@ fn mast_forest_merge_decorators() {
         1
     );
 
-    assert_root_mapping(&root_maps[0], &forest_a.roots, &merged.roots);
-    assert_root_mapping(&root_maps[1], &forest_b.roots, &merged.roots);
+    assert_root_mapping(&root_maps, vec![&forest_a.roots, &forest_b.roots], &merged.roots).unwrap();
 
-    assert_child_id_lt_parent_id(&merged);
+    assert_child_id_lt_parent_id(&merged).unwrap();
 }
 
 /// Tests that an external node without decorators is replaced by its referenced node which has
@@ -458,14 +496,14 @@ fn mast_forest_merge_external_node_reference_with_decorator() {
         assert!(fingerprints.contains(&id_foo_a_fingerprint));
 
         if idx == 0 {
-            assert_root_mapping(&root_maps[0], &forest_a.roots, &merged.roots);
-            assert_root_mapping(&root_maps[1], &forest_b.roots, &merged.roots);
+            assert_root_mapping(&root_maps, vec![&forest_a.roots, &forest_b.roots], &merged.roots)
+                .unwrap();
         } else {
-            assert_root_mapping(&root_maps[0], &forest_b.roots, &merged.roots);
-            assert_root_mapping(&root_maps[1], &forest_a.roots, &merged.roots);
+            assert_root_mapping(&root_maps, vec![&forest_b.roots, &forest_a.roots], &merged.roots)
+                .unwrap();
         }
 
-        assert_child_id_lt_parent_id(&merged);
+        assert_child_id_lt_parent_id(&merged).unwrap();
     }
 }
 
@@ -526,14 +564,14 @@ fn mast_forest_merge_external_node_with_decorator() {
         assert!(fingerprints.contains(&id_foo_b_fingerprint));
 
         if idx == 0 {
-            assert_root_mapping(&root_maps[0], &forest_a.roots, &merged.roots);
-            assert_root_mapping(&root_maps[1], &forest_b.roots, &merged.roots);
+            assert_root_mapping(&root_maps, vec![&forest_a.roots, &forest_b.roots], &merged.roots)
+                .unwrap();
         } else {
-            assert_root_mapping(&root_maps[0], &forest_b.roots, &merged.roots);
-            assert_root_mapping(&root_maps[1], &forest_a.roots, &merged.roots);
+            assert_root_mapping(&root_maps, vec![&forest_b.roots, &forest_a.roots], &merged.roots)
+                .unwrap();
         }
 
-        assert_child_id_lt_parent_id(&merged);
+        assert_child_id_lt_parent_id(&merged).unwrap();
     }
 }
 
@@ -596,14 +634,14 @@ fn mast_forest_merge_external_node_and_referenced_node_have_decorators() {
         assert!(fingerprints.contains(&id_foo_b_fingerprint));
 
         if idx == 0 {
-            assert_root_mapping(&root_maps[0], &forest_a.roots, &merged.roots);
-            assert_root_mapping(&root_maps[1], &forest_b.roots, &merged.roots);
+            assert_root_mapping(&root_maps, vec![&forest_a.roots, &forest_b.roots], &merged.roots)
+                .unwrap();
         } else {
-            assert_root_mapping(&root_maps[0], &forest_b.roots, &merged.roots);
-            assert_root_mapping(&root_maps[1], &forest_a.roots, &merged.roots);
+            assert_root_mapping(&root_maps, vec![&forest_b.roots, &forest_a.roots], &merged.roots)
+                .unwrap();
         }
 
-        assert_child_id_lt_parent_id(&merged);
+        assert_child_id_lt_parent_id(&merged).unwrap();
     }
 }
 
@@ -674,14 +712,14 @@ fn mast_forest_merge_multiple_external_nodes_with_decorator() {
         assert!(fingerprints.contains(&id_foo_b_fingerprint));
 
         if idx == 0 {
-            assert_root_mapping(&root_maps[0], &forest_a.roots, &merged.roots);
-            assert_root_mapping(&root_maps[1], &forest_b.roots, &merged.roots);
+            assert_root_mapping(&root_maps, vec![&forest_a.roots, &forest_b.roots], &merged.roots)
+                .unwrap();
         } else {
-            assert_root_mapping(&root_maps[0], &forest_b.roots, &merged.roots);
-            assert_root_mapping(&root_maps[1], &forest_a.roots, &merged.roots);
+            assert_root_mapping(&root_maps, vec![&forest_b.roots, &forest_a.roots], &merged.roots)
+                .unwrap();
         }
 
-        assert_child_id_lt_parent_id(&merged);
+        assert_child_id_lt_parent_id(&merged).unwrap();
     }
 }
 
@@ -725,7 +763,7 @@ fn mast_forest_merge_external_dependencies() {
         assert!(digests.contains(&forest_b[id_qux_b].digest()));
         assert_eq!(merged.nodes().iter().filter(|node| node.is_external()).count(), 0);
 
-        assert_child_id_lt_parent_id(&merged);
+        assert_child_id_lt_parent_id(&merged).unwrap();
     }
 }
 
