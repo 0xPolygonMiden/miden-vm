@@ -8,57 +8,92 @@ type ForestIndex = usize;
 
 /// Depth First Search Iterator in Post Order for [`MastForest`]s.
 ///
-/// This iterator iterates through all **reachable** nodes of a forest exactly once.
+/// This iterator iterates through all **reachable** nodes of all given forests exactly once.
 ///
 /// Since a `MastForest` has multiple possible entrypoints in the form of its roots, a depth-first
-/// search must visit all of those roots and the trees they form.
+/// search must visit all of those roots and the trees they form. This iterator's `Item` is
+/// [`MultiMastForestIteratorItem`]. It contains either a [`MultiMastForestIteratorItem::Node`] of a
+/// forest, or the replacement of an external node. This is returned if one forest contains an
+/// External node with digest `foo` and another forest contains a non-external node with digest
+/// `foo`. In such a case the `foo` node is yielded first (unless it was already visited) and
+/// subsequently a "replacement signal" ([`MultiMastForestIteratorItem::ExternalNodeReplacement`])
+/// for the external node is yielded to make the caller aware that this replacement has happened.
 ///
-/// For instance, consider this `MastForest`:
+/// All of this is useful to ensure that children are always processed before their parents, even if
+/// a child is an External node which is replaced by a node in another forest. This guarantees that
+/// **all [`MastNodeId`]s of child nodes are strictly less than the [`MastNodeId`] of their
+/// parents**.
+///
+/// For instance, consider these `MastForest`s being passed to this iterator with the `Call(0)`'s
+/// digest being `qux`:
 ///
 /// ```text
-/// Nodes: [Block(foo), Block(bar), Join(0, 1), External(qux)]
-/// Roots: [2]
+/// Forest A Nodes: [Block(foo), External(qux), Join(0, 1)]
+/// Forest A Roots: [2]
+/// Forest B Nodes: [Block(bar), Call(0)]
+/// Forest B Roots: [0]
 /// ```
 ///
-/// The only root is the `Join` node at index 2. The first three nodes of the forest form a
+/// The only root of A is the `Join` node at index 2. The first three nodes of the forest form a
 /// tree, since the `Join` node references index 0 and 1. This tree is discovered by
 /// starting at the root at index 2 and following all children until we reach terminal nodes (like
-/// `Block`s) and build up a stack of the discovered, but unvisited nodes. The stack is
-/// built such that popping elements off the stack (from the back) yields a postorder.
+/// `Block`s) and building up a stack of the discovered, but unvisited nodes. The special case here
+/// is the `External` node whose digest matches that of a node in forest B. Instead of the External
+/// node begin added to the stack the tree of the Call node is added instead. The stack is built
+/// such that popping elements off the stack (from the back) yields a postorder.
 ///
-/// After the first tree is discovered, the stack looks like this: `[2, 1, 0]`. On each
-/// call to `next` one element is popped off this stack and returned.
+/// After the first tree is discovered, the stack looks like this:
+/// ```text
+/// [Node(forest_idx: 0, node_id: 2),
+///  ExternalNodeReplacement(
+///     replacement_forest_idx: 1, replacement_node_id: 1
+///     replaced_forest_idx: 0, replaced_node_id: 1
+///  ),
+///  Node(forest_idx: 1, node_id: 1),
+///  Node(forest_idx: 1, node_id: 0),
+///  Node(forest_idx: 0, node_id: 0)]
+/// ```
 ///
-/// If the stack is exhausted we start another discovery if more unvisited roots exist. Since the
-/// `External` node is not a root and not referenced by any other tree in the forest, it will not be
-/// visited.
+/// If the stack is exhausted we start another discovery if more unvisited roots exist. In this
+/// example, the root of forest B was already visited due to the External node reference, so the
+/// iteration is complete.
 ///
-/// The iteration on a high-level thus consists of a constant back and forth between discovering
-/// trees and returning nodes from the stack.
-///
-/// Note: This type could be made more general to implement pre-order or in-order iteration too.
+/// The iteration on a higher level thus consists of a back and forth between discovering trees and
+/// returning nodes from the stack.
 pub(crate) struct MultiMastForestNodeIter<'forest> {
-    /// The forest that we're iterating.
+    /// The forests that we're iterating.
     mast_forests: Vec<&'forest MastForest>,
-    /// The procedure root index at which we last started a tree discovery.
+    /// The index of the forest we're currently processing and discovering trees in.
     ///
-    /// This value iterates through 0..mast_forest.num_procedures() which guarantees that we visit
-    /// all nodes reachable from all roots.
-    last_forest_idx: usize,
-    last_procedure_root_idx: u32,
-    non_external_nodes: BTreeMap<RpoDigest, (usize, MastNodeId)>,
-    /// Describes whether the node at some index has already been visited. Note that this is set to
-    /// true for all nodes on the stack, even if the caller of the iterator has not yet seen the
-    /// node. See [`Self::visit_later`] for more details.
-    node_visited: Vec<Vec<bool>>,
+    /// This value iterates through 0..mast_forests.len() which guarantees that we visit all
+    /// forests once.
+    current_forest_idx: ForestIndex,
+    /// The procedure root index at which we last started a tree discovery in the
+    /// current_forest_idx.
+    ///
+    /// This value iterates through 0..mast_forests[current_forest_idx].num_procedures() which
+    /// guarantees that we visit all nodes reachable from all roots.
+    current_procedure_root_idx: u32,
+    /// A map of MAST roots of all non-external nodes in mast_forests to their forest and node
+    /// indices.
+    non_external_nodes: BTreeMap<RpoDigest, (ForestIndex, MastNodeId)>,
+    /// Describes whether the node at some [forest_index][node_index] has already been discovered.
+    /// Note that this is set to true for all nodes on the stack. See [`Self::mark_discovered`] for
+    /// more details.
+    discovered_nodes: Vec<Vec<bool>>,
     /// This stack always contains the discovered but unvisited nodes.
-    /// For any id store on the stack it holds that `node_visited[id] = true`.
+    /// For any `Node { forest_idx, node_id }` or `ExternalNodeReplacement { replaced_forest_idx:
+    /// forest_idx, replaced_node_id: node_id }` stored on the stack it holds that
+    /// `discovered_nodes[forest_idx][node_id] = true`.
     unvisited_node_stack: Vec<MultiMastForestIteratorItem>,
 }
 
 impl<'forest> MultiMastForestNodeIter<'forest> {
+    /// Builds a map of MAST roots to non-external nodes in any of the given forests to initialize
+    /// the iterator. This enables an efficient check whether for any encountered External node
+    /// referencing digest `foo` a node with digest `foo` already exists in any forest.
     pub(crate) fn new(mast_forests: Vec<&'forest MastForest>) -> Self {
-        let visited = mast_forests
+        let discovered_nodes = mast_forests
             .iter()
             .map(|forest| vec![false; forest.num_nodes() as usize])
             .collect();
@@ -77,44 +112,60 @@ impl<'forest> MultiMastForestNodeIter<'forest> {
 
         Self {
             mast_forests,
-            last_forest_idx: 0,
-            last_procedure_root_idx: 0,
+            current_forest_idx: 0,
+            current_procedure_root_idx: 0,
             non_external_nodes,
-            node_visited: visited,
+            discovered_nodes,
             unvisited_node_stack: Vec::new(),
         }
     }
 
-    /// Pushes the given index onto the stack unless the index was already visited.
-    fn mark_for_visit(&mut self, forest_idx: usize, node_id: MastNodeId) {
-        // SAFETY: The node_visited Vec's len is equal to the number of forest nodes
-        // so any `MastNodeId` from that forest is safe to use.
-        let node_visited_mut = self.node_visited[forest_idx]
+    /// Pushes the given node, uniquely identified by the forest and node index onto the stack
+    /// unless the node was already discovered. Once added to the stack, the node is marked as
+    /// discovered.
+    ///
+    /// It's the callers responsibility to only pass valid indices.
+    fn mark_discovered(&mut self, forest_idx: usize, node_id: MastNodeId) {
+        // SAFETY: We only pass valid `forest_idx` here.
+        // SAFETY: The discovered_nodes Vec's len for a given forest is equal to the number of
+        // nodes in that forest so any `MastNodeId` from that forest is safe to use.
+        let discovered_nodes_mut = self.discovered_nodes[forest_idx]
             .get_mut(node_id.as_usize())
-            .expect("node_visited can be safely indexed by any valid MastNodeId");
+            .expect("discovered_nodes can be safely indexed by any valid MastNodeId");
 
-        if !*node_visited_mut {
+        if !*discovered_nodes_mut {
             self.unvisited_node_stack
-                .push(MultiMastForestIteratorItem::Regular { forest_idx, node_id });
-            // Set nodes added to the stack as visited even though we have not technically visited
-            // them. This is however important to avoid visiting nodes twice that appear
-            // in the same tree. If we were to add all nodes to the stack that we
-            // discovered, then we would have duplicate ids on the stack. Marking them
-            // as visited immediately when adding them avoid this issue.
-            *node_visited_mut = true;
+                .push(MultiMastForestIteratorItem::Node { forest_idx, node_id });
+            // Set nodes added to the stack as discovered. This is important to
+            // avoid discovering nodes (and hence adding them to the stack) twice that appear in the
+            // same tree.
+            *discovered_nodes_mut = true;
         }
     }
 
-    /// Discovers a tree starting at the given root index.
+    /// Discovers a tree starting at the given forest index and node id.
+    ///
+    /// It's the callers responsibility to only pass valid indices.
     fn discover_tree(
         &mut self,
-        forest_idx: usize,
-        root_idx: MastNodeId,
+        forest_idx: ForestIndex,
+        node_id: MastNodeId,
     ) -> Result<(), MastForestError> {
+        // Skip discovery if we have already discovered this node.
+        // If this value is `true`, it is guaranteed that this node and its subtree were already
+        // discovered and we can skip the work to recurse down the tree's children.
+        let is_node_discovered = self.discovered_nodes[forest_idx]
+            .get(node_id.as_usize())
+            .copied()
+            .expect("discovered_nodes can be safely indexed by any valid MastNodeId");
+        if is_node_discovered {
+            return Ok(());
+        }
+
         let current_node =
-            &self.mast_forests[forest_idx].nodes.get(root_idx.as_usize()).ok_or_else(|| {
+            &self.mast_forests[forest_idx].nodes.get(node_id.as_usize()).ok_or_else(|| {
                 MastForestError::NodeIdOverflow(
-                    root_idx,
+                    node_id,
                     self.mast_forests[forest_idx].num_nodes() as usize,
                 )
             })?;
@@ -124,56 +175,65 @@ impl<'forest> MultiMastForestNodeIter<'forest> {
         // gives us the actual postorder we want.
         match current_node {
             MastNode::Block(_) => {
-                self.mark_for_visit(forest_idx, root_idx);
+                self.mark_discovered(forest_idx, node_id);
             },
             MastNode::Join(join_node) => {
-                self.mark_for_visit(forest_idx, root_idx);
+                self.mark_discovered(forest_idx, node_id);
                 self.discover_tree(forest_idx, join_node.second())?;
                 self.discover_tree(forest_idx, join_node.first())?;
             },
             MastNode::Split(split_node) => {
-                self.mark_for_visit(forest_idx, root_idx);
+                self.mark_discovered(forest_idx, node_id);
                 self.discover_tree(forest_idx, split_node.on_false())?;
                 self.discover_tree(forest_idx, split_node.on_true())?;
             },
             MastNode::Loop(loop_node) => {
-                self.mark_for_visit(forest_idx, root_idx);
+                self.mark_discovered(forest_idx, node_id);
                 self.discover_tree(forest_idx, loop_node.body())?;
             },
             MastNode::Call(call_node) => {
-                self.mark_for_visit(forest_idx, root_idx);
+                self.mark_discovered(forest_idx, node_id);
                 self.discover_tree(forest_idx, call_node.callee())?;
             },
             MastNode::Dyn(_) => {
-                self.mark_for_visit(forest_idx, root_idx);
+                self.mark_discovered(forest_idx, node_id);
             },
             MastNode::External(external_node) => {
+                // When we encounter an undiscovered, external node referencing digest `foo` there
+                // are two cases:
+                // - If there exists a node `replacement` in any forest with digest `foo`, we want
+                //   to replace the external node with that node, which we do in two steps.
+                //   - Discover the `replacement`'s tree.
+                //     - If `replacement` is undiscovered, it is added to the stack.
+                //     - If `replacement` was already visited, nothing is added to the stack.
+                //     - In any case this means: The other node is processed before the replacement
+                //       signal we're adding next.
+                //   - Add a replacement signal to the stack, signaling that the other node replaced
+                //     the external node.
+                //   - Note that the order of these operations in code is reversed, since the stack
+                //     we're pushing the operations onto reverses the order once more.
+                // - If no replacement exists, yield the External Node as a regular `Node`.
                 if let Some((other_forest_idx, other_node_id)) =
                     self.non_external_nodes.get(&external_node.digest()).copied()
                 {
-                    let visited = self.node_visited[forest_idx]
-                        .get(root_idx.as_usize())
-                        .expect("node_visited can be safely indexed by any valid MastNodeId");
-                    if !visited {
-                        self.unvisited_node_stack.push(
-                            MultiMastForestIteratorItem::ExternalNodeReplacement {
-                                replacement_forest_idx: other_forest_idx,
-                                replacement_mast_node_id: other_node_id,
-                                replaced_forest_idx: forest_idx,
-                                replaced_mast_node_id: root_idx,
-                            },
-                        );
-                    }
+                    self.unvisited_node_stack.push(
+                        MultiMastForestIteratorItem::ExternalNodeReplacement {
+                            replacement_forest_idx: other_forest_idx,
+                            replacement_mast_node_id: other_node_id,
+                            replaced_forest_idx: forest_idx,
+                            replaced_mast_node_id: node_id,
+                        },
+                    );
 
                     self.discover_tree(other_forest_idx, other_node_id)?;
 
-                    // Skip external node.
-                    *self.node_visited[forest_idx]
-                        .get_mut(root_idx.as_usize())
-                        .expect("node_visited can be safely indexed by any valid MastNodeId") =
-                        true;
+                    // Mark external node as discovered.
+                    let external_node_discovered_mut = self.discovered_nodes[forest_idx]
+                        .get_mut(node_id.as_usize())
+                        .expect("discovered_nodes can be safely indexed by any valid MastNodeId");
+                    *external_node_discovered_mut = true;
                 } else {
-                    self.mark_for_visit(forest_idx, root_idx);
+                    self.mark_discovered(forest_idx, node_id);
                 }
             },
         }
@@ -184,34 +244,55 @@ impl<'forest> MultiMastForestNodeIter<'forest> {
     /// Finds the next unvisited procedure root and discovers a tree from it.
     ///
     /// If the unvisited node stack is empty after calling this function, the iteration is complete.
+    ///
+    /// This function basically consists of two loops:
+    /// - The outer loop iterates over all forest indices.
+    /// - The inner loop iterates over all procedure root indices for the current forest.
     fn discover_nodes(&mut self) {
-        'forest_loop: while self.last_forest_idx < self.mast_forests.len()
+        'forest_loop: while self.current_forest_idx < self.mast_forests.len()
             && self.unvisited_node_stack.is_empty()
         {
+            // If we don't have any forests, there is nothing to do.
             if self.mast_forests.is_empty() {
                 return;
             }
-            if self.mast_forests[self.last_forest_idx].num_procedures() == 0 {
-                self.last_forest_idx += 1;
+
+            // If the current forest doesn't have roots, advance to the next one.
+            if self.mast_forests[self.current_forest_idx].num_procedures() == 0 {
+                self.current_forest_idx += 1;
                 continue;
             }
 
-            let procedure_roots = self.mast_forests[self.last_forest_idx].procedure_roots();
-            let node_visited = &self.node_visited[self.last_forest_idx];
-            // Find the next unvisited procedure root.
-            while node_visited[procedure_roots[self.last_procedure_root_idx as usize].as_usize()] {
-                if self.last_procedure_root_idx + 1
-                    >= self.mast_forests[self.last_forest_idx].num_procedures()
+            let procedure_roots = self.mast_forests[self.current_forest_idx].procedure_roots();
+            let discovered_nodes = &self.discovered_nodes[self.current_forest_idx];
+
+            // Find the next unvisited procedure root for the current forest by incrementing the
+            // current procedure root until we find one that was not yet discovered.
+            while discovered_nodes
+                [procedure_roots[self.current_procedure_root_idx as usize].as_usize()]
+            {
+                // If we have reached the end of the procedure roots for the current forest,
+                // continue searching in the next forest.
+                if self.current_procedure_root_idx + 1
+                    >= self.mast_forests[self.current_forest_idx].num_procedures()
                 {
-                    self.last_procedure_root_idx = 0;
-                    self.last_forest_idx += 1;
+                    // Reset current procedure root.
+                    self.current_procedure_root_idx = 0;
+                    // Increment forest index.
+                    self.current_forest_idx += 1;
+
                     continue 'forest_loop;
                 }
-                self.last_procedure_root_idx += 1;
+
+                // Since the current procedure root was already discovered, check the next one.
+                self.current_procedure_root_idx += 1;
             }
 
-            let tree_root_id = procedure_roots[self.last_procedure_root_idx as usize];
-            self.discover_tree(self.last_forest_idx, tree_root_id)
+            // We exited the loop, so the current procedure root is undiscovered and so we can start
+            // a discovery from that root. Since that root is undiscovered, it is guaranteed that
+            // after this discovery the stack will be non-empty.
+            let tree_root_id = procedure_roots[self.current_procedure_root_idx as usize];
+            self.discover_tree(self.current_forest_idx, tree_root_id)
                 .expect("we should only pass root indices that are valid for the forest");
         }
     }
@@ -222,10 +303,6 @@ impl Iterator for MultiMastForestNodeIter<'_> {
 
     fn next(&mut self) -> Option<Self::Item> {
         if let Some(stack_item) = self.unvisited_node_stack.pop() {
-            // SAFETY: We only add valid ids to the stack so it's fine to index the forest nodes
-            // directly.
-            // let node = &self.mast_forests[stack_item.forest_idx].nodes[next_node_id.as_usize()];
-
             return Some(stack_item);
         }
 
@@ -235,17 +312,21 @@ impl Iterator for MultiMastForestNodeIter<'_> {
             self.next()
         } else {
             // If the stack is empty after tree discovery, all (reachable) nodes have been
+            // discovered and visited.
             None
         }
     }
 }
 
+/// The iterator item for [`MultiMastForestNodeIter`]. See its documentation for details.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(crate) enum MultiMastForestIteratorItem {
-    Regular {
+    /// A regular node discovered by the iterator.
+    Node {
         forest_idx: ForestIndex,
         node_id: MastNodeId,
     },
+    /// Signals a replacement of an external node by some other node.
     ExternalNodeReplacement {
         replacement_forest_idx: usize,
         replacement_mast_node_id: MastNodeId,
@@ -304,28 +385,25 @@ mod tests {
         let nodes = MultiMastForestNodeIter::new(vec![&forest_a, &forest_b]).collect::<Vec<_>>();
 
         assert_eq!(nodes.len(), 8);
-        assert_eq!(nodes[0], MultiMastForestIteratorItem::Regular { forest_idx: 0, node_id: id2 });
-        assert_eq!(nodes[1], MultiMastForestIteratorItem::Regular { forest_idx: 0, node_id: id3 });
+        assert_eq!(nodes[0], MultiMastForestIteratorItem::Node { forest_idx: 0, node_id: id2 });
+        assert_eq!(nodes[1], MultiMastForestIteratorItem::Node { forest_idx: 0, node_id: id3 });
         assert_eq!(
             nodes[2],
-            MultiMastForestIteratorItem::Regular { forest_idx: 0, node_id: id_split }
+            MultiMastForestIteratorItem::Node { forest_idx: 0, node_id: id_split }
         );
-        assert_eq!(
-            nodes[3],
-            MultiMastForestIteratorItem::Regular { forest_idx: 0, node_id: id_join }
-        );
-        assert_eq!(nodes[4], MultiMastForestIteratorItem::Regular { forest_idx: 0, node_id: id1 });
+        assert_eq!(nodes[3], MultiMastForestIteratorItem::Node { forest_idx: 0, node_id: id_join });
+        assert_eq!(nodes[4], MultiMastForestIteratorItem::Node { forest_idx: 0, node_id: id1 });
         assert_eq!(
             nodes[5],
-            MultiMastForestIteratorItem::Regular { forest_idx: 1, node_id: id_ext_b }
+            MultiMastForestIteratorItem::Node { forest_idx: 1, node_id: id_ext_b }
         );
         assert_eq!(
             nodes[6],
-            MultiMastForestIteratorItem::Regular { forest_idx: 1, node_id: id_block_b }
+            MultiMastForestIteratorItem::Node { forest_idx: 1, node_id: id_block_b }
         );
         assert_eq!(
             nodes[7],
-            MultiMastForestIteratorItem::Regular { forest_idx: 1, node_id: id_split_b }
+            MultiMastForestIteratorItem::Node { forest_idx: 1, node_id: id_split_b }
         );
     }
 
@@ -350,7 +428,7 @@ mod tests {
         // The replacement for the external node from forest A.
         assert_eq!(
             nodes[0],
-            MultiMastForestIteratorItem::Regular {
+            MultiMastForestIteratorItem::Node {
                 forest_idx: 1,
                 node_id: MastNodeId::new_unsafe(2)
             }
@@ -368,7 +446,7 @@ mod tests {
         // The call from forest A.
         assert_eq!(
             nodes[2],
-            MultiMastForestIteratorItem::Regular {
+            MultiMastForestIteratorItem::Node {
                 forest_idx: 0,
                 node_id: MastNodeId::new_unsafe(1)
             }
@@ -386,7 +464,7 @@ mod tests {
         // The call from forest B.
         assert_eq!(
             nodes[4],
-            MultiMastForestIteratorItem::Regular {
+            MultiMastForestIteratorItem::Node {
                 forest_idx: 1,
                 node_id: MastNodeId::new_unsafe(1)
             }
