@@ -37,9 +37,9 @@ type ForestIndex = usize;
 /// The only root of A is the `Join` node at index 2. The first three nodes of the forest form a
 /// tree, since the `Join` node references index 0 and 1. This tree is discovered by
 /// starting at the root at index 2 and following all children until we reach terminal nodes (like
-/// `Block`s) and building up a stack of the discovered, but unvisited nodes. The special case here
-/// is the `External` node whose digest matches that of a node in forest B. Instead of the External
-/// node begin added to the stack the tree of the Call node is added instead. The stack is built
+/// `Block`s) and building up a stack of the discovered nodes. The special case here is the
+/// `External` node whose digest matches that of a node in forest B. Instead of the External
+/// node being added to the stack, the tree of the Call node is added instead. The stack is built
 /// such that popping elements off the stack (from the back) yields a postorder.
 ///
 /// After the first tree is discovered, the stack looks like this:
@@ -77,15 +77,13 @@ pub(crate) struct MultiMastForestNodeIter<'forest> {
     /// A map of MAST roots of all non-external nodes in mast_forests to their forest and node
     /// indices.
     non_external_nodes: BTreeMap<RpoDigest, (ForestIndex, MastNodeId)>,
-    /// Describes whether the node at some [forest_index][node_index] has already been discovered.
-    /// Note that this is set to true for all nodes on the stack. See [`Self::mark_discovered`] for
-    /// more details.
-    discovered_nodes: Vec<Vec<bool>>,
-    /// This stack always contains the discovered but unvisited nodes.
-    /// For any `Node { forest_idx, node_id }` or `ExternalNodeReplacement { replaced_forest_idx:
-    /// forest_idx, replaced_node_id: node_id }` stored on the stack it holds that
-    /// `discovered_nodes[forest_idx][node_id] = true`.
-    unvisited_node_stack: Vec<MultiMastForestIteratorItem>,
+    /// Describes whether the node at some [forest_index][node_index] has already been visited.
+    /// Note that this is set to true for all nodes that have been returned from the iterator.
+    visited_nodes: Vec<Vec<bool>>,
+    /// This stack always contains the discovered nodes.
+    /// The stack might contain a node twice. However we only ever return a node once, which is
+    /// checked in the `next` function.
+    discovered_nodes: Vec<MultiMastForestIteratorItem>,
 }
 
 impl<'forest> MultiMastForestNodeIter<'forest> {
@@ -93,7 +91,7 @@ impl<'forest> MultiMastForestNodeIter<'forest> {
     /// the iterator. This enables an efficient check whether for any encountered External node
     /// referencing digest `foo` a node with digest `foo` already exists in any forest.
     pub(crate) fn new(mast_forests: Vec<&'forest MastForest>) -> Self {
-        let discovered_nodes = mast_forests
+        let visited_nodes = mast_forests
             .iter()
             .map(|forest| vec![false; forest.num_nodes() as usize])
             .collect();
@@ -116,32 +114,18 @@ impl<'forest> MultiMastForestNodeIter<'forest> {
             current_forest_idx: 0,
             current_procedure_root_idx: 0,
             non_external_nodes,
-            discovered_nodes,
-            unvisited_node_stack: Vec::new(),
+            visited_nodes,
+            discovered_nodes: Vec::new(),
         }
     }
 
     /// Pushes the given node, uniquely identified by the forest and node index onto the stack
-    /// unless the node was already discovered. Once added to the stack, the node is marked as
-    /// discovered.
+    /// even if the node was already discovered before.
     ///
     /// It's the callers responsibility to only pass valid indices.
-    fn mark_discovered(&mut self, forest_idx: usize, node_id: MastNodeId) {
-        // SAFETY: We only pass valid `forest_idx` here.
-        // SAFETY: The discovered_nodes Vec's len for a given forest is equal to the number of
-        // nodes in that forest so any `MastNodeId` from that forest is safe to use.
-        let discovered_nodes_mut = self.discovered_nodes[forest_idx]
-            .get_mut(node_id.as_usize())
-            .expect("discovered_nodes can be safely indexed by any valid MastNodeId");
-
-        if !*discovered_nodes_mut {
-            self.unvisited_node_stack
-                .push(MultiMastForestIteratorItem::Node { forest_idx, node_id });
-            // Set nodes added to the stack as discovered. This is important to
-            // avoid discovering nodes (and hence adding them to the stack) twice that appear in the
-            // same tree.
-            *discovered_nodes_mut = true;
-        }
+    fn push_node(&mut self, forest_idx: usize, node_id: MastNodeId) {
+        self.discovered_nodes
+            .push(MultiMastForestIteratorItem::Node { forest_idx, node_id });
     }
 
     /// Discovers a tree starting at the given forest index and node id.
@@ -152,17 +136,6 @@ impl<'forest> MultiMastForestNodeIter<'forest> {
         forest_idx: ForestIndex,
         node_id: MastNodeId,
     ) -> Result<(), MastForestError> {
-        // Skip discovery if we have already discovered this node.
-        // If this value is `true`, it is guaranteed that this node and its subtree were already
-        // discovered and we can skip the work to recurse down the tree's children.
-        let is_node_discovered = self.discovered_nodes[forest_idx]
-            .get(node_id.as_usize())
-            .copied()
-            .expect("discovered_nodes can be safely indexed by any valid MastNodeId");
-        if is_node_discovered {
-            return Ok(());
-        }
-
         let current_node =
             &self.mast_forests[forest_idx].nodes.get(node_id.as_usize()).ok_or_else(|| {
                 MastForestError::NodeIdOverflow(
@@ -176,48 +149,46 @@ impl<'forest> MultiMastForestNodeIter<'forest> {
         // gives us the actual postorder we want.
         match current_node {
             MastNode::Block(_) => {
-                self.mark_discovered(forest_idx, node_id);
+                self.push_node(forest_idx, node_id);
             },
             MastNode::Join(join_node) => {
-                self.mark_discovered(forest_idx, node_id);
+                self.push_node(forest_idx, node_id);
                 self.discover_tree(forest_idx, join_node.second())?;
                 self.discover_tree(forest_idx, join_node.first())?;
             },
             MastNode::Split(split_node) => {
-                self.mark_discovered(forest_idx, node_id);
+                self.push_node(forest_idx, node_id);
                 self.discover_tree(forest_idx, split_node.on_false())?;
                 self.discover_tree(forest_idx, split_node.on_true())?;
             },
             MastNode::Loop(loop_node) => {
-                self.mark_discovered(forest_idx, node_id);
+                self.push_node(forest_idx, node_id);
                 self.discover_tree(forest_idx, loop_node.body())?;
             },
             MastNode::Call(call_node) => {
-                self.mark_discovered(forest_idx, node_id);
+                self.push_node(forest_idx, node_id);
                 self.discover_tree(forest_idx, call_node.callee())?;
             },
             MastNode::Dyn(_) => {
-                self.mark_discovered(forest_idx, node_id);
+                self.push_node(forest_idx, node_id);
             },
             MastNode::External(external_node) => {
-                // When we encounter an undiscovered, external node referencing digest `foo` there
-                // are two cases:
+                // When we encounter an external node referencing digest `foo` there are two cases:
                 // - If there exists a node `replacement` in any forest with digest `foo`, we want
                 //   to replace the external node with that node, which we do in two steps.
-                //   - Discover the `replacement`'s tree.
-                //     - If `replacement` is undiscovered, it is added to the stack.
-                //     - If `replacement` was already visited, nothing is added to the stack.
-                //     - In any case this means: The other node is processed before the replacement
-                //       signal we're adding next.
-                //   - Add a replacement signal to the stack, signaling that the other node replaced
-                //     the external node.
+                //   - Discover the `replacement`'s tree and add it to the stack.
+                //     - If `replacement` was already visited before, it won't actually be returned.
+                //     - In any case this means: The `replacement` node is processed before the
+                //       replacement signal we're adding next.
+                //   - Add a replacement signal to the stack, signaling that the `replacement`
+                //     replaced the external node.
                 //   - Note that the order of these operations in code is reversed, since the stack
                 //     we're pushing the operations onto reverses the order once more.
                 // - If no replacement exists, yield the External Node as a regular `Node`.
                 if let Some((other_forest_idx, other_node_id)) =
                     self.non_external_nodes.get(&external_node.digest()).copied()
                 {
-                    self.unvisited_node_stack.push(
+                    self.discovered_nodes.push(
                         MultiMastForestIteratorItem::ExternalNodeReplacement {
                             replacement_forest_idx: other_forest_idx,
                             replacement_mast_node_id: other_node_id,
@@ -227,14 +198,8 @@ impl<'forest> MultiMastForestNodeIter<'forest> {
                     );
 
                     self.discover_tree(other_forest_idx, other_node_id)?;
-
-                    // Mark external node as discovered.
-                    let external_node_discovered_mut = self.discovered_nodes[forest_idx]
-                        .get_mut(node_id.as_usize())
-                        .expect("discovered_nodes can be safely indexed by any valid MastNodeId");
-                    *external_node_discovered_mut = true;
                 } else {
-                    self.mark_discovered(forest_idx, node_id);
+                    self.push_node(forest_idx, node_id);
                 }
             },
         }
@@ -251,7 +216,7 @@ impl<'forest> MultiMastForestNodeIter<'forest> {
     /// - The inner loop iterates over all procedure root indices for the current forest.
     fn discover_nodes(&mut self) {
         'forest_loop: while self.current_forest_idx < self.mast_forests.len()
-            && self.unvisited_node_stack.is_empty()
+            && self.discovered_nodes.is_empty()
         {
             // If we don't have any forests, there is nothing to do.
             if self.mast_forests.is_empty() {
@@ -265,11 +230,11 @@ impl<'forest> MultiMastForestNodeIter<'forest> {
             }
 
             let procedure_roots = self.mast_forests[self.current_forest_idx].procedure_roots();
-            let discovered_nodes = &self.discovered_nodes[self.current_forest_idx];
+            let visited_nodes = &self.visited_nodes[self.current_forest_idx];
 
             // Find the next unvisited procedure root for the current forest by incrementing the
-            // current procedure root until we find one that was not yet discovered.
-            while discovered_nodes
+            // current procedure root until we find one that was not yet visited.
+            while visited_nodes
                 [procedure_roots[self.current_procedure_root_idx as usize].as_usize()]
             {
                 // If we have reached the end of the procedure roots for the current forest,
@@ -285,13 +250,13 @@ impl<'forest> MultiMastForestNodeIter<'forest> {
                     continue 'forest_loop;
                 }
 
-                // Since the current procedure root was already discovered, check the next one.
+                // Since the current procedure root was already visited, check the next one.
                 self.current_procedure_root_idx += 1;
             }
 
-            // We exited the loop, so the current procedure root is undiscovered and so we can start
-            // a discovery from that root. Since that root is undiscovered, it is guaranteed that
-            // after this discovery the stack will be non-empty.
+            // We exited the loop, so the current procedure root is unvisited and so we can start
+            // a discovery from that root. Since that root is unvisited and undiscovered, it is
+            // guaranteed that after this discovery the stack will be non-empty.
             let tree_root_id = procedure_roots[self.current_procedure_root_idx as usize];
             self.discover_tree(self.current_forest_idx, tree_root_id)
                 .expect("we should only pass root indices that are valid for the forest");
@@ -303,13 +268,33 @@ impl Iterator for MultiMastForestNodeIter<'_> {
     type Item = MultiMastForestIteratorItem;
 
     fn next(&mut self) -> Option<Self::Item> {
-        if let Some(stack_item) = self.unvisited_node_stack.pop() {
+        while let Some(stack_item) = self.discovered_nodes.pop() {
+            // Get the forest and node index of the node being processed on the stack so we can
+            // check if it has already been visited.
+            let (forest_idx, node_id) = match &stack_item {
+                MultiMastForestIteratorItem::Node { forest_idx, node_id } => (forest_idx, node_id),
+                MultiMastForestIteratorItem::ExternalNodeReplacement {
+                    replaced_forest_idx,
+                    replaced_mast_node_id,
+                    ..
+                } => (replaced_forest_idx, replaced_mast_node_id),
+            };
+
+            let is_node_visited_mut = self.visited_nodes[*forest_idx]
+                .get_mut(node_id.as_usize())
+                .expect("visited_nodes can be safely indexed by any valid MastNodeId");
+            if *is_node_visited_mut {
+                continue;
+            } else {
+                *is_node_visited_mut = true;
+            }
+
             return Some(stack_item);
         }
 
         self.discover_nodes();
 
-        if !self.unvisited_node_stack.is_empty() {
+        if !self.discovered_nodes.is_empty() {
             self.next()
         } else {
             // If the stack is empty after tree discovery, all (reachable) nodes have been
