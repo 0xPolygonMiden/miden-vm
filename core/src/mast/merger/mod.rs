@@ -16,17 +16,25 @@ mod tests;
 pub(crate) struct MastForestMerger {
     mast_forest: MastForest,
     // Internal indices needed for efficient duplicate checking and EqHash computation.
+    //
+    // These are always in-sync with the nodes in `mast_forest`, i.e. all nodes added to the
+    // `mast_forest` are also added to the indices.
     node_id_by_hash: BTreeMap<EqHash, MastNodeId>,
     hash_by_node_id: BTreeMap<MastNodeId, EqHash>,
     decorators_by_hash: BTreeMap<Blake3Digest<32>, DecoratorId>,
-    // Mappings from old decorator and node ids to their new ids.
+    /// Mappings from old decorator and node ids to their new ids.
+    ///
+    /// Any decorator in `mast_forest` is present as the target of some mapping in this map.
     decorator_id_mappings: Vec<DecoratorIdMap>,
+    /// Mappings from previous `MastNodeId`s to their new ids.
+    ///
+    /// Any `MastNodeId` in `mast_forest` is present as the target of some mapping in this map.
     node_id_mappings: Vec<MastForestNodeIdMap>,
 }
 
 impl MastForestMerger {
-    /// Creates a new merger which creates a new internal, empty forest into which other
-    /// [`MastForest`]s are merged.
+    /// Creates a new merger with an initially empty forest and merges all provided [`MastForest`]s
+    /// into it.
     pub(crate) fn merge<'forest>(
         forests: impl IntoIterator<Item = &'forest MastForest>,
     ) -> Result<(MastForest, MastForestRootMap), MastForestError> {
@@ -97,9 +105,13 @@ impl MastForestMerger {
                     self.merge_node(forest_idx, node_id, node)?;
                 },
                 MultiMastForestIteratorItem::ExternalNodeReplacement {
+                    // forest index of the node which replaces the external node
                     replacement_forest_idx,
+                    // ID of the node that replaces the external node
                     replacement_mast_node_id,
+                    // forest index of the external node
                     replaced_forest_idx,
+                    // ID of the external node
                     replaced_mast_node_id,
                 } => {
                     // The iterator is not aware of the merged forest, so the node indices it yields
@@ -207,9 +219,9 @@ impl MastForestMerger {
             let new_root = self.node_id_mappings[forest_idx]
                 .get(root_id)
                 .expect("all node ids should have an entry");
-            // This will take O(n) every time to check if the root already exists.
-            // We could improve this by keeping a BTreeSet<MastNodeId> of existing roots during
-            // merging for a faster check.
+            // This takes O(n) where n is the number of roots in the merged forest every time to
+            // check if the root already exists. As the number of roots is relatively low generally,
+            // this should be okay.
             self.mast_forest.make_root(*new_root);
         }
 
