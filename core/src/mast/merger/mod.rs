@@ -62,7 +62,7 @@ impl MastForestMerger {
     /// 2. Merge all nodes of forests.
     ///    - Similar to decorators, node indices might move during merging, so the merger keeps a
     ///      node id mapping as it merges nodes.
-    ///    - This is a depth-first traversal over the forests to ensure all children are processed
+    ///    - This is a depth-first traversal over all forests to ensure all children are processed
     ///      before their parents. See the documentation of [`MultiMastForestNodeIter`] for details
     ///      on this traversal.
     ///    - Because all parents are processed after their children, we can use the node id mapping
