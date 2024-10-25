@@ -7,9 +7,10 @@ use processor::MastForest;
 /// implemented and the StdLib serves as a convenient example of a large MastForest.
 #[test]
 fn mast_forest_merge_stdlib() {
-    let std_forest = miden_stdlib::StdLibrary::default().mast_forest().as_ref().clone();
+    let std_lib = miden_stdlib::StdLibrary::default();
+    let std_forest = std_lib.mast_forest().as_ref();
 
-    let (merged, _) = MastForest::merge([&std_forest, &std_forest]).unwrap();
+    let (merged, _) = MastForest::merge([std_forest, std_forest]).unwrap();
 
     let merged_digests = merged.procedure_digests().collect::<Vec<_>>();
     for digest in std_forest.procedure_digests() {
