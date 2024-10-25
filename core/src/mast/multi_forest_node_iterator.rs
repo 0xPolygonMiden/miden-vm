@@ -1,5 +1,7 @@
-use alloc::{collections::BTreeMap, vec::Vec};
-use std::collections::VecDeque;
+use alloc::{
+    collections::{BTreeMap, VecDeque},
+    vec::Vec,
+};
 
 use miden_crypto::hash::rpo::RpoDigest;
 
