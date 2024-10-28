@@ -46,8 +46,10 @@ impl MastNodeFingerprint {
 
     /// Creates a [`MastNodeFingerprint`] from a [`MastNode`].
     ///
+    /// # Panics
+    ///
     /// The `hash_by_node_id` map must contain all children of the node for efficient lookup of
-    /// their fingerprints.
+    /// their fingerprints. This function panics if a child of the given `node` is not in this map.
     pub fn from_mast_node(
         forest: &MastForest,
         hash_by_node_id: &BTreeMap<MastNodeId, MastNodeFingerprint>,
