@@ -49,7 +49,7 @@ winter-utils = { package = "winter-utils", version = "0.10", default-features = 
 [dev-dependencies]
 loom = "0.7"
 proptest = "1.5"
-rand_utils = { git = "https://github.com/facebook/winterfell", branch = "next", package = "winter-rand-utils" }
+rand-utils = { package = "winter-rand-utils", version = "0.10" }
 
 [target.'cfg(loom)'.dependencies]
 loom = "0.7"
