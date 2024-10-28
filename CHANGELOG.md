@@ -21,6 +21,7 @@
 - Migrated to `miden-crypto` v0.11.0 (#1343).
 - Implemented `MastForest` merging (#1534)
 - Rename `EqHash` to `MastNodeFingerprint` and make it `pub` (#1539)
+- Updated Winterfell dependency to v0.10 (#1533).
 
 #### Fixes
 
