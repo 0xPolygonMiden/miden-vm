@@ -20,6 +20,7 @@
 - Migrated to new padding rule for RPO (#1343).
 - Migrated to `miden-crypto` v0.11.0 (#1343).
 - Implemented `MastForest` merging (#1534)
+- Rename `EqHash` to `MastNodeFingerprint` and make it `pub` (#1539)
 
 #### Fixes
 
