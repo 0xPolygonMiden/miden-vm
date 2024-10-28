@@ -7,7 +7,7 @@ use miden_crypto::hash::{
 };
 
 use crate::{
-    mast::{DecoratorId, MastForest, MastNode, MastNodeId},
+    mast::{DecoratorId, MastForest, MastForestError, MastNode, MastNodeId},
     Operation,
 };
 
@@ -46,15 +46,14 @@ impl MastNodeFingerprint {
 
     /// Creates a [`MastNodeFingerprint`] from a [`MastNode`].
     ///
-    /// # Panics
-    ///
     /// The `hash_by_node_id` map must contain all children of the node for efficient lookup of
-    /// their fingerprints. This function panics if a child of the given `node` is not in this map.
+    /// their fingerprints. This function returns an error if a child of the given `node` is not in
+    /// this map.
     pub fn from_mast_node(
         forest: &MastForest,
         hash_by_node_id: &BTreeMap<MastNodeId, MastNodeFingerprint>,
         node: &MastNode,
-    ) -> MastNodeFingerprint {
+    ) -> Result<MastNodeFingerprint, MastForestError> {
         match node {
             MastNode::Block(node) => {
                 let mut bytes_to_hash = Vec::new();
@@ -85,10 +84,10 @@ impl MastNodeFingerprint {
                 }
 
                 if bytes_to_hash.is_empty() {
-                    MastNodeFingerprint::new(node.digest())
+                    Ok(MastNodeFingerprint::new(node.digest()))
                 } else {
                     let decorator_root = Blake3_256::hash(&bytes_to_hash);
-                    MastNodeFingerprint::with_decorator_root(node.digest(), decorator_root)
+                    Ok(MastNodeFingerprint::with_decorator_root(node.digest(), decorator_root))
                 }
             },
             MastNode::Join(node) => fingerprint_from_parts(
@@ -158,35 +157,42 @@ fn fingerprint_from_parts(
     after_exit_ids: &[DecoratorId],
     children_ids: &[MastNodeId],
     node_digest: RpoDigest,
-) -> MastNodeFingerprint {
+) -> Result<MastNodeFingerprint, MastForestError> {
     let pre_decorator_hash_bytes =
         before_enter_ids.iter().flat_map(|&id| forest[id].fingerprint().as_bytes());
     let post_decorator_hash_bytes =
         after_exit_ids.iter().flat_map(|&id| forest[id].fingerprint().as_bytes());
+
+    let children_decorator_roots = children_ids
+        .iter()
+        .filter_map(|child_id| {
+            hash_by_node_id
+                .get(child_id)
+                .ok_or(MastForestError::ChildFingerprintMissing(*child_id))
+                .map(|child_fingerprint| child_fingerprint.decorator_root)
+                .transpose()
+        })
+        .collect::<Result<Vec<DecoratorFingerprint>, MastForestError>>()?;
 
     // Reminder: the `MastNodeFingerprint`'s decorator root will be `None` if and only if there are
     // no decorators attached to the node, and all children have no decorator roots (meaning
     // that there are no decorators in all the descendants).
     if pre_decorator_hash_bytes.clone().next().is_none()
         && post_decorator_hash_bytes.clone().next().is_none()
-        && children_ids
-            .iter()
-            .filter_map(|child_id| hash_by_node_id[child_id].decorator_root)
-            .next()
-            .is_none()
+        && children_decorator_roots.is_empty()
     {
-        MastNodeFingerprint::new(node_digest)
+        Ok(MastNodeFingerprint::new(node_digest))
     } else {
-        let children_decorator_roots = children_ids
-            .iter()
-            .filter_map(|child_id| hash_by_node_id[child_id].decorator_root)
-            .flat_map(|decorator_root| decorator_root.as_bytes());
         let decorator_bytes_to_hash: Vec<u8> = pre_decorator_hash_bytes
             .chain(post_decorator_hash_bytes)
-            .chain(children_decorator_roots)
+            .chain(
+                children_decorator_roots
+                    .into_iter()
+                    .flat_map(|decorator_root| decorator_root.as_bytes()),
+            )
             .collect();
 
         let decorator_root = Blake3_256::hash(&decorator_bytes_to_hash);
-        MastNodeFingerprint::with_decorator_root(node_digest, decorator_root)
+        Ok(MastNodeFingerprint::with_decorator_root(node_digest, decorator_root))
     }
 }

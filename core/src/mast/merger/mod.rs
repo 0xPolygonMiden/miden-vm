@@ -186,6 +186,9 @@ impl MastForestMerger {
             &self.mast_forest,
             &self.hash_by_node_id,
             &remapped_node,
+        )
+        .expect(
+            "hash_by_node_id should contain the fingerprints of all children of `remapped_node`",
         );
 
         match self.lookup_node_by_fingerprint(&node_fingerprint) {

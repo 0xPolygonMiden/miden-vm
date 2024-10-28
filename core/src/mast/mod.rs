@@ -663,4 +663,6 @@ pub enum MastForestError {
     DecoratorIdOverflow(DecoratorId, usize),
     #[error("basic block cannot be created from an empty list of operations")]
     EmptyBasicBlock,
+    #[error("decorator root of child with node id {0} is missing but required for fingerprint computation")]
+    ChildFingerprintMissing(MastNodeId),
 }

@@ -450,6 +450,7 @@ impl MastForestBuilder {
 impl MastForestBuilder {
     fn fingerprint_for_node(&self, node: &MastNode) -> MastNodeFingerprint {
         MastNodeFingerprint::from_mast_node(&self.mast_forest, &self.hash_by_node_id, node)
+            .expect("hash_by_node_id should contain the fingerprints of all children of `node`")
     }
 }
 
