@@ -8,7 +8,7 @@ extern crate std;
 
 use core::marker::PhantomData;
 
-use air::{AuxRandElements, ProcessorAir, PublicInputs};
+use air::{AuxRandElements, PartitionOptions, ProcessorAir, PublicInputs};
 #[cfg(all(feature = "metal", target_arch = "aarch64", target_os = "macos"))]
 use miden_gpu::HashFn;
 use processor::{
@@ -211,8 +211,9 @@ where
         trace_info: &TraceInfo,
         main_trace: &ColMatrix<Felt>,
         domain: &StarkDomain<Felt>,
+        partition_options: PartitionOptions,
     ) -> (Self::TraceLde<E>, TracePolyTable<E>) {
-        DefaultTraceLde::new(trace_info, main_trace, domain)
+        DefaultTraceLde::new(trace_info, main_trace, domain, partition_options)
     }
 
     fn new_evaluator<'a, E: FieldElement<BaseField = Felt>>(

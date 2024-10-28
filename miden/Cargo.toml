@@ -90,5 +90,5 @@ num-bigint = "0.4"
 predicates = "3.0"
 test-utils = { package = "miden-test-utils", path = "../test-utils" }
 vm-core = { package = "miden-core", path = "../core", version = "0.10" }
-winter-fri = { package = "winter-fri", git = "https://github.com/facebook/winterfell", branch = "next" }
+winter-fri = { package = "winter-fri", version = "0.10" }
 rand_chacha = "0.3.1"
