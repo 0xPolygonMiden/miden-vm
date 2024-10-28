@@ -49,7 +49,7 @@ sha2 = "0.10"
 sha3 = "0.10"
 test-utils = { package = "miden-test-utils", path = "../test-utils" }
 winter-air = { package = "winter-air", version = "0.9" }
-winter-fri = { package = "winter-fri", version = "0.9" }
+winter-fri = { package = "winter-fri", version = "0.10" }
 
 
 [build-dependencies]

@@ -33,5 +33,5 @@ winter-prover = { package = "winter-prover", version = "0.9", default-features =
 assembly = { package = "miden-assembly", path = "../assembly", version = "0.10", default-features = false }
 logtest = { version = "2.0", default-features = false }
 test-utils = { package = "miden-test-utils", path = "../test-utils" }
-winter-fri = { package = "winter-fri", version = "0.9" }
+winter-fri = { package = "winter-fri", version = "0.10" }
 winter-utils = { package = "winter-utils", version = "0.9" }
