@@ -64,8 +64,8 @@ impl MastNodeFingerprint {
                     bytes_to_hash.extend(forest[decorator_id].fingerprint().as_bytes());
                 }
 
-                // Add any `Assert` or `U32assert2` opcodes present, since these are not included in
-                // the MAST root.
+                // Add any `Assert`, `U32assert2` and `MpVerify` opcodes present, since these are
+                // not included in the MAST root.
                 for (op_idx, op) in node.operations().enumerate() {
                     if let Operation::U32assert2(inner_value)
                     | Operation::Assert(inner_value)
