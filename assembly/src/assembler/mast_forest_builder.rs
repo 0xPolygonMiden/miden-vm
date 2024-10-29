@@ -5,8 +5,10 @@ use alloc::{
 use core::ops::{Index, IndexMut};
 
 use vm_core::{
-    crypto::hash::{Blake3Digest, RpoDigest},
-    mast::{DecoratorId, EqHash, MastForest, MastNode, MastNodeId},
+    crypto::hash::RpoDigest,
+    mast::{
+        DecoratorFingerprint, DecoratorId, MastForest, MastNode, MastNodeFingerprint, MastNodeId,
+    },
     Decorator, DecoratorList, Operation,
 };
 
@@ -46,13 +48,13 @@ pub struct MastForestBuilder {
     /// map, this map contains only the first inserted procedure for procedures with the same MAST
     /// root.
     proc_gid_by_mast_root: BTreeMap<RpoDigest, GlobalProcedureIndex>,
-    /// A map of MAST node eq hashes to their corresponding positions in the MAST forest.
-    node_id_by_hash: BTreeMap<EqHash, MastNodeId>,
-    /// The reverse mapping of `node_id_by_hash`. This map caches the eq hashes of all nodes (for
-    /// performance reasons).
-    hash_by_node_id: BTreeMap<MastNodeId, EqHash>,
-    /// A map of decorator hashes to their corresponding positions in the MAST forest.
-    decorator_id_by_hash: BTreeMap<Blake3Digest<32>, DecoratorId>,
+    /// A map of MAST node fingerprints to their corresponding positions in the MAST forest.
+    node_id_by_fingerprint: BTreeMap<MastNodeFingerprint, MastNodeId>,
+    /// The reverse mapping of `node_id_by_fingerprint`. This map caches the fingerprints of all
+    /// nodes (for performance reasons).
+    hash_by_node_id: BTreeMap<MastNodeId, MastNodeFingerprint>,
+    /// A map of decorator fingerprints to their corresponding positions in the MAST forest.
+    decorator_id_by_fingerprint: BTreeMap<DecoratorFingerprint, DecoratorId>,
     /// A set of IDs for basic blocks which have been merged into a bigger basic blocks. This is
     /// used as a candidate set of nodes that may be eliminated if the are not referenced by any
     /// other node in the forest and are not a root of any procedure.
@@ -339,14 +341,14 @@ impl MastForestBuilder {
 impl MastForestBuilder {
     /// Adds a decorator to the forest, and returns the [`Decorator`] associated with it.
     pub fn ensure_decorator(&mut self, decorator: Decorator) -> Result<DecoratorId, AssemblyError> {
-        let decorator_hash = decorator.eq_hash();
+        let decorator_hash = decorator.fingerprint();
 
-        if let Some(decorator_id) = self.decorator_id_by_hash.get(&decorator_hash) {
+        if let Some(decorator_id) = self.decorator_id_by_fingerprint.get(&decorator_hash) {
             // decorator already exists in the forest; return previously assigned id
             Ok(*decorator_id)
         } else {
             let new_decorator_id = self.mast_forest.add_decorator(decorator)?;
-            self.decorator_id_by_hash.insert(decorator_hash, new_decorator_id);
+            self.decorator_id_by_fingerprint.insert(decorator_hash, new_decorator_id);
 
             Ok(new_decorator_id)
         }
@@ -358,15 +360,15 @@ impl MastForestBuilder {
     /// MAST forest; two nodes that have the same MAST root and decorators will have the same
     /// [`MastNodeId`].
     pub fn ensure_node(&mut self, node: MastNode) -> Result<MastNodeId, AssemblyError> {
-        let node_hash = self.eq_hash_for_node(&node);
+        let node_fingerprint = self.fingerprint_for_node(&node);
 
-        if let Some(node_id) = self.node_id_by_hash.get(&node_hash) {
+        if let Some(node_id) = self.node_id_by_fingerprint.get(&node_fingerprint) {
             // node already exists in the forest; return previously assigned id
             Ok(*node_id)
         } else {
             let new_node_id = self.mast_forest.add_node(node)?;
-            self.node_id_by_hash.insert(node_hash, new_node_id);
-            self.hash_by_node_id.insert(new_node_id, node_hash);
+            self.node_id_by_fingerprint.insert(node_fingerprint, new_node_id);
+            self.hash_by_node_id.insert(new_node_id, node_fingerprint);
 
             Ok(new_node_id)
         }
@@ -433,21 +435,22 @@ impl MastForestBuilder {
     pub fn set_before_enter(&mut self, node_id: MastNodeId, decorator_ids: Vec<DecoratorId>) {
         self.mast_forest[node_id].set_before_enter(decorator_ids);
 
-        let new_node_hash = self.eq_hash_for_node(&self[node_id]);
-        self.hash_by_node_id.insert(node_id, new_node_hash);
+        let new_node_fingerprint = self.fingerprint_for_node(&self[node_id]);
+        self.hash_by_node_id.insert(node_id, new_node_fingerprint);
     }
 
     pub fn set_after_exit(&mut self, node_id: MastNodeId, decorator_ids: Vec<DecoratorId>) {
         self.mast_forest[node_id].set_after_exit(decorator_ids);
 
-        let new_node_hash = self.eq_hash_for_node(&self[node_id]);
-        self.hash_by_node_id.insert(node_id, new_node_hash);
+        let new_node_fingerprint = self.fingerprint_for_node(&self[node_id]);
+        self.hash_by_node_id.insert(node_id, new_node_fingerprint);
     }
 }
 
 impl MastForestBuilder {
-    fn eq_hash_for_node(&self, node: &MastNode) -> EqHash {
-        EqHash::from_mast_node(&self.mast_forest, &self.hash_by_node_id, node)
+    fn fingerprint_for_node(&self, node: &MastNode) -> MastNodeFingerprint {
+        MastNodeFingerprint::from_mast_node(&self.mast_forest, &self.hash_by_node_id, node)
+            .expect("hash_by_node_id should contain the fingerprints of all children of `node`")
     }
 }
 
