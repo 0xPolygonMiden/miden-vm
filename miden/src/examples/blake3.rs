@@ -41,11 +41,13 @@ fn generate_blake3_program(n: usize) -> Program {
     let program = format!(
         "
         use.std::crypto::hashes::blake3
+        use.std::sys
 
         begin
             repeat.{}
                 exec.blake3::hash_1to1
             end
+            exec.sys::truncate_stack
         end",
         n
     );
