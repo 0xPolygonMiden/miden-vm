@@ -17,7 +17,7 @@ use miden_air::{
     RowIndex,
 };
 use vm_core::{
-    Word, ONE, OPCODE_CALL, OPCODE_DYN, OPCODE_END, OPCODE_HPERM, OPCODE_JOIN, OPCODE_LOOP,
+    Kernel, Word, ONE, OPCODE_CALL, OPCODE_DYN, OPCODE_END, OPCODE_HPERM, OPCODE_JOIN, OPCODE_LOOP,
     OPCODE_MLOAD, OPCODE_MLOADW, OPCODE_MPVERIFY, OPCODE_MRUPDATE, OPCODE_MSTORE, OPCODE_MSTOREW,
     OPCODE_MSTREAM, OPCODE_PIPE, OPCODE_RCOMBBASE, OPCODE_RESPAN, OPCODE_SPAN, OPCODE_SPLIT,
     OPCODE_SYSCALL, OPCODE_U32AND, OPCODE_U32XOR, ZERO,
@@ -34,10 +34,18 @@ const NUM_HEADER_ALPHAS: usize = 4;
 // ================================================================================================
 
 /// Constructs the execution trace for chiplets-related auxiliary columns (used in multiset checks).
-#[derive(Default)]
-pub struct AuxTraceBuilder {}
+pub struct AuxTraceBuilder {
+    kernel: Kernel,
+}
 
 impl AuxTraceBuilder {
+    // CONSTRUCTORS
+    // --------------------------------------------------------------------------------------------
+
+    pub fn new(kernel: Kernel) -> Self {
+        Self { kernel }
+    }
+
     // COLUMN TRACE CONSTRUCTOR
     // --------------------------------------------------------------------------------------------
 
@@ -49,13 +57,13 @@ impl AuxTraceBuilder {
         main_trace: &MainTrace,
         rand_elements: &[E],
     ) -> Vec<Vec<E>> {
-        let v_table_col_builder = ChipletsVTableColBuilder::default();
+        let v_table_col_builder = ChipletsVTableColBuilder::new(self.kernel.clone());
         let bus_col_builder = BusColumnBuilder::default();
         let t_chip = v_table_col_builder.build_aux_column(main_trace, rand_elements);
         let b_chip = bus_col_builder.build_aux_column(main_trace, rand_elements);
 
+        debug_assert_eq!(*t_chip.last().unwrap(), E::ONE);
         // TODO: Fix and re-enable after testing with miden-base
-        // debug_assert_eq!(*t_chip.last().unwrap(), E::ONE);
         // debug_assert_eq!(*b_chip.last().unwrap(), E::ONE);
         vec![t_chip, b_chip]
     }
@@ -66,10 +74,30 @@ impl AuxTraceBuilder {
 
 /// Describes how to construct the execution trace of the chiplets virtual table auxiliary trace
 /// column.
-#[derive(Default)]
-pub struct ChipletsVTableColBuilder {}
+pub struct ChipletsVTableColBuilder {
+    kernel: Kernel,
+}
+
+impl ChipletsVTableColBuilder {
+    fn new(kernel: Kernel) -> Self {
+        Self { kernel }
+    }
+}
 
 impl<E: FieldElement<BaseField = Felt>> AuxColumnBuilder<E> for ChipletsVTableColBuilder {
+    fn init_requests(&self, _main_trace: &MainTrace, alphas: &[E]) -> E {
+        let mut requests = E::ONE;
+        for (addr, proc_hash) in self.kernel.proc_hashes().iter().enumerate() {
+            requests *= alphas[0]
+                + alphas[1].mul_base((addr as u32).into())
+                + alphas[2].mul_base(proc_hash[0])
+                + alphas[3].mul_base(proc_hash[1])
+                + alphas[4].mul_base(proc_hash[2])
+                + alphas[5].mul_base(proc_hash[3]);
+        }
+        requests
+    }
+
     fn get_requests_at(&self, main_trace: &MainTrace, alphas: &[E], row: RowIndex) -> E {
         chiplets_vtable_remove_sibling(main_trace, alphas, row)
     }
@@ -205,21 +233,32 @@ where
 {
     if main_trace.is_kernel_row(row) {
         let addr = main_trace.chiplet_kernel_addr(row);
-        let addr_nxt = main_trace.chiplet_kernel_addr(row + 1);
-        let addr_delta = addr_nxt - addr;
-        let root0 = main_trace.chiplet_kernel_root_0(row);
-        let root1 = main_trace.chiplet_kernel_root_1(row);
-        let root2 = main_trace.chiplet_kernel_root_2(row);
-        let root3 = main_trace.chiplet_kernel_root_3(row);
+        let addr_delta = {
+            let addr_nxt = main_trace.chiplet_kernel_addr(row + 1);
+            addr_nxt - addr
+        };
+        let next_row_is_kernel = main_trace.is_kernel_row(row + 1);
 
-        let v = alphas[0]
-            + alphas[1].mul_base(addr)
-            + alphas[2].mul_base(root0)
-            + alphas[3].mul_base(root1)
-            + alphas[4].mul_base(root2)
-            + alphas[5].mul_base(root3);
+        // We want to add an entry to the table in 2 cases:
+        // 1. when the next row is a kernel row and the address changes
+        //    - this adds the last row of all rows that share the same address
+        // 2. when the next row is not a kernel row
+        //    - this is the edge case of (1)
+        if !next_row_is_kernel || addr_delta == ONE {
+            let root0 = main_trace.chiplet_kernel_root_0(row);
+            let root1 = main_trace.chiplet_kernel_root_1(row);
+            let root2 = main_trace.chiplet_kernel_root_2(row);
+            let root3 = main_trace.chiplet_kernel_root_3(row);
 
-        v.mul_base(addr_delta) + E::from(ONE - addr_delta)
+            alphas[0]
+                + alphas[1].mul_base(addr)
+                + alphas[2].mul_base(root0)
+                + alphas[3].mul_base(root1)
+                + alphas[4].mul_base(root2)
+                + alphas[5].mul_base(root3)
+        } else {
+            E::ONE
+        }
     } else {
         E::ONE
     }

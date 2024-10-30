@@ -232,7 +232,7 @@ pub trait AuxColumnBuilder<E: FieldElement<BaseField = Felt>> {
         responses_prod[0] = self.init_responses(main_trace, alphas);
         requests[0] = self.init_requests(main_trace, alphas);
 
-        let mut requests_running_prod = E::ONE;
+        let mut requests_running_prod = requests[0];
         for row_idx in 0..main_trace.num_rows() - 1 {
             let row = row_idx.into();
             responses_prod[row_idx + 1] =

@@ -393,6 +393,8 @@ impl Chiplets {
         // make sure that only padding rows will be overwritten by random values
         assert!(self.trace_len() + num_rand_rows <= trace_len, "target trace length too small");
 
+        let kernel = self.kernel().clone();
+
         // Allocate columns for the trace of the chiplets.
         let mut trace = (0..CHIPLETS_WIDTH)
             .map(|_| vec![Felt::ZERO; trace_len])
@@ -403,7 +405,7 @@ impl Chiplets {
 
         ChipletsTrace {
             trace,
-            aux_builder: AuxTraceBuilder::default(),
+            aux_builder: AuxTraceBuilder::new(kernel),
         }
     }
 
