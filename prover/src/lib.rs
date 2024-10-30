@@ -225,6 +225,7 @@ where
         DefaultConstraintEvaluator::new(air, aux_rand_elements, composition_coefficients)
     }
 
+    #[instrument(skip_all)]
     fn build_aux_trace<E>(
         &self,
         trace: &Self::Trace,
