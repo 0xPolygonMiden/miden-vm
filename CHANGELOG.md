@@ -26,7 +26,7 @@
 
 - Fixed an issue with formatting of blocks in Miden Assembly syntax
 - Fixed the construction of the block hash table (#1506)
-- Fixed a bug in the block stack table (#1511) (#1512)
+- Fixed a bug in the block stack table (#1511) (#1512) (#1557)
 - Fixed the construction of the chiplets virtual table (#1514) (#1556)
 - Fixed the construction of the chiplets bus (#1516) (#1525)
 - Decorators are now allowed in empty basic blocks (#1466)
