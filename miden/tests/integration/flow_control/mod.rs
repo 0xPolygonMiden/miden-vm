@@ -223,6 +223,38 @@ fn simple_syscall() {
     test.prove_and_verify(vec![1, 2], false);
 }
 
+#[test]
+fn simple_syscall_2() {
+    let kernel_source = "
+        export.foo
+            add
+        end
+        export.bar
+            mul
+        end
+    ";
+
+    // Note: we call each twice to ensure that the multiset check handles it correctly
+    let program_source = "
+        begin
+            syscall.foo
+            syscall.foo
+            syscall.bar
+            syscall.bar
+        end";
+
+    // TODO: update and use macro?
+    let mut test = Test::new(&format!("test{}", line!()), program_source, false);
+    test.stack_inputs = StackInputs::try_from_ints([2, 2, 3, 2, 1]).unwrap();
+    test.kernel_source = Some(
+        test.source_manager
+            .load(&format!("kernel{}", line!()), kernel_source.to_string()),
+    );
+    test.expect_stack(&[24]);
+
+    test.prove_and_verify(vec![2, 2, 3, 2, 1], false);
+}
+
 // DYNAMIC CODE EXECUTION
 // ================================================================================================
 
