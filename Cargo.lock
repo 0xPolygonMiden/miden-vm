@@ -1052,8 +1052,9 @@ dependencies = [
 
 [[package]]
 name = "miden-crypto"
-version = "0.11.0"
-source = "git+https://github.com/0xPolygonMiden/crypto?branch=next#0d75e3593b25ea03a0fd7cafd28bb8ac8c2750ff"
+version = "0.12.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f50a68deed96cde1f51eb623f75828e320f699e0d798f11592f8958ba8b512c3"
 dependencies = [
  "blake3",
  "cc",
