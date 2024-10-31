@@ -21,10 +21,8 @@ impl<E: FieldElement<BaseField = Felt>> AuxColumnBuilder<E> for BlockStackColumn
         let op_code = op_code_felt.as_int() as u8;
 
         match op_code {
-            OPCODE_RESPAN => {
-                get_block_stack_table_removal_multiplicand(main_trace, i, true, alphas)
-            },
-            OPCODE_END => get_block_stack_table_removal_multiplicand(main_trace, i, false, alphas),
+            OPCODE_RESPAN => get_block_stack_table_respan_multiplicand(main_trace, i, alphas),
+            OPCODE_END => get_block_stack_table_end_multiplicand(main_trace, i, alphas),
             _ => E::ONE,
         }
     }
@@ -47,19 +45,37 @@ impl<E: FieldElement<BaseField = Felt>> AuxColumnBuilder<E> for BlockStackColumn
 // HELPER FUNCTIONS
 // ================================================================================================
 
-/// Computes the multiplicand representing the removal of a row from the block stack table.
-fn get_block_stack_table_removal_multiplicand<E: FieldElement<BaseField = Felt>>(
+/// Computes the multiplicand representing the removal of a row from the block stack table when
+/// encountering a RESPAN operation.
+fn get_block_stack_table_respan_multiplicand<E: FieldElement<BaseField = Felt>>(
     main_trace: &MainTrace,
     i: RowIndex,
-    is_respan: bool,
     alphas: &[E],
 ) -> E {
     let block_id = main_trace.addr(i);
-    let (parent_id, is_loop) = if is_respan {
-        (main_trace.decoder_hasher_state_element(1, i + 1), ZERO)
-    } else {
-        (main_trace.addr(i + 1), main_trace.is_loop_flag(i))
-    };
+    let parent_id = main_trace.decoder_hasher_state_element(1, i + 1);
+    let is_loop = ZERO;
+
+    // Note: the last 8 elements are set to ZERO, so we omit them here.
+    let elements = [ONE, block_id, parent_id, is_loop];
+
+    let mut table_row = E::ZERO;
+    for (&alpha, &element) in alphas.iter().zip(elements.iter()) {
+        table_row += alpha.mul_base(element);
+    }
+    table_row
+}
+
+/// Computes the multiplicand representing the removal of a row from the block stack table when
+/// encountering an END operation.
+fn get_block_stack_table_end_multiplicand<E: FieldElement<BaseField = Felt>>(
+    main_trace: &MainTrace,
+    i: RowIndex,
+    alphas: &[E],
+) -> E {
+    let block_id = main_trace.addr(i);
+    let parent_id = main_trace.addr(i + 1);
+    let is_loop = main_trace.is_loop_flag(i);
 
     let elements = if main_trace.is_call_flag(i) == ONE || main_trace.is_syscall_flag(i) == ONE {
         let parent_ctx = main_trace.ctx(i + 1);
@@ -91,12 +107,11 @@ fn get_block_stack_table_removal_multiplicand<E: FieldElement<BaseField = Felt>>
         result
     };
 
-    let mut value = E::ZERO;
-
+    let mut table_row = E::ZERO;
     for (&alpha, &element) in alphas.iter().zip(elements.iter()) {
-        value += alpha.mul_base(element);
+        table_row += alpha.mul_base(element);
     }
-    value
+    table_row
 }
 
 /// Computes the multiplicand representing the inclusion of a new row to the block stack table.
