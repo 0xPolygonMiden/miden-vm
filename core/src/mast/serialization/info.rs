@@ -42,6 +42,10 @@ impl MastNodeInfo {
         Self { ty, digest: mast_node.digest() }
     }
 
+    /// Attempts to convert this [`MastNodeInfo`] into a [`MastNode`] for the given `mast_forest`.
+    ///
+    /// The `node_count` is the total expected number of nodes in the [`MastForest`] **after
+    /// deserialization**.
     pub fn try_into_mast_node(
         self,
         mast_forest: &MastForest,

@@ -525,15 +525,7 @@ impl MastNodeId {
         value: u32,
         mast_forest: &MastForest,
     ) -> Result<Self, DeserializationError> {
-        if (value as usize) < mast_forest.nodes.len() {
-            Ok(Self(value))
-        } else {
-            Err(DeserializationError::InvalidValue(format!(
-                "Invalid deserialized MAST node ID '{}', but only {} nodes in the forest",
-                value,
-                mast_forest.nodes.len(),
-            )))
-        }
+        Self::from_u32_with_node_count(value, mast_forest.nodes.len())
     }
 
     /// Returns a new [`MastNodeId`] from the given `value` without checking its validity.
@@ -542,7 +534,8 @@ impl MastNodeId {
     }
 
     /// Returns a new [`MastNodeId`] with the provided `id`, or an error if `id` is greater or equal
-    /// to `node_count`.
+    /// to `node_count`. The `node_count` is the total number of nodes in the [`MastForest`] for
+    /// which this ID is being constructed.
     ///
     /// This function can be used when deserializing an id whose corresponding node is not yet in
     /// the forest and [`Self::from_u32_safe`] would fail. For instance, when deserializing the ids
