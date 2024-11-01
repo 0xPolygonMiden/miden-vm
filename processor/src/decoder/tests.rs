@@ -1282,8 +1282,21 @@ fn syscall_block() {
 // ================================================================================================
 #[test]
 fn dyn_block() {
-    // build a dynamic block which looks like this:
-    // push.1 add
+    // Equivalent masm:
+    //
+    // proc.foo
+    //   push.1 add
+    // end
+    //
+    // begin
+    //   # stack: [42, DIGEST]
+    //   mstorew
+    //   push.42
+    //   dynexec
+    // end
+
+    const FOO_ROOT_NODE_ADDR: u64 = 42;
+    const PUSH_42_OP: Operation = Operation::Push(Felt::new(FOO_ROOT_NODE_ADDR));
 
     let mut mast_forest = MastForest::new();
 
@@ -1292,13 +1305,13 @@ fn dyn_block() {
     let foo_root_node_id = mast_forest.add_node(foo_root_node.clone()).unwrap();
     mast_forest.make_root(foo_root_node_id);
 
-    let mul_bb_node = MastNode::new_basic_block(vec![Operation::Mul], None).unwrap();
-    let mul_bb_node_id = mast_forest.add_node(mul_bb_node.clone()).unwrap();
+    let mstorew_node = MastNode::new_basic_block(vec![Operation::MStoreW], None).unwrap();
+    let mstorew_node_id = mast_forest.add_node(mstorew_node.clone()).unwrap();
 
-    let save_bb_node = MastNode::new_basic_block(vec![Operation::MovDn4], None).unwrap();
-    let save_bb_node_id = mast_forest.add_node(save_bb_node.clone()).unwrap();
+    let push_node = MastNode::new_basic_block(vec![PUSH_42_OP], None).unwrap();
+    let push_node_id = mast_forest.add_node(push_node.clone()).unwrap();
 
-    let join_node = MastNode::new_join(mul_bb_node_id, save_bb_node_id, &mast_forest).unwrap();
+    let join_node = MastNode::new_join(mstorew_node_id, push_node_id, &mast_forest).unwrap();
     let join_node_id = mast_forest.add_node(join_node.clone()).unwrap();
 
     // This dyn will point to foo.
@@ -1317,8 +1330,7 @@ fn dyn_block() {
             foo_root_node.digest()[1].as_int(),
             foo_root_node.digest()[2].as_int(),
             foo_root_node.digest()[3].as_int(),
-            2,
-            4,
+            FOO_ROOT_NODE_ADDR,
         ],
         &program,
     );
@@ -1329,30 +1341,31 @@ fn dyn_block() {
     let join_addr = INIT_ADDR + EIGHT;
     check_op_decoding(&trace, 1, INIT_ADDR, Operation::Join, 0, 0, 0);
     // starting first span
-    let mul_basic_block_addr = join_addr + EIGHT;
+    let mstorew_basic_block_addr = join_addr + EIGHT;
     check_op_decoding(&trace, 2, join_addr, Operation::Span, 1, 0, 0);
-    check_op_decoding(&trace, 3, mul_basic_block_addr, Operation::Mul, 0, 0, 1);
-    check_op_decoding(&trace, 4, mul_basic_block_addr, Operation::End, 0, 0, 0);
+    check_op_decoding(&trace, 3, mstorew_basic_block_addr, Operation::MStoreW, 0, 0, 1);
+    check_op_decoding(&trace, 4, mstorew_basic_block_addr, Operation::End, 0, 0, 0);
     // starting second span
-    let save_basic_block_addr = mul_basic_block_addr + EIGHT;
-    check_op_decoding(&trace, 5, join_addr, Operation::Span, 1, 0, 0);
-    check_op_decoding(&trace, 6, save_basic_block_addr, Operation::MovDn4, 0, 0, 1);
-    check_op_decoding(&trace, 7, save_basic_block_addr, Operation::End, 0, 0, 0);
+    let push_basic_block_addr = mstorew_basic_block_addr + EIGHT;
+    check_op_decoding(&trace, 5, join_addr, Operation::Span, 2, 0, 0);
+    check_op_decoding(&trace, 6, push_basic_block_addr, PUSH_42_OP, 1, 0, 1);
+    check_op_decoding(&trace, 7, push_basic_block_addr, Operation::Noop, 0, 1, 1);
+    check_op_decoding(&trace, 8, push_basic_block_addr, Operation::End, 0, 0, 0);
     // end inner join
-    check_op_decoding(&trace, 8, join_addr, Operation::End, 0, 0, 0);
+    check_op_decoding(&trace, 9, join_addr, Operation::End, 0, 0, 0);
     // dyn
-    check_op_decoding(&trace, 9, INIT_ADDR, Operation::Dyn, 0, 0, 0);
+    check_op_decoding(&trace, 10, INIT_ADDR, Operation::Dyn, 0, 0, 0);
     // starting foo span
-    let dyn_addr = save_basic_block_addr + EIGHT;
+    let dyn_addr = push_basic_block_addr + EIGHT;
     let add_basic_block_addr = dyn_addr + EIGHT;
-    check_op_decoding(&trace, 10, dyn_addr, Operation::Span, 2, 0, 0);
-    check_op_decoding(&trace, 11, add_basic_block_addr, Operation::Push(ONE), 1, 0, 1);
-    check_op_decoding(&trace, 12, add_basic_block_addr, Operation::Add, 0, 1, 1);
-    check_op_decoding(&trace, 13, add_basic_block_addr, Operation::End, 0, 0, 0);
+    check_op_decoding(&trace, 11, dyn_addr, Operation::Span, 2, 0, 0);
+    check_op_decoding(&trace, 12, add_basic_block_addr, Operation::Push(ONE), 1, 0, 1);
+    check_op_decoding(&trace, 13, add_basic_block_addr, Operation::Add, 0, 1, 1);
+    check_op_decoding(&trace, 14, add_basic_block_addr, Operation::End, 0, 0, 0);
     // end dyn
-    check_op_decoding(&trace, 14, dyn_addr, Operation::End, 0, 0, 0);
+    check_op_decoding(&trace, 15, dyn_addr, Operation::End, 0, 0, 0);
     // end outer join
-    check_op_decoding(&trace, 15, INIT_ADDR, Operation::End, 0, 0, 0);
+    check_op_decoding(&trace, 16, INIT_ADDR, Operation::End, 0, 0, 0);
 
     // --- check hasher state columns -------------------------------------------------------------
 
@@ -1363,8 +1376,8 @@ fn dyn_block() {
     assert_eq!(dyn_hash, get_hasher_state2(&trace, 0));
 
     // in the second row, the hasher set is set to hashes of both child nodes of the inner JOIN
-    let mul_bb_node_hash: Word = mul_bb_node.digest().into();
-    let save_bb_node_hash: Word = save_bb_node.digest().into();
+    let mul_bb_node_hash: Word = mstorew_node.digest().into();
+    let save_bb_node_hash: Word = push_node.digest().into();
     assert_eq!(mul_bb_node_hash, get_hasher_state1(&trace, 1));
     assert_eq!(save_bb_node_hash, get_hasher_state2(&trace, 1));
 
@@ -1373,32 +1386,31 @@ fn dyn_block() {
     assert_eq!([ZERO, ZERO, ZERO, ZERO], get_hasher_state2(&trace, 4));
 
     // at the end of the second SPAN, the hasher state is set to the hash of the second child
-    assert_eq!(save_bb_node_hash, get_hasher_state1(&trace, 7));
-    assert_eq!([ZERO, ZERO, ZERO, ZERO], get_hasher_state2(&trace, 7));
-
-    // at the end of the inner JOIN, the hasher set is set to the hash of the JOIN
-    assert_eq!(join_hash, get_hasher_state1(&trace, 8));
+    assert_eq!(save_bb_node_hash, get_hasher_state1(&trace, 8));
     assert_eq!([ZERO, ZERO, ZERO, ZERO], get_hasher_state2(&trace, 8));
 
-    // at the start of the DYN block, the hasher state is set to ZERO
-    let foo_hash: Word = foo_root_node.digest().into();
-    assert_eq!([ZERO, ZERO, ZERO, ZERO], get_hasher_state1(&trace, 9));
+    // at the end of the inner JOIN, the hasher set is set to the hash of the JOIN
+    assert_eq!(join_hash, get_hasher_state1(&trace, 9));
     assert_eq!([ZERO, ZERO, ZERO, ZERO], get_hasher_state2(&trace, 9));
 
+    // at the start of the DYN block, the hasher state is set to foo digest
+    let foo_hash: Word = foo_root_node.digest().into();
+    assert_eq!(foo_hash, get_hasher_state1(&trace, 10));
+
     // at the end of the DYN SPAN, the hasher state is set to the hash of the foo span
-    assert_eq!(foo_hash, get_hasher_state1(&trace, 13));
-    assert_eq!([ZERO, ZERO, ZERO, ZERO], get_hasher_state2(&trace, 13));
+    assert_eq!(foo_hash, get_hasher_state1(&trace, 14));
+    assert_eq!([ZERO, ZERO, ZERO, ZERO], get_hasher_state2(&trace, 14));
 
     // at the end of the DYN block, the hasher state is set to the hash of the DYN node
-    assert_eq!(dyn_hash, get_hasher_state1(&trace, 14));
+    assert_eq!(dyn_hash, get_hasher_state1(&trace, 15));
 
     // at the end of the program, the hasher state is set to the hash of the entire program
     let program_hash: Word = program_root_node.digest().into();
-    assert_eq!(program_hash, get_hasher_state1(&trace, 15));
-    assert_eq!([ZERO, ZERO, ZERO, ZERO], get_hasher_state2(&trace, 15));
+    assert_eq!(program_hash, get_hasher_state1(&trace, 16));
+    assert_eq!([ZERO, ZERO, ZERO, ZERO], get_hasher_state2(&trace, 16));
 
     // the HALT opcode and program hash get propagated to the last row
-    for i in 16..trace_len {
+    for i in 17..trace_len {
         assert!(contains_op(&trace, i, Operation::Halt));
         assert_eq!(ZERO, trace[OP_BITS_EXTRA_COLS_RANGE.start][i]);
         assert_eq!(ONE, trace[OP_BITS_EXTRA_COLS_RANGE.start + 1][i]);

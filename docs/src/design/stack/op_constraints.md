@@ -191,7 +191,7 @@ This group contains operations which require constraints with degree up to $3$. 
 | `RCOMBBASE`  | $89$         | `101_1001`      | [Crypto ops](./crypto_ops.md)          | $5$         |
 | `EMIT`       | $90$         | `101_1010`      | [System ops](./system_ops.md)          | $5$         |
 | `PUSH`       | $91$         | `101_1011`      | [I/O ops](./io_ops.md)                 | $5$         |
-| `<unused>`   | $92$         | `101_1100`      |                                        | $5$         |
+| `DYNCALL`    | $92$         | `101_1100`      | [Flow control ops](../decoder/main.md) | $5$         |
 | `<unused>`   | $93$         | `101_1101`      |                                        | $5$         |
 | `<unused>`   | $94$         | `101_1110`      |                                        | $5$         |
 | `<unused>`   | $95$         | `101_1111`      |                                        | $5$         |
