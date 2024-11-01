@@ -255,7 +255,11 @@
 <p>When a procedure is invoked via a <code>call</code>, <code>dyncall</code>, or a <code>syscall</code> instruction, the following happens:</p>
 <ul>
 <li>Execution moves into a different context. In case of the <code>call</code> and <code>dyncall</code> instructions, a new user context is created. In case of a <code>syscall</code> instruction, the execution moves back into the root context.</li>
-<li>All stack items beyond the 16th item get "hidden" from the invoked procedure. That is, from the standpoint of the invoked procedure, the initial stack depth is set to 16.</li>
+<li>All stack items beyond the 16th item get "hidden" from the invoked procedure. That is, from the standpoint of the invoked procedure, the initial stack depth is set to 16.
+<ul>
+<li>Note that for <code>dyncall</code>, the stack is shifted left by one element before being set to 16.</li>
+</ul>
+</li>
 </ul>
 <p>When the callee returns, the following happens:</p>
 <ul>
@@ -264,8 +268,12 @@
 </ul>
 <p>The manipulations of the stack depth described above have the following implications:</p>
 <ul>
-<li>The top 16 elements of the stack can be used to pass parameters and return values between the caller and the callee. NOTE: Except for <code>dyncall</code>, as that instruction requires the first 4 elements to be the hash of the callee procedure, so only 12 elements are available in that case.</li>
-<li>Caller's stack beyond the top 16 elements is inaccessible to the callee, and thus, is guaranteed not to change as the result of the call.</li>
+<li>The top 16 elements of the stack can be used to pass parameters and return values between the caller and the callee.</li>
+<li>Caller's stack beyond the top 16 elements is inaccessible to the callee, and thus, is guaranteed not to change as the result of the call.
+<ul>
+<li>As mentioned above, in the case of <code>dyncall</code>, the elements at indices 1 to 17 at the call site will be accessible to the callee (shifted to indices 0 to 16)</li>
+</ul>
+</li>
 <li>At the end of its execution, the callee must ensure that stack depth is exactly 16. If this is difficult to ensure manually, the <a href="../stdlib/sys.html"><code>truncate_stack</code></a> procedure can be used to drop all elements from the stack except for the top 16.</li>
 </ul>
 <h4 id="invoking-via-exec-instruction"><a class="header" href="#invoking-via-exec-instruction">Invoking via <code>exec</code> instruction</a></h4>
@@ -275,7 +283,7 @@
 <p>A <em>kernel</em> defines a set of procedures which can be invoked from user contexts to be executed in the root context. Miden assembly programs are always compiled against some kernel. The default kernel is empty - i.e., it does not contain any procedures. To compile a program against a non-empty kernel, the kernel needs to be specified when instantiating the <a href="https://crates.io/crates/miden-assembly">Miden Assembler</a>.</p>
 <p>A kernel can be defined similarly to a regular <a href="./code_organization.html#library-modules">library module</a> - i.e., it can have internal and exported procedures. However, there are some small differences between what procedures can do in a kernel module vs. what they can do in a regular library module. Specifically:</p>
 <ul>
-<li>Procedures in a kernel module cannot use <code>call</code> or <code>syscall</code> instructions. This means that creating a new context from within a <code>syscall</code> is not possible.</li>
+<li>Procedures in a kernel module cannot use <code>call</code>, <code>dyncall</code> or <code>syscall</code> instructions. This means that creating a new context from within a <code>syscall</code> is not possible.</li>
 <li>Unlike procedures in regular library modules, procedures in a kernel module can use the <code>caller</code> instruction. This instruction puts the hash of the procedure which initiated the parent context onto the stack.</li>
 </ul>
 <h3 id="memory-layout"><a class="header" href="#memory-layout">Memory layout</a></h3>
