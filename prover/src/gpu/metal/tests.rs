@@ -69,8 +69,6 @@ fn rpo_build_constraint_commitment_on_gpu_without_padding_matches_cpu() {
     >(HashFn::Rpo256);
 }
 
-/*
-
 #[test]
 fn rpx_build_constraint_commitment_on_gpu_without_padding_matches_cpu() {
     build_constraint_commitment_on_gpu_without_padding_matches_cpu::<
@@ -79,8 +77,6 @@ fn rpx_build_constraint_commitment_on_gpu_without_padding_matches_cpu() {
         RpxDigest,
     >(HashFn::Rpx256);
 }
-
-*/
 
 // TEST FUNCTIONS
 // ================================================================================================
