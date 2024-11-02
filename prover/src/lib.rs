@@ -226,14 +226,11 @@ where
     }
 
     #[instrument(skip_all)]
-    fn build_aux_trace<E>(
+    fn build_aux_trace<E: FieldElement<BaseField = Self::BaseField>>(
         &self,
         trace: &Self::Trace,
         aux_rand_elements: &AuxRandElements<E>,
-    ) -> ColMatrix<E>
-    where
-        E: FieldElement<BaseField = Self::BaseField>,
-    {
+    ) -> ColMatrix<E> {
         trace.build_aux_trace(aux_rand_elements.rand_elements()).unwrap()
     }
 }
