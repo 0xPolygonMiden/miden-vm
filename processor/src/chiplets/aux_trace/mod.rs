@@ -17,10 +17,10 @@ use miden_air::{
     RowIndex,
 };
 use vm_core::{
-    Kernel, Word, ONE, OPCODE_CALL, OPCODE_DYN, OPCODE_END, OPCODE_HPERM, OPCODE_JOIN, OPCODE_LOOP,
-    OPCODE_MLOAD, OPCODE_MLOADW, OPCODE_MPVERIFY, OPCODE_MRUPDATE, OPCODE_MSTORE, OPCODE_MSTOREW,
-    OPCODE_MSTREAM, OPCODE_PIPE, OPCODE_RCOMBBASE, OPCODE_RESPAN, OPCODE_SPAN, OPCODE_SPLIT,
-    OPCODE_SYSCALL, OPCODE_U32AND, OPCODE_U32XOR, ZERO,
+    Kernel, Word, ONE, OPCODE_CALL, OPCODE_DYN, OPCODE_DYNCALL, OPCODE_END, OPCODE_HPERM,
+    OPCODE_JOIN, OPCODE_LOOP, OPCODE_MLOAD, OPCODE_MLOADW, OPCODE_MPVERIFY, OPCODE_MRUPDATE,
+    OPCODE_MSTORE, OPCODE_MSTOREW, OPCODE_MSTREAM, OPCODE_PIPE, OPCODE_RCOMBBASE, OPCODE_RESPAN,
+    OPCODE_SPAN, OPCODE_SPLIT, OPCODE_SYSCALL, OPCODE_U32AND, OPCODE_U32XOR, ZERO,
 };
 
 use super::{super::trace::AuxColumnBuilder, Felt, FieldElement};
@@ -281,8 +281,15 @@ impl<E: FieldElement<BaseField = Felt>> AuxColumnBuilder<E> for BusColumnBuilder
         let op_code = op_code_felt.as_int() as u8;
 
         match op_code {
-            OPCODE_JOIN | OPCODE_SPLIT | OPCODE_LOOP | OPCODE_DYN | OPCODE_CALL => {
-                build_control_block_request(main_trace, op_code_felt, alphas, row)
+            OPCODE_JOIN | OPCODE_SPLIT | OPCODE_LOOP | OPCODE_CALL => build_control_block_request(
+                main_trace,
+                main_trace.decoder_hasher_state(row),
+                op_code_felt,
+                alphas,
+                row,
+            ),
+            OPCODE_DYN | OPCODE_DYNCALL => {
+                build_dyn_block_request(main_trace, op_code_felt, alphas, row)
             },
             OPCODE_SYSCALL => build_syscall_block_request(main_trace, op_code_felt, alphas, row),
             OPCODE_SPAN => build_span_block_request(main_trace, alphas, row),
@@ -329,6 +336,7 @@ impl<E: FieldElement<BaseField = Felt>> AuxColumnBuilder<E> for BusColumnBuilder
 /// Builds requests made to the hasher chiplet at the start of a control block.
 fn build_control_block_request<E: FieldElement<BaseField = Felt>>(
     main_trace: &MainTrace,
+    decoder_hasher_state: [Felt; 8],
     op_code_felt: Felt,
     alphas: &[E],
     row: RowIndex,
@@ -340,9 +348,27 @@ fn build_control_block_request<E: FieldElement<BaseField = Felt>>(
     let header =
         alphas[0] + alphas[1].mul_base(Felt::from(transition_label)) + alphas[2].mul_base(addr_nxt);
 
-    let state = main_trace.decoder_hasher_state(row);
+    header + build_value(&alphas[8..16], &decoder_hasher_state) + alphas[5].mul_base(op_code_felt)
+}
 
-    header + build_value(&alphas[8..16], &state) + alphas[5].mul_base(op_code_felt)
+/// Builds requests made on a `DYN` or `DYNCALL` operation.
+fn build_dyn_block_request<E: FieldElement<BaseField = Felt>>(
+    main_trace: &MainTrace,
+    op_code_felt: Felt,
+    alphas: &[E],
+    row: RowIndex,
+) -> E {
+    let control_block_req =
+        build_control_block_request(main_trace, [ZERO; 8], op_code_felt, alphas, row);
+
+    let memory_req = {
+        let mem_addr = main_trace.stack_element(0, row);
+        let mem_value = main_trace.decoder_hasher_state_first_half(row);
+
+        compute_memory_request(main_trace, MEMORY_READ_LABEL, alphas, row, mem_addr, mem_value)
+    };
+
+    control_block_req * memory_req
 }
 
 /// Builds requests made to kernel ROM chiplet when initializing a syscall block.
@@ -352,7 +378,13 @@ fn build_syscall_block_request<E: FieldElement<BaseField = Felt>>(
     alphas: &[E],
     row: RowIndex,
 ) -> E {
-    let factor1 = build_control_block_request(main_trace, op_code_felt, alphas, row);
+    let factor1 = build_control_block_request(
+        main_trace,
+        main_trace.decoder_hasher_state(row),
+        op_code_felt,
+        alphas,
+        row,
+    );
 
     let op_label = KERNEL_PROC_LABEL;
     let state = main_trace.decoder_hasher_state(row);

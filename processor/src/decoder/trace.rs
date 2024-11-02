@@ -85,16 +85,18 @@ impl DecoderTrace {
     // --------------------------------------------------------------------------------------------
 
     /// Appends a trace row marking the start of a flow control block (JOIN, SPLIT, LOOP, CALL,
-    /// SYSCALL).
+    /// SYSCALL, DYN, DYNCALL).
     ///
     /// When a control block is starting, we do the following:
     /// - Set the address to the address of the parent block. This is not necessarily equal to the
     ///   address from the previous row because in a SPLIT block, the second child follows the first
     ///   child, rather than the parent.
-    /// - Set op_bits to opcode of the specified block (e.g., JOIN, SPLIT, LOOP, CALL, SYSCALL).
+    /// - Set op_bits to opcode of the specified block (e.g., JOIN, SPLIT, LOOP, CALL, SYSCALL, DYN,
+    ///   DYNCALL).
     /// - Set the first half of the hasher state to the h1 parameter. For JOIN and SPLIT blocks this
     ///   will contain the hash of the left child; for LOOP block this will contain hash of the
-    ///   loop's body, for CALL and SYSCALL block this will contain hash of the called function.
+    ///   loop's body, for CALL, SYSCALL, DYN and DYNCALL blocks this will contain hash of the
+    ///   called function.
     /// - Set the second half of the hasher state to the h2 parameter. For JOIN and SPLIT blocks
     ///   this will contain hash of the right child.
     /// - Set is_span to ZERO.

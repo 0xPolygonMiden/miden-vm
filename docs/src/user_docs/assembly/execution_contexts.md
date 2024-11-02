@@ -18,6 +18,7 @@ When a procedure is invoked via a `call`, `dyncall`, or a `syscall` instruction,
 
 - Execution moves into a different context. In case of the `call` and `dyncall` instructions, a new user context is created. In case of a `syscall` instruction, the execution moves back into the root context.
 - All stack items beyond the 16th item get "hidden" from the invoked procedure. That is, from the standpoint of the invoked procedure, the initial stack depth is set to 16.
+    - Note that for `dyncall`, the stack is shifted left by one element before being set to 16.
 
 When the callee returns, the following happens:
 
@@ -26,8 +27,9 @@ When the callee returns, the following happens:
 
 The manipulations of the stack depth described above have the following implications:
 
-- The top 16 elements of the stack can be used to pass parameters and return values between the caller and the callee. NOTE: Except for `dyncall`, as that instruction requires the first 4 elements to be the hash of the callee procedure, so only 12 elements are available in that case.
+- The top 16 elements of the stack can be used to pass parameters and return values between the caller and the callee.
 - Caller's stack beyond the top 16 elements is inaccessible to the callee, and thus, is guaranteed not to change as the result of the call.
+    - As mentioned above, in the case of `dyncall`, the elements at indices 1 to 17 at the call site will be accessible to the callee (shifted to indices 0 to 16)
 - At the end of its execution, the callee must ensure that stack depth is exactly 16. If this is difficult to ensure manually, the [`truncate_stack`](../stdlib/sys.md) procedure can be used to drop all elements from the stack except for the top 16.
 
 #### Invoking via `exec` instruction
@@ -42,7 +44,7 @@ A _kernel_ defines a set of procedures which can be invoked from user contexts t
 
 A kernel can be defined similarly to a regular [library module](./code_organization.md#library-modules) - i.e., it can have internal and exported procedures. However, there are some small differences between what procedures can do in a kernel module vs. what they can do in a regular library module. Specifically:
 
-- Procedures in a kernel module cannot use `call` or `syscall` instructions. This means that creating a new context from within a `syscall` is not possible.
+- Procedures in a kernel module cannot use `call`, `dyncall` or `syscall` instructions. This means that creating a new context from within a `syscall` is not possible.
 - Unlike procedures in regular library modules, procedures in a kernel module can use the `caller` instruction. This instruction puts the hash of the procedure which initiated the parent context onto the stack.
 
 ### Memory layout

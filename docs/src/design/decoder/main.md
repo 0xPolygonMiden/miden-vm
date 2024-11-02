@@ -336,18 +336,37 @@ When the VM executes a `SPAN` operation, it does the following:
 
 #### DYN operation
 
-Before a `DYN` operation is executed by the VM, the prover populates $h_0, ..., h_7$ registers with $0$ as shown in the diagram below.
-
 ![decoder_dyn_operation](../../assets/design/decoder/decoder_dyn_operation.png)
 
-In the above diagram, `blk` is the ID of the *dyn* block which is about to be executed. `blk` is also the address of the hasher row in the auxiliary hasher table. `prnt` is the ID of the block's parent.
+In the above diagram, `blk` is the ID of the *dyn* block which is about to be executed. `blk` is also the address of the hasher row in the auxiliary hasher table. `p_addr` is the ID of the block's parent.
 
 When the VM executes a `DYN` operation, it does the following:
 
-1. Adds a tuple `(blk, prnt, 0, 0...)` to the block stack table.
-2. Gets the hash of the dynamic code block `dynamic_block_hash` from the top four elements of the stack.
-2. Adds the tuple `(blk, dynamic_block_hash, 0, 0)` to the block hash table.
-3. Initiates a 2-to-1 hash computation in the hash chiplet (as described [here](#simple-2-to-1-hash)) using `blk` as row address in the auxiliary hashing table and $h_0, ..., h_7$ as input values.
+1. Adds a tuple `(blk, p_addr, 0, 0...)` to the block stack table.
+2. Sends a memory read request to the memory chiplet, using `s0` as the memory address. The result `hash of callee` is placed in the decoder hasher trace at $h_0, h_1, h_2, h_3$.
+3. Adds the tuple `(blk, hash of callee, 0, 0)` to the block hash table.
+4. Initiates a 2-to-1 hash computation in the hash chiplet (as described [here](#simple-2-to-1-hash)) using `blk` as row address in the auxiliary hashing table and `[ZERO; 8]` as input values.
+5. Performs a stack left shift
+    - Above `s16` was pulled from the stack overflow table if present; otherwise set to `0`.
+
+Note that unlike `DYNCALL`, the `fmp`, `ctx`, `in_syscall` and `fn_hash` registers are unchanged.
+
+#### DYNCALL operation
+
+![decoder_dyncall_operation](../../assets/design/decoder/decoder_dyncall_operation.png)
+
+In the above diagram, `blk` is the ID of the *dyn* block which is about to be executed. `blk` is also the address of the hasher row in the auxiliary hasher table. `p_addr` is the ID of the block's parent.
+
+When the VM executes a `DYNCALL` operation, it does the following:
+
+1. Adds a tuple `(blk, p_addr, 0, ctx, fmp, b_0, b_1, fn_hash[0..3])` to the block stack table.
+2. Sends a memory read request to the memory chiplet, using `s0` as the memory address. The result `hash of callee` is placed in the decoder hasher trace at $h_0, h_1, h_2, h_3$.
+3. Adds the tuple `(blk, hash of callee, 0, 0)` to the block hash table.
+4. Initiates a 2-to-1 hash computation in the hash chiplet (as described [here](#simple-2-to-1-hash)) using `blk` as row address in the auxiliary hashing table and `[ZERO; 8]` as input values.
+5. Performs a stack left shift
+    - Above `s16` was pulled from the stack overflow table if present; otherwise set to `0`.
+
+Similar to `CALL`, `DYNCALL` resets the `fmp`, sets up a new `ctx`, and sets the `fn_hash` registers to the callee hash. `in_syscall` needs to be 0, since calls are not allowed during a syscall.
 
 #### END operation
 
