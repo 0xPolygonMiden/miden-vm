@@ -14,6 +14,7 @@ rust-version.workspace = true
 edition.workspace = true
 
 [features]
+async = ["winter-maybe-async/async"]
 concurrent = ["processor/concurrent", "std", "winter-prover/concurrent"]
 default = ["std"]
 metal = ["dep:miden-gpu", "dep:elsa", "dep:pollster", "concurrent", "std"]
@@ -23,6 +24,7 @@ std = ["air/std", "processor/std", "winter-prover/std"]
 air = { package = "miden-air", path = "../air", version = "0.10", default-features = false }
 processor = { package = "miden-processor", path = "../processor", version = "0.10", default-features = false }
 tracing = { version = "0.1", default-features = false, features = ["attributes"] }
+winter-maybe-async = { package = "winter-maybe-async", version = "0.10", default-features = false }
 winter-prover = { package = "winter-prover", version = "0.10", default-features = false }
 
 [target.'cfg(all(target_arch = "aarch64", target_os = "macos"))'.dependencies]

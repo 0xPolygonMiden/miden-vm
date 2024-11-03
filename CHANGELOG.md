@@ -9,22 +9,23 @@
 #### Changes
 
 - [BREAKING] Wrapped `MastForest`s in `Program` and `Library` structs in `Arc` (#1465).
-- `MastForestBuilder`: use `MastNodeId` instead of MAST root to uniquely identify procedures (#1473)
+- `MastForestBuilder`: use `MastNodeId` instead of MAST root to uniquely identify procedures (#1473).
 - Added `miden_core::utils::sync::racy_lock` module (#1463).
 - Updated `miden_core::utils` to re-export `std::sync::LazyLock` and `racy_lock::RacyLock as LazyLock` for std and no_std environments, respectively (#1463).
-- Made the undocumented behavior of the VM with regard to undefined behavior of u32 operations, stricter (#1480)
-- Introduced the `Emit` instruction (#1496)
-- Debug instructions can be enabled in the cli `run` command using `--debug` flag (#1502)
-- [BREAKING] ExecutionOptions::new constructor requires a boolean to explicitly set debug mode (#1502)
-- [BREAKING] The `run` and the `prove` commands in the cli will accept `--trace` flag instead of `--tracing` (#1502)
+- Made the undocumented behavior of the VM with regard to undefined behavior of u32 operations, stricter (#1480).
+- Introduced the `Emit` instruction (#1496).
+- Debug instructions can be enabled in the cli `run` command using `--debug` flag (#1502).
+- [BREAKING] ExecutionOptions::new constructor requires a boolean to explicitly set debug mode (#1502).
+- [BREAKING] The `run` and the `prove` commands in the cli will accept `--trace` flag instead of `--tracing` (#1502).
 - Migrated to new padding rule for RPO (#1343).
 - Migrated to `miden-crypto` v0.11.0 (#1343).
-- Implemented `MastForest` merging (#1534)
-- Rename `EqHash` to `MastNodeFingerprint` and make it `pub` (#1539)
+- Implemented `MastForest` merging (#1534).
+- Rename `EqHash` to `MastNodeFingerprint` and make it `pub` (#1539).
 - Updated Winterfell dependency to v0.10 (#1533).
-- [BREAKING] `DYN` operation now expects a memory address pointing to the procedure hash (#1535)
-- [BREAKING] `DYNCALL` operation fixed, and now expects a memory address pointing to the procedure hash (#1535)
-- Permit child `MastNodeId`s to exceed the `MastNodeId`s of their parents (#1542)
+- [BREAKING] `DYN` operation now expects a memory address pointing to the procedure hash (#1535).
+- [BREAKING] `DYNCALL` operation fixed, and now expects a memory address pointing to the procedure hash (#1535).
+- Permit child `MastNodeId`s to exceed the `MastNodeId`s of their parents (#1542).
+- Make `miden-prover::prove()` method conditionally asynchronous (#1563).
 
 #### Fixes
 

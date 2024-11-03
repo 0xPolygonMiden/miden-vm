@@ -1156,6 +1156,7 @@ dependencies = [
  "miden-processor",
  "pollster",
  "tracing",
+ "winter-maybe-async",
  "winter-prover",
 ]
 
