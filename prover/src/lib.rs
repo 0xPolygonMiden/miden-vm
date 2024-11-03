@@ -25,6 +25,8 @@ use winter_prover::{
     DefaultTraceLde, ProofOptions as WinterProofOptions, Prover, StarkDomain, TraceInfo,
     TracePolyTable,
 };
+use winter_maybe_async::maybe_async;
+
 #[cfg(feature = "std")]
 use {std::time::Instant, winter_prover::Trace};
 mod gpu;
@@ -206,6 +208,7 @@ where
         PublicInputs::new(program_info, self.stack_inputs.clone(), self.stack_outputs.clone())
     }
 
+    #[maybe_async]
     fn new_trace_lde<E: FieldElement<BaseField = Felt>>(
         &self,
         trace_info: &TraceInfo,
@@ -216,6 +219,7 @@ where
         DefaultTraceLde::new(trace_info, main_trace, domain, partition_options)
     }
 
+    #[maybe_async]
     fn new_evaluator<'a, E: FieldElement<BaseField = Felt>>(
         &self,
         air: &'a ProcessorAir,
@@ -226,6 +230,7 @@ where
     }
 
     #[instrument(skip_all)]
+    #[maybe_async]
     fn build_aux_trace<E: FieldElement<BaseField = Self::BaseField>>(
         &self,
         trace: &Self::Trace,
