@@ -8,7 +8,7 @@ extern crate std;
 
 use core::marker::PhantomData;
 
-use air::{AuxRandElements, ProcessorAir, PublicInputs};
+use air::{AuxRandElements, PartitionOptions, ProcessorAir, PublicInputs};
 #[cfg(all(feature = "metal", target_arch = "aarch64", target_os = "macos"))]
 use miden_gpu::HashFn;
 use processor::{
@@ -37,7 +37,7 @@ pub use processor::{
     crypto, math, utils, AdviceInputs, Digest, ExecutionError, Host, InputError, MemAdviceProvider,
     StackInputs, StackOutputs, Word,
 };
-pub use winter_prover::Proof;
+pub use winter_prover::{crypto::MerkleTree as MerkleTreeVC, Proof};
 
 // PROVER
 // ================================================================================================
@@ -174,15 +174,16 @@ where
 
 impl<H, R> Prover for ExecutionProver<H, R>
 where
-    H: ElementHasher<BaseField = Felt>,
+    H: ElementHasher<BaseField = Felt> + Sync,
     R: RandomCoin<BaseField = Felt, Hasher = H> + Send,
 {
     type BaseField = Felt;
     type Air = ProcessorAir;
     type Trace = ExecutionTrace;
     type HashFn = H;
+    type VC = MerkleTreeVC<Self::HashFn>;
     type RandomCoin = R;
-    type TraceLde<E: FieldElement<BaseField = Felt>> = DefaultTraceLde<E, H>;
+    type TraceLde<E: FieldElement<BaseField = Felt>> = DefaultTraceLde<E, H, Self::VC>;
     type ConstraintEvaluator<'a, E: FieldElement<BaseField = Felt>> =
         DefaultConstraintEvaluator<'a, ProcessorAir, E>;
 
@@ -210,8 +211,9 @@ where
         trace_info: &TraceInfo,
         main_trace: &ColMatrix<Felt>,
         domain: &StarkDomain<Felt>,
+        partition_options: PartitionOptions,
     ) -> (Self::TraceLde<E>, TracePolyTable<E>) {
-        DefaultTraceLde::new(trace_info, main_trace, domain)
+        DefaultTraceLde::new(trace_info, main_trace, domain, partition_options)
     }
 
     fn new_evaluator<'a, E: FieldElement<BaseField = Felt>>(
@@ -223,14 +225,12 @@ where
         DefaultConstraintEvaluator::new(air, aux_rand_elements, composition_coefficients)
     }
 
-    fn build_aux_trace<E>(
+    #[instrument(skip_all)]
+    fn build_aux_trace<E: FieldElement<BaseField = Self::BaseField>>(
         &self,
         trace: &Self::Trace,
         aux_rand_elements: &AuxRandElements<E>,
-    ) -> ColMatrix<E>
-    where
-        E: FieldElement<BaseField = Self::BaseField>,
-    {
+    ) -> ColMatrix<E> {
         trace.build_aux_trace(aux_rand_elements.rand_elements()).unwrap()
     }
 }
