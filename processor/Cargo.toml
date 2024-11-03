@@ -20,8 +20,8 @@ doctest = false
 [features]
 concurrent = ["std", "winter-prover/concurrent"]
 default = ["std"]
-testing = ["miden-air/testing"]
 std = ["vm-core/std", "winter-prover/std"]
+testing = ["miden-air/testing"]
 
 [dependencies]
 miden-air = { package = "miden-air", path = "../air", version = "0.10", default-features = false }
