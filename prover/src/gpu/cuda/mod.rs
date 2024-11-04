@@ -110,31 +110,4 @@ where
     {
         main_trace.build_aux_trace(aux_rand_elements.rand_elements()).unwrap()
     }
-
-    /// TODO: build_constraint_commitment in miden-gpu
-    fn build_constraint_commitment<E: FieldElement<BaseField = Felt>>(
-        &self,
-        composition_poly_trace: CompositionPolyTrace<E>,
-        num_trace_poly_columns: usize,
-        domain: &StarkDomain<Felt>,
-    ) -> (ConstraintCommitment<E, Self::HashFn>, CompositionPoly<E>) {
-        let composition_poly =
-            CompositionPoly::new(composition_poly_trace, domain, num_trace_poly_columns);
-
-        assert_eq!(composition_poly.num_columns(), num_trace_poly_columns);
-        assert_eq!(composition_poly.column_degree(), domain.trace_length() - 1);
-
-        // then, evaluate composition polynomial columns over the LDE domain
-        let domain_size = domain.lde_domain_size();
-        let composed_evaluations =
-            RowMatrix::evaluate_polys_over::<8>(composition_poly.data(), domain);
-        assert_eq!(composed_evaluations.num_cols(), num_trace_poly_columns);
-        assert_eq!(composed_evaluations.num_rows(), domain_size);
-
-        let commitment = composed_evaluations.commit_to_rows();
-        let constraint_commitment = ConstraintCommitment::new(composed_evaluations, commitment);
-        assert_eq!(constraint_commitment.tree_depth(), domain_size.ilog2() as usize);
-
-        (constraint_commitment, composition_poly)
-    }
 }

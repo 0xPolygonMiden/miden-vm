@@ -8,7 +8,6 @@ extern crate std;
 
 use core::marker::PhantomData;
 
-
 use air::{AuxRandElements, PartitionOptions, ProcessorAir, PublicInputs};
 #[cfg(any(
     all(feature = "metal", target_arch = "aarch64", target_os = "macos"),
