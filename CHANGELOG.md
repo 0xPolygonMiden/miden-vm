@@ -26,6 +26,7 @@
 - [BREAKING] `DYNCALL` operation fixed, and now expects a memory address pointing to the procedure hash (#1535).
 - Permit child `MastNodeId`s to exceed the `MastNodeId`s of their parents (#1542).
 - Make `miden-prover::prove()` method conditionally asynchronous (#1563).
+- Don't validate export names on `Library` deserialization (#1554)
 
 #### Fixes
 
