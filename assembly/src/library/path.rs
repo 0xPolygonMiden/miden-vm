@@ -575,7 +575,10 @@ mod tests {
         assert_matches!(path, Err(PathError::InvalidComponent(IdentError::InvalidStart)));
 
         let path = LibraryPath::new("foo::b@r");
-        assert_matches!(path, Err(PathError::InvalidComponent(IdentError::InvalidChars)));
+        assert_matches!(
+            path,
+            Err(PathError::InvalidComponent(IdentError::InvalidChars { ident: _ }))
+        );
 
         let path = LibraryPath::new("#foo::bar");
         assert_matches!(
