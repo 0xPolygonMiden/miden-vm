@@ -17,7 +17,7 @@ The sections below describe how Miden VM decoder works. Throughout these section
 
 Miden VM programs consist of a set of code blocks organized into a binary tree. The leaves of the tree contain linear sequences of instructions, and control flow is defined by the internal nodes of the tree.
 
-Managing control flow in the VM is accomplished by executing control flow operations listed in the table below. Each of these operations require exactly one VM cycle to execute.
+Managing control flow in the VM is accomplished by executing control flow operations listed in the table below. Each of these operations requires exactly one VM cycle to execute.
 
 | Operation | Description                                                                  |
 | --------- | ---------------------------------------------------------------------------- |
@@ -118,10 +118,10 @@ These registers have the following meanings:
 2. Registers $b_0, ..., b_6$, which encode opcodes for operation to be executed by the VM. Each of these registers can contain a single binary value (either $1$ or $0$). And together these values describe a single opcode.
 3. Hasher registers $h_0, ..., h_7$. When control flow operations are executed, these registers are used to provide inputs for the current block's hash computation (e.g., for `JOIN`, `SPLIT`, `LOOP`, `SPAN`, `CALL`, `SYSCALL` operations) or to record the result of the hash computation (i.e., for `END` operation). However, when regular operations are executed, $2$ of these registers are used to help with op group decoding, and the remaining $6$ can be used to hold operation-specific helper variables.
 4. Register $sp$ which contains a binary flag indicating whether the VM is currently executing instructions inside a *span* block. The flag is set to $1$ when the VM executes non-control flow instructions, and is set to $0$ otherwise.
-5. Register $gc$ which keep track of the number of unprocessed operation groups in a given *span* block.
+5. Register $gc$ which keeps track of the number of unprocessed operation groups in a given *span* block.
 6. Register $ox$ which keeps track of a currently executing operation's index within its operation group.
 7. Operation batch flags $c_0, c_1, c_2$ which indicate how many operation groups a given operation batch contains. These flags are set only for `SPAN` and `RESPAN` operations, and are set to $0$'s otherwise.
-8. Two additional registers (not shown) used primarily for constraint degree reduction.
+8. Two additional registers (not shown) are used primarily for constraint degree reduction.
 
 ### Program block hashing
 
