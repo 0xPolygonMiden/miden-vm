@@ -33,7 +33,7 @@ testing = []
 [dependencies]
 thiserror = { package = "miden-thiserror", version = "1.0", default-features = false }
 vm-core = { package = "miden-core", path = "../core", version = "0.10", default-features = false }
-winter-air = { package = "winter-air", version = "0.9", default-features = false }
+winter-air = { package = "winter-air", version = "0.10", default-features = false }
 winter-prover = { package = "winter-prover", version = "0.9", default-features = false }
 
 [dev-dependencies]
