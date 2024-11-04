@@ -108,6 +108,6 @@ where
     where
         E: FieldElement<BaseField = Self::BaseField>,
     {
-        main_trace.build_aux_trace(aux_rand_elements.rand_elements()).unwrap()
+        self.execution_prover.build_aux_trace(main_trace, aux_rand_elements)
     }
 }
