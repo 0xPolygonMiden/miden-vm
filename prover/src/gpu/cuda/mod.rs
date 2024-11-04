@@ -2,8 +2,8 @@
 
 use std::marker::PhantomData;
 
-use air::AuxRandElements;
-use miden_gpu::{cuda::trace_lde::CudaTraceLde, HashFn};
+use air::{AuxRandElements, PartitionOptions};
+use miden_gpu::{cuda::{merkle::MerkleTree, trace_lde::CudaTraceLde}, HashFn};
 use processor::crypto::{ElementHasher, Hasher};
 use winter_prover::{
     crypto::Digest,
@@ -67,6 +67,7 @@ where
     type BaseField = Felt;
     type Air = ProcessorAir;
     type Trace = ExecutionTrace;
+    type VC = MerkleTree<Self::HashFn>;
     type HashFn = H;
     type RandomCoin = R;
     type TraceLde<E: FieldElement<BaseField = Felt>> = CudaTraceLde<E, H>;
@@ -86,6 +87,7 @@ where
         trace_info: &TraceInfo,
         main_trace: &ColMatrix<Felt>,
         domain: &StarkDomain<Felt>,
+        _partition_options: PartitionOptions,
     ) -> (Self::TraceLde<E>, TracePolyTable<E>) {
         CudaTraceLde::new(trace_info, main_trace, domain, self.hash_fn)
     }
