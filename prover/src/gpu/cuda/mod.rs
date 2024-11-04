@@ -35,7 +35,7 @@ const DIGEST_SIZE: usize = Rpo256::DIGEST_RANGE.end - Rpo256::DIGEST_RANGE.start
 pub(crate) struct CudaExecutionProver<H, D, R>
 where
     H: Hasher<Digest = D> + ElementHasher<BaseField = R::BaseField>,
-    D: Digest + From<[Felt; DIGEST_SIZE]>,
+    D: Digest + From<[Felt; DIGEST_SIZE]> + Into<[Felt; DIGEST_SIZE]>,
     R: RandomCoin<BaseField = Felt, Hasher = H> + Send,
 {
     pub execution_prover: ExecutionProver<H, R>,
@@ -46,7 +46,7 @@ where
 impl<H, D, R> CudaExecutionProver<H, D, R>
 where
     H: Hasher<Digest = D> + ElementHasher<BaseField = R::BaseField>,
-    D: Digest + From<[Felt; DIGEST_SIZE]>,
+    D: Digest + From<[Felt; DIGEST_SIZE]> + Into<[Felt; DIGEST_SIZE]>,
     R: RandomCoin<BaseField = Felt, Hasher = H> + Send,
 {
     pub fn new(execution_prover: ExecutionProver<H, R>, hash_fn: HashFn) -> Self {
@@ -61,7 +61,7 @@ where
 impl<H, D, R> Prover for CudaExecutionProver<H, D, R>
 where
     H: Hasher<Digest = D> + ElementHasher<BaseField = R::BaseField> + Send + Sync,
-    D: Digest + From<[Felt; DIGEST_SIZE]>,
+    D: Digest + From<[Felt; DIGEST_SIZE]> + Into<[Felt; DIGEST_SIZE]>,
     R: RandomCoin<BaseField = Felt, Hasher = H> + Send,
 {
     type BaseField = Felt;
