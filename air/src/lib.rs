@@ -7,30 +7,26 @@ extern crate alloc;
 extern crate std;
 
 use alloc::vec::Vec;
-use core::marker::PhantomData;
 
-use decoder::{DECODER_OP_BITS_OFFSET, DECODER_USER_OP_HELPERS_OFFSET};
+use logup_gkr::MidenLogUpGkrEval;
 use vm_core::{
     utils::{ByteReader, ByteWriter, Deserializable, Serializable},
     ExtensionOf, ProgramInfo, StackInputs, StackOutputs, ONE, ZERO,
 };
 use winter_air::{
-    Air, AirContext, Assertion, EvaluationFrame, LogUpGkrEvaluator, LogUpGkrOracle,
-    ProofOptions as WinterProofOptions, TraceInfo, TransitionConstraintDegree,
+    Air, AirContext, Assertion, EvaluationFrame, LogUpGkrEvaluator, TraceInfo,
+    TransitionConstraintDegree,
 };
 use winter_prover::matrix::ColMatrix;
 
 mod constraints;
 pub use constraints::stack;
 use constraints::{chiplets, range};
+pub mod logup_gkr;
 
 pub mod trace;
 pub use trace::rows::RowIndex;
-use trace::{
-    chiplets::{MEMORY_D0_COL_IDX, MEMORY_D1_COL_IDX},
-    range::{M_COL_IDX, V_COL_IDX},
-    *,
-};
+use trace::*;
 
 mod errors;
 mod options;
@@ -47,7 +43,10 @@ pub use vm_core::{
     utils::{DeserializationError, ToElements},
     Felt, FieldElement, StarkField,
 };
-pub use winter_air::{AuxRandElements, FieldExtension, LagrangeKernelEvaluationFrame};
+pub use winter_air::{
+    AuxRandElements, FieldExtension, LagrangeKernelEvaluationFrame,
+    ProofOptions as WinterProofOptions,
+};
 
 // PROCESSOR AIR
 // ================================================================================================
@@ -301,118 +300,5 @@ impl Deserializable for PublicInputs {
             stack_inputs,
             stack_outputs,
         })
-    }
-}
-
-// LOGUP-GKR
-// ================================================================================================
-
-#[derive(Clone, Default)]
-pub struct MidenLogUpGkrEval<B: FieldElement + StarkField> {
-    oracles: Vec<LogUpGkrOracle>,
-    _field: PhantomData<B>,
-}
-
-impl<B: FieldElement + StarkField> MidenLogUpGkrEval<B> {
-    pub fn new() -> Self {
-        let oracles = (0..TRACE_WIDTH).map(LogUpGkrOracle::CurrentRow).collect();
-        Self { oracles, _field: PhantomData }
-    }
-}
-
-impl LogUpGkrEvaluator for MidenLogUpGkrEval<Felt> {
-    type BaseField = Felt;
-
-    type PublicInputs = PublicInputs;
-
-    fn get_oracles(&self) -> &[LogUpGkrOracle] {
-        &self.oracles
-    }
-
-    fn get_num_rand_values(&self) -> usize {
-        1
-    }
-
-    fn get_num_fractions(&self) -> usize {
-        8
-    }
-
-    fn max_degree(&self) -> usize {
-        5
-    }
-
-    fn build_query<E>(&self, frame: &EvaluationFrame<E>, query: &mut [E])
-    where
-        E: FieldElement<BaseField = Self::BaseField>,
-    {
-        query.iter_mut().zip(frame.current().iter()).for_each(|(q, f)| *q = *f)
-    }
-
-    fn evaluate_query<F, E>(
-        &self,
-        query: &[F],
-        _periodic_values: &[F],
-        rand_values: &[E],
-        numerator: &mut [E],
-        denominator: &mut [E],
-    ) where
-        F: FieldElement<BaseField = Self::BaseField>,
-        E: FieldElement<BaseField = Self::BaseField> + ExtensionOf<F>,
-    {
-        assert_eq!(numerator.len(), 8);
-        assert_eq!(denominator.len(), 8);
-        assert_eq!(query.len(), TRACE_WIDTH);
-
-        // numerators
-        let multiplicity = query[M_COL_IDX];
-        let f_m = {
-            let mem_selec0 = query[CHIPLETS_OFFSET];
-            let mem_selec1 = query[CHIPLETS_OFFSET + 1];
-            let mem_selec2 = query[CHIPLETS_OFFSET + 2];
-            mem_selec0 * mem_selec1 * (F::ONE - mem_selec2)
-        };
-
-        let f_rc = {
-            let op_bit_4 = query[DECODER_OP_BITS_OFFSET + 4];
-            let op_bit_5 = query[DECODER_OP_BITS_OFFSET + 5];
-            let op_bit_6 = query[DECODER_OP_BITS_OFFSET + 6];
-
-            (F::ONE - op_bit_4) * (F::ONE - op_bit_5) * op_bit_6
-        };
-        numerator[0] = E::from(multiplicity);
-        numerator[1] = E::from(f_m);
-        numerator[2] = E::from(f_m);
-        numerator[3] = E::from(f_rc);
-        numerator[4] = E::from(f_rc);
-        numerator[5] = E::from(f_rc);
-        numerator[6] = E::from(f_rc);
-        numerator[7] = E::ZERO;
-
-        // denominators
-        let alpha = rand_values[0];
-
-        let table_denom = alpha - E::from(query[V_COL_IDX]);
-        let memory_denom_0 = -(alpha - E::from(query[MEMORY_D0_COL_IDX]));
-        let memory_denom_1 = -(alpha - E::from(query[MEMORY_D1_COL_IDX]));
-        let stack_value_denom_0 = -(alpha - E::from(query[DECODER_USER_OP_HELPERS_OFFSET]));
-        let stack_value_denom_1 = -(alpha - E::from(query[DECODER_USER_OP_HELPERS_OFFSET + 1]));
-        let stack_value_denom_2 = -(alpha - E::from(query[DECODER_USER_OP_HELPERS_OFFSET + 2]));
-        let stack_value_denom_3 = -(alpha - E::from(query[DECODER_USER_OP_HELPERS_OFFSET + 3]));
-
-        denominator[0] = table_denom;
-        denominator[1] = memory_denom_0;
-        denominator[2] = memory_denom_1;
-        denominator[3] = stack_value_denom_0;
-        denominator[4] = stack_value_denom_1;
-        denominator[5] = stack_value_denom_2;
-        denominator[6] = stack_value_denom_3;
-        denominator[7] = E::ONE;
-    }
-
-    fn compute_claim<E>(&self, _inputs: &Self::PublicInputs, _rand_values: &[E]) -> E
-    where
-        E: FieldElement<BaseField = Self::BaseField>,
-    {
-        E::ZERO
     }
 }

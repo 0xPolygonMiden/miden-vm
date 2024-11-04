@@ -5,8 +5,8 @@ use super::super::{
 };
 use crate::utils::{are_equal, binary_not, is_binary};
 
-mod bitwise;
-mod hasher;
+pub mod bitwise;
+pub mod hasher;
 mod memory;
 
 // CONSTANTS
