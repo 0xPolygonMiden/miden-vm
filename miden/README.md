@@ -21,12 +21,12 @@ All Miden programs can be reduced to a single 32-byte value, called program hash
 Currently, there are 3 ways to get values onto the stack:
 
 1. You can use `push` instruction to push values onto the stack. These values become a part of the program itself, and, therefore, cannot be changed between program executions. You can think of them as constants.
-2. The stack can be initialized to some set of values at the beginning of the program. These inputs are public and must be shared with the verifier for them to verify a proof of the correct execution of a Miden program. While it is possible to initialize the stack with a large number of values, we recommend keeping the number of initial values at 16 or fewer as each initial value beyond 16 increases verifier complexity.
+2. The stack can be initialized to some set of values at the beginning of the program. These inputs are public and must be shared with the verifier for them to verify a proof of the correct execution of a Miden program. At most 16 values could be provided for the stack initialization, attempts to provide more than 16 values will cause an error.
 3. The program may request nondeterministic advice inputs from the prover. These inputs are secret inputs. This means that the prover does not need to share them with the verifier. There are three types of advice inputs: (1) a single advice stack which can contain any number of elements; (2) a key-mapped element lists which can be pushed onto the advice stack; (3) a Merkle store, which is used to provide nondeterministic inputs for instructions which work with Merkle trees. There are no restrictions on the number of advice inputs a program can request.
 
 The stack is provided to Miden VM via `StackInputs` struct. These are public inputs of the execution, and should also be provided to the verifier. The secret inputs for the program are provided via the `Host` interface. The default implementation of the host relies on in-memory advice provider (`MemAdviceProvider`) that can be commonly used for operations that won't require persistence.
 
-Values remaining on the stack after a program is executed can be returned as stack outputs. You can specify exactly how many values (from the top of the stack) should be returned. Similar to stack inputs, a large number of values can be returned via the stack, however, we recommend keeping this number to under 16 not to overburden the verifier.
+Values remaining on the stack after a program is executed can be returned as stack outputs. You can specify exactly how many values (from the top of the stack) should be returned. Notice, that, similar to stack inputs, at most 16 values can be returned via the stack. Attempts to return more than 16 values will cause an error.
 
 Having a small number elements to describe public inputs and outputs of a program may seem limiting, however, just 4 elements are sufficient to represent a root of a Merkle tree or a sequential hash of elements. Both of these can be expanded into an arbitrary number of values by supplying the actual values non-deterministically via the host interface.
 
@@ -225,7 +225,7 @@ If you want to execute, prove, and verify programs on Miden VM, but don't want t
 
 ### Compiling Miden VM
 
-First, make sure you have Rust [installed](https://www.rust-lang.org/tools/install). The current version of Miden VM requires Rust version **1.80** or later.
+First, make sure you have Rust [installed](https://www.rust-lang.org/tools/install). The current version of Miden VM requires Rust version **1.82** or later.
 
 Then, to compile Miden VM into a binary, run the following `make` command:
 
@@ -308,6 +308,7 @@ Miden VM can be compiled with the following features:
 - `executable` - required for building Miden VM binary as described above. Implies `std`.
 - `metal` - enables [Metal](<https://en.wikipedia.org/wiki/Metal_(API)>)-based acceleration of proof generation (for recursive proofs) on supported platforms (e.g., Apple silicon).
 - `no_std` does not rely on the Rust standard library and enables compilation to WebAssembly.
+  - Only the `wasm32-unknown-unknown` and `wasm32-wasip1` targets are officially supported.
 
 To compile with `no_std`, disable default features via `--no-default-features` flag.
 

@@ -2,7 +2,10 @@ use alloc::{
     collections::{BTreeMap, BTreeSet},
     vec::Vec,
 };
-use core::{fmt, mem, ops::Index};
+use core::{
+    fmt, mem,
+    ops::{Index, IndexMut},
+};
 
 use miden_crypto::hash::rpo::RpoDigest;
 
@@ -11,11 +14,21 @@ pub use node::{
     BasicBlockNode, CallNode, DynNode, ExternalNode, JoinNode, LoopNode, MastNode, OpBatch,
     OperationOrDecorator, SplitNode, OP_BATCH_SIZE, OP_GROUP_SIZE,
 };
-use winter_utils::DeserializationError;
+use winter_utils::{ByteWriter, DeserializationError, Serializable};
 
-use crate::{DecoratorList, Operation};
+use crate::{Decorator, DecoratorList, Operation};
 
 mod serialization;
+
+mod merger;
+pub(crate) use merger::MastForestMerger;
+pub use merger::MastForestRootMap;
+
+mod multi_forest_node_iterator;
+pub(crate) use multi_forest_node_iterator::*;
+
+mod node_fingerprint;
+pub use node_fingerprint::{DecoratorFingerprint, MastNodeFingerprint};
 
 #[cfg(test)]
 mod tests;
@@ -34,6 +47,9 @@ pub struct MastForest {
 
     /// Roots of procedures defined within this MAST forest.
     roots: Vec<MastNodeId>,
+
+    /// All the decorators included in the MAST forest.
+    decorators: Vec<Decorator>,
 }
 
 // ------------------------------------------------------------------------------------------------
@@ -50,6 +66,20 @@ impl MastForest {
 impl MastForest {
     /// The maximum number of nodes that can be stored in a single MAST forest.
     const MAX_NODES: usize = (1 << 30) - 1;
+    /// The maximum number of decorators that can be stored in a single MAST forest.
+    const MAX_DECORATORS: usize = Self::MAX_NODES;
+
+    /// Adds a decorator to the forest, and returns the associated [`DecoratorId`].
+    pub fn add_decorator(&mut self, decorator: Decorator) -> Result<DecoratorId, MastForestError> {
+        if self.decorators.len() >= u32::MAX as usize {
+            return Err(MastForestError::TooManyDecorators);
+        }
+
+        let new_decorator_id = DecoratorId(self.decorators.len() as u32);
+        self.decorators.push(decorator);
+
+        Ok(new_decorator_id)
+    }
 
     /// Adds a node to the forest, and returns the associated [`MastNodeId`].
     ///
@@ -118,12 +148,19 @@ impl MastForest {
         self.add_node(MastNode::new_dyn())
     }
 
+    /// Adds a dyncall node to the forest, and returns the [`MastNodeId`] associated with it.
+    pub fn add_dyncall(&mut self) -> Result<MastNodeId, MastForestError> {
+        self.add_node(MastNode::new_dyncall())
+    }
+
     /// Adds an external node to the forest, and returns the [`MastNodeId`] associated with it.
     pub fn add_external(&mut self, mast_root: RpoDigest) -> Result<MastNodeId, MastForestError> {
         self.add_node(MastNode::new_external(mast_root))
     }
 
     /// Marks the given [`MastNodeId`] as being the root of a procedure.
+    ///
+    /// If the specified node is already marked as a root, this will have no effect.
     ///
     /// # Panics
     /// - if `new_root_id`'s internal index is larger than the number of nodes in this forest (i.e.
@@ -159,6 +196,83 @@ impl MastForest {
         self.remap_and_add_nodes(retained_nodes, &id_remappings);
         self.remap_and_add_roots(old_root_ids, &id_remappings);
         Some(id_remappings)
+    }
+
+    pub fn set_before_enter(&mut self, node_id: MastNodeId, decorator_ids: Vec<DecoratorId>) {
+        self[node_id].set_before_enter(decorator_ids)
+    }
+
+    pub fn set_after_exit(&mut self, node_id: MastNodeId, decorator_ids: Vec<DecoratorId>) {
+        self[node_id].set_after_exit(decorator_ids)
+    }
+
+    /// Merges all `forests` into a new [`MastForest`].
+    ///
+    /// Merging two forests means combining all their constituent parts, i.e. [`MastNode`]s,
+    /// [`Decorator`]s and roots. During this process, any duplicate or
+    /// unreachable nodes are removed. Additionally, [`MastNodeId`]s of nodes as well as
+    /// [`DecoratorId`]s of decorators may change and references to them are remapped to their new
+    /// location.
+    ///
+    /// For example, consider this representation of a forest's nodes with all of these nodes being
+    /// roots:
+    ///
+    /// ```text
+    /// [Block(foo), Block(bar)]
+    /// ```
+    ///
+    /// If we merge another forest into it:
+    ///
+    /// ```text
+    /// [Block(bar), Call(0)]
+    /// ```
+    ///
+    /// then we would expect this forest:
+    ///
+    /// ```text
+    /// [Block(foo), Block(bar), Call(1)]
+    /// ```
+    ///
+    /// - The `Call` to the `bar` block was remapped to its new index (now 1, previously 0).
+    /// - The `Block(bar)` was deduplicated any only exists once in the merged forest.
+    ///
+    /// The function also returns a vector of [`MastForestRootMap`]s, whose length equals the number
+    /// of passed `forests`. The indices in the vector correspond to the ones in `forests`. The map
+    /// of a given forest contains the new locations of its roots in the merged forest. To
+    /// illustrate, the above example would return a vector of two maps:
+    ///
+    /// ```text
+    /// vec![{0 -> 0, 1 -> 1}
+    ///      {0 -> 1, 1 -> 2}]
+    /// ```
+    ///
+    /// - The root locations of the original forest are unchanged.
+    /// - For the second forest, the `bar` block has moved from index 0 to index 1 in the merged
+    ///   forest, and the `Call` has moved from index 1 to 2.
+    ///
+    /// If any forest being merged contains an `External(qux)` node and another forest contains a
+    /// node whose digest is `qux`, then the external node will be replaced with the `qux` node,
+    /// which is effectively deduplication. Decorators are ignored when it comes to merging
+    /// External nodes. This means that an External node with decorators may be replaced by a node
+    /// without decorators or vice versa.
+    pub fn merge<'forest>(
+        forests: impl IntoIterator<Item = &'forest MastForest>,
+    ) -> Result<(MastForest, MastForestRootMap), MastForestError> {
+        MastForestMerger::merge(forests)
+    }
+
+    /// Adds a basic block node to the forest, and returns the [`MastNodeId`] associated with it.
+    ///
+    /// It is assumed that the decorators have not already been added to the MAST forest. If they
+    /// were, they will be added again (and result in a different set of [`DecoratorId`]s).
+    #[cfg(test)]
+    pub fn add_block_with_raw_decorators(
+        &mut self,
+        operations: Vec<Operation>,
+        decorators: Vec<(usize, Decorator)>,
+    ) -> Result<MastNodeId, MastForestError> {
+        let block = MastNode::new_basic_block_with_raw_decorators(operations, decorators, self)?;
+        self.add_node(block)
     }
 }
 
@@ -220,7 +334,7 @@ impl MastForest {
                         self.add_call(callee_id).unwrap();
                     }
                 },
-                MastNode::Block(_) | MastNode::Dyn | MastNode::External(_) => {
+                MastNode::Block(_) | MastNode::Dyn(_) | MastNode::External(_) => {
                     self.add_node(live_node).unwrap();
                 },
             }
@@ -275,10 +389,21 @@ fn remove_nodes(
 
 /// Public accessors
 impl MastForest {
+    /// Returns the [`Decorator`] associated with the provided [`DecoratorId`] if valid, or else
+    /// `None`.
+    ///
+    /// This is the fallible version of indexing (e.g. `mast_forest[decorator_id]`).
+    #[inline(always)]
+    pub fn get_decorator_by_id(&self, decorator_id: DecoratorId) -> Option<&Decorator> {
+        let idx = decorator_id.0 as usize;
+
+        self.decorators.get(idx)
+    }
+
     /// Returns the [`MastNode`] associated with the provided [`MastNodeId`] if valid, or else
     /// `None`.
     ///
-    /// This is the failable version of indexing (e.g. `mast_forest[node_id]`).
+    /// This is the fallible version of indexing (e.g. `mast_forest[node_id]`).
     #[inline(always)]
     pub fn get_node_by_id(&self, node_id: MastNodeId) -> Option<&MastNode> {
         let idx = node_id.0 as usize;
@@ -351,6 +476,34 @@ impl Index<MastNodeId> for MastForest {
     }
 }
 
+impl IndexMut<MastNodeId> for MastForest {
+    #[inline(always)]
+    fn index_mut(&mut self, node_id: MastNodeId) -> &mut Self::Output {
+        let idx = node_id.0 as usize;
+
+        &mut self.nodes[idx]
+    }
+}
+
+impl Index<DecoratorId> for MastForest {
+    type Output = Decorator;
+
+    #[inline(always)]
+    fn index(&self, decorator_id: DecoratorId) -> &Self::Output {
+        let idx = decorator_id.0 as usize;
+
+        &self.decorators[idx]
+    }
+}
+
+impl IndexMut<DecoratorId> for MastForest {
+    #[inline(always)]
+    fn index_mut(&mut self, decorator_id: DecoratorId) -> &mut Self::Output {
+        let idx = decorator_id.0 as usize;
+        &mut self.decorators[idx]
+    }
+}
+
 // MAST NODE ID
 // ================================================================================================
 
@@ -372,13 +525,37 @@ impl MastNodeId {
         value: u32,
         mast_forest: &MastForest,
     ) -> Result<Self, DeserializationError> {
-        if (value as usize) < mast_forest.nodes.len() {
-            Ok(Self(value))
+        Self::from_u32_with_node_count(value, mast_forest.nodes.len())
+    }
+
+    /// Returns a new [`MastNodeId`] from the given `value` without checking its validity.
+    pub(crate) fn new_unchecked(value: u32) -> Self {
+        Self(value)
+    }
+
+    /// Returns a new [`MastNodeId`] with the provided `id`, or an error if `id` is greater or equal
+    /// to `node_count`. The `node_count` is the total number of nodes in the [`MastForest`] for
+    /// which this ID is being constructed.
+    ///
+    /// This function can be used when deserializing an id whose corresponding node is not yet in
+    /// the forest and [`Self::from_u32_safe`] would fail. For instance, when deserializing the ids
+    /// referenced by the Join node in this forest:
+    ///
+    /// ```text
+    /// [Join(1, 2), Block(foo), Block(bar)]
+    /// ```
+    ///
+    /// Since it is less safe than [`Self::from_u32_safe`] and usually not needed it is not public.
+    pub(super) fn from_u32_with_node_count(
+        id: u32,
+        node_count: usize,
+    ) -> Result<Self, DeserializationError> {
+        if (id as usize) < node_count {
+            Ok(Self(id))
         } else {
             Err(DeserializationError::InvalidValue(format!(
-                "Invalid deserialized MAST node ID '{}', but only {} nodes in the forest",
-                value,
-                mast_forest.nodes.len(),
+                "Invalid deserialized MAST node ID '{}', but {} is the number of nodes in the forest",
+                id, node_count,
             )))
         }
     }
@@ -416,6 +593,78 @@ impl fmt::Display for MastNodeId {
     }
 }
 
+// DECORATOR ID
+// ================================================================================================
+
+/// An opaque handle to a [`Decorator`] in some [`MastForest`]. It is the responsibility of the user
+/// to use a given [`DecoratorId`] with the corresponding [`MastForest`].
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub struct DecoratorId(u32);
+
+impl DecoratorId {
+    /// Returns a new `DecoratorId` with the provided inner value, or an error if the provided
+    /// `value` is greater than the number of nodes in the forest.
+    ///
+    /// For use in deserialization.
+    pub fn from_u32_safe(
+        value: u32,
+        mast_forest: &MastForest,
+    ) -> Result<Self, DeserializationError> {
+        if (value as usize) < mast_forest.decorators.len() {
+            Ok(Self(value))
+        } else {
+            Err(DeserializationError::InvalidValue(format!(
+                "Invalid deserialized MAST decorator id '{}', but only {} decorators in the forest",
+                value,
+                mast_forest.nodes.len(),
+            )))
+        }
+    }
+
+    /// Creates a new [`DecoratorId`] without checking its validity.
+    pub(crate) fn new_unchecked(value: u32) -> Self {
+        Self(value)
+    }
+
+    pub fn as_usize(&self) -> usize {
+        self.0 as usize
+    }
+
+    pub fn as_u32(&self) -> u32 {
+        self.0
+    }
+}
+
+impl From<DecoratorId> for usize {
+    fn from(value: DecoratorId) -> Self {
+        value.0 as usize
+    }
+}
+
+impl From<DecoratorId> for u32 {
+    fn from(value: DecoratorId) -> Self {
+        value.0
+    }
+}
+
+impl From<&DecoratorId> for u32 {
+    fn from(value: &DecoratorId) -> Self {
+        value.0
+    }
+}
+
+impl fmt::Display for DecoratorId {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "DecoratorId({})", self.0)
+    }
+}
+
+impl Serializable for DecoratorId {
+    fn write_into<W: ByteWriter>(&self, target: &mut W) {
+        self.0.write_into(target)
+    }
+}
+
 // MAST FOREST ERROR
 // ================================================================================================
 
@@ -423,12 +672,21 @@ impl fmt::Display for MastNodeId {
 #[derive(Debug, thiserror::Error, PartialEq)]
 pub enum MastForestError {
     #[error(
+        "invalid decorator count: MAST forest exceeds the maximum of {} decorators",
+        u32::MAX
+    )]
+    TooManyDecorators,
+    #[error(
         "invalid node count: MAST forest exceeds the maximum of {} nodes",
         MastForest::MAX_NODES
     )]
     TooManyNodes,
     #[error("node id: {0} is greater than or equal to forest length: {1}")]
     NodeIdOverflow(MastNodeId, usize),
+    #[error("decorator id: {0} is greater than or equal to decorator count: {1}")]
+    DecoratorIdOverflow(DecoratorId, usize),
     #[error("basic block cannot be created from an empty list of operations")]
     EmptyBasicBlock,
+    #[error("decorator root of child with node id {0} is missing but required for fingerprint computation")]
+    ChildFingerprintMissing(MastNodeId),
 }

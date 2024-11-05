@@ -7,7 +7,7 @@ use test_utils::{
     expect_exec_error,
     rand::{rand_array, rand_value},
     serde::Serializable,
-    Felt,
+    Felt, TRUNCATE_STACK_PROC,
 };
 
 const ADVICE_PUSH_SIG: &str = "
@@ -31,7 +31,7 @@ const ADVICE_PUSH_SIG: &str = "
 #[test]
 fn advice_push_u64div() {
     // push a/b onto the advice stack and then move these values onto the operand stack.
-    let source = "begin adv.push_u64div adv_push.4 end";
+    let source = "begin adv.push_u64div adv_push.4 movupw.2 dropw end";
 
     // get two random 64-bit integers and split them into 32-bit limbs
     let a = rand_value::<u64>();
@@ -65,7 +65,11 @@ fn advice_push_u64div_repeat() {
     // - reads quotient from advice stack to the stack
     // - push 2_u64 to the stack divided into 2 32 bit limbs
     // Finally the first 2 elements of the stack are removed
-    let source = "begin
+    let source = format!(
+        "
+    {TRUNCATE_STACK_PROC}
+    
+    begin
         repeat.7
             adv.push_u64div
             drop drop
@@ -74,7 +78,10 @@ fn advice_push_u64div_repeat() {
             push.0
         end
         drop drop
-    end";
+
+        exec.truncate_stack
+    end"
+    );
 
     let mut a = 256;
     let a_hi = 0;
@@ -103,7 +110,16 @@ fn advice_push_u64div_repeat() {
 #[test]
 fn advice_push_u64div_local_procedure() {
     // push a/b onto the advice stack and then move these values onto the operand stack.
-    let source = "proc.foo adv.push_u64div adv_push.4 end begin exec.foo end";
+    let source = "
+    proc.foo 
+        adv.push_u64div 
+        adv_push.4 
+    end 
+    
+    begin 
+        exec.foo 
+        movupw.2 dropw
+    end";
 
     // get two random 64-bit integers and split them into 32-bit limbs
     let a = rand_value::<u64>();
@@ -131,7 +147,18 @@ fn advice_push_u64div_local_procedure() {
 
 #[test]
 fn advice_push_u64div_conditional_execution() {
-    let source = "begin eq if.true adv.push_u64div adv_push.4 else padw end end";
+    let source = "
+    begin 
+        eq 
+        if.true 
+            adv.push_u64div 
+            adv_push.4 
+        else 
+            padw 
+        end 
+
+        movupw.2 dropw
+    end";
 
     // if branch
     let test = build_test!(source, &[8, 0, 4, 0, 1, 1]);
@@ -202,16 +229,17 @@ fn advice_insert_mem() {
 #[test]
 fn advice_push_mapval() {
     // --- test simple adv.mapval ---------------------------------------------
-    let source: &str = "begin
-    # stack: [4, 3, 2, 1, ...]
+    let source: &str = "
+    begin
+        # stack: [4, 3, 2, 1, ...]
 
-    # load the advice stack with values from the advice map and drop the key
-    adv.push_mapval
-    dropw
+        # load the advice stack with values from the advice map and drop the key
+        adv.push_mapval
+        dropw
 
-    # move the values from the advice stack to the operand stack
-    adv_push.4
-
+        # move the values from the advice stack to the operand stack
+        adv_push.4
+        swapw dropw
     end";
 
     let stack_inputs = [1, 2, 3, 4];
@@ -224,19 +252,20 @@ fn advice_push_mapval() {
     test.expect_stack(&[5, 6, 7, 8]);
 
     // --- test adv.mapval with offset ----------------------------------------
-    let source: &str = "begin
-    # stack: [4, 3, 2, 1, ...]
+    let source: &str = "
+    begin
+        # stack: [4, 3, 2, 1, ...]
 
-    # shift the key on the stack by 2 slots
-    push.0 push.0
+        # shift the key on the stack by 2 slots
+        push.0 push.0
 
-    # load the advice stack with values from the advice map and drop the key
-    adv.push_mapval.2
-    dropw drop drop
+        # load the advice stack with values from the advice map and drop the key
+        adv.push_mapval.2
+        dropw drop drop
 
-    # move the values from the advice stack to the operand stack
-    adv_push.4
-
+        # move the values from the advice stack to the operand stack
+        adv_push.4
+        swapw dropw
     end";
 
     let stack_inputs = [1, 2, 3, 4];
@@ -249,17 +278,18 @@ fn advice_push_mapval() {
     test.expect_stack(&[5, 6, 7, 8]);
 
     // --- test simple adv.mapvaln --------------------------------------------
-    let source: &str = "begin
-    # stack: [4, 3, 2, 1, ...]
+    let source: &str = "
+    begin
+        # stack: [4, 3, 2, 1, ...]
 
-    # load the advice stack with values from the advice map (including the number
-    # of elements) and drop the key
-    adv.push_mapvaln
-    dropw
+        # load the advice stack with values from the advice map (including the number
+        # of elements) and drop the key
+        adv.push_mapvaln
+        dropw
 
-    # move the values from the advice stack to the operand stack
-    adv_push.6
-
+        # move the values from the advice stack to the operand stack
+        adv_push.6
+        swapdw dropw dropw
     end";
 
     let stack_inputs = [1, 2, 3, 4];
@@ -272,20 +302,21 @@ fn advice_push_mapval() {
     test.expect_stack(&[15, 14, 13, 12, 11, 5]);
 
     // --- test adv.mapval with offset ----------------------------------------
-    let source: &str = "begin
-    # stack: [4, 3, 2, 1, ...]
+    let source: &str = "
+    begin
+        # stack: [4, 3, 2, 1, ...]
 
-    # shift the key on the stack by 2 slots
-    push.0 push.0
+        # shift the key on the stack by 2 slots
+        push.0 push.0
 
-    # load the advice stack with values from the advice map (including the number
-    # of elements) and drop the key
-    adv.push_mapvaln.2
-    dropw drop drop
+        # load the advice stack with values from the advice map (including the number
+        # of elements) and drop the key
+        adv.push_mapvaln.2
+        dropw drop drop
 
-    # move the values from the advice stack to the operand stack
-    adv_push.6
-
+        # move the values from the advice stack to the operand stack
+        adv_push.6
+        swapdw dropw dropw
     end";
 
     let stack_inputs = [1, 2, 3, 4];
@@ -301,49 +332,51 @@ fn advice_push_mapval() {
 #[test]
 fn advice_insert_hdword() {
     // --- test hashing without domain ----------------------------------------
-    let source: &str = "begin
-    # stack: [1, 2, 3, 4, 5, 6, 7, 8, ...]
+    let source: &str = "
+    begin
+        # stack: [1, 2, 3, 4, 5, 6, 7, 8, ...]
 
-    # hash and insert top two words into the advice map
-    adv.insert_hdword
+        # hash and insert top two words into the advice map
+        adv.insert_hdword
 
-    # manually compute the hash of the two words
-    hmerge
-    # => [KEY, ...]
+        # manually compute the hash of the two words
+        hmerge
+        # => [KEY, ...]
 
-    # load the advice stack with values from the advice map and drop the key
-    adv.push_mapval
-    dropw
+        # load the advice stack with values from the advice map and drop the key
+        adv.push_mapval
+        dropw
 
-    # move the values from the advice stack to the operand stack
-    adv_push.8
-
+        # move the values from the advice stack to the operand stack
+        adv_push.8
+        swapdw dropw dropw
     end";
     let stack_inputs = [8, 7, 6, 5, 4, 3, 2, 1];
     let test = build_test!(source, &stack_inputs);
     test.expect_stack(&[1, 2, 3, 4, 5, 6, 7, 8]);
 
     // --- test hashing with domain -------------------------------------------
-    let source: &str = "begin
-    # stack: [1, 2, 3, 4, 5, 6, 7, 8, ...]
+    let source: &str = "
+    begin
+        # stack: [1, 2, 3, 4, 5, 6, 7, 8, ...]
 
-    # hash and insert top two words into the advice map
-    adv.insert_hdword.3
+        # hash and insert top two words into the advice map
+        adv.insert_hdword.3
 
-    # manually compute the hash of the two words
-    push.0.3.0.0
-    swapw.2 swapw
-    hperm
-    dropw swapw dropw
-    # => [KEY, ...]
+        # manually compute the hash of the two words
+        push.0.3.0.0
+        swapw.2 swapw
+        hperm
+        dropw swapw dropw
+        # => [KEY, ...]
 
-    # load the advice stack with values from the advice map and drop the key
-    adv.push_mapval
-    dropw
+        # load the advice stack with values from the advice map and drop the key
+        adv.push_mapval
+        dropw
 
-    # move the values from the advice stack to the operand stack
-    adv_push.8
-
+        # move the values from the advice stack to the operand stack
+        adv_push.8
+        swapdw dropw dropw
     end";
     let stack_inputs = [8, 7, 6, 5, 4, 3, 2, 1];
     let test = build_test!(source, &stack_inputs);

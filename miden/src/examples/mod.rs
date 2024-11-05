@@ -76,8 +76,12 @@ pub enum ExampleType {
 
 impl ExampleOptions {
     pub fn get_proof_options(&self) -> Result<ProvingOptions, ExecutionOptionsError> {
-        let exec_options =
-            ExecutionOptions::new(Some(self.max_cycles), self.expected_cycles, self.tracing)?;
+        let exec_options = ExecutionOptions::new(
+            Some(self.max_cycles),
+            self.expected_cycles,
+            self.tracing,
+            false,
+        )?;
         Ok(match self.security.as_str() {
             "96bits" => {
                 if self.rpx {

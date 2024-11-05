@@ -1,6 +1,7 @@
-use vm_core::{AdviceInjector, Operation::*};
+use vm_core::{AdviceInjector, Felt, Operation::*};
 
 use super::BasicBlockBuilder;
+use crate::AssemblyError;
 
 // HASHING
 // ================================================================================================
@@ -15,26 +16,27 @@ use super::BasicBlockBuilder;
 /// To perform the operation we do the following:
 /// 1. Prepare the stack with 12 elements for HPERM by pushing 4 more elements for the capacity,
 ///    then reordering the stack and pushing an additional 4 elements so that the stack looks like:
-///    [0, 0, 0, 1, a3, a2, a1, a0, 0, 0, 0, 1, ...].  The first capacity element is set to ONE as
-///    we are hashing a number of elements which is not a multiple of the rate width. We also set
-///    the next element in the rate after `A` to ONE.  All other capacity and rate elements are set
-///    to ZERO, in accordance with the RPO rules.
+///    [0, 0, 0, 0, a3, a2, a1, a0, 0, 0, 0, 4, ...].  The first capacity element is set to Felt(4)
+///    as we are hashing a number of elements which is equal to 4 modulo the rate width, while the
+///    other capacity elements are set to ZERO. A sequence of 4 ZERO elements is used as padding.
+///    The padding rule used follows the one described in this [work](https://eprint.iacr.org/2023/1045).
 /// 2. Append the HPERM operation, which performs a permutation of RPO on the top 12 elements and
 ///    leaves the an output of [D, C, B, ...] on the stack.  C is our 1-to-1 has result.
 /// 3. Drop D and B to achieve our result [C, ...]
 ///
 /// This operation takes 20 VM cycles.
-pub(super) fn hash(span: &mut BasicBlockBuilder) {
+pub(super) fn hash(block_builder: &mut BasicBlockBuilder) {
     #[rustfmt::skip]
     let ops = [
-        // add 4 elements to the stack to be used as the capacity elements for the RPO permutation
-        Pad, Incr, Pad, Pad, Pad,
+        // add 4 elements to the stack to be used as the capacity elements for the RPO permutation.
+        // Since we are hashing 4 field elements, the first capacity element is set to 4.
+        Push(Felt::from(4_u32)), Pad, Pad, Pad,
 
         // swap capacity elements such that they are below the elements to be hashed
         SwapW,
 
-        // Duplicate capacity elements in the rate portion of the stack
-        Dup7, Dup7, Dup7, Dup7,
+        // add 4 ZERO elements for the second half of the rate portion
+        Pad, Dup7, Dup7, Dup7,
 
         // Apply a hashing permutation on the top 12 elements in the stack
         HPerm,
@@ -48,7 +50,7 @@ pub(super) fn hash(span: &mut BasicBlockBuilder) {
         // Drop 4 elements (the capacity portion)
         Drop, Drop, Drop, Drop,
     ];
-    span.push_ops(ops);
+    block_builder.push_ops(ops);
 }
 
 /// Appends HPERM and stack manipulation operations to the span block as required to compute a
@@ -70,7 +72,7 @@ pub(super) fn hash(span: &mut BasicBlockBuilder) {
 /// 4. Drop F and D to return our result [E, ...].
 ///
 /// This operation takes 16 VM cycles.
-pub(super) fn hmerge(span: &mut BasicBlockBuilder) {
+pub(super) fn hmerge(block_builder: &mut BasicBlockBuilder) {
     #[rustfmt::skip]
     let ops = [
         // Add 4 elements to the stack to prepare the capacity portion for the RPO permutation
@@ -93,7 +95,7 @@ pub(super) fn hmerge(span: &mut BasicBlockBuilder) {
         // Drop 4 elements (the capacity portion)
         Drop, Drop, Drop, Drop,
     ];
-    span.push_ops(ops);
+    block_builder.push_ops(ops);
 }
 
 // MERKLE TREES
@@ -111,10 +113,10 @@ pub(super) fn hmerge(span: &mut BasicBlockBuilder) {
 /// - root of the tree, 4 elements.
 ///
 /// This operation takes 9 VM cycles.
-pub(super) fn mtree_get(span: &mut BasicBlockBuilder) {
+pub(super) fn mtree_get(block_builder: &mut BasicBlockBuilder) -> Result<(), AssemblyError> {
     // stack: [d, i, R, ...]
     // pops the value of the node we are looking for from the advice stack
-    read_mtree_node(span);
+    read_mtree_node(block_builder)?;
     #[rustfmt::skip]
     let ops = [
         // verify the node V for root R with depth d and index i
@@ -125,7 +127,9 @@ pub(super) fn mtree_get(span: &mut BasicBlockBuilder) {
         // no longer needed => [V, R, ...]
         MovUp4, Drop, MovUp4, Drop,
     ];
-    span.push_ops(ops);
+    block_builder.push_ops(ops);
+
+    Ok(())
 }
 
 /// Appends the MRUPDATE op with a parameter of "false" and stack manipulations to the span block
@@ -141,11 +145,11 @@ pub(super) fn mtree_get(span: &mut BasicBlockBuilder) {
 /// - new root of the tree after the update, 4 elements
 ///
 /// This operation takes 29 VM cycles.
-pub(super) fn mtree_set(span: &mut BasicBlockBuilder) {
+pub(super) fn mtree_set(block_builder: &mut BasicBlockBuilder) -> Result<(), AssemblyError> {
     // stack: [d, i, R_old, V_new, ...]
 
     // stack: [V_old, R_new, ...] (29 cycles)
-    update_mtree(span);
+    update_mtree(block_builder)
 }
 
 /// Creates a new Merkle tree in the advice provider by combining trees with the specified roots.
@@ -161,16 +165,18 @@ pub(super) fn mtree_set(span: &mut BasicBlockBuilder) {
 /// It is not checked whether the provided roots exist as Merkle trees in the advide providers.
 ///
 /// This operation takes 16 VM cycles.
-pub(super) fn mtree_merge(span: &mut BasicBlockBuilder) {
+pub(super) fn mtree_merge(block_builder: &mut BasicBlockBuilder) -> Result<(), AssemblyError> {
     // stack input:  [R_rhs, R_lhs, ...]
     // stack output: [R_merged, ...]
 
     // invoke the advice provider function to merge 2 Merkle trees defined by the roots on the top
     // of the operand stack
-    span.push_advice_injector(AdviceInjector::MerkleNodeMerge);
+    block_builder.push_advice_injector(AdviceInjector::MerkleNodeMerge)?;
 
     // perform the `hmerge`, updating the operand stack
-    hmerge(span);
+    hmerge(block_builder);
+
+    Ok(())
 }
 
 // MERKLE TREES - HELPERS
@@ -193,31 +199,33 @@ pub(super) fn mtree_merge(span: &mut BasicBlockBuilder) {
 /// - new value of the node, 4 elements (only in the case of mtree_set)
 ///
 /// This operation takes 4 VM cycles.
-fn read_mtree_node(span: &mut BasicBlockBuilder) {
+fn read_mtree_node(block_builder: &mut BasicBlockBuilder) -> Result<(), AssemblyError> {
     // The stack should be arranged in the following way: [d, i, R, ...] so that the decorator
     // can fetch the node value from the root. In the `mtree.get` operation we have the stack in
     // the following format: [d, i, R], whereas in the case of `mtree.set` we would also have the
     // new node value post the tree root: [d, i, R, V_new]
     //
     // pops the value of the node we are looking for from the advice stack
-    span.push_advice_injector(AdviceInjector::MerkleNodeToStack);
+    block_builder.push_advice_injector(AdviceInjector::MerkleNodeToStack)?;
 
     // pops the old node value from advice the stack => MPVERIFY: [V_old, d, i, R, ...]
     // MRUPDATE: [V_old, d, i, R, V_new, ...]
-    span.push_op_many(AdvPop, 4);
+    block_builder.push_op_many(AdvPop, 4);
+
+    Ok(())
 }
 
 /// Update a node in the merkle tree. This operation will always copy the tree into a new instance,
 /// and perform the mutation on the copied tree.
 ///
 /// This operation takes 29 VM cycles.
-fn update_mtree(span: &mut BasicBlockBuilder) {
+fn update_mtree(block_builder: &mut BasicBlockBuilder) -> Result<(), AssemblyError> {
     // stack: [d, i, R_old, V_new, ...]
     // output: [R_new, R_old, V_new, V_old, ...]
 
     // Inject the old node value onto the stack for the call to MRUPDATE.
     // stack: [V_old, d, i, R_old, V_new, ...] (4 cycles)
-    read_mtree_node(span);
+    read_mtree_node(block_builder)?;
 
     #[rustfmt::skip]
     let ops = [
@@ -279,5 +287,7 @@ fn update_mtree(span: &mut BasicBlockBuilder) {
     ];
 
     // stack: [V_old, R_new, ...] (25 cycles)
-    span.push_ops(ops);
+    block_builder.push_ops(ops);
+
+    Ok(())
 }

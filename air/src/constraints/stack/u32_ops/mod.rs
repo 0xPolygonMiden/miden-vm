@@ -232,8 +232,10 @@ pub fn enforce_u32madd_constraints<E: FieldElement<BaseField = Felt>>(
     1
 }
 
-/// Enforces constraints of the U32DIV operation. The U32DIV operation divides the second element
-/// with the first element in the current trace. Therefore, the following constraints are enforced:
+/// Enforces constraints of the U32DIV operation.
+///
+/// The U32DIV operation divides the second element with the first element in the current trace.
+/// Therefore, the following constraints are enforced:
 /// - The second element in the current trace should be equal to the sum of the first element in the
 ///   next trace with the product of the first element in the current trace and second element in
 ///   the next trace.

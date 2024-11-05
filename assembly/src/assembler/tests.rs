@@ -1,5 +1,12 @@
+use alloc::vec::Vec;
+
 use pretty_assertions::assert_eq;
-use vm_core::{assert_matches, mast::MastForest, Program};
+use vm_core::{
+    assert_matches,
+    crypto::hash::RpoDigest,
+    mast::{MastForest, MastNode},
+    Program,
+};
 
 use super::{Assembler, Operation};
 use crate::{
@@ -142,7 +149,9 @@ fn nested_blocks() -> Result<(), Report> {
         .join_nodes(vec![before, r#if1, nested, exec_foo_bar_baz_node_id, syscall_foo_node_id])
         .unwrap();
 
-    let expected_program = Program::new(expected_mast_forest_builder.build().0, combined_node_id);
+    let mut expected_mast_forest = expected_mast_forest_builder.build().0;
+    expected_mast_forest.make_root(combined_node_id);
+    let expected_program = Program::new(expected_mast_forest.into(), combined_node_id);
     assert_eq!(expected_program.hash(), program.hash());
 
     // also check that the program has the right number of procedures (which excludes the dummy
@@ -152,8 +161,41 @@ fn nested_blocks() -> Result<(), Report> {
     Ok(())
 }
 
-/// Ensures that a single copy of procedures with the same MAST root are added only once to the MAST
-/// forest.
+/// Ensures that the arguments of `emit` do indeed modify the digest of a basic block
+#[test]
+fn emit_instruction_digest() {
+    let context = TestContext::new();
+
+    let program_source = r#"
+        proc.foo
+            emit.1
+        end
+
+        proc.bar
+            emit.2
+        end
+
+        begin
+            # specific impl irrelevant
+            exec.foo
+            exec.bar
+        end
+    "#;
+
+    let program = context.assemble(program_source).unwrap();
+
+    let procedure_digests: Vec<RpoDigest> = program.mast_forest().procedure_digests().collect();
+
+    // foo, bar and entrypoint
+    assert_eq!(3, procedure_digests.len());
+
+    // Ensure that foo, bar and entrypoint all have different digests
+    assert_ne!(procedure_digests[0], procedure_digests[1]);
+    assert_ne!(procedure_digests[0], procedure_digests[2]);
+    assert_ne!(procedure_digests[1], procedure_digests[2]);
+}
+
+/// Since `foo` and `bar` have the same body, we only expect them to be added once to the program.
 #[test]
 fn duplicate_procedure() {
     let context = TestContext::new();
@@ -180,6 +222,38 @@ fn duplicate_procedure() {
     assert_eq!(program.num_procedures(), 2);
 }
 
+#[test]
+fn distinguish_grandchildren_correctly() {
+    let context = TestContext::new();
+
+    let program_source = r#"
+    begin
+        if.true
+            while.true
+                trace.1234
+                push.1
+            end
+        end
+        
+        if.true
+            while.true
+                push.1
+            end
+        end
+    end
+    "#;
+
+    let program = context.assemble(program_source).unwrap();
+
+    let join_node = match &program.mast_forest()[program.entrypoint()] {
+        MastNode::Join(node) => node,
+        _ => panic!("expected join node"),
+    };
+
+    // Make sure that both `if.true` blocks compile down to a different MAST node.
+    assert_ne!(join_node.first(), join_node.second());
+}
+
 /// Ensures that equal MAST nodes don't get added twice to a MAST forest
 #[test]
 fn duplicate_nodes() {
@@ -199,10 +273,8 @@ fn duplicate_nodes() {
 
     let mut expected_mast_forest = MastForest::new();
 
-    // basic block: mul
     let mul_basic_block_id = expected_mast_forest.add_block(vec![Operation::Mul], None).unwrap();
 
-    // basic block: add
     let add_basic_block_id = expected_mast_forest.add_block(vec![Operation::Add], None).unwrap();
 
     // inner split: `if.true add else mul end`
@@ -214,9 +286,9 @@ fn duplicate_nodes() {
 
     expected_mast_forest.make_root(root_id);
 
-    let expected_program = Program::new(expected_mast_forest, root_id);
+    let expected_program = Program::new(expected_mast_forest.into(), root_id);
 
-    assert_eq!(program, expected_program);
+    assert_eq!(expected_program, program);
 }
 
 #[test]

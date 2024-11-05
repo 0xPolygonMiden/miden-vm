@@ -35,12 +35,11 @@ where
     /// Thus, the net result of the operation is that the stack is shifted left by one item.
     pub(super) fn op_mloadw(&mut self) -> Result<(), ExecutionError> {
         // get the address from the stack and read the word from current memory context
-        let ctx = self.system.ctx();
-        let addr = Self::get_valid_address(self.stack.get(0))?;
-        let word = self.chiplets.read_mem(ctx, addr);
+        let mut word = self.read_mem_word(self.stack.get(0))?;
+        word.reverse();
 
-        // reverse the order of the memory word & update the stack state
-        for (i, &value) in word.iter().rev().enumerate() {
+        // update the stack state
+        for (i, &value) in word.iter().enumerate() {
             self.stack.set(i, value);
         }
         self.stack.shift_left(5);
@@ -62,10 +61,7 @@ where
     /// register 0.
     pub(super) fn op_mload(&mut self) -> Result<(), ExecutionError> {
         // get the address from the stack and read the word from memory
-        let ctx = self.system.ctx();
-        let addr = Self::get_valid_address(self.stack.get(0))?;
-        let mut word = self.chiplets.read_mem(ctx, addr);
-        // put the retrieved word into stack order
+        let mut word = self.read_mem_word(self.stack.get(0))?;
         word.reverse();
 
         // update the stack state
@@ -252,6 +248,15 @@ where
     // HELPER FUNCTIONS
     // --------------------------------------------------------------------------------------------
 
+    /// Returns the memory word at address `addr` in the current context.
+    pub(crate) fn read_mem_word(&mut self, addr: Felt) -> Result<Word, ExecutionError> {
+        let ctx = self.system.ctx();
+        let mem_addr = Self::get_valid_address(addr)?;
+        let word_at_addr = self.chiplets.read_mem(ctx, mem_addr);
+
+        Ok(word_at_addr)
+    }
+
     /// Checks that provided address is less than u32::MAX and returns it cast to u32.
     ///
     /// # Errors
@@ -273,7 +278,7 @@ mod tests {
     use vm_core::{utils::ToElements, Word, ONE, ZERO};
 
     use super::{
-        super::{super::AdviceProvider, Operation, STACK_TOP_SIZE},
+        super::{super::AdviceProvider, Operation, MIN_STACK_DEPTH},
         Felt, Host, Process,
     };
     use crate::{AdviceSource, ContextId};
@@ -281,7 +286,7 @@ mod tests {
     #[test]
     fn op_push() {
         let mut process = Process::new_dummy_with_empty_stack();
-        assert_eq!(STACK_TOP_SIZE, process.stack.depth());
+        assert_eq!(MIN_STACK_DEPTH, process.stack.depth());
         assert_eq!(1, process.stack.current_clk());
         assert_eq!([ZERO; 16], process.stack.trace_state());
 
@@ -291,7 +296,7 @@ mod tests {
         let mut expected = [ZERO; 16];
         expected[0] = ONE;
 
-        assert_eq!(STACK_TOP_SIZE + 1, process.stack.depth());
+        assert_eq!(MIN_STACK_DEPTH + 1, process.stack.depth());
         assert_eq!(2, process.stack.current_clk());
         assert_eq!(expected, process.stack.trace_state());
 
@@ -302,7 +307,7 @@ mod tests {
         expected[0] = Felt::new(3);
         expected[1] = ONE;
 
-        assert_eq!(STACK_TOP_SIZE + 2, process.stack.depth());
+        assert_eq!(MIN_STACK_DEPTH + 2, process.stack.depth());
         assert_eq!(3, process.stack.current_clk());
         assert_eq!(expected, process.stack.trace_state());
     }

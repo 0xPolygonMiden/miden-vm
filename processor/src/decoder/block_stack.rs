@@ -19,17 +19,20 @@ impl BlockStack {
     /// Pushes a new code block onto the block stack and returns the address of the block's parent.
     ///
     /// The block is identified by its address, and we also need to know what type of a block this
-    /// is. Additionally, for CALL blocks, execution context info must be provided. Other
-    /// information (i.e., the block's parent, whether the block is a body of a loop or a first
-    /// child of a JOIN block) is determined from the information already on the stack.
+    /// is. Additionally, for CALL, SYSCALL and DYNCALL blocks, execution context info must be
+    /// provided. Other information (i.e., the block's parent, whether the block is a body of a loop
+    /// or a first child of a JOIN block) is determined from the information already on the stack.
     pub fn push(
         &mut self,
         addr: Felt,
         block_type: BlockType,
         ctx_info: Option<ExecutionContextInfo>,
     ) -> Felt {
-        // make sure execution context was provided for CALL and SYSCALL blocks
-        if block_type == BlockType::Call || block_type == BlockType::SysCall {
+        // make sure execution context was provided for CALL, SYSCALL and DYNCALL blocks
+        if block_type == BlockType::Call
+            || block_type == BlockType::SysCall
+            || block_type == BlockType::Dyncall
+        {
             debug_assert!(ctx_info.is_some(), "no execution context provided for a CALL block");
         } else {
             debug_assert!(ctx_info.is_none(), "execution context provided for a non-CALL block");
@@ -127,10 +130,10 @@ impl BlockInfo {
         }
     }
 
-    /// Returns ONE if this block is a CALL block; otherwise returns ZERO.
+    /// Returns ONE if this block is a CALL or DYNCALL block; otherwise returns ZERO.
     pub const fn is_call(&self) -> Felt {
         match self.block_type {
-            BlockType::Call => ONE,
+            BlockType::Call | BlockType::Dyncall => ONE,
             _ => ZERO,
         }
     }
@@ -194,6 +197,7 @@ pub enum BlockType {
     Loop(bool), // internal value set to false if the loop is never entered
     Call,
     Dyn,
+    Dyncall,
     SysCall,
     Span,
 }

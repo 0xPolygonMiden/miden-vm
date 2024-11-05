@@ -1,17 +1,19 @@
 use alloc::{
     collections::{BTreeMap, BTreeSet},
-    string::{String, ToString},
+    string::String,
+    sync::Arc,
     vec::Vec,
 };
 
 use vm_core::{
     crypto::hash::RpoDigest,
+    debuginfo::Span,
     mast::{MastForest, MastNodeId},
     utils::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable},
     Kernel,
 };
 
-use crate::ast::{ProcedureName, QualifiedProcedureName};
+use crate::ast::{Ident, ProcedureName, QualifiedProcedureName};
 
 mod error;
 mod module;
@@ -43,12 +45,18 @@ pub struct Library {
     /// The content hash of this library, formed by hashing the roots of all exports in
     /// lexicographical order (by digest, not procedure name)
     digest: RpoDigest,
-    /// A map between procedure paths and the corresponding procedure toots in the MAST forest.
+    /// A map between procedure paths and the corresponding procedure roots in the MAST forest.
     /// Multiple paths can map to the same root, and also, some roots may not be associated with
     /// any paths.
-    exports: BTreeMap<QualifiedProcedureName, Export>,
+    ///
+    /// Note that we use `MastNodeId` as an identifier for procedures instead of MAST root, since 2
+    /// different procedures with the same MAST root can be different due to the decorators they
+    /// contain. However, note that `MastNodeId` is also not a unique identifier for procedures; if
+    /// the procedures have the same MAST root and decorators, they will have the same
+    /// `MastNodeId`.
+    exports: BTreeMap<QualifiedProcedureName, MastNodeId>,
     /// The MAST forest underlying this library.
-    mast_forest: MastForest,
+    mast_forest: Arc<MastForest>,
 }
 
 impl AsRef<Library> for Library {
@@ -58,47 +66,32 @@ impl AsRef<Library> for Library {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
-#[repr(u8)]
-enum Export {
-    /// The export is contained in the [MastForest] of this library
-    Local(MastNodeId),
-    /// The export is a re-export of an externally-defined procedure from another library
-    External(RpoDigest),
-}
-
+// ------------------------------------------------------------------------------------------------
 /// Constructors
 impl Library {
     /// Constructs a new [`Library`] from the provided MAST forest and a set of exports.
+    ///
+    /// # Errors
+    /// Returns an error if any of the specified exports do not have a corresponding procedure root
+    /// in the provided MAST forest.
     pub fn new(
-        mast_forest: MastForest,
-        exports: BTreeMap<QualifiedProcedureName, RpoDigest>,
-    ) -> Self {
-        let mut fqn_to_export = BTreeMap::new();
-
-        // convert fqn |-> mast_root map into fqn |-> mast_node_id map
-        for (fqn, mast_root) in exports.into_iter() {
-            match mast_forest.find_procedure_root(mast_root) {
-                Some(node_id) => {
-                    fqn_to_export.insert(fqn, Export::Local(node_id));
-                },
-                None => {
-                    fqn_to_export.insert(fqn, Export::External(mast_root));
-                },
+        mast_forest: Arc<MastForest>,
+        exports: BTreeMap<QualifiedProcedureName, MastNodeId>,
+    ) -> Result<Self, LibraryError> {
+        for (fqn, &proc_body_id) in exports.iter() {
+            if !mast_forest.is_procedure_root(proc_body_id) {
+                return Err(LibraryError::NoProcedureRootForExport { procedure_path: fqn.clone() });
             }
         }
 
-        let digest = content_hash(&fqn_to_export, &mast_forest);
+        let digest = compute_content_hash(&exports, &mast_forest);
 
-        Self {
-            digest,
-            exports: fqn_to_export,
-            mast_forest,
-        }
+        Ok(Self { digest, exports, mast_forest })
     }
 }
 
-/// Accessors
+// ------------------------------------------------------------------------------------------------
+/// Public accessors
 impl Library {
     /// Returns the [RpoDigest] representing the content hash of this library
     pub fn digest(&self) -> &RpoDigest {
@@ -110,8 +103,29 @@ impl Library {
         self.exports.keys()
     }
 
-    /// Returns the inner [`MastForest`].
-    pub fn mast_forest(&self) -> &MastForest {
+    /// Returns the number of exports in this library.
+    pub fn num_exports(&self) -> usize {
+        self.exports.len()
+    }
+
+    /// Returns a MAST node ID associated with the specified exported procedure.
+    ///
+    /// # Panics
+    /// Panics if the specified procedure is not exported from this library.
+    pub fn get_export_node_id(&self, proc_name: &QualifiedProcedureName) -> MastNodeId {
+        *self.exports.get(proc_name).expect("procedure not exported from the library")
+    }
+
+    /// Returns true if the specified exported procedure is re-exported from a dependency.
+    pub fn is_reexport(&self, proc_name: &QualifiedProcedureName) -> bool {
+        self.exports
+            .get(proc_name)
+            .map(|&node_id| self.mast_forest[node_id].is_external())
+            .unwrap_or(false)
+    }
+
+    /// Returns a reference to the inner [`MastForest`].
+    pub fn mast_forest(&self) -> &Arc<MastForest> {
         &self.mast_forest
     }
 }
@@ -122,17 +136,17 @@ impl Library {
     pub fn module_infos(&self) -> impl Iterator<Item = ModuleInfo> {
         let mut modules_by_path: BTreeMap<LibraryPath, ModuleInfo> = BTreeMap::new();
 
-        for (proc_name, export) in self.exports.iter() {
+        for (proc_name, &proc_root_node_id) in self.exports.iter() {
             modules_by_path
                 .entry(proc_name.module.clone())
                 .and_modify(|compiled_module| {
-                    let proc_digest = export.digest(&self.mast_forest);
+                    let proc_digest = self.mast_forest[proc_root_node_id].digest();
                     compiled_module.add_procedure(proc_name.name.clone(), proc_digest);
                 })
                 .or_insert_with(|| {
                     let mut module_info = ModuleInfo::new(proc_name.module.clone());
 
-                    let proc_digest = export.digest(&self.mast_forest);
+                    let proc_digest = self.mast_forest[proc_root_node_id].digest();
                     module_info.add_procedure(proc_name.name.clone(), proc_digest);
 
                     module_info
@@ -143,12 +157,6 @@ impl Library {
     }
 }
 
-impl From<Library> for MastForest {
-    fn from(value: Library) -> Self {
-        value.mast_forest
-    }
-}
-
 impl Serializable for Library {
     fn write_into<W: ByteWriter>(&self, target: &mut W) {
         let Self { digest: _, exports, mast_forest } = self;
@@ -156,42 +164,43 @@ impl Serializable for Library {
         mast_forest.write_into(target);
 
         target.write_usize(exports.len());
-        for (proc_name, export) in exports {
+        for (proc_name, proc_node_id) in exports {
             proc_name.module.write_into(target);
             proc_name.name.as_str().write_into(target);
-            export.write_into(target);
+            target.write_u32(proc_node_id.as_u32());
         }
     }
 }
 
 impl Deserializable for Library {
     fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
-        let mast_forest = MastForest::read_from(source)?;
+        let mast_forest = Arc::new(MastForest::read_from(source)?);
 
         let num_exports = source.read_usize()?;
         let mut exports = BTreeMap::new();
         for _ in 0..num_exports {
             let proc_module = source.read()?;
             let proc_name: String = source.read()?;
-            let proc_name = ProcedureName::new(proc_name)
-                .map_err(|err| DeserializationError::InvalidValue(err.to_string()))?;
+            let proc_name = ProcedureName::new_unchecked(Ident::new_unchecked(Span::unknown(
+                Arc::from(proc_name),
+            )));
             let proc_name = QualifiedProcedureName::new(proc_module, proc_name);
-            let export = Export::read_with_forest(source, &mast_forest)?;
+            let proc_node_id = MastNodeId::from_u32_safe(source.read_u32()?, &mast_forest)?;
 
-            exports.insert(proc_name, export);
+            exports.insert(proc_name, proc_node_id);
         }
 
-        let digest = content_hash(&exports, &mast_forest);
+        let digest = compute_content_hash(&exports, &mast_forest);
 
         Ok(Self { digest, exports, mast_forest })
     }
 }
 
-fn content_hash(
-    exports: &BTreeMap<QualifiedProcedureName, Export>,
+fn compute_content_hash(
+    exports: &BTreeMap<QualifiedProcedureName, MastNodeId>,
     mast_forest: &MastForest,
 ) -> RpoDigest {
-    let digests = BTreeSet::from_iter(exports.values().map(|export| export.digest(mast_forest)));
+    let digests = BTreeSet::from_iter(exports.values().map(|&id| mast_forest[id].digest()));
     digests
         .into_iter()
         .reduce(|a, b| vm_core::crypto::hash::Rpo256::merge(&[a, b]))
@@ -254,10 +263,15 @@ mod use_std_library {
         /// For example, let's say I call this function like so:
         ///
         /// ```rust
+        /// use std::sync::Arc;
+        ///
+        /// use miden_assembly::{Assembler, Library, LibraryNamespace};
+        /// use vm_core::debuginfo::DefaultSourceManager;
+        ///
         /// Library::from_dir(
         ///     "~/masm/std",
-        ///     LibraryNamespace::new("std").unwrap()
-        ///     Arc::new(crate::DefaultSourceManager::default()),
+        ///     LibraryNamespace::new("std").unwrap(),
+        ///     Assembler::new(Arc::new(DefaultSourceManager::default())),
         /// );
         /// ```
         ///
@@ -295,58 +309,6 @@ mod use_std_library {
     }
 }
 
-impl Export {
-    pub fn digest(&self, mast_forest: &MastForest) -> RpoDigest {
-        match self {
-            Self::Local(node_id) => mast_forest[*node_id].digest(),
-            Self::External(digest) => *digest,
-        }
-    }
-
-    fn tag(&self) -> u8 {
-        // SAFETY: This is safe because we have given this enum a primitive representation with
-        // #[repr(u8)], with the first field of the underlying union-of-structs the discriminant.
-        //
-        // See the section on "accessing the numeric value of the discriminant"
-        // here: https://doc.rust-lang.org/std/mem/fn.discriminant.html
-        unsafe { *<*const _>::from(self).cast::<u8>() }
-    }
-}
-
-impl Serializable for Export {
-    fn write_into<W: ByteWriter>(&self, target: &mut W) {
-        target.write_u8(self.tag());
-        match self {
-            Self::Local(node_id) => target.write_u32(node_id.into()),
-            Self::External(digest) => digest.write_into(target),
-        }
-    }
-}
-
-impl Export {
-    pub fn read_with_forest<R: ByteReader>(
-        source: &mut R,
-        mast_forest: &MastForest,
-    ) -> Result<Self, DeserializationError> {
-        match source.read_u8()? {
-            0 => {
-                let node_id = MastNodeId::from_u32_safe(source.read_u32()?, mast_forest)?;
-                if !mast_forest.is_procedure_root(node_id) {
-                    return Err(DeserializationError::InvalidValue(format!(
-                        "node with id {node_id} is not a procedure root"
-                    )));
-                }
-                Ok(Self::Local(node_id))
-            },
-            1 => RpoDigest::read_from(source).map(Self::External),
-            n => Err(DeserializationError::InvalidValue(format!(
-                "{} is not a valid compiled library export entry",
-                n
-            ))),
-        }
-    }
-}
-
 // KERNEL LIBRARY
 // ================================================================================================
 
@@ -356,7 +318,7 @@ impl Export {
 /// - All exported procedures must be exported directly from the kernel namespace (i.e., `#sys`).
 /// - There must be at least one exported procedure.
 /// - The number of exported procedures cannot exceed [Kernel::MAX_NUM_PROCEDURES] (i.e., 256).
-#[derive(Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct KernelLibrary {
     kernel: Kernel,
     kernel_info: ModuleInfo,
@@ -376,13 +338,13 @@ impl KernelLibrary {
         &self.kernel
     }
 
-    /// Returns the inner [`MastForest`].
-    pub fn mast_forest(&self) -> &MastForest {
+    /// Returns a reference to the inner [`MastForest`].
+    pub fn mast_forest(&self) -> &Arc<MastForest> {
         self.library.mast_forest()
     }
 
     /// Destructures this kernel library into individual parts.
-    pub fn into_parts(self) -> (Kernel, ModuleInfo, MastForest) {
+    pub fn into_parts(self) -> (Kernel, ModuleInfo, Arc<MastForest>) {
         (self.kernel, self.kernel_info, self.library.mast_forest)
     }
 }
@@ -400,7 +362,7 @@ impl TryFrom<Library> for KernelLibrary {
 
         let mut kernel_module = ModuleInfo::new(kernel_path.clone());
 
-        for (proc_path, export) in library.exports.iter() {
+        for (proc_path, &proc_node_id) in library.exports.iter() {
             // make sure all procedures are exported only from the kernel root
             if proc_path.module != kernel_path {
                 return Err(LibraryError::InvalidKernelExport {
@@ -408,7 +370,7 @@ impl TryFrom<Library> for KernelLibrary {
                 });
             }
 
-            let proc_digest = export.digest(&library.mast_forest);
+            let proc_digest = library.mast_forest[proc_node_id].digest();
             proc_digests.push(proc_digest);
             kernel_module.add_procedure(proc_path.name.clone(), proc_digest);
         }
@@ -420,12 +382,6 @@ impl TryFrom<Library> for KernelLibrary {
             kernel_info: kernel_module,
             library,
         })
-    }
-}
-
-impl From<KernelLibrary> for MastForest {
-    fn from(value: KernelLibrary) -> Self {
-        value.library.mast_forest
     }
 }
 

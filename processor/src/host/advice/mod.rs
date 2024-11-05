@@ -718,7 +718,7 @@ pub trait AdviceProvider: Sized {
         R: Borrow<RpoDigest>;
 }
 
-impl<'a, T> AdviceProvider for &'a mut T
+impl<T> AdviceProvider for &mut T
 where
     T: AdviceProvider,
 {

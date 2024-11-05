@@ -1,6 +1,9 @@
 use alloc::{borrow::Borrow, string::ToString, vec::Vec};
 
-use vm_core::{mast::MastNodeId, AdviceInjector, AssemblyOp, Decorator, Operation};
+use vm_core::{
+    mast::{DecoratorId, MastNodeId},
+    AdviceInjector, AssemblyOp, Decorator, Operation,
+};
 
 use super::{mast_forest_builder::MastForestBuilder, BodyWrapper, DecoratorList, ProcedureContext};
 use crate::{ast::Instruction, AssemblyError, Span};
@@ -17,36 +20,60 @@ use crate::{ast::Instruction, AssemblyError, Span};
 /// The same basic block builder can be used to construct many blocks. It is expected that when the
 /// last basic block in a procedure's body is constructed [`Self::try_into_basic_block`] will be
 /// used.
-#[derive(Default)]
-pub struct BasicBlockBuilder {
+#[derive(Debug)]
+pub struct BasicBlockBuilder<'a> {
     ops: Vec<Operation>,
     decorators: DecoratorList,
     epilogue: Vec<Operation>,
     last_asmop_pos: usize,
+    mast_forest_builder: &'a mut MastForestBuilder,
 }
 
 /// Constructors
-impl BasicBlockBuilder {
+impl<'a> BasicBlockBuilder<'a> {
     /// Returns a new [`BasicBlockBuilder`] instantiated with the specified optional wrapper.
     ///
     /// If the wrapper is provided, the prologue of the wrapper is immediately appended to the
     /// vector of span operations. The epilogue of the wrapper is appended to the list of operations
     /// upon consumption of the builder via the [`Self::try_into_basic_block`] method.
-    pub(super) fn new(wrapper: Option<BodyWrapper>) -> Self {
+    pub(super) fn new(
+        wrapper: Option<BodyWrapper>,
+        mast_forest_builder: &'a mut MastForestBuilder,
+    ) -> Self {
         match wrapper {
             Some(wrapper) => Self {
                 ops: wrapper.prologue,
                 decorators: Vec::new(),
                 epilogue: wrapper.epilogue,
                 last_asmop_pos: 0,
+                mast_forest_builder,
             },
-            None => Self::default(),
+            None => Self {
+                ops: Default::default(),
+                decorators: Default::default(),
+                epilogue: Default::default(),
+                last_asmop_pos: 0,
+                mast_forest_builder,
+            },
         }
     }
 }
 
+/// Accessors
+impl BasicBlockBuilder<'_> {
+    /// Returns a reference to the internal [`MastForestBuilder`].
+    pub fn mast_forest_builder(&self) -> &MastForestBuilder {
+        self.mast_forest_builder
+    }
+
+    /// Returns a mutable reference to the internal [`MastForestBuilder`].
+    pub fn mast_forest_builder_mut(&mut self) -> &mut MastForestBuilder {
+        self.mast_forest_builder
+    }
+}
+
 /// Operations
-impl BasicBlockBuilder {
+impl BasicBlockBuilder<'_> {
     /// Adds the specified operation to the list of basic block operations.
     pub fn push_op(&mut self, op: Operation) {
         self.ops.push(op);
@@ -69,15 +96,18 @@ impl BasicBlockBuilder {
 }
 
 /// Decorators
-impl BasicBlockBuilder {
+impl BasicBlockBuilder<'_> {
     /// Add the specified decorator to the list of basic block decorators.
-    pub fn push_decorator(&mut self, decorator: Decorator) {
-        self.decorators.push((self.ops.len(), decorator));
+    pub fn push_decorator(&mut self, decorator: Decorator) -> Result<(), AssemblyError> {
+        let decorator_id = self.mast_forest_builder.ensure_decorator(decorator)?;
+        self.decorators.push((self.ops.len(), decorator_id));
+
+        Ok(())
     }
 
     /// Adds the specified advice injector to the list of basic block decorators.
-    pub fn push_advice_injector(&mut self, injector: AdviceInjector) {
-        self.push_decorator(Decorator::Advice(injector));
+    pub fn push_advice_injector(&mut self, injector: AdviceInjector) -> Result<(), AssemblyError> {
+        self.push_decorator(Decorator::Advice(injector))
     }
 
     /// Adds an AsmOp decorator to the list of basic block decorators.
@@ -88,7 +118,7 @@ impl BasicBlockBuilder {
         &mut self,
         instruction: &Span<Instruction>,
         proc_ctx: &ProcedureContext,
-    ) {
+    ) -> Result<(), AssemblyError> {
         let span = instruction.span();
         let location = proc_ctx.source_manager().location(span).ok();
         let context_name = proc_ctx.name().to_string();
@@ -96,8 +126,10 @@ impl BasicBlockBuilder {
         let op = instruction.to_string();
         let should_break = instruction.should_break();
         let op = AssemblyOp::new(location, context_name, num_cycles, op, should_break);
-        self.push_decorator(Decorator::AsmOp(op));
+        self.push_decorator(Decorator::AsmOp(op))?;
         self.last_asmop_pos = self.decorators.len() - 1;
+
+        Ok(())
     }
 
     /// Computes the number of cycles elapsed since the last invocation of track_instruction()
@@ -108,8 +140,10 @@ impl BasicBlockBuilder {
     /// call, and syscall.
     pub fn set_instruction_cycle_count(&mut self) {
         // get the last asmop decorator and the cycle at which it was added
-        let (op_start, assembly_op) =
+        let (op_start, assembly_op_id) =
             self.decorators.get_mut(self.last_asmop_pos).expect("no asmop decorator");
+
+        let assembly_op = &mut self.mast_forest_builder[*assembly_op_id];
         assert!(matches!(assembly_op, Decorator::AsmOp(_)));
 
         // compute the cycle count for the instruction
@@ -125,45 +159,77 @@ impl BasicBlockBuilder {
 }
 
 /// Span Constructors
-impl BasicBlockBuilder {
-    /// Creates and returns a new BASIC BLOCK node from the operations and decorators currently in
-    /// this builder. If the builder is empty, then no node is created and `None` is returned.
+impl BasicBlockBuilder<'_> {
+    /// Creates and returns a new basic block node from the operations and decorators currently in
+    /// this builder.
     ///
-    /// This consumes all operations and decorators in the builder, but does not touch the
-    /// operations in the epilogue of the builder.
-    pub fn make_basic_block(
-        &mut self,
-        mast_forest_builder: &mut MastForestBuilder,
-    ) -> Result<Option<MastNodeId>, AssemblyError> {
+    /// If there are no operations however, then no node is created, the decorators are left
+    /// untouched and `None` is returned. Use [`Self::drain_decorators`] to retrieve the decorators
+    /// in this case.
+    ///
+    /// This consumes all operations in the builder, but does not touch the operations in the
+    /// epilogue of the builder.
+    pub fn make_basic_block(&mut self) -> Result<Option<MastNodeId>, AssemblyError> {
         if !self.ops.is_empty() {
             let ops = self.ops.drain(..).collect();
-            let decorators = self.decorators.drain(..).collect();
+            let decorators = if !self.decorators.is_empty() {
+                Some(self.decorators.drain(..).collect())
+            } else {
+                None
+            };
 
-            let basic_block_node_id = mast_forest_builder.ensure_block(ops, Some(decorators))?;
+            let basic_block_node_id = self.mast_forest_builder.ensure_block(ops, decorators)?;
 
             Ok(Some(basic_block_node_id))
-        } else if !self.decorators.is_empty() {
-            // this is a bug in the assembler. we shouldn't have decorators added without their
-            // associated operations
-            // TODO: change this to an error or allow decorators in empty span blocks
-            unreachable!("decorators in an empty SPAN block")
         } else {
             Ok(None)
         }
     }
 
-    /// Creates and returns a new BASIC BLOCK node from the operations and decorators currently in
-    /// this builder. If the builder is empty, then no node is created and `None` is returned.
+    /// Creates and returns a new basic block node from the operations and decorators currently in
+    /// this builder. If there are no operations however, we return the decorators that were
+    /// accumulated up until this point. If the builder is empty, then no node is created and
+    /// `Nothing` is returned.
     ///
-    /// The main differences with [`Self::to_basic_block`] are:
+    /// The main differences with [`Self::make_basic_block`] are:
     /// - Operations contained in the epilogue of the builder are appended to the list of ops which
     ///   go into the new BASIC BLOCK node.
     /// - The builder is consumed in the process.
-    pub fn try_into_basic_block(
-        mut self,
-        mast_forest_builder: &mut MastForestBuilder,
-    ) -> Result<Option<MastNodeId>, AssemblyError> {
+    /// - Hence, any remaining decorators if no basic block was created are drained and returned.
+    pub fn try_into_basic_block(mut self) -> Result<BasicBlockOrDecorators, AssemblyError> {
         self.ops.append(&mut self.epilogue);
-        self.make_basic_block(mast_forest_builder)
+
+        if let Some(basic_block_node_id) = self.make_basic_block()? {
+            Ok(BasicBlockOrDecorators::BasicBlock(basic_block_node_id))
+        } else if let Some(decorator_ids) = self.drain_decorators() {
+            Ok(BasicBlockOrDecorators::Decorators(decorator_ids))
+        } else {
+            Ok(BasicBlockOrDecorators::Nothing)
+        }
     }
+
+    /// Drains and returns the decorators in the builder, if any.
+    ///
+    /// This should only be called after [`Self::make_basic_block`], when no blocks were created.
+    /// In other words, there MUST NOT be any operations left in the builder when this is called.
+    ///
+    /// # Panics
+    ///
+    /// Panics if there are still operations left in the builder.
+    pub fn drain_decorators(&mut self) -> Option<Vec<DecoratorId>> {
+        assert!(self.ops.is_empty());
+        if !self.decorators.is_empty() {
+            Some(self.decorators.drain(..).map(|(_, decorator_id)| decorator_id).collect())
+        } else {
+            None
+        }
+    }
+}
+
+/// Holds either the node id of a basic block, or a list of decorators that are currently not
+/// attached to any node.
+pub enum BasicBlockOrDecorators {
+    BasicBlock(MastNodeId),
+    Decorators(Vec<DecoratorId>),
+    Nothing,
 }

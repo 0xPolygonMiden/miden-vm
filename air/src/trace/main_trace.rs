@@ -137,7 +137,7 @@ impl MainTrace {
 
     /// Returns a specific element from the hasher state at row i.
     pub fn decoder_hasher_state_element(&self, element: usize, i: RowIndex) -> Felt {
-        self.columns.get_column(DECODER_TRACE_OFFSET + HASHER_STATE_OFFSET + element)[i + 1]
+        self.columns.get_column(DECODER_TRACE_OFFSET + HASHER_STATE_OFFSET + element)[i]
     }
 
     /// Returns the current function hash (i.e., root) at row i.
@@ -240,6 +240,8 @@ impl MainTrace {
         ([e0, b3, b2, b1] == [ONE, ZERO, ONE, ZERO]) ||
         // REPEAT
         ([b6, b5, b4, b3, b2, b1, b0] == [ONE, ONE, ONE, ZERO, ONE, ZERO, ZERO]) ||
+        // DYN
+        ([b6, b5, b4, b3, b2, b1, b0] == [ONE, ZERO, ONE, ONE, ZERO, ZERO, ZERO]) ||
         // END of a loop
         ([b6, b5, b4, b3, b2, b1, b0] == [ONE, ONE, ONE, ZERO, ZERO, ZERO, ZERO] && h5 == ONE)
     }
@@ -259,8 +261,8 @@ impl MainTrace {
         [b6, b5, b4] == [ZERO, ONE, ONE]||
         // u32SPLIT 100_1000
         ([b6, b5, b4, b3, b2, b1, b0] == [ONE, ZERO, ZERO, ONE, ZERO, ZERO, ZERO]) ||
-        // PUSH i.e., 110_0100
-        ([b6, b5, b4, b3, b2, b1, b0] == [ONE, ONE, ZERO, ZERO, ONE, ZERO, ZERO])
+        // PUSH i.e., 101_1011
+        ([b6, b5, b4, b3, b2, b1, b0] == [ONE, ZERO, ONE, ONE, ZERO, ONE, ONE])
     }
 
     // STACK COLUMNS

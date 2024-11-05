@@ -71,6 +71,14 @@ pub enum AssemblyError {
         #[source_code]
         source_file: Option<Arc<SourceFile>>,
     },
+
+    #[error("invalid procedure: body must contain at least one instruction if it has decorators")]
+    #[diagnostic()]
+    EmptyProcedureBodyWithDecorators {
+        span: SourceSpan,
+        #[source_code]
+        source_file: Option<Arc<SourceFile>>,
+    },
     #[error(transparent)]
     #[diagnostic(transparent)]
     Other(#[from] RelatedError),

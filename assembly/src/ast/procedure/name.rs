@@ -298,17 +298,17 @@ impl FromStr for ProcedureName {
                     match c {
                         '"' => {
                             if chars.next().is_some() {
-                                break Err(IdentError::InvalidChars);
+                                break Err(IdentError::InvalidChars { ident: s.into() });
                             }
                             let tok = &s[1..pos];
                             break Ok(Arc::from(tok.to_string().into_boxed_str()));
                         },
                         c if c.is_alphanumeric() => continue,
                         '_' | '$' | '-' | '!' | '?' | '<' | '>' | ':' | '.' => continue,
-                        _ => break Err(IdentError::InvalidChars),
+                        _ => break Err(IdentError::InvalidChars { ident: s.into() }),
                     }
                 } else {
-                    break Err(IdentError::InvalidChars);
+                    break Err(IdentError::InvalidChars { ident: s.into() });
                 }
             },
             Some((_, c)) if c.is_ascii_lowercase() || c == '_' || c == '$' => {
@@ -317,13 +317,13 @@ impl FromStr for ProcedureName {
                     '_' | '$' => false,
                     _ => true,
                 }) {
-                    Err(IdentError::InvalidChars)
+                    Err(IdentError::InvalidChars { ident: s.into() })
                 } else {
                     Ok(Arc::from(s.to_string().into_boxed_str()))
                 }
             },
             Some((_, c)) if c.is_ascii_uppercase() => Err(IdentError::Casing(CaseKindError::Snake)),
-            Some(_) => Err(IdentError::InvalidChars),
+            Some(_) => Err(IdentError::InvalidChars { ident: s.into() }),
         }?;
         Ok(Self(Ident::new_unchecked(Span::unknown(raw))))
     }

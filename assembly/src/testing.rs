@@ -199,9 +199,9 @@ impl TestContext {
             let _ = set_hook(Box::new(|_| Box::new(ReportHandlerOpts::new().build())));
         }
         let source_manager = Arc::new(crate::DefaultSourceManager::default());
-        let assembler = Assembler::new(source_manager.clone())
-            .with_debug_mode(true)
-            .with_warnings_as_errors(true);
+        // Note: we do not set debug mode by default because we do not want AsmOp decorators to be
+        // inserted in our programs
+        let assembler = Assembler::new(source_manager.clone()).with_warnings_as_errors(true);
         Self { source_manager, assembler }
     }
 

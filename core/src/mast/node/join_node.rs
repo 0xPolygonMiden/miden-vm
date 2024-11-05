@@ -1,10 +1,11 @@
+use alloc::vec::Vec;
 use core::fmt;
 
 use miden_crypto::{hash::rpo::RpoDigest, Felt};
 
 use crate::{
     chiplets::hasher,
-    mast::{MastForest, MastForestError, MastNodeId},
+    mast::{DecoratorId, MastForest, MastForestError, MastNodeId},
     prettier::PrettyPrint,
     OPCODE_JOIN,
 };
@@ -18,6 +19,8 @@ use crate::{
 pub struct JoinNode {
     children: [MastNodeId; 2],
     digest: RpoDigest,
+    before_enter: Vec<DecoratorId>,
+    after_exit: Vec<DecoratorId>,
 }
 
 /// Constants
@@ -46,13 +49,23 @@ impl JoinNode {
             hasher::merge_in_domain(&[left_child_hash, right_child_hash], Self::DOMAIN)
         };
 
-        Ok(Self { children, digest })
+        Ok(Self {
+            children,
+            digest,
+            before_enter: Vec::new(),
+            after_exit: Vec::new(),
+        })
     }
 
     /// Returns a new [`JoinNode`] from values that are assumed to be correct.
     /// Should only be used when the source of the inputs is trusted (e.g. deserialization).
     pub fn new_unsafe(children: [MastNodeId; 2], digest: RpoDigest) -> Self {
-        Self { children, digest }
+        Self {
+            children,
+            digest,
+            before_enter: Vec::new(),
+            after_exit: Vec::new(),
+        }
     }
 }
 
@@ -83,6 +96,29 @@ impl JoinNode {
     pub fn second(&self) -> MastNodeId {
         self.children[1]
     }
+
+    /// Returns the decorators to be executed before this node is executed.
+    pub fn before_enter(&self) -> &[DecoratorId] {
+        &self.before_enter
+    }
+
+    /// Returns the decorators to be executed after this node is executed.
+    pub fn after_exit(&self) -> &[DecoratorId] {
+        &self.after_exit
+    }
+}
+
+/// Mutators
+impl JoinNode {
+    /// Sets the list of decorators to be executed before this node.
+    pub fn set_before_enter(&mut self, decorator_ids: Vec<DecoratorId>) {
+        self.before_enter = decorator_ids;
+    }
+
+    /// Sets the list of decorators to be executed after this node.
+    pub fn set_after_exit(&mut self, decorator_ids: Vec<DecoratorId>) {
+        self.after_exit = decorator_ids;
+    }
 }
 
 // PRETTY PRINTING
@@ -106,15 +142,48 @@ struct JoinNodePrettyPrint<'a> {
     mast_forest: &'a MastForest,
 }
 
-impl<'a> PrettyPrint for JoinNodePrettyPrint<'a> {
+impl PrettyPrint for JoinNodePrettyPrint<'_> {
     #[rustfmt::skip]
     fn render(&self) -> crate::prettier::Document {
         use crate::prettier::*;
 
-        let first_child = self.mast_forest[self.join_node.first()].to_pretty_print(self.mast_forest);
-        let second_child = self.mast_forest[self.join_node.second()].to_pretty_print(self.mast_forest);
+        let pre_decorators = {
+            let mut pre_decorators = self
+                .join_node
+                .before_enter()
+                .iter()
+                .map(|&decorator_id| self.mast_forest[decorator_id].render())
+                .reduce(|acc, doc| acc + const_text(" ") + doc)
+                .unwrap_or_default();
+            if !pre_decorators.is_empty() {
+                pre_decorators += nl();
+            }
 
-        indent(
+            pre_decorators
+        };
+
+        let post_decorators = {
+            let mut post_decorators = self
+                .join_node
+                .after_exit()
+                .iter()
+                .map(|&decorator_id| self.mast_forest[decorator_id].render())
+                .reduce(|acc, doc| acc + const_text(" ") + doc)
+                .unwrap_or_default();
+            if !post_decorators.is_empty() {
+                post_decorators = nl() + post_decorators;
+            }
+
+            post_decorators
+        };
+
+        let first_child =
+            self.mast_forest[self.join_node.first()].to_pretty_print(self.mast_forest);
+        let second_child =
+            self.mast_forest[self.join_node.second()].to_pretty_print(self.mast_forest);
+
+        pre_decorators
+        + indent(
             4,
             const_text("join")
             + nl()
@@ -122,10 +191,11 @@ impl<'a> PrettyPrint for JoinNodePrettyPrint<'a> {
             + nl()
             + second_child.render(),
         ) + nl() + const_text("end")
+        + post_decorators
     }
 }
 
-impl<'a> fmt::Display for JoinNodePrettyPrint<'a> {
+impl fmt::Display for JoinNodePrettyPrint<'_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         use crate::prettier::PrettyPrint;
         self.pretty_print(f)

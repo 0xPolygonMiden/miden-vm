@@ -23,9 +23,7 @@ pub struct MemMastForestStore {
 
 impl MemMastForestStore {
     /// Inserts all the procedures of the provided MAST forest in the store.
-    pub fn insert(&mut self, mast_forest: MastForest) {
-        let mast_forest = Arc::new(mast_forest);
-
+    pub fn insert(&mut self, mast_forest: Arc<MastForest>) {
         // only register the procedures which are local to this forest
         for proc_digest in mast_forest.local_procedure_digests() {
             self.mast_forests.insert(proc_digest, mast_forest.clone());

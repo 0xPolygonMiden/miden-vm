@@ -5,9 +5,6 @@ extern crate alloc;
 #[cfg(feature = "std")]
 extern crate std;
 
-// IMPORTS
-// ================================================================================================
-
 #[cfg(not(target_family = "wasm"))]
 use alloc::format;
 use alloc::{
@@ -16,27 +13,26 @@ use alloc::{
     vec::Vec,
 };
 
-use assembly::Library;
-// EXPORTS
-// ================================================================================================
 pub use assembly::{diagnostics::Report, LibraryPath, SourceFile, SourceManager};
+use assembly::{KernelLibrary, Library};
 pub use pretty_assertions::{assert_eq, assert_ne, assert_str_eq};
+use processor::Program;
 pub use processor::{
     AdviceInputs, AdviceProvider, ContextId, DefaultHost, ExecutionError, ExecutionOptions,
-    ExecutionTrace, Process, ProcessState, StackInputs, VmStateIterator,
+    ExecutionTrace, Process, ProcessState, VmStateIterator,
 };
-use processor::{MastForest, Program};
 #[cfg(not(target_family = "wasm"))]
 use proptest::prelude::{Arbitrary, Strategy};
-pub use prover::{prove, MemAdviceProvider, ProvingOptions};
+pub use prover::{prove, MemAdviceProvider, MerkleTreeVC, ProvingOptions};
 pub use test_case::test_case;
 pub use verifier::{verify, AcceptableOptions, VerifierError};
 use vm_core::{chiplets::hasher::apply_permutation, ProgramInfo};
 pub use vm_core::{
     chiplets::hasher::{hash_elements, STATE_WIDTH},
-    stack::STACK_TOP_SIZE,
+    stack::MIN_STACK_DEPTH,
     utils::{collections, group_slice_elements, IntoBytes, ToElements},
-    Felt, FieldElement, StarkField, Word, EMPTY_WORD, ONE, WORD_SIZE, ZERO,
+    Felt, FieldElement, StackInputs, StackOutputs, StarkField, Word, EMPTY_WORD, ONE, WORD_SIZE,
+    ZERO,
 };
 
 pub mod math {
@@ -71,6 +67,19 @@ pub type QuadFelt = vm_core::QuadExtension<Felt>;
 
 /// A value just over what a [u32] integer can hold.
 pub const U32_BOUND: u64 = u32::MAX as u64 + 1;
+
+/// A source code of the `truncate_stack` procedure.
+pub const TRUNCATE_STACK_PROC: &str = "
+proc.truncate_stack.1
+    loc_storew.0 dropw movupw.3
+    sdepth neq.16
+    while.true
+        dropw movupw.3
+        sdepth neq.16
+    end
+    loc_loadw.0
+end
+";
 
 // TEST HANDLER
 // ================================================================================================
@@ -119,8 +128,8 @@ macro_rules! expect_exec_error {
     };
 }
 
-/// Like [assembly::assert_diagnostic], but matches each non-empty line of the rendered output
-/// to a corresponding pattern.
+/// Like [assembly::assert_diagnostic], but matches each non-empty line of the rendered output to a
+/// corresponding pattern.
 ///
 /// So if the output has 3 lines, the second of which is empty, and you provide 2 patterns, the
 /// assertion passes if the first line matches the first pattern, and the third line matches the
@@ -212,8 +221,8 @@ impl Test {
     /// test will result in the expected final stack state.
     #[track_caller]
     pub fn expect_stack(&self, final_stack: &[u64]) {
-        let result = stack_to_ints(&self.get_last_stack_state());
-        let expected = stack_top_to_ints(final_stack);
+        let result = self.get_last_stack_state().as_int_vec();
+        let expected = resize_to_min_stack_depth(final_stack);
         assert_eq!(expected, result, "Expected stack to be {:?}, found {:?}", expected, result);
     }
 
@@ -231,7 +240,7 @@ impl Test {
         let (program, kernel) = self.compile().expect("Failed to compile test source.");
         let mut host = DefaultHost::new(MemAdviceProvider::from(self.advice_inputs.clone()));
         if let Some(kernel) = kernel {
-            host.load_mast_forest(kernel);
+            host.load_mast_forest(kernel.mast_forest().clone());
         }
         for library in &self.libraries {
             host.load_mast_forest(library.mast_forest().clone());
@@ -253,7 +262,7 @@ impl Test {
             let mem_state =
                 process.get_mem_value(ContextId::root(), mem_start_addr).unwrap_or(EMPTY_WORD);
 
-            let mem_state = stack_to_ints(&mem_state);
+            let mem_state = felt_slice_to_ints(&mem_state);
             assert_eq!(
                 data, mem_state,
                 "Expected memory [{}] => {:?}, found {:?}",
@@ -262,7 +271,7 @@ impl Test {
             mem_start_addr += 1;
         }
 
-        // validate the stack state
+        // validate the stack states
         self.expect_stack(final_stack);
     }
 
@@ -274,8 +283,8 @@ impl Test {
         &self,
         final_stack: &[u64],
     ) -> Result<(), proptest::prelude::TestCaseError> {
-        let result = self.get_last_stack_state();
-        proptest::prop_assert_eq!(stack_top_to_ints(final_stack), stack_to_ints(&result));
+        let result = self.get_last_stack_state().as_int_vec();
+        proptest::prop_assert_eq!(resize_to_min_stack_depth(final_stack), result);
 
         Ok(())
     }
@@ -283,22 +292,26 @@ impl Test {
     // UTILITY METHODS
     // --------------------------------------------------------------------------------------------
 
-    /// Compiles a test's source and returns the resulting Program or Assembly error.
-    pub fn compile(&self) -> Result<(Program, Option<MastForest>), Report> {
+    /// Compiles a test's source and returns the resulting Program together with the associated
+    /// kernel library (when specified).
+    ///
+    /// # Errors
+    /// Returns an error if compilation of the program source or the kernel fails.
+    pub fn compile(&self) -> Result<(Program, Option<KernelLibrary>), Report> {
         use assembly::{ast::ModuleKind, Assembler, CompileOptions};
 
-        let (assembler, compiled_kernel) = if let Some(kernel) = self.kernel_source.clone() {
+        let (assembler, kernel_lib) = if let Some(kernel) = self.kernel_source.clone() {
             let kernel_lib =
                 Assembler::new(self.source_manager.clone()).assemble_kernel(kernel).unwrap();
-            let compiled_kernel = kernel_lib.mast_forest().clone();
 
             (
-                Assembler::with_kernel(self.source_manager.clone(), kernel_lib),
-                Some(compiled_kernel),
+                Assembler::with_kernel(self.source_manager.clone(), kernel_lib.clone()),
+                Some(kernel_lib),
             )
         } else {
             (Assembler::new(self.source_manager.clone()), None)
         };
+
         let mut assembler = self
             .add_modules
             .iter()
@@ -315,7 +328,7 @@ impl Test {
             assembler.add_library(library).unwrap();
         }
 
-        Ok((assembler.assemble_program(self.source.clone())?, compiled_kernel))
+        Ok((assembler.assemble_program(self.source.clone())?, kernel_lib))
     }
 
     /// Compiles the test's source to a Program and executes it with the tests inputs. Returns a
@@ -325,7 +338,7 @@ impl Test {
         let (program, kernel) = self.compile().expect("Failed to compile test source.");
         let mut host = DefaultHost::new(MemAdviceProvider::from(self.advice_inputs.clone()));
         if let Some(kernel) = kernel {
-            host.load_mast_forest(kernel);
+            host.load_mast_forest(kernel.mast_forest().clone());
         }
         for library in &self.libraries {
             host.load_mast_forest(library.mast_forest().clone());
@@ -341,7 +354,7 @@ impl Test {
         let (program, kernel) = self.compile().expect("Failed to compile test source.");
         let mut host = DefaultHost::new(MemAdviceProvider::from(self.advice_inputs.clone()));
         if let Some(kernel) = kernel {
-            host.load_mast_forest(kernel);
+            host.load_mast_forest(kernel.mast_forest().clone());
         }
         for library in &self.libraries {
             host.load_mast_forest(library.mast_forest().clone());
@@ -365,7 +378,7 @@ impl Test {
         let (program, kernel) = self.compile().expect("Failed to compile test source.");
         let mut host = DefaultHost::new(MemAdviceProvider::from(self.advice_inputs.clone()));
         if let Some(kernel) = kernel {
-            host.load_mast_forest(kernel);
+            host.load_mast_forest(kernel.mast_forest().clone());
         }
         for library in &self.libraries {
             host.load_mast_forest(library.mast_forest().clone());
@@ -390,7 +403,7 @@ impl Test {
         let (program, kernel) = self.compile().expect("Failed to compile test source.");
         let mut host = DefaultHost::new(MemAdviceProvider::from(self.advice_inputs.clone()));
         if let Some(kernel) = kernel {
-            host.load_mast_forest(kernel);
+            host.load_mast_forest(kernel.mast_forest().clone());
         }
         for library in &self.libraries {
             host.load_mast_forest(library.mast_forest().clone());
@@ -400,7 +413,7 @@ impl Test {
 
     /// Returns the last state of the stack after executing a test.
     #[track_caller]
-    pub fn get_last_stack_state(&self) -> [Felt; STACK_TOP_SIZE] {
+    pub fn get_last_stack_state(&self) -> StackOutputs {
         let trace = self.execute().unwrap();
 
         trace.last_stack_state()
@@ -410,14 +423,14 @@ impl Test {
 // HELPER FUNCTIONS
 // ================================================================================================
 
-/// Converts an array of Felts into u64
-pub fn stack_to_ints(values: &[Felt]) -> Vec<u64> {
+/// Converts a slice of Felts into a vector of u64 values.
+pub fn felt_slice_to_ints(values: &[Felt]) -> Vec<u64> {
     values.iter().map(|e| (*e).as_int()).collect()
 }
 
-pub fn stack_top_to_ints(values: &[u64]) -> Vec<u64> {
+pub fn resize_to_min_stack_depth(values: &[u64]) -> Vec<u64> {
     let mut result: Vec<u64> = values.to_vec();
-    result.resize(STACK_TOP_SIZE, 0);
+    result.resize(MIN_STACK_DEPTH, 0);
     result
 }
 
@@ -452,4 +465,13 @@ pub fn build_expected_hash(values: &[u64]) -> [Felt; 4] {
     expected.reverse();
 
     expected
+}
+
+// Generates the MASM code which pushes the input values during the execution of the program.
+#[cfg(all(feature = "std", not(target_family = "wasm")))]
+pub fn push_inputs(inputs: &[u64]) -> String {
+    let mut result = String::new();
+
+    inputs.iter().for_each(|v| result.push_str(&format!("push.{}\n", v)));
+    result
 }

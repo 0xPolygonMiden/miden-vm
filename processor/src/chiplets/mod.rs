@@ -74,6 +74,7 @@ mod tests;
 ///   - columns 3-17: unused columns padded with ZERO
 ///
 /// The following is a pictorial representation of the chiplet module:
+/// ```text
 ///             +---+-------------------------------------------------------+-------------+
 ///             | 0 |                   |                                   |-------------|
 ///             | . |  Hash chiplet     |       Hash chiplet                |-------------|
@@ -111,6 +112,7 @@ mod tests;
 ///             | . | . | . | . |---------------------------------------------------------|
 ///             | 1 | 1 | 1 | 1 |---------------------------------------------------------|
 ///             +---+---+---+---+---------------------------------------------------------+
+/// ```
 pub struct Chiplets {
     /// Current clock cycle of the VM.
     clk: RowIndex,
@@ -391,6 +393,8 @@ impl Chiplets {
         // make sure that only padding rows will be overwritten by random values
         assert!(self.trace_len() + num_rand_rows <= trace_len, "target trace length too small");
 
+        let kernel = self.kernel().clone();
+
         // Allocate columns for the trace of the chiplets.
         let mut trace = (0..CHIPLETS_WIDTH)
             .map(|_| vec![Felt::ZERO; trace_len])
@@ -401,7 +405,7 @@ impl Chiplets {
 
         ChipletsTrace {
             trace,
-            aux_builder: AuxTraceBuilder::default(),
+            aux_builder: AuxTraceBuilder::new(kernel),
         }
     }
 

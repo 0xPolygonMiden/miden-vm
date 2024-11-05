@@ -267,7 +267,7 @@ impl<E: FieldElement> OpFlags<E> {
 
         // degree 6 flags do not use the first two bits (op_bits[0], op_bits[1])
         degree4_op_flags[0] = not_2_not_3; // MRUPDATE
-        degree4_op_flags[1] = yes_2_not_3; // PUSH
+        degree4_op_flags[1] = yes_2_not_3; // (unused)
         degree4_op_flags[2] = not_2_yes_3; // SYSCALL
         degree4_op_flags[3] = yes_2_yes_3; // CALL
 
@@ -292,6 +292,7 @@ impl<E: FieldElement> OpFlags<E> {
             + degree5_op_flags[1] // MPVERIFY
             + degree5_op_flags[6] // SPAN
             + degree5_op_flags[7] // JOIN
+            + degree5_op_flags[10] // EMIT
             + degree4_op_flags[6] // RESPAN
             + degree4_op_flags[7] // HALT
             + degree4_op_flags[3] // CALL
@@ -347,7 +348,9 @@ impl<E: FieldElement> OpFlags<E> {
             + degree7_op_flags[47]
             + degree7_op_flags[46]
             + split_loop_flag
-            + shift_left_on_end;
+            + shift_left_on_end
+            + degree5_op_flags[8] // DYN
+            + degree5_op_flags[12]; // DYNCALL
 
         left_shift_flags[2] = left_shift_flags[1] + left_change_1_flag;
         left_shift_flags[3] =
@@ -375,7 +378,7 @@ impl<E: FieldElement> OpFlags<E> {
             + degree7_op_flags[22]
             + degree7_op_flags[26];
 
-        right_shift_flags[0] = f011 + degree4_op_flags[1] + movupn_flag;
+        right_shift_flags[0] = f011 + degree5_op_flags[11] + movupn_flag; // degree 5: PUSH
 
         right_shift_flags[1] = right_shift_flags[0] + degree6_op_flags[4]; // degree 6: U32SPLIT
 
@@ -395,11 +398,17 @@ impl<E: FieldElement> OpFlags<E> {
         right_shift_flags[15] = right_shift_flags[8];
 
         // Flag if the stack has been shifted to the right.
-        let right_shift = f011 + degree4_op_flags[1] + degree6_op_flags[4]; // PUSH; U32SPLIT
+        let right_shift = f011 + degree5_op_flags[11] + degree6_op_flags[4]; // PUSH; U32SPLIT
 
-        // Flag if the stack has been shifted to the left.
-        let left_shift =
-            f010 + add3_madd_flag + split_loop_flag + degree4_op_flags[5] + shift_left_on_end;
+        // Flag if the stack has been shifted to the left. Note that `DYNCALL` is not included in
+        // this flag even if it shifts the stack to the left. See `Opflags::left_shift()` for more
+        // information.
+        let left_shift = f010
+            + add3_madd_flag
+            + split_loop_flag
+            + degree4_op_flags[5]
+            + shift_left_on_end
+            + degree5_op_flags[8]; // DYN
 
         // Flag if the current operation being executed is a control flow operation.
         // first row: SPAN, JOIN, SPLIT, LOOP
@@ -907,7 +916,7 @@ impl<E: FieldElement> OpFlags<E> {
     /// Operation Flag of PUSH operation.
     #[inline(always)]
     pub fn push(&self) -> E {
-        self.degree4_op_flags[get_op_index(Operation::Push(ONE).op_code())]
+        self.degree5_op_flags[get_op_index(Operation::Push(ONE).op_code())]
     }
 
     /// Operation Flag of CALL operation.
@@ -920,6 +929,12 @@ impl<E: FieldElement> OpFlags<E> {
     #[inline(always)]
     pub fn syscall(&self) -> E {
         self.degree4_op_flags[get_op_index(Operation::SysCall.op_code())]
+    }
+
+    /// Operation Flag of DYNCALL operation.
+    #[inline(always)]
+    pub fn dyncall(&self) -> E {
+        self.degree5_op_flags[get_op_index(Operation::Dyncall.op_code())]
     }
 
     /// Operation Flag of END operation.
@@ -981,6 +996,11 @@ impl<E: FieldElement> OpFlags<E> {
     }
 
     /// Returns the flag when the stack operation shifts the flag to the left.
+    ///
+    /// Note that although `DYNCALL` shifts the entire stack, it is not included in this flag. This
+    /// is because this "aggregate left shift" flag is used in constraints related to the stack
+    /// helper columns, and `DYNCALL` uses them unconventionally.
+    ///
     /// Degree: 5
     #[inline(always)]
     pub fn left_shift(&self) -> E {

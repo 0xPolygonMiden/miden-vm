@@ -10,8 +10,8 @@ use crate::{chiplets::hasher, mast::DynNode, Kernel, ProgramInfo, Word};
 #[test]
 fn dyn_hash_is_correct() {
     let expected_constant =
-        hasher::merge_in_domain(&[RpoDigest::default(), RpoDigest::default()], DynNode::DOMAIN);
-    assert_eq!(expected_constant, DynNode.digest());
+        hasher::merge_in_domain(&[RpoDigest::default(), RpoDigest::default()], DynNode::DYN_DOMAIN);
+    assert_eq!(expected_constant, DynNode::new_dyn().digest());
 }
 
 proptest! {

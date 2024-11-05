@@ -42,6 +42,15 @@ impl Debug {
     }
 }
 
+impl From<bool> for Debug {
+    fn from(value: bool) -> Self {
+        match value {
+            true => Debug::On,
+            false => Debug::Off,
+        }
+    }
+}
+
 // MERKLE DATA
 // ================================================================================================
 
@@ -314,7 +323,6 @@ impl InputFile {
 #[derive(Deserialize, Serialize, Debug)]
 pub struct OutputFile {
     pub stack: Vec<String>,
-    pub overflow_addrs: Vec<String>,
 }
 
 /// Helper methods to interact with the output file
@@ -322,12 +330,7 @@ impl OutputFile {
     /// Returns a new [OutputFile] from the specified outputs vectors
     pub fn new(stack_outputs: &StackOutputs) -> Self {
         Self {
-            stack: stack_outputs.stack().iter().map(|&v| v.to_string()).collect::<Vec<String>>(),
-            overflow_addrs: stack_outputs
-                .overflow_addrs()
-                .iter()
-                .map(|&v| v.to_string())
-                .collect::<Vec<String>>(),
+            stack: stack_outputs.iter().map(|&v| v.to_string()).collect::<Vec<String>>(),
         }
     }
 
@@ -366,17 +369,11 @@ impl OutputFile {
             .map_err(|err| format!("Failed to write output data - {}", err))
     }
 
-    /// Converts outputs vectors for stack and overflow addresses to [StackOutputs].
+    /// Converts stack output vector to [StackOutputs].
     pub fn stack_outputs(&self) -> Result<StackOutputs, String> {
         let stack = self.stack.iter().map(|v| v.parse::<u64>().unwrap()).collect::<Vec<u64>>();
 
-        let overflow_addrs = self
-            .overflow_addrs
-            .iter()
-            .map(|v| v.parse::<u64>().unwrap())
-            .collect::<Vec<u64>>();
-
-        StackOutputs::try_from_ints(stack, overflow_addrs)
+        StackOutputs::try_from_ints(stack)
             .map_err(|e| format!("Construct stack outputs failed {e}"))
     }
 }
@@ -416,7 +413,7 @@ impl ProgramFile {
 
     /// Compiles this program file into a [Program].
     #[instrument(name = "compile_program", skip_all)]
-    pub fn compile<'a, I>(&self, debug: &Debug, libraries: I) -> Result<Program, Report>
+    pub fn compile<'a, I>(&self, debug: Debug, libraries: I) -> Result<Program, Report>
     where
         I: IntoIterator<Item = &'a Library>,
     {
@@ -552,7 +549,7 @@ impl Libraries {
 // ================================================================================================
 #[cfg(test)]
 mod test {
-    use super::InputFile;
+    use super::{Debug, InputFile};
 
     #[test]
     fn test_merkle_data_parsing() {
@@ -625,5 +622,17 @@ mod test {
         let inputs: InputFile = serde_json::from_str(program_with_merkle_tree).unwrap();
         let merkle_store = inputs.parse_merkle_store().unwrap();
         assert!(merkle_store.is_some());
+    }
+
+    #[test]
+    fn test_debug_from_true() {
+        let debug_mode: Debug = true.into(); // true.into() will also test Debug.from(true)
+        assert!(matches!(debug_mode, Debug::On));
+    }
+
+    #[test]
+    fn test_debug_from_false() {
+        let debug_mode: Debug = false.into(); // false.into() will also test Debug.from(false)
+        assert!(matches!(debug_mode, Debug::Off));
     }
 }

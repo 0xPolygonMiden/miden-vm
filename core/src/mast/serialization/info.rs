@@ -1,7 +1,7 @@
 use miden_crypto::hash::rpo::RpoDigest;
 use winter_utils::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable};
 
-use super::{basic_block_data_decoder::BasicBlockDataDecoder, DataOffset};
+use super::{basic_blocks::BasicBlockDataDecoder, NodeDataOffset};
 use crate::mast::{
     BasicBlockNode, CallNode, JoinNode, LoopNode, MastForest, MastNode, MastNodeId, SplitNode,
 };
@@ -21,55 +21,77 @@ pub struct MastNodeInfo {
 }
 
 impl MastNodeInfo {
-    pub fn new(mast_node: &MastNode, basic_block_offset: DataOffset) -> Self {
-        let ty = MastNodeType::new(mast_node, basic_block_offset);
+    /// Constructs a new [`MastNodeInfo`] from a [`MastNode`], along with an `ops_offset` and
+    /// `decorator_list_offset` in the case of [`BasicBlockNode`].
+    ///
+    /// If the represented [`MastNode`] is a [`BasicBlockNode`] that has an empty decorator list,
+    /// use `MastForest::MAX_DECORATORS` for the value of `decorator_list_offset`. For non-basic
+    /// block nodes, `ops_offset` and `decorator_list_offset` are ignored, and should be set to 0.
+    pub fn new(
+        mast_node: &MastNode,
+        ops_offset: NodeDataOffset,
+        decorator_list_offset: NodeDataOffset,
+    ) -> Self {
+        if !matches!(mast_node, &MastNode::Block(_)) {
+            debug_assert_eq!(ops_offset, 0);
+            debug_assert_eq!(decorator_list_offset, 0);
+        }
+
+        let ty = MastNodeType::new(mast_node, ops_offset, decorator_list_offset);
 
         Self { ty, digest: mast_node.digest() }
     }
 
+    /// Attempts to convert this [`MastNodeInfo`] into a [`MastNode`] for the given `mast_forest`.
+    ///
+    /// The `node_count` is the total expected number of nodes in the [`MastForest`] **after
+    /// deserialization**.
     pub fn try_into_mast_node(
         self,
         mast_forest: &MastForest,
+        node_count: usize,
         basic_block_data_decoder: &BasicBlockDataDecoder,
     ) -> Result<MastNode, DeserializationError> {
         match self.ty {
-            MastNodeType::Block {
-                offset,
-                len: num_operations_and_decorators,
-            } => {
+            MastNodeType::Block { ops_offset, decorator_list_offset } => {
                 let (operations, decorators) = basic_block_data_decoder
-                    .decode_operations_and_decorators(offset, num_operations_and_decorators)?;
+                    .decode_operations_and_decorators(
+                        ops_offset,
+                        decorator_list_offset,
+                        mast_forest,
+                    )?;
                 let block = BasicBlockNode::new_unsafe(operations, decorators, self.digest);
                 Ok(MastNode::Block(block))
             },
             MastNodeType::Join { left_child_id, right_child_id } => {
-                let left_child = MastNodeId::from_u32_safe(left_child_id, mast_forest)?;
-                let right_child = MastNodeId::from_u32_safe(right_child_id, mast_forest)?;
+                let left_child = MastNodeId::from_u32_with_node_count(left_child_id, node_count)?;
+                let right_child = MastNodeId::from_u32_with_node_count(right_child_id, node_count)?;
                 let join = JoinNode::new_unsafe([left_child, right_child], self.digest);
                 Ok(MastNode::Join(join))
             },
             MastNodeType::Split { if_branch_id, else_branch_id } => {
-                let if_branch = MastNodeId::from_u32_safe(if_branch_id, mast_forest)?;
-                let else_branch = MastNodeId::from_u32_safe(else_branch_id, mast_forest)?;
+                let if_branch = MastNodeId::from_u32_with_node_count(if_branch_id, node_count)?;
+                let else_branch = MastNodeId::from_u32_with_node_count(else_branch_id, node_count)?;
                 let split = SplitNode::new_unsafe([if_branch, else_branch], self.digest);
                 Ok(MastNode::Split(split))
             },
             MastNodeType::Loop { body_id } => {
-                let body_id = MastNodeId::from_u32_safe(body_id, mast_forest)?;
+                let body_id = MastNodeId::from_u32_with_node_count(body_id, node_count)?;
                 let loop_node = LoopNode::new_unsafe(body_id, self.digest);
                 Ok(MastNode::Loop(loop_node))
             },
             MastNodeType::Call { callee_id } => {
-                let callee_id = MastNodeId::from_u32_safe(callee_id, mast_forest)?;
+                let callee_id = MastNodeId::from_u32_with_node_count(callee_id, node_count)?;
                 let call = CallNode::new_unsafe(callee_id, self.digest);
                 Ok(MastNode::Call(call))
             },
             MastNodeType::SysCall { callee_id } => {
-                let callee_id = MastNodeId::from_u32_safe(callee_id, mast_forest)?;
+                let callee_id = MastNodeId::from_u32_with_node_count(callee_id, node_count)?;
                 let syscall = CallNode::new_syscall_unsafe(callee_id, self.digest);
                 Ok(MastNode::Call(syscall))
             },
             MastNodeType::Dyn => Ok(MastNode::new_dyn()),
+            MastNodeType::Dyncall => Ok(MastNode::new_dyncall()),
             MastNodeType::External => Ok(MastNode::new_external(self.digest)),
         }
     }
@@ -103,7 +125,8 @@ const BLOCK: u8 = 3;
 const CALL: u8 = 4;
 const SYSCALL: u8 = 5;
 const DYN: u8 = 6;
-const EXTERNAL: u8 = 7;
+const DYNCALL: u8 = 7;
+const EXTERNAL: u8 = 8;
 
 /// Represents the variant of a [`MastNode`], as well as any additional data. For example, for more
 /// efficient decoding, and because of the frequency with which these node types appear, we directly
@@ -126,10 +149,10 @@ pub enum MastNodeType {
         body_id: u32,
     } = LOOP,
     Block {
-        /// Offset of the basic block in the data segment
-        offset: u32,
-        /// The number of operations and decorators in the basic block
-        len: u32,
+        // offset of operations in node data
+        ops_offset: u32,
+        // offset of DecoratorList in node data
+        decorator_list_offset: u32,
     } = BLOCK,
     Call {
         callee_id: u32,
@@ -138,21 +161,25 @@ pub enum MastNodeType {
         callee_id: u32,
     } = SYSCALL,
     Dyn = DYN,
+    Dyncall = DYNCALL,
     External = EXTERNAL,
 }
 
 /// Constructors
 impl MastNodeType {
     /// Constructs a new [`MastNodeType`] from a [`MastNode`].
-    pub fn new(mast_node: &MastNode, basic_block_offset: u32) -> Self {
+    ///
+    /// If the represented [`MastNode`] is a [`BasicBlockNode`] that has an empty decorator list,
+    /// use `MastForest::MAX_DECORATORS` for the value of `decorator_list_offset`.
+    pub fn new(
+        mast_node: &MastNode,
+        ops_offset: NodeDataOffset,
+        decorator_list_offset: NodeDataOffset,
+    ) -> Self {
         use MastNode::*;
 
         match mast_node {
-            Block(block_node) => {
-                let len = block_node.num_operations_and_decorators();
-
-                Self::Block { len, offset: basic_block_offset }
-            },
+            Block(_block_node) => Self::Block { decorator_list_offset, ops_offset },
             Join(join_node) => Self::Join {
                 left_child_id: join_node.first().0,
                 right_child_id: join_node.second().0,
@@ -169,7 +196,13 @@ impl MastNodeType {
                     Self::Call { callee_id: call_node.callee().0 }
                 }
             },
-            Dyn => Self::Dyn,
+            Dyn(dyn_node) => {
+                if dyn_node.is_dyncall() {
+                    Self::Dyncall
+                } else {
+                    Self::Dyn
+                }
+            },
             External(_) => Self::External,
         }
     }
@@ -190,10 +223,13 @@ impl Serializable for MastNodeType {
                 else_branch_id: else_branch,
             } => Self::encode_u32_pair(if_branch, else_branch),
             MastNodeType::Loop { body_id: body } => Self::encode_u32_payload(body),
-            MastNodeType::Block { offset, len } => Self::encode_u32_pair(offset, len),
+            MastNodeType::Block { ops_offset, decorator_list_offset } => {
+                Self::encode_u32_pair(ops_offset, decorator_list_offset)
+            },
             MastNodeType::Call { callee_id } => Self::encode_u32_payload(callee_id),
             MastNodeType::SysCall { callee_id } => Self::encode_u32_payload(callee_id),
             MastNodeType::Dyn => 0,
+            MastNodeType::Dyncall => 0,
             MastNodeType::External => 0,
         };
 
@@ -264,8 +300,8 @@ impl Deserializable for MastNodeType {
                 Ok(Self::Loop { body_id })
             },
             BLOCK => {
-                let (offset, len) = Self::decode_u32_pair(payload);
-                Ok(Self::Block { offset, len })
+                let (ops_offset, decorator_list_offset) = Self::decode_u32_pair(payload);
+                Ok(Self::Block { ops_offset, decorator_list_offset })
             },
             CALL => {
                 let callee_id = Self::decode_u32_payload(payload)?;
@@ -276,6 +312,7 @@ impl Deserializable for MastNodeType {
                 Ok(Self::SysCall { callee_id })
             },
             DYN => Ok(Self::Dyn),
+            DYNCALL => Ok(Self::Dyncall),
             EXTERNAL => Ok(Self::External),
             _ => Err(DeserializationError::InvalidValue(format!(
                 "Invalid tag for MAST node: {discriminant}"

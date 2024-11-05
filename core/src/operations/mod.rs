@@ -109,9 +109,12 @@ pub(super) mod opcode_constants {
     pub const OPCODE_JOIN: u8       = 0b0101_0111;
     pub const OPCODE_DYN: u8        = 0b0101_1000;
     pub const OPCODE_RCOMBBASE: u8  = 0b0101_1001;
+    pub const OPCODE_EMIT: u8       = 0b0101_1010;
+    pub const OPCODE_PUSH: u8       = 0b0101_1011;
+    pub const OPCODE_DYNCALL: u8    = 0b0101_1100;
 
     pub const OPCODE_MRUPDATE: u8   = 0b0110_0000;
-    pub const OPCODE_PUSH: u8       = 0b0110_0100;
+    /* unused:                        0b0110_0100 */
     pub const OPCODE_SYSCALL: u8    = 0b0110_1000;
     pub const OPCODE_CALL: u8       = 0b0110_1100;
     pub const OPCODE_END: u8        = 0b0111_0000;
@@ -156,6 +159,16 @@ pub enum Operation {
     /// instruction.
     Clk = OPCODE_CLK,
 
+    /// Emits an event id (`u32` value) to the host.
+    ///
+    /// We interpret the event id as follows:
+    /// - 16 most significant bits identify the event source,
+    /// - 16 least significant bits identify the actual event.
+    ///
+    /// Similar to Noop, this operation does not change the state of user stack. The immediate
+    /// value affects the program MAST root computation.
+    Emit(u32) = OPCODE_EMIT,
+
     // ----- flow control operations -------------------------------------------------------------
     /// Marks the beginning of a join block.
     Join = OPCODE_JOIN,
@@ -171,6 +184,9 @@ pub enum Operation {
 
     /// Marks the beginning of a dynamic code block, where the target is specified by the stack.
     Dyn = OPCODE_DYN,
+
+    /// Marks the beginning of a dynamic function call, where the target is specified by the stack.
+    Dyncall = OPCODE_DYNCALL,
 
     /// Marks the beginning of a kernel call.
     SysCall = OPCODE_SYSCALL,
@@ -570,14 +586,17 @@ impl Operation {
 
     /// Returns an immediate value carried by this operation.
     pub fn imm_value(&self) -> Option<Felt> {
-        match self {
-            Self::Push(imm) => Some(*imm),
+        match *self {
+            Self::Push(imm) => Some(imm),
+            Self::Emit(imm) => Some(imm.into()),
             _ => None,
         }
     }
 
-    /// Returns true if this operation is a control operation.
-    pub fn is_control_op(&self) -> bool {
+    /// Returns true if this operation writes any data to the decoder hasher registers.
+    ///
+    /// In other words, if so, then the user op helper registers are not available.
+    pub fn populates_decoder_hasher_registers(&self) -> bool {
         matches!(
             self,
             Self::End
@@ -590,7 +609,6 @@ impl Operation {
                 | Self::Halt
                 | Self::Call
                 | Self::SysCall
-                | Self::Dyn
         )
     }
 }
@@ -621,6 +639,7 @@ impl fmt::Display for Operation {
             Self::Split => write!(f, "split"),
             Self::Loop => write!(f, "loop"),
             Self::Call => writeln!(f, "call"),
+            Self::Dyncall => writeln!(f, "dyncall"),
             Self::SysCall => writeln!(f, "syscall"),
             Self::Dyn => writeln!(f, "dyn"),
             Self::Span => write!(f, "span"),
@@ -718,6 +737,8 @@ impl fmt::Display for Operation {
             Self::MStream => write!(f, "mstream"),
             Self::Pipe => write!(f, "pipe"),
 
+            Self::Emit(value) => write!(f, "emit({value})"),
+
             // ----- cryptographic operations -----------------------------------------------------
             Self::HPerm => write!(f, "hperm"),
             Self::MpVerify(err_code) => write!(f, "mpverify({err_code})"),
@@ -737,9 +758,10 @@ impl Serializable for Operation {
             Operation::Assert(err_code)
             | Operation::MpVerify(err_code)
             | Operation::U32assert2(err_code) => {
-                err_code.to_le_bytes().write_into(target);
+                err_code.write_into(target);
             },
             Operation::Push(value) => value.as_int().write_into(target),
+            Operation::Emit(value) => value.write_into(target),
 
             // Note: we explicitly write out all the operations so that whenever we make a
             // modification to the `Operation` enum, we get a compile error here. This
@@ -755,6 +777,7 @@ impl Serializable for Operation {
             | Operation::Loop
             | Operation::Call
             | Operation::Dyn
+            | Operation::Dyncall
             | Operation::SysCall
             | Operation::Span
             | Operation::End
@@ -934,6 +957,7 @@ impl Deserializable for Operation {
             OPCODE_SPAN => Self::Span,
             OPCODE_JOIN => Self::Join,
             OPCODE_DYN => Self::Dyn,
+            OPCODE_DYNCALL => Self::Dyncall,
             OPCODE_RCOMBBASE => Self::RCombBase,
 
             OPCODE_MRUPDATE => Self::MrUpdate,
@@ -946,6 +970,11 @@ impl Deserializable for Operation {
                 })?;
 
                 Self::Push(value_felt)
+            },
+            OPCODE_EMIT => {
+                let value = source.read_u32()?;
+
+                Self::Emit(value)
             },
             OPCODE_SYSCALL => Self::SysCall,
             OPCODE_CALL => Self::Call,

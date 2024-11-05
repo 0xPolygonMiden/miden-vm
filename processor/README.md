@@ -63,6 +63,7 @@ Miden processor can be compiled with the following features:
 
 * `std` - enabled by default and relies on the Rust standard library.
 * `no_std` does not rely on the Rust standard library and enables compilation to WebAssembly.
+    * Only the `wasm32-unknown-unknown` and `wasm32-wasip1` targets are officially supported.
 
 To compile with `no_std`, disable default features via `--no-default-features` flag.
 
