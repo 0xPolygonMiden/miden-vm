@@ -1,8 +1,8 @@
 [package]
 name = "miden-core"
-version = "0.10.5"
+version = "0.11.0"
 description = "Miden VM core components"
-documentation = "https://docs.rs/miden-core/0.10.5"
+documentation = "https://docs.rs/miden-core/0.11.0"
 readme = "README.md"
 categories = ["emulators", "no-std"]
 keywords = ["instruction-set", "miden", "program"]
@@ -36,10 +36,10 @@ math = { package = "winter-math", version = "0.10", default-features = false }
 memchr = { version = "2.7", default-features = false }
 miden-crypto = { version = "0.12", default-features = false }
 miden-formatting = { version = "0.1", default-features = false }
-miette = { package = "miden-miette", version = "7.1", default-features = false, features = [
+miette = { package = "miden-miette", version = "7.1", default-features = false, optional = true, features = [
     "fancy-no-syscall",
     "derive"
-], optional = true }
+] }
 num-derive = { version = "0.4", default-features = false }
 num-traits = { version = "0.2", default-features = false }
 parking_lot = { version = "0.12", optional = true }
