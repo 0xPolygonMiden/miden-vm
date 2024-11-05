@@ -36,8 +36,8 @@ pub enum Actions {
 
 /// CLI entry point
 impl Cli {
-    pub fn execute(&mut self) -> Result<(), Report> {
-        match &mut self.action {
+    pub fn execute(&self) -> Result<(), Report> {
+        match &self.action {
             Actions::Analyze(analyze) => analyze.execute(),
             Actions::Compile(compile) => compile.execute(),
             Actions::Bundle(compile) => compile.execute(),
@@ -55,7 +55,7 @@ impl Cli {
 /// Executable entry point
 pub fn main() -> Result<(), Report> {
     // read command-line args
-    let mut cli = Cli::parse();
+    let cli = Cli::parse();
 
     initialize_diagnostics();
 

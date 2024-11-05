@@ -1,5 +1,5 @@
-use std::{path::PathBuf, time::Instant};
 use std::path::Path;
+use std::{path::PathBuf, time::Instant};
 
 use assembly::diagnostics::{IntoDiagnostic, Report, WrapErr};
 use clap::Parser;
@@ -18,40 +18,39 @@ pub struct VerifyCmd {
     output_file: Option<PathBuf>,
     /// Path to proof file
     #[clap(short = 'p', long = "proof", value_parser)]
-    proof_file: Option<PathBuf>,
+    proof_file: PathBuf,
     /// Program hash (hex)
-    #[clap(short = 'x', long = "hash")]
+    #[clap(short = 'x', long = "program-hash")]
     program_hash: String,
 }
 
 impl VerifyCmd {
-    pub fn execute(&mut self) -> Result<(), Report> {
-
-        let (proof_file,output_file)=self.infer_defaults();
-
-        self.proof_file=Some(proof_file);
-        self.output_file=Some(output_file);
+    pub fn execute(&self) -> Result<(), Report> {
+        let (input_file, output_file) = self.infer_defaults();
 
         println!("===============================================================================");
-        println!("Verifying proof: {}", self.proof_file.as_ref().unwrap().display());
+        println!("Verifying proof: {}", self.proof_file.display());
         println!("-------------------------------------------------------------------------------");
 
         // read program hash from input
         let program_hash = ProgramHash::read(&self.program_hash).map_err(Report::msg)?;
 
         // load input data from file
-        let input_data = InputFile::read(&self.input_file, &self.proof_file.as_ref().unwrap().clone())?;
+        let input_data = InputFile::read(&Some(input_file), &self.proof_file.as_ref())?;
 
         // fetch the stack inputs from the arguments
         let stack_inputs = input_data.parse_stack_inputs().map_err(Report::msg)?;
 
         // load outputs data from file
-        let outputs_data =
-            OutputFile::read(&self.output_file, &self.proof_file.as_ref().unwrap()).map_err(Report::msg)?;
+        let outputs_data = OutputFile::read(&Some(output_file), &self.proof_file.as_ref())
+            .map_err(Report::msg)?;
 
         // load proof from file
-        let proof = ProofFile::read(&Some(self.proof_file.as_ref().unwrap().to_path_buf()), &self.proof_file.as_ref().unwrap())
-            .map_err(Report::msg)?;
+        let proof = ProofFile::read(
+            &Some(self.proof_file.clone()),
+            &self.proof_file.as_ref(),
+        )
+        .map_err(Report::msg)?;
 
         let now = Instant::now();
 
@@ -70,25 +69,29 @@ impl VerifyCmd {
         Ok(())
     }
 
-    pub fn infer_defaults(&self)->(PathBuf,PathBuf){
-        let input_file = self.input_file.clone().unwrap_or_else(|| {    
-                PathBuf::from("default_input_file.txt")
-        });
+    pub fn infer_defaults(&self) -> (PathBuf, PathBuf) {
+        let proof_file = if self.proof_file.exists() {
+            self.proof_file.clone()
+        } else {
+            PathBuf::from("default_proof_file.txt")
+        };
 
-        let base_name = input_file.file_stem().expect("Invalid input file").to_str().unwrap();
+        let base_name = proof_file.file_stem().expect("Invalid proof file").to_str().unwrap();
 
-        let proof_file = self.proof_file.clone().unwrap_or_else(|| {
-            let mut proof_path = input_file.parent().unwrap_or_else(|| Path::new(".")).to_path_buf();
-            proof_path.push(format!("{}.proof", base_name));
-            proof_path
+        let input_file = self.input_file.clone().unwrap_or_else(|| {
+            let mut input_path =
+                proof_file.parent().unwrap_or_else(|| Path::new(".")).to_path_buf();
+            input_path.push(format!("{}.inputs", base_name));
+            input_path
         });
 
         let output_file = self.output_file.clone().unwrap_or_else(|| {
-            let mut output_path = input_file.parent().unwrap_or_else(|| Path::new(".")).to_path_buf();
+            let mut output_path =
+                proof_file.parent().unwrap_or_else(|| Path::new(".")).to_path_buf();
             output_path.push(format!("{}.outputs", base_name));
             output_path
         });
-        
-        return (proof_file,output_file);
+
+        return (input_file, output_file);
     }
 }
