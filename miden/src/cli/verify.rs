@@ -69,7 +69,7 @@ impl VerifyCmd {
         Ok(())
     }
 
-    pub fn infer_defaults(&self) -> (PathBuf, PathBuf) {
+    fn infer_defaults(&self) -> (PathBuf, PathBuf) {
         let proof_file = if self.proof_file.exists() {
             self.proof_file.clone()
         } else {
