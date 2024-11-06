@@ -586,11 +586,11 @@ impl Process {
     ) -> Result<(), ExecutionError> {
         match decorator {
             Decorator::Advice(injector) => {
-                host.set_advice(self, *injector)?;
+                host.set_advice(self.into(), *injector)?;
             },
             Decorator::Debug(options) => {
                 if self.decoder.in_debug_mode() {
-                    host.on_debug(self, options)?;
+                    host.on_debug(self.into(), options)?;
                 }
             },
             Decorator::AsmOp(assembly_op) => {
@@ -600,7 +600,7 @@ impl Process {
             },
             Decorator::Trace(id) => {
                 if self.enable_tracing {
-                    host.on_trace(self, *id)?;
+                    host.on_trace(self.into(), *id)?;
                 }
             },
         }
@@ -622,19 +622,33 @@ impl Process {
 // PROCESS STATE
 // ================================================================================================
 
-/// A trait that defines a set of methods which allow access to the state of the process.
-pub trait ProcessState {
+#[derive(Debug, Clone, Copy)]
+pub struct ProcessState<'a> {
+    system: &'a System,
+    stack: &'a Stack,
+    chiplets: &'a Chiplets,
+}
+
+impl ProcessState<'_> {
     /// Returns the current clock cycle of a process.
-    fn clk(&self) -> RowIndex;
+    pub fn clk(&self) -> RowIndex {
+        self.system.clk()
+    }
 
     /// Returns the current execution context ID.
-    fn ctx(&self) -> ContextId;
+    pub fn ctx(&self) -> ContextId {
+        self.system.ctx()
+    }
 
     /// Returns the current value of the free memory pointer.
-    fn fmp(&self) -> u64;
+    pub fn fmp(&self) -> u64 {
+        self.system.fmp().as_int()
+    }
 
     /// Returns the value located at the specified position on the stack at the current clock cycle.
-    fn get_stack_item(&self, pos: usize) -> Felt;
+    pub fn get_stack_item(&self, pos: usize) -> Felt {
+        self.stack.get(pos)
+    }
 
     /// Returns a word located at the specified word index on the stack.
     ///
@@ -646,54 +660,48 @@ pub trait ProcessState {
     /// stack will be at the last position in the word.
     ///
     /// Creating a word does not change the state of the stack.
-    fn get_stack_word(&self, word_idx: usize) -> Word;
+    pub fn get_stack_word(&self, word_idx: usize) -> Word {
+        self.stack.get_word(word_idx)
+    }
 
     /// Returns stack state at the current clock cycle. This includes the top 16 items of the
     /// stack + overflow entries.
-    fn get_stack_state(&self) -> Vec<Felt>;
+    pub fn get_stack_state(&self) -> Vec<Felt> {
+        self.stack.get_state_at(self.system.clk())
+    }
 
     /// Returns a word located at the specified context/address, or None if the address hasn't
     /// been accessed previously.
-    fn get_mem_value(&self, ctx: ContextId, addr: u32) -> Option<Word>;
+    pub fn get_mem_value(&self, ctx: ContextId, addr: u32) -> Option<Word> {
+        self.chiplets.get_mem_value(ctx, addr)
+    }
 
     /// Returns the entire memory state for the specified execution context at the current clock
     /// cycle.
     ///
     /// The state is returned as a vector of (address, value) tuples, and includes addresses which
     /// have been accessed at least once.
-    fn get_mem_state(&self, ctx: ContextId) -> Vec<(u64, Word)>;
+    pub fn get_mem_state(&self, ctx: ContextId) -> Vec<(u64, Word)> {
+        self.chiplets.get_mem_state_at(ctx, self.system.clk())
+    }
 }
 
-impl ProcessState for Process {
-    fn clk(&self) -> RowIndex {
-        self.system.clk()
+impl<'a> From<&'a Process> for ProcessState<'a> {
+    fn from(process: &'a Process) -> Self {
+        Self {
+            system: &process.system,
+            stack: &process.stack,
+            chiplets: &process.chiplets,
+        }
     }
+}
 
-    fn ctx(&self) -> ContextId {
-        self.system.ctx()
-    }
-
-    fn fmp(&self) -> u64 {
-        self.system.fmp().as_int()
-    }
-
-    fn get_stack_item(&self, pos: usize) -> Felt {
-        self.stack.get(pos)
-    }
-
-    fn get_stack_word(&self, word_idx: usize) -> Word {
-        self.stack.get_word(word_idx)
-    }
-
-    fn get_stack_state(&self) -> Vec<Felt> {
-        self.stack.get_state_at(self.system.clk())
-    }
-
-    fn get_mem_value(&self, ctx: ContextId, addr: u32) -> Option<Word> {
-        self.chiplets.get_mem_value(ctx, addr)
-    }
-
-    fn get_mem_state(&self, ctx: ContextId) -> Vec<(u64, Word)> {
-        self.chiplets.get_mem_state_at(ctx, self.system.clk())
+impl<'a> From<&'a mut Process> for ProcessState<'a> {
+    fn from(process: &'a mut Process) -> Self {
+        Self {
+            system: &process.system,
+            stack: &process.stack,
+            chiplets: &process.chiplets,
+        }
     }
 }

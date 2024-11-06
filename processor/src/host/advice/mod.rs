@@ -52,9 +52,9 @@ pub trait AdviceProvider: Sized {
     // --------------------------------------------------------------------------------------------
 
     /// Handles the specified advice injector request.
-    fn set_advice<S: ProcessState>(
+    fn set_advice(
         &mut self,
-        process: &S,
+        process: ProcessState,
         advice_injector: &AdviceInjector,
     ) -> Result<HostResponse, ExecutionError> {
         match advice_injector {
@@ -86,9 +86,9 @@ pub trait AdviceProvider: Sized {
     }
 
     /// Handles the specified advice extractor request.
-    fn get_advice<S: ProcessState>(
+    fn get_advice(
         &mut self,
-        process: &S,
+        process: ProcessState,
         advice_extractor: &AdviceExtractor,
     ) -> Result<HostResponse, ExecutionError> {
         match advice_extractor {
@@ -122,9 +122,9 @@ pub trait AdviceProvider: Sized {
     /// - `start_addr` is greater than or equal to 2^32.
     /// - `end_addr` is greater than or equal to 2^32.
     /// - `start_addr` > `end_addr`.
-    fn insert_mem_values_into_adv_map<S: ProcessState>(
+    fn insert_mem_values_into_adv_map(
         &mut self,
-        process: &S,
+        process: ProcessState,
     ) -> Result<HostResponse, ExecutionError> {
         injectors::adv_map_injectors::insert_mem_values_into_adv_map(self, process)
     }
@@ -142,9 +142,9 @@ pub trait AdviceProvider: Sized {
     ///
     /// Where KEY is computed as hash(A || B, domain), where domain is provided via the immediate
     /// value.
-    fn insert_hdword_into_adv_map<S: ProcessState>(
+    fn insert_hdword_into_adv_map(
         &mut self,
-        process: &S,
+        process: ProcessState,
         domain: Felt,
     ) -> Result<HostResponse, ExecutionError> {
         injectors::adv_map_injectors::insert_hdword_into_adv_map(self, process, domain)
@@ -163,9 +163,9 @@ pub trait AdviceProvider: Sized {
     ///
     /// Where KEY is computed by extracting the digest elements from hperm([C, A, B]). For example,
     /// if C is [0, d, 0, 0], KEY will be set as hash(A || B, d).
-    fn insert_hperm_into_adv_map<S: ProcessState>(
+    fn insert_hperm_into_adv_map(
         &mut self,
-        process: &S,
+        process: ProcessState,
     ) -> Result<HostResponse, ExecutionError> {
         injectors::adv_map_injectors::insert_hperm_into_adv_map(self, process)
     }
@@ -185,9 +185,9 @@ pub trait AdviceProvider: Sized {
     /// provider (i.e., the input trees are not removed).
     ///
     /// It is not checked whether the provided roots exist as Merkle trees in the advide providers.
-    fn merge_merkle_nodes<S: ProcessState>(
+    fn merge_merkle_nodes(
         &mut self,
-        process: &S,
+        process: ProcessState,
     ) -> Result<HostResponse, ExecutionError> {
         injectors::adv_map_injectors::merge_merkle_nodes(self, process)
     }
@@ -214,9 +214,9 @@ pub trait AdviceProvider: Sized {
     /// - The specified depth is either zero or greater than the depth of the Merkle tree identified
     ///   by the specified root.
     /// - Value of the node at the specified depth and index is not known to the advice provider.
-    fn copy_merkle_node_to_adv_stack<S: ProcessState>(
+    fn copy_merkle_node_to_adv_stack(
         &mut self,
-        process: &S,
+        process: ProcessState,
     ) -> Result<HostResponse, ExecutionError> {
         injectors::adv_stack_injectors::copy_merkle_node_to_adv_stack(self, process)
     }
@@ -245,9 +245,9 @@ pub trait AdviceProvider: Sized {
     /// # Errors
     /// Returns an error if the required key was not found in the key-value map or if stack offset
     /// is greater than 12.
-    fn copy_map_value_to_adv_stack<S: ProcessState>(
+    fn copy_map_value_to_adv_stack(
         &mut self,
-        process: &S,
+        process: ProcessState,
         include_len: bool,
         key_offset: usize,
     ) -> Result<HostResponse, ExecutionError> {
@@ -277,9 +277,9 @@ pub trait AdviceProvider: Sized {
     ///
     /// # Errors
     /// Returns an error if the divisor is ZERO.
-    fn push_u64_div_result<S: ProcessState>(
+    fn push_u64_div_result(
         &mut self,
-        process: &S,
+        process: ProcessState,
     ) -> Result<HostResponse, ExecutionError> {
         injectors::adv_stack_injectors::push_u64_div_result(self, process)
     }
@@ -300,9 +300,9 @@ pub trait AdviceProvider: Sized {
     ///
     /// # Errors
     /// Returns an error if the input is a zero element in the extension field.
-    fn push_ext2_inv_result<S: ProcessState>(
+    fn push_ext2_inv_result(
         &mut self,
-        process: &S,
+        process: ProcessState,
     ) -> Result<HostResponse, ExecutionError> {
         injectors::adv_stack_injectors::push_ext2_inv_result(self, process)
     }
@@ -336,9 +336,9 @@ pub trait AdviceProvider: Sized {
     /// - `output_size` is 0 or is greater than the `input_size`.
     /// - `input_ptr` is greater than 2^32.
     /// - `input_ptr + input_size / 2` is greater than 2^32.
-    fn push_ext2_intt_result<S: ProcessState>(
+    fn push_ext2_intt_result(
         &mut self,
-        process: &S,
+        process: ProcessState,
     ) -> Result<HostResponse, ExecutionError> {
         injectors::adv_stack_injectors::push_ext2_intt_result(self, process)
     }
@@ -360,9 +360,9 @@ pub trait AdviceProvider: Sized {
     /// - DATA is the needed data for signature verification in the VM.
     ///
     /// The advice provider is expected to contain the private key associated to the public key PK.
-    fn push_signature<S: ProcessState>(
+    fn push_signature(
         &mut self,
-        process: &S,
+        process: ProcessState,
         kind: SignatureKind,
     ) -> Result<HostResponse, ExecutionError> {
         injectors::adv_stack_injectors::push_signature(self, process, kind)
@@ -377,9 +377,9 @@ pub trait AdviceProvider: Sized {
     /// Outputs:
     ///   Operand stack: [n, ...]
     ///   Advice stack: [leading_zeros, ...]
-    fn push_leading_zeros<S: ProcessState>(
+    fn push_leading_zeros(
         &mut self,
-        process: &S,
+        process: ProcessState,
     ) -> Result<HostResponse, ExecutionError> {
         injectors::adv_stack_injectors::push_leading_zeros(self, process)
     }
@@ -393,9 +393,9 @@ pub trait AdviceProvider: Sized {
     /// Outputs:
     ///   Operand stack: [n, ...]
     ///   Advice stack: [trailing_zeros, ...]
-    fn push_trailing_zeros<S: ProcessState>(
+    fn push_trailing_zeros(
         &mut self,
-        process: &S,
+        process: ProcessState,
     ) -> Result<HostResponse, ExecutionError> {
         injectors::adv_stack_injectors::push_trailing_zeros(self, process)
     }
@@ -409,10 +409,7 @@ pub trait AdviceProvider: Sized {
     /// Outputs:
     ///   Operand stack: [n, ...]
     ///   Advice stack: [leading_ones, ...]
-    fn push_leading_ones<S: ProcessState>(
-        &mut self,
-        process: &S,
-    ) -> Result<HostResponse, ExecutionError> {
+    fn push_leading_ones(&mut self, process: ProcessState) -> Result<HostResponse, ExecutionError> {
         injectors::adv_stack_injectors::push_leading_ones(self, process)
     }
 
@@ -425,9 +422,9 @@ pub trait AdviceProvider: Sized {
     /// Outputs:
     ///   Operand stack: [n, ...]
     ///   Advice stack: [trailing_ones, ...]
-    fn push_trailing_ones<S: ProcessState>(
+    fn push_trailing_ones(
         &mut self,
-        process: &S,
+        process: ProcessState,
     ) -> Result<HostResponse, ExecutionError> {
         injectors::adv_stack_injectors::push_trailing_ones(self, process)
     }
@@ -443,7 +440,7 @@ pub trait AdviceProvider: Sized {
     ///
     /// # Errors
     /// Returns an error if the logarithm argument (top stack element) equals ZERO.
-    fn push_ilog2<S: ProcessState>(&mut self, process: &S) -> Result<HostResponse, ExecutionError> {
+    fn push_ilog2(&mut self, process: ProcessState) -> Result<HostResponse, ExecutionError> {
         injectors::adv_stack_injectors::push_ilog2(self, process)
     }
 
@@ -463,9 +460,9 @@ pub trait AdviceProvider: Sized {
     ///  Advice stack: [...]
     ///  Merkle store: {path, ...}
     ///  Return: \[path\]
-    fn update_operand_stack_merkle_node<S: ProcessState>(
+    fn update_operand_stack_merkle_node(
         &mut self,
-        process: &S,
+        process: ProcessState,
     ) -> Result<HostResponse, ExecutionError> {
         injectors::merkle_store_injectors::update_operand_stack_merkle_node(self, process)
     }
@@ -491,9 +488,9 @@ pub trait AdviceProvider: Sized {
     ///  Advice map: {...}
     ///  Merkle store: {path, ...}
     ///  Return: \[path\]
-    fn get_operand_stack_merkle_path<S: ProcessState>(
+    fn get_operand_stack_merkle_path(
         &mut self,
-        process: &S,
+        process: ProcessState,
     ) -> Result<HostResponse, ExecutionError> {
         let depth = process.get_stack_item(4);
         let index = process.get_stack_item(5);
@@ -528,25 +525,25 @@ pub trait AdviceProvider: Sized {
     ///
     /// # Panics
     /// Will panic as unimplemented if the target depth is `64`.
-    fn push_smtpeek_result<S: ProcessState>(
+    fn push_smtpeek_result(
         &mut self,
-        process: &S,
+        process: ProcessState,
     ) -> Result<HostResponse, ExecutionError> {
         injectors::smt::push_smtpeek_result(self, process)
     }
 
     /// Currently unimplemented
-    fn push_smtget_inputs<S: ProcessState>(
+    fn push_smtget_inputs(
         &mut self,
-        process: &S,
+        process: ProcessState,
     ) -> Result<HostResponse, ExecutionError> {
         injectors::smt::push_smtget_inputs(self, process)
     }
 
     /// Currently unimplemented
-    fn push_smtset_inputs<S: ProcessState>(
+    fn push_smtset_inputs(
         &mut self,
-        process: &S,
+        process: ProcessState,
     ) -> Result<HostResponse, ExecutionError> {
         injectors::smt::push_smtset_inputs(self, process)
     }
@@ -579,7 +576,7 @@ pub trait AdviceProvider: Sized {
     ///
     /// # Errors
     /// Returns an error if the advice stack is empty.
-    fn pop_stack<S: ProcessState>(&mut self, process: &S) -> Result<Felt, ExecutionError>;
+    fn pop_stack(&mut self, process: ProcessState) -> Result<Felt, ExecutionError>;
 
     /// Pops a word (4 elements) from the advice stack and returns it.
     ///
@@ -588,7 +585,7 @@ pub trait AdviceProvider: Sized {
     ///
     /// # Errors
     /// Returns an error if the advice stack does not contain a full word.
-    fn pop_stack_word<S: ProcessState>(&mut self, process: &S) -> Result<Word, ExecutionError>;
+    fn pop_stack_word(&mut self, process: ProcessState) -> Result<Word, ExecutionError>;
 
     /// Pops a double word (8 elements) from the advice stack and returns them.
     ///
@@ -598,10 +595,7 @@ pub trait AdviceProvider: Sized {
     ///
     /// # Errors
     /// Returns an error if the advice stack does not contain two words.
-    fn pop_stack_dword<S: ProcessState>(
-        &mut self,
-        process: &S,
-    ) -> Result<[Word; 2], ExecutionError>;
+    fn pop_stack_dword(&mut self, process: ProcessState) -> Result<[Word; 2], ExecutionError>;
 
     /// Pushes the value(s) specified by the source onto the advice stack.
     ///
@@ -722,18 +716,15 @@ impl<T> AdviceProvider for &mut T
 where
     T: AdviceProvider,
 {
-    fn pop_stack<S: ProcessState>(&mut self, process: &S) -> Result<Felt, ExecutionError> {
+    fn pop_stack(&mut self, process: ProcessState) -> Result<Felt, ExecutionError> {
         T::pop_stack(self, process)
     }
 
-    fn pop_stack_word<S: ProcessState>(&mut self, process: &S) -> Result<Word, ExecutionError> {
+    fn pop_stack_word(&mut self, process: ProcessState) -> Result<Word, ExecutionError> {
         T::pop_stack_word(self, process)
     }
 
-    fn pop_stack_dword<S: ProcessState>(
-        &mut self,
-        process: &S,
-    ) -> Result<[Word; 2], ExecutionError> {
+    fn pop_stack_dword(&mut self, process: ProcessState) -> Result<[Word; 2], ExecutionError> {
         T::pop_stack_dword(self, process)
     }
 

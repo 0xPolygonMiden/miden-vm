@@ -1,8 +1,8 @@
 use super::super::{AdviceProvider, ExecutionError, HostResponse, ProcessState};
 
-pub(crate) fn update_operand_stack_merkle_node<S: ProcessState, A: AdviceProvider>(
+pub(crate) fn update_operand_stack_merkle_node<A: AdviceProvider>(
     advice_provider: &mut A,
-    process: &S,
+    process: ProcessState,
 ) -> Result<HostResponse, ExecutionError> {
     let depth = process.get_stack_item(4);
     let index = process.get_stack_item(5);

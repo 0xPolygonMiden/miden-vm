@@ -29,9 +29,9 @@ use crate::ProcessState;
 /// - `start_addr` is greater than or equal to 2^32.
 /// - `end_addr` is greater than or equal to 2^32.
 /// - `start_addr` > `end_addr`.
-pub(crate) fn insert_mem_values_into_adv_map<S: ProcessState, A: AdviceProvider>(
+pub(crate) fn insert_mem_values_into_adv_map<A: AdviceProvider>(
     advice_provider: &mut A,
-    process: &S,
+    process: ProcessState,
 ) -> Result<HostResponse, ExecutionError> {
     let (start_addr, end_addr) = get_mem_addr_range(process, 4, 5)?;
     let ctx = process.ctx();
@@ -61,9 +61,9 @@ pub(crate) fn insert_mem_values_into_adv_map<S: ProcessState, A: AdviceProvider>
 ///
 /// Where KEY is computed as hash(A || B, domain), where domain is provided via the immediate
 /// value.
-pub(crate) fn insert_hdword_into_adv_map<S: ProcessState, A: AdviceProvider>(
+pub(crate) fn insert_hdword_into_adv_map<A: AdviceProvider>(
     advice_provider: &mut A,
-    process: &S,
+    process: ProcessState,
     domain: Felt,
 ) -> Result<HostResponse, ExecutionError> {
     // get the top two words from the stack and hash them to compute the key value
@@ -94,9 +94,9 @@ pub(crate) fn insert_hdword_into_adv_map<S: ProcessState, A: AdviceProvider>(
 ///
 /// Where KEY is computed by extracting the digest elements from hperm([C, A, B]). For example,
 /// if C is [0, d, 0, 0], KEY will be set as hash(A || B, d).
-pub(crate) fn insert_hperm_into_adv_map<S: ProcessState, A: AdviceProvider>(
+pub(crate) fn insert_hperm_into_adv_map<A: AdviceProvider>(
     advice_provider: &mut A,
-    process: &S,
+    process: ProcessState,
 ) -> Result<HostResponse, ExecutionError> {
     // read the state from the stack
     let mut state = [
@@ -145,9 +145,9 @@ pub(crate) fn insert_hperm_into_adv_map<S: ProcessState, A: AdviceProvider>(
 /// provider (i.e., the input trees are not removed).
 ///
 /// It is not checked whether the provided roots exist as Merkle trees in the advide providers.
-pub(crate) fn merge_merkle_nodes<S: ProcessState, A: AdviceProvider>(
+pub(crate) fn merge_merkle_nodes<A: AdviceProvider>(
     advice_provider: &mut A,
-    process: &S,
+    process: ProcessState,
 ) -> Result<HostResponse, ExecutionError> {
     // fetch the arguments from the stack
     let lhs = process.get_stack_word(1);
@@ -164,8 +164,8 @@ pub(crate) fn merge_merkle_nodes<S: ProcessState, A: AdviceProvider>(
 
 /// Reads (start_addr, end_addr) tuple from the specified elements of the operand stack (
 /// without modifying the state of the stack), and verifies that memory range is valid.
-fn get_mem_addr_range<S: ProcessState>(
-    process: &S,
+fn get_mem_addr_range(
+    process: ProcessState,
     start_idx: usize,
     end_idx: usize,
 ) -> Result<(u32, u32), ExecutionError> {

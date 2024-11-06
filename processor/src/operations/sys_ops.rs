@@ -22,7 +22,7 @@ impl Process {
         H: Host,
     {
         if self.stack.get(0) != ONE {
-            return Err(host.on_assert_failed(self, err_code));
+            return Err(host.on_assert_failed(self.into(), err_code));
         }
         self.stack.shift_left(1);
         Ok(())
@@ -122,7 +122,7 @@ impl Process {
     {
         self.stack.copy_state(0);
         self.decoder.set_user_op_helpers(Operation::Emit(event_id), &[event_id.into()]);
-        host.on_event(self, event_id)?;
+        host.on_event(self.into(), event_id)?;
 
         Ok(())
     }

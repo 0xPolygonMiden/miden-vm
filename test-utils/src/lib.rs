@@ -258,8 +258,10 @@ impl Test {
         for data in expected_mem.chunks(WORD_SIZE) {
             // Main memory is zeroed by default, use zeros as a fallback when unwrap to make testing
             // easier
-            let mem_state =
-                process.get_mem_value(ContextId::root(), mem_start_addr).unwrap_or(EMPTY_WORD);
+            let mem_state = process
+                .chiplets
+                .get_mem_value(ContextId::root(), mem_start_addr)
+                .unwrap_or(EMPTY_WORD);
 
             let mem_state = felt_slice_to_ints(&mem_state);
             assert_eq!(

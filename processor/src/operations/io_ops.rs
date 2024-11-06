@@ -186,7 +186,7 @@ impl Process {
         let addr = Self::get_valid_address(self.stack.get(12))?;
 
         // pop two words from the advice stack
-        let words = host.pop_adv_stack_dword(self)?;
+        let words = host.pop_adv_stack_dword(self.into())?;
 
         // write the words memory
         self.chiplets.write_mem_double(ctx, addr, words)?;
@@ -219,7 +219,7 @@ impl Process {
     /// # Errors
     /// Returns an error if the advice stack is empty.
     pub(super) fn op_advpop(&mut self, host: &mut impl Host) -> Result<(), ExecutionError> {
-        let value = host.pop_adv_stack(self)?;
+        let value = host.pop_adv_stack(self.into())?;
         self.stack.set(0, value);
         self.stack.shift_right(0);
         Ok(())
@@ -231,7 +231,7 @@ impl Process {
     /// # Errors
     /// Returns an error if the advice stack contains fewer than four elements.
     pub(super) fn op_advpopw(&mut self, host: &mut impl Host) -> Result<(), ExecutionError> {
-        let word: Word = host.pop_adv_stack_word(self)?;
+        let word: Word = host.pop_adv_stack_word(self.into())?;
 
         self.stack.set(0, word[3]);
         self.stack.set(1, word[2]);

@@ -32,9 +32,9 @@ type QuadFelt = QuadExtension<Felt>;
 /// - The specified depth is either zero or greater than the depth of the Merkle tree identified by
 ///   the specified root.
 /// - Value of the node at the specified depth and index is not known to the advice provider.
-pub(crate) fn copy_merkle_node_to_adv_stack<S: ProcessState, A: AdviceProvider>(
+pub(crate) fn copy_merkle_node_to_adv_stack<A: AdviceProvider>(
     advice_provider: &mut A,
-    process: &S,
+    process: ProcessState,
 ) -> Result<HostResponse, ExecutionError> {
     // read node depth, node index, and tree root from the stack
     let depth = process.get_stack_item(0);
@@ -83,9 +83,9 @@ pub(crate) fn copy_merkle_node_to_adv_stack<S: ProcessState, A: AdviceProvider>(
 /// # Errors
 /// Returns an error if the required key was not found in the key-value map or if stack offset
 /// is greater than 12.
-pub(crate) fn copy_map_value_to_adv_stack<S: ProcessState, A: AdviceProvider>(
+pub(crate) fn copy_map_value_to_adv_stack<A: AdviceProvider>(
     advice_provider: &mut A,
-    process: &S,
+    process: ProcessState,
     include_len: bool,
     key_offset: usize,
 ) -> Result<HostResponse, ExecutionError> {
@@ -122,9 +122,9 @@ pub(crate) fn copy_map_value_to_adv_stack<S: ProcessState, A: AdviceProvider>(
 ///
 /// # Errors
 /// Returns an error if the divisor is ZERO.
-pub(crate) fn push_u64_div_result<S: ProcessState, A: AdviceProvider>(
+pub(crate) fn push_u64_div_result<A: AdviceProvider>(
     advice_provider: &mut A,
-    process: &S,
+    process: ProcessState,
 ) -> Result<HostResponse, ExecutionError> {
     let divisor_hi = process.get_stack_item(0).as_int();
     let divisor_lo = process.get_stack_item(1).as_int();
@@ -168,9 +168,9 @@ pub(crate) fn push_u64_div_result<S: ProcessState, A: AdviceProvider>(
 ///
 /// # Errors
 /// Returns an error if the input is a zero element in the extension field.
-pub(crate) fn push_ext2_inv_result<S: ProcessState, A: AdviceProvider>(
+pub(crate) fn push_ext2_inv_result<A: AdviceProvider>(
     advice_provider: &mut A,
-    process: &S,
+    process: ProcessState,
 ) -> Result<HostResponse, ExecutionError> {
     let coef0 = process.get_stack_item(1);
     let coef1 = process.get_stack_item(0);
@@ -215,9 +215,9 @@ pub(crate) fn push_ext2_inv_result<S: ProcessState, A: AdviceProvider>(
 /// - `output_size` is 0 or is greater than the `input_size`.
 /// - `input_ptr` is greater than 2^32.
 /// - `input_ptr + input_size / 2` is greater than 2^32.
-pub(crate) fn push_ext2_intt_result<S: ProcessState, A: AdviceProvider>(
+pub(crate) fn push_ext2_intt_result<A: AdviceProvider>(
     advice_provider: &mut A,
-    process: &S,
+    process: ProcessState,
 ) -> Result<HostResponse, ExecutionError> {
     let output_size = process.get_stack_item(0).as_int() as usize;
     let input_size = process.get_stack_item(1).as_int() as usize;
@@ -284,9 +284,9 @@ pub(crate) fn push_ext2_intt_result<S: ProcessState, A: AdviceProvider>(
 /// - DATA is the needed data for signature verification in the VM.
 ///
 /// The advice provider is expected to contain the private key associated to the public key PK.
-pub(crate) fn push_signature<S: ProcessState, A: AdviceProvider>(
+pub(crate) fn push_signature<A: AdviceProvider>(
     advice_provider: &mut A,
-    process: &S,
+    process: ProcessState,
     kind: SignatureKind,
 ) -> Result<HostResponse, ExecutionError> {
     let pub_key = process.get_stack_word(0);
@@ -307,9 +307,9 @@ pub(crate) fn push_signature<S: ProcessState, A: AdviceProvider>(
 /// Outputs:
 ///   Operand stack: [n, ...]
 ///   Advice stack: [leading_zeros, ...]
-pub(crate) fn push_leading_zeros<S: ProcessState, A: AdviceProvider>(
+pub(crate) fn push_leading_zeros<A: AdviceProvider>(
     advice_provider: &mut A,
-    process: &S,
+    process: ProcessState,
 ) -> Result<HostResponse, ExecutionError> {
     push_transformed_stack_top(advice_provider, process, |stack_top| {
         Felt::from(stack_top.leading_zeros())
@@ -325,9 +325,9 @@ pub(crate) fn push_leading_zeros<S: ProcessState, A: AdviceProvider>(
 /// Outputs:
 ///   Operand stack: [n, ...]
 ///   Advice stack: [trailing_zeros, ...]
-pub(crate) fn push_trailing_zeros<S: ProcessState, A: AdviceProvider>(
+pub(crate) fn push_trailing_zeros<A: AdviceProvider>(
     advice_provider: &mut A,
-    process: &S,
+    process: ProcessState,
 ) -> Result<HostResponse, ExecutionError> {
     push_transformed_stack_top(advice_provider, process, |stack_top| {
         Felt::from(stack_top.trailing_zeros())
@@ -343,9 +343,9 @@ pub(crate) fn push_trailing_zeros<S: ProcessState, A: AdviceProvider>(
 /// Outputs:
 ///   Operand stack: [n, ...]
 ///   Advice stack: [leading_ones, ...]
-pub(crate) fn push_leading_ones<S: ProcessState, A: AdviceProvider>(
+pub(crate) fn push_leading_ones<A: AdviceProvider>(
     advice_provider: &mut A,
-    process: &S,
+    process: ProcessState,
 ) -> Result<HostResponse, ExecutionError> {
     push_transformed_stack_top(advice_provider, process, |stack_top| {
         Felt::from(stack_top.leading_ones())
@@ -361,9 +361,9 @@ pub(crate) fn push_leading_ones<S: ProcessState, A: AdviceProvider>(
 /// Outputs:
 ///   Operand stack: [n, ...]
 ///   Advice stack: [trailing_ones, ...]
-pub(crate) fn push_trailing_ones<S: ProcessState, A: AdviceProvider>(
+pub(crate) fn push_trailing_ones<A: AdviceProvider>(
     advice_provider: &mut A,
-    process: &S,
+    process: ProcessState,
 ) -> Result<HostResponse, ExecutionError> {
     push_transformed_stack_top(advice_provider, process, |stack_top| {
         Felt::from(stack_top.trailing_ones())
@@ -381,9 +381,9 @@ pub(crate) fn push_trailing_ones<S: ProcessState, A: AdviceProvider>(
 ///
 /// # Errors
 /// Returns an error if the logarithm argument (top stack element) equals ZERO.
-pub(crate) fn push_ilog2<S: ProcessState, A: AdviceProvider>(
+pub(crate) fn push_ilog2<A: AdviceProvider>(
     advice_provider: &mut A,
-    process: &S,
+    process: ProcessState,
 ) -> Result<HostResponse, ExecutionError> {
     let n = process.get_stack_item(0).as_int();
     if n == 0 {
@@ -405,9 +405,9 @@ fn u64_to_u32_elements(value: u64) -> (Felt, Felt) {
 
 /// Gets the top stack element, applies a provided function to it and pushes it to the advice
 /// provider.
-fn push_transformed_stack_top<S: ProcessState, A: AdviceProvider>(
+fn push_transformed_stack_top<A: AdviceProvider>(
     advice_provider: &mut A,
-    process: &S,
+    process: ProcessState,
     f: impl FnOnce(u32) -> Felt,
 ) -> Result<HostResponse, ExecutionError> {
     let stack_top = process.get_stack_item(0);
