@@ -1,5 +1,8 @@
 # Changelog
 
+#### Changes
+- [BREAKING] `Process` no longer takes ownership of the `Host` (#1563)
+
 ## 0.11.0 (2024-11-04)
 
 #### Enhancements

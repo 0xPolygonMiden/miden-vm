@@ -33,13 +33,9 @@ fn test_memcopy() {
     let mut host = DefaultHost::default();
     host.load_mast_forest(stdlib.mast_forest().clone());
 
-    let mut process = Process::new(
-        program.kernel().clone(),
-        StackInputs::default(),
-        host,
-        ExecutionOptions::default(),
-    );
-    process.execute(&program).unwrap();
+    let mut process =
+        Process::new(program.kernel().clone(), StackInputs::default(), ExecutionOptions::default());
+    process.execute(&program, &mut host).unwrap();
 
     assert_eq!(
         process.get_mem_value(ContextId::root(), 1000),

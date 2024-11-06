@@ -209,7 +209,11 @@ impl fmt::Display for ExecutionDetails {
 }
 
 /// Returns program analysis of a given program.
-fn analyze<H>(program: &str, stack_inputs: StackInputs, host: H) -> Result<ExecutionDetails, Report>
+fn analyze<H>(
+    program: &str,
+    stack_inputs: StackInputs,
+    mut host: H,
+) -> Result<ExecutionDetails, Report>
 where
     H: Host,
 {
@@ -220,7 +224,7 @@ where
         .assemble_program(program)?;
     let mut execution_details = ExecutionDetails::default();
 
-    let vm_state_iterator = processor::execute_iter(&program, stack_inputs, host);
+    let vm_state_iterator = processor::execute_iter(&program, stack_inputs, &mut host);
     execution_details.set_trace_len_summary(vm_state_iterator.trace_len_summary());
 
     for state in vm_state_iterator {

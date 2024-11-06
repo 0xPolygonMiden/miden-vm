@@ -1,14 +1,11 @@
 use vm_core::{Felt, Operation, ONE, ZERO};
 
-use crate::{ExecutionError, Host, Process, QuadFelt};
+use crate::{ExecutionError, Process, QuadFelt};
 
 // RANDOM LINEAR COMBINATION OPERATIONS
 // ================================================================================================
 
-impl<H> Process<H>
-where
-    H: Host,
-{
+impl Process {
     // COMBINE VALUES USING RANDOMNESS
     // --------------------------------------------------------------------------------------------
     /// Performs a single step in the computation of the random linear combination:
@@ -177,7 +174,7 @@ mod tests {
     use test_utils::{build_test, rand::rand_array, TRUNCATE_STACK_PROC};
     use vm_core::{Felt, FieldElement, Operation, StackInputs, ONE, ZERO};
 
-    use crate::{ContextId, Process, QuadFelt};
+    use crate::{ContextId, DefaultHost, Process, QuadFelt};
 
     #[test]
     fn rcombine_main() {
@@ -197,6 +194,7 @@ mod tests {
         inputs.reverse();
 
         // --- setup the operand stack ------------------------------------------------------------
+        let mut host = DefaultHost::default();
         let stack_inputs = StackInputs::new(inputs.to_vec()).expect("inputs lenght too long");
         let mut process = Process::new_dummy_with_decoder_helpers(stack_inputs);
 
@@ -221,10 +219,10 @@ mod tests {
                 a,
             )
             .unwrap();
-        process.execute_op(Operation::Noop).unwrap();
+        process.execute_op(Operation::Noop, &mut host).unwrap();
 
         // --- execute RCOMB1 operation -----------------------------------------------------------
-        process.execute_op(Operation::RCombBase).unwrap();
+        process.execute_op(Operation::RCombBase, &mut host).unwrap();
 
         // --- check that the top 8 stack elements are correctly rotated --------------------------
         let stack_state = process.stack.trace_state();

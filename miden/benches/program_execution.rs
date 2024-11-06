@@ -24,7 +24,7 @@ fn program_execution(c: &mut Criterion) {
         assembler.add_library(&stdlib).expect("failed to load stdlib");
         let program = assembler.assemble_program(source).expect("Failed to compile test source.");
         bench.iter(|| {
-            execute(&program, StackInputs::default(), host.clone(), ExecutionOptions::default())
+            execute(&program, StackInputs::default(), &mut host, ExecutionOptions::default())
         });
     });
 
