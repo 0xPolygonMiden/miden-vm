@@ -200,14 +200,6 @@ where
             .map(|v| v.into())
             .map_err(ExecutionError::MerkleStoreMergeFailed)
     }
-
-    fn get_store_subset<I, R>(&self, roots: I) -> MerkleStore
-    where
-        I: Iterator<Item = R>,
-        R: core::borrow::Borrow<RpoDigest>,
-    {
-        self.store.subset(roots).into_inner().into_iter().collect()
-    }
 }
 
 // MEMORY ADVICE PROVIDER
@@ -302,14 +294,6 @@ impl AdviceProvider for MemAdviceProvider {
     fn merge_roots(&mut self, lhs: Word, rhs: Word) -> Result<Word, ExecutionError> {
         self.provider.merge_roots(lhs, rhs)
     }
-
-    fn get_store_subset<I, R>(&self, roots: I) -> MerkleStore
-        where
-            I: Iterator<Item = R>,
-            R: core::borrow::Borrow<RpoDigest> {
-        self.provider.get_store_subset(roots)
-    }
-
 }
 
 impl MemAdviceProvider {
@@ -419,13 +403,6 @@ impl AdviceProvider for RecAdviceProvider {
 
     fn merge_roots(&mut self, lhs: Word, rhs: Word) -> Result<Word, ExecutionError> {
         self.provider.merge_roots(lhs, rhs)
-    }
-
-    fn get_store_subset<I, R>(&self, roots: I) -> MerkleStore
-        where
-            I: Iterator<Item = R>,
-            R: core::borrow::Borrow<RpoDigest> {
-        self.provider.get_store_subset(roots)
     }
 }
 

@@ -72,7 +72,7 @@ let exec_options = ExecutionOptions::default();
 let trace = execute(&program, stack_inputs.clone(), &mut host, exec_options).unwrap();
 
 // now, execute the same program in debug mode and iterate over VM states
-for vm_state in execute_iter(&program, stack_inputs, host) {
+for vm_state in execute_iter(&program, stack_inputs, &mut host) {
     match vm_state {
         Ok(vm_state) => println!("{:?}", vm_state),
         Err(_) => println!("something went terribly wrong!"),
@@ -111,13 +111,13 @@ let program = assembler.assemble_program("begin push.3 push.5 add end").unwrap()
 let (outputs, proof) = prove(
     &program,
     StackInputs::default(),       // we won't provide any inputs
-    DefaultHost::default(),       // we'll be using a default host
+    &mut DefaultHost::default(),  // we'll be using a default host
     ProvingOptions::default(),    // we'll be using default options
 )
 .unwrap();
 
 // the output should be 8
-assert_eq!(8, outputs.stack().first().unwrap().as_int());
+assert_eq!(8, outputs.first().unwrap().as_int());
 ```
 
 ### Verifying program execution
@@ -196,7 +196,7 @@ let mut assembler = Assembler::default();
 let program = assembler.assemble_program(&source).unwrap();
 
 // initialize a default host (with an empty advice provider)
-let host = DefaultHost::default();
+let mut host = DefaultHost::default();
 
 // initialize the stack with values 0 and 1
 let stack_inputs = StackInputs::try_from_ints([0, 1]).unwrap();
@@ -205,7 +205,7 @@ let stack_inputs = StackInputs::try_from_ints([0, 1]).unwrap();
 let (outputs, proof) = miden_vm::prove(
     &program,
     stack_inputs,
-    host,
+    &mut host,
     ProvingOptions::default(), // use default proving options
 )
 .unwrap();

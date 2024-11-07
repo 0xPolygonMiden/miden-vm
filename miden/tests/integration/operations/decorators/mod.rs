@@ -1,10 +1,9 @@
 use std::sync::Arc;
 
 use processor::{
-    AdviceExtractor, AdviceProvider, ExecutionError, Host, HostResponse, MastForest,
-    MemAdviceProvider, ProcessState,
+    AdviceProvider, ExecutionError, Host, HostResponse, MastForest, MemAdviceProvider, ProcessState,
 };
-use vm_core::{AdviceInjector, DebugOptions};
+use vm_core::DebugOptions;
 
 mod advice;
 mod asmop;
@@ -39,22 +38,6 @@ impl<A: AdviceProvider> Host for TestHost<A> {
 
     fn advice_provider_mut(&mut self) -> &mut Self::AdviceProvider {
         &mut self.adv_provider
-    }
-
-    fn get_advice(
-        &mut self,
-        process: ProcessState,
-        extractor: AdviceExtractor,
-    ) -> Result<HostResponse, ExecutionError> {
-        self.adv_provider.get_advice(process, &extractor)
-    }
-
-    fn set_advice(
-        &mut self,
-        process: ProcessState,
-        injector: AdviceInjector,
-    ) -> Result<HostResponse, ExecutionError> {
-        self.adv_provider.set_advice(process, &injector)
     }
 
     fn on_event(
