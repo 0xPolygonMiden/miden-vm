@@ -48,7 +48,7 @@ use range::RangeChecker;
 mod host;
 pub use host::{
     advice::{AdviceInputs, AdviceProvider, AdviceSource, MemAdviceProvider, RecAdviceProvider},
-    DefaultHost, Host, HostResponse, MastForestStore, MemMastForestStore,
+    DefaultHost, Host, MastForestStore, MemMastForestStore,
 };
 
 mod chiplets;
@@ -596,9 +596,9 @@ impl Process {
             Decorator::Advice(injector) => {
                 let advice_provider = host.advice_provider_mut();
                 let process_state: ProcessState = self.into();
-                let _ = match injector {
+                match injector {
                     AdviceInjector::MerkleNodeMerge => {
-                        advice_provider.merge_merkle_nodes(process_state)?
+                        advice_provider.merge_merkle_nodes(process_state)?;
                     },
                     AdviceInjector::MerkleNodeToStack => {
                         advice_provider.copy_merkle_node_to_adv_stack(process_state)?
@@ -606,7 +606,7 @@ impl Process {
                     AdviceInjector::MapValueToStack { include_len, key_offset } => advice_provider
                         .copy_map_value_to_adv_stack(process_state, *include_len, *key_offset)?,
                     AdviceInjector::UpdateMerkleNode => {
-                        advice_provider.update_operand_stack_merkle_node(process_state)?
+                        let _ = advice_provider.update_operand_stack_merkle_node(process_state)?;
                     },
                     AdviceInjector::U64Div => advice_provider.push_u64_div_result(process_state)?,
                     AdviceInjector::Ext2Inv => {
@@ -625,18 +625,18 @@ impl Process {
                     AdviceInjector::ILog2 => advice_provider.push_ilog2(process_state)?,
 
                     AdviceInjector::MemToMap => {
-                        advice_provider.insert_mem_values_into_adv_map(process_state)?
+                        advice_provider.insert_mem_values_into_adv_map(process_state)?;
                     },
                     AdviceInjector::HdwordToMap { domain } => {
-                        advice_provider.insert_hdword_into_adv_map(process_state, *domain)?
+                        advice_provider.insert_hdword_into_adv_map(process_state, *domain)?;
                     },
                     AdviceInjector::HpermToMap => {
-                        advice_provider.insert_hperm_into_adv_map(process_state)?
+                        advice_provider.insert_hperm_into_adv_map(process_state)?;
                     },
                     AdviceInjector::SigToStack { kind } => {
                         advice_provider.push_signature(process_state, *kind)?
                     },
-                };
+                }
             },
             Decorator::Debug(options) => {
                 if self.decoder.in_debug_mode() {
@@ -653,7 +653,7 @@ impl Process {
                     host.on_trace(self.into(), *id)?;
                 }
             },
-        }
+        };
         Ok(())
     }
 

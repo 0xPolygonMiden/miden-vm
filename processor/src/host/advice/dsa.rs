@@ -1,6 +1,6 @@
 use alloc::vec::Vec;
 
-use super::super::{ExecutionError, Felt, Word};
+use super::{ExecutionError, Felt, Word};
 
 /// Gets as input a vector containing a secret key, and a word representing a message and outputs a
 /// vector of values to be pushed onto the advice stack.

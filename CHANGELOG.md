@@ -3,6 +3,7 @@
 #### Changes
 - [BREAKING] `Process` no longer takes ownership of the `Host` (#1571)
 - [BREAKING] `ProcessState` was converted from a trait to a struct (#1571)
+- [BREAKING] `Host` and `AdviceProvider` traits simplified (#1572)
 
 #### Enhancements
 - Added `miden_core::mast::MastForest::advice_map` to load it into the advice provider before the `MastForest` execution (#1574).

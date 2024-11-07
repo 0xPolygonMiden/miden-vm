@@ -1,12 +1,8 @@
 use alloc::sync::Arc;
 
-use vm_core::{
-    crypto::{hash::RpoDigest, merkle::MerklePath},
-    mast::MastForest,
-    DebugOptions, Word,
-};
+use vm_core::{crypto::hash::RpoDigest, mast::MastForest, DebugOptions};
 
-use super::{ExecutionError, Felt, ProcessState};
+use super::{ExecutionError, ProcessState};
 use crate::{KvMap, MemAdviceProvider};
 
 pub(super) mod advice;
@@ -48,11 +44,7 @@ pub trait Host {
     // --------------------------------------------------------------------------------------------
 
     /// Handles the event emitted from the VM.
-    fn on_event(
-        &mut self,
-        _process: ProcessState,
-        _event_id: u32,
-    ) -> Result<HostResponse, ExecutionError> {
+    fn on_event(&mut self, _process: ProcessState, _event_id: u32) -> Result<(), ExecutionError> {
         #[cfg(feature = "std")]
         std::println!(
             "Event with id {} emitted at step {} in context {}",
@@ -60,7 +52,7 @@ pub trait Host {
             _process.clk(),
             _process.ctx()
         );
-        Ok(HostResponse::None)
+        Ok(())
     }
 
     /// Handles the debug request from the VM.
@@ -68,18 +60,14 @@ pub trait Host {
         &mut self,
         _process: ProcessState,
         _options: &DebugOptions,
-    ) -> Result<HostResponse, ExecutionError> {
+    ) -> Result<(), ExecutionError> {
         #[cfg(feature = "std")]
         debug::print_debug_info(_process, _options);
-        Ok(HostResponse::None)
+        Ok(())
     }
 
     /// Handles the trace emitted from the VM.
-    fn on_trace(
-        &mut self,
-        _process: ProcessState,
-        _trace_id: u32,
-    ) -> Result<HostResponse, ExecutionError> {
+    fn on_trace(&mut self, _process: ProcessState, _trace_id: u32) -> Result<(), ExecutionError> {
         #[cfg(feature = "std")]
         std::println!(
             "Trace with id {} emitted at step {} in context {}",
@@ -87,7 +75,7 @@ pub trait Host {
             _process.clk(),
             _process.ctx()
         );
-        Ok(HostResponse::None)
+        Ok(())
     }
 
     /// Handles the failure of the assertion instruction.
@@ -122,77 +110,20 @@ where
         &mut self,
         process: ProcessState,
         options: &DebugOptions,
-    ) -> Result<HostResponse, ExecutionError> {
+    ) -> Result<(), ExecutionError> {
         H::on_debug(self, process, options)
     }
 
-    fn on_event(
-        &mut self,
-        process: ProcessState,
-        event_id: u32,
-    ) -> Result<HostResponse, ExecutionError> {
+    fn on_event(&mut self, process: ProcessState, event_id: u32) -> Result<(), ExecutionError> {
         H::on_event(self, process, event_id)
     }
 
-    fn on_trace(
-        &mut self,
-        process: ProcessState,
-        trace_id: u32,
-    ) -> Result<HostResponse, ExecutionError> {
+    fn on_trace(&mut self, process: ProcessState, trace_id: u32) -> Result<(), ExecutionError> {
         H::on_trace(self, process, trace_id)
     }
 
     fn on_assert_failed(&mut self, process: ProcessState, err_code: u32) -> ExecutionError {
         H::on_assert_failed(self, process, err_code)
-    }
-}
-
-// HOST RESPONSE
-// ================================================================================================
-
-/// Response returned by the host upon successful execution of a [Host] function.
-#[derive(Debug)]
-pub enum HostResponse {
-    MerklePath(MerklePath),
-    DoubleWord([Word; 2]),
-    Word(Word),
-    Element(Felt),
-    None,
-}
-
-impl From<HostResponse> for MerklePath {
-    fn from(response: HostResponse) -> Self {
-        match response {
-            HostResponse::MerklePath(path) => path,
-            _ => panic!("expected MerklePath, but got {:?}", response),
-        }
-    }
-}
-
-impl From<HostResponse> for Word {
-    fn from(response: HostResponse) -> Self {
-        match response {
-            HostResponse::Word(word) => word,
-            _ => panic!("expected Word, but got {:?}", response),
-        }
-    }
-}
-
-impl From<HostResponse> for [Word; 2] {
-    fn from(response: HostResponse) -> Self {
-        match response {
-            HostResponse::DoubleWord(word) => word,
-            _ => panic!("expected DoubleWord, but got {:?}", response),
-        }
-    }
-}
-
-impl From<HostResponse> for Felt {
-    fn from(response: HostResponse) -> Self {
-        match response {
-            HostResponse::Element(element) => element,
-            _ => panic!("expected Element, but got {:?}", response),
-        }
     }
 }
 

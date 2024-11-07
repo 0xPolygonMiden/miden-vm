@@ -76,7 +76,7 @@ impl Process {
         // get a Merkle path from the advice provider for the specified root and node index.
         // the path is expected to be of the specified depth.
         let path: MerklePath =
-            host.advice_provider_mut().get_operand_stack_merkle_path(self.into())?.into();
+            host.advice_provider_mut().get_operand_stack_merkle_path(self.into())?;
 
         // use hasher to compute the Merkle root of the path
         let (addr, computed_root) = self.chiplets.build_merkle_root(node, &path, index);
@@ -148,7 +148,7 @@ impl Process {
         // specified depth. if the new node is the root of a tree, this instruction will append the
         // whole sub-tree to this node.
         let path: MerklePath =
-            host.advice_provider_mut().update_operand_stack_merkle_node(self.into())?.into();
+            host.advice_provider_mut().update_operand_stack_merkle_node(self.into())?;
 
         assert_eq!(path.len(), depth.as_int() as usize);
 

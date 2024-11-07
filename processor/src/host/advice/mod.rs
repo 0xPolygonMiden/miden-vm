@@ -2,19 +2,22 @@ use alloc::vec::Vec;
 
 use vm_core::{
     crypto::{
-        hash::RpoDigest,
-        merkle::{InnerNodeInfo, MerklePath, MerkleStore, NodeIndex, StoreNode},
+        hash::{Rpo256, RpoDigest},
+        merkle::{
+            EmptySubtreeRoots, InnerNodeInfo, MerklePath, MerkleStore, NodeIndex, Smt, StoreNode,
+            SMT_DEPTH,
+        },
     },
-    SignatureKind,
+    FieldElement, SignatureKind, EMPTY_WORD, WORD_SIZE, ZERO,
 };
+use winter_prover::math::fft;
 
-use super::HostResponse;
-use crate::{ExecutionError, Felt, InputError, ProcessState, Word};
+use crate::{ExecutionError, Ext2InttError, Felt, InputError, ProcessState, QuadFelt, Word};
+
+mod dsa;
 
 mod inputs;
 pub use inputs::AdviceInputs;
-
-mod injectors;
 
 mod providers;
 pub use providers::{MemAdviceProvider, RecAdviceProvider};
@@ -92,14 +95,6 @@ pub trait AdviceProvider: Sized {
     /// If the specified key is already present in the advice map, the values under the key
     /// are replaced with the specified values.
     fn insert_into_map(&mut self, key: Word, values: Vec<Felt>);
-
-    /// Returns a signature on a message using a public key.
-    fn get_signature(
-        &self,
-        kind: SignatureKind,
-        pub_key: Word,
-        msg: Word,
-    ) -> Result<Vec<Felt>, ExecutionError>;
 
     // MERKLE STORE
     // --------------------------------------------------------------------------------------------
@@ -204,8 +199,20 @@ pub trait AdviceProvider: Sized {
     fn insert_mem_values_into_adv_map(
         &mut self,
         process: ProcessState,
-    ) -> Result<HostResponse, ExecutionError> {
-        injectors::adv_map_injectors::insert_mem_values_into_adv_map(self, process)
+    ) -> Result<(), ExecutionError> {
+        let (start_addr, end_addr) = get_mem_addr_range(process, 4, 5)?;
+        let ctx = process.ctx();
+
+        let mut values = Vec::with_capacity(((end_addr - start_addr) as usize) * WORD_SIZE);
+        for addr in start_addr..end_addr {
+            let mem_value = process.get_mem_value(ctx, addr).unwrap_or(EMPTY_WORD);
+            values.extend_from_slice(&mem_value);
+        }
+
+        let key = process.get_stack_word(0);
+        self.insert_into_map(key, values);
+
+        Ok(())
     }
 
     /// Reads two word from the operand stack and inserts them into the advice map under the key
@@ -225,8 +232,20 @@ pub trait AdviceProvider: Sized {
         &mut self,
         process: ProcessState,
         domain: Felt,
-    ) -> Result<HostResponse, ExecutionError> {
-        injectors::adv_map_injectors::insert_hdword_into_adv_map(self, process, domain)
+    ) -> Result<(), ExecutionError> {
+        // get the top two words from the stack and hash them to compute the key value
+        let word0 = process.get_stack_word(0);
+        let word1 = process.get_stack_word(1);
+        let key = Rpo256::merge_in_domain(&[word1.into(), word0.into()], domain);
+
+        // build a vector of values from the two word and insert it into the advice map under the
+        // computed key
+        let mut values = Vec::with_capacity(2 * WORD_SIZE);
+        values.extend_from_slice(&word1);
+        values.extend_from_slice(&word0);
+        self.insert_into_map(key.into(), values);
+
+        Ok(())
     }
 
     /// Reads three words from the operand stack and inserts the top two words into the advice map
@@ -242,11 +261,37 @@ pub trait AdviceProvider: Sized {
     ///
     /// Where KEY is computed by extracting the digest elements from hperm([C, A, B]). For example,
     /// if C is [0, d, 0, 0], KEY will be set as hash(A || B, d).
-    fn insert_hperm_into_adv_map(
-        &mut self,
-        process: ProcessState,
-    ) -> Result<HostResponse, ExecutionError> {
-        injectors::adv_map_injectors::insert_hperm_into_adv_map(self, process)
+    fn insert_hperm_into_adv_map(&mut self, process: ProcessState) -> Result<(), ExecutionError> {
+        // read the state from the stack
+        let mut state = [
+            process.get_stack_item(11),
+            process.get_stack_item(10),
+            process.get_stack_item(9),
+            process.get_stack_item(8),
+            process.get_stack_item(7),
+            process.get_stack_item(6),
+            process.get_stack_item(5),
+            process.get_stack_item(4),
+            process.get_stack_item(3),
+            process.get_stack_item(2),
+            process.get_stack_item(1),
+            process.get_stack_item(0),
+        ];
+
+        // get the values to be inserted into the advice map from the state
+        let values = state[Rpo256::RATE_RANGE].to_vec();
+
+        // apply the permutation to the state and extract the key from it
+        Rpo256::apply_permutation(&mut state);
+        let key = RpoDigest::new(
+            state[Rpo256::DIGEST_RANGE]
+                .try_into()
+                .expect("failed to extract digest from state"),
+        );
+
+        self.insert_into_map(key.into(), values);
+
+        Ok(())
     }
 
     /// Creates a new Merkle tree in the advice provider by combining Merkle trees with the
@@ -264,11 +309,15 @@ pub trait AdviceProvider: Sized {
     /// provider (i.e., the input trees are not removed).
     ///
     /// It is not checked whether the provided roots exist as Merkle trees in the advide providers.
-    fn merge_merkle_nodes(
-        &mut self,
-        process: ProcessState,
-    ) -> Result<HostResponse, ExecutionError> {
-        injectors::adv_map_injectors::merge_merkle_nodes(self, process)
+    fn merge_merkle_nodes(&mut self, process: ProcessState) -> Result<(), ExecutionError> {
+        // fetch the arguments from the stack
+        let lhs = process.get_stack_word(1);
+        let rhs = process.get_stack_word(0);
+
+        // perform the merge
+        self.merge_roots(lhs, rhs)?;
+
+        Ok(())
     }
 
     // DEFAULT ADVICE STACK INJECTORS
@@ -296,8 +345,24 @@ pub trait AdviceProvider: Sized {
     fn copy_merkle_node_to_adv_stack(
         &mut self,
         process: ProcessState,
-    ) -> Result<HostResponse, ExecutionError> {
-        injectors::adv_stack_injectors::copy_merkle_node_to_adv_stack(self, process)
+    ) -> Result<(), ExecutionError> {
+        let depth = process.get_stack_item(0);
+        let index = process.get_stack_item(1);
+        let root = [
+            process.get_stack_item(5),
+            process.get_stack_item(4),
+            process.get_stack_item(3),
+            process.get_stack_item(2),
+        ];
+
+        let node = self.get_tree_node(root, &depth, &index)?;
+
+        self.push_stack(AdviceSource::Value(node[3]))?;
+        self.push_stack(AdviceSource::Value(node[2]))?;
+        self.push_stack(AdviceSource::Value(node[1]))?;
+        self.push_stack(AdviceSource::Value(node[0]))?;
+
+        Ok(())
     }
 
     /// Pushes a list of field elements onto the advice stack. The list is looked up in the advice
@@ -329,13 +394,20 @@ pub trait AdviceProvider: Sized {
         process: ProcessState,
         include_len: bool,
         key_offset: usize,
-    ) -> Result<HostResponse, ExecutionError> {
-        injectors::adv_stack_injectors::copy_map_value_to_adv_stack(
-            self,
-            process,
-            include_len,
-            key_offset,
-        )
+    ) -> Result<(), ExecutionError> {
+        if key_offset > 12 {
+            return Err(ExecutionError::InvalidStackWordOffset(key_offset));
+        }
+
+        let key = [
+            process.get_stack_item(key_offset + 3),
+            process.get_stack_item(key_offset + 2),
+            process.get_stack_item(key_offset + 1),
+            process.get_stack_item(key_offset),
+        ];
+        self.push_stack(AdviceSource::Map { key, include_len })?;
+
+        Ok(())
     }
 
     /// Pushes the result of [u64] division (both the quotient and the remainder) onto the advice
@@ -356,11 +428,31 @@ pub trait AdviceProvider: Sized {
     ///
     /// # Errors
     /// Returns an error if the divisor is ZERO.
-    fn push_u64_div_result(
-        &mut self,
-        process: ProcessState,
-    ) -> Result<HostResponse, ExecutionError> {
-        injectors::adv_stack_injectors::push_u64_div_result(self, process)
+    fn push_u64_div_result(&mut self, process: ProcessState) -> Result<(), ExecutionError> {
+        let divisor_hi = process.get_stack_item(0).as_int();
+        let divisor_lo = process.get_stack_item(1).as_int();
+        let divisor = (divisor_hi << 32) + divisor_lo;
+
+        if divisor == 0 {
+            return Err(ExecutionError::DivideByZero(process.clk()));
+        }
+
+        let dividend_hi = process.get_stack_item(2).as_int();
+        let dividend_lo = process.get_stack_item(3).as_int();
+        let dividend = (dividend_hi << 32) + dividend_lo;
+
+        let quotient = dividend / divisor;
+        let remainder = dividend - quotient * divisor;
+
+        let (q_hi, q_lo) = u64_to_u32_elements(quotient);
+        let (r_hi, r_lo) = u64_to_u32_elements(remainder);
+
+        self.push_stack(AdviceSource::Value(r_hi))?;
+        self.push_stack(AdviceSource::Value(r_lo))?;
+        self.push_stack(AdviceSource::Value(q_hi))?;
+        self.push_stack(AdviceSource::Value(q_lo))?;
+
+        Ok(())
     }
 
     /// Given an element in a quadratic extension field on the top of the stack (i.e., a0, b1),
@@ -379,11 +471,20 @@ pub trait AdviceProvider: Sized {
     ///
     /// # Errors
     /// Returns an error if the input is a zero element in the extension field.
-    fn push_ext2_inv_result(
-        &mut self,
-        process: ProcessState,
-    ) -> Result<HostResponse, ExecutionError> {
-        injectors::adv_stack_injectors::push_ext2_inv_result(self, process)
+    fn push_ext2_inv_result(&mut self, process: ProcessState) -> Result<(), ExecutionError> {
+        let coef0 = process.get_stack_item(1);
+        let coef1 = process.get_stack_item(0);
+
+        let element = QuadFelt::new(coef0, coef1);
+        if element == QuadFelt::ZERO {
+            return Err(ExecutionError::DivideByZero(process.clk()));
+        }
+        let result = element.inv().to_base_elements();
+
+        self.push_stack(AdviceSource::Value(result[1]))?;
+        self.push_stack(AdviceSource::Value(result[0]))?;
+
+        Ok(())
     }
 
     /// Given evaluations of a polynomial over some specified domain, interpolates the evaluations
@@ -415,11 +516,54 @@ pub trait AdviceProvider: Sized {
     /// - `output_size` is 0 or is greater than the `input_size`.
     /// - `input_ptr` is greater than 2^32.
     /// - `input_ptr + input_size / 2` is greater than 2^32.
-    fn push_ext2_intt_result(
-        &mut self,
-        process: ProcessState,
-    ) -> Result<HostResponse, ExecutionError> {
-        injectors::adv_stack_injectors::push_ext2_intt_result(self, process)
+    fn push_ext2_intt_result(&mut self, process: ProcessState) -> Result<(), ExecutionError> {
+        let output_size = process.get_stack_item(0).as_int() as usize;
+        let input_size = process.get_stack_item(1).as_int() as usize;
+        let input_start_ptr = process.get_stack_item(2).as_int();
+
+        if input_size <= 1 {
+            return Err(Ext2InttError::DomainSizeTooSmall(input_size as u64).into());
+        }
+        if !input_size.is_power_of_two() {
+            return Err(Ext2InttError::DomainSizeNotPowerOf2(input_size as u64).into());
+        }
+        if input_start_ptr >= u32::MAX as u64 {
+            return Err(Ext2InttError::InputStartAddressTooBig(input_start_ptr).into());
+        }
+        if input_size > u32::MAX as usize {
+            return Err(Ext2InttError::InputSizeTooBig(input_size as u64).into());
+        }
+
+        let input_end_ptr = input_start_ptr + (input_size / 2) as u64;
+        if input_end_ptr > u32::MAX as u64 {
+            return Err(Ext2InttError::InputEndAddressTooBig(input_end_ptr).into());
+        }
+
+        if output_size == 0 {
+            return Err(Ext2InttError::OutputSizeIsZero.into());
+        }
+        if output_size > input_size {
+            return Err(Ext2InttError::OutputSizeTooBig(output_size, input_size).into());
+        }
+
+        let mut poly = Vec::with_capacity(input_size);
+        for addr in (input_start_ptr as u32)..(input_end_ptr as u32) {
+            let word = process
+                .get_mem_value(process.ctx(), addr)
+                .ok_or(Ext2InttError::UninitializedMemoryAddress(addr))?;
+
+            poly.push(QuadFelt::new(word[0], word[1]));
+            poly.push(QuadFelt::new(word[2], word[3]));
+        }
+
+        let twiddles = fft::get_inv_twiddles::<Felt>(input_size);
+        fft::interpolate_poly::<Felt, QuadFelt>(&mut poly, &twiddles);
+
+        for element in QuadFelt::slice_as_base_elements(&poly[..output_size]).iter().rev() {
+            self.push_stack(AdviceSource::Value(*element))?;
+        }
+
+        Ok(())
     }
 
     /// Pushes values onto the advice stack which are required for verification of a DSA in Miden
@@ -443,8 +587,14 @@ pub trait AdviceProvider: Sized {
         &mut self,
         process: ProcessState,
         kind: SignatureKind,
-    ) -> Result<HostResponse, ExecutionError> {
-        injectors::adv_stack_injectors::push_signature(self, process, kind)
+    ) -> Result<(), ExecutionError> {
+        let pub_key = process.get_stack_word(0);
+        let msg = process.get_stack_word(1);
+        let result: Vec<Felt> = self.get_signature(kind, pub_key, msg)?;
+        for r in result {
+            self.push_stack(AdviceSource::Value(r))?;
+        }
+        Ok(())
     }
 
     /// Pushes the number of the leading zeros of the top stack element onto the advice stack.
@@ -456,11 +606,8 @@ pub trait AdviceProvider: Sized {
     /// Outputs:
     ///   Operand stack: [n, ...]
     ///   Advice stack: [leading_zeros, ...]
-    fn push_leading_zeros(
-        &mut self,
-        process: ProcessState,
-    ) -> Result<HostResponse, ExecutionError> {
-        injectors::adv_stack_injectors::push_leading_zeros(self, process)
+    fn push_leading_zeros(&mut self, process: ProcessState) -> Result<(), ExecutionError> {
+        push_transformed_stack_top(self, process, |stack_top| Felt::from(stack_top.leading_zeros()))
     }
 
     /// Pushes the number of the trailing zeros of the top stack element onto the advice stack.
@@ -472,11 +619,10 @@ pub trait AdviceProvider: Sized {
     /// Outputs:
     ///   Operand stack: [n, ...]
     ///   Advice stack: [trailing_zeros, ...]
-    fn push_trailing_zeros(
-        &mut self,
-        process: ProcessState,
-    ) -> Result<HostResponse, ExecutionError> {
-        injectors::adv_stack_injectors::push_trailing_zeros(self, process)
+    fn push_trailing_zeros(&mut self, process: ProcessState) -> Result<(), ExecutionError> {
+        push_transformed_stack_top(self, process, |stack_top| {
+            Felt::from(stack_top.trailing_zeros())
+        })
     }
 
     /// Pushes the number of the leading ones of the top stack element onto the advice stack.
@@ -488,8 +634,8 @@ pub trait AdviceProvider: Sized {
     /// Outputs:
     ///   Operand stack: [n, ...]
     ///   Advice stack: [leading_ones, ...]
-    fn push_leading_ones(&mut self, process: ProcessState) -> Result<HostResponse, ExecutionError> {
-        injectors::adv_stack_injectors::push_leading_ones(self, process)
+    fn push_leading_ones(&mut self, process: ProcessState) -> Result<(), ExecutionError> {
+        push_transformed_stack_top(self, process, |stack_top| Felt::from(stack_top.leading_ones()))
     }
 
     /// Pushes the number of the trailing ones of the top stack element onto the advice stack.
@@ -501,11 +647,8 @@ pub trait AdviceProvider: Sized {
     /// Outputs:
     ///   Operand stack: [n, ...]
     ///   Advice stack: [trailing_ones, ...]
-    fn push_trailing_ones(
-        &mut self,
-        process: ProcessState,
-    ) -> Result<HostResponse, ExecutionError> {
-        injectors::adv_stack_injectors::push_trailing_ones(self, process)
+    fn push_trailing_ones(&mut self, process: ProcessState) -> Result<(), ExecutionError> {
+        push_transformed_stack_top(self, process, |stack_top| Felt::from(stack_top.trailing_ones()))
     }
 
     /// Pushes the base 2 logarithm of the top stack element, rounded down.
@@ -519,8 +662,14 @@ pub trait AdviceProvider: Sized {
     ///
     /// # Errors
     /// Returns an error if the logarithm argument (top stack element) equals ZERO.
-    fn push_ilog2(&mut self, process: ProcessState) -> Result<HostResponse, ExecutionError> {
-        injectors::adv_stack_injectors::push_ilog2(self, process)
+    fn push_ilog2(&mut self, process: ProcessState) -> Result<(), ExecutionError> {
+        let n = process.get_stack_item(0).as_int();
+        if n == 0 {
+            return Err(ExecutionError::LogArgumentZero(process.clk()));
+        }
+        let ilog2 = Felt::from(n.ilog2());
+        self.push_stack(AdviceSource::Value(ilog2))?;
+        Ok(())
     }
 
     // DEFAULT MERKLE STORE INJECTORS
@@ -542,8 +691,23 @@ pub trait AdviceProvider: Sized {
     fn update_operand_stack_merkle_node(
         &mut self,
         process: ProcessState,
-    ) -> Result<HostResponse, ExecutionError> {
-        injectors::merkle_store_injectors::update_operand_stack_merkle_node(self, process)
+    ) -> Result<MerklePath, ExecutionError> {
+        let depth = process.get_stack_item(4);
+        let index = process.get_stack_item(5);
+        let old_root = [
+            process.get_stack_item(9),
+            process.get_stack_item(8),
+            process.get_stack_item(7),
+            process.get_stack_item(6),
+        ];
+        let new_node = [
+            process.get_stack_item(13),
+            process.get_stack_item(12),
+            process.get_stack_item(11),
+            process.get_stack_item(10),
+        ];
+        let (path, _) = self.update_merkle_node(old_root, &depth, &index, new_node)?;
+        Ok(path)
     }
 
     // DEFAULT MERKLE STORE EXTRACTORS
@@ -570,7 +734,7 @@ pub trait AdviceProvider: Sized {
     fn get_operand_stack_merkle_path(
         &mut self,
         process: ProcessState,
-    ) -> Result<HostResponse, ExecutionError> {
+    ) -> Result<MerklePath, ExecutionError> {
         let depth = process.get_stack_item(4);
         let index = process.get_stack_item(5);
         let root = [
@@ -579,7 +743,7 @@ pub trait AdviceProvider: Sized {
             process.get_stack_item(7),
             process.get_stack_item(6),
         ];
-        self.get_merkle_path(root, &depth, &index).map(HostResponse::MerklePath)
+        self.get_merkle_path(root, &depth, &index)
     }
 
     // DEFAULT SMT INJECTORS
@@ -604,11 +768,56 @@ pub trait AdviceProvider: Sized {
     ///
     /// # Panics
     /// Will panic as unimplemented if the target depth is `64`.
-    fn push_smtpeek_result(
-        &mut self,
-        process: ProcessState,
-    ) -> Result<HostResponse, ExecutionError> {
-        injectors::smt::push_smtpeek_result(self, process)
+    fn push_smtpeek_result(&mut self, process: ProcessState) -> Result<(), ExecutionError> {
+        let empty_leaf = EmptySubtreeRoots::entry(SMT_DEPTH, SMT_DEPTH);
+        // fetch the arguments from the operand stack
+        let key = process.get_stack_word(0);
+        let root = process.get_stack_word(1);
+
+        // get the node from the SMT for the specified key; this node can be either a leaf node,
+        // or a root of an empty subtree at the returned depth
+        let node = self.get_tree_node(root, &Felt::new(SMT_DEPTH as u64), &key[3])?;
+
+        if node == Word::from(empty_leaf) {
+            // if the node is a root of an empty subtree, then there is no value associated with
+            // the specified key
+            self.push_stack(AdviceSource::Word(Smt::EMPTY_VALUE))?;
+        } else {
+            let leaf_preimage = get_smt_leaf_preimage(self, node)?;
+
+            for (key_in_leaf, value_in_leaf) in leaf_preimage {
+                if key == key_in_leaf {
+                    // Found key - push value associated with key, and return
+                    self.push_stack(AdviceSource::Word(value_in_leaf))?;
+
+                    return Ok(());
+                }
+            }
+
+            // if we can't find any key in the leaf that matches `key`, it means no value is
+            // associated with `key`
+            self.push_stack(AdviceSource::Word(Smt::EMPTY_VALUE))?;
+        }
+        Ok(())
+    }
+
+    // DEFAULT MERKLE STORE EXTRACTORS
+    // --------------------------------------------------------------------------------------------
+
+    /// Returns a signature on a message using a public key.
+    fn get_signature(
+        &self,
+        kind: SignatureKind,
+        pub_key: Word,
+        msg: Word,
+    ) -> Result<Vec<Felt>, ExecutionError> {
+        let pk_sk = self
+            .get_mapped_values(&pub_key.into())
+            .ok_or(ExecutionError::AdviceMapKeyNotFound(pub_key))?;
+
+        match kind {
+            SignatureKind::RpoFalcon512 => dsa::falcon_sign(pk_sk, msg),
+        }
     }
 }
 
@@ -689,4 +898,79 @@ where
     fn merge_roots(&mut self, lhs: Word, rhs: Word) -> Result<Word, ExecutionError> {
         T::merge_roots(self, lhs, rhs)
     }
+}
+
+// HELPER METHODS
+// --------------------------------------------------------------------------------------------
+
+/// Reads (start_addr, end_addr) tuple from the specified elements of the operand stack (
+/// without modifying the state of the stack), and verifies that memory range is valid.
+fn get_mem_addr_range(
+    process: ProcessState,
+    start_idx: usize,
+    end_idx: usize,
+) -> Result<(u32, u32), ExecutionError> {
+    let start_addr = process.get_stack_item(start_idx).as_int();
+    let end_addr = process.get_stack_item(end_idx).as_int();
+
+    if start_addr > u32::MAX as u64 {
+        return Err(ExecutionError::MemoryAddressOutOfBounds(start_addr));
+    }
+    if end_addr > u32::MAX as u64 {
+        return Err(ExecutionError::MemoryAddressOutOfBounds(end_addr));
+    }
+
+    if start_addr > end_addr {
+        return Err(ExecutionError::InvalidMemoryRange { start_addr, end_addr });
+    }
+
+    Ok((start_addr as u32, end_addr as u32))
+}
+
+fn u64_to_u32_elements(value: u64) -> (Felt, Felt) {
+    let hi = Felt::from((value >> 32) as u32);
+    let lo = Felt::from(value as u32);
+    (hi, lo)
+}
+
+/// Gets the top stack element, applies a provided function to it and pushes it to the advice
+/// provider.
+fn push_transformed_stack_top<A: AdviceProvider>(
+    advice_provider: &mut A,
+    process: ProcessState,
+    f: impl FnOnce(u32) -> Felt,
+) -> Result<(), ExecutionError> {
+    let stack_top = process.get_stack_item(0);
+    let stack_top: u32 = stack_top
+        .as_int()
+        .try_into()
+        .map_err(|_| ExecutionError::NotU32Value(stack_top, ZERO))?;
+    let transformed_stack_top = f(stack_top);
+    advice_provider.push_stack(AdviceSource::Value(transformed_stack_top))?;
+    Ok(())
+}
+
+fn get_smt_leaf_preimage<A: AdviceProvider>(
+    advice_provider: &A,
+    node: Word,
+) -> Result<Vec<(Word, Word)>, ExecutionError> {
+    let node_bytes = RpoDigest::from(node);
+
+    let kv_pairs = advice_provider
+        .get_mapped_values(&node_bytes)
+        .ok_or(ExecutionError::SmtNodeNotFound(node))?;
+
+    if kv_pairs.len() % WORD_SIZE * 2 != 0 {
+        return Err(ExecutionError::SmtNodePreImageNotValid(node, kv_pairs.len()));
+    }
+
+    Ok(kv_pairs
+        .chunks_exact(WORD_SIZE * 2)
+        .map(|kv_chunk| {
+            let key = [kv_chunk[0], kv_chunk[1], kv_chunk[2], kv_chunk[3]];
+            let value = [kv_chunk[4], kv_chunk[5], kv_chunk[6], kv_chunk[7]];
+
+            (key, value)
+        })
+        .collect())
 }
