@@ -72,12 +72,6 @@ impl DecoratorInfo {
             EncodedDecoratorVariant::AdviceInjectorExt2Intt => {
                 Ok(Decorator::Advice(AdviceInjector::Ext2Intt))
             },
-            EncodedDecoratorVariant::AdviceInjectorSmtGet => {
-                Ok(Decorator::Advice(AdviceInjector::SmtGet))
-            },
-            EncodedDecoratorVariant::AdviceInjectorSmtSet => {
-                Ok(Decorator::Advice(AdviceInjector::SmtSet))
-            },
             EncodedDecoratorVariant::AdviceInjectorSmtPeek => {
                 Ok(Decorator::Advice(AdviceInjector::SmtPeek))
             },
@@ -222,8 +216,6 @@ pub enum EncodedDecoratorVariant {
     AdviceInjectorU64Div,
     AdviceInjectorExt2Inv,
     AdviceInjectorExt2Intt,
-    AdviceInjectorSmtGet,
-    AdviceInjectorSmtSet,
     AdviceInjectorSmtPeek,
     AdviceInjectorU32Clz,
     AdviceInjectorU32Ctz,
@@ -271,8 +263,6 @@ impl From<&Decorator> for EncodedDecoratorVariant {
                 AdviceInjector::U64Div => Self::AdviceInjectorU64Div,
                 AdviceInjector::Ext2Inv => Self::AdviceInjectorExt2Inv,
                 AdviceInjector::Ext2Intt => Self::AdviceInjectorExt2Intt,
-                AdviceInjector::SmtGet => Self::AdviceInjectorSmtGet,
-                AdviceInjector::SmtSet => Self::AdviceInjectorSmtSet,
                 AdviceInjector::SmtPeek => Self::AdviceInjectorSmtPeek,
                 AdviceInjector::U32Clz => Self::AdviceInjectorU32Clz,
                 AdviceInjector::U32Ctz => Self::AdviceInjectorU32Ctz,
@@ -366,8 +356,6 @@ impl DecoratorDataBuilder {
                 | AdviceInjector::U64Div
                 | AdviceInjector::Ext2Inv
                 | AdviceInjector::Ext2Intt
-                | AdviceInjector::SmtGet
-                | AdviceInjector::SmtSet
                 | AdviceInjector::SmtPeek
                 | AdviceInjector::U32Clz
                 | AdviceInjector::U32Ctz

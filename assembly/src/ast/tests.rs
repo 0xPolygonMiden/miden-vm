@@ -472,12 +472,11 @@ fn test_ast_parsing_adv_injection() -> Result<(), Report> {
     let context = TestContext::new();
     let source = source_file!(
         &context,
-        "begin adv.push_u64div adv.push_mapval adv.push_smtget adv.insert_mem end"
+        "begin adv.push_u64div adv.push_mapval adv.insert_mem end"
     );
     let forms = module!(begin!(
         inst!(AdvInject(PushU64Div)),
         inst!(AdvInject(PushMapVal)),
-        inst!(AdvInject(PushSmtGet)),
         inst!(AdvInject(InsertMem))
     ));
     assert_eq!(context.parse_forms(source)?, forms);

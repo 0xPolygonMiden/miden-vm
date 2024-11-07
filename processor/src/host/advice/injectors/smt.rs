@@ -67,22 +67,6 @@ pub(crate) fn push_smtpeek_result<A: AdviceProvider>(
     Ok(HostResponse::None)
 }
 
-/// Currently unimplemented
-pub(crate) fn push_smtget_inputs<A: AdviceProvider>(
-    _advice_provider: &mut A,
-    _process: ProcessState,
-) -> Result<HostResponse, ExecutionError> {
-    unimplemented!()
-}
-
-/// Currently unimplemented
-pub(crate) fn push_smtset_inputs<A: AdviceProvider>(
-    _advice_provider: &mut A,
-    _process: ProcessState,
-) -> Result<HostResponse, ExecutionError> {
-    unimplemented!()
-}
-
 // HELPER METHODS
 // --------------------------------------------------------------------------------------------
 

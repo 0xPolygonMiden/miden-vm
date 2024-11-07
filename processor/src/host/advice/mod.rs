@@ -610,22 +610,6 @@ pub trait AdviceProvider: Sized {
     ) -> Result<HostResponse, ExecutionError> {
         injectors::smt::push_smtpeek_result(self, process)
     }
-
-    /// Currently unimplemented
-    fn push_smtget_inputs(
-        &mut self,
-        process: ProcessState,
-    ) -> Result<HostResponse, ExecutionError> {
-        injectors::smt::push_smtget_inputs(self, process)
-    }
-
-    /// Currently unimplemented
-    fn push_smtset_inputs(
-        &mut self,
-        process: ProcessState,
-    ) -> Result<HostResponse, ExecutionError> {
-        injectors::smt::push_smtset_inputs(self, process)
-    }
 }
 
 impl<T> AdviceProvider for &mut T

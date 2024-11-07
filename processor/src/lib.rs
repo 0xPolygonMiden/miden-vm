@@ -615,8 +615,6 @@ impl Process {
                     AdviceInjector::Ext2Intt => {
                         advice_provider.push_ext2_intt_result(process_state)?
                     },
-                    AdviceInjector::SmtGet => advice_provider.push_smtget_inputs(process_state)?,
-                    AdviceInjector::SmtSet => advice_provider.push_smtset_inputs(process_state)?,
                     AdviceInjector::SmtPeek => {
                         advice_provider.push_smtpeek_result(process_state)?
                     },

@@ -16,8 +16,6 @@ use crate::{ast::ImmU8, Felt, ZERO};
 pub enum AdviceInjectorNode {
     PushU64Div,
     PushExt2intt,
-    PushSmtGet,
-    PushSmtSet,
     PushSmtPeek,
     PushMapVal,
     PushMapValImm { offset: ImmU8 },
@@ -37,8 +35,6 @@ impl From<&AdviceInjectorNode> for AdviceInjector {
         match value {
             PushU64Div => Self::U64Div,
             PushExt2intt => Self::Ext2Intt,
-            PushSmtGet => Self::SmtGet,
-            PushSmtSet => Self::SmtSet,
             PushSmtPeek => Self::SmtPeek,
             PushMapVal => Self::MapValueToStack { include_len: false, key_offset: 0 },
             PushMapValImm { offset: ImmU8::Value(offset) } => Self::MapValueToStack {
@@ -76,8 +72,6 @@ impl fmt::Display for AdviceInjectorNode {
         match self {
             Self::PushU64Div => write!(f, "push_u64div"),
             Self::PushExt2intt => write!(f, "push_ext2intt"),
-            Self::PushSmtGet => write!(f, "push_smtget"),
-            Self::PushSmtSet => write!(f, "push_smtset"),
             Self::PushSmtPeek => write!(f, "push_smtpeek"),
             Self::PushMapVal => write!(f, "push_mapval"),
             Self::PushMapValImm { offset } => write!(f, "push_mapval.{offset}"),

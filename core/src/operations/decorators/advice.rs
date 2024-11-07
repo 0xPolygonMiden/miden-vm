@@ -142,12 +142,6 @@ pub enum AdviceInjector {
     ///   degree coefficients are located at the top of the advice stack.
     Ext2Intt,
 
-    /// Currently unimplemented
-    SmtGet,
-
-    /// Currently unimplemented
-    SmtSet,
-
     /// Pushes onto the advice stack the value associated with the specified key in a Sparse
     /// Merkle Tree defined by the specified root.
     ///
@@ -303,8 +297,6 @@ impl fmt::Display for AdviceInjector {
             Self::U64Div => write!(f, "div_u64"),
             Self::Ext2Inv => write!(f, "ext2_inv"),
             Self::Ext2Intt => write!(f, "ext2_intt"),
-            Self::SmtGet => write!(f, "smt_get"),
-            Self::SmtSet => write!(f, "smt_set"),
             Self::SmtPeek => write!(f, "smt_peek"),
             Self::U32Clz => write!(f, "u32clz"),
             Self::U32Ctz => write!(f, "u32ctz"),

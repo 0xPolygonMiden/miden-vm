@@ -361,8 +361,6 @@ where
         },
         AdviceInjectorNode::PushU64Div
         | AdviceInjectorNode::PushExt2intt
-        | AdviceInjectorNode::PushSmtGet
-        | AdviceInjectorNode::PushSmtSet
         | AdviceInjectorNode::PushSmtPeek
         | AdviceInjectorNode::PushMapVal
         | AdviceInjectorNode::PushMapValN
@@ -813,8 +811,6 @@ where
         },
         AdviceInjectorNode::PushU64Div
         | AdviceInjectorNode::PushExt2intt
-        | AdviceInjectorNode::PushSmtGet
-        | AdviceInjectorNode::PushSmtSet
         | AdviceInjectorNode::PushSmtPeek
         | AdviceInjectorNode::PushMapVal
         | AdviceInjectorNode::PushMapValN
