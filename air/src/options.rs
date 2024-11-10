@@ -129,6 +129,15 @@ impl ProvingOptions {
         self
     }
 
+    pub fn with_proof_options(proof_options: WinterProofOptions) -> Self {
+        Self {
+            exec_options: ExecutionOptions::default(),
+            proof_options,
+            hash_fn: HashFunction::Rpo256,
+        }
+    }
+
+
     // PUBLIC ACCESSORS
     // --------------------------------------------------------------------------------------------
 

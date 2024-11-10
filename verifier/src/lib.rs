@@ -83,6 +83,7 @@ pub fn verify(
             let opts = AcceptableOptions::OptionSet(vec![
                 ProvingOptions::RECURSIVE_96_BITS,
                 ProvingOptions::RECURSIVE_128_BITS,
+                ProvingOptions::RECURSIVE_96_BITS.with_partitions(4, 8),
             ]);
             verify_proof::<ProcessorAir, Rpo256, RpoRandomCoin, MerkleTree<_>>(
                 proof, pub_inputs, &opts,
