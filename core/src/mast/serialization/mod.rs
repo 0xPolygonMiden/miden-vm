@@ -142,8 +142,8 @@ impl Serializable for MastForest {
         // write all decorator data below
 
         let mut decorator_data_builder = DecoratorDataBuilder::new();
-        for decorator in self.decorators {
-            decorator_data_builder.add_decorator(&decorator)
+        for decorator in &self.decorators {
+            decorator_data_builder.add_decorator(decorator)
         }
 
         let (decorator_data, decorator_infos, string_table) = decorator_data_builder.finalize();
