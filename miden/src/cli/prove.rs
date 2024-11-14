@@ -4,6 +4,7 @@ use assembly::diagnostics::{IntoDiagnostic, Report, WrapErr};
 use clap::Parser;
 use miden_vm::ProvingOptions;
 use processor::{DefaultHost, ExecutionOptions, ExecutionOptionsError, Program};
+use prover::get_num_of_gpus;
 
 use super::data::{instrument, Debug, InputFile, Libraries, OutputFile, ProgramFile, ProofFile};
 
@@ -64,10 +65,9 @@ impl ProveCmd {
         let exec_options =
             ExecutionOptions::new(Some(self.max_cycles), self.expected_cycles, self.trace, false)?;
 
-        let num_partitions = 1;
-        #[cfg(feature = "cuda-concurrent")]
-        // TODO: this needs to be the number of GPUs
-        let num_partitions = 4;
+        let partitions = 1;
+        #[cfg(feature = "cuda")]
+        let partitions = get_num_of_gpus();
 
         Ok(match self.security.as_str() {
             "96bits" => {
@@ -87,7 +87,7 @@ impl ProveCmd {
             other => panic!("{} is not a valid security setting", other),
         }
         .with_execution_options(exec_options)
-        .with_partitions(num_partitions, 6))
+        .with_partitions(partitions))
     }
 
     pub fn execute(&self) -> Result<(), Report> {

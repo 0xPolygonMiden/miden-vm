@@ -7,9 +7,8 @@ use miden_gpu::{cuda::{merkle::MerkleTree, trace_lde::CudaTraceLde}, HashFn};
 use processor::crypto::{ElementHasher, Hasher};
 use winter_prover::{
     crypto::Digest,
-    matrix::{ColMatrix, RowMatrix},
-    CompositionPoly, CompositionPolyTrace, ConstraintCommitment, ConstraintCompositionCoefficients,
-    DefaultConstraintEvaluator, Prover, StarkDomain, Trace, TraceInfo, TraceLde, TracePolyTable,
+    matrix::ColMatrix, ConstraintCompositionCoefficients,
+    DefaultConstraintEvaluator, Prover, StarkDomain, TraceInfo, TracePolyTable,
 };
 
 use crate::{
@@ -24,8 +23,6 @@ mod tests;
 // CONSTANTS
 // ================================================================================================
 
-// The Rate for RPO and RPX is the same
-const RATE: usize = Rpo256::RATE_RANGE.end - Rpo256::RATE_RANGE.start;
 const DIGEST_SIZE: usize = Rpo256::DIGEST_RANGE.end - Rpo256::DIGEST_RANGE.start;
 
 // CUDA RPO/RPX PROVER
@@ -87,9 +84,9 @@ where
         trace_info: &TraceInfo,
         main_trace: &ColMatrix<Felt>,
         domain: &StarkDomain<Felt>,
-        _partition_options: PartitionOptions,
+        partition_options: PartitionOptions,
     ) -> (Self::TraceLde<E>, TracePolyTable<E>) {
-        CudaTraceLde::new(trace_info, main_trace, domain, self.hash_fn)
+        CudaTraceLde::new(trace_info, main_trace, domain, partition_options, self.hash_fn)
     }
 
     fn new_evaluator<'a, E: FieldElement<BaseField = Felt>>(

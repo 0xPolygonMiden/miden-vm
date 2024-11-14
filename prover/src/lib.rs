@@ -42,7 +42,8 @@ pub use processor::{
     StackInputs, StackOutputs, Word,
 };
 pub use winter_prover::{crypto::MerkleTree as MerkleTreeVC, Proof};
-
+#[cfg(feature = "cuda")]
+pub use miden_gpu::cuda::get_num_of_gpus;
 // PROVER
 // ================================================================================================
 

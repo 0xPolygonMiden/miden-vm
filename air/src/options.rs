@@ -1,5 +1,3 @@
-use winter_air::PartitionOptions;
-
 use super::{
     trace::MIN_TRACE_LEN, ExecutionOptionsError, FieldExtension, HashFunction, WinterProofOptions
 };
@@ -133,9 +131,15 @@ impl ProvingOptions {
     pub const fn with_partitions(
         mut self,
         num_partitions: usize,
-        min_partition_size: usize,
     ) -> Self {
-        self.proof_options = self.proof_options.with_partitions(num_partitions, min_partition_size);
+        if num_partitions > 1 {
+            let partition_size = match self.proof_options.field_extension() {
+                FieldExtension::None => 1,
+                FieldExtension::Quadratic => 8,
+                FieldExtension::Cubic => 6,
+            };
+            self.proof_options = self.proof_options.with_partitions(num_partitions, partition_size);
+        }
         self
     }
 
