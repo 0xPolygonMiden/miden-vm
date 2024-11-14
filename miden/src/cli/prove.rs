@@ -63,6 +63,12 @@ impl ProveCmd {
     pub fn get_proof_options(&self) -> Result<ProvingOptions, ExecutionOptionsError> {
         let exec_options =
             ExecutionOptions::new(Some(self.max_cycles), self.expected_cycles, self.trace, false)?;
+
+        let num_partitions = 1;
+        #[cfg(feature = "cuda-concurrent")]
+        // TODO: this needs to be the number of GPUs
+        let num_partitions = 4;
+
         Ok(match self.security.as_str() {
             "96bits" => {
                 if self.rpx {
@@ -80,7 +86,8 @@ impl ProveCmd {
             },
             other => panic!("{} is not a valid security setting", other),
         }
-        .with_execution_options(exec_options))
+        .with_execution_options(exec_options)
+        .with_partitions(num_partitions, 6))
     }
 
     pub fn execute(&self) -> Result<(), Report> {
@@ -100,6 +107,7 @@ impl ProveCmd {
 
         let proving_options =
             self.get_proof_options().map_err(|err| Report::msg(format!("{err}")))?;
+        println!("Proving options: {:?}", proving_options);
 
         // execute program and generate proof
         let (stack_outputs, proof) = prover::prove(&program, stack_inputs, host, proving_options)

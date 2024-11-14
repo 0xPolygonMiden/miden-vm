@@ -45,7 +45,8 @@ impl VerifyCmd {
         // load proof from file
         let proof = ProofFile::read(&Some(self.proof_file.clone()), &self.proof_file)
             .map_err(Report::msg)?;
-
+        println!("proof context {:?}", proof.proof.context);
+        
         let now = Instant::now();
 
         // TODO accept kernel as CLI argument

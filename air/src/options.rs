@@ -1,7 +1,8 @@
-use super::{
-    trace::MIN_TRACE_LEN, ExecutionOptionsError, FieldExtension, HashFunction, WinterProofOptions,
-};
+use winter_air::PartitionOptions;
 
+use super::{
+    trace::MIN_TRACE_LEN, ExecutionOptionsError, FieldExtension, HashFunction, WinterProofOptions
+};
 // PROVING OPTIONS
 // ================================================================================================
 
@@ -126,6 +127,15 @@ impl ProvingOptions {
     /// the number of cycles the program is expected to execute.
     pub fn with_execution_options(mut self, exec_options: ExecutionOptions) -> Self {
         self.exec_options = exec_options;
+        self
+    }
+
+    pub const fn with_partitions(
+        mut self,
+        num_partitions: usize,
+        min_partition_size: usize,
+    ) -> Self {
+        self.proof_options = self.proof_options.with_partitions(num_partitions, min_partition_size);
         self
     }
 

@@ -54,6 +54,7 @@ executable = [
     "dep:tracing-subscriber",
 ]
 cuda = ["prover/cuda", "std"]
+cuda-concurrent = ["cuda"]
 metal = ["prover/metal", "std"]
 std = ["assembly/std", "processor/std", "prover/std", "verifier/std"]
 
