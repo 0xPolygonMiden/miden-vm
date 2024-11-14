@@ -3,12 +3,12 @@ use alloc::{
     vec::Vec,
 };
 
-use vm_core::{
+use miden_crypto::Felt;
+
+use crate::{
     crypto::hash::RpoDigest,
     utils::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable},
 };
-
-use super::Felt;
 
 // ADVICE MAP
 // ================================================================================================

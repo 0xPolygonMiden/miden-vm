@@ -26,9 +26,6 @@ pub use providers::{MemAdviceProvider, RecAdviceProvider};
 mod source;
 pub use source::AdviceSource;
 
-mod map;
-pub use map::AdviceMap;
-
 // ADVICE PROVIDER
 // ================================================================================================
 
