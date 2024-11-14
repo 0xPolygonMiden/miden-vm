@@ -132,14 +132,13 @@ impl ProvingOptions {
         mut self,
         num_partitions: usize,
     ) -> Self {
-        if num_partitions > 1 {
-            let partition_size = match self.proof_options.field_extension() {
-                FieldExtension::None => 1,
-                FieldExtension::Quadratic => 8,
-                FieldExtension::Cubic => 6,
-            };
-            self.proof_options = self.proof_options.with_partitions(num_partitions, partition_size);
-        }
+        let hash_rate = match self.hash_fn {
+            HashFunction::Blake3_192 => 6,
+            HashFunction::Blake3_256 => 8,
+            HashFunction::Rpo256 => 8,
+            HashFunction::Rpx256 => 8,
+        };
+        self.proof_options = self.proof_options.with_partitions(num_partitions, hash_rate);
         self
     }
 

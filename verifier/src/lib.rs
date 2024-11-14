@@ -83,16 +83,14 @@ pub fn verify(
             let opts = AcceptableOptions::OptionSet(vec![
                 ProvingOptions::RECURSIVE_96_BITS,
                 ProvingOptions::RECURSIVE_128_BITS,
-                ProvingOptions::RECURSIVE_96_BITS.with_partitions(2, 6),
-                ProvingOptions::RECURSIVE_128_BITS.with_partitions(2, 6),
+                ProvingOptions::RECURSIVE_96_BITS.with_partitions(1, 8),
+                ProvingOptions::RECURSIVE_128_BITS.with_partitions(1, 8),
                 ProvingOptions::RECURSIVE_96_BITS.with_partitions(2, 8),
                 ProvingOptions::RECURSIVE_128_BITS.with_partitions(2, 8),
-                ProvingOptions::RECURSIVE_96_BITS.with_partitions(4, 6),
-                ProvingOptions::RECURSIVE_128_BITS.with_partitions(4, 6),
+                ProvingOptions::RECURSIVE_96_BITS.with_partitions(3, 8),
+                ProvingOptions::RECURSIVE_128_BITS.with_partitions(3, 8),
                 ProvingOptions::RECURSIVE_96_BITS.with_partitions(4, 8),
                 ProvingOptions::RECURSIVE_128_BITS.with_partitions(4, 8),
-                ProvingOptions::RECURSIVE_96_BITS.with_partitions(4, 9),
-                ProvingOptions::RECURSIVE_128_BITS.with_partitions(4, 9),
             ]);
             verify_proof::<ProcessorAir, Rpo256, RpoRandomCoin, MerkleTree<_>>(
                 proof, pub_inputs, &opts,
@@ -102,16 +100,14 @@ pub fn verify(
             let opts = AcceptableOptions::OptionSet(vec![
                 ProvingOptions::RECURSIVE_96_BITS,
                 ProvingOptions::RECURSIVE_128_BITS,
-                ProvingOptions::RECURSIVE_96_BITS.with_partitions(2, 6),
-                ProvingOptions::RECURSIVE_128_BITS.with_partitions(2, 6),
+                ProvingOptions::RECURSIVE_96_BITS.with_partitions(1, 8),
+                ProvingOptions::RECURSIVE_128_BITS.with_partitions(1, 8),
                 ProvingOptions::RECURSIVE_96_BITS.with_partitions(2, 8),
                 ProvingOptions::RECURSIVE_128_BITS.with_partitions(2, 8),
-                ProvingOptions::RECURSIVE_96_BITS.with_partitions(4, 6),
-                ProvingOptions::RECURSIVE_128_BITS.with_partitions(4, 6),
+                ProvingOptions::RECURSIVE_96_BITS.with_partitions(3, 8),
+                ProvingOptions::RECURSIVE_128_BITS.with_partitions(3, 8),
                 ProvingOptions::RECURSIVE_96_BITS.with_partitions(4, 8),
                 ProvingOptions::RECURSIVE_128_BITS.with_partitions(4, 8),
-                ProvingOptions::RECURSIVE_96_BITS.with_partitions(4, 9),
-                ProvingOptions::RECURSIVE_128_BITS.with_partitions(4, 9),
             ]);
             verify_proof::<ProcessorAir, Rpx256, RpxRandomCoin, MerkleTree<_>>(
                 proof, pub_inputs, &opts,
