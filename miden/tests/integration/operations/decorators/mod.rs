@@ -31,6 +31,16 @@ impl Default for TestHost<MemAdviceProvider> {
 }
 
 impl<A: AdviceProvider> Host for TestHost<A> {
+    type AdviceProvider = A;
+
+    fn advice_provider(&self) -> &Self::AdviceProvider {
+        &self.adv_provider
+    }
+
+    fn advice_provider_mut(&mut self) -> &mut Self::AdviceProvider {
+        &mut self.adv_provider
+    }
+
     fn get_advice(
         &mut self,
         process: ProcessState,

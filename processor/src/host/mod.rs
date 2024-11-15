@@ -31,8 +31,16 @@ pub use mast_forest_store::{MastForestStore, MemMastForestStore};
 /// state of the VM ([ProcessState]), which it can use to extract the data required to fulfill the
 /// request.
 pub trait Host {
+    type AdviceProvider: AdviceProvider;
+
     // REQUIRED METHODS
     // --------------------------------------------------------------------------------------------
+
+    /// Returns a reference to the advice provider.
+    fn advice_provider(&self) -> &Self::AdviceProvider;
+
+    /// Returns a mutable reference to the advice provider.
+    fn advice_provider_mut(&mut self) -> &mut Self::AdviceProvider;
 
     /// Returns the requested advice, specified by [AdviceExtractor], from the host to the VM.
     fn get_advice(
@@ -174,6 +182,16 @@ impl<H> Host for &mut H
 where
     H: Host,
 {
+    type AdviceProvider = H::AdviceProvider;
+
+    fn advice_provider(&self) -> &Self::AdviceProvider {
+        H::advice_provider(self)
+    }
+
+    fn advice_provider_mut(&mut self) -> &mut Self::AdviceProvider {
+        H::advice_provider_mut(self)
+    }
+
     fn get_advice(
         &mut self,
         process: ProcessState,
@@ -333,6 +351,16 @@ impl<A> Host for DefaultHost<A>
 where
     A: AdviceProvider,
 {
+    type AdviceProvider = A;
+
+    fn advice_provider(&self) -> &Self::AdviceProvider {
+        &self.adv_provider
+    }
+
+    fn advice_provider_mut(&mut self) -> &mut Self::AdviceProvider {
+        &mut self.adv_provider
+    }
+
     fn get_advice(
         &mut self,
         process: ProcessState,
