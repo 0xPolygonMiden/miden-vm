@@ -41,7 +41,7 @@ pub struct Scanner<'input> {
 impl<'input> Scanner<'input> {
     /// Construct a new [Scanner] for the given `source`.
     pub fn new(input: &'input str) -> Self {
-        let end = input.as_bytes().len();
+        let end = input.len();
         assert!(end < u32::MAX as usize, "file too large");
 
         let mut chars = input.char_indices().peekable();

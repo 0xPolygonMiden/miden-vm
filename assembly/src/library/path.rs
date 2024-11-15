@@ -192,8 +192,8 @@ impl LibraryPath {
 
     /// Return the size in bytes of this path when displayed as a string
     pub fn byte_len(&self) -> usize {
-        self.inner.components.iter().map(|c| c.as_bytes().len()).sum::<usize>()
-            + self.inner.ns.as_str().as_bytes().len()
+        self.inner.components.iter().map(|c| c.len()).sum::<usize>()
+            + self.inner.ns.as_str().len()
             + (self.inner.components.len() * 2)
     }
 
