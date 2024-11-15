@@ -21,6 +21,7 @@
 - Debug instructions can be enabled in the cli `run` command using `--debug` flag (#1502).
 - Added support for procedure annotation (attribute) syntax to Miden Assembly (#1510).
 - Make `miden-prover::prove()` method conditionally asynchronous (#1563).
+- Update and sync the recursive verifier (#1575).
 
 #### Changes
 

@@ -155,7 +155,8 @@ pub fn generate_advice_inputs(
     query_positions.sort();
     query_positions.dedup();
 
-    // read advice maps and Merkle paths of the queries to main/aux and constraint composition traces
+    // read advice maps and Merkle paths of the queries to main/aux and constraint composition
+    // traces
     let (mut main_aux_adv_map, mut partial_trees_traces) =
         channel.read_queried_trace_states(&query_positions)?;
     let (mut constraint_adv_map, partial_tree_constraint) =
