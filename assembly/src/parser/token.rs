@@ -860,7 +860,7 @@ impl<'input> Token<'input> {
             // No match, it's an ident
             None => Token::Ident(s),
             // If the match is not exact, it's an ident
-            Some(matched) if matched.len() != s.as_bytes().len() => Token::Ident(s),
+            Some(matched) if matched.len() != s.len() => Token::Ident(s),
             // Otherwise clone the Token corresponding to the keyword that was matched
             Some(matched) => Self::KEYWORDS[matched.pattern().as_usize()].1.clone(),
         }

@@ -112,7 +112,7 @@ impl LibraryNamespace {
         if matches!(source, Self::KERNEL_PATH | Self::EXEC_PATH | Self::ANON_PATH) {
             return Ok(());
         }
-        if source.as_bytes().len() > Self::MAX_LENGTH {
+        if source.len() > Self::MAX_LENGTH {
             return Err(LibraryNamespaceError::Length);
         }
         if !source.starts_with(|c: char| c.is_ascii_lowercase() && c.is_ascii_alphabetic()) {
