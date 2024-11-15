@@ -43,7 +43,7 @@ pub(crate) fn insert_mem_values_into_adv_map<A: AdviceProvider>(
     }
 
     let key = process.get_stack_word(0);
-    advice_provider.insert_into_map(key, values)?;
+    advice_provider.insert_into_map(key, values);
 
     Ok(HostResponse::None)
 }
@@ -76,7 +76,7 @@ pub(crate) fn insert_hdword_into_adv_map<A: AdviceProvider>(
     let mut values = Vec::with_capacity(2 * WORD_SIZE);
     values.extend_from_slice(&word1);
     values.extend_from_slice(&word0);
-    advice_provider.insert_into_map(key.into(), values)?;
+    advice_provider.insert_into_map(key.into(), values);
 
     Ok(HostResponse::None)
 }
@@ -125,7 +125,7 @@ pub(crate) fn insert_hperm_into_adv_map<A: AdviceProvider>(
             .expect("failed to extract digest from state"),
     );
 
-    advice_provider.insert_into_map(key.into(), values)?;
+    advice_provider.insert_into_map(key.into(), values);
 
     Ok(HostResponse::None)
 }
