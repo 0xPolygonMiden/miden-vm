@@ -184,8 +184,7 @@ impl VerifierChannel {
         let (aux_trace_pmt, mut aux_trace_adv_map) =
             unbatch_to_partial_mt(positions.to_vec(), aux_queries_vec, proofs[1].clone());
 
-        let mut trees = vec![];
-        trees.push(main_trace_pmt);
+        let mut trees = vec![main_trace_pmt];
         trees.push(aux_trace_pmt);
 
         main_trace_adv_map.append(&mut aux_trace_adv_map);
