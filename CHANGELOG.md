@@ -36,6 +36,7 @@
 - Fixed the construction of the chiplets virtual table (#1514) (#1556)
 - Fixed the construction of the chiplets bus (#1516) (#1525)
 - Decorators are now allowed in empty basic blocks (#1466)
+- Return an error if an instruction performs 2 memory accesses at the same memory address in the same cycle (#1561)
 
 ## 0.10.6 (2024-09-12) - `miden-processor` crate only
 
