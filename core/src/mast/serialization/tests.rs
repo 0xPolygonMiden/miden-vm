@@ -1,6 +1,6 @@
 use alloc::{string::ToString, sync::Arc};
 
-use miden_crypto::{hash::rpo::RpoDigest, Felt};
+use miden_crypto::{hash::rpo::RpoDigest, Felt, ONE};
 
 use super::*;
 use crate::{
@@ -434,4 +434,23 @@ fn mast_forest_invalid_node_id() {
 
     // Validate normal operations
     forest.add_join(first, second).unwrap();
+}
+
+/// Test `MastForest::advice_map` serialization and deserialization.
+#[test]
+fn mast_forest_serialize_deserialize_advice_map() {
+    let mut forest = MastForest::new();
+    let deco0 = forest.add_decorator(Decorator::Trace(0)).unwrap();
+    let deco1 = forest.add_decorator(Decorator::Trace(1)).unwrap();
+    let first = forest.add_block(vec![Operation::U32add], Some(vec![(0, deco0)])).unwrap();
+    let second = forest.add_block(vec![Operation::U32and], Some(vec![(1, deco1)])).unwrap();
+    forest.add_join(first, second).unwrap();
+
+    let key = RpoDigest::new([ONE, ONE, ONE, ONE]);
+    let value = vec![ONE, ONE];
+
+    forest.advice_map_mut().insert(key, value);
+
+    let parsed = MastForest::read_from_bytes(&forest.to_bytes()).unwrap();
+    assert_eq!(forest.advice_map, parsed.advice_map);
 }

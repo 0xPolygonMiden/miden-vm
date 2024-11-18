@@ -31,7 +31,7 @@ fn test_memcopy() {
         assembler.assemble_program(source).expect("Failed to compile test source.");
 
     let mut host = DefaultHost::default();
-    host.load_mast_forest(stdlib.mast_forest().clone());
+    host.load_mast_forest(stdlib.mast_forest().clone()).unwrap();
 
     let mut process =
         Process::new(program.kernel().clone(), StackInputs::default(), ExecutionOptions::default());

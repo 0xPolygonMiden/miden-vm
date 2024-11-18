@@ -4,6 +4,9 @@
 - [BREAKING] `Process` no longer takes ownership of the `Host` (#1571)
 - [BREAKING] `ProcessState` was converted from a trait to a struct (#1571)
 
+#### Enhancements
+- Added `miden_core::mast::MastForest::advice_map` to load it into the advice provider before the `MastForest` execution (#1574).
+
 ## 0.11.0 (2024-11-04)
 
 #### Enhancements

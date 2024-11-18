@@ -11,7 +11,7 @@ fn program_execution(c: &mut Criterion) {
 
     let stdlib = StdLibrary::default();
     let mut host = DefaultHost::default();
-    host.load_mast_forest(stdlib.as_ref().mast_forest().clone());
+    host.load_mast_forest(stdlib.as_ref().mast_forest().clone()).unwrap();
 
     group.bench_function("sha256", |bench| {
         let source = "

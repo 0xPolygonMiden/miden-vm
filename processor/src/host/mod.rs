@@ -3,6 +3,7 @@ use alloc::sync::Arc;
 use vm_core::{
     crypto::{hash::RpoDigest, merkle::MerklePath},
     mast::MastForest,
+    utils::collections::KvMap,
     AdviceInjector, DebugOptions, Word,
 };
 
@@ -328,8 +329,21 @@ where
         }
     }
 
-    pub fn load_mast_forest(&mut self, mast_forest: Arc<MastForest>) {
-        self.store.insert(mast_forest)
+    pub fn load_mast_forest(&mut self, mast_forest: Arc<MastForest>) -> Result<(), ExecutionError> {
+        // Load the MAST's advice data into the advice provider.
+
+        for (digest, values) in mast_forest.advice_map().iter() {
+            if let Some(stored_values) = self.advice_provider().get_mapped_values(digest) {
+                if stored_values != values {
+                    return Err(ExecutionError::AdviceMapKeyAlreadyPresent(digest.into()));
+                }
+            } else {
+                self.advice_provider_mut().insert_into_map(digest.into(), values.clone());
+            }
+        }
+
+        self.store.insert(mast_forest);
+        Ok(())
     }
 
     #[cfg(any(test, feature = "testing"))]
