@@ -14,7 +14,7 @@ pub use node::{
     BasicBlockNode, CallNode, DynNode, ExternalNode, JoinNode, LoopNode, MastNode, OpBatch,
     OperationOrDecorator, SplitNode, OP_BATCH_SIZE, OP_GROUP_SIZE,
 };
-use winter_utils::{ByteWriter, DeserializationError, Serializable};
+use winter_utils::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable};
 
 use crate::{AdviceMap, Decorator, DecoratorList, Operation};
 
@@ -69,8 +69,6 @@ impl MastForest {
 impl MastForest {
     /// The maximum number of nodes that can be stored in a single MAST forest.
     const MAX_NODES: usize = (1 << 30) - 1;
-    /// The maximum number of decorators that can be stored in a single MAST forest.
-    const MAX_DECORATORS: usize = Self::MAX_NODES;
 
     /// Adds a decorator to the forest, and returns the associated [`DecoratorId`].
     pub fn add_decorator(&mut self, decorator: Decorator) -> Result<DecoratorId, MastForestError> {
@@ -199,6 +197,10 @@ impl MastForest {
         self.remap_and_add_nodes(retained_nodes, &id_remappings);
         self.remap_and_add_roots(old_root_ids, &id_remappings);
         Some(id_remappings)
+    }
+
+    pub fn set_decorators(&mut self, node_id: MastNodeId, decorator_list: DecoratorList) {
+        self[node_id].set_decorators(decorator_list)
     }
 
     pub fn set_before_enter(&mut self, node_id: MastNodeId, decorator_ids: Vec<DecoratorId>) {
@@ -598,6 +600,20 @@ impl From<&MastNodeId> for u32 {
     }
 }
 
+impl TryFrom<(usize, &MastForest)> for MastNodeId {
+    type Error = DeserializationError;
+
+    fn try_from(value: (usize, &MastForest)) -> Result<Self, Self::Error> {
+        let (node_id, mast_forest) = value;
+        let node_id: u32 = node_id.try_into().map_err(|_| {
+            DeserializationError::InvalidValue(format!(
+                "Invalid node id '{node_id}' while deserializing"
+            ))
+        })?;
+        MastNodeId::from_u32_safe(node_id, mast_forest)
+    }
+}
+
 impl fmt::Display for MastNodeId {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "MastNodeId({})", self.0)
@@ -673,6 +689,12 @@ impl fmt::Display for DecoratorId {
 impl Serializable for DecoratorId {
     fn write_into<W: ByteWriter>(&self, target: &mut W) {
         self.0.write_into(target)
+    }
+}
+
+impl Deserializable for DecoratorId {
+    fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
+        Ok(DecoratorId::new_unchecked(source.read()?))
     }
 }
 
