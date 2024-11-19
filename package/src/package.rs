@@ -1,18 +1,12 @@
-use alloc::{
-    collections::{BTreeMap, BTreeSet},
-    format,
-    string::String,
-    sync::Arc,
-    vec::Vec,
-};
+use alloc::{collections::BTreeSet, format, string::String, sync::Arc, vec::Vec};
 use core::fmt;
 
 use assembly::{ast::QualifiedProcedureName, Library, Report};
 use serde::{Deserialize, Serialize};
-use vm_core::{mast::MastForest, utils::DisplayHex, Felt, Program};
+use vm_core::{mast::MastForest, utils::DisplayHex, Program};
 
 use super::{de, se};
-use crate::{Dependency, Digest, Rodata};
+use crate::{Dependency, Digest};
 
 // MAST ARTIFACT
 // ================================================================================================
@@ -113,18 +107,9 @@ impl fmt::Debug for PackageExport {
 pub struct Package {
     /// Name of the package
     pub name: String,
-    /// Content digest of the package
-    #[serde(
-        serialize_with = "se::serialize_digest",
-        deserialize_with = "de::deserialize_digest"
-    )]
-    pub digest: Digest,
     /// The MAST artifact ([Program] or [Library]) of the package
     #[serde(serialize_with = "se::serialize_mast", deserialize_with = "de::deserialize_mast")]
     pub mast: MastArtifact,
-    /// The rodata segments required to be loaded in the advice provider before executing the code
-    /// in this package
-    pub rodata: Vec<Rodata>,
     /// The package manifest, containing the set of exported procedures and their signatures,
     /// if known.
     pub manifest: PackageManifest,
@@ -164,6 +149,10 @@ impl Package {
         let mut data = bitcode::serialize(self).map_err(Report::msg)?;
         bytes.append(&mut data);
         Ok(bytes)
+    }
+
+    pub fn digest(&self) -> Digest {
+        self.mast.digest()
     }
 
     /// Checks if the package's MAST artifact is a [Program]
@@ -226,12 +215,10 @@ impl Package {
 
             Ok(Self {
                 name: self.name.clone(),
-                digest,
                 mast: MastArtifact::Executable(Arc::new(Program::new(
                     library.mast_forest().clone(),
                     node_id,
                 ))),
-                rodata: self.rodata.clone(),
                 manifest: PackageManifest {
                     exports,
                     dependencies: self.manifest.dependencies.clone(),
@@ -243,16 +230,5 @@ impl Package {
                 entrypoint
             )))
         }
-    }
-
-    /// The advice map that is expected to be loaded into the advice provider so that the
-    /// program's compiler-generated prologue will load the rodata from the advice provider into
-    /// memory before the program is executed
-    pub fn advice_map(&self) -> BTreeMap<Digest, Vec<Felt>> {
-        let mut advice_inputs = BTreeMap::default();
-        for rodata in self.rodata.iter() {
-            advice_inputs.extend([(rodata.digest, rodata.to_elements())]);
-        }
-        advice_inputs
     }
 }

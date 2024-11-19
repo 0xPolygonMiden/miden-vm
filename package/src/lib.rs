@@ -11,7 +11,6 @@ extern crate alloc;
 mod de;
 mod dep;
 mod package;
-mod rodata;
 mod se;
 
 #[cfg(test)]
@@ -28,7 +27,6 @@ pub use self::{
         Dependency, DependencyName, SystemLibraryId,
     },
     package::{MastArtifact, Package, PackageExport, PackageManifest},
-    rodata::{PtrDesc, Rodata},
 };
 
 type Digest = vm_core::chiplets::hasher::Digest;
