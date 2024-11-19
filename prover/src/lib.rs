@@ -6,7 +6,7 @@ extern crate std;
 
 use core::marker::PhantomData;
 
-use air::{AuxRandElements, ProcessorAir, PartitionOptions,  PublicInputs};
+use air::{AuxRandElements, PartitionOptions, ProcessorAir, PublicInputs};
 #[cfg(all(feature = "metal", target_arch = "aarch64", target_os = "macos"))]
 use miden_gpu::HashFn;
 use processor::{
@@ -51,7 +51,6 @@ pub use winter_prover::{crypto::MerkleTree as MerkleTreeVC, Proof};
 ///
 /// # Errors
 /// Returns an error if program execution or STARK proof generation fails for any reason.
-#[maybe_async]
 #[instrument("prove_program", skip_all)]
 #[maybe_async]
 pub fn prove<H>(
@@ -111,8 +110,7 @@ where
                 feature = "webgpu",
                 any(all(target_arch = "aarch64", target_os = "macos"), target_family = "wasm")
             ))]
-            let prover =
-                gpu::webgpu::WebGPUExecutionProver::new(prover, miden_gpu::HashFn::Rpo256);
+            let prover = gpu::webgpu::WebGPUExecutionProver::new(prover, miden_gpu::HashFn::Rpo256);
             maybe_await!(prover.prove(trace))
         },
         HashFunction::Rpx256 => {
@@ -127,8 +125,7 @@ where
                 feature = "webgpu",
                 any(all(target_arch = "aarch64", target_os = "macos"), target_family = "wasm")
             ))]
-            let prover =
-                gpu::webgpu::WebGPUExecutionProver::new(prover, miden_gpu::HashFn::Rpx256);
+            let prover = gpu::webgpu::WebGPUExecutionProver::new(prover, miden_gpu::HashFn::Rpx256);
             maybe_await!(prover.prove(trace))
         },
     }

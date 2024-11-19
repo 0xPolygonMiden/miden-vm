@@ -12,11 +12,10 @@ use alloc::boxed::Box;
 #[cfg(not(feature = "std"))]
 use alloc::{vec, vec::Vec};
 
-use air::{AuxRandElements, LagrangeKernelEvaluationFrame};
+use air::{AuxRandElements, LagrangeKernelEvaluationFrame, PartitionOptions};
 use elsa::FrozenVec;
-use maybe_async::maybe_async;
 use miden_gpu::{
-    webgpu::{get_or_init_wgpu_helper, RowHasher},
+    webgpu::{get_or_init_webgpu, RowHasher},
     HashFn,
 };
 use processor::{
@@ -26,6 +25,8 @@ use processor::{
 use tracing::info_span;
 #[cfg(feature = "std")]
 use tracing::{event, Level};
+use winter_maybe_async::{maybe_async, maybe_await};
+use winter_prover::crypto::VectorCommitment;
 use winter_prover::{
     crypto::{Digest, MerkleTree},
     matrix::{get_evaluation_offsets, ColMatrix, RowMatrix, Segment},
@@ -76,7 +77,7 @@ where
 
 impl<H, D, R> WebGPUExecutionProver<H, D, R>
 where
-    H: Hasher<Digest = D> + ElementHasher<BaseField = R::BaseField>,
+    H: Hasher<Digest = D> + ElementHasher<BaseField = R::BaseField> + Sync,
     D: Digest + for<'a> From<&'a [Felt; DIGEST_SIZE]>,
     R: RandomCoin<BaseField = Felt, Hasher = H> + Send,
 {
@@ -145,13 +146,14 @@ where
 #[maybe_async]
 impl<H, D, R> Prover for WebGPUExecutionProver<H, D, R>
 where
-    H: Hasher<Digest = D> + ElementHasher<BaseField = R::BaseField>,
+    H: Hasher<Digest = D> + ElementHasher<BaseField = R::BaseField> + Sync,
     D: Digest + for<'a> From<&'a [Felt; DIGEST_SIZE]>,
     R: RandomCoin<BaseField = Felt, Hasher = H> + Send,
 {
     type BaseField = Felt;
     type Air = ProcessorAir;
     type Trace = ExecutionTrace;
+    type VC = MerkleTree<Self::HashFn>;
     type HashFn = H;
     type RandomCoin = R;
     type TraceLde<E: FieldElement<BaseField = Felt>> = WebGPUTraceLde<E, H>;
@@ -166,24 +168,35 @@ where
         self.execution_prover.options()
     }
 
-    async fn new_trace_lde<E: FieldElement<BaseField = Felt>>(
+    #[maybe_async]
+    fn new_trace_lde<E: FieldElement<BaseField = Felt>>(
         &self,
         trace_info: &TraceInfo,
         main_trace: &ColMatrix<Felt>,
         domain: &StarkDomain<Felt>,
+        partition_option: PartitionOptions,
     ) -> (Self::TraceLde<E>, TracePolyTable<E>) {
-        WebGPUTraceLde::new(trace_info, main_trace, domain, self.webgpu_hash_fn).await
+        maybe_await!(WebGPUTraceLde::new(
+            trace_info,
+            main_trace,
+            domain,
+            self.webgpu_hash_fn,
+            partition_option
+        ))
     }
 
-    async fn new_evaluator<'a, E: FieldElement<BaseField = Felt>>(
+    #[maybe_async]
+    fn new_evaluator<'a, E: FieldElement<BaseField = Felt>>(
         &self,
         air: &'a ProcessorAir,
         aux_rand_elements: Option<AuxRandElements<E>>,
         composition_coefficients: ConstraintCompositionCoefficients<E>,
     ) -> Self::ConstraintEvaluator<'a, E> {
-        self.execution_prover
-            .new_evaluator(air, aux_rand_elements, composition_coefficients)
-            .await
+        maybe_await!(self.execution_prover.new_evaluator(
+            air,
+            aux_rand_elements,
+            composition_coefficients
+        ))
     }
 
     /// Evaluates constraint composition polynomial over the LDE domain and builds a commitment
@@ -210,12 +223,16 @@ where
     ///        ────┼────────┼────────┼────────┼────────┼────────┼───
     ///           t=n     t=n+1    t=n+2     t=n+3   t=n+4    t=n+5
     /// ```
-    async fn build_constraint_commitment<E: FieldElement<BaseField = Felt>>(
+    #[maybe_async]
+    fn build_constraint_commitment<E: FieldElement<BaseField = Felt>>(
         &self,
         composition_poly_trace: CompositionPolyTrace<E>,
         num_trace_poly_columns: usize,
         domain: &StarkDomain<Felt>,
-    ) -> (ConstraintCommitment<E, Self::HashFn>, CompositionPoly<E>) {
+    ) -> (
+        ConstraintCommitment<E, Self::HashFn, MerkleTree<Self::HashFn>>,
+        CompositionPoly<E>,
+    ) {
         // evaluate composition polynomial columns over the LDE domain
         #[cfg(feature = "std")]
         let now = Instant::now();
@@ -237,7 +254,7 @@ where
             offsets.len().ilog2(),
             now.elapsed().as_millis()
         );
-        let helper = get_or_init_wgpu_helper().await;
+        let helper = maybe_await!(get_or_init_webgpu());
 
         // build constraint evaluation commitment
         #[cfg(feature = "std")]
@@ -249,7 +266,7 @@ where
         let is_rpo = self.webgpu_hash_fn == HashFn::Rpo256;
         let rpo_padded_segment_idx = rpo_requires_padding.then_some(num_base_columns / RATE);
         let mut row_hasher =
-            RowHasher::new(helper, lde_domain_size, num_base_columns, self.webgpu_hash_fn);
+            RowHasher::<H>::new(helper, lde_domain_size, num_base_columns, self.webgpu_hash_fn);
         let rpo_padded_segment: Vec<[Felt; RATE]>;
         for (segment_idx, segment) in segments.iter().enumerate() {
             // check if the segment requires padding
@@ -277,19 +294,18 @@ where
             }
             row_hasher.update(segment);
         }
-        let row_hashes = row_hasher.finish().await;
-        let tree_nodes = helper.build_merkle_tree(&row_hashes, self.webgpu_hash_fn).await;
+        let row_hashes = maybe_await!(row_hasher.finish());
+        let tree_nodes =
+            maybe_await!(helper.build_merkle_tree::<H>(&row_hashes, self.webgpu_hash_fn));
         // aggregate segments at the same time as the GPU generates the merkle tree nodes
         let composed_evaluations = RowMatrix::<E>::from_segments(segments, num_base_columns);
-        let nodes = tree_nodes.into_iter().map(|dig| H::Digest::from(&dig)).collect();
-        let leaves = row_hashes.into_iter().map(|dig| H::Digest::from(&dig)).collect();
-        let commitment = MerkleTree::<H>::from_raw_parts(nodes, leaves).unwrap();
+        let commitment = MerkleTree::<H>::from_raw_parts(tree_nodes, row_hashes).unwrap();
         let constraint_commitment = ConstraintCommitment::new(composed_evaluations, commitment);
         #[cfg(feature = "std")]
         event!(
             Level::INFO,
             "Computed constraint evaluation commitment on the GPU (Merkle tree of depth {}) in {} ms",
-            constraint_commitment.tree_depth(),
+            lde_domain_size.ilog2(),
             now.elapsed().as_millis()
         );
         (constraint_commitment, composition_poly)
@@ -319,6 +335,7 @@ pub struct WebGPUTraceLde<E: FieldElement<BaseField = Felt>, H: Hasher> {
     blowup: usize,
     trace_info: TraceInfo,
     webgpu_hash_fn: HashFn,
+    partition_option: PartitionOptions,
 }
 
 impl<
@@ -339,10 +356,11 @@ impl<
         main_trace: &ColMatrix<Felt>,
         domain: &StarkDomain<Felt>,
         webgpu_hash_fn: HashFn,
+        partition_option: PartitionOptions,
     ) -> (Self, TracePolyTable<E>) {
         // extend the main execution trace and build a Merkle tree from the extended trace
         let (main_segment_lde, main_segment_tree, main_segment_polys) =
-            build_trace_commitment_sync::<E, Felt, H>(main_trace, domain);
+            build_trace_commitment(main_trace, domain, webgpu_hash_fn).await;
 
         let trace_poly_table = TracePolyTable::new(main_segment_polys);
         let trace_lde = WebGPUTraceLde {
@@ -353,6 +371,7 @@ impl<
             blowup: domain.trace_to_lde_blowup(),
             trace_info: trace_info.clone(),
             webgpu_hash_fn,
+            partition_option,
         };
 
         (trace_lde, trace_poly_table)
@@ -393,6 +412,7 @@ impl<
     > TraceLde<E> for WebGPUTraceLde<E, H>
 {
     type HashFn = H;
+    type VC = MerkleTree<Self::HashFn>;
 
     /// Returns the commitment to the low-degree extension of the main trace segment.
     fn get_main_trace_commitment(&self) -> D {
@@ -419,7 +439,11 @@ impl<
     ) -> (ColMatrix<E>, D) {
         // extend the auxiliary trace segment and build a Merkle tree from the extended trace
         let (aux_segment_lde, aux_segment_tree, aux_segment_polys) =
-            build_trace_commitment_sync::<E, E, H>(aux_trace, domain);
+            build_trace_commitment_sync::<E, E, H, Self::VC>(
+                aux_trace,
+                domain,
+                self.partition_option.partition_size::<E>(aux_trace.num_cols()),
+            );
 
         assert_eq!(
             self.main_segment_lde.num_rows(),
@@ -549,14 +573,16 @@ impl<
 /// ```
 const DEFAULT_SEGMENT_WIDTH: usize = 8;
 
-fn build_trace_commitment_sync<E, F, H>(
+fn build_trace_commitment_sync<E, F, H, V>(
     trace: &ColMatrix<F>,
     domain: &StarkDomain<E::BaseField>,
-) -> (RowMatrix<F>, MerkleTree<H>, ColMatrix<F>)
+    partition_size: usize,
+) -> (RowMatrix<F>, V, ColMatrix<F>)
 where
     E: FieldElement,
     F: FieldElement<BaseField = E::BaseField>,
     H: ElementHasher<BaseField = E::BaseField>,
+    V: VectorCommitment<H>,
 {
     // extend the execution trace
     let (trace_lde, trace_polys) = {
@@ -578,12 +604,12 @@ where
     assert_eq!(trace_lde.num_rows(), domain.lde_domain_size());
 
     // build trace commitment
-    let tree_depth = trace_lde.num_rows().ilog2() as usize;
-    let trace_tree = info_span!("compute_execution_trace_commitment", tree_depth)
-        .in_scope(|| trace_lde.commit_to_rows());
-    assert_eq!(trace_tree.depth(), tree_depth);
+    let commitment_domain_size = trace_lde.num_rows();
+    let trace_vector_com = info_span!("compute_execution_trace_commitment", commitment_domain_size)
+        .in_scope(|| trace_lde.commit_to_rows::<H, V>(partition_size));
+    assert_eq!(trace_vector_com.domain_len(), commitment_domain_size);
 
-    (trace_lde, trace_tree, trace_polys)
+    (trace_lde, trace_vector_com, trace_polys)
 }
 
 async fn build_trace_commitment<
@@ -604,7 +630,7 @@ async fn build_trace_commitment<
         fft::interpolate_poly(&mut poly, &inv_twiddles);
         poly
     });
-    let helper = get_or_init_wgpu_helper().await;
+    let helper = get_or_init_webgpu().await;
 
     // extend the execution trace and generate hashes on the gpu
     let lde_segments = FrozenVec::new();
@@ -613,7 +639,7 @@ async fn build_trace_commitment<
     let rpo_requires_padding = num_base_columns % RATE != 0;
     let is_rpo = hash_fn == HashFn::Rpo256;
     let rpo_padded_segment_idx = rpo_requires_padding.then_some(num_base_columns / RATE);
-    let mut row_hasher = RowHasher::new(&helper, lde_domain_size, num_base_columns, hash_fn);
+    let mut row_hasher = RowHasher::<H>::new(&helper, lde_domain_size, num_base_columns, hash_fn);
     let rpo_padded_segment: Vec<[Felt; RATE]>;
     let mut lde_segment_generator = SegmentGenerator::new(trace_polys, domain);
     let mut lde_segment_iter = lde_segment_generator.gen_segment_iter().enumerate();
@@ -644,14 +670,12 @@ async fn build_trace_commitment<
         row_hasher.update(segment);
     }
     let row_hashes = row_hasher.finish().await;
-    let tree_nodes = helper.build_merkle_tree(&row_hashes, hash_fn).await;
+    let tree_nodes = helper.build_merkle_tree::<H>(&row_hashes, hash_fn).await;
     // aggregate segments at the same time as the GPU generates the merkle tree nodes
     let lde_segments = lde_segments.into_vec().into_iter().map(|p| *p).collect();
     let trace_lde = RowMatrix::from_segments(lde_segments, num_base_columns);
     let trace_polys = lde_segment_generator.into_polys().unwrap();
-    let nodes = tree_nodes.into_iter().map(|dig| D::from(&dig)).collect();
-    let leaves = row_hashes.into_iter().map(|dig| D::from(&dig)).collect();
-    let trace_tree = MerkleTree::from_raw_parts(nodes, leaves).unwrap();
+    let trace_tree = MerkleTree::from_raw_parts(tree_nodes, row_hashes).unwrap();
     #[cfg(feature = "std")]
     event!(
             Level::INFO,
@@ -745,25 +769,27 @@ where
     }
 }
 
-fn build_segment_queries<
-    E: FieldElement<BaseField = Felt>,
-    H: Hasher + ElementHasher<BaseField = E::BaseField>,
->(
+fn build_segment_queries<E, H, V>(
     segment_lde: &RowMatrix<E>,
-    segment_tree: &MerkleTree<H>,
+    segment_vector_com: &V,
     positions: &[usize],
-) -> Queries {
+) -> Queries
+where
+    E: FieldElement,
+    H: ElementHasher<BaseField = E::BaseField>,
+    V: VectorCommitment<H>,
+{
     // for each position, get the corresponding row from the trace segment LDE and put all these
     // rows into a single vector
     let trace_states =
         positions.iter().map(|&pos| segment_lde.row(pos).to_vec()).collect::<Vec<_>>();
 
-    // build Merkle authentication paths to the leaves specified by positions
-    let trace_proof = segment_tree
-        .prove_batch(positions)
-        .expect("failed to generate a Merkle proof for trace queries");
+    // build a batch opening proof to the leaves specified by positions
+    let trace_proof = segment_vector_com
+        .open_many(positions)
+        .expect("failed to generate a batch opening proof for trace queries");
 
-    Queries::new(trace_proof, trace_states)
+    Queries::new::<H, E, V>(trace_proof.1, trace_states)
 }
 
 struct SegmentIterator<'a, 'b, E, I, const N: usize>(&'b mut SegmentGenerator<'a, E, I, N>)
@@ -771,7 +797,7 @@ where
     E: FieldElement<BaseField = Felt>,
     I: IntoIterator<Item = Vec<E>>;
 
-impl<'a, 'b, E, I, const N: usize> Iterator for SegmentIterator<'a, 'b, E, I, N>
+impl<E, I, const N: usize> Iterator for SegmentIterator<'_, '_, E, I, N>
 where
     E: FieldElement<BaseField = Felt>,
     I: IntoIterator<Item = Vec<E>>,
