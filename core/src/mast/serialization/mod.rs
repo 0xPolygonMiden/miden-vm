@@ -5,8 +5,9 @@
 //! - VERSION
 //!
 //! (sections metadata)
-//! - decorators length (`usize`)
 //! - nodes length (`usize`)
+//! - decorator data section offset (`usize`) (not implemented, see issue #1580)
+//! - decorators length (`usize`)
 //!
 //! (procedure roots section)
 //! - procedure roots (`Vec<MastNodeId>`)
