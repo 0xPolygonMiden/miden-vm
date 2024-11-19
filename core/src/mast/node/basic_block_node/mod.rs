@@ -227,7 +227,7 @@ impl BasicBlockNode {
 
     /// Used to initialize decorators for the [`BasicBlockNode`]. Replaces the existing decorators
     /// with the given ['DecoratorList'].
-    pub fn init_decorators(&mut self, decorator_list: DecoratorList) {
+    pub fn set_decorators(&mut self, decorator_list: DecoratorList) {
         self.decorators = decorator_list;
     }
 }

@@ -236,20 +236,6 @@ impl MastNode {
 
 /// Mutators
 impl MastNode {
-    /// Sets the list of decorators for the [`MastNode`]. Currently, is only supported for the
-    /// [`Block`] variant.
-    pub fn set_decorators(&mut self, decorator_list: DecoratorList) {
-        match self {
-            MastNode::Block(node) => node.init_decorators(decorator_list),
-            MastNode::Join(_) => (),
-            MastNode::Split(_) => (),
-            MastNode::Loop(_) => (),
-            MastNode::Call(_) => (),
-            MastNode::Dyn(_) => (),
-            MastNode::External(_) => (),
-        }
-    }
-
     /// Sets the list of decorators to be executed before this node.
     pub fn set_before_enter(&mut self, decorator_ids: Vec<DecoratorId>) {
         match self {

@@ -199,10 +199,6 @@ impl MastForest {
         Some(id_remappings)
     }
 
-    pub fn set_decorators(&mut self, node_id: MastNodeId, decorator_list: DecoratorList) {
-        self[node_id].set_decorators(decorator_list)
-    }
-
     pub fn set_before_enter(&mut self, node_id: MastNodeId, decorator_ids: Vec<DecoratorId>) {
         self[node_id].set_before_enter(decorator_ids)
     }
@@ -541,6 +537,18 @@ impl MastNodeId {
         Self::from_u32_with_node_count(value, mast_forest.nodes.len())
     }
 
+    pub fn from_usize_safe(
+        node_id: usize,
+        mast_forest: &MastForest,
+    ) -> Result<Self, DeserializationError> {
+        let node_id: u32 = node_id.try_into().map_err(|_| {
+            DeserializationError::InvalidValue(format!(
+                "Invalid node id '{node_id}' while deserializing"
+            ))
+        })?;
+        MastNodeId::from_u32_safe(node_id, mast_forest)
+    }
+
     /// Returns a new [`MastNodeId`] from the given `value` without checking its validity.
     pub(crate) fn new_unchecked(value: u32) -> Self {
         Self(value)
@@ -597,20 +605,6 @@ impl From<MastNodeId> for u32 {
 impl From<&MastNodeId> for u32 {
     fn from(value: &MastNodeId) -> Self {
         value.0
-    }
-}
-
-impl TryFrom<(usize, &MastForest)> for MastNodeId {
-    type Error = DeserializationError;
-
-    fn try_from(value: (usize, &MastForest)) -> Result<Self, Self::Error> {
-        let (node_id, mast_forest) = value;
-        let node_id: u32 = node_id.try_into().map_err(|_| {
-            DeserializationError::InvalidValue(format!(
-                "Invalid node id '{node_id}' while deserializing"
-            ))
-        })?;
-        MastNodeId::from_u32_safe(node_id, mast_forest)
     }
 }
 
