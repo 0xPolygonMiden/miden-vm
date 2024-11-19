@@ -174,7 +174,7 @@ dup.1       // stack state: 2 1 2
 add         // stack state: 3 2
 ```
 
-Notice that except for the first 2 operations which initialize the stack, the sequence of `swap dup.1 add` operations repeats over and over. In fact, we can repeat these operations an arbitrary number of times to compute an arbitrary Fibonacci number. In Rust, it would look like this (this is actually a simplified version of the example in [fibonacci.rs](src/examples/src/fibonacci.rs)):
+Notice that except for the first 2 operations which initialize the stack, the sequence of `swap dup.1 add` operations repeats over and over. In fact, we can repeat these operations an arbitrary number of times to compute an arbitrary Fibonacci number. In Rust, it would look like this (this is actually a simplified version of the example in [fibonacci.rs](src/examples/fibonacci.rs)):
 
 ```rust
 use miden_vm::{Assembler, DefaultHost, Program, ProvingOptions, StackInputs};
