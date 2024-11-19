@@ -42,9 +42,14 @@ impl MastNodeInfo {
         Self { ty, digest: mast_node.digest() }
     }
 
+    /// Attempts to convert this [`MastNodeInfo`] into a [`MastNode`] for the given `mast_forest`.
+    ///
+    /// The `node_count` is the total expected number of nodes in the [`MastForest`] **after
+    /// deserialization**.
     pub fn try_into_mast_node(
         self,
-        mast_forest: &mut MastForest,
+        mast_forest: &MastForest,
+        node_count: usize,
         basic_block_data_decoder: &BasicBlockDataDecoder,
     ) -> Result<MastNode, DeserializationError> {
         match self.ty {
@@ -59,33 +64,34 @@ impl MastNodeInfo {
                 Ok(MastNode::Block(block))
             },
             MastNodeType::Join { left_child_id, right_child_id } => {
-                let left_child = MastNodeId::from_u32_safe(left_child_id, mast_forest)?;
-                let right_child = MastNodeId::from_u32_safe(right_child_id, mast_forest)?;
+                let left_child = MastNodeId::from_u32_with_node_count(left_child_id, node_count)?;
+                let right_child = MastNodeId::from_u32_with_node_count(right_child_id, node_count)?;
                 let join = JoinNode::new_unsafe([left_child, right_child], self.digest);
                 Ok(MastNode::Join(join))
             },
             MastNodeType::Split { if_branch_id, else_branch_id } => {
-                let if_branch = MastNodeId::from_u32_safe(if_branch_id, mast_forest)?;
-                let else_branch = MastNodeId::from_u32_safe(else_branch_id, mast_forest)?;
+                let if_branch = MastNodeId::from_u32_with_node_count(if_branch_id, node_count)?;
+                let else_branch = MastNodeId::from_u32_with_node_count(else_branch_id, node_count)?;
                 let split = SplitNode::new_unsafe([if_branch, else_branch], self.digest);
                 Ok(MastNode::Split(split))
             },
             MastNodeType::Loop { body_id } => {
-                let body_id = MastNodeId::from_u32_safe(body_id, mast_forest)?;
+                let body_id = MastNodeId::from_u32_with_node_count(body_id, node_count)?;
                 let loop_node = LoopNode::new_unsafe(body_id, self.digest);
                 Ok(MastNode::Loop(loop_node))
             },
             MastNodeType::Call { callee_id } => {
-                let callee_id = MastNodeId::from_u32_safe(callee_id, mast_forest)?;
+                let callee_id = MastNodeId::from_u32_with_node_count(callee_id, node_count)?;
                 let call = CallNode::new_unsafe(callee_id, self.digest);
                 Ok(MastNode::Call(call))
             },
             MastNodeType::SysCall { callee_id } => {
-                let callee_id = MastNodeId::from_u32_safe(callee_id, mast_forest)?;
+                let callee_id = MastNodeId::from_u32_with_node_count(callee_id, node_count)?;
                 let syscall = CallNode::new_syscall_unsafe(callee_id, self.digest);
                 Ok(MastNode::Call(syscall))
             },
             MastNodeType::Dyn => Ok(MastNode::new_dyn()),
+            MastNodeType::Dyncall => Ok(MastNode::new_dyncall()),
             MastNodeType::External => Ok(MastNode::new_external(self.digest)),
         }
     }
@@ -119,7 +125,8 @@ const BLOCK: u8 = 3;
 const CALL: u8 = 4;
 const SYSCALL: u8 = 5;
 const DYN: u8 = 6;
-const EXTERNAL: u8 = 7;
+const DYNCALL: u8 = 7;
+const EXTERNAL: u8 = 8;
 
 /// Represents the variant of a [`MastNode`], as well as any additional data. For example, for more
 /// efficient decoding, and because of the frequency with which these node types appear, we directly
@@ -154,6 +161,7 @@ pub enum MastNodeType {
         callee_id: u32,
     } = SYSCALL,
     Dyn = DYN,
+    Dyncall = DYNCALL,
     External = EXTERNAL,
 }
 
@@ -188,7 +196,13 @@ impl MastNodeType {
                     Self::Call { callee_id: call_node.callee().0 }
                 }
             },
-            Dyn(_) => Self::Dyn,
+            Dyn(dyn_node) => {
+                if dyn_node.is_dyncall() {
+                    Self::Dyncall
+                } else {
+                    Self::Dyn
+                }
+            },
             External(_) => Self::External,
         }
     }
@@ -215,6 +229,7 @@ impl Serializable for MastNodeType {
             MastNodeType::Call { callee_id } => Self::encode_u32_payload(callee_id),
             MastNodeType::SysCall { callee_id } => Self::encode_u32_payload(callee_id),
             MastNodeType::Dyn => 0,
+            MastNodeType::Dyncall => 0,
             MastNodeType::External => 0,
         };
 
@@ -297,6 +312,7 @@ impl Deserializable for MastNodeType {
                 Ok(Self::SysCall { callee_id })
             },
             DYN => Ok(Self::Dyn),
+            DYNCALL => Ok(Self::Dyncall),
             EXTERNAL => Ok(Self::External),
             _ => Err(DeserializationError::InvalidValue(format!(
                 "Invalid tag for MAST node: {discriminant}"

@@ -6,9 +6,9 @@ extern crate std;
 
 use core::marker::PhantomData;
 
-use maybe_async::maybe_async;
-
-use air::{AuxRandElements, ProcessorAir, PublicInputs};
+use air::{AuxRandElements, ProcessorAir, PartitionOptions,  PublicInputs};
+#[cfg(all(feature = "metal", target_arch = "aarch64", target_os = "macos"))]
+use miden_gpu::HashFn;
 use processor::{
     crypto::{
         Blake3_192, Blake3_256, ElementHasher, RandomCoin, Rpo256, RpoRandomCoin, Rpx256,
@@ -18,6 +18,7 @@ use processor::{
     ExecutionTrace, Program,
 };
 use tracing::instrument;
+use winter_maybe_async::{maybe_async, maybe_await};
 use winter_prover::{
     matrix::ColMatrix, ConstraintCompositionCoefficients, DefaultConstraintEvaluator,
     DefaultTraceLde, ProofOptions as WinterProofOptions, Prover, StarkDomain, TraceInfo,
@@ -35,7 +36,7 @@ pub use processor::{
     crypto, math, utils, AdviceInputs, Digest, ExecutionError, Host, InputError, MemAdviceProvider,
     StackInputs, StackOutputs, Word,
 };
-pub use winter_prover::Proof;
+pub use winter_prover::{crypto::MerkleTree as MerkleTreeVC, Proof};
 
 // PROVER
 // ================================================================================================
@@ -43,15 +44,17 @@ pub use winter_prover::Proof;
 /// Executes and proves the specified `program` and returns the result together with a STARK-based
 /// proof of the program's execution.
 ///
-/// * `inputs` specifies the initial state of the stack as well as non-deterministic (secret) inputs
-///   for the VM.
-/// * `options` defines parameters for STARK proof generation.
+/// - `stack_inputs` specifies the initial state of the stack for the VM.
+/// - `host` specifies the host environment which contain non-deterministic (secret) inputs for the
+///   prover
+/// - `options` defines parameters for STARK proof generation.
 ///
 /// # Errors
 /// Returns an error if program execution or STARK proof generation fails for any reason.
 #[maybe_async]
 #[instrument("prove_program", skip_all)]
-pub async fn prove<H>(
+#[maybe_async]
+pub fn prove<H>(
     program: &Program,
     stack_inputs: StackInputs,
     host: H,
@@ -81,22 +84,20 @@ where
     // generate STARK proof
     let proof = match hash_fn {
         HashFunction::Blake3_192 => {
-            ExecutionProver::<Blake3_192, WinterRandomCoin<_>>::new(
+            let prover = ExecutionProver::<Blake3_192, WinterRandomCoin<_>>::new(
                 options,
                 stack_inputs,
                 stack_outputs.clone(),
-            )
-            .prove(trace)
-            .await
+            );
+            maybe_await!(prover.prove(trace))
         },
         HashFunction::Blake3_256 => {
-            ExecutionProver::<Blake3_256, WinterRandomCoin<_>>::new(
+            let prover = ExecutionProver::<Blake3_256, WinterRandomCoin<_>>::new(
                 options,
                 stack_inputs,
                 stack_outputs.clone(),
-            )
-            .prove(trace)
-            .await
+            );
+            maybe_await!(prover.prove(trace))
         },
         HashFunction::Rpo256 => {
             let prover = ExecutionProver::<Rpo256, RpoRandomCoin>::new(
@@ -112,7 +113,7 @@ where
             ))]
             let prover =
                 gpu::webgpu::WebGPUExecutionProver::new(prover, miden_gpu::HashFn::Rpo256);
-            prover.prove(trace).await
+            maybe_await!(prover.prove(trace))
         },
         HashFunction::Rpx256 => {
             let prover = ExecutionProver::<Rpx256, RpxRandomCoin>::new(
@@ -128,7 +129,7 @@ where
             ))]
             let prover =
                 gpu::webgpu::WebGPUExecutionProver::new(prover, miden_gpu::HashFn::Rpx256);
-            prover.prove(trace).await
+            maybe_await!(prover.prove(trace))
         },
     }
     .map_err(ExecutionError::ProverError)?;
@@ -192,15 +193,16 @@ where
 #[maybe_async]
 impl<H, R> Prover for ExecutionProver<H, R>
 where
-    H: ElementHasher<BaseField = Felt>,
+    H: ElementHasher<BaseField = Felt> + Sync,
     R: RandomCoin<BaseField = Felt, Hasher = H> + Send,
 {
     type BaseField = Felt;
     type Air = ProcessorAir;
     type Trace = ExecutionTrace;
     type HashFn = H;
+    type VC = MerkleTreeVC<Self::HashFn>;
     type RandomCoin = R;
-    type TraceLde<E: FieldElement<BaseField = Felt>> = DefaultTraceLde<E, H>;
+    type TraceLde<E: FieldElement<BaseField = Felt>> = DefaultTraceLde<E, H, Self::VC>;
     type ConstraintEvaluator<'a, E: FieldElement<BaseField = Felt>> =
         DefaultConstraintEvaluator<'a, ProcessorAir, E>;
 
@@ -223,16 +225,19 @@ where
         PublicInputs::new(program_info, self.stack_inputs.clone(), self.stack_outputs.clone())
     }
 
-    async fn new_trace_lde<E: FieldElement<BaseField = Felt>>(
+    #[maybe_async]
+    fn new_trace_lde<E: FieldElement<BaseField = Felt>>(
         &self,
         trace_info: &TraceInfo,
         main_trace: &ColMatrix<Felt>,
         domain: &StarkDomain<Felt>,
+        partition_options: PartitionOptions,
     ) -> (Self::TraceLde<E>, TracePolyTable<E>) {
-        DefaultTraceLde::new(trace_info, main_trace, domain)
+        DefaultTraceLde::new(trace_info, main_trace, domain, partition_options)
     }
 
-    async fn new_evaluator<'a, E: FieldElement<BaseField = Felt>>(
+    #[maybe_async]
+    fn new_evaluator<'a, E: FieldElement<BaseField = Felt>>(
         &self,
         air: &'a ProcessorAir,
         aux_rand_elements: Option<AuxRandElements<E>>,
@@ -241,14 +246,13 @@ where
         DefaultConstraintEvaluator::new(air, aux_rand_elements, composition_coefficients)
     }
 
-    async fn build_aux_trace<E>(
+    #[instrument(skip_all)]
+    #[maybe_async]
+    fn build_aux_trace<E: FieldElement<BaseField = Self::BaseField>>(
         &self,
         trace: &Self::Trace,
         aux_rand_elements: &AuxRandElements<E>,
-    ) -> ColMatrix<E>
-    where
-        E: FieldElement<BaseField = Self::BaseField>,
-    {
+    ) -> ColMatrix<E> {
         trace.build_aux_trace(aux_rand_elements.rand_elements()).unwrap()
     }
 }

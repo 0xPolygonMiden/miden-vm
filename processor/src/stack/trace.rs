@@ -87,25 +87,24 @@ impl StackTrace {
     }
 
     /// Copies the stack values starting at the specified position at the specified clock cycle to
-    /// position - 1 at the next clock cycle.
+    /// position - 1 at the next clock cycle. Returns the new value of the helper registers without
+    /// writing them to the next row (i.e. the stack depth and the next overflow addr).
     ///
     /// The final stack item column is filled with the provided value in `last_value`.
     ///
     /// If next_overflow_addr is provided, this function assumes that the stack depth has been
     /// decreased by one and a row has been removed from the overflow table. Thus, it makes the
-    /// following changes to the helper columns:
+    /// following changes to the helper columns (without writing them to the next row):
     /// - Decrement the stack depth (b0) by one.
     /// - Sets b1 to the address of the top row in the overflow table to the specified
     ///   `next_overflow_addr`.
-    /// - Set h0 to (depth - 16). Inverses of these values will be computed in into_array() method
-    ///   after the entire trace is constructed.
-    pub fn stack_shift_left_at(
+    pub(super) fn stack_shift_left_no_helpers(
         &mut self,
         clk: RowIndex,
         start_pos: usize,
         last_value: Felt,
         next_overflow_addr: Option<Felt>,
-    ) {
+    ) -> (Felt, Felt) {
         let clk = clk.as_usize();
 
         // update stack top columns
@@ -114,15 +113,15 @@ impl StackTrace {
         }
         self.stack[MAX_TOP_IDX][clk + 1] = last_value;
 
-        // update stack helper columns
+        // return stack helper columns
         if let Some(next_overflow_addr) = next_overflow_addr {
             let next_depth = self.helpers[0][clk] - ONE;
-            self.set_helpers_at(clk, next_depth, next_overflow_addr);
+            (next_depth, next_overflow_addr)
         } else {
-            // if next_overflow_addr was not provide, just copy over the values from the last row
+            // if next_overflow_addr was not provide, just return the values from the last row
             let next_depth = self.helpers[0][clk];
             let next_overflow_addr = self.helpers[1][clk];
-            self.set_helpers_at(clk, next_depth, next_overflow_addr);
+            (next_depth, next_overflow_addr)
         }
     }
 
@@ -193,7 +192,12 @@ impl StackTrace {
     /// set to (stack_depth - 16) rather than to 1 / (stack_depth - 16). Inverses of these values
     /// will be computed in into_array() method (using batch inversion) after the entire trace is
     /// constructed.
-    fn set_helpers_at(&mut self, clk: usize, stack_depth: Felt, next_overflow_addr: Felt) {
+    pub(super) fn set_helpers_at(
+        &mut self,
+        clk: usize,
+        stack_depth: Felt,
+        next_overflow_addr: Felt,
+    ) {
         self.helpers[0][clk + 1] = stack_depth;
         self.helpers[1][clk + 1] = next_overflow_addr;
         self.helpers[2][clk + 1] = stack_depth - Felt::from(MIN_STACK_DEPTH as u32);

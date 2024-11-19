@@ -35,12 +35,11 @@ where
     /// Thus, the net result of the operation is that the stack is shifted left by one item.
     pub(super) fn op_mloadw(&mut self) -> Result<(), ExecutionError> {
         // get the address from the stack and read the word from current memory context
-        let ctx = self.system.ctx();
-        let addr = Self::get_valid_address(self.stack.get(0))?;
-        let word = self.chiplets.read_mem(ctx, addr);
+        let mut word = self.read_mem_word(self.stack.get(0))?;
+        word.reverse();
 
-        // reverse the order of the memory word & update the stack state
-        for (i, &value) in word.iter().rev().enumerate() {
+        // update the stack state
+        for (i, &value) in word.iter().enumerate() {
             self.stack.set(i, value);
         }
         self.stack.shift_left(5);
@@ -62,10 +61,7 @@ where
     /// register 0.
     pub(super) fn op_mload(&mut self) -> Result<(), ExecutionError> {
         // get the address from the stack and read the word from memory
-        let ctx = self.system.ctx();
-        let addr = Self::get_valid_address(self.stack.get(0))?;
-        let mut word = self.chiplets.read_mem(ctx, addr);
-        // put the retrieved word into stack order
+        let mut word = self.read_mem_word(self.stack.get(0))?;
         word.reverse();
 
         // update the stack state
@@ -94,7 +90,7 @@ where
         let addr = Self::get_valid_address(self.stack.get(12))?;
 
         // load two words from memory
-        let words = self.chiplets.read_mem_double(ctx, addr);
+        let words = self.chiplets.read_mem_double(ctx, addr)?;
 
         // replace the stack elements with the elements from memory (in stack order)
         for (i, &mem_value) in words.iter().flat_map(|word| word.iter()).rev().enumerate() {
@@ -133,7 +129,7 @@ where
         let word = [self.stack.get(4), self.stack.get(3), self.stack.get(2), self.stack.get(1)];
 
         // write the word to memory and get the previous word
-        self.chiplets.write_mem(ctx, addr, word);
+        self.chiplets.write_mem(ctx, addr, word)?;
 
         // reverse the order of the memory word & update the stack state
         for (i, &value) in word.iter().rev().enumerate() {
@@ -164,7 +160,7 @@ where
         let value = self.stack.get(1);
 
         // write the value to the memory and get the previous word
-        let mut old_word = self.chiplets.write_mem_element(ctx, addr, value);
+        let mut old_word = self.chiplets.write_mem_element(ctx, addr, value)?;
         // put the retrieved word into stack order
         old_word.reverse();
 
@@ -196,7 +192,7 @@ where
         let words = self.host.borrow_mut().pop_adv_stack_dword(self)?;
 
         // write the words memory
-        self.chiplets.write_mem_double(ctx, addr, words);
+        self.chiplets.write_mem_double(ctx, addr, words)?;
 
         // replace the elements on the stack with the word elements (in stack order)
         for (i, &adv_value) in words.iter().flat_map(|word| word.iter()).rev().enumerate() {
@@ -251,6 +247,15 @@ where
 
     // HELPER FUNCTIONS
     // --------------------------------------------------------------------------------------------
+
+    /// Returns the memory word at address `addr` in the current context.
+    pub(crate) fn read_mem_word(&mut self, addr: Felt) -> Result<Word, ExecutionError> {
+        let ctx = self.system.ctx();
+        let mem_addr = Self::get_valid_address(addr)?;
+        let word_at_addr = self.chiplets.read_mem(ctx, mem_addr)?;
+
+        Ok(word_at_addr)
+    }
 
     /// Checks that provided address is less than u32::MAX and returns it cast to u32.
     ///

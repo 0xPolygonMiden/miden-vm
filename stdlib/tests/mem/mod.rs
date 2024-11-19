@@ -130,13 +130,18 @@ fn test_pipe_double_words_to_memory() {
 fn test_pipe_words_to_memory() {
     let mem_addr = 1000;
     let one_word = format!(
-        "use.std::mem
+        "
+        use.std::mem
+        use.std::crypto::hashes::rpo
 
         begin
             push.{} # target address
             push.1  # number of words
 
             exec.mem::pipe_words_to_memory
+            exec.rpo::squeeze_digest
+
+            # truncate stack
             swapdw dropw dropw
         end",
         mem_addr
@@ -153,13 +158,18 @@ fn test_pipe_words_to_memory() {
     );
 
     let three_words = format!(
-        "use.std::mem
+        "
+        use.std::mem
+        use.std::crypto::hashes::rpo
 
         begin
             push.{} # target address
             push.3  # number of words
 
             exec.mem::pipe_words_to_memory
+            exec.rpo::squeeze_digest
+
+            # truncate stack
             swapdw dropw dropw
         end",
         mem_addr

@@ -1,8 +1,8 @@
 [package]
 name = "miden-prover"
-version = "0.10.5"
+version = "0.11.0"
 description = "Miden VM prover"
-documentation = "https://docs.rs/miden-prover/0.10.5"
+documentation = "https://docs.rs/miden-prover/0.11.0"
 readme = "README.md"
 categories = ["cryptography", "emulators", "no-std"]
 keywords = ["miden", "prover", "stark", "zkp"]
@@ -21,21 +21,22 @@ concurrent = ["processor/concurrent", "std", "winter-prover/concurrent"]
 default = ["std"]
 metal = ["dep:miden-gpu", "miden-gpu/metal", "dep:pollster", "concurrent", "std"]
 webgpu = ["dep:miden-gpu", "miden-gpu/webgpu", "async"]
-async = ["maybe-async/async", "winter-prover/async", "dep:async-trait"]
+async = ["winter-maybe-async/async", "winter-prover/async", "dep:async-trait"]
 std = ["air/std", "processor/std", "winter-prover/std", "miden-gpu/std", "tracing/std"]
 
 [dependencies]
-air = { package = "miden-air", path = "../air", version = "0.10", default-features = false }
-processor = { package = "miden-processor", path = "../processor", version = "0.10", default-features = false }
+air = { package = "miden-air", path = "../air", version = "0.11", default-features = false }
+processor = { package = "miden-processor", path = "../processor", version = "0.11", default-features = false }
 tracing = { version = "0.1", default-features = false, features = ["attributes"] }
-winter-prover = { package = "winter-prover", version = "0.9", default-features = false }
-maybe-async = { package = "winter-maybe-async", version = "0.9", default-features = false }
+winter-prover = { package = "winter-prover", version = "0.10", default-features = false }
+winter-maybe-async = { package = "winter-maybe-async", version = "0.10", default-features = false }
 async-trait = { version = "0.1", optional = true }
 elsa = { version = "1.9" }
 
 [target.'cfg(all(target_arch = "aarch64", target_os = "macos"))'.dependencies]
+elsa = { version = "1.9", optional = true }
 miden-gpu = { git = "https://github.com/0xPolygonMiden/miden-gpu", rev = "389dd1ed47b9b345e978611421afa2eab722e9c4", default-features = false, optional = true }
-pollster = { version = "0.3", optional = true }
+pollster = { version = "0.4", optional = true }
 
 [target.'cfg(target_family = "wasm")'.dependencies]
 miden-gpu = { git = "https://github.com/0xPolygonMiden/miden-gpu", rev = "389dd1ed47b9b345e978611421afa2eab722e9c4", default-features = false, optional = true }

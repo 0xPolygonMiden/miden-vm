@@ -65,7 +65,8 @@ pub fn enforce_constraints<E: FieldElement>(
 /// - If the operation is a left shift op, then, depth should be decreased by 1 provided the
 ///   existing depth of the stack is not 16. In the case of depth being 16, depth will not be
 ///   updated.
-/// - If the current op being executed is `CALL` or `SYSCALL`, then the depth should be reset to 16.
+/// - If the current op being executed is `CALL`, `SYSCALL` or `DYNCALL`, then the depth should be
+///   reset to 16.
 ///
 /// TODO: This skips the operation when `END` is exiting for a `CALL` or a `SYSCALL` block. It
 /// should be handled later in multiset constraints.
@@ -77,13 +78,15 @@ pub fn enforce_stack_depth_constraints<E: FieldElement>(
     let depth = frame.stack_depth();
     let depth_next = frame.stack_depth_next();
 
-    let call_or_syscall = op_flag.call() + op_flag.syscall();
-    let call_or_syscall_end = op_flag.end() * (frame.is_call_end() + frame.is_syscall_end());
+    let call_or_dyncall_or_syscall = op_flag.call() + op_flag.dyncall() + op_flag.syscall();
+    let call_or_dyncall_or_syscall_end =
+        op_flag.end() * (frame.is_call_or_dyncall_end() + frame.is_syscall_end());
 
-    let no_shift_part = (depth_next - depth) * (E::ONE - call_or_syscall - call_or_syscall_end);
+    let no_shift_part = (depth_next - depth)
+        * (E::ONE - call_or_dyncall_or_syscall - call_or_dyncall_or_syscall_end);
     let left_shift_part = op_flag.left_shift() * op_flag.overflow();
     let right_shift_part = op_flag.right_shift();
-    let call_part = call_or_syscall * (depth_next - E::from(16u32));
+    let call_part = call_or_dyncall_or_syscall * (depth_next - E::from(16u32));
 
     // Enforces constraints of the transition of depth of the stack.
     result[0] = no_shift_part + left_shift_part - right_shift_part + call_part;

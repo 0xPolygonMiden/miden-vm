@@ -16,6 +16,7 @@ use super::{
     system::{FMP_MAX, FMP_MIN},
     Digest, Felt, QuadFelt, Word,
 };
+use crate::ContextId;
 
 // EXECUTION ERROR
 // ================================================================================================
@@ -31,6 +32,11 @@ pub enum ExecutionError {
         decorator_id: DecoratorId,
     },
     DivideByZero(RowIndex),
+    DuplicateMemoryAccess {
+        ctx: ContextId,
+        addr: u32,
+        clk: Felt,
+    },
     DynamicNodeNotFound(Digest),
     EventError(String),
     Ext2InttError(Ext2InttError),
@@ -110,6 +116,10 @@ impl Display for ExecutionError {
                 write!(f, "Malformed MAST forest, decorator id {decorator_id} doesn't exist")
             },
             DivideByZero(clk) => write!(f, "Division by zero at clock cycle {clk}"),
+            DuplicateMemoryAccess { ctx, addr, clk } => write!(
+                f,
+                "Memory address {addr} in context {ctx} accessed twice in clock cycle {clk}"
+            ),
             DynamicNodeNotFound(digest) => {
                 let hex = to_hex(digest.as_bytes());
                 write!(

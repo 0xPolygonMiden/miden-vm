@@ -223,6 +223,38 @@ fn simple_syscall() {
     test.prove_and_verify(vec![1, 2], false);
 }
 
+#[test]
+fn simple_syscall_2() {
+    let kernel_source = "
+        export.foo
+            add
+        end
+        export.bar
+            mul
+        end
+    ";
+
+    // Note: we call each twice to ensure that the multiset check handles it correctly
+    let program_source = "
+        begin
+            syscall.foo
+            syscall.foo
+            syscall.bar
+            syscall.bar
+        end";
+
+    // TODO: update and use macro?
+    let mut test = Test::new(&format!("test{}", line!()), program_source, false);
+    test.stack_inputs = StackInputs::try_from_ints([2, 2, 3, 2, 1]).unwrap();
+    test.kernel_source = Some(
+        test.source_manager
+            .load(&format!("kernel{}", line!()), kernel_source.to_string()),
+    );
+    test.expect_stack(&[24]);
+
+    test.prove_and_verify(vec![2, 2, 3, 2, 1], false);
+}
+
 // DYNAMIC CODE EXECUTION
 // ================================================================================================
 
@@ -230,62 +262,51 @@ fn simple_syscall() {
 fn simple_dyn_exec() {
     let program_source = "
         proc.foo
-            # drop the top 4 values, since that will be the code hash when we call this dynamically
-            dropw
             add
         end
 
         begin
-            # call foo directly so it will get added to the CodeBlockTable
-            padw
+            # call foo directly
             call.foo
 
             # move the first result of foo out of the way
             movdn.4
 
-            # use dynexec to call foo again via its hash, which is on the stack
+            # use dynexec to call foo again via its hash, which is stored at memory location 42
+            mem_storew.42 dropw
+            push.42
             dynexec
         end";
 
-    // The hash of foo can be obtained from the code block table by:
-    // let program = test.compile();
-    // let cb_table = program.cb_table();
-    // Result:
-    //   [BaseElement(14592192105906586403), BaseElement(9256464248508904838),
-    //    BaseElement(17436090329036592832), BaseElement(10814467189528518943)]
-    // Integer values can be obtained via Felt::from_mont(14592192105906586403).as_int(), etc.
+    // The hash of foo can be obtained with:
+    // let context = assembly::testing::TestContext::new();
+    // let program = context.assemble(program_source).unwrap();
+    // let procedure_digests: Vec<Digest> = program.mast_forest().procedure_digests().collect();
+    // let foo_digest = procedure_digests[0];
+    // std::println!("foo digest: {foo_digest:?}");
+
     // As ints:
-    //   [16045159387802755434, 10308872899350860082, 17306481765929021384, 16642043361554117790]
+    // [7259075614730273379, 2498922176515930900, 11574583201486131710, 6285975441353882141]
+
+    let stack_init: [u64; 7] = [
+        3,
+        // put the hash of foo on the stack
+        7259075614730273379,
+        2498922176515930900,
+        11574583201486131710,
+        6285975441353882141,
+        1,
+        2,
+    ];
 
     let test = Test {
-        stack_inputs: StackInputs::try_from_ints([
-            3,
-            // put the hash of foo on the stack
-            16045159387802755434,
-            10308872899350860082,
-            17306481765929021384,
-            16642043361554117790,
-            1,
-            2,
-        ])
-        .unwrap(),
-        ..Test::new(&format!("test{}", line!()), program_source, false)
+        stack_inputs: StackInputs::try_from_ints(stack_init).unwrap(),
+        ..Test::new(&format!("test{}", line!()), program_source, true)
     };
 
     test.expect_stack(&[6]);
 
-    test.prove_and_verify(
-        vec![
-            3,
-            16045159387802755434,
-            10308872899350860082,
-            17306481765929021384,
-            16642043361554117790,
-            1,
-            2,
-        ],
-        false,
-    );
+    test.prove_and_verify(stack_init.to_vec(), false);
 }
 
 #[test]
@@ -294,16 +315,15 @@ fn dynexec_with_procref() {
     use.external::module
 
     proc.foo
-        dropw
         push.1.2
         u32wrapping_add
     end
 
     begin
-        procref.foo
+        procref.foo mem_storew.42 dropw push.42
         dynexec
 
-        procref.module::func
+        procref.module::func mem_storew.42 dropw push.42
         dynexec
 
         dup
@@ -319,7 +339,6 @@ fn dynexec_with_procref() {
         "external::module".parse().unwrap(),
         "\
         export.func
-            dropw
             u32wrapping_add.1
         end
         ",
@@ -332,9 +351,6 @@ fn dynexec_with_procref() {
 fn simple_dyncall() {
     let program_source = "
         proc.foo
-            # drop the top 4 values, since that will be the code hash when we call this dynamically
-            dropw
-
             # test that the execution context has changed
             mem_load.0 assertz
 
@@ -346,37 +362,39 @@ fn simple_dyncall() {
             # write to memory so we can test that `call` and `dyncall` change the execution context
             push.5 mem_store.0
 
-            # call foo directly so it will get added to the CodeBlockTable
-            padw
+            # call foo directly 
             call.foo
 
             # move the first result of foo out of the way
             movdn.4
 
             # use dyncall to call foo again via its hash, which is on the stack
+            mem_storew.42 dropw
+            push.42
             dyncall
 
             swapw dropw
         end";
 
     // The hash of foo can be obtained with:
-    // let context = TestContext::new();
+    // let context = assembly::testing::TestContext::new();
     // let program = context.assemble(program_source).unwrap();
     // let procedure_digests: Vec<Digest> = program.mast_forest().procedure_digests().collect();
     // let foo_digest = procedure_digests[0];
+    // std::println!("foo digest: {foo_digest:?}");
+
     //
-    // Integer values can be obtained via Felt::from_mont(14592192105906586403).as_int(), etc.
     // As ints:
-    //   [8324248212344458853, 17691992706129158519, 18131640149172243086, 16129275750103409835]
+    //   [6751154577850596602, 235765701633049111, 16334162752640292120, 7786442719091086500]
 
     let test = Test {
         stack_inputs: StackInputs::try_from_ints([
             3,
             // put the hash of foo on the stack
-            8324248212344458853,
-            17691992706129158519,
-            18131640149172243086,
-            16129275750103409835,
+            6751154577850596602,
+            235765701633049111,
+            16334162752640292120,
+            7786442719091086500,
             1,
             2,
         ])
@@ -390,15 +408,64 @@ fn simple_dyncall() {
     test.prove_and_verify(
         vec![
             3,
-            8324248212344458853,
-            17691992706129158519,
-            18131640149172243086,
-            16129275750103409835,
+            6751154577850596602,
+            235765701633049111,
+            16334162752640292120,
+            7786442719091086500,
             1,
             2,
         ],
         false,
     );
+}
+
+/// Calls `bar` dynamically, which issues a syscall. We ensure that the `caller` instruction in the
+/// kernel procedure correctly returns the hash of `bar`.
+///
+/// We also populate the stack before `dyncall` to ensure that stack depth is properly restored
+/// after `dyncall`.
+#[test]
+fn dyncall_with_syscall_and_caller() {
+    let kernel_source = "
+        export.foo
+            caller
+        end
+    ";
+
+    let program_source = "
+        proc.bar
+            syscall.foo
+        end
+
+        begin
+            # Populate stack before call
+            push.1 push.2 push.3 push.4 padw
+
+            # Prepare dyncall
+            procref.bar mem_storew.42 dropw push.42
+            dyncall
+
+            # Truncate stack
+            movupw.3 dropw movupw.3 dropw
+        end";
+
+    let mut test = Test::new(&format!("test{}", line!()), program_source, true);
+    test.kernel_source = Some(
+        test.source_manager
+            .load(&format!("kernel{}", line!()), kernel_source.to_string()),
+    );
+    test.expect_stack(&[
+        7618101086444903432,
+        9972424747203251625,
+        14917526361757867843,
+        9845116178182948544,
+        4,
+        3,
+        2,
+        1,
+    ]);
+
+    test.prove_and_verify(vec![], false);
 }
 
 // PROCREF INSTRUCTION

@@ -1,38 +1,44 @@
 # Changelog
 
-## 0.11.0 (TBD)
+## 0.11.0 (2024-11-04)
 
 #### Enhancements
 
-- Added support for procedure annotation (attribute) syntax to Miden Assembly
+- Added `miden_core::utils::sync::racy_lock` module (#1463).
+- Updated `miden_core::utils` to re-export `std::sync::LazyLock` and `racy_lock::RacyLock as LazyLock` for std and no_std environments, respectively (#1463).
+- Debug instructions can be enabled in the cli `run` command using `--debug` flag (#1502).
+- Added support for procedure annotation (attribute) syntax to Miden Assembly (#1510).
+- Make `miden-prover::prove()` method conditionally asynchronous (#1563).
 
 #### Changes
 
 - [BREAKING] Wrapped `MastForest`s in `Program` and `Library` structs in `Arc` (#1465).
-- `MastForestBuilder`: use `MastNodeId` instead of MAST root to uniquely identify procedures (#1473)
-- Added `miden_core::utils::sync::racy_lock` module (#1463).
-- Updated `miden_core::utils` to re-export `std::sync::LazyLock` and `racy_lock::RacyLock as LazyLock` for std and no_std environments, respectively (#1463).
-- Made the undocumented behavior of the VM with regard to undefined behavior of u32 operations, stricter (#1480)
-- Introduced the `Emit` instruction (#1496)
-- Debug instructions can be enabled in the cli `run` command using `--debug` flag (#1502)
-- [BREAKING] ExecutionOptions::new constructor requires a boolean to explicitly set debug mode (#1502)
-- [BREAKING] The `run` and the `prove` commands in the cli will accept `--trace` flag instead of `--tracing` (#1502)
-
+- `MastForestBuilder`: use `MastNodeId` instead of MAST root to uniquely identify procedures (#1473).
+- Made the undocumented behavior of the VM with regard to undefined behavior of u32 operations, stricter (#1480).
+- Introduced the `Emit` instruction (#1496).
+- [BREAKING] ExecutionOptions::new constructor requires a boolean to explicitly set debug mode (#1502).
+- [BREAKING] The `run` and the `prove` commands in the cli will accept `--trace` flag instead of `--tracing` (#1502).
+- Migrated to new padding rule for RPO (#1343).
+- Migrated to `miden-crypto` v0.11.0 (#1343).
+- Implemented `MastForest` merging (#1534).
+- Rename `EqHash` to `MastNodeFingerprint` and make it `pub` (#1539).
+- Updated Winterfell dependency to v0.10 (#1533).
+- [BREAKING] `DYN` operation now expects a memory address pointing to the procedure hash (#1535).
+- [BREAKING] `DYNCALL` operation fixed, and now expects a memory address pointing to the procedure hash (#1535).
+- Permit child `MastNodeId`s to exceed the `MastNodeId`s of their parents (#1542).
+- Don't validate export names on `Library` deserialization (#1554)
 
 #### Fixes
 
 - Fixed an issue with formatting of blocks in Miden Assembly syntax
 - Fixed the construction of the block hash table (#1506)
-- Fixed a bug in the block stack table (#1511) (#1512)
-- Fixed the construction of the chiplets virtual table (#1514)
+- Fixed a bug in the block stack table (#1511) (#1512) (#1557)
+- Fixed the construction of the chiplets virtual table (#1514) (#1556)
 - Fixed the construction of the chiplets bus (#1516) (#1525)
-
-#### Fixes
-
 - Decorators are now allowed in empty basic blocks (#1466)
+- Return an error if an instruction performs 2 memory accesses at the same memory address in the same cycle (#1561)
 
-
-## 0.10.6 (2024-09-12) - `miden-processor` crate only.
+## 0.10.6 (2024-09-12) - `miden-processor` crate only
 
 #### Enhancements
 
@@ -159,6 +165,8 @@
 #### Stdlib
 
 - Added `init_no_padding` procedure to `std::crypto::hashes::native` (#1313).
+- [BREAKING] `native` module was renamed to the `rpo`, `hash_memory` procedure was renamed to the `hash_memory_words` (#1368).
+- Added `hash_memory` procedure to `std::crypto::hashes::rpo` (#1368).
 
 #### VM Internals
 

@@ -20,6 +20,16 @@ use crate::{Decorator, DecoratorList, Operation};
 
 mod serialization;
 
+mod merger;
+pub(crate) use merger::MastForestMerger;
+pub use merger::MastForestRootMap;
+
+mod multi_forest_node_iterator;
+pub(crate) use multi_forest_node_iterator::*;
+
+mod node_fingerprint;
+pub use node_fingerprint::{DecoratorFingerprint, MastNodeFingerprint};
+
 #[cfg(test)]
 mod tests;
 
@@ -138,6 +148,11 @@ impl MastForest {
         self.add_node(MastNode::new_dyn())
     }
 
+    /// Adds a dyncall node to the forest, and returns the [`MastNodeId`] associated with it.
+    pub fn add_dyncall(&mut self) -> Result<MastNodeId, MastForestError> {
+        self.add_node(MastNode::new_dyncall())
+    }
+
     /// Adds an external node to the forest, and returns the [`MastNodeId`] associated with it.
     pub fn add_external(&mut self, mast_root: RpoDigest) -> Result<MastNodeId, MastForestError> {
         self.add_node(MastNode::new_external(mast_root))
@@ -189,6 +204,61 @@ impl MastForest {
 
     pub fn set_after_exit(&mut self, node_id: MastNodeId, decorator_ids: Vec<DecoratorId>) {
         self[node_id].set_after_exit(decorator_ids)
+    }
+
+    /// Merges all `forests` into a new [`MastForest`].
+    ///
+    /// Merging two forests means combining all their constituent parts, i.e. [`MastNode`]s,
+    /// [`Decorator`]s and roots. During this process, any duplicate or
+    /// unreachable nodes are removed. Additionally, [`MastNodeId`]s of nodes as well as
+    /// [`DecoratorId`]s of decorators may change and references to them are remapped to their new
+    /// location.
+    ///
+    /// For example, consider this representation of a forest's nodes with all of these nodes being
+    /// roots:
+    ///
+    /// ```text
+    /// [Block(foo), Block(bar)]
+    /// ```
+    ///
+    /// If we merge another forest into it:
+    ///
+    /// ```text
+    /// [Block(bar), Call(0)]
+    /// ```
+    ///
+    /// then we would expect this forest:
+    ///
+    /// ```text
+    /// [Block(foo), Block(bar), Call(1)]
+    /// ```
+    ///
+    /// - The `Call` to the `bar` block was remapped to its new index (now 1, previously 0).
+    /// - The `Block(bar)` was deduplicated any only exists once in the merged forest.
+    ///
+    /// The function also returns a vector of [`MastForestRootMap`]s, whose length equals the number
+    /// of passed `forests`. The indices in the vector correspond to the ones in `forests`. The map
+    /// of a given forest contains the new locations of its roots in the merged forest. To
+    /// illustrate, the above example would return a vector of two maps:
+    ///
+    /// ```text
+    /// vec![{0 -> 0, 1 -> 1}
+    ///      {0 -> 1, 1 -> 2}]
+    /// ```
+    ///
+    /// - The root locations of the original forest are unchanged.
+    /// - For the second forest, the `bar` block has moved from index 0 to index 1 in the merged
+    ///   forest, and the `Call` has moved from index 1 to 2.
+    ///
+    /// If any forest being merged contains an `External(qux)` node and another forest contains a
+    /// node whose digest is `qux`, then the external node will be replaced with the `qux` node,
+    /// which is effectively deduplication. Decorators are ignored when it comes to merging
+    /// External nodes. This means that an External node with decorators may be replaced by a node
+    /// without decorators or vice versa.
+    pub fn merge<'forest>(
+        forests: impl IntoIterator<Item = &'forest MastForest>,
+    ) -> Result<(MastForest, MastForestRootMap), MastForestError> {
+        MastForestMerger::merge(forests)
     }
 
     /// Adds a basic block node to the forest, and returns the [`MastNodeId`] associated with it.
@@ -455,13 +525,37 @@ impl MastNodeId {
         value: u32,
         mast_forest: &MastForest,
     ) -> Result<Self, DeserializationError> {
-        if (value as usize) < mast_forest.nodes.len() {
-            Ok(Self(value))
+        Self::from_u32_with_node_count(value, mast_forest.nodes.len())
+    }
+
+    /// Returns a new [`MastNodeId`] from the given `value` without checking its validity.
+    pub(crate) fn new_unchecked(value: u32) -> Self {
+        Self(value)
+    }
+
+    /// Returns a new [`MastNodeId`] with the provided `id`, or an error if `id` is greater or equal
+    /// to `node_count`. The `node_count` is the total number of nodes in the [`MastForest`] for
+    /// which this ID is being constructed.
+    ///
+    /// This function can be used when deserializing an id whose corresponding node is not yet in
+    /// the forest and [`Self::from_u32_safe`] would fail. For instance, when deserializing the ids
+    /// referenced by the Join node in this forest:
+    ///
+    /// ```text
+    /// [Join(1, 2), Block(foo), Block(bar)]
+    /// ```
+    ///
+    /// Since it is less safe than [`Self::from_u32_safe`] and usually not needed it is not public.
+    pub(super) fn from_u32_with_node_count(
+        id: u32,
+        node_count: usize,
+    ) -> Result<Self, DeserializationError> {
+        if (id as usize) < node_count {
+            Ok(Self(id))
         } else {
             Err(DeserializationError::InvalidValue(format!(
-                "Invalid deserialized MAST node ID '{}', but only {} nodes in the forest",
-                value,
-                mast_forest.nodes.len(),
+                "Invalid deserialized MAST node ID '{}', but {} is the number of nodes in the forest",
+                id, node_count,
             )))
         }
     }
@@ -527,6 +621,11 @@ impl DecoratorId {
         }
     }
 
+    /// Creates a new [`DecoratorId`] without checking its validity.
+    pub(crate) fn new_unchecked(value: u32) -> Self {
+        Self(value)
+    }
+
     pub fn as_usize(&self) -> usize {
         self.0 as usize
     }
@@ -584,6 +683,10 @@ pub enum MastForestError {
     TooManyNodes,
     #[error("node id: {0} is greater than or equal to forest length: {1}")]
     NodeIdOverflow(MastNodeId, usize),
+    #[error("decorator id: {0} is greater than or equal to decorator count: {1}")]
+    DecoratorIdOverflow(DecoratorId, usize),
     #[error("basic block cannot be created from an empty list of operations")]
     EmptyBasicBlock,
+    #[error("decorator root of child with node id {0} is missing but required for fingerprint computation")]
+    ChildFingerprintMissing(MastNodeId),
 }

@@ -192,8 +192,8 @@ impl LibraryPath {
 
     /// Return the size in bytes of this path when displayed as a string
     pub fn byte_len(&self) -> usize {
-        self.inner.components.iter().map(|c| c.as_bytes().len()).sum::<usize>()
-            + self.inner.ns.as_str().as_bytes().len()
+        self.inner.components.iter().map(|c| c.len()).sum::<usize>()
+            + self.inner.ns.as_str().len()
             + (self.inner.components.len() * 2)
     }
 
@@ -575,7 +575,10 @@ mod tests {
         assert_matches!(path, Err(PathError::InvalidComponent(IdentError::InvalidStart)));
 
         let path = LibraryPath::new("foo::b@r");
-        assert_matches!(path, Err(PathError::InvalidComponent(IdentError::InvalidChars)));
+        assert_matches!(
+            path,
+            Err(PathError::InvalidComponent(IdentError::InvalidChars { ident: _ }))
+        );
 
         let path = LibraryPath::new("#foo::bar");
         assert_matches!(

@@ -64,10 +64,10 @@ where
         let [t7, t6, t5, t4, t3, t2, t1, t0] = self.get_trace_values();
 
         // --- read the randomness from memory ----------------------------------------------------
-        let alpha = self.get_randomness();
+        let alpha = self.get_randomness()?;
 
         // --- read the OOD values from memory ----------------------------------------------------
-        let [tz, tgz] = self.get_ood_values();
+        let [tz, tgz] = self.get_ood_values()?;
 
         // --- read the accumulator values from stack ---------------------------------------------
         let [p, r] = self.read_accumulators();
@@ -125,22 +125,23 @@ where
     }
 
     /// Returns randomness.
-    fn get_randomness(&mut self) -> QuadFelt {
+    fn get_randomness(&mut self) -> Result<QuadFelt, ExecutionError> {
         let ctx = self.system.ctx();
         let addr = self.stack.get(14);
-        let word = self.chiplets.read_mem(ctx, addr.as_int() as u32);
+        let word = self.chiplets.read_mem(ctx, addr.as_int() as u32)?;
         let a0 = word[0];
         let a1 = word[1];
-        QuadFelt::new(a0, a1)
+
+        Ok(QuadFelt::new(a0, a1))
     }
 
     /// Returns the OOD values.
-    fn get_ood_values(&mut self) -> [QuadFelt; 2] {
+    fn get_ood_values(&mut self) -> Result<[QuadFelt; 2], ExecutionError> {
         let ctx = self.system.ctx();
         let addr = self.stack.get(13);
-        let word = self.chiplets.read_mem(ctx, addr.as_int() as u32);
+        let word = self.chiplets.read_mem(ctx, addr.as_int() as u32)?;
 
-        [QuadFelt::new(word[0], word[1]), QuadFelt::new(word[2], word[3])]
+        Ok([QuadFelt::new(word[0], word[1]), QuadFelt::new(word[2], word[3])])
     }
 
     /// Reads the accumulator values.
@@ -202,18 +203,25 @@ mod tests {
         // --- setup memory -----------------------------------------------------------------------
         let ctx = ContextId::root();
         let tztgz = rand_array::<Felt, 4>();
-        process.chiplets.write_mem(
-            ctx,
-            inputs[2].as_int().try_into().expect("Shouldn't fail by construction"),
-            tztgz,
-        );
+        process
+            .chiplets
+            .write_mem(
+                ctx,
+                inputs[2].as_int().try_into().expect("Shouldn't fail by construction"),
+                tztgz,
+            )
+            .unwrap();
 
         let a = rand_array::<Felt, 4>();
-        process.chiplets.write_mem(
-            ctx,
-            inputs[1].as_int().try_into().expect("Shouldn't fail by construction"),
-            a,
-        );
+        process
+            .chiplets
+            .write_mem(
+                ctx,
+                inputs[1].as_int().try_into().expect("Shouldn't fail by construction"),
+                a,
+            )
+            .unwrap();
+        process.execute_op(Operation::Noop).unwrap();
 
         // --- execute RCOMB1 operation -----------------------------------------------------------
         process.execute_op(Operation::RCombBase).unwrap();

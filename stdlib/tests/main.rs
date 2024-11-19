@@ -12,6 +12,7 @@ macro_rules! build_test {
 
 mod collections;
 mod crypto;
+mod mast_forest_merge;
 mod math;
 mod mem;
 mod sys;
