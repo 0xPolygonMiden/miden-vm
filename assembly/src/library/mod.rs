@@ -10,7 +10,7 @@ use vm_core::{
     debuginfo::Span,
     mast::{MastForest, MastNodeId},
     utils::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable},
-    Kernel,
+    AdviceMap, Kernel,
 };
 
 use crate::ast::{Ident, ProcedureName, QualifiedProcedureName};
@@ -91,6 +91,15 @@ impl Library {
         let digest = compute_content_hash(&exports, &mast_forest);
 
         Ok(Self { digest, exports, mast_forest })
+    }
+
+    pub fn with_advice_map(self, advice_map: AdviceMap) -> Self {
+        let mut mast_forest = (*self.mast_forest).clone();
+        mast_forest.advice_map_mut().extend(advice_map);
+        Self {
+            mast_forest: Arc::new(mast_forest),
+            ..self
+        }
     }
 }
 
