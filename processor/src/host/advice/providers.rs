@@ -60,11 +60,11 @@ where
     // ADVICE STACK
     // --------------------------------------------------------------------------------------------
 
-    fn pop_stack<P: ProcessState>(&mut self, process: &P) -> Result<Felt, ExecutionError> {
+    fn pop_stack(&mut self, process: ProcessState) -> Result<Felt, ExecutionError> {
         self.stack.pop().ok_or(ExecutionError::AdviceStackReadFailed(process.clk()))
     }
 
-    fn pop_stack_word<P: ProcessState>(&mut self, process: &P) -> Result<Word, ExecutionError> {
+    fn pop_stack_word(&mut self, process: ProcessState) -> Result<Word, ExecutionError> {
         if self.stack.len() < 4 {
             return Err(ExecutionError::AdviceStackReadFailed(process.clk()));
         }
@@ -78,10 +78,7 @@ where
         Ok(result)
     }
 
-    fn pop_stack_dword<P: ProcessState>(
-        &mut self,
-        process: &P,
-    ) -> Result<[Word; 2], ExecutionError> {
+    fn pop_stack_dword(&mut self, process: ProcessState) -> Result<[Word; 2], ExecutionError> {
         let word0 = self.pop_stack_word(process)?;
         let word1 = self.pop_stack_word(process)?;
 
@@ -259,15 +256,15 @@ impl MemAdviceProvider {
 /// TODO: potentially do this via a macro.
 #[rustfmt::skip]
 impl AdviceProvider for MemAdviceProvider {
-    fn pop_stack<S: ProcessState>(&mut self, process: &S)-> Result<Felt, ExecutionError> {
+    fn pop_stack(&mut self, process: ProcessState)-> Result<Felt, ExecutionError> {
         self.provider.pop_stack(process)
     }
 
-    fn pop_stack_word<S: ProcessState>(&mut self, process: &S) -> Result<Word, ExecutionError> {
+    fn pop_stack_word(&mut self, process: ProcessState) -> Result<Word, ExecutionError> {
         self.provider.pop_stack_word(process)
     }
 
-    fn pop_stack_dword<S: ProcessState>(&mut self, process: &S) -> Result<[Word; 2], ExecutionError> {
+    fn pop_stack_dword(&mut self, process: ProcessState) -> Result<[Word; 2], ExecutionError> {
         self.provider.pop_stack_dword(process)
     }
 
@@ -377,15 +374,15 @@ impl RecAdviceProvider {
 /// TODO: potentially do this via a macro.
 #[rustfmt::skip]
 impl AdviceProvider for RecAdviceProvider {
-    fn pop_stack<S: ProcessState>(&mut self, process: &S) -> Result<Felt, ExecutionError> {
+    fn pop_stack(&mut self, process: ProcessState) -> Result<Felt, ExecutionError> {
         self.provider.pop_stack(process)
     }
 
-    fn pop_stack_word<S: ProcessState>(&mut self, process: &S) -> Result<Word, ExecutionError> {
+    fn pop_stack_word(&mut self, process: ProcessState) -> Result<Word, ExecutionError> {
         self.provider.pop_stack_word(process)
     }
 
-    fn pop_stack_dword<S: ProcessState>(&mut self, process: &S) -> Result<[Word; 2], ExecutionError> {
+    fn pop_stack_dword(&mut self, process: ProcessState) -> Result<[Word; 2], ExecutionError> {
         self.provider.pop_stack_dword(process)
     }
 

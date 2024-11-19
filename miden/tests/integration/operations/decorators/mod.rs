@@ -31,43 +31,43 @@ impl Default for TestHost<MemAdviceProvider> {
 }
 
 impl<A: AdviceProvider> Host for TestHost<A> {
-    fn get_advice<S: ProcessState>(
+    fn get_advice(
         &mut self,
-        process: &S,
+        process: ProcessState,
         extractor: AdviceExtractor,
     ) -> Result<HostResponse, ExecutionError> {
         self.adv_provider.get_advice(process, &extractor)
     }
 
-    fn set_advice<S: ProcessState>(
+    fn set_advice(
         &mut self,
-        process: &S,
+        process: ProcessState,
         injector: AdviceInjector,
     ) -> Result<HostResponse, ExecutionError> {
         self.adv_provider.set_advice(process, &injector)
     }
 
-    fn on_event<S: ProcessState>(
+    fn on_event(
         &mut self,
-        _process: &S,
+        _process: ProcessState,
         event_id: u32,
     ) -> Result<HostResponse, ExecutionError> {
         self.event_handler.push(event_id);
         Ok(HostResponse::None)
     }
 
-    fn on_trace<S: ProcessState>(
+    fn on_trace(
         &mut self,
-        _process: &S,
+        _process: ProcessState,
         trace_id: u32,
     ) -> Result<HostResponse, ExecutionError> {
         self.trace_handler.push(trace_id);
         Ok(HostResponse::None)
     }
 
-    fn on_debug<S: ProcessState>(
+    fn on_debug(
         &mut self,
-        _process: &S,
+        _process: ProcessState,
         _options: &DebugOptions,
     ) -> Result<HostResponse, ExecutionError> {
         self.debug_handler.push(_options.to_string());

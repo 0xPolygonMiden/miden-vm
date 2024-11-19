@@ -35,16 +35,16 @@ pub trait Host {
     // --------------------------------------------------------------------------------------------
 
     /// Returns the requested advice, specified by [AdviceExtractor], from the host to the VM.
-    fn get_advice<P: ProcessState>(
+    fn get_advice(
         &mut self,
-        process: &P,
+        process: ProcessState,
         extractor: AdviceExtractor,
     ) -> Result<HostResponse, ExecutionError>;
 
     /// Sets the requested advice, specified by [AdviceInjector], on the host.
-    fn set_advice<P: ProcessState>(
+    fn set_advice(
         &mut self,
-        process: &P,
+        process: ProcessState,
         injector: AdviceInjector,
     ) -> Result<HostResponse, ExecutionError>;
 
@@ -70,9 +70,9 @@ pub trait Host {
     }
 
     /// Handles the event emitted from the VM.
-    fn on_event<S: ProcessState>(
+    fn on_event(
         &mut self,
-        _process: &S,
+        _process: ProcessState,
         _event_id: u32,
     ) -> Result<HostResponse, ExecutionError> {
         #[cfg(feature = "std")]
@@ -86,9 +86,9 @@ pub trait Host {
     }
 
     /// Handles the debug request from the VM.
-    fn on_debug<S: ProcessState>(
+    fn on_debug(
         &mut self,
-        _process: &S,
+        _process: ProcessState,
         _options: &DebugOptions,
     ) -> Result<HostResponse, ExecutionError> {
         #[cfg(feature = "std")]
@@ -97,9 +97,9 @@ pub trait Host {
     }
 
     /// Handles the trace emitted from the VM.
-    fn on_trace<S: ProcessState>(
+    fn on_trace(
         &mut self,
-        _process: &S,
+        _process: ProcessState,
         _trace_id: u32,
     ) -> Result<HostResponse, ExecutionError> {
         #[cfg(feature = "std")]
@@ -113,7 +113,7 @@ pub trait Host {
     }
 
     /// Handles the failure of the assertion instruction.
-    fn on_assert_failed<S: ProcessState>(&mut self, process: &S, err_code: u32) -> ExecutionError {
+    fn on_assert_failed(&mut self, process: ProcessState, err_code: u32) -> ExecutionError {
         ExecutionError::FailedAssertion {
             clk: process.clk(),
             err_code,
@@ -125,7 +125,7 @@ pub trait Host {
     ///
     /// # Errors
     /// Returns an error if the advice stack is empty.
-    fn pop_adv_stack<S: ProcessState>(&mut self, process: &S) -> Result<Felt, ExecutionError> {
+    fn pop_adv_stack(&mut self, process: ProcessState) -> Result<Felt, ExecutionError> {
         let response = self.get_advice(process, AdviceExtractor::PopStack)?;
         Ok(response.into())
     }
@@ -137,7 +137,7 @@ pub trait Host {
     ///
     /// # Errors
     /// Returns an error if the advice stack does not contain a full word.
-    fn pop_adv_stack_word<S: ProcessState>(&mut self, process: &S) -> Result<Word, ExecutionError> {
+    fn pop_adv_stack_word(&mut self, process: ProcessState) -> Result<Word, ExecutionError> {
         let response = self.get_advice(process, AdviceExtractor::PopStackWord)?;
         Ok(response.into())
     }
@@ -150,10 +150,7 @@ pub trait Host {
     ///
     /// # Errors
     /// Returns an error if the advice stack does not contain two words.
-    fn pop_adv_stack_dword<S: ProcessState>(
-        &mut self,
-        process: &S,
-    ) -> Result<[Word; 2], ExecutionError> {
+    fn pop_adv_stack_dword(&mut self, process: ProcessState) -> Result<[Word; 2], ExecutionError> {
         let response = self.get_advice(process, AdviceExtractor::PopStackDWord)?;
         Ok(response.into())
     }
@@ -167,10 +164,7 @@ pub trait Host {
     /// - The specified depth is either zero or greater than the depth of the Merkle tree identified
     ///   by the specified root.
     /// - Path to the node at the specified depth and index is not known to this advice provider.
-    fn get_adv_merkle_path<S: ProcessState>(
-        &mut self,
-        process: &S,
-    ) -> Result<MerklePath, ExecutionError> {
+    fn get_adv_merkle_path(&mut self, process: ProcessState) -> Result<MerklePath, ExecutionError> {
         let response = self.get_advice(process, AdviceExtractor::GetMerklePath)?;
         Ok(response.into())
     }
@@ -180,17 +174,17 @@ impl<H> Host for &mut H
 where
     H: Host,
 {
-    fn get_advice<S: ProcessState>(
+    fn get_advice(
         &mut self,
-        process: &S,
+        process: ProcessState,
         extractor: AdviceExtractor,
     ) -> Result<HostResponse, ExecutionError> {
         H::get_advice(self, process, extractor)
     }
 
-    fn set_advice<S: ProcessState>(
+    fn set_advice(
         &mut self,
-        process: &S,
+        process: ProcessState,
         injector: AdviceInjector,
     ) -> Result<HostResponse, ExecutionError> {
         H::set_advice(self, process, injector)
@@ -200,31 +194,31 @@ where
         H::get_mast_forest(self, node_digest)
     }
 
-    fn on_debug<S: ProcessState>(
+    fn on_debug(
         &mut self,
-        process: &S,
+        process: ProcessState,
         options: &DebugOptions,
     ) -> Result<HostResponse, ExecutionError> {
         H::on_debug(self, process, options)
     }
 
-    fn on_event<S: ProcessState>(
+    fn on_event(
         &mut self,
-        process: &S,
+        process: ProcessState,
         event_id: u32,
     ) -> Result<HostResponse, ExecutionError> {
         H::on_event(self, process, event_id)
     }
 
-    fn on_trace<S: ProcessState>(
+    fn on_trace(
         &mut self,
-        process: &S,
+        process: ProcessState,
         trace_id: u32,
     ) -> Result<HostResponse, ExecutionError> {
         H::on_trace(self, process, trace_id)
     }
 
-    fn on_assert_failed<S: ProcessState>(&mut self, process: &S, err_code: u32) -> ExecutionError {
+    fn on_assert_failed(&mut self, process: ProcessState, err_code: u32) -> ExecutionError {
         H::on_assert_failed(self, process, err_code)
     }
 }
@@ -339,17 +333,17 @@ impl<A> Host for DefaultHost<A>
 where
     A: AdviceProvider,
 {
-    fn get_advice<P: ProcessState>(
+    fn get_advice(
         &mut self,
-        process: &P,
+        process: ProcessState,
         extractor: AdviceExtractor,
     ) -> Result<HostResponse, ExecutionError> {
         self.adv_provider.get_advice(process, &extractor)
     }
 
-    fn set_advice<P: ProcessState>(
+    fn set_advice(
         &mut self,
-        process: &P,
+        process: ProcessState,
         injector: AdviceInjector,
     ) -> Result<HostResponse, ExecutionError> {
         self.adv_provider.set_advice(process, &injector)

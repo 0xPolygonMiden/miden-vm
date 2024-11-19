@@ -55,15 +55,12 @@ pub use winter_prover::{crypto::MerkleTree as MerkleTreeVC, Proof};
 /// Returns an error if program execution or STARK proof generation fails for any reason.
 #[instrument("prove_program", skip_all)]
 #[maybe_async]
-pub fn prove<H>(
+pub fn prove(
     program: &Program,
     stack_inputs: StackInputs,
-    host: H,
+    host: &mut impl Host,
     options: ProvingOptions,
-) -> Result<(StackOutputs, ExecutionProof), ExecutionError>
-where
-    H: Host,
-{
+) -> Result<(StackOutputs, ExecutionProof), ExecutionError> {
     // execute the program to create an execution trace
     #[cfg(feature = "std")]
     let now = Instant::now();

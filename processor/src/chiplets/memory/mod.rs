@@ -76,7 +76,7 @@ const INIT_MEM_VALUE: Word = EMPTY_WORD;
 ///   clock cycles computed as described above.
 ///
 /// For the first row of the trace, values in `d0`, `d1`, and `d_inv` are set to zeros.
-#[derive(Default)]
+#[derive(Debug, Default)]
 pub struct Memory {
     /// Memory segment traces sorted by their execution context ID.
     trace: BTreeMap<ContextId, MemorySegmentTrace>,

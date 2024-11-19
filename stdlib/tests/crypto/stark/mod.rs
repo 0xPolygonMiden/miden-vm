@@ -50,12 +50,12 @@ pub fn generate_recursive_verifier_data(
     let stack_inputs = StackInputs::try_from_ints(stack_inputs).unwrap();
     let advice_inputs = AdviceInputs::default();
     let advice_provider = MemAdviceProvider::from(advice_inputs);
-    let host = DefaultHost::new(advice_provider);
+    let mut host = DefaultHost::new(advice_provider);
 
     let options =
         ProvingOptions::new(43, 8, 12, FieldExtension::Quadratic, 4, 7, HashFunction::Rpo256);
 
-    let (stack_outputs, proof) = prove(&program, stack_inputs.clone(), host, options).unwrap();
+    let (stack_outputs, proof) = prove(&program, stack_inputs.clone(), &mut host, options).unwrap();
 
     let program_info = ProgramInfo::from(program);
 

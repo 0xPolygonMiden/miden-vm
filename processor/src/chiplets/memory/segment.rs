@@ -19,7 +19,7 @@ use crate::{ContextId, ExecutionError};
 /// A memory segment is an isolated address space accessible from a specific execution context.
 /// Within each segment, the memory is word-addressable. That is, four field elements are located
 /// at each memory address, and we can read and write elements to/from memory in batches of four.
-#[derive(Default)]
+#[derive(Debug, Default)]
 pub struct MemorySegmentTrace(BTreeMap<u32, Vec<MemorySegmentAccess>>);
 
 impl MemorySegmentTrace {

@@ -208,11 +208,12 @@ fn falcon_prove_verify() {
     let stack_inputs = StackInputs::try_from_ints(op_stack).expect("failed to create stack inputs");
     let advice_inputs = AdviceInputs::default().with_map(advice_map);
     let advice_provider = MemAdviceProvider::from(advice_inputs);
-    let host = DefaultHost::new(advice_provider);
+    let mut host = DefaultHost::new(advice_provider);
 
     let options = ProvingOptions::with_96_bit_security(false);
-    let (stack_outputs, proof) = test_utils::prove(&program, stack_inputs.clone(), host, options)
-        .expect("failed to generate proof");
+    let (stack_outputs, proof) =
+        test_utils::prove(&program, stack_inputs.clone(), &mut host, options)
+            .expect("failed to generate proof");
 
     let program_info = ProgramInfo::from(program);
     let result = test_utils::verify(program_info, stack_inputs, stack_outputs, proof);

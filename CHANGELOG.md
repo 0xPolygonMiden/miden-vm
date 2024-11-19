@@ -1,5 +1,9 @@
 # Changelog
 
+#### Changes
+- [BREAKING] `Process` no longer takes ownership of the `Host` (#1571)
+- [BREAKING] `ProcessState` was converted from a trait to a struct (#1571)
+
 ## 0.11.0 (2024-11-04)
 
 #### Enhancements

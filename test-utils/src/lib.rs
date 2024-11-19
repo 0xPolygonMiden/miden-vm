@@ -250,17 +250,18 @@ impl Test {
         let mut process = Process::new(
             program.kernel().clone(),
             self.stack_inputs.clone(),
-            host,
             ExecutionOptions::default(),
         );
-        process.execute(&program).unwrap();
+        process.execute(&program, &mut host).unwrap();
 
         // validate the memory state
         for data in expected_mem.chunks(WORD_SIZE) {
             // Main memory is zeroed by default, use zeros as a fallback when unwrap to make testing
             // easier
-            let mem_state =
-                process.get_mem_value(ContextId::root(), mem_start_addr).unwrap_or(EMPTY_WORD);
+            let mem_state = process
+                .chiplets
+                .get_mem_value(ContextId::root(), mem_start_addr)
+                .unwrap_or(EMPTY_WORD);
 
             let mem_state = felt_slice_to_ints(&mem_state);
             assert_eq!(
@@ -343,14 +344,19 @@ impl Test {
         for library in &self.libraries {
             host.load_mast_forest(library.mast_forest().clone());
         }
-        processor::execute(&program, self.stack_inputs.clone(), host, ExecutionOptions::default())
+        processor::execute(
+            &program,
+            self.stack_inputs.clone(),
+            &mut host,
+            ExecutionOptions::default(),
+        )
     }
 
     /// Compiles the test's source to a Program and executes it with the tests inputs. Returns the
     /// process once execution is finished.
     pub fn execute_process(
         &self,
-    ) -> Result<Process<DefaultHost<MemAdviceProvider>>, ExecutionError> {
+    ) -> Result<(Process, DefaultHost<MemAdviceProvider>), ExecutionError> {
         let (program, kernel) = self.compile().expect("Failed to compile test source.");
         let mut host = DefaultHost::new(MemAdviceProvider::from(self.advice_inputs.clone()));
         if let Some(kernel) = kernel {
@@ -363,11 +369,10 @@ impl Test {
         let mut process = Process::new(
             program.kernel().clone(),
             self.stack_inputs.clone(),
-            host,
             ExecutionOptions::default(),
         );
-        process.execute(&program)?;
-        Ok(process)
+        process.execute(&program, &mut host)?;
+        Ok((process, host))
     }
 
     /// Compiles the test's code into a program, then generates and verifies a proof of execution
@@ -384,7 +389,8 @@ impl Test {
             host.load_mast_forest(library.mast_forest().clone());
         }
         let (mut stack_outputs, proof) =
-            prover::prove(&program, stack_inputs.clone(), host, ProvingOptions::default()).unwrap();
+            prover::prove(&program, stack_inputs.clone(), &mut host, ProvingOptions::default())
+                .unwrap();
 
         let program_info = ProgramInfo::from(program);
         if test_fail {
@@ -408,7 +414,7 @@ impl Test {
         for library in &self.libraries {
             host.load_mast_forest(library.mast_forest().clone());
         }
-        processor::execute_iter(&program, self.stack_inputs.clone(), host)
+        processor::execute_iter(&program, self.stack_inputs.clone(), &mut host)
     }
 
     /// Returns the last state of the stack after executing a test.

@@ -30,9 +30,9 @@ use crate::{AdviceProvider, ProcessState};
 ///
 /// # Errors
 /// Returns an error if the provided Merkle root doesn't exist on the advice provider.
-pub(crate) fn push_smtpeek_result<S: ProcessState, A: AdviceProvider>(
+pub(crate) fn push_smtpeek_result<A: AdviceProvider>(
     advice_provider: &mut A,
-    process: &S,
+    process: ProcessState,
 ) -> Result<HostResponse, ExecutionError> {
     let empty_leaf = EmptySubtreeRoots::entry(SMT_DEPTH, SMT_DEPTH);
     // fetch the arguments from the operand stack
@@ -68,17 +68,17 @@ pub(crate) fn push_smtpeek_result<S: ProcessState, A: AdviceProvider>(
 }
 
 /// Currently unimplemented
-pub(crate) fn push_smtget_inputs<S: ProcessState, A: AdviceProvider>(
+pub(crate) fn push_smtget_inputs<A: AdviceProvider>(
     _advice_provider: &mut A,
-    _process: &S,
+    _process: ProcessState,
 ) -> Result<HostResponse, ExecutionError> {
     unimplemented!()
 }
 
 /// Currently unimplemented
-pub(crate) fn push_smtset_inputs<S: ProcessState, A: AdviceProvider>(
+pub(crate) fn push_smtset_inputs<A: AdviceProvider>(
     _advice_provider: &mut A,
-    _process: &S,
+    _process: ProcessState,
 ) -> Result<HostResponse, ExecutionError> {
     unimplemented!()
 }

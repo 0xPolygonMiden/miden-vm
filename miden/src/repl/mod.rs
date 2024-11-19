@@ -321,7 +321,7 @@ fn execute(
         host.load_mast_forest(library.mast_forest().clone());
     }
 
-    let state_iter = processor::execute_iter(&program, stack_inputs, host);
+    let state_iter = processor::execute_iter(&program, stack_inputs, &mut host);
     let (system, _, stack, chiplets, err) = state_iter.into_parts();
     if let Some(err) = err {
         return Err(format!("{err}"));
