@@ -57,8 +57,9 @@ Advice injectors fall into two categories: (1) injectors which push new data ont
 | adv.push_sig.*kind*                          | [K, M, ...]                | [K, M, ...]                | Pushes values onto the advice stack which are required for verification of a DSA with scheme specified by *kind* against the public key commitment $K$ and message $M$. |
 | adv.push_smtpeek                                 | [K, R, ... ]               | [K, R, ... ]               | Pushes value onto the advice stack which is associated with key $K$ in a Sparse Merkle Tree with root $R$. |
 | adv.insert_mem                               | [K, a, b, ... ]            | [K, a, b, ... ]            | Reads words $data \leftarrow mem[a] .. mem[b]$ from memory, and save the data into $advice\_map[K] \leftarrow data$. |
-| adv.insert_hdword <br> adv.insert_hdword.*d* | [B, A, ... ]               | [B, A, ... ]               | Reads top two words from the stack, computes a key as $K \leftarrow hash(A || b, d)$, and saves the data into $advice\_map[K] \leftarrow [A, B]$. $d$ is an optional domain value which can be between $0$ and $255$, default value $0$. |
-| adv.insert_hperm                             | [B, A, C, ...]             | [B, A, C, ...]             | Reads top three words from the stack, computes a key as $K \leftarrow permute(C, A, B).digest$, and saves data into $advice\_mpa[K] \leftarrow [A, B]$. |
+| adv.insert_hdword                            | [B, A, ... ]               | [B, A, ... ]               | Reads top two words from the stack, computes a key as $K \leftarrow hash(A || b, domain=0)$, and saves the data into $advice\_map[K] \leftarrow [A, B]$. |
+| adv.insert_hdword_d                          | [B, A, d, ... ]            | [B, A, d, ... ]            | Reads top two words from the stack, computes a key as $K \leftarrow hash(A || b, domain=d)$, and saves the data into $advice\_map[K] \leftarrow [A, B]$. $d$ is the domain value, where changing the domain changes the resulting hash given the same `A` and `B`. |
+| adv.insert_hperm                             | [B, A, C, ...]             | [B, A, C, ...]             | Reads top three words from the stack, computes a key as $K \leftarrow permute(C, A, B).digest$, and saves data into $advice\_map[K] \leftarrow [A, B]$. |
 
 ### Random access memory
 

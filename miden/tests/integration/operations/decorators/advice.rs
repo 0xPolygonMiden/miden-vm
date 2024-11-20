@@ -305,13 +305,13 @@ fn advice_insert_hdword() {
     // --- test hashing with domain -------------------------------------------
     let source: &str = "
     begin
-        # stack: [1, 2, 3, 4, 5, 6, 7, 8, ...]
+        # stack: [1, 2, 3, 4, 5, 6, 7, 8, 9, ...]
 
         # hash and insert top two words into the advice map
-        adv.insert_hdword.3
+        adv.insert_hdword_d
 
         # manually compute the hash of the two words
-        push.0.3.0.0
+        push.0.9.0.0
         swapw.2 swapw
         hperm
         dropw swapw dropw
@@ -325,7 +325,7 @@ fn advice_insert_hdword() {
         adv_push.8
         swapdw dropw dropw
     end";
-    let stack_inputs = [8, 7, 6, 5, 4, 3, 2, 1];
+    let stack_inputs = [9, 8, 7, 6, 5, 4, 3, 2, 1];
     let test = build_test!(source, &stack_inputs);
     test.expect_stack(&[1, 2, 3, 4, 5, 6, 7, 8]);
 }

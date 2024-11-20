@@ -1,7 +1,6 @@
 use core::fmt;
 
 use super::SignatureKind;
-use crate::Felt;
 
 // ADVICE INJECTORS
 // ================================================================================================
@@ -245,9 +244,22 @@ pub enum AdviceInjector {
     ///   Operand stack: [B, A, ...]
     ///   Advice map: {KEY: [a0, a1, a2, a3, b0, b1, b2, b3]}
     ///
-    /// Where KEY is computed as hash(A || B, domain), where domain is provided via the immediate
-    /// value.
-    HdwordToMap { domain: Felt },
+    /// Where KEY is computed as hash(A || B, domain=0)
+    HdwordToMap,
+
+    /// Reads two word from the operand stack and inserts them into the advice map under the key
+    /// defined by the hash of these words (using `d` as the domain).
+    ///
+    /// Inputs:
+    ///   Operand stack: [B, A, d, ...]
+    ///   Advice map: {...}
+    ///
+    /// Outputs:
+    ///   Operand stack: [B, A, d, ...]
+    ///   Advice map: {KEY: [a0, a1, a2, a3, b0, b1, b2, b3]}
+    ///
+    /// Where KEY is computed as hash(A || B, d).
+    HdwordToMapWithDomain,
 
     /// Reads three words from the operand stack and inserts the top two words into the advice map
     /// under the key defined by applying an RPO permutation to all three words.
@@ -306,7 +318,8 @@ impl fmt::Display for AdviceInjector {
             Self::U32Cto => write!(f, "u32cto"),
             Self::ILog2 => write!(f, "ilog2"),
             Self::MemToMap => write!(f, "mem_to_map"),
-            Self::HdwordToMap { domain } => write!(f, "hdword_to_map.{domain}"),
+            Self::HdwordToMap => write!(f, "hdword_to_map"),
+            Self::HdwordToMapWithDomain => write!(f, "hdword_to_map_with_domain"),
             Self::HpermToMap => write!(f, "hperm_to_map"),
             Self::FalconSigToStack => write!(f, "sig_to_stack.{}", SignatureKind::RpoFalcon512),
         }

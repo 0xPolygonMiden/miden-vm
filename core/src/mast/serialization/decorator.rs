@@ -1,6 +1,5 @@
 use alloc::vec::Vec;
 
-use miden_crypto::Felt;
 use num_derive::{FromPrimitive, ToPrimitive};
 use num_traits::{FromPrimitive, ToPrimitive};
 use winter_utils::{
@@ -94,14 +93,10 @@ impl DecoratorInfo {
                 Ok(Decorator::Advice(AdviceInjector::MemToMap))
             },
             EncodedDecoratorVariant::AdviceInjectorHdwordToMap => {
-                let domain = data_reader.read_u64()?;
-                let domain = Felt::try_from(domain).map_err(|err| {
-                    DeserializationError::InvalidValue(format!(
-                        "Error when deserializing HdwordToMap decorator domain: {err}"
-                    ))
-                })?;
-
-                Ok(Decorator::Advice(AdviceInjector::HdwordToMap { domain }))
+                Ok(Decorator::Advice(AdviceInjector::HdwordToMap))
+            },
+            EncodedDecoratorVariant::AdviceInjectorHdwordToMapWithDomain => {
+                Ok(Decorator::Advice(AdviceInjector::HdwordToMapWithDomain))
             },
             EncodedDecoratorVariant::AdviceInjectorHpermToMap => {
                 Ok(Decorator::Advice(AdviceInjector::HpermToMap))
@@ -223,6 +218,7 @@ pub enum EncodedDecoratorVariant {
     AdviceInjectorILog2,
     AdviceInjectorMemToMap,
     AdviceInjectorHdwordToMap,
+    AdviceInjectorHdwordToMapWithDomain,
     AdviceInjectorHpermToMap,
     AdviceInjectorFalconSigToStack,
     AssemblyOp,
@@ -268,7 +264,8 @@ impl From<&Decorator> for EncodedDecoratorVariant {
                 AdviceInjector::U32Cto => Self::AdviceInjectorU32Cto,
                 AdviceInjector::ILog2 => Self::AdviceInjectorILog2,
                 AdviceInjector::MemToMap => Self::AdviceInjectorMemToMap,
-                AdviceInjector::HdwordToMap { domain: _ } => Self::AdviceInjectorHdwordToMap,
+                AdviceInjector::HdwordToMap => Self::AdviceInjectorHdwordToMap,
+                AdviceInjector::HdwordToMapWithDomain => Self::AdviceInjectorHdwordToMapWithDomain,
                 AdviceInjector::HpermToMap => Self::AdviceInjectorHpermToMap,
                 AdviceInjector::FalconSigToStack => Self::AdviceInjectorFalconSigToStack,
             },
@@ -331,30 +328,7 @@ impl DecoratorDataBuilder {
         let data_offset = self.decorator_data.len() as DecoratorDataOffset;
 
         match decorator {
-            Decorator::Advice(advice_injector) => match advice_injector {
-                AdviceInjector::HdwordToMap { domain } => {
-                    self.decorator_data.extend(domain.as_int().to_le_bytes());
-
-                    Some(data_offset)
-                },
-                AdviceInjector::MapValueToStack
-                | AdviceInjector::MapValueToStackN
-                | AdviceInjector::MerkleNodeMerge
-                | AdviceInjector::MerkleNodeToStack
-                | AdviceInjector::UpdateMerkleNode
-                | AdviceInjector::U64Div
-                | AdviceInjector::Ext2Inv
-                | AdviceInjector::Ext2Intt
-                | AdviceInjector::SmtPeek
-                | AdviceInjector::U32Clz
-                | AdviceInjector::U32Ctz
-                | AdviceInjector::U32Clo
-                | AdviceInjector::U32Cto
-                | AdviceInjector::ILog2
-                | AdviceInjector::MemToMap
-                | AdviceInjector::HpermToMap
-                | AdviceInjector::FalconSigToStack => None,
-            },
+            Decorator::Advice(_) => None,
             Decorator::AsmOp(assembly_op) => {
                 self.decorator_data.push(assembly_op.num_cycles());
                 self.decorator_data.write_bool(assembly_op.should_break());

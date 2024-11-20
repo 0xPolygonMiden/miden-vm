@@ -2,8 +2,6 @@ use core::fmt;
 
 use vm_core::AdviceInjector;
 
-use crate::{ast::ImmU8, Felt, ZERO};
-
 // ADVICE INJECTOR NODE
 // ================================================================================================
 
@@ -22,7 +20,7 @@ pub enum AdviceInjectorNode {
     PushMtNode,
     InsertMem,
     InsertHdword,
-    InsertHdwordImm { domain: ImmU8 },
+    InsertHdwordWithDomain,
     InsertHperm,
     PushSignature { kind: SignatureKind },
 }
@@ -38,11 +36,8 @@ impl From<&AdviceInjectorNode> for AdviceInjector {
             PushMapValN => Self::MapValueToStackN,
             PushMtNode => Self::MerkleNodeToStack,
             InsertMem => Self::MemToMap,
-            InsertHdword => Self::HdwordToMap { domain: ZERO },
-            InsertHdwordImm { domain: ImmU8::Value(domain) } => {
-                Self::HdwordToMap { domain: Felt::from(domain.into_inner()) }
-            },
-            InsertHdwordImm { domain } => panic!("unresolved constant '{domain}'"),
+            InsertHdword => Self::HdwordToMap,
+            InsertHdwordWithDomain => Self::HdwordToMapWithDomain,
             InsertHperm => Self::HpermToMap,
             PushSignature { kind } => match kind {
                 SignatureKind::RpoFalcon512 => Self::FalconSigToStack,
@@ -68,7 +63,7 @@ impl fmt::Display for AdviceInjectorNode {
             Self::PushMtNode => write!(f, "push_mtnode"),
             Self::InsertMem => write!(f, "insert_mem"),
             Self::InsertHdword => write!(f, "insert_hdword"),
-            Self::InsertHdwordImm { domain } => write!(f, "insert_hdword.{domain}"),
+            Self::InsertHdwordWithDomain => write!(f, "insert_hdword_d"),
             Self::InsertHperm => writeln!(f, "insert_hperm"),
             Self::PushSignature { kind } => write!(f, "push_sig.{kind}"),
         }

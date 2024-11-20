@@ -347,25 +347,13 @@ where
 }
 
 pub fn visit_advice_injector<V, T>(
-    visitor: &mut V,
-    node: Span<&AdviceInjectorNode>,
+    _visitor: &mut V,
+    _node: Span<&AdviceInjectorNode>,
 ) -> ControlFlow<T>
 where
     V: ?Sized + Visit<T>,
 {
-    match node.into_inner() {
-        AdviceInjectorNode::InsertHdwordImm { domain: ref imm } => visitor.visit_immediate_u8(imm),
-        AdviceInjectorNode::PushU64Div
-        | AdviceInjectorNode::PushExt2intt
-        | AdviceInjectorNode::PushSmtPeek
-        | AdviceInjectorNode::PushMapVal
-        | AdviceInjectorNode::PushMapValN
-        | AdviceInjectorNode::PushMtNode
-        | AdviceInjectorNode::InsertMem
-        | AdviceInjectorNode::InsertHdword
-        | AdviceInjectorNode::InsertHperm
-        | AdviceInjectorNode::PushSignature { .. } => ControlFlow::Continue(()),
-    }
+    ControlFlow::Continue(())
 }
 
 pub fn visit_debug_options<V, T>(visitor: &mut V, options: Span<&DebugOptions>) -> ControlFlow<T>
@@ -793,27 +781,13 @@ where
 }
 
 pub fn visit_mut_advice_injector<V, T>(
-    visitor: &mut V,
-    node: Span<&mut AdviceInjectorNode>,
+    _visitor: &mut V,
+    _node: Span<&mut AdviceInjectorNode>,
 ) -> ControlFlow<T>
 where
     V: ?Sized + VisitMut<T>,
 {
-    match node.into_inner() {
-        AdviceInjectorNode::InsertHdwordImm { domain: ref mut imm } => {
-            visitor.visit_mut_immediate_u8(imm)
-        },
-        AdviceInjectorNode::PushU64Div
-        | AdviceInjectorNode::PushExt2intt
-        | AdviceInjectorNode::PushSmtPeek
-        | AdviceInjectorNode::PushMapVal
-        | AdviceInjectorNode::PushMapValN
-        | AdviceInjectorNode::PushMtNode
-        | AdviceInjectorNode::InsertMem
-        | AdviceInjectorNode::InsertHdword
-        | AdviceInjectorNode::InsertHperm
-        | AdviceInjectorNode::PushSignature { .. } => ControlFlow::Continue(()),
-    }
+    ControlFlow::Continue(())
 }
 
 pub fn visit_mut_debug_options<V, T>(

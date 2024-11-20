@@ -595,7 +595,7 @@ impl Process {
         match decorator {
             Decorator::Advice(injector) => {
                 let advice_provider = host.advice_provider_mut();
-                let process_state: ProcessState = self.into();
+                let process_state: ProcessState = (&*self).into();
                 match injector {
                     AdviceInjector::MerkleNodeMerge => {
                         advice_provider.merge_merkle_nodes(process_state)?;
@@ -631,8 +631,14 @@ impl Process {
                     AdviceInjector::MemToMap => {
                         advice_provider.insert_mem_values_into_adv_map(process_state)?;
                     },
-                    AdviceInjector::HdwordToMap { domain } => {
-                        advice_provider.insert_hdword_into_adv_map(process_state, *domain)?;
+                    AdviceInjector::HdwordToMap => {
+                        advice_provider.insert_hdword_into_adv_map(process_state, ZERO)?;
+                    },
+                    AdviceInjector::HdwordToMapWithDomain => {
+                        // TODO(plafer): get domain from stack
+                        let domain = self.stack.get(8);
+                        advice_provider.insert_hdword_into_adv_map(process_state, domain)?;
+                        todo!()
                     },
                     AdviceInjector::HpermToMap => {
                         advice_provider.insert_hperm_into_adv_map(process_state)?;
