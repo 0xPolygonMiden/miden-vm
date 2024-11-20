@@ -65,8 +65,7 @@ pub enum AdviceInjector {
     UpdateMerkleNode,
 
     /// Pushes a list of field elements onto the advice stack. The list is looked up in the advice
-    /// map using the specified word from the operand stack as the key. If `include_len` is set to
-    /// true, the number of elements in the value is also pushed onto the advice stack.
+    /// map using the specified word from the operand stack as the key.
     ///
     /// Inputs:
     ///   Operand stack: [KEY, ...]
@@ -75,9 +74,24 @@ pub enum AdviceInjector {
     ///
     /// Outputs:
     ///   Operand stack: [KEY, ...]
-    ///   Advice stack: [values_len?, values, ...]
+    ///   Advice stack: [values, ...]
     ///   Advice map: {KEY: values}
-    MapValueToStack { include_len: bool },
+    MapValueToStack,
+
+    /// Pushes a list of field elements onto the advice stack, and then the number of elements
+    /// pushed. The list is looked up in the advice map using the specified word from the operand
+    /// stack as the key.
+    ///
+    /// Inputs:
+    ///   Operand stack: [KEY, ...]
+    ///   Advice stack: [...]
+    ///   Advice map: {KEY: values}
+    ///
+    /// Outputs:
+    ///   Operand stack: [KEY, ...]
+    ///   Advice stack: [num_values, values, ...]
+    ///   Advice map: {KEY: values}
+    MapValueToStackN,
 
     /// Pushes the result of [u64] division (both the quotient and the remainder) onto the advice
     /// stack.
@@ -280,13 +294,8 @@ impl fmt::Display for AdviceInjector {
             Self::UpdateMerkleNode => {
                 write!(f, "update_merkle_node")
             },
-            Self::MapValueToStack { include_len } => {
-                if *include_len {
-                    write!(f, "map_value_to_stack_with_len")
-                } else {
-                    write!(f, "map_value_to_stack")
-                }
-            },
+            Self::MapValueToStack => write!(f, "map_value_to_stack"),
+            Self::MapValueToStackN => write!(f, "map_value_to_stack_with_len"),
             Self::U64Div => write!(f, "div_u64"),
             Self::Ext2Inv => write!(f, "ext2_inv"),
             Self::Ext2Intt => write!(f, "ext2_intt"),

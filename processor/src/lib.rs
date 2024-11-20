@@ -603,8 +603,12 @@ impl Process {
                     AdviceInjector::MerkleNodeToStack => {
                         advice_provider.copy_merkle_node_to_adv_stack(process_state)?
                     },
-                    AdviceInjector::MapValueToStack { include_len } => advice_provider
-                        .copy_map_value_to_adv_stack(process_state, *include_len, 0)?,
+                    AdviceInjector::MapValueToStack => {
+                        advice_provider.copy_map_value_to_adv_stack(process_state, false, 0)?
+                    },
+                    AdviceInjector::MapValueToStackN => {
+                        advice_provider.copy_map_value_to_adv_stack(process_state, true, 0)?
+                    },
                     AdviceInjector::UpdateMerkleNode => {
                         let _ = advice_provider.update_operand_stack_merkle_node(process_state)?;
                     },

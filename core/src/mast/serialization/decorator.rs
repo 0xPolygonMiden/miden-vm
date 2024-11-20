@@ -58,9 +58,10 @@ impl DecoratorInfo {
                 Ok(Decorator::Advice(AdviceInjector::UpdateMerkleNode))
             },
             EncodedDecoratorVariant::AdviceInjectorMapValueToStack => {
-                let include_len = data_reader.read_bool()?;
-
-                Ok(Decorator::Advice(AdviceInjector::MapValueToStack { include_len }))
+                Ok(Decorator::Advice(AdviceInjector::MapValueToStack))
+            },
+            EncodedDecoratorVariant::AdviceInjectorMapValueToStackN => {
+                Ok(Decorator::Advice(AdviceInjector::MapValueToStackN))
             },
             EncodedDecoratorVariant::AdviceInjectorU64Div => {
                 Ok(Decorator::Advice(AdviceInjector::U64Div))
@@ -210,6 +211,7 @@ pub enum EncodedDecoratorVariant {
     AdviceInjectorMerkleNodeToStack,
     AdviceInjectorUpdateMerkleNode,
     AdviceInjectorMapValueToStack,
+    AdviceInjectorMapValueToStackN,
     AdviceInjectorU64Div,
     AdviceInjectorExt2Inv,
     AdviceInjectorExt2Intt,
@@ -254,9 +256,8 @@ impl From<&Decorator> for EncodedDecoratorVariant {
                 AdviceInjector::MerkleNodeMerge => Self::AdviceInjectorMerkleNodeMerge,
                 AdviceInjector::MerkleNodeToStack => Self::AdviceInjectorMerkleNodeToStack,
                 AdviceInjector::UpdateMerkleNode => Self::AdviceInjectorUpdateMerkleNode,
-                AdviceInjector::MapValueToStack { include_len: _ } => {
-                    Self::AdviceInjectorMapValueToStack
-                },
+                AdviceInjector::MapValueToStack => Self::AdviceInjectorMapValueToStack,
+                AdviceInjector::MapValueToStackN => Self::AdviceInjectorMapValueToStackN,
                 AdviceInjector::U64Div => Self::AdviceInjectorU64Div,
                 AdviceInjector::Ext2Inv => Self::AdviceInjectorExt2Inv,
                 AdviceInjector::Ext2Intt => Self::AdviceInjectorExt2Intt,
@@ -331,17 +332,14 @@ impl DecoratorDataBuilder {
 
         match decorator {
             Decorator::Advice(advice_injector) => match advice_injector {
-                AdviceInjector::MapValueToStack { include_len } => {
-                    self.decorator_data.write_bool(*include_len);
-
-                    Some(data_offset)
-                },
                 AdviceInjector::HdwordToMap { domain } => {
                     self.decorator_data.extend(domain.as_int().to_le_bytes());
 
                     Some(data_offset)
                 },
-                AdviceInjector::MerkleNodeMerge
+                AdviceInjector::MapValueToStack
+                | AdviceInjector::MapValueToStackN
+                | AdviceInjector::MerkleNodeMerge
                 | AdviceInjector::MerkleNodeToStack
                 | AdviceInjector::UpdateMerkleNode
                 | AdviceInjector::U64Div
