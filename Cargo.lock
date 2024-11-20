@@ -2844,7 +2844,7 @@ dependencies = [
 
 [[package]]
 name = "winter-air"
-version = "0.10.1"
+version = "0.10.3"
 dependencies = [
  "libm",
  "winter-crypto",
@@ -2855,7 +2855,7 @@ dependencies = [
 
 [[package]]
 name = "winter-crypto"
-version = "0.10.1"
+version = "0.10.2"
 dependencies = [
  "blake3",
  "sha3",
@@ -2865,7 +2865,7 @@ dependencies = [
 
 [[package]]
 name = "winter-fri"
-version = "0.10.1"
+version = "0.10.2"
 dependencies = [
  "winter-crypto",
  "winter-math",
@@ -2874,7 +2874,7 @@ dependencies = [
 
 [[package]]
 name = "winter-math"
-version = "0.10.1"
+version = "0.10.2"
 dependencies = [
  "winter-utils",
 ]
@@ -2899,7 +2899,7 @@ dependencies = [
 
 [[package]]
 name = "winter-prover"
-version = "0.10.1"
+version = "0.10.3"
 dependencies = [
  "tracing",
  "winter-air",
@@ -2922,14 +2922,14 @@ dependencies = [
 
 [[package]]
 name = "winter-utils"
-version = "0.10.1"
+version = "0.10.2"
 dependencies = [
  "rayon",
 ]
 
 [[package]]
 name = "winter-verifier"
-version = "0.10.1"
+version = "0.10.3"
 dependencies = [
  "winter-air",
  "winter-crypto",
@@ -2940,7 +2940,7 @@ dependencies = [
 
 [[package]]
 name = "winterfell"
-version = "0.10.1"
+version = "0.10.3"
 dependencies = [
  "winter-air",
  "winter-prover",

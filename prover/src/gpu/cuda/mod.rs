@@ -1,14 +1,13 @@
 //! This module contains GPU acceleration logic for Nvidia CUDA devices.
 
-use std::marker::PhantomData;
+use std::{marker::PhantomData, println};
 
 use air::{AuxRandElements, PartitionOptions};
-use miden_gpu::{cuda::{merkle::MerkleTree, trace_lde::CudaTraceLde}, HashFn};
+use miden_gpu::{cuda::{constraint::build_constraint_commitment, merkle::MerkleTree, trace_lde::CudaTraceLde}, HashFn};
 use processor::crypto::{ElementHasher, Hasher};
+use tracing::info_span;
 use winter_prover::{
-    crypto::Digest,
-    matrix::ColMatrix, ConstraintCompositionCoefficients,
-    DefaultConstraintEvaluator, Prover, StarkDomain, TraceInfo, TracePolyTable,
+    crypto::Digest, matrix::{ColMatrix, RowMatrix}, CompositionPoly, CompositionPolyTrace, ConstraintCommitment, ConstraintCompositionCoefficients, DefaultConstraintEvaluator, Prover, StarkDomain, TraceInfo, TracePolyTable
 };
 
 use crate::{
@@ -108,5 +107,62 @@ where
         E: FieldElement<BaseField = Self::BaseField>,
     {
         self.execution_prover.build_aux_trace(main_trace, aux_rand_elements)
+    }
+
+    fn build_constraint_commitment<E>(
+        &self,
+        composition_poly_trace: CompositionPolyTrace<E>,
+        num_constraint_composition_columns: usize,
+        domain: &StarkDomain<Self::BaseField>,
+    ) -> (ConstraintCommitment<E, Self::HashFn, Self::VC>, CompositionPoly<E>)
+    where
+        E: FieldElement<BaseField = Self::BaseField>,
+    {
+        println!("GPU start");
+        build_constraint_commitment(&composition_poly_trace, num_constraint_composition_columns, domain);
+        println!("GPU end");
+
+        // first, build constraint composition polynomial from its trace as follows:
+        // - interpolate the trace into a polynomial in coefficient form
+        // - "break" the polynomial into a set of column polynomials each of degree equal to
+        //   trace_length - 1
+        let composition_poly = info_span!(
+            "build_composition_poly_columns",
+            num_columns = num_constraint_composition_columns
+        )
+        .in_scope(|| {
+            CompositionPoly::new(composition_poly_trace, domain, num_constraint_composition_columns)
+        });
+        assert_eq!(composition_poly.num_columns(), num_constraint_composition_columns);
+        assert_eq!(composition_poly.column_degree(), domain.trace_length() - 1);
+
+        // then, evaluate composition polynomial columns over the LDE domain
+        let domain_size = domain.lde_domain_size();
+        let composed_evaluations = info_span!("evaluate_composition_poly_columns").in_scope(|| {
+            RowMatrix::evaluate_polys_over::<8>(composition_poly.data(), domain)
+        });
+        assert_eq!(composed_evaluations.num_cols(), num_constraint_composition_columns);
+        assert_eq!(composed_evaluations.num_rows(), domain_size);
+
+        println!(
+            "extended constraints from {} x {} to {} x {}",
+            composition_poly.num_columns(), 
+            composition_poly.column_len(), 
+            composed_evaluations.num_cols(), 
+            composed_evaluations.num_rows()
+        );
+
+        // finally, build constraint evaluation commitment
+        let constraint_commitment = info_span!(
+            "compute_constraint_evaluation_commitment",
+            log_domain_size = domain_size.ilog2()
+        )
+        .in_scope(|| {
+            let commitment = composed_evaluations
+                .commit_to_rows::<Self::HashFn, Self::VC>(self.options().partition_options());
+            ConstraintCommitment::new(composed_evaluations, commitment)
+        });
+
+        (constraint_commitment, composition_poly)
     }
 }
