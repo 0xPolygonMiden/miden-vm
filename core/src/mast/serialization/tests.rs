@@ -5,7 +5,7 @@ use miden_crypto::{hash::rpo::RpoDigest, Felt, ONE};
 use super::*;
 use crate::{
     mast::MastForestError, operations::Operation, AdviceInjector, AssemblyOp, DebugOptions,
-    Decorator, SignatureKind,
+    Decorator,
 };
 
 /// If this test fails to compile, it means that `Operation` or `Decorator` was changed. Make sure
@@ -126,7 +126,7 @@ fn confirm_operation_and_decorator_structure() {
             AdviceInjector::MemToMap => (),
             AdviceInjector::HdwordToMap { domain: _ } => (),
             AdviceInjector::HpermToMap => (),
-            AdviceInjector::SigToStack { kind: _ } => (),
+            AdviceInjector::FalconSigToStack => (),
         },
         Decorator::AsmOp(_) => (),
         Decorator::Debug(debug_options) => match debug_options {
@@ -263,10 +263,7 @@ fn serialize_deserialize_all_nodes() {
             (10, Decorator::Advice(AdviceInjector::MemToMap)),
             (10, Decorator::Advice(AdviceInjector::HdwordToMap { domain: Felt::new(423) })),
             (15, Decorator::Advice(AdviceInjector::HpermToMap)),
-            (
-                15,
-                Decorator::Advice(AdviceInjector::SigToStack { kind: SignatureKind::RpoFalcon512 }),
-            ),
+            (15, Decorator::Advice(AdviceInjector::FalconSigToStack)),
             (
                 15,
                 Decorator::AsmOp(AssemblyOp::new(

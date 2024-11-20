@@ -258,7 +258,7 @@ pub enum AdviceInjector {
     HpermToMap,
 
     /// Reads two words from the stack and pushes values onto the advice stack which are required
-    /// for verification of a DSA in Miden VM.
+    /// for verification of Falcon DSA in Miden VM.
     ///
     /// Inputs:
     ///   Operand stack: [PK, MSG, ...]
@@ -270,7 +270,7 @@ pub enum AdviceInjector {
     ///
     /// Where PK is the public key corresponding to the signing key, MSG is the message, SIG_DATA
     /// is the signature data.
-    SigToStack { kind: SignatureKind },
+    FalconSigToStack,
 }
 
 impl crate::prettier::PrettyPrint for AdviceInjector {
@@ -306,7 +306,7 @@ impl fmt::Display for AdviceInjector {
             Self::MemToMap => write!(f, "mem_to_map"),
             Self::HdwordToMap { domain } => write!(f, "hdword_to_map.{domain}"),
             Self::HpermToMap => write!(f, "hperm_to_map"),
-            Self::SigToStack { kind } => write!(f, "sig_to_stack.{kind}"),
+            Self::FalconSigToStack => write!(f, "sig_to_stack.{}", SignatureKind::RpoFalcon512),
         }
     }
 }

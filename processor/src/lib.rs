@@ -26,7 +26,7 @@ use vm_core::{
     mast::{
         BasicBlockNode, CallNode, DynNode, JoinNode, LoopNode, OpBatch, SplitNode, OP_GROUP_SIZE,
     },
-    Decorator, DecoratorIterator, FieldElement,
+    Decorator, DecoratorIterator, FieldElement, SignatureKind,
 };
 pub use winter_prover::matrix::ColMatrix;
 
@@ -633,9 +633,8 @@ impl Process {
                     AdviceInjector::HpermToMap => {
                         advice_provider.insert_hperm_into_adv_map(process_state)?;
                     },
-                    AdviceInjector::SigToStack { kind } => {
-                        advice_provider.push_signature(process_state, *kind)?
-                    },
+                    AdviceInjector::FalconSigToStack => advice_provider
+                        .push_signature(process_state, SignatureKind::RpoFalcon512)?,
                 }
             },
             Decorator::Debug(options) => {

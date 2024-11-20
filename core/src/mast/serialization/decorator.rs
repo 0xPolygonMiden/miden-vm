@@ -11,7 +11,7 @@ use super::{
     string_table::{StringTable, StringTableBuilder},
     DecoratorDataOffset,
 };
-use crate::{AdviceInjector, AssemblyOp, DebugOptions, Decorator, SignatureKind};
+use crate::{AdviceInjector, AssemblyOp, DebugOptions, Decorator};
 
 /// Represents a serialized [`Decorator`].
 ///
@@ -106,10 +106,8 @@ impl DecoratorInfo {
             EncodedDecoratorVariant::AdviceInjectorHpermToMap => {
                 Ok(Decorator::Advice(AdviceInjector::HpermToMap))
             },
-            EncodedDecoratorVariant::AdviceInjectorSigToStack => {
-                Ok(Decorator::Advice(AdviceInjector::SigToStack {
-                    kind: SignatureKind::RpoFalcon512,
-                }))
+            EncodedDecoratorVariant::AdviceInjectorFalconSigToStack => {
+                Ok(Decorator::Advice(AdviceInjector::FalconSigToStack))
             },
             EncodedDecoratorVariant::AssemblyOp => {
                 let num_cycles = data_reader.read_u8()?;
@@ -225,7 +223,7 @@ pub enum EncodedDecoratorVariant {
     AdviceInjectorMemToMap,
     AdviceInjectorHdwordToMap,
     AdviceInjectorHpermToMap,
-    AdviceInjectorSigToStack,
+    AdviceInjectorFalconSigToStack,
     AssemblyOp,
     DebugOptionsStackAll,
     DebugOptionsStackTop,
@@ -272,7 +270,7 @@ impl From<&Decorator> for EncodedDecoratorVariant {
                 AdviceInjector::MemToMap => Self::AdviceInjectorMemToMap,
                 AdviceInjector::HdwordToMap { domain: _ } => Self::AdviceInjectorHdwordToMap,
                 AdviceInjector::HpermToMap => Self::AdviceInjectorHpermToMap,
-                AdviceInjector::SigToStack { kind: _ } => Self::AdviceInjectorSigToStack,
+                AdviceInjector::FalconSigToStack => Self::AdviceInjectorFalconSigToStack,
             },
             Decorator::AsmOp(_) => Self::AssemblyOp,
             Decorator::Debug(debug_options) => match debug_options {
@@ -345,11 +343,6 @@ impl DecoratorDataBuilder {
 
                     Some(data_offset)
                 },
-
-                // Note: Since there is only 1 variant, we don't need to write any extra bytes.
-                AdviceInjector::SigToStack { kind } => match kind {
-                    SignatureKind::RpoFalcon512 => None,
-                },
                 AdviceInjector::MerkleNodeMerge
                 | AdviceInjector::MerkleNodeToStack
                 | AdviceInjector::UpdateMerkleNode
@@ -363,7 +356,8 @@ impl DecoratorDataBuilder {
                 | AdviceInjector::U32Cto
                 | AdviceInjector::ILog2
                 | AdviceInjector::MemToMap
-                | AdviceInjector::HpermToMap => None,
+                | AdviceInjector::HpermToMap
+                | AdviceInjector::FalconSigToStack => None,
             },
             Decorator::AsmOp(assembly_op) => {
                 self.decorator_data.push(assembly_op.num_cycles());

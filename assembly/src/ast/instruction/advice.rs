@@ -56,7 +56,9 @@ impl From<&AdviceInjectorNode> for AdviceInjector {
             },
             InsertHdwordImm { domain } => panic!("unresolved constant '{domain}'"),
             InsertHperm => Self::HpermToMap,
-            PushSignature { kind } => Self::SigToStack { kind: (*kind).into() },
+            PushSignature { kind } => match kind {
+                SignatureKind::RpoFalcon512 => Self::FalconSigToStack,
+            },
         }
     }
 }
