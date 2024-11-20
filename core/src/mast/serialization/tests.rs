@@ -113,7 +113,7 @@ fn confirm_operation_and_decorator_structure() {
             AdviceInjector::MerkleNodeMerge => (),
             AdviceInjector::MerkleNodeToStack => (),
             AdviceInjector::UpdateMerkleNode => (),
-            AdviceInjector::MapValueToStack { include_len: _, key_offset: _ } => (),
+            AdviceInjector::MapValueToStack { include_len: _ } => (),
             AdviceInjector::U64Div => (),
             AdviceInjector::Ext2Inv => (),
             AdviceInjector::Ext2Intt => (),
@@ -244,13 +244,7 @@ fn serialize_deserialize_all_nodes() {
             (0, Decorator::Advice(AdviceInjector::MerkleNodeMerge)),
             (0, Decorator::Advice(AdviceInjector::MerkleNodeToStack)),
             (0, Decorator::Advice(AdviceInjector::UpdateMerkleNode)),
-            (
-                0,
-                Decorator::Advice(AdviceInjector::MapValueToStack {
-                    include_len: true,
-                    key_offset: 1023,
-                }),
-            ),
+            (0, Decorator::Advice(AdviceInjector::MapValueToStack { include_len: true })),
             (1, Decorator::Advice(AdviceInjector::U64Div)),
             (3, Decorator::Advice(AdviceInjector::Ext2Inv)),
             (5, Decorator::Advice(AdviceInjector::Ext2Intt)),

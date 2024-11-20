@@ -354,11 +354,7 @@ where
     V: ?Sized + Visit<T>,
 {
     match node.into_inner() {
-        AdviceInjectorNode::PushMapValImm { offset: ref imm }
-        | AdviceInjectorNode::PushMapValNImm { offset: ref imm }
-        | AdviceInjectorNode::InsertHdwordImm { domain: ref imm } => {
-            visitor.visit_immediate_u8(imm)
-        },
+        AdviceInjectorNode::InsertHdwordImm { domain: ref imm } => visitor.visit_immediate_u8(imm),
         AdviceInjectorNode::PushU64Div
         | AdviceInjectorNode::PushExt2intt
         | AdviceInjectorNode::PushSmtPeek
@@ -804,9 +800,7 @@ where
     V: ?Sized + VisitMut<T>,
 {
     match node.into_inner() {
-        AdviceInjectorNode::PushMapValImm { offset: ref mut imm }
-        | AdviceInjectorNode::PushMapValNImm { offset: ref mut imm }
-        | AdviceInjectorNode::InsertHdwordImm { domain: ref mut imm } => {
+        AdviceInjectorNode::InsertHdwordImm { domain: ref mut imm } => {
             visitor.visit_mut_immediate_u8(imm)
         },
         AdviceInjectorNode::PushU64Div

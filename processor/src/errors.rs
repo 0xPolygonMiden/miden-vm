@@ -55,7 +55,6 @@ pub enum ExecutionError {
         end_addr: u64,
     },
     InvalidStackDepthOnReturn(usize),
-    InvalidStackWordOffset(usize),
     InvalidTreeDepth {
         depth: Felt,
     },
@@ -161,9 +160,6 @@ impl Display for ExecutionError {
             },
             InvalidStackDepthOnReturn(depth) => {
                 write!(f, "When returning from a call, stack depth must be {MIN_STACK_DEPTH}, but was {depth}")
-            },
-            InvalidStackWordOffset(offset) => {
-                write!(f, "Stack word offset cannot exceed 12, but was {offset}")
             },
             InvalidTreeDepth { depth } => {
                 write!(f, "The provided {depth} is out of bounds and cannot be represented as an unsigned 8-bits integer")

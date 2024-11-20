@@ -393,17 +393,12 @@ pub trait AdviceProvider: Sized {
         &mut self,
         process: ProcessState,
         include_len: bool,
-        key_offset: usize,
     ) -> Result<(), ExecutionError> {
-        if key_offset > 12 {
-            return Err(ExecutionError::InvalidStackWordOffset(key_offset));
-        }
-
         let key = [
-            process.get_stack_item(key_offset + 3),
-            process.get_stack_item(key_offset + 2),
-            process.get_stack_item(key_offset + 1),
-            process.get_stack_item(key_offset),
+            process.get_stack_item(3),
+            process.get_stack_item(2),
+            process.get_stack_item(1),
+            process.get_stack_item(0),
         ];
         self.push_stack(AdviceSource::Map { key, include_len })?;
 

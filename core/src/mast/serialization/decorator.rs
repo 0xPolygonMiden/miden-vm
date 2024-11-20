@@ -59,9 +59,8 @@ impl DecoratorInfo {
             },
             EncodedDecoratorVariant::AdviceInjectorMapValueToStack => {
                 let include_len = data_reader.read_bool()?;
-                let key_offset = data_reader.read_usize()?;
 
-                Ok(Decorator::Advice(AdviceInjector::MapValueToStack { include_len, key_offset }))
+                Ok(Decorator::Advice(AdviceInjector::MapValueToStack { include_len }))
             },
             EncodedDecoratorVariant::AdviceInjectorU64Div => {
                 Ok(Decorator::Advice(AdviceInjector::U64Div))
@@ -255,7 +254,7 @@ impl From<&Decorator> for EncodedDecoratorVariant {
                 AdviceInjector::MerkleNodeMerge => Self::AdviceInjectorMerkleNodeMerge,
                 AdviceInjector::MerkleNodeToStack => Self::AdviceInjectorMerkleNodeToStack,
                 AdviceInjector::UpdateMerkleNode => Self::AdviceInjectorUpdateMerkleNode,
-                AdviceInjector::MapValueToStack { include_len: _, key_offset: _ } => {
+                AdviceInjector::MapValueToStack { include_len: _ } => {
                     Self::AdviceInjectorMapValueToStack
                 },
                 AdviceInjector::U64Div => Self::AdviceInjectorU64Div,
@@ -332,9 +331,8 @@ impl DecoratorDataBuilder {
 
         match decorator {
             Decorator::Advice(advice_injector) => match advice_injector {
-                AdviceInjector::MapValueToStack { include_len, key_offset } => {
+                AdviceInjector::MapValueToStack { include_len } => {
                     self.decorator_data.write_bool(*include_len);
-                    self.decorator_data.write_usize(*key_offset);
 
                     Some(data_offset)
                 },

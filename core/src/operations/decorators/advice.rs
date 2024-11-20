@@ -69,22 +69,15 @@ pub enum AdviceInjector {
     /// true, the number of elements in the value is also pushed onto the advice stack.
     ///
     /// Inputs:
-    ///   Operand stack: [..., KEY, ...]
+    ///   Operand stack: [KEY, ...]
     ///   Advice stack: [...]
     ///   Advice map: {KEY: values}
     ///
     /// Outputs:
-    ///   Operand stack: [..., KEY, ...]
+    ///   Operand stack: [KEY, ...]
     ///   Advice stack: [values_len?, values, ...]
     ///   Advice map: {KEY: values}
-    ///
-    /// The `key_offset` value specifies the location of the `KEY` on the stack. For example,
-    /// offset value of 0 indicates that the top word on the stack should be used as the key, the
-    /// offset value of 4, indicates that the second word on the stack should be used as the key
-    /// etc.
-    ///
-    /// The valid values of `key_offset` are 0 through 12 (inclusive).
-    MapValueToStack { include_len: bool, key_offset: usize },
+    MapValueToStack { include_len: bool },
 
     /// Pushes the result of [u64] division (both the quotient and the remainder) onto the advice
     /// stack.
@@ -287,11 +280,11 @@ impl fmt::Display for AdviceInjector {
             Self::UpdateMerkleNode => {
                 write!(f, "update_merkle_node")
             },
-            Self::MapValueToStack { include_len, key_offset } => {
+            Self::MapValueToStack { include_len } => {
                 if *include_len {
-                    write!(f, "map_value_to_stack_with_len.{key_offset}")
+                    write!(f, "map_value_to_stack_with_len")
                 } else {
-                    write!(f, "map_value_to_stack.{key_offset}")
+                    write!(f, "map_value_to_stack")
                 }
             },
             Self::U64Div => write!(f, "div_u64"),
