@@ -26,7 +26,7 @@ use vm_core::{
     mast::{
         BasicBlockNode, CallNode, DynNode, JoinNode, LoopNode, OpBatch, SplitNode, OP_GROUP_SIZE,
     },
-    Decorator, DecoratorIterator, FieldElement, SignatureKind,
+    Decorator, DecoratorIterator, FieldElement,
 };
 pub use winter_prover::matrix::ColMatrix;
 
@@ -593,60 +593,6 @@ impl Process {
         host: &mut impl Host,
     ) -> Result<(), ExecutionError> {
         match decorator {
-            Decorator::Advice(injector) => {
-                let advice_provider = host.advice_provider_mut();
-                let process_state: ProcessState = (&*self).into();
-                match injector {
-                    AdviceInjector::MerkleNodeMerge => {
-                        advice_provider.merge_merkle_nodes(process_state)?;
-                    },
-                    AdviceInjector::MerkleNodeToStack => {
-                        advice_provider.copy_merkle_node_to_adv_stack(process_state)?
-                    },
-                    AdviceInjector::MapValueToStack => {
-                        advice_provider.copy_map_value_to_adv_stack(process_state, false, 0)?
-                    },
-                    AdviceInjector::MapValueToStackN => {
-                        advice_provider.copy_map_value_to_adv_stack(process_state, true, 0)?
-                    },
-                    AdviceInjector::UpdateMerkleNode => {
-                        let _ = advice_provider.update_operand_stack_merkle_node(process_state)?;
-                    },
-                    AdviceInjector::U64Div => advice_provider.push_u64_div_result(process_state)?,
-                    AdviceInjector::Ext2Inv => {
-                        advice_provider.push_ext2_inv_result(process_state)?
-                    },
-                    AdviceInjector::Ext2Intt => {
-                        advice_provider.push_ext2_intt_result(process_state)?
-                    },
-                    AdviceInjector::SmtPeek => {
-                        advice_provider.push_smtpeek_result(process_state)?
-                    },
-                    AdviceInjector::U32Clz => advice_provider.push_leading_zeros(process_state)?,
-                    AdviceInjector::U32Ctz => advice_provider.push_trailing_zeros(process_state)?,
-                    AdviceInjector::U32Clo => advice_provider.push_leading_ones(process_state)?,
-                    AdviceInjector::U32Cto => advice_provider.push_trailing_ones(process_state)?,
-                    AdviceInjector::ILog2 => advice_provider.push_ilog2(process_state)?,
-
-                    AdviceInjector::MemToMap => {
-                        advice_provider.insert_mem_values_into_adv_map(process_state)?;
-                    },
-                    AdviceInjector::HdwordToMap => {
-                        advice_provider.insert_hdword_into_adv_map(process_state, ZERO)?;
-                    },
-                    AdviceInjector::HdwordToMapWithDomain => {
-                        // TODO(plafer): get domain from stack
-                        let domain = self.stack.get(8);
-                        advice_provider.insert_hdword_into_adv_map(process_state, domain)?;
-                        todo!()
-                    },
-                    AdviceInjector::HpermToMap => {
-                        advice_provider.insert_hperm_into_adv_map(process_state)?;
-                    },
-                    AdviceInjector::FalconSigToStack => advice_provider
-                        .push_signature(process_state, SignatureKind::RpoFalcon512)?,
-                }
-            },
             Decorator::Debug(options) => {
                 if self.decoder.in_debug_mode() {
                     host.on_debug(self.into(), options)?;

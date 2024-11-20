@@ -298,12 +298,11 @@ pub fn u32popcnt(span_builder: &mut BasicBlockBuilder) {
 /// provider).
 ///
 /// This operation takes 42 VM cycles.
-pub fn u32clz(block_builder: &mut BasicBlockBuilder) -> Result<(), AssemblyError> {
-    block_builder.push_advice_injector(AdviceInjector::U32Clz)?;
+pub fn u32clz(block_builder: &mut BasicBlockBuilder) {
+    block_builder.push_advice_injector(AdviceInjector::U32Clz);
     block_builder.push_op(AdvPop); // [clz, n, ...]
 
     verify_clz(block_builder);
-    Ok(())
 }
 
 /// Translates `u32ctz` assembly instruction to VM operations. `u32ctz` counts the number of
@@ -311,12 +310,11 @@ pub fn u32clz(block_builder: &mut BasicBlockBuilder) -> Result<(), AssemblyError
 /// provider).
 ///
 /// This operation takes 34 VM cycles.
-pub fn u32ctz(block_builder: &mut BasicBlockBuilder) -> Result<(), AssemblyError> {
-    block_builder.push_advice_injector(AdviceInjector::U32Ctz)?;
+pub fn u32ctz(block_builder: &mut BasicBlockBuilder) {
+    block_builder.push_advice_injector(AdviceInjector::U32Ctz);
     block_builder.push_op(AdvPop); // [ctz, n, ...]
 
     verify_ctz(block_builder);
-    Ok(())
 }
 
 /// Translates `u32clo` assembly instruction to VM operations. `u32clo` counts the number of
@@ -324,12 +322,11 @@ pub fn u32ctz(block_builder: &mut BasicBlockBuilder) -> Result<(), AssemblyError
 /// provider).
 ///
 /// This operation takes 41 VM cycles.
-pub fn u32clo(block_builder: &mut BasicBlockBuilder) -> Result<(), AssemblyError> {
-    block_builder.push_advice_injector(AdviceInjector::U32Clo)?;
+pub fn u32clo(block_builder: &mut BasicBlockBuilder) {
+    block_builder.push_advice_injector(AdviceInjector::U32Clo);
     block_builder.push_op(AdvPop); // [clo, n, ...]
 
     verify_clo(block_builder);
-    Ok(())
 }
 
 /// Translates `u32cto` assembly instruction to VM operations. `u32cto` counts the number of
@@ -337,12 +334,11 @@ pub fn u32clo(block_builder: &mut BasicBlockBuilder) -> Result<(), AssemblyError
 /// provider).
 ///
 /// This operation takes 33 VM cycles.
-pub fn u32cto(block_builder: &mut BasicBlockBuilder) -> Result<(), AssemblyError> {
-    block_builder.push_advice_injector(AdviceInjector::U32Cto)?;
+pub fn u32cto(block_builder: &mut BasicBlockBuilder) {
+    block_builder.push_advice_injector(AdviceInjector::U32Cto);
     block_builder.push_op(AdvPop); // [cto, n, ...]
 
     verify_cto(block_builder);
-    Ok(())
 }
 
 /// Specifically handles these specific inputs per the spec.

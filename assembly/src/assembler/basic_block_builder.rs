@@ -93,6 +93,12 @@ impl BasicBlockBuilder<'_> {
         let new_len = self.ops.len() + n;
         self.ops.resize(new_len, op);
     }
+
+    /// Converts the advice injector into its corresponding event ID, and adds an `Emit` operation
+    /// to the list of basic block operations.
+    pub fn push_advice_injector(&mut self, injector: AdviceInjector) {
+        self.push_op(Operation::Emit(injector.into_event_id()))
+    }
 }
 
 /// Decorators
@@ -103,11 +109,6 @@ impl BasicBlockBuilder<'_> {
         self.decorators.push((self.ops.len(), decorator_id));
 
         Ok(())
-    }
-
-    /// Adds the specified advice injector to the list of basic block decorators.
-    pub fn push_advice_injector(&mut self, injector: AdviceInjector) -> Result<(), AssemblyError> {
-        self.push_decorator(Decorator::Advice(injector))
     }
 
     /// Adds an AsmOp decorator to the list of basic block decorators.

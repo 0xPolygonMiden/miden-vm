@@ -1,9 +1,34 @@
 use core::fmt;
-
 use super::SignatureKind;
 
 // ADVICE INJECTORS
 // ================================================================================================
+
+// Randomly generated constant values for the VM's native events. All values were sampled
+// between 0 and 2^32.
+pub use constants::*;
+#[rustfmt::skip]
+mod constants {
+    pub const EVENT_MERKLE_NODE_MERGE: u32            = 276124218;
+    pub const EVENT_MERKLE_NODE_TO_STACK: u32         = 361943238;
+    pub const EVENT_UPDATE_MERKLE_NODE: u32           = 483702215;
+    pub const EVENT_MAP_VALUE_TO_STACK: u32           = 574478993;
+    pub const EVENT_MAP_VALUE_TO_STACK_N: u32         = 630847990;
+    pub const EVENT_U64_DIV: u32                      = 678156251;
+    pub const EVENT_EXT2_INV: u32                     = 1251967401;
+    pub const EVENT_EXT2_INTT: u32                    = 1347499010;
+    pub const EVENT_SMT_PEEK: u32                     = 1889584556;
+    pub const EVENT_U32_CLZ: u32                      = 1951932030;
+    pub const EVENT_U32_CTZ: u32                      = 2008979519;
+    pub const EVENT_U32_CLO: u32                      = 2032895094;
+    pub const EVENT_U32_CTO: u32                      = 2083700134;
+    pub const EVENT_ILOG2: u32                        = 2297972669;
+    pub const EVENT_MEM_TO_MAP: u32                   = 2389394361;
+    pub const EVENT_HDWORD_TO_MAP: u32                = 2391452729;
+    pub const EVENT_HDWORD_TO_MAP_WITH_DOMAIN: u32    = 2822590340;
+    pub const EVENT_HPERM_TO_MAP: u32                 = 3297060969;
+    pub const EVENT_FALCON_SIG_TO_STACK: u32          = 3419226139;
+}
 
 /// Defines a set of actions which can be initiated from the VM to inject new data into the advice
 /// provider.
@@ -290,6 +315,59 @@ pub enum AdviceInjector {
     /// Where PK is the public key corresponding to the signing key, MSG is the message, SIG_DATA
     /// is the signature data.
     FalconSigToStack,
+}
+
+impl AdviceInjector {
+    pub fn into_event_id(self) -> u32 {
+        match self {
+            AdviceInjector::MerkleNodeMerge => EVENT_MERKLE_NODE_MERGE,
+            AdviceInjector::MerkleNodeToStack => EVENT_MERKLE_NODE_TO_STACK,
+            AdviceInjector::UpdateMerkleNode => EVENT_UPDATE_MERKLE_NODE,
+            AdviceInjector::MapValueToStack => EVENT_MAP_VALUE_TO_STACK,
+            AdviceInjector::MapValueToStackN => EVENT_MAP_VALUE_TO_STACK_N,
+            AdviceInjector::U64Div => EVENT_U64_DIV,
+            AdviceInjector::Ext2Inv => EVENT_EXT2_INV,
+            AdviceInjector::Ext2Intt => EVENT_EXT2_INTT,
+            AdviceInjector::SmtPeek => EVENT_SMT_PEEK,
+            AdviceInjector::U32Clz => EVENT_U32_CLZ,
+            AdviceInjector::U32Ctz => EVENT_U32_CTZ,
+            AdviceInjector::U32Clo => EVENT_U32_CLO,
+            AdviceInjector::U32Cto => EVENT_U32_CTO,
+            AdviceInjector::ILog2 => EVENT_ILOG2,
+            AdviceInjector::MemToMap => EVENT_MEM_TO_MAP,
+            AdviceInjector::HdwordToMap => EVENT_HDWORD_TO_MAP,
+            AdviceInjector::HdwordToMapWithDomain => EVENT_HDWORD_TO_MAP_WITH_DOMAIN,
+            AdviceInjector::HpermToMap => EVENT_HPERM_TO_MAP,
+            AdviceInjector::FalconSigToStack => EVENT_FALCON_SIG_TO_STACK,
+        }
+    }
+
+    /// Returns an advice injector corresponding to the specified event ID, or `None` if the event
+    /// ID is not recognized.
+    pub fn from_event_id(event_id: u32) -> Option<Self> {
+        match event_id {
+            EVENT_MERKLE_NODE_MERGE => Some(AdviceInjector::MerkleNodeMerge),
+            EVENT_MERKLE_NODE_TO_STACK => Some(AdviceInjector::MerkleNodeToStack),
+            EVENT_UPDATE_MERKLE_NODE => Some(AdviceInjector::UpdateMerkleNode),
+            EVENT_MAP_VALUE_TO_STACK => Some(AdviceInjector::MapValueToStack),
+            EVENT_MAP_VALUE_TO_STACK_N => Some(AdviceInjector::MapValueToStackN),
+            EVENT_U64_DIV => Some(AdviceInjector::U64Div),
+            EVENT_EXT2_INV => Some(AdviceInjector::Ext2Inv),
+            EVENT_EXT2_INTT => Some(AdviceInjector::Ext2Intt),
+            EVENT_SMT_PEEK => Some(AdviceInjector::SmtPeek),
+            EVENT_U32_CLZ => Some(AdviceInjector::U32Clz),
+            EVENT_U32_CTZ => Some(AdviceInjector::U32Ctz),
+            EVENT_U32_CLO => Some(AdviceInjector::U32Clo),
+            EVENT_U32_CTO => Some(AdviceInjector::U32Cto),
+            EVENT_ILOG2 => Some(AdviceInjector::ILog2),
+            EVENT_MEM_TO_MAP => Some(AdviceInjector::MemToMap),
+            EVENT_HDWORD_TO_MAP => Some(AdviceInjector::HdwordToMap),
+            EVENT_HDWORD_TO_MAP_WITH_DOMAIN => Some(AdviceInjector::HdwordToMapWithDomain),
+            EVENT_HPERM_TO_MAP => Some(AdviceInjector::HpermToMap),
+            EVENT_FALCON_SIG_TO_STACK => Some(AdviceInjector::FalconSigToStack),
+            _ => None,
+        }
+    }
 }
 
 impl crate::prettier::PrettyPrint for AdviceInjector {

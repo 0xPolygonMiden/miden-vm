@@ -23,9 +23,6 @@ pub fn adv_push(block_builder: &mut BasicBlockBuilder, n: u8) -> Result<(), Asse
 // ================================================================================================
 
 /// Appends advice injector decorator to the span.
-pub fn adv_inject(
-    block_builder: &mut BasicBlockBuilder,
-    injector: &AdviceInjectorNode,
-) -> Result<(), AssemblyError> {
+pub fn adv_inject(block_builder: &mut BasicBlockBuilder, injector: &AdviceInjectorNode) {
     block_builder.push_advice_injector(injector.into())
 }
