@@ -1,5 +1,7 @@
 use super::{ExecutionError, Operation, Process};
-use crate::{crypto::MerklePath, AdviceProvider, Host};
+use crate::{
+    crypto::MerklePath, host::advice::update_operand_stack_merkle_node, AdviceProvider, Host,
+};
 
 // CRYPTOGRAPHIC OPERATIONS
 // ================================================================================================
@@ -70,13 +72,13 @@ impl Process {
     ) -> Result<(), ExecutionError> {
         // read node value, depth, index and root value from the stack
         let node = [self.stack.get(3), self.stack.get(2), self.stack.get(1), self.stack.get(0)];
+        let depth = self.stack.get(4);
         let index = self.stack.get(5);
         let root = [self.stack.get(9), self.stack.get(8), self.stack.get(7), self.stack.get(6)];
 
         // get a Merkle path from the advice provider for the specified root and node index.
         // the path is expected to be of the specified depth.
-        let path: MerklePath =
-            host.advice_provider_mut().get_operand_stack_merkle_path(self.into())?;
+        let path = host.advice_provider_mut().get_merkle_path(root, &depth, &index)?;
 
         // use hasher to compute the Merkle root of the path
         let (addr, computed_root) = self.chiplets.build_merkle_root(node, &path, index);
@@ -148,7 +150,7 @@ impl Process {
         // specified depth. if the new node is the root of a tree, this instruction will append the
         // whole sub-tree to this node.
         let path: MerklePath =
-            host.advice_provider_mut().update_operand_stack_merkle_node(self.into())?;
+            update_operand_stack_merkle_node(host.advice_provider_mut(), self.into())?;
 
         assert_eq!(path.len(), depth.as_int() as usize);
 

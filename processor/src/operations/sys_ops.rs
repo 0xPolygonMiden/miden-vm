@@ -7,7 +7,16 @@ use super::{
     },
     ExecutionError, Process,
 };
-use crate::{AdviceProvider, Host, ProcessState};
+use crate::{
+    host::advice::{
+        copy_map_value_to_adv_stack, copy_merkle_node_to_adv_stack, insert_hdword_into_adv_map,
+        insert_hperm_into_adv_map, insert_mem_values_into_adv_map, merge_merkle_nodes,
+        push_ext2_intt_result, push_ext2_inv_result, push_ilog2, push_leading_ones,
+        push_leading_zeros, push_signature, push_smtpeek_result, push_trailing_ones,
+        push_trailing_zeros, push_u64_div_result, update_operand_stack_merkle_node,
+    },
+    Host, ProcessState,
+};
 
 // SYSTEM OPERATIONS
 // ================================================================================================
@@ -139,43 +148,43 @@ impl Process {
         let advice_provider = host.advice_provider_mut();
         let process_state: ProcessState = self.into();
         match advice_injector {
-            AdviceInjector::MerkleNodeMerge => advice_provider.merge_merkle_nodes(process_state),
+            AdviceInjector::MerkleNodeMerge => merge_merkle_nodes(advice_provider, process_state),
             AdviceInjector::MerkleNodeToStack => {
-                advice_provider.copy_merkle_node_to_adv_stack(process_state)
+                copy_merkle_node_to_adv_stack(advice_provider, process_state)
             },
             AdviceInjector::MapValueToStack => {
-                advice_provider.copy_map_value_to_adv_stack(process_state, false)
+                copy_map_value_to_adv_stack(advice_provider, process_state, false)
             },
             AdviceInjector::MapValueToStackN => {
-                advice_provider.copy_map_value_to_adv_stack(process_state, true)
+                copy_map_value_to_adv_stack(advice_provider, process_state, true)
             },
             AdviceInjector::UpdateMerkleNode => {
-                let _ = advice_provider.update_operand_stack_merkle_node(process_state)?;
+                let _ = update_operand_stack_merkle_node(advice_provider, process_state)?;
                 Ok(())
             },
-            AdviceInjector::U64Div => advice_provider.push_u64_div_result(process_state),
-            AdviceInjector::Ext2Inv => advice_provider.push_ext2_inv_result(process_state),
-            AdviceInjector::Ext2Intt => advice_provider.push_ext2_intt_result(process_state),
-            AdviceInjector::SmtPeek => advice_provider.push_smtpeek_result(process_state),
-            AdviceInjector::U32Clz => advice_provider.push_leading_zeros(process_state),
-            AdviceInjector::U32Ctz => advice_provider.push_trailing_zeros(process_state),
-            AdviceInjector::U32Clo => advice_provider.push_leading_ones(process_state),
-            AdviceInjector::U32Cto => advice_provider.push_trailing_ones(process_state),
-            AdviceInjector::ILog2 => advice_provider.push_ilog2(process_state),
+            AdviceInjector::U64Div => push_u64_div_result(advice_provider, process_state),
+            AdviceInjector::Ext2Inv => push_ext2_inv_result(advice_provider, process_state),
+            AdviceInjector::Ext2Intt => push_ext2_intt_result(advice_provider, process_state),
+            AdviceInjector::SmtPeek => push_smtpeek_result(advice_provider, process_state),
+            AdviceInjector::U32Clz => push_leading_zeros(advice_provider, process_state),
+            AdviceInjector::U32Ctz => push_trailing_zeros(advice_provider, process_state),
+            AdviceInjector::U32Clo => push_leading_ones(advice_provider, process_state),
+            AdviceInjector::U32Cto => push_trailing_ones(advice_provider, process_state),
+            AdviceInjector::ILog2 => push_ilog2(advice_provider, process_state),
 
             AdviceInjector::MemToMap => {
-                advice_provider.insert_mem_values_into_adv_map(process_state)
+                insert_mem_values_into_adv_map(advice_provider, process_state)
             },
             AdviceInjector::HdwordToMap => {
-                advice_provider.insert_hdword_into_adv_map(process_state, ZERO)
+                insert_hdword_into_adv_map(advice_provider, process_state, ZERO)
             },
             AdviceInjector::HdwordToMapWithDomain => {
                 let domain = self.stack.get(8);
-                advice_provider.insert_hdword_into_adv_map(process_state, domain)
+                insert_hdword_into_adv_map(advice_provider, process_state, domain)
             },
-            AdviceInjector::HpermToMap => advice_provider.insert_hperm_into_adv_map(process_state),
+            AdviceInjector::HpermToMap => insert_hperm_into_adv_map(advice_provider, process_state),
             AdviceInjector::FalconSigToStack => {
-                advice_provider.push_signature(process_state, SignatureKind::RpoFalcon512)
+                push_signature(advice_provider, process_state, SignatureKind::RpoFalcon512)
             },
         }
     }
