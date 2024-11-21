@@ -1124,6 +1124,7 @@ dependencies = [
  "thiserror",
  "tracing",
  "winter-air",
+ "winter-prover",
  "winterfell",
 ]
 

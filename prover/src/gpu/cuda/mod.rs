@@ -7,7 +7,7 @@ use miden_gpu::{cuda::{constraint::build_constraint_commitment, merkle::MerkleTr
 use processor::crypto::{ElementHasher, Hasher};
 use tracing::info_span;
 use winter_prover::{
-    crypto::Digest, matrix::{ColMatrix, RowMatrix}, CompositionPoly, CompositionPolyTrace, ConstraintCommitment, ConstraintCompositionCoefficients, DefaultConstraintEvaluator, Prover, StarkDomain, TraceInfo, TracePolyTable
+    crypto::{Digest, VectorCommitment}, matrix::{ColMatrix, RowMatrix}, CompositionPoly, CompositionPolyTrace, ConstraintCommitment, ConstraintCompositionCoefficients, DefaultConstraintEvaluator, Prover, StarkDomain, TraceInfo, TracePolyTable
 };
 
 use crate::{
@@ -118,10 +118,6 @@ where
     where
         E: FieldElement<BaseField = Self::BaseField>,
     {
-        println!("GPU start");
-        build_constraint_commitment(&composition_poly_trace, num_constraint_composition_columns, domain);
-        println!("GPU end");
-
         // first, build constraint composition polynomial from its trace as follows:
         // - interpolate the trace into a polynomial in coefficient form
         // - "break" the polynomial into a set of column polynomials each of degree equal to
@@ -136,33 +132,60 @@ where
         assert_eq!(composition_poly.num_columns(), num_constraint_composition_columns);
         assert_eq!(composition_poly.column_degree(), domain.trace_length() - 1);
 
-        // then, evaluate composition polynomial columns over the LDE domain
-        let domain_size = domain.lde_domain_size();
-        let composed_evaluations = info_span!("evaluate_composition_poly_columns").in_scope(|| {
-            RowMatrix::evaluate_polys_over::<8>(composition_poly.data(), domain)
-        });
-        assert_eq!(composed_evaluations.num_cols(), num_constraint_composition_columns);
-        assert_eq!(composed_evaluations.num_rows(), domain_size);
 
-        println!(
-            "extended constraints from {} x {} to {} x {}",
-            composition_poly.num_columns(), 
-            composition_poly.column_len(), 
-            composed_evaluations.num_cols(), 
-            composed_evaluations.num_rows()
-        );
+        // LDE on GPU
+        println!("GPU start");
+        let (lde, commitment) = build_constraint_commitment::<E, Self::HashFn, _>(&composition_poly, domain, self.hash_fn, self.options().partition_options());
+        println!("GPU end");
+
+
+        // assert_eq!(polys.num_cols(), composition_poly.num_columns());
+        // assert_eq!(polys.num_rows(), composition_poly.column_len());
+        // for i in 0..polys.num_cols() {
+        //     for j in 0..polys.num_rows() {
+        //         assert_eq!(polys.get(i, j), composition_poly.data.get(i, j));
+        //     }
+        // }
+
+        // then, evaluate composition polynomial columns over the LDE domain
+        // let domain_size = domain.lde_domain_size();
+        // let composed_evaluations = info_span!("evaluate_composition_poly_columns").in_scope(|| {
+        //     RowMatrix::evaluate_polys_over::<8>(composition_poly.data(), domain)
+        // });
+        // assert_eq!(composed_evaluations.num_cols(), num_constraint_composition_columns);
+        // assert_eq!(composed_evaluations.num_rows(), domain_size);
+
+        // println!(
+        //     "extended constraints from {} x {} to {} x {}",
+        //     composition_poly.num_columns(), 
+        //     composition_poly.column_len(), 
+        //     composed_evaluations.num_cols(), 
+        //     composed_evaluations.num_rows()
+        // );
+
+        let gpu_lde = RowMatrix::<E>::new(lde, num_constraint_composition_columns);
+        // println!("cpu-lde {composed_evaluations:?}");
+        // println!("gpu-lde {gpu_lde:?}");
 
         // finally, build constraint evaluation commitment
-        let constraint_commitment = info_span!(
-            "compute_constraint_evaluation_commitment",
-            log_domain_size = domain_size.ilog2()
-        )
-        .in_scope(|| {
-            let commitment = composed_evaluations
-                .commit_to_rows::<Self::HashFn, Self::VC>(self.options().partition_options());
-            ConstraintCommitment::new(composed_evaluations, commitment)
-        });
+        // let constraint_commitment = info_span!(
+        //     "compute_constraint_evaluation_commitment",
+        //     log_domain_size = domain_size.ilog2()
+        // )
+        // .in_scope(|| {
+        //     let commitment = composed_evaluations
+        //         .commit_to_rows::<Self::HashFn, Self::VC>(self.options().partition_options());
 
+        //         println!("cpu-tree-leaves {:?}", commitment.leaves());
+        //         println!("cpu-tree-nodes {:?}", commitment.nodes());
+        //         println!("cpu-commitment-root {:?}", commitment.commitment());
+
+        //     ConstraintCommitment::new(composed_evaluations, commitment)
+        // });
+
+        // assert_eq!(constraint_commitment.commitment(), tree.root());
+
+        let constraint_commitment = ConstraintCommitment::new(gpu_lde, commitment);
         (constraint_commitment, composition_poly)
     }
 }
