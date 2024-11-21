@@ -14,7 +14,7 @@ pub use node::{
     BasicBlockNode, CallNode, DynNode, ExternalNode, JoinNode, LoopNode, MastNode, OpBatch,
     OperationOrDecorator, SplitNode, OP_BATCH_SIZE, OP_GROUP_SIZE,
 };
-use winter_utils::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable};
+use winter_utils::{ByteWriter, DeserializationError, Serializable};
 
 use crate::{AdviceMap, Decorator, DecoratorList, Operation};
 
@@ -543,7 +543,7 @@ impl MastNodeId {
     ) -> Result<Self, DeserializationError> {
         let node_id: u32 = node_id.try_into().map_err(|_| {
             DeserializationError::InvalidValue(format!(
-                "Invalid node id '{node_id}' while deserializing"
+                "node id '{node_id}' does not fit into a u32"
             ))
         })?;
         MastNodeId::from_u32_safe(node_id, mast_forest)
@@ -683,12 +683,6 @@ impl fmt::Display for DecoratorId {
 impl Serializable for DecoratorId {
     fn write_into<W: ByteWriter>(&self, target: &mut W) {
         self.0.write_into(target)
-    }
-}
-
-impl Deserializable for DecoratorId {
-    fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
-        Ok(DecoratorId::new_unchecked(source.read()?))
     }
 }
 

@@ -195,15 +195,14 @@ impl Deserializable for MastForest {
         // Reading Decorators
         let decorator_data: Vec<u8> = Deserializable::read_from(source)?;
         let string_table: StringTable = Deserializable::read_from(source)?;
-        let decorator_infos: Vec<DecoratorInfo> =
-            decorator_infos_iter(source, decorator_count)
-                .collect::<Result<Vec<DecoratorInfo>, DeserializationError>>()?;
+        let decorator_infos = decorator_infos_iter(source, decorator_count);
 
         // Constructing MastForest
         let mut mast_forest = {
             let mut mast_forest = MastForest::new();
 
             for decorator_info in decorator_infos {
+                let decorator_info = decorator_info?;
                 let decorator =
                     decorator_info.try_into_decorator(&string_table, &decorator_data)?;
 
@@ -250,7 +249,7 @@ impl Deserializable for MastForest {
                 },
                 other => {
                     return Err(DeserializationError::InvalidValue(format!(
-                        "Expected mast node with id {node_id} to be a basic block, found {other:?}"
+                        "expected mast node with id {node_id} to be a basic block, found {other:?}"
                     )))
                 },
             }
