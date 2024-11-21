@@ -18,6 +18,9 @@
 //! (node info section)
 //! - MAST node infos (`Vec<MastNodeInfo>`)
 //!
+//! (advice map section)
+//! - Advice map (AdviceMap)
+//!
 //! (decorator data section)
 //! - Decorator data
 //! - String table
@@ -329,7 +332,7 @@ where
     R: ByteReader + 'a,
 {
     let mut remaining = decorator_count;
-    std::iter::from_fn(move || {
+    core::iter::from_fn(move || {
         if remaining == 0 {
             return None;
         }
@@ -346,7 +349,7 @@ where
     R: ByteReader + 'a,
 {
     let mut remaining = node_count;
-    std::iter::from_fn(move || {
+    core::iter::from_fn(move || {
         if remaining == 0 {
             return None;
         }
