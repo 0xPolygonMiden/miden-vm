@@ -3,9 +3,10 @@ use alloc::vec::Vec;
 use vm_core::{
     crypto::hash::RpoDigest,
     utils::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable},
+    AdviceMap,
 };
 
-use super::{AdviceMap, Felt, InnerNodeInfo, InputError, MerkleStore};
+use super::{Felt, InnerNodeInfo, InputError, MerkleStore};
 
 // ADVICE INPUTS
 // ================================================================================================

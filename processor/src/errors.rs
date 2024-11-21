@@ -24,6 +24,7 @@ use crate::ContextId;
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum ExecutionError {
     AdviceMapKeyNotFound(Word),
+    AdviceMapKeyAlreadyPresent(Word),
     AdviceStackReadFailed(RowIndex),
     CallerNotInSyscall,
     CircularExternalNode(Digest),
@@ -101,6 +102,10 @@ impl Display for ExecutionError {
             AdviceMapKeyNotFound(key) => {
                 let hex = to_hex(Felt::elements_as_bytes(key));
                 write!(f, "Value for key {hex} not present in the advice map")
+            },
+            AdviceMapKeyAlreadyPresent(key) => {
+                let hex = to_hex(Felt::elements_as_bytes(key));
+                write!(f, "Value for key {hex} already present in the advice map")
             },
             AdviceStackReadFailed(step) => write!(f, "Advice stack read failed at step {step}"),
             CallerNotInSyscall => {

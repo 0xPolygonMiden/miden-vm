@@ -31,6 +31,7 @@ use string_table::{StringTable, StringTableBuilder};
 use winter_utils::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable};
 
 use super::{DecoratorId, MastForest, MastNode, MastNodeId};
+use crate::AdviceMap;
 
 mod decorator;
 
@@ -149,6 +150,8 @@ impl Serializable for MastForest {
         node_data.write_into(target);
         string_table.write_into(target);
 
+        self.advice_map.write_into(target);
+
         // Write decorator and node infos
         for decorator_info in decorator_infos {
             decorator_info.write_into(target);
@@ -187,6 +190,7 @@ impl Deserializable for MastForest {
         let decorator_data: Vec<u8> = Deserializable::read_from(source)?;
         let node_data: Vec<u8> = Deserializable::read_from(source)?;
         let string_table: StringTable = Deserializable::read_from(source)?;
+        let advice_map = AdviceMap::read_from(source)?;
 
         let mut mast_forest = {
             let mut mast_forest = MastForest::new();
@@ -228,6 +232,8 @@ impl Deserializable for MastForest {
                 let root = MastNodeId::from_u32_safe(root, &mast_forest)?;
                 mast_forest.make_root(root);
             }
+
+            mast_forest.advice_map = advice_map;
 
             mast_forest
         };

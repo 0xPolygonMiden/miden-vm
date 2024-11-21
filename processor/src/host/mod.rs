@@ -3,6 +3,7 @@ use alloc::sync::Arc;
 use vm_core::{
     crypto::{hash::RpoDigest, merkle::MerklePath},
     mast::MastForest,
+    utils::collections::KvMap,
     AdviceInjector, DebugOptions, Word,
 };
 
@@ -31,8 +32,16 @@ pub use mast_forest_store::{MastForestStore, MemMastForestStore};
 /// state of the VM ([ProcessState]), which it can use to extract the data required to fulfill the
 /// request.
 pub trait Host {
+    type AdviceProvider: AdviceProvider;
+
     // REQUIRED METHODS
     // --------------------------------------------------------------------------------------------
+
+    /// Returns a reference to the advice provider.
+    fn advice_provider(&self) -> &Self::AdviceProvider;
+
+    /// Returns a mutable reference to the advice provider.
+    fn advice_provider_mut(&mut self) -> &mut Self::AdviceProvider;
 
     /// Returns the requested advice, specified by [AdviceExtractor], from the host to the VM.
     fn get_advice(
@@ -174,6 +183,16 @@ impl<H> Host for &mut H
 where
     H: Host,
 {
+    type AdviceProvider = H::AdviceProvider;
+
+    fn advice_provider(&self) -> &Self::AdviceProvider {
+        H::advice_provider(self)
+    }
+
+    fn advice_provider_mut(&mut self) -> &mut Self::AdviceProvider {
+        H::advice_provider_mut(self)
+    }
+
     fn get_advice(
         &mut self,
         process: ProcessState,
@@ -310,8 +329,21 @@ where
         }
     }
 
-    pub fn load_mast_forest(&mut self, mast_forest: Arc<MastForest>) {
-        self.store.insert(mast_forest)
+    pub fn load_mast_forest(&mut self, mast_forest: Arc<MastForest>) -> Result<(), ExecutionError> {
+        // Load the MAST's advice data into the advice provider.
+
+        for (digest, values) in mast_forest.advice_map().iter() {
+            if let Some(stored_values) = self.advice_provider().get_mapped_values(digest) {
+                if stored_values != values {
+                    return Err(ExecutionError::AdviceMapKeyAlreadyPresent(digest.into()));
+                }
+            } else {
+                self.advice_provider_mut().insert_into_map(digest.into(), values.clone());
+            }
+        }
+
+        self.store.insert(mast_forest);
+        Ok(())
     }
 
     #[cfg(any(test, feature = "testing"))]
@@ -333,6 +365,16 @@ impl<A> Host for DefaultHost<A>
 where
     A: AdviceProvider,
 {
+    type AdviceProvider = A;
+
+    fn advice_provider(&self) -> &Self::AdviceProvider {
+        &self.adv_provider
+    }
+
+    fn advice_provider_mut(&mut self) -> &mut Self::AdviceProvider {
+        &mut self.adv_provider
+    }
+
     fn get_advice(
         &mut self,
         process: ProcessState,

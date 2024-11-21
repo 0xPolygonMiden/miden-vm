@@ -131,9 +131,8 @@ where
         self.map.get(key).map(|v| v.as_slice())
     }
 
-    fn insert_into_map(&mut self, key: Word, values: Vec<Felt>) -> Result<(), ExecutionError> {
+    fn insert_into_map(&mut self, key: Word, values: Vec<Felt>) {
         self.map.insert(key.into(), values);
-        Ok(())
     }
 
     // MERKLE STORE
@@ -272,7 +271,7 @@ impl AdviceProvider for MemAdviceProvider {
         self.provider.push_stack(source)
     }
 
-    fn insert_into_map(&mut self, key: Word, values: Vec<Felt>) -> Result<(), ExecutionError> {
+    fn insert_into_map(&mut self, key: Word, values: Vec<Felt>)  {
         self.provider.insert_into_map(key, values)
     }
 
@@ -390,7 +389,7 @@ impl AdviceProvider for RecAdviceProvider {
         self.provider.push_stack(source)
     }
 
-    fn insert_into_map(&mut self, key: Word, values: Vec<Felt>) -> Result<(), ExecutionError> {
+    fn insert_into_map(&mut self, key: Word, values: Vec<Felt>)  {
         self.provider.insert_into_map(key, values)
     }
 

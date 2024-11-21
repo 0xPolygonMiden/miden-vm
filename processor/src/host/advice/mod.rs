@@ -26,9 +26,6 @@ pub use providers::{MemAdviceProvider, RecAdviceProvider};
 mod source;
 pub use source::AdviceSource;
 
-mod map;
-pub use map::AdviceMap;
-
 // ADVICE PROVIDER
 // ================================================================================================
 
@@ -616,7 +613,7 @@ pub trait AdviceProvider: Sized {
     ///
     /// If the specified key is already present in the advice map, the values under the key
     /// are replaced with the specified values.
-    fn insert_into_map(&mut self, key: Word, values: Vec<Felt>) -> Result<(), ExecutionError>;
+    fn insert_into_map(&mut self, key: Word, values: Vec<Felt>);
 
     /// Returns a signature on a message using a public key.
     fn get_signature(
@@ -732,7 +729,7 @@ where
         T::push_stack(self, source)
     }
 
-    fn insert_into_map(&mut self, key: Word, values: Vec<Felt>) -> Result<(), ExecutionError> {
+    fn insert_into_map(&mut self, key: Word, values: Vec<Felt>) {
         T::insert_into_map(self, key, values)
     }
 

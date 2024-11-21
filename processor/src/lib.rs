@@ -18,7 +18,7 @@ pub use vm_core::{
     crypto::merkle::SMT_DEPTH,
     errors::InputError,
     mast::{MastForest, MastNode, MastNodeId},
-    utils::DeserializationError,
+    utils::{collections::KvMap, DeserializationError},
     AdviceInjector, AssemblyOp, Felt, Kernel, Operation, Program, ProgramInfo, QuadExtension,
     StackInputs, StackOutputs, Word, EMPTY_WORD, ONE, ZERO,
 };
@@ -48,7 +48,7 @@ use range::RangeChecker;
 mod host;
 pub use host::{
     advice::{
-        AdviceExtractor, AdviceInputs, AdviceMap, AdviceProvider, AdviceSource, MemAdviceProvider,
+        AdviceExtractor, AdviceInputs, AdviceProvider, AdviceSource, MemAdviceProvider,
         RecAdviceProvider,
     },
     DefaultHost, Host, HostResponse, MastForestStore, MemMastForestStore,
@@ -236,6 +236,17 @@ impl Process {
     ) -> Result<StackOutputs, ExecutionError> {
         if self.system.clk() != 0 {
             return Err(ExecutionError::ProgramAlreadyExecuted);
+        }
+
+        // Load the program's advice data into the advice provider
+        for (digest, values) in program.mast_forest().advice_map().iter() {
+            if let Some(stored_values) = host.advice_provider().get_mapped_values(digest) {
+                if stored_values != values {
+                    return Err(ExecutionError::AdviceMapKeyAlreadyPresent(digest.into()));
+                }
+            } else {
+                host.advice_provider_mut().insert_into_map(digest.into(), values.clone());
+            }
         }
 
         self.execute_mast_node(program.entrypoint(), &program.mast_forest().clone(), host)?;

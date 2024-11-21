@@ -123,4 +123,7 @@ pub use operations::{
 pub mod stack;
 pub use stack::{StackInputs, StackOutputs};
 
+mod advice;
+pub use advice::map::AdviceMap;
+
 pub mod utils;

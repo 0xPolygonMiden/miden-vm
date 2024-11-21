@@ -16,7 +16,7 @@ pub use node::{
 };
 use winter_utils::{ByteWriter, DeserializationError, Serializable};
 
-use crate::{Decorator, DecoratorList, Operation};
+use crate::{AdviceMap, Decorator, DecoratorList, Operation};
 
 mod serialization;
 
@@ -50,6 +50,9 @@ pub struct MastForest {
 
     /// All the decorators included in the MAST forest.
     decorators: Vec<Decorator>,
+
+    /// Advice map to be loaded into the VM prior to executing procedures from this MAST forest.
+    advice_map: AdviceMap,
 }
 
 // ------------------------------------------------------------------------------------------------
@@ -463,6 +466,14 @@ impl MastForest {
     pub fn nodes(&self) -> &[MastNode] {
         &self.nodes
     }
+
+    pub fn advice_map(&self) -> &AdviceMap {
+        &self.advice_map
+    }
+
+    pub fn advice_map_mut(&mut self) -> &mut AdviceMap {
+        &mut self.advice_map
+    }
 }
 
 impl Index<MastNodeId> for MastForest {
@@ -689,4 +700,6 @@ pub enum MastForestError {
     EmptyBasicBlock,
     #[error("decorator root of child with node id {0} is missing but required for fingerprint computation")]
     ChildFingerprintMissing(MastNodeId),
+    #[error("advice map key already exists when merging forests: {0}")]
+    AdviceMapKeyCollisionOnMerge(RpoDigest),
 }
