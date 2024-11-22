@@ -1,4 +1,4 @@
-use vm_core::{AdviceInjector, Felt, Operation, SignatureKind, ZERO};
+use vm_core::{sys_events::SystemEvent, Felt, Operation};
 
 use super::{
     super::{
@@ -7,16 +7,9 @@ use super::{
     },
     ExecutionError, Process,
 };
-use crate::{
-    host::advice::{
-        copy_map_value_to_adv_stack, copy_merkle_node_to_adv_stack, insert_hdword_into_adv_map,
-        insert_hperm_into_adv_map, insert_mem_values_into_adv_map, merge_merkle_nodes,
-        push_ext2_intt_result, push_ext2_inv_result, push_ilog2, push_leading_ones,
-        push_leading_zeros, push_signature, push_smtpeek_result, push_trailing_ones,
-        push_trailing_zeros, push_u64_div_result,
-    },
-    Host, ProcessState,
-};
+use crate::Host;
+mod dsa;
+mod sys_event_handlers;
 
 // SYSTEM OPERATIONS
 // ================================================================================================
@@ -132,56 +125,11 @@ impl Process {
         self.stack.copy_state(0);
         self.decoder.set_user_op_helpers(Operation::Emit(event_id), &[event_id.into()]);
 
-        // If it's a native event, handle it directly. Otherwise, forward it to the host.
-        if let Some(advice_injector) = AdviceInjector::from_event_id(event_id) {
-            self.handle_advice_injector(advice_injector, host)
+        // If it's a system event, handle it directly. Otherwise, forward it to the host.
+        if let Some(system_event) = SystemEvent::from_event_id(event_id) {
+            self.handle_sytem_event(system_event, host)
         } else {
             host.on_event(self.into(), event_id)
-        }
-    }
-
-    fn handle_advice_injector(
-        &self,
-        advice_injector: AdviceInjector,
-        host: &mut impl Host,
-    ) -> Result<(), ExecutionError> {
-        let advice_provider = host.advice_provider_mut();
-        let process_state: ProcessState = self.into();
-        match advice_injector {
-            AdviceInjector::MerkleNodeMerge => merge_merkle_nodes(advice_provider, process_state),
-            AdviceInjector::MerkleNodeToStack => {
-                copy_merkle_node_to_adv_stack(advice_provider, process_state)
-            },
-            AdviceInjector::MapValueToStack => {
-                copy_map_value_to_adv_stack(advice_provider, process_state, false)
-            },
-            AdviceInjector::MapValueToStackN => {
-                copy_map_value_to_adv_stack(advice_provider, process_state, true)
-            },
-            AdviceInjector::U64Div => push_u64_div_result(advice_provider, process_state),
-            AdviceInjector::Ext2Inv => push_ext2_inv_result(advice_provider, process_state),
-            AdviceInjector::Ext2Intt => push_ext2_intt_result(advice_provider, process_state),
-            AdviceInjector::SmtPeek => push_smtpeek_result(advice_provider, process_state),
-            AdviceInjector::U32Clz => push_leading_zeros(advice_provider, process_state),
-            AdviceInjector::U32Ctz => push_trailing_zeros(advice_provider, process_state),
-            AdviceInjector::U32Clo => push_leading_ones(advice_provider, process_state),
-            AdviceInjector::U32Cto => push_trailing_ones(advice_provider, process_state),
-            AdviceInjector::ILog2 => push_ilog2(advice_provider, process_state),
-
-            AdviceInjector::MemToMap => {
-                insert_mem_values_into_adv_map(advice_provider, process_state)
-            },
-            AdviceInjector::HdwordToMap => {
-                insert_hdword_into_adv_map(advice_provider, process_state, ZERO)
-            },
-            AdviceInjector::HdwordToMapWithDomain => {
-                let domain = self.stack.get(8);
-                insert_hdword_into_adv_map(advice_provider, process_state, domain)
-            },
-            AdviceInjector::HpermToMap => insert_hperm_into_adv_map(advice_provider, process_state),
-            AdviceInjector::FalconSigToStack => {
-                push_signature(advice_provider, process_state, SignatureKind::RpoFalcon512)
-            },
         }
     }
 }

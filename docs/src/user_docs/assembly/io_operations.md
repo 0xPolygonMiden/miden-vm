@@ -3,7 +3,7 @@ Miden assembly provides a set of instructions for moving data between the operan
 
 * **Program code**: values to be moved onto the operand stack can be hard-coded in a program's source code.
 * **Environment**: values can be moved onto the operand stack from environment variables. These include current clock cycle, current stack depth, and a few others.
-* **Advice provider**: values can be moved onto the operand stack from the advice provider by popping them from the advice stack (see more about the advice provider [here](../../intro/overview.md#nondeterministic-inputs)). The VM can also inject new data into the advice provider via *advice injector* instructions.
+* **Advice provider**: values can be moved onto the operand stack from the advice provider by popping them from the advice stack (see more about the advice provider [here](../../intro/overview.md#nondeterministic-inputs)). The VM can also inject new data into the advice provider via *system event* instructions.
 * **Memory**: values can be moved between the stack and random-access memory. The memory is word-addressable, meaning, four elements are located at each address, and we can read and write elements to/from memory in batches of four. Memory can be accessed via absolute memory references (i.e., via memory addresses) as well as via local procedure references (i.e., local index). The latter approach ensures that a procedure does not access locals of another procedure.
 
 ### Constant inputs
@@ -43,9 +43,9 @@ As mentioned above, nondeterministic inputs are provided to the VM via the advic
 
 > **Note**: The opcodes above always push data onto the operand stack so that the first element is placed deepest in the stack. For example, if the data on the stack is `a,b,c,d` and you use the opcode `adv_push.4`, the data will be `d,c,b,a` on your stack. This is also the behavior of the other opcodes.
 
-The second category injects new data into the advice provider. These operations are called *advice injectors* and they affect only the advice provider state. That is, the state of all other VM components (e.g., stack, memory) are unaffected. Executing advice injectors does not consume any VM cycles (i.e., these instructions are executed in $0$ cycles).
+The second category injects new data into the advice provider. These operations are called *system events* and they affect only the advice provider state. That is, the state of all other VM components (e.g., stack, memory) are unaffected. Handling system events does not consume any VM cycles (i.e., these instructions are executed in $0$ cycles).
 
-Advice injectors fall into two categories: (1) injectors which push new data onto the advice stack, and (2) injectors which insert new data into the advice map.
+System events fall into two categories: (1) events which push new data onto the advice stack, and (2) events which insert new data into the advice map.
 
 | Instruction                                  | Stack_input                | Stack_output              | Notes                                                                                                                                                                                                                                           |
 | -------------------------------------------- | -------------------------- | -------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |

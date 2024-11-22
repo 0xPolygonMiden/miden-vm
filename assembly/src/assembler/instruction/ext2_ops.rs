@@ -1,4 +1,4 @@
-use vm_core::{AdviceInjector::Ext2Inv, Operation::*};
+use vm_core::{sys_events::SystemEvent::Ext2Inv, Operation::*};
 
 use super::BasicBlockBuilder;
 use crate::AssemblyError;
@@ -54,7 +54,7 @@ pub fn ext2_mul(block_builder: &mut BasicBlockBuilder) {
 ///
 /// This operation takes 11 VM cycles.
 pub fn ext2_div(block_builder: &mut BasicBlockBuilder) {
-    block_builder.push_advice_injector(Ext2Inv);
+    block_builder.push_system_event(Ext2Inv);
     #[rustfmt::skip]
     let ops = [
         AdvPop,         // [b0', b1, b0, a1, a0, ...]
@@ -114,7 +114,7 @@ pub fn ext2_neg(block_builder: &mut BasicBlockBuilder) {
 ///
 /// This operation takes 8 VM cycles.
 pub fn ext2_inv(block_builder: &mut BasicBlockBuilder) -> Result<(), AssemblyError> {
-    block_builder.push_advice_injector(Ext2Inv);
+    block_builder.push_system_event(Ext2Inv);
     #[rustfmt::skip]
     let ops = [
         AdvPop,         // [a0', a1, a0, ...]

@@ -4,9 +4,6 @@ use core::fmt;
 use miden_crypto::hash::blake::Blake3_256;
 use num_traits::ToBytes;
 
-mod advice;
-pub use advice::AdviceInjector;
-
 mod assembly_op;
 pub use assembly_op::AssemblyOp;
 

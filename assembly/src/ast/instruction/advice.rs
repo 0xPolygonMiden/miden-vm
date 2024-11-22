@@ -1,8 +1,8 @@
 use core::fmt;
 
-use vm_core::AdviceInjector;
+use vm_core::sys_events::SystemEvent;
 
-// ADVICE INJECTOR NODE
+// SYSTEM EVENT NODE
 // ================================================================================================
 
 /// Instructions which inject data into the advice provider.
@@ -11,7 +11,7 @@ use vm_core::AdviceInjector;
 /// - Push new data onto the advice stack.
 /// - Insert new data into the advice map.
 #[derive(Clone, PartialEq, Eq, Debug)]
-pub enum AdviceInjectorNode {
+pub enum SystemEventNode {
     PushU64Div,
     PushExt2intt,
     PushSmtPeek,
@@ -25,9 +25,9 @@ pub enum AdviceInjectorNode {
     PushSignature { kind: SignatureKind },
 }
 
-impl From<&AdviceInjectorNode> for AdviceInjector {
-    fn from(value: &AdviceInjectorNode) -> Self {
-        use AdviceInjectorNode::*;
+impl From<&SystemEventNode> for SystemEvent {
+    fn from(value: &SystemEventNode) -> Self {
+        use SystemEventNode::*;
         match value {
             PushU64Div => Self::U64Div,
             PushExt2intt => Self::Ext2Intt,
@@ -46,13 +46,13 @@ impl From<&AdviceInjectorNode> for AdviceInjector {
     }
 }
 
-impl crate::prettier::PrettyPrint for AdviceInjectorNode {
+impl crate::prettier::PrettyPrint for SystemEventNode {
     fn render(&self) -> crate::prettier::Document {
         crate::prettier::display(self)
     }
 }
 
-impl fmt::Display for AdviceInjectorNode {
+impl fmt::Display for SystemEventNode {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::PushU64Div => write!(f, "push_u64div"),

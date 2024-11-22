@@ -18,9 +18,10 @@ pub use vm_core::{
     crypto::merkle::SMT_DEPTH,
     errors::InputError,
     mast::{MastForest, MastNode, MastNodeId},
+    sys_events::SystemEvent,
     utils::{collections::KvMap, DeserializationError},
-    AdviceInjector, AssemblyOp, Felt, Kernel, Operation, Program, ProgramInfo, QuadExtension,
-    StackInputs, StackOutputs, Word, EMPTY_WORD, ONE, ZERO,
+    AssemblyOp, Felt, Kernel, Operation, Program, ProgramInfo, QuadExtension, StackInputs,
+    StackOutputs, Word, EMPTY_WORD, ONE, ZERO,
 };
 use vm_core::{
     mast::{

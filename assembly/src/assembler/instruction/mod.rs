@@ -361,7 +361,9 @@ impl Assembler {
                 false,
             )?,
 
-            Instruction::AdvInject(injector) => adv_ops::adv_inject(block_builder, injector),
+            Instruction::SysEvent(system_event) => {
+                block_builder.push_system_event(system_event.into())
+            },
 
             // ----- cryptographic instructions ---------------------------------------------------
             Instruction::Hash => crypto_ops::hash(block_builder),

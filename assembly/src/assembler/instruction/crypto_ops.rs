@@ -1,4 +1,4 @@
-use vm_core::{AdviceInjector, Felt, Operation::*};
+use vm_core::{sys_events::SystemEvent, Felt, Operation::*};
 
 use super::BasicBlockBuilder;
 use crate::AssemblyError;
@@ -169,7 +169,7 @@ pub(super) fn mtree_merge(block_builder: &mut BasicBlockBuilder) {
 
     // invoke the advice provider function to merge 2 Merkle trees defined by the roots on the top
     // of the operand stack
-    block_builder.push_advice_injector(AdviceInjector::MerkleNodeMerge);
+    block_builder.push_system_event(SystemEvent::MerkleNodeMerge);
 
     // perform the `hmerge`, updating the operand stack
     hmerge(block_builder)
@@ -202,7 +202,7 @@ fn read_mtree_node(block_builder: &mut BasicBlockBuilder) {
     // new node value post the tree root: [d, i, R, V_new]
     //
     // pops the value of the node we are looking for from the advice stack
-    block_builder.push_advice_injector(AdviceInjector::MerkleNodeToStack);
+    block_builder.push_system_event(SystemEvent::MerkleNodeToStack);
 
     // pops the old node value from advice the stack => MPVERIFY: [V_old, d, i, R, ...]
     // MRUPDATE: [V_old, d, i, R, V_new, ...]

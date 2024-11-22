@@ -1,8 +1,9 @@
 use alloc::{collections::BTreeMap, vec::Vec};
 
+use vm_core::crypto::merkle::{MerkleStore, NodeIndex, StoreNode};
+
 use super::{
-    AdviceInputs, AdviceProvider, AdviceSource, ExecutionError, Felt, MerklePath, MerkleStore,
-    NodeIndex, RpoDigest, StoreNode, Word,
+    AdviceInputs, AdviceProvider, AdviceSource, ExecutionError, Felt, MerklePath, RpoDigest, Word,
 };
 use crate::{
     utils::collections::{KvMap, RecordingMap},

@@ -1,12 +1,14 @@
 use alloc::vec::Vec;
 
 use vm_core::{
-    crypto::hash::RpoDigest,
+    crypto::{
+        hash::RpoDigest,
+        merkle::{InnerNodeInfo, MerkleStore},
+    },
+    errors::InputError,
     utils::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable},
-    AdviceMap,
+    AdviceMap, Felt,
 };
-
-use super::{Felt, InnerNodeInfo, InputError, MerkleStore};
 
 // ADVICE INPUTS
 // ================================================================================================

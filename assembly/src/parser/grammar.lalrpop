@@ -598,7 +598,7 @@ MacroInst: SmallOpsVec = {
 
 #[inline]
 Inst: Instruction = {
-    AdviceInjector,
+    SystemEvent,
     Call,
     Debug,
     InstWithBitSizeImmediate,
@@ -665,18 +665,18 @@ Inst: Instruction = {
 }
 
 #[inline]
-AdviceInjector: Instruction = {
-    "adv" "." "insert_hdword" => Instruction::AdvInject(AdviceInjectorNode::InsertHdword),
-    "adv" "." "insert_hdword_d" => Instruction::AdvInject(AdviceInjectorNode::InsertHdwordWithDomain),
-    "adv" "." "insert_hperm" => Instruction::AdvInject(AdviceInjectorNode::InsertHperm),
-    "adv" "." "insert_mem" => Instruction::AdvInject(AdviceInjectorNode::InsertMem),
-    "adv" "." "push_ext2intt" => Instruction::AdvInject(AdviceInjectorNode::PushExt2intt),
-    "adv" "." "push_mapval" => Instruction::AdvInject(AdviceInjectorNode::PushMapVal),
-    "adv" "." "push_mapvaln" => Instruction::AdvInject(AdviceInjectorNode::PushMapValN),
-    "adv" "." "push_mtnode" => Instruction::AdvInject(AdviceInjectorNode::PushMtNode),
-    "adv" "." "push_sig" "." <kind:SignatureKind> => Instruction::AdvInject(AdviceInjectorNode::PushSignature { kind }),
-    "adv" "." "push_smtpeek" => Instruction::AdvInject(AdviceInjectorNode::PushSmtPeek),
-    "adv" "." "push_u64div" => Instruction::AdvInject(AdviceInjectorNode::PushU64Div),
+SystemEvent: Instruction = {
+    "adv" "." "insert_hdword" => Instruction::SysEvent(SystemEventNode::InsertHdword),
+    "adv" "." "insert_hdword_d" => Instruction::SysEvent(SystemEventNode::InsertHdwordWithDomain),
+    "adv" "." "insert_hperm" => Instruction::SysEvent(SystemEventNode::InsertHperm),
+    "adv" "." "insert_mem" => Instruction::SysEvent(SystemEventNode::InsertMem),
+    "adv" "." "push_ext2intt" => Instruction::SysEvent(SystemEventNode::PushExt2intt),
+    "adv" "." "push_mapval" => Instruction::SysEvent(SystemEventNode::PushMapVal),
+    "adv" "." "push_mapvaln" => Instruction::SysEvent(SystemEventNode::PushMapValN),
+    "adv" "." "push_mtnode" => Instruction::SysEvent(SystemEventNode::PushMtNode),
+    "adv" "." "push_sig" "." <kind:SignatureKind> => Instruction::SysEvent(SystemEventNode::PushSignature { kind }),
+    "adv" "." "push_smtpeek" => Instruction::SysEvent(SystemEventNode::PushSmtPeek),
+    "adv" "." "push_u64div" => Instruction::SysEvent(SystemEventNode::PushU64Div),
 }
 
 #[inline]
