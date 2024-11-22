@@ -4,6 +4,7 @@ use assembly::diagnostics::{IntoDiagnostic, Report, WrapErr};
 use clap::Parser;
 use miden_vm::ProvingOptions;
 use processor::{DefaultHost, ExecutionOptions, ExecutionOptionsError, Program};
+#[cfg(feature = "cuda")]
 use prover::get_num_of_gpus;
 
 use super::data::{instrument, Debug, InputFile, Libraries, OutputFile, ProgramFile, ProofFile};
