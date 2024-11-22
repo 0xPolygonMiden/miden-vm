@@ -22,7 +22,7 @@ use processor::{
 use tracing::instrument;
 use winter_maybe_async::{maybe_async, maybe_await};
 use winter_prover::{
-    matrix::{ColMatrix, RowMatrix}, ConstraintCompositionCoefficients, DefaultConstraintCommitment, DefaultConstraintEvaluator, DefaultTraceLde, ProofOptions as WinterProofOptions, Prover, StarkDomain, TraceInfo, TracePolyTable
+    matrix::{ColMatrix, RowMatrix}, CompositionPoly, CompositionPolyTrace, ConstraintCompositionCoefficients, DefaultConstraintCommitment, DefaultConstraintEvaluator, DefaultTraceLde, ProofOptions as WinterProofOptions, Prover, StarkDomain, TraceInfo, TracePolyTable
 };
 #[cfg(feature = "std")]
 use {std::time::Instant, winter_prover::Trace};
@@ -229,12 +229,14 @@ where
     }
 
     #[maybe_async]
-    fn new_constraint_commitment<E: FieldElement<BaseField = Felt>>(
+    fn build_constraint_commitment<E: FieldElement<BaseField = Felt>>(
         &self,
-        evaluations: RowMatrix<E>,
-        commitment: Self::VC,
-    ) -> Self::ConstraintCommitment<E> {
-        DefaultConstraintCommitment::new(evaluations, commitment)
+        composition_poly_trace: CompositionPolyTrace<E>,
+        num_constraint_composition_columns: usize,
+        domain: &StarkDomain<Self::BaseField>,
+        partition_options: PartitionOptions,
+    ) -> (Self::ConstraintCommitment<E>, CompositionPoly<E>) {
+        DefaultConstraintCommitment::new(composition_poly_trace, num_constraint_composition_columns, domain, partition_options)
     }
 
     #[maybe_async]
