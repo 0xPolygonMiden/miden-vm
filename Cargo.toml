@@ -32,3 +32,17 @@ inherits = "release"
 debug = true
 debug-assertions = true
 overflow-checks = true
+
+
+[patch.crates-io]
+winter-air = {path = "../../training/test_task/winterfell/air" }
+winter-crypto = {path = "../../training/test_task/winterfell/crypto" }
+winter-prover = {path = "../../training/test_task/winterfell/prover" }
+winter-verifier = {path = "../../training/test_task/winterfell/verifier" }
+winter-math = {path = "../../training/test_task/winterfell/math" }
+winter-fri = {path = "../../training/test_task/winterfell/fri" }
+winter-maybe-async = {path = "../../training/test_task/winterfell/utils/maybe_async" }
+winter-utils = {path = "../../training/test_task/winterfell/utils/core" }
+winter-rand-utils = {path = "../../training/test_task/winterfell/utils/rand" }
+
+miden-crypto = {path = "../../work/crypto" }

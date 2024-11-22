@@ -1,3 +1,5 @@
+use std::println;
+
 use alloc::vec::Vec;
 
 use miden_air::RowIndex;
@@ -133,6 +135,7 @@ impl Stack {
     /// # Errors
     /// Returns an error if the overflow table is not empty at the current clock cycle.
     pub fn build_stack_outputs(&self) -> Result<StackOutputs, ExecutionError> {
+            println!("stak is {:?}", self.get_state_at(self.clk));
         if self.overflow.num_active_rows() != 0 {
             return Err(ExecutionError::OutputStackOverflow(self.overflow.num_active_rows()));
         }

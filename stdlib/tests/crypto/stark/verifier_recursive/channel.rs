@@ -57,6 +57,7 @@ impl VerifierChannel {
             pow_nonce,
             num_unique_queries,
             gkr_proof: _,
+            salts,
         } = proof;
 
         // make AIR and proof base fields are the same
@@ -281,6 +282,10 @@ impl FriVerifierChannel<QuadExt> for VerifierChannel {
 
     fn take_fri_remainder(&mut self) -> Vec<QuadExt> {
         self.fri_remainder.take().expect("already read")
+    }
+    
+    fn take_salt(&mut self) -> Option<<Self::Hasher as processor::crypto::Hasher>::Digest> {
+        todo!()
     }
 }
 

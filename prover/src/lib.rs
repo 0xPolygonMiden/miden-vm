@@ -19,7 +19,9 @@ use processor::{
     math::{Felt, FieldElement},
     ExecutionTrace, Program,
 };
+use rand_chacha::{rand_core::SeedableRng, ChaCha20Rng};
 use tracing::instrument;
+use winter_air::ZkParameters;
 use winter_maybe_async::{maybe_async, maybe_await};
 use winter_prover::{
     matrix::ColMatrix, CompositionPoly, CompositionPolyTrace, ConstraintCompositionCoefficients,
@@ -219,8 +221,10 @@ where
         main_trace: &ColMatrix<Felt>,
         domain: &StarkDomain<Felt>,
         partition_options: PartitionOptions,
+        zk_parameters: Option<ZkParameters>
     ) -> (Self::TraceLde<E>, TracePolyTable<E>) {
-        DefaultTraceLde::new(trace_info, main_trace, domain, partition_options)
+        let mut prng = ChaCha20Rng::from_entropy();
+        DefaultTraceLde::new(trace_info, main_trace, domain, partition_options, zk_parameters, &mut prng)
     }
 
     #[maybe_async]

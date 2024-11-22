@@ -1053,7 +1053,6 @@ dependencies = [
 [[package]]
 name = "miden-crypto"
 version = "0.12.0"
-source = "git+https://github.com/0xPolygonMiden/crypto/?branch=al-fix-rpo-randcoin#067c305f0c02b8535deb066a58e9305912364b07"
 dependencies = [
  "blake3",
  "cc",
@@ -1061,6 +1060,7 @@ dependencies = [
  "num",
  "num-complex",
  "rand",
+ "rand_chacha",
  "rand_core",
  "sha3",
  "winter-crypto 0.10.2",
@@ -1154,7 +1154,9 @@ dependencies = [
  "miden-gpu",
  "miden-processor",
  "pollster",
+ "rand_chacha",
  "tracing",
+ "winter-air",
  "winter-maybe-async",
  "winter-prover",
 ]
@@ -1174,10 +1176,12 @@ dependencies = [
  "num-bigint",
  "pretty_assertions",
  "rand",
+ "rand_chacha",
  "serde_json",
  "sha2",
  "sha3",
  "winter-air",
+ "winter-crypto",
  "winter-fri",
 ]
 
@@ -2745,6 +2749,7 @@ version = "0.11.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "3a8fdb702503625f54dcaf9222aa2c7a0b2e868b3eb84b90d1837d68034bf999"
 dependencies = [
+ "libc-print",
  "libm",
  "winter-crypto 0.11.0",
  "winter-fri",
@@ -2759,6 +2764,8 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "3fcae1ada055aa10554910ecffc106cb116a19dba11ac91390ef982f94adb9c5"
 dependencies = [
  "blake3",
+ "rand",
+ "rand_chacha",
  "sha3",
  "winter-math 0.10.2",
  "winter-utils 0.10.2",
@@ -2821,6 +2828,9 @@ version = "0.11.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b6c2f3cf80955f084fd614c86883195331116b6c96dc88532d43d6836bd7adee"
 dependencies = [
+ "libc-print",
+ "rand",
+ "rand_chacha",
  "tracing",
  "winter-air",
  "winter-crypto 0.11.0",
@@ -2861,11 +2871,23 @@ version = "0.11.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "56d949eab6c26328733477ec56ca054fdc69c0c1b8267fa03d8b618ffe2193c4"
 dependencies = [
+ "libc-print",
  "winter-air",
  "winter-crypto 0.11.0",
  "winter-fri",
  "winter-math 0.11.0",
  "winter-utils 0.11.0",
+]
+
+[[package]]
+name = "winterfell"
+version = "0.10.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "39c8336dc6a035698780b8cc624f875e479bd6bf6e1846670f3ef4485c125882"
+dependencies = [
+ "winter-air",
+ "winter-prover",
+ "winter-verifier",
 ]
 
 [[package]]
