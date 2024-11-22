@@ -22,9 +22,7 @@ use processor::{
 use tracing::instrument;
 use winter_maybe_async::{maybe_async, maybe_await};
 use winter_prover::{
-    matrix::ColMatrix, ConstraintCompositionCoefficients, DefaultConstraintEvaluator,
-    DefaultTraceLde, ProofOptions as WinterProofOptions, Prover, StarkDomain, TraceInfo,
-    TracePolyTable,
+    matrix::{ColMatrix, RowMatrix}, ConstraintCompositionCoefficients, DefaultConstraintCommitment, DefaultConstraintEvaluator, DefaultTraceLde, ProofOptions as WinterProofOptions, Prover, StarkDomain, TraceInfo, TracePolyTable
 };
 #[cfg(feature = "std")]
 use {std::time::Instant, winter_prover::Trace};
@@ -196,6 +194,7 @@ where
     type VC = MerkleTreeVC<Self::HashFn>;
     type RandomCoin = R;
     type TraceLde<E: FieldElement<BaseField = Felt>> = DefaultTraceLde<E, H, Self::VC>;
+    type ConstraintCommitment<E: FieldElement<BaseField = Felt>> = DefaultConstraintCommitment<E, H, Self::VC>;
     type ConstraintEvaluator<'a, E: FieldElement<BaseField = Felt>> =
         DefaultConstraintEvaluator<'a, ProcessorAir, E>;
 
@@ -227,6 +226,15 @@ where
         partition_options: PartitionOptions,
     ) -> (Self::TraceLde<E>, TracePolyTable<E>) {
         DefaultTraceLde::new(trace_info, main_trace, domain, partition_options)
+    }
+
+    #[maybe_async]
+    fn new_constraint_commitment<E: FieldElement<BaseField = Felt>>(
+        &self,
+        evaluations: RowMatrix<E>,
+        commitment: Self::VC,
+    ) -> Self::ConstraintCommitment<E> {
+        DefaultConstraintCommitment::new(evaluations, commitment)
     }
 
     #[maybe_async]

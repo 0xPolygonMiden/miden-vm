@@ -7,7 +7,7 @@ use miden_gpu::{cuda::{constraint::build_constraint_commitment, merkle::MerkleTr
 use processor::crypto::{ElementHasher, Hasher};
 use tracing::info_span;
 use winter_prover::{
-    crypto::{Digest, VectorCommitment}, matrix::{ColMatrix, RowMatrix}, CompositionPoly, CompositionPolyTrace, ConstraintCommitment, ConstraintCompositionCoefficients, DefaultConstraintEvaluator, Prover, StarkDomain, TraceInfo, TracePolyTable
+    crypto::{Digest, VectorCommitment}, matrix::{ColMatrix, RowMatrix}, CompositionPoly, CompositionPolyTrace, ConstraintCommitment, ConstraintCompositionCoefficients, DefaultConstraintCommitment, DefaultConstraintEvaluator, Prover, StarkDomain, TraceInfo, TracePolyTable
 };
 
 use crate::{
@@ -67,6 +67,7 @@ where
     type HashFn = H;
     type RandomCoin = R;
     type TraceLde<E: FieldElement<BaseField = Felt>> = CudaTraceLde<E, H>;
+    type ConstraintCommitment<E: FieldElement<BaseField = Felt>> = DefaultConstraintCommitment<E, H, Self::VC>;
     type ConstraintEvaluator<'a, E: FieldElement<BaseField = Felt>> =
         DefaultConstraintEvaluator<'a, ProcessorAir, E>;
 
@@ -109,12 +110,20 @@ where
         self.execution_prover.build_aux_trace(main_trace, aux_rand_elements)
     }
 
+    fn new_constraint_commitment<E: FieldElement<BaseField = Felt>>(
+        &self,
+        evaluations: RowMatrix<E>,
+        commitment: Self::VC,
+    ) -> Self::ConstraintCommitment<E> {
+        DefaultConstraintCommitment::new(evaluations, commitment)
+    }
+
     fn build_constraint_commitment<E>(
         &self,
         composition_poly_trace: CompositionPolyTrace<E>,
         num_constraint_composition_columns: usize,
         domain: &StarkDomain<Self::BaseField>,
-    ) -> (ConstraintCommitment<E, Self::HashFn, Self::VC>, CompositionPoly<E>)
+    ) -> (Self::ConstraintCommitment<E>, CompositionPoly<E>)
     where
         E: FieldElement<BaseField = Self::BaseField>,
     {
@@ -185,7 +194,7 @@ where
 
         // assert_eq!(constraint_commitment.commitment(), tree.root());
 
-        let constraint_commitment = ConstraintCommitment::new(gpu_lde, commitment);
+        let constraint_commitment = self.new_constraint_commitment(gpu_lde, commitment);
         (constraint_commitment, composition_poly)
     }
 }
