@@ -1,5 +1,5 @@
 use super::{ExecutionError, Felt, Operation, Process};
-use crate::{Host, Word};
+use crate::{AdviceProvider, Host, Word};
 
 // INPUT / OUTPUT OPERATIONS
 // ================================================================================================
@@ -186,7 +186,7 @@ impl Process {
         let addr = Self::get_valid_address(self.stack.get(12))?;
 
         // pop two words from the advice stack
-        let words = host.pop_adv_stack_dword(self.into())?;
+        let words = host.advice_provider_mut().pop_stack_dword(self.into())?;
 
         // write the words memory
         self.chiplets.write_mem_double(ctx, addr, words)?;
@@ -219,7 +219,7 @@ impl Process {
     /// # Errors
     /// Returns an error if the advice stack is empty.
     pub(super) fn op_advpop(&mut self, host: &mut impl Host) -> Result<(), ExecutionError> {
-        let value = host.pop_adv_stack(self.into())?;
+        let value = host.advice_provider_mut().pop_stack(self.into())?;
         self.stack.set(0, value);
         self.stack.shift_right(0);
         Ok(())
@@ -231,7 +231,7 @@ impl Process {
     /// # Errors
     /// Returns an error if the advice stack contains fewer than four elements.
     pub(super) fn op_advpopw(&mut self, host: &mut impl Host) -> Result<(), ExecutionError> {
-        let word: Word = host.pop_adv_stack_word(self.into())?;
+        let word: Word = host.advice_provider_mut().pop_stack_word(self.into())?;
 
         self.stack.set(0, word[3]);
         self.stack.set(1, word[2]);

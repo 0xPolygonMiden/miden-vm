@@ -18,9 +18,10 @@ pub use vm_core::{
     crypto::merkle::SMT_DEPTH,
     errors::InputError,
     mast::{MastForest, MastNode, MastNodeId},
+    sys_events::SystemEvent,
     utils::{collections::KvMap, DeserializationError},
-    AdviceInjector, AssemblyOp, Felt, Kernel, Operation, Program, ProgramInfo, QuadExtension,
-    StackInputs, StackOutputs, Word, EMPTY_WORD, ONE, ZERO,
+    AssemblyOp, Felt, Kernel, Operation, Program, ProgramInfo, QuadExtension, StackInputs,
+    StackOutputs, Word, EMPTY_WORD, ONE, ZERO,
 };
 use vm_core::{
     mast::{
@@ -47,11 +48,8 @@ use range::RangeChecker;
 
 mod host;
 pub use host::{
-    advice::{
-        AdviceExtractor, AdviceInputs, AdviceProvider, AdviceSource, MemAdviceProvider,
-        RecAdviceProvider,
-    },
-    DefaultHost, Host, HostResponse, MastForestStore, MemMastForestStore,
+    advice::{AdviceInputs, AdviceProvider, AdviceSource, MemAdviceProvider, RecAdviceProvider},
+    DefaultHost, Host, MastForestStore, MemMastForestStore,
 };
 
 mod chiplets;
@@ -596,9 +594,6 @@ impl Process {
         host: &mut impl Host,
     ) -> Result<(), ExecutionError> {
         match decorator {
-            Decorator::Advice(injector) => {
-                host.set_advice(self.into(), *injector)?;
-            },
             Decorator::Debug(options) => {
                 if self.decoder.in_debug_mode() {
                     host.on_debug(self.into(), options)?;
@@ -614,7 +609,7 @@ impl Process {
                     host.on_trace(self.into(), *id)?;
                 }
             },
-        }
+        };
         Ok(())
     }
 

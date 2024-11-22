@@ -1,10 +1,9 @@
 use std::sync::Arc;
 
 use processor::{
-    AdviceExtractor, AdviceProvider, ExecutionError, Host, HostResponse, MastForest,
-    MemAdviceProvider, ProcessState,
+    AdviceProvider, ExecutionError, Host, MastForest, MemAdviceProvider, ProcessState,
 };
-use vm_core::{AdviceInjector, DebugOptions};
+use vm_core::DebugOptions;
 
 mod advice;
 mod asmop;
@@ -41,47 +40,23 @@ impl<A: AdviceProvider> Host for TestHost<A> {
         &mut self.adv_provider
     }
 
-    fn get_advice(
-        &mut self,
-        process: ProcessState,
-        extractor: AdviceExtractor,
-    ) -> Result<HostResponse, ExecutionError> {
-        self.adv_provider.get_advice(process, &extractor)
-    }
-
-    fn set_advice(
-        &mut self,
-        process: ProcessState,
-        injector: AdviceInjector,
-    ) -> Result<HostResponse, ExecutionError> {
-        self.adv_provider.set_advice(process, &injector)
-    }
-
-    fn on_event(
-        &mut self,
-        _process: ProcessState,
-        event_id: u32,
-    ) -> Result<HostResponse, ExecutionError> {
+    fn on_event(&mut self, _process: ProcessState, event_id: u32) -> Result<(), ExecutionError> {
         self.event_handler.push(event_id);
-        Ok(HostResponse::None)
+        Ok(())
     }
 
-    fn on_trace(
-        &mut self,
-        _process: ProcessState,
-        trace_id: u32,
-    ) -> Result<HostResponse, ExecutionError> {
+    fn on_trace(&mut self, _process: ProcessState, trace_id: u32) -> Result<(), ExecutionError> {
         self.trace_handler.push(trace_id);
-        Ok(HostResponse::None)
+        Ok(())
     }
 
     fn on_debug(
         &mut self,
         _process: ProcessState,
         _options: &DebugOptions,
-    ) -> Result<HostResponse, ExecutionError> {
+    ) -> Result<(), ExecutionError> {
         self.debug_handler.push(_options.to_string());
-        Ok(HostResponse::None)
+        Ok(())
     }
 
     fn get_mast_forest(&self, _node_digest: &prover::Digest) -> Option<Arc<MastForest>> {

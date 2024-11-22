@@ -1,10 +1,9 @@
 use alloc::{collections::BTreeMap, vec::Vec};
 
-use vm_core::SignatureKind;
+use vm_core::crypto::merkle::{MerkleStore, NodeIndex, StoreNode};
 
 use super::{
-    injectors, AdviceInputs, AdviceProvider, AdviceSource, ExecutionError, Felt, MerklePath,
-    MerkleStore, NodeIndex, RpoDigest, StoreNode, Word,
+    AdviceInputs, AdviceProvider, AdviceSource, ExecutionError, Felt, MerklePath, RpoDigest, Word,
 };
 use crate::{
     utils::collections::{KvMap, RecordingMap},
@@ -108,22 +107,6 @@ where
         Ok(())
     }
 
-    fn get_signature(
-        &self,
-        kind: SignatureKind,
-        pub_key: Word,
-        msg: Word,
-    ) -> Result<Vec<Felt>, ExecutionError> {
-        let pk_sk = self
-            .map
-            .get(&pub_key.into())
-            .ok_or(ExecutionError::AdviceMapKeyNotFound(pub_key))?;
-
-        match kind {
-            SignatureKind::RpoFalcon512 => injectors::dsa::falcon_sign(pk_sk, msg),
-        }
-    }
-
     // ADVICE MAP
     // --------------------------------------------------------------------------------------------
 
@@ -200,14 +183,6 @@ where
             .map(|v| v.into())
             .map_err(ExecutionError::MerkleStoreMergeFailed)
     }
-
-    fn get_store_subset<I, R>(&self, roots: I) -> MerkleStore
-    where
-        I: Iterator<Item = R>,
-        R: core::borrow::Borrow<RpoDigest>,
-    {
-        self.store.subset(roots).into_inner().into_iter().collect()
-    }
 }
 
 // MEMORY ADVICE PROVIDER
@@ -275,10 +250,6 @@ impl AdviceProvider for MemAdviceProvider {
         self.provider.insert_into_map(key, values)
     }
 
-    fn get_signature(&self, kind: SignatureKind, pub_key: Word, msg: Word) -> Result<Vec<Felt>, ExecutionError> {
-        self.provider.get_signature(kind, pub_key, msg)
-    }
-
     fn get_mapped_values(&self, key: &RpoDigest) -> Option<&[Felt]> {
         self.provider.get_mapped_values(key)
     }
@@ -302,14 +273,6 @@ impl AdviceProvider for MemAdviceProvider {
     fn merge_roots(&mut self, lhs: Word, rhs: Word) -> Result<Word, ExecutionError> {
         self.provider.merge_roots(lhs, rhs)
     }
-
-    fn get_store_subset<I, R>(&self, roots: I) -> MerkleStore
-        where
-            I: Iterator<Item = R>,
-            R: core::borrow::Borrow<RpoDigest> {
-        self.provider.get_store_subset(roots)
-    }
-
 }
 
 impl MemAdviceProvider {
@@ -393,10 +356,6 @@ impl AdviceProvider for RecAdviceProvider {
         self.provider.insert_into_map(key, values)
     }
 
-    fn get_signature(&self, kind: SignatureKind, pub_key: Word, msg: Word) -> Result<Vec<Felt>, ExecutionError> {
-        self.provider.get_signature(kind, pub_key, msg)
-    }
-
     fn get_mapped_values(&self, key: &RpoDigest) -> Option<&[Felt]> {
         self.provider.get_mapped_values(key)
     }
@@ -419,13 +378,6 @@ impl AdviceProvider for RecAdviceProvider {
 
     fn merge_roots(&mut self, lhs: Word, rhs: Word) -> Result<Word, ExecutionError> {
         self.provider.merge_roots(lhs, rhs)
-    }
-
-    fn get_store_subset<I, R>(&self, roots: I) -> MerkleStore
-        where
-            I: Iterator<Item = R>,
-            R: core::borrow::Borrow<RpoDigest> {
-        self.provider.get_store_subset(roots)
     }
 }
 
