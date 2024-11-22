@@ -537,8 +537,9 @@ impl MastNodeId {
         Self::from_u32_with_node_count(value, mast_forest.nodes.len())
     }
 
-    /// Returns a new [`MastNodeId`] with the provided `node_id`, or an error if `node_id` is greater
-    /// than the number of nodes in the [`MastForest`] for which this ID is being constructed.
+    /// Returns a new [`MastNodeId`] with the provided `node_id`, or an error if `node_id` is
+    /// greater than the number of nodes in the [`MastForest`] for which this ID is being
+    /// constructed.
     pub fn from_usize_safe(
         node_id: usize,
         mast_forest: &MastForest,
