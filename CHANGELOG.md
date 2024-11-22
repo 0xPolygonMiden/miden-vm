@@ -35,6 +35,7 @@
 - [BREAKING] `DYNCALL` operation fixed, and now expects a memory address pointing to the procedure hash (#1535).
 - Permit child `MastNodeId`s to exceed the `MastNodeId`s of their parents (#1542).
 - Don't validate export names on `Library` deserialization (#1554)
+- Compile advice injectors down to `Emit` operations (#1581)
 
 #### Fixes
 

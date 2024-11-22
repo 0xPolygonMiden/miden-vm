@@ -18,9 +18,10 @@ pub use vm_core::{
     crypto::merkle::SMT_DEPTH,
     errors::InputError,
     mast::{MastForest, MastNode, MastNodeId},
+    sys_events::SystemEvent,
     utils::{collections::KvMap, DeserializationError},
-    AdviceInjector, AssemblyOp, Felt, Kernel, Operation, Program, ProgramInfo, QuadExtension,
-    StackInputs, StackOutputs, Word, EMPTY_WORD, ONE, ZERO,
+    AssemblyOp, Felt, Kernel, Operation, Program, ProgramInfo, QuadExtension, StackInputs,
+    StackOutputs, Word, EMPTY_WORD, ONE, ZERO,
 };
 use vm_core::{
     mast::{
@@ -593,51 +594,6 @@ impl Process {
         host: &mut impl Host,
     ) -> Result<(), ExecutionError> {
         match decorator {
-            Decorator::Advice(injector) => {
-                let advice_provider = host.advice_provider_mut();
-                let process_state: ProcessState = self.into();
-                match injector {
-                    AdviceInjector::MerkleNodeMerge => {
-                        advice_provider.merge_merkle_nodes(process_state)?;
-                    },
-                    AdviceInjector::MerkleNodeToStack => {
-                        advice_provider.copy_merkle_node_to_adv_stack(process_state)?
-                    },
-                    AdviceInjector::MapValueToStack { include_len, key_offset } => advice_provider
-                        .copy_map_value_to_adv_stack(process_state, *include_len, *key_offset)?,
-                    AdviceInjector::UpdateMerkleNode => {
-                        let _ = advice_provider.update_operand_stack_merkle_node(process_state)?;
-                    },
-                    AdviceInjector::U64Div => advice_provider.push_u64_div_result(process_state)?,
-                    AdviceInjector::Ext2Inv => {
-                        advice_provider.push_ext2_inv_result(process_state)?
-                    },
-                    AdviceInjector::Ext2Intt => {
-                        advice_provider.push_ext2_intt_result(process_state)?
-                    },
-                    AdviceInjector::SmtPeek => {
-                        advice_provider.push_smtpeek_result(process_state)?
-                    },
-                    AdviceInjector::U32Clz => advice_provider.push_leading_zeros(process_state)?,
-                    AdviceInjector::U32Ctz => advice_provider.push_trailing_zeros(process_state)?,
-                    AdviceInjector::U32Clo => advice_provider.push_leading_ones(process_state)?,
-                    AdviceInjector::U32Cto => advice_provider.push_trailing_ones(process_state)?,
-                    AdviceInjector::ILog2 => advice_provider.push_ilog2(process_state)?,
-
-                    AdviceInjector::MemToMap => {
-                        advice_provider.insert_mem_values_into_adv_map(process_state)?;
-                    },
-                    AdviceInjector::HdwordToMap { domain } => {
-                        advice_provider.insert_hdword_into_adv_map(process_state, *domain)?;
-                    },
-                    AdviceInjector::HpermToMap => {
-                        advice_provider.insert_hperm_into_adv_map(process_state)?;
-                    },
-                    AdviceInjector::SigToStack { kind } => {
-                        advice_provider.push_signature(process_state, *kind)?
-                    },
-                }
-            },
             Decorator::Debug(options) => {
                 if self.decoder.in_debug_mode() {
                     host.on_debug(self.into(), options)?;

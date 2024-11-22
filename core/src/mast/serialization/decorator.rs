@@ -1,6 +1,5 @@
 use alloc::vec::Vec;
 
-use miden_crypto::Felt;
 use num_derive::{FromPrimitive, ToPrimitive};
 use num_traits::{FromPrimitive, ToPrimitive};
 use winter_utils::{
@@ -11,7 +10,7 @@ use super::{
     string_table::{StringTable, StringTableBuilder},
     DecoratorDataOffset,
 };
-use crate::{AdviceInjector, AssemblyOp, DebugOptions, Decorator, SignatureKind};
+use crate::{AssemblyOp, DebugOptions, Decorator};
 
 /// Represents a serialized [`Decorator`].
 ///
@@ -48,69 +47,6 @@ impl DecoratorInfo {
         let mut data_reader =
             SliceReader::new(&decorator_data[self.decorator_data_offset as usize..]);
         match self.variant {
-            EncodedDecoratorVariant::AdviceInjectorMerkleNodeMerge => {
-                Ok(Decorator::Advice(AdviceInjector::MerkleNodeMerge))
-            },
-            EncodedDecoratorVariant::AdviceInjectorMerkleNodeToStack => {
-                Ok(Decorator::Advice(AdviceInjector::MerkleNodeToStack))
-            },
-            EncodedDecoratorVariant::AdviceInjectorUpdateMerkleNode => {
-                Ok(Decorator::Advice(AdviceInjector::UpdateMerkleNode))
-            },
-            EncodedDecoratorVariant::AdviceInjectorMapValueToStack => {
-                let include_len = data_reader.read_bool()?;
-                let key_offset = data_reader.read_usize()?;
-
-                Ok(Decorator::Advice(AdviceInjector::MapValueToStack { include_len, key_offset }))
-            },
-            EncodedDecoratorVariant::AdviceInjectorU64Div => {
-                Ok(Decorator::Advice(AdviceInjector::U64Div))
-            },
-            EncodedDecoratorVariant::AdviceInjectorExt2Inv => {
-                Ok(Decorator::Advice(AdviceInjector::Ext2Inv))
-            },
-            EncodedDecoratorVariant::AdviceInjectorExt2Intt => {
-                Ok(Decorator::Advice(AdviceInjector::Ext2Intt))
-            },
-            EncodedDecoratorVariant::AdviceInjectorSmtPeek => {
-                Ok(Decorator::Advice(AdviceInjector::SmtPeek))
-            },
-            EncodedDecoratorVariant::AdviceInjectorU32Clz => {
-                Ok(Decorator::Advice(AdviceInjector::U32Clz))
-            },
-            EncodedDecoratorVariant::AdviceInjectorU32Ctz => {
-                Ok(Decorator::Advice(AdviceInjector::U32Ctz))
-            },
-            EncodedDecoratorVariant::AdviceInjectorU32Clo => {
-                Ok(Decorator::Advice(AdviceInjector::U32Clo))
-            },
-            EncodedDecoratorVariant::AdviceInjectorU32Cto => {
-                Ok(Decorator::Advice(AdviceInjector::U32Cto))
-            },
-            EncodedDecoratorVariant::AdviceInjectorILog2 => {
-                Ok(Decorator::Advice(AdviceInjector::ILog2))
-            },
-            EncodedDecoratorVariant::AdviceInjectorMemToMap => {
-                Ok(Decorator::Advice(AdviceInjector::MemToMap))
-            },
-            EncodedDecoratorVariant::AdviceInjectorHdwordToMap => {
-                let domain = data_reader.read_u64()?;
-                let domain = Felt::try_from(domain).map_err(|err| {
-                    DeserializationError::InvalidValue(format!(
-                        "Error when deserializing HdwordToMap decorator domain: {err}"
-                    ))
-                })?;
-
-                Ok(Decorator::Advice(AdviceInjector::HdwordToMap { domain }))
-            },
-            EncodedDecoratorVariant::AdviceInjectorHpermToMap => {
-                Ok(Decorator::Advice(AdviceInjector::HpermToMap))
-            },
-            EncodedDecoratorVariant::AdviceInjectorSigToStack => {
-                Ok(Decorator::Advice(AdviceInjector::SigToStack {
-                    kind: SignatureKind::RpoFalcon512,
-                }))
-            },
             EncodedDecoratorVariant::AssemblyOp => {
                 let num_cycles = data_reader.read_u8()?;
                 let should_break = data_reader.read_bool()?;
@@ -209,23 +145,6 @@ impl Deserializable for DecoratorInfo {
 #[derive(Debug, FromPrimitive, ToPrimitive)]
 #[repr(u8)]
 pub enum EncodedDecoratorVariant {
-    AdviceInjectorMerkleNodeMerge,
-    AdviceInjectorMerkleNodeToStack,
-    AdviceInjectorUpdateMerkleNode,
-    AdviceInjectorMapValueToStack,
-    AdviceInjectorU64Div,
-    AdviceInjectorExt2Inv,
-    AdviceInjectorExt2Intt,
-    AdviceInjectorSmtPeek,
-    AdviceInjectorU32Clz,
-    AdviceInjectorU32Ctz,
-    AdviceInjectorU32Clo,
-    AdviceInjectorU32Cto,
-    AdviceInjectorILog2,
-    AdviceInjectorMemToMap,
-    AdviceInjectorHdwordToMap,
-    AdviceInjectorHpermToMap,
-    AdviceInjectorSigToStack,
     AssemblyOp,
     DebugOptionsStackAll,
     DebugOptionsStackTop,
@@ -253,27 +172,6 @@ impl EncodedDecoratorVariant {
 impl From<&Decorator> for EncodedDecoratorVariant {
     fn from(decorator: &Decorator) -> Self {
         match decorator {
-            Decorator::Advice(advice_injector) => match advice_injector {
-                AdviceInjector::MerkleNodeMerge => Self::AdviceInjectorMerkleNodeMerge,
-                AdviceInjector::MerkleNodeToStack => Self::AdviceInjectorMerkleNodeToStack,
-                AdviceInjector::UpdateMerkleNode => Self::AdviceInjectorUpdateMerkleNode,
-                AdviceInjector::MapValueToStack { include_len: _, key_offset: _ } => {
-                    Self::AdviceInjectorMapValueToStack
-                },
-                AdviceInjector::U64Div => Self::AdviceInjectorU64Div,
-                AdviceInjector::Ext2Inv => Self::AdviceInjectorExt2Inv,
-                AdviceInjector::Ext2Intt => Self::AdviceInjectorExt2Intt,
-                AdviceInjector::SmtPeek => Self::AdviceInjectorSmtPeek,
-                AdviceInjector::U32Clz => Self::AdviceInjectorU32Clz,
-                AdviceInjector::U32Ctz => Self::AdviceInjectorU32Ctz,
-                AdviceInjector::U32Clo => Self::AdviceInjectorU32Clo,
-                AdviceInjector::U32Cto => Self::AdviceInjectorU32Cto,
-                AdviceInjector::ILog2 => Self::AdviceInjectorILog2,
-                AdviceInjector::MemToMap => Self::AdviceInjectorMemToMap,
-                AdviceInjector::HdwordToMap { domain: _ } => Self::AdviceInjectorHdwordToMap,
-                AdviceInjector::HpermToMap => Self::AdviceInjectorHpermToMap,
-                AdviceInjector::SigToStack { kind: _ } => Self::AdviceInjectorSigToStack,
-            },
             Decorator::AsmOp(_) => Self::AssemblyOp,
             Decorator::Debug(debug_options) => match debug_options {
                 DebugOptions::StackAll => Self::DebugOptionsStackAll,
@@ -333,38 +231,6 @@ impl DecoratorDataBuilder {
         let data_offset = self.decorator_data.len() as DecoratorDataOffset;
 
         match decorator {
-            Decorator::Advice(advice_injector) => match advice_injector {
-                AdviceInjector::MapValueToStack { include_len, key_offset } => {
-                    self.decorator_data.write_bool(*include_len);
-                    self.decorator_data.write_usize(*key_offset);
-
-                    Some(data_offset)
-                },
-                AdviceInjector::HdwordToMap { domain } => {
-                    self.decorator_data.extend(domain.as_int().to_le_bytes());
-
-                    Some(data_offset)
-                },
-
-                // Note: Since there is only 1 variant, we don't need to write any extra bytes.
-                AdviceInjector::SigToStack { kind } => match kind {
-                    SignatureKind::RpoFalcon512 => None,
-                },
-                AdviceInjector::MerkleNodeMerge
-                | AdviceInjector::MerkleNodeToStack
-                | AdviceInjector::UpdateMerkleNode
-                | AdviceInjector::U64Div
-                | AdviceInjector::Ext2Inv
-                | AdviceInjector::Ext2Intt
-                | AdviceInjector::SmtPeek
-                | AdviceInjector::U32Clz
-                | AdviceInjector::U32Ctz
-                | AdviceInjector::U32Clo
-                | AdviceInjector::U32Cto
-                | AdviceInjector::ILog2
-                | AdviceInjector::MemToMap
-                | AdviceInjector::HpermToMap => None,
-            },
             Decorator::AsmOp(assembly_op) => {
                 self.decorator_data.push(assembly_op.num_cycles());
                 self.decorator_data.write_bool(assembly_op.should_break());

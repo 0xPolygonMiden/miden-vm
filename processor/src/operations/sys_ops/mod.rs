@@ -1,4 +1,4 @@
-use vm_core::{Felt, Operation};
+use vm_core::{sys_events::SystemEvent, Felt, Operation};
 
 use super::{
     super::{
@@ -8,6 +8,8 @@ use super::{
     ExecutionError, Process,
 };
 use crate::Host;
+mod dsa;
+mod sys_event_handlers;
 
 // SYSTEM OPERATIONS
 // ================================================================================================
@@ -122,9 +124,13 @@ impl Process {
     {
         self.stack.copy_state(0);
         self.decoder.set_user_op_helpers(Operation::Emit(event_id), &[event_id.into()]);
-        host.on_event(self.into(), event_id)?;
 
-        Ok(())
+        // If it's a system event, handle it directly. Otherwise, forward it to the host.
+        if let Some(system_event) = SystemEvent::from_event_id(event_id) {
+            self.handle_sytem_event(system_event, host)
+        } else {
+            host.on_event(self.into(), event_id)
+        }
     }
 }
 
