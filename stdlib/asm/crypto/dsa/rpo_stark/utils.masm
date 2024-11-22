@@ -1,0 +1,148 @@
+use.std::crypto::dsa::rpo_stark::constants
+use.std::crypto::dsa::rpo_stark::random_coin
+use.std::crypto::fri::ext2fri
+
+#! Get FRI layer commitments and reseed with them in order to draw folding challenges i.e. alphas.
+#!
+#! Input: [...]
+#! Output: [...]
+#! Cycles: 21 + 83 * num_fri_layers
+export.load_fri_layer_commitments
+        # Load the first FRI layer commitment
+        padw adv_loadw
+        exec.constants::fri_com_ptr
+        mem_storew
+
+
+        # Reseed
+        exec.random_coin::reseed_with_salt
+        # => [...]
+
+        # Squeeze folding randomness alpha
+        exec.random_coin::get_rate_1
+        drop drop
+
+        # Append the LDE size and log size and store
+        push.9
+        push.512
+        exec.constants::fri_com_ptr add.1
+        mem_storew
+
+
+        # Load the second FRI layer commitment
+        adv_loadw
+        exec.constants::fri_com_ptr add.2
+        mem_storew
+
+        # Reseed
+        exec.random_coin::reseed_with_salt
+        # => [...]
+
+        # Squeeze folding randomness alpha
+        exec.random_coin::get_rate_1
+        drop drop
+
+        # Append the LDE size and log size and store
+        push.7
+        push.128
+        exec.constants::fri_com_ptr add.3
+        mem_storew
+
+
+        # Load the third FRI layer commitment
+        adv_loadw
+        exec.constants::fri_com_ptr add.4
+        mem_storew
+
+        # Reseed
+        exec.random_coin::reseed_with_salt
+        # => [...]
+
+        # Squeeze folding randomness alpha
+        exec.random_coin::get_rate_1
+        drop drop
+
+        # Append the LDE size and log size and store
+        push.5
+        push.32
+        exec.constants::fri_com_ptr add.5
+        mem_storew
+        
+        # Clean up the stack
+        dropw
+end
+
+#! Load the remainder polynomial from the advice provider and check that its hash corresponds
+#! to its commitment and reseed with the latter.
+#! Load the remainder code word, i.e. the NTT of the remainder polynomial, and use its hash, together,
+#! with the hash of the remainder polynomial in order to generate the Fiat-Shamir challenge `tau` for
+#! the `verify_remainder_32` procedure.
+#!
+#! Input: [...]
+#! Output: [...]
+#! Cycles: 1633
+export.load_and_verify_remainder
+    # Load remainder commitment and save it at `TMP7`
+    padw
+    adv_loadw
+    exec.constants::tmp7 mem_storew
+
+    # Reseed with remainder commitment
+    exec.random_coin::reseed_with_salt
+
+    # Capacity portion of the state
+    padw
+
+    # Load the first 2 coefficients
+    padw
+    adv_loadw
+
+    # The FRI layer commitments are stored at addresses ptr, ptr + 2, ptr + 4. The remainder will
+    # be stored in the region ptr + 6 to ptr + 6 + 16 - 1. Thus the remainder polynomial coefficients
+    # will be in the region ptr + 22 to ptr + 22 + 2 - 1
+    exec.constants::fri_com_ptr add.22 mem_storew
+        
+    # Load the last 2 coefficients
+    padw
+    adv_loadw
+    exec.constants::fri_com_ptr add.23 mem_storew
+
+    # Hash the remainder polynomial
+    hperm
+    
+    # Compare Remainder_poly_com with the read commitment
+    exec.constants::tmp7 mem_loadw
+    movup.4
+    assert_eq
+    movup.3
+    assert_eq
+    movup.2
+    assert_eq
+    assert_eq
+    # => [...]
+
+    # Load and hash the remainder codeword
+    exec.constants::fri_com_ptr exec.constants::remainder_codeword_offset add movdn.4
+    padw padw
+    repeat.8
+        adv_pipe hperm
+    end
+    # => [Y, R, Y] where R = [y, y, tau1, tau0]
+
+    # Extract the challenge for the probabilistic check
+    dropw
+    swapw
+    dropw
+    drop
+    drop
+    #=> [tau1, tau0] where tau is the challenge of ext2fri::verify_remainder_32
+
+    # Call the probabilistic check
+    exec.constants::fri_com_ptr exec.constants::remainder_codeword_offset add
+    movdn.2
+    # => [tau1, tau0, ptr_remainder, ... ]
+    exec.ext2fri::verify_remainder_32
+    # Drop pointer
+    drop
+    #=> [...]
+end

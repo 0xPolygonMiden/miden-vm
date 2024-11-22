@@ -10,7 +10,7 @@ use test_utils::{
     crypto::{MerklePath, NodeIndex, PartialMerkleTree, Rpo256 as MidenHasher},
     group_slice_elements,
     math::fft,
-    Felt, FieldElement, MerkleTreeVC, QuadFelt as QuadExt, StarkField, EMPTY_WORD,
+    Felt, FieldElement, QuadFelt as QuadExt, StarkField, EMPTY_WORD,
 };
 use winter_crypto::VectorCommitment;
 use winter_fri::{

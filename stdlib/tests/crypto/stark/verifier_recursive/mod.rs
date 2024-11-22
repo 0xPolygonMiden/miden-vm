@@ -68,7 +68,6 @@ pub fn generate_advice_inputs(
     // generate the auxiliary random elements
     let mut aux_trace_rand_elements = vec![];
     for commitment in trace_commitments.iter().skip(1) {
-        println!("aux_trace_com {:?}", commitment);
         let rand_elements: Vec<QuadExt> = air
             .get_aux_rand_elements(&mut public_coin)
             .map_err(|_| VerifierError::RandomCoinError)?;
