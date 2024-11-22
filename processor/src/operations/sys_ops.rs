@@ -13,7 +13,7 @@ use crate::{
         insert_hperm_into_adv_map, insert_mem_values_into_adv_map, merge_merkle_nodes,
         push_ext2_intt_result, push_ext2_inv_result, push_ilog2, push_leading_ones,
         push_leading_zeros, push_signature, push_smtpeek_result, push_trailing_ones,
-        push_trailing_zeros, push_u64_div_result, update_operand_stack_merkle_node,
+        push_trailing_zeros, push_u64_div_result,
     },
     Host, ProcessState,
 };
@@ -157,10 +157,6 @@ impl Process {
             },
             AdviceInjector::MapValueToStackN => {
                 copy_map_value_to_adv_stack(advice_provider, process_state, true)
-            },
-            AdviceInjector::UpdateMerkleNode => {
-                let _ = update_operand_stack_merkle_node(advice_provider, process_state)?;
-                Ok(())
             },
             AdviceInjector::U64Div => push_u64_div_result(advice_provider, process_state),
             AdviceInjector::Ext2Inv => push_ext2_inv_result(advice_provider, process_state),

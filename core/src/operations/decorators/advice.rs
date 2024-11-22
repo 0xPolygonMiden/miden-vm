@@ -11,7 +11,6 @@ pub use constants::*;
 mod constants {
     pub const EVENT_MERKLE_NODE_MERGE: u32            = 276124218;
     pub const EVENT_MERKLE_NODE_TO_STACK: u32         = 361943238;
-    pub const EVENT_UPDATE_MERKLE_NODE: u32           = 483702215;
     pub const EVENT_MAP_VALUE_TO_STACK: u32           = 574478993;
     pub const EVENT_MAP_VALUE_TO_STACK_N: u32         = 630847990;
     pub const EVENT_U64_DIV: u32                      = 678156251;
@@ -72,21 +71,6 @@ pub enum AdviceInjector {
     ///   Advice stack: [NODE, ...]
     ///   Merkle store: {TREE_ROOT<-NODE}
     MerkleNodeToStack,
-
-    /// Updates the node of a Merkle tree specified by the values at the top of the operand stack.
-    /// Returns the path from the updated node to the new root of the tree to the caller.
-    ///
-    /// Inputs:
-    ///  Operand stack: [OLD_NODE, depth, index, OLD_ROOT, NEW_NODE, ...]
-    ///  Advice: [...]
-    ///  Merkle store: {...}
-    ///
-    /// Outputs:
-    ///  Operand stack: [OLD_NODE, depth, index, OLD_ROOT, NEW_NODE, ...]
-    ///  Advice stack: [...]
-    ///  Merkle store: {path, ...}
-    ///  Return: \[path\]
-    UpdateMerkleNode,
 
     /// Pushes a list of field elements onto the advice stack. The list is looked up in the advice
     /// map using the specified word from the operand stack as the key.
@@ -322,7 +306,6 @@ impl AdviceInjector {
         match self {
             AdviceInjector::MerkleNodeMerge => EVENT_MERKLE_NODE_MERGE,
             AdviceInjector::MerkleNodeToStack => EVENT_MERKLE_NODE_TO_STACK,
-            AdviceInjector::UpdateMerkleNode => EVENT_UPDATE_MERKLE_NODE,
             AdviceInjector::MapValueToStack => EVENT_MAP_VALUE_TO_STACK,
             AdviceInjector::MapValueToStackN => EVENT_MAP_VALUE_TO_STACK_N,
             AdviceInjector::U64Div => EVENT_U64_DIV,
@@ -348,7 +331,6 @@ impl AdviceInjector {
         match event_id {
             EVENT_MERKLE_NODE_MERGE => Some(AdviceInjector::MerkleNodeMerge),
             EVENT_MERKLE_NODE_TO_STACK => Some(AdviceInjector::MerkleNodeToStack),
-            EVENT_UPDATE_MERKLE_NODE => Some(AdviceInjector::UpdateMerkleNode),
             EVENT_MAP_VALUE_TO_STACK => Some(AdviceInjector::MapValueToStack),
             EVENT_MAP_VALUE_TO_STACK_N => Some(AdviceInjector::MapValueToStackN),
             EVENT_U64_DIV => Some(AdviceInjector::U64Div),
@@ -381,9 +363,6 @@ impl fmt::Display for AdviceInjector {
         match self {
             Self::MerkleNodeMerge => write!(f, "merkle_node_merge"),
             Self::MerkleNodeToStack => write!(f, "merkle_node_to_stack"),
-            Self::UpdateMerkleNode => {
-                write!(f, "update_merkle_node")
-            },
             Self::MapValueToStack => write!(f, "map_value_to_stack"),
             Self::MapValueToStackN => write!(f, "map_value_to_stack_with_len"),
             Self::U64Div => write!(f, "div_u64"),

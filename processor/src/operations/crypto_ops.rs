@@ -1,7 +1,5 @@
 use super::{ExecutionError, Operation, Process};
-use crate::{
-    crypto::MerklePath, host::advice::update_operand_stack_merkle_node, AdviceProvider, Host,
-};
+use crate::{AdviceProvider, Host};
 
 // CRYPTOGRAPHIC OPERATIONS
 // ================================================================================================
@@ -149,8 +147,9 @@ impl Process {
         // get a Merkle path to it. the length of the returned path is expected to match the
         // specified depth. if the new node is the root of a tree, this instruction will append the
         // whole sub-tree to this node.
-        let path: MerklePath =
-            update_operand_stack_merkle_node(host.advice_provider_mut(), self.into())?;
+        let (path, _) = host
+            .advice_provider_mut()
+            .update_merkle_node(old_root, &depth, &index, new_node)?;
 
         assert_eq!(path.len(), depth.as_int() as usize);
 

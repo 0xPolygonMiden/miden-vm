@@ -697,41 +697,6 @@ pub fn push_ilog2(
     Ok(())
 }
 
-/// Updates the node of a Merkle tree specified by the values on the top of the operand stack.
-/// Returns the path from the updated node to the new root of the tree to the caller.
-///
-/// Inputs:
-///  Operand stack: [OLD_NODE, depth, index, OLD_ROOT, NEW_NODE, ...]
-///  Advice: [...]
-///  Merkle store: {...}
-///
-/// Outputs:
-///  Operand stack: [OLD_NODE, depth, index, OLD_ROOT, NEW_NODE, ...]
-///  Advice stack: [...]
-///  Merkle store: {path, ...}
-///  Return: \[path\]
-pub fn update_operand_stack_merkle_node(
-    advice_provider: &mut impl AdviceProvider,
-    process: ProcessState,
-) -> Result<MerklePath, ExecutionError> {
-    let depth = process.get_stack_item(4);
-    let index = process.get_stack_item(5);
-    let old_root = [
-        process.get_stack_item(9),
-        process.get_stack_item(8),
-        process.get_stack_item(7),
-        process.get_stack_item(6),
-    ];
-    let new_node = [
-        process.get_stack_item(13),
-        process.get_stack_item(12),
-        process.get_stack_item(11),
-        process.get_stack_item(10),
-    ];
-    let (path, _) = advice_provider.update_merkle_node(old_root, &depth, &index, new_node)?;
-    Ok(path)
-}
-
 /// Pushes onto the advice stack the value associated with the specified key in a Sparse
 /// Merkle Tree defined by the specified root.
 ///
