@@ -24,6 +24,7 @@ required-features = ["executable"]
 path = "src/lib.rs"
 bench = false
 doctest = false
+crate-type = ["cdylib", "rlib"]
 
 [[bench]]
 name = "program_execution"
@@ -54,6 +55,7 @@ executable = [
     "dep:tracing-subscriber",
 ]
 metal = ["prover/metal", "std"]
+webgpu = ["prover/webgpu"]
 std = ["assembly/std", "processor/std", "prover/std", "verifier/std"]
 
 [dependencies]

@@ -1,5 +1,3 @@
-#![no_std]
-
 #[cfg_attr(all(feature = "metal", target_arch = "aarch64", target_os = "macos"), macro_use)]
 extern crate alloc;
 
@@ -104,7 +102,12 @@ pub fn prove(
                 stack_outputs.clone(),
             );
             #[cfg(all(feature = "metal", target_arch = "aarch64", target_os = "macos"))]
-            let prover = gpu::metal::MetalExecutionProver::new(prover, HashFn::Rpo256);
+            let prover = gpu::metal::MetalExecutionProver::new(prover, miden_gpu::HashFn::Rpo256);
+            #[cfg(all(
+                feature = "webgpu",
+                any(all(target_arch = "aarch64", target_os = "macos"), target_family = "wasm")
+            ))]
+            let prover = gpu::webgpu::WebGPUExecutionProver::new(prover, miden_gpu::HashFn::Rpo256);
             maybe_await!(prover.prove(trace))
         },
         HashFunction::Rpx256 => {
@@ -114,7 +117,12 @@ pub fn prove(
                 stack_outputs.clone(),
             );
             #[cfg(all(feature = "metal", target_arch = "aarch64", target_os = "macos"))]
-            let prover = gpu::metal::MetalExecutionProver::new(prover, HashFn::Rpx256);
+            let prover = gpu::metal::MetalExecutionProver::new(prover, miden_gpu::HashFn::Rpx256);
+            #[cfg(all(
+                feature = "webgpu",
+                any(all(target_arch = "aarch64", target_os = "macos"), target_family = "wasm")
+            ))]
+            let prover = gpu::webgpu::WebGPUExecutionProver::new(prover, miden_gpu::HashFn::Rpx256);
             maybe_await!(prover.prove(trace))
         },
     }
@@ -176,6 +184,7 @@ where
     }
 }
 
+#[maybe_async]
 impl<H, R> Prover for ExecutionProver<H, R>
 where
     H: ElementHasher<BaseField = Felt> + Sync,
