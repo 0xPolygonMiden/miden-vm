@@ -5,6 +5,7 @@
 - [BREAKING] `ProcessState` was converted from a trait to a struct (#1571)
 - [BREAKING] `Host` and `AdviceProvider` traits simplified (#1572)
 - [BREAKING] `MastForest` serialization/deserialization will store/read decorator data at the end of the binary (#1531)
+- [BREAKING] Updated Winterfell dependency to v0.11 (#1586).
 
 #### Enhancements
 - Added `miden_core::mast::MastForest::advice_map` to load it into the advice provider before the `MastForest` execution (#1574).
