@@ -174,7 +174,7 @@ fn test_falcon512_probabilistic_product_failure() {
     expect_exec_error_matches!(
         test,
         ExecutionError::FailedAssertion{ clk, err_code, err_msg }
-        if clk == RowIndex::from(17490) && err_code == 0 && err_msg == None
+        if clk == RowIndex::from(17490) && err_code == 0 && err_msg.is_none()
     );
 }
 

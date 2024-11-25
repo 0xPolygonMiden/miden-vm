@@ -25,7 +25,7 @@ fn assert_with_code() {
     expect_exec_error_matches!(
         test,
         ExecutionError::FailedAssertion{ clk, err_code, err_msg }
-        if clk == RowIndex::from(2) && err_code == 123_u32 && err_msg == None
+        if clk == RowIndex::from(2) && err_code == 123_u32 && err_msg.is_none()
     );
 }
 
@@ -38,7 +38,7 @@ fn assert_fail() {
     expect_exec_error_matches!(
         test,
         ExecutionError::FailedAssertion{ clk, err_code, err_msg }
-        if clk == RowIndex::from(2) && err_code == 0 && err_msg == None
+        if clk == RowIndex::from(2) && err_code == 0 && err_msg.is_none()
     );
 }
 
@@ -62,7 +62,7 @@ fn assert_eq_fail() {
     expect_exec_error_matches!(
         test,
         ExecutionError::FailedAssertion{ clk, err_code, err_msg }
-        if clk == RowIndex::from(3) && err_code == 0_u32 && err_msg == None
+        if clk == RowIndex::from(3) && err_code == 0_u32 && err_msg.is_none()
     );
 
     let test = build_op_test!(asm_op, &[1, 4]);
@@ -70,7 +70,7 @@ fn assert_eq_fail() {
     expect_exec_error_matches!(
         test,
         ExecutionError::FailedAssertion{ clk, err_code, err_msg }
-        if clk == RowIndex::from(3) && err_code == 0_u32 && err_msg == None
+        if clk == RowIndex::from(3) && err_code == 0_u32 && err_msg.is_none()
     );
 }
 
