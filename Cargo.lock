@@ -1060,7 +1060,6 @@ dependencies = [
  "num",
  "num-complex",
  "rand",
- "rand_chacha",
  "rand_core",
  "sha3",
  "winter-crypto 0.10.2",
@@ -2877,17 +2876,6 @@ dependencies = [
  "winter-fri",
  "winter-math 0.11.0",
  "winter-utils 0.11.0",
-]
-
-[[package]]
-name = "winterfell"
-version = "0.10.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "39c8336dc6a035698780b8cc624f875e479bd6bf6e1846670f3ef4485c125882"
-dependencies = [
- "winter-air",
- "winter-prover",
- "winter-verifier",
 ]
 
 [[package]]
