@@ -1,6 +1,6 @@
 //! This module contains GPU acceleration logic for Nvidia CUDA devices.
 
-use std::marker::PhantomData;
+use std::{cell::RefCell, marker::PhantomData, mem::MaybeUninit};
 
 use air::{AuxRandElements, PartitionOptions};
 use miden_gpu::{
@@ -32,25 +32,32 @@ const DIGEST_SIZE: usize = Rpo256::DIGEST_RANGE.end - Rpo256::DIGEST_RANGE.start
 // ================================================================================================
 
 /// Wraps an [ExecutionProver] and provides GPU acceleration for building trace commitments.
-pub(crate) struct CudaExecutionProver<H, D, R>
+pub(crate) struct CudaExecutionProver<'g, H, D, R>
 where
     H: Hasher<Digest = D> + ElementHasher<BaseField = R::BaseField>,
     D: Digest + From<[Felt; DIGEST_SIZE]> + Into<[Felt; DIGEST_SIZE]>,
     R: RandomCoin<BaseField = Felt, Hasher = H> + Send,
 {
+    main: RefCell<&'g mut [MaybeUninit<Felt>]>,
+    aux: RefCell<&'g mut [MaybeUninit<Felt>]>,
+    ce: RefCell<&'g mut [MaybeUninit<Felt>]>,
+
     pub execution_prover: ExecutionProver<H, R>,
     pub hash_fn: HashFn,
     phantom_data: PhantomData<D>,
 }
 
-impl<H, D, R> CudaExecutionProver<H, D, R>
+impl<'g, H, D, R> CudaExecutionProver<'g, H, D, R>
 where
     H: Hasher<Digest = D> + ElementHasher<BaseField = R::BaseField>,
     D: Digest + From<[Felt; DIGEST_SIZE]> + Into<[Felt; DIGEST_SIZE]>,
     R: RandomCoin<BaseField = Felt, Hasher = H> + Send,
 {
-    pub fn new(execution_prover: ExecutionProver<H, R>, hash_fn: HashFn) -> Self {
+    pub fn new(execution_prover: ExecutionProver<H, R>, hash_fn: HashFn, main: &'g mut [MaybeUninit<Felt>], aux: &'g mut [MaybeUninit<Felt>], ce: &'g mut [MaybeUninit<Felt>]) -> Self {
         CudaExecutionProver {
+            main: RefCell::new(main),
+            aux: RefCell::new(aux),
+            ce: RefCell::new(ce),
             execution_prover,
             hash_fn,
             phantom_data: PhantomData,
@@ -58,7 +65,7 @@ where
     }
 }
 
-impl<H, D, R> Prover for CudaExecutionProver<H, D, R>
+impl<'g, H, D, R> Prover for CudaExecutionProver<'g, H, D, R>
 where
     H: Hasher<Digest = D> + ElementHasher<BaseField = R::BaseField> + Send + Sync,
     D: Digest + From<[Felt; DIGEST_SIZE]> + Into<[Felt; DIGEST_SIZE]>,
@@ -67,11 +74,11 @@ where
     type BaseField = Felt;
     type Air = ProcessorAir;
     type Trace = ExecutionTrace;
-    type VC = MerkleTree<Self::HashFn>;
+    type VC = MerkleTree<'g, Self::HashFn>;
     type HashFn = H;
     type RandomCoin = R;
-    type TraceLde<E: FieldElement<BaseField = Felt>> = CudaTraceLde<E, H>;
-    type ConstraintCommitment<E: FieldElement<BaseField = Felt>> = CudaConstraintCommitment<E, H>;
+    type TraceLde<E: FieldElement<BaseField = Felt>> = CudaTraceLde<'g, E, H>;
+    type ConstraintCommitment<E: FieldElement<BaseField = Felt>> = CudaConstraintCommitment<'g, E, H>;
     type ConstraintEvaluator<'a, E: FieldElement<BaseField = Felt>> =
         DefaultConstraintEvaluator<'a, ProcessorAir, E>;
 
@@ -90,7 +97,7 @@ where
         domain: &StarkDomain<Felt>,
         partition_options: PartitionOptions,
     ) -> (Self::TraceLde<E>, TracePolyTable<E>) {
-        CudaTraceLde::new(trace_info, main_trace, domain, partition_options, self.hash_fn)
+        CudaTraceLde::new(self.main.take(), self.aux.take(), trace_info, main_trace, domain, partition_options, self.hash_fn)
     }
 
     fn new_evaluator<'a, E: FieldElement<BaseField = Felt>>(
@@ -125,6 +132,7 @@ where
         E: FieldElement<BaseField = Self::BaseField>,
     {
         CudaConstraintCommitment::new(
+            self.ce.take(),
             composition_poly_trace,
             num_constraint_composition_columns,
             domain,

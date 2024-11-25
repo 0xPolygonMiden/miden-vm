@@ -8,7 +8,9 @@ extern crate std;
 
 use core::marker::PhantomData;
 
-use air::{AuxRandElements, PartitionOptions, ProcessorAir, PublicInputs};
+use air::{trace::{AUX_TRACE_WIDTH, TRACE_WIDTH}, AuxRandElements, PartitionOptions, ProcessorAir, PublicInputs};
+#[cfg(all(target_arch = "x86_64", feature = "cuda"))]
+use miden_gpu::cuda::util::{struct_size, CudaStorageOwned};
 #[cfg(any(
     all(feature = "metal", target_arch = "aarch64", target_os = "macos"),
     all(feature = "cuda", target_arch = "x86_64")
@@ -20,7 +22,7 @@ use processor::{
         RpxRandomCoin, WinterRandomCoin,
     },
     math::{Felt, FieldElement},
-    ExecutionTrace, Program,
+    ExecutionTrace, Program, QuadExtension,
 };
 use tracing::instrument;
 use winter_maybe_async::{maybe_async, maybe_await};
@@ -47,6 +49,37 @@ pub use winter_prover::{crypto::MerkleTree as MerkleTreeVC, Proof};
 
 // PROVER
 // ================================================================================================
+
+#[cfg(all(feature = "cuda", target_arch = "x86_64"))]
+#[instrument("allocate_memory", skip_all)]
+fn allocate_memory(trace: &ExecutionTrace, options: &ProvingOptions) -> CudaStorageOwned {
+    use winter_prover::{math::fields::CubeExtension, Air};
+
+    let main_columns = TRACE_WIDTH;
+    let aux_columns = AUX_TRACE_WIDTH;
+    let rows = trace.get_trace_len();
+    let options: WinterProofOptions = options.clone().into();
+    let extension = options.field_extension();
+    let blowup = options.blowup_factor();
+    let partitions = options.partition_options();
+
+    let main = struct_size::<Felt>(main_columns, rows, blowup, partitions);
+    let aux = match extension {
+        FieldExtension::None => struct_size::<Felt>(aux_columns, rows, blowup, partitions),
+        FieldExtension::Quadratic => struct_size::<QuadExtension<Felt>>(aux_columns, rows, blowup, partitions),
+        FieldExtension::Cubic => struct_size::<CubeExtension<Felt>>(aux_columns, rows, blowup, partitions),
+    };
+
+    let air = ProcessorAir::new(trace.info().clone(), PublicInputs::new(Default::default(), Default::default(), Default::default()), options);
+    let ce_columns = air.context().num_constraint_composition_columns();
+    let ce = match extension {
+        FieldExtension::None => struct_size::<Felt>(ce_columns, rows, blowup, partitions),
+        FieldExtension::Quadratic => struct_size::<QuadExtension<Felt>>(ce_columns, rows, blowup, partitions),
+        FieldExtension::Cubic => struct_size::<CubeExtension<Felt>>(ce_columns, rows, blowup, partitions),
+    };
+
+    CudaStorageOwned::new(main, aux, ce)
+}
 
 /// Executes and proves the specified `program` and returns the result together with a STARK-based
 /// proof of the program's execution.
@@ -84,6 +117,11 @@ pub fn prove(
     let stack_outputs = trace.stack_outputs().clone();
     let hash_fn = options.hash_fn();
 
+    #[cfg(all(feature = "cuda", target_arch = "x86_64"))]
+    let mut storage = allocate_memory(&trace, &options);
+    #[cfg(all(feature = "cuda", target_arch = "x86_64"))]
+    let (main, aux, ce) = storage.borrow_mut();
+
     // generate STARK proof
     let proof = match hash_fn {
         HashFunction::Blake3_192 => {
@@ -111,7 +149,7 @@ pub fn prove(
             #[cfg(all(feature = "metal", target_arch = "aarch64", target_os = "macos"))]
             let prover = gpu::metal::MetalExecutionProver::new(prover, HashFn::Rpo256);
             #[cfg(all(feature = "cuda", target_arch = "x86_64"))]
-            let prover = gpu::cuda::CudaExecutionProver::new(prover, HashFn::Rpo256);
+            let prover = gpu::cuda::CudaExecutionProver::new(prover, HashFn::Rpo256, main, aux, ce);
             maybe_await!(prover.prove(trace))
         },
         HashFunction::Rpx256 => {
@@ -123,7 +161,7 @@ pub fn prove(
             #[cfg(all(feature = "metal", target_arch = "aarch64", target_os = "macos"))]
             let prover = gpu::metal::MetalExecutionProver::new(prover, HashFn::Rpx256);
             #[cfg(all(feature = "cuda", target_arch = "x86_64"))]
-            let prover = gpu::cuda::CudaExecutionProver::new(prover, HashFn::Rpx256);
+            let prover = gpu::cuda::CudaExecutionProver::new(prover, HashFn::Rpx256, main, aux, ce);
             maybe_await!(prover.prove(trace))
         },
     }
