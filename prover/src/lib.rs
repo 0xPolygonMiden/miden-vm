@@ -229,7 +229,7 @@ where
     }
 
     #[maybe_async]
-    fn build_constraint_commitment<E: FieldElement<BaseField = Felt>>(
+    fn build_constraint_commitment<E: FieldElement<BaseField = Self::BaseField>>(
         &self,
         composition_poly_trace: CompositionPolyTrace<E>,
         num_constraint_composition_columns: usize,

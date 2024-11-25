@@ -196,7 +196,7 @@ where
     ///        ────┼────────┼────────┼────────┼────────┼────────┼───
     ///           t=n     t=n+1    t=n+2     t=n+3   t=n+4    t=n+5
     /// ```
-    fn build_constraint_commitment<E: FieldElement<BaseField = Felt>>(
+    fn build_constraint_commitment<E: FieldElement<BaseField = Self::BaseField>>(
         &self,
         composition_poly_trace: CompositionPolyTrace<E>,
         num_trace_poly_columns: usize,
