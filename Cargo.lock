@@ -1053,7 +1053,7 @@ dependencies = [
 [[package]]
 name = "miden-crypto"
 version = "0.13.0"
-source = "git+https://github.com/0xPolygonMiden/crypto?branch=al-update-winterfell#adfe493f1d134b5387749621d363b02af58e5613"
+source = "git+https://github.com/0xPolygonMiden/crypto?branch=next#e1072ecc7f2dab7faa190d250a7836b6c1edf8f0"
 dependencies = [
  "blake3",
  "cc",
