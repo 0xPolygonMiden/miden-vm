@@ -88,10 +88,13 @@ export.verify
    
     # Cycles: 71
     exec.random_coin::reseed_with_salt
+    #=> [...]
 
     #==============================================================================================
     #       VI) Evaluate the constraints over the OOD frame and assert equality with H(z)
     #==============================================================================================
+
+    #=> [...]
 
     #==============================================================================================
     #       VII) FRI
@@ -161,7 +164,7 @@ export.verify
 
     # Compute deep compostion polynomial queries
     #
-    # Cycles: 6 + num_queries * 328
+    # Cycles: 24 + num_queries * 315
     exec.deep_queries::compute_deep_composition_polynomial_queries
     #=> [query_ptr, ...]
 

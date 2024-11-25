@@ -442,26 +442,31 @@ export.generate_z_zN
     # Load z (first two felts of the random coin state) and log trace length N
     exec.constants::r1_ptr mem_loadw
     drop drop
-    push.8
-    # => [log(trace_len), z_1, z_0, ...]
 
-    dup.2 dup.2
-    # => [z_1, z_0, log(trace_len), z_1, z_0, ...]
+    dup.1 dup.1
 
-    # TODO: Fix this part
-    # Compute z^N using the fact that z^N = z^(2^log(N))
-    # Loop starts with `i=log(trace_len)`
-    push.1
-    while.true
-        dup.1 dup.1 ext2mul
-        # => [(z_1, z_0)^n, i, z_1, z_0, ...]
-
-        dup.2 sub.1 swap.3 push.1 neq
-        # => [b, (z_1, z_0)^n, i-1, z_1, z_0, ...]
+    dup.1 dup.1
+    repeat.2
+        dup.1 dup.1
+        ext2mul
     end
-
-    movup.2 drop
-    # => [(z_1, z_0)^n, z_1, z_0, ...]
+    # => [z4_1, z4_0, z_1, z_0, ...]
+    dup.1 dup.1
+    repeat.2
+        dup.1 dup.1
+        ext2mul
+    end
+    # => [z16_1, z16_0, z4_1, z4_0, z_1, z_0, z_1, z_0, ...]
+    
+    dup.5 dup.5
+    repeat.7
+        dup.1 dup.1
+        ext2mul
+    end
+    # => [z16_1, z16_0, z16_1, z16_0, z4_1, z4_0, z_1, z_0, z_1, z_0, ...]
+    repeat.3
+        ext2mul
+    end
 
     # Store z and z^N
     exec.constants::z_ptr mem_storew
