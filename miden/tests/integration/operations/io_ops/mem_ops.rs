@@ -1,5 +1,7 @@
+use processor::ContextId;
 use prover::ExecutionError;
-use test_utils::expect_exec_error;
+use test_utils::expect_exec_error_matches;
+use vm_core::FieldElement;
 
 use super::{apply_permutation, build_op_test, build_test, Felt, ToElements, TRUNCATE_STACK_PROC};
 
@@ -243,12 +245,10 @@ fn mem_reads_same_clock_cycle() {
     let asm_op = "begin rcomb_base end";
 
     let test = build_test!(asm_op);
-    expect_exec_error!(
+
+    expect_exec_error_matches!(
         test,
-        ExecutionError::DuplicateMemoryAccess {
-            ctx: 0_u32.into(),
-            addr: 0,
-            clk: 1_u32.into()
-        }
+        ExecutionError::DuplicateMemoryAccess{ctx, addr, clk }
+        if ctx == ContextId::from(0) && addr == 0 && clk == Felt::ONE
     );
 }
