@@ -1,7 +1,7 @@
 use std::path::Path;
 use std::{path::PathBuf, time::Instant};
 
-use assembly::diagnostics::{IntoDiagnostic, Report, WrapErr};
+use assembly::diagnostics::{IntoDiagnostic, Report, Result, WrapErr};
 use clap::Parser;
 use miden_vm::{Kernel, ProgramInfo};
 
@@ -26,7 +26,7 @@ pub struct VerifyCmd {
 
 impl VerifyCmd {
     pub fn execute(&self) -> Result<(), Report> {
-        let (input_file, output_file) = self.infer_defaults();
+        let (input_file, output_file) = self.infer_defaults().unwrap();
 
         println!("===============================================================================");
         println!("Verifying proof: {}", self.proof_file.display());
@@ -69,11 +69,11 @@ impl VerifyCmd {
         Ok(())
     }
 
-    fn infer_defaults(&self) -> (PathBuf, PathBuf) {
-        let proof_file = if self.proof_file.exists() {
-            self.proof_file.clone()
+    fn infer_defaults(&self) -> Result<(PathBuf,PathBuf),Report> {
+        let proof_file = if Path::new(&self.proof_file.as_os_str()).try_exists().is_err() {
+            return Err(Report::msg("Proof file does not exist"));
         } else {
-            PathBuf::from("default_proof_file.txt")
+            self.proof_file.clone()
         };
 
         let base_name = proof_file.file_stem().expect("Invalid proof file").to_str().unwrap();
@@ -81,17 +81,21 @@ impl VerifyCmd {
         let input_file = self.input_file.clone().unwrap_or_else(|| {
             let mut input_path =
                 proof_file.parent().unwrap_or_else(|| Path::new(".")).to_path_buf();
-            input_path.push(format!("{}.inputs", base_name));
+                input_path.push(base_name);
+                input_path.set_extension("inputs");
+            // input_path.push(format!("{}.inputs", base_name));
             input_path
         });
 
         let output_file = self.output_file.clone().unwrap_or_else(|| {
             let mut output_path =
                 proof_file.parent().unwrap_or_else(|| Path::new(".")).to_path_buf();
-            output_path.push(format!("{}.outputs", base_name));
+                output_path.push(base_name);
+                output_path.set_extension("outputs");
+            // output_path.push(format!("{}.outputs", base_name));
             output_path
         });
 
-        return (input_file, output_file);
+        return Ok((input_file, output_file));
     }
 }
