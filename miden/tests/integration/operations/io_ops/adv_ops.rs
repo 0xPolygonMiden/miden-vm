@@ -1,7 +1,4 @@
-use processor::{
-    ExecutionError::{self},
-    RowIndex,
-};
+use processor::{ExecutionError, RowIndex};
 use test_utils::expect_exec_error_matches;
 use vm_core::{chiplets::hasher::apply_permutation, utils::ToElements, Felt};
 
