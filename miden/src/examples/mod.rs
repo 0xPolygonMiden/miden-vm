@@ -5,7 +5,6 @@ use clap::Parser;
 use miden_vm::{ExecutionProof, Host, Program, ProgramInfo, ProvingOptions, StackInputs};
 use processor::{ExecutionOptions, ExecutionOptionsError, Felt, ONE, ZERO};
 
-pub mod blake3;
 pub mod fibonacci;
 
 // EXAMPLE
@@ -65,13 +64,6 @@ pub enum ExampleType {
         #[clap(short = 'n', default_value = "1024")]
         sequence_length: usize,
     },
-
-    /// Compute a chain of the BLAKE3 1-to-1 hashes
-    Blake3 {
-        /// Length of the hash chain
-        #[clap(short = 'n', default_value = "32")]
-        chain_length: usize,
-    },
 }
 
 impl ExampleOptions {
@@ -110,7 +102,6 @@ impl ExampleOptions {
         // instantiate and prepare the example
         let example = match self.example {
             ExampleType::Fib { sequence_length } => fibonacci::get_example(sequence_length),
-            ExampleType::Blake3 { chain_length } => blake3::get_example(chain_length),
         };
 
         let Example {

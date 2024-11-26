@@ -4,6 +4,7 @@ use assembly::diagnostics::{IntoDiagnostic, Report, WrapErr};
 use clap::Parser;
 use miden_vm::ProvingOptions;
 use processor::{DefaultHost, ExecutionOptions, ExecutionOptionsError, Program};
+use stdlib::StdLibrary;
 
 use super::data::{instrument, Debug, InputFile, Libraries, OutputFile, ProgramFile, ProofFile};
 
@@ -97,6 +98,7 @@ impl ProveCmd {
         // fetch the stack and program inputs from the arguments
         let stack_inputs = input_data.parse_stack_inputs().map_err(Report::msg)?;
         let mut host = DefaultHost::new(input_data.parse_advice_provider().map_err(Report::msg)?);
+        host.load_mast_forest(StdLibrary::default().mast_forest().clone()).unwrap();
 
         let proving_options =
             self.get_proof_options().map_err(|err| Report::msg(format!("{err}")))?;
