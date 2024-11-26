@@ -72,7 +72,7 @@ impl Process {
         // --- compute the updated accumulator values ---------------------------------------------
         let v0 = self.stack.get(7);
         let tx = QuadFelt::new(v0, ZERO);
-        let [r_new, p_new] = [r + alpha * (tx - tz), p + alpha * (tx - tgz)];
+        let [p_new, r_new] = [p + alpha * (tx - tgz), r + alpha * (tx - tz)];
 
         // --- rotate the top 8 elements of the stack ---------------------------------------------
         self.stack.set(0, t0);
@@ -337,8 +337,8 @@ mod tests {
         let tz: Vec<QuadFelt> = tz_tgz.iter().step_by(2).map(|e| e.to_owned()).collect();
         let tgz: Vec<QuadFelt> = tz_tgz.iter().skip(1).step_by(2).map(|e| e.to_owned()).collect();
         for i in 0..8 {
-            p += a[i] * (QuadFelt::from(tx[i]) - tz[i]);
-            r += a[i] * (QuadFelt::from(tx[i]) - tgz[i]);
+            p += a[i] * (QuadFelt::from(tx[i]) - tgz[i]);
+            r += a[i] * (QuadFelt::from(tx[i]) - tz[i]);
         }
 
         // prepare the advice stack with the generated data
@@ -362,10 +362,10 @@ mod tests {
         expected.extend_from_slice(&[ZERO, Felt::from(18_u8), Felt::from(10_u8), Felt::from(2_u8)]);
         // updated accumulators
         expected.extend_from_slice(&[
-            p.to_base_elements()[0],
-            p.to_base_elements()[1],
             r.to_base_elements()[0],
             r.to_base_elements()[1],
+            p.to_base_elements()[0],
+            p.to_base_elements()[1],
         ]);
         // the top 8 stack elements should equal tx since 8 calls to `rcomb_base` implies 8 circular
         // shifts of the top 8 elements i.e., the identity map on the top 8 element.

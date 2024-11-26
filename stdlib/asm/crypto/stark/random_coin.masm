@@ -165,9 +165,14 @@ export.init_seed
 
     # Construct the proof context
 
-    ##trace layout info
+    ## trace layout info, which is the concatenation as u8-s of:
+    ## 1. main segment width
+    ## 2. num auxiliary segments, which always 1
+    ## 3. auxiliary segment width
+    ## 4. number of auxiliary random values
+    ## 5. trace length
     push.1174472464
-    ##field modulus bytes (2 field elements)
+    ## field modulus bytes (2 field elements)
     push.1
     push.4294967295
     ## field extension and FRI parameters
@@ -429,7 +434,7 @@ end
 #! Cycles: 1305
 export.generate_constraint_composition_coefficients
 
-    push.224
+    exec.constants::num_constraint_composition_coef_multiplied_by_two_and_rounded_up_to_4
     swap
     exec.generate_random_coefficients
     #=> [...]
@@ -447,7 +452,7 @@ end
 #! Cycles: 1624
 export.generate_deep_composition_random_coefficients
     # note that 88 is the next number after 85 divisible by 4
-    push.88
+    exec.constants::num_deep_composition_coef_multiplied_by_two_and_rounded_up_to_4
     swap
     exec.generate_random_coefficients_pad
     #=> [...]

@@ -24,8 +24,12 @@ fn stark_verifier_e2f4() {
     stack_inputs[15] = 0;
     stack_inputs[14] = 1;
 
-    let VerifierData { initial_stack, tape, store, advice_map } =
-        generate_recursive_verifier_data(example_source, stack_inputs).unwrap();
+    let VerifierData {
+        initial_stack,
+        advice_stack: tape,
+        store,
+        advice_map,
+    } = generate_recursive_verifier_data(example_source, stack_inputs).unwrap();
 
     // Verify inside Miden VM
     let source = "

@@ -19,7 +19,7 @@ pub type QuadExt = QuadExtension<Felt>;
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub struct VerifierData {
     pub initial_stack: Vec<u64>,
-    pub tape: Vec<u64>,
+    pub advice_stack: Vec<u64>,
     pub store: MerkleStore,
     pub advice_map: Vec<(RpoDigest, Vec<Felt>)>,
 }
@@ -29,29 +29,24 @@ pub fn generate_advice_inputs(
     pub_inputs: <ProcessorAir as Air>::PublicInputs,
 ) -> Result<VerifierData, VerifierError> {
     // we need to provide the following instance specific data through the operand stack
-    let proof_context = proof.context.to_elements();
-    let trace_len: Felt = proof_context[1];
-    let num_queries = proof_context[7];
-    let blowup = proof_context[6];
-    let grinding_factor = proof_context[5];
     let initial_stack = vec![
-        grinding_factor.as_int(),
-        (blowup.as_int() as usize).ilog2() as u64,
-        num_queries.as_int(),
-        (trace_len.as_int() as usize).ilog2() as u64,
+        proof.context.options().grinding_factor() as u64,
+        proof.context.options().blowup_factor().ilog2() as u64,
+        proof.context.options().num_queries() as u64,
+        proof.context.trace_info().length().ilog2() as u64,
     ];
 
     // build a seed for the public coin; the initial seed is the hash of public inputs and proof
     // context, but as the protocol progresses, the coin will be reseeded with the info received
     // from the prover
-    let mut tape = vec![];
+    let mut advice_stack = vec![];
     let mut public_coin_seed = proof.context.to_elements();
     public_coin_seed.append(&mut pub_inputs.to_elements());
 
     // add the public inputs, which is nothing but the input and output stacks to the VM, to the
     // advice tape
     let pub_inputs_int: Vec<u64> = pub_inputs.to_elements().iter().map(|a| a.as_int()).collect();
-    tape.extend_from_slice(&pub_inputs_int[..]);
+    advice_stack.extend_from_slice(&pub_inputs_int[..]);
 
     // create AIR instance for the computation specified in the proof
     let air = ProcessorAir::new(proof.trace_info().to_owned(), pub_inputs, proof.options().clone());
@@ -64,7 +59,7 @@ pub fn generate_advice_inputs(
 
     // reseed the coin with the commitment to the main segment trace
     public_coin.reseed(trace_commitments[0]);
-    tape.extend_from_slice(&digest_to_int_vec(trace_commitments));
+    advice_stack.extend_from_slice(&digest_to_int_vec(trace_commitments));
 
     // 2 ----- auxiliary segment trace ------------------------------------------------------------
 
@@ -86,7 +81,7 @@ pub fn generate_advice_inputs(
         .get_constraint_composition_coefficients(&mut public_coin)
         .map_err(|_| VerifierError::RandomCoinError)?;
     let constraint_commitment = channel.read_constraint_commitment();
-    tape.extend_from_slice(&digest_to_int_vec(&[constraint_commitment]));
+    advice_stack.extend_from_slice(&digest_to_int_vec(&[constraint_commitment]));
     public_coin.reseed(constraint_commitment);
 
     // 4 ----- OOD frames --------------------------------------------------------------
@@ -108,12 +103,12 @@ pub fn generate_advice_inputs(
         main_and_aux_frame_states.push(_ood_aux_trace_frame.as_ref().unwrap().current()[col]);
         main_and_aux_frame_states.push(_ood_aux_trace_frame.as_ref().unwrap().next()[col]);
     }
-    tape.extend_from_slice(&to_int_vec(&main_and_aux_frame_states));
+    advice_stack.extend_from_slice(&to_int_vec(&main_and_aux_frame_states));
     public_coin.reseed(Rpo256::hash_elements(&main_and_aux_frame_states));
 
     // read OOD evaluations of composition polynomial columns
     let ood_constraint_evaluations = channel.read_ood_constraint_evaluations();
-    tape.extend_from_slice(&to_int_vec(&ood_constraint_evaluations));
+    advice_stack.extend_from_slice(&to_int_vec(&ood_constraint_evaluations));
     public_coin.reseed(Rpo256::hash_elements(&ood_constraint_evaluations));
 
     // 5 ----- FRI  -------------------------------------------------------------------------------
@@ -129,9 +124,9 @@ pub fn generate_advice_inputs(
 
     // add the above to the advice tape
     let fri_commitments: Vec<u64> = digest_to_int_vec(&fri_commitments_digests);
-    tape.extend_from_slice(&fri_commitments);
-    tape.extend_from_slice(&to_int_vec(&poly));
-    tape.extend_from_slice(&to_int_vec(&fri_remainder));
+    advice_stack.extend_from_slice(&fri_commitments);
+    advice_stack.extend_from_slice(&to_int_vec(&poly));
+    advice_stack.extend_from_slice(&to_int_vec(&fri_remainder));
 
     // reseed with FRI layer commitments
     let _deep_coefficients = air
@@ -151,7 +146,7 @@ pub fn generate_advice_inputs(
     let mut query_positions = public_coin
         .draw_integers(air.options().num_queries(), air.lde_domain_size(), pow_nonce)
         .map_err(|_| VerifierError::RandomCoinError)?;
-    tape.extend_from_slice(&[pow_nonce]);
+    advice_stack.extend_from_slice(&[pow_nonce]);
     query_positions.sort();
     query_positions.dedup();
 
@@ -182,7 +177,7 @@ pub fn generate_advice_inputs(
 
     Ok(VerifierData {
         initial_stack,
-        tape,
+        advice_stack,
         store,
         advice_map: main_aux_adv_map,
     })

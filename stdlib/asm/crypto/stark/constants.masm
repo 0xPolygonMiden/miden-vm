@@ -5,6 +5,8 @@
 const.ROOT_UNITY=7277203076849721926
 const.DOMAIN_OFFSET=7
 const.DOMAIN_OFFSET_INV=2635249152773512046
+const.NUM_CONSTRAINT_COMPOSITION_COEF_MULTIPLIED_BY_TWO_ROUNDED_UP_TO_FOUR=224
+const.NUM_DEEP_COMPOSITION_COEF_MULTIPLIED_BY_TWO_ROUNDED_UP_TO_FOUR=88
 
 
 # MEMORY POINTERS
@@ -157,6 +159,14 @@ end
 
 export.domain_offset_inv
     push.DOMAIN_OFFSET_INV
+end
+
+export.num_constraint_composition_coef_multiplied_by_two_and_rounded_up_to_4
+    push.NUM_CONSTRAINT_COMPOSITION_COEF_MULTIPLIED_BY_TWO_ROUNDED_UP_TO_FOUR
+end
+
+export.num_deep_composition_coef_multiplied_by_two_and_rounded_up_to_4
+    push.NUM_DEEP_COMPOSITION_COEF_MULTIPLIED_BY_TWO_ROUNDED_UP_TO_FOUR
 end
 
 export.public_inputs_ptr
