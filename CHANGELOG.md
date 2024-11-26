@@ -7,6 +7,7 @@
 - [BREAKING] `MastForest` serialization/deserialization will store/read decorator data at the end of the binary (#1531).
 - [BREAKING] Updated Winterfell dependency to v0.11 (#1586).
 - [BREAKING] resolved flag collision in `--verify` command and added functionality for optional input/output files (#1513).
+- [BREAKING] Cleanup benchmarks and examples in the `miden-vm` crate (#1587)
 
 #### Enhancements
 - Added `miden_core::mast::MastForest::advice_map` to load it into the advice provider before the `MastForest` execution (#1574).
