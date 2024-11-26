@@ -2,10 +2,12 @@ use std::{path::PathBuf, time::Instant};
 
 use assembly::diagnostics::{IntoDiagnostic, Report, WrapErr};
 use clap::Parser;
+use miden_vm::internal::InputFile;
 use processor::{DefaultHost, ExecutionOptions, ExecutionTrace};
 use stdlib::StdLibrary;
+use tracing::instrument;
 
-use super::data::{instrument, InputFile, Libraries, OutputFile, ProgramFile};
+use super::data::{Libraries, OutputFile, ProgramFile};
 
 #[derive(Debug, Clone, Parser)]
 #[clap(about = "Run a miden program")]

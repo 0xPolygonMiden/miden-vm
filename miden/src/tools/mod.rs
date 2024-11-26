@@ -3,11 +3,9 @@ use std::{fs, path::PathBuf};
 
 use assembly::diagnostics::{IntoDiagnostic, Report, WrapErr};
 use clap::Parser;
-use miden_vm::{Assembler, DefaultHost, Host, Operation, StackInputs};
+use miden_vm::{internal::InputFile, Assembler, DefaultHost, Host, Operation, StackInputs};
 use processor::{AsmOpInfo, TraceLenSummary};
 use stdlib::StdLibrary;
-
-use super::cli::InputFile;
 
 // CLI
 // ================================================================================================
