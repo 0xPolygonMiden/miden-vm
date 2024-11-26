@@ -21,7 +21,7 @@ use crate::ContextId;
 // EXECUTION ERROR
 // ================================================================================================
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug)]
 pub enum ExecutionError {
     AdviceMapKeyNotFound(Word),
     AdviceMapKeyAlreadyPresent(Word),

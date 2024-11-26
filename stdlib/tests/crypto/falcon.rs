@@ -1,7 +1,7 @@
 use std::vec;
 
 use assembly::{utils::Serializable, Assembler};
-use miden_air::{Felt, ProvingOptions};
+use miden_air::{Felt, ProvingOptions, RowIndex};
 use miden_stdlib::StdLibrary;
 use processor::{
     crypto::RpoRandomCoin, AdviceInputs, DefaultHost, Digest, ExecutionError, MemAdviceProvider,
@@ -13,7 +13,7 @@ use test_utils::{
         rpo_falcon512::{Polynomial, SecretKey},
         MerkleStore, Rpo256,
     },
-    expect_exec_error,
+    expect_exec_error_matches,
     rand::{rand_value, rand_vector},
     FieldElement, QuadFelt, Word, WORD_SIZE,
 };
@@ -170,13 +170,11 @@ fn test_falcon512_probabilistic_product_failure() {
 
     let stack_init = vec![h_hash_copy[0], h_hash_copy[1], h_hash_copy[2], h_hash_copy[3]];
     let test = build_test!(PROBABILISTIC_PRODUCT_SOURCE, &stack_init, &advice_stack);
-    expect_exec_error!(
+
+    expect_exec_error_matches!(
         test,
-        ExecutionError::FailedAssertion {
-            clk: 17490.into(),
-            err_code: 0,
-            err_msg: None,
-        }
+        ExecutionError::FailedAssertion{ clk, err_code, err_msg }
+        if clk == RowIndex::from(17490) && err_code == 0 && err_msg.is_none()
     );
 }
 

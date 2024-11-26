@@ -116,18 +116,6 @@ macro_rules! expect_exec_error_matches {
     };
 }
 
-/// Asserts that running the given execution test will result in the expected error.
-#[cfg(all(feature = "std", not(target_family = "wasm")))]
-#[macro_export]
-macro_rules! expect_exec_error {
-    ($test:expr, $expected:expr) => {
-        match $test.execute() {
-            Ok(_) => panic!("expected execution to fail @ {}:{}", file!(), line!()),
-            Err(error) => $crate::assert_eq!(error, $expected),
-        }
-    };
-}
-
 /// Like [assembly::assert_diagnostic], but matches each non-empty line of the rendered output to a
 /// corresponding pattern.
 ///
