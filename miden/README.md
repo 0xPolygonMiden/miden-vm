@@ -32,7 +32,7 @@ Having a small number elements to describe public inputs and outputs of a progra
 
 ## Usage
 
-Miden crate exposes several functions which can be used to execute programs, generate proofs of their correct execution, and verify the generated proofs. How to do this is explained below, but you can also take a look at working examples [here](examples/) and find instructions for running them via CLI [here](#fibonacci-example).
+Miden crate exposes several functions which can be used to execute programs, generate proofs of their correct execution, and verify the generated proofs. How to do this is explained below, but you can also take a look at working examples [here](masm-examples/) and find instructions for running them via CLI [here](#fibonacci-example).
 
 ### Executing programs
 
@@ -174,7 +174,7 @@ dup.1       // stack state: 2 1 2
 add         // stack state: 3 2
 ```
 
-Notice that except for the first 2 operations which initialize the stack, the sequence of `swap dup.1 add` operations repeats over and over. In fact, we can repeat these operations an arbitrary number of times to compute an arbitrary Fibonacci number. In Rust, it would look like this (this is actually a simplified version of the example in [fibonacci.rs](src/examples/fibonacci.rs)):
+Notice that except for the first 2 operations which initialize the stack, the sequence of `swap dup.1 add` operations repeats over and over. In fact, we can repeat these operations an arbitrary number of times to compute an arbitrary Fibonacci number. In Rust, it would look like this:
 
 ```rust
 use miden_vm::{Assembler, DefaultHost, Program, ProvingOptions, StackInputs};
@@ -291,10 +291,10 @@ For example:
 
 ### Fibonacci example
 
-In the `miden/examples/fib` directory, we provide a very simple Fibonacci calculator example. This example computes the 1000th term of the Fibonacci sequence. You can execute this example on Miden VM like so:
+In the `miden/masm-examples/fib` directory, we provide a very simple Fibonacci calculator example. This example computes the 1000th term of the Fibonacci sequence. You can execute this example on Miden VM like so:
 
 ```shell
-./target/optimized/miden run -a miden/examples/fib/fib.masm -n 1
+./target/optimized/miden run -a miden/masm-examples/fib/fib.masm -n 1
 ```
 
 This will run the example code to completion and will output the top element remaining on the stack.
