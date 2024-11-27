@@ -3,7 +3,7 @@
 use std::marker::PhantomData;
 
 use air::{AuxRandElements, PartitionOptions};
-use miden_gpu::{cuda::{constraint::CudaConstraintCommitment, merkle::MerkleTree, trace_lde::CudaTraceLde}, HashFn};
+use miden_gpu::{cuda::{constraints::CudaConstraintCommitment, merkle::MerkleTree, trace_lde::CudaTraceLde}, HashFn};
 use processor::crypto::{ElementHasher, Hasher};
 use winter_prover::{
     crypto::Digest, matrix::ColMatrix, CompositionPoly, CompositionPolyTrace, ConstraintCompositionCoefficients, DefaultConstraintEvaluator, Prover, StarkDomain, TraceInfo, TracePolyTable
