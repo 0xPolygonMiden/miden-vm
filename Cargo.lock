@@ -1141,6 +1141,7 @@ dependencies = [
  "miden-assembly",
  "miden-core",
  "miden-test-utils",
+ "thiserror 2.0.3",
  "tracing",
  "winter-fri",
  "winter-prover",

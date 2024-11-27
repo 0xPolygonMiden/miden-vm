@@ -127,8 +127,9 @@ where
         depth: &Felt,
         index: &Felt,
     ) -> Result<Word, ExecutionError> {
-        let index = NodeIndex::from_elements(depth, index)
-            .map_err(|_| ExecutionError::InvalidTreeNodeIndex { depth: *depth, value: *index })?;
+        let index = NodeIndex::from_elements(depth, index).map_err(|_| {
+            ExecutionError::InvalidMerkleTreeNodeIndex { depth: *depth, value: *index }
+        })?;
         self.store
             .get_node(root.into(), index)
             .map(|v| v.into())
@@ -141,8 +142,9 @@ where
         depth: &Felt,
         index: &Felt,
     ) -> Result<MerklePath, ExecutionError> {
-        let index = NodeIndex::from_elements(depth, index)
-            .map_err(|_| ExecutionError::InvalidTreeNodeIndex { depth: *depth, value: *index })?;
+        let index = NodeIndex::from_elements(depth, index).map_err(|_| {
+            ExecutionError::InvalidMerkleTreeNodeIndex { depth: *depth, value: *index }
+        })?;
         self.store
             .get_path(root.into(), index)
             .map(|value| value.path)
@@ -156,7 +158,7 @@ where
         index: &Felt,
     ) -> Result<u8, ExecutionError> {
         let tree_depth = u8::try_from(tree_depth.as_int())
-            .map_err(|_| ExecutionError::InvalidTreeDepth { depth: *tree_depth })?;
+            .map_err(|_| ExecutionError::InvalidMerkleTreeDepth { depth: *tree_depth })?;
         self.store
             .get_leaf_depth(root.into(), tree_depth, index.as_int())
             .map_err(ExecutionError::MerkleStoreLookupFailed)
@@ -169,8 +171,9 @@ where
         index: &Felt,
         value: Word,
     ) -> Result<(MerklePath, Word), ExecutionError> {
-        let node_index = NodeIndex::from_elements(depth, index)
-            .map_err(|_| ExecutionError::InvalidTreeNodeIndex { depth: *depth, value: *index })?;
+        let node_index = NodeIndex::from_elements(depth, index).map_err(|_| {
+            ExecutionError::InvalidMerkleTreeNodeIndex { depth: *depth, value: *index }
+        })?;
         self.store
             .set_node(root.into(), node_index, value.into())
             .map(|root| (root.path, root.root.into()))
