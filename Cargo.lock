@@ -1021,11 +1021,11 @@ dependencies = [
  "lalrpop-util",
  "miden-core",
  "miden-miette",
- "miden-thiserror",
  "pretty_assertions",
  "regex",
  "rustc_version 0.4.1",
  "smallvec",
+ "thiserror 2.0.3",
  "tracing",
  "unicode-width 0.2.0",
 ]

@@ -9,8 +9,8 @@ pub enum LibraryError {
     EmptyKernel,
     #[error("invalid export in kernel library: {procedure_path}")]
     InvalidKernelExport { procedure_path: QualifiedProcedureName },
-    #[error(transparent)]
-    Kernel(#[from] KernelError),
+    #[error("failed to convert library into kernel library: {0}")]
+    KernelConversion(KernelError),
     #[error("invalid export: no procedure root for {procedure_path} procedure")]
     NoProcedureRootForExport { procedure_path: QualifiedProcedureName },
 }
