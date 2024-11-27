@@ -3,10 +3,15 @@
 use std::marker::PhantomData;
 
 use air::{AuxRandElements, PartitionOptions};
-use miden_gpu::{cuda::{constraints::CudaConstraintCommitment, merkle::MerkleTree, trace_lde::CudaTraceLde}, HashFn};
+use miden_gpu::{
+    cuda::{constraints::CudaConstraintCommitment, merkle::MerkleTree, trace_lde::CudaTraceLde},
+    HashFn,
+};
 use processor::crypto::{ElementHasher, Hasher};
 use winter_prover::{
-    crypto::Digest, matrix::ColMatrix, CompositionPoly, CompositionPolyTrace, ConstraintCompositionCoefficients, DefaultConstraintEvaluator, Prover, StarkDomain, TraceInfo, TracePolyTable
+    crypto::Digest, matrix::ColMatrix, CompositionPoly, CompositionPolyTrace,
+    ConstraintCompositionCoefficients, DefaultConstraintEvaluator, Prover, StarkDomain, TraceInfo,
+    TracePolyTable,
 };
 
 use crate::{
@@ -114,11 +119,17 @@ where
         composition_poly_trace: CompositionPolyTrace<E>,
         num_constraint_composition_columns: usize,
         domain: &StarkDomain<Self::BaseField>,
-        partition_options: PartitionOptions
+        partition_options: PartitionOptions,
     ) -> (Self::ConstraintCommitment<E>, CompositionPoly<E>)
     where
         E: FieldElement<BaseField = Self::BaseField>,
     {
-        CudaConstraintCommitment::new(composition_poly_trace, num_constraint_composition_columns, domain, partition_options, self.hash_fn)
+        CudaConstraintCommitment::new(
+            composition_poly_trace,
+            num_constraint_composition_columns,
+            domain,
+            partition_options,
+            self.hash_fn,
+        )
     }
 }

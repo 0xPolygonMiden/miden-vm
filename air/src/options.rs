@@ -1,5 +1,5 @@
 use super::{
-    trace::MIN_TRACE_LEN, ExecutionOptionsError, FieldExtension, HashFunction, WinterProofOptions
+    trace::MIN_TRACE_LEN, ExecutionOptionsError, FieldExtension, HashFunction, WinterProofOptions,
 };
 // PROVING OPTIONS
 // ================================================================================================
@@ -131,11 +131,8 @@ impl ProvingOptions {
     /// Sets partitions for this [ProvingOptions].
     ///
     /// Partitions can be provided to split traces during proving and distribute work across
-    /// multiple devices. The number of partition should be equal to the number of devices.
-    pub const fn with_partitions(
-        mut self,
-        num_partitions: usize,
-    ) -> Self {
+    /// multiple devices. The number of partitions should be equal to the number of devices.
+    pub const fn with_partitions(mut self, num_partitions: usize) -> Self {
         let hash_rate = match self.hash_fn {
             HashFunction::Blake3_192 => 6,
             HashFunction::Blake3_256 => 8,
