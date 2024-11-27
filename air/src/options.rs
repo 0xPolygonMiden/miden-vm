@@ -1,6 +1,7 @@
 use super::{
     trace::MIN_TRACE_LEN, ExecutionOptionsError, FieldExtension, HashFunction, WinterProofOptions,
 };
+
 // PROVING OPTIONS
 // ================================================================================================
 
