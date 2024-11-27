@@ -8,6 +8,7 @@
 - [BREAKING] Updated Winterfell dependency to v0.11 (#1586).
 - [BREAKING] resolved flag collision in `--verify` command and added functionality for optional input/output files (#1513).
 - [BREAKING] Cleanup benchmarks and examples in the `miden-vm` crate (#1587)
+- [BREAKING] Use `thiserror` 2.0 to derive errors and refactor them (#1588).
 
 #### Enhancements
 - Added `miden_core::mast::MastForest::advice_map` to load it into the advice provider before the `MastForest` execution (#1574).
