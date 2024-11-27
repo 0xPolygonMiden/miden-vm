@@ -1227,6 +1227,7 @@ version = "0.11.0"
 dependencies = [
  "miden-air",
  "miden-core",
+ "thiserror 2.0.3",
  "tracing",
  "winter-verifier",
 ]
