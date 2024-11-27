@@ -19,7 +19,7 @@ doctest = false
 
 [features]
 default = ["std"]
-std = ["air/std", "vm-core/std", "winter-verifier/std"]
+std = ["air/std", "vm-core/std", "winter-verifier/std", "thiserror/std"]
 
 [dependencies]
 air = { package = "miden-air", path = "../air", version = "0.11", default-features = false }

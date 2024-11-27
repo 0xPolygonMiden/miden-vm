@@ -27,7 +27,7 @@ harness = false
 
 [features]
 default = ["std"]
-std = ["vm-core/std", "winter-air/std"]
+std = ["vm-core/std", "winter-air/std", "thiserror/std"]
 testing = []
 
 [dependencies]

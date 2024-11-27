@@ -20,7 +20,7 @@ doctest = false
 [features]
 concurrent = ["std", "winter-prover/concurrent"]
 default = ["std"]
-std = ["vm-core/std", "winter-prover/std"]
+std = ["vm-core/std", "winter-prover/std", "thiserror/std"]
 testing = ["miden-air/testing"]
 
 [dependencies]

@@ -19,7 +19,7 @@ doctest = false
 
 [features]
 default = ["std"]
-std = ["aho-corasick/std", "miette/fancy", "miette/std", "vm-core/std"]
+std = ["aho-corasick/std", "miette/fancy", "miette/std", "vm-core/std", "thiserror/std"]
 testing = ["dep:regex"]
 
 [dependencies]
