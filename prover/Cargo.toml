@@ -1,8 +1,8 @@
 [package]
 name = "miden-prover"
-version = "0.10.5"
+version = "0.11.0"
 description = "Miden VM prover"
-documentation = "https://docs.rs/miden-prover/0.10.5"
+documentation = "https://docs.rs/miden-prover/0.11.0"
 readme = "README.md"
 categories = ["cryptography", "emulators", "no-std"]
 keywords = ["miden", "prover", "stark", "zkp"]
@@ -17,24 +17,24 @@ edition.workspace = true
 async = ["winter-maybe-async/async"]
 concurrent = ["processor/concurrent", "std", "winter-prover/concurrent"]
 default = ["std"]
-metal = ["dep:miden-gpu", "dep:elsa", "dep:pollster", "concurrent", "std"]
-cuda = ["dep:miden-gpu", "std"]
+metal = ["dep:miden-gpu", "miden-gpu/metal", "dep:elsa", "dep:pollster", "concurrent", "std"]
+cuda = ["dep:miden-gpu", "miden-gpu/cuda", "std"]
 std = ["air/std", "processor/std", "winter-prover/std"]
 
 [dependencies]
-air = { package = "miden-air", path = "../air", version = "0.10", default-features = false }
-processor = { package = "miden-processor", path = "../processor", version = "0.10", default-features = false }
+air = { package = "miden-air", path = "../air", version = "0.11", default-features = false }
+processor = { package = "miden-processor", path = "../processor", version = "0.11", default-features = false }
 tracing = { version = "0.1", default-features = false, features = ["attributes"] }
-winter-maybe-async = { package = "winter-maybe-async", version = "0.10", default-features = false }
-winter-prover = { package = "winter-prover", version = "0.10", default-features = false }
+winter-maybe-async = { package = "winter-maybe-async", version = "0.11", default-features = false }
+winter-prover = { package = "winter-prover", version = "0.11", default-features = false }
 
 [target.'cfg(all(target_arch = "aarch64", target_os = "macos"))'.dependencies]
 elsa = { version = "1.9", optional = true }
-miden-gpu = { path = "../../miden-gpu", features = ["metal"], optional = true }
+miden-gpu = { path = "../../miden-gpu", optional = true }
 pollster = { version = "0.4", optional = true }
 
 [target.'cfg(target_arch = "x86_64")'.dependencies]
-miden-gpu = { path = "../../miden-gpu", features = ["cuda"], optional = true }
+miden-gpu = { path = "../../miden-gpu", optional = true }
 
 [dev-dependencies]
 serial_test = "3.1"

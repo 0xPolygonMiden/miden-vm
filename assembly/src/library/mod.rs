@@ -1,18 +1,19 @@
 use alloc::{
     collections::{BTreeMap, BTreeSet},
-    string::{String, ToString},
+    string::String,
     sync::Arc,
     vec::Vec,
 };
 
 use vm_core::{
     crypto::hash::RpoDigest,
+    debuginfo::Span,
     mast::{MastForest, MastNodeId},
     utils::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable},
     Kernel,
 };
 
-use crate::ast::{ProcedureName, QualifiedProcedureName};
+use crate::ast::{Ident, ProcedureName, QualifiedProcedureName};
 
 mod error;
 mod module;
@@ -180,8 +181,9 @@ impl Deserializable for Library {
         for _ in 0..num_exports {
             let proc_module = source.read()?;
             let proc_name: String = source.read()?;
-            let proc_name = ProcedureName::new(proc_name)
-                .map_err(|err| DeserializationError::InvalidValue(err.to_string()))?;
+            let proc_name = ProcedureName::new_unchecked(Ident::new_unchecked(Span::unknown(
+                Arc::from(proc_name),
+            )));
             let proc_name = QualifiedProcedureName::new(proc_module, proc_name);
             let proc_node_id = MastNodeId::from_u32_safe(source.read_u32()?, &mast_forest)?;
 

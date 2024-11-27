@@ -32,13 +32,3 @@ inherits = "release"
 debug = true
 debug-assertions = true
 overflow-checks = true
-
-[patch.crates-io]
-winter-air = { path = "../winterfell/air" }
-winter-prover = { path = "../winterfell/prover" }
-winter-fri = { path = "../winterfell/fri"}
-winter-utils = { path = "../winterfell/utils/core"}
-winter-crypto = {path = "../winterfell/crypto"}
-winter-math = {path = "../winterfell/math"}
-winter-verifier = {path = "../winterfell/verifier"}
-winterfell = { path = "../winterfell/winterfell" }

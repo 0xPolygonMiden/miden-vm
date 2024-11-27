@@ -104,16 +104,17 @@ impl ProveCmd {
 
         // fetch the stack and program inputs from the arguments
         let stack_inputs = input_data.parse_stack_inputs().map_err(Report::msg)?;
-        let host = DefaultHost::new(input_data.parse_advice_provider().map_err(Report::msg)?);
+        let mut host = DefaultHost::new(input_data.parse_advice_provider().map_err(Report::msg)?);
 
         let proving_options =
             self.get_proof_options().map_err(|err| Report::msg(format!("{err}")))?;
         println!("Proving options: {:?}", proving_options);
 
         // execute program and generate proof
-        let (stack_outputs, proof) = prover::prove(&program, stack_inputs, host, proving_options)
-            .into_diagnostic()
-            .wrap_err("Failed to prove program")?;
+        let (stack_outputs, proof) =
+            prover::prove(&program, stack_inputs, &mut host, proving_options)
+                .into_diagnostic()
+                .wrap_err("Failed to prove program")?;
 
         println!(
             "Program with hash {} proved in {} ms",

@@ -22,7 +22,9 @@ use processor::{
 use tracing::instrument;
 use winter_maybe_async::{maybe_async, maybe_await};
 use winter_prover::{
-    matrix::{ColMatrix, RowMatrix}, CompositionPoly, CompositionPolyTrace, ConstraintCompositionCoefficients, DefaultConstraintCommitment, DefaultConstraintEvaluator, DefaultTraceLde, ProofOptions as WinterProofOptions, Prover, StarkDomain, TraceInfo, TracePolyTable
+    matrix::ColMatrix, CompositionPoly, CompositionPolyTrace, ConstraintCompositionCoefficients,
+    DefaultConstraintCommitment, DefaultConstraintEvaluator, DefaultTraceLde,
+    ProofOptions as WinterProofOptions, Prover, StarkDomain, TraceInfo, TracePolyTable,
 };
 #[cfg(feature = "std")]
 use {std::time::Instant, winter_prover::Trace};
@@ -54,15 +56,12 @@ pub use miden_gpu::cuda::get_num_of_gpus;
 /// Returns an error if program execution or STARK proof generation fails for any reason.
 #[instrument("prove_program", skip_all)]
 #[maybe_async]
-pub fn prove<H>(
+pub fn prove(
     program: &Program,
     stack_inputs: StackInputs,
-    host: H,
+    host: &mut impl Host,
     options: ProvingOptions,
-) -> Result<(StackOutputs, ExecutionProof), ExecutionError>
-where
-    H: Host,
-{
+) -> Result<(StackOutputs, ExecutionProof), ExecutionError> {
     // execute the program to create an execution trace
     #[cfg(feature = "std")]
     let now = Instant::now();
@@ -194,9 +193,10 @@ where
     type VC = MerkleTreeVC<Self::HashFn>;
     type RandomCoin = R;
     type TraceLde<E: FieldElement<BaseField = Felt>> = DefaultTraceLde<E, H, Self::VC>;
-    type ConstraintCommitment<E: FieldElement<BaseField = Felt>> = DefaultConstraintCommitment<E, H, Self::VC>;
     type ConstraintEvaluator<'a, E: FieldElement<BaseField = Felt>> =
         DefaultConstraintEvaluator<'a, ProcessorAir, E>;
+    type ConstraintCommitment<E: FieldElement<BaseField = Felt>> =
+        DefaultConstraintCommitment<E, H, Self::VC>;
 
     fn options(&self) -> &WinterProofOptions {
         &self.options
@@ -229,17 +229,6 @@ where
     }
 
     #[maybe_async]
-    fn build_constraint_commitment<E: FieldElement<BaseField = Self::BaseField>>(
-        &self,
-        composition_poly_trace: CompositionPolyTrace<E>,
-        num_constraint_composition_columns: usize,
-        domain: &StarkDomain<Self::BaseField>,
-        partition_options: PartitionOptions,
-    ) -> (Self::ConstraintCommitment<E>, CompositionPoly<E>) {
-        DefaultConstraintCommitment::new(composition_poly_trace, num_constraint_composition_columns, domain, partition_options)
-    }
-
-    #[maybe_async]
     fn new_evaluator<'a, E: FieldElement<BaseField = Felt>>(
         &self,
         air: &'a ProcessorAir,
@@ -257,5 +246,21 @@ where
         aux_rand_elements: &AuxRandElements<E>,
     ) -> ColMatrix<E> {
         trace.build_aux_trace(aux_rand_elements.rand_elements()).unwrap()
+    }
+
+    #[maybe_async]
+    fn build_constraint_commitment<E: FieldElement<BaseField = Felt>>(
+        &self,
+        composition_poly_trace: CompositionPolyTrace<E>,
+        num_constraint_composition_columns: usize,
+        domain: &StarkDomain<Self::BaseField>,
+        partition_options: PartitionOptions,
+    ) -> (Self::ConstraintCommitment<E>, CompositionPoly<E>) {
+        DefaultConstraintCommitment::new(
+            composition_poly_trace,
+            num_constraint_composition_columns,
+            domain,
+            partition_options,
+        )
     }
 }
