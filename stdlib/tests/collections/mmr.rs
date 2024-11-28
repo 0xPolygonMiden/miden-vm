@@ -3,7 +3,7 @@ use test_utils::{
         init_merkle_leaf, init_merkle_leaves, MerkleError, MerkleStore, MerkleTree, Mmr, NodeIndex,
         RpoDigest,
     },
-    hash_elements, stack_to_ints, Felt, StarkField, Word, EMPTY_WORD, ONE, ZERO,
+    felt_slice_to_ints, hash_elements, Felt, StarkField, Word, EMPTY_WORD, ONE, ZERO,
 };
 
 // TESTS
@@ -70,13 +70,16 @@ fn test_mmr_get_single_peak() -> Result<(), MerkleError> {
 
     for pos in 0..(leaves.len() as u64) {
         let source = format!(
-            "use.std::collections::mmr
+            "
+            use.std::collections::mmr
 
             begin
                 push.{num_leaves} push.1000 mem_store # leaves count
                 adv_push.4 push.1001 mem_storew dropw # MMR single peak
 
                 push.1000 push.{pos} exec.mmr::get
+
+                swapw dropw
             end",
             num_leaves = leaves.len(),
             pos = pos,
@@ -127,7 +130,8 @@ fn test_mmr_get_two_peaks() -> Result<(), MerkleError> {
 
     for (absolute_pos, leaf) in examples {
         let source = format!(
-            "use.std::collections::mmr
+            "
+            use.std::collections::mmr
 
             begin
                 push.{num_leaves} push.1000 mem_store # leaves count
@@ -135,6 +139,8 @@ fn test_mmr_get_two_peaks() -> Result<(), MerkleError> {
                 adv_push.4 push.1002 mem_storew dropw # MMR second peak
 
                 push.1000 push.{pos} exec.mmr::get
+
+                swapw dropw
             end",
             num_leaves = num_leaves,
             pos = absolute_pos,
@@ -176,13 +182,16 @@ fn test_mmr_tree_with_one_element() -> Result<(), MerkleError> {
     // Test case for single element MMR
     let advice_stack: Vec<u64> = merkle_root3.iter().map(StarkField::as_int).collect();
     let source = format!(
-        "use.std::collections::mmr
+        "
+        use.std::collections::mmr
 
         begin
             push.{num_leaves} push.1000 mem_store # leaves count
             adv_push.4 push.1001 mem_storew dropw # MMR first peak
 
             push.1000 push.{pos} exec.mmr::get
+
+            swapw dropw 
         end",
         num_leaves = leaves3.len(),
         pos = 0,
@@ -199,7 +208,8 @@ fn test_mmr_tree_with_one_element() -> Result<(), MerkleError> {
         .collect();
     let num_leaves = leaves1.len() + leaves2.len() + leaves3.len();
     let source = format!(
-        "use.std::collections::mmr
+        "
+        use.std::collections::mmr
 
         begin
             push.{num_leaves} push.1000 mem_store # leaves count
@@ -208,6 +218,8 @@ fn test_mmr_tree_with_one_element() -> Result<(), MerkleError> {
             adv_push.4 push.1003 mem_storew dropw # MMR third peak
 
             push.1000 push.{pos} exec.mmr::get
+
+            swapw dropw
         end",
         num_leaves = num_leaves,
         pos = num_leaves - 1,
@@ -247,7 +259,7 @@ fn test_mmr_unpack() {
     let hash = hash_elements(&hash_data.concat());
 
     // Set up the VM stack with the MMR hash, and its target address
-    let mut stack = stack_to_ints(&*hash);
+    let mut stack = felt_slice_to_ints(&*hash);
     let mmr_ptr = 1000_u32;
     stack.insert(0, mmr_ptr as u64);
 
@@ -309,7 +321,7 @@ fn test_mmr_unpack_invalid_hash() {
     let hash = hash_elements(&hash_data.concat());
 
     // Set up the VM stack with the MMR hash, and its target address
-    let mut stack = stack_to_ints(&*hash);
+    let mut stack = felt_slice_to_ints(&*hash);
     let mmr_ptr = 1000;
     stack.insert(0, mmr_ptr);
 
@@ -371,7 +383,7 @@ fn test_mmr_unpack_large_mmr() {
     let hash = hash_elements(&hash_data.concat());
 
     // Set up the VM stack with the MMR hash, and its target address
-    let mut stack = stack_to_ints(&*hash);
+    let mut stack = felt_slice_to_ints(&*hash);
     let mmr_ptr = 1000_u32;
     stack.insert(0, mmr_ptr as u64);
 
@@ -427,11 +439,11 @@ fn test_mmr_pack_roundtrip() {
     mmr.add(init_merkle_leaf(2).into());
     mmr.add(init_merkle_leaf(3).into());
 
-    let accumulator = mmr.peaks(mmr.forest()).unwrap();
+    let accumulator = mmr.peaks();
     let hash = accumulator.hash_peaks();
 
     // Set up the VM stack with the MMR hash, and its target address
-    let mut stack = stack_to_ints(hash.as_elements());
+    let mut stack = felt_slice_to_ints(&*hash);
     let mmr_ptr = 1000;
     stack.insert(0, mmr_ptr); // first value is used by unpack, to load data to memory
     stack.insert(0, mmr_ptr); // second is used by pack, to load data from memory
@@ -454,9 +466,12 @@ fn test_mmr_pack_roundtrip() {
 
     let source = "
         use.std::collections::mmr
+
         begin
             exec.mmr::unpack
             exec.mmr::pack
+
+            swapw dropw
         end
     ";
     let test = build_test!(source, &stack, advice_stack, store, advice_map.iter().cloned());
@@ -486,6 +501,8 @@ fn test_mmr_pack() {
             push.2.1002 mem_store  # peak2
 
             push.1000 exec.mmr::pack
+
+            swapw dropw
         end
     ";
 
@@ -505,11 +522,10 @@ fn test_mmr_pack() {
     expect_data.extend_from_slice(&[Felt::new(3), ZERO, ZERO, ZERO]); // num_leaves
     expect_data.extend_from_slice(&hash_data);
 
-    let process = build_test!(source).execute_process().unwrap();
+    let (_, host) = build_test!(source).execute_process().unwrap();
 
-    let host = process.host.borrow_mut();
     let advice_data = host.advice_provider().map().get(&hash_u8).unwrap();
-    assert_eq!(stack_to_ints(advice_data), stack_to_ints(&expect_data));
+    assert_eq!(advice_data, &expect_data);
 }
 
 #[test]
@@ -560,7 +576,7 @@ fn test_mmr_two() {
     mmr.add([ONE, Felt::new(2), Felt::new(3), Felt::new(4)].into());
     mmr.add([Felt::new(5), Felt::new(6), Felt::new(7), Felt::new(8)].into());
 
-    let accumulator = mmr.peaks(mmr.forest()).unwrap();
+    let accumulator = mmr.peaks();
     let peak = accumulator.peaks()[0];
 
     let num_leaves = accumulator.num_leaves() as u64;
@@ -587,6 +603,8 @@ fn test_mmr_large() {
             push.{mmr_ptr}.0.0.0.7 exec.mmr::add
 
             push.{mmr_ptr} exec.mmr::pack
+
+            swapw dropw
         end
     "
     );
@@ -600,7 +618,7 @@ fn test_mmr_large() {
     mmr.add([ZERO, ZERO, ZERO, Felt::new(6)].into());
     mmr.add([ZERO, ZERO, ZERO, Felt::new(7)].into());
 
-    let accumulator = mmr.peaks(mmr.forest()).unwrap();
+    let accumulator = mmr.peaks();
 
     let num_leaves = accumulator.num_leaves() as u64;
     let mut expected_memory = vec![num_leaves, 0, 0, 0];
@@ -625,11 +643,11 @@ fn test_mmr_large_add_roundtrip() {
         [ZERO, ZERO, ZERO, Felt::new(7)].into(),
     ]);
 
-    let old_accumulator = mmr.peaks(mmr.forest()).unwrap();
+    let old_accumulator = mmr.peaks();
     let hash = old_accumulator.hash_peaks();
 
     // Set up the VM stack with the MMR hash, and its target address
-    let mut stack = stack_to_ints(hash.as_elements());
+    let mut stack = felt_slice_to_ints(&*hash);
     stack.insert(0, mmr_ptr as u64);
 
     // both the advice stack and merkle store start empty (data is available in
@@ -658,13 +676,15 @@ fn test_mmr_large_add_roundtrip() {
             exec.mmr::unpack
             push.{mmr_ptr}.0.0.0.8 exec.mmr::add
             push.{mmr_ptr} exec.mmr::pack
+
+            swapw dropw
         end
     "
     );
 
     mmr.add([ZERO, ZERO, ZERO, Felt::new(8)].into());
 
-    let new_accumulator = mmr.peaks(mmr.forest()).unwrap();
+    let new_accumulator = mmr.peaks();
     let num_leaves = new_accumulator.num_leaves() as u64;
     let mut expected_memory = vec![num_leaves, 0, 0, 0];
     let mut new_peaks = new_accumulator.peaks().to_vec();

@@ -65,9 +65,9 @@ impl<'a> LibraryPathComponent<'a> {
     }
 }
 
-impl<'a> Eq for LibraryPathComponent<'a> {}
+impl Eq for LibraryPathComponent<'_> {}
 
-impl<'a> PartialEq for LibraryPathComponent<'a> {
+impl PartialEq for LibraryPathComponent<'_> {
     fn eq(&self, other: &Self) -> bool {
         match (self, other) {
             (Self::Namespace(a), Self::Namespace(b)) => a == b,
@@ -77,13 +77,13 @@ impl<'a> PartialEq for LibraryPathComponent<'a> {
     }
 }
 
-impl<'a> PartialEq<str> for LibraryPathComponent<'a> {
+impl PartialEq<str> for LibraryPathComponent<'_> {
     fn eq(&self, other: &str) -> bool {
         self.as_ref().eq(other)
     }
 }
 
-impl<'a> AsRef<str> for LibraryPathComponent<'a> {
+impl AsRef<str> for LibraryPathComponent<'_> {
     fn as_ref(&self) -> &str {
         match self {
             Self::Namespace(ns) => ns.as_str(),
@@ -92,7 +92,7 @@ impl<'a> AsRef<str> for LibraryPathComponent<'a> {
     }
 }
 
-impl<'a> fmt::Display for LibraryPathComponent<'a> {
+impl fmt::Display for LibraryPathComponent<'_> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         f.write_str(self.as_ref())
     }
@@ -192,8 +192,8 @@ impl LibraryPath {
 
     /// Return the size in bytes of this path when displayed as a string
     pub fn byte_len(&self) -> usize {
-        self.inner.components.iter().map(|c| c.as_bytes().len()).sum::<usize>()
-            + self.inner.ns.as_str().as_bytes().len()
+        self.inner.components.iter().map(|c| c.len()).sum::<usize>()
+            + self.inner.ns.as_str().len()
             + (self.inner.components.len() * 2)
     }
 
@@ -575,7 +575,10 @@ mod tests {
         assert_matches!(path, Err(PathError::InvalidComponent(IdentError::InvalidStart)));
 
         let path = LibraryPath::new("foo::b@r");
-        assert_matches!(path, Err(PathError::InvalidComponent(IdentError::InvalidChars)));
+        assert_matches!(
+            path,
+            Err(PathError::InvalidComponent(IdentError::InvalidChars { ident: _ }))
+        );
 
         let path = LibraryPath::new("#foo::bar");
         assert_matches!(

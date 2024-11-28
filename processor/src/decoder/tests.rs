@@ -92,6 +92,69 @@ fn basic_block_one_group() {
 
 #[test]
 fn basic_block_small() {
+    let iv = [ONE, TWO];
+    let ops = vec![
+        Operation::Push(iv[0]),
+        Operation::Push(iv[1]),
+        Operation::Add,
+        Operation::Swap,
+        Operation::Drop,
+    ];
+    let basic_block = BasicBlockNode::new(ops.clone(), None).unwrap();
+    let program = {
+        let mut mast_forest = MastForest::new();
+
+        let basic_block_node = MastNode::Block(basic_block.clone());
+        let basic_block_id = mast_forest.add_node(basic_block_node).unwrap();
+        mast_forest.make_root(basic_block_id);
+
+        Program::new(mast_forest.into(), basic_block_id)
+    };
+
+    let (trace, trace_len) = build_trace(&[], &program);
+
+    // --- check block address, op_bits, group count, op_index, and in_span columns ---------------
+    check_op_decoding(&trace, 0, ZERO, Operation::Span, 4, 0, 0);
+    check_op_decoding(&trace, 1, INIT_ADDR, Operation::Push(ONE), 3, 0, 1);
+    check_op_decoding(&trace, 2, INIT_ADDR, Operation::Push(TWO), 2, 1, 1);
+    check_op_decoding(&trace, 3, INIT_ADDR, Operation::Add, 1, 2, 1);
+    check_op_decoding(&trace, 4, INIT_ADDR, Operation::Swap, 1, 3, 1);
+    check_op_decoding(&trace, 5, INIT_ADDR, Operation::Drop, 1, 4, 1);
+
+    // starting new group: NOOP group is inserted by the processor to make sure number of groups
+    // is a power of two
+    check_op_decoding(&trace, 6, INIT_ADDR, Operation::Noop, 0, 0, 1);
+    check_op_decoding(&trace, 7, INIT_ADDR, Operation::End, 0, 0, 0);
+    check_op_decoding(&trace, 8, ZERO, Operation::Halt, 0, 0, 0);
+
+    // --- check hasher state columns -------------------------------------------------------------
+    let program_hash: Word = program.hash().into();
+
+    check_hasher_state(
+        &trace,
+        vec![
+            basic_block.op_batches()[0].groups().to_vec(),
+            vec![build_op_group(&ops[1..])],
+            vec![build_op_group(&ops[2..])],
+            vec![build_op_group(&ops[3..])],
+            vec![build_op_group(&ops[4..])],
+            vec![],
+            vec![],
+            program_hash.to_vec(), // last row should contain program hash
+        ],
+    );
+
+    // HALT opcode and program hash gets propagated to the last row
+    for i in 8..trace_len {
+        assert!(contains_op(&trace, i, Operation::Halt));
+        assert_eq!(ZERO, trace[OP_BITS_EXTRA_COLS_RANGE.start][i]);
+        assert_eq!(ONE, trace[OP_BITS_EXTRA_COLS_RANGE.start + 1][i]);
+        assert_eq!(program_hash, get_hasher_state1(&trace, i));
+    }
+}
+
+#[test]
+fn basic_block_small_with_emit() {
     let ops = vec![Operation::Push(ONE), Operation::Emit(1), Operation::Add];
     let basic_block = BasicBlockNode::new(ops.clone(), None).unwrap();
     let program = {
@@ -157,6 +220,8 @@ fn basic_block() {
         Operation::Mul,
         Operation::Add,
         Operation::Inv,
+        Operation::Swap,
+        Operation::Drop,
     ];
     let basic_block = BasicBlockNode::new(ops.clone(), None).unwrap();
     let program = {
@@ -187,10 +252,13 @@ fn basic_block() {
     check_op_decoding(&trace, 11, INIT_ADDR, Operation::Mul, 1, 1, 1);
     check_op_decoding(&trace, 12, INIT_ADDR, Operation::Add, 1, 2, 1);
     check_op_decoding(&trace, 13, INIT_ADDR, Operation::Inv, 1, 3, 1);
+    check_op_decoding(&trace, 14, INIT_ADDR, Operation::Swap, 1, 4, 1);
+    check_op_decoding(&trace, 15, INIT_ADDR, Operation::Drop, 1, 5, 1);
+
     // NOOP inserted by the processor to make sure the number of groups is a power of two
-    check_op_decoding(&trace, 14, INIT_ADDR, Operation::Noop, 0, 0, 1);
-    check_op_decoding(&trace, 15, INIT_ADDR, Operation::End, 0, 0, 0);
-    check_op_decoding(&trace, 16, ZERO, Operation::Halt, 0, 0, 0);
+    check_op_decoding(&trace, 16, INIT_ADDR, Operation::Noop, 0, 0, 1);
+    check_op_decoding(&trace, 17, INIT_ADDR, Operation::End, 0, 0, 0);
+    check_op_decoding(&trace, 18, ZERO, Operation::Halt, 0, 0, 0);
 
     // --- check hasher state columns -------------------------------------------------------------
     let program_hash: Word = program.hash().into();
@@ -210,6 +278,8 @@ fn basic_block() {
             vec![build_op_group(&ops[9..])], // next group starts
             vec![build_op_group(&ops[10..])],
             vec![build_op_group(&ops[11..])],
+            vec![build_op_group(&ops[12..])],
+            vec![build_op_group(&ops[13..])],
             vec![],
             vec![],                // a group with single NOOP added at the end
             program_hash.to_vec(), // last row should contain program hash
@@ -217,7 +287,7 @@ fn basic_block() {
     );
 
     // HALT opcode and program hash gets propagated to the last row
-    for i in 17..trace_len {
+    for i in 18..trace_len {
         assert!(contains_op(&trace, i, Operation::Halt));
         assert_eq!(ZERO, trace[OP_BITS_EXTRA_COLS_RANGE.start][i]);
         assert_eq!(ONE, trace[OP_BITS_EXTRA_COLS_RANGE.start + 1][i]);
@@ -250,6 +320,15 @@ fn span_block_with_respan() {
         Operation::Push(iv[7]),
         Operation::Add,
         Operation::Push(iv[8]),
+        Operation::SwapDW,
+        Operation::Drop,
+        Operation::Drop,
+        Operation::Drop,
+        Operation::Drop,
+        Operation::Drop,
+        Operation::Drop,
+        Operation::Drop,
+        Operation::Drop,
     ];
     let basic_block = BasicBlockNode::new(ops.clone(), None).unwrap();
     let program = {
@@ -280,15 +359,23 @@ fn span_block_with_respan() {
     check_op_decoding(&trace, 10, batch1_addr, Operation::Push(iv[7]), 3, 0, 1);
     check_op_decoding(&trace, 11, batch1_addr, Operation::Add, 2, 1, 1);
     check_op_decoding(&trace, 12, batch1_addr, Operation::Push(iv[8]), 2, 2, 1);
-    // NOOP inserted by the processor to make sure the group doesn't end with a PUSH
-    check_op_decoding(&trace, 13, batch1_addr, Operation::Noop, 1, 3, 1);
-    // NOOP inserted by the processor to make sure the number of groups is a power of two
-    check_op_decoding(&trace, 14, batch1_addr, Operation::Noop, 0, 0, 1);
-    check_op_decoding(&trace, 15, batch1_addr, Operation::End, 0, 0, 0);
-    check_op_decoding(&trace, 16, ZERO, Operation::Halt, 0, 0, 0);
+
+    check_op_decoding(&trace, 13, batch1_addr, Operation::SwapDW, 1, 3, 1);
+    check_op_decoding(&trace, 14, batch1_addr, Operation::Drop, 1, 4, 1);
+    check_op_decoding(&trace, 15, batch1_addr, Operation::Drop, 1, 5, 1);
+    check_op_decoding(&trace, 16, batch1_addr, Operation::Drop, 1, 6, 1);
+    check_op_decoding(&trace, 17, batch1_addr, Operation::Drop, 1, 7, 1);
+    check_op_decoding(&trace, 18, batch1_addr, Operation::Drop, 1, 8, 1);
+    check_op_decoding(&trace, 19, batch1_addr, Operation::Drop, 0, 0, 1);
+    check_op_decoding(&trace, 20, batch1_addr, Operation::Drop, 0, 1, 1);
+    check_op_decoding(&trace, 21, batch1_addr, Operation::Drop, 0, 2, 1);
+
+    check_op_decoding(&trace, 22, batch1_addr, Operation::End, 0, 0, 0);
+    check_op_decoding(&trace, 23, ZERO, Operation::Halt, 0, 0, 0);
 
     // --- check hasher state columns -------------------------------------------------------------
     let program_hash: Word = program.hash().into();
+
     check_hasher_state(
         &trace,
         vec![
@@ -302,17 +389,24 @@ fn span_block_with_respan() {
             vec![],
             vec![], // a NOOP inserted after last PUSH
             basic_block.op_batches()[1].groups().to_vec(),
-            vec![build_op_group(&ops[8..])], // next group starts
-            vec![build_op_group(&ops[9..])],
+            vec![build_op_group(&ops[8..16])], // next group starts
+            vec![build_op_group(&ops[9..16])],
+            vec![build_op_group(&ops[10..16])],
+            vec![build_op_group(&ops[11..16])],
+            vec![build_op_group(&ops[12..16])],
+            vec![build_op_group(&ops[13..16])],
+            vec![build_op_group(&ops[14..16])],
+            vec![build_op_group(&ops[15..16])],
             vec![],
-            vec![],                // a NOOP is inserted after last PUSH
-            vec![],                // a group with single NOOP added at the end
+            vec![build_op_group(&ops[17..])],
+            vec![build_op_group(&ops[18..])],
+            vec![],
             program_hash.to_vec(), // last row should contain program hash
         ],
     );
 
     // HALT opcode and program hash gets propagated to the last row
-    for i in 17..trace_len {
+    for i in 23..trace_len {
         assert!(contains_op(&trace, i, Operation::Halt));
         assert_eq!(ZERO, trace[OP_BITS_EXTRA_COLS_RANGE.start][i]);
         assert_eq!(ONE, trace[OP_BITS_EXTRA_COLS_RANGE.start + 1][i]);
@@ -677,6 +771,8 @@ fn call_block() {
     //    fmp <- fmp + 2
     //    call.foo
     //    stack[0] <- fmp
+    //    swap
+    //    drop
     // end
 
     let mut mast_forest = MastForest::new();
@@ -693,7 +789,7 @@ fn call_block() {
     ], None).unwrap();
     let foo_root_node_id = mast_forest.add_node(foo_root_node.clone()).unwrap();
 
-    let last_basic_block = MastNode::new_basic_block(vec![Operation::FmpAdd], None).unwrap();
+    let last_basic_block = MastNode::new_basic_block(vec![Operation::FmpAdd, Operation::Swap, Operation::Drop], None).unwrap();
     let last_basic_block_id = mast_forest.add_node(last_basic_block.clone()).unwrap();
 
     let foo_call_node = MastNode::new_call(foo_root_node_id, &mast_forest).unwrap();
@@ -739,10 +835,13 @@ fn call_block() {
     let last_basic_block_addr = foo_root_addr + EIGHT;
     check_op_decoding(&dec_trace, 14, INIT_ADDR, Operation::Span, 1, 0, 0);
     check_op_decoding(&dec_trace, 15, last_basic_block_addr, Operation::FmpAdd, 0, 0, 1);
-    check_op_decoding(&dec_trace, 16, last_basic_block_addr, Operation::End, 0, 0, 0);
+    check_op_decoding(&dec_trace, 16, last_basic_block_addr, Operation::Swap, 0, 1, 1);
+    check_op_decoding(&dec_trace, 17, last_basic_block_addr, Operation::Drop, 0, 2, 1);
+
+    check_op_decoding(&dec_trace, 18, last_basic_block_addr, Operation::End, 0, 0, 0);
     // ending the program
-    check_op_decoding(&dec_trace, 17, INIT_ADDR, Operation::End, 0, 0, 0);
-    check_op_decoding(&dec_trace, 18, ZERO, Operation::Halt, 0, 0, 0);
+    check_op_decoding(&dec_trace, 19, INIT_ADDR, Operation::End, 0, 0, 0);
+    check_op_decoding(&dec_trace, 20, ZERO, Operation::Halt, 0, 0, 0);
 
     // --- check hasher state columns -------------------------------------------------------------
     // in the first row, the hasher state is set to hashes of (join1, span3)
@@ -780,16 +879,16 @@ fn call_block() {
     assert_eq!(EMPTY_WORD, get_hasher_state2(&dec_trace, 13));
 
     // span3 ends in the 14th row
-    assert_eq!(last_basic_block_hash, get_hasher_state1(&dec_trace, 16));
-    assert_eq!(EMPTY_WORD, get_hasher_state2(&dec_trace, 16));
+    assert_eq!(last_basic_block_hash, get_hasher_state1(&dec_trace, 18));
+    assert_eq!(EMPTY_WORD, get_hasher_state2(&dec_trace, 18));
 
-    // the program ends in the 17th row
+    // the program ends in the 19th row
     let program_hash: Word = program.hash().into();
-    assert_eq!(program_hash, get_hasher_state1(&dec_trace, 17));
-    assert_eq!(EMPTY_WORD, get_hasher_state2(&dec_trace, 17));
+    assert_eq!(program_hash, get_hasher_state1(&dec_trace, 19));
+    assert_eq!(EMPTY_WORD, get_hasher_state2(&dec_trace, 19));
 
     // HALT opcode and program hash gets propagated to the last row
-    for i in 18..trace_len {
+    for i in 20..trace_len {
         assert!(contains_op(&dec_trace, i, Operation::Halt));
         assert_eq!(ZERO, dec_trace[OP_BITS_EXTRA_COLS_RANGE.start][i]);
         assert_eq!(ONE, dec_trace[OP_BITS_EXTRA_COLS_RANGE.start + 1][i]);
@@ -890,6 +989,8 @@ fn syscall_block() {
     //    fmp <- fmp + 1
     //    syscall.bar
     //    stack[0] <- fmp
+    //    swap
+    //    drop
     // end
 
     let mut mast_forest = MastForest::new();
@@ -919,7 +1020,7 @@ fn syscall_block() {
     ], None).unwrap();
     let first_basic_block_id = mast_forest.add_node(first_basic_block.clone()).unwrap();
 
-    let last_basic_block = MastNode::new_basic_block(vec![Operation::FmpAdd], None).unwrap();
+    let last_basic_block = MastNode::new_basic_block(vec![Operation::FmpAdd, Operation::Swap, Operation::Drop], None).unwrap();
     let last_basic_block_id = mast_forest.add_node(last_basic_block.clone()).unwrap();
 
     let bar_call_node = MastNode::new_call(bar_root_node_id, &mast_forest).unwrap();
@@ -986,11 +1087,13 @@ fn syscall_block() {
     let last_basic_block_addr = syscall_basic_block_addr + EIGHT;
     check_op_decoding(&dec_trace, 22, INIT_ADDR, Operation::Span, 1, 0, 0);
     check_op_decoding(&dec_trace, 23, last_basic_block_addr, Operation::FmpAdd, 0, 0, 1);
-    check_op_decoding(&dec_trace, 24, last_basic_block_addr, Operation::End, 0, 0, 0);
+    check_op_decoding(&dec_trace, 24, last_basic_block_addr, Operation::Swap, 0, 1, 1);
+    check_op_decoding(&dec_trace, 25, last_basic_block_addr, Operation::Drop, 0, 2, 1);
+    check_op_decoding(&dec_trace, 26, last_basic_block_addr, Operation::End, 0, 0, 0);
 
     // ending the program
-    check_op_decoding(&dec_trace, 25, INIT_ADDR, Operation::End, 0, 0, 0);
-    check_op_decoding(&dec_trace, 26, ZERO, Operation::Halt, 0, 0, 0);
+    check_op_decoding(&dec_trace, 27, INIT_ADDR, Operation::End, 0, 0, 0);
+    check_op_decoding(&dec_trace, 28, ZERO, Operation::Halt, 0, 0, 0);
 
     // --- check hasher state columns -------------------------------------------------------------
     // in the first row, the hasher state is set to hashes of (inner_join, last_span)
@@ -1051,17 +1154,17 @@ fn syscall_block() {
     assert_eq!(inner_join_hash, get_hasher_state1(&dec_trace, 21));
     assert_eq!(EMPTY_WORD, get_hasher_state2(&dec_trace, 21));
 
-    // last span ends in the 24th row
-    assert_eq!(last_span_hash, get_hasher_state1(&dec_trace, 24));
-    assert_eq!(EMPTY_WORD, get_hasher_state2(&dec_trace, 24));
+    // last span ends in the 26th row
+    assert_eq!(last_span_hash, get_hasher_state1(&dec_trace, 26));
+    assert_eq!(EMPTY_WORD, get_hasher_state2(&dec_trace, 26));
 
-    // the program ends in the 25th row
+    // the program ends in the 27th row
     let program_hash: Word = program_root_node.digest().into();
-    assert_eq!(program_hash, get_hasher_state1(&dec_trace, 25));
-    assert_eq!(EMPTY_WORD, get_hasher_state2(&dec_trace, 25));
+    assert_eq!(program_hash, get_hasher_state1(&dec_trace, 27));
+    assert_eq!(EMPTY_WORD, get_hasher_state2(&dec_trace, 27));
 
     // HALT opcode and program hash gets propagated to the last row
-    for i in 26..trace_len {
+    for i in 28..trace_len {
         assert!(contains_op(&dec_trace, i, Operation::Halt));
         assert_eq!(ZERO, dec_trace[OP_BITS_EXTRA_COLS_RANGE.start][i]);
         assert_eq!(ONE, dec_trace[OP_BITS_EXTRA_COLS_RANGE.start + 1][i]);
@@ -1179,8 +1282,21 @@ fn syscall_block() {
 // ================================================================================================
 #[test]
 fn dyn_block() {
-    // build a dynamic block which looks like this:
-    // push.1 add
+    // Equivalent masm:
+    //
+    // proc.foo
+    //   push.1 add
+    // end
+    //
+    // begin
+    //   # stack: [42, DIGEST]
+    //   mstorew
+    //   push.42
+    //   dynexec
+    // end
+
+    const FOO_ROOT_NODE_ADDR: u64 = 42;
+    const PUSH_42_OP: Operation = Operation::Push(Felt::new(FOO_ROOT_NODE_ADDR));
 
     let mut mast_forest = MastForest::new();
 
@@ -1189,13 +1305,13 @@ fn dyn_block() {
     let foo_root_node_id = mast_forest.add_node(foo_root_node.clone()).unwrap();
     mast_forest.make_root(foo_root_node_id);
 
-    let mul_bb_node = MastNode::new_basic_block(vec![Operation::Mul], None).unwrap();
-    let mul_bb_node_id = mast_forest.add_node(mul_bb_node.clone()).unwrap();
+    let mstorew_node = MastNode::new_basic_block(vec![Operation::MStoreW], None).unwrap();
+    let mstorew_node_id = mast_forest.add_node(mstorew_node.clone()).unwrap();
 
-    let save_bb_node = MastNode::new_basic_block(vec![Operation::MovDn4], None).unwrap();
-    let save_bb_node_id = mast_forest.add_node(save_bb_node.clone()).unwrap();
+    let push_node = MastNode::new_basic_block(vec![PUSH_42_OP], None).unwrap();
+    let push_node_id = mast_forest.add_node(push_node.clone()).unwrap();
 
-    let join_node = MastNode::new_join(mul_bb_node_id, save_bb_node_id, &mast_forest).unwrap();
+    let join_node = MastNode::new_join(mstorew_node_id, push_node_id, &mast_forest).unwrap();
     let join_node_id = mast_forest.add_node(join_node.clone()).unwrap();
 
     // This dyn will point to foo.
@@ -1214,8 +1330,7 @@ fn dyn_block() {
             foo_root_node.digest()[1].as_int(),
             foo_root_node.digest()[2].as_int(),
             foo_root_node.digest()[3].as_int(),
-            2,
-            4,
+            FOO_ROOT_NODE_ADDR,
         ],
         &program,
     );
@@ -1226,30 +1341,31 @@ fn dyn_block() {
     let join_addr = INIT_ADDR + EIGHT;
     check_op_decoding(&trace, 1, INIT_ADDR, Operation::Join, 0, 0, 0);
     // starting first span
-    let mul_basic_block_addr = join_addr + EIGHT;
+    let mstorew_basic_block_addr = join_addr + EIGHT;
     check_op_decoding(&trace, 2, join_addr, Operation::Span, 1, 0, 0);
-    check_op_decoding(&trace, 3, mul_basic_block_addr, Operation::Mul, 0, 0, 1);
-    check_op_decoding(&trace, 4, mul_basic_block_addr, Operation::End, 0, 0, 0);
+    check_op_decoding(&trace, 3, mstorew_basic_block_addr, Operation::MStoreW, 0, 0, 1);
+    check_op_decoding(&trace, 4, mstorew_basic_block_addr, Operation::End, 0, 0, 0);
     // starting second span
-    let save_basic_block_addr = mul_basic_block_addr + EIGHT;
-    check_op_decoding(&trace, 5, join_addr, Operation::Span, 1, 0, 0);
-    check_op_decoding(&trace, 6, save_basic_block_addr, Operation::MovDn4, 0, 0, 1);
-    check_op_decoding(&trace, 7, save_basic_block_addr, Operation::End, 0, 0, 0);
+    let push_basic_block_addr = mstorew_basic_block_addr + EIGHT;
+    check_op_decoding(&trace, 5, join_addr, Operation::Span, 2, 0, 0);
+    check_op_decoding(&trace, 6, push_basic_block_addr, PUSH_42_OP, 1, 0, 1);
+    check_op_decoding(&trace, 7, push_basic_block_addr, Operation::Noop, 0, 1, 1);
+    check_op_decoding(&trace, 8, push_basic_block_addr, Operation::End, 0, 0, 0);
     // end inner join
-    check_op_decoding(&trace, 8, join_addr, Operation::End, 0, 0, 0);
+    check_op_decoding(&trace, 9, join_addr, Operation::End, 0, 0, 0);
     // dyn
-    check_op_decoding(&trace, 9, INIT_ADDR, Operation::Dyn, 0, 0, 0);
+    check_op_decoding(&trace, 10, INIT_ADDR, Operation::Dyn, 0, 0, 0);
     // starting foo span
-    let dyn_addr = save_basic_block_addr + EIGHT;
+    let dyn_addr = push_basic_block_addr + EIGHT;
     let add_basic_block_addr = dyn_addr + EIGHT;
-    check_op_decoding(&trace, 10, dyn_addr, Operation::Span, 2, 0, 0);
-    check_op_decoding(&trace, 11, add_basic_block_addr, Operation::Push(ONE), 1, 0, 1);
-    check_op_decoding(&trace, 12, add_basic_block_addr, Operation::Add, 0, 1, 1);
-    check_op_decoding(&trace, 13, add_basic_block_addr, Operation::End, 0, 0, 0);
+    check_op_decoding(&trace, 11, dyn_addr, Operation::Span, 2, 0, 0);
+    check_op_decoding(&trace, 12, add_basic_block_addr, Operation::Push(ONE), 1, 0, 1);
+    check_op_decoding(&trace, 13, add_basic_block_addr, Operation::Add, 0, 1, 1);
+    check_op_decoding(&trace, 14, add_basic_block_addr, Operation::End, 0, 0, 0);
     // end dyn
-    check_op_decoding(&trace, 14, dyn_addr, Operation::End, 0, 0, 0);
+    check_op_decoding(&trace, 15, dyn_addr, Operation::End, 0, 0, 0);
     // end outer join
-    check_op_decoding(&trace, 15, INIT_ADDR, Operation::End, 0, 0, 0);
+    check_op_decoding(&trace, 16, INIT_ADDR, Operation::End, 0, 0, 0);
 
     // --- check hasher state columns -------------------------------------------------------------
 
@@ -1260,8 +1376,8 @@ fn dyn_block() {
     assert_eq!(dyn_hash, get_hasher_state2(&trace, 0));
 
     // in the second row, the hasher set is set to hashes of both child nodes of the inner JOIN
-    let mul_bb_node_hash: Word = mul_bb_node.digest().into();
-    let save_bb_node_hash: Word = save_bb_node.digest().into();
+    let mul_bb_node_hash: Word = mstorew_node.digest().into();
+    let save_bb_node_hash: Word = push_node.digest().into();
     assert_eq!(mul_bb_node_hash, get_hasher_state1(&trace, 1));
     assert_eq!(save_bb_node_hash, get_hasher_state2(&trace, 1));
 
@@ -1270,32 +1386,31 @@ fn dyn_block() {
     assert_eq!([ZERO, ZERO, ZERO, ZERO], get_hasher_state2(&trace, 4));
 
     // at the end of the second SPAN, the hasher state is set to the hash of the second child
-    assert_eq!(save_bb_node_hash, get_hasher_state1(&trace, 7));
-    assert_eq!([ZERO, ZERO, ZERO, ZERO], get_hasher_state2(&trace, 7));
-
-    // at the end of the inner JOIN, the hasher set is set to the hash of the JOIN
-    assert_eq!(join_hash, get_hasher_state1(&trace, 8));
+    assert_eq!(save_bb_node_hash, get_hasher_state1(&trace, 8));
     assert_eq!([ZERO, ZERO, ZERO, ZERO], get_hasher_state2(&trace, 8));
 
-    // at the start of the DYN block, the hasher state is set to the hash of its child (foo span)
-    let foo_hash: Word = foo_root_node.digest().into();
-    assert_eq!(foo_hash, get_hasher_state1(&trace, 9));
+    // at the end of the inner JOIN, the hasher set is set to the hash of the JOIN
+    assert_eq!(join_hash, get_hasher_state1(&trace, 9));
     assert_eq!([ZERO, ZERO, ZERO, ZERO], get_hasher_state2(&trace, 9));
 
+    // at the start of the DYN block, the hasher state is set to foo digest
+    let foo_hash: Word = foo_root_node.digest().into();
+    assert_eq!(foo_hash, get_hasher_state1(&trace, 10));
+
     // at the end of the DYN SPAN, the hasher state is set to the hash of the foo span
-    assert_eq!(foo_hash, get_hasher_state1(&trace, 13));
-    assert_eq!([ZERO, ZERO, ZERO, ZERO], get_hasher_state2(&trace, 13));
+    assert_eq!(foo_hash, get_hasher_state1(&trace, 14));
+    assert_eq!([ZERO, ZERO, ZERO, ZERO], get_hasher_state2(&trace, 14));
 
     // at the end of the DYN block, the hasher state is set to the hash of the DYN node
-    assert_eq!(dyn_hash, get_hasher_state1(&trace, 14));
+    assert_eq!(dyn_hash, get_hasher_state1(&trace, 15));
 
     // at the end of the program, the hasher state is set to the hash of the entire program
     let program_hash: Word = program_root_node.digest().into();
-    assert_eq!(program_hash, get_hasher_state1(&trace, 15));
-    assert_eq!([ZERO, ZERO, ZERO, ZERO], get_hasher_state2(&trace, 15));
+    assert_eq!(program_hash, get_hasher_state1(&trace, 16));
+    assert_eq!([ZERO, ZERO, ZERO, ZERO], get_hasher_state2(&trace, 16));
 
     // the HALT opcode and program hash get propagated to the last row
-    for i in 16..trace_len {
+    for i in 17..trace_len {
         assert!(contains_op(&trace, i, Operation::Halt));
         assert_eq!(ZERO, trace[OP_BITS_EXTRA_COLS_RANGE.start][i]);
         assert_eq!(ONE, trace[OP_BITS_EXTRA_COLS_RANGE.start + 1][i]);
@@ -1345,10 +1460,9 @@ fn set_user_op_helpers_many() {
 
 fn build_trace(stack_inputs: &[u64], program: &Program) -> (DecoderTrace, usize) {
     let stack_inputs = StackInputs::try_from_ints(stack_inputs.iter().copied()).unwrap();
-    let host = DefaultHost::default();
-    let mut process =
-        Process::new(Kernel::default(), stack_inputs, host, ExecutionOptions::default());
-    process.execute(program).unwrap();
+    let mut host = DefaultHost::default();
+    let mut process = Process::new(Kernel::default(), stack_inputs, ExecutionOptions::default());
+    process.execute(program, &mut host).unwrap();
 
     let (trace, ..) = ExecutionTrace::test_finalize_trace(process);
     let trace_len = trace.num_rows() - ExecutionTrace::NUM_RAND_ROWS;
@@ -1364,11 +1478,10 @@ fn build_trace(stack_inputs: &[u64], program: &Program) -> (DecoderTrace, usize)
 
 fn build_dyn_trace(stack_inputs: &[u64], program: &Program) -> (DecoderTrace, usize) {
     let stack_inputs = StackInputs::try_from_ints(stack_inputs.iter().copied()).unwrap();
-    let host = DefaultHost::default();
-    let mut process =
-        Process::new(Kernel::default(), stack_inputs, host, ExecutionOptions::default());
+    let mut host = DefaultHost::default();
+    let mut process = Process::new(Kernel::default(), stack_inputs, ExecutionOptions::default());
 
-    process.execute(program).unwrap();
+    process.execute(program, &mut host).unwrap();
 
     let (trace, ..) = ExecutionTrace::test_finalize_trace(process);
     let trace_len = trace.num_rows() - ExecutionTrace::NUM_RAND_ROWS;
@@ -1383,11 +1496,11 @@ fn build_dyn_trace(stack_inputs: &[u64], program: &Program) -> (DecoderTrace, us
 }
 
 fn build_call_trace(program: &Program, kernel: Kernel) -> (SystemTrace, DecoderTrace, usize) {
-    let host = DefaultHost::default();
+    let mut host = DefaultHost::default();
     let stack_inputs = crate::StackInputs::default();
-    let mut process = Process::new(kernel, stack_inputs, host, ExecutionOptions::default());
+    let mut process = Process::new(kernel, stack_inputs, ExecutionOptions::default());
 
-    process.execute(program).unwrap();
+    process.execute(program, &mut host).unwrap();
 
     let (trace, ..) = ExecutionTrace::test_finalize_trace(process);
     let trace_len = trace.num_rows() - ExecutionTrace::NUM_RAND_ROWS;

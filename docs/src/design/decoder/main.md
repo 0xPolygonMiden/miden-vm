@@ -17,7 +17,7 @@ The sections below describe how Miden VM decoder works. Throughout these section
 
 Miden VM programs consist of a set of code blocks organized into a binary tree. The leaves of the tree contain linear sequences of instructions, and control flow is defined by the internal nodes of the tree.
 
-Managing control flow in the VM is accomplished by executing control flow operations listed in the table below. Each of these operations require exactly one VM cycle to execute.
+Managing control flow in the VM is accomplished by executing control flow operations listed in the table below. Each of these operations requires exactly one VM cycle to execute.
 
 | Operation | Description                                                                  |
 | --------- | ---------------------------------------------------------------------------- |
@@ -118,10 +118,10 @@ These registers have the following meanings:
 2. Registers $b_0, ..., b_6$, which encode opcodes for operation to be executed by the VM. Each of these registers can contain a single binary value (either $1$ or $0$). And together these values describe a single opcode.
 3. Hasher registers $h_0, ..., h_7$. When control flow operations are executed, these registers are used to provide inputs for the current block's hash computation (e.g., for `JOIN`, `SPLIT`, `LOOP`, `SPAN`, `CALL`, `SYSCALL` operations) or to record the result of the hash computation (i.e., for `END` operation). However, when regular operations are executed, $2$ of these registers are used to help with op group decoding, and the remaining $6$ can be used to hold operation-specific helper variables.
 4. Register $sp$ which contains a binary flag indicating whether the VM is currently executing instructions inside a *span* block. The flag is set to $1$ when the VM executes non-control flow instructions, and is set to $0$ otherwise.
-5. Register $gc$ which keep track of the number of unprocessed operation groups in a given *span* block.
+5. Register $gc$ which keeps track of the number of unprocessed operation groups in a given *span* block.
 6. Register $ox$ which keeps track of a currently executing operation's index within its operation group.
 7. Operation batch flags $c_0, c_1, c_2$ which indicate how many operation groups a given operation batch contains. These flags are set only for `SPAN` and `RESPAN` operations, and are set to $0$'s otherwise.
-8. Two additional registers (not shown) used primarily for constraint degree reduction.
+8. Two additional registers (not shown) are used primarily for constraint degree reduction.
 
 ### Program block hashing
 
@@ -187,7 +187,9 @@ In addition to the hash chiplet, control flow operations rely on $3$ virtual tab
 
 When the VM starts executing a new program block, it adds its block ID together with the ID of its parent block (and some additional info) to the *block stack* table. When a program block is fully executed, it is removed from the table. In this way, the table represents a stack of blocks which are currently executing on the VM. By the time program execution completes, block stack table must be empty.
 
-The table can be thought of as consisting of $3$ columns as shown below:
+The block stack table is also used to ensure that execution contexts are managed properly across the `CALL` and `SYSCALL` operations.
+
+The table can be thought of as consisting of $11$ columns as shown below:
 
 ![decoder_block_stack_table](../../assets/design/decoder/decoder_block_stack_table.png)
 
@@ -195,16 +197,20 @@ where:
 * The first column ($t_0$) contains the ID of the block.
 * The second column ($t_1$) contains the ID of the parent block. If the block has no parent (i.e., it is a root block of the program), parent ID is 0.
 * The third column ($t_2$) contains a binary value which is set to $1$ is the block is a *loop* block, and to $0$ otherwise.
+* The following 8 columns are only set to non-zero values for `CALL` and `SYSCALL` operations. They save all the necessary information to be able to restore the parent context properly upon the corresponding `END` operation
+    - the `prnt_b0` and `prnt_b1` columns refer to the stack helper columns B0 and B1 (current stack depth and last overflow address, respectively)
+
+In the above diagram, the first 2 rows correspond to 2 different `CALL` operations. The first `CALL` operation is called from the root context, and hence its parent fn hash is the zero hash. Additionally, the second `CALL` operation has a parent fn hash of `[h0, h1, h2, h3]`, indicating that the first `CALL` was to a procedure with that hash.
 
 Running product column $p_1$ is used to keep track of the state of the table. At any step of the computation, the current value of $p_1$ defines which rows are present in the table.
 
 To reduce a row in the block stack table to a single value, we compute the following.
 
 $$
-row = \alpha_0 + \sum_{i=0}^3 (\alpha_{i+1} \cdot t_i)
+row = \alpha_0 + \sum_{i=0}^{10} (\alpha_{i+1} \cdot t_i),
 $$
 
-Where $\alpha_0, ..., \alpha_3$ are the random values provided by the verifier.
+where $\alpha_0, ..., \alpha_{11}$ are the random values provided by the verifier.
 
 #### Block hash table
 
@@ -273,7 +279,7 @@ In the above diagram, `blk` is the ID of the *join* block which is about to be e
 
 When the VM executes a `JOIN` operation, it does the following:
 
-1. Adds a tuple `(blk, prnt, 0)` to the block stack table.
+1. Adds a tuple `(blk, prnt, 0, 0...)` to the block stack table.
 2. Adds tuples `(blk, left_child_hash, 1, 0)` and `(blk, right_child_hash, 0, 0)` to the block hash table.
 3. Initiates a 2-to-1 hash computation in the hash chiplet (as described [here](#simple-2-to-1-hash)) using `blk` as row address in the auxiliary hashing table and $h_0, ..., h_7$ as input values.
 
@@ -287,7 +293,7 @@ In the above diagram, `blk` is the ID of the *split* block which is about to be 
 
 When the VM executes a `SPLIT` operation, it does the following:
 
-1. Adds a tuple `(blk, prnt, 0)` to the block stack table.
+1. Adds a tuple `(blk, prnt, 0, 0...)` to the block stack table.
 2. Pops the stack and:\
    a. If the popped value is $1$, adds a tuple `(blk, true_branch_hash, 0, 0)` to the block hash table.\
    b. If the popped value is $0$, adds a tuple `(blk, false_branch_hash, 0, 0)` to the block hash table.\
@@ -305,8 +311,8 @@ In the above diagram, `blk` is the ID of the *loop* block which is about to be e
 When the VM executes a `LOOP` operation, it does the following:
 
 1. Pops the stack and:\
-   a. If the popped value is $1$ adds a tuple `(blk, prnt, 1)` to the block stack table (the `1` indicates that the loop's body is expected to be executed). Then, adds a tuple `(blk, loop_body_hash, 0, 1)` to the block hash table.\
-   b. If the popped value is $0$, adds `(blk, prnt, 0)` to the block stack table. In this case, nothing is added to the block hash table.\
+   a. If the popped value is $1$ adds a tuple `(blk, prnt, 1, 0...)` to the block stack table (the `1` indicates that the loop's body is expected to be executed). Then, adds a tuple `(blk, loop_body_hash, 0, 1)` to the block hash table.\
+   b. If the popped value is $0$, adds `(blk, prnt, 0, 0...)` to the block stack table. In this case, nothing is added to the block hash table.\
    c. If the popped value is neither $1$ nor $0$, the execution fails.
 2. Initiates a 2-to-1 hash computation in the hash chiplet (as described [here](#simple-2-to-1-hash)) using `blk` as row address in the auxiliary hashing table and $h_0, ..., h_3$ as input values.
 
@@ -320,7 +326,7 @@ In the above diagram, `blk` is the ID of the *span* block which is about to be e
 
 When the VM executes a `SPAN` operation, it does the following:
 
-1. Adds a tuple `(blk, prnt, 0)` to the block stack table.
+1. Adds a tuple `(blk, prnt, 0, 0...)` to the block stack table.
 2. Adds groups of the operation batch, as specified by op batch flags (see [here](#operation-batch-flags)) to the op group table.
 3. Initiates a sequential hash computation in the hash chiplet (as described [here](#sequential-hash)) using `blk` as row address in the auxiliary hashing table and $h_0, ..., h_7$ as input values.
 4. Sets the `in_span` register to $1$.
@@ -330,24 +336,45 @@ When the VM executes a `SPAN` operation, it does the following:
 
 #### DYN operation
 
-Before a `DYN` operation is executed by the VM, the prover populates $h_0, ..., h_7$ registers with $0$ as shown in the diagram below.
-
 ![decoder_dyn_operation](../../assets/design/decoder/decoder_dyn_operation.png)
 
-In the above diagram, `blk` is the ID of the *dyn* block which is about to be executed. `blk` is also the address of the hasher row in the auxiliary hasher table. `prnt` is the ID of the block's parent.
+In the above diagram, `blk` is the ID of the *dyn* block which is about to be executed. `blk` is also the address of the hasher row in the auxiliary hasher table. `p_addr` is the ID of the block's parent.
 
 When the VM executes a `DYN` operation, it does the following:
 
-1. Adds a tuple `(blk, prnt, 0)` to the block stack table.
-2. Gets the hash of the dynamic code block `dynamic_block_hash` from the top four elements of the stack.
-2. Adds the tuple `(blk, dynamic_block_hash, 0, 0)` to the block hash table.
-3. Initiates a 2-to-1 hash computation in the hash chiplet (as described [here](#simple-2-to-1-hash)) using `blk` as row address in the auxiliary hashing table and $h_0, ..., h_7$ as input values.
+1. Adds a tuple `(blk, p_addr, 0, 0...)` to the block stack table.
+2. Sends a memory read request to the memory chiplet, using `s0` as the memory address. The result `hash of callee` is placed in the decoder hasher trace at $h_0, h_1, h_2, h_3$.
+3. Adds the tuple `(blk, hash of callee, 0, 0)` to the block hash table.
+4. Initiates a 2-to-1 hash computation in the hash chiplet (as described [here](#simple-2-to-1-hash)) using `blk` as row address in the auxiliary hashing table and `[ZERO; 8]` as input values.
+5. Performs a stack left shift
+    - Above `s16` was pulled from the stack overflow table if present; otherwise set to `0`.
+
+Note that unlike `DYNCALL`, the `fmp`, `ctx`, `in_syscall` and `fn_hash` registers are unchanged.
+
+#### DYNCALL operation
+
+![decoder_dyncall_operation](../../assets/design/decoder/decoder_dyncall_operation.png)
+
+In the above diagram, `blk` is the ID of the *dyn* block which is about to be executed. `blk` is also the address of the hasher row in the auxiliary hasher table. `p_addr` is the ID of the block's parent.
+
+When the VM executes a `DYNCALL` operation, it does the following:
+
+1. Adds a tuple `(blk, p_addr, 0, ctx, fmp, b_0, b_1, fn_hash[0..3])` to the block stack table.
+2. Sends a memory read request to the memory chiplet, using `s0` as the memory address. The result `hash of callee` is placed in the decoder hasher trace at $h_0, h_1, h_2, h_3$.
+3. Adds the tuple `(blk, hash of callee, 0, 0)` to the block hash table.
+4. Initiates a 2-to-1 hash computation in the hash chiplet (as described [here](#simple-2-to-1-hash)) using `blk` as row address in the auxiliary hashing table and `[ZERO; 8]` as input values.
+5. Performs a stack left shift
+    - Above `s16` was pulled from the stack overflow table if present; otherwise set to `0`.
+
+Similar to `CALL`, `DYNCALL` resets the `fmp`, sets up a new `ctx`, and sets the `fn_hash` registers to the callee hash. `in_syscall` needs to be 0, since calls are not allowed during a syscall.
 
 #### END operation
 
 Before an `END` operation is executed by the VM, the prover populates $h_0, ..., h_3$ registers with the hash of the block which is about to end. The prover also sets values in $h_4$ and $h_5$ registers as follows:
 * $h_4$ is set to $1$ if the block is a body of a *loop* block. We denote this value as `f0`.
 * $h_5$ is set to $1$ if the block is a *loop* block. We denote this value as `f1`.
+* $h_6$ is set to $1$ if the block is a *call* block. We denote this value as `f2`.
+* $h_7$ is set to $1$ if the block is a *syscall* block. We denote this value as `f3`.
 
 ![decoder_end_operation](../../assets/design/decoder/decoder_end_operation.png)
 
@@ -355,7 +382,10 @@ In the above diagram, `blk` is the ID of the block which is about to finish exec
 
 When the VM executes an `END` operation, it does the following:
 
-1. Removes a tuple `(blk, prnt, f1)` from the block stack table.
+1. Removes a tuple from the block stack table.
+    - if `f2` or `f3` is set, we remove a row `(blk, prnt, 0, ctx_next, fmp_next, b0_next, b1_next, fn_hash_next[0..4])`
+        - in the above, the `x_next` variables denote the column `x` in the next row
+    - else, we remove a row `(blk, prnt, f1, 0, 0, 0, 0, 0)`
 2. Removes a tuple `(prnt, current_block_hash, nxt, f0)` from the block hash table, where $nxt=0$ if the next operation is either `END` or `REPEAT`, and $1$ otherwise.
 3. Reads the hash result from the hash chiplet (as described [here](#program-block-hashing)) using `blk + 7` as row address in the auxiliary hashing table.
 4. If $h_5 = 1$ (i.e., we are exiting a *loop* block), pops the value off the top of the stack and verifies that the value is $0$.
@@ -402,13 +432,61 @@ In the above diagram, `g0_op0` is the first operation of the new operation batch
 When the VM executes a `RESPAN` operation, it does the following:
 
 1. Increments block address by $8$.
-2. Removes the tuple `(blk, prnt, 0)` from the block stack table.
-3. Adds the tuple `(blk+8, prnt, 0)` to the block stack table.
+2. Removes the tuple `(blk, prnt, 0, 0...)` from the block stack table.
+3. Adds the tuple `(blk+8, prnt, 0, 0...)` to the block stack table.
 4. Absorbs values in registers $h_0, ..., h_7$ into the hasher state of the hash chiplet (as described [here](#sequential-hash)).
 5. Sets the `in_span` register to $1$.
 6. Adds groups of the operation batch, as specified by op batch flags (see [here](#operation-batch-flags)) to the op group table using `blk+8` as batch ID.
 
 The net result of the above is that we incremented the ID of the current block by $8$ and added the next set of operation groups to the op group table.
+
+#### CALL operation
+
+Recall that the purpose of a `CALL` operation is to execute a procedure in a new execution context. Specifically, this means that the entire memory is zero'd in the new execution context, and the stack is truncated to a depth of 16 (i.e. any element in the stack overflow table is not available in the new context). On the corresponding `END` instruction, the prover will restore the previous execution context (verified by the block stack table).
+
+Before a `CALL` operation, the prover populates $h_0, ..., h_3$ registers with the hash of the procedure being called. In the next row, the prover 
+
+- resets the FMP register (free memory pointer), 
+- sets the context ID to the next row's CLK value
+- sets the `fn hash` registers to the hash of the callee
+    - This register is what the `caller` instruction uses to return the hash of the caller in a syscall
+- resets the stack `B0` register to 16 (which tracks the current stack depth)
+- resets the overflow address to 0 (which tracks the "address" of the last element added to the overflow table)
+    - it is set to 0 to indicate that the overflow table is empty
+
+![decoder_call_operation](../../assets/design/decoder/decoder_call_operation.png)
+
+In the above diagram, `blk` is the ID of the *call* block which is about to be executed. `blk` is also the address of the hasher row in the auxiliary hasher table. `prnt` is the ID of the block's parent.
+
+When the VM executes a `CALL` operation, it does the following:
+
+1. Adds a tuple `(blk, prnt, 0, p_ctx, p_fmp, p_b0, p_b1, prnt_fn_hash[0..4])` to the block stack table.
+2. Initiates a 2-to-1 hash computation in the hash chiplet (as described [here](#simple-2-to-1-hash)) using `blk` as row address in the auxiliary hashing table and $h_0, ..., h_3$ as input values.
+
+#### SYSCALL operation
+
+Similarly to the `CALL` operation, a `SYSCALL` changes the execution context. However, it always jumps back to the root context, and executes kernel procedures only.
+
+Before a `SYSCALL` operation, the prover populates $h_0, ..., h_3$ registers with the hash of the procedure being called. In the next row, the prover 
+
+- resets the FMP register (free memory pointer), 
+- sets the context ID to 0,
+- does NOT modify the `fn hash` register
+    - Hence, the `fn hash` register contains the procedure hash of the caller, to be accessed by the `caller` instruction,
+- resets the stack `B0` register to 16 (which tracks the current stack depth)
+- resets the overflow address to 0 (which tracks the "address" of the last element added to the overflow table)
+    - it is set to 0 to indicate that the overflow table is empty
+
+![decoder_syscall_operation](../../assets/design/decoder/decoder_syscall_operation.png)
+
+In the above diagram, `blk` is the ID of the *syscall* block which is about to be executed. `blk` is also the address of the hasher row in the auxiliary hasher table. `prnt` is the ID of the block's parent.
+
+When the VM executes a `SYSCALL` operation, it does the following:
+
+1. Adds a tuple `(blk, prnt, 0, p_ctx, p_fmp, p_b0, p_b1, prnt_fn_hash[0..4])` to the block stack table.
+2. Sends a request to the kernel ROM chiplet indicating that `hash of callee` is being accessed.
+    - this results in a fault if `hash of callee` does not correspond to the hash of a kernel procedure
+3. Initiates a 2-to-1 hash computation in the hash chiplet (as described [here](#simple-2-to-1-hash)) using `blk` as row address in the auxiliary hashing table and $h_0, ..., h_3$ as input values.
 
 ## Program decoding
 

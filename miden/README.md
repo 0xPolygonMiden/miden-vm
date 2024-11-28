@@ -21,12 +21,12 @@ All Miden programs can be reduced to a single 32-byte value, called program hash
 Currently, there are 3 ways to get values onto the stack:
 
 1. You can use `push` instruction to push values onto the stack. These values become a part of the program itself, and, therefore, cannot be changed between program executions. You can think of them as constants.
-2. The stack can be initialized to some set of values at the beginning of the program. These inputs are public and must be shared with the verifier for them to verify a proof of the correct execution of a Miden program. While it is possible to initialize the stack with a large number of values, we recommend keeping the number of initial values at 16 or fewer as each initial value beyond 16 increases verifier complexity.
+2. The stack can be initialized to some set of values at the beginning of the program. These inputs are public and must be shared with the verifier for them to verify a proof of the correct execution of a Miden program. At most 16 values could be provided for the stack initialization, attempts to provide more than 16 values will cause an error.
 3. The program may request nondeterministic advice inputs from the prover. These inputs are secret inputs. This means that the prover does not need to share them with the verifier. There are three types of advice inputs: (1) a single advice stack which can contain any number of elements; (2) a key-mapped element lists which can be pushed onto the advice stack; (3) a Merkle store, which is used to provide nondeterministic inputs for instructions which work with Merkle trees. There are no restrictions on the number of advice inputs a program can request.
 
 The stack is provided to Miden VM via `StackInputs` struct. These are public inputs of the execution, and should also be provided to the verifier. The secret inputs for the program are provided via the `Host` interface. The default implementation of the host relies on in-memory advice provider (`MemAdviceProvider`) that can be commonly used for operations that won't require persistence.
 
-Values remaining on the stack after a program is executed can be returned as stack outputs. You can specify exactly how many values (from the top of the stack) should be returned. Similar to stack inputs, a large number of values can be returned via the stack, however, we recommend keeping this number to under 16 not to overburden the verifier.
+Values remaining on the stack after a program is executed can be returned as stack outputs. You can specify exactly how many values (from the top of the stack) should be returned. Notice, that, similar to stack inputs, at most 16 values can be returned via the stack. Attempts to return more than 16 values will cause an error.
 
 Having a small number elements to describe public inputs and outputs of a program may seem limiting, however, just 4 elements are sufficient to represent a root of a Merkle tree or a sequential hash of elements. Both of these can be expanded into an arbitrary number of values by supplying the actual values non-deterministically via the host interface.
 
@@ -72,7 +72,7 @@ let exec_options = ExecutionOptions::default();
 let trace = execute(&program, stack_inputs.clone(), &mut host, exec_options).unwrap();
 
 // now, execute the same program in debug mode and iterate over VM states
-for vm_state in execute_iter(&program, stack_inputs, host) {
+for vm_state in execute_iter(&program, stack_inputs, &mut host) {
     match vm_state {
         Ok(vm_state) => println!("{:?}", vm_state),
         Err(_) => println!("something went terribly wrong!"),
@@ -111,13 +111,13 @@ let program = assembler.assemble_program("begin push.3 push.5 add end").unwrap()
 let (outputs, proof) = prove(
     &program,
     StackInputs::default(),       // we won't provide any inputs
-    DefaultHost::default(),       // we'll be using a default host
+    &mut DefaultHost::default(),  // we'll be using a default host
     ProvingOptions::default(),    // we'll be using default options
 )
 .unwrap();
 
 // the output should be 8
-assert_eq!(8, outputs.stack().first().unwrap().as_int());
+assert_eq!(8, outputs.first().unwrap().as_int());
 ```
 
 ### Verifying program execution
@@ -174,7 +174,7 @@ dup.1       // stack state: 2 1 2
 add         // stack state: 3 2
 ```
 
-Notice that except for the first 2 operations which initialize the stack, the sequence of `swap dup.1 add` operations repeats over and over. In fact, we can repeat these operations an arbitrary number of times to compute an arbitrary Fibonacci number. In Rust, it would look like this (this is actually a simplified version of the example in [fibonacci.rs](src/examples/src/fibonacci.rs)):
+Notice that except for the first 2 operations which initialize the stack, the sequence of `swap dup.1 add` operations repeats over and over. In fact, we can repeat these operations an arbitrary number of times to compute an arbitrary Fibonacci number. In Rust, it would look like this (this is actually a simplified version of the example in [fibonacci.rs](src/examples/fibonacci.rs)):
 
 ```rust
 use miden_vm::{Assembler, DefaultHost, Program, ProvingOptions, StackInputs};
@@ -196,7 +196,7 @@ let mut assembler = Assembler::default();
 let program = assembler.assemble_program(&source).unwrap();
 
 // initialize a default host (with an empty advice provider)
-let host = DefaultHost::default();
+let mut host = DefaultHost::default();
 
 // initialize the stack with values 0 and 1
 let stack_inputs = StackInputs::try_from_ints([0, 1]).unwrap();
@@ -205,7 +205,7 @@ let stack_inputs = StackInputs::try_from_ints([0, 1]).unwrap();
 let (outputs, proof) = miden_vm::prove(
     &program,
     stack_inputs,
-    host,
+    &mut host,
     ProvingOptions::default(), // use default proving options
 )
 .unwrap();
@@ -225,7 +225,7 @@ If you want to execute, prove, and verify programs on Miden VM, but don't want t
 
 ### Compiling Miden VM
 
-First, make sure you have Rust [installed](https://www.rust-lang.org/tools/install). The current version of Miden VM requires Rust version **1.80** or later.
+First, make sure you have Rust [installed](https://www.rust-lang.org/tools/install). The current version of Miden VM requires Rust version **1.82** or later.
 
 Then, to compile Miden VM into a binary, run the following `make` command:
 
@@ -308,7 +308,7 @@ Miden VM can be compiled with the following features:
 - `executable` - required for building Miden VM binary as described above. Implies `std`.
 - `metal` - enables [Metal](<https://en.wikipedia.org/wiki/Metal_(API)>)-based acceleration of proof generation (for recursive proofs) on supported platforms (e.g., Apple silicon).
 - `no_std` does not rely on the Rust standard library and enables compilation to WebAssembly.
-    - Only the `wasm32-unknown-unknown` and `wasm32-wasip1` targets are officially supported.
+  - Only the `wasm32-unknown-unknown` and `wasm32-wasip1` targets are officially supported.
 
 To compile with `no_std`, disable default features via `--no-default-features` flag.
 

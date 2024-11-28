@@ -12,8 +12,8 @@ use crate::{SourceSpan, Span, Spanned};
 pub enum IdentError {
     #[error("invalid identifier: cannot be empty")]
     Empty,
-    #[error("invalid identifier: must contain only lowercase, ascii alphanumeric characters, or underscores")]
-    InvalidChars,
+    #[error("invalid identifier '{ident}': must contain only lowercase, ascii alphanumeric characters, or underscores")]
+    InvalidChars { ident: Arc<str> },
     #[error("invalid identifier: must start with lowercase ascii alphabetic character")]
     InvalidStart,
     #[error("invalid identifier: length exceeds the maximum of {max} bytes")]
@@ -109,7 +109,7 @@ impl Ident {
             return Err(IdentError::InvalidStart);
         }
         if !source.chars().all(|c| c.is_ascii_alphabetic() || matches!(c, '_' | '0'..='9')) {
-            return Err(IdentError::InvalidChars);
+            return Err(IdentError::InvalidChars { ident: source.into() });
         }
         Ok(())
     }

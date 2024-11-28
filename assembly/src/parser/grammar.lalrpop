@@ -1,6 +1,6 @@
 use alloc::{
     boxed::Box,
-    collections::{VecDeque, BTreeSet},
+    collections::{VecDeque, BTreeSet, BTreeMap},
     string::ToString,
     sync::Arc,
     vec::Vec,
@@ -34,6 +34,7 @@ extern {
         bare_ident => Token::Ident(<&'input str>),
         const_ident => Token::ConstantIdent(<&'input str>),
         quoted_ident => Token::QuotedIdent(<&'input str>),
+        quoted_string => Token::QuotedString(<&'input str>),
         hex_value => Token::HexValue(<HexEncodedValue>),
         bin_value => Token::BinValue(<BinEncodedValue>),
         doc_comment => Token::DocComment(<DocumentationType>),
@@ -42,6 +43,7 @@ extern {
         "add" => Token::Add,
         "adv" => Token::Adv,
         "insert_hdword" => Token::InsertHdword,
+        "insert_hdword_d" => Token::InsertHdwordWithDomain,
         "insert_hperm" => Token::InsertHperm,
         "insert_mem" => Token::InsertMem,
         "adv_loadw" => Token::AdvLoadw,
@@ -53,8 +55,6 @@ extern {
         "push_mtnode" => Token::PushMtnode,
         "push_sig" => Token::PushSig,
         "push_smtpeek" => Token::PushSmtpeek,
-        "push_smtget" => Token::PushSmtget,
-        "push_smtset" => Token::PushSmtset,
         "push_u64div" => Token::PushU64Div,
         "and" => Token::And,
         "assert" => Token::Assert,
@@ -192,21 +192,35 @@ extern {
         "u32xor" => Token::U32Xor,
         "while" => Token::While,
         "xor" => Token::Xor,
+        "@" => Token::At,
         "!" => Token::Bang,
         "::" => Token::ColonColon,
         "." => Token::Dot,
+        "," => Token::Comma,
         "=" => Token::Equal,
         "(" => Token::Lparen,
+        "[" => Token::Lbracket,
         "-" => Token::Minus,
         "+" => Token::Plus,
         "//" => Token::SlashSlash,
         "/" => Token::Slash,
         "*" => Token::Star,
         ")" => Token::Rparen,
+        "]" => Token::Rbracket,
         "->" => Token::Rstab,
         EOF => Token::Eof,
     }
 }
+
+
+// comma-delimited with at least one element
+#[inline]
+CommaDelimited<T>: Vec<T> = {
+    <mut v:(<T> ",")*> <e:T> => {
+        v.push(e);
+        v
+    }
+};
 
 // dot-delimited with at least one element
 #[inline]
@@ -290,6 +304,66 @@ Begin: Form = {
 }
 
 Proc: Form = {
+    <annotations:Annotation*> <mut proc:ProcedureDef> =>? {
+        use alloc::collections::btree_map::Entry;
+        let attributes = proc.attributes_mut();
+        for attr in annotations {
+            match attr {
+                Attribute::KeyValue(kv) => {
+                    match attributes.entry(kv.id()) {
+                        AttributeSetEntry::Vacant(entry) => {
+                            entry.insert(Attribute::KeyValue(kv));
+                        }
+                        AttributeSetEntry::Occupied(mut entry) => {
+                            let value = entry.get_mut();
+                            match value {
+                                Attribute::KeyValue(ref mut existing_kvs) => {
+                                    for (k, v) in kv.into_iter() {
+                                        let span = k.span();
+                                        match existing_kvs.entry(k) {
+                                            Entry::Vacant(entry) => {
+                                                entry.insert(v);
+                                            }
+                                            Entry::Occupied(ref entry) => {
+                                                let prev = entry.get();
+                                                return Err(ParseError::User {
+                                                    error: ParsingError::AttributeKeyValueConflict { span, prev: prev.span() },
+                                                });
+                                            }
+                                        }
+                                    }
+                                }
+                                other => {
+                                    return Err(ParseError::User {
+                                        error: ParsingError::AttributeConflict { span: kv.span(), prev: other.span() },
+                                    });
+                                }
+                            }
+                        }
+                    }
+                }
+                attr => {
+                    match attributes.entry(attr.id()) {
+                        AttributeSetEntry::Vacant(entry) => {
+                            entry.insert(attr);
+                        }
+                        AttributeSetEntry::Occupied(ref entry) => {
+                            let prev_attr = entry.get();
+                            return Err(ParseError::User {
+                                error: ParsingError::AttributeConflict { span: attr.span(), prev: prev_attr.span() },
+                            });
+                        }
+                    }
+                }
+            }
+        }
+        Ok(Form::Procedure(Export::Procedure(proc)))
+    },
+    AliasDef => Form::Procedure(Export::Alias(<>)),
+}
+
+#[inline]
+ProcedureDef: Procedure = {
     <l:@L> <visibility:Visibility> "." <name:ProcedureName> <num_locals:MaybeParam<U16>> <body:Block> "end" <r:@R> =>? {
         let num_locals = num_locals.unwrap_or(0);
         let procedure = Procedure::new(
@@ -299,9 +373,12 @@ Proc: Form = {
             num_locals,
             body
         );
-        Ok(Form::Procedure(Export::Procedure(procedure)))
+        Ok(procedure)
     },
+}
 
+#[inline]
+AliasDef: ProcedureAlias = {
     <l:@L> "export" "." <name:MaybeQualifiedProcedurePath> <alias:("->" <ProcedureName>)?> <r:@R> =>? {
         let span = span!(source_file.id(), l, r);
         let alias = match name {
@@ -341,7 +418,7 @@ Proc: Form = {
                 ProcedureAlias::new(export_name, AliasTarget::AbsoluteProcedurePath(target))
             }
         };
-        Ok(Form::Procedure(Export::Alias(alias)))
+        Ok(alias)
     }
 }
 
@@ -349,6 +426,68 @@ Proc: Form = {
 Visibility: Visibility = {
     "proc" => Visibility::Private,
     "export" => Visibility::Public,
+}
+
+// ANNOTATIONS
+// ================================================================================================
+
+Annotation: Attribute = {
+    <l:@L> "@" <attr:Attribute> <r:@R> => attr.with_span(span!(source_file.id(), l, r)),
+}
+
+#[inline]
+Attribute: Attribute = {
+    <l:@L> <name:BareIdent> "(" <items:CommaDelimited<MetaExpr>> ")" <r:@R>  => {
+        Attribute::List(MetaList { span: span!(source_file.id(), l, r), name, items })
+    },
+
+    <l:@L> <name:BareIdent> "(" <items:CommaDelimited<MetaKeyValue>> ")" <r:@R> =>? {
+        use alloc::collections::btree_map::Entry;
+
+        let mut map = BTreeMap::<Ident, MetaExpr>::default();
+        for meta_kv in items {
+            let (span, (k, v)) = meta_kv.into_parts();
+            match map.entry(k) {
+                Entry::Occupied(ref entry) => {
+                    let prev = entry.key().span();
+                    return Err(ParseError::User {
+                        error: ParsingError::AttributeKeyValueConflict { span, prev },
+                    });
+                }
+                Entry::Vacant(entry) => {
+                    entry.insert(v);
+                }
+            }
+        }
+        Ok(Attribute::KeyValue(MetaKeyValue { span: span!(source_file.id(), l, r), name, items: map }))
+    },
+
+    <name:BareIdent> => Attribute::Marker(<>),
+}
+
+MetaKeyValue: Span<(Ident, MetaExpr)> = {
+    <l:@L> <key:BareIdent> "=" <value:MetaExpr> <r:@R> => {
+        let span = span!(source_file.id(), l, r);
+        Span::new(span, (key, value))
+    }
+}
+
+MetaExpr: MetaExpr = {
+    BareIdent => MetaExpr::Ident(<>),
+    QuotedString => MetaExpr::String(<>),
+    <l:@L> <value:IntOrHex> <r:@R> => MetaExpr::Int(Span::new(span!(source_file.id(), l, r), value)),
+}
+
+#[inline]
+QuotedString: Ident = {
+    <l:@L> <value:quoted_string> <r:@R> => {
+        let value = interned.get(value).cloned().unwrap_or_else(|| {
+            let value = Arc::<str>::from(value.to_string().into_boxed_str());
+            interned.insert(value.clone());
+            value
+        });
+        Ident::new_unchecked(Span::new(span!(source_file.id(), l, r), value))
+    }
 }
 
 // CODE BLOCKS
@@ -459,7 +598,7 @@ MacroInst: SmallOpsVec = {
 
 #[inline]
 Inst: Instruction = {
-    AdviceInjector,
+    SystemEvent,
     Call,
     Debug,
     InstWithBitSizeImmediate,
@@ -526,28 +665,18 @@ Inst: Instruction = {
 }
 
 #[inline]
-AdviceInjector: Instruction = {
-    "adv" "." "insert_hdword" <domain:MaybeImm<RawU8>> => {
-        domain.map(|domain| Instruction::AdvInject(AdviceInjectorNode::InsertHdwordImm { domain }))
-              .unwrap_or(Instruction::AdvInject(AdviceInjectorNode::InsertHdword))
-    },
-    "adv" "." "insert_hperm" => Instruction::AdvInject(AdviceInjectorNode::InsertHperm),
-    "adv" "." "insert_mem" => Instruction::AdvInject(AdviceInjectorNode::InsertMem),
-    "adv" "." "push_ext2intt" => Instruction::AdvInject(AdviceInjectorNode::PushExt2intt),
-    "adv" "." "push_mapval" <i:MaybeImm<StackWordOffset>> => {
-        i.map(|offset| Instruction::AdvInject(AdviceInjectorNode::PushMapValImm { offset }))
-         .unwrap_or(Instruction::AdvInject(AdviceInjectorNode::PushMapVal))
-    },
-    "adv" "." "push_mapvaln" <i:MaybeImm<StackWordOffset>> => {
-        i.map(|offset| Instruction::AdvInject(AdviceInjectorNode::PushMapValNImm { offset }))
-         .unwrap_or(Instruction::AdvInject(AdviceInjectorNode::PushMapValN))
-    },
-    "adv" "." "push_mtnode" => Instruction::AdvInject(AdviceInjectorNode::PushMtNode),
-    "adv" "." "push_sig" "." <kind:SignatureKind> => Instruction::AdvInject(AdviceInjectorNode::PushSignature { kind }),
-    "adv" "." "push_smtpeek" => Instruction::AdvInject(AdviceInjectorNode::PushSmtPeek),
-    "adv" "." "push_smtget" => Instruction::AdvInject(AdviceInjectorNode::PushSmtGet),
-    "adv" "." "push_smtset" => Instruction::AdvInject(AdviceInjectorNode::PushSmtSet),
-    "adv" "." "push_u64div" => Instruction::AdvInject(AdviceInjectorNode::PushU64Div),
+SystemEvent: Instruction = {
+    "adv" "." "insert_hdword" => Instruction::SysEvent(SystemEventNode::InsertHdword),
+    "adv" "." "insert_hdword_d" => Instruction::SysEvent(SystemEventNode::InsertHdwordWithDomain),
+    "adv" "." "insert_hperm" => Instruction::SysEvent(SystemEventNode::InsertHperm),
+    "adv" "." "insert_mem" => Instruction::SysEvent(SystemEventNode::InsertMem),
+    "adv" "." "push_ext2intt" => Instruction::SysEvent(SystemEventNode::PushExt2intt),
+    "adv" "." "push_mapval" => Instruction::SysEvent(SystemEventNode::PushMapVal),
+    "adv" "." "push_mapvaln" => Instruction::SysEvent(SystemEventNode::PushMapValN),
+    "adv" "." "push_mtnode" => Instruction::SysEvent(SystemEventNode::PushMtNode),
+    "adv" "." "push_sig" "." <kind:SignatureKind> => Instruction::SysEvent(SystemEventNode::PushSignature { kind }),
+    "adv" "." "push_smtpeek" => Instruction::SysEvent(SystemEventNode::PushSmtPeek),
+    "adv" "." "push_u64div" => Instruction::SysEvent(SystemEventNode::PushU64Div),
 }
 
 #[inline]
@@ -1541,9 +1670,7 @@ Opcode: &'static str = {
     "movdnw" => "movdnw",
     "movup" => "movup",
     "movupw" => "movupw",
-    "mtree_get" => "mtree_get",
     "mtree_merge" => "mtree_merge",
-    "mtree_set" => "mtree_set",
     "mtree_verify" => "mtree_verify",
     "mul" => "mul",
     "neg" => "neg",

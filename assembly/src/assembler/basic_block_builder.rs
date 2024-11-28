@@ -2,7 +2,8 @@ use alloc::{borrow::Borrow, string::ToString, vec::Vec};
 
 use vm_core::{
     mast::{DecoratorId, MastNodeId},
-    AdviceInjector, AssemblyOp, Decorator, Operation,
+    sys_events::SystemEvent,
+    AssemblyOp, Decorator, Operation,
 };
 
 use super::{mast_forest_builder::MastForestBuilder, BodyWrapper, DecoratorList, ProcedureContext};
@@ -60,7 +61,7 @@ impl<'a> BasicBlockBuilder<'a> {
 }
 
 /// Accessors
-impl<'a> BasicBlockBuilder<'a> {
+impl BasicBlockBuilder<'_> {
     /// Returns a reference to the internal [`MastForestBuilder`].
     pub fn mast_forest_builder(&self) -> &MastForestBuilder {
         self.mast_forest_builder
@@ -73,7 +74,7 @@ impl<'a> BasicBlockBuilder<'a> {
 }
 
 /// Operations
-impl<'a> BasicBlockBuilder<'a> {
+impl BasicBlockBuilder<'_> {
     /// Adds the specified operation to the list of basic block operations.
     pub fn push_op(&mut self, op: Operation) {
         self.ops.push(op);
@@ -93,21 +94,22 @@ impl<'a> BasicBlockBuilder<'a> {
         let new_len = self.ops.len() + n;
         self.ops.resize(new_len, op);
     }
+
+    /// Converts the system event into its corresponding event ID, and adds an `Emit` operation
+    /// to the list of basic block operations.
+    pub fn push_system_event(&mut self, sys_event: SystemEvent) {
+        self.push_op(Operation::Emit(sys_event.into_event_id()))
+    }
 }
 
 /// Decorators
-impl<'a> BasicBlockBuilder<'a> {
+impl BasicBlockBuilder<'_> {
     /// Add the specified decorator to the list of basic block decorators.
     pub fn push_decorator(&mut self, decorator: Decorator) -> Result<(), AssemblyError> {
         let decorator_id = self.mast_forest_builder.ensure_decorator(decorator)?;
         self.decorators.push((self.ops.len(), decorator_id));
 
         Ok(())
-    }
-
-    /// Adds the specified advice injector to the list of basic block decorators.
-    pub fn push_advice_injector(&mut self, injector: AdviceInjector) -> Result<(), AssemblyError> {
-        self.push_decorator(Decorator::Advice(injector))
     }
 
     /// Adds an AsmOp decorator to the list of basic block decorators.
@@ -159,7 +161,7 @@ impl<'a> BasicBlockBuilder<'a> {
 }
 
 /// Span Constructors
-impl<'a> BasicBlockBuilder<'a> {
+impl BasicBlockBuilder<'_> {
     /// Creates and returns a new basic block node from the operations and decorators currently in
     /// this builder.
     ///

@@ -14,7 +14,7 @@ impl fmt::Debug for ModuleGraph {
 #[doc(hidden)]
 struct DisplayModuleGraph<'a>(&'a ModuleGraph);
 
-impl<'a> fmt::Debug for DisplayModuleGraph<'a> {
+impl fmt::Debug for DisplayModuleGraph<'_> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         f.debug_set()
             .entries(self.0.modules.iter().enumerate().flat_map(|(module_index, m)| {
@@ -56,7 +56,7 @@ impl<'a> fmt::Debug for DisplayModuleGraph<'a> {
 #[doc(hidden)]
 struct DisplayModuleGraphNodes<'a>(&'a Vec<WrappedModule>);
 
-impl<'a> fmt::Debug for DisplayModuleGraphNodes<'a> {
+impl fmt::Debug for DisplayModuleGraphNodes<'_> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         f.debug_list()
             .entries(self.0.iter().enumerate().flat_map(|(module_index, m)| {
@@ -111,7 +111,7 @@ struct DisplayModuleGraphNode<'a> {
     ty: GraphNodeType,
 }
 
-impl<'a> fmt::Debug for DisplayModuleGraphNode<'a> {
+impl fmt::Debug for DisplayModuleGraphNode<'_> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         f.debug_struct("Node")
             .field("id", &format_args!("{}:{}", &self.module.as_usize(), &self.index.as_usize()))
@@ -128,7 +128,7 @@ struct DisplayModuleGraphNodeWithEdges<'a> {
     out_edges: &'a [GlobalProcedureIndex],
 }
 
-impl<'a> fmt::Debug for DisplayModuleGraphNodeWithEdges<'a> {
+impl fmt::Debug for DisplayModuleGraphNodeWithEdges<'_> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         f.debug_struct("Edge")
             .field(

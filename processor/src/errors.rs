@@ -6,7 +6,7 @@ use std::error::Error;
 use miden_air::RowIndex;
 use vm_core::{
     mast::{DecoratorId, MastNodeId},
-    stack::STACK_TOP_SIZE,
+    stack::MIN_STACK_DEPTH,
     utils::to_hex,
 };
 use winter_prover::{math::FieldElement, ProverError};
@@ -16,13 +16,15 @@ use super::{
     system::{FMP_MAX, FMP_MIN},
     Digest, Felt, QuadFelt, Word,
 };
+use crate::ContextId;
 
 // EXECUTION ERROR
 // ================================================================================================
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug)]
 pub enum ExecutionError {
     AdviceMapKeyNotFound(Word),
+    AdviceMapKeyAlreadyPresent(Word),
     AdviceStackReadFailed(RowIndex),
     CallerNotInSyscall,
     CircularExternalNode(Digest),
@@ -31,6 +33,11 @@ pub enum ExecutionError {
         decorator_id: DecoratorId,
     },
     DivideByZero(RowIndex),
+    DuplicateMemoryAccess {
+        ctx: ContextId,
+        addr: u32,
+        clk: Felt,
+    },
     DynamicNodeNotFound(Digest),
     EventError(String),
     Ext2InttError(Ext2InttError),
@@ -48,7 +55,6 @@ pub enum ExecutionError {
         end_addr: u64,
     },
     InvalidStackDepthOnReturn(usize),
-    InvalidStackWordOffset(usize),
     InvalidTreeDepth {
         depth: Felt,
     },
@@ -79,6 +85,7 @@ pub enum ExecutionError {
     MerkleStoreUpdateFailed(MerkleError),
     NotBinaryValue(Felt),
     NotU32Value(Felt, Felt),
+    OutputStackOverflow(usize),
     ProgramAlreadyExecuted,
     ProverError(ProverError),
     SmtNodeNotFound(Word),
@@ -95,6 +102,10 @@ impl Display for ExecutionError {
                 let hex = to_hex(Felt::elements_as_bytes(key));
                 write!(f, "Value for key {hex} not present in the advice map")
             },
+            AdviceMapKeyAlreadyPresent(key) => {
+                let hex = to_hex(Felt::elements_as_bytes(key));
+                write!(f, "Value for key {hex} already present in the advice map")
+            },
             AdviceStackReadFailed(step) => write!(f, "Advice stack read failed at step {step}"),
             CallerNotInSyscall => {
                 write!(f, "Instruction `caller` used outside of kernel context")
@@ -109,6 +120,10 @@ impl Display for ExecutionError {
                 write!(f, "Malformed MAST forest, decorator id {decorator_id} doesn't exist")
             },
             DivideByZero(clk) => write!(f, "Division by zero at clock cycle {clk}"),
+            DuplicateMemoryAccess { ctx, addr, clk } => write!(
+                f,
+                "Memory address {addr} in context {ctx} accessed twice in clock cycle {clk}"
+            ),
             DynamicNodeNotFound(digest) => {
                 let hex = to_hex(digest.as_bytes());
                 write!(
@@ -144,10 +159,7 @@ impl Display for ExecutionError {
                 write!(f, "Memory range start address cannot exceed end address, but was ({start_addr}, {end_addr})")
             },
             InvalidStackDepthOnReturn(depth) => {
-                write!(f, "When returning from a call, stack depth must be {STACK_TOP_SIZE}, but was {depth}")
-            },
-            InvalidStackWordOffset(offset) => {
-                write!(f, "Stack word offset cannot exceed 12, but was {offset}")
+                write!(f, "When returning from a call, stack depth must be {MIN_STACK_DEPTH}, but was {depth}")
             },
             InvalidTreeDepth { depth } => {
                 write!(f, "The provided {depth} is out of bounds and cannot be represented as an unsigned 8-bits integer")
@@ -199,6 +211,9 @@ impl Display for ExecutionError {
                     f,
                     "An operation expected a u32 value, but received {v} (error code: {err_code})"
                 )
+            },
+            OutputStackOverflow(n) => {
+                write!(f, "The stack should have at most {MIN_STACK_DEPTH} elements at the end of program execution, but had {} elements", MIN_STACK_DEPTH + n)
             },
             SmtNodeNotFound(node) => {
                 let node_hex = to_hex(Felt::elements_as_bytes(node));

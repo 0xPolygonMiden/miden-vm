@@ -4,20 +4,17 @@
 
 use std::{boxed::Box, marker::PhantomData, time::Instant, vec::Vec};
 
-use air::{AuxRandElements, LagrangeKernelEvaluationFrame};
+use air::{AuxRandElements, LagrangeKernelEvaluationFrame, PartitionOptions};
 use elsa::FrozenVec;
 use miden_gpu::{
     metal::{build_merkle_tree, utils::page_aligned_uninit_vector, RowHasher},
     HashFn,
 };
 use pollster::block_on;
-use processor::{
-    crypto::{ElementHasher, Hasher},
-    ONE,
-};
+use processor::crypto::{ElementHasher, Hasher};
 use tracing::{event, Level};
 use winter_prover::{
-    crypto::{Digest, MerkleTree},
+    crypto::{Digest, MerkleTree, VectorCommitment},
     matrix::{get_evaluation_offsets, ColMatrix, RowMatrix, Segment},
     proof::Queries,
     CompositionPoly, CompositionPolyTrace, ConstraintCommitment, ConstraintCompositionCoefficients,
@@ -38,8 +35,6 @@ mod tests;
 // CONSTANTS
 // ================================================================================================
 
-// The Rate for RPO and RPX is the same
-const RATE: usize = Rpo256::RATE_RANGE.end - Rpo256::RATE_RANGE.start;
 const DIGEST_SIZE: usize = Rpo256::DIGEST_RANGE.end - Rpo256::DIGEST_RANGE.start;
 
 // METAL RPO/RPX PROVER
@@ -70,75 +65,24 @@ where
             phantom_data: PhantomData,
         }
     }
-
-    fn build_aligned_segement<E, const N: usize>(
-        polys: &ColMatrix<E>,
-        poly_offset: usize,
-        offsets: &[Felt],
-        twiddles: &[Felt],
-    ) -> Segment<Felt, N>
-    where
-        E: FieldElement<BaseField = Felt>,
-    {
-        let poly_size = polys.num_rows();
-        let domain_size = offsets.len();
-        assert!(domain_size.is_power_of_two());
-        assert!(domain_size > poly_size);
-        assert_eq!(poly_size, twiddles.len() * 2);
-        assert!(poly_offset < polys.num_base_cols());
-
-        // allocate memory for the segment
-        let data = if polys.num_base_cols() - poly_offset >= N {
-            // if we will fill the entire segment, we allocate uninitialized memory
-            unsafe { page_aligned_uninit_vector(domain_size) }
-        } else {
-            // but if some columns in the segment will remain unfilled, we allocate memory
-            // initialized to zeros to make sure we don't end up with memory with
-            // undefined values
-            vec![[E::BaseField::ZERO; N]; domain_size]
-        };
-
-        Segment::new_with_buffer(data, polys, poly_offset, offsets, twiddles)
-    }
-
-    fn build_aligned_segements<E, const N: usize>(
-        polys: &ColMatrix<E>,
-        twiddles: &[Felt],
-        offsets: &[Felt],
-    ) -> Vec<Segment<Felt, N>>
-    where
-        E: FieldElement<BaseField = Felt>,
-    {
-        assert!(N > 0, "batch size N must be greater than zero");
-        debug_assert_eq!(polys.num_rows(), twiddles.len() * 2);
-        debug_assert_eq!(offsets.len() % polys.num_rows(), 0);
-
-        let num_segments = if polys.num_base_cols() % N == 0 {
-            polys.num_base_cols() / N
-        } else {
-            polys.num_base_cols() / N + 1
-        };
-
-        (0..num_segments)
-            .map(|i| Self::build_aligned_segement(polys, i * N, offsets, twiddles))
-            .collect()
-    }
 }
 
 impl<H, D, R> Prover for MetalExecutionProver<H, D, R>
 where
-    H: Hasher<Digest = D> + ElementHasher<BaseField = R::BaseField>,
+    H: Hasher<Digest = D> + ElementHasher<BaseField = R::BaseField> + Sync,
     D: Digest + for<'a> From<&'a [Felt; DIGEST_SIZE]>,
     R: RandomCoin<BaseField = Felt, Hasher = H> + Send,
 {
     type BaseField = Felt;
     type Air = ProcessorAir;
     type Trace = ExecutionTrace;
+    type VC = MerkleTree<Self::HashFn>;
     type HashFn = H;
     type RandomCoin = R;
     type TraceLde<E: FieldElement<BaseField = Felt>> = MetalTraceLde<E, H>;
     type ConstraintEvaluator<'a, E: FieldElement<BaseField = Felt>> =
         DefaultConstraintEvaluator<'a, ProcessorAir, E>;
+    type ConstraintCommitment<E: FieldElement<BaseField = Felt>> = MetalConstraintCommitment<E, H>;
 
     fn get_pub_inputs(&self, trace: &ExecutionTrace) -> PublicInputs {
         self.execution_prover.get_pub_inputs(trace)
@@ -148,11 +92,20 @@ where
         self.execution_prover.options()
     }
 
+    fn build_aux_trace<E: FieldElement<BaseField = Self::BaseField>>(
+        &self,
+        trace: &Self::Trace,
+        aux_rand_elements: &AuxRandElements<E>,
+    ) -> ColMatrix<E> {
+        trace.build_aux_trace(aux_rand_elements.rand_elements()).unwrap()
+    }
+
     fn new_trace_lde<E: FieldElement<BaseField = Felt>>(
         &self,
         trace_info: &TraceInfo,
         main_trace: &ColMatrix<Felt>,
         domain: &StarkDomain<Felt>,
+        _partition_options: PartitionOptions,
     ) -> (Self::TraceLde<E>, TracePolyTable<E>) {
         MetalTraceLde::new(trace_info, main_trace, domain, self.metal_hash_fn)
     }
@@ -167,99 +120,19 @@ where
             .new_evaluator(air, aux_rand_elements, composition_coefficients)
     }
 
-    /// Evaluates constraint composition polynomial over the LDE domain and builds a commitment
-    /// to these evaluations.
-    ///
-    /// The evaluation is done by evaluating each composition polynomial column over the LDE
-    /// domain.
-    ///
-    /// The commitment is computed by hashing each row in the evaluation matrix, and then building
-    /// a Merkle tree from the resulting hashes.
-    ///
-    /// The composition polynomial columns are evaluated on the CPU. Afterwards the commitment
-    /// is computed on the GPU.
-    ///
-    /// ```text
-    ///        ─────────────────────────────────────────────────────
-    ///              ┌───┐ ┌───┐
-    ///  CPU:   ... ─┤fft├─┤fft├─┐                           ┌─ ...
-    ///              └───┘ └───┘ │                           │
-    ///        ╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴┼╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴┼╴╴╴╴╴╴
-    ///                          │ ┌──────────┐ ┌──────────┐ │
-    ///  GPU:                    └─┤   hash   ├─┤   hash   ├─┘
-    ///                            └──────────┘ └──────────┘
-    ///        ────┼────────┼────────┼────────┼────────┼────────┼───
-    ///           t=n     t=n+1    t=n+2     t=n+3   t=n+4    t=n+5
-    /// ```
     fn build_constraint_commitment<E: FieldElement<BaseField = Felt>>(
         &self,
         composition_poly_trace: CompositionPolyTrace<E>,
-        num_trace_poly_columns: usize,
-        domain: &StarkDomain<Felt>,
-    ) -> (ConstraintCommitment<E, Self::HashFn>, CompositionPoly<E>) {
-        // evaluate composition polynomial columns over the LDE domain
-        let now = Instant::now();
-        let composition_poly =
-            CompositionPoly::new(composition_poly_trace, domain, num_trace_poly_columns);
-        let blowup = domain.trace_to_lde_blowup();
-        let offsets =
-            get_evaluation_offsets::<E>(composition_poly.column_len(), blowup, domain.offset());
-        let segments = Self::build_aligned_segements(
-            composition_poly.data(),
-            domain.trace_twiddles(),
-            &offsets,
-        );
-        event!(
-            Level::INFO,
-            "Evaluated {} composition polynomial columns over LDE domain (2^{} elements) in {} ms",
-            composition_poly.num_columns(),
-            offsets.len().ilog2(),
-            now.elapsed().as_millis()
-        );
-
-        // build constraint evaluation commitment
-        let now = Instant::now();
-        let lde_domain_size = domain.lde_domain_size();
-        let num_base_columns =
-            composition_poly.num_columns() * <E as FieldElement>::EXTENSION_DEGREE;
-        let rpo_requires_padding = num_base_columns % RATE != 0;
-        let rpo_padded_segment_idx = rpo_requires_padding.then_some(num_base_columns / RATE);
-        let mut row_hasher = RowHasher::new(lde_domain_size, num_base_columns, self.metal_hash_fn);
-        let mut rpo_padded_segment: Vec<[Felt; RATE]>;
-        for (segment_idx, segment) in segments.iter().enumerate() {
-            // check if the segment requires padding
-            if rpo_padded_segment_idx.map_or(false, |pad_idx| pad_idx == segment_idx) {
-                // duplicate and modify the last segment with Rpo256's padding
-                // rule ("1" followed by "0"s). Our segments are already
-                // padded with "0"s we only need to add the "1"s.
-                rpo_padded_segment = unsafe { page_aligned_uninit_vector(lde_domain_size) };
-                rpo_padded_segment.copy_from_slice(segment);
-                // For rpx, skip this step
-                if self.metal_hash_fn == HashFn::Rpo256 {
-                    let rpo_pad_column = num_base_columns % RATE;
-                    rpo_padded_segment.iter_mut().for_each(|row| row[rpo_pad_column] = ONE);
-                }
-                row_hasher.update(&rpo_padded_segment);
-                assert_eq!(segments.len() - 1, segment_idx, "padded segment should be the last");
-                break;
-            }
-            row_hasher.update(segment);
-        }
-        let row_hashes = block_on(row_hasher.finish());
-        let tree_nodes = build_merkle_tree(&row_hashes, self.metal_hash_fn);
-        // aggregate segments at the same time as the GPU generates the merkle tree nodes
-        let composed_evaluations = RowMatrix::<E>::from_segments(segments, num_base_columns);
-        let nodes = block_on(tree_nodes).into_iter().map(|dig| H::Digest::from(&dig)).collect();
-        let leaves = row_hashes.into_iter().map(|dig| H::Digest::from(&dig)).collect();
-        let commitment = MerkleTree::<H>::from_raw_parts(nodes, leaves).unwrap();
-        let constraint_commitment = ConstraintCommitment::new(composed_evaluations, commitment);
-        event!(
-            Level::INFO,
-            "Computed constraint evaluation commitment on the GPU (Merkle tree of depth {}) in {} ms",
-            constraint_commitment.tree_depth(),
-            now.elapsed().as_millis()
-        );
-        (constraint_commitment, composition_poly)
+        num_constraint_composition_columns: usize,
+        domain: &StarkDomain<Self::BaseField>,
+        _partition_options: PartitionOptions,
+    ) -> (Self::ConstraintCommitment<E>, CompositionPoly<E>) {
+        MetalConstraintCommitment::new(
+            composition_poly_trace,
+            num_constraint_composition_columns,
+            domain,
+            self.metal_hash_fn,
+        )
     }
 }
 
@@ -288,11 +161,11 @@ pub struct MetalTraceLde<E: FieldElement<BaseField = Felt>, H: Hasher> {
     metal_hash_fn: HashFn,
 }
 
-impl<
-        E: FieldElement<BaseField = Felt>,
-        H: Hasher<Digest = D> + ElementHasher<BaseField = E::BaseField>,
-        D: Digest + for<'a> From<&'a [Felt; DIGEST_SIZE]>,
-    > MetalTraceLde<E, H>
+impl<E, H, D> MetalTraceLde<E, H>
+where
+    E: FieldElement<BaseField = Felt>,
+    H: Hasher<Digest = D> + ElementHasher<BaseField = E::BaseField>,
+    D: Digest + for<'a> From<&'a [Felt; DIGEST_SIZE]>,
 {
     /// Takes the main trace segment columns as input, interpolates them into polynomials in
     /// coefficient form, evaluates the polynomials over the LDE domain, commits to the
@@ -352,13 +225,14 @@ impl<
     }
 }
 
-impl<
-        E: FieldElement<BaseField = Felt>,
-        H: Hasher<Digest = D> + ElementHasher<BaseField = E::BaseField>,
-        D: Digest + for<'a> From<&'a [Felt; DIGEST_SIZE]>,
-    > TraceLde<E> for MetalTraceLde<E, H>
+impl<E, H, D> TraceLde<E> for MetalTraceLde<E, H>
+where
+    E: FieldElement<BaseField = Felt>,
+    H: Hasher<Digest = D> + ElementHasher<BaseField = E::BaseField>,
+    D: Digest + for<'a> From<&'a [Felt; DIGEST_SIZE]>,
 {
     type HashFn = H;
+    type VC = MerkleTree<Self::HashFn>;
 
     /// Returns the commitment to the low-degree extension of the main trace segment.
     fn get_main_trace_commitment(&self) -> D {
@@ -513,15 +387,16 @@ impl<
 ///        ────┼────────┼────────┼────────┼────────┼────────┼────
 ///           t=n     t=n+1    t=n+2     t=n+3   t=n+4    t=n+5
 /// ```
-fn build_trace_commitment<
-    E: FieldElement<BaseField = Felt>,
-    H: Hasher<Digest = D> + ElementHasher<BaseField = E::BaseField>,
-    D: Digest + for<'a> From<&'a [Felt; DIGEST_SIZE]>,
->(
+fn build_trace_commitment<E, H, D>(
     trace: &ColMatrix<E>,
     domain: &StarkDomain<Felt>,
     hash_fn: HashFn,
-) -> (RowMatrix<E>, MerkleTree<H>, ColMatrix<E>) {
+) -> (RowMatrix<E>, MerkleTree<H>, ColMatrix<E>)
+where
+    E: FieldElement<BaseField = Felt>,
+    H: Hasher<Digest = D> + ElementHasher<BaseField = E::BaseField>,
+    D: Digest + for<'a> From<&'a [Felt; DIGEST_SIZE]>,
+{
     // interpolate the execution trace
     let now = Instant::now();
     let inv_twiddles = fft::get_inv_twiddles::<Felt>(trace.num_rows());
@@ -535,34 +410,16 @@ fn build_trace_commitment<
     let lde_segments = FrozenVec::new();
     let lde_domain_size = domain.lde_domain_size();
     let num_base_columns = trace.num_base_cols();
-    let rpo_requires_padding = num_base_columns % RATE != 0;
-    let rpo_padded_segment_idx = rpo_requires_padding.then_some(num_base_columns / RATE);
+
     let mut row_hasher = RowHasher::new(lde_domain_size, num_base_columns, hash_fn);
-    let mut rpo_padded_segment: Vec<[Felt; RATE]>;
     let mut lde_segment_generator = SegmentGenerator::new(trace_polys, domain);
-    let mut lde_segment_iter = lde_segment_generator.gen_segment_iter().enumerate();
-    for (segment_idx, segment) in &mut lde_segment_iter {
+    for segment in lde_segment_generator.gen_segment_iter() {
         let segment = lde_segments.push_get(Box::new(segment));
-        // check if the segment requires padding
-        if rpo_padded_segment_idx.map_or(false, |pad_idx| pad_idx == segment_idx) {
-            // duplicate and modify the last segment with Rpo256's padding
-            // rule ("1" followed by "0"s). Our segments are already
-            // padded with "0"s we only need to add the "1"s.
-            rpo_padded_segment = unsafe { page_aligned_uninit_vector(lde_domain_size) };
-            rpo_padded_segment.copy_from_slice(segment);
-            // skip this in case of Rpx
-            if hash_fn == HashFn::Rpo256 {
-                let rpo_pad_column = num_base_columns % RATE;
-                rpo_padded_segment.iter_mut().for_each(|row| row[rpo_pad_column] = ONE);
-            }
-            row_hasher.update(&rpo_padded_segment);
-            assert!(lde_segment_iter.next().is_none(), "padded segment should be the last");
-            break;
-        }
         row_hasher.update(segment);
     }
     let row_hashes = block_on(row_hasher.finish());
     let tree_nodes = build_merkle_tree(&row_hashes, hash_fn);
+
     // aggregate segments at the same time as the GPU generates the merkle tree nodes
     let lde_segments = lde_segments.into_vec().into_iter().map(|p| *p).collect();
     let trace_lde = RowMatrix::from_segments(lde_segments, num_base_columns);
@@ -580,6 +437,163 @@ fn build_trace_commitment<
         );
 
     (trace_lde, trace_tree, trace_polys)
+}
+
+// CONSTRAINT COMMITMENT (METAL)
+// ================================================================================================
+
+pub struct MetalConstraintCommitment<E: FieldElement, H: ElementHasher<BaseField = E::BaseField>> {
+    evaluations: RowMatrix<E>,
+    vector_commitment: MerkleTree<H>,
+}
+
+impl<E, H, D> MetalConstraintCommitment<E, H>
+where
+    E: FieldElement<BaseField = Felt>,
+    H: Hasher<Digest = D> + ElementHasher<BaseField = E::BaseField>,
+    D: Digest + for<'a> From<&'a [Felt; DIGEST_SIZE]>,
+{
+    /// Creates a new constraint evaluation commitment from the provided composition polynomial
+    /// evaluations and the corresponding vector commitment.
+    pub fn new(
+        composition_poly_trace: CompositionPolyTrace<E>,
+        num_constraint_composition_columns: usize,
+        domain: &StarkDomain<E::BaseField>,
+        metal_hash_fn: HashFn,
+    ) -> (Self, CompositionPoly<E>) {
+        // extend the main execution trace and build a commitment to the extended trace
+        let (evaluations, commitment, composition_poly) = build_constraint_commitment::<E, H, D>(
+            composition_poly_trace,
+            num_constraint_composition_columns,
+            domain,
+            metal_hash_fn,
+        );
+
+        assert_eq!(
+            evaluations.num_rows(),
+            commitment.domain_len(),
+            "number of rows in constraint evaluation matrix must be the same as the size \
+            of the vector commitment domain"
+        );
+
+        let commitment = Self {
+            evaluations,
+            vector_commitment: commitment,
+        };
+
+        (commitment, composition_poly)
+    }
+}
+
+impl<E, H> ConstraintCommitment<E> for MetalConstraintCommitment<E, H>
+where
+    E: FieldElement,
+    H: ElementHasher<BaseField = E::BaseField> + core::marker::Sync,
+{
+    type HashFn = H;
+    type VC = MerkleTree<H>;
+
+    /// Returns the commitment.
+    fn commitment(&self) -> H::Digest {
+        self.vector_commitment.commitment()
+    }
+
+    /// Returns constraint evaluations at the specified positions along with a batch opening proof
+    /// against the vector commitment.
+    fn query(self, positions: &[usize]) -> Queries {
+        // build batch opening proof to the leaves specified by positions
+        let opening_proof = self
+            .vector_commitment
+            .open_many(positions)
+            .expect("failed to generate a batch opening proof for constraint queries");
+
+        // determine a set of evaluations corresponding to each position
+        let mut evaluations = Vec::new();
+        for &position in positions {
+            let row = self.evaluations.row(position).to_vec();
+            evaluations.push(row);
+        }
+
+        Queries::new::<H, E, MerkleTree<H>>(opening_proof.1, evaluations)
+    }
+}
+
+/// Evaluates constraint composition polynomial over the LDE domain and builds a commitment
+/// to these evaluations.
+///
+/// The evaluation is done by evaluating each composition polynomial column over the LDE
+/// domain.
+///
+/// The commitment is computed by hashing each row in the evaluation matrix, and then building
+/// a Merkle tree from the resulting hashes.
+///
+/// The composition polynomial columns are evaluated on the CPU. Afterwards the commitment
+/// is computed on the GPU.
+///
+/// ```text
+///        ─────────────────────────────────────────────────────
+///              ┌───┐ ┌───┐
+///  CPU:   ... ─┤fft├─┤fft├─┐                           ┌─ ...
+///              └───┘ └───┘ │                           │
+///        ╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴┼╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴┼╴╴╴╴╴╴
+///                          │ ┌──────────┐ ┌──────────┐ │
+///  GPU:                    └─┤   hash   ├─┤   hash   ├─┘
+///                            └──────────┘ └──────────┘
+///        ────┼────────┼────────┼────────┼────────┼────────┼───
+///           t=n     t=n+1    t=n+2     t=n+3   t=n+4    t=n+5
+/// ```
+fn build_constraint_commitment<E, H, D>(
+    composition_poly_trace: CompositionPolyTrace<E>,
+    num_constraint_composition_columns: usize,
+    domain: &StarkDomain<E::BaseField>,
+    hash_fn: HashFn,
+) -> (RowMatrix<E>, MerkleTree<H>, CompositionPoly<E>)
+where
+    E: FieldElement<BaseField = Felt>,
+    H: Hasher<Digest = D> + ElementHasher<BaseField = E::BaseField>,
+    D: Digest + for<'a> From<&'a [Felt; DIGEST_SIZE]>,
+{
+    // evaluate composition polynomial columns over the LDE domain
+    let now = Instant::now();
+    let composition_poly =
+        CompositionPoly::new(composition_poly_trace, domain, num_constraint_composition_columns);
+    let blowup = domain.trace_to_lde_blowup();
+    let offsets =
+        get_evaluation_offsets::<E>(composition_poly.column_len(), blowup, domain.offset());
+    let segments =
+        build_aligned_segments(composition_poly.data(), domain.trace_twiddles(), &offsets);
+    event!(
+        Level::INFO,
+        "Evaluated {} composition polynomial columns over LDE domain (2^{} elements) in {} ms",
+        composition_poly.num_columns(),
+        offsets.len().ilog2(),
+        now.elapsed().as_millis()
+    );
+
+    // build constraint evaluation commitment
+    let now = Instant::now();
+    let lde_domain_size = domain.lde_domain_size();
+    let num_base_columns = composition_poly.num_columns() * <E as FieldElement>::EXTENSION_DEGREE;
+
+    let mut row_hasher = RowHasher::new(lde_domain_size, num_base_columns, hash_fn);
+    for segment in segments.iter() {
+        row_hasher.update(segment);
+    }
+    let row_hashes = block_on(row_hasher.finish());
+    let tree_nodes = build_merkle_tree(&row_hashes, hash_fn);
+
+    // aggregate segments at the same time as the GPU generates the merkle tree nodes
+    let composed_evaluations = RowMatrix::<E>::from_segments(segments, num_base_columns);
+    let nodes = block_on(tree_nodes).into_iter().map(|dig| H::Digest::from(&dig)).collect();
+    let leaves = row_hashes.into_iter().map(|dig| H::Digest::from(&dig)).collect();
+    let commitment = MerkleTree::<H>::from_raw_parts(nodes, leaves).unwrap();
+    event!(
+        Level::INFO,
+        "Computed constraint evaluation commitment on the GPU (Merkle tree of depth {}) in {} ms",
+        lde_domain_size.ilog2(),
+        now.elapsed().as_millis()
+    );
+    (composed_evaluations, commitment, composition_poly)
 }
 
 // SEGMENT GENERATOR
@@ -662,25 +676,27 @@ where
     }
 }
 
-fn build_segment_queries<
-    E: FieldElement<BaseField = Felt>,
-    H: Hasher + ElementHasher<BaseField = E::BaseField>,
->(
+fn build_segment_queries<E, H, V>(
     segment_lde: &RowMatrix<E>,
-    segment_tree: &MerkleTree<H>,
+    segment_vector_com: &V,
     positions: &[usize],
-) -> Queries {
+) -> Queries
+where
+    E: FieldElement,
+    H: ElementHasher<BaseField = E::BaseField>,
+    V: VectorCommitment<H>,
+{
     // for each position, get the corresponding row from the trace segment LDE and put all these
     // rows into a single vector
     let trace_states =
         positions.iter().map(|&pos| segment_lde.row(pos).to_vec()).collect::<Vec<_>>();
 
-    // build Merkle authentication paths to the leaves specified by positions
-    let trace_proof = segment_tree
-        .prove_batch(positions)
-        .expect("failed to generate a Merkle proof for trace queries");
+    // build a batch opening proof to the leaves specified by positions
+    let trace_proof = segment_vector_com
+        .open_many(positions)
+        .expect("failed to generate a batch opening proof for trace queries");
 
-    Queries::new(trace_proof, trace_states)
+    Queries::new::<H, E, V>(trace_proof.1, trace_states)
 }
 
 struct SegmentIterator<'a, 'b, E, I, const N: usize>(&'b mut SegmentGenerator<'a, E, I, N>)
@@ -688,7 +704,7 @@ where
     E: FieldElement<BaseField = Felt>,
     I: IntoIterator<Item = Vec<E>>;
 
-impl<'a, 'b, E, I, const N: usize> Iterator for SegmentIterator<'a, 'b, E, I, N>
+impl<E, I, const N: usize> Iterator for SegmentIterator<'_, '_, E, I, N>
 where
     E: FieldElement<BaseField = Felt>,
     I: IntoIterator<Item = Vec<E>>,
@@ -698,4 +714,57 @@ where
     fn next(&mut self) -> Option<Self::Item> {
         self.0.gen_next_segment()
     }
+}
+
+fn build_aligned_segments<E, const N: usize>(
+    polys: &ColMatrix<E>,
+    twiddles: &[Felt],
+    offsets: &[Felt],
+) -> Vec<Segment<Felt, N>>
+where
+    E: FieldElement<BaseField = Felt>,
+{
+    assert!(N > 0, "batch size N must be greater than zero");
+    debug_assert_eq!(polys.num_rows(), twiddles.len() * 2);
+    debug_assert_eq!(offsets.len() % polys.num_rows(), 0);
+
+    let num_segments = if polys.num_base_cols() % N == 0 {
+        polys.num_base_cols() / N
+    } else {
+        polys.num_base_cols() / N + 1
+    };
+
+    (0..num_segments)
+        .map(|i| build_aligned_segment(polys, i * N, offsets, twiddles))
+        .collect()
+}
+
+fn build_aligned_segment<E, const N: usize>(
+    polys: &ColMatrix<E>,
+    poly_offset: usize,
+    offsets: &[Felt],
+    twiddles: &[Felt],
+) -> Segment<Felt, N>
+where
+    E: FieldElement<BaseField = Felt>,
+{
+    let poly_size = polys.num_rows();
+    let domain_size = offsets.len();
+    assert!(domain_size.is_power_of_two());
+    assert!(domain_size > poly_size);
+    assert_eq!(poly_size, twiddles.len() * 2);
+    assert!(poly_offset < polys.num_base_cols());
+
+    // allocate memory for the segment
+    let data = if polys.num_base_cols() - poly_offset >= N {
+        // if we will fill the entire segment, we allocate uninitialized memory
+        unsafe { page_aligned_uninit_vector(domain_size) }
+    } else {
+        // but if some columns in the segment will remain unfilled, we allocate memory
+        // initialized to zeros to make sure we don't end up with memory with
+        // undefined values
+        vec![[E::BaseField::ZERO; N]; domain_size]
+    };
+
+    Segment::new_with_buffer(data, polys, poly_offset, offsets, twiddles)
 }

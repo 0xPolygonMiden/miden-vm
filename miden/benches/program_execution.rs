@@ -11,7 +11,7 @@ fn program_execution(c: &mut Criterion) {
 
     let stdlib = StdLibrary::default();
     let mut host = DefaultHost::default();
-    host.load_mast_forest(stdlib.as_ref().mast_forest().clone());
+    host.load_mast_forest(stdlib.as_ref().mast_forest().clone()).unwrap();
 
     group.bench_function("sha256", |bench| {
         let source = "
@@ -24,7 +24,7 @@ fn program_execution(c: &mut Criterion) {
         assembler.add_library(&stdlib).expect("failed to load stdlib");
         let program = assembler.assemble_program(source).expect("Failed to compile test source.");
         bench.iter(|| {
-            execute(&program, StackInputs::default(), host.clone(), ExecutionOptions::default())
+            execute(&program, StackInputs::default(), &mut host, ExecutionOptions::default())
         });
     });
 

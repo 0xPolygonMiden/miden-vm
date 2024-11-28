@@ -1,4 +1,9 @@
-use super::{apply_permutation, build_op_test, build_test, Felt, ToElements};
+use processor::ContextId;
+use prover::ExecutionError;
+use test_utils::expect_exec_error_matches;
+use vm_core::FieldElement;
+
+use super::{apply_permutation, build_op_test, build_test, Felt, ToElements, TRUNCATE_STACK_PROC};
 
 // LOADING SINGLE ELEMENT ONTO THE STACK (MLOAD)
 // ================================================================================================
@@ -91,7 +96,10 @@ fn mem_storew() {
 
 #[test]
 fn mem_stream() {
-    let source = "
+    let source = format!(
+        "
+        {TRUNCATE_STACK_PROC}
+
         begin
             push.1
             mem_storew
@@ -101,7 +109,10 @@ fn mem_stream() {
             dropw
             push.12.11.10.9.8.7.6.5.4.3.2.1
             mem_stream
-        end";
+
+            exec.truncate_stack
+        end"
+    );
 
     let inputs = [1, 2, 3, 4, 5, 6, 7, 8];
 
@@ -124,7 +135,10 @@ fn mem_stream() {
 
 #[test]
 fn mem_stream_with_hperm() {
-    let source = "
+    let source = format!(
+        "
+        {TRUNCATE_STACK_PROC}
+
         begin
             push.1
             mem_storew
@@ -134,7 +148,10 @@ fn mem_stream_with_hperm() {
             dropw
             push.12.11.10.9.8.7.6.5.4.3.2.1
             mem_stream hperm
-        end";
+
+            exec.truncate_stack
+        end"
+    );
 
     let inputs = [1, 2, 3, 4, 5, 6, 7, 8];
 
@@ -172,6 +189,8 @@ fn inverse_operations() {
             push.1
             mem_load
             mem_load.0
+
+            movup.6 movup.6 drop drop
         end";
 
     let inputs = [0, 1, 2, 3, 4];
@@ -213,4 +232,23 @@ fn read_after_write() {
     // --- write to memory first, then test read with loadw --------------------------------------
     let test = build_op_test!("mem_storew.0 dropw mem_loadw.0", &[1, 2, 3, 4, 5, 6, 7, 8]);
     test.expect_stack(&[8, 7, 6, 5]);
+}
+
+// MISC
+// ================================================================================================
+
+/// Ensures that the processor returns an error when 2 memory operations occur in the same context,
+/// at the same address, and in the same clock cycle (which is what RCOMBBASE does when `stack[13] =
+/// stack[14] = 0`).
+#[test]
+fn mem_reads_same_clock_cycle() {
+    let asm_op = "begin rcomb_base end";
+
+    let test = build_test!(asm_op);
+
+    expect_exec_error_matches!(
+        test,
+        ExecutionError::DuplicateMemoryAccess{ctx, addr, clk }
+        if ctx == ContextId::from(0) && addr == 0 && clk == Felt::ONE
+    );
 }

@@ -1,10 +1,11 @@
 use alloc::vec::Vec;
-use core::cmp;
 
 use miden_air::RowIndex;
-use vm_core::{stack::STACK_TOP_SIZE, Word, WORD_SIZE};
+use vm_core::{stack::MIN_STACK_DEPTH, Word, WORD_SIZE};
 
-use super::{Felt, FieldElement, StackInputs, StackOutputs, ONE, STACK_TRACE_WIDTH, ZERO};
+use super::{
+    ExecutionError, Felt, FieldElement, StackInputs, StackOutputs, ONE, STACK_TRACE_WIDTH, ZERO,
+};
 
 mod trace;
 use trace::StackTrace;
@@ -23,7 +24,7 @@ mod tests;
 // ================================================================================================
 
 /// The last stack index accessible by the VM.
-const MAX_TOP_IDX: usize = STACK_TOP_SIZE - 1;
+const MAX_TOP_IDX: usize = MIN_STACK_DEPTH - 1;
 
 // STACK
 // ================================================================================================
@@ -54,6 +55,7 @@ const MAX_TOP_IDX: usize = STACK_TOP_SIZE - 1;
 /// - Helper column h0 is used to ensure that stack depth does not drop below 16. Values in this
 ///   column are set by the prover non-deterministically to 1 / (b0−16) when b0 != 16, and to any
 ///   other value otherwise.
+#[derive(Debug)]
 pub struct Stack {
     clk: RowIndex,
     trace: StackTrace,
@@ -71,29 +73,15 @@ impl Stack {
         init_trace_capacity: usize,
         keep_overflow_trace: bool,
     ) -> Self {
-        let init_values = inputs.values();
-        let depth = cmp::max(STACK_TOP_SIZE, init_values.len());
-
-        let (trace, overflow) = if init_values.len() > STACK_TOP_SIZE {
-            let overflow =
-                OverflowTable::new_with_inputs(keep_overflow_trace, &init_values[STACK_TOP_SIZE..]);
-            let trace =
-                StackTrace::new(&init_values[..STACK_TOP_SIZE], init_trace_capacity, depth, -ONE);
-
-            (trace, overflow)
-        } else {
-            let overflow = OverflowTable::new(keep_overflow_trace);
-            let trace = StackTrace::new(init_values, init_trace_capacity, depth, ZERO);
-
-            (trace, overflow)
-        };
+        let overflow = OverflowTable::new(keep_overflow_trace);
+        let trace = StackTrace::new(&**inputs, init_trace_capacity, MIN_STACK_DEPTH, ZERO);
 
         Self {
             clk: RowIndex::from(0),
             trace,
             overflow,
-            active_depth: depth,
-            full_depth: depth,
+            active_depth: MIN_STACK_DEPTH,
+            full_depth: MIN_STACK_DEPTH,
         }
     }
 
@@ -140,14 +128,18 @@ impl Stack {
         result
     }
 
-    /// Returns [StackOutputs] consisting of all values on the stack and all addresses in the
-    /// overflow table that are required to rebuild the rows in the overflow table.
-    pub fn build_stack_outputs(&self) -> StackOutputs {
+    /// Returns [StackOutputs] consisting of all values on the stack.
+    ///
+    /// # Errors
+    /// Returns an error if the overflow table is not empty at the current clock cycle.
+    pub fn build_stack_outputs(&self) -> Result<StackOutputs, ExecutionError> {
+        if self.overflow.num_active_rows() != 0 {
+            return Err(ExecutionError::OutputStackOverflow(self.overflow.num_active_rows()));
+        }
+
         let mut stack_items = Vec::with_capacity(self.active_depth);
         self.trace.append_state_into(&mut stack_items, self.clk);
-        self.overflow.append_into(&mut stack_items);
-        StackOutputs::new(stack_items, self.overflow.get_addrs())
-            .expect("processor stack handling logic is valid")
+        Ok(StackOutputs::new(stack_items).expect("processor stack handling logic is valid"))
     }
 
     // TRACE ACCESSORS AND MUTATORS
@@ -155,7 +147,7 @@ impl Stack {
 
     /// Returns the value located at the specified position on the stack at the current clock cycle.
     pub fn get(&self, pos: usize) -> Felt {
-        debug_assert!(pos < STACK_TOP_SIZE, "stack underflow");
+        debug_assert!(pos < MIN_STACK_DEPTH, "stack underflow");
         self.trace.get_stack_value_at(self.clk, pos)
     }
 
@@ -181,7 +173,7 @@ impl Stack {
 
     /// Sets the value at the specified position on the stack at the next clock cycle.
     pub fn set(&mut self, pos: usize, value: Felt) {
-        debug_assert!(pos < STACK_TOP_SIZE, "stack underflow");
+        debug_assert!(pos < MIN_STACK_DEPTH, "stack underflow");
         self.trace.set_stack_value_at(self.clk + 1, pos, value);
     }
 
@@ -206,29 +198,10 @@ impl Stack {
     /// stack is set to ZERO.
     pub fn shift_left(&mut self, start_pos: usize) {
         debug_assert!(start_pos > 0, "start position must be greater than 0");
-        debug_assert!(start_pos <= STACK_TOP_SIZE, "start position cannot exceed stack top size");
+        debug_assert!(start_pos <= MIN_STACK_DEPTH, "start position cannot exceed stack top size");
 
-        match self.active_depth {
-            0..=MAX_TOP_IDX => unreachable!("stack underflow"),
-            STACK_TOP_SIZE => {
-                // Shift in a ZERO, to prevent depth shrinking below the minimum stack depth.
-                self.trace.stack_shift_left_at(self.clk, start_pos, ZERO, None);
-            },
-            _ => {
-                // Update the stack & overflow table.
-                let from_overflow = self.overflow.pop(u64::from(self.clk));
-                self.trace.stack_shift_left_at(
-                    self.clk,
-                    start_pos,
-                    from_overflow,
-                    Some(self.overflow.last_row_addr()),
-                );
-
-                // Stack depth only decreases when it is greater than the minimum stack depth.
-                self.active_depth -= 1;
-                self.full_depth -= 1;
-            },
-        }
+        let (next_depth, next_overflow_addr) = self.shift_left_no_helpers(start_pos);
+        self.trace.set_helpers_at(self.clk.as_usize(), next_depth, next_overflow_addr);
     }
 
     /// Copies stack values starting at the specified position at the current clock cycle to
@@ -236,7 +209,7 @@ impl Stack {
     ///
     /// If stack depth grows beyond 16 items, the additional item is pushed into the overflow table.
     pub fn shift_right(&mut self, start_pos: usize) {
-        debug_assert!(start_pos < STACK_TOP_SIZE, "start position cannot exceed stack top size");
+        debug_assert!(start_pos < MIN_STACK_DEPTH, "start position cannot exceed stack top size");
 
         // Update the stack.
         self.trace.stack_shift_right_at(self.clk, start_pos);
@@ -250,8 +223,64 @@ impl Stack {
         self.full_depth += 1;
     }
 
+    /// Shifts the stack left, and returns the value for the helper columns B0 and B1, without
+    /// writing them to the trace.
+    fn shift_left_no_helpers(&mut self, start_pos: usize) -> (Felt, Felt) {
+        match self.active_depth {
+            0..=MAX_TOP_IDX => unreachable!("stack underflow"),
+            MIN_STACK_DEPTH => {
+                // Shift in a ZERO, to prevent depth shrinking below the minimum stack depth.
+                self.trace.stack_shift_left_no_helpers(self.clk, start_pos, ZERO, None)
+            },
+            _ => {
+                // Update the stack & overflow table.
+                let from_overflow = self.overflow.pop(u64::from(self.clk));
+                let helpers = self.trace.stack_shift_left_no_helpers(
+                    self.clk,
+                    start_pos,
+                    from_overflow,
+                    Some(self.overflow.last_row_addr()),
+                );
+
+                // Stack depth only decreases when it is greater than the minimum stack depth.
+                self.active_depth -= 1;
+                self.full_depth -= 1;
+
+                helpers
+            },
+        }
+    }
+
     // CONTEXT MANAGEMENT
     // --------------------------------------------------------------------------------------------
+
+    /// Shifts the stack left, writes the default values for the stack helper registers in the trace
+    /// (stack depth and next overflow address), and returns the value of those helper registers
+    /// before the new context wipe.
+    ///
+    /// This specialized method is needed because the other ones write the updated helper register
+    /// values directly to the trace in the next row. However, the dyncall instruction needs to
+    /// shift the stack left, and start a new context simultaneously (and hence reset the stack
+    /// helper registers to their default value). It is assumed that the caller will write the
+    /// return values somewhere else in the trace.
+    pub fn shift_left_and_start_context(&mut self) -> (usize, Felt) {
+        const START_POSITION: usize = 1;
+
+        self.shift_left_no_helpers(START_POSITION);
+
+        // reset the helper columns to their default value, and write those to the trace in the next
+        // row.
+        let (next_depth, next_overflow_addr) = self.start_context();
+        // Note: `start_context()` reset `active_depth` to 16, and `overflow.last_row_addr` to 0.
+        self.trace.set_helpers_at(
+            self.clk.as_usize(),
+            Felt::from(self.active_depth as u32),
+            self.overflow.last_row_addr(),
+        );
+
+        // return the helper registers' state before the new context
+        (next_depth, next_overflow_addr)
+    }
 
     /// Starts a new execution context for this stack and returns a tuple consisting of the current
     /// stack depth and the address of the overflow table row prior to starting the new context.
@@ -261,7 +290,7 @@ impl Stack {
     pub fn start_context(&mut self) -> (usize, Felt) {
         let current_depth = self.active_depth;
         let current_overflow_addr = self.overflow.last_row_addr();
-        self.active_depth = STACK_TOP_SIZE;
+        self.active_depth = MIN_STACK_DEPTH;
         self.overflow.set_last_row_addr(ZERO);
         (current_depth, current_overflow_addr)
     }
@@ -271,7 +300,7 @@ impl Stack {
     /// This has the effect bringing back items previously hidden from the overflow table.
     pub fn restore_context(&mut self, stack_depth: usize, next_overflow_addr: Felt) {
         debug_assert!(stack_depth <= self.full_depth, "stack depth too big");
-        debug_assert_eq!(self.active_depth, STACK_TOP_SIZE, "overflow table not empty");
+        debug_assert_eq!(self.active_depth, MIN_STACK_DEPTH, "overflow table not empty");
         self.active_depth = stack_depth;
         self.overflow.set_last_row_addr(next_overflow_addr);
     }
@@ -307,10 +336,7 @@ impl Stack {
             column.resize(trace_len, last_value);
         }
 
-        super::StackTrace {
-            trace,
-            aux_builder: self.overflow.into_aux_builder(),
-        }
+        super::StackTrace { trace }
     }
 
     // UTILITY METHODS
@@ -334,7 +360,7 @@ impl Stack {
     /// Returns state of stack item columns at the current clock cycle. This does not include stack
     /// values in the overflow table.
     #[cfg(any(test, feature = "testing"))]
-    pub fn trace_state(&self) -> [Felt; STACK_TOP_SIZE] {
+    pub fn trace_state(&self) -> [Felt; MIN_STACK_DEPTH] {
         self.trace.get_stack_state_at(self.clk)
     }
 

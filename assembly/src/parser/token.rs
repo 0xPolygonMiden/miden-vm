@@ -50,6 +50,69 @@ pub enum HexEncodedValue {
     /// A set of 4 field elements, 32 bytes, encoded as a contiguous string of 64 hex digits
     Word([Felt; 4]),
 }
+impl fmt::Display for HexEncodedValue {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::U8(value) => write!(f, "{value}"),
+            Self::U16(value) => write!(f, "{value}"),
+            Self::U32(value) => write!(f, "{value:#04x}"),
+            Self::Felt(value) => write!(f, "{:#08x}", &value.as_int().to_be()),
+            Self::Word(value) => write!(
+                f,
+                "{:#08x}{:08x}{:08x}{:08x}",
+                &value[0].as_int(),
+                &value[1].as_int(),
+                &value[2].as_int(),
+                &value[3].as_int(),
+            ),
+        }
+    }
+}
+impl PartialOrd for HexEncodedValue {
+    fn partial_cmp(&self, other: &Self) -> Option<core::cmp::Ordering> {
+        Some(self.cmp(other))
+    }
+}
+impl Ord for HexEncodedValue {
+    fn cmp(&self, other: &Self) -> core::cmp::Ordering {
+        use core::cmp::Ordering;
+        match (self, other) {
+            (Self::U8(l), Self::U8(r)) => l.cmp(r),
+            (Self::U8(_), _) => Ordering::Less,
+            (Self::U16(_), Self::U8(_)) => Ordering::Greater,
+            (Self::U16(l), Self::U16(r)) => l.cmp(r),
+            (Self::U16(_), _) => Ordering::Less,
+            (Self::U32(_), Self::U8(_) | Self::U16(_)) => Ordering::Greater,
+            (Self::U32(l), Self::U32(r)) => l.cmp(r),
+            (Self::U32(_), _) => Ordering::Less,
+            (Self::Felt(_), Self::U8(_) | Self::U16(_) | Self::U32(_)) => Ordering::Greater,
+            (Self::Felt(l), Self::Felt(r)) => l.as_int().cmp(&r.as_int()),
+            (Self::Felt(_), _) => Ordering::Less,
+            (Self::Word([l0, l1, l2, l3]), Self::Word([r0, r1, r2, r3])) => l0
+                .as_int()
+                .cmp(&r0.as_int())
+                .then_with(|| l1.as_int().cmp(&r1.as_int()))
+                .then_with(|| l2.as_int().cmp(&r2.as_int()))
+                .then_with(|| l3.as_int().cmp(&r3.as_int())),
+            (Self::Word(_), _) => Ordering::Greater,
+        }
+    }
+}
+
+impl core::hash::Hash for HexEncodedValue {
+    fn hash<H: core::hash::Hasher>(&self, state: &mut H) {
+        core::mem::discriminant(self).hash(state);
+        match self {
+            Self::U8(value) => value.hash(state),
+            Self::U16(value) => value.hash(state),
+            Self::U32(value) => value.hash(state),
+            Self::Felt(value) => value.as_int().hash(state),
+            Self::Word([a, b, c, d]) => {
+                [a.as_int(), b.as_int(), c.as_int(), d.as_int()].hash(state)
+            },
+        }
+    }
+}
 
 // BINARY ENCODED VALUE
 // ================================================================================================
@@ -75,6 +138,7 @@ pub enum Token<'input> {
     Add,
     Adv,
     InsertHdword,
+    InsertHdwordWithDomain,
     InsertHperm,
     InsertMem,
     AdvLoadw,
@@ -225,17 +289,21 @@ pub enum Token<'input> {
     U32Xor,
     While,
     Xor,
+    At,
     Bang,
     ColonColon,
     Dot,
+    Comma,
     Equal,
     Lparen,
+    Lbracket,
     Minus,
     Plus,
     SlashSlash,
     Slash,
     Star,
     Rparen,
+    Rbracket,
     Rstab,
     DocComment(DocumentationType),
     HexValue(HexEncodedValue),
@@ -244,16 +312,18 @@ pub enum Token<'input> {
     Ident(&'input str),
     ConstantIdent(&'input str),
     QuotedIdent(&'input str),
+    QuotedString(&'input str),
     Comment,
     Eof,
 }
 
-impl<'input> fmt::Display for Token<'input> {
+impl fmt::Display for Token<'_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Token::Add => write!(f, "add"),
             Token::Adv => write!(f, "adv"),
             Token::InsertHdword => write!(f, "insert_hdword"),
+            Token::InsertHdwordWithDomain => write!(f, "insert_hdword_d"),
             Token::InsertHperm => write!(f, "insert_hperm"),
             Token::InsertMem => write!(f, "insert_mem"),
             Token::AdvLoadw => write!(f, "adv_loadw"),
@@ -404,17 +474,21 @@ impl<'input> fmt::Display for Token<'input> {
             Token::U32Xor => write!(f, "u32xor"),
             Token::While => write!(f, "while"),
             Token::Xor => write!(f, "xor"),
+            Token::At => write!(f, "@"),
             Token::Bang => write!(f, "!"),
             Token::ColonColon => write!(f, "::"),
             Token::Dot => write!(f, "."),
+            Token::Comma => write!(f, ","),
             Token::Equal => write!(f, "="),
             Token::Lparen => write!(f, "("),
+            Token::Lbracket => write!(f, "["),
             Token::Minus => write!(f, "-"),
             Token::Plus => write!(f, "+"),
             Token::SlashSlash => write!(f, "//"),
             Token::Slash => write!(f, "/"),
             Token::Star => write!(f, "*"),
             Token::Rparen => write!(f, ")"),
+            Token::Rbracket => write!(f, "]"),
             Token::Rstab => write!(f, "->"),
             Token::DocComment(DocumentationType::Module(_)) => f.write_str("module doc"),
             Token::DocComment(DocumentationType::Form(_)) => f.write_str("doc comment"),
@@ -424,6 +498,7 @@ impl<'input> fmt::Display for Token<'input> {
             Token::Ident(_) => f.write_str("identifier"),
             Token::ConstantIdent(_) => f.write_str("constant identifier"),
             Token::QuotedIdent(_) => f.write_str("quoted identifier"),
+            Token::QuotedString(_) => f.write_str("quoted string"),
             Token::Comment => f.write_str("comment"),
             Token::Eof => write!(f, "end of file"),
         }
@@ -441,6 +516,7 @@ impl<'input> Token<'input> {
             Token::Add
                 | Token::Adv
                 | Token::InsertHdword
+                | Token::InsertHdwordWithDomain
                 | Token::InsertHperm
                 | Token::InsertMem
                 | Token::AdvLoadw
@@ -585,6 +661,7 @@ impl<'input> Token<'input> {
         ("add", Token::Add),
         ("adv", Token::Adv),
         ("insert_hdword", Token::InsertHdword),
+        ("insert_hdword_d", Token::InsertHdwordWithDomain),
         ("insert_hperm", Token::InsertHperm),
         ("insert_mem", Token::InsertMem),
         ("adv_loadw", Token::AdvLoadw),
@@ -787,7 +864,7 @@ impl<'input> Token<'input> {
             // No match, it's an ident
             None => Token::Ident(s),
             // If the match is not exact, it's an ident
-            Some(matched) if matched.len() != s.as_bytes().len() => Token::Ident(s),
+            Some(matched) if matched.len() != s.len() => Token::Ident(s),
             // Otherwise clone the Token corresponding to the keyword that was matched
             Some(matched) => Self::KEYWORDS[matched.pattern().as_usize()].1.clone(),
         }
@@ -804,17 +881,21 @@ impl<'input> Token<'input> {
             Token::Ident(_) => {
                 // Nope, try again
                 match s {
+                    "@" => Ok(Token::At),
                     "!" => Ok(Token::Bang),
                     "::" => Ok(Token::ColonColon),
                     "." => Ok(Token::Dot),
+                    "," => Ok(Token::Comma),
                     "=" => Ok(Token::Equal),
                     "(" => Ok(Token::Lparen),
+                    "[" => Ok(Token::Lbracket),
                     "-" => Ok(Token::Minus),
                     "+" => Ok(Token::Plus),
                     "//" => Ok(Token::SlashSlash),
                     "/" => Ok(Token::Slash),
                     "*" => Ok(Token::Star),
                     ")" => Ok(Token::Rparen),
+                    "]" => Ok(Token::Rbracket),
                     "->" => Ok(Token::Rstab),
                     "end of file" => Ok(Token::Eof),
                     "module doc" => Ok(Token::DocComment(DocumentationType::Module(String::new()))),
@@ -826,6 +907,7 @@ impl<'input> Token<'input> {
                     "identifier" => Ok(Token::Ident("")),
                     "constant identifier" => Ok(Token::ConstantIdent("")),
                     "quoted identifier" => Ok(Token::QuotedIdent("")),
+                    "quoted string" => Ok(Token::QuotedString("")),
                     _ => Err(()),
                 }
             },

@@ -126,12 +126,12 @@ fn run_program(params: &RunCmd) -> Result<(ExecutionTrace, [u8; 32]), Report> {
 
     // fetch the stack and program inputs from the arguments
     let stack_inputs = input_data.parse_stack_inputs().map_err(Report::msg)?;
-    let host = DefaultHost::new(input_data.parse_advice_provider().map_err(Report::msg)?);
+    let mut host = DefaultHost::new(input_data.parse_advice_provider().map_err(Report::msg)?);
 
     let program_hash: [u8; 32] = program.hash().into();
 
     // execute program and generate outputs
-    let trace = processor::execute(&program, stack_inputs, host, execution_options)
+    let trace = processor::execute(&program, stack_inputs, &mut host, execution_options)
         .into_diagnostic()
         .wrap_err("Failed to generate execution trace")?;
 

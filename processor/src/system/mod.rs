@@ -40,6 +40,7 @@ pub const FMP_MAX: u64 = 3 * 2_u64.pow(30) - 1;
 /// - in_syscall flag which indicates whether the execution is currently in a SYSCALL block.
 /// - hash of the function which initiated the current execution context. if the context was
 ///   initiated from the root context, this will be set to ZEROs.
+#[derive(Debug)]
 pub struct System {
     clk: RowIndex,
     ctx: ContextId,
@@ -178,8 +179,8 @@ impl System {
     /// - Sets the free memory pointer to its initial value (FMP_MIN).
     /// - Sets the hash of the function which initiated the current context to the provided value.
     ///
-    /// A CALL cannot be started when the VM is executing a SYSCALL.
-    pub fn start_call(&mut self, fn_hash: Word) {
+    /// A CALL or DYNCALL cannot be started when the VM is executing a SYSCALL.
+    pub fn start_call_or_dyncall(&mut self, fn_hash: Word) {
         debug_assert!(!self.in_syscall, "call in syscall");
         self.ctx = (self.clk + 1).into();
         self.fmp = Felt::new(FMP_MIN);

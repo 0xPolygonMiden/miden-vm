@@ -1,14 +1,11 @@
 use vm_core::{Felt, Operation, ONE, ZERO};
 
-use crate::{ExecutionError, Host, Process, QuadFelt};
+use crate::{ExecutionError, Process, QuadFelt};
 
 // RANDOM LINEAR COMBINATION OPERATIONS
 // ================================================================================================
 
-impl<H> Process<H>
-where
-    H: Host,
-{
+impl Process {
     // COMBINE VALUES USING RANDOMNESS
     // --------------------------------------------------------------------------------------------
     /// Performs a single step in the computation of the random linear combination:
@@ -64,10 +61,10 @@ where
         let [t7, t6, t5, t4, t3, t2, t1, t0] = self.get_trace_values();
 
         // --- read the randomness from memory ----------------------------------------------------
-        let alpha = self.get_randomness();
+        let alpha = self.get_randomness()?;
 
         // --- read the OOD values from memory ----------------------------------------------------
-        let [tz, tgz] = self.get_ood_values();
+        let [tz, tgz] = self.get_ood_values()?;
 
         // --- read the accumulator values from stack ---------------------------------------------
         let [p, r] = self.read_accumulators();
@@ -125,22 +122,23 @@ where
     }
 
     /// Returns randomness.
-    fn get_randomness(&mut self) -> QuadFelt {
+    fn get_randomness(&mut self) -> Result<QuadFelt, ExecutionError> {
         let ctx = self.system.ctx();
         let addr = self.stack.get(14);
-        let word = self.chiplets.read_mem(ctx, addr.as_int() as u32);
+        let word = self.chiplets.read_mem(ctx, addr.as_int() as u32)?;
         let a0 = word[0];
         let a1 = word[1];
-        QuadFelt::new(a0, a1)
+
+        Ok(QuadFelt::new(a0, a1))
     }
 
     /// Returns the OOD values.
-    fn get_ood_values(&mut self) -> [QuadFelt; 2] {
+    fn get_ood_values(&mut self) -> Result<[QuadFelt; 2], ExecutionError> {
         let ctx = self.system.ctx();
         let addr = self.stack.get(13);
-        let word = self.chiplets.read_mem(ctx, addr.as_int() as u32);
+        let word = self.chiplets.read_mem(ctx, addr.as_int() as u32)?;
 
-        [QuadFelt::new(word[0], word[1]), QuadFelt::new(word[2], word[3])]
+        Ok([QuadFelt::new(word[0], word[1]), QuadFelt::new(word[2], word[3])])
     }
 
     /// Reads the accumulator values.
@@ -173,10 +171,10 @@ where
 mod tests {
     use alloc::{borrow::ToOwned, vec::Vec};
 
-    use test_utils::{build_test, rand::rand_array};
+    use test_utils::{build_test, rand::rand_array, TRUNCATE_STACK_PROC};
     use vm_core::{Felt, FieldElement, Operation, StackInputs, ONE, ZERO};
 
-    use crate::{ContextId, Process, QuadFelt};
+    use crate::{ContextId, DefaultHost, Process, QuadFelt};
 
     #[test]
     fn rcombine_main() {
@@ -196,27 +194,35 @@ mod tests {
         inputs.reverse();
 
         // --- setup the operand stack ------------------------------------------------------------
+        let mut host = DefaultHost::default();
         let stack_inputs = StackInputs::new(inputs.to_vec()).expect("inputs lenght too long");
         let mut process = Process::new_dummy_with_decoder_helpers(stack_inputs);
 
         // --- setup memory -----------------------------------------------------------------------
         let ctx = ContextId::root();
         let tztgz = rand_array::<Felt, 4>();
-        process.chiplets.write_mem(
-            ctx,
-            inputs[2].as_int().try_into().expect("Shouldn't fail by construction"),
-            tztgz,
-        );
+        process
+            .chiplets
+            .write_mem(
+                ctx,
+                inputs[2].as_int().try_into().expect("Shouldn't fail by construction"),
+                tztgz,
+            )
+            .unwrap();
 
         let a = rand_array::<Felt, 4>();
-        process.chiplets.write_mem(
-            ctx,
-            inputs[1].as_int().try_into().expect("Shouldn't fail by construction"),
-            a,
-        );
+        process
+            .chiplets
+            .write_mem(
+                ctx,
+                inputs[1].as_int().try_into().expect("Shouldn't fail by construction"),
+                a,
+            )
+            .unwrap();
+        process.execute_op(Operation::Noop, &mut host).unwrap();
 
         // --- execute RCOMB1 operation -----------------------------------------------------------
-        process.execute_op(Operation::RCombBase).unwrap();
+        process.execute_op(Operation::RCombBase, &mut host).unwrap();
 
         // --- check that the top 8 stack elements are correctly rotated --------------------------
         let stack_state = process.stack.trace_state();
@@ -272,46 +278,53 @@ mod tests {
 
     #[test]
     fn prove_verify() {
-        let source = "  begin
-                            # I) Prepare memory and stack
+        let source = format!(
+            "
+            {TRUNCATE_STACK_PROC}
 
-                            # 1) Load T_i(x) for i=0,..,7
-                            push.0 padw
-                            adv_pipe
+            begin
+                # I) Prepare memory and stack
 
-                            # 2) Load [T_i(z), T_i(gz)] for i=0,..,7
-                            repeat.4
-                                adv_pipe
-                            end
+                # 1) Load T_i(x) for i=0,..,7
+                push.0 padw
+                adv_pipe
 
-                            # 3) Load [a0, a1, 0, 0] for i=0,..,7
-                            repeat.4
-                                adv_pipe
-                            end
+                # 2) Load [T_i(z), T_i(gz)] for i=0,..,7
+                repeat.4
+                    adv_pipe
+                end
 
-                            # 4) Clean up stack
-                            dropw dropw dropw drop
+                # 3) Load [a0, a1, 0, 0] for i=0,..,7
+                repeat.4
+                    adv_pipe
+                end
 
-                            # 5) Prepare stack
+                # 4) Clean up stack
+                dropw dropw dropw drop
 
-                            ## a) Push pointers
-                            push.10     # a_ptr
-                            push.2      # z_ptr
-                            push.0      # x_ptr
+                # 5) Prepare stack
 
-                            ## b) Push accumulators
-                            padw
+                ## a) Push pointers
+                push.10     # a_ptr
+                push.2      # z_ptr
+                push.0      # x_ptr
 
-                            ## c) Add padding for mem_stream
-                            padw padw
+                ## b) Push accumulators
+                padw
 
-                            # II) Execute `rcomb_base` op
-                            mem_stream
-                            repeat.8
-                                rcomb_base
-                            end
-                        end
-                        ";
+                ## c) Add padding for mem_stream
+                padw padw
+
+                # II) Execute `rcomb_base` op
+                mem_stream
+                repeat.8
+                    rcomb_base
+                end
+
+                exec.truncate_stack
+            end
+        "
+        );
 
         // generate the data
         let tx: [Felt; 8] = rand_array();

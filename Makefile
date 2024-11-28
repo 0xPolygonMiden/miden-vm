@@ -11,17 +11,18 @@ DEBUG_ASSERTIONS=RUSTFLAGS="-C debug-assertions"
 FEATURES_CONCURRENT_EXEC=--features concurrent,executable
 FEATURES_LOG_TREE=--features concurrent,executable,tracing-forest
 FEATURES_METAL_EXEC=--features concurrent,executable,metal
+ALL_FEATURES_BUT_ASYNC=--features concurrent,executable,metal,testing,with-debug-info
 
 # -- linting --------------------------------------------------------------------------------------
 
 .PHONY: clippy
 clippy: ## Runs Clippy with configs
-	cargo +nightly clippy --workspace --all-targets --all-features -- -D warnings
+	cargo +nightly clippy --workspace --all-targets ${ALL_FEATURES_BUT_ASYNC} -- -D warnings
 
 
 .PHONY: fix
 fix: ## Runs Fix with configs
-	cargo +nightly fix --allow-staged --allow-dirty --all-targets --all-features
+	cargo +nightly fix --allow-staged --allow-dirty --all-targets ${ALL_FEATURES_BUT_ASYNC}
 
 
 .PHONY: format
@@ -41,7 +42,7 @@ lint: format fix clippy ## Runs all linting tasks at once (Clippy, fixing, forma
 
 .PHONY: doc
 doc: ## Generates & checks documentation
-	$(WARNINGS) cargo doc --all-features --keep-going --release
+	$(WARNINGS) cargo doc ${ALL_FEATURES_BUT_ASYNC} --keep-going --release
 
 .PHONY: mdbook
 mdbook: ## Generates mdbook documentation
@@ -73,7 +74,7 @@ test-package: ## Tests specific package: make test-package package=miden-vm
 
 .PHONY: check
 check: ## Checks all targets and features for errors without code generation
-	cargo check --all-targets --all-features
+	cargo check --all-targets ${ALL_FEATURES_BUT_ASYNC}
 
 # --- building ------------------------------------------------------------------------------------
 

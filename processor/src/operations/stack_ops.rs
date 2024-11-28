@@ -1,10 +1,7 @@
-use super::{ExecutionError, Host, Process, STACK_TOP_SIZE};
+use super::{ExecutionError, Process, MIN_STACK_DEPTH};
 use crate::ZERO;
 
-impl<H> Process<H>
-where
-    H: Host,
-{
+impl Process {
     // STACK MANIPULATION
     // --------------------------------------------------------------------------------------------
     /// Pushes a ZERO onto the stack.
@@ -185,7 +182,7 @@ where
     ///
     /// Elements between 0 and n are shifted right by one slot.
     pub(super) fn op_movup(&mut self, n: usize) -> Result<(), ExecutionError> {
-        debug_assert!(n < STACK_TOP_SIZE - 1, "n too large");
+        debug_assert!(n < MIN_STACK_DEPTH - 1, "n too large");
 
         // move the nth value to the top of the stack
         let value = self.stack.get(n);
@@ -206,7 +203,7 @@ where
     ///
     /// Elements between 0 and n are shifted left by one slot.
     pub(super) fn op_movdn(&mut self, n: usize) -> Result<(), ExecutionError> {
-        debug_assert!(n < STACK_TOP_SIZE - 1, "n too large");
+        debug_assert!(n < MIN_STACK_DEPTH - 1, "n too large");
 
         // move the value at the top of the stack to the nth position
         let value = self.stack.get(0);
@@ -304,33 +301,34 @@ where
 mod tests {
     use super::{
         super::{Operation, Process},
-        STACK_TOP_SIZE,
+        MIN_STACK_DEPTH,
     };
-    use crate::{Felt, StackInputs, ONE, ZERO};
+    use crate::{DefaultHost, Felt, StackInputs, ONE, ZERO};
 
     #[test]
     fn op_pad() {
         let stack = StackInputs::default();
         let mut process = Process::new_dummy(stack);
+        let mut host = DefaultHost::default();
 
         // push one item onto the stack
-        process.execute_op(Operation::Push(ONE)).unwrap();
+        process.execute_op(Operation::Push(ONE), &mut host).unwrap();
         let expected = build_expected(&[1]);
         assert_eq!(expected, process.stack.trace_state());
 
         // pad the stack
-        process.execute_op(Operation::Pad).unwrap();
+        process.execute_op(Operation::Pad, &mut host).unwrap();
         let expected = build_expected(&[0, 1]);
 
-        assert_eq!(STACK_TOP_SIZE + 2, process.stack.depth());
+        assert_eq!(MIN_STACK_DEPTH + 2, process.stack.depth());
         assert_eq!(3, process.stack.current_clk());
         assert_eq!(expected, process.stack.trace_state());
 
         // pad the stack again
-        process.execute_op(Operation::Pad).unwrap();
+        process.execute_op(Operation::Pad, &mut host).unwrap();
         let expected = build_expected(&[0, 0, 1]);
 
-        assert_eq!(STACK_TOP_SIZE + 3, process.stack.depth());
+        assert_eq!(MIN_STACK_DEPTH + 3, process.stack.depth());
         assert_eq!(4, process.stack.current_clk());
         assert_eq!(expected, process.stack.trace_state());
     }
@@ -340,71 +338,73 @@ mod tests {
         // push a few items onto the stack
         let stack = StackInputs::default();
         let mut process = Process::new_dummy(stack);
-        process.execute_op(Operation::Push(ONE)).unwrap();
-        process.execute_op(Operation::Push(Felt::new(2))).unwrap();
+        let mut host = DefaultHost::default();
+        process.execute_op(Operation::Push(ONE), &mut host).unwrap();
+        process.execute_op(Operation::Push(Felt::new(2)), &mut host).unwrap();
 
         // drop the first value
-        process.execute_op(Operation::Drop).unwrap();
+        process.execute_op(Operation::Drop, &mut host).unwrap();
         let expected = build_expected(&[1]);
         assert_eq!(expected, process.stack.trace_state());
-        assert_eq!(STACK_TOP_SIZE + 1, process.stack.depth());
+        assert_eq!(MIN_STACK_DEPTH + 1, process.stack.depth());
 
         // drop the next value
-        process.execute_op(Operation::Drop).unwrap();
+        process.execute_op(Operation::Drop, &mut host).unwrap();
         let expected = build_expected(&[]);
         assert_eq!(expected, process.stack.trace_state());
-        assert_eq!(STACK_TOP_SIZE, process.stack.depth());
+        assert_eq!(MIN_STACK_DEPTH, process.stack.depth());
 
         // calling drop with a minimum stack depth should be ok
-        assert!(process.execute_op(Operation::Drop).is_ok());
+        assert!(process.execute_op(Operation::Drop, &mut host).is_ok());
     }
 
     #[test]
     fn op_dup() {
         let stack = StackInputs::default();
         let mut process = Process::new_dummy(stack);
+        let mut host = DefaultHost::default();
 
         // push one item onto the stack
-        process.execute_op(Operation::Push(ONE)).unwrap();
+        process.execute_op(Operation::Push(ONE), &mut host).unwrap();
         let expected = build_expected(&[1]);
         assert_eq!(expected, process.stack.trace_state());
 
         // duplicate it
-        process.execute_op(Operation::Dup0).unwrap();
+        process.execute_op(Operation::Dup0, &mut host).unwrap();
         let expected = build_expected(&[1, 1]);
         assert_eq!(expected, process.stack.trace_state());
 
         // duplicating non-existent item from the min stack range should be ok
-        assert!(process.execute_op(Operation::Dup2).is_ok());
+        assert!(process.execute_op(Operation::Dup2, &mut host).is_ok());
         // drop it again before continuing the tests and stack comparison
-        process.execute_op(Operation::Drop).unwrap();
+        process.execute_op(Operation::Drop, &mut host).unwrap();
 
         // put 15 more items onto the stack
         let mut expected = [ONE; 16];
         for i in 2..17 {
-            process.execute_op(Operation::Push(Felt::new(i))).unwrap();
+            process.execute_op(Operation::Push(Felt::new(i)), &mut host).unwrap();
             expected[16 - i as usize] = Felt::new(i);
         }
         assert_eq!(expected, process.stack.trace_state());
 
         // duplicate last stack item
-        process.execute_op(Operation::Dup15).unwrap();
+        process.execute_op(Operation::Dup15, &mut host).unwrap();
         assert_eq!(ONE, process.stack.trace_state()[0]);
         assert_eq!(&expected[..15], &process.stack.trace_state()[1..]);
 
         // duplicate 8th stack item
-        process.execute_op(Operation::Dup7).unwrap();
+        process.execute_op(Operation::Dup7, &mut host).unwrap();
         assert_eq!(Felt::new(10), process.stack.trace_state()[0]);
         assert_eq!(ONE, process.stack.trace_state()[1]);
         assert_eq!(&expected[..14], &process.stack.trace_state()[2..]);
 
         // remove 4 items off the stack
-        process.execute_op(Operation::Drop).unwrap();
-        process.execute_op(Operation::Drop).unwrap();
-        process.execute_op(Operation::Drop).unwrap();
-        process.execute_op(Operation::Drop).unwrap();
+        process.execute_op(Operation::Drop, &mut host).unwrap();
+        process.execute_op(Operation::Drop, &mut host).unwrap();
+        process.execute_op(Operation::Drop, &mut host).unwrap();
+        process.execute_op(Operation::Drop, &mut host).unwrap();
 
-        assert_eq!(STACK_TOP_SIZE + 15, process.stack.depth());
+        assert_eq!(MIN_STACK_DEPTH + 15, process.stack.depth());
 
         assert_eq!(&expected[2..], &process.stack.trace_state()[..14]);
         assert_eq!(ONE, process.stack.trace_state()[14]);
@@ -416,15 +416,16 @@ mod tests {
         // push a few items onto the stack
         let stack = StackInputs::try_from_ints([1, 2, 3]).unwrap();
         let mut process = Process::new_dummy(stack);
+        let mut host = DefaultHost::default();
 
-        process.execute_op(Operation::Swap).unwrap();
+        process.execute_op(Operation::Swap, &mut host).unwrap();
         let expected = build_expected(&[2, 3, 1]);
         assert_eq!(expected, process.stack.trace_state());
 
         // swapping with a minimum stack should be ok
         let stack = StackInputs::default();
         let mut process = Process::new_dummy(stack);
-        assert!(process.execute_op(Operation::Swap).is_ok());
+        assert!(process.execute_op(Operation::Swap, &mut host).is_ok());
     }
 
     #[test]
@@ -432,15 +433,16 @@ mod tests {
         // push a few items onto the stack
         let stack = StackInputs::try_from_ints([1, 2, 3, 4, 5, 6, 7, 8, 9]).unwrap();
         let mut process = Process::new_dummy(stack);
+        let mut host = DefaultHost::default();
 
-        process.execute_op(Operation::SwapW).unwrap();
+        process.execute_op(Operation::SwapW, &mut host).unwrap();
         let expected = build_expected(&[5, 4, 3, 2, 9, 8, 7, 6, 1]);
         assert_eq!(expected, process.stack.trace_state());
 
         // swapping with a minimum stack should be ok
         let stack = StackInputs::default();
         let mut process = Process::new_dummy(stack);
-        assert!(process.execute_op(Operation::SwapW).is_ok());
+        assert!(process.execute_op(Operation::SwapW, &mut host).is_ok());
     }
 
     #[test]
@@ -449,37 +451,34 @@ mod tests {
         let stack =
             StackInputs::try_from_ints([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13]).unwrap();
         let mut process = Process::new_dummy(stack);
+        let mut host = DefaultHost::default();
 
-        process.execute_op(Operation::SwapW2).unwrap();
+        process.execute_op(Operation::SwapW2, &mut host).unwrap();
         let expected = build_expected(&[5, 4, 3, 2, 9, 8, 7, 6, 13, 12, 11, 10, 1]);
         assert_eq!(expected, process.stack.trace_state());
 
         // swapping with a minimum stack should be ok
         let stack = StackInputs::default();
         let mut process = Process::new_dummy(stack);
-        assert!(process.execute_op(Operation::SwapW2).is_ok());
+        assert!(process.execute_op(Operation::SwapW2, &mut host).is_ok());
     }
 
     #[test]
     fn op_swapw3() {
         // push a few items onto the stack
         let stack =
-            StackInputs::try_from_ints([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17])
+            StackInputs::try_from_ints([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16])
                 .unwrap();
         let mut process = Process::new_dummy(stack);
+        let mut host = DefaultHost::default();
 
-        process.execute_op(Operation::SwapW3).unwrap();
-        let expected = build_expected(&[5, 4, 3, 2, 13, 12, 11, 10, 9, 8, 7, 6, 17, 16, 15, 14]);
-        assert_eq!(expected, process.stack.trace_state());
-
-        // value should remain on the overflow table
-        process.execute_op(Operation::Drop).unwrap();
-        let expected = build_expected(&[4, 3, 2, 13, 12, 11, 10, 9, 8, 7, 6, 17, 16, 15, 14, 1]);
+        process.execute_op(Operation::SwapW3, &mut host).unwrap();
+        let expected = build_expected(&[4, 3, 2, 1, 12, 11, 10, 9, 8, 7, 6, 5, 16, 15, 14, 13]);
         assert_eq!(expected, process.stack.trace_state());
 
         // swapping with a minimum stack should be ok
         let mut process = Process::new_dummy_with_empty_stack();
-        assert!(process.execute_op(Operation::SwapW3).is_ok());
+        assert!(process.execute_op(Operation::SwapW3, &mut host).is_ok());
     }
 
     #[test]
@@ -489,30 +488,31 @@ mod tests {
             StackInputs::try_from_ints([16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1])
                 .unwrap();
         let mut process = Process::new_dummy(stack);
+        let mut host = DefaultHost::default();
 
         // movup2
-        process.execute_op(Operation::MovUp2).unwrap();
+        process.execute_op(Operation::MovUp2, &mut host).unwrap();
         let expected = build_expected(&[3, 1, 2, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16]);
         assert_eq!(expected, process.stack.trace_state());
 
         // movup3
-        process.execute_op(Operation::MovUp3).unwrap();
+        process.execute_op(Operation::MovUp3, &mut host).unwrap();
         let expected = build_expected(&[4, 3, 1, 2, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16]);
         assert_eq!(expected, process.stack.trace_state());
 
         // movup7
-        process.execute_op(Operation::MovUp7).unwrap();
+        process.execute_op(Operation::MovUp7, &mut host).unwrap();
         let expected = build_expected(&[8, 4, 3, 1, 2, 5, 6, 7, 9, 10, 11, 12, 13, 14, 15, 16]);
         assert_eq!(expected, process.stack.trace_state());
 
         // movup8
-        process.execute_op(Operation::MovUp8).unwrap();
+        process.execute_op(Operation::MovUp8, &mut host).unwrap();
         let expected = build_expected(&[9, 8, 4, 3, 1, 2, 5, 6, 7, 10, 11, 12, 13, 14, 15, 16]);
         assert_eq!(expected, process.stack.trace_state());
 
         // executing movup with a minimum stack depth should be ok
         let mut process = Process::new_dummy_with_empty_stack();
-        assert!(process.execute_op(Operation::MovUp2).is_ok());
+        assert!(process.execute_op(Operation::MovUp2, &mut host).is_ok());
     }
 
     #[test]
@@ -522,30 +522,31 @@ mod tests {
             StackInputs::try_from_ints([16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1])
                 .unwrap();
         let mut process = Process::new_dummy(stack);
+        let mut host = DefaultHost::default();
 
         // movdn2
-        process.execute_op(Operation::MovDn2).unwrap();
+        process.execute_op(Operation::MovDn2, &mut host).unwrap();
         let expected = build_expected(&[2, 3, 1, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16]);
         assert_eq!(expected, process.stack.trace_state());
 
         // movdn3
-        process.execute_op(Operation::MovDn3).unwrap();
+        process.execute_op(Operation::MovDn3, &mut host).unwrap();
         let expected = build_expected(&[3, 1, 4, 2, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16]);
         assert_eq!(expected, process.stack.trace_state());
 
         // movdn7
-        process.execute_op(Operation::MovDn7).unwrap();
+        process.execute_op(Operation::MovDn7, &mut host).unwrap();
         let expected = build_expected(&[1, 4, 2, 5, 6, 7, 8, 3, 9, 10, 11, 12, 13, 14, 15, 16]);
         assert_eq!(expected, process.stack.trace_state());
 
         // movdn15
-        process.execute_op(Operation::MovDn8).unwrap();
+        process.execute_op(Operation::MovDn8, &mut host).unwrap();
         let expected = build_expected(&[4, 2, 5, 6, 7, 8, 3, 9, 1, 10, 11, 12, 13, 14, 15, 16]);
         assert_eq!(expected, process.stack.trace_state());
 
         // executing movdn with a minimum stack depth should be ok
         let mut process = Process::new_dummy_with_empty_stack();
-        assert!(process.execute_op(Operation::MovDn2).is_ok());
+        assert!(process.execute_op(Operation::MovDn2, &mut host).is_ok());
     }
 
     #[test]
@@ -553,23 +554,24 @@ mod tests {
         // push a few items onto the stack
         let stack = StackInputs::try_from_ints([4, 3, 2, 1, 0]).unwrap();
         let mut process = Process::new_dummy(stack);
+        let mut host = DefaultHost::default();
 
         // no swap (top of the stack is 0)
-        process.execute_op(Operation::CSwap).unwrap();
+        process.execute_op(Operation::CSwap, &mut host).unwrap();
         let expected = build_expected(&[1, 2, 3, 4]);
         assert_eq!(expected, process.stack.trace_state());
 
         // swap (top of the stack is 1)
-        process.execute_op(Operation::CSwap).unwrap();
+        process.execute_op(Operation::CSwap, &mut host).unwrap();
         let expected = build_expected(&[3, 2, 4]);
         assert_eq!(expected, process.stack.trace_state());
 
         // error: top of the stack is not binary
-        assert!(process.execute_op(Operation::CSwap).is_err());
+        assert!(process.execute_op(Operation::CSwap, &mut host).is_err());
 
         // executing conditional swap with a minimum stack depth should be ok
         let mut process = Process::new_dummy_with_empty_stack();
-        assert!(process.execute_op(Operation::CSwap).is_ok());
+        assert!(process.execute_op(Operation::CSwap, &mut host).is_ok());
     }
 
     #[test]
@@ -577,23 +579,24 @@ mod tests {
         // push a few items onto the stack
         let stack = StackInputs::try_from_ints([11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0]).unwrap();
         let mut process = Process::new_dummy(stack);
+        let mut host = DefaultHost::default();
 
         // no swap (top of the stack is 0)
-        process.execute_op(Operation::CSwapW).unwrap();
+        process.execute_op(Operation::CSwapW, &mut host).unwrap();
         let expected = build_expected(&[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]);
         assert_eq!(expected, process.stack.trace_state());
 
         // swap (top of the stack is 1)
-        process.execute_op(Operation::CSwapW).unwrap();
+        process.execute_op(Operation::CSwapW, &mut host).unwrap();
         let expected = build_expected(&[6, 7, 8, 9, 2, 3, 4, 5, 10, 11]);
         assert_eq!(expected, process.stack.trace_state());
 
         // error: top of the stack is not binary
-        assert!(process.execute_op(Operation::CSwapW).is_err());
+        assert!(process.execute_op(Operation::CSwapW, &mut host).is_err());
 
         // executing conditional swap with a minimum stack depth should be ok
         let mut process = Process::new_dummy_with_empty_stack();
-        assert!(process.execute_op(Operation::CSwapW).is_ok());
+        assert!(process.execute_op(Operation::CSwapW, &mut host).is_ok());
     }
 
     // HELPER FUNCTIONS

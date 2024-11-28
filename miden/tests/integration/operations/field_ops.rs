@@ -1,7 +1,7 @@
 use assembly::regex;
-use processor::ExecutionError;
+use processor::{ExecutionError, RowIndex};
 use test_utils::{
-    assert_assembler_diagnostic, assert_diagnostic_lines, build_op_test, expect_exec_error,
+    assert_assembler_diagnostic, assert_diagnostic_lines, build_op_test, expect_exec_error_matches,
     prop_randw, proptest::prelude::*, rand::rand_value, Felt, FieldElement, StarkField, ONE,
     WORD_SIZE,
 };
@@ -187,9 +187,10 @@ fn div_b() {
         test,
         "invalid constant expression: division by zero",
         regex!(r#",-\[test[\d]+:[\d]+:[\d]+\]"#),
-        "1 | begin div.0 end",
-        "  :       ^^^^^",
-        "  `----"
+        "11 |",
+        "12 | begin div.0 exec.truncate_stack end",
+        "   :       ^^^^^",
+        "   `----"
     );
 
     let test = build_op_test!(build_asm_op(2), &[4]);
@@ -212,7 +213,7 @@ fn div_fail() {
 
     // --- test divide by zero --------------------------------------------------------------------
     let test = build_op_test!(asm_op, &[1, 0]);
-    expect_exec_error!(test, ExecutionError::DivideByZero(1.into()));
+    expect_exec_error_matches!(test, ExecutionError::DivideByZero(row_idx) if row_idx == RowIndex::from(2));
 }
 
 #[test]
@@ -246,10 +247,11 @@ fn neg_fail() {
         test,
         "invalid syntax",
         regex!(r#",-\[test[\d]+:[\d]+:[\d]+\]"#),
-        "1 | begin neg.1 end",
-        "  :          |",
-        "  :          `-- found a . here",
-        "  `----",
+        "11 |",
+        "12 | begin neg.1 exec.truncate_stack end",
+        "   :          |",
+        "   :          `-- found a . here",
+        "   `----",
         r#" help: expected primitive opcode (e.g. "add"), or "end", or control flow opcode (e.g. "if.true")"#
     );
 }
@@ -277,7 +279,7 @@ fn inv_fail() {
 
     // --- test no inv on 0 -----------------------------------------------------------------------
     let test = build_op_test!(asm_op, &[0]);
-    expect_exec_error!(test, ExecutionError::DivideByZero(1.into()));
+    expect_exec_error_matches!(test, ExecutionError::DivideByZero(row_idx) if row_idx == RowIndex::from(2));
 
     let asm_op = "inv.1";
 
@@ -288,10 +290,11 @@ fn inv_fail() {
         test,
         "invalid syntax",
         regex!(r#",-\[test[\d]+:[\d]+:[\d]+\]"#),
-        "1 | begin inv.1 end",
-        "  :          |",
-        "  :          `-- found a . here",
-        "  `----",
+        "11 |",
+        "12 | begin inv.1 exec.truncate_stack end",
+        "   :          |",
+        "   :          `-- found a . here",
+        "   `----",
         r#" help: expected primitive opcode (e.g. "add"), or "end", or control flow opcode (e.g. "if.true")"#
     );
 }
@@ -315,13 +318,11 @@ fn pow2_fail() {
     value += (u32::MAX as u64) + 1;
 
     let test = build_op_test!(asm_op, &[value]);
-    expect_exec_error!(
+
+    expect_exec_error_matches!(
         test,
-        ExecutionError::FailedAssertion {
-            clk: 16.into(),
-            err_code: 0,
-            err_msg: None,
-        }
+        ExecutionError::FailedAssertion{clk, err_code, err_msg }
+        if clk == RowIndex::from(17) && err_code == 0 && err_msg.is_none()
     );
 }
 
@@ -350,13 +351,10 @@ fn exp_bits_length_fail() {
 
     let test = build_op_test!(build_asm_op(9), &[base, pow]);
 
-    expect_exec_error!(
+    expect_exec_error_matches!(
         test,
-        ExecutionError::FailedAssertion {
-            clk: 18.into(),
-            err_code: 0,
-            err_msg: None
-        }
+        ExecutionError::FailedAssertion{clk, err_code, err_msg }
+        if clk == RowIndex::from(19) && err_code == 0 && err_msg.is_none()
     );
 
     //---------------------- exp containing more than 64 bits -------------------------------------
@@ -370,9 +368,11 @@ fn exp_bits_length_fail() {
         test,
         "invalid literal: expected value to be a valid bit size, e.g. 0..63",
         regex!(r#",-\[test[\d]+:[\d]+:[\d]+\]"#),
-        "1 | begin exp.u65 end",
-        "  :            ^^",
-        "  `----"
+        "11 |",
+        "12 | begin exp.u65 exec.truncate_stack end",
+        "   :            ^^",
+        "   `----",
+        r#" help: expected primitive opcode (e.g. "add"), or "end", or control flow opcode (e.g. "if.true")"#
     );
 }
 
@@ -402,7 +402,10 @@ fn ilog2_fail() {
     let asm_op = "ilog2";
 
     let test = build_op_test!(asm_op, &[0]);
-    expect_exec_error!(test, ExecutionError::LogArgumentZero(1.into()));
+    expect_exec_error_matches!(
+        test,
+        ExecutionError::LogArgumentZero(row_idx) if row_idx == RowIndex::from(2)
+    );
 }
 
 // FIELD OPS BOOLEAN - MANUAL TESTS
@@ -425,7 +428,11 @@ fn not_fail() {
 
     // --- test value > 1 --------------------------------------------------------------------
     let test = build_op_test!(asm_op, &[2]);
-    expect_exec_error!(test, ExecutionError::NotBinaryValue(Felt::new(2)));
+
+    expect_exec_error_matches!(
+        test,
+        ExecutionError::NotBinaryValue(value) if value == Felt::new(2_u64)
+    );
 }
 
 #[test]
@@ -451,13 +458,22 @@ fn and_fail() {
 
     // --- test value > 1 --------------------------------------------------------------------
     let test = build_op_test!(asm_op, &[2, 3]);
-    expect_exec_error!(test, ExecutionError::NotBinaryValue(Felt::new(3)));
+    expect_exec_error_matches!(
+        test,
+        ExecutionError::NotBinaryValue(value) if value == Felt::new(3_u64)
+    );
 
     let test = build_op_test!(asm_op, &[2, 0]);
-    expect_exec_error!(test, ExecutionError::NotBinaryValue(Felt::new(2)));
+    expect_exec_error_matches!(
+        test,
+        ExecutionError::NotBinaryValue(value) if value == Felt::new(2_u64)
+    );
 
     let test = build_op_test!(asm_op, &[0, 2]);
-    expect_exec_error!(test, ExecutionError::NotBinaryValue(Felt::new(2)));
+    expect_exec_error_matches!(
+        test,
+        ExecutionError::NotBinaryValue(value) if value == Felt::new(2_u64)
+    );
 }
 
 #[test]
@@ -484,14 +500,23 @@ fn or_fail() {
     // --- test value > 1 --------------------------------------------------------------------
     let expected_value = Felt::new(3);
     let test = build_op_test!(asm_op, &[2, 3]);
-    expect_exec_error!(test, ExecutionError::NotBinaryValue(expected_value));
+    expect_exec_error_matches!(
+        test,
+        ExecutionError::NotBinaryValue(value) if value == expected_value
+    );
 
     let expected_value = Felt::new(2);
     let test = build_op_test!(asm_op, &[2, 0]);
-    expect_exec_error!(test, ExecutionError::NotBinaryValue(expected_value));
+    expect_exec_error_matches!(
+        test,
+        ExecutionError::NotBinaryValue(value) if value == expected_value
+    );
 
     let test = build_op_test!(asm_op, &[0, 2]);
-    expect_exec_error!(test, ExecutionError::NotBinaryValue(expected_value));
+    expect_exec_error_matches!(
+        test,
+        ExecutionError::NotBinaryValue(value) if value == expected_value
+    );
 }
 
 #[test]
@@ -518,13 +543,22 @@ fn xor_fail() {
     let expected_value = Felt::new(2);
     // --- test value > 1 --------------------------------------------------------------------
     let test = build_op_test!(asm_op, &[2, 3]);
-    expect_exec_error!(test, ExecutionError::NotBinaryValue(expected_value));
+    expect_exec_error_matches!(
+        test,
+        ExecutionError::NotBinaryValue(value) if value == expected_value
+    );
 
     let test = build_op_test!(asm_op, &[2, 0]);
-    expect_exec_error!(test, ExecutionError::NotBinaryValue(expected_value));
+    expect_exec_error_matches!(
+        test,
+        ExecutionError::NotBinaryValue(value) if value == expected_value
+    );
 
     let test = build_op_test!(asm_op, &[0, 2]);
-    expect_exec_error!(test, ExecutionError::NotBinaryValue(expected_value));
+    expect_exec_error_matches!(
+        test,
+        ExecutionError::NotBinaryValue(value) if value == expected_value
+    );
 }
 
 // FIELD OPS COMPARISON - MANUAL TESTS

@@ -28,6 +28,9 @@ mod procedure;
 #[cfg(test)]
 mod tests;
 
+#[cfg(test)]
+mod mast_forest_merger_tests;
+
 use self::{
     basic_block_builder::BasicBlockBuilder,
     module_graph::{CallerInfo, ModuleGraph, ResolvedTarget},

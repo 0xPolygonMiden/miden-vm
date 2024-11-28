@@ -1,8 +1,6 @@
 use alloc::{collections::BTreeMap, vec::Vec};
 
-use vm_core::{utils::uninit_vector, StarkField};
-
-use super::{AuxTraceBuilder, Felt, FieldElement, ZERO};
+use super::{Felt, FieldElement, ZERO};
 
 // OVERFLOW TABLE
 // ================================================================================================
@@ -13,6 +11,7 @@ use super::{AuxTraceBuilder, Felt, FieldElement, ZERO};
 ///
 /// When `trace_enabled` is set to true, we also record all changes to the table so that we can
 /// reconstruct the overflow table at any clock cycle. This can be used for debugging purposes.
+#[derive(Debug)]
 pub struct OverflowTable {
     /// A list of all rows that were added to and then removed from the overflow table.
     all_rows: Vec<OverflowTableRow>,
@@ -26,8 +25,6 @@ pub struct OverflowTable {
     /// whenever an update happens. This is set to true only when executing programs for debug
     /// purposes.
     trace_enabled: bool,
-    /// The number of rows in the overflow table when execution begins.
-    num_init_rows: usize,
     /// Holds the address (the clock cycle) of the row at to top of the overflow table. When
     /// entering new execution context, this value is set to ZERO, and thus, will differ from the
     /// row address actually at the top of the table.
@@ -44,28 +41,8 @@ impl OverflowTable {
             active_rows: Vec::new(),
             trace: BTreeMap::new(),
             trace_enabled: enable_trace,
-            num_init_rows: 0,
             last_row_addr: ZERO,
         }
-    }
-
-    /// Returns a new [OverflowTable]. The returned table contains a row for each of the provided
-    /// initial values, using a "negative" (mod p) `clk` value as the address for each of the rows,
-    /// since they are added before the first execution cycle.
-    ///
-    /// `init_values` is expected to be ordered such that values will be pushed onto the stack one
-    /// by one. Thus, the first item in the list will become the deepest item in the stack.
-    pub fn new_with_inputs(enable_trace: bool, init_values: &[Felt]) -> Self {
-        let mut overflow_table = Self::new(enable_trace);
-        overflow_table.num_init_rows = init_values.len();
-
-        let mut clk = Felt::MODULUS - init_values.len() as u64;
-        for &val in init_values.iter().rev() {
-            overflow_table.push(val, Felt::new(clk));
-            clk += 1;
-        }
-
-        overflow_table
     }
 
     // STATE MUTATORS
@@ -172,36 +149,9 @@ impl OverflowTable {
         }
     }
 
-    /// Returns the addresses of active rows in the table required to reconstruct the table (when
-    /// combined with the values). This is a vector of all of the `clk` values (the address of each
-    /// row), preceded by the `prev` value in the first row of the table. (It's also equivalent to
-    /// all of the `prev` values followed by the `clk` value in the last row of the table.)
-    pub(super) fn get_addrs(&self) -> Vec<Felt> {
-        if self.active_rows.is_empty() {
-            return Vec::new();
-        }
-
-        let mut addrs = unsafe { uninit_vector(self.active_rows.len() + 1) };
-        // add the previous address of the first row in the overflow table.
-        addrs[0] = self.all_rows[self.active_rows[0]].prev;
-        // add the address for all the rows in the overflow table.
-        for (i, &row_idx) in self.active_rows.iter().enumerate() {
-            addrs[i + 1] = self.all_rows[row_idx].clk;
-        }
-
-        addrs
-    }
-
-    // AUX TRACE BUILDER GENERATION
-    // --------------------------------------------------------------------------------------------
-
-    /// Converts this [OverflowTable] into an auxiliary trace builder which can be used to construct
-    /// the auxiliary trace column describing the state of the overflow table at every cycle.
-    pub fn into_aux_builder(self) -> AuxTraceBuilder {
-        AuxTraceBuilder {
-            num_init_rows: self.num_init_rows,
-            overflow_table_rows: self.all_rows,
-        }
+    /// Returns the number of overflowing stack elements at the current clock cycle.
+    pub fn num_active_rows(&self) -> usize {
+        self.active_rows.len()
     }
 
     // HELPER METHODS

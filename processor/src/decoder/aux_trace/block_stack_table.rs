@@ -1,7 +1,7 @@
 use miden_air::RowIndex;
 use vm_core::{
-    OPCODE_CALL, OPCODE_DYN, OPCODE_END, OPCODE_JOIN, OPCODE_LOOP, OPCODE_RESPAN, OPCODE_SPAN,
-    OPCODE_SPLIT, OPCODE_SYSCALL,
+    OPCODE_CALL, OPCODE_DYN, OPCODE_DYNCALL, OPCODE_END, OPCODE_JOIN, OPCODE_LOOP, OPCODE_RESPAN,
+    OPCODE_SPAN, OPCODE_SPLIT, OPCODE_SYSCALL,
 };
 
 use super::{AuxColumnBuilder, Felt, FieldElement, MainTrace, ONE, ZERO};
@@ -21,10 +21,8 @@ impl<E: FieldElement<BaseField = Felt>> AuxColumnBuilder<E> for BlockStackColumn
         let op_code = op_code_felt.as_int() as u8;
 
         match op_code {
-            OPCODE_RESPAN => {
-                get_block_stack_table_removal_multiplicand(main_trace, i, true, alphas)
-            },
-            OPCODE_END => get_block_stack_table_removal_multiplicand(main_trace, i, false, alphas),
+            OPCODE_RESPAN => get_block_stack_table_respan_multiplicand(main_trace, i, alphas),
+            OPCODE_END => get_block_stack_table_end_multiplicand(main_trace, i, alphas),
             _ => E::ONE,
         }
     }
@@ -35,8 +33,8 @@ impl<E: FieldElement<BaseField = Felt>> AuxColumnBuilder<E> for BlockStackColumn
         let op_code = op_code_felt.as_int() as u8;
 
         match op_code {
-            OPCODE_JOIN | OPCODE_SPLIT | OPCODE_SPAN | OPCODE_DYN | OPCODE_LOOP | OPCODE_RESPAN
-            | OPCODE_CALL | OPCODE_SYSCALL => {
+            OPCODE_JOIN | OPCODE_SPLIT | OPCODE_SPAN | OPCODE_DYN | OPCODE_DYNCALL
+            | OPCODE_LOOP | OPCODE_RESPAN | OPCODE_CALL | OPCODE_SYSCALL => {
                 get_block_stack_table_inclusion_multiplicand(main_trace, i, alphas, op_code)
             },
             _ => E::ONE,
@@ -47,19 +45,36 @@ impl<E: FieldElement<BaseField = Felt>> AuxColumnBuilder<E> for BlockStackColumn
 // HELPER FUNCTIONS
 // ================================================================================================
 
-/// Computes the multiplicand representing the removal of a row from the block stack table.
-fn get_block_stack_table_removal_multiplicand<E: FieldElement<BaseField = Felt>>(
+/// Computes the multiplicand representing the removal of a row from the block stack table when
+/// encountering a RESPAN operation.
+fn get_block_stack_table_respan_multiplicand<E: FieldElement<BaseField = Felt>>(
     main_trace: &MainTrace,
     i: RowIndex,
-    is_respan: bool,
     alphas: &[E],
 ) -> E {
     let block_id = main_trace.addr(i);
-    let parent_id = if is_respan {
-        main_trace.decoder_hasher_state_element(1, i + 1)
-    } else {
-        main_trace.addr(i + 1)
-    };
+    let parent_id = main_trace.decoder_hasher_state_element(1, i + 1);
+    let is_loop = ZERO;
+
+    // Note: the last 8 elements are set to ZERO, so we omit them here.
+    let elements = [ONE, block_id, parent_id, is_loop];
+
+    let mut table_row = E::ZERO;
+    for (&alpha, &element) in alphas.iter().zip(elements.iter()) {
+        table_row += alpha.mul_base(element);
+    }
+    table_row
+}
+
+/// Computes the multiplicand representing the removal of a row from the block stack table when
+/// encountering an END operation.
+fn get_block_stack_table_end_multiplicand<E: FieldElement<BaseField = Felt>>(
+    main_trace: &MainTrace,
+    i: RowIndex,
+    alphas: &[E],
+) -> E {
+    let block_id = main_trace.addr(i);
+    let parent_id = main_trace.addr(i + 1);
     let is_loop = main_trace.is_loop_flag(i);
 
     let elements = if main_trace.is_call_flag(i) == ONE || main_trace.is_syscall_flag(i) == ONE {
@@ -92,12 +107,11 @@ fn get_block_stack_table_removal_multiplicand<E: FieldElement<BaseField = Felt>>
         result
     };
 
-    let mut value = E::ZERO;
-
+    let mut table_row = E::ZERO;
     for (&alpha, &element) in alphas.iter().zip(elements.iter()) {
-        value += alpha.mul_base(element);
+        table_row += alpha.mul_base(element);
     }
-    value
+    table_row
 }
 
 /// Computes the multiplicand representing the inclusion of a new row to the block stack table.
@@ -123,6 +137,31 @@ fn get_block_stack_table_inclusion_multiplicand<E: FieldElement<BaseField = Felt
         let parent_fmp = main_trace.fmp(i);
         let parent_stack_depth = main_trace.stack_depth(i);
         let parent_next_overflow_addr = main_trace.parent_overflow_address(i);
+        let parent_fn_hash = main_trace.fn_hash(i);
+        [
+            ONE,
+            block_id,
+            parent_id,
+            is_loop,
+            parent_ctx,
+            parent_fmp,
+            parent_stack_depth,
+            parent_next_overflow_addr,
+            parent_fn_hash[0],
+            parent_fn_hash[1],
+            parent_fn_hash[2],
+            parent_fn_hash[3],
+        ]
+    } else if op_code == OPCODE_DYNCALL {
+        // dyncall executes a left shift simultaneously with starting a new execution context. The
+        // post-shift stack depth and next overflow address are placed in the decoder hasher state
+        // registers. Note that these are different from what is written to the B0 and B1 registers
+        // in the next row (the first row of the new execution context); the values placed here are
+        // the values that will be restored when the new execution context terminates.
+        let parent_ctx = main_trace.ctx(i);
+        let parent_fmp = main_trace.fmp(i);
+        let parent_stack_depth = main_trace.decoder_hasher_state_element(4, i);
+        let parent_next_overflow_addr = main_trace.decoder_hasher_state_element(5, i);
         let parent_fn_hash = main_trace.fn_hash(i);
         [
             ONE,

@@ -43,15 +43,17 @@ begin
 end
 ```
 
-Finally, a procedure cannot contain *solely* any number of [advice injectors](./io_operations.md#nondeterministic-inputs), `emit`, `debug` and `trace` instructions. In other words, it must contain at least one instruction which is not in the aforementioned list.
-
 #### Dynamic procedure invocation
-It is also possible to invoke procedures dynamically - i.e., without specifying target procedure labels at compile time. Unlike static procedure invocation, recursion is technically possible using dynamic invocation, but dynamic invocation is more expensive, and has less available operand stack capacity for procedure arguments, as 4 elements are required for the MAST root of the callee. There are two instructions, `dynexec` and `dyncall`, which can be used to execute dynamically-specified code targets. Both instructions expect the [MAST root](../../design/programs.md) of the target to be provided via the stack. The difference between `dynexec` and `dyncall` corresponds to the difference between `exec` and `call`, see the documentation on [procedure invocation semantics](./execution_contexts.md#procedure-invocation-semantics) for more detail.
+It is also possible to invoke procedures dynamically - i.e., without specifying target procedure labels at compile time. A procedure can only call itself using dynamic invocation. There are two instructions, `dynexec` and `dyncall`, which can be used to execute dynamically-specified code targets. Both instructions expect the [MAST root](../../design/programs.md) of the target to be stored in memory, and the memory address of the MAST root to be on the top of the stack. The difference between `dynexec` and `dyncall` corresponds to the difference between `exec` and `call`, see the documentation on [procedure invocation semantics](./execution_contexts.md#procedure-invocation-semantics) for more details.
 
-Dynamic code execution in the same context is achieved by setting the top $4$ elements of the stack to the hash of the dynamic code block and then executing the `dynexec` or `dyncall` instruction. You can obtain the hash of a procedure in the current program, by name, using the `procref` instruction. See the following example of pairing the two:
+
+Dynamic code execution in the same context is achieved by setting the top element of the stack to the memory address where the  hash of the dynamic code block is stored, and then executing the `dynexec` or `dyncall` instruction. You can obtain the hash of a procedure in the current program, by name, using the `procref` instruction. See the following example of pairing the two:
 
 ```
-procref.foo
+# Retrieve the hash of `foo`, store it at `ADDR`, and push `ADDR` on top of the stack
+procref.foo mem_storew.ADDR dropw push.ADDR
+
+# Execute `foo` dynamically
 dynexec
 ```
 
@@ -59,13 +61,12 @@ During assembly, the `procref.foo` instruction is compiled to a `push.HASH`, whe
 
 During execution of the `dynexec` instruction, the VM does the following:
 
-1. Reads, but does not consume, the top 4 elements of the stack to get the hash of the dynamic target (i.e. the operand stack is left unchanged).
-2. Load the code block referenced by the hash, or trap if no such MAST root is known.
-3. Execute the loaded code block
+1. Read the top stack element $s_0$, and read the memory word at address $s_0$ (the hash of the dynamic target),
+2. Shift the stack left by one element,
+3. Load the code block referenced by the hash, or trap if no such MAST root is known,
+4. Execute the loaded code block.
 
 The `dyncall` instruction is used the same way, with the difference that it involves a context switch to a new context when executing the referenced block, and switching back to the calling context once execution of the callee completes.
-
-> **Note**: In both cases, the stack is left unchanged. Therefore, if the dynamic code is intended to manipulate the stack, it should start by either dropping or moving the code block hash from the top of the stack.
 
 ### Modules
 A *module* consists of one or more procedures. There are two types of modules: *library modules* and *executable modules* (also called *programs*).

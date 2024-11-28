@@ -1,6 +1,9 @@
-use alloc::string::ToString;
+use alloc::{string::ToString, vec::Vec};
 
-use vm_core::mast::{MastNode, MastNodeId};
+use vm_core::{
+    mast::{MastNode, MastNodeId},
+    Program,
+};
 
 use crate::{
     assert_diagnostic_lines,
@@ -8,7 +11,7 @@ use crate::{
     diagnostics::{IntoDiagnostic, Report},
     regex, source_file,
     testing::{Pattern, TestContext},
-    Assembler, LibraryPath, ModuleParser,
+    Assembler, Deserializable, LibraryPath, ModuleParser, Serializable,
 };
 
 type TestResult = Result<(), Report>;
@@ -729,7 +732,7 @@ fn constant_must_be_valid_felt() -> TestResult {
         "  :                    ^^^|^^^",
         "  :                       `-- found a constant identifier here",
         "  `----",
-        " help: expected \"*\", or \"+\", or \"-\", or \"/\", or \"//\", or \"begin\", or \"const\", \
+        " help: expected \"*\", or \"+\", or \"-\", or \"/\", or \"//\", or \"@\", or \"begin\", or \"const\", \
 or \"export\", or \"proc\", or \"use\", or end of file, or doc comment"
     );
     Ok(())
@@ -1054,7 +1057,7 @@ fn decorators_repeat_split() -> TestResult {
         "\
     begin
         trace.0
-        repeat.2 
+        repeat.2
             if.true
                 trace.1 push.42 trace.2
             else
@@ -1695,7 +1698,7 @@ fn ensure_correct_procedure_selection_on_collision() -> TestResult {
         proc.f
             add
         end
-        
+
         proc.g
             trace.2
             add
@@ -1898,7 +1901,7 @@ fn program_with_dynamic_code_execution_in_new_context() -> TestResult {
     let program = context.assemble(source)?;
     let expected = "\
 begin
-    call.0xc75c340ec6a69e708457544d38783abbb604d881b7dc62d00bfc2b10f52808e6
+    dyncall
 end";
     assert_str_eq!(format!("{program}"), expected);
     Ok(())
@@ -2325,7 +2328,7 @@ end";
         "  :                                      `-- found a -> here",
         "3 |",
         "  `----",
-        r#" help: expected "begin", or "const", or "export", or "proc", or "use", or end of file, or doc comment"#
+        r#" help: expected "@", or "begin", or "const", or "export", or "proc", or "use", or end of file, or doc comment"#
     );
 
     // --- duplicate module import --------------------------------------------
@@ -2532,7 +2535,7 @@ fn invalid_empty_program() {
         "unexpected end of file",
         regex!(r#",-\[test[\d]+:1:1\]"#),
         "`----",
-        r#" help: expected "begin", or "const", or "export", or "proc", or "use", or doc comment"#
+        r#" help: expected "@", or "begin", or "const", or "export", or "proc", or "use", or doc comment"#
     );
 
     assert_assembler_diagnostic!(
@@ -2541,7 +2544,7 @@ fn invalid_empty_program() {
         "unexpected end of file",
         regex!(r#",-\[test[\d]+:1:1\]"#),
         "  `----",
-        r#" help: expected "begin", or "const", or "export", or "proc", or "use", or doc comment"#
+        r#" help: expected "@", or "begin", or "const", or "export", or "proc", or "use", or doc comment"#
     );
 }
 
@@ -2557,7 +2560,7 @@ fn invalid_program_unrecognized_token() {
         "  : ^^|^",
         "  :   `-- found a identifier here",
         "  `----",
-        r#" help: expected "begin", or "const", or "export", or "proc", or "use", or doc comment"#
+        r#" help: expected "@", or "begin", or "const", or "export", or "proc", or "use", or doc comment"#
     );
 }
 
@@ -2587,7 +2590,7 @@ fn invalid_program_invalid_top_level_token() {
         "  :               ^|^",
         "  :                `-- found a mul here",
         "  `----",
-        r#" help: expected "begin", or "const", or "export", or "proc", or "use", or end of file, or doc comment"#
+        r#" help: expected "@", or "begin", or "const", or "export", or "proc", or "use", or end of file, or doc comment"#
     );
 }
 
@@ -2969,4 +2972,59 @@ fn test_reexported_proc_with_same_name_as_local_proc_diff_locals() {
     ";
 
     let _program = assembler.assemble_program(program_source).unwrap();
+}
+
+// PROGRAM SERIALIZATION AND DESERIALIZATION
+// ================================================================================================
+#[test]
+fn test_program_serde_simple() {
+    let source = "
+    begin
+        push.1.2
+        add
+        drop
+    end
+    ";
+
+    let assembler = Assembler::default();
+    let original_program = assembler.assemble_program(source).unwrap();
+
+    let mut target = Vec::new();
+    original_program.write_into(&mut target);
+    let deserialized_program = Program::read_from_bytes(&target).unwrap();
+
+    assert_eq!(original_program, deserialized_program);
+}
+
+#[test]
+fn test_program_serde_with_decorators() {
+    let source = "
+    const.DEFAULT_CONST=100
+
+    proc.foo
+        push.1.2 add
+        debug.stack.8
+    end
+
+    begin
+        emit.DEFAULT_CONST
+
+        exec.foo
+
+        debug.stack.4
+
+        drop
+
+        trace.DEFAULT_CONST
+    end
+    ";
+
+    let assembler = Assembler::default().with_debug_mode(true);
+    let original_program = assembler.assemble_program(source).unwrap();
+
+    let mut target = Vec::new();
+    original_program.write_into(&mut target);
+    let deserialized_program = Program::read_from_bytes(&target).unwrap();
+
+    assert_eq!(original_program, deserialized_program);
 }

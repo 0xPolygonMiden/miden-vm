@@ -11,6 +11,12 @@ use crate::{
     Felt, Span,
 };
 
+macro_rules! id {
+    ($name:ident) => {
+        Ident::new(stringify!($name)).unwrap()
+    };
+}
+
 macro_rules! inst {
     ($inst:ident($value:expr)) => {
         Op::Inst(Span::unknown(Instruction::$inst($value)))
@@ -145,7 +151,20 @@ macro_rules! proc {
         )))
     };
 
-    ($docs:expr, $name:ident, $num_locals:literal, $body:expr) => {
+    ([$($attr:expr),*], $name:ident, $num_locals:literal, $body:expr) => {
+        Form::Procedure(Export::Procedure(
+            Procedure::new(
+                Default::default(),
+                Visibility::Private,
+                stringify!($name).parse().expect("invalid procedure name"),
+                $num_locals,
+                $body,
+            )
+            .with_attributes([$($attr),*]),
+        ))
+    };
+
+    ($docs:literal, $name:ident, $num_locals:literal, $body:expr) => {
         Form::Procedure(Export::Procedure(
             Procedure::new(
                 Default::default(),
@@ -155,6 +174,20 @@ macro_rules! proc {
                 $body,
             )
             .with_docs(Some(Span::unknown($docs.to_string()))),
+        ))
+    };
+
+    ($docs:literal, [$($attr:expr),*], $name:ident, $num_locals:literal, $body:expr) => {
+        Form::Procedure(Export::Procedure(
+            Procedure::new(
+                Default::default(),
+                Visibility::Private,
+                stringify!($name).parse().expect("invalid procedure name"),
+                $num_locals,
+                $body,
+            )
+            .with_docs($docs)
+            .with_attributes([$($attr),*]),
         ))
     };
 }
@@ -434,18 +467,14 @@ fn test_ast_parsing_adv_ops() -> Result<(), Report> {
 
 #[test]
 fn test_ast_parsing_adv_injection() -> Result<(), Report> {
-    use super::AdviceInjectorNode::*;
+    use super::SystemEventNode::*;
 
     let context = TestContext::new();
-    let source = source_file!(
-        &context,
-        "begin adv.push_u64div adv.push_mapval adv.push_smtget adv.insert_mem end"
-    );
+    let source = source_file!(&context, "begin adv.push_u64div adv.push_mapval adv.insert_mem end");
     let forms = module!(begin!(
-        inst!(AdvInject(PushU64Div)),
-        inst!(AdvInject(PushMapVal)),
-        inst!(AdvInject(PushSmtGet)),
-        inst!(AdvInject(InsertMem))
+        inst!(SysEvent(PushU64Div)),
+        inst!(SysEvent(PushMapVal)),
+        inst!(SysEvent(InsertMem))
     ));
     assert_eq!(context.parse_forms(source)?, forms);
     Ok(())
@@ -569,7 +598,7 @@ fn test_ast_parsing_module_sequential_if() -> Result<(), Report> {
 }
 
 #[test]
-fn parsed_while_if_body() {
+fn test_ast_parsing_while_if_body() {
     let context = TestContext::new();
     let source = source_file!(
         &context,
@@ -597,6 +626,65 @@ fn parsed_while_if_body() {
     ));
 
     assert_forms!(context, source, forms);
+}
+
+#[test]
+fn test_ast_parsing_attributes() -> Result<(), Report> {
+    let context = TestContext::new();
+
+    let source = source_file!(
+        &context,
+        r#"
+    # Simple marker attribute
+    @inline
+    proc.foo.1
+        loc_load.0
+    end
+
+    # List attribute
+    @inline(always)
+    proc.bar.2
+        padw
+    end
+
+    # Key value attributes of various kinds
+    @numbers(decimal = 1, hex = 0xdeadbeef)
+    @props(name = baz)
+    @props(string = "not a valid quoted identifier")
+    proc.baz.2
+        padw
+    end
+
+    begin
+        exec.foo
+        exec.bar
+        exec.baz
+    end"#
+    );
+
+    let inline = Attribute::Marker(id!(inline));
+    let inline_always = Attribute::List(MetaList::new(id!(inline), [MetaExpr::Ident(id!(always))]));
+    let numbers = Attribute::new(
+        id!(numbers),
+        [(id!(decimal), MetaExpr::from(1u8)), (id!(hex), MetaExpr::from(0xdeadbeefu32))],
+    );
+    let props = Attribute::new(
+        id!(props),
+        [
+            (id!(name), MetaExpr::from(id!(baz))),
+            (id!(string), MetaExpr::from("not a valid quoted identifier")),
+        ],
+    );
+
+    let forms = module!(
+        proc!([inline], foo, 1, block!(inst!(LocLoad(0u16.into())))),
+        proc!([inline_always], bar, 2, block!(inst!(PadW))),
+        proc!([numbers, props], baz, 2, block!(inst!(PadW))),
+        begin!(exec!(foo), exec!(bar), exec!(baz))
+    );
+    assert_eq!(context.parse_forms(source)?, forms);
+
+    Ok(())
 }
 
 // PROCEDURE IMPORTS
@@ -1078,6 +1166,6 @@ fn assert_parsing_line_unexpected_token() {
         "  :     ^|^",
         "  :      `-- found a mul here",
         "  `----",
-        r#" help: expected "begin", or "const", or "export", or "proc", or "use", or end of file, or doc comment"#
+        r#" help: expected "@", or "begin", or "const", or "export", or "proc", or "use", or end of file, or doc comment"#
     );
 }

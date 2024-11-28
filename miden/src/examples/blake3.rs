@@ -22,7 +22,7 @@ pub fn get_example(n: usize) -> Example<DefaultHost<MemAdviceProvider>> {
     );
 
     let mut host = DefaultHost::default();
-    host.load_mast_forest(StdLibrary::default().mast_forest().clone());
+    host.load_mast_forest(StdLibrary::default().mast_forest().clone()).unwrap();
 
     let stack_inputs =
         StackInputs::try_from_ints(INITIAL_HASH_VALUE.iter().map(|&v| v as u64)).unwrap();
@@ -41,11 +41,13 @@ fn generate_blake3_program(n: usize) -> Program {
     let program = format!(
         "
         use.std::crypto::hashes::blake3
+        use.std::sys
 
         begin
             repeat.{}
                 exec.blake3::hash_1to1
             end
+            exec.sys::truncate_stack
         end",
         n
     );
