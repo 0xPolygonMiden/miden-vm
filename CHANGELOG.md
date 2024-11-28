@@ -13,6 +13,7 @@
 - Debug instructions can be enabled in the cli `run` command using `--debug` flag (#1502)
 - [BREAKING] ExecutionOptions::new constructor requires a boolean to explicitly set debug mode (#1502)
 - [BREAKING] The `run` and the `prove` commands in the cli will accept `--trace` flag instead of `--tracing` (#1502)
+- Resolved flag collision in `VerifyCMD` and added functionality for optional input/output files (#1513)
 
 
 #### Fixes

@@ -1,5 +1,7 @@
-use std::path::Path;
-use std::{path::PathBuf, time::Instant};
+use std::{
+    path::{Path, PathBuf},
+    time::Instant,
+};
 
 use assembly::diagnostics::{IntoDiagnostic, Report, Result, WrapErr};
 use clap::Parser;
@@ -36,17 +38,17 @@ impl VerifyCmd {
         let program_hash = ProgramHash::read(&self.program_hash).map_err(Report::msg)?;
 
         // load input data from file
-        let input_data = InputFile::read(&Some(input_file), &self.proof_file.as_ref())?;
+        let input_data = InputFile::read(&Some(input_file), self.proof_file.as_ref())?;
 
         // fetch the stack inputs from the arguments
         let stack_inputs = input_data.parse_stack_inputs().map_err(Report::msg)?;
 
         // load outputs data from file
         let outputs_data =
-            OutputFile::read(&Some(output_file), &self.proof_file.as_ref()).map_err(Report::msg)?;
+            OutputFile::read(&Some(output_file), self.proof_file.as_ref()).map_err(Report::msg)?;
 
         // load proof from file
-        let proof = ProofFile::read(&Some(self.proof_file.clone()), &self.proof_file.as_ref())
+        let proof = ProofFile::read(&Some(self.proof_file.clone()), self.proof_file.as_ref())
             .map_err(Report::msg)?;
 
         let now = Instant::now();
@@ -84,6 +86,6 @@ impl VerifyCmd {
             output_path
         });
 
-        return Ok((input_file.to_path_buf(), output_file.to_path_buf()));
+        Ok((input_file.to_path_buf(), output_file.to_path_buf()))
     }
 }
