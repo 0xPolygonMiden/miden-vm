@@ -18,7 +18,7 @@ use crate::{
 };
 
 /// Represents errors that can occur when creating, parsing, or manipulating [LibraryPath]s
-#[derive(Debug, PartialEq, Eq, thiserror::Error)]
+#[derive(Debug, thiserror::Error)]
 pub enum PathError {
     #[error("invalid library path: cannot be empty")]
     Empty,

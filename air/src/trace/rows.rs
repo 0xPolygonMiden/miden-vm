@@ -3,12 +3,11 @@ use core::{
     ops::{Add, AddAssign, Bound, Index, IndexMut, Mul, RangeBounds, Sub, SubAssign},
 };
 
-use thiserror::Error;
 use vm_core::Felt;
 
 /// Represents the types of errors that can occur when converting from and into [`RowIndex`] and
 /// using its operations.
-#[derive(Debug, Error, PartialEq, Eq)]
+#[derive(Debug, thiserror::Error)]
 pub enum RowIndexError<T> {
     #[error("value is too large to be converted into RowIndex: {0}")]
     InvalidSize(T),
