@@ -1020,7 +1020,7 @@ dependencies = [
  "lalrpop",
  "lalrpop-util",
  "miden-core",
- "miden-miette",
+ "miette",
  "pretty_assertions",
  "regex",
  "rustc_version 0.4.1",
@@ -1039,7 +1039,7 @@ dependencies = [
  "memchr",
  "miden-crypto",
  "miden-formatting",
- "miden-miette",
+ "miette",
  "num-derive",
  "num-traits",
  "parking_lot",
@@ -1088,48 +1088,6 @@ dependencies = [
  "metal",
  "once_cell",
  "winter-math",
-]
-
-[[package]]
-name = "miden-miette"
-version = "7.1.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c532250422d933f15b148fb81e4522a5d649c178ab420d0d596c86228da35570"
-dependencies = [
- "backtrace",
- "backtrace-ext",
- "cfg-if",
- "futures",
- "indenter",
- "lazy_static",
- "miden-miette-derive",
- "miden-thiserror",
- "owo-colors",
- "regex",
- "rustc_version 0.2.3",
- "rustversion",
- "serde_json",
- "spin",
- "strip-ansi-escapes",
- "supports-color",
- "supports-hyperlinks",
- "supports-unicode",
- "syn",
- "terminal_size",
- "textwrap",
- "trybuild",
- "unicode-width 0.1.14",
-]
-
-[[package]]
-name = "miden-miette-derive"
-version = "7.1.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1cc759f0a2947acae217a2f32f722105cacc57d17d5f93bc16362142943a4edd"
-dependencies = [
- "proc-macro2",
- "quote",
- "syn",
 ]
 
 [[package]]
@@ -1202,26 +1160,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "miden-thiserror"
-version = "1.0.59"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "183ff8de338956ecfde3a38573241eb7a6f3d44d73866c210e5629c07fa00253"
-dependencies = [
- "miden-thiserror-impl",
-]
-
-[[package]]
-name = "miden-thiserror-impl"
-version = "1.0.59"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0ee4176a0f2e7d29d2a8ee7e60b6deb14ce67a20e94c3e2c7275cdb8804e1862"
-dependencies = [
- "proc-macro2",
- "quote",
- "syn",
-]
-
-[[package]]
 name = "miden-verifier"
 version = "0.11.0"
 dependencies = [
@@ -1261,6 +1199,46 @@ dependencies = [
  "tracing-subscriber",
  "walkdir",
  "winter-fri",
+]
+
+[[package]]
+name = "miette"
+version = "7.1.0"
+source = "git+https://github.com/0xPolygonMiden/miette?branch=pgackst-thiserror-2#eed93caaf55ca418d09b3afd8b30997bc5e7a405"
+dependencies = [
+ "backtrace",
+ "backtrace-ext",
+ "cfg-if",
+ "futures",
+ "indenter",
+ "lazy_static",
+ "miette-derive",
+ "owo-colors",
+ "regex",
+ "rustc_version 0.2.3",
+ "rustversion",
+ "serde_json",
+ "spin",
+ "strip-ansi-escapes",
+ "supports-color",
+ "supports-hyperlinks",
+ "supports-unicode",
+ "syn",
+ "terminal_size",
+ "textwrap",
+ "thiserror 2.0.3",
+ "trybuild",
+ "unicode-width 0.1.14",
+]
+
+[[package]]
+name = "miette-derive"
+version = "7.1.0"
+source = "git+https://github.com/0xPolygonMiden/miette?branch=pgackst-thiserror-2#eed93caaf55ca418d09b3afd8b30997bc5e7a405"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn",
 ]
 
 [[package]]
