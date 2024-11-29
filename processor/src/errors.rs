@@ -159,3 +159,15 @@ pub enum Ext2InttError {
     #[error("uninitialized memory at address {0}")]
     UninitializedMemoryAddress(u32),
 }
+
+#[cfg(test)]
+mod error_assertions {
+    use super::*;
+
+    /// Asserts at compile time that the passed error has Send + Sync + 'static bounds.
+    fn _assert_error_is_send_sync_static<E: core::error::Error + Send + Sync + 'static>(_: E) {}
+
+    fn _assert_execution_error_bounds(err: ExecutionError) {
+        _assert_error_is_send_sync_static(err);
+    }
+}
