@@ -14,8 +14,8 @@ impl Process {
     ///            \frac{T_i(x) - T_i(g \cdot z)}{x - g \cdot z} \right)}
     ///
     /// The instruction computes the numerators $\alpha_i \cdot (T_i(x) - T_i(z))$ and
-    /// $\alpha_i \cdot (T_i(x) - T_i(g \cdot z))$ and stores the values in two accumulators $p$
-    /// and $r$, respectively. This instruction is specialized to main trace columns i.e.
+    /// $\alpha_i \cdot (T_i(x) - T_i(g \cdot z))$ and stores the values in two accumulators $r$
+    /// and $p$, respectively. This instruction is specialized to main trace columns i.e.
     /// the values $T_i(x)$ are base field elements.
     ///
     /// The instruction is used in the context of STARK proof verification in order to compute
@@ -44,9 +44,9 @@ impl Process {
     /// 1. Ti for i in 0..=7 stands for the the value of the i-th trace polynomial for the current
     ///    query i.e. T_i(x).
     /// 2. (p0, p1) stands for an extension field element accumulating the values for the quotients
-    ///    with common denominator (x - z).
-    /// 3. (r0, r1) stands for an extension field element accumulating the values for the quotients
     ///    with common denominator (x - gz).
+    /// 3. (r0, r1) stands for an extension field element accumulating the values for the quotients
+    ///    with common denominator (x - z).
     /// 4. x_addr is the memory address from which we are loading the Ti's using the MSTREAM
     ///    instruction.
     /// 5. z_addr is the memory address to the i-th OOD evaluations at z and gz i.e. T_i(z):=
@@ -72,7 +72,7 @@ impl Process {
         // --- compute the updated accumulator values ---------------------------------------------
         let v0 = self.stack.get(7);
         let tx = QuadFelt::new(v0, ZERO);
-        let [p_new, r_new] = [p + alpha * (tx - tz), r + alpha * (tx - tgz)];
+        let [p_new, r_new] = [p + alpha * (tx - tgz), r + alpha * (tx - tz)];
 
         // --- rotate the top 8 elements of the stack ---------------------------------------------
         self.stack.set(0, t0);
@@ -258,8 +258,8 @@ mod tests {
         let a1 = a[1];
         let alpha = QuadFelt::new(a0, a1);
 
-        let p_new = p + alpha * (tx - tz);
-        let r_new = r + alpha * (tx - tgz);
+        let p_new = p + alpha * (tx - tgz);
+        let r_new = r + alpha * (tx - tz);
 
         assert_eq!(p_new.to_base_elements()[1], stack_state[8]);
         assert_eq!(p_new.to_base_elements()[0], stack_state[9]);
@@ -337,8 +337,8 @@ mod tests {
         let tz: Vec<QuadFelt> = tz_tgz.iter().step_by(2).map(|e| e.to_owned()).collect();
         let tgz: Vec<QuadFelt> = tz_tgz.iter().skip(1).step_by(2).map(|e| e.to_owned()).collect();
         for i in 0..8 {
-            p += a[i] * (QuadFelt::from(tx[i]) - tz[i]);
-            r += a[i] * (QuadFelt::from(tx[i]) - tgz[i]);
+            p += a[i] * (QuadFelt::from(tx[i]) - tgz[i]);
+            r += a[i] * (QuadFelt::from(tx[i]) - tz[i]);
         }
 
         // prepare the advice stack with the generated data
