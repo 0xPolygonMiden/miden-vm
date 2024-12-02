@@ -317,18 +317,18 @@
 <p><em>Check out the <a href="https://github.com/0xPolygonMiden/examples/blob/main/examples/comparison.masm">comparison example</a> to see how secret inputs work.</em></p>
 <p>After a program finishes executing, the elements that remain on the stack become the outputs of the program. Notice that the number of values on the operand stack at the end of the program execution can not be greater than 16, otherwise the program will return an error. The <a href="../user_docs/stdlib/sys.html"><code>truncate_stack</code></a> utility procedure from the standard library could be used to conveniently truncate the stack at the end of the program.</p>
 <h2 id="fibonacci-example"><a class="header" href="#fibonacci-example">Fibonacci example</a></h2>
-<p>In the <code>miden/examples/fib</code> directory, we provide a very simple Fibonacci calculator example. This example computes the 1001st term of the Fibonacci sequence. You can execute this example on Miden VM like so:</p>
-<pre><code class="language-shell">./target/optimized/miden run -a miden/examples/fib/fib.masm -n 1
+<p>In the <code>miden/masm-examples/fib</code> directory, we provide a very simple Fibonacci calculator example. This example computes the 1001st term of the Fibonacci sequence. You can execute this example on Miden VM like so:</p>
+<pre><code class="language-shell">./target/optimized/miden run -a miden/masm-examples/fib/fib.masm
 </code></pre>
 <h3 id="capturing-output"><a class="header" href="#capturing-output">Capturing Output</a></h3>
 <p>This will run the example code to completion and will output the top element remaining on the stack.</p>
 <p>If you want the output of the program in a file, you can use the <code>--output</code> or <code>-o</code> flag and specify the path to the output file. For example:</p>
-<pre><code class="language-shell">./target/optimized/miden run -a miden/examples/fib/fib.masm -o fib.out
+<pre><code class="language-shell">./target/optimized/miden run -a miden/masm-examples/fib/fib.masm -o fib.out
 </code></pre>
 <p>This will dump the output of the program into the <code>fib.out</code> file. The output file will contain the state of the stack at the end of the program execution.</p>
 <h3 id="running-with-debug-instruction-enabled"><a class="header" href="#running-with-debug-instruction-enabled">Running with debug instruction enabled</a></h3>
-<p>Inside <code>miden/examples/fib/fib.masm</code>, insert <code>debug.stack</code> instruction anywhere between <code>begin</code> and <code>end</code>. Then run:</p>
-<pre><code class="language-shell">./target/optimized/miden run -a miden/examples/fib/fib.masm -n 1 --debug
+<p>Inside <code>miden/masm-examples/fib/fib.masm</code>, insert <code>debug.stack</code> instruction anywhere between <code>begin</code> and <code>end</code>. Then run:</p>
+<pre><code class="language-shell">./target/optimized/miden run -a miden/masm-examples/fib/fib.masm -n 1 --debug
 </code></pre>
 <p>You should see output similar to "Stack state before step ..."</p>
 
