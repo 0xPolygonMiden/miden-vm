@@ -170,13 +170,17 @@ export.init_seed
     ## 2. num auxiliary segments, which always 1
     ## 3. auxiliary segment width
     ## 4. number of auxiliary random values
-    ## 5. trace length
-    push.1174472464
+    ## 5. trace length (this is already on the stack)
+
+    ## main segment width is 70 and there are 1 auxiliary segments
+    ## of width 7 using 16 random extension field elements
+    push.0x46010710 
     ## field modulus bytes (2 field elements)
-    push.1
-    push.4294967295
+    push.0x01 # lower half of the modulus
+    push.0xffffffff # upper half of the modulus
     ## field extension and FRI parameters
-    push.132103
+    ## field extension degree || FRI folding factor || FRI remainder polynomial max degree
+    push.0x020407
 
     # Hash proof context
     # Cycles: 15
@@ -661,7 +665,15 @@ export.generate_list_indices
     exec.get_rate_2
     hperm
 
-    exec.rpo::squeeze_digest
+    # Save the new state
+    exec.constants::r2_ptr mem_storew
+    dropw
+    # => [R1, C]
+    exec.constants::r1_ptr mem_storew
+    swapw
+    # => [C, R1]
+    exec.constants::c_ptr mem_storew
+    dropw
     #=> [R1, query_ptr, mask, depth, num_queries, ...]
 
 
@@ -694,8 +706,17 @@ export.generate_list_indices
         exec.get_rate_2
         hperm
 
-        exec.rpo::squeeze_digest
-        #=> [R1, query_ptr, mask, depth, num_queries, ...]
+        # Save the new state
+        exec.constants::r2_ptr mem_storew
+        dropw
+        # => [R1, C]
+        exec.constants::r1_ptr mem_storew
+        swapw
+        # => [C, R1]
+        exec.constants::c_ptr mem_storew
+        dropw
+        #=> [R1, query_ptr, mask, depth, num_remaining_iterations, remainder, ...]
+
         movup.7 sub.1 dup movdn.8
         push.0 neq
     end
