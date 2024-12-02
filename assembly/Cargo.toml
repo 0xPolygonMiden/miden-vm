@@ -25,12 +25,7 @@ testing = ["dep:regex"]
 [dependencies]
 aho-corasick = { version = "1.1", default-features = false }
 lalrpop-util = { version = "0.20", default-features = false }
-# miette = { path = "../../miden-miette/", version = "7.1", default-features = false, features = [
-#     "fancy-no-syscall",
-#     "derive"
-# ] }
-# TODO: Temporary change to test updated miden-miette.
-miette = { version = "7.1", git = "https://github.com/0xPolygonMiden/miette", branch = "pgackst-thiserror-2", default-features = false,features = [
+miette = { package = "miden-miette", version = "8.0", default-features = false, features = [
     "fancy-no-syscall",
     "derive"
 ] }

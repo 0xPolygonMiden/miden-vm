@@ -36,12 +36,7 @@ math = { package = "winter-math", version = "0.11", default-features = false }
 memchr = { version = "2.7", default-features = false }
 miden-crypto = { version = "0.13", default-features = false }
 miden-formatting = { version = "0.1", default-features = false }
-# miette = { path = "../miden-miette/", version = "7.1", default-features = false, optional = true, features = [
-#     "fancy-no-syscall",
-#     "derive"
-# ] }
-# TODO: Temporary change to test updated miden-miette.
-miette = { version = "7.1", git = "https://github.com/0xPolygonMiden/miette", branch = "pgackst-thiserror-2", default-features = false, optional = true, features = [
+miette = { package = "miden-miette", version = "8.0", default-features = false, optional = true, features = [
     "fancy-no-syscall",
     "derive"
 ] }
