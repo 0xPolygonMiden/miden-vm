@@ -84,8 +84,7 @@ pub mod crypto {
     }
 
     pub mod dsa {
-        pub use miden_crypto::dsa::rpo_falcon512;
-        pub use miden_crypto::dsa::rpo_stark;
+        pub use miden_crypto::dsa::{rpo_falcon512, rpo_stark};
     }
 }
 

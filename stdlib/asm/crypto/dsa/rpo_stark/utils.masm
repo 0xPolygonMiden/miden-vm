@@ -6,70 +6,67 @@ use.std::crypto::fri::ext2fri
 #!
 #! Input: [...]
 #! Output: [...]
-#! Cycles: 21 + 83 * num_fri_layers
+#! Cycles: 270
 export.load_fri_layer_commitments
-        # Load the first FRI layer commitment
+
+    # Add a counter and the number of iterations
+    push.0
+    exec.constants::number_of_fri_layers push.2 mul
+    # => [number_of_iter, cnt, ...]
+
+    # Compute the next log LDE size
+    exec.constants::initial_lde_domain_log_size
+    exec.constants::log_folding_factor
+    sub
+    # => [nxt_lde_log_size, number_of_iter, cnt, ...]
+
+    # Compute the next LDE size
+    exec.constants::initial_lde_domain_size
+    exec.constants::folding_factor
+    # Assumption: domain size is divisible by folding factor
+    div
+    # => [nxt_lde_size, nxt_lde_log_size, number_of_iter, cnt, ...]
+
+
+    dup.3 dup.3
+    neq
+    while.true
         padw adv_loadw
+        # => [Root, nxt_lde_size, nxt_lde_log_size, number_of_iter, cnt, ...]
+        dup.7 add.1 swap.8 
         exec.constants::fri_com_ptr
-        mem_storew
-
-
-        # Reseed
-        exec.random_coin::reseed_with_salt
-        # => [...]
-
-        # Squeeze folding randomness alpha
-        exec.random_coin::get_rate_1
-        drop drop
-
-        # Append the LDE size and log size and store
-        push.9
-        push.512
-        exec.constants::fri_com_ptr add.1
-        mem_storew
-
-
-        # Load the second FRI layer commitment
-        adv_loadw
-        exec.constants::fri_com_ptr add.2
+        add 
         mem_storew
 
         # Reseed
         exec.random_coin::reseed_with_salt
-        # => [...]
+        # => [nxt_lde_size, nxt_lde_log_size, number_of_iter, cnt, ...]
 
         # Squeeze folding randomness alpha
         exec.random_coin::get_rate_1
         drop drop
+        # => [a1, a0, nxt_lde_size, nxt_lde_log_size, number_of_iter, cnt, ...]
 
         # Append the LDE size and log size and store
-        push.7
-        push.128
-        exec.constants::fri_com_ptr add.3
+        dup.3 exec.constants::log_folding_factor sub swap.4
+        # => [nxt_lde_log_size, a1, a0, nxt_lde_size, nxt_lde_log_size - log_ff, number_of_iter, cnt, ...]
+
+        # => [nxt_lde_log_size, a1, a0, nxt_lde_size, nxt_lde_log_size - log_ff, number_of_iter, cnt, ...]
+        dup.3 exec.constants::folding_factor div swap.4 
+        # => [nxt_lde_size, nxt_lde_log_size, a1, a0, nxt_lde_size / ff, nxt_lde_log_size - log_ff, number_of_iter, cnt, ...]
+
+        dup.7 add.1 swap.8
+        exec.constants::fri_com_ptr
+        add
         mem_storew
+        # => [nxt_lde_size, nxt_lde_log_size, a1, a0, nxt_lde_size / ff, nxt_lde_log_size - log_ff, number_of_iter, cnt, ...]
 
-
-        # Load the third FRI layer commitment
-        adv_loadw
-        exec.constants::fri_com_ptr add.4
-        mem_storew
-
-        # Reseed
-        exec.random_coin::reseed_with_salt
-        # => [...]
-
-        # Squeeze folding randomness alpha
-        exec.random_coin::get_rate_1
-        drop drop
-
-        # Append the LDE size and log size and store
-        push.5
-        push.32
-        exec.constants::fri_com_ptr add.5
-        mem_storew
-        
-        # Clean up the stack
         dropw
+        # => [nxt_lde_size / ff, nxt_lde_log_size - log_ff, number_of_iter, cnt, ...]
+
+        dup.3 dup.3 neq
+    end
+    dropw
 end
 
 #! Load the remainder polynomial from the advice provider and check that its hash corresponds
@@ -80,38 +77,35 @@ end
 #!
 #! Input: [...]
 #! Output: [...]
-#! Cycles: 1633
+#! Cycles: 1641
 export.load_and_verify_remainder
-    # Load remainder commitment and save it at `TMP7`
+    # Load remainder commitment and save it at `TMP1`
     padw
     adv_loadw
-    exec.constants::tmp7 mem_storew
+    exec.constants::tmp1 mem_storew
 
     # Reseed with remainder commitment
     exec.random_coin::reseed_with_salt
 
-    # Capacity portion of the state
-    padw
-
-    # Load the first 2 coefficients
-    padw
-    adv_loadw
-
-    # The FRI layer commitments are stored at addresses ptr, ptr + 2, ptr + 4. The remainder will
-    # be stored in the region ptr + 6 to ptr + 6 + 16 - 1. Thus the remainder polynomial coefficients
-    # will be in the region ptr + 22 to ptr + 22 + 2 - 1
-    exec.constants::fri_com_ptr add.22 mem_storew
-        
-    # Load the last 2 coefficients
-    padw
-    adv_loadw
-    exec.constants::fri_com_ptr add.23 mem_storew
-
-    # Hash the remainder polynomial
-    hperm
+    # The FRI layer commitments are stored at addresses ptr, ..., ptr + REMAINDER_CODEWORD_OFFSET - 1.
+    # The remainder will be stored in the region ptr + REMAINDER_CODEWORD_OFFSET to
+    # ptr + REMAINDER_CODEWORD_OFFSET + SIZE_OF_REMAINDER_CODEWORD / 2 - 1.
+    # Thus the remainder polynomial coefficients will be in the region
+    # ptr + REMAINDER_CODEWORD_OFFSET + SIZE_OF_REMAINDER_CODEWORD / 2 to 
+    # ptr + REMAINDER_CODEWORD_OFFSET + SIZE_OF_REMAINDER_CODEWORD / 2 + SIZE_OF_REMAINDER_POLY / 2
+    exec.constants::fri_com_ptr 
+    exec.constants::remainder_codeword_offset exec.constants::remainder_codeword_size_div_by_2
+    add add
+    padw padw padw
+    # The remainder polynomial has degree less than 7
     
+    repeat.2
+        adv_pipe hperm
+    end
+
     # Compare Remainder_poly_com with the read commitment
-    exec.constants::tmp7 mem_loadw
+    exec.constants::tmp1 mem_loadw
+
     movup.4
     assert_eq
     movup.3
@@ -124,7 +118,9 @@ export.load_and_verify_remainder
     # Load and hash the remainder codeword
     exec.constants::fri_com_ptr exec.constants::remainder_codeword_offset add movdn.4
     padw padw
-    repeat.8
+
+    # The remainder codeword is of length 64
+    repeat.16
         adv_pipe hperm
     end
     # => [Y, R, Y] where R = [y, y, tau1, tau0]
@@ -141,8 +137,8 @@ export.load_and_verify_remainder
     exec.constants::fri_com_ptr exec.constants::remainder_codeword_offset add
     movdn.2
     # => [tau1, tau0, ptr_remainder, ... ]
-    exec.ext2fri::verify_remainder_32
-    # Drop pointer
-    drop
+    exec.ext2fri::verify_remainder_64
+    # Drop pointers
+    drop drop
     #=> [...]
 end

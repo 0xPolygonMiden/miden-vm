@@ -362,10 +362,10 @@ mod tests {
         expected.extend_from_slice(&[ZERO, Felt::from(18_u8), Felt::from(10_u8), Felt::from(2_u8)]);
         // updated accumulators
         expected.extend_from_slice(&[
-            p.to_base_elements()[0],
-            p.to_base_elements()[1],
             r.to_base_elements()[0],
             r.to_base_elements()[1],
+            p.to_base_elements()[0],
+            p.to_base_elements()[1],
         ]);
         // the top 8 stack elements should equal tx since 8 calls to `rcomb_base` implies 8 circular
         // shifts of the top 8 elements i.e., the identity map on the top 8 element.

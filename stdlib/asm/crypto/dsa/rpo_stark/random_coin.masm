@@ -91,12 +91,12 @@ export.init_seed.2
     swapw
 
     # Lay out the proof context
-    push.3072
+    push.0x0c00 # main segment width is 12 and there are 0 auxiliary segments
     movdn.4
-    push.8
+    push.0x08 # main segment length is 8
     movdn.4
-    push.1
-    push.4294967295
+    push.0x01 # lower half of the modulus
+    push.0xffffffff # upper half of the modulus
 
     # Hash the proof context, with the message as meta data
     # The reason for this hack is the need to have message as a public
@@ -109,14 +109,12 @@ export.init_seed.2
     hperm
     dropw dropw
 
-    #push.132127
-    push.132103
-    push.0
-    push.8
+    push.0x020407 # field extension degree || FRI folding factor || FRI remainder polynomial max degree
+    exec.constants::grinding_factor
+    exec.constants::blowup_factor
 
     # Number of FRI queries
-    push.100
-    #push.122
+    exec.constants::num_fri_queries
 
     movupw.2
 
@@ -443,27 +441,30 @@ export.generate_z_zN
     exec.constants::r1_ptr mem_loadw
     drop drop
 
+    # 2^0
     dup.1 dup.1
+
+    # 2^3
+    dup.1 dup.1
+    repeat.3
+        dup.1 dup.1
+        ext2mul
+    end
+    # => [z3_1, z3_0, z_1, z_0, z_1, z_0, ...]
+    dup.1 dup.1
+    repeat.1
+        dup.1 dup.1
+        ext2mul
+    end
+    # => [z4_1, z4_0, z3_1, z3_0, z_1, z_0, z_1, z_0, ...]
 
     dup.1 dup.1
     repeat.2
         dup.1 dup.1
         ext2mul
     end
-    # => [z4_1, z4_0, z_1, z_0, ...]
-    dup.1 dup.1
-    repeat.2
-        dup.1 dup.1
-        ext2mul
-    end
-    # => [z16_1, z16_0, z4_1, z4_0, z_1, z_0, z_1, z_0, ...]
-    
-    dup.5 dup.5
-    repeat.7
-        dup.1 dup.1
-        ext2mul
-    end
-    # => [z16_1, z16_0, z16_1, z16_0, z4_1, z4_0, z_1, z_0, z_1, z_0, ...]
+    # => [z6_1, z6_0, z4_1, z4_0, z3_1, z3_0, z_1, z_0, z_1, z_0, ...]
+
     repeat.3
         ext2mul
     end
@@ -609,9 +610,9 @@ end
 #!  485 + 31 * num_queries
 export.generate_list_indices
     # push the depth
-    push.11
+    exec.constants::initial_lde_domain_log_size
     # push the mask
-    push.2047
+    exec.constants::initial_lde_domain_size sub.1
     #=> [mask, depth, query_ptr, num_queries] where depth = log(lde_size)
 
     # Get address holding the integers (this will later hold the FRI queries)

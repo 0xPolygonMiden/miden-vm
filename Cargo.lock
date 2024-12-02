@@ -1053,6 +1053,7 @@ dependencies = [
 [[package]]
 name = "miden-crypto"
 version = "0.12.0"
+source = "git+https://github.com/0xPolygonMiden/crypto?branch=al-stark-signature-dev-masm#eaa1db66fbef27a2fea35586a425dc29fe421108"
 dependencies = [
  "blake3",
  "cc",
@@ -1060,6 +1061,7 @@ dependencies = [
  "num",
  "num-complex",
  "rand",
+ "rand_chacha",
  "rand_core",
  "sha3",
  "winter-crypto 0.10.2",
@@ -2744,11 +2746,9 @@ dependencies = [
 
 [[package]]
 name = "winter-air"
-version = "0.11.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3a8fdb702503625f54dcaf9222aa2c7a0b2e868b3eb84b90d1837d68034bf999"
+version = "0.10.0"
+source = "git+https://github.com/Al-Kindi-0/winterfell?branch=al-zk#c6542eb717e73baaeda156dafe0ab187089a995f"
 dependencies = [
- "libc-print",
  "libm",
  "winter-crypto 0.11.0",
  "winter-fri",
@@ -2827,7 +2827,6 @@ version = "0.11.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b6c2f3cf80955f084fd614c86883195331116b6c96dc88532d43d6836bd7adee"
 dependencies = [
- "libc-print",
  "rand",
  "rand_chacha",
  "tracing",
@@ -2870,12 +2869,21 @@ version = "0.11.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "56d949eab6c26328733477ec56ca054fdc69c0c1b8267fa03d8b618ffe2193c4"
 dependencies = [
- "libc-print",
  "winter-air",
  "winter-crypto 0.11.0",
  "winter-fri",
  "winter-math 0.11.0",
  "winter-utils 0.11.0",
+]
+
+[[package]]
+name = "winterfell"
+version = "0.10.0"
+source = "git+https://github.com/Al-Kindi-0/winterfell?branch=al-zk#c6542eb717e73baaeda156dafe0ab187089a995f"
+dependencies = [
+ "winter-air",
+ "winter-prover",
+ "winter-verifier",
 ]
 
 [[package]]

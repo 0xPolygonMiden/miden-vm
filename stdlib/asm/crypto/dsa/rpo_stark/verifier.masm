@@ -4,6 +4,7 @@ use.std::crypto::dsa::rpo_stark::deep_queries
 use.std::crypto::dsa::rpo_stark::fri
 use.std::crypto::dsa::rpo_stark::random_coin
 use.std::crypto::dsa::rpo_stark::utils
+use.std::crypto::dsa::rpo_stark::constraints_evaluation
 
 
 # RPO-STARK-BASED SIGNATURE SCHEME VERIFICATION ALGORITHM
@@ -18,7 +19,7 @@ use.std::crypto::dsa::rpo_stark::utils
 #! Input: [PK, MSG, ...]
 #! Output: [...]
 #!
-#! Cycles: ~ xx
+#! Cycles: ~ 13770 + 381 * num_queries + 81 * num_queries * num_layers
 export.verify
 
     #==============================================================================================
@@ -81,11 +82,11 @@ export.verify
 
     # Cycles: 71
     exec.random_coin::reseed_with_salt
- 
+
     # Cycles: 160
     exec.ood_frames::load_constraint_evaluations
     #=> [CONSTR_EVAL_HASH, ...]
-   
+
     # Cycles: 71
     exec.random_coin::reseed_with_salt
     #=> [...]
@@ -94,6 +95,8 @@ export.verify
     #       VI) Evaluate the constraints over the OOD frame and assert equality with H(z)
     #==============================================================================================
 
+    # Cycles: 8320
+    exec.constraints_evaluation::deep_consistency_check
     #=> [...]
 
     #==============================================================================================
@@ -128,7 +131,7 @@ export.verify
     #       c) Check the NTT relationship.
     #============================================
 
-    # Cycles: 1632
+    # Cycles: 3090
     exec.utils::load_and_verify_remainder
     #=> [...]
 
@@ -167,7 +170,7 @@ export.verify
     # Cycles: 24 + num_queries * 315
     exec.deep_queries::compute_deep_composition_polynomial_queries
     #=> [query_ptr, ...]
-
+  
     #============================================
     #   7) Call the FRI verifier
     #============================================

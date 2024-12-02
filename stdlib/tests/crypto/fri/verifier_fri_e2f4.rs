@@ -4,13 +4,11 @@ use processor::{
     crypto::{Hasher, RandomCoin, RpoDigest, WinterRandomCoin},
     Digest as MidenDigest,
 };
-use rand::SeedableRng;
-use rand_chacha::ChaCha20Rng;
 use test_utils::{
     crypto::{MerklePath, NodeIndex, PartialMerkleTree, Rpo256 as MidenHasher},
     group_slice_elements,
     math::fft,
-    Felt, FieldElement, QuadFelt as QuadExt, StarkField, EMPTY_WORD,
+    Felt, FieldElement, MockPrng, QuadFelt as QuadExt, StarkField, EMPTY_WORD,
 };
 use winter_crypto::VectorCommitment;
 use winter_fri::{
@@ -55,7 +53,9 @@ pub struct FriResult {
 //  The main purpose of this function is to build the non-deterministic inputs needed to verify
 //  a FRI proof inside the Miden VM.
 //  The output is organized as follows:
-pub fn fri_prove_verify_fold4_ext2<VC: VectorCommitment<MidenHasher>>(trace_length_e: usize) -> Result<FriResult, VerifierError> {
+pub fn fri_prove_verify_fold4_ext2<VC: VectorCommitment<MidenHasher>>(
+    trace_length_e: usize,
+) -> Result<FriResult, VerifierError> {
     let max_remainder_size_e = 3;
     let folding_factor_e = 2;
     let trace_length = 1 << trace_length_e;
@@ -63,7 +63,6 @@ pub fn fri_prove_verify_fold4_ext2<VC: VectorCommitment<MidenHasher>>(trace_leng
     let max_remainder_size = 1 << max_remainder_size_e;
     let folding_factor = 1 << folding_factor_e;
     let nonce = 0_u64;
-    let mut prng = ChaCha20Rng::from_entropy();
 
     let options = FriOptions::new(lde_blowup, folding_factor, max_remainder_size);
     let mut channel = build_prover_channel(trace_length, &options);
@@ -71,7 +70,7 @@ pub fn fri_prove_verify_fold4_ext2<VC: VectorCommitment<MidenHasher>>(trace_leng
 
     // instantiate the prover and generate the proof
     let mut prover = FriProver::<_, _, _, VC>::new(options.clone());
-    prover.build_layers(&mut channel, evaluations.clone(), &mut prng);
+    prover.build_layers(&mut channel, evaluations.clone());
     let positions = channel.draw_query_positions(nonce);
     let proof = prover.build_proof(&positions);
 
@@ -126,8 +125,8 @@ pub fn fri_prove_verify_fold4_ext2<VC: VectorCommitment<MidenHasher>>(trace_leng
 pub fn build_prover_channel(
     trace_length: usize,
     options: &FriOptions,
-) -> DefaultProverChannel<QuadExt, MidenHasher, WinterRandomCoin<MidenHasher>> {
-    DefaultProverChannel::new(trace_length * options.blowup_factor(), 32, false)
+) -> DefaultProverChannel<QuadExt, MidenHasher, MockPrng, WinterRandomCoin<MidenHasher>> {
+    DefaultProverChannel::new(trace_length * options.blowup_factor(), 32, false, None)
 }
 
 pub fn build_evaluations(trace_length: usize, lde_blowup: usize) -> Vec<QuadExt> {

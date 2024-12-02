@@ -19,7 +19,6 @@ use processor::{
     math::{Felt, FieldElement},
     ExecutionTrace, Program,
 };
-use rand_chacha::{rand_core::SeedableRng, ChaCha20Rng};
 use tracing::instrument;
 use winter_air::ZkParameters;
 use winter_maybe_async::{maybe_async, maybe_await};
@@ -40,7 +39,7 @@ pub use processor::{
     crypto, math, utils, AdviceInputs, Digest, ExecutionError, Host, InputError, MemAdviceProvider,
     StackInputs, StackOutputs, Word,
 };
-pub use winter_prover::{crypto::MerkleTree as MerkleTreeVC, Proof};
+pub use winter_prover::{crypto::MerkleTree as MerkleTreeVC, MockPrng, Proof};
 
 // PROVER
 // ================================================================================================
@@ -89,7 +88,7 @@ pub fn prove(
                 stack_inputs,
                 stack_outputs.clone(),
             );
-            maybe_await!(prover.prove(trace))
+            maybe_await!(prover.prove(trace, None))
         },
         HashFunction::Blake3_256 => {
             let prover = ExecutionProver::<Blake3_256, WinterRandomCoin<_>>::new(
@@ -97,7 +96,7 @@ pub fn prove(
                 stack_inputs,
                 stack_outputs.clone(),
             );
-            maybe_await!(prover.prove(trace))
+            maybe_await!(prover.prove(trace, None))
         },
         HashFunction::Rpo256 => {
             let prover = ExecutionProver::<Rpo256, RpoRandomCoin>::new(
@@ -107,7 +106,7 @@ pub fn prove(
             );
             #[cfg(all(feature = "metal", target_arch = "aarch64", target_os = "macos"))]
             let prover = gpu::metal::MetalExecutionProver::new(prover, HashFn::Rpo256);
-            maybe_await!(prover.prove(trace))
+            maybe_await!(prover.prove(trace, None))
         },
         HashFunction::Rpx256 => {
             let prover = ExecutionProver::<Rpx256, RpxRandomCoin>::new(
@@ -117,7 +116,7 @@ pub fn prove(
             );
             #[cfg(all(feature = "metal", target_arch = "aarch64", target_os = "macos"))]
             let prover = gpu::metal::MetalExecutionProver::new(prover, HashFn::Rpx256);
-            maybe_await!(prover.prove(trace))
+            maybe_await!(prover.prove(trace, None))
         },
     }
     .map_err(ExecutionError::ProverError)?;
@@ -194,6 +193,7 @@ where
         DefaultConstraintEvaluator<'a, ProcessorAir, E>;
     type ConstraintCommitment<E: FieldElement<BaseField = Felt>> =
         DefaultConstraintCommitment<E, H, Self::VC>;
+    type ZkPrng = MockPrng;
 
     fn options(&self) -> &WinterProofOptions {
         &self.options
@@ -221,10 +221,10 @@ where
         main_trace: &ColMatrix<Felt>,
         domain: &StarkDomain<Felt>,
         partition_options: PartitionOptions,
-        zk_parameters: Option<ZkParameters>
+        zk_parameters: Option<ZkParameters>,
+        prng: &mut Option<Self::ZkPrng>,
     ) -> (Self::TraceLde<E>, TracePolyTable<E>) {
-        let mut prng = ChaCha20Rng::from_entropy();
-        DefaultTraceLde::new(trace_info, main_trace, domain, partition_options, zk_parameters, &mut prng)
+        DefaultTraceLde::new(trace_info, main_trace, domain, partition_options, zk_parameters, prng)
     }
 
     #[maybe_async]

@@ -80,7 +80,6 @@ fn generate_signature_data() -> Result<VerifierData, VerifierError> {
     let message = rand_array();
     let signature = sk.sign(message);
     let proof = signature.inner();
-
     let pub_inputs = SignaturePublicInputs::new(pk.inner(), message);
 
     let res = generate_advice_inputs_signature(proof, pub_inputs);
