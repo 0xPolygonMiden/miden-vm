@@ -163,8 +163,7 @@ impl VerifierChannel {
     /// Returns evaluations of composition polynomial columns at z^m, where z is the out-of-domain
     /// point, and m is the number of composition polynomial columns.
     pub fn read_ood_constraint_evaluations(&mut self) -> Vec<QuadExt> {
-        let res = self.ood_constraint_evaluations.take().expect("already read");
-        res
+        self.ood_constraint_evaluations.take().expect("already read")
     }
 
     /// Returns query proof-of-work nonce sent by the prover.
@@ -426,11 +425,7 @@ pub fn unbatch_to_partial_mt(
         |(leaf, (query_data, salt))| {
             adv_key_map.push((
                 leaf,
-                query_data
-                    .to_owned()
-                    .into_iter()
-                    .chain(salt.as_elements().to_owned().into_iter())
-                    .collect(),
+                query_data.iter().copied().chain(salt.as_elements().iter().copied()).collect(),
             ));
         },
     );
