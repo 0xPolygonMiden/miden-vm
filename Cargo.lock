@@ -1257,6 +1257,7 @@ dependencies = [
  "tracing",
  "tracing-forest",
  "tracing-subscriber",
+ "walkdir",
  "winter-fri",
 ]
 

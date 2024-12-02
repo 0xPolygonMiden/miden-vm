@@ -5,9 +5,9 @@ use std::{
 
 use assembly::diagnostics::{IntoDiagnostic, Report, Result, WrapErr};
 use clap::Parser;
-use miden_vm::{Kernel, ProgramInfo};
+use miden_vm::{internal::InputFile, Kernel, ProgramInfo};
 
-use super::data::{InputFile, OutputFile, ProgramHash, ProofFile};
+use super::data::{OutputFile, ProgramHash, ProofFile};
 
 #[derive(Debug, Clone, Parser)]
 #[clap(about = "Verify a miden program")]
