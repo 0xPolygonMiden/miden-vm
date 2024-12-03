@@ -1,9 +1,9 @@
 use assembly::Assembler;
 use miden_air::{FieldExtension, HashFunction, PublicInputs};
-use processor::{DefaultHost, Program, ProgramInfo};
+use processor::{crypto::MerkleStore, DefaultHost, Digest, Program, ProgramInfo};
 use rand::SeedableRng;
 use rand_chacha::ChaCha20Rng;
-use signature::{generate_advice_inputs_signature, VerifierData};
+use signature::generate_advice_inputs_signature;
 use test_utils::{
     crypto::rpo_stark::{PublicInputs as SignaturePublicInputs, SecretKey},
     prove,
@@ -13,6 +13,7 @@ use test_utils::{
 
 mod verifier_recursive;
 use verifier_recursive::generate_advice_inputs;
+use vm_core::Felt;
 
 mod signature;
 
@@ -113,4 +114,12 @@ pub fn generate_recursive_verifier_data(
 
     let (_, proof) = proof.into_parts();
     Ok(generate_advice_inputs(proof, pub_inputs).unwrap())
+}
+
+#[derive(Debug, Clone, Eq, PartialEq)]
+pub struct VerifierData {
+    pub initial_stack: Vec<u64>,
+    pub advice_stack: Vec<u64>,
+    pub store: MerkleStore,
+    pub advice_map: Vec<(Digest, Vec<Felt>)>,
 }

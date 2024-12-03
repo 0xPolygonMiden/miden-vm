@@ -13,18 +13,10 @@ use winter_fri::VerifierChannel as FriVerifierChannel;
 mod channel;
 use channel::VerifierChannel;
 
-use super::signature::VerifierData;
+use super::VerifierData;
 
 pub const BLOWUP_FACTOR: usize = 8;
 pub type QuadExt = QuadExtension<Felt>;
-
-#[derive(Debug, Clone, Eq, PartialEq)]
-pub struct VerifierData {
-    pub initial_stack: Vec<u64>,
-    pub advice_stack: Vec<u64>,
-    pub store: MerkleStore,
-    pub advice_map: Vec<(RpoDigest, Vec<Felt>)>,
-}
 
 pub fn generate_advice_inputs(
     proof: Proof,

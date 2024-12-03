@@ -193,8 +193,6 @@ where
         DefaultConstraintCommitment<E, Self::HashFn, Self::ZkPrng, Self::VC>;
     type ConstraintEvaluator<'a, E: FieldElement<BaseField = Felt>> =
         DefaultConstraintEvaluator<'a, ProcessorAir, E>;
-    type ConstraintCommitment<E: FieldElement<BaseField = Felt>> =
-        DefaultConstraintCommitment<E, H, Self::VC>;
     type ZkPrng = MockPrng;
 
     fn options(&self) -> &WinterProofOptions {
