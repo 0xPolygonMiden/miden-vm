@@ -161,11 +161,11 @@ export.divide_transition_divisor
     # Multiply by (z - g^(8 - 1))
     movdn.5 movdn.5
     # => [z1, z0, tr_num1, tr_num0, z81, z80, ...]
-    swap add.1099511627520 swap ext2mul
+    swap exec.constants::minus_domain_gen_pow_7 add swap ext2mul
     # => [num1, num0, z81, z80, ...]
 
     # Divide by (z^8 - 1)
-    movup.3 add.18446744069414584320 movup.3
+    movup.3 exec.constants::minus_one add movup.3
     # => [den1, den0, num1, num0, ...]
     ext2div
 end
