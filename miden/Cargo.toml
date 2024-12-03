@@ -18,7 +18,7 @@ name = "miden"
 path = "src/main.rs"
 bench = false
 doctest = false
-required-features = ["executable", "internal"]
+required-features = ["executable"]
 
 [lib]
 path = "src/lib.rs"
