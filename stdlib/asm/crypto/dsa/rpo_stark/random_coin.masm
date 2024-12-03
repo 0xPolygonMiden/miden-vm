@@ -1,34 +1,7 @@
 use.std::crypto::dsa::rpo_stark::constants
 use.std::crypto::dsa::rpo_stark::utils
 use.std::crypto::hashes::rpo
-
-
-#! Helper procedure to compute addition of two words component-wise.
-#! Input: [b3, b2, b1, b0, a3, a2, a1, a0]
-#! Output: [c3, c2, c1, c0]
-#!
-#! Cycles: 16
-proc.add_two_words
-    movup.3
-    movup.7
-    add
-    #=> [c0, b3, b2, b1, a3, a2, a1]
-
-    movup.3
-    movup.6
-    add
-    #=> [c1, c0, b3, b2, a3, a2]
-
-    movup.3
-    movup.5
-    add
-    #=> [c2, c1, c0, b3, a3]
-
-    movup.3
-    movup.4
-    add
-    #=> [c3, c2, c1, c0]
-end
+use.std::crypto::stark::random_coin
 
 #! Return the first half of the rate portion of the random coin state
 #!
@@ -144,7 +117,7 @@ export.reseed
     exec.get_rate_1
     # => [R1, DATA, ...] (6 cycles)
 
-    exec.add_two_words
+    exec.random_coin::add_two_words
     # => [R1, ...] (16 cycles)
 
     exec.get_capacity
@@ -177,14 +150,14 @@ export.reseed_with_salt
     exec.get_rate_1
     # => [R1, DATA, ...] (6 cycles)
 
-    exec.add_two_words
+    exec.random_coin::add_two_words
     # => [R1, ...] (16 cycles)
 
     exec.get_capacity
     swapw
     exec.get_rate_2
     padw adv_loadw 
-    exec.add_two_words
+    exec.random_coin::add_two_words
     # => [R2, R1, C, ...] (30 cycles)
 
     hperm
@@ -211,7 +184,7 @@ end
 export.generate_constraint_composition_coefficients
     push.24
     swap
-    exec.generate_random_coefficients
+    exec.random_coin::generate_random_coefficients
     #=> [...]
 end
 
@@ -229,201 +202,9 @@ end
 export.generate_deep_composition_random_coefficients
     push.24
     swap
-    exec.generate_random_coefficients_pad
+    exec.random_coin::generate_random_coefficients_pad
     #=> [...]
 end
-
-
-# COEFFICIENT GENERATION
-# =============================================================================================
-
-#! Generates a `num_tuples` tuples of random field elements and stores them in memory
-#! starting from address `dest_ptr`. Each memory address holds two tuples.
-#! TODO: Generalize by keeping track of something similar to the `output` variable in `RpoRandomCoin`
-#! so that we keep track of already used randomness and know when there is a need to apply `hperm`.
-#!
-#! Input: [dest_ptr, num_tuples, ...]
-#! Output: [...]
-#!
-#! Cycles: 69 + (22 * num_tuples) / 4
-proc.generate_random_coefficients
-
-    # Compute the loop counter. We use checked division to make sure the number is a multiple of 4.
-    # If we use field division and num_tuples is not a multiple of 4 then we will enter into
-    # a very large loop with high probability.
-    push.0 dup movup.2 movup.3
-    u32assert u32divmod.4
-    assertz
-    neg
-    #=> [loop_ctr, dest_ptr, x, x, ...]
-    # where loop_ctr = - num_tuples / 4; we negate the counter so that we can count up to 0
-
-    exec.get_rate_1
-    dup.5 mem_storew
-
-    exec.get_rate_2
-    dup.9 add.1 mem_storew
-    #=> [R2, R1, loop_ctr, dest_ptr, 0, 0, ..]
-
-    exec.get_capacity
-    swapdw
-    swapw
-    swap add.2 swap
-    #=> [loop_ctr, dest_ptr, 0, 0, R1, C, R2, ..]
-
-    add.1 dup neq.0
-
-    while.true
-
-        swapw.3 hperm
-        #=> [R2, R1, C, loop_ctr, dest_ptr, x, x, ...]
-
-        # save R2 to mem[dest+1]; we use dup.13 here because it takes only 1 cycle
-        dup.13 add.1 mem_storew
-        #=> [R2, R1, C, loop_ctr, dest_ptr, x, x, ...]
-
-        # save R1 to mem[dest]
-        swapw dup.13 mem_storew swapw
-        #=> [R2, R1, C, loop_ctr, dest_ptr, x, x, ...]
-
-        # update destination pointer and loop counter
-        swapw.3
-        #=> [loop_ctr, dest_ptr, x, x, R1, C, R2, ...]
-
-        swap add.2 swap
-        #=> [loop_ctr, dest_ptr+2, x, x, R1, C, R2, ...]
-
-        add.1 dup
-        #=> [loop_ctr+1, loop_ctr+1, dest_ptr+2, x, x, R1, C, R2, ...]
-
-        neq.0
-    end
-
-    # Save the new state of the random coin
-    dropw
-    exec.constants::r1_ptr mem_storew
-    dropw
-    exec.constants::c_ptr mem_storew
-    dropw
-    exec.constants::r2_ptr mem_storew
-    dropw
-    #=> [...]
-end
-
-
-#! Generates a `num_tuples` tuples of random field elements and stores them in memory
-#! starting from address `dest_ptr`. Each memory address holds one tuple.
-#! TODO: Generalize by keeping track of something similar to the `output` variable in `RpoRandomCoin`
-#! so that we keep track of already used randomness and know when there is a need to apply `hperm`.
-#!
-#! Input: [dest_ptr, num_tuples, ...]
-#! Output: [...]
-#!
-#! Cycles: 104 + (69 * num_tuples) / 4
-proc.generate_random_coefficients_pad
-
-    # Compute the loop counter. We use checked division to make sure the number is a multiple of 4.
-    # If we use field division and num_tuples is not a multiple of 4 then we will enter into
-    # a very large loop with high probability.
-    push.0 dup movup.2 movup.3
-    u32assert u32divmod.4
-    assertz
-    neg
-    #=> [loop_ctr, dest_ptr, x, x, ...]
-    # where loop_ctr = - num_tuples / 4; we negate the counter so that we can count up to 0
-
-    exec.get_rate_1
-    dup.5
-    #=> [dest_ptr, a11, a10, a01, a00, loop_ctr, dest_ptr, x, x, ...]
-    dup.4
-    dup.4
-    push.0.0
-    dup.4
-    mem_storew
-    #=> [0, 0, a01, a00, dest_ptr, a11, a10, a01, a00, loop_ctr, dest_ptr, x, x, ...]
-
-    dropw
-    dup.2 dup.2 push.0.0
-    movup.4 add.1 mem_storew
-    #=> [0, 0, a11, a10, a11, a10, a01, a00, loop_ctr, dest_ptr, x, x, ...]
-
-    exec.constants::r2_ptr mem_loadw
-    dup.9  add.4 swap.10
-    #=> [dest_ptr, a31, a30, a21, a20, a11, a10, a01, a00, loop_ctr, dest_ptr+4, x, x, ...]
-
-    dup.4
-    dup.4
-    push.0.0
-    dup.4 add.2
-    mem_storew
-    #=> [0, 0, a21, a20, dest_ptr, a31, a30, a21, a20, a11, a10, a01, a00, loop_ctr, dest_ptr+4, x, x, ...]
-    dropw
-    dup.2 dup.2 push.0.0
-    movup.4 add.3 mem_storew
-    #=> [0, 0, a31, a30, a31, a30, a21, a20, a11, a10, a01, a00, loop_ctr, dest_ptr+4, x, x, ...]
-
-    exec.constants::c_ptr mem_loadw
-    swapdw
-    swapw
-    #=> [loop_ctr, dest_ptr, 0, 0, R1, C, R2, ..]
-
-    add.1 dup neq.0
-
-    while.true
-
-        swapw.3 hperm
-        #=> [R2, R1, C, loop_ctr, dest_ptr, x, x, ...]
-
-        # save R2 to mem[dest+1]; we use dup.13 here because it takes only 1 cycle
-        dup.13
-        dup.4 dup.4 push.0.0
-        dup.4 add.2
-        mem_storew
-        #=> [0, 0, a21, a20, dest_ptr, a31, a30, a21, a20, a11, a10, a01, a00, C, loop_ctr, dest_ptr, x, x, ...]
-        dropw
-        dup.2 dup.2 push.0.0
-        movup.4 add.3 mem_storew
-        #=> [0, 0, a31, a30, a31, a30, a21, a20, a11, a10, a01, a00, C, loop_ctr, dest_ptr, x, x, ...]
-
-        # save R1 to mem[dest]
-        dropw
-        swapw dup.13
-        dup.4 dup.4 push.0.0
-        dup.4
-        mem_storew
-        #=> [0, 0, a01, a00, dest_ptr, a11, a10, a01, a00, a31, a30, a21, a20, C, loop_ctr, dest_ptr, x, x, ...]
-        dropw
-        dup.2 dup.2 push.0.0
-        movup.4 add.1 mem_storew
-        #=> [0, 0, a01, a00, a11, a10, a01, a00, a31, a30, a21, a20, C, loop_ctr, dest_ptr, x, x, ...]
-
-        # reshuffle and update destination pointer and loop counter
-        dropw
-        swapw
-        swapw.3
-        #=> [loop_ctr, dest_ptr, x, x, R1, C, R2, ...]
-
-        swap add.4 swap
-        #=> [loop_ctr, dest_ptr+2, x, x, R1, C, R2, ...]
-
-        add.1 dup
-        #=> [loop_ctr+1, loop_ctr+1, dest_ptr+2, x, x, R1, C, R2, ...]
-
-        neq.0
-    end
-
-    # Save the new state of the random coin
-    dropw
-    exec.constants::r1_ptr mem_storew
-    dropw
-    exec.constants::c_ptr mem_storew
-    dropw
-    exec.constants::r2_ptr mem_storew
-    dropw
-    #=> [...]
-end
-
-
 
 # OOD POINT GENERATION
 # =============================================================================================
@@ -474,130 +255,13 @@ export.generate_z_zN
     dropw
 end
 
-
-
 # INDEX GENERATION
 # =============================================================================================
-
-# Helper function for generating a list of indices that takes a word of random felts and saves
-# to memory region referenced by `ptr` 4 random integers in the range 0..=(mask+1).
-# `depth` is saved next to each of the 4 integers for use in subsequent steps.
-#
-# Input: [R, ptr, mask, depth, ...]
-# Output:[...]
-#
-# Cycles: 100
-proc.generate_four_integers
-    # Get the first random felt
-    dup.3               # [r0, R1, ptr, mask, depth, ...]
-    u32split swap       # [r0_lo, r0_hi, R1, ptr, mask, depth, ...]
-    dup.7               # [mask, r0_lo, r0_hi, R1, ptr, mask, depth, ...]
-    u32and              # [r, r0_hi, R1, ptr, mask, depth, ...]
-    dup.8 swap          # [r, depth, r0_hi, R1, ptr, mask, depth, ...]
-    push.0 movdn.3      # [r, depth, r0_hi, 0, R1, ptr, mask, depth, ...]
-
-    # Store and update pointer
-    dup.8 add.1 swap.9  # [ptr, r, depth, r0_hi, 0, R1, ptr + 1, mask, depth, ...]
-    mem_storew
-    dropw               # [R1, ptr + 1, mask, depth, ...]
-
-    # Get the second random felt
-    dup.2               # [r1, R1, ptr, mask, depth, ...]
-    u32split swap       # [r1_lo, r1_hi, R1, ptr, mask, depth, ...]
-    dup.7               # [mask, r1_lo, r1_hi, R1, ptr, mask, depth, ...]
-    u32and              # [r, r1_hi, R1, ptr, mask, depth, ...]
-    dup.8 swap          # [r, depth, r1_hi, R1, ptr, mask, depth, ...]
-    push.0 movdn.3      # [r, depth, r1_hi, 0, R1, ptr, mask, depth, ...]
-
-    # Store and update pointer
-    dup.8 add.1 swap.9  # [ptr, r, depth, r1_hi, 0, R1, ptr + 1, mask, depth, ...]
-    mem_storew
-    dropw               # [R1, ptr + 1, mask, depth, ...]
-
-    # Get the third random felt
-    dup.1
-    u32split swap
-    dup.7
-    u32and
-    dup.8 swap
-    push.0 movdn.3
-
-    # Store and update pointer
-    dup.8 add.1 swap.9
-    mem_storew
-    dropw
-
-    # Get the fourth random felt
-    dup
-    u32split swap
-    dup.7
-    u32and
-    dup.8 swap
-    push.0 movdn.3
-
-    # Store and update pointer
-    dup.8 add.1 swap.9
-    mem_storew
-    dropw
-end
-
-# Helper function for generating a list of indices. It takes a word of random felts and saves
-# to a memory region, referenced by `ptr`, 3 random integers in the range 0..=(mask+1). This procedure
-# is used to generate a list of random indices that are used in FRI. Moreover, this procedure
-# is called first, and right after the PoW check, thus the first element in the rate portion of
-# the state is discarded.
-# `depth` is saved next to each of the 3 integers for use in subsequent steps.
-#
-# Input: [R, ptr, mask, depth, ...]
-# Output:[R, ptr + 3, mask, depth, ...]
-#
-# Cycles: 75
-proc.generate_three_integers
-    # Get the second random felt
-    dup.2               # [r0, R1, ptr, mask, depth, ...]
-    u32split swap       # [r0_lo, r0_hi, R1, ptr, mask, depth, ...]
-    dup.7               # [mask, r0_lo, r0_hi, R1, ptr, mask, depth, ...]
-    u32and              # [r, r0_hi, R1, ptr, mask, depth, ...]
-    dup.8 swap          # [r, depth, r0_hi, R1, ptr, mask, depth, ...]
-    push.0 movdn.3      # [r, depth, r0_hi, 0, R1, ptr, mask, depth, ...]
-
-    # Store and update pointer
-    dup.8 add.1 swap.9  # [ptr, r, depth, r0_hi, 0, R1, ptr + 1, mask, depth, ...]
-    mem_storew
-    dropw               # [R1, ptr + 1, mask, depth, ...]
-
-    # Get the second random felt
-    dup.1               # [r1, R1, ptr, mask, depth, ...]
-    u32split swap       # [r1_lo, r1_hi, R1, ptr, mask, depth, ...]
-    dup.7               # [mask, r1_lo, r1_hi, R1, ptr, mask, depth, ...]
-    u32and              # [r, r1_hi, R1, ptr, mask, depth, ...]
-    dup.8 swap          # [r, depth, r1_hi, R1, ptr, mask, depth, ...]
-    push.0 movdn.3      # [r, depth, r1_hi, 0, R1, ptr, mask, depth, ...]
-
-    # Store and update pointer
-    dup.8 add.1 swap.9  # [ptr, r, depth, r1_hi, 0, R1, ptr + 1, mask, depth, ...]
-    mem_storew
-    dropw               # [R1, ptr + 1, mask, depth, ...]
-
-    # Get the third random felt
-    dup.0
-    u32split swap
-    dup.7
-    u32and
-    dup.8 swap
-    push.0 movdn.3
-
-    # Store and update pointer
-    dup.8 add.1 swap.9
-    mem_storew
-    dropw
-end
 
 #! Generate a list of `num_queries` number of random indices in the range
 #! [0, lde_size] and store it in memory starting from `query_ptr`.
 #! The list is stored as `(r, depth, y, y)` where `depth` is `log(lde_domain_size)`.
 #!`depth` is needed when computing the deep queries.
-#! TODO: the case of duplicate queries
 #!
 #! Input: [query_ptr, num_queries, ...]
 #! Output: [...]
@@ -622,12 +286,12 @@ export.generate_list_indices
     # Load the first half of the rate portion of the state of the random coin. We discard the first
     # element as it is used for PoW and use the remaining the 3.
     exec.get_rate_1
-    exec.generate_three_integers
+    exec.random_coin::generate_three_integers
     #=> [R, query_ptr, mask, depth, num_queries]
 
     # Load the second half of the rate portion of the state of the random coin.
     exec.constants::r2_ptr mem_loadw
-    exec.generate_four_integers
+    exec.random_coin::generate_four_integers
     #=> [R2, query_ptr, mask, depth, num_queries, ...]
 
     # Squeeze
@@ -664,16 +328,14 @@ export.generate_list_indices
     #=> [quotient, X, query_ptr, mask, depth, remainder, ...]
 
     ## Use `quotient` to iterate
-    #add.1
     dup movdn.8
-    #push.777 movdn.8
     #=> [quotient, X, query_ptr, mask, depth, quotient, remainder, ...]
 
     push.0 neq
     while.true
-        exec.generate_four_integers
+        exec.random_coin::generate_four_integers
         exec.constants::r2_ptr mem_loadw
-        exec.generate_four_integers
+        exec.random_coin::generate_four_integers
         #=> [R2, query_ptr, mask, depth, num_remaining_iterations, remainder, ...]
 
         # Squeeze
@@ -727,55 +389,4 @@ export.generate_list_indices
     end
 
     dropw dropw  dropw drop
-end
-
-# PROOF-OF-WORK CHECK
-# =============================================================================================
-
-#! Check that the Proof-of-Work contained in the nonce is equal to the required number
-#! of bits prescribed by grinding bits. The grinding factor is assumed to be less than 32.
-#!
-#! Input: [grinding_factor, ...]
-#! Output: [...]
-#! Cycles: 73
-export.check_pow
-    # Compute the mask.
-    pow2
-    u32assert u32overflowing_sub.1 assertz
-    #=> [mask, ...]
-
-    # Load Capacity portion
-    exec.get_capacity
-
-    # Load first half of rate portion and add pow witness to first element of rate
-    exec.get_rate_1
-    adv_push.1
-    dup.4
-    add
-    swap.4
-    drop
-
-    # Load the second half of rate portion and apply the permutation
-    padw
-    exec.constants::r2_ptr mem_loadw
-    hperm
-    #=> [R2, R1, C, mask, ...]
-
-    # Save the new random coin state
-    exec.constants::r2_ptr mem_storew
-    dropw
-    exec.constants::r1_ptr mem_storew
-    swapw
-    exec.constants::c_ptr mem_storew
-    dropw
-    drop drop drop
-    #=> [R10, mask]
-
-    # Make sure the PoW is valid
-    u32split
-    drop
-    u32and
-    assertz
-    drop
-    #=> [...]
 end

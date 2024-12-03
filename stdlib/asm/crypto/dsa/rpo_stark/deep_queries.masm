@@ -1,128 +1,5 @@
 use.std::crypto::dsa::rpo_stark::constants
-
-#! Computes a single step of the random linear combination defining the DEEP composition polynomial
-#! that is the input to the FRI protocol. More precisely, the sum in question is:
-#! $$
-#! \sum_{i=0}^k{\alpha_i \cdot \left(\frac{T_i(x) - T_i(z)}{x - z} +
-#!            \frac{T_i(x) - T_i(z \cdot g)}{x - z \cdot g} \right)}
-#! $$
-#!
-#! and the following instruction computes the denominators $\alpha_i \cdot (T_i(x) - T_i(z))$ and
-#! $\alpha_i \cdot (T_i(x) - T_i(z \cdot g))$ and stores the values in two accumulators $r$ and $p$,
-#! respectively. This instruction is specialized to auxiliary trace columns i.e. the values $T_i(x)$
-#! are field elements in a quadratic extension field.
-#!
-#! The stack transition of the instruction can be visualized as follows:
-#!
-#! +-------+-------+-------+-------+-------+-------+-------+-------+------+------+------+------+------+------+------+---+
-#! |  T31  |  T30  |  T21  |  T20  |  T11  |  T10  |  T01  |  T00  |  p1  |  p0  |  r1  |  r0  |x_addr|z_addr|a_addr| - |
-#! +-------+-------+-------+-------+-------+-------+-------+-------+------+------+------+------+------+------+------+---+
-#!
-#!                                                       ||
-#!                                                       \/
-#!
-#! +-------+-------+-------+-------+-------+-------+-------+-------+------+------+------+------+------+--------+--------+-----+
-#! |  T31  |  T30  |  T21  |  T20  |  T11  |  T10  |  T01  |  T00  |  p1' |  p0' |  r1' |  r0' |x_addr|z_addr+1|a_addr+b|  -  |
-#! +-------+-------+-------+-------+-------+-------+-------+-------+------+------+------+------+------+--------+--------------+
-#!
-#!
-#! Here:
-#! 1- Tij for i in 0..=3 and j=0,1 stands for the the value of the j-th coordinate in the quadratic extension field
-#! of the i-th auxiliary trace polynomial for the current query i.e. $T_i(x)$.
-#! 2- (p0, p1) stands for an extension field element accumulating the values for the quotients with common denominator (x - gz).
-#! 3- (r0, r1) stands for an extension field element accumulating the values for the quotients with common denominator (x - z).
-#! 4- x_addr is the memory address from which we are loading the Ti's using the MSTREAM instruction.
-#! 5- z_addr is the memory address to the i-th OOD evaluation frame at z and gz i.e. T_i(z):= (T_i(z)0, T_i(z)1) and T_i(gz):= (T_i(gz)0, T_i(gz)1)
-#! 6- a_addr is the memory address of the i-th random element used in batching the trace polynomial quotients.
-#! The random elements a := (a0, a1) are stored in memory as [0, 0, a0, a1].
-#!
-#! Input: [T31, T30, T21, T20, T11, T10, T01, T00, p1, p0, r1, r0, x_addr, z_addr, a_addr, 0]
-#! Output: [T01, T00, T31, T30, T21, T20, T11, T10, p1', p0', r1', r0', x_addr, z_addr', a_addr', 0]
-export.combine_aux
-
-    # 1) Shift trace columns values (as quadratic extension field element) left
-    movup.7 movup.7
-    #=> [T01, T00, T31, T30, T21, T20, T11, T10, p1, p0, r1, r0, x_addr, z_addr, a_addr, 0]
-
-    # 2) Get a_addr and update it. This is done here before it becomes inaccessible.
-
-    # Update a_addr
-    dup.14 add.1 swap.15
-    #=> [a_addr, T01, T00, T31, T30, T21, T20, T11, T10, p1, p0, r1, r0, x_addr, z_addr, a_addr', 0]
-
-    # 3) Load i-th OOD frame portion. This assumes that the OOD frame has been serialized with `current` and `next` rows interleaved.
-    # This also updates the z_addr pointer.
-    dup.14 add.1 swap.15
-    padw movup.4 mem_loadw
-    #=> [Tgz1, Tgz0, Tz1, Tz0, a_addr, T01, T00, T31, T30, T21, T20, T11, T10, p1, p0, r1, r0, x_addr, z_addr', a_addr', 0]
-
-    # 4) Compute the numerators
-
-    # a) Compute T_i - T_i(z). This equals, in the case of T0, (T01 - Tz1, T00 - Tz0)
-    dup.6 dup.6
-    movup.5 movup.5
-    #=> [Tz1, Tz0, T01, T00, Tgz1, Tgz0, a_addr, T01, T00, T31, T30, T21, T20, T11, T10, p1, p0, r1, r0, x_addr, z_addr', a_addr', 0]
-
-    ext2sub
-    #=> [T01 - Tz1, T00 - Tz0, Tgz1, Tgz0, a_addr, T01, T00, T31, T30, T21, T20, T11, T10, p1, p0, r1, r0, x_addr, z_addr', a_addr', 0]
-
-    movdn.3 movdn.3
-    #=> [Tgz1, Tgz0, T01 - Tz1, T00 - Tz0, a_addr, T01, T00, T31, T30, T21, T20, T11, T10, p1, p0, r1, r0, x_addr, z_addr', a_addr', 0]
-
-    # b) Compute T_i - T_i(gz). This equals, in the case of T0, (T01 - Tgz1, T00 - Tgz0)
-
-    # Compute first -(T_i - T_i(gz))
-    dup.6 dup.6
-    ext2sub
-    #=> [Tgz1 - T01, Tgz0 - T00, T01 - Tz1, T00 - Tz0, a_addr, T01, T00, T31, T30, T21, T20, T11, T10, p1, p0, r1, r0, x_addr, z_addr', a_addr', 0]
-
-    # Negate both coordinates
-    neg swap neg swap
-    #=> [T01 - Tgz1, T00 - Tgz0, T01 - Tz1, T00 - Tz0, a_addr, T01, T00, T31, T30, T21, T20, T11, T10, p1, p0, r1, r0, x_addr, z_addr', a_addr', 0]
-    #=> [Δg1, Δg0, Δ1, Δ0, a_addr, T01, T00, T31, T30, T21, T20, T11, T10, p1, p0, r1, r0, x_addr, z_addr', a_addr', 0]
-    # where Δg1 := T01 - Tgz1, Δg0 := T00 - Tgz0, Δ1 := T01 - Tz1 and Δ0 := T00 - Tz0
-
-    # 5) Multiply by randomness
-
-    # a) Load randomness from memory
-    padw
-    movup.8 mem_loadw drop drop
-    #=> [a1', a0', a1, a0, Δg1, Δg0, Δ1, Δ0, T01, T00, T31, T30, T21, T20, T11, T10, p1, p0, r1, r0, x_addr, z_addr', a_addr', 0]
-
-    # b) Multiply (Δ0, Δ1)
-    dup.1 dup.1
-    movup.7 movup.7
-    #=> [Δ1, Δ0, a1, a0, a1, a0, Δg1, Δg0, T01, T00, T31, T30, T21, T20, T11, T10, p1, p0, r1, r0, x_addr, z_addr', a_addr', 0]
-
-    ext2mul
-    #=> [prod1, prod0, a1, a0, Δg1, Δg0, T01, T00, T31, T30, T21, T20, T11, T10, p1, p0, r1, r0, x_addr, z_addr', a_addr', 0]
-    #   where (prod0, prod1) := (Δ0, Δ1) * (a0, a1)
-
-    movdn.5 movdn.5
-    #=> [a1, a0, Δg1, Δg0, prod1, prod0, T01, T00, T31, T30, T21, T20, T11, T10, p1, p0, r1, r0, x_addr, z_addr', a_addr', 0]
-
-    # c) Multiply (Δg0, Δg1)
-    ext2mul
-    #=> [prodg1, prodg0, prod1, prod0, T01, T00, T31, T30, T21, T20, T11, T10, p1, p0, r1, r0, x_addr, z_addr', a_addr', 0]
-    #   where (prodg0, prodg1) := (Δg0, Δg1) * (a0, a1)
-
-    # 6) Accumulate into (p0, p1) and (r0, r1)
-    movupw.3
-
-    # a) Accumulate into (r0, r1)
-    movup.7 movup.7
-    #=> [prod1, prod0, p1, p0, r1, r0, prodg1, prodg0, T01, T00, T31, T30, T21, T20, T11, T10, x_addr, z_addr', a_addr', 0]
-    movup.5 movup.5 ext2add
-    #=> [r1', r0', p1, p0, prodg1, prodg0, T01, T00, T31, T30, T21, T20, T11, T10, x_addr, z_addr', a_addr', 0]
-
-    # b) Accumulate into (p0, p1)
-    movdn.5 movdn.5 ext2add
-    #=> [p1', p0', r1', r0', T01, T00, T31, T30, T21, T20, T11, T10, x_addr, z_addr', a_addr', 0]
-
-    # c) Prepare for next iteration
-    movdnw.2
-    #=> [T01, T00, T31, T30, T21, T20, T11, T10, p1', p0', r1', r0', x_addr, z_addr', a_addr', 0]
-end
+use.std::crypto::stark::deep_queries
 
 #! Loads the next query rows in the main, auxiliary and constraint composition polynomials traces.
 #! It takes a pointer to the current random query index and returns that index.
@@ -333,12 +210,12 @@ proc.combine_constraint_poly_columns
     repeat.2
         mem_stream
         repeat.4
-            exec.combine_aux
+            exec.deep_queries::combine_aux
         end
     end
     mem_stream
     repeat.2
-        exec.combine_aux
+        exec.deep_queries::combine_aux
     end
 
     # TODO: optimize this so as to keep the randomizer on the stack

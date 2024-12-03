@@ -77,7 +77,7 @@ end
 #!
 #! Input: [...]
 #! Output: [...]
-#! Cycles: 1641
+#! Cycles: 3090
 export.load_and_verify_remainder
     # Load remainder commitment and save it at `TMP1`
     padw

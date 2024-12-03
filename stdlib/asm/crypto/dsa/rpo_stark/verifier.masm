@@ -5,6 +5,7 @@ use.std::crypto::dsa::rpo_stark::fri
 use.std::crypto::dsa::rpo_stark::random_coin
 use.std::crypto::dsa::rpo_stark::utils
 use.std::crypto::dsa::rpo_stark::constraints_evaluation
+use.std::crypto::stark::random_coin->stark_random_coin
 
 
 # RPO-STARK-BASED SIGNATURE SCHEME VERIFICATION ALGORITHM
@@ -140,7 +141,7 @@ export.verify
     #============================================
 
     # Cycles: 73
-    exec.random_coin::check_pow
+    exec.stark_random_coin::check_pow
     #=> [...]
 
     #============================================

@@ -625,7 +625,6 @@ end
 #! [0, lde_size] and store it in memory starting from `query_ptr`.
 #! The list is stored as `(r, depth, y, y)` where `depth` is `log(lde_domain_size)`.
 #!`depth` is needed when computing the deep queries.
-#! TODO: the case of duplicate queries
 #!
 #! Input: [query_ptr, num_queries, ...]
 #! Output: [...]
