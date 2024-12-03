@@ -189,6 +189,8 @@ where
     type VC = MerkleTreeVC<Self::HashFn>;
     type RandomCoin = R;
     type TraceLde<E: FieldElement<BaseField = Felt>> = DefaultTraceLde<E, H, Self::VC>;
+    type ConstraintCommitment<E: FieldElement<BaseField = Self::BaseField>> =
+        DefaultConstraintCommitment<E, Self::HashFn, Self::ZkPrng, Self::VC>;
     type ConstraintEvaluator<'a, E: FieldElement<BaseField = Felt>> =
         DefaultConstraintEvaluator<'a, ProcessorAir, E>;
     type ConstraintCommitment<E: FieldElement<BaseField = Felt>> =
@@ -247,19 +249,24 @@ where
         trace.build_aux_trace(aux_rand_elements.rand_elements()).unwrap()
     }
 
+    #[instrument(skip_all)]
     #[maybe_async]
-    fn build_constraint_commitment<E: FieldElement<BaseField = Felt>>(
+    fn build_constraint_commitment<E: FieldElement<BaseField = Self::BaseField>>(
         &self,
         composition_poly_trace: CompositionPolyTrace<E>,
         num_constraint_composition_columns: usize,
         domain: &StarkDomain<Self::BaseField>,
         partition_options: PartitionOptions,
+        zk_parameters: Option<ZkParameters>,
+        prng: &mut Option<Self::ZkPrng>,
     ) -> (Self::ConstraintCommitment<E>, CompositionPoly<E>) {
         DefaultConstraintCommitment::new(
             composition_poly_trace,
             num_constraint_composition_columns,
             domain,
             partition_options,
+            zk_parameters,
+            prng,
         )
     }
 }
