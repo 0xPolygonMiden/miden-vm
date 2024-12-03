@@ -163,7 +163,9 @@ export.verify
     #
     # Cycles: 487 + 31 * num_queries
     swap dup.1
-    exec.random_coin::generate_list_indices
+    exec.constants::initial_lde_domain_log_size
+    exec.constants::initial_lde_domain_size
+    exec.stark_random_coin::generate_list_indices
     #=> [query_ptr, ...]
 
     # Compute deep compostion polynomial queries
