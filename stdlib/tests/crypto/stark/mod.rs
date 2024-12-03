@@ -18,8 +18,12 @@ mod signature;
 
 #[test]
 fn signature_verification() {
-    let VerifierData { initial_stack, tape, store, advice_map } =
-        generate_signature_data().unwrap();
+    let VerifierData {
+        initial_stack,
+        advice_stack: tape,
+        store,
+        advice_map,
+    } = generate_signature_data().unwrap();
 
     let source = "
         use.std::crypto::dsa::rpo_stark::verifier

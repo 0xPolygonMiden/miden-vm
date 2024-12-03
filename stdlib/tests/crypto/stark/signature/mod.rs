@@ -18,7 +18,7 @@ pub type QuadExt = QuadExtension<Felt>;
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub struct VerifierData {
     pub initial_stack: Vec<u64>,
-    pub tape: Vec<u64>,
+    pub advice_stack: Vec<u64>,
     pub store: MerkleStore,
     pub advice_map: Vec<(RpoDigest, Vec<Felt>)>,
 }
@@ -168,7 +168,7 @@ pub fn generate_advice_inputs_signature(
 
     Ok(VerifierData {
         initial_stack,
-        tape,
+        advice_stack: tape,
         store,
         advice_map: main_aux_adv_map,
     })
