@@ -8,7 +8,7 @@ extern crate escargot;
 fn cli_run() -> Result<(), Box<dyn std::error::Error>> {
     let bin_under_test = escargot::CargoBuild::new()
         .bin("miden")
-        .features("executable")
+        .features("executable internal")
         .current_release()
         .current_target()
         .run()
@@ -21,7 +21,7 @@ fn cli_run() -> Result<(), Box<dyn std::error::Error>> {
 
     cmd.arg("run")
         .arg("-a")
-        .arg("./examples/fib/fib.masm")
+        .arg("./masm-examples/fib/fib.masm")
         .arg("-n")
         .arg("1")
         .arg("-m")

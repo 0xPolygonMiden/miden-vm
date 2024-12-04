@@ -375,7 +375,7 @@ impl TryFrom<Library> for KernelLibrary {
             kernel_module.add_procedure(proc_path.name.clone(), proc_digest);
         }
 
-        let kernel = Kernel::new(&proc_digests)?;
+        let kernel = Kernel::new(&proc_digests).map_err(LibraryError::KernelConversion)?;
 
         Ok(Self {
             kernel,
