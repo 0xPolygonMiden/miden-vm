@@ -71,7 +71,6 @@ impl TryFrom<usize> for SourceId {
 
 /// The set of errors which may be raised by a [SourceManager]
 #[derive(Debug, thiserror::Error)]
-#[non_exhaustive]
 pub enum SourceManagerError {
     /// A [SourceId] was provided to a [SourceManager] which was allocated by a different
     /// [SourceManager]
@@ -84,6 +83,7 @@ pub enum SourceManagerError {
     #[error("{error_msg}")]
     Custom {
         error_msg: Box<str>,
+        // thiserror will return this when calling Error::source on SourceManagerError.
         source: Option<Box<dyn Error + Send + Sync + 'static>>,
     },
 }
