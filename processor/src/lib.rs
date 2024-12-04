@@ -278,9 +278,9 @@ impl Process {
             MastNode::Dyn(node) => self.execute_dyn_node(node, program, host)?,
             MastNode::External(external_node) => {
                 let node_digest = external_node.digest();
-                let mast_forest = host
-                    .get_mast_forest(&node_digest)
-                    .ok_or(ExecutionError::MastForestNotFound { root_digest: node_digest })?;
+                let mast_forest = host.get_mast_forest(&node_digest).ok_or(
+                    ExecutionError::NoMastForestWithProcedure { root_digest: node_digest },
+                )?;
 
                 // We limit the parts of the program that can be called externally to procedure
                 // roots, even though MAST doesn't have that restriction.

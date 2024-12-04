@@ -695,24 +695,18 @@ impl Serializable for DecoratorId {
 /// Represents the types of errors that can occur when dealing with MAST forest.
 #[derive(Debug, thiserror::Error, PartialEq)]
 pub enum MastForestError {
-    #[error(
-        "invalid decorator count: MAST forest exceeds the maximum of {} decorators",
-        u32::MAX
-    )]
+    #[error("MAST forest decorator count exceeds the maximum of {} decorators", u32::MAX)]
     TooManyDecorators,
-    #[error(
-        "invalid node count: MAST forest exceeds the maximum of {} nodes",
-        MastForest::MAX_NODES
-    )]
+    #[error("MAST forest node count exceeds the maximum of {} nodes", MastForest::MAX_NODES)]
     TooManyNodes,
-    #[error("node id: {0} is greater than or equal to forest length: {1}")]
+    #[error("node id {0} is greater than or equal to forest length {1}")]
     NodeIdOverflow(MastNodeId, usize),
-    #[error("decorator id: {0} is greater than or equal to decorator count: {1}")]
+    #[error("decorator id {0} is greater than or equal to decorator count {1}")]
     DecoratorIdOverflow(DecoratorId, usize),
     #[error("basic block cannot be created from an empty list of operations")]
     EmptyBasicBlock,
-    #[error("decorator root of child with node id {0} is missing but required for fingerprint computation")]
+    #[error("decorator root of child with node id {0} is missing but is required for fingerprint computation")]
     ChildFingerprintMissing(MastNodeId),
-    #[error("advice map key already exists when merging forests: {0}")]
+    #[error("advice map key {0} already exists when merging forests")]
     AdviceMapKeyCollisionOnMerge(RpoDigest),
 }

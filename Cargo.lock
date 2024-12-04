@@ -1005,8 +1005,8 @@ version = "0.11.0"
 dependencies = [
  "criterion",
  "miden-core",
- "miden-thiserror",
  "proptest",
+ "thiserror 2.0.3",
  "winter-air",
  "winter-prover",
  "winter-rand-utils",
@@ -1021,11 +1021,11 @@ dependencies = [
  "lalrpop-util",
  "miden-core",
  "miden-miette",
- "miden-thiserror",
  "pretty_assertions",
  "regex",
  "rustc_version 0.4.1",
  "smallvec",
+ "thiserror 2.0.3",
  "tracing",
  "unicode-width 0.2.0",
 ]
@@ -1040,11 +1040,11 @@ dependencies = [
  "miden-crypto",
  "miden-formatting",
  "miden-miette",
- "miden-thiserror",
  "num-derive",
  "num-traits",
  "parking_lot",
  "proptest",
+ "thiserror 2.0.3",
  "winter-math",
  "winter-rand-utils",
  "winter-utils",
@@ -1092,9 +1092,9 @@ dependencies = [
 
 [[package]]
 name = "miden-miette"
-version = "7.1.1"
+version = "8.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c532250422d933f15b148fb81e4522a5d649c178ab420d0d596c86228da35570"
+checksum = "eef536978f24a179d94fa2a41e4f92b28e7d8aab14b8d23df28ad2a3d7098b20"
 dependencies = [
  "backtrace",
  "backtrace-ext",
@@ -1103,7 +1103,6 @@ dependencies = [
  "indenter",
  "lazy_static",
  "miden-miette-derive",
- "miden-thiserror",
  "owo-colors",
  "regex",
  "rustc_version 0.2.3",
@@ -1117,15 +1116,16 @@ dependencies = [
  "syn",
  "terminal_size",
  "textwrap",
+ "thiserror 2.0.3",
  "trybuild",
  "unicode-width 0.1.14",
 ]
 
 [[package]]
 name = "miden-miette-derive"
-version = "7.1.0"
+version = "8.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1cc759f0a2947acae217a2f32f722105cacc57d17d5f93bc16362142943a4edd"
+checksum = "86a905f3ea65634dd4d1041a4f0fd0a3e77aa4118341d265af1a94339182222f"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -1141,6 +1141,7 @@ dependencies = [
  "miden-assembly",
  "miden-core",
  "miden-test-utils",
+ "thiserror 2.0.3",
  "tracing",
  "winter-fri",
  "winter-prover",
@@ -1201,31 +1202,12 @@ dependencies = [
 ]
 
 [[package]]
-name = "miden-thiserror"
-version = "1.0.59"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "183ff8de338956ecfde3a38573241eb7a6f3d44d73866c210e5629c07fa00253"
-dependencies = [
- "miden-thiserror-impl",
-]
-
-[[package]]
-name = "miden-thiserror-impl"
-version = "1.0.59"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0ee4176a0f2e7d29d2a8ee7e60b6deb14ce67a20e94c3e2c7275cdb8804e1862"
-dependencies = [
- "proc-macro2",
- "quote",
- "syn",
-]
-
-[[package]]
 name = "miden-verifier"
 version = "0.11.0"
 dependencies = [
  "miden-air",
  "miden-core",
+ "thiserror 2.0.3",
  "tracing",
  "winter-verifier",
 ]
