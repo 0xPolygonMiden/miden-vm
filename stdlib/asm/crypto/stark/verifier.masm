@@ -28,9 +28,9 @@ use.std::crypto::stark::constants
 #! Output: []
 #! Cycles:
 #!  1- Remainder codeword size 32:
-#!   4975 + num_queries * (40 + num_fri_layers * 76 + 26 + 473) + 83 * num_fri_layers + 10 * log(trace_length) + 1633
+#!   4985 + num_queries * (40 + num_fri_layers * 76 + 26 + 445) + 83 * num_fri_layers + 10 * log(trace_length) + 1633
 #!  2- Remainder codeword size 64:
-#!   4975 + num_queries * (40 + num_fri_layers * 76 + 26 + 473) + 83 * num_fri_layers + 10 * log(trace_length) + 3109
+#!   4985 + num_queries * (40 + num_fri_layers * 76 + 26 + 445) + 83 * num_fri_layers + 10 * log(trace_length) + 3109
 export.verify
 
     #==============================================================================================
@@ -221,7 +221,7 @@ export.verify
 
     # Compute deep compostion polynomial queries
     #
-    # Cycles: 14 + num_queries * 473
+    # Cycles: 24 + num_queries * 445
     #=> [query_ptr, ...]
     exec.deep_queries::compute_deep_composition_polynomial_queries
     #=> [query_ptr, ...]
