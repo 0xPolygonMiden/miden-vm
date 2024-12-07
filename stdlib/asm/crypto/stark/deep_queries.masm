@@ -127,22 +127,20 @@ end
 #! Loads the next query rows in the main, auxiliary and constraint composition polynomials traces.
 #! It takes a pointer to the current random query index and returns that index.
 #!
-#! Input: [query_ptr, ...]
+#! Input: [X, query_ptr, ...]
 #! Output: [index, query_ptr, ...]
 #!
-#! Cycles: 219
+#! Cycles: 206
 proc.load_query_row
     # Main trace portion of the query
 
     ## Get the next query index
-    padw
     dup.4
     mem_loadw
-    swap
-    #=> [depth, index, y, y, query_ptr, ...]
+    #=> [index, depth, y, y, query_ptr, ...]
 
     ## Get main trace commitment and use it to get the leaf
-    movup.3 movup.3
+    movdn.3 movdn.2
     push.0.0
     exec.constants::main_trace_com_ptr mem_loadw
     #=>[R, depth, index, query_ptr, ...]
@@ -273,50 +271,44 @@ proc.load_query_row
     assert_eq
     #=> [Y, ptr, y, y, y, depth, index, query_ptr, ...]
 
-    dropw dropw drop
-    #=> [index, query_ptr, ...]
+    drop
+    #=> [Y, Y, index, query_ptr, ...]
 end
 
 #! Takes a query index and computes x := offset * domain_gen^index. It also computes the denominators
 #! (x - z) and (x - gz).
 #!
-#! Input: [index, ...]
-#! Output: [Z, x, index, ...]  where Z := [-gz1, x -gz0, -z1, x - z0]
+#! Input: [Y, Y, index, ...]
+#! Output: [Z, Y, x, index, ...]  where Z := [-gz1, x -gz0, -z1, x - z0] and Y are "garbage" values.
 #!
-#! Cycles: 68
+#! Cycles: 58
 proc.compute_denominators
     # Compute x = offset * domain_gen^index
-    padw
     exec.constants::lde_size_ptr mem_loadw
-    #=> [lde_size, depth, domain_gen, 0, index, ...]
+    #=> [lde_size, depth, domain_gen, 0, Y, index, ...]
     movup.2
-    dup.4
+    dup.8
     exp.u32
     exec.constants::domain_offset mul
-    #=> [x, lde_size, depth, 0, index, ...]
+    #=> [x, lde_size, depth, 0, Y, index, ...]
 
     # Get z and gz from memory
     movdn.3
-    #=> [lde_size, depth, 0, x, index, ...]
+    #=> [lde_size, depth, 0, x, Y, index, ...]
     push.0
     exec.constants::tmp1 mem_loadw
-    #=> [gz1, gz0, z1, z0, x, index, ...]
+    #=> [-z0, -gz0, -gz1, -z1, x, Y, index, ...]
 
-    # Compute Z := [-z1, x - z0, -gz1, x -gz0]
-    neg
-    dup.4
-    movup.2
-    sub
-    #=> [x-gz0, -gz1, z1, z0, x, index, ...]
+    dup.4 add
+    #=> [x-z0, -gz0, -gz1, -z1, x, Y, index, ...]
     movdn.3
-    movdn.2
-    #=> [z1, z0, -gz1, x-gz0, x, index, ...]
-    neg
-    movdn.3
-    dup.4 swap
-    sub
-    movdn.3
-    #=> [Z, x, index, ...] where Z := [-gz1, x -gz0, -z1, x - z0]
+    #=> [-gz0, -gz1, -z1, x-z0, x, Y, index, ...]
+
+    movup.4 dup movdn.9
+    #=> [x, -gz0, -gz1, -z1, x-z0, Y, x, index, ...]
+
+    add swap
+    #=> [-gz1, x - gz0, -z1, x-z0, Y, x, index, ...]
 end
 
 #! Computes the random linear combination involving the main trace columns and accumulates
@@ -467,11 +459,34 @@ end
 #!
 #! Input: [query_ptr, ...]
 #! Output: [...]
-#! Cycles: 6 + num_queries * 473
+#! Cycles: 24 + num_queries * 445
 export.compute_deep_composition_polynomial_queries
+
     exec.constants::fri_com_ptr
     dup.1
-    #=>[query_ptr, query_end_ptr, ...]
+    push.0
+    exec.constants::deep_rand_coef_ptr
+    exec.constants::ood_trace_ptr
+    exec.constants::current_trace_row_ptr
+    exec.constants::tmp9 mem_storew
+    #=>[X, query_ptr, query_end_ptr, ...]
+
+    # Compute the negations of z and gz.
+    # We do it here as this computation is common to all queries.
+    exec.constants::z_ptr mem_loadw
+    drop drop
+    neg swap neg  
+    #=> [-z0, -z1, ...]
+    dup.1 exec.constants::trace_domain_generator_ptr mem_load mul
+    #=> [-gz1, -z0, -z1, ...]
+    swap
+    #=> [-z0, -gz1, -z1, ...]
+    dup exec.constants::trace_domain_generator_ptr mem_load mul
+    #=> [-gz0, -z0, -gz1, -z1, ...]
+    swap
+    #=> [-z0, -gz0, -gz1, -z1, ...]
+    exec.constants::tmp1 mem_storew
+    #=>[X, query_ptr, query_end_ptr, ...]
 
     push.1
     while.true
@@ -480,19 +495,18 @@ export.compute_deep_composition_polynomial_queries
         # Load the (main, aux, constraint)-traces rows associated with the current query and get
         # the index of the query.
         #
-        # Cycles: 219
+        # Cycles: 206
         exec.load_query_row
-        #=>[index, query_ptr, query_end_ptr, ...]
+        #=>[Y, Y, index, query_ptr, query_end_ptr, ...]
 
 
         # II)
         #
         # Compute x := offset * domain_gen^index and denominators (x - z) and (x - gz)
         #
-        # Cycles: 68
+        # Cycles: 58
         exec.compute_denominators
-        #=> [Z, x, index, query_ptr, query_end_ptr, ...] where Z := [-gz1, x - gz0, -z1, x - z0]
-
+        #=> [Z, Y, x, index, query_ptr, query_end_ptr, ...] where Z := [-gz1, x - gz0, -z1, x - z0]
 
         # III)
         #
@@ -503,11 +517,8 @@ export.compute_deep_composition_polynomial_queries
 
         ## a) Push pointers
         ##
-        ## Cycles: 4
-        push.0
-        exec.constants::deep_rand_coef_ptr
-        exec.constants::ood_trace_ptr
-        exec.constants::current_trace_row_ptr
+        ## Cycles: 3
+        swapw exec.constants::tmp9 mem_loadw
         #=> [P, Z, x, index, query_ptr, query_end_ptr, ...]
         # where P := [CURRENT_TRACE_ROW_PTR, OOD_TRACE_PTR, DEEP_RAND_CC_PTR, 0]
 
@@ -560,11 +571,10 @@ export.compute_deep_composition_polynomial_queries
 
         ## c) Prepare stack for next iteration
         ##
-        ## Cycles: 8
-        dropw
-        dup.1 dup.1
+        ## Cycles: 4
+        dup.5 dup.5
         neq
         #=> [?, query_ptr+1, query_end_ptr, ...]
     end
-    drop drop
+    dropw drop drop
 end
