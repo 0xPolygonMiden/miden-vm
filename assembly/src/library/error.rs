@@ -4,9 +4,9 @@ use crate::{ast::QualifiedProcedureName, diagnostics::Diagnostic};
 
 #[derive(Debug, thiserror::Error, Diagnostic)]
 pub enum LibraryError {
-    #[error("kernel library must contain at least one exported procedure")]
+    #[error("library must contain at least one exported procedure")]
     #[diagnostic()]
-    EmptyKernel,
+    NoExport,
     #[error("invalid export in kernel library: {procedure_path}")]
     InvalidKernelExport { procedure_path: QualifiedProcedureName },
     #[error(transparent)]

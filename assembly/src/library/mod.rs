@@ -354,7 +354,7 @@ impl TryFrom<Library> for KernelLibrary {
 
     fn try_from(library: Library) -> Result<Self, Self::Error> {
         if library.exports.is_empty() {
-            return Err(LibraryError::EmptyKernel);
+            return Err(LibraryError::NoExport);
         }
 
         let kernel_path = LibraryPath::from(LibraryNamespace::Kernel);
