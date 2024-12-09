@@ -56,3 +56,24 @@ fn cli_bundle_no_exports() {
         .failure()
         .stderr(predicate::str::contains("library must contain at least one exported procedure"));
 }
+
+#[test]
+fn cli_bundle_kernel() {
+    let mut cmd = bin_under_test().command();
+    cmd.arg("bundle")
+        .arg("./masm-examples/bundle/lib")
+        .arg("--kernel")
+        .arg("./masm-examples/bundle/kernel_main.masm");
+    cmd.assert().success();
+}
+
+/// A kernel can bundle with a library w/o exports.
+#[test]
+fn cli_bundle_kernel_noexports() {
+    let mut cmd = bin_under_test().command();
+    cmd.arg("bundle")
+        .arg("./masm-examples/bundle/lib_noexports")
+        .arg("--kernel")
+        .arg("./masm-examples/bundle/kernel_main.masm");
+    cmd.assert().success();
+}
