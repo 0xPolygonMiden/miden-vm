@@ -2,11 +2,8 @@ use assert_cmd::prelude::*;
 use predicates::prelude::*;
 extern crate escargot;
 
-#[test]
-// Tt test might be an overkill to test only that the 'run' cli command
-// outputs steps and ms.
-fn cli_run() -> Result<(), Box<dyn std::error::Error>> {
-    let bin_under_test = escargot::CargoBuild::new()
+fn bin_under_test() -> escargot::CargoRun {
+    escargot::CargoBuild::new()
         .bin("miden")
         .features("executable internal")
         .current_release()
@@ -15,9 +12,14 @@ fn cli_run() -> Result<(), Box<dyn std::error::Error>> {
         .unwrap_or_else(|err| {
             eprintln!("{err}");
             panic!("failed to build `miden`");
-        });
+        })
+}
 
-    let mut cmd = bin_under_test.command();
+#[test]
+// Tt test might be an overkill to test only that the 'run' cli command
+// outputs steps and ms.
+fn cli_run() -> Result<(), Box<dyn std::error::Error>> {
+    let mut cmd = bin_under_test().command();
 
     cmd.arg("run")
         .arg("-a")
@@ -37,4 +39,11 @@ fn cli_run() -> Result<(), Box<dyn std::error::Error>> {
     output.assert().stdout(predicate::str::contains("VM cycles"));
 
     Ok(())
+}
+
+#[test]
+fn cli_bundle_debug() {
+    let mut cmd = bin_under_test().command();
+    cmd.arg("bundle").arg("--debug").arg("./masm-examples/bundle/lib");
+    cmd.assert().success();
 }

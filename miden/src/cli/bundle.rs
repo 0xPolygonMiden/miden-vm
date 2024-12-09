@@ -12,6 +12,9 @@ use clap::Parser;
     about = "Bundles .masm files into a single .masl library"
 )]
 pub struct BundleCmd {
+    /// Include debug symbols.
+    #[clap(short, long, action)]
+    debug: bool,
     /// Path to a directory containing the `.masm` files which are part of the library.
     #[clap(value_parser)]
     dir: PathBuf,
@@ -38,8 +41,7 @@ impl BundleCmd {
                 .to_string_lossy()
                 .into_owned(),
         };
-
-        let assembler = Assembler::default().with_debug_mode(true);
+        let assembler = Assembler::default().with_debug_mode(self.debug);
         let library_namespace =
             namespace.parse::<LibraryNamespace>().expect("invalid base namespace");
         let library = Library::from_dir(&self.dir, library_namespace, assembler)?;
