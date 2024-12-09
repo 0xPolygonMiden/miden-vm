@@ -47,3 +47,12 @@ fn cli_bundle_debug() {
     cmd.arg("bundle").arg("--debug").arg("./masm-examples/bundle/lib");
     cmd.assert().success();
 }
+
+#[test]
+fn cli_bundle_no_exports() {
+    let mut cmd = bin_under_test().command();
+    cmd.arg("bundle").arg("./masm-examples/bundle/lib_noexports");
+    cmd.assert()
+        .failure()
+        .stderr(predicate::str::contains("library must contain at least one exported procedure"));
+}

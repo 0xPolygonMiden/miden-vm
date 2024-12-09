@@ -78,6 +78,9 @@ impl Library {
         mast_forest: Arc<MastForest>,
         exports: BTreeMap<QualifiedProcedureName, MastNodeId>,
     ) -> Result<Self, LibraryError> {
+        if exports.is_empty() {
+            return Err(LibraryError::EmptyKernel);
+        }
         for (fqn, &proc_body_id) in exports.iter() {
             if !mast_forest.is_procedure_root(proc_body_id) {
                 return Err(LibraryError::NoProcedureRootForExport { procedure_path: fqn.clone() });
