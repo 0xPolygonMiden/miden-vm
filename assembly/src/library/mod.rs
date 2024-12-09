@@ -356,6 +356,7 @@ impl TryFrom<Library> for KernelLibrary {
     type Error = LibraryError;
 
     fn try_from(library: Library) -> Result<Self, Self::Error> {
+        // TODO is this check necessary?
         if library.exports.is_empty() {
             return Err(LibraryError::NoExport);
         }
