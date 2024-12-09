@@ -79,7 +79,7 @@ impl Library {
         exports: BTreeMap<QualifiedProcedureName, MastNodeId>,
     ) -> Result<Self, LibraryError> {
         if exports.is_empty() {
-            return Err(LibraryError::EmptyKernel);
+            return Err(LibraryError::NoExport);
         }
         for (fqn, &proc_body_id) in exports.iter() {
             if !mast_forest.is_procedure_root(proc_body_id) {
@@ -357,7 +357,7 @@ impl TryFrom<Library> for KernelLibrary {
 
     fn try_from(library: Library) -> Result<Self, Self::Error> {
         if library.exports.is_empty() {
-            return Err(LibraryError::EmptyKernel);
+            return Err(LibraryError::NoExport);
         }
 
         let kernel_path = LibraryPath::from(LibraryNamespace::Kernel);
