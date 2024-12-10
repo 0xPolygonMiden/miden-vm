@@ -2,7 +2,7 @@ use alloc::vec::Vec;
 
 use miden_air::{
     trace::chiplets::memory::{
-        Selectors, MEMORY_COPY_READ, MEMORY_INIT_READ, MEMORY_WRITE,
+        Selectors, MEMORY_COPY_READ, MEMORY_INIT_READ, MEMORY_WRITE_SELECTOR,
         TRACE_WIDTH as MEMORY_TRACE_WIDTH,
     },
     RowIndex,
@@ -120,18 +120,18 @@ fn mem_write() {
     // address 0
     let mut prev_row = [ZERO; MEMORY_TRACE_WIDTH];
     let memory_access = MemoryAccess::new(ContextId::root(), addr0, 1.into(), value1);
-    prev_row = verify_memory_access(&trace, 0, MEMORY_WRITE, &memory_access, prev_row);
+    prev_row = verify_memory_access(&trace, 0, MEMORY_WRITE_SELECTOR, &memory_access, prev_row);
 
     let memory_access = MemoryAccess::new(ContextId::root(), addr0, 4.into(), value9);
-    prev_row = verify_memory_access(&trace, 1, MEMORY_WRITE, &memory_access, prev_row);
+    prev_row = verify_memory_access(&trace, 1, MEMORY_WRITE_SELECTOR, &memory_access, prev_row);
 
     // address 1
     let memory_access = MemoryAccess::new(ContextId::root(), addr1, 3.into(), value7);
-    prev_row = verify_memory_access(&trace, 2, MEMORY_WRITE, &memory_access, prev_row);
+    prev_row = verify_memory_access(&trace, 2, MEMORY_WRITE_SELECTOR, &memory_access, prev_row);
 
     // address 2
     let memory_access = MemoryAccess::new(ContextId::root(), addr2, 2.into(), value5);
-    verify_memory_access(&trace, 3, MEMORY_WRITE, &memory_access, prev_row);
+    verify_memory_access(&trace, 3, MEMORY_WRITE_SELECTOR, &memory_access, prev_row);
 }
 
 #[test]
@@ -178,26 +178,26 @@ fn mem_write_read() {
     // address 2
     let mut prev_row = [ZERO; MEMORY_TRACE_WIDTH];
     let memory_access = MemoryAccess::new(ContextId::root(), addr2, 2.into(), value4);
-    prev_row = verify_memory_access(&trace, 0, MEMORY_WRITE, &memory_access, prev_row);
+    prev_row = verify_memory_access(&trace, 0, MEMORY_WRITE_SELECTOR, &memory_access, prev_row);
 
     let memory_access = MemoryAccess::new(ContextId::root(), addr2, 5.into(), value4);
     prev_row = verify_memory_access(&trace, 1, MEMORY_COPY_READ, &memory_access, prev_row);
 
     let memory_access = MemoryAccess::new(ContextId::root(), addr2, 6.into(), value7);
-    prev_row = verify_memory_access(&trace, 2, MEMORY_WRITE, &memory_access, prev_row);
+    prev_row = verify_memory_access(&trace, 2, MEMORY_WRITE_SELECTOR, &memory_access, prev_row);
 
     let memory_access = MemoryAccess::new(ContextId::root(), addr2, 8.into(), value7);
     prev_row = verify_memory_access(&trace, 3, MEMORY_COPY_READ, &memory_access, prev_row);
 
     // address 5
     let memory_access = MemoryAccess::new(ContextId::root(), addr5, 1.into(), value1);
-    prev_row = verify_memory_access(&trace, 4, MEMORY_WRITE, &memory_access, prev_row);
+    prev_row = verify_memory_access(&trace, 4, MEMORY_WRITE_SELECTOR, &memory_access, prev_row);
 
     let memory_access = MemoryAccess::new(ContextId::root(), addr5, 3.into(), value1);
     prev_row = verify_memory_access(&trace, 5, MEMORY_COPY_READ, &memory_access, prev_row);
 
     let memory_access = MemoryAccess::new(ContextId::root(), addr5, 4.into(), value2);
-    prev_row = verify_memory_access(&trace, 6, MEMORY_WRITE, &memory_access, prev_row);
+    prev_row = verify_memory_access(&trace, 6, MEMORY_WRITE_SELECTOR, &memory_access, prev_row);
 
     let memory_access = MemoryAccess::new(ContextId::root(), addr5, 7.into(), value2);
     prev_row = verify_memory_access(&trace, 7, MEMORY_COPY_READ, &memory_access, prev_row);
@@ -250,18 +250,18 @@ fn mem_multi_context() {
     // ctx = 0, addr = 0
     let mut prev_row = [ZERO; MEMORY_TRACE_WIDTH];
     let memory_access = MemoryAccess::new(ContextId::root(), ZERO, 1.into(), value1);
-    prev_row = verify_memory_access(&trace, 0, MEMORY_WRITE, &memory_access, prev_row);
+    prev_row = verify_memory_access(&trace, 0, MEMORY_WRITE_SELECTOR, &memory_access, prev_row);
 
     let memory_access = MemoryAccess::new(ContextId::root(), ZERO, 9.into(), value1);
     prev_row = verify_memory_access(&trace, 1, MEMORY_COPY_READ, &memory_access, prev_row);
 
     // ctx = 3, addr = 0
     let memory_access = MemoryAccess::new(3.into(), ZERO, 7.into(), value3);
-    prev_row = verify_memory_access(&trace, 2, MEMORY_WRITE, &memory_access, prev_row);
+    prev_row = verify_memory_access(&trace, 2, MEMORY_WRITE_SELECTOR, &memory_access, prev_row);
 
     // ctx = 3, addr = 1
     let memory_access = MemoryAccess::new(3.into(), ONE, 4.into(), value2);
-    prev_row = verify_memory_access(&trace, 3, MEMORY_WRITE, &memory_access, prev_row);
+    prev_row = verify_memory_access(&trace, 3, MEMORY_WRITE_SELECTOR, &memory_access, prev_row);
 
     let memory_access = MemoryAccess::new(3.into(), ONE, 6.into(), value2);
     verify_memory_access(&trace, 4, MEMORY_COPY_READ, &memory_access, prev_row);

@@ -286,7 +286,7 @@ impl Chiplets {
     // MEMORY CHIPLET ACCESSORS
     // --------------------------------------------------------------------------------------------
 
-    // TODO(plafer): remove all other methods.
+    // TODO(plafer): remove all other memory methods.
     /// Returns a reference to the Memory chiplet.
     pub fn memory(&self) -> &Memory {
         &self.memory
@@ -295,75 +295,6 @@ impl Chiplets {
     /// Returns a mutable reference to the Memory chiplet.
     pub fn memory_mut(&mut self) -> &mut Memory {
         &mut self.memory
-    }
-
-    /// Returns a word located in memory at the specified context/address while recording the
-    /// memory access in the memory trace.
-    ///
-    /// If the specified address hasn't been previously written to, four ZERO elements are
-    /// returned. This effectively implies that memory is initialized to ZERO.
-    pub fn read_mem(&mut self, ctx: ContextId, _addr: u32) -> Result<Word, ExecutionError> {
-        // read the word from memory
-        let _ = self.memory.read_word(ctx, ZERO, self.clk);
-        todo!()
-    }
-
-    /// Returns two words read from consecutive addresses started with `addr` in the specified
-    /// context while recording memory accesses in the memory trace.
-    ///
-    /// If either of the accessed addresses hasn't been previously written to, ZERO elements are
-    /// returned. This effectively implies that memory is initialized to ZERO.
-    pub fn read_mem_double(
-        &mut self,
-        ctx: ContextId,
-        addr: u32,
-    ) -> Result<[Word; 2], ExecutionError> {
-        // read two words from memory: from addr and from addr + 4
-        let _addr = addr + 4;
-        Ok([
-            self.memory.read_word(ctx, ZERO, self.clk)?,
-            self.memory.read_word(ctx, ZERO, self.clk)?,
-        ])
-    }
-
-    /// Writes the provided word at the specified context/address.
-    pub fn write_mem(
-        &mut self,
-        ctx: ContextId,
-        _addr: u32,
-        word: Word,
-    ) -> Result<(), ExecutionError> {
-        self.memory.write_word(ctx, ZERO, self.clk, word)
-    }
-
-    /// Writes the provided element into the specified context/address leaving the remaining 3
-    /// elements of the word previously stored at that address unchanged.
-    pub fn write_mem_element(
-        &mut self,
-        ctx: ContextId,
-        _addr: u32,
-        value: Felt,
-    ) -> Result<Word, ExecutionError> {
-        let old_word = self.memory.get_old_value(ctx, ZERO);
-        let new_word = [value, old_word[1], old_word[2], old_word[3]];
-
-        self.memory.write_word(ctx, ZERO, self.clk, new_word)?;
-
-        Ok(old_word)
-    }
-
-    /// Writes the two provided words to two consecutive addresses in memory in the specified
-    /// context, starting at the specified address.
-    pub fn write_mem_double(
-        &mut self,
-        ctx: ContextId,
-        addr: u32,
-        words: [Word; 2],
-    ) -> Result<(), ExecutionError> {
-        let _addr2 = addr + 4;
-        // write two words to memory at addr and addr + 1
-        self.memory.write_word(ctx, ZERO, self.clk, words[0])?;
-        self.memory.write_word(ctx, ZERO, self.clk, words[1])
     }
 
     /// Returns a word located at the specified context/address, or None if the address hasn't

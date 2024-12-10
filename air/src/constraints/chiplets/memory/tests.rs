@@ -10,7 +10,7 @@ use crate::{
     chiplets::memory,
     trace::{
         chiplets::{
-            memory::{Selectors, MEMORY_COPY_READ, MEMORY_INIT_READ, MEMORY_WRITE},
+            memory::{Selectors, MEMORY_COPY_READ, MEMORY_INIT_READ, MEMORY_WRITE_SELECTOR},
             MEMORY_TRACE_OFFSET,
         },
         TRACE_WIDTH,
@@ -30,7 +30,7 @@ fn test_memory_write() {
 
     // Write to a new context.
     let result = get_constraint_evaluation(
-        MEMORY_WRITE,
+        MEMORY_WRITE_SELECTOR,
         MemoryTestDeltaType::Context,
         &old_values,
         &new_values,
@@ -39,7 +39,7 @@ fn test_memory_write() {
 
     // Write to a new address in the same context.
     let result = get_constraint_evaluation(
-        MEMORY_WRITE,
+        MEMORY_WRITE_SELECTOR,
         MemoryTestDeltaType::Address,
         &old_values,
         &new_values,
@@ -48,7 +48,7 @@ fn test_memory_write() {
 
     // Write to the same context and address at a new clock cycle.
     let result = get_constraint_evaluation(
-        MEMORY_WRITE,
+        MEMORY_WRITE_SELECTOR,
         MemoryTestDeltaType::Clock,
         &old_values,
         &new_values,
