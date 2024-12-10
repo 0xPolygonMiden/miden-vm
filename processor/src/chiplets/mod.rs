@@ -469,7 +469,7 @@ impl Chiplets {
         // so they can be filled with the chiplet traces
         for (column_num, column) in trace.iter_mut().enumerate().skip(1) {
             match column_num {
-                1 | 15..=17 => {
+                1 | 15..=16 => {
                     // columns 1 and 15 - 17 are relevant only for the hasher
                     hasher_fragment.push_column_slice(column, hasher.trace_len());
                 },
@@ -490,6 +490,9 @@ impl Chiplets {
                     let rest = bitwise_fragment.push_column_slice(rest, bitwise.trace_len());
                     let rest = memory_fragment.push_column_slice(rest, memory.trace_len());
                     kernel_rom_fragment.push_column_slice(rest, kernel_rom.trace_len());
+                },
+                17 => {
+                    // padding columns
                 },
                 _ => panic!("invalid column index"),
             }
