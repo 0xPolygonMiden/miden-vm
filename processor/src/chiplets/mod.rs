@@ -286,69 +286,15 @@ impl Chiplets {
     // MEMORY CHIPLET ACCESSORS
     // --------------------------------------------------------------------------------------------
 
-    /// Returns a word located in memory at the specified context/address while recording the
-    /// memory access in the memory trace.
-    ///
-    /// If the specified address hasn't been previously written to, four ZERO elements are
-    /// returned. This effectively implies that memory is initialized to ZERO.
-    pub fn read_mem(&mut self, ctx: ContextId, addr: u32) -> Result<Word, ExecutionError> {
-        // read the word from memory
-        self.memory.read(ctx, addr, self.clk)
+    // TODO(plafer): remove all other memory methods.
+    /// Returns a reference to the Memory chiplet.
+    pub fn memory(&self) -> &Memory {
+        &self.memory
     }
 
-    /// Returns two words read from consecutive addresses started with `addr` in the specified
-    /// context while recording memory accesses in the memory trace.
-    ///
-    /// If either of the accessed addresses hasn't been previously written to, ZERO elements are
-    /// returned. This effectively implies that memory is initialized to ZERO.
-    pub fn read_mem_double(
-        &mut self,
-        ctx: ContextId,
-        addr: u32,
-    ) -> Result<[Word; 2], ExecutionError> {
-        // read two words from memory: from addr and from addr + 1
-        let addr2 = addr + 1;
-        Ok([self.memory.read(ctx, addr, self.clk)?, self.memory.read(ctx, addr2, self.clk)?])
-    }
-
-    /// Writes the provided word at the specified context/address.
-    pub fn write_mem(
-        &mut self,
-        ctx: ContextId,
-        addr: u32,
-        word: Word,
-    ) -> Result<(), ExecutionError> {
-        self.memory.write(ctx, addr, self.clk, word)
-    }
-
-    /// Writes the provided element into the specified context/address leaving the remaining 3
-    /// elements of the word previously stored at that address unchanged.
-    pub fn write_mem_element(
-        &mut self,
-        ctx: ContextId,
-        addr: u32,
-        value: Felt,
-    ) -> Result<Word, ExecutionError> {
-        let old_word = self.memory.get_old_value(ctx, addr);
-        let new_word = [value, old_word[1], old_word[2], old_word[3]];
-
-        self.memory.write(ctx, addr, self.clk, new_word)?;
-
-        Ok(old_word)
-    }
-
-    /// Writes the two provided words to two consecutive addresses in memory in the specified
-    /// context, starting at the specified address.
-    pub fn write_mem_double(
-        &mut self,
-        ctx: ContextId,
-        addr: u32,
-        words: [Word; 2],
-    ) -> Result<(), ExecutionError> {
-        let addr2 = addr + 1;
-        // write two words to memory at addr and addr + 1
-        self.memory.write(ctx, addr, self.clk, words[0])?;
-        self.memory.write(ctx, addr2, self.clk, words[1])
+    /// Returns a mutable reference to the Memory chiplet.
+    pub fn memory_mut(&mut self) -> &mut Memory {
+        &mut self.memory
     }
 
     /// Returns a word located at the specified context/address, or None if the address hasn't
@@ -357,7 +303,7 @@ impl Chiplets {
     /// Unlike mem_read() which modifies the memory access trace, this method returns the value at
     /// the specified address (if one exists) without altering the memory access trace.
     pub fn get_mem_value(&self, ctx: ContextId, addr: u32) -> Option<Word> {
-        self.memory.get_value(ctx, addr)
+        self.memory.get_value(ctx, Felt::from(addr))
     }
 
     /// Returns the entire memory state for the specified execution context at the specified cycle.
@@ -469,7 +415,7 @@ impl Chiplets {
         // so they can be filled with the chiplet traces
         for (column_num, column) in trace.iter_mut().enumerate().skip(1) {
             match column_num {
-                1 | 15..=17 => {
+                1 | 15..=16 => {
                     // columns 1 and 15 - 17 are relevant only for the hasher
                     hasher_fragment.push_column_slice(column, hasher.trace_len());
                 },
@@ -490,6 +436,9 @@ impl Chiplets {
                     let rest = bitwise_fragment.push_column_slice(rest, bitwise.trace_len());
                     let rest = memory_fragment.push_column_slice(rest, memory.trace_len());
                     kernel_rom_fragment.push_column_slice(rest, kernel_rom.trace_len());
+                },
+                17 => {
+                    // padding columns
                 },
                 _ => panic!("invalid column index"),
             }

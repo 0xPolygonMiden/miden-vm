@@ -1,6 +1,6 @@
 use miden_air::{
     trace::chiplets::{
-        memory::{MEMORY_READ_LABEL, MEMORY_WRITE, MEMORY_WRITE_LABEL, NUM_ELEMENTS},
+        memory::{MEMORY_READ_LABEL, MEMORY_WRITE_LABEL, MEMORY_WRITE_SELECTOR, NUM_ELEMENTS},
         MEMORY_ADDR_COL_IDX, MEMORY_CLK_COL_IDX, MEMORY_CTX_COL_IDX, MEMORY_SELECTORS_COL_IDX,
         MEMORY_V_COL_RANGE,
     },
@@ -176,7 +176,7 @@ fn build_expected_memory_from_trace(
     // get the memory access operation
     let s0 = trace.main_trace.get_column(MEMORY_SELECTORS_COL_IDX)[row];
     let s1 = trace.main_trace.get_column(MEMORY_SELECTORS_COL_IDX + 1)[row];
-    let op_label = if s0 == MEMORY_WRITE[0] {
+    let op_label = if s0 == MEMORY_WRITE_SELECTOR[0] {
         debug_assert!(s1 == ZERO);
         MEMORY_WRITE_LABEL
     } else {

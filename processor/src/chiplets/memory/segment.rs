@@ -3,10 +3,8 @@ use alloc::{
     vec::Vec,
 };
 
-use miden_air::{
-    trace::chiplets::memory::{Selectors, MEMORY_COPY_READ, MEMORY_INIT_READ, MEMORY_WRITE},
-    RowIndex,
-};
+use miden_air::RowIndex;
+use vm_core::WORD_SIZE;
 
 use super::{Felt, Word, INIT_MEM_VALUE};
 use crate::{ContextId, ExecutionError};
@@ -33,7 +31,7 @@ impl MemorySegmentTrace {
     /// specified address (if one exists) without altering the memory access trace.
     pub fn get_value(&self, addr: u32) -> Option<Word> {
         match self.0.get(&addr) {
-            Some(addr_trace) => addr_trace.last().map(|access| access.value()),
+            Some(addr_trace) => addr_trace.last().map(|access| access.word()),
             None => None,
         }
     }
@@ -53,13 +51,13 @@ impl MemorySegmentTrace {
 
         for (&addr, addr_trace) in self.0.iter() {
             match addr_trace.binary_search_by(|access| access.clk().as_int().cmp(&search_clk)) {
-                Ok(i) => result.push((addr.into(), addr_trace[i].value())),
+                Ok(i) => result.push((addr.into(), addr_trace[i].word())),
                 Err(i) => {
                     // Binary search finds the index of the data with the specified clock cycle.
                     // Decrement the index to get the trace from the previously accessed clock
                     // cycle to insert into the results.
                     if i > 0 {
-                        result.push((addr.into(), addr_trace[i - 1].value()));
+                        result.push((addr.into(), addr_trace[i - 1].word()));
                     }
                 },
             }
@@ -71,43 +69,48 @@ impl MemorySegmentTrace {
     // STATE MUTATORS
     // --------------------------------------------------------------------------------------------
 
-    /// Returns a word located in memory at the specified address. The memory access is assumed
-    /// to happen at the provided clock cycle.
+    /// Returns the element located at the specified address. The memory access is assumed to happen
+    /// at the provided clock cycle.
     ///
-    /// If the specified address hasn't been previously written to, four ZERO elements are
-    /// returned. This effectively implies that memory is initialized to ZERO.
+    /// If the element at the specified address hasn't been previously written to, ZERO is returned.
     ///
     /// # Errors
     /// - Returns an error if the same address is accessed more than once in the same clock cycle.
-    pub fn read(&mut self, ctx: ContextId, addr: u32, clk: Felt) -> Result<Word, ExecutionError> {
-        // look up the previous value in the appropriate address trace and add (clk, prev_value)
-        // to it; if this is the first time we access this address, create address trace for it
-        // with entry (clk, [ZERO, 4]). in both cases, return the last value in the address trace.
-        match self.0.entry(addr) {
-            Entry::Vacant(vacant_entry) => {
-                let access =
-                    MemorySegmentAccess::new(clk, MemoryOperation::InitRead, INIT_MEM_VALUE);
-                vacant_entry.insert(vec![access]);
-                Ok(INIT_MEM_VALUE)
-            },
-            Entry::Occupied(mut occupied_entry) => {
-                let addr_trace = occupied_entry.get_mut();
-                if addr_trace.last().expect("empty address trace").clk() == clk {
-                    Err(ExecutionError::DuplicateMemoryAccess { ctx, addr, clk })
-                } else {
-                    let last_value = addr_trace.last().expect("empty address trace").value();
-                    let access =
-                        MemorySegmentAccess::new(clk, MemoryOperation::CopyRead, last_value);
-                    addr_trace.push(access);
+    pub fn read(&mut self, ctx: ContextId, addr: u32, clk: Felt) -> Result<Felt, ExecutionError> {
+        let addr_idx_in_word = addr % WORD_SIZE as u32;
+        let addr_first_ele = addr - addr_idx_in_word;
 
-                    Ok(last_value)
-                }
-            },
-        }
+        let word = self.read_word_impl(
+            ctx,
+            addr_first_ele,
+            clk,
+            MemoryAccessType::Element { addr_idx_in_word: addr_idx_in_word as u8 },
+        )?;
+
+        Ok(word[addr_idx_in_word as usize])
     }
 
-    /// Writes the provided word at the specified address. The memory access is assumed to happen
+    /// Returns a word located in memory starting at the specified address, which must be word
+    /// aligned. The memory access is assumed to happen at the provided clock cycle.
+    ///
+    /// If the word starting at the specified address hasn't been previously written to, four ZERO
+    /// elements are returned. This effectively implies that memory is initialized to ZERO.
+    ///
+    /// # Errors
+    /// - Returns an error if the same address is accessed more than once in the same clock cycle.
+    pub fn read_word(
+        &mut self,
+        ctx: ContextId,
+        addr: u32,
+        clk: Felt,
+    ) -> Result<Word, ExecutionError> {
+        self.read_word_impl(ctx, addr, clk, MemoryAccessType::Word)
+    }
+
+    /// Writes the element located at the specified address. The memory access is assumed to happen
     /// at the provided clock cycle.
+    ///
+    /// If the element at the specified address hasn't been previously written to, ZERO is returned.
     ///
     /// # Errors
     /// - Returns an error if the same address is accessed more than once in the same clock cycle.
@@ -116,11 +119,73 @@ impl MemorySegmentTrace {
         ctx: ContextId,
         addr: u32,
         clk: Felt,
+        value: Felt,
+    ) -> Result<(), ExecutionError> {
+        debug_assert!(addr % 4 == 0, "unaligned memory access: {addr}");
+        let addr_idx_in_word = addr % WORD_SIZE as u32;
+        let addr_first_ele = addr - addr_idx_in_word;
+
+        match self.0.entry(addr) {
+            Entry::Vacant(vacant_entry) => {
+                let last_word = {
+                    let mut last_word = Word::default();
+                    last_word[addr_idx_in_word as usize] = value;
+                    last_word
+                };
+
+                let access = MemorySegmentAccess::new(
+                    clk,
+                    MemoryOperation::Write,
+                    MemoryAccessType::Element { addr_idx_in_word: addr_idx_in_word as u8 },
+                    last_word,
+                );
+                vacant_entry.insert(vec![access]);
+                Ok(())
+            },
+            Entry::Occupied(mut occupied_entry) => {
+                let addr_trace = occupied_entry.get_mut();
+                if addr_trace.last().expect("empty address trace").clk() == clk {
+                    Err(ExecutionError::DuplicateMemoryAccess { ctx, addr: addr_first_ele, clk })
+                } else {
+                    let new_word = {
+                        let mut last_word = addr_trace.last().expect("empty address trace").word();
+                        last_word[addr_idx_in_word as usize] = value;
+
+                        last_word
+                    };
+
+                    let access = MemorySegmentAccess::new(
+                        clk,
+                        MemoryOperation::Read,
+                        MemoryAccessType::Word,
+                        new_word,
+                    );
+                    addr_trace.push(access);
+
+                    Ok(())
+                }
+            },
+        }
+    }
+
+    /// Writes the provided word starting at the specified address. The memory access is assumed to
+    /// happen at the provided clock cycle.
+    ///
+    /// # Errors
+    /// - Returns an error if the same address is accessed more than once in the same clock cycle.
+    pub fn write_word(
+        &mut self,
+        ctx: ContextId,
+        addr: u32,
+        clk: Felt,
         value: Word,
     ) -> Result<(), ExecutionError> {
+        debug_assert!(addr % 4 == 0, "unaligned memory access: {addr}");
+
         // add a memory access to the appropriate address trace; if this is the first time
         // we access this address, initialize address trace.
-        let access = MemorySegmentAccess::new(clk, MemoryOperation::Write, value);
+        let access =
+            MemorySegmentAccess::new(clk, MemoryOperation::Write, MemoryAccessType::Word, value);
         match self.0.entry(addr) {
             Entry::Vacant(vacant_entry) => {
                 vacant_entry.insert(vec![access]);
@@ -154,6 +219,50 @@ impl MemorySegmentTrace {
     // HELPER FUNCTIONS
     // --------------------------------------------------------------------------------------------
 
+    // TODO(plafer): docs
+    pub fn read_word_impl(
+        &mut self,
+        ctx: ContextId,
+        addr_first_ele: u32,
+        clk: Felt,
+        access_type: MemoryAccessType,
+    ) -> Result<Word, ExecutionError> {
+        debug_assert!(addr_first_ele % 4 == 0, "unaligned word access: {addr_first_ele}");
+
+        // look up the previous value in the appropriate address trace and add (clk, prev_value)
+        // to it; if this is the first time we access this word, create address trace for it
+        // with entry (clk, [ZERO, 4]). in both cases, return the last value in the address trace.
+        match self.0.entry(addr_first_ele) {
+            Entry::Vacant(vacant_entry) => {
+                let access = MemorySegmentAccess::new(
+                    clk,
+                    MemoryOperation::Read,
+                    access_type,
+                    INIT_MEM_VALUE,
+                );
+                vacant_entry.insert(vec![access]);
+                Ok(INIT_MEM_VALUE)
+            },
+            Entry::Occupied(mut occupied_entry) => {
+                let addr_trace = occupied_entry.get_mut();
+                if addr_trace.last().expect("empty address trace").clk() == clk {
+                    Err(ExecutionError::DuplicateMemoryAccess { ctx, addr: addr_first_ele, clk })
+                } else {
+                    let last_word = addr_trace.last().expect("empty address trace").word();
+                    let access = MemorySegmentAccess::new(
+                        clk,
+                        MemoryOperation::Read,
+                        access_type,
+                        last_word,
+                    );
+                    addr_trace.push(access);
+
+                    Ok(last_word)
+                }
+            },
+        }
+    }
+
     /// Returns current size (in words) of this memory segment.
     #[cfg(test)]
     pub fn size(&self) -> usize {
@@ -166,9 +275,14 @@ impl MemorySegmentTrace {
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub enum MemoryOperation {
-    InitRead,
-    CopyRead,
+    Read,
     Write,
+}
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+pub enum MemoryAccessType {
+    Element { addr_idx_in_word: u8 },
+    Word,
 }
 
 /// A single memory access representing the specified memory operation with the specified value at
@@ -176,13 +290,14 @@ pub enum MemoryOperation {
 #[derive(Copy, Debug, Clone)]
 pub struct MemorySegmentAccess {
     clk: Felt,
-    op: MemoryOperation,
-    value: Word,
+    operation: MemoryOperation,
+    access_type: MemoryAccessType,
+    word: Word,
 }
 
 impl MemorySegmentAccess {
-    fn new(clk: Felt, op: MemoryOperation, value: Word) -> Self {
-        Self { clk, op, value }
+    fn new(clk: Felt, op: MemoryOperation, access_type: MemoryAccessType, word: Word) -> Self {
+        Self { clk, operation: op, access_type, word }
     }
 
     /// Returns the clock cycle at which this memory access happened.
@@ -190,17 +305,16 @@ impl MemorySegmentAccess {
         self.clk
     }
 
-    /// Returns the selector values matching the operation used in this memory access.
-    pub(super) fn op_selectors(&self) -> Selectors {
-        match self.op {
-            MemoryOperation::InitRead => MEMORY_INIT_READ,
-            MemoryOperation::CopyRead => MEMORY_COPY_READ,
-            MemoryOperation::Write => MEMORY_WRITE,
-        }
+    pub(super) fn operation(&self) -> MemoryOperation {
+        self.operation
+    }
+
+    pub(super) fn access_type(&self) -> MemoryAccessType {
+        self.access_type
     }
 
     /// Returns the word value for this memory access.
-    pub(super) fn value(&self) -> Word {
-        self.value
+    pub(super) fn word(&self) -> Word {
+        self.word
     }
 }
