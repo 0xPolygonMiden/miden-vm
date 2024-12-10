@@ -5,7 +5,7 @@ use winter_air::TransitionConstraintDegree;
 use super::{EvaluationFrame, FieldElement};
 use crate::{
     trace::chiplets::{
-        memory::NUM_ELEMENTS, MEMORY_ADDR_COL_IDX, MEMORY_CLK_COL_IDX, MEMORY_CTX_COL_IDX,
+        memory::NUM_ELEMENTS_IN_BATCH, MEMORY_ADDR_COL_IDX, MEMORY_CLK_COL_IDX, MEMORY_CTX_COL_IDX,
         MEMORY_D0_COL_IDX, MEMORY_D1_COL_IDX, MEMORY_D_INV_COL_IDX, MEMORY_TRACE_OFFSET,
         MEMORY_V_COL_RANGE,
     },
@@ -152,13 +152,13 @@ fn enforce_values<E: FieldElement>(
     let mut index = 0;
 
     // initialize memory to zero when reading from new context and address pair.
-    for i in 0..NUM_ELEMENTS {
+    for i in 0..NUM_ELEMENTS_IN_BATCH {
         result[index] = memory_flag * frame.init_read_flag() * frame.v(i);
         index += 1;
     }
 
     // copy previous values when reading memory that was previously accessed.
-    for i in 0..NUM_ELEMENTS {
+    for i in 0..NUM_ELEMENTS_IN_BATCH {
         result[index] = memory_flag * frame.copy_read_flag() * (frame.v_next(i) - frame.v(i));
         index += 1;
     }

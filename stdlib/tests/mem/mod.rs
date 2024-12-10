@@ -37,54 +37,55 @@ fn test_memcopy() {
         Process::new(program.kernel().clone(), StackInputs::default(), ExecutionOptions::default());
     process.execute(&program, &mut host).unwrap();
 
+    // TODO(plafer): this will fail due to addresses being too close to each other
     assert_eq!(
-        process.chiplets.get_mem_value(ContextId::root(), 1000),
+        process.chiplets.memory().get_word(ContextId::root(), 1000).unwrap(),
         Some([ZERO, ZERO, ZERO, ONE]),
         "Address 1000"
     );
     assert_eq!(
-        process.chiplets.get_mem_value(ContextId::root(), 1001),
+        process.chiplets.memory().get_word(ContextId::root(), 1001).unwrap(),
         Some([ZERO, ZERO, ONE, ZERO]),
         "Address 1001"
     );
     assert_eq!(
-        process.chiplets.get_mem_value(ContextId::root(), 1002),
+        process.chiplets.memory().get_word(ContextId::root(), 1002).unwrap(),
         Some([ZERO, ZERO, ONE, ONE]),
         "Address 1002"
     );
     assert_eq!(
-        process.chiplets.get_mem_value(ContextId::root(), 1003),
+        process.chiplets.memory().get_word(ContextId::root(), 1003).unwrap(),
         Some([ZERO, ONE, ZERO, ZERO]),
         "Address 1003"
     );
     assert_eq!(
-        process.chiplets.get_mem_value(ContextId::root(), 1004),
+        process.chiplets.memory().get_word(ContextId::root(), 1004).unwrap(),
         Some([ZERO, ONE, ZERO, ONE]),
         "Address 1004"
     );
 
     assert_eq!(
-        process.chiplets.get_mem_value(ContextId::root(), 2000),
+        process.chiplets.memory().get_word(ContextId::root(), 2000).unwrap(),
         Some([ZERO, ZERO, ZERO, ONE]),
         "Address 2000"
     );
     assert_eq!(
-        process.chiplets.get_mem_value(ContextId::root(), 2001),
+        process.chiplets.memory().get_word(ContextId::root(), 2001).unwrap(),
         Some([ZERO, ZERO, ONE, ZERO]),
         "Address 2001"
     );
     assert_eq!(
-        process.chiplets.get_mem_value(ContextId::root(), 2002),
+        process.chiplets.memory().get_word(ContextId::root(), 2002).unwrap(),
         Some([ZERO, ZERO, ONE, ONE]),
         "Address 2002"
     );
     assert_eq!(
-        process.chiplets.get_mem_value(ContextId::root(), 2003),
+        process.chiplets.memory().get_word(ContextId::root(), 2003).unwrap(),
         Some([ZERO, ONE, ZERO, ZERO]),
         "Address 2003"
     );
     assert_eq!(
-        process.chiplets.get_mem_value(ContextId::root(), 2004),
+        process.chiplets.memory().get_word(ContextId::root(), 2004).unwrap(),
         Some([ZERO, ONE, ZERO, ONE]),
         "Address 2004"
     );

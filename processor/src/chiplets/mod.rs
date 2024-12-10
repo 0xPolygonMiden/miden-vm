@@ -10,7 +10,6 @@ use super::{
     crypto::MerklePath, utils, ChipletsTrace, ExecutionError, Felt, FieldElement, RangeChecker,
     TraceFragment, Word, CHIPLETS_WIDTH, EMPTY_WORD, ONE, ZERO,
 };
-use crate::system::ContextId;
 
 mod bitwise;
 use bitwise::Bitwise;
@@ -44,7 +43,8 @@ mod tests;
 /// * Hasher segment: contains the trace and selector for the hasher chiplet. This segment fills the
 ///   first rows of the trace up to the length of the hasher `trace_len`.
 ///   - column 0: selector column with values set to ZERO
-///   - columns 1-17: execution trace of hash chiplet
+///   - columns 1-16: execution trace of hash chiplet
+///   - column 17: unused column padded with ZERO
 /// * Bitwise segment: contains the trace and selectors for the bitwise chiplet. This segment begins
 ///   at the end of the hasher segment and fills the next rows of the trace for the `trace_len` of
 ///   the bitwise chiplet.
@@ -52,13 +52,12 @@ mod tests;
 ///   - column 1: selector column with values set to ZERO
 ///   - columns 2-14: execution trace of bitwise chiplet
 ///   - columns 15-17: unused columns padded with ZERO
-/// * Memory segment: contains the trace and selectors for the memory chiplet * This segment begins
+/// * Memory segment: contains the trace and selectors for the memory chiplet.  This segment begins
 ///   at the end of the bitwise segment and fills the next rows of the trace for the `trace_len` of
 ///   the memory chiplet.
 ///   - column 0-1: selector columns with values set to ONE
 ///   - column 2: selector column with values set to ZERO
-///   - columns 3-14: execution trace of memory chiplet
-///   - columns 15-17: unused column padded with ZERO
+///   - columns 3-17: execution trace of memory chiplet
 /// * Kernel ROM segment: contains the trace and selectors for the kernel ROM chiplet * This segment
 ///   begins at the end of the memory segment and fills the next rows of the trace for the
 ///   `trace_len` of the kernel ROM chiplet.
@@ -89,11 +88,11 @@ mod tests;
 ///             | . | . |   selectors   |                                   |-------------|
 ///             | . | 0 |               |                                   |-------------|
 ///             | . +---+---+-----------------------------------------------+-------------+
-///             | . | 1 | 0 |                |                              |-------------|
-///             | . | . | . | Memory chiplet |      Memory chiplet          |-------------|
-///             | . | . | . | internal       |      12 columns              |-- Padding --|
-///             | . | . | . | selectors      |      constraint degree 9     |-------------|
-///             | . | . | 0 |                |                              |-------------|
+///             | . | 1 | 0 |                                               |-------------|
+///             | . | . | . |            Memory chiplet                     |-------------|
+///             | . | . | . |              15 columns                       |-- Padding --|
+///             | . | . | . |          constraint degree 9                  |-------------|
+///             | . | . | 0 |                                               |-------------|
 ///             | . + . |---+---+-------------------------------------------+-------------+
 ///             | . | . | 1 | 0 |                   |                       |-------------|
 ///             | . | . | . | . |  Kernel ROM       |   Kernel ROM chiplet  |-------------|
@@ -286,91 +285,14 @@ impl Chiplets {
     // MEMORY CHIPLET ACCESSORS
     // --------------------------------------------------------------------------------------------
 
-    /// Returns a word located in memory at the specified context/address while recording the
-    /// memory access in the memory trace.
-    ///
-    /// If the specified address hasn't been previously written to, four ZERO elements are
-    /// returned. This effectively implies that memory is initialized to ZERO.
-    pub fn read_mem(&mut self, ctx: ContextId, addr: u32) -> Result<Word, ExecutionError> {
-        // read the word from memory
-        self.memory.read(ctx, addr, self.clk)
+    /// Returns a reference to the Memory chiplet.
+    pub fn memory(&self) -> &Memory {
+        &self.memory
     }
 
-    /// Returns two words read from consecutive addresses started with `addr` in the specified
-    /// context while recording memory accesses in the memory trace.
-    ///
-    /// If either of the accessed addresses hasn't been previously written to, ZERO elements are
-    /// returned. This effectively implies that memory is initialized to ZERO.
-    pub fn read_mem_double(
-        &mut self,
-        ctx: ContextId,
-        addr: u32,
-    ) -> Result<[Word; 2], ExecutionError> {
-        // read two words from memory: from addr and from addr + 1
-        let addr2 = addr + 1;
-        Ok([self.memory.read(ctx, addr, self.clk)?, self.memory.read(ctx, addr2, self.clk)?])
-    }
-
-    /// Writes the provided word at the specified context/address.
-    pub fn write_mem(
-        &mut self,
-        ctx: ContextId,
-        addr: u32,
-        word: Word,
-    ) -> Result<(), ExecutionError> {
-        self.memory.write(ctx, addr, self.clk, word)
-    }
-
-    /// Writes the provided element into the specified context/address leaving the remaining 3
-    /// elements of the word previously stored at that address unchanged.
-    pub fn write_mem_element(
-        &mut self,
-        ctx: ContextId,
-        addr: u32,
-        value: Felt,
-    ) -> Result<Word, ExecutionError> {
-        let old_word = self.memory.get_old_value(ctx, addr);
-        let new_word = [value, old_word[1], old_word[2], old_word[3]];
-
-        self.memory.write(ctx, addr, self.clk, new_word)?;
-
-        Ok(old_word)
-    }
-
-    /// Writes the two provided words to two consecutive addresses in memory in the specified
-    /// context, starting at the specified address.
-    pub fn write_mem_double(
-        &mut self,
-        ctx: ContextId,
-        addr: u32,
-        words: [Word; 2],
-    ) -> Result<(), ExecutionError> {
-        let addr2 = addr + 1;
-        // write two words to memory at addr and addr + 1
-        self.memory.write(ctx, addr, self.clk, words[0])?;
-        self.memory.write(ctx, addr2, self.clk, words[1])
-    }
-
-    /// Returns a word located at the specified context/address, or None if the address hasn't
-    /// been accessed previously.
-    ///
-    /// Unlike mem_read() which modifies the memory access trace, this method returns the value at
-    /// the specified address (if one exists) without altering the memory access trace.
-    pub fn get_mem_value(&self, ctx: ContextId, addr: u32) -> Option<Word> {
-        self.memory.get_value(ctx, addr)
-    }
-
-    /// Returns the entire memory state for the specified execution context at the specified cycle.
-    /// The state is returned as a vector of (address, value) tuples, and includes addresses which
-    /// have been accessed at least once.
-    pub fn get_mem_state_at(&self, ctx: ContextId, clk: RowIndex) -> Vec<(u64, Word)> {
-        self.memory.get_state_at(ctx, clk)
-    }
-
-    /// Returns current size of the memory (in words) across all execution contexts.
-    #[cfg(test)]
-    pub fn get_mem_size(&self) -> usize {
-        self.memory.size()
+    /// Returns a mutable reference to the Memory chiplet.
+    pub fn memory_mut(&mut self) -> &mut Memory {
+        &mut self.memory
     }
 
     // KERNEL ROM ACCESSORS
@@ -469,7 +391,7 @@ impl Chiplets {
         // so they can be filled with the chiplet traces
         for (column_num, column) in trace.iter_mut().enumerate().skip(1) {
             match column_num {
-                1 | 15..=17 => {
+                1 => {
                     // columns 1 and 15 - 17 are relevant only for the hasher
                     hasher_fragment.push_column_slice(column, hasher.trace_len());
                 },
@@ -490,6 +412,19 @@ impl Chiplets {
                     let rest = bitwise_fragment.push_column_slice(rest, bitwise.trace_len());
                     let rest = memory_fragment.push_column_slice(rest, memory.trace_len());
                     kernel_rom_fragment.push_column_slice(rest, kernel_rom.trace_len());
+                },
+                15 | 16 => {
+                    // columns 15 and 16 are relevant only for the hasher and memory chiplets
+                    let rest = hasher_fragment.push_column_slice(column, hasher.trace_len());
+                    // skip bitwise chiplet
+                    let (_, rest) = rest.split_at_mut(bitwise.trace_len());
+                    memory_fragment.push_column_slice(rest, memory.trace_len());
+                },
+                17 => {
+                    // column 17 is relevant only for the memory chiplet
+                    // skip the hasher and bitwise chiplets
+                    let (_, rest) = column.split_at_mut(hasher.trace_len() + bitwise.trace_len());
+                    memory_fragment.push_column_slice(rest, memory.trace_len());
                 },
                 _ => panic!("invalid column index"),
             }

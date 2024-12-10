@@ -4,13 +4,14 @@ use rand_utils::rand_value;
 
 use super::{
     EvaluationFrame, MEMORY_ADDR_COL_IDX, MEMORY_CLK_COL_IDX, MEMORY_CTX_COL_IDX,
-    MEMORY_D0_COL_IDX, MEMORY_D1_COL_IDX, MEMORY_D_INV_COL_IDX, MEMORY_V_COL_RANGE, NUM_ELEMENTS,
+    MEMORY_D0_COL_IDX, MEMORY_D1_COL_IDX, MEMORY_D_INV_COL_IDX, MEMORY_V_COL_RANGE,
+    NUM_ELEMENTS_IN_BATCH,
 };
 use crate::{
     chiplets::memory,
     trace::{
         chiplets::{
-            memory::{Selectors, MEMORY_COPY_READ, MEMORY_INIT_READ, MEMORY_WRITE},
+            memory::{Selectors, MEMORY_COPY_READ, MEMORY_INIT_READ, MEMORY_WRITE_SELECTOR},
             MEMORY_TRACE_OFFSET,
         },
         TRACE_WIDTH,
@@ -30,7 +31,7 @@ fn test_memory_write() {
 
     // Write to a new context.
     let result = get_constraint_evaluation(
-        MEMORY_WRITE,
+        MEMORY_WRITE_SELECTOR,
         MemoryTestDeltaType::Context,
         &old_values,
         &new_values,
@@ -39,7 +40,7 @@ fn test_memory_write() {
 
     // Write to a new address in the same context.
     let result = get_constraint_evaluation(
-        MEMORY_WRITE,
+        MEMORY_WRITE_SELECTOR,
         MemoryTestDeltaType::Address,
         &old_values,
         &new_values,
@@ -48,7 +49,7 @@ fn test_memory_write() {
 
     // Write to the same context and address at a new clock cycle.
     let result = get_constraint_evaluation(
-        MEMORY_WRITE,
+        MEMORY_WRITE_SELECTOR,
         MemoryTestDeltaType::Clock,
         &old_values,
         &new_values,
@@ -160,7 +161,7 @@ fn get_test_frame(
     next[MEMORY_CLK_COL_IDX] = Felt::new(delta_row[2]);
 
     // Set the old and new values.
-    for idx in 0..NUM_ELEMENTS {
+    for idx in 0..NUM_ELEMENTS_IN_BATCH {
         let old_value = Felt::new(old_values[idx] as u64);
         // Add a write for the old values to the current row.
         current[MEMORY_V_COL_RANGE.start + idx] = old_value;
