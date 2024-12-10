@@ -1,6 +1,8 @@
 use miden_air::{
     trace::chiplets::{
-        memory::{MEMORY_READ_LABEL, MEMORY_WRITE, MEMORY_WRITE_LABEL, NUM_ELEMENTS},
+        memory::{
+            MEMORY_READ_LABEL, MEMORY_WRITE_LABEL, MEMORY_WRITE_SELECTOR, NUM_ELEMENTS_IN_BATCH,
+        },
         MEMORY_ADDR_COL_IDX, MEMORY_CLK_COL_IDX, MEMORY_CTX_COL_IDX, MEMORY_SELECTORS_COL_IDX,
         MEMORY_V_COL_RANGE,
     },
@@ -156,7 +158,7 @@ fn build_expected_memory(
     word: Word,
 ) -> Felt {
     let mut word_value = ZERO;
-    for i in 0..NUM_ELEMENTS {
+    for i in 0..NUM_ELEMENTS_IN_BATCH {
         word_value += alphas[i + 5] * word[i];
     }
 
@@ -176,7 +178,7 @@ fn build_expected_memory_from_trace(
     // get the memory access operation
     let s0 = trace.main_trace.get_column(MEMORY_SELECTORS_COL_IDX)[row];
     let s1 = trace.main_trace.get_column(MEMORY_SELECTORS_COL_IDX + 1)[row];
-    let op_label = if s0 == MEMORY_WRITE[0] {
+    let op_label = if s0 == MEMORY_WRITE_SELECTOR[0] {
         debug_assert!(s1 == ZERO);
         MEMORY_WRITE_LABEL
     } else {
@@ -189,7 +191,7 @@ fn build_expected_memory_from_trace(
     let clk = trace.main_trace.get_column(MEMORY_CLK_COL_IDX)[row];
 
     // get the memory value
-    let mut word = [ZERO; NUM_ELEMENTS];
+    let mut word = [ZERO; NUM_ELEMENTS_IN_BATCH];
     for (i, element) in word.iter_mut().enumerate() {
         *element = trace.main_trace.get_column(MEMORY_V_COL_RANGE.start + i)[row];
     }

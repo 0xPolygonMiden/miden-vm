@@ -125,7 +125,7 @@ impl Process {
     fn get_randomness(&mut self) -> Result<QuadFelt, ExecutionError> {
         let ctx = self.system.ctx();
         let addr = self.stack.get(14);
-        let word = self.chiplets.read_mem(ctx, addr.as_int() as u32)?;
+        let word = self.chiplets.memory_mut().read_word(ctx, addr, self.system.clk())?;
         let a0 = word[0];
         let a1 = word[1];
 
@@ -136,7 +136,7 @@ impl Process {
     fn get_ood_values(&mut self) -> Result<[QuadFelt; 2], ExecutionError> {
         let ctx = self.system.ctx();
         let addr = self.stack.get(13);
-        let word = self.chiplets.read_mem(ctx, addr.as_int() as u32)?;
+        let word = self.chiplets.memory_mut().read_word(ctx, addr, self.system.clk())?;
 
         Ok([QuadFelt::new(word[0], word[1]), QuadFelt::new(word[2], word[3])])
     }
@@ -203,9 +203,11 @@ mod tests {
         let tztgz = rand_array::<Felt, 4>();
         process
             .chiplets
-            .write_mem(
+            .memory_mut()
+            .write_word(
                 ctx,
                 inputs[2].as_int().try_into().expect("Shouldn't fail by construction"),
+                process.system.clk(),
                 tztgz,
             )
             .unwrap();
@@ -213,9 +215,11 @@ mod tests {
         let a = rand_array::<Felt, 4>();
         process
             .chiplets
-            .write_mem(
+            .memory_mut()
+            .write_word(
                 ctx,
                 inputs[1].as_int().try_into().expect("Shouldn't fail by construction"),
+                process.system.clk(),
                 a,
             )
             .unwrap();

@@ -1,6 +1,6 @@
 use alloc::string::ToString;
 
-use vm_core::{Felt, Operation::*};
+use vm_core::{Felt, Operation::*, WORD_SIZE};
 
 use super::{push_felt, push_u32_value, validate_param, BasicBlockBuilder};
 use crate::{assembler::ProcedureContext, diagnostics::Report, AssemblyError};
@@ -111,7 +111,7 @@ pub fn mem_write_imm(
 /// Returns an error if index is greater than the number of procedure locals.
 pub fn local_to_absolute_addr(
     block_builder: &mut BasicBlockBuilder,
-    index: u16,
+    index_of_local: u16,
     num_proc_locals: u16,
 ) -> Result<(), AssemblyError> {
     if num_proc_locals == 0 {
@@ -125,9 +125,10 @@ pub fn local_to_absolute_addr(
     }
 
     let max = num_proc_locals - 1;
-    validate_param(index, 0..=max)?;
+    validate_param(index_of_local, 0..=max)?;
 
-    push_felt(block_builder, -Felt::from(max - index));
+    let fmp_offset_of_local = (max - index_of_local) * WORD_SIZE as u16;
+    push_felt(block_builder, -Felt::from(fmp_offset_of_local));
     block_builder.push_op(FmpAdd);
 
     Ok(())

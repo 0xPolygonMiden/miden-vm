@@ -154,7 +154,7 @@ impl DebugExecutor {
 
     /// print all memory entries.
     pub fn print_memory(&self) {
-        for (address, mem) in self.vm_state.memory.iter() {
+        for &(address, mem) in self.vm_state.memory.iter() {
             Self::print_memory_data(address, mem)
         }
     }
@@ -167,7 +167,7 @@ impl DebugExecutor {
         });
 
         match entry {
-            Some(mem) => Self::print_memory_data(&address, mem),
+            Some(&mem) => Self::print_memory_data(address, mem),
             None => println!("memory at address '{address}' not found"),
         }
     }
@@ -176,9 +176,8 @@ impl DebugExecutor {
     // --------------------------------------------------------------------------------------------
 
     /// print memory data.
-    fn print_memory_data(address: &u64, memory: &[Felt]) {
-        let mem_int = memory.iter().map(|&x| x.as_int()).collect::<Vec<_>>();
-        println!("{address} {mem_int:?}");
+    fn print_memory_data(address: u64, mem_value: Felt) {
+        println!("{address} {mem_value:?}");
     }
 
     /// print help message

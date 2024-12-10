@@ -1800,18 +1800,19 @@ fn program_with_proc_locals() -> TestResult {
             mul \
         end \
         begin \
-            push.4 push.3 push.2 \
+            push.10 push.9 push.8 \
             exec.foo \
         end"
     );
     let program = context.assemble(source)?;
+    // Note: 18446744069414584317 == -4 (mod 2^64 - 2^32 + 1)
     let expected = "\
 begin
     basic_block
+        push(10)
+        push(9)
+        push(8)
         push(4)
-        push(3)
-        push(2)
-        push(1)
         fmpupdate
         pad
         fmpadd
@@ -1822,7 +1823,7 @@ begin
         fmpadd
         mload
         mul
-        push(18446744069414584320)
+        push(18446744069414584317)
         fmpupdate
     end
 end";

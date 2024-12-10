@@ -92,7 +92,7 @@ pub const MEMORY_SELECTORS_COL_IDX: usize = MEMORY_TRACE_OFFSET;
 /// The index within the main trace of the column containing the memory context.
 pub const MEMORY_CTX_COL_IDX: usize = MEMORY_TRACE_OFFSET + memory::CTX_COL_IDX;
 /// The index within the main trace of the column containing the memory address.
-pub const MEMORY_ADDR_COL_IDX: usize = MEMORY_TRACE_OFFSET + memory::ADDR_COL_IDX;
+pub const MEMORY_ADDR_COL_IDX: usize = MEMORY_TRACE_OFFSET + memory::BATCH_COL_IDX;
 /// The index within the main trace of the column containing the clock cycle of the memory
 /// access.
 pub const MEMORY_CLK_COL_IDX: usize = MEMORY_TRACE_OFFSET + memory::CLK_COL_IDX;

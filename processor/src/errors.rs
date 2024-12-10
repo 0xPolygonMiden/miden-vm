@@ -92,6 +92,10 @@ pub enum ExecutionError {
     NoMastForestWithProcedure { root_digest: Digest },
     #[error("memory address cannot exceed 2^32 but was {0}")]
     MemoryAddressOutOfBounds(u64),
+    #[error(
+        "word memory access at address {addr} in context {ctx} is unaligned at clock cycle {clk}"
+    )]
+    MemoryUnalignedWordAccess { addr: u32, ctx: ContextId, clk: Felt },
     #[error("merkle path verification failed for value {value} at index {index} in the Merkle tree with root {root} (error code: {err_code})", 
       value = to_hex(Felt::elements_as_bytes(value)),
       root = to_hex(root.as_bytes()),
@@ -129,6 +133,8 @@ pub enum ExecutionError {
       hex = to_hex(.0.as_bytes())
     )]
     SyscallTargetNotInKernel(Digest),
+    #[error("word access at memory address {addr} in context {ctx} is unaligned")]
+    UnalignedMemoryWordAccess { addr: u32, ctx: ContextId },
 }
 
 impl From<Ext2InttError> for ExecutionError {
@@ -152,6 +158,8 @@ pub enum Ext2InttError {
     InputSizeTooBig(u64),
     #[error("address of the first input must be smaller than 2^32, but was {0}")]
     InputStartAddressTooBig(u64),
+    #[error("address of the first input is not word aligned: {0}")]
+    InputStartNotWordAligned(u64),
     #[error("output size ({0}) cannot be greater than the input size ({1})")]
     OutputSizeTooBig(usize, usize),
     #[error("output size must be greater than 0")]
