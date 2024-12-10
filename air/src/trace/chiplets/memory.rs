@@ -3,8 +3,9 @@ use super::{create_range, Felt, Range, ONE, ZERO};
 // CONSTANTS
 // ================================================================================================
 
+// TODO(plafer): this was out of date - make sure it can't get out of date again.
 /// Number of columns needed to record an execution trace of the memory chiplet.
-pub const TRACE_WIDTH: usize = 12;
+pub const TRACE_WIDTH: usize = 15;
 
 /// Number of selector columns in the trace.
 pub const NUM_SELECTORS: usize = 2;

@@ -286,14 +286,26 @@ impl Chiplets {
     // MEMORY CHIPLET ACCESSORS
     // --------------------------------------------------------------------------------------------
 
+    // TODO(plafer): remove all other methods.
+    /// Returns a reference to the Memory chiplet.
+    pub fn memory(&self) -> &Memory {
+        &self.memory
+    }
+
+    /// Returns a mutable reference to the Memory chiplet.
+    pub fn memory_mut(&mut self) -> &mut Memory {
+        &mut self.memory
+    }
+
     /// Returns a word located in memory at the specified context/address while recording the
     /// memory access in the memory trace.
     ///
     /// If the specified address hasn't been previously written to, four ZERO elements are
     /// returned. This effectively implies that memory is initialized to ZERO.
-    pub fn read_mem(&mut self, ctx: ContextId, addr: u32) -> Result<Word, ExecutionError> {
+    pub fn read_mem(&mut self, ctx: ContextId, _addr: u32) -> Result<Word, ExecutionError> {
         // read the word from memory
-        self.memory.read(ctx, addr, self.clk)
+        let _ = self.memory.read_word(ctx, ZERO, self.clk);
+        todo!()
     }
 
     /// Returns two words read from consecutive addresses started with `addr` in the specified
@@ -306,19 +318,22 @@ impl Chiplets {
         ctx: ContextId,
         addr: u32,
     ) -> Result<[Word; 2], ExecutionError> {
-        // read two words from memory: from addr and from addr + 1
-        let addr2 = addr + 1;
-        Ok([self.memory.read(ctx, addr, self.clk)?, self.memory.read(ctx, addr2, self.clk)?])
+        // read two words from memory: from addr and from addr + 4
+        let _addr = addr + 4;
+        Ok([
+            self.memory.read_word(ctx, ZERO, self.clk)?,
+            self.memory.read_word(ctx, ZERO, self.clk)?,
+        ])
     }
 
     /// Writes the provided word at the specified context/address.
     pub fn write_mem(
         &mut self,
         ctx: ContextId,
-        addr: u32,
+        _addr: u32,
         word: Word,
     ) -> Result<(), ExecutionError> {
-        self.memory.write(ctx, addr, self.clk, word)
+        self.memory.write_word(ctx, ZERO, self.clk, word)
     }
 
     /// Writes the provided element into the specified context/address leaving the remaining 3
@@ -326,13 +341,13 @@ impl Chiplets {
     pub fn write_mem_element(
         &mut self,
         ctx: ContextId,
-        addr: u32,
+        _addr: u32,
         value: Felt,
     ) -> Result<Word, ExecutionError> {
-        let old_word = self.memory.get_old_value(ctx, addr);
+        let old_word = self.memory.get_old_value(ctx, ZERO);
         let new_word = [value, old_word[1], old_word[2], old_word[3]];
 
-        self.memory.write(ctx, addr, self.clk, new_word)?;
+        self.memory.write_word(ctx, ZERO, self.clk, new_word)?;
 
         Ok(old_word)
     }
@@ -345,10 +360,10 @@ impl Chiplets {
         addr: u32,
         words: [Word; 2],
     ) -> Result<(), ExecutionError> {
-        let addr2 = addr + 1;
+        let _addr2 = addr + 4;
         // write two words to memory at addr and addr + 1
-        self.memory.write(ctx, addr, self.clk, words[0])?;
-        self.memory.write(ctx, addr2, self.clk, words[1])
+        self.memory.write_word(ctx, ZERO, self.clk, words[0])?;
+        self.memory.write_word(ctx, ZERO, self.clk, words[1])
     }
 
     /// Returns a word located at the specified context/address, or None if the address hasn't
@@ -357,7 +372,7 @@ impl Chiplets {
     /// Unlike mem_read() which modifies the memory access trace, this method returns the value at
     /// the specified address (if one exists) without altering the memory access trace.
     pub fn get_mem_value(&self, ctx: ContextId, addr: u32) -> Option<Word> {
-        self.memory.get_value(ctx, addr)
+        self.memory.get_value(ctx, Felt::from(addr))
     }
 
     /// Returns the entire memory state for the specified execution context at the specified cycle.

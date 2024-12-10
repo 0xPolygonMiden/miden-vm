@@ -28,6 +28,7 @@ const INIT_MEM_VALUE: Word = EMPTY_WORD;
 // RANDOM ACCESS MEMORY
 // ================================================================================================
 
+// TODO(plafer): update
 /// Memory controller for the VM.
 ///
 /// This component is responsible for tracking current memory state of the VM, as well as for
@@ -101,9 +102,10 @@ impl Memory {
     ///
     /// Unlike read() which modifies the memory access trace, this method returns the value at the
     /// specified address (if one exists) without altering the memory access trace.
-    pub fn get_value(&self, ctx: ContextId, addr: u32) -> Option<Word> {
+    pub fn get_value(&self, ctx: ContextId, addr: Felt) -> Option<Word> {
         match self.trace.get(&ctx) {
-            Some(segment) => segment.get_value(addr),
+            // TODO(plafer): fix
+            Some(segment) => segment.get_value(addr.try_into().unwrap()),
             None => None,
         }
     }
@@ -111,7 +113,7 @@ impl Memory {
     /// Returns the word at the specified context/address which should be used as the "old value"
     /// for a write request. It will be the previously stored value, if one exists, or
     /// initialized memory.
-    pub fn get_old_value(&self, ctx: ContextId, addr: u32) -> Word {
+    pub fn get_old_value(&self, ctx: ContextId, addr: Felt) -> Word {
         // get the stored word or return [0, 0, 0, 0], since the memory is initialized with zeros
         self.get_value(ctx, addr).unwrap_or(INIT_MEM_VALUE)
     }
@@ -130,8 +132,32 @@ impl Memory {
         }
     }
 
-    // STATE ACCESSORS AND MUTATORS
+    // STATE MUTATORS
     // --------------------------------------------------------------------------------------------
+
+    /// Returns the field element located in memory at the specified context/address.
+    ///
+    /// If the specified address hasn't been previously written to, ZERO is returned. This
+    /// effectively implies that memory is initialized to ZERO.
+    ///
+    /// # Errors
+    /// - Returns an error if the address is equal or greater than 2^32.
+    /// - Returns an error if the same address is accessed more than once in the same clock cycle.
+    pub fn read(
+        &mut self,
+        ctx: ContextId,
+        addr: Felt,
+        clk: RowIndex,
+    ) -> Result<Felt, ExecutionError> {
+        let addr: u32 = addr
+            .as_int()
+            .try_into()
+            .map_err(|_| ExecutionError::MemoryAddressOutOfBounds(addr.as_int()))?;
+        self.num_trace_rows += 1;
+        let _ = self.trace.entry(ctx).or_default().read(ctx, addr, Felt::from(clk));
+        // TODO(plafer): `MemoryTraceSegment` needs to read Felts
+        todo!()
+    }
 
     /// Returns a word located in memory at the specified context/address.
     ///
@@ -139,28 +165,68 @@ impl Memory {
     /// returned. This effectively implies that memory is initialized to ZERO.
     ///
     /// # Errors
+    /// - Returns an error if the address is equal or greater than 2^32.
+    /// - Returns an error if the address is not aligned to a word boundary.
     /// - Returns an error if the same address is accessed more than once in the same clock cycle.
-    pub fn read(
+    pub fn read_word(
         &mut self,
         ctx: ContextId,
-        addr: u32,
+        addr: Felt,
         clk: RowIndex,
     ) -> Result<Word, ExecutionError> {
+        let addr: u32 = addr
+            .as_int()
+            .try_into()
+            .map_err(|_| ExecutionError::MemoryAddressOutOfBounds(addr.as_int()))?;
+        // TODO(plafer): check for alignment
         self.num_trace_rows += 1;
         self.trace.entry(ctx).or_default().read(ctx, addr, Felt::from(clk))
+    }
+
+    /// Writes the provided field element at the specified context/address.
+    ///
+    /// # Errors
+    /// - Returns an error if the address is equal or greater than 2^32.
+    /// - Returns an error if the same address is accessed more than once in the same clock cycle.
+    pub fn write(
+        &mut self,
+        ctx: ContextId,
+        addr: Felt,
+        clk: RowIndex,
+        value: Felt,
+    ) -> Result<(), ExecutionError> {
+        let addr: u32 = addr
+            .as_int()
+            .try_into()
+            .map_err(|_| ExecutionError::MemoryAddressOutOfBounds(addr.as_int()))?;
+        self.num_trace_rows += 1;
+        // TODO(plafer): fix
+        self.trace.entry(ctx).or_default().write(
+            ctx,
+            addr,
+            Felt::from(clk),
+            [value, value, value, value],
+        )
     }
 
     /// Writes the provided word at the specified context/address.
     ///
     /// # Errors
+    /// - Returns an error if the address is equal or greater than 2^32.
+    /// - Returns an error if the address is not aligned to a word boundary.
     /// - Returns an error if the same address is accessed more than once in the same clock cycle.
-    pub fn write(
+    pub fn write_word(
         &mut self,
         ctx: ContextId,
-        addr: u32,
+        addr: Felt,
         clk: RowIndex,
         value: Word,
     ) -> Result<(), ExecutionError> {
+        let addr: u32 = addr
+            .as_int()
+            .try_into()
+            .map_err(|_| ExecutionError::MemoryAddressOutOfBounds(addr.as_int()))?;
+        // TODO(plafer): check for alignment
         self.num_trace_rows += 1;
         self.trace.entry(ctx).or_default().write(ctx, addr, Felt::from(clk), value)
     }
@@ -224,7 +290,7 @@ impl Memory {
         };
 
         // iterate through addresses in ascending order, and write trace row for each memory access
-        // into the trace. we expect the trace to be 14 columns wide.
+        // into the trace. we expect the trace to be 15 columns wide.
         let mut row: RowIndex = 0.into();
 
         for (ctx, segment) in self.trace {
