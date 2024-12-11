@@ -1,3 +1,5 @@
+use std::{fs, path::Path};
+
 use assert_cmd::prelude::*;
 use predicates::prelude::*;
 extern crate escargot;
@@ -46,6 +48,7 @@ fn cli_bundle_debug() {
     let mut cmd = bin_under_test().command();
     cmd.arg("bundle").arg("--debug").arg("./tests/integration/cli/data/lib");
     cmd.assert().success();
+    fs::remove_file("./tests/integration/cli/data/out.masl").unwrap()
 }
 
 #[test]
@@ -65,6 +68,7 @@ fn cli_bundle_kernel() {
         .arg("--kernel")
         .arg("./tests/integration/cli/data/kernel_main.masm");
     cmd.assert().success();
+    fs::remove_file("./tests/integration/cli/data/out.masl").unwrap()
 }
 
 /// A kernel can bundle with a library w/o exports.
@@ -76,4 +80,17 @@ fn cli_bundle_kernel_noexports() {
         .arg("--kernel")
         .arg("./tests/integration/cli/data/kernel_main.masm");
     cmd.assert().success();
+    fs::remove_file("./tests/integration/cli/data/out.masl").unwrap()
+}
+
+#[test]
+fn cli_bundle_output() {
+    let mut cmd = bin_under_test().command();
+    cmd.arg("bundle")
+        .arg("./tests/integration/cli/data/lib")
+        .arg("--output")
+        .arg("test.masl");
+    cmd.assert().success();
+    assert!(Path::new("test.masl").exists());
+    fs::remove_file("test.masl").unwrap()
 }

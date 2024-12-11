@@ -28,6 +28,9 @@ pub struct BundleCmd {
     /// namespace.
     #[clap(short, long)]
     kernel: Option<PathBuf>,
+    /// Path of the output `.masl` file.
+    #[clap(short, long)]
+    output: Option<PathBuf>,
 }
 
 impl BundleCmd {
@@ -39,10 +42,15 @@ impl BundleCmd {
         let assembler = Assembler::default().with_debug_mode(self.debug);
 
         // write the masl output
-        let output_file = self
-            .dir
-            .join(self.namespace.as_deref().unwrap_or("out"))
-            .with_extension(Library::LIBRARY_EXTENSION);
+        let output_file = match &self.output {
+            Some(output) => output,
+            None => &self
+                .dir
+                .parent()
+                .expect("Invalid output path")
+                .join("out")
+                .with_extension(Library::LIBRARY_EXTENSION),
+        };
 
         match &self.kernel {
             Some(kernel) => {
