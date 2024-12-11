@@ -25,7 +25,7 @@ pub struct BundleCmd {
     #[clap(short, long, default_value = "0.1.0")]
     version: String,
     /// Build a kernel library from module `kernel` and using the library `dir` as kernel
-    /// namespace.
+    /// namespace. The `kernel` file should not be in the directory `dir`.
     #[clap(short, long)]
     kernel: Option<PathBuf>,
     /// Path of the output `.masl` file.
