@@ -44,14 +44,14 @@ fn cli_run() -> Result<(), Box<dyn std::error::Error>> {
 #[test]
 fn cli_bundle_debug() {
     let mut cmd = bin_under_test().command();
-    cmd.arg("bundle").arg("--debug").arg("./masm-examples/bundle/lib");
+    cmd.arg("bundle").arg("--debug").arg("./tests/integration/cli/data/lib");
     cmd.assert().success();
 }
 
 #[test]
 fn cli_bundle_no_exports() {
     let mut cmd = bin_under_test().command();
-    cmd.arg("bundle").arg("./masm-examples/bundle/lib_noexports");
+    cmd.arg("bundle").arg("./tests/integration/cli/data/lib_noexports");
     cmd.assert()
         .failure()
         .stderr(predicate::str::contains("library must contain at least one exported procedure"));
@@ -61,9 +61,9 @@ fn cli_bundle_no_exports() {
 fn cli_bundle_kernel() {
     let mut cmd = bin_under_test().command();
     cmd.arg("bundle")
-        .arg("./masm-examples/bundle/lib")
+        .arg("./tests/integration/cli/data/lib")
         .arg("--kernel")
-        .arg("./masm-examples/bundle/kernel_main.masm");
+        .arg("./tests/integration/cli/data/kernel_main.masm");
     cmd.assert().success();
 }
 
@@ -72,8 +72,8 @@ fn cli_bundle_kernel() {
 fn cli_bundle_kernel_noexports() {
     let mut cmd = bin_under_test().command();
     cmd.arg("bundle")
-        .arg("./masm-examples/bundle/lib_noexports")
+        .arg("./tests/integration/cli/data/lib_noexports")
         .arg("--kernel")
-        .arg("./masm-examples/bundle/kernel_main.masm");
+        .arg("./tests/integration/cli/data/kernel_main.masm");
     cmd.assert().success();
 }
