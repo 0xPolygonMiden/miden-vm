@@ -19,7 +19,7 @@ use crate::{
 pub const NUM_ASSERTIONS: usize = 2;
 /// The number of transition constraints required by the Range Checker.
 pub const NUM_CONSTRAINTS: usize = 1;
-/// The degrees of the range checker's constraints, in the order they'll be added to the the result
+/// The degrees of the range checker's constraints, in the order they'll be added to  the result
 /// array when a transition is evaluated.
 pub const CONSTRAINT_DEGREES: [usize; NUM_CONSTRAINTS] = [
     9, // Enforce values of column v transition.

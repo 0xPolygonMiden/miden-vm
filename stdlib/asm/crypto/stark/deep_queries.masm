@@ -28,7 +28,7 @@ use.std::crypto::stark::constants
 #!
 #!
 #! Here:
-#! 1- Ti for i in 0..=7 stands for the the value of the i-th trace polynomial for the current query i.e. T_i(x).
+#! 1- Ti for i in 0..=7 stands for  the value of the i-th trace polynomial for the current query i.e. T_i(x).
 #! 2- (p0, p1) stands for an extension field element accumulating the values for the quotients with common denominator (x - gz).
 #! 3- (r0, r1) stands for an extension field element accumulating the values for the quotients with common denominator (x - z).
 #! 4- x_addr is the memory address from which we are loading the Ti's using the MSTREAM instruction.
@@ -149,7 +149,7 @@ end
 #!
 #!
 #! Here:
-#! 1- Tij for i in 0..=3 and j=0,1 stands for the the value of the j-th coordinate in the quadratic extension field
+#! 1- Tij for i in 0..=3 and j=0,1 stands for  the value of the j-th coordinate in the quadratic extension field
 #! of the i-th auxiliary trace polynomial for the current query i.e. $T_i(x)$.
 #! 2- (p0, p1) stands for an extension field element accumulating the values for the quotients with common denominator (x - gz).
 #! 3- (r0, r1) stands for an extension field element accumulating the values for the quotients with common denominator (x - z).

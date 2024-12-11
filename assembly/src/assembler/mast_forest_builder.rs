@@ -489,7 +489,7 @@ impl IndexMut<DecoratorId> for MastForestBuilder {
 
 /// Determines if we want to merge a block with other blocks. Currently, this works as follows:
 /// - If the block is a procedure, we merge it only if the number of operation batches is smaller
-///   then the threshold (currently set at 32). The reasoning is based on an estimate of the the
+///   then the threshold (currently set at 32). The reasoning is based on an estimate of  the
 ///   runtime penalty of not inlining the procedure. We assume that this penalty is roughly 3 extra
 ///   nodes in the MAST and so would require 3 additional hashes at runtime. Since hashing each
 ///   operation batch requires 1 hash, this basically implies that if the runtime penalty is more

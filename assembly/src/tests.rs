@@ -2209,7 +2209,7 @@ fn program_with_reexported_proc_in_another_library() -> TestResult {
     let dummy_library =
         Assembler::new(source_manager).with_module(ref_ast)?.assemble_library([ast])?;
 
-    // Now we want to use the the library we've compiled
+    // Now we want to use  the library we've compiled
     context.add_library(&dummy_library)?;
 
     let source = source_file!(

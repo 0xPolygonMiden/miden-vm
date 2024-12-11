@@ -44,7 +44,7 @@ impl MemorySegmentTrace {
 
         // since we record memory state at the end of a given cycle, to get memory state at the end
         // of a cycle, we need to look at the previous cycle. that is, memory state at the end of
-        // the previous cycle is the same as memory state the the beginning of the current cycle.
+        // the previous cycle is the same as memory state  the beginning of the current cycle.
         let search_clk: u64 = (clk - 1).into();
 
         for (&addr, addr_trace) in self.0.iter() {

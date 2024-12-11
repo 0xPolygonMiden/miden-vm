@@ -44,7 +44,7 @@ where
     ///
     /// Here:
     ///
-    /// 1. Ti for i in 0..=7 stands for the the value of the i-th trace polynomial for the current
+    /// 1. Ti for i in 0..=7 stands for  the value of the i-th trace polynomial for the current
     ///    query i.e. T_i(x).
     /// 2. (p0, p1) stands for an extension field element accumulating the values for the quotients
     ///    with common denominator (x - z).
