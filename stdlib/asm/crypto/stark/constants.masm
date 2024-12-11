@@ -39,11 +39,15 @@ const.COMPOSITION_COEF_PTR=4294900200
 
 # We need 2 Felt for each trace column and each of the 8 constraint composition columns. We thus need
 # (70 + 7 + 8) * 2 Felt i.e. 43 memory slots.
+# Note that there is a cap on the number of such coefficients so that the memory region allocated for
+# these coefficients does not overlap with the memory region storing the FRI queries.
+# This cap is of a 100 coefficients which is equivalent to 50 memory slots. This gives 150 memory
+# slots for all of the FRI queries i.e., 150 FRI queries.
 const.DEEP_RAND_CC_PTR=4294903000
 
 # FRI
 #
-#       (FRI_COM_PTR - 100)    ---|
+#       (FRI_COM_PTR - 150)    ---|
 #              .
 #              .                  | <- FRI queries
 #              .
