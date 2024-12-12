@@ -43,12 +43,21 @@ fn cli_run() -> Result<(), Box<dyn std::error::Error>> {
     Ok(())
 }
 
+use assembly::{mast::MastNode, Library};
+
 #[test]
 fn cli_bundle_debug() {
     let mut cmd = bin_under_test().command();
     cmd.arg("bundle").arg("--debug").arg("./tests/integration/cli/data/lib");
     cmd.assert().success();
-    fs::remove_file("./tests/integration/cli/data/out.masl").unwrap()
+
+    let lib = Library::deserialize_from_file("./tests/integration/cli/data/out.masl").unwrap();
+    let found_one_decorator = lib.mast_forest().nodes().iter().any(|node| match node {
+        MastNode::Block(node) => !node.decorators().is_empty(),
+        _ => false,
+    });
+    assert!(found_one_decorator);
+    fs::remove_file("./tests/integration/cli/data/out.masl").unwrap();
 }
 
 #[test]
