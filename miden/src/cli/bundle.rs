@@ -5,11 +5,12 @@ use assembly::{
     Assembler, KernelLibrary, Library, LibraryNamespace,
 };
 use clap::Parser;
+use stdlib::StdLibrary;
 
 #[derive(Debug, Clone, Parser)]
 #[clap(
     name = "Compile Library",
-    about = "Bundles .masm files into a single .masl library"
+    about = "Bundles .masm files into a single .masl library with access to the stdlib."
 )]
 pub struct BundleCmd {
     /// Include debug symbols.
@@ -39,7 +40,7 @@ impl BundleCmd {
         println!("Build library");
         println!("============================================================");
 
-        let assembler = Assembler::default().with_debug_mode(self.debug);
+        let mut assembler = Assembler::default().with_debug_mode(self.debug);
 
         // write the masl output
         let output_file = match &self.output {
@@ -55,6 +56,7 @@ impl BundleCmd {
         match &self.kernel {
             Some(kernel) => {
                 assert!(kernel.is_file(), "kernel must be a file");
+                assembler.add_library(StdLibrary::default())?;
                 let library = KernelLibrary::from_dir(kernel, Some(&self.dir), assembler)?;
                 library.write_to_file(output_file).into_diagnostic()?;
                 println!(
@@ -75,6 +77,7 @@ impl BundleCmd {
                 };
                 let library_namespace =
                     namespace.parse::<LibraryNamespace>().expect("invalid base namespace");
+                assembler.add_library(StdLibrary::default())?;
                 let library = Library::from_dir(&self.dir, library_namespace, assembler)?;
                 library.write_to_file(output_file).into_diagnostic()?;
                 println!("Built library {}", namespace);
