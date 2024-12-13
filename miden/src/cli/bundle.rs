@@ -19,7 +19,8 @@ pub struct BundleCmd {
     /// Path to a directory containing the `.masm` files which are part of the library.
     #[clap(value_parser)]
     dir: PathBuf,
-    /// Defines the top-level namespace, e.g. `mylib`, otherwise the directory name is used.
+    /// Defines the top-level namespace, e.g. `mylib`, otherwise the directory name is used. For a
+    /// kernel library the namespace defaults to `kernel`.
     #[clap(short, long)]
     namespace: Option<String>,
     /// Version of the library, defaults to `0.1.0`.
@@ -42,20 +43,26 @@ impl BundleCmd {
 
         let mut assembler = Assembler::default().with_debug_mode(self.debug);
 
+        if self.dir.is_file() {
+            return Err(Report::msg("`dir` must be a directory."));
+        }
+        let dir = self.dir.file_name().ok_or("`dir` cannot end with `..`.").map_err(Report::msg)?;
+
         // write the masl output
         let output_file = match &self.output {
             Some(output) => output,
-            None => &self
-                .dir
-                .parent()
-                .expect("Invalid output path")
-                .join("out")
-                .with_extension(Library::LIBRARY_EXTENSION),
+            None => {
+                let parent =
+                    &self.dir.parent().ok_or("Invalid output path").map_err(Report::msg)?;
+                &parent.join("out").with_extension(Library::LIBRARY_EXTENSION)
+            },
         };
 
         match &self.kernel {
             Some(kernel) => {
-                assert!(kernel.is_file(), "kernel must be a file");
+                if !kernel.is_file() {
+                    return Err(Report::msg("`kernel` must be a file"));
+                };
                 assembler.add_library(StdLibrary::default())?;
                 let library = KernelLibrary::from_dir(kernel, Some(&self.dir), assembler)?;
                 library.write_to_file(output_file).into_diagnostic()?;
@@ -68,15 +75,9 @@ impl BundleCmd {
             None => {
                 let namespace = match &self.namespace {
                     Some(namespace) => namespace.to_string(),
-                    None => self
-                        .dir
-                        .file_name()
-                        .expect("dir must be a folder")
-                        .to_string_lossy()
-                        .into_owned(),
+                    None => dir.to_string_lossy().into_owned(),
                 };
-                let library_namespace =
-                    namespace.parse::<LibraryNamespace>().expect("invalid base namespace");
+                let library_namespace = namespace.parse::<LibraryNamespace>()?;
                 assembler.add_library(StdLibrary::default())?;
                 let library = Library::from_dir(&self.dir, library_namespace, assembler)?;
                 library.write_to_file(output_file).into_diagnostic()?;
