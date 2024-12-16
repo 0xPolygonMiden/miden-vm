@@ -43,7 +43,8 @@ fn cli_run() -> Result<(), Box<dyn std::error::Error>> {
     Ok(())
 }
 
-use assembly::{mast::MastNode, Library};
+use assembly::Library;
+use vm_core::Decorator;
 
 #[test]
 fn cli_bundle_debug() {
@@ -52,11 +53,10 @@ fn cli_bundle_debug() {
     cmd.assert().success();
 
     let lib = Library::deserialize_from_file("./tests/integration/cli/data/out.masl").unwrap();
-    let found_one_decorator = lib.mast_forest().nodes().iter().any(|node| match node {
-        MastNode::Block(node) => !node.decorators().is_empty(),
-        _ => false,
-    });
-    assert!(found_one_decorator);
+    // If there are any AsmOp decorators in the forest, the bundle is in debug mode.
+    let found_one_asm_op =
+        lib.mast_forest().decorators().iter().any(|d| matches!(d, Decorator::AsmOp(_)));
+    assert!(found_one_asm_op);
     fs::remove_file("./tests/integration/cli/data/out.masl").unwrap();
 }
 
