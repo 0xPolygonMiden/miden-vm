@@ -1,22 +1,23 @@
 use alloc::vec::Vec;
 
 use rand_utils::rand_value;
+use vm_core::{Felt, FieldElement};
 
 use super::{
-    EvaluationFrame, MEMORY_ADDR_COL_IDX, MEMORY_CLK_COL_IDX, MEMORY_CTX_COL_IDX,
+    EvaluationFrame, MEMORY_BATCH_COL_IDX, MEMORY_CLK_COL_IDX, MEMORY_CTX_COL_IDX,
     MEMORY_D0_COL_IDX, MEMORY_D1_COL_IDX, MEMORY_D_INV_COL_IDX, MEMORY_V_COL_RANGE,
-    NUM_ELEMENTS_IN_BATCH,
 };
 use crate::{
     chiplets::memory,
     trace::{
         chiplets::{
-            memory::{Selectors, MEMORY_COPY_READ, MEMORY_INIT_READ, MEMORY_WRITE_SELECTOR},
-            MEMORY_TRACE_OFFSET,
+            memory::{MEMORY_ACCESS_WORD, MEMORY_READ, MEMORY_WRITE, NUM_ELEMENTS_IN_BATCH},
+            MEMORY_ELEMENT_OR_WORD_COL_IDX, MEMORY_FLAG_SAME_BATCH_AND_CONTEXT,
+            MEMORY_IDX0_COL_IDX, MEMORY_IDX1_COL_IDX, MEMORY_READ_WRITE_COL_IDX,
         },
         TRACE_WIDTH,
     },
-    Felt, FieldElement, ONE, ZERO,
+    ONE, ZERO,
 };
 
 // UNIT TESTS
@@ -24,37 +25,25 @@ use crate::{
 
 #[test]
 fn test_memory_write() {
-    let expected = [ZERO; memory::NUM_CONSTRAINTS];
+    let expected_constraint_evals = [ZERO; memory::NUM_CONSTRAINTS];
 
-    let old_values = vec![0, 0, 0, 0];
-    let new_values = vec![1, 0, 0, 0];
+    let old_word = vec![0, 0, 0, 0];
+    let new_word = vec![1, 0, 0, 0];
 
     // Write to a new context.
-    let result = get_constraint_evaluation(
-        MEMORY_WRITE_SELECTOR,
-        MemoryTestDeltaType::Context,
-        &old_values,
-        &new_values,
-    );
-    assert_eq!(expected, result);
+    let result =
+        get_constraint_evaluation(MEMORY_WRITE, MemoryTestDeltaType::Context, &old_word, &new_word);
+    assert_eq!(expected_constraint_evals, result);
 
     // Write to a new address in the same context.
-    let result = get_constraint_evaluation(
-        MEMORY_WRITE_SELECTOR,
-        MemoryTestDeltaType::Address,
-        &old_values,
-        &new_values,
-    );
-    assert_eq!(expected, result);
+    let result =
+        get_constraint_evaluation(MEMORY_WRITE, MemoryTestDeltaType::Batch, &old_word, &new_word);
+    assert_eq!(expected_constraint_evals, result);
 
     // Write to the same context and address at a new clock cycle.
-    let result = get_constraint_evaluation(
-        MEMORY_WRITE_SELECTOR,
-        MemoryTestDeltaType::Clock,
-        &old_values,
-        &new_values,
-    );
-    assert_eq!(expected, result);
+    let result =
+        get_constraint_evaluation(MEMORY_WRITE, MemoryTestDeltaType::Clock, &old_word, &new_word);
+    assert_eq!(expected_constraint_evals, result);
 }
 
 #[test]
@@ -66,7 +55,7 @@ fn test_memory_read() {
 
     // Read from a new context.
     let result = get_constraint_evaluation(
-        MEMORY_INIT_READ,
+        MEMORY_READ,
         MemoryTestDeltaType::Context,
         &old_values,
         &init_values,
@@ -75,8 +64,8 @@ fn test_memory_read() {
 
     // Read from a new address in the same context.
     let result = get_constraint_evaluation(
-        MEMORY_INIT_READ,
-        MemoryTestDeltaType::Address,
+        MEMORY_READ,
+        MemoryTestDeltaType::Batch,
         &old_values,
         &init_values,
     );
@@ -84,7 +73,7 @@ fn test_memory_read() {
 
     // Read from the same context and address at a new clock cycle.
     let result = get_constraint_evaluation(
-        MEMORY_COPY_READ,
+        MEMORY_READ,
         MemoryTestDeltaType::Clock,
         &old_values,
         &old_values,
@@ -101,7 +90,7 @@ fn test_memory_read() {
 /// - Clock: when the delta occurs in the clock column, context and address must stay fixed.
 enum MemoryTestDeltaType {
     Context,
-    Address,
+    Batch,
     Clock,
 }
 
@@ -114,17 +103,17 @@ enum MemoryTestDeltaType {
 /// - To test a valid read, the `delta_type` must be Clock and the `old_values` and `new_values`
 ///   must be equal.
 fn get_constraint_evaluation(
-    selectors: Selectors,
+    read_write: Felt,
     delta_type: MemoryTestDeltaType,
     old_values: &[u32],
     new_values: &[u32],
 ) -> [Felt; memory::NUM_CONSTRAINTS] {
     let delta_row = get_test_delta_row(&delta_type);
-    let frame = get_test_frame(selectors, &delta_type, &delta_row, old_values, new_values);
+    let frame = get_test_frame(read_write, &delta_type, &delta_row, old_values, new_values);
 
     let mut result = [ZERO; memory::NUM_CONSTRAINTS];
 
-    memory::enforce_constraints(&frame, &mut result, ONE);
+    memory::enforce_constraints(&frame, &mut result, ONE, ONE, ZERO);
 
     result
 }
@@ -142,7 +131,7 @@ fn get_constraint_evaluation(
 ///   row.
 /// - `new_values`: specifies the new values, which are placed in the value columns of the next row.
 fn get_test_frame(
-    selectors: Selectors,
+    read_write: Felt,
     delta_type: &MemoryTestDeltaType,
     delta_row: &[u64],
     old_values: &[u32],
@@ -152,12 +141,12 @@ fn get_test_frame(
     let mut next = vec![ZERO; TRACE_WIDTH];
 
     // Set the operation in the next row.
-    next[MEMORY_TRACE_OFFSET] = selectors[0];
-    next[MEMORY_TRACE_OFFSET + 1] = selectors[1];
+    next[MEMORY_READ_WRITE_COL_IDX] = read_write;
+    next[MEMORY_ELEMENT_OR_WORD_COL_IDX] = MEMORY_ACCESS_WORD;
 
     // Set the context, addr, and clock columns in the next row to the values in the delta row.
     next[MEMORY_CTX_COL_IDX] = Felt::new(delta_row[0]);
-    next[MEMORY_ADDR_COL_IDX] = Felt::new(delta_row[1]);
+    next[MEMORY_BATCH_COL_IDX] = Felt::new(delta_row[1]);
     next[MEMORY_CLK_COL_IDX] = Felt::new(delta_row[2]);
 
     // Set the old and new values.
@@ -178,27 +167,40 @@ fn get_test_frame(
     let delta: u64 = match delta_type {
         MemoryTestDeltaType::Clock => delta_row[MemoryTestDeltaType::Clock as usize] - 1,
         MemoryTestDeltaType::Context => delta_row[MemoryTestDeltaType::Context as usize],
-        MemoryTestDeltaType::Address => delta_row[MemoryTestDeltaType::Address as usize],
+        MemoryTestDeltaType::Batch => delta_row[MemoryTestDeltaType::Batch as usize],
     };
     next[MEMORY_D0_COL_IDX] = Felt::new(delta as u16 as u64);
     next[MEMORY_D1_COL_IDX] = Felt::new(delta >> 16);
     next[MEMORY_D_INV_COL_IDX] = (Felt::new(delta)).inv();
 
+    // since we're always writing a word, the idx0 and idx1 columns should be zero
+    next[MEMORY_IDX0_COL_IDX] = ZERO;
+    next[MEMORY_IDX1_COL_IDX] = ZERO;
+
+    // If the context or batch columns are changed, the same batch and context flag should be zero.
+    if delta_row[MemoryTestDeltaType::Batch as usize] > 0
+        || delta_row[MemoryTestDeltaType::Context as usize] > 0
+    {
+        next[MEMORY_FLAG_SAME_BATCH_AND_CONTEXT] = ZERO;
+    } else {
+        next[MEMORY_FLAG_SAME_BATCH_AND_CONTEXT] = ONE;
+    }
+
     EvaluationFrame::<Felt>::from_rows(current, next)
 }
 
-/// Generates a row of valid test values for the context, address, and clock columns according to
+/// Generates a row of valid test values for the context, batch, and clock columns according to
 /// the specified delta type, which determines the column over which the delta and delta inverse
 /// values of the trace would be calculated.
 ///
 /// - When the delta type is Context, the address and clock columns can be anything.
-/// - When the delta type is Address, the context must remain unchanged but the clock can change.
+/// - When the delta type is Batch, the context must remain unchanged but the clock can change.
 /// - When the delta type is Clock, both the context and address columns must remain unchanged.
 fn get_test_delta_row(delta_type: &MemoryTestDeltaType) -> Vec<u64> {
-    let delta_value = rand_value::<u32>() as u64;
+    let delta_value = word_aligned_rand_value() as u64;
     let mut row = vec![0; 3];
     let ctx_idx = MemoryTestDeltaType::Context as usize;
-    let addr_idx = MemoryTestDeltaType::Address as usize;
+    let batch_idx = MemoryTestDeltaType::Batch as usize;
     let clk_idx = MemoryTestDeltaType::Clock as usize;
 
     // Set the context, addr, and clock columns according to the specified delta type.
@@ -208,13 +210,13 @@ fn get_test_delta_row(delta_type: &MemoryTestDeltaType) -> Vec<u64> {
             row[ctx_idx] = delta_value;
 
             // Set addr and clock in the row column to random values.
-            row[addr_idx] = rand_value::<u32>() as u64;
+            row[batch_idx] = word_aligned_rand_value() as u64;
             row[clk_idx] = rand_value::<u32>() as u64;
         },
-        MemoryTestDeltaType::Address => {
+        MemoryTestDeltaType::Batch => {
             // Keep the context value the same in current and row rows (leave it as ZERO).
             // Set the row value for the address.
-            row[addr_idx] = delta_value;
+            row[batch_idx] = delta_value;
 
             // Set clock in the row column to a random value.
             row[clk_idx] = rand_value::<u32>() as u64;
@@ -227,4 +229,10 @@ fn get_test_delta_row(delta_type: &MemoryTestDeltaType) -> Vec<u64> {
     }
 
     row
+}
+
+/// Returns a random value that is aligned to a word boundary (i.e. divisible by 4).
+fn word_aligned_rand_value() -> u32 {
+    let value = rand_value::<u32>();
+    value - (value % 4)
 }
