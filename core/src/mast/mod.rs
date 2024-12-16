@@ -465,6 +465,10 @@ impl MastForest {
         &self.nodes
     }
 
+    pub fn decorators(&self) -> &[Decorator] {
+        &self.decorators
+    }
+
     pub fn advice_map(&self) -> &AdviceMap {
         &self.advice_map
     }

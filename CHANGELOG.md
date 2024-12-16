@@ -11,6 +11,7 @@
 - [BREAKING] Use `thiserror` 2.0 to derive errors and refactor them (#1588).
 
 #### Enhancements
+- Added options `--kernel`, `--debug` and `--output` to `miden bundle` (#1447).
 - Added `miden_core::mast::MastForest::advice_map` to load it into the advice provider before the `MastForest` execution (#1574).
 
 ## 0.11.0 (2024-11-04)
