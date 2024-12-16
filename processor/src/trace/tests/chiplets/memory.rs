@@ -3,7 +3,7 @@ use miden_air::{
         memory::{
             MEMORY_READ_LABEL, MEMORY_WRITE_LABEL, MEMORY_WRITE_SELECTOR, NUM_ELEMENTS_IN_BATCH,
         },
-        MEMORY_ADDR_COL_IDX, MEMORY_CLK_COL_IDX, MEMORY_CTX_COL_IDX, MEMORY_SELECTORS_COL_IDX,
+        MEMORY_BATCH_COL_IDX, MEMORY_CLK_COL_IDX, MEMORY_CTX_COL_IDX, MEMORY_SELECTORS_COL_IDX,
         MEMORY_V_COL_RANGE,
     },
     RowIndex,
@@ -187,7 +187,7 @@ fn build_expected_memory_from_trace(
 
     // get the memory access data
     let ctx = trace.main_trace.get_column(MEMORY_CTX_COL_IDX)[row];
-    let addr = trace.main_trace.get_column(MEMORY_ADDR_COL_IDX)[row];
+    let addr = trace.main_trace.get_column(MEMORY_BATCH_COL_IDX)[row];
     let clk = trace.main_trace.get_column(MEMORY_CLK_COL_IDX)[row];
 
     // get the memory value

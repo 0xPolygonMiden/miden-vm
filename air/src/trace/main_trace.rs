@@ -9,7 +9,7 @@ use super::{
     chiplets::{
         hasher::{DIGEST_LEN, HASH_CYCLE_LEN, STATE_WIDTH},
         BITWISE_A_COL_IDX, BITWISE_B_COL_IDX, BITWISE_OUTPUT_COL_IDX, HASHER_NODE_INDEX_COL_IDX,
-        HASHER_STATE_COL_RANGE, MEMORY_ADDR_COL_IDX, MEMORY_CLK_COL_IDX, MEMORY_CTX_COL_IDX,
+        HASHER_STATE_COL_RANGE, MEMORY_BATCH_COL_IDX, MEMORY_CLK_COL_IDX, MEMORY_CTX_COL_IDX,
         MEMORY_V_COL_RANGE,
     },
     decoder::{
@@ -372,7 +372,7 @@ impl MainTrace {
 
     /// Returns the i-th row of the chiplet column containing memory address.
     pub fn chiplet_memory_addr(&self, i: RowIndex) -> Felt {
-        self.columns.get_column(MEMORY_ADDR_COL_IDX)[i]
+        self.columns.get_column(MEMORY_BATCH_COL_IDX)[i]
     }
 
     /// Returns the i-th row of the chiplet column containing clock cycle.

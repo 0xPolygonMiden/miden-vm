@@ -86,13 +86,23 @@ pub const BITWISE_OUTPUT_COL_IDX: usize = BITWISE_TRACE_OFFSET + bitwise::OUTPUT
 
 // --- GLOBALLY-INDEXED CHIPLET COLUMN ACCESSORS: MEMORY ------------------------------------------
 
+// TODO(plafer): remove unused constants at the end
 /// The index within the main trace of the column containing the first memory selector, which
 /// indicates the operation (read or write).
 pub const MEMORY_SELECTORS_COL_IDX: usize = MEMORY_TRACE_OFFSET;
+/// The index within the main trace of the column containing the memory read/write column.
+pub const MEMORY_READ_WRITE_COL_IDX: usize = MEMORY_TRACE_OFFSET + memory::READ_WRITE_COL_IDX;
+/// The index within the main trace of the column containing the memory element/word column.
+pub const MEMORY_ELEMENT_OR_WORD_COL_IDX: usize =
+    MEMORY_TRACE_OFFSET + memory::ELEMENT_OR_WORD_COL_IDX;
 /// The index within the main trace of the column containing the memory context.
 pub const MEMORY_CTX_COL_IDX: usize = MEMORY_TRACE_OFFSET + memory::CTX_COL_IDX;
 /// The index within the main trace of the column containing the memory address.
-pub const MEMORY_ADDR_COL_IDX: usize = MEMORY_TRACE_OFFSET + memory::BATCH_COL_IDX;
+pub const MEMORY_BATCH_COL_IDX: usize = MEMORY_TRACE_OFFSET + memory::BATCH_COL_IDX;
+/// The index within the main trace of the column containing the 0'th memory index.
+pub const MEMORY_IDX0_COL_IDX: usize = MEMORY_TRACE_OFFSET + memory::IDX0_COL_IDX;
+/// The index within the main trace of the column containing the 1st memory index.
+pub const MEMORY_IDX1_COL_IDX: usize = MEMORY_TRACE_OFFSET + memory::IDX1_COL_IDX;
 /// The index within the main trace of the column containing the clock cycle of the memory
 /// access.
 pub const MEMORY_CLK_COL_IDX: usize = MEMORY_TRACE_OFFSET + memory::CLK_COL_IDX;
@@ -111,3 +121,7 @@ pub const MEMORY_D1_COL_IDX: usize = MEMORY_TRACE_OFFSET + memory::D1_COL_IDX;
 /// memory context IDs, addresses, or clock cycles, used to enforce that changes are correctly
 /// constrained.
 pub const MEMORY_D_INV_COL_IDX: usize = MEMORY_TRACE_OFFSET + memory::D_INV_COL_IDX;
+/// Column to hold the flag indicating whether the current memory operation is in the same batch and
+/// same context as the previous operation.
+pub const MEMORY_FLAG_SAME_BATCH_AND_CONTEXT: usize =
+    MEMORY_TRACE_OFFSET + memory::FLAG_SAME_BATCH_AND_CONTEXT;
