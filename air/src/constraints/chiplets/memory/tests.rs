@@ -1,7 +1,7 @@
 use alloc::vec::Vec;
 
 use rand_utils::rand_value;
-use vm_core::{Felt, FieldElement};
+use vm_core::{Felt, FieldElement, WORD_SIZE};
 
 use super::{
     EvaluationFrame, MEMORY_BATCH_COL_IDX, MEMORY_CLK_COL_IDX, MEMORY_CTX_COL_IDX,
@@ -11,7 +11,7 @@ use crate::{
     chiplets::memory,
     trace::{
         chiplets::{
-            memory::{MEMORY_ACCESS_WORD, MEMORY_READ, MEMORY_WRITE, NUM_ELEMENTS_IN_BATCH},
+            memory::{MEMORY_ACCESS_WORD, MEMORY_READ, MEMORY_WRITE},
             MEMORY_ELEMENT_OR_WORD_COL_IDX, MEMORY_FLAG_SAME_BATCH_AND_CONTEXT,
             MEMORY_IDX0_COL_IDX, MEMORY_IDX1_COL_IDX, MEMORY_READ_WRITE_COL_IDX,
         },
@@ -150,7 +150,7 @@ fn get_test_frame(
     next[MEMORY_CLK_COL_IDX] = Felt::new(delta_row[2]);
 
     // Set the old and new values.
-    for idx in 0..NUM_ELEMENTS_IN_BATCH {
+    for idx in 0..WORD_SIZE {
         let old_value = Felt::new(old_values[idx] as u64);
         // Add a write for the old values to the current row.
         current[MEMORY_V_COL_RANGE.start + idx] = old_value;
