@@ -238,6 +238,17 @@ impl ModuleGraph {
         Ok(module_id)
     }
 
+    pub fn add_ast_modules(
+        &mut self,
+        modules: impl Iterator<Item = Box<Module>>,
+    ) -> Result<Vec<ModuleIndex>, AssemblyError> {
+        let idx = modules
+            .into_iter()
+            .map(|m| self.add_module(PendingWrappedModule::Ast(m)))
+            .collect::<Result<Vec<ModuleIndex>, _>>()?;
+        self.recompute()?;
+        Ok(idx)
+    }
     fn is_pending(&self, path: &LibraryPath) -> bool {
         self.pending.iter().any(|m| m.path() == path)
     }
