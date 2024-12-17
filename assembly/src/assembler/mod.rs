@@ -281,14 +281,16 @@ impl Assembler {
     /// # Errors
     ///
     /// Returns an error if parsing or compilation of the specified modules fails.
-    pub fn assemble_library(
+    pub fn assemble_common(
         mut self,
         modules: impl IntoIterator<Item = impl Compile>,
+        options: CompileOptions,
     ) -> Result<Library, Report> {
+        // TODO use add_module_with_options
         let ast_module_indices =
             modules.into_iter().try_fold(Vec::default(), |mut acc, module| {
                 module
-                    .compile_with_options(&self.source_manager, CompileOptions::for_library())
+                    .compile_with_options(&self.source_manager, options.clone())
                     .and_then(|module| {
                         self.module_graph.add_ast_module(module).map_err(Report::from)
                     })
@@ -338,53 +340,25 @@ impl Assembler {
         Ok(Library::new(mast_forest.into(), exports)?)
     }
 
+    pub fn assemble_library(
+        self,
+        modules: impl IntoIterator<Item = impl Compile>,
+    ) -> Result<Library, Report> {
+        self.assemble_common(modules, CompileOptions::for_library())
+    }
+
     /// Assembles the provided module into a [KernelLibrary] intended to be used as a Kernel.
     ///
     /// # Errors
     ///
     /// Returns an error if parsing or compilation of the specified modules fails.
-    pub fn assemble_kernel(mut self, module: impl Compile) -> Result<KernelLibrary, Report> {
+    pub fn assemble_kernel(self, module: impl Compile) -> Result<KernelLibrary, Report> {
         let options = CompileOptions {
             kind: ModuleKind::Kernel,
             warnings_as_errors: self.warnings_as_errors,
             path: Some(LibraryPath::from(LibraryNamespace::Kernel)),
         };
-
-        let module = module.compile_with_options(&self.source_manager, options)?;
-        let module_idx = self.module_graph.add_ast_module(module)?;
-
-        self.module_graph.recompute()?;
-
-        let mut mast_forest_builder = MastForestBuilder::default();
-
-        // Note: it is safe to use `unwrap_ast()` here, since all modules looped over are
-        // AST (we just added them to the module graph)
-        let ast_module = self.module_graph[module_idx].unwrap_ast().clone();
-
-        let mut exports = ast_module
-            .exported_procedures()
-            .map(|(proc_idx, fqn)| {
-                let gid = module_idx + proc_idx;
-                self.compile_subgraph(gid, &mut mast_forest_builder)?;
-
-                let proc_root_node_id = mast_forest_builder
-                    .get_procedure(gid)
-                    .expect("compilation succeeded but root not found in cache")
-                    .body_node_id();
-                Ok((fqn, proc_root_node_id))
-            })
-            .collect::<Result<BTreeMap<_, _>, Report>>()?;
-
-        // TODO: show a warning if library exports are empty?
-        let (mast_forest, id_remappings) = mast_forest_builder.build();
-        if let Some(id_remappings) = id_remappings {
-            for (_proc_name, node_id) in exports.iter_mut() {
-                if let Some(&new_node_id) = id_remappings.get(node_id) {
-                    *node_id = new_node_id;
-                }
-            }
-        }
-        let library = Library::new(mast_forest.into(), exports)?;
+        let library = self.assemble_common([module], options)?;
         Ok(library.try_into()?)
     }
 
