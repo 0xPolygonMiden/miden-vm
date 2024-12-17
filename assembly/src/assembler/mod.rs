@@ -170,19 +170,35 @@ impl Assembler {
         module: impl Compile,
         options: CompileOptions,
     ) -> Result<ModuleIndex, Report> {
-        let kind = options.kind;
-        if kind == ModuleKind::Executable {
-            return Err(Report::msg("Executables are supported by `add_module_with_options`"));
-        }
-
-        let module = module.compile_with_options(&self.source_manager, options)?;
-        assert_eq!(module.kind(), kind, "expected module kind to match compilation options");
-
-        let id = self.module_graph.add_ast_module(module)?;
-
-        Ok(id)
+        let ids = self.add_modules_with_options(vec![module], options)?;
+        Ok(ids[0])
     }
 
+    pub fn add_modules_with_options(
+        &mut self,
+        modules: impl IntoIterator<Item = impl Compile>,
+        options: CompileOptions,
+    ) -> Result<Vec<ModuleIndex>, Report> {
+        let kind = options.kind;
+        if kind == ModuleKind::Executable {
+            return Err(Report::msg("Executables are not supported by `add_module_with_options`"));
+        }
+
+        let modules = modules
+            .into_iter()
+            .map(|module| {
+                let module = module.compile_with_options(&self.source_manager, options.clone())?;
+                assert_eq!(
+                    module.kind(),
+                    kind,
+                    "expected module kind to match compilation options"
+                );
+                Ok(module)
+            })
+            .collect::<Result<Vec<_>, Report>>()?;
+        let ids = self.module_graph.add_ast_modules(modules.into_iter())?;
+        Ok(ids)
+    }
     /// Adds all modules (defined by ".masm" files) from the specified directory to the module
     /// of this assembler graph.
     ///
@@ -200,10 +216,8 @@ impl Assembler {
         namespace: crate::LibraryNamespace,
         dir: &std::path::Path,
     ) -> Result<(), Report> {
-        for module in crate::parser::read_modules_from_dir(namespace, dir, &self.source_manager)? {
-            self.module_graph.add_ast_module(module)?;
-        }
-
+        let modules = crate::parser::read_modules_from_dir(namespace, dir, &self.source_manager)?;
+        self.module_graph.add_ast_modules(modules)?;
         Ok(())
     }
 
@@ -284,13 +298,7 @@ impl Assembler {
         modules: impl IntoIterator<Item = impl Compile>,
         options: CompileOptions,
     ) -> Result<Library, Report> {
-        // TODO use add_module_with_options
-        let ast_module_indices = modules
-            .into_iter()
-            .map(|module| self.add_module_with_options(module, options.clone()))
-            .collect::<Result<Vec<ModuleIndex>, Report>>()?;
-
-        self.module_graph.recompute()?;
+        let ast_module_indices = self.add_modules_with_options(modules, options)?;
 
         let mut mast_forest_builder = MastForestBuilder::default();
 
