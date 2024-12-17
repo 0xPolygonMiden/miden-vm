@@ -158,7 +158,7 @@ impl Assembler {
     ///
     /// The given module must be a library module, or an error will be returned.
     #[inline]
-    pub fn add_module(&mut self, module: impl Compile) -> Result<(), Report> {
+    pub fn add_module(&mut self, module: impl Compile) -> Result<ModuleIndex, Report> {
         self.add_module_with_options(module, CompileOptions::for_library())
     }
 
@@ -169,7 +169,7 @@ impl Assembler {
         &mut self,
         module: impl Compile,
         options: CompileOptions,
-    ) -> Result<(), Report> {
+    ) -> Result<ModuleIndex, Report> {
         let kind = options.kind;
         if kind != ModuleKind::Library {
             return Err(Report::msg(
@@ -180,9 +180,9 @@ impl Assembler {
         let module = module.compile_with_options(&self.source_manager, options)?;
         assert_eq!(module.kind(), kind, "expected module kind to match compilation options");
 
-        self.module_graph.add_ast_module(module)?;
+        let id = self.module_graph.add_ast_module(module)?;
 
-        Ok(())
+        Ok(id)
     }
 
     /// Adds all modules (defined by ".masm" files) from the specified directory to the module
