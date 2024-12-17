@@ -344,7 +344,12 @@ impl Assembler {
         self,
         modules: impl IntoIterator<Item = impl Compile>,
     ) -> Result<Library, Report> {
-        self.assemble_common(modules, CompileOptions::for_library())
+        let options = CompileOptions {
+            kind: ModuleKind::Library,
+            warnings_as_errors: self.warnings_as_errors,
+            path: None,
+        };
+        self.assemble_common(modules, options)
     }
 
     /// Assembles the provided module into a [KernelLibrary] intended to be used as a Kernel.
