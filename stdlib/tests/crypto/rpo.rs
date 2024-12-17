@@ -55,7 +55,7 @@ fn test_hash_empty() {
     use.std::crypto::hashes::rpo
 
     begin
-        push.1002 # end address
+        push.1008 # end address
         push.1000 # start address
 
         exec.rpo::hash_memory_words
@@ -107,7 +107,7 @@ fn test_single_iteration() {
         # insert 1 to memory
         push.1.1000 mem_store
 
-        push.1002 # end address
+        push.1008 # end address
         push.1000 # start address
 
         exec.rpo::hash_memory_words
@@ -138,7 +138,7 @@ fn test_hash_one_word() {
     begin
         push.1.1000 mem_store # push data to memory
 
-        push.1001 # end address
+        push.1004 # end address
         push.1000 # start address
 
         exec.rpo::hash_memory_words
@@ -159,9 +159,9 @@ fn test_hash_even_words() {
 
     begin
         push.1.0.0.0.1000 mem_storew dropw
-        push.0.1.0.0.1001 mem_storew dropw
+        push.0.1.0.0.1004 mem_storew dropw
 
-        push.1002 # end address
+        push.1008 # end address
         push.1000 # start address
 
         exec.rpo::hash_memory_words
@@ -187,10 +187,10 @@ fn test_hash_odd_words() {
 
     begin
         push.1.0.0.0.1000 mem_storew dropw
-        push.0.1.0.0.1001 mem_storew dropw
-        push.0.0.1.0.1002 mem_storew dropw
+        push.0.1.0.0.1004 mem_storew dropw
+        push.0.0.1.0.1008 mem_storew dropw
 
-        push.1003 # end address
+        push.1012 # end address
         push.1000 # start address
 
         exec.rpo::hash_memory_words
@@ -217,9 +217,9 @@ fn test_absorb_double_words_from_memory() {
 
     begin
         push.1.0.0.0.1000 mem_storew dropw
-        push.0.1.0.0.1001 mem_storew dropw
+        push.0.1.0.0.1004 mem_storew dropw
 
-        push.1002      # end address
+        push.1008      # end address
         push.1000      # start address
         padw padw padw # hasher state
         exec.rpo::absorb_double_words_from_memory
@@ -237,8 +237,8 @@ fn test_absorb_double_words_from_memory() {
     ]).into_iter().map(|e| e.as_int()).collect();
 
     // start and end addr
-    even_hash.push(1002);
-    even_hash.push(1002);
+    even_hash.push(1008);
+    even_hash.push(1008);
 
     build_test!(even_words, &[]).expect_stack(&even_hash);
 }
@@ -250,11 +250,11 @@ fn test_squeeze_digest() {
 
     begin
         push.1.0.0.0.1000 mem_storew dropw
-        push.0.1.0.0.1001 mem_storew dropw
-        push.0.0.1.0.1002 mem_storew dropw
-        push.0.0.0.1.1003 mem_storew dropw
+        push.0.1.0.0.1004 mem_storew dropw
+        push.0.0.1.0.1008 mem_storew dropw
+        push.0.0.0.1.1012 mem_storew dropw
 
-        push.1004      # end address
+        push.1016      # end address
         push.1000      # start address
         padw padw padw # hasher state
         exec.rpo::absorb_double_words_from_memory
@@ -275,8 +275,8 @@ fn test_squeeze_digest() {
     ]).into_iter().map(|e| e.as_int()).collect();
 
     // start and end addr
-    even_hash.push(1004);
-    even_hash.push(1004);
+    even_hash.push(1016);
+    even_hash.push(1016);
 
     build_test!(even_words, &[]).expect_stack(&even_hash);
 }
