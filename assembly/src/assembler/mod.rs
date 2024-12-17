@@ -327,7 +327,6 @@ impl Assembler {
             exports
         };
 
-        // TODO: show a warning if library exports are empty?
         let (mast_forest, id_remappings) = mast_forest_builder.build();
         if let Some(id_remappings) = id_remappings {
             for (_proc_name, node_id) in exports.iter_mut() {
