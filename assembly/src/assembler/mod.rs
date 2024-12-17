@@ -171,10 +171,8 @@ impl Assembler {
         options: CompileOptions,
     ) -> Result<ModuleIndex, Report> {
         let kind = options.kind;
-        if kind != ModuleKind::Library {
-            return Err(Report::msg(
-                "only library modules are supported by `add_module_with_options`",
-            ));
+        if kind == ModuleKind::Executable {
+            return Err(Report::msg("Executables are supported by `add_module_with_options`"));
         }
 
         let module = module.compile_with_options(&self.source_manager, options)?;
