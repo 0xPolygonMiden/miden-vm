@@ -383,7 +383,6 @@ impl Assembler {
 
         // Recompute graph with executable module, and start compiling
         let ast_module_index = self.module_graph.add_ast_module(program)?;
-        self.module_graph.recompute()?;
 
         // Find the executable entrypoint Note: it is safe to use `unwrap_ast()` here, since this is
         // the module we just added, which is in AST representation.
