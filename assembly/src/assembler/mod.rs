@@ -285,18 +285,10 @@ impl Assembler {
         options: CompileOptions,
     ) -> Result<Library, Report> {
         // TODO use add_module_with_options
-        let ast_module_indices =
-            modules.into_iter().try_fold(Vec::default(), |mut acc, module| {
-                module
-                    .compile_with_options(&self.source_manager, options.clone())
-                    .and_then(|module| {
-                        self.module_graph.add_ast_module(module).map_err(Report::from)
-                    })
-                    .map(move |module_id| {
-                        acc.push(module_id);
-                        acc
-                    })
-            })?;
+        let ast_module_indices = modules
+            .into_iter()
+            .map(|module| self.add_module_with_options(module, options.clone()))
+            .collect::<Result<Vec<ModuleIndex>, Report>>()?;
 
         self.module_graph.recompute()?;
 
