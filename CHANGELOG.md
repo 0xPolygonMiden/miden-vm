@@ -13,6 +13,7 @@
 #### Enhancements
 - Added options `--kernel`, `--debug` and `--output` to `miden bundle` (#1447).
 - Added `miden_core::mast::MastForest::advice_map` to load it into the advice provider before the `MastForest` execution (#1574).
+- Added `miden-package` crate with `Package` type to represent a compiled Miden program/library (#1544).
 
 ## 0.11.0 (2024-11-04)
 
