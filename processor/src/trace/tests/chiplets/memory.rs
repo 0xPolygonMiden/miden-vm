@@ -1,9 +1,7 @@
 use miden_air::{
     trace::chiplets::{
         memory::{
-            MEMORY_ACCESS_ELEMENT, MEMORY_ACCESS_WORD, MEMORY_READ_ELEMENT_LABEL,
-            MEMORY_READ_WORD_LABEL, MEMORY_WRITE, MEMORY_WRITE_ELEMENT_LABEL,
-            MEMORY_WRITE_WORD_LABEL,
+            MEMORY_ACCESS_ELEMENT, MEMORY_ACCESS_WORD, MEMORY_READ, MEMORY_READ_ELEMENT_LABEL, MEMORY_READ_WORD_LABEL, MEMORY_WRITE, MEMORY_WRITE_ELEMENT_LABEL, MEMORY_WRITE_WORD_LABEL
         },
         MEMORY_BATCH_COL_IDX, MEMORY_CLK_COL_IDX, MEMORY_CTX_COL_IDX,
         MEMORY_ELEMENT_OR_WORD_COL_IDX, MEMORY_IDX0_COL_IDX, MEMORY_IDX1_COL_IDX,
@@ -227,14 +225,14 @@ fn build_expected_bus_msg_from_trace(
         } else {
             MEMORY_WRITE_WORD_LABEL
         }
-    } else
-    /* read_write == MEMORY_READ */
-    {
+    } else if read_write == MEMORY_READ {
         if element_or_word == MEMORY_ACCESS_ELEMENT {
             MEMORY_READ_ELEMENT_LABEL
         } else {
             MEMORY_READ_WORD_LABEL
         }
+    } else {
+        panic!("invalid read_write value: {read_write}");
     };
 
     // get the memory access data

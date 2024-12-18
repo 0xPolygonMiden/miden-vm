@@ -289,7 +289,7 @@ fn test_hash_memory() {
 
     begin
         push.1.2.3.4.1000 mem_storew dropw
-        push.5.0.0.0.1001 mem_storew dropw
+        push.5.0.0.0.1004 mem_storew dropw
         push.11
 
         push.5.1000
@@ -315,7 +315,7 @@ fn test_hash_memory() {
 
     begin
         push.1.2.3.4.1000 mem_storew dropw
-        push.5.6.7.8.1001 mem_storew dropw
+        push.5.6.7.8.1004 mem_storew dropw
         push.11
 
         push.8.1000
@@ -341,9 +341,9 @@ fn test_hash_memory() {
 
     begin
         push.1.2.3.4.1000 mem_storew dropw
-        push.5.6.7.8.1001 mem_storew dropw
-        push.9.10.11.12.1002 mem_storew dropw
-        push.13.14.15.0.1003 mem_storew dropw
+        push.5.6.7.8.1004 mem_storew dropw
+        push.9.10.11.12.1008 mem_storew dropw
+        push.13.14.15.0.1012 mem_storew dropw
         push.11
 
         push.15.1000

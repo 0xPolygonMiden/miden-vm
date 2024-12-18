@@ -10,7 +10,7 @@ use.std::math::u64
 #! Input: [pos, mmr_ptr, ...]
 #! Output: [N, ...] where `N` is the leaf and `R` is the MMR peak that owns the leaf.
 #!
-#! Cycles: 115
+#! Cycles: 118
 export.get
   # load the num_leaves of the MMR (2 cycles)
   dup.1 mem_load
@@ -48,9 +48,9 @@ export.get
   swap u32assert u32popcnt
   # stack: [peak_count, relative_pos, depth, mmr_ptr, ...]
 
-  # compute `mmr_ptr + peak_count + 1` the target tree index (3 cycles)
-  movup.3 add add.1
-  # stack: [mmr_ptr, relative_pos, depth, ...]
+  # compute `mmr_ptr + 4*peak_count + 4` the target tree index (6 cycles)
+  mul.4 movup.3 add add.4
+  # stack: [peak_ptr, relative_pos, depth, ...]
 
   # load the target peak (6 cycles)
   padw movup.4 mem_loadw
@@ -108,7 +108,7 @@ export.num_peaks_to_message_size
   # => [even_count_min, ...]
 end
 
-#! Load the MMR peak data based on its hash.
+#! Writes the MMR who's peaks hash to `HASH` to the memory location pointed to by `mmr_ptr`.
 #!
 #! Input: [HASH, mmr_ptr, ...]
 #! Output: [...]
@@ -117,7 +117,7 @@ end
 #!  - HASH: is the MMR peak hash, the hash is expected to be padded to an even
 #!    length and to have a minimum size of 16 elements
 #!  - The advice map must contain a key with HASH, and its value is
-#!    `num_leaves || hash_data`, and hash_data is the data used to computed `HASH`
+#!    `[num_leaves, 0, 0 , 0] || hash_data`, and hash_data is the data used to computed `HASH`
 #!  - mmr_ptr: the memory location where the MMR data will be written to,
 #!    starting with the MMR forest (its total leaves count) followed by its peaks.
 #!    The address is expected to be word-aligned.
@@ -224,7 +224,7 @@ end
 #!
 #! Input: [EL, mmr_ptr, ...]
 #! Output: [...]
-#! Cycles: 144 + 39 * peak_merges
+#! Cycles: 147 + 39 * peak_merges
 export.add
   # get num_leaves (2 cycles)
   dup.4 mem_load
@@ -237,8 +237,8 @@ export.add
   dup exec.num_leaves_to_num_peaks
   # [num_peaks, num_leaves, EL, mmr_ptr] (70 cycles)
 
-  # compute peaks_end (3 cycles)
-  movup.6 add add.1
+  # compute peaks_end (6 cycles)
+  mul.4 movup.6 add add.4
   # [mmr_end, num_leaves, EL]
 
   # find how many MMR peaks will be merged (41 cycles)
@@ -263,7 +263,7 @@ export.add
 
   while.true # (39 cycles)
     # load peak (4 cycles)
-    dup.9 sub.1 mem_loadw
+    dup.9 sub.4 mem_loadw
     # => [PEAK, EL, -num_merges, mmr_end]
 
     # merge the nodes (17 cycles)
@@ -275,8 +275,8 @@ export.add
     # => [PAD, EL', -num_merges, mmr_end]
 
     # update control (7 cycles)
-    swapw.2 add.1 swap sub.1 swap swapw.2
-    # => [PAD, EL', -num_merges+1, mmr_end-1]
+    swapw.2 add.1 swap sub.4 swap swapw.2
+    # => [PAD, EL', -num_merges+1, mmr_end-4]
 
     # check loop condition (5 cycles)
     dup.8 neq.0
@@ -285,7 +285,7 @@ export.add
 
   # drop padding (4 cycles)
   dropw
-  # =>: [EL, -num_merges+1, mmr_end-1]
+  # =>: [EL, -num_merges+1, mmr_end-4]
 
   # save the new peak (2 cycles)
   movup.5 mem_storew
