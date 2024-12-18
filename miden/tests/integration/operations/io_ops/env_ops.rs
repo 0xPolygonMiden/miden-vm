@@ -59,7 +59,7 @@ fn locaddr() {
         end";
 
     let test = build_test!(source, &[10]);
-    test.expect_stack(&[FMP_MIN + 2, FMP_MIN + 1, 10]);
+    test.expect_stack(&[FMP_MIN + 8, FMP_MIN + 4, 10]);
 
     // --- accessing mem via locaddr updates the correct variables --------------------------------
     let source = "
@@ -106,14 +106,14 @@ fn locaddr() {
 
     let test = build_test!(source, &[10]);
     test.expect_stack(&[
-        FMP_MIN + 3,
-        FMP_MIN + 2,
-        FMP_MIN + 1,
-        FMP_MIN + 2,
-        FMP_MIN + 5,
+        FMP_MIN + 12,
+        FMP_MIN + 8,
         FMP_MIN + 4,
-        FMP_MIN + 3,
-        FMP_MIN + 1,
+        FMP_MIN + 8,
+        FMP_MIN + 20,
+        FMP_MIN + 16,
+        FMP_MIN + 12,
+        FMP_MIN + 4,
         10,
     ]);
 

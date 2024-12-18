@@ -121,11 +121,11 @@ fn storew_local() {
         begin
             mem_storew.0
             dropw
-            mem_storew.1
+            mem_storew.4
             dropw
             exec.foo
         end";
-    let mem_addr = 1;
+    let mem_addr = 4;
 
     let test = build_test!(source, &[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]);
     test.expect_stack_and_memory(&[4, 3, 2, 1], mem_addr, &[5, 6, 7, 8]);

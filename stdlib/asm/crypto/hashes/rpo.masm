@@ -135,7 +135,7 @@ export.hash_memory
     # => [num_elements/8, num_elements%8, ptr]
 
     # get the end_addr for hash_memory_even procedure (end address for pairs of words)
-    mul.2 dup.2 add movup.2
+    mul.8 dup.2 add movup.2
     # => [ptr, end_addr, num_elements%8]
 
     # get the capacity element which is equal to num_elements%8

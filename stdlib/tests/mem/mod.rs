@@ -93,14 +93,15 @@ fn test_memcopy() {
 
 #[test]
 fn test_pipe_double_words_to_memory() {
-    let mem_addr = 1000;
+    let start_addr = 1000;
+    let end_addr = 1008;
     let source = format!(
         "
         use.std::mem
         use.std::sys
 
         begin
-            push.1002       # end_addr
+            push.{}         # end_addr
             push.{}         # write_addr
             padw padw padw  # hasher state
 
@@ -108,17 +109,17 @@ fn test_pipe_double_words_to_memory() {
 
             exec.sys::truncate_stack
         end",
-        mem_addr
+        end_addr, start_addr,
     );
 
     let operand_stack = &[];
     let data = &[1, 2, 3, 4, 5, 6, 7, 8];
     let mut expected_stack =
         felt_slice_to_ints(&build_expected_perm(&[0, 0, 0, 0, 1, 2, 3, 4, 5, 6, 7, 8]));
-    expected_stack.push(1002);
+    expected_stack.push(end_addr);
     build_test!(source, operand_stack, &data).expect_stack_and_memory(
         &expected_stack,
-        mem_addr,
+        start_addr,
         data,
     );
 }
@@ -147,7 +148,7 @@ fn test_pipe_words_to_memory() {
     let operand_stack = &[];
     let data = &[1, 2, 3, 4];
     let mut expected_stack = felt_slice_to_ints(&build_expected_hash(data));
-    expected_stack.push(1001);
+    expected_stack.push(1004);
     build_test!(one_word, operand_stack, &data).expect_stack_and_memory(
         &expected_stack,
         mem_addr,
@@ -175,7 +176,7 @@ fn test_pipe_words_to_memory() {
     let operand_stack = &[];
     let data = &[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
     let mut expected_stack = felt_slice_to_ints(&build_expected_hash(data));
-    expected_stack.push(1003);
+    expected_stack.push(1012);
     build_test!(three_words, operand_stack, &data).expect_stack_and_memory(
         &expected_stack,
         mem_addr,
@@ -206,7 +207,7 @@ fn test_pipe_preimage_to_memory() {
     advice_stack.reverse();
     advice_stack.extend(data);
     build_test!(three_words, operand_stack, &advice_stack).expect_stack_and_memory(
-        &[1003],
+        &[1012],
         mem_addr,
         data,
     );

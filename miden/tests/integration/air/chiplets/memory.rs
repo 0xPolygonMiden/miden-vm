@@ -24,9 +24,8 @@ fn helper_mem_store() {
     let pub_inputs = vec![1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
 
     let trace = build_test!(asm_op, &pub_inputs).execute().unwrap();
-    // Since MStore only writes 1 element to memory, the 3 elements in the word at that location
-    // that are not touched are placed in the helper registers.
-    let helper_regs = [10, 9, 8, 0, 0, 0].to_elements();
+    // MStore doesn't use helper registers, so they should be zero.
+    let helper_regs = [0, 0, 0, 0, 0, 0].to_elements();
     // We need to check helper registers state after the MStore operation at clock cycle 8.
     assert_eq!(helper_regs, trace.get_user_op_helpers_at(8));
     // After the second MStoreW call, the helper registers should be zero.
@@ -34,7 +33,7 @@ fn helper_mem_store() {
     assert_eq!(helper_regs, trace.get_user_op_helpers_at(11));
 
     // We need to check helper registers state after the MStore operation at clock cycle 14.
-    let helper_regs = [5, 4, 3, 0, 0, 0].to_elements();
+    let helper_regs = [0, 0, 0, 0, 0, 0].to_elements();
     assert_eq!(helper_regs, trace.get_user_op_helpers_at(14));
 }
 
@@ -69,9 +68,8 @@ fn helper_write_read() {
     let pub_inputs = vec![4, 3, 2, 1];
 
     let trace = build_test!(source, &pub_inputs).execute().unwrap();
-    // When the MLoad operation is called, word elements that were not pushed on the stack
-    // are written to helper registers. So, 3, 2 and 1 will be written after this operation
-    let helper_regs = [1, 2, 3, 0, 0, 0].to_elements();
+    // MLoad doesn't use helper registers, so they should be zero.
+    let helper_regs = [0, 0, 0, 0, 0, 0].to_elements();
     // We need to check helper registers state after first MLoad, which index is 8
     assert_eq!(helper_regs, trace.get_user_op_helpers_at(8));
 }
@@ -92,7 +90,7 @@ fn update() {
 
 #[test]
 fn incr_write_addr() {
-    let source = "begin mem_storew.0 mem_storew.1 end";
+    let source = "begin mem_storew.0 mem_storew.4 end";
     let pub_inputs = vec![4, 3, 2, 1];
 
     build_test!(source, &pub_inputs).prove_and_verify(pub_inputs, false);
