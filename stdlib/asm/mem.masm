@@ -4,10 +4,12 @@ use.std::crypto::hashes::rpo
 
 #! Copies `n` words from `read_ptr` to `write_ptr`.
 #!
+#! `read_ptr` and `write_ptr` *must be* word-aligned.
+#!
 #! Stack transition looks as follows:
 #! [n, read_ptr, write_ptr, ...] -> [...]
 #! cycles: 15 + 16n
-export.memcopy
+export.memcopy_words
   # The loop variable is changed with an add instead of sub because the former
   # uses one fewer cycle. So here the counter is negated. (1 cycles)
   # stack: [-n, read_ptr, write_ptr, ...]
@@ -37,11 +39,11 @@ export.memcopy
     # stack: [-n, read_ptr, write_ptr, x, 0, 0, 0, 0, ...]
     swapw
 
-    # stack: [-n+1, read_ptr+1, write_ptr+1, x, 0, 0, 0, 0, ...]
+    # stack: [-n+1, read_ptr+4, write_ptr+4, x, 0, 0, 0, 0, ...]
     # update counters (9 cycles)
-    add.1 movup.3 movup.3 add.1 movup.3 add.1 movup.3
+    add.1 movup.3 movup.3 add.4 movup.3 add.4 movup.3
 
-    # stack: [0, 0, 0, 0, -n+1, read_ptr+1, write_ptr+1, x, ...]
+    # stack: [0, 0, 0, 0, -n+1, read_ptr+4, write_ptr+4, x, ...]
     swapw
 
     dup.4 neq.0 # while(n!=0) (3 cycles)

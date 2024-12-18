@@ -43,7 +43,7 @@ fn test_decorator_ext2intt(in_poly_len: usize, blowup: usize) {
             dup.4
             mem_storew
             dropw
-            sub.1
+            sub.4
         end
         drop
 
@@ -105,7 +105,7 @@ fn test_verify_remainder_64() {
             dup.4
             mem_storew
             dropw
-            sub.1
+            sub.4
         end
         drop
 
@@ -148,7 +148,7 @@ fn test_verify_remainder_32() {
             dup.4
             mem_storew
             dropw
-            sub.1
+            sub.4
         end
         drop
 
