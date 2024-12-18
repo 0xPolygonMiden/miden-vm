@@ -41,23 +41,6 @@ impl ToElements for Vec<u64> {
     }
 }
 
-// TODO(denysz): add roundtrip proptest
-impl ToElements for &[u8] {
-    fn to_elements(&self) -> Vec<Felt> {
-        self.chunks(4)
-            .map(|chunk| {
-                if chunk.len() < 4 {
-                    let mut bytes = [0; 4];
-                    bytes[..chunk.len()].copy_from_slice(chunk);
-                    Felt::new(u32::from_le_bytes(bytes) as u64)
-                } else {
-                    Felt::new(u32::from_le_bytes(chunk.try_into().unwrap()) as u64)
-                }
-            })
-            .collect()
-    }
-}
-
 // INTO BYTES
 // ================================================================================================
 
