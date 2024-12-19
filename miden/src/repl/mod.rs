@@ -1,7 +1,7 @@
 use std::{collections::BTreeSet, path::PathBuf};
 
 use assembly::{Assembler, Library};
-use miden_vm::{math::Felt, DefaultHost, StackInputs, Word};
+use miden_vm::{math::Felt, DefaultHost, StackInputs};
 use processor::ContextId;
 use rustyline::{error::ReadlineError, DefaultEditor};
 use stdlib::StdLibrary;
@@ -171,7 +171,7 @@ pub fn start_repl(library_paths: &Vec<PathBuf>, use_stdlib: bool) {
     let mut should_print_stack = false;
 
     // state of the entire memory at the latest clock cycle.
-    let mut memory: Vec<(u64, Word)> = Vec::new();
+    let mut memory: Vec<(u64, Felt)> = Vec::new();
 
     // initializing readline.
     let mut rl = DefaultEditor::new().expect("Readline couldn't be initialized");
@@ -224,9 +224,9 @@ pub fn start_repl(library_paths: &Vec<PathBuf>, use_stdlib: bool) {
                         println!("The memory has not been initialized yet");
                         continue;
                     }
-                    for (addr, mem) in &memory {
+                    for &(addr, mem) in &memory {
                         // prints out the address and memory value at that address.
-                        print_mem_address(*addr, mem);
+                        print_mem_address(addr, mem);
                     }
                 } else if line.len() > 6 && &line[..5] == "!mem[" {
                     // if user wants to see the state of a particular address in a memory, the input
@@ -238,8 +238,8 @@ pub fn start_repl(library_paths: &Vec<PathBuf>, use_stdlib: bool) {
                     // extracts the address from user input.
                     match read_mem_address(&line) {
                         Ok(addr) => {
-                            for (i, memory_value) in &memory {
-                                if *i == addr {
+                            for &(i, memory_value) in &memory {
+                                if i == addr {
                                     // prints the address and memory value at that address.
                                     print_mem_address(addr, memory_value);
                                     // sets the flag to true as the address has been initialized.
@@ -305,7 +305,7 @@ pub fn start_repl(library_paths: &Vec<PathBuf>, use_stdlib: bool) {
 fn execute(
     program: String,
     provided_libraries: &[Library],
-) -> Result<(Vec<(u64, Word)>, Vec<Felt>), String> {
+) -> Result<(Vec<(u64, Felt)>, Vec<Felt>), String> {
     // compile program
     let mut assembler = Assembler::default();
 
@@ -329,7 +329,7 @@ fn execute(
     }
 
     // loads the memory at the latest clock cycle.
-    let mem_state = chiplets.get_mem_state_at(ContextId::root(), system.clk());
+    let mem_state = chiplets.memory().get_state_at(ContextId::root(), system.clk());
     // loads the stack along with the overflow values at the latest clock cycle.
     let stack_state = stack.get_state_at(system.clk());
 
@@ -404,7 +404,6 @@ fn print_stack(stack: Vec<Felt>) {
 
 /// Accepts and returns a memory at an address by converting its register into integer
 /// from Felt.
-fn print_mem_address(addr: u64, mem: &Word) {
-    let mem_int = mem.iter().map(|&x| x.as_int()).collect::<Vec<_>>();
-    println!("{} {:?}", addr, mem_int)
+fn print_mem_address(addr: u64, mem_value: Felt) {
+    println!("{addr} {mem_value}")
 }

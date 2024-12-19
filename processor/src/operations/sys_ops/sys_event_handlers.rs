@@ -6,7 +6,7 @@ use vm_core::{
         merkle::{EmptySubtreeRoots, Smt, SMT_DEPTH},
     },
     sys_events::SystemEvent,
-    Felt, FieldElement, SignatureKind, Word, EMPTY_WORD, WORD_SIZE, ZERO,
+    Felt, FieldElement, SignatureKind, Word, WORD_SIZE, ZERO,
 };
 use winter_prover::math::fft;
 
@@ -91,8 +91,8 @@ pub fn insert_mem_values_into_adv_map(
 
     let mut values = Vec::with_capacity(((end_addr - start_addr) as usize) * WORD_SIZE);
     for addr in start_addr..end_addr {
-        let mem_value = process.get_mem_value(ctx, addr).unwrap_or(EMPTY_WORD);
-        values.extend_from_slice(&mem_value);
+        let mem_value = process.get_mem_value(ctx, addr).unwrap_or(ZERO);
+        values.push(mem_value);
     }
 
     let key = process.get_stack_word(0);
@@ -403,8 +403,8 @@ pub fn push_ext2_inv_result(
 /// Returns an error if:
 /// - `input_size` less than or equal to 1, or is not a power of 2.
 /// - `output_size` is 0 or is greater than the `input_size`.
-/// - `input_ptr` is greater than 2^32.
-/// - `input_ptr + input_size / 2` is greater than 2^32.
+/// - `input_ptr` is greater than 2^32, or is not aligned on a word boundary.
+/// - `input_ptr + input_size * 2` is greater than 2^32.
 pub fn push_ext2_intt_result(
     advice_provider: &mut impl AdviceProvider,
     process: ProcessState,
@@ -422,11 +422,14 @@ pub fn push_ext2_intt_result(
     if input_start_ptr >= u32::MAX as u64 {
         return Err(Ext2InttError::InputStartAddressTooBig(input_start_ptr).into());
     }
+    if input_start_ptr % WORD_SIZE as u64 != 0 {
+        return Err(Ext2InttError::InputStartNotWordAligned(input_start_ptr).into());
+    }
     if input_size > u32::MAX as usize {
         return Err(Ext2InttError::InputSizeTooBig(input_size as u64).into());
     }
 
-    let input_end_ptr = input_start_ptr + (input_size / 2) as u64;
+    let input_end_ptr = input_start_ptr + (input_size * 2) as u64;
     if input_end_ptr > u32::MAX as u64 {
         return Err(Ext2InttError::InputEndAddressTooBig(input_end_ptr).into());
     }
@@ -439,9 +442,9 @@ pub fn push_ext2_intt_result(
     }
 
     let mut poly = Vec::with_capacity(input_size);
-    for addr in (input_start_ptr as u32)..(input_end_ptr as u32) {
+    for addr in ((input_start_ptr as u32)..(input_end_ptr as u32)).step_by(4) {
         let word = process
-            .get_mem_value(process.ctx(), addr)
+            .get_mem_word(process.ctx(), addr)?
             .ok_or(Ext2InttError::UninitializedMemoryAddress(addr))?;
 
         poly.push(QuadFelt::new(word[0], word[1]));

@@ -7,7 +7,7 @@ use vm_core::{
     crypto::hash::RpoDigest,
     debuginfo::SourceSpan,
     mast::{DecoratorId, MastNodeId},
-    DecoratorList, Felt, Kernel, Operation, Program,
+    DecoratorList, Felt, Kernel, Operation, Program, WORD_SIZE,
 };
 
 use crate::{
@@ -574,12 +574,14 @@ impl Assembler {
         let proc_body_id = if num_locals > 0 {
             // for procedures with locals, we need to update fmp register before and after the
             // procedure body is executed. specifically:
-            // - to allocate procedure locals we need to increment fmp by the number of locals
-            // - to deallocate procedure locals we need to decrement it by the same amount
-            let num_locals = Felt::from(num_locals);
+            // - to allocate procedure locals we need to increment fmp by 4 times the number of
+            //   locals
+            // - to deallocate procedure locals we need to decrement it by the same amount We leave
+            // 4 elements between locals to properly support reading and writing words to locals.
+            let locals_frame = Felt::from(num_locals * WORD_SIZE as u16);
             let wrapper = BodyWrapper {
-                prologue: vec![Operation::Push(num_locals), Operation::FmpUpdate],
-                epilogue: vec![Operation::Push(-num_locals), Operation::FmpUpdate],
+                prologue: vec![Operation::Push(locals_frame), Operation::FmpUpdate],
+                epilogue: vec![Operation::Push(-locals_frame), Operation::FmpUpdate],
             };
             self.compile_body(proc.iter(), &mut proc_ctx, Some(wrapper), mast_forest_builder)?
         } else {

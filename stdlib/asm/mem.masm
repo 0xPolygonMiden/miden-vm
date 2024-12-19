@@ -4,10 +4,12 @@ use.std::crypto::hashes::rpo
 
 #! Copies `n` words from `read_ptr` to `write_ptr`.
 #!
+#! `read_ptr` and `write_ptr` *must be* word-aligned.
+#!
 #! Stack transition looks as follows:
 #! [n, read_ptr, write_ptr, ...] -> [...]
 #! cycles: 15 + 16n
-export.memcopy
+export.memcopy_words
   # The loop variable is changed with an add instead of sub because the former
   # uses one fewer cycle. So here the counter is negated. (1 cycles)
   # stack: [-n, read_ptr, write_ptr, ...]
@@ -37,11 +39,11 @@ export.memcopy
     # stack: [-n, read_ptr, write_ptr, x, 0, 0, 0, 0, ...]
     swapw
 
-    # stack: [-n+1, read_ptr+1, write_ptr+1, x, 0, 0, 0, 0, ...]
+    # stack: [-n+1, read_ptr+4, write_ptr+4, x, 0, 0, 0, 0, ...]
     # update counters (9 cycles)
-    add.1 movup.3 movup.3 add.1 movup.3 add.1 movup.3
+    add.1 movup.3 movup.3 add.4 movup.3 add.4 movup.3
 
-    # stack: [0, 0, 0, 0, -n+1, read_ptr+1, write_ptr+1, x, ...]
+    # stack: [0, 0, 0, 0, -n+1, read_ptr+4, write_ptr+4, x, ...]
     swapw
 
     dup.4 neq.0 # while(n!=0) (3 cycles)
@@ -61,7 +63,7 @@ end
 #! - The words C, B, and A are the RPO hasher state
 #!     - A is the capacity
 #!     - C,B are the rate portion of the state
-#! - The value `words = end_ptr - write_ptr` must be positive and even
+#! - The value `words = end_ptr - write_ptr` must be positive and a multiple of 8
 #!
 #! Cycles: 10 + 9 * word_pairs
 export.pipe_double_words_to_memory.0
@@ -86,19 +88,19 @@ end
 #! Input: [num_words, write_ptr, ...]
 #! Output: [C, B, A, write_ptr', ...]
 #! Cycles:
-#!  even num_words: 41 + 9 * num_words / 2
-#!  odd num_words: 58 + 9 * round_down(num_words / 2)
+#!  even num_words: 43 + 9 * num_words / 2
+#!  odd num_words: 60 + 9 * round_down(num_words / 2)
 export.pipe_words_to_memory.0
   # check if there is an odd number of words (6 cycles)
   dup is_odd
   # => [is_odd, num_words, write_ptr, ...]
 
-  # copy is_odd, it defines if last last word requires padding (2 cycles)
+  # copy is_odd, it defines if last word requires padding (2 cycles)
   dup movdn.3
   # => [is_odd, num_words, write_ptr, needs_padding, ...]
 
-  # compute `end_ptr` with an even number of words (5 cycles)
-  sub dup.1 add swap
+  # compute `end_ptr` with an even number of words (7 cycles)
+  sub mul.4 dup.1 add swap
   # => [write_ptr, end_ptr, needs_padding, ...]
 
   # Prepare the capacity word. We use the padding rule which sets the first capacity
@@ -132,8 +134,8 @@ export.pipe_words_to_memory.0
 
     # - get the memory address that B' should be saved to
     # - update the write_ptr to point to the next address (4 cycles)
-    movup.8 dup.0 add.1 movdn.5
-    # => [write_ptr, B', write_ptr+1, A, ...]
+    movup.8 dup.0 add.4 movdn.5
+    # => [write_ptr, B', write_ptr+4, A, ...]
 
     # save data to memory (1 cycles)
     mem_storew

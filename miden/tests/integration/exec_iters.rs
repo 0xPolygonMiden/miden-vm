@@ -5,6 +5,7 @@ use vm_core::{debuginfo::Location, AssemblyOp, Operation};
 // EXEC ITER TESTS
 // =================================================================
 /// TODO: Reenable (and fix) after we stabilized the assembler
+/// Note: expect the memory values to be very wrong.
 #[test]
 #[ignore]
 fn test_exec_iter() {
@@ -18,7 +19,8 @@ fn test_exec_iter() {
     let traces = test.execute_iter();
     let fmp = Felt::new(2u64.pow(30));
     let next_fmp = fmp + ONE;
-    let mem = vec![(1_u64, slice_to_word(&[13, 14, 15, 16]))];
+    // TODO: double check this value
+    let mem = vec![(1_u64, Felt::from(13_u32))];
     let mem_storew1_loc = Some(Location {
         path: path.clone(),
         start: 33.into(),
@@ -309,10 +311,7 @@ fn test_exec_iter() {
             )),
             stack: [17, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0, 0, 0].to_elements(),
             fmp: next_fmp,
-            memory: vec![
-                (1_u64, slice_to_word(&[13, 14, 15, 16])),
-                (2u64.pow(30) + 1, slice_to_word(&[17, 0, 0, 0])),
-            ],
+            memory: vec![(1_u64, 13_u32.into()), (2u64.pow(30) + 1, 17_u32.into())],
         },
         VmState {
             clk: RowIndex::from(19),
@@ -330,10 +329,7 @@ fn test_exec_iter() {
             )),
             stack: [12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0, 0, 0, 0, 0].to_elements(),
             fmp: next_fmp,
-            memory: vec![
-                (1_u64, slice_to_word(&[13, 14, 15, 16])),
-                (2u64.pow(30) + 1, slice_to_word(&[17, 0, 0, 0])),
-            ],
+            memory: vec![(1_u64, 13_u32.into()), (2u64.pow(30) + 1, 17_u32.into())],
         },
         VmState {
             clk: RowIndex::from(20),
@@ -343,10 +339,7 @@ fn test_exec_iter() {
             stack: [18446744069414584320, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0, 0, 0]
                 .to_elements(),
             fmp: next_fmp,
-            memory: vec![
-                (1_u64, slice_to_word(&[13, 14, 15, 16])),
-                (2u64.pow(30) + 1, slice_to_word(&[17, 0, 0, 0])),
-            ],
+            memory: vec![(1_u64, 13_u32.into()), (2u64.pow(30) + 1, 17_u32.into())],
         },
         VmState {
             clk: RowIndex::from(21),
@@ -355,10 +348,7 @@ fn test_exec_iter() {
             asmop: None,
             stack: [12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0, 0, 0, 0].to_elements(),
             fmp,
-            memory: vec![
-                (1_u64, slice_to_word(&[13, 14, 15, 16])),
-                (2u64.pow(30) + 1, slice_to_word(&[17, 0, 0, 0])),
-            ],
+            memory: vec![(1_u64, 13_u32.into()), (2u64.pow(30) + 1, 17_u32.into())],
         },
         VmState {
             clk: RowIndex::from(22),
@@ -367,10 +357,7 @@ fn test_exec_iter() {
             asmop: None,
             stack: [12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0, 0, 0, 0].to_elements(),
             fmp,
-            memory: vec![
-                (1_u64, slice_to_word(&[13, 14, 15, 16])),
-                (2u64.pow(30) + 1, slice_to_word(&[17, 0, 0, 0])),
-            ],
+            memory: vec![(1_u64, 13_u32.into()), (2u64.pow(30) + 1, 17_u32.into())],
         },
         VmState {
             clk: RowIndex::from(23),
@@ -379,10 +366,7 @@ fn test_exec_iter() {
             asmop: None,
             stack: [12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0, 0, 0, 0].to_elements(),
             fmp,
-            memory: vec![
-                (1_u64, slice_to_word(&[13, 14, 15, 16])),
-                (2u64.pow(30) + 1, slice_to_word(&[17, 0, 0, 0])),
-            ],
+            memory: vec![(1_u64, 13_u32.into()), (2u64.pow(30) + 1, 17_u32.into())],
         },
         VmState {
             clk: RowIndex::from(24),
@@ -391,25 +375,11 @@ fn test_exec_iter() {
             asmop: None,
             stack: [12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0, 0, 0, 0].to_elements(),
             fmp,
-            memory: vec![
-                (1_u64, slice_to_word(&[13, 14, 15, 16])),
-                (2u64.pow(30) + 1, slice_to_word(&[17, 0, 0, 0])),
-            ],
+            memory: vec![(1_u64, 13_u32.into()), (2u64.pow(30) + 1, 17_u32.into())],
         },
     ];
     for (expected, t) in expected_states.iter().zip(traces) {
         let state = t.as_ref().unwrap();
         assert_eq!(*expected, *state);
     }
-}
-
-// HELPER FUNCTIONS
-// =================================================================
-fn slice_to_word(values: &[i32]) -> [Felt; 4] {
-    [
-        Felt::new(values[0] as u64),
-        Felt::new(values[1] as u64),
-        Felt::new(values[2] as u64),
-        Felt::new(values[3] as u64),
-    ]
 }
