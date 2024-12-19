@@ -284,7 +284,7 @@ pub fn enforce_check_element_validity<E: FieldElement<BaseField = Felt>>(
 
     let v_hi_comp = E::ONE - m * (E::from(TWO_32) - E::ONE - limbs.v_hi());
 
-    // Enforces that the agggregation of the limbs forms a valid field element.
+    // Enforces that the aggregation of the limbs forms a valid field element.
     result[0] = u32_split_mul_madd * are_equal(v_hi_comp * limbs.v_lo(), E::ZERO);
 
     1
