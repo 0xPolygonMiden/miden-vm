@@ -14,7 +14,7 @@ use crate::{Dependency, Digest};
 /// The artifact produced by lowering a [Program] to a Merkelized Abstract Syntax Tree
 ///
 /// This type is used in compilation pipelines to abstract over the type of output requested.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Eq, PartialEq, derive_more::From)]
 pub enum MastArtifact {
     /// A MAST artifact which can be executed by the VM directly
     Executable(Arc<Program>),
@@ -63,6 +63,7 @@ impl MastArtifact {
 /// exported procedures and their signatures, if known.
 #[derive(Debug, Default, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(default)]
+#[cfg_attr(test, derive(proptest_derive::Arbitrary))]
 pub struct PackageManifest {
     /// The set of exports in this package.
     pub exports: BTreeSet<PackageExport>,
@@ -74,6 +75,7 @@ pub struct PackageManifest {
 /// A procedure exported by a package, along with its digest and
 /// signature(will be added after MASM type attributes are implemented).
 #[derive(Clone, PartialEq, Eq, Serialize, Deserialize, Ord, PartialOrd)]
+#[cfg_attr(test, derive(proptest_derive::Arbitrary))]
 pub struct PackageExport {
     /// The fully-qualified name of the procedure exported by this package
     pub name: String,
@@ -82,6 +84,7 @@ pub struct PackageExport {
         serialize_with = "se::serialize_digest",
         deserialize_with = "de::deserialize_digest"
     )]
+    #[cfg_attr(test, proptest(value = "Digest::default()"))]
     pub digest: Digest,
     // Signature will be added in the future when the type signatures are available in the Assembly
     // #[serde(default)]
@@ -103,7 +106,8 @@ impl fmt::Debug for PackageExport {
 
 /// A package containing a [Program]/[Library], rodata segments,
 /// and a manifest(exports and dependencies).
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Eq, PartialEq)]
+#[cfg_attr(test, derive(proptest_derive::Arbitrary))]
 pub struct Package {
     /// Name of the package
     pub name: String,
@@ -230,5 +234,73 @@ impl Package {
                 entrypoint
             )))
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use std::sync::{Arc, LazyLock};
+
+    use assembly::{parse_module, testing::TestContext, Assembler, Library};
+    use proptest::prelude::*;
+    use vm_core::Program;
+
+    use super::MastArtifact;
+
+    impl Arbitrary for MastArtifact {
+        type Parameters = ();
+
+        fn arbitrary_with(_args: Self::Parameters) -> Self::Strategy {
+            prop_oneof![Just(LIB_EXAMPLE.clone().into()), Just(PRG_EXAMPLE.clone().into())].boxed()
+        }
+
+        type Strategy = BoxedStrategy<Self>;
+    }
+
+    static LIB_EXAMPLE: LazyLock<Arc<Library>> = LazyLock::new(build_library_example);
+    static PRG_EXAMPLE: LazyLock<Arc<Program>> = LazyLock::new(build_program_example);
+
+    fn build_library_example() -> Arc<Library> {
+        let context = TestContext::new();
+        // declare foo module
+        let foo = r#"
+        export.foo
+            add
+        end
+        export.foo_mul
+            mul
+        end
+    "#;
+        let foo = parse_module!(&context, "test::foo", foo);
+
+        // declare bar module
+        let bar = r#"
+        export.bar
+            mtree_get
+        end
+        export.bar_mul
+            mul
+        end
+    "#;
+        let bar = parse_module!(&context, "test::bar", bar);
+        let modules = [foo, bar];
+
+        // serialize/deserialize the bundle with locations
+        Assembler::new(context.source_manager())
+            .assemble_library(modules.iter().cloned())
+            .expect("failed to assemble library")
+            .into()
+    }
+
+    fn build_program_example() -> Arc<Program> {
+        let source = "
+    begin
+        push.1.2
+        add
+        drop
+    end
+    ";
+        let assembler = Assembler::default();
+        assembler.assemble_program(source).unwrap().into()
     }
 }
