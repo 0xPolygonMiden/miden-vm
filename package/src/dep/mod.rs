@@ -11,6 +11,7 @@ pub(crate) mod resolver;
 #[derive(
     Debug, Copy, Clone, PartialEq, Eq, serde_repr::Serialize_repr, serde_repr::Deserialize_repr,
 )]
+#[cfg_attr(test, derive(proptest_derive::Arbitrary))]
 #[repr(u8)]
 pub enum SystemLibraryId {
     /// The standard library
@@ -34,6 +35,7 @@ impl core::str::FromStr for SystemLibraryId {
 
 /// The name of a dependency
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(test, derive(proptest_derive::Arbitrary))]
 pub enum DependencyName {
     /// The dependency is a system library
     System(SystemLibraryId),
@@ -53,6 +55,7 @@ impl From<String> for DependencyName {
 
 /// A package dependency
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(test, derive(proptest_derive::Arbitrary))]
 pub struct Dependency {
     /// The name of the dependency.
     /// Serves as a human-readable identifier for the dependency and a search hint for the resolver
@@ -63,5 +66,6 @@ pub struct Dependency {
         serialize_with = "se::serialize_digest",
         deserialize_with = "de::deserialize_digest"
     )]
+    #[cfg_attr(test, proptest(value = "Digest::default()"))]
     pub digest: Digest,
 }
