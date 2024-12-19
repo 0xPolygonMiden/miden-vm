@@ -92,7 +92,7 @@ fn adv_pipe() {
     // to the end (the address will be 2 since 0 + 2 = 2).
     let mut final_stack = state.iter().map(|&v| v.as_int()).collect::<Vec<u64>>();
     final_stack.reverse();
-    final_stack.push(2);
+    final_stack.push(8);
 
     let test = build_test!(source, &[], &advice_stack);
     test.expect_stack(&final_stack);
@@ -129,7 +129,7 @@ fn adv_pipe_with_hperm() {
     // to the end (the address will be 2 since 0 + 2 = 2).
     let mut final_stack = state.iter().map(|&v| v.as_int()).collect::<Vec<u64>>();
     final_stack.reverse();
-    final_stack.push(2);
+    final_stack.push(8);
 
     let test = build_test!(source, &[], &advice_stack);
     test.expect_stack(&final_stack);

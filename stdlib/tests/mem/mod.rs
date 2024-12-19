@@ -37,54 +37,55 @@ fn test_memcopy() {
         Process::new(program.kernel().clone(), StackInputs::default(), ExecutionOptions::default());
     process.execute(&program, &mut host).unwrap();
 
+    // TODO(plafer): this will fail due to addresses being too close to each other
     assert_eq!(
-        process.chiplets.get_mem_value(ContextId::root(), 1000),
+        process.chiplets.memory().get_word(ContextId::root(), 1000).unwrap(),
         Some([ZERO, ZERO, ZERO, ONE]),
         "Address 1000"
     );
     assert_eq!(
-        process.chiplets.get_mem_value(ContextId::root(), 1001),
+        process.chiplets.memory().get_word(ContextId::root(), 1001).unwrap(),
         Some([ZERO, ZERO, ONE, ZERO]),
         "Address 1001"
     );
     assert_eq!(
-        process.chiplets.get_mem_value(ContextId::root(), 1002),
+        process.chiplets.memory().get_word(ContextId::root(), 1002).unwrap(),
         Some([ZERO, ZERO, ONE, ONE]),
         "Address 1002"
     );
     assert_eq!(
-        process.chiplets.get_mem_value(ContextId::root(), 1003),
+        process.chiplets.memory().get_word(ContextId::root(), 1003).unwrap(),
         Some([ZERO, ONE, ZERO, ZERO]),
         "Address 1003"
     );
     assert_eq!(
-        process.chiplets.get_mem_value(ContextId::root(), 1004),
+        process.chiplets.memory().get_word(ContextId::root(), 1004).unwrap(),
         Some([ZERO, ONE, ZERO, ONE]),
         "Address 1004"
     );
 
     assert_eq!(
-        process.chiplets.get_mem_value(ContextId::root(), 2000),
+        process.chiplets.memory().get_word(ContextId::root(), 2000).unwrap(),
         Some([ZERO, ZERO, ZERO, ONE]),
         "Address 2000"
     );
     assert_eq!(
-        process.chiplets.get_mem_value(ContextId::root(), 2001),
+        process.chiplets.memory().get_word(ContextId::root(), 2001).unwrap(),
         Some([ZERO, ZERO, ONE, ZERO]),
         "Address 2001"
     );
     assert_eq!(
-        process.chiplets.get_mem_value(ContextId::root(), 2002),
+        process.chiplets.memory().get_word(ContextId::root(), 2002).unwrap(),
         Some([ZERO, ZERO, ONE, ONE]),
         "Address 2002"
     );
     assert_eq!(
-        process.chiplets.get_mem_value(ContextId::root(), 2003),
+        process.chiplets.memory().get_word(ContextId::root(), 2003).unwrap(),
         Some([ZERO, ONE, ZERO, ZERO]),
         "Address 2003"
     );
     assert_eq!(
-        process.chiplets.get_mem_value(ContextId::root(), 2004),
+        process.chiplets.memory().get_word(ContextId::root(), 2004).unwrap(),
         Some([ZERO, ONE, ZERO, ONE]),
         "Address 2004"
     );
@@ -92,14 +93,15 @@ fn test_memcopy() {
 
 #[test]
 fn test_pipe_double_words_to_memory() {
-    let mem_addr = 1000;
+    let start_addr = 1000;
+    let end_addr = 1008;
     let source = format!(
         "
         use.std::mem
         use.std::sys
 
         begin
-            push.1002       # end_addr
+            push.{}         # end_addr
             push.{}         # write_addr
             padw padw padw  # hasher state
 
@@ -107,17 +109,17 @@ fn test_pipe_double_words_to_memory() {
 
             exec.sys::truncate_stack
         end",
-        mem_addr
+        end_addr, start_addr,
     );
 
     let operand_stack = &[];
     let data = &[1, 2, 3, 4, 5, 6, 7, 8];
     let mut expected_stack =
         felt_slice_to_ints(&build_expected_perm(&[0, 0, 0, 0, 1, 2, 3, 4, 5, 6, 7, 8]));
-    expected_stack.push(1002);
+    expected_stack.push(end_addr);
     build_test!(source, operand_stack, &data).expect_stack_and_memory(
         &expected_stack,
-        mem_addr,
+        start_addr,
         data,
     );
 }
@@ -146,7 +148,7 @@ fn test_pipe_words_to_memory() {
     let operand_stack = &[];
     let data = &[1, 2, 3, 4];
     let mut expected_stack = felt_slice_to_ints(&build_expected_hash(data));
-    expected_stack.push(1001);
+    expected_stack.push(1004);
     build_test!(one_word, operand_stack, &data).expect_stack_and_memory(
         &expected_stack,
         mem_addr,
@@ -174,7 +176,7 @@ fn test_pipe_words_to_memory() {
     let operand_stack = &[];
     let data = &[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
     let mut expected_stack = felt_slice_to_ints(&build_expected_hash(data));
-    expected_stack.push(1003);
+    expected_stack.push(1012);
     build_test!(three_words, operand_stack, &data).expect_stack_and_memory(
         &expected_stack,
         mem_addr,
@@ -205,7 +207,7 @@ fn test_pipe_preimage_to_memory() {
     advice_stack.reverse();
     advice_stack.extend(data);
     build_test!(three_words, operand_stack, &advice_stack).expect_stack_and_memory(
-        &[1003],
+        &[1012],
         mem_addr,
         data,
     );
