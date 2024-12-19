@@ -13,6 +13,8 @@
 #### Enhancements
 - Added options `--kernel`, `--debug` and `--output` to `miden bundle` (#1447).
 - Added `miden_core::mast::MastForest::advice_map` to load it into the advice provider before the `MastForest` execution (#1574).
+- Optimized the computation of the DEEP queries in the recursive verifier (#1594).
+- Added validity checks for the inputs to the recursive verifier (#1596).
 
 ## 0.11.0 (2024-11-04)
 
