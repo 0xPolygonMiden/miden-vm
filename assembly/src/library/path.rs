@@ -557,9 +557,16 @@ fn validate_component(component: &str) -> Result<(), PathError> {
 /// Tests
 #[cfg(test)]
 mod tests {
-    use vm_core::assert_matches;
+    use std::sync::Arc;
+
+    use vm_core::{
+        assert_matches,
+        debuginfo::{SourceSpan, Span},
+        utils::{Deserializable, Serializable},
+    };
 
     use super::{super::LibraryNamespaceError, IdentError, LibraryPath, PathError};
+    use crate::{alloc::string::ToString, ast::Ident, LibraryNamespace};
 
     #[test]
     fn new_path() {
@@ -607,5 +614,19 @@ mod tests {
             path,
             Err(PathError::InvalidNamespace(LibraryNamespaceError::InvalidStart))
         );
+    }
+
+    #[test]
+    fn path_serialization_wasm_cm_style_module_name() {
+        // Tests that Wasm Component Model names are serialized and deserialized correctly
+        let wasm_cm_style_module_name = "namespace:package/interface@1.0.0";
+        let module_id = Ident::new_unchecked(Span::new(
+            SourceSpan::default(),
+            Arc::from(wasm_cm_style_module_name.to_string()),
+        ));
+        let path = LibraryPath::new_from_components(LibraryNamespace::Anon, [module_id]);
+        let bytes = path.to_bytes();
+        let deserialized = LibraryPath::read_from_bytes(&bytes).unwrap();
+        assert_eq!(path, deserialized);
     }
 }
