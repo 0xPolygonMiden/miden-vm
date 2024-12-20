@@ -7,13 +7,12 @@ use alloc::{
 
 use vm_core::{
     crypto::hash::RpoDigest,
-    debuginfo::Span,
     mast::{MastForest, MastNodeId},
     utils::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable},
     AdviceMap, Kernel,
 };
 
-use crate::ast::{Ident, ProcedureName, QualifiedProcedureName};
+use crate::ast::QualifiedProcedureName;
 
 mod error;
 mod module;
@@ -179,7 +178,7 @@ impl Serializable for Library {
         target.write_usize(exports.len());
         for (proc_name, proc_node_id) in exports {
             proc_name.module.write_into(target);
-            proc_name.name.as_str().write_into(target);
+            proc_name.name.write_into(target);
             target.write_u32(proc_node_id.as_u32());
         }
     }
@@ -196,10 +195,7 @@ impl Deserializable for Library {
         let mut exports = BTreeMap::new();
         for _ in 0..num_exports {
             let proc_module = source.read()?;
-            let proc_name: String = source.read()?;
-            let proc_name = ProcedureName::new_unchecked(Ident::new_unchecked(Span::unknown(
-                Arc::from(proc_name),
-            )));
+            let proc_name = source.read()?;
             let proc_name = QualifiedProcedureName::new(proc_module, proc_name);
             let proc_node_id = MastNodeId::from_u32_safe(source.read_u32()?, &mast_forest)?;
 
