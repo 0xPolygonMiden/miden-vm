@@ -183,38 +183,3 @@ impl FromStr for Ident {
         Ok(Self { span: SourceSpan::default(), name })
     }
 }
-
-#[cfg(feature = "serde")]
-impl serde::Serialize for Ident {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: serde::Serializer,
-    {
-        self.as_str().serialize(serializer)
-    }
-}
-
-#[cfg(feature = "serde")]
-impl<'de> serde::Deserialize<'de> for Ident {
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-    where
-        D: serde::Deserializer<'de>,
-    {
-        struct IdentVisitor;
-        impl serde::de::Visitor<'_> for IdentVisitor {
-            type Value = Ident;
-
-            fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
-                formatter.write_str("ident")
-            }
-
-            fn visit_str<E>(self, v: &str) -> Result<Self::Value, E>
-            where
-                E: serde::de::Error,
-            {
-                Ok(Ident::new_unchecked(Span::unknown(Arc::from(v))))
-            }
-        }
-        deserializer.deserialize_str(IdentVisitor)
-    }
-}

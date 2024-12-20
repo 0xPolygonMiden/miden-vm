@@ -55,6 +55,7 @@ impl Program {
         Self { mast_forest, entrypoint, kernel }
     }
 
+    /// Produces a new program with the existing [`MastForest`] and provided advice map.
     pub fn with_advice_map(self, advice_map: AdviceMap) -> Self {
         let mut mast_forest = (*self.mast_forest).clone();
         mast_forest.advice_map_mut().extend(advice_map);
