@@ -1,8 +1,5 @@
-//! The [Package] containing a [vm_core::Program] or [assembly::Library], rodata segments,
-//! and a manifest(exports and dependencies).
-//!
-//! Serves as the unit of deployment and distribution in the Miden ecosystem.
-//! Contains everything needed to execute a program or link a library.
+//! The [Package] containing a [vm_core::Program] or [assembly::Library] and a manifest(exports and
+//! dependencies).
 
 #![no_std]
 
