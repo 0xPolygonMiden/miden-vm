@@ -799,7 +799,6 @@ export.generate_list_indices
     end
     #=> [R2, R1, query_ptr, mask, depth, 0, ...]
 
-    # TODO(plafer): not sure why the extra `drop` is needed? Don't we have exactly 3 words on stack?
     dropw dropw  dropw drop
 end
 
