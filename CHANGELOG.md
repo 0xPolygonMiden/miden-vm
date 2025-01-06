@@ -1,7 +1,7 @@
 # Changelog
 
 #### Highlights
-- [BREAKING] Memory is now memory addressable (#1598)
+- [BREAKING] Memory is now element-addressable (#1598)
 
 #### Changes
 - [BREAKING] `Process` no longer takes ownership of the `Host` (#1571).

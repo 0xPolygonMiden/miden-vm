@@ -2,9 +2,9 @@ use alloc::vec::Vec;
 
 use miden_air::{
     trace::chiplets::memory::{
-        ELEMENT_OR_WORD_COL_IDX, FLAG_SAME_BATCH_AND_CONTEXT, IDX0_COL_IDX, IDX1_COL_IDX,
-        MEMORY_ACCESS_ELEMENT, MEMORY_ACCESS_WORD, MEMORY_READ, MEMORY_WRITE, READ_WRITE_COL_IDX,
-        TRACE_WIDTH as MEMORY_TRACE_WIDTH,
+        FLAG_SAME_BATCH_AND_CONTEXT, IDX0_COL_IDX, IDX1_COL_IDX, IS_READ_COL_IDX,
+        IS_WORD_ACCESS_COL_IDX, MEMORY_ACCESS_ELEMENT, MEMORY_ACCESS_WORD, MEMORY_READ,
+        MEMORY_WRITE, TRACE_WIDTH as MEMORY_TRACE_WIDTH,
     },
     RowIndex,
 };
@@ -539,11 +539,11 @@ fn build_trace_row(
 
     let mut row = [ZERO; MEMORY_TRACE_WIDTH];
 
-    row[READ_WRITE_COL_IDX] = match operation {
+    row[IS_READ_COL_IDX] = match operation {
         MemoryOperation::Read => MEMORY_READ,
         MemoryOperation::Write => MEMORY_WRITE,
     };
-    row[ELEMENT_OR_WORD_COL_IDX] = match access_type {
+    row[IS_WORD_ACCESS_COL_IDX] = match access_type {
         MemoryAccessType::Element { .. } => MEMORY_ACCESS_ELEMENT,
         MemoryAccessType::Word => MEMORY_ACCESS_WORD,
     };

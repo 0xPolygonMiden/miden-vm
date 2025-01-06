@@ -12,8 +12,8 @@ use crate::{
     trace::{
         chiplets::{
             memory::{MEMORY_ACCESS_WORD, MEMORY_READ, MEMORY_WRITE},
-            MEMORY_ELEMENT_OR_WORD_COL_IDX, MEMORY_FLAG_SAME_BATCH_AND_CONTEXT,
-            MEMORY_IDX0_COL_IDX, MEMORY_IDX1_COL_IDX, MEMORY_READ_WRITE_COL_IDX,
+            MEMORY_FLAG_SAME_BATCH_AND_CONTEXT, MEMORY_IDX0_COL_IDX, MEMORY_IDX1_COL_IDX,
+            MEMORY_IS_READ_COL_IDX, MEMORY_IS_WORD_ACCESS_COL_IDX,
         },
         TRACE_WIDTH,
     },
@@ -141,8 +141,8 @@ fn get_test_frame(
     let mut next = vec![ZERO; TRACE_WIDTH];
 
     // Set the operation in the next row.
-    next[MEMORY_READ_WRITE_COL_IDX] = read_write;
-    next[MEMORY_ELEMENT_OR_WORD_COL_IDX] = MEMORY_ACCESS_WORD;
+    next[MEMORY_IS_READ_COL_IDX] = read_write;
+    next[MEMORY_IS_WORD_ACCESS_COL_IDX] = MEMORY_ACCESS_WORD;
 
     // Set the context, addr, and clock columns in the next row to the values in the delta row.
     next[MEMORY_CTX_COL_IDX] = Felt::new(delta_row[0]);
@@ -177,7 +177,8 @@ fn get_test_frame(
     next[MEMORY_IDX0_COL_IDX] = ZERO;
     next[MEMORY_IDX1_COL_IDX] = ZERO;
 
-    // If the context or batch columns are changed, the same batch and context flag should be zero.
+    // If the context or batch columns are changed, the "same batch and context" flag should be
+    // zero.
     if delta_row[MemoryTestDeltaType::Batch as usize] > 0
         || delta_row[MemoryTestDeltaType::Context as usize] > 0
     {
@@ -193,9 +194,9 @@ fn get_test_frame(
 /// the specified delta type, which determines the column over which the delta and delta inverse
 /// values of the trace would be calculated.
 ///
-/// - When the delta type is Context, the address and clock columns can be anything.
+/// - When the delta type is Context, the batch and clock columns can be anything.
 /// - When the delta type is Batch, the context must remain unchanged but the clock can change.
-/// - When the delta type is Clock, both the context and address columns must remain unchanged.
+/// - When the delta type is Clock, both the context and batch columns must remain unchanged.
 fn get_test_delta_row(delta_type: &MemoryTestDeltaType) -> Vec<u64> {
     let delta_value = word_aligned_rand_value() as u64;
     let mut row = vec![0; 3];
@@ -231,7 +232,7 @@ fn get_test_delta_row(delta_type: &MemoryTestDeltaType) -> Vec<u64> {
     row
 }
 
-/// Returns a random value that is aligned to a word boundary (i.e. divisible by 4).
+/// Returns a random value that is divisible by 4 (i.e. "word aligned" when treated as an address).
 fn word_aligned_rand_value() -> u32 {
     let value = rand_value::<u32>();
     value - (value % 4)

@@ -1,4 +1,4 @@
-use test_utils::{build_op_test, build_test, ToElements};
+use test_utils::{build_op_test, build_test};
 
 #[test]
 fn mem_load() {
@@ -13,28 +13,6 @@ fn mem_store() {
     let pub_inputs = vec![1];
 
     build_op_test!(asm_op, &pub_inputs).prove_and_verify(pub_inputs, false);
-}
-
-#[test]
-fn helper_mem_store() {
-    // Sequence of operations: [Span, Pad, MStoreW, Drop, Drop, Drop, Drop, Pad, Mstore, Drop, Pad,
-    // MStoreW, Drop, Pad, Mstore, Drop]
-    let asm_op =
-        "begin mem_storew.0 drop drop drop drop mem_store.0 mem_storew.0 drop mem_store.0 end";
-    let pub_inputs = vec![1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
-
-    let trace = build_test!(asm_op, &pub_inputs).execute().unwrap();
-    // MStore doesn't use helper registers, so they should be zero.
-    let helper_regs = [0, 0, 0, 0, 0, 0].to_elements();
-    // We need to check helper registers state after the MStore operation at clock cycle 8.
-    assert_eq!(helper_regs, trace.get_user_op_helpers_at(8));
-    // After the second MStoreW call, the helper registers should be zero.
-    let helper_regs = [0, 0, 0, 0, 0, 0].to_elements();
-    assert_eq!(helper_regs, trace.get_user_op_helpers_at(11));
-
-    // We need to check helper registers state after the MStore operation at clock cycle 14.
-    let helper_regs = [0, 0, 0, 0, 0, 0].to_elements();
-    assert_eq!(helper_regs, trace.get_user_op_helpers_at(14));
 }
 
 #[test]
@@ -59,19 +37,6 @@ fn write_read() {
     let pub_inputs = vec![4, 3, 2, 1];
 
     build_test!(source, &pub_inputs).prove_and_verify(pub_inputs, false);
-}
-
-#[test]
-fn helper_write_read() {
-    // Sequence of operations: [Span, Pad, MStorew, Drop, Drop, Drop, Drop, Pad, MLoad, ... ]
-    let source = "begin mem_storew.0 dropw mem_load.0 movup.4 drop end";
-    let pub_inputs = vec![4, 3, 2, 1];
-
-    let trace = build_test!(source, &pub_inputs).execute().unwrap();
-    // MLoad doesn't use helper registers, so they should be zero.
-    let helper_regs = [0, 0, 0, 0, 0, 0].to_elements();
-    // We need to check helper registers state after first MLoad, which index is 8
-    assert_eq!(helper_regs, trace.get_user_op_helpers_at(8));
 }
 
 #[test]

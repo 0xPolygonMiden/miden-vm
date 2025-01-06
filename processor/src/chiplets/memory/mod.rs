@@ -3,9 +3,9 @@ use alloc::{collections::BTreeMap, vec::Vec};
 use miden_air::{
     trace::chiplets::memory::{
         BATCH_COL_IDX, CLK_COL_IDX, CTX_COL_IDX, D0_COL_IDX, D1_COL_IDX, D_INV_COL_IDX,
-        ELEMENT_OR_WORD_COL_IDX, FLAG_SAME_BATCH_AND_CONTEXT, IDX0_COL_IDX, IDX1_COL_IDX,
-        MEMORY_ACCESS_ELEMENT, MEMORY_ACCESS_WORD, MEMORY_READ, MEMORY_WRITE, READ_WRITE_COL_IDX,
-        V_COL_RANGE,
+        FLAG_SAME_BATCH_AND_CONTEXT, IDX0_COL_IDX, IDX1_COL_IDX, IS_READ_COL_IDX,
+        IS_WORD_ACCESS_COL_IDX, MEMORY_ACCESS_ELEMENT, MEMORY_ACCESS_WORD, MEMORY_READ,
+        MEMORY_WRITE, V_COL_RANGE,
     },
     RowIndex,
 };
@@ -54,9 +54,10 @@ const INIT_MEM_VALUE: Word = EMPTY_WORD;
 /// ├────┴────┴────┴───────┴──────┴──────┴────┴────┴────┴────┴────┴────┴────┴───────┴───────┤
 ///
 /// In the above, the meaning of the columns is as follows:
-/// - `rw` is a selector column used to identify whether the memory operation is a read or a write.
+/// - `rw` is a selector column used to identify whether the memory operation is a read or a write
+///   (1 indicates a read).
 /// - `ew` is a selector column used to identify whether the memory operation is over an element or
-///   a word.
+///   a word (1 indicates a word).
 /// - `ctx` contains execution context ID. Values in this column must increase monotonically but
 ///   there can be gaps between two consecutive context IDs of up to 2^32. Also, two consecutive
 ///   values can be the same.
@@ -78,9 +79,9 @@ const INIT_MEM_VALUE: Word = EMPTY_WORD;
 ///   - When both the context and the batch remain the same, these columns contain (`new_clk` -
 ///     `old_clk` - 1).
 /// - `d_inv` contains the inverse of the delta between two consecutive context IDs, batches, or
-///   clock cycles computed as described above.
-/// - `f_scb` is a flag indicating whether the context and the batch are the same as in the next
-///   row.
+///   clock cycles computed as described above. It is the field inverse of `(d_1 * 2^16) + d_0`
+/// - `f_scb` is a flag indicating whether the context and the batch of the current row are the same
+///   as in the next row.
 ///
 /// For the first row of the trace, values in `d0`, `d1`, and `d_inv` are set to zeros.
 #[derive(Debug, Default)]
@@ -321,14 +322,14 @@ impl Memory {
                     let value = memory_access.batch();
 
                     match memory_access.operation() {
-                        MemoryOperation::Read => trace.set(row, READ_WRITE_COL_IDX, MEMORY_READ),
-                        MemoryOperation::Write => trace.set(row, READ_WRITE_COL_IDX, MEMORY_WRITE),
+                        MemoryOperation::Read => trace.set(row, IS_READ_COL_IDX, MEMORY_READ),
+                        MemoryOperation::Write => trace.set(row, IS_READ_COL_IDX, MEMORY_WRITE),
                     }
                     let (idx1, idx0) = match memory_access.access_type() {
                         segment::MemoryAccessType::Element {
                             addr_idx_in_batch: addr_idx_in_word,
                         } => {
-                            trace.set(row, ELEMENT_OR_WORD_COL_IDX, MEMORY_ACCESS_ELEMENT);
+                            trace.set(row, IS_WORD_ACCESS_COL_IDX, MEMORY_ACCESS_ELEMENT);
 
                             match addr_idx_in_word {
                                 0 => (ZERO, ZERO),
@@ -339,7 +340,7 @@ impl Memory {
                             }
                         },
                         segment::MemoryAccessType::Word => {
-                            trace.set(row, ELEMENT_OR_WORD_COL_IDX, MEMORY_ACCESS_WORD);
+                            trace.set(row, IS_WORD_ACCESS_COL_IDX, MEMORY_ACCESS_WORD);
                             (ZERO, ZERO)
                         },
                     };

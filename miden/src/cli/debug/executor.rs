@@ -44,7 +44,7 @@ impl DebugExecutor {
     // MODIFIERS
     // --------------------------------------------------------------------------------------------
 
-    /// executes a debug command against the vm in it's current state.
+    /// Executes a debug command against the vm in it's current state.
     pub fn execute(&mut self, command: DebugCommand) -> bool {
         match command {
             DebugCommand::Continue => {
@@ -122,12 +122,12 @@ impl DebugExecutor {
     // ACCESSORS
     // --------------------------------------------------------------------------------------------
 
-    /// print general VM state information.
+    /// Prints general VM state information.
     fn print_vm_state(&self) {
         println!("{}", self.vm_state)
     }
 
-    /// print all stack items.
+    /// Prints all stack items.
     pub fn print_stack(&self) {
         println!(
             "{}",
@@ -141,7 +141,7 @@ impl DebugExecutor {
         )
     }
 
-    /// print specified stack item.
+    /// Prints specified stack item.
     pub fn print_stack_item(&self, index: usize) {
         let len = self.vm_state.stack.len();
         println!("stack len {}", len);
@@ -152,14 +152,14 @@ impl DebugExecutor {
         }
     }
 
-    /// print all memory entries.
+    /// Prints all memory entries.
     pub fn print_memory(&self) {
         for &(address, mem) in self.vm_state.memory.iter() {
             Self::print_memory_data(address, mem)
         }
     }
 
-    /// print specified memory entry.
+    /// Prints specified memory entry.
     pub fn print_memory_entry(&self, address: u64) {
         let entry = self.vm_state.memory.iter().find_map(|(addr, mem)| match address == *addr {
             true => Some(mem),
@@ -175,12 +175,12 @@ impl DebugExecutor {
     // HELPERS
     // --------------------------------------------------------------------------------------------
 
-    /// print memory data.
+    /// Prints memory data.
     fn print_memory_data(address: u64, mem_value: Felt) {
         println!("{address} {mem_value:?}");
     }
 
-    /// print help message
+    /// Prints help message
     fn print_help() {
         let message = "---------------------------------------------------------------------\n\
             Miden Assembly Debug CLI\n\

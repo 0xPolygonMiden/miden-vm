@@ -272,7 +272,7 @@ fn simple_dyn_exec() {
             # move the first result of foo out of the way
             movdn.4
 
-            # use dynexec to call foo again via its hash, which is stored at memory location 42
+            # use dynexec to call foo again via its hash, which is stored at memory location 40
             mem_storew.40 dropw
             push.40
             dynexec

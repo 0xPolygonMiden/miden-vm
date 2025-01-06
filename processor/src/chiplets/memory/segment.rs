@@ -132,6 +132,9 @@ impl MemorySegmentTrace {
     ///
     /// If the word starting at the specified address hasn't been previously written to, four ZERO
     /// elements are returned. This effectively implies that memory is initialized to ZERO.
+    /// 
+    /// # Preconditions
+    /// - Assumes that the address is word aligned.
     ///
     /// # Errors
     /// - Returns an error if the same address is accessed more than once in the same clock cycle.
@@ -213,6 +216,10 @@ impl MemorySegmentTrace {
 
     /// Writes the provided word starting at the specified address. The memory access is assumed to
     /// happen at the provided clock cycle.
+    /// 
+    /// # Preconditions
+    /// 
+    /// - Assumes that the address is word aligned.
     ///
     /// # Errors
     /// - Returns an error if the same address is accessed more than once in the same clock cycle.
@@ -268,6 +275,9 @@ impl MemorySegmentTrace {
     ///
     /// The access type either specifies the element in batch that was read, or that the entire word
     /// was read.
+    /// 
+    /// # Errors
+    /// - Returns an error if the same address is accessed more than once in the same clock cycle.
     fn read_batch(
         &mut self,
         ctx: ContextId,

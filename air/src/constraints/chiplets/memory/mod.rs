@@ -6,9 +6,9 @@ use super::{EvaluationFrame, FieldElement};
 use crate::{
     trace::chiplets::{
         MEMORY_BATCH_COL_IDX, MEMORY_CLK_COL_IDX, MEMORY_CTX_COL_IDX, MEMORY_D0_COL_IDX,
-        MEMORY_D1_COL_IDX, MEMORY_D_INV_COL_IDX, MEMORY_ELEMENT_OR_WORD_COL_IDX,
-        MEMORY_FLAG_SAME_BATCH_AND_CONTEXT, MEMORY_IDX0_COL_IDX, MEMORY_IDX1_COL_IDX,
-        MEMORY_READ_WRITE_COL_IDX, MEMORY_V_COL_RANGE,
+        MEMORY_D1_COL_IDX, MEMORY_D_INV_COL_IDX, MEMORY_FLAG_SAME_BATCH_AND_CONTEXT,
+        MEMORY_IDX0_COL_IDX, MEMORY_IDX1_COL_IDX, MEMORY_IS_READ_COL_IDX,
+        MEMORY_IS_WORD_ACCESS_COL_IDX, MEMORY_V_COL_RANGE,
     },
     utils::{binary_not, is_binary, EvaluationResult},
 };
@@ -81,8 +81,8 @@ fn enforce_binary_columns<E: FieldElement>(
     result: &mut [E],
     memory_flag: E,
 ) -> usize {
-    result[0] = memory_flag * is_binary(frame.read_write());
-    result[1] = memory_flag * is_binary(frame.element_or_word());
+    result[0] = memory_flag * is_binary(frame.is_read());
+    result[1] = memory_flag * is_binary(frame.is_word_access());
     result[2] = memory_flag * is_binary(frame.idx0());
     result[3] = memory_flag * is_binary(frame.idx1());
 
@@ -151,14 +151,34 @@ fn enforce_flag_same_context_and_batch<E: FieldElement>(
 
 /// A constraint evaluation function to enforce that memory is initialized to zero when it is read
 /// before being written and that when existing memory values are read they remain unchanged.
+///
+/// The constraints on the values depend on a few factors:
+/// - When in the first row of a new context or batch, any of the 4 values of the batch that are not
+///   written to must be set to 0.
+///   - This is because the memory is initialized to 0 when a new context or batch is started.
+/// - When we remain in the same context and batch, then this is when we want to enforce the "memory
+///   property" that what was previously written must be read. Therefore, the values that are not
+///   being written need to be equal to the values in the previous row (i.e. previously written, or
+///   initialized to 0).
+///   - The implication is that in a given evaluation frame, we always constrain the "next" value,
+///     since that constraint depends on the "current" value.
 fn enforce_values<E: FieldElement>(
     frame: &EvaluationFrame<E>,
     result: &mut [E],
     memory_flag_no_last: E,
     memory_flag_first_row: E,
 ) -> usize {
-    // intuition: c_i is set to 1 when `v'[i]` is *not* written to, and 0 otherwise.
-    // in other words, c_i is set to 1 when `v'[i]` needs to be constrained.
+    // c_i is set to 1 when `v'[i]` is not written to, and 0 otherwise.
+    //
+    // In other words, c_i is set to 1 when `v'[i]` needs to be constrained (to either 0 or `v[i]`).
+    //
+    // Note that `c_i` only uses values in the "next" row. This is because it must be used to
+    // constrain the first row of the memory chiplet, where that row sits in the "next" position of
+    // the frame, and the "current" row belongs to the previous chiplet (and hence the "current" row
+    // must not be accessed).
+    //
+    // As a result, `c_i` does not include the constraint of being in the memory chiplet, or in the
+    // same context and batch - these must be enforced separately.
     let (c0, c1, c2, c3) = {
         // intuition: the i'th `f` flag is set to 1 when `i == 2 * idx1 + idx0`
         let f0 = binary_not(frame.idx1_next()) * binary_not(frame.idx0_next());
@@ -167,22 +187,24 @@ fn enforce_values<E: FieldElement>(
         let f3 = frame.idx1_next() * frame.idx0_next();
 
         let c_i = |f_i| {
-            frame.read_write_next()
-                + binary_not(frame.read_write_next())
-                    * binary_not(frame.element_or_word_next())
-                    * binary_not(f_i)
+            // z_i is set to 1 when `v'[i]` is not being accessed.
+            let z_i = binary_not(frame.is_word_access_next()) * binary_not(f_i);
+            let is_read_next = frame.is_read_next();
+
+            is_read_next + binary_not(is_read_next) * z_i
         };
 
         (c_i(f0), c_i(f1), c_i(f2), c_i(f3))
     };
 
-    // first row constraints
+    // first row constraints: when row' is the first row, and v'[i] is not written to, then v'[i]
+    // must be 0.
     result[0] = memory_flag_first_row * c0 * frame.v_next(0);
     result[1] = memory_flag_first_row * c1 * frame.v_next(1);
     result[2] = memory_flag_first_row * c2 * frame.v_next(2);
     result[3] = memory_flag_first_row * c3 * frame.v_next(3);
 
-    // non-first row, new batch or context constraints: when  row' is a new batch/ctx, and v'[i] is
+    // non-first row, new batch or context constraints: when row' is a new batch/ctx, and v'[i] is
     // not written to, then v'[i] must be 0.
     result[4] = memory_flag_no_last * binary_not(frame.f_scb_next()) * c0 * frame.v_next(0);
     result[5] = memory_flag_no_last * binary_not(frame.f_scb_next()) * c1 * frame.v_next(1);
@@ -207,14 +229,22 @@ fn enforce_values<E: FieldElement>(
 trait EvaluationFrameExt<E: FieldElement> {
     // --- Column accessors -----------------------------------------------------------------------
 
-    /// Gets the value of the read/write column in the current row.
-    fn read_write(&self) -> E;
-    /// Gets the value of the read/write column in the next row.
-    fn read_write_next(&self) -> E;
-    /// Gets the value of the element/word column in the current row.
-    fn element_or_word(&self) -> E;
-    /// Gets the value of the element/word column in the next row.
-    fn element_or_word_next(&self) -> E;
+    /// The value of the read/write column in the current row.
+    ///
+    /// 0: write, 1: read
+    fn is_read(&self) -> E;
+    /// The value of the read/write column in the next row.
+    ///
+    /// 0: write, 1: read
+    fn is_read_next(&self) -> E;
+    /// The value of the element/word column in the current row.
+    ///
+    /// 0: element, 1: word
+    fn is_word_access(&self) -> E;
+    /// The value of the element/word column in the next row.
+    ///
+    /// 0: element, 1: word
+    fn is_word_access_next(&self) -> E;
     /// The current context value.
     #[allow(dead_code)]
     fn ctx(&self) -> E;
@@ -281,23 +311,23 @@ impl<E: FieldElement> EvaluationFrameExt<E> for &EvaluationFrame<E> {
     // --- Column accessors -----------------------------------------------------------------------
 
     #[inline(always)]
-    fn read_write(&self) -> E {
-        self.current()[MEMORY_READ_WRITE_COL_IDX]
+    fn is_read(&self) -> E {
+        self.current()[MEMORY_IS_READ_COL_IDX]
     }
 
     #[inline(always)]
-    fn read_write_next(&self) -> E {
-        self.next()[MEMORY_READ_WRITE_COL_IDX]
+    fn is_read_next(&self) -> E {
+        self.next()[MEMORY_IS_READ_COL_IDX]
     }
 
     #[inline(always)]
-    fn element_or_word(&self) -> E {
-        self.current()[MEMORY_ELEMENT_OR_WORD_COL_IDX]
+    fn is_word_access(&self) -> E {
+        self.current()[MEMORY_IS_WORD_ACCESS_COL_IDX]
     }
 
     #[inline(always)]
-    fn element_or_word_next(&self) -> E {
-        self.next()[MEMORY_ELEMENT_OR_WORD_COL_IDX]
+    fn is_word_access_next(&self) -> E {
+        self.next()[MEMORY_IS_WORD_ACCESS_COL_IDX]
     }
 
     #[inline(always)]

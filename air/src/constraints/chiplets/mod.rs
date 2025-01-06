@@ -161,7 +161,7 @@ trait EvaluationFrameExt<E: FieldElement> {
     /// trace.
     fn memory_flag_next(&self) -> E;
 
-    /// Flag to indicate whether the frame is in the first row of the memory portion of the Chiplets
+    /// Flag to indicate whether the next row in the frame is in the memory portion of the Chiplets
     /// trace.
     fn memory_flag_first_row(&self) -> E;
 }

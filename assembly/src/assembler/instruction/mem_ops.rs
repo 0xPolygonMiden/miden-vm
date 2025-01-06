@@ -100,8 +100,8 @@ pub fn mem_write_imm(
 // ================================================================================================
 
 /// Appends a sequence of operations to the span needed for converting procedure local index to
-/// absolute memory address. This consists of putting index onto the stack and then executing
-/// LOCADDR operation.
+/// absolute memory address. This consists in calculating the offset of the local value from the
+/// frame pointer and pushing the result onto the stack.
 ///
 /// This operation takes:
 /// - 3 VM cycles if index == 1
@@ -127,6 +127,9 @@ pub fn local_to_absolute_addr(
     let max = num_proc_locals - 1;
     validate_param(index_of_local, 0..=max)?;
 
+    // Local values are placed under the frame pointer, so we need to calculate the offset of the
+    // local value from the frame pointer. Local values are also indexed by word, so we need to
+    // multiply the index by the word size.
     let fmp_offset_of_local = (max - index_of_local) * WORD_SIZE as u16;
     push_felt(block_builder, -Felt::from(fmp_offset_of_local));
     block_builder.push_op(FmpAdd);

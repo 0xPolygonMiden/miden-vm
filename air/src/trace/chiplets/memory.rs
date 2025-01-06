@@ -23,8 +23,8 @@ pub const MEMORY_ACCESS_WORD: Felt = ONE;
 
 // All bus labels encode the chiplet selector (1, 1, 0), as well as the read/write and element/word
 // columns. The purpose of the label is to force the chiplet to assign the correct values to the
-// read/write and element/word columns. We also include the chiplet selector as a "namespace" for
-// memory chiplet labels (to really ensure they don't collide with labels from other chiplets).
+// read/write and element/word columns. We also include the chiplet selector as a unique identifier
+// for memory chiplet labels (to ensure they don't collide with labels from other chiplets).
 
 /// Unique label when r/w=0 and e/w=0.
 pub const MEMORY_WRITE_ELEMENT_LABEL: u8 = 0b11000;
@@ -40,13 +40,14 @@ pub const MEMORY_READ_WORD_LABEL: u8 = 0b11011;
 
 // --- COLUMN ACCESSOR INDICES WITHIN THE CHIPLET -------------------------------------------------
 
-/// Column to hold the whether the operation is a read or write.
-pub const READ_WRITE_COL_IDX: usize = 0;
+/// Column to hold whether the operation is a read or write.
+pub const IS_READ_COL_IDX: usize = 0;
 /// Column to hold the whether the operation was over an element or a word.
-pub const ELEMENT_OR_WORD_COL_IDX: usize = READ_WRITE_COL_IDX + 1;
+pub const IS_WORD_ACCESS_COL_IDX: usize = IS_READ_COL_IDX + 1;
 /// Column to hold the context ID of the current memory context.
-pub const CTX_COL_IDX: usize = ELEMENT_OR_WORD_COL_IDX + 1;
-/// Column to hold the memory address.
+pub const CTX_COL_IDX: usize = IS_WORD_ACCESS_COL_IDX + 1;
+/// Column to hold the batch (i.e. group of 4 memory slots, referred to by the address of the first
+/// slot in the batch).
 pub const BATCH_COL_IDX: usize = CTX_COL_IDX + 1;
 /// Column to hold the first bit of the index of the address in the batch.
 pub const IDX0_COL_IDX: usize = BATCH_COL_IDX + 1;
@@ -54,8 +55,8 @@ pub const IDX0_COL_IDX: usize = BATCH_COL_IDX + 1;
 pub const IDX1_COL_IDX: usize = IDX0_COL_IDX + 1;
 /// Column for the clock cycle in which the memory operation occurred.
 pub const CLK_COL_IDX: usize = IDX1_COL_IDX + 1;
-/// Columns to hold the values stored at a given memory context, address, and clock cycle after
-/// the memory operation. When reading from a new address, these are initialized to zero.
+/// Columns to hold the values stored at a given memory context, batch, and clock cycle after
+/// the memory operation. When reading from a new batch, these are initialized to zero.
 pub const V_COL_RANGE: Range<usize> = create_range(CLK_COL_IDX + 1, WORD_SIZE);
 /// Column for the lower 16-bits of the delta between two consecutive context IDs, addresses, or
 /// clock cycles.

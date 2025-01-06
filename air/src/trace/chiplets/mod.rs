@@ -91,10 +91,10 @@ pub const BITWISE_OUTPUT_COL_IDX: usize = BITWISE_TRACE_OFFSET + bitwise::OUTPUT
 /// indicates the operation (read or write).
 pub const MEMORY_SELECTORS_COL_IDX: usize = MEMORY_TRACE_OFFSET;
 /// The index within the main trace of the column containing the memory read/write column.
-pub const MEMORY_READ_WRITE_COL_IDX: usize = MEMORY_TRACE_OFFSET + memory::READ_WRITE_COL_IDX;
+pub const MEMORY_IS_READ_COL_IDX: usize = MEMORY_TRACE_OFFSET + memory::IS_READ_COL_IDX;
 /// The index within the main trace of the column containing the memory element/word column.
-pub const MEMORY_ELEMENT_OR_WORD_COL_IDX: usize =
-    MEMORY_TRACE_OFFSET + memory::ELEMENT_OR_WORD_COL_IDX;
+pub const MEMORY_IS_WORD_ACCESS_COL_IDX: usize =
+    MEMORY_TRACE_OFFSET + memory::IS_WORD_ACCESS_COL_IDX;
 /// The index within the main trace of the column containing the memory context.
 pub const MEMORY_CTX_COL_IDX: usize = MEMORY_TRACE_OFFSET + memory::CTX_COL_IDX;
 /// The index within the main trace of the column containing the memory address.

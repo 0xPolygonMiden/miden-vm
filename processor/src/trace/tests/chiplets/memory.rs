@@ -5,9 +5,9 @@ use miden_air::{
             MEMORY_READ_WORD_LABEL, MEMORY_WRITE, MEMORY_WRITE_ELEMENT_LABEL,
             MEMORY_WRITE_WORD_LABEL,
         },
-        MEMORY_BATCH_COL_IDX, MEMORY_CLK_COL_IDX, MEMORY_CTX_COL_IDX,
-        MEMORY_ELEMENT_OR_WORD_COL_IDX, MEMORY_IDX0_COL_IDX, MEMORY_IDX1_COL_IDX,
-        MEMORY_READ_WRITE_COL_IDX, MEMORY_V_COL_RANGE,
+        MEMORY_BATCH_COL_IDX, MEMORY_CLK_COL_IDX, MEMORY_CTX_COL_IDX, MEMORY_IDX0_COL_IDX,
+        MEMORY_IDX1_COL_IDX, MEMORY_IS_READ_COL_IDX, MEMORY_IS_WORD_ACCESS_COL_IDX,
+        MEMORY_V_COL_RANGE,
     },
     RowIndex,
 };
@@ -219,8 +219,8 @@ fn build_expected_bus_msg_from_trace(
     row: RowIndex,
 ) -> Felt {
     // get the memory access operation
-    let read_write = trace.main_trace.get_column(MEMORY_READ_WRITE_COL_IDX)[row];
-    let element_or_word = trace.main_trace.get_column(MEMORY_ELEMENT_OR_WORD_COL_IDX)[row];
+    let read_write = trace.main_trace.get_column(MEMORY_IS_READ_COL_IDX)[row];
+    let element_or_word = trace.main_trace.get_column(MEMORY_IS_WORD_ACCESS_COL_IDX)[row];
     let op_label = if read_write == MEMORY_WRITE {
         if element_or_word == MEMORY_ACCESS_ELEMENT {
             MEMORY_WRITE_ELEMENT_LABEL
