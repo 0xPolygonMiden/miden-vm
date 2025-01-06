@@ -2,10 +2,10 @@ use alloc::{collections::BTreeMap, vec::Vec};
 
 use miden_air::{
     trace::chiplets::memory::{
-        WORD_COL_IDX, CLK_COL_IDX, CTX_COL_IDX, D0_COL_IDX, D1_COL_IDX, D_INV_COL_IDX,
+        CLK_COL_IDX, CTX_COL_IDX, D0_COL_IDX, D1_COL_IDX, D_INV_COL_IDX,
         FLAG_SAME_CONTEXT_AND_WORD, IDX0_COL_IDX, IDX1_COL_IDX, IS_READ_COL_IDX,
         IS_WORD_ACCESS_COL_IDX, MEMORY_ACCESS_ELEMENT, MEMORY_ACCESS_WORD, MEMORY_READ,
-        MEMORY_WRITE, V_COL_RANGE,
+        MEMORY_WRITE, V_COL_RANGE, WORD_COL_IDX,
     },
     RowIndex,
 };
@@ -78,8 +78,8 @@ const INIT_MEM_VALUE: Word = EMPTY_WORD;
 ///     - `old_word`).
 ///   - When both the context and the word remain the same, these columns contain (`new_clk` -
 ///     `old_clk` - 1).
-/// - `d_inv` contains the inverse of the delta between two consecutive context IDs, words, or
-///   clock cycles computed as described above. It is the field inverse of `(d_1 * 2^16) + d_0`
+/// - `d_inv` contains the inverse of the delta between two consecutive context IDs, words, or clock
+///   cycles computed as described above. It is the field inverse of `(d_1 * 2^16) + d_0`
 /// - `f_scw` is a flag indicating whether the context and the word of the current row are the same
 ///   as in the next row.
 ///
@@ -326,9 +326,7 @@ impl Memory {
                         MemoryOperation::Write => trace.set(row, IS_READ_COL_IDX, MEMORY_WRITE),
                     }
                     let (idx1, idx0) = match memory_access.access_type() {
-                        segment::MemoryAccessType::Element {
-                            addr_idx_in_word,
-                        } => {
+                        segment::MemoryAccessType::Element { addr_idx_in_word } => {
                             trace.set(row, IS_WORD_ACCESS_COL_IDX, MEMORY_ACCESS_ELEMENT);
 
                             match addr_idx_in_word {

@@ -6,6 +6,8 @@ use processor::ContextId;
 use rustyline::{error::ReadlineError, DefaultEditor};
 use stdlib::StdLibrary;
 
+use crate::helpers::print_mem_address;
+
 // This work is in continuation to the amazing work done by team `Scribe`
 // [here](https://github.com/ControlCplusControlV/Scribe/blob/main/transpiler/src/repl.rs#L8)
 //
@@ -400,10 +402,4 @@ fn print_instructions() {
 fn print_stack(stack: Vec<Felt>) {
     // converts the stack which is a vector of felt into string and prints it.
     println!("{}", stack.iter().map(|f| format!("{}", f)).collect::<Vec<_>>().join(" "),)
-}
-
-/// Accepts and returns a memory at an address by converting its register into integer
-/// from Felt.
-fn print_mem_address(addr: u64, mem_value: Felt) {
-    println!("{addr} {mem_value}")
 }

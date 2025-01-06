@@ -121,7 +121,7 @@ pub const MEMORY_D1_COL_IDX: usize = MEMORY_TRACE_OFFSET + memory::D1_COL_IDX;
 /// memory context IDs, addresses, or clock cycles, used to enforce that changes are correctly
 /// constrained.
 pub const MEMORY_D_INV_COL_IDX: usize = MEMORY_TRACE_OFFSET + memory::D_INV_COL_IDX;
-/// Column to hold the flag indicating whether the current memory operation is in the same context and
-/// same word as the previous operation.
+/// Column to hold the flag indicating whether the current memory operation is in the same context
+/// and same word as the previous operation.
 pub const MEMORY_FLAG_SAME_CONTEXT_AND_WORD: usize =
     MEMORY_TRACE_OFFSET + memory::FLAG_SAME_CONTEXT_AND_WORD;

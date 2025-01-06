@@ -64,7 +64,7 @@ impl Process {
     }
 }
 
-/// Reads words from memory at the specified range and inserts them into the advice map under
+/// Reads elements from memory at the specified range and inserts them into the advice map under
 /// the key `KEY` located at the top of the stack.
 ///
 /// Inputs:

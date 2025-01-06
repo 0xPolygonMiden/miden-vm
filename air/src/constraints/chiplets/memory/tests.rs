@@ -4,8 +4,8 @@ use rand_utils::rand_value;
 use vm_core::{Felt, FieldElement, WORD_SIZE};
 
 use super::{
-    EvaluationFrame, MEMORY_WORD_COL_IDX, MEMORY_CLK_COL_IDX, MEMORY_CTX_COL_IDX,
-    MEMORY_D0_COL_IDX, MEMORY_D1_COL_IDX, MEMORY_D_INV_COL_IDX, MEMORY_V_COL_RANGE,
+    EvaluationFrame, MEMORY_CLK_COL_IDX, MEMORY_CTX_COL_IDX, MEMORY_D0_COL_IDX, MEMORY_D1_COL_IDX,
+    MEMORY_D_INV_COL_IDX, MEMORY_V_COL_RANGE, MEMORY_WORD_COL_IDX,
 };
 use crate::{
     chiplets::memory,

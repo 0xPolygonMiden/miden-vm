@@ -10,6 +10,8 @@ mod cli;
 mod repl;
 mod tools;
 
+pub(crate) mod helpers;
+
 /// Root CLI struct
 #[derive(Parser, Debug)]
 #[clap(name = "Miden", about = "Miden CLI", version, rename_all = "kebab-case")]

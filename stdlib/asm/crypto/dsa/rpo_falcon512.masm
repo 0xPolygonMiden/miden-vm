@@ -467,9 +467,9 @@ end
 #! We can compute s1 in a single pass by delaying the q-modular reduction til the end. This can
 #! be achieved through a careful analysis of the computation of the difference between pi and c.
 #!
-#! The i-th coefficient s1_i of s1 is equal to c_i - (pi_i - pi_{2048 + i}) which is equal to
-#! c_i  + pi_{2048 + i} - pi_i. Now, we know that the size of the pi_i coefficients is bounded by
-#! J := 512 * q^2 and this means that J + pi_{2048 + i} - pi_i does not Q-underflow and since
+#! The i-th coefficient s1_i of s1 is equal to c_i - (pi_i - pi_{512 + i}) which is equal to
+#! c_i  + pi_{512 + i} - pi_i. Now, we know that the size of the pi_i coefficients is bounded by
+#! J := 512 * q^2 and this means that J + pi_{512 + i} - pi_i does not Q-underflow and since
 #! J = 0 modulo q, the addition of J does not affect the final result. It is also important to
 #! note that adding J does not Q-overflow by virtue of q * 2^50 < Q.
 #! All of the above implies that we can compute s1_i with only one modular reduction at the end,
@@ -493,7 +493,7 @@ export.compute_s1_norm_sq
         dup.4 add.5124
         mem_loadw
 
-        # load pi_{i+2048}
+        # load pi_{i+512}
         padw
         dup.8 add.512
         mem_loadw
@@ -502,7 +502,7 @@ export.compute_s1_norm_sq
         padw
         dup.12
         mem_loadw
-        #=> [PI, PI_{i+2048}, C, pi_ptr, ...]
+        #=> [PI, PI_{i+512}, C, pi_ptr, ...]
 
         # 2) Compute the squared norm of (i + 0)-th coefficient of s1
         movup.8

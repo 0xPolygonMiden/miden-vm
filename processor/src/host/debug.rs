@@ -74,7 +74,7 @@ impl Printer {
     /// Prints the whole memory state at the cycle `clk` in context `ctx`.
     fn print_mem_all(&self, process: ProcessState) {
         let mem = process.get_mem_state(self.ctx);
-        let ele_width = mem
+        let element_width = mem
             .iter()
             .map(|(_addr, value)| element_printed_width(Some(*value)))
             .max()
@@ -84,12 +84,12 @@ impl Printer {
 
         // print the main part of the memory (wihtout the last value)
         for (addr, value) in mem.iter().take(mem.len() - 1) {
-            print_mem_address(*addr as u32, Some(*value), false, false, ele_width);
+            print_mem_address(*addr as u32, Some(*value), false, false, element_width);
         }
 
         // print the last memory value
         if let Some((addr, value)) = mem.last() {
-            print_mem_address(*addr as u32, Some(*value), true, false, ele_width);
+            print_mem_address(*addr as u32, Some(*value), true, false, element_width);
         }
     }
 
@@ -154,7 +154,7 @@ impl Printer {
 /// If `is_local` is true, the output addresses are formatted as decimal values, otherwise as hex
 /// strings.
 fn print_interval(mem_interval: Vec<(u32, Option<Felt>)>, is_local: bool) {
-    let ele_width = mem_interval
+    let element_width = mem_interval
         .iter()
         .map(|(_addr, value)| element_printed_width(*value))
         .max()
@@ -162,12 +162,12 @@ fn print_interval(mem_interval: Vec<(u32, Option<Felt>)>, is_local: bool) {
 
     // print the main part of the memory (wihtout the last value)
     for (addr, mem_value) in mem_interval.iter().take(mem_interval.len() - 1) {
-        print_mem_address(*addr, *mem_value, false, is_local, ele_width)
+        print_mem_address(*addr, *mem_value, false, is_local, element_width)
     }
 
     // print the last memory value
     if let Some((addr, value)) = mem_interval.last() {
-        print_mem_address(*addr, *value, true, is_local, ele_width);
+        print_mem_address(*addr, *value, true, is_local, element_width);
     }
 }
 
@@ -180,7 +180,7 @@ fn print_mem_address(
     mem_value: Option<Felt>,
     is_last: bool,
     is_local: bool,
-    ele_width: usize,
+    element_width: usize,
 ) {
     if let Some(value) = mem_value {
         if is_last {
@@ -189,14 +189,14 @@ fn print_mem_address(
             } else {
                 print!("└── {addr:#010x}: ");
             }
-            println!("{:>width$}\n", value.as_int(), width = ele_width);
+            println!("{:>width$}\n", value.as_int(), width = element_width);
         } else {
             if is_local {
                 print!("├── {addr:>5}: ");
             } else {
                 print!("├── {addr:#010x}: ");
             }
-            println!("{:>width$}", value.as_int(), width = ele_width);
+            println!("{:>width$}", value.as_int(), width = element_width);
         }
     } else if is_last {
         if is_local {

@@ -943,8 +943,7 @@ where
     let root2 = main_trace.chiplet_kernel_root_2(row);
     let root3 = main_trace.chiplet_kernel_root_3(row);
 
-    let v =
-        alphas[0] + build_value(&alphas[1..6], &[Felt::from(op_label), root0, root1, root2, root3]);
+    let v = alphas[0] + build_value(&alphas[1..6], &[op_label, root0, root1, root2, root3]);
 
     let kernel_chiplet_selector = main_trace.chiplet_selector_4(row);
     v.mul_base(kernel_chiplet_selector) + E::from(ONE - kernel_chiplet_selector)

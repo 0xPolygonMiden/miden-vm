@@ -32,6 +32,9 @@ impl Process {
     /// - The top four elements of the stack are overwritten with values retrieved from memory.
     ///
     /// Thus, the net result of the operation is that the stack is shifted left by one item.
+    ///
+    /// # Errors
+    /// - Returns an error if the address is not aligned to a word boundary.
     pub(super) fn op_mloadw(&mut self) -> Result<(), ExecutionError> {
         // get the address from the stack and read the word from current memory context
         let mut word = self.chiplets.memory_mut().read_word(
@@ -79,6 +82,9 @@ impl Process {
     ///   aligned on a word boundary. The items are not removed from the stack.
     ///
     /// Thus, the net result of the operation is that the stack is shifted left by one item.
+    ///
+    /// # Errors
+    /// - Returns an error if the address is not aligned to a word boundary.
     pub(super) fn op_mstorew(&mut self) -> Result<(), ExecutionError> {
         // get the address from the stack and build the word to be saved from the stack values
         let addr = self.stack.get(0);
@@ -133,6 +139,9 @@ impl Process {
     ///   stack order).
     /// - Memory address (in position 12) is incremented by 8.
     /// - All other stack elements remain the same.
+    ///
+    /// # Errors
+    /// - Returns an error if the address is not aligned to a word boundary.
     pub(super) fn op_mstream(&mut self) -> Result<(), ExecutionError> {
         const MEM_ADDR_STACK_IDX: usize = 12;
 
@@ -178,6 +187,9 @@ impl Process {
     /// - These words replace the top 8 elements of the stack (element-wise, in stack order).
     /// - Memory address (in position 12) is incremented by 8.
     /// - All other stack elements remain the same.
+    ///
+    /// # Errors
+    /// - Returns an error if the address is not aligned to a word boundary.
     pub(super) fn op_pipe(&mut self, host: &mut impl Host) -> Result<(), ExecutionError> {
         const MEM_ADDR_STACK_IDX: usize = 12;
 

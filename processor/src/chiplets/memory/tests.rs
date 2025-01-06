@@ -13,8 +13,8 @@ use vm_core::{assert_matches, Word, WORD_SIZE};
 use super::{
     super::ZERO,
     segment::{MemoryAccessType, MemoryOperation},
-    Felt, FieldElement, Memory, TraceFragment, WORD_COL_IDX, CLK_COL_IDX, CTX_COL_IDX, D0_COL_IDX,
-    D1_COL_IDX, D_INV_COL_IDX, EMPTY_WORD, ONE, V_COL_RANGE,
+    Felt, FieldElement, Memory, TraceFragment, CLK_COL_IDX, CTX_COL_IDX, D0_COL_IDX, D1_COL_IDX,
+    D_INV_COL_IDX, EMPTY_WORD, ONE, V_COL_RANGE, WORD_COL_IDX,
 };
 use crate::{ContextId, ExecutionError};
 

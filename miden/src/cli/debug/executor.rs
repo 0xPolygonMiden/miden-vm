@@ -1,10 +1,9 @@
 use std::sync::Arc;
 
-use miden_vm::{
-    math::Felt, DefaultHost, MemAdviceProvider, Program, StackInputs, VmState, VmStateIterator,
-};
+use miden_vm::{DefaultHost, MemAdviceProvider, Program, StackInputs, VmState, VmStateIterator};
 
 use super::DebugCommand;
+use crate::helpers::print_mem_address;
 
 /// Holds debugger state and iterator used for debugging.
 pub struct DebugExecutor {
@@ -155,7 +154,7 @@ impl DebugExecutor {
     /// Prints all memory entries.
     pub fn print_memory(&self) {
         for &(address, mem) in self.vm_state.memory.iter() {
-            Self::print_memory_data(address, mem)
+            print_mem_address(address, mem)
         }
     }
 
@@ -167,18 +166,13 @@ impl DebugExecutor {
         });
 
         match entry {
-            Some(&mem) => Self::print_memory_data(address, mem),
+            Some(&mem) => print_mem_address(address, mem),
             None => println!("memory at address '{address}' not found"),
         }
     }
 
     // HELPERS
     // --------------------------------------------------------------------------------------------
-
-    /// Prints memory data.
-    fn print_memory_data(address: u64, mem_value: Felt) {
-        println!("{address} {mem_value:?}");
-    }
 
     /// Prints help message
     fn print_help() {
