@@ -5,8 +5,8 @@ use winter_air::TransitionConstraintDegree;
 use super::{EvaluationFrame, FieldElement};
 use crate::{
     trace::chiplets::{
-        MEMORY_BATCH_COL_IDX, MEMORY_CLK_COL_IDX, MEMORY_CTX_COL_IDX, MEMORY_D0_COL_IDX,
-        MEMORY_D1_COL_IDX, MEMORY_D_INV_COL_IDX, MEMORY_FLAG_SAME_BATCH_AND_CONTEXT,
+        MEMORY_WORD_COL_IDX, MEMORY_CLK_COL_IDX, MEMORY_CTX_COL_IDX, MEMORY_D0_COL_IDX,
+        MEMORY_D1_COL_IDX, MEMORY_D_INV_COL_IDX, MEMORY_FLAG_SAME_CONTEXT_AND_WORD,
         MEMORY_IDX0_COL_IDX, MEMORY_IDX1_COL_IDX, MEMORY_IS_READ_COL_IDX,
         MEMORY_IS_WORD_ACCESS_COL_IDX, MEMORY_V_COL_RANGE,
     },
@@ -26,11 +26,11 @@ pub const NUM_CONSTRAINTS: usize = 22;
 pub const CONSTRAINT_DEGREES: [usize; NUM_CONSTRAINTS] = [
     5, 5, 5, 5, // Enforce that rw, ew, idx0 and idx1 are binary.
     7, 6, 9, 8, // Constrain the values in the d inverse column.
-    8, // Enforce values in ctx, batch, clk transition correctly.
-    7, // Enforce the correct value for the f_scb flag.
+    8, // Enforce values in ctx, word, clk transition correctly.
+    7, // Enforce the correct value for the f_scw flag.
     9, 9, 9, 9, // Constrain the values in the first row of the chiplet.
-    9, 9, 9, 9, // Constrain the values in non-first rows, new batch or context is started.
-    9, 9, 9, 9, // Constrain the values in non-first rows, same batch or context.
+    9, 9, 9, 9, // Constrain the values in non-first rows, new word or context is started.
+    9, 9, 9, 9, // Constrain the values in non-first rows, same word or context.
 ];
 
 // MEMORY TRANSITION CONSTRAINTS
@@ -66,8 +66,8 @@ pub fn enforce_constraints<E: FieldElement>(
     // Enforce values in ctx, addr, clk transition correctly.
     index += enforce_delta(frame, &mut result[index..], memory_flag_no_last);
 
-    // Enforce the correct value for the f_scb flag.
-    index += enforce_flag_same_context_and_batch(frame, &mut result[index..], memory_flag_no_last);
+    // Enforce the correct value for the f_scw flag.
+    index += enforce_flag_same_context_and_word(frame, &mut result[index..], memory_flag_no_last);
 
     // Constrain the memory values.
     enforce_values(frame, &mut result[index..], memory_flag_no_last, memory_flag_first_row);
@@ -123,7 +123,7 @@ fn enforce_delta<E: FieldElement>(
 
     // If the context changed, include the difference.
     result[0] = memory_flag_no_last * frame.n0() * frame.ctx_change();
-    // If the context is the same, include the batch difference if it changed or else include the
+    // If the context is the same, include the word difference if it changed or else include the
     // clock change.
     result.agg_constraint(
         0,
@@ -136,15 +136,15 @@ fn enforce_delta<E: FieldElement>(
     constraint_count
 }
 
-/// A constraint evaluation function to enforce that the `f_scb` flag is set to 1 when the next row
-/// is in the same context and batch, and 0 otherwise.
-fn enforce_flag_same_context_and_batch<E: FieldElement>(
+/// A constraint evaluation function to enforce that the `f_scw` flag is set to 1 when the next row
+/// is in the same context and word, and 0 otherwise.
+fn enforce_flag_same_context_and_word<E: FieldElement>(
     frame: &EvaluationFrame<E>,
     result: &mut [E],
     memory_flag_no_last: E,
 ) -> usize {
     result[0] = memory_flag_no_last
-        * (frame.f_scb_next() - binary_not(frame.n0() + frame.not_n0() * frame.n1()));
+        * (frame.f_scw_next() - binary_not(frame.n0() + frame.not_n0() * frame.n1()));
 
     1
 }
@@ -153,10 +153,10 @@ fn enforce_flag_same_context_and_batch<E: FieldElement>(
 /// before being written and that when existing memory values are read they remain unchanged.
 ///
 /// The constraints on the values depend on a few factors:
-/// - When in the first row of a new context or batch, any of the 4 values of the batch that are not
+/// - When in the first row of a new context or word, any of the 4 values of the word that are not
 ///   written to must be set to 0.
-///   - This is because the memory is initialized to 0 when a new context or batch is started.
-/// - When we remain in the same context and batch, then this is when we want to enforce the "memory
+///   - This is because the memory is initialized to 0 when a new context or word is started.
+/// - When we remain in the same context and word, then this is when we want to enforce the "memory
 ///   property" that what was previously written must be read. Therefore, the values that are not
 ///   being written need to be equal to the values in the previous row (i.e. previously written, or
 ///   initialized to 0).
@@ -178,7 +178,7 @@ fn enforce_values<E: FieldElement>(
     // must not be accessed).
     //
     // As a result, `c_i` does not include the constraint of being in the memory chiplet, or in the
-    // same context and batch - these must be enforced separately.
+    // same context and word - these must be enforced separately.
     let (c0, c1, c2, c3) = {
         // intuition: the i'th `f` flag is set to 1 when `i == 2 * idx1 + idx0`
         let f0 = binary_not(frame.idx1_next()) * binary_not(frame.idx0_next());
@@ -204,19 +204,19 @@ fn enforce_values<E: FieldElement>(
     result[2] = memory_flag_first_row * c2 * frame.v_next(2);
     result[3] = memory_flag_first_row * c3 * frame.v_next(3);
 
-    // non-first row, new batch or context constraints: when row' is a new batch/ctx, and v'[i] is
+    // non-first row, new word or context constraints: when row' is a new word/ctx, and v'[i] is
     // not written to, then v'[i] must be 0.
-    result[4] = memory_flag_no_last * binary_not(frame.f_scb_next()) * c0 * frame.v_next(0);
-    result[5] = memory_flag_no_last * binary_not(frame.f_scb_next()) * c1 * frame.v_next(1);
-    result[6] = memory_flag_no_last * binary_not(frame.f_scb_next()) * c2 * frame.v_next(2);
-    result[7] = memory_flag_no_last * binary_not(frame.f_scb_next()) * c3 * frame.v_next(3);
+    result[4] = memory_flag_no_last * binary_not(frame.f_scw_next()) * c0 * frame.v_next(0);
+    result[5] = memory_flag_no_last * binary_not(frame.f_scw_next()) * c1 * frame.v_next(1);
+    result[6] = memory_flag_no_last * binary_not(frame.f_scw_next()) * c2 * frame.v_next(2);
+    result[7] = memory_flag_no_last * binary_not(frame.f_scw_next()) * c3 * frame.v_next(3);
 
-    // non-first row, same batch or context constraints: when row' is in the same batch/ctx, and
+    // non-first row, same word or context constraints: when row' is in the same word/ctx, and
     // v'[i] is not written to, then v'[i] must be equal to v[i].
-    result[8] = memory_flag_no_last * frame.f_scb_next() * c0 * (frame.v_next(0) - frame.v(0));
-    result[9] = memory_flag_no_last * frame.f_scb_next() * c1 * (frame.v_next(1) - frame.v(1));
-    result[10] = memory_flag_no_last * frame.f_scb_next() * c2 * (frame.v_next(2) - frame.v(2));
-    result[11] = memory_flag_no_last * frame.f_scb_next() * c3 * (frame.v_next(3) - frame.v(3));
+    result[8] = memory_flag_no_last * frame.f_scw_next() * c0 * (frame.v_next(0) - frame.v(0));
+    result[9] = memory_flag_no_last * frame.f_scw_next() * c1 * (frame.v_next(1) - frame.v(1));
+    result[10] = memory_flag_no_last * frame.f_scw_next() * c2 * (frame.v_next(2) - frame.v(2));
+    result[11] = memory_flag_no_last * frame.f_scw_next() * c3 * (frame.v_next(3) - frame.v(3));
 
     12
 }
@@ -250,14 +250,14 @@ trait EvaluationFrameExt<E: FieldElement> {
     fn ctx(&self) -> E;
     /// The current address.
     #[allow(dead_code)]
-    fn batch(&self) -> E;
-    /// The 0'th bit of the index of the memory address in the current batch.
+    fn word_next(&self) -> E;
+    /// The 0'th bit of the index of the memory address in the current word.
     fn idx0(&self) -> E;
-    /// The 0'th bit of the index of the memory address in the next batch.
+    /// The 0'th bit of the index of the memory address in the next word.
     fn idx0_next(&self) -> E;
-    /// The 1st bit of the index of the memory address in the current batch.
+    /// The 1st bit of the index of the memory address in the current word.
     fn idx1(&self) -> E;
-    /// The 1st bit of the index of the memory address in the next batch.
+    /// The 1st bit of the index of the memory address in the next word.
     fn idx1_next(&self) -> E;
     /// The current clock cycle.
     #[allow(dead_code)]
@@ -278,9 +278,9 @@ trait EvaluationFrameExt<E: FieldElement> {
     /// The next value of the column tracking the inverse delta used for constraint evaluations.
     fn d_inv_next(&self) -> E;
 
-    // The flag that indicates whether the next row is in the same batch and context as the current
+    // The flag that indicates whether the next row is in the same word and context as the current
     // row.
-    fn f_scb_next(&self) -> E;
+    fn f_scw_next(&self) -> E;
 
     // --- Intermediate variables & helpers -------------------------------------------------------
 
@@ -336,8 +336,8 @@ impl<E: FieldElement> EvaluationFrameExt<E> for &EvaluationFrame<E> {
     }
 
     #[inline(always)]
-    fn batch(&self) -> E {
-        self.next()[MEMORY_BATCH_COL_IDX]
+    fn word_next(&self) -> E {
+        self.next()[MEMORY_WORD_COL_IDX]
     }
 
     #[inline(always)]
@@ -396,8 +396,8 @@ impl<E: FieldElement> EvaluationFrameExt<E> for &EvaluationFrame<E> {
     }
 
     #[inline(always)]
-    fn f_scb_next(&self) -> E {
-        self.next()[MEMORY_FLAG_SAME_BATCH_AND_CONTEXT]
+    fn f_scw_next(&self) -> E {
+        self.next()[MEMORY_FLAG_SAME_CONTEXT_AND_WORD]
     }
 
     // --- Intermediate variables & helpers -------------------------------------------------------
@@ -419,7 +419,7 @@ impl<E: FieldElement> EvaluationFrameExt<E> for &EvaluationFrame<E> {
 
     #[inline(always)]
     fn n1(&self) -> E {
-        self.change(MEMORY_BATCH_COL_IDX) * self.d_inv_next()
+        self.change(MEMORY_WORD_COL_IDX) * self.d_inv_next()
     }
 
     #[inline(always)]
@@ -434,7 +434,7 @@ impl<E: FieldElement> EvaluationFrameExt<E> for &EvaluationFrame<E> {
 
     #[inline(always)]
     fn addr_change(&self) -> E {
-        self.change(MEMORY_BATCH_COL_IDX)
+        self.change(MEMORY_WORD_COL_IDX)
     }
 
     #[inline(always)]

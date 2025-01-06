@@ -2,7 +2,7 @@ use alloc::vec::Vec;
 
 use miden_air::{
     trace::chiplets::memory::{
-        FLAG_SAME_BATCH_AND_CONTEXT, IDX0_COL_IDX, IDX1_COL_IDX, IS_READ_COL_IDX,
+        FLAG_SAME_CONTEXT_AND_WORD, IDX0_COL_IDX, IDX1_COL_IDX, IS_READ_COL_IDX,
         IS_WORD_ACCESS_COL_IDX, MEMORY_ACCESS_ELEMENT, MEMORY_ACCESS_WORD, MEMORY_READ,
         MEMORY_WRITE, TRACE_WIDTH as MEMORY_TRACE_WIDTH,
     },
@@ -13,7 +13,7 @@ use vm_core::{assert_matches, Word, WORD_SIZE};
 use super::{
     super::ZERO,
     segment::{MemoryAccessType, MemoryOperation},
-    Felt, FieldElement, Memory, TraceFragment, BATCH_COL_IDX, CLK_COL_IDX, CTX_COL_IDX, D0_COL_IDX,
+    Felt, FieldElement, Memory, TraceFragment, WORD_COL_IDX, CLK_COL_IDX, CTX_COL_IDX, D0_COL_IDX,
     D1_COL_IDX, D_INV_COL_IDX, EMPTY_WORD, ONE, V_COL_RANGE,
 };
 use crate::{ContextId, ExecutionError};
@@ -21,7 +21,7 @@ use crate::{ContextId, ExecutionError};
 #[test]
 fn mem_init() {
     let mem = Memory::default();
-    assert_eq!(0, mem.num_accessed_batches());
+    assert_eq!(0, mem.num_accessed_words());
     assert_eq!(0, mem.trace_len());
 }
 
@@ -33,38 +33,38 @@ fn mem_read() {
     let addr0 = ZERO;
     let value = mem.read(ContextId::root(), addr0, 1.into()).unwrap();
     assert_eq!(ZERO, value);
-    assert_eq!(1, mem.num_accessed_batches());
+    assert_eq!(1, mem.num_accessed_words());
     assert_eq!(1, mem.trace_len());
 
     // read a value from address 3; clk = 2
     let addr3 = Felt::from(3_u32);
     let value = mem.read(ContextId::root(), addr3, 2.into()).unwrap();
     assert_eq!(ZERO, value);
-    assert_eq!(1, mem.num_accessed_batches());
+    assert_eq!(1, mem.num_accessed_words());
     assert_eq!(2, mem.trace_len());
 
     // read a value from address 0 again; clk = 3
     let value = mem.read(ContextId::root(), addr0, 3.into()).unwrap();
     assert_eq!(ZERO, value);
-    assert_eq!(1, mem.num_accessed_batches());
+    assert_eq!(1, mem.num_accessed_words());
     assert_eq!(3, mem.trace_len());
 
     // read a value from address 2; clk = 4
     let addr2 = Felt::from(2_u32);
     let value = mem.read(ContextId::root(), addr2, 4.into()).unwrap();
     assert_eq!(ZERO, value);
-    assert_eq!(1, mem.num_accessed_batches());
+    assert_eq!(1, mem.num_accessed_words());
     assert_eq!(4, mem.trace_len());
 
     // check generated trace and memory data provided to the ChipletsBus; rows should be sorted only
-    // by clock cycle, since they all access the same batch
+    // by clock cycle, since they all access the same word
     let trace = build_trace(mem, 4);
 
     // clk 1
     let mut prev_row = [ZERO; MEMORY_TRACE_WIDTH];
     let memory_access = MemoryAccess::new(
         MemoryOperation::Read,
-        MemoryAccessType::Element { addr_idx_in_batch: 0 },
+        MemoryAccessType::Element { addr_idx_in_word: 0 },
         ContextId::root(),
         addr0,
         1.into(),
@@ -75,7 +75,7 @@ fn mem_read() {
     // clk 2
     let memory_access = MemoryAccess::new(
         MemoryOperation::Read,
-        MemoryAccessType::Element { addr_idx_in_batch: 3 },
+        MemoryAccessType::Element { addr_idx_in_word: 3 },
         ContextId::root(),
         addr3,
         2.into(),
@@ -86,7 +86,7 @@ fn mem_read() {
     // clk 3
     let memory_access = MemoryAccess::new(
         MemoryOperation::Read,
-        MemoryAccessType::Element { addr_idx_in_batch: 0 },
+        MemoryAccessType::Element { addr_idx_in_word: 0 },
         ContextId::root(),
         addr0,
         3.into(),
@@ -97,7 +97,7 @@ fn mem_read() {
     // clk 4
     let memory_access = MemoryAccess::new(
         MemoryOperation::Read,
-        MemoryAccessType::Element { addr_idx_in_batch: 2 },
+        MemoryAccessType::Element { addr_idx_in_word: 2 },
         ContextId::root(),
         addr2,
         4.into(),
@@ -133,7 +133,7 @@ fn mem_write() {
     let word1 = [ONE, ZERO, ZERO, ZERO];
     mem.write_word(ContextId::root(), addr0.into(), 1.into(), word1).unwrap();
     assert_eq!(word1, mem.get_word(ContextId::root(), addr0).unwrap().unwrap());
-    assert_eq!(1, mem.num_accessed_batches());
+    assert_eq!(1, mem.num_accessed_words());
     assert_eq!(1, mem.trace_len());
 
     // write a value into address 2; clk = 2
@@ -141,7 +141,7 @@ fn mem_write() {
     let value5 = Felt::new(5);
     mem.write(ContextId::root(), addr2.into(), 2.into(), value5).unwrap();
     assert_eq!(value5, mem.get_value(ContextId::root(), addr2).unwrap());
-    assert_eq!(1, mem.num_accessed_batches());
+    assert_eq!(1, mem.num_accessed_words());
     assert_eq!(2, mem.trace_len());
 
     // write a value into address 1; clk = 3
@@ -149,7 +149,7 @@ fn mem_write() {
     let value7 = Felt::new(7);
     mem.write(ContextId::root(), addr1.into(), 3.into(), value7).unwrap();
     assert_eq!(value7, mem.get_value(ContextId::root(), addr1).unwrap());
-    assert_eq!(1, mem.num_accessed_batches());
+    assert_eq!(1, mem.num_accessed_words());
     assert_eq!(3, mem.trace_len());
 
     // write a value into address 3; clk = 4
@@ -157,7 +157,7 @@ fn mem_write() {
     let value9 = Felt::new(9);
     mem.write(ContextId::root(), addr3.into(), 4.into(), value9).unwrap();
     assert_eq!(value9, mem.get_value(ContextId::root(), addr3).unwrap());
-    assert_eq!(1, mem.num_accessed_batches());
+    assert_eq!(1, mem.num_accessed_words());
     assert_eq!(4, mem.trace_len());
 
     // write a word into address 4; clk = 5
@@ -165,21 +165,21 @@ fn mem_write() {
     let word1234 = [ONE, 2_u32.into(), 3_u32.into(), 4_u32.into()];
     mem.write_word(ContextId::root(), addr4.into(), 5.into(), word1234).unwrap();
     assert_eq!(word1234, mem.get_word(ContextId::root(), addr4).unwrap().unwrap());
-    assert_eq!(2, mem.num_accessed_batches());
+    assert_eq!(2, mem.num_accessed_words());
     assert_eq!(5, mem.trace_len());
 
     // write a word into address 0; clk = 6
     let word5678: [Felt; 4] = [5_u32.into(), 6_u32.into(), 7_u32.into(), 8_u32.into()];
     mem.write_word(ContextId::root(), addr0.into(), 6.into(), word5678).unwrap();
     assert_eq!(word5678, mem.get_word(ContextId::root(), addr0).unwrap().unwrap());
-    assert_eq!(2, mem.num_accessed_batches());
+    assert_eq!(2, mem.num_accessed_words());
     assert_eq!(6, mem.trace_len());
 
     // check generated trace and memory data provided to the ChipletsBus; rows should be sorted by
     // address and then clock cycle
     let trace = build_trace(mem, 6);
 
-    // batch 0
+    // word 0
     let mut prev_row = [ZERO; MEMORY_TRACE_WIDTH];
     let memory_access = MemoryAccess::new(
         MemoryOperation::Write,
@@ -193,7 +193,7 @@ fn mem_write() {
 
     let memory_access = MemoryAccess::new(
         MemoryOperation::Write,
-        MemoryAccessType::Element { addr_idx_in_batch: 2 },
+        MemoryAccessType::Element { addr_idx_in_word: 2 },
         ContextId::root(),
         addr2.into(),
         2.into(),
@@ -203,7 +203,7 @@ fn mem_write() {
 
     let memory_access = MemoryAccess::new(
         MemoryOperation::Write,
-        MemoryAccessType::Element { addr_idx_in_batch: 1 },
+        MemoryAccessType::Element { addr_idx_in_word: 1 },
         ContextId::root(),
         addr1.into(),
         3.into(),
@@ -213,7 +213,7 @@ fn mem_write() {
 
     let memory_access = MemoryAccess::new(
         MemoryOperation::Write,
-        MemoryAccessType::Element { addr_idx_in_batch: 3 },
+        MemoryAccessType::Element { addr_idx_in_word: 3 },
         ContextId::root(),
         addr3.into(),
         4.into(),
@@ -231,7 +231,7 @@ fn mem_write() {
     );
     prev_row = verify_memory_access(&trace, 4, memory_access, prev_row);
 
-    // batch 1
+    // word 1
     let memory_access = MemoryAccess::new(
         MemoryOperation::Write,
         MemoryAccessType::Word,
@@ -326,7 +326,7 @@ fn mem_write_read() {
 
     let memory_access = MemoryAccess::new(
         MemoryOperation::Read,
-        MemoryAccessType::Element { addr_idx_in_batch: 3 },
+        MemoryAccessType::Element { addr_idx_in_word: 3 },
         ContextId::root(),
         3_u32.into(),
         clk,
@@ -337,7 +337,7 @@ fn mem_write_read() {
 
     let memory_access = MemoryAccess::new(
         MemoryOperation::Read,
-        MemoryAccessType::Element { addr_idx_in_batch: 2 },
+        MemoryAccessType::Element { addr_idx_in_word: 2 },
         ContextId::root(),
         2_u32.into(),
         clk,
@@ -348,7 +348,7 @@ fn mem_write_read() {
 
     let memory_access = MemoryAccess::new(
         MemoryOperation::Read,
-        MemoryAccessType::Element { addr_idx_in_batch: 1 },
+        MemoryAccessType::Element { addr_idx_in_word: 1 },
         ContextId::root(),
         1_u32.into(),
         clk,
@@ -359,7 +359,7 @@ fn mem_write_read() {
 
     let memory_access = MemoryAccess::new(
         MemoryOperation::Read,
-        MemoryAccessType::Element { addr_idx_in_batch: 0 },
+        MemoryAccessType::Element { addr_idx_in_word: 0 },
         ContextId::root(),
         ZERO,
         clk,
@@ -381,7 +381,7 @@ fn mem_write_read() {
 
     let memory_access = MemoryAccess::new(
         MemoryOperation::Write,
-        MemoryAccessType::Element { addr_idx_in_batch: 2 },
+        MemoryAccessType::Element { addr_idx_in_word: 2 },
         ContextId::root(),
         2_u32.into(),
         clk,
@@ -392,7 +392,7 @@ fn mem_write_read() {
 
     let memory_access = MemoryAccess::new(
         MemoryOperation::Read,
-        MemoryAccessType::Element { addr_idx_in_batch: 2 },
+        MemoryAccessType::Element { addr_idx_in_word: 2 },
         ContextId::root(),
         2_u32.into(),
         clk,
@@ -465,7 +465,7 @@ pub struct MemoryAccess {
     ctx: ContextId,
     addr: Felt,
     clk: Felt,
-    batch_values: [Felt; 4],
+    word_values: [Felt; 4],
 }
 
 impl MemoryAccess {
@@ -475,9 +475,9 @@ impl MemoryAccess {
         ctx: ContextId,
         addr: Felt,
         clk: RowIndex,
-        batch_values: Word,
+        word_values: Word,
     ) -> Self {
-        if let MemoryAccessType::Element { addr_idx_in_batch: addr_idx_in_word } = access_type {
+        if let MemoryAccessType::Element { addr_idx_in_word } = access_type {
             let addr: u32 = addr.try_into().unwrap();
             assert_eq!(addr_idx_in_word as u32, addr % WORD_SIZE as u32);
         }
@@ -488,7 +488,7 @@ impl MemoryAccess {
             ctx,
             addr,
             clk: Felt::from(clk),
-            batch_values,
+            word_values,
         }
     }
 }
@@ -520,19 +520,19 @@ fn build_trace_row(
         ctx,
         addr,
         clk,
-        batch_values,
+        word_values,
     } = memory_access;
 
-    let (batch, idx1, idx0) = {
+    let (word, idx1, idx0) = {
         let addr: u32 = addr.try_into().unwrap();
         let remainder = addr % WORD_SIZE as u32;
-        let batch = Felt::from(addr - remainder);
+        let word = Felt::from(addr - remainder);
 
         match remainder {
-            0 => (batch, ZERO, ZERO),
-            1 => (batch, ZERO, ONE),
-            2 => (batch, ONE, ZERO),
-            3 => (batch, ONE, ONE),
+            0 => (word, ZERO, ZERO),
+            1 => (word, ZERO, ONE),
+            2 => (word, ONE, ZERO),
+            3 => (word, ONE, ONE),
             _ => unreachable!(),
         }
     };
@@ -548,20 +548,20 @@ fn build_trace_row(
         MemoryAccessType::Word => MEMORY_ACCESS_WORD,
     };
     row[CTX_COL_IDX] = ctx.into();
-    row[BATCH_COL_IDX] = batch;
+    row[WORD_COL_IDX] = word;
     row[IDX0_COL_IDX] = idx0;
     row[IDX1_COL_IDX] = idx1;
     row[CLK_COL_IDX] = clk;
-    row[V_COL_RANGE.start] = batch_values[0];
-    row[V_COL_RANGE.start + 1] = batch_values[1];
-    row[V_COL_RANGE.start + 2] = batch_values[2];
-    row[V_COL_RANGE.start + 3] = batch_values[3];
+    row[V_COL_RANGE.start] = word_values[0];
+    row[V_COL_RANGE.start + 1] = word_values[1];
+    row[V_COL_RANGE.start + 2] = word_values[2];
+    row[V_COL_RANGE.start + 3] = word_values[3];
 
     if prev_row != [ZERO; MEMORY_TRACE_WIDTH] {
         let delta = if row[CTX_COL_IDX] != prev_row[CTX_COL_IDX] {
             row[CTX_COL_IDX] - prev_row[CTX_COL_IDX]
-        } else if row[BATCH_COL_IDX] != prev_row[BATCH_COL_IDX] {
-            row[BATCH_COL_IDX] - prev_row[BATCH_COL_IDX]
+        } else if row[WORD_COL_IDX] != prev_row[WORD_COL_IDX] {
+            row[WORD_COL_IDX] - prev_row[WORD_COL_IDX]
         } else {
             row[CLK_COL_IDX] - prev_row[CLK_COL_IDX] - ONE
         };
@@ -572,10 +572,10 @@ fn build_trace_row(
         row[D_INV_COL_IDX] = delta.inv();
     }
 
-    if row[BATCH_COL_IDX] == prev_row[BATCH_COL_IDX] && row[CTX_COL_IDX] == prev_row[CTX_COL_IDX] {
-        row[FLAG_SAME_BATCH_AND_CONTEXT] = ONE;
+    if row[WORD_COL_IDX] == prev_row[WORD_COL_IDX] && row[CTX_COL_IDX] == prev_row[CTX_COL_IDX] {
+        row[FLAG_SAME_CONTEXT_AND_WORD] = ONE;
     } else {
-        row[FLAG_SAME_BATCH_AND_CONTEXT] = ZERO;
+        row[FLAG_SAME_CONTEXT_AND_WORD] = ZERO;
     }
 
     row

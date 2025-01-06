@@ -9,7 +9,7 @@ use super::{
     chiplets::{
         hasher::{DIGEST_LEN, HASH_CYCLE_LEN, STATE_WIDTH},
         BITWISE_A_COL_IDX, BITWISE_B_COL_IDX, BITWISE_OUTPUT_COL_IDX, HASHER_NODE_INDEX_COL_IDX,
-        HASHER_STATE_COL_RANGE, MEMORY_BATCH_COL_IDX, MEMORY_CLK_COL_IDX, MEMORY_CTX_COL_IDX,
+        HASHER_STATE_COL_RANGE, MEMORY_WORD_COL_IDX, MEMORY_CLK_COL_IDX, MEMORY_CTX_COL_IDX,
         MEMORY_IDX0_COL_IDX, MEMORY_IDX1_COL_IDX, MEMORY_V_COL_RANGE,
     },
     decoder::{
@@ -371,16 +371,16 @@ impl MainTrace {
     }
 
     /// Returns the i-th row of the chiplet column containing memory address.
-    pub fn chiplet_memory_batch(&self, i: RowIndex) -> Felt {
-        self.columns.get_column(MEMORY_BATCH_COL_IDX)[i]
+    pub fn chiplet_memory_word(&self, i: RowIndex) -> Felt {
+        self.columns.get_column(MEMORY_WORD_COL_IDX)[i]
     }
 
-    /// Returns the i-th row of the chiplet column containing 0th bit of the batch index.
+    /// Returns the i-th row of the chiplet column containing 0th bit of the word index.
     pub fn chiplet_memory_idx0(&self, i: RowIndex) -> Felt {
         self.columns.get_column(MEMORY_IDX0_COL_IDX)[i]
     }
 
-    /// Returns the i-th row of the chiplet column containing 1st bit of the batch index.
+    /// Returns the i-th row of the chiplet column containing 1st bit of the word index.
     pub fn chiplet_memory_idx1(&self, i: RowIndex) -> Felt {
         self.columns.get_column(MEMORY_IDX1_COL_IDX)[i]
     }

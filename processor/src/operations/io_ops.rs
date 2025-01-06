@@ -296,7 +296,7 @@ mod tests {
     fn op_mloadw() {
         let mut host = DefaultHost::default();
         let mut process = Process::new_dummy_with_decoder_helpers_and_empty_stack();
-        assert_eq!(0, process.chiplets.memory().num_accessed_batches());
+        assert_eq!(0, process.chiplets.memory().num_accessed_words());
 
         // push a word onto the stack and save it at address 4
         let word = [1, 3, 5, 7].to_elements().try_into().unwrap();
@@ -315,7 +315,7 @@ mod tests {
         assert_eq!(expected_stack, process.stack.trace_state());
 
         // check memory state
-        assert_eq!(1, process.chiplets.memory().num_accessed_batches());
+        assert_eq!(1, process.chiplets.memory().num_accessed_words());
         assert_eq!(
             word,
             process.chiplets.memory().get_word(ContextId::root(), 4).unwrap().unwrap()
@@ -334,7 +334,7 @@ mod tests {
     fn op_mload() {
         let mut host = DefaultHost::default();
         let mut process = Process::new_dummy_with_decoder_helpers_and_empty_stack();
-        assert_eq!(0, process.chiplets.memory().num_accessed_batches());
+        assert_eq!(0, process.chiplets.memory().num_accessed_words());
 
         // push a word onto the stack and save it at address 4
         let word = [1, 3, 5, 7].to_elements().try_into().unwrap();
@@ -348,7 +348,7 @@ mod tests {
         assert_eq!(expected_stack, process.stack.trace_state());
 
         // check memory state
-        assert_eq!(1, process.chiplets.memory().num_accessed_batches());
+        assert_eq!(1, process.chiplets.memory().num_accessed_words());
         assert_eq!(
             word,
             process.chiplets.memory().get_word(ContextId::root(), 4).unwrap().unwrap()
@@ -377,7 +377,7 @@ mod tests {
         store_value(&mut process, 8, word2_felts, &mut host);
 
         // check memory state
-        assert_eq!(2, process.chiplets.memory().num_accessed_batches());
+        assert_eq!(2, process.chiplets.memory().num_accessed_words());
         assert_eq!(
             word1_felts,
             process.chiplets.memory().get_word(ContextId::root(), 4).unwrap().unwrap()
@@ -432,7 +432,7 @@ mod tests {
     fn op_mstorew() {
         let mut host = DefaultHost::default();
         let mut process = Process::new_dummy_with_decoder_helpers_and_empty_stack();
-        assert_eq!(0, process.chiplets.memory().num_accessed_batches());
+        assert_eq!(0, process.chiplets.memory().num_accessed_words());
 
         // push the first word onto the stack and save it at address 0
         let word1 = [1, 3, 5, 7].to_elements().try_into().unwrap();
@@ -443,7 +443,7 @@ mod tests {
         assert_eq!(expected_stack, process.stack.trace_state());
 
         // check memory state
-        assert_eq!(1, process.chiplets.memory().num_accessed_batches());
+        assert_eq!(1, process.chiplets.memory().num_accessed_words());
         assert_eq!(
             word1,
             process.chiplets.memory().get_word(ContextId::root(), 0).unwrap().unwrap()
@@ -458,7 +458,7 @@ mod tests {
         assert_eq!(expected_stack, process.stack.trace_state());
 
         // check memory state
-        assert_eq!(2, process.chiplets.memory().num_accessed_batches());
+        assert_eq!(2, process.chiplets.memory().num_accessed_words());
         assert_eq!(
             word1,
             process.chiplets.memory().get_word(ContextId::root(), 0).unwrap().unwrap()
@@ -481,7 +481,7 @@ mod tests {
     fn op_mstore() {
         let mut host = DefaultHost::default();
         let mut process = Process::new_dummy_with_decoder_helpers_and_empty_stack();
-        assert_eq!(0, process.chiplets.memory().num_accessed_batches());
+        assert_eq!(0, process.chiplets.memory().num_accessed_words());
 
         // push new element onto the stack and save it as first element of the word on
         // uninitialized memory at address 0
@@ -494,7 +494,7 @@ mod tests {
 
         // check memory state
         let mem_0 = [element, ZERO, ZERO, ZERO];
-        assert_eq!(1, process.chiplets.memory().num_accessed_batches());
+        assert_eq!(1, process.chiplets.memory().num_accessed_words());
         assert_eq!(
             mem_0,
             process.chiplets.memory().get_word(ContextId::root(), 0).unwrap().unwrap()
@@ -514,7 +514,7 @@ mod tests {
 
         // check memory state to make sure the other 3 elements were not affected
         let mem_2 = [element, Felt::new(3), Felt::new(5), Felt::new(7)];
-        assert_eq!(2, process.chiplets.memory().num_accessed_batches());
+        assert_eq!(2, process.chiplets.memory().num_accessed_words());
         assert_eq!(
             mem_2,
             process.chiplets.memory().get_word(ContextId::root(), 4).unwrap().unwrap()
@@ -560,7 +560,7 @@ mod tests {
         process.execute_op(Operation::Pipe, &mut host).unwrap();
 
         // check memory state contains the words from the advice stack
-        assert_eq!(2, process.chiplets.memory().num_accessed_batches());
+        assert_eq!(2, process.chiplets.memory().num_accessed_words());
         assert_eq!(
             word1_felts,
             process.chiplets.memory().get_word(ContextId::root(), 4).unwrap().unwrap()

@@ -98,7 +98,7 @@ pub const MEMORY_IS_WORD_ACCESS_COL_IDX: usize =
 /// The index within the main trace of the column containing the memory context.
 pub const MEMORY_CTX_COL_IDX: usize = MEMORY_TRACE_OFFSET + memory::CTX_COL_IDX;
 /// The index within the main trace of the column containing the memory address.
-pub const MEMORY_BATCH_COL_IDX: usize = MEMORY_TRACE_OFFSET + memory::BATCH_COL_IDX;
+pub const MEMORY_WORD_COL_IDX: usize = MEMORY_TRACE_OFFSET + memory::WORD_COL_IDX;
 /// The index within the main trace of the column containing the 0'th memory index.
 pub const MEMORY_IDX0_COL_IDX: usize = MEMORY_TRACE_OFFSET + memory::IDX0_COL_IDX;
 /// The index within the main trace of the column containing the 1st memory index.
@@ -121,7 +121,7 @@ pub const MEMORY_D1_COL_IDX: usize = MEMORY_TRACE_OFFSET + memory::D1_COL_IDX;
 /// memory context IDs, addresses, or clock cycles, used to enforce that changes are correctly
 /// constrained.
 pub const MEMORY_D_INV_COL_IDX: usize = MEMORY_TRACE_OFFSET + memory::D_INV_COL_IDX;
-/// Column to hold the flag indicating whether the current memory operation is in the same batch and
-/// same context as the previous operation.
-pub const MEMORY_FLAG_SAME_BATCH_AND_CONTEXT: usize =
-    MEMORY_TRACE_OFFSET + memory::FLAG_SAME_BATCH_AND_CONTEXT;
+/// Column to hold the flag indicating whether the current memory operation is in the same context and
+/// same word as the previous operation.
+pub const MEMORY_FLAG_SAME_CONTEXT_AND_WORD: usize =
+    MEMORY_TRACE_OFFSET + memory::FLAG_SAME_CONTEXT_AND_WORD;

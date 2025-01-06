@@ -892,11 +892,11 @@ where
         let ctx = main_trace.chiplet_memory_ctx(row);
         let clk = main_trace.chiplet_memory_clk(row);
         let address = {
-            let batch = main_trace.chiplet_memory_batch(row);
+            let word = main_trace.chiplet_memory_word(row);
             let idx0 = main_trace.chiplet_memory_idx0(row);
             let idx1 = main_trace.chiplet_memory_idx1(row);
 
-            batch + idx1.mul_small(2) + idx0
+            word + idx1.mul_small(2) + idx0
         };
 
         alphas[0] + build_value(&alphas[1..5], &[op_label, ctx, address, clk])
@@ -915,7 +915,7 @@ where
         } else if idx1 == ONE && idx0 == ONE {
             main_trace.chiplet_memory_value_3(row)
         } else {
-            panic!("Invalid batch indices. idx0: {idx0}, idx1: {idx1}");
+            panic!("Invalid word indices. idx0: {idx0}, idx1: {idx1}");
         };
 
         header + alphas[5].mul_base(value)

@@ -2,8 +2,8 @@ use alloc::{collections::BTreeMap, vec::Vec};
 
 use miden_air::{
     trace::chiplets::memory::{
-        BATCH_COL_IDX, CLK_COL_IDX, CTX_COL_IDX, D0_COL_IDX, D1_COL_IDX, D_INV_COL_IDX,
-        FLAG_SAME_BATCH_AND_CONTEXT, IDX0_COL_IDX, IDX1_COL_IDX, IS_READ_COL_IDX,
+        WORD_COL_IDX, CLK_COL_IDX, CTX_COL_IDX, D0_COL_IDX, D1_COL_IDX, D_INV_COL_IDX,
+        FLAG_SAME_CONTEXT_AND_WORD, IDX0_COL_IDX, IDX1_COL_IDX, IS_READ_COL_IDX,
         IS_WORD_ACCESS_COL_IDX, MEMORY_ACCESS_ELEMENT, MEMORY_ACCESS_WORD, MEMORY_READ,
         MEMORY_WRITE, V_COL_RANGE,
     },
@@ -40,9 +40,9 @@ const INIT_MEM_VALUE: Word = EMPTY_WORD;
 /// The memory is comprised of one or more segments, each segment accessible from a specific
 /// execution context. The root (kernel) context has context ID 0, and all additional contexts have
 /// increasing IDs. Within each segment, the memory is element-addressable, even though the trace
-/// tracks batches of four elements for optimization purposes. That is, a single field element is
-/// located at each memory address, and we can read and write elements to/from memory either
-/// individually or in batches of four.
+/// tracks words for optimization purposes. That is, a single field element is located at each
+/// memory address, and we can read and write elements to/from memory either individually or in
+/// groups of four.
 ///
 /// Memory for a given address is always initialized to zero. That is, reading from an address
 /// before writing to it will return ZERO.
@@ -50,8 +50,8 @@ const INIT_MEM_VALUE: Word = EMPTY_WORD;
 /// ## Execution trace
 /// The layout of the memory access trace is shown below.
 ///
-///   rw   ew   ctx  batch   idx0   idx1  clk   v0   v1   v2   v3   d0   d1   d_inv   f_scb
-/// ├────┴────┴────┴───────┴──────┴──────┴────┴────┴────┴────┴────┴────┴────┴───────┴───────┤
+///   rw   ew   ctx  word_addr   idx0   idx1  clk   v0   v1   v2   v3   d0   d1   d_inv   f_scw
+/// ├────┴────┴────┴───────────┴──────┴──────┴────┴────┴────┴────┴────┴────┴────┴───────┴───────┤
 ///
 /// In the above, the meaning of the columns is as follows:
 /// - `rw` is a selector column used to identify whether the memory operation is a read or a write
@@ -61,26 +61,26 @@ const INIT_MEM_VALUE: Word = EMPTY_WORD;
 /// - `ctx` contains execution context ID. Values in this column must increase monotonically but
 ///   there can be gaps between two consecutive context IDs of up to 2^32. Also, two consecutive
 ///   values can be the same.
-/// - `batch` contains the the index of the batch of addresses, which is the address of the first
-///   element in the batch. For example, the value of `batch` for the batch of addresses 40, 41, 42,
-///   and 43 is 40. Note then that the first address of a batch *must* be divisible by 4. Values in
-///   this column must increase monotonically for a given context but there can be gaps between two
-///   consecutive values of up to 2^32. Also, two consecutive values can be the same.
+/// - `word_addr` contains the address of the first element in the word. For example, the value of
+///   `word_addr` for the group of addresses 40, 41, 42, 43 is 40. Note then that `word_addr` *must*
+///   be divisible by 4. Values in this column must increase monotonically for a given context but
+///   there can be gaps between two consecutive values of up to 2^32. Also, two consecutive values
+///   can be the same.
 /// - `clk` contains the clock cycle at which a memory operation happened. Values in this column
-///   must increase monotonically for a given context and batch but there can be gaps between two
+///   must increase monotonically for a given context and word but there can be gaps between two
 ///   consecutive values of up to 2^32.
-/// - Columns `v0`, `v1`, `v2`, `v3` contain field elements stored at a given context/batch/clock
+/// - Columns `v0`, `v1`, `v2`, `v3` contain field elements stored at a given context/word/clock
 ///   cycle after the memory operation.
 /// - Columns `d0` and `d1` contain lower and upper 16 bits of the delta between two consecutive
-///   context IDs, batches, or clock cycles. Specifically:
+///   context IDs, words, or clock cycles. Specifically:
 ///   - When the context changes, these columns contain (`new_ctx` - `old_ctx`).
-///   - When the context remains the same but the batch changes, these columns contain (`new_batch`
-///     - `old_batch`).
-///   - When both the context and the batch remain the same, these columns contain (`new_clk` -
+///   - When the context remains the same but the word changes, these columns contain (`new_word`
+///     - `old_word`).
+///   - When both the context and the word remain the same, these columns contain (`new_clk` -
 ///     `old_clk` - 1).
-/// - `d_inv` contains the inverse of the delta between two consecutive context IDs, batches, or
+/// - `d_inv` contains the inverse of the delta between two consecutive context IDs, words, or
 ///   clock cycles computed as described above. It is the field inverse of `(d_1 * 2^16) + d_0`
-/// - `f_scb` is a flag indicating whether the context and the batch of the current row are the same
+/// - `f_scw` is a flag indicating whether the context and the word of the current row are the same
 ///   as in the next row.
 ///
 /// For the first row of the trace, values in `d0`, `d1`, and `d_inv` are set to zeros.
@@ -319,7 +319,7 @@ impl Memory {
                 let felt_addr = Felt::from(addr);
                 for memory_access in addr_trace {
                     let clk = memory_access.clk();
-                    let value = memory_access.batch();
+                    let value = memory_access.word();
 
                     match memory_access.operation() {
                         MemoryOperation::Read => trace.set(row, IS_READ_COL_IDX, MEMORY_READ),
@@ -327,7 +327,7 @@ impl Memory {
                     }
                     let (idx1, idx0) = match memory_access.access_type() {
                         segment::MemoryAccessType::Element {
-                            addr_idx_in_batch: addr_idx_in_word,
+                            addr_idx_in_word,
                         } => {
                             trace.set(row, IS_WORD_ACCESS_COL_IDX, MEMORY_ACCESS_ELEMENT);
 
@@ -345,7 +345,7 @@ impl Memory {
                         },
                     };
                     trace.set(row, CTX_COL_IDX, ctx);
-                    trace.set(row, BATCH_COL_IDX, felt_addr);
+                    trace.set(row, WORD_COL_IDX, felt_addr);
                     trace.set(row, IDX0_COL_IDX, idx0);
                     trace.set(row, IDX1_COL_IDX, idx1);
                     trace.set(row, CLK_COL_IDX, clk);
@@ -369,9 +369,9 @@ impl Memory {
                     trace.set(row, D_INV_COL_IDX, delta.inv());
 
                     if prev_ctx == ctx && prev_addr == felt_addr {
-                        trace.set(row, FLAG_SAME_BATCH_AND_CONTEXT, ONE);
+                        trace.set(row, FLAG_SAME_CONTEXT_AND_WORD, ONE);
                     } else {
-                        trace.set(row, FLAG_SAME_BATCH_AND_CONTEXT, ZERO);
+                        trace.set(row, FLAG_SAME_CONTEXT_AND_WORD, ZERO);
                     };
 
                     // update values for the next iteration of the loop
@@ -403,9 +403,9 @@ impl Memory {
     // TEST HELPERS
     // --------------------------------------------------------------------------------------------
 
-    /// Returns the number of batches that were accessed at least once across all contexts.
+    /// Returns the number of words that were accessed at least once across all contexts.
     #[cfg(test)]
-    pub fn num_accessed_batches(&self) -> usize {
-        self.trace.iter().fold(0, |acc, (_, s)| acc + s.num_accessed_batches())
+    pub fn num_accessed_words(&self) -> usize {
+        self.trace.iter().fold(0, |acc, (_, s)| acc + s.num_accessed_words())
     }
 }

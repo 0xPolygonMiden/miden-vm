@@ -5,7 +5,7 @@ use miden_air::{
             MEMORY_READ_WORD_LABEL, MEMORY_WRITE, MEMORY_WRITE_ELEMENT_LABEL,
             MEMORY_WRITE_WORD_LABEL,
         },
-        MEMORY_BATCH_COL_IDX, MEMORY_CLK_COL_IDX, MEMORY_CTX_COL_IDX, MEMORY_IDX0_COL_IDX,
+        MEMORY_WORD_COL_IDX, MEMORY_CLK_COL_IDX, MEMORY_CTX_COL_IDX, MEMORY_IDX0_COL_IDX,
         MEMORY_IDX1_COL_IDX, MEMORY_IS_READ_COL_IDX, MEMORY_IS_WORD_ACCESS_COL_IDX,
         MEMORY_V_COL_RANGE,
     },
@@ -240,11 +240,11 @@ fn build_expected_bus_msg_from_trace(
     // get the memory access data
     let ctx = trace.main_trace.get_column(MEMORY_CTX_COL_IDX)[row];
     let addr = {
-        let batch = trace.main_trace.get_column(MEMORY_BATCH_COL_IDX)[row];
+        let word = trace.main_trace.get_column(MEMORY_WORD_COL_IDX)[row];
         let idx1 = trace.main_trace.get_column(MEMORY_IDX1_COL_IDX)[row];
         let idx0 = trace.main_trace.get_column(MEMORY_IDX0_COL_IDX)[row];
 
-        batch + idx1.mul_small(2) + idx0
+        word + idx1.mul_small(2) + idx0
     };
     let clk = trace.main_trace.get_column(MEMORY_CLK_COL_IDX)[row];
 
