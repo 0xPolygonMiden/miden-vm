@@ -50,27 +50,36 @@ pub fn get_transition_constraint_count() -> usize {
 }
 
 /// Enforces constraints for the memory chiplet.
+///
+/// The flags are:
+/// - `memory_flag_all_rows`: a flag that is set to 1 when the current row is part of the memory
+///   chiplet,
+/// - `memory_flag_no_last_row`: a flag that is set to 1 when the current row is part of the memory
+///   chiplet, but excludes the last row of the chiplet,
+/// - `memory_flag_first_row`: a flag that is set to 1 when the *next* row is the first row of the
+///   memory chiplet.
 pub fn enforce_constraints<E: FieldElement>(
     frame: &EvaluationFrame<E>,
     result: &mut [E],
-    memory_flag: E,
-    memory_flag_no_last: E,
+    memory_flag_all_rows: E,
+    memory_flag_no_last_row: E,
     memory_flag_first_row: E,
 ) {
     // Constrain the binary columns.
-    let mut index = enforce_binary_columns(frame, result, memory_flag);
+    let mut index = enforce_binary_columns(frame, result, memory_flag_all_rows);
 
     // Constrain the values in the d inverse column.
-    index += enforce_d_inv(frame, &mut result[index..], memory_flag_no_last);
+    index += enforce_d_inv(frame, &mut result[index..], memory_flag_no_last_row);
 
     // Enforce values in ctx, addr, clk transition correctly.
-    index += enforce_delta(frame, &mut result[index..], memory_flag_no_last);
+    index += enforce_delta(frame, &mut result[index..], memory_flag_no_last_row);
 
     // Enforce the correct value for the f_scw flag.
-    index += enforce_flag_same_context_and_word(frame, &mut result[index..], memory_flag_no_last);
+    index +=
+        enforce_flag_same_context_and_word(frame, &mut result[index..], memory_flag_no_last_row);
 
     // Constrain the memory values.
-    enforce_values(frame, &mut result[index..], memory_flag_no_last, memory_flag_first_row);
+    enforce_values(frame, &mut result[index..], memory_flag_no_last_row, memory_flag_first_row);
 }
 
 // TRANSITION CONSTRAINT HELPERS
@@ -89,25 +98,24 @@ fn enforce_binary_columns<E: FieldElement>(
     4
 }
 
-// TODO(plafer): review these constraints
 /// A constraint evaluation function to enforce that the `d_inv` "delta inverse" column used to
 /// constrain the delta between two consecutive contexts, addresses, or clock cycles is updated
 /// correctly.
 fn enforce_d_inv<E: FieldElement>(
     frame: &EvaluationFrame<E>,
     result: &mut [E],
-    memory_flag_no_last: E,
+    memory_flag_no_last_row: E,
 ) -> usize {
     let constraint_count = 4;
 
     // n0 is binary
-    result[0] = memory_flag_no_last * is_binary(frame.n0());
+    result[0] = memory_flag_no_last_row * is_binary(frame.n0());
     // when the context changes, n0 should be set to 1.
-    result[1] = memory_flag_no_last * frame.not_n0() * frame.ctx_change();
+    result[1] = memory_flag_no_last_row * frame.not_n0() * frame.ctx_change();
     // when n0 is 0, n1 is binary.
-    result[2] = memory_flag_no_last * frame.not_n0() * is_binary(frame.n1());
-    // TODO(plafer)
-    result[3] = memory_flag_no_last * frame.not_n0() * frame.not_n1() * frame.addr_change();
+    result[2] = memory_flag_no_last_row * frame.not_n0() * is_binary(frame.n1());
+    // when n0 and n1 are 0, then `word_addr` doesn't change.
+    result[3] = memory_flag_no_last_row * frame.not_n0() * frame.not_n1() * frame.word_addr_change();
 
     constraint_count
 }
@@ -117,21 +125,21 @@ fn enforce_d_inv<E: FieldElement>(
 fn enforce_delta<E: FieldElement>(
     frame: &EvaluationFrame<E>,
     result: &mut [E],
-    memory_flag_no_last: E,
+    memory_flag_no_last_row: E,
 ) -> usize {
     let constraint_count = 1;
 
     // If the context changed, include the difference.
-    result[0] = memory_flag_no_last * frame.n0() * frame.ctx_change();
+    result[0] = memory_flag_no_last_row * frame.n0() * frame.ctx_change();
     // If the context is the same, include the word difference if it changed or else include the
     // clock change.
     result.agg_constraint(
         0,
-        memory_flag_no_last * frame.not_n0(),
-        frame.n1() * frame.addr_change() + frame.not_n1() * frame.clk_change(),
+        memory_flag_no_last_row * frame.not_n0(),
+        frame.n1() * frame.word_addr_change() + frame.not_n1() * frame.clk_change(),
     );
     // Always subtract the delta. It should offset the other changes.
-    result[0] -= memory_flag_no_last * frame.delta_next();
+    result[0] -= memory_flag_no_last_row * frame.delta_next();
 
     constraint_count
 }
@@ -141,9 +149,9 @@ fn enforce_delta<E: FieldElement>(
 fn enforce_flag_same_context_and_word<E: FieldElement>(
     frame: &EvaluationFrame<E>,
     result: &mut [E],
-    memory_flag_no_last: E,
+    memory_flag_no_last_row: E,
 ) -> usize {
-    result[0] = memory_flag_no_last
+    result[0] = memory_flag_no_last_row
         * (frame.f_scw_next() - binary_not(frame.n0() + frame.not_n0() * frame.n1()));
 
     1
@@ -300,7 +308,7 @@ trait EvaluationFrameExt<E: FieldElement> {
     /// The difference between the next context and the current context.
     fn ctx_change(&self) -> E;
     /// The difference between the next address and the current address.
-    fn addr_change(&self) -> E;
+    fn word_addr_change(&self) -> E;
     /// The difference between the next clock value and the current one, minus 1.
     fn clk_change(&self) -> E;
     /// The delta between two consecutive context IDs, addresses, or clock cycles.
@@ -433,7 +441,7 @@ impl<E: FieldElement> EvaluationFrameExt<E> for &EvaluationFrame<E> {
     }
 
     #[inline(always)]
-    fn addr_change(&self) -> E {
+    fn word_addr_change(&self) -> E {
         self.change(MEMORY_WORD_COL_IDX)
     }
 

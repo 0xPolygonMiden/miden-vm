@@ -179,8 +179,7 @@ export.load_and_verify_remainder
 
     # adv_pipe the remainder codeword
     ## Get the length of remainder
-    # TODO(plafer): add a `padw` here
-    exec.constants::tmp6 mem_loadw
+    padw exec.constants::tmp6 mem_loadw
     ## Compute the correct remainder pointer using length of remainder
     exec.constants::fri_com_ptr
     #=> [fri_com_ptr, num_fri_layers, remainder_size, lde_size, lde_size]

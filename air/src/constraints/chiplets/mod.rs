@@ -86,7 +86,6 @@ pub fn enforce_constraints<E: FieldElement<BaseField = Felt>>(
     );
     constraint_offset += bitwise::get_transition_constraint_count();
 
-    // TODO(plafer): refactor
     // memory transition constraints
     memory::enforce_constraints(
         frame,
@@ -150,19 +149,20 @@ trait EvaluationFrameExt<E: FieldElement> {
     /// Flag to indicate whether the frame is in the bitwise portion of the Chiplets trace.
     fn bitwise_flag(&self) -> E;
 
-    /// Flag to indicate whether the frame is in the memory portion of the Chiplets trace.
+    /// Flag to indicate whether the current row of the frame is in the memory portion of the
+    /// Chiplets trace.
     fn memory_flag(&self) -> E;
 
-    /// Flag to indicate whether the frame is in the memory portion of the Chiplets trace, except
-    /// for the last memory chiplet row.
+    /// Flag to indicate whether the current row of the frame is in the memory portion of the
+    /// Chiplets trace, except for the last memory chiplet row.
     fn memory_flag_no_last(&self) -> E;
 
-    /// Flag to indicate whether the next row in the frame is in the memory portion of the Chiplets
+    /// Flag to indicate whether the next row of the frame is in the memory portion of the Chiplets
     /// trace.
     fn memory_flag_next(&self) -> E;
 
-    /// Flag to indicate whether the next row in the frame is in the memory portion of the Chiplets
-    /// trace.
+    /// Flag to indicate whether the next row of the frame is the first row of the memory portion of
+    /// the Chiplets trace.
     fn memory_flag_first_row(&self) -> E;
 }
 

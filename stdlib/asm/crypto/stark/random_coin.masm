@@ -452,9 +452,7 @@ end
 #! Output: [...]
 #! Cycles: 159
 export.generate_aux_randomness
-
-    # TODO(plafer): make 16 a constant in constants.masm
-    push.16 swap
+    exec.constants::num_aux_trace_coefs swap
     exec.generate_random_coefficients
     #=> [...]
 end

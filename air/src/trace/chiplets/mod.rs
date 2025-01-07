@@ -86,10 +86,6 @@ pub const BITWISE_OUTPUT_COL_IDX: usize = BITWISE_TRACE_OFFSET + bitwise::OUTPUT
 
 // --- GLOBALLY-INDEXED CHIPLET COLUMN ACCESSORS: MEMORY ------------------------------------------
 
-// TODO(plafer): remove unused constants at the end
-/// The index within the main trace of the column containing the first memory selector, which
-/// indicates the operation (read or write).
-pub const MEMORY_SELECTORS_COL_IDX: usize = MEMORY_TRACE_OFFSET;
 /// The index within the main trace of the column containing the memory read/write column.
 pub const MEMORY_IS_READ_COL_IDX: usize = MEMORY_TRACE_OFFSET + memory::IS_READ_COL_IDX;
 /// The index within the main trace of the column containing the memory element/word column.
