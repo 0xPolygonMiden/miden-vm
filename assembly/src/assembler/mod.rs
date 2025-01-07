@@ -569,16 +569,24 @@ impl Assembler {
         let gid = proc_ctx.id();
         let num_locals = proc_ctx.num_locals();
 
+        // Locals are forced to be a multiple of the word size to properly support reading and
+        // writing words.
+        if num_locals % WORD_SIZE as u16 != 0 {
+            return Err(AssemblyError::InvalidNumLocals {
+                span: proc_ctx.span(),
+                source_file: proc_ctx.source_manager().get(proc_ctx.span().source_id()).ok(),
+                num_locals,
+            })?;
+        }
+
         let wrapper_proc = self.module_graph.get_procedure_unsafe(gid);
         let proc = wrapper_proc.unwrap_ast().unwrap_procedure();
         let proc_body_id = if num_locals > 0 {
             // For procedures with locals, we need to update fmp register before and after the
             // procedure body is executed. Specifically:
-            // - to allocate procedure locals we need to increment fmp by 4 times the number of
-            //   locals, and
-            // - to deallocate procedure locals we need to decrement it by the same amount. We leave
-            //   4 elements between locals to properly support reading and writing words to locals.
-            let locals_frame = Felt::from(num_locals * WORD_SIZE as u16);
+            // - to allocate procedure locals we need to increment fmp by the number of locals, and
+            // - to deallocate procedure locals we need to decrement it by the same amount.
+            let locals_frame = Felt::from(num_locals);
             let wrapper = BodyWrapper {
                 prologue: vec![Operation::Push(locals_frame), Operation::FmpUpdate],
                 epilogue: vec![Operation::Push(-locals_frame), Operation::FmpUpdate],

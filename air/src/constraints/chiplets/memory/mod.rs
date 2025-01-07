@@ -115,7 +115,8 @@ fn enforce_d_inv<E: FieldElement>(
     // when n0 is 0, n1 is binary.
     result[2] = memory_flag_no_last_row * frame.not_n0() * is_binary(frame.n1());
     // when n0 and n1 are 0, then `word_addr` doesn't change.
-    result[3] = memory_flag_no_last_row * frame.not_n0() * frame.not_n1() * frame.word_addr_change();
+    result[3] =
+        memory_flag_no_last_row * frame.not_n0() * frame.not_n1() * frame.word_addr_change();
 
     constraint_count
 }

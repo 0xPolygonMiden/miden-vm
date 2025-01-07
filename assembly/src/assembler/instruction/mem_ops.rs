@@ -1,6 +1,6 @@
 use alloc::string::ToString;
 
-use vm_core::{Felt, Operation::*, WORD_SIZE};
+use vm_core::{Felt, Operation::*};
 
 use super::{push_felt, push_u32_value, validate_param, BasicBlockBuilder};
 use crate::{assembler::ProcedureContext, diagnostics::Report, AssemblyError};
@@ -128,9 +128,9 @@ pub fn local_to_absolute_addr(
     validate_param(index_of_local, 0..=max)?;
 
     // Local values are placed under the frame pointer, so we need to calculate the offset of the
-    // local value from the frame pointer. Local values are also indexed by word, so we need to
-    // multiply the index by the word size.
-    let fmp_offset_of_local = (max - index_of_local) * WORD_SIZE as u16;
+    // local value from the frame pointer.
+    // The offset is in the range [1, num_proc_locals], which is then subtracted from `fmp`.
+    let fmp_offset_of_local = num_proc_locals - index_of_local;
     push_felt(block_builder, -Felt::from(fmp_offset_of_local));
     block_builder.push_op(FmpAdd);
 

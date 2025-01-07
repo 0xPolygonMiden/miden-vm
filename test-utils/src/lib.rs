@@ -71,7 +71,7 @@ pub const U32_BOUND: u64 = u32::MAX as u64 + 1;
 
 /// A source code of the `truncate_stack` procedure.
 pub const TRUNCATE_STACK_PROC: &str = "
-proc.truncate_stack.1
+proc.truncate_stack.4
     loc_storew.0 dropw movupw.3
     sdepth neq.16
     while.true
