@@ -49,9 +49,9 @@ fn sdepth() {
 fn locaddr() {
     // --- locaddr returns expected address -------------------------------------------------------
     let source = "
-        proc.foo.2
+        proc.foo.8
             locaddr.0
-            locaddr.1
+            locaddr.4
         end
         begin
             exec.foo
@@ -59,19 +59,19 @@ fn locaddr() {
         end";
 
     let test = build_test!(source, &[10]);
-    test.expect_stack(&[FMP_MIN + 8, FMP_MIN + 4, 10]);
+    test.expect_stack(&[FMP_MIN + 4, FMP_MIN, 10]);
 
     // --- accessing mem via locaddr updates the correct variables --------------------------------
     let source = "
-        proc.foo.2
+        proc.foo.8
             locaddr.0
             mem_store
-            locaddr.1
+            locaddr.4
             mem_storew
             dropw
             loc_load.0
             push.0.0.0.0
-            loc_loadw.1
+            loc_loadw.4
         end
         begin
             exec.foo
@@ -86,15 +86,15 @@ fn locaddr() {
         "
         {TRUNCATE_STACK_PROC}
 
-        proc.foo.3
+        proc.foo.12
             locaddr.0
-            locaddr.1
-            locaddr.2
+            locaddr.4
+            locaddr.8
         end
-        proc.bar.2
+        proc.bar.8
             locaddr.0
             exec.foo
-            locaddr.1
+            locaddr.4
         end
         begin
             exec.bar
@@ -106,35 +106,35 @@ fn locaddr() {
 
     let test = build_test!(source, &[10]);
     test.expect_stack(&[
-        FMP_MIN + 12,
         FMP_MIN + 8,
         FMP_MIN + 4,
-        FMP_MIN + 8,
-        FMP_MIN + 20,
+        FMP_MIN,
+        FMP_MIN + 4,
         FMP_MIN + 16,
         FMP_MIN + 12,
-        FMP_MIN + 4,
+        FMP_MIN + 8,
+        FMP_MIN,
         10,
     ]);
 
     // --- accessing mem via locaddr in nested procedures updates the correct variables -----------
     let source = "
-        proc.foo.2
+        proc.foo.8
             locaddr.0
             mem_store
-            locaddr.1
+            locaddr.4
             mem_storew
             dropw
             push.0.0.0.0
-            loc_loadw.1
+            loc_loadw.4
             loc_load.0
         end
-        proc.bar.2
+        proc.bar.8
             locaddr.0
             mem_store
-            loc_store.1
+            loc_store.4
             exec.foo
-            locaddr.1
+            locaddr.4
             mem_load
             loc_load.0
         end

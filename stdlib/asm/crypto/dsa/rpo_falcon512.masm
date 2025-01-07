@@ -76,19 +76,19 @@ end
 #! Output: [...]
 #!
 #! Cycles: 1327
-export.hash_to_point.2
+export.hash_to_point.8
     # Move pointer out of the way
     movdn.12
 
     # Store MSG for later absorption
-    loc_storew.1 dropw
+    loc_storew.4 dropw
 
     # Absorb the nonce
     padw movdnw.2
     hperm
 
     # Absorb the message
-    swapw loc_loadw.1 swapw hperm
+    swapw loc_loadw.4 swapw hperm
 
     # Squeeze the coefficients and save them
     repeat.63
@@ -176,7 +176,7 @@ end
 #! Output: [tau1, tau0, ptr + 512*4 ...]
 #!
 #! Cycles: 5049
-export.load_h_s2_and_product.1
+export.load_h_s2_and_product.4
 
     # 1) Store PK for later comparison
     movdn.4
@@ -244,7 +244,7 @@ end
 #! Output: [...]
 #!
 #! Cycles: 2504
-export.probabilistic_product.4
+export.probabilistic_product.16
     # 1) Save the pointers
     push.0 movdn.3
     loc_storew.0
@@ -266,7 +266,7 @@ export.probabilistic_product.4
     end
 
     # Save the evaluation h(tau)
-    swapdw loc_storew.1
+    swapdw loc_storew.4
     dropw
     #=> [X, X, X, ...]
 
@@ -289,7 +289,7 @@ export.probabilistic_product.4
     end
 
     # Save the evaluation of s2(tau)
-    swapdw loc_storew.2
+    swapdw loc_storew.8
     dropw
     #=> [X, X, X, ...]
 
@@ -320,7 +320,7 @@ export.probabilistic_product.4
     # where (ev0, ev1) := pi1(tau)
 
     # Save pi_1(tau)
-    swapw.2 loc_storew.3
+    swapw.2 loc_storew.12
 
     # Setup the pointers
     swapw.3 loc_loadw.0 add.1536
@@ -349,7 +349,7 @@ export.probabilistic_product.4
     #=> [a1, a0, X, x, x, X, ...]
 
     # Compute (res0, res1) := pi(tau)
-    swapw loc_loadw.3 drop drop
+    swapw loc_loadw.12 drop drop
     ext2add
     #=> [res1, res0, x, x, X, ...]
 
@@ -358,11 +358,11 @@ export.probabilistic_product.4
 
     ## a) Load h(tau)
     swapw
-    loc_loadw.1
+    loc_loadw.4
 
     ## b) Load s2(tau)
     push.0.0
-    loc_loadw.2
+    loc_loadw.8
 
     ## c) compute the product
     drop drop
@@ -593,7 +593,7 @@ end
 #! Output: [...]
 #!
 #! Cycles: ~ 92029
-export.verify.1665
+export.verify.6660
 
     # 1) Generate a Falcon signature using the secret key associated to PK on message MSG.
     adv.push_sig.rpo_falcon512
@@ -631,8 +631,8 @@ export.verify.1665
     # 5) Check that we indeed have pi := h * s2 in Z_Q[x] by checking that pi(tau) = h(tau) * s2(tau)
     # where tau is a random (Fiat-Shamir) challenge resulting from hashing h, s2 and pi.
 
-    locaddr.512     # tau_ptr
-    locaddr.1025    # z_ptr
+    locaddr.2048     # tau_ptr
+    locaddr.4100    # z_ptr
     locaddr.0       # h ptr
     #=> [h_ptr, zeros_ptr, tau_ptr, ...]
 
@@ -641,7 +641,7 @@ export.verify.1665
 
     # 6) Compute the squared norm of s1 := c - h * s2 (in Z_q[x]/(phi))
 
-    locaddr.256
+    locaddr.1024
     #=> [pi_ptr, ...]
 
     exec.compute_s1_norm_sq
@@ -649,7 +649,7 @@ export.verify.1665
 
     # 7) Compute the squared norm of s2
 
-    locaddr.128
+    locaddr.512
     #=> [s2_ptr, norm_sq(s1), ...]
 
     exec.compute_s2_norm_sq

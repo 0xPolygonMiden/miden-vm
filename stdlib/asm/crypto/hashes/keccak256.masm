@@ -15,7 +15,7 @@
 #! s.t. last two elements of 12 -th ( when indexed from zero ) memory address are zeroed.
 #!
 #! Consecutive memory addresses can be computed by repeated application of `add.4`.
-proc.theta.3
+proc.theta.12
     dup
     locaddr.0
     mem_store
@@ -235,7 +235,7 @@ proc.theta.3
 
     # stack = [c0, c1, c2, c3]
 
-    locaddr.1
+    locaddr.4
     mem_storew
     dropw
 
@@ -459,7 +459,7 @@ proc.theta.3
 
     # stack = [c4, c5, c6, c7]
 
-    locaddr.2
+    locaddr.8
     mem_storew
     dropw
 
@@ -573,11 +573,11 @@ proc.theta.3
 
     # stack = [c8, c9]
 
-    locaddr.2
+    locaddr.8
     push.0.0.0.0
     movup.4
     mem_loadw
-    locaddr.1
+    locaddr.4
     push.0.0.0.0
     movup.4
     mem_loadw
@@ -1055,7 +1055,7 @@ end
 #! s.t. last two elements of 12 -th ( when indexed from zero ) memory address are zeroed.
 #!
 #! Consecutive memory addresses can be computed by repeated application of `add.4`.
-proc.rho.1
+proc.rho.4
     dup
     locaddr.0
     mem_store
@@ -1340,12 +1340,12 @@ end
 #! s.t. last two elements of 12 -th ( when indexed from zero ) memory address are zeroed.
 #!
 #! Consecutive memory addresses can be computed by repeated application of `add.4`.
-proc.pi.14
+proc.pi.56
     dup
     locaddr.0
     mem_store
 
-    locaddr.1
+    locaddr.4
     swap
     push.0.0.0.0
 
@@ -1759,7 +1759,7 @@ end
 #! s.t. last two elements of 12 -th ( when indexed from zero ) memory address are zeroed.
 #!
 #! Consecutive memory addresses can be computed by repeated application of `add.4`.
-proc.chi.4
+proc.chi.16
     dup
     locaddr.0
     mem_store
@@ -1815,7 +1815,7 @@ proc.chi.4
     movup.3
     movup.3
 
-    locaddr.1
+    locaddr.4
     mem_storew
 
     dup.4
@@ -1877,7 +1877,7 @@ proc.chi.4
     movup.7
     movup.7
 
-    locaddr.2
+    locaddr.8
     mem_storew
     dropw
 
@@ -1901,7 +1901,7 @@ proc.chi.4
     dup.4
     mem_loadw
 
-    locaddr.1
+    locaddr.4
     push.0.0.0.0
     movup.4
     mem_loadw
@@ -1934,7 +1934,7 @@ proc.chi.4
     dup.4
     mem_loadw
 
-    locaddr.2
+    locaddr.8
     push.0.0.0.0
     movup.4
     mem_loadw
@@ -2001,7 +2001,7 @@ proc.chi.4
     swap
 
     push.0.0
-    locaddr.1
+    locaddr.4
     mem_storew
 
     movup.6
@@ -2044,7 +2044,7 @@ proc.chi.4
     movup.3
     movup.3
 
-    locaddr.2
+    locaddr.8
     mem_storew
 
     movup.6
@@ -2105,7 +2105,7 @@ proc.chi.4
     movup.3
     movup.3
 
-    locaddr.3
+    locaddr.12
     mem_storew
 
     locaddr.0
@@ -2117,7 +2117,7 @@ proc.chi.4
     mem_loadw
 
     push.0.0.0.0
-    loc_loadw.1
+    loc_loadw.4
 
     movup.4
     u32xor
@@ -2148,7 +2148,7 @@ proc.chi.4
     mem_loadw
 
     push.0.0.0.0
-    loc_loadw.2
+    loc_loadw.8
 
     movup.4
     u32xor
@@ -2179,7 +2179,7 @@ proc.chi.4
     mem_loadw
 
     push.0.0.0.0
-    loc_loadw.3
+    loc_loadw.12
 
     movup.4
     u32xor
@@ -2255,7 +2255,7 @@ proc.chi.4
     movup.3
     movup.3
 
-    loc_storew.1
+    loc_storew.4
 
     movup.6
     add.4
@@ -2317,7 +2317,7 @@ proc.chi.4
     movup.7
     movup.7
 
-    loc_storew.2
+    loc_storew.8
     dropw
 
     u32not
@@ -2336,13 +2336,13 @@ proc.chi.4
     movdn.3
     movdn.3
 
-    loc_storew.3
+    loc_storew.12
 
     dup.4
     mem_loadw
 
     push.0.0.0.0
-    loc_loadw.1
+    loc_loadw.4
 
     movup.4
     u32xor
@@ -2373,7 +2373,7 @@ proc.chi.4
     mem_loadw
 
     push.0.0.0.0
-    loc_loadw.2
+    loc_loadw.8
 
     movup.4
     u32xor
@@ -2404,7 +2404,7 @@ proc.chi.4
     mem_loadw
 
     push.0.0.0.0
-    loc_loadw.3
+    loc_loadw.12
 
     movup.4
     u32xor
@@ -2451,7 +2451,7 @@ proc.chi.4
     swap
 
     push.0.0
-    loc_storew.1
+    loc_storew.4
 
     movup.6
     add.4
@@ -2499,7 +2499,7 @@ proc.chi.4
     movup.3
     movup.3
 
-    loc_storew.2
+    loc_storew.8
 
     movup.6
     sub.8
@@ -2561,7 +2561,7 @@ proc.chi.4
     movup.3
     movup.3
 
-    loc_storew.3
+    loc_storew.12
 
     movup.4
     sub.4
@@ -2571,7 +2571,7 @@ proc.chi.4
     mem_loadw
 
     push.0.0.0.0
-    loc_loadw.1
+    loc_loadw.4
 
     movup.4
     u32xor
@@ -2602,7 +2602,7 @@ proc.chi.4
     mem_loadw
 
     push.0.0.0.0
-    loc_loadw.2
+    loc_loadw.8
 
     movup.4
     u32xor
@@ -2633,7 +2633,7 @@ proc.chi.4
     mem_loadw
 
     push.0.0.0.0
-    loc_loadw.3
+    loc_loadw.12
 
     movup.4
     u32xor
@@ -2715,7 +2715,7 @@ proc.chi.4
     movup.3
     movup.3
 
-    loc_storew.1
+    loc_storew.4
 
     movup.6
     add.4
@@ -2777,7 +2777,7 @@ proc.chi.4
     movup.7
     movup.7
 
-    loc_storew.2
+    loc_storew.8
     dropw
 
     u32not
@@ -2796,13 +2796,13 @@ proc.chi.4
     movdn.3
     movdn.3
 
-    loc_storew.3
+    loc_storew.12
 
     dup.4
     mem_loadw
 
     push.0.0.0.0
-    loc_loadw.1
+    loc_loadw.4
 
     movup.4
     u32xor
@@ -2833,7 +2833,7 @@ proc.chi.4
     mem_loadw
 
     push.0.0.0.0
-    loc_loadw.2
+    loc_loadw.8
 
     movup.4
     u32xor
@@ -2864,7 +2864,7 @@ proc.chi.4
     mem_loadw
 
     push.0.0.0.0
-    loc_loadw.3
+    loc_loadw.12
 
     movup.4
     u32xor
@@ -3485,7 +3485,7 @@ end
 #! [oword0, oword1, oword2, oword3, oword4, oword5, oword6, oword7, ... ]
 #!
 #! See https://github.com/itzmeanjan/merklize-sha/blob/1d35aae9da7fed20127489f362b4bc93242a516c/include/keccak_256.hpp#L232-L257
-export.hash.13
+export.hash.52
     # prapare keccak256 state from input message
     locaddr.0
     exec.to_state_array
@@ -3496,7 +3496,7 @@ export.hash.13
 
     # prapare keccak256 digest from state
     push.0.0.0.0
-    loc_loadw.1
+    loc_loadw.4
     push.0.0.0.0
     loc_loadw.0
     exec.to_digest

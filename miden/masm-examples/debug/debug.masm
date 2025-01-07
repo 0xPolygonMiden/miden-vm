@@ -2,7 +2,7 @@ proc.foo.3
     push.11
     loc_store.0
     push.101
-    loc_store.1
+    loc_store.4
 
     debug.local
     debug.local.1
@@ -16,7 +16,7 @@ proc.bar.4
     push.21
     loc_store.0
     push.121
-    loc_store.1
+    loc_store.4
     debug.local
     debug.local.2
 end

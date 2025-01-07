@@ -17,7 +17,7 @@ fn test_decorator_ext2intt(in_poly_len: usize, blowup: usize) {
     assert!((blowup > 0) && blowup.is_power_of_two());
 
     let eval_len = in_poly_len * blowup;
-    let eval_mem_req = (eval_len * 2) / 4;
+    let eval_mem_req = eval_len * 2;
     let out_mem_req = (in_poly_len * 2) / 4;
 
     let poly = rand_vector::<QuadFelt>(in_poly_len);
@@ -70,7 +70,7 @@ fn test_decorator_ext2intt(in_poly_len: usize, blowup: usize) {
     end
     ",
         eval_mem_req,
-        eval_mem_req - 1,
+        eval_mem_req - 4,
         eval_mem_req,
         eval_len,
         in_poly_len,
@@ -98,8 +98,8 @@ fn test_verify_remainder_64() {
         "
     use.std::crypto::fri::ext2fri
 
-    proc.helper.36
-        locaddr.35
+    proc.helper.144
+        locaddr.140
         repeat.36
             movdn.4
             dup.4
@@ -141,8 +141,8 @@ fn test_verify_remainder_32() {
         "
     use.std::crypto::fri::ext2fri
 
-    proc.helper.18
-        locaddr.17
+    proc.helper.72
+        locaddr.68
         repeat.18
             movdn.4
             dup.4

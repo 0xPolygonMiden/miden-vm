@@ -6,8 +6,8 @@
 #!  g being the initial domain generator.
 #! TODO: This pre-processing function should in fact compute d_size and t_depth for each C
 #! starting from the original domain size.
-export.preprocess.4
-    locaddr.3
+export.preprocess.16
+    locaddr.12
     adv_push.1                  #[num_queries, query_ptr, g, ..]
     sub.1
     push.0.0.0.0
@@ -80,7 +80,7 @@ export.preprocess.4
     dropw drop drop
 
     swap
-    locaddr.3
+    locaddr.12
     #=> [query_ptr, layer_ptr, remainder_ptr, g]
 end
 
@@ -91,7 +91,7 @@ end
 #! Output: [layer_ptr+8, layer_ptr+8, poe^4, f_pos, ne1, ne0, layer_ptr+8, rem_ptr, x, x, x, x, x, x, x, x, ...]
 #!
 #! Cycles: 76
-export.verify_query_layer.3
+export.verify_query_layer.12
 
     # load layer commitment C as well as [a0, a1, t_depth, d_size] (7 cycles)
     swapdw
@@ -118,9 +118,9 @@ export.verify_query_layer.3
     # => [V, C, f_pos, d_seg, poe, e1, e0, a1, a0, layer_ptr, rem_ptr, ...]
     # where f_pos = p % d_size and d_seg = p / 4
 
-    # unhash V and save the pre-image in locaddr.0 and locaddr.1; we don't clear values of C
+    # unhash V and save the pre-image in locaddr.0 and locaddr.4; we don't clear values of C
     # because adv_pipe overwrites the first 8 elements of the stack (15 cycles)
-    locaddr.1
+    locaddr.4
     movdn.4
     push.0.0.0.0
     swapw
@@ -141,9 +141,9 @@ export.verify_query_layer.3
     assert_eq
 
     # load (v7, ..v0) from memory (8 cycles)
-    loc_loadw.1
+    loc_loadw.4
     swapw
-    loc_loadw.2
+    loc_loadw.8
     # => [v7, ..., v0, f_pos, d_seg, poe, e1, e0, a1, a0, layer_ptr, rem_ptr, ...]
 
     # fold by 4 (1 cycle)
@@ -258,7 +258,7 @@ end
 #! 2. layer_ptr - 1 points to the last (e0, e1, p, poe) tuple.
 #!
 #! Cycles: 7 + 4 + num_queries * (42 + num_layers * 76 + 26)
-export.verify.1
+export.verify.4
 
     # store [query_ptr, layer_ptr, rem_ptr, g] to keep track of all queries
     # (3 cycles)

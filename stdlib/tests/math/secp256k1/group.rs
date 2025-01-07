@@ -15,44 +15,44 @@ fn test_secp256k1_point_doubling(src: Point, dst: Point) {
     # Given a point of secp256k1 elliptic curve, this routine first computes
     # point doubling of that point in projective coordinate & then asserts
     # each coordinate limb-by-limb for ensuring correctness.
-    proc.point_doubling_test_wrapper.12
+    proc.point_doubling_test_wrapper.48
         # push X -coordinate to memory
         push.{}.{}.{}.{}
         loc_storew.0
         dropw
         push.{}.{}.{}.{}
-        loc_storew.1
+        loc_storew.4
         dropw
 
         # push Y -coordinate to memory
         push.{}.{}.{}.{}
-        loc_storew.2
+        loc_storew.8
         dropw
         push.{}.{}.{}.{}
-        loc_storew.3
+        loc_storew.12
         dropw
 
         # push Z -coordinate to memory
         push.{}.{}.{}.{}
-        loc_storew.4
+        loc_storew.16
         dropw
         push.{}.{}.{}.{}
-        loc_storew.5
+        loc_storew.20
         dropw
 
         # input/ output memory addresses for point doubling purpose
-        locaddr.11
-        locaddr.10
-        locaddr.9
-        locaddr.8
-        locaddr.7
-        locaddr.6
+        locaddr.44
+        locaddr.40
+        locaddr.36
+        locaddr.32
+        locaddr.28
+        locaddr.24
 
-        locaddr.5
+        locaddr.20
+        locaddr.16
+        locaddr.12
+        locaddr.8
         locaddr.4
-        locaddr.3
-        locaddr.2
-        locaddr.1
         locaddr.0
 
         # elliptic curve point doubling
@@ -211,75 +211,75 @@ fn test_secp256k1_point_addition(src0: Point, src1: Point, dst: Point) {
     # Given two points of secp256k1 elliptic curve ( twice ), this routine first computes
     # point addition of them in projective coordinate & then asserts each coordinate
     # limb-by-limb for ensuring correctness.
-    proc.point_addition_test_wrapper.18
+    proc.point_addition_test_wrapper.72
         # push X1 -coordinate to memory
         push.{}.{}.{}.{}
         loc_storew.0
         dropw
         push.{}.{}.{}.{}
-        loc_storew.1
+        loc_storew.4
         dropw
 
         # push Y1 -coordinate to memory
         push.{}.{}.{}.{}
-        loc_storew.2
+        loc_storew.8
         dropw
         push.{}.{}.{}.{}
-        loc_storew.3
+        loc_storew.12
         dropw
 
         # push Z1 -coordinate to memory
         push.{}.{}.{}.{}
-        loc_storew.4
+        loc_storew.16
         dropw
         push.{}.{}.{}.{}
-        loc_storew.5
+        loc_storew.20
         dropw
 
         # push X2 -coordinate to memory
         push.{}.{}.{}.{}
-        loc_storew.6
+        loc_storew.24
         dropw
         push.{}.{}.{}.{}
-        loc_storew.7
+        loc_storew.28
         dropw
 
         # push Y2 -coordinate to memory
         push.{}.{}.{}.{}
-        loc_storew.8
+        loc_storew.32
         dropw
         push.{}.{}.{}.{}
-        loc_storew.9
+        loc_storew.36
         dropw
 
         # push Z2 -coordinate to memory
         push.{}.{}.{}.{}
-        loc_storew.10
+        loc_storew.40
         dropw
         push.{}.{}.{}.{}
-        loc_storew.11
+        loc_storew.44
         dropw
 
         # input/ output memory addresses for point doubling purpose
-        locaddr.17
+        locaddr.68
+        locaddr.64
+        locaddr.60
+        locaddr.56
+        locaddr.52
+        locaddr.48
+
+        locaddr.44
+        locaddr.40
+        locaddr.36
+        locaddr.32
+        locaddr.28
+        locaddr.24
+
+        locaddr.20
         locaddr.16
-        locaddr.15
-        locaddr.14
-        locaddr.13
         locaddr.12
-
-        locaddr.11
-        locaddr.10
-        locaddr.9
         locaddr.8
-        locaddr.7
-        locaddr.6
-
-        locaddr.5
         locaddr.4
-        locaddr.3
-        locaddr.2
-        locaddr.1
         locaddr.0
 
         # elliptic curve point addition
@@ -465,12 +465,12 @@ fn test_secp256k1_point_multiplication(src_point: Point, scalar: FieldElement, d
     # the EC point with provided scalar and then asserts for correctness with known answer.
     proc.point_multiplication_test_wrapper.12
         # resulting point
-        locaddr.11
-        locaddr.10
-        locaddr.9
-        locaddr.8
-        locaddr.7
-        locaddr.6
+        locaddr.44
+        locaddr.40
+        locaddr.36
+        locaddr.32
+        locaddr.28
+        locaddr.24
 
         # scalar
         push.{}.{}.{}.{}
@@ -482,30 +482,30 @@ fn test_secp256k1_point_multiplication(src_point: Point, scalar: FieldElement, d
         dropw
 
         push.{}.{}.{}.{}
-        loc_storew.1
-        dropw
-
-        push.{}.{}.{}.{}
-        loc_storew.2
-        dropw
-
-        push.{}.{}.{}.{}
-        loc_storew.3
-        dropw
-
-        push.{}.{}.{}.{}
         loc_storew.4
         dropw
 
         push.{}.{}.{}.{}
-        loc_storew.5
+        loc_storew.8
         dropw
 
-        locaddr.5
+        push.{}.{}.{}.{}
+        loc_storew.12
+        dropw
+
+        push.{}.{}.{}.{}
+        loc_storew.16
+        dropw
+
+        push.{}.{}.{}.{}
+        loc_storew.20
+        dropw
+
+        locaddr.20
+        locaddr.16
+        locaddr.12
+        locaddr.8
         locaddr.4
-        locaddr.3
-        locaddr.2
-        locaddr.1
         locaddr.0
 
         # elliptic curve point multiplication
@@ -671,14 +671,14 @@ fn test_secp256k1_generator_multiplication(scalar: FieldElement, point: Point) {
     # Given a 256 -bit scalar in radix-2^32 form ( i.e. 8 limbs, each of 32 -bit width ),
     # this routine first multiplies the secp256k1 generator point with provided scalar and
     # then asserts for correctness with known answer.
-    proc.generator_multiplication_test_wrapper.12
+    proc.generator_multiplication_test_wrapper.48
         # resulting point
-        locaddr.11
-        locaddr.10
-        locaddr.9
-        locaddr.8
-        locaddr.7
-        locaddr.6
+        locaddr.44
+        locaddr.40
+        locaddr.36
+        locaddr.32
+        locaddr.28
+        locaddr.24
 
         # scalar
         push.{}.{}.{}.{}
