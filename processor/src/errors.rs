@@ -96,6 +96,10 @@ pub enum ExecutionError {
         "word memory access at address {addr} in context {ctx} is unaligned at clock cycle {clk}"
     )]
     MemoryUnalignedWordAccess { addr: u32, ctx: ContextId, clk: Felt },
+    // Note: we need this version as well because to handle advice provider calls, which don't
+    // have access to the clock.
+    #[error("word access at memory address {addr} in context {ctx} is unaligned")]
+    MemoryUnalignedWordAccessNoClk { addr: u32, ctx: ContextId },
     #[error("merkle path verification failed for value {value} at index {index} in the Merkle tree with root {root} (error code: {err_code})", 
       value = to_hex(Felt::elements_as_bytes(value)),
       root = to_hex(root.as_bytes()),
@@ -133,8 +137,6 @@ pub enum ExecutionError {
       hex = to_hex(.0.as_bytes())
     )]
     SyscallTargetNotInKernel(Digest),
-    #[error("word access at memory address {addr} in context {ctx} is unaligned")]
-    UnalignedMemoryWordAccess { addr: u32, ctx: ContextId },
 }
 
 impl From<Ext2InttError> for ExecutionError {

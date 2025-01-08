@@ -3,7 +3,7 @@ use std::sync::Arc;
 use miden_vm::{DefaultHost, MemAdviceProvider, Program, StackInputs, VmState, VmStateIterator};
 
 use super::DebugCommand;
-use crate::helpers::print_mem_address;
+use crate::utils::print_mem_address;
 
 /// Holds debugger state and iterator used for debugging.
 pub struct DebugExecutor {

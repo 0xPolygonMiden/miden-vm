@@ -61,15 +61,6 @@ pub enum AssemblyError {
         source_file: Option<Arc<SourceFile>>,
         callee: QualifiedProcedureName,
     },
-    #[error("invalid number of declared local variables for procedure: {num_locals}")]
-    #[diagnostic(help("the number of local variables must be a multiple of 4"))]
-    InvalidNumLocals {
-        #[label]
-        span: SourceSpan,
-        #[source_code]
-        source_file: Option<Arc<SourceFile>>,
-        num_locals: u16,
-    },
     #[error("invalid local word index: {local_addr}")]
     #[diagnostic(help("the index to a local word must be a multiple of 4"))]
     InvalidLocalWordIndex {

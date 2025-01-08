@@ -567,17 +567,11 @@ impl Assembler {
     ) -> Result<Procedure, Report> {
         // Make sure the current procedure context is available during codegen
         let gid = proc_ctx.id();
-        let num_locals = proc_ctx.num_locals();
 
-        // Locals are forced to be a multiple of the word size to properly support reading and
-        // writing words.
-        if num_locals % WORD_SIZE as u16 != 0 {
-            return Err(AssemblyError::InvalidNumLocals {
-                span: proc_ctx.span(),
-                source_file: proc_ctx.source_manager().get(proc_ctx.span().source_id()).ok(),
-                num_locals,
-            })?;
-        }
+        // We expect the number of locals to be a multiple of the word size, having been rounded up
+        // if necessary.
+        let num_locals = proc_ctx.num_locals();
+        assert_eq!(num_locals % WORD_SIZE as u16, 0);
 
         let wrapper_proc = self.module_graph.get_procedure_unsafe(gid);
         let proc = wrapper_proc.unwrap_ast().unwrap_procedure();

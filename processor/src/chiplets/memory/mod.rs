@@ -125,7 +125,7 @@ impl Memory {
         match self.trace.get(&ctx) {
             Some(segment) => segment
                 .get_word(addr)
-                .map_err(|_| ExecutionError::UnalignedMemoryWordAccess { addr, ctx }),
+                .map_err(|_| ExecutionError::MemoryUnalignedWordAccessNoClk { addr, ctx }),
             None => Ok(None),
         }
     }

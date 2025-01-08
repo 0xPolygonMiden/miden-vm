@@ -10,7 +10,7 @@ mod cli;
 mod repl;
 mod tools;
 
-pub(crate) mod helpers;
+pub(crate) mod utils;
 
 /// Root CLI struct
 #[derive(Parser, Debug)]

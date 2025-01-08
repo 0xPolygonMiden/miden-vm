@@ -6,7 +6,7 @@ use processor::ContextId;
 use rustyline::{error::ReadlineError, DefaultEditor};
 use stdlib::StdLibrary;
 
-use crate::helpers::print_mem_address;
+use crate::utils::print_mem_address;
 
 // This work is in continuation to the amazing work done by team `Scribe`
 // [here](https://github.com/ControlCplusControlV/Scribe/blob/main/transpiler/src/repl.rs#L8)

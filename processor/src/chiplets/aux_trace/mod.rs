@@ -360,7 +360,7 @@ fn build_control_block_request<E: FieldElement<BaseField = Felt>>(
     let header =
         alphas[0] + alphas[1].mul_base(Felt::from(transition_label)) + alphas[2].mul_base(addr_nxt);
 
-    header + build_value(&alphas[8..16], &decoder_hasher_state) + alphas[5].mul_base(op_code_felt)
+    header + build_value(&alphas[8..16], decoder_hasher_state) + alphas[5].mul_base(op_code_felt)
 }
 
 /// Builds requests made on a `DYN` or `DYNCALL` operation.
@@ -431,7 +431,7 @@ fn build_span_block_request<E: FieldElement<BaseField = Felt>>(
         alphas[0] + alphas[1].mul_base(Felt::from(transition_label)) + alphas[2].mul_base(addr_nxt);
 
     let state = main_trace.decoder_hasher_state(row);
-    header + build_value(&alphas[8..16], &state)
+    header + build_value(&alphas[8..16], state)
 }
 
 /// Builds requests made to the hasher chiplet at the start of a respan block.
@@ -451,7 +451,7 @@ fn build_respan_block_request<E: FieldElement<BaseField = Felt>>(
 
     let state = main_trace.decoder_hasher_state(row);
 
-    header + build_value(&alphas[8..16], &state)
+    header + build_value(&alphas[8..16], state)
 }
 
 /// Builds requests made to the hasher chiplet at the end of a block.
@@ -468,7 +468,7 @@ fn build_end_block_request<E: FieldElement<BaseField = Felt>>(
         alphas[0] + alphas[1].mul_base(Felt::from(transition_label)) + alphas[2].mul_base(addr);
 
     let state = main_trace.decoder_hasher_state(row);
-    let digest = &state[..4];
+    let digest: [Felt; 4] = state[..4].try_into().unwrap();
 
     header + build_value(&alphas[8..12], digest)
 }
@@ -486,7 +486,7 @@ fn build_bitwise_request<E: FieldElement<BaseField = Felt>>(
     let b = main_trace.stack_element(0, row);
     let z = main_trace.stack_element(0, row + 1);
 
-    alphas[0] + build_value(&alphas[1..5], &[op_label, a, b, z])
+    alphas[0] + build_value(&alphas[1..5], [op_label, a, b, z])
 }
 
 /// Builds `MSTREAM` requests made to the memory chiplet.
@@ -797,20 +797,26 @@ where
         // v_all = v_h + v_a + v_b + v_c
         if selector1 == ONE && selector2 == ZERO && selector3 == ZERO {
             let header = alphas[0]
-                + build_value(&alphas[1..4], &[transition_label, Felt::from(row + 1), node_index]);
+                + build_value(&alphas[1..4], [transition_label, Felt::from(row + 1), node_index]);
 
-            multiplicand = header + build_value(alphas_state, &state);
+            multiplicand = header + build_value(alphas_state, state);
         }
 
         // f_mp or f_mv or f_mu == 1
         // v_leaf = v_h + (1 - b) * v_b + b * v_d
         if selector1 == ONE && !(selector2 == ZERO && selector3 == ZERO) {
             let header = alphas[0]
-                + build_value(&alphas[1..4], &[transition_label, Felt::from(row + 1), node_index]);
+                + build_value(&alphas[1..4], [transition_label, Felt::from(row + 1), node_index]);
 
             let bit = (node_index.as_int() & 1) as u8;
-            let left_word = build_value(&alphas_state[DIGEST_RANGE], &state[DIGEST_RANGE]);
-            let right_word = build_value(&alphas_state[DIGEST_RANGE], &state[DIGEST_RANGE.end..]);
+            let left_word = build_value::<_, 4>(
+                &alphas_state[DIGEST_RANGE],
+                state[DIGEST_RANGE].try_into().unwrap(),
+            );
+            let right_word = build_value::<_, 4>(
+                &alphas_state[DIGEST_RANGE],
+                state[DIGEST_RANGE.end..].try_into().unwrap(),
+            );
 
             multiplicand = header + E::from(1 - bit).mul(left_word) + E::from(bit).mul(right_word);
         }
@@ -827,32 +833,39 @@ where
         // v_res = v_h + v_b;
         if selector1 == ZERO && selector2 == ZERO && selector3 == ZERO {
             let header = alphas[0]
-                + build_value(&alphas[1..4], &[transition_label, Felt::from(row + 1), node_index]);
+                + build_value(&alphas[1..4], [transition_label, Felt::from(row + 1), node_index]);
 
-            multiplicand = header + build_value(&alphas_state[DIGEST_RANGE], &state[DIGEST_RANGE]);
+            multiplicand = header
+                + build_value::<_, 4>(
+                    &alphas_state[DIGEST_RANGE],
+                    state[DIGEST_RANGE].try_into().unwrap(),
+                );
         }
 
         // f_sout == 1
         // v_all = v_h + v_a + v_b + v_c
         if selector1 == ZERO && selector2 == ZERO && selector3 == ONE {
             let header = alphas[0]
-                + build_value(&alphas[1..4], &[transition_label, Felt::from(row + 1), node_index]);
+                + build_value(&alphas[1..4], [transition_label, Felt::from(row + 1), node_index]);
 
-            multiplicand = header + build_value(alphas_state, &state);
+            multiplicand = header + build_value(alphas_state, state);
         }
 
         // f_abp == 1
         // v_abp = v_h + v_b' + v_c' - v_b - v_c
         if selector1 == ONE && selector2 == ZERO && selector3 == ZERO {
             let header = alphas[0]
-                + build_value(&alphas[1..4], &[transition_label, Felt::from(row + 1), node_index]);
+                + build_value(&alphas[1..4], [transition_label, Felt::from(row + 1), node_index]);
 
             let state_nxt = main_trace.chiplet_hasher_state(row + 1);
 
             // build the value from the hasher state's just right after the absorption of new
             // elements.
-            let next_state_value =
-                build_value(&alphas_state[CAPACITY_LEN..], &state_nxt[CAPACITY_LEN..]);
+            const SIZE: usize = STATE_WIDTH - CAPACITY_LEN;
+            let next_state_value = build_value::<_, SIZE>(
+                &alphas_state[CAPACITY_LEN..],
+                state_nxt[CAPACITY_LEN..].try_into().unwrap(),
+            );
 
             multiplicand = header + next_state_value;
         }
@@ -873,7 +886,7 @@ where
         let b = main_trace.chiplet_bitwise_b(row);
         let z = main_trace.chiplet_bitwise_z(row);
 
-        alphas[0] + build_value(&alphas[1..5], &[op_label, a, b, z])
+        alphas[0] + build_value(&alphas[1..5], [op_label, a, b, z])
     } else {
         E::ONE
     }
@@ -899,7 +912,7 @@ where
             word + idx1.mul_small(2) + idx0
         };
 
-        alphas[0] + build_value(&alphas[1..5], &[op_label, ctx, address, clk])
+        alphas[0] + build_value(&alphas[1..5], [op_label, ctx, address, clk])
     };
 
     if is_word_access == MEMORY_ACCESS_ELEMENT {
@@ -925,7 +938,7 @@ where
         let value2 = main_trace.chiplet_memory_value_2(row);
         let value3 = main_trace.chiplet_memory_value_3(row);
 
-        header + build_value(&alphas[5..9], &[value0, value1, value2, value3])
+        header + build_value(&alphas[5..9], [value0, value1, value2, value3])
     } else {
         panic!("Invalid memory element/word column value: {is_word_access}");
     }
@@ -943,7 +956,7 @@ where
     let root2 = main_trace.chiplet_kernel_root_2(row);
     let root3 = main_trace.chiplet_kernel_root_3(row);
 
-    let v = alphas[0] + build_value(&alphas[1..6], &[op_label, root0, root1, root2, root3]);
+    let v = alphas[0] + build_value(&alphas[1..6], [op_label, root0, root1, root2, root3]);
 
     let kernel_chiplet_selector = main_trace.chiplet_selector_4(row);
     v.mul_base(kernel_chiplet_selector) + E::from(ONE - kernel_chiplet_selector)
@@ -955,11 +968,15 @@ where
 /// Reduces a slice of elements to a single field element in the field specified by E using a slice
 /// of alphas of matching length. This can be used to build the value for a single word or for an
 /// entire [HasherState].
-fn build_value<E: FieldElement<BaseField = Felt>>(alphas: &[E], elements: &[Felt]) -> E {
+#[inline(always)]
+fn build_value<E: FieldElement<BaseField = Felt>, const N: usize>(
+    alphas: &[E],
+    elements: [Felt; N],
+) -> E {
     debug_assert_eq!(alphas.len(), elements.len());
     let mut value = E::ZERO;
-    for (&alpha, &element) in alphas.iter().zip(elements.iter()) {
-        value += alpha.mul_base(element);
+    for i in 0..N {
+        value += alphas[i].mul_base(elements[i]);
     }
     value
 }
@@ -1027,7 +1044,7 @@ fn compute_mem_request_element<E: FieldElement<BaseField = Felt>>(
     let ctx = main_trace.ctx(row);
     let clk = main_trace.clk(row);
 
-    alphas[0] + build_value(&alphas[1..6], &[Felt::from(op_label), ctx, addr, clk, element])
+    alphas[0] + build_value(&alphas[1..6], [Felt::from(op_label), ctx, addr, clk, element])
 }
 
 /// Computes a memory request for a read or write of a word.
@@ -1046,6 +1063,6 @@ fn compute_mem_request_word<E: FieldElement<BaseField = Felt>>(
     alphas[0]
         + build_value(
             &alphas[1..9],
-            &[Felt::from(op_label), ctx, addr, clk, word[0], word[1], word[2], word[3]],
+            [Felt::from(op_label), ctx, addr, clk, word[0], word[1], word[2], word[3]],
         )
 }
