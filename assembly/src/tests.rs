@@ -842,7 +842,7 @@ fn mem_operations_with_constants() -> TestResult {
     const.GLOBAL_STOREW_PTR={GLOBAL_STOREW_PTR}
     const.GLOBAL_LOADW_PTR={GLOBAL_LOADW_PTR}
 
-    proc.test_const_loc.24
+    proc.test_const_loc.12
         # constant should resolve using locaddr operation
         locaddr.PROC_LOC_STORE_PTR
 
@@ -885,7 +885,7 @@ fn mem_operations_with_constants() -> TestResult {
         &context,
         format!(
             "\
-    proc.test_const_loc.24
+    proc.test_const_loc.12
         # constant should resolve using locaddr operation
         locaddr.{PROC_LOC_STORE_PTR}
 

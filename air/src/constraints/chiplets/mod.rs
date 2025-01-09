@@ -91,7 +91,7 @@ pub fn enforce_constraints<E: FieldElement<BaseField = Felt>>(
         frame,
         &mut result[constraint_offset..],
         frame.memory_flag(),
-        frame.memory_flag_no_last(),
+        frame.memory_flag_not_last_row(),
         frame.memory_flag_first_row(),
     );
 }
@@ -155,7 +155,7 @@ trait EvaluationFrameExt<E: FieldElement> {
 
     /// Flag to indicate whether the current row of the frame is in the memory portion of the
     /// Chiplets trace, except for the last memory chiplet row.
-    fn memory_flag_no_last(&self) -> E;
+    fn memory_flag_not_last_row(&self) -> E;
 
     /// Flag to indicate whether the next row of the frame is in the memory portion of the Chiplets
     /// trace.
@@ -195,7 +195,7 @@ impl<E: FieldElement> EvaluationFrameExt<E> for &EvaluationFrame<E> {
     }
 
     #[inline(always)]
-    fn memory_flag_no_last(&self) -> E {
+    fn memory_flag_not_last_row(&self) -> E {
         self.s(0) * self.s(1) * binary_not(self.s_next(2))
     }
 

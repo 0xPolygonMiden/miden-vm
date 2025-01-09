@@ -1,6 +1,6 @@
 use alloc::sync::Arc;
 
-use vm_core::mast::MastNodeId;
+use vm_core::{mast::MastNodeId, WORD_SIZE};
 
 use super::GlobalProcedureIndex;
 use crate::{
@@ -48,7 +48,7 @@ impl ProcedureContext {
     ///
     /// The number of locals is rounded up to the nearest multiple of 4.
     pub fn with_num_locals(mut self, num_locals: u16) -> Self {
-        self.num_locals = round_up_to_multiple_of_4(num_locals);
+        self.num_locals = num_locals.next_multiple_of(WORD_SIZE as u16);
         self
     }
 
@@ -56,15 +56,6 @@ impl ProcedureContext {
         self.span = span;
         self
     }
-}
-
-#[inline(always)]
-fn round_up_to_multiple_of_4(value: u16) -> u16 {
-    // For example, if value = 4,5,6,7
-    // value + 3 = 7,8,9,10
-    // value + 3 & !3 = 4,8,8,8 (&!3 clears the last two bits)
-    // as desired.
-    (value + 3) & !3
 }
 
 // ------------------------------------------------------------------------------------------------

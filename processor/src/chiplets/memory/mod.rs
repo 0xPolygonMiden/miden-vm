@@ -104,7 +104,7 @@ impl Memory {
         self.num_trace_rows
     }
 
-    /// Returns a word located at the specified context/address, or None if the address hasn't
+    /// Returns the element located at the specified context/address, or None if the address hasn't
     /// been accessed previously.
     ///
     /// Unlike read() which modifies the memory access trace, this method returns the value at the

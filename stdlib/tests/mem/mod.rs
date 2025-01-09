@@ -100,15 +100,14 @@ fn test_pipe_double_words_to_memory() {
         use.std::sys
 
         begin
-            push.{}         # end_addr
-            push.{}         # write_addr
+            push.{end_addr}
+            push.{start_addr}
             padw padw padw  # hasher state
 
             exec.mem::pipe_double_words_to_memory
 
             exec.sys::truncate_stack
-        end",
-        end_addr, start_addr,
+        end"
     );
 
     let operand_stack = &[];

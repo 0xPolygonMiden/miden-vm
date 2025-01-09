@@ -965,9 +965,7 @@ where
 // HELPER FUNCTIONS
 // ================================================================================================
 
-/// Reduces a slice of elements to a single field element in the field specified by E using a slice
-/// of alphas of matching length. This can be used to build the value for a single word or for an
-/// entire [HasherState].
+/// Runs an inner product between the alphas and the elements.
 #[inline(always)]
 fn build_value<E: FieldElement<BaseField = Felt>, const N: usize>(
     alphas: &[E],

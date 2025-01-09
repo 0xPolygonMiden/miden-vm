@@ -12,7 +12,7 @@ const.NUM_CONSTRAINT_COMPOSITION_COEF_ROUNDED_UP_TO_FOUR=232
 
 # Number of coefficients corresponds to "number of main & aux columns" + 8,
 # where "8" is the number of columns needed to store the constraint composition polynomial.
-const.NUM_DEEP_COMPOSITION_COEF_MULTIPLIED_BY_TWO_ROUNDED_UP_TO_FOUR=88
+const.NUM_DEEP_COMPOSITION_COEF_ROUNDED_UP_TO_FOUR=88
 
 # Number of random extension field coefficients related to the auxiliary trace (i.e. the alphas)
 const.NUM_AUX_TRACE_COEFS=16
@@ -185,8 +185,8 @@ export.num_constraint_composition_coef_multiplied_by_two_and_rounded_up_to_4
     push.NUM_CONSTRAINT_COMPOSITION_COEF_ROUNDED_UP_TO_FOUR
 end
 
-export.num_deep_composition_coef_multiplied_by_two_and_rounded_up_to_4
-    push.NUM_DEEP_COMPOSITION_COEF_MULTIPLIED_BY_TWO_ROUNDED_UP_TO_FOUR
+export.num_deep_composition_coef_rounded_up_to_4
+    push.NUM_DEEP_COMPOSITION_COEF_ROUNDED_UP_TO_FOUR
 end
 
 export.public_inputs_ptr
