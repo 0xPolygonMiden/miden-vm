@@ -193,6 +193,25 @@ The amortized cost of reading or writing a single value is between $4$ and $5$ t
 
 ### AIR constraints
 
+We first define the memory chiplet selector flags. $s_0$, $s_1$ and $s_2$ will refer to the chiplet selector flags.
+
+- $f_{mem}$ is set to 1 when the current row is in the memory chiplet.
+$$
+f_{mem} = s_0 \cdot s_1 \cdot (1 - s_2) \text{ | degree} = 3
+$$
+
+- $f_{mem\_nl}$ is set to 1 when the current row is in the memory chiplet, except for the last row of the chiplet.
+
+$$
+f_{mem\_nl} = s_0 \cdot s_1 \cdot (1 - s_2') \text{ | degree} = 3
+$$
+
+- $f_{mem\_fr}$ is set to 1 when the next row is the first row of the memory chiplet.
+
+$$
+f_{mem\_fr} = (1 - s_0) \cdot f_{mem}' \text{ | degree} = 4
+$$
+
 To simplify description of constraints, we'll define two variables $n_0$ and $n_1$ as follows:
 
 $$
@@ -205,19 +224,19 @@ Where $\Delta c = c' - c$ and $\Delta a = a' - a$.
 To make sure the prover sets the value of column `t` correctly, we'll need to impose the following constraints:
 
 >$$
-n_0^2 - n_0 = 0 \text{ | degree} = 4
+f_{mem\_nl} \cdot (n_0^2 - n_0) = 0 \text{ | degree} = 7
 $$
 
 >$$
-(1 - n_0) \cdot  \Delta c = 0 \text{ | degree} = 3
+f_{mem\_nl} \cdot (1 - n_0) \cdot  \Delta c = 0 \text{ | degree} = 7
 $$
 
 >$$
-(1 - n_0) \cdot (n_1^2 - n_1) = 0 \text{ | degree} = 6
+f_{mem\_nl} \cdot (1 - n_0) \cdot (n_1^2 - n_1) = 0 \text{ | degree} = 9
 $$
 
 >$$
-(1 - n_0) \cdot (1 - n_1) \cdot \Delta a = 0 \text{ | degree} = 5
+f_{mem\_nl} \cdot (1 - n_0) \cdot (1 - n_1) \cdot \Delta a = 0 \text{ | degree} = 8
 $$
 
 The above constraints guarantee that when context changes, $n_0 = 1$. When context remains the same but address changes, $(1 - n_0) \cdot n_1 = 1$. And when neither the context nor the address change, $(1 - n_0) \cdot (1 - n_1) = 1$.
@@ -225,26 +244,26 @@ The above constraints guarantee that when context changes, $n_0 = 1$. When conte
 We enforce that the `rw`, `ew`, `idx0` and `idx1` contain binary values.
 
 >$$
-rw^2 - rw = 0 \text{ | degree} = 2
+f_{mem} \cdot (rw^2 - rw) = 0 \text{ | degree} = 5
 $$
 
 >$$
-ew^2 - ew = 0 \text{ | degree} = 2
+f_{mem} \cdot (ew^2 - ew) = 0 \text{ | degree} = 5
 $$
 
 >$$
-idx0^2 - idx0 = 0 \text{ | degree} = 2
+f_{mem} \cdot (idx0^2 - idx0) = 0 \text{ | degree} = 5
 $$
 
 >$$
-idx1^2 - idx1 = 0 \text{ | degree} = 2
+f_{mem} \cdot (idx1^2 - idx1) = 0 \text{ | degree} = 5
 $$
 
 
 To enforce the values of context ID, word address, and clock cycle grow monotonically as described in the previous section, we define the following constraint.
 
 >$$
-\left(n_0 \cdot \Delta c + (1 - n_0) \cdot (n_1 \cdot \Delta a + (1 - n_1) \cdot \Delta clk) \right) - (2^{16} \cdot d_1' + d_0') = 0 \text{ | degree} = 5
+f_{mem\_nl} \cdot \left(n_0 \cdot \Delta c + (1 - n_0) \cdot (n_1 \cdot \Delta a + (1 - n_1) \cdot \Delta clk) \right) - (2^{16} \cdot d_1' + d_0') = 0 \text{ | degree} = 8
 $$
 
 Where $\Delta clk = clk' - clk - 1$.
@@ -254,7 +273,7 @@ In addition to this constraint, we also need to make sure that the values in reg
 Next, we need to ensure that the `f_scw` column is set to $1$ when the context and word address are the same, and $0$ otherwise.
 
 $$
-f_{scw}' - (1 - (n_0 + (1-n_0) \cdot n_1)) = 0 \text{ | degree} = 4
+f_{mem\_nl} \cdot (f_{scw}' - (1 - (n_0 + (1-n_0) \cdot n_1))) = 0 \text{ | degree} = 7
 $$
 
 Finally, we need to constrain the `v0, v1, v2, v3` columns. We will define a few variables to help in defining the constraints.
@@ -281,7 +300,7 @@ We're now ready to describe the constraints for the `v0, v1, v2, v3` columns.
 - For the first row of the chiplet (in the "next" position of the frame), for $0 \leq i < 4$,
 
 $$
-c_i \cdot v_i' = 0 \text{ | degree} = 5\\
+f_{mem\_fr} \cdot c_i \cdot v_i' = 0 \text{ | degree} = 9\\
 $$
 
 That is, if $row'$ is the first row of the memory chiplet, and $v_i'$ is not written to, then $v_i'$ must be $0$.
@@ -289,7 +308,7 @@ That is, if $row'$ is the first row of the memory chiplet, and $v_i'$ is not wri
 - For not the first row of the chiplet, and when there is new context or word address, for $0 \leq i < 4$,
 
 $$
-(1 - f_{scw}) \cdot c_i \cdot v_i' = 0 \text{ | degree} = 5\\
+f_{mem\_nl} \cdot (1 - f_{scw}) \cdot c_i \cdot v_i' = 0 \text{ | degree} = 8\\
 $$
 
 That is, if $row'$ is in a different context or word address compared to the current row, and $v_i'$ is not written to, then $v_i'$ must be $0$.
@@ -297,7 +316,7 @@ That is, if $row'$ is in a different context or word address compared to the cur
 - For not the first row of the chiplet, and when the next row is in the same context and word address as the current row, for $0 \leq i < 4$,
 
 $$
-f_{scw} \cdot c_i \cdot (v_i' - v_i) = 0 \text{ | degree} = 5\\
+f_{mem\_nl} \cdot f_{scw} \cdot c_i \cdot (v_i' - v_i) = 0 \text{ | degree} = 8\\
 $$
 
 That is, if $row'$ is in the same context and word address as the current row, and $v_i'$ is not written to, then $v_i'$ must be equal to $v_i$.
