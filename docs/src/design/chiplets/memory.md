@@ -185,7 +185,7 @@ where:
   - When the context changes, this column contains the inverse of $(c' - c)$.
   - When the context remains the same but the word address changes, this column contains the inverse of $(a' - a)$.
   - When both the context and the word address remain the same, this column contains the inverse of $(clk' - clk - 1)$.
-- Column `f_scw` stands for "flag same context and word address", which is set to $1$ when the current and next rows have the same context and word address, and $0$ otherwise.
+- Column `f_scw` stands for "flag same context and word address", which is set to $1$ when the current and previous rows have the same context and word address, and $0$ otherwise.
 
 For every memory access operation (i.e., read or write a word or element), a new row is added to the memory table. If neither `ctx` nor `addr` have changed, the `v` columns are set to equal the values from the previous row (except for any element written to). If `ctx` or `addr` have changed, then the `v` columns are initialized to $0$ (except for any element written to).
 
