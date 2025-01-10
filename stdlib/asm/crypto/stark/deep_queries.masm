@@ -22,7 +22,7 @@ use.std::crypto::stark::constants
 #!                                                       \/
 #!
 #! +-------+-------+-------+-------+-------+-------+-------+-------+------+------+------+------+------+--------+--------+-----+
-#! |  T31  |  T30  |  T21  |  T20  |  T11  |  T10  |  T01  |  T00  |  p1' |  p0' |  r1' |  r0' |x_addr|z_addr+1|a_addr+b|  -  |
+#! |  T31  |  T30  |  T21  |  T20  |  T11  |  T10  |  T01  |  T00  |  p1' |  p0' |  r1' |  r0' |x_addr|z_addr+4|a_addr+b|  -  |
 #! +-------+-------+-------+-------+-------+-------+-------+-------+------+------+------+------+------+--------+--------------+
 #!
 #!
@@ -47,12 +47,12 @@ export.combine_aux
     # 2) Get a_addr and update it. This is done here before it becomes inaccessible.
 
     # Update a_addr
-    dup.14 add.1 swap.15
+    dup.14 add.4 swap.15
     #=> [a_addr, T01, T00, T31, T30, T21, T20, T11, T10, p1, p0, r1, r0, x_addr, z_addr, a_addr', 0]
 
     # 3) Load i-th OOD frame portion. This assumes that the OOD frame has been serialized with `current` and `next` rows interleaved.
     # This also updates the z_addr pointer.
-    dup.14 add.1 swap.15
+    dup.14 add.4 swap.15
     padw movup.4 mem_loadw
     #=> [Tgz1, Tgz0, Tz1, Tz0, a_addr, T01, T00, T31, T30, T21, T20, T11, T10, p1, p0, r1, r0, x_addr, z_addr', a_addr', 0]
 
@@ -144,6 +144,8 @@ proc.load_query_row
 
     ## Get main trace commitment and use it to get the leaf
     movdn.3 movdn.2
+    #=> [y, y, depth, index, query_ptr]
+
     push.0.0
     exec.constants::main_trace_com_ptr mem_loadw
     #=>[R, depth, index, query_ptr, ...]
@@ -158,12 +160,18 @@ proc.load_query_row
     exec.constants::current_trace_row_ptr
     swapw
     #=>[R, ptr, y, y, y, depth, index, query_ptr, ...]
+
+    # Set the first element of the capacity to the number of main trace columns (modulo 8)
     exec.constants::zero_word mem_loadw
-    add.6
+    add.7
     swap.3
+
+    # Set R1 and R2 to whatever (they will be overwritten by adv_pipe)
     padw
     padw
-    #=> [Y, Y, 0, 0, 0, 1, ptr, y, y, y]
+    #=> [Y, Y, 0, 0, 0, 7, ptr, y, y, y]
+
+    # Read the first 64 main trace columns in - the last 7 will be handled separately
     repeat.8
         adv_pipe hperm
     end
@@ -176,10 +184,10 @@ proc.load_query_row
     dropw
     adv_push.1
     adv_push.1
-    push.0
+    adv_push.1
     push.0
     ## Store the last 2 main segment columns
-    dup.12 add.1 mem_storew
+    dup.12 add.4 mem_storew
 
     ## Final hperm
     hperm
@@ -198,7 +206,7 @@ proc.load_query_row
     #=> [Y, ptr, y, y, y, depth, index, query_ptr, ...]
 
     ## increment ptr to account for the last two words we loaded from the advice tape
-    swapw add.2 swapw
+    swapw add.8 swapw
 
 
     # Aux trace part
@@ -225,7 +233,7 @@ proc.load_query_row
     push.0.0
 
     ## Store the last aux segment column
-    dup.12 add.1 mem_storew
+    dup.12 add.4 mem_storew
 
     ## Final hperm
     hperm
@@ -243,7 +251,7 @@ proc.load_query_row
     #=> [Y, ptr, y, y, y, depth, index, query_ptr, ...]
 
     ##increment ptr to account for column 9 and an additional +1 for the all zero word
-    swapw add.2 swapw
+    swapw add.8 swapw
 
 
     # Constraint composition trace part
@@ -349,7 +357,7 @@ proc.combine_main_trace_columns
     end
 
     mem_stream
-    repeat.6
+    repeat.7
         rcomb_base
     end
 end
@@ -473,6 +481,7 @@ export.compute_deep_composition_polynomial_queries
     exec.constants::fri_com_ptr
     dup.1
     # =>[query_ptr, query_end_ptr, query_ptr...]
+
     # Store the pointers to:
     # 1. random values for computing DEEP polynomial
     # 2. OOD evaluation frame
@@ -505,6 +514,7 @@ export.compute_deep_composition_polynomial_queries
 
     push.1
     while.true
+
         # I)
         #
         # Load the (main, aux, constraint)-traces rows associated with the current query and get
@@ -580,16 +590,16 @@ export.compute_deep_composition_polynomial_queries
         ## b) Store [eval0, eval1, index, poe]
         ##
         ## Cycles: 5
-        dup.4 add.1 swap.5
+        dup.4 add.4 swap.5
         mem_storew
-        #=> [poe, index, eval1, eval0, query_ptr+1, query_end_ptr, query_ptr, ...]
+        #=> [poe, index, eval1, eval0, query_ptr+4, query_end_ptr, query_ptr, ...]
 
         ## c) Prepare stack for next iteration
         ##
         ## Cycles: 4
         dup.5 dup.5
         neq
-        #=> [?, query_ptr+1, query_end_ptr, ...]
+        #=> [?, query_ptr+4, query_end_ptr, ...]
     end
     dropw drop drop
 end

@@ -44,6 +44,7 @@ impl ProcedureContext {
         }
     }
 
+    /// Sets the number of locals to allocate for the procedure.
     pub fn with_num_locals(mut self, num_locals: u16) -> Self {
         self.num_locals = num_locals;
         self

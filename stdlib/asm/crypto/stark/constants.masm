@@ -5,9 +5,17 @@
 const.ROOT_UNITY=7277203076849721926
 const.DOMAIN_OFFSET=7
 const.DOMAIN_OFFSET_INV=2635249152773512046
-const.NUM_CONSTRAINT_COMPOSITION_COEF_MULTIPLIED_BY_TWO_ROUNDED_UP_TO_FOUR=224
-const.NUM_DEEP_COMPOSITION_COEF_MULTIPLIED_BY_TWO_ROUNDED_UP_TO_FOUR=88
 
+# Number of coefficients corresponds to the number of boundary + transition constraints 
+# (including auxiliary constraints)
+const.NUM_CONSTRAINT_COMPOSITION_COEF_ROUNDED_UP_TO_FOUR=232
+
+# Number of coefficients corresponds to "number of main & aux columns" + 8,
+# where "8" is the number of columns needed to store the constraint composition polynomial.
+const.NUM_DEEP_COMPOSITION_COEF_ROUNDED_UP_TO_FOUR=88
+
+# Number of random extension field coefficients related to the auxiliary trace (i.e. the alphas)
+const.NUM_AUX_TRACE_COEFS=16
 
 # MEMORY POINTERS
 # =================================================================================================
@@ -19,35 +27,37 @@ const.TRACE_DOMAIN_GENERATOR_PTR=4294799999
 const.PUBLIC_INPUTS_PTR=4294800000
 
 # OOD Frames
-# (70 + 7) * 2 * 2 Felt for current and next trace rows and 8 * 2 Felt for constraint composition
-# polynomials. Total memory slots required: ((70 + 7) * 2 * 2 + 8 * 2) / 4 = 81
+# (71 + 7) * 2 * 2 Felt for current and next trace rows and 8 * 2 Felt for constraint composition
+# polynomials. Memory slots:
+# OOD_TRACE_PTR: (71 + 7) * 2 * 2 = 312
+# OOD_CONSTRAINT_EVALS_PTR: 8 * 2 = 16
 const.OOD_TRACE_PTR=4294900000
-const.OOD_CONSTRAINT_EVALS_PTR=4294900077
+const.OOD_CONSTRAINT_EVALS_PTR=4294900312
 
 # Current trace row
-# 70 Felt for main portion of trace, 7 * 2 Felt for auxiliary portion of trace and 8 * 2 Felt for
+# 71 Felt for main portion of trace, 7 * 2 Felt for auxiliary portion of trace and 8 * 2 Felt for
 # constraint composition polynomials. Since we store these with the padding to make each of the
-# three portions a multiple of 8, the number of slots required is (72 + 16 + 16) / 4 = 26
-const.CURRENT_TRACE_ROW_PTR=4294900100
+# three portions a multiple of 8, the number of slots required is 72 + 16 + 16 = 104
+const.CURRENT_TRACE_ROW_PTR=4294900400
 
 # Random elements
-# There are are currently 16 ExtFelt for a total of 32 Felt. Thus the number of slots required is 8.
-const.AUX_RAND_ELEM_PTR=4294900150
+# There are are currently 16 ExtFelt for a total of 32 Felt. Thus the number of memory slots required is 32.
+const.AUX_RAND_ELEM_PTR=4294900600
 
-# We need 2 Felt for each constraint. We take 2800 slots as an upper bound
-const.COMPOSITION_COEF_PTR=4294900200
+# We need 2 Felt for each constraint. We take 112000 slots as an upper bound
+const.COMPOSITION_COEF_PTR=4294900800
 
 # We need 2 Felt for each trace column and each of the 8 constraint composition columns. We thus need
-# (70 + 7 + 8) * 2 Felt i.e. 43 memory slots.
+# (71 + 7 + 8) * 2 = 172 Felt i.e. 172 memory slots.
 # Note that there is a cap on the number of such coefficients so that the memory region allocated for
 # these coefficients does not overlap with the memory region storing the FRI queries.
-# This cap is of a 100 coefficients which is equivalent to 50 memory slots. This gives 150 memory
+# This cap is of a 100 coefficients which is equivalent to 200 memory slots. This gives 600 memory
 # slots for all of the FRI queries i.e., 150 FRI queries.
-const.DEEP_RAND_CC_PTR=4294903000
+const.DEEP_RAND_CC_PTR=4294912000
 
 # FRI
 #
-#       (FRI_COM_PTR - 150)    ---|
+#       (FRI_COM_PTR - 600)    ---|
 #              .
 #              .                  | <- FRI queries
 #              .
@@ -55,53 +65,53 @@ const.DEEP_RAND_CC_PTR=4294903000
 #              .
 #              .                  | <- FRI layer commitments and folding challenges
 #              .
-#       (FRI_COM_PTR + 32)     ---|
+#       (FRI_COM_PTR + 128)     ---|
 #              .
 #              .                  | <- Remainder codeword and polynomial
 #              .
-#       (FRI_COM_PTR + 66-1)   ---|
+#       (FRI_COM_PTR + 264-1)   ---|
 #
-# For each FRI layer, we need 2 memory slots, one for storing the FRI layer commitment and one for
+# For each FRI layer, we need 8 memory slots, one for storing the FRI layer commitment and one for
 # storing the word [a0, a1, log2(lde_size), lde_size] where a := (a0, a1) is the folding randomness
 # and lde_size is the size of the LDE domain. Since we are using a folding factor of 4 and the
 # maximal degree of the remainder polynomial that we allow is 7, an upper limit of 16 FRI layers is
-# ample and the number of memory slots we thus allocate for this is 32. Moreover, we allocate
-# an additional 32 slots for the remainder codeword and 2 for the remainder polynomial. These are
+# ample and the number of memory slots we thus allocate for this is 128. Moreover, we allocate
+# an additional 128 slots for the remainder codeword and 8 for the remainder polynomial. These are
 # expected to be laid out right after the FRI commitments.
-# The total number of slots thus becomes 66.
-const.FRI_COM_PTR=4294903200
+# The total number of slots thus becomes 264.
+const.FRI_COM_PTR=4294912800
 
 # Commitment to main, auxiliary and composition polynomials traces
-const.MAIN_TRACE_COM_PTR=4294903300
-const.AUX_TRACE_COM_PTR=4294903301
-const.COMPOSITION_POLY_COM_PTR=4294903302
+const.MAIN_TRACE_COM_PTR=4294913200
+const.AUX_TRACE_COM_PTR=4294913204
+const.COMPOSITION_POLY_COM_PTR=4294913208
 
 # Instant-specific constants
-const.LDE_SIZE_PTR=4294903303
-const.Z_PTR=4294903304
-const.NUM_QUERIES_PTR=4294903305
-const.TRACE_LENGTH_PTR=4294903306
-const.TRACE_LENGTH_LOG_PTR=4294903307
-const.GRINDING_FACTOR_PTR=4294903308
+const.LDE_SIZE_PTR=4294913212
+const.Z_PTR=4294913216
+const.NUM_QUERIES_PTR=4294913220
+const.TRACE_LENGTH_PTR=4294913224
+const.TRACE_LENGTH_LOG_PTR=4294913228
+const.GRINDING_FACTOR_PTR=4294913232
 
 # RPO capacity initialization words
-const.ZERO_WORD_PTR=4294903309
+const.ZERO_WORD_PTR=4294913236
 
 # State of RPO-based random coin
-const.C_PTR=4294903311
-const.R1_PTR=4294903312
-const.R2_PTR=4294903313
+const.C_PTR=4294913244
+const.R1_PTR=4294913248
+const.R2_PTR=4294913252
 
 # Address used for storing temporary values:
-const.TMP1=4294903315
-const.TMP2=4294903316
-const.TMP3=4294903317
-const.TMP4=4294903318
-const.TMP5=4294903319
-const.TMP6=4294903320
-const.TMP7=4294903321
-const.TMP8=4294903322
-const.TMP9=4294903323
+const.TMP1=4294913256
+const.TMP2=4294913260
+const.TMP3=4294913264
+const.TMP4=4294913268
+const.TMP5=4294913272
+const.TMP6=4294913276
+const.TMP7=4294913280
+const.TMP8=4294913284
+const.TMP9=4294913288
 
 
 
@@ -112,35 +122,35 @@ const.TMP9=4294903323
 #   | TRACE_DOMAIN_GENERATOR_PTR               |       4294799999        |
 #   | PUBLIC_INPUTS_PTR                        |       4294800000        |
 #   | OOD_TRACE_PTR                            |       4294900000        |
-#   | OOD_CONSTRAINT_EVALS_PTR                 |       4294900077        |
-#   | CURRENT_TRACE_ROW_PTR                    |       4294900100        |
-#   | AUX_RAND_ELEM_PTR                        |       4294900150        |
-#   | COMPOSITION_COEF_PTR                     |       4294900200        |
-#   | DEEP_RAND_CC_PTR                         |       4294903000        |
-#   | FRI_COM_PTR                              |       4294903200        |
-#   | MAIN_TRACE_COM_PTR                       |       4294903300        |
-#   | AUX_TRACE_COM_PTR                        |       4294903301        |
-#   | COMPOSITION_POLY_COM_PTR                 |       4294903302        |
-#   | LDE_SIZE_PTR                             |       4294903303        |
-#   | Z_PTR                                    |       4294903304        |
-#   | NUM_QUERIES_PTR                          |       4294903305        |
-#   | TRACE_LENGTH_PTR                         |       4294903306        |
-#   | TRACE_LENGTH_LOG_PTR                     |       4294903307        |
-#   | GRINDING_FACTOR_PTR                      |       4294903308        |
-#   | ZERO_WORD_PTR                            |       4294903309        |
-#   | ZERO_ZERO_ZERO_ONE_PTR                   |       4294903310        |
-#   | C_PTR                                    |       4294903311        |
-#   | R1_PTR                                   |       4294903312        |
-#   | R2_PTR                                   |       4294903313        |
-#   | TMP1                                     |       4294903315        |
-#   | TMP2                                     |       4294903316        |
-#   | TMP3                                     |       4294903317        |
-#   | TMP4                                     |       4294903318        |
-#   | TMP5                                     |       4294903319        |
-#   | TMP6                                     |       4294903320        |
-#   | TMP7                                     |       4294903321        |
-#   | TMP8                                     |       4294903322        |
-#   | TMP9                                     |       4294903323        |
+#   | OOD_CONSTRAINT_EVALS_PTR                 |       4294900312        |
+#   | CURRENT_TRACE_ROW_PTR                    |       4294900400        |
+#   | AUX_RAND_ELEM_PTR                        |       4294900600        |
+#   | COMPOSITION_COEF_PTR                     |       4294900800        |
+#   | DEEP_RAND_CC_PTR                         |       4294912000        |
+#   | FRI_COM_PTR                              |       4294912800        |
+#   | MAIN_TRACE_COM_PTR                       |       4294913200        |
+#   | AUX_TRACE_COM_PTR                        |       4294913204        |
+#   | COMPOSITION_POLY_COM_PTR                 |       4294913208        |
+#   | LDE_SIZE_PTR                             |       4294913212        |
+#   | Z_PTR                                    |       4294913216        |
+#   | NUM_QUERIES_PTR                          |       4294913220        |
+#   | TRACE_LENGTH_PTR                         |       4294913224        |
+#   | TRACE_LENGTH_LOG_PTR                     |       4294913228        |
+#   | GRINDING_FACTOR_PTR                      |       4294913232        |
+#   | ZERO_WORD_PTR                            |       4294913236        |
+#   | ZERO_ZERO_ZERO_ONE_PTR                   |       4294913240        |
+#   | C_PTR                                    |       4294913244        |
+#   | R1_PTR                                   |       4294913248        |
+#   | R2_PTR                                   |       4294913252        |
+#   | TMP1                                     |       4294913256        |
+#   | TMP2                                     |       4294913260        |
+#   | TMP3                                     |       4294913264        |
+#   | TMP4                                     |       4294913268        |
+#   | TMP5                                     |       4294913272        |
+#   | TMP6                                     |       4294913276        |
+#   | TMP7                                     |       4294913280        |
+#   | TMP8                                     |       4294913284        |
+#   | TMP9                                     |       4294913288        |
 #   +------------------------------------------+-------------------------+
 
 # ACCESSORS
@@ -148,6 +158,10 @@ const.TMP9=4294903323
 
 export.root_unity
     push.ROOT_UNITY
+end
+
+export.num_aux_trace_coefs
+    push.NUM_AUX_TRACE_COEFS
 end
 
 # Procedure to push the trace domain generator address to the stack.
@@ -168,11 +182,11 @@ export.domain_offset_inv
 end
 
 export.num_constraint_composition_coef_multiplied_by_two_and_rounded_up_to_4
-    push.NUM_CONSTRAINT_COMPOSITION_COEF_MULTIPLIED_BY_TWO_ROUNDED_UP_TO_FOUR
+    push.NUM_CONSTRAINT_COMPOSITION_COEF_ROUNDED_UP_TO_FOUR
 end
 
-export.num_deep_composition_coef_multiplied_by_two_and_rounded_up_to_4
-    push.NUM_DEEP_COMPOSITION_COEF_MULTIPLIED_BY_TWO_ROUNDED_UP_TO_FOUR
+export.num_deep_composition_coef_rounded_up_to_4
+    push.NUM_DEEP_COMPOSITION_COEF_ROUNDED_UP_TO_FOUR
 end
 
 export.public_inputs_ptr

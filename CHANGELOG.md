@@ -1,5 +1,8 @@
 # Changelog
 
+#### Highlights
+- [BREAKING] Memory is now element-addressable (#1598)
+
 #### Changes
 - [BREAKING] `Process` no longer takes ownership of the `Host` (#1571).
 - [BREAKING] `ProcessState` was converted from a trait to a struct (#1571).

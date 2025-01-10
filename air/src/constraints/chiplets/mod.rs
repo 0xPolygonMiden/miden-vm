@@ -87,7 +87,13 @@ pub fn enforce_constraints<E: FieldElement<BaseField = Felt>>(
     constraint_offset += bitwise::get_transition_constraint_count();
 
     // memory transition constraints
-    memory::enforce_constraints(frame, &mut result[constraint_offset..], frame.memory_flag(false));
+    memory::enforce_constraints(
+        frame,
+        &mut result[constraint_offset..],
+        frame.memory_flag(),
+        frame.memory_flag_not_last_row(),
+        frame.memory_flag_first_row(),
+    );
 }
 
 // TRANSITION CONSTRAINT HELPERS
@@ -143,12 +149,21 @@ trait EvaluationFrameExt<E: FieldElement> {
     /// Flag to indicate whether the frame is in the bitwise portion of the Chiplets trace.
     fn bitwise_flag(&self) -> E;
 
-    /// Flag to indicate whether the frame is in the memory portion of the Chiplets trace.
-    /// When `include_last_row` is true, the memory flag is true for every row where the memory
-    /// selectors are set. When false, the last row is excluded. When this flag is used for
-    /// transition constraints with `include_last_row = false`, they will not be applied to the
-    /// final row of the memory trace.
-    fn memory_flag(&self, include_last_row: bool) -> E;
+    /// Flag to indicate whether the current row of the frame is in the memory portion of the
+    /// Chiplets trace.
+    fn memory_flag(&self) -> E;
+
+    /// Flag to indicate whether the current row of the frame is in the memory portion of the
+    /// Chiplets trace, except for the last memory chiplet row.
+    fn memory_flag_not_last_row(&self) -> E;
+
+    /// Flag to indicate whether the next row of the frame is in the memory portion of the Chiplets
+    /// trace.
+    fn memory_flag_next(&self) -> E;
+
+    /// Flag to indicate whether the next row of the frame is the first row of the memory portion of
+    /// the Chiplets trace.
+    fn memory_flag_first_row(&self) -> E;
 }
 
 impl<E: FieldElement> EvaluationFrameExt<E> for &EvaluationFrame<E> {
@@ -175,12 +190,23 @@ impl<E: FieldElement> EvaluationFrameExt<E> for &EvaluationFrame<E> {
     }
 
     #[inline(always)]
-    fn memory_flag(&self, include_last_row: bool) -> E {
-        if include_last_row {
-            self.s(0) * self.s(1) * binary_not(self.s(2))
-        } else {
-            self.s(0) * self.s(1) * binary_not(self.s_next(2))
-        }
+    fn memory_flag(&self) -> E {
+        self.s(0) * self.s(1) * binary_not(self.s(2))
+    }
+
+    #[inline(always)]
+    fn memory_flag_not_last_row(&self) -> E {
+        self.s(0) * self.s(1) * binary_not(self.s_next(2))
+    }
+
+    #[inline(always)]
+    fn memory_flag_next(&self) -> E {
+        self.s_next(0) * self.s_next(1) * binary_not(self.s_next(2))
+    }
+
+    #[inline(always)]
+    fn memory_flag_first_row(&self) -> E {
+        self.hasher_flag() * self.memory_flag_next()
     }
 }
 
@@ -196,6 +222,6 @@ pub trait ChipletsFrameExt<E: FieldElement> {
 impl<E: FieldElement> ChipletsFrameExt<E> for &EvaluationFrame<E> {
     #[inline(always)]
     fn chiplets_memory_flag(&self) -> E {
-        self.memory_flag(true)
+        self.memory_flag()
     }
 }
