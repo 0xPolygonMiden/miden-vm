@@ -215,11 +215,11 @@ $$
 To simplify description of constraints, we'll define two variables $n_0$ and $n_1$ as follows:
 
 $$
-n_0 = \Delta c \cdot t' \\
+n_0 = \Delta ctx \cdot t' \\
 n_1 = \Delta a \cdot t'
 $$
 
-Where $\Delta c = c' - c$ and $\Delta a = a' - a$.
+Where $\Delta ctx = ctx' - ctx$ and $\Delta a = a' - a$.
 
 To make sure the prover sets the value of column `t` correctly, we'll need to impose the following constraints:
 
@@ -228,7 +228,7 @@ f_{mem\_nl} \cdot (n_0^2 - n_0) = 0 \text{ | degree} = 7
 $$
 
 >$$
-f_{mem\_nl} \cdot (1 - n_0) \cdot  \Delta c = 0 \text{ | degree} = 7
+f_{mem\_nl} \cdot (1 - n_0) \cdot  \Delta ctx = 0 \text{ | degree} = 7
 $$
 
 >$$
@@ -263,7 +263,7 @@ $$
 To enforce the values of context ID, word address, and clock cycle grow monotonically as described in the previous section, we define the following constraint.
 
 >$$
-f_{mem\_nl} \cdot \left(n_0 \cdot \Delta c + (1 - n_0) \cdot (n_1 \cdot \Delta a + (1 - n_1) \cdot \Delta clk) \right) - (2^{16} \cdot d_1' + d_0') = 0 \text{ | degree} = 8
+f_{mem\_nl} \cdot \left(n_0 \cdot \Delta ctx + (1 - n_0) \cdot (n_1 \cdot \Delta a + (1 - n_1) \cdot \Delta clk) \right) - (2^{16} \cdot d_1' + d_0') = 0 \text{ | degree} = 8
 $$
 
 Where $\Delta clk = clk' - clk - 1$.
