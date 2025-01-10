@@ -49,7 +49,7 @@ fn sdepth() {
 fn locaddr() {
     // --- locaddr returns expected address -------------------------------------------------------
     let source = "
-        proc.foo.8
+        proc.foo.5
             locaddr.0
             locaddr.4
         end
@@ -59,7 +59,9 @@ fn locaddr() {
         end";
 
     let test = build_test!(source, &[10]);
-    test.expect_stack(&[FMP_MIN + 4, FMP_MIN, 10]);
+    // Note: internally, we round 5 up to 8 for word-aligned purposes, so the local addresses are
+    // offset from 8 rather than 5.
+    test.expect_stack(&[FMP_MIN + 7, FMP_MIN + 3, 10]);
 
     // --- accessing mem via locaddr updates the correct variables --------------------------------
     let source = "

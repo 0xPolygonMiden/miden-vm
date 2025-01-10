@@ -33,7 +33,7 @@ pub fn mem_read(
     if let Some(addr) = addr {
         if is_local {
             let num_locals = proc_ctx.num_locals();
-            local_to_absolute_addr(block_builder, addr as u16, num_locals)?;
+            local_to_absolute_addr(block_builder, addr as u16, num_locals, is_single)?;
         } else {
             push_u32_value(block_builder, addr);
         }
@@ -81,7 +81,7 @@ pub fn mem_write_imm(
     is_single: bool,
 ) -> Result<(), AssemblyError> {
     if is_local {
-        local_to_absolute_addr(block_builder, addr as u16, proc_ctx.num_locals())?;
+        local_to_absolute_addr(block_builder, addr as u16, proc_ctx.num_locals(), is_single)?;
     } else {
         push_u32_value(block_builder, addr);
     }
@@ -113,6 +113,7 @@ pub fn local_to_absolute_addr(
     block_builder: &mut BasicBlockBuilder,
     index_of_local: u16,
     num_proc_locals: u16,
+    is_single: bool,
 ) -> Result<(), AssemblyError> {
     if num_proc_locals == 0 {
         return Err(AssemblyError::Other(
@@ -124,7 +125,14 @@ pub fn local_to_absolute_addr(
         ));
     }
 
-    let max = num_proc_locals - 1;
+    // If a single local value is being accessed, then the index can take the full range 
+    // [0, num_proc_locals - 1]. Otherwise, the index can take the range [0, num_proc_locals - 4] 
+    // to account for the fact that a full word is being accessed.
+    let max = if is_single {
+        num_proc_locals - 1
+    } else {
+        num_proc_locals - 4
+    };
     validate_param(index_of_local, 0..=max)?;
 
     // Local values are placed under the frame pointer, so we need to calculate the offset of the

@@ -568,19 +568,17 @@ impl Assembler {
         // Make sure the current procedure context is available during codegen
         let gid = proc_ctx.id();
 
-        // We expect the number of locals to be a multiple of the word size, having been rounded up
-        // if necessary.
         let num_locals = proc_ctx.num_locals();
-        assert_eq!(num_locals % WORD_SIZE as u16, 0);
 
         let wrapper_proc = self.module_graph.get_procedure_unsafe(gid);
         let proc = wrapper_proc.unwrap_ast().unwrap_procedure();
         let proc_body_id = if num_locals > 0 {
             // For procedures with locals, we need to update fmp register before and after the
             // procedure body is executed. Specifically:
-            // - to allocate procedure locals we need to increment fmp by the number of locals, and
+            // - to allocate procedure locals we need to increment fmp by the number of locals
+            //   (rounded up to the word size), and
             // - to deallocate procedure locals we need to decrement it by the same amount.
-            let locals_frame = Felt::from(num_locals);
+            let locals_frame = Felt::from(num_locals.next_multiple_of(WORD_SIZE as u16));
             let wrapper = BodyWrapper {
                 prologue: vec![Operation::Push(locals_frame), Operation::FmpUpdate],
                 epilogue: vec![Operation::Push(-locals_frame), Operation::FmpUpdate],

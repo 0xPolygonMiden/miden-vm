@@ -1,6 +1,6 @@
 use alloc::sync::Arc;
 
-use vm_core::{mast::MastNodeId, WORD_SIZE};
+use vm_core::mast::MastNodeId;
 
 use super::GlobalProcedureIndex;
 use crate::{
@@ -45,10 +45,8 @@ impl ProcedureContext {
     }
 
     /// Sets the number of locals to allocate for the procedure.
-    ///
-    /// The number of locals is rounded up to the nearest multiple of 4.
     pub fn with_num_locals(mut self, num_locals: u16) -> Self {
-        self.num_locals = num_locals.next_multiple_of(WORD_SIZE as u16);
+        self.num_locals = num_locals;
         self
     }
 
