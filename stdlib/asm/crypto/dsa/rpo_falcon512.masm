@@ -75,7 +75,7 @@ end
 #! Input: [c_ptr, MSG, NONCE1, NONCE0, ...]
 #! Output: [...]
 #!
-#! Cycles: 1327
+#! Cycles: ~1400
 export.hash_to_point.8
     # Move pointer out of the way
     movdn.12
@@ -118,7 +118,7 @@ end
 #! Input: [tau1, tau0, tau_ptr, ...]
 #! Output: [tau_ptr + 513*4, ...]
 #!
-#! Cycles: 8323
+#! Cycles: ~8900
 export.powers_of_tau
 
     # 1) Save tau^0 i.e. (0, 1)
@@ -150,7 +150,7 @@ end
 #! Input: [ptr, ...]
 #! Output: [...]
 #!
-#! Cycles: 2607
+#! Cycles: ~3100
 export.set_to_zero
     padw
     repeat.512
@@ -484,7 +484,7 @@ end
 #! Input: [pi_ptr, ...]
 #! Output: [norm_sq(s1), ...]
 #!
-#! Cycles: 58888
+#! Cycles: 59000
 export.compute_s1_norm_sq
     repeat.128
         # 1) Load the next 4 * 3 coefficients
@@ -561,7 +561,7 @@ end
 #! Input: [s2_ptr, ...]
 #! Output: [norm_sq(s2), ...]
 #!
-#! Cycles: 13322
+#! Cycles: ~13500
 export.compute_s2_norm_sq
     repeat.128
         padw
@@ -592,7 +592,7 @@ end
 #! Input: [PK, MSG, ...]
 #! Output: [...]
 #!
-#! Cycles: ~ 92029
+#! Cycles: ~ 90400
 export.verify.6660
 
     # 1) Generate a Falcon signature using the secret key associated to PK on message MSG.

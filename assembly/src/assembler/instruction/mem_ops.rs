@@ -125,8 +125,8 @@ pub fn local_to_absolute_addr(
         ));
     }
 
-    // If a single local value is being accessed, then the index can take the full range 
-    // [0, num_proc_locals - 1]. Otherwise, the index can take the range [0, num_proc_locals - 4] 
+    // If a single local value is being accessed, then the index can take the full range
+    // [0, num_proc_locals - 1]. Otherwise, the index can take the range [0, num_proc_locals - 4]
     // to account for the fact that a full word is being accessed.
     let max = if is_single {
         num_proc_locals - 1

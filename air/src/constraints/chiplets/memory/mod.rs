@@ -194,8 +194,7 @@ fn enforce_values<E: FieldElement>(
         let f3 = frame.idx1_next() * frame.idx0_next();
 
         let c_i = |f_i| {
-            // when we are operating on elements, z_i is set to 1 for all `i` which are not being
-            // accessed; otherwise it is set to 0.
+            // z_i is set to 1 when we are operating on elements but not the i-th element
             let z_i = binary_not(frame.is_word_access_next()) * binary_not(f_i);
             let is_read_next = frame.is_read_next();
 
