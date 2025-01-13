@@ -306,21 +306,13 @@ $$
 
 That is, if $row'$ is the first row of the memory chiplet, and $v_i'$ is not written to, then $v_i'$ must be $0$.
 
-- For not the first row of the chiplet, and when there is new context or word address, for $0 \leq i < 4$,
+- For all rows of the chiplet except the first, and when there is new context or word address, for $0 \leq i < 4$,
 
 $$
-f_{mem\_nl} \cdot (1 - f_{scw}') \cdot c_i \cdot v_i' = 0 \text{ | degree} = 9\\
+f_{mem\_nl} \cdot c_i \cdot (f_{scw}' \cdot (v_i' - v_i) + (1 - f_{scw}') \cdot v_i') = 0 \text{ | degree} = 9\\
 $$
 
-That is, if $row'$ is in a different context or word address compared to the current row, and $v_i'$ is not written to, then $v_i'$ must be $0$.
-
-- For not the first row of the chiplet, and when the next row is in the same context and word address as the current row, for $0 \leq i < 4$,
-
-$$
-f_{mem\_nl} \cdot f_{scw}' \cdot c_i \cdot (v_i' - v_i) = 0 \text{ | degree} = 9\\
-$$
-
-That is, if $row'$ is in the same context and word address as the current row, and $v_i'$ is not written to, then $v_i'$ must be equal to $v_i$.
+That is, if $v_i$ is not written to, then either its value needs to be copied over from the previous row (when $f_{scw}' = 1$), or it must be set to 0 (when $f_{scw}' = 0$).
 
 #### Chiplets bus constraints
 Communication between the memory chiplet and the stack is accomplished via the chiplets bus $b_{chip}$. To respond to memory access requests from the stack, we need to divide the current value in $b_{chip}$ by the value representing a row in the memory table. This value can be computed as follows:
