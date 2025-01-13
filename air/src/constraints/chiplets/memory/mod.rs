@@ -151,8 +151,7 @@ fn enforce_flag_same_context_and_word<E: FieldElement>(
     result: &mut [E],
     memory_flag_not_last_row: E,
 ) -> usize {
-    result[0] = memory_flag_not_last_row
-        * (frame.f_scw_next() - binary_not(frame.n0() + frame.not_n0() * frame.n1()));
+    result[0] = memory_flag_not_last_row * (frame.f_scw_next() - frame.not_n0() * frame.not_n1());
 
     1
 }

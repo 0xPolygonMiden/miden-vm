@@ -197,25 +197,25 @@ The amortized cost of reading or writing a single value is between $4$ and $5$ t
 We first define the memory chiplet selector flags. $s_0$, $s_1$ and $s_2$ will refer to the chiplet selector flags.
 
 - $f_{mem}$ is set to 1 when the current row is in the memory chiplet.
-$$
+>$$
 f_{mem} = s_0 \cdot s_1 \cdot (1 - s_2) \text{ | degree} = 3
 $$
 
 - $f_{mem\_nl}$ is set to 1 when the current row is in the memory chiplet, except for the last row of the chiplet.
 
-$$
+>$$
 f_{mem\_nl} = s_0 \cdot s_1 \cdot (1 - s_2') \text{ | degree} = 3
 $$
 
 - $f_{mem\_fr}$ is set to 1 when the next row is the first row of the memory chiplet.
 
-$$
+>$$
 f_{mem\_fr} = (1 - s_0) \cdot f_{mem}' \text{ | degree} = 4
 $$
 
 To simplify description of constraints, we'll define two variables $n_0$ and $n_1$ as follows:
 
-$$
+>$$
 n_0 = \Delta ctx \cdot t' \\
 n_1 = \Delta a \cdot t'
 $$
@@ -240,7 +240,7 @@ $$
 f_{mem\_nl} \cdot (1 - n_0) \cdot (1 - n_1) \cdot \Delta a = 0 \text{ | degree} = 8
 $$
 
-The above constraints guarantee that when context changes, $n_0 = 1$. When context remains the same but address changes, $(1 - n_0) \cdot n_1 = 1$. And when neither the context nor the address change, $(1 - n_0) \cdot (1 - n_1) = 1$.
+The above constraints guarantee that when context changes, $n_0 = 1$. When context remains the same but word address changes, $(1 - n_0) \cdot n_1 = 1$. And when neither the context nor the word address change, $(1 - n_0) \cdot (1 - n_1) = 1$.
 
 We enforce that the `rw`, `ew`, `idx0` and `idx1` contain binary values.
 
@@ -271,15 +271,17 @@ Where $\Delta clk = clk' - clk - 1$.
 
 In addition to this constraint, we also need to make sure that the values in registers $d_0$ and $d_1$ are less than $2^{16}$, and this can be done with [range checks](../range.md).
 
-Next, we need to ensure that the `f_scw` column is set to $1$ when the context and word address are the same, and $0$ otherwise.
+Next, for all frames where the "current" and "next" rows are in the chiplet, we need to ensure that the value of the `f_scw` column in the "next" row is set to $1$ when the context and word address are the same, and $0$ otherwise.
 
+>$$
+f_{mem\_nl} \cdot (f_{scw}' - (1 - n_0) \cdot (1-n_1)) = 0 \text{ | degree} = 7
 $$
-f_{mem\_nl} \cdot (f_{scw}' - (1 - (n_0 + (1-n_0) \cdot n_1))) = 0 \text{ | degree} = 7
-$$
+
+Note that this does not constrain the value of `f_scw` in the first row of the chiplet. This is intended, as the first row's constraints do not depend on the previous row (since the previous row is not part of the same chiplet), and therefore do not depend on `f_scw` (see "first row" constraints below).
 
 Finally, we need to constrain the `v0, v1, v2, v3` columns. We will define a few variables to help in defining the constraints.
 
-$$
+>$$
 \begin{align*}
 f_0 &= (1 - idx1) \cdot (1 - idx0) \text{ | degree} = 2\\
 f_1 &= (1 - idx1) \cdot idx0 \text{ | degree} = 2\\
@@ -290,7 +292,7 @@ $$
 
 The flag $f_i$ is set to $1$ when $v_i$ is being accessed, and $0$ otherwise. Next, for $0 \leq i < 4$,
 
-$$
+>$$
 c_i = rw' + (1 - rw') \cdot (1 - ew') \cdot (1 - f_i') \text{ | degree} = 4\\
 $$
 
@@ -300,15 +302,15 @@ We're now ready to describe the constraints for the `v0, v1, v2, v3` columns.
 
 - For the first row of the chiplet (in the "next" position of the frame), for $0 \leq i < 4$,
 
-$$
+>$$
 f_{mem\_fr} \cdot c_i \cdot v_i' = 0 \text{ | degree} = 9\\
 $$
 
-That is, if $row'$ is the first row of the memory chiplet, and $v_i'$ is not written to, then $v_i'$ must be $0$.
+That is, if the next row is the first row of the memory chiplet, and $v_i'$ is not written to, then $v_i'$ must be $0$.
 
 - For all rows of the chiplet except the first, and when there is new context or word address, for $0 \leq i < 4$,
 
-$$
+>$$
 f_{mem\_nl} \cdot c_i \cdot (f_{scw}' \cdot (v_i' - v_i) + (1 - f_{scw}') \cdot v_i') = 0 \text{ | degree} = 9\\
 $$
 
@@ -317,13 +319,13 @@ That is, if $v_i$ is not written to, then either its value needs to be copied ov
 #### Chiplets bus constraints
 Communication between the memory chiplet and the stack is accomplished via the chiplets bus $b_{chip}$. To respond to memory access requests from the stack, we need to divide the current value in $b_{chip}$ by the value representing a row in the memory table. This value can be computed as follows:
 
-$$
+>$$
 v_{mem} = \alpha_0 + \alpha_1 \cdot op_{mem} + \alpha_2 \cdot ctx + \alpha_3 \cdot a + \alpha_4 \cdot clk + \sum_{j=0}^3(\alpha_{j + 5} \cdot v_j)
 $$
 
 for word accesses, and
 
-$$
+>$$
 v_{mem} = \alpha_0 + \alpha_1 \cdot op_{mem} + \alpha_2 \cdot ctx + \alpha_3 \cdot a + \alpha_4 \cdot clk + v
 $$
 

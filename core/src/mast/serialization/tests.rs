@@ -356,9 +356,12 @@ fn mast_forest_invalid_node_id() {
 
     // Hydrate a forest larger than the first to get an overflow MastNodeId
     let mut overflow_forest = MastForest::new();
+    // Note: clippy wants us to use `next_back()` instead of `last()`, but `next_back()` makes the
+    // test fail.
+    #[allow(clippy::double_ended_iterator_last)]
     let overflow = (0..=3)
         .map(|_| overflow_forest.add_block(vec![Operation::U32div], None).unwrap())
-        .next_back()
+        .last()
         .unwrap();
 
     // Attempt to join with invalid ids
