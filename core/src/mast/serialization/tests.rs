@@ -358,7 +358,7 @@ fn mast_forest_invalid_node_id() {
     let mut overflow_forest = MastForest::new();
     let overflow = (0..=3)
         .map(|_| overflow_forest.add_block(vec![Operation::U32div], None).unwrap())
-        .last()
+        .next_back()
         .unwrap();
 
     // Attempt to join with invalid ids
