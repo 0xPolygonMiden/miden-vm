@@ -170,7 +170,7 @@ impl Assembler {
         module: impl Compile,
         options: CompileOptions,
     ) -> Result<ModuleIndex, Report> {
-        let ids = self.add_modules_with_options(vec![module], options)?;
+        let ids = self.add_modules_with_options([module], options)?;
         Ok(ids[0])
     }
 
@@ -196,7 +196,7 @@ impl Assembler {
                 Ok(module)
             })
             .collect::<Result<Vec<_>, Report>>()?;
-        let ids = self.module_graph.add_ast_modules(modules.into_iter())?;
+        let ids = self.module_graph.add_ast_modules(modules)?;
         Ok(ids)
     }
     /// Adds all modules (defined by ".masm" files) from the specified directory to the module
