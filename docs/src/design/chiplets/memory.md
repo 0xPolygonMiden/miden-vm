@@ -190,8 +190,6 @@ where:
 
 For every memory access operation (i.e., read or write a word or element), a new row is added to the memory table. If neither `ctx` nor `addr` have changed, the `v` columns are set to equal the values from the previous row (except for any element written to). If `ctx` or `addr` have changed, then the `v` columns are initialized to $0$ (except for any element written to).
 
-The amortized cost of reading or writing a single value is between $4$ and $5$ trace cells (this accounts for the trace cells needed for $16$-bit range checks). Thus, from the performance standpoint, this approach is roughly $2.5$x worse than the simple contiguous write-once memory described earlier. However, our view is that this trade-off is worth it given that this approach provides read-write memory, context separation, and eliminates the contiguous memory requirement.
-
 ### AIR constraints
 
 We first define the memory chiplet selector flags. $s_0$, $s_1$ and $s_2$ will refer to the chiplet selector flags.
@@ -320,21 +318,26 @@ That is, if $v_i$ is not written to, then either its value needs to be copied ov
 Communication between the memory chiplet and the stack is accomplished via the chiplets bus $b_{chip}$. To respond to memory access requests from the stack, we need to divide the current value in $b_{chip}$ by the value representing a row in the memory table. This value can be computed as follows:
 
 >$$
-v_{mem} = \alpha_0 + \alpha_1 \cdot op_{mem} + \alpha_2 \cdot ctx + \alpha_3 \cdot a + \alpha_4 \cdot clk + \sum_{j=0}^3(\alpha_{j + 5} \cdot v_j)
+\begin{align*}
+v_{mem} = \alpha_0 + \alpha_1 \cdot op_{mem} + \alpha_2 \cdot ctx + \alpha_3 \cdot a + \alpha_4 \cdot clk + ew \cdot v_{word} + (1 - ew) \cdot v_{element}\\ \text{ | degree} = 4
+\end{align*}
 $$
 
-for word accesses, and
+where
 
->$$
-v_{mem} = \alpha_0 + \alpha_1 \cdot op_{mem} + \alpha_2 \cdot ctx + \alpha_3 \cdot a + \alpha_4 \cdot clk + v
+$$
+\begin{align*}
+v_{word} &= \sum_{j=0}^3(\alpha_{j + 5} \cdot v_j) \text{ | degree} = 1 \\ 
+v_{element} &= \alpha_5 \cdot \sum_{i=0}^3 f_i \cdot v_i \text{ | degree} = 3
+\end{align*}
 $$
 
-for element accesses, where, $op_{mem}$ is the appropriate [operation label](./main.md#operation-labels) of the memory access operation.
+and where $op_{mem}$ is the appropriate [operation label](./main.md#operation-labels) of the memory access operation.
 
 To ensure that values of memory table rows are included into the chiplets bus, we impose the following constraint:
 
 >$$
-b_{chip}' = b_{chip} \cdot v_{mem} \text{ | degree} = 2
+b_{chip}' = b_{chip} \cdot v_{mem} \text{ | degree} = 5
 $$
 
 On the stack side, for every memory access request, a corresponding value is divided out of the $b_{chip}$ column. Specifics of how this is done are described [here](../stack/io_ops.md#memory-access-operations).
