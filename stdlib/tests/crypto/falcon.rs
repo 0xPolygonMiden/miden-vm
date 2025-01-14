@@ -14,9 +14,11 @@ use test_utils::{
         MerkleStore, Rpo256,
     },
     expect_exec_error_matches,
+    proptest::proptest,
     rand::{rand_value, rand_vector},
     FieldElement, QuadFelt, Word, WORD_SIZE,
 };
+use vm_core::StarkField;
 
 /// Modulus used for rpo falcon 512.
 const M: u64 = 12289;
@@ -83,21 +85,49 @@ fn test_falcon512_diff_mod_q() {
         exec.rpo_falcon512::diff_mod_q
     end
     ";
-
-    let u = rand::thread_rng().gen_range(0..J);
-    let v = rand::thread_rng().gen_range(Q..M);
+    let v = rand::thread_rng().gen_range(0..Felt::MODULUS);
+    let (v_lo, v_hi) = (v as u32, v >> 32);
     let w = rand::thread_rng().gen_range(0..J);
+    let u = rand::thread_rng().gen_range(0..J);
 
-    let test1 = build_test!(source, &[u, v, w]);
+    let test1 = build_test!(source, &[v_lo as u64, v_hi as u64, w + J, u]);
 
     // Calculating (v - (u + (- w % q) % q) % q) should be the same as (v + w + J - u) % q.
-    let expanded_answer = (v as i64
-        - (u as i64 + -(w as i64).rem_euclid(M as i64)).rem_euclid(M as i64))
-    .rem_euclid(M as i64);
-    let simplified_answer = (v + w + J - u).rem_euclid(M);
-    assert_eq!(expanded_answer, i64::try_from(simplified_answer).unwrap());
+    let expanded_answer = (v as i128
+        - ((u as i64 + -(w as i64).rem_euclid(M as i64)).rem_euclid(M as i64) as i128))
+        .rem_euclid(M as i128);
+    let simplified_answer = (v as i128 + w as i128 + J as i128 - u as i128).rem_euclid(M as i128);
+    assert_eq!(expanded_answer, i128::try_from(simplified_answer).unwrap());
 
-    test1.expect_stack(&[simplified_answer]);
+    test1.expect_stack(&[simplified_answer as u64]);
+}
+
+proptest! {
+    #[test]
+    fn diff_mod_q_proptest(v in 0..Felt::MODULUS, w in 0..J, u in 0..J) {
+
+          let source = "
+    use.std::crypto::dsa::rpo_falcon512
+
+    begin
+        exec.rpo_falcon512::diff_mod_q
+    end
+    ";
+
+    let (v_lo, v_hi) = (v as u32, v >> 32);
+
+    let test1 = build_test!(source, &[v_lo as u64, v_hi as u64, w + J, u]);
+
+    // Calculating (v - (u + (- w % q) % q) % q) should be the same as (v + w + J - u) % q.
+    let expanded_answer = (v as i128
+        - ((u as i64 + -(w as i64).rem_euclid(M as i64)).rem_euclid(M as i64) as i128))
+    .rem_euclid(M as i128);
+    let simplified_answer = (v as i128 + w as i128 + J as i128 - u as i128).rem_euclid(M as i128);
+    assert_eq!(expanded_answer, i128::try_from(simplified_answer).unwrap());
+
+    test1.prop_expect_stack(&[simplified_answer as u64])?;
+    }
+
 }
 
 #[test]
