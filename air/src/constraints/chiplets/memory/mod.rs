@@ -20,7 +20,7 @@ mod tests;
 // ================================================================================================
 
 /// The number of constraints on the management of the memory chiplet.
-pub const NUM_CONSTRAINTS: usize = 22;
+pub const NUM_CONSTRAINTS: usize = 18;
 /// The degrees of constraints on the management of the memory chiplet. All constraint degrees are
 /// increased by 3 due to the selectors for the memory chiplet.
 pub const CONSTRAINT_DEGREES: [usize; NUM_CONSTRAINTS] = [
@@ -29,8 +29,7 @@ pub const CONSTRAINT_DEGREES: [usize; NUM_CONSTRAINTS] = [
     8, // Enforce values in ctx, word, clk transition correctly.
     7, // Enforce the correct value for the f_scw flag.
     9, 9, 9, 9, // Constrain the values in the first row of the chiplet.
-    9, 9, 9, 9, // Constrain the values in non-first rows, new word or context is started.
-    9, 9, 9, 9, // Constrain the values in non-first rows, same word or context.
+    9, 9, 9, 9, // Constrain the values in all rows of the chiplet except the first.
 ];
 
 // MEMORY TRANSITION CONSTRAINTS
@@ -152,8 +151,7 @@ fn enforce_flag_same_context_and_word<E: FieldElement>(
     result: &mut [E],
     memory_flag_not_last_row: E,
 ) -> usize {
-    result[0] = memory_flag_not_last_row
-        * (frame.f_scw_next() - binary_not(frame.n0() + frame.not_n0() * frame.n1()));
+    result[0] = memory_flag_not_last_row * (frame.f_scw_next() - frame.not_n0() * frame.not_n1());
 
     1
 }
@@ -211,21 +209,27 @@ fn enforce_values<E: FieldElement>(
     result[2] = memory_flag_first_row * c2 * frame.v_next(2);
     result[3] = memory_flag_first_row * c3 * frame.v_next(3);
 
-    // non-first row, new word address or context constraints: when row' is a new word address/ctx,
-    // and v'[i] is not written to, then v'[i] must be 0.
-    result[4] = memory_flag_no_last * binary_not(frame.f_scw_next()) * c0 * frame.v_next(0);
-    result[5] = memory_flag_no_last * binary_not(frame.f_scw_next()) * c1 * frame.v_next(1);
-    result[6] = memory_flag_no_last * binary_not(frame.f_scw_next()) * c2 * frame.v_next(2);
-    result[7] = memory_flag_no_last * binary_not(frame.f_scw_next()) * c3 * frame.v_next(3);
+    // non-first row constraints:  if v[i] is not written to,
+    // - (f_scw' = 1) then its value needs to be copied over from the previous row,
+    // - (f_scw' = 0) then its value needs to be set to 0.
+    result[4] = memory_flag_no_last
+        * c0
+        * (frame.f_scw_next() * (frame.v_next(0) - frame.v(0))
+            + binary_not(frame.f_scw_next()) * frame.v_next(0));
+    result[5] = memory_flag_no_last
+        * c1
+        * (frame.f_scw_next() * (frame.v_next(1) - frame.v(1))
+            + binary_not(frame.f_scw_next()) * frame.v_next(1));
+    result[6] = memory_flag_no_last
+        * c2
+        * (frame.f_scw_next() * (frame.v_next(2) - frame.v(2))
+            + binary_not(frame.f_scw_next()) * frame.v_next(2));
+    result[7] = memory_flag_no_last
+        * c3
+        * (frame.f_scw_next() * (frame.v_next(3) - frame.v(3))
+            + binary_not(frame.f_scw_next()) * frame.v_next(3));
 
-    // non-first row, same word address and context constraints: when row' is in the same word
-    // address/ctx, and v'[i] is not written to, then v'[i] must be equal to v[i].
-    result[8] = memory_flag_no_last * frame.f_scw_next() * c0 * (frame.v_next(0) - frame.v(0));
-    result[9] = memory_flag_no_last * frame.f_scw_next() * c1 * (frame.v_next(1) - frame.v(1));
-    result[10] = memory_flag_no_last * frame.f_scw_next() * c2 * (frame.v_next(2) - frame.v(2));
-    result[11] = memory_flag_no_last * frame.f_scw_next() * c3 * (frame.v_next(3) - frame.v(3));
-
-    12
+    8
 }
 
 // MEMORY FRAME EXTENSION TRAIT

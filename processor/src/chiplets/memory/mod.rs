@@ -66,6 +66,8 @@ const INIT_MEM_VALUE: Word = EMPTY_WORD;
 ///   be divisible by 4. Values in this column must increase monotonically for a given context but
 ///   there can be gaps between two consecutive values of up to 2^32. Also, two consecutive values
 ///   can be the same.
+/// - `idx0` and `idx1` are selector columns used to identify which element in the word is being
+///   accessed. Specifically, the index within the word is computed as `idx1 * 2 + idx0`.
 /// - `clk` contains the clock cycle at which a memory operation happened. Values in this column
 ///   must increase monotonically for a given context and word but there can be gaps between two
 ///   consecutive values of up to 2^32.
