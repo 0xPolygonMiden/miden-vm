@@ -18,8 +18,8 @@ mod tests;
 pub use self::{
     dep::{
         resolver::{
-            DependencyResolution, DependencyResolver, LocalResolution,
-            MemDependencyResolverByDigest,
+            DependencyResolver, LocalResolvedDependency, MemDependencyResolverByDigest,
+            ResolvedDependency,
         },
         Dependency, DependencyName, SystemLibraryId,
     },
