@@ -11,7 +11,7 @@ use crate::{Dependency, Digest};
 // MAST ARTIFACT
 // ================================================================================================
 
-/// The artifact produced by lowering a [Program] to a Merkelized Abstract Syntax Tree
+/// The artifact produced by lowering a program or library to a Merkelized Abstract Syntax Tree
 ///
 /// This type is used in compilation pipelines to abstract over the type of output requested.
 #[derive(Debug, Clone, Eq, PartialEq, derive_more::From)]
