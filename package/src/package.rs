@@ -67,7 +67,7 @@ impl MastArtifact {
 pub struct PackageManifest {
     /// The set of exports in this package.
     pub exports: BTreeSet<PackageExport>,
-    /// The libraries(packages) linked against by this package, which must be provided when
+    /// The libraries (packages) linked against by this package, which must be provided when
     /// executing the program.
     pub dependencies: Vec<Dependency>,
 }
