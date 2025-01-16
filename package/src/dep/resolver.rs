@@ -11,7 +11,6 @@ use crate::{Digest, Package};
 #[derive(Debug, Clone)]
 pub enum DependencyResolution {
     Local(LocalResolution),
-    // Registry(...),
 }
 
 impl From<Arc<Library>> for DependencyResolution {

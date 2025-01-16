@@ -59,8 +59,8 @@ impl MastArtifact {
 // PACKAGE MANIFEST
 // ================================================================================================
 
-/// The manifest of a package, containing the set of package dependencies (libraries or packages) and
-/// exported procedures and their signatures, if known.
+/// The manifest of a package, containing the set of package dependencies (libraries or packages)
+/// and exported procedures and their signatures, if known.
 #[derive(Debug, Default, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(default)]
 #[cfg_attr(test, derive(proptest_derive::Arbitrary))]
@@ -86,17 +86,14 @@ pub struct PackageExport {
     )]
     #[cfg_attr(test, proptest(value = "Digest::default()"))]
     pub digest: Digest,
-    // Signature will be added in the future when the type signatures are available in the Assembly
-    // #[serde(default)]
-    // pub signature: Option<Signature>,
 }
 
 impl fmt::Debug for PackageExport {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let Self { name, digest } = self;
         f.debug_struct("PackageExport")
-            .field("name", &format_args!("{}", self.name))
-            .field("digest", &format_args!("{}", DisplayHex::new(&self.digest.as_bytes())))
-            // .field("signature", &self.signature)
+            .field("name", &format_args!("{}", name))
+            .field("digest", &format_args!("{}", DisplayHex::new(&digest.as_bytes())))
             .finish()
     }
 }
