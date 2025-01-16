@@ -104,7 +104,7 @@ impl fmt::Debug for PackageExport {
 // PACKAGE
 // ================================================================================================
 
-/// A package containing a [Program]/[Library], and a manifest(exports and dependencies).
+/// A package containing a [Program]/[Library], and a manifest (exports and dependencies).
 #[derive(Debug, Clone, Serialize, Deserialize, Eq, PartialEq)]
 #[cfg_attr(test, derive(proptest_derive::Arbitrary))]
 pub struct Package {
