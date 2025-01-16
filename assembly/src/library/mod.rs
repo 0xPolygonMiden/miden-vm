@@ -92,7 +92,8 @@ impl Library {
         Ok(Self { digest, exports, mast_forest })
     }
 
-    /// Produces a new library with the existing [`MastForest`] and provided advice map.
+    /// Produces a new library with the existing [`MastForest`] and where all key/values in the  
+    /// provided advice map are added to the internal advice map.
     pub fn with_advice_map(self, advice_map: AdviceMap) -> Self {
         let mut mast_forest = (*self.mast_forest).clone();
         mast_forest.advice_map_mut().extend(advice_map);
