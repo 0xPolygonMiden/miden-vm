@@ -59,7 +59,7 @@ impl MastArtifact {
 // PACKAGE MANIFEST
 // ================================================================================================
 
-/// The manifest of a package, containing the set of package dependencies(libraries or packages) and
+/// The manifest of a package, containing the set of package dependencies (libraries or packages) and
 /// exported procedures and their signatures, if known.
 #[derive(Debug, Default, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(default)]
