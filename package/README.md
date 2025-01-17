@@ -10,3 +10,8 @@ The header contains the following fields:
 - Version of the package binary format (3 bytes, e.g. "1.0");
 
 The header is followed by the `Package` serialized with `serde` using the [`bitcode`](https://docs.rs/bitcode/latest/bitcode/#structs) encoder to minimize the size.
+
+
+## License
+
+This project is [MIT licensed](../LICENSE).

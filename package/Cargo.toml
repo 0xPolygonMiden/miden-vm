@@ -2,7 +2,7 @@
 name = "miden-package"
 version = "0.11.0"
 description = "Miden VM package"
-documentation = "https://docs.rs/miden-package/0.10.5"
+documentation = "https://docs.rs/miden-package/0.11.0"
 readme = "README.md"
 categories = ["compilers", "no-std"]
 keywords = ["package", "language", "miden"]
