@@ -21,7 +21,7 @@ pub use self::{
             DependencyResolver, LocalResolvedDependency, MemDependencyResolverByDigest,
             ResolvedDependency,
         },
-        Dependency, DependencyName, SystemLibraryId,
+        Dependency, DependencyName,
     },
     package::{MastArtifact, Package, PackageExport, PackageManifest},
 };
