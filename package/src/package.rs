@@ -77,7 +77,7 @@ pub struct PackageManifest {
 #[cfg_attr(test, derive(proptest_derive::Arbitrary))]
 pub struct PackageExport {
     /// The fully-qualified name of the procedure exported by this package
-    pub name: String,
+    pub name: QualifiedProcedureName,
     /// The digest of the procedure exported by this package
     #[cfg_attr(test, proptest(value = "Digest::default()"))]
     pub digest: Digest,

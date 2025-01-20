@@ -48,7 +48,7 @@ winter-utils = { package = "winter-utils", version = "0.11", default-features = 
 
 [dev-dependencies]
 loom = "0.7"
-proptest = "1.5"
+proptest = "1.6"
 rand-utils = { package = "winter-rand-utils", version = "0.11" }
 
 [target.'cfg(loom)'.dependencies]

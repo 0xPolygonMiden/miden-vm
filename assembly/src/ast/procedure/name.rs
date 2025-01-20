@@ -25,8 +25,10 @@ use crate::{
 /// A qualified procedure name can be context-sensitive, i.e. the module path might refer
 /// to an imported
 #[derive(Clone)]
+#[cfg_attr(feature = "testing", derive(proptest_derive::Arbitrary))]
 pub struct QualifiedProcedureName {
     /// The source span associated with this identifier.
+    #[cfg_attr(feature = "testing", proptest(value = "SourceSpan::default()"))]
     pub span: SourceSpan,
     /// The module path for this procedure.
     pub module: LibraryPath,
@@ -118,6 +120,21 @@ impl crate::prettier::PrettyPrint for QualifiedProcedureName {
 impl fmt::Display for QualifiedProcedureName {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "{}::{}", &self.module, &self.name)
+    }
+}
+
+impl Serializable for QualifiedProcedureName {
+    fn write_into<W: ByteWriter>(&self, target: &mut W) {
+        self.module.write_into(target);
+        self.name.write_into(target);
+    }
+}
+
+impl Deserializable for QualifiedProcedureName {
+    fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
+        let module = LibraryPath::read_from(source)?;
+        let name = ProcedureName::read_from(source)?;
+        Ok(Self::new(module, name))
     }
 }
 
@@ -349,31 +366,55 @@ impl Deserializable for ProcedureName {
     }
 }
 
+// ARBITRARY IMPLEMENTATION
+// ================================================================================================
+
+#[cfg(feature = "testing")]
+impl proptest::prelude::Arbitrary for ProcedureName {
+    type Parameters = ();
+
+    fn arbitrary_with(_args: Self::Parameters) -> Self::Strategy {
+        use proptest::prelude::*;
+        // see https://doc.rust-lang.org/rustc/symbol-mangling/v0.html#symbol-grammar-summary
+        let all_possible_chars_in_mangled_name =
+            "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_.$";
+        let mangled_rustc_name = ProcedureName::new_unchecked(Ident::new_unchecked(Span::new(
+            SourceSpan::UNKNOWN,
+            all_possible_chars_in_mangled_name.into(),
+        )));
+        let plain = ProcedureName::new_unchecked(Ident::new_unchecked(Span::new(
+            SourceSpan::UNKNOWN,
+            "userfunc".into(),
+        )));
+        let quoted = any::<String>().prop_map(|s| {
+            ProcedureName::new_unchecked(Ident::new_unchecked(Span::new(
+                SourceSpan::UNKNOWN,
+                format!("\"{s}\"").into(),
+            )))
+        });
+        prop_oneof![Just(mangled_rustc_name), Just(plain), quoted].boxed()
+    }
+
+    type Strategy = proptest::prelude::BoxedStrategy<Self>;
+}
+
 // TESTS
 // ================================================================================================
 
 /// Tests
 #[cfg(test)]
 mod tests {
-    use vm_core::{
-        debuginfo::Span,
-        utils::{Deserializable, Serializable},
-    };
+    use proptest::prelude::*;
+    use vm_core::utils::{Deserializable, Serializable};
 
     use super::ProcedureName;
-    use crate::ast::Ident;
 
-    #[test]
-    fn procedure_name_serialization_rustc_mangled() {
-        // Tests that rustc mangled symbols are serialized and deserialized
-        // see https://doc.rust-lang.org/rustc/symbol-mangling/v0.html#symbol-grammar-summary
-        let all_possible_chars_in_mangled_name =
-            "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_.$";
-        let proc_name = ProcedureName::new_unchecked(Ident::new_unchecked(Span::unknown(
-            all_possible_chars_in_mangled_name.into(),
-        )));
-        let bytes = proc_name.to_bytes();
-        let deserialized = ProcedureName::read_from_bytes(&bytes).unwrap();
-        assert_eq!(proc_name, deserialized);
+    proptest! {
+        #[test]
+        fn procedure_name_serialization_roundtrip(path in any::<ProcedureName>()) {
+            let bytes = path.to_bytes();
+            let deserialized = ProcedureName::read_from_bytes(&bytes).unwrap();
+            assert_eq!(path, deserialized);
+        }
     }
 }

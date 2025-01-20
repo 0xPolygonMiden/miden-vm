@@ -37,7 +37,7 @@
 
 use alloc::{collections::BTreeSet, format, string::String, sync::Arc, vec::Vec};
 
-use assembly::Library;
+use assembly::{ast::QualifiedProcedureName, Library};
 use vm_core::{
     utils::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable},
     Program,
@@ -199,7 +199,7 @@ impl Serializable for PackageExport {
 
 impl Deserializable for PackageExport {
     fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
-        let name = String::read_from(source)?;
+        let name = QualifiedProcedureName::read_from(source)?;
         let digest = Digest::read_from(source)?;
         Ok(Self { name, digest })
     }
