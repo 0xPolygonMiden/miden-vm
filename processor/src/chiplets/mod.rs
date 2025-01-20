@@ -116,11 +116,11 @@ mod tests;
 #[derive(Debug)]
 pub struct Chiplets {
     /// Current clock cycle of the VM.
-    clk: RowIndex,
-    hasher: Hasher,
-    bitwise: Bitwise,
-    memory: Memory,
-    kernel_rom: KernelRom,
+    pub clk: RowIndex,
+    pub hasher: Hasher,
+    pub bitwise: Bitwise,
+    pub memory: Memory,
+    pub kernel_rom: KernelRom,
 }
 
 impl Chiplets {
