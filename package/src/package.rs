@@ -2,11 +2,11 @@ use alloc::{collections::BTreeSet, format, string::String, sync::Arc, vec::Vec};
 use core::fmt;
 
 use assembly::{ast::QualifiedProcedureName, Library, Report};
-use serde::{Deserialize, Serialize};
 use vm_core::{mast::MastForest, utils::DisplayHex, Program};
 
-use super::{de, se};
 use crate::{Dependency, Digest};
+
+mod serialization;
 
 // MAST ARTIFACT
 // ================================================================================================
@@ -61,8 +61,7 @@ impl MastArtifact {
 
 /// The manifest of a package, containing the set of package dependencies (libraries or packages)
 /// and exported procedures and their signatures, if known.
-#[derive(Debug, Default, Clone, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(default)]
+#[derive(Debug, Default, Clone, PartialEq, Eq)]
 #[cfg_attr(test, derive(proptest_derive::Arbitrary))]
 pub struct PackageManifest {
     /// The set of exports in this package.
@@ -74,16 +73,12 @@ pub struct PackageManifest {
 
 /// A procedure exported by a package, along with its digest and
 /// signature(will be added after MASM type attributes are implemented).
-#[derive(Clone, PartialEq, Eq, Serialize, Deserialize, Ord, PartialOrd)]
+#[derive(Clone, PartialEq, Eq, Ord, PartialOrd)]
 #[cfg_attr(test, derive(proptest_derive::Arbitrary))]
 pub struct PackageExport {
     /// The fully-qualified name of the procedure exported by this package
     pub name: String,
     /// The digest of the procedure exported by this package
-    #[serde(
-        serialize_with = "se::serialize_digest",
-        deserialize_with = "de::deserialize_digest"
-    )]
     #[cfg_attr(test, proptest(value = "Digest::default()"))]
     pub digest: Digest,
 }
@@ -102,13 +97,12 @@ impl fmt::Debug for PackageExport {
 // ================================================================================================
 
 /// A package containing a [Program]/[Library], and a manifest (exports and dependencies).
-#[derive(Debug, Clone, Serialize, Deserialize, Eq, PartialEq)]
+#[derive(Debug, Clone, Eq, PartialEq)]
 #[cfg_attr(test, derive(proptest_derive::Arbitrary))]
 pub struct Package {
     /// Name of the package
     pub name: String,
     /// The MAST artifact ([Program] or [Library]) of the package
-    #[serde(serialize_with = "se::serialize_mast", deserialize_with = "de::deserialize_mast")]
     pub mast: MastArtifact,
     /// The package manifest, containing the set of exported procedures and their signatures,
     /// if known.
@@ -116,40 +110,40 @@ pub struct Package {
 }
 
 impl Package {
-    const MAGIC: &'static [u8] = b"MASP\0";
-    const FORMAT_VERSION: &'static [u8] = b"1.0\0";
+    // const MAGIC: &'static [u8] = b"MASP\0";
+    // const FORMAT_VERSION: &'static [u8] = b"1.0\0";
 
-    /// Parses a package from the provided bytes
-    pub fn read_from_bytes<B>(bytes: B) -> Result<Self, Report>
-    where
-        B: AsRef<[u8]>,
-    {
-        use alloc::borrow::Cow;
-
-        let bytes = bytes.as_ref();
-
-        let bytes = bytes
-            .strip_prefix(Self::MAGIC)
-            .ok_or_else(|| Report::msg("invalid package: missing header"))?;
-        let bytes = bytes.strip_prefix(Self::FORMAT_VERSION).ok_or_else(|| {
-            Report::msg(format!(
-                "invalid package: incorrect version, expected '1.0', got '{}'",
-                bytes.get(0..4).map(String::from_utf8_lossy).unwrap_or(Cow::Borrowed("")),
-            ))
-        })?;
-
-        bitcode::deserialize(bytes).map_err(Report::msg)
-    }
-
-    /// Serializes the package into a byte array
-    pub fn write_to_bytes(&self) -> Result<Vec<u8>, Report> {
-        let mut bytes = Vec::new();
-        bytes.extend_from_slice(Self::MAGIC);
-        bytes.extend_from_slice(Self::FORMAT_VERSION);
-        let mut data = bitcode::serialize(self).map_err(Report::msg)?;
-        bytes.append(&mut data);
-        Ok(bytes)
-    }
+    ///// Parses a package from the provided bytes
+    //pub fn read_from_bytes<B>(bytes: B) -> Result<Self, Report>
+    //where
+    //    B: AsRef<[u8]>,
+    //{
+    //    use alloc::borrow::Cow;
+    //
+    //    let bytes = bytes.as_ref();
+    //
+    //    let bytes = bytes
+    //        .strip_prefix(Self::MAGIC)
+    //        .ok_or_else(|| Report::msg("invalid package: missing header"))?;
+    //    let bytes = bytes.strip_prefix(Self::FORMAT_VERSION).ok_or_else(|| {
+    //        Report::msg(format!(
+    //            "invalid package: incorrect version, expected '1.0', got '{}'",
+    //            bytes.get(0..4).map(String::from_utf8_lossy).unwrap_or(Cow::Borrowed("")),
+    //        ))
+    //    })?;
+    //
+    //    bitcode::deserialize(bytes).map_err(Report::msg)
+    //}
+    //
+    ///// Serializes the package into a byte array
+    //pub fn write_to_bytes(&self) -> Result<Vec<u8>, Report> {
+    //    let mut bytes = Vec::new();
+    //    bytes.extend_from_slice(Self::MAGIC);
+    //    bytes.extend_from_slice(Self::FORMAT_VERSION);
+    //    let mut data = bitcode::serialize(self).map_err(Report::msg)?;
+    //    bytes.append(&mut data);
+    //    Ok(bytes)
+    //}
 
     pub fn digest(&self) -> Digest {
         self.mast.digest()
