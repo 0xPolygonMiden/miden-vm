@@ -33,7 +33,6 @@
 //!     - `dependency` (`Dependency`)
 //!       - `name` (`String`)
 //!       - `digest` (`Digest`)
-//!
 
 use alloc::{collections::BTreeSet, format, string::String, sync::Arc, vec::Vec};
 
@@ -43,9 +42,8 @@ use vm_core::{
     Program,
 };
 
-use crate::Digest;
-
 use super::{Dependency, MastArtifact, Package, PackageExport, PackageManifest};
+use crate::Digest;
 
 // CONSTANTS
 // ================================================================================================
