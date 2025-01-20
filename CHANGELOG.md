@@ -9,6 +9,7 @@
 - [BREAKING] resolved flag collision in `--verify` command and added functionality for optional input/output files (#1513).
 - [BREAKING] Cleanup benchmarks and examples in the `miden-vm` crate (#1587)
 - [BREAKING] Use `thiserror` 2.0 to derive errors and refactor them (#1588).
+- Moved handling of `FalconSigToStack` event from system event handlers to the `DefaultHost` (#1630).
 
 #### Enhancements
 - Added options `--kernel`, `--debug` and `--output` to `miden bundle` (#1447).
