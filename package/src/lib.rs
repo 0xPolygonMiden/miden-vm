@@ -5,10 +5,8 @@
 
 extern crate alloc;
 
-mod de;
 mod dep;
 mod package;
-mod se;
 
 #[cfg(test)]
 extern crate std;

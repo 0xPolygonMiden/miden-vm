@@ -20,10 +20,6 @@ doctest = false
 [dependencies]
 vm-core = { package = "miden-core", path = "../core", version = "0.11", default-features = false }
 assembly = { package = "miden-assembly", path = "../assembly", version = "0.11", default-features = false }
-serde = { version = "1.0.208", features = ["alloc", "rc", "serde_derive"] }
-serde_bytes = "0.11.15"
-serde_repr = "0.1.19"
-bitcode = { version = "0.6.3", default-features = false, features = ["serde"] }
 derive_more = "0.99"
 
 [dev-dependencies]
