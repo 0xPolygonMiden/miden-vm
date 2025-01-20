@@ -38,5 +38,5 @@ winter-prover = { package = "winter-prover", version = "0.11", default-features 
 
 [dev-dependencies]
 criterion = "0.5"
-proptest = "1.5"
+proptest = "1.6"
 rand-utils = { package = "winter-rand-utils", version = "0.11" }

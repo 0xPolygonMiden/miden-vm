@@ -551,22 +551,53 @@ fn validate_component(component: &str) -> Result<(), PathError> {
     }
 }
 
+// ARBITRARY IMPLEMENTATION
+// ================================================================================================
+
+#[cfg(feature = "testing")]
+impl proptest::prelude::Arbitrary for LibraryPath {
+    type Parameters = ();
+
+    fn arbitrary_with(_args: Self::Parameters) -> Self::Strategy {
+        use proptest::prelude::*;
+        let wasm_cm_style = LibraryPath::new_from_components(
+            LibraryNamespace::Anon,
+            [Ident::new_unchecked(Span::new(
+                SourceSpan::UNKNOWN,
+                "namespace:package/interface@1.0.0".into(),
+            ))],
+        );
+        let path_len_2 = LibraryPath::new_from_components(
+            LibraryNamespace::User("userns".into()),
+            [Ident::new_unchecked(Span::new(SourceSpan::UNKNOWN, "usermodule".into()))],
+        );
+        let path_len_3 = LibraryPath::new_from_components(
+            LibraryNamespace::User("userns".into()),
+            [
+                Ident::new_unchecked(Span::new(SourceSpan::UNKNOWN, "userns2".into())),
+                Ident::new_unchecked(Span::new(SourceSpan::UNKNOWN, "usermodule".into())),
+            ],
+        );
+        prop_oneof![Just(wasm_cm_style), Just(path_len_2), Just(path_len_3)].boxed()
+    }
+
+    type Strategy = proptest::prelude::BoxedStrategy<Self>;
+}
+
 // TESTS
 // ================================================================================================
 
 /// Tests
 #[cfg(test)]
 mod tests {
-    use std::sync::Arc;
 
+    use proptest::prelude::*;
     use vm_core::{
         assert_matches,
-        debuginfo::{SourceSpan, Span},
         utils::{Deserializable, Serializable},
     };
 
     use super::{super::LibraryNamespaceError, IdentError, LibraryPath, PathError};
-    use crate::{alloc::string::ToString, ast::Ident, LibraryNamespace};
 
     #[test]
     fn new_path() {
@@ -616,17 +647,12 @@ mod tests {
         );
     }
 
-    #[test]
-    fn path_serialization_wasm_cm_style_module_name() {
-        // Tests that Wasm Component Model names are serialized and deserialized correctly
-        let wasm_cm_style_module_name = "namespace:package/interface@1.0.0";
-        let module_id = Ident::new_unchecked(Span::new(
-            SourceSpan::default(),
-            Arc::from(wasm_cm_style_module_name.to_string()),
-        ));
-        let path = LibraryPath::new_from_components(LibraryNamespace::Anon, [module_id]);
-        let bytes = path.to_bytes();
-        let deserialized = LibraryPath::read_from_bytes(&bytes).unwrap();
-        assert_eq!(path, deserialized);
+    proptest! {
+        #[test]
+        fn path_serialization_roundtrip(path in any::<LibraryPath>()) {
+            let bytes = path.to_bytes();
+            let deserialized = LibraryPath::read_from_bytes(&bytes).unwrap();
+            assert_eq!(path, deserialized);
+        }
     }
 }
