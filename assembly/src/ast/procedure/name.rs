@@ -333,10 +333,12 @@ impl FromStr for ProcedureName {
                     break Err(IdentError::InvalidChars { ident: s.into() });
                 }
             },
-            Some((_, c)) if c.is_ascii_lowercase() || c == '_' || c == '$' => {
+            Some((_, c))
+                if c.is_ascii_lowercase() || c == '_' || c == '-' || c == '$' || c == '.' =>
+            {
                 if chars.as_str().contains(|c| match c {
                     c if c.is_ascii_alphanumeric() => false,
-                    '_' | '$' => false,
+                    '_' | '-' | '$' | '.' => false,
                     _ => true,
                 }) {
                     Err(IdentError::InvalidChars { ident: s.into() })
@@ -360,8 +362,8 @@ impl Serializable for ProcedureName {
 impl Deserializable for ProcedureName {
     fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
         let str: String = source.read()?;
-        let proc_name =
-            ProcedureName::new_unchecked(Ident::new_unchecked(Span::unknown(Arc::from(str))));
+        let proc_name = ProcedureName::new(str)
+            .map_err(|e| DeserializationError::InvalidValue(e.to_string()))?;
         Ok(proc_name)
     }
 }
@@ -377,16 +379,11 @@ impl proptest::prelude::Arbitrary for ProcedureName {
         use proptest::prelude::*;
         // see https://doc.rust-lang.org/rustc/symbol-mangling/v0.html#symbol-grammar-summary
         let all_possible_chars_in_mangled_name =
-            "$abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_.";
-        let mangled_rustc_name = ProcedureName::new_unchecked(Ident::new_unchecked(Span::new(
-            SourceSpan::UNKNOWN,
-            all_possible_chars_in_mangled_name.into(),
-        )));
-        let plain = ProcedureName::new_unchecked(Ident::new_unchecked(Span::new(
-            SourceSpan::UNKNOWN,
-            "userfunc".into(),
-        )));
-        prop_oneof![Just(mangled_rustc_name), Just(plain)].boxed()
+            "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_.$";
+        let mangled_rustc_name = ProcedureName::new(all_possible_chars_in_mangled_name).unwrap();
+        let plain = ProcedureName::new("user_func").unwrap();
+        let wasm_cm_style = ProcedureName::new("kebab-case-func").unwrap();
+        prop_oneof![Just(mangled_rustc_name), Just(plain), Just(wasm_cm_style)].boxed()
     }
 
     type Strategy = proptest::prelude::BoxedStrategy<Self>;

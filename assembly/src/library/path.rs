@@ -10,7 +10,6 @@ use core::{
 };
 
 use smallvec::smallvec;
-use vm_core::debuginfo::SourceSpan;
 
 use crate::{
     ast::{Ident, IdentError},
@@ -506,26 +505,23 @@ impl Deserializable for LibraryPath {
         let path = source.read_slice(len)?;
         let path =
             str::from_utf8(path).map_err(|e| DeserializationError::InvalidValue(e.to_string()))?;
-        let path = LibraryPath::new(path).unwrap_or_else(|_| {
+        LibraryPath::new(path).or_else(|_| {
             // Try to parse at least the namespace
             match LibraryNamespace::strip_path_prefix(path) {
                 Ok((ns, rest)) => {
-                    let module_id = Ident::new_unchecked(Span::new(
-                        SourceSpan::default(),
-                        Arc::from(rest.to_string()),
-                    ));
-                    LibraryPath::new_from_components(ns, [module_id])
+                    let module_id = Ident::new(rest).map_err(|e| {
+                        DeserializationError::InvalidValue(format!("Invalid module id: {}", e))
+                    })?;
+                    Ok(LibraryPath::new_from_components(ns, [module_id]))
                 },
                 Err(_) => {
-                    let module_id = Ident::new_unchecked(Span::new(
-                        SourceSpan::default(),
-                        Arc::from(path.to_string()),
-                    ));
-                    LibraryPath::new_from_components(LibraryNamespace::Anon, [module_id])
+                    let module_id = Ident::new(path).map_err(|e| {
+                        DeserializationError::InvalidValue(format!("Invalid module id: {}", e))
+                    })?;
+                    Ok(LibraryPath::new_from_components(LibraryNamespace::Anon, [module_id]))
                 },
             }
-        });
-        Ok(path)
+        })
     }
 }
 
@@ -560,23 +556,18 @@ impl proptest::prelude::Arbitrary for LibraryPath {
 
     fn arbitrary_with(_args: Self::Parameters) -> Self::Strategy {
         use proptest::prelude::*;
+
         let wasm_cm_style = LibraryPath::new_from_components(
             LibraryNamespace::Anon,
-            [Ident::new_unchecked(Span::new(
-                SourceSpan::UNKNOWN,
-                "namespace:package/interface@1.0.0".into(),
-            ))],
+            [Ident::new("namespace-kebab:package-kebab/interface-kebab@1.0.0").unwrap()],
         );
         let path_len_2 = LibraryPath::new_from_components(
-            LibraryNamespace::User("userns".into()),
-            [Ident::new_unchecked(Span::new(SourceSpan::UNKNOWN, "usermodule".into()))],
+            LibraryNamespace::User("user_ns".into()),
+            [Ident::new("user_module").unwrap()],
         );
         let path_len_3 = LibraryPath::new_from_components(
             LibraryNamespace::User("userns".into()),
-            [
-                Ident::new_unchecked(Span::new(SourceSpan::UNKNOWN, "userns2".into())),
-                Ident::new_unchecked(Span::new(SourceSpan::UNKNOWN, "usermodule".into())),
-            ],
+            [Ident::new("user_path1").unwrap(), Ident::new("user_module").unwrap()],
         );
         prop_oneof![Just(wasm_cm_style), Just(path_len_2), Just(path_len_3)].boxed()
     }
@@ -633,12 +624,6 @@ mod tests {
 
         let path = LibraryPath::new("foo::1bar");
         assert_matches!(path, Err(PathError::InvalidComponent(IdentError::InvalidStart)));
-
-        let path = LibraryPath::new("foo::b@r");
-        assert_matches!(
-            path,
-            Err(PathError::InvalidComponent(IdentError::InvalidChars { ident: _ }))
-        );
 
         let path = LibraryPath::new("#foo::bar");
         assert_matches!(
