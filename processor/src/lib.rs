@@ -95,6 +95,7 @@ type QuadFelt = QuadExtension<Felt>;
 
 type SysTrace = [Vec<Felt>; SYS_TRACE_WIDTH];
 
+#[derive(Debug)]
 pub struct DecoderTrace {
     trace: [Vec<Felt>; DECODER_TRACE_WIDTH],
     aux_builder: decoder::AuxTraceBuilder,
