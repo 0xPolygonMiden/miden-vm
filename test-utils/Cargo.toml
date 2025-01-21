@@ -42,5 +42,5 @@ pretty_assertions = { version = "1.4", default-features = false, features = ["al
 
 [target.'cfg(not(target_family = "wasm"))'.dependencies]
 pretty_assertions = "1.4"
-proptest = "1.4"
+proptest = "1.6"
 rand-utils = { package = "winter-rand-utils", version = "0.11" }
