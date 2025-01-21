@@ -6,11 +6,10 @@ use vm_core::{
         merkle::{EmptySubtreeRoots, Smt, SMT_DEPTH},
     },
     sys_events::SystemEvent,
-    Felt, FieldElement, SignatureKind, Word, WORD_SIZE, ZERO,
+    Felt, FieldElement, Word, WORD_SIZE, ZERO,
 };
 use winter_prover::math::fft;
 
-use super::dsa;
 use crate::{
     AdviceProvider, AdviceSource, ExecutionError, Ext2InttError, Host, Process, ProcessState,
     QuadFelt,
@@ -20,7 +19,7 @@ use crate::{
 const HDWORD_TO_MAP_WITH_DOMAIN_DOMAIN_OFFSET: usize = 8;
 
 impl Process {
-    pub(super) fn handle_sytem_event(
+    pub(super) fn handle_system_event(
         &self,
         system_event: SystemEvent,
         host: &mut impl Host,
@@ -57,9 +56,7 @@ impl Process {
                 insert_hdword_into_adv_map(advice_provider, process_state, domain)
             },
             SystemEvent::HpermToMap => insert_hperm_into_adv_map(advice_provider, process_state),
-            SystemEvent::FalconSigToStack => {
-                push_signature(advice_provider, process_state, SignatureKind::RpoFalcon512)
-            },
+            SystemEvent::FalconSigToStack => unreachable!("not treated as a system event"),
         }
     }
 }
@@ -461,37 +458,6 @@ pub fn push_ext2_intt_result(
     Ok(())
 }
 
-/// Pushes values onto the advice stack which are required for verification of a DSA in Miden
-/// VM.
-///
-/// Inputs:
-///   Operand stack: [PK, MSG, ...]
-///   Advice stack: [...]
-///
-/// Outputs:
-///   Operand stack: [PK, MSG, ...]
-///   Advice stack: \[DATA\]
-///
-/// Where:
-/// - PK is the digest of an expanded public.
-/// - MSG is the digest of the message to be signed.
-/// - DATA is the needed data for signature verification in the VM.
-///
-/// The advice provider is expected to contain the private key associated to the public key PK.
-pub fn push_signature(
-    advice_provider: &mut impl AdviceProvider,
-    process: ProcessState,
-    kind: SignatureKind,
-) -> Result<(), ExecutionError> {
-    let pub_key = process.get_stack_word(0);
-    let msg = process.get_stack_word(1);
-    let result: Vec<Felt> = get_signature(advice_provider, kind, pub_key, msg)?;
-    for r in result {
-        advice_provider.push_stack(AdviceSource::Value(r))?;
-    }
-    Ok(())
-}
-
 /// Pushes the number of the leading zeros of the top stack element onto the advice stack.
 ///
 /// Inputs:
@@ -641,22 +607,6 @@ pub fn push_smtpeek_result(
         advice_provider.push_stack(AdviceSource::Word(Smt::EMPTY_VALUE))?;
     }
     Ok(())
-}
-
-/// Returns a signature on a message using a public key.
-pub fn get_signature(
-    advice_provider: &impl AdviceProvider,
-    kind: SignatureKind,
-    pub_key: Word,
-    msg: Word,
-) -> Result<Vec<Felt>, ExecutionError> {
-    let pk_sk = advice_provider
-        .get_mapped_values(&pub_key.into())
-        .ok_or(ExecutionError::AdviceMapKeyNotFound(pub_key))?;
-
-    match kind {
-        SignatureKind::RpoFalcon512 => dsa::falcon_sign(pk_sk, msg),
-    }
 }
 
 // HELPER METHODS
