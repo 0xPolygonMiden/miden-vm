@@ -377,7 +377,7 @@ impl proptest::prelude::Arbitrary for ProcedureName {
         use proptest::prelude::*;
         // see https://doc.rust-lang.org/rustc/symbol-mangling/v0.html#symbol-grammar-summary
         let all_possible_chars_in_mangled_name =
-            "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_.$";
+            "$abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_.";
         let mangled_rustc_name = ProcedureName::new_unchecked(Ident::new_unchecked(Span::new(
             SourceSpan::UNKNOWN,
             all_possible_chars_in_mangled_name.into(),
@@ -386,13 +386,7 @@ impl proptest::prelude::Arbitrary for ProcedureName {
             SourceSpan::UNKNOWN,
             "userfunc".into(),
         )));
-        let quoted = any::<String>().prop_map(|s| {
-            ProcedureName::new_unchecked(Ident::new_unchecked(Span::new(
-                SourceSpan::UNKNOWN,
-                format!("\"{s}\"").into(),
-            )))
-        });
-        prop_oneof![Just(mangled_rustc_name), Just(plain), quoted].boxed()
+        prop_oneof![Just(mangled_rustc_name), Just(plain)].boxed()
     }
 
     type Strategy = proptest::prelude::BoxedStrategy<Self>;

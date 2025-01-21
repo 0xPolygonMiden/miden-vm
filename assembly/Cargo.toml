@@ -29,8 +29,10 @@ miette = { package = "miden-miette", version = "8.0", default-features = false, 
     "fancy-no-syscall",
     "derive"
 ] }
-proptest = { version = "1.6", optional = true }
-proptest-derive = { version = "0.5", optional = true }
+proptest = { version = "1.6", optional = true, default-features = false, features = [
+  "no_std", "alloc"
+] }
+proptest-derive = { version = "0.5", optional = true, default-features = false }
 regex = { version = "1.10", optional = true, default-features = false, features = ["unicode", "perf"] }
 smallvec = { version = "1.13", features = ["union", "const_generics", "const_new"] }
 thiserror = { workspace = true }
@@ -43,7 +45,6 @@ vm-core = { package = "miden-core", path = "../core", version = "0.11", default-
 [dev-dependencies]
 pretty_assertions = "1.4"
 regex = { version = "1.10", default-features = false, features = [ "unicode", "perf"] }
-proptest = "1.6"
 
 [build-dependencies]
 lalrpop = { version = "0.20", default-features = false }
