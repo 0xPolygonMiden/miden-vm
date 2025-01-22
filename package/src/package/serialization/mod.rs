@@ -45,6 +45,9 @@ use vm_core::{
 use super::{Dependency, MastArtifact, Package, PackageExport, PackageManifest};
 use crate::Digest;
 
+#[cfg(test)]
+mod tests;
+
 // CONSTANTS
 // ================================================================================================
 

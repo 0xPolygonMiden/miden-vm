@@ -10,8 +10,6 @@ mod package;
 
 #[cfg(test)]
 extern crate std;
-#[cfg(test)]
-mod tests;
 
 pub use vm_core::{chiplets::hasher::Digest, mast::MastForest, Program};
 
