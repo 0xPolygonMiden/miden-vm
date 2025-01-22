@@ -1,17 +1,19 @@
 # Changelog
 
+## 0.12.0 (2025-01-22)
+
 #### Highlights
-- [BREAKING] Memory is now element-addressable (#1598)
+- [BREAKING] Refactored memory to be element-addressable (#1598).
 
 #### Changes
-- [BREAKING] `Process` no longer takes ownership of the `Host` (#1571).
-- [BREAKING] `ProcessState` was converted from a trait to a struct (#1571).
-- [BREAKING] `Host` and `AdviceProvider` traits simplified (#1572).
-- [BREAKING] `MastForest` serialization/deserialization will store/read decorator data at the end of the binary (#1531).
+- [BREAKING] Resolved flag collision in `--verify` command and added functionality for optional input/output files (#1513).
+- [BREAKING] Refactored `MastForest` serialization/deserialization to put decorator data at the end of the binary (#1531).
+- [BREAKING] Refactored `Process` struct to no longer take ownership of the `Host` (#1571).
+- [BREAKING] Converted `ProcessState` from a trait to a struct (#1571).
+- [BREAKING] Simplified `Host` and `AdviceProvider` traits (#1572).
 - [BREAKING] Updated Winterfell dependency to v0.11 (#1586).
-- [BREAKING] resolved flag collision in `--verify` command and added functionality for optional input/output files (#1513).
-- [BREAKING] Cleanup benchmarks and examples in the `miden-vm` crate (#1587)
-- [BREAKING] Use `thiserror` 2.0 to derive errors and refactor them (#1588).
+- [BREAKING] Cleaned up benchmarks and examples in the `miden-vm` crate (#1587)
+- [BREAKING] Switched to `thiserror` 2.0 derive errors and refactored errors (#1588).
 - Moved handling of `FalconSigToStack` event from system event handlers to the `DefaultHost` (#1630).
 
 #### Enhancements
