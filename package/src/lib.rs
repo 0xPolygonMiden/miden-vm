@@ -13,6 +13,8 @@ extern crate std;
 #[cfg(test)]
 mod tests;
 
+pub use vm_core::{chiplets::hasher::Digest, mast::MastForest, Program};
+
 pub use self::{
     dep::{
         resolver::{
@@ -23,5 +25,3 @@ pub use self::{
     },
     package::{MastArtifact, Package, PackageExport, PackageManifest},
 };
-
-type Digest = vm_core::chiplets::hasher::Digest;
