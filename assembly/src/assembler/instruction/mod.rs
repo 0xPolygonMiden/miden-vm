@@ -1,7 +1,7 @@
 use core::ops::RangeBounds;
 
 use miette::miette;
-use vm_core::{mast::MastNodeId, Decorator, ONE, ZERO};
+use vm_core::{debuginfo::Spanned, mast::MastNodeId, Decorator, ONE, WORD_SIZE, ZERO};
 
 use super::{ast::InvokeKind, Assembler, BasicBlockBuilder, Felt, Operation, ProcedureContext};
 use crate::{ast::Instruction, utils::bound_into_included_u64, AssemblyError, Span};
@@ -331,13 +331,21 @@ impl Assembler {
                 true,
                 true,
             )?,
-            Instruction::LocLoadW(v) => mem_ops::mem_read(
-                block_builder,
-                proc_ctx,
-                Some(v.expect_value() as u32),
-                true,
-                false,
-            )?,
+            Instruction::LocLoadW(v) => {
+                let local_addr = v.expect_value();
+                if local_addr % WORD_SIZE as u16 != 0 {
+                    return Err(AssemblyError::InvalidLocalWordIndex {
+                        span: instruction.span(),
+                        source_file: proc_ctx
+                            .source_manager()
+                            .get(proc_ctx.span().source_id())
+                            .ok(),
+                        local_addr,
+                    });
+                }
+
+                mem_ops::mem_read(block_builder, proc_ctx, Some(local_addr as u32), true, false)?
+            },
             Instruction::MemStore => block_builder.push_ops([MStore, Drop]),
             Instruction::MemStoreW => block_builder.push_ops([MStoreW]),
             Instruction::MemStoreImm(v) => {
@@ -353,14 +361,21 @@ impl Assembler {
                 true,
                 true,
             )?,
-            Instruction::LocStoreW(v) => mem_ops::mem_write_imm(
-                block_builder,
-                proc_ctx,
-                v.expect_value() as u32,
-                true,
-                false,
-            )?,
+            Instruction::LocStoreW(v) => {
+                let local_addr = v.expect_value();
+                if local_addr % WORD_SIZE as u16 != 0 {
+                    return Err(AssemblyError::InvalidLocalWordIndex {
+                        span: instruction.span(),
+                        source_file: proc_ctx
+                            .source_manager()
+                            .get(proc_ctx.span().source_id())
+                            .ok(),
+                        local_addr,
+                    });
+                }
 
+                mem_ops::mem_write_imm(block_builder, proc_ctx, local_addr as u32, true, false)?
+            },
             Instruction::SysEvent(system_event) => {
                 block_builder.push_system_event(system_event.into())
             },

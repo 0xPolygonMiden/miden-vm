@@ -2,7 +2,7 @@ use alloc::vec::Vec;
 use std::{print, println};
 
 use miden_air::RowIndex;
-use vm_core::{DebugOptions, Word};
+use vm_core::{DebugOptions, Felt};
 
 use super::ProcessState;
 use crate::system::ContextId;
@@ -74,19 +74,22 @@ impl Printer {
     /// Prints the whole memory state at the cycle `clk` in context `ctx`.
     fn print_mem_all(&self, process: ProcessState) {
         let mem = process.get_mem_state(self.ctx);
-        let padding =
-            mem.iter().fold(0, |max, value| word_elem_max_len(Some(value.1)).max(max)) as usize;
+        let element_width = mem
+            .iter()
+            .map(|(_addr, value)| element_printed_width(Some(*value)))
+            .max()
+            .unwrap_or(0) as usize;
 
         println!("Memory state before step {} for the context {}:", self.clk, self.ctx);
 
         // print the main part of the memory (wihtout the last value)
         for (addr, value) in mem.iter().take(mem.len() - 1) {
-            print_mem_address(*addr as u32, Some(*value), false, false, padding);
+            print_mem_address(*addr as u32, Some(*value), false, false, element_width);
         }
 
         // print the last memory value
         if let Some((addr, value)) = mem.last() {
-            print_mem_address(*addr as u32, Some(*value), true, false, padding);
+            print_mem_address(*addr as u32, Some(*value), true, false, element_width);
         }
     }
 
@@ -150,18 +153,21 @@ impl Printer {
 ///
 /// If `is_local` is true, the output addresses are formatted as decimal values, otherwise as hex
 /// strings.
-fn print_interval(mem_interval: Vec<(u32, Option<Word>)>, is_local: bool) {
-    let padding =
-        mem_interval.iter().fold(0, |max, value| word_elem_max_len(value.1).max(max)) as usize;
+fn print_interval(mem_interval: Vec<(u32, Option<Felt>)>, is_local: bool) {
+    let element_width = mem_interval
+        .iter()
+        .map(|(_addr, value)| element_printed_width(*value))
+        .max()
+        .unwrap_or(0) as usize;
 
     // print the main part of the memory (wihtout the last value)
-    for (addr, value) in mem_interval.iter().take(mem_interval.len() - 1) {
-        print_mem_address(*addr, *value, false, is_local, padding)
+    for (addr, mem_value) in mem_interval.iter().take(mem_interval.len() - 1) {
+        print_mem_address(*addr, *mem_value, false, is_local, element_width)
     }
 
     // print the last memory value
     if let Some((addr, value)) = mem_interval.last() {
-        print_mem_address(*addr, *value, true, is_local, padding);
+        print_mem_address(*addr, *value, true, is_local, element_width);
     }
 }
 
@@ -171,27 +177,26 @@ fn print_interval(mem_interval: Vec<(u32, Option<Word>)>, is_local: bool) {
 /// string.
 fn print_mem_address(
     addr: u32,
-    value: Option<Word>,
+    mem_value: Option<Felt>,
     is_last: bool,
     is_local: bool,
-    padding: usize,
+    element_width: usize,
 ) {
-    if let Some(value) = value {
+    if let Some(value) = mem_value {
         if is_last {
             if is_local {
                 print!("└── {addr:>5}: ");
             } else {
                 print!("└── {addr:#010x}: ");
             }
-            print_word(value, padding);
-            println!();
+            println!("{:>width$}\n", value.as_int(), width = element_width);
         } else {
             if is_local {
                 print!("├── {addr:>5}: ");
             } else {
                 print!("├── {addr:#010x}: ");
             }
-            print_word(value, padding);
+            println!("{:>width$}", value.as_int(), width = element_width);
         }
     } else if is_last {
         if is_local {
@@ -206,23 +211,10 @@ fn print_mem_address(
     }
 }
 
-/// Prints the provided Word with specified padding.
-fn print_word(value: Word, padding: usize) {
-    println!(
-        "[{:>width$}, {:>width$}, {:>width$}, {:>width$}]",
-        value[0].as_int(),
-        value[1].as_int(),
-        value[2].as_int(),
-        value[3].as_int(),
-        width = padding
-    )
-}
-
-/// Returns the maximum length among the word elements.
-fn word_elem_max_len(word: Option<Word>) -> u32 {
-    if let Some(word) = word {
-        word.iter()
-            .fold(0, |max, value| (value.as_int().checked_ilog10().unwrap_or(1) + 1).max(max))
+/// Returns the number of digits required to print the provided element.
+fn element_printed_width(element: Option<Felt>) -> u32 {
+    if let Some(element) = element {
+        element.as_int().checked_ilog10().unwrap_or(1) + 1
     } else {
         0
     }

@@ -61,6 +61,15 @@ pub enum AssemblyError {
         source_file: Option<Arc<SourceFile>>,
         callee: QualifiedProcedureName,
     },
+    #[error("invalid local word index: {local_addr}")]
+    #[diagnostic(help("the index to a local word must be a multiple of 4"))]
+    InvalidLocalWordIndex {
+        #[label]
+        span: SourceSpan,
+        #[source_code]
+        source_file: Option<Arc<SourceFile>>,
+        local_addr: u16,
+    },
     #[error("invalid use of 'caller' instruction outside of kernel")]
     #[diagnostic(help(
         "the 'caller' instruction is only allowed in procedures defined in a kernel"

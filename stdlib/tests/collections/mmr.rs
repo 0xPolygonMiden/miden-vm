@@ -42,21 +42,21 @@ fn test_num_peaks_to_message_size() {
     ";
 
     // minimum size is 16
-    build_test!(hash_size, &[1]).expect_stack(&[16]);
-    build_test!(hash_size, &[2]).expect_stack(&[16]);
-    build_test!(hash_size, &[3]).expect_stack(&[16]);
-    build_test!(hash_size, &[4]).expect_stack(&[16]);
-    build_test!(hash_size, &[7]).expect_stack(&[16]);
-    build_test!(hash_size, &[11]).expect_stack(&[16]);
-    build_test!(hash_size, &[16]).expect_stack(&[16]);
+    build_test!(hash_size, &[1]).expect_stack(&[16 * 4]);
+    build_test!(hash_size, &[2]).expect_stack(&[16 * 4]);
+    build_test!(hash_size, &[3]).expect_stack(&[16 * 4]);
+    build_test!(hash_size, &[4]).expect_stack(&[16 * 4]);
+    build_test!(hash_size, &[7]).expect_stack(&[16 * 4]);
+    build_test!(hash_size, &[11]).expect_stack(&[16 * 4]);
+    build_test!(hash_size, &[16]).expect_stack(&[16 * 4]);
 
     // after that, size is round to the next even number
-    build_test!(hash_size, &[17]).expect_stack(&[18]);
-    build_test!(hash_size, &[18]).expect_stack(&[18]);
-    build_test!(hash_size, &[19]).expect_stack(&[20]);
-    build_test!(hash_size, &[20]).expect_stack(&[20]);
-    build_test!(hash_size, &[21]).expect_stack(&[22]);
-    build_test!(hash_size, &[22]).expect_stack(&[22]);
+    build_test!(hash_size, &[17]).expect_stack(&[18 * 4]);
+    build_test!(hash_size, &[18]).expect_stack(&[18 * 4]);
+    build_test!(hash_size, &[19]).expect_stack(&[20 * 4]);
+    build_test!(hash_size, &[20]).expect_stack(&[20 * 4]);
+    build_test!(hash_size, &[21]).expect_stack(&[22 * 4]);
+    build_test!(hash_size, &[22]).expect_stack(&[22 * 4]);
 }
 
 #[test]
@@ -75,7 +75,7 @@ fn test_mmr_get_single_peak() -> Result<(), MerkleError> {
 
             begin
                 push.{num_leaves} push.1000 mem_store # leaves count
-                adv_push.4 push.1001 mem_storew dropw # MMR single peak
+                adv_push.4 push.1004 mem_storew dropw # MMR single peak
 
                 push.1000 push.{pos} exec.mmr::get
 
@@ -135,8 +135,8 @@ fn test_mmr_get_two_peaks() -> Result<(), MerkleError> {
 
             begin
                 push.{num_leaves} push.1000 mem_store # leaves count
-                adv_push.4 push.1001 mem_storew dropw # MMR first peak
-                adv_push.4 push.1002 mem_storew dropw # MMR second peak
+                adv_push.4 push.1004 mem_storew dropw # MMR first peak
+                adv_push.4 push.1008 mem_storew dropw # MMR second peak
 
                 push.1000 push.{pos} exec.mmr::get
 
@@ -187,7 +187,7 @@ fn test_mmr_tree_with_one_element() -> Result<(), MerkleError> {
 
         begin
             push.{num_leaves} push.1000 mem_store # leaves count
-            adv_push.4 push.1001 mem_storew dropw # MMR first peak
+            adv_push.4 push.1004 mem_storew dropw # MMR first peak
 
             push.1000 push.{pos} exec.mmr::get
 
@@ -213,9 +213,9 @@ fn test_mmr_tree_with_one_element() -> Result<(), MerkleError> {
 
         begin
             push.{num_leaves} push.1000 mem_store # leaves count
-            adv_push.4 push.1001 mem_storew dropw # MMR first peak
-            adv_push.4 push.1002 mem_storew dropw # MMR second peak
-            adv_push.4 push.1003 mem_storew dropw # MMR third peak
+            adv_push.4 push.1004 mem_storew dropw # MMR first peak
+            adv_push.4 push.1008 mem_storew dropw # MMR second peak
+            adv_push.4 push.1012 mem_storew dropw # MMR third peak
 
             push.1000 push.{pos} exec.mmr::get
 
@@ -235,13 +235,13 @@ fn test_mmr_unpack() {
     let number_of_leaves: u64 = 0b10101; // 3 peaks, 21 leaves
 
     // The hash data is not the same as the peaks, it is padded to 16 elements
-    let hash_data: [[Felt; 4]; 16] = [
+    let peaks: [[Felt; 4]; 16] = [
         // 3 peaks. These hashes are invalid, we can't produce data for any of these peaks (only
         // for testing)
         [ZERO, ZERO, ZERO, ONE],
         [ZERO, ZERO, ZERO, Felt::new(2)],
         [ZERO, ZERO, ZERO, Felt::new(3)],
-        // Padding, the MMR is padded to a minimum length o 16
+        // Padding, the MMR is padded to a minimum length of 16
         EMPTY_WORD,
         EMPTY_WORD,
         EMPTY_WORD,
@@ -256,10 +256,10 @@ fn test_mmr_unpack() {
         EMPTY_WORD,
         EMPTY_WORD,
     ];
-    let hash = hash_elements(&hash_data.concat());
+    let peaks_hash = hash_elements(&peaks.concat());
 
     // Set up the VM stack with the MMR hash, and its target address
-    let mut stack = felt_slice_to_ints(&*hash);
+    let mut stack = felt_slice_to_ints(&*peaks_hash);
     let mmr_ptr = 1000_u32;
     stack.insert(0, mmr_ptr as u64);
 
@@ -268,13 +268,13 @@ fn test_mmr_unpack() {
     let advice_stack = &[];
     let store = MerkleStore::new();
 
-    let mut map_data: Vec<Felt> = Vec::with_capacity(hash_data.len() + 1);
-    map_data.extend_from_slice(&[number_of_leaves.try_into().unwrap(), ZERO, ZERO, ZERO]);
-    map_data.extend_from_slice(&hash_data.as_slice().concat());
+    let mut mmr_mem_repr: Vec<Felt> = Vec::with_capacity(peaks.len() + 1);
+    mmr_mem_repr.extend_from_slice(&[number_of_leaves.try_into().unwrap(), ZERO, ZERO, ZERO]);
+    mmr_mem_repr.extend_from_slice(&peaks.as_slice().concat());
 
     let advice_map: &[(RpoDigest, Vec<Felt>)] = &[
         // Under the MMR key is the number_of_leaves, followed by the MMR peaks, and any padding
-        (hash, map_data),
+        (peaks_hash, mmr_mem_repr),
     ];
 
     let source = "
@@ -356,8 +356,7 @@ fn test_mmr_unpack_invalid_hash() {
 fn test_mmr_unpack_large_mmr() {
     let number_of_leaves: u64 = 0b11111111111111111; // 17 peaks
 
-    // The hash data is not the same as the peaks, it is padded to 16 elements
-    let hash_data: [[Felt; 4]; 18] = [
+    let peaks: [[Felt; 4]; 18] = [
         // These hashes are invalid, we can't produce data for any of these peaks (only for
         // testing)
         [ZERO, ZERO, ZERO, ONE],
@@ -380,10 +379,10 @@ fn test_mmr_unpack_large_mmr() {
         [ZERO, ZERO, ZERO, Felt::new(17)],
         EMPTY_WORD,
     ];
-    let hash = hash_elements(&hash_data.concat());
+    let peaks_hash = hash_elements(&peaks.concat());
 
     // Set up the VM stack with the MMR hash, and its target address
-    let mut stack = felt_slice_to_ints(&*hash);
+    let mut stack = felt_slice_to_ints(&*peaks_hash);
     let mmr_ptr = 1000_u32;
     stack.insert(0, mmr_ptr as u64);
 
@@ -392,13 +391,13 @@ fn test_mmr_unpack_large_mmr() {
     let advice_stack = &[];
     let store = MerkleStore::new();
 
-    let mut map_data: Vec<Felt> = Vec::with_capacity(hash_data.len() + 1);
-    map_data.extend_from_slice(&[number_of_leaves.try_into().unwrap(), ZERO, ZERO, ZERO]);
-    map_data.extend_from_slice(&hash_data.as_slice().concat());
+    let mut mmr_mem_repr: Vec<Felt> = Vec::with_capacity(peaks.len() + 1);
+    mmr_mem_repr.extend_from_slice(&[number_of_leaves.try_into().unwrap(), ZERO, ZERO, ZERO]);
+    mmr_mem_repr.extend_from_slice(&peaks.as_slice().concat());
 
     let advice_map: &[(RpoDigest, Vec<Felt>)] = &[
         // Under the MMR key is the number_of_leaves, followed by the MMR peaks, and any padding
-        (hash, map_data),
+        (peaks_hash, mmr_mem_repr),
     ];
 
     let source = "
@@ -497,8 +496,8 @@ fn test_mmr_pack() {
 
         begin
             push.3.1000 mem_store  # num_leaves, 2 peaks
-            push.1.1001 mem_store  # peak1
-            push.2.1002 mem_store  # peak2
+            push.1.1004 mem_store  # peak1
+            push.2.1008 mem_store  # peak2
 
             push.1000 exec.mmr::pack
 
@@ -587,7 +586,7 @@ fn test_mmr_two() {
 }
 
 #[test]
-fn test_mmr_large() {
+fn test_add_mmr_large() {
     let mmr_ptr = 1000;
     let source = format!(
         "

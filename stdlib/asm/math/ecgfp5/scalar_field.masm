@@ -251,19 +251,19 @@ end
 #! [r0, r1, r2, r3, r4, r5, r6, r7, r8, r9, ...]
 #!
 #! Adapted from equivalent Rust implementation https://github.com/itzmeanjan/miden/blob/6a611e693601577864da3e43e745525b83c0030d/miden/tests/integration/stdlib/math/ext5_scalar.rs#L92-L132
-export.mont_mul.8
+export.mont_mul.32
     dup
     loc_store.0
-    loc_storew.1
+    loc_storew.4
     dropw
 
-    loc_storew.2
+    loc_storew.8
     dropw
 
     push.0.0
     movup.3
     movup.3
-    loc_storew.3
+    loc_storew.12
     dropw # cached (a0, a1, a2, a3, a4, a5, a6, a7, a8, a9)
 
     # when i = 0
@@ -272,15 +272,15 @@ export.mont_mul.8
     loc_load.0
     u32wrapping_mul
     u32wrapping_mul.91978719 # more about this literal constant
-    loc_store.4              # https://github.com/itzmeanjan/miden/blob/e7038e45865a7032a0629346921a77010e82862d/miden/tests/integration/stdlib/math/ext5_scalar.rs#L46-L54
+    loc_store.16              # https://github.com/itzmeanjan/miden/blob/e7038e45865a7032a0629346921a77010e82862d/miden/tests/integration/stdlib/math/ext5_scalar.rs#L46-L54
                              # cached f
 
     push.0.0.0.0
-    loc_loadw.1
+    loc_loadw.4
     dup.4
     u32overflowing_mul
 
-    loc_load.4
+    loc_load.16
     u32overflowing_mul.2492202977
     swap
     movup.3
@@ -299,7 +299,7 @@ export.mont_mul.8
     movup.2
     u32wrapping_add
 
-    loc_load.4
+    loc_load.16
     u32overflowing_mul.3893352854
     swap
     movup.3
@@ -313,7 +313,7 @@ export.mont_mul.8
     swap
     push.0.0.0
     movup.3
-    loc_storew.5
+    loc_storew.20
     dropw
 
     movup.2
@@ -325,7 +325,7 @@ export.mont_mul.8
     movup.2
     u32wrapping_add
 
-    loc_load.4
+    loc_load.16
     u32overflowing_mul.3609501852
     swap
     movup.3
@@ -338,12 +338,12 @@ export.mont_mul.8
     u32wrapping_add3
     swap
     push.0.0.0.0
-    loc_loadw.5
+    loc_loadw.20
     swap
     drop
     movup.3
     swap
-    loc_storew.5
+    loc_storew.20
     dropw
 
     movup.2
@@ -355,7 +355,7 @@ export.mont_mul.8
     movup.2
     u32wrapping_add
 
-    loc_load.4
+    loc_load.16
     u32overflowing_mul.3901250617
     swap
     movup.3
@@ -368,16 +368,16 @@ export.mont_mul.8
     u32wrapping_add3
     swap
     push.0.0.0.0
-    loc_loadw.5
+    loc_loadw.20
     movup.2
     drop
     movup.3
     movdn.2
-    loc_storew.5
+    loc_storew.20
     dropw
 
     push.0.0.0.0
-    loc_loadw.2
+    loc_loadw.8
     movup.5
     movup.5
     movup.2
@@ -389,7 +389,7 @@ export.mont_mul.8
     movup.2
     u32wrapping_add
 
-    loc_load.4
+    loc_load.16
     u32overflowing_mul.3484943929
     swap
     movup.3
@@ -402,10 +402,10 @@ export.mont_mul.8
     u32wrapping_add3
     swap
     push.0.0.0.0
-    loc_loadw.5
+    loc_loadw.20
     movup.3
     drop
-    loc_storew.5
+    loc_storew.20
     dropw
 
     movup.2
@@ -417,7 +417,7 @@ export.mont_mul.8
     movup.2
     u32wrapping_add
 
-    loc_load.4
+    loc_load.16
     u32overflowing_mul.2147483622
     swap
     movup.3
@@ -431,7 +431,7 @@ export.mont_mul.8
     swap
     push.0.0.0
     movup.3
-    loc_storew.6
+    loc_storew.24
     dropw
 
     movup.2
@@ -443,7 +443,7 @@ export.mont_mul.8
     movup.2
     u32wrapping_add
 
-    loc_load.4
+    loc_load.16
     u32overflowing_mul.22
     swap
     movup.3
@@ -456,12 +456,12 @@ export.mont_mul.8
     u32wrapping_add3
     swap
     push.0.0.0.0
-    loc_loadw.6
+    loc_loadw.24
     swap
     drop
     movup.3
     swap
-    loc_storew.6
+    loc_storew.24
     dropw
 
     movup.2
@@ -473,7 +473,7 @@ export.mont_mul.8
     movup.2
     u32wrapping_add
 
-    loc_load.4
+    loc_load.16
     u32overflowing_mul.2147483633
     swap
     movup.3
@@ -486,16 +486,16 @@ export.mont_mul.8
     u32wrapping_add3
     swap
     push.0.0.0.0
-    loc_loadw.6
+    loc_loadw.24
     movup.2
     drop
     movup.3
     movdn.2
-    loc_storew.6
+    loc_storew.24
     dropw
 
     push.0.0.0.0
-    loc_loadw.3
+    loc_loadw.12
     movup.3
     movup.3
     drop
@@ -512,7 +512,7 @@ export.mont_mul.8
     movup.2
     u32wrapping_add
 
-    loc_load.4
+    loc_load.16
     u32overflowing_mul.2147483655
     swap
     movup.3
@@ -525,10 +525,10 @@ export.mont_mul.8
     u32wrapping_add3
     swap
     push.0.0.0.0
-    loc_loadw.6
+    loc_loadw.24
     movup.3
     drop
-    loc_storew.6
+    loc_storew.24
     dropw
 
     movup.2
@@ -540,7 +540,7 @@ export.mont_mul.8
     movup.2
     u32wrapping_add
 
-    loc_load.4
+    loc_load.16
     u32overflowing_mul.2147483645
     swap
     movup.3
@@ -558,7 +558,7 @@ export.mont_mul.8
     movup.4
     u32wrapping_add
     swap
-    loc_storew.7
+    loc_storew.28
     dropw
 
     # when i = 1
@@ -567,15 +567,15 @@ export.mont_mul.8
     loc_load.0
     u32wrapping_mul
     push.0.0.0.0
-    loc_loadw.5
+    loc_loadw.20
     dup
     movup.5
     u32wrapping_add
     u32wrapping_mul.91978719
-    loc_store.4
+    loc_store.16
 
     push.0.0.0.0
-    loc_loadw.1
+    loc_loadw.4
     dup.8
     u32overflowing_mul
     swap
@@ -584,7 +584,7 @@ export.mont_mul.8
     movup.2
     u32wrapping_add
 
-    loc_load.4
+    loc_load.16
     u32overflowing_mul.2492202977
     swap
     movup.3
@@ -607,7 +607,7 @@ export.mont_mul.8
     movup.3
     u32wrapping_add3
 
-    loc_load.4
+    loc_load.16
     u32overflowing_mul.3893352854
     swap
     movup.3
@@ -621,7 +621,7 @@ export.mont_mul.8
     swap
     push.0.0.0
     movup.3
-    loc_storew.5
+    loc_storew.20
     dropw
 
     movup.2
@@ -637,7 +637,7 @@ export.mont_mul.8
     movup.3
     u32wrapping_add3
 
-    loc_load.4
+    loc_load.16
     u32overflowing_mul.3609501852
     swap
     movup.3
@@ -650,12 +650,12 @@ export.mont_mul.8
     u32wrapping_add3
     swap
     push.0.0.0.0
-    loc_loadw.5
+    loc_loadw.20
     swap
     drop
     movup.3
     swap
-    loc_storew.5
+    loc_storew.20
     dropw
 
     movup.2
@@ -671,7 +671,7 @@ export.mont_mul.8
     movup.3
     u32wrapping_add3
 
-    loc_load.4
+    loc_load.16
     u32overflowing_mul.3901250617
     swap
     movup.3
@@ -684,18 +684,18 @@ export.mont_mul.8
     u32wrapping_add3
     swap
     push.0.0.0.0
-    loc_loadw.5
+    loc_loadw.20
     movup.2
     drop
     movup.3
     movdn.2
-    loc_storew.5
+    loc_storew.20
     dropw
 
     push.0.0.0.0.0.0.0.0
-    loc_loadw.6
+    loc_loadw.24
     swapw
-    loc_loadw.2
+    loc_loadw.8
     movup.9
     movup.9
 
@@ -712,7 +712,7 @@ export.mont_mul.8
     movup.3
     u32wrapping_add3
 
-    loc_load.4
+    loc_load.16
     u32overflowing_mul.3484943929
     swap
     movup.3
@@ -725,10 +725,10 @@ export.mont_mul.8
     u32wrapping_add3
     swap
     push.0.0.0.0
-    loc_loadw.5
+    loc_loadw.20
     movup.3
     drop
-    loc_storew.5
+    loc_storew.20
     dropw
 
     movup.2
@@ -744,7 +744,7 @@ export.mont_mul.8
     movup.3
     u32wrapping_add3
 
-    loc_load.4
+    loc_load.16
     u32overflowing_mul.2147483622
     swap
     movup.3
@@ -758,7 +758,7 @@ export.mont_mul.8
     swap
     push.0.0.0
     movup.3
-    loc_storew.6
+    loc_storew.24
     dropw
 
     movup.2
@@ -774,7 +774,7 @@ export.mont_mul.8
     movup.3
     u32wrapping_add3
 
-    loc_load.4
+    loc_load.16
     u32overflowing_mul.22
     swap
     movup.3
@@ -787,12 +787,12 @@ export.mont_mul.8
     u32wrapping_add3
     swap
     push.0.0.0.0
-    loc_loadw.6
+    loc_loadw.24
     swap
     drop
     movup.3
     swap
-    loc_storew.6
+    loc_storew.24
     dropw
 
     movup.2
@@ -808,7 +808,7 @@ export.mont_mul.8
     movup.3
     u32wrapping_add3
 
-    loc_load.4
+    loc_load.16
     u32overflowing_mul.2147483633
     swap
     movup.3
@@ -821,18 +821,18 @@ export.mont_mul.8
     u32wrapping_add3
     swap
     push.0.0.0.0
-    loc_loadw.6
+    loc_loadw.24
     movup.2
     drop
     movup.3
     movdn.2
-    loc_storew.6
+    loc_storew.24
     dropw
 
     push.0.0.0.0.0.0.0.0
-    loc_loadw.7
+    loc_loadw.28
     swapw
-    loc_loadw.3
+    loc_loadw.12
     movup.3
     movup.3
     drop
@@ -857,7 +857,7 @@ export.mont_mul.8
     movup.3
     u32wrapping_add3
 
-    loc_load.4
+    loc_load.16
     u32overflowing_mul.2147483655
     swap
     movup.3
@@ -870,10 +870,10 @@ export.mont_mul.8
     u32wrapping_add3
     swap
     push.0.0.0.0
-    loc_loadw.6
+    loc_loadw.24
     movup.3
     drop
-    loc_storew.6
+    loc_storew.24
     dropw
 
     movup.2
@@ -889,7 +889,7 @@ export.mont_mul.8
     movup.3
     u32wrapping_add3
 
-    loc_load.4
+    loc_load.16
     u32overflowing_mul.2147483645
     swap
     movup.3
@@ -906,7 +906,7 @@ export.mont_mul.8
     push.0.0
     movup.3
     movup.3
-    loc_storew.7
+    loc_storew.28
     dropw
     drop
 
@@ -916,15 +916,15 @@ export.mont_mul.8
     loc_load.0
     u32wrapping_mul
     push.0.0.0.0
-    loc_loadw.5
+    loc_loadw.20
     dup
     movup.5
     u32wrapping_add
     u32wrapping_mul.91978719
-    loc_store.4
+    loc_store.16
 
     push.0.0.0.0
-    loc_loadw.1
+    loc_loadw.4
     dup.8
     u32overflowing_mul
     swap
@@ -933,7 +933,7 @@ export.mont_mul.8
     movup.2
     u32wrapping_add
 
-    loc_load.4
+    loc_load.16
     u32overflowing_mul.2492202977
     swap
     movup.3
@@ -956,7 +956,7 @@ export.mont_mul.8
     movup.3
     u32wrapping_add3
 
-    loc_load.4
+    loc_load.16
     u32overflowing_mul.3893352854
     swap
     movup.3
@@ -970,7 +970,7 @@ export.mont_mul.8
     swap
     push.0.0.0
     movup.3
-    loc_storew.5
+    loc_storew.20
     dropw
 
     movup.2
@@ -986,7 +986,7 @@ export.mont_mul.8
     movup.3
     u32wrapping_add3
 
-    loc_load.4
+    loc_load.16
     u32overflowing_mul.3609501852
     swap
     movup.3
@@ -999,12 +999,12 @@ export.mont_mul.8
     u32wrapping_add3
     swap
     push.0.0.0.0
-    loc_loadw.5
+    loc_loadw.20
     swap
     drop
     movup.3
     swap
-    loc_storew.5
+    loc_storew.20
     dropw
 
     movup.2
@@ -1020,7 +1020,7 @@ export.mont_mul.8
     movup.3
     u32wrapping_add3
 
-    loc_load.4
+    loc_load.16
     u32overflowing_mul.3901250617
     swap
     movup.3
@@ -1033,18 +1033,18 @@ export.mont_mul.8
     u32wrapping_add3
     swap
     push.0.0.0.0
-    loc_loadw.5
+    loc_loadw.20
     movup.2
     drop
     movup.3
     movdn.2
-    loc_storew.5
+    loc_storew.20
     dropw
 
     push.0.0.0.0.0.0.0.0
-    loc_loadw.6
+    loc_loadw.24
     swapw
-    loc_loadw.2
+    loc_loadw.8
     movup.9
     movup.9
 
@@ -1061,7 +1061,7 @@ export.mont_mul.8
     movup.3
     u32wrapping_add3
 
-    loc_load.4
+    loc_load.16
     u32overflowing_mul.3484943929
     swap
     movup.3
@@ -1074,10 +1074,10 @@ export.mont_mul.8
     u32wrapping_add3
     swap
     push.0.0.0.0
-    loc_loadw.5
+    loc_loadw.20
     movup.3
     drop
-    loc_storew.5
+    loc_storew.20
     dropw
 
     movup.2
@@ -1093,7 +1093,7 @@ export.mont_mul.8
     movup.3
     u32wrapping_add3
 
-    loc_load.4
+    loc_load.16
     u32overflowing_mul.2147483622
     swap
     movup.3
@@ -1107,7 +1107,7 @@ export.mont_mul.8
     swap
     push.0.0.0
     movup.3
-    loc_storew.6
+    loc_storew.24
     dropw
 
     movup.2
@@ -1123,7 +1123,7 @@ export.mont_mul.8
     movup.3
     u32wrapping_add3
 
-    loc_load.4
+    loc_load.16
     u32overflowing_mul.22
     swap
     movup.3
@@ -1136,12 +1136,12 @@ export.mont_mul.8
     u32wrapping_add3
     swap
     push.0.0.0.0
-    loc_loadw.6
+    loc_loadw.24
     swap
     drop
     movup.3
     swap
-    loc_storew.6
+    loc_storew.24
     dropw
 
     movup.2
@@ -1157,7 +1157,7 @@ export.mont_mul.8
     movup.3
     u32wrapping_add3
 
-    loc_load.4
+    loc_load.16
     u32overflowing_mul.2147483633
     swap
     movup.3
@@ -1170,18 +1170,18 @@ export.mont_mul.8
     u32wrapping_add3
     swap
     push.0.0.0.0
-    loc_loadw.6
+    loc_loadw.24
     movup.2
     drop
     movup.3
     movdn.2
-    loc_storew.6
+    loc_storew.24
     dropw
 
     push.0.0.0.0.0.0.0.0
-    loc_loadw.7
+    loc_loadw.28
     swapw
-    loc_loadw.3
+    loc_loadw.12
     movup.3
     movup.3
     drop
@@ -1206,7 +1206,7 @@ export.mont_mul.8
     movup.3
     u32wrapping_add3
 
-    loc_load.4
+    loc_load.16
     u32overflowing_mul.2147483655
     swap
     movup.3
@@ -1219,10 +1219,10 @@ export.mont_mul.8
     u32wrapping_add3
     swap
     push.0.0.0.0
-    loc_loadw.6
+    loc_loadw.24
     movup.3
     drop
-    loc_storew.6
+    loc_storew.24
     dropw
 
     movup.2
@@ -1238,7 +1238,7 @@ export.mont_mul.8
     movup.3
     u32wrapping_add3
 
-    loc_load.4
+    loc_load.16
     u32overflowing_mul.2147483645
     swap
     movup.3
@@ -1255,7 +1255,7 @@ export.mont_mul.8
     push.0.0
     movup.3
     movup.3
-    loc_storew.7
+    loc_storew.28
     dropw
     drop
 
@@ -1265,15 +1265,15 @@ export.mont_mul.8
     loc_load.0
     u32wrapping_mul
     push.0.0.0.0
-    loc_loadw.5
+    loc_loadw.20
     dup
     movup.5
     u32wrapping_add
     u32wrapping_mul.91978719
-    loc_store.4
+    loc_store.16
 
     push.0.0.0.0
-    loc_loadw.1
+    loc_loadw.4
     dup.8
     u32overflowing_mul
     swap
@@ -1282,7 +1282,7 @@ export.mont_mul.8
     movup.2
     u32wrapping_add
 
-    loc_load.4
+    loc_load.16
     u32overflowing_mul.2492202977
     swap
     movup.3
@@ -1305,7 +1305,7 @@ export.mont_mul.8
     movup.3
     u32wrapping_add3
 
-    loc_load.4
+    loc_load.16
     u32overflowing_mul.3893352854
     swap
     movup.3
@@ -1319,7 +1319,7 @@ export.mont_mul.8
     swap
     push.0.0.0
     movup.3
-    loc_storew.5
+    loc_storew.20
     dropw
 
     movup.2
@@ -1335,7 +1335,7 @@ export.mont_mul.8
     movup.3
     u32wrapping_add3
 
-    loc_load.4
+    loc_load.16
     u32overflowing_mul.3609501852
     swap
     movup.3
@@ -1348,12 +1348,12 @@ export.mont_mul.8
     u32wrapping_add3
     swap
     push.0.0.0.0
-    loc_loadw.5
+    loc_loadw.20
     swap
     drop
     movup.3
     swap
-    loc_storew.5
+    loc_storew.20
     dropw
 
     movup.2
@@ -1369,7 +1369,7 @@ export.mont_mul.8
     movup.3
     u32wrapping_add3
 
-    loc_load.4
+    loc_load.16
     u32overflowing_mul.3901250617
     swap
     movup.3
@@ -1382,18 +1382,18 @@ export.mont_mul.8
     u32wrapping_add3
     swap
     push.0.0.0.0
-    loc_loadw.5
+    loc_loadw.20
     movup.2
     drop
     movup.3
     movdn.2
-    loc_storew.5
+    loc_storew.20
     dropw
 
     push.0.0.0.0.0.0.0.0
-    loc_loadw.6
+    loc_loadw.24
     swapw
-    loc_loadw.2
+    loc_loadw.8
     movup.9
     movup.9
 
@@ -1410,7 +1410,7 @@ export.mont_mul.8
     movup.3
     u32wrapping_add3
 
-    loc_load.4
+    loc_load.16
     u32overflowing_mul.3484943929
     swap
     movup.3
@@ -1423,10 +1423,10 @@ export.mont_mul.8
     u32wrapping_add3
     swap
     push.0.0.0.0
-    loc_loadw.5
+    loc_loadw.20
     movup.3
     drop
-    loc_storew.5
+    loc_storew.20
     dropw
 
     movup.2
@@ -1442,7 +1442,7 @@ export.mont_mul.8
     movup.3
     u32wrapping_add3
 
-    loc_load.4
+    loc_load.16
     u32overflowing_mul.2147483622
     swap
     movup.3
@@ -1456,7 +1456,7 @@ export.mont_mul.8
     swap
     push.0.0.0
     movup.3
-    loc_storew.6
+    loc_storew.24
     dropw
 
     movup.2
@@ -1472,7 +1472,7 @@ export.mont_mul.8
     movup.3
     u32wrapping_add3
 
-    loc_load.4
+    loc_load.16
     u32overflowing_mul.22
     swap
     movup.3
@@ -1485,12 +1485,12 @@ export.mont_mul.8
     u32wrapping_add3
     swap
     push.0.0.0.0
-    loc_loadw.6
+    loc_loadw.24
     swap
     drop
     movup.3
     swap
-    loc_storew.6
+    loc_storew.24
     dropw
 
     movup.2
@@ -1506,7 +1506,7 @@ export.mont_mul.8
     movup.3
     u32wrapping_add3
 
-    loc_load.4
+    loc_load.16
     u32overflowing_mul.2147483633
     swap
     movup.3
@@ -1519,18 +1519,18 @@ export.mont_mul.8
     u32wrapping_add3
     swap
     push.0.0.0.0
-    loc_loadw.6
+    loc_loadw.24
     movup.2
     drop
     movup.3
     movdn.2
-    loc_storew.6
+    loc_storew.24
     dropw
 
     push.0.0.0.0.0.0.0.0
-    loc_loadw.7
+    loc_loadw.28
     swapw
-    loc_loadw.3
+    loc_loadw.12
     movup.3
     movup.3
     drop
@@ -1555,7 +1555,7 @@ export.mont_mul.8
     movup.3
     u32wrapping_add3
 
-    loc_load.4
+    loc_load.16
     u32overflowing_mul.2147483655
     swap
     movup.3
@@ -1568,10 +1568,10 @@ export.mont_mul.8
     u32wrapping_add3
     swap
     push.0.0.0.0
-    loc_loadw.6
+    loc_loadw.24
     movup.3
     drop
-    loc_storew.6
+    loc_storew.24
     dropw
 
     movup.2
@@ -1587,7 +1587,7 @@ export.mont_mul.8
     movup.3
     u32wrapping_add3
 
-    loc_load.4
+    loc_load.16
     u32overflowing_mul.2147483645
     swap
     movup.3
@@ -1604,7 +1604,7 @@ export.mont_mul.8
     push.0.0
     movup.3
     movup.3
-    loc_storew.7
+    loc_storew.28
     dropw
     drop
 
@@ -1614,15 +1614,15 @@ export.mont_mul.8
     loc_load.0
     u32wrapping_mul
     push.0.0.0.0
-    loc_loadw.5
+    loc_loadw.20
     dup
     movup.5
     u32wrapping_add
     u32wrapping_mul.91978719
-    loc_store.4
+    loc_store.16
 
     push.0.0.0.0
-    loc_loadw.1
+    loc_loadw.4
     dup.8
     u32overflowing_mul
     swap
@@ -1631,7 +1631,7 @@ export.mont_mul.8
     movup.2
     u32wrapping_add
 
-    loc_load.4
+    loc_load.16
     u32overflowing_mul.2492202977
     swap
     movup.3
@@ -1654,7 +1654,7 @@ export.mont_mul.8
     movup.3
     u32wrapping_add3
 
-    loc_load.4
+    loc_load.16
     u32overflowing_mul.3893352854
     swap
     movup.3
@@ -1668,7 +1668,7 @@ export.mont_mul.8
     swap
     push.0.0.0
     movup.3
-    loc_storew.5
+    loc_storew.20
     dropw
 
     movup.2
@@ -1684,7 +1684,7 @@ export.mont_mul.8
     movup.3
     u32wrapping_add3
 
-    loc_load.4
+    loc_load.16
     u32overflowing_mul.3609501852
     swap
     movup.3
@@ -1697,12 +1697,12 @@ export.mont_mul.8
     u32wrapping_add3
     swap
     push.0.0.0.0
-    loc_loadw.5
+    loc_loadw.20
     swap
     drop
     movup.3
     swap
-    loc_storew.5
+    loc_storew.20
     dropw
 
     movup.2
@@ -1718,7 +1718,7 @@ export.mont_mul.8
     movup.3
     u32wrapping_add3
 
-    loc_load.4
+    loc_load.16
     u32overflowing_mul.3901250617
     swap
     movup.3
@@ -1731,18 +1731,18 @@ export.mont_mul.8
     u32wrapping_add3
     swap
     push.0.0.0.0
-    loc_loadw.5
+    loc_loadw.20
     movup.2
     drop
     movup.3
     movdn.2
-    loc_storew.5
+    loc_storew.20
     dropw
 
     push.0.0.0.0.0.0.0.0
-    loc_loadw.6
+    loc_loadw.24
     swapw
-    loc_loadw.2
+    loc_loadw.8
     movup.9
     movup.9
 
@@ -1759,7 +1759,7 @@ export.mont_mul.8
     movup.3
     u32wrapping_add3
 
-    loc_load.4
+    loc_load.16
     u32overflowing_mul.3484943929
     swap
     movup.3
@@ -1772,10 +1772,10 @@ export.mont_mul.8
     u32wrapping_add3
     swap
     push.0.0.0.0
-    loc_loadw.5
+    loc_loadw.20
     movup.3
     drop
-    loc_storew.5
+    loc_storew.20
     dropw
 
     movup.2
@@ -1791,7 +1791,7 @@ export.mont_mul.8
     movup.3
     u32wrapping_add3
 
-    loc_load.4
+    loc_load.16
     u32overflowing_mul.2147483622
     swap
     movup.3
@@ -1805,7 +1805,7 @@ export.mont_mul.8
     swap
     push.0.0.0
     movup.3
-    loc_storew.6
+    loc_storew.24
     dropw
 
     movup.2
@@ -1821,7 +1821,7 @@ export.mont_mul.8
     movup.3
     u32wrapping_add3
 
-    loc_load.4
+    loc_load.16
     u32overflowing_mul.22
     swap
     movup.3
@@ -1834,12 +1834,12 @@ export.mont_mul.8
     u32wrapping_add3
     swap
     push.0.0.0.0
-    loc_loadw.6
+    loc_loadw.24
     swap
     drop
     movup.3
     swap
-    loc_storew.6
+    loc_storew.24
     dropw
 
     movup.2
@@ -1855,7 +1855,7 @@ export.mont_mul.8
     movup.3
     u32wrapping_add3
 
-    loc_load.4
+    loc_load.16
     u32overflowing_mul.2147483633
     swap
     movup.3
@@ -1868,18 +1868,18 @@ export.mont_mul.8
     u32wrapping_add3
     swap
     push.0.0.0.0
-    loc_loadw.6
+    loc_loadw.24
     movup.2
     drop
     movup.3
     movdn.2
-    loc_storew.6
+    loc_storew.24
     dropw
 
     push.0.0.0.0.0.0.0.0
-    loc_loadw.7
+    loc_loadw.28
     swapw
-    loc_loadw.3
+    loc_loadw.12
     movup.3
     movup.3
     drop
@@ -1904,7 +1904,7 @@ export.mont_mul.8
     movup.3
     u32wrapping_add3
 
-    loc_load.4
+    loc_load.16
     u32overflowing_mul.2147483655
     swap
     movup.3
@@ -1917,10 +1917,10 @@ export.mont_mul.8
     u32wrapping_add3
     swap
     push.0.0.0.0
-    loc_loadw.6
+    loc_loadw.24
     movup.3
     drop
-    loc_storew.6
+    loc_storew.24
     dropw
 
     movup.2
@@ -1936,7 +1936,7 @@ export.mont_mul.8
     movup.3
     u32wrapping_add3
 
-    loc_load.4
+    loc_load.16
     u32overflowing_mul.2147483645
     swap
     movup.3
@@ -1953,7 +1953,7 @@ export.mont_mul.8
     push.0.0
     movup.3
     movup.3
-    loc_storew.7
+    loc_storew.28
     dropw
     drop
 
@@ -1963,15 +1963,15 @@ export.mont_mul.8
     loc_load.0
     u32wrapping_mul
     push.0.0.0.0
-    loc_loadw.5
+    loc_loadw.20
     dup
     movup.5
     u32wrapping_add
     u32wrapping_mul.91978719
-    loc_store.4
+    loc_store.16
 
     push.0.0.0.0
-    loc_loadw.1
+    loc_loadw.4
     dup.8
     u32overflowing_mul
     swap
@@ -1980,7 +1980,7 @@ export.mont_mul.8
     movup.2
     u32wrapping_add
 
-    loc_load.4
+    loc_load.16
     u32overflowing_mul.2492202977
     swap
     movup.3
@@ -2003,7 +2003,7 @@ export.mont_mul.8
     movup.3
     u32wrapping_add3
 
-    loc_load.4
+    loc_load.16
     u32overflowing_mul.3893352854
     swap
     movup.3
@@ -2017,7 +2017,7 @@ export.mont_mul.8
     swap
     push.0.0.0
     movup.3
-    loc_storew.5
+    loc_storew.20
     dropw
 
     movup.2
@@ -2033,7 +2033,7 @@ export.mont_mul.8
     movup.3
     u32wrapping_add3
 
-    loc_load.4
+    loc_load.16
     u32overflowing_mul.3609501852
     swap
     movup.3
@@ -2046,12 +2046,12 @@ export.mont_mul.8
     u32wrapping_add3
     swap
     push.0.0.0.0
-    loc_loadw.5
+    loc_loadw.20
     swap
     drop
     movup.3
     swap
-    loc_storew.5
+    loc_storew.20
     dropw
 
     movup.2
@@ -2067,7 +2067,7 @@ export.mont_mul.8
     movup.3
     u32wrapping_add3
 
-    loc_load.4
+    loc_load.16
     u32overflowing_mul.3901250617
     swap
     movup.3
@@ -2080,18 +2080,18 @@ export.mont_mul.8
     u32wrapping_add3
     swap
     push.0.0.0.0
-    loc_loadw.5
+    loc_loadw.20
     movup.2
     drop
     movup.3
     movdn.2
-    loc_storew.5
+    loc_storew.20
     dropw
 
     push.0.0.0.0.0.0.0.0
-    loc_loadw.6
+    loc_loadw.24
     swapw
-    loc_loadw.2
+    loc_loadw.8
     movup.9
     movup.9
 
@@ -2108,7 +2108,7 @@ export.mont_mul.8
     movup.3
     u32wrapping_add3
 
-    loc_load.4
+    loc_load.16
     u32overflowing_mul.3484943929
     swap
     movup.3
@@ -2121,10 +2121,10 @@ export.mont_mul.8
     u32wrapping_add3
     swap
     push.0.0.0.0
-    loc_loadw.5
+    loc_loadw.20
     movup.3
     drop
-    loc_storew.5
+    loc_storew.20
     dropw
 
     movup.2
@@ -2140,7 +2140,7 @@ export.mont_mul.8
     movup.3
     u32wrapping_add3
 
-    loc_load.4
+    loc_load.16
     u32overflowing_mul.2147483622
     swap
     movup.3
@@ -2154,7 +2154,7 @@ export.mont_mul.8
     swap
     push.0.0.0
     movup.3
-    loc_storew.6
+    loc_storew.24
     dropw
 
     movup.2
@@ -2170,7 +2170,7 @@ export.mont_mul.8
     movup.3
     u32wrapping_add3
 
-    loc_load.4
+    loc_load.16
     u32overflowing_mul.22
     swap
     movup.3
@@ -2183,12 +2183,12 @@ export.mont_mul.8
     u32wrapping_add3
     swap
     push.0.0.0.0
-    loc_loadw.6
+    loc_loadw.24
     swap
     drop
     movup.3
     swap
-    loc_storew.6
+    loc_storew.24
     dropw
 
     movup.2
@@ -2204,7 +2204,7 @@ export.mont_mul.8
     movup.3
     u32wrapping_add3
 
-    loc_load.4
+    loc_load.16
     u32overflowing_mul.2147483633
     swap
     movup.3
@@ -2217,18 +2217,18 @@ export.mont_mul.8
     u32wrapping_add3
     swap
     push.0.0.0.0
-    loc_loadw.6
+    loc_loadw.24
     movup.2
     drop
     movup.3
     movdn.2
-    loc_storew.6
+    loc_storew.24
     dropw
 
     push.0.0.0.0.0.0.0.0
-    loc_loadw.7
+    loc_loadw.28
     swapw
-    loc_loadw.3
+    loc_loadw.12
     movup.3
     movup.3
     drop
@@ -2253,7 +2253,7 @@ export.mont_mul.8
     movup.3
     u32wrapping_add3
 
-    loc_load.4
+    loc_load.16
     u32overflowing_mul.2147483655
     swap
     movup.3
@@ -2266,10 +2266,10 @@ export.mont_mul.8
     u32wrapping_add3
     swap
     push.0.0.0.0
-    loc_loadw.6
+    loc_loadw.24
     movup.3
     drop
-    loc_storew.6
+    loc_storew.24
     dropw
 
     movup.2
@@ -2285,7 +2285,7 @@ export.mont_mul.8
     movup.3
     u32wrapping_add3
 
-    loc_load.4
+    loc_load.16
     u32overflowing_mul.2147483645
     swap
     movup.3
@@ -2302,7 +2302,7 @@ export.mont_mul.8
     push.0.0
     movup.3
     movup.3
-    loc_storew.7
+    loc_storew.28
     dropw
     drop
 
@@ -2312,15 +2312,15 @@ export.mont_mul.8
     loc_load.0
     u32wrapping_mul
     push.0.0.0.0
-    loc_loadw.5
+    loc_loadw.20
     dup
     movup.5
     u32wrapping_add
     u32wrapping_mul.91978719
-    loc_store.4
+    loc_store.16
 
     push.0.0.0.0
-    loc_loadw.1
+    loc_loadw.4
     dup.8
     u32overflowing_mul
     swap
@@ -2329,7 +2329,7 @@ export.mont_mul.8
     movup.2
     u32wrapping_add
 
-    loc_load.4
+    loc_load.16
     u32overflowing_mul.2492202977
     swap
     movup.3
@@ -2352,7 +2352,7 @@ export.mont_mul.8
     movup.3
     u32wrapping_add3
 
-    loc_load.4
+    loc_load.16
     u32overflowing_mul.3893352854
     swap
     movup.3
@@ -2366,7 +2366,7 @@ export.mont_mul.8
     swap
     push.0.0.0
     movup.3
-    loc_storew.5
+    loc_storew.20
     dropw
 
     movup.2
@@ -2382,7 +2382,7 @@ export.mont_mul.8
     movup.3
     u32wrapping_add3
 
-    loc_load.4
+    loc_load.16
     u32overflowing_mul.3609501852
     swap
     movup.3
@@ -2395,12 +2395,12 @@ export.mont_mul.8
     u32wrapping_add3
     swap
     push.0.0.0.0
-    loc_loadw.5
+    loc_loadw.20
     swap
     drop
     movup.3
     swap
-    loc_storew.5
+    loc_storew.20
     dropw
 
     movup.2
@@ -2416,7 +2416,7 @@ export.mont_mul.8
     movup.3
     u32wrapping_add3
 
-    loc_load.4
+    loc_load.16
     u32overflowing_mul.3901250617
     swap
     movup.3
@@ -2429,18 +2429,18 @@ export.mont_mul.8
     u32wrapping_add3
     swap
     push.0.0.0.0
-    loc_loadw.5
+    loc_loadw.20
     movup.2
     drop
     movup.3
     movdn.2
-    loc_storew.5
+    loc_storew.20
     dropw
 
     push.0.0.0.0.0.0.0.0
-    loc_loadw.6
+    loc_loadw.24
     swapw
-    loc_loadw.2
+    loc_loadw.8
     movup.9
     movup.9
 
@@ -2457,7 +2457,7 @@ export.mont_mul.8
     movup.3
     u32wrapping_add3
 
-    loc_load.4
+    loc_load.16
     u32overflowing_mul.3484943929
     swap
     movup.3
@@ -2470,10 +2470,10 @@ export.mont_mul.8
     u32wrapping_add3
     swap
     push.0.0.0.0
-    loc_loadw.5
+    loc_loadw.20
     movup.3
     drop
-    loc_storew.5
+    loc_storew.20
     dropw
 
     movup.2
@@ -2489,7 +2489,7 @@ export.mont_mul.8
     movup.3
     u32wrapping_add3
 
-    loc_load.4
+    loc_load.16
     u32overflowing_mul.2147483622
     swap
     movup.3
@@ -2503,7 +2503,7 @@ export.mont_mul.8
     swap
     push.0.0.0
     movup.3
-    loc_storew.6
+    loc_storew.24
     dropw
 
     movup.2
@@ -2519,7 +2519,7 @@ export.mont_mul.8
     movup.3
     u32wrapping_add3
 
-    loc_load.4
+    loc_load.16
     u32overflowing_mul.22
     swap
     movup.3
@@ -2532,12 +2532,12 @@ export.mont_mul.8
     u32wrapping_add3
     swap
     push.0.0.0.0
-    loc_loadw.6
+    loc_loadw.24
     swap
     drop
     movup.3
     swap
-    loc_storew.6
+    loc_storew.24
     dropw
 
     movup.2
@@ -2553,7 +2553,7 @@ export.mont_mul.8
     movup.3
     u32wrapping_add3
 
-    loc_load.4
+    loc_load.16
     u32overflowing_mul.2147483633
     swap
     movup.3
@@ -2566,18 +2566,18 @@ export.mont_mul.8
     u32wrapping_add3
     swap
     push.0.0.0.0
-    loc_loadw.6
+    loc_loadw.24
     movup.2
     drop
     movup.3
     movdn.2
-    loc_storew.6
+    loc_storew.24
     dropw
 
     push.0.0.0.0.0.0.0.0
-    loc_loadw.7
+    loc_loadw.28
     swapw
-    loc_loadw.3
+    loc_loadw.12
     movup.3
     movup.3
     drop
@@ -2602,7 +2602,7 @@ export.mont_mul.8
     movup.3
     u32wrapping_add3
 
-    loc_load.4
+    loc_load.16
     u32overflowing_mul.2147483655
     swap
     movup.3
@@ -2615,10 +2615,10 @@ export.mont_mul.8
     u32wrapping_add3
     swap
     push.0.0.0.0
-    loc_loadw.6
+    loc_loadw.24
     movup.3
     drop
-    loc_storew.6
+    loc_storew.24
     dropw
 
     movup.2
@@ -2634,7 +2634,7 @@ export.mont_mul.8
     movup.3
     u32wrapping_add3
 
-    loc_load.4
+    loc_load.16
     u32overflowing_mul.2147483645
     swap
     movup.3
@@ -2651,7 +2651,7 @@ export.mont_mul.8
     push.0.0
     movup.3
     movup.3
-    loc_storew.7
+    loc_storew.28
     dropw
     drop
 
@@ -2661,15 +2661,15 @@ export.mont_mul.8
     loc_load.0
     u32wrapping_mul
     push.0.0.0.0
-    loc_loadw.5
+    loc_loadw.20
     dup
     movup.5
     u32wrapping_add
     u32wrapping_mul.91978719
-    loc_store.4
+    loc_store.16
 
     push.0.0.0.0
-    loc_loadw.1
+    loc_loadw.4
     dup.8
     u32overflowing_mul
     swap
@@ -2678,7 +2678,7 @@ export.mont_mul.8
     movup.2
     u32wrapping_add
 
-    loc_load.4
+    loc_load.16
     u32overflowing_mul.2492202977
     swap
     movup.3
@@ -2701,7 +2701,7 @@ export.mont_mul.8
     movup.3
     u32wrapping_add3
 
-    loc_load.4
+    loc_load.16
     u32overflowing_mul.3893352854
     swap
     movup.3
@@ -2715,7 +2715,7 @@ export.mont_mul.8
     swap
     push.0.0.0
     movup.3
-    loc_storew.5
+    loc_storew.20
     dropw
 
     movup.2
@@ -2731,7 +2731,7 @@ export.mont_mul.8
     movup.3
     u32wrapping_add3
 
-    loc_load.4
+    loc_load.16
     u32overflowing_mul.3609501852
     swap
     movup.3
@@ -2744,12 +2744,12 @@ export.mont_mul.8
     u32wrapping_add3
     swap
     push.0.0.0.0
-    loc_loadw.5
+    loc_loadw.20
     swap
     drop
     movup.3
     swap
-    loc_storew.5
+    loc_storew.20
     dropw
 
     movup.2
@@ -2765,7 +2765,7 @@ export.mont_mul.8
     movup.3
     u32wrapping_add3
 
-    loc_load.4
+    loc_load.16
     u32overflowing_mul.3901250617
     swap
     movup.3
@@ -2778,18 +2778,18 @@ export.mont_mul.8
     u32wrapping_add3
     swap
     push.0.0.0.0
-    loc_loadw.5
+    loc_loadw.20
     movup.2
     drop
     movup.3
     movdn.2
-    loc_storew.5
+    loc_storew.20
     dropw
 
     push.0.0.0.0.0.0.0.0
-    loc_loadw.6
+    loc_loadw.24
     swapw
-    loc_loadw.2
+    loc_loadw.8
     movup.9
     movup.9
 
@@ -2806,7 +2806,7 @@ export.mont_mul.8
     movup.3
     u32wrapping_add3
 
-    loc_load.4
+    loc_load.16
     u32overflowing_mul.3484943929
     swap
     movup.3
@@ -2819,10 +2819,10 @@ export.mont_mul.8
     u32wrapping_add3
     swap
     push.0.0.0.0
-    loc_loadw.5
+    loc_loadw.20
     movup.3
     drop
-    loc_storew.5
+    loc_storew.20
     dropw
 
     movup.2
@@ -2838,7 +2838,7 @@ export.mont_mul.8
     movup.3
     u32wrapping_add3
 
-    loc_load.4
+    loc_load.16
     u32overflowing_mul.2147483622
     swap
     movup.3
@@ -2852,7 +2852,7 @@ export.mont_mul.8
     swap
     push.0.0.0
     movup.3
-    loc_storew.6
+    loc_storew.24
     dropw
 
     movup.2
@@ -2868,7 +2868,7 @@ export.mont_mul.8
     movup.3
     u32wrapping_add3
 
-    loc_load.4
+    loc_load.16
     u32overflowing_mul.22
     swap
     movup.3
@@ -2881,12 +2881,12 @@ export.mont_mul.8
     u32wrapping_add3
     swap
     push.0.0.0.0
-    loc_loadw.6
+    loc_loadw.24
     swap
     drop
     movup.3
     swap
-    loc_storew.6
+    loc_storew.24
     dropw
 
     movup.2
@@ -2902,7 +2902,7 @@ export.mont_mul.8
     movup.3
     u32wrapping_add3
 
-    loc_load.4
+    loc_load.16
     u32overflowing_mul.2147483633
     swap
     movup.3
@@ -2915,18 +2915,18 @@ export.mont_mul.8
     u32wrapping_add3
     swap
     push.0.0.0.0
-    loc_loadw.6
+    loc_loadw.24
     movup.2
     drop
     movup.3
     movdn.2
-    loc_storew.6
+    loc_storew.24
     dropw
 
     push.0.0.0.0.0.0.0.0
-    loc_loadw.7
+    loc_loadw.28
     swapw
-    loc_loadw.3
+    loc_loadw.12
     movup.3
     movup.3
     drop
@@ -2951,7 +2951,7 @@ export.mont_mul.8
     movup.3
     u32wrapping_add3
 
-    loc_load.4
+    loc_load.16
     u32overflowing_mul.2147483655
     swap
     movup.3
@@ -2964,10 +2964,10 @@ export.mont_mul.8
     u32wrapping_add3
     swap
     push.0.0.0.0
-    loc_loadw.6
+    loc_loadw.24
     movup.3
     drop
-    loc_storew.6
+    loc_storew.24
     dropw
 
     movup.2
@@ -2983,7 +2983,7 @@ export.mont_mul.8
     movup.3
     u32wrapping_add3
 
-    loc_load.4
+    loc_load.16
     u32overflowing_mul.2147483645
     swap
     movup.3
@@ -3000,7 +3000,7 @@ export.mont_mul.8
     push.0.0
     movup.3
     movup.3
-    loc_storew.7
+    loc_storew.28
     dropw
     drop
 
@@ -3010,15 +3010,15 @@ export.mont_mul.8
     loc_load.0
     u32wrapping_mul
     push.0.0.0.0
-    loc_loadw.5
+    loc_loadw.20
     dup
     movup.5
     u32wrapping_add
     u32wrapping_mul.91978719
-    loc_store.4
+    loc_store.16
 
     push.0.0.0.0
-    loc_loadw.1
+    loc_loadw.4
     dup.8
     u32overflowing_mul
     swap
@@ -3027,7 +3027,7 @@ export.mont_mul.8
     movup.2
     u32wrapping_add
 
-    loc_load.4
+    loc_load.16
     u32overflowing_mul.2492202977
     swap
     movup.3
@@ -3050,7 +3050,7 @@ export.mont_mul.8
     movup.3
     u32wrapping_add3
 
-    loc_load.4
+    loc_load.16
     u32overflowing_mul.3893352854
     swap
     movup.3
@@ -3064,7 +3064,7 @@ export.mont_mul.8
     swap
     push.0.0.0
     movup.3
-    loc_storew.5
+    loc_storew.20
     dropw
 
     movup.2
@@ -3080,7 +3080,7 @@ export.mont_mul.8
     movup.3
     u32wrapping_add3
 
-    loc_load.4
+    loc_load.16
     u32overflowing_mul.3609501852
     swap
     movup.3
@@ -3093,12 +3093,12 @@ export.mont_mul.8
     u32wrapping_add3
     swap
     push.0.0.0.0
-    loc_loadw.5
+    loc_loadw.20
     swap
     drop
     movup.3
     swap
-    loc_storew.5
+    loc_storew.20
     dropw
 
     movup.2
@@ -3114,7 +3114,7 @@ export.mont_mul.8
     movup.3
     u32wrapping_add3
 
-    loc_load.4
+    loc_load.16
     u32overflowing_mul.3901250617
     swap
     movup.3
@@ -3127,18 +3127,18 @@ export.mont_mul.8
     u32wrapping_add3
     swap
     push.0.0.0.0
-    loc_loadw.5
+    loc_loadw.20
     movup.2
     drop
     movup.3
     movdn.2
-    loc_storew.5
+    loc_storew.20
     dropw
 
     push.0.0.0.0.0.0.0.0
-    loc_loadw.6
+    loc_loadw.24
     swapw
-    loc_loadw.2
+    loc_loadw.8
     movup.9
     movup.9
 
@@ -3155,7 +3155,7 @@ export.mont_mul.8
     movup.3
     u32wrapping_add3
 
-    loc_load.4
+    loc_load.16
     u32overflowing_mul.3484943929
     swap
     movup.3
@@ -3168,10 +3168,10 @@ export.mont_mul.8
     u32wrapping_add3
     swap
     push.0.0.0.0
-    loc_loadw.5
+    loc_loadw.20
     movup.3
     drop
-    loc_storew.5
+    loc_storew.20
     dropw
 
     movup.2
@@ -3187,7 +3187,7 @@ export.mont_mul.8
     movup.3
     u32wrapping_add3
 
-    loc_load.4
+    loc_load.16
     u32overflowing_mul.2147483622
     swap
     movup.3
@@ -3201,7 +3201,7 @@ export.mont_mul.8
     swap
     push.0.0.0
     movup.3
-    loc_storew.6
+    loc_storew.24
     dropw
 
     movup.2
@@ -3217,7 +3217,7 @@ export.mont_mul.8
     movup.3
     u32wrapping_add3
 
-    loc_load.4
+    loc_load.16
     u32overflowing_mul.22
     swap
     movup.3
@@ -3230,12 +3230,12 @@ export.mont_mul.8
     u32wrapping_add3
     swap
     push.0.0.0.0
-    loc_loadw.6
+    loc_loadw.24
     swap
     drop
     movup.3
     swap
-    loc_storew.6
+    loc_storew.24
     dropw
 
     movup.2
@@ -3251,7 +3251,7 @@ export.mont_mul.8
     movup.3
     u32wrapping_add3
 
-    loc_load.4
+    loc_load.16
     u32overflowing_mul.2147483633
     swap
     movup.3
@@ -3264,18 +3264,18 @@ export.mont_mul.8
     u32wrapping_add3
     swap
     push.0.0.0.0
-    loc_loadw.6
+    loc_loadw.24
     movup.2
     drop
     movup.3
     movdn.2
-    loc_storew.6
+    loc_storew.24
     dropw
 
     push.0.0.0.0.0.0.0.0
-    loc_loadw.7
+    loc_loadw.28
     swapw
-    loc_loadw.3
+    loc_loadw.12
     movup.3
     movup.3
     drop
@@ -3300,7 +3300,7 @@ export.mont_mul.8
     movup.3
     u32wrapping_add3
 
-    loc_load.4
+    loc_load.16
     u32overflowing_mul.2147483655
     swap
     movup.3
@@ -3313,10 +3313,10 @@ export.mont_mul.8
     u32wrapping_add3
     swap
     push.0.0.0.0
-    loc_loadw.6
+    loc_loadw.24
     movup.3
     drop
-    loc_storew.6
+    loc_storew.24
     dropw
 
     movup.2
@@ -3332,7 +3332,7 @@ export.mont_mul.8
     movup.3
     u32wrapping_add3
 
-    loc_load.4
+    loc_load.16
     u32overflowing_mul.2147483645
     swap
     movup.3
@@ -3349,7 +3349,7 @@ export.mont_mul.8
     push.0.0
     movup.3
     movup.3
-    loc_storew.7
+    loc_storew.28
     dropw
     drop
 
@@ -3359,15 +3359,15 @@ export.mont_mul.8
     loc_load.0
     u32wrapping_mul
     push.0.0.0.0
-    loc_loadw.5
+    loc_loadw.20
     dup
     movup.5
     u32wrapping_add
     u32wrapping_mul.91978719
-    loc_store.4
+    loc_store.16
 
     push.0.0.0.0
-    loc_loadw.1
+    loc_loadw.4
     dup.8
     u32overflowing_mul
     swap
@@ -3376,7 +3376,7 @@ export.mont_mul.8
     movup.2
     u32wrapping_add
 
-    loc_load.4
+    loc_load.16
     u32overflowing_mul.2492202977
     swap
     movup.3
@@ -3399,7 +3399,7 @@ export.mont_mul.8
     movup.3
     u32wrapping_add3
 
-    loc_load.4
+    loc_load.16
     u32overflowing_mul.3893352854
     swap
     movup.3
@@ -3413,7 +3413,7 @@ export.mont_mul.8
     swap
     push.0.0.0
     movup.3
-    loc_storew.5
+    loc_storew.20
     dropw
 
     movup.2
@@ -3429,7 +3429,7 @@ export.mont_mul.8
     movup.3
     u32wrapping_add3
 
-    loc_load.4
+    loc_load.16
     u32overflowing_mul.3609501852
     swap
     movup.3
@@ -3442,12 +3442,12 @@ export.mont_mul.8
     u32wrapping_add3
     swap
     push.0.0.0.0
-    loc_loadw.5
+    loc_loadw.20
     swap
     drop
     movup.3
     swap
-    loc_storew.5
+    loc_storew.20
     dropw
 
     movup.2
@@ -3463,7 +3463,7 @@ export.mont_mul.8
     movup.3
     u32wrapping_add3
 
-    loc_load.4
+    loc_load.16
     u32overflowing_mul.3901250617
     swap
     movup.3
@@ -3476,18 +3476,18 @@ export.mont_mul.8
     u32wrapping_add3
     swap
     push.0.0.0.0
-    loc_loadw.5
+    loc_loadw.20
     movup.2
     drop
     movup.3
     movdn.2
-    loc_storew.5
+    loc_storew.20
     dropw
 
     push.0.0.0.0.0.0.0.0
-    loc_loadw.6
+    loc_loadw.24
     swapw
-    loc_loadw.2
+    loc_loadw.8
     movup.9
     movup.9
 
@@ -3504,7 +3504,7 @@ export.mont_mul.8
     movup.3
     u32wrapping_add3
 
-    loc_load.4
+    loc_load.16
     u32overflowing_mul.3484943929
     swap
     movup.3
@@ -3517,10 +3517,10 @@ export.mont_mul.8
     u32wrapping_add3
     swap
     push.0.0.0.0
-    loc_loadw.5
+    loc_loadw.20
     movup.3
     drop
-    loc_storew.5
+    loc_storew.20
     dropw
 
     movup.2
@@ -3536,7 +3536,7 @@ export.mont_mul.8
     movup.3
     u32wrapping_add3
 
-    loc_load.4
+    loc_load.16
     u32overflowing_mul.2147483622
     swap
     movup.3
@@ -3550,7 +3550,7 @@ export.mont_mul.8
     swap
     push.0.0.0
     movup.3
-    loc_storew.6
+    loc_storew.24
     dropw
 
     movup.2
@@ -3566,7 +3566,7 @@ export.mont_mul.8
     movup.3
     u32wrapping_add3
 
-    loc_load.4
+    loc_load.16
     u32overflowing_mul.22
     swap
     movup.3
@@ -3579,12 +3579,12 @@ export.mont_mul.8
     u32wrapping_add3
     swap
     push.0.0.0.0
-    loc_loadw.6
+    loc_loadw.24
     swap
     drop
     movup.3
     swap
-    loc_storew.6
+    loc_storew.24
     dropw
 
     movup.2
@@ -3600,7 +3600,7 @@ export.mont_mul.8
     movup.3
     u32wrapping_add3
 
-    loc_load.4
+    loc_load.16
     u32overflowing_mul.2147483633
     swap
     movup.3
@@ -3613,18 +3613,18 @@ export.mont_mul.8
     u32wrapping_add3
     swap
     push.0.0.0.0
-    loc_loadw.6
+    loc_loadw.24
     movup.2
     drop
     movup.3
     movdn.2
-    loc_storew.6
+    loc_storew.24
     dropw
 
     push.0.0.0.0.0.0.0.0
-    loc_loadw.7
+    loc_loadw.28
     swapw
-    loc_loadw.3
+    loc_loadw.12
     movup.3
     movup.3
     drop
@@ -3649,7 +3649,7 @@ export.mont_mul.8
     movup.3
     u32wrapping_add3
 
-    loc_load.4
+    loc_load.16
     u32overflowing_mul.2147483655
     swap
     movup.3
@@ -3662,10 +3662,10 @@ export.mont_mul.8
     u32wrapping_add3
     swap
     push.0.0.0.0
-    loc_loadw.6
+    loc_loadw.24
     movup.3
     drop
-    loc_storew.6
+    loc_storew.24
     dropw
 
     movup.2
@@ -3681,7 +3681,7 @@ export.mont_mul.8
     movup.3
     u32wrapping_add3
 
-    loc_load.4
+    loc_load.16
     u32overflowing_mul.2147483645
     swap
     movup.3
@@ -3698,7 +3698,7 @@ export.mont_mul.8
     push.0.0
     movup.3
     movup.3
-    loc_storew.7
+    loc_storew.28
     dropw
     drop
 
@@ -3706,11 +3706,11 @@ export.mont_mul.8
     #
     # this will be used when executing https://github.com/itzmeanjan/miden/blob/6a611e693601577864da3e43e745525b83c0030d/miden/tests/integration/stdlib/math/ext5_scalar.rs#L131
     push.0.0.0.0.0.0.0.0.0.0.0.0
-    loc_loadw.7
+    loc_loadw.28
     swapw
-    loc_loadw.6
+    loc_loadw.24
     movupw.2
-    loc_loadw.5
+    loc_loadw.20
     movup.11
     movup.11
     drop
@@ -3723,11 +3723,11 @@ export.mont_mul.8
     #
     # this will be used when executing https://github.com/itzmeanjan/miden/blob/6a611e693601577864da3e43e745525b83c0030d/miden/tests/integration/stdlib/math/ext5_scalar.rs#L130
     push.0.0.0.0.0.0.0.0.0.0.0.0
-    loc_loadw.7
+    loc_loadw.28
     swapw
-    loc_loadw.6
+    loc_loadw.24
     movupw.2
-    loc_loadw.5
+    loc_loadw.20
     movup.11
     movup.11
     drop
@@ -3803,28 +3803,28 @@ end
 #! Note, if input operand is 0, then multiplicative inverse can't be computed, which is why output result is also 0.
 #!
 #! Adapted from equivalent Rust implementation https://github.com/itzmeanjan/miden/blob/6a611e693601577864da3e43e745525b83c0030d/miden/tests/integration/stdlib/math/ext5_scalar.rs#L162-L176
-export.inv.6
+export.inv.24
     # cache result initial value 1 ( in Montgomery form )
     push.0.0.4.4294967281.29.4294967251.50.1620046732.787433356.1370930886.803228882.3605528638
     loc_storew.0
     dropw
-    loc_storew.1
+    loc_storew.4
     dropw
-    loc_storew.2
+    loc_storew.8
     dropw
 
     # compute Montgomery form of base and cache it
     #
     # note, base ( i.e. input operand ) is expected in radix-2^32 form
     exec.to_mont
-    loc_storew.3
+    loc_storew.12
     dropw
-    loc_storew.4
+    loc_storew.16
     dropw
     push.0.0
     movup.3
     movup.3
-    loc_storew.5
+    loc_storew.20
     dropw
 
     push.2492202975.3893352854.3609501852.3901250617.3484943929.2147483622.22.2147483633.2147483655.2147483645
@@ -3833,9 +3833,9 @@ export.inv.6
         repeat.32
             # bring res back to stack
             push.0.0.0.0.0.0.0.0.0.0.0.0
-            loc_loadw.2
+            loc_loadw.8
             swapw
-            loc_loadw.1
+            loc_loadw.4
             movupw.2
             loc_loadw.0
             movup.11
@@ -3848,12 +3848,12 @@ export.inv.6
             # write res back to memory
             loc_storew.0
             dropw
-            loc_storew.1
+            loc_storew.4
             dropw
             push.0.0
             movup.3
             movup.3
-            loc_storew.2
+            loc_storew.8
             dropw
 
             dup
@@ -3861,11 +3861,11 @@ export.inv.6
             if.true
                 # bring base back to stack
                 push.0.0.0.0.0.0.0.0.0.0.0.0
-                loc_loadw.5
+                loc_loadw.20
                 swapw
-                loc_loadw.4
+                loc_loadw.16
                 movupw.2
-                loc_loadw.3
+                loc_loadw.12
                 movup.11
                 movup.11
                 drop
@@ -3873,9 +3873,9 @@ export.inv.6
 
                 # bring res back to stack
                 push.0.0.0.0.0.0.0.0.0.0.0.0
-                loc_loadw.2
+                loc_loadw.8
                 swapw
-                loc_loadw.1
+                loc_loadw.4
                 movupw.2
                 loc_loadw.0
                 movup.11
@@ -3888,12 +3888,12 @@ export.inv.6
                 # write res back to memory
                 loc_storew.0
                 dropw
-                loc_storew.1
+                loc_storew.4
                 dropw
                 push.0.0
                 movup.3
                 movup.3
-                loc_storew.2
+                loc_storew.8
                 dropw
             end
 
@@ -3905,9 +3905,9 @@ export.inv.6
 
     # bring res back to stack
     push.0.0.0.0.0.0.0.0.0.0.0.0
-    loc_loadw.2
+    loc_loadw.8
     swapw
-    loc_loadw.1
+    loc_loadw.4
     movupw.2
     loc_loadw.0
     movup.11

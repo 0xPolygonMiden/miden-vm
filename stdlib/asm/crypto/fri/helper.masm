@@ -101,24 +101,25 @@ export.load_fri_layer_commitments
     neq
     while.true
         swapw               # [Y, num_layers, ptr_layer, y, y, ...]
-        adv_loadw           # [Com, num_layers, ptr_layer, y, y, ...]
+        adv_loadw           # [COM, num_layers, ptr_layer, y, y, ...]
 
         # Save FRI layer commitment
         dup.5
-        add.1
+        add.4
         swap.6
         mem_storew
-        #=> [Com, num_layers, ptr_layer + 1, y, y, ...]
+        #=> [COM, num_layers, ptr_layer + 4, y, y, ...]
 
         # Reseed
         exec.random_coin::reseed
-        # => [num_layers, ptr_layer + 1, y, y, ...]
+        # => [num_layers, ptr_layer + 4, y, y, ...]
 
         push.0.0.0.0
         exec.random_coin::get_rate_1
+        #=> [R1, ZERO, num_layers, ptr_layer + 4, y, y, ... ]
         push.0.0
         exec.constants::tmp5 mem_loadw
-        # => [lde_size, log2(lde_size), lde_generator, 0, a1, a0, Y, num_layers, ptr_layer + 1, y, y, ...]
+        # => [lde_size, log2(lde_size), lde_generator, 0, a1, a0, Y, num_layers, ptr_layer + 4, y, y, ...]
 
         # Compute and save to memory new lde_size and its new logarithm
         div.4
@@ -132,15 +133,15 @@ export.load_fri_layer_commitments
         movup.2 drop
         swapw
         dropw
-        # => [lde_size, log2(lde_size), a1, a0, num_layers, ptr_layer + 1, y, y, Y, ...]
+        # => [lde_size, log2(lde_size), a1, a0, num_layers, ptr_layer + 4, y, y, Y, ...]
 
         # Save [lde_size, log2(lde_size), a1, a0] in memory next to the layer commitment
         dup.5
-        add.1
+        add.4
         swap.6
         mem_storew
         swapw
-        # => [num_layers, ptr_layer + 2, y, y, lde_size, log2(lde_size), a1, a0, Y]
+        # => [num_layers, ptr_layer + 8, y, y, lde_size, log2(lde_size), a1, a0, Y]
 
         # Decrement the FRI layer counter
         sub.1
@@ -170,17 +171,21 @@ export.load_and_verify_remainder
     push.0.0.0.0
     adv_loadw
     exec.constants::tmp7 mem_storew
+    #=> [COM, ...]
 
     # Reseed with remainder commitment
     exec.random_coin::reseed
+    #=> [...]
 
     # adv_pipe the remainder codeword
     ## Get the length of remainder
-    exec.constants::tmp6 mem_loadw
+    padw exec.constants::tmp6 mem_loadw
     ## Compute the correct remainder pointer using length of remainder
     exec.constants::fri_com_ptr
+    #=> [fri_com_ptr, num_fri_layers, remainder_size, lde_size, lde_size]
+    
     swap
-    mul.2
+    mul.8
     add
     ## Store for later use
     exec.constants::tmp8 mem_storew
@@ -205,12 +210,12 @@ export.load_and_verify_remainder
         # coefficients first.
         adv_loadw
         dup.12
-        add.16
+        add.64
         mem_storew
         swapw
         adv_loadw
         dup.12
-        add.17
+        add.68
         mem_storew
         hperm
         # => [Y, Remainder_poly_com, Y, ptr_remainder, remainder_size, y, y]
@@ -246,23 +251,23 @@ export.load_and_verify_remainder
         # coefficients first.
         adv_loadw
         dup.12
-        add.32
+        add.128
         mem_storew
         swapw
         adv_loadw
         dup.12
-        add.33
+        add.132
         mem_storew
         hperm
 
         adv_loadw
         dup.12
-        add.34
+        add.136
         mem_storew
         swapw
         adv_loadw
         dup.12
-        add.35
+        add.140
         mem_storew
         hperm
         # => [Y, Remainder_poly_com, Y, ptr_remainder, remainder_size, y, y]

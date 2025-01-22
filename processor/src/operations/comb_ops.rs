@@ -1,4 +1,4 @@
-use vm_core::{Felt, Operation, ONE, ZERO};
+use vm_core::{Felt, Operation, ZERO};
 
 use crate::{ExecutionError, Process, QuadFelt};
 
@@ -35,7 +35,7 @@ impl Process {
     /// Output:
     ///
     /// +------+------+------+------+------+------+------+------+------+------+------+------+------+--------+--------+---+
-    /// |  T0  |  T7  |  T6  |  T5  |  T4  |  T3  |  T2  |  T1  |  p1' |  p0' |  r1' |  r0' |x_addr|z_addr+1|a_addr+1| - |
+    /// |  T0  |  T7  |  T6  |  T5  |  T4  |  T3  |  T2  |  T1  |  p1' |  p0' |  r1' |  r0' |x_addr|z_addr+4|a_addr+4| - |
     /// +------+------+------+------+------+------+------+------+------+------+------+------+------+--------+--------+---+
     ///
     ///
@@ -91,9 +91,10 @@ impl Process {
         self.stack.set(11, r_new.to_base_elements()[0]);
 
         // --- update the memory pointers ---------------------------------------------------------
+        const FOUR: Felt = Felt::new(4);
         self.stack.set(12, self.stack.get(12));
-        self.stack.set(13, self.stack.get(13) + ONE);
-        self.stack.set(14, self.stack.get(14) + ONE);
+        self.stack.set(13, self.stack.get(13) + FOUR);
+        self.stack.set(14, self.stack.get(14) + FOUR);
 
         // --- copy the rest of the stack ---------------------------------------------------------
         self.stack.copy_state(15);
@@ -125,7 +126,7 @@ impl Process {
     fn get_randomness(&mut self) -> Result<QuadFelt, ExecutionError> {
         let ctx = self.system.ctx();
         let addr = self.stack.get(14);
-        let word = self.chiplets.read_mem(ctx, addr.as_int() as u32)?;
+        let word = self.chiplets.memory_mut().read_word(ctx, addr, self.system.clk())?;
         let a0 = word[0];
         let a1 = word[1];
 
@@ -136,7 +137,7 @@ impl Process {
     fn get_ood_values(&mut self) -> Result<[QuadFelt; 2], ExecutionError> {
         let ctx = self.system.ctx();
         let addr = self.stack.get(13);
-        let word = self.chiplets.read_mem(ctx, addr.as_int() as u32)?;
+        let word = self.chiplets.memory_mut().read_word(ctx, addr, self.system.clk())?;
 
         Ok([QuadFelt::new(word[0], word[1]), QuadFelt::new(word[2], word[3])])
     }
@@ -172,7 +173,7 @@ mod tests {
     use alloc::{borrow::ToOwned, vec::Vec};
 
     use test_utils::{build_test, rand::rand_array, TRUNCATE_STACK_PROC};
-    use vm_core::{Felt, FieldElement, Operation, StackInputs, ONE, ZERO};
+    use vm_core::{Felt, FieldElement, Operation, StackInputs, ZERO};
 
     use crate::{ContextId, DefaultHost, Process, QuadFelt};
 
@@ -203,9 +204,11 @@ mod tests {
         let tztgz = rand_array::<Felt, 4>();
         process
             .chiplets
-            .write_mem(
+            .memory_mut()
+            .write_word(
                 ctx,
                 inputs[2].as_int().try_into().expect("Shouldn't fail by construction"),
+                process.system.clk(),
                 tztgz,
             )
             .unwrap();
@@ -213,9 +216,11 @@ mod tests {
         let a = rand_array::<Felt, 4>();
         process
             .chiplets
-            .write_mem(
+            .memory_mut()
+            .write_word(
                 ctx,
                 inputs[1].as_int().try_into().expect("Shouldn't fail by construction"),
+                process.system.clk(),
                 a,
             )
             .unwrap();
@@ -267,9 +272,10 @@ mod tests {
         assert_eq!(r_new.to_base_elements()[0], stack_state[11]);
 
         // --- check that memory pointers were updated --------------------------------------------
+        const FOUR: Felt = Felt::new(4);
         assert_eq!(inputs[12], stack_state[12]);
-        assert_eq!(inputs[13] + ONE, stack_state[13]);
-        assert_eq!(inputs[14] + ONE, stack_state[14]);
+        assert_eq!(inputs[13] + FOUR, stack_state[13]);
+        assert_eq!(inputs[14] + FOUR, stack_state[14]);
 
         // --- check that the helper registers were updated correctly -----------------------------
         let helper_reg_expected = [tz0, tz1, tgz0, tgz1, a0, a1];
@@ -305,8 +311,8 @@ mod tests {
                 # 5) Prepare stack
 
                 ## a) Push pointers
-                push.10     # a_ptr
-                push.2      # z_ptr
+                push.40     # a_ptr
+                push.8      # z_ptr
                 push.0      # x_ptr
 
                 ## b) Push accumulators
@@ -359,7 +365,7 @@ mod tests {
         // create the expected operand stack
         let mut expected = Vec::new();
         // updated pointers
-        expected.extend_from_slice(&[ZERO, Felt::from(18_u8), Felt::from(10_u8), Felt::from(2_u8)]);
+        expected.extend_from_slice(&[ZERO, Felt::from(72_u8), Felt::from(40_u8), Felt::from(8_u8)]);
         // updated accumulators
         expected.extend_from_slice(&[
             r.to_base_elements()[0],
