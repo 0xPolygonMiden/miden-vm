@@ -170,7 +170,6 @@ impl Process {
 
     /// Makes sure there is enough memory allocated for the trace to accommodate a new clock cycle.
     pub(super) fn ensure_trace_capacity(&mut self) {
-        self.system.ensure_trace_capacity();
         self.stack.ensure_trace_capacity();
     }
 }

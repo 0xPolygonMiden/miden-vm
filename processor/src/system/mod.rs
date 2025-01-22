@@ -1,7 +1,13 @@
 use alloc::vec::Vec;
 use core::fmt::{self, Display};
 
-use miden_air::RowIndex;
+use miden_air::{
+    trace::{
+        CLK_COL_IDX, CTX_COL_IDX, FMP_COL_IDX, FN_HASH_OFFSET, IN_SYSCALL_COL_IDX, SYS_TRACE_WIDTH,
+    },
+    RowIndex,
+};
+use vm_core::utils::uninit_vector;
 
 use super::{ExecutionError, Felt, FieldElement, SysTrace, Word, EMPTY_WORD, ONE, ZERO};
 
@@ -30,6 +36,15 @@ pub const FMP_MAX: u64 = 3 * 2_u64.pow(30) - 1;
 // SYSTEM INFO
 // ================================================================================================
 
+#[derive(Debug)]
+struct SystemTraceRow {
+    ctx: Felt,
+    clk: Felt,
+    fmp: Felt,
+    in_syscall: Felt,
+    fn_hash: [Felt; 4],
+}
+
 /// System info container for the VM.
 ///
 /// This keeps track of the following system variables:
@@ -47,11 +62,7 @@ pub struct System {
     fmp: Felt,
     in_syscall: bool,
     fn_hash: Word,
-    ctx_trace: Vec<Felt>,
-    clk_trace: Vec<Felt>,
-    fmp_trace: Vec<Felt>,
-    in_syscall_trace: Vec<Felt>,
-    fn_hash_trace: [Vec<Felt>; 4],
+    rows: Vec<SystemTraceRow>,
 }
 
 impl System {
@@ -61,10 +72,21 @@ impl System {
     ///
     /// Initializes the free memory pointer `fmp` used for local memory offsets to 2^30.
     pub fn new(init_trace_capacity: usize) -> Self {
-        // set the first value of the fmp trace to 2^30.
         let fmp = Felt::new(FMP_MIN);
-        let mut fmp_trace = vec![Felt::ZERO; init_trace_capacity];
-        fmp_trace[0] = fmp;
+
+        let rows = {
+            let first_row = SystemTraceRow {
+                ctx: Felt::ZERO,
+                clk: Felt::ZERO,
+                fmp,
+                in_syscall: Felt::ZERO,
+                fn_hash: [Felt::ZERO; 4],
+            };
+
+            let mut rows = Vec::with_capacity(init_trace_capacity);
+            rows.push(first_row);
+            rows
+        };
 
         Self {
             clk: RowIndex::from(0),
@@ -72,16 +94,7 @@ impl System {
             fmp,
             in_syscall: false,
             fn_hash: EMPTY_WORD,
-            clk_trace: vec![Felt::ZERO; init_trace_capacity],
-            ctx_trace: vec![Felt::ZERO; init_trace_capacity],
-            fmp_trace,
-            in_syscall_trace: vec![Felt::ZERO; init_trace_capacity],
-            fn_hash_trace: [
-                vec![Felt::ZERO; init_trace_capacity],
-                vec![Felt::ZERO; init_trace_capacity],
-                vec![Felt::ZERO; init_trace_capacity],
-                vec![Felt::ZERO; init_trace_capacity],
-            ],
+            rows,
         }
     }
 
@@ -128,13 +141,14 @@ impl System {
     /// Returns execution context ID at the specified clock cycle.
     #[inline(always)]
     pub fn get_ctx_at(&self, clk: RowIndex) -> ContextId {
-        (self.ctx_trace[clk.as_usize()].as_int() as u32).into()
+        let ctx = self.rows[clk.as_usize()].ctx.as_int() as u32;
+        ctx.into()
     }
 
     /// Returns free memory pointer at the specified clock cycle.
     #[inline(always)]
     pub fn get_fmp_at(&self, clk: RowIndex) -> Felt {
-        self.fmp_trace[clk.as_usize()]
+        self.rows[clk.as_usize()].fmp
     }
 
     // STATE MUTATORS
@@ -145,21 +159,19 @@ impl System {
         self.clk += 1;
 
         // Check that maximum number of cycles is not exceeded.
+        // TODO(plafer): do that somewhere else, only once
         if self.clk.as_u32() > max_cycles {
             return Err(ExecutionError::CycleLimitExceeded(max_cycles));
         }
 
-        let clk: usize = self.clk.into();
-
-        self.clk_trace[clk] = Felt::from(self.clk);
-        self.fmp_trace[clk] = self.fmp;
-        self.ctx_trace[clk] = Felt::from(self.ctx);
-        self.in_syscall_trace[clk] = if self.in_syscall { ONE } else { ZERO };
-
-        self.fn_hash_trace[0][clk] = self.fn_hash[0];
-        self.fn_hash_trace[1][clk] = self.fn_hash[1];
-        self.fn_hash_trace[2][clk] = self.fn_hash[2];
-        self.fn_hash_trace[3][clk] = self.fn_hash[3];
+        let row = SystemTraceRow {
+            ctx: self.ctx.into(),
+            clk: self.clk.into(),
+            fmp: self.fmp,
+            in_syscall: if self.in_syscall { ONE } else { ZERO },
+            fn_hash: self.fn_hash,
+        };
+        self.rows.push(row);
 
         Ok(())
     }
@@ -238,66 +250,51 @@ impl System {
     /// `num_rand_rows` indicates the number of rows at the end of the trace which will be
     /// overwritten with random values. This parameter is unused because last rows are just
     /// duplicates of the prior rows and thus can be safely overwritten.
-    pub fn into_trace(mut self, trace_len: usize, num_rand_rows: usize) -> SysTrace {
-        let clk: usize = self.clk().into();
+    pub fn into_trace(self, trace_len: usize, num_rand_rows: usize) -> SysTrace {
+        let own_len = self.rows.len();
         // make sure that only the duplicate rows will be overwritten with random values
-        assert!(clk + num_rand_rows <= trace_len, "target trace length too small");
+        assert!(own_len + num_rand_rows <= trace_len, "target trace length too small");
 
-        // complete the clk column by filling in all values after the last clock cycle. The values
-        // in the clk column are equal to the index of the row in the trace table.
-        self.clk_trace.resize(trace_len, ZERO);
-        for (i, clk) in self.clk_trace.iter_mut().enumerate().skip(clk) {
-            // converting from u32 is OK here because max trace length is 2^32
-            *clk = Felt::from(i as u32);
+        let mut trace_columns = unsafe { vec![uninit_vector(trace_len); SYS_TRACE_WIDTH] };
+
+        for (i, row) in self.rows.into_iter().enumerate() {
+            trace_columns[CLK_COL_IDX][i] = row.clk;
+            trace_columns[FMP_COL_IDX][i] = row.fmp;
+            trace_columns[CTX_COL_IDX][i] = row.ctx;
+            trace_columns[IN_SYSCALL_COL_IDX][i] = row.in_syscall;
+            for (j, hash) in row.fn_hash.iter().enumerate() {
+                trace_columns[FN_HASH_OFFSET + j][i] = *hash;
+            }
+        }
+
+        // padding rows
+
+        // complete the clk column by filling in all values after the last clock cycle, which
+        // continue to increment at each row.
+        for i in own_len..trace_len {
+            trace_columns[CLK_COL_IDX][i] = Felt::from(i as u32);
         }
 
         // complete the ctx column by filling all values after the last clock cycle with ZEROs as
         // the last context must be zero context.
-        debug_assert!(self.ctx.is_root());
-        self.ctx_trace.resize(trace_len, ZERO);
+        trace_columns[CTX_COL_IDX][own_len..trace_len].fill(ZERO);
 
         // complete the fmp column by filling in all values after the last clock cycle with the
         // value in the column at the last clock cycle.
-        let last_value = self.fmp_trace[clk];
-        self.fmp_trace[clk..].fill(last_value);
-        self.fmp_trace.resize(trace_len, last_value);
+        trace_columns[FMP_COL_IDX][own_len..trace_len].fill(self.fmp);
 
         // complete the in_syscall column by filling all values after the last clock cycle with
         // ZEROs as we must end the program in the root context which is not a SYSCALL
-        debug_assert!(!self.in_syscall);
-        self.in_syscall_trace.resize(trace_len, ZERO);
-
-        let mut trace = vec![self.clk_trace, self.fmp_trace, self.ctx_trace, self.in_syscall_trace];
+        trace_columns[IN_SYSCALL_COL_IDX][own_len..trace_len].fill(ZERO);
 
         // complete the fn hash columns by filling them with ZEROs as program execution must always
         // end in the root context.
-        debug_assert_eq!(self.fn_hash, EMPTY_WORD);
-        for mut column in self.fn_hash_trace.into_iter() {
-            column.resize(trace_len, ZERO);
-            trace.push(column);
-        }
+        trace_columns[FN_HASH_OFFSET][own_len..trace_len].fill(ZERO);
+        trace_columns[FN_HASH_OFFSET + 1][own_len..trace_len].fill(ZERO);
+        trace_columns[FN_HASH_OFFSET + 2][own_len..trace_len].fill(ZERO);
+        trace_columns[FN_HASH_OFFSET + 3][own_len..trace_len].fill(ZERO);
 
-        trace.try_into().expect("failed to convert vector to array")
-    }
-
-    // UTILITY METHODS
-    // --------------------------------------------------------------------------------------------
-
-    /// Makes sure there is enough memory allocated for the trace to accommodate a new row.
-    ///
-    /// Trace length is doubled every time it needs to be increased.
-    pub fn ensure_trace_capacity(&mut self) {
-        let current_capacity = self.clk_trace.len();
-        if self.clk + 1 >= RowIndex::from(current_capacity) {
-            let new_length = current_capacity * 2;
-            self.clk_trace.resize(new_length, ZERO);
-            self.ctx_trace.resize(new_length, ZERO);
-            self.fmp_trace.resize(new_length, ZERO);
-            self.in_syscall_trace.resize(new_length, ZERO);
-            for column in self.fn_hash_trace.iter_mut() {
-                column.resize(new_length, ZERO);
-            }
-        }
+        trace_columns.try_into().expect("failed to convert vector to array")
     }
 }
 
