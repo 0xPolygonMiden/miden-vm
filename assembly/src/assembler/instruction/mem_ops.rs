@@ -125,7 +125,17 @@ pub fn local_to_absolute_addr(
     }
 
     let max = num_proc_locals - 1;
-    validate_param(index, 0..=max)?;
+    if index > max {
+        return Err(AssemblyError::Other(
+            Report::msg(
+                format!(
+                    "invalid local memory index: {} is out of bounds for procedure with {} locals (valid range: 0..{})",
+                    index, num_proc_locals, max
+                )
+            )
+            .into(),
+        ));
+    }
 
     push_felt(block_builder, -Felt::from(max - index));
     block_builder.push_op(FmpAdd);
