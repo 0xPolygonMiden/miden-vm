@@ -110,41 +110,7 @@ pub struct Package {
 }
 
 impl Package {
-    // const MAGIC: &'static [u8] = b"MASP\0";
-    // const FORMAT_VERSION: &'static [u8] = b"1.0\0";
-
-    ///// Parses a package from the provided bytes
-    //pub fn read_from_bytes<B>(bytes: B) -> Result<Self, Report>
-    //where
-    //    B: AsRef<[u8]>,
-    //{
-    //    use alloc::borrow::Cow;
-    //
-    //    let bytes = bytes.as_ref();
-    //
-    //    let bytes = bytes
-    //        .strip_prefix(Self::MAGIC)
-    //        .ok_or_else(|| Report::msg("invalid package: missing header"))?;
-    //    let bytes = bytes.strip_prefix(Self::FORMAT_VERSION).ok_or_else(|| {
-    //        Report::msg(format!(
-    //            "invalid package: incorrect version, expected '1.0', got '{}'",
-    //            bytes.get(0..4).map(String::from_utf8_lossy).unwrap_or(Cow::Borrowed("")),
-    //        ))
-    //    })?;
-    //
-    //    bitcode::deserialize(bytes).map_err(Report::msg)
-    //}
-    //
-    ///// Serializes the package into a byte array
-    //pub fn write_to_bytes(&self) -> Result<Vec<u8>, Report> {
-    //    let mut bytes = Vec::new();
-    //    bytes.extend_from_slice(Self::MAGIC);
-    //    bytes.extend_from_slice(Self::FORMAT_VERSION);
-    //    let mut data = bitcode::serialize(self).map_err(Report::msg)?;
-    //    bytes.append(&mut data);
-    //    Ok(bytes)
-    //}
-
+    /// Returns the digest of the package's MAST artifact
     pub fn digest(&self) -> Digest {
         self.mast.digest()
     }
