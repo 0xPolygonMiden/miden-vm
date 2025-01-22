@@ -1,6 +1,6 @@
 # Memory chiplet
 
-Miden VM supports linear read-write random access memory. This memory is word-addressable, meaning, four values are located at each address, and we can read and write values to/from memory in batches of four. Each value is a field element in a $64$-bit prime field with modulus $2^{64} - 2^{32} + 1$. Memory address can be any field element.
+Miden VM supports linear read-write random access memory. This memory is element-addressable, meaning that a single value is located at each address, although reading and writing values to/from memory in batches of four is supported. Each value is a field element in a $64$-bit prime field with modulus $2^{64} - 2^{32} + 1$. A memory address is a field element in the range $[0, 2^{32})$.
 
 In this note we describe the rationale for selecting the above design and describe AIR constraints needed to support it.
 
@@ -162,7 +162,7 @@ Notice that the above constraint has degree $5$.
 
 While the approach described above works, it comes at significant cost. Reading or writing a single value requires $8$ trace cells and $2$ $16$-bit range checks. Assuming a single range check requires roughly $2$ trace cells, the total number of trace cells needed grows to $12$. This is about $6$x worse the simple contiguous write-once memory described earlier.
 
-Miden VM frequently needs to deal with batches of $4$ field elements, which we call _words_. For example, the output of Rescue Prime Optimized hash function is a single word. A single 256-bit integer value can be stored as two words (where each element contains one $32$-bit value). Thus, we can optimize for this common use case by making the memory _word-addressable_. That is $4$ field elements are located at each memory address, and we can read and write elements to/from memory in batches of four.
+Miden VM frequently needs to deal with batches of $4$ field elements, which we call _words_. For example, the output of Rescue Prime Optimized hash function is a single word. A single 256-bit integer value can be stored as two words (where each element contains one $32$-bit value). Thus, we can optimize for this common use case by making the chiplet handle *words* as opposed to individual elements. That is, memory is still element-addressable in that each memory address stores a single field element, and memory addresses may be read or written individually. However, the chiplet also handles reading and writing elements in batches of four simultaneously, with the restriction that such batches be *word-aligned* addresses (*i.e.* the address is a multiple of 4).
 
 The layout of Miden VM memory table is shown below:
 
@@ -170,116 +170,174 @@ The layout of Miden VM memory table is shown below:
 
 where:
 
-- `s0` is a selector column which is set to $1$ for read operations and $0$ for write operations.
-- `s1` is a selector oclumn which is set to $1$ when previously accessed memory is being read and $0$ otherwise. In other words, it is set to $1$ only when the context and address are the same as they were in the previous row and the `s0` operation selector is set to $1$ (indicating a read).
-- `ctx` contains context ID. Values in this column must increase monotonically but there can be gaps between two consecutive values of up to $2^{32}$. Also, two consecutive values can be the same. In AIR constraint description below, we refer to this column as $c$.
-- `addr` contains memory address. Values in this column must increase monotonically for a given context but there can be gaps between two consecutive values of up to $2^{32}$. Also, two consecutive values can be the same. In AIR constraint description below, we refer to this column as $a$.
-- `clk` contains clock cycle at which the memory operation happened. Values in this column must increase monotonically for a given context and memory address but there can be gaps between two consecutive values of up to $2^{32}$. In AIR constraint description below, we refer to this column as $i$.
-- `v0, v1, v2, v3` columns contain field elements stored at a given context/address/clock cycle after the memory operation.
+- `rw` is a selector column which is set to $1$ for read operations and $0$ for write operations.
+- `ew` is a selector column which is set to $1$ when a word is being accessed, and $0$ when an element is being accessed.
+- `ctx` contains context ID. Values in this column must increase monotonically but there can be gaps between two consecutive values of up to $2^{32}$. Also, two consecutive values can be the same.
+- `word_addr` contains the memory address of the first element in the word. Values in this column must increase monotonically for a given context but there can be gaps between two consecutive values of up to $2^{32}$. Values in this column must be divisible by 4. Also, two consecutive values can be the same. 
+- `idx0` and `idx1` are selector columns used to identify which element in the word is being accessed. Specifically, the index within the word is computed as `idx1 * 2 + idx0`.
+  - However, when `ew` is set to $1$ (indicating that a word is accessed), these columns are meaningless and are set to $0$.
+- `clk` contains clock cycle at which the memory operation happened. Values in this column must increase monotonically for a given context and memory word but there can be gaps between two consecutive values of up to $2^{32}$. In AIR constraint description below, we refer to this column as $i$.
+- `v0, v1, v2, v3` columns contain field elements stored at a given context/word/clock cycle after the memory operation.
 - Columns `d0` and `d1` contain lower and upper $16$ bits of the delta between two consecutive context IDs, addresses, or clock cycles. Specifically:
-  - When the context changes, these columns contain $(c' - c)$.
-  - When the context remains the same but the address changes, these columns contain $(a' - a)$.
-  - When both the context and the address remain the same, these columns contain $(i' - i - 1)$.
+  - When the context changes within a frame, these columns contain $(ctx' - ctx)$ in the "next" row.
+  - When the context remains the same but the word address changes within a frame, these columns contain $(a' - a)$ in the "next" row.
+  - When both the context and the word address remain the same within a frame, these columns contain $(clk' - clk - 1)$ in the "next" row.
 - Column `t` contains the inverse of the delta between two consecutive context IDs, addresses, or clock cycles. Specifically:
-  - When the context changes, this column contains the inverse of $(c' - c)$.
-  - When the context remains the same but the address changes, this column contains the inverse of $(a' - a)$.
-  - When both the context and the address remain the same, this column contains the inverse of $(i' - i - 1)$.
+  - When the context changes within a frame, this column contains the inverse of $(ctx' - ctx)$ in the "next" row.
+  - When the context remains the same but the word address changes within a frame, this column contains the inverse of $(a' - a)$ in the "next" row.
+  - When both the context and the word address remain the same within a frame, this column contains the inverse of $(clk' - clk - 1)$ in the "next" row.
+- Column `f_scw` stands for "flag same context and word address", which is set to $1$ when the current and previous rows have the same context and word address, and $0$ otherwise.
 
-For every memory access operation (i.e., read or write), a new row is added to the memory table. For read operations, `s0` is set to $1$. If neither `ctx` nor `addr` have changed, then `s1` is set to $1$ and the `v` columns are set to equal the values from the previous row. If `ctx` or `addr` have changed, then `s1` is set to $0$ and the `v` columns are initialized to $0$. For write operations, the values may be different, and both selector columns `s0` and `s1` are set to $0$.
-
-The amortized cost of reading or writing a single value is between $4$ and $5$ trace cells (this accounts for the trace cells needed for $16$-bit range checks). Thus, from performance standpoint, this approach is roughly $2.5$x worse than the simple contiguous write-once memory described earlier. However, our view is that this trade-off is worth it given that this approach provides read-write memory, context separation, and eliminates the contiguous memory requirement.
+For every memory access operation (i.e., read or write a word or element), a new row is added to the memory table. If neither `ctx` nor `addr` have changed, the `v` columns are set to equal the values from the previous row (except for any element written to). If `ctx` or `addr` have changed, then the `v` columns are initialized to $0$ (except for any element written to).
 
 ### AIR constraints
+
+We first define the memory chiplet selector flags. $s_0$, $s_1$ and $s_2$ will refer to the chiplet selector flags.
+
+- $f_{mem}$ is set to 1 when the current row is in the memory chiplet.
+$$
+f_{mem} = s_0 \cdot s_1 \cdot (1 - s_2) \text{ | degree} = 3
+$$
+
+- $f_{mem\_nl}$ is set to 1 when the current row is in the memory chiplet, except for the last row of the chiplet.
+
+$$
+f_{mem\_nl} = s_0 \cdot s_1 \cdot (1 - s_2') \text{ | degree} = 3
+$$
+
+- $f_{mem\_fr}$ is set to 1 when the next row is the first row of the memory chiplet.
+
+$$
+f_{mem\_fr} = (1 - s_0) \cdot f_{mem}' \text{ | degree} = 4
+$$
 
 To simplify description of constraints, we'll define two variables $n_0$ and $n_1$ as follows:
 
 $$
-n_0 = \Delta c \cdot t' \\
+n_0 = \Delta ctx \cdot t' \\
 n_1 = \Delta a \cdot t'
 $$
 
-Where $\Delta c = c' - c$ and $\Delta a = a' - a$.
+Where $\Delta ctx = ctx' - ctx$ and $\Delta a = a' - a$.
 
 To make sure the prover sets the value of column `t` correctly, we'll need to impose the following constraints:
 
 >$$
-n_0^2 - n_0 = 0 \text{ | degree} = 4
+f_{mem\_nl} \cdot (n_0^2 - n_0) = 0 \text{ | degree} = 7
 $$
 
 >$$
-(1 - n_0) \cdot  \Delta c = 0 \text{ | degree} = 3
+f_{mem\_nl} \cdot (1 - n_0) \cdot  \Delta ctx = 0 \text{ | degree} = 7
 $$
 
 >$$
-(1 - n_0) \cdot (n_1^2 - n_1) = 0 \text{ | degree} = 6
+f_{mem\_nl} \cdot (1 - n_0) \cdot (n_1^2 - n_1) = 0 \text{ | degree} = 9
 $$
 
 >$$
-(1 - n_0) \cdot (1 - n_1) \cdot \Delta a = 0 \text{ | degree} = 5
+f_{mem\_nl} \cdot (1 - n_0) \cdot (1 - n_1) \cdot \Delta a = 0 \text{ | degree} = 8
 $$
 
-The above constraints guarantee that when context changes, $n_0 = 1$. When context remains the same but address changes, $(1 - n_0) \cdot n_1 = 1$. And when neither the context nor the address change, $(1 - n_0) \cdot (1 - n_1) = 1$.
+The above constraints guarantee that when context changes, $n_0 = 1$. When context remains the same but word address changes, $(1 - n_0) \cdot n_1 = 1$. And when neither the context nor the word address change, $(1 - n_0) \cdot (1 - n_1) = 1$.
 
-To enforce the values of the selector columns, we first require that they both contain only binary values.
-
->$$
-s_0^2 - s_0 = 0 \text{ | degree} = 2
-$$
+We enforce that the `rw`, `ew`, `idx0` and `idx1` contain binary values.
 
 >$$
-s_1^2 - s_1 = 0 \text{ | degree} = 2
-$$
-
-Then we require that $s_1$ is always set to $1$ during read operations when the context and address did not change and to $0$ in all other cases.
-
->$$
-(1 - n_0) \cdot (1 - n_1) \cdot s'_0 \cdot (1 - s'_1) = 0 \text{ | degree} = 6
+f_{mem} \cdot (rw^2 - rw) = 0 \text{ | degree} = 5
 $$
 
 >$$
-(n_0 + (1 - n_0) \cdot n_1  + (1 - s'_0)) \cdot s'_1 = 0 \text{ | degree} = 5
+f_{mem} \cdot (ew^2 - ew) = 0 \text{ | degree} = 5
 $$
-
-The first constraint enforces that `s_1` is $1$ when the operation is a read and `ctx` and `addr` are both unchanged. The second constraint enforces that when either the context changed, the address changed, or the operation is a write, then `s_1` is set to $0$.
-
-
-To enforce the values of context ID, address, and clock cycle grow monotonically as described in the previous section, we define the following constraint.
 
 >$$
-\left(n_0 \cdot \Delta c + (1 - n_0) \cdot (n_1 \cdot \Delta a + (1 - n_1) \cdot \Delta i) \right) - (2^{16} \cdot d_1' + d_0') = 0 \text{ | degree} = 5
+f_{mem} \cdot (idx0^2 - idx0) = 0 \text{ | degree} = 5
 $$
 
-Where $\Delta i = i' - i - 1$.
+>$$
+f_{mem} \cdot (idx1^2 - idx1) = 0 \text{ | degree} = 5
+$$
+
+
+To enforce the values of context ID, word address, and clock cycle grow monotonically as described in the previous section, we define the following constraint.
+
+>$$
+f_{mem\_nl} \cdot \left(n_0 \cdot \Delta ctx + (1 - n_0) \cdot (n_1 \cdot \Delta a + (1 - n_1) \cdot \Delta clk) \right) - (2^{16} \cdot d_1' + d_0') = 0 \text{ | degree} = 8
+$$
+
+Where $\Delta clk = clk' - clk - 1$.
 
 In addition to this constraint, we also need to make sure that the values in registers $d_0$ and $d_1$ are less than $2^{16}$, and this can be done with [range checks](../range.md).
 
-Next, we need to make sure that values at a given memory address are always initialized to $0$. This can be done with the following constraint:
+Next, for all frames where the "current" and "next" rows are in the chiplet, we need to ensure that the value of the `f_scw` column in the "next" row is set to $1$ when the context and word address are the same, and $0$ otherwise.
 
 >$$
-s_0 \cdot (1 - s_1) \cdot v_i = 0 \text{ for } i \in \{0, 1, 2, 3\} \text{ | degree} = 3
+f_{mem\_nl} \cdot (f_{scw}' - (1 - n_0) \cdot (1-n_1)) = 0 \text{ | degree} = 7
 $$
 
-Thus, when the operation is a read and either the context changes or the address changes, values in the $v_i$ columns are guaranteed to be zeros.
+Note that this does not constrain the value of `f_scw` in the first row of the chiplet. This is intended, as the first row's constraints do not depend on the previous row (since the previous row is not part of the same chiplet), and therefore do not depend on `f_scw` (see "first row" constraints below).
 
-Lastly, we need to make sure that for the same context/address combination, the $v_i$ columns of the current row are equal to the corresponding $v_i$ columns of the next row. This can be done with the following constraints:
+Finally, we need to constrain the `v0, v1, v2, v3` columns. We will define a few variables to help in defining the constraints.
+
+$$
+\begin{align*}
+f_0 &= (1 - idx1) \cdot (1 - idx0) \text{ | degree} = 2\\
+f_1 &= (1 - idx1) \cdot idx0 \text{ | degree} = 2\\
+f_2 &= idx1 \cdot (1 - idx0) \text{ | degree} = 2\\
+f_3 &= idx1 \cdot idx0 \text{ | degree} = 2\\
+\end{align*}
+$$
+
+The flag $f_i$ is set to $1$ when $v_i$ is being accessed, and $0$ otherwise. Next, for $0 \leq i < 4$,
+
+$$
+c_i = rw' + (1 - rw') \cdot (1 - ew') \cdot (1 - f_i') \text{ | degree} = 4\\
+$$
+
+which is set to $1$ when $v_i$ is *not* written to, and $0$ otherwise.
+
+We're now ready to describe the constraints for the `v0, v1, v2, v3` columns.
+
+- For the first row of the chiplet (in the "next" position of the frame), for $0 \leq i < 4$,
 
 >$$
-s_1 \cdot (v_i' - v_i) = 0 \text{ for } i \in \{0, 1, 2, 3\} \text{ | degree} = 2
+f_{mem\_fr} \cdot c_i \cdot v_i' = 0 \text{ | degree} = 9\\
 $$
+
+That is, if the next row is the first row of the memory chiplet, and $v_i'$ is not written to, then $v_i'$ must be $0$.
+
+- For all rows of the chiplet except the first, for $0 \leq i < 4$,
+
+>$$
+f_{mem\_nl} \cdot c_i \cdot (f_{scw}' \cdot (v_i' - v_i) + (1 - f_{scw}') \cdot v_i') = 0 \text{ | degree} = 9\\
+$$
+
+That is, if $v_i$ is not written to, then either its value needs to be copied over from the previous row (when $f_{scw}' = 1$), or it must be set to 0 (when $f_{scw}' = 0$).
 
 #### Chiplets bus constraints
 Communication between the memory chiplet and the stack is accomplished via the chiplets bus $b_{chip}$. To respond to memory access requests from the stack, we need to divide the current value in $b_{chip}$ by the value representing a row in the memory table. This value can be computed as follows:
 
-$$
-v_{mem} = \alpha_0 + \alpha_1 \cdot op_{mem} + \alpha_2 \cdot c + \alpha_3 \cdot a + \alpha_4 \cdot i + \sum_{j=0}^3(\alpha_{j + 5} \cdot v_j)
+>$$
+\begin{align*}
+v_{mem} = \alpha_0 + \alpha_1 \cdot op_{mem} + \alpha_2 \cdot ctx + \alpha_3 \cdot a + \alpha_4 \cdot clk + ew \cdot v_{word} + (1 - ew) \cdot v_{element}\\ \text{ | degree} = 4
+\end{align*}
 $$
 
-Where, $op_{mem}$ is the unique [operation label](./main.md#operation-labels) of the memory access operation.
+where
+
+$$
+\begin{align*}
+v_{word} &= \sum_{j=0}^3(\alpha_{j + 5} \cdot v_j) \text{ | degree} = 1 \\ 
+v_{element} &= \alpha_5 \cdot \sum_{i=0}^3 f_i \cdot v_i \text{ | degree} = 3
+\end{align*}
+$$
+
+and where $op_{mem}$ is the appropriate [operation label](./main.md#operation-labels) of the memory access operation.
 
 To ensure that values of memory table rows are included into the chiplets bus, we impose the following constraint:
 
 >$$
-b_{chip}' = b_{chip} \cdot v_{mem} \text{ | degree} = 2
+b_{chip}' = b_{chip} \cdot v_{mem} \text{ | degree} = 5
 $$
 
 On the stack side, for every memory access request, a corresponding value is divided out of the $b_{chip}$ column. Specifics of how this is done are described [here](../stack/io_ops.md#memory-access-operations).

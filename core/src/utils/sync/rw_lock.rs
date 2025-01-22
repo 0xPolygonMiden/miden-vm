@@ -27,13 +27,13 @@ pub type RwLockWriteGuard<'a, T> = lock_api::RwLockWriteGuard<'a, Spinlock, T>;
 /// This is fundamentally a spinlock, in that blocking operations on the lock will spin until
 /// they succeed in acquiring/releasing the lock.
 ///
-/// To acheive the ability to share the underlying data with multiple readers, or hold
+/// To achieve the ability to share the underlying data with multiple readers, or hold
 /// exclusive access for one writer, the lock state is based on a "locked" count, where shared
 /// access increments the count by an even number, and acquiring exclusive access relies on the
 /// use of the lowest order bit to stop further shared acquisition, and indicate that the lock
 /// is exclusively held (the difference between the two is irrelevant from the perspective of
 /// a thread attempting to acquire the lock, but internally the state uses `usize::MAX` as the
-/// "exlusively locked" sentinel).
+/// "exclusively locked" sentinel).
 ///
 /// This mechanism gets us the following:
 ///
@@ -244,7 +244,7 @@ mod test {
 
     use loom::{model::Builder, sync::Arc};
 
-    use super::rwlock::{RwLock, Spinlock};
+    use super::{RwLock, Spinlock};
 
     #[test]
     fn test_rwlock_loom() {

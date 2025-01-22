@@ -4,7 +4,7 @@ use vm_core::mast::MastForestError;
 
 use crate::{
     ast::QualifiedProcedureName,
-    diagnostics::{Diagnostic, RelatedError, RelatedLabel, Report, SourceFile},
+    diagnostics::{Diagnostic, RelatedError, RelatedLabel, SourceFile},
     LibraryNamespace, LibraryPath, SourceSpan,
 };
 
@@ -61,6 +61,15 @@ pub enum AssemblyError {
         source_file: Option<Arc<SourceFile>>,
         callee: QualifiedProcedureName,
     },
+    #[error("invalid local word index: {local_addr}")]
+    #[diagnostic(help("the index to a local word must be a multiple of 4"))]
+    InvalidLocalWordIndex {
+        #[label]
+        span: SourceSpan,
+        #[source_code]
+        source_file: Option<Arc<SourceFile>>,
+        local_addr: u16,
+    },
     #[error("invalid use of 'caller' instruction outside of kernel")]
     #[diagnostic(help(
         "the 'caller' instruction is only allowed in procedures defined in a kernel"
@@ -81,13 +90,16 @@ pub enum AssemblyError {
     },
     #[error(transparent)]
     #[diagnostic(transparent)]
-    Other(#[from] RelatedError),
-    #[error(transparent)]
-    Forest(#[from] MastForestError),
+    Other(RelatedError),
+    // Technically MastForestError is the source error here, but since AssemblyError is converted
+    // into a Report and that doesn't implement core::error::Error, treating MastForestError as a
+    // source error would effectively swallow it, so we include it in the error message instead.
+    #[error("{0}: {1}")]
+    Forest(&'static str, MastForestError),
 }
 
-impl From<Report> for AssemblyError {
-    fn from(report: Report) -> Self {
-        Self::Other(RelatedError::new(report))
+impl AssemblyError {
+    pub(super) fn forest_error(message: &'static str, source: MastForestError) -> Self {
+        Self::Forest(message, source)
     }
 }

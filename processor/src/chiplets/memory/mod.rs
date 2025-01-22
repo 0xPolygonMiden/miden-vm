@@ -2,19 +2,23 @@ use alloc::{collections::BTreeMap, vec::Vec};
 
 use miden_air::{
     trace::chiplets::memory::{
-        ADDR_COL_IDX, CLK_COL_IDX, CTX_COL_IDX, D0_COL_IDX, D1_COL_IDX, D_INV_COL_IDX, V_COL_RANGE,
+        CLK_COL_IDX, CTX_COL_IDX, D0_COL_IDX, D1_COL_IDX, D_INV_COL_IDX,
+        FLAG_SAME_CONTEXT_AND_WORD, IDX0_COL_IDX, IDX1_COL_IDX, IS_READ_COL_IDX,
+        IS_WORD_ACCESS_COL_IDX, MEMORY_ACCESS_ELEMENT, MEMORY_ACCESS_WORD, MEMORY_READ,
+        MEMORY_WRITE, V_COL_RANGE, WORD_COL_IDX,
     },
     RowIndex,
 };
+use vm_core::{WORD_SIZE, ZERO};
 
 use super::{
     utils::{split_element_u32_into_u16, split_u32_into_u16},
     Felt, FieldElement, RangeChecker, TraceFragment, Word, EMPTY_WORD, ONE,
 };
-use crate::system::ContextId;
+use crate::{system::ContextId, ExecutionError};
 
 mod segment;
-use segment::MemorySegmentTrace;
+use segment::{MemoryOperation, MemorySegmentTrace};
 
 #[cfg(test)]
 mod tests;
@@ -34,49 +38,55 @@ const INIT_MEM_VALUE: Word = EMPTY_WORD;
 /// building an execution trace of all memory accesses.
 ///
 /// The memory is comprised of one or more segments, each segment accessible from a specific
-/// execution context. The root (kernel) context has context ID 0, and all additional contexts
-/// have increasing IDs. Within each segment, the memory is word-addressable. That is, four field
-/// elements are located at each memory address, and we can read and write elements to/from memory
-/// in batches of four.
+/// execution context. The root (kernel) context has context ID 0, and all additional contexts have
+/// increasing IDs. Within each segment, the memory is element-addressable, even though the trace
+/// tracks words for optimization purposes. That is, a single field element is located at each
+/// memory address, and we can read and write elements to/from memory either individually or in
+/// groups of four.
 ///
-/// Memory for a a given address is always initialized to zeros. That is, reading from an address
-/// before writing to it will return four ZERO elements.
+/// Memory for a given address is always initialized to zero. That is, reading from an address
+/// before writing to it will return ZERO.
 ///
 /// ## Execution trace
 /// The layout of the memory access trace is shown below.
 ///
-///   s0   s1   ctx  addr   clk   v0   v1   v2   v3   d0   d1   d_inv
-/// ├────┴────┴────┴──────┴─────┴────┴────┴────┴────┴────┴────┴───────┤
+///   rw   ew   ctx  word_addr   idx0   idx1  clk   v0   v1   v2   v3   d0   d1   d_inv   f_scw
+/// ├────┴────┴────┴───────────┴──────┴──────┴────┴────┴────┴────┴────┴────┴────┴───────┴───────┤
 ///
 /// In the above, the meaning of the columns is as follows:
-/// - `s0` is a selector column used to identify whether the memory access is a read or a write. A
-///   value of ZERO indicates a write, and ONE indicates a read.
-/// - `s1` is a selector column used to identify whether the memory access is a read of an existing
-///   memory value or not (i.e., this context/addr combination already existed and is being read). A
-///   value of ONE indicates a read of existing memory, meaning the previous value must be copied.
+/// - `rw` is a selector column used to identify whether the memory operation is a read or a write
+///   (1 indicates a read).
+/// - `ew` is a selector column used to identify whether the memory operation is over an element or
+///   a word (1 indicates a word).
 /// - `ctx` contains execution context ID. Values in this column must increase monotonically but
 ///   there can be gaps between two consecutive context IDs of up to 2^32. Also, two consecutive
 ///   values can be the same.
-/// - `addr` contains memory address. Values in this column must increase monotonically for a given
-///   context but there can be gaps between two consecutive values of up to 2^32. Also, two
-///   consecutive values can be the same.
-/// - `clk` contains clock cycle at which a memory operation happened. Values in this column must
-///   increase monotonically for a given context and memory address but there can be gaps between
-///   two consecutive values of up to 2^32.
-/// - Columns `v0`, `v1`, `v2`, `v3` contain field elements stored at a given context/address/clock
+/// - `word_addr` contains the address of the first element in the word. For example, the value of
+///   `word_addr` for the group of addresses 40, 41, 42, 43 is 40. Note then that `word_addr` *must*
+///   be divisible by 4. Values in this column must increase monotonically for a given context but
+///   there can be gaps between two consecutive values of up to 2^32. Also, two consecutive values
+///   can be the same.
+/// - `idx0` and `idx1` are selector columns used to identify which element in the word is being
+///   accessed. Specifically, the index within the word is computed as `idx1 * 2 + idx0`.
+/// - `clk` contains the clock cycle at which a memory operation happened. Values in this column
+///   must increase monotonically for a given context and word but there can be gaps between two
+///   consecutive values of up to 2^32.
+/// - Columns `v0`, `v1`, `v2`, `v3` contain field elements stored at a given context/word/clock
 ///   cycle after the memory operation.
 /// - Columns `d0` and `d1` contain lower and upper 16 bits of the delta between two consecutive
-///   context IDs, addresses, or clock cycles. Specifically:
+///   context IDs, words, or clock cycles. Specifically:
 ///   - When the context changes, these columns contain (`new_ctx` - `old_ctx`).
-///   - When the context remains the same but the address changes, these columns contain (`new_addr`
-///     - `old-addr`).
-///   - When both the context and the address remain the same, these columns contain (`new_clk` -
+///   - When the context remains the same but the word changes, these columns contain (`new_word`
+///     - `old_word`).
+///   - When both the context and the word remain the same, these columns contain (`new_clk` -
 ///     `old_clk` - 1).
-/// - `d_inv` contains the inverse of the delta between two consecutive context IDs, addresses, or
-///   clock cycles computed as described above.
+/// - `d_inv` contains the inverse of the delta between two consecutive context IDs, words, or clock
+///   cycles computed as described above. It is the field inverse of `(d_1 * 2^16) + d_0`
+/// - `f_scw` is a flag indicating whether the context and the word of the current row are the same
+///   as in the next row.
 ///
 /// For the first row of the trace, values in `d0`, `d1`, and `d_inv` are set to zeros.
-#[derive(Default)]
+#[derive(Debug, Default)]
 pub struct Memory {
     /// Memory segment traces sorted by their execution context ID.
     trace: BTreeMap<ContextId, MemorySegmentTrace>,
@@ -96,30 +106,36 @@ impl Memory {
         self.num_trace_rows
     }
 
-    /// Returns a word located at the specified context/address, or None if the address hasn't
+    /// Returns the element located at the specified context/address, or None if the address hasn't
     /// been accessed previously.
     ///
     /// Unlike read() which modifies the memory access trace, this method returns the value at the
     /// specified address (if one exists) without altering the memory access trace.
-    pub fn get_value(&self, ctx: ContextId, addr: u32) -> Option<Word> {
+    pub fn get_value(&self, ctx: ContextId, addr: u32) -> Option<Felt> {
         match self.trace.get(&ctx) {
             Some(segment) => segment.get_value(addr),
             None => None,
         }
     }
 
-    /// Returns the word at the specified context/address which should be used as the "old value"
-    /// for a write request. It will be the previously stored value, if one exists, or
-    /// initialized memory.
-    pub fn get_old_value(&self, ctx: ContextId, addr: u32) -> Word {
-        // get the stored word or return [0, 0, 0, 0], since the memory is initialized with zeros
-        self.get_value(ctx, addr).unwrap_or(INIT_MEM_VALUE)
+    /// Returns the word located in memory starting at the specified address, which must be word
+    /// aligned.
+    ///
+    /// # Errors
+    /// - Returns an error if `addr` is not word aligned.
+    pub fn get_word(&self, ctx: ContextId, addr: u32) -> Result<Option<Word>, ExecutionError> {
+        match self.trace.get(&ctx) {
+            Some(segment) => segment
+                .get_word(addr)
+                .map_err(|_| ExecutionError::MemoryUnalignedWordAccessNoClk { addr, ctx }),
+            None => Ok(None),
+        }
     }
 
     /// Returns the entire memory state for the specified execution context at the specified cycle.
     /// The state is returned as a vector of (address, value) tuples, and includes addresses which
     /// have been accessed at least once.
-    pub fn get_state_at(&self, ctx: ContextId, clk: RowIndex) -> Vec<(u64, Word)> {
+    pub fn get_state_at(&self, ctx: ContextId, clk: RowIndex) -> Vec<(u64, Felt)> {
         if clk == 0 {
             return vec![];
         }
@@ -130,22 +146,109 @@ impl Memory {
         }
     }
 
-    // STATE ACCESSORS AND MUTATORS
+    // STATE MUTATORS
     // --------------------------------------------------------------------------------------------
+
+    /// Returns the field element located in memory at the specified context/address.
+    ///
+    /// If the specified address hasn't been previously written to, ZERO is returned. This
+    /// effectively implies that memory is initialized to ZERO.
+    ///
+    /// # Errors
+    /// - Returns an error if the address is equal or greater than 2^32.
+    /// - Returns an error if the same address is accessed more than once in the same clock cycle.
+    pub fn read(
+        &mut self,
+        ctx: ContextId,
+        addr: Felt,
+        clk: RowIndex,
+    ) -> Result<Felt, ExecutionError> {
+        let addr: u32 = addr
+            .as_int()
+            .try_into()
+            .map_err(|_| ExecutionError::MemoryAddressOutOfBounds(addr.as_int()))?;
+        self.num_trace_rows += 1;
+        self.trace.entry(ctx).or_default().read(ctx, addr, Felt::from(clk))
+    }
 
     /// Returns a word located in memory at the specified context/address.
     ///
     /// If the specified address hasn't been previously written to, four ZERO elements are
     /// returned. This effectively implies that memory is initialized to ZERO.
-    pub fn read(&mut self, ctx: ContextId, addr: u32, clk: RowIndex) -> Word {
+    ///
+    /// # Errors
+    /// - Returns an error if the address is equal or greater than 2^32.
+    /// - Returns an error if the address is not aligned to a word boundary.
+    /// - Returns an error if the same address is accessed more than once in the same clock cycle.
+    pub fn read_word(
+        &mut self,
+        ctx: ContextId,
+        addr: Felt,
+        clk: RowIndex,
+    ) -> Result<Word, ExecutionError> {
+        let addr: u32 = addr
+            .as_int()
+            .try_into()
+            .map_err(|_| ExecutionError::MemoryAddressOutOfBounds(addr.as_int()))?;
+        if addr % WORD_SIZE as u32 != 0 {
+            return Err(ExecutionError::MemoryUnalignedWordAccess {
+                addr,
+                ctx,
+                clk: Felt::from(clk),
+            });
+        }
+
         self.num_trace_rows += 1;
-        self.trace.entry(ctx).or_default().read(addr, Felt::from(clk))
+        self.trace.entry(ctx).or_default().read_word(ctx, addr, Felt::from(clk))
+    }
+
+    /// Writes the provided field element at the specified context/address.
+    ///
+    /// # Errors
+    /// - Returns an error if the address is equal or greater than 2^32.
+    /// - Returns an error if the same address is accessed more than once in the same clock cycle.
+    pub fn write(
+        &mut self,
+        ctx: ContextId,
+        addr: Felt,
+        clk: RowIndex,
+        value: Felt,
+    ) -> Result<(), ExecutionError> {
+        let addr: u32 = addr
+            .as_int()
+            .try_into()
+            .map_err(|_| ExecutionError::MemoryAddressOutOfBounds(addr.as_int()))?;
+        self.num_trace_rows += 1;
+        self.trace.entry(ctx).or_default().write(ctx, addr, Felt::from(clk), value)
     }
 
     /// Writes the provided word at the specified context/address.
-    pub fn write(&mut self, ctx: ContextId, addr: u32, clk: RowIndex, value: Word) {
+    ///
+    /// # Errors
+    /// - Returns an error if the address is equal or greater than 2^32.
+    /// - Returns an error if the address is not aligned to a word boundary.
+    /// - Returns an error if the same address is accessed more than once in the same clock cycle.
+    pub fn write_word(
+        &mut self,
+        ctx: ContextId,
+        addr: Felt,
+        clk: RowIndex,
+        value: Word,
+    ) -> Result<(), ExecutionError> {
+        let addr: u32 = addr
+            .as_int()
+            .try_into()
+            .map_err(|_| ExecutionError::MemoryAddressOutOfBounds(addr.as_int()))?;
+        if addr % WORD_SIZE as u32 != 0 {
+            return Err(ExecutionError::MemoryUnalignedWordAccess {
+                addr,
+                ctx,
+                clk: Felt::from(clk),
+            });
+        }
+
         self.num_trace_rows += 1;
-        self.trace.entry(ctx).or_default().write(addr, Felt::from(clk), value);
+        self.trace.entry(ctx).or_default().write_word(ctx, addr, Felt::from(clk), value)
     }
 
     // EXECUTION TRACE GENERATION
@@ -207,7 +310,7 @@ impl Memory {
         };
 
         // iterate through addresses in ascending order, and write trace row for each memory access
-        // into the trace. we expect the trace to be 14 columns wide.
+        // into the trace. we expect the trace to be 15 columns wide.
         let mut row: RowIndex = 0.into();
 
         for (ctx, segment) in self.trace {
@@ -218,13 +321,33 @@ impl Memory {
                 let felt_addr = Felt::from(addr);
                 for memory_access in addr_trace {
                     let clk = memory_access.clk();
-                    let value = memory_access.value();
+                    let value = memory_access.word();
 
-                    let selectors = memory_access.op_selectors();
-                    trace.set(row, 0, selectors[0]);
-                    trace.set(row, 1, selectors[1]);
+                    match memory_access.operation() {
+                        MemoryOperation::Read => trace.set(row, IS_READ_COL_IDX, MEMORY_READ),
+                        MemoryOperation::Write => trace.set(row, IS_READ_COL_IDX, MEMORY_WRITE),
+                    }
+                    let (idx1, idx0) = match memory_access.access_type() {
+                        segment::MemoryAccessType::Element { addr_idx_in_word } => {
+                            trace.set(row, IS_WORD_ACCESS_COL_IDX, MEMORY_ACCESS_ELEMENT);
+
+                            match addr_idx_in_word {
+                                0 => (ZERO, ZERO),
+                                1 => (ZERO, ONE),
+                                2 => (ONE, ZERO),
+                                3 => (ONE, ONE),
+                                _ => panic!("invalid address index in word: {addr_idx_in_word}"),
+                            }
+                        },
+                        segment::MemoryAccessType::Word => {
+                            trace.set(row, IS_WORD_ACCESS_COL_IDX, MEMORY_ACCESS_WORD);
+                            (ZERO, ZERO)
+                        },
+                    };
                     trace.set(row, CTX_COL_IDX, ctx);
-                    trace.set(row, ADDR_COL_IDX, felt_addr);
+                    trace.set(row, WORD_COL_IDX, felt_addr);
+                    trace.set(row, IDX0_COL_IDX, idx0);
+                    trace.set(row, IDX1_COL_IDX, idx1);
                     trace.set(row, CLK_COL_IDX, clk);
                     for (idx, col) in V_COL_RANGE.enumerate() {
                         trace.set(row, col, value[idx]);
@@ -244,6 +367,12 @@ impl Memory {
                     trace.set(row, D1_COL_IDX, delta_hi);
                     // TODO: switch to batch inversion to improve efficiency.
                     trace.set(row, D_INV_COL_IDX, delta.inv());
+
+                    if prev_ctx == ctx && prev_addr == felt_addr {
+                        trace.set(row, FLAG_SAME_CONTEXT_AND_WORD, ONE);
+                    } else {
+                        trace.set(row, FLAG_SAME_CONTEXT_AND_WORD, ZERO);
+                    };
 
                     // update values for the next iteration of the loop
                     prev_ctx = ctx;
@@ -274,9 +403,9 @@ impl Memory {
     // TEST HELPERS
     // --------------------------------------------------------------------------------------------
 
-    /// Returns current size of the memory (in words) across all contexts.
+    /// Returns the number of words that were accessed at least once across all contexts.
     #[cfg(test)]
-    pub fn size(&self) -> usize {
-        self.trace.iter().fold(0, |acc, (_, s)| acc + s.size())
+    pub fn num_accessed_words(&self) -> usize {
+        self.trace.iter().fold(0, |acc, (_, s)| acc + s.num_accessed_words())
     }
 }

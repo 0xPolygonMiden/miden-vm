@@ -25,31 +25,31 @@ use.std::math::secp256k1::group
 #! If verification fails, program execution will be aborted.
 #!
 #! See https://github.com/itzmeanjan/secp256k1/blob/37b339db3e03d24c2977399eb8896ef515ebb09b/ecdsa/verify.py#L11-L45
-export.verify.24
+export.verify.96
     # cache pub_key
     loc_storew.0
     dropw
-    loc_storew.1
-    dropw
-    loc_storew.2
-    dropw
-    loc_storew.3
-    dropw
     loc_storew.4
     dropw
-    loc_storew.5
+    loc_storew.8
+    dropw
+    loc_storew.12
+    dropw
+    loc_storew.16
+    dropw
+    loc_storew.20
     dropw
 
     # cache h
-    loc_storew.6
+    loc_storew.24
     dropw
-    loc_storew.7
+    loc_storew.28
     dropw
 
     # cache r
-    loc_storew.8
+    loc_storew.32
     dropw
-    loc_storew.9
+    loc_storew.36
     dropw
 
     # Only s lives on stack
@@ -64,45 +64,45 @@ export.verify.24
     push.0.0.0.0.0.0.0.0
 
     # load h
-    loc_loadw.7
+    loc_loadw.28
     swapw
-    loc_loadw.6
+    loc_loadw.24
 
     # compute h * s^-1
     exec.scalar_field::mul
     exec.scalar_field::from_mont
 
     # cache h * s^-1
-    loc_storew.6
+    loc_storew.24
     swapw
-    loc_storew.7
+    loc_storew.28
 
     # load r
-    loc_loadw.9
+    loc_loadw.36
     swapw
-    loc_loadw.8
+    loc_loadw.32
 
     # compute r * s^-1
     exec.scalar_field::mul
     exec.scalar_field::from_mont
 
     # cache r * s^-1
-    loc_storew.10
+    loc_storew.40
     dropw
-    loc_storew.11
+    loc_storew.44
     dropw
 
-    locaddr.17
-    locaddr.16
-    locaddr.15
-    locaddr.14
-    locaddr.13
-    locaddr.12
+    locaddr.68
+    locaddr.64
+    locaddr.60
+    locaddr.56
+    locaddr.52
+    locaddr.48
 
     push.0.0.0.0.0.0.0.0
-    loc_loadw.7
+    loc_loadw.28
     swapw
-    loc_loadw.6
+    loc_loadw.24
 
     # compute G * ((h * s^-1) mod N) = P0
     exec.group::gen_mul
@@ -111,47 +111,47 @@ export.verify.24
 
     movup.4
     mem_loadw
-    loc_storew.12
+    loc_storew.48
 
     movup.4
     mem_loadw
-    loc_storew.13
+    loc_storew.52
 
     movup.4
     mem_loadw
-    loc_storew.14
+    loc_storew.56
 
     movup.4
     mem_loadw
-    loc_storew.15
+    loc_storew.60
 
     movup.4
     mem_loadw
-    loc_storew.16
+    loc_storew.64
 
     movup.4
     mem_loadw
-    loc_storew.17
+    loc_storew.68
 
     dropw
 
-    locaddr.23
-    locaddr.22
-    locaddr.21
-    locaddr.20
-    locaddr.19
-    locaddr.18
+    locaddr.92
+    locaddr.88
+    locaddr.84
+    locaddr.80
+    locaddr.76
+    locaddr.72
 
     push.0.0.0.0.0.0.0.0
-    loc_loadw.11
+    loc_loadw.44
     swapw
-    loc_loadw.10
+    loc_loadw.40
 
-    locaddr.5
+    locaddr.20
+    locaddr.16
+    locaddr.12
+    locaddr.8
     locaddr.4
-    locaddr.3
-    locaddr.2
-    locaddr.1
     locaddr.0
 
     # compute pkey * ((r * s^-1) mod N) = P1
@@ -165,45 +165,45 @@ export.verify.24
 
     movup.4
     mem_loadw
-    loc_storew.1
-
-    movup.4
-    mem_loadw
-    loc_storew.2
-
-    movup.4
-    mem_loadw
-    loc_storew.3
-
-    movup.4
-    mem_loadw
     loc_storew.4
 
     movup.4
     mem_loadw
-    loc_storew.5
+    loc_storew.8
+
+    movup.4
+    mem_loadw
+    loc_storew.12
+
+    movup.4
+    mem_loadw
+    loc_storew.16
+
+    movup.4
+    mem_loadw
+    loc_storew.20
 
     dropw
 
-    locaddr.23
-    locaddr.22
-    locaddr.21
+    locaddr.92
+    locaddr.88
+    locaddr.84
+    locaddr.80
+    locaddr.76
+    locaddr.72
+
+    locaddr.68
+    locaddr.64
+    locaddr.60
+    locaddr.56
+    locaddr.52
+    locaddr.48
+
     locaddr.20
-    locaddr.19
-    locaddr.18
-
-    locaddr.17
     locaddr.16
-    locaddr.15
-    locaddr.14
-    locaddr.13
     locaddr.12
-
-    locaddr.5
+    locaddr.8
     locaddr.4
-    locaddr.3
-    locaddr.2
-    locaddr.1
     locaddr.0
 
     # compute P0 + P1 = P2
@@ -217,33 +217,33 @@ export.verify.24
 
     movup.4
     mem_loadw
-    loc_storew.1
-
-    movup.4
-    mem_loadw
-    loc_storew.2
-
-    movup.4
-    mem_loadw
-    loc_storew.3
-
-    movup.4
-    mem_loadw
     loc_storew.4
 
     movup.4
     mem_loadw
-    loc_storew.5
+    loc_storew.8
+
+    movup.4
+    mem_loadw
+    loc_storew.12
+
+    movup.4
+    mem_loadw
+    loc_storew.16
+
+    movup.4
+    mem_loadw
+    loc_storew.20
 
     push.0.0.0.0
-    loc_loadw.5
+    loc_loadw.20
     swapw
-    loc_loadw.4
+    loc_loadw.16
 
     exec.base_field::inv
 
     push.0.0.0.0.0.0.0.0
-    loc_loadw.1
+    loc_loadw.4
     swapw
     loc_loadw.0
 
@@ -252,9 +252,9 @@ export.verify.24
     exec.base_field::from_mont
 
     push.0.0.0.0.0.0.0.0
-    loc_loadw.9
+    loc_loadw.36
     swapw
-    loc_loadw.8
+    loc_loadw.32
 
     # compute r ( in radix-2^32 form )
     exec.scalar_field::from_mont

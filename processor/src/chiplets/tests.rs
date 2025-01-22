@@ -51,8 +51,9 @@ fn bitwise_chiplet_trace() {
 #[test]
 fn memory_chiplet_trace() {
     // --- single memory operation with no stack manipulation -------------------------------------
+    let addr = Felt::from(4_u32);
     let stack = [1, 2, 3, 4];
-    let operations = vec![Operation::Push(Felt::new(2)), Operation::MStoreW];
+    let operations = vec![Operation::Push(addr), Operation::MStoreW];
     let (chiplets_trace, trace_len) = build_trace(&stack, operations, Kernel::default());
     let memory_trace_len = 1;
 
@@ -113,8 +114,8 @@ fn build_trace(
     kernel: Kernel,
 ) -> (ChipletsTrace, usize) {
     let stack_inputs = StackInputs::try_from_ints(stack_inputs.iter().copied()).unwrap();
-    let host = DefaultHost::default();
-    let mut process = Process::new(kernel, stack_inputs, host, ExecutionOptions::default());
+    let mut host = DefaultHost::default();
+    let mut process = Process::new(kernel, stack_inputs, ExecutionOptions::default());
     let program = {
         let mut mast_forest = MastForest::new();
 
@@ -123,7 +124,7 @@ fn build_trace(
 
         Program::new(mast_forest.into(), basic_block_id)
     };
-    process.execute(&program).unwrap();
+    process.execute(&program, &mut host).unwrap();
 
     let (trace, ..) = ExecutionTrace::test_finalize_trace(process);
     let trace_len = trace.num_rows() - ExecutionTrace::NUM_RAND_ROWS;

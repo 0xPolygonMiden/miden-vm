@@ -14,8 +14,8 @@
 #! Whole keccak-p[1600, 24] state can be represented using fifty u32 elements i.e. 13 absolute memory addresses
 #! s.t. last two elements of 12 -th ( when indexed from zero ) memory address are zeroed.
 #!
-#! Consecutive memory addresses can be computed by repeated application of `add.1`.
-proc.theta.3
+#! Consecutive memory addresses can be computed by repeated application of `add.4`.
+proc.theta.12
     dup
     locaddr.0
     mem_store
@@ -34,7 +34,7 @@ proc.theta.3
     drop
 
     movup.2
-    add.2
+    add.8
 
     # bring S[10], S[11]
     dup
@@ -56,7 +56,7 @@ proc.theta.3
     swap
 
     movup.2
-    add.3
+    add.12
 
     # bring S[20], S[21]
     dup
@@ -80,7 +80,7 @@ proc.theta.3
     swap
 
     movup.2
-    add.2
+    add.8
 
     # bring S[30], S[31]
     dup
@@ -102,7 +102,7 @@ proc.theta.3
     swap
 
     movup.2
-    add.3
+    add.12
 
     # bring S[40], S[41]
     push.0.0.0.0
@@ -140,7 +140,7 @@ proc.theta.3
     drop
 
     movup.2
-    add.3
+    add.12
 
     # bring S[12], S[13]
     dup
@@ -164,7 +164,7 @@ proc.theta.3
     swap
 
     movup.2
-    add.2
+    add.8
 
     # bring S[22], S[23]
     dup
@@ -186,7 +186,7 @@ proc.theta.3
     swap
 
     movup.2
-    add.3
+    add.12
 
     # bring S[32], S[33]
     dup
@@ -210,7 +210,7 @@ proc.theta.3
     swap
 
     movup.2
-    add.2
+    add.8
 
     # bring S[42], S[43]
     push.0.0.0.0
@@ -235,7 +235,7 @@ proc.theta.3
 
     # stack = [c0, c1, c2, c3]
 
-    locaddr.1
+    locaddr.4
     mem_storew
     dropw
 
@@ -243,7 +243,7 @@ proc.theta.3
 
     locaddr.0
     mem_load
-    add.1
+    add.4
 
     # bring S[4], S[5]
     dup
@@ -257,7 +257,7 @@ proc.theta.3
     drop
 
     movup.2
-    add.2
+    add.8
 
     # bring S[14], S[15]
     dup
@@ -279,7 +279,7 @@ proc.theta.3
     swap
 
     movup.2
-    add.3
+    add.12
 
     # bring S[24], S[25]
     dup
@@ -303,7 +303,7 @@ proc.theta.3
     swap
 
     movup.2
-    add.2
+    add.8
 
     # bring S[34], S[35]
     dup
@@ -325,7 +325,7 @@ proc.theta.3
     swap
 
     movup.2
-    add.3
+    add.12
 
     # bring S[44], S[45]
     push.0.0.0.0
@@ -352,7 +352,7 @@ proc.theta.3
 
     locaddr.0
     mem_load
-    add.1
+    add.4
 
     # bring S[6], S[7]
     dup
@@ -364,7 +364,7 @@ proc.theta.3
     drop
 
     movup.2
-    add.3
+    add.12
 
     # bring S[16], S[17]
     dup
@@ -388,7 +388,7 @@ proc.theta.3
     swap
 
     movup.2
-    add.2
+    add.8
 
     # bring S[26], S[27]
     dup
@@ -410,7 +410,7 @@ proc.theta.3
     swap
 
     movup.2
-    add.3
+    add.12
 
     # bring S[36], S[37]
     dup
@@ -434,7 +434,7 @@ proc.theta.3
     swap
 
     movup.2
-    add.2
+    add.8
 
     # bring S[46], S[47]
     push.0.0.0.0
@@ -459,7 +459,7 @@ proc.theta.3
 
     # stack = [c4, c5, c6, c7]
 
-    locaddr.2
+    locaddr.8
     mem_storew
     dropw
 
@@ -467,7 +467,7 @@ proc.theta.3
 
     locaddr.0
     mem_load
-    add.2
+    add.8
 
     # bring S[8], S[9]
     dup
@@ -481,7 +481,7 @@ proc.theta.3
     drop
 
     movup.2
-    add.2
+    add.8
 
     # bring S[18], S[19]
     dup
@@ -503,7 +503,7 @@ proc.theta.3
     swap
 
     movup.2
-    add.3
+    add.12
 
     # bring S[28], S[29]
     dup
@@ -527,7 +527,7 @@ proc.theta.3
     swap
 
     movup.2
-    add.2
+    add.8
 
     # bring S[38], S[39]
     dup
@@ -549,7 +549,7 @@ proc.theta.3
     swap
 
     movup.2
-    add.3
+    add.12
 
     # bring S[48], S[49]
     push.0.0.0.0
@@ -573,11 +573,11 @@ proc.theta.3
 
     # stack = [c8, c9]
 
-    locaddr.2
+    locaddr.8
     push.0.0.0.0
     movup.4
     mem_loadw
-    locaddr.1
+    locaddr.4
     push.0.0.0.0
     movup.4
     mem_loadw
@@ -675,7 +675,7 @@ proc.theta.3
     mem_storew
     dropw
 
-    add.1
+    add.4
 
     # compute state[4..8)
 
@@ -706,7 +706,7 @@ proc.theta.3
     mem_storew
     dropw
 
-    add.1
+    add.4
 
     # compute state[8..12)
 
@@ -737,7 +737,7 @@ proc.theta.3
     mem_storew
     dropw
 
-    add.1
+    add.4
 
     # compute state[12..16)
 
@@ -768,7 +768,7 @@ proc.theta.3
     mem_storew
     dropw
 
-    add.1
+    add.4
 
     # compute state[16..20)
 
@@ -799,7 +799,7 @@ proc.theta.3
     mem_storew
     dropw
 
-    add.1
+    add.4
 
     # compute state[20..24)
 
@@ -830,7 +830,7 @@ proc.theta.3
     mem_storew
     dropw
 
-    add.1
+    add.4
 
     # compute state[24..28)
 
@@ -861,7 +861,7 @@ proc.theta.3
     mem_storew
     dropw
 
-    add.1
+    add.4
 
     # compute state[28..32)
 
@@ -892,7 +892,7 @@ proc.theta.3
     mem_storew
     dropw
 
-    add.1
+    add.4
 
     # compute state[32..36)
 
@@ -923,7 +923,7 @@ proc.theta.3
     mem_storew
     dropw
 
-    add.1
+    add.4
 
     # compute state[36..40)
 
@@ -954,7 +954,7 @@ proc.theta.3
     mem_storew
     dropw
 
-    add.1
+    add.4
 
     # compute state[40..44)
 
@@ -985,7 +985,7 @@ proc.theta.3
     mem_storew
     dropw
 
-    add.1
+    add.4
 
     # compute state[44..48)
 
@@ -1016,7 +1016,7 @@ proc.theta.3
     mem_storew
     dropw
 
-    add.1
+    add.4
 
     # compute state[48..50)
 
@@ -1054,8 +1054,8 @@ end
 #! Whole keccak-p[1600, 24] state can be represented using fifty u32 elements i.e. 13 absolute memory addresses
 #! s.t. last two elements of 12 -th ( when indexed from zero ) memory address are zeroed.
 #!
-#! Consecutive memory addresses can be computed by repeated application of `add.1`.
-proc.rho.1
+#! Consecutive memory addresses can be computed by repeated application of `add.4`.
+proc.rho.4
     dup
     locaddr.0
     mem_store
@@ -1071,7 +1071,7 @@ proc.rho.1
 
     movup.4
     dup
-    add.1
+    add.4
     movdn.5
     mem_storew
 
@@ -1093,7 +1093,7 @@ proc.rho.1
 
     movup.4
     dup
-    add.1
+    add.4
     movdn.5
     mem_storew
 
@@ -1114,7 +1114,7 @@ proc.rho.1
 
     movup.4
     dup
-    add.1
+    add.4
     movdn.5
     mem_storew
 
@@ -1136,7 +1136,7 @@ proc.rho.1
 
     movup.4
     dup
-    add.1
+    add.4
     movdn.5
     mem_storew
 
@@ -1157,7 +1157,7 @@ proc.rho.1
 
     movup.4
     dup
-    add.1
+    add.4
     movdn.5
     mem_storew
 
@@ -1178,7 +1178,7 @@ proc.rho.1
 
     movup.4
     dup
-    add.1
+    add.4
     movdn.5
     mem_storew
 
@@ -1199,7 +1199,7 @@ proc.rho.1
 
     movup.4
     dup
-    add.1
+    add.4
     movdn.5
     mem_storew
 
@@ -1220,7 +1220,7 @@ proc.rho.1
 
     movup.4
     dup
-    add.1
+    add.4
     movdn.5
     mem_storew
 
@@ -1241,7 +1241,7 @@ proc.rho.1
 
     movup.4
     dup
-    add.1
+    add.4
     movdn.5
     mem_storew
 
@@ -1262,7 +1262,7 @@ proc.rho.1
 
     movup.4
     dup
-    add.1
+    add.4
     movdn.5
     mem_storew
 
@@ -1284,7 +1284,7 @@ proc.rho.1
 
     movup.4
     dup
-    add.1
+    add.4
     movdn.5
     mem_storew
 
@@ -1305,7 +1305,7 @@ proc.rho.1
 
     movup.4
     dup
-    add.1
+    add.4
     movdn.5
     mem_storew
 
@@ -1339,13 +1339,13 @@ end
 #! Whole keccak-p[1600, 24] state can be represented using fifty u32 elements i.e. 13 absolute memory addresses
 #! s.t. last two elements of 12 -th ( when indexed from zero ) memory address are zeroed.
 #!
-#! Consecutive memory addresses can be computed by repeated application of `add.1`.
-proc.pi.14
+#! Consecutive memory addresses can be computed by repeated application of `add.4`.
+proc.pi.56
     dup
     locaddr.0
     mem_store
 
-    locaddr.1
+    locaddr.4
     swap
     push.0.0.0.0
 
@@ -1366,12 +1366,12 @@ proc.pi.14
     movdn.3
 
     dup.5
-    add.5
+    add.20
     mem_storew
 
     # place state[4..8) to desired location(s)
     movup.4
-    add.1
+    add.4
     movdn.4
 
     dup.4
@@ -1382,19 +1382,19 @@ proc.pi.14
     movdn.3
 
     dup.7
-    add.10
+    add.40
     mem_storew
 
     drop
     drop
 
     dup.5
-    add.2
+    add.8
     mem_storew
 
     # place state[8..12) to desired location(s)
     movup.4
-    add.1
+    add.4
     movdn.4
 
     dup.4
@@ -1403,7 +1403,7 @@ proc.pi.14
     push.0.0
 
     dup.7
-    add.7
+    add.28
     mem_storew
 
     movup.2
@@ -1415,12 +1415,12 @@ proc.pi.14
     movdn.3
 
     dup.5
-    add.8
+    add.32
     mem_storew
 
     # place state[12..16) to desired location(s)
     movup.4
-    add.1
+    add.4
     movdn.4
 
     dup.4
@@ -1440,7 +1440,7 @@ proc.pi.14
     mem_storew
 
     dup.7
-    add.5
+    add.20
     mem_loadw
 
     movup.2
@@ -1449,150 +1449,19 @@ proc.pi.14
     drop
 
     dup.5
-    add.5
+    add.20
     mem_storew
 
     # place state[16..20) to desired location(s)
     movup.4
-    add.1
-    movdn.4
-
-    dup.4
-    mem_loadw
-
-    dup.5
-    add.10
-    push.0.0.0.0
-    movup.4
-    mem_loadw
-
-    movup.2
-    drop
-    movup.2
-    drop
-
-    dup.7
-    add.10
-    mem_storew
-
-    dropw
-
-    push.0.0
-    movdn.3
-    movdn.3
-
-    dup.5
-    add.3
-    mem_storew
-
-    # place state[20..24) to desired location(s)
-    movup.4
-    add.1
-    movdn.4
-
-    dup.4
-    mem_loadw
-
-    dup.5
-    add.3
-    push.0.0.0.0
-    movup.4
-    mem_loadw
-
-    movup.2
-    drop
-    movup.2
-    drop
-
-    dup.7
-    add.3
-    mem_storew
-
-    dup.7
-    add.8
-    mem_loadw
-
-    movup.2
-    drop
-    movup.2
-    drop
-
-    dup.5
-    add.8
-    mem_storew
-
-    # place state[24..28) to desired location(s)
-    movup.4
-    add.1
-    movdn.4
-
-    dup.4
-    mem_loadw
-
-    push.0.0
-    movdn.3
-    movdn.3
-
-    dup.7
-    add.1
-    mem_storew
-
-    drop
-    drop
-    movdn.3
-    movdn.3
-
-    dup.5
-    add.6
-    mem_storew
-
-    # place state[28..32) to desired location(s)
-    movup.4
-    add.1
-    movdn.4
-
-    dup.4
-    mem_loadw
-
-    dup.5
-    add.11
-    mem_storew
-
-    # place state[32..36) to desired location(s)
-    movup.4
-    add.1
-    movdn.4
-
-    dup.4
-    mem_loadw
-
-    push.0.0
-    movdn.3
-    movdn.3
-
-    dup.7
     add.4
-    mem_storew
-
-    drop
-    drop
-    movdn.3
-    movdn.3
-
-    dup.5
-    add.9
-    mem_storew
-
-    # place state[36..40) to desired location(s)
-    movup.4
-    add.1
     movdn.4
 
     dup.4
     mem_loadw
 
     dup.5
-    add.1
+    add.40
     push.0.0.0.0
     movup.4
     mem_loadw
@@ -1603,43 +1472,7 @@ proc.pi.14
     drop
 
     dup.7
-    add.1
-    mem_storew
-
-    dup.7
-    add.6
-    mem_loadw
-
-    movup.2
-    drop
-    movup.2
-    drop
-
-    dup.5
-    add.6
-    mem_storew
-
-    # place state[40..44) to desired location(s)
-    movup.4
-    add.1
-    movdn.4
-
-    dup.4
-    mem_loadw
-
-    dup.5
-    add.7
-    push.0.0.0.0
-    movup.4
-    mem_loadw
-
-    drop
-    drop
-    movup.3
-    movup.3
-
-    dup.7
-    add.7
+    add.40
     mem_storew
 
     dropw
@@ -1652,9 +1485,107 @@ proc.pi.14
     add.12
     mem_storew
 
-    # place state[44..48) to desired location(s)
+    # place state[20..24) to desired location(s)
     movup.4
-    add.1
+    add.4
+    movdn.4
+
+    dup.4
+    mem_loadw
+
+    dup.5
+    add.12
+    push.0.0.0.0
+    movup.4
+    mem_loadw
+
+    movup.2
+    drop
+    movup.2
+    drop
+
+    dup.7
+    add.12
+    mem_storew
+
+    dup.7
+    add.32
+    mem_loadw
+
+    movup.2
+    drop
+    movup.2
+    drop
+
+    dup.5
+    add.32
+    mem_storew
+
+    # place state[24..28) to desired location(s)
+    movup.4
+    add.4
+    movdn.4
+
+    dup.4
+    mem_loadw
+
+    push.0.0
+    movdn.3
+    movdn.3
+
+    dup.7
+    add.4
+    mem_storew
+
+    drop
+    drop
+    movdn.3
+    movdn.3
+
+    dup.5
+    add.24
+    mem_storew
+
+    # place state[28..32) to desired location(s)
+    movup.4
+    add.4
+    movdn.4
+
+    dup.4
+    mem_loadw
+
+    dup.5
+    add.44
+    mem_storew
+
+    # place state[32..36) to desired location(s)
+    movup.4
+    add.4
+    movdn.4
+
+    dup.4
+    mem_loadw
+
+    push.0.0
+    movdn.3
+    movdn.3
+
+    dup.7
+    add.16
+    mem_storew
+
+    drop
+    drop
+    movdn.3
+    movdn.3
+
+    dup.5
+    add.36
+    mem_storew
+
+    # place state[36..40) to desired location(s)
+    movup.4
+    add.4
     movdn.4
 
     dup.4
@@ -1676,7 +1607,7 @@ proc.pi.14
     mem_storew
 
     dup.7
-    add.9
+    add.24
     mem_loadw
 
     movup.2
@@ -1685,19 +1616,88 @@ proc.pi.14
     drop
 
     dup.5
-    add.9
+    add.24
+    mem_storew
+
+    # place state[40..44) to desired location(s)
+    movup.4
+    add.4
+    movdn.4
+
+    dup.4
+    mem_loadw
+
+    dup.5
+    add.28
+    push.0.0.0.0
+    movup.4
+    mem_loadw
+
+    drop
+    drop
+    movup.3
+    movup.3
+
+    dup.7
+    add.28
+    mem_storew
+
+    dropw
+
+    push.0.0
+    movdn.3
+    movdn.3
+
+    dup.5
+    add.48
+    mem_storew
+
+    # place state[44..48) to desired location(s)
+    movup.4
+    add.4
+    movdn.4
+
+    dup.4
+    mem_loadw
+
+    dup.5
+    add.16
+    push.0.0.0.0
+    movup.4
+    mem_loadw
+
+    movup.2
+    drop
+    movup.2
+    drop
+
+    dup.7
+    add.16
+    mem_storew
+
+    dup.7
+    add.36
+    mem_loadw
+
+    movup.2
+    drop
+    movup.2
+    drop
+
+    dup.5
+    add.36
     mem_storew
 
     # place state[48..50) to desired location(s)
     movup.4
-    add.1
+    add.4
     movdn.4
 
     dup.4
     mem_loadw
 
     dup.5
-    add.2
+    add.8
     push.0.0.0.0
     movup.4
     mem_loadw
@@ -1708,7 +1708,7 @@ proc.pi.14
     movdn.3
 
     dup.7
-    add.2
+    add.8
     mem_storew
 
     drop
@@ -1729,11 +1729,11 @@ proc.pi.14
         mem_storew
 
         movup.4
-        add.1
+        add.4
         movdn.4
 
         movup.5
-        add.1
+        add.4
         movdn.5
     end
 
@@ -1758,8 +1758,8 @@ end
 #! Whole keccak-p[1600, 24] state can be represented using fifty u32 elements i.e. 13 absolute memory addresses
 #! s.t. last two elements of 12 -th ( when indexed from zero ) memory address are zeroed.
 #!
-#! Consecutive memory addresses can be computed by repeated application of `add.1`.
-proc.chi.4
+#! Consecutive memory addresses can be computed by repeated application of `add.4`.
+proc.chi.16
     dup
     locaddr.0
     mem_store
@@ -1779,7 +1779,7 @@ proc.chi.4
     swap
 
     movup.2
-    add.1
+    add.4
     dup
     movdn.3
 
@@ -1815,7 +1815,7 @@ proc.chi.4
     movup.3
     movup.3
 
-    locaddr.1
+    locaddr.4
     mem_storew
 
     dup.4
@@ -1830,7 +1830,7 @@ proc.chi.4
     swap
 
     movup.2
-    add.1
+    add.4
     dup
     movdn.3
 
@@ -1857,7 +1857,7 @@ proc.chi.4
     movup.3
 
     movup.4
-    sub.2
+    sub.8
     push.0.0.0.0
     movup.4
     mem_loadw
@@ -1877,7 +1877,7 @@ proc.chi.4
     movup.7
     movup.7
 
-    locaddr.2
+    locaddr.8
     mem_storew
     dropw
 
@@ -1901,7 +1901,7 @@ proc.chi.4
     dup.4
     mem_loadw
 
-    locaddr.1
+    locaddr.4
     push.0.0.0.0
     movup.4
     mem_loadw
@@ -1928,13 +1928,13 @@ proc.chi.4
     mem_storew
 
     movup.4
-    add.1
+    add.4
     movdn.4
 
     dup.4
     mem_loadw
 
-    locaddr.2
+    locaddr.8
     push.0.0.0.0
     movup.4
     mem_loadw
@@ -1961,7 +1961,7 @@ proc.chi.4
     mem_storew
 
     movup.4
-    add.1
+    add.4
     movdn.4
 
     dup.4
@@ -1979,7 +1979,7 @@ proc.chi.4
 
     # process state[10..20)
     movup.4
-    add.1
+    add.4
     movdn.4
 
     dup.4
@@ -2001,11 +2001,11 @@ proc.chi.4
     swap
 
     push.0.0
-    locaddr.1
+    locaddr.4
     mem_storew
 
     movup.6
-    add.1
+    add.4
     dup
     movdn.7
 
@@ -2044,11 +2044,11 @@ proc.chi.4
     movup.3
     movup.3
 
-    locaddr.2
+    locaddr.8
     mem_storew
 
     movup.6
-    sub.2
+    sub.8
     dup
     movdn.7
 
@@ -2077,7 +2077,7 @@ proc.chi.4
     movup.3
 
     movup.4
-    add.1
+    add.4
     push.0.0.0.0
     movup.4
     mem_loadw
@@ -2105,19 +2105,19 @@ proc.chi.4
     movup.3
     movup.3
 
-    locaddr.3
+    locaddr.12
     mem_storew
 
     locaddr.0
     mem_load
-    add.2
+    add.8
     dup
     movdn.5
 
     mem_loadw
 
     push.0.0.0.0
-    loc_loadw.1
+    loc_loadw.4
 
     movup.4
     u32xor
@@ -2141,14 +2141,14 @@ proc.chi.4
     mem_storew
 
     movup.4
-    add.1
+    add.4
     movdn.4
 
     dup.4
     mem_loadw
 
     push.0.0.0.0
-    loc_loadw.2
+    loc_loadw.8
 
     movup.4
     u32xor
@@ -2172,14 +2172,14 @@ proc.chi.4
     mem_storew
 
     movup.4
-    add.1
+    add.4
     movdn.4
 
     dup.4
     mem_loadw
 
     push.0.0.0.0
-    loc_loadw.3
+    loc_loadw.12
 
     movup.4
     u32xor
@@ -2204,7 +2204,7 @@ proc.chi.4
 
     # process state[20..30)
     movup.4
-    add.1
+    add.4
     movdn.4
 
     dup.4
@@ -2219,7 +2219,7 @@ proc.chi.4
     swap
 
     movup.2
-    add.1
+    add.4
     movdn.2
 
     dup.2
@@ -2255,10 +2255,10 @@ proc.chi.4
     movup.3
     movup.3
 
-    loc_storew.1
+    loc_storew.4
 
     movup.6
-    add.1
+    add.4
     movdn.6
 
     dup.6
@@ -2288,7 +2288,7 @@ proc.chi.4
     swap
 
     movup.4
-    sub.2
+    sub.8
     movdn.4
 
     dup.4
@@ -2317,7 +2317,7 @@ proc.chi.4
     movup.7
     movup.7
 
-    loc_storew.2
+    loc_storew.8
     dropw
 
     u32not
@@ -2336,13 +2336,13 @@ proc.chi.4
     movdn.3
     movdn.3
 
-    loc_storew.3
+    loc_storew.12
 
     dup.4
     mem_loadw
 
     push.0.0.0.0
-    loc_loadw.1
+    loc_loadw.4
 
     movup.4
     u32xor
@@ -2366,14 +2366,14 @@ proc.chi.4
     mem_storew
 
     movup.4
-    add.1
+    add.4
     movdn.4
 
     dup.4
     mem_loadw
 
     push.0.0.0.0
-    loc_loadw.2
+    loc_loadw.8
 
     movup.4
     u32xor
@@ -2397,14 +2397,14 @@ proc.chi.4
     mem_storew
 
     movup.4
-    add.1
+    add.4
     movdn.4
 
     dup.4
     mem_loadw
 
     push.0.0.0.0
-    loc_loadw.3
+    loc_loadw.12
 
     movup.4
     u32xor
@@ -2429,7 +2429,7 @@ proc.chi.4
 
     # process state[30..40)
     movup.4
-    add.1
+    add.4
     movdn.4
 
     dup.4
@@ -2451,10 +2451,10 @@ proc.chi.4
     swap
 
     push.0.0
-    loc_storew.1
+    loc_storew.4
 
     movup.6
-    add.1
+    add.4
     movdn.6
 
     dup.6
@@ -2499,10 +2499,10 @@ proc.chi.4
     movup.3
     movup.3
 
-    loc_storew.2
+    loc_storew.8
 
     movup.6
-    sub.2
+    sub.8
     movdn.6
 
     dup.6
@@ -2530,7 +2530,7 @@ proc.chi.4
     swap
 
     movup.4
-    add.1
+    add.4
     movdn.4
 
     dup.4
@@ -2561,17 +2561,17 @@ proc.chi.4
     movup.3
     movup.3
 
-    loc_storew.3
+    loc_storew.12
 
     movup.4
-    sub.1
+    sub.4
     movdn.4
 
     dup.4
     mem_loadw
 
     push.0.0.0.0
-    loc_loadw.1
+    loc_loadw.4
 
     movup.4
     u32xor
@@ -2595,14 +2595,14 @@ proc.chi.4
     mem_storew
 
     movup.4
-    add.1
+    add.4
     movdn.4
 
     dup.4
     mem_loadw
 
     push.0.0.0.0
-    loc_loadw.2
+    loc_loadw.8
 
     movup.4
     u32xor
@@ -2626,14 +2626,14 @@ proc.chi.4
     mem_storew
 
     movup.4
-    add.1
+    add.4
     movdn.4
 
     dup.4
     mem_loadw
 
     push.0.0.0.0
-    loc_loadw.3
+    loc_loadw.12
 
     movup.4
     u32xor
@@ -2658,7 +2658,7 @@ proc.chi.4
 
     # process state[40..50)
     movup.4
-    add.1
+    add.4
     movdn.4
 
     dup.4
@@ -2668,7 +2668,7 @@ proc.chi.4
     drop
 
     movup.2
-    add.1
+    add.4
     movdn.2
 
     dup.2
@@ -2715,10 +2715,10 @@ proc.chi.4
     movup.3
     movup.3
 
-    loc_storew.1
+    loc_storew.4
 
     movup.6
-    add.1
+    add.4
     movdn.6
 
     dup.6
@@ -2748,7 +2748,7 @@ proc.chi.4
     swap
 
     movup.4
-    sub.2
+    sub.8
     movdn.4
 
     dup.4
@@ -2777,7 +2777,7 @@ proc.chi.4
     movup.7
     movup.7
 
-    loc_storew.2
+    loc_storew.8
     dropw
 
     u32not
@@ -2796,13 +2796,13 @@ proc.chi.4
     movdn.3
     movdn.3
 
-    loc_storew.3
+    loc_storew.12
 
     dup.4
     mem_loadw
 
     push.0.0.0.0
-    loc_loadw.1
+    loc_loadw.4
 
     movup.4
     u32xor
@@ -2826,14 +2826,14 @@ proc.chi.4
     mem_storew
 
     movup.4
-    add.1
+    add.4
     movdn.4
 
     dup.4
     mem_loadw
 
     push.0.0.0.0
-    loc_loadw.2
+    loc_loadw.8
 
     movup.4
     u32xor
@@ -2857,14 +2857,14 @@ proc.chi.4
     mem_storew
 
     movup.4
-    add.1
+    add.4
     movdn.4
 
     dup.4
     mem_loadw
 
     push.0.0.0.0
-    loc_loadw.3
+    loc_loadw.12
 
     movup.4
     u32xor
@@ -2947,7 +2947,7 @@ end
 #! Whole keccak-p[1600, 24] state can be represented using fifty u32 elements i.e. 13 absolute memory addresses
 #! s.t. last two elements of 12 -th ( when indexed from zero ) memory address are zeroed.
 #!
-#! Consecutive memory addresses can be computed by repeated application of `add.1`.
+#! Consecutive memory addresses can be computed by repeated application of `add.4`.
 #!
 #! See https://github.com/itzmeanjan/merklize-sha/blob/1d35aae9da7fed20127489f362b4bc93242a516c/include/sha3.hpp#L325-L340
 proc.round
@@ -2977,7 +2977,7 @@ end
 #! Whole keccak-p[1600, 24] state can be represented using fifty u32 elements i.e. 13 absolute memory addresses
 #! s.t. last two elements of 12 -th ( when indexed from zero ) memory address are zeroed.
 #!
-#! Consecutive memory addresses can be computed by repeated application of `add.1`.
+#! Consecutive memory addresses can be computed by repeated application of `add.4`.
 #!
 #! See https://github.com/itzmeanjan/merklize-sha/blob/1d35aae9da7fed20127489f362b4bc93242a516c/include/sha3.hpp#L379-L427
 proc.keccak_p
@@ -3357,7 +3357,7 @@ end
 #! [state_addr, a0, a1, a2, a3, a4, a5, a6, a7, a8, a9, a10, a11, a12, a13, a14, a15, ...]
 #!
 #! Note, state_addr is the starting absolute memory address where keccak-p[1600, 24] state
-#! is kept. Consecutive addresses can be computed by repeated application of `add.1` instruction.
+#! is kept. Consecutive addresses can be computed by repeated application of `add.4` instruction.
 #!
 #! Final stack state :
 #!
@@ -3381,7 +3381,7 @@ proc.to_state_array
         mem_storew
         dropw
 
-        add.1
+        add.4
     end
 
     push.0.0.0.1
@@ -3389,56 +3389,56 @@ proc.to_state_array
     mem_storew
     dropw
 
-    add.1
+    add.4
 
     push.0.0.0.0
     dup.4
     mem_storew
     dropw
 
-    add.1
+    add.4
 
     push.0.0.0.0
     dup.4
     mem_storew
     dropw
 
-    add.1
+    add.4
 
     push.0.0.0.0
     dup.4
     mem_storew
     dropw
 
-    add.1
+    add.4
 
     push.0.0.2147483648.0
     dup.4
     mem_storew
     dropw
 
-    add.1
+    add.4
 
     push.0.0.0.0
     dup.4
     mem_storew
     dropw
 
-    add.1
+    add.4
 
     push.0.0.0.0
     dup.4
     mem_storew
     dropw
 
-    add.1
+    add.4
 
     push.0.0.0.0
     dup.4
     mem_storew
     dropw
 
-    add.1
+    add.4
 
     push.0.0.0.0
     movup.4
@@ -3485,7 +3485,7 @@ end
 #! [oword0, oword1, oword2, oword3, oword4, oword5, oword6, oword7, ... ]
 #!
 #! See https://github.com/itzmeanjan/merklize-sha/blob/1d35aae9da7fed20127489f362b4bc93242a516c/include/keccak_256.hpp#L232-L257
-export.hash.13
+export.hash.52
     # prapare keccak256 state from input message
     locaddr.0
     exec.to_state_array
@@ -3496,7 +3496,7 @@ export.hash.13
 
     # prapare keccak256 digest from state
     push.0.0.0.0
-    loc_loadw.1
+    loc_loadw.4
     push.0.0.0.0
     loc_loadw.0
     exec.to_digest

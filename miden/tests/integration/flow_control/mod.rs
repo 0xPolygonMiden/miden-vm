@@ -5,7 +5,7 @@ use miden_vm::Module;
 use processor::ExecutionError;
 use prover::Digest;
 use stdlib::StdLibrary;
-use test_utils::{build_test, expect_exec_error, push_inputs, StackInputs, Test};
+use test_utils::{build_test, expect_exec_error_matches, push_inputs, StackInputs, Test};
 
 // SIMPLE FLOW CONTROL TESTS
 // ================================================================================================
@@ -141,7 +141,7 @@ fn local_fn_call() {
         end";
 
     let build_test = build_test!(source, &[1, 2]);
-    expect_exec_error!(build_test, ExecutionError::InvalidStackDepthOnReturn(17));
+    expect_exec_error_matches!(build_test, ExecutionError::InvalidStackDepthOnReturn(17));
 
     let inputs = (1_u64..18).collect::<Vec<_>>();
 
@@ -272,9 +272,9 @@ fn simple_dyn_exec() {
             # move the first result of foo out of the way
             movdn.4
 
-            # use dynexec to call foo again via its hash, which is stored at memory location 42
-            mem_storew.42 dropw
-            push.42
+            # use dynexec to call foo again via its hash, which is stored at memory location 40
+            mem_storew.40 dropw
+            push.40
             dynexec
         end";
 
@@ -320,10 +320,10 @@ fn dynexec_with_procref() {
     end
 
     begin
-        procref.foo mem_storew.42 dropw push.42
+        procref.foo mem_storew.40 dropw push.40
         dynexec
 
-        procref.module::func mem_storew.42 dropw push.42
+        procref.module::func mem_storew.40 dropw push.40
         dynexec
 
         dup
@@ -369,8 +369,8 @@ fn simple_dyncall() {
             movdn.4
 
             # use dyncall to call foo again via its hash, which is on the stack
-            mem_storew.42 dropw
-            push.42
+            mem_storew.40 dropw
+            push.40
             dyncall
 
             swapw dropw
@@ -442,7 +442,7 @@ fn dyncall_with_syscall_and_caller() {
             push.1 push.2 push.3 push.4 padw
 
             # Prepare dyncall
-            procref.bar mem_storew.42 dropw push.42
+            procref.bar mem_storew.40 dropw push.40
             dyncall
 
             # Truncate stack

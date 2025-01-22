@@ -1,7 +1,7 @@
 use core::ops::RangeBounds;
 
 use miette::miette;
-use vm_core::{mast::MastNodeId, Decorator, ONE, ZERO};
+use vm_core::{debuginfo::Spanned, mast::MastNodeId, Decorator, ONE, WORD_SIZE, ZERO};
 
 use super::{ast::InvokeKind, Assembler, BasicBlockBuilder, Felt, Operation, ProcedureContext};
 use crate::{ast::Instruction, utils::bound_into_included_u64, AssemblyError, Span};
@@ -89,7 +89,7 @@ impl Assembler {
             Instruction::ExpBitLength(num_pow_bits) => {
                 field_ops::exp(block_builder, *num_pow_bits)?
             },
-            Instruction::ILog2 => field_ops::ilog2(block_builder)?,
+            Instruction::ILog2 => field_ops::ilog2(block_builder),
 
             Instruction::Not => block_builder.push_op(Not),
             Instruction::And => block_builder.push_op(And),
@@ -111,7 +111,7 @@ impl Assembler {
             Instruction::Ext2Add => ext2_ops::ext2_add(block_builder),
             Instruction::Ext2Sub => ext2_ops::ext2_sub(block_builder),
             Instruction::Ext2Mul => ext2_ops::ext2_mul(block_builder),
-            Instruction::Ext2Div => ext2_ops::ext2_div(block_builder)?,
+            Instruction::Ext2Div => ext2_ops::ext2_div(block_builder),
             Instruction::Ext2Neg => ext2_ops::ext2_neg(block_builder),
             Instruction::Ext2Inv => ext2_ops::ext2_inv(block_builder)?,
 
@@ -190,10 +190,10 @@ impl Assembler {
             Instruction::U32Rotr => u32_ops::u32rotr(block_builder, None)?,
             Instruction::U32RotrImm(v) => u32_ops::u32rotr(block_builder, Some(v.expect_value()))?,
             Instruction::U32Popcnt => u32_ops::u32popcnt(block_builder),
-            Instruction::U32Clz => u32_ops::u32clz(block_builder)?,
-            Instruction::U32Ctz => u32_ops::u32ctz(block_builder)?,
-            Instruction::U32Clo => u32_ops::u32clo(block_builder)?,
-            Instruction::U32Cto => u32_ops::u32cto(block_builder)?,
+            Instruction::U32Clz => u32_ops::u32clz(block_builder),
+            Instruction::U32Ctz => u32_ops::u32ctz(block_builder),
+            Instruction::U32Clo => u32_ops::u32clo(block_builder),
+            Instruction::U32Cto => u32_ops::u32cto(block_builder),
             Instruction::U32Lt => u32_ops::u32lt(block_builder),
             Instruction::U32Lte => u32_ops::u32lte(block_builder),
             Instruction::U32Gt => u32_ops::u32gt(block_builder),
@@ -331,13 +331,21 @@ impl Assembler {
                 true,
                 true,
             )?,
-            Instruction::LocLoadW(v) => mem_ops::mem_read(
-                block_builder,
-                proc_ctx,
-                Some(v.expect_value() as u32),
-                true,
-                false,
-            )?,
+            Instruction::LocLoadW(v) => {
+                let local_addr = v.expect_value();
+                if local_addr % WORD_SIZE as u16 != 0 {
+                    return Err(AssemblyError::InvalidLocalWordIndex {
+                        span: instruction.span(),
+                        source_file: proc_ctx
+                            .source_manager()
+                            .get(proc_ctx.span().source_id())
+                            .ok(),
+                        local_addr,
+                    });
+                }
+
+                mem_ops::mem_read(block_builder, proc_ctx, Some(local_addr as u32), true, false)?
+            },
             Instruction::MemStore => block_builder.push_ops([MStore, Drop]),
             Instruction::MemStoreW => block_builder.push_ops([MStoreW]),
             Instruction::MemStoreImm(v) => {
@@ -353,23 +361,32 @@ impl Assembler {
                 true,
                 true,
             )?,
-            Instruction::LocStoreW(v) => mem_ops::mem_write_imm(
-                block_builder,
-                proc_ctx,
-                v.expect_value() as u32,
-                true,
-                false,
-            )?,
+            Instruction::LocStoreW(v) => {
+                let local_addr = v.expect_value();
+                if local_addr % WORD_SIZE as u16 != 0 {
+                    return Err(AssemblyError::InvalidLocalWordIndex {
+                        span: instruction.span(),
+                        source_file: proc_ctx
+                            .source_manager()
+                            .get(proc_ctx.span().source_id())
+                            .ok(),
+                        local_addr,
+                    });
+                }
 
-            Instruction::AdvInject(injector) => adv_ops::adv_inject(block_builder, injector)?,
+                mem_ops::mem_write_imm(block_builder, proc_ctx, local_addr as u32, true, false)?
+            },
+            Instruction::SysEvent(system_event) => {
+                block_builder.push_system_event(system_event.into())
+            },
 
             // ----- cryptographic instructions ---------------------------------------------------
             Instruction::Hash => crypto_ops::hash(block_builder),
             Instruction::HPerm => block_builder.push_op(HPerm),
             Instruction::HMerge => crypto_ops::hmerge(block_builder),
-            Instruction::MTreeGet => crypto_ops::mtree_get(block_builder)?,
+            Instruction::MTreeGet => crypto_ops::mtree_get(block_builder),
             Instruction::MTreeSet => crypto_ops::mtree_set(block_builder)?,
-            Instruction::MTreeMerge => crypto_ops::mtree_merge(block_builder)?,
+            Instruction::MTreeMerge => crypto_ops::mtree_merge(block_builder),
             Instruction::MTreeVerify => block_builder.push_op(MpVerify(0)),
             Instruction::MTreeVerifyWithError(err_code) => {
                 block_builder.push_op(MpVerify(err_code.expect_value()))

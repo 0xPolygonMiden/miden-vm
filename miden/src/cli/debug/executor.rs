@@ -1,10 +1,9 @@
 use std::sync::Arc;
 
-use miden_vm::{
-    math::Felt, DefaultHost, MemAdviceProvider, Program, StackInputs, VmState, VmStateIterator,
-};
+use miden_vm::{DefaultHost, MemAdviceProvider, Program, StackInputs, VmState, VmStateIterator};
 
 use super::DebugCommand;
+use crate::utils::print_mem_address;
 
 /// Holds debugger state and iterator used for debugging.
 pub struct DebugExecutor {
@@ -29,7 +28,7 @@ impl DebugExecutor {
         source_manager: Arc<dyn assembly::SourceManager>,
     ) -> Result<Self, String> {
         let mut vm_state_iter =
-            processor::execute_iter(&program, stack_inputs, DefaultHost::new(advice_provider));
+            processor::execute_iter(&program, stack_inputs, &mut DefaultHost::new(advice_provider));
         let vm_state = vm_state_iter
             .next()
             .ok_or(
@@ -44,7 +43,7 @@ impl DebugExecutor {
     // MODIFIERS
     // --------------------------------------------------------------------------------------------
 
-    /// executes a debug command against the vm in it's current state.
+    /// Executes a debug command against the vm in it's current state.
     pub fn execute(&mut self, command: DebugCommand) -> bool {
         match command {
             DebugCommand::Continue => {
@@ -122,12 +121,12 @@ impl DebugExecutor {
     // ACCESSORS
     // --------------------------------------------------------------------------------------------
 
-    /// print general VM state information.
+    /// Prints general VM state information.
     fn print_vm_state(&self) {
         println!("{}", self.vm_state)
     }
 
-    /// print all stack items.
+    /// Prints all stack items.
     pub fn print_stack(&self) {
         println!(
             "{}",
@@ -141,7 +140,7 @@ impl DebugExecutor {
         )
     }
 
-    /// print specified stack item.
+    /// Prints specified stack item.
     pub fn print_stack_item(&self, index: usize) {
         let len = self.vm_state.stack.len();
         println!("stack len {}", len);
@@ -152,14 +151,14 @@ impl DebugExecutor {
         }
     }
 
-    /// print all memory entries.
+    /// Prints all memory entries.
     pub fn print_memory(&self) {
-        for (address, mem) in self.vm_state.memory.iter() {
-            Self::print_memory_data(address, mem)
+        for &(address, mem) in self.vm_state.memory.iter() {
+            print_mem_address(address, mem)
         }
     }
 
-    /// print specified memory entry.
+    /// Prints specified memory entry.
     pub fn print_memory_entry(&self, address: u64) {
         let entry = self.vm_state.memory.iter().find_map(|(addr, mem)| match address == *addr {
             true => Some(mem),
@@ -167,7 +166,7 @@ impl DebugExecutor {
         });
 
         match entry {
-            Some(mem) => Self::print_memory_data(&address, mem),
+            Some(&mem) => print_mem_address(address, mem),
             None => println!("memory at address '{address}' not found"),
         }
     }
@@ -175,13 +174,7 @@ impl DebugExecutor {
     // HELPERS
     // --------------------------------------------------------------------------------------------
 
-    /// print memory data.
-    fn print_memory_data(address: &u64, memory: &[Felt]) {
-        let mem_int = memory.iter().map(|&x| x.as_int()).collect::<Vec<_>>();
-        println!("{address} {mem_int:?}");
-    }
-
-    /// print help message
+    /// Prints help message
     fn print_help() {
         let message = "---------------------------------------------------------------------\n\
             Miden Assembly Debug CLI\n\
