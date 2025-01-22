@@ -1,13 +1,13 @@
 use criterion::{criterion_group, criterion_main, Criterion};
 use miden_vm::{internal::InputFile, Assembler, DefaultHost, StackInputs};
-use processor::{execute, ExecutionOptions};
+use processor::{ExecutionOptions, Process};
 use stdlib::StdLibrary;
 use walkdir::WalkDir;
 
-/// Benchmark the execution (with trace generation) of all the masm examples in the `masm-examples`
-/// directory.
+/// Benchmark the execution (without trace generation) of all the masm examples in the
+/// `masm-examples` directory.
 fn program_execution(c: &mut Criterion) {
-    let mut group = c.benchmark_group("program_execution");
+    let mut group = c.benchmark_group("program_execution_no_trace");
 
     let masm_examples_dir = {
         let mut miden_dir = std::env::current_dir().unwrap();
@@ -50,13 +50,12 @@ fn program_execution(c: &mut Criterion) {
                         .expect("Failed to compile test source.");
 
                     bench.iter(|| {
-                        execute(
-                            &program,
+                        let mut process = Process::new(
+                            program.kernel().clone(),
                             stack_inputs.clone(),
-                            &mut host,
                             ExecutionOptions::default(),
-                        )
-                        .unwrap()
+                        );
+                        process.execute(&program, &mut host).unwrap();
                     });
                 });
             },
