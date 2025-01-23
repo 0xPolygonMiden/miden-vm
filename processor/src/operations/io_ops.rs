@@ -14,8 +14,7 @@ impl Process {
     ///
     /// The original stack is shifted to the right by one item.
     pub(super) fn op_push(&mut self, value: Felt) -> Result<(), ExecutionError> {
-        self.stack.set(0, value);
-        self.stack.shift_right(0);
+        self.stack.push(value);
         Ok(())
     }
 
@@ -45,10 +44,7 @@ impl Process {
         word.reverse();
 
         // update the stack state
-        for (i, &value) in word.iter().enumerate() {
-            self.stack.set(i, value);
-        }
-        self.stack.shift_left(5);
+        self.stack.pop_and_set(word);
 
         Ok(())
     }
@@ -68,8 +64,7 @@ impl Process {
             self.system.clk(),
         )?;
 
-        self.stack.set(0, element);
-        self.stack.copy_state(1);
+        self.stack.set_and_copy([element]);
 
         Ok(())
     }
@@ -90,18 +85,21 @@ impl Process {
         let addr = self.stack.get(0);
 
         // build the word in memory order (reverse of stack order)
-        let word = [self.stack.get(4), self.stack.get(3), self.stack.get(2), self.stack.get(1)];
+        let word_for_memory =
+            [self.stack.get(4), self.stack.get(3), self.stack.get(2), self.stack.get(1)];
 
         // write the word to memory
-        self.chiplets
-            .memory_mut()
-            .write_word(self.system.ctx(), addr, self.system.clk(), word)?;
+        self.chiplets.memory_mut().write_word(
+            self.system.ctx(),
+            addr,
+            self.system.clk(),
+            word_for_memory,
+        )?;
 
-        // reverse the order of the memory word & update the stack state
-        for (i, &value) in word.iter().rev().enumerate() {
-            self.stack.set(i, value);
-        }
-        self.stack.shift_left(5);
+        // update the stack state
+        let word_for_stack =
+            [self.stack.get(1), self.stack.get(2), self.stack.get(3), self.stack.get(4)];
+        self.stack.pop_and_set(word_for_stack);
 
         Ok(())
     }
@@ -124,7 +122,7 @@ impl Process {
         self.chiplets.memory_mut().write(ctx, addr, self.system.clk(), value)?;
 
         // update the stack state
-        self.stack.shift_left(1);
+        self.stack.pop_and_set([]);
 
         Ok(())
     }
@@ -156,23 +154,24 @@ impl Process {
             self.chiplets.memory_mut().read_word(ctx, addr_second_word, clk)?,
         ];
 
-        // replace the stack elements with the elements from memory (in stack order)
-        for (i, &mem_value) in words.iter().flat_map(|word| word.iter()).rev().enumerate() {
-            self.stack.set(i, mem_value);
-        }
-
-        // copy over the next 4 elements
-        for i in 8..MEM_ADDR_STACK_IDX {
-            let stack_value = self.stack.get(i);
-            self.stack.set(i, stack_value);
-        }
-
-        // increment the address by 8 (2 words)
-        self.stack
-            .set(MEM_ADDR_STACK_IDX, addr_first_word + Felt::from(WORD_SIZE as u32 * 2));
-
-        // copy over the rest of the stack
-        self.stack.copy_state(13);
+        self.stack.set_and_copy([
+            // replace the stack elements with the elements from memory (in stack order)
+            words[1][3],
+            words[1][2],
+            words[1][1],
+            words[1][0],
+            words[0][3],
+            words[0][2],
+            words[0][1],
+            words[0][0],
+            // copy over the next 4 elements
+            self.stack.get(8),
+            self.stack.get(9),
+            self.stack.get(10),
+            self.stack.get(11),
+            // increment the address by 8 (2 words)
+            addr_first_word + Felt::from(WORD_SIZE as u32 * 2),
+        ]);
 
         Ok(())
     }
@@ -206,23 +205,24 @@ impl Process {
         self.chiplets.memory_mut().write_word(ctx, addr_first_word, clk, words[0])?;
         self.chiplets.memory_mut().write_word(ctx, addr_second_word, clk, words[1])?;
 
-        // replace the elements on the stack with the word elements (in stack order)
-        for (i, &adv_value) in words.iter().flat_map(|word| word.iter()).rev().enumerate() {
-            self.stack.set(i, adv_value);
-        }
-
-        // copy over the next 4 elements
-        for i in 8..12 {
-            let stack_value = self.stack.get(i);
-            self.stack.set(i, stack_value);
-        }
-
-        // increment the address by 8 (2 words)
-        self.stack
-            .set(MEM_ADDR_STACK_IDX, addr_first_word + Felt::from(WORD_SIZE as u32 * 2));
-
-        // copy over the rest of the stack
-        self.stack.copy_state(13);
+        self.stack.set_and_copy([
+            // replace the stack elements with the elements from memory (in stack order)
+            words[1][3],
+            words[1][2],
+            words[1][1],
+            words[1][0],
+            words[0][3],
+            words[0][2],
+            words[0][1],
+            words[0][0],
+            // copy over the next 4 elements
+            self.stack.get(8),
+            self.stack.get(9),
+            self.stack.get(10),
+            self.stack.get(11),
+            // increment the address by 8 (2 words)
+            addr_first_word + Felt::from(WORD_SIZE as u32 * 2),
+        ]);
 
         Ok(())
     }
@@ -236,8 +236,7 @@ impl Process {
     /// Returns an error if the advice stack is empty.
     pub(super) fn op_advpop(&mut self, host: &mut impl Host) -> Result<(), ExecutionError> {
         let value = host.advice_provider_mut().pop_stack(self.into())?;
-        self.stack.set(0, value);
-        self.stack.shift_right(0);
+        self.stack.push(value);
         Ok(())
     }
 
@@ -249,11 +248,7 @@ impl Process {
     pub(super) fn op_advpopw(&mut self, host: &mut impl Host) -> Result<(), ExecutionError> {
         let word: Word = host.advice_provider_mut().pop_stack_word(self.into())?;
 
-        self.stack.set(0, word[3]);
-        self.stack.set(1, word[2]);
-        self.stack.set(2, word[1]);
-        self.stack.set(3, word[0]);
-        self.stack.copy_state(4);
+        self.stack.set_and_copy([word[3], word[2], word[1], word[0]]);
 
         Ok(())
     }

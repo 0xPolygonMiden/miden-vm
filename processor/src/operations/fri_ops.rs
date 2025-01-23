@@ -90,25 +90,26 @@ impl Process {
         let poe2 = poe.square();
         let poe4 = poe2.square();
 
-        self.stack.set(0, tmp0[1]);
-        self.stack.set(1, tmp0[0]);
-        self.stack.set(2, tmp1[1]);
-        self.stack.set(3, tmp1[0]);
-        self.stack.set(4, ds[3]);
-        self.stack.set(5, ds[2]);
-        self.stack.set(6, ds[1]);
-        self.stack.set(7, ds[0]);
-        self.stack.set(8, poe2);
-        self.stack.set(9, f_tau);
-        self.stack.set(10, layer_ptr + EIGHT);
-        self.stack.set(11, poe4);
-        self.stack.set(12, f_pos);
-        self.stack.set(13, folded_value[1]);
-        self.stack.set(14, folded_value[0]);
+        self.stack.pop_and_set([
+            tmp0[1],
+            tmp0[0],
+            tmp1[1],
+            tmp1[0],
+            ds[3],
+            ds[2],
+            ds[1],
+            ds[0],
+            poe2,
+            f_tau,
+            layer_ptr + EIGHT,
+            poe4,
+            f_pos,
+            folded_value[1],
+            folded_value[0],
+        ]);
 
         self.set_helper_registers(ev, es, x, x_inv);
 
-        self.stack.shift_left(16);
         Ok(())
     }
 

@@ -13,8 +13,7 @@ impl Process {
     pub(super) fn op_add(&mut self) -> Result<(), ExecutionError> {
         let b = self.stack.get(0);
         let a = self.stack.get(1);
-        self.stack.set(0, a + b);
-        self.stack.shift_left(2);
+        self.stack.pop_and_set([a + b]);
         Ok(())
     }
 
@@ -22,8 +21,7 @@ impl Process {
     /// onto the stack.
     pub(super) fn op_neg(&mut self) -> Result<(), ExecutionError> {
         let a = self.stack.get(0);
-        self.stack.set(0, -a);
-        self.stack.copy_state(1);
+        self.stack.set_and_copy([-a]);
         Ok(())
     }
 
@@ -32,8 +30,7 @@ impl Process {
     pub(super) fn op_mul(&mut self) -> Result<(), ExecutionError> {
         let b = self.stack.get(0);
         let a = self.stack.get(1);
-        self.stack.set(0, a * b);
-        self.stack.shift_left(2);
+        self.stack.pop_and_set([a * b]);
         Ok(())
     }
 
@@ -48,16 +45,16 @@ impl Process {
             return Err(ExecutionError::DivideByZero(self.system.clk()));
         }
 
-        self.stack.set(0, a.inv());
-        self.stack.copy_state(1);
+        self.stack.set_and_copy([a.inv()]);
         Ok(())
     }
 
     /// Pops an element off the stack, adds ONE to it, and pushes the result back onto the stack.
     pub(super) fn op_incr(&mut self) -> Result<(), ExecutionError> {
         let a = self.stack.get(0);
-        self.stack.set(0, a + ONE);
-        self.stack.copy_state(1);
+
+        self.stack.set_and_copy([a + ONE]);
+
         Ok(())
     }
 
@@ -74,11 +71,10 @@ impl Process {
         let b = assert_binary(self.stack.get(0))?;
         let a = assert_binary(self.stack.get(1))?;
         if a == ONE && b == ONE {
-            self.stack.set(0, ONE);
+            self.stack.pop_and_set([ONE]);
         } else {
-            self.stack.set(0, ZERO);
+            self.stack.pop_and_set([ZERO]);
         }
-        self.stack.shift_left(2);
         Ok(())
     }
 
@@ -92,11 +88,10 @@ impl Process {
         let b = assert_binary(self.stack.get(0))?;
         let a = assert_binary(self.stack.get(1))?;
         if a == ONE || b == ONE {
-            self.stack.set(0, ONE);
+            self.stack.pop_and_set([ONE]);
         } else {
-            self.stack.set(0, ZERO);
+            self.stack.pop_and_set([ZERO]);
         }
-        self.stack.shift_left(2);
         Ok(())
     }
 
@@ -107,8 +102,9 @@ impl Process {
     /// Returns an error if the value on the top of the stack is not a binary value.
     pub(super) fn op_not(&mut self) -> Result<(), ExecutionError> {
         let a = assert_binary(self.stack.get(0))?;
-        self.stack.set(0, ONE - a);
-        self.stack.copy_state(1);
+
+        self.stack.set_and_copy([ONE - a]);
+
         Ok(())
     }
 
@@ -127,9 +123,9 @@ impl Process {
         let mut h0 = ZERO;
 
         if a == b {
-            self.stack.set(0, ONE);
+            self.stack.pop_and_set([ONE]);
         } else {
-            self.stack.set(0, ZERO);
+            self.stack.pop_and_set([ZERO]);
             // setting h0 to the inverse of the difference between the top two elements of the
             // stack.
             h0 = (b - a).inv();
@@ -138,7 +134,6 @@ impl Process {
         // save h0 in the decoder helper register.
         self.decoder.set_user_op_helpers(Operation::Eq, &[h0]);
 
-        self.stack.shift_left(2);
         Ok(())
     }
 
@@ -152,17 +147,17 @@ impl Process {
         let mut h0 = ZERO;
 
         if a == ZERO {
-            self.stack.set(0, ONE);
+            self.stack.set_and_copy([ONE]);
         } else {
+            self.stack.set_and_copy([ZERO]);
+
             // setting h0 to the inverse of the top element of the stack.
             h0 = a.inv();
-            self.stack.set(0, ZERO);
         }
 
         // save h0 in the decoder helper register.
         self.decoder.set_user_op_helpers(Operation::Eq, &[h0]);
 
-        self.stack.copy_state(1);
         Ok(())
     }
 
@@ -205,11 +200,7 @@ impl Process {
         // save val in the decoder helper register.
         self.decoder.set_user_op_helpers(Operation::Expacc, &[value]);
 
-        self.stack.set(0, Felt::new(bit));
-        self.stack.set(1, exp);
-        self.stack.set(2, acc);
-        self.stack.set(3, b);
-        self.stack.copy_state(4);
+        self.stack.set_and_copy([Felt::new(bit), exp, acc, b]);
 
         Ok(())
     }

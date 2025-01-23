@@ -31,10 +31,21 @@ impl Process {
 
         let (addr, output_state) = self.chiplets.permute(input_state);
         self.decoder.set_user_op_helpers(Operation::HPerm, &[addr]);
-        for (i, &value) in output_state.iter().rev().enumerate() {
-            self.stack.set(i, value);
-        }
-        self.stack.copy_state(12);
+
+        self.stack.set_and_copy([
+            output_state[11],
+            output_state[10],
+            output_state[9],
+            output_state[8],
+            output_state[7],
+            output_state[6],
+            output_state[5],
+            output_state[4],
+            output_state[3],
+            output_state[2],
+            output_state[1],
+            output_state[0],
+        ]);
         Ok(())
     }
 
@@ -97,7 +108,7 @@ impl Process {
         }
 
         // The same state is copied over to the next clock cycle with no changes.
-        self.stack.copy_state(0);
+        self.stack.set_and_copy([]);
         Ok(())
     }
 
@@ -166,10 +177,8 @@ impl Process {
             .set_user_op_helpers(Operation::MrUpdate, &[merkle_tree_update.get_address()]);
 
         // Replace the old node value with computed new root; everything else remains the same.
-        for (i, &value) in merkle_tree_update.get_new_root().iter().rev().enumerate() {
-            self.stack.set(i, value);
-        }
-        self.stack.copy_state(4);
+        let new_root = merkle_tree_update.get_new_root();
+        self.stack.set_and_copy([new_root[3], new_root[2], new_root[1], new_root[0]]);
 
         Ok(())
     }
