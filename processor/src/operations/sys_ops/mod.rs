@@ -25,7 +25,7 @@ impl Process {
         if self.stack.get(0) != ONE {
             return Err(host.on_assert_failed(self.into(), err_code));
         }
-        self.stack.shift_left(1);
+        self.stack.pop_and_set([]);
         Ok(())
     }
 
@@ -38,8 +38,7 @@ impl Process {
         let offset = self.stack.get(0);
         let fmp = self.system.fmp();
 
-        self.stack.set(0, fmp + offset);
-        self.stack.copy_state(1);
+        self.stack.set_and_copy([fmp + offset]);
 
         Ok(())
     }
@@ -58,7 +57,7 @@ impl Process {
         }
 
         self.system.set_fmp(new_fmp);
-        self.stack.shift_left(1);
+        self.stack.pop_and_set([]);
 
         Ok(())
     }
@@ -70,8 +69,7 @@ impl Process {
     /// the stack.
     pub(super) fn op_sdepth(&mut self) -> Result<(), ExecutionError> {
         let stack_depth = self.stack.depth();
-        self.stack.set(0, Felt::new(stack_depth as u64));
-        self.stack.shift_right(0);
+        self.stack.push(Felt::new(stack_depth as u64));
         Ok(())
     }
 
@@ -89,13 +87,7 @@ impl Process {
         }
 
         let fn_hash = self.system.fn_hash();
-
-        self.stack.set(0, fn_hash[3]);
-        self.stack.set(1, fn_hash[2]);
-        self.stack.set(2, fn_hash[1]);
-        self.stack.set(3, fn_hash[0]);
-
-        self.stack.copy_state(4);
+        self.stack.set_and_copy([fn_hash[3], fn_hash[2], fn_hash[1], fn_hash[0]]);
 
         Ok(())
     }
@@ -108,8 +100,7 @@ impl Process {
     /// operations such as GRUOP, END etc.
     pub(super) fn op_clk(&mut self) -> Result<(), ExecutionError> {
         let clk = self.system.clk();
-        self.stack.set(0, Felt::from(clk));
-        self.stack.shift_right(0);
+        self.stack.push(Felt::from(clk));
         Ok(())
     }
 
@@ -121,7 +112,7 @@ impl Process {
     where
         H: Host,
     {
-        self.stack.copy_state(0);
+        self.stack.set_and_copy([]);
         self.decoder.set_user_op_helpers(Operation::Emit(event_id), &[event_id.into()]);
 
         // If it's a system event, handle it directly. Otherwise, forward it to the host.

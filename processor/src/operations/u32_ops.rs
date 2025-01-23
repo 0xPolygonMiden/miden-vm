@@ -32,9 +32,7 @@ impl Process {
 
         self.add_range_checks(Operation::U32split, lo, hi, true);
 
-        self.stack.set(0, hi);
-        self.stack.set(1, lo);
-        self.stack.shift_right(1);
+        self.stack.drop_and_push(hi, lo);
         Ok(())
     }
 
@@ -47,7 +45,7 @@ impl Process {
 
         self.add_range_checks(Operation::U32assert2(err_code), a, b, false);
 
-        self.stack.copy_state(0);
+        self.stack.set_and_copy([]);
         Ok(())
     }
 
@@ -64,9 +62,7 @@ impl Process {
         let (hi, lo) = split_element(result);
         self.add_range_checks(Operation::U32add, lo, hi, false);
 
-        self.stack.set(0, hi);
-        self.stack.set(1, lo);
-        self.stack.copy_state(2);
+        self.stack.set_and_copy([hi, lo]);
         Ok(())
     }
 
@@ -81,9 +77,7 @@ impl Process {
 
         self.add_range_checks(Operation::U32add3, lo, hi, false);
 
-        self.stack.set(0, hi);
-        self.stack.set(1, lo);
-        self.stack.shift_left(3);
+        self.stack.pop_and_set([hi, lo]);
         Ok(())
     }
 
@@ -102,9 +96,7 @@ impl Process {
         // operations requiring range checks under a common degree-4 prefix.
         self.add_range_checks(Operation::U32sub, c, ZERO, false);
 
-        self.stack.set(0, d);
-        self.stack.set(1, c);
-        self.stack.copy_state(2);
+        self.stack.set_and_copy([d, c]);
         Ok(())
     }
 
@@ -118,9 +110,7 @@ impl Process {
 
         self.add_range_checks(Operation::U32mul, lo, hi, true);
 
-        self.stack.set(0, hi);
-        self.stack.set(1, lo);
-        self.stack.copy_state(2);
+        self.stack.set_and_copy([hi, lo]);
         Ok(())
     }
 
@@ -136,9 +126,7 @@ impl Process {
 
         self.add_range_checks(Operation::U32madd, lo, hi, true);
 
-        self.stack.set(0, hi);
-        self.stack.set(1, lo);
-        self.stack.shift_left(3);
+        self.stack.pop_and_set([hi, lo]);
         Ok(())
     }
 
@@ -164,9 +152,8 @@ impl Process {
         let hi = Felt::new(b - r - 1);
         self.add_range_checks(Operation::U32div, lo, hi, false);
 
-        self.stack.set(0, Felt::new(r));
-        self.stack.set(1, Felt::new(q));
-        self.stack.copy_state(2);
+        self.stack.set_and_copy([Felt::new(r), Felt::new(q)]);
+
         Ok(())
     }
 
@@ -180,8 +167,7 @@ impl Process {
         let a = require_u32_operand!(self.stack, 1);
         let result = self.chiplets.bitwise.u32and(a, b)?;
 
-        self.stack.set(0, result);
-        self.stack.shift_left(2);
+        self.stack.pop_and_set([result]);
 
         Ok(())
     }
@@ -193,8 +179,7 @@ impl Process {
         let a = require_u32_operand!(self.stack, 1);
         let result = self.chiplets.bitwise.u32xor(a, b)?;
 
-        self.stack.set(0, result);
-        self.stack.shift_left(2);
+        self.stack.pop_and_set([result]);
 
         Ok(())
     }

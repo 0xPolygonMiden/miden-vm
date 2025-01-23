@@ -377,18 +377,15 @@ impl Process {
         // Dyncall's effect on the trace can't be written in terms of any other operation, and
         // therefore can't follow this framework. Hence, we do it "manually". It's probably worth
         // refactoring the decoder though to remove this Noop execution pattern.
-        self.ensure_trace_capacity();
-
         let (addr, hashed_block) = self.chiplets.hasher.hash_control_block(
             EMPTY_WORD,
             EMPTY_WORD,
             dyn_node.domain(),
             dyn_node.digest(),
         );
-
         debug_assert_eq!(dyn_node.digest(), hashed_block.into());
 
-        let (stack_depth, next_overflow_addr) = self.stack.shift_left_and_start_context();
+        let (stack_depth, next_overflow_addr) = self.stack.pop_and_start_context();
         debug_assert!(stack_depth <= u32::MAX as usize, "stack depth too big");
 
         let ctx_info = ExecutionContextInfo::new(

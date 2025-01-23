@@ -26,13 +26,10 @@ impl Process {
         op: Operation,
         host: &mut impl Host,
     ) -> Result<(), ExecutionError> {
-        // make sure there is enough memory allocated to hold the execution trace
-        self.ensure_trace_capacity();
-
         // execute the operation
         match op {
             // ----- system operations ------------------------------------------------------------
-            Operation::Noop => self.stack.copy_state(0),
+            Operation::Noop => self.stack.set_and_copy([]),
             Operation::Assert(err_code) => self.op_assert(err_code, host)?,
 
             Operation::FmpAdd => self.op_fmpadd()?,
@@ -114,21 +111,21 @@ impl Process {
             Operation::SwapW3 => self.op_swapw3()?,
             Operation::SwapDW => self.op_swapdw()?,
 
-            Operation::MovUp2 => self.op_movup(2)?,
-            Operation::MovUp3 => self.op_movup(3)?,
-            Operation::MovUp4 => self.op_movup(4)?,
-            Operation::MovUp5 => self.op_movup(5)?,
-            Operation::MovUp6 => self.op_movup(6)?,
-            Operation::MovUp7 => self.op_movup(7)?,
-            Operation::MovUp8 => self.op_movup(8)?,
+            Operation::MovUp2 => self.rotate_right::<3>()?,
+            Operation::MovUp3 => self.rotate_right::<4>()?,
+            Operation::MovUp4 => self.rotate_right::<5>()?,
+            Operation::MovUp5 => self.rotate_right::<6>()?,
+            Operation::MovUp6 => self.rotate_right::<7>()?,
+            Operation::MovUp7 => self.rotate_right::<8>()?,
+            Operation::MovUp8 => self.rotate_right::<9>()?,
 
-            Operation::MovDn2 => self.op_movdn(2)?,
-            Operation::MovDn3 => self.op_movdn(3)?,
-            Operation::MovDn4 => self.op_movdn(4)?,
-            Operation::MovDn5 => self.op_movdn(5)?,
-            Operation::MovDn6 => self.op_movdn(6)?,
-            Operation::MovDn7 => self.op_movdn(7)?,
-            Operation::MovDn8 => self.op_movdn(8)?,
+            Operation::MovDn2 => self.rotate_left::<3>()?,
+            Operation::MovDn3 => self.rotate_left::<4>()?,
+            Operation::MovDn4 => self.rotate_left::<5>()?,
+            Operation::MovDn5 => self.rotate_left::<6>()?,
+            Operation::MovDn6 => self.rotate_left::<7>()?,
+            Operation::MovDn7 => self.rotate_left::<8>()?,
+            Operation::MovDn8 => self.rotate_left::<9>()?,
 
             Operation::CSwap => self.op_cswap()?,
             Operation::CSwapW => self.op_cswapw()?,
@@ -166,11 +163,6 @@ impl Process {
         self.system.advance_clock(self.max_cycles)?;
         self.stack.advance_clock();
         Ok(())
-    }
-
-    /// Makes sure there is enough memory allocated for the trace to accommodate a new clock cycle.
-    pub(super) fn ensure_trace_capacity(&mut self) {
-        self.stack.ensure_trace_capacity();
     }
 }
 

@@ -74,30 +74,28 @@ impl Process {
         let tx = QuadFelt::new(v0, ZERO);
         let [p_new, r_new] = [p + alpha * (tx - tgz), r + alpha * (tx - tz)];
 
-        // --- rotate the top 8 elements of the stack ---------------------------------------------
-        self.stack.set(0, t0);
-        self.stack.set(1, t7);
-        self.stack.set(2, t6);
-        self.stack.set(3, t5);
-        self.stack.set(4, t4);
-        self.stack.set(5, t3);
-        self.stack.set(6, t2);
-        self.stack.set(7, t1);
-
-        // --- update the accumulators ------------------------------------------------------------
-        self.stack.set(8, p_new.to_base_elements()[1]);
-        self.stack.set(9, p_new.to_base_elements()[0]);
-        self.stack.set(10, r_new.to_base_elements()[1]);
-        self.stack.set(11, r_new.to_base_elements()[0]);
-
-        // --- update the memory pointers ---------------------------------------------------------
+        // --- update the stack -------------------------------------------------------------------
         const FOUR: Felt = Felt::new(4);
-        self.stack.set(12, self.stack.get(12));
-        self.stack.set(13, self.stack.get(13) + FOUR);
-        self.stack.set(14, self.stack.get(14) + FOUR);
-
-        // --- copy the rest of the stack ---------------------------------------------------------
-        self.stack.copy_state(15);
+        self.stack.set_and_copy([
+            // rotate the top 8 elements of the stack, update the accum
+            t0,
+            t7,
+            t6,
+            t5,
+            t4,
+            t3,
+            t2,
+            t1,
+            // update the accumulators
+            p_new.to_base_elements()[1],
+            p_new.to_base_elements()[0],
+            r_new.to_base_elements()[1],
+            r_new.to_base_elements()[0],
+            // update the memory pointers
+            self.stack.get(12),
+            self.stack.get(13) + FOUR,
+            self.stack.get(14) + FOUR,
+        ]);
 
         // --- set the helper registers -----------------------------------------------------------
         self.set_helper_reg(alpha, tz, tgz);

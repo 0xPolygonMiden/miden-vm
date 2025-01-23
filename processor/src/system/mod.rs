@@ -251,9 +251,10 @@ impl System {
     /// overwritten with random values. This parameter is unused because last rows are just
     /// duplicates of the prior rows and thus can be safely overwritten.
     pub fn into_trace(self, trace_len: usize, num_rand_rows: usize) -> SysTrace {
-        let own_len = self.rows.len();
+        let clk: usize = self.clk().into();
         // make sure that only the duplicate rows will be overwritten with random values
-        assert!(own_len + num_rand_rows <= trace_len, "target trace length too small");
+        assert!(clk + num_rand_rows <= trace_len, "target trace length too small");
+        let own_len = self.rows.len();
 
         let mut trace_columns = unsafe { vec![uninit_vector(trace_len); SYS_TRACE_WIDTH] };
 
