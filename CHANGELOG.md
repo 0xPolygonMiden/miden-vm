@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.13.0 (TBD)
+
+#### Changes
+- Update minimum supported Rust version to 1.84.
+
+
 ## 0.12.0 (2025-01-22)
 
 #### Highlights

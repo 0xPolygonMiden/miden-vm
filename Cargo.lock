@@ -461,9 +461,9 @@ checksum = "d0a5c400df2834b80a4c3327b3aad3a4c4cd4de0629063962b03235697506a28"
 
 [[package]]
 name = "crunchy"
-version = "0.2.2"
+version = "0.2.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7a81dae078cea95a014a339291cec439d2f232ebe854a9d672b796c6afafa9b7"
+checksum = "43da5946c66ffcc7745f48db692ffbb10a83bfe0afd96235c5c2a4fb23994929"
 
 [[package]]
 name = "crypto-common"
@@ -801,9 +801,9 @@ dependencies = [
 
 [[package]]
 name = "is-terminal"
-version = "0.4.14"
+version = "0.4.15"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3f187290c0ed3dfe3f7c85bedddd320949b68fc86ca0ceb71adfb05b3dc3af2a"
+checksum = "e19b23d53f35ce9f56aebc7d1bb4e6ac1e9c0db7ac85c8d1760c04379edced37"
 dependencies = [
  "hermit-abi",
  "libc",
@@ -1018,7 +1018,7 @@ dependencies = [
 
 [[package]]
 name = "miden-air"
-version = "0.12.0"
+version = "0.13.0"
 dependencies = [
  "criterion",
  "miden-core",
@@ -1031,7 +1031,7 @@ dependencies = [
 
 [[package]]
 name = "miden-assembly"
-version = "0.12.0"
+version = "0.13.0"
 dependencies = [
  "aho-corasick",
  "lalrpop",
@@ -1049,7 +1049,7 @@ dependencies = [
 
 [[package]]
 name = "miden-core"
-version = "0.12.0"
+version = "0.13.0"
 dependencies = [
  "lock_api",
  "loom",
@@ -1151,7 +1151,7 @@ dependencies = [
 
 [[package]]
 name = "miden-processor"
-version = "0.12.0"
+version = "0.13.0"
 dependencies = [
  "logtest",
  "miden-air",
@@ -1167,7 +1167,7 @@ dependencies = [
 
 [[package]]
 name = "miden-prover"
-version = "0.12.0"
+version = "0.13.0"
 dependencies = [
  "elsa",
  "miden-air",
@@ -1181,7 +1181,7 @@ dependencies = [
 
 [[package]]
 name = "miden-stdlib"
-version = "0.12.0"
+version = "0.13.0"
 dependencies = [
  "blake3",
  "criterion",
@@ -1220,7 +1220,7 @@ dependencies = [
 
 [[package]]
 name = "miden-verifier"
-version = "0.12.0"
+version = "0.13.0"
 dependencies = [
  "miden-air",
  "miden-core",
@@ -1231,7 +1231,7 @@ dependencies = [
 
 [[package]]
 name = "miden-vm"
-version = "0.12.0"
+version = "0.13.0"
 dependencies = [
  "assert_cmd",
  "blake3",
@@ -2313,9 +2313,9 @@ dependencies = [
 
 [[package]]
 name = "trybuild"
-version = "1.0.102"
+version = "1.0.103"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9f14b5c02a137632f68194ec657ecb92304138948e8957c932127eb1b58c23be"
+checksum = "b812699e0c4f813b872b373a4471717d9eb550da14b311058a4d9cf4173cbca6"
 dependencies = [
  "dissimilar",
  "glob",
