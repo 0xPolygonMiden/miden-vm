@@ -248,7 +248,8 @@ impl Test {
             // easier
             let mem_state = process
                 .chiplets
-                .get_mem_value(ContextId::root(), mem_start_addr)
+                .memory
+                .get_value(ContextId::root(), mem_start_addr)
                 .unwrap_or(EMPTY_WORD);
 
             let mem_state = felt_slice_to_ints(&mem_state);

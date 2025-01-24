@@ -72,12 +72,14 @@ impl Process {
             .digest()
             .into();
 
-        let addr = self.chiplets.hash_control_block(
+        let (addr, result) = self.chiplets.hasher.hash_control_block(
             child1_hash,
             child2_hash,
             JoinNode::DOMAIN,
             node.digest(),
         );
+
+        debug_assert_eq!(node.digest(), result.into());
 
         // start decoding the JOIN block; this appends a row with JOIN operation to the decoder
         // trace. when JOIN operation is executed, the rest of the VM state does not change
@@ -124,12 +126,14 @@ impl Process {
             .ok_or(ExecutionError::MastNodeNotFoundInForest { node_id: node.on_false() })?
             .digest()
             .into();
-        let addr = self.chiplets.hash_control_block(
+        let (addr, result) = self.chiplets.hasher.hash_control_block(
             child1_hash,
             child2_hash,
-            SplitNode::DOMAIN,
+            JoinNode::DOMAIN,
             node.digest(),
         );
+
+        debug_assert_eq!(node.digest(), result.into());
 
         // start decoding the SPLIT block. this appends a row with SPLIT operation to the decoder
         // trace. we also pop the value off the top of the stack and return it.
@@ -173,12 +177,15 @@ impl Process {
             .ok_or(ExecutionError::MastNodeNotFoundInForest { node_id: node.body() })?
             .digest()
             .into();
-        let addr = self.chiplets.hash_control_block(
+
+        let (addr, result) = self.chiplets.hasher.hash_control_block(
             body_hash,
             EMPTY_WORD,
             LoopNode::DOMAIN,
             node.digest(),
         );
+
+        debug_assert_eq!(node.digest(), result.into());
 
         // start decoding the LOOP block; this appends a row with LOOP operation to the decoder
         // trace, but if the value on the top of the stack is not ONE, the block is not marked
@@ -234,9 +241,15 @@ impl Process {
             .ok_or(ExecutionError::MastNodeNotFoundInForest { node_id: node.callee() })?
             .digest()
             .into();
-        let addr =
-            self.chiplets
-                .hash_control_block(callee_hash, EMPTY_WORD, node.domain(), node.digest());
+
+        let (addr, result) = self.chiplets.hasher.hash_control_block(
+            callee_hash,
+            EMPTY_WORD,
+            node.domain(),
+            node.digest(),
+        );
+
+        debug_assert_eq!(node.digest(), result.into());
 
         // start new execution context for the operand stack. this has the effect of resetting
         // stack depth to 16.
@@ -321,12 +334,14 @@ impl Process {
         // stack.
         let callee_hash = self.read_mem_word(mem_addr)?;
 
-        let addr = self.chiplets.hash_control_block(
+        let (addr, result) = self.chiplets.hasher.hash_control_block(
             EMPTY_WORD,
             EMPTY_WORD,
             dyn_node.domain(),
             dyn_node.digest(),
         );
+
+        debug_assert_eq!(dyn_node.digest(), result.into());
 
         self.decoder.start_dyn(addr, callee_hash);
 
@@ -362,12 +377,14 @@ impl Process {
         // refactoring the decoder though to remove this Noop execution pattern.
         self.ensure_trace_capacity();
 
-        let addr = self.chiplets.hash_control_block(
+        let (addr, result) = self.chiplets.hasher.hash_control_block(
             EMPTY_WORD,
             EMPTY_WORD,
             dyn_node.domain(),
             dyn_node.digest(),
         );
+
+        debug_assert_eq!(dyn_node.digest(), result.into());
 
         let (stack_depth, next_overflow_addr) = self.stack.shift_left_and_start_context();
         debug_assert!(stack_depth <= u32::MAX as usize, "stack depth too big");
@@ -449,7 +466,10 @@ impl Process {
         // hashing operation batches. Thus, the result of the hash is expected to be in row
         // addr + (num_batches * 8) - 1.
         let op_batches = basic_block.op_batches();
-        let addr = self.chiplets.hash_span_block(op_batches, basic_block.digest());
+        let (addr, result) =
+            self.chiplets.hasher.hash_basic_block(op_batches, basic_block.digest());
+
+        debug_assert_eq!(basic_block.digest(), result.into());
 
         // start decoding the first operation batch; this also appends a row with SPAN operation
         // to the decoder trace. we also need the total number of operation groups so that we can

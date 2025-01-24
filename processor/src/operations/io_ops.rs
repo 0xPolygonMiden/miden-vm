@@ -87,7 +87,10 @@ impl Process {
         let addr = Self::get_valid_address(self.stack.get(12))?;
 
         // load two words from memory
-        let words = self.chiplets.read_mem_double(ctx, addr)?;
+        let words = [
+            self.chiplets.memory.read(ctx, addr, self.chiplets.clk)?,
+            self.chiplets.memory.read(ctx, addr + 1, self.chiplets.clk)?,
+        ];
 
         // replace the stack elements with the elements from memory (in stack order)
         for (i, &mem_value) in words.iter().flat_map(|word| word.iter()).rev().enumerate() {
@@ -126,7 +129,7 @@ impl Process {
         let word = [self.stack.get(4), self.stack.get(3), self.stack.get(2), self.stack.get(1)];
 
         // write the word to memory and get the previous word
-        self.chiplets.write_mem(ctx, addr, word)?;
+        let _ = self.chiplets.memory.write(ctx, addr, self.chiplets.clk, word);
 
         // reverse the order of the memory word & update the stack state
         for (i, &value) in word.iter().rev().enumerate() {
@@ -157,7 +160,14 @@ impl Process {
         let value = self.stack.get(1);
 
         // write the value to the memory and get the previous word
-        let mut old_word = self.chiplets.write_mem_element(ctx, addr, value)?;
+        let mut old_word = {
+            let old_word = self.chiplets.memory.get_old_value(ctx, addr);
+            let new_word = [value, old_word[1], old_word[2], old_word[3]];
+
+            self.chiplets.memory.write(ctx, addr, self.chiplets.clk, new_word)?;
+
+            old_word
+        };
         // put the retrieved word into stack order
         old_word.reverse();
 
@@ -189,7 +199,8 @@ impl Process {
         let words = host.advice_provider_mut().pop_stack_dword(self.into())?;
 
         // write the words memory
-        self.chiplets.write_mem_double(ctx, addr, words)?;
+        self.chiplets.memory.write(ctx, addr, self.chiplets.clk, words[0])?;
+        self.chiplets.memory.write(ctx, addr + 1, self.chiplets.clk, words[1])?;
 
         // replace the elements on the stack with the word elements (in stack order)
         for (i, &adv_value) in words.iter().flat_map(|word| word.iter()).rev().enumerate() {
@@ -249,7 +260,7 @@ impl Process {
     pub(crate) fn read_mem_word(&mut self, addr: Felt) -> Result<Word, ExecutionError> {
         let ctx = self.system.ctx();
         let mem_addr = Self::get_valid_address(addr)?;
-        let word_at_addr = self.chiplets.read_mem(ctx, mem_addr)?;
+        let word_at_addr = self.chiplets.memory.read(ctx, mem_addr, self.chiplets.clk)?;
 
         Ok(word_at_addr)
     }
@@ -316,7 +327,7 @@ mod tests {
     fn op_mloadw() {
         let mut host = DefaultHost::default();
         let mut process = Process::new_dummy_with_decoder_helpers_and_empty_stack();
-        assert_eq!(0, process.chiplets.get_mem_size());
+        assert_eq!(0, process.chiplets.memory.size());
 
         // push a word onto the stack and save it at address 1
         let word = [1, 3, 5, 7].to_elements().try_into().unwrap();
@@ -335,8 +346,8 @@ mod tests {
         assert_eq!(expected_stack, process.stack.trace_state());
 
         // check memory state
-        assert_eq!(1, process.chiplets.get_mem_size());
-        assert_eq!(word, process.chiplets.get_mem_value(ContextId::root(), 1).unwrap());
+        assert_eq!(1, process.chiplets.memory.size());
+        assert_eq!(word, process.chiplets.memory.get_value(ContextId::root(), 1).unwrap());
 
         // --- calling MLOADW with address greater than u32::MAX leads to an error ----------------
         process.execute_op(Operation::Push(Felt::new(u64::MAX / 2)), &mut host).unwrap();
@@ -351,7 +362,7 @@ mod tests {
     fn op_mload() {
         let mut host = DefaultHost::default();
         let mut process = Process::new_dummy_with_decoder_helpers_and_empty_stack();
-        assert_eq!(0, process.chiplets.get_mem_size());
+        assert_eq!(0, process.chiplets.memory.size());
 
         // push a word onto the stack and save it at address 2
         let word = [1, 3, 5, 7].to_elements().try_into().unwrap();
@@ -365,8 +376,8 @@ mod tests {
         assert_eq!(expected_stack, process.stack.trace_state());
 
         // check memory state
-        assert_eq!(1, process.chiplets.get_mem_size());
-        assert_eq!(word, process.chiplets.get_mem_value(ContextId::root(), 2).unwrap());
+        assert_eq!(1, process.chiplets.memory.size());
+        assert_eq!(word, process.chiplets.memory.get_value(ContextId::root(), 2).unwrap());
 
         // --- calling MLOAD with address greater than u32::MAX leads to an error -----------------
         process.execute_op(Operation::Push(Felt::new(u64::MAX / 2)), &mut host).unwrap();
@@ -391,9 +402,9 @@ mod tests {
         store_value(&mut process, 2, word2_felts, &mut host);
 
         // check memory state
-        assert_eq!(2, process.chiplets.get_mem_size());
-        assert_eq!(word1_felts, process.chiplets.get_mem_value(ContextId::root(), 1).unwrap());
-        assert_eq!(word2_felts, process.chiplets.get_mem_value(ContextId::root(), 2).unwrap());
+        assert_eq!(2, process.chiplets.memory.size());
+        assert_eq!(word1_felts, process.chiplets.memory.get_value(ContextId::root(), 1).unwrap());
+        assert_eq!(word2_felts, process.chiplets.memory.get_value(ContextId::root(), 2).unwrap());
 
         // clear the stack
         for _ in 0..8 {
@@ -428,7 +439,7 @@ mod tests {
     fn op_mstorew() {
         let mut host = DefaultHost::default();
         let mut process = Process::new_dummy_with_decoder_helpers_and_empty_stack();
-        assert_eq!(0, process.chiplets.get_mem_size());
+        assert_eq!(0, process.chiplets.memory.size());
 
         // push the first word onto the stack and save it at address 0
         let word1 = [1, 3, 5, 7].to_elements().try_into().unwrap();
@@ -439,8 +450,8 @@ mod tests {
         assert_eq!(expected_stack, process.stack.trace_state());
 
         // check memory state
-        assert_eq!(1, process.chiplets.get_mem_size());
-        assert_eq!(word1, process.chiplets.get_mem_value(ContextId::root(), 0).unwrap());
+        assert_eq!(1, process.chiplets.memory.size());
+        assert_eq!(word1, process.chiplets.memory.get_value(ContextId::root(), 0).unwrap());
 
         // push the second word onto the stack and save it at address 3
         let word2 = [2, 4, 6, 8].to_elements().try_into().unwrap();
@@ -451,9 +462,9 @@ mod tests {
         assert_eq!(expected_stack, process.stack.trace_state());
 
         // check memory state
-        assert_eq!(2, process.chiplets.get_mem_size());
-        assert_eq!(word1, process.chiplets.get_mem_value(ContextId::root(), 0).unwrap());
-        assert_eq!(word2, process.chiplets.get_mem_value(ContextId::root(), 3).unwrap());
+        assert_eq!(2, process.chiplets.memory.size());
+        assert_eq!(word1, process.chiplets.memory.get_value(ContextId::root(), 0).unwrap());
+        assert_eq!(word2, process.chiplets.memory.get_value(ContextId::root(), 3).unwrap());
 
         // --- calling MSTOREW with address greater than u32::MAX leads to an error ----------------
         process.execute_op(Operation::Push(Felt::new(u64::MAX / 2)), &mut host).unwrap();
@@ -468,7 +479,7 @@ mod tests {
     fn op_mstore() {
         let mut host = DefaultHost::default();
         let mut process = Process::new_dummy_with_decoder_helpers_and_empty_stack();
-        assert_eq!(0, process.chiplets.get_mem_size());
+        assert_eq!(0, process.chiplets.memory.size());
 
         // push new element onto the stack and save it as first element of the word on
         // uninitialized memory at address 0
@@ -481,8 +492,8 @@ mod tests {
 
         // check memory state
         let mem_0 = [element, ZERO, ZERO, ZERO];
-        assert_eq!(1, process.chiplets.get_mem_size());
-        assert_eq!(mem_0, process.chiplets.get_mem_value(ContextId::root(), 0).unwrap());
+        assert_eq!(1, process.chiplets.memory.size());
+        assert_eq!(mem_0, process.chiplets.memory.get_value(ContextId::root(), 0).unwrap());
 
         // push the word onto the stack and save it at address 2
         let word_2 = [1, 3, 5, 7].to_elements().try_into().unwrap();
@@ -498,8 +509,8 @@ mod tests {
 
         // check memory state to make sure the other 3 elements were not affected
         let mem_2 = [element, Felt::new(3), Felt::new(5), Felt::new(7)];
-        assert_eq!(2, process.chiplets.get_mem_size());
-        assert_eq!(mem_2, process.chiplets.get_mem_value(ContextId::root(), 2).unwrap());
+        assert_eq!(2, process.chiplets.memory.size());
+        assert_eq!(mem_2, process.chiplets.memory.get_value(ContextId::root(), 2).unwrap());
 
         // --- calling MSTORE with address greater than u32::MAX leads to an error ----------------
         process.execute_op(Operation::Push(Felt::new(u64::MAX / 2)), &mut host).unwrap();
@@ -541,9 +552,9 @@ mod tests {
         process.execute_op(Operation::Pipe, &mut host).unwrap();
 
         // check memory state contains the words from the advice stack
-        assert_eq!(2, process.chiplets.get_mem_size());
-        assert_eq!(word1_felts, process.chiplets.get_mem_value(ContextId::root(), 1).unwrap());
-        assert_eq!(word2_felts, process.chiplets.get_mem_value(ContextId::root(), 2).unwrap());
+        assert_eq!(2, process.chiplets.memory.size());
+        assert_eq!(word1_felts, process.chiplets.memory.get_value(ContextId::root(), 1).unwrap());
+        assert_eq!(word2_felts, process.chiplets.memory.get_value(ContextId::root(), 2).unwrap());
 
         // the first 8 values should be the values from the advice stack. the next 4 values should
         // remain unchanged, and the address should be incremented by 2 (i.e., 1 -> 3).

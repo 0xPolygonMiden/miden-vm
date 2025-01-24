@@ -394,7 +394,7 @@ impl Process {
             let callee = program.get_node_by_id(call_node.callee()).ok_or_else(|| {
                 ExecutionError::MastNodeNotFoundInForest { node_id: call_node.callee() }
             })?;
-            self.chiplets.access_kernel_proc(callee.digest())?;
+            self.chiplets.kernel_rom.access_proc(callee.digest())?;
         }
 
         self.start_call_node(call_node, program, host)?;
@@ -679,7 +679,7 @@ impl ProcessState<'_> {
     /// Returns a word located at the specified context/address, or None if the address hasn't
     /// been accessed previously.
     pub fn get_mem_value(&self, ctx: ContextId, addr: u32) -> Option<Word> {
-        self.chiplets.get_mem_value(ctx, addr)
+        self.chiplets.memory.get_value(ctx, addr)
     }
 
     /// Returns the entire memory state for the specified execution context at the current clock
@@ -688,7 +688,7 @@ impl ProcessState<'_> {
     /// The state is returned as a vector of (address, value) tuples, and includes addresses which
     /// have been accessed at least once.
     pub fn get_mem_state(&self, ctx: ContextId) -> Vec<(u64, Word)> {
-        self.chiplets.get_mem_state_at(ctx, self.system.clk())
+        self.chiplets.memory.get_state_at(ctx, self.system.clk())
     }
 }
 
