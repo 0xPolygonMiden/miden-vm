@@ -186,7 +186,7 @@ impl MastForest {
         nodes_to_remove: &BTreeSet<MastNodeId>,
     ) -> BTreeMap<MastNodeId, MastNodeId> {
         if nodes_to_remove.is_empty() {
-            return [].into();
+            return BTreeMap::new();
         }
 
         let old_nodes = mem::take(&mut self.nodes);
@@ -528,6 +528,9 @@ impl IndexMut<DecoratorId> for MastForest {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct MastNodeId(u32);
 
+/// Operations that mutate a MAST often produce this mapping between old and new NodeIds.
+pub type Remapping = BTreeMap<MastNodeId, MastNodeId>;
+
 impl MastNodeId {
     /// Returns a new `MastNodeId` with the provided inner value, or an error if the provided
     /// `value` is greater than the number of nodes in the forest.
@@ -594,6 +597,13 @@ impl MastNodeId {
     pub fn as_u32(&self) -> u32 {
         self.0
     }
+
+    /// Remap the NodeId to its new position using the given [`Remapping`].
+    pub fn remap(&mut self, remapping: &Remapping) {
+        if let Some(new_id) = remapping.get(self) {
+            self.0 = new_id.0
+        }
+    }
 }
 
 impl From<MastNodeId> for usize {
@@ -617,6 +627,38 @@ impl From<&MastNodeId> for u32 {
 impl fmt::Display for MastNodeId {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "MastNodeId({})", self.0)
+    }
+}
+
+// ITERATOR
+
+/// Iterates over all the nodes a root depends on, in pre-order.
+/// The iteration can include other roots in the same forest.
+pub struct SubtreeIterator<'a> {
+    forest: &'a MastForest,
+    discovered: Vec<MastNodeId>,
+    unvisited: Vec<MastNodeId>,
+}
+impl<'a> SubtreeIterator<'a> {
+    pub fn new(root: &MastNodeId, forest: &'a MastForest) -> Self {
+        let discovered = vec![];
+        let unvisited = vec![*root];
+        SubtreeIterator { forest, discovered, unvisited }
+    }
+}
+impl Iterator for SubtreeIterator<'_> {
+    type Item = MastNodeId;
+    fn next(&mut self) -> Option<MastNodeId> {
+        while let Some(id) = self.unvisited.pop() {
+            let node = &self.forest[id];
+            if !node.has_children() {
+                return Some(id);
+            } else {
+                self.discovered.push(id);
+                node.append_children_to(&mut self.unvisited);
+            }
+        }
+        self.discovered.pop()
     }
 }
 

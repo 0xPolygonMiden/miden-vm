@@ -6,7 +6,7 @@ use miden_formatting::prettier::PrettyPrint;
 
 use crate::{
     chiplets::hasher,
-    mast::{DecoratorId, MastForest, MastForestError, MastNodeId},
+    mast::{DecoratorId, MastForest, MastForestError, MastNodeId, Remapping},
     OPCODE_SPLIT,
 };
 
@@ -112,6 +112,11 @@ impl SplitNode {
 
 /// Mutators
 impl SplitNode {
+    pub fn remap_children(&mut self, remapping: &Remapping) {
+        self.branches[0].remap(remapping);
+        self.branches[1].remap(remapping);
+    }
+
     /// Sets the list of decorators to be executed before this node.
     pub fn set_before_enter(&mut self, decorator_ids: Vec<DecoratorId>) {
         self.before_enter = decorator_ids;

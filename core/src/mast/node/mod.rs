@@ -29,7 +29,7 @@ pub use loop_node::LoopNode;
 
 use super::{DecoratorId, MastForestError};
 use crate::{
-    mast::{MastForest, MastNodeId},
+    mast::{MastForest, MastNodeId, Remapping},
     DecoratorList, Operation,
 };
 
@@ -140,6 +140,42 @@ impl MastNode {
         match self {
             MastNode::Block(basic_block_node) => Some(basic_block_node),
             _ => None,
+        }
+    }
+
+    /// Remap the node children to their new positions indicated by the given [`Remapping`].
+    pub fn remap_children(&mut self, remapping: &Remapping) {
+        match self {
+            MastNode::Join(join_node) => join_node.remap_children(remapping),
+            MastNode::Split(split_node) => split_node.remap_children(remapping),
+            MastNode::Loop(loop_node) => loop_node.remap_children(remapping),
+            MastNode::Call(call_node) => call_node.remap_children(remapping),
+            MastNode::Block(_) | MastNode::Dyn(_) | MastNode::External(_) => (),
+        }
+    }
+
+    /// Returns true if the this node has children.
+    pub fn has_children(&self) -> bool {
+        match &self {
+            MastNode::Join(_) | MastNode::Split(_) | MastNode::Loop(_) | MastNode::Call(_) => true,
+            MastNode::Block(_) | MastNode::Dyn(_) | MastNode::External(_) => false,
+        }
+    }
+
+    /// Appends the NodeIds of the children of this node, if any, to the vector.
+    pub fn append_children_to(&self, target: &mut Vec<MastNodeId>) {
+        match &self {
+            MastNode::Join(join_node) => {
+                target.push(join_node.first());
+                target.push(join_node.second())
+            },
+            MastNode::Split(split_node) => {
+                target.push(split_node.on_true());
+                target.push(split_node.on_false())
+            },
+            MastNode::Loop(loop_node) => target.push(loop_node.body()),
+            MastNode::Call(call_node) => target.push(call_node.callee()),
+            MastNode::Block(_) | MastNode::Dyn(_) | MastNode::External(_) => (),
         }
     }
 
