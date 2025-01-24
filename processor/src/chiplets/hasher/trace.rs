@@ -1,13 +1,23 @@
 use alloc::vec::Vec;
 use core::ops::Range;
 
-use miden_air::trace::chiplets::hasher::NUM_ROUNDS;
+use miden_air::{
+    trace::chiplets::hasher::{NUM_ROUNDS, NUM_SELECTORS},
+    RowIndex,
+};
 use vm_core::chiplets::hasher::apply_round;
 
 use super::{Felt, HasherState, Selectors, TraceFragment, STATE_WIDTH, TRACE_WIDTH, ZERO};
 
 // HASHER TRACE
 // ================================================================================================
+
+#[derive(Debug, Clone)]
+struct HasherTraceRow {
+    selectors: Selectors,
+    hasher_state: HasherState,
+    node_index: Felt,
+}
 
 /// Execution trace of the hasher component.
 ///
@@ -17,9 +27,7 @@ use super::{Felt, HasherState, Selectors, TraceFragment, STATE_WIDTH, TRACE_WIDT
 /// - 1 node index column used for Merkle path related computations.
 #[derive(Debug, Default)]
 pub struct HasherTrace {
-    selectors: [Vec<Felt>; 3],
-    hasher_state: [Vec<Felt>; STATE_WIDTH],
-    node_index: Vec<Felt>,
+    rows: Vec<HasherTraceRow>,
 }
 
 impl HasherTrace {
@@ -28,7 +36,7 @@ impl HasherTrace {
 
     /// Returns current length of this execution trace.
     pub fn trace_len(&self) -> usize {
-        self.selectors[0].len()
+        self.rows.len()
     }
 
     /// Returns the next row address. The address is equal to the current trace length + 1.
@@ -95,33 +103,21 @@ impl HasherTrace {
     }
 
     /// Appends a new row to the execution trace based on the supplied parameters.
-    fn append_row(&mut self, selectors: Selectors, state: &HasherState, index: Felt) {
-        for (trace_col, selector_val) in self.selectors.iter_mut().zip(selectors) {
-            trace_col.push(selector_val);
-        }
-        for (trace_col, &state_val) in self.hasher_state.iter_mut().zip(state) {
-            trace_col.push(state_val);
-        }
-        self.node_index.push(index);
+    fn append_row(&mut self, selectors: Selectors, state: &HasherState, node_index: Felt) {
+        self.rows.push(HasherTraceRow {
+            selectors,
+            hasher_state: *state,
+            node_index,
+        });
     }
 
     /// Copies section of trace from the given range of start and end rows at the end of the trace.
     /// The hasher state of the last row is copied to the provided state input.
     pub fn copy_trace(&mut self, state: &mut [Felt; STATE_WIDTH], range: Range<usize>) {
-        for selector in self.selectors.iter_mut() {
-            selector.extend_from_within(range.clone());
-        }
-
-        for hasher in self.hasher_state.iter_mut() {
-            hasher.extend_from_within(range.clone());
-        }
-
-        self.node_index.extend_from_within(range.clone());
+        self.rows.extend_from_within(range.clone());
 
         // copy the latest hasher state to the provided state slice
-        for (col, hasher) in self.hasher_state.iter().enumerate() {
-            state[col] = hasher[range.end - 1];
-        }
+        *state = self.rows[range.end - 1].hasher_state;
     }
 
     // EXECUTION TRACE GENERATION
@@ -133,17 +129,21 @@ impl HasherTrace {
         debug_assert_eq!(self.trace_len(), trace.len(), "inconsistent trace lengths");
         debug_assert_eq!(TRACE_WIDTH, trace.width(), "inconsistent trace widths");
 
-        // collect all trace columns into a single vector
-        let mut columns = Vec::new();
-        self.selectors.into_iter().for_each(|c| columns.push(c));
+        for (row_idx, row) in self.rows.into_iter().enumerate() {
+            let row_idx: RowIndex = (row_idx as u32).into();
 
-        self.hasher_state.into_iter().for_each(|c| columns.push(c));
-        columns.push(self.node_index);
+            // copy selector values
+            for (col_idx, selector_val) in row.selectors.into_iter().enumerate() {
+                trace.set(row_idx, col_idx, selector_val);
+            }
 
-        // copy trace into the fragment column-by-column
-        // TODO: this can be parallelized to copy columns in multiple threads
-        for (out_column, column) in trace.columns().zip(columns) {
-            out_column.copy_from_slice(&column);
+            // copy hasher state values
+            for (col_idx, hasher_val) in row.hasher_state.into_iter().enumerate() {
+                trace.set(row_idx, NUM_SELECTORS + col_idx, hasher_val);
+            }
+
+            // copy node index value
+            trace.set(row_idx, TRACE_WIDTH - 1, row.node_index);
         }
     }
 }
