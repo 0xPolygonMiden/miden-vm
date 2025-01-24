@@ -1,11 +1,14 @@
 use alloc::{collections::BTreeMap, vec::Vec};
 
 use miden_air::{
-    trace::chiplets::memory::{
-        CLK_COL_IDX, CTX_COL_IDX, D0_COL_IDX, D1_COL_IDX, D_INV_COL_IDX,
-        FLAG_SAME_CONTEXT_AND_WORD, IDX0_COL_IDX, IDX1_COL_IDX, IS_READ_COL_IDX,
-        IS_WORD_ACCESS_COL_IDX, MEMORY_ACCESS_ELEMENT, MEMORY_ACCESS_WORD, MEMORY_READ,
-        MEMORY_WRITE, V_COL_RANGE, WORD_COL_IDX,
+    trace::{
+        chiplets::memory::{
+            CLK_COL_IDX, CTX_COL_IDX, D0_COL_IDX, D1_COL_IDX, D_INV_COL_IDX,
+            FLAG_SAME_CONTEXT_AND_WORD, IDX0_COL_IDX, IDX1_COL_IDX, IS_READ_COL_IDX,
+            IS_WORD_ACCESS_COL_IDX, MEMORY_ACCESS_ELEMENT, MEMORY_ACCESS_WORD, MEMORY_READ,
+            MEMORY_WRITE, V_COL_RANGE, WORD_COL_IDX,
+        },
+        CHIPLETS_OFFSET, TRACE_WIDTH,
     },
     RowIndex,
 };
@@ -379,6 +382,103 @@ impl Memory {
                     prev_addr = felt_addr;
                     prev_clk = clk;
                     row += 1;
+                }
+            }
+        }
+    }
+
+    // TODO(plafer): Rename method
+    /// Fills the memory chiplet part of the trace from this memory instance.
+    ///
+    /// The trace is assumed to be in row-major form.
+    pub fn fill_trace_2(&self, trace: &mut [Felt], memory_chiplet_start_row: RowIndex) {
+        // set the previous address and clock cycle to the first address and clock cycle of the
+        // trace; we also adjust the clock cycle so that delta value for the first row would end
+        // up being ZERO. if the trace is empty, return without any further processing.
+        let (mut prev_ctx, mut prev_addr, mut prev_clk) = match self.get_first_row_info() {
+            Some((ctx, addr, clk)) => (Felt::from(ctx), Felt::from(addr), clk - ONE),
+            None => return,
+        };
+
+        // set the index of the first row of the memory chiplet (after the `110` chiplet selectors)
+        // TODO(plafer): refactor to make less error-prone
+        let mut memory_row_start = {
+            let memory_start_idx =
+                TRACE_WIDTH * memory_chiplet_start_row.as_usize() + CHIPLETS_OFFSET + 3;
+            &mut trace[memory_start_idx..]
+        };
+
+        // iterate through addresses in ascending order, and write trace row for each memory access
+        // into the trace.
+        for (ctx, segment) in &self.trace {
+            let ctx = Felt::from(*ctx);
+            for (addr, addr_trace) in segment.inner() {
+                // when we start a new address, we set the previous value to all zeros. the effect
+                // of this is that memory is always initialized to zero.
+                let felt_addr = Felt::from(*addr);
+                for memory_access in addr_trace {
+                    let clk = memory_access.clk();
+                    let value = memory_access.word();
+
+                    match memory_access.operation() {
+                        MemoryOperation::Read => {
+                            memory_row_start[IS_READ_COL_IDX] = MEMORY_READ;
+                        },
+                        MemoryOperation::Write => {
+                            memory_row_start[IS_READ_COL_IDX] = MEMORY_WRITE;
+                        },
+                    }
+                    let (idx1, idx0) = match memory_access.access_type() {
+                        segment::MemoryAccessType::Element { addr_idx_in_word } => {
+                            memory_row_start[IS_WORD_ACCESS_COL_IDX] = MEMORY_ACCESS_ELEMENT;
+
+                            match addr_idx_in_word {
+                                0 => (ZERO, ZERO),
+                                1 => (ZERO, ONE),
+                                2 => (ONE, ZERO),
+                                3 => (ONE, ONE),
+                                _ => panic!("invalid address index in word: {addr_idx_in_word}"),
+                            }
+                        },
+                        segment::MemoryAccessType::Word => {
+                            memory_row_start[IS_WORD_ACCESS_COL_IDX] = MEMORY_ACCESS_WORD;
+                            (ZERO, ZERO)
+                        },
+                    };
+                    memory_row_start[CTX_COL_IDX] = ctx;
+                    memory_row_start[WORD_COL_IDX] = felt_addr;
+                    memory_row_start[IDX0_COL_IDX] = idx0;
+                    memory_row_start[IDX1_COL_IDX] = idx1;
+                    memory_row_start[CLK_COL_IDX] = clk;
+                    memory_row_start[V_COL_RANGE].copy_from_slice(&value);
+
+                    // compute delta as difference between context IDs, addresses, or clock cycles
+                    let delta = if prev_ctx != ctx {
+                        ctx - prev_ctx
+                    } else if prev_addr != felt_addr {
+                        felt_addr - prev_addr
+                    } else {
+                        clk - prev_clk - ONE
+                    };
+
+                    let (delta_hi, delta_lo) = split_element_u32_into_u16(delta);
+                    memory_row_start[D0_COL_IDX] = delta_lo;
+                    memory_row_start[D1_COL_IDX] = delta_hi;
+
+                    // TODO: switch to batch inversion to improve efficiency.
+                    memory_row_start[D_INV_COL_IDX] = delta.inv();
+
+                    if prev_ctx == ctx && prev_addr == felt_addr {
+                        memory_row_start[FLAG_SAME_CONTEXT_AND_WORD] = ONE;
+                    } else {
+                        memory_row_start[FLAG_SAME_CONTEXT_AND_WORD] = ZERO;
+                    };
+
+                    // update values for the next iteration of the loop
+                    prev_ctx = ctx;
+                    prev_addr = felt_addr;
+                    prev_clk = clk;
+                    memory_row_start = &mut memory_row_start[TRACE_WIDTH..];
                 }
             }
         }

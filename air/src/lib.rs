@@ -16,7 +16,6 @@ use winter_air::{
     Air, AirContext, Assertion, EvaluationFrame, ProofOptions as WinterProofOptions, TraceInfo,
     TransitionConstraintDegree,
 };
-use winter_prover::matrix::ColMatrix;
 
 mod constraints;
 pub use constraints::stack;

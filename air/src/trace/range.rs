@@ -10,6 +10,8 @@ pub const M_COL_IDX: usize = RANGE_CHECK_TRACE_OFFSET;
 /// A column to hold the values being range-checked.
 pub const V_COL_IDX: usize = RANGE_CHECK_TRACE_OFFSET + 1;
 
+pub const RANGE_CHECKER_TRACE_WIDTH: usize = 2;
+
 // --- Column accessors in the auxiliary columns --------------------------------------------------
 
 /// The running product column used for verifying that the range check lookups performed in the

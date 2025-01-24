@@ -3,7 +3,7 @@ use alloc::{collections::BTreeMap, vec::Vec};
 use miden_air::RowIndex;
 
 use super::{trace::NUM_RAND_ROWS, Felt, FieldElement, RangeCheckTrace, ZERO};
-use crate::utils::uninit_vector;
+use crate::{utils::uninit_vector, RangeCheckRow, RangeCheckTraceRowMajor};
 
 mod aux_trace;
 pub use aux_trace::AuxTraceBuilder;
@@ -39,6 +39,7 @@ mod tests;
 /// Thus, for example, if a value was range-checked just once, we'll need to add a single row to
 /// the table with (m, v) set to (1, v), where v is the value. If the value was range-checked 5
 /// times, we'll need to specify the row (5, v).
+#[derive(Debug, Clone)]
 pub struct RangeChecker {
     /// Tracks lookup count for each checked value.
     lookups: BTreeMap<u16, usize>,
@@ -95,6 +96,7 @@ impl RangeChecker {
     // EXECUTION TRACE GENERATION (INTERNAL)
     // --------------------------------------------------------------------------------------------
 
+    // TODO(plafer): Remove
     /// Converts this [RangeChecker] into an execution trace with 2 columns and the number of rows
     /// specified by the `target_len` parameter.
     ///
@@ -147,6 +149,65 @@ impl RangeChecker {
 
         RangeCheckTrace {
             trace,
+            aux_builder: AuxTraceBuilder::new(
+                self.lookups.keys().cloned().collect(),
+                self.cycle_lookups,
+                num_padding_rows,
+            ),
+        }
+    }
+
+    /// Converts this [RangeChecker] into an execution trace with 2 columns and the number of rows
+    /// specified by the `target_len` parameter.
+    ///
+    /// If the number of rows needed to represent execution trace of this range checker is smaller
+    /// than `target_len` parameter, the trace is padded with extra rows.
+    ///
+    /// `num_rand_rows` indicates the number of rows at the end of the trace which will be
+    /// overwritten with random values. Values in these rows are not initialized.
+    ///
+    /// # Panics
+    /// Panics if `target_len` is not a power of two or is smaller than the trace length needed
+    /// to represent all lookups in this range checker.
+    pub fn into_trace_with_table_row_major(
+        self,
+        trace_len: usize,
+        target_len: usize,
+        num_rand_rows: usize,
+    ) -> RangeCheckTraceRowMajor {
+        assert!(target_len.is_power_of_two(), "target trace length is not a power of two");
+
+        // determine the length of the trace required to support all the lookups in this range
+        // checker, and make sure this length is smaller than or equal to the target trace length,
+        // accounting for rows with random values.
+        assert!(trace_len + num_rand_rows <= target_len, "target trace length too small");
+
+        // allocated memory for the trace; this memory is un-initialized but this is not a problem
+        // because we'll overwrite all values in it anyway.
+        let mut rows: Vec<RangeCheckRow> = unsafe { uninit_vector(target_len) };
+
+        // determine the number of padding rows needed to get to target trace length and pad the
+        // table with the required number of rows.
+        let num_padding_rows = target_len - trace_len - num_rand_rows;
+        rows[..num_padding_rows].fill(RangeCheckRow::default());
+
+        // build the trace table
+        let mut i = num_padding_rows;
+        let mut prev_value = 0u16;
+        for (&value, &num_lookups) in self.lookups.iter() {
+            write_rows_major(&mut rows, &mut i, num_lookups, value, prev_value);
+            prev_value = value;
+        }
+
+        // pad the trace with an extra row of 0 lookups for u16::MAX so that when b_range is built
+        // there is space for the inclusion of u16::MAX range check lookups before the trace ends.
+        // (When there is data at the end of the main trace, auxiliary bus columns always need to be
+        // one row longer than the main trace, since values in the bus column are based on data from
+        // the "current" row of the main trace but placed into the "next" row of the bus column.)
+        write_trace_row_major(&mut rows, &mut i, 0, (u16::MAX).into());
+
+        RangeCheckTraceRowMajor {
+            trace: rows,
             aux_builder: AuxTraceBuilder::new(
                 self.lookups.keys().cloned().collect(),
                 self.cycle_lookups,
@@ -254,5 +315,40 @@ fn write_rows(
 fn write_trace_row(trace: &mut [Vec<Felt>], step: &mut usize, num_lookups: usize, value: u64) {
     trace[0][*step] = Felt::new(num_lookups as u64);
     trace[1][*step] = Felt::new(value);
+    *step += 1;
+}
+
+/// Adds a row for the values to be range checked. In case the difference between the current and
+/// next value is not a power of 3, this function will add additional bridge rows to the trace.
+fn write_rows_major(
+    trace: &mut Vec<RangeCheckRow>,
+    step: &mut usize,
+    num_lookups: usize,
+    value: u16,
+    prev_value: u16,
+) {
+    let mut gap = value - prev_value;
+    let mut prev_val = prev_value;
+    let mut stride = 3_u16.pow(7);
+    while gap != stride {
+        if gap > stride {
+            gap -= stride;
+            prev_val += stride;
+            write_trace_row_major(trace, step, 0, prev_val as u64);
+        } else {
+            stride /= 3;
+        }
+    }
+    write_trace_row_major(trace, step, num_lookups, value as u64);
+}
+
+fn write_trace_row_major(
+    trace: &mut Vec<RangeCheckRow>,
+    step: &mut usize,
+    num_lookups: usize,
+    value: u64,
+) {
+    trace[*step].multiplicity = Felt::new(num_lookups as u64);
+    trace[*step].value = Felt::new(value);
     *step += 1;
 }

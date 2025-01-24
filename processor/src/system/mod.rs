@@ -297,6 +297,23 @@ impl System {
 
         trace_columns.try_into().expect("failed to convert vector to array")
     }
+
+    pub fn write_row(&self, row_idx: usize, row: &mut [Felt]) {
+        if row_idx < self.rows.len() {
+            row[CLK_COL_IDX] = self.rows[row_idx].clk;
+            row[FMP_COL_IDX] = self.rows[row_idx].fmp;
+            row[CTX_COL_IDX] = self.rows[row_idx].ctx;
+            row[IN_SYSCALL_COL_IDX] = self.rows[row_idx].in_syscall;
+            row[FN_HASH_OFFSET..FN_HASH_OFFSET + 4].copy_from_slice(&self.rows[row_idx].fn_hash);
+        } else {
+            let clk = Felt::from(row_idx as u32);
+            row[CLK_COL_IDX] = clk;
+            row[FMP_COL_IDX] = self.fmp;
+            row[CTX_COL_IDX] = ContextId::root().into();
+            row[IN_SYSCALL_COL_IDX] = ZERO;
+            row[FN_HASH_OFFSET..FN_HASH_OFFSET + 4].fill(ZERO);
+        }
+    }
 }
 
 // EXECUTION CONTEXT

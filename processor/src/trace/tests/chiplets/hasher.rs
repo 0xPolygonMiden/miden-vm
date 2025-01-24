@@ -834,26 +834,26 @@ fn build_expected(
 /// Reduces the specified row in the execution trace to an expected value representing a hash
 /// operation lookup.
 fn build_expected_from_trace(trace: &ExecutionTrace, alphas: &[Felt], row: RowIndex) -> Felt {
-    let s0 = trace.main_trace.get_column(HASHER_TRACE_OFFSET)[row];
-    let s1 = trace.main_trace.get_column(HASHER_TRACE_OFFSET + 1)[row];
-    let s2 = trace.main_trace.get_column(HASHER_TRACE_OFFSET + 2)[row];
+    let s0 = trace.main_trace.get_column(HASHER_TRACE_OFFSET)[row.as_usize()];
+    let s1 = trace.main_trace.get_column(HASHER_TRACE_OFFSET + 1)[row.as_usize()];
+    let s2 = trace.main_trace.get_column(HASHER_TRACE_OFFSET + 2)[row.as_usize()];
     let selectors: Selectors = [s0, s1, s2];
 
     let label = get_label_from_selectors(selectors)
         .expect("unrecognized hasher operation label in hasher trace");
 
-    let addr = trace.main_trace.get_column(CLK_COL_IDX)[row] + ONE;
-    let index = trace.main_trace.get_column(HASHER_NODE_INDEX_COL_IDX)[row];
+    let addr = trace.main_trace.get_column(CLK_COL_IDX)[row.as_usize()] + ONE;
+    let index = trace.main_trace.get_column(HASHER_NODE_INDEX_COL_IDX)[row.as_usize()];
 
     let cycle_row = addr_to_cycle_row(addr);
 
     let mut state = [ZERO; STATE_WIDTH];
     let mut next_state = [ZERO; STATE_WIDTH];
     for (i, col_idx) in HASHER_STATE_COL_RANGE.enumerate() {
-        state[i] = trace.main_trace.get_column(col_idx)[row];
+        state[i] = trace.main_trace.get_column(col_idx)[row.as_usize()];
         if cycle_row == 7 && label == LINEAR_HASH_LABEL {
             // fill the next state with the elements being absorbed.
-            next_state[i] = trace.main_trace.get_column(col_idx)[row + 1];
+            next_state[i] = trace.main_trace.get_column(col_idx)[row.as_usize() + 1];
         }
     }
 
@@ -906,7 +906,7 @@ fn fill_state_from_decoder_with_domain(
 /// specified row.
 fn fill_state_from_decoder(trace: &ExecutionTrace, state: &mut HasherState, row: RowIndex) {
     for (i, col_idx) in DECODER_HASHER_STATE_RANGE.enumerate() {
-        state[CAPACITY_LEN + i] = trace.main_trace.get_column(col_idx)[row];
+        state[CAPACITY_LEN + i] = trace.main_trace.get_column(col_idx)[row.as_usize()];
     }
 }
 
@@ -915,7 +915,7 @@ fn fill_state_from_decoder(trace: &ExecutionTrace, state: &mut HasherState, row:
 fn extract_control_block_domain_from_trace(trace: &ExecutionTrace, row: RowIndex) -> Felt {
     // calculate the op code
     let opcode_value = DECODER_OP_BITS_RANGE.rev().fold(0u8, |result, bit_index| {
-        let op_bit = trace.main_trace.get_column(bit_index)[row].as_int() as u8;
+        let op_bit = trace.main_trace.get_column(bit_index)[row.as_usize()].as_int() as u8;
         (result << 1) ^ op_bit
     });
 

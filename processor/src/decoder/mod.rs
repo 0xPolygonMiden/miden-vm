@@ -852,6 +852,10 @@ impl Decoder {
         super::DecoderTrace { trace, aux_builder }
     }
 
+    pub fn write_row(&self, row_idx: usize, row: &mut [Felt]) {
+        self.trace.write_row(row_idx, row);
+    }
+
     // HELPERS
     // --------------------------------------------------------------------------------------------
 

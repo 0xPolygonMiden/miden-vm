@@ -3,10 +3,16 @@ use alloc::vec::Vec;
 use miden_air::trace::{
     decoder::{NUM_USER_OP_HELPERS, USER_OP_HELPERS_OFFSET},
     main_trace::MainTrace,
-    AUX_TRACE_RAND_ELEMENTS, AUX_TRACE_WIDTH, DECODER_TRACE_OFFSET, MIN_TRACE_LEN,
-    STACK_TRACE_OFFSET, TRACE_WIDTH,
+    range::RANGE_CHECKER_TRACE_WIDTH,
+    AUX_TRACE_RAND_ELEMENTS, AUX_TRACE_WIDTH, CHIPLETS_WIDTH, DECODER_TRACE_OFFSET,
+    DECODER_TRACE_WIDTH, MIN_TRACE_LEN, STACK_TRACE_OFFSET, STACK_TRACE_WIDTH, SYS_TRACE_WIDTH,
+    TRACE_WIDTH,
 };
-use vm_core::{stack::MIN_STACK_DEPTH, ProgramInfo, StackInputs, StackOutputs, ZERO};
+use vm_core::{
+    stack::MIN_STACK_DEPTH,
+    utils::{range, uninit_vector},
+    ProgramInfo, StackInputs, StackOutputs,
+};
 use winter_prover::{crypto::RandomCoin, EvaluationFrame, Trace, TraceInfo};
 
 use super::{
@@ -118,31 +124,30 @@ impl ExecutionTrace {
 
     /// Returns the initial state of the top 16 stack registers.
     pub fn init_stack_state(&self) -> StackInputs {
-        let mut result = [ZERO; MIN_STACK_DEPTH];
-        for (i, result) in result.iter_mut().enumerate() {
-            *result = self.main_trace.get_column(i + STACK_TRACE_OFFSET)[0];
-        }
-        result.into()
+        let first_row_stack =
+            &self.main_trace.get_row(0.into())[range(STACK_TRACE_OFFSET, MIN_STACK_DEPTH)];
+        let first_row_stack: [Felt; MIN_STACK_DEPTH] = first_row_stack.try_into().unwrap();
+
+        first_row_stack.into()
     }
 
     /// Returns the final state of the top 16 stack registers.
     pub fn last_stack_state(&self) -> StackOutputs {
         let last_step = self.last_step();
-        let mut result = [ZERO; MIN_STACK_DEPTH];
-        for (i, result) in result.iter_mut().enumerate() {
-            *result = self.main_trace.get_column(i + STACK_TRACE_OFFSET)[last_step];
-        }
-        result.into()
+
+        let stack_state =
+            &self.main_trace.get_row(last_step.into())[range(STACK_TRACE_OFFSET, MIN_STACK_DEPTH)];
+        let stack_state: [Felt; MIN_STACK_DEPTH] = stack_state.try_into().unwrap();
+        stack_state.into()
     }
 
     /// Returns helper registers state at the specified `clk` of the VM
     pub fn get_user_op_helpers_at(&self, clk: u32) -> [Felt; NUM_USER_OP_HELPERS] {
-        let mut result = [ZERO; NUM_USER_OP_HELPERS];
-        for (i, result) in result.iter_mut().enumerate() {
-            *result = self.main_trace.get_column(DECODER_TRACE_OFFSET + USER_OP_HELPERS_OFFSET + i)
-                [clk as usize];
-        }
-        result
+        let user_op_helpers = &self.main_trace.get_row(clk.into())
+            [range(DECODER_TRACE_OFFSET + USER_OP_HELPERS_OFFSET, NUM_USER_OP_HELPERS)];
+        let user_op_helpers: [Felt; NUM_USER_OP_HELPERS] = user_op_helpers.try_into().unwrap();
+
+        user_op_helpers
     }
 
     /// Returns the trace length.
@@ -173,9 +178,8 @@ impl ExecutionTrace {
     #[cfg(feature = "std")]
     #[allow(dead_code)]
     pub fn print(&self) {
-        let mut row = [ZERO; TRACE_WIDTH];
-        for i in 0..self.length() {
-            self.main_trace.read_row_into(i, &mut row);
+        for row_idx in 0..self.length() {
+            let row = self.main_trace.get_row(row_idx.into());
             std::println!("{:?}", row.iter().map(|v| v.as_int()).collect::<Vec<_>>());
         }
     }
@@ -241,13 +245,17 @@ impl Trace for ExecutionTrace {
     }
 
     fn main_segment(&self) -> &ColMatrix<Felt> {
-        &self.main_trace
+        // TODO(plafer): Measure the cost of generating the col matrix as discussed with Bobbin.
+        // Note: Switching to RowMatrix will be quite expensive in Winterfell, as we need to change
+        // the GPU impls. Also, the FFT assumes column major, but does a segment-wise transpose. So
+        // maybe it would benefit from a row major matrix.
+        todo!()
     }
 
     fn read_main_frame(&self, row_idx: usize, frame: &mut EvaluationFrame<Felt>) {
         let next_row_idx = (row_idx + 1) % self.length();
-        self.main_trace.read_row_into(row_idx, frame.current_mut());
-        self.main_trace.read_row_into(next_row_idx, frame.next_mut());
+        frame.current_mut().copy_from_slice(&self.main_trace.get_row(row_idx.into()));
+        frame.next_mut().copy_from_slice(&self.main_trace.get_row(next_row_idx.into()));
     }
 
     fn info(&self) -> &TraceInfo {
@@ -300,38 +308,67 @@ fn finalize_trace(
     let trace_len_summary =
         TraceLenSummary::new(clk.into(), range_table_len, ChipletsLengths::new(&chiplets));
 
-    // Combine all trace segments into the main trace
-    let system_trace = system.into_trace(trace_len, NUM_RAND_ROWS);
-    let decoder_trace = decoder.into_trace(trace_len, NUM_RAND_ROWS);
-    let stack_trace = stack.into_trace(trace_len, NUM_RAND_ROWS);
-    let chiplets_trace = chiplets.into_trace(trace_len, NUM_RAND_ROWS);
+    // TODO(plafer): implement similar to Memory
+    let range_check_trace =
+        range.into_trace_with_table_row_major(range_table_len, trace_len, NUM_RAND_ROWS);
 
-    // Combine the range trace segment using the support lookup table
-    let range_check_trace = range.into_trace_with_table(range_table_len, trace_len, NUM_RAND_ROWS);
+    // TODO(plafer): convert all `write_row` methods to take it in the entire `main_trace`, so that
+    // they are allowed to read from previous rows.
 
-    let mut trace = system_trace
-        .into_iter()
-        .chain(decoder_trace.trace)
-        .chain(stack_trace.trace)
-        .chain(range_check_trace.trace)
-        .chain(chiplets_trace.trace)
-        .collect::<Vec<_>>();
+    // TODO(plafer): to avoid having `if` statements in the `write_row` methods, we run this loop
+    // over `own_len`. Then, separately fill out the range checker, and chiplets traces.
+
+    //Combine all trace segments into the main trace
+    let mut main_trace: Vec<Felt> = unsafe { uninit_vector(TRACE_WIDTH * trace_len) };
+    for row_idx in 0..trace_len {
+        let mut start_idx = row_idx * TRACE_WIDTH;
+
+        // System trace
+        system.write_row(row_idx, &mut main_trace[start_idx..start_idx + SYS_TRACE_WIDTH]);
+        start_idx += SYS_TRACE_WIDTH;
+
+        // Decoder trace
+        decoder.write_row(row_idx, &mut main_trace[start_idx..start_idx + DECODER_TRACE_WIDTH]);
+        start_idx += DECODER_TRACE_WIDTH;
+
+        // Stack trace
+        stack.write_row(row_idx, &mut main_trace);
+        start_idx += STACK_TRACE_WIDTH;
+
+        // TODO(plafer): Modify range checker to write directly into the main trace (just like
+        // Memory and kernel ROM) Range checker trace
+        range_check_trace
+            .write_row(row_idx, &mut main_trace[start_idx..start_idx + RANGE_CHECKER_TRACE_WIDTH]);
+        start_idx += RANGE_CHECKER_TRACE_WIDTH;
+
+        // TODO(plafer): refactor to make cleaner?
+        // Chiplets trace
+        // Note: The memory and kernel ROM chiplets write their traces directly into the main trace
+        // (i.e. not from this method).
+        chiplets.write_row(row_idx, &mut main_trace[start_idx..start_idx + CHIPLETS_WIDTH]);
+    }
+
+    // Note: The memory and kernel ROM chiplets write their traces directly into the main trace.
+    chiplets.memory().fill_trace_2(&mut main_trace, chiplets.memory_start());
+    chiplets.kernel_rom.fill_trace_2(&mut main_trace, chiplets.kernel_rom_start());
 
     // Inject random values into the last rows of the trace
-    for i in trace_len - NUM_RAND_ROWS..trace_len {
-        for column in trace.iter_mut() {
-            column[i] = rng.draw().expect("failed to draw a random value");
+    {
+        debug_assert_eq!(NUM_RAND_ROWS, 1);
+        let last_row_start = (trace_len - 1) * TRACE_WIDTH;
+        for i in 0..TRACE_WIDTH {
+            main_trace[last_row_start + i] = rng.draw().expect("failed to draw a random value");
         }
     }
 
     let aux_trace_hints = AuxTraceBuilders {
-        decoder: decoder_trace.aux_builder,
+        decoder: DecoderAuxTraceBuilder::default(),
         stack: StackAuxTraceBuilder,
         range: range_check_trace.aux_builder,
-        chiplets: chiplets_trace.aux_builder,
+        chiplets: ChipletsAuxTraceBuilder::new(chiplets.kernel().clone()),
     };
 
-    let main_trace = MainTrace::new(ColMatrix::new(trace), clk);
+    let main_trace = MainTrace::new(main_trace, clk);
 
     (main_trace, aux_trace_hints, trace_len_summary)
 }
