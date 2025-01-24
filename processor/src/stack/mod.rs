@@ -1,7 +1,10 @@
 use alloc::vec::Vec;
 
 use miden_air::{
-    trace::stack::{B0_COL_IDX, B1_COL_IDX, H0_COL_IDX, STACK_TOP_OFFSET},
+    trace::{
+        stack::{B0_COL_IDX, B1_COL_IDX, H0_COL_IDX, STACK_TOP_OFFSET},
+        STACK_TRACE_OFFSET, TRACE_WIDTH,
+    },
     RowIndex,
 };
 use vm_core::{stack::MIN_STACK_DEPTH, utils::uninit_vector, Word, WORD_SIZE};
@@ -409,6 +412,7 @@ impl Stack {
     // TRACE GENERATION
     // --------------------------------------------------------------------------------------------
 
+    // TODO(plafer): Remove this method (and all other unused `into_trace()` methods)
     /// Returns an execution trace of the top 16 stack slots and helper columns as a single array
     /// together with hints to be used in construction of stack-related auxiliary trace segment
     /// columns.
@@ -473,6 +477,30 @@ impl Stack {
         }
 
         super::StackTrace { trace: trace_columns.try_into().unwrap() }
+    }
+
+    pub fn write_row(&self, row_idx: usize, main_trace: &mut [Felt]) {
+        let start_idx = row_idx * TRACE_WIDTH + STACK_TRACE_OFFSET;
+
+        const MIN_STACK_DEPTH_FELT: Felt = Felt::new(MIN_STACK_DEPTH as u64);
+
+        if row_idx < self.rows.len() {
+            main_trace[start_idx..(start_idx + MIN_STACK_DEPTH)]
+                .copy_from_slice(&self.rows[row_idx].stack);
+            main_trace[start_idx + B0_COL_IDX] = self.rows[row_idx].stack_depth;
+            main_trace[start_idx + B1_COL_IDX] = self.rows[row_idx].next_overflow_address;
+
+            // TODO(plafer): use batch inversion
+            let denom = self.rows[row_idx].stack_depth - MIN_STACK_DEPTH_FELT;
+            main_trace[start_idx + H0_COL_IDX] = if denom == ZERO { ZERO } else { denom.inv() };
+        } else {
+            let last_row_start_idx = (row_idx - 1) * TRACE_WIDTH + STACK_TRACE_OFFSET;
+
+            // padding: copy over from the last row
+            for j in 0..STACK_TRACE_WIDTH {
+                main_trace[start_idx + j] = main_trace[last_row_start_idx + j];
+            }
+        }
     }
 
     // UTILITY METHODS

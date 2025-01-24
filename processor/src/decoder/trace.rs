@@ -10,7 +10,7 @@ use miden_air::trace::{
     },
     DECODER_TRACE_WIDTH,
 };
-use vm_core::utils::uninit_vector;
+use vm_core::{utils::uninit_vector, OPCODE_HALT};
 
 use super::{
     get_num_groups_in_next_batch, Felt, Operation, Word, DIGEST_LEN, MIN_TRACE_LEN,
@@ -116,6 +116,8 @@ impl DecoderTrace {
             op_batch_flags: [ZERO, ZERO, ZERO],
         };
 
+        // TODO(plafer): Don't push on every row (applies everywhere).
+        // Can we also write directly to the buffer instead of needing this intermediary `rows`?
         self.rows.push(row);
     }
 
@@ -438,6 +440,74 @@ impl DecoderTrace {
         trace_columns[OP_BITS_EXTRA_COLS_OFFSET + 1][own_len..trace_len].fill(ONE);
 
         trace_columns
+    }
+
+    pub fn write_row(&self, row_idx: usize, row_out: &mut [Felt]) {
+        if row_idx < self.rows.len() {
+            row_out[ADDR_COL_IDX] = self.rows[row_idx].addr;
+            for j in 0..NUM_OP_BITS {
+                row_out[OP_BITS_OFFSET + j] = self.rows[row_idx].op_bits[j];
+            }
+
+            for j in 0..NUM_HASHER_COLUMNS {
+                row_out[HASHER_STATE_OFFSET + j] = self.rows[row_idx].hasher[j];
+            }
+
+            row_out[IN_SPAN_COL_IDX] = self.rows[row_idx].in_span;
+            row_out[GROUP_COUNT_COL_IDX] = self.rows[row_idx].group_count;
+            row_out[OP_INDEX_COL_IDX] = self.rows[row_idx].op_idx;
+
+            for j in 0..NUM_OP_BATCH_FLAGS {
+                row_out[OP_BATCH_FLAGS_OFFSET + j] = self.rows[row_idx].op_batch_flags[j];
+            }
+
+            for j in 0..NUM_OP_BITS_EXTRA_COLS {
+                row_out[OP_BITS_EXTRA_COLS_OFFSET + j] = self.rows[row_idx].op_bit_extra[j];
+            }
+        // padding rows
+        } else {
+            // put ZEROs into the unfilled rows of block address column
+            row_out[ADDR_COL_IDX] = ZERO;
+
+            // insert HALT opcode into the unfilled rows of op_bits columns
+            for j in 0..NUM_OP_BITS {
+                row_out[OP_BITS_OFFSET + j] = Felt::from((OPCODE_HALT >> j) & 1);
+            }
+
+            // for unfilled rows of hasher state columns, copy over values from the last row for the
+            // first 4 columns, and pad the other 4 columns with ZEROs
+            let last_row_hasher = self.last_hasher();
+            for j in 0..NUM_HASHER_COLUMNS / 2 {
+                row_out[HASHER_STATE_OFFSET + j] = last_row_hasher[j];
+            }
+            for j in NUM_HASHER_COLUMNS / 2..NUM_HASHER_COLUMNS {
+                row_out[HASHER_STATE_OFFSET + j] = ZERO;
+            }
+
+            // put ZERO into the unfilled rows of in_span column
+            row_out[IN_SPAN_COL_IDX] = ZERO;
+            // put ZERO into the unfilled rows of operation group count column
+            row_out[GROUP_COUNT_COL_IDX] = ZERO;
+            // put ZERO into the unfilled rows of operation index column
+            row_out[OP_INDEX_COL_IDX] = ZERO;
+
+            // put ZEROs into the unfilled rows of op_batch_flags columns
+            for j in 0..NUM_OP_BATCH_FLAGS {
+                row_out[OP_BATCH_FLAGS_OFFSET + j] = ZERO;
+            }
+
+            // put ZEROs into the unfilled rows of the first op bit extra column, because the HALT
+            // operation does not use this column.
+            row_out[OP_BITS_EXTRA_COLS_OFFSET] = ZERO;
+
+            // put ONEs into the unfilled rows of the second op bit extra column. we put ONE because
+            // the two most significant bits of the HALT operation are ONE and this
+            // column is computed as the product of the two most significant op bits.
+            debug_assert_eq!(1, (OPCODE_HALT >> 6) & 1);
+            debug_assert_eq!(1, (OPCODE_HALT >> 5) & 1);
+            debug_assert_eq!(2, NUM_OP_BITS_EXTRA_COLS);
+            row_out[OP_BITS_EXTRA_COLS_OFFSET + 1] = ONE;
+        }
     }
 
     // HELPER FUNCTIONS

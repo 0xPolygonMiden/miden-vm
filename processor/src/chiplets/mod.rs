@@ -1,7 +1,12 @@
 use alloc::vec::Vec;
 
 use miden_air::{
-    trace::chiplets::hasher::{Digest, HasherState},
+    trace::chiplets::{
+        bitwise::TRACE_WIDTH as BITWISE_TRACE_WIDTH,
+        hasher::{Digest, HasherState, TRACE_WIDTH as HASHER_TRACE_WIDTH},
+        kernel_rom::TRACE_WIDTH as KERNEL_ROM_TRACE_WIDTH,
+        memory::TRACE_WIDTH as MEMORY_TRACE_WIDTH,
+    },
     RowIndex,
 };
 use vm_core::{mast::OpBatch, Kernel};
@@ -280,6 +285,57 @@ impl Chiplets {
         bitwise.fill_trace(&mut bitwise_fragment);
         memory.fill_trace(&mut memory_fragment);
         kernel_rom.fill_trace(&mut kernel_rom_fragment);
+    }
+
+    /// Writes the specified row of the chiplet trace to the provided output array.
+    ///
+    /// For the memory and kernel ROM chiplets, only the chiplet selectors and padding are written
+    /// to the output array; the actual contents need to be written by the chiplet separately.
+    pub fn write_row(&self, row_idx: usize, row_out: &mut [Felt]) {
+        let row_idx = RowIndex::from(row_idx);
+        if row_idx < self.bitwise_start() {
+            // hasher chiplet
+            row_out[0] = ZERO;
+
+            let row_end_idx = 1 + HASHER_TRACE_WIDTH;
+            self.hasher.write_row(row_idx, &mut row_out[1..row_end_idx]);
+            row_out[row_end_idx..].fill(ZERO);
+        } else if row_idx < self.memory_start() {
+            // bitwise chiplet
+            row_out[0] = ONE;
+            row_out[1] = ZERO;
+
+            let row_end_idx = 2 + BITWISE_TRACE_WIDTH;
+            // TODO(plafer): Why is the into() needed?
+            self.bitwise
+                .write_row((row_idx - self.bitwise_start()).into(), &mut row_out[2..row_end_idx]);
+            row_out[row_end_idx..].fill(ZERO);
+        } else if row_idx < self.kernel_rom_start() {
+            // memory chiplet
+            // Note: The memory chiplet fills its data all at once in a method that must be called
+            // separately.
+            row_out[0] = ONE;
+            row_out[1] = ONE;
+            row_out[2] = ZERO;
+
+            let row_end_idx = 3 + MEMORY_TRACE_WIDTH;
+            row_out[row_end_idx..].fill(ZERO);
+        } else if row_idx < self.padding_start() {
+            // kernel ROM chiplet
+            // Note: The kernel ROM chiplet fills its data all at once in a method that must be
+            // called separately.
+            row_out[0] = ONE;
+            row_out[1] = ONE;
+            row_out[2] = ONE;
+            row_out[3] = ZERO;
+
+            let row_end_idx = 4 + KERNEL_ROM_TRACE_WIDTH;
+            row_out[row_end_idx..].fill(ZERO);
+        } else {
+            // padding: selector columns are set to 1, while the rest of the columns are set to 0.
+            row_out[..4].fill(ONE);
+            row_out[4..].fill(ZERO);
+        }
     }
 }
 

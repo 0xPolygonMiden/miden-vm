@@ -1,6 +1,9 @@
 use alloc::collections::BTreeMap;
 
-use miden_air::{trace::chiplets::kernel_rom::TRACE_WIDTH, RowIndex};
+use miden_air::{
+    trace::{chiplets::kernel_rom::TRACE_WIDTH, CHIPLETS_OFFSET},
+    RowIndex,
+};
 
 use super::{Digest, ExecutionError, Felt, Kernel, TraceFragment, Word, ONE, ZERO};
 
@@ -116,6 +119,32 @@ impl KernelRom {
         }
     }
 
+    // TODO(plafer): Rename and remove other
+    /// Populates the provided execution trace fragment with execution trace of this kernel ROM.
+    pub fn fill_trace_2(&self, trace: &mut [Felt], kernel_chiplet_start_row: RowIndex) {
+        // TODO(plafer): Make "+4" less error-prone
+        let mut kernel_row_start = {
+            let kernel_start_idx =
+                TRACE_WIDTH * kernel_chiplet_start_row.as_usize() + CHIPLETS_OFFSET + 4;
+            &mut trace[kernel_start_idx..]
+        };
+
+        for (idx, access_info) in self.access_map.values().enumerate() {
+            let idx = Felt::from(idx as u16);
+
+            // write at least one row into the trace for each kernel procedure
+            access_info.write_into_trace_2(kernel_row_start, idx);
+            kernel_row_start = &mut kernel_row_start[TRACE_WIDTH..];
+
+            // if the procedure was accessed more than once, we need write a row and provide the
+            // procedure to the bus per additional access
+            for _ in 1..access_info.num_accesses {
+                access_info.write_into_trace_2(kernel_row_start, idx);
+                kernel_row_start = &mut kernel_row_start[TRACE_WIDTH..];
+            }
+        }
+    }
+
     // PUBLIC ACCESSORS
     // --------------------------------------------------------------------------------------------
 
@@ -153,5 +182,14 @@ impl ProcAccessInfo {
         trace.set(row, 3, self.proc_hash[1]);
         trace.set(row, 4, self.proc_hash[2]);
         trace.set(row, 5, self.proc_hash[3]);
+    }
+
+    // TODO(plafer):Rename and remove other
+    pub fn write_into_trace_2(&self, kernel_row_start: &mut [Felt], idx: Felt) {
+        let s0 = if self.num_accesses == 0 { ZERO } else { ONE };
+
+        kernel_row_start[0] = s0;
+        kernel_row_start[1] = idx;
+        kernel_row_start[2..6].copy_from_slice(&self.proc_hash);
     }
 }

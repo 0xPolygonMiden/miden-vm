@@ -146,4 +146,21 @@ impl HasherTrace {
             trace.set(row_idx, TRACE_WIDTH - 1, row.node_index);
         }
     }
+
+    pub fn write_row(&self, row_idx: RowIndex, row_out: &mut [Felt]) {
+        let row = &self.rows[row_idx.as_usize()];
+
+        // copy selector values
+        for (col_idx, selector_val) in row.selectors.into_iter().enumerate() {
+            row_out[col_idx] = selector_val;
+        }
+
+        // copy hasher state values
+        for (col_idx, hasher_val) in row.hasher_state.into_iter().enumerate() {
+            row_out[NUM_SELECTORS + col_idx] = hasher_val;
+        }
+
+        // copy node index value
+        row_out[TRACE_WIDTH - 1] = row.node_index;
+    }
 }

@@ -180,7 +180,7 @@ fn build_expected_bitwise_from_trace(
     alphas: &[Felt],
     row: RowIndex,
 ) -> Felt {
-    let selector = trace.main_trace.get_column(BITWISE_TRACE_OFFSET)[row];
+    let selector = trace.main_trace.get_column(BITWISE_TRACE_OFFSET)[row.as_usize()];
 
     let op_id = if selector == BITWISE_AND {
         BITWISE_AND_LABEL
@@ -190,9 +190,9 @@ fn build_expected_bitwise_from_trace(
         panic!("Execution trace contains an invalid bitwise operation.")
     };
 
-    let a = trace.main_trace.get_column(BITWISE_A_COL_IDX)[row];
-    let b = trace.main_trace.get_column(BITWISE_B_COL_IDX)[row];
-    let output = trace.main_trace.get_column(BITWISE_OUTPUT_COL_IDX)[row];
+    let a = trace.main_trace.get_column(BITWISE_A_COL_IDX)[row.as_usize()];
+    let b = trace.main_trace.get_column(BITWISE_B_COL_IDX)[row.as_usize()];
+    let output = trace.main_trace.get_column(BITWISE_OUTPUT_COL_IDX)[row.as_usize()];
 
     build_expected_bitwise(alphas, op_id, a, b, output)
 }

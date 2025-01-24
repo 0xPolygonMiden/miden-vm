@@ -219,8 +219,9 @@ fn build_expected_bus_msg_from_trace(
     row: RowIndex,
 ) -> Felt {
     // get the memory access operation
-    let read_write = trace.main_trace.get_column(MEMORY_IS_READ_COL_IDX)[row];
-    let element_or_word = trace.main_trace.get_column(MEMORY_IS_WORD_ACCESS_COL_IDX)[row];
+    let read_write = trace.main_trace.get_column(MEMORY_IS_READ_COL_IDX)[row.as_usize()];
+    let element_or_word =
+        trace.main_trace.get_column(MEMORY_IS_WORD_ACCESS_COL_IDX)[row.as_usize()];
     let op_label = if read_write == MEMORY_WRITE {
         if element_or_word == MEMORY_ACCESS_ELEMENT {
             MEMORY_WRITE_ELEMENT_LABEL
@@ -238,25 +239,25 @@ fn build_expected_bus_msg_from_trace(
     };
 
     // get the memory access data
-    let ctx = trace.main_trace.get_column(MEMORY_CTX_COL_IDX)[row];
+    let ctx = trace.main_trace.get_column(MEMORY_CTX_COL_IDX)[row.as_usize()];
     let addr = {
-        let word = trace.main_trace.get_column(MEMORY_WORD_COL_IDX)[row];
-        let idx1 = trace.main_trace.get_column(MEMORY_IDX1_COL_IDX)[row];
-        let idx0 = trace.main_trace.get_column(MEMORY_IDX0_COL_IDX)[row];
+        let word = trace.main_trace.get_column(MEMORY_WORD_COL_IDX)[row.as_usize()];
+        let idx1 = trace.main_trace.get_column(MEMORY_IDX1_COL_IDX)[row.as_usize()];
+        let idx0 = trace.main_trace.get_column(MEMORY_IDX0_COL_IDX)[row.as_usize()];
 
         word + idx1.mul_small(2) + idx0
     };
-    let clk = trace.main_trace.get_column(MEMORY_CLK_COL_IDX)[row];
+    let clk = trace.main_trace.get_column(MEMORY_CLK_COL_IDX)[row.as_usize()];
 
     // get the memory value
     let mut word = [ZERO; WORD_SIZE];
     for (i, element) in word.iter_mut().enumerate() {
-        *element = trace.main_trace.get_column(MEMORY_V_COL_RANGE.start + i)[row];
+        *element = trace.main_trace.get_column(MEMORY_V_COL_RANGE.start + i)[row.as_usize()];
     }
 
     if element_or_word == MEMORY_ACCESS_ELEMENT {
-        let idx1 = trace.main_trace.get_column(MEMORY_IDX1_COL_IDX)[row].as_int();
-        let idx0 = trace.main_trace.get_column(MEMORY_IDX0_COL_IDX)[row].as_int();
+        let idx1 = trace.main_trace.get_column(MEMORY_IDX1_COL_IDX)[row.as_usize()].as_int();
+        let idx0 = trace.main_trace.get_column(MEMORY_IDX0_COL_IDX)[row.as_usize()].as_int();
         let idx = idx1 * 2 + idx0;
 
         build_expected_bus_element_msg(alphas, op_label, ctx, addr, clk, word[idx as usize])

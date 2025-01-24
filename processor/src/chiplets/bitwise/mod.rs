@@ -224,6 +224,24 @@ impl Bitwise {
             trace.set(row_idx, OUTPUT_COL_IDX, row.output);
         }
     }
+
+    pub fn write_row(&self, row_idx: RowIndex, row_out: &mut [Felt]) {
+        let row = &self.rows[row_idx.as_usize()];
+
+        row_out[0] = row.selector;
+        row_out[A_COL_IDX] = row.a;
+        row_out[B_COL_IDX] = row.b;
+        row_out[A_COL_RANGE.start] = row.a0;
+        row_out[A_COL_RANGE.start + 1] = row.a1;
+        row_out[A_COL_RANGE.start + 2] = row.a2;
+        row_out[A_COL_RANGE.start + 3] = row.a3;
+        row_out[B_COL_RANGE.start] = row.b0;
+        row_out[B_COL_RANGE.start + 1] = row.b1;
+        row_out[B_COL_RANGE.start + 2] = row.b2;
+        row_out[B_COL_RANGE.start + 3] = row.b3;
+        row_out[PREV_OUTPUT_COL_IDX] = row.prev_output;
+        row_out[OUTPUT_COL_IDX] = row.output;
+    }
 }
 
 impl Default for Bitwise {

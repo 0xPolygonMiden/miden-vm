@@ -1,8 +1,11 @@
 use alloc::collections::BTreeMap;
 
-use miden_air::trace::chiplets::hasher::{
-    Digest, Selectors, DIGEST_LEN, DIGEST_RANGE, LINEAR_HASH, MP_VERIFY, MR_UPDATE_NEW,
-    MR_UPDATE_OLD, RATE_LEN, RETURN_HASH, RETURN_STATE, STATE_WIDTH, TRACE_WIDTH,
+use miden_air::{
+    trace::chiplets::hasher::{
+        Digest, Selectors, DIGEST_LEN, DIGEST_RANGE, LINEAR_HASH, MP_VERIFY, MR_UPDATE_NEW,
+        MR_UPDATE_OLD, RATE_LEN, RETURN_HASH, RETURN_STATE, STATE_WIDTH, TRACE_WIDTH,
+    },
+    RowIndex,
 };
 
 use super::{
@@ -250,6 +253,10 @@ impl Hasher {
     /// also returns the trace builder for hasher-related auxiliary trace columns.
     pub(super) fn fill_trace(self, trace: &mut TraceFragment) {
         self.trace.fill_trace(trace)
+    }
+
+    pub(super) fn write_row(&self, row_idx: RowIndex, row_out: &mut [Felt]) {
+        self.trace.write_row(row_idx, row_out)
     }
 
     // HELPER METHODS

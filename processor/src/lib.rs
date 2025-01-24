@@ -105,6 +105,27 @@ pub struct StackTrace {
     trace: [Vec<Felt>; STACK_TRACE_WIDTH],
 }
 
+// TODO(plafer): move elsewhere (along with the other trace types)
+#[derive(Debug, Clone, Copy, Default)]
+pub struct RangeCheckRow {
+    multiplicity: Felt,
+    value: Felt,
+}
+
+pub struct RangeCheckTraceRowMajor {
+    trace: Vec<RangeCheckRow>,
+    aux_builder: range::AuxTraceBuilder,
+}
+
+impl RangeCheckTraceRowMajor {
+    pub fn write_row(&self, row_idx: usize, row_out: &mut [Felt]) {
+        // TODO(plafer): use constants (the existing ones are offset from row start)
+        row_out[0] = self.trace[row_idx].multiplicity;
+        row_out[1] = self.trace[row_idx].value;
+    }
+}
+
+// TODO(plafer): Remove
 pub struct RangeCheckTrace {
     trace: [Vec<Felt>; RANGE_CHECK_TRACE_WIDTH],
     aux_builder: range::AuxTraceBuilder,
