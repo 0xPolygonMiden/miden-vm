@@ -69,7 +69,7 @@ fn test_falcon512_norm_sq() {
     end
     ";
 
-    // normalize(e) = e^2 - phi * (2*q*e - q^2) where phi := (e > (q - 1)/2)
+    // normalize(e) = e^2 - phi * (2*M*e - M^2) where phi := (e > (M - 1)/2)
     let upper = rand::thread_rng().gen_range(Q + 1..M);
     let test_upper = build_test!(source, &[upper]);
     test_upper.expect_stack(&[(M - upper) * (M - upper)]);
@@ -85,7 +85,7 @@ fn test_falcon512_diff_mod_q() {
     use.std::crypto::dsa::rpo_falcon512
 
     begin
-        exec.rpo_falcon512::diff_mod_q
+        exec.rpo_falcon512::diff_mod_M
     end
     ";
     let v = Felt::MODULUS - 1;
@@ -97,7 +97,7 @@ fn test_falcon512_diff_mod_q() {
 
     let test1 = build_test!(source, &[v_lo as u64, v_hi, w + J, u]);
 
-    // Calculating (v - (u + (- w % q) % q) % q) should be the same as (v + w + J - u) % q.
+    // Calculating (v - (u + (- w % M) % M) % M) should be the same as (v + w + J - u) % M.
     let expanded_answer = (v as i128
         - ((u as i64 + -(w as i64).rem_euclid(M as i64)).rem_euclid(M as i64) as i128))
         .rem_euclid(M as i128);
@@ -112,7 +112,7 @@ fn test_falcon512_diff_mod_q() {
 
     let test2 = build_test!(source, &[v_lo as u64, v_hi, w + J, u]);
 
-    // Calculating (v - (u + (- w % q) % q) % q) should be the same as (v + w + J - u) % q.
+    // Calculating (v - (u + (- w % M) % M) % M) should be the same as (v + w + J - u) % M.
     let expanded_answer = (v as i128
         - ((u as i64 + -(w as i64).rem_euclid(M as i64)).rem_euclid(M as i64) as i128))
         .rem_euclid(M as i128);
@@ -124,13 +124,13 @@ fn test_falcon512_diff_mod_q() {
 
 proptest! {
     #[test]
-    fn diff_mod_q_proptest(v in 0..Felt::MODULUS, w in 0..J, u in 0..J) {
+    fn diff_mod_m_proptest(v in 0..Felt::MODULUS, w in 0..J, u in 0..J) {
 
           let source = "
     use.std::crypto::dsa::rpo_falcon512
 
     begin
-        exec.rpo_falcon512::diff_mod_q
+        exec.rpo_falcon512::diff_mod_M
     end
     ";
 
@@ -138,7 +138,7 @@ proptest! {
 
     let test1 = build_test!(source, &[v_lo as u64, v_hi, w + J, u]);
 
-    // Calculating (v - (u + (- w % q) % q) % q) should be the same as (v + w + J - u) % q.
+    // Calculating (v - (u + (- w % M) % M) % M) should be the same as (v + w + J - u) % M.
     let expanded_answer = (v as i128
         - ((u as i64 + -(w as i64).rem_euclid(M as i64)).rem_euclid(M as i64) as i128))
     .rem_euclid(M as i128);

@@ -352,7 +352,7 @@ pub fn push_u64_div_result(
 ///
 /// Outputs:
 ///   Operand stack: [a1, a0, ...]
-///   Advice stack: [q0, q1, r, ...]
+///   Advice stack: [q1, q0, r, ...]
 ///
 /// Where (a0, a1) are the 32-bit limbs of the dividend (with a0 representing the 32 least
 /// significant bits and a1 representing the 32 most significant bits).
@@ -368,8 +368,7 @@ pub fn push_falcon_mod_result(
     let dividend_lo = process.get_stack_item(1).as_int();
     let dividend = (dividend_hi << 32) + dividend_lo;
 
-    let quotient = dividend / M;
-    let remainder = dividend - quotient * M;
+    let (quotient, remainder) = (dividend / M, dividend % M);
 
     let (q_hi, q_lo) = u64_to_u32_elements(quotient);
     let (r_hi, r_lo) = u64_to_u32_elements(remainder);

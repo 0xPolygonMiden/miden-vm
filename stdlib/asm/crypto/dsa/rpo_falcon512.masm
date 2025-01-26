@@ -7,6 +7,8 @@ use.std::math::u64
 const.J=77321994752
 const.M=12289
 const.M_HALF=6144 # (M-1) / 2
+const.M_DOUBLE=24578
+const.M_SQUARE=151019521
 const.SQUARE_NORM_BOUND=34034726
 const.MEMORY_POINTER_OFFSET_OF_HASH_TO_POINT_POLY_FROM_PRODUCT_POLY=1281
 
@@ -14,7 +16,7 @@ const.MEMORY_POINTER_OFFSET_OF_HASH_TO_POINT_POLY_FROM_PRODUCT_POLY=1281
 # =============================================================================================
 
 #! Given dividend ( i.e. a u64 given by its lower and higher u32 decomposition ) on the stack,
-#! this routine computes c = a % 12289
+#! this routine computes c = a % M where M = 12289
 #!
 #! Expected stack state
 #!
@@ -22,9 +24,9 @@ const.MEMORY_POINTER_OFFSET_OF_HASH_TO_POINT_POLY_FROM_PRODUCT_POLY=1281
 #!
 #! Output stack state looks like
 #!
-#! [c, ...] | c = a % 12289
+#! [c, ...] | c = a % M
 #!
-#! Cycles: 31
+#! Cycles: 27
 export.mod_12289
     adv.push_falcon_div
     # the advice stack contains now [qhi, qlo, r, ...] where q = qhi * 2^32 + qlo is quotient
@@ -49,7 +51,10 @@ export.mod_12289
     # => [res_hi, res_lo, a_hi, a_lo, ...]
 
     adv_push.1
-    dup u32lt.M assert 
+    dup
+    u32overflowing_sub.M
+    # => [underflow_bit, r - M, r, res_hi, res_lo, a_hi, a_lo, ...]
+    assert drop
     # => [r, res_hi, res_lo, a_hi, a_lo, ...]
 
     dup
@@ -391,15 +396,15 @@ end
 # SQUARE NORM OF Z_M[x]/(phi) POLYNOMIALS
 # =============================================================================================
 
-#! Normalizes an `e` in [0, q) to be in [-(q-1) << 1, (q-1) << 1) and returns its square norm.
+#! Normalizes an `e` in [0, M) to be in [-(M-1) << 1, (M-1) << 1) and returns its square norm.
 #!
 #! We use the following formula to do so:
-#! normalize(e) = e^2 - phi * (2*q*e - q^2) where phi := (e > (q - 1)/2)
+#! normalize(e) = e^2 - phi * (2*M*e - M^2) where phi := (e > (M - 1)/2)
 #!
 #! The formula implements:
 #!
-#! if e > (q-1)/2:
-#!   return (q - e)^2
+#! if e > (M-1)/2:
+#!   return (M - e)^2
 #! else:
 #!   return e^2
 #!
@@ -421,16 +426,17 @@ export.norm_sq
     #=> [phi, e^2, e, ...]
 
     movup.2
-    mul.24578       # 2*q
-    push.151019521  # q^2
+    push.M_DOUBLE       # 2*M
+    mul
+    push.M_SQUARE       # M^2
     sub
-    #=> [2*q*e - q^2, phi, e^2, ...]
+    #=> [2*M*e - M^2, phi, e^2, ...]
 
     mul sub
     #=> [norm(e)^2, ...]
 end
 
-#! Given a tuple (u, w, v), we want to compute (v - (u + (- w % q) % q) % q), where:
+#! Given a tuple (u, w, v), we want to compute (v - (u + (- w % M) % M) % M), where:
 #!
 #! 1. v is a field element given by its u32 decomposition i.e., (c_lo, c_hi) such that 
 #!    v = c_hi * 2**32 + c_lo
@@ -441,26 +447,26 @@ end
 #!
 #! We can avoid doing three modular reductions by using the following facts:
 #!
-#! 1. q is much smaller than the Miden prime Q. Precisely, q * 2^50 < Q
-#! 2. The coefficients of the product polynomial, u and w, are strictly less than J := 512 * q^2.
-#! 3. The coefficients of c are at most q - 1.
+#! 1. M is much smaller than the Miden prime Q. Precisely, M * 2^50 < Q
+#! 2. The coefficients of the product polynomial, u and w, are strictly less than J := 512 * M^2.
+#! 3. The coefficients of c are at most M - 1.
 #!
-#! This means that we can substitute (v - (u + (- w % q) % q) % q) with  v + w + J - u 
-#! (note J % q= 0) without risking Q-underflow but we can still overflow.
+#! This means that we can substitute (v - (u + (- w % M) % M) % M) with  v + w + J - u 
+#! (note J % M = 0) without risking Q-underflow but we can still overflow.
 #! For this reason, we use the u32 decomposition of v and perform the addition of
-#! v and w + J - u as u64. Note that |w + J - u| <= 1024 * (q - 1)^2
+#! v and w + J - u as u64. Note that |w + J - u| <= 1024 * (M - 1)^2
 #! and hence there is the possibility of an overflow when we add v and w + J - u as u64.
-#! When there is an overflow, we add 10952, which is equal to 2^32 % q, to the upper u32 limb of 
-#! the result of (v + (w + J - u)). Note that since |w + J - u| <= 1024 * (q-1)^2 < 2^38, and
-#! 10952 < q, we are guaranteed that this final u32 addition to the upper limb will not overflow.
+#! When there is an overflow, we add 10952, which is equal to 2^32 % M, to the upper u32 limb of 
+#! the result of (v + (w + J - u)). Note that since |w + J - u| <= 1024 * (M-1)^2 < 2^38, and
+#! 10952 < M, we are guaranteed that this final u32 addition to the upper limb will not overflow.
 #!
-#! To get the final result we reduce (v + w + J - u) modulo q.
+#! To get the final result we reduce (v + w + J - u) modulo M.
 #!
 #! Input: [pi0, pi512 + J, c_hi, c_lo, ...]
 #! Output: [e, ...]
 #!
 #! Cycles: 45
-export.diff_mod_q
+export.diff_mod_M
 
     # 1) Subtract
     sub
@@ -475,7 +481,7 @@ export.diff_mod_q
     #=> [flag, res_hi, res_lo, ..]
     
     # 4) Handle potential overflow in the u64 addition
-    push.10952 # 2^32 mod q
+    push.10952 # 2^32 mod M
     push.0
     #=> [0, 10952, flag, res_hi, res_lo, ..]
     swap.2
@@ -484,30 +490,30 @@ export.diff_mod_q
     add
     #=> [res_hi, res_lo, ..]
 
-    # 5) Reduce modulo q
+    # 5) Reduce modulo M
     exec.mod_12289
     #=> [e, ...]
 end
 
 #! Takes a pointer to a polynomial pi of degree less than 1024 with coefficients in Z_Q and
 #! a polynomial c of degree 512 with coefficients also in Z_Q, where Q is the Miden prime.
-#! The goal is to compute s1 = c - pi  = c - h * s2 in Z_q[x]/(phi) where q is the Falcon prime.
+#! The goal is to compute s1 = c - pi  = c - h * s2 in Z_M[x]/(phi) where M is the Falcon prime.
 #! The pointer pi_ptr points both to pi and c through the relation c_ptr = pi_ptr + offset
 #! where offset := 1281.
 #! The naive way to compute s1 would be to first reduce the polynomial pi modulo the Falcon
-#! prime q and then modulo the irreducible polynomial phi = x^512 + 1. Then we would need to negate
-#! the coefficients of pi modulo q and only then can we add these coefficients to the coefficients
-#! of c and then reduce the result modulo q one more time.
+#! prime M and then modulo the irreducible polynomial phi = x^512 + 1. Then we would need to negate
+#! the coefficients of pi modulo M and only then can we add these coefficients to the coefficients
+#! of c and then reduce the result modulo M one more time.
 #! Knowing that the end goal of computing c is to compute its norm squared, we can do better.
 #!
-#! We can compute s1 in a single pass by delaying the q-modular reduction til the end. This can
+#! We can compute s1 in a single pass by delaying the M-modular reduction til the end. This can
 #! be achieved through a careful analysis of the computation of the difference between pi and c.
 #!
 #! The i-th coefficient s1_i of s1 is equal to c_i - (pi_i - pi_{512 + i}) which is equal to
 #! c_i  + pi_{512 + i} - pi_i. Now, we know that the size of the pi_i coefficients is bounded by
-#! J := 512 * q^2 and this means that J + pi_{512 + i} - pi_i does not Q-underflow and since
-#! J = 0 modulo q, the addition of J does not affect the final result. It is also important to
-#! note that adding J does not Q-overflow by virtue of q * 2^50 < Q.
+#! J := 512 * M^2 and this means that J + pi_{512 + i} - pi_i does not Q-underflow and since
+#! J = 0 mod M, the addition of J does not affect the final result. It is also important to
+#! note that adding J does not Q-overflow by virtue of M * 2^50 < Q.
 #! All of the above implies that we can compute s1_i with only one modular reduction at the end,
 #! in addition to one modular reduction applied to c_i.
 #! Moreover, since we are only interested in the square norm of s1_i, we do not have to store
@@ -549,7 +555,7 @@ export.compute_s1_norm_sq
         #=> [pi512_0, c0_hi, c0_lo, c1, c2, c3, pi512_1, pi512_2, pi512_3, PI, pi_ptr, ...]
         movup.9
         #=> [pi0, pi512_0, c_hi, c_lo, c1, c2, c3, pi512_1, pi512_2, pi512_3, pi1, pi2, pi3, pi_ptr, ...]
-        exec.diff_mod_q
+        exec.diff_mod_M
         #=> [e, c1, c2, c3, pi512_1, pi512_2, pi512_3, pi1, pi2, pi3, pi_ptr, ...]
         exec.norm_sq
         #=> [norm(e)^2, ...]
@@ -567,7 +573,7 @@ export.compute_s1_norm_sq
         push.J add
         movup.7
         #=> [pi1, pi512_1, c1_hi, c1_lo, c2, c3, pi512_2, pi512_3, pi2, pi3, pi_ptr, e0, ...]
-        exec.diff_mod_q
+        exec.diff_mod_M
         exec.norm_sq
         #=> [e, c2, c3, pi512_2, pi512_3, pi2, pi3, pi_ptr, e0, ...]
 
@@ -583,7 +589,7 @@ export.compute_s1_norm_sq
         #=> [pi512_2, c2_hi, c2_lo, c3, pi512_3, pi2, pi3, pi_ptr, e0, e1, ...]
         movup.5
         #=> [pi2, pi512_2, c2_hi, c2_lo, c3, pi512_3, pi3, pi_ptr, e0, e1, ...]
-        exec.diff_mod_q
+        exec.diff_mod_M
         exec.norm_sq
 
         movdn.4
@@ -596,7 +602,7 @@ export.compute_s1_norm_sq
         movup.2 push.J add
         movup.3
         #=> [pi3, pi512_3, c3_hi, c3_lo, pi_ptr, e0, e1, e2, ...]
-        exec.diff_mod_q
+        exec.diff_mod_M
         #=> [e3, pi_ptr, e0, e1, e2, ...]
         exec.norm_sq
         #=> [e3, pi_ptr, e0, e1, e2, ...]
