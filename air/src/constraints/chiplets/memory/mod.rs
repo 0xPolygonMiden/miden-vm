@@ -178,7 +178,7 @@ fn enforce_same_context_word_addr_and_clock<E: FieldElement>(
     result[0] = memory_flag_not_last_row
         * frame.f_scw_next()
         * clk_no_change
-        * binary_not(frame.is_read())        // read in current row
+        * binary_not(frame.is_read())       // read in current row
         * binary_not(frame.is_read_next()); // read in next row
 
     1

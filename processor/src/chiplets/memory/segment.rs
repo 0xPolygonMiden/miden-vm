@@ -167,8 +167,8 @@ impl MemorySegmentTrace {
         let (word_addr, addr_idx_in_word) = addr_to_word_addr_and_idx(addr);
 
         match self.0.entry(word_addr) {
-            // If this is the first access to the ctx/word pair, then all values in the word
-            // are initialized to 0, except for the address being written.
+            // If this is the first access to the ctx/word pair, then all values in the word are
+            // initialized to 0, except for when the address being written to.
             Entry::Vacant(vacant_entry) => {
                 let word = {
                     let mut word = Word::default();
@@ -185,8 +185,8 @@ impl MemorySegmentTrace {
                 vacant_entry.insert(vec![access]);
                 Ok(())
             },
-            // If the ctx/word pair has been accessed before, then the values in the word are
-            // the same as the previous access, except for the address being written.
+            // If the ctx/word pair has been accessed before, then the values in the word are the
+            // same as the previous access, except for when the address being written to.
             Entry::Occupied(mut occupied_entry) => {
                 let addr_trace = occupied_entry.get_mut();
                 if addr_trace.last().expect("empty address trace").clk() == clk {

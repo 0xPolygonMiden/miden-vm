@@ -665,6 +665,18 @@ mod tests {
         );
     }
 
+    /// Ensures that reading twice in the same clock cycle does NOT result in an error.
+    #[test]
+    fn read_twice_in_same_clock_cycle() {
+        let mut process = Process::new_dummy_with_decoder_helpers_and_empty_stack();
+        assert_eq!(0, process.chiplets.memory().num_accessed_words());
+
+        // emulate reading in the same clock cycle
+        process.ensure_trace_capacity();
+        process.op_mload().unwrap();
+        process.op_mload().unwrap();
+    }
+
     // HELPER METHODS
     // --------------------------------------------------------------------------------------------
 
