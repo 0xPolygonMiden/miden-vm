@@ -176,24 +176,25 @@ fn advice_insert_mem() {
 
     # write to memory and drop first word from stack to use second word as the key for advice map.
     # mem_storew reverses the order of field elements in the word when it's stored in memory.
-    mem_storew.2 dropw mem_storew.3
+    mem_storew.8 dropw mem_storew.12
     # State Transition:
     # stack: [5, 6, 7, 8]
-    # mem[2]: [4, 3, 2, 1]
-    # mem[3]: [8, 7, 6, 5]
+    # mem[8..11]: [4, 3, 2, 1]
+    # mem[12..15]: [8, 7, 6, 5]
 
     # copy from memory to advice map
     # the key used is in the reverse order of the field elements in the word at the top of the
     # stack.
-    push.2.4 movdn.4 movdn.4
+    push.16 movdn.4 push.8 movdn.4
     adv.insert_mem
     # State Transition:
+    # stack: [5, 6, 7, 8, 4, 16]
     # advice_map: k: [8, 7, 6, 5], v: [4, 3, 2, 1, 8, 7, 6, 5]
 
     # copy from advice map to advice stack
     adv.push_mapval dropw
     # State Transition:
-    # stack: [0, 0, 0, 0]
+    # stack: [4, 16, 0, 0]
     # advice_stack: [4, 3, 2, 1, 8, 7, 6, 5]
 
     # copy first word from advice stack to stack

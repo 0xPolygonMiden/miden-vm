@@ -10,7 +10,6 @@ use super::{
     crypto::MerklePath, utils, ChipletsTrace, ExecutionError, Felt, FieldElement, RangeChecker,
     TraceFragment, Word, CHIPLETS_WIDTH, EMPTY_WORD, ONE, ZERO,
 };
-use crate::system::ContextId;
 
 mod bitwise;
 use bitwise::Bitwise;
@@ -44,7 +43,8 @@ mod tests;
 /// * Hasher segment: contains the trace and selector for the hasher chiplet. This segment fills the
 ///   first rows of the trace up to the length of the hasher `trace_len`.
 ///   - column 0: selector column with values set to ZERO
-///   - columns 1-17: execution trace of hash chiplet
+///   - columns 1-16: execution trace of hash chiplet
+///   - column 17: unused column padded with ZERO
 /// * Bitwise segment: contains the trace and selectors for the bitwise chiplet. This segment begins
 ///   at the end of the hasher segment and fills the next rows of the trace for the `trace_len` of
 ///   the bitwise chiplet.
@@ -52,13 +52,12 @@ mod tests;
 ///   - column 1: selector column with values set to ZERO
 ///   - columns 2-14: execution trace of bitwise chiplet
 ///   - columns 15-17: unused columns padded with ZERO
-/// * Memory segment: contains the trace and selectors for the memory chiplet * This segment begins
+/// * Memory segment: contains the trace and selectors for the memory chiplet.  This segment begins
 ///   at the end of the bitwise segment and fills the next rows of the trace for the `trace_len` of
 ///   the memory chiplet.
 ///   - column 0-1: selector columns with values set to ONE
 ///   - column 2: selector column with values set to ZERO
-///   - columns 3-14: execution trace of memory chiplet
-///   - columns 15-17: unused column padded with ZERO
+///   - columns 3-17: execution trace of memory chiplet
 /// * Kernel ROM segment: contains the trace and selectors for the kernel ROM chiplet * This segment
 ///   begins at the end of the memory segment and fills the next rows of the trace for the
 ///   `trace_len` of the kernel ROM chiplet.
@@ -89,11 +88,11 @@ mod tests;
 ///             | . | . |   selectors   |                                   |-------------|
 ///             | . | 0 |               |                                   |-------------|
 ///             | . +---+---+-----------------------------------------------+-------------+
-///             | . | 1 | 0 |                |                              |-------------|
-///             | . | . | . | Memory chiplet |      Memory chiplet          |-------------|
-///             | . | . | . | internal       |      12 columns              |-- Padding --|
-///             | . | . | . | selectors      |      constraint degree 9     |-------------|
-///             | . | . | 0 |                |                              |-------------|
+///             | . | 1 | 0 |                                               |-------------|
+///             | . | . | . |            Memory chiplet                     |-------------|
+///             | . | . | . |              15 columns                       |-- Padding --|
+///             | . | . | . |          constraint degree 9                  |-------------|
+///             | . | . | 0 |                                               |-------------|
 ///             | . + . |---+---+-------------------------------------------+-------------+
 ///             | . | . | 1 | 0 |                   |                       |-------------|
 ///             | . | . | . | . |  Kernel ROM       |   Kernel ROM chiplet  |-------------|
@@ -115,8 +114,6 @@ mod tests;
 /// ```
 #[derive(Debug)]
 pub struct Chiplets {
-    /// Current clock cycle of the VM.
-    pub clk: RowIndex,
     pub hasher: Hasher,
     pub bitwise: Bitwise,
     pub memory: Memory,
@@ -129,7 +126,6 @@ impl Chiplets {
     /// Returns a new [Chiplets] component instantiated with the provided Kernel.
     pub fn new(kernel: Kernel) -> Self {
         Self {
-            clk: RowIndex::from(0),
             hasher: Hasher::default(),
             bitwise: Bitwise::default(),
             memory: Memory::default(),
@@ -171,19 +167,6 @@ impl Chiplets {
         self.kernel_rom_start() + self.kernel_rom.trace_len()
     }
 
-    /// Returns the underlying kernel used to initilize this instance.
-    pub const fn kernel(&self) -> &Kernel {
-        self.kernel_rom.kernel()
-    }
-
-    // CONTEXT MANAGEMENT
-    // --------------------------------------------------------------------------------------------
-
-    /// Increments the clock cycle.
-    pub fn advance_clock(&mut self) {
-        self.clk += 1;
-    }
-
     // EXECUTION TRACE
     // --------------------------------------------------------------------------------------------
 
@@ -202,7 +185,7 @@ impl Chiplets {
         // make sure that only padding rows will be overwritten by random values
         assert!(self.trace_len() + num_rand_rows <= trace_len, "target trace length too small");
 
-        let kernel = self.kernel().clone();
+        let kernel = self.kernel_rom.kernel().clone();
 
         // Allocate columns for the trace of the chiplets.
         let mut trace = (0..CHIPLETS_WIDTH)
@@ -234,13 +217,7 @@ impl Chiplets {
         let kernel_rom_start: usize = self.kernel_rom_start().into();
         let padding_start: usize = self.padding_start().into();
 
-        let Chiplets {
-            clk: _,
-            hasher,
-            bitwise,
-            memory,
-            kernel_rom,
-        } = self;
+        let Chiplets { hasher, bitwise, memory, kernel_rom } = self;
 
         // populate external selector columns for all chiplets
         trace[0][bitwise_start..].fill(ONE);
@@ -258,7 +235,7 @@ impl Chiplets {
         // so they can be filled with the chiplet traces
         for (column_num, column) in trace.iter_mut().enumerate().skip(1) {
             match column_num {
-                1 | 15..=17 => {
+                1 => {
                     // columns 1 and 15 - 17 are relevant only for the hasher
                     hasher_fragment.push_column_slice(column, hasher.trace_len());
                 },
@@ -279,6 +256,19 @@ impl Chiplets {
                     let rest = bitwise_fragment.push_column_slice(rest, bitwise.trace_len());
                     let rest = memory_fragment.push_column_slice(rest, memory.trace_len());
                     kernel_rom_fragment.push_column_slice(rest, kernel_rom.trace_len());
+                },
+                15 | 16 => {
+                    // columns 15 and 16 are relevant only for the hasher and memory chiplets
+                    let rest = hasher_fragment.push_column_slice(column, hasher.trace_len());
+                    // skip bitwise chiplet
+                    let (_, rest) = rest.split_at_mut(bitwise.trace_len());
+                    memory_fragment.push_column_slice(rest, memory.trace_len());
+                },
+                17 => {
+                    // column 17 is relevant only for the memory chiplet
+                    // skip the hasher and bitwise chiplets
+                    let (_, rest) = column.split_at_mut(hasher.trace_len() + bitwise.trace_len());
+                    memory_fragment.push_column_slice(rest, memory.trace_len());
                 },
                 _ => panic!("invalid column index"),
             }

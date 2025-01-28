@@ -153,7 +153,8 @@ impl Process {
 
         assert_eq!(path.len(), depth.as_int() as usize);
 
-        let merkle_tree_update = self.chiplets.hasher.update_merkle_root(old_node, new_node, &path, index);
+        let merkle_tree_update =
+            self.chiplets.hasher.update_merkle_root(old_node, new_node, &path, index);
 
         // Asserts the computed old root of the Merkle path from the advice provider is consistent
         // with the input root provided via the stack. This will panic only if the advice provider

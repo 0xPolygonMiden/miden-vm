@@ -55,7 +55,7 @@ $$
 In the above, $u_{mem}$ is the value of memory access request. Thus, to describe AIR constraint for memory operations, it is sufficient to describe how $u_{mem}$ is computed. We do this in the following sections.
 
 ### MLOADW
-Assume that the word with elements $v_0, v_1, v_2, v_3$ is located in memory at address $a$. The `MLOADW` operation pops an element off the stack, interprets it as a memory address, and replaces the remaining 4 elements at the top of the stack with values located at the specified address. The diagram below illustrates this graphically.
+Assume that the word with elements $v_0, v_1, v_2, v_3$ is located in memory starting at address $a$. The `MLOADW` operation pops an element off the stack, interprets it as a memory address, and replaces the remaining 4 elements at the top of the stack with values located at the specified address. The diagram below illustrates this graphically.
 
 ![mloadw](../../assets/design/stack/io_ops/MLOADW.png)
 
@@ -68,11 +68,11 @@ $$
 Using the above variable, we define the value representing the memory access request as follows:
 
 $$
-u_{mem} = \alpha_0 + \alpha_1 \cdot op_{mem\_read} + \alpha_2 \cdot ctx + \alpha_3 \cdot s_0 + \alpha_4 \cdot clk + v
+u_{mem} = \alpha_0 + \alpha_1 \cdot op_{mem\_readword} + \alpha_2 \cdot ctx + \alpha_3 \cdot s_0 + \alpha_4 \cdot clk + v
 $$
 
 In the above:
-- $op_{mem\_read}$ is the unique [operation label](../chiplets/main.md#operation-labels) of the memory read operation.
+- $op_{mem\_readword}$ is the unique [operation label](../chiplets/main.md#operation-labels) of the memory "read word" operation.
 - $ctx$ is the identifier of the current memory context.
 - $s_0$ is the memory address from which the values are to be loaded onto the stack.
 - $clk$ is the current clock cycle of the VM.
@@ -81,26 +81,19 @@ The effect of this operation on the rest of the stack is:
 * **Left shift** starting from position $5$.
 
 ### MLOAD
-Assume that the word with elements $v_0, v_1, v_2, v_3$ is located in memory at address $a$. The `MLOAD` operation pops an element off the stack, interprets it as a memory address, and pushes the first element of the word located at the specified address to the stack. The diagram below illustrates this graphically.
+Assume that the element $v$ is located in memory at address $a$. The `MLOAD` operation pops an element off the stack, interprets it as a memory address, and pushes the element located at the specified address to the stack. The diagram below illustrates this graphically.
 
 ![mload](../../assets/design/stack/io_ops/MLOAD.png)
 
-To simplify description of the memory access request value, we first define a variable for the value that represents the state of memory after the operation:
+
+We define the value representing the memory access request as follows:
 
 $$
-v = \alpha_5 \cdot s_0' + \sum_{i=1}^3\alpha_{i+5} \cdot h_{3-i}'
-$$
-
-*Note: the values in registers $h_0, h_1, h_2$ are set by the prover non-deterministically.*
-
-Using the above variable, we define the value representing the memory access request as follows:
-
-$$
-u_{mem} = \alpha_0 + \alpha_1 \cdot op_{mem\_read} + \alpha_2 \cdot ctx + \alpha_3 \cdot s_0 + \alpha_4 \cdot clk + v
+u_{mem} = \alpha_0 + \alpha_1 \cdot op_{mem\_readelement} + \alpha_2 \cdot ctx + \alpha_3 \cdot s_0 + \alpha_4 \cdot clk + \alpha_5 \cdot v
 $$
 
 In the above:
-- $op_{mem\_read}$ is the unique [operation label](../chiplets/main.md#operation-labels) of the memory read operation.
+- $op_{mem\_readelement}$ is the unique [operation label](../chiplets/main.md#operation-labels) of the memory "read element" operation.
 - $ctx$ is the identifier of the current memory context.
 - $s_0$ is the memory address from which the value is to be loaded onto the stack.
 - $clk$ is the current clock cycle of the VM.
@@ -109,11 +102,11 @@ The effect of this operation on the rest of the stack is:
 * **No change** starting from position $1$.
 
 ### MSTOREW
-The `MSTOREW` operation pops an element off the stack, interprets it as a memory address, and writes the remaining $4$ elements at the top of the stack into memory at the specified address. The stored elements are not removed from the stack. The diagram below illustrates this graphically.
+The `MSTOREW` operation pops an element off the stack, interprets it as a memory address, and writes the remaining $4$ elements at the top of the stack into memory starting at the specified address. The stored elements are not removed from the stack. The diagram below illustrates this graphically.
 
 ![mstorew](../../assets/design/stack/io_ops/MSTOREW.png)
 
-After the operation the contents of memory at address $a$ would be set to $v_0, v_1, v_2, v_3$.
+After the operation the contents of memory at addresses $a$, $a+1$, $a+2$, $a+3$ would be set to $v_0, v_1, v_2, v_3$, respectively.
 
 To simplify description of the memory access request value, we first define a variable for the value that represents the state of memory after the operation:
 
@@ -124,11 +117,11 @@ $$
 Using the above variable, we define the value representing the memory access request as follows:
 
 $$
-u_{mem} = \alpha_0 + \alpha_1 \cdot op_{mem\_write} + \alpha_2 \cdot ctx + \alpha_3 \cdot s_0 + \alpha_4 \cdot clk + v
+u_{mem} = \alpha_0 + \alpha_1 \cdot op_{mem\_writeword} + \alpha_2 \cdot ctx + \alpha_3 \cdot s_0 + \alpha_4 \cdot clk + v
 $$
 
 In the above:
-- $op_{mem\_write}$ is the unique [operation label](../chiplets/main.md#operation-labels) of the memory write operation.
+- $op_{mem\_writeword}$ is the unique [operation label](../chiplets/main.md#operation-labels) of the memory "write word" operation.
 - $ctx$ is the identifier of the current memory context.
 - $s_0$ is the memory address into which the values from the stack are to be saved.
 - $clk$ is the current clock cycle of the VM.
@@ -137,28 +130,20 @@ The effect of this operation on the rest of the stack is:
 * **Left shift** starting from position $1$.
 
 ### MSTORE
-The `MSTORE` operation pops an element off the stack, interprets it as a memory address, and writes the remaining element at the top of the stack into the first element of the word located at the specified memory address. The remaining $3$ elements of the word are not affected. The diagram below illustrates this graphically.
+The `MSTORE` operation pops an element off the stack, interprets it as a memory address, and writes the remaining element at the top of the stack into memory at the specified memory address. The diagram below illustrates this graphically.
 
 ![mstore](../../assets/design/stack/io_ops/MSTORE.png)
 
-After the operation the contents of memory at address $a$ would be set to $b, v_1, v_2, v_3$.
+After the operation the contents of memory at address $a$ would be set to $b$.
 
-To simplify description of the memory access request value, we first define a variable for the value that represents the state of memory after the operation:
-
-$$
-v = \alpha_5 \cdot s_0' + \sum_{i=1}^3\alpha_{i+5} \cdot h_{3-i}'
-$$
-
-*Note: the values in registers $h_0, h_1, h_2$ are set by the prover non-deterministically.*
-
-Using the above variable, we define the value representing the memory access request as follows:
+We define the value representing the memory access request as follows:
 
 $$
-u_{mem} = \alpha_0 + \alpha_1 \cdot op_{mem\_write} + \alpha_2 \cdot ctx + \alpha_3 \cdot s_0 + \alpha_4 \cdot clk + v
+u_{mem} = \alpha_0 + \alpha_1 \cdot op_{mem\_writeelement} + \alpha_2 \cdot ctx + \alpha_3 \cdot s_0 + \alpha_4 \cdot clk + \alpha_5 \cdot v
 $$
 
 In the above:
-- $op_{mem\_write} $ is the unique [operation label](../chiplets/main.md#operation-labels) of the memory write operation.
+- $op_{mem\_writeelement} $ is the unique [operation label](../chiplets/main.md#operation-labels) of the memory "write element" operation.
 - $ctx$ is the identifier of the current memory context.
 - $s_0$ is the memory address into which the value from the stack is to be saved.
 - $clk$ is the current clock cycle of the VM.
@@ -168,14 +153,14 @@ The effect of this operation on the rest of the stack is:
 
 ### MSTREAM
 
-The `MSTREAM` operation loads two words from memory, and replaces the top 8 elements of the stack with them, element-wise, in stack order. The memory address from which the words are loaded is stored in the 13th stack element (position 12). The diagram below illustrates this graphically.
+The `MSTREAM` operation loads two words from memory, and replaces the top 8 elements of the stack with them, element-wise, in stack order. The start memory address from which the words are loaded is stored in the 13th stack element (position 12). The diagram below illustrates this graphically.
 
 ![mstream](../../assets/design/stack/io_ops/MSTREAM.png)
 
-After the operation, the memory address is incremented by 2.
+After the operation, the memory address is incremented by 8.
 
 $$
-s_{12}' = s_{12} + 2
+s_{12}' = s_{12} + 8
 $$
 
 To simplify description of the memory access request value, we first define variables for the values that represent the state of memory after the operation:
@@ -191,11 +176,11 @@ $$
 Using the above variables, we define the values representing the memory access request as follows:
 
 $$
-u_{mem, 1} = \alpha_0 + \alpha_1 \cdot op_{mem\_read} + \alpha_2 \cdot ctx + \alpha_3 \cdot s_{12} + \alpha_4 \cdot clk + v_1
+u_{mem, 1} = \alpha_0 + \alpha_1 \cdot op_{mem\_readword} + \alpha_2 \cdot ctx + \alpha_3 \cdot s_{12} + \alpha_4 \cdot clk + v_1
 $$
 
 $$
-u_{mem, 2} = \alpha_0 + \alpha_1 \cdot op_{mem\_read} + \alpha_2 \cdot ctx + \alpha_3 \cdot (s_{12} + 1) + \alpha_4 \cdot clk + v_2
+u_{mem, 2} = \alpha_0 + \alpha_1 \cdot op_{mem\_readword} + \alpha_2 \cdot ctx + \alpha_3 \cdot (s_{12} + 4) + \alpha_4 \cdot clk + v_2
 $$
 
 $$
@@ -203,9 +188,9 @@ u_{mem} = u_{mem, 1} \cdot u_{mem, 2}
 $$
 
 In the above:
-- $op_{mem\_read}$ is the unique [operation label](../chiplets/main.md#operation-labels) of the memory read operation.
+- $op_{mem\_readword}$ is the unique [operation label](../chiplets/main.md#operation-labels) of the memory "read word" operation.
 - $ctx$ is the identifier of the current memory context.
-- $s_{12}$ and $s_{12} + 1$ are the memory addresses from which the values are to be loaded onto the stack.
+- $s_{12}$ and $s_{12} + 4$ are the memory addresses from which the words are to be loaded onto the stack.
 - $clk$ is the current clock cycle of the VM.
 
 The effect of this operation on the rest of the stack is:

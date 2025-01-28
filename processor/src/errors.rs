@@ -37,8 +37,6 @@ pub enum ExecutionError {
     DecoratorNotFoundInForest { decorator_id: DecoratorId },
     #[error("division by zero at clock cycle {0}")]
     DivideByZero(RowIndex),
-    #[error("memory address {addr} in context {ctx} accessed twice in clock cycle {clk}")]
-    DuplicateMemoryAccess { ctx: ContextId, addr: u32, clk: Felt },
     #[error("failed to execute the dynamic code block provided by the stack with root {hex}; the block could not be found",
       hex = to_hex(.0.as_bytes())
     )]
@@ -60,6 +58,8 @@ pub enum ExecutionError {
     },
     #[error("failed to generate signature: {0}")]
     FailedSignatureGeneration(&'static str),
+    #[error("memory address {addr} in context {ctx} was read and written, or written twice, in the same clock cycle {clk}")]
+    IllegalMemoryAccess { ctx: ContextId, addr: u32, clk: Felt },
     #[error("Updating FMP register from {0} to {1} failed because {1} is outside of {FMP_MIN}..{FMP_MAX}")]
     InvalidFmpValue(Felt, Felt),
     #[error("FRI domain segment value cannot exceed 3, but was {0}")]
@@ -92,6 +92,14 @@ pub enum ExecutionError {
     NoMastForestWithProcedure { root_digest: Digest },
     #[error("memory address cannot exceed 2^32 but was {0}")]
     MemoryAddressOutOfBounds(u64),
+    #[error(
+        "word memory access at address {addr} in context {ctx} is unaligned at clock cycle {clk}"
+    )]
+    MemoryUnalignedWordAccess { addr: u32, ctx: ContextId, clk: Felt },
+    // Note: we need this version as well because to handle advice provider calls, which don't
+    // have access to the clock.
+    #[error("word access at memory address {addr} in context {ctx} is unaligned")]
+    MemoryUnalignedWordAccessNoClk { addr: u32, ctx: ContextId },
     #[error("merkle path verification failed for value {value} at index {index} in the Merkle tree with root {root} (error code: {err_code})", 
       value = to_hex(Felt::elements_as_bytes(value)),
       root = to_hex(root.as_bytes()),
@@ -152,6 +160,8 @@ pub enum Ext2InttError {
     InputSizeTooBig(u64),
     #[error("address of the first input must be smaller than 2^32, but was {0}")]
     InputStartAddressTooBig(u64),
+    #[error("address of the first input is not word aligned: {0}")]
+    InputStartNotWordAligned(u64),
     #[error("output size ({0}) cannot be greater than the input size ({1})")]
     OutputSizeTooBig(usize, usize),
     #[error("output size must be greater than 0")]

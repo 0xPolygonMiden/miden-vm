@@ -5,7 +5,7 @@ use alloc::{
 use core::fmt;
 
 use miden_air::RowIndex;
-use vm_core::{AssemblyOp, Operation, StackOutputs, Word};
+use vm_core::{AssemblyOp, Operation, StackOutputs};
 
 use crate::{
     range::RangeChecker, system::ContextId, Chiplets, ChipletsLengths, Decoder, ExecutionError,
@@ -21,17 +21,15 @@ pub struct VmState {
     pub asmop: Option<AsmOpInfo>,
     pub fmp: Felt,
     pub stack: Vec<Felt>,
-    pub memory: Vec<(u64, Word)>,
+    pub memory: Vec<(u64, Felt)>,
 }
 
 impl fmt::Display for VmState {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let stack: Vec<u64> = self.stack.iter().map(|x| x.as_int()).collect();
-        let memory: Vec<(u64, [u64; 4])> =
-            self.memory.iter().map(|x| (x.0, word_to_ints(&x.1))).collect();
         write!(
             f,
-            "clk={}{}{}, fmp={}, stack={stack:?}, memory={memory:?}",
+            "clk={}{}{}, fmp={}, stack={stack:?}, memory={:?}",
             self.clk,
             match self.op {
                 Some(op) => format!(", op={op}"),
@@ -41,7 +39,8 @@ impl fmt::Display for VmState {
                 Some(op) => format!(", {op}"),
                 None => "".to_string(),
             },
-            self.fmp
+            self.fmp,
+            self.memory
         )
     }
 }
@@ -243,12 +242,6 @@ impl Iterator for VmStateIterator {
 
         result
     }
-}
-
-// HELPER FUNCTIONS
-// ================================================================================================
-fn word_to_ints(word: &Word) -> [u64; 4] {
-    [word[0].as_int(), word[1].as_int(), word[2].as_int(), word[3].as_int()]
 }
 
 /// Contains assembly instruction and operation index in the sequence corresponding to the specified

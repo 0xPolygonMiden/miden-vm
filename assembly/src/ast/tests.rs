@@ -1120,7 +1120,7 @@ fn assert_parsing_line_invalid_op() {
         while.true
             push.5.7
             u32wrapping_add
-            loc_store.1
+            loc_store.4
             push.0
         end
 

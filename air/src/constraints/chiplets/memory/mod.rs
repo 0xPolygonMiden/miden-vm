@@ -5,9 +5,10 @@ use winter_air::TransitionConstraintDegree;
 use super::{EvaluationFrame, FieldElement};
 use crate::{
     trace::chiplets::{
-        memory::NUM_ELEMENTS, MEMORY_ADDR_COL_IDX, MEMORY_CLK_COL_IDX, MEMORY_CTX_COL_IDX,
-        MEMORY_D0_COL_IDX, MEMORY_D1_COL_IDX, MEMORY_D_INV_COL_IDX, MEMORY_TRACE_OFFSET,
-        MEMORY_V_COL_RANGE,
+        MEMORY_CLK_COL_IDX, MEMORY_CTX_COL_IDX, MEMORY_D0_COL_IDX, MEMORY_D1_COL_IDX,
+        MEMORY_D_INV_COL_IDX, MEMORY_FLAG_SAME_CONTEXT_AND_WORD, MEMORY_IDX0_COL_IDX,
+        MEMORY_IDX1_COL_IDX, MEMORY_IS_READ_COL_IDX, MEMORY_IS_WORD_ACCESS_COL_IDX,
+        MEMORY_V_COL_RANGE, MEMORY_WORD_COL_IDX,
     },
     utils::{binary_not, is_binary, EvaluationResult},
 };
@@ -19,16 +20,17 @@ mod tests;
 // ================================================================================================
 
 /// The number of constraints on the management of the memory chiplet.
-pub const NUM_CONSTRAINTS: usize = 17;
+pub const NUM_CONSTRAINTS: usize = 19;
 /// The degrees of constraints on the management of the memory chiplet. All constraint degrees are
 /// increased by 3 due to the selectors for the memory chiplet.
 pub const CONSTRAINT_DEGREES: [usize; NUM_CONSTRAINTS] = [
-    5, 5, // Enforce that the memory selectors are binary.
-    9, 8, // Enforce s1 is set to 1 when reading existing memory and 0 otherwise.
+    5, 5, 5, 5, // Enforce that rw, ew, idx0 and idx1 are binary.
     7, 6, 9, 8, // Constrain the values in the d inverse column.
-    8, // Enforce values in ctx, addr, clk transition correctly.
-    6, 6, 6, 6, // Enforce correct memory initialization when reading from new memory.
-    5, 5, 5, 5, // Enforce correct memory copy when reading from existing memory
+    8, // Enforce values in ctx, word, clk transition correctly.
+    7, // Enforce the correct value for the f_scw flag.
+    8, // Enforce that accesses in same context, word and clock are reads.
+    9, 9, 9, 9, // Constrain the values in the first row of the chiplet.
+    9, 9, 9, 9, // Constrain the values in all rows of the chiplet except the first.
 ];
 
 // MEMORY TRANSITION CONSTRAINTS
@@ -48,56 +50,59 @@ pub fn get_transition_constraint_count() -> usize {
 }
 
 /// Enforces constraints for the memory chiplet.
+///
+/// The flags are:
+/// - `memory_flag_all_rows`: a flag that is set to 1 when the current row is part of the memory
+///   chiplet,
+/// - `memory_flag_not_last_row`: a flag that is set to 1 when the current row is part of the memory
+///   chiplet, but excludes the last row of the chiplet,
+/// - `memory_flag_first_row`: a flag that is set to 1 when the *next* row is the first row of the
+///   memory chiplet.
 pub fn enforce_constraints<E: FieldElement>(
     frame: &EvaluationFrame<E>,
     result: &mut [E],
-    memory_flag: E,
+    memory_flag_all_rows: E,
+    memory_flag_not_last_row: E,
+    memory_flag_first_row: E,
 ) {
-    // Constrain the operation selectors.
-    let mut index = enforce_selectors(frame, result, memory_flag);
+    // Constrain the binary columns.
+    let mut index = enforce_binary_columns(frame, result, memory_flag_all_rows);
 
     // Constrain the values in the d inverse column.
-    index += enforce_d_inv(frame, &mut result[index..], memory_flag);
+    index += enforce_d_inv(frame, &mut result[index..], memory_flag_not_last_row);
 
-    // Enforce values in ctx, addr, clk transition correctly.
-    index += enforce_delta(frame, &mut result[index..], memory_flag);
+    // Enforce values in ctx, word_addr, clk transition correctly.
+    index += enforce_delta(frame, &mut result[index..], memory_flag_not_last_row);
+
+    // Enforce the correct value for the f_scw flag.
+    index +=
+        enforce_flag_same_context_and_word(frame, &mut result[index..], memory_flag_not_last_row);
+
+    // Enforce that accesses in same context, word and clock are reads.
+    index += enforce_same_context_word_addr_and_clock(
+        frame,
+        &mut result[index..],
+        memory_flag_not_last_row,
+    );
 
     // Constrain the memory values.
-    enforce_values(frame, &mut result[index..], memory_flag);
+    enforce_values(frame, &mut result[index..], memory_flag_not_last_row, memory_flag_first_row);
 }
 
 // TRANSITION CONSTRAINT HELPERS
 // ================================================================================================
 
-fn enforce_selectors<E: FieldElement>(
+fn enforce_binary_columns<E: FieldElement>(
     frame: &EvaluationFrame<E>,
     result: &mut [E],
     memory_flag: E,
 ) -> usize {
-    let mut index = 0;
+    result[0] = memory_flag * is_binary(frame.is_read());
+    result[1] = memory_flag * is_binary(frame.is_word_access());
+    result[2] = memory_flag * is_binary(frame.idx0());
+    result[3] = memory_flag * is_binary(frame.idx1());
 
-    // s0 and s1 are binary.
-    result[index] = memory_flag * is_binary(frame.selector(0));
-    index += 1;
-    result[index] = memory_flag * is_binary(frame.selector(1));
-    index += 1;
-
-    // s1 is set to 1 when existing memory is being read. this happens when ctx and addr haven't
-    // changed, and the next operation is a read (s0 is set).
-    result[index] = memory_flag
-        * frame.reaccess_flag()
-        * frame.selector_next(0)
-        * binary_not(frame.selector_next(1));
-    index += 1;
-
-    // s1 is set to 0 in all other cases. this happens when ctx changed, or ctx stayed the same but
-    // addr changed, or the operation was a write.
-    result[index] = memory_flag
-        * (frame.n0() + frame.not_n0() * frame.n1() + binary_not(frame.selector_next(0)))
-        * frame.selector_next(1);
-    index += 1;
-
-    index
+    4
 }
 
 /// A constraint evaluation function to enforce that the `d_inv` "delta inverse" column used to
@@ -106,14 +111,19 @@ fn enforce_selectors<E: FieldElement>(
 fn enforce_d_inv<E: FieldElement>(
     frame: &EvaluationFrame<E>,
     result: &mut [E],
-    memory_flag: E,
+    memory_flag_not_last_row: E,
 ) -> usize {
     let constraint_count = 4;
 
-    result.agg_constraint(0, memory_flag, is_binary(frame.n0()));
-    result.agg_constraint(1, memory_flag * frame.not_n0(), frame.ctx_change());
-    result.agg_constraint(2, memory_flag * frame.not_n0(), is_binary(frame.n1()));
-    result.agg_constraint(3, memory_flag * frame.reaccess_flag(), frame.addr_change());
+    // n0 is binary
+    result[0] = memory_flag_not_last_row * is_binary(frame.n0());
+    // when the context changes, n0 should be set to 1.
+    result[1] = memory_flag_not_last_row * frame.not_n0() * frame.ctx_change();
+    // when n0 is 0, n1 is binary.
+    result[2] = memory_flag_not_last_row * frame.not_n0() * is_binary(frame.n1());
+    // when n0 and n1 are 0, then `word_addr` doesn't change.
+    result[3] =
+        memory_flag_not_last_row * frame.not_n0() * frame.not_n1() * frame.word_addr_change();
 
     constraint_count
 }
@@ -123,47 +133,131 @@ fn enforce_d_inv<E: FieldElement>(
 fn enforce_delta<E: FieldElement>(
     frame: &EvaluationFrame<E>,
     result: &mut [E],
-    memory_flag: E,
+    memory_flag_not_last_row: E,
 ) -> usize {
     let constraint_count = 1;
 
     // If the context changed, include the difference.
-    result.agg_constraint(0, memory_flag * frame.n0(), frame.ctx_change());
-    // If the context is the same, include the address difference if it changed or else include the
-    // clock change.
+    result[0] = memory_flag_not_last_row * frame.n0() * frame.ctx_change();
+    // If the context is the same, include the word address difference if it changed or else include
+    // the clock change.
     result.agg_constraint(
         0,
-        memory_flag * frame.not_n0(),
-        frame.n1() * frame.addr_change() + frame.not_n1() * frame.clk_change(),
+        memory_flag_not_last_row * frame.not_n0(),
+        frame.n1() * frame.word_addr_change() + frame.not_n1() * frame.clk_change(),
     );
     // Always subtract the delta. It should offset the other changes.
-    result[0] -= memory_flag * frame.delta_next();
+    result[0] -= memory_flag_not_last_row * frame.delta_next();
 
     constraint_count
 }
 
+/// A constraint evaluation function to enforce that the `f_scw` flag is set to 1 when the next row
+/// is in the same context and word, and 0 otherwise.
+fn enforce_flag_same_context_and_word<E: FieldElement>(
+    frame: &EvaluationFrame<E>,
+    result: &mut [E],
+    memory_flag_not_last_row: E,
+) -> usize {
+    result[0] = memory_flag_not_last_row * (frame.f_scw_next() - frame.not_n0() * frame.not_n1());
+
+    1
+}
+
+/// Enforces that when memory is accessed in the same context, word, and clock cycle, the access is
+/// a read.
+fn enforce_same_context_word_addr_and_clock<E: FieldElement>(
+    frame: &EvaluationFrame<E>,
+    result: &mut [E],
+    memory_flag_not_last_row: E,
+) -> usize {
+    // Note: when the context and word address don't change, `d_inv_next` contains the inverse of
+    // the clock change.
+    let clk_no_change = binary_not(frame.clk_change() * frame.d_inv_next());
+
+    result[0] = memory_flag_not_last_row
+        * frame.f_scw_next()
+        * clk_no_change
+        * binary_not(frame.is_read())       // read in current row
+        * binary_not(frame.is_read_next()); // read in next row
+
+    1
+}
+
 /// A constraint evaluation function to enforce that memory is initialized to zero when it is read
 /// before being written and that when existing memory values are read they remain unchanged.
+///
+/// The constraints on the values depend on a few factors:
+/// - When in the first row of a new context or word, any of the 4 values of the word that are not
+///   written to must be set to 0. This is because the memory is initialized to 0 when a new context
+///   or word is started.
+/// - When we remain in the same context and word, then this is when we want to enforce the "memory
+///   property" that what was previously written must be read. Therefore, the values that are not
+///   being written need to be equal to the values in the previous row (i.e. were either previously
+///   written or are still initialized to 0).
 fn enforce_values<E: FieldElement>(
     frame: &EvaluationFrame<E>,
     result: &mut [E],
-    memory_flag: E,
+    memory_flag_no_last: E,
+    memory_flag_first_row: E,
 ) -> usize {
-    let mut index = 0;
+    // c_i is set to 1 when `v'[i]` is not written to, and 0 otherwise.
+    //
+    // In other words, c_i is set to 1 when `v'[i]` needs to be constrained (to either 0 or `v[i]`).
+    //
+    // Note that `c_i` only uses values in the "next" row. This is because it must be used to
+    // constrain the first row of the memory chiplet, where that row sits in the "next" position of
+    // the frame, and the "current" row belongs to the previous chiplet (and hence the "current" row
+    // must not be accessed).
+    //
+    // As a result, `c_i` does not include the constraint of being in the memory chiplet, or in the
+    // same context and word - these must be enforced separately.
+    let (c0, c1, c2, c3) = {
+        // intuition: the i'th `f` flag is set to 1 when `i == 2 * idx1 + idx0`
+        let f0 = binary_not(frame.idx1_next()) * binary_not(frame.idx0_next());
+        let f1 = binary_not(frame.idx1_next()) * frame.idx0_next();
+        let f2 = frame.idx1_next() * binary_not(frame.idx0_next());
+        let f3 = frame.idx1_next() * frame.idx0_next();
 
-    // initialize memory to zero when reading from new context and address pair.
-    for i in 0..NUM_ELEMENTS {
-        result[index] = memory_flag * frame.init_read_flag() * frame.v(i);
-        index += 1;
-    }
+        let c_i = |f_i| {
+            // z_i is set to 1 when we are operating on elements but not the i-th element
+            let z_i = binary_not(frame.is_word_access_next()) * binary_not(f_i);
+            let is_read_next = frame.is_read_next();
 
-    // copy previous values when reading memory that was previously accessed.
-    for i in 0..NUM_ELEMENTS {
-        result[index] = memory_flag * frame.copy_read_flag() * (frame.v_next(i) - frame.v(i));
-        index += 1;
-    }
+            is_read_next + binary_not(is_read_next) * z_i
+        };
 
-    index
+        (c_i(f0), c_i(f1), c_i(f2), c_i(f3))
+    };
+
+    // first row constraints: when row' is the first row, and v'[i] is not written to, then v'[i]
+    // must be 0.
+    result[0] = memory_flag_first_row * c0 * frame.v_next(0);
+    result[1] = memory_flag_first_row * c1 * frame.v_next(1);
+    result[2] = memory_flag_first_row * c2 * frame.v_next(2);
+    result[3] = memory_flag_first_row * c3 * frame.v_next(3);
+
+    // non-first row constraints:  if v[i] is not written to,
+    // - (f_scw' = 1) then its value needs to be copied over from the previous row,
+    // - (f_scw' = 0) then its value needs to be set to 0.
+    result[4] = memory_flag_no_last
+        * c0
+        * (frame.f_scw_next() * (frame.v_next(0) - frame.v(0))
+            + binary_not(frame.f_scw_next()) * frame.v_next(0));
+    result[5] = memory_flag_no_last
+        * c1
+        * (frame.f_scw_next() * (frame.v_next(1) - frame.v(1))
+            + binary_not(frame.f_scw_next()) * frame.v_next(1));
+    result[6] = memory_flag_no_last
+        * c2
+        * (frame.f_scw_next() * (frame.v_next(2) - frame.v(2))
+            + binary_not(frame.f_scw_next()) * frame.v_next(2));
+    result[7] = memory_flag_no_last
+        * c3
+        * (frame.f_scw_next() * (frame.v_next(3) - frame.v(3))
+            + binary_not(frame.f_scw_next()) * frame.v_next(3));
+
+    8
 }
 
 // MEMORY FRAME EXTENSION TRAIT
@@ -174,22 +268,30 @@ fn enforce_values<E: FieldElement>(
 trait EvaluationFrameExt<E: FieldElement> {
     // --- Column accessors -----------------------------------------------------------------------
 
-    /// Gets the value of the specified selector column in the current row.
-    fn selector(&self, idx: usize) -> E;
-    /// Gets the value of the specified selector column in the next row.
-    fn selector_next(&self, idx: usize) -> E;
-    /// The current context value.
-    #[allow(dead_code)]
-    fn ctx(&self) -> E;
-    /// The current address.
-    #[allow(dead_code)]
-    fn addr(&self) -> E;
-    /// The current clock cycle.
-    #[allow(dead_code)]
-    fn clk(&self) -> E;
-    /// The next clock cycle.
-    #[allow(dead_code)]
-    fn clk_next(&self) -> E;
+    /// The value of the read/write column in the current row.
+    ///
+    /// 0: write, 1: read
+    fn is_read(&self) -> E;
+    /// The value of the read/write column in the next row.
+    ///
+    /// 0: write, 1: read
+    fn is_read_next(&self) -> E;
+    /// The value of the element/word column in the current row.
+    ///
+    /// 0: element, 1: word
+    fn is_word_access(&self) -> E;
+    /// The value of the element/word column in the next row.
+    ///
+    /// 0: element, 1: word
+    fn is_word_access_next(&self) -> E;
+    /// The 0'th bit of the index of the memory address in the current word.
+    fn idx0(&self) -> E;
+    /// The 0'th bit of the index of the memory address in the next word.
+    fn idx0_next(&self) -> E;
+    /// The 1st bit of the index of the memory address in the current word.
+    fn idx1(&self) -> E;
+    /// The 1st bit of the index of the memory address in the next word.
+    fn idx1_next(&self) -> E;
     /// The value from the specified index of the values (0, 1, 2, 3) in the current row.
     fn v(&self, index: usize) -> E;
     /// The value from the specified index of the values (0, 1, 2, 3) in the next row.
@@ -202,6 +304,10 @@ trait EvaluationFrameExt<E: FieldElement> {
     fn d1_next(&self) -> E;
     /// The next value of the column tracking the inverse delta used for constraint evaluations.
     fn d_inv_next(&self) -> E;
+
+    // The flag that indicates whether the next row is in the same word and context as the current
+    // row.
+    fn f_scw_next(&self) -> E;
 
     // --- Intermediate variables & helpers -------------------------------------------------------
 
@@ -220,59 +326,55 @@ trait EvaluationFrameExt<E: FieldElement> {
     fn not_n1(&self) -> E;
     /// The difference between the next context and the current context.
     fn ctx_change(&self) -> E;
-    /// The difference between the next address and the current address.
-    fn addr_change(&self) -> E;
+    /// The difference between the next word address and the current word address.
+    fn word_addr_change(&self) -> E;
     /// The difference between the next clock value and the current one, minus 1.
     fn clk_change(&self) -> E;
     /// The delta between two consecutive context IDs, addresses, or clock cycles.
     fn delta_next(&self) -> E;
-
-    // --- Flags ----------------------------------------------------------------------------------
-
-    /// A flag to indicate that previously assigned memory is being accessed. In other words, the
-    /// context and address have not changed.
-    fn reaccess_flag(&self) -> E;
-
-    /// A flag to indicate that there is a read in the current row which requires the values to be
-    /// initialized to zero.
-    fn init_read_flag(&self) -> E;
-
-    /// A flag to indicate that the operation in the next row is a read which requires copying the
-    /// values from the current row to the next row.
-    fn copy_read_flag(&self) -> E;
 }
 
 impl<E: FieldElement> EvaluationFrameExt<E> for &EvaluationFrame<E> {
     // --- Column accessors -----------------------------------------------------------------------
 
     #[inline(always)]
-    fn selector(&self, idx: usize) -> E {
-        self.current()[MEMORY_TRACE_OFFSET + idx]
+    fn is_read(&self) -> E {
+        self.current()[MEMORY_IS_READ_COL_IDX]
     }
 
     #[inline(always)]
-    fn selector_next(&self, idx: usize) -> E {
-        self.next()[MEMORY_TRACE_OFFSET + idx]
+    fn is_read_next(&self) -> E {
+        self.next()[MEMORY_IS_READ_COL_IDX]
     }
 
     #[inline(always)]
-    fn ctx(&self) -> E {
-        self.current()[MEMORY_CTX_COL_IDX]
+    fn is_word_access(&self) -> E {
+        self.current()[MEMORY_IS_WORD_ACCESS_COL_IDX]
     }
 
     #[inline(always)]
-    fn addr(&self) -> E {
-        self.next()[MEMORY_ADDR_COL_IDX]
+    fn is_word_access_next(&self) -> E {
+        self.next()[MEMORY_IS_WORD_ACCESS_COL_IDX]
     }
 
     #[inline(always)]
-    fn clk(&self) -> E {
-        self.current()[MEMORY_CLK_COL_IDX]
+    fn idx0(&self) -> E {
+        self.current()[MEMORY_IDX0_COL_IDX]
     }
 
     #[inline(always)]
-    fn clk_next(&self) -> E {
-        self.next()[MEMORY_CLK_COL_IDX]
+    fn idx0_next(&self) -> E {
+        self.next()[MEMORY_IDX0_COL_IDX]
+    }
+
+    #[inline(always)]
+    fn idx1(&self) -> E {
+        self.current()[MEMORY_IDX1_COL_IDX]
+    }
+
+    #[inline(always)]
+    fn idx1_next(&self) -> E {
+        self.next()[MEMORY_IDX1_COL_IDX]
     }
 
     #[inline(always)]
@@ -300,6 +402,11 @@ impl<E: FieldElement> EvaluationFrameExt<E> for &EvaluationFrame<E> {
         self.next()[MEMORY_D_INV_COL_IDX]
     }
 
+    #[inline(always)]
+    fn f_scw_next(&self) -> E {
+        self.next()[MEMORY_FLAG_SAME_CONTEXT_AND_WORD]
+    }
+
     // --- Intermediate variables & helpers -------------------------------------------------------
 
     #[inline(always)]
@@ -319,7 +426,7 @@ impl<E: FieldElement> EvaluationFrameExt<E> for &EvaluationFrame<E> {
 
     #[inline(always)]
     fn n1(&self) -> E {
-        self.change(MEMORY_ADDR_COL_IDX) * self.d_inv_next()
+        self.change(MEMORY_WORD_COL_IDX) * self.d_inv_next()
     }
 
     #[inline(always)]
@@ -333,34 +440,17 @@ impl<E: FieldElement> EvaluationFrameExt<E> for &EvaluationFrame<E> {
     }
 
     #[inline(always)]
-    fn addr_change(&self) -> E {
-        self.change(MEMORY_ADDR_COL_IDX)
+    fn word_addr_change(&self) -> E {
+        self.change(MEMORY_WORD_COL_IDX)
     }
 
     #[inline(always)]
     fn clk_change(&self) -> E {
-        self.change(MEMORY_CLK_COL_IDX) - E::ONE
+        self.change(MEMORY_CLK_COL_IDX)
     }
 
     #[inline(always)]
     fn delta_next(&self) -> E {
         E::from(2_u32.pow(16)) * self.d1_next() + self.d0_next()
-    }
-
-    // --- Flags ----------------------------------------------------------------------------------
-
-    #[inline(always)]
-    fn reaccess_flag(&self) -> E {
-        self.not_n0() * self.not_n1()
-    }
-
-    #[inline(always)]
-    fn init_read_flag(&self) -> E {
-        self.selector(0) * binary_not(self.selector(1))
-    }
-
-    #[inline(always)]
-    fn copy_read_flag(&self) -> E {
-        self.selector_next(1)
     }
 }

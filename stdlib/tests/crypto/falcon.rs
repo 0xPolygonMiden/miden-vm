@@ -24,35 +24,38 @@ const Q: u64 = (M - 1) / 2;
 const N: usize = 512;
 const J: u64 = (N * M as usize * M as usize) as u64;
 
-const PROBABILISTIC_PRODUCT_SOURCE: &str = "
+#[test]
+fn test_set_to_zero() {
+    let source = "
     use.std::crypto::dsa::rpo_falcon512
 
     begin
-        #=> [PK, ...]
-        mem_load.0
-        #=> [h_ptr, PK, ...]
+        # write bytes in the first and last addresses of the region to be zeroed
+        push.1.2.3.4 mem_storew.1000 dropw
+        push.1.2.3.4 mem_storew.3044 dropw
 
-        exec.rpo_falcon512::load_h_s2_and_product
-        #=> [tau1, tau0, tau_ptr, ...]
+        # This address should be untouched
+        push.1.2.3.4 mem_storew.3048 dropw
 
-        exec.rpo_falcon512::powers_of_tau
-        #=> [zeros_ptr, ...]
-
+        push.1000
         exec.rpo_falcon512::set_to_zero
-        #=> [c_ptr, ...]
 
-        drop
-        #=> [...]
-
-        push.512    # tau_ptr
-        push.1025   # z_ptr
-        push.0      # h ptr
-
-        #=> [h_ptr, zeros_ptr, tau_ptr, ...]
-
-        exec.rpo_falcon512::probabilistic_product
+        # Assert that output pointer is 1000 + 4 * 512 = 3048
+        push.3048 assert_eq
     end
     ";
+
+    let expected_memory = {
+        let mut memory = vec![0_u64; N * 4];
+        // addresses [3048, 3052) (not zeroed)
+        memory.extend_from_slice(&[1, 2, 3, 4]);
+
+        memory
+    };
+
+    let test = build_test!(source, &[]);
+    test.expect_stack_and_memory(&[], 1000_u32, &expected_memory);
+}
 
 #[test]
 fn test_falcon512_norm_sq() {
@@ -119,9 +122,39 @@ fn test_falcon512_powers_of_tau() {
     let stack_init = [tau_ptr.into(), tau_0, tau_1];
 
     let test = build_test!(source, &stack_init);
-    let expected_stack = &[<u32 as Into<u64>>::into(tau_ptr) + N as u64 + 1];
+    let expected_stack = &[u64::from(tau_ptr) + (N as u64 + 1_u64) * 4];
     test.expect_stack_and_memory(expected_stack, tau_ptr, &expected_memory);
 }
+
+const PROBABILISTIC_PRODUCT_SOURCE: &str = "
+    use.std::crypto::dsa::rpo_falcon512
+
+    begin
+        #=> [PK, ...]
+        mem_load.0
+        #=> [h_ptr, PK, ...]
+
+        exec.rpo_falcon512::load_h_s2_and_product
+        #=> [tau1, tau0, tau_ptr, ...]
+
+        exec.rpo_falcon512::powers_of_tau
+        #=> [zeros_ptr, ...]
+
+        exec.rpo_falcon512::set_to_zero
+        #=> [c_ptr, ...]
+
+        drop
+        #=> [...]
+
+        push.2048    # tau_ptr
+        push.4100   # zeroes_ptr (tau_ptr + 4 * 513)
+        push.0      # h ptr
+
+        #=> [h_ptr, zeros_ptr, tau_ptr, ...]
+
+        exec.rpo_falcon512::probabilistic_product
+    end
+    ";
 
 #[test]
 fn test_falcon512_probabilistic_product() {
@@ -174,7 +207,7 @@ fn test_falcon512_probabilistic_product_failure() {
     expect_exec_error_matches!(
         test,
         ExecutionError::FailedAssertion{ clk, err_code, err_msg }
-        if clk == RowIndex::from(17490) && err_code == 0 && err_msg.is_none()
+        if clk == RowIndex::from(18843) && err_code == 0 && err_msg.is_none()
     );
 }
 
