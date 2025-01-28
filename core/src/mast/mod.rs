@@ -179,15 +179,14 @@ impl MastForest {
     /// removal (i.e. will point to an incorrect node after the removal), and this removal operation
     /// would result in an invalid [`MastForest`].
     ///
-    /// It also returns the map from old node IDs to new node IDs; or `None` if the set of nodes to
-    /// remove was empty. Any [`MastNodeId`] used in reference to the old [`MastForest`] should be
-    /// remapped using this map.
+    /// It also returns the map from old node IDs to new node IDs. Any [`MastNodeId`] used in
+    /// reference to the old [`MastForest`] should be remapped using this map.
     pub fn remove_nodes(
         &mut self,
         nodes_to_remove: &BTreeSet<MastNodeId>,
-    ) -> Option<BTreeMap<MastNodeId, MastNodeId>> {
+    ) -> BTreeMap<MastNodeId, MastNodeId> {
         if nodes_to_remove.is_empty() {
-            return None;
+            return [].into();
         }
 
         let old_nodes = mem::take(&mut self.nodes);
@@ -196,7 +195,7 @@ impl MastForest {
 
         self.remap_and_add_nodes(retained_nodes, &id_remappings);
         self.remap_and_add_roots(old_root_ids, &id_remappings);
-        Some(id_remappings)
+        id_remappings
     }
 
     pub fn set_before_enter(&mut self, node_id: MastNodeId, decorator_ids: Vec<DecoratorId>) {

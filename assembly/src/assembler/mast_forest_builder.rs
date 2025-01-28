@@ -65,10 +65,9 @@ impl MastForestBuilder {
     /// Removes the unused nodes that were created as part of the assembly process, and returns the
     /// resulting MAST forest.
     ///
-    /// It also returns the map from old node IDs to new node IDs; or `None` if the `MastForest` was
-    /// unchanged. Any [`MastNodeId`] used in reference to the old [`MastForest`] should be remapped
-    /// using this map.
-    pub fn build(mut self) -> (MastForest, Option<BTreeMap<MastNodeId, MastNodeId>>) {
+    /// It also returns the map from old node IDs to new node IDs. Any [`MastNodeId`] used in
+    /// reference to the old [`MastForest`] should be remapped using this map.
+    pub fn build(mut self) -> (MastForest, BTreeMap<MastNodeId, MastNodeId>) {
         let nodes_to_remove = get_nodes_to_remove(self.merged_basic_block_ids, &self.mast_forest);
         let id_remappings = self.mast_forest.remove_nodes(&nodes_to_remove);
 

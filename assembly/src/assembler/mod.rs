@@ -326,11 +326,9 @@ impl Assembler {
         };
 
         let (mast_forest, id_remappings) = mast_forest_builder.build();
-        if let Some(id_remappings) = id_remappings {
-            for (_proc_name, node_id) in exports.iter_mut() {
-                if let Some(&new_node_id) = id_remappings.get(node_id) {
-                    *node_id = new_node_id;
-                }
+        for (_proc_name, node_id) in exports.iter_mut() {
+            if let Some(&new_node_id) = id_remappings.get(node_id) {
+                *node_id = new_node_id;
             }
         }
 
@@ -402,9 +400,7 @@ impl Assembler {
 
         // in case the node IDs changed, update the entrypoint ID to the new value
         let (mast_forest, id_remappings) = mast_forest_builder.build();
-        let entry_node_id = id_remappings
-            .map(|id_remappings| id_remappings[&entry_node_id])
-            .unwrap_or(entry_node_id);
+        let entry_node_id = id_remappings.get(&entry_node_id).unwrap_or(&entry_node_id);
 
         Ok(Program::with_kernel(
             mast_forest.into(),
