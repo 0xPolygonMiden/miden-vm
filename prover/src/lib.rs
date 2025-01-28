@@ -38,7 +38,9 @@ mod gpu;
 
 pub use air::{DeserializationError, ExecutionProof, FieldExtension, HashFunction, ProvingOptions};
 #[cfg(all(target_arch = "x86_64", feature = "cuda"))]
-pub use miden_gpu::cuda::get_num_of_gpus;
+pub mod cuda {
+    pub use miden_gpu::cuda::get_num_of_gpus;
+}
 pub use processor::{
     crypto, math, utils, AdviceInputs, Digest, ExecutionError, Host, InputError, MemAdviceProvider,
     StackInputs, StackOutputs, Word,
