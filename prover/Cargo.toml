@@ -17,8 +17,8 @@ edition.workspace = true
 async = ["winter-maybe-async/async"]
 concurrent = ["processor/concurrent", "std", "winter-prover/concurrent"]
 default = ["std"]
-metal = ["dep:miden-gpu", "miden-gpu/metal", "dep:elsa", "dep:pollster", "concurrent", "std"]
-cuda = ["dep:miden-gpu", "miden-gpu/cuda", "std"]
+metal = ["dep:miden-gpu", "miden-gpu/metal", "dep:elsa", "dep:pollster", "concurrent"]
+cuda = ["dep:miden-gpu", "miden-gpu/cuda", "concurrent"]
 std = ["air/std", "processor/std", "winter-prover/std"]
 
 [dependencies]
