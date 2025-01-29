@@ -249,7 +249,7 @@ impl Test {
         {
             let mem_state = process
                 .chiplets
-                .memory()
+                .memory
                 .get_value(ContextId::root(), addr as u32)
                 .unwrap_or(ZERO);
             assert_eq!(

@@ -37,7 +37,7 @@ impl Process {
     /// - Returns an error if the address is not aligned to a word boundary.
     pub(super) fn op_mloadw(&mut self) -> Result<(), ExecutionError> {
         // get the address from the stack and read the word from current memory context
-        let mut word = self.chiplets.memory_mut().read_word(
+        let mut word = self.chiplets.memory.read_word(
             self.system.ctx(),
             self.stack.get(0),
             self.system.clk(),
@@ -62,11 +62,10 @@ impl Process {
     ///   ZERO element is returned.
     /// - The element retrieved from memory is pushed to the top of the stack.
     pub(super) fn op_mload(&mut self) -> Result<(), ExecutionError> {
-        let element = self.chiplets.memory_mut().read(
-            self.system.ctx(),
-            self.stack.get(0),
-            self.system.clk(),
-        )?;
+        let element =
+            self.chiplets
+                .memory
+                .read(self.system.ctx(), self.stack.get(0), self.system.clk())?;
 
         self.stack.set(0, element);
         self.stack.copy_state(1);
@@ -92,9 +91,9 @@ impl Process {
         // build the word in memory order (reverse of stack order)
         let word = [self.stack.get(4), self.stack.get(3), self.stack.get(2), self.stack.get(1)];
 
-        // write the word to memory
+        // write the word to memory and get the previous word
         self.chiplets
-            .memory_mut()
+            .memory
             .write_word(self.system.ctx(), addr, self.system.clk(), word)?;
 
         // reverse the order of the memory word & update the stack state
@@ -121,7 +120,7 @@ impl Process {
         let value = self.stack.get(1);
 
         // write the value to the memory and get the previous word
-        self.chiplets.memory_mut().write(ctx, addr, self.system.clk(), value)?;
+        self.chiplets.memory.write(ctx, addr, self.system.clk(), value)?;
 
         // update the stack state
         self.stack.shift_left(1);
@@ -152,8 +151,8 @@ impl Process {
 
         // load two words from memory
         let words = [
-            self.chiplets.memory_mut().read_word(ctx, addr_first_word, clk)?,
-            self.chiplets.memory_mut().read_word(ctx, addr_second_word, clk)?,
+            self.chiplets.memory.read_word(ctx, addr_first_word, clk)?,
+            self.chiplets.memory.read_word(ctx, addr_second_word, clk)?,
         ];
 
         // replace the stack elements with the elements from memory (in stack order)
@@ -203,8 +202,8 @@ impl Process {
         let words = host.advice_provider_mut().pop_stack_dword(self.into())?;
 
         // write the words memory
-        self.chiplets.memory_mut().write_word(ctx, addr_first_word, clk, words[0])?;
-        self.chiplets.memory_mut().write_word(ctx, addr_second_word, clk, words[1])?;
+        self.chiplets.memory.write_word(ctx, addr_first_word, clk, words[0])?;
+        self.chiplets.memory.write_word(ctx, addr_second_word, clk, words[1])?;
 
         // replace the elements on the stack with the word elements (in stack order)
         for (i, &adv_value) in words.iter().flat_map(|word| word.iter()).rev().enumerate() {
@@ -308,7 +307,7 @@ mod tests {
     fn op_mloadw() {
         let mut host = DefaultHost::default();
         let mut process = Process::new_dummy_with_decoder_helpers_and_empty_stack();
-        assert_eq!(0, process.chiplets.memory().num_accessed_words());
+        assert_eq!(0, process.chiplets.memory.num_accessed_words());
 
         // push a word onto the stack and save it at address 4
         let word = [1, 3, 5, 7].to_elements().try_into().unwrap();
@@ -327,11 +326,8 @@ mod tests {
         assert_eq!(expected_stack, process.stack.trace_state());
 
         // check memory state
-        assert_eq!(1, process.chiplets.memory().num_accessed_words());
-        assert_eq!(
-            word,
-            process.chiplets.memory().get_word(ContextId::root(), 4).unwrap().unwrap()
-        );
+        assert_eq!(1, process.chiplets.memory.num_accessed_words());
+        assert_eq!(word, process.chiplets.memory.get_word(ContextId::root(), 4).unwrap().unwrap());
 
         // --- calling MLOADW with address greater than u32::MAX leads to an error ----------------
         process.execute_op(Operation::Push(Felt::new(u64::MAX / 2)), &mut host).unwrap();
@@ -346,7 +342,7 @@ mod tests {
     fn op_mload() {
         let mut host = DefaultHost::default();
         let mut process = Process::new_dummy_with_decoder_helpers_and_empty_stack();
-        assert_eq!(0, process.chiplets.memory().num_accessed_words());
+        assert_eq!(0, process.chiplets.memory.num_accessed_words());
 
         // push a word onto the stack and save it at address 4
         let word = [1, 3, 5, 7].to_elements().try_into().unwrap();
@@ -360,11 +356,8 @@ mod tests {
         assert_eq!(expected_stack, process.stack.trace_state());
 
         // check memory state
-        assert_eq!(1, process.chiplets.memory().num_accessed_words());
-        assert_eq!(
-            word,
-            process.chiplets.memory().get_word(ContextId::root(), 4).unwrap().unwrap()
-        );
+        assert_eq!(1, process.chiplets.memory.num_accessed_words());
+        assert_eq!(word, process.chiplets.memory.get_word(ContextId::root(), 4).unwrap().unwrap());
 
         // --- calling MLOAD with address greater than u32::MAX leads to an error -----------------
         process.execute_op(Operation::Push(Felt::new(u64::MAX / 2)), &mut host).unwrap();
@@ -389,14 +382,14 @@ mod tests {
         store_value(&mut process, 8, word2_felts, &mut host);
 
         // check memory state
-        assert_eq!(2, process.chiplets.memory().num_accessed_words());
+        assert_eq!(2, process.chiplets.memory.num_accessed_words());
         assert_eq!(
             word1_felts,
-            process.chiplets.memory().get_word(ContextId::root(), 4).unwrap().unwrap()
+            process.chiplets.memory.get_word(ContextId::root(), 4).unwrap().unwrap()
         );
         assert_eq!(
             word2_felts,
-            process.chiplets.memory().get_word(ContextId::root(), 8).unwrap().unwrap()
+            process.chiplets.memory.get_word(ContextId::root(), 8).unwrap().unwrap()
         );
 
         // clear the stack
@@ -444,7 +437,7 @@ mod tests {
     fn op_mstorew() {
         let mut host = DefaultHost::default();
         let mut process = Process::new_dummy_with_decoder_helpers_and_empty_stack();
-        assert_eq!(0, process.chiplets.memory().num_accessed_words());
+        assert_eq!(0, process.chiplets.memory.num_accessed_words());
 
         // push the first word onto the stack and save it at address 0
         let word1 = [1, 3, 5, 7].to_elements().try_into().unwrap();
@@ -455,11 +448,8 @@ mod tests {
         assert_eq!(expected_stack, process.stack.trace_state());
 
         // check memory state
-        assert_eq!(1, process.chiplets.memory().num_accessed_words());
-        assert_eq!(
-            word1,
-            process.chiplets.memory().get_word(ContextId::root(), 0).unwrap().unwrap()
-        );
+        assert_eq!(1, process.chiplets.memory.num_accessed_words());
+        assert_eq!(word1, process.chiplets.memory.get_word(ContextId::root(), 0).unwrap().unwrap());
 
         // push the second word onto the stack and save it at address 4
         let word2 = [2, 4, 6, 8].to_elements().try_into().unwrap();
@@ -470,15 +460,9 @@ mod tests {
         assert_eq!(expected_stack, process.stack.trace_state());
 
         // check memory state
-        assert_eq!(2, process.chiplets.memory().num_accessed_words());
-        assert_eq!(
-            word1,
-            process.chiplets.memory().get_word(ContextId::root(), 0).unwrap().unwrap()
-        );
-        assert_eq!(
-            word2,
-            process.chiplets.memory().get_word(ContextId::root(), 4).unwrap().unwrap()
-        );
+        assert_eq!(2, process.chiplets.memory.num_accessed_words());
+        assert_eq!(word1, process.chiplets.memory.get_word(ContextId::root(), 0).unwrap().unwrap());
+        assert_eq!(word2, process.chiplets.memory.get_word(ContextId::root(), 4).unwrap().unwrap());
 
         // --- calling MSTOREW with address greater than u32::MAX leads to an error ----------------
         process.execute_op(Operation::Push(Felt::new(u64::MAX / 2)), &mut host).unwrap();
@@ -493,7 +477,7 @@ mod tests {
     fn op_mstore() {
         let mut host = DefaultHost::default();
         let mut process = Process::new_dummy_with_decoder_helpers_and_empty_stack();
-        assert_eq!(0, process.chiplets.memory().num_accessed_words());
+        assert_eq!(0, process.chiplets.memory.num_accessed_words());
 
         // push new element onto the stack and save it as first element of the word on
         // uninitialized memory at address 0
@@ -506,11 +490,8 @@ mod tests {
 
         // check memory state
         let mem_0 = [element, ZERO, ZERO, ZERO];
-        assert_eq!(1, process.chiplets.memory().num_accessed_words());
-        assert_eq!(
-            mem_0,
-            process.chiplets.memory().get_word(ContextId::root(), 0).unwrap().unwrap()
-        );
+        assert_eq!(1, process.chiplets.memory.num_accessed_words());
+        assert_eq!(mem_0, process.chiplets.memory.get_word(ContextId::root(), 0).unwrap().unwrap());
 
         // push the word onto the stack and save it at address 4
         let word_2 = [1, 3, 5, 7].to_elements().try_into().unwrap();
@@ -526,11 +507,8 @@ mod tests {
 
         // check memory state to make sure the other 3 elements were not affected
         let mem_2 = [element, Felt::new(3), Felt::new(5), Felt::new(7)];
-        assert_eq!(2, process.chiplets.memory().num_accessed_words());
-        assert_eq!(
-            mem_2,
-            process.chiplets.memory().get_word(ContextId::root(), 4).unwrap().unwrap()
-        );
+        assert_eq!(2, process.chiplets.memory.num_accessed_words());
+        assert_eq!(mem_2, process.chiplets.memory.get_word(ContextId::root(), 4).unwrap().unwrap());
 
         // --- calling MSTORE with address greater than u32::MAX leads to an error ----------------
         process.execute_op(Operation::Push(Felt::new(u64::MAX / 2)), &mut host).unwrap();
@@ -572,14 +550,14 @@ mod tests {
         process.execute_op(Operation::Pipe, &mut host).unwrap();
 
         // check memory state contains the words from the advice stack
-        assert_eq!(2, process.chiplets.memory().num_accessed_words());
+        assert_eq!(2, process.chiplets.memory.num_accessed_words());
         assert_eq!(
             word1_felts,
-            process.chiplets.memory().get_word(ContextId::root(), 4).unwrap().unwrap()
+            process.chiplets.memory.get_word(ContextId::root(), 4).unwrap().unwrap()
         );
         assert_eq!(
             word2_felts,
-            process.chiplets.memory().get_word(ContextId::root(), 8).unwrap().unwrap()
+            process.chiplets.memory.get_word(ContextId::root(), 8).unwrap().unwrap()
         );
 
         // the first 8 values should be the values from the advice stack. the next 4 values should
@@ -639,7 +617,7 @@ mod tests {
     #[test]
     fn read_and_write_in_same_clock_cycle() {
         let mut process = Process::new_dummy_with_decoder_helpers_and_empty_stack();
-        assert_eq!(0, process.chiplets.memory().num_accessed_words());
+        assert_eq!(0, process.chiplets.memory.num_accessed_words());
 
         // emulate reading and writing in the same clock cycle
         process.ensure_trace_capacity();
@@ -654,7 +632,7 @@ mod tests {
     #[test]
     fn write_twice_in_same_clock_cycle() {
         let mut process = Process::new_dummy_with_decoder_helpers_and_empty_stack();
-        assert_eq!(0, process.chiplets.memory().num_accessed_words());
+        assert_eq!(0, process.chiplets.memory.num_accessed_words());
 
         // emulate reading and writing in the same clock cycle
         process.ensure_trace_capacity();
@@ -669,7 +647,7 @@ mod tests {
     #[test]
     fn read_twice_in_same_clock_cycle() {
         let mut process = Process::new_dummy_with_decoder_helpers_and_empty_stack();
-        assert_eq!(0, process.chiplets.memory().num_accessed_words());
+        assert_eq!(0, process.chiplets.memory.num_accessed_words());
 
         // emulate reading in the same clock cycle
         process.ensure_trace_capacity();

@@ -4,6 +4,7 @@
 
 #### Changes
 - Update minimum supported Rust version to 1.84.
+- Change Chiplet Fields to Public (#1629).
 
 
 ## 0.12.0 (2025-01-22)
