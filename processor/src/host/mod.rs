@@ -1,4 +1,4 @@
-use alloc::sync::Arc;
+use alloc::{boxed::Box, sync::Arc};
 
 use vm_core::{
     crypto::hash::RpoDigest, mast::MastForest, sys_events::SystemEvent, DebugOptions, SignatureKind,
@@ -13,7 +13,8 @@ use advice::AdviceProvider;
 #[cfg(feature = "std")]
 mod debug;
 
-mod event_handler_registry;
+mod event_handling;
+pub use event_handling::{EventHandler, EventHandlerRegistry};
 
 mod mast_forest_store;
 pub use mast_forest_store::{MastForestStore, MemMastForestStore};
@@ -111,14 +112,24 @@ where
     }
 }
 
+// HOST LIBRARY
+// ================================================================================================
+
+pub trait HostLibrary {
+    // Returns all event handlers
+    fn get_event_handlers<A>(&self) -> impl Iterator<Item = Box<dyn EventHandler<A>>>;
+
+    fn get_mast_forest(&self) -> Arc<MastForest>;
+}
+
 // DEFAULT HOST IMPLEMENTATION
 // ================================================================================================
 
 /// A default [Host] implementation that provides the essential functionality required by the VM.
-#[derive(Debug)]
 pub struct DefaultHost<A, T, D> {
     adv_provider: A,
     store: MemMastForestStore,
+    event_registry: EventHandlerRegistry<A>,
     trace_handler: T,
     debug_handler: D,
 }
@@ -128,6 +139,7 @@ impl Default for DefaultHost<MemAdviceProvider, DefaultTraceHandler, DefaultDebu
         Self {
             adv_provider: MemAdviceProvider::default(),
             store: MemMastForestStore::default(),
+            event_registry: EventHandlerRegistry::default(),
             trace_handler: DefaultTraceHandler,
             debug_handler: DefaultDebugHandler,
         }
@@ -169,6 +181,18 @@ where
     T: TraceHandler,
     D: DebugHandler,
 {
+    /// Loads the specified library into the host.
+    pub fn load_library(&mut self, library: &impl HostLibrary) -> Result<(), ExecutionError> {
+        self.load_mast_forest(library.get_mast_forest())?;
+        self.event_registry.register_event_handlers(library.get_event_handlers());
+
+        Ok(())
+    }
+
+    /// Loads the specified MAST forest into the host.
+    ///
+    /// Using [Self::load_library] is recommended over this method so that any event handlers
+    /// provided by a library are also registered.
     pub fn load_mast_forest(&mut self, mast_forest: Arc<MastForest>) -> Result<(), ExecutionError> {
         // Load the MAST's advice data into the advice provider.
 
@@ -229,14 +253,11 @@ where
             let advice_provider = self.advice_provider_mut();
             push_signature(advice_provider, process, SignatureKind::RpoFalcon512)
         } else {
-            #[cfg(feature = "std")]
-            std::println!(
-                "Event with id {} emitted at step {} in context {}",
-                event_id,
-                process.clk(),
-                process.ctx()
-            );
-            Ok(())
+            let handler = self.event_registry.get_event_handler(event_id).ok_or_else(|| {
+                ExecutionError::EventHandlerNotFound { event_id, clk: process.clk() }
+            })?;
+
+            handler.on_event(process, &mut self.adv_provider)
         }
     }
 
