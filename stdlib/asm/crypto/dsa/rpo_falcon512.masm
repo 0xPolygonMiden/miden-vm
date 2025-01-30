@@ -7,6 +7,8 @@ const.J=77321994752
 const.M=12289
 const.SQUARE_NORM_BOUND=34034726
 
+const.EVENT_FALCON_SIG_TO_STACK=3419226139
+
 # MODULAR REDUCTION FALCON PRIME
 # =============================================================================================
 
@@ -596,7 +598,7 @@ end
 export.verify.6660
 
     # 1) Generate a Falcon signature using the secret key associated to PK on message MSG.
-    adv.push_sig.rpo_falcon512
+    emit.EVENT_FALCON_SIG_TO_STACK
     #=> [PK, MSG, ...]
 
     # 2) Load the NONCE from the advice provider. This is encoded as 8 field elements

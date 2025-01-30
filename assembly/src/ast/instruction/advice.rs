@@ -22,7 +22,6 @@ pub enum SystemEventNode {
     InsertHdword,
     InsertHdwordWithDomain,
     InsertHperm,
-    PushSignature { kind: SignatureKind },
 }
 
 impl From<&SystemEventNode> for SystemEvent {
@@ -39,9 +38,6 @@ impl From<&SystemEventNode> for SystemEvent {
             InsertHdword => Self::HdwordToMap,
             InsertHdwordWithDomain => Self::HdwordToMapWithDomain,
             InsertHperm => Self::HpermToMap,
-            PushSignature { kind } => match kind {
-                SignatureKind::RpoFalcon512 => Self::FalconSigToStack,
-            },
         }
     }
 }
@@ -65,29 +61,6 @@ impl fmt::Display for SystemEventNode {
             Self::InsertHdword => write!(f, "insert_hdword"),
             Self::InsertHdwordWithDomain => write!(f, "insert_hdword_d"),
             Self::InsertHperm => writeln!(f, "insert_hperm"),
-            Self::PushSignature { kind } => write!(f, "push_sig.{kind}"),
         }
-    }
-}
-
-/// A newtype wrapper for [vm_core::SignatureKind]
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
-#[repr(u8)]
-pub enum SignatureKind {
-    RpoFalcon512 = 0,
-}
-
-impl From<SignatureKind> for vm_core::SignatureKind {
-    fn from(kind: SignatureKind) -> Self {
-        match kind {
-            SignatureKind::RpoFalcon512 => Self::RpoFalcon512,
-        }
-    }
-}
-
-impl fmt::Display for SignatureKind {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let kind: vm_core::SignatureKind = (*self).into();
-        write!(f, "{kind}")
     }
 }

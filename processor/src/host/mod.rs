@@ -219,10 +219,6 @@ where
     pub fn advice_provider_mut(&mut self) -> &mut A {
         &mut self.adv_provider
     }
-
-    pub fn into_inner(self) -> A {
-        self.adv_provider
-    }
 }
 
 impl<A, T, D> Host for DefaultHost<A, T, D>

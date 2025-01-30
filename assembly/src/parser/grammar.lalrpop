@@ -53,7 +53,6 @@ extern {
         "push_mapval" => Token::PushMapval,
         "push_mapvaln" => Token::PushMapvaln,
         "push_mtnode" => Token::PushMtnode,
-        "push_sig" => Token::PushSig,
         "push_smtpeek" => Token::PushSmtpeek,
         "push_u64div" => Token::PushU64Div,
         "and" => Token::And,
@@ -674,7 +673,6 @@ SystemEvent: Instruction = {
     "adv" "." "push_mapval" => Instruction::SysEvent(SystemEventNode::PushMapVal),
     "adv" "." "push_mapvaln" => Instruction::SysEvent(SystemEventNode::PushMapValN),
     "adv" "." "push_mtnode" => Instruction::SysEvent(SystemEventNode::PushMtNode),
-    "adv" "." "push_sig" "." <kind:SignatureKind> => Instruction::SysEvent(SystemEventNode::PushSignature { kind }),
     "adv" "." "push_smtpeek" => Instruction::SysEvent(SystemEventNode::PushSmtPeek),
     "adv" "." "push_u64div" => Instruction::SysEvent(SystemEventNode::PushU64Div),
 }
@@ -1583,10 +1581,6 @@ QualifiedName: (Ident, LibraryPath) = {
         };
         Ok((name, LibraryPath::new_from_components(ns, components)))
     }
-}
-
-SignatureKind: SignatureKind = {
-    "rpo_falcon512" => SignatureKind::RpoFalcon512,
 }
 
 OpcodeName: Ident = {

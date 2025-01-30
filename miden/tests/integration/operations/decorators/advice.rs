@@ -1,6 +1,7 @@
 use miden_vm::{Digest, Word};
 use processor::ExecutionError;
 use rand_chacha::rand_core::SeedableRng;
+use stdlib::EVENT_FALCON_SIG_TO_STACK;
 use test_utils::{
     build_test,
     crypto::{rpo_falcon512::SecretKey, MerkleStore, RpoDigest},
@@ -9,21 +10,6 @@ use test_utils::{
     serde::Serializable,
     Felt, TRUNCATE_STACK_PROC,
 };
-
-const ADVICE_PUSH_SIG: &str = "
-    begin
-        # => [PK, MSG, ...]
-
-        # Calling adv.push_sig.rpo_falcon512 on its own gives an error:
-        # internal error: entered unreachable code: decorators in and empty SPAN block
-        # add stack calls to avoid this issue.
-        push.0
-        drop
-
-        adv.push_sig.rpo_falcon512
-
-        # => [PK, MSG, ...]
-    end";
 
 // ADVICE INJECTION
 // ================================================================================================
@@ -333,6 +319,8 @@ fn advice_insert_hdword() {
 
 #[test]
 fn advice_push_sig_rpo_falcon_512() {
+    let source = format!("begin emit.{} end", EVENT_FALCON_SIG_TO_STACK);
+
     // Generate random keys and message.
     let seed: [u8; 32] = rand_array();
     let mut rng = rand_chacha::ChaCha20Rng::from_seed(seed);
@@ -365,13 +353,14 @@ fn advice_push_sig_rpo_falcon_512() {
     let mut expected_stack = op_stack.clone();
     expected_stack.reverse();
 
-    let test =
-        build_test!(ADVICE_PUSH_SIG, &op_stack, &advice_stack, store, advice_map.into_iter());
+    let test = build_test!(&source, &op_stack, &advice_stack, store, advice_map.into_iter());
     test.expect_stack(&expected_stack);
 }
 
 #[test]
 fn advice_push_sig_rpo_falcon_512_bad_key_value() {
+    let source = format!("begin emit.{} end", EVENT_FALCON_SIG_TO_STACK);
+
     // Generate random keys and message.
     let seed: [u8; 32] = rand_array();
     let mut rng = rand_chacha::ChaCha20Rng::from_seed(seed);
@@ -405,13 +394,14 @@ fn advice_push_sig_rpo_falcon_512_bad_key_value() {
 
     let store = MerkleStore::new();
 
-    let test =
-        build_test!(ADVICE_PUSH_SIG, &op_stack, &advice_stack, store, advice_map.into_iter());
+    let test = build_test!(&source, &op_stack, &advice_stack, store, advice_map.into_iter());
     expect_exec_error_matches!(test, ExecutionError::MalformedSignatureKey("RPO Falcon512"));
 }
 
 #[test]
 fn advice_push_sig_rpo_falcon_512_bad_key_length() {
+    let source = format!("begin emit.{} end", EVENT_FALCON_SIG_TO_STACK);
+
     // Generate random keys and message.
     let seed: [u8; 32] = rand_array();
     let mut rng = rand_chacha::ChaCha20Rng::from_seed(seed);
@@ -443,8 +433,7 @@ fn advice_push_sig_rpo_falcon_512_bad_key_length() {
 
     let store = MerkleStore::new();
 
-    let test =
-        build_test!(ADVICE_PUSH_SIG, &op_stack, &advice_stack, store, advice_map.into_iter());
+    let test = build_test!(&source, &op_stack, &advice_stack, store, advice_map.into_iter());
 
     expect_exec_error_matches!(test, ExecutionError::MalformedSignatureKey("RPO Falcon512"));
 }
