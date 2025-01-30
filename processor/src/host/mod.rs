@@ -140,15 +140,6 @@ pub struct DefaultHost<A> {
     store: MemMastForestStore,
 }
 
-impl<A: Clone> Clone for DefaultHost<A> {
-    fn clone(&self) -> Self {
-        Self {
-            adv_provider: self.adv_provider.clone(),
-            store: self.store.clone(),
-        }
-    }
-}
-
 impl Default for DefaultHost<MemAdviceProvider> {
     fn default() -> Self {
         Self {
