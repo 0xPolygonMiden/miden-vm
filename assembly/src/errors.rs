@@ -79,8 +79,8 @@ pub enum AssemblyError {
         #[source_code]
         source_file: Option<Arc<SourceFile>>,
     },
-    #[error("invalid local memory index: {index} is out of bounds (valid range: 0..{max})")]
-    #[diagnostic(help("procedure has {num_locals} locals available"))]
+    #[error("invalid local memory index: {index} is out of bounds")]
+    #[diagnostic(help("procedure has {num_locals} locals available, so the valid range for the index is 0..{max_index}"))]
     InvalidLocalMemoryIndex {
         #[label("invalid index used here")]
         span: SourceSpan,
@@ -88,16 +88,7 @@ pub enum AssemblyError {
         source_file: Option<Arc<SourceFile>>,
         index: u16,
         num_locals: u16,
-        max: u16,
-    },
-    #[error("invalid local word index: {local_addr}")]
-    #[diagnostic()]
-    InvalidLocalWordIndex {
-        #[label]
-        span: SourceSpan,
-        #[source_code]
-        source_file: Option<Arc<SourceFile>>,
-        local_addr: u16,
+        max_index: u16,
     },
     #[error(transparent)]
     #[diagnostic(transparent)]
