@@ -2,18 +2,19 @@
 
 extern crate alloc;
 
-use alloc::sync::Arc;
+use alloc::{boxed::Box, sync::Arc, vec::Vec};
 
 use assembly::{
     mast::MastForest,
     utils::{sync::LazyLock, Deserializable},
     Library,
 };
+use processor::{
+    AdviceProvider, AdviceSource, EventHandler, ExecutionError, HostLibrary, ProcessState,
+};
+use vm_core::{Felt, Word};
 
-// EVENTS
-// ================================================================================================
-
-pub const EVENT_FALCON_SIG_TO_STACK: u32 = 3419226139;
+mod dsa;
 
 // STANDARD LIBRARY
 // ================================================================================================
@@ -53,6 +54,101 @@ impl Default for StdLibrary {
             StdLibrary(contents)
         });
         STDLIB.clone()
+    }
+}
+
+impl HostLibrary for StdLibrary {
+    fn get_event_handlers<A>(&self) -> Vec<Box<dyn EventHandler<A>>>
+    where
+        A: AdviceProvider + 'static,
+    {
+        // TODO(plafer): add `with_falcon_sig_handler()` method to `StdLibrary` to allow customizing
+        // how Falcon signatures are handled
+        let mut handlers: Vec<Box<dyn EventHandler<A>>> = Vec::new();
+        handlers.push(Box::new(FalconSigToStackHandler::default()));
+        handlers
+    }
+
+    fn get_mast_forest(&self) -> Arc<MastForest> {
+        self.mast_forest().clone()
+    }
+}
+
+// EVENTS
+// ================================================================================================
+
+pub const EVENT_FALCON_SIG_TO_STACK: u32 = 3419226139;
+
+// EVENT HANDLERS
+// ==============================================================================================
+
+pub struct FalconSigToStackHandler<A> {
+    signature_handler: Box<dyn FalconSigHandler<A>>,
+}
+
+impl<A> Default for FalconSigToStackHandler<A> {
+    fn default() -> Self {
+        Self {
+            signature_handler: Box::new(DefaultFalconSigHandler),
+        }
+    }
+}
+
+impl<A> EventHandler<A> for FalconSigToStackHandler<A>
+where
+    A: AdviceProvider,
+{
+    fn id(&self) -> u32 {
+        EVENT_FALCON_SIG_TO_STACK
+    }
+
+    fn on_event(
+        &mut self,
+        process: ProcessState,
+        advice_provider: &mut A,
+    ) -> Result<(), ExecutionError> {
+        let pub_key = process.get_stack_word(0);
+        let msg = process.get_stack_word(1);
+
+        let signature = self.signature_handler.handle_signature(pub_key, msg, advice_provider)?;
+
+        for r in signature {
+            advice_provider.push_stack(AdviceSource::Value(r))?;
+        }
+
+        Ok(())
+    }
+}
+
+// TODO(plafer): double check if this is the correct abstraction
+pub trait FalconSigHandler<A> {
+    fn handle_signature(
+        &self,
+        pub_key: Word,
+        msg: Word,
+        advice_provider: &A,
+    ) -> Result<Vec<Felt>, ExecutionError>
+    where
+        A: AdviceProvider;
+}
+
+struct DefaultFalconSigHandler;
+
+impl<A> FalconSigHandler<A> for DefaultFalconSigHandler {
+    fn handle_signature(
+        &self,
+        pub_key: Word,
+        msg: Word,
+        advice_provider: &A,
+    ) -> Result<Vec<Felt>, ExecutionError>
+    where
+        A: AdviceProvider,
+    {
+        let pk_sk = advice_provider
+            .get_mapped_values(&pub_key.into())
+            .ok_or(ExecutionError::AdviceMapKeyNotFound(pub_key))?;
+
+        dsa::falcon_sign(pk_sk, msg)
     }
 }
 

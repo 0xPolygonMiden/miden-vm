@@ -1,8 +1,6 @@
-use alloc::{boxed::Box, sync::Arc};
+use alloc::{boxed::Box, sync::Arc, vec::Vec};
 
-use vm_core::{
-    crypto::hash::RpoDigest, mast::MastForest, sys_events::SystemEvent, DebugOptions, SignatureKind,
-};
+use vm_core::{crypto::hash::RpoDigest, mast::MastForest, DebugOptions};
 
 use super::{ExecutionError, ProcessState};
 use crate::{KvMap, MemAdviceProvider};
@@ -18,8 +16,6 @@ pub use event_handling::{EventHandler, EventHandlerRegistry};
 
 mod mast_forest_store;
 pub use mast_forest_store::{MastForestStore, MemMastForestStore};
-
-mod dsa;
 
 // HOST TRAIT
 // ================================================================================================
@@ -117,7 +113,9 @@ where
 
 pub trait HostLibrary {
     // Returns all event handlers
-    fn get_event_handlers<A>(&self) -> impl Iterator<Item = Box<dyn EventHandler<A>>>;
+    fn get_event_handlers<A>(&self) -> Vec<Box<dyn EventHandler<A>>>
+    where
+        A: AdviceProvider + 'static;
 
     fn get_mast_forest(&self) -> Arc<MastForest>;
 }
@@ -177,14 +175,16 @@ where
 
 impl<A, T, D> DefaultHost<A, T, D>
 where
-    A: AdviceProvider,
+    A: AdviceProvider + 'static,
     T: TraceHandler,
     D: DebugHandler,
 {
+    // TODO(plafer): make sure we use this in the tests when it makes sense
     /// Loads the specified library into the host.
     pub fn load_library(&mut self, library: &impl HostLibrary) -> Result<(), ExecutionError> {
         self.load_mast_forest(library.get_mast_forest())?;
-        self.event_registry.register_event_handlers(library.get_event_handlers());
+        self.event_registry
+            .register_event_handlers(library.get_event_handlers().into_iter());
 
         Ok(())
     }
@@ -242,19 +242,12 @@ where
     }
 
     fn on_event(&mut self, process: ProcessState, event_id: u32) -> Result<(), ExecutionError> {
-        if event_id == SystemEvent::FalconSigToStack.into_event_id() {
-            // provide a default implementation for handling FalconSigToStack event since it is not
-            // handled any more by the system event handlers. the handler assumes that the private
-            // key is in the advice provider and uses it to in signature generation
-            let advice_provider = self.advice_provider_mut();
-            push_signature(advice_provider, process, SignatureKind::RpoFalcon512)
-        } else {
-            let handler = self.event_registry.get_event_handler(event_id).ok_or_else(|| {
-                ExecutionError::EventHandlerNotFound { event_id, clk: process.clk() }
-            })?;
+        let handler = self
+            .event_registry
+            .get_event_handler(event_id)
+            .ok_or_else(|| ExecutionError::EventHandlerNotFound { event_id, clk: process.clk() })?;
 
-            handler.on_event(process, &mut self.adv_provider)
-        }
+        handler.on_event(process, &mut self.adv_provider)
     }
 
     fn on_debug(
@@ -320,46 +313,4 @@ impl DebugHandler for DefaultDebugHandler {
         debug::print_debug_info(_process, _options);
         Ok(())
     }
-}
-
-// SIGNATURE EVENT HANDLER
-// ================================================================================================
-
-/// Pushes values onto the advice stack which are required for verification of a DSA in Miden
-/// VM.
-///
-/// Inputs:
-///   Operand stack: [PK, MSG, ...]
-///   Advice stack: [...]
-///
-/// Outputs:
-///   Operand stack: [PK, MSG, ...]
-///   Advice stack: \[DATA\]
-///
-/// Where:
-/// - PK is the digest of an expanded public.
-/// - MSG is the digest of the message to be signed.
-/// - DATA is the needed data for signature verification in the VM.
-///
-/// The advice provider is expected to contain the private key associated to the public key PK.
-pub fn push_signature(
-    advice_provider: &mut impl AdviceProvider,
-    process: ProcessState,
-    kind: SignatureKind,
-) -> Result<(), ExecutionError> {
-    let pub_key = process.get_stack_word(0);
-    let msg = process.get_stack_word(1);
-
-    let pk_sk = advice_provider
-        .get_mapped_values(&pub_key.into())
-        .ok_or(ExecutionError::AdviceMapKeyNotFound(pub_key))?;
-
-    let result = match kind {
-        SignatureKind::RpoFalcon512 => dsa::falcon_sign(pk_sk, msg)?,
-    };
-
-    for r in result {
-        advice_provider.push_stack(crate::AdviceSource::Value(r))?;
-    }
-    Ok(())
 }

@@ -6,6 +6,7 @@ use crate::{ExecutionError, ProcessState};
 pub trait EventHandler<A> {
     fn id(&self) -> u32;
 
+    // TODO(plafer): not sure if returning `ExecutionError` is the best choice
     fn on_event(
         &mut self,
         process: ProcessState,
@@ -25,7 +26,7 @@ impl<A> EventHandlerRegistry<A> {
 
     pub fn register_event_handlers(
         &mut self,
-        handlers: impl Iterator<Item = Box<dyn EventHandler<A>>>,
+        handlers: impl Iterator<Item = Box<dyn EventHandler<A>>> + 'static,
     ) {
         for handler in handlers {
             self.register_event_handler(handler);

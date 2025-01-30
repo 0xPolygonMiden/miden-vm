@@ -56,7 +56,6 @@ impl Process {
                 insert_hdword_into_adv_map(advice_provider, process_state, domain)
             },
             SystemEvent::HpermToMap => insert_hperm_into_adv_map(advice_provider, process_state),
-            SystemEvent::FalconSigToStack => unreachable!("not treated as a system event"),
         }
     }
 }

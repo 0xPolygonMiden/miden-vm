@@ -131,7 +131,7 @@ fn run_program(params: &RunCmd) -> Result<(ExecutionTrace, [u8; 32]), Report> {
     let stack_inputs = input_data.parse_stack_inputs().map_err(Report::msg)?;
     let mut host = DefaultHost::default()
         .with_advice_provider(input_data.parse_advice_provider().map_err(Report::msg)?);
-    host.load_mast_forest(StdLibrary::default().mast_forest().clone()).unwrap();
+    host.load_library(&StdLibrary::default()).unwrap();
 
     let program_hash: [u8; 32] = program.hash().into();
 
