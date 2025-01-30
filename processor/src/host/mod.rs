@@ -13,6 +13,8 @@ use advice::AdviceProvider;
 #[cfg(feature = "std")]
 mod debug;
 
+mod event_handler_registry;
+
 mod mast_forest_store;
 pub use mast_forest_store::{MastForestStore, MemMastForestStore};
 
@@ -44,43 +46,21 @@ pub trait Host {
     /// this digest could not be found in this [Host].
     fn get_mast_forest(&self, node_digest: &RpoDigest) -> Option<Arc<MastForest>>;
 
-    // PROVIDED METHODS
-    // --------------------------------------------------------------------------------------------
-
     /// Handles the event emitted from the VM.
-    fn on_event(&mut self, _process: ProcessState, _event_id: u32) -> Result<(), ExecutionError> {
-        #[cfg(feature = "std")]
-        std::println!(
-            "Event with id {} emitted at step {} in context {}",
-            _event_id,
-            _process.clk(),
-            _process.ctx()
-        );
-        Ok(())
-    }
+    fn on_event(&mut self, _process: ProcessState, _event_id: u32) -> Result<(), ExecutionError>;
 
     /// Handles the debug request from the VM.
     fn on_debug(
         &mut self,
         _process: ProcessState,
         _options: &DebugOptions,
-    ) -> Result<(), ExecutionError> {
-        #[cfg(feature = "std")]
-        debug::print_debug_info(_process, _options);
-        Ok(())
-    }
+    ) -> Result<(), ExecutionError>;
 
     /// Handles the trace emitted from the VM.
-    fn on_trace(&mut self, _process: ProcessState, _trace_id: u32) -> Result<(), ExecutionError> {
-        #[cfg(feature = "std")]
-        std::println!(
-            "Trace with id {} emitted at step {} in context {}",
-            _trace_id,
-            _process.clk(),
-            _process.ctx()
-        );
-        Ok(())
-    }
+    fn on_trace(&mut self, _process: ProcessState, _trace_id: u32) -> Result<(), ExecutionError>;
+
+    // PROVIDED METHODS
+    // --------------------------------------------------------------------------------------------
 
     /// Handles the failure of the assertion instruction.
     fn on_assert_failed(&mut self, process: ProcessState, err_code: u32) -> ExecutionError {
@@ -135,28 +115,60 @@ where
 // ================================================================================================
 
 /// A default [Host] implementation that provides the essential functionality required by the VM.
-pub struct DefaultHost<A> {
+#[derive(Debug)]
+pub struct DefaultHost<A, T, D> {
     adv_provider: A,
     store: MemMastForestStore,
+    trace_handler: T,
+    debug_handler: D,
 }
 
-impl Default for DefaultHost<MemAdviceProvider> {
+impl Default for DefaultHost<MemAdviceProvider, DefaultTraceHandler, DefaultDebugHandler> {
     fn default() -> Self {
         Self {
             adv_provider: MemAdviceProvider::default(),
             store: MemMastForestStore::default(),
+            trace_handler: DefaultTraceHandler,
+            debug_handler: DefaultDebugHandler,
         }
     }
 }
 
-impl<A: AdviceProvider> DefaultHost<A> {
-    pub fn new(adv_provider: A) -> Self {
-        Self {
-            adv_provider,
-            store: MemMastForestStore::default(),
-        }
+impl<A> DefaultHost<A, DefaultTraceHandler, DefaultDebugHandler> {
+    pub fn with_advice_provider(
+        self,
+        adv_provider: A,
+    ) -> DefaultHost<A, DefaultTraceHandler, DefaultDebugHandler> {
+        DefaultHost { adv_provider, ..self }
     }
+}
 
+impl<A, D> DefaultHost<A, DefaultTraceHandler, D>
+where
+    A: AdviceProvider,
+    D: DebugHandler,
+{
+    pub fn with_debug_handler(self, debug_handler: D) -> DefaultHost<A, DefaultTraceHandler, D> {
+        DefaultHost { debug_handler, ..self }
+    }
+}
+
+impl<T, D> DefaultHost<MemAdviceProvider, T, D>
+where
+    T: TraceHandler,
+    D: DebugHandler,
+{
+    pub fn with_trace_handler(self, trace_handler: T) -> DefaultHost<MemAdviceProvider, T, D> {
+        DefaultHost { trace_handler, ..self }
+    }
+}
+
+impl<A, T, D> DefaultHost<A, T, D>
+where
+    A: AdviceProvider,
+    T: TraceHandler,
+    D: DebugHandler,
+{
     pub fn load_mast_forest(&mut self, mast_forest: Arc<MastForest>) -> Result<(), ExecutionError> {
         // Load the MAST's advice data into the advice provider.
 
@@ -189,7 +201,12 @@ impl<A: AdviceProvider> DefaultHost<A> {
     }
 }
 
-impl<A: AdviceProvider> Host for DefaultHost<A> {
+impl<A, T, D> Host for DefaultHost<A, T, D>
+where
+    A: AdviceProvider,
+    T: TraceHandler,
+    D: DebugHandler,
+{
     type AdviceProvider = A;
 
     fn advice_provider(&self) -> &Self::AdviceProvider {
@@ -221,6 +238,70 @@ impl<A: AdviceProvider> Host for DefaultHost<A> {
             );
             Ok(())
         }
+    }
+
+    fn on_debug(
+        &mut self,
+        process: ProcessState,
+        options: &DebugOptions,
+    ) -> Result<(), ExecutionError> {
+        self.debug_handler.on_debug(process, options)
+    }
+
+    fn on_trace(&mut self, process: ProcessState, trace_id: u32) -> Result<(), ExecutionError> {
+        self.trace_handler.on_trace(process, trace_id)
+    }
+}
+
+// EVENT HANDLERS
+// ================================================================================================
+
+/// Provides a method to handle trace events emitted from the VM.
+pub trait TraceHandler {
+    fn on_trace(&mut self, process: ProcessState, trace_id: u32) -> Result<(), ExecutionError>;
+}
+
+/// A default implementation of the [TraceHandler] trait which prints the trace event to the
+/// console.
+#[derive(Debug)]
+pub struct DefaultTraceHandler;
+
+impl TraceHandler for DefaultTraceHandler {
+    fn on_trace(&mut self, _process: ProcessState, _trace_id: u32) -> Result<(), ExecutionError> {
+        #[cfg(feature = "std")]
+        std::println!(
+            "Trace with id {} emitted at step {} in context {}",
+            _trace_id,
+            _process.clk(),
+            _process.ctx()
+        );
+        Ok(())
+    }
+}
+
+/// Provides a method to handle debug events emitted from the VM.
+pub trait DebugHandler {
+    fn on_debug(
+        &mut self,
+        process: ProcessState,
+        options: &DebugOptions,
+    ) -> Result<(), ExecutionError>;
+}
+
+/// A default implementation of the [DebugHandler] trait which prints the debug information to the
+/// console.
+#[derive(Debug)]
+pub struct DefaultDebugHandler;
+
+impl DebugHandler for DefaultDebugHandler {
+    fn on_debug(
+        &mut self,
+        _process: ProcessState,
+        _options: &DebugOptions,
+    ) -> Result<(), ExecutionError> {
+        #[cfg(feature = "std")]
+        debug::print_debug_info(_process, _options);
+        Ok(())
     }
 }
 

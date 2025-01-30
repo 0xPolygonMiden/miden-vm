@@ -28,7 +28,8 @@ fn program_execution(c: &mut Criterion) {
                 let (mut host, stack_inputs) = match InputFile::read(&None, entry.path()) {
                     Ok(input_data) => {
                         let stack_inputs = input_data.parse_stack_inputs().unwrap();
-                        let host = DefaultHost::new(input_data.parse_advice_provider().unwrap());
+                        let host = DefaultHost::default()
+                            .with_advice_provider(input_data.parse_advice_provider().unwrap());
                         (host, stack_inputs)
                     },
                     Err(_) => (DefaultHost::default(), StackInputs::default()),

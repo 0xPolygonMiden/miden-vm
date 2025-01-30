@@ -239,7 +239,7 @@ fn falcon_prove_verify() {
     let stack_inputs = StackInputs::try_from_ints(op_stack).expect("failed to create stack inputs");
     let advice_inputs = AdviceInputs::default().with_map(advice_map);
     let advice_provider = MemAdviceProvider::from(advice_inputs);
-    let mut host = DefaultHost::new(advice_provider);
+    let mut host = DefaultHost::default().with_advice_provider(advice_provider);
 
     let options = ProvingOptions::with_96_bit_security(false);
     let (stack_outputs, proof) =
