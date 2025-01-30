@@ -32,8 +32,7 @@ pub fn mem_read(
     // if the address was provided as an immediate value, put it onto the stack
     if let Some(addr) = addr {
         if is_local {
-            let num_locals = proc_ctx.num_locals();
-            local_to_absolute_addr(block_builder, addr as u16, num_locals)?;
+            local_to_absolute_addr(block_builder, addr as u16, proc_ctx)?;
         } else {
             push_u32_value(block_builder, addr);
         }
@@ -81,7 +80,7 @@ pub fn mem_write_imm(
     is_single: bool,
 ) -> Result<(), AssemblyError> {
     if is_local {
-        local_to_absolute_addr(block_builder, addr as u16, proc_ctx.num_locals())?;
+        local_to_absolute_addr(block_builder, addr as u16, proc_ctx)?;
     } else {
         push_u32_value(block_builder, addr);
     }
@@ -112,8 +111,9 @@ pub fn mem_write_imm(
 pub fn local_to_absolute_addr(
     block_builder: &mut BasicBlockBuilder,
     index: u16,
-    num_proc_locals: u16,
+    proc_ctx: &ProcedureContext,
 ) -> Result<(), AssemblyError> {
+    let num_proc_locals = proc_ctx.num_locals();
     if num_proc_locals == 0 {
         return Err(AssemblyError::Other(
             Report::msg(
@@ -124,18 +124,18 @@ pub fn local_to_absolute_addr(
         ));
     }
 
-    let max = num_proc_locals - 1;
-    if index > max {
+    let max_index = num_proc_locals - 1;
+    if index > max_index {
         return Err(AssemblyError::InvalidLocalMemoryIndex {
             span: block_builder.get_current_span(),
             source_file: block_builder.get_source_file(),
             index,
             num_locals: num_proc_locals,
-            max,
+            max_index,
         });
     }
 
-    push_felt(block_builder, -Felt::from(max - index));
+    push_felt(block_builder, -Felt::from(max_index - index));
     block_builder.push_op(FmpAdd);
 
     Ok(())
