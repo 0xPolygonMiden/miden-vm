@@ -170,7 +170,7 @@ where
     pub fn load_library(&mut self, library: &impl HostLibrary) -> Result<(), ExecutionError> {
         self.load_mast_forest(library.get_mast_forest())?;
         self.event_registry
-            .register_event_handlers(library.get_event_handlers().into_iter());
+            .register_event_handlers(library.get_event_handlers().into_iter())?;
 
         Ok(())
     }

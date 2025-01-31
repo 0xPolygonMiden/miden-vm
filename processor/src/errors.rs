@@ -45,6 +45,8 @@ pub enum ExecutionError {
     EventError(#[source] Box<dyn Error + Send + Sync + 'static>),
     #[error("event handler not found for event {event_id} at clock cycle {clk}")]
     EventHandlerNotFound { event_id: u32, clk: RowIndex },
+    #[error("an event handler for event id '{event_id}' is already registered")]
+    EventHandlerAlreadyRegistered { event_id: u32 },
     #[error("failed to execute Ext2Intt operation: {0}")]
     Ext2InttError(Ext2InttError),
     #[error("assertion failed at clock cycle {clk} with error code {err_code}{}",

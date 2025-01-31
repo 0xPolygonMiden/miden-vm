@@ -1,8 +1,8 @@
-use alloc::boxed::Box;
+use alloc::{boxed::Box, collections::btree_map::Entry};
 use core::error::Error;
 use std::collections::BTreeMap;
 
-use crate::ProcessState;
+use crate::{ExecutionError, ProcessState};
 
 pub trait EventHandler<A> {
     fn id(&self) -> u32;
@@ -23,17 +23,30 @@ pub struct EventHandlerRegistry<A> {
 }
 
 impl<A> EventHandlerRegistry<A> {
-    pub fn register_event_handler(&mut self, handler: Box<dyn EventHandler<A>>) {
-        self.handlers.insert(handler.id(), handler);
+    pub fn register_event_handler(
+        &mut self,
+        handler: Box<dyn EventHandler<A>>,
+    ) -> Result<(), ExecutionError> {
+        match self.handlers.entry(handler.id()) {
+            Entry::Occupied(_) => {
+                Err(ExecutionError::EventHandlerAlreadyRegistered { event_id: handler.id() })
+            },
+            Entry::Vacant(entry) => {
+                entry.insert(handler);
+                Ok(())
+            },
+        }
     }
 
     pub fn register_event_handlers(
         &mut self,
         handlers: impl Iterator<Item = Box<dyn EventHandler<A>>> + 'static,
-    ) {
+    ) -> Result<(), ExecutionError> {
         for handler in handlers {
-            self.register_event_handler(handler);
+            self.register_event_handler(handler)?;
         }
+
+        Ok(())
     }
 
     pub fn get_event_handler(&mut self, event_id: u32) -> Option<&mut Box<dyn EventHandler<A>>> {

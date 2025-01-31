@@ -99,7 +99,6 @@ where
         EVENT_FALCON_SIG_TO_STACK
     }
 
-    // TODO(plafer): Probably best to have a specific error type for this
     fn on_event(
         &mut self,
         process: ProcessState,
