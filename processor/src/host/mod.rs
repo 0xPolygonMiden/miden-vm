@@ -126,59 +126,43 @@ pub trait HostLibrary {
 // ================================================================================================
 
 /// A default [Host] implementation that provides the essential functionality required by the VM.
-pub struct DefaultHost<A, T, D> {
+pub struct DefaultHost<A, D = DefaultDebugHandler> {
     adv_provider: A,
     store: MemMastForestStore,
     event_registry: EventHandlerRegistry<A>,
-    trace_handler: T,
     debug_handler: D,
 }
 
-impl Default for DefaultHost<MemAdviceProvider, DefaultTraceHandler, DefaultDebugHandler> {
+impl Default for DefaultHost<MemAdviceProvider, DefaultDebugHandler> {
     fn default() -> Self {
         Self {
             adv_provider: MemAdviceProvider::default(),
             store: MemMastForestStore::default(),
             event_registry: EventHandlerRegistry::default(),
-            trace_handler: DefaultTraceHandler,
             debug_handler: DefaultDebugHandler,
         }
     }
 }
 
-impl<A> DefaultHost<A, DefaultTraceHandler, DefaultDebugHandler> {
-    pub fn with_advice_provider(
-        self,
-        adv_provider: A,
-    ) -> DefaultHost<A, DefaultTraceHandler, DefaultDebugHandler> {
+impl<A> DefaultHost<A, DefaultDebugHandler> {
+    pub fn with_advice_provider(self, adv_provider: A) -> DefaultHost<A, DefaultDebugHandler> {
         DefaultHost { adv_provider, ..self }
     }
 }
 
-impl<A, D> DefaultHost<A, DefaultTraceHandler, D>
+impl<A, D> DefaultHost<A, D>
 where
     A: AdviceProvider,
     D: DebugHandler,
 {
-    pub fn with_debug_handler(self, debug_handler: D) -> DefaultHost<A, DefaultTraceHandler, D> {
+    pub fn with_debug_handler(self, debug_handler: D) -> DefaultHost<A, D> {
         DefaultHost { debug_handler, ..self }
     }
 }
 
-impl<T, D> DefaultHost<MemAdviceProvider, T, D>
-where
-    T: TraceHandler,
-    D: DebugHandler,
-{
-    pub fn with_trace_handler(self, trace_handler: T) -> DefaultHost<MemAdviceProvider, T, D> {
-        DefaultHost { trace_handler, ..self }
-    }
-}
-
-impl<A, T, D> DefaultHost<A, T, D>
+impl<A, D> DefaultHost<A, D>
 where
     A: AdviceProvider + 'static,
-    T: TraceHandler,
     D: DebugHandler,
 {
     // TODO(plafer): make sure we use this in the tests when it makes sense
@@ -225,10 +209,9 @@ where
     }
 }
 
-impl<A, T, D> Host for DefaultHost<A, T, D>
+impl<A, D> Host for DefaultHost<A, D>
 where
     A: AdviceProvider,
-    T: TraceHandler,
     D: DebugHandler,
 {
     type AdviceProvider = A;
@@ -265,24 +248,35 @@ where
     }
 
     fn on_trace(&mut self, process: ProcessState, trace_id: u32) -> Result<(), ExecutionError> {
-        self.trace_handler.on_trace(process, trace_id)
+        self.debug_handler.on_trace(process, trace_id)
     }
 }
 
-// EVENT HANDLERS
+// DEBUG HANDLER
 // ================================================================================================
 
-/// Provides a method to handle trace events emitted from the VM.
-pub trait TraceHandler {
-    fn on_trace(&mut self, process: ProcessState, trace_id: u32) -> Result<(), ExecutionError>;
+/// Provides methods to handle debug and trace events emitted from the VM. This is meant to override
+/// the default behavior of the [DefaultHost] on analogous [Host] calls.
+pub trait DebugHandler {
+    fn on_trace(&mut self, _process: ProcessState, _trace_id: u32) -> Result<(), ExecutionError> {
+        Ok(())
+    }
+
+    fn on_debug(
+        &mut self,
+        _process: ProcessState,
+        _options: &DebugOptions,
+    ) -> Result<(), ExecutionError> {
+        Ok(())
+    }
 }
 
-/// A default implementation of the [TraceHandler] trait which prints the trace event to the
+/// A default implementation of the [DebugHandler] trait which prints the debug information to the
 /// console.
 #[derive(Debug)]
-pub struct DefaultTraceHandler;
+pub struct DefaultDebugHandler;
 
-impl TraceHandler for DefaultTraceHandler {
+impl DebugHandler for DefaultDebugHandler {
     fn on_trace(&mut self, _process: ProcessState, _trace_id: u32) -> Result<(), ExecutionError> {
         #[cfg(feature = "std")]
         std::println!(
@@ -293,23 +287,7 @@ impl TraceHandler for DefaultTraceHandler {
         );
         Ok(())
     }
-}
 
-/// Provides a method to handle debug events emitted from the VM.
-pub trait DebugHandler {
-    fn on_debug(
-        &mut self,
-        process: ProcessState,
-        options: &DebugOptions,
-    ) -> Result<(), ExecutionError>;
-}
-
-/// A default implementation of the [DebugHandler] trait which prints the debug information to the
-/// console.
-#[derive(Debug)]
-pub struct DefaultDebugHandler;
-
-impl DebugHandler for DefaultDebugHandler {
     fn on_debug(
         &mut self,
         _process: ProcessState,

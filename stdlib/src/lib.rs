@@ -2,8 +2,7 @@
 
 extern crate alloc;
 
-use alloc::{boxed::Box, sync::Arc, vec::Vec};
-use alloc::vec;
+use alloc::{boxed::Box, sync::Arc, vec, vec::Vec};
 use core::error::Error;
 
 use assembly::{
