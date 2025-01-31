@@ -14,7 +14,7 @@ end
 ```
 A procedure label must start with a letter and can contain any combination of numbers, ASCII letters, and underscores (`_`). Should you need to represent a label with other characters, an extended set is permitted via quoted identifiers, i.e. an identifier surrounded by `".."`. Quoted identifiers additionally allow any alphanumeric letter (ASCII or UTF-8), as well as various common punctuation characters: `!`, `?`, `:`, `.`, `<`, `>`, and `-`. Quoted identifiers are primarily intended for representing symbols/identifiers when compiling higher-level languages to Miden Assembly, but can be used anywhere that normal identifiers are expected.
 
-The number of locals specifies the number of memory-based local words a procedure can access (via `loc_load`, `loc_store`, and [other instructions](./io_operations.md#random-access-memory)). If a procedure doesn't need any memory-based locals, this parameter can be omitted or set to `0`. A procedure can have at most $2^{16}$ locals, and the total number of locals available to all procedures at runtime is limited to $2^{30}$.
+The number of locals specifies the number of memory-based local field elements a procedure can access (via `loc_load`, `loc_store`, and [other instructions](./io_operations.md#random-access-memory)). If a procedure doesn't need any memory-based locals, this parameter can be omitted or set to `0`. A procedure can have at most $2^{16}$ locals, and the total number of locals available to all procedures at runtime is limited to $2^{30}$. Note that the assembler internally always rounds up the number of declared locals to the nearest multiple of 4.
 
 To execute a procedure, the `exec.<label>`, `call.<label>`, and `syscall.<label>` instructions can be used. For example:
 ```
@@ -43,8 +43,6 @@ begin
 end
 ```
 
-Finally, a procedure cannot contain *solely* any number of [advice injectors](./io_operations.md#nondeterministic-inputs), `emit`, `debug` and `trace` instructions. In other words, it must contain at least one instruction which is not in the aforementioned list.
-
 #### Dynamic procedure invocation
 It is also possible to invoke procedures dynamically - i.e., without specifying target procedure labels at compile time. A procedure can only call itself using dynamic invocation. There are two instructions, `dynexec` and `dyncall`, which can be used to execute dynamically-specified code targets. Both instructions expect the [MAST root](../../design/programs.md) of the target to be stored in memory, and the memory address of the MAST root to be on the top of the stack. The difference between `dynexec` and `dyncall` corresponds to the difference between `exec` and `call`, see the documentation on [procedure invocation semantics](./execution_contexts.md#procedure-invocation-semantics) for more details.
 
@@ -63,7 +61,7 @@ During assembly, the `procref.foo` instruction is compiled to a `push.HASH`, whe
 
 During execution of the `dynexec` instruction, the VM does the following:
 
-1. Read the top stack element $s_0$, and read the memory word at address $s_0$ (the hash of the dynamic target),
+1. Read the top stack element $s_0$, and read the memory word starting at address $s_0$ (the hash of the dynamic target),
 2. Shift the stack left by one element,
 3. Load the code block referenced by the hash, or trap if no such MAST root is known,
 4. Execute the loaded code block.

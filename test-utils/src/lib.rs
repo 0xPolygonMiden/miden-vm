@@ -23,6 +23,7 @@ pub use processor::{
 };
 #[cfg(not(target_family = "wasm"))]
 use proptest::prelude::{Arbitrary, Strategy};
+use prover::utils::range;
 pub use prover::{prove, MemAdviceProvider, MerkleTreeVC, ProvingOptions};
 pub use test_case::test_case;
 pub use verifier::{verify, AcceptableOptions, VerifierError};
@@ -70,7 +71,7 @@ pub const U32_BOUND: u64 = u32::MAX as u64 + 1;
 
 /// A source code of the `truncate_stack` procedure.
 pub const TRUNCATE_STACK_PROC: &str = "
-proc.truncate_stack.1
+proc.truncate_stack.4
     loc_storew.0 dropw movupw.3
     sdepth neq.16
     while.true
@@ -112,18 +113,6 @@ macro_rules! expect_exec_error_matches {
         match $test.execute() {
             Ok(_) => panic!("expected execution to fail @ {}:{}", file!(), line!()),
             Err(error) => ::vm_core::assert_matches!(error, $( $pattern )|+ $( if $guard )?),
-        }
-    };
-}
-
-/// Asserts that running the given execution test will result in the expected error.
-#[cfg(all(feature = "std", not(target_family = "wasm")))]
-#[macro_export]
-macro_rules! expect_exec_error {
-    ($test:expr, $expected:expr) => {
-        match $test.execute() {
-            Ok(_) => panic!("expected execution to fail @ {}:{}", file!(), line!()),
-            Err(error) => $crate::assert_eq!(error, $expected),
         }
     };
 }
@@ -233,42 +222,44 @@ impl Test {
     pub fn expect_stack_and_memory(
         &self,
         final_stack: &[u64],
-        mut mem_start_addr: u32,
+        mem_start_addr: u32,
         expected_mem: &[u64],
     ) {
         // compile the program
         let (program, kernel) = self.compile().expect("Failed to compile test source.");
         let mut host = DefaultHost::new(MemAdviceProvider::from(self.advice_inputs.clone()));
         if let Some(kernel) = kernel {
-            host.load_mast_forest(kernel.mast_forest().clone());
+            host.load_mast_forest(kernel.mast_forest().clone()).unwrap();
         }
         for library in &self.libraries {
-            host.load_mast_forest(library.mast_forest().clone());
+            host.load_mast_forest(library.mast_forest().clone()).unwrap();
         }
 
         // execute the test
         let mut process = Process::new(
             program.kernel().clone(),
             self.stack_inputs.clone(),
-            host,
             ExecutionOptions::default(),
         );
-        process.execute(&program).unwrap();
+        process.execute(&program, &mut host).unwrap();
 
         // validate the memory state
-        for data in expected_mem.chunks(WORD_SIZE) {
-            // Main memory is zeroed by default, use zeros as a fallback when unwrap to make testing
-            // easier
-            let mem_state =
-                process.get_mem_value(ContextId::root(), mem_start_addr).unwrap_or(EMPTY_WORD);
-
-            let mem_state = felt_slice_to_ints(&mem_state);
+        for (addr, mem_value) in
+            (range(mem_start_addr as usize, expected_mem.len())).zip(expected_mem.iter())
+        {
+            let mem_state = process
+                .chiplets
+                .memory
+                .get_value(ContextId::root(), addr as u32)
+                .unwrap_or(ZERO);
             assert_eq!(
-                data, mem_state,
+                *mem_value,
+                mem_state.as_int(),
                 "Expected memory [{}] => {:?}, found {:?}",
-                mem_start_addr, data, mem_state
+                addr,
+                mem_value,
+                mem_state
             );
-            mem_start_addr += 1;
         }
 
         // validate the stack states
@@ -338,36 +329,40 @@ impl Test {
         let (program, kernel) = self.compile().expect("Failed to compile test source.");
         let mut host = DefaultHost::new(MemAdviceProvider::from(self.advice_inputs.clone()));
         if let Some(kernel) = kernel {
-            host.load_mast_forest(kernel.mast_forest().clone());
+            host.load_mast_forest(kernel.mast_forest().clone()).unwrap();
         }
         for library in &self.libraries {
-            host.load_mast_forest(library.mast_forest().clone());
+            host.load_mast_forest(library.mast_forest().clone()).unwrap();
         }
-        processor::execute(&program, self.stack_inputs.clone(), host, ExecutionOptions::default())
+        processor::execute(
+            &program,
+            self.stack_inputs.clone(),
+            &mut host,
+            ExecutionOptions::default(),
+        )
     }
 
     /// Compiles the test's source to a Program and executes it with the tests inputs. Returns the
     /// process once execution is finished.
     pub fn execute_process(
         &self,
-    ) -> Result<Process<DefaultHost<MemAdviceProvider>>, ExecutionError> {
+    ) -> Result<(Process, DefaultHost<MemAdviceProvider>), ExecutionError> {
         let (program, kernel) = self.compile().expect("Failed to compile test source.");
         let mut host = DefaultHost::new(MemAdviceProvider::from(self.advice_inputs.clone()));
         if let Some(kernel) = kernel {
-            host.load_mast_forest(kernel.mast_forest().clone());
+            host.load_mast_forest(kernel.mast_forest().clone()).unwrap();
         }
         for library in &self.libraries {
-            host.load_mast_forest(library.mast_forest().clone());
+            host.load_mast_forest(library.mast_forest().clone()).unwrap();
         }
 
         let mut process = Process::new(
             program.kernel().clone(),
             self.stack_inputs.clone(),
-            host,
             ExecutionOptions::default(),
         );
-        process.execute(&program)?;
-        Ok(process)
+        process.execute(&program, &mut host)?;
+        Ok((process, host))
     }
 
     /// Compiles the test's code into a program, then generates and verifies a proof of execution
@@ -378,13 +373,14 @@ impl Test {
         let (program, kernel) = self.compile().expect("Failed to compile test source.");
         let mut host = DefaultHost::new(MemAdviceProvider::from(self.advice_inputs.clone()));
         if let Some(kernel) = kernel {
-            host.load_mast_forest(kernel.mast_forest().clone());
+            host.load_mast_forest(kernel.mast_forest().clone()).unwrap();
         }
         for library in &self.libraries {
-            host.load_mast_forest(library.mast_forest().clone());
+            host.load_mast_forest(library.mast_forest().clone()).unwrap();
         }
         let (mut stack_outputs, proof) =
-            prover::prove(&program, stack_inputs.clone(), host, ProvingOptions::default()).unwrap();
+            prover::prove(&program, stack_inputs.clone(), &mut host, ProvingOptions::default())
+                .unwrap();
 
         let program_info = ProgramInfo::from(program);
         if test_fail {
@@ -403,12 +399,12 @@ impl Test {
         let (program, kernel) = self.compile().expect("Failed to compile test source.");
         let mut host = DefaultHost::new(MemAdviceProvider::from(self.advice_inputs.clone()));
         if let Some(kernel) = kernel {
-            host.load_mast_forest(kernel.mast_forest().clone());
+            host.load_mast_forest(kernel.mast_forest().clone()).unwrap();
         }
         for library in &self.libraries {
-            host.load_mast_forest(library.mast_forest().clone());
+            host.load_mast_forest(library.mast_forest().clone()).unwrap();
         }
-        processor::execute_iter(&program, self.stack_inputs.clone(), host)
+        processor::execute_iter(&program, self.stack_inputs.clone(), &mut host)
     }
 
     /// Returns the last state of the stack after executing a test.

@@ -1289,14 +1289,14 @@ fn dyn_block() {
     // end
     //
     // begin
-    //   # stack: [42, DIGEST]
+    //   # stack: [40, DIGEST]
     //   mstorew
     //   push.42
     //   dynexec
     // end
 
-    const FOO_ROOT_NODE_ADDR: u64 = 42;
-    const PUSH_42_OP: Operation = Operation::Push(Felt::new(FOO_ROOT_NODE_ADDR));
+    const FOO_ROOT_NODE_ADDR: u64 = 40;
+    const PUSH_40_OP: Operation = Operation::Push(Felt::new(FOO_ROOT_NODE_ADDR));
 
     let mut mast_forest = MastForest::new();
 
@@ -1308,7 +1308,7 @@ fn dyn_block() {
     let mstorew_node = MastNode::new_basic_block(vec![Operation::MStoreW], None).unwrap();
     let mstorew_node_id = mast_forest.add_node(mstorew_node.clone()).unwrap();
 
-    let push_node = MastNode::new_basic_block(vec![PUSH_42_OP], None).unwrap();
+    let push_node = MastNode::new_basic_block(vec![PUSH_40_OP], None).unwrap();
     let push_node_id = mast_forest.add_node(push_node.clone()).unwrap();
 
     let join_node = MastNode::new_join(mstorew_node_id, push_node_id, &mast_forest).unwrap();
@@ -1348,7 +1348,7 @@ fn dyn_block() {
     // starting second span
     let push_basic_block_addr = mstorew_basic_block_addr + EIGHT;
     check_op_decoding(&trace, 5, join_addr, Operation::Span, 2, 0, 0);
-    check_op_decoding(&trace, 6, push_basic_block_addr, PUSH_42_OP, 1, 0, 1);
+    check_op_decoding(&trace, 6, push_basic_block_addr, PUSH_40_OP, 1, 0, 1);
     check_op_decoding(&trace, 7, push_basic_block_addr, Operation::Noop, 0, 1, 1);
     check_op_decoding(&trace, 8, push_basic_block_addr, Operation::End, 0, 0, 0);
     // end inner join
@@ -1460,10 +1460,9 @@ fn set_user_op_helpers_many() {
 
 fn build_trace(stack_inputs: &[u64], program: &Program) -> (DecoderTrace, usize) {
     let stack_inputs = StackInputs::try_from_ints(stack_inputs.iter().copied()).unwrap();
-    let host = DefaultHost::default();
-    let mut process =
-        Process::new(Kernel::default(), stack_inputs, host, ExecutionOptions::default());
-    process.execute(program).unwrap();
+    let mut host = DefaultHost::default();
+    let mut process = Process::new(Kernel::default(), stack_inputs, ExecutionOptions::default());
+    process.execute(program, &mut host).unwrap();
 
     let (trace, ..) = ExecutionTrace::test_finalize_trace(process);
     let trace_len = trace.num_rows() - ExecutionTrace::NUM_RAND_ROWS;
@@ -1479,11 +1478,10 @@ fn build_trace(stack_inputs: &[u64], program: &Program) -> (DecoderTrace, usize)
 
 fn build_dyn_trace(stack_inputs: &[u64], program: &Program) -> (DecoderTrace, usize) {
     let stack_inputs = StackInputs::try_from_ints(stack_inputs.iter().copied()).unwrap();
-    let host = DefaultHost::default();
-    let mut process =
-        Process::new(Kernel::default(), stack_inputs, host, ExecutionOptions::default());
+    let mut host = DefaultHost::default();
+    let mut process = Process::new(Kernel::default(), stack_inputs, ExecutionOptions::default());
 
-    process.execute(program).unwrap();
+    process.execute(program, &mut host).unwrap();
 
     let (trace, ..) = ExecutionTrace::test_finalize_trace(process);
     let trace_len = trace.num_rows() - ExecutionTrace::NUM_RAND_ROWS;
@@ -1498,11 +1496,11 @@ fn build_dyn_trace(stack_inputs: &[u64], program: &Program) -> (DecoderTrace, us
 }
 
 fn build_call_trace(program: &Program, kernel: Kernel) -> (SystemTrace, DecoderTrace, usize) {
-    let host = DefaultHost::default();
+    let mut host = DefaultHost::default();
     let stack_inputs = crate::StackInputs::default();
-    let mut process = Process::new(kernel, stack_inputs, host, ExecutionOptions::default());
+    let mut process = Process::new(kernel, stack_inputs, ExecutionOptions::default());
 
-    process.execute(program).unwrap();
+    process.execute(program, &mut host).unwrap();
 
     let (trace, ..) = ExecutionTrace::test_finalize_trace(process);
     let trace_len = trace.num_rows() - ExecutionTrace::NUM_RAND_ROWS;

@@ -1,16 +1,14 @@
 use alloc::sync::Arc;
 
 use vm_core::{
-    crypto::{hash::RpoDigest, merkle::MerklePath},
-    mast::MastForest,
-    AdviceInjector, DebugOptions, Word,
+    crypto::hash::RpoDigest, mast::MastForest, sys_events::SystemEvent, DebugOptions, SignatureKind,
 };
 
-use super::{ExecutionError, Felt, ProcessState};
-use crate::MemAdviceProvider;
+use super::{ExecutionError, ProcessState};
+use crate::{KvMap, MemAdviceProvider};
 
 pub(super) mod advice;
-use advice::{AdviceExtractor, AdviceProvider};
+use advice::AdviceProvider;
 
 #[cfg(feature = "std")]
 mod debug;
@@ -18,35 +16,29 @@ mod debug;
 mod mast_forest_store;
 pub use mast_forest_store::{MastForestStore, MemMastForestStore};
 
+mod dsa;
+
 // HOST TRAIT
 // ================================================================================================
 
-/// Defines an interface by which the VM can make requests to the host.
+/// Defines an interface by which the VM can interact with the host.
 ///
-/// There are three variants of requests, these can get advice, set advice and invoke the
-/// debug handler. The requests are specified by the [AdviceExtractor], [AdviceInjector] and
-/// [DebugOptions] enums which target the `get_advice`, `set_advice` and `on_debug` methods
-/// respectively. The host is responsible for handling the requests and returning the results to
-/// the VM in the form of [HostResponse]. The host is provided with a reference to the current
-/// state of the VM ([ProcessState]), which it can use to extract the data required to fulfill the
-/// request.
+/// There are four main categories of interactions between the VM and the host:
+/// 1. accessing the advice provider,
+/// 2. getting a library's MAST forest,
+/// 3. handling advice events (which internally mutates the advice provider), and
+/// 4. handling debug and trace events.
 pub trait Host {
+    type AdviceProvider: AdviceProvider;
+
     // REQUIRED METHODS
     // --------------------------------------------------------------------------------------------
 
-    /// Returns the requested advice, specified by [AdviceExtractor], from the host to the VM.
-    fn get_advice<P: ProcessState>(
-        &mut self,
-        process: &P,
-        extractor: AdviceExtractor,
-    ) -> Result<HostResponse, ExecutionError>;
+    /// Returns a reference to the advice provider.
+    fn advice_provider(&self) -> &Self::AdviceProvider;
 
-    /// Sets the requested advice, specified by [AdviceInjector], on the host.
-    fn set_advice<P: ProcessState>(
-        &mut self,
-        process: &P,
-        injector: AdviceInjector,
-    ) -> Result<HostResponse, ExecutionError>;
+    /// Returns a mutable reference to the advice provider.
+    fn advice_provider_mut(&mut self) -> &mut Self::AdviceProvider;
 
     /// Returns MAST forest corresponding to the specified digest, or None if the MAST forest for
     /// this digest could not be found in this [Host].
@@ -55,26 +47,8 @@ pub trait Host {
     // PROVIDED METHODS
     // --------------------------------------------------------------------------------------------
 
-    /// Creates a "by reference" host for this instance.
-    ///
-    /// The returned adapter also implements [Host] and will simply mutably borrow this
-    /// instance.
-    fn by_ref(&mut self) -> &mut Self {
-        // this trait follows the same model as
-        // [io::Read](https://doc.rust-lang.org/std/io/trait.Read.html#method.by_ref).
-        //
-        // this approach allows the flexibility to take a host  either as owned or by mutable
-        // reference - both equally compatible with the trait requirements as we implement
-        // `Host` for mutable references of any type that also implements `Host`.
-        self
-    }
-
     /// Handles the event emitted from the VM.
-    fn on_event<S: ProcessState>(
-        &mut self,
-        _process: &S,
-        _event_id: u32,
-    ) -> Result<HostResponse, ExecutionError> {
+    fn on_event(&mut self, _process: ProcessState, _event_id: u32) -> Result<(), ExecutionError> {
         #[cfg(feature = "std")]
         std::println!(
             "Event with id {} emitted at step {} in context {}",
@@ -82,26 +56,22 @@ pub trait Host {
             _process.clk(),
             _process.ctx()
         );
-        Ok(HostResponse::None)
+        Ok(())
     }
 
     /// Handles the debug request from the VM.
-    fn on_debug<S: ProcessState>(
+    fn on_debug(
         &mut self,
-        _process: &S,
+        _process: ProcessState,
         _options: &DebugOptions,
-    ) -> Result<HostResponse, ExecutionError> {
+    ) -> Result<(), ExecutionError> {
         #[cfg(feature = "std")]
         debug::print_debug_info(_process, _options);
-        Ok(HostResponse::None)
+        Ok(())
     }
 
     /// Handles the trace emitted from the VM.
-    fn on_trace<S: ProcessState>(
-        &mut self,
-        _process: &S,
-        _trace_id: u32,
-    ) -> Result<HostResponse, ExecutionError> {
+    fn on_trace(&mut self, _process: ProcessState, _trace_id: u32) -> Result<(), ExecutionError> {
         #[cfg(feature = "std")]
         std::println!(
             "Trace with id {} emitted at step {} in context {}",
@@ -109,70 +79,16 @@ pub trait Host {
             _process.clk(),
             _process.ctx()
         );
-        Ok(HostResponse::None)
+        Ok(())
     }
 
     /// Handles the failure of the assertion instruction.
-    fn on_assert_failed<S: ProcessState>(&mut self, process: &S, err_code: u32) -> ExecutionError {
+    fn on_assert_failed(&mut self, process: ProcessState, err_code: u32) -> ExecutionError {
         ExecutionError::FailedAssertion {
             clk: process.clk(),
             err_code,
             err_msg: None,
         }
-    }
-
-    /// Pops an element from the advice stack and returns it.
-    ///
-    /// # Errors
-    /// Returns an error if the advice stack is empty.
-    fn pop_adv_stack<S: ProcessState>(&mut self, process: &S) -> Result<Felt, ExecutionError> {
-        let response = self.get_advice(process, AdviceExtractor::PopStack)?;
-        Ok(response.into())
-    }
-
-    /// Pops a word (4 elements) from the advice stack and returns it.
-    ///
-    /// Note: a word is popped off the stack element-by-element. For example, a `[d, c, b, a, ...]`
-    /// stack (i.e., `d` is at the top of the stack) will yield `[d, c, b, a]`.
-    ///
-    /// # Errors
-    /// Returns an error if the advice stack does not contain a full word.
-    fn pop_adv_stack_word<S: ProcessState>(&mut self, process: &S) -> Result<Word, ExecutionError> {
-        let response = self.get_advice(process, AdviceExtractor::PopStackWord)?;
-        Ok(response.into())
-    }
-
-    /// Pops a double word (8 elements) from the advice stack and returns them.
-    ///
-    /// Note: words are popped off the stack element-by-element. For example, a
-    /// `[h, g, f, e, d, c, b, a, ...]` stack (i.e., `h` is at the top of the stack) will yield
-    /// two words: `[h, g, f,e ], [d, c, b, a]`.
-    ///
-    /// # Errors
-    /// Returns an error if the advice stack does not contain two words.
-    fn pop_adv_stack_dword<S: ProcessState>(
-        &mut self,
-        process: &S,
-    ) -> Result<[Word; 2], ExecutionError> {
-        let response = self.get_advice(process, AdviceExtractor::PopStackDWord)?;
-        Ok(response.into())
-    }
-
-    /// Returns a path to a node at the specified depth and index in a Merkle tree with the
-    /// specified root.
-    ///
-    /// # Errors
-    /// Returns an error if:
-    /// - A Merkle tree for the specified root cannot be found in this advice provider.
-    /// - The specified depth is either zero or greater than the depth of the Merkle tree identified
-    ///   by the specified root.
-    /// - Path to the node at the specified depth and index is not known to this advice provider.
-    fn get_adv_merkle_path<S: ProcessState>(
-        &mut self,
-        process: &S,
-    ) -> Result<MerklePath, ExecutionError> {
-        let response = self.get_advice(process, AdviceExtractor::GetMerklePath)?;
-        Ok(response.into())
     }
 }
 
@@ -180,101 +96,38 @@ impl<H> Host for &mut H
 where
     H: Host,
 {
-    fn get_advice<S: ProcessState>(
-        &mut self,
-        process: &S,
-        extractor: AdviceExtractor,
-    ) -> Result<HostResponse, ExecutionError> {
-        H::get_advice(self, process, extractor)
+    type AdviceProvider = H::AdviceProvider;
+
+    fn advice_provider(&self) -> &Self::AdviceProvider {
+        H::advice_provider(self)
     }
 
-    fn set_advice<S: ProcessState>(
-        &mut self,
-        process: &S,
-        injector: AdviceInjector,
-    ) -> Result<HostResponse, ExecutionError> {
-        H::set_advice(self, process, injector)
+    fn advice_provider_mut(&mut self) -> &mut Self::AdviceProvider {
+        H::advice_provider_mut(self)
     }
 
     fn get_mast_forest(&self, node_digest: &RpoDigest) -> Option<Arc<MastForest>> {
         H::get_mast_forest(self, node_digest)
     }
 
-    fn on_debug<S: ProcessState>(
+    fn on_debug(
         &mut self,
-        process: &S,
+        process: ProcessState,
         options: &DebugOptions,
-    ) -> Result<HostResponse, ExecutionError> {
+    ) -> Result<(), ExecutionError> {
         H::on_debug(self, process, options)
     }
 
-    fn on_event<S: ProcessState>(
-        &mut self,
-        process: &S,
-        event_id: u32,
-    ) -> Result<HostResponse, ExecutionError> {
+    fn on_event(&mut self, process: ProcessState, event_id: u32) -> Result<(), ExecutionError> {
         H::on_event(self, process, event_id)
     }
 
-    fn on_trace<S: ProcessState>(
-        &mut self,
-        process: &S,
-        trace_id: u32,
-    ) -> Result<HostResponse, ExecutionError> {
+    fn on_trace(&mut self, process: ProcessState, trace_id: u32) -> Result<(), ExecutionError> {
         H::on_trace(self, process, trace_id)
     }
 
-    fn on_assert_failed<S: ProcessState>(&mut self, process: &S, err_code: u32) -> ExecutionError {
+    fn on_assert_failed(&mut self, process: ProcessState, err_code: u32) -> ExecutionError {
         H::on_assert_failed(self, process, err_code)
-    }
-}
-
-// HOST RESPONSE
-// ================================================================================================
-
-/// Response returned by the host upon successful execution of a [Host] function.
-#[derive(Debug)]
-pub enum HostResponse {
-    MerklePath(MerklePath),
-    DoubleWord([Word; 2]),
-    Word(Word),
-    Element(Felt),
-    None,
-}
-
-impl From<HostResponse> for MerklePath {
-    fn from(response: HostResponse) -> Self {
-        match response {
-            HostResponse::MerklePath(path) => path,
-            _ => panic!("expected MerklePath, but got {:?}", response),
-        }
-    }
-}
-
-impl From<HostResponse> for Word {
-    fn from(response: HostResponse) -> Self {
-        match response {
-            HostResponse::Word(word) => word,
-            _ => panic!("expected Word, but got {:?}", response),
-        }
-    }
-}
-
-impl From<HostResponse> for [Word; 2] {
-    fn from(response: HostResponse) -> Self {
-        match response {
-            HostResponse::DoubleWord(word) => word,
-            _ => panic!("expected DoubleWord, but got {:?}", response),
-        }
-    }
-}
-
-impl From<HostResponse> for Felt {
-    fn from(response: HostResponse) -> Self {
-        match response {
-            HostResponse::Element(element) => element,
-            _ => panic!("expected Element, but got {:?}", response),
-        }
     }
 }
 
@@ -305,10 +158,7 @@ impl Default for DefaultHost<MemAdviceProvider> {
     }
 }
 
-impl<A> DefaultHost<A>
-where
-    A: AdviceProvider,
-{
+impl<A: AdviceProvider> DefaultHost<A> {
     pub fn new(adv_provider: A) -> Self {
         Self {
             adv_provider,
@@ -316,8 +166,21 @@ where
         }
     }
 
-    pub fn load_mast_forest(&mut self, mast_forest: Arc<MastForest>) {
-        self.store.insert(mast_forest)
+    pub fn load_mast_forest(&mut self, mast_forest: Arc<MastForest>) -> Result<(), ExecutionError> {
+        // Load the MAST's advice data into the advice provider.
+
+        for (digest, values) in mast_forest.advice_map().iter() {
+            if let Some(stored_values) = self.advice_provider().get_mapped_values(digest) {
+                if stored_values != values {
+                    return Err(ExecutionError::AdviceMapKeyAlreadyPresent(digest.into()));
+                }
+            } else {
+                self.advice_provider_mut().insert_into_map(digest.into(), values.clone());
+            }
+        }
+
+        self.store.insert(mast_forest);
+        Ok(())
     }
 
     #[cfg(any(test, feature = "testing"))]
@@ -335,27 +198,79 @@ where
     }
 }
 
-impl<A> Host for DefaultHost<A>
-where
-    A: AdviceProvider,
-{
-    fn get_advice<P: ProcessState>(
-        &mut self,
-        process: &P,
-        extractor: AdviceExtractor,
-    ) -> Result<HostResponse, ExecutionError> {
-        self.adv_provider.get_advice(process, &extractor)
+impl<A: AdviceProvider> Host for DefaultHost<A> {
+    type AdviceProvider = A;
+
+    fn advice_provider(&self) -> &Self::AdviceProvider {
+        &self.adv_provider
     }
 
-    fn set_advice<P: ProcessState>(
-        &mut self,
-        process: &P,
-        injector: AdviceInjector,
-    ) -> Result<HostResponse, ExecutionError> {
-        self.adv_provider.set_advice(process, &injector)
+    fn advice_provider_mut(&mut self) -> &mut Self::AdviceProvider {
+        &mut self.adv_provider
     }
 
     fn get_mast_forest(&self, node_digest: &RpoDigest) -> Option<Arc<MastForest>> {
         self.store.get(node_digest)
     }
+
+    fn on_event(&mut self, process: ProcessState, event_id: u32) -> Result<(), ExecutionError> {
+        if event_id == SystemEvent::FalconSigToStack.into_event_id() {
+            // provide a default implementation for handling FalconSigToStack event since it is not
+            // handled any more by the system event handlers. the handler assumes that the private
+            // key is in the advice provider and uses it to in signature generation
+            let advice_provider = self.advice_provider_mut();
+            push_signature(advice_provider, process, SignatureKind::RpoFalcon512)
+        } else {
+            #[cfg(feature = "std")]
+            std::println!(
+                "Event with id {} emitted at step {} in context {}",
+                event_id,
+                process.clk(),
+                process.ctx()
+            );
+            Ok(())
+        }
+    }
+}
+
+// SIGNATURE EVENT HANDLER
+// ================================================================================================
+
+/// Pushes values onto the advice stack which are required for verification of a DSA in Miden
+/// VM.
+///
+/// Inputs:
+///   Operand stack: [PK, MSG, ...]
+///   Advice stack: [...]
+///
+/// Outputs:
+///   Operand stack: [PK, MSG, ...]
+///   Advice stack: \[DATA\]
+///
+/// Where:
+/// - PK is the digest of an expanded public.
+/// - MSG is the digest of the message to be signed.
+/// - DATA is the needed data for signature verification in the VM.
+///
+/// The advice provider is expected to contain the private key associated to the public key PK.
+pub fn push_signature(
+    advice_provider: &mut impl AdviceProvider,
+    process: ProcessState,
+    kind: SignatureKind,
+) -> Result<(), ExecutionError> {
+    let pub_key = process.get_stack_word(0);
+    let msg = process.get_stack_word(1);
+
+    let pk_sk = advice_provider
+        .get_mapped_values(&pub_key.into())
+        .ok_or(ExecutionError::AdviceMapKeyNotFound(pub_key))?;
+
+    let result = match kind {
+        SignatureKind::RpoFalcon512 => dsa::falcon_sign(pk_sk, msg)?,
+    };
+
+    for r in result {
+        advice_provider.push_stack(crate::AdviceSource::Value(r))?;
+    }
+    Ok(())
 }

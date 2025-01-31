@@ -63,21 +63,25 @@ This requires the following adjustments for each chiplet.
 
 Each operation supported by the chiplets is given a unique identifier to ensure that the requests and responses sent to the [chiplets bus](#chiplets-bus) ($b_{chip}$) are indeed processed by the intended chiplet for that operation and that chiplets which support more than one operation execute the correct one.
 
-The labels are composed from the flag values of the chiplet selector(s) and internal operation selectors (if applicable). The unique label of the operation is computed as the binary aggregation of the combined selectors plus $1$, note that the combined flag is represented in big-endian, so the bit representation below is reverted.
+The labels are composed from the flag values of the chiplet selector(s) and internal operation selectors (if applicable). The unique label of the operation is computed as the binary aggregation of the combined selectors plus $1$, note that the combined flag is represented in big-endian, so the bit representation below is reversed.
 
-| Operation              | Chiplet Selector Flag | Internal Selector Flag | Combined Flag    | Label |
-| ---------------------- | --------------------- | :--------------------: | ---------------- | :---: |
-| `HASHER_LINEAR_HASH`   |        $\{0\}$        |     $\{1, 0, 0\}$      | $\{0, 1, 0, 0\}$ |   3   |
-| `HASHER_MP_VERIFY`     |        $\{0\}$        |     $\{1, 0, 1\}$      | $\{0, 1, 0, 1\}$ |  11   |
-| `HASHER_MR_UPDATE_OLD` |        $\{0\}$        |     $\{1, 1, 0\}$      | $\{0, 1, 1, 0\}$ |   7   |
-| `HASHER_MR_UPDATE_NEW` |        $\{0\}$        |     $\{1, 1, 1\}$      | $\{0, 1, 1, 1\}$ |  15   |
-| `HASHER_RETURN_HASH`   |        $\{0\}$        |     $\{0, 0, 0\}$      | $\{0, 0, 0, 0\}$ |   1   |
-| `HASHER_RETURN_STATE`  |        $\{0\}$        |     $\{0, 0, 1\}$      | $\{0, 0, 0, 1\}$ |   9   |
-| `BITWISE_AND`          |      $\{1, 0\}$       |       $\{0\}$          | $\{1, 0, 0\}$    |   2   |
-| `BITWISE_XOR`          |      $\{1, 0\}$       |       $\{1\}$          | $\{1, 0, 1\}$    |   6   |
-| `MEMORY_READ`          |     $\{1, 1, 0\}$     |       $\{1\}$          | $\{1, 1, 0, 1\}$ |  12   |
-| `MEMORY_WRITE`         |     $\{1, 1, 0\}$     |       $\{0\}$          | $\{1, 1, 0, 0\}$ |   4   |
-| `KERNEL_PROC_CALL`     |    $\{1, 1, 1, 0\}$   |                        | $\{1, 1, 1, 0\}$ |   8   |
+> **Note:** We started moving away from this scheme with the memory chiplet, which more simply prepends the chiplet selector to the label (without reversing or adding 1).
+
+| Operation              | Chiplet Selector Flag | Internal Selector Flag | Combined Flag       | Label |
+| ---------------------- | --------------------- | :--------------------: | ------------------- | :---: |
+| `HASHER_LINEAR_HASH`   |        $\{0\}$        |     $\{1, 0, 0\}$      | $\{0, 1, 0, 0\}$    |   3   |
+| `HASHER_MP_VERIFY`     |        $\{0\}$        |     $\{1, 0, 1\}$      | $\{0, 1, 0, 1\}$    |  11   |
+| `HASHER_MR_UPDATE_OLD` |        $\{0\}$        |     $\{1, 1, 0\}$      | $\{0, 1, 1, 0\}$    |   7   |
+| `HASHER_MR_UPDATE_NEW` |        $\{0\}$        |     $\{1, 1, 1\}$      | $\{0, 1, 1, 1\}$    |  15   |
+| `HASHER_RETURN_HASH`   |        $\{0\}$        |     $\{0, 0, 0\}$      | $\{0, 0, 0, 0\}$    |   1   |
+| `HASHER_RETURN_STATE`  |        $\{0\}$        |     $\{0, 0, 1\}$      | $\{0, 0, 0, 1\}$    |   9   |
+| `BITWISE_AND`          |      $\{1, 0\}$       |       $\{0\}$          | $\{1, 0, 0\}$       |   2   |
+| `BITWISE_XOR`          |      $\{1, 0\}$       |       $\{1\}$          | $\{1, 0, 1\}$       |   6   |
+| `MEMORY_WRITE_ELEMENT` |     $\{1, 1, 0\}$     |       $\{0, 0\}$       | $\{1, 1, 0, 0, 0\}$ |  24   |
+| `MEMORY_WRITE_WORD`    |     $\{1, 1, 0\}$     |       $\{0, 1\}$       | $\{1, 1, 0, 0, 1\}$ |  25   |
+| `MEMORY_READ_ELEMENT`  |     $\{1, 1, 0\}$     |       $\{1, 0\}$       | $\{1, 1, 0, 1, 0\}$ |  26   |
+| `MEMORY_READ_WORD`     |     $\{1, 1, 0\}$     |       $\{1, 1\}$       | $\{1, 1, 0, 1, 1\}$ |  27   |
+| `KERNEL_PROC_CALL`     |    $\{1, 1, 1, 0\}$   |                        | $\{1, 1, 1, 0\}$    |   8   |
 
 ## Chiplets module constraints
 

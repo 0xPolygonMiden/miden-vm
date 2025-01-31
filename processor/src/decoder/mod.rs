@@ -19,9 +19,9 @@ use vm_core::{
 };
 
 use super::{
-    ExecutionError, Felt, Host, OpBatch, Operation, Process, Word, EMPTY_WORD, MIN_TRACE_LEN, ONE,
-    ZERO,
+    ExecutionError, Felt, OpBatch, Operation, Process, Word, EMPTY_WORD, MIN_TRACE_LEN, ONE, ZERO,
 };
+use crate::Host;
 
 mod trace;
 use trace::DecoderTrace;
@@ -47,18 +47,16 @@ const HASH_CYCLE_LEN: Felt = Felt::new(miden_air::trace::chiplets::hasher::HASH_
 // DECODER PROCESS EXTENSION
 // ================================================================================================
 
-impl<H> Process<H>
-where
-    H: Host,
-{
+impl Process {
     // JOIN NODE
     // --------------------------------------------------------------------------------------------
 
     /// Starts decoding of a JOIN node.
-    pub(super) fn start_join_node(
+    pub(super) fn start_join_node<H: Host>(
         &mut self,
         node: &JoinNode,
         program: &MastForest,
+        host: &mut H,
     ) -> Result<(), ExecutionError> {
         // use the hasher to compute the hash of the JOIN block; the row address returned by the
         // hasher is used as the ID of the block; the result of the hash is expected to be in
@@ -74,26 +72,32 @@ where
             .digest()
             .into();
 
-        let addr = self.chiplets.hash_control_block(
+        let (addr, hashed_block) = self.chiplets.hasher.hash_control_block(
             child1_hash,
             child2_hash,
             JoinNode::DOMAIN,
             node.digest(),
         );
 
+        debug_assert_eq!(node.digest(), hashed_block.into());
+
         // start decoding the JOIN block; this appends a row with JOIN operation to the decoder
         // trace. when JOIN operation is executed, the rest of the VM state does not change
         self.decoder.start_join(child1_hash, child2_hash, addr);
-        self.execute_op(Operation::Noop)
+        self.execute_op(Operation::Noop, host)
     }
 
     ///  Ends decoding of a JOIN node.
-    pub(super) fn end_join_node(&mut self, node: &JoinNode) -> Result<(), ExecutionError> {
+    pub(super) fn end_join_node<H: Host>(
+        &mut self,
+        node: &JoinNode,
+        host: &mut H,
+    ) -> Result<(), ExecutionError> {
         // this appends a row with END operation to the decoder trace. when END operation is
         // executed the rest of the VM state does not change
         self.decoder.end_control_block(node.digest().into());
 
-        self.execute_op(Operation::Noop)
+        self.execute_op(Operation::Noop, host)
     }
 
     // SPLIT NODE
@@ -101,10 +105,11 @@ where
 
     /// Starts decoding a SPLIT node. This also pops the value from the top of the stack and
     /// returns it.
-    pub(super) fn start_split_node(
+    pub(super) fn start_split_node<H: Host>(
         &mut self,
         node: &SplitNode,
         program: &MastForest,
+        host: &mut H,
     ) -> Result<Felt, ExecutionError> {
         let condition = self.stack.peek();
 
@@ -121,27 +126,33 @@ where
             .ok_or(ExecutionError::MastNodeNotFoundInForest { node_id: node.on_false() })?
             .digest()
             .into();
-        let addr = self.chiplets.hash_control_block(
+        let (addr, hashed_block) = self.chiplets.hasher.hash_control_block(
             child1_hash,
             child2_hash,
             SplitNode::DOMAIN,
             node.digest(),
         );
 
+        debug_assert_eq!(node.digest(), hashed_block.into());
+
         // start decoding the SPLIT block. this appends a row with SPLIT operation to the decoder
         // trace. we also pop the value off the top of the stack and return it.
         self.decoder.start_split(child1_hash, child2_hash, addr);
-        self.execute_op(Operation::Drop)?;
+        self.execute_op(Operation::Drop, host)?;
         Ok(condition)
     }
 
     /// Ends decoding of a SPLIT node.
-    pub(super) fn end_split_node(&mut self, block: &SplitNode) -> Result<(), ExecutionError> {
+    pub(super) fn end_split_node<H: Host>(
+        &mut self,
+        block: &SplitNode,
+        host: &mut H,
+    ) -> Result<(), ExecutionError> {
         // this appends a row with END operation to the decoder trace. when END operation is
         // executed the rest of the VM state does not change
         self.decoder.end_control_block(block.digest().into());
 
-        self.execute_op(Operation::Noop)
+        self.execute_op(Operation::Noop, host)
     }
 
     // LOOP NODE
@@ -149,10 +160,11 @@ where
 
     /// Starts decoding a LOOP node. This also pops the value from the top of the stack and
     /// returns it.
-    pub(super) fn start_loop_node(
+    pub(super) fn start_loop_node<H: Host>(
         &mut self,
         node: &LoopNode,
         program: &MastForest,
+        host: &mut H,
     ) -> Result<Felt, ExecutionError> {
         let condition = self.stack.peek();
 
@@ -165,12 +177,15 @@ where
             .ok_or(ExecutionError::MastNodeNotFoundInForest { node_id: node.body() })?
             .digest()
             .into();
-        let addr = self.chiplets.hash_control_block(
+
+        let (addr, hashed_block) = self.chiplets.hasher.hash_control_block(
             body_hash,
             EMPTY_WORD,
             LoopNode::DOMAIN,
             node.digest(),
         );
+
+        debug_assert_eq!(node.digest(), hashed_block.into());
 
         // start decoding the LOOP block; this appends a row with LOOP operation to the decoder
         // trace, but if the value on the top of the stack is not ONE, the block is not marked
@@ -178,16 +193,17 @@ where
         // basically, if the top of the stack is ZERO, a LOOP operation should be immediately
         // followed by an END operation.
         self.decoder.start_loop(body_hash, addr, condition);
-        self.execute_op(Operation::Drop)?;
+        self.execute_op(Operation::Drop, host)?;
         Ok(condition)
     }
 
     /// Ends decoding of a LOOP block. If pop_stack is set to true, this also removes the
     /// value at the top of the stack.
-    pub(super) fn end_loop_node(
+    pub(super) fn end_loop_node<H: Host>(
         &mut self,
         node: &LoopNode,
         pop_stack: bool,
+        host: &mut H,
     ) -> Result<(), ExecutionError> {
         // this appends a row with END operation to the decoder trace.
         self.decoder.end_control_block(node.digest().into());
@@ -201,9 +217,9 @@ where
             #[cfg(debug_assertions)]
             debug_assert_eq!(ZERO, self.stack.peek());
 
-            self.execute_op(Operation::Drop)
+            self.execute_op(Operation::Drop, host)
         } else {
-            self.execute_op(Operation::Noop)
+            self.execute_op(Operation::Noop, host)
         }
     }
 
@@ -211,10 +227,11 @@ where
     // --------------------------------------------------------------------------------------------
 
     /// Starts decoding of a CALL or a SYSCALL node.
-    pub(super) fn start_call_node(
+    pub(super) fn start_call_node<H: Host>(
         &mut self,
         node: &CallNode,
         program: &MastForest,
+        host: &mut H,
     ) -> Result<(), ExecutionError> {
         // use the hasher to compute the hash of the CALL or SYSCALL block; the row address
         // returned by the hasher is used as the ID of the block; the result of the hash is
@@ -224,9 +241,15 @@ where
             .ok_or(ExecutionError::MastNodeNotFoundInForest { node_id: node.callee() })?
             .digest()
             .into();
-        let addr =
-            self.chiplets
-                .hash_control_block(callee_hash, EMPTY_WORD, node.domain(), node.digest());
+
+        let (addr, hashed_block) = self.chiplets.hasher.hash_control_block(
+            callee_hash,
+            EMPTY_WORD,
+            node.domain(),
+            node.digest(),
+        );
+
+        debug_assert_eq!(node.digest(), hashed_block.into());
 
         // start new execution context for the operand stack. this has the effect of resetting
         // stack depth to 16.
@@ -254,11 +277,15 @@ where
         }
 
         // the rest of the VM state does not change
-        self.execute_op(Operation::Noop)
+        self.execute_op(Operation::Noop, host)
     }
 
     /// Ends decoding of a CALL or a SYSCALL block.
-    pub(super) fn end_call_node(&mut self, node: &CallNode) -> Result<(), ExecutionError> {
+    pub(super) fn end_call_node<H: Host>(
+        &mut self,
+        node: &CallNode,
+        host: &mut H,
+    ) -> Result<(), ExecutionError> {
         // when a CALL block ends, stack depth must be exactly 16
         let stack_depth = self.stack.depth();
         if stack_depth > MIN_STACK_DEPTH {
@@ -285,7 +312,7 @@ where
         );
 
         // the rest of the VM state does not change
-        self.execute_op(Operation::Noop)
+        self.execute_op(Operation::Noop, host)
     }
 
     // DYN NODE
@@ -295,25 +322,32 @@ where
     ///
     /// Note: even though we will write the callee hash to h[0..4] for the chiplets bus and block
     /// hash table, the issued hash request is still hash([ZERO; 8]).
-    pub(super) fn start_dyn_node(&mut self, dyn_node: &DynNode) -> Result<Word, ExecutionError> {
+    pub(super) fn start_dyn_node<H: Host>(
+        &mut self,
+        dyn_node: &DynNode,
+        host: &mut H,
+    ) -> Result<Word, ExecutionError> {
         debug_assert!(!dyn_node.is_dyncall());
 
         let mem_addr = self.stack.get(0);
         // The callee hash is stored in memory, and the address is specified on the top of the
         // stack.
-        let callee_hash = self.read_mem_word(mem_addr)?;
+        let callee_hash =
+            self.chiplets.memory.read_word(self.system.ctx(), mem_addr, self.system.clk())?;
 
-        let addr = self.chiplets.hash_control_block(
+        let (addr, hashed_block) = self.chiplets.hasher.hash_control_block(
             EMPTY_WORD,
             EMPTY_WORD,
             dyn_node.domain(),
             dyn_node.digest(),
         );
 
+        debug_assert_eq!(dyn_node.digest(), hashed_block.into());
+
         self.decoder.start_dyn(addr, callee_hash);
 
         // Pop the memory address off the stack.
-        self.execute_op(Operation::Drop)?;
+        self.execute_op(Operation::Drop, host)?;
 
         Ok(callee_hash)
     }
@@ -332,7 +366,8 @@ where
         let mem_addr = self.stack.get(0);
         // The callee hash is stored in memory, and the address is specified on the top of the
         // stack.
-        let callee_hash = self.read_mem_word(mem_addr)?;
+        let callee_hash =
+            self.chiplets.memory.read_word(self.system.ctx(), mem_addr, self.system.clk())?;
 
         // Note: other functions end in "executing a Noop", which
         // 1. ensures trace capacity,
@@ -344,12 +379,14 @@ where
         // refactoring the decoder though to remove this Noop execution pattern.
         self.ensure_trace_capacity();
 
-        let addr = self.chiplets.hash_control_block(
+        let (addr, hashed_block) = self.chiplets.hasher.hash_control_block(
             EMPTY_WORD,
             EMPTY_WORD,
             dyn_node.domain(),
             dyn_node.digest(),
         );
+
+        debug_assert_eq!(dyn_node.digest(), hashed_block.into());
 
         let (stack_depth, next_overflow_addr) = self.stack.shift_left_and_start_context();
         debug_assert!(stack_depth <= u32::MAX as usize, "stack depth too big");
@@ -371,16 +408,24 @@ where
     }
 
     /// Ends decoding of a DYN node.
-    pub(super) fn end_dyn_node(&mut self, dyn_node: &DynNode) -> Result<(), ExecutionError> {
+    pub(super) fn end_dyn_node<H: Host>(
+        &mut self,
+        dyn_node: &DynNode,
+        host: &mut H,
+    ) -> Result<(), ExecutionError> {
         // this appends a row with END operation to the decoder trace. when the END operation is
         // executed the rest of the VM state does not change
         self.decoder.end_control_block(dyn_node.digest().into());
 
-        self.execute_op(Operation::Noop)
+        self.execute_op(Operation::Noop, host)
     }
 
     /// Ends decoding of a DYNCALL node.
-    pub(super) fn end_dyncall_node(&mut self, dyn_node: &DynNode) -> Result<(), ExecutionError> {
+    pub(super) fn end_dyncall_node<H: Host>(
+        &mut self,
+        dyn_node: &DynNode,
+        host: &mut H,
+    ) -> Result<(), ExecutionError> {
         // when a DYNCALL block ends, stack depth must be exactly 16
         let stack_depth = self.stack.depth();
         if stack_depth > MIN_STACK_DEPTH {
@@ -406,23 +451,27 @@ where
             ctx_info.parent_next_overflow_addr,
         );
 
-        self.execute_op(Operation::Noop)
+        self.execute_op(Operation::Noop, host)
     }
 
     // BASIC BLOCK NODE
     // --------------------------------------------------------------------------------------------
 
     /// Starts decoding a BASIC BLOCK node.
-    pub(super) fn start_basic_block_node(
+    pub(super) fn start_basic_block_node<H: Host>(
         &mut self,
         basic_block: &BasicBlockNode,
+        host: &mut H,
     ) -> Result<(), ExecutionError> {
         // use the hasher to compute the hash of the SPAN block; the row address returned by the
         // hasher is used as the ID of the block; hash of a SPAN block is computed by sequentially
         // hashing operation batches. Thus, the result of the hash is expected to be in row
         // addr + (num_batches * 8) - 1.
         let op_batches = basic_block.op_batches();
-        let addr = self.chiplets.hash_span_block(op_batches, basic_block.digest());
+        let (addr, hashed_block) =
+            self.chiplets.hasher.hash_basic_block(op_batches, basic_block.digest());
+
+        debug_assert_eq!(basic_block.digest(), hashed_block.into());
 
         // start decoding the first operation batch; this also appends a row with SPAN operation
         // to the decoder trace. we also need the total number of operation groups so that we can
@@ -430,19 +479,20 @@ where
         let num_op_groups = basic_block.num_op_groups();
         self.decoder
             .start_basic_block(&op_batches[0], Felt::new(num_op_groups as u64), addr);
-        self.execute_op(Operation::Noop)
+        self.execute_op(Operation::Noop, host)
     }
 
     /// Ends decoding a BASIC BLOCK node.
-    pub(super) fn end_basic_block_node(
+    pub(super) fn end_basic_block_node<H: Host>(
         &mut self,
         block: &BasicBlockNode,
+        host: &mut H,
     ) -> Result<(), ExecutionError> {
         // this appends a row with END operation to the decoder trace. when END operation is
         // executed the rest of the VM state does not change
         self.decoder.end_basic_block(block.digest().into());
 
-        self.execute_op(Operation::Noop)
+        self.execute_op(Operation::Noop, host)
     }
 
     /// Continues decoding a SPAN block by absorbing the next batch of operations.

@@ -5,11 +5,11 @@ use alloc::{
 use core::fmt;
 
 use miden_air::RowIndex;
-use vm_core::{AssemblyOp, Operation, StackOutputs, Word};
+use vm_core::{AssemblyOp, Operation, StackOutputs};
 
 use crate::{
     range::RangeChecker, system::ContextId, Chiplets, ChipletsLengths, Decoder, ExecutionError,
-    Felt, Host, Process, Stack, System, TraceLenSummary,
+    Felt, Process, Stack, System, TraceLenSummary,
 };
 
 /// VmState holds a current process state information at a specific clock cycle.
@@ -21,17 +21,15 @@ pub struct VmState {
     pub asmop: Option<AsmOpInfo>,
     pub fmp: Felt,
     pub stack: Vec<Felt>,
-    pub memory: Vec<(u64, Word)>,
+    pub memory: Vec<(u64, Felt)>,
 }
 
 impl fmt::Display for VmState {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let stack: Vec<u64> = self.stack.iter().map(|x| x.as_int()).collect();
-        let memory: Vec<(u64, [u64; 4])> =
-            self.memory.iter().map(|x| (x.0, word_to_ints(&x.1))).collect();
         write!(
             f,
-            "clk={}{}{}, fmp={}, stack={stack:?}, memory={memory:?}",
+            "clk={}{}{}, fmp={}, stack={stack:?}, memory={:?}",
             self.clk,
             match self.op {
                 Some(op) => format!(", op={op}"),
@@ -41,7 +39,8 @@ impl fmt::Display for VmState {
                 Some(op) => format!(", {op}"),
                 None => "".to_string(),
             },
-            self.fmp
+            self.fmp,
+            self.memory
         )
     }
 }
@@ -63,11 +62,8 @@ pub struct VmStateIterator {
 }
 
 impl VmStateIterator {
-    pub fn new<H>(process: Process<H>, result: Result<StackOutputs, ExecutionError>) -> Self
-    where
-        H: Host,
-    {
-        let (system, decoder, stack, mut range, chiplets, _) = process.into_parts();
+    pub fn new(process: Process, result: Result<StackOutputs, ExecutionError>) -> Self {
+        let (system, decoder, stack, mut range, chiplets) = process.into_parts();
         let trace_len_summary = Self::build_trace_len_summary(&system, &mut range, &chiplets);
 
         Self {
@@ -169,7 +165,7 @@ impl VmStateIterator {
             asmop,
             fmp: self.system.get_fmp_at(self.clk),
             stack: self.stack.get_state_at(self.clk),
-            memory: self.chiplets.get_mem_state_at(ctx, self.clk),
+            memory: self.chiplets.memory.get_state_at(ctx, self.clk),
         });
 
         self.clk -= 1;
@@ -239,19 +235,13 @@ impl Iterator for VmStateIterator {
             asmop,
             fmp: self.system.get_fmp_at(self.clk),
             stack: self.stack.get_state_at(self.clk),
-            memory: self.chiplets.get_mem_state_at(ctx, self.clk),
+            memory: self.chiplets.memory.get_state_at(ctx, self.clk),
         }));
 
         self.clk += 1;
 
         result
     }
-}
-
-// HELPER FUNCTIONS
-// ================================================================================================
-fn word_to_ints(word: &Word) -> [u64; 4] {
-    [word[0].as_int(), word[1].as_int(), word[2].as_int(), word[3].as_int()]
 }
 
 /// Contains assembly instruction and operation index in the sequence corresponding to the specified

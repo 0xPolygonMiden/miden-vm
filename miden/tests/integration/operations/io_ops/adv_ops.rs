@@ -1,5 +1,5 @@
-use processor::{ExecutionError, ExecutionError::AdviceStackReadFailed};
-use test_utils::expect_exec_error;
+use processor::{ExecutionError, RowIndex};
+use test_utils::expect_exec_error_matches;
 use vm_core::{chiplets::hasher::apply_permutation, utils::ToElements, Felt};
 
 use super::{build_op_test, build_test, TRUNCATE_STACK_PROC};
@@ -32,7 +32,10 @@ fn adv_push() {
 fn adv_push_invalid() {
     // attempting to read from empty advice stack should throw an error
     let test = build_op_test!("adv_push.1");
-    expect_exec_error!(test, ExecutionError::AdviceStackReadFailed(2.into()));
+    expect_exec_error_matches!(
+        test,
+        ExecutionError::AdviceStackReadFailed(row_idx) if row_idx == RowIndex::from(2)
+    );
 }
 
 // OVERWRITING VALUES ON THE STACK (LOAD)
@@ -53,7 +56,10 @@ fn adv_loadw() {
 fn adv_loadw_invalid() {
     // attempting to read from empty advice stack should throw an error
     let test = build_op_test!("adv_loadw", &[0, 0, 0, 0]);
-    expect_exec_error!(test, AdviceStackReadFailed(2.into()));
+    expect_exec_error_matches!(
+        test,
+        ExecutionError::AdviceStackReadFailed(row_idx) if row_idx == RowIndex::from(2)
+    );
 }
 
 // MOVING ELEMENTS TO MEMORY VIA THE STACK (PIPE)
@@ -86,7 +92,7 @@ fn adv_pipe() {
     // to the end (the address will be 2 since 0 + 2 = 2).
     let mut final_stack = state.iter().map(|&v| v.as_int()).collect::<Vec<u64>>();
     final_stack.reverse();
-    final_stack.push(2);
+    final_stack.push(8);
 
     let test = build_test!(source, &[], &advice_stack);
     test.expect_stack(&final_stack);
@@ -123,7 +129,7 @@ fn adv_pipe_with_hperm() {
     // to the end (the address will be 2 since 0 + 2 = 2).
     let mut final_stack = state.iter().map(|&v| v.as_int()).collect::<Vec<u64>>();
     final_stack.reverse();
-    final_stack.push(2);
+    final_stack.push(8);
 
     let test = build_test!(source, &[], &advice_stack);
     test.expect_stack(&final_stack);

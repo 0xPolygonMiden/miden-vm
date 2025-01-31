@@ -99,8 +99,8 @@ pub fn mem_write_imm(
 // ================================================================================================
 
 /// Appends a sequence of operations to the span needed for converting procedure local index to
-/// absolute memory address. This consists of putting index onto the stack and then executing
-/// LOCADDR operation.
+/// absolute memory address. This consists in calculating the offset of the local value from the
+/// frame pointer and pushing the result onto the stack.
 ///
 /// This operation takes:
 /// - 3 VM cycles if index == 1

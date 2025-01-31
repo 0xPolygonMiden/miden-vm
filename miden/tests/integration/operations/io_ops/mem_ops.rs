@@ -45,7 +45,7 @@ fn mem_store() {
 
 #[test]
 fn mem_loadw() {
-    let addr = 1;
+    let addr = 4;
     let asm_op = "mem_loadw";
 
     // --- read from uninitialized memory - address provided via the stack ------------------------
@@ -96,7 +96,7 @@ fn mem_stream() {
         {TRUNCATE_STACK_PROC}
 
         begin
-            push.1
+            push.4
             mem_storew
             dropw
             push.0
@@ -112,7 +112,7 @@ fn mem_stream() {
     let inputs = [1, 2, 3, 4, 5, 6, 7, 8];
 
     // the state is built by replacing the values on the top of the stack with the values in memory
-    // addresses 0 and 1 (i.e., 1 through 8). Thus, the first 8 elements on the stack will be 1
+    // addresses `[0..8)`. Thus, the first 8 elements on the stack will be 1
     // through 8 (in stack order, with 8 at stack[0]), and the remaining 4 are untouched (i.e., 9,
     // 10, 11, 12).
     let state: [Felt; 12] =
@@ -122,7 +122,7 @@ fn mem_stream() {
     // to the end (the address will be 2 since 0 + 2 = 2).
     let mut final_stack = state.iter().map(|&v| v.as_int()).collect::<Vec<u64>>();
     final_stack.reverse();
-    final_stack.push(2);
+    final_stack.push(8);
 
     let test = build_test!(source, &inputs);
     test.expect_stack(&final_stack);
@@ -135,7 +135,7 @@ fn mem_stream_with_hperm() {
         {TRUNCATE_STACK_PROC}
 
         begin
-            push.1
+            push.4
             mem_storew
             dropw
             push.0
@@ -164,7 +164,7 @@ fn mem_stream_with_hperm() {
     // to the end (the address will be 2 since 0 + 2 = 2).
     let mut final_stack = state.iter().map(|&v| v.as_int()).collect::<Vec<u64>>();
     final_stack.reverse();
-    final_stack.push(2);
+    final_stack.push(8);
 
     let test = build_test!(source, &inputs);
     test.expect_stack(&final_stack);
@@ -200,8 +200,8 @@ fn inverse_operations() {
         begin
             push.0
             mem_storew
-            mem_storew.1
-            push.1
+            mem_storew.4
+            push.4
             mem_loadw
             mem_loadw.0
         end";
@@ -227,4 +227,19 @@ fn read_after_write() {
     // --- write to memory first, then test read with loadw --------------------------------------
     let test = build_op_test!("mem_storew.0 dropw mem_loadw.0", &[1, 2, 3, 4, 5, 6, 7, 8]);
     test.expect_stack(&[8, 7, 6, 5]);
+}
+
+// MISC
+// ================================================================================================
+
+/// Ensures that the processor returns no error when 2 memory operations occur in the same context,
+/// at the same address, and in the same clock cycle (which is what RCOMBBASE does when `stack[13] =
+/// stack[14] = 0`).
+#[test]
+fn mem_reads_same_clock_cycle() {
+    let asm_op = "begin rcomb_base end";
+
+    let test = build_test!(asm_op);
+
+    test.prove_and_verify(vec![0], false);
 }

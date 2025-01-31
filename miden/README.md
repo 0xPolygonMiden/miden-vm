@@ -32,7 +32,7 @@ Having a small number elements to describe public inputs and outputs of a progra
 
 ## Usage
 
-Miden crate exposes several functions which can be used to execute programs, generate proofs of their correct execution, and verify the generated proofs. How to do this is explained below, but you can also take a look at working examples [here](examples/) and find instructions for running them via CLI [here](#fibonacci-example).
+Miden crate exposes several functions which can be used to execute programs, generate proofs of their correct execution, and verify the generated proofs. How to do this is explained below, but you can also take a look at working examples [here](masm-examples/) and find instructions for running them via CLI [here](#fibonacci-example).
 
 ### Executing programs
 
@@ -72,7 +72,7 @@ let exec_options = ExecutionOptions::default();
 let trace = execute(&program, stack_inputs.clone(), &mut host, exec_options).unwrap();
 
 // now, execute the same program in debug mode and iterate over VM states
-for vm_state in execute_iter(&program, stack_inputs, host) {
+for vm_state in execute_iter(&program, stack_inputs, &mut host) {
     match vm_state {
         Ok(vm_state) => println!("{:?}", vm_state),
         Err(_) => println!("something went terribly wrong!"),
@@ -111,13 +111,13 @@ let program = assembler.assemble_program("begin push.3 push.5 add end").unwrap()
 let (outputs, proof) = prove(
     &program,
     StackInputs::default(),       // we won't provide any inputs
-    DefaultHost::default(),       // we'll be using a default host
+    &mut DefaultHost::default(),  // we'll be using a default host
     ProvingOptions::default(),    // we'll be using default options
 )
 .unwrap();
 
 // the output should be 8
-assert_eq!(8, outputs.stack().first().unwrap().as_int());
+assert_eq!(8, outputs.first().unwrap().as_int());
 ```
 
 ### Verifying program execution
@@ -174,7 +174,7 @@ dup.1       // stack state: 2 1 2
 add         // stack state: 3 2
 ```
 
-Notice that except for the first 2 operations which initialize the stack, the sequence of `swap dup.1 add` operations repeats over and over. In fact, we can repeat these operations an arbitrary number of times to compute an arbitrary Fibonacci number. In Rust, it would look like this (this is actually a simplified version of the example in [fibonacci.rs](src/examples/src/fibonacci.rs)):
+Notice that except for the first 2 operations which initialize the stack, the sequence of `swap dup.1 add` operations repeats over and over. In fact, we can repeat these operations an arbitrary number of times to compute an arbitrary Fibonacci number. In Rust, it would look like this:
 
 ```rust
 use miden_vm::{Assembler, DefaultHost, Program, ProvingOptions, StackInputs};
@@ -196,7 +196,7 @@ let mut assembler = Assembler::default();
 let program = assembler.assemble_program(&source).unwrap();
 
 // initialize a default host (with an empty advice provider)
-let host = DefaultHost::default();
+let mut host = DefaultHost::default();
 
 // initialize the stack with values 0 and 1
 let stack_inputs = StackInputs::try_from_ints([0, 1]).unwrap();
@@ -205,7 +205,7 @@ let stack_inputs = StackInputs::try_from_ints([0, 1]).unwrap();
 let (outputs, proof) = miden_vm::prove(
     &program,
     stack_inputs,
-    host,
+    &mut host,
     ProvingOptions::default(), // use default proving options
 )
 .unwrap();
@@ -225,7 +225,7 @@ If you want to execute, prove, and verify programs on Miden VM, but don't want t
 
 ### Compiling Miden VM
 
-First, make sure you have Rust [installed](https://www.rust-lang.org/tools/install). The current version of Miden VM requires Rust version **1.82** or later.
+First, make sure you have Rust [installed](https://www.rust-lang.org/tools/install). The current version of Miden VM requires Rust version **1.84** or later.
 
 Then, to compile Miden VM into a binary, run the following `make` command:
 
@@ -291,10 +291,10 @@ For example:
 
 ### Fibonacci example
 
-In the `miden/examples/fib` directory, we provide a very simple Fibonacci calculator example. This example computes the 1000th term of the Fibonacci sequence. You can execute this example on Miden VM like so:
+In the `miden/masm-examples/fib` directory, we provide a very simple Fibonacci calculator example. This example computes the 1000th term of the Fibonacci sequence. You can execute this example on Miden VM like so:
 
 ```shell
-./target/optimized/miden run -a miden/examples/fib/fib.masm -n 1
+./target/optimized/miden run -a miden/masm-examples/fib/fib.masm -n 1
 ```
 
 This will run the example code to completion and will output the top element remaining on the stack.

@@ -10,7 +10,6 @@ use super::{
     crypto::MerklePath, utils, ChipletsTrace, ExecutionError, Felt, FieldElement, RangeChecker,
     TraceFragment, Word, CHIPLETS_WIDTH, EMPTY_WORD, ONE, ZERO,
 };
-use crate::system::ContextId;
 
 mod bitwise;
 use bitwise::Bitwise;
@@ -44,7 +43,8 @@ mod tests;
 /// * Hasher segment: contains the trace and selector for the hasher chiplet. This segment fills the
 ///   first rows of the trace up to the length of the hasher `trace_len`.
 ///   - column 0: selector column with values set to ZERO
-///   - columns 1-17: execution trace of hash chiplet
+///   - columns 1-16: execution trace of hash chiplet
+///   - column 17: unused column padded with ZERO
 /// * Bitwise segment: contains the trace and selectors for the bitwise chiplet. This segment begins
 ///   at the end of the hasher segment and fills the next rows of the trace for the `trace_len` of
 ///   the bitwise chiplet.
@@ -52,13 +52,12 @@ mod tests;
 ///   - column 1: selector column with values set to ZERO
 ///   - columns 2-14: execution trace of bitwise chiplet
 ///   - columns 15-17: unused columns padded with ZERO
-/// * Memory segment: contains the trace and selectors for the memory chiplet * This segment begins
+/// * Memory segment: contains the trace and selectors for the memory chiplet.  This segment begins
 ///   at the end of the bitwise segment and fills the next rows of the trace for the `trace_len` of
 ///   the memory chiplet.
 ///   - column 0-1: selector columns with values set to ONE
 ///   - column 2: selector column with values set to ZERO
-///   - columns 3-14: execution trace of memory chiplet
-///   - columns 15-17: unused column padded with ZERO
+///   - columns 3-17: execution trace of memory chiplet
 /// * Kernel ROM segment: contains the trace and selectors for the kernel ROM chiplet * This segment
 ///   begins at the end of the memory segment and fills the next rows of the trace for the
 ///   `trace_len` of the kernel ROM chiplet.
@@ -89,11 +88,11 @@ mod tests;
 ///             | . | . |   selectors   |                                   |-------------|
 ///             | . | 0 |               |                                   |-------------|
 ///             | . +---+---+-----------------------------------------------+-------------+
-///             | . | 1 | 0 |                |                              |-------------|
-///             | . | . | . | Memory chiplet |      Memory chiplet          |-------------|
-///             | . | . | . | internal       |      12 columns              |-- Padding --|
-///             | . | . | . | selectors      |      constraint degree 9     |-------------|
-///             | . | . | 0 |                |                              |-------------|
+///             | . | 1 | 0 |                                               |-------------|
+///             | . | . | . |            Memory chiplet                     |-------------|
+///             | . | . | . |              15 columns                       |-- Padding --|
+///             | . | . | . |          constraint degree 9                  |-------------|
+///             | . | . | 0 |                                               |-------------|
 ///             | . + . |---+---+-------------------------------------------+-------------+
 ///             | . | . | 1 | 0 |                   |                       |-------------|
 ///             | . | . | . | . |  Kernel ROM       |   Kernel ROM chiplet  |-------------|
@@ -113,13 +112,12 @@ mod tests;
 ///             | 1 | 1 | 1 | 1 |---------------------------------------------------------|
 ///             +---+---+---+---+---------------------------------------------------------+
 /// ```
+#[derive(Debug)]
 pub struct Chiplets {
-    /// Current clock cycle of the VM.
-    clk: RowIndex,
-    hasher: Hasher,
-    bitwise: Bitwise,
-    memory: Memory,
-    kernel_rom: KernelRom,
+    pub hasher: Hasher,
+    pub bitwise: Bitwise,
+    pub memory: Memory,
+    pub kernel_rom: KernelRom,
 }
 
 impl Chiplets {
@@ -128,7 +126,6 @@ impl Chiplets {
     /// Returns a new [Chiplets] component instantiated with the provided Kernel.
     pub fn new(kernel: Kernel) -> Self {
         Self {
-            clk: RowIndex::from(0),
             hasher: Hasher::default(),
             bitwise: Bitwise::default(),
             memory: Memory::default(),
@@ -170,211 +167,6 @@ impl Chiplets {
         self.kernel_rom_start() + self.kernel_rom.trace_len()
     }
 
-    /// Returns the underlying kernel used to initilize this instance.
-    pub const fn kernel(&self) -> &Kernel {
-        self.kernel_rom.kernel()
-    }
-
-    // HASH CHIPLET ACCESSORS FOR OPERATIONS
-    // --------------------------------------------------------------------------------------------
-
-    /// Requests a single permutation of the hash function to the provided state from the Hash
-    /// chiplet.
-    ///
-    /// The returned tuple contains the hasher state after the permutation and the row address of
-    /// the execution trace at which the permutation started.
-    pub fn permute(&mut self, state: HasherState) -> (Felt, HasherState) {
-        let (addr, return_state) = self.hasher.permute(state);
-
-        (addr, return_state)
-    }
-
-    /// Requests a Merkle root computation from the Hash chiplet for the specified path and the node
-    /// with the specified value.
-    ///
-    /// The returned tuple contains the root of the Merkle path and the row address of the
-    /// execution trace at which the computation started.
-    ///
-    /// # Panics
-    /// Panics if:
-    /// - The provided path does not contain any nodes.
-    /// - The provided index is out of range for the specified path.
-    pub fn build_merkle_root(
-        &mut self,
-        value: Word,
-        path: &MerklePath,
-        index: Felt,
-    ) -> (Felt, Word) {
-        let (addr, root) = self.hasher.build_merkle_root(value, path, index);
-
-        (addr, root)
-    }
-
-    /// Requests a Merkle root update computation from the Hash chiplet.
-    ///
-    /// # Panics
-    /// Panics if:
-    /// - The provided path does not contain any nodes.
-    /// - The provided index is out of range for the specified path.
-    pub fn update_merkle_root(
-        &mut self,
-        old_value: Word,
-        new_value: Word,
-        path: &MerklePath,
-        index: Felt,
-    ) -> MerkleRootUpdate {
-        self.hasher.update_merkle_root(old_value, new_value, path, index)
-    }
-
-    // HASH CHIPLET ACCESSORS FOR CONTROL BLOCK DECODING
-    // --------------------------------------------------------------------------------------------
-
-    /// Requests the hash of the provided words from the Hash chiplet and checks the result
-    /// hash(h1, h2) against the provided `expected_result`.
-    ///
-    /// It returns the row address of the execution trace at which the hash computation started.
-    pub fn hash_control_block(
-        &mut self,
-        h1: Word,
-        h2: Word,
-        domain: Felt,
-        expected_hash: Digest,
-    ) -> Felt {
-        let (addr, result) = self.hasher.hash_control_block(h1, h2, domain, expected_hash);
-
-        // make sure the result computed by the hasher is the same as the expected block hash
-        debug_assert_eq!(expected_hash, result.into());
-
-        addr
-    }
-
-    /// Requests computation a sequential hash of all operation batches in the list from the Hash
-    /// chiplet and checks the result against the provided `expected_result`.
-    ///
-    /// It returns the row address of the execution trace at which the hash computation started.
-    pub fn hash_span_block(&mut self, op_batches: &[OpBatch], expected_hash: Digest) -> Felt {
-        let (addr, result) = self.hasher.hash_basic_block(op_batches, expected_hash);
-
-        // make sure the result computed by the hasher is the same as the expected block hash
-        debug_assert_eq!(expected_hash, result.into());
-
-        addr
-    }
-
-    // BITWISE CHIPLET ACCESSORS
-    // --------------------------------------------------------------------------------------------
-
-    /// Requests a bitwise AND of `a` and `b` from the Bitwise chiplet and returns the result.
-    /// We assume that `a` and `b` are 32-bit values. If that's not the case, the result of the
-    /// computation is undefined.
-    pub fn u32and(&mut self, a: Felt, b: Felt) -> Result<Felt, ExecutionError> {
-        let result = self.bitwise.u32and(a, b)?;
-
-        Ok(result)
-    }
-
-    /// Requests a bitwise XOR of `a` and `b` from the Bitwise chiplet and returns the result.
-    /// We assume that `a` and `b` are 32-bit values. If that's not the case, the result of the
-    /// computation is undefined.
-    pub fn u32xor(&mut self, a: Felt, b: Felt) -> Result<Felt, ExecutionError> {
-        let result = self.bitwise.u32xor(a, b)?;
-
-        Ok(result)
-    }
-
-    // MEMORY CHIPLET ACCESSORS
-    // --------------------------------------------------------------------------------------------
-
-    /// Returns a word located in memory at the specified context/address while recording the
-    /// memory access in the memory trace.
-    ///
-    /// If the specified address hasn't been previously written to, four ZERO elements are
-    /// returned. This effectively implies that memory is initialized to ZERO.
-    pub fn read_mem(&mut self, ctx: ContextId, addr: u32) -> Word {
-        // read the word from memory
-        self.memory.read(ctx, addr, self.clk)
-    }
-
-    /// Returns two words read from consecutive addresses started with `addr` in the specified
-    /// context while recording memory accesses in the memory trace.
-    ///
-    /// If either of the accessed addresses hasn't been previously written to, ZERO elements are
-    /// returned. This effectively implies that memory is initialized to ZERO.
-    pub fn read_mem_double(&mut self, ctx: ContextId, addr: u32) -> [Word; 2] {
-        // read two words from memory: from addr and from addr + 1
-        let addr2 = addr + 1;
-        [self.memory.read(ctx, addr, self.clk), self.memory.read(ctx, addr2, self.clk)]
-    }
-
-    /// Writes the provided word at the specified context/address.
-    pub fn write_mem(&mut self, ctx: ContextId, addr: u32, word: Word) {
-        self.memory.write(ctx, addr, self.clk, word);
-    }
-
-    /// Writes the provided element into the specified context/address leaving the remaining 3
-    /// elements of the word previously stored at that address unchanged.
-    pub fn write_mem_element(&mut self, ctx: ContextId, addr: u32, value: Felt) -> Word {
-        let old_word = self.memory.get_old_value(ctx, addr);
-        let new_word = [value, old_word[1], old_word[2], old_word[3]];
-
-        self.memory.write(ctx, addr, self.clk, new_word);
-
-        old_word
-    }
-
-    /// Writes the two provided words to two consecutive addresses in memory in the specified
-    /// context, starting at the specified address.
-    pub fn write_mem_double(&mut self, ctx: ContextId, addr: u32, words: [Word; 2]) {
-        let addr2 = addr + 1;
-        // write two words to memory at addr and addr + 1
-        self.memory.write(ctx, addr, self.clk, words[0]);
-        self.memory.write(ctx, addr2, self.clk, words[1]);
-    }
-
-    /// Returns a word located at the specified context/address, or None if the address hasn't
-    /// been accessed previously.
-    ///
-    /// Unlike mem_read() which modifies the memory access trace, this method returns the value at
-    /// the specified address (if one exists) without altering the memory access trace.
-    pub fn get_mem_value(&self, ctx: ContextId, addr: u32) -> Option<Word> {
-        self.memory.get_value(ctx, addr)
-    }
-
-    /// Returns the entire memory state for the specified execution context at the specified cycle.
-    /// The state is returned as a vector of (address, value) tuples, and includes addresses which
-    /// have been accessed at least once.
-    pub fn get_mem_state_at(&self, ctx: ContextId, clk: RowIndex) -> Vec<(u64, Word)> {
-        self.memory.get_state_at(ctx, clk)
-    }
-
-    /// Returns current size of the memory (in words) across all execution contexts.
-    #[cfg(test)]
-    pub fn get_mem_size(&self) -> usize {
-        self.memory.size()
-    }
-
-    // KERNEL ROM ACCESSORS
-    // --------------------------------------------------------------------------------------------
-
-    /// Increments access counter for the specified kernel procedure.
-    ///
-    /// # Errors
-    /// Returns an error if the procedure with the specified hash does not exist in the kernel
-    /// with which the kernel ROM was instantiated.
-    pub fn access_kernel_proc(&mut self, proc_hash: Digest) -> Result<(), ExecutionError> {
-        self.kernel_rom.access_proc(proc_hash)?;
-
-        Ok(())
-    }
-
-    // CONTEXT MANAGEMENT
-    // --------------------------------------------------------------------------------------------
-
-    /// Increments the clock cycle.
-    pub fn advance_clock(&mut self) {
-        self.clk += 1;
-    }
-
     // EXECUTION TRACE
     // --------------------------------------------------------------------------------------------
 
@@ -393,7 +185,7 @@ impl Chiplets {
         // make sure that only padding rows will be overwritten by random values
         assert!(self.trace_len() + num_rand_rows <= trace_len, "target trace length too small");
 
-        let kernel = self.kernel().clone();
+        let kernel = self.kernel_rom.kernel().clone();
 
         // Allocate columns for the trace of the chiplets.
         let mut trace = (0..CHIPLETS_WIDTH)
@@ -425,13 +217,7 @@ impl Chiplets {
         let kernel_rom_start: usize = self.kernel_rom_start().into();
         let padding_start: usize = self.padding_start().into();
 
-        let Chiplets {
-            clk: _,
-            hasher,
-            bitwise,
-            memory,
-            kernel_rom,
-        } = self;
+        let Chiplets { hasher, bitwise, memory, kernel_rom } = self;
 
         // populate external selector columns for all chiplets
         trace[0][bitwise_start..].fill(ONE);
@@ -449,7 +235,7 @@ impl Chiplets {
         // so they can be filled with the chiplet traces
         for (column_num, column) in trace.iter_mut().enumerate().skip(1) {
             match column_num {
-                1 | 15..=17 => {
+                1 => {
                     // columns 1 and 15 - 17 are relevant only for the hasher
                     hasher_fragment.push_column_slice(column, hasher.trace_len());
                 },
@@ -470,6 +256,19 @@ impl Chiplets {
                     let rest = bitwise_fragment.push_column_slice(rest, bitwise.trace_len());
                     let rest = memory_fragment.push_column_slice(rest, memory.trace_len());
                     kernel_rom_fragment.push_column_slice(rest, kernel_rom.trace_len());
+                },
+                15 | 16 => {
+                    // columns 15 and 16 are relevant only for the hasher and memory chiplets
+                    let rest = hasher_fragment.push_column_slice(column, hasher.trace_len());
+                    // skip bitwise chiplet
+                    let (_, rest) = rest.split_at_mut(bitwise.trace_len());
+                    memory_fragment.push_column_slice(rest, memory.trace_len());
+                },
+                17 => {
+                    // column 17 is relevant only for the memory chiplet
+                    // skip the hasher and bitwise chiplets
+                    let (_, rest) = column.split_at_mut(hasher.trace_len() + bitwise.trace_len());
+                    memory_fragment.push_column_slice(rest, memory.trace_len());
                 },
                 _ => panic!("invalid column index"),
             }

@@ -5,7 +5,7 @@ use.std::crypto::stark::constants
 #! Load the public inputs in memory starting from the address referenced by `public_inputs_ptr`.
 #! In parallel, compute the hash of the public inputs being loaded. The hashing starts with
 #! capacity registers of the hash function set to `C` resulting from hashing the proof context.
-#! The ouptut D is the digest of the hashing.
+#! The output D is the digest of the hashing.
 #!
 #! Input: [public_inputs_ptr, C]
 #! Output: [D]
@@ -28,7 +28,7 @@ export.load
     end
     adv_loadw
     swapw
-    exec.constants::zero_zero_zero_one_word mem_loadw
+    exec.constants::zero_word mem_loadw
     hperm
 
     dropw

@@ -177,7 +177,7 @@ end
 #! [state0, state1, state2, state3, state4, state5, state6, state7, state8, state9, state10, state11, state12, state13, state14, state15]
 #!
 #! i.e. whole blake3 state is placed on stack ( in order ).
-proc.columnar_mixing.1
+proc.columnar_mixing.4
     swapw.2
     swapw
 
@@ -416,7 +416,7 @@ end
 #! [state0, state1, state2, state3, state4, state5, state6, state7, state8, state9, state10, state11, state12, state13, state14, state15]
 #!
 #! i.e. whole blake3 state is placed on stack ( in order ).
-proc.diagonal_mixing.1
+proc.diagonal_mixing.4
     swapw.2
     swapw
 
@@ -658,24 +658,24 @@ end
 #!
 #! i.e. mixed state matrix lives in memory addresses {state0_3_addr, state4_7_addr, state8_11_addr, state12_15_addr},
 #! which were provided, on stack top, while invoking this routine.
-proc.round.5
+proc.round.20
     loc_storew.0
 
     exec.columnar_mixing
 
-    loc_storew.1
-    dropw
-    loc_storew.2
-    dropw
-    loc_storew.3
-    dropw
     loc_storew.4
     dropw
+    loc_storew.8
+    dropw
+    loc_storew.12
+    dropw
+    loc_storew.16
+    dropw
 
+    locaddr.16
+    locaddr.12
+    locaddr.8
     locaddr.4
-    locaddr.3
-    locaddr.2
-    locaddr.1
 
     exec.diagonal_mixing
 
@@ -721,7 +721,7 @@ end
 #! i.e. 7 -round mixed state matrix lives in memory addresses {state0_3_addr, state4_7_addr, state8_11_addr, state12_15_addr},
 #! which were provided, on stack top, while invoking this routine. So updated state matrix can be read by caller routine, by reading
 #! the content of memory addresses where state was provided as routine input.
-proc.compress.1
+proc.compress.4
     loc_storew.0
     dropw
 
@@ -757,10 +757,10 @@ end
 #! [dig0, dig1, dig2, dig3, dig4, dig5, dig6, dig7, ...]
 #!
 #! dig`i` -> 32 -bit digest word | i ∈ [0, 8)
-export.hash_2to1.4
-    locaddr.3
-    locaddr.2
-    locaddr.1
+export.hash_2to1.16
+    locaddr.12
+    locaddr.8
+    locaddr.4
     locaddr.0
 
     exec.initialize_2to1
@@ -769,19 +769,19 @@ export.hash_2to1.4
     # block ( = 64 -bytes ) because what we're doing here is 2-to-1 hashing i.e. 64 -bytes
     # input being converted to 32 -bytes output
 
-    locaddr.3
-    locaddr.2
-    locaddr.1
+    locaddr.12
+    locaddr.8
+    locaddr.4
     locaddr.0
 
     exec.compress
 
     push.0.0.0.0
-    loc_loadw.3
+    loc_loadw.12
     push.0.0.0.0
-    loc_loadw.2
+    loc_loadw.8
     push.0.0.0.0
-    loc_loadw.1
+    loc_loadw.4
     push.0.0.0.0
     loc_loadw.0
 
@@ -801,15 +801,15 @@ end
 #! [dig0, dig1, dig2, dig3, dig4, dig5, dig6, dig7, ...]
 #!
 #! dig`i` -> 32 -bit digest word | i ∈ [0, 8)
-export.hash_1to1.4
+export.hash_1to1.16
     # Pad 32 -bytes input message with zero bytes to make
     # 64 -bytes, which is processed same as 2-to-1 hashing
     push.0.0.0.0.0.0.0.0
     swapdw
 
-    locaddr.3
-    locaddr.2
-    locaddr.1
+    locaddr.12
+    locaddr.8
+    locaddr.4
     locaddr.0
 
     exec.initialize_1to1
@@ -817,19 +817,19 @@ export.hash_1to1.4
     # Note, chunk compression routine needs to compress only one chunk with one message
     # block ( = 64 -bytes ), which is obtained by padding 32 -bytes input.
 
-    locaddr.3
-    locaddr.2
-    locaddr.1
+    locaddr.12
+    locaddr.8
+    locaddr.4
     locaddr.0
 
     exec.compress
 
     push.0.0.0.0
-    loc_loadw.3
+    loc_loadw.12
     push.0.0.0.0
-    loc_loadw.2
+    loc_loadw.8
     push.0.0.0.0
-    loc_loadw.1
+    loc_loadw.4
     push.0.0.0.0
     loc_loadw.0
 

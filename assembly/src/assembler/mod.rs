@@ -7,7 +7,7 @@ use vm_core::{
     crypto::hash::RpoDigest,
     debuginfo::SourceSpan,
     mast::{DecoratorId, MastNodeId},
-    DecoratorList, Felt, Kernel, Operation, Program,
+    DecoratorList, Felt, Kernel, Operation, Program, WORD_SIZE,
 };
 
 use crate::{
@@ -158,7 +158,7 @@ impl Assembler {
     ///
     /// The given module must be a library module, or an error will be returned.
     #[inline]
-    pub fn add_module(&mut self, module: impl Compile) -> Result<(), Report> {
+    pub fn add_module(&mut self, module: impl Compile) -> Result<ModuleIndex, Report> {
         self.add_module_with_options(module, CompileOptions::for_library())
     }
 
@@ -169,22 +169,36 @@ impl Assembler {
         &mut self,
         module: impl Compile,
         options: CompileOptions,
-    ) -> Result<(), Report> {
-        let kind = options.kind;
-        if kind != ModuleKind::Library {
-            return Err(Report::msg(
-                "only library modules are supported by `add_module_with_options`",
-            ));
-        }
-
-        let module = module.compile_with_options(&self.source_manager, options)?;
-        assert_eq!(module.kind(), kind, "expected module kind to match compilation options");
-
-        self.module_graph.add_ast_module(module)?;
-
-        Ok(())
+    ) -> Result<ModuleIndex, Report> {
+        let ids = self.add_modules_with_options(vec![module], options)?;
+        Ok(ids[0])
     }
 
+    pub fn add_modules_with_options(
+        &mut self,
+        modules: impl IntoIterator<Item = impl Compile>,
+        options: CompileOptions,
+    ) -> Result<Vec<ModuleIndex>, Report> {
+        let kind = options.kind;
+        if kind == ModuleKind::Executable {
+            return Err(Report::msg("Executables are not supported by `add_module_with_options`"));
+        }
+
+        let modules = modules
+            .into_iter()
+            .map(|module| {
+                let module = module.compile_with_options(&self.source_manager, options.clone())?;
+                assert_eq!(
+                    module.kind(),
+                    kind,
+                    "expected module kind to match compilation options"
+                );
+                Ok(module)
+            })
+            .collect::<Result<Vec<_>, Report>>()?;
+        let ids = self.module_graph.add_ast_modules(modules.into_iter())?;
+        Ok(ids)
+    }
     /// Adds all modules (defined by ".masm" files) from the specified directory to the module
     /// of this assembler graph.
     ///
@@ -202,10 +216,8 @@ impl Assembler {
         namespace: crate::LibraryNamespace,
         dir: &std::path::Path,
     ) -> Result<(), Report> {
-        for module in crate::parser::read_modules_from_dir(namespace, dir, &self.source_manager)? {
-            self.module_graph.add_ast_module(module)?;
-        }
-
+        let modules = crate::parser::read_modules_from_dir(namespace, dir, &self.source_manager)?;
+        self.module_graph.add_ast_modules(modules)?;
         Ok(())
     }
 
@@ -281,24 +293,12 @@ impl Assembler {
     /// # Errors
     ///
     /// Returns an error if parsing or compilation of the specified modules fails.
-    pub fn assemble_library(
+    pub fn assemble_common(
         mut self,
         modules: impl IntoIterator<Item = impl Compile>,
+        options: CompileOptions,
     ) -> Result<Library, Report> {
-        let ast_module_indices =
-            modules.into_iter().try_fold(Vec::default(), |mut acc, module| {
-                module
-                    .compile_with_options(&self.source_manager, CompileOptions::for_library())
-                    .and_then(|module| {
-                        self.module_graph.add_ast_module(module).map_err(Report::from)
-                    })
-                    .map(move |module_id| {
-                        acc.push(module_id);
-                        acc
-                    })
-            })?;
-
-        self.module_graph.recompute()?;
+        let ast_module_indices = self.add_modules_with_options(modules, options)?;
 
         let mut mast_forest_builder = MastForestBuilder::default();
 
@@ -325,7 +325,6 @@ impl Assembler {
             exports
         };
 
-        // TODO: show a warning if library exports are empty?
         let (mast_forest, id_remappings) = mast_forest_builder.build();
         if let Some(id_remappings) = id_remappings {
             for (_proc_name, node_id) in exports.iter_mut() {
@@ -338,53 +337,30 @@ impl Assembler {
         Ok(Library::new(mast_forest.into(), exports)?)
     }
 
+    pub fn assemble_library(
+        self,
+        modules: impl IntoIterator<Item = impl Compile>,
+    ) -> Result<Library, Report> {
+        let options = CompileOptions {
+            kind: ModuleKind::Library,
+            warnings_as_errors: self.warnings_as_errors,
+            path: None,
+        };
+        self.assemble_common(modules, options)
+    }
+
     /// Assembles the provided module into a [KernelLibrary] intended to be used as a Kernel.
     ///
     /// # Errors
     ///
     /// Returns an error if parsing or compilation of the specified modules fails.
-    pub fn assemble_kernel(mut self, module: impl Compile) -> Result<KernelLibrary, Report> {
+    pub fn assemble_kernel(self, module: impl Compile) -> Result<KernelLibrary, Report> {
         let options = CompileOptions {
             kind: ModuleKind::Kernel,
             warnings_as_errors: self.warnings_as_errors,
             path: Some(LibraryPath::from(LibraryNamespace::Kernel)),
         };
-
-        let module = module.compile_with_options(&self.source_manager, options)?;
-        let module_idx = self.module_graph.add_ast_module(module)?;
-
-        self.module_graph.recompute()?;
-
-        let mut mast_forest_builder = MastForestBuilder::default();
-
-        // Note: it is safe to use `unwrap_ast()` here, since all modules looped over are
-        // AST (we just added them to the module graph)
-        let ast_module = self.module_graph[module_idx].unwrap_ast().clone();
-
-        let mut exports = ast_module
-            .exported_procedures()
-            .map(|(proc_idx, fqn)| {
-                let gid = module_idx + proc_idx;
-                self.compile_subgraph(gid, &mut mast_forest_builder)?;
-
-                let proc_root_node_id = mast_forest_builder
-                    .get_procedure(gid)
-                    .expect("compilation succeeded but root not found in cache")
-                    .body_node_id();
-                Ok((fqn, proc_root_node_id))
-            })
-            .collect::<Result<BTreeMap<_, _>, Report>>()?;
-
-        // TODO: show a warning if library exports are empty?
-        let (mast_forest, id_remappings) = mast_forest_builder.build();
-        if let Some(id_remappings) = id_remappings {
-            for (_proc_name, node_id) in exports.iter_mut() {
-                if let Some(&new_node_id) = id_remappings.get(node_id) {
-                    *node_id = new_node_id;
-                }
-            }
-        }
-        let library = Library::new(mast_forest.into(), exports)?;
+        let library = self.assemble_common([module], options)?;
         Ok(library.try_into()?)
     }
 
@@ -407,7 +383,6 @@ impl Assembler {
 
         // Recompute graph with executable module, and start compiling
         let ast_module_index = self.module_graph.add_ast_module(program)?;
-        self.module_graph.recompute()?;
 
         // Find the executable entrypoint Note: it is safe to use `unwrap_ast()` here, since this is
         // the module we just added, which is in AST representation.
@@ -567,19 +542,21 @@ impl Assembler {
     ) -> Result<Procedure, Report> {
         // Make sure the current procedure context is available during codegen
         let gid = proc_ctx.id();
+
         let num_locals = proc_ctx.num_locals();
 
         let wrapper_proc = self.module_graph.get_procedure_unsafe(gid);
         let proc = wrapper_proc.unwrap_ast().unwrap_procedure();
         let proc_body_id = if num_locals > 0 {
-            // for procedures with locals, we need to update fmp register before and after the
-            // procedure body is executed. specifically:
+            // For procedures with locals, we need to update fmp register before and after the
+            // procedure body is executed. Specifically:
             // - to allocate procedure locals we need to increment fmp by the number of locals
-            // - to deallocate procedure locals we need to decrement it by the same amount
-            let num_locals = Felt::from(num_locals);
+            //   (rounded up to the word size), and
+            // - to deallocate procedure locals we need to decrement it by the same amount.
+            let locals_frame = Felt::from(num_locals.next_multiple_of(WORD_SIZE as u16));
             let wrapper = BodyWrapper {
-                prologue: vec![Operation::Push(num_locals), Operation::FmpUpdate],
-                epilogue: vec![Operation::Push(-num_locals), Operation::FmpUpdate],
+                prologue: vec![Operation::Push(locals_frame), Operation::FmpUpdate],
+                epilogue: vec![Operation::Push(-locals_frame), Operation::FmpUpdate],
             };
             self.compile_body(proc.iter(), &mut proc_ctx, Some(wrapper), mast_forest_builder)?
         } else {
