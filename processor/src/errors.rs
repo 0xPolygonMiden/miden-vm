@@ -6,11 +6,11 @@ use vm_core::{
     mast::{DecoratorId, MastNodeId},
     stack::MIN_STACK_DEPTH,
     utils::to_hex,
+    AdviceProviderError,
 };
 use winter_prover::{math::FieldElement, ProverError};
 
 use super::{
-    crypto::MerkleError,
     system::{FMP_MAX, FMP_MIN},
     Digest, Felt, QuadFelt, Word,
 };
@@ -21,12 +21,12 @@ use crate::ContextId;
 
 #[derive(Debug, thiserror::Error)]
 pub enum ExecutionError {
-    #[error("value for key {} not present in the advice map", to_hex(Felt::elements_as_bytes(.0)))]
-    AdviceMapKeyNotFound(Word),
-    #[error("value for key {} already present in the advice map", to_hex(Felt::elements_as_bytes(.0)))]
-    AdviceMapKeyAlreadyPresent(Word),
-    #[error("advice stack read failed at step {0}")]
-    AdviceStackReadFailed(RowIndex),
+    #[error("advice provider error")]
+    AdviceProviderError(
+        #[from]
+        #[source]
+        AdviceProviderError,
+    ),
     #[error("instruction `caller` used outside of kernel context")]
     CallerNotInSyscall,
     #[error("external node with mast root {0} resolved to an external node")]
@@ -58,8 +58,6 @@ pub enum ExecutionError {
         err_code: u32,
         err_msg: Option<String>,
     },
-    #[error("failed to generate signature: {0}")]
-    FailedSignatureGeneration(&'static str),
     #[error("memory address {addr} in context {ctx} was read and written, or written twice, in the same clock cycle {clk}")]
     IllegalMemoryAccess { ctx: ContextId, addr: u32, clk: Felt },
     #[error("Updating FMP register from {0} to {1} failed because {1} is outside of {FMP_MIN}..{FMP_MAX}")]
@@ -74,16 +72,8 @@ pub enum ExecutionError {
     InvalidMemoryRange { start_addr: u64, end_addr: u64 },
     #[error("when returning from a call, stack depth must be {MIN_STACK_DEPTH}, but was {0}")]
     InvalidStackDepthOnReturn(usize),
-    #[error("provided merkle tree {depth} is out of bounds and cannot be represented as an unsigned 8-bit integer")]
-    InvalidMerkleTreeDepth { depth: Felt },
-    #[error(
-        "provided node index {value} is out of bounds for a merkle tree node at depth {depth}"
-    )]
-    InvalidMerkleTreeNodeIndex { depth: Felt, value: Felt },
     #[error("attempted to calculate integer logarithm with zero argument at clock cycle {0}")]
     LogArgumentZero(RowIndex),
-    #[error("malformed signature key: {0}")]
-    MalformedSignatureKey(&'static str),
     #[error(
         "MAST forest in host indexed by procedure root {root_digest} doesn't contain that root"
     )]
@@ -112,12 +102,6 @@ pub enum ExecutionError {
         root: Digest,
         err_code: u32,
     },
-    #[error("advice provider Merkle store backend lookup failed")]
-    MerkleStoreLookupFailed(#[source] MerkleError),
-    #[error("advice provider Merkle store backend merge failed")]
-    MerkleStoreMergeFailed(#[source] MerkleError),
-    #[error("advice provider Merkle store backend update failed")]
-    MerkleStoreUpdateFailed(#[source] MerkleError),
     #[error("an operation expected a binary value, but received {0}")]
     NotBinaryValue(Felt),
     #[error("an operation expected a u32 value, but received {0} (error code: {1})")]

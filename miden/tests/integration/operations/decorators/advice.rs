@@ -5,7 +5,6 @@ use stdlib::EVENT_FALCON_SIG_TO_STACK;
 use test_utils::{
     build_test,
     crypto::{rpo_falcon512::SecretKey, MerkleStore, RpoDigest},
-    expect_exec_error_matches,
     rand::{rand_array, rand_value},
     serde::Serializable,
     Felt, TRUNCATE_STACK_PROC,
@@ -395,7 +394,14 @@ fn advice_push_sig_rpo_falcon_512_bad_key_value() {
     let store = MerkleStore::new();
 
     let test = build_test!(&source, &op_stack, &advice_stack, store, advice_map.into_iter());
-    expect_exec_error_matches!(test, ExecutionError::MalformedSignatureKey("RPO Falcon512"));
+
+    // Corresponds to `FalconSignatureError::MalformedSignatureKey("RPO Falcon512")`
+    match test.execute() {
+        Err(ExecutionError::EventError(e)) => {
+            assert_eq!(e.to_string(), "malformed signature key: RPO Falcon512");
+        },
+        _ => panic!("expected execution to fail"),
+    };
 }
 
 #[test]
@@ -435,5 +441,11 @@ fn advice_push_sig_rpo_falcon_512_bad_key_length() {
 
     let test = build_test!(&source, &op_stack, &advice_stack, store, advice_map.into_iter());
 
-    expect_exec_error_matches!(test, ExecutionError::MalformedSignatureKey("RPO Falcon512"));
+    // Corresponds to `FalconSignatureError::MalformedSignatureKey("RPO Falcon512")`
+    match test.execute() {
+        Err(ExecutionError::EventError(e)) => {
+            assert_eq!(e.to_string(), "malformed signature key: RPO Falcon512");
+        },
+        _ => panic!("expected execution to fail"),
+    };
 }

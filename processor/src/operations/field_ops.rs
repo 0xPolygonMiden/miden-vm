@@ -221,13 +221,13 @@ impl Process {
 #[cfg(test)]
 mod tests {
     use test_utils::rand::rand_value;
-    use vm_core::{ONE, ZERO};
+    use vm_core::{AdviceInputs, ONE, ZERO};
 
     use super::{
         super::{Felt, FieldElement, Operation, MIN_STACK_DEPTH},
         Process,
     };
-    use crate::{AdviceInputs, DefaultHost, StackInputs};
+    use crate::{DefaultHost, StackInputs};
 
     // ARITHMETIC OPERATIONS
     // --------------------------------------------------------------------------------------------

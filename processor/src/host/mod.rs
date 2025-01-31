@@ -1,12 +1,13 @@
 use alloc::{boxed::Box, sync::Arc, vec::Vec};
 
-use vm_core::{crypto::hash::RpoDigest, mast::MastForest, DebugOptions};
+use vm_core::{
+    crypto::hash::RpoDigest, mast::MastForest, AdviceProvider, AdviceProviderError, DebugOptions,
+};
 
 use super::{ExecutionError, ProcessState};
 use crate::{KvMap, MemAdviceProvider};
 
 pub(super) mod advice;
-use advice::AdviceProvider;
 
 #[cfg(feature = "std")]
 mod debug;
@@ -112,11 +113,12 @@ where
 // ================================================================================================
 
 pub trait HostLibrary {
-    // Returns all event handlers
+    // Returns all event handlers provided by the library.
     fn get_event_handlers<A>(&self) -> Vec<Box<dyn EventHandler<A>>>
     where
         A: AdviceProvider + 'static;
 
+    // Returns the MAST forest corresponding to the compiled MASM library.
     fn get_mast_forest(&self) -> Arc<MastForest>;
 }
 
@@ -199,7 +201,9 @@ where
         for (digest, values) in mast_forest.advice_map().iter() {
             if let Some(stored_values) = self.advice_provider().get_mapped_values(digest) {
                 if stored_values != values {
-                    return Err(ExecutionError::AdviceMapKeyAlreadyPresent(digest.into()));
+                    return Err(ExecutionError::AdviceProviderError(
+                        AdviceProviderError::AdviceMapKeyAlreadyPresent(digest.into()),
+                    ));
                 }
             } else {
                 self.advice_provider_mut().insert_into_map(digest.into(), values.clone());
@@ -247,7 +251,9 @@ where
             .get_event_handler(event_id)
             .ok_or_else(|| ExecutionError::EventHandlerNotFound { event_id, clk: process.clk() })?;
 
-        handler.on_event(process, &mut self.adv_provider)
+        handler
+            .on_event(process, &mut self.adv_provider)
+            .map_err(ExecutionError::EventError)
     }
 
     fn on_debug(

@@ -1,6 +1,6 @@
 use alloc::vec::Vec;
 
-use vm_core::{
+use crate::{
     crypto::{
         hash::RpoDigest,
         merkle::{InnerNodeInfo, MerkleStore},
@@ -24,7 +24,6 @@ use vm_core::{
 /// 2. Key-mapped element lists which can be pushed onto the advice stack.
 /// 3. Merkle store, which is used to provide nondeterministic inputs for instructions that operates
 ///    with Merkle trees.
-#[cfg(not(feature = "testing"))]
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct AdviceInputs {
     stack: Vec<Felt>,
@@ -132,7 +131,7 @@ impl AdviceInputs {
 
     /// Decomposes these `[Self]` into their raw components.
     #[allow(clippy::type_complexity)]
-    pub(crate) fn into_parts(self) -> (Vec<Felt>, AdviceMap, MerkleStore) {
+    pub fn into_parts(self) -> (Vec<Felt>, AdviceMap, MerkleStore) {
         let Self { stack, map, store } = self;
         (stack, map, store)
     }
@@ -156,17 +155,6 @@ impl Deserializable for AdviceInputs {
     }
 }
 
-// TESTING
-// ================================================================================================
-
-#[cfg(feature = "testing")]
-#[derive(Clone, Debug, Default, PartialEq, Eq)]
-pub struct AdviceInputs {
-    pub stack: Vec<Felt>,
-    pub map: AdviceMap,
-    pub store: MerkleStore,
-}
-
 // TESTS
 // ================================================================================================
 
@@ -174,7 +162,7 @@ pub struct AdviceInputs {
 mod tests {
     use winter_utils::{Deserializable, Serializable};
 
-    use crate::AdviceInputs;
+    use crate::advice::AdviceInputs;
 
     #[test]
     fn test_advice_inputs_eq() {

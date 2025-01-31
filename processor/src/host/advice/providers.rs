@@ -1,14 +1,14 @@
 use alloc::{collections::BTreeMap, vec::Vec};
 
-use vm_core::crypto::merkle::{MerkleStore, NodeIndex, StoreNode};
+use vm_core::{
+    crypto::{
+        hash::RpoDigest,
+        merkle::{MerklePath, MerkleStore, NodeIndex, StoreNode},
+    },
+    AdviceInputs, AdviceProvider, AdviceProviderError, AdviceSource, Felt, Word,
+};
 
-use super::{
-    AdviceInputs, AdviceProvider, AdviceSource, ExecutionError, Felt, MerklePath, RpoDigest, Word,
-};
-use crate::{
-    utils::collections::{KvMap, RecordingMap},
-    ProcessState,
-};
+use crate::utils::collections::{KvMap, RecordingMap};
 
 // TYPE ALIASES
 // ================================================================================================
@@ -59,13 +59,13 @@ where
     // ADVICE STACK
     // --------------------------------------------------------------------------------------------
 
-    fn pop_stack(&mut self, process: ProcessState) -> Result<Felt, ExecutionError> {
-        self.stack.pop().ok_or(ExecutionError::AdviceStackReadFailed(process.clk()))
+    fn pop_stack(&mut self) -> Result<Felt, AdviceProviderError> {
+        self.stack.pop().ok_or(AdviceProviderError::AdviceStackReadFailed)
     }
 
-    fn pop_stack_word(&mut self, process: ProcessState) -> Result<Word, ExecutionError> {
+    fn pop_stack_word(&mut self) -> Result<Word, AdviceProviderError> {
         if self.stack.len() < 4 {
-            return Err(ExecutionError::AdviceStackReadFailed(process.clk()));
+            return Err(AdviceProviderError::AdviceStackReadFailed);
         }
 
         let idx = self.stack.len() - 4;
@@ -77,14 +77,14 @@ where
         Ok(result)
     }
 
-    fn pop_stack_dword(&mut self, process: ProcessState) -> Result<[Word; 2], ExecutionError> {
-        let word0 = self.pop_stack_word(process)?;
-        let word1 = self.pop_stack_word(process)?;
+    fn pop_stack_dword(&mut self) -> Result<[Word; 2], AdviceProviderError> {
+        let word0 = self.pop_stack_word()?;
+        let word1 = self.pop_stack_word()?;
 
         Ok([word0, word1])
     }
 
-    fn push_stack(&mut self, source: AdviceSource) -> Result<(), ExecutionError> {
+    fn push_stack(&mut self, source: AdviceSource) -> Result<(), AdviceProviderError> {
         match source {
             AdviceSource::Value(value) => {
                 self.stack.push(value);
@@ -93,8 +93,10 @@ where
                 self.stack.extend(word.iter().rev());
             },
             AdviceSource::Map { key, include_len } => {
-                let values =
-                    self.map.get(&key.into()).ok_or(ExecutionError::AdviceMapKeyNotFound(key))?;
+                let values = self
+                    .map
+                    .get(&key.into())
+                    .ok_or(AdviceProviderError::AdviceMapKeyNotFound(key))?;
 
                 self.stack.extend(values.iter().rev());
                 if include_len {
@@ -126,14 +128,14 @@ where
         root: Word,
         depth: &Felt,
         index: &Felt,
-    ) -> Result<Word, ExecutionError> {
+    ) -> Result<Word, AdviceProviderError> {
         let index = NodeIndex::from_elements(depth, index).map_err(|_| {
-            ExecutionError::InvalidMerkleTreeNodeIndex { depth: *depth, value: *index }
+            AdviceProviderError::InvalidMerkleTreeNodeIndex { depth: *depth, value: *index }
         })?;
         self.store
             .get_node(root.into(), index)
             .map(|v| v.into())
-            .map_err(ExecutionError::MerkleStoreLookupFailed)
+            .map_err(AdviceProviderError::MerkleStoreLookupFailed)
     }
 
     fn get_merkle_path(
@@ -141,14 +143,14 @@ where
         root: Word,
         depth: &Felt,
         index: &Felt,
-    ) -> Result<MerklePath, ExecutionError> {
+    ) -> Result<MerklePath, AdviceProviderError> {
         let index = NodeIndex::from_elements(depth, index).map_err(|_| {
-            ExecutionError::InvalidMerkleTreeNodeIndex { depth: *depth, value: *index }
+            AdviceProviderError::InvalidMerkleTreeNodeIndex { depth: *depth, value: *index }
         })?;
         self.store
             .get_path(root.into(), index)
             .map(|value| value.path)
-            .map_err(ExecutionError::MerkleStoreLookupFailed)
+            .map_err(AdviceProviderError::MerkleStoreLookupFailed)
     }
 
     fn get_leaf_depth(
@@ -156,12 +158,12 @@ where
         root: Word,
         tree_depth: &Felt,
         index: &Felt,
-    ) -> Result<u8, ExecutionError> {
+    ) -> Result<u8, AdviceProviderError> {
         let tree_depth = u8::try_from(tree_depth.as_int())
-            .map_err(|_| ExecutionError::InvalidMerkleTreeDepth { depth: *tree_depth })?;
+            .map_err(|_| AdviceProviderError::InvalidMerkleTreeDepth { depth: *tree_depth })?;
         self.store
             .get_leaf_depth(root.into(), tree_depth, index.as_int())
-            .map_err(ExecutionError::MerkleStoreLookupFailed)
+            .map_err(AdviceProviderError::MerkleStoreLookupFailed)
     }
 
     fn update_merkle_node(
@@ -170,21 +172,21 @@ where
         depth: &Felt,
         index: &Felt,
         value: Word,
-    ) -> Result<(MerklePath, Word), ExecutionError> {
+    ) -> Result<(MerklePath, Word), AdviceProviderError> {
         let node_index = NodeIndex::from_elements(depth, index).map_err(|_| {
-            ExecutionError::InvalidMerkleTreeNodeIndex { depth: *depth, value: *index }
+            AdviceProviderError::InvalidMerkleTreeNodeIndex { depth: *depth, value: *index }
         })?;
         self.store
             .set_node(root.into(), node_index, value.into())
             .map(|root| (root.path, root.root.into()))
-            .map_err(ExecutionError::MerkleStoreUpdateFailed)
+            .map_err(AdviceProviderError::MerkleStoreUpdateFailed)
     }
 
-    fn merge_roots(&mut self, lhs: Word, rhs: Word) -> Result<Word, ExecutionError> {
+    fn merge_roots(&mut self, lhs: Word, rhs: Word) -> Result<Word, AdviceProviderError> {
         self.store
             .merge_roots(lhs.into(), rhs.into())
             .map(|v| v.into())
-            .map_err(ExecutionError::MerkleStoreMergeFailed)
+            .map_err(AdviceProviderError::MerkleStoreMergeFailed)
     }
 }
 
@@ -233,19 +235,19 @@ impl MemAdviceProvider {
 /// TODO: potentially do this via a macro.
 #[rustfmt::skip]
 impl AdviceProvider for MemAdviceProvider {
-    fn pop_stack(&mut self, process: ProcessState)-> Result<Felt, ExecutionError> {
-        self.provider.pop_stack(process)
+    fn pop_stack(&mut self)-> Result<Felt, AdviceProviderError> {
+        self.provider.pop_stack()
     }
 
-    fn pop_stack_word(&mut self, process: ProcessState) -> Result<Word, ExecutionError> {
-        self.provider.pop_stack_word(process)
+    fn pop_stack_word(&mut self) -> Result<Word, AdviceProviderError> {
+        self.provider.pop_stack_word()
     }
 
-    fn pop_stack_dword(&mut self, process: ProcessState) -> Result<[Word; 2], ExecutionError> {
-        self.provider.pop_stack_dword(process)
+    fn pop_stack_dword(&mut self) -> Result<[Word; 2], AdviceProviderError> {
+        self.provider.pop_stack_dword()
     }
 
-    fn push_stack(&mut self, source: AdviceSource) -> Result<(), ExecutionError> {
+    fn push_stack(&mut self, source: AdviceSource) -> Result<(), AdviceProviderError> {
         self.provider.push_stack(source)
     }
 
@@ -257,23 +259,23 @@ impl AdviceProvider for MemAdviceProvider {
         self.provider.get_mapped_values(key)
     }
 
-    fn get_tree_node(&self, root: Word, depth: &Felt, index: &Felt) -> Result<Word, ExecutionError> {
+    fn get_tree_node(&self, root: Word, depth: &Felt, index: &Felt) -> Result<Word, AdviceProviderError> {
         self.provider.get_tree_node(root, depth, index)
     }
 
-    fn get_merkle_path(&self, root: Word, depth: &Felt, index: &Felt) -> Result<MerklePath, ExecutionError> {
+    fn get_merkle_path(&self, root: Word, depth: &Felt, index: &Felt) -> Result<MerklePath, AdviceProviderError> {
         self.provider.get_merkle_path(root, depth, index)
     }
 
-    fn get_leaf_depth(&self, root: Word, tree_depth: &Felt, index: &Felt) -> Result<u8, ExecutionError> {
+    fn get_leaf_depth(&self, root: Word, tree_depth: &Felt, index: &Felt) -> Result<u8, AdviceProviderError> {
         self.provider.get_leaf_depth(root, tree_depth, index)
     }
 
-    fn update_merkle_node(&mut self, root: Word, depth: &Felt, index: &Felt, value: Word) -> Result<(MerklePath, Word), ExecutionError> {
+    fn update_merkle_node(&mut self, root: Word, depth: &Felt, index: &Felt, value: Word) -> Result<(MerklePath, Word), AdviceProviderError> {
         self.provider.update_merkle_node(root, depth, index, value)
     }
 
-    fn merge_roots(&mut self, lhs: Word, rhs: Word) -> Result<Word, ExecutionError> {
+    fn merge_roots(&mut self, lhs: Word, rhs: Word) -> Result<Word, AdviceProviderError> {
         self.provider.merge_roots(lhs, rhs)
     }
 }
@@ -339,19 +341,19 @@ impl RecAdviceProvider {
 /// TODO: potentially do this via a macro.
 #[rustfmt::skip]
 impl AdviceProvider for RecAdviceProvider {
-    fn pop_stack(&mut self, process: ProcessState) -> Result<Felt, ExecutionError> {
-        self.provider.pop_stack(process)
+    fn pop_stack(&mut self) -> Result<Felt, AdviceProviderError> {
+        self.provider.pop_stack()
     }
 
-    fn pop_stack_word(&mut self, process: ProcessState) -> Result<Word, ExecutionError> {
-        self.provider.pop_stack_word(process)
+    fn pop_stack_word(&mut self) -> Result<Word, AdviceProviderError> {
+        self.provider.pop_stack_word()
     }
 
-    fn pop_stack_dword(&mut self, process: ProcessState) -> Result<[Word; 2], ExecutionError> {
-        self.provider.pop_stack_dword(process)
+    fn pop_stack_dword(&mut self) -> Result<[Word; 2], AdviceProviderError> {
+        self.provider.pop_stack_dword()
     }
 
-    fn push_stack(&mut self, source: AdviceSource) -> Result<(), ExecutionError> {
+    fn push_stack(&mut self, source: AdviceSource) -> Result<(), AdviceProviderError> {
         self.provider.push_stack(source)
     }
 
@@ -363,23 +365,23 @@ impl AdviceProvider for RecAdviceProvider {
         self.provider.get_mapped_values(key)
     }
 
-    fn get_tree_node(&self, root: Word, depth: &Felt, index: &Felt) -> Result<Word, ExecutionError> {
+    fn get_tree_node(&self, root: Word, depth: &Felt, index: &Felt) -> Result<Word, AdviceProviderError> {
         self.provider.get_tree_node(root, depth, index)
     }
 
-    fn get_merkle_path(&self, root: Word, depth: &Felt, index: &Felt) -> Result<MerklePath, ExecutionError> {
+    fn get_merkle_path(&self, root: Word, depth: &Felt, index: &Felt) -> Result<MerklePath, AdviceProviderError> {
         self.provider.get_merkle_path(root, depth, index)
     }
 
-    fn get_leaf_depth(&self, root: Word, tree_depth: &Felt, index: &Felt) -> Result<u8, ExecutionError> {
+    fn get_leaf_depth(&self, root: Word, tree_depth: &Felt, index: &Felt) -> Result<u8, AdviceProviderError> {
         self.provider.get_leaf_depth(root, tree_depth, index)
     }
 
-    fn update_merkle_node(&mut self, root: Word, depth: &Felt, index: &Felt, value: Word) -> Result<(MerklePath, Word), ExecutionError> {
+    fn update_merkle_node(&mut self, root: Word, depth: &Felt, index: &Felt, value: Word) -> Result<(MerklePath, Word), AdviceProviderError> {
         self.provider.update_merkle_node(root, depth, index, value)
     }
 
-    fn merge_roots(&mut self, lhs: Word, rhs: Word) -> Result<Word, ExecutionError> {
+    fn merge_roots(&mut self, lhs: Word, rhs: Word) -> Result<Word, AdviceProviderError> {
         self.provider.merge_roots(lhs, rhs)
     }
 }

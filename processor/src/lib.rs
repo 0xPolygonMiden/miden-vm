@@ -27,7 +27,7 @@ use vm_core::{
     mast::{
         BasicBlockNode, CallNode, DynNode, JoinNode, LoopNode, OpBatch, SplitNode, OP_GROUP_SIZE,
     },
-    Decorator, DecoratorIterator, FieldElement,
+    AdviceProvider, AdviceProviderError, AdviceSource, Decorator, DecoratorIterator, FieldElement,
 };
 pub use winter_prover::matrix::ColMatrix;
 
@@ -48,7 +48,7 @@ use range::RangeChecker;
 
 mod host;
 pub use host::{
-    advice::{AdviceInputs, AdviceProvider, AdviceSource, MemAdviceProvider, RecAdviceProvider},
+    advice::{MemAdviceProvider, RecAdviceProvider},
     DebugHandler, DefaultDebugHandler, DefaultHost, DefaultTraceHandler, EventHandler, Host,
     HostLibrary, MastForestStore, MemMastForestStore, TraceHandler,
 };
@@ -241,7 +241,9 @@ impl Process {
         for (digest, values) in program.mast_forest().advice_map().iter() {
             if let Some(stored_values) = host.advice_provider().get_mapped_values(digest) {
                 if stored_values != values {
-                    return Err(ExecutionError::AdviceMapKeyAlreadyPresent(digest.into()));
+                    return Err(ExecutionError::AdviceProviderError(
+                        AdviceProviderError::AdviceMapKeyAlreadyPresent(digest.into()),
+                    ));
                 }
             } else {
                 host.advice_provider_mut().insert_into_map(digest.into(), values.clone());

@@ -1,17 +1,20 @@
 use alloc::boxed::Box;
+use core::error::Error;
 use std::collections::BTreeMap;
 
-use crate::{ExecutionError, ProcessState};
+use crate::ProcessState;
 
 pub trait EventHandler<A> {
     fn id(&self) -> u32;
 
-    // TODO(plafer): not sure if returning `ExecutionError` is the best choice
+    // TODO(plafer): `ProcessState` is a processor type, which can't be moved to core as-is. But we
+    // want `EventHandler` to be in core. How to fix this? The solution is probably to provide a
+    // `ProcessState` trait in core.
     fn on_event(
         &mut self,
         process: ProcessState,
         advice_provider: &mut A,
-    ) -> Result<(), ExecutionError>;
+    ) -> Result<(), Box<dyn Error + Send + Sync + 'static>>;
 }
 
 #[derive(Default)]

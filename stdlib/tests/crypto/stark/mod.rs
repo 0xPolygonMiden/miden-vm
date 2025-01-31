@@ -2,10 +2,9 @@ mod verifier_recursive;
 use assembly::Assembler;
 use miden_air::{FieldExtension, HashFunction, PublicInputs};
 use processor::{DefaultHost, Program, ProgramInfo};
-use test_utils::{
-    prove, AdviceInputs, MemAdviceProvider, ProvingOptions, StackInputs, VerifierError,
-};
+use test_utils::{prove, MemAdviceProvider, ProvingOptions, StackInputs, VerifierError};
 use verifier_recursive::{generate_advice_inputs, VerifierData};
+use vm_core::AdviceInputs;
 
 // Note: Changes to MidenVM may cause this test to fail when some of the assumptions documented
 // in `stdlib/asm/crypto/stark/verifier.masm` are violated.

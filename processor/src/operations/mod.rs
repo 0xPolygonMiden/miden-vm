@@ -178,12 +178,10 @@ impl Process {
 #[cfg(test)]
 pub mod testing {
     use miden_air::ExecutionOptions;
-    use vm_core::StackInputs;
+    use vm_core::{AdviceInputs, StackInputs};
 
     use super::*;
-    use crate::{
-        AdviceInputs, DefaultDebugHandler, DefaultHost, DefaultTraceHandler, MemAdviceProvider,
-    };
+    use crate::{DefaultDebugHandler, DefaultHost, DefaultTraceHandler, MemAdviceProvider};
 
     impl Process {
         /// Instantiates a new blank process for testing purposes. The stack in the process is

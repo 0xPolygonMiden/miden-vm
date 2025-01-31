@@ -3,16 +3,16 @@
 extern crate alloc;
 
 use alloc::{boxed::Box, sync::Arc, vec::Vec};
+use alloc::vec;
+use core::error::Error;
 
 use assembly::{
     mast::MastForest,
     utils::{sync::LazyLock, Deserializable},
     Library,
 };
-use processor::{
-    AdviceProvider, AdviceSource, EventHandler, ExecutionError, HostLibrary, ProcessState,
-};
-use vm_core::{Felt, Word};
+use processor::{EventHandler, HostLibrary, ProcessState};
+use vm_core::{AdviceProvider, AdviceProviderError, AdviceSource, Felt, Word};
 
 mod dsa;
 
@@ -64,9 +64,7 @@ impl HostLibrary for StdLibrary {
     {
         // TODO(plafer): add `with_falcon_sig_handler()` method to `StdLibrary` to allow customizing
         // how Falcon signatures are handled
-        let mut handlers: Vec<Box<dyn EventHandler<A>>> = Vec::new();
-        handlers.push(Box::new(FalconSigToStackHandler::default()));
-        handlers
+        vec![Box::new(FalconSigToStackHandler::default())]
     }
 
     fn get_mast_forest(&self) -> Arc<MastForest> {
@@ -102,11 +100,12 @@ where
         EVENT_FALCON_SIG_TO_STACK
     }
 
+    // TODO(plafer): Probably best to have a specific error type for this
     fn on_event(
         &mut self,
         process: ProcessState,
         advice_provider: &mut A,
-    ) -> Result<(), ExecutionError> {
+    ) -> Result<(), Box<dyn Error + Send + Sync + 'static>> {
         let pub_key = process.get_stack_word(0);
         let msg = process.get_stack_word(1);
 
@@ -127,7 +126,7 @@ pub trait FalconSigHandler<A> {
         pub_key: Word,
         msg: Word,
         advice_provider: &A,
-    ) -> Result<Vec<Felt>, ExecutionError>
+    ) -> Result<Vec<Felt>, Box<dyn Error + Send + Sync + 'static>>
     where
         A: AdviceProvider;
 }
@@ -140,13 +139,13 @@ impl<A> FalconSigHandler<A> for DefaultFalconSigHandler {
         pub_key: Word,
         msg: Word,
         advice_provider: &A,
-    ) -> Result<Vec<Felt>, ExecutionError>
+    ) -> Result<Vec<Felt>, Box<dyn Error + Send + Sync + 'static>>
     where
         A: AdviceProvider,
     {
         let pk_sk = advice_provider
             .get_mapped_values(&pub_key.into())
-            .ok_or(ExecutionError::AdviceMapKeyNotFound(pub_key))?;
+            .ok_or(AdviceProviderError::AdviceMapKeyNotFound(pub_key))?;
 
         dsa::falcon_sign(pk_sk, msg)
     }

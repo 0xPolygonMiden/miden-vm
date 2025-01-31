@@ -17,8 +17,8 @@ pub use assembly::{diagnostics::Report, LibraryPath, SourceFile, SourceManager};
 use assembly::{KernelLibrary, Library};
 pub use pretty_assertions::{assert_eq, assert_ne, assert_str_eq};
 pub use processor::{
-    AdviceInputs, AdviceProvider, ContextId, DefaultHost, ExecutionError, ExecutionOptions,
-    ExecutionTrace, Process, ProcessState, VmStateIterator,
+    ContextId, DefaultHost, ExecutionError, ExecutionOptions, ExecutionTrace, Process,
+    ProcessState, VmStateIterator,
 };
 use processor::{DefaultDebugHandler, DefaultTraceHandler, Program};
 #[cfg(not(target_family = "wasm"))]
@@ -27,7 +27,7 @@ use prover::utils::range;
 pub use prover::{prove, MemAdviceProvider, MerkleTreeVC, ProvingOptions};
 pub use test_case::test_case;
 pub use verifier::{verify, AcceptableOptions, VerifierError};
-use vm_core::{chiplets::hasher::apply_permutation, ProgramInfo};
+use vm_core::{chiplets::hasher::apply_permutation, AdviceInputs, ProgramInfo};
 pub use vm_core::{
     chiplets::hasher::{hash_elements, STATE_WIDTH},
     stack::MIN_STACK_DEPTH,

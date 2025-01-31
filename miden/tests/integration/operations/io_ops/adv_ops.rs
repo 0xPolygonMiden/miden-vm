@@ -1,6 +1,6 @@
-use processor::{ExecutionError, RowIndex};
+use processor::ExecutionError;
 use test_utils::expect_exec_error_matches;
-use vm_core::{chiplets::hasher::apply_permutation, utils::ToElements, Felt};
+use vm_core::{chiplets::hasher::apply_permutation, utils::ToElements, AdviceProviderError, Felt};
 
 use super::{build_op_test, build_test, TRUNCATE_STACK_PROC};
 
@@ -34,7 +34,7 @@ fn adv_push_invalid() {
     let test = build_op_test!("adv_push.1");
     expect_exec_error_matches!(
         test,
-        ExecutionError::AdviceStackReadFailed(row_idx) if row_idx == RowIndex::from(2)
+        ExecutionError::AdviceProviderError(AdviceProviderError::AdviceStackReadFailed)
     );
 }
 
@@ -58,7 +58,7 @@ fn adv_loadw_invalid() {
     let test = build_op_test!("adv_loadw", &[0, 0, 0, 0]);
     expect_exec_error_matches!(
         test,
-        ExecutionError::AdviceStackReadFailed(row_idx) if row_idx == RowIndex::from(2)
+        ExecutionError::AdviceProviderError(AdviceProviderError::AdviceStackReadFailed)
     );
 }
 

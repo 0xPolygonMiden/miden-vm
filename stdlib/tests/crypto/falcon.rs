@@ -4,8 +4,8 @@ use assembly::{utils::Serializable, Assembler};
 use miden_air::{Felt, ProvingOptions, RowIndex};
 use miden_stdlib::StdLibrary;
 use processor::{
-    crypto::RpoRandomCoin, AdviceInputs, DefaultHost, Digest, ExecutionError, MemAdviceProvider,
-    Program, ProgramInfo, StackInputs,
+    crypto::RpoRandomCoin, DefaultHost, Digest, ExecutionError, MemAdviceProvider, Program,
+    ProgramInfo, StackInputs,
 };
 use rand::{thread_rng, Rng};
 use test_utils::{
@@ -17,6 +17,7 @@ use test_utils::{
     rand::{rand_value, rand_vector},
     FieldElement, QuadFelt, Word, WORD_SIZE,
 };
+use vm_core::AdviceInputs;
 
 /// Modulus used for rpo falcon 512.
 const M: u64 = 12289;
