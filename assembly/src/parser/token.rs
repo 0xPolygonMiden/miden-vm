@@ -197,6 +197,8 @@ pub enum Token<'input> {
     Gt,
     Gte,
     Hash,
+    HornerBase,
+    HornerExt,
     Hperm,
     Hmerge,
     If,
@@ -423,6 +425,8 @@ impl fmt::Display for Token<'_> {
             Token::Procref => write!(f, "procref"),
             Token::Push => write!(f, "push"),
             Token::RCombBase => write!(f, "rcomb_base"),
+            Token::HornerBase => write!(f, "horner_eval_base"),
+            Token::HornerExt => write!(f, "horner_eval_ext"),
             Token::Repeat => write!(f, "repeat"),
             Token::RpoFalcon512 => write!(f, "rpo_falcon512"),
             Token::Sdepth => write!(f, "sdepth"),
@@ -572,6 +576,8 @@ impl<'input> Token<'input> {
                 | Token::Hash
                 | Token::Hperm
                 | Token::Hmerge
+                | Token::HornerBase
+                | Token::HornerExt
                 | Token::ILog2
                 | Token::Inv
                 | Token::IsOdd
@@ -763,6 +769,8 @@ impl<'input> Token<'input> {
         ("procref", Token::Procref),
         ("push", Token::Push),
         ("rcomb_base", Token::RCombBase),
+        ("horner_eval_base", Token::HornerBase),
+        ("horner_eval_ext", Token::HornerExt),
         ("repeat", Token::Repeat),
         ("rpo_falcon512", Token::RpoFalcon512),
         ("sdepth", Token::Sdepth),

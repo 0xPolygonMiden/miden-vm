@@ -395,6 +395,8 @@ impl Assembler {
             // ----- STARK proof verification -----------------------------------------------------
             Instruction::FriExt2Fold4 => block_builder.push_op(FriE2F4),
             Instruction::RCombBase => block_builder.push_op(RCombBase),
+            Instruction::HornerBase => block_builder.push_op(HornerBase),
+            Instruction::HornerExt => block_builder.push_op(HornerExt),
 
             // ----- exec/call instructions -------------------------------------------------------
             Instruction::Exec(ref callee) => {
