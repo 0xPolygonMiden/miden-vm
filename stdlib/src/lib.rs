@@ -13,7 +13,7 @@ use assembly::{
 use processor::{EventHandler, HostLibrary, ProcessState};
 use vm_core::{AdviceProvider, AdviceProviderError, AdviceSource, Felt, Word};
 
-mod dsa;
+pub mod dsa;
 
 // STANDARD LIBRARY
 // ================================================================================================
@@ -142,7 +142,7 @@ where
 
 /// A trait for signing messages using the Falcon signature scheme.
 ///
-/// This trait is used by [FalconSigToStackHandler] to sign messages using the Falcon signature
+/// This trait is used by [FalconSigToStackEventHandler] to sign messages using the Falcon signature
 /// scheme.
 ///
 /// It is recommended to use [dsa::falcon_sign] to implement this trait once the private key has
