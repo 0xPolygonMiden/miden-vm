@@ -44,7 +44,7 @@ let program = assembler.assemble_program(&Path::new("./example.masm")).unwrap();
 As noted above, the default assembler is instantiated with nothing in it but
 the source code you provide. If you want to support more complex programs, you
 will want to factor code into libraries and modules, and then link all of them
-together at once. This can be acheived using a set of builder methods of the
+together at once. This can be achieved using a set of builder methods of the
 `Assembler` struct, e.g. `with_kernel_from_module`, `with_library`, etc.
 
 We'll look at a few of these in more detail below. See the module documentation
