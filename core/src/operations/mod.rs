@@ -108,12 +108,13 @@ pub(super) mod opcode_constants {
     pub const OPCODE_JOIN: u8       = 0b0101_0111;
     pub const OPCODE_DYN: u8        = 0b0101_1000;
     pub const OPCODE_RCOMBBASE: u8  = 0b0101_1001;
+    pub const OPCODE_HORNERBASE: u8  = 0b0111_1101; // TODO(Al): replace rcomb_base with this and switch with HORNEREXT
     pub const OPCODE_EMIT: u8       = 0b0101_1010;
     pub const OPCODE_PUSH: u8       = 0b0101_1011;
     pub const OPCODE_DYNCALL: u8    = 0b0101_1100;
 
     pub const OPCODE_MRUPDATE: u8   = 0b0110_0000;
-    /* unused:                        0b0110_0100 */
+    pub const OPCODE_HORNEREXT: u8  = 0b0110_0100;
     pub const OPCODE_SYSCALL: u8    = 0b0110_1000;
     pub const OPCODE_CALL: u8       = 0b0110_1100;
     pub const OPCODE_END: u8        = 0b0111_0000;
@@ -582,6 +583,31 @@ pub enum Operation {
     /// $r$ and $p$, respectively. This instruction is specialized to main trace columns i.e.
     /// the values $T_i(x)$ are base field elements.
     RCombBase = OPCODE_RCOMBBASE,
+
+    /// Performs 8 steps of the Horner evaluation method on a polynomial with coefficients over
+    /// the base field, i.e., it computes
+    ///
+    /// acc' = (((acc_tmp * alpha + c3) * alpha + c2) * alpha + c1) * alpha + c0
+    ///
+    /// where
+    ///
+    /// acc_tmp := (((acc * alpha + c7) * alpha + c6) * alpha + c5) * alpha + c4
+    ///
+    ///
+    /// In other words, the intsruction computes the evaluation at alpha of the polynomial
+    ///
+    /// P(X) := c7 * X^7 + c6 * X^6 + ... + c1 * X + c0
+    HornerBase = OPCODE_HORNERBASE,
+
+    /// Performs 4 steps of the Horner evaluation method on a polynomial with coefficients over
+    /// the extension field, i.e., it computes
+    ///
+    /// acc' = (((acc * alpha + c3) * alpha + c2) * alpha + c1) * alpha + c0
+    ///
+    /// In other words, the intsruction computes the evaluation at alpha of the polynomial
+    ///
+    /// P(X) := c3 * X^3 + c2 * X^2 + c1 * X + c0
+    HornerExt = OPCODE_HORNEREXT,
 }
 
 impl Operation {
@@ -759,6 +785,8 @@ impl fmt::Display for Operation {
             Self::MrUpdate => write!(f, "mrupdate"),
             Self::FriE2F4 => write!(f, "frie2f4"),
             Self::RCombBase => write!(f, "rcomb1"),
+            Self::HornerBase => write!(f, "horner_eval_base"),
+            Self::HornerExt => write!(f, "horner_eval_ext"),
         }
     }
 }
@@ -865,7 +893,9 @@ impl Serializable for Operation {
             | Operation::HPerm
             | Operation::MrUpdate
             | Operation::FriE2F4
-            | Operation::RCombBase => (),
+            | Operation::RCombBase
+            | Operation::HornerBase
+            | Operation::HornerExt => (),
         }
     }
 }
@@ -973,6 +1003,8 @@ impl Deserializable for Operation {
             OPCODE_DYN => Self::Dyn,
             OPCODE_DYNCALL => Self::Dyncall,
             OPCODE_RCOMBBASE => Self::RCombBase,
+            OPCODE_HORNERBASE => Self::HornerBase,
+            OPCODE_HORNEREXT => Self::HornerExt,
 
             OPCODE_MRUPDATE => Self::MrUpdate,
             OPCODE_PUSH => {

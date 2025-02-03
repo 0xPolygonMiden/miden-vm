@@ -342,7 +342,7 @@ where
         | PushU32List(_) | PushFeltList(_) | Sdepth | Caller | Clk | MemLoad | MemLoadW
         | MemStore | MemStoreW | MemStream | AdvPipe | AdvLoadW | Hash | HMerge | HPerm
         | MTreeGet | MTreeSet | MTreeMerge | MTreeVerify | FriExt2Fold4 | RCombBase | DynExec
-        | DynCall | Breakpoint => ControlFlow::Continue(()),
+        | DynCall | Breakpoint | HornerBase | HornerExt => ControlFlow::Continue(()),
     }
 }
 
@@ -767,7 +767,7 @@ where
         | PushU32List(_) | PushFeltList(_) | Sdepth | Caller | Clk | MemLoad | MemLoadW
         | MemStore | MemStoreW | MemStream | AdvPipe | AdvLoadW | Hash | HMerge | HPerm
         | MTreeGet | MTreeSet | MTreeMerge | MTreeVerify | FriExt2Fold4 | RCombBase | DynExec
-        | DynCall | Breakpoint => ControlFlow::Continue(()),
+        | DynCall | Breakpoint | HornerBase | HornerExt => ControlFlow::Continue(()),
     }
 }
 

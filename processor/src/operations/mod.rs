@@ -7,6 +7,7 @@ mod crypto_ops;
 mod ext2_ops;
 mod field_ops;
 mod fri_ops;
+mod horner_ops;
 mod io_ops;
 mod stack_ops;
 mod sys_ops;
@@ -154,6 +155,8 @@ impl Process {
             Operation::MrUpdate => self.op_mrupdate(host)?,
             Operation::FriE2F4 => self.op_fri_ext2fold4()?,
             Operation::RCombBase => self.op_rcomb_base()?,
+            Operation::HornerBase => self.op_horner_eval_base()?,
+            Operation::HornerExt => self.op_horner_eval_ext()?,
         }
 
         self.advance_clock()?;
