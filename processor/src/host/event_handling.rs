@@ -1,5 +1,5 @@
 use alloc::{boxed::Box, collections::btree_map::Entry};
-use core::error::Error;
+use core::{error::Error, marker::PhantomData};
 use std::collections::BTreeMap;
 
 use crate::{ExecutionError, ProcessState};
@@ -51,5 +51,38 @@ impl<A> EventHandlerRegistry<A> {
 
     pub fn get_event_handler(&mut self, event_id: u32) -> Option<&mut Box<dyn EventHandler<A>>> {
         self.handlers.get_mut(&event_id)
+    }
+}
+
+// NOOP EVENT HANDLER
+// ================================================================================================
+
+/// An event handler that does nothing.
+pub struct NoopEventHandler<A> {
+    id: u32,
+    _advice_provider: PhantomData<A>,
+}
+
+impl<A> NoopEventHandler<A>
+where
+    A: 'static,
+{
+    /// Creates a new dummy event handler with the specified ID.
+    pub fn new_boxed(id: u32) -> Box<dyn EventHandler<A>> {
+        Box::new(Self { id, _advice_provider: PhantomData })
+    }
+}
+
+impl<A> EventHandler<A> for NoopEventHandler<A> {
+    fn id(&self) -> u32 {
+        self.id
+    }
+
+    fn on_event(
+        &mut self,
+        _process: ProcessState,
+        _advice_provider: &mut A,
+    ) -> Result<(), Box<dyn Error + Send + Sync + 'static>> {
+        Ok(())
     }
 }

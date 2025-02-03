@@ -50,7 +50,7 @@ mod host;
 pub use host::{
     advice::{MemAdviceProvider, RecAdviceProvider},
     DebugHandler, DefaultHost, EventHandler, Host, HostLibrary, MastForestStore,
-    MemMastForestStore,
+    MemMastForestStore, NoopEventHandler,
 };
 
 mod chiplets;

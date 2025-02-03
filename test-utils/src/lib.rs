@@ -16,15 +16,16 @@ use alloc::{
 pub use assembly::{diagnostics::Report, LibraryPath, SourceFile, SourceManager};
 use assembly::{KernelLibrary, Library};
 pub use pretty_assertions::{assert_eq, assert_ne, assert_str_eq};
-use processor::Program;
 pub use processor::{
     ContextId, DefaultHost, ExecutionError, ExecutionOptions, ExecutionTrace, Process,
     ProcessState, VmStateIterator,
 };
+use processor::{NoopEventHandler, Program};
 #[cfg(not(target_family = "wasm"))]
 use proptest::prelude::{Arbitrary, Strategy};
 use prover::utils::range;
 pub use prover::{prove, MemAdviceProvider, MerkleTreeVC, ProvingOptions};
+use stdlib::StdLibrary;
 pub use test_case::test_case;
 pub use verifier::{verify, AcceptableOptions, VerifierError};
 use vm_core::{chiplets::hasher::apply_permutation, AdviceInputs, ProgramInfo};
@@ -336,6 +337,9 @@ impl Test {
         for library in &self.libraries {
             host.load_mast_forest(library.mast_forest().clone()).unwrap();
         }
+        host.load_library(&StdLibrary::default()).unwrap();
+        host.register_event_handlers([NoopEventHandler::new_boxed(1)].into_iter())
+            .unwrap();
         processor::execute(
             &program,
             self.stack_inputs.clone(),
@@ -358,6 +362,9 @@ impl Test {
         for library in &self.libraries {
             host.load_mast_forest(library.mast_forest().clone()).unwrap();
         }
+        host.load_library(&StdLibrary::default()).unwrap();
+        host.register_event_handlers([NoopEventHandler::new_boxed(1)].into_iter())
+            .unwrap();
 
         let mut process = Process::new(
             program.kernel().clone(),
@@ -382,6 +389,9 @@ impl Test {
         for library in &self.libraries {
             host.load_mast_forest(library.mast_forest().clone()).unwrap();
         }
+        host.load_library(&StdLibrary::default()).unwrap();
+        host.register_event_handlers([NoopEventHandler::new_boxed(1)].into_iter())
+            .unwrap();
         let (mut stack_outputs, proof) =
             prover::prove(&program, stack_inputs.clone(), &mut host, ProvingOptions::default())
                 .unwrap();

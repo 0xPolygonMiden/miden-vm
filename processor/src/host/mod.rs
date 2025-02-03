@@ -13,7 +13,7 @@ pub(super) mod advice;
 mod debug;
 
 mod event_handling;
-pub use event_handling::{EventHandler, EventHandlerRegistry};
+pub use event_handling::{EventHandler, EventHandlerRegistry, NoopEventHandler};
 
 mod mast_forest_store;
 pub use mast_forest_store::{MastForestStore, MemMastForestStore};
@@ -173,6 +173,16 @@ where
             .register_event_handlers(library.get_event_handlers().into_iter())?;
 
         Ok(())
+    }
+
+    /// Registers the provided event handlers with the host.
+    ///
+    /// Using [Self::load_library] is recommended over this method when loading a library.
+    pub fn register_event_handlers(
+        &mut self,
+        handlers: impl Iterator<Item = Box<dyn EventHandler<A>>> + 'static,
+    ) -> Result<(), ExecutionError> {
+        self.event_registry.register_event_handlers(handlers)
     }
 
     /// Loads the specified MAST forest into the host.
