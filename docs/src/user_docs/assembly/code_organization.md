@@ -181,7 +181,7 @@ Miden assembly supports constant declarations. These constants are scoped to the
 
 Constants must be declared right after module imports and before any procedures or program bodies. A constant's name must start with an upper-case letter and can contain any combination of numbers, upper-case ASCII letters, and underscores (`_`). The number of characters in a constant name cannot exceed 100.
 
-A constant's value must be in a decimal or hexidecimal form and be in the range between $0$ and $2^{64} - 2^{32}$ (both inclusive). Value can be defined by an arithmetic expression using `+`, `-`, `*`, `/`, `//`, `(`, `)` operators and references to the previously defined constants if it uses only decimal numbers. Here `/` is a field division and `//` is an integer division. Note that the arithmetic expression cannot contain spaces.
+A constant's value must be in a decimal or hexadecimal form and be in the range between $0$ and $2^{64} - 2^{32}$ (both inclusive). Value can be defined by an arithmetic expression using `+`, `-`, `*`, `/`, `//`, `(`, `)` operators and references to the previously defined constants if it uses only decimal numbers. Here `/` is a field division and `//` is an integer division. Note that the arithmetic expression cannot contain spaces.
 
 ```
 use.std::math::u64
