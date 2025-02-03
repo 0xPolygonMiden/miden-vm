@@ -26,7 +26,6 @@ mod constants {
     pub const EVENT_HDWORD_TO_MAP: u32                = 2391452729;
     pub const EVENT_HDWORD_TO_MAP_WITH_DOMAIN: u32    = 2822590340;
     pub const EVENT_HPERM_TO_MAP: u32                 = 3297060969;
-    // TODO(plafer): Move this to stdlib
     pub const EVENT_FALCON_DIV: u32                   = 3419226155;
 }
 
