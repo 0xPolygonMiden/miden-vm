@@ -29,6 +29,7 @@
 - Optimized the computation of the DEEP queries in the recursive verifier (#1594).
 - Added validity checks for the inputs to the recursive verifier (#1596).
 - Allow multiple memory reads in the same clock cycle (#1626)
+- Improved Falcon signiture verification (#1623).
 
 ## 0.11.0 (2024-11-04)
 
