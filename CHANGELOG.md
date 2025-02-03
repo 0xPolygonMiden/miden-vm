@@ -30,6 +30,7 @@
 - Added validity checks for the inputs to the recursive verifier (#1596).
 - Allow multiple memory reads in the same clock cycle (#1626)
 - Improved Falcon signiture verification (#1623).
+- Enable libraries to define event handlers (#1647)
 
 ## 0.11.0 (2024-11-04)
 
