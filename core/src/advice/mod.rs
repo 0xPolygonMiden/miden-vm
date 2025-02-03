@@ -117,12 +117,12 @@ pub trait AdviceProvider: Sized {
 
     /// Reconstructs a path from the root until a leaf or empty node and returns its depth.
     ///
-    /// For more information, check [crate::crypto::MerkleStore::get_leaf_depth].
+    /// For more information, check [crate::crypto::merkle::MerkleStore::get_leaf_depth].
     ///
     /// # Errors
     /// Will return an error if:
     /// - The provided `tree_depth` doesn't fit `u8`.
-    /// - The conditions of [crate::crypto::MerkleStore::get_leaf_depth] aren't met.
+    /// - The conditions of [crate::crypto::merkle::MerkleStore::get_leaf_depth] aren't met.
     fn get_leaf_depth(
         &self,
         root: Word,
