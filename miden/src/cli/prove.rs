@@ -100,7 +100,7 @@ impl ProveCmd {
         let stack_inputs = input_data.parse_stack_inputs().map_err(Report::msg)?;
         let mut host = DefaultHost::default()
             .with_advice_provider(input_data.parse_advice_provider().map_err(Report::msg)?);
-        host.load_mast_forest(StdLibrary::default().mast_forest().clone()).unwrap();
+        host.load_library(&StdLibrary::default()).unwrap();
 
         let proving_options =
             self.get_proof_options().map_err(|err| Report::msg(format!("{err}")))?;

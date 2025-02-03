@@ -236,6 +236,9 @@ impl Test {
         for library in &self.libraries {
             host.load_mast_forest(library.mast_forest().clone()).unwrap();
         }
+        host.load_library(&StdLibrary::default()).unwrap();
+        host.register_event_handlers([NoopEventHandler::new_boxed(1)].into_iter())
+            .unwrap();
 
         // execute the test
         let mut process = Process::new(
@@ -419,6 +422,10 @@ impl Test {
         for library in &self.libraries {
             host.load_mast_forest(library.mast_forest().clone()).unwrap();
         }
+        host.load_library(&StdLibrary::default()).unwrap();
+        host.register_event_handlers([NoopEventHandler::new_boxed(1)].into_iter())
+            .unwrap();
+
         processor::execute_iter(&program, self.stack_inputs.clone(), &mut host)
     }
 

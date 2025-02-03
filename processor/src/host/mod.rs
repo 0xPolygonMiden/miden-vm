@@ -165,7 +165,6 @@ where
     A: AdviceProvider + 'static,
     D: DebugHandler,
 {
-    // TODO(plafer): make sure we use this in the tests when it makes sense
     /// Loads the specified library into the host.
     pub fn load_library(&mut self, library: &impl HostLibrary) -> Result<(), ExecutionError> {
         self.load_mast_forest(library.get_mast_forest())?;

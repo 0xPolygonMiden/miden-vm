@@ -4,12 +4,12 @@ use std::collections::BTreeMap;
 
 use crate::{ExecutionError, ProcessState};
 
+/// Defines an interface for handling events emitted by the VM.
 pub trait EventHandler<A> {
+    /// Returns the ID of the event this handler is responsible for.
     fn id(&self) -> u32;
 
-    // TODO(plafer): `ProcessState` is a processor type, which can't be moved to core as-is. But we
-    // want `EventHandler` to be in core. How to fix this? The solution is probably to provide a
-    // `ProcessState` trait in core.
+    /// Mutates the advice provider based on the event emitted by the VM.
     fn on_event(
         &mut self,
         process: ProcessState,
@@ -17,12 +17,14 @@ pub trait EventHandler<A> {
     ) -> Result<(), Box<dyn Error + Send + Sync + 'static>>;
 }
 
+/// A registry of event handlers, indexed by event id.
 #[derive(Default)]
 pub struct EventHandlerRegistry<A> {
     handlers: BTreeMap<u32, Box<dyn EventHandler<A>>>,
 }
 
 impl<A> EventHandlerRegistry<A> {
+    /// Register an event handler with the registry.
     pub fn register_event_handler(
         &mut self,
         handler: Box<dyn EventHandler<A>>,
@@ -38,6 +40,7 @@ impl<A> EventHandlerRegistry<A> {
         }
     }
 
+    /// Register a set of event handlers with the registry.
     pub fn register_event_handlers(
         &mut self,
         handlers: impl Iterator<Item = Box<dyn EventHandler<A>>> + 'static,
@@ -49,6 +52,7 @@ impl<A> EventHandlerRegistry<A> {
         Ok(())
     }
 
+    /// Returns a mutable reference to the event handler for the specified event ID.
     pub fn get_event_handler(&mut self, event_id: u32) -> Option<&mut Box<dyn EventHandler<A>>> {
         self.handlers.get_mut(&event_id)
     }
@@ -67,7 +71,12 @@ impl<A> NoopEventHandler<A>
 where
     A: 'static,
 {
-    /// Creates a new dummy event handler with the specified ID.
+    /// Creates an event handler with the specified ID.
+    pub fn new(id: u32) -> Self {
+        Self { id, _advice_provider: PhantomData }
+    }
+
+    /// Creates an event handler with the specified ID.
     pub fn new_boxed(id: u32) -> Box<dyn EventHandler<A>> {
         Box::new(Self { id, _advice_provider: PhantomData })
     }

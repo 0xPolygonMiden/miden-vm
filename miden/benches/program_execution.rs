@@ -34,8 +34,7 @@ fn program_execution(c: &mut Criterion) {
                     },
                     Err(_) => (DefaultHost::default(), StackInputs::default()),
                 };
-                host.load_mast_forest(StdLibrary::default().as_ref().mast_forest().clone())
-                    .unwrap();
+                host.load_library(&StdLibrary::default()).unwrap();
 
                 // the name of the file without the extension
                 let source = std::fs::read_to_string(entry.path()).unwrap();
