@@ -27,7 +27,7 @@ use vm_core::{
     mast::{
         BasicBlockNode, CallNode, DynNode, JoinNode, LoopNode, OpBatch, SplitNode, OP_GROUP_SIZE,
     },
-    AdviceProvider, AdviceProviderError, AdviceSource, Decorator, DecoratorIterator, FieldElement,
+    Decorator, DecoratorIterator, FieldElement,
 };
 pub use winter_prover::matrix::ColMatrix;
 
@@ -88,6 +88,8 @@ pub mod crypto {
         random::{RandomCoin, RpoRandomCoin, RpxRandomCoin, WinterRandomCoin},
     };
 }
+
+pub use vm_core::{AdviceInputs, AdviceMap, AdviceProvider, AdviceProviderError, AdviceSource};
 
 // TYPE ALIASES
 // ================================================================================================

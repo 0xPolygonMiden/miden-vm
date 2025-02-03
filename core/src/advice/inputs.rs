@@ -130,7 +130,6 @@ impl AdviceInputs {
     // --------------------------------------------------------------------------------------------
 
     /// Decomposes these `[Self]` into their raw components.
-    #[allow(clippy::type_complexity)]
     pub fn into_parts(self) -> (Vec<Felt>, AdviceMap, MerkleStore) {
         let Self { stack, map, store } = self;
         (stack, map, store)
