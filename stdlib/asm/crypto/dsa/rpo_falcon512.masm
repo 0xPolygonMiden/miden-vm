@@ -13,6 +13,7 @@ const.SQUARE_NORM_BOUND=34034726
 const.MEMORY_POINTER_OFFSET_OF_HASH_TO_POINT_POLY_FROM_PRODUCT_POLY=5124
 
 const.EVENT_FALCON_SIG_TO_STACK=3419226139
+const.EVENT_FALCON_DIV=3419226155
 
 # MODULAR REDUCTION FALCON PRIME
 # =============================================================================================
@@ -30,7 +31,7 @@ const.EVENT_FALCON_SIG_TO_STACK=3419226139
 #!
 #! Cycles: 27
 export.mod_12289
-    adv.push_falcon_div
+    emit.EVENT_FALCON_DIV
     # the advice stack contains now [qhi, qlo, r, ...] where q = qhi * 2^32 + qlo is quotient
     # and r is remainder
 
