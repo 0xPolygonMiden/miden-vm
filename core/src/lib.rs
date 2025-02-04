@@ -91,6 +91,7 @@ pub mod crypto {
 pub mod mast;
 
 pub use math::{
+    fft,
     fields::{f64::BaseElement as Felt, QuadExtension},
     polynom, ExtensionOf, FieldElement, StarkField, ToElements,
 };

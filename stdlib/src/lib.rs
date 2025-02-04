@@ -9,11 +9,16 @@ use assembly::{
     utils::{sync::LazyLock, Deserializable},
     Library,
 };
-use event_handlers::{FalconDivEventHandler, FalconSigToStackEventHandler, U64DivEventHandler};
+use event_handlers::{
+    Ext2iNTTEventHandler, FalconDivEventHandler, FalconSigToStackEventHandler, U64DivEventHandler,
+};
 use processor::{EventHandler, HostLibrary};
 use vm_core::AdviceProvider;
 
 pub mod dsa;
+
+mod errors;
+pub use errors::Ext2InttError;
 
 mod event_handlers;
 pub use event_handlers::DefaultFalconSigner;
@@ -86,6 +91,7 @@ impl HostLibrary for StdLibrary {
             ))),
             Box::new(FalconDivEventHandler),
             Box::new(U64DivEventHandler),
+            Box::new(Ext2iNTTEventHandler),
         ]
     }
 
@@ -103,6 +109,30 @@ pub use constants::*;
 
 #[rustfmt::skip]
 mod constants {
+    /// Given evaluations of a polynomial over some specified domain, interpolates the evaluations
+    ///  into a polynomial in coefficient form and pushes the result into the advice stack.
+    ///
+    /// The interpolation is performed using the iNTT algorithm. The evaluations are expected to be
+    /// in the quadratic extension.
+    ///
+    /// Inputs:
+    ///   Operand stack: [output_size, input_size, input_start_ptr, ...]
+    ///   Advice stack: [...]
+    ///
+    /// Outputs:
+    ///   Operand stack: [output_size, input_size, input_start_ptr, ...]
+    ///   Advice stack: [coefficients...]
+    ///
+    /// - `input_size` is the number of evaluations (each evaluation is 2 base field elements).
+    ///   Must be a power of 2 and greater 1.
+    /// - `output_size` is the number of coefficients in the interpolated polynomial (each
+    ///   coefficient is 2 base field elements). Must be smaller than or equal to the number of
+    ///   input evaluations.
+    /// - `input_start_ptr` is the memory address of the first evaluation.
+    /// - `coefficients` are the coefficients of the interpolated polynomial such that lowest
+    ///   degree coefficients are located at the top of the advice stack.
+    pub const EVENT_EXT2_INTT: u32           = 1347499010;
+
     /// Reads two words from the stack and pushes values onto the advice stack which are required
     /// for verification of Falcon DSA in Miden VM.
     ///

@@ -2,9 +2,14 @@ use alloc::{boxed::Box, vec::Vec};
 use core::error::Error;
 
 use processor::{EventHandler, ExecutionError, ProcessState};
-use vm_core::{AdviceProvider, AdviceProviderError, AdviceSource, Felt, Word, ZERO};
+use vm_core::{
+    fft, AdviceProvider, AdviceProviderError, AdviceSource, Felt, FieldElement, QuadExtension,
+    Word, WORD_SIZE, ZERO,
+};
 
-use crate::{dsa, EVENT_FALCON_DIV, EVENT_FALCON_SIG_TO_STACK, EVENT_U64_DIV};
+use crate::{
+    dsa, Ext2InttError, EVENT_EXT2_INTT, EVENT_FALCON_DIV, EVENT_FALCON_SIG_TO_STACK, EVENT_U64_DIV,
+};
 
 // CONSTANTS
 // ==============================================================================================
@@ -198,6 +203,79 @@ where
         advice_provider.push_stack(AdviceSource::Value(r_lo))?;
         advice_provider.push_stack(AdviceSource::Value(q_hi))?;
         advice_provider.push_stack(AdviceSource::Value(q_lo))?;
+
+        Ok(())
+    }
+}
+
+// EXT2 iNTT EVENT HANDLER
+// ==============================================================================================
+
+pub struct Ext2iNTTEventHandler;
+
+impl<A> EventHandler<A> for Ext2iNTTEventHandler
+where
+    A: AdviceProvider,
+{
+    fn id(&self) -> u32 {
+        EVENT_EXT2_INTT
+    }
+
+    fn on_event(
+        &mut self,
+        process: ProcessState,
+        advice_provider: &mut A,
+    ) -> Result<(), Box<dyn Error + Send + Sync + 'static>> {
+        let output_size = process.get_stack_item(0).as_int() as usize;
+        let input_size = process.get_stack_item(1).as_int() as usize;
+        let input_start_ptr = process.get_stack_item(2).as_int();
+
+        if input_size <= 1 {
+            return Err(Ext2InttError::DomainSizeTooSmall(input_size as u64).into());
+        }
+        if !input_size.is_power_of_two() {
+            return Err(Ext2InttError::DomainSizeNotPowerOf2(input_size as u64).into());
+        }
+        if input_start_ptr >= u32::MAX as u64 {
+            return Err(Ext2InttError::InputStartAddressTooBig(input_start_ptr).into());
+        }
+        if input_start_ptr % WORD_SIZE as u64 != 0 {
+            return Err(Ext2InttError::InputStartNotWordAligned(input_start_ptr).into());
+        }
+        if input_size > u32::MAX as usize {
+            return Err(Ext2InttError::InputSizeTooBig(input_size as u64).into());
+        }
+
+        let input_end_ptr = input_start_ptr + (input_size * 2) as u64;
+        if input_end_ptr > u32::MAX as u64 {
+            return Err(Ext2InttError::InputEndAddressTooBig(input_end_ptr).into());
+        }
+
+        if output_size == 0 {
+            return Err(Ext2InttError::OutputSizeIsZero.into());
+        }
+        if output_size > input_size {
+            return Err(Ext2InttError::OutputSizeTooBig(output_size, input_size).into());
+        }
+
+        let mut poly = Vec::with_capacity(input_size);
+        for addr in ((input_start_ptr as u32)..(input_end_ptr as u32)).step_by(4) {
+            let word = process
+                .get_mem_word(process.ctx(), addr)?
+                .ok_or(Ext2InttError::UninitializedMemoryAddress(addr))?;
+
+            poly.push(QuadExtension::<Felt>::new(word[0], word[1]));
+            poly.push(QuadExtension::<Felt>::new(word[2], word[3]));
+        }
+
+        let twiddles = fft::get_inv_twiddles::<Felt>(input_size);
+        fft::interpolate_poly::<Felt, QuadExtension<Felt>>(&mut poly, &twiddles);
+
+        for element in
+            QuadExtension::<Felt>::slice_as_base_elements(&poly[..output_size]).iter().rev()
+        {
+            advice_provider.push_stack(AdviceSource::Value(*element))?;
+        }
 
         Ok(())
     }

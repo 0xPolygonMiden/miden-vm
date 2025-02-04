@@ -14,7 +14,6 @@ mod constants {
     pub const EVENT_MAP_VALUE_TO_STACK: u32           = 574478993;
     pub const EVENT_MAP_VALUE_TO_STACK_N: u32         = 630847990;
     pub const EVENT_EXT2_INV: u32                     = 1251967401;
-    pub const EVENT_EXT2_INTT: u32                    = 1347499010;
     pub const EVENT_SMT_PEEK: u32                     = 1889584556;
     pub const EVENT_U32_CLZ: u32                      = 1951932030;
     pub const EVENT_U32_CTZ: u32                      = 2008979519;
@@ -113,30 +112,6 @@ pub enum SystemEvent {
     /// Where (b0, b1) is the multiplicative inverse of the extension field element (a0, a1) at the
     /// top of the stack.
     Ext2Inv,
-
-    /// Given evaluations of a polynomial over some specified domain, interpolates the evaluations
-    ///  into a polynomial in coefficient form and pushes the result into the advice stack.
-    ///
-    /// The interpolation is performed using the iNTT algorithm. The evaluations are expected to be
-    /// in the quadratic extension.
-    ///
-    /// Inputs:
-    ///   Operand stack: [output_size, input_size, input_start_ptr, ...]
-    ///   Advice stack: [...]
-    ///
-    /// Outputs:
-    ///   Operand stack: [output_size, input_size, input_start_ptr, ...]
-    ///   Advice stack: [coefficients...]
-    ///
-    /// - `input_size` is the number of evaluations (each evaluation is 2 base field elements).
-    ///   Must be a power of 2 and greater 1.
-    /// - `output_size` is the number of coefficients in the interpolated polynomial (each
-    ///   coefficient is 2 base field elements). Must be smaller than or equal to the number of
-    ///   input evaluations.
-    /// - `input_start_ptr` is the memory address of the first evaluation.
-    /// - `coefficients` are the coefficients of the interpolated polynomial such that lowest
-    ///   degree coefficients are located at the top of the advice stack.
-    Ext2Intt,
 
     /// Pushes onto the advice stack the value associated with the specified key in a Sparse
     /// Merkle Tree defined by the specified root.
@@ -275,7 +250,6 @@ impl SystemEvent {
             SystemEvent::MapValueToStack => EVENT_MAP_VALUE_TO_STACK,
             SystemEvent::MapValueToStackN => EVENT_MAP_VALUE_TO_STACK_N,
             SystemEvent::Ext2Inv => EVENT_EXT2_INV,
-            SystemEvent::Ext2Intt => EVENT_EXT2_INTT,
             SystemEvent::SmtPeek => EVENT_SMT_PEEK,
             SystemEvent::U32Clz => EVENT_U32_CLZ,
             SystemEvent::U32Ctz => EVENT_U32_CTZ,
@@ -298,7 +272,6 @@ impl SystemEvent {
             EVENT_MAP_VALUE_TO_STACK => Some(SystemEvent::MapValueToStack),
             EVENT_MAP_VALUE_TO_STACK_N => Some(SystemEvent::MapValueToStackN),
             EVENT_EXT2_INV => Some(SystemEvent::Ext2Inv),
-            EVENT_EXT2_INTT => Some(SystemEvent::Ext2Intt),
             EVENT_SMT_PEEK => Some(SystemEvent::SmtPeek),
             EVENT_U32_CLZ => Some(SystemEvent::U32Clz),
             EVENT_U32_CTZ => Some(SystemEvent::U32Ctz),
@@ -328,7 +301,6 @@ impl fmt::Display for SystemEvent {
             Self::MapValueToStack => write!(f, "map_value_to_stack"),
             Self::MapValueToStackN => write!(f, "map_value_to_stack_with_len"),
             Self::Ext2Inv => write!(f, "ext2_inv"),
-            Self::Ext2Intt => write!(f, "ext2_intt"),
             Self::SmtPeek => write!(f, "smt_peek"),
             Self::U32Clz => write!(f, "u32clz"),
             Self::U32Ctz => write!(f, "u32ctz"),
