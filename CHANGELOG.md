@@ -22,6 +22,7 @@
 - [BREAKING] Cleaned up benchmarks and examples in the `miden-vm` crate (#1587)
 - [BREAKING] Switched to `thiserror` 2.0 derive errors and refactored errors (#1588).
 - Moved handling of `FalconSigToStack` event from system event handlers to the `DefaultHost` (#1630).
+- Move stdlib-specific advice injectors to stdlib (#1652)
 
 #### Enhancements
 - Added options `--kernel`, `--debug` and `--output` to `miden bundle` (#1447).

@@ -144,15 +144,11 @@ pub enum Token<'input> {
     AdvLoadw,
     AdvPipe,
     AdvPush,
-    PushExt2intt,
     PushMapval,
     PushMapvaln,
     PushMtnode,
-    PushSmtpeek,
     PushSmtset,
     PushSmtget,
-    PushU64Div,
-    PushFalconDiv,
     And,
     Assert,
     Assertz,
@@ -329,15 +325,11 @@ impl fmt::Display for Token<'_> {
             Token::AdvLoadw => write!(f, "adv_loadw"),
             Token::AdvPipe => write!(f, "adv_pipe"),
             Token::AdvPush => write!(f, "adv_push"),
-            Token::PushExt2intt => write!(f, "push_ext2intt"),
             Token::PushMapval => write!(f, "push_mapval"),
             Token::PushMapvaln => write!(f, "push_mapvaln"),
             Token::PushMtnode => write!(f, "push_mtnode"),
-            Token::PushSmtpeek => write!(f, "push_smtpeek"),
             Token::PushSmtset => write!(f, "push_smtset"),
             Token::PushSmtget => write!(f, "push_smtget"),
-            Token::PushU64Div => write!(f, "push_u64div"),
-            Token::PushFalconDiv => write!(f, "push_falcon_div"),
             Token::And => write!(f, "and"),
             Token::Assert => write!(f, "assert"),
             Token::Assertz => write!(f, "assertz"),
@@ -522,15 +514,11 @@ impl<'input> Token<'input> {
                 | Token::AdvLoadw
                 | Token::AdvPipe
                 | Token::AdvPush
-                | Token::PushExt2intt
                 | Token::PushMapval
                 | Token::PushMapvaln
                 | Token::PushMtnode
-                | Token::PushSmtpeek
                 | Token::PushSmtset
                 | Token::PushSmtget
-                | Token::PushU64Div
-                | Token::PushFalconDiv
                 | Token::And
                 | Token::Assert
                 | Token::Assertz
@@ -667,15 +655,11 @@ impl<'input> Token<'input> {
         ("adv_loadw", Token::AdvLoadw),
         ("adv_pipe", Token::AdvPipe),
         ("adv_push", Token::AdvPush),
-        ("push_ext2intt", Token::PushExt2intt),
         ("push_mapval", Token::PushMapval),
         ("push_mapvaln", Token::PushMapvaln),
         ("push_mtnode", Token::PushMtnode),
-        ("push_smtpeek", Token::PushSmtpeek),
         ("push_smtset", Token::PushSmtset),
         ("push_smtget", Token::PushSmtget),
-        ("push_u64div", Token::PushU64Div),
-        ("push_falcon_div", Token::PushFalconDiv),
         ("and", Token::And),
         ("assert", Token::Assert),
         ("assertz", Token::Assertz),

@@ -1,3 +1,4 @@
+use miden_stdlib::EVENT_EXT2_INTT;
 use test_utils::{
     math::fft, push_inputs, rand::rand_vector, test_case, Felt, FieldElement, QuadFelt, StarkField,
     ONE,
@@ -51,7 +52,7 @@ fn test_decorator_ext2intt(in_poly_len: usize, blowup: usize) {
         push.{}
         push.{}
 
-        adv.push_ext2intt
+        emit.{EVENT_EXT2_INTT}
 
         push.0
         dropw

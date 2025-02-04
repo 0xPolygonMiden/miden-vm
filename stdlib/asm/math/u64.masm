@@ -1,3 +1,8 @@
+# ===== CONSTANTS ==========================================================================
+
+# Matches the value in stdlib's lib.rs
+const.EVENT_U64_DIV=678156251
+
 # ===== HELPER FUNCTIONS ==========================================================================
 
 #! Asserts that both values at the top of the stack are u64 values.
@@ -264,7 +269,7 @@ end
 #! [b_hi, b_lo, a_hi, a_lo, ...] -> [c_hi, c_lo, ...], where c = a // b
 #! This takes 54 cycles.
 export.div
-    adv.push_u64div     # push the quotient and the remainder onto the advice stack
+    emit.EVENT_U64_DIV     # push the quotient and the remainder onto the advice stack
 
     adv_push.2          # pop the quotient from the advice stack and assert it consists of
     u32assert2         # 32-bit limbs
@@ -321,7 +326,7 @@ end
 #! [b_hi, b_lo, a_hi, a_lo, ...] -> [c_hi, c_lo, ...], where c = a % b
 #! This takes 54 cycles.
 export.mod
-    adv.push_u64div     # push the quotient and the remainder onto the advice stack
+    emit.EVENT_U64_DIV     # push the quotient and the remainder onto the advice stack
 
     adv_push.2          # pop the quotient from the advice stack and assert it consists of
     u32assert2         # 32-bit limbs
@@ -378,7 +383,7 @@ end
 #! [b_hi, b_lo, a_hi, a_lo, ...] -> [r_hi, r_lo, q_hi, q_lo ...], where r = a % b, q = a / b
 #! This takes 54 cycles.
 export.divmod
-    adv.push_u64div     # push the quotient and the remainder onto the advice stack
+    emit.EVENT_U64_DIV     # push the quotient and the remainder onto the advice stack
 
     adv_push.2          # pop the quotient from the advice stack and assert it consists of
     u32assert2         # 32-bit limbs

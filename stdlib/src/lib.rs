@@ -3,17 +3,26 @@
 extern crate alloc;
 
 use alloc::{boxed::Box, sync::Arc, vec, vec::Vec};
-use core::error::Error;
 
 use assembly::{
     mast::MastForest,
     utils::{sync::LazyLock, Deserializable},
     Library,
 };
-use processor::{EventHandler, HostLibrary, ProcessState};
-use vm_core::{AdviceProvider, AdviceProviderError, AdviceSource, Felt, Word};
+use event_handlers::{
+    Ext2iNTTEventHandler, FalconDivEventHandler, FalconSigToStackEventHandler,
+    PushSmtPeekEventHandler, U64DivEventHandler,
+};
+use processor::{EventHandler, HostLibrary};
+use vm_core::AdviceProvider;
 
 pub mod dsa;
+
+mod errors;
+pub use errors::Ext2InttError;
+
+mod event_handlers;
+pub use event_handlers::DefaultFalconSigner;
 
 // STANDARD LIBRARY
 // ================================================================================================
@@ -77,9 +86,15 @@ impl HostLibrary for StdLibrary {
     where
         A: AdviceProvider + 'static,
     {
-        vec![Box::new(FalconSigToStackEventHandler::new(Box::new(
-            self.falcon_sig_event_handler.clone(),
-        )))]
+        vec![
+            Box::new(FalconSigToStackEventHandler::new(Box::new(
+                self.falcon_sig_event_handler.clone(),
+            ))),
+            Box::new(FalconDivEventHandler),
+            Box::new(U64DivEventHandler),
+            Box::new(Ext2iNTTEventHandler),
+            Box::new(PushSmtPeekEventHandler),
+        ]
     }
 
     fn get_mast_forest(&self) -> Arc<MastForest> {
@@ -90,99 +105,101 @@ impl HostLibrary for StdLibrary {
 // EVENTS
 // ================================================================================================
 
-pub const EVENT_FALCON_SIG_TO_STACK: u32 = 3419226139;
+// Randomly generated constant values for the standard library's events. All values were sampled
+// between 0 and 2^32.
+pub use constants::*;
 
-// EVENT HANDLERS
-// ==============================================================================================
+#[rustfmt::skip]
+mod constants {
+    /// Given evaluations of a polynomial over some specified domain, interpolates the evaluations
+    ///  into a polynomial in coefficient form and pushes the result into the advice stack.
+    ///
+    /// The interpolation is performed using the iNTT algorithm. The evaluations are expected to be
+    /// in the quadratic extension.
+    ///
+    /// Inputs:
+    ///   Operand stack: [output_size, input_size, input_start_ptr, ...]
+    ///   Advice stack: [...]
+    ///
+    /// Outputs:
+    ///   Operand stack: [output_size, input_size, input_start_ptr, ...]
+    ///   Advice stack: [coefficients...]
+    ///
+    /// - `input_size` is the number of evaluations (each evaluation is 2 base field elements).
+    ///   Must be a power of 2 and greater 1.
+    /// - `output_size` is the number of coefficients in the interpolated polynomial (each
+    ///   coefficient is 2 base field elements). Must be smaller than or equal to the number of
+    ///   input evaluations.
+    /// - `input_start_ptr` is the memory address of the first evaluation.
+    /// - `coefficients` are the coefficients of the interpolated polynomial such that lowest
+    ///   degree coefficients are located at the top of the advice stack.
+    pub const EVENT_EXT2_INTT: u32           = 1347499010;
 
-/// An event handler which verifies a Falcon signature and pushes the result onto the stack.
-pub struct FalconSigToStackEventHandler<A> {
-    signer: Box<dyn FalconSigner<A>>,
-}
+    /// Reads two words from the stack and pushes values onto the advice stack which are required
+    /// for verification of Falcon DSA in Miden VM.
+    ///
+    /// Inputs:
+    ///   Operand stack: [PK, MSG, ...]
+    ///   Advice stack: [...]
+    ///
+    /// Outputs:
+    ///   Operand stack: [PK, MSG, ...]
+    ///   Advice stack: \[SIG_DATA\]
+    ///
+    /// Where PK is the public key corresponding to the signing key, MSG is the message, SIG_DATA
+    /// is the signature data.
+    pub const EVENT_FALCON_SIG_TO_STACK: u32 = 3419226139;
 
-impl<A> FalconSigToStackEventHandler<A> {
-    /// Creates a new instance of the Falcon signature to stack event handler, given a specified
-    /// Falcon signer.
-    pub fn new(signer: Box<dyn FalconSigner<A>>) -> Self {
-        Self { signer }
-    }
-}
+    /// Pushes the result of divison (both the quotient and the remainder) of a [u64] by the Falcon
+    /// prime (M = 12289) onto the advice stack.
+    ///
+    /// Inputs:
+    ///   Operand stack: [a1, a0, ...]
+    ///   Advice stack: [...]
+    ///
+    /// Outputs:
+    ///   Operand stack: [a1, a0, ...]
+    ///   Advice stack: [q0, q1, r, ...]
+    ///
+    /// Where (a0, a1) are the 32-bit limbs of the dividend (with a0 representing the 32 least
+    /// significant bits and a1 representing the 32 most significant bits).
+    /// Similarly, (q0, q1) represent the quotient and r the remainder.
+    pub const EVENT_FALCON_DIV: u32          = 3419226155;
 
-impl<A> Default for FalconSigToStackEventHandler<A> {
-    fn default() -> Self {
-        Self { signer: Box::new(DefaultFalconSigner) }
-    }
-}
+    /// Pushes onto the advice stack the value associated with the specified key in a Sparse
+    /// Merkle Tree defined by the specified root.
+    ///
+    /// If no value was previously associated with the specified key, [ZERO; 4] is pushed onto
+    /// the advice stack.
+    ///
+    /// Inputs:
+    ///   Operand stack: [KEY, ROOT, ...]
+    ///   Advice stack: [...]
+    ///
+    /// Outputs:
+    ///   Operand stack: [KEY, ROOT, ...]
+    ///   Advice stack: [VALUE, ...]
+    pub const EVENT_SMT_PEEK: u32            = 1889584556;
 
-impl<A> EventHandler<A> for FalconSigToStackEventHandler<A>
-where
-    A: AdviceProvider,
-{
-    fn id(&self) -> u32 {
-        EVENT_FALCON_SIG_TO_STACK
-    }
-
-    fn on_event(
-        &mut self,
-        process: ProcessState,
-        advice_provider: &mut A,
-    ) -> Result<(), Box<dyn Error + Send + Sync + 'static>> {
-        let pub_key = process.get_stack_word(0);
-        let msg = process.get_stack_word(1);
-
-        let signature = self.signer.sign_message(pub_key, msg, advice_provider)?;
-
-        for r in signature {
-            advice_provider.push_stack(AdviceSource::Value(r))?;
-        }
-
-        Ok(())
-    }
-}
-
-/// A trait for signing messages using the Falcon signature scheme.
-///
-/// This trait is used by [FalconSigToStackEventHandler] to sign messages using the Falcon signature
-/// scheme.
-///
-/// It is recommended to use [dsa::falcon_sign] to implement this trait once the private key has
-/// been fetched from a user-defined location.
-pub trait FalconSigner<A>: Send + Sync {
-    /// Signs the message using the Falcon signature scheme, and returns the signature as a
-    /// `Vec<Felt>`.
-    fn sign_message(
-        &self,
-        pub_key: Word,
-        msg: Word,
-        advice_provider: &A,
-    ) -> Result<Vec<Felt>, Box<dyn Error + Send + Sync + 'static>>
-    where
-        A: AdviceProvider;
-}
-
-/// The default Falcon signer.
-///
-/// This signer reads the private key from the advice provider's map using `pub_key` as the map key,
-/// and signs the message.
-#[derive(Debug, Clone)]
-pub struct DefaultFalconSigner;
-
-impl<A> FalconSigner<A> for DefaultFalconSigner {
-    fn sign_message(
-        &self,
-        pub_key: Word,
-        msg: Word,
-        advice_provider: &A,
-    ) -> Result<Vec<Felt>, Box<dyn Error + Send + Sync + 'static>>
-    where
-        A: AdviceProvider,
-    {
-        let priv_key = advice_provider
-            .get_mapped_values(&pub_key.into())
-            .ok_or(AdviceProviderError::AdviceMapKeyNotFound(pub_key))?;
-
-        dsa::falcon_sign(priv_key, msg)
-    }
+    /// Pushes the result of [u64] division (both the quotient and the remainder) onto the advice
+    /// stack.
+    ///
+    /// Inputs:
+    ///   Operand stack: [b1, b0, a1, a0, ...]
+    ///   Advice stack: [...]
+    ///
+    /// Outputs:
+    ///   Operand stack: [b1, b0, a1, a0, ...]
+    ///   Advice stack: [q0, q1, r0, r1, ...]
+    ///
+    /// Where (a0, a1) and (b0, b1) are the 32-bit limbs of the dividend and the divisor
+    /// respectively (with a0 representing the 32 lest significant bits and a1 representing the
+    /// 32 most significant bits). Similarly, (q0, q1) and (r0, r1) represent the quotient and
+    /// the remainder respectively.
+    ///
+    /// # Errors
+    /// Returns an error if the divisor is ZERO.
+    pub const EVENT_U64_DIV: u32             = 678156251;
 }
 
 #[cfg(test)]

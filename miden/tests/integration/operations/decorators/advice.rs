@@ -1,7 +1,7 @@
 use miden_vm::{Digest, Word};
 use processor::ExecutionError;
 use rand_chacha::rand_core::SeedableRng;
-use stdlib::EVENT_FALCON_SIG_TO_STACK;
+use stdlib::{EVENT_FALCON_SIG_TO_STACK, EVENT_U64_DIV};
 use test_utils::{
     build_test,
     crypto::{rpo_falcon512::SecretKey, MerkleStore, RpoDigest},
@@ -14,9 +14,9 @@ use test_utils::{
 // ================================================================================================
 
 #[test]
-fn advice_push_u64div() {
+fn advice_emit_u64div() {
     // push a/b onto the advice stack and then move these values onto the operand stack.
-    let source = "begin adv.push_u64div adv_push.4 movupw.2 dropw end";
+    let source = format!("begin emit.{EVENT_U64_DIV} adv_push.4 movupw.2 dropw end");
 
     // get two random 64-bit integers and split them into 32-bit limbs
     let a = rand_value::<u64>();
@@ -43,7 +43,7 @@ fn advice_push_u64div() {
 }
 
 #[test]
-fn advice_push_u64div_repeat() {
+fn advice_emit_u64div_repeat() {
     // This procedure repeats the following steps 7 times:
     // - pushes quotient and remainder to advice stack
     // - drops divisor (top 2 elements of the stack representing 32 bit limbs of divisor)
@@ -56,7 +56,7 @@ fn advice_push_u64div_repeat() {
     
     begin
         repeat.7
-            adv.push_u64div
+            emit.{EVENT_U64_DIV}
             drop drop
             adv_push.2
             push.2
@@ -93,18 +93,20 @@ fn advice_push_u64div_repeat() {
 }
 
 #[test]
-fn advice_push_u64div_local_procedure() {
+fn advice_emit_u64div_local_procedure() {
     // push a/b onto the advice stack and then move these values onto the operand stack.
-    let source = "
+    let source = format!(
+        "
     proc.foo 
-        adv.push_u64div 
+        emit.{EVENT_U64_DIV}
         adv_push.4 
     end 
     
     begin 
         exec.foo 
         movupw.2 dropw
-    end";
+    end"
+    );
 
     // get two random 64-bit integers and split them into 32-bit limbs
     let a = rand_value::<u64>();
@@ -131,26 +133,28 @@ fn advice_push_u64div_local_procedure() {
 }
 
 #[test]
-fn advice_push_u64div_conditional_execution() {
-    let source = "
+fn advice_emit_u64div_conditional_execution() {
+    let source = format!(
+        "
     begin 
         eq 
         if.true 
-            adv.push_u64div 
+            emit.{EVENT_U64_DIV}
             adv_push.4 
         else 
             padw 
         end 
 
         movupw.2 dropw
-    end";
+    end"
+    );
 
     // if branch
-    let test = build_test!(source, &[8, 0, 4, 0, 1, 1]);
+    let test = build_test!(&source, &[8, 0, 4, 0, 1, 1]);
     test.expect_stack(&[0, 0, 0, 2, 0, 4, 0, 8]);
 
     // else branch
-    let test = build_test!(source, &[8, 0, 4, 0, 1, 0]);
+    let test = build_test!(&source, &[8, 0, 4, 0, 1, 0]);
     test.expect_stack(&[0, 0, 0, 0, 0, 4, 0, 8]);
 }
 
