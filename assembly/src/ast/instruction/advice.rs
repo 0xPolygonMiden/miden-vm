@@ -12,7 +12,6 @@ use vm_core::sys_events::SystemEvent;
 /// - Insert new data into the advice map.
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub enum SystemEventNode {
-    PushSmtPeek,
     PushMapVal,
     PushMapValN,
     PushMtNode,
@@ -26,7 +25,6 @@ impl From<&SystemEventNode> for SystemEvent {
     fn from(value: &SystemEventNode) -> Self {
         use SystemEventNode::*;
         match value {
-            PushSmtPeek => Self::SmtPeek,
             PushMapVal => Self::MapValueToStack,
             PushMapValN => Self::MapValueToStackN,
             PushMtNode => Self::MerkleNodeToStack,
@@ -47,7 +45,6 @@ impl crate::prettier::PrettyPrint for SystemEventNode {
 impl fmt::Display for SystemEventNode {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Self::PushSmtPeek => write!(f, "push_smtpeek"),
             Self::PushMapVal => write!(f, "push_mapval"),
             Self::PushMapValN => write!(f, "push_mapvaln"),
             Self::PushMtNode => write!(f, "push_mtnode"),

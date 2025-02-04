@@ -1,14 +1,19 @@
 use alloc::{boxed::Box, vec::Vec};
 use core::error::Error;
 
-use processor::{EventHandler, ExecutionError, ProcessState};
+use processor::{EventHandler, ExecutionError, ProcessState, SMT_DEPTH};
 use vm_core::{
+    crypto::{
+        hash::RpoDigest,
+        merkle::{EmptySubtreeRoots, Smt},
+    },
     fft, AdviceProvider, AdviceProviderError, AdviceSource, Felt, FieldElement, QuadExtension,
     Word, WORD_SIZE, ZERO,
 };
 
 use crate::{
-    dsa, Ext2InttError, EVENT_EXT2_INTT, EVENT_FALCON_DIV, EVENT_FALCON_SIG_TO_STACK, EVENT_U64_DIV,
+    dsa, Ext2InttError, EVENT_EXT2_INTT, EVENT_FALCON_DIV, EVENT_FALCON_SIG_TO_STACK,
+    EVENT_SMT_PEEK, EVENT_U64_DIV,
 };
 
 // CONSTANTS
@@ -281,6 +286,57 @@ where
     }
 }
 
+// PUSH SMT PEEK EVENT HANDLER
+// ==============================================================================================
+
+pub struct PushSmtPeekEventHandler;
+
+impl<A> EventHandler<A> for PushSmtPeekEventHandler
+where
+    A: AdviceProvider,
+{
+    fn id(&self) -> u32 {
+        EVENT_SMT_PEEK
+    }
+
+    fn on_event(
+        &mut self,
+        process: ProcessState,
+        advice_provider: &mut A,
+    ) -> Result<(), Box<dyn Error + Send + Sync + 'static>> {
+        let empty_leaf = EmptySubtreeRoots::entry(SMT_DEPTH, SMT_DEPTH);
+        // fetch the arguments from the operand stack
+        let key = process.get_stack_word(0);
+        let root = process.get_stack_word(1);
+
+        // get the node from the SMT for the specified key; this node can be either a leaf node,
+        // or a root of an empty subtree at the returned depth
+        let node = advice_provider.get_tree_node(root, &Felt::new(SMT_DEPTH as u64), &key[3])?;
+
+        if node == Word::from(empty_leaf) {
+            // if the node is a root of an empty subtree, then there is no value associated with
+            // the specified key
+            advice_provider.push_stack(AdviceSource::Word(Smt::EMPTY_VALUE))?;
+        } else {
+            let leaf_preimage = get_smt_leaf_preimage(advice_provider, node)?;
+
+            for (key_in_leaf, value_in_leaf) in leaf_preimage {
+                if key == key_in_leaf {
+                    // Found key - push value associated with key, and return
+                    advice_provider.push_stack(AdviceSource::Word(value_in_leaf))?;
+
+                    return Ok(());
+                }
+            }
+
+            // if we can't find any key in the leaf that matches `key`, it means no value is
+            // associated with `key`
+            advice_provider.push_stack(AdviceSource::Word(Smt::EMPTY_VALUE))?;
+        }
+        Ok(())
+    }
+}
+
 // HELPERS
 // ==============================================================================================
 
@@ -288,4 +344,29 @@ fn u64_to_u32_elements(value: u64) -> (Felt, Felt) {
     let hi = Felt::from((value >> 32) as u32);
     let lo = Felt::from(value as u32);
     (hi, lo)
+}
+
+fn get_smt_leaf_preimage<A: AdviceProvider>(
+    advice_provider: &A,
+    node: Word,
+) -> Result<Vec<(Word, Word)>, ExecutionError> {
+    let node_bytes = RpoDigest::from(node);
+
+    let kv_pairs = advice_provider
+        .get_mapped_values(&node_bytes)
+        .ok_or(ExecutionError::SmtNodeNotFound(node))?;
+
+    if kv_pairs.len() % WORD_SIZE * 2 != 0 {
+        return Err(ExecutionError::SmtNodePreImageNotValid(node, kv_pairs.len()));
+    }
+
+    Ok(kv_pairs
+        .chunks_exact(WORD_SIZE * 2)
+        .map(|kv_chunk| {
+            let key = [kv_chunk[0], kv_chunk[1], kv_chunk[2], kv_chunk[3]];
+            let value = [kv_chunk[4], kv_chunk[5], kv_chunk[6], kv_chunk[7]];
+
+            (key, value)
+        })
+        .collect())
 }

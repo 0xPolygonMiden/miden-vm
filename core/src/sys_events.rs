@@ -14,7 +14,6 @@ mod constants {
     pub const EVENT_MAP_VALUE_TO_STACK: u32           = 574478993;
     pub const EVENT_MAP_VALUE_TO_STACK_N: u32         = 630847990;
     pub const EVENT_EXT2_INV: u32                     = 1251967401;
-    pub const EVENT_SMT_PEEK: u32                     = 1889584556;
     pub const EVENT_U32_CLZ: u32                      = 1951932030;
     pub const EVENT_U32_CTZ: u32                      = 2008979519;
     pub const EVENT_U32_CLO: u32                      = 2032895094;
@@ -112,21 +111,6 @@ pub enum SystemEvent {
     /// Where (b0, b1) is the multiplicative inverse of the extension field element (a0, a1) at the
     /// top of the stack.
     Ext2Inv,
-
-    /// Pushes onto the advice stack the value associated with the specified key in a Sparse
-    /// Merkle Tree defined by the specified root.
-    ///
-    /// If no value was previously associated with the specified key, [ZERO; 4] is pushed onto
-    /// the advice stack.
-    ///
-    /// Inputs:
-    ///   Operand stack: [KEY, ROOT, ...]
-    ///   Advice stack: [...]
-    ///
-    /// Outputs:
-    ///   Operand stack: [KEY, ROOT, ...]
-    ///   Advice stack: [VALUE, ...]
-    SmtPeek,
 
     /// Pushes the number of the leading zeros of the top stack element onto the advice stack.
     ///
@@ -250,7 +234,6 @@ impl SystemEvent {
             SystemEvent::MapValueToStack => EVENT_MAP_VALUE_TO_STACK,
             SystemEvent::MapValueToStackN => EVENT_MAP_VALUE_TO_STACK_N,
             SystemEvent::Ext2Inv => EVENT_EXT2_INV,
-            SystemEvent::SmtPeek => EVENT_SMT_PEEK,
             SystemEvent::U32Clz => EVENT_U32_CLZ,
             SystemEvent::U32Ctz => EVENT_U32_CTZ,
             SystemEvent::U32Clo => EVENT_U32_CLO,
@@ -272,7 +255,6 @@ impl SystemEvent {
             EVENT_MAP_VALUE_TO_STACK => Some(SystemEvent::MapValueToStack),
             EVENT_MAP_VALUE_TO_STACK_N => Some(SystemEvent::MapValueToStackN),
             EVENT_EXT2_INV => Some(SystemEvent::Ext2Inv),
-            EVENT_SMT_PEEK => Some(SystemEvent::SmtPeek),
             EVENT_U32_CLZ => Some(SystemEvent::U32Clz),
             EVENT_U32_CTZ => Some(SystemEvent::U32Ctz),
             EVENT_U32_CLO => Some(SystemEvent::U32Clo),
@@ -301,7 +283,6 @@ impl fmt::Display for SystemEvent {
             Self::MapValueToStack => write!(f, "map_value_to_stack"),
             Self::MapValueToStackN => write!(f, "map_value_to_stack_with_len"),
             Self::Ext2Inv => write!(f, "ext2_inv"),
-            Self::SmtPeek => write!(f, "smt_peek"),
             Self::U32Clz => write!(f, "u32clz"),
             Self::U32Ctz => write!(f, "u32ctz"),
             Self::U32Clo => write!(f, "u32clo"),

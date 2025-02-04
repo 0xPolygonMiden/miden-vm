@@ -10,7 +10,8 @@ use assembly::{
     Library,
 };
 use event_handlers::{
-    Ext2iNTTEventHandler, FalconDivEventHandler, FalconSigToStackEventHandler, U64DivEventHandler,
+    Ext2iNTTEventHandler, FalconDivEventHandler, FalconSigToStackEventHandler,
+    PushSmtPeekEventHandler, U64DivEventHandler,
 };
 use processor::{EventHandler, HostLibrary};
 use vm_core::AdviceProvider;
@@ -92,6 +93,7 @@ impl HostLibrary for StdLibrary {
             Box::new(FalconDivEventHandler),
             Box::new(U64DivEventHandler),
             Box::new(Ext2iNTTEventHandler),
+            Box::new(PushSmtPeekEventHandler),
         ]
     }
 
@@ -142,7 +144,7 @@ mod constants {
     ///
     /// Outputs:
     ///   Operand stack: [PK, MSG, ...]
-    ///   Advice stack: [SIG_DATA]
+    ///   Advice stack: \[SIG_DATA\]
     ///
     /// Where PK is the public key corresponding to the signing key, MSG is the message, SIG_DATA
     /// is the signature data.
@@ -163,6 +165,21 @@ mod constants {
     /// significant bits and a1 representing the 32 most significant bits).
     /// Similarly, (q0, q1) represent the quotient and r the remainder.
     pub const EVENT_FALCON_DIV: u32          = 3419226155;
+
+    /// Pushes onto the advice stack the value associated with the specified key in a Sparse
+    /// Merkle Tree defined by the specified root.
+    ///
+    /// If no value was previously associated with the specified key, [ZERO; 4] is pushed onto
+    /// the advice stack.
+    ///
+    /// Inputs:
+    ///   Operand stack: [KEY, ROOT, ...]
+    ///   Advice stack: [...]
+    ///
+    /// Outputs:
+    ///   Operand stack: [KEY, ROOT, ...]
+    ///   Advice stack: [VALUE, ...]
+    pub const EVENT_SMT_PEEK: u32            = 1889584556;
 
     /// Pushes the result of [u64] division (both the quotient and the remainder) onto the advice
     /// stack.
