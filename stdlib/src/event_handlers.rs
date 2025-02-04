@@ -1,10 +1,10 @@
 use alloc::{boxed::Box, vec::Vec};
 use core::error::Error;
 
-use processor::{EventHandler, ProcessState};
+use processor::{EventHandler, ExecutionError, ProcessState};
 use vm_core::{AdviceProvider, AdviceProviderError, AdviceSource, Felt, Word, ZERO};
 
-use crate::{dsa, EVENT_FALCON_DIV, EVENT_FALCON_SIG_TO_STACK};
+use crate::{dsa, EVENT_FALCON_DIV, EVENT_FALCON_SIG_TO_STACK, EVENT_U64_DIV};
 
 // CONSTANTS
 // ==============================================================================================
@@ -153,6 +153,51 @@ where
         advice_provider.push_stack(AdviceSource::Value(r_lo))?;
         advice_provider.push_stack(AdviceSource::Value(q_lo))?;
         advice_provider.push_stack(AdviceSource::Value(q_hi))?;
+
+        Ok(())
+    }
+}
+
+// U64 DIVISION EVENT HANDLER
+// ==============================================================================================
+
+pub struct U64DivEventHandler;
+
+impl<A> EventHandler<A> for U64DivEventHandler
+where
+    A: AdviceProvider,
+{
+    fn id(&self) -> u32 {
+        EVENT_U64_DIV
+    }
+
+    fn on_event(
+        &mut self,
+        process: ProcessState,
+        advice_provider: &mut A,
+    ) -> Result<(), Box<dyn Error + Send + Sync + 'static>> {
+        let divisor_hi = process.get_stack_item(0).as_int();
+        let divisor_lo = process.get_stack_item(1).as_int();
+        let divisor = (divisor_hi << 32) + divisor_lo;
+
+        if divisor == 0 {
+            return Err(ExecutionError::DivideByZero(process.clk()).into());
+        }
+
+        let dividend_hi = process.get_stack_item(2).as_int();
+        let dividend_lo = process.get_stack_item(3).as_int();
+        let dividend = (dividend_hi << 32) + dividend_lo;
+
+        let quotient = dividend / divisor;
+        let remainder = dividend - quotient * divisor;
+
+        let (q_hi, q_lo) = u64_to_u32_elements(quotient);
+        let (r_hi, r_lo) = u64_to_u32_elements(remainder);
+
+        advice_provider.push_stack(AdviceSource::Value(r_hi))?;
+        advice_provider.push_stack(AdviceSource::Value(r_lo))?;
+        advice_provider.push_stack(AdviceSource::Value(q_hi))?;
+        advice_provider.push_stack(AdviceSource::Value(q_lo))?;
 
         Ok(())
     }

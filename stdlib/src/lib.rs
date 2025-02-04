@@ -9,15 +9,14 @@ use assembly::{
     utils::{sync::LazyLock, Deserializable},
     Library,
 };
+use event_handlers::{FalconDivEventHandler, FalconSigToStackEventHandler, U64DivEventHandler};
 use processor::{EventHandler, HostLibrary};
 use vm_core::AdviceProvider;
 
 pub mod dsa;
 
 mod event_handlers;
-pub use event_handlers::{
-    DefaultFalconSigner, FalconDivEventHandler, FalconSigToStackEventHandler,
-};
+pub use event_handlers::DefaultFalconSigner;
 
 // STANDARD LIBRARY
 // ================================================================================================
@@ -86,6 +85,7 @@ impl HostLibrary for StdLibrary {
                 self.falcon_sig_event_handler.clone(),
             ))),
             Box::new(FalconDivEventHandler),
+            Box::new(U64DivEventHandler),
         ]
     }
 
@@ -133,6 +133,26 @@ mod constants {
     /// significant bits and a1 representing the 32 most significant bits).
     /// Similarly, (q0, q1) represent the quotient and r the remainder.
     pub const EVENT_FALCON_DIV: u32          = 3419226155;
+
+    /// Pushes the result of [u64] division (both the quotient and the remainder) onto the advice
+    /// stack.
+    ///
+    /// Inputs:
+    ///   Operand stack: [b1, b0, a1, a0, ...]
+    ///   Advice stack: [...]
+    ///
+    /// Outputs:
+    ///   Operand stack: [b1, b0, a1, a0, ...]
+    ///   Advice stack: [q0, q1, r0, r1, ...]
+    ///
+    /// Where (a0, a1) and (b0, b1) are the 32-bit limbs of the dividend and the divisor
+    /// respectively (with a0 representing the 32 lest significant bits and a1 representing the
+    /// 32 most significant bits). Similarly, (q0, q1) and (r0, r1) represent the quotient and
+    /// the remainder respectively.
+    ///
+    /// # Errors
+    /// Returns an error if the divisor is ZERO.
+    pub const EVENT_U64_DIV: u32             = 678156251;
 }
 
 #[cfg(test)]

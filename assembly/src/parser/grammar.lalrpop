@@ -54,7 +54,6 @@ extern {
         "push_mapvaln" => Token::PushMapvaln,
         "push_mtnode" => Token::PushMtnode,
         "push_smtpeek" => Token::PushSmtpeek,
-        "push_u64div" => Token::PushU64Div,
         "and" => Token::And,
         "assert" => Token::Assert,
         "assertz" => Token::Assertz,
@@ -674,7 +673,6 @@ SystemEvent: Instruction = {
     "adv" "." "push_mapvaln" => Instruction::SysEvent(SystemEventNode::PushMapValN),
     "adv" "." "push_mtnode" => Instruction::SysEvent(SystemEventNode::PushMtNode),
     "adv" "." "push_smtpeek" => Instruction::SysEvent(SystemEventNode::PushSmtPeek),
-    "adv" "." "push_u64div" => Instruction::SysEvent(SystemEventNode::PushU64Div),
 }
 
 #[inline]

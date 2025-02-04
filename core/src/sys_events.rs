@@ -13,7 +13,6 @@ mod constants {
     pub const EVENT_MERKLE_NODE_TO_STACK: u32         = 361943238;
     pub const EVENT_MAP_VALUE_TO_STACK: u32           = 574478993;
     pub const EVENT_MAP_VALUE_TO_STACK_N: u32         = 630847990;
-    pub const EVENT_U64_DIV: u32                      = 678156251;
     pub const EVENT_EXT2_INV: u32                     = 1251967401;
     pub const EVENT_EXT2_INTT: u32                    = 1347499010;
     pub const EVENT_SMT_PEEK: u32                     = 1889584556;
@@ -99,23 +98,6 @@ pub enum SystemEvent {
     ///   Advice stack: [num_values, values, ...]
     ///   Advice map: {KEY: values}
     MapValueToStackN,
-
-    /// Pushes the result of [u64] division (both the quotient and the remainder) onto the advice
-    /// stack.
-    ///
-    /// Inputs:
-    ///   Operand stack: [b1, b0, a1, a0, ...]
-    ///   Advice stack: [...]
-    ///
-    /// Outputs:
-    ///   Operand stack: [b1, b0, a1, a0, ...]
-    ///   Advice stack: [q0, q1, r0, r1, ...]
-    ///
-    /// Where (a0, a1) and (b0, b1) are the 32-bit limbs of the dividend and the divisor
-    /// respectively (with a0 representing the 32 lest significant bits and a1 representing the
-    /// 32 most significant bits). Similarly, (q0, q1) and (r0, r1) represent the quotient and
-    /// the remainder respectively.
-    U64Div,
 
     /// Given an element in a quadratic extension field on the top of the stack (i.e., a0, b1),
     /// computes its multiplicative inverse and push the result onto the advice stack.
@@ -292,7 +274,6 @@ impl SystemEvent {
             SystemEvent::MerkleNodeToStack => EVENT_MERKLE_NODE_TO_STACK,
             SystemEvent::MapValueToStack => EVENT_MAP_VALUE_TO_STACK,
             SystemEvent::MapValueToStackN => EVENT_MAP_VALUE_TO_STACK_N,
-            SystemEvent::U64Div => EVENT_U64_DIV,
             SystemEvent::Ext2Inv => EVENT_EXT2_INV,
             SystemEvent::Ext2Intt => EVENT_EXT2_INTT,
             SystemEvent::SmtPeek => EVENT_SMT_PEEK,
@@ -316,7 +297,6 @@ impl SystemEvent {
             EVENT_MERKLE_NODE_TO_STACK => Some(SystemEvent::MerkleNodeToStack),
             EVENT_MAP_VALUE_TO_STACK => Some(SystemEvent::MapValueToStack),
             EVENT_MAP_VALUE_TO_STACK_N => Some(SystemEvent::MapValueToStackN),
-            EVENT_U64_DIV => Some(SystemEvent::U64Div),
             EVENT_EXT2_INV => Some(SystemEvent::Ext2Inv),
             EVENT_EXT2_INTT => Some(SystemEvent::Ext2Intt),
             EVENT_SMT_PEEK => Some(SystemEvent::SmtPeek),
@@ -347,7 +327,6 @@ impl fmt::Display for SystemEvent {
             Self::MerkleNodeToStack => write!(f, "merkle_node_to_stack"),
             Self::MapValueToStack => write!(f, "map_value_to_stack"),
             Self::MapValueToStackN => write!(f, "map_value_to_stack_with_len"),
-            Self::U64Div => write!(f, "div_u64"),
             Self::Ext2Inv => write!(f, "ext2_inv"),
             Self::Ext2Intt => write!(f, "ext2_intt"),
             Self::SmtPeek => write!(f, "smt_peek"),

@@ -37,7 +37,6 @@ impl Process {
             SystemEvent::MapValueToStackN => {
                 copy_map_value_to_adv_stack(advice_provider, process_state, true)
             },
-            SystemEvent::U64Div => push_u64_div_result(advice_provider, process_state),
             SystemEvent::Ext2Inv => push_ext2_inv_result(advice_provider, process_state),
             SystemEvent::Ext2Intt => push_ext2_intt_result(advice_provider, process_state),
             SystemEvent::SmtPeek => push_smtpeek_result(advice_provider, process_state),
@@ -286,54 +285,6 @@ pub fn copy_map_value_to_adv_stack(
         process.get_stack_item(0),
     ];
     advice_provider.push_stack(AdviceSource::Map { key, include_len })?;
-
-    Ok(())
-}
-
-/// Pushes the result of [u64] division (both the quotient and the remainder) onto the advice
-/// stack.
-///
-/// Inputs:
-///   Operand stack: [b1, b0, a1, a0, ...]
-///   Advice stack: [...]
-///
-/// Outputs:
-///   Operand stack: [b1, b0, a1, a0, ...]
-///   Advice stack: [q0, q1, r0, r1, ...]
-///
-/// Where (a0, a1) and (b0, b1) are the 32-bit limbs of the dividend and the divisor
-/// respectively (with a0 representing the 32 lest significant bits and a1 representing the
-/// 32 most significant bits). Similarly, (q0, q1) and (r0, r1) represent the quotient and
-/// the remainder respectively.
-///
-/// # Errors
-/// Returns an error if the divisor is ZERO.
-pub fn push_u64_div_result(
-    advice_provider: &mut impl AdviceProvider,
-    process: ProcessState,
-) -> Result<(), ExecutionError> {
-    let divisor_hi = process.get_stack_item(0).as_int();
-    let divisor_lo = process.get_stack_item(1).as_int();
-    let divisor = (divisor_hi << 32) + divisor_lo;
-
-    if divisor == 0 {
-        return Err(ExecutionError::DivideByZero(process.clk()));
-    }
-
-    let dividend_hi = process.get_stack_item(2).as_int();
-    let dividend_lo = process.get_stack_item(3).as_int();
-    let dividend = (dividend_hi << 32) + dividend_lo;
-
-    let quotient = dividend / divisor;
-    let remainder = dividend - quotient * divisor;
-
-    let (q_hi, q_lo) = u64_to_u32_elements(quotient);
-    let (r_hi, r_lo) = u64_to_u32_elements(remainder);
-
-    advice_provider.push_stack(AdviceSource::Value(r_hi))?;
-    advice_provider.push_stack(AdviceSource::Value(r_lo))?;
-    advice_provider.push_stack(AdviceSource::Value(q_hi))?;
-    advice_provider.push_stack(AdviceSource::Value(q_lo))?;
 
     Ok(())
 }
@@ -633,12 +584,6 @@ fn get_mem_addr_range(
     }
 
     Ok((start_addr as u32, end_addr as u32))
-}
-
-fn u64_to_u32_elements(value: u64) -> (Felt, Felt) {
-    let hi = Felt::from((value >> 32) as u32);
-    let lo = Felt::from(value as u32);
-    (hi, lo)
 }
 
 /// Gets the top stack element, applies a provided function to it and pushes it to the advice

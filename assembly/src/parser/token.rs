@@ -151,7 +151,6 @@ pub enum Token<'input> {
     PushSmtpeek,
     PushSmtset,
     PushSmtget,
-    PushU64Div,
     And,
     Assert,
     Assertz,
@@ -335,7 +334,6 @@ impl fmt::Display for Token<'_> {
             Token::PushSmtpeek => write!(f, "push_smtpeek"),
             Token::PushSmtset => write!(f, "push_smtset"),
             Token::PushSmtget => write!(f, "push_smtget"),
-            Token::PushU64Div => write!(f, "push_u64div"),
             Token::And => write!(f, "and"),
             Token::Assert => write!(f, "assert"),
             Token::Assertz => write!(f, "assertz"),
@@ -527,7 +525,6 @@ impl<'input> Token<'input> {
                 | Token::PushSmtpeek
                 | Token::PushSmtset
                 | Token::PushSmtget
-                | Token::PushU64Div
                 | Token::And
                 | Token::Assert
                 | Token::Assertz
@@ -671,7 +668,6 @@ impl<'input> Token<'input> {
         ("push_smtpeek", Token::PushSmtpeek),
         ("push_smtset", Token::PushSmtset),
         ("push_smtget", Token::PushSmtget),
-        ("push_u64div", Token::PushU64Div),
         ("and", Token::And),
         ("assert", Token::Assert),
         ("assertz", Token::Assertz),
