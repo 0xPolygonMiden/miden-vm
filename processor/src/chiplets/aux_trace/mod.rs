@@ -91,9 +91,9 @@ impl ChipletsVTableColBuilder {
 impl<E: FieldElement<BaseField = Felt>> AuxColumnBuilder<E> for ChipletsVTableColBuilder {
     fn init_requests(&self, _main_trace: &MainTrace, alphas: &[E]) -> E {
         let mut requests = E::ONE;
-        for (addr, proc_hash) in self.kernel.proc_hashes().iter().enumerate() {
+        for (idx, proc_hash) in self.kernel.proc_hashes().iter().enumerate() {
             requests *= alphas[0]
-                + alphas[1].mul_base((addr as u32).into())
+                + alphas[1].mul_base((idx as u32).into())
                 + alphas[2].mul_base(proc_hash[0])
                 + alphas[3].mul_base(proc_hash[1])
                 + alphas[4].mul_base(proc_hash[2])
@@ -236,26 +236,26 @@ where
     E: FieldElement<BaseField = Felt>,
 {
     if main_trace.is_kernel_row(row) {
-        let addr = main_trace.chiplet_kernel_addr(row);
-        let addr_delta = {
-            let addr_nxt = main_trace.chiplet_kernel_addr(row + 1);
-            addr_nxt - addr
+        let idx = main_trace.chiplet_kernel_idx(row);
+        let idx_delta = {
+            let idx_next = main_trace.chiplet_kernel_idx(row + 1);
+            idx_next - idx
         };
         let next_row_is_kernel = main_trace.is_kernel_row(row + 1);
 
         // We want to add an entry to the table in 2 cases:
-        // 1. when the next row is a kernel row and the address changes
-        //    - this adds the last row of all rows that share the same address
+        // 1. when the next row is a kernel row and the idx changes
+        //    - this adds the last row of all rows that share the same idx
         // 2. when the next row is not a kernel row
         //    - this is the edge case of (1)
-        if !next_row_is_kernel || addr_delta == ONE {
+        if !next_row_is_kernel || idx_delta == ONE {
             let root0 = main_trace.chiplet_kernel_root_0(row);
             let root1 = main_trace.chiplet_kernel_root_1(row);
             let root2 = main_trace.chiplet_kernel_root_2(row);
             let root3 = main_trace.chiplet_kernel_root_3(row);
 
             alphas[0]
-                + alphas[1].mul_base(addr)
+                + alphas[1].mul_base(idx)
                 + alphas[2].mul_base(root0)
                 + alphas[3].mul_base(root1)
                 + alphas[4].mul_base(root2)

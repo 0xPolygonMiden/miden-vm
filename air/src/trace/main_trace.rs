@@ -419,7 +419,7 @@ impl MainTrace {
     }
 
     /// Returns the i-th row of the kernel chiplet `addr` column.
-    pub fn chiplet_kernel_addr(&self, i: RowIndex) -> Felt {
+    pub fn chiplet_kernel_idx(&self, i: RowIndex) -> Felt {
         self.columns.get_column(CHIPLETS_OFFSET + 5)[i]
     }
 
