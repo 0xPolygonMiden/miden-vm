@@ -8,14 +8,14 @@ The kernel ROM table consists of 6 columns.
 
 The meaning of columns in the above is as follows:
 - Column $s_0$ specifies whether the value in the row should be included into the chiplets bus $b_{chip}$.
-- $addr$ is a row address column which starts out at $0$ and must either remain the same or be incremented by $1$ with every row.
-- $r_0, ..., r_3$ are contain the roots of the kernel functions. The values in these columns can change only when the value in the $addr$ column changes. If the $addr$ column remains the same, the values in the $r$ columns must also remain the same.
+- $idx$ is a column which starts out at $0$ and must either remain the same or be incremented by $1$ with every row.
+- $r_0, ..., r_3$ are contain the roots of the kernel functions. The values in these columns can change only when the value in the $idx$ column changes. If the $idx$ column remains the same, the values in the $r$ columns must also remain the same.
 
 ## Constraints
 
 The following constraints are required to enforce correctness of the kernel ROM trace.
 
-For convenience, let's define $\Delta addr = addr' - addr$.
+For convenience, let's define $\Delta idx = idx' - idx$.
 
 The $s_0$ column must be binary.
 
@@ -23,28 +23,28 @@ The $s_0$ column must be binary.
 s_0^2 - s_0 = 0 \text{ | degree} = 2
 $$
 
-The value in the $addr$ column must either stay the same or increase by $1$.
+The value in the $idx$ column must either stay the same or increase by $1$.
 
 > $$
-\Delta addr \cdot (1 - \Delta addr) = 0 \text{ | degree} = 2
+\Delta idx \cdot (1 - \Delta idx) = 0 \text{ | degree} = 2
 $$
 
-Finally, if the $addr$ column stays the same then the kernel procedure root must not change. This can be achieved by enforcing the following constraint against each of the four procedure root columns:
+Finally, if the $idx$ column stays the same then the kernel procedure root must not change. This can be achieved by enforcing the following constraint against each of the four procedure root columns:
 
 > $$
-(1 - \Delta addr) \cdot (r_i' - r_i) = 0 \text{ | degree} = 2
+(1 - \Delta idx) \cdot (r_i' - r_i) = 0 \text{ | degree} = 2
 $$
 
-These constraints on $addr$ should not be applied to the very last row of the kernel ROM's execution trace, since we do not want to enforce a value that would conflict with the first row of a subsequent chiplet (or padding). Therefore we can create a special virtual flag for this constraint using the $chip\_s_3$ selector column from the [chiplets](main.md) module that selects for the kernel ROM chiplet.
+These constraints on $idx$ should not be applied to the very last row of the kernel ROM's execution trace, since we do not want to enforce a value that would conflict with the first row of a subsequent chiplet (or padding). Therefore we can create a special virtual flag for this constraint using the $chip\_s_3$ selector column from the [chiplets](main.md) module that selects for the kernel ROM chiplet.
 
 The modified constraints which should be applied are the following:
 
 >$$
-(1 - chip\_s_3') \cdot \Delta addr \cdot (1 - \Delta addr) = 0 \text{ | degree} = 3
+(1 - chip\_s_3') \cdot \Delta idx \cdot (1 - \Delta idx) = 0 \text{ | degree} = 3
 $$
 
 >$$
-(1 - chip\_s_3') \cdot (1 - \Delta addr) \cdot (r_i' - r_i) = 0 \text{ | degree} = 3
+(1 - chip\_s_3') \cdot (1 - \Delta idx) \cdot (r_i' - r_i) = 0 \text{ | degree} = 3
 $$
 
 _Note: these constraints should also be multiplied by chiplets module's selector flag for the kernel ROM chiplet, as is true for all constraints in this chiplet._
@@ -72,20 +72,20 @@ Thus, when $s_0 = 0$ this reduces to $b'_{chip} = b_{chip}$, but when $s_0=1$ it
 ## Kernel procedure table constraints
 *Note: Although this table is described independently, it is implemented as part of the [chiplets virtual table](../chiplets/main.md#chiplets-virtual-table), which combines all virtual tables required by any of the chiplets into a single master table.*
 
-This kernel procedure table keeps track of all *unique* kernel function roots. The values in this table will be updated only when the value in the address column changes.
+This kernel procedure table keeps track of all *unique* kernel function roots. The values in this table will be updated only when the value in the `idx` column changes.
 
 The row value included into $vt_{chip}$ is:
 
 $$
-v = \alpha_0 + \alpha_1 \cdot addr + \sum_{i=0}^3 (\alpha_{i + 2} \cdot r_i)
+v = \alpha_0 + \alpha_1 \cdot idx + \sum_{i=0}^3 (\alpha_{i + 2} \cdot r_i)
 $$
 
 The constraint against $vt_{chip}$ is:
 
 > $$
-vt_{chip}' = vt_{chip} \cdot (\Delta addr \cdot v + 1 - \Delta addr) \text{ | degree} = 3
+vt_{chip}' = vt_{chip} \cdot (\Delta idx \cdot v + 1 - \Delta idx) \text{ | degree} = 3
 $$
 
-Thus, when $\Delta addr = 0$, the above reduces to $vt'_{chip}=vt_{chip}$, but when $\Delta addr = 1$, the above becomes $vt'_{chip} = vt_{chip} \cdot v$.
+Thus, when $\Delta idx = 0$, the above reduces to $vt'_{chip}=vt_{chip}$, but when $\Delta idx = 1$, the above becomes $vt'_{chip} = vt_{chip} \cdot v$.
 
 We also need to impose boundary constraints to make sure that running product column implementing the kernel procedure table is equal to $1$ when the kernel procedure table begins and to the product of all unique kernel functions when it ends. The last boundary constraint means that the verifier only needs to know which kernel was used, but doesn't need to know which functions were invoked within the kernel. These two constraints are described as part of the [chiplets virtual table constraints](../chiplets/main.md#chiplets-virtual-table-constraints).
