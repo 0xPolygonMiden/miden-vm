@@ -10,8 +10,10 @@ use assembly::{
     utils::{sync::LazyLock, Deserializable},
     Library,
 };
-use processor::{EventHandler, HostLibrary, ProcessState};
-use vm_core::{AdviceProvider, AdviceProviderError, AdviceSource, Felt, Word};
+use processor::{
+    AdviceProvider, AdviceProviderError, AdviceSource, EventHandler, Felt, HostLibrary,
+    ProcessState, Word,
+};
 
 pub mod dsa;
 
@@ -95,7 +97,7 @@ pub const EVENT_FALCON_SIG_TO_STACK: u32 = 3419226139;
 // EVENT HANDLERS
 // ==============================================================================================
 
-/// An event handler which verifies a Falcon signature and pushes the result onto the stack.
+/// An event handler which generates a Falcon signature and pushes the result onto the stack.
 pub struct FalconSigToStackEventHandler<A> {
     signer: Box<dyn FalconSigner<A>>,
 }
