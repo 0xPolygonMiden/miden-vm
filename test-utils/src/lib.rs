@@ -237,7 +237,7 @@ impl Test {
         for library in &self.libraries {
             host.load_mast_forest(library.mast_forest().clone()).unwrap();
         }
-        host.load_library(&StdLibrary::default()).unwrap();
+        host.load_library(&StdLibrary::default(), ()).unwrap();
         host.register_event_handlers([NoopEventHandler::new_boxed(1)].into_iter())
             .unwrap();
 
@@ -342,7 +342,7 @@ impl Test {
         for library in &self.libraries {
             host.load_mast_forest(library.mast_forest().clone()).unwrap();
         }
-        host.load_library(&StdLibrary::default()).unwrap();
+        host.load_library(&StdLibrary::default(), ()).unwrap();
         host.register_event_handlers([NoopEventHandler::new_boxed(1)].into_iter())
             .unwrap();
         processor::execute(
@@ -368,7 +368,7 @@ impl Test {
         for library in &self.libraries {
             host.load_mast_forest(library.mast_forest().clone()).unwrap();
         }
-        host.load_library(&StdLibrary::default()).unwrap();
+        host.load_library(&StdLibrary::default(), ()).unwrap();
         host.register_event_handlers([NoopEventHandler::new_boxed(1)].into_iter())
             .unwrap();
 
@@ -396,7 +396,7 @@ impl Test {
         for library in &self.libraries {
             host.load_mast_forest(library.mast_forest().clone()).unwrap();
         }
-        host.load_library(&StdLibrary::default()).unwrap();
+        host.load_library(&StdLibrary::default(), ()).unwrap();
         host.register_event_handlers([NoopEventHandler::new_boxed(1)].into_iter())
             .unwrap();
         let (mut stack_outputs, proof) =
@@ -427,7 +427,7 @@ impl Test {
         for library in &self.libraries {
             host.load_mast_forest(library.mast_forest().clone()).unwrap();
         }
-        host.load_library(&StdLibrary::default()).unwrap();
+        host.load_library(&StdLibrary::default(), ()).unwrap();
         host.register_event_handlers([NoopEventHandler::new_boxed(1)].into_iter())
             .unwrap();
 

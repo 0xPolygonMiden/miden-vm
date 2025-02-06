@@ -101,7 +101,7 @@ impl ProveCmd {
         let mut host = DefaultHost::new_with_advice_provider(
             input_data.parse_advice_provider().map_err(Report::msg)?,
         );
-        host.load_library(&StdLibrary::default()).unwrap();
+        host.load_library(&StdLibrary::default(), ()).unwrap();
 
         let proving_options =
             self.get_proof_options().map_err(|err| Report::msg(format!("{err}")))?;

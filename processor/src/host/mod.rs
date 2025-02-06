@@ -112,9 +112,9 @@ where
 // HOST LIBRARY
 // ================================================================================================
 
-pub trait HostLibrary {
+pub trait HostLibrary<Inputs> {
     // Returns all event handlers provided by the library.
-    fn get_event_handlers<A>(&self) -> Vec<Box<dyn EventHandler<A>>>
+    fn get_event_handlers<A>(&self, inputs: Inputs) -> Vec<Box<dyn EventHandler<A>>>
     where
         A: AdviceProvider + 'static;
 
@@ -192,10 +192,14 @@ where
     D: DebugHandler,
 {
     /// Loads the specified library into the host.
-    pub fn load_library(&mut self, library: &impl HostLibrary) -> Result<(), ExecutionError> {
+    pub fn load_library<Inputs>(
+        &mut self,
+        library: &impl HostLibrary<Inputs>,
+        inputs: Inputs,
+    ) -> Result<(), ExecutionError> {
         self.load_mast_forest(library.get_mast_forest())?;
         self.event_registry
-            .register_event_handlers(library.get_event_handlers().into_iter())?;
+            .register_event_handlers(library.get_event_handlers(inputs).into_iter())?;
 
         Ok(())
     }

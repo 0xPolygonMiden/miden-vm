@@ -132,7 +132,7 @@ fn run_program(params: &RunCmd) -> Result<(ExecutionTrace, [u8; 32]), Report> {
     let mut host = DefaultHost::new_with_advice_provider(
         input_data.parse_advice_provider().map_err(Report::msg)?,
     );
-    host.load_library(&StdLibrary::default()).unwrap();
+    host.load_library(&StdLibrary::default(), ()).unwrap();
 
     let program_hash: [u8; 32] = program.hash().into();
 

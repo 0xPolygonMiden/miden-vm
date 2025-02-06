@@ -74,8 +74,8 @@ impl Default for StdLibrary {
     }
 }
 
-impl HostLibrary for StdLibrary {
-    fn get_event_handlers<A>(&self) -> Vec<Box<dyn EventHandler<A>>>
+impl HostLibrary<()> for StdLibrary {
+    fn get_event_handlers<A>(&self, _inputs: ()) -> Vec<Box<dyn EventHandler<A>>>
     where
         A: AdviceProvider + 'static,
     {
