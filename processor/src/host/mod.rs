@@ -144,19 +144,45 @@ impl Default for DefaultHost<MemAdviceProvider, DefaultDebugHandler> {
     }
 }
 
-impl<A> DefaultHost<A, DefaultDebugHandler> {
-    pub fn with_advice_provider(self, adv_provider: A) -> DefaultHost<A, DefaultDebugHandler> {
-        DefaultHost { adv_provider, ..self }
+impl<A, D> DefaultHost<A, D>
+where
+    A: AdviceProvider + Default,
+{
+    pub fn new(adv_provider: A, debug_handler: D) -> DefaultHost<A, D> {
+        DefaultHost {
+            adv_provider,
+            store: MemMastForestStore::default(),
+            event_registry: EventHandlerRegistry::default(),
+            debug_handler,
+        }
     }
 }
 
-impl<A, D> DefaultHost<A, D>
+impl<A> DefaultHost<A, DefaultDebugHandler>
 where
-    A: AdviceProvider,
+    A: AdviceProvider + Default,
+{
+    pub fn new_with_advice_provider(adv_provider: A) -> DefaultHost<A, DefaultDebugHandler> {
+        DefaultHost {
+            adv_provider,
+            store: MemMastForestStore::default(),
+            event_registry: EventHandlerRegistry::default(),
+            debug_handler: DefaultDebugHandler,
+        }
+    }
+}
+
+impl<D> DefaultHost<MemAdviceProvider, D>
+where
     D: DebugHandler,
 {
-    pub fn with_debug_handler(self, debug_handler: D) -> DefaultHost<A, D> {
-        DefaultHost { debug_handler, ..self }
+    pub fn new_with_debug_handler(debug_handler: D) -> DefaultHost<MemAdviceProvider, D> {
+        DefaultHost {
+            adv_provider: MemAdviceProvider::default(),
+            store: MemMastForestStore::default(),
+            event_registry: EventHandlerRegistry::default(),
+            debug_handler,
+        }
     }
 }
 

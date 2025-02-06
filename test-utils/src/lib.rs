@@ -228,8 +228,9 @@ impl Test {
     ) {
         // compile the program
         let (program, kernel) = self.compile().expect("Failed to compile test source.");
-        let mut host = DefaultHost::default()
-            .with_advice_provider(MemAdviceProvider::from(self.advice_inputs.clone()));
+        let mut host = DefaultHost::new_with_advice_provider(MemAdviceProvider::from(
+            self.advice_inputs.clone(),
+        ));
         if let Some(kernel) = kernel {
             host.load_mast_forest(kernel.mast_forest().clone()).unwrap();
         }
@@ -332,8 +333,9 @@ impl Test {
     #[track_caller]
     pub fn execute(&self) -> Result<ExecutionTrace, ExecutionError> {
         let (program, kernel) = self.compile().expect("Failed to compile test source.");
-        let mut host = DefaultHost::default()
-            .with_advice_provider(MemAdviceProvider::from(self.advice_inputs.clone()));
+        let mut host = DefaultHost::new_with_advice_provider(MemAdviceProvider::from(
+            self.advice_inputs.clone(),
+        ));
         if let Some(kernel) = kernel {
             host.load_mast_forest(kernel.mast_forest().clone()).unwrap();
         }
@@ -357,8 +359,9 @@ impl Test {
         &self,
     ) -> Result<(Process, DefaultHost<MemAdviceProvider>), ExecutionError> {
         let (program, kernel) = self.compile().expect("Failed to compile test source.");
-        let mut host = DefaultHost::default()
-            .with_advice_provider(MemAdviceProvider::from(self.advice_inputs.clone()));
+        let mut host = DefaultHost::new_with_advice_provider(MemAdviceProvider::from(
+            self.advice_inputs.clone(),
+        ));
         if let Some(kernel) = kernel {
             host.load_mast_forest(kernel.mast_forest().clone()).unwrap();
         }
@@ -384,8 +387,9 @@ impl Test {
     pub fn prove_and_verify(&self, pub_inputs: Vec<u64>, test_fail: bool) {
         let stack_inputs = StackInputs::try_from_ints(pub_inputs).unwrap();
         let (program, kernel) = self.compile().expect("Failed to compile test source.");
-        let mut host = DefaultHost::default()
-            .with_advice_provider(MemAdviceProvider::from(self.advice_inputs.clone()));
+        let mut host = DefaultHost::new_with_advice_provider(MemAdviceProvider::from(
+            self.advice_inputs.clone(),
+        ));
         if let Some(kernel) = kernel {
             host.load_mast_forest(kernel.mast_forest().clone()).unwrap();
         }
@@ -414,8 +418,9 @@ impl Test {
     /// state.
     pub fn execute_iter(&self) -> VmStateIterator {
         let (program, kernel) = self.compile().expect("Failed to compile test source.");
-        let mut host = DefaultHost::default()
-            .with_advice_provider(MemAdviceProvider::from(self.advice_inputs.clone()));
+        let mut host = DefaultHost::new_with_advice_provider(MemAdviceProvider::from(
+            self.advice_inputs.clone(),
+        ));
         if let Some(kernel) = kernel {
             host.load_mast_forest(kernel.mast_forest().clone()).unwrap();
         }

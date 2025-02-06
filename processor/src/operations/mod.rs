@@ -208,7 +208,7 @@ pub mod testing {
             let advice_inputs =
                 AdviceInputs::default().with_stack_values(advice_stack.iter().copied()).unwrap();
             let advice_provider = MemAdviceProvider::from(advice_inputs);
-            let mut host = DefaultHost::default().with_advice_provider(advice_provider);
+            let mut host = DefaultHost::new_with_advice_provider(advice_provider);
             let mut process =
                 Self::new(Kernel::default(), stack_inputs, ExecutionOptions::default());
             process.execute_op(Operation::Noop, &mut host).unwrap();
@@ -241,7 +241,7 @@ pub mod testing {
             advice_inputs: AdviceInputs,
         ) -> (Self, DefaultHost<MemAdviceProvider>) {
             let advice_provider = MemAdviceProvider::from(advice_inputs);
-            let mut host = DefaultHost::default().with_advice_provider(advice_provider);
+            let mut host = DefaultHost::new_with_advice_provider(advice_provider);
             let mut process =
                 Self::new(Kernel::default(), stack_inputs, ExecutionOptions::default());
             process.decoder.add_dummy_trace_row();

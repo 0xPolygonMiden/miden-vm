@@ -51,7 +51,7 @@ pub fn build_trace_from_ops_with_inputs(
     advice_inputs: AdviceInputs,
 ) -> ExecutionTrace {
     let advice_provider = MemAdviceProvider::from(advice_inputs);
-    let mut host = DefaultHost::default().with_advice_provider(advice_provider);
+    let mut host = DefaultHost::new_with_advice_provider(advice_provider);
     let mut process = Process::new(Kernel::default(), stack_inputs, ExecutionOptions::default());
 
     let mut mast_forest = MastForest::new();

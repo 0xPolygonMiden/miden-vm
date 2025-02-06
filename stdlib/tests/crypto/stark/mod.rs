@@ -52,7 +52,7 @@ pub fn generate_recursive_verifier_data(
     let stack_inputs = StackInputs::try_from_ints(stack_inputs).unwrap();
     let advice_inputs = AdviceInputs::default();
     let advice_provider = MemAdviceProvider::from(advice_inputs);
-    let mut host = DefaultHost::default().with_advice_provider(advice_provider);
+    let mut host = DefaultHost::new_with_advice_provider(advice_provider);
 
     let options =
         ProvingOptions::new(27, 8, 12, FieldExtension::Quadratic, 4, 7, HashFunction::Rpo256);

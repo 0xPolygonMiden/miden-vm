@@ -30,7 +30,7 @@ impl DebugExecutor {
         let mut vm_state_iter = processor::execute_iter(
             &program,
             stack_inputs,
-            &mut DefaultHost::default().with_advice_provider(advice_provider),
+            &mut DefaultHost::new_with_advice_provider(advice_provider),
         );
         let vm_state = vm_state_iter
             .next()
