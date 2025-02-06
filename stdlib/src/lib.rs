@@ -153,7 +153,7 @@ pub trait FalconSigner<A>: Send + Sync {
     /// Signs the message using the Falcon signature scheme, and returns the signature as a
     /// `Vec<Felt>`.
     fn sign_message(
-        &self,
+        &mut self,
         pub_key: Word,
         msg: Word,
         advice_provider: &A,
@@ -171,7 +171,7 @@ pub struct DefaultFalconSigner;
 
 impl<A> FalconSigner<A> for DefaultFalconSigner {
     fn sign_message(
-        &self,
+        &mut self,
         pub_key: Word,
         msg: Word,
         advice_provider: &A,
