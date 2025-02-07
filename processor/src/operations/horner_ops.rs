@@ -389,8 +389,7 @@ mod tests {
 
     #[test]
     fn prove_verify_horner_base() {
-        let source = format!(
-            "
+        let source = "
             begin
                 # Load the evaluation point from the advice stack and store it at `r_addr`
                 padw
@@ -402,8 +401,7 @@ mod tests {
                 # Execute
                 horner_eval_base
             end
-        "
-        );
+        ";
 
         // --- build stack inputs -----------------------------------------------------------------
         let mut inputs = rand_array::<Felt, 16>();
@@ -454,8 +452,7 @@ mod tests {
 
     #[test]
     fn prove_verify_horner_ext() {
-        let source = format!(
-            "
+        let source = "
             begin
                 # Load the evaluation point from the advice stack and store it at `r_addr`
                 padw
@@ -467,8 +464,7 @@ mod tests {
                 # Execute
                 horner_eval_ext
             end
-        "
-        );
+        ";
 
         // --- build stack inputs -----------------------------------------------------------------
         let mut inputs = rand_array::<Felt, 16>();
