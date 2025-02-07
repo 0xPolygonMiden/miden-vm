@@ -155,6 +155,8 @@ where
     }
 }
 
+// TODO(plafer): Double-check if `Send + Sync` is necessary.
+// If not, remove it from miden-base's `TransactionAuthenticator`, and `BasicAuthenticator`
 /// A trait for signing messages using the Falcon signature scheme.
 ///
 /// This trait is used by [FalconSigToStackEventHandler] to sign messages using the Falcon signature

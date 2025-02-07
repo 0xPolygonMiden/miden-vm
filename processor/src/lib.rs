@@ -49,8 +49,8 @@ use range::RangeChecker;
 mod host;
 pub use host::{
     advice::{MemAdviceProvider, RecAdviceProvider},
-    DebugHandler, DefaultHost, EventHandler, Host, HostLibrary, MastForestStore,
-    MemMastForestStore, NoopEventHandler,
+    DebugHandler, DefaultHost, EventHandler, EventHandlerRegistry, Host, HostLibrary,
+    MastForestStore, MemMastForestStore, NoopEventHandler,
 };
 
 mod chiplets;
