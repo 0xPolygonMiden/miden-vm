@@ -3,7 +3,7 @@
 extern crate alloc;
 
 use alloc::{boxed::Box, sync::Arc, vec, vec::Vec};
-use core::error::Error;
+use core::{error::Error, marker::PhantomData};
 
 use assembly::{
     mast::MastForest,
@@ -20,11 +20,17 @@ pub mod dsa;
 // STANDARD LIBRARY
 // ================================================================================================
 
+/// Serialized representation of the Miden standard library.
+pub const SERIALIZED: &[u8] = include_bytes!(concat!(env!("OUT_DIR"), "/assets/std.masl"));
+static STDLIB: LazyLock<Library> =
+    LazyLock::new(|| Library::read_from_bytes(SERIALIZED).expect("failed to read std masl!"));
+
 /// The compiled representation of the Miden standard library.
 #[derive(Clone)]
-pub struct StdLibrary<F = DefaultFalconSigner> {
+pub struct StdLibrary<F = DefaultFalconSigner, Inputs = ()> {
     lib: Library,
-    falcon_sig_event_handler: F,
+    _signer: PhantomData<F>,
+    _inputs: PhantomData<Inputs>,
 }
 
 impl AsRef<Library> for StdLibrary {
@@ -39,49 +45,51 @@ impl From<StdLibrary> for Library {
     }
 }
 
-impl StdLibrary {
-    /// Serialized representation of the Miden standard library.
-    pub const SERIALIZED: &'static [u8] =
-        include_bytes!(concat!(env!("OUT_DIR"), "/assets/std.masl"));
-
+impl<F, Inputs> StdLibrary<F, Inputs> {
     /// Creates a new instance of the Miden standard library.
-    fn new(lib: Library) -> Self {
+    ///
+    /// This function is different from [Default::default] in that it allows the caller to specify a
+    /// type for the Falcon signer, and the `Inputs` required to build it.
+    pub fn new() -> Self {
         Self {
-            lib,
-            falcon_sig_event_handler: DefaultFalconSigner,
+            lib: STDLIB.clone(),
+            _signer: PhantomData,
+            _inputs: PhantomData,
         }
-    }
-
-    /// Allows to customize the event handler for the [`EVENT_FALCON_SIG_TO_STACK`] event.
-    pub fn with_falcon_sig_handler<F>(self, falcon_sig_event_handler: F) -> StdLibrary<F> {
-        StdLibrary { lib: self.lib, falcon_sig_event_handler }
     }
 
     /// Returns a reference to the [MastForest] underlying the Miden standard library.
     pub fn mast_forest(&self) -> &Arc<MastForest> {
         self.lib.mast_forest()
     }
-}
 
-impl Default for StdLibrary {
-    fn default() -> Self {
-        static STDLIB: LazyLock<StdLibrary> = LazyLock::new(|| {
-            let contents =
-                Library::read_from_bytes(StdLibrary::SERIALIZED).expect("failed to read std masl!");
-            StdLibrary::new(contents)
-        });
-        STDLIB.clone()
+    /// Creates a new instance of the Miden standard library.
+    fn new_with_lib(lib: Library) -> Self {
+        Self {
+            lib,
+            _signer: PhantomData,
+            _inputs: PhantomData,
+        }
     }
 }
 
-impl HostLibrary<()> for StdLibrary {
-    fn get_event_handlers<A>(&self, _inputs: ()) -> Vec<Box<dyn EventHandler<A>>>
+impl Default for StdLibrary<DefaultFalconSigner, ()> {
+    fn default() -> Self {
+        StdLibrary::new_with_lib(STDLIB.clone())
+    }
+}
+
+impl<F, Inputs> HostLibrary<Inputs> for StdLibrary<F, Inputs>
+where
+    F: FalconSigner<Inputs> + 'static,
+    Inputs: 'static,
+{
+    fn get_event_handlers<A>(&self, inputs: Inputs) -> Vec<Box<dyn EventHandler<A>>>
     where
         A: AdviceProvider + 'static,
     {
-        vec![Box::new(FalconSigToStackEventHandler::new(
-            self.falcon_sig_event_handler.clone(),
-        ))]
+        let signer = F::new(inputs);
+        vec![Box::new(FalconSigToStackEventHandler::new(signer))]
     }
 
     fn get_mast_forest(&self) -> Arc<MastForest> {
@@ -98,28 +106,32 @@ pub const EVENT_FALCON_SIG_TO_STACK: u32 = 3419226139;
 // ==============================================================================================
 
 /// An event handler which generates a Falcon signature and pushes the result onto the stack.
-pub struct FalconSigToStackEventHandler<F> {
+pub struct FalconSigToStackEventHandler<F, Inputs> {
     signer: F,
+    _inputs: PhantomData<Inputs>,
 }
 
-impl<F> FalconSigToStackEventHandler<F> {
+impl<F, Inputs> FalconSigToStackEventHandler<F, Inputs> {
     /// Creates a new instance of the Falcon signature to stack event handler, given a specified
     /// Falcon signer.
     pub fn new(signer: F) -> Self {
-        Self { signer }
+        Self { signer, _inputs: PhantomData }
     }
 }
 
-impl Default for FalconSigToStackEventHandler<DefaultFalconSigner> {
+impl Default for FalconSigToStackEventHandler<DefaultFalconSigner, ()> {
     fn default() -> Self {
-        Self { signer: DefaultFalconSigner }
+        Self {
+            signer: DefaultFalconSigner,
+            _inputs: PhantomData,
+        }
     }
 }
 
-impl<A, F> EventHandler<A> for FalconSigToStackEventHandler<F>
+impl<A, F, Inputs> EventHandler<A> for FalconSigToStackEventHandler<F, Inputs>
 where
     A: AdviceProvider,
-    F: FalconSigner,
+    F: FalconSigner<Inputs>,
 {
     fn id(&self) -> u32 {
         EVENT_FALCON_SIG_TO_STACK
@@ -150,7 +162,9 @@ where
 ///
 /// It is recommended to use [dsa::falcon_sign] to implement this trait once the private key has
 /// been fetched from a user-defined location.
-pub trait FalconSigner: Send + Sync {
+pub trait FalconSigner<Inputs>: Send + Sync {
+    fn new(args: Inputs) -> Self;
+
     /// Signs the message using the Falcon signature scheme, and returns the signature as a
     /// `Vec<Felt>`.
     fn sign_message<A>(
@@ -170,7 +184,11 @@ pub trait FalconSigner: Send + Sync {
 #[derive(Debug, Clone)]
 pub struct DefaultFalconSigner;
 
-impl FalconSigner for DefaultFalconSigner {
+impl<Inputs> FalconSigner<Inputs> for DefaultFalconSigner {
+    fn new(_args: Inputs) -> Self {
+        Self
+    }
+
     fn sign_message<A>(
         &mut self,
         pub_key: Word,
