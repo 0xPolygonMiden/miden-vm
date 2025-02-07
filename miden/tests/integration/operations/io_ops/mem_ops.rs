@@ -228,18 +228,3 @@ fn read_after_write() {
     let test = build_op_test!("mem_storew.0 dropw mem_loadw.0", &[1, 2, 3, 4, 5, 6, 7, 8]);
     test.expect_stack(&[8, 7, 6, 5]);
 }
-
-// MISC
-// ================================================================================================
-
-/// Ensures that the processor returns no error when 2 memory operations occur in the same context,
-/// at the same address, and in the same clock cycle (which is what RCOMBBASE does when `stack[13] =
-/// stack[14] = 0`).
-#[test]
-fn mem_reads_same_clock_cycle() {
-    let asm_op = "begin rcomb_base end";
-
-    let test = build_test!(asm_op);
-
-    test.prove_and_verify(vec![0], false);
-}

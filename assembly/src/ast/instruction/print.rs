@@ -264,7 +264,6 @@ impl PrettyPrint for Instruction {
 
             // ----- STARK proof verification -----------------------------------------------------
             Self::FriExt2Fold4 => const_text("fri_ext2fold4"),
-            Self::RCombBase => const_text("rcomb_base"),
             Self::HornerBase => const_text("horner_eval_base"),
             Self::HornerExt => const_text("horner_eval_ext"),
 

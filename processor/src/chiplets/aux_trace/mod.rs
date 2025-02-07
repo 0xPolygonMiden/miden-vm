@@ -20,10 +20,10 @@ use miden_air::{
     RowIndex,
 };
 use vm_core::{
-    Kernel, Word, ONE, OPCODE_CALL, OPCODE_DYN, OPCODE_DYNCALL, OPCODE_END, OPCODE_HPERM,
-    OPCODE_JOIN, OPCODE_LOOP, OPCODE_MLOAD, OPCODE_MLOADW, OPCODE_MPVERIFY, OPCODE_MRUPDATE,
-    OPCODE_MSTORE, OPCODE_MSTOREW, OPCODE_MSTREAM, OPCODE_PIPE, OPCODE_RCOMBBASE, OPCODE_RESPAN,
-    OPCODE_SPAN, OPCODE_SPLIT, OPCODE_SYSCALL, OPCODE_U32AND, OPCODE_U32XOR, ZERO,
+    Kernel, Word, ONE, OPCODE_CALL, OPCODE_DYN, OPCODE_DYNCALL, OPCODE_END, OPCODE_HORNERBASE,
+    OPCODE_HORNEREXT, OPCODE_HPERM, OPCODE_JOIN, OPCODE_LOOP, OPCODE_MLOAD, OPCODE_MLOADW,
+    OPCODE_MPVERIFY, OPCODE_MRUPDATE, OPCODE_MSTORE, OPCODE_MSTOREW, OPCODE_MSTREAM, OPCODE_PIPE,
+    OPCODE_RESPAN, OPCODE_SPAN, OPCODE_SPLIT, OPCODE_SYSCALL, OPCODE_U32AND, OPCODE_U32XOR, ZERO,
 };
 
 use super::{super::trace::AuxColumnBuilder, Felt, FieldElement};
@@ -68,7 +68,7 @@ impl AuxTraceBuilder {
 
         debug_assert_eq!(*t_chip.last().unwrap(), E::ONE);
         // TODO: Fix and re-enable after testing with miden-base
-        // debug_assert_eq!(*b_chip.last().unwrap(), E::ONE);
+        debug_assert_eq!(*b_chip.last().unwrap(), E::ONE);
         vec![t_chip, b_chip]
     }
 }
@@ -314,7 +314,8 @@ impl<E: FieldElement<BaseField = Felt>> AuxColumnBuilder<E> for BusColumnBuilder
                 build_mem_mload_mstore_request(main_trace, MEMORY_WRITE_ELEMENT_LABEL, alphas, row)
             },
             OPCODE_MSTREAM => build_mstream_request(main_trace, alphas, row),
-            OPCODE_RCOMBBASE => build_rcomb_base_request(main_trace, alphas, row),
+            OPCODE_HORNERBASE => build_horner_eval_request(main_trace, alphas, row),
+            OPCODE_HORNEREXT => build_horner_eval_request(main_trace, alphas, row),
             OPCODE_HPERM => build_hperm_request(main_trace, alphas, row),
             OPCODE_MPVERIFY => build_mpverify_request(main_trace, alphas, row),
             OPCODE_MRUPDATE => build_mrupdate_request(main_trace, alphas, row),
@@ -543,28 +544,18 @@ fn build_pipe_request<E: FieldElement<BaseField = Felt>>(
     req1 * req2
 }
 
-/// Builds `RCOMBBASE` requests made to the memory chiplet.
-fn build_rcomb_base_request<E: FieldElement<BaseField = Felt>>(
+/// Builds `HORNERBASE` or `HORNEREXT` requests made to the memory chiplet.
+fn build_horner_eval_request<E: FieldElement<BaseField = Felt>>(
     main_trace: &MainTrace,
     alphas: &[E],
     row: RowIndex,
 ) -> E {
-    let tz0 = main_trace.helper_register(0, row);
-    let tz1 = main_trace.helper_register(1, row);
-    let tzg0 = main_trace.helper_register(2, row);
-    let tzg1 = main_trace.helper_register(3, row);
-    let a0 = main_trace.helper_register(4, row);
-    let a1 = main_trace.helper_register(5, row);
-    let z_ptr = main_trace.stack_element(13, row);
-    let a_ptr = main_trace.stack_element(14, row);
+    let a0 = main_trace.helper_register(0, row);
+    let a1 = main_trace.helper_register(1, row);
+    let a_ptr = main_trace.stack_element(13, row);
     let op_label = MEMORY_READ_WORD_LABEL;
 
-    let req1 =
-        compute_mem_request_word(main_trace, op_label, alphas, row, z_ptr, [tz0, tz1, tzg0, tzg1]);
-    let req2 =
-        compute_mem_request_word(main_trace, op_label, alphas, row, a_ptr, [a0, a1, ZERO, ZERO]);
-
-    req1 * req2
+    compute_mem_request_word(main_trace, op_label, alphas, row, a_ptr, [a0, a1, ZERO, ZERO])
 }
 
 /// Builds `HPERM` requests made to the hash chiplet.
