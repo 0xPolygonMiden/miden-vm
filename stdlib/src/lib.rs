@@ -79,9 +79,9 @@ impl HostLibrary<()> for StdLibrary {
     where
         A: AdviceProvider + 'static,
     {
-        vec![Box::new(FalconSigToStackEventHandler::new(Box::new(
+        vec![Box::new(FalconSigToStackEventHandler::new(
             self.falcon_sig_event_handler.clone(),
-        )))]
+        ))]
     }
 
     fn get_mast_forest(&self) -> Arc<MastForest> {
@@ -98,27 +98,28 @@ pub const EVENT_FALCON_SIG_TO_STACK: u32 = 3419226139;
 // ==============================================================================================
 
 /// An event handler which generates a Falcon signature and pushes the result onto the stack.
-pub struct FalconSigToStackEventHandler<A> {
-    signer: Box<dyn FalconSigner<A>>,
+pub struct FalconSigToStackEventHandler<F> {
+    signer: F,
 }
 
-impl<A> FalconSigToStackEventHandler<A> {
+impl<F> FalconSigToStackEventHandler<F> {
     /// Creates a new instance of the Falcon signature to stack event handler, given a specified
     /// Falcon signer.
-    pub fn new(signer: Box<dyn FalconSigner<A>>) -> Self {
+    pub fn new(signer: F) -> Self {
         Self { signer }
     }
 }
 
-impl<A> Default for FalconSigToStackEventHandler<A> {
+impl Default for FalconSigToStackEventHandler<DefaultFalconSigner> {
     fn default() -> Self {
-        Self { signer: Box::new(DefaultFalconSigner) }
+        Self { signer: DefaultFalconSigner }
     }
 }
 
-impl<A> EventHandler<A> for FalconSigToStackEventHandler<A>
+impl<A, F> EventHandler<A> for FalconSigToStackEventHandler<F>
 where
     A: AdviceProvider,
+    F: FalconSigner,
 {
     fn id(&self) -> u32 {
         EVENT_FALCON_SIG_TO_STACK
@@ -149,10 +150,10 @@ where
 ///
 /// It is recommended to use [dsa::falcon_sign] to implement this trait once the private key has
 /// been fetched from a user-defined location.
-pub trait FalconSigner<A>: Send + Sync {
+pub trait FalconSigner: Send + Sync {
     /// Signs the message using the Falcon signature scheme, and returns the signature as a
     /// `Vec<Felt>`.
-    fn sign_message(
+    fn sign_message<A>(
         &mut self,
         pub_key: Word,
         msg: Word,
@@ -169,8 +170,8 @@ pub trait FalconSigner<A>: Send + Sync {
 #[derive(Debug, Clone)]
 pub struct DefaultFalconSigner;
 
-impl<A> FalconSigner<A> for DefaultFalconSigner {
-    fn sign_message(
+impl FalconSigner for DefaultFalconSigner {
+    fn sign_message<A>(
         &mut self,
         pub_key: Word,
         msg: Word,
