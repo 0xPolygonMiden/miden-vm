@@ -238,7 +238,7 @@ pub enum Operation {
     /// to boolean OR.
     Or = OPCODE_OR,
 
-    /// Pops an element off the stack, adds it to 1.
+    /// Pops an element off the stack and subtracts it from 1.
     ///
     /// If the element is greater than one, the execution fails. This operation is equivalent to
     /// boolean NOT.
