@@ -431,7 +431,7 @@ mod tests {
         inputs.reverse();
 
         // prepare the advice stack with the generated data
-        let adv_stack = vec![a[0], a[1], ZERO, ZERO];
+        let adv_stack = [a[0], a[1], ZERO, ZERO];
         let adv_stack: Vec<u64> = adv_stack.iter().map(|e| e.as_int()).collect();
 
         // create the expected operand stack
@@ -496,7 +496,7 @@ mod tests {
         inputs.reverse();
 
         // prepare the advice stack with the generated data
-        let adv_stack = vec![a[0], a[1], ZERO, ZERO];
+        let adv_stack = [a[0], a[1], ZERO, ZERO];
         let adv_stack: Vec<u64> = adv_stack.iter().map(|e| e.as_int()).collect();
 
         // create the expected operand stack
