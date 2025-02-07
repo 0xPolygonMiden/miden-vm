@@ -238,7 +238,6 @@ pub enum Token<'input> {
     Proc,
     Procref,
     Push,
-    RCombBase,
     Repeat,
     RpoFalcon512,
     Sdepth,
@@ -424,7 +423,6 @@ impl fmt::Display for Token<'_> {
             Token::Proc => write!(f, "proc"),
             Token::Procref => write!(f, "procref"),
             Token::Push => write!(f, "push"),
-            Token::RCombBase => write!(f, "rcomb_base"),
             Token::HornerBase => write!(f, "horner_eval_base"),
             Token::HornerExt => write!(f, "horner_eval_ext"),
             Token::Repeat => write!(f, "repeat"),
@@ -613,7 +611,6 @@ impl<'input> Token<'input> {
                 | Token::Pow2
                 | Token::Procref
                 | Token::Push
-                | Token::RCombBase
                 | Token::Repeat
                 | Token::Sdepth
                 | Token::Stack
@@ -768,7 +765,6 @@ impl<'input> Token<'input> {
         ("proc", Token::Proc),
         ("procref", Token::Procref),
         ("push", Token::Push),
-        ("rcomb_base", Token::RCombBase),
         ("horner_eval_base", Token::HornerBase),
         ("horner_eval_ext", Token::HornerExt),
         ("repeat", Token::Repeat),

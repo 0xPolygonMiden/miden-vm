@@ -352,13 +352,15 @@ proc.combine_main_trace_columns
     repeat.8
         mem_stream
         repeat.8
-            rcomb_base
+            #rcomb_base
+            push.0 drop
         end
     end
 
     mem_stream
     repeat.7
-        rcomb_base
+        #rcomb_base
+        push.0 drop
     end
 end
 

@@ -2,7 +2,6 @@ use vm_core::stack::MIN_STACK_DEPTH;
 
 use super::{ExecutionError, Felt, FieldElement, Host, Operation, Process};
 
-mod comb_ops;
 mod crypto_ops;
 mod ext2_ops;
 mod field_ops;
@@ -154,7 +153,6 @@ impl Process {
             Operation::MpVerify(err_code) => self.op_mpverify(err_code, host)?,
             Operation::MrUpdate => self.op_mrupdate(host)?,
             Operation::FriE2F4 => self.op_fri_ext2fold4()?,
-            Operation::RCombBase => self.op_rcomb_base()?,
             Operation::HornerBase => self.op_horner_eval_base()?,
             Operation::HornerExt => self.op_horner_eval_ext()?,
         }

@@ -107,14 +107,13 @@ pub(super) mod opcode_constants {
     pub const OPCODE_SPAN: u8       = 0b0101_0110;
     pub const OPCODE_JOIN: u8       = 0b0101_0111;
     pub const OPCODE_DYN: u8        = 0b0101_1000;
-    pub const OPCODE_RCOMBBASE: u8  = 0b0101_1001;
-    pub const OPCODE_HORNERBASE: u8  = 0b0111_1101; // TODO(Al): replace rcomb_base with this and switch with HORNEREXT
+    pub const OPCODE_HORNEREXT: u8  = 0b0101_1001;
     pub const OPCODE_EMIT: u8       = 0b0101_1010;
     pub const OPCODE_PUSH: u8       = 0b0101_1011;
     pub const OPCODE_DYNCALL: u8    = 0b0101_1100;
 
     pub const OPCODE_MRUPDATE: u8   = 0b0110_0000;
-    pub const OPCODE_HORNEREXT: u8  = 0b0110_0100;
+    pub const OPCODE_HORNERBASE: u8 = 0b0110_0100;
     pub const OPCODE_SYSCALL: u8    = 0b0110_1000;
     pub const OPCODE_CALL: u8       = 0b0110_1100;
     pub const OPCODE_END: u8        = 0b0111_0000;
@@ -573,17 +572,6 @@ pub enum Operation {
     /// final FRI layer.
     FriE2F4 = OPCODE_FRIE2F4,
 
-    /// Performs a single step of a random linear combination defining the DEEP composition
-    /// polynomial i.e., the input to the FRI protocol. More precisely, the sum in question is:
-    /// \sum_{i=0}^k{\alpha_i \cdot \left(\frac{T_i(x) - T_i(z)}{x - z} +
-    ///            \frac{T_i(x) - T_i(g \cdot z)}{x - g \cdot z} \right)}
-    ///
-    /// and the following instruction computes the numerators $\alpha_i \cdot (T_i(x) - T_i(z))$
-    /// and $\alpha_i \cdot (T_i(x) - T_i(g \cdot z))$ and stores the values in two accumulators
-    /// $r$ and $p$, respectively. This instruction is specialized to main trace columns i.e.
-    /// the values $T_i(x)$ are base field elements.
-    RCombBase = OPCODE_RCOMBBASE,
-
     /// Performs 8 steps of the Horner evaluation method on a polynomial with coefficients over
     /// the base field, i.e., it computes
     ///
@@ -784,7 +772,6 @@ impl fmt::Display for Operation {
             Self::MpVerify(err_code) => write!(f, "mpverify({err_code})"),
             Self::MrUpdate => write!(f, "mrupdate"),
             Self::FriE2F4 => write!(f, "frie2f4"),
-            Self::RCombBase => write!(f, "rcomb1"),
             Self::HornerBase => write!(f, "horner_eval_base"),
             Self::HornerExt => write!(f, "horner_eval_ext"),
         }
@@ -893,7 +880,6 @@ impl Serializable for Operation {
             | Operation::HPerm
             | Operation::MrUpdate
             | Operation::FriE2F4
-            | Operation::RCombBase
             | Operation::HornerBase
             | Operation::HornerExt => (),
         }
@@ -1002,7 +988,6 @@ impl Deserializable for Operation {
             OPCODE_JOIN => Self::Join,
             OPCODE_DYN => Self::Dyn,
             OPCODE_DYNCALL => Self::Dyncall,
-            OPCODE_RCOMBBASE => Self::RCombBase,
             OPCODE_HORNERBASE => Self::HornerBase,
             OPCODE_HORNEREXT => Self::HornerExt,
 

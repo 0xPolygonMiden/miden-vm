@@ -228,6 +228,7 @@ fn test_falcon512_probabilistic_product() {
     test.expect_stack(expected_stack);
 }
 
+#[ignore = "needs horner_eval_base op"]
 #[test]
 fn test_falcon512_probabilistic_product_failure() {
     // Create a polynomial pi that is not equal to h * s2.

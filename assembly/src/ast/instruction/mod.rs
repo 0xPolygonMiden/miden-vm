@@ -253,7 +253,6 @@ pub enum Instruction {
 
     // ----- STARK proof verification ------------------------------------------------------------
     FriExt2Fold4,
-    RCombBase,
     HornerBase,
     HornerExt,
 
