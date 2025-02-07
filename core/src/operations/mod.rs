@@ -108,7 +108,8 @@ pub(super) mod opcode_constants {
     pub const OPCODE_JOIN: u8       = 0b0101_0111;
     pub const OPCODE_DYN: u8        = 0b0101_1000;
     pub const OPCODE_RCOMBBASE: u8  = 0b0101_1001;
-    pub const OPCODE_PUSH: u8       = 0b0101_1010;
+    pub const OPCODE_EMIT: u8       = 0b0101_1010;
+    pub const OPCODE_PUSH: u8       = 0b0101_1011;
     pub const OPCODE_DYNCALL: u8    = 0b0101_1100;
 
     pub const OPCODE_MRUPDATE: u8   = 0b0110_0000;
