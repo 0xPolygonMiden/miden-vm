@@ -3,7 +3,8 @@ use core::fmt;
 use super::Felt;
 mod decorators;
 pub use decorators::{
-    AssemblyOp, DebugOptions, Decorator, DecoratorIterator, DecoratorList, SignatureKind,
+    AdviceInjector, AssemblyOp, DebugOptions, Decorator, DecoratorIterator, DecoratorList,
+    SignatureKind,
 };
 // OPERATIONS OP CODES
 // ================================================================================================
@@ -108,8 +109,7 @@ pub(super) mod opcode_constants {
     pub const OPCODE_JOIN: u8       = 0b0101_0111;
     pub const OPCODE_DYN: u8        = 0b0101_1000;
     pub const OPCODE_RCOMBBASE: u8  = 0b0101_1001;
-    pub const OPCODE_EMIT: u8       = 0b0101_1010;
-    pub const OPCODE_PUSH: u8       = 0b0101_1011;
+    pub const OPCODE_PUSH: u8       = 0b0101_1010;
     pub const OPCODE_DYNCALL: u8    = 0b0101_1100;
 
     pub const OPCODE_MRUPDATE: u8   = 0b0110_0000;
@@ -238,7 +238,7 @@ pub enum Operation {
     /// to boolean OR.
     Or = OPCODE_OR,
 
-    /// Pops an element off the stack and subtracts it from 1.
+    /// Pops an element off the stack, adds it to 1.
     ///
     /// If the element is greater than one, the execution fails. This operation is equivalent to
     /// boolean NOT.
@@ -554,8 +554,20 @@ pub enum Operation {
     /// track of both the old and new Merkle trees.
     MrUpdate = OPCODE_MRUPDATE,
 
-    /// Performs FRI layer folding by a factor of 4 in a degree 2 extension field. Used as part of
-    /// the FRI low-degree proof verification protocol.
+    /// Performs FRI (Fast Reed-Solomon Interactive Oracle Proofs) layer folding by a factor of 4
+    /// for FRI protocol executed in a degree 2 extension of the base field.
+    ///
+    /// This operation:
+    /// - Folds 4 query values (v0, v1), (v2, v3), (v4, v5), (v6, v7) into a single value (ne0, ne1)
+    /// - Computes new value of the domain generator power: poe' = poe^4
+    /// - Increments layer pointer (cptr) by 2
+    /// - Checks that the previous folding was done correctly
+    /// - Shifts the stack to move an item from the overflow table to stack position 15
+    ///
+    /// Stack transition:
+    /// Input: [v7, v6, v5, v4, v3, v2, v1, v0, f_pos, d_seg, poe, pe1, pe0, a1, a0, cptr, ...]
+    /// Output: [t1, t0, s1, s0, df3, df2, df1, df0, poe^2, f_tau, cptr+2, poe^4, f_pos, ne1, ne0, eptr, ...]
+    /// where eptr is moved from the stack overflow table and is the address of the final FRI layer.
     FriE2F4 = OPCODE_FRIE2F4,
 
     /// Performs a single step of a random linear combination defining the DEEP composition
