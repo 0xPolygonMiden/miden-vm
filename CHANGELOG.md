@@ -16,6 +16,8 @@
 - [BREAKING] Remove `Assembler::assemble_common()` from the public interface (#1689).
 - Fix `Horner{Base, Ext}` bus requests to memory chiplet (#1689)
 - Fix docs on the layout of the auxiliary segment trace (#1694).
+- [BREAKING] Updated Winterfell dependency to v0.12 (#1658).
+
 
 ## 0.12.0 (2025-01-22)
 
