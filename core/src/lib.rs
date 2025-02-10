@@ -126,6 +126,6 @@ pub use stack::{StackInputs, StackOutputs};
 pub mod sys_events;
 
 mod advice;
-pub use advice::map::AdviceMap;
+pub use advice::{map::AdviceMap, AdviceInputs, AdviceProvider, AdviceProviderError, AdviceSource};
 
 pub mod utils;

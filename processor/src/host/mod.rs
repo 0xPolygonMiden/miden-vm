@@ -1,22 +1,22 @@
-use alloc::sync::Arc;
+use alloc::{boxed::Box, sync::Arc, vec::Vec};
 
 use vm_core::{
-    crypto::hash::RpoDigest, mast::MastForest, sys_events::SystemEvent, DebugOptions, SignatureKind,
+    crypto::hash::RpoDigest, mast::MastForest, AdviceProvider, AdviceProviderError, DebugOptions,
 };
 
 use super::{ExecutionError, ProcessState};
 use crate::{KvMap, MemAdviceProvider};
 
 pub(super) mod advice;
-use advice::AdviceProvider;
 
 #[cfg(feature = "std")]
 mod debug;
 
+mod event_handling;
+pub use event_handling::{EventHandler, EventHandlerRegistry, NoopEventHandler};
+
 mod mast_forest_store;
 pub use mast_forest_store::{MastForestStore, MemMastForestStore};
-
-mod dsa;
 
 // HOST TRAIT
 // ================================================================================================
@@ -44,43 +44,21 @@ pub trait Host {
     /// this digest could not be found in this [Host].
     fn get_mast_forest(&self, node_digest: &RpoDigest) -> Option<Arc<MastForest>>;
 
-    // PROVIDED METHODS
-    // --------------------------------------------------------------------------------------------
-
     /// Handles the event emitted from the VM.
-    fn on_event(&mut self, _process: ProcessState, _event_id: u32) -> Result<(), ExecutionError> {
-        #[cfg(feature = "std")]
-        std::println!(
-            "Event with id {} emitted at step {} in context {}",
-            _event_id,
-            _process.clk(),
-            _process.ctx()
-        );
-        Ok(())
-    }
+    fn on_event(&mut self, _process: ProcessState, _event_id: u32) -> Result<(), ExecutionError>;
 
     /// Handles the debug request from the VM.
     fn on_debug(
         &mut self,
         _process: ProcessState,
         _options: &DebugOptions,
-    ) -> Result<(), ExecutionError> {
-        #[cfg(feature = "std")]
-        debug::print_debug_info(_process, _options);
-        Ok(())
-    }
+    ) -> Result<(), ExecutionError>;
 
     /// Handles the trace emitted from the VM.
-    fn on_trace(&mut self, _process: ProcessState, _trace_id: u32) -> Result<(), ExecutionError> {
-        #[cfg(feature = "std")]
-        std::println!(
-            "Trace with id {} emitted at step {} in context {}",
-            _trace_id,
-            _process.clk(),
-            _process.ctx()
-        );
-        Ok(())
-    }
+    fn on_trace(&mut self, _process: ProcessState, _trace_id: u32) -> Result<(), ExecutionError>;
+
+    // PROVIDED METHODS
+    // --------------------------------------------------------------------------------------------
 
     /// Handles the failure of the assertion instruction.
     fn on_assert_failed(&mut self, process: ProcessState, err_code: u32) -> ExecutionError {
@@ -131,48 +109,124 @@ where
     }
 }
 
+// HOST LIBRARY
+// ================================================================================================
+
+pub trait HostLibrary<Inputs> {
+    // Returns all event handlers provided by the library.
+    fn get_event_handlers<A>(&self, inputs: Inputs) -> Vec<Box<dyn EventHandler<A>>>
+    where
+        A: AdviceProvider + 'static;
+
+    // Returns the MAST forest corresponding to the compiled MASM library.
+    fn get_mast_forest(&self) -> Arc<MastForest>;
+}
+
 // DEFAULT HOST IMPLEMENTATION
 // ================================================================================================
 
 /// A default [Host] implementation that provides the essential functionality required by the VM.
-pub struct DefaultHost<A> {
+pub struct DefaultHost<A, D = DefaultDebugHandler> {
     adv_provider: A,
     store: MemMastForestStore,
+    event_registry: EventHandlerRegistry<A>,
+    debug_handler: D,
 }
 
-impl<A: Clone> Clone for DefaultHost<A> {
-    fn clone(&self) -> Self {
-        Self {
-            adv_provider: self.adv_provider.clone(),
-            store: self.store.clone(),
-        }
-    }
-}
-
-impl Default for DefaultHost<MemAdviceProvider> {
+impl Default for DefaultHost<MemAdviceProvider, DefaultDebugHandler> {
     fn default() -> Self {
         Self {
             adv_provider: MemAdviceProvider::default(),
             store: MemMastForestStore::default(),
+            event_registry: EventHandlerRegistry::default(),
+            debug_handler: DefaultDebugHandler,
         }
     }
 }
 
-impl<A: AdviceProvider> DefaultHost<A> {
-    pub fn new(adv_provider: A) -> Self {
-        Self {
+impl<A, D> DefaultHost<A, D>
+where
+    A: AdviceProvider + Default,
+{
+    pub fn new(adv_provider: A, debug_handler: D) -> DefaultHost<A, D> {
+        DefaultHost {
             adv_provider,
             store: MemMastForestStore::default(),
+            event_registry: EventHandlerRegistry::default(),
+            debug_handler,
         }
     }
+}
 
+impl<A> DefaultHost<A, DefaultDebugHandler>
+where
+    A: AdviceProvider + Default,
+{
+    pub fn new_with_advice_provider(adv_provider: A) -> DefaultHost<A, DefaultDebugHandler> {
+        DefaultHost {
+            adv_provider,
+            store: MemMastForestStore::default(),
+            event_registry: EventHandlerRegistry::default(),
+            debug_handler: DefaultDebugHandler,
+        }
+    }
+}
+
+impl<D> DefaultHost<MemAdviceProvider, D>
+where
+    D: DebugHandler,
+{
+    pub fn new_with_debug_handler(debug_handler: D) -> DefaultHost<MemAdviceProvider, D> {
+        DefaultHost {
+            adv_provider: MemAdviceProvider::default(),
+            store: MemMastForestStore::default(),
+            event_registry: EventHandlerRegistry::default(),
+            debug_handler,
+        }
+    }
+}
+
+impl<A, D> DefaultHost<A, D>
+where
+    A: AdviceProvider + 'static,
+    D: DebugHandler,
+{
+    /// Loads the specified library into the host.
+    pub fn load_library<Inputs>(
+        &mut self,
+        library: &impl HostLibrary<Inputs>,
+        inputs: Inputs,
+    ) -> Result<(), ExecutionError> {
+        self.load_mast_forest(library.get_mast_forest())?;
+        self.event_registry
+            .register_event_handlers(library.get_event_handlers(inputs).into_iter())?;
+
+        Ok(())
+    }
+
+    /// Registers the provided event handlers with the host.
+    ///
+    /// Using [Self::load_library] is recommended over this method when loading a library.
+    pub fn register_event_handlers(
+        &mut self,
+        handlers: impl Iterator<Item = Box<dyn EventHandler<A>>> + 'static,
+    ) -> Result<(), ExecutionError> {
+        self.event_registry.register_event_handlers(handlers)
+    }
+
+    /// Loads the specified MAST forest into the host.
+    ///
+    /// Using [Self::load_library] is recommended over this method so that any event handlers
+    /// provided by a library are also registered.
     pub fn load_mast_forest(&mut self, mast_forest: Arc<MastForest>) -> Result<(), ExecutionError> {
         // Load the MAST's advice data into the advice provider.
 
         for (digest, values) in mast_forest.advice_map().iter() {
             if let Some(stored_values) = self.advice_provider().get_mapped_values(digest) {
                 if stored_values != values {
-                    return Err(ExecutionError::AdviceMapKeyAlreadyPresent(digest.into()));
+                    return Err(ExecutionError::AdviceProviderError(
+                        AdviceProviderError::AdviceMapKeyAlreadyPresent(digest.into()),
+                    ));
                 }
             } else {
                 self.advice_provider_mut().insert_into_map(digest.into(), values.clone());
@@ -192,13 +246,13 @@ impl<A: AdviceProvider> DefaultHost<A> {
     pub fn advice_provider_mut(&mut self) -> &mut A {
         &mut self.adv_provider
     }
-
-    pub fn into_inner(self) -> A {
-        self.adv_provider
-    }
 }
 
-impl<A: AdviceProvider> Host for DefaultHost<A> {
+impl<A, D> Host for DefaultHost<A, D>
+where
+    A: AdviceProvider,
+    D: DebugHandler,
+{
     type AdviceProvider = A;
 
     fn advice_provider(&self) -> &Self::AdviceProvider {
@@ -214,63 +268,72 @@ impl<A: AdviceProvider> Host for DefaultHost<A> {
     }
 
     fn on_event(&mut self, process: ProcessState, event_id: u32) -> Result<(), ExecutionError> {
-        if event_id == SystemEvent::FalconSigToStack.into_event_id() {
-            // provide a default implementation for handling FalconSigToStack event since it is not
-            // handled any more by the system event handlers. the handler assumes that the private
-            // key is in the advice provider and uses it to in signature generation
-            let advice_provider = self.advice_provider_mut();
-            push_signature(advice_provider, process, SignatureKind::RpoFalcon512)
-        } else {
-            #[cfg(feature = "std")]
-            std::println!(
-                "Event with id {} emitted at step {} in context {}",
-                event_id,
-                process.clk(),
-                process.ctx()
-            );
-            Ok(())
-        }
+        let handler = self
+            .event_registry
+            .get_event_handler(event_id)
+            .ok_or_else(|| ExecutionError::EventHandlerNotFound { event_id, clk: process.clk() })?;
+
+        handler
+            .on_event(process, &mut self.adv_provider)
+            .map_err(ExecutionError::EventError)
+    }
+
+    fn on_debug(
+        &mut self,
+        process: ProcessState,
+        options: &DebugOptions,
+    ) -> Result<(), ExecutionError> {
+        self.debug_handler.on_debug(process, options)
+    }
+
+    fn on_trace(&mut self, process: ProcessState, trace_id: u32) -> Result<(), ExecutionError> {
+        self.debug_handler.on_trace(process, trace_id)
     }
 }
 
-// SIGNATURE EVENT HANDLER
+// DEBUG HANDLER
 // ================================================================================================
 
-/// Pushes values onto the advice stack which are required for verification of a DSA in Miden
-/// VM.
-///
-/// Inputs:
-///   Operand stack: [PK, MSG, ...]
-///   Advice stack: [...]
-///
-/// Outputs:
-///   Operand stack: [PK, MSG, ...]
-///   Advice stack: \[DATA\]
-///
-/// Where:
-/// - PK is the digest of an expanded public.
-/// - MSG is the digest of the message to be signed.
-/// - DATA is the needed data for signature verification in the VM.
-///
-/// The advice provider is expected to contain the private key associated to the public key PK.
-pub fn push_signature(
-    advice_provider: &mut impl AdviceProvider,
-    process: ProcessState,
-    kind: SignatureKind,
-) -> Result<(), ExecutionError> {
-    let pub_key = process.get_stack_word(0);
-    let msg = process.get_stack_word(1);
-
-    let pk_sk = advice_provider
-        .get_mapped_values(&pub_key.into())
-        .ok_or(ExecutionError::AdviceMapKeyNotFound(pub_key))?;
-
-    let result = match kind {
-        SignatureKind::RpoFalcon512 => dsa::falcon_sign(pk_sk, msg)?,
-    };
-
-    for r in result {
-        advice_provider.push_stack(crate::AdviceSource::Value(r))?;
+/// Provides methods to handle debug and trace events emitted from the VM. This is meant to override
+/// the default behavior of the [DefaultHost] on analogous [Host] calls.
+pub trait DebugHandler {
+    fn on_trace(&mut self, _process: ProcessState, _trace_id: u32) -> Result<(), ExecutionError> {
+        Ok(())
     }
-    Ok(())
+
+    fn on_debug(
+        &mut self,
+        _process: ProcessState,
+        _options: &DebugOptions,
+    ) -> Result<(), ExecutionError> {
+        Ok(())
+    }
+}
+
+/// A default implementation of the [DebugHandler] trait which prints the debug information to the
+/// console.
+#[derive(Debug)]
+pub struct DefaultDebugHandler;
+
+impl DebugHandler for DefaultDebugHandler {
+    fn on_trace(&mut self, _process: ProcessState, _trace_id: u32) -> Result<(), ExecutionError> {
+        #[cfg(feature = "std")]
+        std::println!(
+            "Trace with id {} emitted at step {} in context {}",
+            _trace_id,
+            _process.clk(),
+            _process.ctx()
+        );
+        Ok(())
+    }
+
+    fn on_debug(
+        &mut self,
+        _process: ProcessState,
+        _options: &DebugOptions,
+    ) -> Result<(), ExecutionError> {
+        #[cfg(feature = "std")]
+        debug::print_debug_info(_process, _options);
+        Ok(())
+    }
 }

@@ -48,8 +48,9 @@ use range::RangeChecker;
 
 mod host;
 pub use host::{
-    advice::{AdviceInputs, AdviceProvider, AdviceSource, MemAdviceProvider, RecAdviceProvider},
-    DefaultHost, Host, MastForestStore, MemMastForestStore,
+    advice::{MemAdviceProvider, RecAdviceProvider},
+    DebugHandler, DefaultHost, EventHandler, EventHandlerRegistry, Host, HostLibrary,
+    MastForestStore, MemMastForestStore, NoopEventHandler,
 };
 
 mod chiplets;
@@ -87,6 +88,8 @@ pub mod crypto {
         random::{RandomCoin, RpoRandomCoin, RpxRandomCoin, WinterRandomCoin},
     };
 }
+
+pub use vm_core::{AdviceInputs, AdviceMap, AdviceProvider, AdviceProviderError, AdviceSource};
 
 // TYPE ALIASES
 // ================================================================================================
@@ -240,7 +243,9 @@ impl Process {
         for (digest, values) in program.mast_forest().advice_map().iter() {
             if let Some(stored_values) = host.advice_provider().get_mapped_values(digest) {
                 if stored_values != values {
-                    return Err(ExecutionError::AdviceMapKeyAlreadyPresent(digest.into()));
+                    return Err(ExecutionError::AdviceProviderError(
+                        AdviceProviderError::AdviceMapKeyAlreadyPresent(digest.into()),
+                    ));
                 }
             } else {
                 host.advice_provider_mut().insert_into_map(digest.into(), values.clone());

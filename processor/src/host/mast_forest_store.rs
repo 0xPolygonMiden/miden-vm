@@ -1,6 +1,6 @@
 use alloc::{collections::BTreeMap, sync::Arc};
 
-use vm_core::{crypto::hash::RpoDigest, mast::MastForest};
+use vm_core::{crypto::hash::RpoDigest, mast::MastForest, utils::sync::RwLock};
 
 /// A set of [`MastForest`]s available to the prover that programs may refer to (by means of an
 /// [`vm_core::mast::ExternalNode`]).
@@ -16,23 +16,25 @@ pub trait MastForestStore {
 }
 
 /// A simple [`MastForestStore`] where all known [`MastForest`]s are held in memory.
-#[derive(Debug, Default, Clone)]
+#[derive(Debug, Default)]
 pub struct MemMastForestStore {
-    mast_forests: BTreeMap<RpoDigest, Arc<MastForest>>,
+    mast_forests: RwLock<BTreeMap<RpoDigest, Arc<MastForest>>>,
 }
 
 impl MemMastForestStore {
     /// Inserts all the procedures of the provided MAST forest in the store.
     pub fn insert(&mut self, mast_forest: Arc<MastForest>) {
+        let mut mast_forests = self.mast_forests.write();
+
         // only register the procedures which are local to this forest
         for proc_digest in mast_forest.local_procedure_digests() {
-            self.mast_forests.insert(proc_digest, mast_forest.clone());
+            mast_forests.insert(proc_digest, mast_forest.clone());
         }
     }
 }
 
 impl MastForestStore for MemMastForestStore {
     fn get(&self, procedure_hash: &RpoDigest) -> Option<Arc<MastForest>> {
-        self.mast_forests.get(procedure_hash).cloned()
+        self.mast_forests.read().get(procedure_hash).cloned()
     }
 }

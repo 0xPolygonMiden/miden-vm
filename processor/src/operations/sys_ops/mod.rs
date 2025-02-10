@@ -126,14 +126,7 @@ impl Process {
 
         // If it's a system event, handle it directly. Otherwise, forward it to the host.
         if let Some(system_event) = SystemEvent::from_event_id(event_id) {
-            if system_event != SystemEvent::FalconSigToStack {
-                self.handle_system_event(system_event, host)
-            } else {
-                // TODO: this is a temporary solution to not classify FalconSigToStack as a system
-                // event; this way, we delegate signature generation to the host so that we can
-                // apply different strategies for signature generation.
-                host.on_event(self.into(), event_id)
-            }
+            self.handle_system_event(system_event, host)
         } else {
             host.on_event(self.into(), event_id)
         }

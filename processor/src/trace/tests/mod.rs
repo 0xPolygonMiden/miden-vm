@@ -1,13 +1,15 @@
 use alloc::vec::Vec;
 
 use test_utils::rand::rand_array;
-use vm_core::{mast::MastForest, Kernel, Operation, Program, StackOutputs, Word, ONE, ZERO};
+use vm_core::{
+    mast::MastForest, AdviceInputs, Kernel, Operation, Program, StackOutputs, Word, ONE, ZERO,
+};
 
 use super::{
     super::chiplets::init_state_from_words, ExecutionTrace, Felt, FieldElement, Process, Trace,
     NUM_RAND_ROWS,
 };
-use crate::{AdviceInputs, DefaultHost, ExecutionOptions, MemAdviceProvider, StackInputs};
+use crate::{DefaultHost, ExecutionOptions, MemAdviceProvider, StackInputs};
 
 mod chiplets;
 mod decoder;
@@ -49,7 +51,7 @@ pub fn build_trace_from_ops_with_inputs(
     advice_inputs: AdviceInputs,
 ) -> ExecutionTrace {
     let advice_provider = MemAdviceProvider::from(advice_inputs);
-    let mut host = DefaultHost::new(advice_provider);
+    let mut host = DefaultHost::new_with_advice_provider(advice_provider);
     let mut process = Process::new(Kernel::default(), stack_inputs, ExecutionOptions::default());
 
     let mut mast_forest = MastForest::new();

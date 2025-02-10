@@ -28,13 +28,14 @@ fn program_execution(c: &mut Criterion) {
                 let (mut host, stack_inputs) = match InputFile::read(&None, entry.path()) {
                     Ok(input_data) => {
                         let stack_inputs = input_data.parse_stack_inputs().unwrap();
-                        let host = DefaultHost::new(input_data.parse_advice_provider().unwrap());
+                        let host = DefaultHost::new_with_advice_provider(
+                            input_data.parse_advice_provider().unwrap(),
+                        );
                         (host, stack_inputs)
                     },
                     Err(_) => (DefaultHost::default(), StackInputs::default()),
                 };
-                host.load_mast_forest(StdLibrary::default().as_ref().mast_forest().clone())
-                    .unwrap();
+                host.load_library(&StdLibrary::default(), ()).unwrap();
 
                 // the name of the file without the extension
                 let source = std::fs::read_to_string(entry.path()).unwrap();

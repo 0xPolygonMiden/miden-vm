@@ -112,7 +112,7 @@ macro_rules! build_test_by_mode {
 
         let stack_inputs: Vec<u64> = $stack_inputs.to_vec();
         let stack_inputs = $crate::StackInputs::try_from_ints(stack_inputs).unwrap();
-        let advice_inputs = $crate::AdviceInputs::default();
+        let advice_inputs = vm_core::AdviceInputs::default();
         let name = format!("test{}", line!());
         let source_manager = ::alloc::sync::Arc::new(::assembly::DefaultSourceManager::default());
         let source = source_manager.load(&name, ::alloc::string::String::from($source));
@@ -135,7 +135,7 @@ macro_rules! build_test_by_mode {
         let stack_inputs = $crate::StackInputs::try_from_ints(stack_inputs).unwrap();
         let stack_values: Vec<u64> = $advice_stack.to_vec();
         let store = $crate::crypto::MerkleStore::new();
-        let advice_inputs = $crate::AdviceInputs::default()
+        let advice_inputs = vm_core::AdviceInputs::default()
             .with_stack_values(stack_values)
             .unwrap()
             .with_merkle_store(store);
@@ -166,7 +166,7 @@ macro_rules! build_test_by_mode {
         let stack_inputs: Vec<u64> = $stack_inputs.to_vec();
         let stack_inputs = $crate::StackInputs::try_from_ints(stack_inputs).unwrap();
         let stack_values: Vec<u64> = $advice_stack.to_vec();
-        let advice_inputs = $crate::AdviceInputs::default()
+        let advice_inputs = vm_core::AdviceInputs::default()
             .with_stack_values(stack_values)
             .unwrap()
             .with_merkle_store($advice_merkle_store);
@@ -198,7 +198,7 @@ macro_rules! build_test_by_mode {
         let stack_inputs: Vec<u64> = $stack_inputs.to_vec();
         let stack_inputs = $crate::StackInputs::try_from_ints(stack_inputs).unwrap();
         let stack_values: Vec<u64> = $advice_stack.to_vec();
-        let advice_inputs = $crate::AdviceInputs::default()
+        let advice_inputs = vm_core::AdviceInputs::default()
             .with_stack_values(stack_values)
             .unwrap()
             .with_merkle_store($advice_merkle_store)

@@ -1,12 +1,16 @@
-use alloc::vec::Vec;
+use alloc::{boxed::Box, vec::Vec};
+use core::error::Error;
 
-use vm_core::{
-    crypto::dsa::rpo_falcon512::{Polynomial, SecretKey},
-    utils::Deserializable,
-    Felt, Word,
-};
+use vm_core::{Felt, Word};
 
-use crate::ExecutionError;
+#[allow(dead_code)]
+#[derive(Debug, thiserror::Error)]
+pub enum FalconSignatureError {
+    #[error("failed to generate signature: {0}")]
+    FailedSignatureGeneration(&'static str),
+    #[error("malformed signature key: {0}")]
+    MalformedSignatureKey(&'static str),
+}
 
 /// Gets as input a vector containing a secret key, and a word representing a message and outputs a
 /// vector of values to be pushed onto the advice stack.
@@ -23,19 +27,27 @@ use crate::ExecutionError;
 /// - The secret key is malformed due to either incorrect length or failed decoding.
 /// - The signature generation failed.
 #[cfg(feature = "std")]
-pub fn falcon_sign(sk: &[Felt], msg: Word) -> Result<Vec<Felt>, ExecutionError> {
+pub fn falcon_sign(
+    sk: &[Felt],
+    msg: Word,
+) -> Result<Vec<Felt>, Box<dyn Error + Send + Sync + 'static>> {
+    use vm_core::{
+        crypto::dsa::rpo_falcon512::{Polynomial, SecretKey},
+        utils::Deserializable,
+    };
     // Create the corresponding secret key
+
     let mut sk_bytes = Vec::with_capacity(sk.len());
     for element in sk {
         let value = element.as_int();
         if value > u8::MAX as u64 {
-            return Err(ExecutionError::MalformedSignatureKey("RPO Falcon512"));
+            return Err(FalconSignatureError::MalformedSignatureKey("RPO Falcon512").into());
         }
         sk_bytes.push(value as u8);
     }
 
     let sk = SecretKey::read_from_bytes(&sk_bytes)
-        .map_err(|_| ExecutionError::MalformedSignatureKey("RPO Falcon512"))?;
+        .map_err(|_| FalconSignatureError::MalformedSignatureKey("RPO Falcon512"))?;
 
     // We can now generate the signature
     let sig = sk.sign(msg);
@@ -68,8 +80,12 @@ pub fn falcon_sign(sk: &[Felt], msg: Word) -> Result<Vec<Felt>, ExecutionError> 
 }
 
 #[cfg(not(feature = "std"))]
-pub fn falcon_sign(_pk_sk: &[Felt], _msg: Word) -> Result<Vec<Felt>, ExecutionError> {
-    Err(ExecutionError::FailedSignatureGeneration(
+pub fn falcon_sign(
+    _pk_sk: &[Felt],
+    _msg: Word,
+) -> Result<Vec<Felt>, Box<dyn Error + Send + Sync + 'static>> {
+    Err(FalconSignatureError::FailedSignatureGeneration(
         "RPO Falcon512 signature generation is not available in no_std context",
-    ))
+    )
+    .into())
 }

@@ -2,7 +2,7 @@ use assembly::Assembler;
 use miden_vm::DefaultHost;
 use processor::{ExecutionOptions, MastForest};
 use prover::{Digest, StackInputs};
-use vm_core::{assert_matches, Program, ONE};
+use vm_core::{assert_matches, AdviceProviderError, Program, ONE};
 
 #[test]
 fn advice_map_loaded_before_execution() {
@@ -27,7 +27,12 @@ fn advice_map_loaded_before_execution() {
     ) {
         Ok(_) => panic!("Expected error"),
         Err(e) => {
-            assert_matches!(e, prover::ExecutionError::AdviceMapKeyNotFound(_));
+            assert_matches!(
+                e,
+                prover::ExecutionError::AdviceProviderError(
+                    AdviceProviderError::AdviceMapKeyNotFound(_)
+                )
+            );
         },
     }
 

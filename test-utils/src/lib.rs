@@ -16,18 +16,19 @@ use alloc::{
 pub use assembly::{diagnostics::Report, LibraryPath, SourceFile, SourceManager};
 use assembly::{KernelLibrary, Library};
 pub use pretty_assertions::{assert_eq, assert_ne, assert_str_eq};
-use processor::Program;
 pub use processor::{
-    AdviceInputs, AdviceProvider, ContextId, DefaultHost, ExecutionError, ExecutionOptions,
-    ExecutionTrace, Process, ProcessState, VmStateIterator,
+    ContextId, DefaultHost, ExecutionError, ExecutionOptions, ExecutionTrace, Process,
+    ProcessState, VmStateIterator,
 };
+use processor::{NoopEventHandler, Program};
 #[cfg(not(target_family = "wasm"))]
 use proptest::prelude::{Arbitrary, Strategy};
 use prover::utils::range;
 pub use prover::{prove, MemAdviceProvider, MerkleTreeVC, ProvingOptions};
+use stdlib::StdLibrary;
 pub use test_case::test_case;
 pub use verifier::{verify, AcceptableOptions, VerifierError};
-use vm_core::{chiplets::hasher::apply_permutation, ProgramInfo};
+use vm_core::{chiplets::hasher::apply_permutation, AdviceInputs, ProgramInfo};
 pub use vm_core::{
     chiplets::hasher::{hash_elements, STATE_WIDTH},
     stack::MIN_STACK_DEPTH,
@@ -227,13 +228,18 @@ impl Test {
     ) {
         // compile the program
         let (program, kernel) = self.compile().expect("Failed to compile test source.");
-        let mut host = DefaultHost::new(MemAdviceProvider::from(self.advice_inputs.clone()));
+        let mut host = DefaultHost::new_with_advice_provider(MemAdviceProvider::from(
+            self.advice_inputs.clone(),
+        ));
         if let Some(kernel) = kernel {
             host.load_mast_forest(kernel.mast_forest().clone()).unwrap();
         }
         for library in &self.libraries {
             host.load_mast_forest(library.mast_forest().clone()).unwrap();
         }
+        host.load_library(&StdLibrary::default(), ()).unwrap();
+        host.register_event_handlers([NoopEventHandler::new_boxed(1)].into_iter())
+            .unwrap();
 
         // execute the test
         let mut process = Process::new(
@@ -327,13 +333,18 @@ impl Test {
     #[track_caller]
     pub fn execute(&self) -> Result<ExecutionTrace, ExecutionError> {
         let (program, kernel) = self.compile().expect("Failed to compile test source.");
-        let mut host = DefaultHost::new(MemAdviceProvider::from(self.advice_inputs.clone()));
+        let mut host = DefaultHost::new_with_advice_provider(MemAdviceProvider::from(
+            self.advice_inputs.clone(),
+        ));
         if let Some(kernel) = kernel {
             host.load_mast_forest(kernel.mast_forest().clone()).unwrap();
         }
         for library in &self.libraries {
             host.load_mast_forest(library.mast_forest().clone()).unwrap();
         }
+        host.load_library(&StdLibrary::default(), ()).unwrap();
+        host.register_event_handlers([NoopEventHandler::new_boxed(1)].into_iter())
+            .unwrap();
         processor::execute(
             &program,
             self.stack_inputs.clone(),
@@ -348,13 +359,18 @@ impl Test {
         &self,
     ) -> Result<(Process, DefaultHost<MemAdviceProvider>), ExecutionError> {
         let (program, kernel) = self.compile().expect("Failed to compile test source.");
-        let mut host = DefaultHost::new(MemAdviceProvider::from(self.advice_inputs.clone()));
+        let mut host = DefaultHost::new_with_advice_provider(MemAdviceProvider::from(
+            self.advice_inputs.clone(),
+        ));
         if let Some(kernel) = kernel {
             host.load_mast_forest(kernel.mast_forest().clone()).unwrap();
         }
         for library in &self.libraries {
             host.load_mast_forest(library.mast_forest().clone()).unwrap();
         }
+        host.load_library(&StdLibrary::default(), ()).unwrap();
+        host.register_event_handlers([NoopEventHandler::new_boxed(1)].into_iter())
+            .unwrap();
 
         let mut process = Process::new(
             program.kernel().clone(),
@@ -371,13 +387,18 @@ impl Test {
     pub fn prove_and_verify(&self, pub_inputs: Vec<u64>, test_fail: bool) {
         let stack_inputs = StackInputs::try_from_ints(pub_inputs).unwrap();
         let (program, kernel) = self.compile().expect("Failed to compile test source.");
-        let mut host = DefaultHost::new(MemAdviceProvider::from(self.advice_inputs.clone()));
+        let mut host = DefaultHost::new_with_advice_provider(MemAdviceProvider::from(
+            self.advice_inputs.clone(),
+        ));
         if let Some(kernel) = kernel {
             host.load_mast_forest(kernel.mast_forest().clone()).unwrap();
         }
         for library in &self.libraries {
             host.load_mast_forest(library.mast_forest().clone()).unwrap();
         }
+        host.load_library(&StdLibrary::default(), ()).unwrap();
+        host.register_event_handlers([NoopEventHandler::new_boxed(1)].into_iter())
+            .unwrap();
         let (mut stack_outputs, proof) =
             prover::prove(&program, stack_inputs.clone(), &mut host, ProvingOptions::default())
                 .unwrap();
@@ -397,13 +418,19 @@ impl Test {
     /// state.
     pub fn execute_iter(&self) -> VmStateIterator {
         let (program, kernel) = self.compile().expect("Failed to compile test source.");
-        let mut host = DefaultHost::new(MemAdviceProvider::from(self.advice_inputs.clone()));
+        let mut host = DefaultHost::new_with_advice_provider(MemAdviceProvider::from(
+            self.advice_inputs.clone(),
+        ));
         if let Some(kernel) = kernel {
             host.load_mast_forest(kernel.mast_forest().clone()).unwrap();
         }
         for library in &self.libraries {
             host.load_mast_forest(library.mast_forest().clone()).unwrap();
         }
+        host.load_library(&StdLibrary::default(), ()).unwrap();
+        host.register_event_handlers([NoopEventHandler::new_boxed(1)].into_iter())
+            .unwrap();
+
         processor::execute_iter(&program, self.stack_inputs.clone(), &mut host)
     }
 

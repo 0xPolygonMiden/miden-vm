@@ -1,9 +1,7 @@
 use std::sync::Arc;
 
-use processor::{
-    AdviceProvider, ExecutionError, Host, MastForest, MemAdviceProvider, ProcessState,
-};
-use vm_core::DebugOptions;
+use processor::{ExecutionError, Host, MastForest, MemAdviceProvider, ProcessState};
+use vm_core::{AdviceProvider, DebugOptions};
 
 mod advice;
 mod asmop;

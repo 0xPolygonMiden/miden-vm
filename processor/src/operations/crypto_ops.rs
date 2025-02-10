@@ -187,13 +187,14 @@ mod tests {
     use vm_core::{
         chiplets::hasher::{apply_permutation, STATE_WIDTH},
         crypto::merkle::{MerkleStore, MerkleTree, NodeIndex},
+        AdviceInputs,
     };
 
     use super::{
         super::{Felt, Operation},
         Process,
     };
-    use crate::{AdviceInputs, DefaultHost, StackInputs, Word, ZERO};
+    use crate::{DefaultHost, StackInputs, Word, ZERO};
 
     #[test]
     fn op_hperm() {

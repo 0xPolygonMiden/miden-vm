@@ -22,7 +22,7 @@ use super::{
     },
     build_op_group,
 };
-use crate::DefaultHost;
+use crate::{host::NoopEventHandler, DefaultHost};
 
 // CONSTANTS
 // ================================================================================================
@@ -1461,6 +1461,8 @@ fn set_user_op_helpers_many() {
 fn build_trace(stack_inputs: &[u64], program: &Program) -> (DecoderTrace, usize) {
     let stack_inputs = StackInputs::try_from_ints(stack_inputs.iter().copied()).unwrap();
     let mut host = DefaultHost::default();
+    host.register_event_handlers([NoopEventHandler::new_boxed(1)].into_iter())
+        .unwrap();
     let mut process = Process::new(Kernel::default(), stack_inputs, ExecutionOptions::default());
     process.execute(program, &mut host).unwrap();
 
