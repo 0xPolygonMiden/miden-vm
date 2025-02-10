@@ -169,8 +169,10 @@ impl CallNode {
 
 /// Mutators
 impl CallNode {
-    pub fn remap_children(&mut self, remapping: &Remapping) {
-        self.callee.remap(remapping)
+    pub fn remap_children(&self, remapping: &Remapping) -> Self {
+        let mut node = self.clone();
+        node.callee = node.callee.remap(remapping);
+        node
     }
 
     /// Sets the list of decorators to be executed before this node.

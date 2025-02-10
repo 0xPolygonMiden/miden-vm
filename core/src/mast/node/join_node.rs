@@ -110,9 +110,11 @@ impl JoinNode {
 
 /// Mutators
 impl JoinNode {
-    pub fn remap_children(&mut self, remapping: &Remapping) {
-        self.children[0].remap(remapping);
-        self.children[1].remap(remapping);
+    pub fn remap_children(&self, remapping: &Remapping) -> Self {
+        let mut node = self.clone();
+        node.children[0] = node.children[0].remap(remapping);
+        node.children[1] = node.children[1].remap(remapping);
+        node
     }
 
     /// Sets the list of decorators to be executed before this node.

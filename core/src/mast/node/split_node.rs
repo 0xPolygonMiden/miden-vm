@@ -112,9 +112,11 @@ impl SplitNode {
 
 /// Mutators
 impl SplitNode {
-    pub fn remap_children(&mut self, remapping: &Remapping) {
-        self.branches[0].remap(remapping);
-        self.branches[1].remap(remapping);
+    pub fn remap_children(&self, remapping: &Remapping) -> Self {
+        let mut node = self.clone();
+        node.branches[0] = node.branches[0].remap(remapping);
+        node.branches[1] = node.branches[1].remap(remapping);
+        node
     }
 
     /// Sets the list of decorators to be executed before this node.

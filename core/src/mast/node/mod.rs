@@ -144,13 +144,14 @@ impl MastNode {
     }
 
     /// Remap the node children to their new positions indicated by the given [`Remapping`].
-    pub fn remap_children(&mut self, remapping: &Remapping) {
+    pub fn remap_children(&self, remapping: &Remapping) -> Self {
+        use MastNode::*;
         match self {
-            MastNode::Join(join_node) => join_node.remap_children(remapping),
-            MastNode::Split(split_node) => split_node.remap_children(remapping),
-            MastNode::Loop(loop_node) => loop_node.remap_children(remapping),
-            MastNode::Call(call_node) => call_node.remap_children(remapping),
-            MastNode::Block(_) | MastNode::Dyn(_) | MastNode::External(_) => (),
+            Join(join_node) => Join(join_node.remap_children(remapping)),
+            Split(split_node) => Split(split_node.remap_children(remapping)),
+            Loop(loop_node) => Loop(loop_node.remap_children(remapping)),
+            Call(call_node) => Call(call_node.remap_children(remapping)),
+            Block(_) | Dyn(_) | External(_) => self.clone(),
         }
     }
 

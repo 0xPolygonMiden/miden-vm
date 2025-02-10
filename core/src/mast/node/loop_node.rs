@@ -99,8 +99,10 @@ impl LoopNode {
 
 /// Mutators
 impl LoopNode {
-    pub fn remap_children(&mut self, remapping: &Remapping) {
-        self.body.remap(remapping);
+    pub fn remap_children(&self, remapping: &Remapping) -> Self {
+        let mut node = self.clone();
+        node.body = node.body.remap(remapping);
+        node
     }
 
     /// Sets the list of decorators to be executed before this node.

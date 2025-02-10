@@ -599,10 +599,8 @@ impl MastNodeId {
     }
 
     /// Remap the NodeId to its new position using the given [`Remapping`].
-    pub fn remap(&mut self, remapping: &Remapping) {
-        if let Some(new_id) = remapping.get(self) {
-            self.0 = new_id.0
-        }
+    pub fn remap(&self, remapping: &Remapping) -> Self {
+        *remapping.get(self).unwrap_or(self)
     }
 }
 

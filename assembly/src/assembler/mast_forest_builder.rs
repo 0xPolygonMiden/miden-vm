@@ -487,14 +487,11 @@ impl MastForestBuilder {
     ) -> Result<MastNodeId, AssemblyError> {
         if let Some(root_id) = self.vendored_mast.find_procedure_root(mast_root) {
             for old_id in SubtreeIterator::new(&root_id, &self.vendored_mast.clone()) {
-                let mut node = self.vendored_mast[old_id].clone();
-                node.remap_children(&self.vendored_remapping);
+                let node = self.vendored_mast[old_id].remap_children(&self.vendored_remapping);
                 let new_id = self.ensure_node(node)?;
                 self.vendored_remapping.insert(old_id, new_id);
             }
-            let mut new_root_id = root_id;
-            new_root_id.remap(&self.vendored_remapping);
-            Ok(root_id)
+            Ok(root_id.remap(&self.vendored_remapping))
         } else {
             self.ensure_node(MastNode::new_external(mast_root))
         }
