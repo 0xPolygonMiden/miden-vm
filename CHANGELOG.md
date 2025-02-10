@@ -5,6 +5,7 @@
 #### Changes
 - Update minimum supported Rust version to 1.84.
 - Change Chiplet Fields to Public (#1629).
+- Added to the `Assembler` the ability to vendor a compiled library.
 
 
 ## 0.12.0 (2025-01-22)
