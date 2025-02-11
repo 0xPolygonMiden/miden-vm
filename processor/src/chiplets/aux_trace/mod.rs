@@ -27,6 +27,7 @@ use vm_core::{
 };
 
 use super::{super::trace::AuxColumnBuilder, Felt, FieldElement};
+use crate::debug::BusDebugger;
 
 // CONSTANTS
 // ================================================================================================
@@ -88,7 +89,12 @@ impl ChipletsVTableColBuilder {
 }
 
 impl<E: FieldElement<BaseField = Felt>> AuxColumnBuilder<E> for ChipletsVTableColBuilder {
-    fn init_requests(&self, _main_trace: &MainTrace, alphas: &[E]) -> E {
+    fn init_requests(
+        &self,
+        _main_trace: &MainTrace,
+        alphas: &[E],
+        _debugger: &mut BusDebugger<E>,
+    ) -> E {
         let mut requests = E::ONE;
         for (idx, proc_hash) in self.kernel.proc_hashes().iter().enumerate() {
             requests *= alphas[0]
@@ -101,11 +107,23 @@ impl<E: FieldElement<BaseField = Felt>> AuxColumnBuilder<E> for ChipletsVTableCo
         requests
     }
 
-    fn get_requests_at(&self, main_trace: &MainTrace, alphas: &[E], row: RowIndex) -> E {
+    fn get_requests_at(
+        &self,
+        main_trace: &MainTrace,
+        alphas: &[E],
+        row: RowIndex,
+        _debugger: &mut BusDebugger<E>,
+    ) -> E {
         chiplets_vtable_remove_sibling(main_trace, alphas, row)
     }
 
-    fn get_responses_at(&self, main_trace: &MainTrace, alphas: &[E], row: RowIndex) -> E {
+    fn get_responses_at(
+        &self,
+        main_trace: &MainTrace,
+        alphas: &[E],
+        row: RowIndex,
+        _debugger: &mut BusDebugger<E>,
+    ) -> E {
         chiplets_vtable_add_sibling(main_trace, alphas, row)
             * build_kernel_procedure_table_inclusions(main_trace, alphas, row)
     }
@@ -276,7 +294,13 @@ pub struct BusColumnBuilder {}
 
 impl<E: FieldElement<BaseField = Felt>> AuxColumnBuilder<E> for BusColumnBuilder {
     /// Constructs the requests made by the VM-components to the chiplets at `row`.
-    fn get_requests_at(&self, main_trace: &MainTrace, alphas: &[E], row: RowIndex) -> E
+    fn get_requests_at(
+        &self,
+        main_trace: &MainTrace,
+        alphas: &[E],
+        row: RowIndex,
+        _debugger: &mut BusDebugger<E>,
+    ) -> E
     where
         E: FieldElement<BaseField = Felt>,
     {
@@ -323,7 +347,13 @@ impl<E: FieldElement<BaseField = Felt>> AuxColumnBuilder<E> for BusColumnBuilder
     }
 
     /// Constructs the responses from the chiplets to the other VM-components at `row`.
-    fn get_responses_at(&self, main_trace: &MainTrace, alphas: &[E], row: RowIndex) -> E
+    fn get_responses_at(
+        &self,
+        main_trace: &MainTrace,
+        alphas: &[E],
+        row: RowIndex,
+        _debugger: &mut BusDebugger<E>,
+    ) -> E
     where
         E: FieldElement<BaseField = Felt>,
     {
