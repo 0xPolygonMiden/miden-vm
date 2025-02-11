@@ -1188,7 +1188,7 @@ dependencies = [
 
 [[package]]
 name = "miden-package"
-version = "0.11.0"
+version = "0.12.0"
 dependencies = [
  "bitcode",
  "derive_more",
