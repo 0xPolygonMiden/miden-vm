@@ -11,6 +11,10 @@ mod package;
 #[cfg(test)]
 extern crate std;
 
+pub use assembly::{
+    ast::{ProcedureName, QualifiedProcedureName},
+    Library, LibraryPath,
+};
 pub use vm_core::{chiplets::hasher::Digest, mast::MastForest, Program};
 
 pub use self::{
