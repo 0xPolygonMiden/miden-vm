@@ -1146,7 +1146,7 @@ dependencies = [
 
 [[package]]
 name = "miden-mast-package"
-version = "0.12.0"
+version = "0.13.0"
 dependencies = [
  "bitcode",
  "derive_more",
