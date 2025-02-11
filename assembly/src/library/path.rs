@@ -505,23 +505,7 @@ impl Deserializable for LibraryPath {
         let path = source.read_slice(len)?;
         let path =
             str::from_utf8(path).map_err(|e| DeserializationError::InvalidValue(e.to_string()))?;
-        LibraryPath::new(path).or_else(|_| {
-            // Try to parse at least the namespace
-            match LibraryNamespace::strip_path_prefix(path) {
-                Ok((ns, rest)) => {
-                    let module_id = Ident::new(rest).map_err(|e| {
-                        DeserializationError::InvalidValue(format!("Invalid module id: {}", e))
-                    })?;
-                    Ok(LibraryPath::new_from_components(ns, [module_id]))
-                },
-                Err(_) => {
-                    let module_id = Ident::new(path).map_err(|e| {
-                        DeserializationError::InvalidValue(format!("Invalid module id: {}", e))
-                    })?;
-                    Ok(LibraryPath::new_from_components(LibraryNamespace::Anon, [module_id]))
-                },
-            }
-        })
+        Self::new(path).map_err(|e| DeserializationError::InvalidValue(e.to_string()))
     }
 }
 
