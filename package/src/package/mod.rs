@@ -71,8 +71,8 @@ pub struct PackageManifest {
     pub dependencies: Vec<Dependency>,
 }
 
-/// A procedure exported by a package, along with its digest and
-/// signature(will be added after MASM type attributes are implemented).
+/// A procedure exported by a package, along with its digest and signature (will be added after
+/// MASM type attributes are implemented).
 #[derive(Clone, PartialEq, Eq, Ord, PartialOrd)]
 #[cfg_attr(test, derive(proptest_derive::Arbitrary))]
 pub struct PackageExport {

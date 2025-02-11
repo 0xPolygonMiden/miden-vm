@@ -91,14 +91,14 @@ impl Deserializable for Package {
         let magic: [u8; 5] = source.read_array()?;
         if magic != *MAGIC_PACKAGE {
             return Err(DeserializationError::InvalidValue(format!(
-                "Invalid magic bytes. Expected '{MAGIC_PACKAGE:?}', got '{magic:?}'"
+                "invalid magic bytes. Expected '{MAGIC_PACKAGE:?}', got '{magic:?}'"
             )));
         }
 
         let version: [u8; 3] = source.read_array()?;
         if version != VERSION {
             return Err(DeserializationError::InvalidValue(format!(
-                "Unsupported version. Got '{version:?}', but only '{VERSION:?}' is supported"
+                "unsupported version. Got '{version:?}', but only '{VERSION:?}' is supported"
             )));
         }
 
