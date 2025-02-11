@@ -1145,6 +1145,21 @@ dependencies = [
 ]
 
 [[package]]
+name = "miden-mast-package"
+version = "0.12.0"
+dependencies = [
+ "bitcode",
+ "derive_more",
+ "miden-assembly",
+ "miden-core",
+ "proptest",
+ "proptest-derive",
+ "serde",
+ "serde_bytes",
+ "serde_repr",
+]
+
+[[package]]
 name = "miden-miette"
 version = "8.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1184,21 +1199,6 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn",
-]
-
-[[package]]
-name = "miden-package"
-version = "0.12.0"
-dependencies = [
- "bitcode",
- "derive_more",
- "miden-assembly",
- "miden-core",
- "proptest",
- "proptest-derive",
- "serde",
- "serde_bytes",
- "serde_repr",
 ]
 
 [[package]]
