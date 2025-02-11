@@ -1,6 +1,6 @@
 ## Overview
 
-The `miden-package` crate provides the `Package` type, which represents a Miden package.
+The `miden-mast-package` crate provides the `Package` type, which represents a Miden package.
 It contains a compiled `Library`/`Program` along with their exported functions and dependencies.
 
 ## Binary Format
