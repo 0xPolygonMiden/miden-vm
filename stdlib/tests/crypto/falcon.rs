@@ -148,7 +148,7 @@ fn test_falcon512_probabilistic_product() {
     let challenge = (digest_polynomials[0], digest_polynomials[1]);
     let mut advice_stack = vec![challenge.0.as_int(), challenge.1.as_int()];
 
-    // push the polynomials to the advice stack 
+    // push the polynomials to the advice stack
     let polynomials: Vec<u64> = polynomials.iter().map(|&e| e.into()).collect();
     advice_stack.extend_from_slice(&polynomials);
 
@@ -182,7 +182,7 @@ fn test_falcon512_probabilistic_product_failure() {
     let challenge = (digest_polynomials[0], digest_polynomials[1]);
     let mut advice_stack = vec![challenge.0.as_int(), challenge.1.as_int()];
 
-    // push the polynomials to the advice stack 
+    // push the polynomials to the advice stack
     let polynomials: Vec<u64> = polynomials.iter().map(|&e| e.into()).collect();
     advice_stack.extend_from_slice(&polynomials);
 
