@@ -159,7 +159,7 @@ where $a_i$ are the coefficients of the polynomial, $\alpha$ the evaluation poin
 The stack for the operation is expected to be arranged as follows:
 - The first $8$ stack elements contain $8$ base field elements $a_0,\cdots , a_7$ representing the current 8-element batch of coefficients for the polynomial being evaluated.
 - The next $5$ stack elements are irrelevant for the operation and unaffected by it.
-- The next stack element contains the value of the memory pointer `r_ptr` to the evaluation point $\alpha$. The word address containing $\alpha = (\alpha_0, \alpha_1)$ is expected to have layout $[\alpha_0, \alpha_1, 0, 0]$.
+- The next stack element contains the value of the memory pointer `alpha_ptr` to the evaluation point $\alpha$. The word address containing $\alpha = (\alpha_0, \alpha_1)$ is expected to have layout $[\alpha_0, \alpha_1, 0, 0]$.
 - The next $2$ stack elements contain the value of the current accumulator $\textsf{acc} = (\textsf{acc}_0, \textsf{acc}_1)$.
 
 The diagram below illustrates the stack transition for `HORNERBASE` operation.
@@ -171,8 +171,6 @@ After calling the operation:
 
 The effect on the rest of the stack is:
 * **No change.**
-
-> TODO: add detailed constraint descriptions.
 
 The `HORNERBASE` makes one memory access request:
 
@@ -188,7 +186,7 @@ where $a_i$ are the coefficients of the polynomial, $\alpha$ the evaluation poin
 The stack for the operation is expected to be arranged as follows:
 - The first $8$ stack elements contain $8$ base field elements $a_0,\cdots , a_7$ representing the current 4-element batch of coefficients, in the quadratic extension field, for the polynomial being evaluated.
 - The next $5$ stack elements are irrelevant for the operation and unaffected by it.
-- The next stack element contains the value of the memory pointer `r_ptr` to the evaluation point $\alpha$. The word address containing $\alpha = (\alpha_0, \alpha_1)$ is expected to have layout $[\alpha_0, \alpha_1, 0, 0]$.
+- The next stack element contains the value of the memory pointer `alpha_ptr` to the evaluation point $\alpha$. The word address containing $\alpha = (\alpha_0, \alpha_1)$ is expected to have layout $[\alpha_0, \alpha_1, 0, 0]$.
 - The next $2$ stack elements contain the value of the current accumulator $\textsf{acc} = (\textsf{acc}_0, \textsf{acc}_1)$.
 
 The diagram below illustrates the stack transition for `HORNEREXT` operation.
@@ -200,8 +198,6 @@ After calling the operation:
 
 The effect on the rest of the stack is:
 * **No change.**
-
-> TODO: add detailed constraint descriptions.
 
 The `HORNEREXT` makes one memory access request:
 

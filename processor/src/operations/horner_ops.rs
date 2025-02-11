@@ -2,6 +2,13 @@ use vm_core::{Felt, Operation};
 
 use crate::{ExecutionError, Process, QuadFelt};
 
+// CONSTANTS
+// ================================================================================================
+
+const ALPHA_ADDR_INDEX: usize = 13;
+const ACC_HIGH_INDEX: usize = 14;
+const ACC_LOW_INDEX: usize = 15;
+
 // HORNER EVALUATION OPERATIONS
 // ================================================================================================
 
@@ -32,16 +39,16 @@ impl Process {
     ///
     /// Input:
     ///
-    /// +------+------+------+------+------+------+------+------+---+---+---+---+------+------+------+------+
-    /// |  c0  |  c1  |  c2  |  c3  |  c4  |  c5  |  c6  |  c7  | - | - | - | - |c_addr|r_addr| acc1 | acc0 |
-    /// +------+------+------+------+------+------+------+------+---+---+---+---+------+------+------+------+
+    /// +------+------+------+------+------+------+------+------+---+---+---+---+---+----------+------+------+
+    /// |  c0  |  c1  |  c2  |  c3  |  c4  |  c5  |  c6  |  c7  | - | - | - | - | - |alpha_addr| acc1 | acc0 |
+    /// +------+------+------+------+------+------+------+------+---+---+---+---+---+----------+------+------+
     ///
     ///
     /// Output:
     ///
-    /// +------+------+------+------+------+------+------+------+---+---+---+---+------+------+-------+-------+
-    /// |  c0  |  c1  |  c2  |  c3  |  c4  |  c5  |  c6  |  c7  | - | - | - | - |c_addr|r_addr| acc1' | acc0' |
-    /// +------+------+------+------+------+------+------+------+---+---+---+---+------+------+-------+-------+
+    /// +------+------+------+------+------+------+------+------+---+---+---+---+---+----------+-------+-------+
+    /// |  c0  |  c1  |  c2  |  c3  |  c4  |  c5  |  c6  |  c7  | - | - | - | - | - |alpha_addr| acc1' | acc0' |
+    /// +------+------+------+------+------+------+------+------+---+---+---+---+---+----------+-------+-------+
     ///
     ///
     /// Here:
@@ -50,9 +57,7 @@ impl Process {
     ///    of 8 coefficients of the polynomial.
     /// 2. (acc0, acc1) stands for an extension field element accumulating the values of the Horner
     ///    evaluation procedure. (acc0', acc1') is the updated value of this accumulator.
-    /// 3. t_addr is the memory address from which we are loading the ci's when using the MSTREAM
-    ///    instruction or storing using the ADVPIPE instruction.
-    /// 4. r_addr is the memory address of the evaluation point i.e., alpha.
+    /// 3. alpha_addr is the memory address of the evaluation point i.e., alpha.
     ///
     /// The instruction also makes use of the helper registers to hold the value of
     /// alpha = (alpha0, alpha1) during the course of its execution.
@@ -60,8 +65,8 @@ impl Process {
         // --- read the values of the coefficients, over the base field, from the stack -----------
         let coef = self.get_coeff_as_base_elements();
 
-        // --- read the randomness from memory ----------------------------------------------------
-        let alpha = self.get_random_point()?;
+        // --- read the evaluation point alpha from memory ----------------------------------------
+        let alpha = self.get_evaluation_point()?;
 
         // --- read the accumulator values from stack ---------------------------------------------
         let acc_old = self.get_accumulator();
@@ -74,8 +79,8 @@ impl Process {
         self.stack.copy_state(0);
 
         // --- update the accumulators ------------------------------------------------------------
-        self.stack.set(14, acc_new.to_base_elements()[1]);
-        self.stack.set(15, acc_new.to_base_elements()[0]);
+        self.stack.set(ACC_HIGH_INDEX, acc_new.to_base_elements()[1]);
+        self.stack.set(ACC_LOW_INDEX, acc_new.to_base_elements()[0]);
 
         // --- set the helper registers -----------------------------------------------------------
         self.populate_helper_registers(alpha);
@@ -102,16 +107,16 @@ impl Process {
     ///
     /// Input:
     ///
-    /// +------+------+------+------+------+------+------+------+---+---+---+---+------+------+------+------+
-    /// | c0_1 | c0_0 | c1_1 | c1_0 | c2_1 | c2_0 | c3_1 | c3_0 | - | - | - | - |c_addr|r_addr| acc1 | acc0 |
-    /// +------+------+------+------+------+------+------+------+---+---+---+---+------+------+------+------+
+    /// +------+------+------+------+------+------+------+------+---+---+---+---+---+----------+------+------+
+    /// | c0_1 | c0_0 | c1_1 | c1_0 | c2_1 | c2_0 | c3_1 | c3_0 | - | - | - | - | - |alpha_addr| acc1 | acc0 |
+    /// +------+------+------+------+------+------+------+------+---+---+---+---+---+----------+------+------+
     ///
     ///
     /// Output:
     ///
-    /// +------+------+------+------+------+------+------+------+---+---+---+---+------+------+-------+-------+
-    /// | c0_1 | c0_0 | c1_1 | c1_0 | c2_1 | c2_0 | c3_1 | c3_0 | - | - | - | - |c_addr|r_addr| acc1' | acc0' |
-    /// +------+------+------+------+------+------+------+------+---+---+---+---+------+------+-------+-------+
+    /// +------+------+------+------+------+------+------+------+---+---+---+---+---+----------+-------+-------+
+    /// | c0_1 | c0_0 | c1_1 | c1_0 | c2_1 | c2_0 | c3_1 | c3_0 | - | - | - | - | - |alpha_addr| acc1' | acc0' |
+    /// +------+------+------+------+------+------+------+------+---+---+---+---+---+----------+-------+-------+
     ///
     ///
     /// Here:
@@ -120,9 +125,7 @@ impl Process {
     ///    of 4 extension field coefficients of the polynomial.
     /// 2. (acc0, acc1) stands for an extension field element accumulating the values of the Horner
     ///    evaluation procedure. (acc0', acc1') is the updated value of this accumulator.
-    /// 3. t_addr is the memory address from which we are loading the ci's when using the MSTREAM
-    ///    instruction or storing using the ADVPIPE instruction.
-    /// 4. r_addr is the memory address of the evaluation point i.e., alpha.
+    /// 3. alpha_addr is the memory address of the evaluation point i.e., alpha.
     ///
     /// The instruction also makes use of the helper registers to hold the value of
     /// alpha = (alpha0, alpha1) during the course of its execution.
@@ -130,8 +133,8 @@ impl Process {
         // --- read the values of the coefficients, over the extension field, from the stack ------
         let coef = self.get_coeff_as_quad_ext_elements();
 
-        // --- read the randomness from memory ----------------------------------------------------
-        let alpha = self.get_random_point()?;
+        // --- read the evaluation point alpha from memory ----------------------------------------
+        let alpha = self.get_evaluation_point()?;
 
         // --- read the accumulator values from stack ---------------------------------------------
         let acc_old = self.get_accumulator();
@@ -143,8 +146,8 @@ impl Process {
         self.stack.copy_state(0);
 
         // --- update the accumulators ------------------------------------------------------------
-        self.stack.set(14, acc_new.to_base_elements()[1]);
-        self.stack.set(15, acc_new.to_base_elements()[0]);
+        self.stack.set(ACC_HIGH_INDEX, acc_new.to_base_elements()[1]);
+        self.stack.set(ACC_LOW_INDEX, acc_new.to_base_elements()[0]);
 
         // --- set the helper registers -----------------------------------------------------------
         self.populate_helper_registers(alpha);
@@ -171,47 +174,46 @@ impl Process {
 
     /// Returns the top 8 elements of the operand stack.
     fn get_coeff_as_quad_ext_elements(&self) -> [QuadFelt; 4] {
-        let c0 = self.stack.get(0);
-        let c1 = self.stack.get(1);
-        let c2 = self.stack.get(2);
-        let c3 = self.stack.get(3);
-        let c4 = self.stack.get(4);
-        let c5 = self.stack.get(5);
-        let c6 = self.stack.get(6);
-        let c7 = self.stack.get(7);
+        let c0_0 = self.stack.get(0);
+        let c0_1 = self.stack.get(1);
+        let c1_0 = self.stack.get(2);
+        let c1_1 = self.stack.get(3);
+        let c2_0 = self.stack.get(4);
+        let c2_1 = self.stack.get(5);
+        let c3_0 = self.stack.get(6);
+        let c3_1 = self.stack.get(7);
 
         [
-            QuadFelt::new(c0, c1),
-            QuadFelt::new(c2, c3),
-            QuadFelt::new(c4, c5),
-            QuadFelt::new(c6, c7),
+            QuadFelt::new(c0_0, c0_1),
+            QuadFelt::new(c1_0, c1_1),
+            QuadFelt::new(c2_0, c2_1),
+            QuadFelt::new(c3_0, c3_1),
         ]
     }
 
     /// Returns randomness.
-    fn get_random_point(&mut self) -> Result<QuadFelt, ExecutionError> {
+    fn get_evaluation_point(&mut self) -> Result<QuadFelt, ExecutionError> {
         let ctx = self.system.ctx();
-        let addr = self.stack.get(13);
+        let addr = self.stack.get(ALPHA_ADDR_INDEX);
         let word = self.chiplets.memory.read_word(ctx, addr, self.system.clk())?;
-        let a0 = word[0];
-        let a1 = word[1];
+        let alpha_0 = word[0];
+        let alpha_1 = word[1];
 
-        Ok(QuadFelt::new(a0, a1))
+        Ok(QuadFelt::new(alpha_0, alpha_1))
     }
 
     /// Reads the accumulator values.
     fn get_accumulator(&self) -> QuadFelt {
-        let acc1 = self.stack.get(14);
-        let acc0 = self.stack.get(15);
+        let acc1 = self.stack.get(ACC_HIGH_INDEX);
+        let acc0 = self.stack.get(ACC_LOW_INDEX);
 
         QuadFelt::new(acc0, acc1)
     }
 
     /// Populates helper registers with OOD values and randomness.
     fn populate_helper_registers(&mut self, alpha: QuadFelt) {
-        let [a0, a1] = alpha.to_base_elements();
-        let values = [a0, a1];
-        self.decoder.set_user_op_helpers(Operation::HornerBase, &values);
+        let alpha_base_elements = alpha.to_base_elements();
+        self.decoder.set_user_op_helpers(Operation::HornerBase, &alpha_base_elements);
     }
 }
 
@@ -223,8 +225,9 @@ mod tests {
     use std::vec::Vec;
 
     use test_utils::{build_test, rand::rand_array};
-    use vm_core::{Felt, FieldElement, Operation, StackInputs, ZERO};
+    use vm_core::{Felt, Operation, StackInputs, ZERO};
 
+    use super::{ACC_HIGH_INDEX, ACC_LOW_INDEX, ALPHA_ADDR_INDEX};
     use crate::{ContextId, DefaultHost, Process, QuadFelt};
 
     #[test]
@@ -232,16 +235,12 @@ mod tests {
         // --- build stack inputs -----------------------------------------------------------------
         let mut inputs = rand_array::<Felt, 16>();
 
-        // set c_addr to
-        inputs[12] = Felt::ZERO;
-
-        // set r_addr pointer to c_addr + offset, where offset is a large enough value.
-        let offset = Felt::new(1000);
-        inputs[13] = inputs[12] + offset;
+        // set alpha_addr pointer
+        inputs[ALPHA_ADDR_INDEX] = Felt::new(1000);
 
         // set initial accumulator to zero
-        inputs[14] = ZERO;
-        inputs[15] = ZERO;
+        inputs[ACC_HIGH_INDEX] = ZERO;
+        inputs[ACC_LOW_INDEX] = ZERO;
         inputs.reverse();
 
         // --- setup the operand stack ------------------------------------------------------------
@@ -281,13 +280,13 @@ mod tests {
         assert_eq!(stack_state[7], inputs[7]);
 
         // --- check that the accumulator was updated correctly -----------------------------------
-        let acc1_old = inputs[14];
-        let acc0_old = inputs[15];
+        let acc1_old = inputs[ACC_HIGH_INDEX];
+        let acc0_old = inputs[ACC_LOW_INDEX];
         let acc_old = QuadFelt::new(acc0_old, acc1_old);
 
-        let a0 = a[0];
-        let a1 = a[1];
-        let alpha = QuadFelt::new(a0, a1);
+        let alpha_0 = a[0];
+        let alpha_1 = a[1];
+        let alpha = QuadFelt::new(alpha_0, alpha_1);
 
         let acc_new = stack_state
             .iter()
@@ -295,15 +294,15 @@ mod tests {
             .rev()
             .fold(acc_old, |acc, coef| QuadFelt::from(*coef) + alpha * acc);
 
-        assert_eq!(acc_new.to_base_elements()[1], stack_state[14]);
-        assert_eq!(acc_new.to_base_elements()[0], stack_state[15]);
+        assert_eq!(acc_new.to_base_elements()[1], stack_state[ACC_HIGH_INDEX]);
+        assert_eq!(acc_new.to_base_elements()[0], stack_state[ACC_LOW_INDEX]);
 
         // --- check that memory pointers were untouched ------------------------------------------
         assert_eq!(inputs[12], stack_state[12]);
-        assert_eq!(inputs[13], stack_state[13]);
+        assert_eq!(inputs[ALPHA_ADDR_INDEX], stack_state[ALPHA_ADDR_INDEX]);
 
         // --- check that the helper registers were updated correctly -----------------------------
-        let helper_reg_expected = [a0, a1, ZERO, ZERO, ZERO, ZERO];
+        let helper_reg_expected = [alpha_0, alpha_1, ZERO, ZERO, ZERO, ZERO];
         assert_eq!(helper_reg_expected, process.decoder.get_user_op_helpers());
     }
 
@@ -312,16 +311,12 @@ mod tests {
         // --- build stack inputs -----------------------------------------------------------------
         let mut inputs = rand_array::<Felt, 16>();
 
-        // set c_addr to
-        inputs[12] = Felt::ZERO;
-
-        // set r_addr pointer to c_addr + offset, where offset is a large enough value.
-        let offset = Felt::new(1000);
-        inputs[13] = inputs[12] + offset;
+        // set alpha_addr pointer
+        inputs[ALPHA_ADDR_INDEX] = Felt::new(1000);
 
         // set initial accumulator to zero
-        inputs[14] = ZERO;
-        inputs[15] = ZERO;
+        inputs[ACC_HIGH_INDEX] = ZERO;
+        inputs[ACC_LOW_INDEX] = ZERO;
         inputs.reverse();
 
         // --- setup the operand stack ------------------------------------------------------------
@@ -361,13 +356,13 @@ mod tests {
         assert_eq!(stack_state[7], inputs[7]);
 
         // --- check that the accumulator was updated correctly -----------------------------------
-        let acc1_old = inputs[14];
-        let acc0_old = inputs[15];
+        let acc1_old = inputs[ACC_HIGH_INDEX];
+        let acc0_old = inputs[ACC_LOW_INDEX];
         let acc_old = QuadFelt::new(acc0_old, acc1_old);
 
-        let a0 = a[0];
-        let a1 = a[1];
-        let alpha = QuadFelt::new(a0, a1);
+        let alpha_0 = a[0];
+        let alpha_1 = a[1];
+        let alpha = QuadFelt::new(alpha_0, alpha_1);
 
         let acc_new = stack_state
             .chunks(2)
@@ -375,15 +370,15 @@ mod tests {
             .rev()
             .fold(acc_old, |acc, coef| QuadFelt::new(coef[0], coef[1]) + alpha * acc);
 
-        assert_eq!(acc_new.to_base_elements()[1], stack_state[14]);
-        assert_eq!(acc_new.to_base_elements()[0], stack_state[15]);
+        assert_eq!(acc_new.to_base_elements()[1], stack_state[ACC_HIGH_INDEX]);
+        assert_eq!(acc_new.to_base_elements()[0], stack_state[ACC_LOW_INDEX]);
 
         // --- check that memory pointers were untouched ------------------------------------------
         assert_eq!(inputs[12], stack_state[12]);
-        assert_eq!(inputs[13], stack_state[13]);
+        assert_eq!(inputs[ALPHA_ADDR_INDEX], stack_state[ALPHA_ADDR_INDEX]);
 
         // --- check that the helper registers were updated correctly -----------------------------
-        let helper_reg_expected = [a0, a1, ZERO, ZERO, ZERO, ZERO];
+        let helper_reg_expected = [alpha_0, alpha_1, ZERO, ZERO, ZERO, ZERO];
         assert_eq!(helper_reg_expected, process.decoder.get_user_op_helpers());
     }
 
@@ -391,7 +386,7 @@ mod tests {
     fn prove_verify_horner_base() {
         let source = "
             begin
-                # Load the evaluation point from the advice stack and store it at `r_addr`
+                # Load the evaluation point from the advice stack and store it at `alpha_addr`
                 padw
                 adv_loadw
                 push.1000
@@ -406,21 +401,17 @@ mod tests {
         // --- build stack inputs -----------------------------------------------------------------
         let mut inputs = rand_array::<Felt, 16>();
 
-        // set c_addr to zero
-        inputs[12] = Felt::ZERO;
-
-        // set r_addr pointer to c_addr + offset, where offset is a large enough value.
-        let offset = Felt::new(1000);
-        inputs[13] = inputs[12] + offset;
+        // set alpha_addr pointer
+        inputs[ALPHA_ADDR_INDEX] = Felt::new(1000);
 
         // sample a random evaluation point
         let a: [Felt; 2] = rand_array();
-        let a0 = a[0];
-        let a1 = a[1];
-        let alpha = QuadFelt::new(a0, a1);
+        let alpha_0 = a[0];
+        let alpha_1 = a[1];
+        let alpha = QuadFelt::new(alpha_0, alpha_1);
 
         // compute the evaluation
-        let acc_old = QuadFelt::new(inputs[15], inputs[14]);
+        let acc_old = QuadFelt::new(inputs[ACC_LOW_INDEX], inputs[ACC_HIGH_INDEX]);
         let acc_new = inputs
             .iter()
             .take(8)
@@ -454,7 +445,7 @@ mod tests {
     fn prove_verify_horner_ext() {
         let source = "
             begin
-                # Load the evaluation point from the advice stack and store it at `r_addr`
+                # Load the evaluation point from the advice stack and store it at `alpha_addr`
                 padw
                 adv_loadw
                 push.1000
@@ -469,21 +460,17 @@ mod tests {
         // --- build stack inputs -----------------------------------------------------------------
         let mut inputs = rand_array::<Felt, 16>();
 
-        // set c_addr to zero
-        inputs[12] = Felt::ZERO;
-
-        // set r_addr pointer to c_addr + offset, where offset is a large enough value.
-        let offset = Felt::new(1000);
-        inputs[13] = inputs[12] + offset;
+        // set alpha_addr pointer
+        inputs[ALPHA_ADDR_INDEX] = Felt::new(1000);
 
         // sample a random evaluation point
         let a: [Felt; 2] = rand_array();
-        let a0 = a[0];
-        let a1 = a[1];
-        let alpha = QuadFelt::new(a0, a1);
+        let alpha_0 = a[0];
+        let alpha_1 = a[1];
+        let alpha = QuadFelt::new(alpha_0, alpha_1);
 
         // compute the evaluation
-        let acc_old = QuadFelt::new(inputs[15], inputs[14]);
+        let acc_old = QuadFelt::new(inputs[ACC_LOW_INDEX], inputs[ACC_HIGH_INDEX]);
         let acc_new = inputs
             .chunks(2)
             .take(4)
