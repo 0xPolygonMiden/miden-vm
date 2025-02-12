@@ -1,13 +1,18 @@
 use alloc::vec::Vec;
 
+use messages::{
+    BitwiseRequestMessage, ControlBlockMessage, DynBlockMessage, EndBlockMessage,
+    HpermRequestMessage, MemRequestElementMessage, MemRequestWordMessage, MpverifyRequestMessage,
+    MrupdateRequestMessage, MstreamRequestMessage, PipeRequestMessage, RcombBaseRequestMessage,
+    RespanBlockMessage, SpanBlockMessage, SyscallBlockMessage,
+};
 use miden_air::{
     trace::{
         chiplets::{
             bitwise::OP_CYCLE_LEN as BITWISE_OP_CYCLE_LEN,
             hasher::{
-                CAPACITY_LEN, DIGEST_RANGE, HASH_CYCLE_LEN, LINEAR_HASH_LABEL, MP_VERIFY_LABEL,
-                MR_UPDATE_NEW_LABEL, MR_UPDATE_OLD_LABEL, NUM_ROUNDS, RETURN_HASH_LABEL,
-                RETURN_STATE_LABEL, STATE_WIDTH,
+                CAPACITY_LEN, DIGEST_RANGE, HASH_CYCLE_LEN, LINEAR_HASH_LABEL, NUM_ROUNDS,
+                RETURN_HASH_LABEL, STATE_WIDTH,
             },
             kernel_rom::KERNEL_PROC_LABEL,
             memory::{
@@ -20,14 +25,16 @@ use miden_air::{
     RowIndex,
 };
 use vm_core::{
-    Kernel, Word, ONE, OPCODE_CALL, OPCODE_DYN, OPCODE_DYNCALL, OPCODE_END, OPCODE_HPERM,
-    OPCODE_JOIN, OPCODE_LOOP, OPCODE_MLOAD, OPCODE_MLOADW, OPCODE_MPVERIFY, OPCODE_MRUPDATE,
-    OPCODE_MSTORE, OPCODE_MSTOREW, OPCODE_MSTREAM, OPCODE_PIPE, OPCODE_RCOMBBASE, OPCODE_RESPAN,
-    OPCODE_SPAN, OPCODE_SPLIT, OPCODE_SYSCALL, OPCODE_U32AND, OPCODE_U32XOR, ZERO,
+    Kernel, ONE, OPCODE_CALL, OPCODE_DYN, OPCODE_DYNCALL, OPCODE_END, OPCODE_HPERM, OPCODE_JOIN,
+    OPCODE_LOOP, OPCODE_MLOAD, OPCODE_MLOADW, OPCODE_MPVERIFY, OPCODE_MRUPDATE, OPCODE_MSTORE,
+    OPCODE_MSTOREW, OPCODE_MSTREAM, OPCODE_PIPE, OPCODE_RCOMBBASE, OPCODE_RESPAN, OPCODE_SPAN,
+    OPCODE_SPLIT, OPCODE_SYSCALL, OPCODE_U32AND, OPCODE_U32XOR, ZERO,
 };
 
 use super::{super::trace::AuxColumnBuilder, Felt, FieldElement};
-use crate::debug::BusDebugger;
+use crate::debug::{BusDebugger, BusMessage};
+
+mod messages;
 
 // CONSTANTS
 // ================================================================================================
@@ -382,14 +389,14 @@ fn build_control_block_request<E: FieldElement<BaseField = Felt>>(
     alphas: &[E],
     row: RowIndex,
 ) -> E {
-    let op_label = LINEAR_HASH_LABEL;
-    let addr_nxt = main_trace.addr(row + 1);
-    let transition_label = op_label + 16;
+    let message = ControlBlockMessage {
+        transition_label: Felt::from(LINEAR_HASH_LABEL + 16),
+        addr_next: main_trace.addr(row + 1),
+        op_code: op_code_felt,
+        decoder_hasher_state,
+    };
 
-    let header =
-        alphas[0] + alphas[1].mul_base(Felt::from(transition_label)) + alphas[2].mul_base(addr_nxt);
-
-    header + build_value(&alphas[8..16], decoder_hasher_state) + alphas[5].mul_base(op_code_felt)
+    message.value(alphas)
 }
 
 /// Builds requests made on a `DYN` or `DYNCALL` operation.
@@ -399,24 +406,24 @@ fn build_dyn_block_request<E: FieldElement<BaseField = Felt>>(
     alphas: &[E],
     row: RowIndex,
 ) -> E {
-    let control_block_req =
-        build_control_block_request(main_trace, [ZERO; 8], op_code_felt, alphas, row);
-
-    let memory_req = {
-        let mem_addr = main_trace.stack_element(0, row);
-        let mem_value = main_trace.decoder_hasher_state_first_half(row);
-
-        compute_mem_request_word(
-            main_trace,
-            MEMORY_READ_WORD_LABEL,
-            alphas,
-            row,
-            mem_addr,
-            mem_value,
-        )
+    let control_block_req = ControlBlockMessage {
+        transition_label: Felt::from(LINEAR_HASH_LABEL + 16),
+        addr_next: main_trace.addr(row + 1),
+        op_code: op_code_felt,
+        decoder_hasher_state: [ZERO; 8],
     };
 
-    control_block_req * memory_req
+    let memory_req = MemRequestWordMessage {
+        op_label: Felt::from(MEMORY_READ_WORD_LABEL),
+        ctx: main_trace.ctx(row),
+        addr: main_trace.stack_element(0, row),
+        clk: main_trace.clk(row),
+        word: main_trace.decoder_hasher_state_first_half(row),
+    };
+
+    let dyn_block_message = DynBlockMessage { control_block_req, memory_req };
+
+    dyn_block_message.value(alphas)
 }
 
 /// Builds requests made to kernel ROM chiplet when initializing a syscall block.
@@ -426,24 +433,19 @@ fn build_syscall_block_request<E: FieldElement<BaseField = Felt>>(
     alphas: &[E],
     row: RowIndex,
 ) -> E {
-    let factor1 = build_control_block_request(
-        main_trace,
-        main_trace.decoder_hasher_state(row),
-        op_code_felt,
-        alphas,
-        row,
-    );
+    let control_block_req = ControlBlockMessage {
+        transition_label: Felt::from(LINEAR_HASH_LABEL + 16),
+        addr_next: main_trace.addr(row + 1),
+        op_code: op_code_felt,
+        decoder_hasher_state: main_trace.decoder_hasher_state(row),
+    };
 
-    let op_label = KERNEL_PROC_LABEL;
-    let state = main_trace.decoder_hasher_state(row);
-    let factor2 = alphas[0]
-        + alphas[1].mul_base(op_label)
-        + alphas[2].mul_base(state[0])
-        + alphas[3].mul_base(state[1])
-        + alphas[4].mul_base(state[2])
-        + alphas[5].mul_base(state[3]);
+    let syscall_block_message = SyscallBlockMessage {
+        control_block_req,
+        kernel_proc_digest: main_trace.decoder_hasher_state(row)[0..4].try_into().unwrap(),
+    };
 
-    factor1 * factor2
+    syscall_block_message.value(alphas)
 }
 
 /// Builds requests made to the hasher chiplet at the start of a span block.
@@ -452,15 +454,13 @@ fn build_span_block_request<E: FieldElement<BaseField = Felt>>(
     alphas: &[E],
     row: RowIndex,
 ) -> E {
-    let op_label = LINEAR_HASH_LABEL;
-    let addr_nxt = main_trace.addr(row + 1);
-    let transition_label = op_label + 16;
+    let span_block_message = SpanBlockMessage {
+        transition_label: Felt::from(LINEAR_HASH_LABEL + 16),
+        addr_next: main_trace.addr(row + 1),
+        state: main_trace.decoder_hasher_state(row),
+    };
 
-    let header =
-        alphas[0] + alphas[1].mul_base(Felt::from(transition_label)) + alphas[2].mul_base(addr_nxt);
-
-    let state = main_trace.decoder_hasher_state(row);
-    header + build_value(&alphas[8..16], state)
+    span_block_message.value(alphas)
 }
 
 /// Builds requests made to the hasher chiplet at the start of a respan block.
@@ -469,18 +469,13 @@ fn build_respan_block_request<E: FieldElement<BaseField = Felt>>(
     alphas: &[E],
     row: RowIndex,
 ) -> E {
-    let op_label = LINEAR_HASH_LABEL;
-    let addr_nxt = main_trace.addr(row + 1);
-    let transition_label = op_label + 32;
+    let respan_block_message = RespanBlockMessage {
+        transition_label: Felt::from(LINEAR_HASH_LABEL + 32),
+        addr_next: main_trace.addr(row + 1),
+        state: main_trace.decoder_hasher_state(row),
+    };
 
-    let header = alphas[0]
-        + alphas[1].mul_base(Felt::from(transition_label))
-        + alphas[2].mul_base(addr_nxt - ONE)
-        + alphas[3].mul_base(ZERO);
-
-    let state = main_trace.decoder_hasher_state(row);
-
-    header + build_value(&alphas[8..16], state)
+    respan_block_message.value(alphas)
 }
 
 /// Builds requests made to the hasher chiplet at the end of a block.
@@ -489,17 +484,13 @@ fn build_end_block_request<E: FieldElement<BaseField = Felt>>(
     alphas: &[E],
     row: RowIndex,
 ) -> E {
-    let op_label = RETURN_HASH_LABEL;
-    let addr = main_trace.addr(row) + Felt::from(NUM_ROUNDS as u8);
-    let transition_label = op_label + 32;
+    let end_block_message = EndBlockMessage {
+        addr: main_trace.addr(row) + Felt::from(NUM_ROUNDS as u8),
+        transition_label: Felt::from(RETURN_HASH_LABEL + 32),
+        digest: main_trace.decoder_hasher_state(row)[..4].try_into().unwrap(),
+    };
 
-    let header =
-        alphas[0] + alphas[1].mul_base(Felt::from(transition_label)) + alphas[2].mul_base(addr);
-
-    let state = main_trace.decoder_hasher_state(row);
-    let digest: [Felt; 4] = state[..4].try_into().unwrap();
-
-    header + build_value(&alphas[8..12], digest)
+    end_block_message.value(alphas)
 }
 
 /// Builds requests made to the bitwise chiplet. This can be either a request for the computation
@@ -510,12 +501,14 @@ fn build_bitwise_request<E: FieldElement<BaseField = Felt>>(
     alphas: &[E],
     row: RowIndex,
 ) -> E {
-    let op_label = get_op_label(ONE, ZERO, is_xor, ZERO);
-    let a = main_trace.stack_element(1, row);
-    let b = main_trace.stack_element(0, row);
-    let z = main_trace.stack_element(0, row + 1);
+    let bitwise_request_message = BitwiseRequestMessage {
+        op_label: get_op_label(ONE, ZERO, is_xor, ZERO),
+        a: main_trace.stack_element(1, row),
+        b: main_trace.stack_element(0, row),
+        z: main_trace.stack_element(0, row + 1),
+    };
 
-    alphas[0] + build_value(&alphas[1..5], [op_label, a, b, z])
+    bitwise_request_message.value(alphas)
 }
 
 /// Builds `MSTREAM` requests made to the memory chiplet.
@@ -524,25 +517,39 @@ fn build_mstream_request<E: FieldElement<BaseField = Felt>>(
     alphas: &[E],
     row: RowIndex,
 ) -> E {
-    let word1 = [
-        main_trace.stack_element(7, row + 1),
-        main_trace.stack_element(6, row + 1),
-        main_trace.stack_element(5, row + 1),
-        main_trace.stack_element(4, row + 1),
-    ];
-    let word2 = [
-        main_trace.stack_element(3, row + 1),
-        main_trace.stack_element(2, row + 1),
-        main_trace.stack_element(1, row + 1),
-        main_trace.stack_element(0, row + 1),
-    ];
+    let op_label = Felt::from(MEMORY_READ_WORD_LABEL);
     let addr = main_trace.stack_element(12, row);
-    let op_label = MEMORY_READ_WORD_LABEL;
+    let ctx = main_trace.ctx(row);
+    let clk = main_trace.clk(row);
 
-    let factor1 = compute_mem_request_word(main_trace, op_label, alphas, row, addr, word1);
-    let factor2 = compute_mem_request_word(main_trace, op_label, alphas, row, addr + FOUR, word2);
+    let mstream_request_message = MstreamRequestMessage {
+        mem_req_1: MemRequestWordMessage {
+            op_label,
+            ctx,
+            addr,
+            clk,
+            word: [
+                main_trace.stack_element(7, row + 1),
+                main_trace.stack_element(6, row + 1),
+                main_trace.stack_element(5, row + 1),
+                main_trace.stack_element(4, row + 1),
+            ],
+        },
+        mem_req_2: MemRequestWordMessage {
+            op_label,
+            ctx,
+            addr: addr + FOUR,
+            clk,
+            word: [
+                main_trace.stack_element(3, row + 1),
+                main_trace.stack_element(2, row + 1),
+                main_trace.stack_element(1, row + 1),
+                main_trace.stack_element(0, row + 1),
+            ],
+        },
+    };
 
-    factor1 * factor2
+    mstream_request_message.value(alphas)
 }
 
 /// Builds `PIPE` requests made to the memory chiplet.
@@ -551,25 +558,39 @@ fn build_pipe_request<E: FieldElement<BaseField = Felt>>(
     alphas: &[E],
     row: RowIndex,
 ) -> E {
-    let word1 = [
-        main_trace.stack_element(7, row + 1),
-        main_trace.stack_element(6, row + 1),
-        main_trace.stack_element(5, row + 1),
-        main_trace.stack_element(4, row + 1),
-    ];
-    let word2 = [
-        main_trace.stack_element(3, row + 1),
-        main_trace.stack_element(2, row + 1),
-        main_trace.stack_element(1, row + 1),
-        main_trace.stack_element(0, row + 1),
-    ];
+    let op_label = Felt::from(MEMORY_WRITE_WORD_LABEL);
     let addr = main_trace.stack_element(12, row);
-    let op_label = MEMORY_WRITE_WORD_LABEL;
+    let ctx = main_trace.ctx(row);
+    let clk = main_trace.clk(row);
 
-    let req1 = compute_mem_request_word(main_trace, op_label, alphas, row, addr, word1);
-    let req2 = compute_mem_request_word(main_trace, op_label, alphas, row, addr + FOUR, word2);
+    let pipe_request_message = PipeRequestMessage {
+        mem_req_1: MemRequestWordMessage {
+            op_label,
+            ctx,
+            addr,
+            clk,
+            word: [
+                main_trace.stack_element(7, row + 1),
+                main_trace.stack_element(6, row + 1),
+                main_trace.stack_element(5, row + 1),
+                main_trace.stack_element(4, row + 1),
+            ],
+        },
+        mem_req_2: MemRequestWordMessage {
+            op_label,
+            ctx,
+            addr: addr + FOUR,
+            clk,
+            word: [
+                main_trace.stack_element(3, row + 1),
+                main_trace.stack_element(2, row + 1),
+                main_trace.stack_element(1, row + 1),
+                main_trace.stack_element(0, row + 1),
+            ],
+        },
+    };
 
-    req1 * req2
+    pipe_request_message.value(alphas)
 }
 
 /// Builds `RCOMBBASE` requests made to the memory chiplet.
@@ -586,14 +607,29 @@ fn build_rcomb_base_request<E: FieldElement<BaseField = Felt>>(
     let a1 = main_trace.helper_register(5, row);
     let z_ptr = main_trace.stack_element(13, row);
     let a_ptr = main_trace.stack_element(14, row);
-    let op_label = MEMORY_READ_WORD_LABEL;
+    let op_label = Felt::from(MEMORY_READ_WORD_LABEL);
 
-    let req1 =
-        compute_mem_request_word(main_trace, op_label, alphas, row, z_ptr, [tz0, tz1, tzg0, tzg1]);
-    let req2 =
-        compute_mem_request_word(main_trace, op_label, alphas, row, a_ptr, [a0, a1, ZERO, ZERO]);
+    let ctx = main_trace.ctx(row);
+    let clk = main_trace.clk(row);
 
-    req1 * req2
+    let rcombbase_request_message = RcombBaseRequestMessage {
+        mem_req_1: MemRequestWordMessage {
+            op_label,
+            ctx,
+            addr: z_ptr,
+            clk,
+            word: [tz0, tz1, tzg0, tzg1],
+        },
+        mem_req_2: MemRequestWordMessage {
+            op_label,
+            ctx,
+            addr: a_ptr,
+            clk,
+            word: [a0, a1, ZERO, ZERO],
+        },
+    };
+
+    rcombbase_request_message.value(alphas)
 }
 
 /// Builds `HPERM` requests made to the hash chiplet.
@@ -602,63 +638,39 @@ fn build_hperm_request<E: FieldElement<BaseField = Felt>>(
     alphas: &[E],
     row: RowIndex,
 ) -> E {
-    let helper_0 = main_trace.helper_register(0, row);
+    let hperm_request_message = HpermRequestMessage {
+        helper_0: main_trace.helper_register(0, row),
+        s0_s12_cur: [
+            main_trace.stack_element(0, row),
+            main_trace.stack_element(1, row),
+            main_trace.stack_element(2, row),
+            main_trace.stack_element(3, row),
+            main_trace.stack_element(4, row),
+            main_trace.stack_element(5, row),
+            main_trace.stack_element(6, row),
+            main_trace.stack_element(7, row),
+            main_trace.stack_element(8, row),
+            main_trace.stack_element(9, row),
+            main_trace.stack_element(10, row),
+            main_trace.stack_element(11, row),
+        ],
+        s0_s12_nxt: [
+            main_trace.stack_element(0, row + 1),
+            main_trace.stack_element(1, row + 1),
+            main_trace.stack_element(2, row + 1),
+            main_trace.stack_element(3, row + 1),
+            main_trace.stack_element(4, row + 1),
+            main_trace.stack_element(5, row + 1),
+            main_trace.stack_element(6, row + 1),
+            main_trace.stack_element(7, row + 1),
+            main_trace.stack_element(8, row + 1),
+            main_trace.stack_element(9, row + 1),
+            main_trace.stack_element(10, row + 1),
+            main_trace.stack_element(11, row + 1),
+        ],
+    };
 
-    let s0_s12_cur = [
-        main_trace.stack_element(0, row),
-        main_trace.stack_element(1, row),
-        main_trace.stack_element(2, row),
-        main_trace.stack_element(3, row),
-        main_trace.stack_element(4, row),
-        main_trace.stack_element(5, row),
-        main_trace.stack_element(6, row),
-        main_trace.stack_element(7, row),
-        main_trace.stack_element(8, row),
-        main_trace.stack_element(9, row),
-        main_trace.stack_element(10, row),
-        main_trace.stack_element(11, row),
-    ];
-
-    let s0_s12_nxt = [
-        main_trace.stack_element(0, row + 1),
-        main_trace.stack_element(1, row + 1),
-        main_trace.stack_element(2, row + 1),
-        main_trace.stack_element(3, row + 1),
-        main_trace.stack_element(4, row + 1),
-        main_trace.stack_element(5, row + 1),
-        main_trace.stack_element(6, row + 1),
-        main_trace.stack_element(7, row + 1),
-        main_trace.stack_element(8, row + 1),
-        main_trace.stack_element(9, row + 1),
-        main_trace.stack_element(10, row + 1),
-        main_trace.stack_element(11, row + 1),
-    ];
-
-    let op_label = LINEAR_HASH_LABEL + 16;
-
-    let sum_input = alphas[4..16]
-        .iter()
-        .rev()
-        .enumerate()
-        .fold(E::ZERO, |acc, (i, x)| acc + x.mul_base(s0_s12_cur[i]));
-    let v_input = alphas[0]
-        + alphas[1].mul_base(Felt::from(op_label))
-        + alphas[2].mul_base(helper_0)
-        + sum_input;
-
-    let op_label = RETURN_STATE_LABEL + 32;
-
-    let sum_output = alphas[4..16]
-        .iter()
-        .rev()
-        .enumerate()
-        .fold(E::ZERO, |acc, (i, x)| acc + x.mul_base(s0_s12_nxt[i]));
-    let v_output = alphas[0]
-        + alphas[1].mul_base(Felt::from(op_label))
-        + alphas[2].mul_base(helper_0 + Felt::new(7))
-        + sum_output;
-
-    v_input * v_output
+    hperm_request_message.value(alphas)
 }
 
 /// Builds `MPVERIFY` requests made to the hash chiplet.
@@ -667,50 +679,25 @@ fn build_mpverify_request<E: FieldElement<BaseField = Felt>>(
     alphas: &[E],
     row: RowIndex,
 ) -> E {
-    let helper_0 = main_trace.helper_register(0, row);
+    let mpverify_request_message = MpverifyRequestMessage {
+        helper_0: main_trace.helper_register(0, row),
+        s0_s3: [
+            main_trace.stack_element(0, row),
+            main_trace.stack_element(1, row),
+            main_trace.stack_element(2, row),
+            main_trace.stack_element(3, row),
+        ],
+        s4: main_trace.stack_element(4, row),
+        s5: main_trace.stack_element(5, row),
+        s6_s9: [
+            main_trace.stack_element(6, row),
+            main_trace.stack_element(7, row),
+            main_trace.stack_element(8, row),
+            main_trace.stack_element(9, row),
+        ],
+    };
 
-    let s0_s3 = [
-        main_trace.stack_element(0, row),
-        main_trace.stack_element(1, row),
-        main_trace.stack_element(2, row),
-        main_trace.stack_element(3, row),
-    ];
-    let s4 = main_trace.stack_element(4, row);
-    let s5 = main_trace.stack_element(5, row);
-    let s6_s9 = [
-        main_trace.stack_element(6, row),
-        main_trace.stack_element(7, row),
-        main_trace.stack_element(8, row),
-        main_trace.stack_element(9, row),
-    ];
-
-    let op_label = MP_VERIFY_LABEL + 16;
-
-    let sum_input = alphas[8..12]
-        .iter()
-        .rev()
-        .enumerate()
-        .fold(E::ZERO, |acc, (i, x)| acc + x.mul_base(s0_s3[i]));
-
-    let v_input = alphas[0]
-        + alphas[1].mul_base(Felt::from(op_label))
-        + alphas[2].mul_base(helper_0)
-        + alphas[3].mul_base(s5)
-        + sum_input;
-
-    let op_label = RETURN_HASH_LABEL + 32;
-
-    let sum_output = alphas[8..12]
-        .iter()
-        .rev()
-        .enumerate()
-        .fold(E::ZERO, |acc, (i, x)| acc + x.mul_base(s6_s9[i]));
-    let v_output = alphas[0]
-        + alphas[1].mul_base(Felt::from(op_label))
-        + alphas[2].mul_base(helper_0 + s4.mul_small(8) - ONE)
-        + sum_output;
-
-    v_input * v_output
+    mpverify_request_message.value(alphas)
 }
 
 /// Builds `MRUPDATE` requests made to the hash chiplet.
@@ -719,85 +706,37 @@ fn build_mrupdate_request<E: FieldElement<BaseField = Felt>>(
     alphas: &[E],
     row: RowIndex,
 ) -> E {
-    let helper_0 = main_trace.helper_register(0, row);
+    let mrupdate_request_message = MrupdateRequestMessage {
+        helper_0: main_trace.helper_register(0, row),
+        s0_s3: [
+            main_trace.stack_element(0, row),
+            main_trace.stack_element(1, row),
+            main_trace.stack_element(2, row),
+            main_trace.stack_element(3, row),
+        ],
+        s0_s3_nxt: [
+            main_trace.stack_element(0, row + 1),
+            main_trace.stack_element(1, row + 1),
+            main_trace.stack_element(2, row + 1),
+            main_trace.stack_element(3, row + 1),
+        ],
+        s4: main_trace.stack_element(4, row),
+        s5: main_trace.stack_element(5, row),
+        s6_s9: [
+            main_trace.stack_element(6, row),
+            main_trace.stack_element(7, row),
+            main_trace.stack_element(8, row),
+            main_trace.stack_element(9, row),
+        ],
+        s10_s13: [
+            main_trace.stack_element(10, row),
+            main_trace.stack_element(11, row),
+            main_trace.stack_element(12, row),
+            main_trace.stack_element(13, row),
+        ],
+    };
 
-    let s0_s3 = [
-        main_trace.stack_element(0, row),
-        main_trace.stack_element(1, row),
-        main_trace.stack_element(2, row),
-        main_trace.stack_element(3, row),
-    ];
-    let s0_s3_nxt = [
-        main_trace.stack_element(0, row + 1),
-        main_trace.stack_element(1, row + 1),
-        main_trace.stack_element(2, row + 1),
-        main_trace.stack_element(3, row + 1),
-    ];
-    let s4 = main_trace.stack_element(4, row);
-    let s5 = main_trace.stack_element(5, row);
-    let s6_s9 = [
-        main_trace.stack_element(6, row),
-        main_trace.stack_element(7, row),
-        main_trace.stack_element(8, row),
-        main_trace.stack_element(9, row),
-    ];
-    let s10_s13 = [
-        main_trace.stack_element(10, row),
-        main_trace.stack_element(11, row),
-        main_trace.stack_element(12, row),
-        main_trace.stack_element(13, row),
-    ];
-
-    let op_label = MR_UPDATE_OLD_LABEL + 16;
-
-    let sum_input = alphas[8..12]
-        .iter()
-        .rev()
-        .enumerate()
-        .fold(E::ZERO, |acc, (i, x)| acc + x.mul_base(s0_s3[i]));
-    let v_input_old = alphas[0]
-        + alphas[1].mul_base(Felt::from(op_label))
-        + alphas[2].mul_base(helper_0)
-        + alphas[3].mul_base(s5)
-        + sum_input;
-
-    let op_label = RETURN_HASH_LABEL + 32;
-
-    let sum_output = alphas[8..12]
-        .iter()
-        .rev()
-        .enumerate()
-        .fold(E::ZERO, |acc, (i, x)| acc + x.mul_base(s6_s9[i]));
-    let v_output_old = alphas[0]
-        + alphas[1].mul_base(Felt::from(op_label))
-        + alphas[2].mul_base(helper_0 + s4.mul_small(8) - ONE)
-        + sum_output;
-
-    let op_label = MR_UPDATE_NEW_LABEL + 16;
-    let sum_input = alphas[8..12]
-        .iter()
-        .rev()
-        .enumerate()
-        .fold(E::ZERO, |acc, (i, x)| acc + x.mul_base(s10_s13[i]));
-    let v_input_new = alphas[0]
-        + alphas[1].mul_base(Felt::from(op_label))
-        + alphas[2].mul_base(helper_0 + s4.mul_small(8))
-        + alphas[3].mul_base(s5)
-        + sum_input;
-
-    let op_label = RETURN_HASH_LABEL + 32;
-
-    let sum_output = alphas[8..12]
-        .iter()
-        .rev()
-        .enumerate()
-        .fold(E::ZERO, |acc, (i, x)| acc + x.mul_base(s0_s3_nxt[i]));
-    let v_output_new = alphas[0]
-        + alphas[1].mul_base(Felt::from(op_label))
-        + alphas[2].mul_base(helper_0 + s4.mul_small(16) - ONE)
-        + sum_output;
-
-    v_input_new * v_input_old * v_output_new * v_output_old
+    mrupdate_request_message.value(alphas)
 }
 
 // CHIPLETS RESPONSES
@@ -1071,7 +1010,15 @@ fn compute_mem_request_element<E: FieldElement<BaseField = Felt>>(
     let ctx = main_trace.ctx(row);
     let clk = main_trace.clk(row);
 
-    alphas[0] + build_value(&alphas[1..6], [Felt::from(op_label), ctx, addr, clk, element])
+    let message = MemRequestElementMessage {
+        op_label: Felt::from(op_label),
+        ctx,
+        addr,
+        clk,
+        element,
+    };
+
+    message.value(alphas)
 }
 
 /// Computes a memory request for a read or write of a word.
@@ -1081,15 +1028,19 @@ fn compute_mem_request_word<E: FieldElement<BaseField = Felt>>(
     alphas: &[E],
     row: RowIndex,
     addr: Felt,
-    word: Word,
+    word: [Felt; 4],
 ) -> E {
     debug_assert!(op_label == MEMORY_READ_WORD_LABEL || op_label == MEMORY_WRITE_WORD_LABEL);
     let ctx = main_trace.ctx(row);
     let clk = main_trace.clk(row);
 
-    alphas[0]
-        + build_value(
-            &alphas[1..9],
-            [Felt::from(op_label), ctx, addr, clk, word[0], word[1], word[2], word[3]],
-        )
+    let message = MemRequestWordMessage {
+        op_label: Felt::from(op_label),
+        ctx,
+        addr,
+        clk,
+        word,
+    };
+
+    message.value(alphas)
 }
