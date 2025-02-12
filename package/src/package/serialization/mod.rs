@@ -143,7 +143,7 @@ impl Deserializable for MastArtifact {
             Library::read_from(source).map(Arc::new).map(MastArtifact::Library)
         } else {
             Err(DeserializationError::InvalidValue(format!(
-                "Invalid MAST artifact tag: {:?}",
+                "invalid MAST artifact tag: {:?}",
                 &tag
             )))
         }
