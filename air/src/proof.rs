@@ -44,12 +44,13 @@ impl ExecutionProof {
 
     /// Returns conjectured security level of this proof in bits.
     pub fn security_level(&self) -> u32 {
-        match self.hash_fn {
-            HashFunction::Blake3_192 => self.proof.security_level::<Blake3_192>(true),
-            HashFunction::Blake3_256 => self.proof.security_level::<Blake3_256>(true),
-            HashFunction::Rpo256 => self.proof.security_level::<Rpo256>(true),
-            HashFunction::Rpx256 => self.proof.security_level::<Rpx256>(true),
-        }
+        let conjectured_security = match self.hash_fn {
+            HashFunction::Blake3_192 => self.proof.conjectured_security::<Blake3_192>(),
+            HashFunction::Blake3_256 => self.proof.conjectured_security::<Blake3_256>(),
+            HashFunction::Rpo256 => self.proof.conjectured_security::<Rpo256>(),
+            HashFunction::Rpx256 => self.proof.conjectured_security::<Rpx256>(),
+        };
+        conjectured_security.bits()
     }
 
     // SERIALIZATION / DESERIALIZATION

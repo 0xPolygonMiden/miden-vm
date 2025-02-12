@@ -56,7 +56,6 @@ impl VerifierChannel {
             fri_proof,
             pow_nonce,
             num_unique_queries,
-            gkr_proof: _,
         } = proof;
 
         // make AIR and proof base fields are the same
