@@ -31,6 +31,7 @@
 - Added validity checks for the inputs to the recursive verifier (#1596).
 - Allow multiple memory reads in the same clock cycle (#1626)
 - Improved Falcon signiture verification (#1623).
+- Added `miden-mast-package` crate with `Package` type to represent a compiled Miden program/library (#1544).
 
 ## 0.11.0 (2024-11-04)
 
