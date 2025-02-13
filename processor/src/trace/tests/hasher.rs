@@ -21,7 +21,6 @@ use crate::StackInputs;
 #[rstest]
 #[case(5_u64)]
 #[case(4_u64)]
-#[allow(clippy::needless_range_loop)]
 fn hasher_p1_mp_verify(#[case] index: u64) {
     let (tree, _) = build_merkle_tree();
     let store = MerkleStore::from(&tree);
@@ -46,15 +45,14 @@ fn hasher_p1_mp_verify(#[case] index: u64) {
 
     // executing MPVERIFY does not affect the sibling table - so, all values in the column must be
     // ONE
-    for i in 0..(p1.len() - NUM_RAND_ROWS) {
-        assert_eq!(ONE, p1[i]);
+    for value in p1.iter().take(p1.len() - NUM_RAND_ROWS) {
+        assert_eq!(ONE, *value);
     }
 }
 
 #[rstest]
 #[case(5_u64)]
 #[case(4_u64)]
-#[allow(clippy::needless_range_loop)]
 fn hasher_p1_mr_update(#[case] index: u64) {
     let (tree, _) = build_merkle_tree();
     let old_node = tree.get_node(NodeIndex::new(3, index).unwrap()).unwrap();
@@ -94,8 +92,8 @@ fn hasher_p1_mr_update(#[case] index: u64) {
 
     // the running product does not change for the next 7 steps because the hasher computes the
     // hash of the SPAN block
-    for i in 1..8 {
-        assert_eq!(expected_value, p1[i]);
+    for value in p1.iter().take(8).skip(1) {
+        assert_eq!(expected_value, *value);
     }
 
     // on step 8, computations of the "old Merkle root" is started and the first sibling is added
@@ -104,8 +102,8 @@ fn hasher_p1_mr_update(#[case] index: u64) {
     assert_eq!(expected_value, p1[9]);
 
     // and then again for the next 6 steps the value remains the same
-    for i in 10..16 {
-        assert_eq!(expected_value, p1[i]);
+    for value in p1.iter().take(16).skip(10) {
+        assert_eq!(expected_value, *value);
     }
 
     // on step 15, the next sibling is added to the table in the following row (step 16)
@@ -113,8 +111,8 @@ fn hasher_p1_mr_update(#[case] index: u64) {
     assert_eq!(expected_value, p1[16]);
 
     // and then again for the next 6 steps the value remains the same
-    for i in 18..24 {
-        assert_eq!(expected_value, p1[i]);
+    for value in p1.iter().take(24).skip(18) {
+        assert_eq!(expected_value, *value);
     }
 
     // on step 23, the last sibling is added to the table in the following row (step 24)
@@ -122,8 +120,8 @@ fn hasher_p1_mr_update(#[case] index: u64) {
     assert_eq!(expected_value, p1[24]);
 
     // and then again for the next 7 steps the value remains the same
-    for i in 25..33 {
-        assert_eq!(expected_value, p1[i]);
+    for value in p1.iter().take(33).skip(25) {
+        assert_eq!(expected_value, *value);
     }
 
     // on step 32, computations of the "new Merkle root" is started and the first sibling is
@@ -132,8 +130,8 @@ fn hasher_p1_mr_update(#[case] index: u64) {
     assert_eq!(expected_value, p1[33]);
 
     // then, for the next 6 steps the value remains the same
-    for i in 33..40 {
-        assert_eq!(expected_value, p1[i]);
+    for value in p1.iter().take(40).skip(33) {
+        assert_eq!(expected_value, *value);
     }
 
     // on step 39, the next sibling is removed from the table in the following row (step 40)
@@ -141,8 +139,8 @@ fn hasher_p1_mr_update(#[case] index: u64) {
     assert_eq!(expected_value, p1[40]);
 
     // and then again for the next 6 steps the value remains the same
-    for i in 41..48 {
-        assert_eq!(expected_value, p1[i]);
+    for value in p1.iter().take(48).skip(41) {
+        assert_eq!(expected_value, *value);
     }
 
     // on step 47, the last sibling is removed from the table in the following row (step 48)
@@ -151,8 +149,8 @@ fn hasher_p1_mr_update(#[case] index: u64) {
 
     // at this point the table should be empty again, and it should stay empty until the end
     assert_eq!(expected_value, ONE);
-    for i in 50..(p1.len() - NUM_RAND_ROWS) {
-        assert_eq!(ONE, p1[i]);
+    for value in p1.iter().skip(50).take(p1.len() - NUM_RAND_ROWS - 50) {
+        assert_eq!(ONE, *value);
     }
 }
 

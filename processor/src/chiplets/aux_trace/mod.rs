@@ -369,7 +369,6 @@ impl<E: FieldElement<BaseField = Felt>> AuxColumnBuilder<E> for BusColumnBuilder
         }
     }
 
-    // TODO(plafer): `debugger` field only in test mode
     /// Constructs the responses from the chiplets to the other VM-components at `row`.
     fn get_responses_at(
         &self,
