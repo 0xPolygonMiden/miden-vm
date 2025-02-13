@@ -1,6 +1,5 @@
-use alloc::vec::Vec;
+use alloc::{string::ToString, vec::Vec};
 use core::slice;
-use std::string::ToString;
 
 use miden_air::{trace::main_trace::MainTrace, RowIndex};
 #[cfg(test)]

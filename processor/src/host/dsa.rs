@@ -1,10 +1,11 @@
 use alloc::vec::Vec;
 
+#[cfg(feature = "std")]
 use vm_core::{
     crypto::dsa::rpo_falcon512::{Polynomial, SecretKey},
     utils::Deserializable,
-    Felt, Word,
 };
+use vm_core::{Felt, Word};
 
 use crate::ExecutionError;
 
