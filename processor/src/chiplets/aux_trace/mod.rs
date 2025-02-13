@@ -843,55 +843,113 @@ fn build_mrupdate_request<E: FieldElement<BaseField = Felt>>(
 ) -> E {
     let helper_0 = main_trace.helper_register(0, row);
 
-    let s0 = main_trace.stack_element(0, row);
-    let s1 = main_trace.stack_element(1, row);
-    let s2 = main_trace.stack_element(2, row);
-    let s3 = main_trace.stack_element(3, row);
-    let s4 = main_trace.stack_element(4, row);
-    let s5 = main_trace.stack_element(5, row);
-    let s6 = main_trace.stack_element(6, row);
-    let s7 = main_trace.stack_element(7, row);
-    let s8 = main_trace.stack_element(8, row);
-    let s9 = main_trace.stack_element(9, row);
-    let s10 = main_trace.stack_element(10, row);
-    let s11 = main_trace.stack_element(11, row);
-    let s12 = main_trace.stack_element(12, row);
-    let s13 = main_trace.stack_element(13, row);
-    let s0_nxt = main_trace.stack_element(0, row + 1);
-    let s1_nxt = main_trace.stack_element(1, row + 1);
-    let s2_nxt = main_trace.stack_element(2, row + 1);
-    let s3_nxt = main_trace.stack_element(3, row + 1);
+    let old_node_value = [
+        main_trace.stack_element(0, row),
+        main_trace.stack_element(1, row),
+        main_trace.stack_element(2, row),
+        main_trace.stack_element(3, row),
+    ];
+    let merkle_path_depth = main_trace.stack_element(4, row);
+    let node_index = main_trace.stack_element(5, row);
+    let old_root = [
+        main_trace.stack_element(6, row),
+        main_trace.stack_element(7, row),
+        main_trace.stack_element(8, row),
+        main_trace.stack_element(9, row),
+    ];
+    let new_node_value = [
+        main_trace.stack_element(10, row),
+        main_trace.stack_element(11, row),
+        main_trace.stack_element(12, row),
+        main_trace.stack_element(13, row),
+    ];
+    let new_root = [
+        main_trace.stack_element(0, row + 1),
+        main_trace.stack_element(1, row + 1),
+        main_trace.stack_element(2, row + 1),
+        main_trace.stack_element(3, row + 1),
+    ];
 
     let input_old = HasherMessage {
         transition_label: Felt::from(MR_UPDATE_OLD_LABEL + 16),
         addr_next: helper_0,
-        node_index: s5,
-        hasher_state: [ZERO, ZERO, ZERO, ZERO, s3, s2, s1, s0, ZERO, ZERO, ZERO, ZERO],
+        node_index,
+        hasher_state: [
+            ZERO,
+            ZERO,
+            ZERO,
+            ZERO,
+            old_node_value[3],
+            old_node_value[2],
+            old_node_value[1],
+            old_node_value[0],
+            ZERO,
+            ZERO,
+            ZERO,
+            ZERO,
+        ],
         source: "mrupdate input_old",
     };
 
     let output_old = HasherMessage {
         transition_label: Felt::from(RETURN_HASH_LABEL + 32),
-        addr_next: helper_0 + s4.mul_small(8) - ONE,
+        addr_next: helper_0 + merkle_path_depth.mul_small(8) - ONE,
         node_index: ZERO,
-        hasher_state: [ZERO, ZERO, ZERO, ZERO, s9, s8, s7, s6, ZERO, ZERO, ZERO, ZERO],
+        hasher_state: [
+            ZERO,
+            ZERO,
+            ZERO,
+            ZERO,
+            old_root[3],
+            old_root[2],
+            old_root[1],
+            old_root[0],
+            ZERO,
+            ZERO,
+            ZERO,
+            ZERO,
+        ],
         source: "mrupdate output_old",
     };
 
     let input_new = HasherMessage {
         transition_label: Felt::from(MR_UPDATE_NEW_LABEL + 16),
-        addr_next: helper_0 + s4.mul_small(8),
-        node_index: s5,
-        hasher_state: [ZERO, ZERO, ZERO, ZERO, s13, s12, s11, s10, ZERO, ZERO, ZERO, ZERO],
+        addr_next: helper_0 + merkle_path_depth.mul_small(8),
+        node_index,
+        hasher_state: [
+            ZERO,
+            ZERO,
+            ZERO,
+            ZERO,
+            new_node_value[3],
+            new_node_value[2],
+            new_node_value[1],
+            new_node_value[0],
+            ZERO,
+            ZERO,
+            ZERO,
+            ZERO,
+        ],
         source: "mrupdate input_new",
     };
 
     let output_new = HasherMessage {
         transition_label: Felt::from(RETURN_HASH_LABEL + 32),
-        addr_next: helper_0 + s4.mul_small(16) - ONE,
+        addr_next: helper_0 + merkle_path_depth.mul_small(16) - ONE,
         node_index: ZERO,
         hasher_state: [
-            ZERO, ZERO, ZERO, ZERO, s3_nxt, s2_nxt, s1_nxt, s0_nxt, ZERO, ZERO, ZERO, ZERO,
+            ZERO,
+            ZERO,
+            ZERO,
+            ZERO,
+            new_root[3],
+            new_root[2],
+            new_root[1],
+            new_root[0],
+            ZERO,
+            ZERO,
+            ZERO,
+            ZERO,
         ],
         source: "mrupdate output_new",
     };
