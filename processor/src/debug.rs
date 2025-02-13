@@ -319,7 +319,7 @@ impl AsRef<AssemblyOp> for AsmOpInfo {
 // =================================================================
 
 /// A message that can be sent on a bus.
-pub trait BusMessage<E: FieldElement<BaseField = Felt>>: fmt::Display {
+pub(crate) trait BusMessage<E: FieldElement<BaseField = Felt>>: fmt::Display {
     /// The concrete value that this message evaluates to.
     fn value(&self, alphas: &[E]) -> E;
 
@@ -329,7 +329,7 @@ pub trait BusMessage<E: FieldElement<BaseField = Felt>>: fmt::Display {
 
 /// Note: we use `Vec` internall instead of a `BTreeMap` as a workaround for field elements not
 /// implementing `Ord`. Since this is only used in debug/test code, this is acceptable.
-pub struct BusDebugger<E: FieldElement<BaseField = Felt>> {
+pub(crate) struct BusDebugger<E: FieldElement<BaseField = Felt>> {
     pub bus_name: String,
     pub outstanding_requests: Vec<(E, Box<dyn BusMessage<E>>)>,
     pub outstanding_responses: Vec<(E, Box<dyn BusMessage<E>>)>,
@@ -355,6 +355,7 @@ where
     /// Attempts to match the request with an existing response. If a match is found, the response
     /// is removed from the list of outstanding responses. Otherwise, the request is added to the
     /// list of outstanding requests.
+    #[allow(dead_code)]
     pub fn add_request(&mut self, request_msg: Box<dyn BusMessage<E>>, alphas: &[E]) {
         let msg_value = request_msg.value(alphas);
 
@@ -370,6 +371,7 @@ where
     /// Attempts to match the response with an existing request. If a match is found, the request is
     /// removed from the list of outstanding requests. Otherwise, the response is added to the list
     /// of outstanding responses.
+    #[allow(dead_code)]
     pub fn add_response(&mut self, response_msg: Box<dyn BusMessage<E>>, alphas: &[E]) {
         let msg_value = response_msg.value(alphas);
 
@@ -388,6 +390,7 @@ where
     /// requests or responses, it means that there is a mismatch between the requests and responses,
     /// and the test should fail. The `Debug` implementation for `BusDebugger` will print out the
     /// outstanding requests and responses.
+    #[allow(dead_code)]
     pub fn is_empty(&self) -> bool {
         self.outstanding_requests.is_empty() && self.outstanding_responses.is_empty()
     }

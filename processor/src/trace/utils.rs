@@ -273,7 +273,7 @@ pub trait AuxColumnBuilder<E: FieldElement<BaseField = Felt>> {
             requests_running_divisor *= requests[i];
         }
 
-        #[cfg(any(test, feature = "testing"))]
+        #[cfg(any(test, feature = "slow-testing"))]
         assert!(bus_debugger.is_empty(), "{bus_debugger}");
 
         result_aux_column

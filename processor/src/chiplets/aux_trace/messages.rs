@@ -127,7 +127,6 @@ impl Display for KernelRomMessage {
 // SPAN BLOCK MESSAGE
 // ===============================================================================================
 
-// TODO(plafer): Remove this in favor of `ControlBlockRequestMessage`
 pub struct SpanBlockMessage {
     pub transition_label: Felt,
     pub addr_next: Felt,
