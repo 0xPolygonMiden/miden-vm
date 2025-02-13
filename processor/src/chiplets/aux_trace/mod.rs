@@ -796,30 +796,61 @@ fn build_mpverify_request<E: FieldElement<BaseField = Felt>>(
 ) -> E {
     let helper_0 = main_trace.helper_register(0, row);
 
-    let s0 = main_trace.stack_element(0, row);
-    let s1 = main_trace.stack_element(1, row);
-    let s2 = main_trace.stack_element(2, row);
-    let s3 = main_trace.stack_element(3, row);
-    let s4 = main_trace.stack_element(4, row);
-    let s5 = main_trace.stack_element(5, row);
-    let s6 = main_trace.stack_element(6, row);
-    let s7 = main_trace.stack_element(7, row);
-    let s8 = main_trace.stack_element(8, row);
-    let s9 = main_trace.stack_element(9, row);
+    let node_value = [
+        main_trace.stack_element(0, row),
+        main_trace.stack_element(1, row),
+        main_trace.stack_element(2, row),
+        main_trace.stack_element(3, row),
+    ];
+    let node_depth = main_trace.stack_element(4, row);
+    let node_index = main_trace.stack_element(5, row);
+
+    let merkle_tree_root = [
+        main_trace.stack_element(6, row),
+        main_trace.stack_element(7, row),
+        main_trace.stack_element(8, row),
+        main_trace.stack_element(9, row),
+    ];
 
     let input = HasherMessage {
         transition_label: Felt::from(MP_VERIFY_LABEL + 16),
         addr_next: helper_0,
-        node_index: s5,
-        hasher_state: [ZERO, ZERO, ZERO, ZERO, s3, s2, s1, s0, ZERO, ZERO, ZERO, ZERO],
+        node_index,
+        hasher_state: [
+            ZERO,
+            ZERO,
+            ZERO,
+            ZERO,
+            node_value[3],
+            node_value[2],
+            node_value[1],
+            node_value[0],
+            ZERO,
+            ZERO,
+            ZERO,
+            ZERO,
+        ],
         source: "mpverify input",
     };
 
     let output = HasherMessage {
         transition_label: Felt::from(RETURN_HASH_LABEL + 32),
-        addr_next: helper_0 + s4.mul_small(8) - ONE,
+        addr_next: helper_0 + node_depth.mul_small(8) - ONE,
         node_index: ZERO,
-        hasher_state: [ZERO, ZERO, ZERO, ZERO, s9, s8, s7, s6, ZERO, ZERO, ZERO, ZERO],
+        hasher_state: [
+            ZERO,
+            ZERO,
+            ZERO,
+            ZERO,
+            merkle_tree_root[3],
+            merkle_tree_root[2],
+            merkle_tree_root[1],
+            merkle_tree_root[0],
+            ZERO,
+            ZERO,
+            ZERO,
+            ZERO,
+        ],
         source: "mpverify output",
     };
 
@@ -1023,7 +1054,7 @@ where
                     addr_next,
                     node_index,
                     hasher_state: [
-                        state[4], state[5], state[6], state[7], ZERO, ZERO, ZERO, ZERO, ZERO, ZERO,
+                        ZERO, ZERO, ZERO, ZERO, state[4], state[5], state[6], state[7], ZERO, ZERO,
                         ZERO, ZERO,
                     ],
                     source: "hasher",
