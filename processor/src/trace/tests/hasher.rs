@@ -3,6 +3,7 @@ use alloc::vec::Vec;
 use miden_air::trace::{
     chiplets::hasher::P1_COL_IDX, main_trace::MainTrace, AUX_TRACE_RAND_ELEMENTS,
 };
+use rstest::rstest;
 use vm_core::{
     crypto::merkle::{MerkleStore, MerkleTree, NodeIndex},
     FieldElement,
@@ -17,17 +18,20 @@ use crate::StackInputs;
 // SIBLING TABLE TESTS
 // ================================================================================================
 
-#[test]
+#[rstest]
+#[case(5_u64)]
+#[case(4_u64)]
 #[allow(clippy::needless_range_loop)]
-fn hasher_p1_mp_verify() {
+fn hasher_p1_mp_verify(#[case] index: u64) {
     let (tree, _) = build_merkle_tree();
     let store = MerkleStore::from(&tree);
-    let node = tree.get_node(NodeIndex::new(3, 1).unwrap()).unwrap();
+    let depth = 3;
+    let node = tree.get_node(NodeIndex::new(depth as u8, index).unwrap()).unwrap();
 
     // build program inputs
     let mut init_stack = vec![];
     append_word(&mut init_stack, node.into());
-    init_stack.extend_from_slice(&[3, 1]);
+    init_stack.extend_from_slice(&[depth, index]);
     append_word(&mut init_stack, tree.root().into());
     init_stack.reverse();
     let stack_inputs = StackInputs::try_from_ints(init_stack).unwrap();
@@ -47,11 +51,12 @@ fn hasher_p1_mp_verify() {
     }
 }
 
-#[test]
+#[rstest]
+#[case(5_u64)]
+#[case(4_u64)]
 #[allow(clippy::needless_range_loop)]
-fn hasher_p1_mr_update() {
+fn hasher_p1_mr_update(#[case] index: u64) {
     let (tree, _) = build_merkle_tree();
-    let index = 5_u64;
     let old_node = tree.get_node(NodeIndex::new(3, index).unwrap()).unwrap();
     let new_node = init_leaf(11);
     let path = tree.get_path(NodeIndex::new(3, index).unwrap()).unwrap();
