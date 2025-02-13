@@ -62,27 +62,23 @@ impl Process {
     /// The instruction also makes use of the helper registers to hold the value of
     /// alpha = (alpha0, alpha1) during the course of its execution.
     pub(super) fn op_horner_eval_base(&mut self) -> Result<(), ExecutionError> {
-        // --- read the values of the coefficients, over the base field, from the stack -----------
+        // read the values of the coefficients, over the base field, from the stack
         let coef = self.get_coeff_as_base_elements();
 
-        // --- read the evaluation point alpha from memory ----------------------------------------
+        // read the evaluation point alpha from memory
         let alpha = self.get_evaluation_point()?;
 
-        // --- read the accumulator values from stack ---------------------------------------------
+        // compute the updated accumulator value
         let acc_old = self.get_accumulator();
-
-        // --- compute the updated accumulator values ---------------------------------------------
         let acc_new =
             coef.iter().rev().fold(acc_old, |acc, coef| QuadFelt::from(*coef) + alpha * acc);
 
-        // --- copy the stack ---------------------------------------------------------
+        // copy over the stack state to the next cycle changing only the accumulator values
         self.stack.copy_state(0);
-
-        // --- update the accumulators ------------------------------------------------------------
         self.stack.set(ACC_HIGH_INDEX, acc_new.to_base_elements()[1]);
         self.stack.set(ACC_LOW_INDEX, acc_new.to_base_elements()[0]);
 
-        // --- set the helper registers -----------------------------------------------------------
+        // set the helper registers
         self.populate_helper_registers(alpha);
 
         Ok(())
@@ -130,26 +126,22 @@ impl Process {
     /// The instruction also makes use of the helper registers to hold the value of
     /// alpha = (alpha0, alpha1) during the course of its execution.
     pub(super) fn op_horner_eval_ext(&mut self) -> Result<(), ExecutionError> {
-        // --- read the values of the coefficients, over the extension field, from the stack ------
+        // read the values of the coefficients, over the extension field, from the stack
         let coef = self.get_coeff_as_quad_ext_elements();
 
-        // --- read the evaluation point alpha from memory ----------------------------------------
+        // read the evaluation point from memory
         let alpha = self.get_evaluation_point()?;
 
-        // --- read the accumulator values from stack ---------------------------------------------
+        // compute the updated accumulator value
         let acc_old = self.get_accumulator();
-
-        // --- compute the updated accumulator values ---------------------------------------------
         let acc_new = coef.iter().rev().fold(acc_old, |acc, coef| *coef + alpha * acc);
 
-        // --- copy the stack ---------------------------------------------------------
+        // copy over the stack state to the next cycle changing only the accumulator values
         self.stack.copy_state(0);
-
-        // --- update the accumulators ------------------------------------------------------------
         self.stack.set(ACC_HIGH_INDEX, acc_new.to_base_elements()[1]);
         self.stack.set(ACC_LOW_INDEX, acc_new.to_base_elements()[0]);
 
-        // --- set the helper registers -----------------------------------------------------------
+        // set the helper registers
         self.populate_helper_registers(alpha);
 
         Ok(())
@@ -191,7 +183,7 @@ impl Process {
         ]
     }
 
-    /// Returns randomness.
+    /// Returns the evaluation point.
     fn get_evaluation_point(&mut self) -> Result<QuadFelt, ExecutionError> {
         let ctx = self.system.ctx();
         let addr = self.stack.get(ALPHA_ADDR_INDEX);
