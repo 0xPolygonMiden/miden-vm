@@ -318,7 +318,6 @@ impl<E: FieldElement<BaseField = Felt>> AuxColumnBuilder<E> for BusColumnBuilder
                 op_code_felt,
                 alphas,
                 row,
-                #[cfg(any(test, feature = "testing"))]
                 debugger,
             ),
             OPCODE_DYN | OPCODE_DYNCALL => {
@@ -406,7 +405,7 @@ fn build_control_block_request<E: FieldElement<BaseField = Felt>>(
     op_code_felt: Felt,
     alphas: &[E],
     row: RowIndex,
-    #[cfg(any(test, feature = "testing"))] debugger: &mut BusDebugger<E>,
+    debugger: &mut BusDebugger<E>,
 ) -> E {
     let message = ControlBlockRequestMessage {
         transition_label: Felt::from(LINEAR_HASH_LABEL + 16),
@@ -429,7 +428,7 @@ fn build_dyn_block_request<E: FieldElement<BaseField = Felt>>(
     op_code_felt: Felt,
     alphas: &[E],
     row: RowIndex,
-    #[cfg(any(test, feature = "testing"))] debugger: &mut BusDebugger<E>,
+    debugger: &mut BusDebugger<E>,
 ) -> E {
     let control_block_req = ControlBlockRequestMessage {
         transition_label: Felt::from(LINEAR_HASH_LABEL + 16),
@@ -467,7 +466,7 @@ fn build_syscall_block_request<E: FieldElement<BaseField = Felt>>(
     op_code_felt: Felt,
     alphas: &[E],
     row: RowIndex,
-    #[cfg(any(test, feature = "testing"))] debugger: &mut BusDebugger<E>,
+    debugger: &mut BusDebugger<E>,
 ) -> E {
     let control_block_req = ControlBlockRequestMessage {
         transition_label: Felt::from(LINEAR_HASH_LABEL + 16),
@@ -496,7 +495,7 @@ fn build_span_block_request<E: FieldElement<BaseField = Felt>>(
     main_trace: &MainTrace,
     alphas: &[E],
     row: RowIndex,
-    #[cfg(any(test, feature = "testing"))] debugger: &mut BusDebugger<E>,
+    debugger: &mut BusDebugger<E>,
 ) -> E {
     let span_block_message = SpanBlockMessage {
         transition_label: Felt::from(LINEAR_HASH_LABEL + 16),
@@ -517,7 +516,7 @@ fn build_respan_block_request<E: FieldElement<BaseField = Felt>>(
     main_trace: &MainTrace,
     alphas: &[E],
     row: RowIndex,
-    #[cfg(any(test, feature = "testing"))] debugger: &mut BusDebugger<E>,
+    debugger: &mut BusDebugger<E>,
 ) -> E {
     let respan_block_message = RespanBlockMessage {
         transition_label: Felt::from(LINEAR_HASH_LABEL + 32),
@@ -538,7 +537,7 @@ fn build_end_block_request<E: FieldElement<BaseField = Felt>>(
     main_trace: &MainTrace,
     alphas: &[E],
     row: RowIndex,
-    #[cfg(any(test, feature = "testing"))] debugger: &mut BusDebugger<E>,
+    debugger: &mut BusDebugger<E>,
 ) -> E {
     let end_block_message = EndBlockMessage {
         addr: main_trace.addr(row) + Felt::from(NUM_ROUNDS as u8),
@@ -561,7 +560,7 @@ fn build_bitwise_request<E: FieldElement<BaseField = Felt>>(
     is_xor: Felt,
     alphas: &[E],
     row: RowIndex,
-    #[cfg(any(test, feature = "testing"))] debugger: &mut BusDebugger<E>,
+    debugger: &mut BusDebugger<E>,
 ) -> E {
     let bitwise_request_message = BitwiseMessage {
         op_label: get_op_label(ONE, ZERO, is_xor, ZERO),
@@ -583,7 +582,7 @@ fn build_mstream_request<E: FieldElement<BaseField = Felt>>(
     main_trace: &MainTrace,
     alphas: &[E],
     row: RowIndex,
-    #[cfg(any(test, feature = "testing"))] debugger: &mut BusDebugger<E>,
+    debugger: &mut BusDebugger<E>,
 ) -> E {
     let op_label = Felt::from(MEMORY_READ_WORD_LABEL);
     let addr = main_trace.stack_element(12, row);
@@ -633,7 +632,7 @@ fn build_pipe_request<E: FieldElement<BaseField = Felt>>(
     main_trace: &MainTrace,
     alphas: &[E],
     row: RowIndex,
-    #[cfg(any(test, feature = "testing"))] debugger: &mut BusDebugger<E>,
+    debugger: &mut BusDebugger<E>,
 ) -> E {
     let op_label = Felt::from(MEMORY_WRITE_WORD_LABEL);
     let addr = main_trace.stack_element(12, row);
@@ -683,7 +682,7 @@ fn build_rcomb_base_request<E: FieldElement<BaseField = Felt>>(
     main_trace: &MainTrace,
     alphas: &[E],
     row: RowIndex,
-    #[cfg(any(test, feature = "testing"))] debugger: &mut BusDebugger<E>,
+    debugger: &mut BusDebugger<E>,
 ) -> E {
     let tz0 = main_trace.helper_register(0, row);
     let tz1 = main_trace.helper_register(1, row);
@@ -731,7 +730,7 @@ fn build_hperm_request<E: FieldElement<BaseField = Felt>>(
     main_trace: &MainTrace,
     alphas: &[E],
     row: RowIndex,
-    #[cfg(any(test, feature = "testing"))] debugger: &mut BusDebugger<E>,
+    debugger: &mut BusDebugger<E>,
 ) -> E {
     let helper_0 = main_trace.helper_register(0, row);
     let s0 = main_trace.stack_element(0, row);
@@ -793,7 +792,7 @@ fn build_mpverify_request<E: FieldElement<BaseField = Felt>>(
     main_trace: &MainTrace,
     alphas: &[E],
     row: RowIndex,
-    #[cfg(any(test, feature = "testing"))] debugger: &mut BusDebugger<E>,
+    debugger: &mut BusDebugger<E>,
 ) -> E {
     let helper_0 = main_trace.helper_register(0, row);
 
@@ -840,7 +839,7 @@ fn build_mrupdate_request<E: FieldElement<BaseField = Felt>>(
     main_trace: &MainTrace,
     alphas: &[E],
     row: RowIndex,
-    #[cfg(any(test, feature = "testing"))] debugger: &mut BusDebugger<E>,
+    debugger: &mut BusDebugger<E>,
 ) -> E {
     let helper_0 = main_trace.helper_register(0, row);
 
@@ -921,7 +920,7 @@ fn build_hasher_chiplet_responses<E>(
     main_trace: &MainTrace,
     row: RowIndex,
     alphas: &[E],
-    #[cfg(any(test, feature = "testing"))] debugger: &mut BusDebugger<E>,
+    debugger: &mut BusDebugger<E>,
 ) -> E
 where
     E: FieldElement<BaseField = Felt>,
@@ -1080,7 +1079,7 @@ fn build_bitwise_chiplet_responses<E>(
     main_trace: &MainTrace,
     row: RowIndex,
     alphas: &[E],
-    #[cfg(any(test, feature = "testing"))] debugger: &mut BusDebugger<E>,
+    debugger: &mut BusDebugger<E>,
 ) -> E
 where
     E: FieldElement<BaseField = Felt>,
@@ -1110,7 +1109,7 @@ fn build_memory_chiplet_responses<E>(
     main_trace: &MainTrace,
     row: RowIndex,
     alphas: &[E],
-    #[cfg(any(test, feature = "testing"))] debugger: &mut BusDebugger<E>,
+    debugger: &mut BusDebugger<E>,
 ) -> E
 where
     E: FieldElement<BaseField = Felt>,
@@ -1182,7 +1181,7 @@ fn build_kernel_chiplet_responses<E>(
     main_trace: &MainTrace,
     row: RowIndex,
     alphas: &[E],
-    #[cfg(any(test, feature = "testing"))] debugger: &mut BusDebugger<E>,
+    debugger: &mut BusDebugger<E>,
 ) -> E
 where
     E: FieldElement<BaseField = Felt>,
@@ -1252,7 +1251,7 @@ fn build_mem_mloadw_mstorew_request<E: FieldElement<BaseField = Felt>>(
     op_label: u8,
     alphas: &[E],
     row: RowIndex,
-    #[cfg(any(test, feature = "testing"))] debugger: &mut BusDebugger<E>,
+    debugger: &mut BusDebugger<E>,
 ) -> E {
     let word = [
         main_trace.stack_element(3, row + 1),
@@ -1271,7 +1270,7 @@ fn build_mem_mload_mstore_request<E: FieldElement<BaseField = Felt>>(
     op_label: u8,
     alphas: &[E],
     row: RowIndex,
-    #[cfg(any(test, feature = "testing"))] debugger: &mut BusDebugger<E>,
+    debugger: &mut BusDebugger<E>,
 ) -> E {
     let element = main_trace.stack_element(0, row + 1);
     let addr = main_trace.stack_element(0, row);
@@ -1287,7 +1286,7 @@ fn compute_mem_request_element<E: FieldElement<BaseField = Felt>>(
     row: RowIndex,
     addr: Felt,
     element: Felt,
-    #[cfg(any(test, feature = "testing"))] debugger: &mut BusDebugger<E>,
+    debugger: &mut BusDebugger<E>,
 ) -> E {
     debug_assert!(op_label == MEMORY_READ_ELEMENT_LABEL || op_label == MEMORY_WRITE_ELEMENT_LABEL);
 
@@ -1318,7 +1317,7 @@ fn compute_mem_request_word<E: FieldElement<BaseField = Felt>>(
     row: RowIndex,
     addr: Felt,
     word: [Felt; 4],
-    #[cfg(any(test, feature = "testing"))] debugger: &mut BusDebugger<E>,
+    debugger: &mut BusDebugger<E>,
 ) -> E {
     debug_assert!(op_label == MEMORY_READ_WORD_LABEL || op_label == MEMORY_WRITE_WORD_LABEL);
     let ctx = main_trace.ctx(row);
