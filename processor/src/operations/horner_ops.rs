@@ -1,4 +1,5 @@
-use vm_core::{Felt, Operation};
+use miden_air::trace::decoder::NUM_USER_OP_HELPERS;
+use vm_core::{Felt, Operation, ZERO};
 
 use crate::{ExecutionError, Process, QuadFelt};
 
@@ -166,14 +167,14 @@ impl Process {
 
     /// Returns the top 8 elements of the operand stack.
     fn get_coeff_as_quad_ext_elements(&self) -> [QuadFelt; 4] {
-        let c0_0 = self.stack.get(0);
-        let c0_1 = self.stack.get(1);
-        let c1_0 = self.stack.get(2);
-        let c1_1 = self.stack.get(3);
-        let c2_0 = self.stack.get(4);
-        let c2_1 = self.stack.get(5);
-        let c3_0 = self.stack.get(6);
-        let c3_1 = self.stack.get(7);
+        let c0_1 = self.stack.get(0);
+        let c0_0 = self.stack.get(1);
+        let c1_1 = self.stack.get(2);
+        let c1_0 = self.stack.get(3);
+        let c2_1 = self.stack.get(4);
+        let c2_0 = self.stack.get(5);
+        let c3_1 = self.stack.get(6);
+        let c3_0 = self.stack.get(7);
 
         [
             QuadFelt::new(c0_0, c0_1),
@@ -205,7 +206,10 @@ impl Process {
     /// Populates helper registers with OOD values and randomness.
     fn populate_helper_registers(&mut self, alpha: QuadFelt) {
         let alpha_base_elements = alpha.to_base_elements();
-        self.decoder.set_user_op_helpers(Operation::HornerBase, &alpha_base_elements);
+        let mut helper_register_values = [ZERO; NUM_USER_OP_HELPERS];
+        helper_register_values[0] = alpha_base_elements[0];
+        helper_register_values[1] = alpha_base_elements[1];
+        self.decoder.set_user_op_helpers(Operation::HornerBase, &helper_register_values);
     }
 }
 
@@ -360,7 +364,7 @@ mod tests {
             .chunks(2)
             .take(4)
             .rev()
-            .fold(acc_old, |acc, coef| QuadFelt::new(coef[0], coef[1]) + alpha * acc);
+            .fold(acc_old, |acc, coef| QuadFelt::new(coef[1], coef[0]) + alpha * acc);
 
         assert_eq!(acc_new.to_base_elements()[1], stack_state[ACC_HIGH_INDEX]);
         assert_eq!(acc_new.to_base_elements()[0], stack_state[ACC_LOW_INDEX]);
@@ -467,7 +471,7 @@ mod tests {
             .chunks(2)
             .take(4)
             .rev()
-            .fold(acc_old, |acc, coef| QuadFelt::new(coef[0], coef[1]) + alpha * acc);
+            .fold(acc_old, |acc, coef| QuadFelt::new(coef[1], coef[0]) + alpha * acc);
         inputs.reverse();
 
         // prepare the advice stack with the generated data
