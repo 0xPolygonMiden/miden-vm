@@ -132,7 +132,25 @@ fn run_program(params: &RunCmd) -> Result<(ExecutionTrace, [u8; 32]), Report> {
     let mut host = DefaultHost::new_with_advice_provider(
         input_data.parse_advice_provider().map_err(Report::msg)?,
     );
-    host.load_library(&StdLibrary::default(), ()).unwrap();
+
+    // TODO(plafer): The advice provider would need to be behind an `Arc<RwLock<>>`
+    let advice_provider = host.advice_provider.clone();
+    // Note(plafer): Here we see the weakness of the closure approach - we need to write this
+    // closure by hand everytime, since we need to capture the advice provider, and exactly how that
+    // happens is call-site dependent. And we can't wrap this in a function - maybe we could have a
+    // macro, but that's also not ideal.
+    host.load_library(&StdLibrary::default(), Box::new(|pub_key, msg| {
+        let priv_key = advice_provider
+            .get_mapped_values(&pub_key.into())
+            .ok_or(AdviceProviderError::AdviceMapKeyNotFound(pub_key))?;
+
+        let signature = stdlib::dsa::falcon_sign(priv_key, msg)?;
+        for r in signature {
+            advice_provider.push_stack(AdviceSource::Value(r))?;
+        }
+
+        Ok(())
+    })).unwrap();
 
     let program_hash: [u8; 32] = program.hash().into();
 

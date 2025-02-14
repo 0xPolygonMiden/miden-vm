@@ -114,9 +114,7 @@ where
 
 pub trait HostLibrary<Inputs> {
     // Returns all event handlers provided by the library.
-    fn get_event_handlers<A>(&self, inputs: Inputs) -> Vec<Box<dyn EventHandler<A>>>
-    where
-        A: AdviceProvider + 'static;
+    fn get_event_handlers(&self, inputs: Inputs) -> Vec<Box<dyn EventHandler>>;
 
     // Returns the MAST forest corresponding to the compiled MASM library.
     fn get_mast_forest(&self) -> Arc<MastForest>;
@@ -127,9 +125,9 @@ pub trait HostLibrary<Inputs> {
 
 /// A default [Host] implementation that provides the essential functionality required by the VM.
 pub struct DefaultHost<A, D = DefaultDebugHandler> {
-    adv_provider: A,
+    pub adv_provider: A,
     store: MemMastForestStore,
-    event_registry: EventHandlerRegistry<A>,
+    event_registry: EventHandlerRegistry,
     debug_handler: D,
 }
 
@@ -209,7 +207,7 @@ where
     /// Using [Self::load_library] is recommended over this method when loading a library.
     pub fn register_event_handlers(
         &mut self,
-        handlers: impl Iterator<Item = Box<dyn EventHandler<A>>> + 'static,
+        handlers: impl Iterator<Item = Box<dyn EventHandler>> + 'static,
     ) -> Result<(), ExecutionError> {
         self.event_registry.register_event_handlers(handlers)
     }
@@ -274,7 +272,7 @@ where
             .ok_or_else(|| ExecutionError::EventHandlerNotFound { event_id, clk: process.clk() })?;
 
         handler
-            .on_event(process, &mut self.adv_provider)
+            .on_event(process)
             .map_err(ExecutionError::EventError)
     }
 
