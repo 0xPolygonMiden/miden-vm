@@ -7,6 +7,7 @@
 - Change Chiplet Fields to Public (#1629).
 - Added to the `Assembler` the ability to vendor a compiled library.
 - [BREAKING] Introduced `HORNERBASE`, `HORNEREXT` and removed `RCOMBBASE` (#1656).
+- Update Falcon verification procedure to use `HORNERBASE` (#1661).
 
 
 ## 0.12.0 (2025-01-22)
