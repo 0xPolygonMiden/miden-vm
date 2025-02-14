@@ -1,4 +1,5 @@
-use vm_core::{Felt, Operation};
+use miden_air::trace::decoder::NUM_USER_OP_HELPERS;
+use vm_core::{Felt, Operation, ZERO};
 
 use crate::{ExecutionError, Process, QuadFelt};
 
