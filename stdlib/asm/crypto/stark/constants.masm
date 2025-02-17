@@ -17,6 +17,9 @@ const.NUM_DEEP_COMPOSITION_COEF_ROUNDED_UP_TO_FOUR=88
 # Number of random extension field coefficients related to the auxiliary trace (i.e. the alphas)
 const.NUM_AUX_TRACE_COEFS=16
 
+# Number of constraints, both boundary and transitional
+const.NUM_CONSTRAINTS=226
+
 # MEMORY POINTERS
 # =================================================================================================
 
@@ -32,6 +35,7 @@ const.PUBLIC_INPUTS_PTR=4294800000
 # OOD_TRACE_PTR: (71 + 7) * 2 * 2 = 312
 # OOD_CONSTRAINT_EVALS_PTR: 8 * 2 = 16
 const.OOD_TRACE_PTR=4294900000
+const.OOD_TRACE_NEXT_PTR=4294900156
 const.OOD_CONSTRAINT_EVALS_PTR=4294900312
 
 # Current trace row
@@ -112,7 +116,30 @@ const.TMP6=4294913276
 const.TMP7=4294913280
 const.TMP8=4294913284
 const.TMP9=4294913288
+const.TMP10=4294913292
+const.TMP11=4294913300
 
+const.ZERO_ZERO_ZERO_FOUR_PTR=4294913400
+const.ZERO_ZERO_ZERO_FIVE_PTR=4294913404
+const.ZERO_ZERO_ZERO_SIX_PTR=4294913408
+const.ZERO_ZERO_ZERO_SEVEN_PTR=4294913412
+
+const.ALPHA_INV=4294903600
+ 
+const.ALPHA_POWER_1_PTR=4294903400
+const.ALPHA_POWER_2_PTR=4294903404
+const.ALPHA_POWER_3_PTR=4294903408
+const.ALPHA_POWER_4_PTR=4294903412
+const.ALPHA_POWER_5_PTR=4294903416
+const.ALPHA_POWER_6_PTR=4294903420
+const.ALPHA_POWER_7_PTR=4294903424
+
+const.ALPHA_POWER_77_PTR=4294903440
+const.ALPHA_POWER_77_0_PTR=4294903440
+const.ALPHA_POWER_77_1_PTR=4294903441
+const.ALPHA_POWER_85_PTR=4294903444
+const.ALPHA_POWER_85_0_PTR=4294903444
+const.ALPHA_POWER_85_1_PTR=4294903445
 
 
 #   The following is a table summarizing the memory pointers used:
@@ -162,6 +189,10 @@ end
 
 export.num_aux_trace_coefs
     push.NUM_AUX_TRACE_COEFS
+end
+
+export.get_num_constraints
+    push.NUM_CONSTRAINTS
 end
 
 # Procedure to push the trace domain generator address to the stack.
@@ -328,4 +359,80 @@ end
 
 export.tmp9
     push.TMP9
+end
+
+export.tmp10
+    push.TMP10
+end
+
+export.tmp11
+    push.TMP11
+end
+
+export.zero_zero_zero_six_word
+    push.ZERO_ZERO_ZERO_SIX_PTR
+end
+
+export.zero_zero_zero_seven_word
+    push.ZERO_ZERO_ZERO_SEVEN_PTR
+end
+
+export.deep_rand_alpha_inv
+    push.ALPHA_INV
+end
+
+export.ood_constraint_evals_next_ptr
+    push.OOD_TRACE_NEXT_PTR
+end
+
+export.deep_rand_alpha_1
+    push.ALPHA_POWER_1_PTR
+end
+
+export.deep_rand_alpha_2
+    push.ALPHA_POWER_2_PTR
+end
+
+export.deep_rand_alpha_3
+    push.ALPHA_POWER_3_PTR
+end
+
+export.deep_rand_alpha_4
+    push.ALPHA_POWER_4_PTR
+end
+
+export.deep_rand_alpha_5
+    push.ALPHA_POWER_5_PTR
+end
+
+export.deep_rand_alpha_6
+    push.ALPHA_POWER_6_PTR
+end
+
+export.deep_rand_alpha_7
+    push.ALPHA_POWER_7_PTR
+end
+
+export.deep_rand_alpha_77
+    push.ALPHA_POWER_77_PTR
+end
+
+export.deep_rand_alpha_77_0
+    push.ALPHA_POWER_77_0_PTR
+end
+
+export.deep_rand_alpha_77_1
+    push.ALPHA_POWER_77_1_PTR
+end
+
+export.deep_rand_alpha_85
+    push.ALPHA_POWER_85_PTR
+end
+
+export.deep_rand_alpha_85_0
+    push.ALPHA_POWER_85_0_PTR
+end
+
+export.deep_rand_alpha_85_1
+    push.ALPHA_POWER_85_1_PTR
 end

@@ -29,9 +29,9 @@ use.std::crypto::stark::utils
 #!
 #! Cycles:
 #!  1- Remainder codeword size 32:
-#!   5013 + num_queries * (40 + num_fri_layers * 76 + 26 + 445) + 83 * num_fri_layers + 10 * log(trace_length) + 1633
+#!   2000 + num_queries * (495 + num_fri_layers * 86) + 108 * num_fri_layers + 10 * log(trace_length) + 1526
 #!  2- Remainder codeword size 64:
-#!   5013 + num_queries * (40 + num_fri_layers * 76 + 26 + 445) + 83 * num_fri_layers + 10 * log(trace_length) + 3109
+#!   2000 + num_queries * (495 + num_fri_layers * 86) + 108 * num_fri_layers + 10 * log(trace_length) + 2863
 export.verify
 
     #==============================================================================================
@@ -40,23 +40,23 @@ export.verify
 
     # Validate inputs
     #
-    # Cycles: 28
+    # Cycles: 40
     exec.utils::validate_inputs
     # => [log(trace_length), num_queries, log(blowup), grinding, ...]
 
     # Initialize the seed using proof context
     #
-    # Cycles: 82
+    # Cycles: 210
     exec.random_coin::init_seed
-    #=> [C]
+    # => [C]
 
     # Load public inputs
     #
-    # Cycles: 93
+    # Cycles: 94
     exec.constants::public_inputs_ptr
     exec.public_inputs::load
     exec.random_coin::reseed
-    #=> [...]
+    # => [...]
 
     #==============================================================================================
     #       II) Generate the auxiliary trace random elements
@@ -64,38 +64,38 @@ export.verify
 
     # Load main trace commitment and re-seed with it
     #
-    # Cycles: 61
+    # Cycles: 56
     padw
     adv_loadw
     exec.constants::main_trace_com_ptr mem_storew
-    #=> [main_trace_commitment]
+    # => [main_trace_commitment]
     exec.random_coin::reseed
-    #=> [...]
+    # => [...]
 
     # Draw random ExtFelt for the auxiliary trace
     #
-    # Cycles: 160
+    # Cycles: 168
     exec.constants::aux_rand_elem_ptr
     exec.random_coin::generate_aux_randomness
-    #=> [...]
+    # => [...]
 
     # Reseed with auxiliary trace commitment
     #
-    # Cycles: 60
+    # Cycles: 64
     padw
     adv_loadw
     exec.constants::aux_trace_com_ptr mem_storew
     exec.random_coin::reseed
-    #=> [...]
+    # => [...]
 
     #==============================================================================================
     #       III) Draw constraint composition coefficients
     #==============================================================================================
 
-    # Cycles: 1306
+    # Cycles: 13
     exec.constants::composition_coef_ptr
     exec.random_coin::generate_constraint_composition_coefficients
-    #=> [...]
+    # => [...]
 
     #==============================================================================================
     #       IV) Reseed with commitment to constraint composition polynomial H evaluations over LDE
@@ -104,38 +104,38 @@ export.verify
 
     # Reseed with constraint composition polynomial commitment
     #
-    # Cycles: 60 + 10 * log(trace_length)
+    # Cycles: 88 + 18 * log(trace_length)
     padw
     adv_loadw
     exec.constants::composition_poly_com_ptr mem_storew
     exec.random_coin::reseed
     exec.random_coin::generate_z_zN
-    #=> [...]
+    # => [...]
 
     #==============================================================================================
     #       V) Read the OOD frames for the main trace, auxiliary trace and the trace of evaluations
     #           of H over the LDE domain.
     #==============================================================================================
 
-    # Cycles: 104
+    # Cycles: 110
     exec.ood_frames::load_evaluation_frame
-    #=> [OOD_FRAME_HASH, ...]
+    # => [OOD_FRAME_HASH, ...]
 
     # Cycles: 54
     exec.random_coin::reseed
 
-    # Cycles: 112
+    # Cycles: 29
     exec.ood_frames::load_constraint_evaluations
-    #=> [CONSTR_EVAL_HASH, ...]
+    # => [CONSTR_EVAL_HASH, ...]
 
     # Cycles: 54
     exec.random_coin::reseed
 
     # Compute `H(z)`
     #
-    # Cycles: 152
+    # Cycles: 162
     exec.ood_frames::compute_Hz
-    #=> [res1, res0, ...]
+    # => [res1, res0, ...]
 
     #==============================================================================================
     #       VI) Evaluate the constraints over the OOD frame and assert equality with H(z)
@@ -143,7 +143,7 @@ export.verify
 
     # TODO: Compare with the evaluation of the constraints on the EvaluationFrame
     drop drop
-    #=> [...]
+    # => [...]
 
     #==============================================================================================
     #       VII) FRI
@@ -154,7 +154,7 @@ export.verify
     #       DEEP composition polynomial.
     #============================================
 
-    # Cycles: 1625
+    # Cycles: 14
     exec.constants::deep_rand_coef_ptr
     exec.random_coin::generate_deep_composition_random_coefficients
 
@@ -167,9 +167,9 @@ export.verify
     #       -   Number of FRI layers.
     #============================================
 
-    # Cycles: 126
+    # Cycles: 77
     exec.helper::generate_fri_parameters
-    #=> [num_fri_layers, ...]
+    # => [num_fri_layers, ...]
 
     #============================================
     #   3) Load and reseed with FRI layer commitments
@@ -177,10 +177,10 @@ export.verify
     #      computing the degree respecting projection
     #============================================
 
-    # Cycles: 22 + 83 * num_fri_layers
+    # Cycles: 40 + 108 * num_fri_layers
     exec.constants::fri_com_ptr
     exec.helper::load_fri_layer_commitments
-    #=> [...]
+    # => [...]
 
     #============================================
     #   4) Remainder verification:
@@ -192,19 +192,20 @@ export.verify
     #============================================
 
     # Cycles:
-    #  1- Remainder of size 32: 1633
-    #  2- Remainder of size 64: 3109
+    #  1- Remainder of size 32: 1526
+    #  2- Remainder of size 64: 2863
     exec.helper::load_and_verify_remainder
-    #=> [...]
+    # => [...]
 
     #============================================
     #   5) Check PoW nonce
     #============================================
 
-    # Cycles: 53
+    # Cycles: 78
     exec.constants::grinding_factor_ptr mem_load
     exec.random_coin::check_pow
-    #=> [...]
+    # => [...]
+
 
     #============================================
     #   6) Compute evaluations of DEEP composition
@@ -216,24 +217,24 @@ export.verify
     exec.constants::fri_com_ptr
     exec.constants::number_queries_ptr mem_load
     dup movdn.2 mul.4
-    #=> [num_queries*4, fri_com_ptr, num_queries, ...]
+    # => [num_queries*4, fri_com_ptr, num_queries, ...]
 
     sub
-    #=> [query_ptr, num_queries, ...]
+    # => [query_ptr, num_queries, ...]
 
     # Draw random query indices
     #
-    # Cycles: 470 + 236 * (num_queries / 8)
+    # Cycles: 92 + 32.5 * num_queries
     swap dup.1
     exec.random_coin::generate_list_indices
-    #=> [query_ptr, ...]
+    # => [query_ptr, ...]
 
     # Compute deep composition polynomial queries
     #
-    # Cycles: 24 + num_queries * 445
-    #=> [query_ptr, ...]
+    # Cycles: 426 + num_queries * 373
+    # => [query_ptr, ...]
     exec.deep_queries::compute_deep_composition_polynomial_queries
-    #=> [query_ptr, ...]
+    # => [query_ptr, ...]
 
     #============================================
     #   7) Call the FRI verifier
@@ -248,18 +249,18 @@ export.verify
     exec.constants::tmp8 mem_loadw
     swap.3
     drop drop drop movup.2 drop
-    #=>[remainder_ptr, g, query_ptr, ...]
+    # => [remainder_ptr, g, query_ptr, ...]
 
     # Get the pointer to the first layer commitment
     exec.constants::fri_com_ptr
 
     # Get the pointer to the first FRI query to the top
     movup.3
-    #=> [query_ptr, fri_layer_ptr, remainder_ptr, domain_gen]
+    # => [query_ptr, fri_layer_ptr, remainder_ptr, domain_gen, ...]
 
     # Call FRI verifier
     #
-    # Cycles: 7 + 4 + num_queries * (40 + num_layers * 76 + 26)
+    # Cycles: 7 + 4 + num_queries * (89 + num_layers * 86)
     exec.frie2f4::verify
-    #=> ()
+    # => [...]
 end
