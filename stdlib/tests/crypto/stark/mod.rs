@@ -7,15 +7,11 @@ use test_utils::{
 };
 use verifier_recursive::{generate_advice_inputs, VerifierData};
 
-// Note: Changes to MidenVM may cause this test to fail when some of the assumptions documented
+// Note: Changes to Miden VM may cause this test to fail when some of the assumptions documented
 // in `stdlib/asm/crypto/stark/verifier.masm` are violated.
-#[ignore = "needs horner_eval_* ops"]
 #[test]
 fn stark_verifier_e2f4() {
     // An example MASM program to be verified inside Miden VM.
-    // Note that output stack-overflow is not yet supported because of the way we handle public
-    // inputs in the STARK verifier is not yet general enough. Thus the output stack should be
-    // of size exactly 16.
     let example_source = "begin
             repeat.32
                 swap dup.1 add
@@ -57,7 +53,7 @@ pub fn generate_recursive_verifier_data(
     let mut host = DefaultHost::new(advice_provider);
 
     let options =
-        ProvingOptions::new(27, 8, 12, FieldExtension::Quadratic, 4, 7, HashFunction::Rpo256);
+        ProvingOptions::new(27, 8, 16, FieldExtension::Quadratic, 4, 7, HashFunction::Rpo256);
 
     let (stack_outputs, proof) = prove(&program, stack_inputs.clone(), &mut host, options).unwrap();
 
