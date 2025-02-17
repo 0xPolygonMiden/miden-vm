@@ -41,9 +41,7 @@ pub use vm_core::{
     utils::{DeserializationError, ToElements},
     Felt, FieldElement, StarkField,
 };
-pub use winter_air::{
-    AuxRandElements, FieldExtension, LagrangeKernelEvaluationFrame, PartitionOptions,
-};
+pub use winter_air::{AuxRandElements, FieldExtension, PartitionOptions};
 
 // PROCESSOR AIR
 // ================================================================================================
@@ -64,8 +62,6 @@ impl ProcessorAir {
 }
 
 impl Air for ProcessorAir {
-    type GkrProof = ();
-    type GkrVerifier = ();
     type BaseField = Felt;
     type PublicInputs = PublicInputs;
 
@@ -112,7 +108,6 @@ impl Air for ProcessorAir {
             aux_degrees,
             num_main_assertions,
             num_aux_assertions,
-            None,
             options,
         )
         .set_num_transition_exemptions(2);

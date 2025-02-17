@@ -22,7 +22,7 @@ export.load_evaluation_frame
     # Note: the first word is the capacity, where its first element is initialized with the number of elements to hash MODULO 8.
     push.0.0.0.0
     padw padw
-    #=> [ZERO, ZERO, 0, 0, 0, 4, ood_trace_ptr]
+    # => [ZERO, ZERO, 0, 0, 0, 0, ood_trace_ptr]
     repeat.39
         adv_pipe
         hperm
@@ -42,69 +42,22 @@ end
 #!
 #! Input: [...]
 #! Output: [EVAL_HASH, ...]
-#! Cycles: 112
+#! Cycles: 29
 export.load_constraint_evaluations
     # Read OOD constraint evaluations. These are 8 ExtFelt `value_i` such that the value of the
     # constraint evaluation polynomial at `z` `H(z)` equals `\sum_0^7 z^(N * i) value_i` where N
     # is the execution trace length.
-    # In order to facilitate the computation of the DEEP composition polynomial queries, we lay out
-    # the values in memory as [v0, v1, 0, 0] where v := (v0, v1) ranges over the 8 values `value_i`.
 
-    # Load value_0 and value_1
+    exec.constants::ood_constraint_evals_ptr
     padw
-    padw
-    adv_loadw
-    dup.3 dup.3 push.0.0
-    exec.constants::ood_constraint_evals_ptr mem_storew
-    dropw
+    padw padw
+    repeat.2
+        adv_pipe
+        hperm
+    end
 
-    dup.1 dup.1 push.0.0
-    exec.constants::ood_constraint_evals_ptr add.4
-    mem_storew
-
-    # Load value_2 and value_3
-    adv_loadw
-    dup.3 dup.3 push.0.0
-    exec.constants::ood_constraint_evals_ptr add.8
-    mem_storew
-    dropw
-
-    dup.1 dup.1 push.0.0
-    exec.constants::ood_constraint_evals_ptr add.12
-    mem_storew
-
-    dropw
-    hperm
-
-    # Load value_4 and value_5
-    adv_loadw
-    dup.3 dup.3 push.0.0
-    exec.constants::ood_constraint_evals_ptr add.16
-    mem_storew
-    dropw
-
-    dup.1 dup.1 push.0.0
-    exec.constants::ood_constraint_evals_ptr add.20
-    mem_storew
-    dropw
-
-    swapw
-
-    # Load value_6 and value_7
-    adv_loadw
-    dup.3 dup.3 push.0.0
-    exec.constants::ood_constraint_evals_ptr add.24
-    mem_storew
-    dropw
-
-    dup.1 dup.1 push.0.0
-    exec.constants::ood_constraint_evals_ptr add.28
-    mem_storew
-    dropw
-
-    hperm
-
-    exec.rpo::squeeze_digest
+    dropw swapw dropw
+    movup.4 drop
 end
 
 #! Computes the H(z) evaluation of the constraint composition polynomial at the OOD element z.
@@ -112,6 +65,8 @@ end
 #! Input: [...]
 #! Output: [res1, res0, ...]
 #! Cycles: 152
+#!
+#! TODO(Al): Use horner_eval_ext
 export.compute_Hz
     # Load the pointer to the OOD constraint polynomials evaluations
     exec.constants::ood_constraint_evals_ptr

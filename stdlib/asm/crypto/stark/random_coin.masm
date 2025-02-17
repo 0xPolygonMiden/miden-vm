@@ -78,7 +78,7 @@ end
 #!
 #! Input: [log(trace_length), num_queries, blowup, grinding, ...]
 #! Output: [C]
-#! Cycles: 175
+#! Cycles: 210
 export.init_seed
 
     # Save the parameters in memory for later use
@@ -97,6 +97,8 @@ export.init_seed
     exec.constants::c_ptr mem_storew
     exec.constants::r1_ptr mem_storew
     exec.constants::r2_ptr mem_storew
+    push.6 swap.4 drop exec.constants::zero_zero_zero_six_word mem_storew
+    push.7 swap.4 drop exec.constants::zero_zero_zero_seven_word mem_storew
     dropw
     #=> [log(trace_length), num_queries, log(blowup), grinding]
 
@@ -182,12 +184,17 @@ export.init_seed
     push.0xffffffff # upper half of the modulus
     ## field extension and FRI parameters
     ## field extension degree || FRI folding factor || FRI remainder polynomial max degree
-    push.0x020407
+    push.0x02040708
 
     # Hash proof context
     # Cycles: 15
     swapw
-    movdn.6
+    movup.2 drop
+    movdn.5
+
+    exec.constants::get_num_constraints
+    movdn.3
+    
     push.4.0.0.0
     movdnw.2
     # => [B, A, 0, 0, 0, 4, ..]
@@ -462,12 +469,12 @@ end
 #!
 #! Input: [compos_coef_ptr, ...]
 #! Output: [...]
-#! Cycles: 1305
+#! Cycles: 13
 export.generate_constraint_composition_coefficients
 
-    exec.constants::num_constraint_composition_coef_multiplied_by_two_and_rounded_up_to_4
-    swap
-    exec.generate_random_coefficients
+    padw exec.constants::r1_ptr mem_loadw
+    # => [y, y, alpha1, alpha0, compos_coef_ptr, ...]
+    movup.4 mem_storew dropw
     #=> [...]
 end
 
@@ -480,12 +487,11 @@ end
 #!
 #! Input: [deep_rand_coef_ptr, ...]
 #! Output: [...]
-#! Cycles: 1624
+#! Cycles: 13
 export.generate_deep_composition_random_coefficients
-    # note that 88 is the next number after 86 divisible by 4
-    exec.constants::num_deep_composition_coef_rounded_up_to_4
-    swap
-    exec.generate_random_coefficients_pad
+    padw exec.constants::r1_ptr mem_loadw
+    # => [y, y, alpha1, alpha0, deep_rand_coef_ptr, ...]
+    movup.4 mem_storew dropw
     #=> [...]
 end
 
