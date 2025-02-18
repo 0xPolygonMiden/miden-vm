@@ -155,8 +155,6 @@ where
     }
 }
 
-// TODO(plafer): Double-check if `Send + Sync` is necessary.
-// If not, remove it from miden-base's `TransactionAuthenticator`, and `BasicAuthenticator`
 /// A trait for signing messages using the Falcon signature scheme.
 ///
 /// This trait is used by [FalconSigToStackEventHandler] to sign messages using the Falcon signature
@@ -164,7 +162,7 @@ where
 ///
 /// It is recommended to use [dsa::falcon_sign] to implement this trait once the private key has
 /// been fetched from a user-defined location.
-pub trait FalconSigner<Inputs>: Send + Sync {
+pub trait FalconSigner<Inputs> {
     fn new(args: Inputs) -> Self;
 
     /// Signs the message using the Falcon signature scheme, and returns the signature as a
