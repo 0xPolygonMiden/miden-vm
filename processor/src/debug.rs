@@ -327,7 +327,7 @@ pub(crate) trait BusMessage<E: FieldElement<BaseField = Felt>>: fmt::Display {
     fn source(&self) -> &str;
 }
 
-/// Note: we use `Vec` internall instead of a `BTreeMap` as a workaround for field elements not
+/// Note: we use `Vec` internally instead of a `BTreeMap` as a workaround for field elements not
 /// implementing `Ord`. Since this is only used in debug/test code, this is acceptable.
 pub(crate) struct BusDebugger<E: FieldElement<BaseField = Felt>> {
     pub bus_name: String,
