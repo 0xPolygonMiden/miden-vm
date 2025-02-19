@@ -2,7 +2,7 @@ use alloc::{boxed::Box, vec::Vec};
 
 use messages::{
     BitwiseMessage, ControlBlockRequestMessage, EndBlockMessage, HasherMessage, KernelRomMessage,
-    MemRequestElementMessage, MemRequestWordMessage, RespanBlockMessage, SpanBlockMessage,
+    MemoryElementMessage, MemoryWordMessage, RespanBlockMessage, SpanBlockMessage,
 };
 use miden_air::{
     trace::{
@@ -436,7 +436,7 @@ fn build_dyn_block_request<E: FieldElement<BaseField = Felt>>(
         decoder_hasher_state: [ZERO; 8],
     };
 
-    let memory_req = MemRequestWordMessage {
+    let memory_req = MemoryWordMessage {
         op_label: Felt::from(MEMORY_READ_WORD_LABEL),
         ctx: main_trace.ctx(row),
         addr: main_trace.stack_element(0, row),
@@ -589,7 +589,7 @@ fn build_mstream_request<E: FieldElement<BaseField = Felt>>(
     let ctx = main_trace.ctx(row);
     let clk = main_trace.clk(row);
 
-    let mem_req_1 = MemRequestWordMessage {
+    let mem_req_1 = MemoryWordMessage {
         op_label,
         ctx,
         addr,
@@ -602,7 +602,7 @@ fn build_mstream_request<E: FieldElement<BaseField = Felt>>(
         ],
         source: "mstream req 1",
     };
-    let mem_req_2 = MemRequestWordMessage {
+    let mem_req_2 = MemoryWordMessage {
         op_label,
         ctx,
         addr: addr + FOUR,
@@ -639,7 +639,7 @@ fn build_pipe_request<E: FieldElement<BaseField = Felt>>(
     let ctx = main_trace.ctx(row);
     let clk = main_trace.clk(row);
 
-    let mem_req_1 = MemRequestWordMessage {
+    let mem_req_1 = MemoryWordMessage {
         op_label,
         ctx,
         addr,
@@ -652,7 +652,7 @@ fn build_pipe_request<E: FieldElement<BaseField = Felt>>(
         ],
         source: "pipe req 1",
     };
-    let mem_req_2 = MemRequestWordMessage {
+    let mem_req_2 = MemoryWordMessage {
         op_label,
         ctx,
         addr: addr + FOUR,
@@ -697,7 +697,7 @@ fn build_rcomb_base_request<E: FieldElement<BaseField = Felt>>(
     let ctx = main_trace.ctx(row);
     let clk = main_trace.clk(row);
 
-    let mem_req_1 = MemRequestWordMessage {
+    let mem_req_1 = MemoryWordMessage {
         op_label,
         ctx,
         addr: z_ptr,
@@ -705,7 +705,7 @@ fn build_rcomb_base_request<E: FieldElement<BaseField = Felt>>(
         word: [tz0, tz1, tzg0, tzg1],
         source: "rcombbase req 1",
     };
-    let mem_req_2 = MemRequestWordMessage {
+    let mem_req_2 = MemoryWordMessage {
         op_label,
         ctx,
         addr: a_ptr,
@@ -1235,7 +1235,7 @@ where
             panic!("Invalid word indices. idx0: {idx0}, idx1: {idx1}");
         };
 
-        let message = MemRequestElementMessage { op_label, ctx, addr, clk, element };
+        let message = MemoryElementMessage { op_label, ctx, addr, clk, element };
 
         Box::new(message)
     } else if access_type == MEMORY_ACCESS_WORD {
@@ -1244,7 +1244,7 @@ where
         let value2 = main_trace.chiplet_memory_value_2(row);
         let value3 = main_trace.chiplet_memory_value_3(row);
 
-        let message = MemRequestWordMessage {
+        let message = MemoryWordMessage {
             op_label,
             ctx,
             addr,
@@ -1341,7 +1341,7 @@ fn build_mem_mloadw_mstorew_request<E: FieldElement<BaseField = Felt>>(
     op_label: u8,
     alphas: &[E],
     row: RowIndex,
-    debugger: &mut BusDebugger<E>,
+    _debugger: &mut BusDebugger<E>,
 ) -> E {
     let word = [
         main_trace.stack_element(3, row + 1),
@@ -1351,69 +1351,11 @@ fn build_mem_mloadw_mstorew_request<E: FieldElement<BaseField = Felt>>(
     ];
     let addr = main_trace.stack_element(0, row);
 
-    compute_mem_request_word(main_trace, op_label, alphas, row, addr, word, debugger)
-}
-
-/// Builds `MLOAD` and `MSTORE` requests made to the memory chiplet.
-fn build_mem_mload_mstore_request<E: FieldElement<BaseField = Felt>>(
-    main_trace: &MainTrace,
-    op_label: u8,
-    alphas: &[E],
-    row: RowIndex,
-    debugger: &mut BusDebugger<E>,
-) -> E {
-    let element = main_trace.stack_element(0, row + 1);
-    let addr = main_trace.stack_element(0, row);
-
-    compute_mem_request_element(main_trace, op_label, alphas, row, addr, element, debugger)
-}
-
-/// Computes a memory request for a read or write of a single element.
-fn compute_mem_request_element<E: FieldElement<BaseField = Felt>>(
-    main_trace: &MainTrace,
-    op_label: u8,
-    alphas: &[E],
-    row: RowIndex,
-    addr: Felt,
-    element: Felt,
-    _debugger: &mut BusDebugger<E>,
-) -> E {
-    debug_assert!(op_label == MEMORY_READ_ELEMENT_LABEL || op_label == MEMORY_WRITE_ELEMENT_LABEL);
-
-    let ctx = main_trace.ctx(row);
-    let clk = main_trace.clk(row);
-
-    let message = MemRequestElementMessage {
-        op_label: Felt::from(op_label),
-        ctx,
-        addr,
-        clk,
-        element,
-    };
-
-    let value = message.value(alphas);
-
-    #[cfg(any(test, feature = "bus-debugger"))]
-    _debugger.add_request(Box::new(message), alphas);
-
-    value
-}
-
-/// Computes a memory request for a read or write of a word.
-fn compute_mem_request_word<E: FieldElement<BaseField = Felt>>(
-    main_trace: &MainTrace,
-    op_label: u8,
-    alphas: &[E],
-    row: RowIndex,
-    addr: Felt,
-    word: [Felt; 4],
-    _debugger: &mut BusDebugger<E>,
-) -> E {
     debug_assert!(op_label == MEMORY_READ_WORD_LABEL || op_label == MEMORY_WRITE_WORD_LABEL);
     let ctx = main_trace.ctx(row);
     let clk = main_trace.clk(row);
 
-    let message = MemRequestWordMessage {
+    let message = MemoryWordMessage {
         op_label: Felt::from(op_label),
         ctx,
         addr,
@@ -1424,6 +1366,38 @@ fn compute_mem_request_word<E: FieldElement<BaseField = Felt>>(
         } else {
             "mstorew"
         },
+    };
+
+    let value = message.value(alphas);
+
+    #[cfg(any(test, feature = "bus-debugger"))]
+    _debugger.add_request(Box::new(message), alphas);
+
+    value
+}
+
+/// Builds `MLOAD` and `MSTORE` requests made to the memory chiplet.
+fn build_mem_mload_mstore_request<E: FieldElement<BaseField = Felt>>(
+    main_trace: &MainTrace,
+    op_label: u8,
+    alphas: &[E],
+    row: RowIndex,
+    _debugger: &mut BusDebugger<E>,
+) -> E {
+    let element = main_trace.stack_element(0, row + 1);
+    let addr = main_trace.stack_element(0, row);
+
+    debug_assert!(op_label == MEMORY_READ_ELEMENT_LABEL || op_label == MEMORY_WRITE_ELEMENT_LABEL);
+
+    let ctx = main_trace.ctx(row);
+    let clk = main_trace.clk(row);
+
+    let message = MemoryElementMessage {
+        op_label: Felt::from(op_label),
+        ctx,
+        addr,
+        clk,
+        element,
     };
 
     let value = message.value(alphas);

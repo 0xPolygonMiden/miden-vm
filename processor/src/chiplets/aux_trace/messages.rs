@@ -268,7 +268,7 @@ impl Display for BitwiseMessage {
 // MEMORY REQUEST WORD MESSAGE
 // ===============================================================================================
 
-pub struct MemRequestWordMessage {
+pub struct MemoryWordMessage {
     pub op_label: Felt,
     pub ctx: Felt,
     pub addr: Felt,
@@ -277,7 +277,7 @@ pub struct MemRequestWordMessage {
     pub source: &'static str,
 }
 
-impl<E> BusMessage<E> for MemRequestWordMessage
+impl<E> BusMessage<E> for MemoryWordMessage
 where
     E: FieldElement<BaseField = Felt>,
 {
@@ -303,7 +303,7 @@ where
     }
 }
 
-impl Display for MemRequestWordMessage {
+impl Display for MemoryWordMessage {
     fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
         write!(
             f,
@@ -316,7 +316,7 @@ impl Display for MemRequestWordMessage {
 // MEMORY REQUEST ELEMENT MESSAGE
 // ===============================================================================================
 
-pub struct MemRequestElementMessage {
+pub struct MemoryElementMessage {
     pub op_label: Felt,
     pub ctx: Felt,
     pub addr: Felt,
@@ -324,7 +324,7 @@ pub struct MemRequestElementMessage {
     pub element: Felt,
 }
 
-impl<E> BusMessage<E> for MemRequestElementMessage
+impl<E> BusMessage<E> for MemoryElementMessage
 where
     E: FieldElement<BaseField = Felt>,
 {
@@ -341,7 +341,7 @@ where
     }
 }
 
-impl Display for MemRequestElementMessage {
+impl Display for MemoryElementMessage {
     fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
         write!(
             f,
