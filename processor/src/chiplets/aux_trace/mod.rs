@@ -415,7 +415,7 @@ fn build_control_block_request<E: FieldElement<BaseField = Felt>>(
 
     let value = message.value(alphas);
 
-    #[cfg(any(test, feature = "slow-testing"))]
+    #[cfg(any(test, feature = "bus-debugger"))]
     _debugger.add_request(Box::new(message), alphas);
 
     value
@@ -450,7 +450,7 @@ fn build_dyn_block_request<E: FieldElement<BaseField = Felt>>(
     };
 
     let combined_value = control_block_req.value(alphas) * memory_req.value(alphas);
-    #[cfg(any(test, feature = "slow-testing"))]
+    #[cfg(any(test, feature = "bus-debugger"))]
     {
         _debugger.add_request(Box::new(control_block_req), alphas);
         _debugger.add_request(Box::new(memory_req), alphas);
@@ -480,7 +480,7 @@ fn build_syscall_block_request<E: FieldElement<BaseField = Felt>>(
 
     let combined_value = control_block_req.value(alphas) * kernel_rom_req.value(alphas);
 
-    #[cfg(any(test, feature = "slow-testing"))]
+    #[cfg(any(test, feature = "bus-debugger"))]
     {
         _debugger.add_request(Box::new(control_block_req), alphas);
         _debugger.add_request(Box::new(kernel_rom_req), alphas);
@@ -504,7 +504,7 @@ fn build_span_block_request<E: FieldElement<BaseField = Felt>>(
 
     let value = span_block_message.value(alphas);
 
-    #[cfg(any(test, feature = "slow-testing"))]
+    #[cfg(any(test, feature = "bus-debugger"))]
     _debugger.add_request(Box::new(span_block_message), alphas);
 
     value
@@ -525,7 +525,7 @@ fn build_respan_block_request<E: FieldElement<BaseField = Felt>>(
 
     let value = respan_block_message.value(alphas);
 
-    #[cfg(any(test, feature = "slow-testing"))]
+    #[cfg(any(test, feature = "bus-debugger"))]
     _debugger.add_request(Box::new(respan_block_message), alphas);
 
     value
@@ -546,7 +546,7 @@ fn build_end_block_request<E: FieldElement<BaseField = Felt>>(
 
     let value = end_block_message.value(alphas);
 
-    #[cfg(any(test, feature = "slow-testing"))]
+    #[cfg(any(test, feature = "bus-debugger"))]
     _debugger.add_request(Box::new(end_block_message), alphas);
 
     value
@@ -571,7 +571,7 @@ fn build_bitwise_request<E: FieldElement<BaseField = Felt>>(
 
     let value = bitwise_request_message.value(alphas);
 
-    #[cfg(any(test, feature = "slow-testing"))]
+    #[cfg(any(test, feature = "bus-debugger"))]
     _debugger.add_request(Box::new(bitwise_request_message), alphas);
 
     value
@@ -618,7 +618,7 @@ fn build_mstream_request<E: FieldElement<BaseField = Felt>>(
 
     let combined_value = mem_req_1.value(alphas) * mem_req_2.value(alphas);
 
-    #[cfg(any(test, feature = "slow-testing"))]
+    #[cfg(any(test, feature = "bus-debugger"))]
     {
         _debugger.add_request(Box::new(mem_req_1), alphas);
         _debugger.add_request(Box::new(mem_req_2), alphas);
@@ -668,7 +668,7 @@ fn build_pipe_request<E: FieldElement<BaseField = Felt>>(
 
     let combined_value = mem_req_1.value(alphas) * mem_req_2.value(alphas);
 
-    #[cfg(any(test, feature = "slow-testing"))]
+    #[cfg(any(test, feature = "bus-debugger"))]
     {
         _debugger.add_request(Box::new(mem_req_1), alphas);
         _debugger.add_request(Box::new(mem_req_2), alphas);
@@ -716,7 +716,7 @@ fn build_rcomb_base_request<E: FieldElement<BaseField = Felt>>(
 
     let combined_value = mem_req_1.value(alphas) * mem_req_2.value(alphas);
 
-    #[cfg(any(test, feature = "slow-testing"))]
+    #[cfg(any(test, feature = "bus-debugger"))]
     {
         _debugger.add_request(Box::new(mem_req_1), alphas);
         _debugger.add_request(Box::new(mem_req_2), alphas);
@@ -778,7 +778,7 @@ fn build_hperm_request<E: FieldElement<BaseField = Felt>>(
 
     let combined_value = input_req.value(alphas) * output_req.value(alphas);
 
-    #[cfg(any(test, feature = "slow-testing"))]
+    #[cfg(any(test, feature = "bus-debugger"))]
     {
         _debugger.add_request(Box::new(input_req), alphas);
         _debugger.add_request(Box::new(output_req), alphas);
@@ -856,7 +856,7 @@ fn build_mpverify_request<E: FieldElement<BaseField = Felt>>(
 
     let combined_value = input.value(alphas) * output.value(alphas);
 
-    #[cfg(any(test, feature = "slow-testing"))]
+    #[cfg(any(test, feature = "bus-debugger"))]
     {
         _debugger.add_request(Box::new(input), alphas);
         _debugger.add_request(Box::new(output), alphas);
@@ -990,7 +990,7 @@ fn build_mrupdate_request<E: FieldElement<BaseField = Felt>>(
         * input_new.value(alphas)
         * output_new.value(alphas);
 
-    #[cfg(any(test, feature = "slow-testing"))]
+    #[cfg(any(test, feature = "bus-debugger"))]
     {
         _debugger.add_request(Box::new(input_old), alphas);
         _debugger.add_request(Box::new(output_old), alphas);
@@ -1040,7 +1040,7 @@ where
             };
             multiplicand = hasher_message.value(alphas);
 
-            #[cfg(any(test, feature = "slow-testing"))]
+            #[cfg(any(test, feature = "bus-debugger"))]
             _debugger.add_response(Box::new(hasher_message), alphas);
         }
 
@@ -1062,7 +1062,7 @@ where
 
                 multiplicand = hasher_message.value(alphas);
 
-                #[cfg(any(test, feature = "slow-testing"))]
+                #[cfg(any(test, feature = "bus-debugger"))]
                 _debugger.add_response(Box::new(hasher_message), alphas);
             } else {
                 let hasher_message = HasherMessage {
@@ -1078,7 +1078,7 @@ where
 
                 multiplicand = hasher_message.value(alphas);
 
-                #[cfg(any(test, feature = "slow-testing"))]
+                #[cfg(any(test, feature = "bus-debugger"))]
                 _debugger.add_response(Box::new(hasher_message), alphas);
             }
         }
@@ -1105,7 +1105,7 @@ where
             };
             multiplicand = hasher_message.value(alphas);
 
-            #[cfg(any(test, feature = "slow-testing"))]
+            #[cfg(any(test, feature = "bus-debugger"))]
             _debugger.add_response(Box::new(hasher_message), alphas);
         }
 
@@ -1122,7 +1122,7 @@ where
 
             multiplicand = hasher_message.value(alphas);
 
-            #[cfg(any(test, feature = "slow-testing"))]
+            #[cfg(any(test, feature = "bus-debugger"))]
             _debugger.add_response(Box::new(hasher_message), alphas);
         }
 
@@ -1156,7 +1156,7 @@ where
 
             multiplicand = hasher_message.value(alphas);
 
-            #[cfg(any(test, feature = "slow-testing"))]
+            #[cfg(any(test, feature = "bus-debugger"))]
             _debugger.add_response(Box::new(hasher_message), alphas);
         }
     }
@@ -1185,7 +1185,7 @@ where
 
         let value = bitwise_message.value(alphas);
 
-        #[cfg(any(test, feature = "slow-testing"))]
+        #[cfg(any(test, feature = "bus-debugger"))]
         _debugger.add_response(Box::new(bitwise_message), alphas);
 
         value
@@ -1260,7 +1260,7 @@ where
 
     let value = message.value(alphas);
 
-    #[cfg(any(test, feature = "slow-testing"))]
+    #[cfg(any(test, feature = "bus-debugger"))]
     _debugger.add_response(message, alphas);
 
     value
@@ -1291,7 +1291,7 @@ where
 
         let value = message.value(alphas);
 
-        #[cfg(any(test, feature = "slow-testing"))]
+        #[cfg(any(test, feature = "bus-debugger"))]
         _debugger.add_response(Box::new(message), alphas);
 
         value
@@ -1393,7 +1393,7 @@ fn compute_mem_request_element<E: FieldElement<BaseField = Felt>>(
 
     let value = message.value(alphas);
 
-    #[cfg(any(test, feature = "slow-testing"))]
+    #[cfg(any(test, feature = "bus-debugger"))]
     _debugger.add_request(Box::new(message), alphas);
 
     value
@@ -1428,7 +1428,7 @@ fn compute_mem_request_word<E: FieldElement<BaseField = Felt>>(
 
     let value = message.value(alphas);
 
-    #[cfg(any(test, feature = "slow-testing"))]
+    #[cfg(any(test, feature = "bus-debugger"))]
     _debugger.add_request(Box::new(message), alphas);
 
     value

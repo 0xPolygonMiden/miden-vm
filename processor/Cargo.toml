@@ -23,7 +23,7 @@ default = ["std"]
 std = ["vm-core/std", "winter-prover/std", "thiserror/std"]
 testing = ["miden-air/testing"]
 # Like `testing`, but slows down the processor speed to make it easier to debug.
-slow-testing = ["testing", "miden-air/testing"]
+bus-debugger = ["testing", "miden-air/testing"]
 
 [dependencies]
 miden-air = { package = "miden-air", path = "../air", version = "0.13", default-features = false }
