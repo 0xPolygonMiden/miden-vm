@@ -251,7 +251,7 @@ where
     }
 
     fn source(&self) -> &str {
-        &self.source
+        self.source
     }
 }
 
