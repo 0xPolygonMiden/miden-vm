@@ -5,7 +5,6 @@ use vm_core::{
 };
 
 use super::{AuxColumnBuilder, Felt, FieldElement, MainTrace, ONE};
-use crate::debug::BusDebugger;
 
 // BLOCK HASH TABLE COLUMN BUILDER
 // ================================================================================================
@@ -22,26 +21,21 @@ use crate::debug::BusDebugger;
 /// corresponds to the block that just ended. The table is initialized with the root block's hash,
 /// since it doesn't have a parent, and so would never be added to the table otherwise.
 #[derive(Default)]
-pub struct BlockHashTableColumnBuilder {}
+pub struct BlockHashTableColumnBuilder<E: FieldElement<BaseField = Felt>> {
+    // Not implemented yet
+    #[cfg(any(test, feature = "bus-debugger"))]
+    bus_debugger: core::cell::RefCell<BusDebugger<E>>,
+    #[cfg(not(any(test, feature = "bus-debugger")))]
+    bus_debugger: core::marker::PhantomData<E>,
+}
 
-impl<E: FieldElement<BaseField = Felt>> AuxColumnBuilder<E> for BlockHashTableColumnBuilder {
-    fn init_responses(
-        &self,
-        main_trace: &MainTrace,
-        alphas: &[E],
-        _debugger: &mut BusDebugger<E>,
-    ) -> E {
+impl<E: FieldElement<BaseField = Felt>> AuxColumnBuilder<E> for BlockHashTableColumnBuilder<E> {
+    fn init_responses(&self, main_trace: &MainTrace, alphas: &[E]) -> E {
         BlockHashTableRow::table_init(main_trace).collapse(alphas)
     }
 
     /// Removes a row from the block hash table.
-    fn get_requests_at(
-        &self,
-        main_trace: &MainTrace,
-        alphas: &[E],
-        row: RowIndex,
-        _debugger: &mut BusDebugger<E>,
-    ) -> E {
+    fn get_requests_at(&self, main_trace: &MainTrace, alphas: &[E], row: RowIndex) -> E {
         let op_code = main_trace.get_op_code(row).as_int() as u8;
 
         match op_code {
@@ -51,13 +45,7 @@ impl<E: FieldElement<BaseField = Felt>> AuxColumnBuilder<E> for BlockHashTableCo
     }
 
     /// Adds a row to the block hash table.
-    fn get_responses_at(
-        &self,
-        main_trace: &MainTrace,
-        alphas: &[E],
-        row: RowIndex,
-        _debugger: &mut BusDebugger<E>,
-    ) -> E {
+    fn get_responses_at(&self, main_trace: &MainTrace, alphas: &[E], row: RowIndex) -> E {
         let op_code = main_trace.get_op_code(row).as_int() as u8;
 
         match op_code {
@@ -78,6 +66,11 @@ impl<E: FieldElement<BaseField = Felt>> AuxColumnBuilder<E> for BlockHashTableCo
             },
             _ => E::ONE,
         }
+    }
+
+    #[cfg(any(test, feature = "bus-debugger"))]
+    fn bus_debugger(&self) -> &crate::debug::BusDebugger<E> {
+        &self.bus_debugger.borrow()
     }
 }
 

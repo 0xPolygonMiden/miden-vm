@@ -5,7 +5,6 @@ use miden_air::{
 use vm_core::{OPCODE_EMIT, OPCODE_PUSH, OPCODE_RESPAN, OPCODE_SPAN};
 
 use super::{AuxColumnBuilder, Felt, FieldElement, MainTrace, ONE};
-use crate::debug::BusDebugger;
 
 // OP GROUP TABLE COLUMN
 // ================================================================================================
@@ -13,16 +12,21 @@ use crate::debug::BusDebugger;
 /// Builds the execution trace of the decoder's `p3` column which describes the state of the op
 /// group table via multiset checks.
 #[derive(Default)]
-pub struct OpGroupTableColumnBuilder {}
+pub struct OpGroupTableColumnBuilder<E> where E: FieldElement<BaseField = Felt> {
+    // Not implemented yet
+    #[cfg(any(test, feature = "bus-debugger"))]
+    bus_debugger: core::cell::RefCell<crate::debug::BusDebugger<E>>,
+    #[cfg(not(any(test, feature = "bus-debugger")))]
+    bus_debugger: core::marker::PhantomData<E>,
+}
 
-impl<E: FieldElement<BaseField = Felt>> AuxColumnBuilder<E> for OpGroupTableColumnBuilder {
+impl<E: FieldElement<BaseField = Felt>> AuxColumnBuilder<E> for OpGroupTableColumnBuilder<E> {
     /// Removes a row from the block hash table.
     fn get_requests_at(
         &self,
         main_trace: &MainTrace,
         alphas: &[E],
         i: RowIndex,
-        _debugger: &mut BusDebugger<E>,
     ) -> E {
         let delete_group_flag = main_trace.delta_group_count(i) * main_trace.is_in_span(i);
 
@@ -39,7 +43,6 @@ impl<E: FieldElement<BaseField = Felt>> AuxColumnBuilder<E> for OpGroupTableColu
         main_trace: &MainTrace,
         alphas: &[E],
         i: RowIndex,
-        _debugger: &mut BusDebugger<E>,
     ) -> E {
         let op_code_felt = main_trace.get_op_code(i);
         let op_code = op_code_felt.as_int() as u8;
@@ -50,6 +53,11 @@ impl<E: FieldElement<BaseField = Felt>> AuxColumnBuilder<E> for OpGroupTableColu
             },
             _ => E::ONE,
         }
+    }
+
+    #[cfg(any(test, feature = "bus-debugger"))]
+    fn bus_debugger(&self) -> &crate::debug::BusDebugger<E> {
+        &self.bus_debugger.borrow()
     }
 }
 

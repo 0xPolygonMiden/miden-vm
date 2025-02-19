@@ -333,7 +333,7 @@ pub(crate) trait BusMessage<E: FieldElement<BaseField = Felt>>: fmt::Display {
 /// 2 messages sent with the same key), which results in relatively complex insertion/deletion
 /// logic. Since this is only used in debug/test code, the performance hit is acceptable.
 pub(crate) struct BusDebugger<E: FieldElement<BaseField = Felt>> {
-    pub bus_name: String,
+    pub bus_name: &'static str,
     pub outstanding_requests: Vec<(E, Box<dyn BusMessage<E>>)>,
     pub outstanding_responses: Vec<(E, Box<dyn BusMessage<E>>)>,
 }
@@ -342,7 +342,7 @@ impl<E> BusDebugger<E>
 where
     E: FieldElement<BaseField = Felt>,
 {
-    pub fn new(bus_name: String) -> Self {
+    pub fn new(bus_name: &'static str) -> Self {
         Self {
             bus_name,
             outstanding_requests: Vec::new(),

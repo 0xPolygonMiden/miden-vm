@@ -1,4 +1,4 @@
-use alloc::{string::ToString, vec::Vec};
+use alloc::vec::Vec;
 use core::slice;
 
 use miden_air::{trace::main_trace::MainTrace, RowIndex};
@@ -6,7 +6,7 @@ use miden_air::{trace::main_trace::MainTrace, RowIndex};
 use vm_core::{utils::ToElements, Operation};
 
 use super::{Felt, FieldElement, NUM_RAND_ROWS};
-use crate::{chiplets::Chiplets, debug::BusDebugger, utils::uninit_vector};
+use crate::{chiplets::Chiplets, utils::uninit_vector};
 
 // TRACE FRAGMENT
 // ================================================================================================
@@ -214,7 +214,6 @@ pub trait AuxColumnBuilder<E: FieldElement<BaseField = Felt>> {
         main_trace: &MainTrace,
         alphas: &[E],
         row: RowIndex,
-        debugger: &mut BusDebugger<E>,
     ) -> E;
 
     fn get_responses_at(
@@ -222,8 +221,10 @@ pub trait AuxColumnBuilder<E: FieldElement<BaseField = Felt>> {
         main_trace: &MainTrace,
         alphas: &[E],
         row: RowIndex,
-        debugger: &mut BusDebugger<E>,
     ) -> E;
+
+    #[cfg(any(test, feature = "bus-debugger"))]
+    fn bus_debugger(&self) -> &crate::debug::BusDebugger<E>;
 
     // PROVIDED METHODS
     // --------------------------------------------------------------------------------------------
@@ -232,7 +233,6 @@ pub trait AuxColumnBuilder<E: FieldElement<BaseField = Felt>> {
         &self,
         _main_trace: &MainTrace,
         _alphas: &[E],
-        _debugger: &mut BusDebugger<E>,
     ) -> E {
         E::ONE
     }
@@ -241,7 +241,6 @@ pub trait AuxColumnBuilder<E: FieldElement<BaseField = Felt>> {
         &self,
         _main_trace: &MainTrace,
         _alphas: &[E],
-        _debugger: &mut BusDebugger<E>,
     ) -> E {
         E::ONE
     }
@@ -250,18 +249,17 @@ pub trait AuxColumnBuilder<E: FieldElement<BaseField = Felt>> {
     fn build_aux_column(&self, main_trace: &MainTrace, alphas: &[E]) -> Vec<E> {
         let mut responses_prod: Vec<E> = unsafe { uninit_vector(main_trace.num_rows()) };
         let mut requests: Vec<E> = unsafe { uninit_vector(main_trace.num_rows()) };
-        let mut bus_debugger = BusDebugger::new("chiplets bus".to_string());
 
-        responses_prod[0] = self.init_responses(main_trace, alphas, &mut bus_debugger);
-        requests[0] = self.init_requests(main_trace, alphas, &mut bus_debugger);
+        responses_prod[0] = self.init_responses(main_trace, alphas);
+        requests[0] = self.init_requests(main_trace, alphas);
 
         let mut requests_running_prod = requests[0];
         for row_idx in 0..main_trace.num_rows() - 1 {
             let row = row_idx.into();
             responses_prod[row_idx + 1] = responses_prod[row_idx]
-                * self.get_responses_at(main_trace, alphas, row, &mut bus_debugger);
+                * self.get_responses_at(main_trace, alphas, row);
             requests[row_idx + 1] =
-                self.get_requests_at(main_trace, alphas, row, &mut bus_debugger);
+                self.get_requests_at(main_trace, alphas, row);
             requests_running_prod *= requests[row_idx + 1];
         }
 
@@ -273,7 +271,7 @@ pub trait AuxColumnBuilder<E: FieldElement<BaseField = Felt>> {
         }
 
         #[cfg(any(test, feature = "bus-debugger"))]
-        assert!(bus_debugger.is_empty(), "{bus_debugger}");
+        assert!(self.bus_debugger().is_empty(), "{}", self.bus_debugger());
 
         result_aux_column
     }

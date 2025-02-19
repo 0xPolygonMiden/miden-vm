@@ -5,7 +5,6 @@ use vm_core::{
 };
 
 use super::{AuxColumnBuilder, Felt, FieldElement, MainTrace, ONE, ZERO};
-use crate::debug::BusDebugger;
 
 // BLOCK STACK TABLE COLUMN BUILDER
 // ================================================================================================
@@ -13,16 +12,21 @@ use crate::debug::BusDebugger;
 /// Builds the execution trace of the decoder's `p1` column which describes the state of the block
 /// stack table via multiset checks.
 #[derive(Default)]
-pub struct BlockStackColumnBuilder {}
+pub struct BlockStackColumnBuilder<E: FieldElement<BaseField = Felt>> {
+    // Not implemented yet
+    #[cfg(any(test, feature = "bus-debugger"))]
+    bus_debugger: core::cell::RefCell<BusDebugger<E>>,
+    #[cfg(not(any(test, feature = "bus-debugger")))]
+    bus_debugger: core::marker::PhantomData<E>,
+}
 
-impl<E: FieldElement<BaseField = Felt>> AuxColumnBuilder<E> for BlockStackColumnBuilder {
+impl<E: FieldElement<BaseField = Felt>> AuxColumnBuilder<E> for BlockStackColumnBuilder<E> {
     /// Removes a row from the block stack table.
     fn get_requests_at(
         &self,
         main_trace: &MainTrace,
         alphas: &[E],
         i: RowIndex,
-        _debugger: &mut BusDebugger<E>,
     ) -> E {
         let op_code_felt = main_trace.get_op_code(i);
         let op_code = op_code_felt.as_int() as u8;
@@ -40,7 +44,6 @@ impl<E: FieldElement<BaseField = Felt>> AuxColumnBuilder<E> for BlockStackColumn
         main_trace: &MainTrace,
         alphas: &[E],
         i: RowIndex,
-        _debugger: &mut BusDebugger<E>,
     ) -> E {
         let op_code_felt = main_trace.get_op_code(i);
         let op_code = op_code_felt.as_int() as u8;
@@ -52,6 +55,11 @@ impl<E: FieldElement<BaseField = Felt>> AuxColumnBuilder<E> for BlockStackColumn
             },
             _ => E::ONE,
         }
+    }
+    
+    #[cfg(any(test, feature = "bus-debugger"))]
+    fn bus_debugger(&self) -> &crate::debug::BusDebugger<E> {
+        &self.bus_debugger.borrow()
     }
 }
 
