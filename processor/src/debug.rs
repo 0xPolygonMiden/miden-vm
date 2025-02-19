@@ -327,8 +327,11 @@ pub(crate) trait BusMessage<E: FieldElement<BaseField = Felt>>: fmt::Display {
     fn source(&self) -> &str;
 }
 
-/// Note: we use `Vec` internally instead of a `BTreeMap` as a workaround for field elements not
-/// implementing `Ord`. Since this is only used in debug/test code, this is acceptable.
+/// A debugger for a bus that can be used to track outstanding requests and responses.
+///
+/// Note: we use `Vec` internally instead of a `BTreeMap`, since messages can have collisions (i.e.
+/// 2 messages sent with the same key), which results in relatively complex insertion/deletion
+/// logic. Since this is only used in debug/test code, the performance hit is acceptable.
 pub(crate) struct BusDebugger<E: FieldElement<BaseField = Felt>> {
     pub bus_name: String,
     pub outstanding_requests: Vec<(E, Box<dyn BusMessage<E>>)>,
