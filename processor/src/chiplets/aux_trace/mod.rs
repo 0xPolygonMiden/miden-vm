@@ -566,6 +566,7 @@ fn build_bitwise_request<E: FieldElement<BaseField = Felt>>(
         a: main_trace.stack_element(1, row),
         b: main_trace.stack_element(0, row),
         z: main_trace.stack_element(0, row + 1),
+        source: if is_xor == ONE { "u32xor" } else { "u32and" },
     };
 
     let value = bitwise_request_message.value(alphas);
@@ -1179,6 +1180,7 @@ where
             a: main_trace.chiplet_bitwise_a(row),
             b: main_trace.chiplet_bitwise_b(row),
             z: main_trace.chiplet_bitwise_z(row),
+            source: "bitwise chiplet",
         };
 
         let value = bitwise_message.value(alphas);

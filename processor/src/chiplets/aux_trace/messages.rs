@@ -239,6 +239,7 @@ pub struct BitwiseMessage {
     pub a: Felt,
     pub b: Felt,
     pub z: Felt,
+    pub source: &'static str,
 }
 
 impl<E> BusMessage<E> for BitwiseMessage
@@ -250,7 +251,7 @@ where
     }
 
     fn source(&self) -> &str {
-        "bitwise"
+        &self.source
     }
 }
 
