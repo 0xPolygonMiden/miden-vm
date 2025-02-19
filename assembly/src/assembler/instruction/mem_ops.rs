@@ -1,9 +1,8 @@
 use alloc::string::ToString;
-
 use vm_core::{Felt, Operation::*};
 
-use super::{push_felt, push_u32_value, validate_param, BasicBlockBuilder};
-use crate::{assembler::ProcedureContext, diagnostics::Report, AssemblyError};
+use super::{push_felt, push_u32_value, BasicBlockBuilder};
+use crate::{assembler::ProcedureContext, diagnostics::Report, Spanned, AssemblyError};
 
 // INSTRUCTION PARSERS
 // ================================================================================================
@@ -126,12 +125,11 @@ pub fn local_to_absolute_addr(
 
     let max_index = num_proc_locals - 1;
     if index > max_index {
-        return Err(AssemblyError::InvalidLocalMemoryIndex {
-            span: block_builder.get_current_span(),
-            source_file: block_builder.get_source_file(),
-            index,
-            num_locals: num_proc_locals,
-            max_index,
+        let span = proc_ctx.span();
+        return Err(AssemblyError::InvalidLocalWordIndex {
+            span,
+            source_file: proc_ctx.source_manager().get(span.source_id()).ok(),
+            local_addr: index,
         });
     }
 
