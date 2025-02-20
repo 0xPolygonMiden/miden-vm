@@ -1,7 +1,11 @@
-use miden_air::{trace::main_trace::MainTrace, RowIndex};
+use core::fmt::{Display, Formatter, Result as FmtResult};
+
+use miden_air::{
+    trace::{chiplets::kernel_rom::KERNEL_PROC_LABEL, main_trace::MainTrace},
+    RowIndex,
+};
 use vm_core::{Felt, FieldElement, ONE};
 
-use super::messages::KernelRomMessage;
 use crate::debug::{BusDebugger, BusMessage};
 
 // REQUESTS
@@ -44,5 +48,36 @@ where
         value
     } else {
         E::ONE
+    }
+}
+
+// MESSAGE
+// ===============================================================================================
+
+pub struct KernelRomMessage {
+    pub kernel_proc_digest: [Felt; 4],
+}
+
+impl<E> BusMessage<E> for KernelRomMessage
+where
+    E: FieldElement<BaseField = Felt>,
+{
+    fn value(&self, alphas: &[E]) -> E {
+        alphas[0]
+            + alphas[1].mul_base(KERNEL_PROC_LABEL)
+            + alphas[2].mul_base(self.kernel_proc_digest[0])
+            + alphas[3].mul_base(self.kernel_proc_digest[1])
+            + alphas[4].mul_base(self.kernel_proc_digest[2])
+            + alphas[5].mul_base(self.kernel_proc_digest[3])
+    }
+
+    fn source(&self) -> &str {
+        "kernel rom"
+    }
+}
+
+impl Display for KernelRomMessage {
+    fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
+        write!(f, "{{ proc digest: {:?} }}", self.kernel_proc_digest)
     }
 }

@@ -1,4 +1,5 @@
 use alloc::boxed::Box;
+use core::fmt::{Display, Formatter, Result as FmtResult};
 
 use miden_air::{
     trace::{
@@ -12,7 +13,7 @@ use miden_air::{
 };
 use vm_core::{Felt, FieldElement, ONE, ZERO};
 
-use super::messages::{MemoryElementMessage, MemoryWordMessage};
+use super::build_value;
 use crate::debug::{BusDebugger, BusMessage};
 
 // CONSTANTS
@@ -333,4 +334,87 @@ fn get_memory_op_label(is_read: Felt, is_word_access: Felt) -> Felt {
     let is_read_left_shift_1 = is_read + is_read;
 
     Felt::from(MEMORY_SELECTOR << 2) + is_read_left_shift_1 + is_word_access
+}
+
+// MESSAGES
+// ===============================================================================================
+
+pub struct MemoryWordMessage {
+    pub op_label: Felt,
+    pub ctx: Felt,
+    pub addr: Felt,
+    pub clk: Felt,
+    pub word: [Felt; 4],
+    pub source: &'static str,
+}
+
+impl<E> BusMessage<E> for MemoryWordMessage
+where
+    E: FieldElement<BaseField = Felt>,
+{
+    fn value(&self, alphas: &[E]) -> E {
+        alphas[0]
+            + build_value(
+                &alphas[1..9],
+                [
+                    self.op_label,
+                    self.ctx,
+                    self.addr,
+                    self.clk,
+                    self.word[0],
+                    self.word[1],
+                    self.word[2],
+                    self.word[3],
+                ],
+            )
+    }
+
+    fn source(&self) -> &str {
+        self.source
+    }
+}
+
+impl Display for MemoryWordMessage {
+    fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
+        write!(
+            f,
+            "{{ op_label: {}, ctx: {}, addr: {}, clk: {}, word: {:?} }}",
+            self.op_label, self.ctx, self.addr, self.clk, self.word
+        )
+    }
+}
+
+pub struct MemoryElementMessage {
+    pub op_label: Felt,
+    pub ctx: Felt,
+    pub addr: Felt,
+    pub clk: Felt,
+    pub element: Felt,
+}
+
+impl<E> BusMessage<E> for MemoryElementMessage
+where
+    E: FieldElement<BaseField = Felt>,
+{
+    fn value(&self, alphas: &[E]) -> E {
+        alphas[0]
+            + build_value(
+                &alphas[1..6],
+                [self.op_label, self.ctx, self.addr, self.clk, self.element],
+            )
+    }
+
+    fn source(&self) -> &str {
+        "memory element"
+    }
+}
+
+impl Display for MemoryElementMessage {
+    fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
+        write!(
+            f,
+            "{{ op_label: {}, ctx: {}, addr: {}, clk: {}, element: {} }}",
+            self.op_label, self.ctx, self.addr, self.clk, self.element
+        )
+    }
 }

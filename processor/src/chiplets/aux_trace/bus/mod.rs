@@ -2,15 +2,14 @@ use bitwise::{build_bitwise_chiplet_responses, build_bitwise_request};
 use hasher::{
     build_control_block_request, build_end_block_request, build_hasher_chiplet_responses,
     build_hperm_request, build_mpverify_request, build_mrupdate_request,
-    build_respan_block_request, build_span_block_request,
+    build_respan_block_request, build_span_block_request, ControlBlockRequestMessage,
 };
-use kernel::build_kernel_chiplet_responses;
+use kernel::{build_kernel_chiplet_responses, KernelRomMessage};
 use memory::{
     build_mem_mload_mstore_request, build_mem_mloadw_mstorew_request,
     build_memory_chiplet_responses, build_mstream_request, build_pipe_request,
-    build_rcomb_base_request,
+    build_rcomb_base_request, MemoryWordMessage,
 };
-use messages::{ControlBlockRequestMessage, KernelRomMessage, MemoryWordMessage};
 use miden_air::{
     trace::{
         chiplets::{
@@ -41,7 +40,6 @@ mod bitwise;
 mod hasher;
 mod kernel;
 mod memory;
-mod messages;
 
 // BUS COLUMN BUILDER
 // ================================================================================================

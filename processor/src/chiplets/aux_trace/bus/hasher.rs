@@ -1,24 +1,25 @@
+use core::fmt::{Display, Formatter, Result as FmtResult};
+
 use miden_air::{
     trace::{
-        chiplets::hasher::{
-            HASH_CYCLE_LEN, LINEAR_HASH_LABEL, MP_VERIFY_LABEL, MR_UPDATE_NEW_LABEL,
-            MR_UPDATE_OLD_LABEL, NUM_ROUNDS, RETURN_HASH_LABEL, RETURN_STATE_LABEL,
+        chiplets::{
+            hasher,
+            hasher::{
+                HASH_CYCLE_LEN, LINEAR_HASH_LABEL, MP_VERIFY_LABEL, MR_UPDATE_NEW_LABEL,
+                MR_UPDATE_OLD_LABEL, NUM_ROUNDS, RETURN_HASH_LABEL, RETURN_STATE_LABEL,
+            },
         },
         main_trace::MainTrace,
     },
     RowIndex,
 };
-use vm_core::{Felt, FieldElement, ONE, ZERO};
-
-use super::{
-    get_op_label,
-    messages::{
-        ControlBlockRequestMessage, EndBlockMessage, HasherMessage, RespanBlockMessage,
-        SpanBlockMessage,
-    },
+use vm_core::{
+    utils::range, Felt, FieldElement, ONE, OPCODE_CALL, OPCODE_JOIN, OPCODE_LOOP, OPCODE_SPLIT,
+    ZERO,
 };
-use crate::debug::{BusDebugger, BusMessage};
 
+use super::{build_value, get_op_label};
+use crate::debug::{BusDebugger, BusMessage};
 // REQUESTS
 // ==============================================================================================
 
@@ -157,7 +158,7 @@ pub(super) fn build_hperm_request<E: FieldElement<BaseField = Felt>>(
             s11_nxt, s10_nxt, s9_nxt, s8_nxt, s7_nxt, s6_nxt, s5_nxt, s4_nxt, s3_nxt, s2_nxt,
             s1_nxt, s0_nxt,
         ],
-        source: "hperm input",
+        source: "hperm output",
     };
 
     let combined_value = input_req.value(alphas) * output_req.value(alphas);
@@ -545,4 +546,199 @@ where
         }
     }
     multiplicand
+}
+
+// CONTROL BLOCK REQUEST MESSAGE
+// ===============================================================================================
+
+pub struct ControlBlockRequestMessage {
+    pub transition_label: Felt,
+    pub addr_next: Felt,
+    pub op_code: Felt,
+    pub decoder_hasher_state: [Felt; 8],
+}
+
+impl<E> BusMessage<E> for ControlBlockRequestMessage
+where
+    E: FieldElement<BaseField = Felt>,
+{
+    fn value(&self, alphas: &[E]) -> E {
+        let header = alphas[0]
+            + alphas[1].mul_base(self.transition_label)
+            + alphas[2].mul_base(self.addr_next);
+
+        header
+            + alphas[5].mul_base(self.op_code)
+            + build_value(&alphas[8..16], self.decoder_hasher_state)
+    }
+
+    fn source(&self) -> &str {
+        let op_code = self.op_code.as_int() as u8;
+        match op_code {
+            OPCODE_JOIN => "join",
+            OPCODE_SPLIT => "split",
+            OPCODE_LOOP => "loop",
+            OPCODE_CALL => "call",
+            _ => panic!("unexpected opcode: {op_code}"),
+        }
+    }
+}
+
+impl Display for ControlBlockRequestMessage {
+    fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
+        write!(
+            f,
+            "{{ transition_label: {}, addr_next: {}, op_code: {}, decoder_hasher_state: {:?} }}",
+            self.transition_label, self.addr_next, self.op_code, self.decoder_hasher_state
+        )
+    }
+}
+
+// GENERIC HASHER MESSAGE
+// ===============================================================================================
+
+const NUM_HEADER_ALPHAS: usize = 4;
+
+pub struct HasherMessage {
+    pub transition_label: Felt,
+    pub addr_next: Felt,
+    pub node_index: Felt,
+    pub hasher_state: [Felt; hasher::STATE_WIDTH],
+    pub source: &'static str,
+}
+
+impl<E> BusMessage<E> for HasherMessage
+where
+    E: FieldElement<BaseField = Felt>,
+{
+    fn value(&self, alphas: &[E]) -> E {
+        let header = alphas[0]
+            + alphas[1].mul_base(self.transition_label)
+            + alphas[2].mul_base(self.addr_next)
+            + alphas[3].mul_base(self.node_index);
+
+        header
+            + build_value(&alphas[range(NUM_HEADER_ALPHAS, hasher::STATE_WIDTH)], self.hasher_state)
+    }
+
+    fn source(&self) -> &str {
+        self.source
+    }
+}
+
+impl Display for HasherMessage {
+    fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
+        write!(
+            f,
+            "{{ transition_label: {}, addr_next: {}, node_index: {}, decoder_hasher_state: {:?} }}",
+            self.transition_label, self.addr_next, self.node_index, self.hasher_state
+        )
+    }
+}
+
+// SPAN BLOCK MESSAGE
+// ===============================================================================================
+
+pub struct SpanBlockMessage {
+    pub transition_label: Felt,
+    pub addr_next: Felt,
+    pub state: [Felt; 8],
+}
+
+impl<E> BusMessage<E> for SpanBlockMessage
+where
+    E: FieldElement<BaseField = Felt>,
+{
+    fn value(&self, alphas: &[E]) -> E {
+        let header = alphas[0]
+            + alphas[1].mul_base(self.transition_label)
+            + alphas[2].mul_base(self.addr_next);
+
+        header + build_value(&alphas[8..16], self.state)
+    }
+
+    fn source(&self) -> &str {
+        "span"
+    }
+}
+
+impl Display for SpanBlockMessage {
+    fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
+        write!(
+            f,
+            "{{ transition_label: {}, addr_next: {}, state: {:?} }}",
+            self.transition_label, self.addr_next, self.state
+        )
+    }
+}
+
+// RESPAN BLOCK MESSAGE
+// ===============================================================================================
+
+pub struct RespanBlockMessage {
+    pub transition_label: Felt,
+    pub addr_next: Felt,
+    pub state: [Felt; 8],
+}
+
+impl<E> BusMessage<E> for RespanBlockMessage
+where
+    E: FieldElement<BaseField = Felt>,
+{
+    fn value(&self, alphas: &[E]) -> E {
+        let header = alphas[0]
+            + alphas[1].mul_base(self.transition_label)
+            + alphas[2].mul_base(self.addr_next - ONE);
+
+        header + build_value(&alphas[8..16], self.state)
+    }
+
+    fn source(&self) -> &str {
+        "respan"
+    }
+}
+
+impl Display for RespanBlockMessage {
+    fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
+        write!(
+            f,
+            "{{ transition_label: {}, addr_next: {}, state: {:?} }}",
+            self.transition_label, self.addr_next, self.state
+        )
+    }
+}
+
+// END BLOCK MESSAGE
+// ===============================================================================================
+
+pub struct EndBlockMessage {
+    pub addr: Felt,
+    pub transition_label: Felt,
+    pub digest: [Felt; 4],
+}
+
+impl<E> BusMessage<E> for EndBlockMessage
+where
+    E: FieldElement<BaseField = Felt>,
+{
+    fn value(&self, alphas: &[E]) -> E {
+        let header =
+            alphas[0] + alphas[1].mul_base(self.transition_label) + alphas[2].mul_base(self.addr);
+
+        header + build_value(&alphas[8..12], self.digest)
+    }
+
+    fn source(&self) -> &str {
+        "end"
+    }
+}
+
+impl Display for EndBlockMessage {
+    fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
+        write!(
+            f,
+            "{{ addr: {}, transition_label: {}, digest: {:?} }}",
+            self.addr, self.transition_label, self.digest
+        )
+    }
 }

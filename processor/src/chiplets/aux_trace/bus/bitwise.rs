@@ -1,10 +1,12 @@
+use core::fmt::{Display, Formatter, Result as FmtResult};
+
 use miden_air::{
     trace::{chiplets::bitwise::OP_CYCLE_LEN as BITWISE_OP_CYCLE_LEN, main_trace::MainTrace},
     RowIndex,
 };
 use vm_core::{Felt, FieldElement, ONE, ZERO};
 
-use super::{get_op_label, messages::BitwiseMessage};
+use super::{build_value, get_op_label};
 use crate::debug::{BusDebugger, BusMessage};
 
 // REQUESTS
@@ -66,5 +68,39 @@ where
         value
     } else {
         E::ONE
+    }
+}
+
+// MESSAGE
+// ===============================================================================================
+
+pub struct BitwiseMessage {
+    pub op_label: Felt,
+    pub a: Felt,
+    pub b: Felt,
+    pub z: Felt,
+    pub source: &'static str,
+}
+
+impl<E> BusMessage<E> for BitwiseMessage
+where
+    E: FieldElement<BaseField = Felt>,
+{
+    fn value(&self, alphas: &[E]) -> E {
+        alphas[0] + build_value(&alphas[1..5], [self.op_label, self.a, self.b, self.z])
+    }
+
+    fn source(&self) -> &str {
+        self.source
+    }
+}
+
+impl Display for BitwiseMessage {
+    fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
+        write!(
+            f,
+            "{{ op_label: {}, a: {}, b: {}, z: {} }}",
+            self.op_label, self.a, self.b, self.z
+        )
     }
 }
