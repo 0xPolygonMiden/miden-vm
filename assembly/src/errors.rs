@@ -88,6 +88,17 @@ pub enum AssemblyError {
         #[source_code]
         source_file: Option<Arc<SourceFile>>,
     },
+    #[error("invalid local memory index: {index} is out of bounds")]
+    #[diagnostic(help("procedure has {num_locals} locals available, so the valid range for the index is 0..{max_index}"))]
+    InvalidLocalMemoryIndex {
+        #[label("invalid index used here")]
+        span: SourceSpan,
+        #[source_code]
+        source_file: Option<Arc<SourceFile>>,
+        index: u16,
+        num_locals: u16,
+        max_index: u16,
+    },
     #[error(transparent)]
     #[diagnostic(transparent)]
     Other(RelatedError),
