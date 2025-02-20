@@ -10,6 +10,9 @@ use crate::ExecutionError;
 
 mod macro_ops;
 
+#[cfg(test)]
+mod tests;
+
 /// A fast processor which doesn't generate any trace.
 #[derive(Debug)]
 pub struct SpeedyGonzales {

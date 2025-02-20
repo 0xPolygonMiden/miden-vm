@@ -1,4 +1,3 @@
-
 use super::SpeedyGonzales;
 
 impl SpeedyGonzales {
