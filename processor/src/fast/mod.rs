@@ -10,14 +10,14 @@ use crate::ExecutionError;
 #[derive(Debug)]
 pub struct SpeedyGonzales {
     // The stack is stored in reverse order, so that the last element is at the top of the stack.
-    stack: Vec<Felt>,
+    stack: smallvec::SmallVec<[Felt; 512]>,
 }
 
 impl SpeedyGonzales {
     pub fn new(stack_inputs: Vec<Felt>) -> Self {
         assert!(stack_inputs.len() <= MIN_STACK_DEPTH);
 
-        SpeedyGonzales { stack: stack_inputs }
+        SpeedyGonzales { stack: stack_inputs.into() }
     }
 
     pub fn execute(&mut self, program: &Program) -> Result<StackOutputs, ExecutionError> {
