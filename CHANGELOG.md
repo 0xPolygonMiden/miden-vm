@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.13.0 (TBD)
+
+#### Changes
+- Update minimum supported Rust version to 1.84.
+- Change Chiplet Fields to Public (#1629).
+- Added to the `Assembler` the ability to vendor a compiled library.
+- Introduce `BusDebugger` to facilitate debugging buses (#1664)
+
+
 ## 0.12.0 (2025-01-22)
 
 #### Highlights
@@ -21,6 +30,9 @@
 - Added `miden_core::mast::MastForest::advice_map` to load it into the advice provider before the `MastForest` execution (#1574).
 - Optimized the computation of the DEEP queries in the recursive verifier (#1594).
 - Added validity checks for the inputs to the recursive verifier (#1596).
+- Allow multiple memory reads in the same clock cycle (#1626)
+- Improved Falcon signiture verification (#1623).
+- Added `miden-mast-package` crate with `Package` type to represent a compiled Miden program/library (#1544).
 
 ## 0.11.0 (2024-11-04)
 

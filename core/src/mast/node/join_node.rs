@@ -5,7 +5,7 @@ use miden_crypto::{hash::rpo::RpoDigest, Felt};
 
 use crate::{
     chiplets::hasher,
-    mast::{DecoratorId, MastForest, MastForestError, MastNodeId},
+    mast::{DecoratorId, MastForest, MastForestError, MastNodeId, Remapping},
     prettier::PrettyPrint,
     OPCODE_JOIN,
 };
@@ -110,6 +110,13 @@ impl JoinNode {
 
 /// Mutators
 impl JoinNode {
+    pub fn remap_children(&self, remapping: &Remapping) -> Self {
+        let mut node = self.clone();
+        node.children[0] = node.children[0].remap(remapping);
+        node.children[1] = node.children[1].remap(remapping);
+        node
+    }
+
     /// Sets the list of decorators to be executed before this node.
     pub fn set_before_enter(&mut self, decorator_ids: Vec<DecoratorId>) {
         self.before_enter = decorator_ids;

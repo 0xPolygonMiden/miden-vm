@@ -165,7 +165,6 @@ impl Process {
     pub(super) fn advance_clock(&mut self) -> Result<(), ExecutionError> {
         self.system.advance_clock(self.max_cycles)?;
         self.stack.advance_clock();
-        self.chiplets.advance_clock();
         Ok(())
     }
 

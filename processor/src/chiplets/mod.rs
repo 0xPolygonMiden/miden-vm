@@ -114,12 +114,10 @@ mod tests;
 /// ```
 #[derive(Debug)]
 pub struct Chiplets {
-    /// Current clock cycle of the VM.
-    clk: RowIndex,
-    hasher: Hasher,
-    bitwise: Bitwise,
-    memory: Memory,
-    kernel_rom: KernelRom,
+    pub hasher: Hasher,
+    pub bitwise: Bitwise,
+    pub memory: Memory,
+    pub kernel_rom: KernelRom,
 }
 
 impl Chiplets {
@@ -128,7 +126,6 @@ impl Chiplets {
     /// Returns a new [Chiplets] component instantiated with the provided Kernel.
     pub fn new(kernel: Kernel) -> Self {
         Self {
-            clk: RowIndex::from(0),
             hasher: Hasher::default(),
             bitwise: Bitwise::default(),
             memory: Memory::default(),
@@ -170,153 +167,6 @@ impl Chiplets {
         self.kernel_rom_start() + self.kernel_rom.trace_len()
     }
 
-    /// Returns the underlying kernel used to initilize this instance.
-    pub const fn kernel(&self) -> &Kernel {
-        self.kernel_rom.kernel()
-    }
-
-    // HASH CHIPLET ACCESSORS FOR OPERATIONS
-    // --------------------------------------------------------------------------------------------
-
-    /// Requests a single permutation of the hash function to the provided state from the Hash
-    /// chiplet.
-    ///
-    /// The returned tuple contains the hasher state after the permutation and the row address of
-    /// the execution trace at which the permutation started.
-    pub fn permute(&mut self, state: HasherState) -> (Felt, HasherState) {
-        let (addr, return_state) = self.hasher.permute(state);
-
-        (addr, return_state)
-    }
-
-    /// Requests a Merkle root computation from the Hash chiplet for the specified path and the node
-    /// with the specified value.
-    ///
-    /// The returned tuple contains the root of the Merkle path and the row address of the
-    /// execution trace at which the computation started.
-    ///
-    /// # Panics
-    /// Panics if:
-    /// - The provided path does not contain any nodes.
-    /// - The provided index is out of range for the specified path.
-    pub fn build_merkle_root(
-        &mut self,
-        value: Word,
-        path: &MerklePath,
-        index: Felt,
-    ) -> (Felt, Word) {
-        let (addr, root) = self.hasher.build_merkle_root(value, path, index);
-
-        (addr, root)
-    }
-
-    /// Requests a Merkle root update computation from the Hash chiplet.
-    ///
-    /// # Panics
-    /// Panics if:
-    /// - The provided path does not contain any nodes.
-    /// - The provided index is out of range for the specified path.
-    pub fn update_merkle_root(
-        &mut self,
-        old_value: Word,
-        new_value: Word,
-        path: &MerklePath,
-        index: Felt,
-    ) -> MerkleRootUpdate {
-        self.hasher.update_merkle_root(old_value, new_value, path, index)
-    }
-
-    // HASH CHIPLET ACCESSORS FOR CONTROL BLOCK DECODING
-    // --------------------------------------------------------------------------------------------
-
-    /// Requests the hash of the provided words from the Hash chiplet and checks the result
-    /// hash(h1, h2) against the provided `expected_result`.
-    ///
-    /// It returns the row address of the execution trace at which the hash computation started.
-    pub fn hash_control_block(
-        &mut self,
-        h1: Word,
-        h2: Word,
-        domain: Felt,
-        expected_hash: Digest,
-    ) -> Felt {
-        let (addr, result) = self.hasher.hash_control_block(h1, h2, domain, expected_hash);
-
-        // make sure the result computed by the hasher is the same as the expected block hash
-        debug_assert_eq!(expected_hash, result.into());
-
-        addr
-    }
-
-    /// Requests computation a sequential hash of all operation batches in the list from the Hash
-    /// chiplet and checks the result against the provided `expected_result`.
-    ///
-    /// It returns the row address of the execution trace at which the hash computation started.
-    pub fn hash_span_block(&mut self, op_batches: &[OpBatch], expected_hash: Digest) -> Felt {
-        let (addr, result) = self.hasher.hash_basic_block(op_batches, expected_hash);
-
-        // make sure the result computed by the hasher is the same as the expected block hash
-        debug_assert_eq!(expected_hash, result.into());
-
-        addr
-    }
-
-    // BITWISE CHIPLET ACCESSORS
-    // --------------------------------------------------------------------------------------------
-
-    /// Requests a bitwise AND of `a` and `b` from the Bitwise chiplet and returns the result.
-    /// We assume that `a` and `b` are 32-bit values. If that's not the case, the result of the
-    /// computation is undefined.
-    pub fn u32and(&mut self, a: Felt, b: Felt) -> Result<Felt, ExecutionError> {
-        let result = self.bitwise.u32and(a, b)?;
-
-        Ok(result)
-    }
-
-    /// Requests a bitwise XOR of `a` and `b` from the Bitwise chiplet and returns the result.
-    /// We assume that `a` and `b` are 32-bit values. If that's not the case, the result of the
-    /// computation is undefined.
-    pub fn u32xor(&mut self, a: Felt, b: Felt) -> Result<Felt, ExecutionError> {
-        let result = self.bitwise.u32xor(a, b)?;
-
-        Ok(result)
-    }
-
-    // MEMORY CHIPLET ACCESSORS
-    // --------------------------------------------------------------------------------------------
-
-    /// Returns a reference to the Memory chiplet.
-    pub fn memory(&self) -> &Memory {
-        &self.memory
-    }
-
-    /// Returns a mutable reference to the Memory chiplet.
-    pub fn memory_mut(&mut self) -> &mut Memory {
-        &mut self.memory
-    }
-
-    // KERNEL ROM ACCESSORS
-    // --------------------------------------------------------------------------------------------
-
-    /// Increments access counter for the specified kernel procedure.
-    ///
-    /// # Errors
-    /// Returns an error if the procedure with the specified hash does not exist in the kernel
-    /// with which the kernel ROM was instantiated.
-    pub fn access_kernel_proc(&mut self, proc_hash: Digest) -> Result<(), ExecutionError> {
-        self.kernel_rom.access_proc(proc_hash)?;
-
-        Ok(())
-    }
-
-    // CONTEXT MANAGEMENT
-    // --------------------------------------------------------------------------------------------
-
-    /// Increments the clock cycle.
-    pub fn advance_clock(&mut self) {
-        self.clk += 1;
-    }
-
     // EXECUTION TRACE
     // --------------------------------------------------------------------------------------------
 
@@ -335,7 +185,7 @@ impl Chiplets {
         // make sure that only padding rows will be overwritten by random values
         assert!(self.trace_len() + num_rand_rows <= trace_len, "target trace length too small");
 
-        let kernel = self.kernel().clone();
+        let kernel = self.kernel_rom.kernel().clone();
 
         // Allocate columns for the trace of the chiplets.
         let mut trace = (0..CHIPLETS_WIDTH)
@@ -367,13 +217,7 @@ impl Chiplets {
         let kernel_rom_start: usize = self.kernel_rom_start().into();
         let padding_start: usize = self.padding_start().into();
 
-        let Chiplets {
-            clk: _,
-            hasher,
-            bitwise,
-            memory,
-            kernel_rom,
-        } = self;
+        let Chiplets { hasher, bitwise, memory, kernel_rom } = self;
 
         // populate external selector columns for all chiplets
         trace[0][bitwise_start..].fill(ONE);
