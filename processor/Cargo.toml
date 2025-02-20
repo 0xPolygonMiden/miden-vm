@@ -22,6 +22,8 @@ concurrent = ["std", "winter-prover/concurrent"]
 default = ["std"]
 std = ["vm-core/std", "winter-prover/std", "thiserror/std"]
 testing = ["miden-air/testing"]
+# Like `testing`, but slows down the processor speed to make it easier to debug.
+bus-debugger = ["testing", "miden-air/testing"]
 
 [dependencies]
 miden-air = { package = "miden-air", path = "../air", version = "0.13", default-features = false }
@@ -33,6 +35,7 @@ thiserror = { workspace = true }
 [dev-dependencies]
 assembly = { package = "miden-assembly", path = "../assembly", version = "0.13", default-features = false }
 logtest = { version = "2.0", default-features = false }
+rstest = { version = "0.24" }
 test-utils = { package = "miden-test-utils", path = "../test-utils" }
 winter-fri = { package = "winter-fri", version = "0.11" }
 winter-utils = { package = "winter-utils", version = "0.11" }
