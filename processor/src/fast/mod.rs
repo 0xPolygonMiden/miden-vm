@@ -8,6 +8,8 @@ use vm_core::{
 
 use crate::ExecutionError;
 
+// temporary module to
+pub mod experiments;
 mod macro_ops;
 
 #[cfg(test)]
