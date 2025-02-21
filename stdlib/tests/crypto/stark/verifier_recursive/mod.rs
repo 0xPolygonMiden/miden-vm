@@ -4,16 +4,16 @@ use miden_air::ProcessorAir;
 use processor::crypto::RpoRandomCoin;
 use test_utils::{
     crypto::{MerkleStore, RandomCoin, Rpo256, RpoDigest},
-    math::{fft, FieldElement, QuadExtension, StarkField, ToElements},
-    Felt, VerifierError,
+    math::{FieldElement, QuadExtension, ToElements},
+    VerifierError,
 };
+use vm_core::Felt;
 use winter_air::{proof::Proof, Air};
 use winter_fri::VerifierChannel as FriVerifierChannel;
 
 mod channel;
 use channel::VerifierChannel;
 
-pub const BLOWUP_FACTOR: usize = 8;
 pub type QuadExt = QuadExtension<Felt>;
 
 #[derive(Debug, Clone, Eq, PartialEq)]
@@ -124,16 +124,10 @@ pub fn generate_advice_inputs(
     let fri_commitments_digests = channel.read_fri_layer_commitments();
     let poly = channel.read_remainder().unwrap();
 
-    // Reed-Solomon encode the remainder polynomial as this is needed for the probabilistic NTT
-    let twiddles = fft::get_twiddles(poly.len());
-    let fri_remainder =
-        fft::evaluate_poly_with_offset(&poly, &twiddles, Felt::GENERATOR, BLOWUP_FACTOR);
-
     // add the above to the advice tape
     let fri_commitments: Vec<u64> = digest_to_int_vec(&fri_commitments_digests);
     advice_stack.extend_from_slice(&fri_commitments);
     advice_stack.extend_from_slice(&to_int_vec(&poly));
-    advice_stack.extend_from_slice(&to_int_vec(&fri_remainder));
 
     // reseed with FRI layer commitments
     let _deep_coefficients = air

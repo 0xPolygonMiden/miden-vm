@@ -184,7 +184,7 @@ export.init_seed
     push.0xffffffff # upper half of the modulus
     ## field extension and FRI parameters
     ## field extension degree || FRI folding factor || FRI remainder polynomial max degree
-    push.0x02040708
+    push.0x02047f08
 
     # Hash proof context
     # Cycles: 15
