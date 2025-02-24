@@ -20,16 +20,16 @@ impl Process {
     /// Performs 8 steps of the Horner evaluation method on a polynomial with coefficients over
     /// the base field, i.e., it computes
     ///
-    /// acc' = (((acc_tmp * alpha + c3) * alpha + c2) * alpha + c1) * alpha + c0
+    /// acc' = (((acc_tmp * alpha + c4) * alpha + c5) * alpha + c6) * alpha + c7
     ///
     /// where
     ///
-    /// acc_tmp := (((acc * alpha + c7) * alpha + c6) * alpha + c5) * alpha + c4
+    /// acc_tmp := (((acc * alpha + c0) * alpha + c1) * alpha + c2) * alpha + c3
     ///
     ///
     /// In other words, the intsruction computes the evaluation at alpha of the polynomial
     ///
-    /// P(X) := c7 * X^7 + c6 * X^6 + ... + c1 * X + c0
+    /// P(X) := c0 * X^7 + c1 * X^6 + ... + c6 * X + c7
     ///
     /// As can be seen from the two equations defining acc', the instruction can be used in order
     /// to compute the evaluation of polynomials of arbitrary degree by repeated invocations of
@@ -41,14 +41,14 @@ impl Process {
     /// Input:
     ///
     /// +------+------+------+------+------+------+------+------+---+---+---+---+---+----------+------+------+
-    /// |  c0  |  c1  |  c2  |  c3  |  c4  |  c5  |  c6  |  c7  | - | - | - | - | - |alpha_addr| acc1 | acc0 |
+    /// |  c7  |  c6  |  c5  |  c4  |  c3  |  c2  |  c1  |  c0  | - | - | - | - | - |alpha_addr| acc1 | acc0 |
     /// +------+------+------+------+------+------+------+------+---+---+---+---+---+----------+------+------+
     ///
     ///
     /// Output:
     ///
     /// +------+------+------+------+------+------+------+------+---+---+---+---+---+----------+-------+-------+
-    /// |  c0  |  c1  |  c2  |  c3  |  c4  |  c5  |  c6  |  c7  | - | - | - | - | - |alpha_addr| acc1' | acc0' |
+    /// |  c7  |  c6  |  c5  |  c4  |  c3  |  c2  |  c1  |  c0  | - | - | - | - | - |alpha_addr| acc1' | acc0' |
     /// +------+------+------+------+------+------+------+------+---+---+---+---+---+----------+-------+-------+
     ///
     ///
@@ -88,12 +88,12 @@ impl Process {
     /// Performs 4 steps of the Horner evaluation method on a polynomial with coefficients over
     /// the quadratic extension field, i.e., it computes
     ///
-    /// acc' = (((acc * alpha + c3) * alpha + c2) * alpha + c1) * alpha + c0
+    /// acc' = (((acc * alpha + c0) * alpha + c1) * alpha + c2) * alpha + c3
     ///
     ///
     /// In other words, the intsruction computes the evaluation at alpha of the polynomial
     ///
-    /// P(X) := c3 * X^3 + c2 * X^2 + c1 * X + c0
+    /// P(X) := c0 * X^3 + c1 * X^2 + c2 * X + c3
     ///
     /// As can be seen from the two equations defining acc', the instruction can be used in order
     /// to compute the evaluation of polynomials of arbitrary degree by repeated invocations of
@@ -105,14 +105,14 @@ impl Process {
     /// Input:
     ///
     /// +------+------+------+------+------+------+------+------+---+---+---+---+---+----------+------+------+
-    /// | c0_1 | c0_0 | c1_1 | c1_0 | c2_1 | c2_0 | c3_1 | c3_0 | - | - | - | - | - |alpha_addr| acc1 | acc0 |
+    /// | c3_1 | c3_0 | c2_1 | c2_0 | c1_1 | c1_0 | c0_1 | c0_0 | - | - | - | - | - |alpha_addr| acc1 | acc0 |
     /// +------+------+------+------+------+------+------+------+---+---+---+---+---+----------+------+------+
     ///
     ///
     /// Output:
     ///
     /// +------+------+------+------+------+------+------+------+---+---+---+---+---+----------+-------+-------+
-    /// | c0_1 | c0_0 | c1_1 | c1_0 | c2_1 | c2_0 | c3_1 | c3_0 | - | - | - | - | - |alpha_addr| acc1' | acc0' |
+    /// | c3_1 | c3_0 | c2_1 | c2_0 | c1_1 | c1_0 | c0_1 | c0_0 | - | - | - | - | - |alpha_addr| acc1' | acc0' |
     /// +------+------+------+------+------+------+------+------+---+---+---+---+---+----------+-------+-------+
     ///
     ///
