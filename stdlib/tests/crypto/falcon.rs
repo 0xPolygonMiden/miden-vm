@@ -31,11 +31,11 @@ const PROBABILISTIC_PRODUCT_SOURCE: &str = "
 
     begin
         #=> [PK, ...]
-        mem_load.0
+        push.0
         #=> [h_ptr, PK, ...]
 
         exec.rpo_falcon512::load_h_s2_and_product
-        #=> [tau1, tau0, tau_ptr, ...]
+        #=> [...]
     end
     ";
 
@@ -132,72 +132,33 @@ proptest! {
 
 #[test]
 fn test_falcon512_probabilistic_product() {
-    // create two random polynomials and multiply them.
-    let h = Polynomial::new(random_coefficients());
-    let s2 = Polynomial::new(random_coefficients());
+    // create two random polynomials and generate the input operand stack and advice stack to
+    // the probabilistic product test procedure
+    let h: Polynomial<Felt> = Polynomial::new(random_coefficients());
+    let s2: Polynomial<Felt> = Polynomial::new(random_coefficients());
+    let (operand_stack, advice_stack): (Vec<u64>, Vec<u64>) =
+        generate_data_probabilistic_product_test(h, s2, false);
 
-    let pi = mul_modulo_p(h.clone(), s2.clone());
-
-    // lay the polynomials in order h then s2 then pi = h * s2
-    let mut polynomials = to_elements(h.clone());
-    polynomials.extend(to_elements(s2.clone()));
-    polynomials.extend(pi.iter().map(|a| Felt::new(*a)));
-
-    // get the challenge point and push it to the advice stack
-    let digest_polynomials = Rpo256::hash_elements(&polynomials);
-    let challenge = (digest_polynomials[0], digest_polynomials[1]);
-    let mut advice_stack = vec![challenge.0.as_int(), challenge.1.as_int()];
-
-    // push the polynomials to the advice stack
-    let polynomials: Vec<u64> = polynomials.iter().map(|&e| e.into()).collect();
-    advice_stack.extend_from_slice(&polynomials);
-
-    // compute hash of h and place it on the stack.
-    let binding = Rpo256::hash_elements(&to_elements(h.clone()));
-    let h_hash = binding.as_elements();
-    let h_hash_copy: Vec<u64> = h_hash.iter().map(|felt| (*felt).into()).collect();
-    let stack_init = vec![h_hash_copy[0], h_hash_copy[1], h_hash_copy[2], h_hash_copy[3]];
-
-    let test = build_test!(PROBABILISTIC_PRODUCT_SOURCE, &stack_init, &advice_stack);
+    let test = build_test!(PROBABILISTIC_PRODUCT_SOURCE, &operand_stack, &advice_stack);
     let expected_stack = &[];
     test.expect_stack(expected_stack);
 }
 
 #[test]
 fn test_falcon512_probabilistic_product_failure() {
-    // create a polynomial pi that is not equal to h * s2.
+    // create two random polynomials and generate the input operand stack and advice stack to
+    // the probabilistic product test procedure
     let h: Polynomial<Felt> = Polynomial::new(random_coefficients());
     let s2: Polynomial<Felt> = Polynomial::new(random_coefficients());
-    let h_wrong: Polynomial<Felt> = Polynomial::new(random_coefficients());
+    let (operand_stack, advice_stack): (Vec<u64>, Vec<u64>) =
+        generate_data_probabilistic_product_test(h, s2, true);
 
-    let pi = mul_modulo_p(h_wrong.clone(), s2.clone());
-
-    // lay the polynomials in the advice stack, h then s2 then pi = h_wrong * s2
-    let mut polynomials = to_elements(h.clone());
-    polynomials.extend(to_elements(s2.clone()));
-    polynomials.extend(pi.iter().map(|a| Felt::new(*a)));
-
-    // get the challenge point and push it to the advice stack
-    let digest_polynomials = Rpo256::hash_elements(&polynomials);
-    let challenge = (digest_polynomials[0], digest_polynomials[1]);
-    let mut advice_stack = vec![challenge.0.as_int(), challenge.1.as_int()];
-
-    // push the polynomials to the advice stack
-    let polynomials: Vec<u64> = polynomials.iter().map(|&e| e.into()).collect();
-    advice_stack.extend_from_slice(&polynomials);
-
-    // compute hash of h and place it on the stack.
-    let binding = Rpo256::hash_elements(&to_elements(h.clone()));
-    let h_hash = binding.as_elements();
-    let h_hash_copy: Vec<u64> = h_hash.iter().map(|felt| (*felt).into()).collect();
-    let stack_init = vec![h_hash_copy[0], h_hash_copy[1], h_hash_copy[2], h_hash_copy[3]];
-
-    let test = build_test!(PROBABILISTIC_PRODUCT_SOURCE, &stack_init, &advice_stack);
+    let test = build_test!(PROBABILISTIC_PRODUCT_SOURCE, &operand_stack, &advice_stack);
 
     expect_exec_error_matches!(
         test,
         ExecutionError::FailedAssertion{ clk, err_code, err_msg }
-        if clk == RowIndex::from(4418) && err_code == 0 && err_msg.is_none()
+        if clk == RowIndex::from(3188) && err_code == 0 && err_msg.is_none()
     );
 }
 
@@ -305,4 +266,39 @@ fn mul_modulo_p(a: Polynomial<Felt>, b: Polynomial<Felt>) -> [u64; 1024] {
 /// Returns the coefficients of a polynomial.
 fn to_elements(poly: Polynomial<Felt>) -> Vec<Felt> {
     poly.coefficients.to_vec()
+}
+
+/// Generates the data needed to execute the probabilistic product test.
+fn generate_data_probabilistic_product_test(
+    h: Polynomial<Felt>,
+    s2: Polynomial<Felt>,
+    test_failure: bool,
+) -> (Vec<u64>, Vec<u64>) {
+    let pi = mul_modulo_p(h.clone(), s2.clone());
+
+    // lay the polynomials in order h then s2 then pi = h * s2
+    let mut polynomials = if test_failure {
+        to_elements(Polynomial::new(random_coefficients()))
+    } else {
+        to_elements(h.clone())
+    };
+    polynomials.extend(to_elements(s2.clone()));
+    polynomials.extend(pi.iter().map(|a| Felt::new(*a)));
+
+    // get the challenge point and push it to the advice stack
+    let digest_polynomials = Rpo256::hash_elements(&polynomials);
+    let challenge = (digest_polynomials[0], digest_polynomials[1]);
+    let mut advice_stack = vec![challenge.0.as_int(), challenge.1.as_int()];
+
+    // push the polynomials to the advice stack
+    let polynomials: Vec<u64> = polynomials.iter().map(|&e| e.into()).collect();
+    advice_stack.extend_from_slice(&polynomials);
+
+    // compute hash of h and place it on the stack.
+    let binding = Rpo256::hash_elements(&to_elements(h.clone()));
+    let h_hash = binding.as_elements();
+    let h_hash_copy: Vec<u64> = h_hash.iter().map(|felt| (*felt).into()).collect();
+    let operand_stack = vec![h_hash_copy[0], h_hash_copy[1], h_hash_copy[2], h_hash_copy[3]];
+
+    (operand_stack, advice_stack)
 }
