@@ -197,52 +197,38 @@ pub(super) fn build_pipe_request<E: FieldElement<BaseField = Felt>>(
     combined_value
 }
 
-/// Builds `RCOMBBASE` requests made to the memory chiplet.
-pub(super) fn build_rcomb_base_request<E: FieldElement<BaseField = Felt>>(
+/// Builds `HORNERBASE` or `HORNEREXT` requests made to the memory chiplet.
+pub(super) fn build_horner_eval_request<E: FieldElement<BaseField = Felt>>(
     main_trace: &MainTrace,
     alphas: &[E],
     row: RowIndex,
     _debugger: &mut BusDebugger<E>,
 ) -> E {
-    let tz0 = main_trace.helper_register(0, row);
-    let tz1 = main_trace.helper_register(1, row);
-    let tzg0 = main_trace.helper_register(2, row);
-    let tzg1 = main_trace.helper_register(3, row);
-    let a0 = main_trace.helper_register(4, row);
-    let a1 = main_trace.helper_register(5, row);
-    let z_ptr = main_trace.stack_element(13, row);
-    let a_ptr = main_trace.stack_element(14, row);
+    let eval_point_0 = main_trace.helper_register(0, row);
+    let eval_point_1 = main_trace.helper_register(1, row);
+    let eval_point_ptr = main_trace.stack_element(13, row);
     let op_label = Felt::from(MEMORY_READ_WORD_LABEL);
 
     let ctx = main_trace.ctx(row);
     let clk = main_trace.clk(row);
 
-    let mem_req_1 = MemoryWordMessage {
+    let mem_req = MemoryWordMessage {
         op_label,
         ctx,
-        addr: z_ptr,
+        addr: eval_point_ptr,
         clk,
-        word: [tz0, tz1, tzg0, tzg1],
-        source: "rcombbase req 1",
-    };
-    let mem_req_2 = MemoryWordMessage {
-        op_label,
-        ctx,
-        addr: a_ptr,
-        clk,
-        word: [a0, a1, ZERO, ZERO],
-        source: "rcombbase req 2",
+        word: [eval_point_0, eval_point_1, ZERO, ZERO],
+        source: "horner_eval_* req",
     };
 
-    let combined_value = mem_req_1.value(alphas) * mem_req_2.value(alphas);
+    let value = mem_req.value(alphas);
 
     #[cfg(any(test, feature = "bus-debugger"))]
     {
-        _debugger.add_request(Box::new(mem_req_1), alphas);
-        _debugger.add_request(Box::new(mem_req_2), alphas);
+        _debugger.add_request(alloc::boxed::Box::new(mem_req), alphas);
     }
 
-    combined_value
+    value
 }
 
 // RESPONSES
