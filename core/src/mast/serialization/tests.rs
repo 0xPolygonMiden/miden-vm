@@ -101,7 +101,8 @@ fn confirm_operation_and_decorator_structure() {
         Operation::MpVerify(_) => (),
         Operation::MrUpdate => (),
         Operation::FriE2F4 => (),
-        Operation::RCombBase => (),
+        Operation::HornerBase => (),
+        Operation::HornerExt => (),
         Operation::Emit(_) => (),
     };
 
@@ -212,7 +213,8 @@ fn serialize_deserialize_all_nodes() {
             Operation::MpVerify(1022),
             Operation::MrUpdate,
             Operation::FriE2F4,
-            Operation::RCombBase,
+            Operation::HornerBase,
+            Operation::HornerExt,
             Operation::Emit(42),
         ];
 

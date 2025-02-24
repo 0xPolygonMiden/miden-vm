@@ -6,9 +6,8 @@ use hasher::{
 };
 use kernel::{build_kernel_chiplet_responses, KernelRomMessage};
 use memory::{
-    build_mem_mload_mstore_request, build_mem_mloadw_mstorew_request,
-    build_memory_chiplet_responses, build_mstream_request, build_pipe_request,
-    build_rcomb_base_request, MemoryWordMessage,
+    build_horner_eval_request, build_mem_mload_mstore_request, build_mem_mloadw_mstorew_request,
+    build_memory_chiplet_responses, build_mstream_request, build_pipe_request, MemoryWordMessage,
 };
 use miden_air::{
     trace::{
@@ -24,10 +23,10 @@ use miden_air::{
     RowIndex,
 };
 use vm_core::{
-    ONE, OPCODE_CALL, OPCODE_DYN, OPCODE_DYNCALL, OPCODE_END, OPCODE_HPERM, OPCODE_JOIN,
-    OPCODE_LOOP, OPCODE_MLOAD, OPCODE_MLOADW, OPCODE_MPVERIFY, OPCODE_MRUPDATE, OPCODE_MSTORE,
-    OPCODE_MSTOREW, OPCODE_MSTREAM, OPCODE_PIPE, OPCODE_RCOMBBASE, OPCODE_RESPAN, OPCODE_SPAN,
-    OPCODE_SPLIT, OPCODE_SYSCALL, OPCODE_U32AND, OPCODE_U32XOR, ZERO,
+    ONE, OPCODE_CALL, OPCODE_DYN, OPCODE_DYNCALL, OPCODE_END, OPCODE_HORNERBASE, OPCODE_HORNEREXT,
+    OPCODE_HPERM, OPCODE_JOIN, OPCODE_LOOP, OPCODE_MLOAD, OPCODE_MLOADW, OPCODE_MPVERIFY,
+    OPCODE_MRUPDATE, OPCODE_MSTORE, OPCODE_MSTOREW, OPCODE_MSTREAM, OPCODE_PIPE, OPCODE_RESPAN,
+    OPCODE_SPAN, OPCODE_SPLIT, OPCODE_SYSCALL, OPCODE_U32AND, OPCODE_U32XOR, ZERO,
 };
 
 use super::{Felt, FieldElement};
@@ -111,8 +110,9 @@ impl<E: FieldElement<BaseField = Felt>> AuxColumnBuilder<E> for BusColumnBuilder
                 row,
                 debugger,
             ),
+            OPCODE_HORNERBASE => build_horner_eval_request(main_trace, alphas, row, debugger),
+            OPCODE_HORNEREXT => build_horner_eval_request(main_trace, alphas, row, debugger),
             OPCODE_MSTREAM => build_mstream_request(main_trace, alphas, row, debugger),
-            OPCODE_RCOMBBASE => build_rcomb_base_request(main_trace, alphas, row, debugger),
             OPCODE_HPERM => build_hperm_request(main_trace, alphas, row, debugger),
             OPCODE_MPVERIFY => build_mpverify_request(main_trace, alphas, row, debugger),
             OPCODE_MRUPDATE => build_mrupdate_request(main_trace, alphas, row, debugger),
