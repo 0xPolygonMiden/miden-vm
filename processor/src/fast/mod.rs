@@ -10,7 +10,6 @@ use crate::ExecutionError;
 
 // temporary module to
 pub mod experiments;
-mod macro_ops;
 
 #[cfg(test)]
 mod tests;
@@ -75,29 +74,8 @@ impl SpeedyGonzales {
         basic_block_node: &BasicBlockNode,
         _program: &MastForest,
     ) -> Result<(), ExecutionError> {
-        let mut triplet_op_iter = TripletIterator::new(basic_block_node.operations());
-
-        while let Some((op1, op2, op3)) = triplet_op_iter.next() {
-            match (op1, op2, op3) {
-                (Operation::Swap, Operation::Dup1, Operation::Add) => self.swap_dup1_add(),
-                _ => {
-                    // No macro operation found; execute the first operation, and push the other two
-                    // back at the front of the iterator
-                    self.execute_op(op1, _program)?;
-                    triplet_op_iter.push_front(op2, op3);
-                },
-            }
-        }
-
-        // Execute any remaining operations
-        {
-            let (first, second) = triplet_op_iter.remainder();
-            if let Some(op) = first {
-                self.execute_op(op, _program)?;
-            }
-            if let Some(op) = second {
-                self.execute_op(op, _program)?;
-            }
+        for operation in basic_block_node.operations() {
+            self.execute_op(operation, _program)?;
         }
 
         Ok(())
@@ -233,94 +211,5 @@ impl SpeedyGonzales {
         }
 
         Ok(())
-    }
-}
-
-// ITER TOOL
-// ===============================================================================================
-
-/// An iterator over the elements of another iterator in groups of 3.
-///
-/// Allows pushing back two elements to be placed at the front of the iterator.
-#[derive(Debug)]
-pub struct TripletIterator<T>
-where
-    T: Iterator,
-{
-    iterator: T,
-    first: Option<T::Item>,
-    second: Option<T::Item>,
-}
-
-impl<T> TripletIterator<T>
-where
-    T: Iterator,
-{
-    pub fn new(iterator: T) -> Self {
-        TripletIterator { iterator, first: None, second: None }
-    }
-
-    /// Pushes back two elements to be placed at the front of the iterator.
-    ///
-    /// They will be placed in order [first, second].
-    pub fn push_front(&mut self, first: T::Item, second: T::Item) {
-        debug_assert!(
-            self.first.is_none() && self.second.is_none(),
-            "push_front was called twice without calling next"
-        );
-
-        self.first = Some(first);
-        self.second = Some(second);
-    }
-
-    /// Returns the remainder of the iterator.
-    pub fn remainder(self) -> (Option<T::Item>, Option<T::Item>) {
-        (self.first, self.second)
-    }
-}
-
-impl<T> Iterator for TripletIterator<T>
-where
-    T: Iterator,
-{
-    type Item = (T::Item, T::Item, T::Item);
-
-    fn next(&mut self) -> Option<Self::Item> {
-        match (self.first.take(), self.second.take()) {
-            (Some(first), Some(second)) => {
-                // We have front elements, so we try to pull the third element from the iterator
-                match self.iterator.next() {
-                    Some(third) => Some((first, second, third)),
-                    None => {
-                        // We don't have a third element, so we store back the first two elements.
-                        self.first = Some(first);
-                        self.second = Some(second);
-                        None
-                    },
-                }
-            },
-            (None, None) => {
-                // We don't have front elements, so we pull the three elements from the iterator
-                let first = self.iterator.next();
-                let second = self.iterator.next();
-                let third = self.iterator.next();
-                match (first, second, third) {
-                    (Some(first), Some(second), Some(third)) => Some((first, second, third)),
-                    (Some(first), Some(second), None) => {
-                        self.first = Some(first);
-                        self.second = Some(second);
-                        None
-                    },
-                    (Some(first), None, None) => {
-                        self.first = Some(first);
-                        None
-                    },
-                    (None, None, None) => None,
-                    _ => unreachable!("we assume that iterator.next() returning `None` implies that future calls will also return `None`"),
-                }
-            },
-            // This should never happen, as we can only `push_front()` two elements at a time.
-            _ => unreachable!("first and second should be both Some or both None"),
-        }
     }
 }
