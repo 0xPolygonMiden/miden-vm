@@ -8,14 +8,15 @@ use crate::ExecutionError;
 
 /// Gets as input a vector containing a secret key, and a word representing a message and outputs a
 /// vector of values to be pushed onto the advice stack.
+///
 /// The values are the ones required for a Falcon signature verification inside the VM and they are:
 ///
-/// 1. The expanded public key represented as the coefficients of a polynomial of degree < 512.
-/// 2. The signature represented as the coefficients of a polynomial of degree < 512.
-/// 3. The product of the above two polynomials in the ring of polynomials with coefficients in the
-///    Miden field.
-/// 4. The challenge point at which we evaluate the three aforementioned polynomials to check the
+/// 1. The challenge point at which we evaluate the three aforementioned polynomials to check the
 ///    product relationship.
+/// 2. The expanded public key represented as the coefficients of a polynomial of degree < 512.
+/// 3. The signature represented as the coefficients of a polynomial of degree < 512.
+/// 4. The product of the above two polynomials in the ring of polynomials with coefficients in the
+///    Miden field.
 /// 5. The nonce represented as 8 field elements.
 ///
 /// # Errors

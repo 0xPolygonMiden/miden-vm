@@ -148,12 +148,11 @@ end
 #!   Operand stack: []
 #!   Advice stack:  []
 #!
-#! Cycles: 4430
-export.load_h_s2_and_product.12
+#! Cycles: 6780 
+export.load_h_s2_and_product.8
     # We will store in local addresses:
     # 1. 0..4 the public key,
-    # 2. 4..8 the inverse of the evaluation point tau as [tau_inv0, tau_inv1, 0, 0],
-    # 3. 8..12 the evaluation point tau as [tau0, tau1, 0, 0],
+    # 2. 4..8 the inverse of the evaluation point tau as [tau_inv0, tau_inv1, tau0, tau1].
     
     # 1) Set up the stack for loading the coefficients of the polynomials, evaluating and hashing them
     
@@ -161,15 +160,16 @@ export.load_h_s2_and_product.12
     push.0.0
     locaddr.4
     movup.3
+    # => [ptr, tau_inv_ptr, 0, 0, PK, ...]
 
     ## b) Save PK to later compare it with the hash of the h polynomial
     swapw
     loc_storew.0
-    # => [PK, ptr, alpha_inv, acc1, acc0, ...]
+    # => [PK, ptr, tau_inv_ptr, acc1, acc0, ...]
 
     ## c) Prepare the capacity portion of the state of the hasher
     padw swapw
-    # => [Y, 0, 0, 0, 0, ptr, alpha_inv, acc1, acc0, ...], where Y is a "garbage" word
+    # => [Y, 0, 0, 0, 0, ptr, tau_inv_ptr, acc1, acc0, ...], where Y is a "garbage" word
 
     ## d) Load the evaluation point tau from the advice tape, compute its inverse and save both
     ## Note that we will evaluate the polynomials at `tau_inv = tau^{-1}` as we are loading the coefficients
@@ -182,16 +182,11 @@ export.load_h_s2_and_product.12
     ## pi(tau_inv) * tau == h(tau_inv) * s2(tau_inv)
     adv_push.2 
     dup.1 dup.1 ext2inv
-    push.0.0
+    movup.3 movup.3
     loc_storew.4
+    # => [tau1, tau0, tau_inv1, tau_inv0, Y, 0, 0, 0, 0, ptr, tau_inv_ptr, acc1, acc0, ...]
 
-    ## e) Store the random evaluation point. We will later check that it is the correct one.
-    movup.2 drop
-    movup.2 drop
-    loc_storew.8
-    # => [Y, Y, 0, 0, 0, 0, ptr, alpha_inv, acc1, acc0, ...]
-
-    # 2) Load the coefficients of the h polynomial and evaluate them at tau_inv
+    # 2) Load the coefficients of the h polynomial and evaluate it at tau_inv
     repeat.64
         adv_pipe
 
@@ -216,11 +211,12 @@ export.load_h_s2_and_product.12
 
         hperm
     end
+    # => [Y, D, C, ptr, tau_inv_ptr, acc1, acc0, ...] where D is the digest expected to be PK
 
-    # 3) Load PK, the saved claimed hash of h, and compare
+    # 3) Load PK, the saved claimed hash of h, and compare hashes
     loc_loadw.0
     assert_eqw
-    # => [C, ptr, alpha_inv, h(tau)_1, h(tau)_0, ...]
+    # => [C, ptr, tau_inv_ptr, h(tau)_1, h(tau)_0, ...]
 
     # 4) Load s2 and evaluate at tau_inv
     
@@ -228,6 +224,7 @@ export.load_h_s2_and_product.12
     push.0 movdn.6
     push.0 movdn.6
     padw padw
+    # => [0, 0, 0, 0, 0, 0, 0, 0, C, ptr, tau_inv_ptr, 0, 0, h(tau)_1, h(tau)_0, ...]
 
     ## b) Load and evaluate s2 at tau_inv
     repeat.64
@@ -253,7 +250,7 @@ export.load_h_s2_and_product.12
         horner_eval_base
         hperm
     end
-    # => [Y, Y, C, ptr, alpha_inv, s2(tau)_1, s2(tau)_0, h(tau)_1, h(tau)_0, ...]
+    # => [Y, Y, C, ptr, tau_inv_ptr, s2(tau)_1, s2(tau)_0, h(tau)_1, h(tau)_0, ...]
 
 
     # 5) Load claimed h * s2 in Z_Q[x]
@@ -261,13 +258,14 @@ export.load_h_s2_and_product.12
     ## a) Reset the accumulator, update the pointers and set up the state of the hasher
     push.0 movdn.14
     push.0 movdn.14
+    # => [Y, Y, C, ptr, tau_inv_ptr, 0, 0, s2(tau)_1, s2(tau)_0, h(tau)_1, h(tau)_0, ...]
 
     repeat.128
         adv_pipe
         horner_eval_base
         hperm
     end
-    # => [Y, D, C, ptr, alpha_inv, pi(tau)_1, pi(tau)_0, s2(tau)_1, s2(tau)_0, h(tau)_1, h(tau)_0, ...]
+    # => [Y, D, C, ptr, tau_inv_ptr, pi(tau)_1, pi(tau)_0, s2(tau)_1, s2(tau)_0, h(tau)_1, h(tau)_0, ...]
 
     # 6) Check that the challenge we computed the evaluations with is the correct one
 
@@ -275,17 +273,16 @@ export.load_h_s2_and_product.12
     ##    the challenge we got from the advice stack
     dropw
     swapw drop drop
-    # => [Y, tau1, tau0, ptr, alpha_inv, pi(tau)_1, pi(tau)_0, s2(tau)_1, s2(tau)_0, h(tau)_1, h(tau)_0, ...]
+    # => [Y, tau1, tau0, ptr, tau_inv_ptr, pi(tau)_1, pi(tau)_0, s2(tau)_1, s2(tau)_0, h(tau)_1, h(tau)_0, ...]
 
     ## b) Load from memory the challenge we got from the advice stack and assert equality between
     ##    the two challenges
-    loc_loadw.8
+    loc_loadw.4
+    dup.4 assert_eq
+    dup.4 assert_eq
     drop drop
-
-    dup.2 assert_eq
-    dup.2 assert_eq
-    # => [tau1, tau0, ptr, alpha_inv, pi(tau)_1, pi(tau)_0, s2(tau)_1, s2(tau)_0, h(tau)_1, h(tau)_0, ...]
-
+    # => [tau1, tau0, ptr, tau_inv_ptr, pi(tau)_1, pi(tau)_0, s2(tau)_1, s2(tau)_0, h(tau)_1, h(tau)_0, ...]
+    
     # 7) Assert the equality pi(tau_inv) * tau == h(tau_inv) * s2(tau_inv)
 
     ## a) Compute the left hand side of the equation
@@ -591,6 +588,8 @@ end
 #!   Advice stack:  []
 #!
 #! where:
+#! - tau = (tau0, tau1) is an element in the quadratic field extension at which the product relation
+#!   between `h * s2 = pi` is checked.
 #! - h_i are the coefficients of the expanded public key polynomial.
 #! - s2_i are the coefficients of the signature polynomial.
 #! - pi_i are the coefficients of `h * s2` in Z_Q[x] where Q is the Miden VM prime.
