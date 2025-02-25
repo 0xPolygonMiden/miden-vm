@@ -48,9 +48,10 @@ fn program_execution_fast(c: &mut Criterion) {
                         .assemble_program(&source)
                         .expect("Failed to compile test source.");
                     bench.iter(|| {
-                        let mut speedy =
-                            SpeedyGonzales::new(stack_inputs.iter().rev().copied().collect());
-                        speedy.execute(&program).unwrap();
+                        let speedy = SpeedyGonzales::<512>::new(
+                            stack_inputs.iter().rev().copied().collect(),
+                        );
+                        speedy.execute(&program, &mut host).unwrap();
                     });
                 });
             },

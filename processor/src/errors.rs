@@ -60,6 +60,8 @@ pub enum ExecutionError {
     },
     #[error("failed to generate signature: {0}")]
     FailedSignatureGeneration(&'static str),
+    #[error("failed to execute the program for internal reason: {0}")]
+    FailedToExecuteProgram(&'static str),
     #[error("memory address {addr} in context {ctx} was read and written, or written twice, in the same clock cycle {clk}")]
     IllegalMemoryAccess { ctx: ContextId, addr: u32, clk: Felt },
     #[error("Updating FMP register from {0} to {1} failed because {1} is outside of {FMP_MIN}..{FMP_MAX}")]

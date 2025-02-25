@@ -351,7 +351,7 @@ impl Stack {
 
     /// Increments the clock cycle.
     pub fn advance_clock(&mut self) {
-        self.clk += 1;
+        self.clk += 1_u32;
     }
 
     // TEST HELPERS
