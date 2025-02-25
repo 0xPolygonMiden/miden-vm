@@ -1,10 +1,12 @@
-use alloc::vec::Vec;
+use alloc::{sync::Arc, vec::Vec};
 
+use vm_core::mast::{ExternalNode, MastForest, MastNodeId};
 // RE-EXPORTS
 // ================================================================================================
 pub use vm_core::utils::*;
 
 use super::Felt;
+use crate::{ExecutionError, Host};
 
 // HELPER FUNCTIONS
 // ================================================================================================
@@ -43,4 +45,33 @@ pub(crate) fn split_u32_into_u16(value: u64) -> (u16, u16) {
     let hi = (value >> 16) as u16;
 
     (hi, lo)
+}
+
+/// Resolves an external node reference to a procedure root using the `MastForest` store in the
+/// provided host.
+/// 
+/// This helper function is extracted to ensure that [`crate::Process`] and
+/// [`crate::fast::SpeedyGonzales`] resolve external nodes in the same way.
+pub(crate) fn resolve_external_node(
+    external_node: &ExternalNode,
+    host: &mut impl Host,
+) -> Result<(MastNodeId, Arc<MastForest>), ExecutionError> {
+    let node_digest = external_node.digest();
+    let mast_forest = host
+        .get_mast_forest(&node_digest)
+        .ok_or(ExecutionError::NoMastForestWithProcedure { root_digest: node_digest })?;
+
+    // We limit the parts of the program that can be called externally to procedure
+    // roots, even though MAST doesn't have that restriction.
+    let root_id = mast_forest
+        .find_procedure_root(node_digest)
+        .ok_or(ExecutionError::MalformedMastForestInHost { root_digest: node_digest })?;
+
+    // if the node that we got by looking up an external reference is also an External
+    // node, we are about to enter into an infinite loop - so, return an error
+    if mast_forest[root_id].is_external() {
+        return Err(ExecutionError::CircularExternalNode(node_digest));
+    }
+
+    Ok((root_id, mast_forest))
 }

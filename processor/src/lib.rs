@@ -15,6 +15,7 @@ use miden_air::trace::{
     SYS_TRACE_WIDTH,
 };
 pub use miden_air::{ExecutionOptions, ExecutionOptionsError, RowIndex};
+use utils::resolve_external_node;
 pub use vm_core::{
     chiplets::hasher::Digest,
     crypto::merkle::SMT_DEPTH,
@@ -279,22 +280,7 @@ impl Process {
             MastNode::Call(node) => self.execute_call_node(node, program, host)?,
             MastNode::Dyn(node) => self.execute_dyn_node(node, program, host)?,
             MastNode::External(external_node) => {
-                let node_digest = external_node.digest();
-                let mast_forest = host.get_mast_forest(&node_digest).ok_or(
-                    ExecutionError::NoMastForestWithProcedure { root_digest: node_digest },
-                )?;
-
-                // We limit the parts of the program that can be called externally to procedure
-                // roots, even though MAST doesn't have that restriction.
-                let root_id = mast_forest.find_procedure_root(node_digest).ok_or(
-                    ExecutionError::MalformedMastForestInHost { root_digest: node_digest },
-                )?;
-
-                // if the node that we got by looking up an external reference is also an External
-                // node, we are about to enter into an infinite loop - so, return an error
-                if mast_forest[root_id].is_external() {
-                    return Err(ExecutionError::CircularExternalNode(node_digest));
-                }
+                let (root_id, mast_forest) = resolve_external_node(external_node, host)?;
 
                 self.execute_mast_node(root_id, &mast_forest, host)?;
             },
