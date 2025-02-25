@@ -6,6 +6,7 @@ use miden_vm::{internal::InputFile, ProvingOptions};
 use processor::{DefaultHost, ExecutionOptions, ExecutionOptionsError, Program};
 #[cfg(all(target_arch = "x86_64", feature = "cuda"))]
 use prover::get_num_of_gpus;
+use prover::Prover;
 use stdlib::StdLibrary;
 use tracing::instrument;
 
@@ -113,8 +114,9 @@ impl ProveCmd {
             self.get_proof_options().map_err(|err| Report::msg(format!("{err}")))?;
 
         // execute program and generate proof
+        let mut prover = Prover::new();
         let (stack_outputs, proof) =
-            prover::prove(&program, stack_inputs, &mut host, proving_options)
+        prover.prove(&program, stack_inputs, &mut host, proving_options)
                 .into_diagnostic()
                 .wrap_err("Failed to prove program")?;
 

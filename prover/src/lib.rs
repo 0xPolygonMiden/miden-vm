@@ -10,7 +10,7 @@ use core::marker::PhantomData;
 
 use air::{trace::{AUX_TRACE_WIDTH, TRACE_WIDTH}, AuxRandElements, PartitionOptions, ProcessorAir, PublicInputs};
 #[cfg(all(target_arch = "x86_64", feature = "cuda"))]
-use miden_gpu::cuda::util::{struct_size, CudaStorageOwned};
+use miden_gpu::cuda::util::CudaStorageOwned;
 #[cfg(any(
     all(feature = "metal", target_arch = "aarch64", target_os = "macos"),
     all(feature = "cuda", target_arch = "x86_64")
@@ -22,14 +22,12 @@ use processor::{
         RpxRandomCoin, WinterRandomCoin,
     },
     math::{Felt, FieldElement},
-    ExecutionTrace, Program, QuadExtension,
+    ExecutionTrace, Program,
 };
 use tracing::instrument;
 use winter_maybe_async::{maybe_async, maybe_await};
 use winter_prover::{
-    matrix::ColMatrix, CompositionPoly, CompositionPolyTrace, ConstraintCompositionCoefficients,
-    DefaultConstraintCommitment, DefaultConstraintEvaluator, DefaultTraceLde,
-    ProofOptions as WinterProofOptions, Prover, StarkDomain, TraceInfo, TracePolyTable,
+    matrix::ColMatrix, CompositionPoly, CompositionPolyTrace, ConstraintCompositionCoefficients, DefaultConstraintCommitment, DefaultConstraintEvaluator, DefaultTraceLde, ProofOptions as WinterProofOptions, Prover as WinterProver, StarkDomain, TraceInfo, TracePolyTable
 };
 #[cfg(feature = "std")]
 use {std::time::Instant, winter_prover::Trace};
@@ -50,126 +48,120 @@ pub use winter_prover::{crypto::MerkleTree as MerkleTreeVC, Proof};
 // PROVER
 // ================================================================================================
 
-#[cfg(all(feature = "cuda", target_arch = "x86_64"))]
-#[instrument("allocate_memory", skip_all)]
-fn allocate_memory(trace: &ExecutionTrace, options: &ProvingOptions) -> CudaStorageOwned {
-    use winter_prover::{math::fields::CubeExtension, Air};
-
-    let main_columns = TRACE_WIDTH;
-    let aux_columns = AUX_TRACE_WIDTH;
-    let rows = trace.get_trace_len();
-    let options: WinterProofOptions = options.clone().into();
-    let extension = options.field_extension();
-    let blowup = options.blowup_factor();
-    let partitions = options.partition_options();
-
-    let main = struct_size::<Felt>(main_columns, rows, blowup, partitions);
-    let aux = match extension {
-        FieldExtension::None => struct_size::<Felt>(aux_columns, rows, blowup, partitions),
-        FieldExtension::Quadratic => struct_size::<QuadExtension<Felt>>(aux_columns, rows, blowup, partitions),
-        FieldExtension::Cubic => struct_size::<CubeExtension<Felt>>(aux_columns, rows, blowup, partitions),
-    };
-
-    let air = ProcessorAir::new(trace.info().clone(), PublicInputs::new(Default::default(), Default::default(), Default::default()), options);
-    let ce_columns = air.context().num_constraint_composition_columns();
-    let ce = match extension {
-        FieldExtension::None => struct_size::<Felt>(ce_columns, rows, blowup, partitions),
-        FieldExtension::Quadratic => struct_size::<QuadExtension<Felt>>(ce_columns, rows, blowup, partitions),
-        FieldExtension::Cubic => struct_size::<CubeExtension<Felt>>(ce_columns, rows, blowup, partitions),
-    };
-
-    CudaStorageOwned::new(main, aux, ce)
+pub struct Prover {
+    #[cfg(all(feature = "cuda", target_arch = "x86_64"))]
+    storage: CudaStorageOwned,
 }
 
-/// Executes and proves the specified `program` and returns the result together with a STARK-based
-/// proof of the program's execution.
-///
-/// - `stack_inputs` specifies the initial state of the stack for the VM.
-/// - `host` specifies the host environment which contain non-deterministic (secret) inputs for the
-///   prover
-/// - `options` defines parameters for STARK proof generation.
-///
-/// # Errors
-/// Returns an error if program execution or STARK proof generation fails for any reason.
-#[instrument("prove_program", skip_all)]
-#[maybe_async]
-pub fn prove(
-    program: &Program,
-    stack_inputs: StackInputs,
-    host: &mut impl Host,
-    options: ProvingOptions,
-) -> Result<(StackOutputs, ExecutionProof), ExecutionError> {
-    // execute the program to create an execution trace
-    #[cfg(feature = "std")]
-    let now = Instant::now();
-    let trace =
-        processor::execute(program, stack_inputs.clone(), host, *options.execution_options())?;
-    #[cfg(feature = "std")]
-    tracing::event!(
-        tracing::Level::INFO,
-        "Generated execution trace of {} columns and {} steps ({}% padded) in {} ms",
-        trace.info().main_trace_width(),
-        trace.trace_len_summary().padded_trace_len(),
-        trace.trace_len_summary().padding_percentage(),
-        now.elapsed().as_millis()
-    );
-
-    let stack_outputs = trace.stack_outputs().clone();
-    let hash_fn = options.hash_fn();
-
-    #[cfg(all(feature = "cuda", target_arch = "x86_64"))]
-    let mut storage = allocate_memory(&trace, &options);
-    #[cfg(all(feature = "cuda", target_arch = "x86_64"))]
-    let (main, aux, ce) = storage.borrow_mut();
-
-    // generate STARK proof
-    let proof = match hash_fn {
-        HashFunction::Blake3_192 => {
-            let prover = ExecutionProver::<Blake3_192, WinterRandomCoin<_>>::new(
-                options,
-                stack_inputs,
-                stack_outputs.clone(),
-            );
-            maybe_await!(prover.prove(trace))
-        },
-        HashFunction::Blake3_256 => {
-            let prover = ExecutionProver::<Blake3_256, WinterRandomCoin<_>>::new(
-                options,
-                stack_inputs,
-                stack_outputs.clone(),
-            );
-            maybe_await!(prover.prove(trace))
-        },
-        HashFunction::Rpo256 => {
-            let prover = ExecutionProver::<Rpo256, RpoRandomCoin>::new(
-                options,
-                stack_inputs,
-                stack_outputs.clone(),
-            );
-            #[cfg(all(feature = "metal", target_arch = "aarch64", target_os = "macos"))]
-            let prover = gpu::metal::MetalExecutionProver::new(prover, HashFn::Rpo256);
+impl Prover {
+    #[instrument("create_prover", skip_all)]
+    pub fn new() -> Self {
+        // 200000th fib number, cubic extension, blowup 16, single partition
+        // TODO: make it slightly larger to eliminate code that depends on exact buffer size
+        Self {
             #[cfg(all(feature = "cuda", target_arch = "x86_64"))]
-            let prover = gpu::cuda::CudaExecutionProver::new(prover, HashFn::Rpo256, main, aux, ce);
-            maybe_await!(prover.prove(trace))
-        },
-        HashFunction::Rpx256 => {
-            let prover = ExecutionProver::<Rpx256, RpxRandomCoin>::new(
-                options,
-                stack_inputs,
-                stack_outputs.clone(),
-            );
-            #[cfg(all(feature = "metal", target_arch = "aarch64", target_os = "macos"))]
-            let prover = gpu::metal::MetalExecutionProver::new(prover, HashFn::Rpx256);
-            #[cfg(all(feature = "cuda", target_arch = "x86_64"))]
-            let prover = gpu::cuda::CudaExecutionProver::new(prover, HashFn::Rpx256, main, aux, ce);
-            maybe_await!(prover.prove(trace))
-        },
+            storage: CudaStorageOwned::new(1382023164 + 508559356 + 562036732),
+        }
     }
-    .map_err(ExecutionError::ProverError)?;
-    let proof = ExecutionProof::new(proof, hash_fn);
 
-    Ok((stack_outputs, proof))
+    /// Executes and proves the specified `program` and returns the result together with a STARK-based
+    /// proof of the program's execution.
+    ///
+    /// - `stack_inputs` specifies the initial state of the stack for the VM.
+    /// - `host` specifies the host environment which contain non-deterministic (secret) inputs for the
+    ///   prover
+    /// - `options` defines parameters for STARK proof generation.
+    ///
+    /// # Errors
+    /// Returns an error if program execution or STARK proof generation fails for any reason.
+    #[instrument("prove_program", skip_all)]
+    #[maybe_async]
+    pub fn prove(
+        &mut self,
+        program: &Program,
+        stack_inputs: StackInputs,
+        host: &mut impl Host,
+        options: ProvingOptions,
+    ) -> Result<(StackOutputs, ExecutionProof), ExecutionError> {
+        // execute the program to create an execution trace
+        #[cfg(feature = "std")]
+        let now = Instant::now();
+        let trace =
+            processor::execute(program, stack_inputs.clone(), host, *options.execution_options())?;
+        #[cfg(feature = "std")]
+        tracing::event!(
+            tracing::Level::INFO,
+            "Generated execution trace of {} columns and {} steps ({}% padded) in {} ms",
+            trace.info().main_trace_width(),
+            trace.trace_len_summary().padded_trace_len(),
+            trace.trace_len_summary().padding_percentage(),
+            now.elapsed().as_millis()
+        );
+
+        let stack_outputs = trace.stack_outputs().clone();
+        let hash_fn = options.hash_fn();
+
+        #[cfg(all(feature = "cuda", target_arch = "x86_64"))]
+        let (main, aux, ce) = {
+            // TODO: make splits slightly larger to eliminate code that depends on exact buffer size
+            self.storage.borrow_mut(
+                TRACE_WIDTH,
+                AUX_TRACE_WIDTH,
+                trace.get_trace_len(),
+                options.clone().into(),
+            )
+        };
+
+        // generate STARK proof
+        let proof = match hash_fn {
+            HashFunction::Blake3_192 => {
+                let prover = ExecutionProver::<Blake3_192, WinterRandomCoin<_>>::new(
+                    options,
+                    stack_inputs,
+                    stack_outputs.clone(),
+                );
+                maybe_await!(prover.prove(trace))
+            },
+            HashFunction::Blake3_256 => {
+                let prover = ExecutionProver::<Blake3_256, WinterRandomCoin<_>>::new(
+                    options,
+                    stack_inputs,
+                    stack_outputs.clone(),
+                );
+                maybe_await!(prover.prove(trace))
+            },
+            HashFunction::Rpo256 => {
+                let prover = ExecutionProver::<Rpo256, RpoRandomCoin>::new(
+                    options,
+                    stack_inputs,
+                    stack_outputs.clone(),
+                );
+                #[cfg(all(feature = "metal", target_arch = "aarch64", target_os = "macos"))]
+                let prover = gpu::metal::MetalExecutionProver::new(prover, HashFn::Rpo256);
+                #[cfg(all(feature = "cuda", target_arch = "x86_64"))]
+                let prover = gpu::cuda::CudaExecutionProver::new(prover, HashFn::Rpo256, main, aux, ce);
+                maybe_await!(prover.prove(trace))
+            },
+            HashFunction::Rpx256 => {
+                let prover = ExecutionProver::<Rpx256, RpxRandomCoin>::new(
+                    options,
+                    stack_inputs,
+                    stack_outputs.clone(),
+                );
+                #[cfg(all(feature = "metal", target_arch = "aarch64", target_os = "macos"))]
+                let prover = gpu::metal::MetalExecutionProver::new(prover, HashFn::Rpx256);
+                #[cfg(all(feature = "cuda", target_arch = "x86_64"))]
+                let prover = gpu::cuda::CudaExecutionProver::new(prover, HashFn::Rpx256, main, aux, ce);
+                maybe_await!(prover.prove(trace))
+            },
+        }
+        .map_err(ExecutionError::ProverError)?;
+        let proof = ExecutionProof::new(proof, hash_fn);
+
+        Ok((stack_outputs, proof))
+    }
 }
+
 
 // PROVER
 // ================================================================================================
@@ -223,7 +215,7 @@ where
     }
 }
 
-impl<H, R> Prover for ExecutionProver<H, R>
+impl<H, R> WinterProver for ExecutionProver<H, R>
 where
     H: ElementHasher<BaseField = Felt> + Sync,
     R: RandomCoin<BaseField = Felt, Hasher = H> + Send,
