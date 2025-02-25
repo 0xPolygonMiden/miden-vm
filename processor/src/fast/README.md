@@ -18,4 +18,5 @@
     - Performance drops by ~30% when we switch from an array to a `Vec`
 - Don't hardcode the program, use *real* `Operation` enum, use `Vec` as stack: **375 MHz**
     - Switching to actually executing the `MastForest` results in a ~2% performance drop compared to the dummy `Operation` enum
+- Don't hardcode the program, use *real* `Operation` enum, use array as stack: **405 MHz**
 - Same as last, but use a `swap dup.1 add` macro-op: **760 MHz**
