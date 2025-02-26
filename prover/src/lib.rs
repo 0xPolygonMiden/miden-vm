@@ -7,6 +7,7 @@ extern crate alloc;
 extern crate std;
 
 use core::marker::PhantomData;
+use std::env;
 
 use air::{trace::{AUX_TRACE_WIDTH, TRACE_WIDTH}, AuxRandElements, PartitionOptions, ProcessorAir, PublicInputs};
 #[cfg(all(target_arch = "x86_64", feature = "cuda"))]
@@ -56,11 +57,10 @@ pub struct Prover {
 impl Prover {
     #[instrument("create_prover", skip_all)]
     pub fn new() -> Self {
-        // 200000th fib number, cubic extension, blowup 16, single partition
-        // TODO: make it slightly larger to eliminate code that depends on exact buffer size
         Self {
             #[cfg(all(feature = "cuda", target_arch = "x86_64"))]
-            storage: CudaStorageOwned::new(1382023164 + 508559356 + 562036732),
+            // provide MIDEN_CUDA_MEM_SIZE in megabytes
+            storage: CudaStorageOwned::new(1024 * 1024 * env::var("MIDEN_CUDA_MEM_SIZE_MB").expect("MIDEN_CUDA_MEM_SIZE_MB env variable must be provided").parse::<usize>().expect("MIDEN_CUDA_MEM_SIZE_MB must be a number")),
         }
     }
 
@@ -109,7 +109,7 @@ impl Prover {
                 options.clone().into(),
             )
          else {
-            return Err(ExecutionError::MemoryLimitExceeded(self.storage.len()));
+            return Err(ExecutionError::MemoryLimitExceeded(self.storage.capacity()));
         };
 
         // generate STARK proof
