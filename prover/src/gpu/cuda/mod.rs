@@ -1,6 +1,6 @@
 //! This module contains GPU acceleration logic for Nvidia CUDA devices.
 
-use std::{cell::RefCell, marker::PhantomData, mem::MaybeUninit};
+use std::{cell::RefCell, marker::PhantomData};
 
 use air::{AuxRandElements, PartitionOptions};
 use miden_gpu::{
@@ -38,9 +38,9 @@ where
     D: Digest + From<[Felt; DIGEST_SIZE]> + Into<[Felt; DIGEST_SIZE]>,
     R: RandomCoin<BaseField = Felt, Hasher = H> + Send,
 {
-    main: RefCell<&'g mut [MaybeUninit<Felt>]>,
-    aux: RefCell<&'g mut [MaybeUninit<Felt>]>,
-    ce: RefCell<&'g mut [MaybeUninit<Felt>]>,
+    main: RefCell<&'g mut [Felt]>,
+    aux: RefCell<&'g mut [Felt]>,
+    ce: RefCell<&'g mut [Felt]>,
 
     pub execution_prover: ExecutionProver<H, R>,
     pub hash_fn: HashFn,
@@ -53,7 +53,7 @@ where
     D: Digest + From<[Felt; DIGEST_SIZE]> + Into<[Felt; DIGEST_SIZE]>,
     R: RandomCoin<BaseField = Felt, Hasher = H> + Send,
 {
-    pub fn new(execution_prover: ExecutionProver<H, R>, hash_fn: HashFn, main: &'g mut [MaybeUninit<Felt>], aux: &'g mut [MaybeUninit<Felt>], ce: &'g mut [MaybeUninit<Felt>]) -> Self {
+    pub fn new(execution_prover: ExecutionProver<H, R>, hash_fn: HashFn, main: &'g mut [Felt], aux: &'g mut [Felt], ce: &'g mut [Felt]) -> Self {
         CudaExecutionProver {
             main: RefCell::new(main),
             aux: RefCell::new(aux),

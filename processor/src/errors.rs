@@ -92,6 +92,8 @@ pub enum ExecutionError {
     NoMastForestWithProcedure { root_digest: Digest },
     #[error("memory address cannot exceed 2^32 but was {0}")]
     MemoryAddressOutOfBounds(u64),
+    #[error("VM exceeded the memory usage limit {0}")]
+    MemoryLimitExceeded(usize),
     #[error("merkle path verification failed for value {value} at index {index} in the Merkle tree with root {root} (error code: {err_code})", 
       value = to_hex(Felt::elements_as_bytes(value)),
       root = to_hex(root.as_bytes()),

@@ -102,14 +102,14 @@ impl Prover {
         let hash_fn = options.hash_fn();
 
         #[cfg(all(feature = "cuda", target_arch = "x86_64"))]
-        let (main, aux, ce) = {
-            // TODO: make splits slightly larger to eliminate code that depends on exact buffer size
-            self.storage.borrow_mut(
+        let Some((main, aux, ce)) = self.storage.borrow_mut(
                 TRACE_WIDTH,
                 AUX_TRACE_WIDTH,
                 trace.get_trace_len(),
                 options.clone().into(),
             )
+         else {
+            return Err(ExecutionError::MemoryLimitExceeded(self.storage.len()));
         };
 
         // generate STARK proof
