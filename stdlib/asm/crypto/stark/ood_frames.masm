@@ -51,7 +51,7 @@ export.load_constraint_evaluations
     exec.constants::ood_constraint_evals_ptr
     padw
     padw padw
-    repeat.2
+    repeat.4
         adv_pipe
         hperm
     end

@@ -279,36 +279,76 @@ proc.compute_q_z_p_gz_at_alpha
         horner_eval_ext
     end
 
-    ## 3) Load and process the last 2 extension field elements. 
-    ##    We use `mem_stream` but we will discard the last 4 field elements.
+    ## 3) Load the last 2 extension field elements. We use `mem_stream` but we will discard the last
+    ##    4 base field elements
     mem_stream
-    exec.constants::zero_word mem_loadw
+    # => [X, h3, h2, h1, h0, 0, 0, 0, 0, U, ...]
+
+    ## 4) Load the constraint trace portion of the OOD evaluation
+    ##    We now have 2 leftover extension field elements from the execution trace portion and
+    ##    we need to leap forward to the constraint portion to start processing the next batch.
+    ##    The way we do this is by saving these 2 extension field elements in the capcity portion
+    ##    (i.e., the second deepest word of the stack) while we load the constraint OOD using `mem_stream`.
+    ##    We will repeat the same manoeuvre again to handle this off-by-2 later on.
+
+    ### a) Update the pointer to point to the memory portion containing the constraint portion of the OOD
+    exec.constants::ood_constraint_evals_ptr add.16 swap.13 drop
+    # => [X, h3, h2, h1, h0, 0, 0, 0, 0, U, ...]
+    
+    ### b) Move the off-by-two elements to the capacity portion
+    movupw.2
+    # => [0, 0, 0, 0, X, h3, h2, h1, h0, U, ...]
+
+    ### c) Start loading the constraint OOD by loading the first batch of 4 extension field elements
+    mem_stream
+    # => [h7`, h6`, h5`, h4`, h3`, h2`, h1`, h0`, h3, h2, h1, h0, U, ...]
+
+    ### d) We need to process the leftover elements first
+    movdnw.2
+    # => [h3`, h2`, h1`, h0`, h3, h2, h1, h0, h7`, h6`, h5`, h4`, U, ...]
+
+    ### e) Compute using Horner
     horner_eval_ext
 
-    ## 5) Multiply the accumulator by the adjustment factor in order to get P^gz(alpha)
-    ##    We need to adjust by alpha^(71 + 7 - 1) because we are evaluating the reversed
+    ### f) Load the second and last batch of 4 extension field elements
+    mem_stream
+    # => [h15`, h14`, h13`, h12`, h11`, h10`, h9`, h8`, h7`, h6`, h5`, h4`, U, ...]
+
+    ### g) Save the last 2 extension field elements for later in the capacity portion 
+    movdnw.2
+    # => [h11`, h10`, h9`, h8`, h7`, h6`, h5`, h4`, h15`, h14`, h13`, h12`, U, ...]    
+
+    ### h) Compute using Horner
+    horner_eval_ext
+    # => [h11`, h10`, h9`, h8`, h7`, h6`, h5`, h4`, h15`, h14`, h13`, h12`, U, ...]    
+
+    ### i) Process the last 2 extension field elements
+    movdnw.2
+    # => [h7`, h6`, h5`, h4`, h15`, h14`, h13`, h12`, h11`, h10`, h9`, h8`, U, ...]    
+    exec.constants::zero_word mem_loadw
+    horner_eval_ext
+    # => [Y, Y, Y, ptr_ood, ptr_alpha, acc1, acc0, ...]
+
+    ## 5) Multiply the accumulator by the adjustment factor in order to get Q^z(alpha)
+    ##    We need to adjust by alpha^(71 + 7 + 8 - 1) because we are evaluating the reversed
     ##    polynomial at alpha^{-1} and by alpha^2 because the last `horner_eval_ext` call operated
     ##    only on a batch of 2 extension field elements out of 4, i.e., two slots where empty.
-    
-    ### a) Load alpha^77
     swapdw
     drop drop
-    exec.constants::deep_rand_alpha_77
-    mem_loadw
+
+    ### a) Load alpha^85
+    exec.constants::deep_rand_alpha_85 mem_loadw
 
     ### b) Load alpha^2
-    push.0.0
-    exec.constants::deep_rand_alpha_2
-    mem_loadw
-    drop drop
-
+    push.0.0 exec.constants::deep_rand_alpha_2 mem_loadw drop drop
+    
     ### c) Multiply the two adjustment factors
-    ext2mul   
-
-    ### d) Multiply the accumulator by the adjustment factor to get P^gz(alpha)
+    ext2mul
+    
+    ### d) Multiply the accumulator by the adjustment factor to get Q^z(alpha)
     ext2mul
 
-    ### e) Since we are going to subtract P^gz(alpha) from P^x(alpha), it makes sense to compute
+    ### e) Since we are going to subtract Q^z(alpha) from Q^x(alpha), it makes sense to compute
     ###    the negation only once and replace then the subtraction with an addition
     ext2neg
     # => [p_gz_1, p_gz_0, Y, Y, q_z_1, q_z_0, ...]
@@ -489,36 +529,22 @@ proc.load_query_row
     movdn.3 movdn.3
     #=> [ptr_x, ptr_alpha_inv, acc1, acc0, Y, depth, index, query_ptr, ...]
 
-    # III) Compute P^x(alpha).
-    #      This is the result of multiplying the current value of the accumulator by
-    #      alpha^(71 + 7 - 1) i.e., alpha^77.
+    # III) Process the constraint trace portion of the query
 
-    ## 1) Load and multiply by alpha^77
+    ### 1) Load the commitment to the constraint trace
     swapw
-    exec.constants::deep_rand_alpha_77 mem_loadw
-    #=> [alpha77_1, alpha77_0, y, y, ptr_x, ptr_alpha_inv, acc1, acc0, depth, index, query_ptr, ...]
-    dup.7 dup.7
-    ext2mul
-    #=> [p_x_at_alpha_1, p_x_at_alpha_0, y, y, ptr_x, ptr_alpha_inv, acc1, acc0, depth, index, query_ptr, ...]
- 
-    ## 2) Keep P^x(alpha) deeper on the stack
-    movdn.8
-    movdn.8
-    #=> [y, y, ptr_x, ptr_alpha_inv, acc1, acc0, depth, p_x_at_alpha_1, p_x_at_alpha_0, index, query_ptr, ...]
-
-    # IV) Process the constraint trace portion of the query
-
-    ## 1) Load the commitment to the constraint trace
-    push.0.0
     exec.constants::composition_poly_com_ptr mem_loadw
+    #=> [C, ptr_x, ptr_alpha_inv, acc1, acc0, depth, index, query_ptr, ...]
 
     ## 2) Get the leaf against the commitment
-    dup.11
+    dup.9
     movup.9
     mtree_get
     exec.constants::tmp3 mem_storew
     adv.push_mapval
-    #=>[L, R, ptr_x, ptr_alpha_inv, acc1, acc0, p_x_at_alpha_1, p_x_at_alpha_0, index, query_ptr, ...]
+    #=> [L, R, ptr_x, ptr_alpha_inv, acc1, acc0, index, query_ptr, ...]
+    
+    ##=>[L, R, ptr_x, ptr_alpha_inv, acc1, acc0, p_x_at_alpha_1, p_x_at_alpha_0, index, query_ptr, ...]
 
     ## 3) Load the 8columns as quadratic extension field elements in batches of 4. 
     padw
@@ -528,7 +554,7 @@ proc.load_query_row
         horner_eval_ext        
         hperm
     end
-    #=> [Y, L, Y, ptr_x, ptr_alpha_inv, acc1, acc0, p_x_at_alpha_1, p_x_at_alpha_0, index, query_ptr, ...]
+    #=> [Y, L, Y, ptr_x, ptr_alpha_inv, acc1, acc0, index, query_ptr, ...]
 
     ## 4) Load the leaf value we got using `mtree_get` and compare it against the hash
     ##    we just computed
@@ -540,9 +566,9 @@ proc.load_query_row
     movup.2
     assert_eq
     assert_eq
-    #=> [Y, ptr_x, ptr_alpha_inv, acc1, acc0, p_x_at_alpha_1, p_x_at_alpha_0, index, query_ptr, ...]
+    #=> [Y, ptr_x, ptr_alpha_inv, acc1, acc0, index, query_ptr, ...]
 
-    # III) Compute Q^x(alpha).
+    # IV) Compute Q^x(alpha).
     #      This is the result of multiplying the current value of the accumulator by
     #      alpha^(71 + 7 + 8 - 1) i.e., alpha^85.
 
@@ -551,15 +577,16 @@ proc.load_query_row
     drop drop
     exec.constants::deep_rand_alpha_85_0 mem_load
     exec.constants::deep_rand_alpha_85_1 mem_load
-    #=> [alpha77_1, alpha77_0, acc1, acc0, Y, depth, index, query_ptr, ...]
+    #=> [alpha77_1, alpha77_0 , acc1, acc0, Y, depth, index, query_ptr, ...]
 
     ## 2) Multiply by alpha^85
     ext2mul
-    #=> [q_x_at_alpha_1, q_x_at_alpha_0, Y, p_x_at_alpha_1, p_x_at_alpha_0, index, query_ptr, ...]
+    #=> [q_x_at_alpha_1, q_x_at_alpha_0, Y, index, query_ptr, ...]
 
     ## 3) Keep Q^x(alpha) deeper on the stack
-    movdn.5 movdn.5
-    #=> [Y, q_x_at_alpha_1, q_x_at_alpha_0, p_x_at_alpha_1, p_x_at_alpha_0, index, query_ptr, ...]
+    dup.1 dup.1
+    swapw
+    #=> [Y, q_x_at_alpha_1, q_x_at_alpha_0, q_x_at_alpha_1, q_x_at_alpha_0, index, query_ptr, ...]
 end
 
 #! Takes a query index and computes x := offset * domain_gen^index. It also computes the denominators
@@ -602,8 +629,6 @@ proc.compute_denominators
     #=> [-gz1, x - gz0, -z1, x-z0, Y, x, index, ...]
 end
 
-#! Computes the DEEP query.
-#!
 #! Input: [Z, X, Y, W, query_ptr, ...]
 #! Ouput: [eval1, eval0, Y, query_ptr, ...]
 #!
@@ -618,31 +643,41 @@ proc.divide_and_add
     #=> [X, Z, Y, W, query_ptr, ...]
     dupw.3
     #=> [W, X, Z, Y, query_ptr, ...]
-    #=> [p_gz_1, p_gz_0, q_z_1, q_z_0, q_x_at_alpha_1, q_x_at_alpha_0, p_x_at_alpha_1, p_x_at_alpha_0, Z, Y, query_ptr, ...]
+    #=> [q_gz_1, q_gz_0, q_z_1, q_z_0, q_x_at_alpha_1, q_x_at_alpha_0, q_x_at_alpha_1, q_x_at_alpha_0, Z, Y, query_ptr, ...]
 
-    movup.5 movup.5
-    movup.5 movup.5
-    #=> [q_z_1, q_z_0, q_x_at_alpha_1, q_x_at_alpha_0, p_gz_1, p_gz_0, p_x_at_alpha_1, p_x_at_alpha_0, Z, Y, query_ptr, ...]
+    movup.4 add
+    #=> [q_x_at_alpha_1 + q_gz_1, q_gz_0, q_z_1, q_z_0, q_x_at_alpha_0, q_x_at_alpha_1, q_x_at_alpha_0, Z, Y, query_ptr, ...]
 
-    ext2add
-    #=> [num0_1, num0_0, p_gz_1, p_gz_0, p_x_at_alpha_1, p_x_at_alpha_0, Z, Y, query_ptr, ...]
+    swap
+    #=> [q_gz_0, q_x_at_alpha_1 + q_gz_1, q_z_1, q_z_0, q_x_at_alpha_0, q_x_at_alpha_1, q_x_at_alpha_0, Z, Y, query_ptr, ...]
 
-    movdn.9 movdn.9
-    #=> [p_gz_1, p_gz_0, p_x_at_alpha_1, p_x_at_alpha_0, Z, num0_1, num0_0, Y, query_ptr, ...]
+    movup.4 add
+    #=> [q_x_at_alpha_0 + q_gz_0, q_x_at_alpha_1 + q_gz_1, q_z_1, q_z_0, q_x_at_alpha_1, q_x_at_alpha_0, Z, Y, query_ptr, ...]
+    swap
+    #=> [q_x_at_alpha_1 + q_gz_1, q_x_at_alpha_0 + q_gz_0, q_z_1, q_z_0, q_x_at_alpha_1, q_x_at_alpha_0, Z, Y, query_ptr, ...]
 
-    ext2add
-    #=> [num1_1, num1_0, Z, num0_1, num0_0, Y, query_ptr, ...]
+    movup.7 movup.7
+    ext2div
+     #=> [num1_1, num1_0, q_z_1, q_z_0, q_x_at_alpha_1, q_x_at_alpha_0, den0_1, den0_0, Y, query_ptr, ...]
+
+    swapw
+     #=> [q_x_at_alpha_1, q_x_at_alpha_0, den0_1, den0_0, num1_1, num1_0, q_z_1, q_z_0, Y, query_ptr, ...]
+
+    movup.6 add swap
+     #=> [q_x_at_alpha_0, q_z_1 + q_x_at_alpha_1, den0_1, den0_0, num1_1, num1_0, q_z_0, Y, query_ptr, ...]
+
+    movup.6 add swap
+     #=> [q_z_1 + q_x_at_alpha_1, q_z_0 + q_x_at_alpha_0, den0_1, den0_0, num1_1, num1_0, Y, query_ptr, ...]
+
+     #=> [q_z_1 + q_x_at_alpha_1, q_z_0 + q_x_at_alpha_0, den0_1, den0_0, num1_1, num1_0, Y, query_ptr, ...]
 
     movup.3 movup.3
+
     ext2div
-    #=> [res1_1, res1_0, z0_1, z0_0, num0_1, num0_0, Y, query_ptr, ...]
-    movdn.5 movdn.5
-    #=> [z0_1, z0_0, num0_1, num0_0, res1_1, res1_0, Y, query_ptr, ...]
-    ext2div
-    #=> [res0_1, res0_0, res1_1, res1_0, Y, query_ptr, ...]
+     #=> [num0_1, num0_0, num1_1, num1_0, Y, query_ptr, ...]
 
     ext2add
-    # => [eval1, eval0, Y, query_ptr, ...]
+    # => [eval1, eval0, Y, W, query_ptr, ...]
 end
 
 #! Compute the DEEP composition polynomial FRI queries.

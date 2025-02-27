@@ -115,8 +115,9 @@ pub fn generate_advice_inputs(
 
     // read OOD evaluations of composition polynomial columns
     let ood_constraint_evaluations = channel.read_ood_constraint_evaluations();
-    advice_stack.extend_from_slice(&to_int_vec(&ood_constraint_evaluations));
-    public_coin.reseed(Rpo256::hash_elements(&ood_constraint_evaluations));
+    advice_stack.extend_from_slice(&to_int_vec(&ood_constraint_evaluations.current_row()));
+    advice_stack.extend_from_slice(&to_int_vec(&ood_constraint_evaluations.next_row()));
+    public_coin.reseed(ood_constraint_evaluations.hash::<Rpo256>());
 
     // 5 ----- FRI  -------------------------------------------------------------------------------
 

@@ -2776,7 +2776,6 @@ dependencies = [
 [[package]]
 name = "winter-air"
 version = "0.12.0"
-source = "git+https://github.com/Al-Kindi-0/winterfell/?branch=al-recursive-verifier-remainder-opt#c3dda426b52c0ac852f53df1d4bc0a4042782893"
 dependencies = [
  "libm",
  "winter-crypto",
@@ -2788,7 +2787,6 @@ dependencies = [
 [[package]]
 name = "winter-crypto"
 version = "0.12.0"
-source = "git+https://github.com/Al-Kindi-0/winterfell/?branch=al-recursive-verifier-remainder-opt#c3dda426b52c0ac852f53df1d4bc0a4042782893"
 dependencies = [
  "blake3",
  "sha3",
@@ -2799,7 +2797,6 @@ dependencies = [
 [[package]]
 name = "winter-fri"
 version = "0.12.0"
-source = "git+https://github.com/Al-Kindi-0/winterfell/?branch=al-recursive-verifier-remainder-opt#c3dda426b52c0ac852f53df1d4bc0a4042782893"
 dependencies = [
  "winter-crypto",
  "winter-math 0.12.0",
@@ -2818,7 +2815,6 @@ dependencies = [
 [[package]]
 name = "winter-math"
 version = "0.12.0"
-source = "git+https://github.com/Al-Kindi-0/winterfell/?branch=al-recursive-verifier-remainder-opt#c3dda426b52c0ac852f53df1d4bc0a4042782893"
 dependencies = [
  "winter-utils 0.12.0",
 ]
@@ -2826,7 +2822,6 @@ dependencies = [
 [[package]]
 name = "winter-maybe-async"
 version = "0.12.0"
-source = "git+https://github.com/Al-Kindi-0/winterfell/?branch=al-recursive-verifier-remainder-opt#c3dda426b52c0ac852f53df1d4bc0a4042782893"
 dependencies = [
  "quote",
  "syn",
@@ -2835,7 +2830,6 @@ dependencies = [
 [[package]]
 name = "winter-prover"
 version = "0.12.0"
-source = "git+https://github.com/Al-Kindi-0/winterfell/?branch=al-recursive-verifier-remainder-opt#c3dda426b52c0ac852f53df1d4bc0a4042782893"
 dependencies = [
  "tracing",
  "winter-air",
@@ -2849,7 +2843,6 @@ dependencies = [
 [[package]]
 name = "winter-rand-utils"
 version = "0.12.0"
-source = "git+https://github.com/Al-Kindi-0/winterfell/?branch=al-recursive-verifier-remainder-opt#c3dda426b52c0ac852f53df1d4bc0a4042782893"
 dependencies = [
  "rand",
  "winter-utils 0.12.0",
@@ -2864,7 +2857,6 @@ checksum = "1507ef312ea5569d54c2c7446a18b82143eb2a2e21f5c3ec7cfbe8200c03bd7c"
 [[package]]
 name = "winter-utils"
 version = "0.12.0"
-source = "git+https://github.com/Al-Kindi-0/winterfell/?branch=al-recursive-verifier-remainder-opt#c3dda426b52c0ac852f53df1d4bc0a4042782893"
 dependencies = [
  "rayon",
 ]
@@ -2872,7 +2864,6 @@ dependencies = [
 [[package]]
 name = "winter-verifier"
 version = "0.12.0"
-source = "git+https://github.com/Al-Kindi-0/winterfell/?branch=al-recursive-verifier-remainder-opt#c3dda426b52c0ac852f53df1d4bc0a4042782893"
 dependencies = [
  "winter-air",
  "winter-crypto",

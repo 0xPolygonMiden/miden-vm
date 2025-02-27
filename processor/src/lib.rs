@@ -132,6 +132,7 @@ pub fn execute(
     let mut process = Process::new(program.kernel().clone(), stack_inputs, options);
     let stack_outputs = process.execute(program, host)?;
     let trace = ExecutionTrace::new(process, stack_outputs);
+    std::println!("trace length is {:?}", trace.trace_len_summary());
     assert_eq!(&program.hash(), trace.program_hash(), "inconsistent program hash");
     Ok(trace)
 }
