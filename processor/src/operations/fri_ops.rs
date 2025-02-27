@@ -5,7 +5,7 @@ use super::{super::QuadFelt, ExecutionError, Felt, Operation, Process};
 // CONSTANTS
 // ================================================================================================
 
-const TWO: Felt = Felt::new(2);
+const EIGHT: Felt = Felt::new(8);
 const TWO_INV: Felt = Felt::new(9223372034707292161);
 
 const DOMAIN_OFFSET: Felt = Felt::GENERATOR;
@@ -31,7 +31,7 @@ impl Process {
     /// - Folds 4 query values (v0, v1), (v2, v3), (v4, v5), (v6, v7) into a single value (ne0,
     ///   ne1).
     /// - Computes new value of the domain generator power: poe' = poe^4.
-    /// - Increments layer pointer (cptr) by 2.
+    /// - Increments layer pointer (cptr) by 8.
     /// - Checks that the previous folding was done correctly.
     /// - Shifts the stack to the left to move an item from the overflow table to stack position 15.
     ///
@@ -100,7 +100,7 @@ impl Process {
         self.stack.set(7, ds[0]);
         self.stack.set(8, poe2);
         self.stack.set(9, f_tau);
-        self.stack.set(10, layer_ptr + TWO);
+        self.stack.set(10, layer_ptr + EIGHT);
         self.stack.set(11, poe4);
         self.stack.set(12, f_pos);
         self.stack.set(13, folded_value[1]);
@@ -248,9 +248,9 @@ mod tests {
     use winter_utils::transpose_slice;
 
     use super::{
-        ExtensionOf, Felt, FieldElement, Operation, Process, QuadFelt, StarkField, TWO, TWO_INV,
+        ExtensionOf, Felt, FieldElement, Operation, Process, QuadFelt, StarkField, TWO_INV,
     };
-    use crate::DefaultHost;
+    use crate::{operations::fri_ops::EIGHT, DefaultHost};
 
     #[test]
     fn fold4() {
@@ -295,7 +295,7 @@ mod tests {
         assert_eq!(super::TAU2_INV, tau.square().inv());
         assert_eq!(super::TAU3_INV, tau.cube().inv());
 
-        assert_eq!(TWO.inv(), TWO_INV);
+        assert_eq!(Felt::new(2).inv(), TWO_INV);
     }
 
     #[test]
@@ -304,7 +304,7 @@ mod tests {
         // we need 17 values because we also assume that the pointer to the last FRI layer will
         // be in the first position of the stack overflow table
         let mut inputs = rand_array::<Felt, 17>();
-        inputs[7] = TWO; // domain segment must be < 4
+        inputs[7] = Felt::new(2); // domain segment must be < 4
 
         // when domain segment is 2, the 3rd query value and the previous value must be the same
         inputs[4] = inputs[13];
@@ -362,7 +362,7 @@ mod tests {
         // check poe, f_tau, layer_ptr, f_pos
         assert_eq!(stack_state[8], poe.square());
         assert_eq!(stack_state[9], f_tau);
-        assert_eq!(stack_state[10], layer_ptr + TWO);
+        assert_eq!(stack_state[10], layer_ptr + EIGHT);
         assert_eq!(stack_state[11], poe.exp(4));
         assert_eq!(stack_state[12], f_pos);
 

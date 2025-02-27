@@ -55,17 +55,17 @@ Address space of every context is the same: the smallest accessible address is $
 
 For user contexts we have the following:
 
-- The first $2^{30}$ words (each word is 4 field elements) are assumed to be global memory.
-- The next $2^{30}$ words are reserved for memory locals of procedures executed in the same context (i.e., via the `exec` instruction).
+- The first $2^{30}$ addresses are assumed to be global memory.
+- The next $2^{30}$ addresses are reserved for memory locals of procedures executed in the same context (i.e., via the `exec` instruction).
 - The remaining address space has no special meaning.
 
 ![user memory layout](../../assets/user_docs//assembly/execution_contexts/user_mem_layout.png)
 
 For the root context we have the following:
 
-- The first $2^{30}$ words are assumed to be global memory.
-- The next $2^{30}$ words are reserved for memory locals of procedures executed in the root context.
-- The next $2^{30}$ words are reserved for memory locals of procedures executed from within a `syscall`.
+- The first $2^{30}$ addresses are assumed to be global memory.
+- The next $2^{30}$ addresses are reserved for memory locals of procedures executed in the root context.
+- The next $2^{30}$ addresses are reserved for memory locals of procedures executed from within a `syscall`.
 - The remaining address space has no special meaning.
 
 ![root memory layout](../../assets/user_docs//assembly/execution_contexts/root_mem_layout.png)

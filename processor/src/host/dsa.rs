@@ -1,10 +1,6 @@
 use alloc::vec::Vec;
 
-use vm_core::{
-    crypto::dsa::rpo_falcon512::{Polynomial, SecretKey},
-    utils::Deserializable,
-    Felt, Word,
-};
+use vm_core::{Felt, Word};
 
 use crate::ExecutionError;
 
@@ -24,6 +20,11 @@ use crate::ExecutionError;
 /// - The signature generation failed.
 #[cfg(feature = "std")]
 pub fn falcon_sign(sk: &[Felt], msg: Word) -> Result<Vec<Felt>, ExecutionError> {
+    use vm_core::{
+        crypto::dsa::rpo_falcon512::{Polynomial, SecretKey},
+        utils::Deserializable,
+    };
+
     // Create the corresponding secret key
     let mut sk_bytes = Vec::with_capacity(sk.len());
     for element in sk {

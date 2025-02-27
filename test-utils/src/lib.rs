@@ -23,6 +23,7 @@ pub use processor::{
 };
 #[cfg(not(target_family = "wasm"))]
 use proptest::prelude::{Arbitrary, Strategy};
+use prover::utils::range;
 pub use prover::{prove, MemAdviceProvider, MerkleTreeVC, ProvingOptions};
 pub use test_case::test_case;
 pub use verifier::{verify, AcceptableOptions, VerifierError};
@@ -70,7 +71,7 @@ pub const U32_BOUND: u64 = u32::MAX as u64 + 1;
 
 /// A source code of the `truncate_stack` procedure.
 pub const TRUNCATE_STACK_PROC: &str = "
-proc.truncate_stack.1
+proc.truncate_stack.4
     loc_storew.0 dropw movupw.3
     sdepth neq.16
     while.true
@@ -221,7 +222,7 @@ impl Test {
     pub fn expect_stack_and_memory(
         &self,
         final_stack: &[u64],
-        mut mem_start_addr: u32,
+        mem_start_addr: u32,
         expected_mem: &[u64],
     ) {
         // compile the program
@@ -243,21 +244,22 @@ impl Test {
         process.execute(&program, &mut host).unwrap();
 
         // validate the memory state
-        for data in expected_mem.chunks(WORD_SIZE) {
-            // Main memory is zeroed by default, use zeros as a fallback when unwrap to make testing
-            // easier
+        for (addr, mem_value) in
+            (range(mem_start_addr as usize, expected_mem.len())).zip(expected_mem.iter())
+        {
             let mem_state = process
                 .chiplets
-                .get_mem_value(ContextId::root(), mem_start_addr)
-                .unwrap_or(EMPTY_WORD);
-
-            let mem_state = felt_slice_to_ints(&mem_state);
+                .memory
+                .get_value(ContextId::root(), addr as u32)
+                .unwrap_or(ZERO);
             assert_eq!(
-                data, mem_state,
+                *mem_value,
+                mem_state.as_int(),
                 "Expected memory [{}] => {:?}, found {:?}",
-                mem_start_addr, data, mem_state
+                addr,
+                mem_value,
+                mem_state
             );
-            mem_start_addr += 1;
         }
 
         // validate the stack states

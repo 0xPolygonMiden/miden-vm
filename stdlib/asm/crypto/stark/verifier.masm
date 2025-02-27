@@ -14,9 +14,9 @@ use.std::crypto::stark::utils
 #!   - The maximal allowed degree of the remainder polynomial is 7.
 #!   - The public inputs are composed of the input and output stacks, of fixed size equal to 16.
 #!   - There are two trace segments, main and auxiliary. It is assumed that the main trace segment
-#!   is 70 columns wide while the auxiliary trace segment is 7 columns wide.
+#!   is 71 columns wide while the auxiliary trace segment is 7 columns wide.
 #!   - The OOD evaluation frame is composed of two interleaved rows, current and next, each composed
-#!    of 70 elements representing the main trace portion and 7 elements for the auxiliary trace one.
+#!    of 71 elements representing the main trace portion and 7 elements for the auxiliary trace one.
 #!   - To boost soundness, the protocol is run on a quadratic extension field and this means that
 #!    the OOD evaluation frame is composed of elements in a quadratic extension field i.e. tuples.
 #!    Similarly, elements of the auxiliary trace are quadratic extension field elements. The random
@@ -215,7 +215,9 @@ export.verify
     # the first layer commitment and total number of queries.
     exec.constants::fri_com_ptr
     exec.constants::number_queries_ptr mem_load
-    dup movdn.2
+    dup movdn.2 mul.4
+    #=> [num_queries*4, fri_com_ptr, num_queries, ...]
+
     sub
     #=> [query_ptr, num_queries, ...]
 
@@ -226,7 +228,7 @@ export.verify
     exec.random_coin::generate_list_indices
     #=> [query_ptr, ...]
 
-    # Compute deep compostion polynomial queries
+    # Compute deep composition polynomial queries
     #
     # Cycles: 24 + num_queries * 445
     #=> [query_ptr, ...]

@@ -1,11 +1,12 @@
 use alloc::{
+    boxed::Box,
     string::{String, ToString},
     vec::Vec,
 };
 use core::fmt;
 
 use miden_air::RowIndex;
-use vm_core::{AssemblyOp, Operation, StackOutputs, Word};
+use vm_core::{AssemblyOp, FieldElement, Operation, StackOutputs};
 
 use crate::{
     range::RangeChecker, system::ContextId, Chiplets, ChipletsLengths, Decoder, ExecutionError,
@@ -21,17 +22,15 @@ pub struct VmState {
     pub asmop: Option<AsmOpInfo>,
     pub fmp: Felt,
     pub stack: Vec<Felt>,
-    pub memory: Vec<(u64, Word)>,
+    pub memory: Vec<(u64, Felt)>,
 }
 
 impl fmt::Display for VmState {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let stack: Vec<u64> = self.stack.iter().map(|x| x.as_int()).collect();
-        let memory: Vec<(u64, [u64; 4])> =
-            self.memory.iter().map(|x| (x.0, word_to_ints(&x.1))).collect();
         write!(
             f,
-            "clk={}{}{}, fmp={}, stack={stack:?}, memory={memory:?}",
+            "clk={}{}{}, fmp={}, stack={stack:?}, memory={:?}",
             self.clk,
             match self.op {
                 Some(op) => format!(", op={op}"),
@@ -41,7 +40,8 @@ impl fmt::Display for VmState {
                 Some(op) => format!(", {op}"),
                 None => "".to_string(),
             },
-            self.fmp
+            self.fmp,
+            self.memory
         )
     }
 }
@@ -166,7 +166,7 @@ impl VmStateIterator {
             asmop,
             fmp: self.system.get_fmp_at(self.clk),
             stack: self.stack.get_state_at(self.clk),
-            memory: self.chiplets.get_mem_state_at(ctx, self.clk),
+            memory: self.chiplets.memory.get_state_at(ctx, self.clk),
         });
 
         self.clk -= 1;
@@ -236,19 +236,13 @@ impl Iterator for VmStateIterator {
             asmop,
             fmp: self.system.get_fmp_at(self.clk),
             stack: self.stack.get_state_at(self.clk),
-            memory: self.chiplets.get_mem_state_at(ctx, self.clk),
+            memory: self.chiplets.memory.get_state_at(ctx, self.clk),
         }));
 
         self.clk += 1;
 
         result
     }
-}
-
-// HELPER FUNCTIONS
-// ================================================================================================
-fn word_to_ints(word: &Word) -> [u64; 4] {
-    [word[0].as_int(), word[1].as_int(), word[2].as_int(), word[3].as_int()]
 }
 
 /// Contains assembly instruction and operation index in the sequence corresponding to the specified
@@ -318,5 +312,118 @@ impl AsRef<AssemblyOp> for AsmOpInfo {
     #[inline]
     fn as_ref(&self) -> &AssemblyOp {
         &self.asmop
+    }
+}
+
+// BUS DEBUGGING
+// =================================================================
+
+/// A message that can be sent on a bus.
+pub(crate) trait BusMessage<E: FieldElement<BaseField = Felt>>: fmt::Display {
+    /// The concrete value that this message evaluates to.
+    fn value(&self, alphas: &[E]) -> E;
+
+    /// The source of this message (e.g. "mload" or "memory chiplet").
+    fn source(&self) -> &str;
+}
+
+/// A debugger for a bus that can be used to track outstanding requests and responses.
+///
+/// Note: we use `Vec` internally instead of a `BTreeMap`, since messages can have collisions (i.e.
+/// 2 messages sent with the same key), which results in relatively complex insertion/deletion
+/// logic. Since this is only used in debug/test code, the performance hit is acceptable.
+pub(crate) struct BusDebugger<E: FieldElement<BaseField = Felt>> {
+    pub bus_name: String,
+    pub outstanding_requests: Vec<(E, Box<dyn BusMessage<E>>)>,
+    pub outstanding_responses: Vec<(E, Box<dyn BusMessage<E>>)>,
+}
+
+impl<E> BusDebugger<E>
+where
+    E: FieldElement<BaseField = Felt>,
+{
+    pub fn new(bus_name: String) -> Self {
+        Self {
+            bus_name,
+            outstanding_requests: Vec::new(),
+            outstanding_responses: Vec::new(),
+        }
+    }
+}
+
+impl<E> BusDebugger<E>
+where
+    E: FieldElement<BaseField = Felt>,
+{
+    /// Attempts to match the request with an existing response. If a match is found, the response
+    /// is removed from the list of outstanding responses. Otherwise, the request is added to the
+    /// list of outstanding requests.
+    #[allow(dead_code)]
+    pub fn add_request(&mut self, request_msg: Box<dyn BusMessage<E>>, alphas: &[E]) {
+        let msg_value = request_msg.value(alphas);
+
+        if let Some(pos) =
+            self.outstanding_responses.iter().position(|(value, _)| *value == msg_value)
+        {
+            self.outstanding_responses.swap_remove(pos);
+        } else {
+            self.outstanding_requests.push((msg_value, request_msg));
+        }
+    }
+
+    /// Attempts to match the response with an existing request. If a match is found, the request is
+    /// removed from the list of outstanding requests. Otherwise, the response is added to the list
+    /// of outstanding responses.
+    #[allow(dead_code)]
+    pub fn add_response(&mut self, response_msg: Box<dyn BusMessage<E>>, alphas: &[E]) {
+        let msg_value = response_msg.value(alphas);
+
+        if let Some(pos) =
+            self.outstanding_requests.iter().position(|(value, _)| *value == msg_value)
+        {
+            self.outstanding_requests.swap_remove(pos);
+        } else {
+            self.outstanding_responses.push((msg_value, response_msg));
+        }
+    }
+
+    /// Returns true if there are no outstanding requests or responses.
+    ///
+    /// This is meant to be called at the end of filling the bus. If there are any outstanding
+    /// requests or responses, it means that there is a mismatch between the requests and responses,
+    /// and the test should fail. The `Debug` implementation for `BusDebugger` will print out the
+    /// outstanding requests and responses.
+    #[allow(dead_code)]
+    pub fn is_empty(&self) -> bool {
+        self.outstanding_requests.is_empty() && self.outstanding_responses.is_empty()
+    }
+}
+
+impl<E> fmt::Display for BusDebugger<E>
+where
+    E: FieldElement<BaseField = Felt>,
+{
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        if self.is_empty() {
+            writeln!(f, "Bus '{}' is empty.", self.bus_name)?;
+        } else {
+            writeln!(f, "Bus '{}' construction failed.", self.bus_name)?;
+
+            if !self.outstanding_requests.is_empty() {
+                writeln!(f, "The following requests are still outstanding:")?;
+                for (_value, msg) in &self.outstanding_requests {
+                    writeln!(f, "- {}: {}", msg.source(), msg)?;
+                }
+            }
+
+            if !self.outstanding_responses.is_empty() {
+                writeln!(f, "\nThe following responses are still outstanding:")?;
+                for (_value, msg) in &self.outstanding_responses {
+                    writeln!(f, "- {}: {}", msg.source(), msg)?;
+                }
+            }
+        }
+
+        Ok(())
     }
 }

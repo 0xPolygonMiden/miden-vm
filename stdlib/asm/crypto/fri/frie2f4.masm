@@ -6,8 +6,8 @@
 #!  g being the initial domain generator.
 #! TODO: This pre-processing function should in fact compute d_size and t_depth for each C
 #! starting from the original domain size.
-export.preprocess.4
-    locaddr.3
+export.preprocess.16
+    locaddr.12
     adv_push.1                  #[num_queries, query_ptr, g, ..]
     sub.1
     push.0.0.0.0
@@ -15,13 +15,13 @@ export.preprocess.4
     while.true
         adv_loadw                       #[Q, num_queries, ptr, ..]
         dup.5                           #[ptr, Q, num_queries, ptr,..]
-        u32wrapping_add.1               #[ptr+1, Q, num_queries, ptr, ..]
-        swap.6                          #[ptr, Q, num_queries, ptr+1, ..]
-        mem_storew                      #[Q, num_queries, ptr+1, ..]
+        u32wrapping_add.4               #[ptr+4, Q, num_queries, ptr, ..]
+        swap.6                          #[ptr, Q, num_queries, ptr+4, ..]
+        mem_storew                      #[Q, num_queries, ptr+4, ..]
         dup.4
-        sub.1                           #[num_queries-1, Q, num_queries, ptr+1, ..]
-        swap.5                          #[num_queries, Q, num_queries-1, ptr+1, ..]
-        neq.0                           #[?, Q, num_queries-1, ptr+1, ..]
+        sub.1                           #[num_queries-1, Q, num_queries, ptr+4, ..]
+        swap.5                          #[num_queries, Q, num_queries-1, ptr+4, ..]
+        neq.0                           #[?, Q, num_queries-1, ptr+4, ..]
     end
     #=> [X, x, layer_ptr, g]
 
@@ -42,7 +42,7 @@ export.preprocess.4
     while.true
         adv_loadw
         dup.5
-        u32wrapping_add.1
+        u32wrapping_add.4
         swap.6
         mem_storew
         dup.4
@@ -68,7 +68,7 @@ export.preprocess.4
     while.true
         adv_loadw
         dup.5
-        u32wrapping_add.1
+        u32wrapping_add.4
         swap.6
         mem_storew
         dup.4
@@ -80,24 +80,24 @@ export.preprocess.4
     dropw drop drop
 
     swap
-    locaddr.3
+    locaddr.12
     #=> [query_ptr, layer_ptr, remainder_ptr, g]
 end
 
 #! Checks that, for a query with index p at layer i, the folding procedure to create layer (i + 1)
-#! was performed correctly. This also advances layer_ptr by 2 to point to the next query layer.
+#! was performed correctly. This also advances layer_ptr by 8 to point to the next query layer.
 #!
 #! Input:  [layer_ptr, layer_ptr, poe, p, e1, e0, layer_ptr, rem_ptr, x, x, x, x, x, x, x, x, ...]
-#! Output: [layer_ptr + 2, layer_ptr + 2, poe^4, f_pos, ne1, ne0, layer_ptr + 2, rem_ptr, x, x, x, x, x, x, x, x, ...]
+#! Output: [layer_ptr+8, layer_ptr+8, poe^4, f_pos, ne1, ne0, layer_ptr+8, rem_ptr, x, x, x, x, x, x, x, x, ...]
 #!
 #! Cycles: 76
-export.verify_query_layer.3
+export.verify_query_layer.12
 
     # load layer commitment C as well as [a0, a1, t_depth, d_size] (7 cycles)
     swapdw
     movup.8
-    add.1
-    mem_loadw   # load [a0, a1, t_depth, d_size] from layer_ptr + 1
+    add.4
+    mem_loadw   # load [a0, a1, t_depth, d_size] from layer_ptr + 4
     swapw
     movup.8
     mem_loadw   # load C from layer_ptr
@@ -118,9 +118,9 @@ export.verify_query_layer.3
     # => [V, C, f_pos, d_seg, poe, e1, e0, a1, a0, layer_ptr, rem_ptr, ...]
     # where f_pos = p % d_size and d_seg = p / 4
 
-    # unhash V and save the pre-image in locaddr.0 and locaddr.1; we don't clear values of C
+    # unhash V and save the pre-image in locaddr.0 and locaddr.4; we don't clear values of C
     # because adv_pipe overwrites the first 8 elements of the stack (15 cycles)
-    locaddr.1
+    locaddr.4
     movdn.4
     push.0.0.0.0
     swapw
@@ -141,26 +141,27 @@ export.verify_query_layer.3
     assert_eq
 
     # load (v7, ..v0) from memory (8 cycles)
-    loc_loadw.1
+    loc_loadw.4
     swapw
-    loc_loadw.2
+    loc_loadw.8
     # => [v7, ..., v0, f_pos, d_seg, poe, e1, e0, a1, a0, layer_ptr, rem_ptr, ...]
 
     # fold by 4 (1 cycle)
     fri_ext2fold4
-    # => [x, x, x, x, x, x, x, x, x, x, layer_ptr + 2, poe^4, f_pos, ne1, ne0, rem_ptr, ...]
+    # => [x, x, x, x, x, x, x, x, x, x, layer_ptr + 8, poe^4, f_pos, ne1, ne0, rem_ptr, ...]
 
     # prepare for next iteration (10 cycles)
     swapdw
-    dup.2
-    movdn.7
-    drop
-    drop
-    dup
-    dup.7
-    dup.1
-    neq
-    # => [?, layer_ptr + 2, layer_ptr + 2, poe^4, f_pos, ne1, ne0, layer_ptr + 2, rem_ptr, x, x, x, x, x, x, x, x, ...]
+    # => [x, x, layer_ptr + 8, poe^4, f_pos, ne1, ne0, rem_ptr, x, x, x, x, x, x, x, x, ...]
+    dup.2     # [layer_ptr+8, x, x, layer_ptr+8, poe^4, f_pos, ne1, ne0, rem_ptr, ]
+    movdn.7   # [x, x, layer_ptr+8, poe^4, f_pos, ne1, ne0, layer_ptr+8, rem_ptr, ...]
+    drop      
+    drop      # [layer_ptr+8, poe^4, f_pos, ne1, ne0, layer_ptr+8, rem_ptr, ...]
+    dup       # [layer_ptr+8, layer_ptr+8, poe^4, f_pos, ne1, ne0, layer_ptr+8, rem_ptr, ...]
+    dup.7     # [rem_ptr, layer_ptr+8, layer_ptr+8, poe^4, f_pos, ne1, ne0, layer_ptr+8, rem_ptr, ...]
+    dup.1     # [layer_ptr+8, rem_ptr, layer_ptr+8, layer_ptr+8, poe^4, f_pos, ne1, ne0, layer_ptr+8, rem_ptr, ...]
+    neq       
+    # => [?, layer_ptr+8, layer_ptr+8, poe^4, f_pos, ne1, ne0, layer_ptr+8, rem_ptr, x, x, x, x, x, x, x, x, ...]
 end
 
 #! Verifies one FRI query.
@@ -175,7 +176,7 @@ end
 #!   layer.
 #! - rem_ptr is the memory address of the remainder codeword.
 #!
-#! Cycles: 40 + num_layers * 76
+#! Cycles: 42 + num_layers * 76
 export.verify_query
 
     # prepare stack to be in a form that leverages the fri_ext2fold4 instruction output stack state
@@ -197,17 +198,18 @@ export.verify_query
     end
     # => [rem_ptr, rem_ptr, poe^(2^n), f_pos, ne1, ne0, rem_ptr, rem_ptr, x, x, x, x, x, x, x, x, ...]
 
-    # check that remainder[f_pos] == (ne0, ne1)
+    # check that rem_ptr[f_pos] == (ne0, ne1)
 
     # Since each memory address contains two extension field elements, we have to determine which
     # of the two elements we should compare against. (7 cycles)
-    movup.3
-    push.2
-    u32divmod     # f_pos must be a u32 value
-    movdn.4
+    movup.3     # [f_pos, rem_ptr, rem_ptr, poe^(2^n), ne1, ne0, rem_ptr, rem_ptr, ...]
+    push.2      # [2, f_pos, rem_ptr, rem_ptr, poe^(2^n), ne1, ne0, rem_ptr, rem_ptr, ...]
+    u32divmod   # [f_pos%2, f_pos/2, rem_ptr, rem_ptr, poe^(2^n), ne1, ne0, rem_ptr, rem_ptr, ...]
+    movdn.4     # [f_pos/2, rem_ptr, rem_ptr, poe^(2^n), f_pos%2, ne1, ne0, rem_ptr, rem_ptr, ...]
+    mul.4       # [f_pos*2, rem_ptr, rem_ptr, poe^(2^n), f_pos%2, ne1, ne0, rem_ptr, rem_ptr, ...]
     dup.1
-    dup.1
-    add
+    dup.1       # [f_pos*2, rem_ptr, f_pos*2, rem_ptr, rem_ptr, poe^(2^n), f_pos%2, ne1, ne0, rem_ptr, rem_ptr, ...]
+    add         # [rem_ptr + f_pos*2, f_pos*2, rem_ptr, rem_ptr, poe^(2^n), f_pos%2, ne1, ne0, rem_ptr, rem_ptr, ...]
     # => [rem_ptr + offset, x, x, x, x, ?, ne1, ne0, rem_ptr, rem_ptr, x, x, x, x, x, x, x, x, ..]
 
     mem_loadw
@@ -239,7 +241,7 @@ end
 #!   to g^p with g being the initial FRI domain generator. p is the query index at the first layer
 #!   and (e0, e1) is an extension field element corresponding to the value of the first layer at index p.
 #! - layer_ptr is a pointer to the first layer commitment denoted throughout the code by C.
-#!   layer_ptr + 1 points to the first [alpha0, alpha1, t_depth, d_size] where d_size is the size
+#!   layer_ptr + 4 points to the first [alpha0, alpha1, t_depth, d_size] where d_size is the size
 #!   of initial domain divided by 4, t_depth is the depth of the Merkle tree commitment to the
 #!   first layer and (alpha0, alpha1) is the first challenge used in folding the first layer.
 #!   Both t_depth and d_size are expected to be smaller than 2^32. Otherwise, the result of
@@ -255,8 +257,8 @@ end
 #! 1. rem_ptr - 1 points to the last (alpha0, alpha1, t_depth, d_size) tuple.
 #! 2. layer_ptr - 1 points to the last (e0, e1, p, poe) tuple.
 #!
-#! Cycles: 7 + 4 + num_queries * (40 + num_layers * 76 + 26)
-export.verify.1
+#! Cycles: 7 + 4 + num_queries * (42 + num_layers * 76 + 26)
+export.verify.4
 
     # store [query_ptr, layer_ptr, rem_ptr, g] to keep track of all queries
     # (3 cycles)
@@ -282,12 +284,12 @@ export.verify.1
         # => [x, x, x, x, x, x, x, x, x, x, g, ...]
         dropw drop drop drop
         loc_loadw.0   # load [query_ptr, layer_ptr, rem_ptr, g]
-        add.1
-        loc_storew.0  # store [query_ptr + 1, layer_ptr, rem_ptr, g]
+        add.4
+        loc_storew.0  # store [query_ptr + 4, layer_ptr, rem_ptr, g]
         dup
         dup.2
         neq
-        #=> [?, query_ptr + 1, layer_ptr, rem_ptr, g, ...]
+        #=> [?, query_ptr + 4, layer_ptr, rem_ptr, g, ...]
     end
     #=> [X, ..]
 
