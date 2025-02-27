@@ -7,7 +7,7 @@
 #!    remaining part of word i.e. a3, a2 will be consumed during immediate next iteration
 #!    of computing β which involves invocation of accumulate_for_odd_index.
 #!
-#! Input: [ω, ν1, ν0, τ1, τ0, q_ptr - 1, ...]
+#! Input: [ω, ν1, ν0, τ1, τ0, q_ptr - 4, ...]
 #! Output: [a3, a2, ν1', ν0', τ1, τ0, q_ptr, ...]
 #!
 #! Cycles: 54
@@ -24,11 +24,11 @@ proc.accumulate_for_even_index
     movdn.2
     mul
 
-    # load <a0, a1, a2, a3> from q_ptr + 1
+    # load <a0, a1, a2, a3> from q_ptr + 4
     #
     # notice, first increment the memory address and then load from it.
     movup.6
-    add.1
+    add.4
     movdn.6
     push.0.0.0
     dup.9
@@ -102,9 +102,9 @@ end
 #!
 #! Cycles: 2802
 proc.compute_beta_64
-    # decrement starting address by 1, because we first increment and then load onto the stack
+    # decrement starting address by 4, because we first increment and then load onto the stack
     movup.2
-    sub.1
+    sub.4
     movdn.2
 
     push.0.0 # accumulator for β
@@ -393,7 +393,7 @@ end
 proc.compute_beta_32
     # decrement starting address by 1, because we first increment and then load onto the stack
     movup.2
-    sub.1
+    sub.4
     movdn.2
 
     push.0.0 # accumulator for β
@@ -556,37 +556,37 @@ end
 #!
 #! Cycles: 114
 proc.compute_alpha_64
-    padw dup.6 sub.1 swap.7
+    padw dup.6 sub.4 swap.7
     mem_loadw
-    #=> [a11, a10, a01, a00, τ1, τ0, p_ptr-1, ...]
+    #=> [a11, a10, a01, a00, τ1, τ0, p_ptr-4, ...]
     dup.5 dup.5
     ext2mul
     ext2add
-    #=> [acc1, acc0, τ1, τ0, p_ptr-1, ...]
+    #=> [acc1, acc0, τ1, τ0, p_ptr-4, ...]
 
-    movup.4 dup sub.1 movdn.5
+    movup.4 dup sub.4 movdn.5
     padw movup.4
     mem_loadw
-    #=> [a11, a10, a01, a00, acc1, acc0, τ1, τ0, p_ptr-1, ...]
+    #=> [a11, a10, a01, a00, acc1, acc0, τ1, τ0, p_ptr-4, ...]
     movup.5 movup.5
     dup.7 dup.7
-    #=> [τ1, τ0, acc1, acc0, a11, a10, a01, a00, τ1, τ0, p_ptr-1, ...]
+    #=> [τ1, τ0, acc1, acc0, a11, a10, a01, a00, τ1, τ0, p_ptr-4, ...]
     ext2mul
     ext2add
-    #=> [acc1, acc0, a01, a00, τ1, τ0, p_ptr-1, ...]
+    #=> [acc1, acc0, a01, a00, τ1, τ0, p_ptr-4, ...]
 
     dup.5 dup.5
     ext2mul
     ext2add
-    #=> [acc1, acc0, τ1, τ0, p_ptr-1, ...]
+    #=> [acc1, acc0, τ1, τ0, p_ptr-4, ...]
 
-    movup.4 dup sub.1 movdn.5
+    movup.4 dup sub.4 movdn.5
     padw movup.4
     mem_loadw
-    #=> [a11, a10, a01, a00, acc1, acc0, τ1, τ0, p_ptr-1, ...]
+    #=> [a11, a10, a01, a00, acc1, acc0, τ1, τ0, p_ptr-4, ...]
     movup.5 movup.5
     dup.7 dup.7
-    #=> [τ1, τ0, acc1, acc0, a11, a10, a01, a00, τ1, τ0, p_ptr-1, ...]
+    #=> [τ1, τ0, acc1, acc0, a11, a10, a01, a00, τ1, τ0, p_ptr-4, ...]
     ext2mul
     ext2add
     #=> [acc1, acc0, a01, a00, τ1, τ0, p_ptr-1, ...]
@@ -624,7 +624,7 @@ end
 #!
 #! Cycles: 47
 proc.compute_alpha_32
-    padw dup.6 sub.1 swap.7
+    padw dup.6 sub.4 swap.7
     mem_loadw
     dup.5 dup.5
     ext2mul
@@ -667,7 +667,7 @@ export.verify_remainder_64
     #=> [β1, β0, τ1, τ0, q_ptr, ...]
 
     # Pointer to the last word of the remainder polynomial for Horner evaluation.
-    movup.4 add.4
+    movup.4 add.16
     #=> [p_ptr, β1, β0, τ1, τ0, ...]
 
     # We need to multiply τ by the domain offset before evaluation.
@@ -714,7 +714,7 @@ export.verify_remainder_32
     #=> [β1, β0, τ1, τ0, q_ptr, ...]
 
     # Pointer to the last word of the remainder polynomial for Horner evaluation.
-    movup.4 add.2
+    movup.4 add.8
     #=> [p_ptr, β1, β0, τ1, τ0, ...]
 
     # We need to multiply τ by the domain offset before evaluation.

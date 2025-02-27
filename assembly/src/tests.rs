@@ -822,12 +822,12 @@ fn mem_operations_with_constants() -> TestResult {
     // Define constant values
     const PROC_LOC_STORE_PTR: u64 = 0;
     const PROC_LOC_LOAD_PTR: u64 = 1;
-    const PROC_LOC_STOREW_PTR: u64 = 2;
-    const PROC_LOC_LOADW_PTR: u64 = 3;
-    const GLOBAL_STORE_PTR: u64 = 4;
-    const GLOBAL_LOAD_PTR: u64 = 5;
-    const GLOBAL_STOREW_PTR: u64 = 6;
-    const GLOBAL_LOADW_PTR: u64 = 7;
+    const PROC_LOC_STOREW_PTR: u64 = 4;
+    const PROC_LOC_LOADW_PTR: u64 = 8;
+    const GLOBAL_STORE_PTR: u64 = 12;
+    const GLOBAL_LOAD_PTR: u64 = 13;
+    const GLOBAL_STOREW_PTR: u64 = 16;
+    const GLOBAL_LOADW_PTR: u64 = 20;
 
     let source = source_file!(
         &context,
@@ -842,7 +842,7 @@ fn mem_operations_with_constants() -> TestResult {
     const.GLOBAL_STOREW_PTR={GLOBAL_STOREW_PTR}
     const.GLOBAL_LOADW_PTR={GLOBAL_LOADW_PTR}
 
-    proc.test_const_loc.4
+    proc.test_const_loc.12
         # constant should resolve using locaddr operation
         locaddr.PROC_LOC_STORE_PTR
 
@@ -885,7 +885,7 @@ fn mem_operations_with_constants() -> TestResult {
         &context,
         format!(
             "\
-    proc.test_const_loc.4
+    proc.test_const_loc.12
         # constant should resolve using locaddr operation
         locaddr.{PROC_LOC_STORE_PTR}
 
@@ -1793,36 +1793,37 @@ fn program_with_proc_locals() -> TestResult {
     let source = source_file!(
         &context,
         "\
-        proc.foo.1 \
+        proc.foo.4 \
             loc_store.0 \
             add \
             loc_load.0 \
             mul \
         end \
         begin \
-            push.4 push.3 push.2 \
+            push.10 push.9 push.8 \
             exec.foo \
         end"
     );
     let program = context.assemble(source)?;
+    // Note: 18446744069414584317 == -4 (mod 2^64 - 2^32 + 1)
     let expected = "\
 begin
     basic_block
+        push(10)
+        push(9)
+        push(8)
         push(4)
-        push(3)
-        push(2)
-        push(1)
         fmpupdate
-        pad
+        push(18446744069414584317)
         fmpadd
         mstore
         drop
         add
-        pad
+        push(18446744069414584317)
         fmpadd
         mload
         mul
-        push(18446744069414584320)
+        push(18446744069414584317)
         fmpupdate
     end
 end";
@@ -2924,7 +2925,7 @@ fn test_reexported_proc_with_same_name_as_local_proc_diff_locals() {
     let mod1 = {
         let source = source_file!(
             &context,
-            "export.foo.2
+            "export.foo.8
                 push.1
                 drop
             end
@@ -2961,7 +2962,7 @@ fn test_reexported_proc_with_same_name_as_local_proc_diff_locals() {
     use.test::mod1
     use.test::mod2
 
-    proc.foo.1
+    proc.foo.4
         exec.mod1::foo
         exec.mod2::foo
     end
@@ -3027,4 +3028,32 @@ fn test_program_serde_with_decorators() {
     let deserialized_program = Program::read_from_bytes(&target).unwrap();
 
     assert_eq!(original_program, deserialized_program);
+}
+
+#[test]
+fn vendoring() -> TestResult {
+    let context = TestContext::new();
+    let mut mod_parser = ModuleParser::new(ModuleKind::Library);
+    let vendor_lib = {
+        let source = source_file!(&context, "export.bar push.1 end export.prune push.2 end");
+        let mod1 = mod_parser.parse(LibraryPath::new("test::mod1").unwrap(), source).unwrap();
+        Assembler::default().assemble_library([mod1]).unwrap()
+    };
+
+    let lib = {
+        let source = source_file!(&context, "export.foo exec.::test::mod1::bar end");
+        let mod2 = mod_parser.parse(LibraryPath::new("test::mod2").unwrap(), source).unwrap();
+
+        let mut assembler = Assembler::default();
+        assembler.add_vendored_library(vendor_lib)?;
+        assembler.assemble_library([mod2]).unwrap()
+    };
+
+    let expected_lib = {
+        let source = source_file!(&context, "export.foo push.1 end");
+        let mod2 = mod_parser.parse(LibraryPath::new("test::mod2").unwrap(), source).unwrap();
+        Assembler::default().assemble_library([mod2]).unwrap()
+    };
+    assert!(lib == expected_lib);
+    Ok(())
 }

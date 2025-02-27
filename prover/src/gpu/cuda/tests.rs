@@ -2,24 +2,21 @@ use alloc::vec::Vec;
 use std::vec;
 
 use air::{ProvingOptions, StarkField};
-use miden_gpu::{
-    cuda::util::{DIGEST_SIZE, RATE},
-    HashFn,
-};
+use miden_gpu::{DIGEST_SIZE, RATE, HashFn};
 use processor::{
     crypto::{Hasher, RpoDigest, RpoRandomCoin, Rpx256, RpxDigest, RpxRandomCoin},
     math::fft,
     StackInputs, StackOutputs,
 };
 use serial_test::serial;
-use winter_prover::{crypto::Digest, CompositionPolyTrace, TraceLde};
+use winter_prover::{crypto::Digest, CompositionPolyTrace, ConstraintCommitment, TraceLde};
 
 use crate::{gpu::cuda::CudaExecutionProver, *};
 
 fn build_trace_commitment_on_gpu_with_padding_matches_cpu<
     R: RandomCoin<BaseField = Felt, Hasher = H> + Send,
     H: ElementHasher<BaseField = Felt> + Hasher<Digest = D> + Send + Sync,
-    D: Digest + From<[Felt; DIGEST_SIZE]>,
+    D: Digest + From<[Felt; DIGEST_SIZE]> + Into<[Felt; DIGEST_SIZE]>,
 >(
     hash_fn: HashFn,
 ) {
@@ -31,9 +28,10 @@ fn build_trace_commitment_on_gpu_with_padding_matches_cpu<
     let trace_info = get_trace_info(1, num_rows);
     let trace = gen_random_trace(num_rows, RATE + 1);
     let domain = StarkDomain::from_twiddles(fft::get_twiddles(num_rows), 8, Felt::GENERATOR);
+    let partition_options = PartitionOptions::new(1, 8);
 
-    let (cpu_trace_lde, cpu_polys) = cpu_prover.new_trace_lde::<Felt>(&trace_info, &trace, &domain);
-    let (gpu_trace_lde, gpu_polys) = gpu_prover.new_trace_lde::<Felt>(&trace_info, &trace, &domain);
+    let (cpu_trace_lde, cpu_polys) = cpu_prover.new_trace_lde::<Felt>(&trace_info, &trace, &domain, partition_options);
+    let (gpu_trace_lde, gpu_polys) = gpu_prover.new_trace_lde::<Felt>(&trace_info, &trace, &domain, partition_options);
 
     assert_eq!(
         cpu_trace_lde.get_main_trace_commitment(),
@@ -48,7 +46,7 @@ fn build_trace_commitment_on_gpu_with_padding_matches_cpu<
 fn build_trace_commitment_on_gpu_without_padding_matches_cpu<
     R: RandomCoin<BaseField = Felt, Hasher = H> + Send,
     H: ElementHasher<BaseField = Felt> + Hasher<Digest = D> + Send + Sync,
-    D: Digest + From<[Felt; DIGEST_SIZE]>,
+    D: Digest + From<[Felt; DIGEST_SIZE]> + Into<[Felt; DIGEST_SIZE]>,
 >(
     hash_fn: HashFn,
 ) {
@@ -60,9 +58,10 @@ fn build_trace_commitment_on_gpu_without_padding_matches_cpu<
     let trace_info = get_trace_info(8, num_rows);
     let trace = gen_random_trace(num_rows, RATE);
     let domain = StarkDomain::from_twiddles(fft::get_twiddles(num_rows), 8, Felt::GENERATOR);
+    let partition_options = PartitionOptions::new(1, 8);
 
-    let (cpu_trace_lde, cpu_polys) = cpu_prover.new_trace_lde::<Felt>(&trace_info, &trace, &domain);
-    let (gpu_trace_lde, gpu_polys) = gpu_prover.new_trace_lde::<Felt>(&trace_info, &trace, &domain);
+    let (cpu_trace_lde, cpu_polys) = cpu_prover.new_trace_lde::<Felt>(&trace_info, &trace, &domain, partition_options);
+    let (gpu_trace_lde, gpu_polys) = gpu_prover.new_trace_lde::<Felt>(&trace_info, &trace, &domain, partition_options);
 
     assert_eq!(
         cpu_trace_lde.get_main_trace_commitment(),
@@ -77,7 +76,7 @@ fn build_trace_commitment_on_gpu_without_padding_matches_cpu<
 fn build_constraint_commitment_on_gpu_with_padding_matches_cpu<
     R: RandomCoin<BaseField = Felt, Hasher = H> + Send,
     H: ElementHasher<BaseField = Felt> + Hasher<Digest = D> + Send + Sync,
-    D: Digest + From<[Felt; DIGEST_SIZE]>,
+    D: Digest + From<[Felt; DIGEST_SIZE]> + Into<[Felt; DIGEST_SIZE]>,
 >(
     hash_fn: HashFn,
 ) {
@@ -89,16 +88,18 @@ fn build_constraint_commitment_on_gpu_with_padding_matches_cpu<
     let ce_blowup_factor = 2;
     let values = get_random_values::<Felt>(num_rows * ce_blowup_factor);
     let domain = StarkDomain::from_twiddles(fft::get_twiddles(num_rows), 8, Felt::GENERATOR);
+    let partition_options = PartitionOptions::new(1, 8);
 
     let (commitment_cpu, composition_poly_cpu) = cpu_prover.build_constraint_commitment(
         CompositionPolyTrace::new(values.clone()),
         2,
         &domain,
+        partition_options,
     );
     let (commitment_gpu, composition_poly_gpu) =
-        gpu_prover.build_constraint_commitment(CompositionPolyTrace::new(values), 2, &domain);
+        gpu_prover.build_constraint_commitment(CompositionPolyTrace::new(values), 2, &domain, partition_options);
 
-    assert_eq!(commitment_cpu.root(), commitment_gpu.root());
+    assert_eq!(commitment_cpu.commitment(), commitment_gpu.commitment());
     assert_ne!(0, composition_poly_cpu.data().num_base_cols() % RATE);
     assert_eq!(composition_poly_cpu.into_columns(), composition_poly_gpu.into_columns());
 }
@@ -106,7 +107,7 @@ fn build_constraint_commitment_on_gpu_with_padding_matches_cpu<
 fn build_constraint_commitment_on_gpu_without_padding_matches_cpu<
     R: RandomCoin<BaseField = Felt, Hasher = H> + Send,
     H: ElementHasher<BaseField = Felt> + Hasher<Digest = D> + Send + Sync,
-    D: Digest + From<[Felt; DIGEST_SIZE]>,
+    D: Digest + From<[Felt; DIGEST_SIZE]> + Into<[Felt; DIGEST_SIZE]>,
 >(
     hash_fn: HashFn,
 ) {
@@ -118,16 +119,18 @@ fn build_constraint_commitment_on_gpu_without_padding_matches_cpu<
     let ce_blowup_factor = 8;
     let values = get_random_values::<Felt>(num_rows * ce_blowup_factor);
     let domain = StarkDomain::from_twiddles(fft::get_twiddles(num_rows), 8, Felt::GENERATOR);
+    let partition_options = PartitionOptions::new(1, 8);
 
     let (commitment_cpu, composition_poly_cpu) = cpu_prover.build_constraint_commitment(
         CompositionPolyTrace::new(values.clone()),
         8,
         &domain,
+        partition_options,
     );
     let (commitment_gpu, composition_poly_gpu) =
-        gpu_prover.build_constraint_commitment(CompositionPolyTrace::new(values), 8, &domain);
+        gpu_prover.build_constraint_commitment(CompositionPolyTrace::new(values), 8, &domain, partition_options);
 
-    assert_eq!(commitment_cpu.root(), commitment_gpu.root());
+    assert_eq!(commitment_cpu.commitment(), commitment_gpu.commitment());
     assert_eq!(0, composition_poly_cpu.data().num_base_cols() % RATE);
     assert_eq!(composition_poly_cpu.into_columns(), composition_poly_gpu.into_columns());
 }

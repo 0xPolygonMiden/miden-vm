@@ -38,15 +38,15 @@ fn sha256_hash_memory() {
         # mem.2 - length in felts
         mem_load.1 u32assert u32overflowing_add.3 assertz u32assert u32div.4 mem_store.2
 
-        # Load input data into memory address 10000, 10001, ...
+        # Load input data into memory address 10000, 10004, ...
         mem_load.2 u32assert neq.0
         while.true
             mem_load.0 mem_storew dropw
-            mem_load.0 u32assert u32overflowing_add.1 assertz mem_store.0
+            mem_load.0 u32assert u32overflowing_add.4 assertz mem_store.0
             mem_load.2 u32assert u32overflowing_sub.1 assertz dup mem_store.2 u32assert neq.0
         end
 
-        # Compute hash of memory address 10000, 10001, ...
+        # Compute hash of memory address 10000, 10004, ...
         mem_load.1
         push.10000
         exec.sha256::hash_memory

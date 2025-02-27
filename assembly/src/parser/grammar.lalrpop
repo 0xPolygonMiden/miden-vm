@@ -56,6 +56,7 @@ extern {
         "push_sig" => Token::PushSig,
         "push_smtpeek" => Token::PushSmtpeek,
         "push_u64div" => Token::PushU64Div,
+        "push_falcon_div" => Token::PushFalconDiv,
         "and" => Token::And,
         "assert" => Token::Assert,
         "assertz" => Token::Assertz,
@@ -138,7 +139,8 @@ extern {
         "proc" => Token::Proc,
         "procref" => Token::Procref,
         "push" => Token::Push,
-        "rcomb_base" => Token::RCombBase,
+        "horner_eval_base" => Token::HornerBase,
+        "horner_eval_ext" => Token::HornerExt,
         "repeat" => Token::Repeat,
         "rpo_falcon512" => Token::RpoFalcon512,
         "sdepth" => Token::Sdepth,
@@ -645,7 +647,8 @@ Inst: Instruction = {
     "or" => Instruction::Or,
     "padw" => Instruction::PadW,
     "pow2" => Instruction::Pow2,
-    "rcomb_base" => Instruction::RCombBase,
+    "horner_eval_base" => Instruction::HornerBase,
+    "horner_eval_ext" => Instruction::HornerExt,
     "sdepth" => Instruction::Sdepth,
     "swapdw" => Instruction::SwapDw,
     "u32cast" => Instruction::U32Cast,
@@ -677,6 +680,7 @@ SystemEvent: Instruction = {
     "adv" "." "push_sig" "." <kind:SignatureKind> => Instruction::SysEvent(SystemEventNode::PushSignature { kind }),
     "adv" "." "push_smtpeek" => Instruction::SysEvent(SystemEventNode::PushSmtPeek),
     "adv" "." "push_u64div" => Instruction::SysEvent(SystemEventNode::PushU64Div),
+    "adv" "." "push_falcon_div" => Instruction::SysEvent(SystemEventNode::PushFalconDiv),
 }
 
 #[inline]

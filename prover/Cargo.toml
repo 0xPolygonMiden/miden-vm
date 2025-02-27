@@ -1,8 +1,8 @@
 [package]
 name = "miden-prover"
-version = "0.11.0"
+version = "0.13.0"
 description = "Miden VM prover"
-documentation = "https://docs.rs/miden-prover/0.11.0"
+documentation = "https://docs.rs/miden-prover/0.13.0"
 readme = "README.md"
 categories = ["cryptography", "emulators", "no-std"]
 keywords = ["miden", "prover", "stark", "zkp"]
@@ -17,13 +17,13 @@ edition.workspace = true
 async = ["winter-maybe-async/async"]
 concurrent = ["processor/concurrent", "std", "winter-prover/concurrent"]
 default = ["std"]
-metal = ["dep:miden-gpu", "miden-gpu/metal", "dep:elsa", "dep:pollster", "concurrent", "std"]
-cuda = ["dep:miden-gpu", "miden-gpu/cuda", "std"]
+metal = ["miden-gpu/metal", "dep:elsa", "dep:pollster", "concurrent"]
+cuda = ["miden-gpu/cuda", "concurrent"]
 std = ["air/std", "processor/std", "winter-prover/std"]
 
 [dependencies]
-air = { package = "miden-air", path = "../air", version = "0.11", default-features = false }
-processor = { package = "miden-processor", path = "../processor", version = "0.11", default-features = false }
+air = { package = "miden-air", path = "../air", version = "0.13", default-features = false }
+processor = { package = "miden-processor", path = "../processor", version = "0.13", default-features = false }
 tracing = { version = "0.1", default-features = false, features = ["attributes"] }
 winter-maybe-async = { package = "winter-maybe-async", version = "0.11", default-features = false }
 winter-prover = { package = "winter-prover", version = "0.11", default-features = false }

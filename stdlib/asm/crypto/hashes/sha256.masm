@@ -233,12 +233,12 @@ end
 #! - msg0 through msg15 are the 64 -bytes input message (in terms of 16 SHA256 words)
 #! See https://github.com/itzmeanjan/merklize-sha/blob/8a2c006/include/sha2.hpp#L89-L113
 #! & https://github.com/itzmeanjan/merklize-sha/blob/8a2c006/include/sha2_256.hpp#L148-L187 ( loop body execution )
-proc.prepare_message_schedule_and_consume.4
+proc.prepare_message_schedule_and_consume.16
     loc_storew.0
-    loc_storew.2
+    loc_storew.8
     dropw
-    loc_storew.1
-    loc_storew.3
+    loc_storew.4
+    loc_storew.12
     dropw
 
     dup.15
@@ -282,7 +282,7 @@ proc.prepare_message_schedule_and_consume.4
 
     push.0x428a2f98
     push.0.0.0.0
-    loc_loadw.1
+    loc_loadw.4
     push.0.0.0.0
     loc_loadw.0
     exec.consume_message_word # consume msg[0]
@@ -301,7 +301,7 @@ proc.prepare_message_schedule_and_consume.4
 
     loc_storew.0
     dropw
-    loc_storew.1
+    loc_storew.4
     dropw
 
     dup.15
@@ -343,7 +343,7 @@ proc.prepare_message_schedule_and_consume.4
 
     push.0x3956c25b
     push.0.0.0.0
-    loc_loadw.1
+    loc_loadw.4
     push.0.0.0.0
     loc_loadw.0
     exec.consume_message_word # consume msg[4]
@@ -362,7 +362,7 @@ proc.prepare_message_schedule_and_consume.4
 
     loc_storew.0
     dropw
-    loc_storew.1
+    loc_storew.4
     dropw
 
     dup.6
@@ -400,7 +400,7 @@ proc.prepare_message_schedule_and_consume.4
 
     push.0xd807aa98
     push.0.0.0.0
-    loc_loadw.1
+    loc_loadw.4
     push.0.0.0.0
     loc_loadw.0
     exec.consume_message_word # consume msg[8]
@@ -419,7 +419,7 @@ proc.prepare_message_schedule_and_consume.4
 
     loc_storew.0
     dropw
-    loc_storew.1
+    loc_storew.4
     dropw
 
     movupw.3
@@ -461,7 +461,7 @@ proc.prepare_message_schedule_and_consume.4
 
     push.0x72be5d74
     push.0.0.0.0
-    loc_loadw.1
+    loc_loadw.4
     push.0.0.0.0
     loc_loadw.0
     exec.consume_message_word # consume msg[12]
@@ -480,7 +480,7 @@ proc.prepare_message_schedule_and_consume.4
 
     loc_storew.0
     dropw
-    loc_storew.1
+    loc_storew.4
     dropw
 
     movupw.3
@@ -522,7 +522,7 @@ proc.prepare_message_schedule_and_consume.4
 
     push.0xe49b69c1
     push.0.0.0.0
-    loc_loadw.1
+    loc_loadw.4
     push.0.0.0.0
     loc_loadw.0
     exec.consume_message_word # consume msg[16]
@@ -541,7 +541,7 @@ proc.prepare_message_schedule_and_consume.4
 
     loc_storew.0
     dropw
-    loc_storew.1
+    loc_storew.4
     dropw
 
     movupw.3
@@ -583,7 +583,7 @@ proc.prepare_message_schedule_and_consume.4
 
     push.0x2de92c6f
     push.0.0.0.0
-    loc_loadw.1
+    loc_loadw.4
     push.0.0.0.0
     loc_loadw.0
     exec.consume_message_word # consume msg[20]
@@ -602,7 +602,7 @@ proc.prepare_message_schedule_and_consume.4
 
     loc_storew.0
     dropw
-    loc_storew.1
+    loc_storew.4
     dropw
 
     movupw.3
@@ -644,7 +644,7 @@ proc.prepare_message_schedule_and_consume.4
 
     push.0x983e5152
     push.0.0.0.0
-    loc_loadw.1
+    loc_loadw.4
     push.0.0.0.0
     loc_loadw.0
     exec.consume_message_word # consume msg[24]
@@ -663,7 +663,7 @@ proc.prepare_message_schedule_and_consume.4
 
     loc_storew.0
     dropw
-    loc_storew.1
+    loc_storew.4
     dropw
 
     movupw.3
@@ -705,7 +705,7 @@ proc.prepare_message_schedule_and_consume.4
 
     push.0xc6e00bf3
     push.0.0.0.0
-    loc_loadw.1
+    loc_loadw.4
     push.0.0.0.0
     loc_loadw.0
     exec.consume_message_word # consume msg[28]
@@ -724,7 +724,7 @@ proc.prepare_message_schedule_and_consume.4
 
     loc_storew.0
     dropw
-    loc_storew.1
+    loc_storew.4
     dropw
 
     movupw.3
@@ -766,7 +766,7 @@ proc.prepare_message_schedule_and_consume.4
 
     push.0x27b70a85
     push.0.0.0.0
-    loc_loadw.1
+    loc_loadw.4
     push.0.0.0.0
     loc_loadw.0
     exec.consume_message_word # consume msg[32]
@@ -785,7 +785,7 @@ proc.prepare_message_schedule_and_consume.4
 
     loc_storew.0
     dropw
-    loc_storew.1
+    loc_storew.4
     dropw
 
     movupw.3
@@ -827,7 +827,7 @@ proc.prepare_message_schedule_and_consume.4
 
     push.0x650a7354
     push.0.0.0.0
-    loc_loadw.1
+    loc_loadw.4
     push.0.0.0.0
     loc_loadw.0
     exec.consume_message_word # consume msg[36]
@@ -846,7 +846,7 @@ proc.prepare_message_schedule_and_consume.4
 
     loc_storew.0
     dropw
-    loc_storew.1
+    loc_storew.4
     dropw
 
     movupw.3
@@ -888,7 +888,7 @@ proc.prepare_message_schedule_and_consume.4
 
     push.0xa2bfe8a1
     push.0.0.0.0
-    loc_loadw.1
+    loc_loadw.4
     push.0.0.0.0
     loc_loadw.0
     exec.consume_message_word # consume msg[40]
@@ -907,7 +907,7 @@ proc.prepare_message_schedule_and_consume.4
 
     loc_storew.0
     dropw
-    loc_storew.1
+    loc_storew.4
     dropw
 
     movupw.3
@@ -949,7 +949,7 @@ proc.prepare_message_schedule_and_consume.4
 
     push.0xd192e819
     push.0.0.0.0
-    loc_loadw.1
+    loc_loadw.4
     push.0.0.0.0
     loc_loadw.0
     exec.consume_message_word # consume msg[44]
@@ -968,7 +968,7 @@ proc.prepare_message_schedule_and_consume.4
 
     loc_storew.0
     dropw
-    loc_storew.1
+    loc_storew.4
     dropw
 
     movupw.2
@@ -979,7 +979,7 @@ proc.prepare_message_schedule_and_consume.4
 
     push.0x19a4c116
     push.0.0.0.0
-    loc_loadw.1
+    loc_loadw.4
     push.0.0.0.0
     loc_loadw.0
     exec.consume_message_word # consume msg[48]
@@ -1057,10 +1057,10 @@ proc.prepare_message_schedule_and_consume.4
     exec.consume_message_word # consume msg[63]
 
     push.0.0.0.0
-    loc_loadw.3
+    loc_loadw.12
 
     push.0.0.0.0
-    loc_loadw.2
+    loc_loadw.8
 
     repeat.8
         movup.8
@@ -1563,57 +1563,60 @@ end
 #!
 #! Input:  [addr, len, ...]
 #! Output: [dig0, dig1, dig2, dig3, dig4, dig5, dig6, dig7, ...]
-export.hash_memory.12
+export.hash_memory.48
     # loc.0 (input address)
     loc_store.0
 
     # loc.1 (input length)
-    loc_store.1
+    loc_store.4
 
     # loc.2 (padded length): input_length + (55 - input_length) % 64 + 9
-    push.55 loc_load.1 u32wrapping_sub push.63 u32and
-    loc_load.1 u32assert2 u32overflowing_add assertz u32assert u32overflowing_add.9 assertz loc_store.2
+    push.55 loc_load.4 u32wrapping_sub push.63 u32and
+    loc_load.4 u32assert2 u32overflowing_add assertz u32assert u32overflowing_add.9 assertz loc_store.8
 
-    # loc.3 (last memory address in padding): input_address + padded_length / 16 - 1
-    loc_load.2 u32assert u32div.16 loc_load.0 u32wrapping_add u32wrapping_sub.1 loc_store.3
+    # loc.3 (last word address in padding): input_address + (padded_length / 4) - 4
+    loc_load.8 u32assert u32div.4 loc_load.0 u32wrapping_add u32wrapping_sub.4 loc_store.12
 
     # loc.4 (u32 aligned padding byte): 0x80000000 >> ((input_length % 4) * 8)
-    loc_load.1 u32assert u32mod.4 u32assert u32overflowing_mul.8 assertz push.0x80000000 swap u32shr loc_store.4
+    loc_load.4 u32assert u32mod.4 u32assert u32overflowing_mul.8 assertz push.0x80000000 swap u32shr loc_store.16
 
     # loc.5 (memory offset of first padding byte): (input_length / 4) % 4
-    loc_load.1 u32assert u32div.4 u32mod.4 loc_store.5
+    loc_load.4 u32assert u32div.4 u32mod.4 loc_store.20
 
-    # loc.6 (memory address of first padding byte): input_address + (len / 16)
-    loc_load.0 loc_load.1 u32assert u32div.16 u32assert2 u32overflowing_add assertz loc_store.6
+    # loc.6 (memory address of first padding byte): input_address + (len / 16) * 4
+    # Note: (len /16) * 4 is *not* the same as (len / 4), due to the division being a division + floor operation
+    loc_load.0 loc_load.4 u32assert u32div.16 u32assert2 mul.4 u32overflowing_add assertz loc_store.24
+
 
     # loc.7 (number of remaining 512-bit blocks to consume): padded_length / 64
-    loc_load.2 u32assert u32div.64 loc_store.7
+    loc_load.8 u32assert u32div.64 loc_store.28
 
     # Set the first byte after the message to 0x80
-    padw loc_load.6 mem_loadw loc_store.8 loc_store.9 loc_store.10 loc_store.11
-    locaddr.8 loc_load.5 u32wrapping_add dup mem_load loc_load.4 u32wrapping_add swap mem_store
-    loc_load.11 loc_load.10 loc_load.9 loc_load.8 loc_load.6 mem_storew dropw
+    padw loc_load.24 mem_loadw loc_store.32 loc_store.36 loc_store.40 loc_store.44
+    # Note: We have to `mul.4` here because locals are spread 4 addresses apart.
+    locaddr.32 loc_load.20 mul.4 u32wrapping_add dup mem_load loc_load.16 u32wrapping_add swap mem_store
+    loc_load.44 loc_load.40 loc_load.36 loc_load.32 loc_load.24 mem_storew dropw
 
     # Set message length in bits at end of padding
-    padw loc_load.3 mem_loadw
-    movup.3 drop loc_load.1 u32assert u32overflowing_mul.8 assertz movdn.3
-    loc_load.3 mem_storew dropw
+    padw loc_load.12 mem_loadw
+    movup.3 drop loc_load.4 u32assert u32overflowing_mul.8 assertz movdn.3
+    loc_load.12 mem_storew dropw
 
     # Sha256 init
     push.0x5be0cd19.0x1f83d9ab.0x9b05688c.0x510e527f
     push.0xa54ff53a.0x3c6ef372.0xbb67ae85.0x6a09e667
 
     # Consume sha256 blocks
-    loc_load.7 u32assert neq.0
+    loc_load.28 u32assert neq.0
     while.true
-        padw loc_load.0 u32assert u32overflowing_add.3 assertz mem_loadw movdnw.2
-        padw loc_load.0 u32assert u32overflowing_add.2 assertz mem_loadw movdnw.2
-        padw loc_load.0 u32assert u32overflowing_add.1 assertz mem_loadw movdnw.2
+        padw loc_load.0 u32assert u32overflowing_add.12 assertz mem_loadw movdnw.2
+        padw loc_load.0 u32assert u32overflowing_add.8 assertz mem_loadw movdnw.2
+        padw loc_load.0 u32assert u32overflowing_add.4 assertz mem_loadw movdnw.2
         padw loc_load.0 u32assert u32overflowing_add.0 assertz mem_loadw movdnw.2
         exec.prepare_message_schedule_and_consume
 
-        loc_load.0 u32assert u32overflowing_add.4 assertz loc_store.0
-        loc_load.7 u32assert u32overflowing_sub.1 assertz dup loc_store.7
+        loc_load.0 u32assert u32overflowing_add.16 assertz loc_store.0
+        loc_load.28 u32assert u32overflowing_sub.1 assertz dup loc_store.28
         u32assert neq.0
     end
 end

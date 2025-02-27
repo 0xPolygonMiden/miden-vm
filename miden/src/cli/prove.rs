@@ -4,9 +4,9 @@ use assembly::diagnostics::{IntoDiagnostic, Report, WrapErr};
 use clap::Parser;
 use miden_vm::{internal::InputFile, ProvingOptions};
 use processor::{DefaultHost, ExecutionOptions, ExecutionOptionsError, Program};
-#[cfg(all(target_arch = "x86_64", feature = "cuda"))]
-use prover::get_num_of_gpus;
 use prover::Prover;
+#[cfg(all(target_arch = "x86_64", feature = "cuda"))]
+use prover::cuda::get_num_of_gpus;
 use stdlib::StdLibrary;
 use tracing::instrument;
 

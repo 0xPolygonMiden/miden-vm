@@ -14,9 +14,11 @@ use test_utils::{
         MerkleStore, Rpo256,
     },
     expect_exec_error_matches,
+    proptest::proptest,
     rand::{rand_value, rand_vector},
     FieldElement, QuadFelt, Word, WORD_SIZE,
 };
+use vm_core::StarkField;
 
 /// Modulus used for rpo falcon 512.
 const M: u64 = 12289;
@@ -24,35 +26,38 @@ const Q: u64 = (M - 1) / 2;
 const N: usize = 512;
 const J: u64 = (N * M as usize * M as usize) as u64;
 
-const PROBABILISTIC_PRODUCT_SOURCE: &str = "
+#[test]
+fn test_set_to_zero() {
+    let source = "
     use.std::crypto::dsa::rpo_falcon512
 
     begin
-        #=> [PK, ...]
-        mem_load.0
-        #=> [h_ptr, PK, ...]
+        # write bytes in the first and last addresses of the region to be zeroed
+        push.1.2.3.4 mem_storew.1000 dropw
+        push.1.2.3.4 mem_storew.3044 dropw
 
-        exec.rpo_falcon512::load_h_s2_and_product
-        #=> [tau1, tau0, tau_ptr, ...]
+        # This address should be untouched
+        push.1.2.3.4 mem_storew.3048 dropw
 
-        exec.rpo_falcon512::powers_of_tau
-        #=> [zeros_ptr, ...]
-
+        push.1000
         exec.rpo_falcon512::set_to_zero
-        #=> [c_ptr, ...]
 
-        drop
-        #=> [...]
-
-        push.512    # tau_ptr
-        push.1025   # z_ptr
-        push.0      # h ptr
-
-        #=> [h_ptr, zeros_ptr, tau_ptr, ...]
-
-        exec.rpo_falcon512::probabilistic_product
+        # Assert that output pointer is 1000 + 4 * 512 = 3048
+        push.3048 assert_eq
     end
     ";
+
+    let expected_memory = {
+        let mut memory = vec![0_u64; N * 4];
+        // addresses [3048, 3052) (not zeroed)
+        memory.extend_from_slice(&[1, 2, 3, 4]);
+
+        memory
+    };
+
+    let test = build_test!(source, &[]);
+    test.expect_stack_and_memory(&[], 1000_u32, &expected_memory);
+}
 
 #[test]
 fn test_falcon512_norm_sq() {
@@ -64,7 +69,7 @@ fn test_falcon512_norm_sq() {
     end
     ";
 
-    // normalize(e) = e^2 - phi * (2*q*e - q^2) where phi := (e > (q - 1)/2)
+    // normalize(e) = e^2 - phi * (2*M*e - M^2) where phi := (e > (M - 1)/2)
     let upper = rand::thread_rng().gen_range(Q + 1..M);
     let test_upper = build_test!(source, &[upper]);
     test_upper.expect_stack(&[(M - upper) * (M - upper)]);
@@ -80,24 +85,69 @@ fn test_falcon512_diff_mod_q() {
     use.std::crypto::dsa::rpo_falcon512
 
     begin
-        exec.rpo_falcon512::diff_mod_q
+        exec.rpo_falcon512::diff_mod_M
+    end
+    ";
+    let v = Felt::MODULUS - 1;
+    let (v_lo, v_hi) = (v as u32, v >> 32);
+
+    // test largest possible value given v
+    let w = J - 1;
+    let u = 0;
+
+    let test1 = build_test!(source, &[v_lo as u64, v_hi, w + J, u]);
+
+    // Calculating (v - (u + (- w % M) % M) % M) should be the same as (v + w + J - u) % M.
+    let expanded_answer = (v as i128
+        - ((u as i64 + -(w as i64).rem_euclid(M as i64)).rem_euclid(M as i64) as i128))
+        .rem_euclid(M as i128);
+    let simplified_answer = (v as i128 + w as i128 + J as i128 - u as i128).rem_euclid(M as i128);
+    assert_eq!(expanded_answer, simplified_answer);
+
+    test1.expect_stack(&[simplified_answer as u64]);
+
+    // test smallest possible value given v
+    let w = 0;
+    let u = J - 1;
+
+    let test2 = build_test!(source, &[v_lo as u64, v_hi, w + J, u]);
+
+    // Calculating (v - (u + (- w % M) % M) % M) should be the same as (v + w + J - u) % M.
+    let expanded_answer = (v as i128
+        - ((u as i64 + -(w as i64).rem_euclid(M as i64)).rem_euclid(M as i64) as i128))
+        .rem_euclid(M as i128);
+    let simplified_answer = (v as i128 + w as i128 + J as i128 - u as i128).rem_euclid(M as i128);
+    assert_eq!(expanded_answer, simplified_answer);
+
+    test2.expect_stack(&[simplified_answer as u64]);
+}
+
+proptest! {
+    #[test]
+    fn diff_mod_m_proptest(v in 0..Felt::MODULUS, w in 0..J, u in 0..J) {
+
+          let source = "
+    use.std::crypto::dsa::rpo_falcon512
+
+    begin
+        exec.rpo_falcon512::diff_mod_M
     end
     ";
 
-    let u = rand::thread_rng().gen_range(0..J);
-    let v = rand::thread_rng().gen_range(Q..M);
-    let w = rand::thread_rng().gen_range(0..J);
+    let (v_lo, v_hi) = (v as u32, v >> 32);
 
-    let test1 = build_test!(source, &[u, v, w]);
+    let test1 = build_test!(source, &[v_lo as u64, v_hi, w + J, u]);
 
-    // Calculating (v - (u + (- w % q) % q) % q) should be the same as (v + w + J - u) % q.
-    let expanded_answer = (v as i64
-        - (u as i64 + -(w as i64).rem_euclid(M as i64)).rem_euclid(M as i64))
-    .rem_euclid(M as i64);
-    let simplified_answer = (v + w + J - u).rem_euclid(M);
-    assert_eq!(expanded_answer, i64::try_from(simplified_answer).unwrap());
+    // Calculating (v - (u + (- w % M) % M) % M) should be the same as (v + w + J - u) % M.
+    let expanded_answer = (v as i128
+        - ((u as i64 + -(w as i64).rem_euclid(M as i64)).rem_euclid(M as i64) as i128))
+    .rem_euclid(M as i128);
+    let simplified_answer = (v as i128 + w as i128 + J as i128 - u as i128).rem_euclid(M as i128);
+    assert_eq!(expanded_answer, simplified_answer);
 
-    test1.expect_stack(&[simplified_answer]);
+    test1.prop_expect_stack(&[simplified_answer as u64])?;
+    }
+
 }
 
 #[test]
@@ -119,9 +169,39 @@ fn test_falcon512_powers_of_tau() {
     let stack_init = [tau_ptr.into(), tau_0, tau_1];
 
     let test = build_test!(source, &stack_init);
-    let expected_stack = &[<u32 as Into<u64>>::into(tau_ptr) + N as u64 + 1];
+    let expected_stack = &[u64::from(tau_ptr) + (N as u64 + 1_u64) * 4];
     test.expect_stack_and_memory(expected_stack, tau_ptr, &expected_memory);
 }
+
+const PROBABILISTIC_PRODUCT_SOURCE: &str = "
+    use.std::crypto::dsa::rpo_falcon512
+
+    begin
+        #=> [PK, ...]
+        mem_load.0
+        #=> [h_ptr, PK, ...]
+
+        exec.rpo_falcon512::load_h_s2_and_product
+        #=> [tau1, tau0, tau_ptr, ...]
+
+        exec.rpo_falcon512::powers_of_tau
+        #=> [zeros_ptr, ...]
+
+        exec.rpo_falcon512::set_to_zero
+        #=> [c_ptr, ...]
+
+        drop
+        #=> [...]
+
+        push.2048    # tau_ptr
+        push.4100   # zeroes_ptr (tau_ptr + 4 * 513)
+        push.0      # h ptr
+
+        #=> [h_ptr, zeros_ptr, tau_ptr, ...]
+
+        exec.rpo_falcon512::probabilistic_product
+    end
+    ";
 
 #[test]
 fn test_falcon512_probabilistic_product() {
@@ -148,6 +228,7 @@ fn test_falcon512_probabilistic_product() {
     test.expect_stack(expected_stack);
 }
 
+#[ignore = "needs horner_eval_base op"]
 #[test]
 fn test_falcon512_probabilistic_product_failure() {
     // Create a polynomial pi that is not equal to h * s2.
@@ -174,7 +255,7 @@ fn test_falcon512_probabilistic_product_failure() {
     expect_exec_error_matches!(
         test,
         ExecutionError::FailedAssertion{ clk, err_code, err_msg }
-        if clk == RowIndex::from(17490) && err_code == 0 && err_msg.is_none()
+        if clk == RowIndex::from(18843) && err_code == 0 && err_msg.is_none()
     );
 }
 

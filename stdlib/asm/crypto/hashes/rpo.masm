@@ -4,7 +4,7 @@
 #! consume an amount of data which is a multiple of the rate (2 words).
 #!
 #! Input: []
-#! Ouptut: [PERM, PERM, PERM, ...]
+#! Output: [PERM, PERM, PERM, ...]
 #!
 #! Cycles: 12
 export.init_no_padding
@@ -14,7 +14,7 @@ end
 #! Given the hasher state, returns the hash output.
 #!
 #! Input: [C, B, A, ...]
-#! Ouptut: [HASH, ...]
+#! Output: [HASH, ...]
 #!
 #! Where :
 #! - `A` is the capacity word that will be used by the hashing function.
@@ -34,7 +34,7 @@ end
 
 #! Hashes the memory `start_addr` to `end_addr` given an RPO state specified by 3 words.
 #!
-#! This requires that `end_addr = start_addr + 2n` where n = {0, 1, 2 ...}, otherwise the procedure 
+#! This requires that `end_addr = start_addr + 8n` where n = {0, 1, 2 ...}, otherwise the procedure 
 #! will enter an infinite loop. 
 #!
 #! Input: [C, B, A, start_addr, end_addr, ...]
@@ -56,24 +56,25 @@ end
 #! Hashes the memory `start_addr` to `end_addr`, handles odd number of elements.
 #!
 #! Requires `start_addr ≤ end_addr`, `end_addr` is not inclusive.
+#! Requires `start_addr` and `end_addr` to be word-aligned.
 #!
 #! Input: [start_addr, end_addr, ...]
 #! Output: [H, ...]
 #!
 #! Cycles:
-#! - even words: 49 cycles + 3 * words
-#! - odd words: 61 cycles + 3 * words
+#! - even words: 53 cycles + 3 * words
+#! - odd words: 65 cycles + 3 * words
 #! where `words` is the `start_addr - end_addr - 1`
 export.hash_memory_words
   # enforce `start_addr ≤ end_addr`
   dup.1 dup.1 u32assert2 u32gte assert
 
-  # figure out if the range is for an odd number of words (9 cycles)
-  dup.1 dup.1 sub is_odd
+  # figure out if the range is for an odd number of words (11 cycles)
+  dup.1 dup.1 sub div.4 is_odd
   # => [is_odd, start_addr, end_addr, ...]
 
-  # make the start/end range even (4 cycles)
-  movup.2 dup.1 sub
+  # make the start/end range even (6 cycles)
+  movup.2 dup.1 mul.4 sub
   # => [end_addr, is_odd, start_addr, ...]
 
   # move start_addr to the right stack position (1 cycles)
@@ -134,7 +135,7 @@ export.hash_memory
     # => [num_elements/8, num_elements%8, ptr]
 
     # get the end_addr for hash_memory_even procedure (end address for pairs of words)
-    mul.2 dup.2 add movup.2
+    mul.8 dup.2 add movup.2
     # => [ptr, end_addr, num_elements%8]
 
     # get the capacity element which is equal to num_elements%8

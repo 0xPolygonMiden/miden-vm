@@ -87,8 +87,6 @@ pub fn verify(
                 ProvingOptions::RECURSIVE_128_BITS.with_partitions(1, 8),
                 ProvingOptions::RECURSIVE_96_BITS.with_partitions(2, 8),
                 ProvingOptions::RECURSIVE_128_BITS.with_partitions(2, 8),
-                ProvingOptions::RECURSIVE_96_BITS.with_partitions(3, 8),
-                ProvingOptions::RECURSIVE_128_BITS.with_partitions(3, 8),
                 ProvingOptions::RECURSIVE_96_BITS.with_partitions(4, 8),
                 ProvingOptions::RECURSIVE_128_BITS.with_partitions(4, 8),
             ]);
@@ -104,8 +102,6 @@ pub fn verify(
                 ProvingOptions::RECURSIVE_128_BITS.with_partitions(1, 8),
                 ProvingOptions::RECURSIVE_96_BITS.with_partitions(2, 8),
                 ProvingOptions::RECURSIVE_128_BITS.with_partitions(2, 8),
-                ProvingOptions::RECURSIVE_96_BITS.with_partitions(3, 8),
-                ProvingOptions::RECURSIVE_128_BITS.with_partitions(3, 8),
                 ProvingOptions::RECURSIVE_96_BITS.with_partitions(4, 8),
                 ProvingOptions::RECURSIVE_128_BITS.with_partitions(4, 8),
             ]);

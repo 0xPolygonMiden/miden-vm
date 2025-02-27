@@ -5,6 +5,7 @@ use vm_core::{
 };
 
 use super::{AuxColumnBuilder, Felt, FieldElement, MainTrace, ONE, ZERO};
+use crate::debug::BusDebugger;
 
 // BLOCK STACK TABLE COLUMN BUILDER
 // ================================================================================================
@@ -16,7 +17,13 @@ pub struct BlockStackColumnBuilder {}
 
 impl<E: FieldElement<BaseField = Felt>> AuxColumnBuilder<E> for BlockStackColumnBuilder {
     /// Removes a row from the block stack table.
-    fn get_requests_at(&self, main_trace: &MainTrace, alphas: &[E], i: RowIndex) -> E {
+    fn get_requests_at(
+        &self,
+        main_trace: &MainTrace,
+        alphas: &[E],
+        i: RowIndex,
+        _debugger: &mut BusDebugger<E>,
+    ) -> E {
         let op_code_felt = main_trace.get_op_code(i);
         let op_code = op_code_felt.as_int() as u8;
 
@@ -28,7 +35,13 @@ impl<E: FieldElement<BaseField = Felt>> AuxColumnBuilder<E> for BlockStackColumn
     }
 
     /// Adds a row to the block stack table.
-    fn get_responses_at(&self, main_trace: &MainTrace, alphas: &[E], i: RowIndex) -> E {
+    fn get_responses_at(
+        &self,
+        main_trace: &MainTrace,
+        alphas: &[E],
+        i: RowIndex,
+        _debugger: &mut BusDebugger<E>,
+    ) -> E {
         let op_code_felt = main_trace.get_op_code(i);
         let op_code = op_code_felt.as_int() as u8;
 
