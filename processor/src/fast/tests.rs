@@ -19,22 +19,22 @@ use crate::{system::FMP_MAX, DefaultHost, Process};
 fn test_basic_block(
     #[values(
         vec![],
-        vec![1_u32.into()],
-        vec![1_u32.into(), 2_u32.into()],
-        vec![1_u32.into(), 2_u32.into(), 3_u32.into()],
-        vec![1_u32.into(), 2_u32.into(), 3_u32.into(), 4_u32.into()],
-        vec![1_u32.into(), 2_u32.into(), 3_u32.into(), 4_u32.into(), 5_u32.into()],
-        vec![1_u32.into(), 2_u32.into(), 3_u32.into(), 4_u32.into(), 5_u32.into(), 6_u32.into()],
-        vec![1_u32.into(), 2_u32.into(), 3_u32.into(), 4_u32.into(), 5_u32.into(), 6_u32.into(), 7_u32.into()],
-        vec![1_u32.into(), 2_u32.into(), 3_u32.into(), 4_u32.into(), 5_u32.into(), 6_u32.into(), 7_u32.into(), 8_u32.into()],
-        vec![1_u32.into(), 2_u32.into(), 3_u32.into(), 4_u32.into(), 5_u32.into(), 6_u32.into(), 7_u32.into(), 8_u32.into(), 9_u32.into()],
-        vec![1_u32.into(), 2_u32.into(), 3_u32.into(), 4_u32.into(), 5_u32.into(), 6_u32.into(), 7_u32.into(), 8_u32.into(), 9_u32.into(), 10_u32.into()],
-        vec![1_u32.into(), 2_u32.into(), 3_u32.into(), 4_u32.into(), 5_u32.into(), 6_u32.into(), 7_u32.into(), 8_u32.into(), 9_u32.into(), 10_u32.into(), 11_u32.into()],
-        vec![1_u32.into(), 2_u32.into(), 3_u32.into(), 4_u32.into(), 5_u32.into(), 6_u32.into(), 7_u32.into(), 8_u32.into(), 9_u32.into(), 10_u32.into(), 11_u32.into(), 12_u32.into()],
-        vec![1_u32.into(), 2_u32.into(), 3_u32.into(), 4_u32.into(), 5_u32.into(), 6_u32.into(), 7_u32.into(), 8_u32.into(), 9_u32.into(), 10_u32.into(), 11_u32.into(), 12_u32.into(), 13_u32.into()],
-        vec![1_u32.into(), 2_u32.into(), 3_u32.into(), 4_u32.into(), 5_u32.into(), 6_u32.into(), 7_u32.into(), 8_u32.into(), 9_u32.into(), 10_u32.into(), 11_u32.into(), 12_u32.into(), 13_u32.into(), 14_u32.into()],
-        vec![1_u32.into(), 2_u32.into(), 3_u32.into(), 4_u32.into(), 5_u32.into(), 6_u32.into(), 7_u32.into(), 8_u32.into(), 9_u32.into(), 10_u32.into(), 11_u32.into(), 12_u32.into(), 13_u32.into(), 14_u32.into(), 15_u32.into()],
-        vec![1_u32.into(), 2_u32.into(), 3_u32.into(), 4_u32.into(), 5_u32.into(), 6_u32.into(), 7_u32.into(), 8_u32.into(), 9_u32.into(), 10_u32.into(), 11_u32.into(), 12_u32.into(), 13_u32.into(), 14_u32.into(), 15_u32.into(), 16_u32.into()],
+        vec![0_u32.into()],
+        vec![0_u32.into(), 1_u32.into()],
+        vec![0_u32.into(), 1_u32.into(), 2_u32.into()],
+        vec![0_u32.into(), 1_u32.into(), 2_u32.into(), 3_u32.into()],
+        vec![0_u32.into(), 1_u32.into(), 2_u32.into(), 3_u32.into(), 4_u32.into()],
+        vec![0_u32.into(), 1_u32.into(), 2_u32.into(), 3_u32.into(), 4_u32.into(), 5_u32.into()],
+        vec![0_u32.into(), 1_u32.into(), 2_u32.into(), 3_u32.into(), 4_u32.into(), 5_u32.into(), 6_u32.into()],
+        vec![0_u32.into(), 1_u32.into(), 2_u32.into(), 3_u32.into(), 4_u32.into(), 5_u32.into(), 6_u32.into(), 7_u32.into()],
+        vec![0_u32.into(), 1_u32.into(), 2_u32.into(), 3_u32.into(), 4_u32.into(), 5_u32.into(), 6_u32.into(), 7_u32.into(), 8_u32.into()],
+        vec![0_u32.into(), 1_u32.into(), 2_u32.into(), 3_u32.into(), 4_u32.into(), 5_u32.into(), 6_u32.into(), 7_u32.into(), 8_u32.into(), 9_u32.into()],
+        vec![0_u32.into(), 1_u32.into(), 2_u32.into(), 3_u32.into(), 4_u32.into(), 5_u32.into(), 6_u32.into(), 7_u32.into(), 8_u32.into(), 9_u32.into(), 10_u32.into()],
+        vec![0_u32.into(), 1_u32.into(), 2_u32.into(), 3_u32.into(), 4_u32.into(), 5_u32.into(), 6_u32.into(), 7_u32.into(), 8_u32.into(), 9_u32.into(), 10_u32.into(), 11_u32.into()],
+        vec![0_u32.into(), 1_u32.into(), 2_u32.into(), 3_u32.into(), 4_u32.into(), 5_u32.into(), 6_u32.into(), 7_u32.into(), 8_u32.into(), 9_u32.into(), 10_u32.into(), 11_u32.into(), 12_u32.into()],
+        vec![0_u32.into(), 1_u32.into(), 2_u32.into(), 3_u32.into(), 4_u32.into(), 5_u32.into(), 6_u32.into(), 7_u32.into(), 8_u32.into(), 9_u32.into(), 10_u32.into(), 11_u32.into(), 12_u32.into(), 13_u32.into()],
+        vec![0_u32.into(), 1_u32.into(), 2_u32.into(), 3_u32.into(), 4_u32.into(), 5_u32.into(), 6_u32.into(), 7_u32.into(), 8_u32.into(), 9_u32.into(), 10_u32.into(), 11_u32.into(), 12_u32.into(), 13_u32.into(), 14_u32.into()],
+        vec![0_u32.into(), 1_u32.into(), 2_u32.into(), 3_u32.into(), 4_u32.into(), 5_u32.into(), 6_u32.into(), 7_u32.into(), 8_u32.into(), 9_u32.into(), 10_u32.into(), 11_u32.into(), 12_u32.into(), 13_u32.into(), 14_u32.into(), 15_u32.into()],
     )]
     stack_inputs: Vec<Felt>,
     #[values(
@@ -94,10 +94,16 @@ fn test_basic_block(
         vec![Operation::MovDn6],
         vec![Operation::MovDn7],
         vec![Operation::MovDn8],
+        vec![Operation::CSwap],
+        vec![Operation::CSwapW],
         vec![Operation::Push(42_u32.into()), Operation::MovUp8, Operation::Drop],
         // the memory operations here are more to ensure e.g. that unaligned word accesses are
         // reported correctly.
-        vec![Operation::MLoadW]
+        vec![Operation::MLoadW],
+        vec![Operation::MStoreW],
+        vec![Operation::MLoad],
+        vec![Operation::MStore],
+        vec![Operation::MStream],
     )]
     operations: Vec<Operation>,
 ) {
@@ -266,8 +272,6 @@ fn test_memory_word_access_alignment() {
 
 // TODO(plafer): test that memory operations work just like Processor (i.e. like basic_block_test,
 // but for memory things)
-// TODO(plafer): test
-// - a bunch of memory valid memory accesses to ensure memory works as expected
 
 #[test]
 fn test_mloadw_success() {
@@ -301,6 +305,74 @@ fn test_mloadw_success() {
 
         assert_eq!(stack_outputs.stack_truncated(16), &vec![ZERO; 16]);
     }
+}
+
+#[test]
+fn test_mstorew_success() {
+    let mut host = DefaultHost::default();
+    let addr = 40_u32;
+    let word_to_store = [1_u32.into(), 2_u32.into(), 3_u32.into(), 4_u32.into()];
+    let ctx = 0_u32.into();
+
+    // Store the word at address 40
+    let mut processor = SpeedyGonzales::<512>::new(vec![
+        word_to_store[0],
+        word_to_store[1],
+        word_to_store[2],
+        word_to_store[3],
+        addr.into(),
+    ]);
+    let program = simple_program_with_ops(vec![Operation::MStoreW]);
+    processor.execute_impl(&program, &mut host).unwrap();
+
+    // Ensure that the memory was correctly modified
+    assert_eq!(processor.memory.get(&(ctx, addr)).copied().unwrap(), word_to_store);
+}
+
+#[rstest]
+#[case(40_u32, 42_u32)]
+#[case(41_u32, 42_u32)]
+#[case(42_u32, 42_u32)]
+#[case(43_u32, 42_u32)]
+fn test_mstore_success(#[case] addr: u32, #[case] value_to_store: u32) {
+    let mut host = DefaultHost::default();
+    let ctx = 0_u32.into();
+    let value_to_store = Felt::from(value_to_store);
+
+    // Store the value at address 40
+    let mut processor = SpeedyGonzales::<512>::new(vec![value_to_store, addr.into()]);
+    let program = simple_program_with_ops(vec![Operation::MStore]);
+    processor.execute_impl(&program, &mut host).unwrap();
+
+    // Ensure that the memory was correctly modified
+    let word_addr = addr - (addr % WORD_SIZE as u32);
+    let word = processor.memory.get(&(ctx, word_addr)).copied().unwrap();
+    assert_eq!(word[addr as usize % WORD_SIZE], value_to_store);
+}
+
+#[rstest]
+#[case(40_u32)]
+#[case(41_u32)]
+#[case(42_u32)]
+#[case(43_u32)]
+fn test_mload_success(#[case] addr_to_access: u32) {
+    let mut host = DefaultHost::default();
+    let addr_with_word = 40_u32;
+    let word_at_addr = [1_u32.into(), 2_u32.into(), 3_u32.into(), 4_u32.into()];
+    let ctx = 0_u32.into();
+
+    // Initialize processor with a word at address 40
+    let mut processor = SpeedyGonzales::<512>::new(vec![addr_to_access.into()]);
+    processor.memory.insert((ctx, addr_with_word), word_at_addr);
+
+    let program = simple_program_with_ops(vec![Operation::MLoad]);
+    let stack_outputs = processor.execute_impl(&program, &mut host).unwrap();
+
+    // Ensure that Operation::MLoad correctly reads the value on the stack
+    assert_eq!(
+        stack_outputs.stack_truncated(1)[0],
+        word_at_addr[addr_to_access as usize % WORD_SIZE]
+    );
 }
 
 #[test]
@@ -441,6 +513,47 @@ fn test_valid_combinations_or(#[case] stack_inputs: Vec<Felt>, #[case] expected_
 
     assert_eq!(stack_outputs.stack_truncated(1)[0], expected_output);
 }
+
+#[test]
+fn test_mstream() {
+    let mut host = DefaultHost::default();
+    let addr = 40_u32;
+    let word_at_addr_40 = [1_u32.into(), 2_u32.into(), 3_u32.into(), 4_u32.into()];
+    let word_at_addr_44 = [5_u32.into(), 6_u32.into(), 7_u32.into(), 8_u32.into()];
+    let ctx = 0_u32.into();
+
+    let mut processor = {
+        let stack_init = {
+            let mut stack = vec![ZERO; 16];
+            stack[MIN_STACK_DEPTH - 1 - 12] = addr.into();
+            stack
+        };
+        SpeedyGonzales::<512>::new(stack_init)
+    };
+    // Store values at addresses 40 and 44
+    processor.memory.insert((ctx, addr), word_at_addr_40);
+    processor.memory.insert((ctx, addr + 4), word_at_addr_44);
+
+    let program = simple_program_with_ops(vec![Operation::MStream]);
+    let stack_outputs = processor.execute_impl(&program, &mut host).unwrap();
+
+    // Ensure that Operation::MStream correctly reads the values on the stack
+    assert_eq!(
+        stack_outputs.stack_truncated(8),
+        // memory order is the reverse from the stack order
+        &[
+            word_at_addr_44[3],
+            word_at_addr_44[2],
+            word_at_addr_44[1],
+            word_at_addr_44[0],
+            word_at_addr_40[3],
+            word_at_addr_40[2],
+            word_at_addr_40[1],
+            word_at_addr_40[0]
+        ]
+    );
+}
+
 // TEST HELPERS
 // -----------------------------------------------------------------------------------------------
 
