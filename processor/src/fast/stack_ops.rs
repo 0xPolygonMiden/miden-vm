@@ -1,6 +1,7 @@
 use vm_core::{WORD_SIZE, ZERO};
 
 use super::SpeedyGonzales;
+use crate::ExecutionError;
 
 impl<const N: usize> SpeedyGonzales<N> {
     pub fn op_pad(&mut self) {
@@ -85,5 +86,50 @@ impl<const N: usize> SpeedyGonzales<N> {
         let (_, nth_word) = rest_of_stack.split_at_mut(rest_of_stack.len() - n * WORD_SIZE);
 
         nth_word[0..WORD_SIZE].swap_with_slice(&mut top_word[0..WORD_SIZE]);
+    }
+
+    pub fn op_cswap(&mut self) -> Result<(), ExecutionError> {
+        let condition = self.stack[self.stack_top_idx - 1];
+        let b = self.stack[self.stack_top_idx - 2];
+        let a = self.stack[self.stack_top_idx - 3];
+
+        match condition.as_int() {
+            0 => {
+                // do nothing, a and b are already in the right place
+            },
+            1 => {
+                self.stack[self.stack_top_idx - 2] = a;
+                self.stack[self.stack_top_idx - 3] = b;
+            },
+            _ => return Err(ExecutionError::NotBinaryValue(condition)),
+        }
+
+        self.decrement_stack_size();
+        Ok(())
+    }
+
+    pub fn op_cswapw(&mut self) -> Result<(), ExecutionError> {
+        let condition = self.stack[self.stack_top_idx - 1];
+
+        // b is the top word of the stack, a is the 2rd word from the top of the stack.
+        // The indices are chosen assuming that `condition` is removed from the stack.
+        let b_word_start_idx = self.stack_top_idx - 1 - WORD_SIZE;
+        let a_word_start_idx = self.stack_top_idx - 1 - (2 * WORD_SIZE);
+
+        match condition.as_int() {
+            0 => {
+                // do nothing, the words are already in the right place
+            },
+            1 => {
+                self.stack.swap(b_word_start_idx, a_word_start_idx);
+                self.stack.swap(b_word_start_idx + 1, a_word_start_idx + 1);
+                self.stack.swap(b_word_start_idx + 2, a_word_start_idx + 2);
+                self.stack.swap(b_word_start_idx + 3, a_word_start_idx + 3);
+            },
+            _ => return Err(ExecutionError::NotBinaryValue(condition)),
+        }
+
+        self.decrement_stack_size();
+        Ok(())
     }
 }

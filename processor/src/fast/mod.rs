@@ -317,8 +317,8 @@ impl<const N: usize> SpeedyGonzales<N> {
             Operation::MovDn6 => self.rotate_right(7),
             Operation::MovDn7 => self.rotate_right(8),
             Operation::MovDn8 => self.rotate_right(9),
-            Operation::CSwap => todo!(),
-            Operation::CSwapW => todo!(),
+            Operation::CSwap => self.op_cswap()?,
+            Operation::CSwapW => self.op_cswapw()?,
 
             // ----- input / output ---------------------------------------------------------------
             Operation::Push(element) => self.op_push(*element),
@@ -328,7 +328,7 @@ impl<const N: usize> SpeedyGonzales<N> {
             Operation::MStoreW => self.op_mstorew(op_idx)?,
             Operation::MLoad => self.op_mload()?,
             Operation::MStore => self.op_mstore()?,
-            Operation::MStream => self.op_mstream()?,
+            Operation::MStream => self.op_mstream(op_idx)?,
             Operation::Pipe => self.op_pipe()?,
 
             // ----- cryptographic operations -----------------------------------------------------
