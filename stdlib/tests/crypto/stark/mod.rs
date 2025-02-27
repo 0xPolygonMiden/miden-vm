@@ -3,7 +3,7 @@ use assembly::Assembler;
 use miden_air::{FieldExtension, HashFunction, PublicInputs};
 use processor::{DefaultHost, Program, ProgramInfo};
 use test_utils::{
-    prove, AdviceInputs, MemAdviceProvider, ProvingOptions, StackInputs, VerifierError,
+    Prover, AdviceInputs, MemAdviceProvider, ProvingOptions, StackInputs, VerifierError,
 };
 use verifier_recursive::{generate_advice_inputs, VerifierData};
 
@@ -59,7 +59,8 @@ pub fn generate_recursive_verifier_data(
     let options =
         ProvingOptions::new(27, 8, 12, FieldExtension::Quadratic, 4, 7, HashFunction::Rpo256);
 
-    let (stack_outputs, proof) = prove(&program, stack_inputs.clone(), &mut host, options).unwrap();
+    let mut prover = Prover::new();
+    let (stack_outputs, proof) = prover.prove(&program, stack_inputs.clone(), &mut host, options).unwrap();
 
     let program_info = ProgramInfo::from(program);
 
