@@ -5,7 +5,7 @@ use rstest::rstest;
 use vm_core::{assert_matches, Kernel, StackInputs};
 
 use super::*;
-use crate::{DefaultHost, Process};
+use crate::{system::FMP_MAX, DefaultHost, Process};
 
 // TODO(plafer): add prop tests to try to make the stack overflow logic fail (e.g. an out of bounds
 // stack access).
@@ -404,6 +404,43 @@ fn test_assert() {
     }
 }
 
+/// Tests all valid inputs for the `And` operation.
+///
+/// The `test_basic_block()` test already covers the case where the stack top doesn't contain binary
+/// values.
+#[rstest]
+#[case(vec![ZERO, ZERO], ZERO)]
+#[case(vec![ZERO, ONE], ZERO)]
+#[case(vec![ONE, ZERO], ZERO)]
+#[case(vec![ONE, ONE], ONE)]
+fn test_valid_combinations_and(#[case] stack_inputs: Vec<Felt>, #[case] expected_output: Felt) {
+    let program = simple_program_with_ops(vec![Operation::And]);
+
+    let mut host = DefaultHost::default();
+    let processor = SpeedyGonzales::<512>::new(stack_inputs);
+    let stack_outputs = processor.execute(&program, &mut host).unwrap();
+
+    assert_eq!(stack_outputs.stack_truncated(1)[0], expected_output);
+}
+
+/// Tests all valid inputs for the `Or` operation.
+///
+/// The `test_basic_block()` test already covers the case where the stack top doesn't contain binary
+/// values.
+#[rstest]
+#[case(vec![ZERO, ZERO], ZERO)]
+#[case(vec![ZERO, ONE], ONE)]
+#[case(vec![ONE, ZERO], ONE)]
+#[case(vec![ONE, ONE], ONE)]
+fn test_valid_combinations_or(#[case] stack_inputs: Vec<Felt>, #[case] expected_output: Felt) {
+    let program = simple_program_with_ops(vec![Operation::Or]);
+
+    let mut host = DefaultHost::default();
+    let processor = SpeedyGonzales::<512>::new(stack_inputs);
+    let stack_outputs = processor.execute(&program, &mut host).unwrap();
+
+    assert_eq!(stack_outputs.stack_truncated(1)[0], expected_output);
+}
 // TEST HELPERS
 // -----------------------------------------------------------------------------------------------
 
