@@ -5,19 +5,22 @@ use miden_air::RowIndex;
 use vm_core::{
     mast::{BasicBlockNode, MastForest, MastNode, MastNodeId},
     stack::MIN_STACK_DEPTH,
-    utils::range,
-    Felt, FieldElement, Operation, Program, StackOutputs, ONE, WORD_SIZE, ZERO,
+    Felt, Operation, Program, StackOutputs, ONE, WORD_SIZE, ZERO,
 };
 
 use crate::{
-    operations::utils::assert_binary,
-    system::FMP_MAX,
-    utils::{resolve_external_node, split_element},
-    ContextId, ExecutionError, Host, FMP_MIN,
+    operations::utils::assert_binary, utils::resolve_external_node, ContextId, ExecutionError,
+    Host, FMP_MIN,
 };
 
 // temporary module to
 pub mod experiments;
+
+mod field_ops;
+mod io_ops;
+mod stack_ops;
+mod sys_ops;
+mod u32_ops;
 
 #[cfg(test)]
 mod tests;
@@ -229,41 +232,13 @@ impl<const N: usize> SpeedyGonzales<N> {
             Operation::Noop => {
                 // do nothing
             },
-            Operation::Assert(err_code) => {
-                // TODO(plafer): delegate to the host when we have one
-                if self.stack[self.stack_top_idx - 1] != ONE {
-                    return Err(ExecutionError::FailedAssertion {
-                        clk: self.clk + op_idx,
-                        err_code: *err_code,
-                        err_msg: None,
-                    });
-                }
-
-                self.decrement_stack_size();
-            },
-            Operation::FmpAdd => {
-                let top = &mut self.stack[self.stack_top_idx - 1];
-                *top += self.fmp;
-            },
-            Operation::FmpUpdate => {
-                let top = self.stack[self.stack_top_idx - 1];
-
-                let new_fmp = self.fmp + top;
-                if new_fmp.as_int() < FMP_MIN || new_fmp.as_int() > FMP_MAX {
-                    return Err(ExecutionError::InvalidFmpValue(self.fmp, new_fmp));
-                }
-
-                self.fmp = new_fmp;
-                self.decrement_stack_size();
-            },
-            Operation::SDepth => {
-                let depth = (self.stack_top_idx - self.stack_bot_idx) as u32;
-                self.stack[self.stack_top_idx] = depth.into();
-                self.increment_stack_size();
-            },
-            Operation::Caller => todo!(),
-            Operation::Clk => todo!(),
-            Operation::Emit(_) => todo!(),
+            Operation::Assert(err_code) => self.op_assert(*err_code, op_idx)?,
+            Operation::FmpAdd => self.op_fmp_add(),
+            Operation::FmpUpdate => self.op_fmp_update()?,
+            Operation::SDepth => self.op_sdepth(),
+            Operation::Caller => self.op_caller()?,
+            Operation::Clk => self.op_clk()?,
+            Operation::Emit(event_id) => self.op_emit(*event_id)?,
 
             // ----- flow control operations ------------------------------------------------------
             // control flow operations are never executed directly
@@ -281,121 +256,35 @@ impl<const N: usize> SpeedyGonzales<N> {
             Operation::Halt => unreachable!("control flow operation"),
 
             // ----- field operations -------------------------------------------------------------
-            Operation::Add => {
-                self.pop2_applyfn_push(|a, b| Ok(a + b))?;
-            },
-            Operation::Neg => {
-                self.stack[self.stack_top_idx - 1] = -self.stack[self.stack_top_idx - 1];
-            },
-            Operation::Mul => {
-                self.pop2_applyfn_push(|a, b| Ok(a * b))?;
-            },
-            Operation::Inv => {
-                let top = &mut self.stack[self.stack_top_idx - 1];
-                if (*top) == ZERO {
-                    return Err(ExecutionError::DivideByZero(self.clk + op_idx));
-                }
-                *top = top.inv();
-            },
-            Operation::Incr => {
-                self.stack[self.stack_top_idx - 1] += ONE;
-            },
-            // TODO(plafer): test all cases (0,0), (0,1), (1,0), (1,1)
-            Operation::And => {
-                self.pop2_applyfn_push(|a, b| {
-                    assert_binary(b)?;
-                    assert_binary(a)?;
-
-                    if a == ONE && b == ONE {
-                        Ok(ONE)
-                    } else {
-                        Ok(ZERO)
-                    }
-                })?;
-            },
-            Operation::Or => {
-                self.pop2_applyfn_push(|a, b| {
-                    assert_binary(b)?;
-                    assert_binary(a)?;
-
-                    if a == ONE || b == ONE {
-                        Ok(ONE)
-                    } else {
-                        Ok(ZERO)
-                    }
-                })?;
-            },
-            Operation::Not => {
-                let top = &mut self.stack[self.stack_top_idx - 1];
-                assert_binary(*top)?;
-                *top = ONE - *top;
-            },
-            Operation::Eq => {
-                self.pop2_applyfn_push(|a, b| if a == b { Ok(ONE) } else { Ok(ZERO) })?;
-            },
-            Operation::Eqz => {
-                let top = &mut self.stack[self.stack_top_idx - 1];
-                if (*top) == ZERO {
-                    *top = ONE;
-                } else {
-                    *top = ZERO;
-                }
-            },
+            Operation::Add => self.op_add()?,
+            Operation::Neg => self.op_neg()?,
+            Operation::Mul => self.op_mul()?,
+            Operation::Inv => self.op_inv(op_idx)?,
+            Operation::Incr => self.op_incr()?,
+            Operation::And => self.op_and()?,
+            Operation::Or => self.op_or()?,
+            Operation::Not => self.op_not()?,
+            Operation::Eq => self.op_eq()?,
+            Operation::Eqz => self.op_eqz()?,
             Operation::Expacc => todo!(),
 
             // ----- ext2 operations --------------------------------------------------------------
             Operation::Ext2Mul => todo!(),
 
             // ----- u32 operations ---------------------------------------------------------------
-            Operation::U32split => {
-                let top = self.stack[self.stack_top_idx - 1];
-                let (hi, lo) = split_element(top);
-
-                self.stack[self.stack_top_idx - 1] = lo;
-                self.stack[self.stack_top_idx] = hi;
-                self.increment_stack_size();
-            },
-            // TODO(plafer): test the error cases where x>u32::max
-            Operation::U32add => self.u32_pop2_applyfn_push_lowhigh(|a, b| a + b)?,
-            Operation::U32add3 => self.op_u32_add3()?,
-            Operation::U32sub => self.u32_pop2_applyfn_push_results(0, |a, b| {
-                let result = a.wrapping_sub(b);
-                let first = result >> 63;
-                let second = result & u32::MAX as u64;
-
-                Ok((first, second))
-            })?,
-            Operation::U32mul => self.u32_pop2_applyfn_push_lowhigh(|a, b| a * b)?,
-            Operation::U32madd => todo!(),
-            // TODO(plafer): Make sure we test the case where b == 0, and some nice divisions like
-            // 6/3
-            Operation::U32div => {
-                let clk = self.clk + op_idx;
-                self.u32_pop2_applyfn_push_results(0, |a, b| {
-                    if b == 0 {
-                        return Err(ExecutionError::DivideByZero(clk));
-                    }
-
-                    // a/b = n*q + r for some n>=0 and 0<=r<b
-                    let q = a / b;
-                    let r = a - q * b;
-
-                    Ok((r, q))
-                })?
-            },
-            Operation::U32and => self.u32_pop2_applyfn_push(|a, b| a & b)?,
-            Operation::U32xor => self.u32_pop2_applyfn_push(|a, b| a ^ b)?,
-            // TODO(plafer): probably switch order of `(first, second)` so that this can be
-            // implemented as `Ok((a, b))`?
-            Operation::U32assert2(err_code) => {
-                self.u32_pop2_applyfn_push_results(*err_code, |a, b| Ok((b, a)))?
-            },
+            Operation::U32split => self.u32_split()?,
+            Operation::U32add => self.u32_add()?,
+            Operation::U32add3 => self.u32_add3()?,
+            Operation::U32sub => self.u32_sub(op_idx)?,
+            Operation::U32mul => self.u32_mul()?,
+            Operation::U32madd => self.u32_madd()?,
+            Operation::U32div => self.u32_div(op_idx)?,
+            Operation::U32and => self.u32_and()?,
+            Operation::U32xor => self.u32_xor()?,
+            Operation::U32assert2(err_code) => self.u32_assert2(*err_code)?,
 
             // ----- stack manipulation -----------------------------------------------------------
-            Operation::Pad => {
-                self.stack[self.stack_top_idx] = ZERO;
-                self.increment_stack_size();
-            },
+            Operation::Pad => self.op_pad(),
             Operation::Drop => self.decrement_stack_size(),
             Operation::Dup0 => self.dup_nth(0),
             Operation::Dup1 => self.dup_nth(1),
@@ -409,20 +298,11 @@ impl<const N: usize> SpeedyGonzales<N> {
             Operation::Dup11 => self.dup_nth(11),
             Operation::Dup13 => self.dup_nth(13),
             Operation::Dup15 => self.dup_nth(15),
-            Operation::Swap => self.stack.swap(self.stack_top_idx - 1, self.stack_top_idx - 2),
+            Operation::Swap => self.op_swap(),
             Operation::SwapW => self.swapw_nth(1),
             Operation::SwapW2 => self.swapw_nth(2),
             Operation::SwapW3 => self.swapw_nth(3),
-            Operation::SwapDW => {
-                self.stack.swap(self.stack_top_idx - 1, self.stack_top_idx - 9);
-                self.stack.swap(self.stack_top_idx - 2, self.stack_top_idx - 10);
-                self.stack.swap(self.stack_top_idx - 3, self.stack_top_idx - 11);
-                self.stack.swap(self.stack_top_idx - 4, self.stack_top_idx - 12);
-                self.stack.swap(self.stack_top_idx - 5, self.stack_top_idx - 13);
-                self.stack.swap(self.stack_top_idx - 6, self.stack_top_idx - 14);
-                self.stack.swap(self.stack_top_idx - 7, self.stack_top_idx - 15);
-                self.stack.swap(self.stack_top_idx - 8, self.stack_top_idx - 16);
-            },
+            Operation::SwapDW => self.op_swap_double_word(),
             Operation::MovUp2 => self.rotate_left(3),
             Operation::MovUp3 => self.rotate_left(4),
             Operation::MovUp4 => self.rotate_left(5),
@@ -441,109 +321,15 @@ impl<const N: usize> SpeedyGonzales<N> {
             Operation::CSwapW => todo!(),
 
             // ----- input / output ---------------------------------------------------------------
-            Operation::Push(element) => {
-                self.stack[self.stack_top_idx] = *element;
-                self.increment_stack_size();
-            },
-            Operation::AdvPop => todo!(),
-            Operation::AdvPopW => todo!(),
-            Operation::MLoadW => {
-                let addr = {
-                    let addr: u64 = self.stack[self.stack_top_idx - 1].as_int();
-                    let addr: u32 = addr
-                        .try_into()
-                        .map_err(|_| ExecutionError::MemoryAddressOutOfBounds(addr))?;
-
-                    if addr % WORD_SIZE as u32 != 0 {
-                        return Err(ExecutionError::MemoryUnalignedWordAccess {
-                            addr,
-                            ctx: self.ctx,
-                            clk: Felt::from(self.clk + op_idx),
-                        });
-                    }
-                    addr
-                };
-
-                let word = self.memory.get(&(self.ctx, addr)).copied().unwrap_or([ZERO; WORD_SIZE]);
-
-                self.stack[range(self.stack_top_idx - 1 - WORD_SIZE, WORD_SIZE)]
-                    .copy_from_slice(&word);
-
-                self.decrement_stack_size();
-            },
-            Operation::MStoreW => {
-                let addr = {
-                    let addr: u64 = self.stack[self.stack_top_idx - 1].as_int();
-                    let addr: u32 = addr
-                        .try_into()
-                        .map_err(|_| ExecutionError::MemoryAddressOutOfBounds(addr))?;
-
-                    if addr % WORD_SIZE as u32 != 0 {
-                        return Err(ExecutionError::MemoryUnalignedWordAccess {
-                            addr,
-                            ctx: self.ctx,
-                            clk: Felt::from(self.clk + op_idx),
-                        });
-                    }
-                    addr
-                };
-
-                let word: [Felt; WORD_SIZE] = self.stack
-                    [range(self.stack_top_idx - 1 - WORD_SIZE, WORD_SIZE)]
-                .try_into()
-                .unwrap();
-
-                self.memory.insert((self.ctx, addr), word);
-
-                self.decrement_stack_size();
-            },
-            // TODO(plafer): test this
-            Operation::MLoad => {
-                let (word_addr, idx) = {
-                    let addr = self.stack[self.stack_top_idx - 1].as_int();
-                    let addr: u32 = addr
-                        .try_into()
-                        .map_err(|_| ExecutionError::MemoryAddressOutOfBounds(addr))?;
-
-                    let idx = addr % WORD_SIZE as u32;
-
-                    (addr - idx, idx)
-                };
-                let word =
-                    self.memory.get(&(self.ctx, word_addr)).copied().unwrap_or([ZERO; WORD_SIZE]);
-
-                self.stack[self.stack_top_idx - 1] = word[idx as usize];
-            },
-            // TODO(plafer): test this
-            Operation::MStore => {
-                let (word_addr, idx) = {
-                    let addr = self.stack[self.stack_top_idx - 1].as_int();
-                    let addr: u32 = addr
-                        .try_into()
-                        .map_err(|_| ExecutionError::MemoryAddressOutOfBounds(addr))?;
-
-                    let idx = addr % WORD_SIZE as u32;
-
-                    (addr - idx, idx)
-                };
-
-                let value = self.stack[self.stack_top_idx - 2];
-
-                self.memory
-                    .entry((self.ctx, word_addr))
-                    .and_modify(|word| {
-                        word[idx as usize] = value;
-                    })
-                    .or_insert_with(|| {
-                        let mut word = [ZERO; WORD_SIZE];
-                        word[idx as usize] = value;
-                        word
-                    });
-
-                self.decrement_stack_size();
-            },
-            Operation::MStream => todo!(),
-            Operation::Pipe => todo!(),
+            Operation::Push(element) => self.op_push(*element),
+            Operation::AdvPop => self.adv_pop()?,
+            Operation::AdvPopW => self.adv_popw()?,
+            Operation::MLoadW => self.op_mloadw(op_idx)?,
+            Operation::MStoreW => self.op_mstorew(op_idx)?,
+            Operation::MLoad => self.op_mload()?,
+            Operation::MStore => self.op_mstore()?,
+            Operation::MStream => self.op_mstream()?,
+            Operation::Pipe => self.op_pipe()?,
 
             // ----- cryptographic operations -----------------------------------------------------
             Operation::HPerm => todo!(),
@@ -559,205 +345,6 @@ impl<const N: usize> SpeedyGonzales<N> {
 
     // HELPERS
     // ----------------------------------------------------------------------------------------------
-
-    /// Pops the top two elements from the stack, applies the given function to them, and pushes the
-    /// result back onto the stack.
-    ///
-    /// The size of the stack is decremented by 1.
-    #[inline(always)]
-    fn pop2_applyfn_push(
-        &mut self,
-        f: impl FnOnce(Felt, Felt) -> Result<Felt, ExecutionError>,
-    ) -> Result<(), ExecutionError> {
-        let b = self.stack[self.stack_top_idx - 1];
-        let a = self.stack[self.stack_top_idx - 2];
-
-        self.stack[self.stack_top_idx - 2] = f(a, b)?;
-        self.decrement_stack_size();
-
-        Ok(())
-    }
-
-    /// Equivalent to `pop2_applyfn_push`, but for u32 values.
-    fn u32_pop2_applyfn_push(
-        &mut self,
-        f: impl FnOnce(u64, u64) -> u64,
-    ) -> Result<(), ExecutionError> {
-        let b = self.stack[self.stack_top_idx - 1].as_int();
-        let a = self.stack[self.stack_top_idx - 2].as_int();
-
-        // Check that a and b are u32 values.
-        if a > u32::MAX as u64 {
-            return Err(ExecutionError::NotU32Value(Felt::new(a), ZERO));
-        }
-        if b > u32::MAX as u64 {
-            return Err(ExecutionError::NotU32Value(Felt::new(b), ZERO));
-        }
-
-        let result = f(a, b);
-        self.stack[self.stack_top_idx - 2] = Felt::new(result);
-        self.decrement_stack_size();
-
-        Ok(())
-    }
-
-    /// Pops 2 elements from the stack, applies the given function to them, and pushes the low/high
-    /// u32 values of the result back onto the stack.
-    ///
-    /// Specifically, this function
-    /// 1. pops the top two elements from the stack,
-    /// 2. applies the given function to them,
-    /// 3. splits the result into low/high u32 values, and
-    /// 4. pushes the low/high values back onto the stack.
-    ///
-    /// The size of the stack doesn't change.
-    #[inline(always)]
-    fn u32_pop2_applyfn_push_lowhigh(
-        &mut self,
-        f: impl FnOnce(u64, u64) -> u64,
-    ) -> Result<(), ExecutionError> {
-        let b = self.stack[self.stack_top_idx - 1].as_int();
-        let a = self.stack[self.stack_top_idx - 2].as_int();
-
-        // Check that a and b are u32 values.
-        if a > u32::MAX as u64 {
-            return Err(ExecutionError::NotU32Value(Felt::new(a), ZERO));
-        }
-        if b > u32::MAX as u64 {
-            return Err(ExecutionError::NotU32Value(Felt::new(b), ZERO));
-        }
-
-        let result = Felt::new(f(a, b));
-        let (hi, lo) = split_element(result);
-
-        self.stack[self.stack_top_idx - 2] = lo;
-        self.stack[self.stack_top_idx - 1] = hi;
-        Ok(())
-    }
-
-    /// Pops 2 elements from the stack, applies the given function to them, and pushes the resulting
-    /// 2 u32 values back onto the stack, in the order (first, second).
-    ///
-    /// The size of the stack doesn't change.
-    #[inline(always)]
-    fn u32_pop2_applyfn_push_results(
-        &mut self,
-        err_code: u32,
-        f: impl FnOnce(u64, u64) -> Result<(u64, u64), ExecutionError>,
-    ) -> Result<(), ExecutionError> {
-        let b = self.stack[self.stack_top_idx - 1].as_int();
-        let a = self.stack[self.stack_top_idx - 2].as_int();
-
-        // Check that a and b are u32 values.
-        if a > u32::MAX as u64 {
-            return Err(ExecutionError::NotU32Value(Felt::new(a), Felt::from(err_code)));
-        }
-        if b > u32::MAX as u64 {
-            return Err(ExecutionError::NotU32Value(Felt::new(b), Felt::from(err_code)));
-        }
-
-        let (first, second) = f(a, b)?;
-
-        self.stack[self.stack_top_idx - 2] = Felt::new(second);
-        self.stack[self.stack_top_idx - 1] = Felt::new(first);
-        Ok(())
-    }
-
-    /// Pops three elements off the stack, adds them, splits the result into low and high 32-bit
-    /// values, and pushes these values back onto the stack.
-    ///
-    /// The size of the stack is decremented by 1.
-    fn op_u32_add3(&mut self) -> Result<(), ExecutionError> {
-        let (sum_hi, sum_lo) = {
-            let c = self.stack[self.stack_top_idx - 1].as_int();
-            let b = self.stack[self.stack_top_idx - 2].as_int();
-            let a = self.stack[self.stack_top_idx - 3].as_int();
-
-            // Check that a, b, and c are u32 values.
-            if a > u32::MAX as u64 {
-                return Err(ExecutionError::NotU32Value(Felt::new(a), ZERO));
-            }
-            if b > u32::MAX as u64 {
-                return Err(ExecutionError::NotU32Value(Felt::new(b), ZERO));
-            }
-            if c > u32::MAX as u64 {
-                return Err(ExecutionError::NotU32Value(Felt::new(c), ZERO));
-            }
-            let result = Felt::new(a + b + c);
-            split_element(result)
-        };
-
-        // write the high 32 bits to the new top of the stack, and low 32 bits after
-        self.stack[self.stack_top_idx - 2] = sum_hi;
-        self.stack[self.stack_top_idx - 3] = sum_lo;
-
-        self.decrement_stack_size();
-        Ok(())
-    }
-
-    /// Rotates the top `n` elements of the stack to the left by 1.
-    ///
-    /// For example, if the stack is [a, b, c, d], with `d` at the top, then `rotate_left(3)` will
-    /// result in the top 3 elements being rotated left: [a, c, d, b].
-    ///
-    /// This operation is useful for implementing the `movup` instructions.
-    ///
-    /// The stack size doesn't change.
-    #[inline(always)]
-    fn rotate_left(&mut self, n: usize) {
-        let rotation_bot_index = self.stack_top_idx - n;
-        let new_stack_top_element = self.stack[rotation_bot_index];
-
-        // shift the top n elements down by 1, starting from the bottom of the rotation.
-        for i in 0..n - 1 {
-            self.stack[rotation_bot_index + i] = self.stack[rotation_bot_index + i + 1];
-        }
-
-        // Set the top element (which comes from the bottom of the rotation).
-        self.stack[self.stack_top_idx - 1] = new_stack_top_element;
-    }
-
-    /// Rotates the top `n` elements of the stack to the right by 1.
-    ///
-    /// Analogous to `rotate_left`, but in the opposite direction.
-    #[inline(always)]
-    fn rotate_right(&mut self, n: usize) {
-        let rotation_bot_index = self.stack_top_idx - n;
-        let new_stack_bot_element = self.stack[self.stack_top_idx - 1];
-
-        // shift the top n elements up by 1, starting from the top of the rotation.
-        for i in 1..n {
-            self.stack[self.stack_top_idx - i] = self.stack[self.stack_top_idx - i - 1];
-        }
-
-        // Set the bot element (which comes from the top of the rotation).
-        self.stack[rotation_bot_index] = new_stack_bot_element;
-    }
-
-    /// Duplicates the n'th element from the top of the stack to the top of the stack.
-    ///
-    /// The size of the stack is incremented by 1.
-    #[inline(always)]
-    fn dup_nth(&mut self, n: usize) {
-        let to_dup_index = self.stack_top_idx - n - 1;
-        self.stack[self.stack_top_idx] = self.stack[to_dup_index];
-        self.increment_stack_size();
-    }
-
-    /// Swaps the nth word from the top of the stack with the top word of the stack.
-    ///
-    /// Valid values of `n` are 1, 2, and 3.
-    fn swapw_nth(&mut self, n: usize) {
-        // For example, for n=3, the stack words and variables look like:
-        //    3     2     1     0
-        // | ... | ... | ... | ... |
-        // ^                 ^
-        // nth_word       top_word
-        let (rest_of_stack, top_word) = self.stack.split_at_mut(self.stack_top_idx - WORD_SIZE);
-        let (_, nth_word) = rest_of_stack.split_at_mut(rest_of_stack.len() - n * WORD_SIZE);
-
-        nth_word[0..WORD_SIZE].swap_with_slice(&mut top_word[0..WORD_SIZE]);
-    }
 
     /// Increments the stack top pointer by 1.
     ///
