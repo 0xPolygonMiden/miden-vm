@@ -167,49 +167,55 @@ impl Process {
     }
 
     /// Computes a single turn of exp accumulation for the given inputs. The top 4 elements in the
-    /// stack is arranged as follows (from the top):
-    /// - least significant bit of the exponent in the previous trace if there's an expacc call,
-    ///   otherwise ZERO
-    /// - exponent of base for this turn
-    /// - accumulated power of base so far
-    /// - number which needs to be shifted to the right
+    /// stack are arranged as follows (from the top):
+    /// - 0: least significant bit of the exponent in the previous trace if there's an expacc call,
+    ///   otherwise ZERO,
+    /// - 1: base of the exponentiation; i.e. `b` in `b^a`,
+    /// - 2: accumulated result of the exponentiation so far,
+    /// - 3: the exponent; i.e. `a` in `b^a`.
     ///
-    /// To perform the operation we do the following:
-    /// 1. Pops top three elements off the stack and calculate the least significant bit of the
-    ///    number `b`.
-    /// 2. Use this bit to decide if the current `base` raise to the power exponent needs to be
-    ///    included in the accumulator.
-    /// 3. Update exponent with its square and the number b with one right shift.
-    /// 4. Pushes the calcuted new values to the stack in the mentioned order.
+    /// It is expected that `Expacc` is called at least `num_exp_bits` times, where `num_exp_bits`
+    /// is the number of bits needed to represent `exp`. The initial call to `Expacc` should set the
+    /// stack as [0, base, 1, exponent]. The subsequent call will set the stack either as
+    /// - [0, base^2, acc, exp/2], or
+    /// - [1, base^2, acc * base, exp/2],
+    ///
+    /// depending on the least significant bit of the exponent.
+    ///
+    /// Expacc is based on the observation that the exponentiation of a number can be computed by
+    /// repeatedly squaring the base and multiplying the accumulator by the base when the least
+    /// significant bit of the exponent is 1.
+    ///
+    /// For example, take b^5 = (b^2)^2 * b. Over the course of 3 iterations (5 = 101b), the
+    /// algorithm will compute b, b^2 and b^4 (placed in `base`). Hence, we want to multiply `base`
+    /// in `acc` when `base = b` and when `base = b^4`, which occurs on the first and third
+    /// iterations (corresponding to the `1` bits in the binary representation of 5).
     pub(super) fn op_expacc(&mut self) -> Result<(), ExecutionError> {
-        let mut exp = self.stack.get(1);
-        let mut acc = self.stack.get(2);
-        let mut b = self.stack.get(3);
+        let old_base = self.stack.get(1);
+        let old_acc = self.stack.get(2);
+        let old_exp = self.stack.get(3);
 
-        // least significant bit of the number b.
-        let bit = b.as_int() & 1;
+        // Compute new exponent.
+        let new_exp = Felt::new(old_exp.as_int() >> 1);
 
-        // value which would be incorporated in the accumulator.
-        let value = Felt::new((exp.as_int() - 1) * bit + 1);
+        // Compute new accumulator. We update the accumulator only when the least significant bit of
+        // the exponent is 1.
+        let exp_lsb = old_exp.as_int() & 1;
+        let acc_update_val = if exp_lsb == 1 { old_base } else { ONE };
+        let new_acc = old_acc * acc_update_val;
 
-        // current value of acc after including the value based on whether the bit is
-        // 1 or not.
-        acc *= value;
+        // Compute the new base.
+        let new_base = old_base * old_base;
 
-        // number `b` shifted right by one bit.
-        b = Felt::new(b.as_int() >> 1);
-
-        // exponent updated with its square.
-        exp *= exp;
-
-        // save val in the decoder helper register.
-        self.decoder.set_user_op_helpers(Operation::Expacc, &[value]);
-
-        self.stack.set(0, Felt::new(bit));
-        self.stack.set(1, exp);
-        self.stack.set(2, acc);
-        self.stack.set(3, b);
+        // Update the stack with the new values.
+        self.stack.set(0, Felt::new(exp_lsb));
+        self.stack.set(1, new_base);
+        self.stack.set(2, new_acc);
+        self.stack.set(3, new_exp);
         self.stack.copy_state(4);
+
+        // save value multiplied in the accumulator in the decoder helper register.
+        self.decoder.set_user_op_helpers(Operation::Expacc, &[acc_update_val]);
 
         Ok(())
     }
@@ -575,7 +581,8 @@ mod tests {
         let expected = build_expected(&[ZERO, new_base, new_acc, new_exp]);
         assert_eq!(expected, process.stack.trace_state());
 
-        // --- when lsb(exp) == 1, acc is updated ----------------------------------------------------------
+        // --- when lsb(exp) == 1, acc is updated
+        // ----------------------------------------------------------
 
         let old_exp = 3;
         let old_acc = 1;
@@ -611,8 +618,7 @@ mod tests {
             Process::new_dummy_with_inputs_and_decoder_helpers(stack_inputs, advice_inputs);
 
         process.execute_op(Operation::Expacc, &mut host).unwrap();
-        let expected =
-            build_expected(&[ONE, new_base, new_acc, new_exp]);
+        let expected = build_expected(&[ONE, new_base, new_acc, new_exp]);
         assert_eq!(expected, process.stack.trace_state());
     }
 
