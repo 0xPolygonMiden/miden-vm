@@ -392,10 +392,8 @@ impl Test {
         for library in &self.libraries {
             host.load_mast_forest(library.mast_forest().clone()).unwrap();
         }
-        let mut prover = Prover::new();
-        let (mut stack_outputs, proof) = prover
-            .prove(&program, stack_inputs.clone(), &mut host, ProvingOptions::default())
-            .unwrap();
+        let (mut stack_outputs, proof) =
+            prove(&program, stack_inputs.clone(), &mut host, ProvingOptions::default()).unwrap();
 
         let program_info = ProgramInfo::from(program);
         if test_fail {
