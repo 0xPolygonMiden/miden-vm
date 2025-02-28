@@ -51,6 +51,7 @@ fn test_basic_block(
         vec![Operation::Not],
         vec![Operation::Eq],
         vec![Operation::Eqz],
+        vec![Operation::Expacc],
         vec![Operation::U32split, Operation::MovUp8, Operation::Drop],
         vec![Operation::U32add],
         vec![Operation::U32add3],
