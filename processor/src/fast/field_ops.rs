@@ -77,6 +77,29 @@ impl<const N: usize> SpeedyGonzales<N> {
         Ok(())
     }
 
+    pub fn op_expacc(&mut self) {
+        let old_base = self.stack[self.stack_top_idx - 2];
+        let old_acc = self.stack[self.stack_top_idx - 3];
+        let old_exp = self.stack[self.stack_top_idx - 4];
+
+        // Compute new exponent.
+        let new_exp = Felt::new(old_exp.as_int() >> 1);
+
+        // Compute new accumulator. We update the accumulator only when the least significant bit of
+        // the exponent is 1.
+        let exp_lsb = old_exp.as_int() & 1;
+        let acc_update_val = if exp_lsb == 1 { old_base } else { ONE };
+        let new_acc = old_acc * acc_update_val;
+
+        // Compute the new base.
+        let new_base = old_base * old_base;
+
+        self.stack[self.stack_top_idx - 1] = Felt::new(exp_lsb);
+        self.stack[self.stack_top_idx - 2] = new_base;
+        self.stack[self.stack_top_idx - 3] = new_acc;
+        self.stack[self.stack_top_idx - 4] = new_exp;
+    }
+
     // HELPERS
     // ----------------------------------------------------------------------------------------------
 

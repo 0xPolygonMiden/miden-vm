@@ -266,7 +266,7 @@ impl<const N: usize> SpeedyGonzales<N> {
             Operation::Not => self.op_not()?,
             Operation::Eq => self.op_eq()?,
             Operation::Eqz => self.op_eqz()?,
-            Operation::Expacc => todo!(),
+            Operation::Expacc => self.op_expacc(),
 
             // ----- ext2 operations --------------------------------------------------------------
             Operation::Ext2Mul => todo!(),
