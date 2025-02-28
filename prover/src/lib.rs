@@ -57,15 +57,15 @@ pub use winter_prover::{crypto::MerkleTree as MerkleTreeVC, Proof};
 // PROVER
 // ================================================================================================
 
+/// Program executor and a STARK proover.
+///
+/// It allows concrete implementations of hardware-accelerated provers to store reusable buffers
+/// for better performance.
 pub struct Prover {
     #[cfg(all(feature = "cuda", target_arch = "x86_64"))]
     storage: CudaStorageOwned,
 }
 
-/// Program executor and a STARK proover.
-///
-/// It allows concrete implementations of hardware-accelerated provers to store reusable buffers
-/// for better performance.
 impl Prover {
     #[cfg(not(all(feature = "cuda", target_arch = "x86_64")))]
     pub fn new() -> Self {
@@ -76,9 +76,9 @@ impl Prover {
     #[instrument("create_prover", skip_all)]
     pub fn new() -> Self {
         let buffer_size = env::var("MIDEN_CUDA_MEM_SIZE_MB")
-            .expect("Provide MIDEN_CUDA_MEM_SIZE_MB env variable to specify the max CUDA buffer size (in megabytes)");
-        let buffer_size =
-            buffer_size.parse::<usize>().expect("MIDEN_CUDA_MEM_SIZE_MB must be a number");
+            .expect("Provide MIDEN_CUDA_MEM_SIZE_MB env variable to specify the max CUDA buffer size (in megabytes)")
+            .parse::<usize>()
+            .expect("MIDEN_CUDA_MEM_SIZE_MB must be a number");
         Self {
             storage: CudaStorageOwned::new(1024 * 1024 * buffer_size),
         }
