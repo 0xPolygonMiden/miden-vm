@@ -20,6 +20,7 @@ proc.compute_adjustment_power_z_quotients
 
     # Get alpha
     padw exec.constants::deep_rand_coef_ptr mem_loadw drop drop
+    ext2inv
     # => [alpha_1, alpha_0, ...]
 
     # First compute powers from 1 to 7
@@ -39,92 +40,7 @@ proc.compute_adjustment_power_z_quotients
     drop drop
     # => [alpha2_1, alpha2_0, alpha_1, alpha_0, ...]
 
-    ## c) Third power
-    dup.3 dup.3
-    ext2mul
-    dup.1 dup.1
-    exec.constants::deep_rand_alpha_3
-    mem_storew
-    drop drop
-    # => [alpha3_1, alpha3_0, alpha_1, alpha_0, ...]
-
-    ## d) Fourth power
-    dup.3 dup.3
-    ext2mul
-    dup.1 dup.1
-    exec.constants::deep_rand_alpha_4
-    mem_storew
-    drop drop
-    # => [alpha4_1, alpha4_0, alpha_1, alpha_0, ...]
-
-    ## e) Fifth power
-    dup.3 dup.3
-    ext2mul
-    dup.1 dup.1
-    exec.constants::deep_rand_alpha_5
-    mem_storew
-    drop drop
-    # => [alpha5_1, alpha5_0, alpha_1, alpha_0, ...]
-
-    ## f) Sixth power
-    dup.3 dup.3
-    ext2mul
-    dup.1 dup.1
-    exec.constants::deep_rand_alpha_6
-    mem_storew
-    movdn.5 movdn.5
-    # => [alpha6_1, alpha6_0, alpha_1, alpha_0, alpha6_1, alpha6_0, ...]
-
-    ## g) Seventh power
-    dup.3 dup.3
-    ext2mul
-    dup.1 dup.1
-    exec.constants::deep_rand_alpha_7
-    mem_storew
-    drop drop
-    # => [alpha7_1, alpha7_0, alpha_1, alpha_0, alpha6_1, alpha6_0, ...]
-
-
-    # 2) Compute alpha^16
-    dup.3 dup.3
-
-    repeat.4
-        dup.1 dup.1
-        ext2mul
-    end
-    # => [alpha16_1, alpha16_0, alpha7_1, alpha7_0, alpha_1, alpha_0, alpha6_1, alpha6_0, ...]
-
-    # 3) Compute alpha^64
-    repeat.2
-        dup.1 dup.1
-        ext2mul
-    end
-    # => [alpha64_1, alpha64_0, alpha7_1, alpha7_0, alpha_1, alpha_0, alpha6_1, alpha6_0, ...]
-
-
-    # 5) Compute alpha^77
-    dup.3 dup.3
-    # => [alpha7_1, alpha7_0, alpha64_1, alpha64_0, alpha7_1, alpha7_0, alpha_1, alpha_0, alpha6_1, alpha6_0, ...]
-    movup.9 movup.9
-    # => [alpha6_1, alpha6_0, alpha7_1, alpha7_0, alpha64_1, alpha64_0, alpha7_1, alpha7_0, alpha_1, alpha_0, ...]
-    ext2mul
-    # => [alpha13_1, alpha13_0, alpha64_1, alpha64_0, alpha7_1, alpha7_0, alpha_1, alpha_0, ...]
-    ext2mul
-    # => [alpha77_1, alpha77_0, alpha7_1, alpha7_0, alpha_1, alpha_0, ...]
-
-    dup.1 dup.1
-    exec.constants::deep_rand_alpha_77
-    mem_storew
-    drop drop
-    # => [alpha77_1, alpha77_0, alpha7_1, alpha7_0, alpha_1, alpha_0, ...]
-
-    # 6) Compute alpha^85
-    ext2mul ext2mul
-    dup.1 dup.1
-    exec.constants::deep_rand_alpha_85
-    mem_storew
     dropw
-    # => [...]
 end
 
 #! Compute P^gz(alpha) and Q^z(alpha) where:
@@ -151,11 +67,10 @@ end
 #! Cycles: 200
 proc.compute_q_z_p_gz_at_alpha
 
-    # I) Compute alpha^{-1} is and save it
+    # I) Store alpha, the point of evaluation
     padw exec.constants::deep_rand_coef_ptr mem_loadw
     # => [y, y, alpha1, alpha0, ...]
     drop drop
-    ext2inv
     dup.1 dup.1
     exec.constants::deep_rand_alpha_inv mem_storew
 
@@ -235,43 +150,17 @@ proc.compute_q_z_p_gz_at_alpha
     horner_eval_ext
     # => [Y, Y, Y, ptr_ood, ptr_alpha, acc1, acc0, ...]
 
-    ## 5) Multiply the accumulator by the adjustment factor in order to get Q^z(alpha)
-    ##    We need to adjust by alpha^(71 + 7 + 8 - 1) because we are evaluating the reversed
-    ##    polynomial at alpha^{-1} and by alpha^2 because the last `horner_eval_ext` call operated
-    ##    only on a batch of 2 extension field elements out of 4, i.e., two slots where empty.
-    swapdw
-    drop drop
-
-    ### a) Load alpha^85
-    exec.constants::deep_rand_alpha_85 mem_loadw
-
-    ### b) Load alpha^2
-    push.0.0 exec.constants::deep_rand_alpha_2 mem_loadw drop drop
-    
-    ### c) Multiply the two adjustment factors
-    ext2mul
-    
-    ### d) Multiply the accumulator by the adjustment factor to get Q^z(alpha)
-    ext2mul
-
-    ### e) Since we are going to subtract Q^z(alpha) from Q^x(alpha), it makes sense to compute
-    ###    the negation only once and replace then the subtraction with an addition
-    ext2neg
-    # => [val1, val0, Y, Y, ...]
-
-    ### f) Move the result so it is kept on the stack for later use
-    movdn.9 movdn.9
-    # => [Y, Y, q_z_1, q_z_0, ...]
-
     # III) Compute P^gz(alpha)
 
     ## 1) Set up the stack for `horner_eval_ext`
     push.0.0
     exec.constants::deep_rand_alpha_inv
     exec.constants::ood_constraint_evals_next_ptr
-    padw
-    swapdw
-    # => [Y, Y, ZERO, ood_ptr, alpha_ptr, acc1, acc0, q_z_1, q_z_0, ...]
+    movdnw.3
+    # => [Y, Y, Y, ood_ptr, alpha_ptr, 0, 0, ptr_ood, ptr_alpha, acc1, acc0, ...]
+
+    exec.constants::zero_word mem_loadw swapw.2
+    # => [Y, Y, ZERO, ood_ptr, alpha_ptr, 0, 0, ptr_ood, ptr_alpha, acc1, acc0, ...]
 
     ## 2) Process the first 19 batches of 8 field elements i.e., 4 quadratic extension field elements 
     repeat.19
@@ -327,7 +216,7 @@ proc.compute_q_z_p_gz_at_alpha
     # => [h7`, h6`, h5`, h4`, h15`, h14`, h13`, h12`, h11`, h10`, h9`, h8`, U, ...]    
     exec.constants::zero_word mem_loadw
     horner_eval_ext
-    # => [Y, Y, Y, ptr_ood, ptr_alpha, acc1, acc0, ...]
+    # => [Y, Y, Y, ptr_ood, ptr_alpha, acc1, acc0, ptr_ood, ptr_alpha, acc1, acc0, ...]
 
     ## 5) Multiply the accumulator by the adjustment factor in order to get Q^z(alpha)
     ##    We need to adjust by alpha^(71 + 7 + 8 - 1) because we are evaluating the reversed
@@ -335,30 +224,34 @@ proc.compute_q_z_p_gz_at_alpha
     ##    only on a batch of 2 extension field elements out of 4, i.e., two slots where empty.
     swapdw
     drop drop
+    # => [Y, acc1, acc0, Y, Y, ptr_ood, ptr_alpha, acc1, acc0, ...]
 
-    ### a) Load alpha^85
-    exec.constants::deep_rand_alpha_85 mem_loadw
-
-    ### b) Load alpha^2
-    push.0.0 exec.constants::deep_rand_alpha_2 mem_loadw drop drop
+    ### a) Load alpha^2
+    exec.constants::deep_rand_alpha_2 mem_loadw
+    # drop drop
+    # => [alpha_sq1, alpha_sq0, alpha_sq1, alpha_sq0, acc1, acc0, Y, Y, ptr_ood, ptr_alpha, acc1, acc0, ...]
     
-    ### c) Multiply the two adjustment factors
-    ext2mul
     
-    ### d) Multiply the accumulator by the adjustment factor to get Q^z(alpha)
+    ### b) Multiply the second accumulator by the adjustment factor to get Q^z(alpha)
+    movup.5 movup.5
     ext2mul
-
-    ### e) Since we are going to subtract Q^z(alpha) from Q^x(alpha), it makes sense to compute
-    ###    the negation only once and replace then the subtraction with an addition
     ext2neg
-    # => [p_gz_1, p_gz_0, Y, Y, q_z_1, q_z_0, ...]
+    # => [p_gz_1, p_gz_0, alpha_sq1, alpha_sq0, Y, Y, ptr_ood, ptr_alpha, acc1, acc0, ...]
 
-    ### f) Move the result so it is kept on the stack for later use
-    movdn.9 movdn.9
-    # => [Y, Y, p_gz_1, p_gz_0, q_z_1, q_z_0, ...]
+    movupw.3
+    drop drop 
+    # => [acc1, acc0, p_gz_1, p_gz_0, alpha_sq1, alpha_sq0, Y, Y, ...]
 
-    # IV) Clean up the stack
-    dropw dropw
+    movup.5 movup.5
+    ext2mul
+    ext2neg
+    # => [q_z_1, q_z_0, p_gz_1, p_gz_0, Y, Y, ...]
+
+    movup.3 movup.3
+    # => [p_gz_1, p_gz_0, q_z_1, q_z_0, Y, Y, ...]
+
+    swapw dropw
+    swapw dropw
     # => [p_gz_1, p_gz_0, q_z_1, q_z_0, ...]
 end
 
@@ -568,23 +461,12 @@ proc.load_query_row
     assert_eq
     #=> [Y, ptr_x, ptr_alpha_inv, acc1, acc0, index, query_ptr, ...]
 
-    # IV) Compute Q^x(alpha).
-    #      This is the result of multiplying the current value of the accumulator by
-    #      alpha^(71 + 7 + 8 - 1) i.e., alpha^85.
-
-    ## 1) Load alpha^(71 + 7 + 8 - 1) i.e., alpha^85
+    ## IV) Return Q^x(alpha).
     swapw
+    #=> [ptr_x, ptr_alpha_inv, acc1, acc0, Y, index, query_ptr, ...]
     drop drop
-    exec.constants::deep_rand_alpha_85_0 mem_load
-    exec.constants::deep_rand_alpha_85_1 mem_load
-    #=> [alpha77_1, alpha77_0 , acc1, acc0, Y, depth, index, query_ptr, ...]
-
-    ## 2) Multiply by alpha^85
-    ext2mul
-    #=> [q_x_at_alpha_1, q_x_at_alpha_0, Y, index, query_ptr, ...]
-
-    ## 3) Keep Q^x(alpha) deeper on the stack
     dup.1 dup.1
+    #=> [acc1, acc0, acc1, acc0, Y, index, query_ptr, ...]
     swapw
     #=> [Y, q_x_at_alpha_1, q_x_at_alpha_0, q_x_at_alpha_1, q_x_at_alpha_0, index, query_ptr, ...]
 end
