@@ -38,7 +38,7 @@ Internally, Miden VM uses [rayon](https://github.com/rayon-rs/rayon) for paralle
 
 ### GPU acceleration
 
-Miden VM proof generation can be accelerated via GPUs. Currently, GPU acceleration is enabled on Apple Silicon hardware (via [Metal](<https://en.wikipedia.org/wiki/Metal_(API)>)) and nVidia GPUs (via [Cuda](https://en.wikipedia.org/wiki/CUDA)).
+Miden VM proof generation can be accelerated via GPUs. Currently, GPU acceleration is enabled on Apple Silicon hardware (via [Metal](<https://en.wikipedia.org/wiki/Metal_(API)>)) and Nvidia GPUs (via [Cuda](https://en.wikipedia.org/wiki/CUDA)).
 
 To compile Miden VM with Metal acceleration enabled, you can run the following command:
 
