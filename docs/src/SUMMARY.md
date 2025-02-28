@@ -1,6 +1,6 @@
 # Summary
 
-- [Introduction](./intro/main.md)
+- [VM](./intro/main.md)
   - [Overview](./intro/overview.md)
   - [Usage](./intro/usage.md)
   - [Performance](./intro/performance.md)
