@@ -49,4 +49,3 @@
       - [Multiset checks](./design/lookups/multiset.md)
       - [LogUp](./design/lookups/logup.md)
   - [Background Material](./background.md)
-  
