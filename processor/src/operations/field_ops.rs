@@ -518,51 +518,101 @@ mod tests {
 
     #[test]
     fn op_expacc() {
-        // --- test when b become 0 ---------------------------------------------------------------
+        // --- when base = 0 and exp is even, acc doesn't change --------------------------------
 
-        let a = 0;
-        let b = 32;
-        let c = 4;
+        let old_exp = 8;
+        let old_acc = 1;
+        let old_base = 0;
+
+        let new_exp = Felt::new(4_u64);
+        let new_acc = Felt::new(1_u64);
+        let new_base = Felt::new(0_u64);
 
         let advice_inputs = AdviceInputs::default();
-        let stack_inputs = StackInputs::try_from_ints([a, b, c, 0]).unwrap();
+        let stack_inputs = StackInputs::try_from_ints([old_exp, old_acc, old_base, 0]).unwrap();
         let (mut process, mut host) =
             Process::new_dummy_with_inputs_and_decoder_helpers(stack_inputs, advice_inputs);
 
         process.execute_op(Operation::Expacc, &mut host).unwrap();
-        let expected = build_expected(&[ZERO, Felt::new(16), Felt::new(32), Felt::new(a >> 1)]);
+        let expected = build_expected(&[ZERO, new_base, new_acc, new_exp]);
         assert_eq!(expected, process.stack.trace_state());
 
-        // --- test when bit from b is 1 ----------------------------------------------------------
+        // --- when base = 0 and exp is odd, acc becomes 0 --------------------------------------
 
-        let a = 3;
-        let b = 1;
-        let c = 16;
+        let old_exp = 9;
+        let old_acc = 1;
+        let old_base = 0;
+
+        let new_exp = Felt::new(4_u64);
+        let new_acc = Felt::new(0_u64);
+        let new_base = Felt::new(0_u64);
 
         let advice_inputs = AdviceInputs::default();
-        let stack_inputs = StackInputs::try_from_ints([a, b, c, 0]).unwrap();
+        let stack_inputs = StackInputs::try_from_ints([old_exp, old_acc, old_base, 0]).unwrap();
         let (mut process, mut host) =
             Process::new_dummy_with_inputs_and_decoder_helpers(stack_inputs, advice_inputs);
 
         process.execute_op(Operation::Expacc, &mut host).unwrap();
-        let expected = build_expected(&[ONE, Felt::new(256), Felt::new(16), Felt::new(a >> 1)]);
+        let expected = build_expected(&[ONE, new_base, new_acc, new_exp]);
         assert_eq!(expected, process.stack.trace_state());
 
-        // --- test when bit from b is 1 & exp is 2**32 -------------------------------------------
-        // exp will overflow the field after this operation.
+        // --- when exp = 0, acc doesn't change, and base doubles -------------------------------
 
-        let a = 17;
-        let b = 5;
-        let c = 625;
+        let old_exp = 0;
+        let old_acc = 32;
+        let old_base = 4;
+
+        let new_exp = Felt::new(0_u64);
+        let new_acc = Felt::new(32_u64);
+        let new_base = Felt::new(16_u64);
 
         let advice_inputs = AdviceInputs::default();
-        let stack_inputs = StackInputs::try_from_ints([a, b, c, 0]).unwrap();
+        let stack_inputs = StackInputs::try_from_ints([old_exp, old_acc, old_base, 0]).unwrap();
+        let (mut process, mut host) =
+            Process::new_dummy_with_inputs_and_decoder_helpers(stack_inputs, advice_inputs);
+
+        process.execute_op(Operation::Expacc, &mut host).unwrap();
+        let expected = build_expected(&[ZERO, new_base, new_acc, new_exp]);
+        assert_eq!(expected, process.stack.trace_state());
+
+        // --- when lsb(exp) == 1, acc is updated ----------------------------------------------------------
+
+        let old_exp = 3;
+        let old_acc = 1;
+        let old_base = 16;
+
+        let new_exp = Felt::new(1_u64);
+        let new_acc = Felt::new(16_u64);
+        let new_base = Felt::new(16_u64 * 16_u64);
+
+        let advice_inputs = AdviceInputs::default();
+        let stack_inputs = StackInputs::try_from_ints([old_exp, old_acc, old_base, 0]).unwrap();
+        let (mut process, mut host) =
+            Process::new_dummy_with_inputs_and_decoder_helpers(stack_inputs, advice_inputs);
+
+        process.execute_op(Operation::Expacc, &mut host).unwrap();
+        let expected = build_expected(&[ONE, new_base, new_acc, new_exp]);
+        assert_eq!(expected, process.stack.trace_state());
+
+        // --- when lsb(exp) == 1 & base is 2**32 -------------------------------------------
+        // base will overflow the field after this operation (which is allowed).
+
+        let old_exp = 17;
+        let old_acc = 5;
+        let old_base = u32::MAX as u64 + 1_u64;
+
+        let new_exp = Felt::new(8_u64);
+        let new_acc = Felt::new(old_acc * old_base);
+        let new_base = Felt::new(old_base) * Felt::new(old_base);
+
+        let advice_inputs = AdviceInputs::default();
+        let stack_inputs = StackInputs::try_from_ints([old_exp, old_acc, old_base, 0]).unwrap();
         let (mut process, mut host) =
             Process::new_dummy_with_inputs_and_decoder_helpers(stack_inputs, advice_inputs);
 
         process.execute_op(Operation::Expacc, &mut host).unwrap();
         let expected =
-            build_expected(&[ONE, Felt::new(390625), Felt::new(3125), Felt::new(a >> 1)]);
+            build_expected(&[ONE, new_base, new_acc, new_exp]);
         assert_eq!(expected, process.stack.trace_state());
     }
 
