@@ -102,7 +102,7 @@ exec-metal: ## Builds an executable with Metal acceleration enabled
 	cargo build --profile optimized $(FEATURES_METAL_EXEC)
 
 .PHONY: exec-cuda
-exec-metal: ## Builds an executable with CUDA acceleration enabled
+exec-cuda: ## Builds an executable with CUDA acceleration enabled
 	RUSTFLAGS="-C target-feature=+avx2" cargo build --profile optimized $(FEATURES_CUDA_EXEC)
 
 .PHONY: exec-avx2
