@@ -250,6 +250,9 @@ make exec
 # build an executable for Apple silicon (concurrent+metal)
 make exec-metal
 
+# build an executable for nVidia GPU (concurrent+cuda)
+make exec-cuda
+
 # build an executable for targets with AVX2 instructions (concurrent)
 make exec-avx2
 

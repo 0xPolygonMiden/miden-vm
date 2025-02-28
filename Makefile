@@ -11,7 +11,8 @@ DEBUG_ASSERTIONS=RUSTFLAGS="-C debug-assertions"
 FEATURES_CONCURRENT_EXEC=--features concurrent,executable
 FEATURES_LOG_TREE=--features concurrent,executable,tracing-forest
 FEATURES_METAL_EXEC=--features concurrent,executable,metal
-ALL_FEATURES_BUT_ASYNC=--features concurrent,executable,metal,testing,with-debug-info,internal
+FEATURES_CUDA_EXEC=--features concurrent,executable,cuda
+ALL_FEATURES_BUT_ASYNC=--features concurrent,executable,metal,cuda,testing,with-debug-info,internal
 
 # -- linting --------------------------------------------------------------------------------------
 
@@ -99,6 +100,10 @@ exec-single: ## Builds a single-threaded executable
 .PHONY: exec-metal
 exec-metal: ## Builds an executable with Metal acceleration enabled
 	cargo build --profile optimized $(FEATURES_METAL_EXEC)
+
+.PHONY: exec-cuda
+exec-metal: ## Builds an executable with CUDA acceleration enabled
+	RUSTFLAGS="-C target-feature=+avx2" cargo build --profile optimized $(FEATURES_CUDA_EXEC)
 
 .PHONY: exec-avx2
 exec-avx2: ## Builds an executable with AVX2 acceleration enabled

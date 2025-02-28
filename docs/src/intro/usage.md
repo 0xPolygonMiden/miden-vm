@@ -38,10 +38,18 @@ Internally, Miden VM uses [rayon](https://github.com/rayon-rs/rayon) for paralle
 
 ### GPU acceleration
 
-Miden VM proof generation can be accelerated via GPUs. Currently, GPU acceleration is enabled only on Apple Silicon hardware (via [Metal](<https://en.wikipedia.org/wiki/Metal_(API)>)). To compile Miden VM with Metal acceleration enabled, you can run the following command:
+Miden VM proof generation can be accelerated via GPUs. Currently, GPU acceleration is enabled on Apple Silicon hardware (via [Metal](<https://en.wikipedia.org/wiki/Metal_(API)>)) and nVidia GPUs (via [Cuda](https://en.wikipedia.org/wiki/CUDA)).
+
+To compile Miden VM with Metal acceleration enabled, you can run the following command:
 
 ```shell
 make exec-metal
+```
+
+To compile Miden VM with CUDA acceleration enabled, you can run the following command:
+
+```shell
+make exec-cuda
 ```
 
 Similar to `make exec` command, this will place the resulting `miden` executable into the `./target/optimized` directory.
@@ -66,7 +74,7 @@ make exec-sve
 
 This will place the resulting `miden` executable into the `./target/optimized` directory.
 
-Similar to Metal acceleration, SVE/AVX2 acceleration is currently applicable only to recursive proofs which can be generated using the `-r` flag.
+Similar to GPU acceleration, SVE/AVX2 acceleration is currently applicable only to recursive proofs which can be generated using the `-r` flag.
 
 ### Running Miden VM
 

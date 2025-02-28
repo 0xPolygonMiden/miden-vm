@@ -18,7 +18,7 @@ If the program is executed successfully, the function returns a tuple with 2 ele
 Here is a simple example of executing a program which pushes two numbers onto the stack and computes their sum:
 ```Rust
 use miden_assembly::Assembler;
-use miden_prover::{prove, ProvingOptions, StackInputs, DefaultHost};
+use miden_prover::{Prover, ProvingOptions, StackInputs, DefaultHost};
 
 // instantiate the assembler
 let assembler = Assembler::default();
@@ -27,7 +27,8 @@ let assembler = Assembler::default();
 let program = assembler.compile("begin push.3 push.5 add end").unwrap();
 
 // let's execute it and generate a STARK proof
-let (outputs, proof) = prove(
+let mut prover = Prover::new();
+let (outputs, proof) = prover.prove(
     &program,
     StackInputs::default(),       // we won't provide any stack inputs
     &mut DefaultHost::default(),  // we'll be using a default host
