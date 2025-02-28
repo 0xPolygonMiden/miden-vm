@@ -9,7 +9,10 @@ extern crate std;
 use core::marker::PhantomData;
 use std::env;
 
-use air::{trace::{AUX_TRACE_WIDTH, TRACE_WIDTH}, AuxRandElements, PartitionOptions, ProcessorAir, PublicInputs};
+use air::{
+    trace::{AUX_TRACE_WIDTH, TRACE_WIDTH},
+    AuxRandElements, PartitionOptions, ProcessorAir, PublicInputs,
+};
 #[cfg(all(target_arch = "x86_64", feature = "cuda"))]
 use miden_gpu::cuda::util::CudaStorageOwned;
 #[cfg(any(
@@ -28,7 +31,10 @@ use processor::{
 use tracing::instrument;
 use winter_maybe_async::{maybe_async, maybe_await};
 use winter_prover::{
-    matrix::ColMatrix, CompositionPoly, CompositionPolyTrace, ConstraintCompositionCoefficients, DefaultConstraintCommitment, DefaultConstraintEvaluator, DefaultTraceLde, ProofOptions as WinterProofOptions, Prover as WinterProver, StarkDomain, TraceInfo, TracePolyTable
+    matrix::ColMatrix, CompositionPoly, CompositionPolyTrace, ConstraintCompositionCoefficients,
+    DefaultConstraintCommitment, DefaultConstraintEvaluator, DefaultTraceLde,
+    ProofOptions as WinterProofOptions, Prover as WinterProver, StarkDomain, TraceInfo,
+    TracePolyTable,
 };
 #[cfg(feature = "std")]
 use {std::time::Instant, winter_prover::Trace};
@@ -57,31 +63,33 @@ pub struct Prover {
 }
 
 /// Program executor and a STARK proover.
-/// 
+///
 /// It allows concrete implementations of hardware-accelerated provers to store reusable buffers
 /// for better performance.
 impl Prover {
     #[cfg(not(all(feature = "cuda", target_arch = "x86_64")))]
     pub fn new() -> Self {
-        Self { }
+        Self {}
     }
 
     #[cfg(all(feature = "cuda", target_arch = "x86_64"))]
     #[instrument("create_prover", skip_all)]
     pub fn new() -> Self {
-        let buffer_size = env::var("MIDEN_CUDA_MEM_SIZE_MB").expect("Provide MIDEN_CUDA_MEM_SIZE_MB env variable to specify the max CUDA buffer size (in megabytes)");
-        let buffer_size = buffer_size.parse::<usize>().expect("MIDEN_CUDA_MEM_SIZE_MB must be a number");
+        let buffer_size = env::var("MIDEN_CUDA_MEM_SIZE_MB")
+            .expect("Provide MIDEN_CUDA_MEM_SIZE_MB env variable to specify the max CUDA buffer size (in megabytes)");
+        let buffer_size =
+            buffer_size.parse::<usize>().expect("MIDEN_CUDA_MEM_SIZE_MB must be a number");
         Self {
             storage: CudaStorageOwned::new(1024 * 1024 * buffer_size),
         }
     }
 
-    /// Executes and proves the specified `program` and returns the result together with a STARK-based
-    /// proof of the program's execution.
+    /// Executes and proves the specified `program` and returns the result together with a
+    /// STARK-based proof of the program's execution.
     ///
     /// - `stack_inputs` specifies the initial state of the stack for the VM.
-    /// - `host` specifies the host environment which contain non-deterministic (secret) inputs for the
-    ///   prover
+    /// - `host` specifies the host environment which contain non-deterministic (secret) inputs for
+    ///   the prover
     /// - `options` defines parameters for STARK proof generation.
     ///
     /// # Errors
@@ -115,12 +123,11 @@ impl Prover {
 
         #[cfg(all(feature = "cuda", target_arch = "x86_64"))]
         let Some((main, aux, ce)) = self.storage.borrow_mut(
-                TRACE_WIDTH,
-                AUX_TRACE_WIDTH,
-                trace.get_trace_len(),
-                options.clone().into(),
-            )
-         else {
+            TRACE_WIDTH,
+            AUX_TRACE_WIDTH,
+            trace.get_trace_len(),
+            options.clone().into(),
+        ) else {
             return Err(ExecutionError::MemoryLimitExceeded(self.storage.capacity()));
         };
 
@@ -151,7 +158,8 @@ impl Prover {
                 #[cfg(all(feature = "metal", target_arch = "aarch64", target_os = "macos"))]
                 let prover = gpu::metal::MetalExecutionProver::new(prover, HashFn::Rpo256);
                 #[cfg(all(feature = "cuda", target_arch = "x86_64"))]
-                let prover = gpu::cuda::CudaExecutionProver::new(prover, HashFn::Rpo256, main, aux, ce);
+                let prover =
+                    gpu::cuda::CudaExecutionProver::new(prover, HashFn::Rpo256, main, aux, ce);
                 maybe_await!(prover.prove(trace))
             },
             HashFunction::Rpx256 => {
@@ -163,7 +171,8 @@ impl Prover {
                 #[cfg(all(feature = "metal", target_arch = "aarch64", target_os = "macos"))]
                 let prover = gpu::metal::MetalExecutionProver::new(prover, HashFn::Rpx256);
                 #[cfg(all(feature = "cuda", target_arch = "x86_64"))]
-                let prover = gpu::cuda::CudaExecutionProver::new(prover, HashFn::Rpx256, main, aux, ce);
+                let prover =
+                    gpu::cuda::CudaExecutionProver::new(prover, HashFn::Rpx256, main, aux, ce);
                 maybe_await!(prover.prove(trace))
             },
         }
@@ -173,7 +182,6 @@ impl Prover {
         Ok((stack_outputs, proof))
     }
 }
-
 
 // PROVER
 // ================================================================================================

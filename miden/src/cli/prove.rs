@@ -4,9 +4,9 @@ use assembly::diagnostics::{IntoDiagnostic, Report, WrapErr};
 use clap::Parser;
 use miden_vm::{internal::InputFile, ProvingOptions};
 use processor::{DefaultHost, ExecutionOptions, ExecutionOptionsError, Program};
-use prover::Prover;
 #[cfg(all(target_arch = "x86_64", feature = "cuda"))]
 use prover::cuda::get_num_of_gpus;
+use prover::Prover;
 use stdlib::StdLibrary;
 use tracing::instrument;
 
@@ -115,10 +115,10 @@ impl ProveCmd {
 
         // execute program and generate proof
         let mut prover = Prover::new();
-        let (stack_outputs, proof) =
-        prover.prove(&program, stack_inputs, &mut host, proving_options)
-                .into_diagnostic()
-                .wrap_err("Failed to prove program")?;
+        let (stack_outputs, proof) = prover
+            .prove(&program, stack_inputs, &mut host, proving_options)
+            .into_diagnostic()
+            .wrap_err("Failed to prove program")?;
 
         println!(
             "Program with hash {} proved in {} ms",

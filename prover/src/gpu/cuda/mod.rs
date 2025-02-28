@@ -53,7 +53,13 @@ where
     D: Digest + From<[Felt; DIGEST_SIZE]> + Into<[Felt; DIGEST_SIZE]>,
     R: RandomCoin<BaseField = Felt, Hasher = H> + Send,
 {
-    pub fn new(execution_prover: ExecutionProver<H, R>, hash_fn: HashFn, main: &'g mut [Felt], aux: &'g mut [Felt], ce: &'g mut [Felt]) -> Self {
+    pub fn new(
+        execution_prover: ExecutionProver<H, R>,
+        hash_fn: HashFn,
+        main: &'g mut [Felt],
+        aux: &'g mut [Felt],
+        ce: &'g mut [Felt],
+    ) -> Self {
         CudaExecutionProver {
             main: RefCell::new(main),
             aux: RefCell::new(aux),
@@ -78,7 +84,8 @@ where
     type HashFn = H;
     type RandomCoin = R;
     type TraceLde<E: FieldElement<BaseField = Felt>> = CudaTraceLde<'g, E, H>;
-    type ConstraintCommitment<E: FieldElement<BaseField = Felt>> = CudaConstraintCommitment<'g, E, H>;
+    type ConstraintCommitment<E: FieldElement<BaseField = Felt>> =
+        CudaConstraintCommitment<'g, E, H>;
     type ConstraintEvaluator<'a, E: FieldElement<BaseField = Felt>> =
         DefaultConstraintEvaluator<'a, ProcessorAir, E>;
 
@@ -97,7 +104,15 @@ where
         domain: &StarkDomain<Felt>,
         partition_options: PartitionOptions,
     ) -> (Self::TraceLde<E>, TracePolyTable<E>) {
-        CudaTraceLde::new(self.main.take(), self.aux.take(), trace_info, main_trace, domain, partition_options, self.hash_fn)
+        CudaTraceLde::new(
+            self.main.take(),
+            self.aux.take(),
+            trace_info,
+            main_trace,
+            domain,
+            partition_options,
+            self.hash_fn,
+        )
     }
 
     fn new_evaluator<'a, E: FieldElement<BaseField = Felt>>(

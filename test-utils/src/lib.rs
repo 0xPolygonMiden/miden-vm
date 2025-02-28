@@ -5,7 +5,6 @@ extern crate alloc;
 #[cfg(feature = "std")]
 extern crate std;
 
-use air::ExecutionProof;
 #[cfg(not(target_family = "wasm"))]
 use alloc::format;
 use alloc::{
@@ -14,6 +13,7 @@ use alloc::{
     vec::Vec,
 };
 
+use air::ExecutionProof;
 pub use assembly::{diagnostics::Report, LibraryPath, SourceFile, SourceManager};
 use assembly::{KernelLibrary, Library};
 pub use pretty_assertions::{assert_eq, assert_ne, assert_str_eq};
@@ -25,7 +25,7 @@ pub use processor::{
 #[cfg(not(target_family = "wasm"))]
 use proptest::prelude::{Arbitrary, Strategy};
 use prover::{utils::range, Host};
-pub use prover::{Prover, MemAdviceProvider, MerkleTreeVC, ProvingOptions};
+pub use prover::{MemAdviceProvider, MerkleTreeVC, Prover, ProvingOptions};
 pub use test_case::test_case;
 pub use verifier::{verify, AcceptableOptions, VerifierError};
 use vm_core::{chiplets::hasher::apply_permutation, ProgramInfo};
@@ -393,9 +393,9 @@ impl Test {
             host.load_mast_forest(library.mast_forest().clone()).unwrap();
         }
         let mut prover = Prover::new();
-        let (mut stack_outputs, proof) =
-            prover.prove(&program, stack_inputs.clone(), &mut host, ProvingOptions::default())
-                .unwrap();
+        let (mut stack_outputs, proof) = prover
+            .prove(&program, stack_inputs.clone(), &mut host, ProvingOptions::default())
+            .unwrap();
 
         let program_info = ProgramInfo::from(program);
         if test_fail {
