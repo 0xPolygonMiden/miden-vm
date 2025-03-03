@@ -11,7 +11,8 @@ use crate::ExecutionError;
 ///
 /// The values are the ones required for a Falcon signature verification inside the VM and they are:
 ///
-/// 1. The challenge point at which we evaluate the three aforementioned polynomials to check the
+/// 1. The challenge point, a tuple of elements representing an element in the quadratic extension
+///    field, at which we evaluate the polynomials in the subsequent three points to check the
 ///    product relationship.
 /// 2. The expanded public key represented as the coefficients of a polynomial of degree < 512.
 /// 3. The signature represented as the coefficients of a polynomial of degree < 512.
