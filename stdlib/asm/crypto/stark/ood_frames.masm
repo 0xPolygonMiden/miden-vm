@@ -64,75 +64,59 @@ end
 #!
 #! Input: [...]
 #! Output: [res1, res0, ...]
-#! Cycles: 152
-#!
-#! TODO(Al): Use horner_eval_ext
+#! Cycles: 83
 export.compute_Hz
-    # Load the pointer to the OOD constraint polynomials evaluations
-    exec.constants::ood_constraint_evals_ptr
-    # => [ptr, ...]
-
-    # Compute `H(z)`
-    ## Load `value_i`'s
-
-    # Load value_0
-    padw dup.4 mem_loadw
-    # => [0, 0, v0_1, v0_0, ptr, ...]
-   
-    # Load value_1
-    push.0.0 dup.6 add.4 mem_loadw
-    # => [0, 0, v1_1, v1_0, v0_1, v0_0, ptr, ...]
-
-    # Load value_2
-    push.0.0 dup.8 add.8 mem_loadw
-    # => [0, 0, v2_1, v2_0, v1_1, v1_0, v0_1, v0_0, ptr, ...]
-
-    # Load value_3
-    push.0.0 dup.10 add.12 mem_loadw
-    # => [0, 0, v3_1, v3_0, v2_1, v2_0, v1_1, v1_0, v0_1, v0_0, ptr, ...]
-
-    # Load value_4
-    push.0.0 dup.12 add.16 mem_loadw
-    # => [0, 0, v4_1, v4_0, v3_1, v3_0, v2_1, v2_0, v1_1, v1_0, v0_1, v0_0, ptr, ...]
-
-    # Load value_5
-    push.0.0 movup.14 movdn.4 dup.4 add.20 mem_loadw
-    # => [0, 0, v5_1, v5_0, ptr, v4_1, v4_0, v3_1, v3_0, v2_1, v2_0, v1_1, v1_0, v0_1, v0_0, ptr, ...]
-
-    # Load value_6
-    push.0.0 dup.6 add.24 mem_loadw
-    # => [0, 0, v6_1, v6_0, v5_1, v5_0, ptr, v4_1, v4_0, v3_1, v3_0, v2_1, v2_0, v1_1, v1_0, v0_1, v0_0, ptr, ...]
-
-    # Load value_7
-    push.0.0 movup.8 add.28 mem_loadw
-    # => [0, 0, v7_1, v7_0, v6_1, v6_0, v5_1, v5_0, ptr, v4_1, v4_0, v3_1, v3_0, v2_1, v2_0, v1_1, v1_0, v0_1, v0_0, ptr, ...]
-
-    ## Load z^N where N is the length of the execution trace
-    push.0.0
+    # Load z^N, where N is the trace length, and save it for horner_eval_ext
+    padw
     exec.constants::z_ptr mem_loadw
-    # => [(z1, z0)^N, z1, z0, v7_1, v7_0, v6_1, v6_0, v5_1, v5_0, ptr, v4_1, v4_0, v3_1, v3_0, v2_1, v2_0, v1_1, v1_0, v0_1, v0_0, ptr, ...]
-
     movup.2 drop
     movup.2 drop
-    # => [z1, z0, value_7, ... ,value_0]
+    # => [zN_1, zN_0, ...]
+    dup.1 dup.1
+    ext2inv
+    push.0.0
+    exec.constants::tmp1 mem_storew
+    # => [0, 0, zNinv_1, zNinv_0, zN_1, zN_0, ...]
 
-    # Horner evaluation
-    # TODO: maybe can be done faster in another way
-    repeat.6
-        dup
-        movdn.6
-        dup.1
-        movdn.7
-        # => [z1, z0, value_7, value_6, z1, z0, value_5, ... ,value_0]
+    # Push the accumulator to hold the evaluation of horner_eval_ext
+    push.0.0
+    # => [0, 0, 0, 0, zNinv_1, zNinv_0, zN_1, zN_0, ...]
 
-        ext2mul
-        ext2add
-        # => [acc1, acc0, z1, z0, value_5, ... ,value_0]
+    # Push pointers to the evaluation point and the coefficients i.e., OOD constraint polynomials
+    # evaluations
+    exec.constants::tmp1
+    exec.constants::ood_constraint_evals_ptr
+    # => [ood_ptr, zNinv_ptr, 0, 0, 0, 0, zNinv_1, zNinv_0, zN_1, zN_0, ...]
 
-        movup.3
-        movup.3
-        # => [z1, z0, acc1, acc0, value_5, ... ,value_0]
+    # Prepare stack for mem_stream
+    swapw padw padw
+    # => [ZERO, ZERO, 0, 0, zNinv_1, zNinv_0, ood_ptr, zNinv_ptr, 0, 0, zN_1, zN_0, ...]
+
+    # Compute `H_rev(zN^(-1))` where H_rev is the polynomial with coefficients in reverse order
+    repeat.2
+        mem_stream
+        horner_eval_ext
     end
-    ext2mul
-    ext2add
+    # => [Y, Y, 0, 0, zNinv_1, zNinv_0, ood_ptr, zNinv_ptr, acc1, acc0, zN_1, zN_0, ...]
+
+    # Clean up the stack
+    dropw dropw drop drop
+    # => [zNinv_1, zNinv_0, ood_ptr, zNinv_ptr, acc1, acc0, zN_1, zN_0, ...]
+    swapw movup.3 movup.3
+    # => [zN_1, zN_0, acc1, acc0, zNinv_1, zNinv_0, ood_ptr, zNinv_ptr, ...]
+
+    # Compute zN^8
+    repeat.3
+        dup.1 dup.1
+        ext2mul
+    end
+    # => [zN^8_1, zN^8_0, acc1, acc0, zNinv_1, zNinv_0, ood_ptr, zNinv_ptr, ...]
+
+    # Compute zN^8 * H_rev(zN^(-1)) * zN^(-1) i.e, zN^7 * H_rev(zN^(-1)) which equals H(zN)
+    ext2mul ext2mul
+    # => [res_1, res_0, ood_ptr, zNinv_ptr, ...]
+
+    movup.2 drop
+    movup.2 drop
+    # => [res_1, res_0, ...]
 end
