@@ -6,7 +6,7 @@ const.ROOT_UNITY=7277203076849721926
 const.DOMAIN_OFFSET=7
 const.DOMAIN_OFFSET_INV=2635249152773512046
 
-# Number of coefficients corresponds to the number of boundary + transition constraints 
+# Number of coefficients corresponds to the number of boundary + transition constraints
 # (including auxiliary constraints)
 const.NUM_CONSTRAINT_COMPOSITION_COEF_ROUNDED_UP_TO_FOUR=228
 
@@ -112,8 +112,6 @@ const.TMP6=4294913276
 const.TMP7=4294913280
 const.TMP8=4294913284
 const.TMP9=4294913288
-
-
 
 #   The following is a table summarizing the memory pointers used:
 #   +------------------------------------------+-------------------------+

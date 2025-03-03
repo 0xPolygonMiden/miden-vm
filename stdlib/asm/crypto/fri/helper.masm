@@ -183,7 +183,7 @@ export.load_and_verify_remainder
     ## Compute the correct remainder pointer using length of remainder
     exec.constants::fri_com_ptr
     #=> [fri_com_ptr, num_fri_layers, remainder_size, lde_size, lde_size]
-    
+
     swap
     mul.8
     add

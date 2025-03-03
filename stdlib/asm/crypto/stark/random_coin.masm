@@ -100,7 +100,6 @@ export.init_seed
     dropw
     #=> [log(trace_length), num_queries, log(blowup), grinding]
 
-
     # Create the initial seed for randomness generation from proof context
 
     ## Compute trace_length
@@ -176,7 +175,7 @@ export.init_seed
 
     ## main segment width is 71 and there are 1 auxiliary segments
     ## of width 7 using 16 random extension field elements
-    push.0x47010710 
+    push.0x47010710
     ## field modulus bytes (2 field elements)
     push.0x01 # lower half of the modulus
     push.0xffffffff # upper half of the modulus
@@ -195,7 +194,7 @@ export.init_seed
     dropw
     dropw
     # => [C]
- end
+end
 
 #! Reseed the random coin with `DATA`
 #!
@@ -229,7 +228,6 @@ export.reseed
     dropw
     # => [...] (18 cycles)
 end
-
 
 # COEFFICIENT GENERATION
 # =============================================================================================
@@ -433,7 +431,7 @@ proc.generate_random_coefficients_pad
 
         neq.0
     end
-    
+
     # Save the new state of the random coin
     dropw
     exec.constants::r1_ptr mem_storew
@@ -489,7 +487,6 @@ export.generate_deep_composition_random_coefficients
     #=> [...]
 end
 
-
 # OOD POINT GENERATION
 # =============================================================================================
 
@@ -529,7 +526,6 @@ export.generate_z_zN
     exec.constants::z_ptr mem_storew
     dropw
 end
-
 
 # INDEX GENERATION
 # =============================================================================================
@@ -707,7 +703,6 @@ export.generate_list_indices
     dropw
     #=> [R1, query_ptr+26, mask, depth, num_queries, ...]
 
-
     # Use `num_queries` to iterate.
 
     ## Subtract the 7 elements we have already generated above.
@@ -781,7 +776,7 @@ export.generate_list_indices
 
     neq.0
     while.true
-    #=> [R2, R1, query_ptr, mask, depth, num_queries, ...]
+        #=> [R2, R1, query_ptr, mask, depth, num_queries, ...]
         movup.7
         u32split swap       # [r0_lo, r0_hi, R2, r3, r2, r1, ptr, mask, depth, num_queries, ...]
         dup.10              # [mask, r0_lo, r0_hi, R2, r3, r2, r1, ptr, mask, depth, num_queries, ...]
@@ -801,7 +796,6 @@ export.generate_list_indices
 
     dropw dropw  dropw drop
 end
-
 
 # PROOF-OF-WORK CHECK
 # =============================================================================================

@@ -1,6 +1,5 @@
 use.std::crypto::stark::constants
 
-
 #! Compute the LDE domain generator from the log2 of its size.
 #!
 #! Input: [log2(domain_size), ..]

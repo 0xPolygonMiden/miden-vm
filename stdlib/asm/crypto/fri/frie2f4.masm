@@ -155,12 +155,12 @@ export.verify_query_layer.12
     # => [x, x, layer_ptr + 8, poe^4, f_pos, ne1, ne0, rem_ptr, x, x, x, x, x, x, x, x, ...]
     dup.2     # [layer_ptr+8, x, x, layer_ptr+8, poe^4, f_pos, ne1, ne0, rem_ptr, ]
     movdn.7   # [x, x, layer_ptr+8, poe^4, f_pos, ne1, ne0, layer_ptr+8, rem_ptr, ...]
-    drop      
+    drop
     drop      # [layer_ptr+8, poe^4, f_pos, ne1, ne0, layer_ptr+8, rem_ptr, ...]
     dup       # [layer_ptr+8, layer_ptr+8, poe^4, f_pos, ne1, ne0, layer_ptr+8, rem_ptr, ...]
     dup.7     # [rem_ptr, layer_ptr+8, layer_ptr+8, poe^4, f_pos, ne1, ne0, layer_ptr+8, rem_ptr, ...]
     dup.1     # [layer_ptr+8, rem_ptr, layer_ptr+8, layer_ptr+8, poe^4, f_pos, ne1, ne0, layer_ptr+8, rem_ptr, ...]
-    neq       
+    neq
     # => [?, layer_ptr+8, layer_ptr+8, poe^4, f_pos, ne1, ne0, layer_ptr+8, rem_ptr, x, x, x, x, x, x, x, x, ...]
 end
 

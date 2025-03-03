@@ -596,7 +596,6 @@ proc.compute_alpha_64
     ext2add
     #=> [acc1, acc0, τ1, τ0, p_ptr-1, ...]
 
-
     padw movup.8
     mem_loadw
     #=> [a11, a10, a01, a00, acc1, acc0, τ1, τ0, ...]
