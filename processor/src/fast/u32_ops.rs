@@ -65,8 +65,35 @@ impl<const N: usize> SpeedyGonzales<N> {
         self.u32_pop2_applyfn_push_lowhigh(|a, b| a * b)
     }
 
+    /// Pops three elements off the stack, multiplies the first two and adds the third element to
+    /// the result, splits the result into low and high 32-bit values, and pushes these values
+    /// back onto the stack.
     pub fn u32_madd(&mut self) -> Result<(), ExecutionError> {
-        todo!()
+        let (result_hi, result_lo) = {
+            let b = self.stack[self.stack_top_idx - 1].as_int();
+            let a = self.stack[self.stack_top_idx - 2].as_int();
+            let c = self.stack[self.stack_top_idx - 3].as_int();
+
+            // Check that a, b, and c are u32 values.
+            if b > u32::MAX as u64 {
+                return Err(ExecutionError::NotU32Value(Felt::new(a), ZERO));
+            }
+            if a > u32::MAX as u64 {
+                return Err(ExecutionError::NotU32Value(Felt::new(b), ZERO));
+            }
+            if c > u32::MAX as u64 {
+                return Err(ExecutionError::NotU32Value(Felt::new(c), ZERO));
+            }
+            let result = Felt::new(a * b + c);
+            split_element(result)
+        };
+
+        // write the high 32 bits to the new top of the stack, and low 32 bits after
+        self.stack[self.stack_top_idx - 2] = result_hi;
+        self.stack[self.stack_top_idx - 3] = result_lo;
+
+        self.decrement_stack_size();
+        Ok(())
     }
 
     // TODO(plafer): Make sure we test the case where b == 0, and some nice divisions like

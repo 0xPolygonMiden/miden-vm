@@ -45,8 +45,10 @@ impl<const N: usize> SpeedyGonzales<N> {
         todo!()
     }
 
-    pub fn op_clk(&mut self) -> Result<(), ExecutionError> {
-        todo!()
+    pub fn op_clk(&mut self, op_idx: usize) -> Result<(), ExecutionError> {
+        self.stack[self.stack_top_idx] = (self.clk + op_idx).into();
+        self.increment_stack_size();
+        Ok(())
     }
 
     pub fn op_emit(&mut self, _event_id: u32) -> Result<(), ExecutionError> {

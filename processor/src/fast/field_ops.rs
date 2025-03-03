@@ -2,6 +2,8 @@ use vm_core::{Felt, FieldElement, ONE, ZERO};
 
 use super::{assert_binary, ExecutionError, SpeedyGonzales};
 
+const TWO: Felt = Felt::new(2);
+
 impl<const N: usize> SpeedyGonzales<N> {
     pub fn op_add(&mut self) -> Result<(), ExecutionError> {
         self.pop2_applyfn_push(|a, b| Ok(a + b))
@@ -98,6 +100,23 @@ impl<const N: usize> SpeedyGonzales<N> {
         self.stack[self.stack_top_idx - 2] = new_base;
         self.stack[self.stack_top_idx - 3] = new_acc;
         self.stack[self.stack_top_idx - 4] = new_exp;
+    }
+
+    /// Gets the top four values from the stack [b1, b0, a1, a0], where a = (a1, a0) and
+    /// b = (b1, b0) are elements of the extension field, and outputs the product c = (c1, c0)
+    /// where c0 = b0 * a0 - 2 * b1 * a1 and c1 = (b0 + b1) * (a1 + a0) - b0 * a0. It pushes 0 to
+    /// the first and second positions on the stack, c1 and c2 to the third and fourth positions,
+    /// and leaves the rest of the stack unchanged.
+    pub fn op_ext2mul(&mut self) {
+        let b1 = self.stack[self.stack_top_idx - 1];
+        let b0 = self.stack[self.stack_top_idx - 2];
+        let a1 = self.stack[self.stack_top_idx - 3];
+        let a0 = self.stack[self.stack_top_idx - 4];
+
+        /* top 2 elements remain unchanged */
+
+        self.stack[self.stack_top_idx - 3] = (b0 + b1) * (a1 + a0) - b0 * a0;
+        self.stack[self.stack_top_idx - 4] = b0 * a0 - TWO * b1 * a1;
     }
 
     // HELPERS
