@@ -16,7 +16,9 @@ use crate::{
 // temporary module to
 pub mod experiments;
 
+mod crypto_ops;
 mod field_ops;
+mod fri_ops;
 mod io_ops;
 mod stack_ops;
 mod sys_ops;
@@ -136,6 +138,7 @@ impl<const N: usize> SpeedyGonzales<N> {
 
         match node {
             MastNode::Block(basic_block_node) => {
+                // TODO(plafer): this clk += 1 occurs for each node; put it outside the match
                 // start basic block
                 self.clk += 1_u32;
 
@@ -330,10 +333,10 @@ impl<const N: usize> SpeedyGonzales<N> {
             Operation::Pipe => self.op_pipe()?,
 
             // ----- cryptographic operations -----------------------------------------------------
-            Operation::HPerm => todo!(),
+            Operation::HPerm => self.op_hperm(),
             Operation::MpVerify(_) => todo!(),
             Operation::MrUpdate => todo!(),
-            Operation::FriE2F4 => todo!(),
+            Operation::FriE2F4 => self.op_fri_ext2fold4()?,
             Operation::HornerBase => todo!(),
             Operation::HornerExt => todo!(),
         }

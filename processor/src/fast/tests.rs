@@ -109,6 +109,10 @@ fn test_basic_block(
         vec![Operation::MLoad],
         vec![Operation::MStore],
         vec![Operation::MStream],
+        // crypto ops
+        vec![Operation::HPerm],
+        // Note: we have another more specific test for `FriE2F4`
+        vec![Operation::FriE2F4],
     )]
     operations: Vec<Operation>,
 ) {
@@ -557,6 +561,51 @@ fn test_mstream() {
             word_at_addr_40[0]
         ]
     );
+}
+
+/// Tests a valid set of inputs for the `Frie2f4` operation. This test reuses most of the logic of
+/// `op_fri_ext2fold4` in `Process`.
+#[test]
+fn test_frie2f4() {
+    let mut host = DefaultHost::default();
+
+    // --- build stack inputs ---------------------------------------------
+    let previous_value = [10_u32.into(), 11_u32.into()];
+    let stack_inputs = vec![
+        1_u32.into(),
+        2_u32.into(),
+        3_u32.into(),
+        4_u32.into(),
+        previous_value[0], // 4: 3rd query value and "previous value" (idx 13) must be the same
+        previous_value[1], // 5: 3rd query value and "previous value" (idx 13) must be the same
+        7_u32.into(),
+        2_u32.into(), //7: domain segment, < 4
+        9_u32.into(),
+        10_u32.into(),
+        11_u32.into(),
+        12_u32.into(),
+        13_u32.into(),
+        previous_value[0], // 13: previous value
+        previous_value[1], // 14: previous value
+        16_u32.into(),
+    ];
+
+    let program =
+        simple_program_with_ops(vec![Operation::Push(Felt::new(42_u64)), Operation::FriE2F4]);
+
+    // fast processor
+    let fast_processor = SpeedyGonzales::<512>::new(stack_inputs.clone());
+    let fast_stack_outputs = fast_processor.execute(&program, &mut host).unwrap();
+
+    // slow processor
+    let mut slow_processor = Process::new(
+        Kernel::default(),
+        StackInputs::new(stack_inputs).unwrap(),
+        ExecutionOptions::default(),
+    );
+    let slow_stack_outputs = slow_processor.execute(&program, &mut host).unwrap();
+
+    assert_eq!(fast_stack_outputs, slow_stack_outputs);
 }
 
 // TEST HELPERS
