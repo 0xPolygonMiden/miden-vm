@@ -237,7 +237,7 @@ impl<const N: usize> SpeedyGonzales<N> {
             Operation::FmpUpdate => self.op_fmp_update()?,
             Operation::SDepth => self.op_sdepth(),
             Operation::Caller => self.op_caller()?,
-            Operation::Clk => self.op_clk()?,
+            Operation::Clk => self.op_clk(op_idx)?,
             Operation::Emit(event_id) => self.op_emit(*event_id)?,
 
             // ----- flow control operations ------------------------------------------------------
@@ -267,9 +267,7 @@ impl<const N: usize> SpeedyGonzales<N> {
             Operation::Eq => self.op_eq()?,
             Operation::Eqz => self.op_eqz()?,
             Operation::Expacc => self.op_expacc(),
-
-            // ----- ext2 operations --------------------------------------------------------------
-            Operation::Ext2Mul => todo!(),
+            Operation::Ext2Mul => self.op_ext2mul(),
 
             // ----- u32 operations ---------------------------------------------------------------
             Operation::U32split => self.u32_split()?,

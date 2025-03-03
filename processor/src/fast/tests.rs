@@ -38,6 +38,8 @@ fn test_basic_block(
     )]
     stack_inputs: Vec<Felt>,
     #[values(
+        // clk
+        vec![Operation::Noop, Operation::Noop, Operation::Clk, Operation::MovUp8, Operation::Drop],
         vec![Operation::Add],
         vec![Operation::Swap],
         // We want SDepth to output "17", and then drop 2 elements from somewhere else in the stack.
@@ -52,6 +54,7 @@ fn test_basic_block(
         vec![Operation::Eq],
         vec![Operation::Eqz],
         vec![Operation::Expacc],
+        vec![Operation::Ext2Mul],
         vec![Operation::U32split, Operation::MovUp8, Operation::Drop],
         vec![Operation::U32add],
         vec![Operation::U32add3],
@@ -60,6 +63,7 @@ fn test_basic_block(
         vec![Operation::U32div],
         vec![Operation::U32and],
         vec![Operation::U32xor],
+        vec![Operation::U32madd],
         vec![Operation::U32assert2(5)],
         vec![Operation::Pad, Operation::MovUp8, Operation::Drop],
         // for the dups, we drop an element that was not duplicated, and hence we are still testing
