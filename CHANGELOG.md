@@ -14,6 +14,8 @@
 - Using a non-binary value as a loop condition now results in an error (#1685)
 - [BREAKING] Update CLI to accept masm or masp files as input for the run and prove commands (#1683).
 - [BREAKING] Remove `Assembler::assemble_common()` from the public interface (#1689).
+- Update recursive verifier to use `HORNERBASE` (#1665).
+
 
 ## 0.12.0 (2025-01-22)
 
