@@ -183,16 +183,17 @@ impl Process {
     /// depending on the least significant bit of the exponent.
     ///
     /// Expacc is based on the observation that the exponentiation of a number can be computed by
-    /// repeatedly squaring the base and multiplying the accumulator by the base when the least
-    /// significant bit of the exponent is 1.
+    /// repeatedly squaring the base and multiplying those powers of the base by the accumulator,
+    /// for the powers of the base which correspond to the exponent's bits which are set to 1.
     ///
     /// For example, take b^5 = (b^2)^2 * b. Over the course of 3 iterations (5 = 101b), the
-    /// algorithm will compute b, b^2 and b^4 (placed in `base`). Hence, we want to multiply `base`
-    /// in `acc` when `base = b` and when `base = b^4`, which occurs on the first and third
-    /// iterations (corresponding to the `1` bits in the binary representation of 5).
+    /// algorithm will compute b, b^2 and b^4 (placed in `base_acc`). Hence, we want to multiply
+    /// `base_acc` in `result_acc` when `base_acc = b` and when `base_acc = b^4`, which occurs on
+    /// the first and third iterations (corresponding to the `1` bits in the binary representation
+    /// of 5).
     pub(super) fn op_expacc(&mut self) -> Result<(), ExecutionError> {
-        let old_base = self.stack.get(1);
-        let old_acc = self.stack.get(2);
+        let old_base_acc = self.stack.get(1);
+        let old_result_acc = self.stack.get(2);
         let old_exp = self.stack.get(3);
 
         // Compute new exponent.
@@ -201,21 +202,21 @@ impl Process {
         // Compute new accumulator. We update the accumulator only when the least significant bit of
         // the exponent is 1.
         let exp_lsb = old_exp.as_int() & 1;
-        let acc_update_val = if exp_lsb == 1 { old_base } else { ONE };
-        let new_acc = old_acc * acc_update_val;
+        let result_acc_update = if exp_lsb == 1 { old_base_acc } else { ONE };
+        let new_result_acc = old_result_acc * result_acc_update;
 
         // Compute the new base.
-        let new_base = old_base * old_base;
+        let new_base_acc = old_base_acc * old_base_acc;
 
         // Update the stack with the new values.
         self.stack.set(0, Felt::new(exp_lsb));
-        self.stack.set(1, new_base);
-        self.stack.set(2, new_acc);
+        self.stack.set(1, new_base_acc);
+        self.stack.set(2, new_result_acc);
         self.stack.set(3, new_exp);
         self.stack.copy_state(4);
 
         // save value multiplied in the accumulator in the decoder helper register.
-        self.decoder.set_user_op_helpers(Operation::Expacc, &[acc_update_val]);
+        self.decoder.set_user_op_helpers(Operation::Expacc, &[result_acc_update]);
 
         Ok(())
     }
