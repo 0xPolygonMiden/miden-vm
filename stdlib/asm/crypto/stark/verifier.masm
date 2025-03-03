@@ -155,7 +155,6 @@ export.verify
     #============================================
 
     # Cycles: 14
-    exec.constants::deep_rand_coef_ptr
     exec.random_coin::generate_deep_composition_random_coefficients
 
     #============================================
