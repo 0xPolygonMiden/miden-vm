@@ -144,7 +144,6 @@ fn test_falcon512_probabilistic_product() {
     test.expect_stack(expected_stack);
 }
 
-#[ignore = "needs horner_eval_base op"]
 #[test]
 fn test_falcon512_probabilistic_product_failure() {
     // create two random polynomials and generate the input operand stack and advice stack to

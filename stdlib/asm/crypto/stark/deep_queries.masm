@@ -151,7 +151,7 @@ end
 #! Cycles: 200
 proc.compute_q_z_p_gz_at_alpha
 
-    # I) Compute alpha^{-1} is and save it
+    # I) Compute alpha^{-1} and save it
     padw exec.constants::deep_rand_coef_ptr mem_loadw
     # => [y, y, alpha1, alpha0, ...]
     drop drop
