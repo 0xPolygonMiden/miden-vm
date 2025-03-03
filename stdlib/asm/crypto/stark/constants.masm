@@ -117,15 +117,17 @@ const.TMP7=4294913280
 const.TMP8=4294913284
 const.TMP9=4294913288
 const.TMP10=4294913292
-const.TMP11=4294913300
 
+# RPO state capacity portion initialization words. In theory, we need a variant for each possible 
+# remainder modulo 8 but in practice we only need the following:
 const.ZERO_ZERO_ZERO_FOUR_PTR=4294913400
 const.ZERO_ZERO_ZERO_FIVE_PTR=4294913404
 const.ZERO_ZERO_ZERO_SIX_PTR=4294913408
 const.ZERO_ZERO_ZERO_SEVEN_PTR=4294913412
 
+# Addresses to store powers of the DEEP composition randomness need during the computation of
+# the DEEP queries:
 const.ALPHA_INV=4294903600
- 
 const.ALPHA_POWER_1_PTR=4294903400
 const.ALPHA_POWER_2_PTR=4294903404
 const.ALPHA_POWER_3_PTR=4294903408
@@ -133,7 +135,6 @@ const.ALPHA_POWER_4_PTR=4294903412
 const.ALPHA_POWER_5_PTR=4294903416
 const.ALPHA_POWER_6_PTR=4294903420
 const.ALPHA_POWER_7_PTR=4294903424
-
 const.ALPHA_POWER_77_PTR=4294903440
 const.ALPHA_POWER_77_0_PTR=4294903440
 const.ALPHA_POWER_77_1_PTR=4294903441
@@ -178,6 +179,7 @@ const.ALPHA_POWER_85_1_PTR=4294903445
 #   | TMP7                                     |       4294913280        |
 #   | TMP8                                     |       4294913284        |
 #   | TMP9                                     |       4294913288        |
+#   | TMP10                                    |       4294913292        |
 #   +------------------------------------------+-------------------------+
 
 # ACCESSORS
@@ -365,8 +367,12 @@ export.tmp10
     push.TMP10
 end
 
-export.tmp11
-    push.TMP11
+export.zero_zero_zero_four_word
+    push.ZERO_ZERO_ZERO_FOUR_PTR
+end
+
+export.zero_zero_zero_five_word
+    push.ZERO_ZERO_ZERO_FIVE_PTR
 end
 
 export.zero_zero_zero_six_word
