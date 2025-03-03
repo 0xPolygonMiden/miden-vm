@@ -102,7 +102,7 @@ proc.compute_adjustment_power_z_quotients
     # => [alpha64_1, alpha64_0, alpha7_1, alpha7_0, alpha_1, alpha_0, alpha6_1, alpha6_0, ...]
 
 
-    # 5) Compute alpha^77
+    # 4) Compute alpha^77
     dup.3 dup.3
     # => [alpha7_1, alpha7_0, alpha64_1, alpha64_0, alpha7_1, alpha7_0, alpha_1, alpha_0, alpha6_1, alpha6_0, ...]
     movup.9 movup.9
@@ -118,7 +118,7 @@ proc.compute_adjustment_power_z_quotients
     drop drop
     # => [alpha77_1, alpha77_0, alpha7_1, alpha7_0, alpha_1, alpha_0, ...]
 
-    # 6) Compute alpha^85
+    # 5) Compute alpha^85
     ext2mul ext2mul
     dup.1 dup.1
     exec.constants::deep_rand_alpha_85
