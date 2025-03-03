@@ -8,6 +8,7 @@
 - Added to the `Assembler` the ability to vendor a compiled library.
 - Introduce `BusDebugger` to facilitate debugging buses (#1664)
 - [BREAKING] Introduced `HORNERBASE`, `HORNEREXT` and removed `RCOMBBASE` (#1656).
+- Update Falcon verification procedure to use `HORNERBASE` (#1661).
 
 
 ## 0.12.0 (2025-01-22)
