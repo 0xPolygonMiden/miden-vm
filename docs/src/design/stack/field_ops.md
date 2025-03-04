@@ -178,19 +178,25 @@ The effect on the rest of the stack is:
 * **No change** starting from position $1$.
 
 ## EXPACC
-The `EXPACC` operation pops top $4$ elements from the top of the stack, performs a single round of exponent aggregation, and pushes the resulting $4$ values onto the stack. The diagram below illustrates this graphically.
+The `EXPACC` operation computes one round of the expression $base^{exp}$. It is expected that `Expacc` is called at least `num_exp_bits` times, where `num_exp_bits` is the number of bits required to represent `exp`.
+
+It pops $4$ elements from the top of the stack, performs a single round of exponent aggregation, and pushes the resulting $4$ values onto the stack. The diagram below illustrates this graphically.
 
 ![expacc](../../assets/design/stack/field_operations/EXPACC.png)
 
+Expacc is based on the observation that the exponentiation of a number can be computed by repeatedly squaring the base and multiplying those powers of the base by the accumulator, for the powers of the base which correspond to the exponent's bits which are set to 1.
+
+For example, take $b^5 = (b^2)^2 \cdot b$. Over the course of 3 iterations ($5$ is $101$ in binary), the algorithm will compute $b$, $b^2$ and $b^4$ (placed in `base_acc`). Hence, we want to multiply `base_acc` in `acc` when $base_acc = b$ and when $base_acc = b^4$, which occurs on the first and third iterations (corresponding to the $1$ bits in the binary representation of 5).
+
 Stack transition for this operation must satisfy the following constraints:
 
-`bit` should be a binary.
+`bit'` should be a binary.
 
 >$$
 s_0'^{2} - s_0' = 0 \text{ | degree} = 2
 $$
 
-The `exp` in the next frame should be the square of the `exp` in the current frame.
+The `base` in the next frame should be the square of the `base` in the current frame.
 
 >$$
 s_1' - s_1^{2} = 0 \text{ | degree} = 2
@@ -208,7 +214,7 @@ The `acc` in the next frame is the product of `val` and `acc` in the current fra
 s_2' - s_2 * h_0 = 0 \text{ | degree} = 2
 $$
 
-`b` in the next frame is the right shift of `b` in the current frame.
+`exp` in the next frame is half of `exp` in the current frame (accounting for even/odd).
 
 >$$
 s_3' - (s_3 * 2 + s_0')  = 0 \text{ | degree} = 1

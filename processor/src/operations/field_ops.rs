@@ -167,49 +167,56 @@ impl Process {
     }
 
     /// Computes a single turn of exp accumulation for the given inputs. The top 4 elements in the
-    /// stack is arranged as follows (from the top):
-    /// - least significant bit of the exponent in the previous trace if there's an expacc call,
-    ///   otherwise ZERO
-    /// - exponent of base for this turn
-    /// - accumulated power of base so far
-    /// - number which needs to be shifted to the right
+    /// stack are arranged as follows (from the top):
+    /// - 0: least significant bit of the exponent in the previous trace if there's an expacc call,
+    ///   otherwise ZERO,
+    /// - 1: base of the exponentiation; i.e. `b` in `b^a`,
+    /// - 2: accumulated result of the exponentiation so far,
+    /// - 3: the exponent; i.e. `a` in `b^a`.
     ///
-    /// To perform the operation we do the following:
-    /// 1. Pops top three elements off the stack and calculate the least significant bit of the
-    ///    number `b`.
-    /// 2. Use this bit to decide if the current `base` raise to the power exponent needs to be
-    ///    included in the accumulator.
-    /// 3. Update exponent with its square and the number b with one right shift.
-    /// 4. Pushes the calcuted new values to the stack in the mentioned order.
+    /// It is expected that `Expacc` is called at least `num_exp_bits` times, where `num_exp_bits`
+    /// is the number of bits needed to represent `exp`. The initial call to `Expacc` should set the
+    /// stack as [0, base, 1, exponent]. The subsequent call will set the stack either as
+    /// - [0, base^2, acc, exp/2], or
+    /// - [1, base^2, acc * base, exp/2],
+    ///
+    /// depending on the least significant bit of the exponent.
+    ///
+    /// Expacc is based on the observation that the exponentiation of a number can be computed by
+    /// repeatedly squaring the base and multiplying those powers of the base by the accumulator,
+    /// for the powers of the base which correspond to the exponent's bits which are set to 1.
+    ///
+    /// For example, take b^5 = (b^2)^2 * b. Over the course of 3 iterations (5 = 101b), the
+    /// algorithm will compute b, b^2 and b^4 (placed in `base_acc`). Hence, we want to multiply
+    /// `base_acc` in `result_acc` when `base_acc = b` and when `base_acc = b^4`, which occurs on
+    /// the first and third iterations (corresponding to the `1` bits in the binary representation
+    /// of 5).
     pub(super) fn op_expacc(&mut self) -> Result<(), ExecutionError> {
-        let mut exp = self.stack.get(1);
-        let mut acc = self.stack.get(2);
-        let mut b = self.stack.get(3);
+        let old_base_acc = self.stack.get(1);
+        let old_result_acc = self.stack.get(2);
+        let old_exp = self.stack.get(3);
 
-        // least significant bit of the number b.
-        let bit = b.as_int() & 1;
+        // Compute new exponent.
+        let new_exp = Felt::new(old_exp.as_int() >> 1);
 
-        // value which would be incorporated in the accumulator.
-        let value = Felt::new((exp.as_int() - 1) * bit + 1);
+        // Compute new accumulator. We update the accumulator only when the least significant bit of
+        // the exponent is 1.
+        let exp_lsb = old_exp.as_int() & 1;
+        let result_acc_update = if exp_lsb == 1 { old_base_acc } else { ONE };
+        let new_result_acc = old_result_acc * result_acc_update;
 
-        // current value of acc after including the value based on whether the bit is
-        // 1 or not.
-        acc *= value;
+        // Compute the new base.
+        let new_base_acc = old_base_acc * old_base_acc;
 
-        // number `b` shifted right by one bit.
-        b = Felt::new(b.as_int() >> 1);
-
-        // exponent updated with its square.
-        exp *= exp;
-
-        // save val in the decoder helper register.
-        self.decoder.set_user_op_helpers(Operation::Expacc, &[value]);
-
-        self.stack.set(0, Felt::new(bit));
-        self.stack.set(1, exp);
-        self.stack.set(2, acc);
-        self.stack.set(3, b);
+        // Update the stack with the new values.
+        self.stack.set(0, Felt::new(exp_lsb));
+        self.stack.set(1, new_base_acc);
+        self.stack.set(2, new_result_acc);
+        self.stack.set(3, new_exp);
         self.stack.copy_state(4);
+
+        // save value multiplied in the accumulator in the decoder helper register.
+        self.decoder.set_user_op_helpers(Operation::Expacc, &[result_acc_update]);
 
         Ok(())
     }
@@ -518,51 +525,101 @@ mod tests {
 
     #[test]
     fn op_expacc() {
-        // --- test when b become 0 ---------------------------------------------------------------
+        // --- when base = 0 and exp is even, acc doesn't change --------------------------------
 
-        let a = 0;
-        let b = 32;
-        let c = 4;
+        let old_exp = 8;
+        let old_acc = 1;
+        let old_base = 0;
+
+        let new_exp = Felt::new(4_u64);
+        let new_acc = Felt::new(1_u64);
+        let new_base = Felt::new(0_u64);
 
         let advice_inputs = AdviceInputs::default();
-        let stack_inputs = StackInputs::try_from_ints([a, b, c, 0]).unwrap();
+        let stack_inputs = StackInputs::try_from_ints([old_exp, old_acc, old_base, 0]).unwrap();
         let (mut process, mut host) =
             Process::new_dummy_with_inputs_and_decoder_helpers(stack_inputs, advice_inputs);
 
         process.execute_op(Operation::Expacc, &mut host).unwrap();
-        let expected = build_expected(&[ZERO, Felt::new(16), Felt::new(32), Felt::new(a >> 1)]);
+        let expected = build_expected(&[ZERO, new_base, new_acc, new_exp]);
         assert_eq!(expected, process.stack.trace_state());
 
-        // --- test when bit from b is 1 ----------------------------------------------------------
+        // --- when base = 0 and exp is odd, acc becomes 0 --------------------------------------
 
-        let a = 3;
-        let b = 1;
-        let c = 16;
+        let old_exp = 9;
+        let old_acc = 1;
+        let old_base = 0;
+
+        let new_exp = Felt::new(4_u64);
+        let new_acc = Felt::new(0_u64);
+        let new_base = Felt::new(0_u64);
 
         let advice_inputs = AdviceInputs::default();
-        let stack_inputs = StackInputs::try_from_ints([a, b, c, 0]).unwrap();
+        let stack_inputs = StackInputs::try_from_ints([old_exp, old_acc, old_base, 0]).unwrap();
         let (mut process, mut host) =
             Process::new_dummy_with_inputs_and_decoder_helpers(stack_inputs, advice_inputs);
 
         process.execute_op(Operation::Expacc, &mut host).unwrap();
-        let expected = build_expected(&[ONE, Felt::new(256), Felt::new(16), Felt::new(a >> 1)]);
+        let expected = build_expected(&[ONE, new_base, new_acc, new_exp]);
         assert_eq!(expected, process.stack.trace_state());
 
-        // --- test when bit from b is 1 & exp is 2**32 -------------------------------------------
-        // exp will overflow the field after this operation.
+        // --- when exp = 0, acc doesn't change, and base doubles -------------------------------
 
-        let a = 17;
-        let b = 5;
-        let c = 625;
+        let old_exp = 0;
+        let old_acc = 32;
+        let old_base = 4;
+
+        let new_exp = Felt::new(0_u64);
+        let new_acc = Felt::new(32_u64);
+        let new_base = Felt::new(16_u64);
 
         let advice_inputs = AdviceInputs::default();
-        let stack_inputs = StackInputs::try_from_ints([a, b, c, 0]).unwrap();
+        let stack_inputs = StackInputs::try_from_ints([old_exp, old_acc, old_base, 0]).unwrap();
         let (mut process, mut host) =
             Process::new_dummy_with_inputs_and_decoder_helpers(stack_inputs, advice_inputs);
 
         process.execute_op(Operation::Expacc, &mut host).unwrap();
-        let expected =
-            build_expected(&[ONE, Felt::new(390625), Felt::new(3125), Felt::new(a >> 1)]);
+        let expected = build_expected(&[ZERO, new_base, new_acc, new_exp]);
+        assert_eq!(expected, process.stack.trace_state());
+
+        // --- when lsb(exp) == 1, acc is updated
+        // ----------------------------------------------------------
+
+        let old_exp = 3;
+        let old_acc = 1;
+        let old_base = 16;
+
+        let new_exp = Felt::new(1_u64);
+        let new_acc = Felt::new(16_u64);
+        let new_base = Felt::new(16_u64 * 16_u64);
+
+        let advice_inputs = AdviceInputs::default();
+        let stack_inputs = StackInputs::try_from_ints([old_exp, old_acc, old_base, 0]).unwrap();
+        let (mut process, mut host) =
+            Process::new_dummy_with_inputs_and_decoder_helpers(stack_inputs, advice_inputs);
+
+        process.execute_op(Operation::Expacc, &mut host).unwrap();
+        let expected = build_expected(&[ONE, new_base, new_acc, new_exp]);
+        assert_eq!(expected, process.stack.trace_state());
+
+        // --- when lsb(exp) == 1 & base is 2**32 -------------------------------------------
+        // base will overflow the field after this operation (which is allowed).
+
+        let old_exp = 17;
+        let old_acc = 5;
+        let old_base = u32::MAX as u64 + 1_u64;
+
+        let new_exp = Felt::new(8_u64);
+        let new_acc = Felt::new(old_acc * old_base);
+        let new_base = Felt::new(old_base) * Felt::new(old_base);
+
+        let advice_inputs = AdviceInputs::default();
+        let stack_inputs = StackInputs::try_from_ints([old_exp, old_acc, old_base, 0]).unwrap();
+        let (mut process, mut host) =
+            Process::new_dummy_with_inputs_and_decoder_helpers(stack_inputs, advice_inputs);
+
+        process.execute_op(Operation::Expacc, &mut host).unwrap();
+        let expected = build_expected(&[ONE, new_base, new_acc, new_exp]);
         assert_eq!(expected, process.stack.trace_state());
     }
 
