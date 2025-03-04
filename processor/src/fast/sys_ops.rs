@@ -1,3 +1,5 @@
+use vm_core::{utils::range, WORD_SIZE};
+
 use super::{ExecutionError, SpeedyGonzales, ONE};
 use crate::{system::FMP_MAX, FMP_MIN};
 
@@ -42,7 +44,13 @@ impl<const N: usize> SpeedyGonzales<N> {
     }
 
     pub fn op_caller(&mut self) -> Result<(), ExecutionError> {
-        todo!()
+        if !self.in_syscall {
+            return Err(ExecutionError::CallerNotInSyscall);
+        }
+
+        self.stack[range(self.stack_top_idx - WORD_SIZE, WORD_SIZE)].copy_from_slice(&self.fn_hash);
+
+        Ok(())
     }
 
     pub fn op_clk(&mut self, op_idx: usize) -> Result<(), ExecutionError> {

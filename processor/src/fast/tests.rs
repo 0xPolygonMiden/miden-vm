@@ -1,5 +1,6 @@
-use alloc::string::ToString;
+use alloc::{string::ToString, sync::Arc};
 
+use assembly::{Assembler, DefaultSourceManager};
 use miden_air::ExecutionOptions;
 use rstest::rstest;
 use vm_core::{assert_matches, Kernel, StackInputs};
@@ -606,6 +607,222 @@ fn test_frie2f4() {
     let slow_stack_outputs = slow_processor.execute(&program, &mut host).unwrap();
 
     assert_eq!(fast_stack_outputs, slow_stack_outputs);
+}
+
+// EXECUTION CONTEXT TESTS
+// -----------------------------------------------------------------------------------------------
+
+#[test]
+fn test_call_node_preserves_stack_overflow() {
+    let mut host = DefaultHost::default();
+
+    // equivalent to:
+    // proc.foo
+    //   add
+    // end
+    //
+    // begin
+    //   # stack: [1, 2, 3, 4, ..., 16]
+    //   push.10 push.20
+    //   # stack: [10, 20, 1, 2, ..., 15, 16], 15 and 16 on overflow
+    //   call.foo
+    //   # => stack: [30, 1, 2, 3, 4, 5, ..., 14, 0, 15, 16]
+    //   swap drop swap drop
+    //   # => stack: [30, 3, 4, 5, 6, ..., 14, 0, 15, 16]
+    // end
+    let program = {
+        let mut program = MastForest::new();
+        // foo proc
+        let foo_id = program.add_block(vec![Operation::Add], None).unwrap();
+
+        // before call
+        let push10_push20_id = program
+            .add_block(vec![Operation::Push(10_u32.into()), Operation::Push(20_u32.into())], None)
+            .unwrap();
+
+        // call
+        let call_node_id = program.add_call(foo_id).unwrap();
+        // after call
+        let swap_drop_swap_drop = program
+            .add_block(
+                vec![Operation::Swap, Operation::Drop, Operation::Swap, Operation::Drop],
+                None,
+            )
+            .unwrap();
+
+        // joins
+        let join_call_swap = program.add_join(call_node_id, swap_drop_swap_drop).unwrap();
+        let root_id = program.add_join(push10_push20_id, join_call_swap).unwrap();
+
+        program.make_root(root_id);
+
+        Program::new(program.into(), root_id)
+    };
+
+    // initial stack: (top) [1, 2, 3, 4, ..., 16] (bot)
+    let mut processor = SpeedyGonzales::<512>::new(vec![
+        16_u32.into(),
+        15_u32.into(),
+        14_u32.into(),
+        13_u32.into(),
+        12_u32.into(),
+        11_u32.into(),
+        10_u32.into(),
+        9_u32.into(),
+        8_u32.into(),
+        7_u32.into(),
+        6_u32.into(),
+        5_u32.into(),
+        4_u32.into(),
+        3_u32.into(),
+        2_u32.into(),
+        1_u32.into(),
+    ]);
+
+    // Execute the program
+    let result = processor.execute_impl(&program, &mut host).unwrap();
+
+    assert_eq!(
+        result.stack_truncated(16),
+        &[
+            // the sum from the call to foo
+            30_u32.into(),
+            // rest of the stack
+            3_u32.into(),
+            4_u32.into(),
+            5_u32.into(),
+            6_u32.into(),
+            7_u32.into(),
+            8_u32.into(),
+            9_u32.into(),
+            10_u32.into(),
+            11_u32.into(),
+            12_u32.into(),
+            13_u32.into(),
+            14_u32.into(),
+            // the 0 shifted in during `foo`
+            0_u32.into(),
+            // the preserved overflow from before the call
+            15_u32.into(),
+            16_u32.into(),
+        ]
+    );
+}
+
+#[rstest]
+// ---- syscalls ----
+// check stack is preserved after syscall
+#[case(Some("export.foo add end"), "begin push.1 syscall.foo swap.8 drop end", vec![16_u32.into(); 16])]
+// check that `fn_hash` register is updated correctly
+#[case(Some("export.foo caller end"), "begin syscall.foo end", vec![16_u32.into(); 16])]
+#[case(Some("export.foo caller end"), "proc.bar syscall.foo end begin call.bar end", vec![16_u32.into(); 16])]
+// check that clk works correctly through syscalls
+#[case(Some("export.foo clk add end"), "begin syscall.foo end", vec![16_u32.into(); 16])]
+// check that fmp register is updated correctly after syscall
+#[case(Some("export.foo.2 locaddr.0 locaddr.1 swap.8 drop swap.8 drop end"), "proc.bar syscall.foo end begin call.bar end", vec![16_u32.into(); 16])]
+// check that memory context is updated correctly across a syscall (i.e. anything stored before the
+// syscall is retrievable after, but not during)
+#[case(Some("export.foo add end"), "proc.bar push.100 mem_store.44 syscall.foo mem_load.44 swap.8 drop end begin call.bar end", vec![16_u32.into(); 16])]
+// check that syscalls share the same memory context
+#[case(Some("export.foo push.100 mem_store.44 end export.baz mem_load.44 swap.8 drop end"), 
+    "proc.bar syscall.foo syscall.baz end begin call.bar end", vec![16_u32.into(); 16])]
+// ---- calls ----
+// check stack is preserved after call
+#[case(None, "proc.foo add end begin push.1 call.foo swap.8 drop end", vec![16_u32.into(); 16])]
+// check that `clk` works correctly though calls
+#[case(None, "
+    proc.foo clk add end 
+    begin push.1 
+    if.true call.foo else swap end 
+    end", 
+    vec![16_u32.into(); 16]
+)]
+// check that fmp register is updated correctly after call
+#[case(None,"
+    proc.foo.2 locaddr.0 locaddr.1 swap.8 drop swap.8 drop end
+    begin call.foo end", 
+    vec![16_u32.into(); 16]
+)]
+// check that 2 functions creating different memory contexts don't interfere with each other
+#[case(None,"
+    proc.foo push.100 mem_store.44 end
+    proc.bar mem_load.44 assertz end
+    begin call.foo mem_load.44 assertz call.bar end", 
+    vec![16_u32.into(); 16]
+)]
+// check that memory context is updated correctly across a call (i.e. anything stored before the
+// call is retrievable after, but not during)
+#[case(None,"
+    proc.foo mem_load.44 assertz end
+    proc.bar push.100 mem_store.44 call.foo mem_load.44 swap.8 drop end
+    begin call.bar end", 
+    vec![16_u32.into(); 16]
+)]
+fn test_calls_consistency(
+    #[case] kernel_source: Option<&'static str>,
+    #[case] program_source: &'static str,
+    #[case] stack_inputs: Vec<Felt>,
+) {
+    let (program, kernel_lib) = {
+        let source_manager = Arc::new(DefaultSourceManager::default());
+
+        match kernel_source {
+            Some(kernel_source) => {
+                let kernel_lib =
+                    Assembler::new(source_manager.clone()).assemble_kernel(kernel_source).unwrap();
+                let program = Assembler::with_kernel(source_manager, kernel_lib.clone())
+                    .assemble_program(program_source)
+                    .unwrap();
+
+                (program, Some(kernel_lib))
+            },
+            None => {
+                let program =
+                    Assembler::new(source_manager).assemble_program(program_source).unwrap();
+                (program, None)
+            },
+        }
+    };
+
+    let mut host = DefaultHost::default();
+    if let Some(kernel_lib) = &kernel_lib {
+        host.load_mast_forest(kernel_lib.mast_forest().clone()).unwrap();
+    }
+
+    // fast processor
+    let processor = SpeedyGonzales::<512>::new(stack_inputs.clone());
+    let fast_stack_outputs = processor.execute(&program, &mut host);
+
+    // slow processor
+    let mut slow_processor = Process::new(
+        kernel_lib.map(|k| k.kernel().clone()).unwrap_or_default(),
+        StackInputs::new(stack_inputs).unwrap(),
+        ExecutionOptions::default(),
+    );
+    let slow_stack_outputs = slow_processor.execute(&program, &mut host);
+
+    match (&fast_stack_outputs, &slow_stack_outputs) {
+        (Ok(fast_stack_outputs), Ok(slow_stack_outputs)) => {
+            assert_eq!(fast_stack_outputs, slow_stack_outputs);
+        },
+        (Err(fast_error), Err(slow_error)) => {
+            assert_eq!(fast_error.to_string(), slow_error.to_string());
+
+            // Make sure that we're not getting an output stack overflow error, as it indicates that
+            // the sequence of operations makes the stack end with a non-16 depth, and doesn't tell
+            // us if the stack outputs are actually the same.
+            // Similarly, we are not testing that stack depth on return is correct.
+            if matches!(fast_error, ExecutionError::OutputStackOverflow(_))
+                || matches!(fast_error, ExecutionError::InvalidStackDepthOnReturn(_))
+            {
+                panic!("we don't want to be testing this output stack overflow error");
+            }
+        },
+        _ => panic!(
+            "Fast processor: {:?}. Slow processor: {:?}",
+            fast_stack_outputs, slow_stack_outputs
+        ),
+    }
 }
 
 // TEST HELPERS

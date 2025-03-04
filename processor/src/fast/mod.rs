@@ -5,12 +5,13 @@ use miden_air::RowIndex;
 use vm_core::{
     mast::{BasicBlockNode, MastForest, MastNode, MastNodeId},
     stack::MIN_STACK_DEPTH,
-    Felt, Operation, Program, StackOutputs, ONE, WORD_SIZE, ZERO,
+    utils::range,
+    Felt, Operation, Program, StackOutputs, Word, EMPTY_WORD, ONE, WORD_SIZE, ZERO,
 };
 
 use crate::{
     operations::utils::assert_binary, utils::resolve_external_node, ContextId, ExecutionError,
-    Host, FMP_MIN,
+    Host, FMP_MIN, SYSCALL_FMP_MIN,
 };
 
 // temporary module to
@@ -50,8 +51,20 @@ pub struct SpeedyGonzales<const N: usize> {
     /// The free memory pointer.
     fmp: Felt,
 
+    /// Whether we are currently in a syscall.
+    in_syscall: bool,
+
+    /// The hash of the function that called into the current context, or `[ZERO, ZERO, ZERO,
+    /// ZERO]` if we are in the first context (i.e. when `call_stack` is empty).
+    fn_hash: Word,
+
     /// A map from (context_id, word_address) to the word stored starting at that memory location.
     memory: BTreeMap<(ContextId, u32), [Felt; WORD_SIZE]>,
+
+    /// The call stack is used when starting a new execution context (from a `call`, `syscall` or
+    /// `dyncall`) to keep track of the information needed to return to the previous context upon
+    /// return. It is a stack since calls can be nested.
+    call_stack: Vec<ExecutionContextInfo>,
 }
 
 impl<const N: usize> SpeedyGonzales<N> {
@@ -90,7 +103,10 @@ impl<const N: usize> SpeedyGonzales<N> {
             clk: 0_u32.into(),
             ctx: 0_u32.into(),
             fmp: Felt::new(FMP_MIN),
+            in_syscall: false,
+            fn_hash: EMPTY_WORD,
             memory: BTreeMap::new(),
+            call_stack: Vec::new(),
         }
     }
 
@@ -162,7 +178,7 @@ impl<const N: usize> SpeedyGonzales<N> {
                 Ok(())
             },
             MastNode::Split(split_node) => {
-                let condition = self.stack[0];
+                let condition = self.stack[self.stack_top_idx - 1];
 
                 // TODO(plafer): test this - specifically if bounds check is updated such that the
                 // next stack operation should fail
@@ -187,7 +203,55 @@ impl<const N: usize> SpeedyGonzales<N> {
                 Ok(())
             },
             MastNode::Loop(_loop_node) => todo!(),
-            MastNode::Call(_call_node) => todo!(),
+            MastNode::Call(call_node) => {
+                // start call node
+                self.clk += 1_u32;
+
+                // call or syscall are not allowed inside a syscall
+                if self.in_syscall {
+                    let instruction = if call_node.is_syscall() { "syscall" } else { "call" };
+                    return Err(ExecutionError::CallInSyscall(instruction));
+                }
+
+                let callee_hash = program
+                    .get_node_by_id(call_node.callee())
+                    .ok_or(ExecutionError::MastNodeNotFoundInForest {
+                        node_id: call_node.callee(),
+                    })?
+                    .digest()
+                    .into();
+
+                self.save_context_and_truncate_stack();
+
+                if call_node.is_syscall() {
+                    // TODO(plafer): check if target exists in kernel
+                    self.ctx = ContextId::root();
+                    self.fmp = SYSCALL_FMP_MIN.into();
+                    self.in_syscall = true;
+                } else {
+                    self.ctx = (self.clk + 1).into();
+                    self.fmp = Felt::new(FMP_MIN);
+                    self.fn_hash = callee_hash;
+                }
+
+                // Execute the callee.
+                self.execute_mast_node(call_node.callee(), program, host)?;
+
+                // when a CALL node ends, stack depth must be exactly 16.
+                if self.stack_size() > MIN_STACK_DEPTH {
+                    return Err(ExecutionError::InvalidStackDepthOnReturn(self.stack_size()));
+                }
+
+                // when returning from a function call or a syscall, restore the context of the
+                // system registers and the operand stack to what it was prior to
+                // the call.
+                self.restore_context()?;
+
+                // end call node
+                self.clk += 1_u32;
+
+                Ok(())
+            },
             MastNode::Dyn(_dyn_node) => todo!(),
             MastNode::External(external_node) => {
                 let (root_id, mast_forest) = resolve_external_node(external_node, host)?;
@@ -367,6 +431,12 @@ impl<const N: usize> SpeedyGonzales<N> {
         self.update_bounds_check_counter();
     }
 
+    /// Returns the size of the stack.
+    #[inline(always)]
+    fn stack_size(&self) -> usize {
+        self.stack_top_idx - self.stack_bot_idx
+    }
+
     /// TODO(plafer): add docs
     #[inline(always)]
     fn update_bounds_check_counter(&mut self) {
@@ -386,4 +456,82 @@ impl<const N: usize> SpeedyGonzales<N> {
                 min(self.stack_top_idx - MIN_STACK_DEPTH, N - self.stack_top_idx);
         }
     }
+
+    /// Saves the current execution context and truncates the stack to 16 elements in preparation to
+    /// start a new execution context.
+    fn save_context_and_truncate_stack(&mut self) {
+        let overflow_stack = if self.stack_size() > MIN_STACK_DEPTH {
+            // save the overflow stack, and zero out the buffer
+            let overflow_stack =
+                self.stack[self.stack_bot_idx..self.stack_top_idx - MIN_STACK_DEPTH].to_vec();
+            self.stack[self.stack_bot_idx..self.stack_top_idx - MIN_STACK_DEPTH].fill(ZERO);
+
+            overflow_stack
+        } else {
+            Vec::new()
+        };
+
+        self.stack_bot_idx = self.stack_top_idx - MIN_STACK_DEPTH;
+
+        self.call_stack.push(ExecutionContextInfo {
+            overflow_stack,
+            ctx: self.ctx,
+            fn_hash: self.fn_hash,
+            fmp: self.fmp,
+        });
+    }
+
+    /// Restores the execution context to the state it was in before the last `call`, `syscall` or
+    /// `dyncall`.
+    ///
+    /// This includes restoring the overflow stack and the system parameters.
+    ///
+    /// # Errors
+    /// - Returns an error if the overflow stack is larger than the space available in the stack
+    ///  buffer.
+    fn restore_context(&mut self) -> Result<(), ExecutionError> {
+        let ctx_info = self
+            .call_stack
+            .pop()
+            .expect("execution context stack should never be empty when restoring context");
+
+        // restore the overflow stack
+        {
+            let overflow_len = ctx_info.overflow_stack.len();
+            if overflow_len > self.stack_bot_idx {
+                return Err(ExecutionError::FailedToExecuteProgram(
+                    "stack underflow when restoring context",
+                ));
+            }
+
+            self.stack[range(self.stack_bot_idx - overflow_len, overflow_len)]
+                .copy_from_slice(&ctx_info.overflow_stack);
+            self.stack_bot_idx -= overflow_len;
+        }
+
+        // restore system parameters
+        self.ctx = ctx_info.ctx;
+        self.fmp = ctx_info.fmp;
+        self.in_syscall = false;
+        self.fn_hash = ctx_info.fn_hash;
+
+        Ok(())
+    }
+}
+
+// EXECUTION CONTEXT INFO
+// ===============================================================================================
+
+/// Information about the execution context.
+///
+/// This struct is used to keep track of the information needed to return to the previous context
+/// upon return from a `call`, `syscall` or `dyncall`.
+#[derive(Debug)]
+struct ExecutionContextInfo {
+    /// This stores all the elements on the stack at the call site, excluding the top 16 elements.
+    /// This corresponds to the overflow table in [crate::Process].
+    overflow_stack: Vec<Felt>,
+    ctx: ContextId,
+    fn_hash: Word,
+    fmp: Felt,
 }
