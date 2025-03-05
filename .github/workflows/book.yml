@@ -7,12 +7,12 @@ on:
     branches: [main, next]
   pull_request:
     paths:
-      - 'src/docs/SUMMARY.md'
-      - 'src/docs/IMPORTED.md'
+      - 'docs/src/SUMMARY.md'
+      - 'docs/src/IMPORTED.md'
 
 jobs:
   check-files:
-    name: Check Interdependent Files
+    name: check interdependent files
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
@@ -49,7 +49,7 @@ jobs:
           echo "Both files were either modified together or not modified at all. Check passes!"
 
   deploy:
-    name: Deploy mdbook
+    name: deploy mdbook
     runs-on: ubuntu-latest
     needs: check-files
     # Only run deployment on push to main/next branches, not on PRs
