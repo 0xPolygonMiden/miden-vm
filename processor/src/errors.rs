@@ -27,6 +27,8 @@ pub enum ExecutionError {
     AdviceMapKeyAlreadyPresent(Word),
     #[error("advice stack read failed at step {0}")]
     AdviceStackReadFailed(RowIndex),
+    #[error("illegal use of instruction {0} while inside a syscall")]
+    CallInSyscall(&'static str),
     #[error("instruction `caller` used outside of kernel context")]
     CallerNotInSyscall,
     #[error("external node with mast root {0} resolved to an external node")]
