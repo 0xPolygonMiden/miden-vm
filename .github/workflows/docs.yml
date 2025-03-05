@@ -1,0 +1,23 @@
+# Runs docs related jobs.
+# CI job heavily inspired by: https://github.com/tarides/changelog-check-action
+
+name: docs
+
+on:
+  pull_request:
+    types: [opened, reopened, synchronize, labeled, unlabeled]
+
+jobs:
+  documented:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@main
+        with:
+          fetch-depth: 0
+      - name: Check for changes in the docs directory
+        env:
+          BASE_REF: ${{ github.event.pull_request.base.ref }}
+          NO_DOCS_LABEL: ${{ contains(github.event.pull_request.labels.*.name, 'no docs') }}
+        run: ./scripts/check-docs.sh "${{ inputs.docs }}"
+        shell: bash
