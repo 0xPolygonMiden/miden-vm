@@ -185,7 +185,34 @@ impl<const N: usize> SpeedyGonzales<N> {
                     return Err(ExecutionError::NotBinaryValue(condition));
                 }
             },
-            MastNode::Loop(_loop_node) => todo!(),
+            MastNode::Loop(loop_node) => {
+                // The loop condition is checked after the loop body is executed.
+                let mut condition = self.stack[self.stack_top_idx - 1];
+
+                // drop the condition from the stack
+                self.decrement_stack_size();
+
+                // execute the loop body as long as the condition is true
+                while condition == ONE {
+                    self.execute_mast_node(loop_node.body(), program, host)?;
+
+                    // check the loop condition, and drop it from the stack
+                    condition = self.stack[self.stack_top_idx - 1];
+                    self.decrement_stack_size();
+
+                    // this clock increment is for the row inserted for the `REPEAT` node added to
+                    // the trace on each iteration. It needs to be at the end of this loop (instead
+                    // of at the beginning), otherwise we get an off-by-one error when comparing
+                    // with [crate::Process].
+                    if condition == ONE {
+                        self.clk += 1;
+                    }
+                }
+
+                if condition != ZERO {
+                    return Err(ExecutionError::NotBinaryValue(condition));
+                }
+            },
             MastNode::Call(call_node) => {
                 // call or syscall are not allowed inside a syscall
                 if self.in_syscall {
@@ -250,7 +277,7 @@ impl<const N: usize> SpeedyGonzales<N> {
     fn execute_basic_block_node(
         &mut self,
         basic_block_node: &BasicBlockNode,
-        _program: &MastForest,
+        program: &MastForest,
     ) -> Result<(), ExecutionError> {
         // TODO(plafer): this enumerate results in a ~5% performance drop (or about 25 MHz on the
         // fibonacci benchmark). We should find a better way to know the operation index when we
@@ -259,7 +286,7 @@ impl<const N: usize> SpeedyGonzales<N> {
         // pointer arithmetic (comparing the address of the operation to the address of the first
         // operation in the Vec).
         for (op_idx, operation) in basic_block_node.operations().enumerate() {
-            self.execute_op(operation, op_idx, _program)?;
+            self.execute_op(operation, op_idx, program)?;
         }
 
         self.clk += basic_block_node.num_operations();
