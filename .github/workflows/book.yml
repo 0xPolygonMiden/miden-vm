@@ -14,7 +14,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
@@ -35,41 +35,58 @@ jobs:
 
           # If one file changed and the other didn't, fail the check
           if [[ "$SUMMARY_CHANGED" == "true" && "$IMPORTED_CHANGED" == "false" ]]; then
-            echo "Error: src/docs/SUMMARY.md was modified but src/docs/IMPORTED.md was not. Please update both files together."
+            echo "Error: src/docs/SUMMARY.md was modified but src/docs/IMPORTED.md was not. Please update both files together to make sure the local book and the Miden book are in sync."
             exit 1
           fi
 
           if [[ "$SUMMARY_CHANGED" == "false" && "$IMPORTED_CHANGED" == "true" ]]; then
-            echo "Error: src/docs/IMPORTED.md was modified but src/docs/SUMMARY.md was not. Please update both files together."
+            echo "Error: src/docs/IMPORTED.md was modified but src/docs/SUMMARY.md was not. Please update both files together to make sure the local book and the Miden book are in sync."
             exit 1
           fi
 
           echo "Both files were either modified together or not modified at all. Check passes!"
 
   deploy:
-    name: Deploy miden-vm mdbook
+    name: Deploy mdbook
     runs-on: ubuntu-latest
     needs: check-files
     # Only run deployment on push to main/next branches, not on PRs
-    if: github.event_name == 'push'
+    if: github.event_name == 'push' || github.event_name == 'workflow_run'
+    permissions:
+      contents: write
+      pages: write
+      id-token: write
     steps:
-      - uses: actions/checkout@main
-
-      - name: Install katex, alerts and linkcheck
-        run: |
-          rustup update --no-self-update stable
-          cargo +stable install mdbook-katex mdbook-linkcheck mdbook-alerts
-
-      - name: Setup mdBook
-        uses: peaceiris/actions-mdbook@v1
+      - uses: actions/checkout@v4
         with:
-          mdbook-version: "latest"
+          fetch-depth: 0
 
-      - name: Build miden book
+      - name: Install latest mdBook
+        run: |
+          tag=$(curl 'https://api.github.com/repos/rust-lang/mdbook/releases/latest' | jq -r '.tag_name')
+          url="https://github.com/rust-lang/mdbook/releases/download/${tag}/mdbook-${tag}-x86_64-unknown-linux-gnu.tar.gz"
+          mkdir mdbook
+          curl -sSL $url | tar -xz --directory=./mdbook
+          echo `pwd`/mdbook >> $GITHUB_PATH
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Install mdBook plugins
+        run: |
+          cargo install mdbook-katex mdbook-linkcheck mdbook-alerts
+
+      - name: Build book
         run: mdbook build docs/
 
-      - name: Deploy to GitHub Pages
-        uses: peaceiris/actions-gh-pages@v3
+      - name: Setup Pages
+        uses: actions/configure-pages@v4
+
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
         with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: ./docs/book/html
+          path: "docs/book/html"
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
