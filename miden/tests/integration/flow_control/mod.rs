@@ -55,6 +55,21 @@ fn conditional_loop() {
 }
 
 #[test]
+fn faulty_condition_from_loop() {
+    let source = "
+        begin
+            push.1
+            while.true
+                push.100
+            end
+            drop
+        end";
+
+    let test = build_test!(source, &[10]);
+    expect_exec_error_matches!(test, ExecutionError::NotBinaryValue(_));
+}
+
+#[test]
 fn counter_controlled_loop() {
     // --- entering the loop ----------------------------------------------------------------------
     // compute 2^10
