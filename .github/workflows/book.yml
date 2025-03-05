@@ -1,4 +1,6 @@
-name: Book
+# Performs checks, builds and deploys the mdbook
+
+name: book
 
 on:
   push:
