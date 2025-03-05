@@ -152,30 +152,19 @@ impl<const N: usize> SpeedyGonzales<N> {
             .get_node_by_id(node_id)
             .ok_or(ExecutionError::MastNodeNotFoundInForest { node_id })?;
 
+        // Corresponds to the row inserted for the node added to the trace (e.g. JOIN, SPLIT, etc).
+        // `External` is the only node that doesn't insert a row in the trace.
+        if !matches!(node, MastNode::External(_)) {
+            self.clk += 1_u32;
+        }
+
         match node {
             MastNode::Block(basic_block_node) => {
-                // TODO(plafer): this clk += 1 occurs for each node; put it outside the match
-                // start basic block
-                self.clk += 1_u32;
-
                 self.execute_basic_block_node(basic_block_node, program)?;
-
-                // end basic block
-                self.clk += 1_u32;
-
-                Ok(())
             },
             MastNode::Join(join_node) => {
-                // start join node
-                self.clk += 1_u32;
-
                 self.execute_mast_node(join_node.first(), program, host)?;
                 self.execute_mast_node(join_node.second(), program, host)?;
-
-                // end join node
-                self.clk += 1_u32;
-
-                Ok(())
             },
             MastNode::Split(split_node) => {
                 let condition = self.stack[self.stack_top_idx - 1];
@@ -185,7 +174,6 @@ impl<const N: usize> SpeedyGonzales<N> {
 
                 // drop the condition from the stack
                 self.decrement_stack_size();
-                self.clk += 1_u32;
                 self.update_bounds_check_counter();
 
                 // execute the appropriate branch
@@ -196,17 +184,9 @@ impl<const N: usize> SpeedyGonzales<N> {
                 } else {
                     return Err(ExecutionError::NotBinaryValue(condition));
                 }
-
-                // end join node
-                self.clk += 1_u32;
-
-                Ok(())
             },
             MastNode::Loop(_loop_node) => todo!(),
             MastNode::Call(call_node) => {
-                // start call node
-                self.clk += 1_u32;
-
                 // call or syscall are not allowed inside a syscall
                 if self.in_syscall {
                     let instruction = if call_node.is_syscall() { "syscall" } else { "call" };
@@ -246,19 +226,22 @@ impl<const N: usize> SpeedyGonzales<N> {
                 // system registers and the operand stack to what it was prior to
                 // the call.
                 self.restore_context()?;
-
-                // end call node
-                self.clk += 1_u32;
-
-                Ok(())
             },
             MastNode::Dyn(_dyn_node) => todo!(),
             MastNode::External(external_node) => {
                 let (root_id, mast_forest) = resolve_external_node(external_node, host)?;
 
-                self.execute_mast_node(root_id, &mast_forest, host)
+                self.execute_mast_node(root_id, &mast_forest, host)?;
             },
         }
+
+        // Corresponds to the row inserted for the `END` added to the trace. `External` is the only
+        // node that doesn't insert a corresponding `END` row in the trace.
+        if !matches!(node, MastNode::External(_)) {
+            self.clk += 1_u32;
+        }
+
+        Ok(())
     }
 
     // Note: when executing individual ops, we do not increment the clock by 1 at every iteration
