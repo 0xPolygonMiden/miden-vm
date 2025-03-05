@@ -8,6 +8,9 @@ use vm_core::{assert_matches, Kernel, StackInputs};
 use super::*;
 use crate::{system::FMP_MAX, DefaultHost, Process};
 
+// TODO(plafer): Modify `Test` struct so that every test runs both processors, and compares the
+// stack outputs.
+
 // TODO(plafer): add prop tests to try to make the stack overflow logic fail (e.g. an out of bounds
 // stack access).
 
@@ -710,7 +713,7 @@ fn test_call_node_preserves_stack_overflow() {
 }
 
 #[rstest]
-// ---- syscalls ----
+// ---- syscalls --------------------------------
 // check stack is preserved after syscall
 #[case(Some("export.foo add end"), "begin push.1 syscall.foo swap.8 drop end", vec![16_u32.into(); 16])]
 // check that `fn_hash` register is updated correctly
@@ -726,7 +729,7 @@ fn test_call_node_preserves_stack_overflow() {
 // check that syscalls share the same memory context
 #[case(Some("export.foo push.100 mem_store.44 end export.baz mem_load.44 swap.8 drop end"), 
     "proc.bar syscall.foo syscall.baz end begin call.bar end", vec![16_u32.into(); 16])]
-// ---- calls ----
+// ---- calls ------------------------
 // check stack is preserved after call
 #[case(None, "proc.foo add end begin push.1 call.foo swap.8 drop end", vec![16_u32.into(); 16])]
 // check that `clk` works correctly though calls
@@ -734,6 +737,7 @@ fn test_call_node_preserves_stack_overflow() {
     proc.foo clk add end 
     begin push.1 
     if.true call.foo else swap end 
+    clk swap.8 drop
     end", 
     vec![16_u32.into(); 16]
 )]
@@ -758,7 +762,24 @@ fn test_call_node_preserves_stack_overflow() {
     begin call.bar end", 
     vec![16_u32.into(); 16]
 )]
-fn test_calls_consistency(
+// ---- loop --------------------------------
+// check that error is returned if condition is not a boolean
+#[case(None, "begin while.true swap end end", vec![2_u32.into(); 16])]
+#[case(None, "begin while.true push.100 end end", vec![ONE; 16])]
+// check that the loop is never entered if the condition is false (and that clk is properly updated)
+#[case(None, "begin while.true push.1 assertz end clk swap.8 drop end", vec![3_u32.into(), 2_u32.into(), 1_u32.into(), ZERO])]
+// check that the loop is entered if the condition is true, and that the stack and clock are managed
+// properly
+#[case(None,
+    "begin 
+        while.true 
+            clk swap.15 drop
+        end 
+        clk swap.8 drop 
+        end",
+    vec![42_u32.into(), ZERO, ONE, ONE, ONE, ONE]
+)]
+fn test_masm_consistency(
     #[case] kernel_source: Option<&'static str>,
     #[case] program_source: &'static str,
     #[case] stack_inputs: Vec<Felt>,
