@@ -370,6 +370,10 @@ impl Process {
                 self.execute_mast_node(node.body(), program, host)?;
             }
 
+            if self.stack.peek() != ZERO {
+                return Err(ExecutionError::NotBinaryValue(self.stack.peek()));
+            }
+
             // end the LOOP block and drop the condition from the stack
             self.end_loop_node(node, true, host)
         } else if condition == ZERO {
