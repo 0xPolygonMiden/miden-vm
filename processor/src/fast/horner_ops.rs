@@ -1,4 +1,4 @@
-use vm_core::{Felt, EMPTY_WORD};
+use vm_core::Felt;
 
 use super::SpeedyGonzales;
 use crate::{ExecutionError, QuadFelt};
@@ -101,14 +101,12 @@ impl<const N: usize> SpeedyGonzales<N> {
 
     /// Returns the evaluation point.
     fn get_evaluation_point(&mut self, op_idx: usize) -> Result<QuadFelt, ExecutionError> {
-        let addr: u32 = {
+        let (alpha_0, alpha_1) = {
             let addr = self.stack[self.stack_top_idx - 1 - ALPHA_ADDR_INDEX];
+            let word = self.memory.read_word(self.ctx, addr, self.clk + op_idx)?;
 
-            self.enforce_word_aligned_addr(addr, op_idx)?
+            (word[0], word[1])
         };
-        let word = self.memory.get(&(self.ctx, addr)).unwrap_or(&EMPTY_WORD);
-        let alpha_0 = word[0];
-        let alpha_1 = word[1];
 
         Ok(QuadFelt::new(alpha_0, alpha_1))
     }

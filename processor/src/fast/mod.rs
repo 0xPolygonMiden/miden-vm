@@ -1,6 +1,7 @@
-use alloc::{collections::BTreeMap, vec::Vec};
+use alloc::vec::Vec;
 use core::cmp::min;
 
+use memory::Memory;
 use miden_air::RowIndex;
 use vm_core::{
     mast::{BasicBlockNode, MastForest, MastNode, MastNodeId},
@@ -17,6 +18,9 @@ use crate::{
 // temporary module to
 pub mod experiments;
 
+mod memory;
+
+// Ops
 mod crypto_ops;
 mod field_ops;
 mod fri_ops;
@@ -60,7 +64,7 @@ pub struct SpeedyGonzales<const N: usize> {
     fn_hash: Word,
 
     /// A map from (context_id, word_address) to the word stored starting at that memory location.
-    memory: BTreeMap<(ContextId, u32), [Felt; WORD_SIZE]>,
+    memory: Memory,
 
     /// The call stack is used when starting a new execution context (from a `call`, `syscall` or
     /// `dyncall`) to keep track of the information needed to return to the previous context upon
@@ -106,7 +110,7 @@ impl<const N: usize> SpeedyGonzales<N> {
             fmp: Felt::new(FMP_MIN),
             in_syscall: false,
             fn_hash: EMPTY_WORD,
-            memory: BTreeMap::new(),
+            memory: Memory::new(),
             call_stack: Vec::new(),
         }
     }
