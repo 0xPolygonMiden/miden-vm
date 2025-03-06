@@ -208,7 +208,6 @@ proc.load_query_row
     ## increment ptr to account for the last two words we loaded from the advice tape
     swapw add.8 swapw
 
-
     # Aux trace part
 
     ## Load aux trace commitment and get leaf
@@ -253,7 +252,6 @@ proc.load_query_row
     ##increment ptr to account for column 9 and an additional +1 for the all zero word
     swapw add.8 swapw
 
-
     # Constraint composition trace part
 
     ## Load commitment constraint trace and get leaf
@@ -290,7 +288,7 @@ end
 #! (x - z) and (x - gz).
 #!
 #! Input: [Y, Y, index, ...]
-#! Output: [Z, Y, x, index, ...]  
+#! Output: [Z, Y, x, index, ...]
 #!
 #! where:
 #! - Z := [-gz1, x -gz0, -z1, x - z0]
@@ -500,7 +498,7 @@ export.compute_deep_composition_polynomial_queries
     exec.constants::z_ptr mem_loadw
     # => [zN_1, zN_0, z1, z0, query_ptr, query_end_ptr, query_ptr, ...]
     drop drop
-    neg swap neg  
+    neg swap neg
     # => [-z0, -z1, query_ptr, query_end_ptr, query_ptr, ...]
     dup.1 exec.constants::trace_domain_generator_ptr mem_load mul
     # => [-gz1, -z0, -z1, query_ptr, query_end_ptr, query_ptr, ...]
@@ -525,7 +523,6 @@ export.compute_deep_composition_polynomial_queries
         # Cycles: 206
         exec.load_query_row
         #=>[Y, Y, index, query_ptr, query_end_ptr, query_ptr, ...]
-
 
         # II)
         #
@@ -566,7 +563,7 @@ export.compute_deep_composition_polynomial_queries
         ##
         ## Cycles: 81 + 9 + 25 = 115
         exec.combine_main_trace_columns
-        exec.combine_aux_trace_columns     
+        exec.combine_aux_trace_columns
         exec.combine_constraint_poly_columns
         #=> [Acc, Z, x, index, query_ptr, query_end_ptr, query_ptr, ...]
 
@@ -575,7 +572,6 @@ export.compute_deep_composition_polynomial_queries
         ## Cycles: 38
         exec.divide_by_denominators_and_sum
         #=> [eval1, eval0, x, index, query_ptr, query_end_ptr, query_ptr, ...]
-
 
         # IV)
         #

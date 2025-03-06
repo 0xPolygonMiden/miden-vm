@@ -1,7 +1,6 @@
 use.std::crypto::stark::constants
 use.std::crypto::hashes::rpo
 
-
 #! Loads OOD evaluation frame, with current and next rows interleaved, into memory. This ouputs
 #! the hash of the OOD for reseeding the random coin.
 #!
@@ -11,8 +10,8 @@ use.std::crypto::hashes::rpo
 export.load_evaluation_frame
     # We have 71 main trace columns and 7 aux trace columns for a total of 156 base field elements
     # per row. Since we have two rows, i.e. current and next, the total number of field elements
-    # making up the OOD evaluation frame is 156*2 = 312. We will be reading felts in 39 batches of 8 
-    # using `adv_pipe`: 312 = 39 * 8. 
+    # making up the OOD evaluation frame is 156*2 = 312. We will be reading felts in 39 batches of 8
+    # using `adv_pipe`: 312 = 39 * 8.
     # The elements are stored from the stack as (a1_1, a1_0, a0_1, a0_0) where a0 is from the
     # current row and a1 from the next row.
 
@@ -123,7 +122,7 @@ export.compute_Hz
     # Load value_0
     padw dup.4 mem_loadw
     # => [0, 0, v0_1, v0_0, ptr, ...]
-   
+
     # Load value_1
     push.0.0 dup.6 add.4 mem_loadw
     # => [0, 0, v1_1, v1_0, v0_1, v0_0, ptr, ...]
