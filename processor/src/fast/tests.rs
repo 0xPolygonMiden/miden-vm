@@ -727,6 +727,7 @@ fn test_call_node_preserves_stack_overflow() {
 
 #[rstest]
 // ---- syscalls --------------------------------
+
 // check stack is preserved after syscall
 #[case(Some("export.foo add end"), "begin push.1 syscall.foo swap.8 drop end", vec![16_u32.into(); 16])]
 // check that `fn_hash` register is updated correctly
@@ -743,6 +744,7 @@ fn test_call_node_preserves_stack_overflow() {
 #[case(Some("export.foo push.100 mem_store.44 end export.baz mem_load.44 swap.8 drop end"), 
     "proc.bar syscall.foo syscall.baz end begin call.bar end", vec![16_u32.into(); 16])]
 // ---- calls ------------------------
+
 // check stack is preserved after call
 #[case(None, "proc.foo add end begin push.1 call.foo swap.8 drop end", vec![16_u32.into(); 16])]
 // check that `clk` works correctly though calls
@@ -775,10 +777,116 @@ fn test_call_node_preserves_stack_overflow() {
     begin call.bar end", 
     vec![16_u32.into(); 16]
 )]
+// ---- dyncalls ------------------------
+
+// check stack is preserved after dyncall
+#[case(None, "
+    proc.foo add end 
+    begin 
+        procref.foo mem_storew.100 dropw push.100
+        dyncall swap.8 drop 
+    end", 
+    vec![16_u32.into(); 16]
+)]
+// check that `clk` works correctly though dyncalls
+#[case(None, "
+    proc.foo clk add end 
+    begin 
+        push.1 
+        if.true 
+            procref.foo mem_storew.100 dropw
+            push.100 dyncall
+            push.100 dyncall
+        else 
+            swap 
+        end 
+        clk swap.8 drop
+    end", 
+    vec![16_u32.into(); 16]
+)]
+// check that fmp register is updated correctly after dyncall
+#[case(None,"
+    proc.foo.2 locaddr.0 locaddr.1 swap.8 drop swap.8 drop end
+    begin 
+        procref.foo mem_storew.100 dropw push.100
+        dyncall
+    end", 
+    vec![16_u32.into(); 16]
+)]
+// check that 2 functions creating different memory contexts don't interfere with each other
+#[case(None,"
+    proc.foo push.100 mem_store.44 end
+    proc.bar mem_load.44 assertz end
+    begin 
+        procref.foo mem_storew.100 dropw push.100 dyncall
+        mem_load.44 assertz 
+        procref.bar mem_storew.104 dropw push.104 dyncall
+    end", 
+    vec![16_u32.into(); 16]
+)]
+// check that memory context is updated correctly across a dyncall (i.e. anything stored before the
+// call is retrievable after, but not during)
+#[case(None,"
+    proc.foo mem_load.44 assertz end
+    proc.bar 
+        push.100 mem_store.44 
+        procref.foo mem_storew.104 dropw push.104 dyncall
+        mem_load.44 swap.8 drop 
+    end
+    begin 
+        procref.bar mem_storew.104 dropw push.104 dyncall
+    end", 
+    vec![16_u32.into(); 16]
+)]
+// ---- dyn ------------------------
+
+// check stack is preserved after dynexec
+#[case(None, "
+    proc.foo add end 
+    begin 
+        procref.foo mem_storew.100 dropw push.100
+        dynexec swap.8 drop 
+    end", 
+    vec![16_u32.into(); 16]
+)]
+// check that `clk` works correctly though dynexecs
+#[case(None, "
+    proc.foo clk add end 
+    begin 
+        push.1 
+        if.true 
+            procref.foo mem_storew.100 dropw
+            push.100 dynexec
+            push.100 dynexec
+        else 
+            swap 
+        end 
+        clk swap.8 drop
+    end", 
+    vec![16_u32.into(); 16]
+)]
+// check that fmp register is updated correctly after dynexec
+#[case(None,"
+    proc.foo.2 locaddr.0 locaddr.1 swap.8 drop swap.8 drop end
+    begin 
+        procref.foo mem_storew.100 dropw push.100
+        dynexec
+    end", 
+    vec![16_u32.into(); 16]
+)]
+// check that dynexec doesn't create a new memory context
+#[case(None,"
+    proc.foo push.100 mem_store.44 end
+    proc.bar mem_load.44 sub.100 assertz end
+    begin 
+        procref.foo mem_storew.104 dropw push.104 dynexec
+        mem_load.44 sub.100 assertz 
+        procref.bar mem_storew.108 dropw push.108 dynexec
+    end", 
+    vec![16_u32.into(); 16]
+)]
 // ---- loop --------------------------------
-// check that error is returned if condition is not a boolean
-#[case(None, "begin while.true swap end end", vec![2_u32.into(); 16])]
-#[case(None, "begin while.true push.100 end end", vec![ONE; 16])]
+
 // check that the loop is never entered if the condition is false (and that clk is properly updated)
 #[case(None, "begin while.true push.1 assertz end clk swap.8 drop end", vec![3_u32.into(), 2_u32.into(), 1_u32.into(), ZERO])]
 // check that the loop is entered if the condition is true, and that the stack and clock are managed
@@ -813,7 +921,6 @@ fn test_call_node_preserves_stack_overflow() {
         8_u32.into(), 9_u32.into(), 10_u32.into(), 11_u32.into(), 12_u32.into(), 13_u32.into(),
         14_u32.into(), 15_u32.into(), 16_u32.into()]
 )]
-
 fn test_masm_consistency(
     #[case] kernel_source: Option<&'static str>,
     #[case] program_source: &'static str,
@@ -847,7 +954,7 @@ fn test_masm_consistency(
 
     // fast processor
     let processor = SpeedyGonzales::<512>::new(stack_inputs.clone());
-    let fast_stack_outputs = processor.execute(&program, &mut host);
+    let fast_stack_outputs = processor.execute(&program, &mut host).unwrap();
 
     // slow processor
     let mut slow_processor = Process::new(
@@ -855,30 +962,74 @@ fn test_masm_consistency(
         StackInputs::new(stack_inputs).unwrap(),
         ExecutionOptions::default(),
     );
-    let slow_stack_outputs = slow_processor.execute(&program, &mut host);
+    let slow_stack_outputs = slow_processor.execute(&program, &mut host).unwrap();
 
-    match (&fast_stack_outputs, &slow_stack_outputs) {
-        (Ok(fast_stack_outputs), Ok(slow_stack_outputs)) => {
-            assert_eq!(fast_stack_outputs, slow_stack_outputs);
-        },
-        (Err(fast_error), Err(slow_error)) => {
-            assert_eq!(fast_error.to_string(), slow_error.to_string());
+    assert_eq!(fast_stack_outputs, slow_stack_outputs);
+}
 
-            // Make sure that we're not getting an output stack overflow error, as it indicates that
-            // the sequence of operations makes the stack end with a non-16 depth, and doesn't tell
-            // us if the stack outputs are actually the same.
-            // Similarly, we are not testing that stack depth on return is correct.
-            if matches!(fast_error, ExecutionError::OutputStackOverflow(_))
-                || matches!(fast_error, ExecutionError::InvalidStackDepthOnReturn(_))
-            {
-                panic!("we don't want to be testing this output stack overflow error");
-            }
-        },
-        _ => panic!(
-            "Fast processor: {:?}. Slow processor: {:?}",
-            fast_stack_outputs, slow_stack_outputs
-        ),
+/// Tests that emitted errors are consistent between the fast and slow processors.
+#[rstest]
+// check that error is returned if condition is not a boolean
+#[case(None, "begin while.true swap end end", vec![2_u32.into(); 16])]
+#[case(None, "begin while.true push.100 end end", vec![ONE; 16])]
+// check that dynamically calling a hash that doesn't exist fails
+#[case(None,"
+    begin 
+        dyncall
+    end", 
+    vec![16_u32.into(); 16]
+)]
+// check that dynamically calling a hash that doesn't exist fails
+#[case(None,"
+    begin 
+        dynexec
+    end", 
+    vec![16_u32.into(); 16]
+)]
+fn test_masm_errors_consistency(
+    #[case] kernel_source: Option<&'static str>,
+    #[case] program_source: &'static str,
+    #[case] stack_inputs: Vec<Felt>,
+) {
+    let (program, kernel_lib) = {
+        let source_manager = Arc::new(DefaultSourceManager::default());
+
+        match kernel_source {
+            Some(kernel_source) => {
+                let kernel_lib =
+                    Assembler::new(source_manager.clone()).assemble_kernel(kernel_source).unwrap();
+                let program = Assembler::with_kernel(source_manager, kernel_lib.clone())
+                    .assemble_program(program_source)
+                    .unwrap();
+
+                (program, Some(kernel_lib))
+            },
+            None => {
+                let program =
+                    Assembler::new(source_manager).assemble_program(program_source).unwrap();
+                (program, None)
+            },
+        }
+    };
+
+    let mut host = DefaultHost::default();
+    if let Some(kernel_lib) = &kernel_lib {
+        host.load_mast_forest(kernel_lib.mast_forest().clone()).unwrap();
     }
+
+    // fast processor
+    let processor = SpeedyGonzales::<512>::new(stack_inputs.clone());
+    let fast_stack_outputs = processor.execute(&program, &mut host).unwrap_err();
+
+    // slow processor
+    let mut slow_processor = Process::new(
+        kernel_lib.map(|k| k.kernel().clone()).unwrap_or_default(),
+        StackInputs::new(stack_inputs).unwrap(),
+        ExecutionOptions::default(),
+    );
+    let slow_stack_outputs = slow_processor.execute(&program, &mut host).unwrap_err();
+
+    assert_eq!(fast_stack_outputs.to_string(), slow_stack_outputs.to_string());
 }
 
 // TEST HELPERS
