@@ -115,8 +115,10 @@ fn test_basic_block(
         vec![Operation::MStream],
         // crypto ops
         vec![Operation::HPerm],
-        // Note: we have another more specific test for `FriE2F4`
+        // Note: we have more specific tests for these below
         vec![Operation::FriE2F4],
+        vec![Operation::HornerBase],
+        vec![Operation::HornerExt],
     )]
     operations: Vec<Operation>,
 ) {
@@ -779,6 +781,28 @@ fn test_call_node_preserves_stack_overflow() {
         end",
     vec![42_u32.into(), ZERO, ONE, ONE, ONE, ONE]
 )]
+// ---- horner ops --------------------------------
+#[case(None,
+    "begin 
+        push.1.2.3.4 mem_storew.40 dropw
+        horner_eval_base
+        end",
+    // first 3 addresses in the vec are the alpha_ptr, acc_high and acc_low, respectively.
+    vec![100_u32.into(), 4_u32.into(), 40_u32.into(), 4_u32.into(), 5_u32.into(), 6_u32.into(), 7_u32.into(),
+        8_u32.into(), 9_u32.into(), 10_u32.into(), 11_u32.into(), 12_u32.into(), 13_u32.into(),
+        14_u32.into(), 15_u32.into(), 16_u32.into()]
+)]
+#[case(None,
+    "begin 
+        push.1.2.3.4 mem_storew.40 dropw
+        horner_eval_ext
+        end",
+    // first 3 addresses in the vec are the alpha_ptr, acc_high and acc_low, respectively.
+    vec![100_u32.into(), 4_u32.into(), 40_u32.into(), 4_u32.into(), 5_u32.into(), 6_u32.into(), 7_u32.into(),
+        8_u32.into(), 9_u32.into(), 10_u32.into(), 11_u32.into(), 12_u32.into(), 13_u32.into(),
+        14_u32.into(), 15_u32.into(), 16_u32.into()]
+)]
+
 fn test_masm_consistency(
     #[case] kernel_source: Option<&'static str>,
     #[case] program_source: &'static str,
