@@ -12,15 +12,15 @@ The second goal can be achieved because calls to procedures in the standard libr
 ## Available modules
 Currently, Miden standard library contains just a few modules, which are listed below. Over time, we plan to add many more modules which will include various cryptographic primitives, additional numeric data types and operations, and many others.
 
-- [std::crypto::hashes::blake3](./docs/blake3_hashes.md)
-- [std::crypto::hashes::keccak256](./docs/keccak256_hashes.md)
-- [std::crypto::hashes::sha256](./docs/sha256_hashes.md)
-- [std::crypto::fri::frie2f4](./docs/ext2fri_fri.md)
-- [std::math::u256](./docs/u256_math.md)
-- [std::math::u64](./docs/u64_math.md)
-- [std::math::secp256k1](./docs/secp256k1_math.md)
-- [std::mem](./docs/mem_std.md)
-- [std::sys](./docs/sys_std.md)
+- [std::crypto::hashes::blake3](./docs/crypto/hashes/blake3.md)
+- [std::crypto::hashes::keccak256](./docs/crypto/hashes/keccak256.md)
+- [std::crypto::hashes::sha256](./docs/crypto/hashes/sha256.md)
+- [std::crypto::fri::frie2f4](./docs/crypto/fri/frie2f4.md)
+- [std::math::u256](./docs/math/u256.md)
+- [std::math::u64](./docs/math/u64.md)
+- [std::math::secp256k1](./docs/math/secp256k1/group.md)
+- [std::mem](./docs/mem.md)
+- [std::sys](./docs/sys.md)
 
 ## Status
 At this point, all implementations listed above are considered to be experimental and are subject to change.
