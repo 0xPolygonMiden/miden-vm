@@ -4,7 +4,10 @@ use core::cmp::min;
 use memory::Memory;
 use miden_air::RowIndex;
 use vm_core::{
-    mast::{BasicBlockNode, MastForest, MastNode, MastNodeId},
+    mast::{
+        BasicBlockNode, CallNode, DynNode, ExternalNode, JoinNode, LoopNode, MastForest, MastNode,
+        MastNodeId, SplitNode,
+    },
     stack::MIN_STACK_DEPTH,
     utils::range,
     Felt, Operation, Program, StackOutputs, Word, EMPTY_WORD, ONE, WORD_SIZE, ZERO,
@@ -165,106 +168,14 @@ impl<const N: usize> SpeedyGonzales<N> {
 
         match node {
             MastNode::Block(basic_block_node) => {
-                self.execute_basic_block_node(basic_block_node, program)?;
+                self.execute_basic_block_node(basic_block_node, program)?
             },
-            MastNode::Join(join_node) => {
-                self.execute_mast_node(join_node.first(), program, host)?;
-                self.execute_mast_node(join_node.second(), program, host)?;
-            },
-            MastNode::Split(split_node) => {
-                let condition = self.stack[self.stack_top_idx - 1];
-
-                // TODO(plafer): test this - specifically if bounds check is updated such that the
-                // next stack operation should fail
-
-                // drop the condition from the stack
-                self.decrement_stack_size();
-                self.update_bounds_check_counter();
-
-                // execute the appropriate branch
-                if condition == ONE {
-                    self.execute_mast_node(split_node.on_true(), program, host)?;
-                } else if condition == ZERO {
-                    self.execute_mast_node(split_node.on_false(), program, host)?;
-                } else {
-                    return Err(ExecutionError::NotBinaryValue(condition));
-                }
-            },
-            MastNode::Loop(loop_node) => {
-                // The loop condition is checked after the loop body is executed.
-                let mut condition = self.stack[self.stack_top_idx - 1];
-
-                // drop the condition from the stack
-                self.decrement_stack_size();
-
-                // execute the loop body as long as the condition is true
-                while condition == ONE {
-                    self.execute_mast_node(loop_node.body(), program, host)?;
-
-                    // check the loop condition, and drop it from the stack
-                    condition = self.stack[self.stack_top_idx - 1];
-                    self.decrement_stack_size();
-
-                    // this clock increment is for the row inserted for the `REPEAT` node added to
-                    // the trace on each iteration. It needs to be at the end of this loop (instead
-                    // of at the beginning), otherwise we get an off-by-one error when comparing
-                    // with [crate::Process].
-                    if condition == ONE {
-                        self.clk += 1;
-                    }
-                }
-
-                if condition != ZERO {
-                    return Err(ExecutionError::NotBinaryValue(condition));
-                }
-            },
-            MastNode::Call(call_node) => {
-                // call or syscall are not allowed inside a syscall
-                if self.in_syscall {
-                    let instruction = if call_node.is_syscall() { "syscall" } else { "call" };
-                    return Err(ExecutionError::CallInSyscall(instruction));
-                }
-
-                let callee_hash = program
-                    .get_node_by_id(call_node.callee())
-                    .ok_or(ExecutionError::MastNodeNotFoundInForest {
-                        node_id: call_node.callee(),
-                    })?
-                    .digest()
-                    .into();
-
-                self.save_context_and_truncate_stack();
-
-                if call_node.is_syscall() {
-                    // TODO(plafer): check if target exists in kernel
-                    self.ctx = ContextId::root();
-                    self.fmp = SYSCALL_FMP_MIN.into();
-                    self.in_syscall = true;
-                } else {
-                    self.ctx = (self.clk + 1).into();
-                    self.fmp = Felt::new(FMP_MIN);
-                    self.fn_hash = callee_hash;
-                }
-
-                // Execute the callee.
-                self.execute_mast_node(call_node.callee(), program, host)?;
-
-                // when a CALL node ends, stack depth must be exactly 16.
-                if self.stack_size() > MIN_STACK_DEPTH {
-                    return Err(ExecutionError::InvalidStackDepthOnReturn(self.stack_size()));
-                }
-
-                // when returning from a function call or a syscall, restore the context of the
-                // system registers and the operand stack to what it was prior to
-                // the call.
-                self.restore_context()?;
-            },
-            MastNode::Dyn(_dyn_node) => todo!(),
-            MastNode::External(external_node) => {
-                let (root_id, mast_forest) = resolve_external_node(external_node, host)?;
-
-                self.execute_mast_node(root_id, &mast_forest, host)?;
-            },
+            MastNode::Join(join_node) => self.execute_join_node(join_node, program, host)?,
+            MastNode::Split(split_node) => self.execute_split_node(split_node, program, host)?,
+            MastNode::Loop(loop_node) => self.execute_loop_node(loop_node, program, host)?,
+            MastNode::Call(call_node) => self.execute_call_node(call_node, program, host)?,
+            MastNode::Dyn(dyn_node) => self.execute_dyn_node(dyn_node, program, host)?,
+            MastNode::External(external_node) => self.execute_external_node(external_node, host)?,
         }
 
         // Corresponds to the row inserted for the `END` added to the trace. `External` is the only
@@ -274,6 +185,141 @@ impl<const N: usize> SpeedyGonzales<N> {
         }
 
         Ok(())
+    }
+
+    fn execute_join_node(
+        &mut self,
+        join_node: &JoinNode,
+        program: &MastForest,
+        host: &mut impl Host,
+    ) -> Result<(), ExecutionError> {
+        self.execute_mast_node(join_node.first(), program, host)?;
+        self.execute_mast_node(join_node.second(), program, host)
+    }
+
+    fn execute_split_node(
+        &mut self,
+        split_node: &SplitNode,
+        program: &MastForest,
+        host: &mut impl Host,
+    ) -> Result<(), ExecutionError> {
+        let condition = self.stack[self.stack_top_idx - 1];
+
+        // TODO(plafer): test this - specifically if bounds check is updated such that the
+        // next stack operation should fail
+
+        // drop the condition from the stack
+        self.decrement_stack_size();
+        self.update_bounds_check_counter();
+
+        // execute the appropriate branch
+        if condition == ONE {
+            self.execute_mast_node(split_node.on_true(), program, host)
+        } else if condition == ZERO {
+            self.execute_mast_node(split_node.on_false(), program, host)
+        } else {
+            Err(ExecutionError::NotBinaryValue(condition))
+        }
+    }
+
+    fn execute_loop_node(
+        &mut self,
+        loop_node: &LoopNode,
+        program: &MastForest,
+        host: &mut impl Host,
+    ) -> Result<(), ExecutionError> {
+        // The loop condition is checked after the loop body is executed.
+        let mut condition = self.stack[self.stack_top_idx - 1];
+
+        // drop the condition from the stack
+        self.decrement_stack_size();
+
+        // execute the loop body as long as the condition is true
+        while condition == ONE {
+            self.execute_mast_node(loop_node.body(), program, host)?;
+
+            // check the loop condition, and drop it from the stack
+            condition = self.stack[self.stack_top_idx - 1];
+            self.decrement_stack_size();
+
+            // this clock increment is for the row inserted for the `REPEAT` node added to
+            // the trace on each iteration. It needs to be at the end of this loop (instead
+            // of at the beginning), otherwise we get an off-by-one error when comparing
+            // with [crate::Process].
+            if condition == ONE {
+                self.clk += 1;
+            }
+        }
+
+        if condition == ZERO {
+            Ok(())
+        } else {
+            Err(ExecutionError::NotBinaryValue(condition))
+        }
+    }
+
+    fn execute_call_node(
+        &mut self,
+        call_node: &CallNode,
+        program: &MastForest,
+        host: &mut impl Host,
+    ) -> Result<(), ExecutionError> {
+        // call or syscall are not allowed inside a syscall
+        if self.in_syscall {
+            let instruction = if call_node.is_syscall() { "syscall" } else { "call" };
+            return Err(ExecutionError::CallInSyscall(instruction));
+        }
+
+        let callee_hash = program
+            .get_node_by_id(call_node.callee())
+            .ok_or(ExecutionError::MastNodeNotFoundInForest { node_id: call_node.callee() })?
+            .digest()
+            .into();
+
+        self.save_context_and_truncate_stack();
+
+        if call_node.is_syscall() {
+            // TODO(plafer): check if target exists in kernel
+            self.ctx = ContextId::root();
+            self.fmp = SYSCALL_FMP_MIN.into();
+            self.in_syscall = true;
+        } else {
+            self.ctx = (self.clk + 1).into();
+            self.fmp = Felt::new(FMP_MIN);
+            self.fn_hash = callee_hash;
+        }
+
+        // Execute the callee.
+        self.execute_mast_node(call_node.callee(), program, host)?;
+
+        // when a CALL node ends, stack depth must be exactly 16.
+        if self.stack_size() > MIN_STACK_DEPTH {
+            return Err(ExecutionError::InvalidStackDepthOnReturn(self.stack_size()));
+        }
+
+        // when returning from a function call or a syscall, restore the context of the
+        // system registers and the operand stack to what it was prior to
+        // the call.
+        self.restore_context()
+    }
+
+    fn execute_dyn_node(
+        &mut self,
+        _dyn_node: &DynNode,
+        _program: &MastForest,
+        _host: &mut impl Host,
+    ) -> Result<(), ExecutionError> {
+        todo!()
+    }
+
+    fn execute_external_node(
+        &mut self,
+        external_node: &ExternalNode,
+        host: &mut impl Host,
+    ) -> Result<(), ExecutionError> {
+        let (root_id, mast_forest) = resolve_external_node(external_node, host)?;
+
+        self.execute_mast_node(root_id, &mast_forest, host)
     }
 
     // Note: when executing individual ops, we do not increment the clock by 1 at every iteration
