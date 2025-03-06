@@ -96,6 +96,8 @@ pub fn generate_advice_inputs(
     let ood_main_trace_frame = ood_trace_frame.main_frame();
     let ood_aux_trace_frame = ood_trace_frame.aux_frame();
 
+    // the expected layout is:
+    // [main_current_elements, aux_current_elements, main_next_elements, aux_next_elements]
     let mut main_and_aux_frame_states = ood_main_trace_frame.current().to_vec();
     main_and_aux_frame_states.extend_from_slice(
         ood_aux_trace_frame
