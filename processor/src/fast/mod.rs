@@ -292,11 +292,6 @@ impl<const N: usize> SpeedyGonzales<N> {
         // Execute the callee.
         self.execute_mast_node(call_node.callee(), program, host)?;
 
-        // when a CALL node ends, stack depth must be exactly 16.
-        if self.stack_size() > MIN_STACK_DEPTH {
-            return Err(ExecutionError::InvalidStackDepthOnReturn(self.stack_size()));
-        }
-
         // when returning from a function call or a syscall, restore the context of the
         // system registers and the operand stack to what it was prior to
         // the call.
@@ -305,11 +300,62 @@ impl<const N: usize> SpeedyGonzales<N> {
 
     fn execute_dyn_node(
         &mut self,
-        _dyn_node: &DynNode,
-        _program: &MastForest,
-        _host: &mut impl Host,
+        dyn_node: &DynNode,
+        program: &MastForest,
+        host: &mut impl Host,
     ) -> Result<(), ExecutionError> {
-        todo!()
+        // dyn calls are not allowed inside a syscall
+        if dyn_node.is_dyncall() && self.in_syscall {
+            return Err(ExecutionError::CallInSyscall("dyncall"));
+        }
+
+        // Retrieve callee hash from memory, using stack top as the memory address.
+        let callee_hash = {
+            let mem_addr = self.stack[self.stack_top_idx - 1];
+            self.memory.read_word(self.ctx, mem_addr, self.clk).copied()?
+        };
+
+        // Drop the memory address from the stack. This needs to be done BEFORE saving the context,
+        // because the next instruction starts with a "shifted left" stack.
+        self.decrement_stack_size();
+
+        // For dyncall, save the context and reset it.
+        if dyn_node.is_dyncall() {
+            self.save_context_and_truncate_stack();
+            self.ctx = (self.clk + 1).into();
+            self.fmp = Felt::new(FMP_MIN);
+            self.fn_hash = callee_hash;
+        };
+
+        // TODO(plafer): I think this is wrong? Is it not redundant with the clk +=1 for `END`?
+        self.clk += 1;
+
+        // if the callee is not in the program's MAST forest, try to find a MAST forest for it in
+        // the host (corresponding to an external library loaded in the host); if none are
+        // found, return an error.
+        match program.find_procedure_root(callee_hash.into()) {
+            Some(callee_id) => self.execute_mast_node(callee_id, program, host)?,
+            None => {
+                let mast_forest = host
+                    .get_mast_forest(&callee_hash.into())
+                    .ok_or_else(|| ExecutionError::DynamicNodeNotFound(callee_hash.into()))?;
+
+                // We limit the parts of the program that can be called externally to procedure
+                // roots, even though MAST doesn't have that restriction.
+                let root_id = mast_forest.find_procedure_root(callee_hash.into()).ok_or(
+                    ExecutionError::MalformedMastForestInHost { root_digest: callee_hash.into() },
+                )?;
+
+                self.execute_mast_node(root_id, &mast_forest, host)?
+            },
+        }
+
+        // For dyncall, restore the context.
+        if dyn_node.is_dyncall() {
+            self.restore_context()?;
+        }
+
+        Ok(())
     }
 
     fn execute_external_node(
@@ -551,6 +597,11 @@ impl<const N: usize> SpeedyGonzales<N> {
     /// - Returns an error if the overflow stack is larger than the space available in the stack
     ///  buffer.
     fn restore_context(&mut self) -> Result<(), ExecutionError> {
+        // when a call/dyncall/syscall node ends, stack depth must be exactly 16.
+        if self.stack_size() > MIN_STACK_DEPTH {
+            return Err(ExecutionError::InvalidStackDepthOnReturn(self.stack_size()));
+        }
+
         let ctx_info = self
             .call_stack
             .pop()
