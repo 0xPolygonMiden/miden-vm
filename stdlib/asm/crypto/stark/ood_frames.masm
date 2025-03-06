@@ -2,8 +2,8 @@ use.std::crypto::stark::constants
 use.std::crypto::hashes::rpo
 
 
-#! Loads OOD evaluation frame, with current and next rows interleaved, into memory. This ouputs
-#! the hash of the OOD for reseeding the random coin.
+#! Loads trace OOD evaluation frame, with current rows first followed by next rows next, into memory.
+#! This ouputs the hash of the OOD for reseeding the random coin.
 #!
 #! Input: [...]
 #! Output: [OOD_FRAME_HASH, ...]
@@ -16,32 +16,30 @@ export.load_evaluation_frame
     # The elements are stored from the stack as (a1_1, a1_0, a0_1, a0_0) where a0 is from the
     # current row and a1 from the next row.
 
-    exec.constants::ood_trace_ptr
-    #=> [ood_trace_ptr ]
+    exec.constants::ood_trace_current_ptr
+    #=> [ood_trace_current_ptr, ...]
 
     # Note: the first word is the capacity, where its first element is initialized with the number of elements to hash MODULO 8.
     push.0.0.0.0
     padw padw
-    # => [ZERO, ZERO, 0, 0, 0, 0, ood_trace_ptr]
+    # => [ZERO, ZERO, 0, 0, 0, 0, ood_trace_current_ptr, ...]
     repeat.39
         adv_pipe
         hperm
     end
-    #=> [R1, R2, C, ood_trace_ptr+312]
+    #=> [R1, OOD_FRAME_HASH, C, ood_trace_current_ptr+312, ...]
 
-    dropw
-    swapw
-    dropw
+    exec.rpo::squeeze_digest
     movup.4
     drop
-    #=> [R2]
+    #=> [OOD_FRAME_HASH, ...]
 end
 
-#! Loads OOD constraint composition polynomial evaluation columns into memory and reseeds the random
-#! coin.
+#! Loads OOD evaluations of  constraint composition polynomial columns into memory and outputs 
+#! their hash so that it can be used to reseeds the random coin.
 #!
 #! Input: [...]
-#! Output: [EVAL_HASH, ...]
+#! Output: [OOD_EVAL_HASH, ...]
 #! Cycles: 29
 export.load_constraint_evaluations
     # Read OOD constraint evaluations. These are 8 ExtFelt `value_i` such that the value of the
@@ -49,14 +47,15 @@ export.load_constraint_evaluations
     # is the execution trace length.
 
     exec.constants::ood_constraint_evals_ptr
-    padw
-    padw padw
+    exec.rpo::init_no_padding
+    # => [ZERO, ZERO, ZERO, ood_constraint_evals_ptr, ...]
     repeat.2
         adv_pipe
         hperm
     end
 
-    dropw swapw dropw
+    exec.rpo::squeeze_digest
+    # => [OOD_EVAL_HASH, ood_constraint_evals_ptr, ...]
     movup.4 drop
 end
 

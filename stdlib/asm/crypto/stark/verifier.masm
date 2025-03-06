@@ -46,7 +46,7 @@ export.verify
 
     # Initialize the seed using proof context
     #
-    # Cycles: 210
+    # Cycles: 228
     exec.random_coin::init_seed
     # => [C]
 
@@ -92,8 +92,7 @@ export.verify
     #       III) Draw constraint composition coefficients
     #==============================================================================================
 
-    # Cycles: 13
-    exec.constants::composition_coef_ptr
+    # Cycles: 12
     exec.random_coin::generate_constraint_composition_coefficients
     # => [...]
 
@@ -141,7 +140,7 @@ export.verify
     #       VI) Evaluate the constraints over the OOD frame and assert equality with H(z)
     #==============================================================================================
 
-    # TODO: Compare with the evaluation of the constraints on the EvaluationFrame
+    # Compare with the evaluation of the constraints on the trace columns OOD evaluation frame. 
     drop drop
     # => [...]
 

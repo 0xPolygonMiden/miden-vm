@@ -1,6 +1,6 @@
 use.std::crypto::stark::constants
 
-#! Computes the adjustment factors needed during Horner evaluation.
+#! Computes the adjustment factors needed during Horner evaluation and saves them to memory.
 #!
 #! As `horner_eval_base` and `horner_eval_ext` operate on batches of 8 and 4 coefficients,
 #! respectively, and when the number of coefficients of the polynomial we are evaluating
@@ -167,7 +167,7 @@ proc.compute_q_z_p_gz_at_alpha
     ###    from which to load the OOD.
     push.0.0
     exec.constants::deep_rand_alpha_inv
-    exec.constants::ood_trace_ptr
+    exec.constants::ood_trace_current_ptr
     exec.constants::tmp2 mem_storew
 
     ### b) Set up the rest of the stack
@@ -268,7 +268,7 @@ proc.compute_q_z_p_gz_at_alpha
     ## 1) Set up the stack for `horner_eval_ext`
     push.0.0
     exec.constants::deep_rand_alpha_inv
-    exec.constants::ood_constraint_evals_next_ptr
+    exec.constants::ood_trace_next_ptr
     padw
     swapdw
     # => [Y, Y, ZERO, ood_ptr, alpha_ptr, acc1, acc0, q_z_1, q_z_0, ...]
