@@ -32,9 +32,9 @@ const.PUBLIC_INPUTS_PTR=4294800000
 # OOD Frames
 # (71 + 7) * 2 * 2 Felt for current and next trace rows and 8 * 2 Felt for constraint composition
 # polynomials. Memory slots:
-# OOD_TRACE_PTR: (71 + 7) * 2 * 2 = 312
+# OOD_TRACE_CURRENT_PTR: (71 + 7) * 2 * 2 = 312
 # OOD_CONSTRAINT_EVALS_PTR: 8 * 2 = 16
-const.OOD_TRACE_PTR=4294900000
+const.OOD_TRACE_CURRENT_PTR=4294900000
 const.OOD_TRACE_NEXT_PTR=4294900156
 const.OOD_CONSTRAINT_EVALS_PTR=4294900312
 
@@ -125,8 +125,16 @@ const.ZERO_ZERO_ZERO_FIVE_PTR=4294913404
 const.ZERO_ZERO_ZERO_SIX_PTR=4294913408
 const.ZERO_ZERO_ZERO_SEVEN_PTR=4294913412
 
-# Addresses to store powers of the DEEP composition randomness need during the computation of
-# the DEEP queries:
+# Addresses to store powers of the DEEP composition randomness needed during the computation of
+# the DEEP queries. Powers from 1 to 7 are needed to correct results of `horner_eval_*` when
+# the final batch of coefficients processed is not 8 in the case of `horner_eval_base` or
+# 4 in the case of `horner_eval_ext`. For example if we are evaluating a polynomial with
+# coefficients over base field and the last batch of coefficients processed by `horner_eval_base`
+# contains only 7 instead of 8 coefficients, then we would have to multiply the accumulator
+# by the first power of alpha.
+# We also need alpha^{77} and alpha^{85} which are used in the final computation used to recover
+# the evaluation of the original polynomial from the evaluation of its reversed version at alpha^{-1}.
+# Note that 77 = 71 + 7 - 1 and 85 = 71 + 7 + 8 - 1.
 const.ALPHA_INV=4294903600
 const.ALPHA_POWER_1_PTR=4294903400
 const.ALPHA_POWER_2_PTR=4294903404
@@ -149,7 +157,8 @@ const.ALPHA_POWER_85_1_PTR=4294903445
 #   +------------------------------------------+-------------------------+
 #   | TRACE_DOMAIN_GENERATOR_PTR               |       4294799999        |
 #   | PUBLIC_INPUTS_PTR                        |       4294800000        |
-#   | OOD_TRACE_PTR                            |       4294900000        |
+#   | OOD_TRACE_CURRENT_PTR                    |       4294900000        |
+#   | OOD_TRACE_NEXT_PTR                       |       4294900156        |
 #   | OOD_CONSTRAINT_EVALS_PTR                 |       4294900312        |
 #   | CURRENT_TRACE_ROW_PTR                    |       4294900400        |
 #   | AUX_RAND_ELEM_PTR                        |       4294900600        |
@@ -180,6 +189,24 @@ const.ALPHA_POWER_85_1_PTR=4294903445
 #   | TMP8                                     |       4294913284        |
 #   | TMP9                                     |       4294913288        |
 #   | TMP10                                    |       4294913292        |
+#   | ZERO_ZERO_ZERO_FOUR_PTR                  |       4294913400        |
+#   | ZERO_ZERO_ZERO_FIVE_PTR                  |       4294913404        |
+#   | ZERO_ZERO_ZERO_SIX_PTR                   |       4294913408        |
+#   | ZERO_ZERO_ZERO_SEVEN_PTR                 |       4294913412        |
+#   | ALPHA_INV                                |       4294903600        |
+#   | ALPHA_POWER_1_PTR                        |       4294903400        |
+#   | ALPHA_POWER_2_PTR                        |       4294903404        |
+#   | ALPHA_POWER_3_PTR                        |       4294903408        |
+#   | ALPHA_POWER_4_PTR                        |       4294903412        |
+#   | ALPHA_POWER_5_PTR                        |       4294903416        |
+#   | ALPHA_POWER_6_PTR                        |       4294903420        |
+#   | ALPHA_POWER_7_PTR                        |       4294903424        |
+#   | ALPHA_POWER_77_PTR                       |       4294903440        |
+#   | ALPHA_POWER_77_0_PTR                     |       4294903440        |
+#   | ALPHA_POWER_77_1_PTR                     |       4294903441        |
+#   | ALPHA_POWER_85_PTR                       |       4294903444        |
+#   | ALPHA_POWER_85_0_PTR                     |       4294903444        |
+#   | ALPHA_POWER_85_1_PTR                     |       4294903445        |
 #   +------------------------------------------+-------------------------+
 
 # ACCESSORS
@@ -226,8 +253,12 @@ export.public_inputs_ptr
     push.PUBLIC_INPUTS_PTR
 end
 
-export.ood_trace_ptr
-    push.OOD_TRACE_PTR
+export.ood_trace_current_ptr
+    push.OOD_TRACE_CURRENT_PTR
+end
+
+export.ood_trace_next_ptr
+    push.OOD_TRACE_NEXT_PTR
 end
 
 export.ood_constraint_evals_ptr
@@ -385,10 +416,6 @@ end
 
 export.deep_rand_alpha_inv
     push.ALPHA_INV
-end
-
-export.ood_constraint_evals_next_ptr
-    push.OOD_TRACE_NEXT_PTR
 end
 
 export.deep_rand_alpha_1
