@@ -20,6 +20,7 @@ pub mod experiments;
 mod crypto_ops;
 mod field_ops;
 mod fri_ops;
+mod horner_ops;
 mod io_ops;
 mod stack_ops;
 mod sys_ops;
@@ -411,8 +412,8 @@ impl<const N: usize> SpeedyGonzales<N> {
             Operation::MpVerify(_) => todo!(),
             Operation::MrUpdate => todo!(),
             Operation::FriE2F4 => self.op_fri_ext2fold4()?,
-            Operation::HornerBase => todo!(),
-            Operation::HornerExt => todo!(),
+            Operation::HornerBase => self.op_horner_eval_base(op_idx)?,
+            Operation::HornerExt => self.op_horner_eval_ext(op_idx)?,
         }
 
         Ok(())
