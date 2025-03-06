@@ -11,6 +11,7 @@
 - Update Falcon verification procedure to use `HORNERBASE` (#1661).
 - Fix the docs and implementation of `EXPACC` (#1676)
 - Running a call/syscall/dyncall while processing a syscall now results in an error (#1680)
+- Using a non-binary value as a loop condition now results in an error (#1685)
 
 
 ## 0.12.0 (2025-01-22)
