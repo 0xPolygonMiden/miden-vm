@@ -157,6 +157,8 @@ fn test_basic_block(
     }
 }
 
+// TODO(plafer): add tests for pipe, adv_pop{w}, emit, mpverify, mrupdate
+
 // TODO(plafer): this test no longer works since we fixed `STACK_BUFFER_SIZE`. Rewrite it.
 /// Makes sure that the bounds checking fails when expected.
 #[test]

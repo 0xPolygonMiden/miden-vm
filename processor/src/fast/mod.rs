@@ -447,7 +447,7 @@ impl SpeedyGonzales {
             Operation::SDepth => self.op_sdepth(),
             Operation::Caller => self.op_caller()?,
             Operation::Clk => self.op_clk(op_idx)?,
-            Operation::Emit(event_id) => self.op_emit(*event_id)?,
+            Operation::Emit(event_id) => self.op_emit(*event_id, host)?,
 
             // ----- flow control operations ------------------------------------------------------
             // control flow operations are never executed directly
@@ -536,12 +536,12 @@ impl SpeedyGonzales {
             Operation::MLoad => self.op_mload()?,
             Operation::MStore => self.op_mstore()?,
             Operation::MStream => self.op_mstream(op_idx)?,
-            Operation::Pipe => self.op_pipe()?,
+            Operation::Pipe => self.op_pipe(op_idx, host)?,
 
             // ----- cryptographic operations -----------------------------------------------------
             Operation::HPerm => self.op_hperm(),
-            Operation::MpVerify(_) => todo!(),
-            Operation::MrUpdate => todo!(),
+            Operation::MpVerify(err_code) => self.op_mpverify(*err_code, host)?,
+            Operation::MrUpdate => self.op_mrupdate(host)?,
             Operation::FriE2F4 => self.op_fri_ext2fold4()?,
             Operation::HornerBase => self.op_horner_eval_base(op_idx)?,
             Operation::HornerExt => self.op_horner_eval_ext(op_idx)?,

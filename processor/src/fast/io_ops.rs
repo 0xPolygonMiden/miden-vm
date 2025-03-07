@@ -1,6 +1,7 @@
-use vm_core::utils::range;
+use vm_core::{utils::range, Word};
 
 use super::{ExecutionError, Felt, SpeedyGonzales, WORD_SIZE};
+use crate::{AdviceProvider, Host};
 
 impl SpeedyGonzales {
     pub fn op_push(&mut self, element: Felt) {
@@ -8,12 +9,18 @@ impl SpeedyGonzales {
         self.increment_stack_size();
     }
 
-    pub fn adv_pop(&mut self) -> Result<(), ExecutionError> {
-        todo!()
+    pub fn op_advpop(&mut self, host: &mut impl Host) -> Result<(), ExecutionError> {
+        let value = host.advice_provider_mut().pop_stack(self.into())?;
+        self.stack[self.stack_top_idx] = value;
+        self.increment_stack_size();
+        Ok(())
     }
 
-    pub fn adv_popw(&mut self) -> Result<(), ExecutionError> {
-        todo!()
+    pub fn op_advpopw(&mut self, host: &mut impl Host) -> Result<(), ExecutionError> {
+        let word: Word = host.advice_provider_mut().pop_stack_word(self.into())?;
+        self.stack[range(self.stack_top_idx - WORD_SIZE, WORD_SIZE)].copy_from_slice(&word);
+
+        Ok(())
     }
 
     pub fn op_mloadw(&mut self, op_idx: usize) -> Result<(), ExecutionError> {
@@ -93,9 +100,36 @@ impl SpeedyGonzales {
         Ok(())
     }
 
-    pub fn op_pipe(&mut self) -> Result<(), ExecutionError> {
-        todo!()
+    pub fn op_pipe(&mut self, op_idx: usize, host: &mut impl Host) -> Result<(), ExecutionError> {
+        // The stack index where the memory address to load the words from is stored.
+        let mem_addr_stack_idx: usize = self.stack_top_idx - 1 - 12;
+
+        let addr_first_word = self.stack[mem_addr_stack_idx];
+        let addr_second_word = Felt::new(addr_first_word.as_int() + WORD_SIZE as u64);
+
+        // pop two words from the advice stack
+        let words = host.advice_provider_mut().pop_stack_dword(self.into())?;
+
+        // write the words to memory
+        self.memory.write_word(self.ctx, addr_first_word, self.clk + op_idx, words[0])?;
+        self.memory
+            .write_word(self.ctx, addr_second_word, self.clk + op_idx, words[1])?;
+
+        // replace the elements on the stack with the word elements (in stack order)
+        {
+            let word0_offset = self.stack_top_idx - 2 * WORD_SIZE;
+            let word1_offset = self.stack_top_idx - WORD_SIZE;
+
+            self.stack[range(word0_offset, WORD_SIZE)].copy_from_slice(&words[0]);
+            self.stack[range(word1_offset, WORD_SIZE)].copy_from_slice(&words[1]);
+        }
+
+        // increment the address by 8 (2 words)
+        self.stack[mem_addr_stack_idx] = addr_first_word + Felt::from(2 * WORD_SIZE as u32);
+
+        Ok(())
     }
+
     pub fn enforce_word_aligned_addr(
         &self,
         addr: Felt,
