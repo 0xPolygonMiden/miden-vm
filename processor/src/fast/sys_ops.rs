@@ -1,7 +1,17 @@
-use vm_core::{utils::range, WORD_SIZE};
+use vm_core::{sys_events::SystemEvent, utils::range, WORD_SIZE, ZERO};
 
 use super::{ExecutionError, SpeedyGonzales, ONE};
-use crate::{system::FMP_MAX, FMP_MIN};
+use crate::{
+    operations::sys_ops::sys_event_handlers::{
+        copy_map_value_to_adv_stack, copy_merkle_node_to_adv_stack, insert_hdword_into_adv_map,
+        insert_hperm_into_adv_map, insert_mem_values_into_adv_map, merge_merkle_nodes,
+        push_ext2_intt_result, push_ext2_inv_result, push_falcon_mod_result, push_ilog2,
+        push_leading_ones, push_leading_zeros, push_smtpeek_result, push_trailing_ones,
+        push_trailing_zeros, push_u64_div_result, HDWORD_TO_MAP_WITH_DOMAIN_DOMAIN_OFFSET,
+    },
+    system::FMP_MAX,
+    Host, ProcessState, FMP_MIN,
+};
 
 impl SpeedyGonzales {
     pub fn op_assert(&mut self, err_code: u32, op_idx: usize) -> Result<(), ExecutionError> {
@@ -59,7 +69,64 @@ impl SpeedyGonzales {
         Ok(())
     }
 
-    pub fn op_emit(&mut self, _event_id: u32) -> Result<(), ExecutionError> {
-        todo!()
+    pub fn op_emit(&mut self, event_id: u32, host: &mut impl Host) -> Result<(), ExecutionError> {
+        // If it's a system event, handle it directly. Otherwise, forward it to the host.
+        if let Some(system_event) = SystemEvent::from_event_id(event_id) {
+            if system_event != SystemEvent::FalconSigToStack {
+                self.handle_system_event(system_event, host)
+            } else {
+                // TODO: this is a temporary solution to not classify FalconSigToStack as a system
+                // event; this way, we delegate signature generation to the host so that we can
+                // apply different strategies for signature generation.
+                host.on_event(self.into(), event_id)
+            }
+        } else {
+            host.on_event(self.into(), event_id)
+        }
+    }
+
+    // HELPERS
+    // ------------------------------------------------------------------------------------------
+
+    pub(super) fn handle_system_event(
+        &self,
+        system_event: SystemEvent,
+        host: &mut impl Host,
+    ) -> Result<(), ExecutionError> {
+        let advice_provider = host.advice_provider_mut();
+        let process_state: ProcessState = self.into();
+        match system_event {
+            SystemEvent::MerkleNodeMerge => merge_merkle_nodes(advice_provider, process_state),
+            SystemEvent::MerkleNodeToStack => {
+                copy_merkle_node_to_adv_stack(advice_provider, process_state)
+            },
+            SystemEvent::MapValueToStack => {
+                copy_map_value_to_adv_stack(advice_provider, process_state, false)
+            },
+            SystemEvent::MapValueToStackN => {
+                copy_map_value_to_adv_stack(advice_provider, process_state, true)
+            },
+            SystemEvent::U64Div => push_u64_div_result(advice_provider, process_state),
+            SystemEvent::FalconDiv => push_falcon_mod_result(advice_provider, process_state),
+            SystemEvent::Ext2Inv => push_ext2_inv_result(advice_provider, process_state),
+            SystemEvent::Ext2Intt => push_ext2_intt_result(advice_provider, process_state),
+            SystemEvent::SmtPeek => push_smtpeek_result(advice_provider, process_state),
+            SystemEvent::U32Clz => push_leading_zeros(advice_provider, process_state),
+            SystemEvent::U32Ctz => push_trailing_zeros(advice_provider, process_state),
+            SystemEvent::U32Clo => push_leading_ones(advice_provider, process_state),
+            SystemEvent::U32Cto => push_trailing_ones(advice_provider, process_state),
+            SystemEvent::ILog2 => push_ilog2(advice_provider, process_state),
+
+            SystemEvent::MemToMap => insert_mem_values_into_adv_map(advice_provider, process_state),
+            SystemEvent::HdwordToMap => {
+                insert_hdword_into_adv_map(advice_provider, process_state, ZERO)
+            },
+            SystemEvent::HdwordToMapWithDomain => {
+                let domain = self.stack_get(HDWORD_TO_MAP_WITH_DOMAIN_DOMAIN_OFFSET);
+                insert_hdword_into_adv_map(advice_provider, process_state, domain)
+            },
+            SystemEvent::HpermToMap => insert_hperm_into_adv_map(advice_provider, process_state),
+            SystemEvent::FalconSigToStack => unreachable!("not treated as a system event"),
+        }
     }
 }

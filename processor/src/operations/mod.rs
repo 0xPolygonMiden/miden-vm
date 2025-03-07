@@ -9,7 +9,7 @@ mod fri_ops;
 mod horner_ops;
 mod io_ops;
 mod stack_ops;
-mod sys_ops;
+pub(crate) mod sys_ops;
 mod u32_ops;
 pub mod utils;
 
