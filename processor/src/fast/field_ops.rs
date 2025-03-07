@@ -4,7 +4,7 @@ use super::{assert_binary, ExecutionError, SpeedyGonzales};
 
 const TWO: Felt = Felt::new(2);
 
-impl<const N: usize> SpeedyGonzales<N> {
+impl SpeedyGonzales {
     pub fn op_add(&mut self) -> Result<(), ExecutionError> {
         self.pop2_applyfn_push(|a, b| Ok(a + b))
     }

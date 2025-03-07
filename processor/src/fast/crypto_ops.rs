@@ -2,7 +2,7 @@ use vm_core::{chiplets::hasher::STATE_WIDTH, crypto::hash::Rpo256, utils::range,
 
 use super::SpeedyGonzales;
 
-impl<const N: usize> SpeedyGonzales<N> {
+impl SpeedyGonzales {
     /// Applies a permutation of the Rpo256 hash function to the top 12 elements of the stack.
     pub fn op_hperm(&mut self) {
         let hashed_state = {

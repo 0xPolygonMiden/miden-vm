@@ -36,11 +36,13 @@ mod u32_ops;
 #[cfg(test)]
 mod tests;
 
+const STACK_BUFFER_SIZE: usize = 1024;
+
 /// A fast processor which doesn't generate any trace.
 #[derive(Debug)]
-pub struct SpeedyGonzales<const N: usize> {
+pub struct SpeedyGonzales {
     /// The stack is stored in reverse order, so that the last element is at the top of the stack.
-    stack: [Felt; N],
+    pub(super) stack: [Felt; STACK_BUFFER_SIZE],
     /// The index of the top of the stack.
     stack_top_idx: usize,
     /// The index of the bottom of the stack.
@@ -51,23 +53,23 @@ pub struct SpeedyGonzales<const N: usize> {
 
     // TODO(plafer): add a bunch of tests to make sure that with all control flow operations we
     // keep track of the clk correctly. Specifically re: the `execute_op(Noop)` pattern.
-    clk: RowIndex,
+    pub(super) clk: RowIndex,
 
     /// The current context ID.
-    ctx: ContextId,
+    pub(super) ctx: ContextId,
 
     /// The free memory pointer.
-    fmp: Felt,
+    pub(super) fmp: Felt,
 
     /// Whether we are currently in a syscall.
     in_syscall: bool,
 
     /// The hash of the function that called into the current context, or `[ZERO, ZERO, ZERO,
     /// ZERO]` if we are in the first context (i.e. when `call_stack` is empty).
-    fn_hash: Word,
+    pub(super) fn_hash: Word,
 
     /// A map from (context_id, word_address) to the word stored starting at that memory location.
-    memory: Memory,
+    pub(super) memory: Memory,
 
     /// The call stack is used when starting a new execution context (from a `call`, `syscall` or
     /// `dyncall`) to keep track of the information needed to return to the previous context upon
@@ -75,7 +77,10 @@ pub struct SpeedyGonzales<const N: usize> {
     call_stack: Vec<ExecutionContextInfo>,
 }
 
-impl<const N: usize> SpeedyGonzales<N> {
+impl SpeedyGonzales {
+    // CONSTRUCTORS
+    // ----------------------------------------------------------------------------------------------
+
     /// Creates a new `SpeedyGonzales` instance with the given stack inputs.
     ///
     /// The stack inputs are expected to be stored in reverse order. For example, if `stack_inputs =
@@ -90,9 +95,9 @@ impl<const N: usize> SpeedyGonzales<N> {
         //
         // That is, we place the middle of the buffer between the 7th and 8th elements of the stack,
         // such that `x = N/2 - 8`. This maximizes the value of `bounds_check_counter`.
-        let stack_top_idx = N / 2 + MIN_STACK_DEPTH / 2;
+        let stack_top_idx = STACK_BUFFER_SIZE / 2 + MIN_STACK_DEPTH / 2;
         let stack = {
-            let mut stack = [ZERO; N];
+            let mut stack = [ZERO; STACK_BUFFER_SIZE];
             let bottom_idx = stack_top_idx - stack_inputs.len();
 
             stack[bottom_idx..stack_top_idx].copy_from_slice(&stack_inputs);
@@ -117,6 +122,36 @@ impl<const N: usize> SpeedyGonzales<N> {
             call_stack: Vec::new(),
         }
     }
+
+    // ACCESSORS
+    // -------------------------------------------------------------------------------------------
+
+    /// Returns the stack, such that the top of the stack is at the last index of the returned
+    /// slice.
+    pub fn stack(&self) -> &[Felt] {
+        &self.stack[self.stack_bot_idx..self.stack_top_idx]
+    }
+
+    /// Returns the element on the stack at index `idx`.
+    pub fn stack_get(&self, idx: usize) -> Felt {
+        self.stack[self.stack_top_idx - idx - 1]
+    }
+
+    /// Returns the word on the stack at index `idx`.
+    ///
+    /// Specifically, word 0 is defined by the first 4 elements of the stack, word 1 is defined
+    /// by the next 4 elements etc. Since the top of the stack contains 4 word, the highest valid
+    /// word index is 3.
+    ///
+    /// The words are created in reverse order. For example, for word 0 the top element of the
+    /// stack will be at the last position in the word.
+    pub fn stack_get_word(&self, idx: usize) -> Word {
+        let word_start_idx = self.stack_top_idx - (WORD_SIZE * (idx + 1));
+        self.stack[range(word_start_idx, WORD_SIZE)].try_into().unwrap()
+    }
+
+    // EXECUTE
+    // -------------------------------------------------------------------------------------------
 
     pub fn execute(
         mut self,
@@ -168,7 +203,7 @@ impl<const N: usize> SpeedyGonzales<N> {
 
         match node {
             MastNode::Block(basic_block_node) => {
-                self.execute_basic_block_node(basic_block_node, program)?
+                self.execute_basic_block_node(basic_block_node, host)?
             },
             MastNode::Join(join_node) => self.execute_join_node(join_node, program, host)?,
             MastNode::Split(split_node) => self.execute_split_node(split_node, program, host)?,
@@ -374,7 +409,7 @@ impl<const N: usize> SpeedyGonzales<N> {
     fn execute_basic_block_node(
         &mut self,
         basic_block_node: &BasicBlockNode,
-        program: &MastForest,
+        host: &mut impl Host,
     ) -> Result<(), ExecutionError> {
         // TODO(plafer): this enumerate results in a ~5% performance drop (or about 25 MHz on the
         // fibonacci benchmark). We should find a better way to know the operation index when we
@@ -383,7 +418,7 @@ impl<const N: usize> SpeedyGonzales<N> {
         // pointer arithmetic (comparing the address of the operation to the address of the first
         // operation in the Vec).
         for (op_idx, operation) in basic_block_node.operations().enumerate() {
-            self.execute_op(operation, op_idx, program)?;
+            self.execute_op(operation, op_idx, host)?;
         }
 
         self.clk += basic_block_node.num_operations();
@@ -395,7 +430,7 @@ impl<const N: usize> SpeedyGonzales<N> {
         &mut self,
         operation: &Operation,
         op_idx: usize,
-        _program: &MastForest,
+        host: &mut impl Host,
     ) -> Result<(), ExecutionError> {
         if self.bounds_check_counter == 0 {
             return Err(ExecutionError::FailedToExecuteProgram("stack overflow"));
@@ -494,8 +529,8 @@ impl<const N: usize> SpeedyGonzales<N> {
 
             // ----- input / output ---------------------------------------------------------------
             Operation::Push(element) => self.op_push(*element),
-            Operation::AdvPop => self.adv_pop()?,
-            Operation::AdvPopW => self.adv_popw()?,
+            Operation::AdvPop => self.op_advpop(host)?,
+            Operation::AdvPopW => self.op_advpopw(host)?,
             Operation::MLoadW => self.op_mloadw(op_idx)?,
             Operation::MStoreW => self.op_mstorew(op_idx)?,
             Operation::MLoad => self.op_mload()?,
@@ -560,7 +595,7 @@ impl<const N: usize> SpeedyGonzales<N> {
             // is safe to execute to be the minimum of these two worst cases.
 
             self.bounds_check_counter =
-                min(self.stack_top_idx - MIN_STACK_DEPTH, N - self.stack_top_idx);
+                min(self.stack_top_idx - MIN_STACK_DEPTH, STACK_BUFFER_SIZE - self.stack_top_idx);
         }
     }
 

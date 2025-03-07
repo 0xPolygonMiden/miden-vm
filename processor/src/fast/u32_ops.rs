@@ -3,7 +3,7 @@ use vm_core::{Felt, ZERO};
 use super::SpeedyGonzales;
 use crate::{utils::split_element, ExecutionError};
 
-impl<const N: usize> SpeedyGonzales<N> {
+impl SpeedyGonzales {
     pub fn u32_split(&mut self) -> Result<(), ExecutionError> {
         let top = self.stack[self.stack_top_idx - 1];
         let (hi, lo) = split_element(top);

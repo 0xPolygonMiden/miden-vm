@@ -3,7 +3,7 @@ use vm_core::{WORD_SIZE, ZERO};
 use super::SpeedyGonzales;
 use crate::ExecutionError;
 
-impl<const N: usize> SpeedyGonzales<N> {
+impl SpeedyGonzales {
     pub fn op_pad(&mut self) {
         self.stack[self.stack_top_idx] = ZERO;
         self.increment_stack_size();
