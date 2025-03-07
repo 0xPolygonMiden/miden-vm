@@ -1,0 +1,18 @@
+# This example showcases how to "unhash" data from the advice provider; that is, how to
+# read untrusted data from the advice provider, and verify that it hashes to an expected
+# value. Specifically, we
+# 1. Read data from the advice provider and store it simultaneously on the stack and 
+# 2. Apply a permutation of the RPO256 hash function
+
+use.std::crypto::hashes::rpo
+
+begin
+    # TODO(plafer): use adv_pipe when implemented
+    # Reads 2000 words from the advice provider, stores them in memory, and computes their hash.
+    repeat.1000
+        mem_stream hperm
+    end
+
+    exec.rpo::squeeze_digest
+    # => [HASH]
+end

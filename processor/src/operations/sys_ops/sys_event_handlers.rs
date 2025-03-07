@@ -16,7 +16,7 @@ use crate::{
 };
 
 /// The offset of the domain value on the stack in the `hdword_to_map_with_domain` system event.
-const HDWORD_TO_MAP_WITH_DOMAIN_DOMAIN_OFFSET: usize = 8;
+pub const HDWORD_TO_MAP_WITH_DOMAIN_DOMAIN_OFFSET: usize = 8;
 
 /// Falcon signature prime.
 const M: u64 = 12289;

@@ -31,7 +31,16 @@ required-features = ["internal"]
 harness = false
 
 [[bench]]
+name = "program_execution_fast"
+required-features = ["internal"]
+harness = false
+
+[[bench]]
 name = "deserialize_std_lib"
+harness = false
+
+[[bench]]
+name = "experiments"
 harness = false
 
 [[test]]
