@@ -1,7 +1,7 @@
 use vm_core::{utils::range, Word};
 
 use super::{ExecutionError, Felt, SpeedyGonzales, WORD_SIZE};
-use crate::{AdviceProvider, Host};
+use crate::{AdviceProvider, Host, ProcessState};
 
 impl SpeedyGonzales {
     pub fn op_push(&mut self, element: Felt) {
@@ -9,15 +9,21 @@ impl SpeedyGonzales {
         self.increment_stack_size();
     }
 
-    pub fn op_advpop(&mut self, host: &mut impl Host) -> Result<(), ExecutionError> {
-        let value = host.advice_provider_mut().pop_stack(self.into())?;
+    pub fn op_advpop(&mut self, op_idx: usize, host: &mut impl Host) -> Result<(), ExecutionError> {
+        let value = host.advice_provider_mut().pop_stack(ProcessState::new_fast(self, op_idx))?;
         self.stack[self.stack_top_idx] = value;
         self.increment_stack_size();
         Ok(())
     }
 
-    pub fn op_advpopw(&mut self, host: &mut impl Host) -> Result<(), ExecutionError> {
-        let word: Word = host.advice_provider_mut().pop_stack_word(self.into())?;
+    pub fn op_advpopw(
+        &mut self,
+        op_idx: usize,
+        host: &mut impl Host,
+    ) -> Result<(), ExecutionError> {
+        let word: Word = host
+            .advice_provider_mut()
+            .pop_stack_word(ProcessState::new_fast(self, op_idx))?;
         self.stack[range(self.stack_top_idx - WORD_SIZE, WORD_SIZE)].copy_from_slice(&word);
 
         Ok(())
@@ -108,7 +114,9 @@ impl SpeedyGonzales {
         let addr_second_word = Felt::new(addr_first_word.as_int() + WORD_SIZE as u64);
 
         // pop two words from the advice stack
-        let words = host.advice_provider_mut().pop_stack_dword(self.into())?;
+        let words = host
+            .advice_provider_mut()
+            .pop_stack_dword(ProcessState::new_fast(self, op_idx))?;
 
         // write the words to memory
         self.memory.write_word(self.ctx, addr_first_word, self.clk + op_idx, words[0])?;

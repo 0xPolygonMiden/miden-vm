@@ -642,6 +642,8 @@ pub struct SlowProcessState<'a> {
 #[derive(Debug, Clone, Copy)]
 pub struct FastProcessState<'a> {
     processor: &'a SpeedyGonzales,
+    /// the index of the operation in its basic block
+    op_idx: usize,
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -650,12 +652,16 @@ pub enum ProcessState<'a> {
     Fast(FastProcessState<'a>),
 }
 
-impl ProcessState<'_> {
+impl<'a> ProcessState<'a> {
+    pub fn new_fast(processor: &'a SpeedyGonzales, op_idx: usize) -> Self {
+        Self::Fast(FastProcessState { processor, op_idx })
+    }
+
     /// Returns the current clock cycle of a process.
     pub fn clk(&self) -> RowIndex {
         match self {
             ProcessState::Slow(state) => state.system.clk(),
-            ProcessState::Fast(state) => state.processor.clk,
+            ProcessState::Fast(state) => state.processor.clk + state.op_idx,
         }
     }
 
@@ -766,17 +772,5 @@ impl<'a> From<&'a mut Process> for ProcessState<'a> {
             stack: &process.stack,
             chiplets: &process.chiplets,
         })
-    }
-}
-
-impl<'a> From<&'a SpeedyGonzales> for ProcessState<'a> {
-    fn from(processor: &'a SpeedyGonzales) -> Self {
-        Self::Fast(FastProcessState { processor })
-    }
-}
-
-impl<'a> From<&'a mut SpeedyGonzales> for ProcessState<'a> {
-    fn from(processor: &'a mut SpeedyGonzales) -> Self {
-        Self::Fast(FastProcessState { processor })
     }
 }

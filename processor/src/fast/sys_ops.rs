@@ -14,15 +14,14 @@ use crate::{
 };
 
 impl SpeedyGonzales {
-    pub fn op_assert(&mut self, err_code: u32, op_idx: usize) -> Result<(), ExecutionError> {
-        // TODO(plafer): to delegate to the host, we need to create a `ProcessState` from the
-        // processor, which requires changes to `ProcessState`.
+    pub fn op_assert(
+        &mut self,
+        err_code: u32,
+        op_idx: usize,
+        host: &mut impl Host,
+    ) -> Result<(), ExecutionError> {
         if self.stack[self.stack_top_idx - 1] != ONE {
-            return Err(ExecutionError::FailedAssertion {
-                clk: self.clk + op_idx,
-                err_code,
-                err_msg: None,
-            });
+            return Err(host.on_assert_failed(ProcessState::new_fast(self, op_idx), err_code));
         }
 
         self.decrement_stack_size();
@@ -69,19 +68,24 @@ impl SpeedyGonzales {
         Ok(())
     }
 
-    pub fn op_emit(&mut self, event_id: u32, host: &mut impl Host) -> Result<(), ExecutionError> {
+    pub fn op_emit(
+        &mut self,
+        event_id: u32,
+        op_idx: usize,
+        host: &mut impl Host,
+    ) -> Result<(), ExecutionError> {
         // If it's a system event, handle it directly. Otherwise, forward it to the host.
         if let Some(system_event) = SystemEvent::from_event_id(event_id) {
             if system_event != SystemEvent::FalconSigToStack {
-                self.handle_system_event(system_event, host)
+                self.handle_system_event(system_event, op_idx, host)
             } else {
                 // TODO: this is a temporary solution to not classify FalconSigToStack as a system
                 // event; this way, we delegate signature generation to the host so that we can
                 // apply different strategies for signature generation.
-                host.on_event(self.into(), event_id)
+                host.on_event(ProcessState::new_fast(self, op_idx), event_id)
             }
         } else {
-            host.on_event(self.into(), event_id)
+            host.on_event(ProcessState::new_fast(self, op_idx), event_id)
         }
     }
 
@@ -91,10 +95,11 @@ impl SpeedyGonzales {
     pub(super) fn handle_system_event(
         &self,
         system_event: SystemEvent,
+        op_idx: usize,
         host: &mut impl Host,
     ) -> Result<(), ExecutionError> {
         let advice_provider = host.advice_provider_mut();
-        let process_state: ProcessState = self.into();
+        let process_state = ProcessState::new_fast(self, op_idx);
         match system_event {
             SystemEvent::MerkleNodeMerge => merge_merkle_nodes(advice_provider, process_state),
             SystemEvent::MerkleNodeToStack => {

@@ -441,13 +441,13 @@ impl SpeedyGonzales {
             Operation::Noop => {
                 // do nothing
             },
-            Operation::Assert(err_code) => self.op_assert(*err_code, op_idx)?,
+            Operation::Assert(err_code) => self.op_assert(*err_code, op_idx, host)?,
             Operation::FmpAdd => self.op_fmp_add(),
             Operation::FmpUpdate => self.op_fmp_update()?,
             Operation::SDepth => self.op_sdepth(),
             Operation::Caller => self.op_caller()?,
             Operation::Clk => self.op_clk(op_idx)?,
-            Operation::Emit(event_id) => self.op_emit(*event_id, host)?,
+            Operation::Emit(event_id) => self.op_emit(*event_id, op_idx, host)?,
 
             // ----- flow control operations ------------------------------------------------------
             // control flow operations are never executed directly
@@ -529,8 +529,8 @@ impl SpeedyGonzales {
 
             // ----- input / output ---------------------------------------------------------------
             Operation::Push(element) => self.op_push(*element),
-            Operation::AdvPop => self.op_advpop(host)?,
-            Operation::AdvPopW => self.op_advpopw(host)?,
+            Operation::AdvPop => self.op_advpop(op_idx, host)?,
+            Operation::AdvPopW => self.op_advpopw(op_idx, host)?,
             Operation::MLoadW => self.op_mloadw(op_idx)?,
             Operation::MStoreW => self.op_mstorew(op_idx)?,
             Operation::MLoad => self.op_mload()?,
