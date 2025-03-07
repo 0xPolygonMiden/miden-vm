@@ -10,6 +10,7 @@ use alloc::vec::Vec;
 
 pub mod fast;
 
+use fast::SpeedyGonzales;
 use miden_air::trace::{
     CHIPLETS_WIDTH, DECODER_TRACE_WIDTH, MIN_TRACE_LEN, RANGE_CHECK_TRACE_WIDTH, STACK_TRACE_WIDTH,
     SYS_TRACE_WIDTH,
@@ -632,31 +633,54 @@ impl Process {
 // ================================================================================================
 
 #[derive(Debug, Clone, Copy)]
-pub struct ProcessState<'a> {
+pub struct SlowProcessState<'a> {
     system: &'a System,
     stack: &'a Stack,
     chiplets: &'a Chiplets,
 }
 
+#[derive(Debug, Clone, Copy)]
+pub struct FastProcessState<'a> {
+    processor: &'a SpeedyGonzales,
+}
+
+#[derive(Debug, Clone, Copy)]
+pub enum ProcessState<'a> {
+    Slow(SlowProcessState<'a>),
+    Fast(FastProcessState<'a>),
+}
+
 impl ProcessState<'_> {
     /// Returns the current clock cycle of a process.
     pub fn clk(&self) -> RowIndex {
-        self.system.clk()
+        match self {
+            ProcessState::Slow(state) => state.system.clk(),
+            ProcessState::Fast(state) => state.processor.clk,
+        }
     }
 
     /// Returns the current execution context ID.
     pub fn ctx(&self) -> ContextId {
-        self.system.ctx()
+        match self {
+            ProcessState::Slow(state) => state.system.ctx(),
+            ProcessState::Fast(state) => state.processor.ctx,
+        }
     }
 
     /// Returns the current value of the free memory pointer.
     pub fn fmp(&self) -> u64 {
-        self.system.fmp().as_int()
+        match self {
+            ProcessState::Slow(state) => state.system.fmp().as_int(),
+            ProcessState::Fast(state) => state.processor.fmp.as_int(),
+        }
     }
 
     /// Returns the value located at the specified position on the stack at the current clock cycle.
     pub fn get_stack_item(&self, pos: usize) -> Felt {
-        self.stack.get(pos)
+        match self {
+            ProcessState::Slow(state) => state.stack.get(pos),
+            ProcessState::Fast(state) => state.processor.stack_get(pos),
+        }
     }
 
     /// Returns a word located at the specified word index on the stack.
@@ -670,19 +694,28 @@ impl ProcessState<'_> {
     ///
     /// Creating a word does not change the state of the stack.
     pub fn get_stack_word(&self, word_idx: usize) -> Word {
-        self.stack.get_word(word_idx)
+        match self {
+            ProcessState::Slow(state) => state.stack.get_word(word_idx),
+            ProcessState::Fast(state) => state.processor.stack_get_word(word_idx),
+        }
     }
 
     /// Returns stack state at the current clock cycle. This includes the top 16 items of the
     /// stack + overflow entries.
     pub fn get_stack_state(&self) -> Vec<Felt> {
-        self.stack.get_state_at(self.system.clk())
+        match self {
+            ProcessState::Slow(state) => state.stack.get_state_at(state.system.clk()),
+            ProcessState::Fast(state) => state.processor.stack().iter().rev().copied().collect(),
+        }
     }
 
     /// Returns the element located at the specified context/address, or None if the address hasn't
     /// been accessed previously.
     pub fn get_mem_value(&self, ctx: ContextId, addr: u32) -> Option<Felt> {
-        self.chiplets.memory.get_value(ctx, addr)
+        match self {
+            ProcessState::Slow(state) => state.chiplets.memory.get_value(ctx, addr),
+            ProcessState::Fast(state) => state.processor.memory.read_element_impl(ctx, addr),
+        }
     }
 
     /// Returns the batch of elements starting at the specified context/address.
@@ -690,7 +723,12 @@ impl ProcessState<'_> {
     /// # Errors
     /// - If the address is not word aligned.
     pub fn get_mem_word(&self, ctx: ContextId, addr: u32) -> Result<Option<Word>, ExecutionError> {
-        self.chiplets.memory.get_word(ctx, addr)
+        match self {
+            ProcessState::Slow(state) => state.chiplets.memory.get_word(ctx, addr),
+            ProcessState::Fast(state) => {
+                Ok(state.processor.memory.read_word_impl(ctx, addr, None)?.copied())
+            },
+        }
     }
 
     /// Returns the entire memory state for the specified execution context at the current clock
@@ -699,26 +737,46 @@ impl ProcessState<'_> {
     /// The state is returned as a vector of (address, value) tuples, and includes addresses which
     /// have been accessed at least once.
     pub fn get_mem_state(&self, ctx: ContextId) -> Vec<(u64, Felt)> {
-        self.chiplets.memory.get_state_at(ctx, self.system.clk())
+        match self {
+            ProcessState::Slow(state) => {
+                state.chiplets.memory.get_state_at(ctx, state.system.clk())
+            },
+            ProcessState::Fast(state) => state.processor.memory.get_memory_state(ctx),
+        }
     }
 }
 
+// CONVERSIONS
+// ===============================================================================================
+
 impl<'a> From<&'a Process> for ProcessState<'a> {
     fn from(process: &'a Process) -> Self {
-        Self {
+        Self::Slow(SlowProcessState {
             system: &process.system,
             stack: &process.stack,
             chiplets: &process.chiplets,
-        }
+        })
     }
 }
 
 impl<'a> From<&'a mut Process> for ProcessState<'a> {
     fn from(process: &'a mut Process) -> Self {
-        Self {
+        Self::Slow(SlowProcessState {
             system: &process.system,
             stack: &process.stack,
             chiplets: &process.chiplets,
-        }
+        })
+    }
+}
+
+impl<'a> From<&'a SpeedyGonzales> for ProcessState<'a> {
+    fn from(processor: &'a SpeedyGonzales) -> Self {
+        Self::Fast(FastProcessState { processor })
+    }
+}
+
+impl<'a> From<&'a mut SpeedyGonzales> for ProcessState<'a> {
+    fn from(processor: &'a mut SpeedyGonzales) -> Self {
+        Self::Fast(FastProcessState { processor })
     }
 }

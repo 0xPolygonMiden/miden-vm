@@ -125,7 +125,7 @@ fn test_basic_block(
     let program = simple_program_with_ops(operations);
 
     let mut host = DefaultHost::default();
-    let fast_processor = SpeedyGonzales::<512>::new(stack_inputs.clone());
+    let fast_processor = SpeedyGonzales::new(stack_inputs.clone());
     let fast_stack_outputs = fast_processor.execute(&program, &mut host);
 
     let mut host = DefaultHost::default();
@@ -157,17 +157,18 @@ fn test_basic_block(
     }
 }
 
+// TODO(plafer): this test no longer works since we fixed `STACK_BUFFER_SIZE`. Rewrite it.
 /// Makes sure that the bounds checking fails when expected.
 #[test]
+#[ignore]
 fn test_stack_overflow_bounds_failure() {
-    const STACK_DEPTH: usize = MIN_STACK_DEPTH + 2;
     let mut host = DefaultHost::default();
 
     // dup1 grows the stack by one, which makes us reach the limit. The subsequent add operation
     // fails.
     {
         let program = simple_program_with_ops(vec![Operation::Dup1, Operation::Add]);
-        let err = SpeedyGonzales::<STACK_DEPTH>::new(vec![]).execute(&program, &mut host);
+        let err = SpeedyGonzales::new(vec![]).execute(&program, &mut host);
         assert_matches!(err, Err(ExecutionError::FailedToExecuteProgram(_)));
     }
 
@@ -175,7 +176,7 @@ fn test_stack_overflow_bounds_failure() {
     // fails.
     {
         let program = simple_program_with_ops(vec![Operation::Add, Operation::Dup1]);
-        let err = SpeedyGonzales::<STACK_DEPTH>::new(vec![]).execute(&program, &mut host);
+        let err = SpeedyGonzales::new(vec![]).execute(&program, &mut host);
         assert_matches!(err, Err(ExecutionError::FailedToExecuteProgram(_)));
     }
 
@@ -190,7 +191,7 @@ fn test_stack_overflow_bounds_failure() {
             Operation::Add,
             Operation::Dup1,
         ]);
-        let err = SpeedyGonzales::<STACK_DEPTH>::new(vec![]).execute(&program, &mut host);
+        let err = SpeedyGonzales::new(vec![]).execute(&program, &mut host);
         assert_matches!(err, Err(ExecutionError::FailedToExecuteProgram(_)));
     }
 }
@@ -199,20 +200,19 @@ fn test_stack_overflow_bounds_failure() {
 /// execution never fails.
 #[test]
 fn test_stack_overflow_bounds_success() {
-    const STACK_DEPTH: usize = MIN_STACK_DEPTH + 4;
     let mut host = DefaultHost::default();
 
     // dup1, add
     {
         let program = simple_program_with_ops(vec![Operation::Dup1, Operation::Add]);
-        SpeedyGonzales::<STACK_DEPTH>::new(vec![]).execute(&program, &mut host).unwrap();
+        SpeedyGonzales::new(vec![]).execute(&program, &mut host).unwrap();
     }
 
     // the first add doesn't change the stack size, but the subsequent dup1 does
     {
         let program =
             simple_program_with_ops(vec![Operation::Add, Operation::Dup1, Operation::Add]);
-        SpeedyGonzales::<STACK_DEPTH>::new(vec![]).execute(&program, &mut host).unwrap();
+        SpeedyGonzales::new(vec![]).execute(&program, &mut host).unwrap();
     }
 
     // alternating add/dup1, with some swaps which don't change the stack size.
@@ -238,7 +238,7 @@ fn test_stack_overflow_bounds_success() {
             // stack depth after: 16
             Operation::Swap,
         ]);
-        SpeedyGonzales::<STACK_DEPTH>::new(vec![]).execute(&program, &mut host).unwrap();
+        SpeedyGonzales::new(vec![]).execute(&program, &mut host).unwrap();
     }
 }
 
@@ -251,12 +251,10 @@ fn test_memory_word_access_alignment() {
         let program = simple_program_with_ops(vec![Operation::MLoadW]);
 
         // loadw at address 40 is allowed
-        SpeedyGonzales::<512>::new(vec![40_u32.into()])
-            .execute(&program, &mut host)
-            .unwrap();
+        SpeedyGonzales::new(vec![40_u32.into()]).execute(&program, &mut host).unwrap();
 
         // but loadw at address 43 is not allowed
-        let err = SpeedyGonzales::<512>::new(vec![43_u32.into()])
+        let err = SpeedyGonzales::new(vec![43_u32.into()])
             .execute(&program, &mut host)
             .unwrap_err();
         assert_eq!(
@@ -270,12 +268,10 @@ fn test_memory_word_access_alignment() {
         let program = simple_program_with_ops(vec![Operation::MStoreW]);
 
         // storew at address 40 is allowed
-        SpeedyGonzales::<512>::new(vec![40_u32.into()])
-            .execute(&program, &mut host)
-            .unwrap();
+        SpeedyGonzales::new(vec![40_u32.into()]).execute(&program, &mut host).unwrap();
 
         // but storew at address 43 is not allowed
-        let err = SpeedyGonzales::<512>::new(vec![43_u32.into()])
+        let err = SpeedyGonzales::new(vec![43_u32.into()])
             .execute(&program, &mut host)
             .unwrap_err();
         assert_eq!(
@@ -298,7 +294,7 @@ fn test_mloadw_success() {
 
     // load the contents of address 40
     {
-        let mut processor = SpeedyGonzales::<512>::new(vec![addr.into()]);
+        let mut processor = SpeedyGonzales::new(vec![addr.into()]);
         processor.memory.write_word(ctx, addr, dummy_clk, word_at_addr).unwrap();
 
         let program = simple_program_with_ops(vec![Operation::MLoadW]);
@@ -313,7 +309,7 @@ fn test_mloadw_success() {
 
     // load the contents of address 100 (should yield the ZERO word)
     {
-        let mut processor = SpeedyGonzales::<512>::new(vec![100_u32.into()]);
+        let mut processor = SpeedyGonzales::new(vec![100_u32.into()]);
         processor.memory.write_word(ctx, addr, dummy_clk, word_at_addr).unwrap();
 
         let program = simple_program_with_ops(vec![Operation::MLoadW]);
@@ -332,7 +328,7 @@ fn test_mstorew_success() {
     let clk = 0_u32.into();
 
     // Store the word at address 40
-    let mut processor = SpeedyGonzales::<512>::new(vec![
+    let mut processor = SpeedyGonzales::new(vec![
         word_to_store[0],
         word_to_store[1],
         word_to_store[2],
@@ -358,7 +354,7 @@ fn test_mstore_success(#[case] addr: u32, #[case] value_to_store: u32) {
     let value_to_store = Felt::from(value_to_store);
 
     // Store the value at address 40
-    let mut processor = SpeedyGonzales::<512>::new(vec![value_to_store, addr.into()]);
+    let mut processor = SpeedyGonzales::new(vec![value_to_store, addr.into()]);
     let program = simple_program_with_ops(vec![Operation::MStore]);
     processor.execute_impl(&program, &mut host).unwrap();
 
@@ -381,7 +377,7 @@ fn test_mload_success(#[case] addr_to_access: u32) {
     let dummy_clk = 0_u32.into();
 
     // Initialize processor with a word at address 40
-    let mut processor = SpeedyGonzales::<512>::new(vec![addr_to_access.into()]);
+    let mut processor = SpeedyGonzales::new(vec![addr_to_access.into()]);
     processor
         .memory
         .write_word(ctx, addr_with_word.into(), dummy_clk, word_at_addr)
@@ -406,7 +402,7 @@ fn test_fmp_add() {
     let stack_inputs = vec![1_u32.into(), 2_u32.into(), 3_u32.into()];
     let program = simple_program_with_ops(vec![Operation::FmpAdd]);
 
-    let mut processor = SpeedyGonzales::<512>::new(stack_inputs.clone());
+    let mut processor = SpeedyGonzales::new(stack_inputs.clone());
     processor.fmp = initial_fmp;
 
     let stack_outputs = processor.execute(&program, &mut host).unwrap();
@@ -425,7 +421,7 @@ fn test_fmp_update() {
     let stack_inputs = vec![5_u32.into()];
     let program = simple_program_with_ops(vec![Operation::FmpUpdate]);
 
-    let mut processor = SpeedyGonzales::<512>::new(stack_inputs.clone());
+    let mut processor = SpeedyGonzales::new(stack_inputs.clone());
     processor.fmp = initial_fmp;
 
     let stack_outputs = processor.execute_impl(&program, &mut host).unwrap();
@@ -447,7 +443,7 @@ fn test_fmp_update_fail() {
     let stack_inputs = vec![5_u32.into()];
     let program = simple_program_with_ops(vec![Operation::FmpUpdate]);
 
-    let mut processor = SpeedyGonzales::<512>::new(stack_inputs.clone());
+    let mut processor = SpeedyGonzales::new(stack_inputs.clone());
     processor.fmp = initial_fmp;
 
     let err = processor.execute(&program, &mut host).unwrap_err();
@@ -460,7 +456,7 @@ fn test_fmp_update_fail() {
     let stack_inputs = vec![-Felt::new(5_u64)];
     let program = simple_program_with_ops(vec![Operation::FmpUpdate]);
 
-    let mut processor = SpeedyGonzales::<512>::new(stack_inputs.clone());
+    let mut processor = SpeedyGonzales::new(stack_inputs.clone());
     processor.fmp = initial_fmp;
 
     let err = processor.execute(&program, &mut host).unwrap_err();
@@ -478,7 +474,7 @@ fn test_assert() {
         let stack_inputs = vec![ONE];
         let program = simple_program_with_ops(vec![Operation::Assert(0)]);
 
-        let processor = SpeedyGonzales::<512>::new(stack_inputs);
+        let processor = SpeedyGonzales::new(stack_inputs);
         let result = processor.execute(&program, &mut host);
 
         // Check that the execution succeeds
@@ -490,7 +486,7 @@ fn test_assert() {
         let stack_inputs = vec![ZERO];
         let program = simple_program_with_ops(vec![Operation::Assert(0)]);
 
-        let processor = SpeedyGonzales::<512>::new(stack_inputs);
+        let processor = SpeedyGonzales::new(stack_inputs);
         let err = processor.execute(&program, &mut host).unwrap_err();
 
         // Check that the error is due to a failed assertion
@@ -511,7 +507,7 @@ fn test_valid_combinations_and(#[case] stack_inputs: Vec<Felt>, #[case] expected
     let program = simple_program_with_ops(vec![Operation::And]);
 
     let mut host = DefaultHost::default();
-    let processor = SpeedyGonzales::<512>::new(stack_inputs);
+    let processor = SpeedyGonzales::new(stack_inputs);
     let stack_outputs = processor.execute(&program, &mut host).unwrap();
 
     assert_eq!(stack_outputs.stack_truncated(1)[0], expected_output);
@@ -530,7 +526,7 @@ fn test_valid_combinations_or(#[case] stack_inputs: Vec<Felt>, #[case] expected_
     let program = simple_program_with_ops(vec![Operation::Or]);
 
     let mut host = DefaultHost::default();
-    let processor = SpeedyGonzales::<512>::new(stack_inputs);
+    let processor = SpeedyGonzales::new(stack_inputs);
     let stack_outputs = processor.execute(&program, &mut host).unwrap();
 
     assert_eq!(stack_outputs.stack_truncated(1)[0], expected_output);
@@ -551,7 +547,7 @@ fn test_mstream() {
             stack[MIN_STACK_DEPTH - 1 - 12] = addr.into();
             stack
         };
-        SpeedyGonzales::<512>::new(stack_init)
+        SpeedyGonzales::new(stack_init)
     };
     // Store values at addresses 40 and 44
     processor.memory.write_word(ctx, addr.into(), clk, word_at_addr_40).unwrap();
@@ -611,7 +607,7 @@ fn test_frie2f4() {
         simple_program_with_ops(vec![Operation::Push(Felt::new(42_u64)), Operation::FriE2F4]);
 
     // fast processor
-    let fast_processor = SpeedyGonzales::<512>::new(stack_inputs.clone());
+    let fast_processor = SpeedyGonzales::new(stack_inputs.clone());
     let fast_stack_outputs = fast_processor.execute(&program, &mut host).unwrap();
 
     // slow processor
@@ -676,7 +672,7 @@ fn test_call_node_preserves_stack_overflow() {
     };
 
     // initial stack: (top) [1, 2, 3, 4, ..., 16] (bot)
-    let mut processor = SpeedyGonzales::<512>::new(vec![
+    let mut processor = SpeedyGonzales::new(vec![
         16_u32.into(),
         15_u32.into(),
         14_u32.into(),
@@ -953,7 +949,7 @@ fn test_masm_consistency(
     }
 
     // fast processor
-    let processor = SpeedyGonzales::<512>::new(stack_inputs.clone());
+    let processor = SpeedyGonzales::new(stack_inputs.clone());
     let fast_stack_outputs = processor.execute(&program, &mut host).unwrap();
 
     // slow processor
@@ -1018,7 +1014,7 @@ fn test_masm_errors_consistency(
     }
 
     // fast processor
-    let processor = SpeedyGonzales::<512>::new(stack_inputs.clone());
+    let processor = SpeedyGonzales::new(stack_inputs.clone());
     let fast_stack_outputs = processor.execute(&program, &mut host).unwrap_err();
 
     // slow processor

@@ -3,7 +3,7 @@ use vm_core::{utils::range, WORD_SIZE};
 use super::{ExecutionError, SpeedyGonzales, ONE};
 use crate::{system::FMP_MAX, FMP_MIN};
 
-impl<const N: usize> SpeedyGonzales<N> {
+impl SpeedyGonzales {
     pub fn op_assert(&mut self, err_code: u32, op_idx: usize) -> Result<(), ExecutionError> {
         // TODO(plafer): to delegate to the host, we need to create a `ProcessState` from the
         // processor, which requires changes to `ProcessState`.

@@ -2,7 +2,7 @@ use vm_core::utils::range;
 
 use super::{ExecutionError, Felt, SpeedyGonzales, WORD_SIZE};
 
-impl<const N: usize> SpeedyGonzales<N> {
+impl SpeedyGonzales {
     pub fn op_push(&mut self, element: Felt) {
         self.stack[self.stack_top_idx] = element;
         self.increment_stack_size();
