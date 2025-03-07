@@ -630,7 +630,7 @@ impl SpeedyGonzales {
     ///
     /// # Errors
     /// - Returns an error if the overflow stack is larger than the space available in the stack
-    ///  buffer.
+    ///   buffer.
     fn restore_context(&mut self) -> Result<(), ExecutionError> {
         // when a call/dyncall/syscall node ends, stack depth must be exactly 16.
         if self.stack_size() > MIN_STACK_DEPTH {

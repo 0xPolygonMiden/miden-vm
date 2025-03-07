@@ -12,6 +12,7 @@
 - Fix the docs and implementation of `EXPACC` (#1676)
 - Running a call/syscall/dyncall while processing a syscall now results in an error (#1680)
 - Using a non-binary value as a loop condition now results in an error (#1685)
+- Implement a new fast processor that doesn't generate a trace (#1668)
 
 
 ## 0.12.0 (2025-01-22)

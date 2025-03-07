@@ -296,7 +296,7 @@ fn test_mloadw_success() {
 
     // load the contents of address 40
     {
-        let mut processor = SpeedyGonzales::new(vec![addr.into()]);
+        let mut processor = SpeedyGonzales::new(vec![addr]);
         processor.memory.write_word(ctx, addr, dummy_clk, word_at_addr).unwrap();
 
         let program = simple_program_with_ops(vec![Operation::MLoadW]);
@@ -335,7 +335,7 @@ fn test_mstorew_success() {
         word_to_store[1],
         word_to_store[2],
         word_to_store[3],
-        addr.into(),
+        addr,
     ]);
     let program = simple_program_with_ops(vec![Operation::MStoreW]);
     processor.execute_impl(&program, &mut host).unwrap();
