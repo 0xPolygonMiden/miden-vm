@@ -15,6 +15,8 @@
 - [BREAKING] Update CLI to accept masm or masp files as input for all commands (#1683, #1692)
 - [BREAKING] Remove `Assembler::assemble_common()` from the public interface (#1689).
 - Fix `Horner{Base, Ext}` bus requests to memory chiplet (#1689)
+- Implement a new fast processor that doesn't generate a trace (#1668)
+
 
 ## 0.12.0 (2025-01-22)
 
