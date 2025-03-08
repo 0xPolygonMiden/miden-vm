@@ -116,7 +116,7 @@ If the level is not specified, `warn` level is set as default.
 You can use the run command with `--debug` parameter to enable debugging with the [debug instruction](../user_docs/assembly/debugging.md) such as `debug.stack`:
 
 ```shell
-./target/optimized/miden run -a [path_to.masm] --debug
+./target/optimized/miden run [path_to.masm] --debug
 ```
 
 ### Inputs
@@ -142,7 +142,7 @@ After a program finishes executing, the elements that remain on the stack become
 In the `miden/masm-examples/fib` directory, we provide a very simple Fibonacci calculator example. This example computes the 1001st term of the Fibonacci sequence. You can execute this example on Miden VM like so:
 
 ```shell
-./target/optimized/miden run -a miden/masm-examples/fib/fib.masm
+./target/optimized/miden run miden/masm-examples/fib/fib.masm
 ```
 
 ### Capturing Output
@@ -152,7 +152,7 @@ This will run the example code to completion and will output the top element rem
 If you want the output of the program in a file, you can use the `--output` or `-o` flag and specify the path to the output file. For example:
 
 ```shell
-./target/optimized/miden run -a miden/masm-examples/fib/fib.masm -o fib.out
+./target/optimized/miden run miden/masm-examples/fib/fib.masm -o fib.out
 ```
 
 This will dump the output of the program into the `fib.out` file. The output file will contain the state of the stack at the end of the program execution.
@@ -162,7 +162,7 @@ This will dump the output of the program into the `fib.out` file. The output fil
 Inside `miden/masm-examples/fib/fib.masm`, insert `debug.stack` instruction anywhere between `begin` and `end`. Then run:
 
 ```shell
-./target/optimized/miden run -a miden/masm-examples/fib/fib.masm -n 1 --debug
+./target/optimized/miden run miden/masm-examples/fib/fib.masm -n 1 --debug
 ```
 
 You should see output similar to "Stack state before step ..."

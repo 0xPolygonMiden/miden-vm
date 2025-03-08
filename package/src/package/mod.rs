@@ -115,6 +115,11 @@ impl Package {
         self.mast.digest()
     }
 
+    /// Returns the MastArtifact of the package
+    pub fn into_mast_artifact(self) -> MastArtifact {
+        self.mast
+    }
+
     /// Checks if the package's MAST artifact is a [Program]
     pub fn is_program(&self) -> bool {
         matches!(self.mast, MastArtifact::Executable(_))

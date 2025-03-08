@@ -1293,6 +1293,7 @@ dependencies = [
  "hex",
  "miden-assembly",
  "miden-core",
+ "miden-mast-package",
  "miden-processor",
  "miden-prover",
  "miden-stdlib",
