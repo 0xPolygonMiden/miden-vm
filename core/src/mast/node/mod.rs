@@ -29,7 +29,7 @@ pub use loop_node::LoopNode;
 
 use super::{DecoratorId, MastForestError};
 use crate::{
-    mast::{MastForest, MastNodeId},
+    mast::{MastForest, MastNodeId, Remapping},
     DecoratorList, Operation,
 };
 
@@ -140,6 +140,43 @@ impl MastNode {
         match self {
             MastNode::Block(basic_block_node) => Some(basic_block_node),
             _ => None,
+        }
+    }
+
+    /// Remap the node children to their new positions indicated by the given [`Remapping`].
+    pub fn remap_children(&self, remapping: &Remapping) -> Self {
+        use MastNode::*;
+        match self {
+            Join(join_node) => Join(join_node.remap_children(remapping)),
+            Split(split_node) => Split(split_node.remap_children(remapping)),
+            Loop(loop_node) => Loop(loop_node.remap_children(remapping)),
+            Call(call_node) => Call(call_node.remap_children(remapping)),
+            Block(_) | Dyn(_) | External(_) => self.clone(),
+        }
+    }
+
+    /// Returns true if the this node has children.
+    pub fn has_children(&self) -> bool {
+        match &self {
+            MastNode::Join(_) | MastNode::Split(_) | MastNode::Loop(_) | MastNode::Call(_) => true,
+            MastNode::Block(_) | MastNode::Dyn(_) | MastNode::External(_) => false,
+        }
+    }
+
+    /// Appends the NodeIds of the children of this node, if any, to the vector.
+    pub fn append_children_to(&self, target: &mut Vec<MastNodeId>) {
+        match &self {
+            MastNode::Join(join_node) => {
+                target.push(join_node.first());
+                target.push(join_node.second())
+            },
+            MastNode::Split(split_node) => {
+                target.push(split_node.on_true());
+                target.push(split_node.on_false())
+            },
+            MastNode::Loop(loop_node) => target.push(loop_node.body()),
+            MastNode::Call(call_node) => target.push(call_node.callee()),
+            MastNode::Block(_) | MastNode::Dyn(_) | MastNode::External(_) => (),
         }
     }
 

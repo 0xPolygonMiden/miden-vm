@@ -161,7 +161,7 @@ pub fn exp(span_builder: &mut BasicBlockBuilder, num_pow_bits: u8) -> Result<(),
     // calling expacc instruction n times.
     span_builder.push_op_many(Expacc, num_pow_bits as usize);
 
-    // drop the top two elements bit and exp value of the latest bit.
+    // drop the top two elements exp_lsb and base value of the last iteration.
     span_builder.push_ops([Drop, Drop]);
 
     // taking `b` to the top and asserting if it's equal to ZERO after all the right shifts.

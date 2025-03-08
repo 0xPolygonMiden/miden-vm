@@ -71,6 +71,8 @@ pub struct Assembler {
     warnings_as_errors: bool,
     /// Whether the assembler enables extra debugging information.
     in_debug_mode: bool,
+    /// Collects libraries that can be used during assembly to vendor procedures.
+    vendored_libraries: BTreeMap<RpoDigest, Library>,
 }
 
 impl Default for Assembler {
@@ -82,6 +84,7 @@ impl Default for Assembler {
             module_graph,
             warnings_as_errors: false,
             in_debug_mode: false,
+            vendored_libraries: BTreeMap::new(),
         }
     }
 }
@@ -97,6 +100,7 @@ impl Assembler {
             module_graph,
             warnings_as_errors: false,
             in_debug_mode: false,
+            vendored_libraries: BTreeMap::new(),
         }
     }
 
@@ -170,7 +174,7 @@ impl Assembler {
         module: impl Compile,
         options: CompileOptions,
     ) -> Result<ModuleIndex, Report> {
-        let ids = self.add_modules_with_options(vec![module], options)?;
+        let ids = self.add_modules_with_options([module], options)?;
         Ok(ids[0])
     }
 
@@ -196,7 +200,7 @@ impl Assembler {
                 Ok(module)
             })
             .collect::<Result<Vec<_>, Report>>()?;
-        let ids = self.module_graph.add_ast_modules(modules.into_iter())?;
+        let ids = self.module_graph.add_ast_modules(modules)?;
         Ok(ids)
     }
     /// Adds all modules (defined by ".masm" files) from the specified directory to the module
@@ -223,13 +227,11 @@ impl Assembler {
 
     /// Adds the compiled library to provide modules for the compilation.
     ///
-    /// We only current support adding non-vendored libraries - that is, the source code of exported
-    /// procedures is not included in the program that compiles against the library. The library's
-    /// source code is instead expected to be loaded in the processor at execution time. Hence, all
-    /// calls to library procedures will be compiled down to a [`vm_core::mast::ExternalNode`] (i.e.
-    /// a reference to the procedure's MAST root). This means that when executing a program compiled
-    /// against a library, the processor will not be able to differentiate procedures with the same
-    /// MAST root but different decorators.
+    /// All calls to the library's procedures will be compiled down to a
+    /// [`vm_core::mast::ExternalNode`] (i.e. a reference to the procedure's MAST root).
+    /// The library's source code is expected to be loaded in the processor at execution time.
+    /// This means that when executing a program compiled against a library, the processor will not
+    /// be able to differentiate procedures with the same MAST root but different decorators.
     ///
     /// Hence, it is not recommended to export two procedures that have the same MAST root (i.e. are
     /// identical except for their decorators). Note however that we don't expect this scenario to
@@ -249,6 +251,27 @@ impl Assembler {
     /// See [`Self::add_library`] for more detailed information.
     pub fn with_library(mut self, library: impl AsRef<Library>) -> Result<Self, Report> {
         self.add_library(library)?;
+        Ok(self)
+    }
+
+    /// Adds a compiled library from which procedures will be vendored into the assembled code.
+    ///
+    /// Vendoring in this context means that when a procedure from this library is invoked from the
+    /// assembled code, the entire procedure MAST will be copied into the assembled code. Thus,
+    /// when the resulting code is executed on the VM, the vendored library does not need to be
+    /// provided to the VM to resolve external calls.
+    pub fn add_vendored_library(&mut self, library: impl AsRef<Library>) -> Result<(), Report> {
+        self.add_library(&library)?;
+        self.vendored_libraries
+            .insert(*library.as_ref().digest(), library.as_ref().clone());
+        Ok(())
+    }
+
+    /// Adds a compiled library from which procedures will be vendored into the assembled code.
+    ///
+    /// See [`Self::add_vendored_library`]
+    pub fn with_vendored_library(mut self, library: impl AsRef<Library>) -> Result<Self, Report> {
+        self.add_vendored_library(library)?;
         Ok(self)
     }
 }
@@ -298,9 +321,9 @@ impl Assembler {
         modules: impl IntoIterator<Item = impl Compile>,
         options: CompileOptions,
     ) -> Result<Library, Report> {
-        let ast_module_indices = self.add_modules_with_options(modules, options)?;
+        let mut mast_forest_builder = MastForestBuilder::new(self.vendored_libraries.values())?;
 
-        let mut mast_forest_builder = MastForestBuilder::default();
+        let ast_module_indices = self.add_modules_with_options(modules, options)?;
 
         let mut exports = {
             let mut exports = BTreeMap::new();
@@ -326,11 +349,9 @@ impl Assembler {
         };
 
         let (mast_forest, id_remappings) = mast_forest_builder.build();
-        if let Some(id_remappings) = id_remappings {
-            for (_proc_name, node_id) in exports.iter_mut() {
-                if let Some(&new_node_id) = id_remappings.get(node_id) {
-                    *node_id = new_node_id;
-                }
+        for (_proc_name, node_id) in exports.iter_mut() {
+            if let Some(&new_node_id) = id_remappings.get(node_id) {
+                *node_id = new_node_id;
             }
         }
 
@@ -393,7 +414,8 @@ impl Assembler {
             .ok_or(SemanticAnalysisError::MissingEntrypoint)?;
 
         // Compile the module graph rooted at the entrypoint
-        let mut mast_forest_builder = MastForestBuilder::default();
+        let mut mast_forest_builder = MastForestBuilder::new(self.vendored_libraries.values())?;
+
         self.compile_subgraph(entrypoint, &mut mast_forest_builder)?;
         let entry_node_id = mast_forest_builder
             .get_procedure(entrypoint)
@@ -402,9 +424,7 @@ impl Assembler {
 
         // in case the node IDs changed, update the entrypoint ID to the new value
         let (mast_forest, id_remappings) = mast_forest_builder.build();
-        let entry_node_id = id_remappings
-            .map(|id_remappings| id_remappings[&entry_node_id])
-            .unwrap_or(entry_node_id);
+        let entry_node_id = *id_remappings.get(&entry_node_id).unwrap_or(&entry_node_id);
 
         Ok(Program::with_kernel(
             mast_forest.into(),
@@ -769,8 +789,10 @@ impl Assembler {
         }
     }
 
-    /// Verifies the validity of the MAST root as a procedure root hash, and returns the ID of the
-    /// [`core::mast::ExternalNode`] that wraps it.
+    /// Verifies the validity of the MAST root as a procedure root hash, and adds it to the forest.
+    ///
+    /// If the root is present in the vendored MAST, its subtree is copied. Otherwise an
+    /// external node is added to the forest.
     fn ensure_valid_procedure_mast_root(
         &self,
         kind: InvokeKind,
@@ -822,7 +844,7 @@ impl Assembler {
             Some(_) | None => (),
         }
 
-        mast_forest_builder.ensure_external(mast_root)
+        mast_forest_builder.vendor_or_ensure_external(mast_root)
     }
 }
 

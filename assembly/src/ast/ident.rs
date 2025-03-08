@@ -108,7 +108,10 @@ impl Ident {
         if !source.starts_with(|c: char| c.is_ascii_alphabetic()) {
             return Err(IdentError::InvalidStart);
         }
-        if !source.chars().all(|c| c.is_ascii_alphabetic() || matches!(c, '_' | '0'..='9')) {
+        if !source
+            .chars()
+            .all(|c| c.is_ascii_alphanumeric() || matches!(c, '_' | '-' | ':' | '/' | '@' | '.'))
+        {
             return Err(IdentError::InvalidChars { ident: source.into() });
         }
         Ok(())
