@@ -43,8 +43,8 @@ pub use self::{
 // ASSEMBLER
 // ================================================================================================
 
-/// The [Assembler] is the primary interface for compiling Miden Assembly to the Miden Abstract
-/// Syntax Tree (MAST).
+/// The [Assembler] is the primary interface for compiling Miden Assembly to the Merkelized
+/// Abstract Syntax Tree (MAST).
 ///
 /// # Usage
 ///
@@ -168,7 +168,7 @@ impl Assembler {
 
     /// Adds `module` to the module graph of the assembler, using the provided options.
     ///
-    /// The given module must be a library or kernel module, or an error will be returned
+    /// The given module must be a library or kernel module, or an error will be returned.
     pub fn add_module_with_options(
         &mut self,
         module: impl Compile,
@@ -178,6 +178,9 @@ impl Assembler {
         Ok(ids[0])
     }
 
+    /// Adds a set of modules to the module graph of the assembler, using the provided options.
+    ///
+    /// The modules must all be library or kernel modules, or an error will be returned.
     pub fn add_modules_with_options(
         &mut self,
         modules: impl IntoIterator<Item = impl Compile>,
@@ -311,12 +314,8 @@ impl Assembler {
 // ------------------------------------------------------------------------------------------------
 /// Compilation/Assembly
 impl Assembler {
-    /// Assembles a set of modules into a [Library].
-    ///
-    /// # Errors
-    ///
-    /// Returns an error if parsing or compilation of the specified modules fails.
-    pub fn assemble_common(
+    /// Shared code used by both [Assembler::assemble_library()] and [Assembler::assemble_kernel()].
+    fn assemble_common(
         mut self,
         modules: impl IntoIterator<Item = impl Compile>,
         options: CompileOptions,
@@ -358,6 +357,11 @@ impl Assembler {
         Ok(Library::new(mast_forest.into(), exports)?)
     }
 
+    /// Assembles a set of modules into a [Library].
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if parsing or compilation of the specified modules fails.
     pub fn assemble_library(
         self,
         modules: impl IntoIterator<Item = impl Compile>,
