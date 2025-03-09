@@ -126,10 +126,12 @@ pub fn local_to_absolute_addr(
     let max_index = num_proc_locals - 1;
     if index > max_index {
         let span = proc_ctx.span();
-        return Err(AssemblyError::InvalidLocalWordIndex {
+        return Err(AssemblyError::InvalidLocalMemoryIndex {
             span,
             source_file: proc_ctx.source_manager().get(span.source_id()).ok(),
-            local_addr: index,
+            index,
+            num_locals: num_proc_locals,
+            max_index,
         });
     }
 
