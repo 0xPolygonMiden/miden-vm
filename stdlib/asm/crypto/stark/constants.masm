@@ -32,7 +32,8 @@ const.PUBLIC_INPUTS_PTR=4294800000
 # OOD Frames
 # (71 + 7) * 2 * 2 Felt for current and next trace rows and 8 * 2 Felt for constraint composition
 # polynomials. Memory slots:
-# OOD_TRACE_CURRENT_PTR: (71 + 7) * 2 * 2 = 312
+# OOD_TRACE_CURRENT_PTR: (71 + 7) * 2 = 156
+# OOD_TRACE_NEXT_PTR: (71 + 7) * 2 = 156
 # OOD_CONSTRAINT_EVALS_PTR: 8 * 2 = 16
 const.OOD_TRACE_CURRENT_PTR=4294900000
 const.OOD_TRACE_NEXT_PTR=4294900156

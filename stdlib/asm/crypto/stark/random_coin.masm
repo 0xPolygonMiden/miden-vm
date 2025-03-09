@@ -90,8 +90,6 @@ export.init_seed
     # Since memory beyond 3 * 2^30 does not have any special meaning, we can use the memory region
     # starting from address 2^32 - 1 in decreasing order to hold constants that are used throughout
     # the `verify` procedure.
-    #
-    # Cycles: 22
     padw
     exec.constants::zero_word mem_storew
     exec.constants::c_ptr mem_storew
@@ -106,7 +104,6 @@ export.init_seed
     # Create the initial seed for randomness generation from proof context
 
     ## Compute trace_length
-    ## Cycles: 20
     dup
     pow2
     u32split assertz
@@ -116,7 +113,6 @@ export.init_seed
     dup.0 exec.constants::trace_length_ptr mem_store
 
     ## Assert blowup is equal to 8
-    ##  Cycles: 6
     swap
     dup.3
     dup
@@ -185,18 +181,17 @@ export.init_seed
     ## field extension and FRI parameters
     ## field extension degree || FRI folding factor || FRI remainder polynomial max degree || blowup factor
     push.0x02040708
-    # => [PROOF_OPTIONS, MODULUS1, MODULUS0, TRACE_INFO, trace_length, num_queries, blowup, grinding, ...]
+    # => [proof_options, modulus1, modulus0, trace_info, trace_length, num_queries, blowup, grinding, ...]
 
     # Hash proof context
-    # Cycles: 15
     swapw
     movup.2 drop
     movdn.5
-    # => [num_queries, grinding, PROOF_OPTIONS, MODULUS1, MODULUS0, trace_length, TRACE_INFO, ...]
+    # => [num_queries, grinding, proof_options, modulus1, modulus0, trace_length, trace_info, ...]
 
     exec.constants::get_num_constraints
     movdn.3
-    # => [num_queries, grinding, PROOF_OPTIONS, NUM_CONSTRAINTS, MODULUS1, MODULUS0, trace_length, TRACE_INFO, ...]
+    # => [num_queries, grinding, proof_options, NUM_CONSTRAINTS, modulus1, modulus0, trace_length, trace_info, ...]
 
     push.4.0.0.0
     movdnw.2
