@@ -140,7 +140,7 @@ export.verify
     #       VI) Evaluate the constraints over the OOD frame and assert equality with H(z)
     #==============================================================================================
 
-    # Compare with the evaluation of the constraints on the trace columns OOD evaluation frame. 
+    # TODO: compare with the evaluation of the constraints on the trace columns OOD evaluation frame. 
     drop drop
     # => [...]
 
