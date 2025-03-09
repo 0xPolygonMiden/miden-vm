@@ -5,6 +5,7 @@ use vm_core::{
 };
 
 use super::{AuxColumnBuilder, Felt, FieldElement, MainTrace, ONE};
+use crate::debug::BusDebugger;
 
 // BLOCK HASH TABLE COLUMN BUILDER
 // ================================================================================================
@@ -24,12 +25,23 @@ use super::{AuxColumnBuilder, Felt, FieldElement, MainTrace, ONE};
 pub struct BlockHashTableColumnBuilder {}
 
 impl<E: FieldElement<BaseField = Felt>> AuxColumnBuilder<E> for BlockHashTableColumnBuilder {
-    fn init_responses(&self, main_trace: &MainTrace, alphas: &[E]) -> E {
+    fn init_responses(
+        &self,
+        main_trace: &MainTrace,
+        alphas: &[E],
+        _debugger: &mut BusDebugger<E>,
+    ) -> E {
         BlockHashTableRow::table_init(main_trace).collapse(alphas)
     }
 
     /// Removes a row from the block hash table.
-    fn get_requests_at(&self, main_trace: &MainTrace, alphas: &[E], row: RowIndex) -> E {
+    fn get_requests_at(
+        &self,
+        main_trace: &MainTrace,
+        alphas: &[E],
+        row: RowIndex,
+        _debugger: &mut BusDebugger<E>,
+    ) -> E {
         let op_code = main_trace.get_op_code(row).as_int() as u8;
 
         match op_code {
@@ -39,7 +51,13 @@ impl<E: FieldElement<BaseField = Felt>> AuxColumnBuilder<E> for BlockHashTableCo
     }
 
     /// Adds a row to the block hash table.
-    fn get_responses_at(&self, main_trace: &MainTrace, alphas: &[E], row: RowIndex) -> E {
+    fn get_responses_at(
+        &self,
+        main_trace: &MainTrace,
+        alphas: &[E],
+        row: RowIndex,
+        _debugger: &mut BusDebugger<E>,
+    ) -> E {
         let op_code = main_trace.get_op_code(row).as_int() as u8;
 
         match op_code {
