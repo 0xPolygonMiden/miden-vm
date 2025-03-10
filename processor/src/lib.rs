@@ -370,6 +370,10 @@ impl Process {
                 self.execute_mast_node(node.body(), program, host)?;
             }
 
+            if self.stack.peek() != ZERO {
+                return Err(ExecutionError::NotBinaryValue(self.stack.peek()));
+            }
+
             // end the LOOP block and drop the condition from the stack
             self.end_loop_node(node, true, host)
         } else if condition == ZERO {
@@ -389,6 +393,12 @@ impl Process {
         program: &MastForest,
         host: &mut impl Host,
     ) -> Result<(), ExecutionError> {
+        // call or syscall are not allowed inside a syscall
+        if self.system.in_syscall() {
+            let instruction = if call_node.is_syscall() { "syscall" } else { "call" };
+            return Err(ExecutionError::CallInSyscall(instruction));
+        }
+
         // if this is a syscall, make sure the call target exists in the kernel
         if call_node.is_syscall() {
             let callee = program.get_node_by_id(call_node.callee()).ok_or_else(|| {
@@ -413,6 +423,11 @@ impl Process {
         program: &MastForest,
         host: &mut impl Host,
     ) -> Result<(), ExecutionError> {
+        // dyn calls are not allowed inside a syscall
+        if node.is_dyncall() && self.system.in_syscall() {
+            return Err(ExecutionError::CallInSyscall("dyncall"));
+        }
+
         let callee_hash = if node.is_dyncall() {
             self.start_dyncall_node(node)?
         } else {
