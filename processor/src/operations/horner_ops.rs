@@ -1,5 +1,4 @@
-use miden_air::trace::decoder::NUM_USER_OP_HELPERS;
-use vm_core::{Felt, Operation, ZERO};
+use vm_core::{Felt, Operation};
 
 use crate::{ExecutionError, Process, QuadFelt};
 
@@ -79,9 +78,6 @@ impl Process {
         self.stack.set(ACC_HIGH_INDEX, acc_new.to_base_elements()[1]);
         self.stack.set(ACC_LOW_INDEX, acc_new.to_base_elements()[0]);
 
-        // set the helper registers
-        self.populate_helper_registers(alpha);
-
         Ok(())
     }
 
@@ -142,9 +138,6 @@ impl Process {
         self.stack.set(ACC_HIGH_INDEX, acc_new.to_base_elements()[1]);
         self.stack.set(ACC_LOW_INDEX, acc_new.to_base_elements()[0]);
 
-        // set the helper registers
-        self.populate_helper_registers(alpha);
-
         Ok(())
     }
 
@@ -185,12 +178,16 @@ impl Process {
     }
 
     /// Returns the evaluation point.
+    ///
+    /// Also sets the helper registers to hold the word read from memory.
     fn get_evaluation_point(&mut self) -> Result<QuadFelt, ExecutionError> {
         let ctx = self.system.ctx();
         let addr = self.stack.get(ALPHA_ADDR_INDEX);
         let word = self.chiplets.memory.read_word(ctx, addr, self.system.clk())?;
         let alpha_0 = word[0];
         let alpha_1 = word[1];
+
+        self.decoder.set_user_op_helpers(Operation::HornerBase, &word);
 
         Ok(QuadFelt::new(alpha_0, alpha_1))
     }
@@ -201,15 +198,6 @@ impl Process {
         let acc0 = self.stack.get(ACC_LOW_INDEX);
 
         QuadFelt::new(acc0, acc1)
-    }
-
-    /// Populates helper registers with OOD values and randomness.
-    fn populate_helper_registers(&mut self, alpha: QuadFelt) {
-        let alpha_base_elements = alpha.to_base_elements();
-        let mut helper_register_values = [ZERO; NUM_USER_OP_HELPERS];
-        helper_register_values[0] = alpha_base_elements[0];
-        helper_register_values[1] = alpha_base_elements[1];
-        self.decoder.set_user_op_helpers(Operation::HornerBase, &helper_register_values);
     }
 }
 
@@ -241,13 +229,15 @@ mod tests {
 
         // --- setup the operand stack ------------------------------------------------------------
         let mut host = DefaultHost::default();
-        let stack_inputs = StackInputs::new(inputs.to_vec()).expect("inputs lenght too long");
+        let stack_inputs = StackInputs::new(inputs.to_vec()).expect("inputs length too long");
         let mut process = Process::new_dummy_with_decoder_helpers(stack_inputs);
 
         // --- setup memory -----------------------------------------------------------------------
         let ctx = ContextId::root();
 
-        let a = rand_array::<Felt, 4>();
+        // Note: the first 2 elements of `alpha` are the actual evaluation point, the other 2 are
+        // junk.
+        let alpha_mem_word = rand_array::<Felt, 4>();
         process
             .chiplets
             .memory
@@ -255,7 +245,7 @@ mod tests {
                 ctx,
                 inputs[2].as_int().try_into().expect("Shouldn't fail by construction"),
                 process.system.clk(),
-                a,
+                alpha_mem_word,
             )
             .unwrap();
         process.execute_op(Operation::Noop, &mut host).unwrap();
@@ -280,9 +270,7 @@ mod tests {
         let acc0_old = inputs[ACC_LOW_INDEX];
         let acc_old = QuadFelt::new(acc0_old, acc1_old);
 
-        let alpha_0 = a[0];
-        let alpha_1 = a[1];
-        let alpha = QuadFelt::new(alpha_0, alpha_1);
+        let alpha = QuadFelt::new(alpha_mem_word[0], alpha_mem_word[1]);
 
         let acc_new = stack_state
             .iter()
@@ -298,7 +286,14 @@ mod tests {
         assert_eq!(inputs[ALPHA_ADDR_INDEX], stack_state[ALPHA_ADDR_INDEX]);
 
         // --- check that the helper registers were updated correctly -----------------------------
-        let helper_reg_expected = [alpha_0, alpha_1, ZERO, ZERO, ZERO, ZERO];
+        let helper_reg_expected = [
+            alpha_mem_word[0],
+            alpha_mem_word[1],
+            alpha_mem_word[2],
+            alpha_mem_word[3],
+            ZERO,
+            ZERO,
+        ];
         assert_eq!(helper_reg_expected, process.decoder.get_user_op_helpers());
     }
 
@@ -323,7 +318,7 @@ mod tests {
         // --- setup memory -----------------------------------------------------------------------
         let ctx = ContextId::root();
 
-        let a = rand_array::<Felt, 4>();
+        let alpha_mem_word = rand_array::<Felt, 4>();
         process
             .chiplets
             .memory
@@ -331,7 +326,7 @@ mod tests {
                 ctx,
                 inputs[2].as_int().try_into().expect("Shouldn't fail by construction"),
                 process.system.clk(),
-                a,
+                alpha_mem_word,
             )
             .unwrap();
         process.execute_op(Operation::Noop, &mut host).unwrap();
@@ -356,9 +351,7 @@ mod tests {
         let acc0_old = inputs[ACC_LOW_INDEX];
         let acc_old = QuadFelt::new(acc0_old, acc1_old);
 
-        let alpha_0 = a[0];
-        let alpha_1 = a[1];
-        let alpha = QuadFelt::new(alpha_0, alpha_1);
+        let alpha = QuadFelt::new(alpha_mem_word[0], alpha_mem_word[1]);
 
         let acc_new = stack_state
             .chunks(2)
@@ -374,7 +367,14 @@ mod tests {
         assert_eq!(inputs[ALPHA_ADDR_INDEX], stack_state[ALPHA_ADDR_INDEX]);
 
         // --- check that the helper registers were updated correctly -----------------------------
-        let helper_reg_expected = [alpha_0, alpha_1, ZERO, ZERO, ZERO, ZERO];
+        let helper_reg_expected = [
+            alpha_mem_word[0],
+            alpha_mem_word[1],
+            alpha_mem_word[2],
+            alpha_mem_word[3],
+            ZERO,
+            ZERO,
+        ];
         assert_eq!(helper_reg_expected, process.decoder.get_user_op_helpers());
     }
 
