@@ -5,7 +5,7 @@ use clap::Parser;
 use miden_vm::internal::InputFile;
 use rustyline::{error::ReadlineError, Config, DefaultEditor, EditMode};
 
-use super::data::{Debug, Libraries, ProgramFile};
+use super::data::Libraries;
 
 mod command;
 use command::DebugCommand;
@@ -13,18 +13,23 @@ use command::DebugCommand;
 mod executor;
 use executor::DebugExecutor;
 
+use crate::cli::utils::{get_masm_program, get_masp_program};
+
 #[derive(Debug, Clone, Parser)]
 #[clap(about = "Debug a miden program")]
 pub struct DebugCmd {
-    /// Path to .masm assembly file
-    #[clap(short = 'a', long = "assembly", value_parser)]
-    assembly_file: PathBuf,
+    /// Path to a .masm assembly file or a .masp package file
+    #[clap(value_parser)]
+    pub program_file: PathBuf,
+
     /// Path to input file
     #[clap(short = 'i', long = "input", value_parser)]
     input_file: Option<PathBuf>,
+
     /// Enable vi edit mode
     #[clap(long = "vi", long = "vim_edit_mode")]
     vim_edit_mode: Option<String>,
+
     /// Paths to .masl library files
     #[clap(short = 'l', long = "libraries", value_parser)]
     library_paths: Vec<PathBuf>,
@@ -41,21 +46,32 @@ impl DebugCmd {
         // load libraries from files
         let libraries = Libraries::new(&self.library_paths)?;
 
-        // load program from file and compile
-        let program = ProgramFile::read_with(self.assembly_file.clone(), source_manager.clone())?
-            .compile(Debug::On, &libraries.libraries)?;
+        // Determine file type based on extension.
+        let ext = self
+            .program_file
+            .extension()
+            .and_then(|s| s.to_str())
+            .unwrap_or("")
+            .to_lowercase();
 
+        // Use a single match expression to load the program.
+        let program = match ext.as_str() {
+            "masp" => get_masp_program(&self.program_file)?,
+            "masm" => get_masm_program(&self.program_file, source_manager.clone(), &libraries)?,
+            _ => return Err(Report::msg("The provided file must have a .masm or .masp extension")),
+        };
         let program_hash: [u8; 32] = program.hash().into();
+
         println!("Debugging program with hash {}...", hex::encode(program_hash));
 
         // load input data from file
-        let input_data = InputFile::read(&self.input_file, &self.assembly_file)?;
+        let input_data = InputFile::read(&self.input_file, &self.program_file)?;
 
         // fetch the stack and program inputs from the arguments
         let stack_inputs = input_data.parse_stack_inputs().map_err(Report::msg)?;
         let advice_provider = input_data.parse_advice_provider().map_err(Report::msg)?;
 
-        // Instantiate DebugExecutor
+        // instantiate DebugExecutor
         let mut debug_executor =
             DebugExecutor::new(program, stack_inputs, advice_provider, source_manager)
                 .map_err(Report::msg)?;

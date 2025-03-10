@@ -1,0 +1,34 @@
+use std::{fs, path::Path, sync::Arc};
+
+use assembly::diagnostics::{IntoDiagnostic, Report, WrapErr};
+use package::{MastArtifact, Package};
+use prover::utils::Deserializable;
+
+use crate::cli::data::{Debug, Libraries, ProgramFile};
+
+/// Returns a `Program` type from a `.masp` package file.
+pub fn get_masp_program(path: &Path) -> Result<vm_core::Program, Report> {
+    let bytes = fs::read(path).into_diagnostic().wrap_err("Failed to read package file")?;
+    // Use `read_from_bytes` provided by the Deserializable trait.
+    let package = Package::read_from_bytes(&bytes)
+        .into_diagnostic()
+        .wrap_err("Failed to deserialize package")?;
+    let program_arc = match package.into_mast_artifact() {
+        MastArtifact::Executable(prog_arc) => prog_arc,
+        _ => return Err(Report::msg("The provided package is not a program package.")),
+    };
+    // Unwrap the Arc. If multiple references exist, clone the inner program.
+    let program = Arc::try_unwrap(program_arc).unwrap_or_else(|arc| (*arc).clone());
+    Ok(program)
+}
+
+/// Returns a `Program` type from a `.masm` assembly file.
+pub fn get_masm_program(
+    path: &Path,
+    source_manager: Arc<assembly::DefaultSourceManager>,
+    libraries: &Libraries,
+) -> Result<vm_core::Program, Report> {
+    let program = ProgramFile::read_with(path.to_path_buf(), source_manager.clone())?
+        .compile(Debug::On, &libraries.libraries)?;
+    Ok(program)
+}
