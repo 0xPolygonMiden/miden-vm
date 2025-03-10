@@ -206,6 +206,8 @@ pub(super) fn build_horner_eval_request<E: FieldElement<BaseField = Felt>>(
 ) -> E {
     let eval_point_0 = main_trace.helper_register(0, row);
     let eval_point_1 = main_trace.helper_register(1, row);
+    let mem_junk_0 = main_trace.helper_register(2, row);
+    let mem_junk_1 = main_trace.helper_register(3, row);
     let eval_point_ptr = main_trace.stack_element(13, row);
     let op_label = Felt::from(MEMORY_READ_WORD_LABEL);
 
@@ -217,7 +219,7 @@ pub(super) fn build_horner_eval_request<E: FieldElement<BaseField = Felt>>(
         ctx,
         addr: eval_point_ptr,
         clk,
-        word: [eval_point_0, eval_point_1, ZERO, ZERO],
+        word: [eval_point_0, eval_point_1, mem_junk_0, mem_junk_1],
         source: "horner_eval_* req",
     };
 
