@@ -9,7 +9,7 @@ use miden_formatting::{
 
 use crate::{
     chiplets::hasher,
-    mast::{DecoratorId, MastForest, MastForestError, MastNodeId},
+    mast::{DecoratorId, MastForest, MastForestError, MastNodeId, Remapping},
     OPCODE_CALL, OPCODE_SYSCALL,
 };
 
@@ -169,6 +169,12 @@ impl CallNode {
 
 /// Mutators
 impl CallNode {
+    pub fn remap_children(&self, remapping: &Remapping) -> Self {
+        let mut node = self.clone();
+        node.callee = node.callee.remap(remapping);
+        node
+    }
+
     /// Sets the list of decorators to be executed before this node.
     pub fn set_before_enter(&mut self, decorator_ids: Vec<DecoratorId>) {
         self.before_enter = decorator_ids;

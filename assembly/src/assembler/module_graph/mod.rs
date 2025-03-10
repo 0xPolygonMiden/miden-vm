@@ -207,10 +207,6 @@ impl ModuleGraph {
 
     /// Add `module` to the graph.
     ///
-    /// NOTE: This operation only adds a module to the graph, but does not perform the
-    /// important analysis needed for compilation, you must call [recompute] once all modules
-    /// are added to ensure the analysis results reflect the current version of the graph.
-    ///
     /// # Errors
     ///
     /// This operation can fail for the following reasons:
@@ -223,9 +219,8 @@ impl ModuleGraph {
     /// This function will panic if the number of modules exceeds the maximum representable
     /// [ModuleIndex] value, `u16::MAX`.
     pub fn add_ast_module(&mut self, module: Box<Module>) -> Result<ModuleIndex, AssemblyError> {
-        let res = self.add_module(PendingWrappedModule::Ast(module))?;
-        self.recompute()?;
-        Ok(res)
+        let ids = self.add_ast_modules([module])?;
+        Ok(ids[0])
     }
 
     fn add_module(&mut self, module: PendingWrappedModule) -> Result<ModuleIndex, AssemblyError> {
@@ -242,7 +237,7 @@ impl ModuleGraph {
 
     pub fn add_ast_modules(
         &mut self,
-        modules: impl Iterator<Item = Box<Module>>,
+        modules: impl IntoIterator<Item = Box<Module>>,
     ) -> Result<Vec<ModuleIndex>, AssemblyError> {
         let idx = modules
             .into_iter()

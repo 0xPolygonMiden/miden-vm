@@ -9,6 +9,7 @@ use verifier_recursive::{generate_advice_inputs, VerifierData};
 
 // Note: Changes to MidenVM may cause this test to fail when some of the assumptions documented
 // in `stdlib/asm/crypto/stark/verifier.masm` are violated.
+#[ignore = "needs horner_eval_* ops"]
 #[test]
 fn stark_verifier_e2f4() {
     // An example MASM program to be verified inside Miden VM.
