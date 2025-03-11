@@ -1122,7 +1122,7 @@ dependencies = [
 [[package]]
 name = "miden-crypto"
 version = "0.14.0"
-source = "git+https://github.com/0xPolygonMiden/crypto?branch=al-update-winter#0f08c36982cb11e94d8bfcc575d3187a61705951"
+source = "git+https://github.com/0xPolygonMiden/crypto?branch=al-update-winter#a1e3981099c786c420bf52245f5fdd14a768e680"
 dependencies = [
  "blake3",
  "cc",
