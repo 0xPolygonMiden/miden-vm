@@ -8,9 +8,6 @@ use vm_core::{assert_matches, Kernel, StackInputs};
 use super::*;
 use crate::{system::FMP_MAX, DefaultHost, Process};
 
-// TODO(plafer): Modify `Test` struct so that every test runs both processors, and compares the
-// stack outputs.
-
 // TODO(plafer): add prop tests to try to make the stack overflow logic fail (e.g. an out of bounds
 // stack access).
 
@@ -282,9 +279,6 @@ fn test_memory_word_access_alignment() {
         );
     }
 }
-
-// TODO(plafer): test that memory operations work just like Processor (i.e. like basic_block_test,
-// but for memory things)
 
 #[test]
 fn test_mloadw_success() {

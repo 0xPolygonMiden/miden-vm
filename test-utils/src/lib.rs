@@ -16,7 +16,7 @@ use alloc::{
 pub use assembly::{diagnostics::Report, LibraryPath, SourceFile, SourceManager};
 use assembly::{KernelLibrary, Library};
 pub use pretty_assertions::{assert_eq, assert_ne, assert_str_eq};
-use processor::Program;
+use processor::{fast::SpeedyGonzales, Program};
 pub use processor::{
     AdviceInputs, AdviceProvider, ContextId, DefaultHost, ExecutionError, ExecutionOptions,
     ExecutionTrace, Process, ProcessState, VmStateIterator,
@@ -324,22 +324,27 @@ impl Test {
 
     /// Compiles the test's source to a Program and executes it with the tests inputs. Returns a
     /// resulting execution trace or error.
+    ///
+    /// Internally, this also checks that the slow and fast processors agree on the stack
+    /// outputs.
     #[track_caller]
     pub fn execute(&self) -> Result<ExecutionTrace, ExecutionError> {
-        let (program, kernel) = self.compile().expect("Failed to compile test source.");
-        let mut host = DefaultHost::new(MemAdviceProvider::from(self.advice_inputs.clone()));
-        if let Some(kernel) = kernel {
-            host.load_mast_forest(kernel.mast_forest().clone()).unwrap();
-        }
-        for library in &self.libraries {
-            host.load_mast_forest(library.mast_forest().clone()).unwrap();
-        }
-        processor::execute(
-            &program,
+        let (program, mut host) = self.get_program_and_host();
+
+        // slow processor
+        let mut process = Process::new(
+            program.kernel().clone(),
             self.stack_inputs.clone(),
-            &mut host,
             ExecutionOptions::default(),
-        )
+        );
+        let slow_stack_outputs = process.execute(&program, &mut host)?;
+        let trace = ExecutionTrace::new(process, slow_stack_outputs.clone());
+        assert_eq!(&program.hash(), trace.program_hash(), "inconsistent program hash");
+
+        // compare fast and slow processors' stack outputs
+        self.assert_outputs_with_fast_processor(slow_stack_outputs);
+
+        Ok(trace)
     }
 
     /// Compiles the test's source to a Program and executes it with the tests inputs. Returns the
@@ -347,21 +352,17 @@ impl Test {
     pub fn execute_process(
         &self,
     ) -> Result<(Process, DefaultHost<MemAdviceProvider>), ExecutionError> {
-        let (program, kernel) = self.compile().expect("Failed to compile test source.");
-        let mut host = DefaultHost::new(MemAdviceProvider::from(self.advice_inputs.clone()));
-        if let Some(kernel) = kernel {
-            host.load_mast_forest(kernel.mast_forest().clone()).unwrap();
-        }
-        for library in &self.libraries {
-            host.load_mast_forest(library.mast_forest().clone()).unwrap();
-        }
+        let (program, mut host) = self.get_program_and_host();
 
         let mut process = Process::new(
             program.kernel().clone(),
             self.stack_inputs.clone(),
             ExecutionOptions::default(),
         );
-        process.execute(&program, &mut host)?;
+        let stack_outputs = process.execute(&program, &mut host)?;
+
+        self.assert_outputs_with_fast_processor(stack_outputs);
+
         Ok((process, host))
     }
 
@@ -369,18 +370,13 @@ impl Test {
     /// using the given public inputs and the specified number of stack outputs. When `test_fail`
     /// is true, this function will force a failure by modifying the first output.
     pub fn prove_and_verify(&self, pub_inputs: Vec<u64>, test_fail: bool) {
+        let (program, mut host) = self.get_program_and_host();
         let stack_inputs = StackInputs::try_from_ints(pub_inputs).unwrap();
-        let (program, kernel) = self.compile().expect("Failed to compile test source.");
-        let mut host = DefaultHost::new(MemAdviceProvider::from(self.advice_inputs.clone()));
-        if let Some(kernel) = kernel {
-            host.load_mast_forest(kernel.mast_forest().clone()).unwrap();
-        }
-        for library in &self.libraries {
-            host.load_mast_forest(library.mast_forest().clone()).unwrap();
-        }
         let (mut stack_outputs, proof) =
             prover::prove(&program, stack_inputs.clone(), &mut host, ProvingOptions::default())
                 .unwrap();
+
+        self.assert_outputs_with_fast_processor(stack_outputs.clone());
 
         let program_info = ProgramInfo::from(program);
         if test_fail {
@@ -396,15 +392,21 @@ impl Test {
     /// VmStateIterator that allows us to iterate through each clock cycle and inspect the process
     /// state.
     pub fn execute_iter(&self) -> VmStateIterator {
-        let (program, kernel) = self.compile().expect("Failed to compile test source.");
-        let mut host = DefaultHost::new(MemAdviceProvider::from(self.advice_inputs.clone()));
-        if let Some(kernel) = kernel {
-            host.load_mast_forest(kernel.mast_forest().clone()).unwrap();
+        let (program, mut host) = self.get_program_and_host();
+
+        let mut process = Process::new_debug(program.kernel().clone(), self.stack_inputs.clone());
+        let result = process.execute(&program, &mut host);
+
+        if let Ok(stack_outputs) = &result {
+            assert_eq!(
+                program.hash(),
+                process.decoder.program_hash().into(),
+                "inconsistent program hash"
+            );
+
+            self.assert_outputs_with_fast_processor(stack_outputs.clone());
         }
-        for library in &self.libraries {
-            host.load_mast_forest(library.mast_forest().clone()).unwrap();
-        }
-        processor::execute_iter(&program, self.stack_inputs.clone(), &mut host)
+        VmStateIterator::new(process, result)
     }
 
     /// Returns the last state of the stack after executing a test.
@@ -413,6 +415,40 @@ impl Test {
         let trace = self.execute().unwrap();
 
         trace.last_stack_state()
+    }
+
+    // HELPERS
+    // ------------------------------------------------------------------------------------------
+
+    /// Returns the program and host for the test.
+    ///
+    /// The host is initialized with the advice inputs provided in the test, as well as the kernel
+    /// and library MAST forests.
+    fn get_program_and_host(&self) -> (Program, DefaultHost<MemAdviceProvider>) {
+        let (program, kernel) = self.compile().expect("Failed to compile test source.");
+        let mut host = DefaultHost::new(MemAdviceProvider::from(self.advice_inputs.clone()));
+        if let Some(kernel) = kernel {
+            host.load_mast_forest(kernel.mast_forest().clone()).unwrap();
+        }
+        for library in &self.libraries {
+            host.load_mast_forest(library.mast_forest().clone()).unwrap();
+        }
+
+        (program, host)
+    }
+
+    /// Runs the program on the fast processor, and asserts that the stack outputs match the slow
+    /// processor's stack outputs.
+    fn assert_outputs_with_fast_processor(&self, slow_stack_outputs: StackOutputs) {
+        let (program, mut host) = self.get_program_and_host();
+        let fast_process =
+            SpeedyGonzales::new(self.stack_inputs.clone().into_iter().rev().collect());
+        let fast_stack_outputs = fast_process.execute(&program, &mut host).unwrap();
+
+        assert_eq!(
+            slow_stack_outputs, fast_stack_outputs,
+            "stack outputs do not match between slow and fast processors"
+        );
     }
 }
 

@@ -433,7 +433,7 @@ mod tests {
         let test = build_test!(source, &inputs, &adv_stack);
         test.expect_stack(&expected);
 
-        let pub_inputs: Vec<u64> = Vec::new();
+        let pub_inputs: Vec<u64> = inputs.to_vec();
         test.prove_and_verify(pub_inputs, false);
     }
 
@@ -492,7 +492,7 @@ mod tests {
         let test = build_test!(source, &inputs, &adv_stack);
         test.expect_stack(&expected);
 
-        let pub_inputs: Vec<u64> = Vec::new();
+        let pub_inputs: Vec<u64> = inputs.to_vec();
         test.prove_and_verify(pub_inputs, false);
     }
 }

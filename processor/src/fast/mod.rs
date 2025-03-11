@@ -36,7 +36,7 @@ mod u32_ops;
 #[cfg(test)]
 mod tests;
 
-const STACK_BUFFER_SIZE: usize = 1024;
+const STACK_BUFFER_SIZE: usize = 13250;
 
 /// A fast processor which doesn't generate any trace.
 #[derive(Debug)]
