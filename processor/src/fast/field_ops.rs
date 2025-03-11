@@ -82,14 +82,14 @@ impl SpeedyGonzales {
     pub fn op_expacc(&mut self) {
         let old_base = self.stack[self.stack_top_idx - 2];
         let old_acc = self.stack[self.stack_top_idx - 3];
-        let old_exp = self.stack[self.stack_top_idx - 4];
+        let old_exp_int = self.stack[self.stack_top_idx - 4].as_int();
 
         // Compute new exponent.
-        let new_exp = Felt::new(old_exp.as_int() >> 1);
+        let new_exp = Felt::new(old_exp_int >> 1);
 
         // Compute new accumulator. We update the accumulator only when the least significant bit of
         // the exponent is 1.
-        let exp_lsb = old_exp.as_int() & 1;
+        let exp_lsb = old_exp_int & 1;
         let acc_update_val = if exp_lsb == 1 { old_base } else { ONE };
         let new_acc = old_acc * acc_update_val;
 

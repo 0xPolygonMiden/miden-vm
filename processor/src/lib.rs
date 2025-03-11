@@ -658,6 +658,7 @@ impl<'a> ProcessState<'a> {
     }
 
     /// Returns the current clock cycle of a process.
+    #[inline(always)]
     pub fn clk(&self) -> RowIndex {
         match self {
             ProcessState::Slow(state) => state.system.clk(),
@@ -666,6 +667,7 @@ impl<'a> ProcessState<'a> {
     }
 
     /// Returns the current execution context ID.
+    #[inline(always)]
     pub fn ctx(&self) -> ContextId {
         match self {
             ProcessState::Slow(state) => state.system.ctx(),
@@ -674,6 +676,7 @@ impl<'a> ProcessState<'a> {
     }
 
     /// Returns the current value of the free memory pointer.
+    #[inline(always)]
     pub fn fmp(&self) -> u64 {
         match self {
             ProcessState::Slow(state) => state.system.fmp().as_int(),
@@ -682,6 +685,7 @@ impl<'a> ProcessState<'a> {
     }
 
     /// Returns the value located at the specified position on the stack at the current clock cycle.
+    #[inline(always)]
     pub fn get_stack_item(&self, pos: usize) -> Felt {
         match self {
             ProcessState::Slow(state) => state.stack.get(pos),
@@ -699,6 +703,7 @@ impl<'a> ProcessState<'a> {
     /// stack will be at the last position in the word.
     ///
     /// Creating a word does not change the state of the stack.
+    #[inline(always)]
     pub fn get_stack_word(&self, word_idx: usize) -> Word {
         match self {
             ProcessState::Slow(state) => state.stack.get_word(word_idx),
@@ -708,6 +713,7 @@ impl<'a> ProcessState<'a> {
 
     /// Returns stack state at the current clock cycle. This includes the top 16 items of the
     /// stack + overflow entries.
+    #[inline(always)]
     pub fn get_stack_state(&self) -> Vec<Felt> {
         match self {
             ProcessState::Slow(state) => state.stack.get_state_at(state.system.clk()),
@@ -717,6 +723,7 @@ impl<'a> ProcessState<'a> {
 
     /// Returns the element located at the specified context/address, or None if the address hasn't
     /// been accessed previously.
+    #[inline(always)]
     pub fn get_mem_value(&self, ctx: ContextId, addr: u32) -> Option<Felt> {
         match self {
             ProcessState::Slow(state) => state.chiplets.memory.get_value(ctx, addr),
@@ -728,6 +735,7 @@ impl<'a> ProcessState<'a> {
     ///
     /// # Errors
     /// - If the address is not word aligned.
+    #[inline(always)]
     pub fn get_mem_word(&self, ctx: ContextId, addr: u32) -> Result<Option<Word>, ExecutionError> {
         match self {
             ProcessState::Slow(state) => state.chiplets.memory.get_word(ctx, addr),
@@ -742,6 +750,7 @@ impl<'a> ProcessState<'a> {
     ///
     /// The state is returned as a vector of (address, value) tuples, and includes addresses which
     /// have been accessed at least once.
+    #[inline(always)]
     pub fn get_mem_state(&self, ctx: ContextId) -> Vec<(u64, Felt)> {
         match self {
             ProcessState::Slow(state) => {
