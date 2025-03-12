@@ -36,11 +36,13 @@ mod u32_ops;
 #[cfg(test)]
 mod tests;
 
+// TODO(plafer): probably don't start the stack top ptr in the middle of the stack buffer.
+// Try moving closer to bottom, et rerun benchmarks.
 const STACK_BUFFER_SIZE: usize = 13250;
 
 /// A fast processor which doesn't generate any trace.
 #[derive(Debug)]
-pub struct SpeedyGonzales {
+pub struct FastProcessor {
     /// The stack is stored in reverse order, so that the last element is at the top of the stack.
     pub(super) stack: [Felt; STACK_BUFFER_SIZE],
     /// The index of the top of the stack.
@@ -77,11 +79,11 @@ pub struct SpeedyGonzales {
     call_stack: Vec<ExecutionContextInfo>,
 }
 
-impl SpeedyGonzales {
+impl FastProcessor {
     // CONSTRUCTORS
     // ----------------------------------------------------------------------------------------------
 
-    /// Creates a new `SpeedyGonzales` instance with the given stack inputs.
+    /// Creates a new `FastProcessor` instance with the given stack inputs.
     ///
     /// The stack inputs are expected to be stored in reverse order. For example, if `stack_inputs =
     /// [1,2,3]`, then the stack will be initialized as `[3,2,1,0,0,...]`, with `3` being on
@@ -108,7 +110,7 @@ impl SpeedyGonzales {
 
         let bounds_check_counter = stack_bot_idx;
 
-        SpeedyGonzales {
+        FastProcessor {
             stack,
             stack_top_idx,
             stack_bot_idx,

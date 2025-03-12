@@ -1,9 +1,9 @@
 use vm_core::{WORD_SIZE, ZERO};
 
-use super::SpeedyGonzales;
+use super::FastProcessor;
 use crate::ExecutionError;
 
-impl SpeedyGonzales {
+impl FastProcessor {
     pub fn op_pad(&mut self) {
         self.stack[self.stack_top_idx] = ZERO;
         self.increment_stack_size();

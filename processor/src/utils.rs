@@ -51,7 +51,7 @@ pub(crate) fn split_u32_into_u16(value: u64) -> (u16, u16) {
 /// provided host.
 ///
 /// This helper function is extracted to ensure that [`crate::Process`] and
-/// [`crate::fast::SpeedyGonzales`] resolve external nodes in the same way.
+/// [`crate::fast::FastProcessor`] resolve external nodes in the same way.
 pub(crate) fn resolve_external_node(
     external_node: &ExternalNode,
     host: &mut impl Host,

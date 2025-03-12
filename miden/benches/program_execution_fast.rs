@@ -1,6 +1,6 @@
 use criterion::{criterion_group, criterion_main, Criterion};
 use miden_vm::{internal::InputFile, Assembler, DefaultHost, StackInputs};
-use processor::fast::SpeedyGonzales;
+use processor::fast::FastProcessor;
 use stdlib::StdLibrary;
 use walkdir::WalkDir;
 
@@ -49,7 +49,7 @@ fn program_execution_fast(c: &mut Criterion) {
                         .expect("Failed to compile test source.");
                     bench.iter(|| {
                         let speedy =
-                            SpeedyGonzales::new(stack_inputs.iter().rev().copied().collect());
+                            FastProcessor::new(stack_inputs.iter().rev().copied().collect());
                         speedy.execute(&program, &mut host).unwrap();
                     });
                 });

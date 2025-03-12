@@ -1,9 +1,9 @@
 use vm_core::{utils::range, Word};
 
-use super::{ExecutionError, Felt, SpeedyGonzales, WORD_SIZE};
+use super::{ExecutionError, FastProcessor, Felt, WORD_SIZE};
 use crate::{AdviceProvider, Host, ProcessState};
 
-impl SpeedyGonzales {
+impl FastProcessor {
     pub fn op_push(&mut self, element: Felt) {
         self.stack[self.stack_top_idx] = element;
         self.increment_stack_size();

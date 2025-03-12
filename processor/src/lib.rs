@@ -10,7 +10,7 @@ use alloc::vec::Vec;
 
 pub mod fast;
 
-use fast::SpeedyGonzales;
+use fast::FastProcessor;
 use miden_air::trace::{
     CHIPLETS_WIDTH, DECODER_TRACE_WIDTH, MIN_TRACE_LEN, RANGE_CHECK_TRACE_WIDTH, STACK_TRACE_WIDTH,
     SYS_TRACE_WIDTH,
@@ -641,7 +641,7 @@ pub struct SlowProcessState<'a> {
 
 #[derive(Debug, Clone, Copy)]
 pub struct FastProcessState<'a> {
-    processor: &'a SpeedyGonzales,
+    processor: &'a FastProcessor,
     /// the index of the operation in its basic block
     op_idx: usize,
 }
@@ -653,7 +653,7 @@ pub enum ProcessState<'a> {
 }
 
 impl<'a> ProcessState<'a> {
-    pub fn new_fast(processor: &'a SpeedyGonzales, op_idx: usize) -> Self {
+    pub fn new_fast(processor: &'a FastProcessor, op_idx: usize) -> Self {
         Self::Fast(FastProcessState { processor, op_idx })
     }
 

@@ -1,6 +1,6 @@
 use vm_core::{sys_events::SystemEvent, utils::range, WORD_SIZE, ZERO};
 
-use super::{ExecutionError, SpeedyGonzales, ONE};
+use super::{ExecutionError, FastProcessor, ONE};
 use crate::{
     operations::sys_ops::sys_event_handlers::{
         copy_map_value_to_adv_stack, copy_merkle_node_to_adv_stack, insert_hdword_into_adv_map,
@@ -13,7 +13,7 @@ use crate::{
     Host, ProcessState, FMP_MIN,
 };
 
-impl SpeedyGonzales {
+impl FastProcessor {
     pub fn op_assert(
         &mut self,
         err_code: u32,

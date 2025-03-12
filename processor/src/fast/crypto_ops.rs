@@ -1,9 +1,9 @@
 use vm_core::{chiplets::hasher::STATE_WIDTH, crypto::hash::Rpo256, utils::range, Felt};
 
-use super::SpeedyGonzales;
+use super::FastProcessor;
 use crate::{AdviceProvider, ExecutionError, Host};
 
-impl SpeedyGonzales {
+impl FastProcessor {
     /// Applies a permutation of the Rpo256 hash function to the top 12 elements of the stack.
     pub fn op_hperm(&mut self) {
         let hashed_state = {

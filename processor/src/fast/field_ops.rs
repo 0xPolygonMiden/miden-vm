@@ -1,10 +1,10 @@
 use vm_core::{Felt, FieldElement, ONE, ZERO};
 
-use super::{assert_binary, ExecutionError, SpeedyGonzales};
+use super::{assert_binary, ExecutionError, FastProcessor};
 
 const TWO: Felt = Felt::new(2);
 
-impl SpeedyGonzales {
+impl FastProcessor {
     pub fn op_add(&mut self) -> Result<(), ExecutionError> {
         self.pop2_applyfn_push(|a, b| Ok(a + b))
     }

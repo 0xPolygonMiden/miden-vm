@@ -16,7 +16,7 @@ use alloc::{
 pub use assembly::{diagnostics::Report, LibraryPath, SourceFile, SourceManager};
 use assembly::{KernelLibrary, Library};
 pub use pretty_assertions::{assert_eq, assert_ne, assert_str_eq};
-use processor::{fast::SpeedyGonzales, Program};
+use processor::{fast::FastProcessor, Program};
 pub use processor::{
     AdviceInputs, AdviceProvider, ContextId, DefaultHost, ExecutionError, ExecutionOptions,
     ExecutionTrace, Process, ProcessState, VmStateIterator,
@@ -442,7 +442,7 @@ impl Test {
     fn assert_outputs_with_fast_processor(&self, slow_stack_outputs: StackOutputs) {
         let (program, mut host) = self.get_program_and_host();
         let fast_process =
-            SpeedyGonzales::new(self.stack_inputs.clone().into_iter().rev().collect());
+            FastProcessor::new(self.stack_inputs.clone().into_iter().rev().collect());
         let fast_stack_outputs = fast_process.execute(&program, &mut host).unwrap();
 
         assert_eq!(
