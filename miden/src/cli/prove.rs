@@ -4,6 +4,9 @@ use assembly::diagnostics::{IntoDiagnostic, Report, WrapErr};
 use clap::Parser;
 use miden_vm::{internal::InputFile, ProvingOptions};
 use processor::{DefaultHost, ExecutionOptions, ExecutionOptionsError, Program};
+#[cfg(all(target_arch = "x86_64", feature = "cuda"))]
+use prover::cuda::get_num_of_gpus;
+use prover::Prover;
 use stdlib::StdLibrary;
 use tracing::instrument;
 
@@ -68,6 +71,11 @@ impl ProveCmd {
     pub fn get_proof_options(&self) -> Result<ProvingOptions, ExecutionOptionsError> {
         let exec_options =
             ExecutionOptions::new(Some(self.max_cycles), self.expected_cycles, self.trace, false)?;
+
+        let partitions = 1;
+        #[cfg(all(target_arch = "x86_64", feature = "cuda"))]
+        let partitions = get_num_of_gpus();
+
         Ok(match self.security.as_str() {
             "96bits" => {
                 if self.rpx {
@@ -85,7 +93,8 @@ impl ProveCmd {
             },
             other => panic!("{} is not a valid security setting", other),
         }
-        .with_execution_options(exec_options))
+        .with_execution_options(exec_options)
+        .with_partitions(partitions))
     }
     pub fn execute(&self) -> Result<(), Report> {
         println!("===============================================================================");
@@ -119,10 +128,11 @@ impl ProveCmd {
             self.get_proof_options().map_err(|err| Report::msg(format!("{err}")))?;
 
         // execute program and generate proof
-        let (stack_outputs, proof) =
-            prover::prove(&program, stack_inputs, &mut host, proving_options)
-                .into_diagnostic()
-                .wrap_err("Failed to prove program")?;
+        let mut prover = Prover::new();
+        let (stack_outputs, proof) = prover
+            .prove(&program, stack_inputs, &mut host, proving_options)
+            .into_diagnostic()
+            .wrap_err("Failed to prove program")?;
 
         println!("Program proved in {} ms", now.elapsed().as_millis());
 

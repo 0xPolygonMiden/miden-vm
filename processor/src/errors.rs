@@ -94,6 +94,8 @@ pub enum ExecutionError {
     NoMastForestWithProcedure { root_digest: Digest },
     #[error("memory address cannot exceed 2^32 but was {0}")]
     MemoryAddressOutOfBounds(u64),
+    #[error("VM exceeded the memory usage limit {0}")]
+    MemoryLimitExceeded(usize),
     #[error(
         "word memory access at address {addr} in context {ctx} is unaligned at clock cycle {clk}"
     )]
