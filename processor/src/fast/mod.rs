@@ -419,12 +419,6 @@ impl FastProcessor {
         basic_block_node: &BasicBlockNode,
         host: &mut impl Host,
     ) -> Result<(), ExecutionError> {
-        // TODO(plafer): this enumerate results in a ~5% performance drop (or about 25 MHz on the
-        // fibonacci benchmark). We should find a better way to know the operation index when we
-        // need to know the clock. For example, if the operations were stored in a Vec, we could
-        // just use the index of the operation in the Vec. If still is still too slow, we could use
-        // pointer arithmetic (comparing the address of the operation to the address of the first
-        // operation in the Vec).
         for (op_idx, operation) in basic_block_node.operations().enumerate() {
             self.execute_op(operation, op_idx, host)?;
         }

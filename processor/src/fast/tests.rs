@@ -8,9 +8,6 @@ use vm_core::{assert_matches, Kernel, StackInputs};
 use super::*;
 use crate::{system::FMP_MAX, DefaultHost, Process};
 
-// TODO(plafer): add prop tests to try to make the stack overflow logic fail (e.g. an out of bounds
-// stack access).
-
 /// Test a number of combinations of stack inputs and operations to ensure that the fast processor
 /// produces the same results as `Process`.
 ///
