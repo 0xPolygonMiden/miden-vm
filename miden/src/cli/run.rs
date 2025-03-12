@@ -1,15 +1,16 @@
-use std::{fs, path::PathBuf, sync::Arc, time::Instant};
+use std::{path::PathBuf, time::Instant};
 
 use assembly::diagnostics::{IntoDiagnostic, Report, WrapErr};
 use clap::Parser;
 use miden_vm::internal::InputFile;
-use package::{MastArtifact, Package};
 use processor::{DefaultHost, ExecutionOptions, ExecutionTrace};
-use prover::utils::Deserializable;
 use stdlib::StdLibrary;
 use tracing::instrument;
 
-use super::data::{Libraries, OutputFile, ProgramFile};
+use super::{
+    data::{Libraries, OutputFile},
+    utils::{get_masm_program, get_masp_program},
+};
 
 #[derive(Debug, Clone, Parser)]
 #[clap(about = "Run a miden program")]
@@ -124,19 +125,7 @@ impl RunCmd {
 
 #[instrument(name = "run_program", skip_all)]
 fn run_masp_program(params: &RunCmd) -> Result<(ExecutionTrace, [u8; 32]), Report> {
-    let bytes = fs::read(&params.program_file)
-        .into_diagnostic()
-        .wrap_err("Failed to read package file")?;
-
-    let package = Package::read_from_bytes(&bytes)
-        .into_diagnostic()
-        .wrap_err("Failed to deserialize package")?;
-
-    let program_arc: Arc<vm_core::Program> = match package.into_mast_artifact() {
-        MastArtifact::Executable(program_arc) => program_arc,
-        _ => return Err(Report::msg("The provided package is not a program package.")),
-    };
-    let program = &*program_arc;
+    let program = get_masp_program(&params.program_file)?;
 
     // use simplified input data reading
     let input_data = InputFile::read(&params.input_file, &params.program_file)?;
@@ -155,7 +144,7 @@ fn run_masp_program(params: &RunCmd) -> Result<(ExecutionTrace, [u8; 32]), Repor
     let program_hash: [u8; 32] = program.hash().into();
 
     // execute program and generate outputs
-    let trace = processor::execute(program, stack_inputs, &mut host, execution_options)
+    let trace = processor::execute(&program, stack_inputs, &mut host, execution_options)
         .into_diagnostic()
         .wrap_err("Failed to generate execution trace")?;
 
@@ -175,8 +164,7 @@ fn run_masm_program(params: &RunCmd) -> Result<(ExecutionTrace, [u8; 32]), Repor
     let libraries = Libraries::new(&params.library_paths)?;
 
     // load program from file and compile
-    let program = ProgramFile::read(&params.program_file)?
-        .compile(params.debug.into(), &libraries.libraries)?;
+    let program = get_masm_program(&params.program_file, &libraries)?;
     let input_data = InputFile::read(&params.input_file, &params.program_file)?;
 
     let execution_options = ExecutionOptions::new(

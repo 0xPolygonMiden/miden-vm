@@ -1,17 +1,16 @@
-use std::{fs, path::PathBuf, sync::Arc, time::Instant};
+use std::{path::PathBuf, time::Instant};
 
-use assembly::{
-    diagnostics::{IntoDiagnostic, Report, WrapErr},
-    utils::Deserializable,
-};
+use assembly::diagnostics::{IntoDiagnostic, Report, WrapErr};
 use clap::Parser;
 use miden_vm::{internal::InputFile, ProvingOptions};
-use package::{MastArtifact, Package};
 use processor::{DefaultHost, ExecutionOptions, ExecutionOptionsError, Program};
 use stdlib::StdLibrary;
 use tracing::instrument;
 
-use super::data::{Debug, Libraries, OutputFile, ProgramFile, ProofFile};
+use super::{
+    data::{Libraries, OutputFile, ProofFile},
+    utils::{get_masm_program, get_masp_program},
+};
 
 #[derive(Debug, Clone, Parser)]
 #[clap(about = "Prove a miden program")]
@@ -155,29 +154,15 @@ impl ProveCmd {
 
 #[instrument(skip_all)]
 fn load_masp_data(params: &ProveCmd) -> Result<(Program, InputFile), Report> {
-    let bytes = fs::read(&params.program_file)
-        .into_diagnostic()
-        .wrap_err("Failed to read package file")?;
-    let package = Package::read_from_bytes(&bytes)
-        .into_diagnostic()
-        .wrap_err("Failed to deserialize package")?;
-
-    let program_arc: Arc<vm_core::Program> = match package.into_mast_artifact() {
-        MastArtifact::Executable(program_arc) => program_arc,
-        _ => return Err(Report::msg("The provided package is not a program package.")),
-    };
-    let program = &*program_arc;
-
+    let program = get_masp_program(&params.program_file)?;
     let input_data = InputFile::read(&params.input_file, &params.program_file)?;
-
     Ok((program.clone(), input_data))
 }
 
 #[instrument(skip_all)]
 fn load_masm_data(params: &ProveCmd) -> Result<(Program, InputFile), Report> {
     let libraries = Libraries::new(&params.library_paths)?;
-    let program =
-        ProgramFile::read(&params.program_file)?.compile(Debug::Off, &libraries.libraries)?;
+    let program = get_masm_program(&params.program_file, &libraries)?;
     let input_data = InputFile::read(&params.input_file, &params.program_file)?;
     Ok((program, input_data))
 }
