@@ -4,7 +4,7 @@ use core::ops::Range;
 
 pub use vm_core::crypto::hash::{Rpo256 as Hasher, RpoDigest as Digest};
 
-use super::{create_range, Felt, HASHER_AUX_TRACE_OFFSET, ONE, ZERO};
+use super::{create_range, Felt, ONE, VTABLE_AUX_TRACE_OFFSET, ZERO};
 
 // TYPES ALIASES
 // ================================================================================================
@@ -119,4 +119,4 @@ pub const RETURN_STATE_LABEL: u8 = 0b1001;
 // --- Column accessors in the auxiliary trace ----------------------------------------------------
 
 /// Index of the auxiliary trace column tracking the state of the sibling table.
-pub const P1_COL_IDX: usize = HASHER_AUX_TRACE_OFFSET;
+pub const P1_COL_IDX: usize = VTABLE_AUX_TRACE_OFFSET;

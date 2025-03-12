@@ -2,7 +2,7 @@ use core::ops::Range;
 
 use vm_core::{utils::range as create_range, Felt, ONE, ZERO};
 
-use super::{CHIPLETS_OFFSET, HASHER_AUX_TRACE_OFFSET};
+use super::{CHIPLETS_OFFSET, VTABLE_AUX_TRACE_OFFSET};
 
 pub mod bitwise;
 pub mod hasher;
