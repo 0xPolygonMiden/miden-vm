@@ -93,10 +93,10 @@ pub const CHIPLETS_AUX_TRACE_RANGE: Range<usize> =
 ///
 /// 1. Hash chiplet's sibling table,
 /// 2. Kernel ROM chiplet's kernel procedure table.
-pub const VTABLE_AUX_TRACE_OFFSET: usize = RANGE_CHECK_AUX_TRACE_RANGE.end;
+pub const HASH_KERNEL_VTABLE_AUX_TRACE_OFFSET: usize = RANGE_CHECK_AUX_TRACE_RANGE.end;
 pub const HASHER_AUX_TRACE_WIDTH: usize = 1;
 pub const HASHER_AUX_TRACE_RANGE: Range<usize> =
-    range(VTABLE_AUX_TRACE_OFFSET, HASHER_AUX_TRACE_WIDTH);
+    range(HASH_KERNEL_VTABLE_AUX_TRACE_OFFSET, HASHER_AUX_TRACE_WIDTH);
 
 pub const AUX_TRACE_WIDTH: usize = CHIPLETS_AUX_TRACE_RANGE.end;
 
