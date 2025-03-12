@@ -36,9 +36,22 @@ mod u32_ops;
 #[cfg(test)]
 mod tests;
 
-// TODO(plafer): probably don't start the stack top ptr in the middle of the stack buffer.
-// Try moving closer to bottom, et rerun benchmarks.
-const STACK_BUFFER_SIZE: usize = 13250;
+/// The size of the stack buffer.
+/// 
+/// Note: This value is much larger than it needs to be for the majority of programs. However, some
+/// existing programs need it (e.g. `std::math::secp256k1::group::gen_mul`), so we're forced to push it up.
+/// At this high a value, we're starting to see some performance degradation on benchmarks. For example,
+/// the blake3 benchmark went from 285 MHz to 250 MHz (~10% degradation). Perhaps a better solution would
+/// be to make this value much smaller (~1000), and then fallback to a `Vec` if the stack overflows.
+const STACK_BUFFER_SIZE: usize = 6650;
+
+/// The initial position of the top of the stack in the stack buffer.
+/// 
+/// We place this value close to 0 because if a program hits the limit, it's much more likely to hit
+/// the upper bound than the lower bound, since hitting the lower bound only occurs when you drop
+/// 0's that were generated automatically to keep the stack depth at 16. In practice, if this
+/// occurs, it is most likely a bug.
+const INITIAL_STACK_TOP_IDX: usize = 50;
 
 /// A fast processor which doesn't generate any trace.
 #[derive(Debug)]
@@ -91,13 +104,7 @@ impl FastProcessor {
     pub fn new(stack_inputs: Vec<Felt>) -> Self {
         assert!(stack_inputs.len() <= MIN_STACK_DEPTH);
 
-        // The stack buffer initially looks like
-        //
-        // | ---x--- | stack_bot_idx | ---16--- | stack_top_idx | ---x--- |
-        //
-        // That is, we place the middle of the buffer between the 7th and 8th elements of the stack,
-        // such that `x = N/2 - 8`. This maximizes the value of `bounds_check_counter`.
-        let stack_top_idx = STACK_BUFFER_SIZE / 2 + MIN_STACK_DEPTH / 2;
+        let stack_top_idx = INITIAL_STACK_TOP_IDX;
         let stack = {
             let mut stack = [ZERO; STACK_BUFFER_SIZE];
             let bottom_idx = stack_top_idx - stack_inputs.len();
@@ -247,7 +254,6 @@ impl FastProcessor {
 
         // drop the condition from the stack
         self.decrement_stack_size();
-        self.update_bounds_check_counter();
 
         // execute the appropriate branch
         if condition == ONE {
@@ -435,7 +441,12 @@ impl FastProcessor {
         host: &mut impl Host,
     ) -> Result<(), ExecutionError> {
         if self.bounds_check_counter == 0 {
-            return Err(ExecutionError::FailedToExecuteProgram("stack overflow"));
+            let err_str = if self.stack_top_idx - MIN_STACK_DEPTH == 0 {
+                "stack underflow"
+            } else {
+                "stack overflow"
+            };
+            return Err(ExecutionError::FailedToExecuteProgram(err_str));
         }
 
         match operation {
