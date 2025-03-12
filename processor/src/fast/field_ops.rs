@@ -115,8 +115,9 @@ impl FastProcessor {
 
         /* top 2 elements remain unchanged */
 
-        self.stack[self.stack_top_idx - 3] = (b0 + b1) * (a1 + a0) - b0 * a0;
-        self.stack[self.stack_top_idx - 4] = b0 * a0 - TWO * b1 * a1;
+        let b0_times_a0 = b0 * a0;
+        self.stack[self.stack_top_idx - 3] = (b0 + b1) * (a1 + a0) - b0_times_a0;
+        self.stack[self.stack_top_idx - 4] = b0_times_a0 - TWO * b1 * a1;
     }
 
     // HELPERS
