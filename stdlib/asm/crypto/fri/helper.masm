@@ -7,7 +7,7 @@ use.std::crypto::stark::constants
 #!
 #! Input: [...]
 #! Output: [num_fri_layers, ...]
-#! Cycles: 52
+#! Cycles: 77
 export.generate_fri_parameters
     # Load FRI verifier data
     padw exec.constants::lde_size_ptr mem_loadw

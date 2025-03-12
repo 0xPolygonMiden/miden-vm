@@ -6,16 +6,11 @@ const.ROOT_UNITY=7277203076849721926
 const.DOMAIN_OFFSET=7
 const.DOMAIN_OFFSET_INV=2635249152773512046
 
-# Number of coefficients corresponds to the number of boundary + transition constraints 
-# (including auxiliary constraints)
-const.NUM_CONSTRAINT_COMPOSITION_COEF_ROUNDED_UP_TO_FOUR=228
-
-# Number of coefficients corresponds to "number of main & aux columns" + 8,
-# where "8" is the number of columns needed to store the constraint composition polynomial.
-const.NUM_DEEP_COMPOSITION_COEF_ROUNDED_UP_TO_FOUR=88
-
 # Number of random extension field coefficients related to the auxiliary trace (i.e. the alphas)
 const.NUM_AUX_TRACE_COEFS=16
+
+# Number of constraints, both boundary and transitional
+const.NUM_CONSTRAINTS=226
 
 # MEMORY POINTERS
 # =================================================================================================
@@ -29,9 +24,11 @@ const.PUBLIC_INPUTS_PTR=4294800000
 # OOD Frames
 # (71 + 7) * 2 * 2 Felt for current and next trace rows and 8 * 2 Felt for constraint composition
 # polynomials. Memory slots:
-# OOD_TRACE_PTR: (71 + 7) * 2 * 2 = 312
+# OOD_TRACE_CURRENT_PTR: (71 + 7) * 2 = 156
+# OOD_TRACE_NEXT_PTR: (71 + 7) * 2 = 156
 # OOD_CONSTRAINT_EVALS_PTR: 8 * 2 = 16
-const.OOD_TRACE_PTR=4294900000
+const.OOD_TRACE_CURRENT_PTR=4294900000
+const.OOD_TRACE_NEXT_PTR=4294900156
 const.OOD_CONSTRAINT_EVALS_PTR=4294900312
 
 # Current trace row
@@ -112,7 +109,39 @@ const.TMP6=4294913276
 const.TMP7=4294913280
 const.TMP8=4294913284
 const.TMP9=4294913288
+const.TMP10=4294913292
 
+# RPO state capacity portion initialization words. In theory, we need a variant for each possible 
+# remainder modulo 8 but in practice we only need the following:
+const.ZERO_ZERO_ZERO_FOUR_PTR=4294913400
+const.ZERO_ZERO_ZERO_FIVE_PTR=4294913404
+const.ZERO_ZERO_ZERO_SIX_PTR=4294913408
+const.ZERO_ZERO_ZERO_SEVEN_PTR=4294913412
+
+# Addresses to store powers of the DEEP composition randomness needed during the computation of
+# the DEEP queries. Powers from 1 to 7 are needed to correct results of `horner_eval_*` when
+# the final batch of coefficients processed is not 8 in the case of `horner_eval_base` or
+# 4 in the case of `horner_eval_ext`. For example if we are evaluating a polynomial with
+# coefficients over base field and the last batch of coefficients processed by `horner_eval_base`
+# contains only 7 instead of 8 coefficients, then we would have to multiply the accumulator
+# by the first power of alpha.
+# We also need alpha^{77} and alpha^{85} which are used in the final computation used to recover
+# the evaluation of the original polynomial from the evaluation of its reversed version at alpha^{-1}.
+# Note that 77 = 71 + 7 - 1 and 85 = 71 + 7 + 8 - 1.
+const.ALPHA_INV=4294903600
+const.ALPHA_POWER_1_PTR=4294903400
+const.ALPHA_POWER_2_PTR=4294903404
+const.ALPHA_POWER_3_PTR=4294903408
+const.ALPHA_POWER_4_PTR=4294903412
+const.ALPHA_POWER_5_PTR=4294903416
+const.ALPHA_POWER_6_PTR=4294903420
+const.ALPHA_POWER_7_PTR=4294903424
+const.ALPHA_POWER_77_PTR=4294903440
+const.ALPHA_POWER_77_0_PTR=4294903440
+const.ALPHA_POWER_77_1_PTR=4294903441
+const.ALPHA_POWER_85_PTR=4294903444
+const.ALPHA_POWER_85_0_PTR=4294903444
+const.ALPHA_POWER_85_1_PTR=4294903445
 
 
 #   The following is a table summarizing the memory pointers used:
@@ -121,7 +150,8 @@ const.TMP9=4294913288
 #   +------------------------------------------+-------------------------+
 #   | TRACE_DOMAIN_GENERATOR_PTR               |       4294799999        |
 #   | PUBLIC_INPUTS_PTR                        |       4294800000        |
-#   | OOD_TRACE_PTR                            |       4294900000        |
+#   | OOD_TRACE_CURRENT_PTR                    |       4294900000        |
+#   | OOD_TRACE_NEXT_PTR                       |       4294900156        |
 #   | OOD_CONSTRAINT_EVALS_PTR                 |       4294900312        |
 #   | CURRENT_TRACE_ROW_PTR                    |       4294900400        |
 #   | AUX_RAND_ELEM_PTR                        |       4294900600        |
@@ -151,6 +181,25 @@ const.TMP9=4294913288
 #   | TMP7                                     |       4294913280        |
 #   | TMP8                                     |       4294913284        |
 #   | TMP9                                     |       4294913288        |
+#   | TMP10                                    |       4294913292        |
+#   | ZERO_ZERO_ZERO_FOUR_PTR                  |       4294913400        |
+#   | ZERO_ZERO_ZERO_FIVE_PTR                  |       4294913404        |
+#   | ZERO_ZERO_ZERO_SIX_PTR                   |       4294913408        |
+#   | ZERO_ZERO_ZERO_SEVEN_PTR                 |       4294913412        |
+#   | ALPHA_INV                                |       4294903600        |
+#   | ALPHA_POWER_1_PTR                        |       4294903400        |
+#   | ALPHA_POWER_2_PTR                        |       4294903404        |
+#   | ALPHA_POWER_3_PTR                        |       4294903408        |
+#   | ALPHA_POWER_4_PTR                        |       4294903412        |
+#   | ALPHA_POWER_5_PTR                        |       4294903416        |
+#   | ALPHA_POWER_6_PTR                        |       4294903420        |
+#   | ALPHA_POWER_7_PTR                        |       4294903424        |
+#   | ALPHA_POWER_77_PTR                       |       4294903440        |
+#   | ALPHA_POWER_77_0_PTR                     |       4294903440        |
+#   | ALPHA_POWER_77_1_PTR                     |       4294903441        |
+#   | ALPHA_POWER_85_PTR                       |       4294903444        |
+#   | ALPHA_POWER_85_0_PTR                     |       4294903444        |
+#   | ALPHA_POWER_85_1_PTR                     |       4294903445        |
 #   +------------------------------------------+-------------------------+
 
 # ACCESSORS
@@ -162,6 +211,10 @@ end
 
 export.num_aux_trace_coefs
     push.NUM_AUX_TRACE_COEFS
+end
+
+export.get_num_constraints
+    push.NUM_CONSTRAINTS
 end
 
 # Procedure to push the trace domain generator address to the stack.
@@ -181,20 +234,16 @@ export.domain_offset_inv
     push.DOMAIN_OFFSET_INV
 end
 
-export.num_constraint_composition_coef_multiplied_by_two_and_rounded_up_to_4
-    push.NUM_CONSTRAINT_COMPOSITION_COEF_ROUNDED_UP_TO_FOUR
-end
-
-export.num_deep_composition_coef_rounded_up_to_4
-    push.NUM_DEEP_COMPOSITION_COEF_ROUNDED_UP_TO_FOUR
-end
-
 export.public_inputs_ptr
     push.PUBLIC_INPUTS_PTR
 end
 
-export.ood_trace_ptr
-    push.OOD_TRACE_PTR
+export.ood_trace_current_ptr
+    push.OOD_TRACE_CURRENT_PTR
+end
+
+export.ood_trace_next_ptr
+    push.OOD_TRACE_NEXT_PTR
 end
 
 export.ood_constraint_evals_ptr
@@ -328,4 +377,80 @@ end
 
 export.tmp9
     push.TMP9
+end
+
+export.tmp10
+    push.TMP10
+end
+
+export.zero_zero_zero_four_word
+    push.ZERO_ZERO_ZERO_FOUR_PTR
+end
+
+export.zero_zero_zero_five_word
+    push.ZERO_ZERO_ZERO_FIVE_PTR
+end
+
+export.zero_zero_zero_six_word
+    push.ZERO_ZERO_ZERO_SIX_PTR
+end
+
+export.zero_zero_zero_seven_word
+    push.ZERO_ZERO_ZERO_SEVEN_PTR
+end
+
+export.deep_rand_alpha_inv
+    push.ALPHA_INV
+end
+
+export.deep_rand_alpha_1
+    push.ALPHA_POWER_1_PTR
+end
+
+export.deep_rand_alpha_2
+    push.ALPHA_POWER_2_PTR
+end
+
+export.deep_rand_alpha_3
+    push.ALPHA_POWER_3_PTR
+end
+
+export.deep_rand_alpha_4
+    push.ALPHA_POWER_4_PTR
+end
+
+export.deep_rand_alpha_5
+    push.ALPHA_POWER_5_PTR
+end
+
+export.deep_rand_alpha_6
+    push.ALPHA_POWER_6_PTR
+end
+
+export.deep_rand_alpha_7
+    push.ALPHA_POWER_7_PTR
+end
+
+export.deep_rand_alpha_77
+    push.ALPHA_POWER_77_PTR
+end
+
+export.deep_rand_alpha_77_0
+    push.ALPHA_POWER_77_0_PTR
+end
+
+export.deep_rand_alpha_77_1
+    push.ALPHA_POWER_77_1_PTR
+end
+
+export.deep_rand_alpha_85
+    push.ALPHA_POWER_85_PTR
+end
+
+export.deep_rand_alpha_85_0
+    push.ALPHA_POWER_85_0_PTR
+end
+
+export.deep_rand_alpha_85_1
+    push.ALPHA_POWER_85_1_PTR
 end
