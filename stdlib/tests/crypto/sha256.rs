@@ -7,9 +7,9 @@ use test_utils::{
 
 #[test]
 fn sha256_hash_memory() {
-    let length = rand_value::<u64>() & 1023; // length: 0-1023
-    let ibytes: Vec<u8> = rand_vector(length as usize);
-    let ipadding: Vec<u8> = vec![0; (4 - (length as usize % 4)) % 4];
+    let length_in_bytes = rand_value::<u64>() & 1023; // length: 0-1023
+    let ibytes: Vec<u8> = rand_vector(length_in_bytes as usize);
+    let ipadding: Vec<u8> = vec![0; (4 - (length_in_bytes as usize % 4)) % 4];
 
     let ifelts = [
         group_slice_elements::<u8, 4>(&[ibytes.clone(), ipadding].concat())
@@ -17,7 +17,7 @@ fn sha256_hash_memory() {
             .map(|&bytes| u32::from_be_bytes(bytes) as u64)
             .rev()
             .collect::<Vec<u64>>(),
-        vec![length as u64; 1],
+        vec![length_in_bytes as u64; 1],
     ]
     .concat();
 
@@ -35,8 +35,8 @@ fn sha256_hash_memory() {
         # mem.1 - length in bytes
         mem_store.1
 
-        # mem.2 - length in felts
-        mem_load.1 u32assert u32overflowing_add.3 assertz u32assert u32div.4 mem_store.2
+        # mem.2 - length in words
+        mem_load.1 u32assert u32overflowing_add.15 assertz u32assert u32div.16 mem_store.2
 
         # Load input data into memory address 10000, 10004, ...
         mem_load.2 u32assert neq.0

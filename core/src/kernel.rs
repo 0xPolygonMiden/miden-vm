@@ -27,7 +27,7 @@ impl Kernel {
             Err(KernelError::TooManyProcedures(Self::MAX_NUM_PROCEDURES, proc_hashes.len()))
         } else {
             let mut hashes = proc_hashes.to_vec();
-            hashes.sort_by_key(|v| v.as_bytes()); // ensure consistent order
+            hashes.sort();
 
             let duplicated = hashes.windows(2).any(|data| data[0] == data[1]);
 

@@ -8,7 +8,7 @@ use super::{
     ExecutionError, Process,
 };
 use crate::Host;
-mod sys_event_handlers;
+pub(crate) mod sys_event_handlers;
 
 // SYSTEM OPERATIONS
 // ================================================================================================
