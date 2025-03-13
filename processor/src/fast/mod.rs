@@ -10,7 +10,7 @@ use vm_core::{
     },
     stack::MIN_STACK_DEPTH,
     utils::range,
-    Felt, Operation, Program, StackOutputs, Word, EMPTY_WORD, ONE, WORD_SIZE, ZERO,
+    Felt, Kernel, Operation, Program, StackOutputs, Word, EMPTY_WORD, ONE, WORD_SIZE, ZERO,
 };
 
 use crate::{
@@ -37,16 +37,17 @@ mod u32_ops;
 mod tests;
 
 /// The size of the stack buffer.
-/// 
+///
 /// Note: This value is much larger than it needs to be for the majority of programs. However, some
-/// existing programs need it (e.g. `std::math::secp256k1::group::gen_mul`), so we're forced to push it up.
-/// At this high a value, we're starting to see some performance degradation on benchmarks. For example,
-/// the blake3 benchmark went from 285 MHz to 250 MHz (~10% degradation). Perhaps a better solution would
-/// be to make this value much smaller (~1000), and then fallback to a `Vec` if the stack overflows.
+/// existing programs need it (e.g. `std::math::secp256k1::group::gen_mul`), so we're forced to push
+/// it up. At this high a value, we're starting to see some performance degradation on benchmarks.
+/// For example, the blake3 benchmark went from 285 MHz to 250 MHz (~10% degradation). Perhaps a
+/// better solution would be to make this value much smaller (~1000), and then fallback to a `Vec`
+/// if the stack overflows.
 const STACK_BUFFER_SIZE: usize = 6650;
 
 /// The initial position of the top of the stack in the stack buffer.
-/// 
+///
 /// We place this value close to 0 because if a program hits the limit, it's much more likely to hit
 /// the upper bound than the lower bound, since hitting the lower bound only occurs when you drop
 /// 0's that were generated automatically to keep the stack depth at 16. In practice, if this
@@ -178,7 +179,12 @@ impl FastProcessor {
         program: &Program,
         host: &mut impl Host,
     ) -> Result<StackOutputs, ExecutionError> {
-        self.execute_mast_node(program.entrypoint(), program.mast_forest(), host)?;
+        self.execute_mast_node(
+            program.entrypoint(),
+            program.mast_forest(),
+            program.kernel(),
+            host,
+        )?;
 
         StackOutputs::new(
             self.stack[self.stack_bot_idx..self.stack_top_idx]
@@ -198,6 +204,7 @@ impl FastProcessor {
         &mut self,
         node_id: MastNodeId,
         program: &MastForest,
+        kernel: &Kernel,
         host: &mut impl Host,
     ) -> Result<(), ExecutionError> {
         let node = program
@@ -214,12 +221,22 @@ impl FastProcessor {
             MastNode::Block(basic_block_node) => {
                 self.execute_basic_block_node(basic_block_node, host)?
             },
-            MastNode::Join(join_node) => self.execute_join_node(join_node, program, host)?,
-            MastNode::Split(split_node) => self.execute_split_node(split_node, program, host)?,
-            MastNode::Loop(loop_node) => self.execute_loop_node(loop_node, program, host)?,
-            MastNode::Call(call_node) => self.execute_call_node(call_node, program, host)?,
-            MastNode::Dyn(dyn_node) => self.execute_dyn_node(dyn_node, program, host)?,
-            MastNode::External(external_node) => self.execute_external_node(external_node, host)?,
+            MastNode::Join(join_node) => {
+                self.execute_join_node(join_node, program, kernel, host)?
+            },
+            MastNode::Split(split_node) => {
+                self.execute_split_node(split_node, program, kernel, host)?
+            },
+            MastNode::Loop(loop_node) => {
+                self.execute_loop_node(loop_node, program, kernel, host)?
+            },
+            MastNode::Call(call_node) => {
+                self.execute_call_node(call_node, program, kernel, host)?
+            },
+            MastNode::Dyn(dyn_node) => self.execute_dyn_node(dyn_node, program, kernel, host)?,
+            MastNode::External(external_node) => {
+                self.execute_external_node(external_node, kernel, host)?
+            },
         }
 
         // Corresponds to the row inserted for the `END` added to the trace. `External` is the only
@@ -235,16 +252,18 @@ impl FastProcessor {
         &mut self,
         join_node: &JoinNode,
         program: &MastForest,
+        kernel: &Kernel,
         host: &mut impl Host,
     ) -> Result<(), ExecutionError> {
-        self.execute_mast_node(join_node.first(), program, host)?;
-        self.execute_mast_node(join_node.second(), program, host)
+        self.execute_mast_node(join_node.first(), program, kernel, host)?;
+        self.execute_mast_node(join_node.second(), program, kernel, host)
     }
 
     fn execute_split_node(
         &mut self,
         split_node: &SplitNode,
         program: &MastForest,
+        kernel: &Kernel,
         host: &mut impl Host,
     ) -> Result<(), ExecutionError> {
         let condition = self.stack[self.stack_top_idx - 1];
@@ -257,9 +276,9 @@ impl FastProcessor {
 
         // execute the appropriate branch
         if condition == ONE {
-            self.execute_mast_node(split_node.on_true(), program, host)
+            self.execute_mast_node(split_node.on_true(), program, kernel, host)
         } else if condition == ZERO {
-            self.execute_mast_node(split_node.on_false(), program, host)
+            self.execute_mast_node(split_node.on_false(), program, kernel, host)
         } else {
             Err(ExecutionError::NotBinaryValue(condition))
         }
@@ -269,6 +288,7 @@ impl FastProcessor {
         &mut self,
         loop_node: &LoopNode,
         program: &MastForest,
+        kernel: &Kernel,
         host: &mut impl Host,
     ) -> Result<(), ExecutionError> {
         // The loop condition is checked after the loop body is executed.
@@ -279,7 +299,7 @@ impl FastProcessor {
 
         // execute the loop body as long as the condition is true
         while condition == ONE {
-            self.execute_mast_node(loop_node.body(), program, host)?;
+            self.execute_mast_node(loop_node.body(), program, kernel, host)?;
 
             // check the loop condition, and drop it from the stack
             condition = self.stack[self.stack_top_idx - 1];
@@ -305,6 +325,7 @@ impl FastProcessor {
         &mut self,
         call_node: &CallNode,
         program: &MastForest,
+        kernel: &Kernel,
         host: &mut impl Host,
     ) -> Result<(), ExecutionError> {
         // call or syscall are not allowed inside a syscall
@@ -322,18 +343,30 @@ impl FastProcessor {
         self.save_context_and_truncate_stack();
 
         if call_node.is_syscall() {
-            // TODO(plafer): check if target exists in kernel
+            // check if the callee is in the kernel
+            let callee_digest = program
+                .get_node_by_id(call_node.callee())
+                .ok_or_else(|| ExecutionError::MastNodeNotFoundInForest {
+                    node_id: call_node.callee(),
+                })?
+                .digest();
+            if !kernel.contains_proc(callee_digest) {
+                return Err(ExecutionError::SyscallTargetNotInKernel(callee_digest));
+            }
+
+            // set the system registers to the syscall context
             self.ctx = ContextId::root();
             self.fmp = SYSCALL_FMP_MIN.into();
             self.in_syscall = true;
         } else {
+            // set the system registers to the callee context
             self.ctx = (self.clk + 1).into();
             self.fmp = Felt::new(FMP_MIN);
             self.fn_hash = callee_hash;
         }
 
         // Execute the callee.
-        self.execute_mast_node(call_node.callee(), program, host)?;
+        self.execute_mast_node(call_node.callee(), program, kernel, host)?;
 
         // when returning from a function call or a syscall, restore the context of the
         // system registers and the operand stack to what it was prior to
@@ -345,6 +378,7 @@ impl FastProcessor {
         &mut self,
         dyn_node: &DynNode,
         program: &MastForest,
+        kernel: &Kernel,
         host: &mut impl Host,
     ) -> Result<(), ExecutionError> {
         // dyn calls are not allowed inside a syscall
@@ -377,7 +411,7 @@ impl FastProcessor {
         // the host (corresponding to an external library loaded in the host); if none are
         // found, return an error.
         match program.find_procedure_root(callee_hash.into()) {
-            Some(callee_id) => self.execute_mast_node(callee_id, program, host)?,
+            Some(callee_id) => self.execute_mast_node(callee_id, program, kernel, host)?,
             None => {
                 let mast_forest = host
                     .get_mast_forest(&callee_hash.into())
@@ -389,7 +423,7 @@ impl FastProcessor {
                     ExecutionError::MalformedMastForestInHost { root_digest: callee_hash.into() },
                 )?;
 
-                self.execute_mast_node(root_id, &mast_forest, host)?
+                self.execute_mast_node(root_id, &mast_forest, kernel, host)?
             },
         }
 
@@ -404,11 +438,12 @@ impl FastProcessor {
     fn execute_external_node(
         &mut self,
         external_node: &ExternalNode,
+        kernel: &Kernel,
         host: &mut impl Host,
     ) -> Result<(), ExecutionError> {
         let (root_id, mast_forest) = resolve_external_node(external_node, host)?;
 
-        self.execute_mast_node(root_id, &mast_forest, host)
+        self.execute_mast_node(root_id, &mast_forest, kernel, host)
     }
 
     // Note: when executing individual ops, we do not increment the clock by 1 at every iteration

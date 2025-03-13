@@ -458,6 +458,30 @@ fn test_fmp_update_fail() {
     assert_matches!(err, ExecutionError::InvalidFmpValue(_, _));
 }
 
+/// Tests that a syscall fails when the syscall target is not in the kernel.
+#[test]
+fn test_syscall_fail() {
+    let mut host = DefaultHost::default();
+
+    // set the initial FMP to a value close to FMP_MAX
+    let stack_inputs = vec![5_u32.into()];
+    let program = {
+        let mut program = MastForest::new();
+        let basic_block_id = program.add_block(vec![Operation::Add], None).unwrap();
+        let root_id = program.add_syscall(basic_block_id).unwrap();
+        program.make_root(root_id);
+
+        Program::new(program.into(), root_id)
+    };
+
+    let processor = FastProcessor::new(stack_inputs.clone());
+
+    let err = processor.execute(&program, &mut host).unwrap_err();
+
+    // Check that the error is due to the syscall target not being in the kernel
+    assert_matches!(err, ExecutionError::SyscallTargetNotInKernel(_));
+}
+
 #[test]
 fn test_assert() {
     let mut host = DefaultHost::default();
