@@ -5,6 +5,7 @@ use miden_air::{
 use vm_core::{OPCODE_EMIT, OPCODE_PUSH, OPCODE_RESPAN, OPCODE_SPAN};
 
 use super::{AuxColumnBuilder, Felt, FieldElement, MainTrace, ONE};
+use crate::debug::BusDebugger;
 
 // OP GROUP TABLE COLUMN
 // ================================================================================================
@@ -16,7 +17,13 @@ pub struct OpGroupTableColumnBuilder {}
 
 impl<E: FieldElement<BaseField = Felt>> AuxColumnBuilder<E> for OpGroupTableColumnBuilder {
     /// Removes a row from the block hash table.
-    fn get_requests_at(&self, main_trace: &MainTrace, alphas: &[E], i: RowIndex) -> E {
+    fn get_requests_at(
+        &self,
+        main_trace: &MainTrace,
+        alphas: &[E],
+        i: RowIndex,
+        _debugger: &mut BusDebugger<E>,
+    ) -> E {
         let delete_group_flag = main_trace.delta_group_count(i) * main_trace.is_in_span(i);
 
         if delete_group_flag == ONE {
@@ -27,7 +34,13 @@ impl<E: FieldElement<BaseField = Felt>> AuxColumnBuilder<E> for OpGroupTableColu
     }
 
     /// Adds a row to the block hash table.
-    fn get_responses_at(&self, main_trace: &MainTrace, alphas: &[E], i: RowIndex) -> E {
+    fn get_responses_at(
+        &self,
+        main_trace: &MainTrace,
+        alphas: &[E],
+        i: RowIndex,
+        _debugger: &mut BusDebugger<E>,
+    ) -> E {
         let op_code_felt = main_trace.get_op_code(i);
         let op_code = op_code_felt.as_int() as u8;
 

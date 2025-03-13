@@ -370,6 +370,10 @@ impl Process {
                 self.execute_mast_node(node.body(), program, host)?;
             }
 
+            if self.stack.peek() != ZERO {
+                return Err(ExecutionError::NotBinaryValue(self.stack.peek()));
+            }
+
             // end the LOOP block and drop the condition from the stack
             self.end_loop_node(node, true, host)
         } else if condition == ZERO {
@@ -389,12 +393,18 @@ impl Process {
         program: &MastForest,
         host: &mut impl Host,
     ) -> Result<(), ExecutionError> {
+        // call or syscall are not allowed inside a syscall
+        if self.system.in_syscall() {
+            let instruction = if call_node.is_syscall() { "syscall" } else { "call" };
+            return Err(ExecutionError::CallInSyscall(instruction));
+        }
+
         // if this is a syscall, make sure the call target exists in the kernel
         if call_node.is_syscall() {
             let callee = program.get_node_by_id(call_node.callee()).ok_or_else(|| {
                 ExecutionError::MastNodeNotFoundInForest { node_id: call_node.callee() }
             })?;
-            self.chiplets.access_kernel_proc(callee.digest())?;
+            self.chiplets.kernel_rom.access_proc(callee.digest())?;
         }
 
         self.start_call_node(call_node, program, host)?;
@@ -413,6 +423,11 @@ impl Process {
         program: &MastForest,
         host: &mut impl Host,
     ) -> Result<(), ExecutionError> {
+        // dyn calls are not allowed inside a syscall
+        if node.is_dyncall() && self.system.in_syscall() {
+            return Err(ExecutionError::CallInSyscall("dyncall"));
+        }
+
         let callee_hash = if node.is_dyncall() {
             self.start_dyncall_node(node)?
         } else {
@@ -617,7 +632,7 @@ impl Process {
     // ================================================================================================
 
     pub const fn kernel(&self) -> &Kernel {
-        self.chiplets.kernel()
+        self.chiplets.kernel_rom.kernel()
     }
 
     pub fn into_parts(self) -> (System, Decoder, Stack, RangeChecker, Chiplets) {
@@ -679,7 +694,7 @@ impl ProcessState<'_> {
     /// Returns the element located at the specified context/address, or None if the address hasn't
     /// been accessed previously.
     pub fn get_mem_value(&self, ctx: ContextId, addr: u32) -> Option<Felt> {
-        self.chiplets.memory().get_value(ctx, addr)
+        self.chiplets.memory.get_value(ctx, addr)
     }
 
     /// Returns the batch of elements starting at the specified context/address.
@@ -687,7 +702,7 @@ impl ProcessState<'_> {
     /// # Errors
     /// - If the address is not word aligned.
     pub fn get_mem_word(&self, ctx: ContextId, addr: u32) -> Result<Option<Word>, ExecutionError> {
-        self.chiplets.memory().get_word(ctx, addr)
+        self.chiplets.memory.get_word(ctx, addr)
     }
 
     /// Returns the entire memory state for the specified execution context at the current clock
@@ -696,7 +711,7 @@ impl ProcessState<'_> {
     /// The state is returned as a vector of (address, value) tuples, and includes addresses which
     /// have been accessed at least once.
     pub fn get_mem_state(&self, ctx: ContextId) -> Vec<(u64, Felt)> {
-        self.chiplets.memory().get_state_at(ctx, self.system.clk())
+        self.chiplets.memory.get_state_at(ctx, self.system.clk())
     }
 }
 

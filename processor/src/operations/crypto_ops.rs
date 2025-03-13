@@ -29,7 +29,7 @@ impl Process {
             self.stack.get(0),
         ];
 
-        let (addr, output_state) = self.chiplets.permute(input_state);
+        let (addr, output_state) = self.chiplets.hasher.permute(input_state);
         self.decoder.set_user_op_helpers(Operation::HPerm, &[addr]);
         for (i, &value) in output_state.iter().rev().enumerate() {
             self.stack.set(i, value);
@@ -79,7 +79,7 @@ impl Process {
         let path = host.advice_provider_mut().get_merkle_path(root, &depth, &index)?;
 
         // use hasher to compute the Merkle root of the path
-        let (addr, computed_root) = self.chiplets.build_merkle_root(node, &path, index);
+        let (addr, computed_root) = self.chiplets.hasher.build_merkle_root(node, &path, index);
 
         // save address(r) of the hasher trace from when the computation starts in the decoder
         // helper registers.
@@ -153,7 +153,8 @@ impl Process {
 
         assert_eq!(path.len(), depth.as_int() as usize);
 
-        let merkle_tree_update = self.chiplets.update_merkle_root(old_node, new_node, &path, index);
+        let merkle_tree_update =
+            self.chiplets.hasher.update_merkle_root(old_node, new_node, &path, index);
 
         // Asserts the computed old root of the Merkle path from the advice provider is consistent
         // with the input root provided via the stack. This will panic only if the advice provider

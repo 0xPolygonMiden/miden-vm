@@ -52,7 +52,7 @@ The processor is organized into several components:
 * The range-checker, which is responsible for checking whether values can fit into 16 bits.
 * The chiplets module, which contains specialized chiplets responsible for handling complex computations (e.g., hashing) as well as random access memory.
 
-These components are connected via two busses:
+These components are connected via two buses:
 * The range-checker bus, which links stack and chiplets modules with the range-checker.
 * The chiplet bus, which links stack and the decoder with the chiplets module.
 

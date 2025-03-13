@@ -531,13 +531,46 @@ fn validate_component(component: &str) -> Result<(), PathError> {
     }
 }
 
+// ARBITRARY IMPLEMENTATION
+// ================================================================================================
+
+#[cfg(feature = "testing")]
+impl proptest::prelude::Arbitrary for LibraryPath {
+    type Parameters = ();
+
+    fn arbitrary_with(_args: Self::Parameters) -> Self::Strategy {
+        use proptest::prelude::*;
+
+        let wasm_cm_style = LibraryPath::new_from_components(
+            LibraryNamespace::Anon,
+            [Ident::new("namespace-kebab:package-kebab/interface-kebab@1.0.0").unwrap()],
+        );
+        let path_len_2 = LibraryPath::new_from_components(
+            LibraryNamespace::User("user_ns".into()),
+            [Ident::new("user_module").unwrap()],
+        );
+        let path_len_3 = LibraryPath::new_from_components(
+            LibraryNamespace::User("userns".into()),
+            [Ident::new("user_path1").unwrap(), Ident::new("user_module").unwrap()],
+        );
+        prop_oneof![Just(wasm_cm_style), Just(path_len_2), Just(path_len_3)].boxed()
+    }
+
+    type Strategy = proptest::prelude::BoxedStrategy<Self>;
+}
+
 // TESTS
 // ================================================================================================
 
 /// Tests
 #[cfg(test)]
 mod tests {
-    use vm_core::assert_matches;
+
+    use proptest::prelude::*;
+    use vm_core::{
+        assert_matches,
+        utils::{Deserializable, Serializable},
+    };
 
     use super::{super::LibraryNamespaceError, IdentError, LibraryPath, PathError};
 
@@ -576,16 +609,19 @@ mod tests {
         let path = LibraryPath::new("foo::1bar");
         assert_matches!(path, Err(PathError::InvalidComponent(IdentError::InvalidStart)));
 
-        let path = LibraryPath::new("foo::b@r");
-        assert_matches!(
-            path,
-            Err(PathError::InvalidComponent(IdentError::InvalidChars { ident: _ }))
-        );
-
         let path = LibraryPath::new("#foo::bar");
         assert_matches!(
             path,
             Err(PathError::InvalidNamespace(LibraryNamespaceError::InvalidStart))
         );
+    }
+
+    proptest! {
+        #[test]
+        fn path_serialization_roundtrip(path in any::<LibraryPath>()) {
+            let bytes = path.to_bytes();
+            let deserialized = LibraryPath::read_from_bytes(&bytes).unwrap();
+            assert_eq!(path, deserialized);
+        }
     }
 }

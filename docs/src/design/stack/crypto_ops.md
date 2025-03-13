@@ -151,55 +151,56 @@ To keep the degree of the constraints low, a number of intermediate values are u
 The effect on the rest of the stack is:
 * **Left shift** starting from position $16$.
 
-## RCOMBBASE
-The `RCOMBBASE` operation performs a single step in the computation of the random linear combination defining the DEEP composition polynomial i.e., the input to the FRI protocol. More precisely, the sum in question is:
-    $$\sum_{i=0}^k{\alpha_i \cdot \left(\frac{T_i(x) - T_i(z)}{x - z} + \frac{T_i(x) - T_i(g \cdot z)}{x - g \cdot z} \right)}$$
-where $x$ is the current query to the DEEP composition polynomial for which we are computing the above random linear combination.
-The `RCOMBBASE` instruction computes the numerators $$\alpha_i \cdot (T_i(x) - T_i(z))$$ and $$\alpha_i \cdot (T_i(x) - T_i(g \cdot z))$$ and stores the values in two accumulators $p$ and $r$, respectively. This instruction is specialized to main trace columns i.e. the values $T_i(x)$ are base field elements. The instruction works in combination with the `mem_stream` instruction where it is called 8 times in a row for each call to `mem_stream`.
+## HORNERBASE
+The `HORNERBASE` operation performs $8$ steps of the Horner method for evaluating a polynomial with coefficients over the base field at a point in the quadratic extension field. More precisely, it performs the following update to the accumulator on the stack
+    $$\mathsf{acc}^{'} = (((((((((\mathsf{acc} \cdot \alpha + a_7) \cdot \alpha + a_6) \cdot \alpha + a_5) \cdot \alpha + a_4) \cdot \alpha + a_3) \cdot \alpha + a_2) \cdot \alpha + a_1) \cdot \alpha + a_0$$
+where $a_i$ are the coefficients of the polynomial, $\alpha$ the evaluation point, $\mathsf{acc}$ the current accumulator value and $\mathsf{acc}^{'}$ the updated accumulator value.
 
 The stack for the operation is expected to be arranged as follows:
-- The first $8$ stack elements contain $8$ base field elements $T_0,\cdots , T_7$ representing the values of $T_i(x)$ for the current query $x$ and the current batch of $8$ column values of the main trace for query $x$.
-- The next $2$ elements contain the current value of the accumulator $p$ as a quadratic extension field element.
-- The next $2$ elements contain the current value of the accumulator $r$ as a quadratic extension field element.
-- The next element contains the value of the memory pointer `x_ptr` to the next batch of $8$ column values for query $x$.
-- The next element contains the value of the memory pointer `z_ptr` to the $i$-th OOD evaluations at z and gz i.e. $T_i(z) = (T_i(z)_0, T_i(z)_1)$ and $T_i(gz) = (T_i(gz)_0, T_i(gz)_1)$.
-- The next element contains the value of the memory pointer `a_ptr` to the $i$-th random value $\alpha_i = (\alpha_{i, 0}, \alpha_{i,1})$. The remaining elements of the word are expected to be empty.
+- The first $8$ stack elements contain $8$ base field elements $a_0,\cdots , a_7$ representing the current 8-element batch of coefficients for the polynomial being evaluated.
+- The next $5$ stack elements are irrelevant for the operation and unaffected by it.
+- The next stack element contains the value of the memory pointer `alpha_ptr` to the evaluation point $\alpha$. The word address containing $\alpha = (\alpha_0, \alpha_1)$ is expected to have layout $[\alpha_0, \alpha_1, 0, 0]$.
+- The next $2$ stack elements contain the value of the current accumulator $\textsf{acc} = (\textsf{acc}_0, \textsf{acc}_1)$.
 
-The diagram below illustrates the stack transition for `RCOMBBASE` operation.
+The diagram below illustrates the stack transition for `HORNERBASE` operation.
 
-![rcomb_base](../../assets/design/stack/crypto_ops/RCOMBBASE.png)
+![horner_eval_base](../../assets/design/stack/crypto_ops/HORNERBASE.png)
 
-After calling the `mem_stream ` with `x_ptr`, the operation does the following:
-- Populates the helper registers with $\left[T_i(z)_0, T_i(z)_1, T_i(gz)_0, T_i(gz)_1, \alpha_{i, 0}, \alpha_{i,1}\right]$ using the pointers `z_ptr` and `a_ptr`.
-- Updates the accumulators $$p \mathrel{{+}{=}} \alpha_i\cdot\left(T_i(x) - T_i(z)\right)$$ and $$r \mathrel{{+}{=}} \alpha_i\cdot\left(T_i(x) - T_i(gz)\right).$$
-- Increments the pointers `z_ptr` and `a_ptr` by $4$.
-- The top $8$ base field elements $T_0,\cdots , T_7$ are circularly shifted so that `T_0` becomes the element at the top of the operand stack.
-
-> TODO: add detailed constraint descriptions. See discussion [here](https://github.com/0xPolygonMiden/miden-vm/issues/869).
+After calling the operation:
+- Stack elements $14$ and $15$ will contain the value of the updated accumulator i.e., $\mathsf{acc}^{'}$.
 
 The effect on the rest of the stack is:
 * **No change.**
 
-The `RCOMBBASE` makes two memory access request. To simplify the description of these, we first define the following variables :
+The `HORNERBASE` makes one memory access request:
 
 $$
-v_1 = \sum_{i=0}^3\alpha_{i+5} \cdot h_{i}
+u_{mem} = \alpha_0 + \alpha_1 \cdot op_{mem\_readword} + \alpha_2 \cdot ctx + \alpha_3 \cdot s_{13} + \alpha_4 \cdot clk + \alpha_{5} \cdot h_{0} + \alpha_{6} \cdot h_{1}
 $$
 
-$$
-v_2 = \sum_{i=0}^1\alpha_{i+5} \cdot h_{i + 4}
-$$
+## HORNEREXT
+The `HORNEREXT` operation performs $4$ steps of the Horner method for evaluating a polynomial with coefficients over the quadratic extension field at a point in the quadratic extension field. More precisely, it performs the following update to the accumulator on the stack
+    $$\mathsf{acc}^{'} = (((\mathsf{acc} \cdot \alpha + a_3) \cdot \alpha + a_2) \cdot \alpha + a_1) \cdot \alpha + a_0$$
+where $a_i$ are the coefficients of the polynomial, $\alpha$ the evaluation point, $\mathsf{acc}$ the current accumulator value and $\mathsf{acc}^{'}$ the updated accumulator value.
 
-Using the above variables, we define the values representing the memory access request as follows:
+The stack for the operation is expected to be arranged as follows:
+- The first $8$ stack elements contain $8$ base field elements $a_0,\cdots , a_7$ representing the current 4-element batch of coefficients, in the quadratic extension field, for the polynomial being evaluated.
+- The next $5$ stack elements are irrelevant for the operation and unaffected by it.
+- The next stack element contains the value of the memory pointer `alpha_ptr` to the evaluation point $\alpha$. The word address containing $\alpha = (\alpha_0, \alpha_1)$ is expected to have layout $[\alpha_0, \alpha_1, 0, 0]$.
+- The next $2$ stack elements contain the value of the current accumulator $\textsf{acc} = (\textsf{acc}_0, \textsf{acc}_1)$.
+
+The diagram below illustrates the stack transition for `HORNEREXT` operation.
+
+![horner_eval_ext](../../assets/design/stack/crypto_ops/HORNEREXT.png)
+
+After calling the operation:
+- Stack elements $14$ and $15$ will contain the value of the updated accumulator i.e., $\mathsf{acc}^{'}$.
+
+The effect on the rest of the stack is:
+* **No change.**
+
+The `HORNEREXT` makes one memory access request:
 
 $$
-u_{mem, 1} = \alpha_0 + \alpha_1 \cdot op_{mem\_readword} + \alpha_2 \cdot ctx + \alpha_3 \cdot s_{13} + \alpha_4 \cdot clk + v_1
-$$
-
-$$
-u_{mem, 2} = \alpha_0 + \alpha_1 \cdot op_{mem\_readword} + \alpha_2 \cdot ctx + \alpha_3 \cdot s_{14} + \alpha_4 \cdot clk + v_2
-$$
-
-$$
-u_{mem} = u_{mem, 1} \cdot u_{mem, 2}
+u_{mem} = \alpha_0 + \alpha_1 \cdot op_{mem\_readword} + \alpha_2 \cdot ctx + \alpha_3 \cdot s_{13} + \alpha_4 \cdot clk + \alpha_{5} \cdot h_{0} + \alpha_{6} \cdot h_{1}
 $$

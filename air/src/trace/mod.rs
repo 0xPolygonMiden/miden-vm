@@ -59,39 +59,44 @@ pub const TRACE_WIDTH: usize = CHIPLETS_OFFSET + CHIPLETS_WIDTH;
 // AUXILIARY COLUMNS LAYOUT
 // ------------------------------------------------------------------------------------------------
 
-//      decoder         stack       range checks      hasher         chiplets
-//    (3 columns)     (1 column)     (1 column)    (1 column)      (1 column)
-// ├───────────────┴──────────────┴──────────────┴───────────────┴───────────────┤
+//      decoder                     stack              range checks          chiplets
+//    (3 columns)                (1 column)             (1 column)          (2 column)
+// ├─────────────────────┴──────────────────────┴────────────────────┴───────────────────┤
 
-// Decoder auxiliary columns
+/// Decoder auxiliary columns
 pub const DECODER_AUX_TRACE_OFFSET: usize = 0;
 pub const DECODER_AUX_TRACE_WIDTH: usize = 3;
 pub const DECODER_AUX_TRACE_RANGE: Range<usize> =
     range(DECODER_AUX_TRACE_OFFSET, DECODER_AUX_TRACE_WIDTH);
 
-// Stack auxiliary columns
+/// Stack auxiliary columns
 pub const STACK_AUX_TRACE_OFFSET: usize = DECODER_AUX_TRACE_RANGE.end;
 pub const STACK_AUX_TRACE_WIDTH: usize = 1;
 pub const STACK_AUX_TRACE_RANGE: Range<usize> =
     range(STACK_AUX_TRACE_OFFSET, STACK_AUX_TRACE_WIDTH);
 
-// Range check auxiliary columns
+/// Range check auxiliary columns
 pub const RANGE_CHECK_AUX_TRACE_OFFSET: usize = STACK_AUX_TRACE_RANGE.end;
 pub const RANGE_CHECK_AUX_TRACE_WIDTH: usize = 1;
 pub const RANGE_CHECK_AUX_TRACE_RANGE: Range<usize> =
     range(RANGE_CHECK_AUX_TRACE_OFFSET, RANGE_CHECK_AUX_TRACE_WIDTH);
 
-// Chiplets auxiliary columns
+/// Chiplets auxiliary columns
 pub const CHIPLETS_AUX_TRACE_OFFSET: usize = HASHER_AUX_TRACE_RANGE.end;
 pub const CHIPLETS_AUX_TRACE_WIDTH: usize = 1;
 pub const CHIPLETS_AUX_TRACE_RANGE: Range<usize> =
     range(CHIPLETS_AUX_TRACE_OFFSET, CHIPLETS_AUX_TRACE_WIDTH);
 
-// Hasher auxiliary columns
-pub const HASHER_AUX_TRACE_OFFSET: usize = RANGE_CHECK_AUX_TRACE_RANGE.end;
+/// Chiplets virtual table auxiliary column.
+///
+/// This column combines two virtual tables:
+///
+/// 1. Hash chiplet's sibling table,
+/// 2. Kernel ROM chiplet's kernel procedure table.
+pub const HASH_KERNEL_VTABLE_AUX_TRACE_OFFSET: usize = RANGE_CHECK_AUX_TRACE_RANGE.end;
 pub const HASHER_AUX_TRACE_WIDTH: usize = 1;
 pub const HASHER_AUX_TRACE_RANGE: Range<usize> =
-    range(HASHER_AUX_TRACE_OFFSET, HASHER_AUX_TRACE_WIDTH);
+    range(HASH_KERNEL_VTABLE_AUX_TRACE_OFFSET, HASHER_AUX_TRACE_WIDTH);
 
 pub const AUX_TRACE_WIDTH: usize = CHIPLETS_AUX_TRACE_RANGE.end;
 
