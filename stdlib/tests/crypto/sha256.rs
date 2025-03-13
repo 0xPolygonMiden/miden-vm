@@ -1,8 +1,7 @@
 use sha2::{Digest, Sha256};
 use test_utils::{
-    group_slice_elements, push_inputs,
+    Felt, IntoBytes, group_slice_elements, push_inputs,
     rand::{rand_array, rand_value, rand_vector},
-    Felt, IntoBytes,
 };
 
 #[test]

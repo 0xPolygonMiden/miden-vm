@@ -1,13 +1,13 @@
 use alloc::{borrow::Borrow, string::ToString, vec::Vec};
 
 use vm_core::{
+    AssemblyOp, Decorator, Operation,
     mast::{DecoratorId, MastNodeId},
     sys_events::SystemEvent,
-    AssemblyOp, Decorator, Operation,
 };
 
-use super::{mast_forest_builder::MastForestBuilder, BodyWrapper, DecoratorList, ProcedureContext};
-use crate::{ast::Instruction, AssemblyError, Span};
+use super::{BodyWrapper, DecoratorList, ProcedureContext, mast_forest_builder::MastForestBuilder};
+use crate::{AssemblyError, Span, ast::Instruction};
 
 // BASIC BLOCK BUILDER
 // ================================================================================================

@@ -6,14 +6,14 @@ use vm_core::Program;
 #[cfg(feature = "std")]
 use crate::diagnostics::reporting::set_panic_hook;
 use crate::{
+    Compile, CompileOptions, LibraryPath, RpoDigest,
     assembler::Assembler,
     ast::{Form, Module, ModuleKind},
     diagnostics::{
-        reporting::{set_hook, ReportHandlerOpts},
         Report, SourceFile, SourceManager,
+        reporting::{ReportHandlerOpts, set_hook},
     },
     library::Library,
-    Compile, CompileOptions, LibraryPath, RpoDigest,
 };
 
 /// Represents a pattern for matching text abstractly
@@ -36,7 +36,7 @@ impl Pattern {
     pub fn is_match(&self, input: impl AsRef<str>) -> bool {
         match self {
             Self::Literal(pattern) => input.as_ref().contains(pattern.as_ref()),
-            Self::Regex(ref regex) => regex.is_match(input.as_ref()),
+            Self::Regex(regex) => regex.is_match(input.as_ref()),
         }
     }
 
@@ -84,8 +84,8 @@ full output: `{context}`
 impl fmt::Display for Pattern {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
-            Self::Literal(ref lit) => write!(f, "contain `{}`", lit),
-            Self::Regex(ref pat) => write!(f, "match regular expression `{}`", pat.as_str()),
+            Self::Literal(lit) => write!(f, "contain `{}`", lit),
+            Self::Regex(pat) => write!(f, "match regular expression `{}`", pat.as_str()),
         }
     }
 }

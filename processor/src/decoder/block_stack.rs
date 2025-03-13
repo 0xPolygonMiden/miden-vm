@@ -1,6 +1,6 @@
 use alloc::vec::Vec;
 
-use super::{Felt, Word, ONE, ZERO};
+use super::{Felt, ONE, Word, ZERO};
 use crate::system::ContextId;
 
 // BLOCK STACK
@@ -123,11 +123,7 @@ impl BlockInfo {
 
     /// Returns ONE if this block is a body of a LOOP block; otherwise returns ZERO.
     pub const fn is_loop_body(&self) -> Felt {
-        if self.is_loop_body {
-            ONE
-        } else {
-            ZERO
-        }
+        if self.is_loop_body { ONE } else { ZERO }
     }
 
     /// Returns ONE if this block is a CALL or DYNCALL block; otherwise returns ZERO.

@@ -1,11 +1,11 @@
 use alloc::vec::Vec;
 
-use miden_crypto::{hash::rpo::RpoDigest, Felt};
+use miden_crypto::{Felt, hash::rpo::RpoDigest};
 use proptest::prelude::*;
 use rand_utils::prng_array;
 use winter_utils::{Deserializable, Serializable};
 
-use crate::{chiplets::hasher, mast::DynNode, Kernel, ProgramInfo, Word};
+use crate::{Kernel, ProgramInfo, Word, chiplets::hasher, mast::DynNode};
 
 #[test]
 fn dyn_hash_is_correct() {

@@ -1,4 +1,4 @@
-use super::{apply_permutation, build_op_test, build_test, Felt, ToElements, TRUNCATE_STACK_PROC};
+use super::{Felt, TRUNCATE_STACK_PROC, ToElements, apply_permutation, build_op_test, build_test};
 
 // LOADING SINGLE ELEMENT ONTO THE STACK (MLOAD)
 // ================================================================================================

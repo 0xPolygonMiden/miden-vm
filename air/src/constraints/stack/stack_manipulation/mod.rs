@@ -1,6 +1,6 @@
 use alloc::vec::Vec;
 
-use super::{op_flags::OpFlags, EvaluationFrame, FieldElement, TransitionConstraintDegree};
+use super::{EvaluationFrame, FieldElement, TransitionConstraintDegree, op_flags::OpFlags};
 use crate::{
     stack::EvaluationFrameExt,
     utils::{are_equal, binary_not},

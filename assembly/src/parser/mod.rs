@@ -28,9 +28,9 @@ pub use self::{
     token::{BinEncodedValue, DocumentationType, HexEncodedValue, Token},
 };
 use crate::{
-    ast,
+    LibraryPath, SourceManager, ast,
     diagnostics::{Report, SourceFile, SourceSpan, Span, Spanned},
-    sema, LibraryPath, SourceManager,
+    sema,
 };
 
 // TYPE ALIASES
@@ -178,7 +178,7 @@ pub fn read_modules_from_dir(
     dir: &std::path::Path,
     source_manager: &dyn SourceManager,
 ) -> Result<impl Iterator<Item = Box<ast::Module>>, Report> {
-    use std::collections::{btree_map::Entry, BTreeMap};
+    use std::collections::{BTreeMap, btree_map::Entry};
 
     use miette::miette;
     use module_walker::{ModuleEntry, WalkModules};
@@ -234,9 +234,9 @@ mod module_walker {
     use miette::miette;
 
     use crate::{
+        LibraryNamespace, LibraryPath,
         ast::Module,
         diagnostics::{IntoDiagnostic, Report},
-        LibraryNamespace, LibraryPath,
     };
 
     pub struct ModuleEntry {

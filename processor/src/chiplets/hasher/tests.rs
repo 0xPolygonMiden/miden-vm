@@ -5,16 +5,16 @@ use miden_air::trace::chiplets::hasher::{
 };
 use test_utils::rand::rand_array;
 use vm_core::{
+    ONE, Operation, ZERO,
     chiplets::hasher,
     crypto::merkle::{MerkleTree, NodeIndex},
     mast::{MastForest, MastNode},
-    Operation, ONE, ZERO,
 };
 
 use super::{
-    init_state_from_words, Digest, Felt, Hasher, HasherState, MerklePath, Selectors, TraceFragment,
-    Word, LINEAR_HASH, MP_VERIFY, MR_UPDATE_NEW, MR_UPDATE_OLD, RETURN_HASH, RETURN_STATE,
-    TRACE_WIDTH,
+    Digest, Felt, Hasher, HasherState, LINEAR_HASH, MP_VERIFY, MR_UPDATE_NEW, MR_UPDATE_OLD,
+    MerklePath, RETURN_HASH, RETURN_STATE, Selectors, TRACE_WIDTH, TraceFragment, Word,
+    init_state_from_words,
 };
 
 // LINEAR HASH TESTS

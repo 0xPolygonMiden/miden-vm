@@ -6,11 +6,11 @@ use std::{
 };
 
 use assembly::{
+    Assembler, Library, LibraryNamespace,
     ast::{Module, ModuleKind},
     diagnostics::{Report, WrapErr},
-    Assembler, Library, LibraryNamespace,
 };
-use miden_vm::{utils::SliceReader, Digest, ExecutionProof, Program, StackOutputs};
+use miden_vm::{Digest, ExecutionProof, Program, StackOutputs, utils::SliceReader};
 use prover::utils::Deserializable;
 use serde_derive::{Deserialize, Serialize};
 use stdlib::StdLibrary;

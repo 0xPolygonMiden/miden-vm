@@ -1,8 +1,8 @@
 use processor::{ExecutionError, RowIndex};
 use test_utils::expect_exec_error_matches;
-use vm_core::{chiplets::hasher::apply_permutation, utils::ToElements, Felt};
+use vm_core::{Felt, chiplets::hasher::apply_permutation, utils::ToElements};
 
-use super::{build_op_test, build_test, TRUNCATE_STACK_PROC};
+use super::{TRUNCATE_STACK_PROC, build_op_test, build_test};
 
 // PUSHING VALUES ONTO THE STACK (PUSH)
 // ================================================================================================

@@ -172,7 +172,7 @@ impl Process {
 mod tests {
     use alloc::{borrow::ToOwned, vec::Vec};
 
-    use test_utils::{build_test, rand::rand_array, TRUNCATE_STACK_PROC};
+    use test_utils::{TRUNCATE_STACK_PROC, build_test, rand::rand_array};
     use vm_core::{Felt, FieldElement, Operation, StackInputs, ZERO};
 
     use crate::{ContextId, DefaultHost, Process, QuadFelt};

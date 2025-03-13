@@ -1,6 +1,6 @@
 use alloc::{string::String, sync::Arc};
 
-use crate::{ast::Ident, parser::HexEncodedValue, prettier, Felt, SourceSpan, Span, Spanned};
+use crate::{Felt, SourceSpan, Span, Spanned, ast::Ident, parser::HexEncodedValue, prettier};
 
 /// Represents a metadata expression of an [crate::ast::Attribute]
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]

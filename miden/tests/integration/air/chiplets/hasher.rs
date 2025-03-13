@@ -1,8 +1,7 @@
 use test_utils::{
-    build_op_test,
-    crypto::{init_merkle_leaf, init_merkle_store, MerkleStore, MerkleTree, Rpo256},
+    Word, build_op_test,
+    crypto::{MerkleStore, MerkleTree, Rpo256, init_merkle_leaf, init_merkle_store},
     rand::rand_vector,
-    Word,
 };
 
 #[test]

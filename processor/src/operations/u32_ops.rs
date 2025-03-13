@@ -244,7 +244,7 @@ mod tests {
 
     use super::{
         super::{Felt, Operation},
-        split_u32_into_u16, Process,
+        Process, split_u32_into_u16,
     };
     use crate::{DefaultHost, StackInputs, ZERO};
 

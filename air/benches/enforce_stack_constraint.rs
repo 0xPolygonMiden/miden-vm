@@ -1,13 +1,13 @@
 use std::time::Duration;
 
-use criterion::{criterion_group, criterion_main, Criterion};
+use criterion::{Criterion, criterion_group, criterion_main};
 use miden_air::{
+    Felt, FieldElement,
     stack::{
-        enforce_constraints, field_ops, io_ops, op_flags::generate_evaluation_frame, overflow,
-        stack_manipulation, system_ops, u32_ops, NUM_GENERAL_CONSTRAINTS,
+        NUM_GENERAL_CONSTRAINTS, enforce_constraints, field_ops, io_ops,
+        op_flags::generate_evaluation_frame, overflow, stack_manipulation, system_ops, u32_ops,
     },
     trace::STACK_TRACE_OFFSET,
-    Felt, FieldElement,
 };
 use vm_core::{Operation, ZERO};
 

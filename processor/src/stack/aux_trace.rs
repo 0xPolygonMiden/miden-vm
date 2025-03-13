@@ -1,6 +1,6 @@
 use alloc::vec::Vec;
 
-use miden_air::{trace::main_trace::MainTrace, RowIndex};
+use miden_air::{RowIndex, trace::main_trace::MainTrace};
 use vm_core::OPCODE_DYNCALL;
 
 use super::{Felt, FieldElement, OverflowTableRow};

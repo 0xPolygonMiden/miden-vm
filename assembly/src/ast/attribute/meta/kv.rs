@@ -2,7 +2,7 @@ use alloc::collections::BTreeMap;
 use core::borrow::Borrow;
 
 use super::MetaExpr;
-use crate::{ast::Ident, SourceSpan, Spanned};
+use crate::{SourceSpan, Spanned, ast::Ident};
 
 /// Represents the metadata of a key-value [crate::ast::Attribute], i.e. `@props(key = value)`
 #[derive(Clone)]

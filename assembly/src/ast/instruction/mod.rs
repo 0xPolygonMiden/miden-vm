@@ -6,8 +6,8 @@ use alloc::vec::Vec;
 
 pub use self::{advice::SystemEventNode, debug::DebugOptions};
 use crate::{
-    ast::{immediate::*, InvocationTarget},
     Felt, Word,
+    ast::{InvocationTarget, immediate::*},
 };
 
 // INSTRUCTION

@@ -45,7 +45,7 @@ impl DebugCommand {
                 return Err(format!(
                     "malformed command - does not match any known command: `{}`",
                     command
-                ))
+                ));
             },
         };
 
@@ -111,7 +111,7 @@ impl DebugCommand {
             _ => {
                 return Err(format!(
                     "malformed `print` command - unexpected subcommand: `{command}`"
-                ))
+                ));
             },
         };
 

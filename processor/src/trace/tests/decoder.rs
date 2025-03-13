@@ -1,24 +1,24 @@
 use miden_air::trace::{
-    decoder::{P1_COL_IDX, P2_COL_IDX, P3_COL_IDX},
     AUX_TRACE_RAND_ELEMENTS,
+    decoder::{P1_COL_IDX, P2_COL_IDX, P3_COL_IDX},
 };
 use test_utils::rand::rand_array;
 use vm_core::{
+    FieldElement, ONE, Operation, Program, Word, ZERO,
     mast::{MastForest, MastNode},
-    FieldElement, Operation, Program, Word, ONE, ZERO,
 };
 
 use super::{
     super::{
+        NUM_RAND_ROWS,
         tests::{build_trace_from_ops, build_trace_from_program},
         utils::build_span_with_respan_ops,
-        NUM_RAND_ROWS,
     },
     Felt,
 };
 use crate::{
-    decoder::{build_op_group, BlockHashTableRow},
     ContextId,
+    decoder::{BlockHashTableRow, build_op_group},
 };
 
 // BLOCK STACK TABLE TESTS

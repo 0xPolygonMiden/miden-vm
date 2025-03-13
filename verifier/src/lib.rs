@@ -14,9 +14,9 @@ use vm_core::crypto::{
 };
 // EXPORTS
 // ================================================================================================
-pub use vm_core::{chiplets::hasher::Digest, Kernel, ProgramInfo, StackInputs, StackOutputs, Word};
-use winter_verifier::{crypto::MerkleTree, verify as verify_proof};
+pub use vm_core::{Kernel, ProgramInfo, StackInputs, StackOutputs, Word, chiplets::hasher::Digest};
 pub use winter_verifier::{AcceptableOptions, VerifierError};
+use winter_verifier::{crypto::MerkleTree, verify as verify_proof};
 pub mod math {
     pub use vm_core::{Felt, FieldElement, StarkField};
 }

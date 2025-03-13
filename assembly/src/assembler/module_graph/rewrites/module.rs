@@ -2,15 +2,15 @@ use alloc::collections::BTreeSet;
 use core::ops::ControlFlow;
 
 use crate::{
+    AssemblyError, SourceSpan, Spanned,
     assembler::{
-        module_graph::{CallerInfo, NameResolver},
         ModuleIndex, ResolvedTarget,
+        module_graph::{CallerInfo, NameResolver},
     },
     ast::{
-        visit::{self, VisitMut},
         AliasTarget, InvocationTarget, Invoke, InvokeKind, Module, Procedure,
+        visit::{self, VisitMut},
     },
-    AssemblyError, SourceSpan, Spanned,
 };
 
 // MODULE REWRITE CHECK

@@ -8,12 +8,12 @@ extern crate alloc;
 extern crate std;
 
 use vm_core::{
+    Felt, ONE, Word, ZERO,
     crypto::hash::RpoDigest,
     prettier,
     utils::{
         ByteReader, ByteWriter, Deserializable, DeserializationError, DisplayHex, Serializable,
     },
-    Felt, Word, ONE, ZERO,
 };
 
 mod assembler;

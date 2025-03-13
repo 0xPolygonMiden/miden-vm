@@ -1,14 +1,14 @@
 use vm_core::{
-    sys_events::SystemEvent,
     Felt,
     Operation::{self, *},
+    sys_events::SystemEvent,
 };
 
-use super::{field_ops::append_pow2_op, push_u32_value, validate_param, BasicBlockBuilder};
+use super::{BasicBlockBuilder, field_ops::append_pow2_op, push_u32_value, validate_param};
 use crate::{
+    AssemblyError, MAX_U32_ROTATE_VALUE, MAX_U32_SHIFT_VALUE, Span,
     assembler::ProcedureContext,
     diagnostics::{RelatedError, Report},
-    AssemblyError, Span, MAX_U32_ROTATE_VALUE, MAX_U32_SHIFT_VALUE,
 };
 
 /// This enum is intended to determine the mode of operation passed to the parsing function

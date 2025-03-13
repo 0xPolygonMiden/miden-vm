@@ -1,15 +1,15 @@
 use alloc::vec::Vec;
 
 use air::{PartitionOptions, ProvingOptions, StarkField};
-use gpu::metal::{MetalExecutionProver, DIGEST_SIZE};
+use gpu::metal::{DIGEST_SIZE, MetalExecutionProver};
 use processor::{
+    StackInputs, StackOutputs,
     crypto::{Hasher, Rpo256, RpoDigest, RpoRandomCoin, Rpx256, RpxDigest},
     math::fft,
-    StackInputs, StackOutputs,
 };
 use winter_prover::{
-    crypto::Digest, math::fields::CubeExtension, CompositionPolyTrace, ConstraintCommitment,
-    TraceLde,
+    CompositionPolyTrace, ConstraintCommitment, TraceLde, crypto::Digest,
+    math::fields::CubeExtension,
 };
 
 use crate::*;

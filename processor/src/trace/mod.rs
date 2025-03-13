@@ -1,19 +1,20 @@
 use alloc::vec::Vec;
 
 use miden_air::trace::{
-    decoder::{NUM_USER_OP_HELPERS, USER_OP_HELPERS_OFFSET},
-    main_trace::MainTrace,
     AUX_TRACE_RAND_ELEMENTS, AUX_TRACE_WIDTH, DECODER_TRACE_OFFSET, MIN_TRACE_LEN,
     STACK_TRACE_OFFSET, TRACE_WIDTH,
+    decoder::{NUM_USER_OP_HELPERS, USER_OP_HELPERS_OFFSET},
+    main_trace::MainTrace,
 };
-use vm_core::{stack::MIN_STACK_DEPTH, ProgramInfo, StackInputs, StackOutputs, ZERO};
-use winter_prover::{crypto::RandomCoin, EvaluationFrame, Trace, TraceInfo};
+use vm_core::{ProgramInfo, StackInputs, StackOutputs, ZERO, stack::MIN_STACK_DEPTH};
+use winter_prover::{EvaluationFrame, Trace, TraceInfo, crypto::RandomCoin};
 
 use super::{
+    ColMatrix, Digest, Felt, FieldElement, Process,
     chiplets::AuxTraceBuilder as ChipletsAuxTraceBuilder, crypto::RpoRandomCoin,
     decoder::AuxTraceBuilder as DecoderAuxTraceBuilder,
     range::AuxTraceBuilder as RangeCheckerAuxTraceBuilder,
-    stack::AuxTraceBuilder as StackAuxTraceBuilder, ColMatrix, Digest, Felt, FieldElement, Process,
+    stack::AuxTraceBuilder as StackAuxTraceBuilder,
 };
 
 mod utils;

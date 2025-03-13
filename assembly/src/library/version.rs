@@ -4,8 +4,8 @@ use core::{
 };
 
 use crate::{
-    diagnostics::Diagnostic, ByteReader, ByteWriter, Deserializable, DeserializationError,
-    Serializable,
+    ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable,
+    diagnostics::Diagnostic,
 };
 
 /// Represents a _Semantic Versioning_ version string, without pre-releases.

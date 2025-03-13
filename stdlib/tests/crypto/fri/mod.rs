@@ -1,7 +1,7 @@
 use alloc::collections::BTreeMap;
 
 use processor::Digest;
-use test_utils::{crypto::MerkleStore, Felt, StarkField};
+use test_utils::{Felt, StarkField, crypto::MerkleStore};
 
 mod channel;
 

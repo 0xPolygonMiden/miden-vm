@@ -6,9 +6,9 @@ use core::{
 };
 
 use crate::{
+    LibraryNamespace, LibraryPath, SourceSpan, Span, Spanned,
     ast::{CaseKindError, Ident, IdentError},
     diagnostics::{IntoDiagnostic, Report},
-    LibraryNamespace, LibraryPath, SourceSpan, Span, Spanned,
 };
 
 // QUALIFIED PROCEDURE NAME

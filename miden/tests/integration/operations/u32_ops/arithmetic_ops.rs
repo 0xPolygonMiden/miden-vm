@@ -1,6 +1,6 @@
 use processor::{ExecutionError, RowIndex};
 use test_utils::{
-    build_op_test, expect_exec_error_matches, proptest::prelude::*, rand::rand_value, U32_BOUND,
+    U32_BOUND, build_op_test, expect_exec_error_matches, proptest::prelude::*, rand::rand_value,
 };
 
 // U32 OPERATIONS TESTS - MANUAL - ARITHMETIC OPERATIONS

@@ -3,7 +3,7 @@ use core::fmt::{self, Display};
 
 use miden_air::RowIndex;
 
-use super::{ExecutionError, Felt, FieldElement, SysTrace, Word, EMPTY_WORD, ONE, ZERO};
+use super::{EMPTY_WORD, ExecutionError, Felt, FieldElement, ONE, SysTrace, Word, ZERO};
 
 #[cfg(test)]
 mod tests;

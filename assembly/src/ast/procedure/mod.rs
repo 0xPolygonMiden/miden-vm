@@ -15,8 +15,8 @@ pub use self::{
     resolver::{LocalNameResolver, ResolvedProcedure},
 };
 use crate::{
-    ast::{AttributeSet, Invoke},
     SourceSpan, Span, Spanned,
+    ast::{AttributeSet, Invoke},
 };
 
 // EXPORT
@@ -46,23 +46,23 @@ impl Export {
     /// Returns the name of the exported procedure.
     pub fn name(&self) -> &ProcedureName {
         match self {
-            Self::Procedure(ref proc) => proc.name(),
-            Self::Alias(ref alias) => alias.name(),
+            Self::Procedure(proc) => proc.name(),
+            Self::Alias(alias) => alias.name(),
         }
     }
 
     /// Returns the documentation for this procedure.
     pub fn docs(&self) -> Option<&str> {
         match self {
-            Self::Procedure(ref proc) => proc.docs().map(|spanned| spanned.as_deref().into_inner()),
-            Self::Alias(ref alias) => alias.docs().map(|spanned| spanned.as_deref().into_inner()),
+            Self::Procedure(proc) => proc.docs().map(|spanned| spanned.as_deref().into_inner()),
+            Self::Alias(alias) => alias.docs().map(|spanned| spanned.as_deref().into_inner()),
         }
     }
 
     /// Returns the attributes for this procedure.
     pub fn attributes(&self) -> Option<&AttributeSet> {
         match self {
-            Self::Procedure(ref proc) => Some(proc.attributes()),
+            Self::Procedure(proc) => Some(proc.attributes()),
             Self::Alias(_) => None,
         }
     }
@@ -72,7 +72,7 @@ impl Export {
     /// See [Visibility] for more details on what visibilities are supported.
     pub fn visibility(&self) -> Visibility {
         match self {
-            Self::Procedure(ref proc) => proc.visibility(),
+            Self::Procedure(proc) => proc.visibility(),
             Self::Alias(_) => Visibility::Public,
         }
     }
@@ -81,7 +81,7 @@ impl Export {
     /// for the storage of temporaries/local variables.
     pub fn num_locals(&self) -> usize {
         match self {
-            Self::Procedure(ref proc) => proc.num_locals() as usize,
+            Self::Procedure(proc) => proc.num_locals() as usize,
             Self::Alias(_) => 0,
         }
     }
@@ -95,7 +95,7 @@ impl Export {
     #[track_caller]
     pub fn unwrap_procedure(&self) -> &Procedure {
         match self {
-            Self::Procedure(ref proc) => proc,
+            Self::Procedure(proc) => proc,
             Self::Alias(_) => panic!("attempted to unwrap alias export as procedure definition"),
         }
     }
@@ -106,8 +106,8 @@ impl Export {
     /// iterator whenever called.
     pub(crate) fn invoked<'a, 'b: 'a>(&'b self) -> impl Iterator<Item = &'a Invoke> + 'a {
         match self {
-            Self::Procedure(ref proc) if proc.invoked.is_empty() => procedure::InvokedIter::Empty,
-            Self::Procedure(ref proc) => procedure::InvokedIter::NonEmpty(proc.invoked.iter()),
+            Self::Procedure(proc) if proc.invoked.is_empty() => procedure::InvokedIter::Empty,
+            Self::Procedure(proc) => procedure::InvokedIter::NonEmpty(proc.invoked.iter()),
             Self::Alias(_) => procedure::InvokedIter::Empty,
         }
     }
@@ -116,8 +116,8 @@ impl Export {
 impl crate::prettier::PrettyPrint for Export {
     fn render(&self) -> crate::prettier::Document {
         match self {
-            Self::Procedure(ref proc) => proc.render(),
-            Self::Alias(ref proc) => proc.render(),
+            Self::Procedure(proc) => proc.render(),
+            Self::Alias(proc) => proc.render(),
         }
     }
 }
@@ -125,8 +125,8 @@ impl crate::prettier::PrettyPrint for Export {
 impl Spanned for Export {
     fn span(&self) -> SourceSpan {
         match self {
-            Self::Procedure(ref spanned) => spanned.span(),
-            Self::Alias(ref spanned) => spanned.span(),
+            Self::Procedure(spanned) => spanned.span(),
+            Self::Alias(spanned) => spanned.span(),
         }
     }
 }

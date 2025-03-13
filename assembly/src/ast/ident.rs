@@ -12,7 +12,9 @@ use crate::{SourceSpan, Span, Spanned};
 pub enum IdentError {
     #[error("invalid identifier: cannot be empty")]
     Empty,
-    #[error("invalid identifier '{ident}': must contain only lowercase, ascii alphanumeric characters, or underscores")]
+    #[error(
+        "invalid identifier '{ident}': must contain only lowercase, ascii alphanumeric characters, or underscores"
+    )]
     InvalidChars { ident: Arc<str> },
     #[error("invalid identifier: must start with lowercase ascii alphabetic character")]
     InvalidStart,
@@ -26,11 +28,17 @@ pub enum IdentError {
 /// with `SCREAMING_CASE` where one with `snake_case` is expected.
 #[derive(Debug, thiserror::Error)]
 pub enum CaseKindError {
-    #[error("only uppercase characters or underscores are allowed, and must start with an alphabetic character")]
+    #[error(
+        "only uppercase characters or underscores are allowed, and must start with an alphabetic character"
+    )]
     Screaming,
-    #[error("only lowercase characters or underscores are allowed, and must start with an alphabetic character")]
+    #[error(
+        "only lowercase characters or underscores are allowed, and must start with an alphabetic character"
+    )]
     Snake,
-    #[error("only alphanumeric characters are allowed, and must start with a lowercase alphabetic character")]
+    #[error(
+        "only alphanumeric characters are allowed, and must start with a lowercase alphabetic character"
+    )]
     Camel,
 }
 

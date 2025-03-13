@@ -1,9 +1,9 @@
 use alloc::vec::Vec;
 
 use vm_core::{
+    Felt, Word,
     crypto::dsa::rpo_falcon512::{Polynomial, SecretKey},
     utils::Deserializable,
-    Felt, Word,
 };
 
 use crate::ExecutionError;

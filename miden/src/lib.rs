@@ -5,20 +5,20 @@
 // ================================================================================================
 
 pub use assembly::{
-    self,
+    self, Assembler, AssemblyError,
     ast::{Module, ModuleKind},
-    diagnostics, Assembler, AssemblyError,
+    diagnostics,
 };
 pub use processor::{
-    crypto, execute, execute_iter, utils, AdviceInputs, AdviceProvider, AsmOpInfo, DefaultHost,
-    ExecutionError, ExecutionTrace, Host, Kernel, MemAdviceProvider, Operation, Program,
-    ProgramInfo, StackInputs, VmState, VmStateIterator, ZERO,
+    AdviceInputs, AdviceProvider, AsmOpInfo, DefaultHost, ExecutionError, ExecutionTrace, Host,
+    Kernel, MemAdviceProvider, Operation, Program, ProgramInfo, StackInputs, VmState,
+    VmStateIterator, ZERO, crypto, execute, execute_iter, utils,
 };
 pub use prover::{
-    math, prove, Digest, ExecutionProof, FieldExtension, HashFunction, InputError, Proof,
-    ProvingOptions, StackOutputs, Word,
+    Digest, ExecutionProof, FieldExtension, HashFunction, InputError, Proof, ProvingOptions,
+    StackOutputs, Word, math, prove,
 };
-pub use verifier::{verify, VerificationError};
+pub use verifier::{VerificationError, verify};
 
 // (private) exports
 // ================================================================================================

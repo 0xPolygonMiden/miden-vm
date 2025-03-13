@@ -1,9 +1,9 @@
 use core::ops::ControlFlow;
 
 use crate::{
+    Felt, Span, Spanned,
     ast::*,
     sema::{AnalysisContext, SemanticAnalysisError},
-    Felt, Span, Spanned,
 };
 
 /// This visitor evaluates all constant expressions and folds them to literals.
@@ -24,7 +24,7 @@ impl ConstEvalVisitor<'_> {
     {
         match imm {
             Immediate::Value(_) => ControlFlow::Continue(()),
-            Immediate::Constant(ref name) => {
+            Immediate::Constant(name) => {
                 let span = name.span();
                 match self.analyzer.get_constant(name) {
                     Ok(value) => match T::try_from(value.as_int()) {
@@ -61,7 +61,7 @@ impl VisitMut for ConstEvalVisitor<'_> {
     fn visit_mut_immediate_felt(&mut self, imm: &mut Immediate<Felt>) -> ControlFlow<()> {
         match imm {
             Immediate::Value(_) => ControlFlow::Continue(()),
-            Immediate::Constant(ref name) => {
+            Immediate::Constant(name) => {
                 let span = name.span();
                 match self.analyzer.get_constant(name) {
                     Ok(value) => {

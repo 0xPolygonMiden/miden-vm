@@ -1,6 +1,6 @@
 use core::fmt;
 
-use crate::{ast::Ident, LibraryNamespace, LibraryPath, SourceSpan, Spanned};
+use crate::{LibraryNamespace, LibraryPath, SourceSpan, Spanned, ast::Ident};
 
 // IMPORT
 // ================================================================================================

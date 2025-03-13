@@ -1,16 +1,16 @@
 use alloc::vec::Vec;
 use core::fmt;
 
-use miden_crypto::{hash::rpo::RpoDigest, Felt};
+use miden_crypto::{Felt, hash::rpo::RpoDigest};
 use miden_formatting::{
     hex::ToHex,
-    prettier::{const_text, nl, text, Document, PrettyPrint},
+    prettier::{Document, PrettyPrint, const_text, nl, text},
 };
 
 use crate::{
+    OPCODE_CALL, OPCODE_SYSCALL,
     chiplets::hasher,
     mast::{DecoratorId, MastForest, MastForestError, MastNodeId, Remapping},
-    OPCODE_CALL, OPCODE_SYSCALL,
 };
 
 // CALL NODE

@@ -1,13 +1,13 @@
 use alloc::vec::Vec;
 use core::fmt;
 
-use miden_crypto::{hash::rpo::RpoDigest, Felt};
+use miden_crypto::{Felt, hash::rpo::RpoDigest};
 use miden_formatting::prettier::PrettyPrint;
 
 use crate::{
+    OPCODE_SPLIT,
     chiplets::hasher,
     mast::{DecoratorId, MastForest, MastForestError, MastNodeId, Remapping},
-    OPCODE_SPLIT,
 };
 
 // SPLIT NODE

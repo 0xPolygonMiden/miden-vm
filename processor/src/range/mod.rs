@@ -2,7 +2,7 @@ use alloc::{collections::BTreeMap, vec::Vec};
 
 use miden_air::RowIndex;
 
-use super::{trace::NUM_RAND_ROWS, Felt, FieldElement, RangeCheckTrace, ZERO};
+use super::{Felt, FieldElement, RangeCheckTrace, ZERO, trace::NUM_RAND_ROWS};
 use crate::utils::uninit_vector;
 
 mod aux_trace;

@@ -1,12 +1,12 @@
 use alloc::vec::Vec;
 
 use vm_core::{
+    Felt, FieldElement, WORD_SIZE, Word, ZERO,
     crypto::{
         hash::{Rpo256, RpoDigest},
-        merkle::{EmptySubtreeRoots, Smt, SMT_DEPTH},
+        merkle::{EmptySubtreeRoots, SMT_DEPTH, Smt},
     },
     sys_events::SystemEvent,
-    Felt, FieldElement, Word, WORD_SIZE, ZERO,
 };
 use winter_prover::math::fft;
 

@@ -1,9 +1,9 @@
 use alloc::vec::Vec;
 use core::slice;
 
-use miden_air::{trace::main_trace::MainTrace, RowIndex};
+use miden_air::{RowIndex, trace::main_trace::MainTrace};
 #[cfg(test)]
-use vm_core::{utils::ToElements, Operation};
+use vm_core::{Operation, utils::ToElements};
 
 use super::{Felt, FieldElement, NUM_RAND_ROWS};
 use crate::{chiplets::Chiplets, utils::uninit_vector};

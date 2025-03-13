@@ -34,7 +34,7 @@ mod tests {
     use vm_core::QuadExtension;
 
     use super::{
-        super::{Felt, Operation, MIN_STACK_DEPTH},
+        super::{Felt, MIN_STACK_DEPTH, Operation},
         Process,
     };
     use crate::{DefaultHost, StackInputs, ZERO};

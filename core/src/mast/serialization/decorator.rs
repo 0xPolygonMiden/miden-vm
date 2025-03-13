@@ -7,8 +7,8 @@ use winter_utils::{
 };
 
 use super::{
-    string_table::{StringTable, StringTableBuilder},
     DecoratorDataOffset,
+    string_table::{StringTable, StringTableBuilder},
 };
 use crate::{AssemblyOp, DebugOptions, Decorator};
 

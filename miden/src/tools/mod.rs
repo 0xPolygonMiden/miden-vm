@@ -3,7 +3,7 @@ use std::{fs, path::PathBuf};
 
 use assembly::diagnostics::{IntoDiagnostic, Report, WrapErr};
 use clap::Parser;
-use miden_vm::{internal::InputFile, Assembler, DefaultHost, Host, Operation, StackInputs};
+use miden_vm::{Assembler, DefaultHost, Host, Operation, StackInputs, internal::InputFile};
 use processor::{AsmOpInfo, TraceLenSummary};
 use stdlib::StdLibrary;
 
@@ -297,8 +297,7 @@ mod tests {
 
     #[test]
     fn analyze_test() {
-        let source =
-            "proc.foo.1 loc_store.0 end begin mem_storew.1 dropw push.17 push.1 movdn.2 exec.foo end";
+        let source = "proc.foo.1 loc_store.0 end begin mem_storew.1 dropw push.17 push.1 movdn.2 exec.foo end";
         let stack_inputs = StackInputs::default();
         let host = DefaultHost::default();
         let execution_details =

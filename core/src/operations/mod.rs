@@ -499,8 +499,8 @@ pub enum Operation {
     ///
     /// The operation works as follows:
     /// - Two words are popped from the advice stack.
-    /// - The destination memory address for the first word is retrieved from the 13th stack
-    ///   element (position 12).
+    /// - The destination memory address for the first word is retrieved from the 13th stack element
+    ///   (position 12).
     /// - The two words are written to memory consecutively, starting at this address.
     /// - The top 8 elements of the stack are overwritten with these words (element-wise, in stack
     ///   order).
@@ -558,8 +558,7 @@ pub enum Operation {
     /// for FRI protocol executed in a degree 2 extension of the base field.
     ///
     /// This operation:
-    /// - Folds 4 query values (v0, v1), (v2, v3), (v4, v5), (v6, v7) into a single value (ne0,
-    ///   ne1)
+    /// - Folds 4 query values (v0, v1), (v2, v3), (v4, v5), (v6, v7) into a single value (ne0, ne1)
     /// - Computes new value of the domain generator power: poe' = poe^4
     /// - Increments layer pointer (cptr) by 2
     /// - Checks that the previous folding was done correctly

@@ -2,12 +2,11 @@ use miden_vm::{Digest, Word};
 use processor::ExecutionError;
 use rand_chacha::rand_core::SeedableRng;
 use test_utils::{
-    build_test,
-    crypto::{rpo_falcon512::SecretKey, MerkleStore, RpoDigest},
+    Felt, TRUNCATE_STACK_PROC, build_test,
+    crypto::{MerkleStore, RpoDigest, rpo_falcon512::SecretKey},
     expect_exec_error_matches,
     rand::{rand_array, rand_value},
     serde::Serializable,
-    Felt, TRUNCATE_STACK_PROC,
 };
 
 const ADVICE_PUSH_SIG: &str = "

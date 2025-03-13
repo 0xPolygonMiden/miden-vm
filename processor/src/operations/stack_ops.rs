@@ -1,4 +1,4 @@
-use super::{ExecutionError, Process, MIN_STACK_DEPTH};
+use super::{ExecutionError, MIN_STACK_DEPTH, Process};
 use crate::ZERO;
 
 impl Process {
@@ -303,7 +303,7 @@ mod tests {
         super::{Operation, Process},
         MIN_STACK_DEPTH,
     };
-    use crate::{DefaultHost, Felt, StackInputs, ONE, ZERO};
+    use crate::{DefaultHost, Felt, ONE, StackInputs, ZERO};
 
     #[test]
     fn op_pad() {
