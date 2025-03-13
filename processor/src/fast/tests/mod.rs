@@ -8,6 +8,7 @@ use vm_core::{assert_matches, Kernel, StackInputs};
 use super::*;
 use crate::{system::FMP_MAX, DefaultHost, Process};
 
+mod advice_provider;
 mod all_ops;
 mod masm_consistency;
 mod memory;
