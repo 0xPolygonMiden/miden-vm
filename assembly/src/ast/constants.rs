@@ -3,7 +3,7 @@ use core::fmt;
 
 use vm_core::FieldElement;
 
-use crate::{ast::Ident, parser::ParsingError, Felt, SourceSpan, Span, Spanned};
+use crate::{Felt, SourceSpan, Span, Spanned, ast::Ident, parser::ParsingError};
 
 // CONSTANT
 // ================================================================================================
@@ -214,9 +214,9 @@ impl PartialEq for ConstantExpr {
 impl fmt::Debug for ConstantExpr {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
-            Self::Literal(ref lit) => fmt::Debug::fmt(&**lit, f),
-            Self::Var(ref name) => fmt::Debug::fmt(&**name, f),
-            Self::BinaryOp { ref op, ref lhs, ref rhs, .. } => {
+            Self::Literal(lit) => fmt::Debug::fmt(&**lit, f),
+            Self::Var(name) => fmt::Debug::fmt(&**name, f),
+            Self::BinaryOp { op, lhs, rhs, .. } => {
                 f.debug_tuple(op.name()).field(lhs).field(rhs).finish()
             },
         }
@@ -228,8 +228,8 @@ impl crate::prettier::PrettyPrint for ConstantExpr {
         use crate::prettier::*;
 
         match self {
-            Self::Literal(ref literal) => display(literal),
-            Self::Var(ref ident) => display(ident),
+            Self::Literal(literal) => display(literal),
+            Self::Var(ident) => display(ident),
             Self::BinaryOp { op, lhs, rhs, .. } => {
                 let single_line = lhs.render() + display(op) + rhs.render();
                 let multi_line = lhs.render() + nl() + (display(op)) + rhs.render();

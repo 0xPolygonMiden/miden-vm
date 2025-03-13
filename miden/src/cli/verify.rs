@@ -5,7 +5,7 @@ use std::{
 
 use assembly::diagnostics::{IntoDiagnostic, Report, Result, WrapErr};
 use clap::Parser;
-use miden_vm::{internal::InputFile, Kernel, ProgramInfo};
+use miden_vm::{Kernel, ProgramInfo, internal::InputFile};
 
 use super::data::{OutputFile, ProgramHash, ProofFile};
 

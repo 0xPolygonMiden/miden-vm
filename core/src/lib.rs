@@ -58,22 +58,22 @@ pub use program::{Program, ProgramInfo};
 
 mod kernel;
 pub use kernel::Kernel;
-pub use miden_crypto::{Word, EMPTY_WORD, ONE, WORD_SIZE, ZERO};
+pub use miden_crypto::{EMPTY_WORD, ONE, WORD_SIZE, Word, ZERO};
 pub mod crypto {
     pub mod merkle {
         pub use miden_crypto::merkle::{
             DefaultMerkleStore, EmptySubtreeRoots, InnerNodeInfo, LeafIndex, MerkleError,
             MerklePath, MerkleStore, MerkleTree, Mmr, MmrPeaks, NodeIndex, PartialMerkleTree,
-            RecordingMerkleStore, SimpleSmt, Smt, SmtProof, SmtProofError, StoreNode, SMT_DEPTH,
+            RecordingMerkleStore, SMT_DEPTH, SimpleSmt, Smt, SmtProof, SmtProofError, StoreNode,
         };
     }
 
     pub mod hash {
         pub use miden_crypto::hash::{
-            blake::{Blake3Digest, Blake3_160, Blake3_192, Blake3_256},
+            Digest, ElementHasher, Hasher,
+            blake::{Blake3_160, Blake3_192, Blake3_256, Blake3Digest},
             rpo::{Rpo256, RpoDigest},
             rpx::{Rpx256, RpxDigest},
-            Digest, ElementHasher, Hasher,
         };
     }
 
@@ -91,8 +91,9 @@ pub mod crypto {
 pub mod mast;
 
 pub use math::{
-    fields::{f64::BaseElement as Felt, QuadExtension},
-    polynom, ExtensionOf, FieldElement, StarkField, ToElements,
+    ExtensionOf, FieldElement, StarkField, ToElements,
+    fields::{QuadExtension, f64::BaseElement as Felt},
+    polynom,
 };
 
 pub mod prettier {
@@ -116,8 +117,8 @@ pub mod prettier {
 
 mod operations;
 pub use operations::{
-    opcode_constants::*, AssemblyOp, DebugOptions, Decorator, DecoratorIterator, DecoratorList,
-    Operation, SignatureKind,
+    AssemblyOp, DebugOptions, Decorator, DecoratorIterator, DecoratorList, Operation,
+    SignatureKind, opcode_constants::*,
 };
 
 pub mod stack;

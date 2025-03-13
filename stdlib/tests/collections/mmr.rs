@@ -1,9 +1,10 @@
 use test_utils::{
+    EMPTY_WORD, Felt, ONE, StarkField, Word, ZERO,
     crypto::{
-        init_merkle_leaf, init_merkle_leaves, MerkleError, MerkleStore, MerkleTree, Mmr, NodeIndex,
-        RpoDigest,
+        MerkleError, MerkleStore, MerkleTree, Mmr, NodeIndex, RpoDigest, init_merkle_leaf,
+        init_merkle_leaves,
     },
-    felt_slice_to_ints, hash_elements, Felt, StarkField, Word, EMPTY_WORD, ONE, ZERO,
+    felt_slice_to_ints, hash_elements,
 };
 
 // TESTS

@@ -1,6 +1,6 @@
 use core::ops::{Add, Div, Mul, Neg, Sub};
 
-use test_utils::{rand::rand_value, Felt, FieldElement, StarkField, ONE, ZERO};
+use test_utils::{Felt, FieldElement, ONE, StarkField, ZERO, rand::rand_value};
 
 // Given an element v ∈ Z_q | q = 2^64 - 2^32 + 1, this routine raises
 // it to the power 2^n, by means of n successive squarings

@@ -1,14 +1,15 @@
 use miden_air::{
-    trace::chiplets::{
-        bitwise::{BITWISE_AND, BITWISE_AND_LABEL, BITWISE_XOR, BITWISE_XOR_LABEL, OP_CYCLE_LEN},
-        BITWISE_A_COL_IDX, BITWISE_B_COL_IDX, BITWISE_OUTPUT_COL_IDX, BITWISE_TRACE_OFFSET,
-    },
     RowIndex,
+    trace::chiplets::{
+        BITWISE_A_COL_IDX, BITWISE_B_COL_IDX, BITWISE_OUTPUT_COL_IDX, BITWISE_TRACE_OFFSET,
+        bitwise::{BITWISE_AND, BITWISE_AND_LABEL, BITWISE_XOR, BITWISE_XOR_LABEL, OP_CYCLE_LEN},
+    },
 };
 
 use super::{
-    build_trace_from_ops, rand_array, rand_value, ExecutionTrace, Felt, FieldElement, Operation,
-    Trace, AUX_TRACE_RAND_ELEMENTS, CHIPLETS_AUX_TRACE_OFFSET, HASH_CYCLE_LEN, NUM_RAND_ROWS, ONE,
+    AUX_TRACE_RAND_ELEMENTS, CHIPLETS_AUX_TRACE_OFFSET, ExecutionTrace, Felt, FieldElement,
+    HASH_CYCLE_LEN, NUM_RAND_ROWS, ONE, Operation, Trace, build_trace_from_ops, rand_array,
+    rand_value,
 };
 
 /// Tests the generation of the `b_chip` bus column when only bitwise lookups are included. It

@@ -6,9 +6,9 @@ use alloc::{
 
 use super::{SemanticAnalysisError, SyntaxError};
 use crate::{
+    Felt, SourceFile, Span, Spanned,
     ast::*,
     diagnostics::{Diagnostic, Severity},
-    Felt, SourceFile, Span, Spanned,
 };
 
 /// This maintains the state for semantic analysis of a single [Module].
@@ -79,8 +79,8 @@ impl AnalysisContext {
     fn const_eval(&self, value: &ConstantExpr) -> Result<Felt, SemanticAnalysisError> {
         match value {
             ConstantExpr::Literal(value) => Ok(value.into_inner()),
-            ConstantExpr::Var(ref name) => self.get_constant(name),
-            ConstantExpr::BinaryOp { op, ref lhs, ref rhs, .. } => {
+            ConstantExpr::Var(name) => self.get_constant(name),
+            ConstantExpr::BinaryOp { op, lhs, rhs, .. } => {
                 let rhs = self.const_eval(rhs)?;
                 let lhs = self.const_eval(lhs)?;
                 match op {

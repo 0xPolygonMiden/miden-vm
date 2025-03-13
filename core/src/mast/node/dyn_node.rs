@@ -1,12 +1,12 @@
 use alloc::vec::Vec;
 use core::fmt;
 
-use miden_crypto::{hash::rpo::RpoDigest, Felt};
-use miden_formatting::prettier::{const_text, nl, Document, PrettyPrint};
+use miden_crypto::{Felt, hash::rpo::RpoDigest};
+use miden_formatting::prettier::{Document, PrettyPrint, const_text, nl};
 
 use crate::{
-    mast::{DecoratorId, MastForest},
     OPCODE_DYN, OPCODE_DYNCALL,
+    mast::{DecoratorId, MastForest},
 };
 
 // DYN NODE

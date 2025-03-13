@@ -263,10 +263,10 @@ impl Process {
 
 #[cfg(test)]
 mod tests {
-    use vm_core::{assert_matches, utils::ToElements, Word, ONE, ZERO};
+    use vm_core::{ONE, Word, ZERO, assert_matches, utils::ToElements};
 
     use super::{
-        super::{super::AdviceProvider, Operation, MIN_STACK_DEPTH},
+        super::{super::AdviceProvider, MIN_STACK_DEPTH, Operation},
         Felt, Host, Process,
     };
     use crate::{AdviceSource, ContextId, DefaultHost, ExecutionError};

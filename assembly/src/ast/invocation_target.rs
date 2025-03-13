@@ -1,8 +1,8 @@
 use core::fmt;
 
 use crate::{
-    ast::{Ident, ProcedureName},
     LibraryPath, RpoDigest, SourceSpan, Span, Spanned,
+    ast::{Ident, ProcedureName},
 };
 
 // INVOKE
@@ -71,9 +71,9 @@ pub enum InvocationTarget {
 impl Spanned for InvocationTarget {
     fn span(&self) -> SourceSpan {
         match self {
-            Self::MastRoot(ref spanned) => spanned.span(),
-            Self::ProcedureName(ref spanned) => spanned.span(),
-            Self::ProcedurePath { ref name, .. } | Self::AbsoluteProcedurePath { ref name, .. } => {
+            Self::MastRoot(spanned) => spanned.span(),
+            Self::ProcedureName(spanned) => spanned.span(),
+            Self::ProcedurePath { name, .. } | Self::AbsoluteProcedurePath { name, .. } => {
                 name.span()
             },
         }

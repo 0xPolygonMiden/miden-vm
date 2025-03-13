@@ -1,6 +1,6 @@
 use vm_core::WORD_SIZE;
 
-use super::{create_range, Felt, Range, ONE, ZERO};
+use super::{Felt, ONE, Range, ZERO, create_range};
 
 // CONSTANTS
 // ================================================================================================

@@ -1,10 +1,10 @@
 use alloc::vec::Vec;
 
 use miden_air::RowIndex;
-use vm_core::{stack::MIN_STACK_DEPTH, Word, WORD_SIZE};
+use vm_core::{WORD_SIZE, Word, stack::MIN_STACK_DEPTH};
 
 use super::{
-    ExecutionError, Felt, FieldElement, StackInputs, StackOutputs, ONE, STACK_TRACE_WIDTH, ZERO,
+    ExecutionError, Felt, FieldElement, ONE, STACK_TRACE_WIDTH, StackInputs, StackOutputs, ZERO,
 };
 
 mod trace;

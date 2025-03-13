@@ -2,19 +2,19 @@ use proptest::prelude::*;
 use rand_utils::rand_value;
 
 use super::{
-    enforce_constraints, EvaluationFrame, BITWISE_A_COL_IDX, BITWISE_A_COL_RANGE,
-    BITWISE_B_COL_IDX, BITWISE_B_COL_RANGE, BITWISE_OUTPUT_COL_IDX, BITWISE_PREV_OUTPUT_COL_IDX,
-    BITWISE_SELECTOR_COL_IDX, NUM_CONSTRAINTS, NUM_DECOMP_BITS, ONE, OP_CYCLE_LEN, ZERO,
+    BITWISE_A_COL_IDX, BITWISE_A_COL_RANGE, BITWISE_B_COL_IDX, BITWISE_B_COL_RANGE,
+    BITWISE_OUTPUT_COL_IDX, BITWISE_PREV_OUTPUT_COL_IDX, BITWISE_SELECTOR_COL_IDX, EvaluationFrame,
+    NUM_CONSTRAINTS, NUM_DECOMP_BITS, ONE, OP_CYCLE_LEN, ZERO, enforce_constraints,
 };
 use crate::{
-    trace::{
-        chiplets::{
-            bitwise::{BITWISE_AND, BITWISE_XOR},
-            BITWISE_TRACE_RANGE,
-        },
-        TRACE_WIDTH,
-    },
     Felt, RowIndex,
+    trace::{
+        TRACE_WIDTH,
+        chiplets::{
+            BITWISE_TRACE_RANGE,
+            bitwise::{BITWISE_AND, BITWISE_XOR},
+        },
+    },
 };
 
 // UNIT TESTS

@@ -1,7 +1,7 @@
 use alloc::{sync::Arc, vec::Vec};
 use core::fmt;
 
-use miden_crypto::{hash::rpo::RpoDigest, Felt, WORD_SIZE};
+use miden_crypto::{Felt, WORD_SIZE, hash::rpo::RpoDigest};
 use winter_utils::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable};
 
 use super::Kernel;

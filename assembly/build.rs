@@ -1,6 +1,6 @@
 extern crate lalrpop;
 
-use rustc_version::{version_meta, Channel};
+use rustc_version::{Channel, version_meta};
 
 fn main() {
     lalrpop::process_root().unwrap();

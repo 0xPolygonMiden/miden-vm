@@ -4,7 +4,7 @@ use test_utils::rand::rand_array;
 use vm_core::utils::ToElements;
 
 use super::{Felt, RangeChecker, ZERO};
-use crate::{utils::get_trace_len, RangeCheckTrace};
+use crate::{RangeCheckTrace, utils::get_trace_len};
 
 #[test]
 fn range_checks() {

@@ -1,20 +1,20 @@
 use alloc::vec::Vec;
 
 use miden_air::{
+    RowIndex,
     trace::chiplets::memory::{
         FLAG_SAME_CONTEXT_AND_WORD, IDX0_COL_IDX, IDX1_COL_IDX, IS_READ_COL_IDX,
         IS_WORD_ACCESS_COL_IDX, MEMORY_ACCESS_ELEMENT, MEMORY_ACCESS_WORD, MEMORY_READ,
         MEMORY_WRITE, TRACE_WIDTH as MEMORY_TRACE_WIDTH,
     },
-    RowIndex,
 };
-use vm_core::{assert_matches, Word, WORD_SIZE};
+use vm_core::{WORD_SIZE, Word, assert_matches};
 
 use super::{
     super::ZERO,
+    CLK_COL_IDX, CTX_COL_IDX, D_INV_COL_IDX, D0_COL_IDX, D1_COL_IDX, EMPTY_WORD, Felt,
+    FieldElement, Memory, ONE, TraceFragment, V_COL_RANGE, WORD_COL_IDX,
     segment::{MemoryAccessType, MemoryOperation},
-    Felt, FieldElement, Memory, TraceFragment, CLK_COL_IDX, CTX_COL_IDX, D0_COL_IDX, D1_COL_IDX,
-    D_INV_COL_IDX, EMPTY_WORD, ONE, V_COL_RANGE, WORD_COL_IDX,
 };
 use crate::{ContextId, ExecutionError};
 

@@ -1,7 +1,7 @@
 use vm_core::Operation;
 
-use super::{validate_param, BasicBlockBuilder};
-use crate::{AssemblyError, ADVICE_READ_LIMIT};
+use super::{BasicBlockBuilder, validate_param};
+use crate::{ADVICE_READ_LIMIT, AssemblyError};
 
 // NON-DETERMINISTIC (ADVICE) INPUTS
 // ================================================================================================

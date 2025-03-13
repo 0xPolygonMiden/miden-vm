@@ -1,10 +1,10 @@
-use vm_core::{sys_events::SystemEvent, FieldElement, Operation::*};
+use vm_core::{FieldElement, Operation::*, sys_events::SystemEvent};
 
-use super::{validate_param, BasicBlockBuilder};
+use super::{BasicBlockBuilder, validate_param};
 use crate::{
+    AssemblyError, Felt, MAX_EXP_BITS, ONE, Span, ZERO,
     assembler::ProcedureContext,
     diagnostics::{RelatedError, Report},
-    AssemblyError, Felt, Span, MAX_EXP_BITS, ONE, ZERO,
 };
 
 /// Field element representing TWO in the base field of the VM.

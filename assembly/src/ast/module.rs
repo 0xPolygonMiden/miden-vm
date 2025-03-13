@@ -6,12 +6,12 @@ use super::{
     ResolvedProcedure,
 };
 use crate::{
+    ByteReader, ByteWriter, Deserializable, DeserializationError, LibraryNamespace, LibraryPath,
+    Serializable, SourceSpan, Span, Spanned,
     ast::{AliasTarget, Ident},
     diagnostics::{Report, SourceFile},
     parser::ModuleParser,
     sema::SemanticAnalysisError,
-    ByteReader, ByteWriter, Deserializable, DeserializationError, LibraryNamespace, LibraryPath,
-    Serializable, SourceSpan, Span, Spanned,
 };
 
 // MODULE KIND
@@ -45,8 +45,8 @@ pub enum ModuleKind {
     /// A kernel is like a library module, but is special in a few ways:
     ///
     /// * Its code always executes in the root context, so it is stateful in a way that normal
-    ///   libraries cannot replicate. This can be used to provide core services that would
-    ///   otherwise not be possible to implement.
+    ///   libraries cannot replicate. This can be used to provide core services that would otherwise
+    ///   not be possible to implement.
     ///
     /// * The procedures exported from the kernel may be the target of the `syscall` instruction,
     ///   and in fact _must_ be called that way.
@@ -381,10 +381,10 @@ impl Module {
         let index =
             self.procedures.iter().position(|p| p.name() == name).map(ProcedureIndex::new)?;
         match &self.procedures[index.as_usize()] {
-            Export::Procedure(ref proc) => {
+            Export::Procedure(proc) => {
                 Some(ResolvedProcedure::Local(Span::new(proc.name().span(), index)))
             },
-            Export::Alias(ref alias) => match alias.target() {
+            Export::Alias(alias) => match alias.target() {
                 AliasTarget::MastRoot(digest) => Some(ResolvedProcedure::MastRoot(**digest)),
                 AliasTarget::ProcedurePath(path) | AliasTarget::AbsoluteProcedurePath(path) => {
                     Some(ResolvedProcedure::External(path.clone()))
@@ -396,11 +396,11 @@ impl Module {
     /// Construct a search structure that can resolve procedure names local to this module
     pub fn resolver(&self) -> LocalNameResolver {
         LocalNameResolver::from_iter(self.procedures.iter().enumerate().map(|(i, p)| match p {
-            Export::Procedure(ref p) => (
+            Export::Procedure(p) => (
                 p.name().clone(),
                 ResolvedProcedure::Local(Span::new(p.name().span(), ProcedureIndex::new(i))),
             ),
-            Export::Alias(ref p) => {
+            Export::Alias(p) => {
                 let target = match p.target() {
                     AliasTarget::MastRoot(digest) => ResolvedProcedure::MastRoot(**digest),
                     AliasTarget::ProcedurePath(path) | AliasTarget::AbsoluteProcedurePath(path) => {

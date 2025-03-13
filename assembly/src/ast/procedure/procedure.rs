@@ -3,8 +3,8 @@ use core::fmt;
 
 use super::ProcedureName;
 use crate::{
-    ast::{Attribute, AttributeSet, Block, Invoke},
     SourceSpan, Span, Spanned,
+    ast::{Attribute, AttributeSet, Block, Invoke},
 };
 
 // PROCEDURE VISIBILITY
@@ -222,7 +222,7 @@ where
     fn next(&mut self) -> Option<Self::Item> {
         match self {
             Self::Empty => None,
-            Self::NonEmpty(ref mut iter) => {
+            Self::NonEmpty(iter) => {
                 let result = iter.next();
                 if result.is_none() {
                     *self = Self::Empty;

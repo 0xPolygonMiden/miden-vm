@@ -26,8 +26,8 @@ impl core::ops::Deref for DocumentationType {
     type Target = String;
     fn deref(&self) -> &Self::Target {
         match self {
-            Self::Module(ref s) => s,
-            Self::Form(ref s) => s,
+            Self::Module(s) => s,
+            Self::Form(s) => s,
         }
     }
 }

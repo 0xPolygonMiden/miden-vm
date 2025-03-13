@@ -1,5 +1,5 @@
 use processor::ExecutionError;
-use test_utils::{build_op_test, expect_exec_error_matches, prop_randw, Felt, U32_BOUND, ZERO};
+use test_utils::{Felt, U32_BOUND, ZERO, build_op_test, expect_exec_error_matches, prop_randw};
 
 mod arithmetic_ops;
 mod bitwise_ops;

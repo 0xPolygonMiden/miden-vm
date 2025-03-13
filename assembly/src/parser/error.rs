@@ -5,7 +5,7 @@ use alloc::{
 use core::{fmt, ops::Range};
 
 use super::{ParseError, SourceSpan};
-use crate::{diagnostics::Diagnostic, SourceId};
+use crate::{SourceId, diagnostics::Diagnostic};
 
 // LITERAL ERROR KIND
 // ================================================================================================
@@ -104,7 +104,9 @@ pub enum ParsingError {
         #[label("invalid byte sequence starts here")]
         span: SourceSpan,
     },
-    #[error("expected input to be valid utf8, but end-of-file was reached before final codepoint was read")]
+    #[error(
+        "expected input to be valid utf8, but end-of-file was reached before final codepoint was read"
+    )]
     #[diagnostic()]
     IncompleteUtf8 {
         #[label("the codepoint starting here is incomplete")]
@@ -139,7 +141,9 @@ pub enum ParsingError {
         expected: Vec<String>,
     },
     #[error("invalid character in identifier")]
-    #[diagnostic(help("bare identifiers must be lowercase alphanumeric with '_', quoted identifiers can include uppercase, as well as '.' and '$'"))]
+    #[diagnostic(help(
+        "bare identifiers must be lowercase alphanumeric with '_', quoted identifiers can include uppercase, as well as '.' and '$'"
+    ))]
     InvalidIdentCharacter {
         #[label]
         span: SourceSpan,
@@ -217,7 +221,10 @@ pub enum ParsingError {
         #[label]
         span: SourceSpan,
     },
-    #[error("too many operands for `push`: tried to push {} elements, but only 16 can be pushed at one time", count)]
+    #[error(
+        "too many operands for `push`: tried to push {} elements, but only 16 can be pushed at one time",
+        count
+    )]
     #[diagnostic()]
     PushOverflow {
         #[label]
@@ -229,7 +236,9 @@ pub enum ParsingError {
         #[label]
         span: SourceSpan,
     },
-    #[error("re-exporting a procedure identified by digest requires giving it a name, e.g. `export.DIGEST->foo`")]
+    #[error(
+        "re-exporting a procedure identified by digest requires giving it a name, e.g. `export.DIGEST->foo`"
+    )]
     UnnamedReexportOfMastRoot {
         #[label]
         span: SourceSpan,

@@ -2,7 +2,7 @@ use assembly::Assembler;
 use miden_vm::DefaultHost;
 use processor::{ExecutionOptions, MastForest};
 use prover::{Digest, StackInputs};
-use vm_core::{assert_matches, Program, ONE};
+use vm_core::{ONE, Program, assert_matches};
 
 #[test]
 fn advice_map_loaded_before_execution() {

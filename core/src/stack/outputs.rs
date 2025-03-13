@@ -3,8 +3,8 @@ use core::ops::Deref;
 
 use miden_crypto::{Word, ZERO};
 
-use super::{get_num_stack_values, ByteWriter, Felt, OutputError, Serializable, MIN_STACK_DEPTH};
-use crate::utils::{range, ByteReader, Deserializable, DeserializationError};
+use super::{ByteWriter, Felt, MIN_STACK_DEPTH, OutputError, Serializable, get_num_stack_values};
+use crate::utils::{ByteReader, Deserializable, DeserializationError, range};
 
 // STACK OUTPUTS
 // ================================================================================================

@@ -1082,7 +1082,7 @@ dependencies = [
 [[package]]
 name = "miden-crypto"
 version = "0.14.0"
-source = "git+https://github.com/lambdaclass/crypto?branch=santiagopittella-update-rand-dep#9e228fe4c5e87edc452eb87aad00b39e117b2c79"
+source = "git+https://github.com/lambdaclass/crypto?branch=santiagopittella-rust-2024-edition#182cbe710697f7ab2a038ca721912218b3af8175"
 dependencies = [
  "blake3",
  "cc",

@@ -4,29 +4,29 @@
 
 use std::{boxed::Box, marker::PhantomData, time::Instant, vec::Vec};
 
-use air::{AuxRandElements, LagrangeKernelEvaluationFrame, PartitionOptions};
+use air::{AuxRandElements, PartitionOptions};
 use elsa::FrozenVec;
 use miden_gpu::{
-    metal::{build_merkle_tree, utils::page_aligned_uninit_vector, RowHasher},
     HashFn,
+    metal::{RowHasher, build_merkle_tree, utils::page_aligned_uninit_vector},
 };
 use pollster::block_on;
 use processor::crypto::{ElementHasher, Hasher};
-use tracing::{event, Level};
+use tracing::{Level, event};
 use winter_prover::{
-    crypto::{Digest, MerkleTree, VectorCommitment},
-    matrix::{get_evaluation_offsets, ColMatrix, RowMatrix, Segment},
-    proof::Queries,
     CompositionPoly, CompositionPolyTrace, ConstraintCommitment, ConstraintCompositionCoefficients,
     DefaultConstraintEvaluator, EvaluationFrame, Prover, StarkDomain, TraceInfo, TraceLde,
     TracePolyTable,
+    crypto::{Digest, MerkleTree, VectorCommitment},
+    matrix::{ColMatrix, RowMatrix, Segment, get_evaluation_offsets},
+    proof::Queries,
 };
 
 use crate::{
-    crypto::{RandomCoin, Rpo256},
-    math::fft,
     ExecutionProver, ExecutionTrace, Felt, FieldElement, ProcessorAir, PublicInputs,
     WinterProofOptions,
+    crypto::{RandomCoin, Rpo256},
+    math::fft,
 };
 
 #[cfg(test)]
@@ -330,32 +330,6 @@ where
         self.blowup
     }
 
-    /// Populates the provided Lagrange kernel frame starting at the current row (as defined by
-    /// lde_step).
-    /// Note that unlike EvaluationFrame, the Lagrange kernel frame includes only the Lagrange
-    /// kernel column (as opposed to all columns).
-    fn read_lagrange_kernel_frame_into(
-        &self,
-        lde_step: usize,
-        col_idx: usize,
-        frame: &mut LagrangeKernelEvaluationFrame<E>,
-    ) {
-        if let Some(aux_segment) = self.aux_segment_lde.as_ref() {
-            let frame = frame.frame_mut();
-            frame.truncate(0);
-
-            frame.push(aux_segment.get(col_idx, lde_step));
-
-            let frame_length = self.trace_info.length().ilog2() as usize + 1;
-            for i in 0..frame_length - 1 {
-                let shift = self.blowup() * (1 << i);
-                let next_lde_step = (lde_step + shift) % self.trace_len();
-
-                frame.push(aux_segment.get(col_idx, next_lde_step));
-            }
-        }
-    }
-
     /// Returns the trace info
     fn trace_info(&self) -> &TraceInfo {
         &self.trace_info
@@ -428,13 +402,13 @@ where
     let leaves = row_hashes.into_iter().map(|dig| D::from(&dig)).collect();
     let trace_tree = MerkleTree::from_raw_parts(nodes, leaves).unwrap();
     event!(
-            Level::INFO,
-            "Extended (on CPU) and committed (on GPU) to an execution trace of {} columns from 2^{} to 2^{} steps in {} ms",
-            trace_polys.num_cols(),
-            trace_polys.num_rows().ilog2(),
-            trace_lde.num_rows().ilog2(),
-            now.elapsed().as_millis()
-        );
+        Level::INFO,
+        "Extended (on CPU) and committed (on GPU) to an execution trace of {} columns from 2^{} to 2^{} steps in {} ms",
+        trace_polys.num_cols(),
+        trace_polys.num_rows().ilog2(),
+        trace_lde.num_rows().ilog2(),
+        now.elapsed().as_millis()
+    );
 
     (trace_lde, trace_tree, trace_polys)
 }

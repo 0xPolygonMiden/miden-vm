@@ -3,10 +3,10 @@ use core::str::FromStr;
 
 use super::*;
 use crate::{
+    Assembler, Deserializable,
     ast::{Module, ModuleKind, ProcedureName},
     diagnostics::{IntoDiagnostic, Report},
     testing::TestContext,
-    Assembler, Deserializable,
 };
 
 macro_rules! parse_module {

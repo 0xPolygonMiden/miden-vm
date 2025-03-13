@@ -2,7 +2,7 @@ use core::cmp;
 
 use processor::ExecutionError;
 use test_utils::{
-    expect_exec_error_matches, proptest::prelude::*, rand::rand_value, Felt, U32_BOUND, ZERO,
+    Felt, U32_BOUND, ZERO, expect_exec_error_matches, proptest::prelude::*, rand::rand_value,
 };
 
 // ADDITION

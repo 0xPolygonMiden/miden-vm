@@ -1,12 +1,12 @@
 use core::ops::ControlFlow;
 
 use crate::{
-    assembler::{
-        module_graph::{CallerInfo, NameResolver},
-        ModuleIndex, ResolvedTarget,
-    },
-    ast::{visit::Visit, InvocationTarget, InvokeKind, Module},
     AssemblyError, Spanned,
+    assembler::{
+        ModuleIndex, ResolvedTarget,
+        module_graph::{CallerInfo, NameResolver},
+    },
+    ast::{InvocationTarget, InvokeKind, Module, visit::Visit},
 };
 
 // MAYBE REWRITE CHECK

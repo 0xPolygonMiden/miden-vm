@@ -2,33 +2,33 @@ use alloc::vec::Vec;
 use core::ops::Range;
 
 use miden_air::{
+    RowIndex,
     trace::{
+        CLK_COL_IDX, DECODER_TRACE_OFFSET,
         chiplets::{
-            hasher::{
-                HasherState, Selectors, CAPACITY_DOMAIN_IDX, CAPACITY_LEN, DIGEST_RANGE,
-                HASH_CYCLE_LEN, LINEAR_HASH, LINEAR_HASH_LABEL, MP_VERIFY, MP_VERIFY_LABEL,
-                MR_UPDATE_NEW, MR_UPDATE_NEW_LABEL, MR_UPDATE_OLD, MR_UPDATE_OLD_LABEL,
-                RETURN_HASH, RETURN_HASH_LABEL, RETURN_STATE, RETURN_STATE_LABEL, STATE_WIDTH,
-            },
             HASHER_NODE_INDEX_COL_IDX, HASHER_STATE_COL_RANGE, HASHER_TRACE_OFFSET,
+            hasher::{
+                CAPACITY_DOMAIN_IDX, CAPACITY_LEN, DIGEST_RANGE, HASH_CYCLE_LEN, HasherState,
+                LINEAR_HASH, LINEAR_HASH_LABEL, MP_VERIFY, MP_VERIFY_LABEL, MR_UPDATE_NEW,
+                MR_UPDATE_NEW_LABEL, MR_UPDATE_OLD, MR_UPDATE_OLD_LABEL, RETURN_HASH,
+                RETURN_HASH_LABEL, RETURN_STATE, RETURN_STATE_LABEL, STATE_WIDTH, Selectors,
+            },
         },
         decoder::{NUM_OP_BITS, OP_BITS_OFFSET},
-        CLK_COL_IDX, DECODER_TRACE_OFFSET,
     },
-    RowIndex,
 };
 use vm_core::{
+    Program, Word,
     chiplets::hasher::apply_permutation,
     crypto::merkle::{MerkleStore, MerkleTree, NodeIndex},
     mast::MastForest,
     utils::range,
-    Program, Word,
 };
 
 use super::{
-    build_span_with_respan_ops, build_trace_from_ops_with_inputs, build_trace_from_program,
-    init_state_from_words, rand_array, AdviceInputs, ExecutionTrace, Felt, FieldElement, Operation,
-    Trace, AUX_TRACE_RAND_ELEMENTS, CHIPLETS_AUX_TRACE_OFFSET, NUM_RAND_ROWS, ONE, ZERO,
+    AUX_TRACE_RAND_ELEMENTS, AdviceInputs, CHIPLETS_AUX_TRACE_OFFSET, ExecutionTrace, Felt,
+    FieldElement, NUM_RAND_ROWS, ONE, Operation, Trace, ZERO, build_span_with_respan_ops,
+    build_trace_from_ops_with_inputs, build_trace_from_program, init_state_from_words, rand_array,
 };
 use crate::StackInputs;
 

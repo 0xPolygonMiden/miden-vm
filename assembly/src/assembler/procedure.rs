@@ -4,9 +4,9 @@ use vm_core::mast::MastNodeId;
 
 use super::GlobalProcedureIndex;
 use crate::{
+    LibraryPath, RpoDigest,
     ast::{ProcedureName, QualifiedProcedureName, Visibility},
     diagnostics::{SourceManager, SourceSpan, Spanned},
-    LibraryPath, RpoDigest,
 };
 
 // PROCEDURE CONTEXT

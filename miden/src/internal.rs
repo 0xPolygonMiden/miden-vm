@@ -6,12 +6,12 @@ use std::{
 
 use assembly::diagnostics::{IntoDiagnostic, Report, WrapErr};
 use serde_derive::Deserialize;
-pub use tracing::{event, instrument, Level};
+pub use tracing::{Level, event, instrument};
 use vm_core::Felt;
 
 use crate::{
-    crypto::{MerkleStore, MerkleTree, NodeIndex, PartialMerkleTree, RpoDigest, SimpleSmt},
     AdviceInputs, MemAdviceProvider, StackInputs, Word,
+    crypto::{MerkleStore, MerkleTree, NodeIndex, PartialMerkleTree, RpoDigest, SimpleSmt},
 };
 
 // CONSTANTS

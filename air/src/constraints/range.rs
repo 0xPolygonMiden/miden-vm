@@ -3,11 +3,11 @@ use alloc::vec::Vec;
 use vm_core::{ExtensionOf, ZERO};
 
 use crate::{
+    Assertion, EvaluationFrame, Felt, FieldElement, TransitionConstraintDegree,
     chiplets::ChipletsFrameExt,
     constraints::MainFrameExt,
     trace::range::{B_RANGE_COL_IDX, M_COL_IDX, V_COL_IDX},
     utils::are_equal,
-    Assertion, EvaluationFrame, Felt, FieldElement, TransitionConstraintDegree,
 };
 
 // CONSTANTS

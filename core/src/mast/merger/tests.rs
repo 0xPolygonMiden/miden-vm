@@ -1,4 +1,4 @@
-use miden_crypto::{hash::rpo::RpoDigest, Felt, ONE};
+use miden_crypto::{Felt, ONE, hash::rpo::RpoDigest};
 
 use super::*;
 use crate::{Decorator, Operation};

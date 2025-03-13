@@ -1,11 +1,11 @@
 use alloc::sync::Arc;
 
-use assembly::{ast::ModuleKind, Assembler, LibraryPath, Report, SourceManager};
+use assembly::{Assembler, LibraryPath, Report, SourceManager, ast::ModuleKind};
 use miden_vm::Module;
 use processor::ExecutionError;
 use prover::Digest;
 use stdlib::StdLibrary;
-use test_utils::{build_test, expect_exec_error_matches, push_inputs, StackInputs, Test};
+use test_utils::{StackInputs, Test, build_test, expect_exec_error_matches, push_inputs};
 
 // SIMPLE FLOW CONTROL TESTS
 // ================================================================================================

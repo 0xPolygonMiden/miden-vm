@@ -3,9 +3,9 @@ use core::fmt;
 
 use super::{ProcedureName, QualifiedProcedureName};
 use crate::{
+    RpoDigest,
     ast::InvocationTarget,
     diagnostics::{SourceSpan, Span, Spanned},
-    RpoDigest,
 };
 
 // PROCEDURE ALIAS
@@ -178,12 +178,12 @@ impl From<&AliasTarget> for InvocationTarget {
     fn from(target: &AliasTarget) -> Self {
         match target {
             AliasTarget::MastRoot(digest) => Self::MastRoot(*digest),
-            AliasTarget::ProcedurePath(ref fqn) => {
+            AliasTarget::ProcedurePath(fqn) => {
                 let name = fqn.name.clone();
                 let module = fqn.module.last_component().to_ident();
                 Self::ProcedurePath { name, module }
             },
-            AliasTarget::AbsoluteProcedurePath(ref fqn) => Self::AbsoluteProcedurePath {
+            AliasTarget::AbsoluteProcedurePath(fqn) => Self::AbsoluteProcedurePath {
                 name: fqn.name.clone(),
                 path: fqn.module.clone(),
             },

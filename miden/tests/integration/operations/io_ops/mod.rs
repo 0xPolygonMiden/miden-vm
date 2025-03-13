@@ -1,4 +1,4 @@
-use test_utils::{assert_eq, build_op_test, build_test, Felt, ToElements, TRUNCATE_STACK_PROC};
+use test_utils::{Felt, TRUNCATE_STACK_PROC, ToElements, assert_eq, build_op_test, build_test};
 use vm_core::chiplets::hasher::apply_permutation;
 
 mod adv_ops;

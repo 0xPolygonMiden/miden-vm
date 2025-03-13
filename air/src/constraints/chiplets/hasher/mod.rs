@@ -2,15 +2,15 @@ use alloc::vec::Vec;
 
 use super::{EvaluationFrame, Felt, FieldElement, TransitionConstraintDegree};
 use crate::{
+    ONE, ZERO,
     trace::chiplets::{
+        HASHER_NODE_INDEX_COL_IDX, HASHER_SELECTOR_COL_RANGE, HASHER_STATE_COL_RANGE,
         hasher::{
-            Hasher, CAPACITY_LEN, DIGEST_LEN, DIGEST_RANGE, HASH_CYCLE_LEN, NUM_SELECTORS,
+            CAPACITY_LEN, DIGEST_LEN, DIGEST_RANGE, HASH_CYCLE_LEN, Hasher, NUM_SELECTORS,
             STATE_WIDTH,
         },
-        HASHER_NODE_INDEX_COL_IDX, HASHER_SELECTOR_COL_RANGE, HASHER_STATE_COL_RANGE,
     },
-    utils::{are_equal, binary_not, is_binary, EvaluationResult},
-    ONE, ZERO,
+    utils::{EvaluationResult, are_equal, binary_not, is_binary},
 };
 
 #[cfg(test)]

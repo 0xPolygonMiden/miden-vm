@@ -1,8 +1,8 @@
 use alloc::collections::BTreeMap;
 
-use miden_air::{trace::chiplets::kernel_rom::TRACE_WIDTH, RowIndex};
+use miden_air::{RowIndex, trace::chiplets::kernel_rom::TRACE_WIDTH};
 
-use super::{Digest, ExecutionError, Felt, Kernel, TraceFragment, Word, ONE, ZERO};
+use super::{Digest, ExecutionError, Felt, Kernel, ONE, TraceFragment, Word, ZERO};
 
 #[cfg(test)]
 mod tests;

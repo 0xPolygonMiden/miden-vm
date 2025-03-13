@@ -2,8 +2,8 @@ use alloc::vec::Vec;
 
 use super::LibraryPath;
 use crate::{
-    ast::{ProcedureIndex, ProcedureName},
     RpoDigest,
+    ast::{ProcedureIndex, ProcedureName},
 };
 
 // MODULE INFO

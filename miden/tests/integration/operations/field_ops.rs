@@ -1,9 +1,9 @@
 use assembly::regex;
 use processor::{ExecutionError, RowIndex};
 use test_utils::{
-    assert_assembler_diagnostic, assert_diagnostic_lines, build_op_test, expect_exec_error_matches,
-    prop_randw, proptest::prelude::*, rand::rand_value, Felt, FieldElement, StarkField, ONE,
-    WORD_SIZE,
+    Felt, FieldElement, ONE, StarkField, WORD_SIZE, assert_assembler_diagnostic,
+    assert_diagnostic_lines, build_op_test, expect_exec_error_matches, prop_randw,
+    proptest::prelude::*, rand::rand_value,
 };
 
 // FIELD OPS ARITHMETIC - MANUAL TESTS

@@ -4,13 +4,13 @@ use winter_air::TransitionConstraintDegree;
 
 use super::{EvaluationFrame, Felt, FieldElement};
 use crate::{
+    ONE, ZERO,
     trace::chiplets::{
-        bitwise::{NUM_DECOMP_BITS, NUM_SELECTORS, OP_CYCLE_LEN},
         BITWISE_A_COL_IDX, BITWISE_A_COL_RANGE, BITWISE_B_COL_IDX, BITWISE_B_COL_RANGE,
         BITWISE_OUTPUT_COL_IDX, BITWISE_PREV_OUTPUT_COL_IDX, BITWISE_SELECTOR_COL_IDX,
+        bitwise::{NUM_DECOMP_BITS, NUM_SELECTORS, OP_CYCLE_LEN},
     },
-    utils::{are_equal, binary_not, is_binary, is_zero, EvaluationResult},
-    ONE, ZERO,
+    utils::{EvaluationResult, are_equal, binary_not, is_binary, is_zero},
 };
 
 #[cfg(test)]

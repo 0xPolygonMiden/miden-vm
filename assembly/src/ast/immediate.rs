@@ -1,6 +1,6 @@
 use core::fmt;
 
-use crate::{ast::Ident, Felt, SourceSpan, Span, Spanned};
+use crate::{Felt, SourceSpan, Span, Spanned, ast::Ident};
 
 /// An 8-bit unsigned immediate
 pub type ImmU8 = Immediate<u8>;
@@ -89,8 +89,8 @@ impl<T> From<Span<T>> for Immediate<T> {
 impl<T: Clone> Clone for Immediate<T> {
     fn clone(&self) -> Self {
         match self {
-            Self::Value(ref value) => Self::Value(value.clone()),
-            Self::Constant(ref name) => Self::Constant(name.clone()),
+            Self::Value(value) => Self::Value(value.clone()),
+            Self::Constant(name) => Self::Constant(name.clone()),
         }
     }
 }
@@ -140,8 +140,8 @@ impl<T: crate::prettier::PrettyPrint> crate::prettier::PrettyPrint for Immediate
         use crate::prettier::*;
 
         match self {
-            Self::Value(ref value) => value.render(),
-            Self::Constant(ref name) => text(name),
+            Self::Value(value) => value.render(),
+            Self::Constant(name) => text(name),
         }
     }
 }
