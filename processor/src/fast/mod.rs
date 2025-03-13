@@ -621,7 +621,13 @@ impl FastProcessor {
         self.stack_top_idx - self.stack_bot_idx
     }
 
-    /// TODO(plafer): add docs
+    /// Updates the bounds check counter.
+    ///
+    /// The bounds check counter is decremented by 1. If it reaches 0, it is reset to the minimum of
+    /// the stack depth from the low end and the high end of the stack buffer.
+    ///
+    /// The purpose of the bounds check counter is to ensure that we never access the stack buffer
+    /// at an out-of-bounds index.
     #[inline(always)]
     fn update_bounds_check_counter(&mut self) {
         self.bounds_check_counter -= 1;

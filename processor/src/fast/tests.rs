@@ -151,44 +151,82 @@ fn test_basic_block(
     }
 }
 
-// TODO(plafer): add tests for pipe, adv_pop{w}, emit, mpverify, mrupdate
-
-// TODO(plafer): this test no longer works since we fixed `STACK_BUFFER_SIZE`. Rewrite it.
 /// Makes sure that the bounds checking fails when expected.
 #[test]
-#[ignore]
-fn test_stack_overflow_bounds_failure() {
+fn test_stack_underflow_and_overflow_bounds_failure() {
     let mut host = DefaultHost::default();
 
-    // dup1 grows the stack by one, which makes us reach the limit. The subsequent add operation
-    // fails.
+    // Test underflow
     {
-        let program = simple_program_with_ops(vec![Operation::Dup1, Operation::Add]);
-        let err = FastProcessor::new(vec![]).execute(&program, &mut host);
+        // program 1: just enough drops as to not underflow, and then some swaps which don't change
+        // stack size. Although theoretically we could allow operations that don't change the stack
+        // size when just at the boundary of underflow, our current implementation is slightly
+        // conservative and doesn't allow it. Hence in this program, we drop enough times to reach 1
+        // from the underflow boundary, and then test that multiple swaps are allowed.
+        const NUM_DROPS_NO_UNDERFLOW_SWAPS_ALLOWED: usize =
+            INITIAL_STACK_TOP_IDX - MIN_STACK_DEPTH - 1;
+        let ops = {
+            let mut ops = vec![Operation::Drop; NUM_DROPS_NO_UNDERFLOW_SWAPS_ALLOWED];
+            ops.extend(vec![Operation::Swap; 25]);
+
+            ops
+        };
+        let program_no_underflow = simple_program_with_ops(ops);
+        let result = FastProcessor::new(vec![]).execute(&program_no_underflow, &mut host);
+        assert!(result.is_ok());
+
+        // program 2: just enough drops as to not underflow, but no operation after.
+        const NUM_DROPS_NO_UNDERFLOW: usize = NUM_DROPS_NO_UNDERFLOW_SWAPS_ALLOWED + 1;
+        let program_no_underflow =
+            simple_program_with_ops(vec![Operation::Drop; NUM_DROPS_NO_UNDERFLOW]);
+        let result = FastProcessor::new(vec![]).execute(&program_no_underflow, &mut host);
+        assert!(result.is_ok());
+
+        // program 3: just enough drops to underflow
+        const NUM_DROPS_WITH_UNDERFLOW: usize = NUM_DROPS_NO_UNDERFLOW + 1;
+        let program_with_underflow =
+            simple_program_with_ops(vec![Operation::Drop; NUM_DROPS_WITH_UNDERFLOW]);
+        let err = FastProcessor::new(vec![]).execute(&program_with_underflow, &mut host);
+
         assert_matches!(err, Err(ExecutionError::FailedToExecuteProgram(_)));
     }
 
-    // add decreases the stack by one, which makes us reach the limit. The subsequent dup1 operation
-    // fails.
+    // Test overflow (similar structure to the underflow part)
     {
-        let program = simple_program_with_ops(vec![Operation::Add, Operation::Dup1]);
-        let err = FastProcessor::new(vec![]).execute(&program, &mut host);
-        assert_matches!(err, Err(ExecutionError::FailedToExecuteProgram(_)));
-    }
+        // program 1: just enough dups to get 1 away from the stack buffer overflow error, and check
+        // that we can do some operations that don't change stack size there.
+        const NUM_DUPS_NO_OVERFLOW_SWAPS_ALLOWED: usize =
+            STACK_BUFFER_SIZE - INITIAL_STACK_TOP_IDX - 1;
+        let ops = {
+            let mut ops = vec![Operation::Dup0; NUM_DUPS_NO_OVERFLOW_SWAPS_ALLOWED];
+            ops.extend(vec![Operation::Swap; 25]);
+            // drop all the elements to not get an *output* stack overflow error (i.e. stack size is
+            // 16 at the end)
+            ops.extend(vec![Operation::Drop; NUM_DUPS_NO_OVERFLOW_SWAPS_ALLOWED]);
 
-    // The initial swaps don't change the stack size, but the subsequent add operation makes us
-    // reach the limit, such that dup1 fails.
-    {
-        let program = simple_program_with_ops(vec![
-            Operation::Swap,
-            Operation::Swap,
-            Operation::Swap,
-            Operation::Swap,
-            Operation::Add,
-            Operation::Dup1,
-        ]);
-        let err = FastProcessor::new(vec![]).execute(&program, &mut host);
-        assert_matches!(err, Err(ExecutionError::FailedToExecuteProgram(_)));
+            ops
+        };
+        let program_no_overflow = simple_program_with_ops(ops);
+        let result = FastProcessor::new(vec![]).execute(&program_no_overflow, &mut host);
+        assert_matches!(result, Ok(_));
+
+        // program 2: just enough dups to get 1 away from the stack buffer overflow error. Since we
+        // can't drop the elements, we expect to end the program with a stack output overflow.
+        const NUM_DUPS_NO_OVERFLOW: usize = NUM_DUPS_NO_OVERFLOW_SWAPS_ALLOWED + 1;
+
+        let ops = vec![Operation::Dup0; NUM_DUPS_NO_OVERFLOW];
+        let program_output_overflow = simple_program_with_ops(ops);
+        let result = FastProcessor::new(vec![]).execute(&program_output_overflow, &mut host);
+        assert_matches!(result, Err(ExecutionError::OutputStackOverflow(_)));
+
+        // program 3: just enough dups to get 1 away from the stack buffer overflow error. Since we
+        // can't drop the elements, we expect to end the program with a stack output overflow.
+        const NUM_DUPS_WITH_OVERFLOW: usize = NUM_DUPS_NO_OVERFLOW + 1;
+
+        let ops = vec![Operation::Dup0; NUM_DUPS_WITH_OVERFLOW];
+        let program_with_overflow = simple_program_with_ops(ops);
+        let result = FastProcessor::new(vec![]).execute(&program_with_overflow, &mut host);
+        assert_matches!(result, Err(ExecutionError::FailedToExecuteProgram(_)));
     }
 }
 
@@ -755,7 +793,12 @@ fn test_call_node_preserves_stack_overflow() {
 #[case(Some("export.foo add end"), "proc.bar push.100 mem_store.44 syscall.foo mem_load.44 swap.8 drop end begin call.bar end", vec![16_u32.into(); 16])]
 // check that syscalls share the same memory context
 #[case(Some("export.foo push.100 mem_store.44 end export.baz mem_load.44 swap.8 drop end"), 
-    "proc.bar syscall.foo syscall.baz end begin call.bar end", vec![16_u32.into(); 16])]
+    "proc.bar 
+        syscall.foo syscall.baz 
+    end 
+    begin call.bar end", 
+    vec![16_u32.into(); 16]
+)]
 // ---- calls ------------------------
 
 // check stack is preserved after call
@@ -934,6 +977,21 @@ fn test_call_node_preserves_stack_overflow() {
         8_u32.into(), 9_u32.into(), 10_u32.into(), 11_u32.into(), 12_u32.into(), 13_u32.into(),
         14_u32.into(), 15_u32.into(), 16_u32.into()]
 )]
+// ---- u32 ops --------------------------------
+// check that u32 6/3 works as expected
+#[case(None,"
+    begin 
+        u32divmod
+    end", 
+    vec![6_u32.into(), 3_u32.into()]
+)]
+// check that overflowing add properly sets the overflow bit
+#[case(None,"
+    begin 
+        u32overflowing_add sub.1 assertz
+    end", 
+    vec![Felt::from(u32::MAX), ONE]
+)]
 fn test_masm_consistency(
     #[case] kernel_source: Option<&'static str>,
     #[case] program_source: &'static str,
@@ -998,6 +1056,20 @@ fn test_masm_consistency(
         dynexec
     end", 
     vec![16_u32.into(); 16]
+)]
+// check that u32 division by 0 results in an error
+#[case(None,"
+    begin 
+        u32divmod
+    end", 
+    vec![ZERO; 16]
+)]
+// check that adding any value to a u32::MAX results in an error
+#[case(None,"
+    begin 
+        u32overflowing_add
+    end", 
+    vec![Felt::from(u32::MAX) + ONE, ZERO]
 )]
 fn test_masm_errors_consistency(
     #[case] kernel_source: Option<&'static str>,
