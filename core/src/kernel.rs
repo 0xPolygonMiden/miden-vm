@@ -27,7 +27,7 @@ impl Kernel {
             Err(KernelError::TooManyProcedures(Self::MAX_NUM_PROCEDURES, proc_hashes.len()))
         } else {
             let mut hashes = proc_hashes.to_vec();
-            hashes.sort();
+            hashes.sort_by_key(|v| v.as_bytes()); // ensure consistent order
 
             let duplicated = hashes.windows(2).any(|data| data[0] == data[1]);
 
@@ -46,7 +46,9 @@ impl Kernel {
 
     /// Returns true if a procedure with the specified hash belongs to this kernel.
     pub fn contains_proc(&self, proc_hash: RpoDigest) -> bool {
-        self.0.binary_search(&proc_hash).is_ok()
+        // Note: we can't use `binary_search()` here because the hashes were sorted using a
+        // different key that the `binary_search` algorithm uses.
+        self.0.contains(&proc_hash)
     }
 
     /// Returns a list of procedure hashes contained in this kernel.

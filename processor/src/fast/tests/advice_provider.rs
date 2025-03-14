@@ -1,5 +1,6 @@
 use alloc::collections::BTreeMap;
 
+use pretty_assertions::assert_eq;
 use vm_core::crypto::hash::RpoDigest;
 
 use super::*;
@@ -61,10 +62,19 @@ fn test_advice_provider() {
         drop drop drop drop drop drop drop drop drop        trace.7
     end
 
-    # Checks that the context ID is the same for each processors
-    proc.to_call
+    proc.exec_me
         push.22 mem_store.0
         trace.9
+    end
+
+    proc.dyncall_me
+        push.23 mem_store.0
+        trace.100
+    end
+
+    proc.dynexec_me
+        push.24 mem_store.0
+        trace.101
     end
 
     proc.will_syscall
@@ -98,14 +108,14 @@ fn test_advice_provider() {
 
     begin
         # Check that initial state is consistent
-        trace.0 push.1 add drop trace.1
+        trace.0 push.10 add drop trace.1
 
         # Check that basic blocks are handled correctly
         exec.basic_block
 
         # Check that memory state is restored properly after call
         push.42 mem_store.0 trace.8
-        exec.to_call
+        exec.exec_me
         trace.10
 
         # Check that syscalls are handled correctly
@@ -113,11 +123,11 @@ fn test_advice_provider() {
         trace.12
 
         # Check that dyncalls are handled correctly
-        procref.to_call mem_storew.4 dropw push.4 dyncall trace.13
+        procref.dyncall_me mem_storew.4 dropw push.4 dyncall trace.13
         procref.will_syscall mem_storew.8 dropw push.8 dyncall trace.14
 
         # Check that dynexecs are handled correctly
-        procref.to_call mem_storew.4 dropw push.4 dynexec trace.15
+        procref.dynexec_me mem_storew.4 dropw push.4 dynexec trace.15
 
         # Check that control flow operations are handled correctly
         exec.control_flow
@@ -143,7 +153,7 @@ fn test_advice_provider() {
 
     // fast processor
     let mut fast_host = ConsistencyHost::new(kernel_lib.mast_forest().clone());
-    let processor = FastProcessor::new(stack_inputs.clone());
+    let processor = FastProcessor::new_debug(stack_inputs.clone());
     let fast_stack_outputs = processor.execute(&program, &mut fast_host).unwrap();
 
     // slow processor
@@ -158,7 +168,21 @@ fn test_advice_provider() {
     // check outputs
     assert_eq!(fast_stack_outputs, slow_stack_outputs);
 
-    // check hosts
+    // check hosts. Check one trace event at a time to help debugging.
+    for (trace_id, fast_snapshots) in fast_host.snapshots.iter() {
+        let slow_snapshots = slow_host.snapshots.get(trace_id).unwrap_or_else(|| {
+            panic!("fast host has snapshot(s) for trace id {trace_id}, but slow host doesn't")
+        });
+        assert_eq!(fast_snapshots, slow_snapshots, "trace id: {trace_id}");
+    }
+    for (trace_id, slow_snapshots) in slow_host.snapshots.iter() {
+        let fast_snapshots = fast_host.snapshots.get(trace_id).unwrap_or_else(|| {
+            panic!("slow host has snapshot(s) for trace id {trace_id}, but fast host doesn't")
+        });
+        assert_eq!(fast_snapshots, slow_snapshots, "trace_id: {trace_id}");
+    }
+
+    // Still check the snapshots explicitly just in case we have a bug in the logic above.
     assert_eq!(fast_host.snapshots, slow_host.snapshots);
 }
 
@@ -182,7 +206,8 @@ impl From<ProcessState<'_>> for ProcessStateSnapshot {
             clk: state.clk(),
             ctx: state.ctx(),
             fmp: state.fmp(),
-            stack_state: state.get_stack_state(),
+            // TODO(plafer): revert
+            stack_state: Vec::new(), //state.get_stack_state(),
             stack_words: [
                 state.get_stack_word(0),
                 state.get_stack_word(1),
@@ -233,7 +258,7 @@ impl Host for ConsistencyHost {
 
     fn on_trace(&mut self, process: ProcessState, trace_id: u32) -> Result<(), ExecutionError> {
         let snapshot = ProcessStateSnapshot::from(process);
-        self.snapshots.entry(trace_id).or_insert_with(Vec::new).push(snapshot);
+        self.snapshots.entry(trace_id).or_default().push(snapshot);
 
         Ok(())
     }

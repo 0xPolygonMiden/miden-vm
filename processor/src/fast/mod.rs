@@ -6,16 +6,17 @@ use miden_air::RowIndex;
 use vm_core::{
     mast::{
         BasicBlockNode, CallNode, DynNode, ExternalNode, JoinNode, LoopNode, MastForest, MastNode,
-        MastNodeId, SplitNode,
+        MastNodeId, OpBatch, SplitNode, OP_GROUP_SIZE,
     },
     stack::MIN_STACK_DEPTH,
     utils::range,
-    Felt, Kernel, Operation, Program, StackOutputs, Word, EMPTY_WORD, ONE, WORD_SIZE, ZERO,
+    Decorator, DecoratorIterator, Felt, Kernel, Operation, Program, StackOutputs, Word, EMPTY_WORD,
+    ONE, WORD_SIZE, ZERO,
 };
 
 use crate::{
     operations::utils::assert_binary, utils::resolve_external_node, ContextId, ExecutionError,
-    Host, FMP_MIN, SYSCALL_FMP_MIN,
+    Host, ProcessState, FMP_MIN, SYSCALL_FMP_MIN,
 };
 
 // temporary module to
@@ -67,8 +68,7 @@ pub struct FastProcessor {
     /// hitting the bounds of `stack`.
     bounds_check_counter: usize,
 
-    // TODO(plafer): add a bunch of tests to make sure that with all control flow operations we
-    // keep track of the clk correctly. Specifically re: the `execute_op(Noop)` pattern.
+    /// The current clock cycle.
     pub(super) clk: RowIndex,
 
     /// The current context ID.
@@ -91,6 +91,9 @@ pub struct FastProcessor {
     /// `dyncall`) to keep track of the information needed to return to the previous context upon
     /// return. It is a stack since calls can be nested.
     call_stack: Vec<ExecutionContextInfo>,
+
+    /// Whether to enable debug statements and tracing.
+    in_debug_mode: bool,
 }
 
 impl FastProcessor {
@@ -103,6 +106,19 @@ impl FastProcessor {
     /// [1,2,3]`, then the stack will be initialized as `[3,2,1,0,0,...]`, with `3` being on
     /// top.
     pub fn new(stack_inputs: Vec<Felt>) -> Self {
+        Self::initialize(stack_inputs, false)
+    }
+
+    /// Creates a new `FastProcessor` instance with the given stack inputs, set to debug mode.
+    ///
+    /// The stack inputs are expected to be stored in reverse order. For example, if `stack_inputs =
+    /// [1,2,3]`, then the stack will be initialized as `[3,2,1,0,0,...]`, with `3` being on
+    /// top.
+    pub fn new_debug(stack_inputs: Vec<Felt>) -> Self {
+        Self::initialize(stack_inputs, true)
+    }
+
+    fn initialize(stack_inputs: Vec<Felt>, in_debug_mode: bool) -> Self {
         assert!(stack_inputs.len() <= MIN_STACK_DEPTH);
 
         let stack_top_idx = INITIAL_STACK_TOP_IDX;
@@ -130,6 +146,7 @@ impl FastProcessor {
             fn_hash: EMPTY_WORD,
             memory: Memory::new(),
             call_stack: Vec::new(),
+            in_debug_mode,
         }
     }
 
@@ -219,7 +236,7 @@ impl FastProcessor {
 
         match node {
             MastNode::Block(basic_block_node) => {
-                self.execute_basic_block_node(basic_block_node, host)?
+                self.execute_basic_block_node(basic_block_node, program, host)?
             },
             MastNode::Join(join_node) => {
                 self.execute_join_node(join_node, program, kernel, host)?
@@ -267,9 +284,6 @@ impl FastProcessor {
         host: &mut impl Host,
     ) -> Result<(), ExecutionError> {
         let condition = self.stack[self.stack_top_idx - 1];
-
-        // TODO(plafer): test this - specifically if bounds check is updated such that the
-        // next stack operation should fail
 
         // drop the condition from the stack
         self.decrement_stack_size();
@@ -360,7 +374,7 @@ impl FastProcessor {
             self.in_syscall = true;
         } else {
             // set the system registers to the callee context
-            self.ctx = (self.clk + 1).into();
+            self.ctx = self.clk.into();
             self.fmp = Felt::new(FMP_MIN);
             self.fn_hash = callee_hash;
         }
@@ -399,13 +413,10 @@ impl FastProcessor {
         // For dyncall, save the context and reset it.
         if dyn_node.is_dyncall() {
             self.save_context_and_truncate_stack();
-            self.ctx = (self.clk + 1).into();
+            self.ctx = self.clk.into();
             self.fmp = Felt::new(FMP_MIN);
             self.fn_hash = callee_hash;
         };
-
-        // TODO(plafer): I think this is wrong? Is it not redundant with the clk +=1 for `END`?
-        self.clk += 1;
 
         // if the callee is not in the program's MAST forest, try to find a MAST forest for it in
         // the host (corresponding to an external library loaded in the host); if none are
@@ -452,14 +463,154 @@ impl FastProcessor {
     fn execute_basic_block_node(
         &mut self,
         basic_block_node: &BasicBlockNode,
+        program: &MastForest,
         host: &mut impl Host,
     ) -> Result<(), ExecutionError> {
-        for (op_idx, operation) in basic_block_node.operations().enumerate() {
-            self.execute_op(operation, op_idx, host)?;
+        let mut batch_offset_in_block = 0;
+        let mut op_batches = basic_block_node.op_batches().iter();
+        let mut decorator_ids = basic_block_node.decorator_iter();
+
+        // execute first op batch
+        if let Some(first_op_batch) = op_batches.next() {
+            self.execute_op_batch(
+                first_op_batch,
+                &mut decorator_ids,
+                batch_offset_in_block,
+                program,
+                host,
+            )?;
+            batch_offset_in_block += first_op_batch.ops().len();
         }
 
-        self.clk += basic_block_node.num_operations();
+        // execute the rest of the op batches
+        for op_batch in op_batches {
+            // increment clock to account for `RESPAN`
+            self.clk += 1;
 
+            self.execute_op_batch(
+                op_batch,
+                &mut decorator_ids,
+                batch_offset_in_block,
+                program,
+                host,
+            )?;
+            batch_offset_in_block += op_batch.ops().len();
+        }
+
+        // update clock with all the operations that executed
+        self.clk += batch_offset_in_block as u32;
+
+        // execute any decorators which have not been executed during span ops execution; this can
+        // happen for decorators appearing after all operations in a block. these decorators are
+        // executed after SPAN block is closed to make sure the VM clock cycle advances beyond the
+        // last clock cycle of the SPAN block ops.
+        //
+        // Note: we pass in `op_idx_in_batch = 1` as a hack, since in `Process`, those decorators
+        // are executed after the `END` block (which we increment the `clk` outside of this
+        // function). Setting `op_idx_in_batch = 1` accounts for this discrepancy.
+        for &decorator_id in decorator_ids {
+            let decorator = program
+                .get_decorator_by_id(decorator_id)
+                .ok_or(ExecutionError::DecoratorNotFoundInForest { decorator_id })?;
+            self.execute_decorator(decorator, 1, host)?;
+        }
+
+        Ok(())
+    }
+
+    #[inline(always)]
+    fn execute_op_batch(
+        &mut self,
+        batch: &OpBatch,
+        decorators: &mut DecoratorIterator,
+        batch_offset_in_block: usize,
+        program: &MastForest,
+        host: &mut impl Host,
+    ) -> Result<(), ExecutionError> {
+        let op_counts = batch.op_counts();
+        let mut op_idx_in_group = 0;
+        let mut group_idx = 0;
+        let mut next_group_idx = 1;
+
+        // round up the number of groups to be processed to the next power of two; we do this
+        // because the processor requires the number of groups to be either 1, 2, 4, or 8; if
+        // the actual number of groups is smaller, we'll pad the batch with NOOPs at the end
+        let num_batch_groups = batch.num_groups().next_power_of_two();
+
+        // execute operations in the batch one by one
+        for (op_idx_in_batch, op) in batch.ops().iter().enumerate() {
+            while let Some(&decorator_id) =
+                decorators.next_filtered(batch_offset_in_block + op_idx_in_batch)
+            {
+                let decorator = program
+                    .get_decorator_by_id(decorator_id)
+                    .ok_or(ExecutionError::DecoratorNotFoundInForest { decorator_id })?;
+                self.execute_decorator(decorator, op_idx_in_batch, host)?;
+            }
+
+            // decode and execute the operation
+            self.execute_op(op, batch_offset_in_block + op_idx_in_batch, host)?;
+
+            // if the operation carries an immediate value, the value is stored at the next group
+            // pointer; so, we advance the pointer to the following group
+            let has_imm = op.imm_value().is_some();
+            if has_imm {
+                next_group_idx += 1;
+            }
+
+            // determine if we've executed all non-decorator operations in a group
+            if op_idx_in_group == op_counts[group_idx] - 1 {
+                // if we are at the end of the group, first check if the operation carries an
+                // immediate value
+                if has_imm {
+                    // an operation with an immediate value cannot be the last operation in a group
+                    // so, we need execute a NOOP after it. In this processor, we increment the
+                    // clock to account for the NOOP.
+                    debug_assert!(op_idx_in_group < OP_GROUP_SIZE - 1, "invalid op index");
+                    self.clk += 1;
+                }
+
+                // then, move to the next group and reset operation index
+                group_idx = next_group_idx;
+                next_group_idx += 1;
+                op_idx_in_group = 0;
+            } else {
+                // TODO(plafer): this is probably slow - see if we can avoid it.
+                // if we are not at the end of the group, just increment the operation index
+                op_idx_in_group += 1;
+            }
+        }
+
+        // make sure we execute the required number of operation groups; this would happen when the
+        // actual number of operation groups was not a power of two. In this processor, this
+        // corresponds to incrementing the clock by the number of empty op groups (i.e. 1 NOOP
+        // executed per missing op group).
+
+        self.clk += (num_batch_groups - group_idx) as u32;
+
+        Ok(())
+    }
+
+    /// Executes the specified decorator
+    fn execute_decorator(
+        &mut self,
+        decorator: &Decorator,
+        op_idx_in_batch: usize,
+        host: &mut impl Host,
+    ) -> Result<(), ExecutionError> {
+        match decorator {
+            Decorator::Debug(options) => {
+                if self.in_debug_mode {
+                    host.on_debug(ProcessState::new_fast(self, op_idx_in_batch), options)?;
+                }
+            },
+            Decorator::AsmOp(_assembly_op) => {
+                // do nothing
+            },
+            Decorator::Trace(id) => {
+                host.on_trace(ProcessState::new_fast(self, op_idx_in_batch), *id)?;
+            },
+        };
         Ok(())
     }
 

@@ -1209,6 +1209,7 @@ dependencies = [
  "miden-assembly",
  "miden-core",
  "miden-test-utils",
+ "pretty_assertions",
  "rstest",
  "smallvec",
  "thiserror 2.0.11",

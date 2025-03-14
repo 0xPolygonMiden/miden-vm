@@ -36,6 +36,7 @@ smallvec = { version = "1.14", default-features = false, features = ["union", "c
 [dev-dependencies]
 assembly = { package = "miden-assembly", path = "../assembly", version = "0.13", default-features = false }
 logtest = { version = "2.0", default-features = false }
+pretty_assertions = "1.4"
 rstest = { version = "0.24" }
 test-utils = { package = "miden-test-utils", path = "../test-utils" }
 winter-fri = { package = "winter-fri", version = "0.11" }
