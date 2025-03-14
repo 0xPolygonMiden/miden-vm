@@ -575,8 +575,6 @@ impl FastProcessor {
                 next_group_idx += 1;
                 op_idx_in_group = 0;
             } else {
-                // TODO(plafer): this is probably slow - see if we can avoid it.
-                // if we are not at the end of the group, just increment the operation index
                 op_idx_in_group += 1;
             }
         }
