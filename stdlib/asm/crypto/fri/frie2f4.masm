@@ -52,19 +52,19 @@ export.preprocess.16
         swap.5
         neq.0
     end
-    #=> [X, x, remainder_ptr, layer_ptr, g]
+    #=> [X, x, remainder_poly_address_ptr, layer_ptr, g]
 
     drop
-    #=> [X, remainder_ptr, layer_ptr, g]
+    #=> [X, remainder_poly_address_ptr, layer_ptr, g]
 
     dup.4
     movdn.5
-    #=> [X, remainder_ptr, remainder_ptr, layer_ptr, g]
+    #=> [X, remainder_poly_address_ptr, remainder_poly_address_ptr, layer_ptr, g]
 
     adv_push.1
     sub.1
     movdn.4
-    #=> [X, remainder_ptr, len_remainder/2, remainder_ptr, layer_ptr, g]
+    #=> [X, remainder_poly_address_ptr, len_remainder/2, remainder_poly_address_ptr, layer_ptr, g]
 
     push.1
     while.true
@@ -78,12 +78,12 @@ export.preprocess.16
         swap.5
         neq.0
     end
-    #=> [X, x, x, remainder_ptr, layer_ptr, g]
+    #=> [X, x, x, remainder_poly_address_ptr, layer_ptr, g]
     dropw drop drop
 
     swap
     locaddr.12
-    #=> [query_ptr, layer_ptr, remainder_ptr, g]
+    #=> [query_ptr, layer_ptr, remainder_poly_address_ptr, g]
 end
 
 #! Checks that, for a query with index p at layer i, the folding procedure to create layer (i + 1)
@@ -316,8 +316,24 @@ end
 #! 1. rem_ptr - 1 points to the last (alpha0, alpha1, t_depth, d_size) tuple.
 #! 2. layer_ptr - 1 points to the last (e0, e1, p, poe) tuple.
 #!
-#! Cycles: 18 + num_queries * (107 + num_layers * 83)
+#! Cycles: 24 + num_queries * (107 + num_layers * 83)
 export.verify_64.4
+
+    # Get domain generator and pointer to the remainder codeword
+    # (4 cycles)
+    exec.constants::get_lde_domain_generator
+    exec.constants::get_remainder_poly_address
+    # => [remainder_poly_address_ptr, g, query_ptr, ...]
+
+    # Get the pointer to the first layer commitment
+    # (1 cycles)
+    exec.constants::fri_com_ptr
+    # => [fri_layer_ptr, remainder_poly_address_ptr, g, query_ptr, ...]
+
+    # Get the pointer to the first FRI query to the top
+    # (1 cycles)
+    movup.3
+    # => [query_ptr, fri_layer_ptr, remainder_poly_address_ptr, domain_gen, ...]
 
     # store [query_ptr, layer_ptr, rem_ptr, g] to keep track of all queries
     # (3 cycles)
@@ -331,8 +347,8 @@ export.verify_64.4
 
     # Save a word containing a fresh accumulator for Horner evaluating the remainder polynomial,
     # a pointer to the evaluation point and a pointer to the location of the polynomial.
-    push.0.0 exec.constants::tmp2
-    padw exec.constants::tmp8 mem_loadw movdn.3 drop drop drop
+    push.0.0 
+    exec.constants::tmp2 exec.constants::get_remainder_poly_address
     exec.constants::tmp1 mem_storew
     movup.4
 
@@ -390,8 +406,24 @@ end
 #! 1. rem_ptr - 1 points to the last (alpha0, alpha1, t_depth, d_size) tuple.
 #! 2. layer_ptr - 1 points to the last (e0, e1, p, poe) tuple.
 #!
-#! Cycles: 18 + num_queries * (140 + num_layers * 83)
+#! Cycles: 24 + num_queries * (140 + num_layers * 83)
 export.verify_128.4
+
+    # Get domain generator and pointer to the remainder codeword
+    # (4 cycles)
+    exec.constants::get_lde_domain_generator
+    exec.constants::get_remainder_poly_address
+    # => [remainder_poly_address_ptr, g, query_ptr, ...]
+
+    # Get the pointer to the first layer commitment
+    # (1 cycles)
+    exec.constants::fri_com_ptr
+    # => [fri_layer_ptr, remainder_poly_address_ptr, g, query_ptr, ...]
+
+    # Get the pointer to the first FRI query to the top
+    # (1 cycles)
+    movup.3
+    # => [query_ptr, fri_layer_ptr, remainder_poly_address_ptr, domain_gen, ...]
 
     # store [query_ptr, layer_ptr, rem_ptr, g] to keep track of all queries
     # (3 cycles)
@@ -405,8 +437,8 @@ export.verify_128.4
 
     # Save a word containing a fresh accumulator for Horner evaluating the remainder polynomial,
     # a pointer to the evaluation point and a pointer to the location of the polynomial.
-    push.0.0 exec.constants::tmp2 
-    padw exec.constants::tmp8 mem_loadw movdn.3 drop drop drop
+    push.0.0 
+    exec.constants::tmp2 exec.constants::get_remainder_poly_address
     exec.constants::tmp1 mem_storew
     movup.4
     

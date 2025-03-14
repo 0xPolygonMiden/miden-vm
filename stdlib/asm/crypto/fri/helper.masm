@@ -10,7 +10,7 @@ use.std::crypto::stark::constants
 #! Cycles: 77
 export.generate_fri_parameters
     # Load FRI verifier data
-    padw exec.constants::lde_size_ptr mem_loadw
+    padw exec.constants::get_lde_domain_info
     #=> [lde_size, log(lde_size), lde_g, 0, ...] (6 cycles)
 
     # Store in `TMP5` in order to use it for fri layer loading
@@ -35,7 +35,7 @@ export.generate_fri_parameters
     #=> [z1, z0, z1, z0, lde_size, log2(lde_size), lde_g, 0, ...] (6 cycles)
 
     # Load `trace_g` from memory
-    exec.constants::trace_domain_generator_ptr mem_load
+    exec.constants::get_trace_domain_generator
     #=> [trace_g, z1, z0, z1, z0, lde_size, log2(lde_size), lde_g, 0, ...] (2 cycles)
 
     # Compute `gz0` = `trace_g * z_0`
@@ -72,29 +72,27 @@ export.generate_fri_parameters
     end
     # => [num_fri_layers, remainder_size, lde_size, lde_size, log2(lde_size), domain_gen, 0, ...] (12 cycles)
 
-    # Save `[num_fri_layers, remainder_size, lde_size, lde_size]` in memory
-    exec.constants::tmp6 mem_storew
-    swap div.8 swap
-    movdn.6
+    exec.constants::set_num_fri_layers
+    div.8
+    exec.constants::set_remainder_poly_size
+    # => [lde_size, lde_size, log2(lde_size), domain_gen, 0, ...] (7 cycles)
+
     dropw
     drop
-    drop
-    # => [num_fri_layers, ...] (10 cycles)
+    # => [...] (5 cycles)
 end
 
 #! Get FRI layer commitments and reseed with them in order to draw folding challenges i.e. alphas.
 #!
-#! Input: [ptr_layer, num_layers, ...]
+#! Input: [...]
 #! Output: [...]
 #! Cycles: 21 + 83 * num_fri_layers
 export.load_fri_layer_commitments
     # Address containing the first layer commitment
     push.0.0
-    movup.3
-    movup.3
-    swap
     push.0.0.0.0
-    swapw
+    exec.constants::fri_com_ptr
+    exec.constants::get_num_fri_layers
     # => [num_layers, ptr_layer, y, y, Y, ...]
 
     dup
@@ -176,22 +174,20 @@ export.load_and_verify_remainder
     exec.random_coin::reseed
     #=> [...]
 
-    # adv_pipe the remainder codeword
-    ## Get the length of remainder
-    padw exec.constants::tmp6 mem_loadw
-    ## Compute the correct remainder pointer using length of remainder
-    exec.constants::fri_com_ptr
-    #=> [fri_com_ptr, num_fri_layers, remainder_size, lde_size, lde_size]
-    
-    swap
-    mul.8
-    add
+    # `adv_pipe` the remainder codeword
+    ## Get the numbers of FRI layers
+    exec.constants::get_num_fri_layers
+    ## Compute the correct remainder pointer, note that the remainder poly is laid out just after
+    ## the FRI layer commitments, each saved in a word, and folding challenges, also saved in
+    ## a word, and this explains the multiplication by 8
+    mul.8 exec.constants::fri_com_ptr add
+    #=> [fri_com_ptr, 8 * num_fri_layers, ...]
     ## Store for later use
-    exec.constants::tmp8 mem_storew
-    #=> [ptr_remainder, remainder_size, y, y]
+    dup exec.constants::set_remainder_poly_address
+    #=> [remainder_poly_ptr, ...]
 
-    dup.1
-    push.512
+    exec.constants::get_remainder_poly_size
+    push.64
 
     eq
     if.true
@@ -199,7 +195,7 @@ export.load_and_verify_remainder
         push.0.0.0.0
         push.0.0.0.0
         push.0.0.0.0
-        # => [Y, Y, 0, 0, 0, 0 ptr_remainder, remainder_size, y, y]
+        # => [Y, Y, 0, 0, 0, 0 remainder_poly_ptr, remainder_size, y, y]
 
         # adv_load remainder polynomial
         repeat.16
@@ -221,13 +217,13 @@ export.load_and_verify_remainder
         push.0.0.0.0
         push.0.0.0.0
         push.0.0.0.0
-        # => [Y, Y, 0, 0, 0, 0 ptr_remainder, remainder_size, y, y]
+        # => [Y, Y, 0, 0, 0, 0 remainder_poly_ptr, remainder_size, y, y]
 
         # adv_load remainder polynomial
         repeat.32
             adv_pipe hperm
         end
-        # => [Y, Remainder_poly_com, Y, ptr_remainder, remainder_size, y, y]
+        # => [Y, Remainder_poly_com, Y, remainder_poly_ptr, remainder_size, y, y]
 
         # Compare Remainder_poly_com with the read commitment
         exec.constants::tmp7 mem_loadw
@@ -242,4 +238,27 @@ export.load_and_verify_remainder
     end
     dropw dropw
     #=> [...]
+end
+
+#! Compute the pointer to the first word storing the FRI queries.
+#!
+#! Since the FRI queries are laid out just before the FRI commitments, we compute the address
+#! to the first FRI query by subtracting from the pointer to the first FRI layer commitment
+#! the total number of queries.
+#!
+#! Input: [...]
+#! Output: [...]
+#!
+#! Cycles: 7
+export.compute_query_pointer
+    exec.constants::fri_com_ptr
+    exec.constants::get_number_queries
+    mul.4
+    # => [num_queries*4, fri_com_ptr,  ...]
+
+    sub
+    # => [query_ptr, ...]
+
+    exec.constants::set_fri_queries_address
+    # => [...]
 end

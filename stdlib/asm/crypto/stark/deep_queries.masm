@@ -575,7 +575,7 @@ end
 #! Cycles: 58
 proc.compute_denominators
     # Compute x = offset * domain_gen^index
-    exec.constants::lde_size_ptr mem_loadw
+    exec.constants::lde_domain_info_ptr mem_loadw
     #=> [lde_size, depth, domain_gen, 0, Y, index, ...]
     movup.2
     dup.8
@@ -651,6 +651,7 @@ end
 #! Output: [query_ptr, ...]
 #! Cycles: 386 + num_queries * 414
 export.compute_deep_composition_polynomial_queries
+    exec.constants::get_fri_queries_address
 
     exec.compute_adjustment_power_z_quotients                               # (Cycles: 146)
 
@@ -678,11 +679,11 @@ export.compute_deep_composition_polynomial_queries
     drop drop
     neg swap neg  
     # => [-z0, -z1, query_ptr, query_end_ptr, W, query_ptr, ...]
-    dup.1 exec.constants::trace_domain_generator_ptr mem_load mul
+    dup.1 exec.constants::get_trace_domain_generator mul
     # => [-gz1, -z0, -z1, query_ptr, query_end_ptr, W, query_ptr, ...]
     swap
     # => [-z0, -gz1, -z1, query_ptr, query_end_ptr, W, query_ptr, ...]
-    dup exec.constants::trace_domain_generator_ptr mem_load mul
+    dup exec.constants::get_trace_domain_generator mul
     # => [-gz0, -z0, -gz1, -z1, query_ptr, query_end_ptr, W, query_ptr, ...]
     swap
     # => [-z0, -gz0, -gz1, -z1, query_ptr, query_end_ptr, W, query_ptr, ...]
@@ -742,5 +743,5 @@ export.compute_deep_composition_polynomial_queries
         neq
         #=> [?, Y, query_ptr+1, query_end_ptr, ...]
     end
-    dropw dropw drop drop
+    dropw dropw drop drop drop
 end
