@@ -1,10 +1,10 @@
 use processor::Digest;
 use test_utils::{
     crypto::{BatchMerkleProof, ElementHasher, Hasher as HasherTrait, PartialMerkleTree},
-    math::fft,
     serde::DeserializationError,
-    Felt, FieldElement, MerkleTreeVC, StarkField,
+    FieldElement, MerkleTreeVC,
 };
+use vm_core::Felt;
 use winter_fri::{FriProof, VerifierError};
 
 pub trait UnBatch<E: FieldElement, H: ElementHasher> {
@@ -77,11 +77,6 @@ where
         let commitment = H::hash_elements(&poly);
         assert_eq!(&commitment, expected_commitment);
 
-        // Compute remainder codeword corresponding to remainder polynomial
-        let twiddles = fft::get_twiddles(poly.len());
-        let remainder =
-            fft::evaluate_poly_with_offset(&poly, &twiddles, E::BaseField::GENERATOR, 8);
-
-        Ok(remainder)
+        Ok(poly)
     }
 }

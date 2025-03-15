@@ -233,15 +233,5 @@ export.verify
     # Cycles:
     #  1- Remainder of size 64: 18 + num_queries * (107 + num_layers * 83)
     #  2- Remainder of size 128: 18 + num_queries * (140 + num_layers * 83)
-    exec.constants::get_fri_queries_address
-    
-    exec.constants::get_remainder_poly_size
-    push.64
-    eq
-    if.true
-        exec.frie2f4::verify_64
-    else
-        exec.frie2f4::verify_128
-    end
-    # => [...]
+    exec.frie2f4::verify
 end

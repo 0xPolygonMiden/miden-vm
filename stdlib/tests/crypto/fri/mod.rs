@@ -11,7 +11,7 @@ pub use verifier_fri_e2f4::*;
 mod remainder;
 
 #[test]
-fn fri_fold4_ext2_remainder32() {
+fn fri_fold4_ext2_remainder_poly_degree_64() {
     let source = "
         use.std::crypto::fri::frie2f4
 
@@ -59,7 +59,7 @@ fn fri_fold4_ext2_remainder32() {
 }
 
 #[test]
-fn fri_fold4_ext2_remainder64() {
+fn fri_fold4_ext2_remainder_poly_degree_128() {
     let source = "
         use.std::crypto::fri::frie2f4
 
