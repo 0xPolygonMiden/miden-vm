@@ -1,4 +1,4 @@
-use criterion::{criterion_group, criterion_main, Criterion};
+use criterion::{criterion_group, criterion_main, BatchSize, Criterion};
 use miden_vm::{internal::InputFile, Assembler, DefaultHost, StackInputs};
 use processor::{execute, ExecutionOptions};
 use stdlib::StdLibrary;
@@ -47,14 +47,19 @@ fn program_execution(c: &mut Criterion) {
                     let program = assembler
                         .assemble_program(&source)
                         .expect("Failed to compile test source.");
-                    bench.iter(|| {
-                        execute(
-                            &program,
-                            stack_inputs.clone(),
-                            &mut host,
-                            ExecutionOptions::default(),
-                        )
-                    });
+                    bench.iter_batched(
+                        || host.clone(),
+                        |mut host| {
+                            execute(
+                                &program,
+                                stack_inputs.clone(),
+                                &mut host,
+                                ExecutionOptions::default(),
+                            )
+                            .unwrap()
+                        },
+                        BatchSize::SmallInput,
+                    );
                 });
             },
             // If we can't access the entry, just skip it

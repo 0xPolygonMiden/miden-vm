@@ -1,4 +1,4 @@
-use criterion::{criterion_group, criterion_main, Criterion};
+use criterion::{criterion_group, criterion_main, BatchSize, Criterion};
 use miden_vm::{internal::InputFile, Assembler, DefaultHost, StackInputs};
 use processor::fast::FastProcessor;
 use stdlib::StdLibrary;
@@ -47,11 +47,15 @@ fn program_execution_fast(c: &mut Criterion) {
                     let program = assembler
                         .assemble_program(&source)
                         .expect("Failed to compile test source.");
-                    bench.iter(|| {
-                        let speedy =
-                            FastProcessor::new(stack_inputs.iter().rev().copied().collect());
-                        speedy.execute(&program, &mut host).unwrap();
-                    });
+                    bench.iter_batched(
+                        || host.clone(),
+                        |mut host| {
+                            let speedy =
+                                FastProcessor::new(stack_inputs.iter().rev().copied().collect());
+                            speedy.execute(&program, &mut host).unwrap();
+                        },
+                        BatchSize::SmallInput,
+                    );
                 });
             },
             // If we can't access the entry, just skip it

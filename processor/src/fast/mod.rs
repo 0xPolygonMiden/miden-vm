@@ -141,7 +141,7 @@ impl FastProcessor {
     /// The stack inputs are expected to be stored in reverse order. For example, if `stack_inputs =
     /// [1,2,3]`, then the stack will be initialized as `[3,2,1,0,0,...]`, with `3` being on
     /// top.
-    /// 
+    ///
     /// # Panics
     /// - Panics if the length of `stack_inputs` is greater than `MIN_STACK_DEPTH`.
     pub fn new(stack_inputs: Vec<Felt>) -> Self {
@@ -153,7 +153,7 @@ impl FastProcessor {
     /// The stack inputs are expected to be stored in reverse order. For example, if `stack_inputs =
     /// [1,2,3]`, then the stack will be initialized as `[3,2,1,0,0,...]`, with `3` being on
     /// top.
-    /// 
+    ///
     /// # Panics
     /// - Panics if the length of `stack_inputs` is greater than `MIN_STACK_DEPTH`.
     pub fn new_debug(stack_inputs: Vec<Felt>) -> Self {
