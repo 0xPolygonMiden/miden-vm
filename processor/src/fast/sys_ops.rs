@@ -57,7 +57,8 @@ impl FastProcessor {
             return Err(ExecutionError::CallerNotInSyscall);
         }
 
-        self.stack[range(self.stack_top_idx - WORD_SIZE, WORD_SIZE)].copy_from_slice(&self.fn_hash);
+        self.stack[range(self.stack_top_idx - WORD_SIZE, WORD_SIZE)]
+            .copy_from_slice(&self.caller_hash);
 
         Ok(())
     }

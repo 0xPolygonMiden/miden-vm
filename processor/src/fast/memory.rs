@@ -5,24 +5,34 @@ use vm_core::{Felt, Word, EMPTY_WORD, WORD_SIZE, ZERO};
 
 use crate::{ContextId, ExecutionError};
 
+/// The memory for the processor.
+///
+/// Allows to read/write elements or words to memory. Internally, it is implemented as a map from
+///(context_id, word_address) to the word stored starting at that memory location.
 #[derive(Debug, Default)]
 pub struct Memory {
-    /// A map from (context_id, word_address) to the word stored starting at that memory location.
     memory: BTreeMap<(ContextId, u32), [Felt; WORD_SIZE]>,
 }
 
 impl Memory {
+    /// Creates a new memory instance.
     pub fn new() -> Self {
         Self::default()
     }
 
     /// Reads an element from memory at the provided address in the provided context.
+    ///
+    /// # Errors
+    /// - Returns an error if the provided address is out-of-bounds.
     pub fn read_element(&mut self, ctx: ContextId, addr: Felt) -> Result<Felt, ExecutionError> {
         let element = self.read_element_impl(ctx, clean_addr(addr)?).unwrap_or(ZERO);
         Ok(element)
     }
 
     /// Reads a word from memory starting at the provided address in the provided context.
+    ///
+    /// # Errors
+    /// - Returns an error if the provided address is out-of-bounds or not word-aligned.
     pub fn read_word(
         &self,
         ctx: ContextId,
@@ -36,6 +46,9 @@ impl Memory {
     }
 
     /// Writes an element to memory at the provided address in the provided context.
+    ///
+    /// # Errors
+    /// - Returns an error if the provided address is out-of-bounds.
     pub fn write_element(
         &mut self,
         ctx: ContextId,
@@ -59,6 +72,9 @@ impl Memory {
     }
 
     /// Writes a word to memory starting at the provided address in the provided context.
+    ///
+    /// # Errors
+    /// - Returns an error if the provided address is out-of-bounds or not word-aligned.
     pub fn write_word(
         &mut self,
         ctx: ContextId,
@@ -125,7 +141,7 @@ impl Memory {
 /// Converts the provided address to a `u32` if possible.
 ///
 /// # Errors
-/// - Returns an error if the provided address is out of bounds.
+/// - Returns an error if the provided address is out-of-bounds.
 fn clean_addr(addr: Felt) -> Result<u32, ExecutionError> {
     let addr = addr.as_int();
     addr.try_into().map_err(|_| ExecutionError::MemoryAddressOutOfBounds(addr))
@@ -146,7 +162,7 @@ fn split_addr(addr: u32) -> (u32, u32) {
 ///
 /// # Errors
 /// - Returns an error if the provided address is not word-aligned.
-/// - Returns an error if the provided address is out of bounds.
+/// - Returns an error if the provided address is out-of-bounds.
 fn enforce_word_aligned_addr(
     ctx: ContextId,
     addr: u32,

@@ -56,6 +56,42 @@ const STACK_BUFFER_SIZE: usize = 6650;
 const INITIAL_STACK_TOP_IDX: usize = 50;
 
 /// A fast processor which doesn't generate any trace.
+///
+/// This processor is designed to be as fast as possible. Hence, it only keeps track of the current
+/// state of the processor (i.e. the stack, current clock cycle, current memory context, and free
+/// memory pointer).
+///
+/// # Stack Management
+/// A few key points about how the stack was designed for maximum performance:
+///
+/// - The stack has a fixed buffer size defined by `STACK_BUFFER_SIZE`.
+///     - This was observed to increase performance by at least 2x compared to using a `Vec` with
+///       `push()` & `pop()`.
+///     - We track the stack top and bottom using indices `stack_top_idx` and `stack_bot_idx`,
+///       respectively.
+/// - Since we are using a fixed-size buffer, we need to ensure that stack buffer accesses are not
+///   out of bounds. Naively, we could check for this on every access. However, every operation
+///   alters the stack depth by a predetermined amount, allowing us to precisely determine the
+///   minimum number of operations required to reach a stack buffer boundary, whether at the top or
+///   bottom.
+///     - For example, if the stack top is 10 elements away from the top boundary, and the stack
+///       bottom is 15 elements away from the bottom boundary, then we can safely execute 10
+///       operations that modify the stack depth with no bounds check.
+/// - When switching contexts (e.g., during a call or syscall), all elements past the first 16 are
+///   stored in an `ExecutionContextInfo` struct, and the stack is truncated to 16 elements. This
+///   will be restored when returning from the call or syscall.
+///
+/// # Clock Cycle Management
+/// - The clock cycle (`clk`) is managed in the same way as in `Process`. That is, it is incremented
+///   by 1 for every row that `Process` adds to the main trace.
+///     - It is important to do so because the clock cycle is used to determine the context ID for
+///       new execution contexts when using `call` or `dyncall`.
+/// - When executing a basic block, the clock cycle is not incremented for every individual
+///   operation for performance reasons.
+///     - Rather, we use `clk + operation_index` to determine the clock cycle when needed.
+///     - However this performance improvement is slightly offset by the need to parse operation
+///       batches exactly the same as `Process`. We will be able to recover the performance loss by
+///       redesigning the `BasicBlockNode`.
 #[derive(Debug)]
 pub struct FastProcessor {
     /// The stack is stored in reverse order, so that the last element is at the top of the stack.
@@ -82,7 +118,7 @@ pub struct FastProcessor {
 
     /// The hash of the function that called into the current context, or `[ZERO, ZERO, ZERO,
     /// ZERO]` if we are in the first context (i.e. when `call_stack` is empty).
-    pub(super) fn_hash: Word,
+    pub(super) caller_hash: Word,
 
     /// A map from (context_id, word_address) to the word stored starting at that memory location.
     pub(super) memory: Memory,
@@ -105,6 +141,9 @@ impl FastProcessor {
     /// The stack inputs are expected to be stored in reverse order. For example, if `stack_inputs =
     /// [1,2,3]`, then the stack will be initialized as `[3,2,1,0,0,...]`, with `3` being on
     /// top.
+    /// 
+    /// # Panics
+    /// - Panics if the length of `stack_inputs` is greater than `MIN_STACK_DEPTH`.
     pub fn new(stack_inputs: Vec<Felt>) -> Self {
         Self::initialize(stack_inputs, false)
     }
@@ -114,6 +153,9 @@ impl FastProcessor {
     /// The stack inputs are expected to be stored in reverse order. For example, if `stack_inputs =
     /// [1,2,3]`, then the stack will be initialized as `[3,2,1,0,0,...]`, with `3` being on
     /// top.
+    /// 
+    /// # Panics
+    /// - Panics if the length of `stack_inputs` is greater than `MIN_STACK_DEPTH`.
     pub fn new_debug(stack_inputs: Vec<Felt>) -> Self {
         Self::initialize(stack_inputs, true)
     }
@@ -143,7 +185,7 @@ impl FastProcessor {
             ctx: 0_u32.into(),
             fmp: Felt::new(FMP_MIN),
             in_syscall: false,
-            fn_hash: EMPTY_WORD,
+            caller_hash: EMPTY_WORD,
             memory: Memory::new(),
             call_stack: Vec::new(),
             in_debug_mode,
@@ -376,7 +418,7 @@ impl FastProcessor {
             // set the system registers to the callee context
             self.ctx = self.clk.into();
             self.fmp = Felt::new(FMP_MIN);
-            self.fn_hash = callee_hash;
+            self.caller_hash = callee_hash;
         }
 
         // Execute the callee.
@@ -415,7 +457,7 @@ impl FastProcessor {
             self.save_context_and_truncate_stack();
             self.ctx = self.clk.into();
             self.fmp = Felt::new(FMP_MIN);
-            self.fn_hash = callee_hash;
+            self.caller_hash = callee_hash;
         };
 
         // if the callee is not in the program's MAST forest, try to find a MAST forest for it in
@@ -815,7 +857,7 @@ impl FastProcessor {
         self.call_stack.push(ExecutionContextInfo {
             overflow_stack,
             ctx: self.ctx,
-            fn_hash: self.fn_hash,
+            fn_hash: self.caller_hash,
             fmp: self.fmp,
         });
     }
@@ -857,7 +899,7 @@ impl FastProcessor {
         self.ctx = ctx_info.ctx;
         self.fmp = ctx_info.fmp;
         self.in_syscall = false;
-        self.fn_hash = ctx_info.fn_hash;
+        self.caller_hash = ctx_info.fn_hash;
 
         Ok(())
     }

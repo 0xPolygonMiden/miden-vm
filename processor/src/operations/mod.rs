@@ -11,7 +11,7 @@ mod io_ops;
 mod stack_ops;
 pub(crate) mod sys_ops;
 mod u32_ops;
-pub mod utils;
+pub(crate) mod utils;
 
 #[cfg(test)]
 use super::Kernel;
