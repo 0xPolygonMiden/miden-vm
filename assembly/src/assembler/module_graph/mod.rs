@@ -7,8 +7,8 @@ mod rewrites;
 use alloc::{boxed::Box, collections::BTreeMap, sync::Arc, vec::Vec};
 use core::ops::Index;
 
-use smallvec::{smallvec, SmallVec};
-use vm_core::{crypto::hash::RpoDigest, Kernel};
+use smallvec::{SmallVec, smallvec};
+use vm_core::{Kernel, crypto::hash::RpoDigest};
 
 use self::{analysis::MaybeRewriteCheck, name_resolver::NameResolver, rewrites::ModuleRewriter};
 pub use self::{
@@ -17,12 +17,12 @@ pub use self::{
 };
 use super::{GlobalProcedureIndex, ModuleIndex};
 use crate::{
+    AssemblyError, LibraryNamespace, LibraryPath, SourceManager, Spanned,
     ast::{
         Export, InvocationTarget, InvokeKind, Module, ProcedureIndex, ProcedureName,
         ResolvedProcedure,
     },
     library::{ModuleInfo, ProcedureInfo},
-    AssemblyError, LibraryNamespace, LibraryPath, SourceManager, Spanned,
 };
 
 // WRAPPER STRUCTS
@@ -405,7 +405,7 @@ impl ModuleGraph {
                         let gid = GlobalProcedureIndex { module: module_id, index: procedure_id };
 
                         // Add edge to the call graph to represent dependency on aliased procedures
-                        if let Export::Alias(ref alias) = procedure {
+                        if let Export::Alias(alias) = procedure {
                             let caller = CallerInfo {
                                 span: alias.span(),
                                 module: module_id,

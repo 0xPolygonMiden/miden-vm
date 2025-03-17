@@ -1,8 +1,8 @@
 use std::path::PathBuf;
 
 use assembly::{
-    diagnostics::{IntoDiagnostic, Report},
     Assembler, KernelLibrary, Library, LibraryNamespace,
+    diagnostics::{IntoDiagnostic, Report},
 };
 use clap::Parser;
 use stdlib::StdLibrary;

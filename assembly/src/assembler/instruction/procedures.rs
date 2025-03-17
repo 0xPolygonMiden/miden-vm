@@ -3,9 +3,9 @@ use vm_core::mast::MastNodeId;
 
 use super::{Assembler, BasicBlockBuilder, Operation};
 use crate::{
-    assembler::{mast_forest_builder::MastForestBuilder, ProcedureContext},
-    ast::{InvocationTarget, InvokeKind},
     AssemblyError, RpoDigest,
+    assembler::{ProcedureContext, mast_forest_builder::MastForestBuilder},
+    ast::{InvocationTarget, InvokeKind},
 };
 
 /// Procedure Invocation

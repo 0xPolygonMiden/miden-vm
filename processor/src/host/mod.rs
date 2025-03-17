@@ -1,7 +1,7 @@
 use alloc::sync::Arc;
 
 use vm_core::{
-    crypto::hash::RpoDigest, mast::MastForest, sys_events::SystemEvent, DebugOptions, SignatureKind,
+    DebugOptions, SignatureKind, crypto::hash::RpoDigest, mast::MastForest, sys_events::SystemEvent,
 };
 
 use super::{ExecutionError, ProcessState};

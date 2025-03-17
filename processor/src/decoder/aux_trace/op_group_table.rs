@@ -1,6 +1,6 @@
 use miden_air::{
-    trace::decoder::{OP_BATCH_2_GROUPS, OP_BATCH_4_GROUPS, OP_BATCH_8_GROUPS},
     RowIndex,
+    trace::decoder::{OP_BATCH_2_GROUPS, OP_BATCH_4_GROUPS, OP_BATCH_8_GROUPS},
 };
 use vm_core::{OPCODE_EMIT, OPCODE_PUSH, OPCODE_RESPAN, OPCODE_SPAN};
 

@@ -1,9 +1,9 @@
 use std::{collections::BTreeSet, path::PathBuf};
 
 use assembly::{Assembler, Library};
-use miden_vm::{math::Felt, DefaultHost, StackInputs};
+use miden_vm::{DefaultHost, StackInputs, math::Felt};
 use processor::ContextId;
-use rustyline::{error::ReadlineError, DefaultEditor};
+use rustyline::{DefaultEditor, error::ReadlineError};
 use stdlib::StdLibrary;
 
 use crate::utils::print_mem_address;

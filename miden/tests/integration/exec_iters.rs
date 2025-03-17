@@ -1,6 +1,6 @@
 use processor::{AsmOpInfo, ContextId, RowIndex, VmState};
-use test_utils::{assert_eq, build_debug_test, Felt, ToElements, ONE};
-use vm_core::{debuginfo::Location, AssemblyOp, Operation};
+use test_utils::{Felt, ONE, ToElements, assert_eq, build_debug_test};
+use vm_core::{AssemblyOp, Operation, debuginfo::Location};
 
 // EXEC ITER TESTS
 // =================================================================

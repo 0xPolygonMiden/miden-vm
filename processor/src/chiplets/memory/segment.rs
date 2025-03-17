@@ -1,12 +1,12 @@
 use alloc::{
-    collections::{btree_map::Entry, BTreeMap},
+    collections::{BTreeMap, btree_map::Entry},
     vec::Vec,
 };
 
 use miden_air::RowIndex;
 use vm_core::WORD_SIZE;
 
-use super::{Felt, Word, INIT_MEM_VALUE};
+use super::{Felt, INIT_MEM_VALUE, Word};
 use crate::{ContextId, ExecutionError};
 
 // MEMORY SEGMENT TRACE

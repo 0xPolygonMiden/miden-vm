@@ -7,26 +7,26 @@ use std::{boxed::Box, marker::PhantomData, time::Instant, vec::Vec};
 use air::{AuxRandElements, LagrangeKernelEvaluationFrame, PartitionOptions};
 use elsa::FrozenVec;
 use miden_gpu::{
-    metal::{build_merkle_tree, utils::page_aligned_uninit_vector, RowHasher},
     HashFn,
+    metal::{RowHasher, build_merkle_tree, utils::page_aligned_uninit_vector},
 };
 use pollster::block_on;
 use processor::crypto::{ElementHasher, Hasher};
-use tracing::{event, Level};
+use tracing::{Level, event};
 use winter_prover::{
-    crypto::{Digest, MerkleTree, VectorCommitment},
-    matrix::{get_evaluation_offsets, ColMatrix, RowMatrix, Segment},
-    proof::Queries,
     CompositionPoly, CompositionPolyTrace, ConstraintCommitment, ConstraintCompositionCoefficients,
     DefaultConstraintEvaluator, EvaluationFrame, Prover, StarkDomain, TraceInfo, TraceLde,
     TracePolyTable,
+    crypto::{Digest, MerkleTree, VectorCommitment},
+    matrix::{ColMatrix, RowMatrix, Segment, get_evaluation_offsets},
+    proof::Queries,
 };
 
 use crate::{
-    crypto::{RandomCoin, Rpo256},
-    math::fft,
     ExecutionProver, ExecutionTrace, Felt, FieldElement, ProcessorAir, PublicInputs,
     WinterProofOptions,
+    crypto::{RandomCoin, Rpo256},
+    math::fft,
 };
 
 #[cfg(test)]
@@ -428,13 +428,13 @@ where
     let leaves = row_hashes.into_iter().map(|dig| D::from(&dig)).collect();
     let trace_tree = MerkleTree::from_raw_parts(nodes, leaves).unwrap();
     event!(
-            Level::INFO,
-            "Extended (on CPU) and committed (on GPU) to an execution trace of {} columns from 2^{} to 2^{} steps in {} ms",
-            trace_polys.num_cols(),
-            trace_polys.num_rows().ilog2(),
-            trace_lde.num_rows().ilog2(),
-            now.elapsed().as_millis()
-        );
+        Level::INFO,
+        "Extended (on CPU) and committed (on GPU) to an execution trace of {} columns from 2^{} to 2^{} steps in {} ms",
+        trace_polys.num_cols(),
+        trace_polys.num_rows().ilog2(),
+        trace_lde.num_rows().ilog2(),
+        now.elapsed().as_millis()
+    );
 
     (trace_lde, trace_tree, trace_polys)
 }

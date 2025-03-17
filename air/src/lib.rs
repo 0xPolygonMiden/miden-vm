@@ -9,8 +9,8 @@ extern crate std;
 use alloc::vec::Vec;
 
 use vm_core::{
+    ExtensionOf, ONE, ProgramInfo, StackInputs, StackOutputs, ZERO,
     utils::{ByteReader, ByteWriter, Deserializable, Serializable},
-    ExtensionOf, ProgramInfo, StackInputs, StackOutputs, ONE, ZERO,
 };
 use winter_air::{
     Air, AirContext, Assertion, EvaluationFrame, ProofOptions as WinterProofOptions, TraceInfo,
@@ -38,8 +38,8 @@ pub use options::{ExecutionOptions, ProvingOptions};
 pub use proof::{ExecutionProof, HashFunction};
 use utils::TransitionConstraintRange;
 pub use vm_core::{
-    utils::{DeserializationError, ToElements},
     Felt, FieldElement, StarkField,
+    utils::{DeserializationError, ToElements},
 };
 pub use winter_air::{AuxRandElements, FieldExtension, PartitionOptions};
 

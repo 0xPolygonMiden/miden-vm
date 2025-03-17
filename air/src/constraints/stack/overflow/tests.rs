@@ -1,11 +1,11 @@
 use rand_utils::rand_value;
-use vm_core::{Felt, FieldElement, Operation, ONE, ZERO};
+use vm_core::{Felt, FieldElement, ONE, Operation, ZERO};
 
-use super::{enforce_constraints, EvaluationFrame, NUM_CONSTRAINTS};
+use super::{EvaluationFrame, NUM_CONSTRAINTS, enforce_constraints};
 use crate::{
     stack::{
-        op_flags::{generate_evaluation_frame, OpFlags},
         B0_COL_IDX, B1_COL_IDX, CLK_COL_IDX, DECODER_TRACE_OFFSET, H0_COL_IDX, STACK_TRACE_OFFSET,
+        op_flags::{OpFlags, generate_evaluation_frame},
     },
     trace::decoder::IS_CALL_FLAG_COL_IDX,
 };

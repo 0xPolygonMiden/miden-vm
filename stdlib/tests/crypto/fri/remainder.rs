@@ -1,6 +1,6 @@
 use test_utils::{
-    math::fft, push_inputs, rand::rand_vector, test_case, Felt, FieldElement, QuadFelt, StarkField,
-    ONE,
+    Felt, FieldElement, ONE, QuadFelt, StarkField, math::fft, push_inputs, rand::rand_vector,
+    test_case,
 };
 
 #[test_case(8, 1; "poly_8 |> evaluated_8 |> interpolated_8")]

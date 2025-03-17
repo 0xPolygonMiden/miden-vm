@@ -1,17 +1,17 @@
 use core::{marker::PhantomData, mem};
 
 use processor::{
-    crypto::{Hasher, RandomCoin, RpoDigest, WinterRandomCoin},
     Digest as MidenDigest,
+    crypto::{Hasher, RandomCoin, RpoDigest, WinterRandomCoin},
 };
 use test_utils::{
+    EMPTY_WORD, Felt, FieldElement, MerkleTreeVC, QuadFelt as QuadExt, StarkField,
     crypto::{MerklePath, NodeIndex, PartialMerkleTree, Rpo256 as MidenHasher},
     group_slice_elements,
     math::fft,
-    Felt, FieldElement, MerkleTreeVC, QuadFelt as QuadExt, StarkField, EMPTY_WORD,
 };
 use winter_fri::{
-    folding::fold_positions, DefaultProverChannel, FriOptions, FriProof, FriProver, VerifierError,
+    DefaultProverChannel, FriOptions, FriProof, FriProver, VerifierError, folding::fold_positions,
 };
 
 use super::channel::{MidenFriVerifierChannel, UnBatch};

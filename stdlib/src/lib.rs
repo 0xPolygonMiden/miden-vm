@@ -5,9 +5,9 @@ extern crate alloc;
 use alloc::sync::Arc;
 
 use assembly::{
-    mast::MastForest,
-    utils::{sync::LazyLock, Deserializable},
     Library,
+    mast::MastForest,
+    utils::{Deserializable, sync::LazyLock},
 };
 
 // STANDARD LIBRARY

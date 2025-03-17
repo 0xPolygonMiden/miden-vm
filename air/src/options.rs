@@ -1,7 +1,7 @@
 use winter_air::BatchingMethod;
 
 use super::{
-    trace::MIN_TRACE_LEN, ExecutionOptionsError, FieldExtension, HashFunction, WinterProofOptions,
+    ExecutionOptionsError, FieldExtension, HashFunction, WinterProofOptions, trace::MIN_TRACE_LEN,
 };
 
 // PROVING OPTIONS

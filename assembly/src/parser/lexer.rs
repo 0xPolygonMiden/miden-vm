@@ -6,8 +6,8 @@ use super::{
     LiteralErrorKind, ParsingError, Scanner, Token,
 };
 use crate::{
-    diagnostics::{ByteOffset, SourceId, SourceSpan},
     Felt,
+    diagnostics::{ByteOffset, SourceId, SourceSpan},
 };
 
 /// The value produced by the [Lexer] when iterated

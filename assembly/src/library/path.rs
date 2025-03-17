@@ -12,9 +12,9 @@ use core::{
 use smallvec::smallvec;
 
 use crate::{
-    ast::{Ident, IdentError},
     ByteReader, ByteWriter, Deserializable, DeserializationError, LibraryNamespace, Serializable,
     Span,
+    ast::{Ident, IdentError},
 };
 
 /// Represents errors that can occur when creating, parsing, or manipulating [LibraryPath]s

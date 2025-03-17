@@ -4,7 +4,7 @@ use clap::Parser;
 use tracing_forest::ForestLayer;
 #[cfg(not(feature = "tracing-forest"))]
 use tracing_subscriber::fmt::format::FmtSpan;
-use tracing_subscriber::{prelude::*, EnvFilter};
+use tracing_subscriber::{EnvFilter, prelude::*};
 
 mod cli;
 mod repl;

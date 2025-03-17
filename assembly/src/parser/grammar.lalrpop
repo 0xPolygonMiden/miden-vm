@@ -319,14 +319,14 @@ Proc: Form = {
                         AttributeSetEntry::Occupied(mut entry) => {
                             let value = entry.get_mut();
                             match value {
-                                Attribute::KeyValue(ref mut existing_kvs) => {
+                                Attribute::KeyValue(existing_kvs) => {
                                     for (k, v) in kv.into_iter() {
                                         let span = k.span();
                                         match existing_kvs.entry(k) {
                                             Entry::Vacant(entry) => {
                                                 entry.insert(v);
                                             }
-                                            Entry::Occupied(ref entry) => {
+                                            Entry::Occupied(entry) => {
                                                 let prev = entry.get();
                                                 return Err(ParseError::User {
                                                     error: ParsingError::AttributeKeyValueConflict { span, prev: prev.span() },
@@ -349,7 +349,7 @@ Proc: Form = {
                         AttributeSetEntry::Vacant(entry) => {
                             entry.insert(attr);
                         }
-                        AttributeSetEntry::Occupied(ref entry) => {
+                        AttributeSetEntry::Occupied(entry) => {
                             let prev_attr = entry.get();
                             return Err(ParseError::User {
                                 error: ParsingError::AttributeConflict { span: attr.span(), prev: prev_attr.span() },
@@ -450,7 +450,7 @@ Attribute: Attribute = {
         for meta_kv in items {
             let (span, (k, v)) = meta_kv.into_parts();
             match map.entry(k) {
-                Entry::Occupied(ref entry) => {
+                Entry::Occupied(entry) => {
                     let prev = entry.key().span();
                     return Err(ParseError::User {
                         error: ParsingError::AttributeKeyValueConflict { span, prev },

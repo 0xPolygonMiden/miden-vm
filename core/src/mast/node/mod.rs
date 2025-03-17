@@ -3,8 +3,8 @@ use alloc::{boxed::Box, vec::Vec};
 use core::fmt;
 
 pub use basic_block_node::{
-    BasicBlockNode, OpBatch, OperationOrDecorator, BATCH_SIZE as OP_BATCH_SIZE,
-    GROUP_SIZE as OP_GROUP_SIZE,
+    BATCH_SIZE as OP_BATCH_SIZE, BasicBlockNode, GROUP_SIZE as OP_GROUP_SIZE, OpBatch,
+    OperationOrDecorator,
 };
 
 mod call_node;
@@ -20,7 +20,7 @@ mod join_node;
 pub use join_node::JoinNode;
 
 mod split_node;
-use miden_crypto::{hash::rpo::RpoDigest, Felt};
+use miden_crypto::{Felt, hash::rpo::RpoDigest};
 use miden_formatting::prettier::{Document, PrettyPrint};
 pub use split_node::SplitNode;
 
@@ -29,8 +29,8 @@ pub use loop_node::LoopNode;
 
 use super::{DecoratorId, MastForestError};
 use crate::{
-    mast::{MastForest, MastNodeId, Remapping},
     DecoratorList, Operation,
+    mast::{MastForest, MastNodeId, Remapping},
 };
 
 // MAST NODE

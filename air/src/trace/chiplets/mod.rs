@@ -1,6 +1,6 @@
 use core::ops::Range;
 
-use vm_core::{utils::range as create_range, Felt, ONE, ZERO};
+use vm_core::{Felt, ONE, ZERO, utils::range as create_range};
 
 use super::{CHIPLETS_OFFSET, HASH_KERNEL_VTABLE_AUX_TRACE_OFFSET};
 

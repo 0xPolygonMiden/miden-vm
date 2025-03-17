@@ -12,18 +12,18 @@ mod package;
 extern crate std;
 
 pub use assembly::{
-    ast::{ProcedureName, QualifiedProcedureName},
     Library, LibraryPath,
+    ast::{ProcedureName, QualifiedProcedureName},
 };
-pub use vm_core::{chiplets::hasher::Digest, mast::MastForest, Program};
+pub use vm_core::{Program, chiplets::hasher::Digest, mast::MastForest};
 
 pub use self::{
     dep::{
+        Dependency, DependencyName,
         resolver::{
             DependencyResolver, LocalResolvedDependency, MemDependencyResolverByDigest,
             ResolvedDependency,
         },
-        Dependency, DependencyName,
     },
     package::{MastArtifact, Package, PackageExport, PackageManifest},
 };

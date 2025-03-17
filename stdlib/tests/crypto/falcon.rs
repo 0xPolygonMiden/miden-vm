@@ -1,22 +1,22 @@
 use std::vec;
 
-use assembly::{utils::Serializable, Assembler};
+use assembly::{Assembler, utils::Serializable};
 use miden_air::{Felt, ProvingOptions, RowIndex};
 use miden_stdlib::StdLibrary;
 use processor::{
-    crypto::RpoRandomCoin, AdviceInputs, DefaultHost, Digest, ExecutionError, MemAdviceProvider,
-    Program, ProgramInfo, StackInputs,
+    AdviceInputs, DefaultHost, Digest, ExecutionError, MemAdviceProvider, Program, ProgramInfo,
+    StackInputs, crypto::RpoRandomCoin,
 };
-use rand::{thread_rng, Rng};
+use rand::{Rng, thread_rng};
 use test_utils::{
+    Word,
     crypto::{
-        rpo_falcon512::{Polynomial, SecretKey},
         MerkleStore, Rpo256,
+        rpo_falcon512::{Polynomial, SecretKey},
     },
     expect_exec_error_matches,
     proptest::proptest,
     rand::rand_vector,
-    Word,
 };
 use vm_core::StarkField;
 

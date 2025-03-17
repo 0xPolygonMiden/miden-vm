@@ -11,8 +11,8 @@ use miden_crypto::hash::rpo::RpoDigest;
 
 mod node;
 pub use node::{
-    BasicBlockNode, CallNode, DynNode, ExternalNode, JoinNode, LoopNode, MastNode, OpBatch,
-    OperationOrDecorator, SplitNode, OP_BATCH_SIZE, OP_GROUP_SIZE,
+    BasicBlockNode, CallNode, DynNode, ExternalNode, JoinNode, LoopNode, MastNode, OP_BATCH_SIZE,
+    OP_GROUP_SIZE, OpBatch, OperationOrDecorator, SplitNode,
 };
 use winter_utils::{ByteWriter, DeserializationError, Serializable};
 
@@ -433,11 +433,7 @@ impl MastForest {
     pub fn local_procedure_digests(&self) -> impl Iterator<Item = RpoDigest> + '_ {
         self.roots.iter().filter_map(|&root_id| {
             let node = &self[root_id];
-            if node.is_external() {
-                None
-            } else {
-                Some(node.digest())
-            }
+            if node.is_external() { None } else { Some(node.digest()) }
         })
     }
 
@@ -748,7 +744,9 @@ pub enum MastForestError {
     DecoratorIdOverflow(DecoratorId, usize),
     #[error("basic block cannot be created from an empty list of operations")]
     EmptyBasicBlock,
-    #[error("decorator root of child with node id {0} is missing but is required for fingerprint computation")]
+    #[error(
+        "decorator root of child with node id {0} is missing but is required for fingerprint computation"
+    )]
     ChildFingerprintMissing(MastNodeId),
     #[error("advice map key {0} already exists when merging forests")]
     AdviceMapKeyCollisionOnMerge(RpoDigest),

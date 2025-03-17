@@ -5,12 +5,12 @@ use vm_core::chiplets::hasher::apply_round;
 use winter_air::EvaluationFrame;
 
 use super::{
-    enforce_constraints, Hasher, HASHER_NODE_INDEX_COL_IDX, HASHER_SELECTOR_COL_RANGE,
-    HASHER_STATE_COL_RANGE, NUM_CONSTRAINTS, ONE, ZERO,
+    HASHER_NODE_INDEX_COL_IDX, HASHER_SELECTOR_COL_RANGE, HASHER_STATE_COL_RANGE, Hasher,
+    NUM_CONSTRAINTS, ONE, ZERO, enforce_constraints,
 };
 use crate::{
-    trace::chiplets::hasher::{Selectors, LINEAR_HASH, STATE_WIDTH},
     Felt, RowIndex, TRACE_WIDTH,
+    trace::chiplets::hasher::{LINEAR_HASH, STATE_WIDTH, Selectors},
 };
 
 // UNIT TESTS

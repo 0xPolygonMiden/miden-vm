@@ -3,7 +3,7 @@ use alloc::vec::Vec;
 use miden_crypto::hash::rpo::RpoDigest;
 use winter_utils::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable};
 
-use super::{basic_blocks::BasicBlockDataDecoder, NodeDataOffset};
+use super::{NodeDataOffset, basic_blocks::BasicBlockDataDecoder};
 use crate::mast::{BasicBlockNode, CallNode, JoinNode, LoopNode, MastNode, MastNodeId, SplitNode};
 
 // MAST NODE INFO

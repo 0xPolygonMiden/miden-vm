@@ -1,7 +1,7 @@
 use processor::{ContextId, DefaultHost, Program};
 use test_utils::{
-    build_expected_hash, build_expected_perm, felt_slice_to_ints, ExecutionOptions, Process,
-    StackInputs, ONE, ZERO,
+    ExecutionOptions, ONE, Process, StackInputs, ZERO, build_expected_hash, build_expected_perm,
+    felt_slice_to_ints,
 };
 
 #[test]

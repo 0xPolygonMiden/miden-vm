@@ -3,9 +3,9 @@ use alloc::{string::String, sync::Arc, vec::Vec};
 use vm_core::mast::MastForestError;
 
 use crate::{
+    LibraryNamespace, LibraryPath, SourceSpan,
     ast::QualifiedProcedureName,
     diagnostics::{Diagnostic, RelatedError, RelatedLabel, SourceFile},
-    LibraryNamespace, LibraryPath, SourceSpan,
 };
 
 // ASSEMBLY ERROR
@@ -28,7 +28,9 @@ pub enum AssemblyError {
     #[error("found a cycle in the call graph, involving these procedures: {}", nodes.as_slice().join(", "))]
     #[diagnostic()]
     Cycle { nodes: Vec<String> },
-    #[error("two procedures found with same mast root, but conflicting definitions ('{first}' and '{second}')")]
+    #[error(
+        "two procedures found with same mast root, but conflicting definitions ('{first}' and '{second}')"
+    )]
     #[diagnostic()]
     ConflictingDefinitions {
         first: QualifiedProcedureName,

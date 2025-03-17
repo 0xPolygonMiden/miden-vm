@@ -6,7 +6,7 @@ use alloc::{collections::BTreeMap, string::String, sync::Arc, vec::Vec};
 use core::fmt;
 
 pub use self::{expr::MetaExpr, kv::MetaKeyValue, list::MetaList};
-use crate::{ast::Ident, parser::HexEncodedValue, Felt, SourceSpan, Span};
+use crate::{Felt, SourceSpan, Span, ast::Ident, parser::HexEncodedValue};
 
 /// Represents the metadata provided as arguments to an attribute.
 #[derive(Clone, PartialEq, Eq)]
@@ -31,8 +31,8 @@ impl Meta {
     pub fn borrow(&self) -> Option<BorrowedMeta<'_>> {
         match self {
             Self::Unit => None,
-            Self::List(ref list) => Some(BorrowedMeta::List(list)),
-            Self::KeyValue(ref kv) => Some(BorrowedMeta::KeyValue(kv)),
+            Self::List(list) => Some(BorrowedMeta::List(list)),
+            Self::KeyValue(kv) => Some(BorrowedMeta::KeyValue(kv)),
         }
     }
 }

@@ -36,10 +36,10 @@
 
 use alloc::{collections::BTreeSet, format, string::String, sync::Arc, vec::Vec};
 
-use assembly::{ast::QualifiedProcedureName, Library};
+use assembly::{Library, ast::QualifiedProcedureName};
 use vm_core::{
-    utils::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable},
     Program,
+    utils::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable},
 };
 
 use super::{Dependency, MastArtifact, Package, PackageExport, PackageManifest};

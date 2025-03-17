@@ -1,5 +1,5 @@
 use super::*;
-use crate::{mast::MastForest, Decorator, ONE};
+use crate::{Decorator, ONE, mast::MastForest};
 
 #[test]
 fn batch_ops() {
