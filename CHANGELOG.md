@@ -12,9 +12,10 @@
 - Fix the docs and implementation of `EXPACC` (#1676)
 - Running a call/syscall/dyncall while processing a syscall now results in an error (#1680)
 - Using a non-binary value as a loop condition now results in an error (#1685)
-- [BREAKING] Update CLI to accept masm or masp files as input for the run and prove commands (#1683).
+- [BREAKING] Update CLI to accept masm or masp files as input for all commands (#1683, #1692)
 - [BREAKING] Remove `Assembler::assemble_common()` from the public interface (#1689).
 - Fix `Horner{Base, Ext}` bus requests to memory chiplet (#1689)
+- Fix docs on the layout of the auxiliary segment trace (#1694).
 
 ## 0.12.0 (2025-01-22)
 

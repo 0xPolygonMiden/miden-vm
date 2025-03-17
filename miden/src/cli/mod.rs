@@ -1,10 +1,11 @@
 mod bundle;
 mod compile;
-mod data;
+pub mod data;
 mod debug;
 mod prove;
 mod repl;
 mod run;
+pub mod utils;
 mod verify;
 
 pub use bundle::BundleCmd;
