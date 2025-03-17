@@ -3025,7 +3025,3 @@ dependencies = [
  "quote",
  "syn",
 ]
-
-[[patch.unused]]
-name = "miden-crypto"
-version = "0.14.0"
