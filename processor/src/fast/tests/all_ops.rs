@@ -111,7 +111,7 @@ fn test_basic_block(
     let program = simple_program_with_ops(operations);
 
     let mut host = DefaultHost::default();
-    let fast_processor = FastProcessor::new(stack_inputs.clone());
+    let fast_processor = FastProcessor::new(&stack_inputs);
     let fast_stack_outputs = fast_processor.execute(&program, &mut host);
 
     let mut host = DefaultHost::default();

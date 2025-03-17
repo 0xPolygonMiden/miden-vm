@@ -47,11 +47,11 @@ fn program_execution_fast(c: &mut Criterion) {
                     let program = assembler
                         .assemble_program(&source)
                         .expect("Failed to compile test source.");
+                    let stack_inputs: Vec<_> = stack_inputs.iter().rev().copied().collect();
                     bench.iter_batched(
                         || host.clone(),
                         |mut host| {
-                            let speedy =
-                                FastProcessor::new(stack_inputs.iter().rev().copied().collect());
+                            let speedy = FastProcessor::new(&stack_inputs);
                             speedy.execute(&program, &mut host).unwrap();
                         },
                         BatchSize::SmallInput,

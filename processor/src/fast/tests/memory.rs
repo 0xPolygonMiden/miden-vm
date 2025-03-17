@@ -9,12 +9,10 @@ fn test_memory_word_access_alignment() {
         let program = simple_program_with_ops(vec![Operation::MLoadW]);
 
         // loadw at address 40 is allowed
-        FastProcessor::new(vec![40_u32.into()]).execute(&program, &mut host).unwrap();
+        FastProcessor::new(&[40_u32.into()]).execute(&program, &mut host).unwrap();
 
         // but loadw at address 43 is not allowed
-        let err = FastProcessor::new(vec![43_u32.into()])
-            .execute(&program, &mut host)
-            .unwrap_err();
+        let err = FastProcessor::new(&[43_u32.into()]).execute(&program, &mut host).unwrap_err();
         assert_eq!(
             err.to_string(),
             "word memory access at address 43 in context 0 is unaligned at clock cycle 1"
@@ -26,12 +24,10 @@ fn test_memory_word_access_alignment() {
         let program = simple_program_with_ops(vec![Operation::MStoreW]);
 
         // storew at address 40 is allowed
-        FastProcessor::new(vec![40_u32.into()]).execute(&program, &mut host).unwrap();
+        FastProcessor::new(&[40_u32.into()]).execute(&program, &mut host).unwrap();
 
         // but storew at address 43 is not allowed
-        let err = FastProcessor::new(vec![43_u32.into()])
-            .execute(&program, &mut host)
-            .unwrap_err();
+        let err = FastProcessor::new(&[43_u32.into()]).execute(&program, &mut host).unwrap_err();
         assert_eq!(
             err.to_string(),
             "word memory access at address 43 in context 0 is unaligned at clock cycle 1"
@@ -49,7 +45,7 @@ fn test_mloadw_success() {
 
     // load the contents of address 40
     {
-        let mut processor = FastProcessor::new(vec![addr]);
+        let mut processor = FastProcessor::new(&[addr]);
         processor.memory.write_word(ctx, addr, dummy_clk, word_at_addr).unwrap();
 
         let program = simple_program_with_ops(vec![Operation::MLoadW]);
@@ -64,7 +60,7 @@ fn test_mloadw_success() {
 
     // load the contents of address 100 (should yield the ZERO word)
     {
-        let mut processor = FastProcessor::new(vec![100_u32.into()]);
+        let mut processor = FastProcessor::new(&[100_u32.into()]);
         processor.memory.write_word(ctx, addr, dummy_clk, word_at_addr).unwrap();
 
         let program = simple_program_with_ops(vec![Operation::MLoadW]);
@@ -83,7 +79,7 @@ fn test_mstorew_success() {
     let clk = 0_u32.into();
 
     // Store the word at address 40
-    let mut processor = FastProcessor::new(vec![
+    let mut processor = FastProcessor::new(&[
         word_to_store[0],
         word_to_store[1],
         word_to_store[2],
@@ -109,7 +105,7 @@ fn test_mstore_success(#[case] addr: u32, #[case] value_to_store: u32) {
     let value_to_store = Felt::from(value_to_store);
 
     // Store the value at address 40
-    let mut processor = FastProcessor::new(vec![value_to_store, addr.into()]);
+    let mut processor = FastProcessor::new(&[value_to_store, addr.into()]);
     let program = simple_program_with_ops(vec![Operation::MStore]);
     processor.execute_impl(&program, &mut host).unwrap();
 
@@ -132,7 +128,7 @@ fn test_mload_success(#[case] addr_to_access: u32) {
     let dummy_clk = 0_u32.into();
 
     // Initialize processor with a word at address 40
-    let mut processor = FastProcessor::new(vec![addr_to_access.into()]);
+    let mut processor = FastProcessor::new(&[addr_to_access.into()]);
     processor
         .memory
         .write_word(ctx, addr_with_word.into(), dummy_clk, word_at_addr)
@@ -163,7 +159,7 @@ fn test_mstream() {
             stack[MIN_STACK_DEPTH - 1 - 12] = addr.into();
             stack
         };
-        FastProcessor::new(stack_init)
+        FastProcessor::new(&stack_init)
     };
     // Store values at addresses 40 and 44
     processor.memory.write_word(ctx, addr.into(), clk, word_at_addr_40).unwrap();

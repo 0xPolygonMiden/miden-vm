@@ -441,8 +441,8 @@ impl Test {
     /// processor's stack outputs.
     fn assert_outputs_with_fast_processor(&self, slow_stack_outputs: StackOutputs) {
         let (program, mut host) = self.get_program_and_host();
-        let fast_process =
-            FastProcessor::new(self.stack_inputs.clone().into_iter().rev().collect());
+        let stack_inputs: Vec<Felt> = self.stack_inputs.clone().into_iter().rev().collect();
+        let fast_process = FastProcessor::new(&stack_inputs);
         let fast_stack_outputs = fast_process.execute(&program, &mut host).unwrap();
 
         assert_eq!(

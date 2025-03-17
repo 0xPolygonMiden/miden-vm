@@ -248,7 +248,7 @@ fn test_masm_consistency(
     }
 
     // fast processor
-    let processor = FastProcessor::new(stack_inputs.clone());
+    let processor = FastProcessor::new(&stack_inputs);
     let fast_stack_outputs = processor.execute(&program, &mut host).unwrap();
 
     // slow processor
@@ -327,7 +327,7 @@ fn test_masm_errors_consistency(
     }
 
     // fast processor
-    let processor = FastProcessor::new(stack_inputs.clone());
+    let processor = FastProcessor::new(&stack_inputs);
     let fast_stack_outputs = processor.execute(&program, &mut host).unwrap_err();
 
     // slow processor

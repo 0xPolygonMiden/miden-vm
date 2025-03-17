@@ -34,21 +34,21 @@ fn test_stack_underflow_and_overflow_bounds_failure() {
             ops
         };
         let program_no_underflow = simple_program_with_ops(ops);
-        let result = FastProcessor::new(vec![]).execute(&program_no_underflow, &mut host);
+        let result = FastProcessor::new(&[]).execute(&program_no_underflow, &mut host);
         assert!(result.is_ok());
 
         // program 2: just enough drops as to not underflow, but no operation after.
         const NUM_DROPS_NO_UNDERFLOW: usize = NUM_DROPS_NO_UNDERFLOW_SWAPS_ALLOWED + 1;
         let program_no_underflow =
             simple_program_with_ops(vec![Operation::Drop; NUM_DROPS_NO_UNDERFLOW]);
-        let result = FastProcessor::new(vec![]).execute(&program_no_underflow, &mut host);
+        let result = FastProcessor::new(&[]).execute(&program_no_underflow, &mut host);
         assert!(result.is_ok());
 
         // program 3: just enough drops to underflow
         const NUM_DROPS_WITH_UNDERFLOW: usize = NUM_DROPS_NO_UNDERFLOW + 1;
         let program_with_underflow =
             simple_program_with_ops(vec![Operation::Drop; NUM_DROPS_WITH_UNDERFLOW]);
-        let err = FastProcessor::new(vec![]).execute(&program_with_underflow, &mut host);
+        let err = FastProcessor::new(&[]).execute(&program_with_underflow, &mut host);
 
         assert_matches!(err, Err(ExecutionError::FailedToExecuteProgram(_)));
     }
@@ -69,7 +69,7 @@ fn test_stack_underflow_and_overflow_bounds_failure() {
             ops
         };
         let program_no_overflow = simple_program_with_ops(ops);
-        let result = FastProcessor::new(vec![]).execute(&program_no_overflow, &mut host);
+        let result = FastProcessor::new(&[]).execute(&program_no_overflow, &mut host);
         assert_matches!(result, Ok(_));
 
         // program 2: just enough dups to get 1 away from the stack buffer overflow error. Since we
@@ -78,7 +78,7 @@ fn test_stack_underflow_and_overflow_bounds_failure() {
 
         let ops = vec![Operation::Dup0; NUM_DUPS_NO_OVERFLOW];
         let program_output_overflow = simple_program_with_ops(ops);
-        let result = FastProcessor::new(vec![]).execute(&program_output_overflow, &mut host);
+        let result = FastProcessor::new(&[]).execute(&program_output_overflow, &mut host);
         assert_matches!(result, Err(ExecutionError::OutputStackOverflow(_)));
 
         // program 3: just enough dups to get 1 away from the stack buffer overflow error. Since we
@@ -87,7 +87,7 @@ fn test_stack_underflow_and_overflow_bounds_failure() {
 
         let ops = vec![Operation::Dup0; NUM_DUPS_WITH_OVERFLOW];
         let program_with_overflow = simple_program_with_ops(ops);
-        let result = FastProcessor::new(vec![]).execute(&program_with_overflow, &mut host);
+        let result = FastProcessor::new(&[]).execute(&program_with_overflow, &mut host);
         assert_matches!(result, Err(ExecutionError::FailedToExecuteProgram(_)));
     }
 }
@@ -101,14 +101,14 @@ fn test_stack_overflow_bounds_success() {
     // dup1, add
     {
         let program = simple_program_with_ops(vec![Operation::Dup1, Operation::Add]);
-        FastProcessor::new(vec![]).execute(&program, &mut host).unwrap();
+        FastProcessor::new(&[]).execute(&program, &mut host).unwrap();
     }
 
     // the first add doesn't change the stack size, but the subsequent dup1 does
     {
         let program =
             simple_program_with_ops(vec![Operation::Add, Operation::Dup1, Operation::Add]);
-        FastProcessor::new(vec![]).execute(&program, &mut host).unwrap();
+        FastProcessor::new(&[]).execute(&program, &mut host).unwrap();
     }
 
     // alternating add/dup1, with some swaps which don't change the stack size.
@@ -134,7 +134,7 @@ fn test_stack_overflow_bounds_success() {
             // stack depth after: 16
             Operation::Swap,
         ]);
-        FastProcessor::new(vec![]).execute(&program, &mut host).unwrap();
+        FastProcessor::new(&[]).execute(&program, &mut host).unwrap();
     }
 }
 
@@ -147,7 +147,7 @@ fn test_fmp_add() {
     let stack_inputs = vec![1_u32.into(), 2_u32.into(), 3_u32.into()];
     let program = simple_program_with_ops(vec![Operation::FmpAdd]);
 
-    let mut processor = FastProcessor::new(stack_inputs.clone());
+    let mut processor = FastProcessor::new(&stack_inputs);
     processor.fmp = initial_fmp;
 
     let stack_outputs = processor.execute(&program, &mut host).unwrap();
@@ -166,7 +166,7 @@ fn test_fmp_update() {
     let stack_inputs = vec![5_u32.into()];
     let program = simple_program_with_ops(vec![Operation::FmpUpdate]);
 
-    let mut processor = FastProcessor::new(stack_inputs.clone());
+    let mut processor = FastProcessor::new(&stack_inputs);
     processor.fmp = initial_fmp;
 
     let stack_outputs = processor.execute_impl(&program, &mut host).unwrap();
@@ -188,7 +188,7 @@ fn test_fmp_update_fail() {
     let stack_inputs = vec![5_u32.into()];
     let program = simple_program_with_ops(vec![Operation::FmpUpdate]);
 
-    let mut processor = FastProcessor::new(stack_inputs.clone());
+    let mut processor = FastProcessor::new(&stack_inputs);
     processor.fmp = initial_fmp;
 
     let err = processor.execute(&program, &mut host).unwrap_err();
@@ -201,7 +201,7 @@ fn test_fmp_update_fail() {
     let stack_inputs = vec![-Felt::new(5_u64)];
     let program = simple_program_with_ops(vec![Operation::FmpUpdate]);
 
-    let mut processor = FastProcessor::new(stack_inputs.clone());
+    let mut processor = FastProcessor::new(&stack_inputs);
     processor.fmp = initial_fmp;
 
     let err = processor.execute(&program, &mut host).unwrap_err();
@@ -226,7 +226,7 @@ fn test_syscall_fail() {
         Program::new(program.into(), root_id)
     };
 
-    let processor = FastProcessor::new(stack_inputs.clone());
+    let processor = FastProcessor::new(&stack_inputs);
 
     let err = processor.execute(&program, &mut host).unwrap_err();
 
@@ -243,7 +243,7 @@ fn test_assert() {
         let stack_inputs = vec![ONE];
         let program = simple_program_with_ops(vec![Operation::Assert(0)]);
 
-        let processor = FastProcessor::new(stack_inputs);
+        let processor = FastProcessor::new(&stack_inputs);
         let result = processor.execute(&program, &mut host);
 
         // Check that the execution succeeds
@@ -255,7 +255,7 @@ fn test_assert() {
         let stack_inputs = vec![ZERO];
         let program = simple_program_with_ops(vec![Operation::Assert(0)]);
 
-        let processor = FastProcessor::new(stack_inputs);
+        let processor = FastProcessor::new(&stack_inputs);
         let err = processor.execute(&program, &mut host).unwrap_err();
 
         // Check that the error is due to a failed assertion
@@ -276,7 +276,7 @@ fn test_valid_combinations_and(#[case] stack_inputs: Vec<Felt>, #[case] expected
     let program = simple_program_with_ops(vec![Operation::And]);
 
     let mut host = DefaultHost::default();
-    let processor = FastProcessor::new(stack_inputs);
+    let processor = FastProcessor::new(&stack_inputs);
     let stack_outputs = processor.execute(&program, &mut host).unwrap();
 
     assert_eq!(stack_outputs.stack_truncated(1)[0], expected_output);
@@ -295,7 +295,7 @@ fn test_valid_combinations_or(#[case] stack_inputs: Vec<Felt>, #[case] expected_
     let program = simple_program_with_ops(vec![Operation::Or]);
 
     let mut host = DefaultHost::default();
-    let processor = FastProcessor::new(stack_inputs);
+    let processor = FastProcessor::new(&stack_inputs);
     let stack_outputs = processor.execute(&program, &mut host).unwrap();
 
     assert_eq!(stack_outputs.stack_truncated(1)[0], expected_output);
@@ -332,7 +332,7 @@ fn test_frie2f4() {
         simple_program_with_ops(vec![Operation::Push(Felt::new(42_u64)), Operation::FriE2F4]);
 
     // fast processor
-    let fast_processor = FastProcessor::new(stack_inputs.clone());
+    let fast_processor = FastProcessor::new(&stack_inputs);
     let fast_stack_outputs = fast_processor.execute(&program, &mut host).unwrap();
 
     // slow processor
@@ -394,7 +394,7 @@ fn test_call_node_preserves_stack_overflow_table() {
     };
 
     // initial stack: (top) [1, 2, 3, 4, ..., 16] (bot)
-    let mut processor = FastProcessor::new(vec![
+    let mut processor = FastProcessor::new(&[
         16_u32.into(),
         15_u32.into(),
         14_u32.into(),

@@ -144,7 +144,7 @@ impl FastProcessor {
     ///
     /// # Panics
     /// - Panics if the length of `stack_inputs` is greater than `MIN_STACK_DEPTH`.
-    pub fn new(stack_inputs: Vec<Felt>) -> Self {
+    pub fn new(stack_inputs: &[Felt]) -> Self {
         Self::initialize(stack_inputs, false)
     }
 
@@ -156,11 +156,11 @@ impl FastProcessor {
     ///
     /// # Panics
     /// - Panics if the length of `stack_inputs` is greater than `MIN_STACK_DEPTH`.
-    pub fn new_debug(stack_inputs: Vec<Felt>) -> Self {
+    pub fn new_debug(stack_inputs: &[Felt]) -> Self {
         Self::initialize(stack_inputs, true)
     }
 
-    fn initialize(stack_inputs: Vec<Felt>, in_debug_mode: bool) -> Self {
+    fn initialize(stack_inputs: &[Felt], in_debug_mode: bool) -> Self {
         assert!(stack_inputs.len() <= MIN_STACK_DEPTH);
 
         let stack_top_idx = INITIAL_STACK_TOP_IDX;
@@ -206,16 +206,18 @@ impl FastProcessor {
         self.stack[self.stack_top_idx - idx - 1]
     }
 
-    /// Returns the word on the stack at index `idx`.
+    /// Returns the word on the stack starting at index `start_idx`.
     ///
-    /// Specifically, word 0 is defined by the first 4 elements of the stack, word 1 is defined
-    /// by the next 4 elements etc. Since the top of the stack contains 4 word, the highest valid
-    /// word index is 3.
+    /// For example,
+    /// - `start_idx=0` will return the word starting at the top of the stack,
+    /// - `start_idx=1` will return the word 1 element from the top of the stack, etc.
     ///
-    /// The words are created in reverse order. For example, for word 0 the top element of the
-    /// stack will be at the last position in the word.
-    pub fn stack_get_word(&self, idx: usize) -> Word {
-        let word_start_idx = self.stack_top_idx - (WORD_SIZE * (idx + 1));
+    /// The words are created in reverse order. For example, for `start_idx=0` the top element of
+    /// the stack will be at the last position in the word.
+    pub fn stack_get_word(&self, start_idx: usize) -> Word {
+        debug_assert!(start_idx < MIN_STACK_DEPTH);
+
+        let word_start_idx = self.stack_top_idx - start_idx - 4;
         self.stack[range(word_start_idx, WORD_SIZE)].try_into().unwrap()
     }
 
@@ -842,7 +844,10 @@ impl FastProcessor {
     /// start a new execution context.
     fn save_context_and_truncate_stack(&mut self) {
         let overflow_stack = if self.stack_size() > MIN_STACK_DEPTH {
-            // save the overflow stack, and zero out the buffer
+            // save the overflow stack, and zero out the buffer.
+            //
+            // Note: we need to zero the overflow buffer, since the new context expects ZERO's to be
+            // pulled in if they decrement the stack size (e.g. by executing a `drop`).
             let overflow_stack =
                 self.stack[self.stack_bot_idx..self.stack_top_idx - MIN_STACK_DEPTH].to_vec();
             self.stack[self.stack_bot_idx..self.stack_top_idx - MIN_STACK_DEPTH].fill(ZERO);

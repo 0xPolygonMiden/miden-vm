@@ -31,7 +31,7 @@ use vm_core::{
     mast::{
         BasicBlockNode, CallNode, DynNode, JoinNode, LoopNode, OpBatch, SplitNode, OP_GROUP_SIZE,
     },
-    Decorator, DecoratorIterator, FieldElement,
+    Decorator, DecoratorIterator, FieldElement, WORD_SIZE,
 };
 pub use winter_prover::matrix::ColMatrix;
 
@@ -707,7 +707,7 @@ impl<'a> ProcessState<'a> {
     pub fn get_stack_word(&self, word_idx: usize) -> Word {
         match self {
             ProcessState::Slow(state) => state.stack.get_word(word_idx),
-            ProcessState::Fast(state) => state.processor.stack_get_word(word_idx),
+            ProcessState::Fast(state) => state.processor.stack_get_word(word_idx * WORD_SIZE),
         }
     }
 
