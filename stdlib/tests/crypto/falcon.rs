@@ -7,7 +7,7 @@ use processor::{
     AdviceInputs, DefaultHost, Digest, ExecutionError, MemAdviceProvider, Program, ProgramInfo,
     StackInputs, crypto::RpoRandomCoin,
 };
-use rand::{Rng, thread_rng};
+use rand::{Rng, rng};
 use test_utils::{
     Word,
     crypto::{
@@ -50,11 +50,11 @@ fn test_falcon512_norm_sq() {
     ";
 
     // normalize(e) = e^2 - phi * (2*M*e - M^2) where phi := (e > (M - 1)/2)
-    let upper = rand::thread_rng().gen_range(Q + 1..M);
+    let upper = rand::rng().random_range(Q + 1..M);
     let test_upper = build_test!(source, &[upper]);
     test_upper.expect_stack(&[(M - upper) * (M - upper)]);
 
-    let lower = rand::thread_rng().gen_range(0..=Q);
+    let lower = rand::rng().random_range(0..=Q);
     let test_lower = build_test!(source, &[lower]);
     test_lower.expect_stack(&[lower * lower])
 }
@@ -241,7 +241,7 @@ fn generate_test(
 fn random_coefficients() -> Vec<Felt> {
     let mut res = Vec::new();
     for _i in 0..N {
-        res.push(Felt::new(thread_rng().gen_range(0..M)))
+        res.push(Felt::new(rng().random_range(0..M)))
     }
     res
 }
