@@ -3,10 +3,10 @@ use vm_core::{Felt, FieldElement, Operation, ZERO};
 
 use super::{
     super::{DECODER_TRACE_OFFSET, STACK_TRACE_OFFSET},
-    enforce_constraints, EvaluationFrame, NUM_CONSTRAINTS,
+    EvaluationFrame, NUM_CONSTRAINTS, enforce_constraints,
 };
 use crate::{
-    stack::op_flags::{generate_evaluation_frame, OpFlags},
+    stack::op_flags::{OpFlags, generate_evaluation_frame},
     trace::decoder::USER_OP_HELPERS_OFFSET,
 };
 

@@ -1,9 +1,9 @@
 use processor::Digest;
 use test_utils::{
+    Felt, FieldElement, MerkleTreeVC, StarkField,
     crypto::{BatchMerkleProof, ElementHasher, Hasher as HasherTrait, PartialMerkleTree},
     math::fft,
     serde::DeserializationError,
-    Felt, FieldElement, MerkleTreeVC, StarkField,
 };
 use winter_fri::{FriProof, VerifierError};
 

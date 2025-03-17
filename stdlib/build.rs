@@ -1,8 +1,8 @@
 use std::{env, path::Path};
 
 use assembly::{
-    diagnostics::{IntoDiagnostic, Result},
     Assembler, Library, LibraryNamespace,
+    diagnostics::{IntoDiagnostic, Result},
 };
 
 // CONSTANTS

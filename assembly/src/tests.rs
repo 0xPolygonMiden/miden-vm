@@ -1,17 +1,16 @@
 use alloc::{string::ToString, vec::Vec};
 
 use vm_core::{
-    mast::{MastNode, MastNodeId},
     Program,
+    mast::{MastNode, MastNodeId},
 };
 
 use crate::{
-    assert_diagnostic_lines,
+    Assembler, Deserializable, LibraryPath, ModuleParser, Serializable, assert_diagnostic_lines,
     ast::{Module, ModuleKind},
     diagnostics::{IntoDiagnostic, Report},
     regex, source_file,
     testing::{Pattern, TestContext},
-    Assembler, Deserializable, LibraryPath, ModuleParser, Serializable,
 };
 
 type TestResult = Result<(), Report>;

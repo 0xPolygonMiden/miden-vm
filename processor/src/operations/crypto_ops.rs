@@ -185,7 +185,7 @@ mod tests {
 
     use test_utils::rand::rand_vector;
     use vm_core::{
-        chiplets::hasher::{apply_permutation, STATE_WIDTH},
+        chiplets::hasher::{STATE_WIDTH, apply_permutation},
         crypto::merkle::{MerkleStore, MerkleTree, NodeIndex},
     };
 

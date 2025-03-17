@@ -1,9 +1,9 @@
-use vm_core::{sys_events::SystemEvent, Felt, Operation};
+use vm_core::{Felt, Operation, sys_events::SystemEvent};
 
 use super::{
     super::{
-        system::{FMP_MAX, FMP_MIN},
         ONE,
+        system::{FMP_MAX, FMP_MIN},
     },
     ExecutionError, Process,
 };
@@ -146,10 +146,10 @@ impl Process {
 #[cfg(test)]
 mod tests {
     use super::{
-        super::{Operation, MIN_STACK_DEPTH},
-        Felt, Process, FMP_MAX, FMP_MIN,
+        super::{MIN_STACK_DEPTH, Operation},
+        FMP_MAX, FMP_MIN, Felt, Process,
     };
-    use crate::{DefaultHost, StackInputs, ONE, ZERO};
+    use crate::{DefaultHost, ONE, StackInputs, ZERO};
 
     const MAX_PROC_LOCALS: u64 = 2_u64.pow(31) - 1;
 

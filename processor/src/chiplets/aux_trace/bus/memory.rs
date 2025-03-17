@@ -2,6 +2,7 @@ use alloc::boxed::Box;
 use core::fmt::{Display, Formatter, Result as FmtResult};
 
 use miden_air::{
+    RowIndex,
     trace::{
         chiplets::memory::{
             MEMORY_ACCESS_ELEMENT, MEMORY_ACCESS_WORD, MEMORY_READ_ELEMENT_LABEL,
@@ -9,7 +10,6 @@ use miden_air::{
         },
         main_trace::MainTrace,
     },
-    RowIndex,
 };
 use vm_core::{Felt, FieldElement, ONE, ZERO};
 

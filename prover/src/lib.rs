@@ -12,19 +12,20 @@ use air::{AuxRandElements, PartitionOptions, ProcessorAir, PublicInputs};
 #[cfg(all(feature = "metal", target_arch = "aarch64", target_os = "macos"))]
 use miden_gpu::HashFn;
 use processor::{
+    ExecutionTrace, Program,
     crypto::{
         Blake3_192, Blake3_256, ElementHasher, RandomCoin, Rpo256, RpoRandomCoin, Rpx256,
         RpxRandomCoin, WinterRandomCoin,
     },
     math::{Felt, FieldElement},
-    ExecutionTrace, Program,
 };
 use tracing::instrument;
 use winter_maybe_async::{maybe_async, maybe_await};
 use winter_prover::{
-    matrix::ColMatrix, CompositionPoly, CompositionPolyTrace, ConstraintCompositionCoefficients,
+    CompositionPoly, CompositionPolyTrace, ConstraintCompositionCoefficients,
     DefaultConstraintCommitment, DefaultConstraintEvaluator, DefaultTraceLde,
     ProofOptions as WinterProofOptions, Prover, StarkDomain, TraceInfo, TracePolyTable,
+    matrix::ColMatrix,
 };
 #[cfg(feature = "std")]
 use {std::time::Instant, winter_prover::Trace};
@@ -35,10 +36,10 @@ mod gpu;
 
 pub use air::{DeserializationError, ExecutionProof, FieldExtension, HashFunction, ProvingOptions};
 pub use processor::{
-    crypto, math, utils, AdviceInputs, Digest, ExecutionError, Host, InputError, MemAdviceProvider,
-    StackInputs, StackOutputs, Word,
+    AdviceInputs, Digest, ExecutionError, Host, InputError, MemAdviceProvider, StackInputs,
+    StackOutputs, Word, crypto, math, utils,
 };
-pub use winter_prover::{crypto::MerkleTree as MerkleTreeVC, Proof};
+pub use winter_prover::{Proof, crypto::MerkleTree as MerkleTreeVC};
 
 // PROVER
 // ================================================================================================

@@ -7,12 +7,12 @@ use core::ops::{Index, IndexMut};
 
 use miette::{IntoDiagnostic, Report};
 use vm_core::{
+    Decorator, DecoratorList, Operation,
     crypto::hash::RpoDigest,
     mast::{
         DecoratorFingerprint, DecoratorId, MastForest, MastNode, MastNodeFingerprint, MastNodeId,
         Remapping, SubtreeIterator,
     },
-    Decorator, DecoratorList, Operation,
 };
 
 use super::{GlobalProcedureIndex, Procedure};

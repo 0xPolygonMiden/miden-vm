@@ -1,13 +1,13 @@
 use alloc::vec::Vec;
 use core::{fmt, mem};
 
-use miden_crypto::{hash::rpo::RpoDigest, Felt, ZERO};
+use miden_crypto::{Felt, ZERO, hash::rpo::RpoDigest};
 use miden_formatting::prettier::PrettyPrint;
 
 use crate::{
+    DecoratorIterator, DecoratorList, Operation,
     chiplets::hasher,
     mast::{DecoratorId, MastForest, MastForestError},
-    DecoratorIterator, DecoratorList, Operation,
 };
 
 mod op_batch;

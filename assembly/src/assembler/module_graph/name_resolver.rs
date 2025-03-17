@@ -2,6 +2,7 @@ use alloc::{borrow::Cow, collections::BTreeSet, vec::Vec};
 
 use super::{ModuleGraph, WrappedModule};
 use crate::{
+    AssemblyError, RpoDigest, SourceSpan, Span, Spanned,
     assembler::{GlobalProcedureIndex, ModuleIndex},
     ast::{
         Ident, InvocationTarget, InvokeKind, Module, ProcedureName, QualifiedProcedureName,
@@ -9,7 +10,6 @@ use crate::{
     },
     diagnostics::RelatedLabel,
     library::{LibraryNamespace, LibraryPath},
-    AssemblyError, RpoDigest, SourceSpan, Span, Spanned,
 };
 
 // HELPER STRUCTS
@@ -127,8 +127,8 @@ impl<'a> NameResolver<'a> {
                     Some(gid) => Ok(ResolvedTarget::Exact { gid }),
                 }
             },
-            InvocationTarget::ProcedureName(ref callee) => self.resolve(caller, callee),
-            InvocationTarget::ProcedurePath { ref name, module: ref imported_module } => {
+            InvocationTarget::ProcedureName(callee) => self.resolve(caller, callee),
+            InvocationTarget::ProcedurePath { name, module: imported_module } => {
                 match self.resolve_import(caller, imported_module) {
                     Some(imported_module) => {
                         let fqn = QualifiedProcedureName {
@@ -162,7 +162,7 @@ impl<'a> NameResolver<'a> {
                     }),
                 }
             },
-            InvocationTarget::AbsoluteProcedurePath { ref name, ref path } => {
+            InvocationTarget::AbsoluteProcedurePath { name, path } => {
                 let fqn = QualifiedProcedureName {
                     span: target.span(),
                     module: path.clone(),
@@ -220,9 +220,13 @@ impl<'a> NameResolver<'a> {
                 }
             },
             None => Err(AssemblyError::Failed {
-                labels: vec![RelatedLabel::error("undefined procedure")
-                    .with_source_file(self.graph.source_manager.get(caller.span.source_id()).ok())
-                    .with_labeled_span(caller.span, "unable to resolve this name locally")],
+                labels: vec![
+                    RelatedLabel::error("undefined procedure")
+                        .with_source_file(
+                            self.graph.source_manager.get(caller.span.source_id()).ok(),
+                        )
+                        .with_labeled_span(caller.span, "unable to resolve this name locally"),
+                ],
             }),
         }
     }

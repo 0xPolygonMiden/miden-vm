@@ -1,8 +1,8 @@
 use alloc::vec::Vec;
 
 use vm_core::{
-    crypto::{hash::RpoDigest, merkle::MerklePath},
     Felt,
+    crypto::{hash::RpoDigest, merkle::MerklePath},
 };
 
 use crate::{ExecutionError, ProcessState, Word};
@@ -99,7 +99,7 @@ pub trait AdviceProvider: Sized {
     ///   by the specified root.
     /// - Value of the node at the specified depth and index is not known to this advice provider.
     fn get_tree_node(&self, root: Word, depth: &Felt, index: &Felt)
-        -> Result<Word, ExecutionError>;
+    -> Result<Word, ExecutionError>;
 
     /// Returns a path to a node at the specified depth and index in a Merkle tree with the
     /// specified root.

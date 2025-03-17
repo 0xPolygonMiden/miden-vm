@@ -1,6 +1,7 @@
 use core::fmt::{Display, Formatter, Result as FmtResult};
 
 use miden_air::{
+    RowIndex,
     trace::{
         chiplets::{
             hasher,
@@ -11,11 +12,10 @@ use miden_air::{
         },
         main_trace::MainTrace,
     },
-    RowIndex,
 };
 use vm_core::{
-    utils::range, Felt, FieldElement, ONE, OPCODE_CALL, OPCODE_JOIN, OPCODE_LOOP, OPCODE_SPLIT,
-    ZERO,
+    Felt, FieldElement, ONE, OPCODE_CALL, OPCODE_JOIN, OPCODE_LOOP, OPCODE_SPLIT, ZERO,
+    utils::range,
 };
 
 use super::{build_value, get_op_label};

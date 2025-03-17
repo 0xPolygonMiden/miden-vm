@@ -3,7 +3,7 @@ use std::{path::PathBuf, sync::Arc};
 use assembly::diagnostics::Report;
 use clap::Parser;
 use miden_vm::internal::InputFile;
-use rustyline::{error::ReadlineError, Config, DefaultEditor, EditMode};
+use rustyline::{Config, DefaultEditor, EditMode, error::ReadlineError};
 
 use super::data::Libraries;
 

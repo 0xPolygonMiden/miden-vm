@@ -1,4 +1,4 @@
-edition = "2021"
+edition = "2024"
 array_width = 80
 attr_fn_like_width = 80
 chain_width = 80

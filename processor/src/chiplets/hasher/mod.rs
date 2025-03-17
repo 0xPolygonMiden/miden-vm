@@ -1,12 +1,12 @@
 use alloc::collections::BTreeMap;
 
 use miden_air::trace::chiplets::hasher::{
-    Digest, Selectors, DIGEST_LEN, DIGEST_RANGE, LINEAR_HASH, MP_VERIFY, MR_UPDATE_NEW,
-    MR_UPDATE_OLD, RATE_LEN, RETURN_HASH, RETURN_STATE, STATE_WIDTH, TRACE_WIDTH,
+    DIGEST_LEN, DIGEST_RANGE, Digest, LINEAR_HASH, MP_VERIFY, MR_UPDATE_NEW, MR_UPDATE_OLD,
+    RATE_LEN, RETURN_HASH, RETURN_STATE, STATE_WIDTH, Selectors, TRACE_WIDTH,
 };
 
 use super::{
-    Felt, HasherState, MerklePath, MerkleRootUpdate, OpBatch, TraceFragment, Word, ONE, ZERO,
+    Felt, HasherState, MerklePath, MerkleRootUpdate, ONE, OpBatch, TraceFragment, Word, ZERO,
 };
 
 mod trace;

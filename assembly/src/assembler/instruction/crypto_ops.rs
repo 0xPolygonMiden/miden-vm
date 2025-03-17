@@ -1,4 +1,4 @@
-use vm_core::{sys_events::SystemEvent, Felt, Operation::*};
+use vm_core::{Felt, Operation::*, sys_events::SystemEvent};
 
 use super::BasicBlockBuilder;
 use crate::AssemblyError;

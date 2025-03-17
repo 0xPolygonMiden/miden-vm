@@ -1,6 +1,6 @@
 use super::{
-    errors::{InputError, OutputError},
     Felt,
+    errors::{InputError, OutputError},
 };
 use crate::utils::{ByteWriter, Serializable};
 

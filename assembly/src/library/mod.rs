@@ -6,10 +6,10 @@ use alloc::{
 };
 
 use vm_core::{
+    AdviceMap, Kernel,
     crypto::hash::RpoDigest,
     mast::{MastForest, MastNodeId},
     utils::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable},
-    AdviceMap, Kernel,
 };
 
 use crate::ast::QualifiedProcedureName;
@@ -303,8 +303,8 @@ mod use_std_library {
         ) -> Result<Self, Report> {
             let path = path.as_ref();
 
-            let modules =
-                crate::parser::read_modules_from_dir(namespace, path, &assembler.source_manager())?;
+            let src_manager = assembler.source_manager();
+            let modules = crate::parser::read_modules_from_dir(namespace, path, &src_manager)?;
             assembler.assemble_library(modules)
         }
 
@@ -420,7 +420,7 @@ mod use_std_kernel {
     use std::{io, path::Path};
 
     use super::*;
-    use crate::{diagnostics::Report, Assembler};
+    use crate::{Assembler, diagnostics::Report};
 
     impl KernelLibrary {
         /// Write the library to a target file

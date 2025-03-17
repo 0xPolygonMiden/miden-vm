@@ -14,7 +14,7 @@ pub use self::{
     context::AnalysisContext,
     errors::{SemanticAnalysisError, SyntaxError},
 };
-use crate::{ast::*, diagnostics::SourceFile, LibraryPath, Spanned};
+use crate::{LibraryPath, Spanned, ast::*, diagnostics::SourceFile};
 
 /// Constructs and validates a [Module], given the forms constituting the module body.
 ///
@@ -173,7 +173,7 @@ fn visit_procedures(
                 // e.g. `u64` of `std::math::u64`.
                 let is_absolute = alias.is_absolute();
                 if !is_absolute {
-                    if let AliasTarget::ProcedurePath(ref mut target) = alias.target_mut() {
+                    if let AliasTarget::ProcedurePath(target) = alias.target_mut() {
                         let imported_module =
                             target.module.namespace().to_ident().with_span(target.span);
                         if let Some(import) = module.resolve_import_mut(&imported_module) {

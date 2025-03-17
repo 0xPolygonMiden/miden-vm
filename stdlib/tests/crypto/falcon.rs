@@ -1,22 +1,22 @@
 use std::vec;
 
-use assembly::{utils::Serializable, Assembler};
+use assembly::{Assembler, utils::Serializable};
 use miden_air::{Felt, ProvingOptions, RowIndex};
 use miden_stdlib::StdLibrary;
 use processor::{
-    crypto::RpoRandomCoin, AdviceInputs, DefaultHost, Digest, ExecutionError, MemAdviceProvider,
-    Program, ProgramInfo, StackInputs,
+    AdviceInputs, DefaultHost, Digest, ExecutionError, MemAdviceProvider, Program, ProgramInfo,
+    StackInputs, crypto::RpoRandomCoin,
 };
-use rand::{thread_rng, Rng};
+use rand::{Rng, rng};
 use test_utils::{
+    Word,
     crypto::{
-        rpo_falcon512::{Polynomial, SecretKey},
         MerkleStore, Rpo256,
+        rpo_falcon512::{Polynomial, SecretKey},
     },
     expect_exec_error_matches,
     proptest::proptest,
     rand::rand_vector,
-    Word,
 };
 use vm_core::StarkField;
 
@@ -50,11 +50,11 @@ fn test_falcon512_norm_sq() {
     ";
 
     // normalize(e) = e^2 - phi * (2*M*e - M^2) where phi := (e > (M - 1)/2)
-    let upper = rand::thread_rng().gen_range(Q + 1..M);
+    let upper = rand::rng().random_range(Q + 1..M);
     let test_upper = build_test!(source, &[upper]);
     test_upper.expect_stack(&[(M - upper) * (M - upper)]);
 
-    let lower = rand::thread_rng().gen_range(0..=Q);
+    let lower = rand::rng().random_range(0..=Q);
     let test_lower = build_test!(source, &[lower]);
     test_lower.expect_stack(&[lower * lower])
 }
@@ -241,7 +241,7 @@ fn generate_test(
 fn random_coefficients() -> Vec<Felt> {
     let mut res = Vec::new();
     for _i in 0..N {
-        res.push(Felt::new(thread_rng().gen_range(0..M)))
+        res.push(Felt::new(rng().random_range(0..M)))
     }
     res
 }

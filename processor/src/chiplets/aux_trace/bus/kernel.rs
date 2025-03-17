@@ -1,8 +1,8 @@
 use core::fmt::{Display, Formatter, Result as FmtResult};
 
 use miden_air::{
-    trace::{chiplets::kernel_rom::KERNEL_PROC_LABEL, main_trace::MainTrace},
     RowIndex,
+    trace::{chiplets::kernel_rom::KERNEL_PROC_LABEL, main_trace::MainTrace},
 };
 use vm_core::{Felt, FieldElement, ONE};
 

@@ -2,7 +2,7 @@ use std::{path::PathBuf, time::Instant};
 
 use assembly::diagnostics::{IntoDiagnostic, Report, WrapErr};
 use clap::Parser;
-use miden_vm::{internal::InputFile, ProvingOptions};
+use miden_vm::{ProvingOptions, internal::InputFile};
 use processor::{DefaultHost, ExecutionOptions, ExecutionOptionsError, Program};
 use stdlib::StdLibrary;
 use tracing::instrument;

@@ -1,4 +1,4 @@
-use vm_core::{ExtensionOf, FieldElement, StarkField, ONE, ZERO};
+use vm_core::{ExtensionOf, FieldElement, ONE, StarkField, ZERO};
 
 use super::{super::QuadFelt, ExecutionError, Felt, Operation, Process};
 
@@ -250,7 +250,7 @@ mod tests {
     use super::{
         ExtensionOf, Felt, FieldElement, Operation, Process, QuadFelt, StarkField, TWO_INV,
     };
-    use crate::{operations::fri_ops::EIGHT, DefaultHost};
+    use crate::{DefaultHost, operations::fri_ops::EIGHT};
 
     #[test]
     fn fold4() {

@@ -2,16 +2,16 @@ use alloc::vec::Vec;
 
 use miden_air::ProcessorAir;
 use test_utils::{
+    Felt, MerkleTreeVC, VerifierError,
     crypto::{BatchMerkleProof, PartialMerkleTree, Rpo256, RpoDigest},
     group_slice_elements,
     math::{FieldElement, QuadExtension, StarkField},
-    Felt, MerkleTreeVC, VerifierError,
 };
 use winter_air::{
-    proof::{Proof, Queries, Table, TraceOodFrame},
     Air,
+    proof::{Proof, Queries, Table, TraceOodFrame},
 };
-use winter_fri::{folding::fold_positions, VerifierChannel as FriVerifierChannel};
+use winter_fri::{VerifierChannel as FriVerifierChannel, folding::fold_positions};
 
 pub type QuadExt = QuadExtension<Felt>;
 
@@ -56,7 +56,6 @@ impl VerifierChannel {
             fri_proof,
             pow_nonce,
             num_unique_queries,
-            gkr_proof: _,
         } = proof;
 
         // make AIR and proof base fields are the same

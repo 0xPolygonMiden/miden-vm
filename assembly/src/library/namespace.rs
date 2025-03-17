@@ -5,8 +5,8 @@ use core::{
 };
 
 use crate::{
-    ast::Ident, diagnostics::Diagnostic, ByteReader, ByteWriter, Deserializable,
-    DeserializationError, LibraryPath, Serializable, Span,
+    ByteReader, ByteWriter, Deserializable, DeserializationError, LibraryPath, Serializable, Span,
+    ast::Ident, diagnostics::Diagnostic,
 };
 
 // LIBRARY NAMESPACE
@@ -21,12 +21,12 @@ pub enum LibraryNamespaceError {
     #[error("invalid library namespace name: too many characters")]
     #[diagnostic()]
     Length,
-    #[error("invalid character in library namespace: expected lowercase ascii-alphanumeric character or '_'")]
+    #[error(
+        "invalid character in library namespace: expected lowercase ascii-alphanumeric character or '_'"
+    )]
     #[diagnostic()]
     InvalidChars,
-    #[error(
-        "invalid library namespace name: must start with lowercase ascii-alphabetic character"
-    )]
+    #[error("invalid library namespace name: must start with lowercase ascii-alphabetic character")]
     #[diagnostic()]
     InvalidStart,
 }
@@ -134,14 +134,14 @@ impl LibraryNamespace {
             Self::Kernel => Self::KERNEL_PATH,
             Self::Exec => Self::EXEC_PATH,
             Self::Anon => Self::ANON_PATH,
-            Self::User(ref path) => path,
+            Self::User(path) => path,
         }
     }
 
     /// Get an [`Arc<str>`] representing this namespace.
     pub fn as_refcounted_str(&self) -> Arc<str> {
         match self {
-            Self::User(ref path) => path.clone(),
+            Self::User(path) => path.clone(),
             other => Arc::from(other.as_str().to_string().into_boxed_str()),
         }
     }

@@ -1,21 +1,21 @@
 use miden_air::{
+    RowIndex,
     trace::chiplets::{
+        MEMORY_CLK_COL_IDX, MEMORY_CTX_COL_IDX, MEMORY_IDX0_COL_IDX, MEMORY_IDX1_COL_IDX,
+        MEMORY_IS_READ_COL_IDX, MEMORY_IS_WORD_ACCESS_COL_IDX, MEMORY_V_COL_RANGE,
+        MEMORY_WORD_COL_IDX,
         memory::{
             MEMORY_ACCESS_ELEMENT, MEMORY_ACCESS_WORD, MEMORY_READ, MEMORY_READ_ELEMENT_LABEL,
             MEMORY_READ_WORD_LABEL, MEMORY_WRITE, MEMORY_WRITE_ELEMENT_LABEL,
             MEMORY_WRITE_WORD_LABEL,
         },
-        MEMORY_CLK_COL_IDX, MEMORY_CTX_COL_IDX, MEMORY_IDX0_COL_IDX, MEMORY_IDX1_COL_IDX,
-        MEMORY_IS_READ_COL_IDX, MEMORY_IS_WORD_ACCESS_COL_IDX, MEMORY_V_COL_RANGE,
-        MEMORY_WORD_COL_IDX,
     },
-    RowIndex,
 };
 use vm_core::WORD_SIZE;
 
 use super::{
-    build_trace_from_ops, rand_array, ExecutionTrace, Felt, FieldElement, Operation, Trace, Word,
-    AUX_TRACE_RAND_ELEMENTS, CHIPLETS_AUX_TRACE_OFFSET, NUM_RAND_ROWS, ONE, ZERO,
+    AUX_TRACE_RAND_ELEMENTS, CHIPLETS_AUX_TRACE_OFFSET, ExecutionTrace, Felt, FieldElement,
+    NUM_RAND_ROWS, ONE, Operation, Trace, Word, ZERO, build_trace_from_ops, rand_array,
 };
 
 /// Tests the generation of the `b_chip` bus column when only memory lookups are included. It

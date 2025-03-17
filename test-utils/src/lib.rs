@@ -13,8 +13,8 @@ use alloc::{
     vec::Vec,
 };
 
-pub use assembly::{diagnostics::Report, LibraryPath, SourceFile, SourceManager};
 use assembly::{KernelLibrary, Library};
+pub use assembly::{LibraryPath, SourceFile, SourceManager, diagnostics::Report};
 pub use pretty_assertions::{assert_eq, assert_ne, assert_str_eq};
 use processor::Program;
 pub use processor::{
@@ -24,21 +24,21 @@ pub use processor::{
 #[cfg(not(target_family = "wasm"))]
 use proptest::prelude::{Arbitrary, Strategy};
 use prover::utils::range;
-pub use prover::{prove, MemAdviceProvider, MerkleTreeVC, ProvingOptions};
+pub use prover::{MemAdviceProvider, MerkleTreeVC, ProvingOptions, prove};
 pub use test_case::test_case;
-pub use verifier::{verify, AcceptableOptions, VerifierError};
-use vm_core::{chiplets::hasher::apply_permutation, ProgramInfo};
+pub use verifier::{AcceptableOptions, VerifierError, verify};
 pub use vm_core::{
-    chiplets::hasher::{hash_elements, STATE_WIDTH},
-    stack::MIN_STACK_DEPTH,
-    utils::{collections, group_slice_elements, IntoBytes, ToElements},
-    Felt, FieldElement, StackInputs, StackOutputs, StarkField, Word, EMPTY_WORD, ONE, WORD_SIZE,
+    EMPTY_WORD, Felt, FieldElement, ONE, StackInputs, StackOutputs, StarkField, WORD_SIZE, Word,
     ZERO,
+    chiplets::hasher::{STATE_WIDTH, hash_elements},
+    stack::MIN_STACK_DEPTH,
+    utils::{IntoBytes, ToElements, collections, group_slice_elements},
 };
+use vm_core::{ProgramInfo, chiplets::hasher::apply_permutation};
 
 pub mod math {
     pub use winter_prover::math::{
-        fft, fields::QuadExtension, polynom, ExtensionOf, FieldElement, StarkField, ToElements,
+        ExtensionOf, FieldElement, StarkField, ToElements, fft, fields::QuadExtension, polynom,
     };
 }
 
@@ -289,7 +289,7 @@ impl Test {
     /// # Errors
     /// Returns an error if compilation of the program source or the kernel fails.
     pub fn compile(&self) -> Result<(Program, Option<KernelLibrary>), Report> {
-        use assembly::{ast::ModuleKind, Assembler, CompileOptions};
+        use assembly::{Assembler, CompileOptions, ast::ModuleKind};
 
         let (assembler, kernel_lib) = if let Some(kernel) = self.kernel_source.clone() {
             let kernel_lib =

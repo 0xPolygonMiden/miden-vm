@@ -1,10 +1,10 @@
 use core::ops::RangeBounds;
 
 use miette::miette;
-use vm_core::{debuginfo::Spanned, mast::MastNodeId, Decorator, ONE, WORD_SIZE, ZERO};
+use vm_core::{Decorator, ONE, WORD_SIZE, ZERO, debuginfo::Spanned, mast::MastNodeId};
 
-use super::{ast::InvokeKind, Assembler, BasicBlockBuilder, Felt, Operation, ProcedureContext};
-use crate::{ast::Instruction, utils::bound_into_included_u64, AssemblyError, Span};
+use super::{Assembler, BasicBlockBuilder, Felt, Operation, ProcedureContext, ast::InvokeKind};
+use crate::{AssemblyError, Span, ast::Instruction, utils::bound_into_included_u64};
 
 mod adv_ops;
 mod crypto_ops;
@@ -398,7 +398,7 @@ impl Assembler {
             Instruction::HornerExt => block_builder.push_op(HornerExt),
 
             // ----- exec/call instructions -------------------------------------------------------
-            Instruction::Exec(ref callee) => {
+            Instruction::Exec(callee) => {
                 return self
                     .invoke(
                         InvokeKind::Exec,
@@ -408,7 +408,7 @@ impl Assembler {
                     )
                     .map(Into::into);
             },
-            Instruction::Call(ref callee) => {
+            Instruction::Call(callee) => {
                 return self
                     .invoke(
                         InvokeKind::Call,
@@ -418,7 +418,7 @@ impl Assembler {
                     )
                     .map(Into::into);
             },
-            Instruction::SysCall(ref callee) => {
+            Instruction::SysCall(callee) => {
                 return self
                     .invoke(
                         InvokeKind::SysCall,
@@ -430,7 +430,7 @@ impl Assembler {
             },
             Instruction::DynExec => return self.dynexec(block_builder.mast_forest_builder_mut()),
             Instruction::DynCall => return self.dyncall(block_builder.mast_forest_builder_mut()),
-            Instruction::ProcRef(ref callee) => self.procref(callee, proc_ctx, block_builder)?,
+            Instruction::ProcRef(callee) => self.procref(callee, proc_ctx, block_builder)?,
 
             // ----- debug decorators -------------------------------------------------------------
             Instruction::Breakpoint => {

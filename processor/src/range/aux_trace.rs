@@ -1,14 +1,14 @@
 use alloc::{collections::BTreeMap, vec::Vec};
 
 use miden_air::{
+    RowIndex,
     trace::{
         main_trace::MainTrace,
         range::{M_COL_IDX, V_COL_IDX},
     },
-    RowIndex,
 };
 
-use super::{uninit_vector, Felt, FieldElement, NUM_RAND_ROWS};
+use super::{Felt, FieldElement, NUM_RAND_ROWS, uninit_vector};
 
 // AUXILIARY TRACE BUILDER
 // ================================================================================================

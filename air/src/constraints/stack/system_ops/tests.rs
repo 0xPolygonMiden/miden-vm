@@ -1,11 +1,11 @@
 use proptest::prelude::*;
-use vm_core::{Felt, Operation, ONE, ZERO};
+use vm_core::{Felt, ONE, Operation, ZERO};
 
 use super::{
     super::{CLK_COL_IDX, FMP_COL_IDX, STACK_TRACE_OFFSET},
-    enforce_constraints, EvaluationFrame, NUM_CONSTRAINTS,
+    EvaluationFrame, NUM_CONSTRAINTS, enforce_constraints,
 };
-use crate::stack::op_flags::{generate_evaluation_frame, OpFlags};
+use crate::stack::op_flags::{OpFlags, generate_evaluation_frame};
 
 // RANDOMIZED TESTS
 // ================================================================================================

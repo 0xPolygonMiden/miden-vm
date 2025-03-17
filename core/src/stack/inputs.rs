@@ -2,7 +2,7 @@ use alloc::vec::Vec;
 use core::{ops::Deref, slice};
 
 use super::{
-    super::ZERO, get_num_stack_values, ByteWriter, Felt, InputError, Serializable, MIN_STACK_DEPTH,
+    super::ZERO, ByteWriter, Felt, InputError, MIN_STACK_DEPTH, Serializable, get_num_stack_values,
 };
 use crate::utils::{ByteReader, Deserializable, DeserializationError};
 

@@ -1,8 +1,8 @@
 use super::Instruction;
 use crate::{
+    DisplayHex, Span,
     ast::{Immediate, InvocationTarget},
     prettier::{Document, PrettyPrint},
-    DisplayHex, Span,
 };
 
 impl PrettyPrint for Instruction {
@@ -348,8 +348,8 @@ fn inst_with_felt_imm(name: &'static str, imm: &Immediate<crate::Felt>) -> Docum
     use crate::prettier::*;
 
     let value = match imm {
-        Immediate::Value(ref value) => display(*value),
-        Immediate::Constant(ref name) => text(name),
+        Immediate::Value(value) => display(*value),
+        Immediate::Constant(name) => text(name),
     };
 
     flatten(const_text(name) + const_text(".") + value)
@@ -402,7 +402,7 @@ fn inst_with_pretty_params<P: PrettyPrint>(inst: &'static str, params: &[P]) -> 
 mod tests {
     use vm_core::crypto::hash::Rpo256;
 
-    use crate::{ast::*, Felt, Span};
+    use crate::{Felt, Span, ast::*};
 
     #[test]
     fn test_instruction_display() {

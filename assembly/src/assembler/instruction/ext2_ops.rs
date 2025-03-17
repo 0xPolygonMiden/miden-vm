@@ -1,4 +1,4 @@
-use vm_core::{sys_events::SystemEvent::Ext2Inv, Operation::*};
+use vm_core::{Operation::*, sys_events::SystemEvent::Ext2Inv};
 
 use super::BasicBlockBuilder;
 use crate::AssemblyError;

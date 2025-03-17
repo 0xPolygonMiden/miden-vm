@@ -1,14 +1,14 @@
 use alloc::{collections::BTreeMap, vec::Vec};
 
 use miden_crypto::hash::{
-    blake::{Blake3Digest, Blake3_256},
-    rpo::RpoDigest,
     Digest,
+    blake::{Blake3_256, Blake3Digest},
+    rpo::RpoDigest,
 };
 
 use crate::{
-    mast::{DecoratorId, MastForest, MastForestError, MastNode, MastNodeId},
     Operation,
+    mast::{DecoratorId, MastForest, MastForestError, MastNode, MastNodeId},
 };
 
 // MAST NODE EQUALITY

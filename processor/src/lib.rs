@@ -14,20 +14,20 @@ use miden_air::trace::{
 };
 pub use miden_air::{ExecutionOptions, ExecutionOptionsError, RowIndex};
 pub use vm_core::{
+    AssemblyOp, EMPTY_WORD, Felt, Kernel, ONE, Operation, Program, ProgramInfo, QuadExtension,
+    StackInputs, StackOutputs, Word, ZERO,
     chiplets::hasher::Digest,
     crypto::merkle::SMT_DEPTH,
     errors::InputError,
     mast::{MastForest, MastNode, MastNodeId},
     sys_events::SystemEvent,
-    utils::{collections::KvMap, DeserializationError},
-    AssemblyOp, Felt, Kernel, Operation, Program, ProgramInfo, QuadExtension, StackInputs,
-    StackOutputs, Word, EMPTY_WORD, ONE, ZERO,
+    utils::{DeserializationError, collections::KvMap},
 };
 use vm_core::{
-    mast::{
-        BasicBlockNode, CallNode, DynNode, JoinNode, LoopNode, OpBatch, SplitNode, OP_GROUP_SIZE,
-    },
     Decorator, DecoratorIterator, FieldElement,
+    mast::{
+        BasicBlockNode, CallNode, DynNode, JoinNode, LoopNode, OP_GROUP_SIZE, OpBatch, SplitNode,
+    },
 };
 pub use winter_prover::matrix::ColMatrix;
 
@@ -48,8 +48,8 @@ use range::RangeChecker;
 
 mod host;
 pub use host::{
-    advice::{AdviceInputs, AdviceProvider, AdviceSource, MemAdviceProvider, RecAdviceProvider},
     DefaultHost, Host, MastForestStore, MemMastForestStore,
+    advice::{AdviceInputs, AdviceProvider, AdviceSource, MemAdviceProvider, RecAdviceProvider},
 };
 
 mod chiplets;
@@ -57,7 +57,7 @@ use chiplets::Chiplets;
 
 mod trace;
 use trace::TraceFragment;
-pub use trace::{ChipletsLengths, ExecutionTrace, TraceLenSummary, NUM_RAND_ROWS};
+pub use trace::{ChipletsLengths, ExecutionTrace, NUM_RAND_ROWS, TraceLenSummary};
 
 mod errors;
 pub use errors::{ExecutionError, Ext2InttError};

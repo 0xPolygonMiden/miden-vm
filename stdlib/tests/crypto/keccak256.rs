@@ -1,7 +1,7 @@
 use sha3::{Digest, Keccak256};
 use test_utils::{
-    rand::{rand_array, rand_value},
     Felt, IntoBytes, MIN_STACK_DEPTH,
+    rand::{rand_array, rand_value},
 };
 
 /// Equivalent to https://github.com/itzmeanjan/merklize-sha/blob/1d35aae/include/test_bit_interleaving.hpp#L12-L34

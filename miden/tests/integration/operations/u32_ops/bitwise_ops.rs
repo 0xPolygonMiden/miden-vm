@@ -1,7 +1,7 @@
-use processor::{math::Felt, ExecutionError};
+use processor::{ExecutionError, math::Felt};
 use test_utils::{
-    build_op_test, expect_exec_error_matches, proptest::prelude::*, rand::rand_value, U32_BOUND,
-    ZERO,
+    U32_BOUND, ZERO, build_op_test, expect_exec_error_matches, proptest::prelude::*,
+    rand::rand_value,
 };
 
 use super::test_input_out_of_bounds;

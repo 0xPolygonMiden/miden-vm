@@ -1,8 +1,8 @@
 use proptest::prelude::*;
-use vm_core::{Felt, Operation, ONE, ZERO};
+use vm_core::{Felt, ONE, Operation, ZERO};
 
-use super::{super::STACK_TRACE_OFFSET, enforce_constraints, EvaluationFrame, NUM_CONSTRAINTS};
-use crate::stack::op_flags::{generate_evaluation_frame, OpFlags};
+use super::{super::STACK_TRACE_OFFSET, EvaluationFrame, NUM_CONSTRAINTS, enforce_constraints};
+use crate::stack::op_flags::{OpFlags, generate_evaluation_frame};
 
 // RANDOMIZED TESTS
 // ================================================================================================

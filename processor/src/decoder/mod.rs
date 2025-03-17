@@ -1,6 +1,7 @@
 use alloc::vec::Vec;
 
 use miden_air::{
+    RowIndex,
     trace::{
         chiplets::hasher::DIGEST_LEN,
         decoder::{
@@ -8,18 +9,17 @@ use miden_air::{
             OP_BATCH_1_GROUPS, OP_BATCH_2_GROUPS, OP_BATCH_4_GROUPS, OP_BATCH_8_GROUPS,
         },
     },
-    RowIndex,
 };
 use vm_core::{
+    AssemblyOp,
     mast::{
-        BasicBlockNode, CallNode, DynNode, JoinNode, LoopNode, MastForest, SplitNode, OP_BATCH_SIZE,
+        BasicBlockNode, CallNode, DynNode, JoinNode, LoopNode, MastForest, OP_BATCH_SIZE, SplitNode,
     },
     stack::MIN_STACK_DEPTH,
-    AssemblyOp,
 };
 
 use super::{
-    ExecutionError, Felt, OpBatch, Operation, Process, Word, EMPTY_WORD, MIN_TRACE_LEN, ONE, ZERO,
+    EMPTY_WORD, ExecutionError, Felt, MIN_TRACE_LEN, ONE, OpBatch, Operation, Process, Word, ZERO,
 };
 use crate::Host;
 

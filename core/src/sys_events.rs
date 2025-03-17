@@ -165,14 +165,14 @@ pub enum SystemEvent {
     ///   Operand stack: [output_size, input_size, input_start_ptr, ...]
     ///   Advice stack: [coefficients...]
     ///
-    /// - `input_size` is the number of evaluations (each evaluation is 2 base field elements).
-    ///   Must be a power of 2 and greater 1.
+    /// - `input_size` is the number of evaluations (each evaluation is 2 base field elements). Must
+    ///   be a power of 2 and greater 1.
     /// - `output_size` is the number of coefficients in the interpolated polynomial (each
     ///   coefficient is 2 base field elements). Must be smaller than or equal to the number of
     ///   input evaluations.
     /// - `input_start_ptr` is the memory address of the first evaluation.
-    /// - `coefficients` are the coefficients of the interpolated polynomial such that lowest
-    ///   degree coefficients are located at the top of the advice stack.
+    /// - `coefficients` are the coefficients of the interpolated polynomial such that lowest degree
+    ///   coefficients are located at the top of the advice stack.
     Ext2Intt,
 
     /// Pushes onto the advice stack the value associated with the specified key in a Sparse
