@@ -39,6 +39,19 @@ const PROBABILISTIC_PRODUCT_SOURCE: &str = "
     end
     ";
 
+const FALCON_RECOVER_PUB_KEY_SOURCE: &str = "
+    use.std::crypto::dsa::rpo_falcon512
+
+    begin
+        #=> [PK, ...]
+        push.0
+        #=> [h_ptr, PK, ...]
+
+        exec.rpo_falcon512::falcon_recover_pub_key
+        #=> [...]
+    end
+    ";
+
 #[test]
 fn test_falcon512_norm_sq() {
     let source = "
@@ -142,6 +155,26 @@ fn test_falcon512_probabilistic_product() {
     let test = build_test!(PROBABILISTIC_PRODUCT_SOURCE, &operand_stack, &advice_stack);
     let expected_stack = &[];
     test.expect_stack(expected_stack);
+}
+
+#[test]
+fn test_falcon512_recover_pub_key() {
+    let h: Polynomial<Felt> = Polynomial::new(random_coefficients());
+    let s2: Polynomial<Felt> = Polynomial::new(random_coefficients());
+    let (pub_key, advice_stack): (Vec<u64>, Vec<u64>) =
+        generate_data_probabilistic_product_test(h, s2, false);
+
+    // println!("pub_key: {:?}", pub_key);
+    let empty_operand_stack: Vec<u64> = vec![];
+
+    let test = build_test!(FALCON_RECOVER_PUB_KEY_SOURCE, &empty_operand_stack, &advice_stack);
+
+    let stack_state = test.get_last_stack_state();
+    // println!("stack: {:?}", stack_state);
+
+    let expected_stack: Vec<Felt> = pub_key.iter().rev().map(|&val| Felt::new(val)).collect();
+
+    assert_eq!(&expected_stack, &stack_state[..expected_stack.len()]);
 }
 
 #[test]
