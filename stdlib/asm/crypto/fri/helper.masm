@@ -60,20 +60,21 @@ export.generate_fri_parameters
     dup
     is_odd
     if.true
-        push.32
+        push.512
         swap
-        sub.5
+        sub.9
         div.2
     else
-        push.64
+        push.1024
         swap
-        sub.6
+        sub.10
         div.2
     end
     # => [num_fri_layers, remainder_size, lde_size, lde_size, log2(lde_size), domain_gen, 0, ...] (12 cycles)
 
     # Save `[num_fri_layers, remainder_size, lde_size, lde_size]` in memory
     exec.constants::tmp6 mem_storew
+    swap div.8 swap
     movdn.6
     dropw
     drop
@@ -155,14 +156,12 @@ export.load_fri_layer_commitments
     #=> [...]
 end
 
-#! Load the remainder polynomial from the advice provider and check that its hash corresponds
-#! to its commitment and reseed with the latter.
-#! Load the remainder code word, i.e. the NTT of the remainder polynomial, and use its hash, together,
-#! with the hash of the remainder polynomial in order to generate the Fiat-Shamir challenge `tau` for
-#! the `verify_remainder_xx` procedure.
+#! Load and save the remainder polynomial from the advice provider and check that its hash
+#! corresponds to its commitment and reseed with the latter.
 #!
 #! Input: [...]
 #! Output: [...]
+#!
 #! Cycles:
 #!  1- Remainder of size 32: 1633
 #!  2- Remainder of size 64: 3109
@@ -192,125 +191,55 @@ export.load_and_verify_remainder
     #=> [ptr_remainder, remainder_size, y, y]
 
     dup.1
-    push.32
+    push.512
+
     eq
     if.true
-        # Remainder length equal to 32
+        # Remainder polynomial degree less than 64
         push.0.0.0.0
         push.0.0.0.0
         push.0.0.0.0
         # => [Y, Y, 0, 0, 0, 0 ptr_remainder, remainder_size, y, y]
 
         # adv_load remainder polynomial
-        # TODO: This is a workaround since the FRI verifier expects the memory layout to be
-        # [query_ptr ... layer_ptr ... rem_ptr ...] which leaves only one option for laying out
-        # the polynomial coefficients i.e. starting at remainder_ptr + remainder_codeword_length/2.
-        # On the other hand, we need to check that the hash of the polynomial coefficients agrees with
-        # the commitment already received by the prover. Thus the need for hashing the polynomial
-        # coefficients first.
-        adv_loadw
-        dup.12
-        add.64
-        mem_storew
-        swapw
-        adv_loadw
-        dup.12
-        add.68
-        mem_storew
-        hperm
-        # => [Y, Remainder_poly_com, Y, ptr_remainder, remainder_size, y, y]
-
-        # Compare Remainder_poly_com with the read commitment
-        exec.constants::tmp7 mem_loadw
-        movup.4
-        assert_eq
-        movup.3
-        assert_eq
-        movup.2
-        assert_eq
-        assert_eq
-        # => [Y, ptr_remainder, remainder_size, y, y]
-        push.0.0.0.0
-        push.0.0.0.0
-        repeat.8
-            adv_pipe hperm
-        end
-    else
-        # Remainder length equal to 64
-        push.0.0.0.0
-        push.0.0.0.0
-        push.0.0.0.0
-        # => [Y, Y, 0, 0, 0, 0 ptr_remainder, remainder_size, y, y]
-
-        # adv_load remainder polynomial
-        # TODO: This is a workaround since the FRI verifier expects the memory layout to be
-        # [query_ptr ... layer_ptr ... rem_ptr ...] which leaves only one option for laying out
-        # the polynomial coefficients i.e. starting at remainder_ptr + remainder_codeword_length/2.
-        # On the other hand, we need to check that the hash of the polynomial coefficients agrees with
-        # the commitment already received by the prover. Thus the need for hashing the polynomial
-        # coefficients first.
-        adv_loadw
-        dup.12
-        add.128
-        mem_storew
-        swapw
-        adv_loadw
-        dup.12
-        add.132
-        mem_storew
-        hperm
-
-        adv_loadw
-        dup.12
-        add.136
-        mem_storew
-        swapw
-        adv_loadw
-        dup.12
-        add.140
-        mem_storew
-        hperm
-        # => [Y, Remainder_poly_com, Y, ptr_remainder, remainder_size, y, y]
-
-        # Compare Remainder_poly_com with the read commitment
-        exec.constants::tmp7 mem_loadw
-        movup.4
-        assert_eq
-        movup.3
-        assert_eq
-        movup.2
-        assert_eq
-        assert_eq
-        # => [Y, ptr_remainder, remainder_size, y, y]
-        push.0.0.0.0
-        push.0.0.0.0
         repeat.16
             adv_pipe hperm
         end
-    end
-    # => [Y, R, Y, Y] where R = [y, y, tau1, tau0]
 
-    dropw
-    swapw.2
-    dropw
-    drop
-    drop
-    #=> [Y, tau1, tau0] where tau is the challenge of ext2fri::verify_remainder_xx
-
-    # Prepare for remainder verification procedure
-    exec.constants::tmp8 mem_loadw
-    movup.2 drop
-    movup.2 drop
-    # => [ptr_remainder, remainder_size, tau1, tau0]
-
-    # Call the correct remainder verification procedure
-    movdn.3
-    push.32
-    eq
-    if.true
-        exec.ext2fri::verify_remainder_32
+        # Compare Remainder_poly_com with the read commitment
+        exec.constants::tmp7 mem_loadw
+        movup.4
+        assert_eq
+        movup.3
+        assert_eq
+        movup.2
+        assert_eq
+        assert_eq
+        
     else
-        exec.ext2fri::verify_remainder_64
+        # Remainder polynomial degree less than 128
+        push.0.0.0.0
+        push.0.0.0.0
+        push.0.0.0.0
+        # => [Y, Y, 0, 0, 0, 0 ptr_remainder, remainder_size, y, y]
+
+        # adv_load remainder polynomial
+        repeat.32
+            adv_pipe hperm
+        end
+        # => [Y, Remainder_poly_com, Y, ptr_remainder, remainder_size, y, y]
+
+        # Compare Remainder_poly_com with the read commitment
+        exec.constants::tmp7 mem_loadw
+        movup.4
+        assert_eq
+        movup.3
+        assert_eq
+        movup.2
+        assert_eq
+        assert_eq
+        
     end
+    dropw dropw
     #=> [...]
 end
