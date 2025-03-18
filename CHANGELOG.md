@@ -17,6 +17,7 @@
 - Fix `Horner{Base, Ext}` bus requests to memory chiplet (#1689)
 - Fix docs on the layout of the auxiliary segment trace (#1694).
 - [BREAKING] Updated Winterfell dependency to v0.12 (#1658).
+- Update recursive verifier to use `HORNERBASE` (#1665).
 
 
 ## 0.12.0 (2025-01-22)

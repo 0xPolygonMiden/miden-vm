@@ -78,7 +78,7 @@ end
 #!
 #! Input: [log(trace_length), num_queries, blowup, grinding, ...]
 #! Output: [C]
-#! Cycles: 175
+#! Cycles: 228
 export.init_seed
 
     # Save the parameters in memory for later use
@@ -90,13 +90,13 @@ export.init_seed
     # Since memory beyond 3 * 2^30 does not have any special meaning, we can use the memory region
     # starting from address 2^32 - 1 in decreasing order to hold constants that are used throughout
     # the `verify` procedure.
-    #
-    # Cycles: 22
     padw
     exec.constants::zero_word mem_storew
     exec.constants::c_ptr mem_storew
     exec.constants::r1_ptr mem_storew
     exec.constants::r2_ptr mem_storew
+    push.6 swap.4 drop exec.constants::zero_zero_zero_six_word mem_storew
+    push.7 swap.4 drop exec.constants::zero_zero_zero_seven_word mem_storew
     dropw
     #=> [log(trace_length), num_queries, log(blowup), grinding]
 
@@ -104,7 +104,6 @@ export.init_seed
     # Create the initial seed for randomness generation from proof context
 
     ## Compute trace_length
-    ## Cycles: 20
     dup
     pow2
     u32split assertz
@@ -114,7 +113,6 @@ export.init_seed
     dup.0 exec.constants::trace_length_ptr mem_store
 
     ## Assert blowup is equal to 8
-    ##  Cycles: 6
     swap
     dup.3
     dup
@@ -181,13 +179,20 @@ export.init_seed
     push.0x01 # lower half of the modulus
     push.0xffffffff # upper half of the modulus
     ## field extension and FRI parameters
-    ## field extension degree || FRI folding factor || FRI remainder polynomial max degree
-    push.0x020407
+    ## field extension degree || FRI folding factor || FRI remainder polynomial max degree || blowup factor
+    push.0x02040708
+    # => [proof_options, modulus1, modulus0, trace_info, trace_length, num_queries, blowup, grinding, ...]
 
     # Hash proof context
-    # Cycles: 15
     swapw
-    movdn.6
+    movup.2 drop
+    movdn.5
+    # => [num_queries, grinding, proof_options, modulus1, modulus0, trace_length, trace_info, ...]
+
+    exec.constants::get_num_constraints
+    movdn.3
+    # => [num_queries, grinding, proof_options, NUM_CONSTRAINTS, modulus1, modulus0, trace_length, trace_info, ...]
+
     push.4.0.0.0
     movdnw.2
     # => [B, A, 0, 0, 0, 4, ..]
@@ -457,35 +462,29 @@ export.generate_aux_randomness
     #=> [...]
 end
 
-#! Draw constraint composition random coefficients and save them into memory in the region from
-#! `compos_coef_ptr` `compos_coef_ptr + NUM_COEFFS - 1` as `(r1_1, r1_0, r0_1, r0_0)`
+#! Draw constraint composition random coefficient and save  it at `compos_coef_ptr`.
 #!
-#! Input: [compos_coef_ptr, ...]
+#! Input: [...]
 #! Output: [...]
-#! Cycles: 1305
+#! Cycles: 12
 export.generate_constraint_composition_coefficients
-
-    exec.constants::num_constraint_composition_coef_multiplied_by_two_and_rounded_up_to_4
-    swap
-    exec.generate_random_coefficients
+    padw exec.constants::r1_ptr mem_loadw
+    # => [y, y, alpha1, alpha0, compos_coef_ptr, ...]
+    exec.constants::composition_coef_ptr
+    mem_storew dropw
     #=> [...]
 end
 
-#! Draw deep composition polynomial random coefficients and save them into memory in the region from
-#! `deep_rand_coef_ptr` to `deep_rand_coef_ptr + 89 - 1` as `(0, 0, r0_1, r0_0)`
-#! The number of coefficients is equal to:
-#! 1. (71 + 7) * 2 Felt for the main and auxiliary traces.
-#! 2. 8 * 2 Felt for constraint polynomial.
-#! Total: 86 tuples of type (Felt, Felt)
+#! Draw deep composition polynomial random coefficient and save it at `deep_rand_coef_ptr`.
 #!
-#! Input: [deep_rand_coef_ptr, ...]
+#! Input: [...]
 #! Output: [...]
-#! Cycles: 1624
+#! Cycles: 14
 export.generate_deep_composition_random_coefficients
-    # note that 88 is the next number after 86 divisible by 4
-    exec.constants::num_deep_composition_coef_rounded_up_to_4
-    swap
-    exec.generate_random_coefficients_pad
+    exec.constants::deep_rand_coef_ptr
+    padw exec.constants::r1_ptr mem_loadw
+    # => [y, y, alpha1, alpha0, deep_rand_coef_ptr, ...]
+    movup.4 mem_storew dropw
     #=> [...]
 end
 
