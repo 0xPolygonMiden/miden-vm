@@ -98,7 +98,7 @@ pub fn fri_prove_verify_fold4_ext2(trace_length_e: usize) -> Result<FriResult, V
 
     let remainder_poly: Vec<QuadExt> =
         proof.parse_remainder().expect("should return remainder polynomial");
-    let remainder: Vec<u64> = QuadExt::slice_as_base_elements(&&remainder_poly[..])
+    let remainder: Vec<u64> = QuadExt::slice_as_base_elements(&remainder_poly[..])
         .to_owned()
         .iter()
         .map(|a| a.as_int())
@@ -288,7 +288,7 @@ impl FriVerifierFold4Ext2 {
         for &(final_pos, final_eval) in final_pos_eval.iter() {
             let comp_eval = eval_horner_rev(
                 &remainder_poly,
-                offset * d_generator.exp_vartime((final_pos as u64).into()),
+                offset * d_generator.exp_vartime(final_pos as u64),
             );
             if comp_eval != final_eval {
                 return Err(VerifierError::InvalidRemainderFolding);

@@ -2933,8 +2933,8 @@ dependencies = [
 
 [[package]]
 name = "winter-air"
-version = "0.12.0"
-source = "git+https://github.com/Al-Kindi-0/winterfell/?branch=al-recursive-verifier-remainder-opt#c3dda426b52c0ac852f53df1d4bc0a4042782893"
+version = "0.12.1"
+source = "git+https://github.com/Al-Kindi-0/winterfell/?branch=al-reverse-remainder-commitment#2fa1e44a88f4c7c7b474717fdab49c3adb0be054"
 dependencies = [
  "libm",
  "winter-crypto",
@@ -2946,7 +2946,7 @@ dependencies = [
 [[package]]
 name = "winter-crypto"
 version = "0.12.0"
-source = "git+https://github.com/Al-Kindi-0/winterfell/?branch=al-recursive-verifier-remainder-opt#c3dda426b52c0ac852f53df1d4bc0a4042782893"
+source = "git+https://github.com/Al-Kindi-0/winterfell/?branch=al-reverse-remainder-commitment#2fa1e44a88f4c7c7b474717fdab49c3adb0be054"
 dependencies = [
  "blake3",
  "sha3",
@@ -2957,7 +2957,7 @@ dependencies = [
 [[package]]
 name = "winter-fri"
 version = "0.12.0"
-source = "git+https://github.com/Al-Kindi-0/winterfell/?branch=al-recursive-verifier-remainder-opt#c3dda426b52c0ac852f53df1d4bc0a4042782893"
+source = "git+https://github.com/Al-Kindi-0/winterfell/?branch=al-reverse-remainder-commitment#2fa1e44a88f4c7c7b474717fdab49c3adb0be054"
 dependencies = [
  "winter-crypto",
  "winter-math",
@@ -2967,7 +2967,7 @@ dependencies = [
 [[package]]
 name = "winter-math"
 version = "0.12.0"
-source = "git+https://github.com/Al-Kindi-0/winterfell/?branch=al-recursive-verifier-remainder-opt#c3dda426b52c0ac852f53df1d4bc0a4042782893"
+source = "git+https://github.com/Al-Kindi-0/winterfell/?branch=al-reverse-remainder-commitment#2fa1e44a88f4c7c7b474717fdab49c3adb0be054"
 dependencies = [
  "winter-utils",
 ]
@@ -2975,7 +2975,7 @@ dependencies = [
 [[package]]
 name = "winter-maybe-async"
 version = "0.12.0"
-source = "git+https://github.com/Al-Kindi-0/winterfell/?branch=al-recursive-verifier-remainder-opt#c3dda426b52c0ac852f53df1d4bc0a4042782893"
+source = "git+https://github.com/Al-Kindi-0/winterfell/?branch=al-reverse-remainder-commitment#2fa1e44a88f4c7c7b474717fdab49c3adb0be054"
 dependencies = [
  "quote",
  "syn",
@@ -2984,7 +2984,7 @@ dependencies = [
 [[package]]
 name = "winter-prover"
 version = "0.12.0"
-source = "git+https://github.com/Al-Kindi-0/winterfell/?branch=al-recursive-verifier-remainder-opt#c3dda426b52c0ac852f53df1d4bc0a4042782893"
+source = "git+https://github.com/Al-Kindi-0/winterfell/?branch=al-reverse-remainder-commitment#2fa1e44a88f4c7c7b474717fdab49c3adb0be054"
 dependencies = [
  "tracing",
  "winter-air",
@@ -2998,7 +2998,7 @@ dependencies = [
 [[package]]
 name = "winter-rand-utils"
 version = "0.12.0"
-source = "git+https://github.com/Al-Kindi-0/winterfell/?branch=al-recursive-verifier-remainder-opt#c3dda426b52c0ac852f53df1d4bc0a4042782893"
+source = "git+https://github.com/Al-Kindi-0/winterfell/?branch=al-reverse-remainder-commitment#2fa1e44a88f4c7c7b474717fdab49c3adb0be054"
 dependencies = [
  "rand 0.8.5",
  "winter-utils",
@@ -3007,7 +3007,7 @@ dependencies = [
 [[package]]
 name = "winter-utils"
 version = "0.12.0"
-source = "git+https://github.com/Al-Kindi-0/winterfell/?branch=al-recursive-verifier-remainder-opt#c3dda426b52c0ac852f53df1d4bc0a4042782893"
+source = "git+https://github.com/Al-Kindi-0/winterfell/?branch=al-reverse-remainder-commitment#2fa1e44a88f4c7c7b474717fdab49c3adb0be054"
 dependencies = [
  "rayon",
 ]
@@ -3015,7 +3015,7 @@ dependencies = [
 [[package]]
 name = "winter-verifier"
 version = "0.12.0"
-source = "git+https://github.com/Al-Kindi-0/winterfell/?branch=al-recursive-verifier-remainder-opt#c3dda426b52c0ac852f53df1d4bc0a4042782893"
+source = "git+https://github.com/Al-Kindi-0/winterfell/?branch=al-reverse-remainder-commitment#2fa1e44a88f4c7c7b474717fdab49c3adb0be054"
 dependencies = [
  "winter-air",
  "winter-crypto",
