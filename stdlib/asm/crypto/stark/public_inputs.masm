@@ -1,4 +1,3 @@
-
 use.std::crypto::stark::constants
 
 
@@ -7,18 +6,15 @@ use.std::crypto::stark::constants
 #! capacity registers of the hash function set to `C` resulting from hashing the proof context.
 #! The output D is the digest of the hashing.
 #!
-#! Input: [public_inputs_ptr, C]
-#! Output: [D]
+#! Input: [C, ...]
+#! Output: [D, ...]
 #! Cycles: 38
 export.load
-
-    # TODO: load the public inputs using public_inputs_ptr
-    drop
-
     # Unhash the public inputs from the advice provider.
-    # The following assumes that the public inputs contain only the input and output states
-    # of the operand stack and both are of length exactly 16.
-    # TODO: generalize to any number of public inputs supported by the VM.
+    # The public inputs are made up of the input operand stack and the output operand stack
+    # both of length 16 field elements.
+    exec.constants::public_inputs_ptr
+    movdn.4
     padw padw
     repeat.4
         adv_loadw
@@ -34,4 +30,5 @@ export.load
     dropw
     swapw
     dropw
+    movup.4 drop
 end

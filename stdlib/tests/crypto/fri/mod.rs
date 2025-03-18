@@ -17,7 +17,7 @@ fn fri_fold4_ext2_remainder64() {
 
         begin
             exec.frie2f4::preprocess
-            exec.frie2f4::verify_128
+            exec.frie2f4::verify
         end
         ";
 
@@ -65,7 +65,7 @@ fn fri_fold4_ext2_remainder128() {
 
         begin
             exec.frie2f4::preprocess
-            exec.frie2f4::verify_128
+            exec.frie2f4::verify
         end
         ";
 

@@ -16,6 +16,11 @@ use winter_fri::{
 
 use super::channel::{MidenFriVerifierChannel, UnBatch};
 
+const MAX_REMAINDER_POLY_DEGREE_LOG: usize = 7;
+const FRI_FOLDING_FACTOR_LOG: usize = 2;
+const BLOWUP_FACTOR_LOG: usize = 3;
+const NUM_FRI_QUERIES: usize = 32;
+
 type AdvMap = Vec<(RpoDigest, Vec<Felt>)>;
 
 pub struct FriResult {
@@ -53,10 +58,10 @@ pub struct FriResult {
 //  a FRI proof inside the Miden VM.
 //  The output is organized as follows:
 pub fn fri_prove_verify_fold4_ext2(trace_length_e: usize) -> Result<FriResult, VerifierError> {
-    let max_remainder_size_e = 7;
-    let folding_factor_e = 2;
+    let max_remainder_size_e = MAX_REMAINDER_POLY_DEGREE_LOG;
+    let folding_factor_e = FRI_FOLDING_FACTOR_LOG;
     let trace_length = 1 << trace_length_e;
-    let lde_blowup = 1 << 3;
+    let lde_blowup = 1 << BLOWUP_FACTOR_LOG;
     let max_remainder_size = 1 << max_remainder_size_e;
     let folding_factor = 1 << folding_factor_e;
     let nonce = 0_u64;
@@ -120,7 +125,7 @@ pub fn build_prover_channel(
     trace_length: usize,
     options: &FriOptions,
 ) -> DefaultProverChannel<QuadExt, MidenHasher, WinterRandomCoin<MidenHasher>> {
-    DefaultProverChannel::new(trace_length * options.blowup_factor(), 32)
+    DefaultProverChannel::new(trace_length * options.blowup_factor(), NUM_FRI_QUERIES)
 }
 
 pub fn build_evaluations(trace_length: usize, lde_blowup: usize) -> Vec<QuadExt> {
@@ -184,8 +189,8 @@ impl FriVerifierFold4Ext2 {
         options: FriOptions,
         max_poly_degree: usize,
     ) -> Result<Self, VerifierError> {
-        assert_eq!(options.blowup_factor(), 8);
-        assert_eq!(options.folding_factor(), 4);
+        assert_eq!(options.blowup_factor(), 1 << BLOWUP_FACTOR_LOG);
+        assert_eq!(options.folding_factor(), 1 << FRI_FOLDING_FACTOR_LOG);
 
         // infer evaluation domain info
         let domain_size = max_poly_degree.next_power_of_two() * options.blowup_factor();
@@ -322,7 +327,7 @@ fn iterate_query_fold_4_quad_ext(
 
     let mut alphas = vec![];
     for depth in 0..number_of_layers {
-        let target_domain_size = domain_size / 4;
+        let target_domain_size = domain_size / (1 << FRI_FOLDING_FACTOR_LOG);
 
         let folded_pos = cur_pos % target_domain_size;
 
@@ -386,9 +391,9 @@ fn iterate_query_fold_4_quad_ext(
         alphas.push(0);
         alphas.push(0);
 
-        *domain_generator = (*domain_generator).exp((4_u32).into());
+        *domain_generator = (*domain_generator).exp(((1 << FRI_FOLDING_FACTOR_LOG) as u32).into());
         cur_pos = folded_pos;
-        domain_size /= 4;
+        domain_size /= 1 << FRI_FOLDING_FACTOR_LOG;
     }
 
     Ok((cur_pos, evaluation, position_evaluation, alphas))

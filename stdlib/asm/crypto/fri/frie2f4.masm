@@ -9,8 +9,14 @@ use.std::crypto::stark::constants
 #! TODO: This pre-processing function should in fact compute d_size and t_depth for each C
 #! starting from the original domain size.
 export.preprocess.16
-    locaddr.12
-    adv_push.1                  #[num_queries, query_ptr, g, ..]
+    adv_push.1
+    # => [num_queries, g, ...]
+    exec.constants::fri_com_ptr
+    # => [layer_ptr, num_queries, g, ...]
+    dup.1 mul.4 sub
+    # => [query_ptr, num_queries, g, ...]
+    dup exec.constants::set_fri_queries_address
+    swap
     sub.1
     push.0.0.0.0
     push.1
@@ -38,7 +44,7 @@ export.preprocess.16
     mul.2
     sub.1
     movdn.4
-    #=> [X, layer_ptr, num_layers, layer_ptr, g]
+    #=> [X, num_layers, layer_ptr, layer_ptr, g]
 
     push.1
     while.true
@@ -52,19 +58,21 @@ export.preprocess.16
         swap.5
         neq.0
     end
-    #=> [X, x, remainder_ptr, layer_ptr, g]
+    #=> [X, x, remainder_poly_address_ptr, layer_ptr, g]
 
     drop
-    #=> [X, remainder_ptr, layer_ptr, g]
+    #=> [X, remainder_poly_address_ptr, layer_ptr, g]
 
     dup.4
     movdn.5
-    #=> [X, remainder_ptr, remainder_ptr, layer_ptr, g]
+    #=> [X, remainder_poly_address_ptr, remainder_poly_address_ptr, layer_ptr, g]
 
     adv_push.1
+    dup mul.2 exec.constants::set_remainder_poly_size
+
     sub.1
     movdn.4
-    #=> [X, remainder_ptr, len_remainder/2, remainder_ptr, layer_ptr, g]
+    #=> [X, len_remainder/2, remainder_poly_address_ptr, remainder_poly_address_ptr, layer_ptr, g]
 
     push.1
     while.true
@@ -78,12 +86,12 @@ export.preprocess.16
         swap.5
         neq.0
     end
-    #=> [X, x, x, remainder_ptr, layer_ptr, g]
+    #=> [X, x, x, remainder_poly_address_ptr, layer_ptr, g]
     dropw drop drop
+    #=> [remainder_poly_address_ptr, layer_ptr, g]
 
-    swap
-    locaddr.12
-    #=> [query_ptr, layer_ptr, remainder_ptr, g]
+    exec.constants::set_remainder_poly_address
+    drop drop
 end
 
 #! Checks that, for a query with index p at layer i, the folding procedure to create layer (i + 1)
@@ -290,7 +298,8 @@ end
 
 
 #! Verifies a FRI proof where the proof was generated over the quadratic extension of the base
-#! field and layer folding was performed using folding factor 4.
+#! field and layer folding was performed using folding factor 4 when the degree of the remainder
+#! polynomial is less than 64.
 #!
 #! Input:  [query_ptr, layer_ptr, rem_ptr, g, ...]
 #! Output: [...]
@@ -316,8 +325,8 @@ end
 #! 1. rem_ptr - 1 points to the last (alpha0, alpha1, t_depth, d_size) tuple.
 #! 2. layer_ptr - 1 points to the last (e0, e1, p, poe) tuple.
 #!
-#! Cycles: 18 + num_queries * (107 + num_layers * 83)
-export.verify_64.4
+#! Cycles: 24 + num_queries * (107 + num_layers * 83)
+proc.verify_64.4
 
     # store [query_ptr, layer_ptr, rem_ptr, g] to keep track of all queries
     # (3 cycles)
@@ -331,8 +340,8 @@ export.verify_64.4
 
     # Save a word containing a fresh accumulator for Horner evaluating the remainder polynomial,
     # a pointer to the evaluation point and a pointer to the location of the polynomial.
-    push.0.0 exec.constants::tmp2
-    padw exec.constants::tmp8 mem_loadw movdn.3 drop drop drop
+    push.0.0 
+    exec.constants::tmp2 exec.constants::get_remainder_poly_address
     exec.constants::tmp1 mem_storew
     movup.4
 
@@ -364,7 +373,8 @@ export.verify_64.4
 end
 
 #! Verifies a FRI proof where the proof was generated over the quadratic extension of the base
-#! field and layer folding was performed using folding factor 4.
+#! field and layer folding was performed using folding factor 4 when the degree of the remainder
+#! polynomial is less than 128.
 #!
 #! Input:  [query_ptr, layer_ptr, rem_ptr, g, ...]
 #! Output: [...]
@@ -390,8 +400,8 @@ end
 #! 1. rem_ptr - 1 points to the last (alpha0, alpha1, t_depth, d_size) tuple.
 #! 2. layer_ptr - 1 points to the last (e0, e1, p, poe) tuple.
 #!
-#! Cycles: 18 + num_queries * (140 + num_layers * 83)
-export.verify_128.4
+#! Cycles: 24 + num_queries * (140 + num_layers * 83)
+proc.verify_128.4
 
     # store [query_ptr, layer_ptr, rem_ptr, g] to keep track of all queries
     # (3 cycles)
@@ -405,8 +415,8 @@ export.verify_128.4
 
     # Save a word containing a fresh accumulator for Horner evaluating the remainder polynomial,
     # a pointer to the evaluation point and a pointer to the location of the polynomial.
-    push.0.0 exec.constants::tmp2 
-    padw exec.constants::tmp8 mem_loadw movdn.3 drop drop drop
+    push.0.0 
+    exec.constants::tmp2 exec.constants::get_remainder_poly_address
     exec.constants::tmp1 mem_storew
     movup.4
     
@@ -435,4 +445,45 @@ export.verify_128.4
     #=> [X, X, ..]
 
     dropw dropw
+end
+
+#! Verifies a FRI proof where the proof was generated over the quadratic extension of the base
+#! field and layer folding was performed using folding factor 4.
+#!
+#! Input:  [...]
+#! Output: [...]
+#!
+#! Cycles: 
+#!
+#!  Polynomial degree less than 64: 24 + num_queries * (107 + num_layers * 83)
+#!  Polynomial degree less than 128: 24 + num_queries * (140 + num_layers * 83)
+export.verify
+
+    # Get domain generator and pointer to the remainder codeword
+    # (4 cycles)
+    exec.constants::get_lde_domain_generator
+    exec.constants::get_remainder_poly_address
+    # => [remainder_poly_address_ptr, g, ...]
+
+    # Get the pointer to the first layer commitment
+    # (1 cycles)
+    exec.constants::fri_com_ptr
+    # => [fri_layer_ptr, remainder_poly_address_ptr, g, ...]
+
+    # Get the pointer to the first FRI query to the top
+    # (2 cycles)
+    exec.constants::get_fri_queries_address
+    # => [query_ptr, fri_layer_ptr, remainder_poly_address_ptr, g, ...]
+
+    
+    exec.constants::get_remainder_poly_size
+    push.64
+    eq
+
+    if.true
+        exec.verify_64
+    else
+        exec.verify_128
+    end
+    # => [...]
 end

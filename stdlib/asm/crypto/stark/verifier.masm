@@ -51,14 +51,13 @@ export.verify
 
     # Initialize the seed using proof context
     #
-    # Cycles: 228
+    # Cycles: 210
     exec.random_coin::init_seed
-    # => [C]
+    # => [C, ...]
 
     # Load public inputs
     #
     # Cycles: 94
-    exec.constants::public_inputs_ptr
     exec.public_inputs::load
     exec.random_coin::reseed
     # => [...]
@@ -80,7 +79,6 @@ export.verify
     # Draw random ExtFelt for the auxiliary trace
     #
     # Cycles: 168
-    exec.constants::aux_rand_elem_ptr
     exec.random_coin::generate_aux_randomness
     # => [...]
 
@@ -97,7 +95,7 @@ export.verify
     #       III) Draw constraint composition coefficients
     #==============================================================================================
 
-    # Cycles: 12
+    # Cycles: 13
     exec.random_coin::generate_constraint_composition_coefficients
     # => [...]
 
@@ -172,7 +170,7 @@ export.verify
 
     # Cycles: 77
     exec.helper::generate_fri_parameters
-    # => [num_fri_layers, ...]
+    # => [...]
 
     #============================================
     #   3) Load and reseed with FRI layer commitments
@@ -181,7 +179,6 @@ export.verify
     #============================================
 
     # Cycles: 40 + 108 * num_fri_layers
-    exec.constants::fri_com_ptr
     exec.helper::load_fri_layer_commitments
     # => [...]
 
@@ -203,7 +200,6 @@ export.verify
     #============================================
 
     # Cycles: 78
-    exec.constants::grinding_factor_ptr mem_load
     exec.random_coin::check_pow
     # => [...]
 
@@ -213,66 +209,29 @@ export.verify
     #============================================
 
     # Compute the pointer to the first query using the pointer to
-    # the first layer commitment and total number of queries.
-    exec.constants::fri_com_ptr
-    exec.constants::number_queries_ptr mem_load
-    dup movdn.2 mul.4
-    # => [num_queries*4, fri_com_ptr, num_queries, ...]
-
-    sub
-    # => [query_ptr, num_queries, ...]
+    # the first layer commitment and the total number of queries.
+    exec.helper::compute_query_pointer
 
     # Draw random query indices
     #
     # Cycles: 92 + 32.5 * num_queries
-    swap dup.1
     exec.random_coin::generate_list_indices
-    # => [query_ptr, ...]
+    # => [...]
 
     # Compute deep composition polynomial queries
     #
     # Cycles: 426 + num_queries * 373
-    # => [query_ptr, ...]
     exec.deep_queries::compute_deep_composition_polynomial_queries
-    # => [query_ptr, ...]
+    # => [...]
 
     #============================================
     #   7) Call the FRI verifier
     #============================================
-
-    # Get domain generator and pointer to the remainder codeword
-    #
-    # Cycles: 15
-    padw
-    exec.constants::lde_size_ptr mem_loadw
-    push.0.0
-    exec.constants::tmp8 mem_loadw
-    swap.3
-    drop drop drop movup.2 drop
-    # => [remainder_ptr, g, query_ptr, ...]
-
-    # Get the pointer to the first layer commitment
-    exec.constants::fri_com_ptr
-
-    # Get the pointer to the first FRI query to the top
-    movup.3
-    # => [query_ptr, fri_layer_ptr, remainder_ptr, domain_gen, ...]
-
-    padw exec.constants::tmp8 mem_loadw
-    drop movdn.2 drop drop
 
     # Call FRI verifier
     #
     # Cycles:
     #  1- Remainder of size 64: 18 + num_queries * (107 + num_layers * 83)
     #  2- Remainder of size 128: 18 + num_queries * (140 + num_layers * 83)
-    push.512
-    eq
-
-    if.true
-        exec.frie2f4::verify_64
-    else
-        exec.frie2f4::verify_128
-    end
-    # => [...]
+    exec.frie2f4::verify
 end

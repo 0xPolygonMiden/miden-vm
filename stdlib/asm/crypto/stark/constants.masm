@@ -41,15 +41,10 @@ const.CURRENT_TRACE_ROW_PTR=4294900400
 # There are are currently 16 ExtFelt for a total of 32 Felt. Thus the number of memory slots required is 32.
 const.AUX_RAND_ELEM_PTR=4294900600
 
-# We need 2 Felt for each constraint. We take 112000 slots as an upper bound
+# Address to the randomness used in computing the constraint composition polynomial
 const.COMPOSITION_COEF_PTR=4294900800
 
-# We need 2 Felt for each trace column and each of the 8 constraint composition columns. We thus need
-# (71 + 7 + 8) * 2 = 172 Felt i.e. 172 memory slots.
-# Note that there is a cap on the number of such coefficients so that the memory region allocated for
-# these coefficients does not overlap with the memory region storing the FRI queries.
-# This cap is of a 100 coefficients which is equivalent to 200 memory slots. This gives 600 memory
-# slots for all of the FRI queries i.e., 150 FRI queries.
+# Address to the randomness used in computing the DEEP polynomial
 const.DEEP_RAND_CC_PTR=4294912000
 
 # FRI
@@ -64,18 +59,17 @@ const.DEEP_RAND_CC_PTR=4294912000
 #              .
 #       (FRI_COM_PTR + 128)     ---|
 #              .
-#              .                  | <- Remainder codeword and polynomial
+#              .                  | <- Remainder polynomial
 #              .
-#       (FRI_COM_PTR + 264-1)   ---|
+#       (FRI_COM_PTR + 256-1)   ---|
 #
 # For each FRI layer, we need 8 memory slots, one for storing the FRI layer commitment and one for
 # storing the word [a0, a1, log2(lde_size), lde_size] where a := (a0, a1) is the folding randomness
-# and lde_size is the size of the LDE domain. Since we are using a folding factor of 4 and the
-# maximal degree of the remainder polynomial that we allow is 7, an upper limit of 16 FRI layers is
-# ample and the number of memory slots we thus allocate for this is 128. Moreover, we allocate
-# an additional 128 slots for the remainder codeword and 8 for the remainder polynomial. These are
-# expected to be laid out right after the FRI commitments.
-# The total number of slots thus becomes 264.
+# and lde_size is the size of the LDE domain of the corresponding FRI layer.
+# Since we are using a folding factor of 4 and the maximal degree of the remainder polynomial
+# that we allow is 127, an upper limit of 16 FRI layers is ample and the number of memory slots
+# we thus allocate for this is 128. Moreover, we allocate an additional 128 slots for the remainder
+# polynomial which is expected to be laid out right after the FRI commitments.
 const.FRI_COM_PTR=4294912800
 
 # Commitment to main, auxiliary and composition polynomials traces
@@ -84,10 +78,15 @@ const.AUX_TRACE_COM_PTR=4294813204
 const.COMPOSITION_POLY_COM_PTR=4294813208
 
 # Instant-specific constants
-const.LDE_SIZE_PTR=4294813212
+const.LDE_DOMAIN_INFO_PTR=4294813212
+const.LDE_DOMAIN_GEN_PTR=4294813213
 const.Z_PTR=4294813216
 const.NUM_QUERIES_PTR=4294813220
+const.REMAINDER_POLY_SIZE_PTR=4294813221
+const.REMAINDER_POLY_ADDRESS_PTR=4294813223
+const.NUM_FRI_LAYERS_PTR=4294813222
 const.TRACE_LENGTH_PTR=4294813224
+const.FRI_QUERIES_ADDRESS_PTR=4294813225
 const.TRACE_LENGTH_LOG_PTR=4294813228
 const.GRINDING_FACTOR_PTR=4294813232
 
@@ -161,7 +160,7 @@ const.ALPHA_POWER_85_1_PTR=4294903445
 #   | MAIN_TRACE_COM_PTR                       |       4294913200        |
 #   | AUX_TRACE_COM_PTR                        |       4294913204        |
 #   | COMPOSITION_POLY_COM_PTR                 |       4294913208        |
-#   | LDE_SIZE_PTR                             |       4294913212        |
+#   | LDE_DOMAIN_INFO_PTR                      |       4294913212        |
 #   | Z_PTR                                    |       4294913216        |
 #   | NUM_QUERIES_PTR                          |       4294913220        |
 #   | TRACE_LENGTH_PTR                         |       4294913224        |
@@ -226,12 +225,32 @@ export.trace_domain_generator_ptr
     push.TRACE_DOMAIN_GENERATOR_PTR
 end
 
+export.set_trace_domain_generator
+    push.TRACE_DOMAIN_GENERATOR_PTR mem_store
+end
+
+export.get_trace_domain_generator
+    push.TRACE_DOMAIN_GENERATOR_PTR mem_load
+end
+
 export.domain_offset
     push.DOMAIN_OFFSET
 end
 
 export.domain_offset_inv
     push.DOMAIN_OFFSET_INV
+end
+
+export.lde_domain_generator_ptr
+    push.LDE_DOMAIN_GEN_PTR
+end
+
+export.set_lde_domain_generator
+    push.LDE_DOMAIN_GEN_PTR mem_store
+end
+
+export.get_lde_domain_generator
+    push.LDE_DOMAIN_GEN_PTR mem_load
 end
 
 export.public_inputs_ptr
@@ -285,8 +304,16 @@ end
 #! Address to store details about the lde size.
 #!
 #! Memory is `[lde_size, log(lde_size), lde_g, 0]`
-export.lde_size_ptr
-    push.LDE_SIZE_PTR
+export.lde_domain_info_ptr
+    push.LDE_DOMAIN_INFO_PTR
+end
+
+export.set_lde_domain_info
+    push.LDE_DOMAIN_INFO_PTR mem_storew
+end
+
+export.get_lde_domain_info
+    push.LDE_DOMAIN_INFO_PTR mem_loadw
 end
 
 #! Address for the point `z` and its exponentiation `z^N` where `N=trace_len`.
@@ -298,6 +325,62 @@ end
 
 export.number_queries_ptr
     push.NUM_QUERIES_PTR
+end
+
+export.set_number_queries
+    push.NUM_QUERIES_PTR mem_store
+end
+
+export.get_number_queries
+    push.NUM_QUERIES_PTR mem_load
+end
+
+export.remainder_poly_size_ptr
+    push.REMAINDER_POLY_SIZE_PTR
+end
+
+export.set_remainder_poly_size
+    push.REMAINDER_POLY_SIZE_PTR mem_store
+end
+
+export.get_remainder_poly_size
+    push.REMAINDER_POLY_SIZE_PTR mem_load
+end
+
+export.num_fri_layers_ptr
+    push.NUM_FRI_LAYERS_PTR
+end
+
+export.set_num_fri_layers
+    push.NUM_FRI_LAYERS_PTR mem_store
+end
+
+export.get_num_fri_layers
+    push.NUM_FRI_LAYERS_PTR mem_load
+end
+
+export.remainder_poly_address_ptr
+    push.REMAINDER_POLY_ADDRESS_PTR
+end
+
+export.set_remainder_poly_address
+    push.REMAINDER_POLY_ADDRESS_PTR mem_store
+end
+
+export.get_remainder_poly_address
+    push.REMAINDER_POLY_ADDRESS_PTR mem_load
+end
+
+export.fri_queries_address_ptr
+    push.FRI_QUERIES_ADDRESS_PTR
+end
+
+export.set_fri_queries_address
+    push.FRI_QUERIES_ADDRESS_PTR mem_store
+end
+
+export.get_fri_queries_address
+    push.FRI_QUERIES_ADDRESS_PTR mem_load
 end
 
 export.trace_length_ptr
@@ -401,6 +484,10 @@ end
 
 export.deep_rand_alpha_inv
     push.ALPHA_INV
+end
+
+export.ood_constraint_evals_next_ptr
+    push.OOD_TRACE_NEXT_PTR
 end
 
 export.deep_rand_alpha_1
