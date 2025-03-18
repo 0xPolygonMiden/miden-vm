@@ -11,13 +11,13 @@ pub use verifier_fri_e2f4::*;
 mod remainder;
 
 #[test]
-fn fri_fold4_ext2_remainder32() {
+fn fri_fold4_ext2_remainder64() {
     let source = "
         use.std::crypto::fri::frie2f4
 
         begin
             exec.frie2f4::preprocess
-            exec.frie2f4::verify
+            exec.frie2f4::verify_128
         end
         ";
 
@@ -59,13 +59,13 @@ fn fri_fold4_ext2_remainder32() {
 }
 
 #[test]
-fn fri_fold4_ext2_remainder64() {
+fn fri_fold4_ext2_remainder128() {
     let source = "
         use.std::crypto::fri::frie2f4
 
         begin
             exec.frie2f4::preprocess
-            exec.frie2f4::verify
+            exec.frie2f4::verify_128
         end
         ";
 

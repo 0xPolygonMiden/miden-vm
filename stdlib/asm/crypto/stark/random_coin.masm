@@ -180,7 +180,7 @@ export.init_seed
     push.0xffffffff # upper half of the modulus
     ## field extension and FRI parameters
     ## field extension degree || FRI folding factor || FRI remainder polynomial max degree || blowup factor
-    push.0x02040708
+    push.0x02047f08
     # => [proof_options, modulus1, modulus0, trace_info, trace_length, num_queries, blowup, grinding, ...]
 
     # Hash proof context
@@ -191,7 +191,7 @@ export.init_seed
 
     exec.constants::get_num_constraints
     movdn.3
-    # => [num_queries, grinding, proof_options, NUM_CONSTRAINTS, modulus1, modulus0, trace_length, trace_info, ...]
+    # => [num_queries, grinding, proof_options, num_constraints, modulus1, modulus0, trace_length, trace_info, ...]
 
     push.4.0.0.0
     movdnw.2

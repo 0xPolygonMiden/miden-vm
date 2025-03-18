@@ -53,7 +53,7 @@ pub struct FriResult {
 //  a FRI proof inside the Miden VM.
 //  The output is organized as follows:
 pub fn fri_prove_verify_fold4_ext2(trace_length_e: usize) -> Result<FriResult, VerifierError> {
-    let max_remainder_size_e = 3;
+    let max_remainder_size_e = 7;
     let folding_factor_e = 2;
     let trace_length = 1 << trace_length_e;
     let lde_blowup = 1 << 3;
@@ -93,10 +93,7 @@ pub fn fri_prove_verify_fold4_ext2(trace_length_e: usize) -> Result<FriResult, V
 
     let remainder_poly: Vec<QuadExt> =
         proof.parse_remainder().expect("should return remainder polynomial");
-    let twiddles = fft::get_twiddles(remainder_poly.len());
-    let remainder = fft::evaluate_poly_with_offset(&remainder_poly, &twiddles, Felt::GENERATOR, 8);
-
-    let remainder: Vec<u64> = QuadExt::slice_as_base_elements(&remainder[..])
+    let remainder: Vec<u64> = QuadExt::slice_as_base_elements(&&remainder_poly[..])
         .to_owned()
         .iter()
         .map(|a| a.as_int())
@@ -255,7 +252,7 @@ impl FriVerifierFold4Ext2 {
         let advice_provider =
             channel.unbatch::<4, 3>(&positions, self.domain_size(), self.layer_commitments.clone());
 
-        let mut d_generator;
+        let mut d_generator = self.domain_generator;
         let mut all_alphas = vec![];
         let mut all_position_evaluation = vec![];
         for (index, &position) in positions.iter().enumerate() {
@@ -281,9 +278,14 @@ impl FriVerifierFold4Ext2 {
         // read the remainder from the channel and make sure it matches with the columns
         // of the previous layer
         let remainder_commitment = self.layer_commitments.last().unwrap();
-        let remainder = channel.read_remainder::<4>(remainder_commitment)?;
-        for (pos, eval) in final_pos_eval.iter() {
-            if remainder[*pos] != *eval {
+        let remainder_poly = channel.read_remainder::<4>(remainder_commitment)?;
+        let offset = Felt::GENERATOR;
+        for &(final_pos, final_eval) in final_pos_eval.iter() {
+            let comp_eval = eval_horner_rev(
+                &remainder_poly,
+                offset * d_generator.exp_vartime((final_pos as u64).into()),
+            );
+            if comp_eval != final_eval {
                 return Err(VerifierError::InvalidRemainderFolding);
             }
         }
@@ -451,11 +453,20 @@ impl UnBatch<QuadExt, MidenHasher> for MidenFriVerifierChannel<QuadExt, MidenHas
     }
 }
 
-// Helper function
+// HELPER FUNCTIONS
+// ================================================================================================
+
 fn fri_2<E, B>(f_x: E, f_minus_x: E, x_star: E, alpha: E) -> E
 where
     B: StarkField,
     E: FieldElement<BaseField = B>,
 {
     (f_x + f_minus_x + ((f_x - f_minus_x) * alpha / x_star)) / E::ONE.double()
+}
+
+pub fn eval_horner_rev<E>(p: &[E], x: E::BaseField) -> E
+where
+    E: FieldElement,
+{
+    p.iter().fold(E::ZERO, |acc, &coeff| acc * E::from(x) + coeff)
 }

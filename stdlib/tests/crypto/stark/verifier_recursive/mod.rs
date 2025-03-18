@@ -3,10 +3,11 @@ use alloc::vec::Vec;
 use miden_air::ProcessorAir;
 use processor::crypto::RpoRandomCoin;
 use test_utils::{
-    Felt, VerifierError,
+    VerifierError,
     crypto::{MerkleStore, RandomCoin, Rpo256, RpoDigest},
-    math::{FieldElement, QuadExtension, StarkField, ToElements, fft},
+    math::{FieldElement, QuadExtension, ToElements},
 };
+use vm_core::Felt;
 use winter_air::{Air, proof::Proof};
 use winter_fri::VerifierChannel as FriVerifierChannel;
 
