@@ -170,7 +170,7 @@ fn falcon_execution() {
     let message = rand_vector::<Felt>(4).try_into().unwrap();
     let (source, op_stack, adv_stack, store, advice_map) = generate_test(sk, message);
 
-    let test = build_test!(source, &op_stack, &adv_stack, store, advice_map.into_iter());
+    let test = build_test!(&source, &op_stack, &adv_stack, store, advice_map.into_iter());
     test.expect_stack(&[])
 }
 
@@ -191,6 +191,8 @@ fn falcon_prove_verify() {
     let advice_inputs = AdviceInputs::default().with_map(advice_map);
     let advice_provider = MemAdviceProvider::from(advice_inputs);
     let mut host = DefaultHost::new(advice_provider);
+    host.load_mast_forest(StdLibrary::default().mast_forest().clone())
+        .expect("failed to load mast forest");
 
     let options = ProvingOptions::with_96_bit_security(false);
     let (stack_outputs, proof) =
@@ -207,14 +209,18 @@ fn falcon_prove_verify() {
 fn generate_test(
     sk: SecretKey,
     message: Word,
-) -> (&'static str, Vec<u64>, Vec<u64>, MerkleStore, Vec<(Digest, Vec<Felt>)>) {
-    let source = "
+) -> (String, Vec<u64>, Vec<u64>, MerkleStore, Vec<(Digest, Vec<Felt>)>) {
+    let source = format!(
+        "
     use.std::crypto::dsa::rpo_falcon512
 
     begin
+        emit.{}
         exec.rpo_falcon512::verify
     end
-    ";
+    ",
+        test_utils::EVENT_FALCON_SIG_TO_STACK
+    );
 
     let pk: Word = sk.public_key().into();
     let pk: Digest = pk.into();

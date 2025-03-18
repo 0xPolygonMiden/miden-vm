@@ -19,7 +19,7 @@ pub use pretty_assertions::{assert_eq, assert_ne, assert_str_eq};
 use processor::Program;
 pub use processor::{
     AdviceInputs, AdviceProvider, ContextId, DefaultHost, ExecutionError, ExecutionOptions,
-    ExecutionTrace, Process, ProcessState, VmStateIterator,
+    ExecutionTrace, Process, ProcessState, VmStateIterator, utils::EVENT_FALCON_SIG_TO_STACK,
 };
 #[cfg(not(target_family = "wasm"))]
 use proptest::prelude::{Arbitrary, Strategy};
@@ -66,6 +66,25 @@ pub type QuadFelt = vm_core::QuadExtension<Felt>;
 // CONSTANTS
 // ================================================================================================
 
+/// The event ID for the event where we push the falcon signature on the advice stack.
+///
+/// Pushes values onto the advice stack which are required for verification of a DSA in Miden
+/// VM.
+///
+/// Inputs:
+///   Operand stack: [PK, MSG, ...]
+///   Advice stack: [...]
+///
+/// Outputs:
+///   Operand stack: [PK, MSG, ...]
+///   Advice stack: \[DATA\]
+///
+/// Where:
+/// - PK is the digest of an expanded public.
+/// - MSG is the digest of the message to be signed.
+/// - DATA is the needed data for signature verification in the VM.
+///
+/// The advice provider is expected to contain the private key associated to the public key PK.
 /// A value just over what a [u32] integer can hold.
 pub const U32_BOUND: u64 = u32::MAX as u64 + 1;
 

@@ -18,6 +18,7 @@
 - Fix docs on the layout of the auxiliary segment trace (#1694).
 - [BREAKING] Updated Winterfell dependency to v0.12 (#1658).
 - Update recursive verifier to use `HORNERBASE` (#1665).
+- Remove `FALCON_SIG_TO_STACK` event (#1703)
 
 
 ## 0.12.0 (2025-01-22)

@@ -576,8 +576,8 @@ end
 # =============================================================================================
 
 #! Verifies a signature against a public key and a message. The procedure gets as inputs the hash
-#! of the public key and the hash of the message via the operand stack. The signature is provided
-#! via the advice stack.
+#! of the public key and the hash of the message via the operand stack. The signature is expected 
+#! to be present on the advice stack.
 #! The signature is valid if and only if the procedure returns.
 #!
 #! Inputs:
@@ -585,7 +585,7 @@ end
 #!   Advice stack:  [tau0, tau1, h_0, ..., h_511, s2_0, ..., s2_511, pi_0, ..., pi_1022, nonce0, ..., nonce7]
 #! Outputs:
 #!   Operand stack: []
-#!   Advice stack:  []
+#!   Advice stack:  [SIG]
 #!
 #! where:
 #! - tau = (tau0, tau1) is an element in the quadratic field extension at which the product relation
@@ -598,11 +598,7 @@ end
 #! Cycles: ~ 59859
 export.verify.2560
 
-    # 1) Generate a Falcon signature using the secret key associated to PK on message MSG.
-    adv.push_sig.rpo_falcon512
-    #=> [PK, MSG, ...]
-
-    # 2) Load the public key polynomial h and the signature polynomial s2 and the product of
+    # 1) Load the public key polynomial h and the signature polynomial s2 and the product of
     # the two polynomials pi := h * s2 in Z_Q[x]. This also checks that h hashes to the provided
     # digest PK. While loading the polynomials, the first half of the digest of hashing the three
     # polynomials and is used to check that we indeed have pi := h * s2 in Z_Q[x] by checking that
@@ -613,13 +609,13 @@ export.verify.2560
     exec.load_h_s2_and_product
     #=> [MSG, ...]                                  (Cycles: 6780)
 
-    # 3) Load the NONCE from the advice provider. This is encoded as 8 field elements
+    # 2) Load the NONCE from the advice provider. This is encoded as 8 field elements
 
     padw adv_loadw
     padw adv_loadw
     #=> [NONCE1, NONCE0, MSG, ...]
 
-    # 4) Compute the hash-to-point of the message MSG from the provided NONCE and save
+    # 3) Compute the hash-to-point of the message MSG from the provided NONCE and save
     # the resulting polynomial c in the memory region [c_ptr, c_ptr + 512)
 
     movupw.2
@@ -627,7 +623,7 @@ export.verify.2560
     exec.hash_to_point
     #=> [...]                                       (Cycles: 1430)
 
-    # 5) Compute the squared norm of s1 := c - h * s2 (in Z_M[x]/(phi))
+    # 4) Compute the squared norm of s1 := c - h * s2 (in Z_M[x]/(phi))
 
     locaddr.1024
     #=> [pi_ptr, ...]
@@ -635,7 +631,7 @@ export.verify.2560
     exec.compute_s1_norm_sq
     #=> [norm_sq(s1), ...]                          (Cycles: 40450)
 
-    # 6) Compute the squared norm of s2
+    # 5) Compute the squared norm of s2
 
     locaddr.512
     #=> [s2_ptr, norm_sq(s1), ...]
@@ -643,7 +639,7 @@ export.verify.2560
     exec.compute_s2_norm_sq
     #=> [norm_sq(s2), norm_sq(s1), ...]             (Cycles: 11150)
 
-    # 7) Check that ||(s1, s2)||^2 < K
+    # 6) Check that ||(s1, s2)||^2 < K
 
     add
     #=> [norm_sq(s1) + norm_sq(s2), ...]
