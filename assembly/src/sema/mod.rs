@@ -146,7 +146,7 @@ fn visit_procedures(
                 // Evaluate all named immediates to their concrete values
                 {
                     let mut visitor = ConstEvalVisitor::new(analyzer);
-                    visitor.visit_mut_procedure(&mut procedure);
+                    let _ = visitor.visit_mut_procedure(&mut procedure);
                 }
 
                 // Next, verify invoke targets:
@@ -162,7 +162,7 @@ fn visit_procedures(
                         &locals,
                         procedure.name().clone(),
                     );
-                    visitor.visit_mut_procedure(&mut procedure);
+                    let _ = visitor.visit_mut_procedure(&mut procedure);
                 }
                 module.procedures.push(Export::Procedure(procedure));
             },
