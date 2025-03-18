@@ -4,15 +4,18 @@ use super::FastProcessor;
 use crate::ExecutionError;
 
 impl FastProcessor {
+    /// Analogous to `Process::op_pad`.
     pub fn op_pad(&mut self) {
         self.stack[self.stack_top_idx] = ZERO;
         self.increment_stack_size();
     }
 
+    /// Analogous to `Process::op_swap`.
     pub fn op_swap(&mut self) {
         self.stack.swap(self.stack_top_idx - 1, self.stack_top_idx - 2);
     }
 
+    /// Analogous to `Process::op_swapdw`.
     pub fn op_swap_double_word(&mut self) {
         self.stack.swap(self.stack_top_idx - 1, self.stack_top_idx - 9);
         self.stack.swap(self.stack_top_idx - 2, self.stack_top_idx - 10);
@@ -88,6 +91,7 @@ impl FastProcessor {
         nth_word[0..WORD_SIZE].swap_with_slice(&mut top_word[0..WORD_SIZE]);
     }
 
+    /// Analogous to `Process::op_cswap`.
     pub fn op_cswap(&mut self) -> Result<(), ExecutionError> {
         let condition = self.stack[self.stack_top_idx - 1];
         let b = self.stack[self.stack_top_idx - 2];
@@ -108,6 +112,7 @@ impl FastProcessor {
         Ok(())
     }
 
+    /// Analogous to `Process::op_cswapw`.
     pub fn op_cswapw(&mut self) -> Result<(), ExecutionError> {
         let condition = self.stack[self.stack_top_idx - 1];
 

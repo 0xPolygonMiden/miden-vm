@@ -168,7 +168,7 @@ impl FastProcessor {
             let mut stack = [ZERO; STACK_BUFFER_SIZE];
             let bottom_idx = stack_top_idx - stack_inputs.len();
 
-            stack[bottom_idx..stack_top_idx].copy_from_slice(&stack_inputs);
+            stack[bottom_idx..stack_top_idx].copy_from_slice(stack_inputs);
             stack
         };
 
@@ -224,6 +224,7 @@ impl FastProcessor {
     // EXECUTE
     // -------------------------------------------------------------------------------------------
 
+    /// Executes the given program and returns the stack outputs.
     pub fn execute(
         mut self,
         program: &Program,
@@ -234,7 +235,8 @@ impl FastProcessor {
 
     /// Executes the given program and returns the stack outputs.
     ///
-    /// This function is mainly split out of `execute()` for testing purposes.
+    /// This function is mainly split out of `execute()` for testing purposes so that we can access
+    /// the internal state of the `FastProcessor` after execution.
     fn execute_impl(
         &mut self,
         program: &Program,
@@ -260,6 +262,9 @@ impl FastProcessor {
             )
         })
     }
+
+    // NODE EXECUTORS
+    // --------------------------------------------------------------------------------------------
 
     fn execute_mast_node(
         &mut self,
@@ -677,8 +682,8 @@ impl FastProcessor {
                 // do nothing
             },
             Operation::Assert(err_code) => self.op_assert(*err_code, op_idx, host)?,
-            Operation::FmpAdd => self.op_fmp_add(),
-            Operation::FmpUpdate => self.op_fmp_update()?,
+            Operation::FmpAdd => self.op_fmpadd(),
+            Operation::FmpUpdate => self.op_fmpupdate()?,
             Operation::SDepth => self.op_sdepth(),
             Operation::Caller => self.op_caller()?,
             Operation::Clk => self.op_clk(op_idx)?,
@@ -714,16 +719,16 @@ impl FastProcessor {
             Operation::Ext2Mul => self.op_ext2mul(),
 
             // ----- u32 operations ---------------------------------------------------------------
-            Operation::U32split => self.u32_split()?,
-            Operation::U32add => self.u32_add()?,
-            Operation::U32add3 => self.u32_add3()?,
-            Operation::U32sub => self.u32_sub(op_idx)?,
-            Operation::U32mul => self.u32_mul()?,
-            Operation::U32madd => self.u32_madd()?,
-            Operation::U32div => self.u32_div(op_idx)?,
-            Operation::U32and => self.u32_and()?,
-            Operation::U32xor => self.u32_xor()?,
-            Operation::U32assert2(err_code) => self.u32_assert2(*err_code)?,
+            Operation::U32split => self.op_u32split()?,
+            Operation::U32add => self.op_u32add()?,
+            Operation::U32add3 => self.op_u32add3()?,
+            Operation::U32sub => self.op_u32sub(op_idx)?,
+            Operation::U32mul => self.op_u32mul()?,
+            Operation::U32madd => self.op_u32madd()?,
+            Operation::U32div => self.op_u32div(op_idx)?,
+            Operation::U32and => self.op_u32and()?,
+            Operation::U32xor => self.op_u32xor()?,
+            Operation::U32assert2(err_code) => self.op_u32assert2(*err_code)?,
 
             // ----- stack manipulation -----------------------------------------------------------
             Operation::Pad => self.op_pad(),

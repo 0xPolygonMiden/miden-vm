@@ -14,6 +14,7 @@ use crate::{
 };
 
 impl FastProcessor {
+    /// Analogous to `Process::op_assert`.
     pub fn op_assert(
         &mut self,
         err_code: u32,
@@ -28,12 +29,14 @@ impl FastProcessor {
         Ok(())
     }
 
-    pub fn op_fmp_add(&mut self) {
+    /// Analogous to `Process::op_fmpadd`.
+    pub fn op_fmpadd(&mut self) {
         let top = &mut self.stack[self.stack_top_idx - 1];
         *top += self.fmp;
     }
 
-    pub fn op_fmp_update(&mut self) -> Result<(), ExecutionError> {
+    /// Analogous to `Process::op_fmpupdate`.
+    pub fn op_fmpupdate(&mut self) -> Result<(), ExecutionError> {
         let top = self.stack[self.stack_top_idx - 1];
 
         let new_fmp = self.fmp + top;
@@ -46,12 +49,14 @@ impl FastProcessor {
         Ok(())
     }
 
+    /// Analogous to `Process::op_sdepth`.
     pub fn op_sdepth(&mut self) {
         let depth = (self.stack_top_idx - self.stack_bot_idx) as u32;
         self.stack[self.stack_top_idx] = depth.into();
         self.increment_stack_size();
     }
 
+    /// Analogous to `Process::op_caller`.
     pub fn op_caller(&mut self) -> Result<(), ExecutionError> {
         if !self.in_syscall {
             return Err(ExecutionError::CallerNotInSyscall);
@@ -63,12 +68,14 @@ impl FastProcessor {
         Ok(())
     }
 
+    /// Analogous to `Process::op_clk`.
     pub fn op_clk(&mut self, op_idx: usize) -> Result<(), ExecutionError> {
         self.stack[self.stack_top_idx] = (self.clk + op_idx).into();
         self.increment_stack_size();
         Ok(())
     }
 
+    /// Analogous to `Process::op_emit`.
     pub fn op_emit(
         &mut self,
         event_id: u32,

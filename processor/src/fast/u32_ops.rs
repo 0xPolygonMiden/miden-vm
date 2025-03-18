@@ -4,7 +4,8 @@ use super::FastProcessor;
 use crate::{utils::split_element, ExecutionError};
 
 impl FastProcessor {
-    pub fn u32_split(&mut self) -> Result<(), ExecutionError> {
+    /// Analogous to `Process::op_u32split`.
+    pub fn op_u32split(&mut self) -> Result<(), ExecutionError> {
         let top = self.stack[self.stack_top_idx - 1];
         let (hi, lo) = split_element(top);
 
@@ -14,15 +15,18 @@ impl FastProcessor {
         Ok(())
     }
 
-    pub fn u32_add(&mut self) -> Result<(), ExecutionError> {
+    /// Analogous to `Process::op_u32add`.
+    pub fn op_u32add(&mut self) -> Result<(), ExecutionError> {
         self.u32_pop2_applyfn_push_lowhigh(|a, b| a + b)
     }
 
+    /// Analogous to `Process::op_u32add3`.
+    ///
     /// Pops three elements off the stack, adds them, splits the result into low and high 32-bit
     /// values, and pushes these values back onto the stack.
     ///
     /// The size of the stack is decremented by 1.
-    pub fn u32_add3(&mut self) -> Result<(), ExecutionError> {
+    pub fn op_u32add3(&mut self) -> Result<(), ExecutionError> {
         let (sum_hi, sum_lo) = {
             let c = self.stack[self.stack_top_idx - 1].as_int();
             let b = self.stack[self.stack_top_idx - 2].as_int();
@@ -50,7 +54,8 @@ impl FastProcessor {
         Ok(())
     }
 
-    pub fn u32_sub(&mut self, op_idx: usize) -> Result<(), ExecutionError> {
+    /// Analogous to `Process::op_u32sub`.
+    pub fn op_u32sub(&mut self, op_idx: usize) -> Result<(), ExecutionError> {
         self.u32_pop2_applyfn_push_results(op_idx as u32, |first_old, second_old| {
             let result = second_old.wrapping_sub(first_old);
             let first_new = result >> 63;
@@ -60,14 +65,17 @@ impl FastProcessor {
         })
     }
 
-    pub fn u32_mul(&mut self) -> Result<(), ExecutionError> {
+    /// Analogous to `Process::op_u32mul`.
+    pub fn op_u32mul(&mut self) -> Result<(), ExecutionError> {
         self.u32_pop2_applyfn_push_lowhigh(|a, b| a * b)
     }
 
+    /// Analogous to `Process::op_u32madd`.
+    ///
     /// Pops three elements off the stack, multiplies the first two and adds the third element to
     /// the result, splits the result into low and high 32-bit values, and pushes these values
     /// back onto the stack.
-    pub fn u32_madd(&mut self) -> Result<(), ExecutionError> {
+    pub fn op_u32madd(&mut self) -> Result<(), ExecutionError> {
         let (result_hi, result_lo) = {
             let b = self.stack[self.stack_top_idx - 1].as_int();
             let a = self.stack[self.stack_top_idx - 2].as_int();
@@ -95,7 +103,8 @@ impl FastProcessor {
         Ok(())
     }
 
-    pub fn u32_div(&mut self, op_idx: usize) -> Result<(), ExecutionError> {
+    /// Analogous to `Process::op_u32div`.
+    pub fn op_u32div(&mut self, op_idx: usize) -> Result<(), ExecutionError> {
         let clk = self.clk + op_idx;
         self.u32_pop2_applyfn_push_results(0, |first, second| {
             if first == 0 {
@@ -111,15 +120,18 @@ impl FastProcessor {
         })
     }
 
-    pub fn u32_and(&mut self) -> Result<(), ExecutionError> {
+    /// Analogous to `Process::op_u32and`.
+    pub fn op_u32and(&mut self) -> Result<(), ExecutionError> {
         self.u32_pop2_applyfn_push(|a, b| a & b)
     }
 
-    pub fn u32_xor(&mut self) -> Result<(), ExecutionError> {
+    /// Analogous to `Process::op_u32xor`.
+    pub fn op_u32xor(&mut self) -> Result<(), ExecutionError> {
         self.u32_pop2_applyfn_push(|a, b| a ^ b)
     }
 
-    pub fn u32_assert2(&mut self, err_code: u32) -> Result<(), ExecutionError> {
+    /// Analogous to `Process::op_u32assert2`.
+    pub fn op_u32assert2(&mut self, err_code: u32) -> Result<(), ExecutionError> {
         self.u32_pop2_applyfn_push_results(err_code, |first, second| Ok((first, second)))
     }
 

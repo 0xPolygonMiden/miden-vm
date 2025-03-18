@@ -4,11 +4,13 @@ use super::{ExecutionError, FastProcessor, Felt, WORD_SIZE};
 use crate::{AdviceProvider, Host, ProcessState};
 
 impl FastProcessor {
+    /// Analogous to `Process::op_push`.
     pub fn op_push(&mut self, element: Felt) {
         self.stack[self.stack_top_idx] = element;
         self.increment_stack_size();
     }
 
+    /// Analogous to `Process::op_advpop`.
     pub fn op_advpop(&mut self, op_idx: usize, host: &mut impl Host) -> Result<(), ExecutionError> {
         let value = host.advice_provider_mut().pop_stack(ProcessState::new_fast(self, op_idx))?;
         self.stack[self.stack_top_idx] = value;
@@ -16,6 +18,7 @@ impl FastProcessor {
         Ok(())
     }
 
+    /// Analogous to `Process::op_advpopw`.
     pub fn op_advpopw(
         &mut self,
         op_idx: usize,
@@ -29,6 +32,7 @@ impl FastProcessor {
         Ok(())
     }
 
+    /// Analogous to `Process::op_mloadw`.
     pub fn op_mloadw(&mut self, op_idx: usize) -> Result<(), ExecutionError> {
         {
             let addr = self.stack[self.stack_top_idx - 1];
@@ -41,6 +45,7 @@ impl FastProcessor {
         Ok(())
     }
 
+    /// Analogous to `Process::op_mstorew`.
     pub fn op_mstorew(&mut self, op_idx: usize) -> Result<(), ExecutionError> {
         {
             let addr = self.stack[self.stack_top_idx - 1];
@@ -56,6 +61,7 @@ impl FastProcessor {
         Ok(())
     }
 
+    /// Analogous to `Process::op_mload`.
     pub fn op_mload(&mut self) -> Result<(), ExecutionError> {
         let element = {
             let addr = self.stack[self.stack_top_idx - 1];
@@ -67,6 +73,7 @@ impl FastProcessor {
         Ok(())
     }
 
+    /// Analogous to `Process::op_mstore`.
     pub fn op_mstore(&mut self) -> Result<(), ExecutionError> {
         let addr = self.stack[self.stack_top_idx - 1];
         let value = self.stack[self.stack_top_idx - 2];
@@ -77,6 +84,7 @@ impl FastProcessor {
         Ok(())
     }
 
+    /// Analogous to `Process::op_mstream`.
     pub fn op_mstream(&mut self, op_idx: usize) -> Result<(), ExecutionError> {
         // The stack index where the memory address to load the words from is stored.
         let mem_addr_stack_idx: usize = self.stack_top_idx - 1 - 12;
@@ -106,6 +114,7 @@ impl FastProcessor {
         Ok(())
     }
 
+    /// Analogous to `Process::op_pipe`.
     pub fn op_pipe(&mut self, op_idx: usize, host: &mut impl Host) -> Result<(), ExecutionError> {
         // The stack index where the memory address to load the words from is stored.
         let mem_addr_stack_idx: usize = self.stack_top_idx - 1 - 12;
@@ -136,25 +145,5 @@ impl FastProcessor {
         self.stack[mem_addr_stack_idx] = addr_first_word + Felt::from(2 * WORD_SIZE as u32);
 
         Ok(())
-    }
-
-    pub fn enforce_word_aligned_addr(
-        &self,
-        addr: Felt,
-        op_idx: usize,
-    ) -> Result<u32, ExecutionError> {
-        let addr: u64 = addr.as_int();
-        let addr: u32 =
-            addr.try_into().map_err(|_| ExecutionError::MemoryAddressOutOfBounds(addr))?;
-
-        if addr % WORD_SIZE as u32 != 0 {
-            return Err(ExecutionError::MemoryUnalignedWordAccess {
-                addr,
-                ctx: self.ctx,
-                clk: Felt::from(self.clk + op_idx),
-            });
-        }
-
-        Ok(addr)
     }
 }

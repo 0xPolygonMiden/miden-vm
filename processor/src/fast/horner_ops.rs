@@ -11,7 +11,7 @@ const ACC_HIGH_INDEX: usize = 14;
 const ACC_LOW_INDEX: usize = 15;
 
 impl FastProcessor {
-    /// Mirrors the implementation of `Process::op_horner_eval_base`.
+    /// Analogous to `Process::op_horner_eval_base`.
     pub fn op_horner_eval_base(&mut self, op_idx: usize) -> Result<(), ExecutionError> {
         // read the values of the coefficients, over the base field, from the stack
         let coef = self.get_coeff_as_base_elements();
@@ -37,7 +37,7 @@ impl FastProcessor {
         Ok(())
     }
 
-    /// Mirrors the implementation of `Process::op_horner_eval_ext`.
+    /// Analogous to `Process::op_horner_eval_ext`.
     pub fn op_horner_eval_ext(&mut self, op_idx: usize) -> Result<(), ExecutionError> {
         // read the values of the coefficients, over the base field, from the stack
         let coef = self.get_coeff_as_quad_ext_elements();

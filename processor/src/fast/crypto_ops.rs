@@ -5,6 +5,8 @@ use crate::{AdviceProvider, ExecutionError, Host};
 
 impl FastProcessor {
     /// Applies a permutation of the Rpo256 hash function to the top 12 elements of the stack.
+    ///
+    /// Analogous to `Process::op_hperm`.
     pub fn op_hperm(&mut self) {
         let state_range = range(self.stack_top_idx - STATE_WIDTH, STATE_WIDTH);
         let hashed_state = {
@@ -19,6 +21,7 @@ impl FastProcessor {
         self.stack[state_range].copy_from_slice(&hashed_state);
     }
 
+    /// Analogous to `Process::op_mpverify`.
     pub fn op_mpverify(
         &mut self,
         err_code: u32,
@@ -55,6 +58,7 @@ impl FastProcessor {
         }
     }
 
+    /// Analogous to `Process::op_mrupdate`.
     pub fn op_mrupdate(&mut self, host: &mut impl Host) -> Result<(), ExecutionError> {
         // read old node value, depth, index, tree root and new node values from the stack
         let old_node = [

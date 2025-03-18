@@ -19,6 +19,7 @@ const TAU2_INV: Felt = Felt::new(18446744069414584320); // tau^{-2}
 const TAU3_INV: Felt = Felt::new(281474976710656); // tau^{-3}
 
 impl FastProcessor {
+    /// Analogous to `Process::op_fri_ext2fold4`.
     pub fn op_fri_ext2fold4(&mut self) -> Result<(), ExecutionError> {
         // --- read all relevant variables from the stack ---------------------
         let query_values = self.get_query_values();

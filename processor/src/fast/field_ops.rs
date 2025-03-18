@@ -5,19 +5,23 @@ use super::{assert_binary, ExecutionError, FastProcessor};
 const TWO: Felt = Felt::new(2);
 
 impl FastProcessor {
+    /// Analogous to `Process::op_add`.
     pub fn op_add(&mut self) -> Result<(), ExecutionError> {
         self.pop2_applyfn_push(|a, b| Ok(a + b))
     }
 
+    /// Analogous to `Process::op_neg`.
     pub fn op_neg(&mut self) -> Result<(), ExecutionError> {
         self.stack[self.stack_top_idx - 1] = -self.stack[self.stack_top_idx - 1];
         Ok(())
     }
 
+    /// Analogous to `Process::op_mul`.
     pub fn op_mul(&mut self) -> Result<(), ExecutionError> {
         self.pop2_applyfn_push(|a, b| Ok(a * b))
     }
 
+    /// Analogous to `Process::op_inv`.
     pub fn op_inv(&mut self, op_idx: usize) -> Result<(), ExecutionError> {
         let top = &mut self.stack[self.stack_top_idx - 1];
         if (*top) == ZERO {
@@ -27,11 +31,13 @@ impl FastProcessor {
         Ok(())
     }
 
+    /// Analogous to `Process::op_inc`.
     pub fn op_incr(&mut self) -> Result<(), ExecutionError> {
         self.stack[self.stack_top_idx - 1] += ONE;
         Ok(())
     }
 
+    /// Analogous to `Process::op_and`.
     pub fn op_and(&mut self) -> Result<(), ExecutionError> {
         self.pop2_applyfn_push(|a, b| {
             assert_binary(b)?;
@@ -45,6 +51,7 @@ impl FastProcessor {
         })
     }
 
+    /// Analogous to `Process::op_or`.
     pub fn op_or(&mut self) -> Result<(), ExecutionError> {
         self.pop2_applyfn_push(|a, b| {
             assert_binary(b)?;
@@ -58,6 +65,7 @@ impl FastProcessor {
         })
     }
 
+    /// Analogous to `Process::op_not`.
     pub fn op_not(&mut self) -> Result<(), ExecutionError> {
         let top = &mut self.stack[self.stack_top_idx - 1];
         assert_binary(*top)?;
@@ -65,10 +73,12 @@ impl FastProcessor {
         Ok(())
     }
 
+    /// Analogous to `Process::op_eq`.
     pub fn op_eq(&mut self) -> Result<(), ExecutionError> {
         self.pop2_applyfn_push(|a, b| if a == b { Ok(ONE) } else { Ok(ZERO) })
     }
 
+    /// Analogous to `Process::op_eqz`.
     pub fn op_eqz(&mut self) -> Result<(), ExecutionError> {
         let top = &mut self.stack[self.stack_top_idx - 1];
         if (*top) == ZERO {
@@ -79,6 +89,7 @@ impl FastProcessor {
         Ok(())
     }
 
+    /// Analogous to `Process::op_expacc`.
     pub fn op_expacc(&mut self) {
         let old_base = self.stack[self.stack_top_idx - 2];
         let old_acc = self.stack[self.stack_top_idx - 3];
@@ -102,6 +113,8 @@ impl FastProcessor {
         self.stack[self.stack_top_idx - 4] = new_exp;
     }
 
+    /// Analogous to `Process::op_ext2mul`.
+    ///
     /// Gets the top four values from the stack [b1, b0, a1, a0], where a = (a1, a0) and
     /// b = (b1, b0) are elements of the extension field, and outputs the product c = (c1, c0)
     /// where c0 = b0 * a0 - 2 * b1 * a1 and c1 = (b0 + b1) * (a1 + a0) - b0 * a0. It pushes 0 to
