@@ -582,10 +582,10 @@ end
 #!
 #! Inputs:
 #!   Operand stack: [PK, MSG, ...]
-#!   Advice stack:  [tau0, tau1, h_0, ..., h_511, s2_0, ..., s2_511, pi_0, ..., pi_1022, nonce0, ..., nonce7]
+#!   Advice stack:  [SIG, tau0, tau1, h_0, ..., h_511, s2_0, ..., s2_511, pi_0, ..., pi_1022, nonce0, ..., nonce7]
 #! Outputs:
 #!   Operand stack: []
-#!   Advice stack:  [SIG]
+#!   Advice stack:  []
 #!
 #! where:
 #! - tau = (tau0, tau1) is an element in the quadratic field extension at which the product relation
