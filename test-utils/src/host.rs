@@ -50,7 +50,7 @@ impl Host for TestHost {
 ///
 /// Inputs:
 ///   Operand stack: [PK, MSG, ...]
-///   Advice stack: [SIGNATURE]
+///   Advice stack: \[ SIGNATURE \]
 ///
 /// Outputs:
 ///   Operand stack: [PK, MSG, ...]
