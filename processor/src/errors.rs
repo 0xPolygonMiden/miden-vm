@@ -58,8 +58,6 @@ pub enum ExecutionError {
         err_code: u32,
         err_msg: Option<String>,
     },
-    #[error("failed to generate signature: {0}")]
-    FailedSignatureGeneration(&'static str),
     #[error(
         "memory address {addr} in context {ctx} was read and written, or written twice, in the same clock cycle {clk}"
     )]
