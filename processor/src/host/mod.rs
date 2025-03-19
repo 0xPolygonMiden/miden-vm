@@ -209,13 +209,13 @@ impl<A: AdviceProvider> Host for DefaultHost<A> {
         self.store.get(node_digest)
     }
 
-    fn on_event(&mut self, process: ProcessState, event_id: u32) -> Result<(), ExecutionError> {
+    fn on_event(&mut self, _process: ProcessState, _event_id: u32) -> Result<(), ExecutionError> {
         #[cfg(feature = "std")]
         std::println!(
             "Event with id {} emitted at step {} in context {}",
-            event_id,
-            process.clk(),
-            process.ctx()
+            _event_id,
+            _process.clk(),
+            _process.ctx()
         );
         Ok(())
     }

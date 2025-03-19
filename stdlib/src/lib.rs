@@ -147,7 +147,10 @@ pub fn falcon_sign(
 }
 
 #[cfg(not(feature = "std"))]
-pub fn falcon_sign(_pk_sk: &[Felt], _msg: vm_core::Word) -> Option<alloc::vec::Vec<vm_core::Felt>> {
+pub fn falcon_sign(
+    _pk_sk: &[vm_core::Felt],
+    _msg: vm_core::Word,
+) -> Option<alloc::vec::Vec<vm_core::Felt>> {
     None
 }
 
