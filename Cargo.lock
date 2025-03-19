@@ -1274,6 +1274,7 @@ dependencies = [
  "miden-core",
  "miden-processor",
  "miden-prover",
+ "miden-stdlib",
  "miden-verifier",
  "pretty_assertions",
  "proptest",

@@ -1,3 +1,4 @@
+use processor::Host;
 use test_utils::{
     EMPTY_WORD, Felt, ONE, StarkField, Word, ZERO,
     crypto::{

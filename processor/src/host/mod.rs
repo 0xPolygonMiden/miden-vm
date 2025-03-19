@@ -210,14 +210,6 @@ impl<A: AdviceProvider> Host for DefaultHost<A> {
     }
 
     fn on_event(&mut self, process: ProcessState, event_id: u32) -> Result<(), ExecutionError> {
-        // We put this here since our `Test` struct uses DefaultHost instead of some other TestHost,
-        // and the main use case of `DefaultHost` is to be used in tests anyways.
-        #[cfg(any(test, feature = "testing"))]
-        if event_id == crate::utils::EVENT_FALCON_SIG_TO_STACK {
-            let advice_provider = self.advice_provider_mut();
-            return test::push_falcon_signature(advice_provider, process);
-        }
-
         #[cfg(feature = "std")]
         std::println!(
             "Event with id {} emitted at step {} in context {}",
@@ -225,51 +217,6 @@ impl<A: AdviceProvider> Host for DefaultHost<A> {
             process.clk(),
             process.ctx()
         );
-        Ok(())
-    }
-}
-
-// SIGNATURE EVENT HANDLER (TEST)
-// ================================================================================================
-
-#[cfg(any(test, feature = "testing"))]
-mod test {
-    use super::*;
-
-    /// Pushes values onto the advice stack which are required for verification of a DSA in Miden
-    /// VM.
-    ///
-    /// Inputs:
-    ///   Operand stack: [PK, MSG, ...]
-    ///   Advice stack: [SIGNATURE]
-    ///
-    /// Outputs:
-    ///   Operand stack: [PK, MSG, ...]
-    ///   Advice stack: [...]
-    ///
-    /// Where:
-    /// - PK is the digest of an expanded public.
-    /// - MSG is the digest of the message to be signed.
-    /// - SIGNATURE is the signature being verified.
-    ///
-    /// The advice provider is expected to contain the private key associated to the public key PK.
-    pub fn push_falcon_signature(
-        advice_provider: &mut impl AdviceProvider,
-        process: ProcessState,
-    ) -> Result<(), ExecutionError> {
-        let pub_key = process.get_stack_word(0);
-        let msg = process.get_stack_word(1);
-
-        let pk_sk = advice_provider
-            .get_mapped_values(&pub_key.into())
-            .ok_or(ExecutionError::AdviceMapKeyNotFound(pub_key))?;
-
-        let result = crate::utils::falcon_sign(pk_sk, msg)
-            .ok_or_else(|| ExecutionError::MalformedSignatureKey("RPO Falcon512"))?;
-
-        for r in result {
-            advice_provider.push_stack(crate::AdviceSource::Value(r))?;
-        }
         Ok(())
     }
 }

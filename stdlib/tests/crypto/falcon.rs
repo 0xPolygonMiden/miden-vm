@@ -2,10 +2,10 @@ use std::vec;
 
 use assembly::{Assembler, utils::Serializable};
 use miden_air::{Felt, ProvingOptions, RowIndex};
-use miden_stdlib::StdLibrary;
+use miden_stdlib::{EVENT_FALCON_SIG_TO_STACK, StdLibrary, falcon_sign};
 use processor::{
     AdviceInputs, DefaultHost, Digest, ExecutionError, MemAdviceProvider, Program, ProgramInfo,
-    StackInputs, crypto::RpoRandomCoin, utils::falcon_sign,
+    StackInputs, crypto::RpoRandomCoin,
 };
 use rand::{Rng, rng};
 use test_utils::{
@@ -264,11 +264,10 @@ fn generate_test(
     use.std::crypto::dsa::rpo_falcon512
 
     begin
-        emit.{}
+        emit.{EVENT_FALCON_SIG_TO_STACK}
         exec.rpo_falcon512::verify
     end
-    ",
-        test_utils::EVENT_FALCON_SIG_TO_STACK
+    "
     );
 
     let pk: Word = sk.public_key().into();
