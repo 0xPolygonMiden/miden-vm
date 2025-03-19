@@ -4,7 +4,7 @@
 
 use std::{boxed::Box, marker::PhantomData, time::Instant, vec::Vec};
 
-use air::{AuxRandElements, LagrangeKernelEvaluationFrame, PartitionOptions};
+use air::{AuxRandElements, PartitionOptions};
 use elsa::FrozenVec;
 use miden_gpu::{
     HashFn,
@@ -328,32 +328,6 @@ where
     /// Returns blowup factor which was used to extend the original execution trace into trace LDE.
     fn blowup(&self) -> usize {
         self.blowup
-    }
-
-    /// Populates the provided Lagrange kernel frame starting at the current row (as defined by
-    /// lde_step).
-    /// Note that unlike EvaluationFrame, the Lagrange kernel frame includes only the Lagrange
-    /// kernel column (as opposed to all columns).
-    fn read_lagrange_kernel_frame_into(
-        &self,
-        lde_step: usize,
-        col_idx: usize,
-        frame: &mut LagrangeKernelEvaluationFrame<E>,
-    ) {
-        if let Some(aux_segment) = self.aux_segment_lde.as_ref() {
-            let frame = frame.frame_mut();
-            frame.truncate(0);
-
-            frame.push(aux_segment.get(col_idx, lde_step));
-
-            let frame_length = self.trace_info.length().ilog2() as usize + 1;
-            for i in 0..frame_length - 1 {
-                let shift = self.blowup() * (1 << i);
-                let next_lde_step = (lde_step + shift) % self.trace_len();
-
-                frame.push(aux_segment.get(col_idx, next_lde_step));
-            }
-        }
     }
 
     /// Returns the trace info
