@@ -5,7 +5,7 @@ use miden_air::{Felt, ProvingOptions, RowIndex};
 use miden_stdlib::StdLibrary;
 use processor::{
     AdviceInputs, DefaultHost, Digest, ExecutionError, MemAdviceProvider, Program, ProgramInfo,
-    StackInputs, crypto::RpoRandomCoin,
+    StackInputs, crypto::RpoRandomCoin, utils::falcon_sign,
 };
 use rand::{Rng, rng};
 use test_utils::{
@@ -160,6 +160,56 @@ fn test_falcon512_probabilistic_product_failure() {
         ExecutionError::FailedAssertion{ clk, err_code, err_msg }
         if clk == RowIndex::from(3182) && err_code == 0 && err_msg.is_none()
     );
+}
+
+/// Similar to `falcon_execution` test, but with the `move_sig_to_adv_stack` operation.
+/// Specifically, we put the signature in the advice map ahead of time, call
+/// `move_sig_to_adv_stack`, and then proceed to `verify` the signature.
+#[test]
+fn test_move_sig_to_adv_stack() {
+    let seed = Word::default();
+    let mut rng = RpoRandomCoin::new(seed);
+    let secret_key = SecretKey::with_rng(&mut rng);
+    let message: Word = rand_vector::<Felt>(4).try_into().unwrap();
+
+    let source = "
+    use.std::crypto::dsa::rpo_falcon512
+
+    begin
+        exec.rpo_falcon512::move_sig_from_map_to_adv_stack
+        exec.rpo_falcon512::verify
+    end
+    ";
+
+    let public_key = {
+        let pk: Word = secret_key.public_key().into();
+        pk.into()
+    };
+    let secret_key_bytes = secret_key.to_bytes();
+
+    let advice_map: Vec<(Digest, Vec<Felt>)> = {
+        let sig_key = Rpo256::merge(&[message.into(), public_key]);
+        let sk_felts = secret_key_bytes.iter().map(|a| Felt::new(*a as u64)).collect::<Vec<Felt>>();
+        let signature = falcon_sign(&sk_felts, message).expect("failed to sign message");
+
+        vec![(sig_key, signature.iter().rev().cloned().collect())]
+    };
+
+    let op_stack = {
+        let mut op_stack = vec![];
+        let message = message.into_iter().map(|a| a.as_int()).collect::<Vec<u64>>();
+        op_stack.extend_from_slice(&message);
+        let pk_elements = public_key.as_elements().iter().map(|a| a.as_int()).collect::<Vec<u64>>();
+        op_stack.extend_from_slice(&pk_elements);
+
+        op_stack
+    };
+
+    let adv_stack = vec![];
+    let store = MerkleStore::new();
+
+    let test = build_test!(source, &op_stack, &adv_stack, store, advice_map.into_iter());
+    test.expect_stack(&[])
 }
 
 #[test]

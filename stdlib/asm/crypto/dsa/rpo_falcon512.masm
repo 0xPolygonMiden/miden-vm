@@ -648,3 +648,27 @@ export.verify.2560
     u32assert2 u32lt assert
     #=> [...]                                       (Cycles: 8)
 end
+
+# HELPERS
+# =============================================================================================
+
+#! Moves the signature from the advice map to the advice stack, where the signature is stored in
+#! the hashmap at key `hash(MSG || PK)`, where `hash()` is the RPO256 hash. The signature is
+#! expected to be stored in reverse order, so that it gets pushed on the advice stack in the
+#! correct order.
+#!
+#! Inputs:
+#!   Operand stack: [PK, MSG, ...]
+#!   Advice stack:  []
+#!   Advice map: hash(MSG || PK) -> SIGNATURE
+#! Outputs:
+#!   Operand stack: [PK, MSG, ...]
+#!   Advice stack:  [SIGNATURE]
+export.move_sig_from_map_to_adv_stack
+    dupw.1 dupw.1 hmerge
+    #=> [hash(MSG || PK), PK, MSG, ...]
+
+    adv.push_mapval dropw
+    #=> [PK, MSG, ...]
+    #=> advice stack: [SIGNATURE]
+end
