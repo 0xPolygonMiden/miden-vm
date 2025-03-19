@@ -16,9 +16,9 @@ use winter_fri::{
 
 use super::channel::{MidenFriVerifierChannel, UnBatch};
 
-const MAX_REMAINDER_POLY_DEGREE_LOG: usize = 7;
-const FRI_FOLDING_FACTOR_LOG: usize = 2;
-const BLOWUP_FACTOR_LOG: usize = 3;
+const MAX_REMAINDER_POLY_DEGREE: usize = 128;
+const FRI_FOLDING_FACTOR: usize = 4;
+const BLOWUP_FACTOR: usize = 8;
 const NUM_FRI_QUERIES: usize = 32;
 
 type AdvMap = Vec<(RpoDigest, Vec<Felt>)>;
@@ -58,12 +58,10 @@ pub struct FriResult {
 //  a FRI proof inside the Miden VM.
 //  The output is organized as follows:
 pub fn fri_prove_verify_fold4_ext2(trace_length_e: usize) -> Result<FriResult, VerifierError> {
-    let max_remainder_size_e = MAX_REMAINDER_POLY_DEGREE_LOG;
-    let folding_factor_e = FRI_FOLDING_FACTOR_LOG;
     let trace_length = 1 << trace_length_e;
-    let lde_blowup = 1 << BLOWUP_FACTOR_LOG;
-    let max_remainder_size = 1 << max_remainder_size_e;
-    let folding_factor = 1 << folding_factor_e;
+    let lde_blowup = BLOWUP_FACTOR;
+    let max_remainder_size = MAX_REMAINDER_POLY_DEGREE;
+    let folding_factor = FRI_FOLDING_FACTOR;
     let nonce = 0_u64;
 
     let options = FriOptions::new(lde_blowup, folding_factor, max_remainder_size);
@@ -189,8 +187,8 @@ impl FriVerifierFold4Ext2 {
         options: FriOptions,
         max_poly_degree: usize,
     ) -> Result<Self, VerifierError> {
-        assert_eq!(options.blowup_factor(), 1 << BLOWUP_FACTOR_LOG);
-        assert_eq!(options.folding_factor(), 1 << FRI_FOLDING_FACTOR_LOG);
+        assert_eq!(options.blowup_factor(), BLOWUP_FACTOR);
+        assert_eq!(options.folding_factor(), FRI_FOLDING_FACTOR);
 
         // infer evaluation domain info
         let domain_size = max_poly_degree.next_power_of_two() * options.blowup_factor();
@@ -283,7 +281,7 @@ impl FriVerifierFold4Ext2 {
         // read the remainder from the channel and make sure it matches with the columns
         // of the previous layer
         let remainder_commitment = self.layer_commitments.last().unwrap();
-        let remainder_poly = channel.read_remainder::<4>(remainder_commitment)?;
+        let remainder_poly = channel.read_remainder(remainder_commitment)?;
         let offset = Felt::GENERATOR;
         for &(final_pos, final_eval) in final_pos_eval.iter() {
             let comp_eval = eval_horner_rev(
@@ -313,7 +311,7 @@ fn iterate_query_fold_4_quad_ext(
     let mut cur_pos = position;
     let mut evaluation = *evaluation;
     let mut domain_size = initial_domain_size;
-    let domain_offset = Felt::GENERATOR;
+    let get_domain_offset = Felt::GENERATOR;
 
     let initial_domain_generator = *domain_generator;
     let norm_cst = Felt::get_root_of_unity(2).inv();
@@ -327,7 +325,7 @@ fn iterate_query_fold_4_quad_ext(
 
     let mut alphas = vec![];
     for depth in 0..number_of_layers {
-        let target_domain_size = domain_size / (1 << FRI_FOLDING_FACTOR_LOG);
+        let target_domain_size = domain_size / FRI_FOLDING_FACTOR;
 
         let folded_pos = cur_pos % target_domain_size;
 
@@ -363,7 +361,7 @@ fn iterate_query_fold_4_quad_ext(
             1 => init_exp * norm_cst,
             2 => init_exp * (norm_cst * norm_cst),
             _ => init_exp * (norm_cst * norm_cst * norm_cst),
-        } * domain_offset;
+        } * get_domain_offset;
 
         init_exp = init_exp * init_exp * init_exp * init_exp;
 
@@ -391,9 +389,9 @@ fn iterate_query_fold_4_quad_ext(
         alphas.push(0);
         alphas.push(0);
 
-        *domain_generator = (*domain_generator).exp(((1 << FRI_FOLDING_FACTOR_LOG) as u32).into());
+        *domain_generator = (*domain_generator).exp((FRI_FOLDING_FACTOR as u32).into());
         cur_pos = folded_pos;
-        domain_size /= 1 << FRI_FOLDING_FACTOR_LOG;
+        domain_size /= FRI_FOLDING_FACTOR;
     }
 
     Ok((cur_pos, evaluation, position_evaluation, alphas))

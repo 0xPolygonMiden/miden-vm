@@ -103,12 +103,6 @@ const.TMP1=4294913256
 const.TMP2=4294913260
 const.TMP3=4294913264
 const.TMP4=4294913268
-const.TMP5=4294913272
-const.TMP6=4294913276
-const.TMP7=4294913280
-const.TMP8=4294913284
-const.TMP9=4294913288
-const.TMP10=4294913292
 
 # RPO state capacity portion initialization words. In theory, we need a variant for each possible 
 # remainder modulo 8 but in practice we only need the following:
@@ -175,12 +169,6 @@ const.ALPHA_POWER_85_1_PTR=4294903445
 #   | TMP2                                     |       4294913260        |
 #   | TMP3                                     |       4294913264        |
 #   | TMP4                                     |       4294913268        |
-#   | TMP5                                     |       4294913272        |
-#   | TMP6                                     |       4294913276        |
-#   | TMP7                                     |       4294913280        |
-#   | TMP8                                     |       4294913284        |
-#   | TMP9                                     |       4294913288        |
-#   | TMP10                                    |       4294913292        |
 #   | ZERO_ZERO_ZERO_FOUR_PTR                  |       4294913400        |
 #   | ZERO_ZERO_ZERO_FIVE_PTR                  |       4294913404        |
 #   | ZERO_ZERO_ZERO_SIX_PTR                   |       4294913408        |
@@ -203,55 +191,6 @@ const.ALPHA_POWER_85_1_PTR=4294903445
 
 # ACCESSORS
 # =================================================================================================
-
-export.root_unity
-    push.ROOT_UNITY
-end
-
-export.num_aux_trace_coefs
-    push.NUM_AUX_TRACE_COEFS
-end
-
-export.get_num_constraints
-    push.NUM_CONSTRAINTS
-end
-
-# Procedure to push the trace domain generator address to the stack.
-#
-# Input: [...]
-# Output: [ptr, ...] wher ptr is the memory address of the trace domain generator
-# Cycles: 1
-export.trace_domain_generator_ptr
-    push.TRACE_DOMAIN_GENERATOR_PTR
-end
-
-export.set_trace_domain_generator
-    push.TRACE_DOMAIN_GENERATOR_PTR mem_store
-end
-
-export.get_trace_domain_generator
-    push.TRACE_DOMAIN_GENERATOR_PTR mem_load
-end
-
-export.domain_offset
-    push.DOMAIN_OFFSET
-end
-
-export.domain_offset_inv
-    push.DOMAIN_OFFSET_INV
-end
-
-export.lde_domain_generator_ptr
-    push.LDE_DOMAIN_GEN_PTR
-end
-
-export.set_lde_domain_generator
-    push.LDE_DOMAIN_GEN_PTR mem_store
-end
-
-export.get_lde_domain_generator
-    push.LDE_DOMAIN_GEN_PTR mem_load
-end
 
 export.public_inputs_ptr
     push.PUBLIC_INPUTS_PTR
@@ -301,131 +240,104 @@ export.composition_poly_com_ptr
     push.COMPOSITION_POLY_COM_PTR
 end
 
-#! Address to store details about the lde size.
-#!
-#! Memory is `[lde_size, log(lde_size), lde_g, 0]`
-export.lde_domain_info_ptr
-    push.LDE_DOMAIN_INFO_PTR
-end
-
-export.set_lde_domain_info
-    push.LDE_DOMAIN_INFO_PTR mem_storew
-end
-
-export.get_lde_domain_info
-    push.LDE_DOMAIN_INFO_PTR mem_loadw
-end
-
 #! Address for the point `z` and its exponentiation `z^N` where `N=trace_len`.
 #!
-#! Memory is `[(z_1, z_0)^n, z_1, z_0]`
+#! The word stored is `[z_0, z_1, z^n_0, z^n_1]`.
 export.z_ptr
     push.Z_PTR
 end
 
-export.number_queries_ptr
-    push.NUM_QUERIES_PTR
-end
-
-export.set_number_queries
-    push.NUM_QUERIES_PTR mem_store
-end
-
-export.get_number_queries
-    push.NUM_QUERIES_PTR mem_load
-end
-
-export.remainder_poly_size_ptr
-    push.REMAINDER_POLY_SIZE_PTR
-end
-
-export.set_remainder_poly_size
-    push.REMAINDER_POLY_SIZE_PTR mem_store
-end
-
-export.get_remainder_poly_size
-    push.REMAINDER_POLY_SIZE_PTR mem_load
-end
-
-export.num_fri_layers_ptr
-    push.NUM_FRI_LAYERS_PTR
-end
-
-export.set_num_fri_layers
-    push.NUM_FRI_LAYERS_PTR mem_store
-end
-
-export.get_num_fri_layers
-    push.NUM_FRI_LAYERS_PTR mem_load
-end
-
-export.remainder_poly_address_ptr
-    push.REMAINDER_POLY_ADDRESS_PTR
-end
-
-export.set_remainder_poly_address
-    push.REMAINDER_POLY_ADDRESS_PTR mem_store
-end
-
-export.get_remainder_poly_address
-    push.REMAINDER_POLY_ADDRESS_PTR mem_load
-end
-
-export.fri_queries_address_ptr
-    push.FRI_QUERIES_ADDRESS_PTR
-end
-
-export.set_fri_queries_address
-    push.FRI_QUERIES_ADDRESS_PTR mem_store
-end
-
-export.get_fri_queries_address
-    push.FRI_QUERIES_ADDRESS_PTR mem_load
-end
-
-export.trace_length_ptr
-    push.TRACE_LENGTH_PTR
-end
-
-export.trace_length_log_ptr
-    push.TRACE_LENGTH_LOG_PTR
-end
-
-export.grinding_factor_ptr
-    push.GRINDING_FACTOR_PTR
-end
-
-export.zero_word
-    push.ZERO_WORD_PTR
-end
-
-#! Returns the pointer to the capacity word of the random coin.
-#!
-#! Note: The random coin is implemented using a hash function, this returns the
-#! capacity portion of the RPO.
+#! Returns the pointer to the capacity word of the RPO-based random coin.
 export.c_ptr
     push.C_PTR
 end
 
-#! Returns the pointer to the first rate word of the random coin.
-#!
-#! Note: The random coin is implemented using a hash function, this returns the
-#! first rate word of the RPO.
+#! Returns the pointer to the first rate word of the RPO-based random coin.
 export.r1_ptr
     push.R1_PTR
 end
 
-#! Returns the pointer to the second rate word of the random coin.
-#!
-#! Note: The random coin is implemented using a hash function, this returns the
-#! second rate word of the RPO.
+#! Returns the pointer to the second rate word of the RPO-based random coin.
 export.r2_ptr
     push.R2_PTR
 end
 
-#! Address to store details to compute deep query denominators.
-#!
-#! Memory is `[gz1, gz0, z_1, z_0]`
+export.zero_word_ptr
+    push.ZERO_WORD_PTR
+end
+
+export.zero_zero_zero_four_word_ptr
+    push.ZERO_ZERO_ZERO_FOUR_PTR
+end
+
+export.zero_zero_zero_five_word_ptr
+    push.ZERO_ZERO_ZERO_FIVE_PTR
+end
+
+export.zero_zero_zero_six_word_ptr
+    push.ZERO_ZERO_ZERO_SIX_PTR
+end
+
+export.zero_zero_zero_seven_word_ptr
+    push.ZERO_ZERO_ZERO_SEVEN_PTR
+end
+
+export.deep_rand_alpha_inv_ptr
+    push.ALPHA_INV
+end
+
+export.deep_rand_alpha_1_ptr
+    push.ALPHA_POWER_1_PTR
+end
+
+export.deep_rand_alpha_2_ptr
+    push.ALPHA_POWER_2_PTR
+end
+
+export.deep_rand_alpha_3_ptr
+    push.ALPHA_POWER_3_PTR
+end
+
+export.deep_rand_alpha_4_ptr
+    push.ALPHA_POWER_4_PTR
+end
+
+export.deep_rand_alpha_5_ptr
+    push.ALPHA_POWER_5_PTR
+end
+
+export.deep_rand_alpha_6_ptr
+    push.ALPHA_POWER_6_PTR
+end
+
+export.deep_rand_alpha_7_ptr
+    push.ALPHA_POWER_7_PTR
+end
+
+export.deep_rand_alpha_77_ptr
+    push.ALPHA_POWER_77_PTR
+end
+
+export.deep_rand_alpha_77_0_ptr
+    push.ALPHA_POWER_77_0_PTR
+end
+
+export.deep_rand_alpha_77_1_ptr
+    push.ALPHA_POWER_77_1_PTR
+end
+
+export.deep_rand_alpha_85_ptr
+    push.ALPHA_POWER_85_PTR
+end
+
+export.deep_rand_alpha_85_0_ptr
+    push.ALPHA_POWER_85_0_PTR
+end
+
+export.deep_rand_alpha_85_1_ptr
+    push.ALPHA_POWER_85_1_PTR
+end
+
 export.tmp1
     push.TMP1
 end
@@ -442,102 +354,116 @@ export.tmp4
     push.TMP4
 end
 
-export.tmp5
-    push.TMP5
+#! Store details about the LDE domain.
+#!
+#! The info stored is `[lde_size, log(lde_size), lde_g, 0]`.
+export.set_lde_domain_info_word
+    push.LDE_DOMAIN_INFO_PTR mem_storew
 end
 
-export.tmp6
-    push.TMP6
+#! Load details about the LDE domain.
+#!
+#! The info stored is `[lde_size, log(lde_size), lde_g, 0]`.
+export.get_lde_domain_info_word
+    push.LDE_DOMAIN_INFO_PTR mem_loadw
 end
 
-export.tmp7
-    push.TMP7
+export.get_root_unity
+    push.ROOT_UNITY
 end
 
-export.tmp8
-    push.TMP8
+export.get_num_aux_trace_coefs
+    push.NUM_AUX_TRACE_COEFS
 end
 
-export.tmp9
-    push.TMP9
+export.get_domain_offset
+    push.DOMAIN_OFFSET
 end
 
-export.tmp10
-    push.TMP10
+export.get_domain_offset_inv
+    push.DOMAIN_OFFSET_INV
 end
 
-export.zero_zero_zero_four_word
-    push.ZERO_ZERO_ZERO_FOUR_PTR
+export.get_num_constraints
+    push.NUM_CONSTRAINTS
 end
 
-export.zero_zero_zero_five_word
-    push.ZERO_ZERO_ZERO_FIVE_PTR
+export.set_trace_domain_generator
+    push.TRACE_DOMAIN_GENERATOR_PTR mem_store
 end
 
-export.zero_zero_zero_six_word
-    push.ZERO_ZERO_ZERO_SIX_PTR
+export.get_trace_domain_generator
+    push.TRACE_DOMAIN_GENERATOR_PTR mem_load
 end
 
-export.zero_zero_zero_seven_word
-    push.ZERO_ZERO_ZERO_SEVEN_PTR
+export.set_lde_domain_generator
+    push.LDE_DOMAIN_GEN_PTR mem_store
 end
 
-export.deep_rand_alpha_inv
-    push.ALPHA_INV
+export.get_lde_domain_generator
+    push.LDE_DOMAIN_GEN_PTR mem_load
 end
 
-export.ood_constraint_evals_next_ptr
-    push.OOD_TRACE_NEXT_PTR
+export.set_number_queries
+    push.NUM_QUERIES_PTR mem_store
 end
 
-export.deep_rand_alpha_1
-    push.ALPHA_POWER_1_PTR
+export.get_number_queries
+    push.NUM_QUERIES_PTR mem_load
 end
 
-export.deep_rand_alpha_2
-    push.ALPHA_POWER_2_PTR
+export.set_remainder_poly_size
+    push.REMAINDER_POLY_SIZE_PTR mem_store
 end
 
-export.deep_rand_alpha_3
-    push.ALPHA_POWER_3_PTR
+export.get_remainder_poly_size
+    push.REMAINDER_POLY_SIZE_PTR mem_load
 end
 
-export.deep_rand_alpha_4
-    push.ALPHA_POWER_4_PTR
+export.set_num_fri_layers
+    push.NUM_FRI_LAYERS_PTR mem_store
 end
 
-export.deep_rand_alpha_5
-    push.ALPHA_POWER_5_PTR
+export.get_num_fri_layers
+    push.NUM_FRI_LAYERS_PTR mem_load
 end
 
-export.deep_rand_alpha_6
-    push.ALPHA_POWER_6_PTR
+export.set_remainder_poly_address
+    push.REMAINDER_POLY_ADDRESS_PTR mem_store
 end
 
-export.deep_rand_alpha_7
-    push.ALPHA_POWER_7_PTR
+export.get_remainder_poly_address
+    push.REMAINDER_POLY_ADDRESS_PTR mem_load
 end
 
-export.deep_rand_alpha_77
-    push.ALPHA_POWER_77_PTR
+export.set_fri_queries_address
+    push.FRI_QUERIES_ADDRESS_PTR mem_store
 end
 
-export.deep_rand_alpha_77_0
-    push.ALPHA_POWER_77_0_PTR
+export.get_fri_queries_address
+    push.FRI_QUERIES_ADDRESS_PTR mem_load
 end
 
-export.deep_rand_alpha_77_1
-    push.ALPHA_POWER_77_1_PTR
+export.set_trace_length
+    push.TRACE_LENGTH_PTR mem_store
 end
 
-export.deep_rand_alpha_85
-    push.ALPHA_POWER_85_PTR
+export.get_trace_length
+    push.TRACE_LENGTH_PTR mem_load
 end
 
-export.deep_rand_alpha_85_0
-    push.ALPHA_POWER_85_0_PTR
+export.set_trace_length_log
+    push.TRACE_LENGTH_LOG_PTR mem_store
 end
 
-export.deep_rand_alpha_85_1
-    push.ALPHA_POWER_85_1_PTR
+export.get_trace_length_log
+    push.TRACE_LENGTH_LOG_PTR mem_load
+end
+
+export.set_grinding_factor
+    push.GRINDING_FACTOR_PTR mem_store
+end
+
+export.get_grinding_factor
+    push.GRINDING_FACTOR_PTR mem_load
 end

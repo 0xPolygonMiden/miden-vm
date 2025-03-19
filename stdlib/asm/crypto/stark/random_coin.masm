@@ -82,21 +82,21 @@ end
 export.init_seed
 
     # Save the parameters in memory for later use
-    dup exec.constants::trace_length_log_ptr mem_store
-    dup.1 exec.constants::number_queries_ptr mem_store
-    dup.3 exec.constants::grinding_factor_ptr mem_store
+    dup exec.constants::set_trace_length_log
+    dup.1 exec.constants::set_number_queries
+    dup.3 exec.constants::set_grinding_factor
 
     # Pre-load constants used by hperm into memory and initialize the state of the random coin to zeros.
     # Since memory beyond 3 * 2^30 does not have any special meaning, we can use the memory region
     # starting from address 2^32 - 1 in decreasing order to hold constants that are used throughout
     # the `verify` procedure.
     padw
-    exec.constants::zero_word mem_storew
+    exec.constants::zero_word_ptr mem_storew
     exec.constants::c_ptr mem_storew
     exec.constants::r1_ptr mem_storew
     exec.constants::r2_ptr mem_storew
-    push.6 swap.4 drop exec.constants::zero_zero_zero_six_word mem_storew
-    push.7 swap.4 drop exec.constants::zero_zero_zero_seven_word mem_storew
+    push.6 swap.4 drop exec.constants::zero_zero_zero_six_word_ptr mem_storew
+    push.7 swap.4 drop exec.constants::zero_zero_zero_seven_word_ptr mem_storew
     dropw
     #=> [log(trace_length), num_queries, log(blowup), grinding]
 
@@ -110,7 +110,7 @@ export.init_seed
     #=> [trace_length, log(trace_length), num_queries, log(blowup), grinding]
 
     ## Save the trace length and its log to memory
-    dup.0 exec.constants::trace_length_ptr mem_store
+    dup.0 exec.constants::set_trace_length
 
     ## Assert blowup is equal to 8
     swap
@@ -142,7 +142,7 @@ export.init_seed
     #=> [lde_size, log(lde_size), lde_g, 0, trace_length, num_queries, blowup, grinding]
 
     # Save `[lde_size, log(lde_size), lde_g, 0]`
-    exec.constants::set_lde_domain_info
+    exec.constants::set_lde_domain_info_word
     #=> [lde_size, log(lde_size), lde_g, 0, trace_length, num_queries, blowup, grinding]
 
     # clean stack
@@ -324,7 +324,7 @@ end
 #! Cycles: 159
 export.generate_aux_randomness
     exec.constants::aux_rand_elem_ptr
-    exec.constants::num_aux_trace_coefs swap
+    exec.constants::get_num_aux_trace_coefs swap
     exec.generate_random_coefficients
     #=> [...]
 end
@@ -371,7 +371,7 @@ export.generate_z_zN
     # Load z (first two felts of the random coin state) and log trace length N
     exec.constants::r1_ptr mem_loadw
     drop drop
-    exec.constants::trace_length_log_ptr mem_load
+    exec.constants::get_trace_length_log
     # => [log(trace_len), z_1, z_0, ...]
 
     dup.2 dup.2
@@ -529,11 +529,11 @@ end
 #! NOTE: The cycles count can be estimated, using the fact that r < 8, via the more compact formula
 #!  470 + 236 * (num_queries / 8)
 export.generate_list_indices
-    exec.constants::number_queries_ptr mem_load
+    exec.constants::get_number_queries
     exec.constants::get_fri_queries_address
     # Create mask
     padw
-    exec.constants::get_lde_domain_info
+    exec.constants::get_lde_domain_info_word
     movup.2 drop
     movup.2 drop
     sub.1
@@ -681,7 +681,7 @@ end
 #! Cycles: 73
 export.check_pow
     # Load the grinding factor
-    exec.constants::grinding_factor_ptr mem_load
+    exec.constants::get_grinding_factor
 
     # Compute the mask.
     pow2

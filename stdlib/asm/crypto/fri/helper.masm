@@ -10,11 +10,11 @@ use.std::crypto::stark::constants
 #! Cycles: 77
 export.generate_fri_parameters
     # Load FRI verifier data
-    padw exec.constants::get_lde_domain_info
+    padw exec.constants::get_lde_domain_info_word
     #=> [lde_size, log(lde_size), lde_g, 0, ...] (6 cycles)
 
-    # Store in `TMP5` in order to use it for fri layer loading
-    exec.constants::tmp5 mem_storew
+    # Store temporarily in order to use it for FRI layer loading
+    exec.constants::tmp1 mem_storew
 
     # Compute [gz1, gz0, z1, z0] using domain generator
     # TODO: move to somewhere else
@@ -117,7 +117,7 @@ export.load_fri_layer_commitments
         exec.random_coin::get_rate_1
         #=> [R1, ZERO, num_layers, ptr_layer + 4, y, y, ... ]
         push.0.0
-        exec.constants::tmp5 mem_loadw
+        exec.constants::tmp1 mem_loadw
         # => [lde_size, log2(lde_size), lde_generator, 0, a1, a0, Y, num_layers, ptr_layer + 4, y, y, ...]
 
         # Compute and save to memory new lde_size and its new logarithm
@@ -125,7 +125,7 @@ export.load_fri_layer_commitments
         swap
         sub.2
         swap
-        exec.constants::tmp5 mem_storew
+        exec.constants::tmp1 mem_storew
 
         # Move the pointer higher up the stack
         movup.2 drop
@@ -167,7 +167,7 @@ export.load_and_verify_remainder
     # Load remainder commitment and save it at `TMP7`
     push.0.0.0.0
     adv_loadw
-    exec.constants::tmp7 mem_storew
+    exec.constants::tmp1 mem_storew
     #=> [COM, ...]
 
     # Reseed with remainder commitment
@@ -203,7 +203,7 @@ export.load_and_verify_remainder
         end
 
         # Compare Remainder_poly_com with the read commitment
-        exec.constants::tmp7 mem_loadw
+        exec.constants::tmp1 mem_loadw
         movup.4
         assert_eq
         movup.3
@@ -226,7 +226,7 @@ export.load_and_verify_remainder
         # => [Y, Remainder_poly_com, Y, remainder_poly_ptr, remainder_size, y, y]
 
         # Compare Remainder_poly_com with the read commitment
-        exec.constants::tmp7 mem_loadw
+        exec.constants::tmp1 mem_loadw
         movup.4
         assert_eq
         movup.3

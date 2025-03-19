@@ -68,7 +68,7 @@ where
         self.layer_commitments.drain(..).collect()
     }
 
-    pub fn read_remainder<const N: usize>(
+    pub fn read_remainder(
         &mut self,
         expected_commitment: &<H as HasherTrait>::Digest,
     ) -> Result<Vec<E>, VerifierError> {
