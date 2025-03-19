@@ -578,6 +578,7 @@ end
 #! Verifies a signature against a public key and a message. The procedure gets as inputs the hash
 #! of the public key and the hash of the message via the operand stack. The signature is expected 
 #! to be present on the advice stack.
+#!
 #! The signature is valid if and only if the procedure returns.
 #!
 #! Inputs:

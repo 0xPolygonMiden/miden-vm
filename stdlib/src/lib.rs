@@ -58,8 +58,9 @@ impl Default for StdLibrary {
 /// This event is used for testing purposes only.
 pub const EVENT_FALCON_SIG_TO_STACK: u32 = 3419226139;
 
-/// Gets as input a vector containing a secret key, and a word representing a message and outputs a
-/// vector of values to be pushed onto the advice stack.
+/// Signs the provided message with the provided secret key and returns the resulting signature
+/// encoded in the format required by the rpo_faclcon512::verify procedure, or `None` if the secret
+/// key is malformed due to either incorrect length or failed decoding.
 ///
 /// The values are the ones required for a Falcon signature verification inside the VM and they are:
 ///
@@ -71,12 +72,6 @@ pub const EVENT_FALCON_SIG_TO_STACK: u32 = 3419226139;
 /// 4. The product of the above two polynomials in the ring of polynomials with coefficients in the
 ///    Miden field.
 /// 5. The nonce represented as 8 field elements.
-///
-/// # Return
-///
-/// Signs the provided message with the provided secret key and returns the resulting signature
-/// encoded in the format required by the rpo_faclcon512::verify procedure, or `None` if the secret
-/// key is malformed due to either incorrect length or failed decoding.
 #[cfg(feature = "std")]
 pub fn falcon_sign(
     sk: &[vm_core::Felt],

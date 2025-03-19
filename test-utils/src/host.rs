@@ -15,6 +15,14 @@ impl TestHost {
         self.0.load_mast_forest(mast_forest)
     }
 
+    pub fn advice_provider(&self) -> &MemAdviceProvider {
+        self.0.advice_provider()
+    }
+
+    pub fn advice_provider_mut(&mut self) -> &mut MemAdviceProvider {
+        self.0.advice_provider_mut()
+    }
+
     pub fn into_inner(self) -> MemAdviceProvider {
         self.0.into_inner()
     }
