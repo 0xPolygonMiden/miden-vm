@@ -30,7 +30,8 @@ pub const EVENT_FALCON_SIG_TO_STACK: u32 = 3419226139;
 ///
 /// # Return
 ///
-/// Returns a vector of field elements to be pushed onto the advice stack, or `None` if the secret
+/// Signs the provided message with the provided secret key and returns the resulting signature
+/// encoded in the format required by the rpo_faclcon512::verify procedure, or `None` if the secret
 /// key is malformed due to either incorrect length or failed decoding.
 #[cfg(feature = "std")]
 pub fn falcon_sign(sk: &[Felt], msg: vm_core::Word) -> Option<Vec<Felt>> {

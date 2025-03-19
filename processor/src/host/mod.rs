@@ -210,6 +210,8 @@ impl<A: AdviceProvider> Host for DefaultHost<A> {
     }
 
     fn on_event(&mut self, process: ProcessState, event_id: u32) -> Result<(), ExecutionError> {
+        // We put this here since our `Test` struct uses DefaultHost instead of some other TestHost,
+        // and the main use case of `DefaultHost` is to be used in tests anyways.
         #[cfg(any(test, feature = "testing"))]
         if event_id == crate::utils::EVENT_FALCON_SIG_TO_STACK {
             let advice_provider = self.advice_provider_mut();
@@ -239,16 +241,16 @@ mod test {
     ///
     /// Inputs:
     ///   Operand stack: [PK, MSG, ...]
-    ///   Advice stack: [...]
+    ///   Advice stack: [SIGNATURE]
     ///
     /// Outputs:
     ///   Operand stack: [PK, MSG, ...]
-    ///   Advice stack: \[DATA\]
+    ///   Advice stack: [...]
     ///
     /// Where:
     /// - PK is the digest of an expanded public.
     /// - MSG is the digest of the message to be signed.
-    /// - DATA is the needed data for signature verification in the VM.
+    /// - SIGNATURE is the signature being verified.
     ///
     /// The advice provider is expected to contain the private key associated to the public key PK.
     pub fn push_falcon_signature(

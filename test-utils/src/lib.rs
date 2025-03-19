@@ -66,25 +66,6 @@ pub type QuadFelt = vm_core::QuadExtension<Felt>;
 // CONSTANTS
 // ================================================================================================
 
-/// The event ID for the event where we push the falcon signature on the advice stack.
-///
-/// Pushes values onto the advice stack which are required for verification of a DSA in Miden
-/// VM.
-///
-/// Inputs:
-///   Operand stack: [PK, MSG, ...]
-///   Advice stack: [...]
-///
-/// Outputs:
-///   Operand stack: [PK, MSG, ...]
-///   Advice stack: \[DATA\]
-///
-/// Where:
-/// - PK is the digest of an expanded public.
-/// - MSG is the digest of the message to be signed.
-/// - DATA is the needed data for signature verification in the VM.
-///
-/// The advice provider is expected to contain the private key associated to the public key PK.
 /// A value just over what a [u32] integer can hold.
 pub const U32_BOUND: u64 = u32::MAX as u64 + 1;
 

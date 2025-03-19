@@ -582,7 +582,7 @@ end
 #!
 #! Inputs:
 #!   Operand stack: [PK, MSG, ...]
-#!   Advice stack:  [SIG, tau0, tau1, h_0, ..., h_511, s2_0, ..., s2_511, pi_0, ..., pi_1022, nonce0, ..., nonce7]
+#!   Advice stack:  [SIGNATURE]
 #! Outputs:
 #!   Operand stack: []
 #!   Advice stack:  []

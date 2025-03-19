@@ -175,7 +175,6 @@ fn falcon_execution() {
 }
 
 #[test]
-#[ignore]
 fn falcon_prove_verify() {
     let sk = SecretKey::new();
     let message = rand_vector::<Felt>(4).try_into().unwrap();
