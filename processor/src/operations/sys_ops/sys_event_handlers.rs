@@ -316,17 +316,41 @@ pub fn push_u64_div_result(
     advice_provider: &mut impl AdviceProvider,
     process: ProcessState,
 ) -> Result<(), ExecutionError> {
-    let divisor_hi = process.get_stack_item(0).as_int();
-    let divisor_lo = process.get_stack_item(1).as_int();
-    let divisor = (divisor_hi << 32) + divisor_lo;
+    let divisor = {
+        let divisor_hi = process.get_stack_item(0).as_int();
+        let divisor_lo = process.get_stack_item(1).as_int();
 
-    if divisor == 0 {
-        return Err(ExecutionError::DivideByZero(process.clk()));
-    }
+        // Ensure the divisor is a pair of u32 values
+        if divisor_hi > u32::MAX.into() {
+            return Err(ExecutionError::NotU32Value(Felt::new(divisor_hi), ZERO));
+        }
+        if divisor_lo > u32::MAX.into() {
+            return Err(ExecutionError::NotU32Value(Felt::new(divisor_lo), ZERO));
+        }
 
-    let dividend_hi = process.get_stack_item(2).as_int();
-    let dividend_lo = process.get_stack_item(3).as_int();
-    let dividend = (dividend_hi << 32) + dividend_lo;
+        let divisor = (divisor_hi << 32) + divisor_lo;
+
+        if divisor == 0 {
+            return Err(ExecutionError::DivideByZero(process.clk()));
+        }
+
+        divisor
+    };
+
+    let dividend = {
+        let dividend_hi = process.get_stack_item(2).as_int();
+        let dividend_lo = process.get_stack_item(3).as_int();
+
+        // Ensure the dividend is a pair of u32 values
+        if dividend_hi > u32::MAX.into() {
+            return Err(ExecutionError::NotU32Value(Felt::new(dividend_hi), ZERO));
+        }
+        if dividend_lo > u32::MAX.into() {
+            return Err(ExecutionError::NotU32Value(Felt::new(dividend_lo), ZERO));
+        }
+
+        (dividend_hi << 32) + dividend_lo
+    };
 
     let quotient = dividend / divisor;
     let remainder = dividend - quotient * divisor;

@@ -444,8 +444,7 @@ fn ensure_div_doesnt_crash() {
     let (dividend_hi, dividend_lo) = (0, 1);
     let (divisor_hi, divisor_lo) = (u32::MAX as u64, u32::MAX as u64 + 1);
 
-    let test =
-        build_test!(source, &[dividend_lo, dividend_hi, divisor_lo, divisor_hi]);
+    let test = build_test!(source, &[dividend_lo, dividend_hi, divisor_lo, divisor_hi]);
     let err = test.execute();
     match err {
         Ok(_) => panic!("expected an error"),
@@ -457,8 +456,7 @@ fn ensure_div_doesnt_crash() {
     let (dividend_hi, dividend_lo) = (u32::MAX as u64, u32::MAX as u64 + 1);
     let (divisor_hi, divisor_lo) = (0, 1);
 
-    let test =
-        build_test!(source, &[dividend_lo, dividend_hi, divisor_lo, divisor_hi]);
+    let test = build_test!(source, &[dividend_lo, dividend_hi, divisor_lo, divisor_hi]);
     let err = test.execute();
     match err {
         Ok(_) => panic!("expected an error"),
