@@ -430,7 +430,7 @@ fn unchecked_div() {
 }
 
 /// The `U64Div` event handler is susceptible to crashing the processor if we don't ensure that the
-/// divisor and dividend limbs aren't proper u32 values.
+/// divisor and dividend limbs are proper u32 values.
 #[test]
 fn ensure_div_doesnt_crash() {
     let source = "
