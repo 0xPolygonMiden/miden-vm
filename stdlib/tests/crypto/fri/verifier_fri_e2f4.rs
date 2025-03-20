@@ -27,7 +27,8 @@ pub struct FriResult {
     /// A vector containing the Merkle authentication paths used to authenticate the queries.
     pub partial_trees: Vec<PartialMerkleTree>,
 
-    /// A map used to unhash Merkle nodes to a sequence of field elements representing the query-values.
+    /// A map used to unhash Merkle nodes to a sequence of field elements representing the
+    /// query-values.
     pub advice_maps: AdvMap,
 
     /// A vector of consecutive quadruples of the form (poe, p, e1, e0) where p is index of the
