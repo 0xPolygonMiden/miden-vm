@@ -2958,9 +2958,9 @@ dependencies = [
 
 [[package]]
 name = "winter-fri"
-version = "0.12.0"
+version = "0.12.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e4d09d5ac254ac54028ac04751d7ae0cbeb111c6cb08cc30c6400ff61b3203bd"
+checksum = "32b346b0eea2292986a1193bfc70dd2dbcdbb6adb3e5110b71d18c6f1077df10"
 dependencies = [
  "winter-crypto",
  "winter-math",

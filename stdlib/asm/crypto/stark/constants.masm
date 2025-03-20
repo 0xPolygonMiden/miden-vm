@@ -354,6 +354,10 @@ export.tmp4
     push.TMP4
 end
 
+export.zeroize_stack_word
+    exec.zero_word_ptr mem_loadw
+end
+
 #! Store details about the LDE domain.
 #!
 #! The info stored is `[lde_size, log(lde_size), lde_g, 0]`.

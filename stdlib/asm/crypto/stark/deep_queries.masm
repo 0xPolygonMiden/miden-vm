@@ -230,7 +230,7 @@ proc.compute_q_z_p_gz_at_alpha
     ### i) Process the last 2 extension field elements
     movdnw.2
     # => [h7`, h6`, h5`, h4`, h15`, h14`, h13`, h12`, h11`, h10`, h9`, h8`, U, ...]    
-    exec.constants::zero_word_ptr mem_loadw
+    exec.constants::zeroize_stack_word
     horner_eval_ext
     # => [Y, Y, Y, ptr_ood, ptr_alpha, acc1, acc0, ...]
 
@@ -281,7 +281,7 @@ proc.compute_q_z_p_gz_at_alpha
     ## 3) Load and process the last 2 extension field elements. 
     ##    We use `mem_stream` but we will discard the last 4 field elements.
     mem_stream
-    exec.constants::zero_word_ptr mem_loadw
+    exec.constants::zeroize_stack_word
     horner_eval_ext
 
     ## 5) Multiply the accumulator by the adjustment factor in order to get P^gz(alpha)

@@ -37,7 +37,7 @@ export.load
     # 3) Load the kernel procedures digests
     # TODO: Support non-empty kernels
     swapw
-    exec.constants::zero_word_ptr mem_loadw
+    exec.constants::zeroize_stack_word
     hperm
 
     exec.rpo::squeeze_digest
