@@ -44,9 +44,9 @@ lint: format fix clippy ## Runs all linting tasks at once (Clippy, fixing, forma
 doc: ## Generates & checks documentation
 	$(WARNINGS) cargo doc ${ALL_FEATURES_BUT_ASYNC} --keep-going --release
 
-.PHONY: mdbook
-mdbook: ## Generates mdbook documentation
-	mdbook build docs/
+.PHONY: book
+book: ## Builds the book & serves documentation site
+	mdbook serve --open docs
 
 # --- testing -------------------------------------------------------------------------------------
 
