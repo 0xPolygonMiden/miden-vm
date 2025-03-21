@@ -1,13 +1,13 @@
-use alloc::{borrow::Borrow, string::ToString, vec::Vec};
+use alloc::{borrow::Borrow, vec::Vec};
 
 use vm_core::{
-    AssemblyOp, Decorator, Operation,
+    Decorator, Operation,
     mast::{DecoratorId, MastNodeId},
     sys_events::SystemEvent,
 };
 
-use super::{BodyWrapper, DecoratorList, ProcedureContext, mast_forest_builder::MastForestBuilder};
-use crate::{AssemblyError, Span, ast::Instruction};
+use super::{BodyWrapper, DecoratorList, mast_forest_builder::MastForestBuilder};
+use crate::AssemblyError;
 
 // BASIC BLOCK BUILDER
 // ================================================================================================
@@ -26,8 +26,10 @@ pub struct BasicBlockBuilder<'a> {
     ops: Vec<Operation>,
     decorators: DecoratorList,
     epilogue: Vec<Operation>,
-    last_asmop_pos: usize,
     mast_forest_builder: &'a mut MastForestBuilder,
+
+    // debug helpers
+    last_op_count: usize,
 }
 
 /// Constructors
@@ -42,19 +44,24 @@ impl<'a> BasicBlockBuilder<'a> {
         mast_forest_builder: &'a mut MastForestBuilder,
     ) -> Self {
         match wrapper {
-            Some(wrapper) => Self {
-                ops: wrapper.prologue,
-                decorators: Vec::new(),
-                epilogue: wrapper.epilogue,
-                last_asmop_pos: 0,
-                mast_forest_builder,
+            Some(wrapper) => {
+                let ops = wrapper.prologue;
+                let last_op_count = ops.len();
+
+                Self {
+                    ops,
+                    decorators: Vec::new(),
+                    epilogue: wrapper.epilogue,
+                    mast_forest_builder,
+                    last_op_count,
+                }
             },
             None => Self {
                 ops: Default::default(),
                 decorators: Default::default(),
                 epilogue: Default::default(),
-                last_asmop_pos: 0,
                 mast_forest_builder,
+                last_op_count: 0,
             },
         }
     }
@@ -100,6 +107,17 @@ impl BasicBlockBuilder<'_> {
     pub fn push_system_event(&mut self, sys_event: SystemEvent) {
         self.push_op(Operation::Emit(sys_event.into_event_id()))
     }
+
+    /// Returns the number of operations added to the builder since the last call to this method,
+    /// and resets the counter.
+    pub fn get_op_count_and_reset(&mut self) -> u8 {
+        let op_count: u8 = (self.ops.len() - self.last_op_count)
+            .try_into()
+            .expect("instruction compiles down to more than 255 VM operations");
+        self.last_op_count = self.ops.len();
+
+        op_count
+    }
 }
 
 /// Decorators
@@ -110,53 +128,6 @@ impl BasicBlockBuilder<'_> {
         self.decorators.push((self.ops.len(), decorator_id));
 
         Ok(())
-    }
-
-    /// Adds an AsmOp decorator to the list of basic block decorators.
-    ///
-    /// This indicates that the provided instruction should be tracked and the cycle count for
-    /// this instruction will be computed when the call to set_instruction_cycle_count() is made.
-    pub fn track_instruction(
-        &mut self,
-        instruction: &Span<Instruction>,
-        proc_ctx: &ProcedureContext,
-    ) -> Result<(), AssemblyError> {
-        let span = instruction.span();
-        let location = proc_ctx.source_manager().location(span).ok();
-        let context_name = proc_ctx.name().to_string();
-        let num_cycles = 0;
-        let op = instruction.to_string();
-        let should_break = instruction.should_break();
-        let op = AssemblyOp::new(location, context_name, num_cycles, op, should_break);
-        self.push_decorator(Decorator::AsmOp(op))?;
-        self.last_asmop_pos = self.decorators.len() - 1;
-
-        Ok(())
-    }
-
-    /// Computes the number of cycles elapsed since the last invocation of track_instruction()
-    /// and updates the related AsmOp decorator to include this cycle count.
-    ///
-    /// If the cycle count is 0, the original decorator is removed from the list. This can happen
-    /// for instructions which do not contribute any operations to the span block - e.g., exec,
-    /// call, and syscall.
-    pub fn set_instruction_cycle_count(&mut self) {
-        // get the last asmop decorator and the cycle at which it was added
-        let (op_start, assembly_op_id) =
-            self.decorators.get_mut(self.last_asmop_pos).expect("no asmop decorator");
-
-        let assembly_op = &mut self.mast_forest_builder[*assembly_op_id];
-        assert!(matches!(assembly_op, Decorator::AsmOp(_)));
-
-        // compute the cycle count for the instruction
-        let cycle_count = self.ops.len() - *op_start;
-
-        // if the cycle count is 0, remove the decorator; otherwise update its cycle count
-        if cycle_count == 0 {
-            self.decorators.remove(self.last_asmop_pos);
-        } else if let Decorator::AsmOp(assembly_op) = assembly_op {
-            assembly_op.set_num_cycles(cycle_count as u8)
-        }
     }
 }
 
@@ -172,6 +143,8 @@ impl BasicBlockBuilder<'_> {
     /// This consumes all operations in the builder, but does not touch the operations in the
     /// epilogue of the builder.
     pub fn make_basic_block(&mut self) -> Result<Option<MastNodeId>, AssemblyError> {
+        self.last_op_count = 0;
+
         if !self.ops.is_empty() {
             let ops = self.ops.drain(..).collect();
             let decorators = if !self.decorators.is_empty() {

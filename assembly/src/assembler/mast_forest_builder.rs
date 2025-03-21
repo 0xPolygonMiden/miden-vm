@@ -498,6 +498,9 @@ impl MastForestBuilder {
     }
 
     pub fn set_before_enter(&mut self, node_id: MastNodeId, decorator_ids: Vec<DecoratorId>) {
+        // TODO(plafer): remove? Change API?
+        debug_assert!(self.mast_forest[node_id].before_enter().is_empty());
+
         self.mast_forest[node_id].set_before_enter(decorator_ids);
 
         let new_node_fingerprint = self.fingerprint_for_node(&self[node_id]);

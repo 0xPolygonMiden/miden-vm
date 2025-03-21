@@ -21,7 +21,7 @@ use vm_core::{
 use super::{
     EMPTY_WORD, ExecutionError, Felt, MIN_TRACE_LEN, ONE, OpBatch, Operation, Process, Word, ZERO,
 };
-use crate::Host;
+use crate::{Host, errors::ErrorContext};
 
 mod trace;
 use trace::DecoderTrace;
@@ -285,11 +285,12 @@ impl Process {
         &mut self,
         node: &CallNode,
         host: &mut H,
+        err_ctx: &ErrorContext<'_, CallNode>,
     ) -> Result<(), ExecutionError> {
         // when a CALL block ends, stack depth must be exactly 16
         let stack_depth = self.stack.depth();
         if stack_depth > MIN_STACK_DEPTH {
-            return Err(ExecutionError::InvalidStackDepthOnReturn(stack_depth));
+            return Err(ExecutionError::invalid_stack_depth_on_return(stack_depth, err_ctx));
         }
 
         // this appends a row with END operation to the decoder trace; the returned value contains
@@ -425,11 +426,12 @@ impl Process {
         &mut self,
         dyn_node: &DynNode,
         host: &mut H,
+        err_ctx: &ErrorContext<'_, DynNode>,
     ) -> Result<(), ExecutionError> {
         // when a DYNCALL block ends, stack depth must be exactly 16
         let stack_depth = self.stack.depth();
         if stack_depth > MIN_STACK_DEPTH {
-            return Err(ExecutionError::InvalidStackDepthOnReturn(stack_depth));
+            return Err(ExecutionError::invalid_stack_depth_on_return(stack_depth, err_ctx));
         }
 
         // this appends a row with END operation to the decoder trace. when the END operation is

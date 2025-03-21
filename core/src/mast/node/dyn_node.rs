@@ -4,6 +4,7 @@ use core::fmt;
 use miden_crypto::{Felt, hash::rpo::RpoDigest};
 use miden_formatting::prettier::{Document, PrettyPrint, const_text, nl};
 
+use super::MastNodeExt;
 use crate::{
     OPCODE_DYN, OPCODE_DYNCALL,
     mast::{DecoratorId, MastForest},
@@ -113,6 +114,12 @@ impl DynNode {
     /// Sets the list of decorators to be executed after this node.
     pub fn set_after_exit(&mut self, decorator_ids: Vec<DecoratorId>) {
         self.after_exit = decorator_ids;
+    }
+}
+
+impl MastNodeExt for DynNode {
+    fn decorators(&self) -> impl Iterator<Item = DecoratorId> {
+        self.before_enter.iter().chain(&self.after_exit).copied()
     }
 }
 

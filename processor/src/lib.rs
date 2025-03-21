@@ -6,8 +6,9 @@ extern crate alloc;
 #[cfg(feature = "std")]
 extern crate std;
 
-use alloc::vec::Vec;
+use alloc::{sync::Arc, vec::Vec};
 
+use errors::ErrorContext;
 use miden_air::trace::{
     CHIPLETS_WIDTH, DECODER_TRACE_WIDTH, MIN_TRACE_LEN, RANGE_CHECK_TRACE_WIDTH, STACK_TRACE_WIDTH,
     SYS_TRACE_WIDTH,
@@ -18,6 +19,7 @@ pub use vm_core::{
     StackInputs, StackOutputs, Word, ZERO,
     chiplets::hasher::Digest,
     crypto::merkle::SMT_DEPTH,
+    debuginfo::{DefaultSourceManager, SourceManager},
     errors::InputError,
     mast::{MastForest, MastNode, MastNodeId},
     sys_events::SystemEvent,
@@ -63,6 +65,9 @@ mod errors;
 pub use errors::{ExecutionError, Ext2InttError};
 
 pub mod utils;
+
+#[cfg(test)]
+mod tests;
 
 mod debug;
 pub use debug::{AsmOpInfo, VmState, VmStateIterator};
@@ -176,6 +181,7 @@ pub struct Process {
     chiplets: Chiplets,
     max_cycles: u32,
     enable_tracing: bool,
+    source_manager: Arc<dyn SourceManager>,
 }
 
 #[cfg(any(test, feature = "testing"))]
@@ -187,6 +193,7 @@ pub struct Process {
     pub chiplets: Chiplets,
     pub max_cycles: u32,
     pub enable_tracing: bool,
+    pub source_manager: Arc<dyn SourceManager>,
 }
 
 impl Process {
@@ -220,7 +227,14 @@ impl Process {
             chiplets: Chiplets::new(kernel),
             max_cycles: execution_options.max_cycles(),
             enable_tracing: execution_options.enable_tracing(),
+            source_manager: Arc::new(DefaultSourceManager::default()),
         }
+    }
+
+    /// Set the internal source manager to an externally initialized one.
+    pub fn with_source_manager(mut self, source_manager: Arc<dyn SourceManager>) -> Self {
+        self.source_manager = source_manager;
+        self
     }
 
     // PROGRAM EXECUTOR
@@ -406,10 +420,11 @@ impl Process {
             })?;
             self.chiplets.kernel_rom.access_proc(callee.digest())?;
         }
+        let err_ctx = ErrorContext::new(program, call_node, self.source_manager.clone());
 
         self.start_call_node(call_node, program, host)?;
         self.execute_mast_node(call_node.callee(), program, host)?;
-        self.end_call_node(call_node, host)
+        self.end_call_node(call_node, host, &err_ctx)
     }
 
     /// Executes the specified [vm_core::mast::DynNode].
@@ -455,7 +470,8 @@ impl Process {
         }
 
         if node.is_dyncall() {
-            self.end_dyncall_node(node, host)
+            let err_ctx = ErrorContext::new(program, node, self.source_manager.clone());
+            self.end_dyncall_node(node, host, &err_ctx)
         } else {
             self.end_dyn_node(node, host)
         }

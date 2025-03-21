@@ -14,6 +14,8 @@ mod op_batch;
 pub use op_batch::OpBatch;
 use op_batch::OpBatchAccumulator;
 
+use super::MastNodeExt;
+
 #[cfg(test)]
 mod tests;
 
@@ -229,6 +231,12 @@ impl BasicBlockNode {
     /// with the given ['DecoratorList'].
     pub fn set_decorators(&mut self, decorator_list: DecoratorList) {
         self.decorators = decorator_list;
+    }
+}
+
+impl MastNodeExt for BasicBlockNode {
+    fn decorators(&self) -> impl Iterator<Item = DecoratorId> {
+        self.decorator_iter().copied()
     }
 }
 

@@ -1,9 +1,11 @@
-use alloc::{boxed::Box, string::String};
+use alloc::{boxed::Box, string::String, sync::Arc};
 use core::error::Error;
 
 use miden_air::RowIndex;
+use miette::Diagnostic;
 use vm_core::{
-    mast::{DecoratorId, MastNodeId},
+    debuginfo::{SourceFile, SourceManager, SourceSpan},
+    mast::{DecoratorId, MastForest, MastNodeExt, MastNodeId},
     stack::MIN_STACK_DEPTH,
     utils::to_hex,
 };
@@ -19,7 +21,7 @@ use crate::ContextId;
 // EXECUTION ERROR
 // ================================================================================================
 
-#[derive(Debug, thiserror::Error)]
+#[derive(Debug, thiserror::Error, Diagnostic)]
 pub enum ExecutionError {
     #[error("value for key {} not present in the advice map", to_hex(Felt::elements_as_bytes(.0)))]
     AdviceMapKeyNotFound(Word),
@@ -74,8 +76,17 @@ pub enum ExecutionError {
         "memory range start address cannot exceed end address, but was ({start_addr}, {end_addr})"
     )]
     InvalidMemoryRange { start_addr: u64, end_addr: u64 },
-    #[error("when returning from a call, stack depth must be {MIN_STACK_DEPTH}, but was {0}")]
-    InvalidStackDepthOnReturn(usize),
+    #[error(
+        "when returning from a call or dyncall, stack depth must be {MIN_STACK_DEPTH}, but was {depth}"
+    )]
+    #[diagnostic()]
+    InvalidStackDepthOnReturn {
+        #[label("when returning from this call site")]
+        label: Option<SourceSpan>,
+        #[source_code]
+        source_file: Option<Arc<SourceFile>>,
+        depth: usize,
+    },
     #[error(
         "provided merkle tree {depth} is out of bounds and cannot be represented as an unsigned 8-bit integer"
     )]
@@ -149,6 +160,32 @@ impl From<Ext2InttError> for ExecutionError {
     }
 }
 
+impl ExecutionError {
+    pub fn invalid_stack_depth_on_return(
+        depth: usize,
+        err_ctx: &ErrorContext<'_, impl MastNodeExt>,
+    ) -> Self {
+        let (label, source_file) = err_ctx.label_and_source_file();
+        Self::InvalidStackDepthOnReturn { label, source_file, depth }
+    }
+
+    fn label_and_source_file(
+        node: &impl MastNodeExt,
+        program: &MastForest,
+        source_manager: &dyn SourceManager,
+    ) -> (Option<SourceSpan>, Option<Arc<SourceFile>>) {
+        node.get_assembly_op(program)
+            .map(|assembly_op| assembly_op.to_label_and_source_file(source_manager))
+            .unwrap_or((None, None))
+    }
+}
+
+impl AsRef<dyn Diagnostic> for ExecutionError {
+    fn as_ref(&self) -> &(dyn Diagnostic + 'static) {
+        self
+    }
+}
+
 // EXT2INTT ERROR
 // ================================================================================================
 
@@ -173,6 +210,57 @@ pub enum Ext2InttError {
     #[error("uninitialized memory at address {0}")]
     UninitializedMemoryAddress(u32),
 }
+
+// ERROR CONTEXT
+// ===============================================================================================
+
+#[derive(Debug)]
+pub struct ErrorContext<'a, N: MastNodeExt>(Option<ErrorContextImpl<'a, N>>);
+
+impl<'a, N: MastNodeExt> ErrorContext<'a, N> {
+    pub fn new(
+        mast_forest: &'a MastForest,
+        node: &'a N,
+        source_manager: Arc<dyn SourceManager>,
+    ) -> Self {
+        Self(Some(ErrorContextImpl::new(mast_forest, node, source_manager)))
+    }
+
+    pub fn none() -> Self {
+        Self(None)
+    }
+
+    pub fn label_and_source_file(&self) -> (Option<SourceSpan>, Option<Arc<SourceFile>>) {
+        self.0.as_ref().map_or((None, None), |ctx| ctx.label_and_source_file())
+    }
+}
+
+#[derive(Debug)]
+struct ErrorContextImpl<'a, N: MastNodeExt> {
+    mast_forest: &'a MastForest,
+    node: &'a N,
+    source_manager: Arc<dyn SourceManager>,
+}
+
+impl<'a, N: MastNodeExt> ErrorContextImpl<'a, N> {
+    pub fn new(
+        mast_forest: &'a MastForest,
+        node: &'a N,
+        source_manager: Arc<dyn SourceManager>,
+    ) -> Self {
+        Self { mast_forest, node, source_manager }
+    }
+
+    pub fn label_and_source_file(&self) -> (Option<SourceSpan>, Option<Arc<SourceFile>>) {
+        self.node
+            .get_assembly_op(&self.mast_forest)
+            .map(|assembly_op| assembly_op.to_label_and_source_file(&self.source_manager))
+            .unwrap_or((None, None))
+    }
+}
+
+// TESTS
+// ================================================================================================
 
 #[cfg(test)]
 mod error_assertions {

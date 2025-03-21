@@ -112,11 +112,11 @@ impl From<regex::Regex> for Pattern {
 #[macro_export]
 macro_rules! regex {
     ($source:literal) => {
-        Pattern::regex($source)
+        $crate::testing::Pattern::regex($source)
     };
 
     ($source:expr) => {
-        Pattern::regex($source)
+        $crate::testing::Pattern::regex($source)
     };
 }
 
@@ -158,7 +158,7 @@ macro_rules! assert_diagnostic {
 macro_rules! assert_diagnostic_lines {
     ($diagnostic:expr, $($expected:expr),+) => {{
         let actual = format!("{}", $crate::diagnostics::reporting::PrintDiagnostic::new_without_color($diagnostic));
-        let lines = actual.lines().filter(|l| !l.trim().is_empty()).zip([$(Pattern::from($expected)),*].into_iter());
+        let lines = actual.lines().filter(|l| !l.trim().is_empty()).zip([$($crate::testing::Pattern::from($expected)),*].into_iter());
         for (actual_line, expected) in lines {
             expected.assert_match_with_context(actual_line, &actual);
         }

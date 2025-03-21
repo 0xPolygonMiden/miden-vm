@@ -11,8 +11,8 @@ use miden_crypto::hash::rpo::RpoDigest;
 
 mod node;
 pub use node::{
-    BasicBlockNode, CallNode, DynNode, ExternalNode, JoinNode, LoopNode, MastNode, OP_BATCH_SIZE,
-    OP_GROUP_SIZE, OpBatch, OperationOrDecorator, SplitNode,
+    BasicBlockNode, CallNode, DynNode, ExternalNode, JoinNode, LoopNode, MastNode, MastNodeExt,
+    OP_BATCH_SIZE, OP_GROUP_SIZE, OpBatch, OperationOrDecorator, SplitNode,
 };
 use winter_utils::{ByteWriter, DeserializationError, Serializable};
 

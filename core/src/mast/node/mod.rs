@@ -29,7 +29,7 @@ pub use loop_node::LoopNode;
 
 use super::{DecoratorId, MastForestError};
 use crate::{
-    DecoratorList, Operation,
+    AssemblyOp, Decorator, DecoratorList, Operation,
     mast::{MastForest, MastNodeId, Remapping},
 };
 
@@ -332,5 +332,34 @@ impl<'a> MastNodeDisplay<'a> {
 impl fmt::Display for MastNodeDisplay<'_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         self.node_display.fmt(f)
+    }
+}
+
+// MAST INNER NODE EXT
+// ===============================================================================================
+
+/// A trait for extending the functionality of all [`MastNode`]s.
+pub trait MastNodeExt {
+    // REQUIRED METHODS
+    // -------------------------------------------------------------------------------------------
+
+    fn decorators(&self) -> impl Iterator<Item = DecoratorId>;
+
+    // PROVIDED METHODS
+    // -------------------------------------------------------------------------------------------
+
+    /// Returns the [`AssemblyOp`] associated with this node, if any.
+    ///
+    /// This methods assumes that the node has at most one associated [`AssemblyOp`].
+    fn get_assembly_op<'m>(&self, mast_forest: &'m MastForest) -> Option<&'m AssemblyOp> {
+        for decorator_id in self.decorators() {
+            if let Some(Decorator::AsmOp(assembly_op)) =
+                mast_forest.get_decorator_by_id(decorator_id)
+            {
+                return Some(assembly_op);
+            }
+        }
+
+        None
     }
 }
