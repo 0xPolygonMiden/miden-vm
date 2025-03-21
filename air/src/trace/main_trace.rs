@@ -2,15 +2,17 @@
 use alloc::vec::Vec;
 use core::ops::{Deref, Range};
 
-use vm_core::{utils::range, Felt, Word, ONE, ZERO};
+use vm_core::{Felt, ONE, Word, ZERO, utils::range};
 
 use super::{
     super::ColMatrix,
+    CHIPLETS_OFFSET, CLK_COL_IDX, CTX_COL_IDX, DECODER_TRACE_OFFSET, FMP_COL_IDX, FN_HASH_OFFSET,
+    STACK_TRACE_OFFSET,
     chiplets::{
-        hasher::{DIGEST_LEN, HASH_CYCLE_LEN, STATE_WIDTH},
         BITWISE_A_COL_IDX, BITWISE_B_COL_IDX, BITWISE_OUTPUT_COL_IDX, HASHER_NODE_INDEX_COL_IDX,
         HASHER_STATE_COL_RANGE, MEMORY_CLK_COL_IDX, MEMORY_CTX_COL_IDX, MEMORY_IDX0_COL_IDX,
         MEMORY_IDX1_COL_IDX, MEMORY_V_COL_RANGE, MEMORY_WORD_COL_IDX,
+        hasher::{DIGEST_LEN, HASH_CYCLE_LEN, STATE_WIDTH},
     },
     decoder::{
         GROUP_COUNT_COL_IDX, HASHER_STATE_OFFSET, IN_SPAN_COL_IDX, IS_CALL_FLAG_COL_IDX,
@@ -19,8 +21,6 @@ use super::{
         USER_OP_HELPERS_OFFSET,
     },
     stack::{B0_COL_IDX, B1_COL_IDX, H0_COL_IDX},
-    CHIPLETS_OFFSET, CLK_COL_IDX, CTX_COL_IDX, DECODER_TRACE_OFFSET, FMP_COL_IDX, FN_HASH_OFFSET,
-    STACK_TRACE_OFFSET,
 };
 use crate::RowIndex;
 
@@ -419,7 +419,7 @@ impl MainTrace {
     }
 
     /// Returns the i-th row of the kernel chiplet `addr` column.
-    pub fn chiplet_kernel_addr(&self, i: RowIndex) -> Felt {
+    pub fn chiplet_kernel_idx(&self, i: RowIndex) -> Felt {
         self.columns.get_column(CHIPLETS_OFFSET + 5)[i]
     }
 

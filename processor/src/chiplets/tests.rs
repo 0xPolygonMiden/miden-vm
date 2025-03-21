@@ -1,16 +1,16 @@
 use alloc::vec::Vec;
 
 use miden_air::trace::{
+    CHIPLETS_RANGE, CHIPLETS_WIDTH,
     chiplets::{
+        NUM_BITWISE_SELECTORS, NUM_KERNEL_ROM_SELECTORS, NUM_MEMORY_SELECTORS,
         bitwise::{BITWISE_XOR, OP_CYCLE_LEN, TRACE_WIDTH as BITWISE_TRACE_WIDTH},
         hasher::{Digest, HASH_CYCLE_LEN, LINEAR_HASH, RETURN_STATE},
         kernel_rom::TRACE_WIDTH as KERNEL_ROM_TRACE_WIDTH,
         memory::TRACE_WIDTH as MEMORY_TRACE_WIDTH,
-        NUM_BITWISE_SELECTORS, NUM_KERNEL_ROM_SELECTORS, NUM_MEMORY_SELECTORS,
     },
-    CHIPLETS_RANGE, CHIPLETS_WIDTH,
 };
-use vm_core::{mast::MastForest, Felt, Program, ONE, ZERO};
+use vm_core::{Felt, ONE, Program, ZERO, mast::MastForest};
 
 use crate::{
     DefaultHost, ExecutionOptions, ExecutionTrace, Kernel, Operation, Process, StackInputs,

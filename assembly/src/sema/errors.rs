@@ -1,7 +1,7 @@
 use alloc::{sync::Arc, vec::Vec};
 use core::fmt;
 
-use crate::{diagnostics::Diagnostic, SourceFile, SourceSpan};
+use crate::{SourceFile, SourceSpan, diagnostics::Diagnostic};
 
 /// The high-level error type for all semantic analysis errors.
 ///
@@ -103,7 +103,9 @@ pub enum SemanticAnalysisError {
         #[label("previously imported here")]
         prev_span: SourceSpan,
     },
-    #[error("invalid re-exported procedure: kernel modules may not re-export procedures from other modules")]
+    #[error(
+        "invalid re-exported procedure: kernel modules may not re-export procedures from other modules"
+    )]
     #[diagnostic()]
     ReexportFromKernel {
         #[label]
@@ -165,8 +167,10 @@ pub enum SemanticAnalysisError {
     #[error("unused docstring")]
     #[diagnostic(
         severity(Warning),
-        help("this docstring is immediately followed by at least one empty line, then another docstring,\
-            if you intended these to be a single docstring, you should remove the empty lines")
+        help(
+            "this docstring is immediately followed by at least one empty line, then another docstring,\
+            if you intended these to be a single docstring, you should remove the empty lines"
+        )
     )]
     UnusedDocstring {
         #[label]
@@ -175,7 +179,9 @@ pub enum SemanticAnalysisError {
     #[error("unused docstring")]
     #[diagnostic(
         severity(Warning),
-        help("module imports cannot have docstrings, you should use line comment syntax here instead")
+        help(
+            "module imports cannot have docstrings, you should use line comment syntax here instead"
+        )
     )]
     ImportDocstring {
         #[label]

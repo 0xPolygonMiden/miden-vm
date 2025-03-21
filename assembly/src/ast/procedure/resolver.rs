@@ -1,7 +1,7 @@
 use alloc::{collections::BTreeMap, vec::Vec};
 
 use super::{ProcedureIndex, ProcedureName, QualifiedProcedureName};
-use crate::{ast::Ident, LibraryPath, RpoDigest, SourceSpan, Span, Spanned};
+use crate::{LibraryPath, RpoDigest, SourceSpan, Span, Spanned, ast::Ident};
 
 // RESOLVED PROCEDURE
 // ================================================================================================

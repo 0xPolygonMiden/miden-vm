@@ -7,7 +7,7 @@ pub use self::{
     meta::{BorrowedMeta, Meta, MetaExpr, MetaItem, MetaKeyValue, MetaList},
     set::{AttributeSet, AttributeSetEntry},
 };
-use crate::{ast::Ident, prettier, SourceSpan, Spanned};
+use crate::{SourceSpan, Spanned, ast::Ident, prettier};
 
 /// An [Attribute] represents some named metadata attached to a Miden Assembly procedure.
 ///
@@ -124,8 +124,8 @@ impl Attribute {
     pub fn metadata(&self) -> Option<BorrowedMeta<'_>> {
         match self {
             Self::Marker(_) => None,
-            Self::List(ref list) => Some(BorrowedMeta::List(&list.items)),
-            Self::KeyValue(ref kv) => Some(BorrowedMeta::KeyValue(&kv.items)),
+            Self::List(list) => Some(BorrowedMeta::List(&list.items)),
+            Self::KeyValue(kv) => Some(BorrowedMeta::KeyValue(&kv.items)),
         }
     }
 }

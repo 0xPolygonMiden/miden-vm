@@ -1,12 +1,12 @@
 use alloc::vec::Vec;
 
 use vm_core::{
+    Felt, FieldElement, WORD_SIZE, Word, ZERO,
     crypto::{
         hash::{Rpo256, RpoDigest},
-        merkle::{EmptySubtreeRoots, Smt, SMT_DEPTH},
+        merkle::{EmptySubtreeRoots, SMT_DEPTH, Smt},
     },
     sys_events::SystemEvent,
-    Felt, FieldElement, Word, WORD_SIZE, ZERO,
 };
 use winter_prover::math::fft;
 
@@ -17,6 +17,9 @@ use crate::{
 
 /// The offset of the domain value on the stack in the `hdword_to_map_with_domain` system event.
 const HDWORD_TO_MAP_WITH_DOMAIN_DOMAIN_OFFSET: usize = 8;
+
+/// Falcon signature prime.
+const M: u64 = 12289;
 
 impl Process {
     pub(super) fn handle_system_event(
@@ -38,6 +41,7 @@ impl Process {
                 copy_map_value_to_adv_stack(advice_provider, process_state, true)
             },
             SystemEvent::U64Div => push_u64_div_result(advice_provider, process_state),
+            SystemEvent::FalconDiv => push_falcon_mod_result(advice_provider, process_state),
             SystemEvent::Ext2Inv => push_ext2_inv_result(advice_provider, process_state),
             SystemEvent::Ext2Intt => push_ext2_intt_result(advice_provider, process_state),
             SystemEvent::SmtPeek => push_smtpeek_result(advice_provider, process_state),
@@ -56,7 +60,6 @@ impl Process {
                 insert_hdword_into_adv_map(advice_provider, process_state, domain)
             },
             SystemEvent::HpermToMap => insert_hperm_into_adv_map(advice_provider, process_state),
-            SystemEvent::FalconSigToStack => unreachable!("not treated as a system event"),
         }
     }
 }
@@ -313,17 +316,41 @@ pub fn push_u64_div_result(
     advice_provider: &mut impl AdviceProvider,
     process: ProcessState,
 ) -> Result<(), ExecutionError> {
-    let divisor_hi = process.get_stack_item(0).as_int();
-    let divisor_lo = process.get_stack_item(1).as_int();
-    let divisor = (divisor_hi << 32) + divisor_lo;
+    let divisor = {
+        let divisor_hi = process.get_stack_item(0).as_int();
+        let divisor_lo = process.get_stack_item(1).as_int();
 
-    if divisor == 0 {
-        return Err(ExecutionError::DivideByZero(process.clk()));
-    }
+        // Ensure the divisor is a pair of u32 values
+        if divisor_hi > u32::MAX.into() {
+            return Err(ExecutionError::NotU32Value(Felt::new(divisor_hi), ZERO));
+        }
+        if divisor_lo > u32::MAX.into() {
+            return Err(ExecutionError::NotU32Value(Felt::new(divisor_lo), ZERO));
+        }
 
-    let dividend_hi = process.get_stack_item(2).as_int();
-    let dividend_lo = process.get_stack_item(3).as_int();
-    let dividend = (dividend_hi << 32) + dividend_lo;
+        let divisor = (divisor_hi << 32) + divisor_lo;
+
+        if divisor == 0 {
+            return Err(ExecutionError::DivideByZero(process.clk()));
+        }
+
+        divisor
+    };
+
+    let dividend = {
+        let dividend_hi = process.get_stack_item(2).as_int();
+        let dividend_lo = process.get_stack_item(3).as_int();
+
+        // Ensure the dividend is a pair of u32 values
+        if dividend_hi > u32::MAX.into() {
+            return Err(ExecutionError::NotU32Value(Felt::new(dividend_hi), ZERO));
+        }
+        if dividend_lo > u32::MAX.into() {
+            return Err(ExecutionError::NotU32Value(Felt::new(dividend_lo), ZERO));
+        }
+
+        (dividend_hi << 32) + dividend_lo
+    };
 
     let quotient = dividend / divisor;
     let remainder = dividend - quotient * divisor;
@@ -335,6 +362,44 @@ pub fn push_u64_div_result(
     advice_provider.push_stack(AdviceSource::Value(r_lo))?;
     advice_provider.push_stack(AdviceSource::Value(q_hi))?;
     advice_provider.push_stack(AdviceSource::Value(q_lo))?;
+
+    Ok(())
+}
+
+/// Pushes the result of divison (both the quotient and the remainder) of a [u64] by the Falcon
+/// prime (M = 12289) onto the advice stack.
+///
+/// Inputs:
+///   Operand stack: [a1, a0, ...]
+///   Advice stack: [...]
+///
+/// Outputs:
+///   Operand stack: [a1, a0, ...]
+///   Advice stack: [q1, q0, r, ...]
+///
+/// Where (a0, a1) are the 32-bit limbs of the dividend (with a0 representing the 32 least
+/// significant bits and a1 representing the 32 most significant bits).
+/// Similarly, (q0, q1) represent the quotient and r the remainder.
+///
+/// # Errors
+/// Returns an error if the divisor is ZERO.
+pub fn push_falcon_mod_result(
+    advice_provider: &mut impl AdviceProvider,
+    process: ProcessState,
+) -> Result<(), ExecutionError> {
+    let dividend_hi = process.get_stack_item(0).as_int();
+    let dividend_lo = process.get_stack_item(1).as_int();
+    let dividend = (dividend_hi << 32) + dividend_lo;
+
+    let (quotient, remainder) = (dividend / M, dividend % M);
+
+    let (q_hi, q_lo) = u64_to_u32_elements(quotient);
+    let (r_hi, r_lo) = u64_to_u32_elements(remainder);
+    assert_eq!(r_hi, ZERO);
+
+    advice_provider.push_stack(AdviceSource::Value(r_lo))?;
+    advice_provider.push_stack(AdviceSource::Value(q_lo))?;
+    advice_provider.push_stack(AdviceSource::Value(q_hi))?;
 
     Ok(())
 }

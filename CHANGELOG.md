@@ -1,5 +1,30 @@
 # Changelog
 
+## 0.13.0 (2025-03-20)
+
+#### Enhancements
+
+- Added to the `Assembler` the ability to vendor a compiled library.
+- [BREAKING] Update CLI to accept masm or masp files as input for all commands (#1683, #1692).
+- [BREAKING] Introduced `HORNERBASE`, `HORNEREXT` and removed `RCOMBBASE` instructions (#1656).
+
+#### Changes
+- Update minimum supported Rust version to 1.85.
+- Change Chiplet Fields to Public (#1629).
+- [BREAKING] Updated Winterfell dependency to v0.12 (#1658).
+- Introduce `BusDebugger` to facilitate debugging buses (#1664).
+- Update Falcon verification procedure to use `HORNERBASE` (#1661).
+- Update recursive verifier to use `HORNERBASE` (#1665).
+- Fix the docs and implementation of `EXPACC` (#1676).
+- Running a call/syscall/dyncall while processing a syscall now results in an error (#1680).
+- Using a non-binary value as a loop condition now results in an error (#1685).
+- [BREAKING] Remove `Assembler::assemble_common()` from the public interface (#1689).
+- Fix `Horner{Base, Ext}` bus requests to memory chiplet (#1689).
+- Fix docs on the layout of the auxiliary segment trace (#1694).
+- Optimize FRI remainder polynomial check (#1670).
+- Remove `FALCON_SIG_TO_STACK` event (#1703).
+- Prevent `U64Div` event from crashing processor (#1710).
+
 ## 0.12.0 (2025-01-22)
 
 #### Highlights
@@ -21,6 +46,9 @@
 - Added `miden_core::mast::MastForest::advice_map` to load it into the advice provider before the `MastForest` execution (#1574).
 - Optimized the computation of the DEEP queries in the recursive verifier (#1594).
 - Added validity checks for the inputs to the recursive verifier (#1596).
+- Allow multiple memory reads in the same clock cycle (#1626)
+- Improved Falcon signiture verification (#1623).
+- Added `miden-mast-package` crate with `Package` type to represent a compiled Miden program/library (#1544).
 
 ## 0.11.0 (2024-11-04)
 

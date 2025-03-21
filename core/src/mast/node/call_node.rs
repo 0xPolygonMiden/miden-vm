@@ -1,16 +1,16 @@
 use alloc::vec::Vec;
 use core::fmt;
 
-use miden_crypto::{hash::rpo::RpoDigest, Felt};
+use miden_crypto::{Felt, hash::rpo::RpoDigest};
 use miden_formatting::{
     hex::ToHex,
-    prettier::{const_text, nl, text, Document, PrettyPrint},
+    prettier::{Document, PrettyPrint, const_text, nl, text},
 };
 
 use crate::{
-    chiplets::hasher,
-    mast::{DecoratorId, MastForest, MastForestError, MastNodeId},
     OPCODE_CALL, OPCODE_SYSCALL,
+    chiplets::hasher,
+    mast::{DecoratorId, MastForest, MastForestError, MastNodeId, Remapping},
 };
 
 // CALL NODE
@@ -169,6 +169,12 @@ impl CallNode {
 
 /// Mutators
 impl CallNode {
+    pub fn remap_children(&self, remapping: &Remapping) -> Self {
+        let mut node = self.clone();
+        node.callee = node.callee.remap(remapping);
+        node
+    }
+
     /// Sets the list of decorators to be executed before this node.
     pub fn set_before_enter(&mut self, decorator_ids: Vec<DecoratorId>) {
         self.before_enter = decorator_ids;

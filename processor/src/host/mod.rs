@@ -1,8 +1,6 @@
 use alloc::sync::Arc;
 
-use vm_core::{
-    crypto::hash::RpoDigest, mast::MastForest, sys_events::SystemEvent, DebugOptions, SignatureKind,
-};
+use vm_core::{DebugOptions, crypto::hash::RpoDigest, mast::MastForest};
 
 use super::{ExecutionError, ProcessState};
 use crate::{KvMap, MemAdviceProvider};
@@ -15,8 +13,6 @@ mod debug;
 
 mod mast_forest_store;
 pub use mast_forest_store::{MastForestStore, MemMastForestStore};
-
-mod dsa;
 
 // HOST TRAIT
 // ================================================================================================
@@ -213,64 +209,14 @@ impl<A: AdviceProvider> Host for DefaultHost<A> {
         self.store.get(node_digest)
     }
 
-    fn on_event(&mut self, process: ProcessState, event_id: u32) -> Result<(), ExecutionError> {
-        if event_id == SystemEvent::FalconSigToStack.into_event_id() {
-            // provide a default implementation for handling FalconSigToStack event since it is not
-            // handled any more by the system event handlers. the handler assumes that the private
-            // key is in the advice provider and uses it to in signature generation
-            let advice_provider = self.advice_provider_mut();
-            push_signature(advice_provider, process, SignatureKind::RpoFalcon512)
-        } else {
-            #[cfg(feature = "std")]
-            std::println!(
-                "Event with id {} emitted at step {} in context {}",
-                event_id,
-                process.clk(),
-                process.ctx()
-            );
-            Ok(())
-        }
+    fn on_event(&mut self, _process: ProcessState, _event_id: u32) -> Result<(), ExecutionError> {
+        #[cfg(feature = "std")]
+        std::println!(
+            "Event with id {} emitted at step {} in context {}",
+            _event_id,
+            _process.clk(),
+            _process.ctx()
+        );
+        Ok(())
     }
-}
-
-// SIGNATURE EVENT HANDLER
-// ================================================================================================
-
-/// Pushes values onto the advice stack which are required for verification of a DSA in Miden
-/// VM.
-///
-/// Inputs:
-///   Operand stack: [PK, MSG, ...]
-///   Advice stack: [...]
-///
-/// Outputs:
-///   Operand stack: [PK, MSG, ...]
-///   Advice stack: \[DATA\]
-///
-/// Where:
-/// - PK is the digest of an expanded public.
-/// - MSG is the digest of the message to be signed.
-/// - DATA is the needed data for signature verification in the VM.
-///
-/// The advice provider is expected to contain the private key associated to the public key PK.
-pub fn push_signature(
-    advice_provider: &mut impl AdviceProvider,
-    process: ProcessState,
-    kind: SignatureKind,
-) -> Result<(), ExecutionError> {
-    let pub_key = process.get_stack_word(0);
-    let msg = process.get_stack_word(1);
-
-    let pk_sk = advice_provider
-        .get_mapped_values(&pub_key.into())
-        .ok_or(ExecutionError::AdviceMapKeyNotFound(pub_key))?;
-
-    let result = match kind {
-        SignatureKind::RpoFalcon512 => dsa::falcon_sign(pk_sk, msg)?,
-    };
-
-    for r in result {
-        advice_provider.push_stack(crate::AdviceSource::Value(r))?;
-    }
-    Ok(())
 }

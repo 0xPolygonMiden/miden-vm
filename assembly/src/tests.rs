@@ -1,17 +1,16 @@
 use alloc::{string::ToString, vec::Vec};
 
 use vm_core::{
-    mast::{MastNode, MastNodeId},
     Program,
+    mast::{MastNode, MastNodeId},
 };
 
 use crate::{
-    assert_diagnostic_lines,
+    Assembler, Deserializable, LibraryPath, ModuleParser, Serializable, assert_diagnostic_lines,
     ast::{Module, ModuleKind},
     diagnostics::{IntoDiagnostic, Report},
     regex, source_file,
     testing::{Pattern, TestContext},
-    Assembler, Deserializable, LibraryPath, ModuleParser, Serializable,
 };
 
 type TestResult = Result<(), Report>;
@@ -3028,4 +3027,32 @@ fn test_program_serde_with_decorators() {
     let deserialized_program = Program::read_from_bytes(&target).unwrap();
 
     assert_eq!(original_program, deserialized_program);
+}
+
+#[test]
+fn vendoring() -> TestResult {
+    let context = TestContext::new();
+    let mut mod_parser = ModuleParser::new(ModuleKind::Library);
+    let vendor_lib = {
+        let source = source_file!(&context, "export.bar push.1 end export.prune push.2 end");
+        let mod1 = mod_parser.parse(LibraryPath::new("test::mod1").unwrap(), source).unwrap();
+        Assembler::default().assemble_library([mod1]).unwrap()
+    };
+
+    let lib = {
+        let source = source_file!(&context, "export.foo exec.::test::mod1::bar end");
+        let mod2 = mod_parser.parse(LibraryPath::new("test::mod2").unwrap(), source).unwrap();
+
+        let mut assembler = Assembler::default();
+        assembler.add_vendored_library(vendor_lib)?;
+        assembler.assemble_library([mod2]).unwrap()
+    };
+
+    let expected_lib = {
+        let source = source_file!(&context, "export.foo push.1 end");
+        let mod2 = mod_parser.parse(LibraryPath::new("test::mod2").unwrap(), source).unwrap();
+        Assembler::default().assemble_library([mod2]).unwrap()
+    };
+    assert!(lib == expected_lib);
+    Ok(())
 }

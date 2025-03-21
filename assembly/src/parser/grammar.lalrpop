@@ -53,9 +53,9 @@ extern {
         "push_mapval" => Token::PushMapval,
         "push_mapvaln" => Token::PushMapvaln,
         "push_mtnode" => Token::PushMtnode,
-        "push_sig" => Token::PushSig,
         "push_smtpeek" => Token::PushSmtpeek,
         "push_u64div" => Token::PushU64Div,
+        "push_falcon_div" => Token::PushFalconDiv,
         "and" => Token::And,
         "assert" => Token::Assert,
         "assertz" => Token::Assertz,
@@ -138,7 +138,8 @@ extern {
         "proc" => Token::Proc,
         "procref" => Token::Procref,
         "push" => Token::Push,
-        "rcomb_base" => Token::RCombBase,
+        "horner_eval_base" => Token::HornerBase,
+        "horner_eval_ext" => Token::HornerExt,
         "repeat" => Token::Repeat,
         "rpo_falcon512" => Token::RpoFalcon512,
         "sdepth" => Token::Sdepth,
@@ -317,14 +318,14 @@ Proc: Form = {
                         AttributeSetEntry::Occupied(mut entry) => {
                             let value = entry.get_mut();
                             match value {
-                                Attribute::KeyValue(ref mut existing_kvs) => {
+                                Attribute::KeyValue(existing_kvs) => {
                                     for (k, v) in kv.into_iter() {
                                         let span = k.span();
                                         match existing_kvs.entry(k) {
                                             Entry::Vacant(entry) => {
                                                 entry.insert(v);
                                             }
-                                            Entry::Occupied(ref entry) => {
+                                            Entry::Occupied(entry) => {
                                                 let prev = entry.get();
                                                 return Err(ParseError::User {
                                                     error: ParsingError::AttributeKeyValueConflict { span, prev: prev.span() },
@@ -347,7 +348,7 @@ Proc: Form = {
                         AttributeSetEntry::Vacant(entry) => {
                             entry.insert(attr);
                         }
-                        AttributeSetEntry::Occupied(ref entry) => {
+                        AttributeSetEntry::Occupied(entry) => {
                             let prev_attr = entry.get();
                             return Err(ParseError::User {
                                 error: ParsingError::AttributeConflict { span: attr.span(), prev: prev_attr.span() },
@@ -448,7 +449,7 @@ Attribute: Attribute = {
         for meta_kv in items {
             let (span, (k, v)) = meta_kv.into_parts();
             match map.entry(k) {
-                Entry::Occupied(ref entry) => {
+                Entry::Occupied(entry) => {
                     let prev = entry.key().span();
                     return Err(ParseError::User {
                         error: ParsingError::AttributeKeyValueConflict { span, prev },
@@ -645,7 +646,8 @@ Inst: Instruction = {
     "or" => Instruction::Or,
     "padw" => Instruction::PadW,
     "pow2" => Instruction::Pow2,
-    "rcomb_base" => Instruction::RCombBase,
+    "horner_eval_base" => Instruction::HornerBase,
+    "horner_eval_ext" => Instruction::HornerExt,
     "sdepth" => Instruction::Sdepth,
     "swapdw" => Instruction::SwapDw,
     "u32cast" => Instruction::U32Cast,
@@ -674,9 +676,9 @@ SystemEvent: Instruction = {
     "adv" "." "push_mapval" => Instruction::SysEvent(SystemEventNode::PushMapVal),
     "adv" "." "push_mapvaln" => Instruction::SysEvent(SystemEventNode::PushMapValN),
     "adv" "." "push_mtnode" => Instruction::SysEvent(SystemEventNode::PushMtNode),
-    "adv" "." "push_sig" "." <kind:SignatureKind> => Instruction::SysEvent(SystemEventNode::PushSignature { kind }),
     "adv" "." "push_smtpeek" => Instruction::SysEvent(SystemEventNode::PushSmtPeek),
     "adv" "." "push_u64div" => Instruction::SysEvent(SystemEventNode::PushU64Div),
+    "adv" "." "push_falcon_div" => Instruction::SysEvent(SystemEventNode::PushFalconDiv),
 }
 
 #[inline]

@@ -178,7 +178,7 @@ impl Process {
     pub(super) fn op_u32and(&mut self) -> Result<(), ExecutionError> {
         let b = require_u32_operand!(self.stack, 0);
         let a = require_u32_operand!(self.stack, 1);
-        let result = self.chiplets.u32and(a, b)?;
+        let result = self.chiplets.bitwise.u32and(a, b)?;
 
         self.stack.set(0, result);
         self.stack.shift_left(2);
@@ -191,7 +191,7 @@ impl Process {
     pub(super) fn op_u32xor(&mut self) -> Result<(), ExecutionError> {
         let b = require_u32_operand!(self.stack, 0);
         let a = require_u32_operand!(self.stack, 1);
-        let result = self.chiplets.u32xor(a, b)?;
+        let result = self.chiplets.bitwise.u32xor(a, b)?;
 
         self.stack.set(0, result);
         self.stack.shift_left(2);
@@ -244,7 +244,7 @@ mod tests {
 
     use super::{
         super::{Felt, Operation},
-        split_u32_into_u16, Process,
+        Process, split_u32_into_u16,
     };
     use crate::{DefaultHost, StackInputs, ZERO};
 

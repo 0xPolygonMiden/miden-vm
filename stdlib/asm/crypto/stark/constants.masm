@@ -6,16 +6,11 @@ const.ROOT_UNITY=7277203076849721926
 const.DOMAIN_OFFSET=7
 const.DOMAIN_OFFSET_INV=2635249152773512046
 
-# Number of coefficients corresponds to the number of boundary + transition constraints 
-# (including auxiliary constraints)
-const.NUM_CONSTRAINT_COMPOSITION_COEF_ROUNDED_UP_TO_FOUR=228
-
-# Number of coefficients corresponds to "number of main & aux columns" + 8,
-# where "8" is the number of columns needed to store the constraint composition polynomial.
-const.NUM_DEEP_COMPOSITION_COEF_ROUNDED_UP_TO_FOUR=88
-
 # Number of random extension field coefficients related to the auxiliary trace (i.e. the alphas)
 const.NUM_AUX_TRACE_COEFS=16
+
+# Number of constraints, both boundary and transitional
+const.NUM_CONSTRAINTS=226
 
 # MEMORY POINTERS
 # =================================================================================================
@@ -29,9 +24,11 @@ const.PUBLIC_INPUTS_PTR=4294800000
 # OOD Frames
 # (71 + 7) * 2 * 2 Felt for current and next trace rows and 8 * 2 Felt for constraint composition
 # polynomials. Memory slots:
-# OOD_TRACE_PTR: (71 + 7) * 2 * 2 = 312
+# OOD_TRACE_CURRENT_PTR: (71 + 7) * 2 = 156
+# OOD_TRACE_NEXT_PTR: (71 + 7) * 2 = 156
 # OOD_CONSTRAINT_EVALS_PTR: 8 * 2 = 16
-const.OOD_TRACE_PTR=4294900000
+const.OOD_TRACE_CURRENT_PTR=4294900000
+const.OOD_TRACE_NEXT_PTR=4294900156
 const.OOD_CONSTRAINT_EVALS_PTR=4294900312
 
 # Current trace row
@@ -44,15 +41,10 @@ const.CURRENT_TRACE_ROW_PTR=4294900400
 # There are are currently 16 ExtFelt for a total of 32 Felt. Thus the number of memory slots required is 32.
 const.AUX_RAND_ELEM_PTR=4294900600
 
-# We need 2 Felt for each constraint. We take 112000 slots as an upper bound
+# Address to the randomness used in computing the constraint composition polynomial
 const.COMPOSITION_COEF_PTR=4294900800
 
-# We need 2 Felt for each trace column and each of the 8 constraint composition columns. We thus need
-# (71 + 7 + 8) * 2 = 172 Felt i.e. 172 memory slots.
-# Note that there is a cap on the number of such coefficients so that the memory region allocated for
-# these coefficients does not overlap with the memory region storing the FRI queries.
-# This cap is of a 100 coefficients which is equivalent to 200 memory slots. This gives 600 memory
-# slots for all of the FRI queries i.e., 150 FRI queries.
+# Address to the randomness used in computing the DEEP polynomial
 const.DEEP_RAND_CC_PTR=4294912000
 
 # FRI
@@ -67,52 +59,82 @@ const.DEEP_RAND_CC_PTR=4294912000
 #              .
 #       (FRI_COM_PTR + 128)     ---|
 #              .
-#              .                  | <- Remainder codeword and polynomial
+#              .                  | <- Remainder polynomial
 #              .
-#       (FRI_COM_PTR + 264-1)   ---|
+#       (FRI_COM_PTR + 256-1)   ---|
 #
 # For each FRI layer, we need 8 memory slots, one for storing the FRI layer commitment and one for
 # storing the word [a0, a1, log2(lde_size), lde_size] where a := (a0, a1) is the folding randomness
-# and lde_size is the size of the LDE domain. Since we are using a folding factor of 4 and the
-# maximal degree of the remainder polynomial that we allow is 7, an upper limit of 16 FRI layers is
-# ample and the number of memory slots we thus allocate for this is 128. Moreover, we allocate
-# an additional 128 slots for the remainder codeword and 8 for the remainder polynomial. These are
-# expected to be laid out right after the FRI commitments.
-# The total number of slots thus becomes 264.
+# and lde_size is the size of the LDE domain of the corresponding FRI layer.
+# Since we are using a folding factor of 4 and the maximal degree of the remainder polynomial
+# that we allow is 127, an upper limit of 16 FRI layers is ample and the number of memory slots
+# we thus allocate for this is 128. Moreover, we allocate an additional 128 slots for the remainder
+# polynomial which is expected to be laid out right after the FRI commitments.
 const.FRI_COM_PTR=4294912800
 
 # Commitment to main, auxiliary and composition polynomials traces
-const.MAIN_TRACE_COM_PTR=4294913200
-const.AUX_TRACE_COM_PTR=4294913204
-const.COMPOSITION_POLY_COM_PTR=4294913208
+const.MAIN_TRACE_COM_PTR=4294813200
+const.AUX_TRACE_COM_PTR=4294813204
+const.COMPOSITION_POLY_COM_PTR=4294813208
 
 # Instant-specific constants
-const.LDE_SIZE_PTR=4294913212
-const.Z_PTR=4294913216
-const.NUM_QUERIES_PTR=4294913220
-const.TRACE_LENGTH_PTR=4294913224
-const.TRACE_LENGTH_LOG_PTR=4294913228
-const.GRINDING_FACTOR_PTR=4294913232
+const.LDE_DOMAIN_INFO_PTR=4294813212
+const.LDE_DOMAIN_GEN_PTR=4294813213
+const.Z_PTR=4294813216
+const.NUM_QUERIES_PTR=4294813220
+const.REMAINDER_POLY_SIZE_PTR=4294813221
+const.REMAINDER_POLY_ADDRESS_PTR=4294813223
+const.NUM_FRI_LAYERS_PTR=4294813222
+const.TRACE_LENGTH_PTR=4294813224
+const.FRI_QUERIES_ADDRESS_PTR=4294813225
+const.TRACE_LENGTH_LOG_PTR=4294813228
+const.GRINDING_FACTOR_PTR=4294813232
 
 # RPO capacity initialization words
-const.ZERO_WORD_PTR=4294913236
+const.ZERO_WORD_PTR=4294813236
 
 # State of RPO-based random coin
-const.C_PTR=4294913244
-const.R1_PTR=4294913248
-const.R2_PTR=4294913252
+const.C_PTR=4294813244
+const.R1_PTR=4294813248
+const.R2_PTR=4294813252
 
 # Address used for storing temporary values:
 const.TMP1=4294913256
 const.TMP2=4294913260
 const.TMP3=4294913264
 const.TMP4=4294913268
-const.TMP5=4294913272
-const.TMP6=4294913276
-const.TMP7=4294913280
-const.TMP8=4294913284
-const.TMP9=4294913288
 
+# RPO state capacity portion initialization words. In theory, we need a variant for each possible 
+# remainder modulo 8 but in practice we only need the following:
+const.ZERO_ZERO_ZERO_FOUR_PTR=4294913400
+const.ZERO_ZERO_ZERO_FIVE_PTR=4294913404
+const.ZERO_ZERO_ZERO_SIX_PTR=4294913408
+const.ZERO_ZERO_ZERO_SEVEN_PTR=4294913412
+
+# Addresses to store powers of the DEEP composition randomness needed during the computation of
+# the DEEP queries. Powers from 1 to 7 are needed to correct results of `horner_eval_*` when
+# the final batch of coefficients processed is not 8 in the case of `horner_eval_base` or
+# 4 in the case of `horner_eval_ext`. For example if we are evaluating a polynomial with
+# coefficients over base field and the last batch of coefficients processed by `horner_eval_base`
+# contains only 7 instead of 8 coefficients, then we would have to multiply the accumulator
+# by the first power of alpha.
+# We also need alpha^{77} and alpha^{85} which are used in the final computation used to recover
+# the evaluation of the original polynomial from the evaluation of its reversed version at alpha^{-1}.
+# Note that 77 = 71 + 7 - 1 and 85 = 71 + 7 + 8 - 1.
+const.ALPHA_INV=4294903600
+const.ALPHA_POWER_1_PTR=4294903400
+const.ALPHA_POWER_2_PTR=4294903404
+const.ALPHA_POWER_3_PTR=4294903408
+const.ALPHA_POWER_4_PTR=4294903412
+const.ALPHA_POWER_5_PTR=4294903416
+const.ALPHA_POWER_6_PTR=4294903420
+const.ALPHA_POWER_7_PTR=4294903424
+const.ALPHA_POWER_77_PTR=4294903440
+const.ALPHA_POWER_77_0_PTR=4294903440
+const.ALPHA_POWER_77_1_PTR=4294903441
+const.ALPHA_POWER_85_PTR=4294903444
+const.ALPHA_POWER_85_0_PTR=4294903444
+const.ALPHA_POWER_85_1_PTR=4294903445
 
 
 #   The following is a table summarizing the memory pointers used:
@@ -121,7 +143,8 @@ const.TMP9=4294913288
 #   +------------------------------------------+-------------------------+
 #   | TRACE_DOMAIN_GENERATOR_PTR               |       4294799999        |
 #   | PUBLIC_INPUTS_PTR                        |       4294800000        |
-#   | OOD_TRACE_PTR                            |       4294900000        |
+#   | OOD_TRACE_CURRENT_PTR                    |       4294900000        |
+#   | OOD_TRACE_NEXT_PTR                       |       4294900156        |
 #   | OOD_CONSTRAINT_EVALS_PTR                 |       4294900312        |
 #   | CURRENT_TRACE_ROW_PTR                    |       4294900400        |
 #   | AUX_RAND_ELEM_PTR                        |       4294900600        |
@@ -131,7 +154,7 @@ const.TMP9=4294913288
 #   | MAIN_TRACE_COM_PTR                       |       4294913200        |
 #   | AUX_TRACE_COM_PTR                        |       4294913204        |
 #   | COMPOSITION_POLY_COM_PTR                 |       4294913208        |
-#   | LDE_SIZE_PTR                             |       4294913212        |
+#   | LDE_DOMAIN_INFO_PTR                      |       4294913212        |
 #   | Z_PTR                                    |       4294913216        |
 #   | NUM_QUERIES_PTR                          |       4294913220        |
 #   | TRACE_LENGTH_PTR                         |       4294913224        |
@@ -146,55 +169,39 @@ const.TMP9=4294913288
 #   | TMP2                                     |       4294913260        |
 #   | TMP3                                     |       4294913264        |
 #   | TMP4                                     |       4294913268        |
-#   | TMP5                                     |       4294913272        |
-#   | TMP6                                     |       4294913276        |
-#   | TMP7                                     |       4294913280        |
-#   | TMP8                                     |       4294913284        |
-#   | TMP9                                     |       4294913288        |
+#   | ZERO_ZERO_ZERO_FOUR_PTR                  |       4294913400        |
+#   | ZERO_ZERO_ZERO_FIVE_PTR                  |       4294913404        |
+#   | ZERO_ZERO_ZERO_SIX_PTR                   |       4294913408        |
+#   | ZERO_ZERO_ZERO_SEVEN_PTR                 |       4294913412        |
+#   | ALPHA_INV                                |       4294903600        |
+#   | ALPHA_POWER_1_PTR                        |       4294903400        |
+#   | ALPHA_POWER_2_PTR                        |       4294903404        |
+#   | ALPHA_POWER_3_PTR                        |       4294903408        |
+#   | ALPHA_POWER_4_PTR                        |       4294903412        |
+#   | ALPHA_POWER_5_PTR                        |       4294903416        |
+#   | ALPHA_POWER_6_PTR                        |       4294903420        |
+#   | ALPHA_POWER_7_PTR                        |       4294903424        |
+#   | ALPHA_POWER_77_PTR                       |       4294903440        |
+#   | ALPHA_POWER_77_0_PTR                     |       4294903440        |
+#   | ALPHA_POWER_77_1_PTR                     |       4294903441        |
+#   | ALPHA_POWER_85_PTR                       |       4294903444        |
+#   | ALPHA_POWER_85_0_PTR                     |       4294903444        |
+#   | ALPHA_POWER_85_1_PTR                     |       4294903445        |
 #   +------------------------------------------+-------------------------+
 
 # ACCESSORS
 # =================================================================================================
 
-export.root_unity
-    push.ROOT_UNITY
-end
-
-export.num_aux_trace_coefs
-    push.NUM_AUX_TRACE_COEFS
-end
-
-# Procedure to push the trace domain generator address to the stack.
-#
-# Input: [...]
-# Output: [ptr, ...] wher ptr is the memory address of the trace domain generator
-# Cycles: 1
-export.trace_domain_generator_ptr
-    push.TRACE_DOMAIN_GENERATOR_PTR
-end
-
-export.domain_offset
-    push.DOMAIN_OFFSET
-end
-
-export.domain_offset_inv
-    push.DOMAIN_OFFSET_INV
-end
-
-export.num_constraint_composition_coef_multiplied_by_two_and_rounded_up_to_4
-    push.NUM_CONSTRAINT_COMPOSITION_COEF_ROUNDED_UP_TO_FOUR
-end
-
-export.num_deep_composition_coef_rounded_up_to_4
-    push.NUM_DEEP_COMPOSITION_COEF_ROUNDED_UP_TO_FOUR
-end
-
 export.public_inputs_ptr
     push.PUBLIC_INPUTS_PTR
 end
 
-export.ood_trace_ptr
-    push.OOD_TRACE_PTR
+export.ood_trace_current_ptr
+    push.OOD_TRACE_CURRENT_PTR
+end
+
+export.ood_trace_next_ptr
+    push.OOD_TRACE_NEXT_PTR
 end
 
 export.ood_constraint_evals_ptr
@@ -233,67 +240,104 @@ export.composition_poly_com_ptr
     push.COMPOSITION_POLY_COM_PTR
 end
 
-#! Address to store details about the lde size.
-#!
-#! Memory is `[lde_size, log(lde_size), lde_g, 0]`
-export.lde_size_ptr
-    push.LDE_SIZE_PTR
-end
-
 #! Address for the point `z` and its exponentiation `z^N` where `N=trace_len`.
 #!
-#! Memory is `[(z_1, z_0)^n, z_1, z_0]`
+#! The word stored is `[z_0, z_1, z^n_0, z^n_1]`.
 export.z_ptr
     push.Z_PTR
 end
 
-export.number_queries_ptr
-    push.NUM_QUERIES_PTR
-end
-
-export.trace_length_ptr
-    push.TRACE_LENGTH_PTR
-end
-
-export.trace_length_log_ptr
-    push.TRACE_LENGTH_LOG_PTR
-end
-
-export.grinding_factor_ptr
-    push.GRINDING_FACTOR_PTR
-end
-
-export.zero_word
-    push.ZERO_WORD_PTR
-end
-
-#! Returns the pointer to the capacity word of the random coin.
-#!
-#! Note: The random coin is implemented using a hash function, this returns the
-#! capacity portion of the RPO.
+#! Returns the pointer to the capacity word of the RPO-based random coin.
 export.c_ptr
     push.C_PTR
 end
 
-#! Returns the pointer to the first rate word of the random coin.
-#!
-#! Note: The random coin is implemented using a hash function, this returns the
-#! first rate word of the RPO.
+#! Returns the pointer to the first rate word of the RPO-based random coin.
 export.r1_ptr
     push.R1_PTR
 end
 
-#! Returns the pointer to the second rate word of the random coin.
-#!
-#! Note: The random coin is implemented using a hash function, this returns the
-#! second rate word of the RPO.
+#! Returns the pointer to the second rate word of the RPO-based random coin.
 export.r2_ptr
     push.R2_PTR
 end
 
-#! Address to store details to compute deep query denominators.
-#!
-#! Memory is `[gz1, gz0, z_1, z_0]`
+export.zero_word_ptr
+    push.ZERO_WORD_PTR
+end
+
+export.zero_zero_zero_four_word_ptr
+    push.ZERO_ZERO_ZERO_FOUR_PTR
+end
+
+export.zero_zero_zero_five_word_ptr
+    push.ZERO_ZERO_ZERO_FIVE_PTR
+end
+
+export.zero_zero_zero_six_word_ptr
+    push.ZERO_ZERO_ZERO_SIX_PTR
+end
+
+export.zero_zero_zero_seven_word_ptr
+    push.ZERO_ZERO_ZERO_SEVEN_PTR
+end
+
+export.deep_rand_alpha_inv_ptr
+    push.ALPHA_INV
+end
+
+export.deep_rand_alpha_1_ptr
+    push.ALPHA_POWER_1_PTR
+end
+
+export.deep_rand_alpha_2_ptr
+    push.ALPHA_POWER_2_PTR
+end
+
+export.deep_rand_alpha_3_ptr
+    push.ALPHA_POWER_3_PTR
+end
+
+export.deep_rand_alpha_4_ptr
+    push.ALPHA_POWER_4_PTR
+end
+
+export.deep_rand_alpha_5_ptr
+    push.ALPHA_POWER_5_PTR
+end
+
+export.deep_rand_alpha_6_ptr
+    push.ALPHA_POWER_6_PTR
+end
+
+export.deep_rand_alpha_7_ptr
+    push.ALPHA_POWER_7_PTR
+end
+
+export.deep_rand_alpha_77_ptr
+    push.ALPHA_POWER_77_PTR
+end
+
+export.deep_rand_alpha_77_0_ptr
+    push.ALPHA_POWER_77_0_PTR
+end
+
+export.deep_rand_alpha_77_1_ptr
+    push.ALPHA_POWER_77_1_PTR
+end
+
+export.deep_rand_alpha_85_ptr
+    push.ALPHA_POWER_85_PTR
+end
+
+export.deep_rand_alpha_85_0_ptr
+    push.ALPHA_POWER_85_0_PTR
+end
+
+export.deep_rand_alpha_85_1_ptr
+    push.ALPHA_POWER_85_1_PTR
+end
+
 export.tmp1
     push.TMP1
 end
@@ -310,22 +354,120 @@ export.tmp4
     push.TMP4
 end
 
-export.tmp5
-    push.TMP5
+export.zeroize_stack_word
+    exec.zero_word_ptr mem_loadw
 end
 
-export.tmp6
-    push.TMP6
+#! Store details about the LDE domain.
+#!
+#! The info stored is `[lde_size, log(lde_size), lde_g, 0]`.
+export.set_lde_domain_info_word
+    push.LDE_DOMAIN_INFO_PTR mem_storew
 end
 
-export.tmp7
-    push.TMP7
+#! Load details about the LDE domain.
+#!
+#! The info stored is `[lde_size, log(lde_size), lde_g, 0]`.
+export.get_lde_domain_info_word
+    push.LDE_DOMAIN_INFO_PTR mem_loadw
 end
 
-export.tmp8
-    push.TMP8
+export.get_root_unity
+    push.ROOT_UNITY
 end
 
-export.tmp9
-    push.TMP9
+export.get_num_aux_trace_coefs
+    push.NUM_AUX_TRACE_COEFS
+end
+
+export.get_domain_offset
+    push.DOMAIN_OFFSET
+end
+
+export.get_domain_offset_inv
+    push.DOMAIN_OFFSET_INV
+end
+
+export.get_num_constraints
+    push.NUM_CONSTRAINTS
+end
+
+export.set_trace_domain_generator
+    push.TRACE_DOMAIN_GENERATOR_PTR mem_store
+end
+
+export.get_trace_domain_generator
+    push.TRACE_DOMAIN_GENERATOR_PTR mem_load
+end
+
+export.set_lde_domain_generator
+    push.LDE_DOMAIN_GEN_PTR mem_store
+end
+
+export.get_lde_domain_generator
+    push.LDE_DOMAIN_GEN_PTR mem_load
+end
+
+export.set_number_queries
+    push.NUM_QUERIES_PTR mem_store
+end
+
+export.get_number_queries
+    push.NUM_QUERIES_PTR mem_load
+end
+
+export.set_remainder_poly_size
+    push.REMAINDER_POLY_SIZE_PTR mem_store
+end
+
+export.get_remainder_poly_size
+    push.REMAINDER_POLY_SIZE_PTR mem_load
+end
+
+export.set_num_fri_layers
+    push.NUM_FRI_LAYERS_PTR mem_store
+end
+
+export.get_num_fri_layers
+    push.NUM_FRI_LAYERS_PTR mem_load
+end
+
+export.set_remainder_poly_address
+    push.REMAINDER_POLY_ADDRESS_PTR mem_store
+end
+
+export.get_remainder_poly_address
+    push.REMAINDER_POLY_ADDRESS_PTR mem_load
+end
+
+export.set_fri_queries_address
+    push.FRI_QUERIES_ADDRESS_PTR mem_store
+end
+
+export.get_fri_queries_address
+    push.FRI_QUERIES_ADDRESS_PTR mem_load
+end
+
+export.set_trace_length
+    push.TRACE_LENGTH_PTR mem_store
+end
+
+export.get_trace_length
+    push.TRACE_LENGTH_PTR mem_load
+end
+
+export.set_trace_length_log
+    push.TRACE_LENGTH_LOG_PTR mem_store
+end
+
+export.get_trace_length_log
+    push.TRACE_LENGTH_LOG_PTR mem_load
+end
+
+export.set_grinding_factor
+    push.GRINDING_FACTOR_PTR mem_store
+end
+
+export.get_grinding_factor
+    push.GRINDING_FACTOR_PTR mem_load
 end

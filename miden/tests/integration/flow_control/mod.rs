@@ -1,11 +1,11 @@
 use alloc::sync::Arc;
 
-use assembly::{ast::ModuleKind, Assembler, LibraryPath, Report, SourceManager};
+use assembly::{Assembler, LibraryPath, Report, SourceManager, ast::ModuleKind};
 use miden_vm::Module;
 use processor::ExecutionError;
 use prover::Digest;
 use stdlib::StdLibrary;
-use test_utils::{build_test, expect_exec_error_matches, push_inputs, StackInputs, Test};
+use test_utils::{StackInputs, Test, build_test, expect_exec_error_matches, push_inputs};
 
 // SIMPLE FLOW CONTROL TESTS
 // ================================================================================================
@@ -52,6 +52,21 @@ fn conditional_loop() {
 
     let test = build_test!(source, &[10]);
     test.expect_stack(&[10]);
+}
+
+#[test]
+fn faulty_condition_from_loop() {
+    let source = "
+        begin
+            push.1
+            while.true
+                push.100
+            end
+            drop
+        end";
+
+    let test = build_test!(source, &[10]);
+    expect_exec_error_matches!(test, ExecutionError::NotBinaryValue(_));
 }
 
 #[test]

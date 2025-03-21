@@ -78,25 +78,25 @@ end
 #!
 #! Input: [log(trace_length), num_queries, blowup, grinding, ...]
 #! Output: [C]
-#! Cycles: 175
+#! Cycles: 228
 export.init_seed
 
     # Save the parameters in memory for later use
-    dup exec.constants::trace_length_log_ptr mem_store
-    dup.1 exec.constants::number_queries_ptr mem_store
-    dup.3 exec.constants::grinding_factor_ptr mem_store
+    dup exec.constants::set_trace_length_log
+    dup.1 exec.constants::set_number_queries
+    dup.3 exec.constants::set_grinding_factor
 
     # Pre-load constants used by hperm into memory and initialize the state of the random coin to zeros.
     # Since memory beyond 3 * 2^30 does not have any special meaning, we can use the memory region
     # starting from address 2^32 - 1 in decreasing order to hold constants that are used throughout
     # the `verify` procedure.
-    #
-    # Cycles: 22
     padw
-    exec.constants::zero_word mem_storew
+    exec.constants::zero_word_ptr mem_storew
     exec.constants::c_ptr mem_storew
     exec.constants::r1_ptr mem_storew
     exec.constants::r2_ptr mem_storew
+    push.6 swap.4 drop exec.constants::zero_zero_zero_six_word_ptr mem_storew
+    push.7 swap.4 drop exec.constants::zero_zero_zero_seven_word_ptr mem_storew
     dropw
     #=> [log(trace_length), num_queries, log(blowup), grinding]
 
@@ -104,17 +104,15 @@ export.init_seed
     # Create the initial seed for randomness generation from proof context
 
     ## Compute trace_length
-    ## Cycles: 20
     dup
     pow2
     u32split assertz
     #=> [trace_length, log(trace_length), num_queries, log(blowup), grinding]
 
     ## Save the trace length and its log to memory
-    dup.0 exec.constants::trace_length_ptr mem_store
+    dup.0 exec.constants::set_trace_length
 
     ## Assert blowup is equal to 8
-    ##  Cycles: 6
     swap
     dup.3
     dup
@@ -144,7 +142,7 @@ export.init_seed
     #=> [lde_size, log(lde_size), lde_g, 0, trace_length, num_queries, blowup, grinding]
 
     # Save `[lde_size, log(lde_size), lde_g, 0]`
-    exec.constants::lde_size_ptr mem_storew
+    exec.constants::set_lde_domain_info_word
     #=> [lde_size, log(lde_size), lde_g, 0, trace_length, num_queries, blowup, grinding]
 
     # clean stack
@@ -158,7 +156,7 @@ export.init_seed
     #=> [trace_g, 0, trace_length, num_queries, blowup, grinding]
 
     # Save `trace_g` to memory
-    exec.constants::trace_domain_generator_ptr mem_store
+    exec.constants::set_trace_domain_generator
     #=> [0, trace_length, num_queries, blowup, grinding]
 
     # clean stack
@@ -181,13 +179,20 @@ export.init_seed
     push.0x01 # lower half of the modulus
     push.0xffffffff # upper half of the modulus
     ## field extension and FRI parameters
-    ## field extension degree || FRI folding factor || FRI remainder polynomial max degree
-    push.0x020407
+    ## field extension degree || FRI folding factor || FRI remainder polynomial max degree || blowup factor
+    push.0x02047f08
+    # => [proof_options, modulus1, modulus0, trace_info, trace_length, num_queries, blowup, grinding, ...]
 
     # Hash proof context
-    # Cycles: 15
     swapw
-    movdn.6
+    movup.2 drop
+    movdn.5
+    # => [num_queries, grinding, proof_options, modulus1, modulus0, trace_length, trace_info, ...]
+
+    exec.constants::get_num_constraints
+    movdn.3
+    # => [num_queries, grinding, proof_options, num_constraints, modulus1, modulus0, trace_length, trace_info, ...]
+
     push.4.0.0.0
     movdnw.2
     # => [B, A, 0, 0, 0, 4, ..]
@@ -311,181 +316,42 @@ proc.generate_random_coefficients
     #=> [...]
 end
 
-#! Generates a `num_tuples` tuples of random field elements and stores them in memory
-#! starting from address `dest_ptr`. Each memory word holds one tuple, e.g. `[0, 0, t0, t1]`.
-#! TODO: Generalize by keeping track of something similar to the `output` variable in `RpoRandomCoin`
-#! so that we keep track of already used randomness and know when there is a need to apply `hperm`.
+#! Draw a list of random extension field elements related to the auxiliary segment of the execution
+#! trace and store the list in memory from `aux_rand_elem_ptr` to `aux_rand_elem_ptr + 32 - 4`.
 #!
-#! `dest_ptr` must be word-aligned.
-#!
-#! Input: [dest_ptr, num_tuples, ...]
-#! Output: [...]
-#!
-#! Cycles: 104 + (69 * num_tuples) / 4
-proc.generate_random_coefficients_pad
-
-    # Compute the loop counter. We use checked division to make sure the number is a multiple of 4.
-    # If we use field division and num_tuples is not a multiple of 4 then we will enter into
-    # a very large loop with high probability.
-    push.0 dup movup.2 movup.3
-    u32assert u32divmod.4
-    assertz
-    neg
-    #=> [loop_ctr, dest_ptr, x, x, ...]
-    # where loop_ctr = - num_tuples / 4; we negate the counter so that we can count up to 0
-
-    exec.get_rate_1
-    dup.5
-    #=> [dest_ptr, a11, a10, a01, a00, loop_ctr, dest_ptr, x, x, ...]
-    dup.4
-    dup.4
-    push.0.0
-    dup.4
-    #=> [dest_ptr, 0, 0, a01, a00, dest_ptr, a11, a10, a01, a00, loop_ctr, dest_ptr, x, x, ...]
-
-    mem_storew dropw
-    #=> [dest_ptr, a11, a10, a01, a00, loop_ctr, dest_ptr, x, x, ...]
-
-    dup.2 dup.2 push.0.0
-    #=> [0, 0, a11, a10, dest_ptr, a11, a10, a01, a00, loop_ctr, dest_ptr, x, x, ...]
-
-    movup.4 add.4 mem_storew
-    #=> [0, 0, a11, a10, a11, a10, a01, a00, loop_ctr, dest_ptr, x, x, ...]
-
-    exec.constants::r2_ptr mem_loadw
-    #=> [a31, a30, a21, a20, a11, a10, a01, a00, loop_ctr, dest_ptr, x, x, ...]
-
-    dup.9  add.16 swap.10
-    #=> [dest_ptr, a31, a30, a21, a20, a11, a10, a01, a00, loop_ctr, dest_ptr+16, x, x, ...]
-
-    dup.4
-    dup.4
-    push.0.0
-    #=> [0, 0, a21, a20, dest_ptr, a31, a30, a21, a20, a11, a10, a01, a00, loop_ctr, dest_ptr+16, x, x, ...]
-
-    dup.4 add.8
-    mem_storew dropw
-    #=> [dest_ptr, a31, a30, a21, a20, a11, a10, a01, a00, loop_ctr, dest_ptr+16, x, x, ...]
-
-    dup.2 dup.2 push.0.0
-    #=> [0, 0, a31, a30, dest_ptr, a31, a30, a21, a20, a11, a10, a01, a00, loop_ctr, dest_ptr+16, x, x, ...]
-
-    movup.4 add.12 mem_storew
-    #=> [0, 0, a31, a30, a31, a30, a21, a20, a11, a10, a01, a00, loop_ctr, dest_ptr+16, x, x, ...]
-
-    exec.constants::c_ptr mem_loadw
-    #=> [C, a31, a30, a21, a20, a11, a10, a01, a00, loop_ctr, dest_ptr+16, x, x, ...]
-
-    swapdw
-    #=> [a11, a10, a01, a00, loop_ctr, dest_ptr+16, x, x, C, a31, a30, a21, a20, ...]
-    swapw
-    #=> [loop_ctr, dest_ptr+16, x, x, R1, C, R2, ..]
-
-    add.1 dup neq.0
-
-    while.true
-
-        swapw.3 hperm
-        #=> [R2, R1, C, loop_ctr, dest_ptr, x, x, ...]
-
-        # save R2 to mem[dest+4]; we use dup.13 here because it takes only 1 cycle
-        dup.13
-        dup.4 dup.4 push.0.0
-        #=> [0, 0, a31, a30, dest_ptr, R2, R1, C, loop_ctr, dest_ptr, x, x, ...]
-
-        dup.4 add.8
-        mem_storew dropw
-        #=> [dest_ptr, a31, a30, a21, a20, a11, a10, a01, a00, C, loop_ctr, dest_ptr, x, x, ...]
-
-        dup.2 dup.2 push.0.0
-        #=> [0, 0, a31, a30, dest_ptr, a31, a30, a21, a20, a11, a10, a01, a00, C, loop_ctr, dest_ptr, x, x, ...]
-
-        movup.4 add.12 mem_storew dropw
-        #=> [a31, a30, a21, a20, a11, a10, a01, a00, C, loop_ctr, dest_ptr, x, x, ...]
-
-        # save R1 to mem[dest]
-        swapw dup.13
-        #=> [dest_ptr, a11, a10, a01, a00, a31, a30, a21, a20, C, loop_ctr, dest_ptr, x, x, ...]
-
-        dup.4 dup.4 push.0.0
-        #=> [0, 0, a01, a00, dest_ptr, a11, a10, a01, a00, a31, a30, a21, a20, C, loop_ctr, dest_ptr, x, x, ...]
-
-        dup.4
-        mem_storew dropw
-        #=> [dest_ptr, a11, a10, a01, a00, a31, a30, a21, a20, C, loop_ctr, dest_ptr, x, x, ...]
-
-        dup.2 dup.2 push.0.0
-        #=> [0, 0, a11, a10, dest_ptr, a11, a10, a01, a00, a31, a30, a21, a20, C, loop_ctr, dest_ptr, x, x, ...]
-
-        movup.4 add.4 mem_storew dropw
-        #=> [a11, a10, a01, a00, a31, a30, a21, a20, C, loop_ctr, dest_ptr, x, x, ...]
-
-        # reshuffle and update destination pointer and loop counter
-        swapw
-        swapw.3
-        #=> [loop_ctr, dest_ptr, x, x, R1, C, R2, ...]
-
-        swap add.16 swap
-        #=> [loop_ctr, dest_ptr+2, x, x, R1, C, R2, ...]
-
-        add.1 dup
-        #=> [loop_ctr+1, loop_ctr+1, dest_ptr+2, x, x, R1, C, R2, ...]
-
-        neq.0
-    end
-    
-    # Save the new state of the random coin
-    dropw
-    exec.constants::r1_ptr mem_storew
-    dropw
-    exec.constants::c_ptr mem_storew
-    dropw
-    exec.constants::r2_ptr mem_storew
-    dropw
-    #=> [...]
-end
-
-#! Draw a list of random extension field elements related to the auxiliary trace and store the list
-#! in memory from `aux_rand_elem_ptr` to `aux_rand_elem_ptr + 32 - 4`
-#!
-#! Input: [aux_rand_elem_ptr, ...]
+#! Input: [...]
 #! Output: [...]
 #! Cycles: 159
 export.generate_aux_randomness
-    exec.constants::num_aux_trace_coefs swap
+    exec.constants::aux_rand_elem_ptr
+    exec.constants::get_num_aux_trace_coefs swap
     exec.generate_random_coefficients
     #=> [...]
 end
 
-#! Draw constraint composition random coefficients and save them into memory in the region from
-#! `compos_coef_ptr` `compos_coef_ptr + NUM_COEFFS - 1` as `(r1_1, r1_0, r0_1, r0_0)`
+#! Draw constraint composition random coefficient and save  it at `compos_coef_ptr`.
 #!
-#! Input: [compos_coef_ptr, ...]
+#! Input: [...]
 #! Output: [...]
-#! Cycles: 1305
+#! Cycles: 13
 export.generate_constraint_composition_coefficients
-
-    exec.constants::num_constraint_composition_coef_multiplied_by_two_and_rounded_up_to_4
-    swap
-    exec.generate_random_coefficients
+    exec.constants::composition_coef_ptr
+    padw exec.constants::r1_ptr mem_loadw
+    # => [y, y, alpha1, alpha0, compos_coef_ptr, ...] where y is a "garbage" value
+    movup.4 mem_storew dropw
     #=> [...]
 end
 
-#! Draw deep composition polynomial random coefficients and save them into memory in the region from
-#! `deep_rand_coef_ptr` to `deep_rand_coef_ptr + 89 - 1` as `(0, 0, r0_1, r0_0)`
-#! The number of coefficients is equal to:
-#! 1. (71 + 7) * 2 Felt for the main and auxiliary traces.
-#! 2. 8 * 2 Felt for constraint polynomial.
-#! Total: 86 tuples of type (Felt, Felt)
+#! Draw deep composition polynomial random coefficient and save it at `deep_rand_coef_ptr`.
 #!
-#! Input: [deep_rand_coef_ptr, ...]
+#! Input: [...]
 #! Output: [...]
-#! Cycles: 1624
+#! Cycles: 13
 export.generate_deep_composition_random_coefficients
-    # note that 88 is the next number after 86 divisible by 4
-    exec.constants::num_deep_composition_coef_rounded_up_to_4
-    swap
-    exec.generate_random_coefficients_pad
+    exec.constants::deep_rand_coef_ptr
+    padw exec.constants::r1_ptr mem_loadw
+    # => [y, y, alpha1, alpha0, deep_rand_coef_ptr, ...] where y is a "garbage" value
+    movup.4 mem_storew dropw
     #=> [...]
 end
 
@@ -505,7 +371,7 @@ export.generate_z_zN
     # Load z (first two felts of the random coin state) and log trace length N
     exec.constants::r1_ptr mem_loadw
     drop drop
-    exec.constants::trace_length_log_ptr mem_load
+    exec.constants::get_trace_length_log
     # => [log(trace_len), z_1, z_0, ...]
 
     dup.2 dup.2
@@ -652,7 +518,6 @@ end
 #! [0, lde_size] and store it in memory starting from `query_ptr`.
 #! The list is stored as `(r, depth, y, y)` where `depth` is `log(lde_domain_size)`.
 #!`depth` is needed when computing the deep queries.
-#! TODO: the case of duplicate queries
 #!
 #! Input: [query_ptr, num_queries, ...]
 #! Output: [...]
@@ -664,9 +529,11 @@ end
 #! NOTE: The cycles count can be estimated, using the fact that r < 8, via the more compact formula
 #!  470 + 236 * (num_queries / 8)
 export.generate_list_indices
+    exec.constants::get_number_queries
+    exec.constants::get_fri_queries_address
     # Create mask
     padw
-    exec.constants::lde_size_ptr mem_loadw
+    exec.constants::get_lde_domain_info_word
     movup.2 drop
     movup.2 drop
     sub.1
@@ -809,10 +676,12 @@ end
 #! Check that the Proof-of-Work contained in the nonce is equal to the required number
 #! of bits prescribed by grinding bits. The grinding factor is assumed to be less than 32.
 #!
-#! Input: [grinding_factor, ...]
+#! Input: [...]
 #! Output: [...]
 #! Cycles: 73
 export.check_pow
+    # Load the grinding factor
+    exec.constants::get_grinding_factor
 
     # Compute the mask.
     pow2

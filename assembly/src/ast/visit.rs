@@ -51,7 +51,7 @@
 //! modifications to specific nodes they care about.
 use core::ops::ControlFlow;
 
-use crate::{ast::*, Felt, Span};
+use crate::{Felt, Span, ast::*};
 
 /// Represents an immutable AST visitor, whose "early return" type is `T` (by default `()`).
 ///
@@ -235,8 +235,8 @@ where
     V: ?Sized + Visit<T>,
 {
     match export {
-        Export::Procedure(ref procedure) => visitor.visit_procedure(procedure),
-        Export::Alias(ref alias) => visitor.visit_procedure_alias(alias),
+        Export::Procedure(procedure) => visitor.visit_procedure(procedure),
+        Export::Alias(alias) => visitor.visit_procedure_alias(alias),
     }
 }
 
@@ -270,12 +270,12 @@ where
     V: ?Sized + Visit<T>,
 {
     match op {
-        Op::If { ref then_blk, ref else_blk, .. } => {
+        Op::If { then_blk, else_blk, .. } => {
             visitor.visit_block(then_blk)?;
             visitor.visit_block(else_blk)
         },
-        Op::While { ref body, .. } | Op::Repeat { ref body, .. } => visitor.visit_block(body),
-        Op::Inst(ref inst) => visitor.visit_inst(inst),
+        Op::While { body, .. } | Op::Repeat { body, .. } => visitor.visit_block(body),
+        Op::Inst(inst) => visitor.visit_inst(inst),
     }
 }
 
@@ -286,41 +286,43 @@ where
     use Instruction::*;
     let span = inst.span();
     match &**inst {
-        U32ShrImm(ref imm) | U32ShlImm(ref imm) | U32RotrImm(ref imm) | U32RotlImm(ref imm)
-        | AdvPush(ref imm) => visitor.visit_immediate_u8(imm),
-        Locaddr(ref imm) | LocLoad(ref imm) | LocLoadW(ref imm) | LocStore(ref imm)
-        | LocStoreW(ref imm) => visitor.visit_immediate_u16(imm),
-        AssertWithError(ref code)
-        | AssertEqWithError(ref code)
-        | AssertEqwWithError(ref code)
-        | AssertzWithError(ref code)
-        | U32AssertWithError(ref code)
-        | U32Assert2WithError(ref code)
-        | U32AssertWWithError(ref code)
-        | MTreeVerifyWithError(ref code) => visitor.visit_immediate_error_code(code),
-        AddImm(ref imm) | SubImm(ref imm) | MulImm(ref imm) | DivImm(ref imm) | ExpImm(ref imm)
-        | EqImm(ref imm) | NeqImm(ref imm) | Push(ref imm) => visitor.visit_immediate_felt(imm),
-        U32WrappingAddImm(ref imm)
-        | U32OverflowingAddImm(ref imm)
-        | U32WrappingSubImm(ref imm)
-        | U32OverflowingSubImm(ref imm)
-        | U32WrappingMulImm(ref imm)
-        | U32OverflowingMulImm(ref imm)
-        | U32DivImm(ref imm)
-        | U32ModImm(ref imm)
-        | U32DivModImm(ref imm)
-        | MemLoadImm(ref imm)
-        | MemLoadWImm(ref imm)
-        | MemStoreImm(ref imm)
-        | MemStoreWImm(ref imm)
-        | Emit(ref imm)
-        | Trace(ref imm) => visitor.visit_immediate_u32(imm),
-        SysEvent(ref sys_event) => visitor.visit_system_event(Span::new(span, sys_event)),
-        Exec(ref target) => visitor.visit_exec(target),
-        Call(ref target) => visitor.visit_call(target),
-        SysCall(ref target) => visitor.visit_syscall(target),
-        ProcRef(ref target) => visitor.visit_procref(target),
-        Debug(ref options) => visitor.visit_debug_options(Span::new(span, options)),
+        U32ShrImm(imm) | U32ShlImm(imm) | U32RotrImm(imm) | U32RotlImm(imm) | AdvPush(imm) => {
+            visitor.visit_immediate_u8(imm)
+        },
+        Locaddr(imm) | LocLoad(imm) | LocLoadW(imm) | LocStore(imm) | LocStoreW(imm) => {
+            visitor.visit_immediate_u16(imm)
+        },
+        AssertWithError(code)
+        | AssertEqWithError(code)
+        | AssertEqwWithError(code)
+        | AssertzWithError(code)
+        | U32AssertWithError(code)
+        | U32Assert2WithError(code)
+        | U32AssertWWithError(code)
+        | MTreeVerifyWithError(code) => visitor.visit_immediate_error_code(code),
+        AddImm(imm) | SubImm(imm) | MulImm(imm) | DivImm(imm) | ExpImm(imm) | EqImm(imm)
+        | NeqImm(imm) | Push(imm) => visitor.visit_immediate_felt(imm),
+        U32WrappingAddImm(imm)
+        | U32OverflowingAddImm(imm)
+        | U32WrappingSubImm(imm)
+        | U32OverflowingSubImm(imm)
+        | U32WrappingMulImm(imm)
+        | U32OverflowingMulImm(imm)
+        | U32DivImm(imm)
+        | U32ModImm(imm)
+        | U32DivModImm(imm)
+        | MemLoadImm(imm)
+        | MemLoadWImm(imm)
+        | MemStoreImm(imm)
+        | MemStoreWImm(imm)
+        | Emit(imm)
+        | Trace(imm) => visitor.visit_immediate_u32(imm),
+        SysEvent(sys_event) => visitor.visit_system_event(Span::new(span, sys_event)),
+        Exec(target) => visitor.visit_exec(target),
+        Call(target) => visitor.visit_call(target),
+        SysCall(target) => visitor.visit_syscall(target),
+        ProcRef(target) => visitor.visit_procref(target),
+        Debug(options) => visitor.visit_debug_options(Span::new(span, options)),
         Nop | Assert | AssertEq | AssertEqw | Assertz | Add | Sub | Mul | Div | Neg | ILog2
         | Inv | Incr | Pow2 | Exp | ExpBitLength(_) | Not | And | Or | Xor | Eq | Neq | Eqw
         | Lt | Lte | Gt | Gte | IsOdd | Ext2Add | Ext2Sub | Ext2Mul | Ext2Div | Ext2Neg
@@ -341,8 +343,8 @@ where
         | PushU16(_) | PushU32(_) | PushFelt(_) | PushWord(_) | PushU8List(_) | PushU16List(_)
         | PushU32List(_) | PushFeltList(_) | Sdepth | Caller | Clk | MemLoad | MemLoadW
         | MemStore | MemStoreW | MemStream | AdvPipe | AdvLoadW | Hash | HMerge | HPerm
-        | MTreeGet | MTreeSet | MTreeMerge | MTreeVerify | FriExt2Fold4 | RCombBase | DynExec
-        | DynCall | Breakpoint => ControlFlow::Continue(()),
+        | MTreeGet | MTreeSet | MTreeMerge | MTreeVerify | FriExt2Fold4 | DynExec | DynCall
+        | Breakpoint | HornerBase | HornerExt => ControlFlow::Continue(()),
     }
 }
 
@@ -358,13 +360,13 @@ where
     V: ?Sized + Visit<T>,
 {
     match options.into_inner() {
-        DebugOptions::StackTop(ref imm) => visitor.visit_immediate_u8(imm),
-        DebugOptions::LocalRangeFrom(ref imm) => visitor.visit_immediate_u16(imm),
-        DebugOptions::MemInterval(ref imm1, ref imm2) => {
+        DebugOptions::StackTop(imm) => visitor.visit_immediate_u8(imm),
+        DebugOptions::LocalRangeFrom(imm) => visitor.visit_immediate_u16(imm),
+        DebugOptions::MemInterval(imm1, imm2) => {
             visitor.visit_immediate_u32(imm1)?;
             visitor.visit_immediate_u32(imm2)
         },
-        DebugOptions::LocalInterval(ref imm1, ref imm2) => {
+        DebugOptions::LocalInterval(imm1, imm2) => {
             visitor.visit_immediate_u16(imm1)?;
             visitor.visit_immediate_u16(imm2)
         },
@@ -647,8 +649,8 @@ where
     V: ?Sized + VisitMut<T>,
 {
     match export {
-        Export::Procedure(ref mut procedure) => visitor.visit_mut_procedure(procedure),
-        Export::Alias(ref mut alias) => visitor.visit_mut_procedure_alias(alias),
+        Export::Procedure(procedure) => visitor.visit_mut_procedure(procedure),
+        Export::Alias(alias) => visitor.visit_mut_procedure_alias(alias),
     }
 }
 
@@ -685,14 +687,12 @@ where
     V: ?Sized + VisitMut<T>,
 {
     match op {
-        Op::If { ref mut then_blk, ref mut else_blk, .. } => {
+        Op::If { then_blk, else_blk, .. } => {
             visitor.visit_mut_block(then_blk)?;
             visitor.visit_mut_block(else_blk)
         },
-        Op::While { ref mut body, .. } | Op::Repeat { ref mut body, .. } => {
-            visitor.visit_mut_block(body)
-        },
-        Op::Inst(ref mut inst) => visitor.visit_mut_inst(inst),
+        Op::While { body, .. } | Op::Repeat { body, .. } => visitor.visit_mut_block(body),
+        Op::Inst(inst) => visitor.visit_mut_inst(inst),
     }
 }
 
@@ -703,49 +703,43 @@ where
     use Instruction::*;
     let span = inst.span();
     match &mut **inst {
-        U32ShrImm(ref mut imm)
-        | U32ShlImm(ref mut imm)
-        | U32RotrImm(ref mut imm)
-        | U32RotlImm(ref mut imm)
-        | AdvPush(ref mut imm) => visitor.visit_mut_immediate_u8(imm),
-        Locaddr(ref mut imm)
-        | LocLoad(ref mut imm)
-        | LocLoadW(ref mut imm)
-        | LocStore(ref mut imm)
-        | LocStoreW(ref mut imm) => visitor.visit_mut_immediate_u16(imm),
-        AssertWithError(ref mut code)
-        | AssertEqWithError(ref mut code)
-        | AssertEqwWithError(ref mut code)
-        | AssertzWithError(ref mut code)
-        | U32AssertWithError(ref mut code)
-        | U32Assert2WithError(ref mut code)
-        | U32AssertWWithError(ref mut code)
-        | MTreeVerifyWithError(ref mut code) => visitor.visit_mut_immediate_error_code(code),
-        AddImm(ref mut imm) | SubImm(ref mut imm) | MulImm(ref mut imm) | DivImm(ref mut imm)
-        | ExpImm(ref mut imm) | EqImm(ref mut imm) | NeqImm(ref mut imm) | Push(ref mut imm) => {
-            visitor.visit_mut_immediate_felt(imm)
+        U32ShrImm(imm) | U32ShlImm(imm) | U32RotrImm(imm) | U32RotlImm(imm) | AdvPush(imm) => {
+            visitor.visit_mut_immediate_u8(imm)
         },
-        U32WrappingAddImm(ref mut imm)
-        | U32OverflowingAddImm(ref mut imm)
-        | U32WrappingSubImm(ref mut imm)
-        | U32OverflowingSubImm(ref mut imm)
-        | U32WrappingMulImm(ref mut imm)
-        | U32OverflowingMulImm(ref mut imm)
-        | U32DivImm(ref mut imm)
-        | U32ModImm(ref mut imm)
-        | U32DivModImm(ref mut imm)
-        | MemLoadImm(ref mut imm)
-        | MemLoadWImm(ref mut imm)
-        | MemStoreImm(ref mut imm)
-        | MemStoreWImm(ref mut imm)
-        | Emit(ref mut imm)
-        | Trace(ref mut imm) => visitor.visit_mut_immediate_u32(imm),
-        SysEvent(ref mut sys_event) => visitor.visit_mut_system_event(Span::new(span, sys_event)),
-        Exec(ref mut target) => visitor.visit_mut_exec(target),
-        Call(ref mut target) => visitor.visit_mut_call(target),
-        SysCall(ref mut target) => visitor.visit_mut_syscall(target),
-        ProcRef(ref mut target) => visitor.visit_mut_procref(target),
-        Debug(ref mut options) => visitor.visit_mut_debug_options(Span::new(span, options)),
+        Locaddr(imm) | LocLoad(imm) | LocLoadW(imm) | LocStore(imm) | LocStoreW(imm) => {
+            visitor.visit_mut_immediate_u16(imm)
+        },
+        AssertWithError(code)
+        | AssertEqWithError(code)
+        | AssertEqwWithError(code)
+        | AssertzWithError(code)
+        | U32AssertWithError(code)
+        | U32Assert2WithError(code)
+        | U32AssertWWithError(code)
+        | MTreeVerifyWithError(code) => visitor.visit_mut_immediate_error_code(code),
+        AddImm(imm) | SubImm(imm) | MulImm(imm) | DivImm(imm) | ExpImm(imm) | EqImm(imm)
+        | NeqImm(imm) | Push(imm) => visitor.visit_mut_immediate_felt(imm),
+        U32WrappingAddImm(imm)
+        | U32OverflowingAddImm(imm)
+        | U32WrappingSubImm(imm)
+        | U32OverflowingSubImm(imm)
+        | U32WrappingMulImm(imm)
+        | U32OverflowingMulImm(imm)
+        | U32DivImm(imm)
+        | U32ModImm(imm)
+        | U32DivModImm(imm)
+        | MemLoadImm(imm)
+        | MemLoadWImm(imm)
+        | MemStoreImm(imm)
+        | MemStoreWImm(imm)
+        | Emit(imm)
+        | Trace(imm) => visitor.visit_mut_immediate_u32(imm),
+        SysEvent(sys_event) => visitor.visit_mut_system_event(Span::new(span, sys_event)),
+        Exec(target) => visitor.visit_mut_exec(target),
+        Call(target) => visitor.visit_mut_call(target),
+        SysCall(target) => visitor.visit_mut_syscall(target),
+        ProcRef(target) => visitor.visit_mut_procref(target),
+        Debug(options) => visitor.visit_mut_debug_options(Span::new(span, options)),
         Nop | Assert | AssertEq | AssertEqw | Assertz | Add | Sub | Mul | Div | Neg | ILog2
         | Inv | Incr | Pow2 | Exp | ExpBitLength(_) | Not | And | Or | Xor | Eq | Neq | Eqw
         | Lt | Lte | Gt | Gte | IsOdd | Ext2Add | Ext2Sub | Ext2Mul | Ext2Div | Ext2Neg
@@ -766,8 +760,8 @@ where
         | PushU16(_) | PushU32(_) | PushFelt(_) | PushWord(_) | PushU8List(_) | PushU16List(_)
         | PushU32List(_) | PushFeltList(_) | Sdepth | Caller | Clk | MemLoad | MemLoadW
         | MemStore | MemStoreW | MemStream | AdvPipe | AdvLoadW | Hash | HMerge | HPerm
-        | MTreeGet | MTreeSet | MTreeMerge | MTreeVerify | FriExt2Fold4 | RCombBase | DynExec
-        | DynCall | Breakpoint => ControlFlow::Continue(()),
+        | MTreeGet | MTreeSet | MTreeMerge | MTreeVerify | FriExt2Fold4 | DynExec | DynCall
+        | Breakpoint | HornerBase | HornerExt => ControlFlow::Continue(()),
     }
 }
 
@@ -789,13 +783,13 @@ where
     V: ?Sized + VisitMut<T>,
 {
     match options.into_inner() {
-        DebugOptions::StackTop(ref mut imm) => visitor.visit_mut_immediate_u8(imm),
-        DebugOptions::LocalRangeFrom(ref mut imm) => visitor.visit_mut_immediate_u16(imm),
-        DebugOptions::MemInterval(ref mut imm1, ref mut imm2) => {
+        DebugOptions::StackTop(imm) => visitor.visit_mut_immediate_u8(imm),
+        DebugOptions::LocalRangeFrom(imm) => visitor.visit_mut_immediate_u16(imm),
+        DebugOptions::MemInterval(imm1, imm2) => {
             visitor.visit_mut_immediate_u32(imm1)?;
             visitor.visit_mut_immediate_u32(imm2)
         },
-        DebugOptions::LocalInterval(ref mut imm1, ref mut imm2) => {
+        DebugOptions::LocalInterval(imm1, imm2) => {
             visitor.visit_mut_immediate_u16(imm1)?;
             visitor.visit_mut_immediate_u16(imm2)
         },

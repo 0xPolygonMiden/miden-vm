@@ -1,14 +1,19 @@
-use alloc::{string::ToString, sync::Arc};
+use alloc::{
+    string::{String, ToString},
+    sync::Arc,
+};
 use core::{
     fmt,
     hash::{Hash, Hasher},
     str::FromStr,
 };
 
+use vm_core::utils::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable};
+
 use crate::{
+    LibraryNamespace, LibraryPath, SourceSpan, Span, Spanned,
     ast::{CaseKindError, Ident, IdentError},
     diagnostics::{IntoDiagnostic, Report},
-    LibraryNamespace, LibraryPath, SourceSpan, Span, Spanned,
 };
 
 // QUALIFIED PROCEDURE NAME
@@ -20,8 +25,10 @@ use crate::{
 /// A qualified procedure name can be context-sensitive, i.e. the module path might refer
 /// to an imported
 #[derive(Clone)]
+#[cfg_attr(feature = "testing", derive(proptest_derive::Arbitrary))]
 pub struct QualifiedProcedureName {
     /// The source span associated with this identifier.
+    #[cfg_attr(feature = "testing", proptest(value = "SourceSpan::default()"))]
     pub span: SourceSpan,
     /// The module path for this procedure.
     pub module: LibraryPath,
@@ -113,6 +120,21 @@ impl crate::prettier::PrettyPrint for QualifiedProcedureName {
 impl fmt::Display for QualifiedProcedureName {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "{}::{}", &self.module, &self.name)
+    }
+}
+
+impl Serializable for QualifiedProcedureName {
+    fn write_into<W: ByteWriter>(&self, target: &mut W) {
+        self.module.write_into(target);
+        self.name.write_into(target);
+    }
+}
+
+impl Deserializable for QualifiedProcedureName {
+    fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
+        let module = LibraryPath::read_from(source)?;
+        let name = ProcedureName::read_from(source)?;
+        Ok(Self::new(module, name))
     }
 }
 
@@ -311,10 +333,12 @@ impl FromStr for ProcedureName {
                     break Err(IdentError::InvalidChars { ident: s.into() });
                 }
             },
-            Some((_, c)) if c.is_ascii_lowercase() || c == '_' || c == '$' => {
+            Some((_, c))
+                if c.is_ascii_lowercase() || c == '_' || c == '-' || c == '$' || c == '.' =>
+            {
                 if chars.as_str().contains(|c| match c {
                     c if c.is_ascii_alphanumeric() => false,
-                    '_' | '$' => false,
+                    '_' | '-' | '$' | '.' => false,
                     _ => true,
                 }) {
                     Err(IdentError::InvalidChars { ident: s.into() })
@@ -326,5 +350,62 @@ impl FromStr for ProcedureName {
             Some(_) => Err(IdentError::InvalidChars { ident: s.into() }),
         }?;
         Ok(Self(Ident::new_unchecked(Span::unknown(raw))))
+    }
+}
+
+impl Serializable for ProcedureName {
+    fn write_into<W: ByteWriter>(&self, target: &mut W) {
+        self.as_str().write_into(target)
+    }
+}
+
+impl Deserializable for ProcedureName {
+    fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
+        let str: String = source.read()?;
+        let proc_name = ProcedureName::new(str)
+            .map_err(|e| DeserializationError::InvalidValue(e.to_string()))?;
+        Ok(proc_name)
+    }
+}
+
+// ARBITRARY IMPLEMENTATION
+// ================================================================================================
+
+#[cfg(feature = "testing")]
+impl proptest::prelude::Arbitrary for ProcedureName {
+    type Parameters = ();
+
+    fn arbitrary_with(_args: Self::Parameters) -> Self::Strategy {
+        use proptest::prelude::*;
+        // see https://doc.rust-lang.org/rustc/symbol-mangling/v0.html#symbol-grammar-summary
+        let all_possible_chars_in_mangled_name =
+            "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_.$";
+        let mangled_rustc_name = ProcedureName::new(all_possible_chars_in_mangled_name).unwrap();
+        let plain = ProcedureName::new("user_func").unwrap();
+        let wasm_cm_style = ProcedureName::new("kebab-case-func").unwrap();
+        prop_oneof![Just(mangled_rustc_name), Just(plain), Just(wasm_cm_style)].boxed()
+    }
+
+    type Strategy = proptest::prelude::BoxedStrategy<Self>;
+}
+
+// TESTS
+// ================================================================================================
+
+/// Tests
+#[cfg(test)]
+mod tests {
+    use proptest::prelude::*;
+    use vm_core::utils::{Deserializable, Serializable};
+
+    use super::ProcedureName;
+
+    proptest! {
+        #[test]
+        fn procedure_name_serialization_roundtrip(path in any::<ProcedureName>()) {
+            let bytes = path.to_bytes();
+            let deserialized = ProcedureName::read_from_bytes(&bytes).unwrap();
+            assert_eq!(path, deserialized);
+        }
     }
 }

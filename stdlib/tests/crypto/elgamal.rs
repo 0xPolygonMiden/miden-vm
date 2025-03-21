@@ -1,6 +1,6 @@
 use std::ops::Add;
 
-use test_utils::{push_inputs, rand::rand_array, Felt, FieldElement};
+use test_utils::{Felt, FieldElement, push_inputs, rand::rand_array};
 
 use crate::math::ecgfp5::{base_field::Ext5, group::ECExt5};
 
@@ -30,9 +30,9 @@ fn get_generator() -> ECExt5 {
 
 #[test]
 fn test_elgamal_keygen() {
-    let gen = get_generator();
+    let generator = get_generator();
     let private_key = gen_random_private_key();
-    let q1 = gen.scalar_mul(&private_key);
+    let q1 = generator.scalar_mul(&private_key);
 
     let mut stack: [u64; 10] =
         private_key.iter().map(|x| *x as u64).collect::<Vec<u64>>().try_into().unwrap();
@@ -74,7 +74,7 @@ fn test_elgamal_encrypt() {
     let private_key = gen_random_private_key();
     let r = gen_random_private_key();
 
-    let gen = get_generator();
+    let generator = get_generator();
     let plaintext_scalar = [
         666904740u32,
         257318652u32,
@@ -88,10 +88,10 @@ fn test_elgamal_encrypt() {
         1692681010u32,
     ];
 
-    let pm = gen.scalar_mul(&plaintext_scalar);
+    let pm = generator.scalar_mul(&plaintext_scalar);
 
-    let ca = gen.scalar_mul(&r);
-    let h = gen.scalar_mul(&private_key);
+    let ca = generator.scalar_mul(&r);
+    let h = generator.scalar_mul(&private_key);
     let rh = h.scalar_mul(&r);
     let cb = pm.add(rh);
 
@@ -212,7 +212,7 @@ fn test_elgamal_remask() {
     let r = gen_random_private_key();
     let r_prime = gen_random_private_key();
 
-    let gen = get_generator();
+    let generator = get_generator();
     let plaintext_scalar = [
         666904740u32,
         257318652u32,
@@ -226,15 +226,15 @@ fn test_elgamal_remask() {
         1692681010u32,
     ];
 
-    let pm = gen.scalar_mul(&plaintext_scalar);
+    let pm = generator.scalar_mul(&plaintext_scalar);
 
-    let ca = gen.scalar_mul(&r);
-    let h = gen.scalar_mul(&private_key);
+    let ca = generator.scalar_mul(&r);
+    let h = generator.scalar_mul(&private_key);
     let rh = h.scalar_mul(&r);
     let cb = pm.add(rh);
 
     // ca and cb are the original plaintext
-    let r_prime_g = gen.scalar_mul(&r_prime);
+    let r_prime_g = generator.scalar_mul(&r_prime);
     let r_prime_h = h.scalar_mul(&r_prime);
     let c_prime_a = ca.add(r_prime_g);
     let c_prime_b = cb.add(r_prime_h);

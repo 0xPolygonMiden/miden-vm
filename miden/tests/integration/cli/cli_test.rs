@@ -24,7 +24,6 @@ fn cli_run() -> Result<(), Box<dyn std::error::Error>> {
     let mut cmd = bin_under_test().command();
 
     cmd.arg("run")
-        .arg("-a")
         .arg("./masm-examples/fib/fib.masm")
         .arg("-n")
         .arg("1")
@@ -39,6 +38,41 @@ fn cli_run() -> Result<(), Box<dyn std::error::Error>> {
     // However we the X and the Y can change in future versions.
     // There is no other 'steps in' in the output
     output.assert().stdout(predicate::str::contains("VM cycles"));
+
+    Ok(())
+}
+
+#[test]
+fn cli_run_masp() -> Result<(), Box<dyn std::error::Error>> {
+    let mut cmd = bin_under_test().command();
+
+    cmd.arg("run")
+        .arg("./tests/integration/cli/data/masp/is_prime.masp")
+        .arg("-i")
+        .arg("./tests/integration/cli/data/masp/is_prime.inputs");
+
+    let output = cmd.unwrap();
+
+    output.assert().stdout(predicate::str::contains("VM cycles"));
+
+    Ok(())
+}
+
+#[test]
+fn cli_prove_masp() -> Result<(), Box<dyn std::error::Error>> {
+    let mut cmd = bin_under_test().command();
+
+    cmd.arg("prove")
+        .arg("./tests/integration/cli/data/masp/is_prime.masp")
+        .arg("-i")
+        .arg("./tests/integration/cli/data/masp/is_prime.inputs");
+
+    let output = cmd.unwrap();
+
+    output.assert().stdout(predicate::str::contains("proved in"));
+
+    fs::remove_file("./tests/integration/cli/data/masp/is_prime.proof").unwrap();
+    fs::remove_file("./tests/integration/cli/data/masp/is_prime.outputs").unwrap();
 
     Ok(())
 }
@@ -102,4 +136,57 @@ fn cli_bundle_output() {
     cmd.assert().success();
     assert!(Path::new("test.masl").exists());
     fs::remove_file("test.masl").unwrap()
+}
+
+#[test]
+// First compile a library to a .masl file, then run a program that uses it.
+fn cli_run_with_lib() -> Result<(), Box<dyn std::error::Error>> {
+    let mut cmd = bin_under_test().command();
+    cmd.arg("bundle")
+        .arg("./tests/integration/cli/data/lib")
+        .arg("--output")
+        .arg("lib.masl");
+    cmd.assert().success();
+
+    let mut cmd = bin_under_test().command();
+    cmd.arg("run")
+        .arg("./tests/integration/cli/data/main.masm")
+        .arg("-l")
+        .arg("./lib.masl");
+    cmd.assert().success();
+
+    fs::remove_file("lib.masl").unwrap();
+    Ok(())
+}
+
+#[test]
+fn cli_analyze_masp() -> Result<(), Box<dyn std::error::Error>> {
+    let mut cmd = bin_under_test().command();
+
+    cmd.arg("analyze")
+        .arg("./tests/integration/cli/data/masp/is_prime.masp")
+        .arg("-i")
+        .arg("./tests/integration/cli/data/masp/is_prime.inputs");
+
+    let output = cmd.unwrap();
+
+    output.assert().stdout(predicate::str::contains("Total number of NOOPs"));
+
+    Ok(())
+}
+
+#[test]
+fn cli_debug_masp() -> Result<(), Box<dyn std::error::Error>> {
+    let mut cmd = bin_under_test().command();
+
+    cmd.arg("debug")
+        .arg("./tests/integration/cli/data/masp/is_prime.masp")
+        .arg("-i")
+        .arg("./tests/integration/cli/data/masp/is_prime.inputs");
+
+    let output = cmd.unwrap();
+
+    output.assert().stdout(predicate::str::contains("Debugging program"));
+
+    Ok(())
 }

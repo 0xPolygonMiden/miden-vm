@@ -1,9 +1,9 @@
 use std::{collections::BTreeSet, path::PathBuf};
 
 use assembly::{Assembler, Library};
-use miden_vm::{math::Felt, DefaultHost, StackInputs};
+use miden_vm::{DefaultHost, StackInputs, math::Felt};
 use processor::ContextId;
-use rustyline::{error::ReadlineError, DefaultEditor};
+use rustyline::{DefaultEditor, error::ReadlineError};
 use stdlib::StdLibrary;
 
 use crate::utils::print_mem_address;
@@ -331,7 +331,7 @@ fn execute(
     }
 
     // loads the memory at the latest clock cycle.
-    let mem_state = chiplets.memory().get_state_at(ContextId::root(), system.clk());
+    let mem_state = chiplets.memory.get_state_at(ContextId::root(), system.clk());
     // loads the stack along with the overflow values at the latest clock cycle.
     let stack_state = stack.get_state_at(system.clk());
 

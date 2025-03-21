@@ -1,9 +1,9 @@
 use alloc::{string::ToString, sync::Arc};
 
-use miden_crypto::{hash::rpo::RpoDigest, Felt, ONE};
+use miden_crypto::{Felt, ONE, hash::rpo::RpoDigest};
 
 use super::*;
-use crate::{mast::MastForestError, operations::Operation, AssemblyOp, DebugOptions, Decorator};
+use crate::{AssemblyOp, DebugOptions, Decorator, mast::MastForestError, operations::Operation};
 
 /// If this test fails to compile, it means that `Operation` or `Decorator` was changed. Make sure
 /// that all tests in this file are updated accordingly. For example, if a new `Operation` variant
@@ -101,7 +101,8 @@ fn confirm_operation_and_decorator_structure() {
         Operation::MpVerify(_) => (),
         Operation::MrUpdate => (),
         Operation::FriE2F4 => (),
-        Operation::RCombBase => (),
+        Operation::HornerBase => (),
+        Operation::HornerExt => (),
         Operation::Emit(_) => (),
     };
 
@@ -212,7 +213,8 @@ fn serialize_deserialize_all_nodes() {
             Operation::MpVerify(1022),
             Operation::MrUpdate,
             Operation::FriE2F4,
-            Operation::RCombBase,
+            Operation::HornerBase,
+            Operation::HornerExt,
             Operation::Emit(42),
         ];
 
@@ -356,13 +358,11 @@ fn mast_forest_invalid_node_id() {
 
     // Hydrate a forest larger than the first to get an overflow MastNodeId
     let mut overflow_forest = MastForest::new();
-    // Note: clippy wants us to use `next_back()` instead of `last()`, but `next_back()` makes the
-    // test fail.
-    #[allow(clippy::double_ended_iterator_last)]
-    let overflow = (0..=3)
-        .map(|_| overflow_forest.add_block(vec![Operation::U32div], None).unwrap())
-        .last()
-        .unwrap();
+
+    overflow_forest.add_block(vec![Operation::U32div], None).unwrap();
+    overflow_forest.add_block(vec![Operation::U32div], None).unwrap();
+    overflow_forest.add_block(vec![Operation::U32div], None).unwrap();
+    let overflow = overflow_forest.add_block(vec![Operation::U32div], None).unwrap();
 
     // Attempt to join with invalid ids
     let join = forest.add_join(overflow, second);

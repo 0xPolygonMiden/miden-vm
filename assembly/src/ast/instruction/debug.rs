@@ -1,6 +1,6 @@
 use core::fmt;
 
-use crate::ast::{ImmU16, ImmU32, ImmU8};
+use crate::ast::{ImmU8, ImmU16, ImmU32};
 
 // DEBUG OPTIONS
 // ================================================================================================

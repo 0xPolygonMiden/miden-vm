@@ -2,9 +2,9 @@ use alloc::collections::BTreeSet;
 use core::ops::ControlFlow;
 
 use crate::{
+    Span, Spanned,
     ast::*,
     sema::{AnalysisContext, SemanticAnalysisError},
-    Span, Spanned,
 };
 
 /// This visitor visits every `exec`, `call`, `syscall`, and `procref`, and ensures that the
@@ -139,13 +139,13 @@ impl VisitMut for VerifyInvokeTargets<'_> {
                     self.analyzer.error(SemanticAnalysisError::SelfRecursive { span });
                 }
             },
-            InvocationTarget::ProcedureName(ref name) if name == &self.current_procedure => {
+            InvocationTarget::ProcedureName(name) if name == &self.current_procedure => {
                 self.analyzer.error(SemanticAnalysisError::SelfRecursive { span });
             },
-            InvocationTarget::ProcedureName(ref name) => {
+            InvocationTarget::ProcedureName(name) => {
                 return self.resolve_local(name);
             },
-            InvocationTarget::ProcedurePath { ref name, ref module } => {
+            InvocationTarget::ProcedurePath { name, module } => {
                 if let Some(new_target) = self.resolve_external(name, module) {
                     *target = new_target;
                 }

@@ -2,19 +2,22 @@ use std::{path::PathBuf, time::Instant};
 
 use assembly::diagnostics::{IntoDiagnostic, Report, WrapErr};
 use clap::Parser;
-use miden_vm::{internal::InputFile, ProvingOptions};
+use miden_vm::{ProvingOptions, internal::InputFile};
 use processor::{DefaultHost, ExecutionOptions, ExecutionOptionsError, Program};
 use stdlib::StdLibrary;
 use tracing::instrument;
 
-use super::data::{Debug, Libraries, OutputFile, ProgramFile, ProofFile};
+use super::{
+    data::{Libraries, OutputFile, ProofFile},
+    utils::{get_masm_program, get_masp_program},
+};
 
 #[derive(Debug, Clone, Parser)]
 #[clap(about = "Prove a miden program")]
 pub struct ProveCmd {
-    /// Path to .masm assembly file
-    #[clap(short = 'a', long = "assembly", value_parser)]
-    assembly_file: PathBuf,
+    /// Path to a .masm assembly file or a .masp package file
+    #[clap(value_parser)]
+    program_file: PathBuf,
 
     /// Number of cycles the program is expected to consume
     #[clap(short = 'e', long = "exp-cycles", default_value = "64")]
@@ -84,13 +87,24 @@ impl ProveCmd {
         }
         .with_execution_options(exec_options))
     }
-
     pub fn execute(&self) -> Result<(), Report> {
         println!("===============================================================================");
-        println!("Prove program: {}", self.assembly_file.display());
+        println!("Prove program: {}", self.program_file.display());
         println!("-------------------------------------------------------------------------------");
 
-        let (program, input_data) = load_data(self)?;
+        // determine file type based on extension
+        let ext = self
+            .program_file
+            .extension()
+            .and_then(|s| s.to_str())
+            .unwrap_or("")
+            .to_lowercase();
+
+        let (program, input_data) = match ext.as_str() {
+            "masp" => load_masp_data(self)?,
+            "masm" => load_masm_data(self)?,
+            _ => return Err(Report::msg("File must have a .masm or .masp extension")),
+        };
 
         let program_hash: [u8; 32] = program.hash().into();
         println!("Proving program with hash {}...", hex::encode(program_hash));
@@ -110,14 +124,10 @@ impl ProveCmd {
                 .into_diagnostic()
                 .wrap_err("Failed to prove program")?;
 
-        println!(
-            "Program with hash {} proved in {} ms",
-            hex::encode(program_hash),
-            now.elapsed().as_millis()
-        );
+        println!("Program proved in {} ms", now.elapsed().as_millis());
 
         // write proof to file
-        ProofFile::write(proof, &self.proof_file, &self.assembly_file).map_err(Report::msg)?;
+        ProofFile::write(proof, &self.proof_file, &self.program_file).map_err(Report::msg)?;
 
         // provide outputs
         if let Some(output_path) = &self.output_file {
@@ -128,8 +138,8 @@ impl ProveCmd {
             let stack = stack_outputs.stack_truncated(self.num_outputs).to_vec();
 
             // write all outputs to default location if none was provided
-            OutputFile::write(&stack_outputs, &self.assembly_file.with_extension("outputs"))
-                .map_err(Report::msg)?;
+            let default_output_path = self.program_file.with_extension("outputs");
+            OutputFile::write(&stack_outputs, &default_output_path).map_err(Report::msg)?;
 
             // print stack outputs to screen.
             println!("Output: {:?}", stack);
@@ -143,16 +153,16 @@ impl ProveCmd {
 // ================================================================================================
 
 #[instrument(skip_all)]
-fn load_data(params: &ProveCmd) -> Result<(Program, InputFile), Report> {
-    // load libraries from files
+fn load_masp_data(params: &ProveCmd) -> Result<(Program, InputFile), Report> {
+    let program = get_masp_program(&params.program_file)?;
+    let input_data = InputFile::read(&params.input_file, &params.program_file)?;
+    Ok((program.clone(), input_data))
+}
+
+#[instrument(skip_all)]
+fn load_masm_data(params: &ProveCmd) -> Result<(Program, InputFile), Report> {
     let libraries = Libraries::new(&params.library_paths)?;
-
-    // load program from file and compile
-    let program =
-        ProgramFile::read(&params.assembly_file)?.compile(Debug::Off, &libraries.libraries)?;
-
-    // load input data from file
-    let input_data = InputFile::read(&params.input_file, &params.assembly_file)?;
-
+    let program = get_masm_program(&params.program_file, &libraries)?;
+    let input_data = InputFile::read(&params.input_file, &params.program_file)?;
     Ok((program, input_data))
 }

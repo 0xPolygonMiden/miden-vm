@@ -1,9 +1,4 @@
-use processor::ContextId;
-use prover::ExecutionError;
-use test_utils::expect_exec_error_matches;
-use vm_core::FieldElement;
-
-use super::{apply_permutation, build_op_test, build_test, Felt, ToElements, TRUNCATE_STACK_PROC};
+use super::{Felt, TRUNCATE_STACK_PROC, ToElements, apply_permutation, build_op_test, build_test};
 
 // LOADING SINGLE ELEMENT ONTO THE STACK (MLOAD)
 // ================================================================================================
@@ -232,23 +227,4 @@ fn read_after_write() {
     // --- write to memory first, then test read with loadw --------------------------------------
     let test = build_op_test!("mem_storew.0 dropw mem_loadw.0", &[1, 2, 3, 4, 5, 6, 7, 8]);
     test.expect_stack(&[8, 7, 6, 5]);
-}
-
-// MISC
-// ================================================================================================
-
-/// Ensures that the processor returns an error when 2 memory operations occur in the same context,
-/// at the same address, and in the same clock cycle (which is what RCOMBBASE does when `stack[13] =
-/// stack[14] = 0`).
-#[test]
-fn mem_reads_same_clock_cycle() {
-    let asm_op = "begin rcomb_base end";
-
-    let test = build_test!(asm_op);
-
-    expect_exec_error_matches!(
-        test,
-        ExecutionError::DuplicateMemoryAccess{ctx, addr, clk }
-        if ctx == ContextId::from(0) && addr == 0 && clk == Felt::ONE
-    );
 }

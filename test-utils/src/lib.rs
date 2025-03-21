@@ -13,32 +13,32 @@ use alloc::{
     vec::Vec,
 };
 
-pub use assembly::{diagnostics::Report, LibraryPath, SourceFile, SourceManager};
 use assembly::{KernelLibrary, Library};
+pub use assembly::{LibraryPath, SourceFile, SourceManager, diagnostics::Report};
 pub use pretty_assertions::{assert_eq, assert_ne, assert_str_eq};
 use processor::Program;
 pub use processor::{
-    AdviceInputs, AdviceProvider, ContextId, DefaultHost, ExecutionError, ExecutionOptions,
-    ExecutionTrace, Process, ProcessState, VmStateIterator,
+    AdviceInputs, AdviceProvider, ContextId, ExecutionError, ExecutionOptions, ExecutionTrace,
+    Process, ProcessState, VmStateIterator,
 };
 #[cfg(not(target_family = "wasm"))]
 use proptest::prelude::{Arbitrary, Strategy};
 use prover::utils::range;
-pub use prover::{prove, MemAdviceProvider, MerkleTreeVC, ProvingOptions};
+pub use prover::{MemAdviceProvider, MerkleTreeVC, ProvingOptions, prove};
 pub use test_case::test_case;
-pub use verifier::{verify, AcceptableOptions, VerifierError};
-use vm_core::{chiplets::hasher::apply_permutation, ProgramInfo};
+pub use verifier::{AcceptableOptions, VerifierError, verify};
 pub use vm_core::{
-    chiplets::hasher::{hash_elements, STATE_WIDTH},
-    stack::MIN_STACK_DEPTH,
-    utils::{collections, group_slice_elements, IntoBytes, ToElements},
-    Felt, FieldElement, StackInputs, StackOutputs, StarkField, Word, EMPTY_WORD, ONE, WORD_SIZE,
+    EMPTY_WORD, Felt, FieldElement, ONE, StackInputs, StackOutputs, StarkField, WORD_SIZE, Word,
     ZERO,
+    chiplets::hasher::{STATE_WIDTH, hash_elements},
+    stack::MIN_STACK_DEPTH,
+    utils::{IntoBytes, ToElements, collections, group_slice_elements},
 };
+use vm_core::{ProgramInfo, chiplets::hasher::apply_permutation};
 
 pub mod math {
     pub use winter_prover::math::{
-        fft, fields::QuadExtension, polynom, ExtensionOf, FieldElement, StarkField, ToElements,
+        ExtensionOf, FieldElement, StarkField, ToElements, fft, fields::QuadExtension, polynom,
     };
 }
 
@@ -49,6 +49,9 @@ pub mod serde {
 }
 
 pub mod crypto;
+
+pub mod host;
+use host::TestHost;
 
 #[cfg(not(target_family = "wasm"))]
 pub mod rand;
@@ -227,7 +230,7 @@ impl Test {
     ) {
         // compile the program
         let (program, kernel) = self.compile().expect("Failed to compile test source.");
-        let mut host = DefaultHost::new(MemAdviceProvider::from(self.advice_inputs.clone()));
+        let mut host = TestHost::new(MemAdviceProvider::from(self.advice_inputs.clone()));
         if let Some(kernel) = kernel {
             host.load_mast_forest(kernel.mast_forest().clone()).unwrap();
         }
@@ -249,7 +252,7 @@ impl Test {
         {
             let mem_state = process
                 .chiplets
-                .memory()
+                .memory
                 .get_value(ContextId::root(), addr as u32)
                 .unwrap_or(ZERO);
             assert_eq!(
@@ -289,7 +292,7 @@ impl Test {
     /// # Errors
     /// Returns an error if compilation of the program source or the kernel fails.
     pub fn compile(&self) -> Result<(Program, Option<KernelLibrary>), Report> {
-        use assembly::{ast::ModuleKind, Assembler, CompileOptions};
+        use assembly::{Assembler, CompileOptions, ast::ModuleKind};
 
         let (assembler, kernel_lib) = if let Some(kernel) = self.kernel_source.clone() {
             let kernel_lib =
@@ -327,7 +330,7 @@ impl Test {
     #[track_caller]
     pub fn execute(&self) -> Result<ExecutionTrace, ExecutionError> {
         let (program, kernel) = self.compile().expect("Failed to compile test source.");
-        let mut host = DefaultHost::new(MemAdviceProvider::from(self.advice_inputs.clone()));
+        let mut host = TestHost::new(MemAdviceProvider::from(self.advice_inputs.clone()));
         if let Some(kernel) = kernel {
             host.load_mast_forest(kernel.mast_forest().clone()).unwrap();
         }
@@ -344,11 +347,9 @@ impl Test {
 
     /// Compiles the test's source to a Program and executes it with the tests inputs. Returns the
     /// process once execution is finished.
-    pub fn execute_process(
-        &self,
-    ) -> Result<(Process, DefaultHost<MemAdviceProvider>), ExecutionError> {
+    pub fn execute_process(&self) -> Result<(Process, TestHost), ExecutionError> {
         let (program, kernel) = self.compile().expect("Failed to compile test source.");
-        let mut host = DefaultHost::new(MemAdviceProvider::from(self.advice_inputs.clone()));
+        let mut host = TestHost::new(MemAdviceProvider::from(self.advice_inputs.clone()));
         if let Some(kernel) = kernel {
             host.load_mast_forest(kernel.mast_forest().clone()).unwrap();
         }
@@ -371,7 +372,7 @@ impl Test {
     pub fn prove_and_verify(&self, pub_inputs: Vec<u64>, test_fail: bool) {
         let stack_inputs = StackInputs::try_from_ints(pub_inputs).unwrap();
         let (program, kernel) = self.compile().expect("Failed to compile test source.");
-        let mut host = DefaultHost::new(MemAdviceProvider::from(self.advice_inputs.clone()));
+        let mut host = TestHost::new(MemAdviceProvider::from(self.advice_inputs.clone()));
         if let Some(kernel) = kernel {
             host.load_mast_forest(kernel.mast_forest().clone()).unwrap();
         }
@@ -397,7 +398,7 @@ impl Test {
     /// state.
     pub fn execute_iter(&self) -> VmStateIterator {
         let (program, kernel) = self.compile().expect("Failed to compile test source.");
-        let mut host = DefaultHost::new(MemAdviceProvider::from(self.advice_inputs.clone()));
+        let mut host = TestHost::new(MemAdviceProvider::from(self.advice_inputs.clone()));
         if let Some(kernel) = kernel {
             host.load_mast_forest(kernel.mast_forest().clone()).unwrap();
         }

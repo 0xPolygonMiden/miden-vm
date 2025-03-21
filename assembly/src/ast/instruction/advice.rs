@@ -13,6 +13,7 @@ use vm_core::sys_events::SystemEvent;
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub enum SystemEventNode {
     PushU64Div,
+    PushFalconDiv,
     PushExt2intt,
     PushSmtPeek,
     PushMapVal,
@@ -22,7 +23,6 @@ pub enum SystemEventNode {
     InsertHdword,
     InsertHdwordWithDomain,
     InsertHperm,
-    PushSignature { kind: SignatureKind },
 }
 
 impl From<&SystemEventNode> for SystemEvent {
@@ -30,6 +30,7 @@ impl From<&SystemEventNode> for SystemEvent {
         use SystemEventNode::*;
         match value {
             PushU64Div => Self::U64Div,
+            PushFalconDiv => Self::FalconDiv,
             PushExt2intt => Self::Ext2Intt,
             PushSmtPeek => Self::SmtPeek,
             PushMapVal => Self::MapValueToStack,
@@ -39,9 +40,6 @@ impl From<&SystemEventNode> for SystemEvent {
             InsertHdword => Self::HdwordToMap,
             InsertHdwordWithDomain => Self::HdwordToMapWithDomain,
             InsertHperm => Self::HpermToMap,
-            PushSignature { kind } => match kind {
-                SignatureKind::RpoFalcon512 => Self::FalconSigToStack,
-            },
         }
     }
 }
@@ -56,6 +54,7 @@ impl fmt::Display for SystemEventNode {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::PushU64Div => write!(f, "push_u64div"),
+            Self::PushFalconDiv => write!(f, "push_falcon_div"),
             Self::PushExt2intt => write!(f, "push_ext2intt"),
             Self::PushSmtPeek => write!(f, "push_smtpeek"),
             Self::PushMapVal => write!(f, "push_mapval"),
@@ -65,7 +64,6 @@ impl fmt::Display for SystemEventNode {
             Self::InsertHdword => write!(f, "insert_hdword"),
             Self::InsertHdwordWithDomain => write!(f, "insert_hdword_d"),
             Self::InsertHperm => writeln!(f, "insert_hperm"),
-            Self::PushSignature { kind } => write!(f, "push_sig.{kind}"),
         }
     }
 }

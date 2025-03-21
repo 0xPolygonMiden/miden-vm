@@ -6,12 +6,12 @@ use std::{
 
 use assembly::diagnostics::{IntoDiagnostic, Report, WrapErr};
 use serde_derive::Deserialize;
-pub use tracing::{event, instrument, Level};
+pub use tracing::{Level, event, instrument};
 use vm_core::Felt;
 
 use crate::{
-    crypto::{MerkleStore, MerkleTree, NodeIndex, PartialMerkleTree, RpoDigest, SimpleSmt},
     AdviceInputs, MemAdviceProvider, StackInputs, Word,
+    crypto::{MerkleStore, MerkleTree, NodeIndex, PartialMerkleTree, RpoDigest, SimpleSmt},
 };
 
 // CONSTANTS
@@ -66,6 +66,17 @@ pub struct InputFile {
     pub merkle_store: Option<Vec<MerkleData>>,
 }
 
+impl Default for InputFile {
+    fn default() -> Self {
+        Self {
+            operand_stack: Vec::new(),
+            advice_stack: Some(Vec::new()),
+            advice_map: Some(HashMap::new()),
+            merkle_store: None,
+        }
+    }
+}
+
 /// Helper methods to interact with the input file
 impl InputFile {
     #[instrument(name = "read_input_file", skip_all)]
@@ -73,16 +84,11 @@ impl InputFile {
         // if file not specified explicitly and corresponding file with same name as program_path
         // with '.inputs' extension does't exist, set operand_stack to empty vector
         if !inputs_path.is_some() && !program_path.with_extension("inputs").exists() {
-            return Ok(Self {
-                operand_stack: Vec::new(),
-                advice_stack: Some(Vec::new()),
-                advice_map: Some(HashMap::new()),
-                merkle_store: None,
-            });
+            return Ok(Self::default());
         }
 
         // If inputs_path has been provided then use this as path. Alternatively we will
-        // replace the program_path extension with `.inputs` and use this as a default.
+        // replace the program_path extension with .inputs and use this as a default.
         let path = match inputs_path {
             Some(path) => path.clone(),
             None => program_path.with_extension("inputs"),
@@ -91,7 +97,7 @@ impl InputFile {
         // read input file to string
         let inputs_file = fs::read_to_string(&path)
             .into_diagnostic()
-            .wrap_err_with(|| format!("Failed to open input file `{}`", path.display()))?;
+            .wrap_err_with(|| format!("Failed to open input file {}", path.display()))?;
 
         // deserialize input data
         let inputs: InputFile = serde_json::from_str(&inputs_file)

@@ -225,7 +225,7 @@ If you want to execute, prove, and verify programs on Miden VM, but don't want t
 
 ### Compiling Miden VM
 
-First, make sure you have Rust [installed](https://www.rust-lang.org/tools/install). The current version of Miden VM requires Rust version **1.82** or later.
+First, make sure you have Rust [installed](https://www.rust-lang.org/tools/install). The current version of Miden VM requires Rust version **1.85** or later.
 
 Then, to compile Miden VM into a binary, run the following `make` command:
 
@@ -294,7 +294,7 @@ For example:
 In the `miden/masm-examples/fib` directory, we provide a very simple Fibonacci calculator example. This example computes the 1000th term of the Fibonacci sequence. You can execute this example on Miden VM like so:
 
 ```shell
-./target/optimized/miden run -a miden/masm-examples/fib/fib.masm -n 1
+./target/optimized/miden run miden/masm-examples/fib/fib.masm -n 1
 ```
 
 This will run the example code to completion and will output the top element remaining on the stack.

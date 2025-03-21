@@ -7,8 +7,8 @@ mod rewrites;
 use alloc::{boxed::Box, collections::BTreeMap, sync::Arc, vec::Vec};
 use core::ops::Index;
 
-use smallvec::{smallvec, SmallVec};
-use vm_core::{crypto::hash::RpoDigest, Kernel};
+use smallvec::{SmallVec, smallvec};
+use vm_core::{Kernel, crypto::hash::RpoDigest};
 
 use self::{analysis::MaybeRewriteCheck, name_resolver::NameResolver, rewrites::ModuleRewriter};
 pub use self::{
@@ -17,12 +17,12 @@ pub use self::{
 };
 use super::{GlobalProcedureIndex, ModuleIndex};
 use crate::{
+    AssemblyError, LibraryNamespace, LibraryPath, SourceManager, Spanned,
     ast::{
         Export, InvocationTarget, InvokeKind, Module, ProcedureIndex, ProcedureName,
         ResolvedProcedure,
     },
     library::{ModuleInfo, ProcedureInfo},
-    AssemblyError, LibraryNamespace, LibraryPath, SourceManager, Spanned,
 };
 
 // WRAPPER STRUCTS
@@ -207,10 +207,6 @@ impl ModuleGraph {
 
     /// Add `module` to the graph.
     ///
-    /// NOTE: This operation only adds a module to the graph, but does not perform the
-    /// important analysis needed for compilation, you must call [recompute] once all modules
-    /// are added to ensure the analysis results reflect the current version of the graph.
-    ///
     /// # Errors
     ///
     /// This operation can fail for the following reasons:
@@ -223,9 +219,8 @@ impl ModuleGraph {
     /// This function will panic if the number of modules exceeds the maximum representable
     /// [ModuleIndex] value, `u16::MAX`.
     pub fn add_ast_module(&mut self, module: Box<Module>) -> Result<ModuleIndex, AssemblyError> {
-        let res = self.add_module(PendingWrappedModule::Ast(module))?;
-        self.recompute()?;
-        Ok(res)
+        let ids = self.add_ast_modules([module])?;
+        Ok(ids[0])
     }
 
     fn add_module(&mut self, module: PendingWrappedModule) -> Result<ModuleIndex, AssemblyError> {
@@ -242,7 +237,7 @@ impl ModuleGraph {
 
     pub fn add_ast_modules(
         &mut self,
-        modules: impl Iterator<Item = Box<Module>>,
+        modules: impl IntoIterator<Item = Box<Module>>,
     ) -> Result<Vec<ModuleIndex>, AssemblyError> {
         let idx = modules
             .into_iter()
@@ -410,7 +405,7 @@ impl ModuleGraph {
                         let gid = GlobalProcedureIndex { module: module_id, index: procedure_id };
 
                         // Add edge to the call graph to represent dependency on aliased procedures
-                        if let Export::Alias(ref alias) = procedure {
+                        if let Export::Alias(alias) = procedure {
                             let caller = CallerInfo {
                                 span: alias.span(),
                                 module: module_id,

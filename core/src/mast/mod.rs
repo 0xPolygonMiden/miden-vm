@@ -11,8 +11,8 @@ use miden_crypto::hash::rpo::RpoDigest;
 
 mod node;
 pub use node::{
-    BasicBlockNode, CallNode, DynNode, ExternalNode, JoinNode, LoopNode, MastNode, OpBatch,
-    OperationOrDecorator, SplitNode, OP_BATCH_SIZE, OP_GROUP_SIZE,
+    BasicBlockNode, CallNode, DynNode, ExternalNode, JoinNode, LoopNode, MastNode, OP_BATCH_SIZE,
+    OP_GROUP_SIZE, OpBatch, OperationOrDecorator, SplitNode,
 };
 use winter_utils::{ByteWriter, DeserializationError, Serializable};
 
@@ -179,15 +179,14 @@ impl MastForest {
     /// removal (i.e. will point to an incorrect node after the removal), and this removal operation
     /// would result in an invalid [`MastForest`].
     ///
-    /// It also returns the map from old node IDs to new node IDs; or `None` if the set of nodes to
-    /// remove was empty. Any [`MastNodeId`] used in reference to the old [`MastForest`] should be
-    /// remapped using this map.
+    /// It also returns the map from old node IDs to new node IDs. Any [`MastNodeId`] used in
+    /// reference to the old [`MastForest`] should be remapped using this map.
     pub fn remove_nodes(
         &mut self,
         nodes_to_remove: &BTreeSet<MastNodeId>,
-    ) -> Option<BTreeMap<MastNodeId, MastNodeId>> {
+    ) -> BTreeMap<MastNodeId, MastNodeId> {
         if nodes_to_remove.is_empty() {
-            return None;
+            return BTreeMap::new();
         }
 
         let old_nodes = mem::take(&mut self.nodes);
@@ -196,7 +195,7 @@ impl MastForest {
 
         self.remap_and_add_nodes(retained_nodes, &id_remappings);
         self.remap_and_add_roots(old_root_ids, &id_remappings);
-        Some(id_remappings)
+        id_remappings
     }
 
     pub fn set_before_enter(&mut self, node_id: MastNodeId, decorator_ids: Vec<DecoratorId>) {
@@ -434,11 +433,7 @@ impl MastForest {
     pub fn local_procedure_digests(&self) -> impl Iterator<Item = RpoDigest> + '_ {
         self.roots.iter().filter_map(|&root_id| {
             let node = &self[root_id];
-            if node.is_external() {
-                None
-            } else {
-                Some(node.digest())
-            }
+            if node.is_external() { None } else { Some(node.digest()) }
         })
     }
 
@@ -529,6 +524,9 @@ impl IndexMut<DecoratorId> for MastForest {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct MastNodeId(u32);
 
+/// Operations that mutate a MAST often produce this mapping between old and new NodeIds.
+pub type Remapping = BTreeMap<MastNodeId, MastNodeId>;
+
 impl MastNodeId {
     /// Returns a new `MastNodeId` with the provided inner value, or an error if the provided
     /// `value` is greater than the number of nodes in the forest.
@@ -595,6 +593,11 @@ impl MastNodeId {
     pub fn as_u32(&self) -> u32 {
         self.0
     }
+
+    /// Remap the NodeId to its new position using the given [`Remapping`].
+    pub fn remap(&self, remapping: &Remapping) -> Self {
+        *remapping.get(self).unwrap_or(self)
+    }
 }
 
 impl From<MastNodeId> for usize {
@@ -618,6 +621,38 @@ impl From<&MastNodeId> for u32 {
 impl fmt::Display for MastNodeId {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "MastNodeId({})", self.0)
+    }
+}
+
+// ITERATOR
+
+/// Iterates over all the nodes a root depends on, in pre-order.
+/// The iteration can include other roots in the same forest.
+pub struct SubtreeIterator<'a> {
+    forest: &'a MastForest,
+    discovered: Vec<MastNodeId>,
+    unvisited: Vec<MastNodeId>,
+}
+impl<'a> SubtreeIterator<'a> {
+    pub fn new(root: &MastNodeId, forest: &'a MastForest) -> Self {
+        let discovered = vec![];
+        let unvisited = vec![*root];
+        SubtreeIterator { forest, discovered, unvisited }
+    }
+}
+impl Iterator for SubtreeIterator<'_> {
+    type Item = MastNodeId;
+    fn next(&mut self) -> Option<MastNodeId> {
+        while let Some(id) = self.unvisited.pop() {
+            let node = &self.forest[id];
+            if !node.has_children() {
+                return Some(id);
+            } else {
+                self.discovered.push(id);
+                node.append_children_to(&mut self.unvisited);
+            }
+        }
+        self.discovered.pop()
     }
 }
 
@@ -709,7 +744,9 @@ pub enum MastForestError {
     DecoratorIdOverflow(DecoratorId, usize),
     #[error("basic block cannot be created from an empty list of operations")]
     EmptyBasicBlock,
-    #[error("decorator root of child with node id {0} is missing but is required for fingerprint computation")]
+    #[error(
+        "decorator root of child with node id {0} is missing but is required for fingerprint computation"
+    )]
     ChildFingerprintMissing(MastNodeId),
     #[error("advice map key {0} already exists when merging forests")]
     AdviceMapKeyCollisionOnMerge(RpoDigest),

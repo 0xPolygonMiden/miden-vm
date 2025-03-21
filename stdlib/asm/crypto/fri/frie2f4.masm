@@ -1,3 +1,5 @@
+use.std::crypto::stark::constants
+
 #! Stores the layer commitments C followed by [d_size, t_depth, a1, a0] and [poe, p, e1, e0] where:
 #! 1) d_size is the domain size divided by 4 of the domain corresponding to C.
 #! 2) t_depth is the tree depth of the Merkle tree with commitment C.
@@ -7,8 +9,14 @@
 #! TODO: This pre-processing function should in fact compute d_size and t_depth for each C
 #! starting from the original domain size.
 export.preprocess.16
-    locaddr.12
-    adv_push.1                  #[num_queries, query_ptr, g, ..]
+    adv_push.1
+    # => [num_queries, g, ...]
+    exec.constants::fri_com_ptr
+    # => [layer_ptr, num_queries, g, ...]
+    dup.1 mul.4 sub
+    # => [query_ptr, num_queries, g, ...]
+    dup exec.constants::set_fri_queries_address
+    swap
     sub.1
     push.0.0.0.0
     push.1
@@ -36,7 +44,7 @@ export.preprocess.16
     mul.2
     sub.1
     movdn.4
-    #=> [X, layer_ptr, num_layers, layer_ptr, g]
+    #=> [X, num_layers, layer_ptr, layer_ptr, g]
 
     push.1
     while.true
@@ -50,19 +58,21 @@ export.preprocess.16
         swap.5
         neq.0
     end
-    #=> [X, x, remainder_ptr, layer_ptr, g]
+    #=> [X, x, remainder_poly_ptr, layer_ptr, g]
 
     drop
-    #=> [X, remainder_ptr, layer_ptr, g]
+    #=> [X, remainder_poly_ptr, layer_ptr, g]
 
     dup.4
     movdn.5
-    #=> [X, remainder_ptr, remainder_ptr, layer_ptr, g]
+    #=> [X, remainder_poly_ptr, remainder_poly_ptr, layer_ptr, g]
 
     adv_push.1
+    dup mul.2 exec.constants::set_remainder_poly_size
+
     sub.1
     movdn.4
-    #=> [X, remainder_ptr, len_remainder/2, remainder_ptr, layer_ptr, g]
+    #=> [X, len_remainder/2, remainder_poly_ptr, remainder_poly_ptr, layer_ptr, g]
 
     push.1
     while.true
@@ -76,21 +86,21 @@ export.preprocess.16
         swap.5
         neq.0
     end
-    #=> [X, x, x, remainder_ptr, layer_ptr, g]
+    #=> [X, x, x, remainder_poly_ptr, layer_ptr, g]
     dropw drop drop
+    #=> [remainder_poly_ptr, layer_ptr, g]
 
-    swap
-    locaddr.12
-    #=> [query_ptr, layer_ptr, remainder_ptr, g]
+    exec.constants::set_remainder_poly_address
+    drop drop
 end
 
 #! Checks that, for a query with index p at layer i, the folding procedure to create layer (i + 1)
 #! was performed correctly. This also advances layer_ptr by 8 to point to the next query layer.
 #!
 #! Input:  [layer_ptr, layer_ptr, poe, p, e1, e0, layer_ptr, rem_ptr, x, x, x, x, x, x, x, x, ...]
-#! Output: [layer_ptr+8, layer_ptr+8, poe^4, f_pos, ne1, ne0, layer_ptr+8, rem_ptr, x, x, x, x, x, x, x, x, ...]
+#! Output: [is_not_last_layer, layer_ptr+8, layer_ptr+8, poe^4, f_pos, ne1, ne0, layer_ptr+8, rem_ptr, x, x, x, x, x, x, x, x, ...]
 #!
-#! Cycles: 76
+#! Cycles: 83
 export.verify_query_layer.12
 
     # load layer commitment C as well as [a0, a1, t_depth, d_size] (7 cycles)
@@ -120,11 +130,11 @@ export.verify_query_layer.12
 
     # unhash V and save the pre-image in locaddr.0 and locaddr.4; we don't clear values of C
     # because adv_pipe overwrites the first 8 elements of the stack (15 cycles)
-    locaddr.4
+    exec.constants::tmp3
     movdn.4
-    push.0.0.0.0
+    padw
     swapw
-    push.0.0.0.0
+    padw
     adv_pipe
     hperm
     # => [T2, T1, T0, ptr, V, f_pos, d_seg, poe, e1, e0, a1, a0, layer_ptr, rem_ptr, ..]
@@ -141,9 +151,11 @@ export.verify_query_layer.12
     assert_eq
 
     # load (v7, ..v0) from memory (8 cycles)
-    loc_loadw.4
+    exec.constants::tmp3
+    mem_loadw
     swapw
-    loc_loadw.8
+    exec.constants::tmp4
+    mem_loadw
     # => [v7, ..., v0, f_pos, d_seg, poe, e1, e0, a1, a0, layer_ptr, rem_ptr, ...]
 
     # fold by 4 (1 cycle)
@@ -161,30 +173,35 @@ export.verify_query_layer.12
     dup.7     # [rem_ptr, layer_ptr+8, layer_ptr+8, poe^4, f_pos, ne1, ne0, layer_ptr+8, rem_ptr, ...]
     dup.1     # [layer_ptr+8, rem_ptr, layer_ptr+8, layer_ptr+8, poe^4, f_pos, ne1, ne0, layer_ptr+8, rem_ptr, ...]
     neq       
-    # => [?, layer_ptr+8, layer_ptr+8, poe^4, f_pos, ne1, ne0, layer_ptr+8, rem_ptr, x, x, x, x, x, x, x, x, ...]
+    # => [is_not_last_layer, layer_ptr+8, layer_ptr+8, poe^4, f_pos, ne1, ne0, layer_ptr+8, rem_ptr, x, x, x, x, x, x, x, x, ...]
 end
 
 #! Verifies one FRI query.
 #!
+#! This procedure is specialized to the case when the remainder polynomial, used in the final check,
+#! is expected to have degree at most 64.
+#! This procedure is exactly the same as `verify_query_128` except for the remainder polynomial check,
+#! thus any change to one procedure will imply an equivalent change to the other one.
+#!
 #! Input:  [poe, p, e1, e0, layer_ptr, rem_ptr, ...]
-#! Output: [x, x, x, x, x, x, x, x, x, x, ...]
+#! Output: [x, x, x, x, x, x, x, x, x, x, x, x, ...] (12 "garbage" elements)
 #!
 #! - poe is g^p.
 #! - p is a query index at the first layer.
 #! - (e0, e1) is an extension field element corresponding to the value of the first layer at index p.
 #! - layer_ptr is the memory address of the layer data (Merkle tree root, alpha etc.) for the next
 #!   layer.
-#! - rem_ptr is the memory address of the remainder codeword.
+#! - rem_ptr is the memory address of the remainder polynomial.
 #!
-#! Cycles: 42 + num_layers * 76
-export.verify_query
+#! Cycles: 107 + num_layers * 83
+export.verify_query_64
 
     # prepare stack to be in a form that leverages the fri_ext2fold4 instruction output stack state
     # (16 cycles)
     dup.5
     dup.5
-    push.0.0.0.0
-    push.0.0.0.0
+    padw
+    padw
     swapdw
     dup
     dup
@@ -198,41 +215,97 @@ export.verify_query
     end
     # => [rem_ptr, rem_ptr, poe^(2^n), f_pos, ne1, ne0, rem_ptr, rem_ptr, x, x, x, x, x, x, x, x, ...]
 
-    # check that rem_ptr[f_pos] == (ne0, ne1)
+    movup.2 mul.7
+    exec.constants::tmp2 mem_store
+    # => [rem_ptr, rem_ptr, f_pos, ne1, ne0, rem_ptr, rem_ptr, x, x, x, x, x, x, x, x, ...]
 
-    # Since each memory address contains two extension field elements, we have to determine which
-    # of the two elements we should compare against. (7 cycles)
-    movup.3     # [f_pos, rem_ptr, rem_ptr, poe^(2^n), ne1, ne0, rem_ptr, rem_ptr, ...]
-    push.2      # [2, f_pos, rem_ptr, rem_ptr, poe^(2^n), ne1, ne0, rem_ptr, rem_ptr, ...]
-    u32divmod   # [f_pos%2, f_pos/2, rem_ptr, rem_ptr, poe^(2^n), ne1, ne0, rem_ptr, rem_ptr, ...]
-    movdn.4     # [f_pos/2, rem_ptr, rem_ptr, poe^(2^n), f_pos%2, ne1, ne0, rem_ptr, rem_ptr, ...]
-    mul.4       # [f_pos*2, rem_ptr, rem_ptr, poe^(2^n), f_pos%2, ne1, ne0, rem_ptr, rem_ptr, ...]
-    dup.1
-    dup.1       # [f_pos*2, rem_ptr, f_pos*2, rem_ptr, rem_ptr, poe^(2^n), f_pos%2, ne1, ne0, rem_ptr, rem_ptr, ...]
-    add         # [rem_ptr + f_pos*2, f_pos*2, rem_ptr, rem_ptr, poe^(2^n), f_pos%2, ne1, ne0, rem_ptr, rem_ptr, ...]
-    # => [rem_ptr + offset, x, x, x, x, ?, ne1, ne0, rem_ptr, rem_ptr, x, x, x, x, x, x, x, x, ..]
+    push.0 exec.constants::tmp1 mem_loadw
+    # => [P, ne1, ne0, rem_ptr, rem_ptr, x, x, x, x, x, x, x, x, ...]
 
-    mem_loadw
-    # => [e1', e0', e1, e0, ?, ne1, ne0, rem_ptr, rem_ptr, x, x, x, x, x, x, x, x, ..]
+    swapw swapdw
+    # => [x, x, x, x, x, x, x, x, ne1, ne0, rem_ptr, rem_ptr, P, ...]
 
-    # compare (ne0, ne1) to the appropriate tuple from the remainder word (14 cycles)
-    movup.2
-    swap
-    dup.4
-    cdrop
-    movdn.3
-    movup.2
-    cdrop
-    swap.2
-    assert_eq
-    assert_eq
-    # => [x, x, x, x, x, x, x, x, x, x, ...]
+    repeat.16
+        mem_stream
+        horner_eval_ext
+    end
+    # => [x, x, x, x, x, x, x, x, ne1, ne0, rem_ptr, rem_ptr, P, ...]
+
+    swapdw
+    # => [ne1, ne0, rem_ptr, rem_ptr, P, x, x, x, x, x, x, x, x, ...]
+    movup.6 assert_eq
+    movup.5 assert_eq
+    # => [X, x, x, x, x, x, x, x, x, ...]
 end
 
+#! Verifies one FRI query.
+#!
+#! This procedure is specialized to the case when the remainder polynomial, used in the final check,
+#! is expected to have degree at most 128.
+#! This procedure is exactly the same as `verify_query_64` except for the remainder polynomial check,
+#! thus any change to one procedure will imply an equivalent change to the other one.
+#!
+#! Input:  [poe, p, e1, e0, layer_ptr, rem_ptr, ...]
+#! Output: [x, x, x, x, x, x, x, x, x, x, x, x, ...] (12 "garbage" elements)
+#!
+#! - poe is g^p.
+#! - p is a query index at the first layer.
+#! - (e0, e1) is an extension field element corresponding to the value of the first layer at index p.
+#! - layer_ptr is the memory address of the layer data (Merkle tree root, alpha etc.) for the next
+#!   layer.
+#! - rem_ptr is the memory address of the remainder polynomial.
+#!
+#! Cycles: 140 + num_layers * 83
+export.verify_query_128
+
+    # prepare stack to be in a form that leverages the fri_ext2fold4 instruction output stack state
+    # (16 cycles)
+    dup.5
+    dup.5
+    padw
+    padw
+    swapdw
+    dup
+    dup
+    movup.3
+    neq
+    # => [?, layer_ptr, layer_ptr, poe, p, e1, e0, layer_ptr, rem_ptr, 0, 0, 0, 0, 0, 0, 0, 0, ...]
+
+    # verify correctness of layer folding
+    while.true
+        exec.verify_query_layer
+    end
+    # => [rem_ptr, rem_ptr, poe^(2^n), f_pos, ne1, ne0, rem_ptr, rem_ptr, x, x, x, x, x, x, x, x, ...]
+
+    movup.2 mul.7
+    exec.constants::tmp2 mem_store
+    # => [rem_ptr, rem_ptr, f_pos, ne1, ne0, rem_ptr, rem_ptr, x, x, x, x, x, x, x, x, ...]
+
+    push.0 exec.constants::tmp1 mem_loadw
+    # => [P, ne1, ne0, rem_ptr, rem_ptr, x, x, x, x, x, x, x, x, ...]
+
+    swapw swapdw
+    # => [x, x, x, x, x, x, x, x, ne1, ne0, rem_ptr, rem_ptr, P, ...]
+
+    repeat.32
+        mem_stream
+        horner_eval_ext
+    end
+    
+    # => [x, x, x, x, x, x, x, x, ne1, ne0, rem_ptr, rem_ptr, P, ...]
+    swapdw
+    # => [ne1, ne0, rem_ptr, rem_ptr, P, x, x, x, x, x, x, x, x, ...]
+    movup.6 assert_eq
+    movup.5 assert_eq
+    # => [X, x, x, x, x, x, x, x, x, ...]
+end
+
+
 #! Verifies a FRI proof where the proof was generated over the quadratic extension of the base
-#! field and layer folding was performed using folding factor 4.
-#! Note that the check that the remainder codeword corresponds to the remainder polynomial received
-#! by the verifier should now be performed by the calling procedure.
+#! field and layer folding was performed using folding factor 4 when the degree of the remainder
+#! polynomial is less than 64.
+#! This procedure is exactly the same as `verify_128` except for the remainder polynomial check,
+#! thus any change to one procedure will imply an equivalent change to the other one.
 #!
 #! Input:  [query_ptr, layer_ptr, rem_ptr, g, ...]
 #! Output: [...]
@@ -241,13 +314,14 @@ end
 #!   to g^p with g being the initial FRI domain generator. p is the query index at the first layer
 #!   and (e0, e1) is an extension field element corresponding to the value of the first layer at index p.
 #! - layer_ptr is a pointer to the first layer commitment denoted throughout the code by C.
-#!   layer_ptr + 4 points to the first [alpha0, alpha1, t_depth, d_size] where d_size is the size
+#!   layer_ptr + 1 points to the first [alpha0, alpha1, t_depth, d_size] where d_size is the size
 #!   of initial domain divided by 4, t_depth is the depth of the Merkle tree commitment to the
 #!   first layer and (alpha0, alpha1) is the first challenge used in folding the first layer.
 #!   Both t_depth and d_size are expected to be smaller than 2^32. Otherwise, the result of
 #!   this procedure is undefined.
 #! - rem_ptr is a pointer to the first tuple of two consecutive degree 2 extension field
-#!   elements making up the remainder codeword. This codeword can be of length either 32 or 64.
+#!   elements making up the remainder polynomial. This procedure is specialized to the case when
+#!   the the degree of the latter is less than 64.
 #!
 #! The memory referenced above is used contiguously, as follows:
 #!
@@ -257,8 +331,8 @@ end
 #! 1. rem_ptr - 1 points to the last (alpha0, alpha1, t_depth, d_size) tuple.
 #! 2. layer_ptr - 1 points to the last (e0, e1, p, poe) tuple.
 #!
-#! Cycles: 7 + 4 + num_queries * (42 + num_layers * 76 + 26)
-export.verify.4
+#! Cycles: 24 + num_queries * (107 + num_layers * 83)
+proc.verify_64.4
 
     # store [query_ptr, layer_ptr, rem_ptr, g] to keep track of all queries
     # (3 cycles)
@@ -270,28 +344,156 @@ export.verify.4
     dup.2
     neq
 
+    # Save a word containing a fresh accumulator for Horner evaluating the remainder polynomial,
+    # a pointer to the evaluation point and a pointer to the location of the polynomial.
+    push.0.0 
+    exec.constants::tmp2 exec.constants::get_remainder_poly_address
+    exec.constants::tmp1 mem_storew
+    movup.4
+
     while.true
         # load [e0, e1, p, poe] from memory i.e. next query data (7 cycles)
-        push.0.0.0.0
         movup.4
         mem_loadw
         # => [poe, p, e1, e0, layer_ptr, rem_ptr, g, ...]
 
         # we now have everything to verify query p
-        exec.verify_query
+        exec.verify_query_64
 
         # prepare for next iteration (18 cycles)
-        # => [x, x, x, x, x, x, x, x, x, x, g, ...]
-        dropw drop drop drop
+        # => [x, x, x, x, x, x, x, x, x, x, x, x, g, ...]
+        dropw drop
+        # => [x, x, x, x, x, x, x, g, ...]
         loc_loadw.0   # load [query_ptr, layer_ptr, rem_ptr, g]
         add.4
         loc_storew.0  # store [query_ptr + 4, layer_ptr, rem_ptr, g]
-        dup
-        dup.2
+        swapw
+        # => [x, x, x, x, query_ptr + 4, layer_ptr, rem_ptr, g, ...]
+        dup.5
+        dup.5
         neq
-        #=> [?, query_ptr + 4, layer_ptr, rem_ptr, g, ...]
+        #=> [?, x, x, x, x, query_ptr + 4, layer_ptr, rem_ptr, g, ...]
     end
-    #=> [X, ..]
+    #=> [x, x, x, x, x, x, x, x, ...]
 
-    dropw
+    dropw dropw
+end
+
+#! Verifies a FRI proof where the proof was generated over the quadratic extension of the base
+#! field and layer folding was performed using folding factor 4 when the degree of the remainder
+#! polynomial is less than 128.
+#! This procedure is exactly the same as `verify_64` except for the remainder polynomial check,
+#! thus any change to one procedure will imply an equivalent change to the other one.
+#!
+#! Input:  [query_ptr, layer_ptr, rem_ptr, g, ...]
+#! Output: [...]
+#!
+#! - query_ptr is a pointer to a list of tuples of the form (e0, e1, p, poe) where poe is equal
+#!   to g^p with g being the initial FRI domain generator. p is the query index at the first layer
+#!   and (e0, e1) is an extension field element corresponding to the value of the first layer at index p.
+#! - layer_ptr is a pointer to the first layer commitment denoted throughout the code by C.
+#!   layer_ptr + 1 points to the first [alpha0, alpha1, t_depth, d_size] where d_size is the size
+#!   of initial domain divided by 4, t_depth is the depth of the Merkle tree commitment to the
+#!   first layer and (alpha0, alpha1) is the first challenge used in folding the first layer.
+#!   Both t_depth and d_size are expected to be smaller than 2^32. Otherwise, the result of
+#!   this procedure is undefined.
+#! - rem_ptr is a pointer to the first tuple of two consecutive degree 2 extension field
+#!   elements making up the remainder polynomial. This procedure is specialized to the case when
+#!   the the degree of the latter is less than 128.
+#!
+#! The memory referenced above is used contiguously, as follows:
+#!
+#!   [query_ptr ... layer_ptr ... rem_ptr ...]
+#!
+#! This means for example that:
+#! 1. rem_ptr - 1 points to the last (alpha0, alpha1, t_depth, d_size) tuple.
+#! 2. layer_ptr - 1 points to the last (e0, e1, p, poe) tuple.
+#!
+#! Cycles: 24 + num_queries * (140 + num_layers * 83)
+proc.verify_128.4
+
+    # store [query_ptr, layer_ptr, rem_ptr, g] to keep track of all queries
+    # (3 cycles)
+    loc_storew.0
+
+    # [(query_ptr == layer_ptr), query_ptr, layer_ptr, rem_ptr, g]
+    # (4 cycles)
+    dup
+    dup.2
+    neq
+
+    # Save a word containing a fresh accumulator for Horner evaluating the remainder polynomial,
+    # a pointer to the evaluation point and a pointer to the location of the polynomial.
+    push.0.0 
+    exec.constants::tmp2 exec.constants::get_remainder_poly_address
+    exec.constants::tmp1 mem_storew
+    movup.4
+    
+    while.true
+        # load [e0, e1, p, poe] from memory i.e. next query data (7 cycles)
+        movup.4
+        mem_loadw
+        # => [poe, p, e1, e0, layer_ptr, rem_ptr, g, ...]
+
+        # we now have everything to verify query p
+        exec.verify_query_128
+
+        # prepare for next iteration (18 cycles)
+        # => [x, x, x, x, x, x, x, x, x, x, x, x, g, ...]
+        dropw drop
+        # => [x, x, x, x, x, x, x, g, ...]
+        loc_loadw.0   # load [query_ptr, layer_ptr, rem_ptr, g]
+        add.4
+        loc_storew.0  # store [query_ptr + 4, layer_ptr, rem_ptr, g]
+        swapw
+        # => [x, x, x, x, query_ptr + 4, layer_ptr, rem_ptr, g, ...]
+        dup.5
+        dup.5
+        neq
+        #=> [?, x, x, x, x, query_ptr + 4, layer_ptr, rem_ptr, g, ...]
+    end
+    #=> [x, x, x, x, x, x, x, x, ...]
+
+    dropw dropw
+end
+
+#! Verifies a FRI proof where the proof was generated over the quadratic extension of the base
+#! field and layer folding was performed using folding factor 4.
+#!
+#! Input:  [...]
+#! Output: [...]
+#!
+#! Cycles: 
+#!
+#!  Polynomial degree less than 64: 24 + num_queries * (107 + num_layers * 83)
+#!  Polynomial degree less than 128: 24 + num_queries * (140 + num_layers * 83)
+export.verify
+
+    # Get domain generator and pointer to the remainder codeword
+    # (4 cycles)
+    exec.constants::get_lde_domain_generator
+    exec.constants::get_remainder_poly_address
+    # => [remainder_poly_ptr, g, ...]
+
+    # Get the pointer to the first layer commitment
+    # (1 cycles)
+    exec.constants::fri_com_ptr
+    # => [fri_layer_ptr, remainder_poly_ptr, g, ...]
+
+    # Get the pointer to the first FRI query to the top
+    # (2 cycles)
+    exec.constants::get_fri_queries_address
+    # => [query_ptr, fri_layer_ptr, remainder_poly_ptr, g, ...]
+
+    
+    exec.constants::get_remainder_poly_size
+    push.64
+    eq
+
+    if.true
+        exec.verify_64
+    else
+        exec.verify_128
+    end
+    # => [...]
 end

@@ -1,11 +1,15 @@
 use core::fmt;
-use std::{fs, path::PathBuf};
+use std::path::PathBuf;
 
 use assembly::diagnostics::{IntoDiagnostic, Report, WrapErr};
 use clap::Parser;
-use miden_vm::{internal::InputFile, Assembler, DefaultHost, Host, Operation, StackInputs};
+use miden_vm::{DefaultHost, Host, Operation, StackInputs, internal::InputFile};
 use processor::{AsmOpInfo, TraceLenSummary};
 use stdlib::StdLibrary;
+use vm_core::Program;
+
+use super::cli::data::Libraries;
+use crate::cli::utils::{get_masm_program, get_masp_program};
 
 // CLI
 // ================================================================================================
@@ -14,24 +18,43 @@ use stdlib::StdLibrary;
 #[derive(Debug, Clone, Parser)]
 #[clap(about = "Analyze a miden program")]
 pub struct Analyze {
-    /// Path to .masm assembly file
-    #[clap(short = 'a', long = "assembly", value_parser)]
-    assembly_file: PathBuf,
+    /// Path to a .masm assembly file or a .masp package file
+    #[clap(value_parser)]
+    program_file: PathBuf,
+
     /// Path to .inputs file
     #[clap(short = 'i', long = "input", value_parser)]
     input_file: Option<PathBuf>,
+
+    /// Paths to .masl library files
+    #[clap(short = 'l', long = "libraries", value_parser)]
+    library_paths: Vec<PathBuf>,
 }
 
 /// Implements CLI execution logic
 impl Analyze {
     pub fn execute(&self) -> Result<(), Report> {
-        let program =
-            fs::read_to_string(&self.assembly_file).into_diagnostic().wrap_err_with(|| {
-                format!("could not read masm file: {}", self.assembly_file.display())
-            })?;
+        // load libraries from files
+        let libraries = Libraries::new(&self.library_paths)?;
+
+        // Determine file type based on extension.
+        let ext = self
+            .program_file
+            .extension()
+            .and_then(|s| s.to_str())
+            .unwrap_or("")
+            .to_lowercase();
+
+        // Use a single match expression to load the program.
+        let program = match ext.as_str() {
+            "masp" => get_masp_program(&self.program_file)?,
+            "masm" => get_masm_program(&self.program_file, &libraries)?,
+            _ => return Err(Report::msg("The provided file must have a .masm or .masp extension")),
+        };
+        // let program_hash: [u8; 32] = program.hash().into();
 
         // load input data from file
-        let input_data = InputFile::read(&self.input_file, &self.assembly_file)?;
+        let input_data = InputFile::read(&self.input_file, &self.program_file)?;
 
         // fetch the stack and program inputs from the arguments
         let stack_inputs = input_data.parse_stack_inputs().map_err(Report::msg)?;
@@ -39,10 +62,10 @@ impl Analyze {
         host.load_mast_forest(StdLibrary::default().mast_forest().clone())
             .into_diagnostic()?;
 
-        let execution_details: ExecutionDetails = analyze(program.as_str(), stack_inputs, host)
-            .expect("Could not retrieve execution details");
+        let execution_details: ExecutionDetails =
+            analyze(&program, stack_inputs, host).expect("Could not retrieve execution details");
         let program_name = self
-            .assembly_file
+            .program_file
             .file_name()
             .expect("provided file path is incorrect")
             .to_str()
@@ -209,21 +232,16 @@ impl fmt::Display for ExecutionDetails {
 
 /// Returns program analysis of a given program.
 fn analyze<H>(
-    program: &str,
+    program: &Program,
     stack_inputs: StackInputs,
     mut host: H,
 ) -> Result<ExecutionDetails, Report>
 where
     H: Host,
 {
-    let stdlib = StdLibrary::default();
-    let program = Assembler::default()
-        .with_debug_mode(true)
-        .with_library(&stdlib)?
-        .assemble_program(program)?;
     let mut execution_details = ExecutionDetails::default();
 
-    let vm_state_iterator = processor::execute_iter(&program, stack_inputs, &mut host);
+    let vm_state_iterator = processor::execute_iter(program, stack_inputs, &mut host);
     execution_details.set_trace_len_summary(vm_state_iterator.trace_len_summary());
 
     for state in vm_state_iterator {
@@ -291,18 +309,19 @@ impl AsmOpStats {
 
 #[cfg(test)]
 mod tests {
+    use miden_vm::Assembler;
     use processor::{ChipletsLengths, DefaultHost, TraceLenSummary};
 
     use super::{AsmOpStats, ExecutionDetails, StackInputs};
 
     #[test]
     fn analyze_test() {
-        let source =
-            "proc.foo.1 loc_store.0 end begin mem_storew.1 dropw push.17 push.1 movdn.2 exec.foo end";
+        let source = "proc.foo.1 loc_store.0 end begin mem_storew.1 dropw push.17 push.1 movdn.2 exec.foo end";
         let stack_inputs = StackInputs::default();
         let host = DefaultHost::default();
+        let program = Assembler::default().with_debug_mode(true).assemble_program(source).unwrap();
         let execution_details =
-            super::analyze(source, stack_inputs, host).expect("analyze_test: Unexpected Error");
+            super::analyze(&program, stack_inputs, host).expect("analyze_test: Unexpected Error");
         let expected_details = ExecutionDetails {
             total_noops: 2,
             asm_op_stats: vec![
@@ -324,10 +343,11 @@ mod tests {
     #[test]
     fn analyze_test_execution_error() {
         let source = "begin div end";
+        let program = Assembler::default().with_debug_mode(true).assemble_program(source).unwrap();
         let stack_inputs = vec![1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
         let stack_inputs = StackInputs::try_from_ints(stack_inputs).unwrap();
         let host = DefaultHost::default();
-        let execution_details = super::analyze(source, stack_inputs, host);
+        let execution_details = super::analyze(&program, stack_inputs, host);
         let expected_error = "Execution Error: DivideByZero(1)";
         assert_eq!(execution_details.err().unwrap().to_string(), expected_error);
     }
@@ -335,9 +355,10 @@ mod tests {
     #[test]
     fn analyze_test_assembly_error() {
         let source = "proc.foo.1 loc_store.0 end mem_storew.1 dropw push.17 exec.foo end";
+        let program = Assembler::default().with_debug_mode(true).assemble_program(source).unwrap();
         let stack_inputs = StackInputs::default();
         let host = DefaultHost::default();
-        let execution_details = super::analyze(source, stack_inputs, host);
+        let execution_details = super::analyze(&program, stack_inputs, host);
         let expected_error = "Assembly Error: ParsingError(\"unexpected token: expected 'begin' but was 'mem_storew.1'\")";
         assert_eq!(execution_details.err().unwrap().to_string(), expected_error);
     }

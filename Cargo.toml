@@ -4,6 +4,7 @@ members = [
     "assembly",
     "core",
     "miden",
+    "package",
     "processor",
     "prover",
     "stdlib",
@@ -13,8 +14,8 @@ members = [
 resolver = "2"
 
 [workspace.package]
-edition = "2021"
-rust-version = "1.82"
+edition = "2024"
+rust-version = "1.85"
 license = "MIT"
 readme = "README.md"
 authors = ["Miden contributors"]

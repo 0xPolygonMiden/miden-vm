@@ -3,7 +3,7 @@ use core::fmt::{self, Display};
 
 use miden_air::RowIndex;
 
-use super::{ExecutionError, Felt, FieldElement, SysTrace, Word, EMPTY_WORD, ONE, ZERO};
+use super::{EMPTY_WORD, ExecutionError, Felt, FieldElement, ONE, SysTrace, Word, ZERO};
 
 #[cfg(test)]
 mod tests;
@@ -181,7 +181,6 @@ impl System {
     ///
     /// A CALL or DYNCALL cannot be started when the VM is executing a SYSCALL.
     pub fn start_call_or_dyncall(&mut self, fn_hash: Word) {
-        debug_assert!(!self.in_syscall, "call in syscall");
         self.ctx = (self.clk + 1).into();
         self.fmp = Felt::new(FMP_MIN);
         self.fn_hash = fn_hash;
@@ -201,7 +200,6 @@ impl System {
     /// Note that this does not change the hash of the function which initiated the context:
     /// for SYSCALLs this remains set to the hash of the last invoked function.
     pub fn start_syscall(&mut self) {
-        debug_assert!(!self.in_syscall, "already in syscall");
         self.ctx = ContextId::root();
         self.fmp = Felt::from(SYSCALL_FMP_MIN);
         self.in_syscall = true;

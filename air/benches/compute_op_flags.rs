@@ -1,7 +1,7 @@
 use std::time::Duration;
 
-use criterion::{criterion_group, criterion_main, Criterion};
-use miden_air::stack::op_flags::{generate_evaluation_frame, OpFlags};
+use criterion::{Criterion, criterion_group, criterion_main};
+use miden_air::stack::op_flags::{OpFlags, generate_evaluation_frame};
 
 fn compute_op_flags(c: &mut Criterion) {
     let mut group = c.benchmark_group("compute_op_flags");

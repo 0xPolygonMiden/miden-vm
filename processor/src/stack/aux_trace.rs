@@ -1,10 +1,10 @@
 use alloc::vec::Vec;
 
-use miden_air::{trace::main_trace::MainTrace, RowIndex};
+use miden_air::{RowIndex, trace::main_trace::MainTrace};
 use vm_core::OPCODE_DYNCALL;
 
 use super::{Felt, FieldElement, OverflowTableRow};
-use crate::trace::AuxColumnBuilder;
+use crate::{debug::BusDebugger, trace::AuxColumnBuilder};
 
 // AUXILIARY TRACE BUILDER
 // ================================================================================================
@@ -30,7 +30,13 @@ impl AuxTraceBuilder {
 
 impl<E: FieldElement<BaseField = Felt>> AuxColumnBuilder<E> for AuxTraceBuilder {
     /// Removes a row from the stack overflow table.
-    fn get_requests_at(&self, main_trace: &MainTrace, alphas: &[E], i: RowIndex) -> E {
+    fn get_requests_at(
+        &self,
+        main_trace: &MainTrace,
+        alphas: &[E],
+        i: RowIndex,
+        _debugger: &mut BusDebugger<E>,
+    ) -> E {
         let is_left_shift = main_trace.is_left_shift(i);
         let is_dyncall = main_trace.get_op_code(i) == OPCODE_DYNCALL.into();
         let is_non_empty_overflow = main_trace.is_non_empty_overflow(i);
@@ -53,7 +59,13 @@ impl<E: FieldElement<BaseField = Felt>> AuxColumnBuilder<E> for AuxTraceBuilder 
     }
 
     /// Adds a row to the stack overflow table.
-    fn get_responses_at(&self, main_trace: &MainTrace, alphas: &[E], i: RowIndex) -> E {
+    fn get_responses_at(
+        &self,
+        main_trace: &MainTrace,
+        alphas: &[E],
+        i: RowIndex,
+        _debugger: &mut BusDebugger<E>,
+    ) -> E {
         let is_right_shift = main_trace.is_right_shift(i);
 
         if is_right_shift {

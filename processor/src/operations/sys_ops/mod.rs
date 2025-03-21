@@ -1,9 +1,9 @@
-use vm_core::{sys_events::SystemEvent, Felt, Operation};
+use vm_core::{Felt, Operation, sys_events::SystemEvent};
 
 use super::{
     super::{
-        system::{FMP_MAX, FMP_MIN},
         ONE,
+        system::{FMP_MAX, FMP_MIN},
     },
     ExecutionError, Process,
 };
@@ -126,14 +126,7 @@ impl Process {
 
         // If it's a system event, handle it directly. Otherwise, forward it to the host.
         if let Some(system_event) = SystemEvent::from_event_id(event_id) {
-            if system_event != SystemEvent::FalconSigToStack {
-                self.handle_system_event(system_event, host)
-            } else {
-                // TODO: this is a temporary solution to not classify FalconSigToStack as a system
-                // event; this way, we delegate signature generation to the host so that we can
-                // apply different strategies for signature generation.
-                host.on_event(self.into(), event_id)
-            }
+            self.handle_system_event(system_event, host)
         } else {
             host.on_event(self.into(), event_id)
         }
@@ -146,10 +139,10 @@ impl Process {
 #[cfg(test)]
 mod tests {
     use super::{
-        super::{Operation, MIN_STACK_DEPTH},
-        Felt, Process, FMP_MAX, FMP_MIN,
+        super::{MIN_STACK_DEPTH, Operation},
+        FMP_MAX, FMP_MIN, Felt, Process,
     };
-    use crate::{DefaultHost, StackInputs, ONE, ZERO};
+    use crate::{DefaultHost, ONE, StackInputs, ZERO};
 
     const MAX_PROC_LOCALS: u64 = 2_u64.pow(31) - 1;
 

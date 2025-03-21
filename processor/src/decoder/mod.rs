@@ -1,6 +1,7 @@
 use alloc::vec::Vec;
 
 use miden_air::{
+    RowIndex,
     trace::{
         chiplets::hasher::DIGEST_LEN,
         decoder::{
@@ -8,18 +9,17 @@ use miden_air::{
             OP_BATCH_1_GROUPS, OP_BATCH_2_GROUPS, OP_BATCH_4_GROUPS, OP_BATCH_8_GROUPS,
         },
     },
-    RowIndex,
 };
 use vm_core::{
+    AssemblyOp,
     mast::{
-        BasicBlockNode, CallNode, DynNode, JoinNode, LoopNode, MastForest, SplitNode, OP_BATCH_SIZE,
+        BasicBlockNode, CallNode, DynNode, JoinNode, LoopNode, MastForest, OP_BATCH_SIZE, SplitNode,
     },
     stack::MIN_STACK_DEPTH,
-    AssemblyOp,
 };
 
 use super::{
-    ExecutionError, Felt, OpBatch, Operation, Process, Word, EMPTY_WORD, MIN_TRACE_LEN, ONE, ZERO,
+    EMPTY_WORD, ExecutionError, Felt, MIN_TRACE_LEN, ONE, OpBatch, Operation, Process, Word, ZERO,
 };
 use crate::Host;
 
@@ -72,12 +72,14 @@ impl Process {
             .digest()
             .into();
 
-        let addr = self.chiplets.hash_control_block(
+        let (addr, hashed_block) = self.chiplets.hasher.hash_control_block(
             child1_hash,
             child2_hash,
             JoinNode::DOMAIN,
             node.digest(),
         );
+
+        debug_assert_eq!(node.digest(), hashed_block.into());
 
         // start decoding the JOIN block; this appends a row with JOIN operation to the decoder
         // trace. when JOIN operation is executed, the rest of the VM state does not change
@@ -124,12 +126,14 @@ impl Process {
             .ok_or(ExecutionError::MastNodeNotFoundInForest { node_id: node.on_false() })?
             .digest()
             .into();
-        let addr = self.chiplets.hash_control_block(
+        let (addr, hashed_block) = self.chiplets.hasher.hash_control_block(
             child1_hash,
             child2_hash,
             SplitNode::DOMAIN,
             node.digest(),
         );
+
+        debug_assert_eq!(node.digest(), hashed_block.into());
 
         // start decoding the SPLIT block. this appends a row with SPLIT operation to the decoder
         // trace. we also pop the value off the top of the stack and return it.
@@ -173,12 +177,15 @@ impl Process {
             .ok_or(ExecutionError::MastNodeNotFoundInForest { node_id: node.body() })?
             .digest()
             .into();
-        let addr = self.chiplets.hash_control_block(
+
+        let (addr, hashed_block) = self.chiplets.hasher.hash_control_block(
             body_hash,
             EMPTY_WORD,
             LoopNode::DOMAIN,
             node.digest(),
         );
+
+        debug_assert_eq!(node.digest(), hashed_block.into());
 
         // start decoding the LOOP block; this appends a row with LOOP operation to the decoder
         // trace, but if the value on the top of the stack is not ONE, the block is not marked
@@ -234,9 +241,15 @@ impl Process {
             .ok_or(ExecutionError::MastNodeNotFoundInForest { node_id: node.callee() })?
             .digest()
             .into();
-        let addr =
-            self.chiplets
-                .hash_control_block(callee_hash, EMPTY_WORD, node.domain(), node.digest());
+
+        let (addr, hashed_block) = self.chiplets.hasher.hash_control_block(
+            callee_hash,
+            EMPTY_WORD,
+            node.domain(),
+            node.digest(),
+        );
+
+        debug_assert_eq!(node.digest(), hashed_block.into());
 
         // start new execution context for the operand stack. this has the effect of resetting
         // stack depth to 16.
@@ -320,16 +333,16 @@ impl Process {
         // The callee hash is stored in memory, and the address is specified on the top of the
         // stack.
         let callee_hash =
-            self.chiplets
-                .memory_mut()
-                .read_word(self.system.ctx(), mem_addr, self.system.clk())?;
+            self.chiplets.memory.read_word(self.system.ctx(), mem_addr, self.system.clk())?;
 
-        let addr = self.chiplets.hash_control_block(
+        let (addr, hashed_block) = self.chiplets.hasher.hash_control_block(
             EMPTY_WORD,
             EMPTY_WORD,
             dyn_node.domain(),
             dyn_node.digest(),
         );
+
+        debug_assert_eq!(dyn_node.digest(), hashed_block.into());
 
         self.decoder.start_dyn(addr, callee_hash);
 
@@ -354,9 +367,7 @@ impl Process {
         // The callee hash is stored in memory, and the address is specified on the top of the
         // stack.
         let callee_hash =
-            self.chiplets
-                .memory_mut()
-                .read_word(self.system.ctx(), mem_addr, self.system.clk())?;
+            self.chiplets.memory.read_word(self.system.ctx(), mem_addr, self.system.clk())?;
 
         // Note: other functions end in "executing a Noop", which
         // 1. ensures trace capacity,
@@ -368,12 +379,14 @@ impl Process {
         // refactoring the decoder though to remove this Noop execution pattern.
         self.ensure_trace_capacity();
 
-        let addr = self.chiplets.hash_control_block(
+        let (addr, hashed_block) = self.chiplets.hasher.hash_control_block(
             EMPTY_WORD,
             EMPTY_WORD,
             dyn_node.domain(),
             dyn_node.digest(),
         );
+
+        debug_assert_eq!(dyn_node.digest(), hashed_block.into());
 
         let (stack_depth, next_overflow_addr) = self.stack.shift_left_and_start_context();
         debug_assert!(stack_depth <= u32::MAX as usize, "stack depth too big");
@@ -455,7 +468,10 @@ impl Process {
         // hashing operation batches. Thus, the result of the hash is expected to be in row
         // addr + (num_batches * 8) - 1.
         let op_batches = basic_block.op_batches();
-        let addr = self.chiplets.hash_span_block(op_batches, basic_block.digest());
+        let (addr, hashed_block) =
+            self.chiplets.hasher.hash_basic_block(op_batches, basic_block.digest());
+
+        debug_assert_eq!(basic_block.digest(), hashed_block.into());
 
         // start decoding the first operation batch; this also appends a row with SPAN operation
         // to the decoder trace. we also need the total number of operation groups so that we can

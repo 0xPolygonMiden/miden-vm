@@ -1,10 +1,10 @@
 use alloc::{
     boxed::Box,
-    collections::{btree_map::IntoIter, BTreeMap},
+    collections::{BTreeMap, btree_map::IntoIter},
     vec::Vec,
 };
 
-use miden_crypto::{utils::collections::KvMap, Felt};
+use miden_crypto::{Felt, utils::collections::KvMap};
 
 use crate::{
     crypto::hash::RpoDigest,

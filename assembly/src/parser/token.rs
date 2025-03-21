@@ -26,8 +26,8 @@ impl core::ops::Deref for DocumentationType {
     type Target = String;
     fn deref(&self) -> &Self::Target {
         match self {
-            Self::Module(ref s) => s,
-            Self::Form(ref s) => s,
+            Self::Module(s) => s,
+            Self::Form(s) => s,
         }
     }
 }
@@ -148,11 +148,11 @@ pub enum Token<'input> {
     PushMapval,
     PushMapvaln,
     PushMtnode,
-    PushSig,
     PushSmtpeek,
     PushSmtset,
     PushSmtget,
     PushU64Div,
+    PushFalconDiv,
     And,
     Assert,
     Assertz,
@@ -196,6 +196,8 @@ pub enum Token<'input> {
     Gt,
     Gte,
     Hash,
+    HornerBase,
+    HornerExt,
     Hperm,
     Hmerge,
     If,
@@ -235,7 +237,6 @@ pub enum Token<'input> {
     Proc,
     Procref,
     Push,
-    RCombBase,
     Repeat,
     RpoFalcon512,
     Sdepth,
@@ -333,11 +334,11 @@ impl fmt::Display for Token<'_> {
             Token::PushMapval => write!(f, "push_mapval"),
             Token::PushMapvaln => write!(f, "push_mapvaln"),
             Token::PushMtnode => write!(f, "push_mtnode"),
-            Token::PushSig => write!(f, "push_sig"),
             Token::PushSmtpeek => write!(f, "push_smtpeek"),
             Token::PushSmtset => write!(f, "push_smtset"),
             Token::PushSmtget => write!(f, "push_smtget"),
             Token::PushU64Div => write!(f, "push_u64div"),
+            Token::PushFalconDiv => write!(f, "push_falcon_div"),
             Token::And => write!(f, "and"),
             Token::Assert => write!(f, "assert"),
             Token::Assertz => write!(f, "assertz"),
@@ -420,7 +421,8 @@ impl fmt::Display for Token<'_> {
             Token::Proc => write!(f, "proc"),
             Token::Procref => write!(f, "procref"),
             Token::Push => write!(f, "push"),
-            Token::RCombBase => write!(f, "rcomb_base"),
+            Token::HornerBase => write!(f, "horner_eval_base"),
+            Token::HornerExt => write!(f, "horner_eval_ext"),
             Token::Repeat => write!(f, "repeat"),
             Token::RpoFalcon512 => write!(f, "rpo_falcon512"),
             Token::Sdepth => write!(f, "sdepth"),
@@ -526,11 +528,11 @@ impl<'input> Token<'input> {
                 | Token::PushMapval
                 | Token::PushMapvaln
                 | Token::PushMtnode
-                | Token::PushSig
                 | Token::PushSmtpeek
                 | Token::PushSmtset
                 | Token::PushSmtget
                 | Token::PushU64Div
+                | Token::PushFalconDiv
                 | Token::And
                 | Token::Assert
                 | Token::Assertz
@@ -569,6 +571,8 @@ impl<'input> Token<'input> {
                 | Token::Hash
                 | Token::Hperm
                 | Token::Hmerge
+                | Token::HornerBase
+                | Token::HornerExt
                 | Token::ILog2
                 | Token::Inv
                 | Token::IsOdd
@@ -604,7 +608,6 @@ impl<'input> Token<'input> {
                 | Token::Pow2
                 | Token::Procref
                 | Token::Push
-                | Token::RCombBase
                 | Token::Repeat
                 | Token::Sdepth
                 | Token::Stack
@@ -671,11 +674,11 @@ impl<'input> Token<'input> {
         ("push_mapval", Token::PushMapval),
         ("push_mapvaln", Token::PushMapvaln),
         ("push_mtnode", Token::PushMtnode),
-        ("push_sig", Token::PushSig),
         ("push_smtpeek", Token::PushSmtpeek),
         ("push_smtset", Token::PushSmtset),
         ("push_smtget", Token::PushSmtget),
         ("push_u64div", Token::PushU64Div),
+        ("push_falcon_div", Token::PushFalconDiv),
         ("and", Token::And),
         ("assert", Token::Assert),
         ("assertz", Token::Assertz),
@@ -758,7 +761,8 @@ impl<'input> Token<'input> {
         ("proc", Token::Proc),
         ("procref", Token::Procref),
         ("push", Token::Push),
-        ("rcomb_base", Token::RCombBase),
+        ("horner_eval_base", Token::HornerBase),
+        ("horner_eval_ext", Token::HornerExt),
         ("repeat", Token::Repeat),
         ("rpo_falcon512", Token::RpoFalcon512),
         ("sdepth", Token::Sdepth),

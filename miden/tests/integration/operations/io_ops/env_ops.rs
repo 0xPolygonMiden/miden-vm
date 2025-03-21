@@ -1,9 +1,9 @@
 use assembly::SourceManager;
 use processor::FMP_MIN;
-use test_utils::{build_op_test, build_test, StackInputs, Test, Word, MIN_STACK_DEPTH};
+use test_utils::{MIN_STACK_DEPTH, StackInputs, Test, Word, build_op_test, build_test};
 use vm_core::{
-    mast::{MastForest, MastNode},
     Operation,
+    mast::{MastForest, MastNode},
 };
 
 use super::TRUNCATE_STACK_PROC;

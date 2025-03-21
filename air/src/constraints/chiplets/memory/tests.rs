@@ -4,20 +4,20 @@ use rand_utils::rand_value;
 use vm_core::{Felt, FieldElement, WORD_SIZE};
 
 use super::{
-    EvaluationFrame, MEMORY_CLK_COL_IDX, MEMORY_CTX_COL_IDX, MEMORY_D0_COL_IDX, MEMORY_D1_COL_IDX,
-    MEMORY_D_INV_COL_IDX, MEMORY_V_COL_RANGE, MEMORY_WORD_COL_IDX,
+    EvaluationFrame, MEMORY_CLK_COL_IDX, MEMORY_CTX_COL_IDX, MEMORY_D_INV_COL_IDX,
+    MEMORY_D0_COL_IDX, MEMORY_D1_COL_IDX, MEMORY_V_COL_RANGE, MEMORY_WORD_COL_IDX,
 };
 use crate::{
+    ONE, ZERO,
     chiplets::memory,
     trace::{
+        TRACE_WIDTH,
         chiplets::{
-            memory::{MEMORY_ACCESS_WORD, MEMORY_READ, MEMORY_WRITE},
             MEMORY_FLAG_SAME_CONTEXT_AND_WORD, MEMORY_IDX0_COL_IDX, MEMORY_IDX1_COL_IDX,
             MEMORY_IS_READ_COL_IDX, MEMORY_IS_WORD_ACCESS_COL_IDX,
+            memory::{MEMORY_ACCESS_WORD, MEMORY_READ, MEMORY_WRITE},
         },
-        TRACE_WIDTH,
     },
-    ONE, ZERO,
 };
 
 // UNIT TESTS
@@ -165,7 +165,7 @@ fn get_test_frame(
 
     // Set the delta in the next row according to the specified delta type.
     let delta: u64 = match delta_type {
-        MemoryTestDeltaType::Clock => delta_row[MemoryTestDeltaType::Clock as usize] - 1,
+        MemoryTestDeltaType::Clock => delta_row[MemoryTestDeltaType::Clock as usize],
         MemoryTestDeltaType::Context => delta_row[MemoryTestDeltaType::Context as usize],
         MemoryTestDeltaType::Word => delta_row[MemoryTestDeltaType::Word as usize],
     };

@@ -1,7 +1,7 @@
 use miette::{IntoDiagnostic, Report};
 use vm_core::mast::{MastForest, MastForestRootMap};
 
-use crate::{testing::TestContext, Assembler};
+use crate::{Assembler, testing::TestContext};
 
 #[allow(clippy::type_complexity)]
 fn merge_programs(

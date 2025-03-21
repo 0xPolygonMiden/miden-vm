@@ -1,7 +1,7 @@
 use assembly::regex;
 use test_utils::{
-    assert_assembler_diagnostic, assert_diagnostic_lines, build_op_test, proptest::prelude::*,
-    MIN_STACK_DEPTH, WORD_SIZE,
+    MIN_STACK_DEPTH, WORD_SIZE, assert_assembler_diagnostic, assert_diagnostic_lines,
+    build_op_test, proptest::prelude::*,
 };
 
 // STACK OPERATIONS TESTS

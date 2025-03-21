@@ -107,13 +107,13 @@ pub(super) mod opcode_constants {
     pub const OPCODE_SPAN: u8       = 0b0101_0110;
     pub const OPCODE_JOIN: u8       = 0b0101_0111;
     pub const OPCODE_DYN: u8        = 0b0101_1000;
-    pub const OPCODE_RCOMBBASE: u8  = 0b0101_1001;
+    pub const OPCODE_HORNEREXT: u8  = 0b0101_1001;
     pub const OPCODE_EMIT: u8       = 0b0101_1010;
     pub const OPCODE_PUSH: u8       = 0b0101_1011;
     pub const OPCODE_DYNCALL: u8    = 0b0101_1100;
 
     pub const OPCODE_MRUPDATE: u8   = 0b0110_0000;
-    /* unused:                        0b0110_0100 */
+    pub const OPCODE_HORNERBASE: u8 = 0b0110_0100;
     pub const OPCODE_SYSCALL: u8    = 0b0110_1000;
     pub const OPCODE_CALL: u8       = 0b0110_1100;
     pub const OPCODE_END: u8        = 0b0111_0000;
@@ -499,8 +499,8 @@ pub enum Operation {
     ///
     /// The operation works as follows:
     /// - Two words are popped from the advice stack.
-    /// - The destination memory address for the first word is retrieved from the 13th stack
-    ///   element (position 12).
+    /// - The destination memory address for the first word is retrieved from the 13th stack element
+    ///   (position 12).
     /// - The two words are written to memory consecutively, starting at this address.
     /// - The top 8 elements of the stack are overwritten with these words (element-wise, in stack
     ///   order).
@@ -554,19 +554,47 @@ pub enum Operation {
     /// track of both the old and new Merkle trees.
     MrUpdate = OPCODE_MRUPDATE,
 
-    /// TODO: add docs
+    /// Performs FRI (Fast Reed-Solomon Interactive Oracle Proofs) layer folding by a factor of 4
+    /// for FRI protocol executed in a degree 2 extension of the base field.
+    ///
+    /// This operation:
+    /// - Folds 4 query values (v0, v1), (v2, v3), (v4, v5), (v6, v7) into a single value (ne0, ne1)
+    /// - Computes new value of the domain generator power: poe' = poe^4
+    /// - Increments layer pointer (cptr) by 2
+    /// - Checks that the previous folding was done correctly
+    /// - Shifts the stack to move an item from the overflow table to stack position 15
+    ///
+    /// Stack transition:
+    /// Input: [v7, v6, v5, v4, v3, v2, v1, v0, f_pos, d_seg, poe, pe1, pe0, a1, a0, cptr, ...]
+    /// Output: [t1, t0, s1, s0, df3, df2, df1, df0, poe^2, f_tau, cptr+2, poe^4, f_pos, ne1, ne0,
+    /// eptr, ...] where eptr is moved from the stack overflow table and is the address of the
+    /// final FRI layer.
     FriE2F4 = OPCODE_FRIE2F4,
 
-    /// Performs a single step of a random linear combination defining the DEEP composition
-    /// polynomial i.e., the input to the FRI protocol. More precisely, the sum in question is:
-    /// \sum_{i=0}^k{\alpha_i \cdot \left(\frac{T_i(x) - T_i(z)}{x - z} +
-    ///            \frac{T_i(x) - T_i(g \cdot z)}{x - g \cdot z} \right)}
+    /// Performs 8 steps of the Horner evaluation method on a polynomial with coefficients over
+    /// the base field, i.e., it computes
     ///
-    /// and the following instruction computes the numerators $\alpha_i \cdot (T_i(x) - T_i(z))$
-    /// and $\alpha_i \cdot (T_i(x) - T_i(g \cdot z))$ and stores the values in two accumulators
-    /// $r$ and $p$, respectively. This instruction is specialized to main trace columns i.e.
-    /// the values $T_i(x)$ are base field elements.
-    RCombBase = OPCODE_RCOMBBASE,
+    /// acc' = (((acc_tmp * alpha + c3) * alpha + c2) * alpha + c1) * alpha + c0
+    ///
+    /// where
+    ///
+    /// acc_tmp := (((acc * alpha + c7) * alpha + c6) * alpha + c5) * alpha + c4
+    ///
+    ///
+    /// In other words, the intsruction computes the evaluation at alpha of the polynomial
+    ///
+    /// P(X) := c7 * X^7 + c6 * X^6 + ... + c1 * X + c0
+    HornerBase = OPCODE_HORNERBASE,
+
+    /// Performs 4 steps of the Horner evaluation method on a polynomial with coefficients over
+    /// the extension field, i.e., it computes
+    ///
+    /// acc' = (((acc * alpha + c3) * alpha + c2) * alpha + c1) * alpha + c0
+    ///
+    /// In other words, the intsruction computes the evaluation at alpha of the polynomial
+    ///
+    /// P(X) := c3 * X^3 + c2 * X^2 + c1 * X + c0
+    HornerExt = OPCODE_HORNEREXT,
 }
 
 impl Operation {
@@ -743,7 +771,8 @@ impl fmt::Display for Operation {
             Self::MpVerify(err_code) => write!(f, "mpverify({err_code})"),
             Self::MrUpdate => write!(f, "mrupdate"),
             Self::FriE2F4 => write!(f, "frie2f4"),
-            Self::RCombBase => write!(f, "rcomb1"),
+            Self::HornerBase => write!(f, "horner_eval_base"),
+            Self::HornerExt => write!(f, "horner_eval_ext"),
         }
     }
 }
@@ -850,7 +879,8 @@ impl Serializable for Operation {
             | Operation::HPerm
             | Operation::MrUpdate
             | Operation::FriE2F4
-            | Operation::RCombBase => (),
+            | Operation::HornerBase
+            | Operation::HornerExt => (),
         }
     }
 }
@@ -957,7 +987,8 @@ impl Deserializable for Operation {
             OPCODE_JOIN => Self::Join,
             OPCODE_DYN => Self::Dyn,
             OPCODE_DYNCALL => Self::Dyncall,
-            OPCODE_RCOMBBASE => Self::RCombBase,
+            OPCODE_HORNERBASE => Self::HornerBase,
+            OPCODE_HORNEREXT => Self::HornerExt,
 
             OPCODE_MRUPDATE => Self::MrUpdate,
             OPCODE_PUSH => {

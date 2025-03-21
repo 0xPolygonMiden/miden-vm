@@ -4,7 +4,7 @@ use clap::Parser;
 use tracing_forest::ForestLayer;
 #[cfg(not(feature = "tracing-forest"))]
 use tracing_subscriber::fmt::format::FmtSpan;
-use tracing_subscriber::{prelude::*, EnvFilter};
+use tracing_subscriber::{EnvFilter, prelude::*};
 
 mod cli;
 mod repl;
@@ -61,7 +61,7 @@ pub fn main() -> Result<(), Report> {
     // configure logging
     // if logging level is not specified, set level to "warn"
     if std::env::var("MIDEN_LOG").is_err() {
-        std::env::set_var("MIDEN_LOG", "warn");
+        unsafe { std::env::set_var("MIDEN_LOG", "warn") };
     }
     let registry =
         tracing_subscriber::registry::Registry::default().with(EnvFilter::from_env("MIDEN_LOG"));

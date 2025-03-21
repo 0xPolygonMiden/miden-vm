@@ -1,8 +1,8 @@
 use std::ops::Add;
 
-use test_utils::{push_inputs, test_case, Felt, ONE, ZERO};
+use test_utils::{Felt, ONE, ZERO, push_inputs, test_case};
 
-use super::base_field::{bv_or, Ext5};
+use super::base_field::{Ext5, bv_or};
 
 #[derive(PartialEq, Eq, Copy, Clone, Debug)]
 pub struct ECExt5 {
@@ -105,11 +105,7 @@ impl ECExt5 {
         let w = self.y / (Self::adiv3() - self.x);
         let flg = self.point_at_infinity == ONE;
 
-        if flg {
-            Ext5::zero()
-        } else {
-            w
-        }
+        if flg { Ext5::zero() } else { w }
     }
 
     pub fn double(self) -> Self {
@@ -606,7 +602,7 @@ fn test_ec_ext5_gen_multiplication() {
     // Conventional generator point of this group
     // Taken from https://github.com/pornin/ecgfp5/blob/ce059c6/rust/src/curve.rs#L67-L83
     // Note, (x, u) = (x, x/ y)
-    let gen = ECExt5 {
+    let generator = ECExt5 {
         x: Ext5::new(
             0xb2ca178ecf4453a1,
             0x3c757788836d3ea4,
@@ -643,7 +639,7 @@ fn test_ec_ext5_gen_multiplication() {
         2147483655,
         2147483645,
     ];
-    let res = gen.scalar_mul(&scalar);
+    let res = generator.scalar_mul(&scalar);
 
     let mut stack = [
         scalar[0] as u64,

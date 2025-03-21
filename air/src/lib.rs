@@ -9,8 +9,8 @@ extern crate std;
 use alloc::vec::Vec;
 
 use vm_core::{
+    ExtensionOf, ONE, ProgramInfo, StackInputs, StackOutputs, ZERO,
     utils::{ByteReader, ByteWriter, Deserializable, Serializable},
-    ExtensionOf, ProgramInfo, StackInputs, StackOutputs, ONE, ZERO,
 };
 use winter_air::{
     Air, AirContext, Assertion, EvaluationFrame, ProofOptions as WinterProofOptions, TraceInfo,
@@ -38,12 +38,10 @@ pub use options::{ExecutionOptions, ProvingOptions};
 pub use proof::{ExecutionProof, HashFunction};
 use utils::TransitionConstraintRange;
 pub use vm_core::{
-    utils::{DeserializationError, ToElements},
     Felt, FieldElement, StarkField,
+    utils::{DeserializationError, ToElements},
 };
-pub use winter_air::{
-    AuxRandElements, FieldExtension, LagrangeKernelEvaluationFrame, PartitionOptions,
-};
+pub use winter_air::{AuxRandElements, FieldExtension, PartitionOptions};
 
 // PROCESSOR AIR
 // ================================================================================================
@@ -64,8 +62,6 @@ impl ProcessorAir {
 }
 
 impl Air for ProcessorAir {
-    type GkrProof = ();
-    type GkrVerifier = ();
     type BaseField = Felt;
     type PublicInputs = PublicInputs;
 
@@ -112,7 +108,6 @@ impl Air for ProcessorAir {
             aux_degrees,
             num_main_assertions,
             num_aux_assertions,
-            None,
             options,
         )
         .set_num_transition_exemptions(2);

@@ -7,14 +7,17 @@ use processor::{DefaultHost, ExecutionOptions, ExecutionTrace};
 use stdlib::StdLibrary;
 use tracing::instrument;
 
-use super::data::{Libraries, OutputFile, ProgramFile};
+use super::{
+    data::{Libraries, OutputFile},
+    utils::{get_masm_program, get_masp_program},
+};
 
 #[derive(Debug, Clone, Parser)]
 #[clap(about = "Run a miden program")]
 pub struct RunCmd {
-    /// Path to .masm assembly file
-    #[clap(short = 'a', long = "assembly", value_parser)]
-    assembly_file: PathBuf,
+    /// Path to a .masm assembly file or a .masp package file
+    #[clap(value_parser)]
+    program_file: PathBuf,
 
     /// Number of cycles the program is expected to consume
     #[clap(short = 'e', long = "exp-cycles", default_value = "64")]
@@ -24,7 +27,7 @@ pub struct RunCmd {
     #[clap(short = 'i', long = "input", value_parser)]
     input_file: Option<PathBuf>,
 
-    /// Paths to .masl library files
+    /// Paths to .masl library files (only used for assembly files)
     #[clap(short = 'l', long = "libraries", value_parser)]
     library_paths: Vec<PathBuf>,
 
@@ -52,12 +55,25 @@ pub struct RunCmd {
 impl RunCmd {
     pub fn execute(&self) -> Result<(), Report> {
         println!("===============================================================================");
-        println!("Run program: {}", self.assembly_file.display());
+        println!("Run program: {}", self.program_file.display());
         println!("-------------------------------------------------------------------------------");
+
+        // determine file type based on extension
+        let ext = self
+            .program_file
+            .extension()
+            .and_then(|s| s.to_str())
+            .unwrap_or("")
+            .to_lowercase();
 
         let now = Instant::now();
 
-        let (trace, program_hash) = run_program(self)?;
+        // use a single match expression based on file extension
+        let (trace, program_hash) = match ext.as_str() {
+            "masp" => run_masp_program(self)?,
+            "masm" => run_masm_program(self)?,
+            _ => return Err(Report::msg("The provided file must have a .masm or .masp extension")),
+        };
 
         println!(
             "Executed the program with hash {} in {} ms",
@@ -69,7 +85,7 @@ impl RunCmd {
             // write outputs to file if one was specified
             OutputFile::write(trace.stack_outputs(), output_path).map_err(Report::msg)?;
         } else {
-            // write the stack outputs to the screen.
+            // write the stack outputs to the terminal
             println!("Output: {:?}", trace.stack_outputs().stack_truncated(self.num_outputs));
         }
 
@@ -108,16 +124,48 @@ impl RunCmd {
 // ================================================================================================
 
 #[instrument(name = "run_program", skip_all)]
-fn run_program(params: &RunCmd) -> Result<(ExecutionTrace, [u8; 32]), Report> {
+fn run_masp_program(params: &RunCmd) -> Result<(ExecutionTrace, [u8; 32]), Report> {
+    let program = get_masp_program(&params.program_file)?;
+
+    // use simplified input data reading
+    let input_data = InputFile::read(&params.input_file, &params.program_file)?;
+
+    let stack_inputs = input_data.parse_stack_inputs().map_err(Report::msg)?;
+    let mut host = DefaultHost::new(input_data.parse_advice_provider().map_err(Report::msg)?);
+
+    let execution_options = ExecutionOptions::new(
+        Some(params.max_cycles),
+        params.expected_cycles,
+        params.trace,
+        params.debug,
+    )
+    .into_diagnostic()?;
+
+    let program_hash: [u8; 32] = program.hash().into();
+
+    // execute program and generate outputs
+    let trace = processor::execute(&program, stack_inputs, &mut host, execution_options)
+        .into_diagnostic()
+        .wrap_err("Failed to generate execution trace")?;
+
+    Ok((trace, program_hash))
+}
+
+#[instrument(name = "run_program", skip_all)]
+fn run_masm_program(params: &RunCmd) -> Result<(ExecutionTrace, [u8; 32]), Report> {
+    for lib in &params.library_paths {
+        if !lib.is_file() {
+            let name = lib.display();
+            return Err(Report::msg(format!("{name} must be a file.")));
+        }
+    }
+
     // load libraries from files
     let libraries = Libraries::new(&params.library_paths)?;
 
     // load program from file and compile
-    let program = ProgramFile::read(&params.assembly_file)?
-        .compile(params.debug.into(), &libraries.libraries)?;
-
-    // load input data from file
-    let input_data = InputFile::read(&params.input_file, &params.assembly_file)?;
+    let program = get_masm_program(&params.program_file, &libraries)?;
+    let input_data = InputFile::read(&params.input_file, &params.program_file)?;
 
     let execution_options = ExecutionOptions::new(
         Some(params.max_cycles),
@@ -131,10 +179,12 @@ fn run_program(params: &RunCmd) -> Result<(ExecutionTrace, [u8; 32]), Report> {
     let stack_inputs = input_data.parse_stack_inputs().map_err(Report::msg)?;
     let mut host = DefaultHost::new(input_data.parse_advice_provider().map_err(Report::msg)?);
     host.load_mast_forest(StdLibrary::default().mast_forest().clone()).unwrap();
+    for lib in libraries.libraries {
+        host.load_mast_forest(lib.mast_forest().clone()).unwrap();
+    }
 
     let program_hash: [u8; 32] = program.hash().into();
 
-    // execute program and generate outputs
     let trace = processor::execute(&program, stack_inputs, &mut host, execution_options)
         .into_diagnostic()
         .wrap_err("Failed to generate execution trace")?;

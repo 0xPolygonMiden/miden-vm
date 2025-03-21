@@ -9,12 +9,12 @@ use core::{
 // RE-EXPORTS
 // ================================================================================================
 pub use miden_crypto::utils::{
-    collections, uninit_vector, ByteReader, ByteWriter, Deserializable, DeserializationError,
-    Serializable, SliceReader,
+    ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable, SliceReader,
+    collections, uninit_vector,
 };
-pub use winter_utils::group_slice_elements;
 #[cfg(feature = "std")]
 pub use winter_utils::ReadAdapter;
+pub use winter_utils::group_slice_elements;
 
 use crate::Felt;
 
@@ -129,4 +129,4 @@ fn debug_assert_is_checked() {
 // FORMATTING
 // ================================================================================================
 
-pub use miden_formatting::hex::{to_hex, DisplayHex, ToHex};
+pub use miden_formatting::hex::{DisplayHex, ToHex, to_hex};

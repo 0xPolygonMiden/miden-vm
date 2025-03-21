@@ -6,8 +6,8 @@ use alloc::vec::Vec;
 
 pub use self::{advice::SystemEventNode, debug::DebugOptions};
 use crate::{
-    ast::{immediate::*, InvocationTarget},
     Felt, Word,
+    ast::{InvocationTarget, immediate::*},
 };
 
 // INSTRUCTION
@@ -253,7 +253,8 @@ pub enum Instruction {
 
     // ----- STARK proof verification ------------------------------------------------------------
     FriExt2Fold4,
-    RCombBase,
+    HornerBase,
+    HornerExt,
 
     // ----- exec / call -------------------------------------------------------------------------
     Exec(InvocationTarget),

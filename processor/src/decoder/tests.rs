@@ -1,19 +1,20 @@
 use alloc::vec::Vec;
 
 use miden_air::trace::{
+    CTX_COL_IDX, DECODER_TRACE_RANGE, DECODER_TRACE_WIDTH, FMP_COL_IDX, FN_HASH_RANGE,
+    IN_SYSCALL_COL_IDX, SYS_TRACE_RANGE, SYS_TRACE_WIDTH,
     decoder::{
         ADDR_COL_IDX, GROUP_COUNT_COL_IDX, HASHER_STATE_RANGE, IN_SPAN_COL_IDX, NUM_HASHER_COLUMNS,
         NUM_OP_BATCH_FLAGS, NUM_OP_BITS, OP_BATCH_1_GROUPS, OP_BATCH_2_GROUPS, OP_BATCH_4_GROUPS,
         OP_BATCH_8_GROUPS, OP_BATCH_FLAGS_RANGE, OP_BITS_EXTRA_COLS_RANGE, OP_BITS_OFFSET,
         OP_INDEX_COL_IDX,
     },
-    CTX_COL_IDX, DECODER_TRACE_RANGE, DECODER_TRACE_WIDTH, FMP_COL_IDX, FN_HASH_RANGE,
-    IN_SYSCALL_COL_IDX, SYS_TRACE_RANGE, SYS_TRACE_WIDTH,
 };
+use rstest::rstest;
 use test_utils::rand::rand_value;
 use vm_core::{
-    mast::{BasicBlockNode, MastForest, MastNode, OP_BATCH_SIZE},
-    Program, EMPTY_WORD, ONE, ZERO,
+    EMPTY_WORD, ONE, Program, ZERO, assert_matches,
+    mast::{BasicBlockNode, MastForest, MastNode, MastNodeId, OP_BATCH_SIZE},
 };
 
 use super::{
@@ -22,7 +23,7 @@ use super::{
     },
     build_op_group,
 };
-use crate::DefaultHost;
+use crate::{DefaultHost, ExecutionError};
 
 // CONSTANTS
 // ================================================================================================
@@ -1416,6 +1417,48 @@ fn dyn_block() {
         assert_eq!(ONE, trace[OP_BITS_EXTRA_COLS_RANGE.start + 1][i]);
         assert_eq!(program_hash, get_hasher_state1(&trace, i));
     }
+}
+
+/// Tests that call, dyncall and syscall are disallowed in a syscall context
+#[rstest]
+#[case(Operation::Dyncall)]
+#[case(Operation::Call)]
+#[case(Operation::SysCall)]
+fn calls_in_syscall(#[case] op: Operation) {
+    let mut process =
+        Process::new(Kernel::default(), StackInputs::default(), ExecutionOptions::default());
+    // set `in_syscall` flag to true
+    process.system.start_syscall();
+
+    let program = {
+        let mut mast_forest = MastForest::new();
+
+        // add dummy block
+        mast_forest.add_block(vec![Operation::Add], None).unwrap();
+
+        let node = match op {
+            Operation::Dyncall => MastNode::new_dyncall(),
+            Operation::Call => MastNode::new_call(
+                MastNodeId::from_u32_safe(0, &mast_forest).unwrap(),
+                &mast_forest,
+            )
+            .unwrap(),
+            Operation::SysCall => MastNode::new_syscall(
+                MastNodeId::from_u32_safe(0, &mast_forest).unwrap(),
+                &mast_forest,
+            )
+            .unwrap(),
+            _ => unreachable!(),
+        };
+
+        let call_node_id = mast_forest.add_node(node).unwrap();
+        mast_forest.make_root(call_node_id);
+
+        Program::new(mast_forest.into(), call_node_id)
+    };
+
+    let err = process.execute(&program, &mut DefaultHost::default());
+    assert_matches!(err, Err(ExecutionError::CallInSyscall(_)));
 }
 
 // HELPER REGISTERS TESTS

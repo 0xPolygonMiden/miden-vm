@@ -1,21 +1,21 @@
 use alloc::{collections::BTreeMap, vec::Vec};
 
 use miden_air::{
+    RowIndex,
     trace::chiplets::memory::{
-        CLK_COL_IDX, CTX_COL_IDX, D0_COL_IDX, D1_COL_IDX, D_INV_COL_IDX,
+        CLK_COL_IDX, CTX_COL_IDX, D_INV_COL_IDX, D0_COL_IDX, D1_COL_IDX,
         FLAG_SAME_CONTEXT_AND_WORD, IDX0_COL_IDX, IDX1_COL_IDX, IS_READ_COL_IDX,
         IS_WORD_ACCESS_COL_IDX, MEMORY_ACCESS_ELEMENT, MEMORY_ACCESS_WORD, MEMORY_READ,
         MEMORY_WRITE, V_COL_RANGE, WORD_COL_IDX,
     },
-    RowIndex,
 };
 use vm_core::{WORD_SIZE, ZERO};
 
 use super::{
+    EMPTY_WORD, Felt, FieldElement, ONE, RangeChecker, TraceFragment, Word,
     utils::{split_element_u32_into_u16, split_u32_into_u16},
-    Felt, FieldElement, RangeChecker, TraceFragment, Word, EMPTY_WORD, ONE,
 };
-use crate::{system::ContextId, ExecutionError};
+use crate::{ExecutionError, system::ContextId};
 
 mod segment;
 use segment::{MemoryOperation, MemorySegmentTrace};
@@ -281,7 +281,7 @@ impl Memory {
                     } else if prev_addr != addr {
                         u64::from(addr - prev_addr)
                     } else {
-                        clk - prev_clk - 1
+                        clk - prev_clk
                     };
 
                     let (delta_hi, delta_lo) = split_u32_into_u16(delta);
@@ -359,7 +359,7 @@ impl Memory {
                     } else if prev_addr != felt_addr {
                         felt_addr - prev_addr
                     } else {
-                        clk - prev_clk - ONE
+                        clk - prev_clk
                     };
 
                     let (delta_hi, delta_lo) = split_element_u32_into_u16(delta);

@@ -1,12 +1,12 @@
 use alloc::collections::BTreeMap;
 
 use miden_air::trace::chiplets::hasher::{
-    Digest, Selectors, DIGEST_LEN, DIGEST_RANGE, LINEAR_HASH, MP_VERIFY, MR_UPDATE_NEW,
-    MR_UPDATE_OLD, RATE_LEN, RETURN_HASH, RETURN_STATE, STATE_WIDTH, TRACE_WIDTH,
+    DIGEST_LEN, DIGEST_RANGE, Digest, LINEAR_HASH, MP_VERIFY, MR_UPDATE_NEW, MR_UPDATE_OLD,
+    RATE_LEN, RETURN_HASH, RETURN_STATE, STATE_WIDTH, Selectors, TRACE_WIDTH,
 };
 
 use super::{
-    Felt, HasherState, MerklePath, MerkleRootUpdate, OpBatch, TraceFragment, Word, ONE, ZERO,
+    Felt, HasherState, MerklePath, MerkleRootUpdate, ONE, OpBatch, TraceFragment, Word, ZERO,
 };
 
 mod trace;
@@ -77,7 +77,7 @@ impl Hasher {
     ///
     /// The returned tuple contains the hasher state after the permutation and the row address of
     /// the execution trace at which the permutation started.
-    pub(super) fn permute(&mut self, mut state: HasherState) -> (Felt, HasherState) {
+    pub fn permute(&mut self, mut state: HasherState) -> (Felt, HasherState) {
         let addr = self.trace.next_row_addr();
 
         // perform the hash.
@@ -91,7 +91,7 @@ impl Hasher {
     ///
     /// The returned tuple also contains the row address of the execution trace at which the hash
     /// computation started.
-    pub(super) fn hash_control_block(
+    pub fn hash_control_block(
         &mut self,
         h1: Word,
         h2: Word,
@@ -121,7 +121,7 @@ impl Hasher {
     ///
     /// The returned tuple also contains the row address of the execution trace at which the hash
     /// computation started.
-    pub(super) fn hash_basic_block(
+    pub fn hash_basic_block(
         &mut self,
         op_batches: &[OpBatch],
         expected_hash: Digest,
@@ -202,7 +202,7 @@ impl Hasher {
     /// Panics if:
     /// - The provided path does not contain any nodes.
     /// - The provided index is out of range for the specified path.
-    pub(super) fn build_merkle_root(
+    pub fn build_merkle_root(
         &mut self,
         value: Word,
         path: &MerklePath,
@@ -225,7 +225,7 @@ impl Hasher {
     /// Panics if:
     /// - The provided path does not contain any nodes.
     /// - The provided index is out of range for the specified path.
-    pub(super) fn update_merkle_root(
+    pub fn update_merkle_root(
         &mut self,
         old_value: Word,
         new_value: Word,
