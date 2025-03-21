@@ -2221,9 +2221,9 @@ checksum = "1ac9aa371f599d22256307c24a9d748c041e548cbf599f35d890f9d365361790"
 
 [[package]]
 name = "tempfile"
-version = "3.19.0"
+version = "3.19.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "488960f40a3fd53d72c2a29a58722561dee8afdd175bd88e3db4677d7b2ba600"
+checksum = "7437ac7763b9b123ccf33c338a5cc1bac6f69b45a136c19bdd8a65e3916435bf"
 dependencies = [
  "fastrand",
  "getrandom 0.3.2",
@@ -2958,9 +2958,9 @@ dependencies = [
 
 [[package]]
 name = "winter-fri"
-version = "0.12.0"
+version = "0.12.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e4d09d5ac254ac54028ac04751d7ae0cbeb111c6cb08cc30c6400ff61b3203bd"
+checksum = "32b346b0eea2292986a1193bfc70dd2dbcdbb6adb3e5110b71d18c6f1077df10"
 dependencies = [
  "winter-crypto",
  "winter-math",
@@ -2988,9 +2988,9 @@ dependencies = [
 
 [[package]]
 name = "winter-prover"
-version = "0.12.0"
+version = "0.12.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "71658b20723e8b6d5f50fb1b5eddb1f9ac56dfe9b85aefb38c08c00496d4a2c2"
+checksum = "426be0767a25150af20a241a6ae46bad1bf2f7da86393d897e5ec9967124f760"
 dependencies = [
  "tracing",
  "winter-air",
@@ -3022,9 +3022,9 @@ dependencies = [
 
 [[package]]
 name = "winter-verifier"
-version = "0.12.0"
+version = "0.12.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0d3187d4ba3a2648740d504f4b11b7d8271c16ec545d639c1a643e8724bff836"
+checksum = "9e340716f24960b7ff3713029149fe5e52f9c0dae152101528ec5847d92d73e4"
 dependencies = [
  "winter-air",
  "winter-crypto",
