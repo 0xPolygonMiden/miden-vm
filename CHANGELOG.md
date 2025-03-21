@@ -1,26 +1,29 @@
 # Changelog
 
-## 0.13.0 (TBD)
+## 0.13.0 (2025-03-20)
+
+#### Enhancements
+
+- Added to the `Assembler` the ability to vendor a compiled library.
+- [BREAKING] Update CLI to accept masm or masp files as input for all commands (#1683, #1692).
+- [BREAKING] Introduced `HORNERBASE`, `HORNEREXT` and removed `RCOMBBASE` instructions (#1656).
 
 #### Changes
-- Update minimum supported Rust version to 1.84.
+- Update minimum supported Rust version to 1.85.
 - Change Chiplet Fields to Public (#1629).
-- Added to the `Assembler` the ability to vendor a compiled library.
-- Introduce `BusDebugger` to facilitate debugging buses (#1664)
-- [BREAKING] Introduced `HORNERBASE`, `HORNEREXT` and removed `RCOMBBASE` (#1656).
-- Update Falcon verification procedure to use `HORNERBASE` (#1661).
-- Fix the docs and implementation of `EXPACC` (#1676)
-- Running a call/syscall/dyncall while processing a syscall now results in an error (#1680)
-- Using a non-binary value as a loop condition now results in an error (#1685)
-- [BREAKING] Update CLI to accept masm or masp files as input for all commands (#1683, #1692)
-- [BREAKING] Remove `Assembler::assemble_common()` from the public interface (#1689).
-- Fix `Horner{Base, Ext}` bus requests to memory chiplet (#1689)
-- Fix docs on the layout of the auxiliary segment trace (#1694).
 - [BREAKING] Updated Winterfell dependency to v0.12 (#1658).
+- Introduce `BusDebugger` to facilitate debugging buses (#1664).
+- Update Falcon verification procedure to use `HORNERBASE` (#1661).
 - Update recursive verifier to use `HORNERBASE` (#1665).
-- Remove `FALCON_SIG_TO_STACK` event (#1703)
+- Fix the docs and implementation of `EXPACC` (#1676).
+- Running a call/syscall/dyncall while processing a syscall now results in an error (#1680).
+- Using a non-binary value as a loop condition now results in an error (#1685).
+- [BREAKING] Remove `Assembler::assemble_common()` from the public interface (#1689).
+- Fix `Horner{Base, Ext}` bus requests to memory chiplet (#1689).
+- Fix docs on the layout of the auxiliary segment trace (#1694).
 - Optimize FRI remainder polynomial check (#1670).
-- Prevent `U64Div` event from crashing processor (#1710)
+- Remove `FALCON_SIG_TO_STACK` event (#1703).
+- Prevent `U64Div` event from crashing processor (#1710).
 
 ## 0.12.0 (2025-01-22)
 
