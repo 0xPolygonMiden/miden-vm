@@ -4,6 +4,7 @@ use processor::ExecutionError;
 use test_utils::{
     Felt, U32_BOUND, ZERO, expect_exec_error_matches, proptest::prelude::*, rand::rand_value,
 };
+use vm_core::assert_matches;
 
 // ADDITION
 // ------------------------------------------------------------------------------------------------
@@ -426,6 +427,41 @@ fn unchecked_div() {
 
     let test = build_test!(source, &[a0, a1, b0, 0]);
     test.expect_stack(&[d1, d0]);
+}
+
+/// The `U64Div` event handler is susceptible to crashing the processor if we don't ensure that the
+/// divisor and dividend limbs are proper u32 values.
+#[test]
+fn ensure_div_doesnt_crash() {
+    let source = "
+        use.std::math::u64
+        begin
+            exec.u64::div
+        end";
+
+    // 1. divisor limbs not u32
+
+    let (dividend_hi, dividend_lo) = (0, 1);
+    let (divisor_hi, divisor_lo) = (u32::MAX as u64, u32::MAX as u64 + 1);
+
+    let test = build_test!(source, &[dividend_lo, dividend_hi, divisor_lo, divisor_hi]);
+    let err = test.execute();
+    match err {
+        Ok(_) => panic!("expected an error"),
+        Err(err) => assert_matches!(err, ExecutionError::NotU32Value(_, _)),
+    }
+
+    // 2. dividend limbs not u32
+
+    let (dividend_hi, dividend_lo) = (u32::MAX as u64, u32::MAX as u64 + 1);
+    let (divisor_hi, divisor_lo) = (0, 1);
+
+    let test = build_test!(source, &[dividend_lo, dividend_hi, divisor_lo, divisor_hi]);
+    let err = test.execute();
+    match err {
+        Ok(_) => panic!("expected an error"),
+        Err(err) => assert_matches!(err, ExecutionError::NotU32Value(_, _)),
+    }
 }
 
 // MODULO OPERATION

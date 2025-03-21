@@ -20,6 +20,7 @@
 - Update recursive verifier to use `HORNERBASE` (#1665).
 - Remove `FALCON_SIG_TO_STACK` event (#1703)
 - Optimize FRI remainder polynomial check (#1670).
+- Prevent `U64Div` event from crashing processor (#1710)
 
 ## 0.12.0 (2025-01-22)
 
