@@ -22,3 +22,6 @@ stdlib/assets/std.masl
 
 # Zed
 .zed/
+
+# mdBook
+book/
