@@ -1,7 +1,8 @@
+use alloc::string::ToString;
 use core::ops::RangeBounds;
 
 use miette::miette;
-use vm_core::{Decorator, ONE, WORD_SIZE, ZERO, debuginfo::Spanned, mast::MastNodeId};
+use vm_core::{AssemblyOp, Decorator, ONE, WORD_SIZE, ZERO, debuginfo::Spanned, mast::MastNodeId};
 
 use super::{Assembler, BasicBlockBuilder, Felt, Operation, ProcedureContext, ast::InvokeKind};
 use crate::{AssemblyError, Span, ast::Instruction, utils::bound_into_included_u64};
@@ -19,27 +20,46 @@ use self::u32_ops::U32OpMode::*;
 
 /// Instruction Compilation
 impl Assembler {
+    /// Compiles the specified instruction into a sequence of operations and decorators to be added
+    /// to the block builder, or returns a node ID if the instruction marks the end of the block
+    /// being built.
     pub(super) fn compile_instruction(
         &self,
         instruction: &Span<Instruction>,
         block_builder: &mut BasicBlockBuilder,
         proc_ctx: &mut ProcedureContext,
     ) -> Result<Option<MastNodeId>, AssemblyError> {
-        // if the assembler is in debug mode, start tracking the instruction about to be executed;
-        // this will allow us to map the instruction to the sequence of operations which were
-        // executed as a part of this instruction.
+        let new_node_id = self.compile_instruction_impl(instruction, block_builder, proc_ctx)?;
+
         if self.in_debug_mode() {
-            block_builder.track_instruction(instruction, proc_ctx)?;
+            match new_node_id {
+                // New node was created, so we are done building the current block. We then want to
+                // add the assembly operation to the new node.
+                Some(node_id) => {
+                    let assembly_op = self.build_assembly_op(instruction, 1_u8, proc_ctx)?;
+                    let asm_op_id = block_builder
+                        .mast_forest_builder_mut()
+                        .ensure_decorator(Decorator::AsmOp(assembly_op))?;
+
+                    // TODO(plafer): here we could theoretically overwrite other decorators already
+                    // present
+                    block_builder
+                        .mast_forest_builder_mut()
+                        .set_before_enter(node_id, vec![asm_op_id]);
+                },
+                // No new node was created, so we are still building the current block.
+                None => {
+                    let assembly_op = self.build_assembly_op(
+                        instruction,
+                        block_builder.get_op_count_and_reset(),
+                        proc_ctx,
+                    )?;
+                    block_builder.push_decorator(Decorator::AsmOp(assembly_op))?;
+                },
+            }
         }
 
-        let result = self.compile_instruction_impl(instruction, block_builder, proc_ctx)?;
-
-        // compute and update the cycle count of the instruction which just finished executing
-        if self.in_debug_mode() {
-            block_builder.set_instruction_cycle_count();
-        }
-
-        Ok(result)
+        Ok(new_node_id)
     }
 
     fn compile_instruction_impl(
@@ -436,7 +456,13 @@ impl Assembler {
             Instruction::Breakpoint => {
                 if self.in_debug_mode() {
                     block_builder.push_op(Noop);
-                    block_builder.track_instruction(instruction, proc_ctx)?;
+
+                    let assembly_op = self.build_assembly_op(
+                        instruction,
+                        block_builder.get_op_count_and_reset(),
+                        proc_ctx,
+                    )?;
+                    block_builder.push_decorator(Decorator::AsmOp(assembly_op))?;
                 }
             },
 
@@ -460,6 +486,26 @@ impl Assembler {
         }
 
         Ok(None)
+    }
+
+    // HELPERS
+    // -------------------------------------------------------------------------------------------
+
+    /// Build an [AssemblyOp] for the given instruction, number of actual VM cycles that the
+    /// instruction compiles down to, and context.
+    fn build_assembly_op(
+        &self,
+        instruction: &Span<Instruction>,
+        num_cycles: u8,
+        proc_ctx: &ProcedureContext,
+    ) -> Result<AssemblyOp, AssemblyError> {
+        let span = instruction.span();
+        let location = proc_ctx.source_manager().location(span).ok();
+        let context_name = proc_ctx.name().to_string();
+        let op = instruction.to_string();
+        let should_break = instruction.should_break();
+
+        Ok(AssemblyOp::new(location, context_name, num_cycles, op, should_break))
     }
 }
 

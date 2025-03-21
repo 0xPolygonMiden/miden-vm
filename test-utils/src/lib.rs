@@ -337,12 +337,17 @@ impl Test {
         for library in &self.libraries {
             host.load_mast_forest(library.mast_forest().clone()).unwrap();
         }
-        processor::execute(
-            &program,
+
+        let mut process = Process::new(
+            program.kernel().clone(),
             self.stack_inputs.clone(),
-            &mut host,
             ExecutionOptions::default(),
         )
+        .with_source_manager(self.source_manager.clone());
+        let stack_outputs = process.execute(&program, &mut host)?;
+        let trace = ExecutionTrace::new(process, stack_outputs);
+        assert_eq!(&program.hash(), trace.program_hash(), "inconsistent program hash");
+        Ok(trace)
     }
 
     /// Compiles the test's source to a Program and executes it with the tests inputs. Returns the

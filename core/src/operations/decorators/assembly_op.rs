@@ -1,7 +1,7 @@
-use alloc::string::String;
+use alloc::{string::String, sync::Arc};
 use core::fmt;
 
-use crate::debuginfo::Location;
+use crate::debuginfo::{Location, SourceFile, SourceManager, SourceSpan};
 
 // ASSEMBLY OP
 // ================================================================================================
@@ -60,13 +60,25 @@ impl AssemblyOp {
         self.should_break
     }
 
+    pub fn to_label_and_source_file(
+        &self,
+        source_manager: &dyn SourceManager,
+    ) -> (Option<SourceSpan>, Option<Arc<SourceFile>>) {
+        let label = self
+            .location
+            .clone()
+            .and_then(|location| source_manager.location_to_span(location));
+
+        let source_file = self
+            .location
+            .as_ref()
+            .and_then(|location| source_manager.get_by_path(&location.path));
+
+        (label, source_file)
+    }
+
     // STATE MUTATORS
     // --------------------------------------------------------------------------------------------
-
-    /// Change cycles corresponding to an AsmOp decorator to the specified number of cycles.
-    pub fn set_num_cycles(&mut self, num_cycles: u8) {
-        self.num_cycles = num_cycles;
-    }
 
     /// Change the [Location] of this [AssemblyOp]
     pub fn set_location(&mut self, location: Location) {

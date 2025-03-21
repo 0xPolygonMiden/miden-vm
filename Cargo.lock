@@ -1220,6 +1220,7 @@ dependencies = [
  "miden-air",
  "miden-assembly",
  "miden-core",
+ "miden-miette",
  "miden-test-utils",
  "rstest",
  "thiserror 2.0.12",
