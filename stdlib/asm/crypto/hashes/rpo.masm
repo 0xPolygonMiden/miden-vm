@@ -112,6 +112,193 @@ export.hash_memory_words
   # => [HASH]
 end
 
+#! Computes the hasher state required for the `hash_memory_with_state` procedure.
+#!
+#! Depending on the provided pad_inputs flag, this procedure instantiates the hasher state using 
+#! different values for capacity element:
+#! - If pad_inputs_flag equals 1 the capacity element will be assigned to 0. This will essentially 
+#!   "pad" the hashing values with zeroes to the next multiple of 8. 
+#! - If pad_inputs_flag equals 0 the capacity element will be assigned to the remainder of the 
+#!   division of elements number by 8 (num_elements%8).
+#!
+#! Inputs:  [ptr, num_elements, pad_inputs_flag]
+#! Outputs: [C, B, A, ptr, end_pairs_addr, num_elements%8]
+#!
+#! Where:
+#! - ptr is the  memory address of the first element to be hashed.
+#! - num_elements is the number of elements to be hashed.
+#! - pad_inputs_flag is the flag which indicates whether the values which will be hashed should be 
+#!   padded with zeros to the next multiple of 8.
+#! - C, B, A are three words representing the hasher state.
+#! - end_pairs_addr is the memory address at which the pairs of words end.
+#! - num_elements%8 is the number of elements which didn't fit to the word pairs and should be 
+#!   hashed separately. 
+export.prepare_hasher_state
+    # move number of inputs to the top of the stack 
+    swap
+    # => [num_elements, ptr, pad_inputs_flag]
+
+    # get the number of double words
+    u32divmod.8 swap
+    # => [num_elements/8, num_elements%8, ptr, pad_inputs_flag]
+
+    # get the end address for absorb_double_words_from_memory procedure (end address for pairs of 
+    # words)
+    mul.8 dup.2 add movup.2
+    # => [ptr, end_pairs_addr, num_elements%8, pad_inputs_flag]
+
+    # get the capacity element depending on the pad_inputs_flag value
+    # in case the inputs should be padded (pad_inputs_flag == 1) the capacity element should be 
+    # equal 0, num_elements%8 otherwise
+    dup.2 push.0 movup.5
+    # => [pad_inputs_flag, 0, num_elements%8, ptr, end_pairs_addr, num_elements%8]
+
+    cdrop
+    # => [capacity, ptr, end_pairs_addr, num_elements%8]
+    
+    # prepare hasher state for RPO permutation 
+    push.0.0.0 padw padw 
+    # => [C, B, A, ptr, end_pairs_addr, num_elements%8]
+end
+
+#! Computes hash of Felt values starting at the specified memory address using the provided hasher
+#! state.
+#! 
+#! This procedure divides the hashing process into two parts: hashing pairs of words using
+#! `absorb_double_words_from_memory` procedure and hashing the remaining values using the `hperm`
+#! instruction. 
+#!
+#! Inputs:  [C, B, A, ptr, end_pairs_addr, num_elements%8]
+#! Outputs: [HASH]
+#!
+#! Where:
+#! - ptr is the  memory address of the first element to be hashed.
+#! - C, B, A are three words representing the hasher state.
+#! - end_pairs_addr is the memory address at which the pairs of words end.
+#! - num_elements%8 is the number of elements which didn't fit to the word pairs and should be 
+#!   hashed separately.
+#! - HASH is the resulting hash of the provided memory values. 
+export.hash_memory_with_state
+    # hash every pair of words
+    exec.absorb_double_words_from_memory
+    # => [C', B', A', ptr', end_pairs_addr, num_elements%8] where ptr' = end_pairs_addr
+
+    # hash remaining input values if there are any left
+    # if num_elements%8 is ZERO and there are no elements to hash
+    dup.14 eq.0
+    if.true
+        # clean the stack
+        exec.squeeze_digest
+        swapw drop drop drop movdn.4
+        # => [B']
+    else
+        # load the remaining double word
+        mem_stream
+        # => [E, D, A', ptr'+2, end_pairs_addr, num_elements%8]
+
+        # clean the stack
+        movup.12 drop movup.12 drop
+        # => [E, D, A', num_elements%8]
+
+        # get the number of elements we need to drop
+        # notice that drop_counter could be any number from 1 to 7
+        push.8 movup.13 sub movdn.12
+        # => [E, D, A', drop_counter]
+
+        ### 0th value ########################################################
+        
+        # we need to drop first value anyway, since number of values is not divisible by 8
+        # push the padding 0 on to the stack and move it down to the 6th position 
+        drop push.0 movdn.6
+        # => [e_2, e_1, e_0, d_3, d_2, d_1, 0, d_0, A', drop_counter]
+
+        ### 1st value ########################################################
+
+        # prepare the second element of the E Word for cdrop instruction
+        push.0 swap
+        # => [e_2, 0, e_1, e_0, d_3, d_2, d_1, 0, d_0, A', drop_counter]
+
+        # push latch variable onto the stack; this will be the control for the cdrop instruction
+        push.0
+        # => [latch = 0, e_2, 0, e_1, e_0, d_3, d_2, d_1, 0, d_0, A', drop_counter]
+
+        # get the flag whether the drop counter is equal 1
+        dup.14 eq.1
+        # => [drop_counter == 1, latch = 0, e_2, 0, e_1, e_0, d_3, d_2, d_1, 0, d_0, A', drop_counter]
+
+        # update the latch: if drop_counter == 1, latch will become 1
+        or
+        # => [latch', e_2, 0, e_1, e_0, d_3, d_2, d_1, 0, d_0, A', drop_counter]
+
+        # save the latch value 
+        dup movdn.14
+        # => [latch', e_2, 0, e_1, e_0, d_3, d_2, d_1, 0, d_0, A', latch', drop_counter]
+
+        # if latch == 1, drop 0; otherwise drop e_1
+        cdrop
+        # => [e_2_or_0, e_1, e_0, d_3, d_2, d_1, 0, d_0, A', latch', drop_counter]
+
+        # move the calculated value down the stack 
+        movdn.6
+        # => [e_1, e_0, d_3, d_2, d_1, 0, e_2_or_0, d_0, A', latch', drop_counter]
+
+        ### 2nd value ########################################################
+
+        # repeat the above process but now compare drop_counter to 2
+        push.0 swap
+        movup.13 dup.14 eq.2 or
+        dup movdn.14
+        cdrop movdn.6
+        # => [e_0, d_3, d_2, d_1, 0, e_2_or_0, e_1_or_0, d_0, A', latch', drop_counter]
+
+        ### 3rd value ########################################################
+
+        # repeat the above process but now compare drop_counter to 3
+        push.0 swap
+        movup.13 dup.14 eq.3 or
+        dup movdn.14
+        cdrop movdn.6
+        # => [d_3, d_2, d_1, 0, e_2_or_0, e_1_or_0, e_0_or_0, d_0, A', latch', drop_counter]
+
+        ### 4th value ########################################################
+
+        # repeat the above process but now compare drop_counter to 4
+        push.0 swap
+        movup.13 dup.14 eq.4 or
+        dup movdn.14
+        cdrop movdn.6
+        # => [d_2, d_1, 0, e_2_or_0, e_1_or_0, e_0_or_0, d_3_or_0, d_0, A', latch', drop_counter]
+
+        ### 5th value ########################################################
+
+        # repeat the above process but now compare drop_counter to 5
+        push.0 swap
+        movup.13 dup.14 eq.5 or
+        dup movdn.14
+        cdrop movdn.6
+        # => [d_1, 0, e_2_or_0, e_1_or_0, e_0_or_0, d_3_or_0, d_2_or_0, d_0, A', latch', drop_counter]
+
+        ### 6th value ########################################################
+
+        # repeat the above process but now compare drop_counter to 6
+        push.0 swap
+        movup.13 movup.14 eq.6 or
+        cdrop movdn.6
+        # => [0, e_2_or_0, e_1_or_0, e_0_or_0, d_3_or_0, d_2_or_0, d_1_or_0, d_0, A']
+        # or in other words
+        # => [C, B, A', ... ]
+        # notice that we don't need to check the d_0 value: entering the else branch means that 
+        # we have number of elements not divisible by 8, so we will have at least one element to 
+        # hash here (which turns out to be d_0)
+
+        hperm
+        # => [F, E, D]
+
+        exec.squeeze_digest
+        # => [E]
+    end
+end
+
 #! Computes hash of Felt values starting at the specified memory address.
 #!
 #! This procedure divides the hashing process into two parts: hashing pairs of words using 
@@ -126,142 +313,13 @@ end
 #! - Else: 180 cycles + 3 * words
 #! where `words` is the number of quads of input values.
 export.hash_memory
-    # move number of inputs to the top of the stack 
-    swap
-    # => [num_elements, ptr]
+    # push the 0 as the pad_inputs flag: in the general case we should not pad the inputs
+    push.0 movdn.2
+    # => [ptr, num_elements, pad_inputs_flag]
 
-    # get the number of double words
-    u32divmod.8 swap
-    # => [num_elements/8, num_elements%8, ptr]
+    exec.prepare_hasher_state
+    # => [C, B, A, ptr, end_pairs_addr, num_elements%8]
 
-    # get the end_addr for hash_memory_even procedure (end address for pairs of words)
-    mul.8 dup.2 add movup.2
-    # => [ptr, end_addr, num_elements%8]
-
-    # get the capacity element which is equal to num_elements%8
-    dup.2
-    # => [capacity, ptr, end_addr, num_elements%8]
-    
-    # prepare hasher state for RPO permutation 
-    push.0.0.0 padw padw 
-    # => [C, B, A, ptr, end_addr, num_elements%8]
-
-    # hash every pair of words
-    exec.absorb_double_words_from_memory
-    # => [C', B', A', ptr', end_addr, num_elements%8] where ptr' = end_addr
-
-    # hash remaining input values if there are any left
-    # if num_elements%8 is ZERO and there are no elements to hash
-    dup.14 eq.0
-    if.true
-      # clean the stack
-      exec.squeeze_digest
-      swapw drop drop drop movdn.4
-      # => [B']
-    else
-      # load the remaining double word
-      mem_stream
-      # => [E, D, A', ptr'+2, end_addr, num_elements%8]
-
-      # clean the stack
-      movup.12 drop movup.12 drop
-      # => [E, D, A', num_elements%8]
-
-      # get the number of elements we need to drop
-      # notice that drop_counter could be any number from 1 to 7
-      push.8 movup.13 sub movdn.12
-      # => [E, D, A', drop_counter]
-
-      ### 0th value ########################################################
-      
-      # we need to drop first value anyway, since number of values is not divisible by 8
-      # push the padding 0 on to the stack and move it down to the 6th position 
-      drop push.0 movdn.6
-      # => [e_2, e_1, e_0, d_3, d_2, d_1, 0, d_0, A', drop_counter]
-
-      ### 1st value ########################################################
-
-      # prepare the second element of the E Word for cdrop instruction
-      push.0 swap
-      # => [e_2, 0, e_1, e_0, d_3, d_2, d_1, 0, d_0, A', drop_counter]
-
-      # push latch variable onto the stack; this will be the control for the cdrop instruction
-      push.0
-      # => [latch = 0, e_2, 0, e_1, e_0, d_3, d_2, d_1, 0, d_0, A', drop_counter]
-
-      # get the flag whether the drop counter is equal 1
-      dup.14 eq.1
-      # => [drop_counter == 1, latch = 0, e_2, 0, e_1, e_0, d_3, d_2, d_1, 0, d_0, A', drop_counter]
-
-      # update the latch: if drop_counter == 1, latch will become 1
-      or
-      # => [latch', e_2, 0, e_1, e_0, d_3, d_2, d_1, 0, d_0, A', drop_counter]
-
-      # save the latch value 
-      dup movdn.14
-      # => [latch', e_2, 0, e_1, e_0, d_3, d_2, d_1, 0, d_0, A', latch', drop_counter]
-
-      # if latch == 1, drop 0; otherwise drop e_1
-      cdrop
-      # => [e_2_or_0, e_1, e_0, d_3, d_2, d_1, 0, d_0, A', latch', drop_counter]
-
-      # move the calculated value down the stack 
-      movdn.6
-      # => [e_1, e_0, d_3, d_2, d_1, 0, e_2_or_0, d_0, A', latch', drop_counter]
-
-      ### 2nd value ########################################################
-
-      # repeat the above process but now compare drop_counter to 2
-      push.0 swap
-      movup.13 dup.14 eq.2 or
-      dup movdn.14
-      cdrop movdn.6
-      # => [e_0, d_3, d_2, d_1, 0, e_2_or_0, e_1_or_0, d_0, A', latch', drop_counter]
-
-      ### 3rd value ########################################################
-
-      # repeat the above process but now compare drop_counter to 3
-      push.0 swap
-      movup.13 dup.14 eq.3 or
-      dup movdn.14
-      cdrop movdn.6
-      # => [d_3, d_2, d_1, 0, e_2_or_0, e_1_or_0, e_0_or_0, d_0, A', latch', drop_counter]
-
-      ### 4th value ########################################################
-
-      # repeat the above process but now compare drop_counter to 4
-      push.0 swap
-      movup.13 dup.14 eq.4 or
-      dup movdn.14
-      cdrop movdn.6
-      # => [d_2, d_1, 0, e_2_or_0, e_1_or_0, e_0_or_0, d_3_or_0, d_0, A', latch', drop_counter]
-
-      ### 5th value ########################################################
-
-      # repeat the above process but now compare drop_counter to 5
-      push.0 swap
-      movup.13 dup.14 eq.5 or
-      dup movdn.14
-      cdrop movdn.6
-      # => [d_1, 0, e_2_or_0, e_1_or_0, e_0_or_0, d_3_or_0, d_2_or_0, d_0, A', latch', drop_counter]
-
-      ### 6th value ########################################################
-
-      # repeat the above process but now compare drop_counter to 6
-      push.0 swap
-      movup.13 movup.14 eq.6 or
-      cdrop movdn.6
-      # => [0, e_2_or_0, e_1_or_0, e_0_or_0, d_3_or_0, d_2_or_0, d_1_or_0, d_0, A']
-      # or in other words
-      # => [C, B, A', ... ]
-      # notice that we don't need to check the d_0 value: entering the else branch means that 
-      # we have number of elements not divisible by 8, so we will have at least one element to 
-      # hash here (which turns out to be d_0)
-
-      hperm
-      # => [F, E, D]
-
-      exec.squeeze_digest
-      # => [E]
-    end
+    exec.hash_memory_with_state
+    # => [HASH]
 end
