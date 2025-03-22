@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.13.1 (2025-03-21) - `stdlib` crate only
+
+#### Enhancements
+
+- Added `prepare_hasher_state` and `hash_memory_with_state` procedures to the `stdlib::crypto::hashes::rpo` module (#1718).
+
 ## 0.13.0 (2025-03-20)
 
 #### Enhancements
