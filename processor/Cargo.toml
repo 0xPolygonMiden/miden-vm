@@ -27,6 +27,10 @@ bus-debugger = ["testing", "miden-air/testing"]
 
 [dependencies]
 miden-air = { package = "miden-air", path = "../air", version = "0.14", default-features = false }
+miette = { package = "miden-miette", version = "8.0", default-features = false, features = [
+    "fancy-no-syscall",
+    "derive"
+] }
 tracing = { version = "0.1", default-features = false, features = ["attributes"] }
 vm-core = { package = "miden-core", path = "../core", version = "0.14", default-features = false }
 winter-prover = { package = "winter-prover", version = "0.12", default-features = false }

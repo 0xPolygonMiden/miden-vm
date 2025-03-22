@@ -284,12 +284,18 @@ impl Process {
     pub(super) fn end_call_node<H: Host>(
         &mut self,
         node: &CallNode,
+        program: &MastForest,
         host: &mut H,
     ) -> Result<(), ExecutionError> {
         // when a CALL block ends, stack depth must be exactly 16
         let stack_depth = self.stack.depth();
         if stack_depth > MIN_STACK_DEPTH {
-            return Err(ExecutionError::InvalidStackDepthOnReturn(stack_depth));
+            return Err(ExecutionError::invalid_stack_depth_on_return(
+                stack_depth,
+                node,
+                program,
+                &self.source_manager,
+            ));
         }
 
         // this appends a row with END operation to the decoder trace; the returned value contains
@@ -424,12 +430,18 @@ impl Process {
     pub(super) fn end_dyncall_node<H: Host>(
         &mut self,
         dyn_node: &DynNode,
+        program: &MastForest,
         host: &mut H,
     ) -> Result<(), ExecutionError> {
         // when a DYNCALL block ends, stack depth must be exactly 16
         let stack_depth = self.stack.depth();
         if stack_depth > MIN_STACK_DEPTH {
-            return Err(ExecutionError::InvalidStackDepthOnReturn(stack_depth));
+            return Err(ExecutionError::invalid_stack_depth_on_return(
+                stack_depth,
+                dyn_node,
+                program,
+                &self.source_manager,
+            ));
         }
 
         // this appends a row with END operation to the decoder trace. when the END operation is

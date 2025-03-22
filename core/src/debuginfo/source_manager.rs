@@ -270,6 +270,7 @@ impl DefaultSourceManagerImpl {
             .expect("system limit: source manager has exhausted its supply of source ids");
         let file = Arc::new(SourceFile::from_raw_parts(id, content));
         self.files.push(Arc::clone(&file));
+        self.names.insert(Arc::clone(&name), id);
         file
     }
 

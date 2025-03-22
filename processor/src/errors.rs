@@ -1,9 +1,11 @@
-use alloc::{boxed::Box, string::String};
+use alloc::{boxed::Box, string::String, sync::Arc};
 use core::error::Error;
 
 use miden_air::RowIndex;
+use miette::Diagnostic;
 use vm_core::{
-    mast::{DecoratorId, MastNodeId},
+    debuginfo::{SourceFile, SourceManager, SourceSpan},
+    mast::{DecoratorId, MastForest, MastNodeExt, MastNodeId},
     stack::MIN_STACK_DEPTH,
     utils::to_hex,
 };
@@ -19,7 +21,7 @@ use crate::ContextId;
 // EXECUTION ERROR
 // ================================================================================================
 
-#[derive(Debug, thiserror::Error)]
+#[derive(Debug, thiserror::Error, Diagnostic)]
 pub enum ExecutionError {
     #[error("value for key {} not present in the advice map", to_hex(Felt::elements_as_bytes(.0)))]
     AdviceMapKeyNotFound(Word),
@@ -74,8 +76,15 @@ pub enum ExecutionError {
         "memory range start address cannot exceed end address, but was ({start_addr}, {end_addr})"
     )]
     InvalidMemoryRange { start_addr: u64, end_addr: u64 },
-    #[error("when returning from a call, stack depth must be {MIN_STACK_DEPTH}, but was {0}")]
-    InvalidStackDepthOnReturn(usize),
+    #[error("when returning from a call, stack depth must be {MIN_STACK_DEPTH}, but was {depth}")]
+    #[diagnostic()]
+    InvalidStackDepthOnReturn {
+        #[label("when returning from this call")]
+        label: Option<SourceSpan>,
+        #[source_code]
+        source_file: Option<Arc<SourceFile>>,
+        depth: usize,
+    },
     #[error(
         "provided merkle tree {depth} is out of bounds and cannot be represented as an unsigned 8-bit integer"
     )]
@@ -146,6 +155,21 @@ pub enum ExecutionError {
 impl From<Ext2InttError> for ExecutionError {
     fn from(value: Ext2InttError) -> Self {
         Self::Ext2InttError(value)
+    }
+}
+
+impl ExecutionError {
+    pub fn invalid_stack_depth_on_return(
+        depth: usize,
+        node: &impl MastNodeExt,
+        program: &MastForest,
+        source_manager: &dyn SourceManager,
+    ) -> Self {
+        let (label, source_file) = node
+            .get_assembly_op(program)
+            .map(|assembly_op| assembly_op.to_label_and_source_file(source_manager))
+            .unwrap_or((None, None));
+        Self::InvalidStackDepthOnReturn { label, source_file, depth }
     }
 }
 

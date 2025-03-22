@@ -3,6 +3,7 @@ use core::fmt;
 
 use miden_crypto::{Felt, hash::rpo::RpoDigest};
 
+use super::MastNodeExt;
 use crate::{
     OPCODE_JOIN,
     chiplets::hasher,
@@ -125,6 +126,16 @@ impl JoinNode {
     /// Sets the list of decorators to be executed after this node.
     pub fn set_after_exit(&mut self, decorator_ids: Vec<DecoratorId>) {
         self.after_exit = decorator_ids;
+    }
+}
+
+impl MastNodeExt for JoinNode {
+    fn before_enter(&self) -> &[DecoratorId] {
+        &self.before_enter
+    }
+
+    fn after_exit(&self) -> &[DecoratorId] {
+        &self.after_exit
     }
 }
 
