@@ -1,6 +1,7 @@
-use vm_core::stack::MIN_STACK_DEPTH;
+use vm_core::{mast::BasicBlockNode, stack::MIN_STACK_DEPTH};
 
 use super::{ExecutionError, Felt, FieldElement, Host, Operation, Process};
+use crate::errors::ErrorContext;
 
 mod crypto_ops;
 mod ext2_ops;
@@ -25,6 +26,15 @@ impl Process {
         &mut self,
         op: Operation,
         host: &mut impl Host,
+    ) -> Result<(), ExecutionError> {
+        self.execute_op_with_error_ctx(op, host, &ErrorContext::default())
+    }
+
+    pub(super) fn execute_op_with_error_ctx(
+        &mut self,
+        op: Operation,
+        host: &mut impl Host,
+        error_ctx: &ErrorContext<'_, BasicBlockNode>,
     ) -> Result<(), ExecutionError> {
         // make sure there is enough memory allocated to hold the execution trace
         self.ensure_trace_capacity();
@@ -139,22 +149,22 @@ impl Process {
             Operation::AdvPop => self.op_advpop(host)?,
             Operation::AdvPopW => self.op_advpopw(host)?,
 
-            Operation::MLoadW => self.op_mloadw()?,
-            Operation::MStoreW => self.op_mstorew()?,
+            Operation::MLoadW => self.op_mloadw(error_ctx)?,
+            Operation::MStoreW => self.op_mstorew(error_ctx)?,
 
-            Operation::MLoad => self.op_mload()?,
-            Operation::MStore => self.op_mstore()?,
+            Operation::MLoad => self.op_mload(error_ctx)?,
+            Operation::MStore => self.op_mstore(error_ctx)?,
 
-            Operation::MStream => self.op_mstream()?,
-            Operation::Pipe => self.op_pipe(host)?,
+            Operation::MStream => self.op_mstream(error_ctx)?,
+            Operation::Pipe => self.op_pipe(host, error_ctx)?,
 
             // ----- cryptographic operations -----------------------------------------------------
             Operation::HPerm => self.op_hperm()?,
             Operation::MpVerify(err_code) => self.op_mpverify(err_code, host)?,
             Operation::MrUpdate => self.op_mrupdate(host)?,
             Operation::FriE2F4 => self.op_fri_ext2fold4()?,
-            Operation::HornerBase => self.op_horner_eval_base()?,
-            Operation::HornerExt => self.op_horner_eval_ext()?,
+            Operation::HornerBase => self.op_horner_eval_base(error_ctx)?,
+            Operation::HornerExt => self.op_horner_eval_ext(error_ctx)?,
         }
 
         self.advance_clock()?;

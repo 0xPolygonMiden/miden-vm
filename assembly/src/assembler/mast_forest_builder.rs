@@ -497,9 +497,10 @@ impl MastForestBuilder {
         }
     }
 
+    // TODO(plafer): this should merge with existing decorator IDs if they exist (when building the
+    // stdlib this does occur)
     pub fn set_before_enter(&mut self, node_id: MastNodeId, decorator_ids: Vec<DecoratorId>) {
-        // TODO(plafer): remove? Change API?
-        debug_assert!(self.mast_forest[node_id].before_enter().is_empty());
+        assert!(self.mast_forest[node_id].before_enter().is_empty());
 
         self.mast_forest[node_id].set_before_enter(decorator_ids);
 
@@ -508,6 +509,8 @@ impl MastForestBuilder {
     }
 
     pub fn set_after_exit(&mut self, node_id: MastNodeId, decorator_ids: Vec<DecoratorId>) {
+        assert!(self.mast_forest[node_id].after_exit().is_empty());
+
         self.mast_forest[node_id].set_after_exit(decorator_ids);
 
         let new_node_fingerprint = self.fingerprint_for_node(&self[node_id]);

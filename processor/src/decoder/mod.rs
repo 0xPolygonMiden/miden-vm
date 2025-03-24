@@ -327,14 +327,18 @@ impl Process {
         &mut self,
         dyn_node: &DynNode,
         host: &mut H,
+        error_ctx: &ErrorContext<'_, DynNode>,
     ) -> Result<Word, ExecutionError> {
         debug_assert!(!dyn_node.is_dyncall());
 
         let mem_addr = self.stack.get(0);
         // The callee hash is stored in memory, and the address is specified on the top of the
         // stack.
-        let callee_hash =
-            self.chiplets.memory.read_word(self.system.ctx(), mem_addr, self.system.clk())?;
+        let callee_hash = self
+            .chiplets
+            .memory
+            .read_word(self.system.ctx(), mem_addr, self.system.clk(), error_ctx)
+            .map_err(ExecutionError::MemoryError)?;
 
         let (addr, hashed_block) = self.chiplets.hasher.hash_control_block(
             EMPTY_WORD,
@@ -361,14 +365,18 @@ impl Process {
     pub(super) fn start_dyncall_node(
         &mut self,
         dyn_node: &DynNode,
+        error_ctx: &ErrorContext<'_, DynNode>,
     ) -> Result<Word, ExecutionError> {
         debug_assert!(dyn_node.is_dyncall());
 
         let mem_addr = self.stack.get(0);
         // The callee hash is stored in memory, and the address is specified on the top of the
         // stack.
-        let callee_hash =
-            self.chiplets.memory.read_word(self.system.ctx(), mem_addr, self.system.clk())?;
+        let callee_hash = self
+            .chiplets
+            .memory
+            .read_word(self.system.ctx(), mem_addr, self.system.clk(), error_ctx)
+            .map_err(ExecutionError::MemoryError)?;
 
         // Note: other functions end in "executing a Noop", which
         // 1. ensures trace capacity,

@@ -56,6 +56,7 @@ pub use host::{
 
 mod chiplets;
 use chiplets::Chiplets;
+pub use chiplets::MemoryError;
 
 mod trace;
 use trace::TraceFragment;
@@ -219,6 +220,7 @@ impl Process {
 
     fn initialize(kernel: Kernel, stack: StackInputs, execution_options: ExecutionOptions) -> Self {
         let in_debug_mode = execution_options.enable_debugging();
+        let source_manager = Arc::new(DefaultSourceManager::default());
         Self {
             system: System::new(execution_options.expected_cycles() as usize),
             decoder: Decoder::new(in_debug_mode),
@@ -227,7 +229,7 @@ impl Process {
             chiplets: Chiplets::new(kernel),
             max_cycles: execution_options.max_cycles(),
             enable_tracing: execution_options.enable_tracing(),
-            source_manager: Arc::new(DefaultSourceManager::default()),
+            source_manager,
         }
     }
 
@@ -443,10 +445,12 @@ impl Process {
             return Err(ExecutionError::CallInSyscall("dyncall"));
         }
 
+        let error_ctx = ErrorContext::new(program, node, self.source_manager.clone());
+
         let callee_hash = if node.is_dyncall() {
-            self.start_dyncall_node(node)?
+            self.start_dyncall_node(node, &error_ctx)?
         } else {
-            self.start_dyn_node(node, host)?
+            self.start_dyn_node(node, host, &error_ctx)?
         };
 
         // if the callee is not in the program's MAST forest, try to find a MAST forest for it in
@@ -470,8 +474,7 @@ impl Process {
         }
 
         if node.is_dyncall() {
-            let err_ctx = ErrorContext::new(program, node, self.source_manager.clone());
-            self.end_dyncall_node(node, host, &err_ctx)
+            self.end_dyncall_node(node, host, &error_ctx)
         } else {
             self.end_dyn_node(node, host)
         }
@@ -492,6 +495,7 @@ impl Process {
 
         // execute the first operation batch
         self.execute_op_batch(
+            &basic_block,
             &basic_block.op_batches()[0],
             &mut decorator_ids,
             op_offset,
@@ -506,7 +510,14 @@ impl Process {
         for op_batch in basic_block.op_batches().iter().skip(1) {
             self.respan(op_batch);
             self.execute_op(Operation::Noop, host)?;
-            self.execute_op_batch(op_batch, &mut decorator_ids, op_offset, program, host)?;
+            self.execute_op_batch(
+                &basic_block,
+                op_batch,
+                &mut decorator_ids,
+                op_offset,
+                program,
+                host,
+            )?;
             op_offset += op_batch.ops().len();
         }
 
@@ -535,6 +546,7 @@ impl Process {
     #[inline(always)]
     fn execute_op_batch(
         &mut self,
+        basic_block: &BasicBlockNode,
         batch: &OpBatch,
         decorators: &mut DecoratorIterator,
         op_offset: usize,
@@ -561,8 +573,14 @@ impl Process {
             }
 
             // decode and execute the operation
+            let error_ctx = ErrorContext::new_with_op_idx(
+                program,
+                basic_block,
+                self.source_manager.clone(),
+                i + op_offset,
+            );
             self.decoder.execute_user_op(op, op_idx);
-            self.execute_op(op, host)?;
+            self.execute_op_with_error_ctx(op, host, &error_ctx)?;
 
             // if the operation carries an immediate value, the value is stored at the next group
             // pointer; so, we advance the pointer to the following group
@@ -718,7 +736,7 @@ impl ProcessState<'_> {
     /// # Errors
     /// - If the address is not word aligned.
     pub fn get_mem_word(&self, ctx: ContextId, addr: u32) -> Result<Option<Word>, ExecutionError> {
-        self.chiplets.memory.get_word(ctx, addr)
+        self.chiplets.memory.get_word(ctx, addr).map_err(ExecutionError::MemoryError)
     }
 
     /// Returns the entire memory state for the specified execution context at the current clock

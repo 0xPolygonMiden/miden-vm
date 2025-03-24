@@ -5,7 +5,7 @@ use alloc::{
     sync::Arc,
     vec::Vec,
 };
-use core::error::Error;
+use core::{error::Error, fmt::Debug};
 
 use super::*;
 
@@ -101,7 +101,7 @@ impl SourceManagerError {
     }
 }
 
-pub trait SourceManager {
+pub trait SourceManager: Debug {
     /// Returns true if `file` is managed by this source manager
     fn is_manager_of(&self, file: &SourceFile) -> bool {
         match self.get(file.id()) {
@@ -237,7 +237,7 @@ impl<T: ?Sized + SourceManager> SourceManagerExt for T {}
 
 use crate::utils::sync::RwLock;
 
-#[derive(Default)]
+#[derive(Debug, Default)]
 pub struct DefaultSourceManager(RwLock<DefaultSourceManagerImpl>);
 impl Clone for DefaultSourceManager {
     fn clone(&self) -> Self {
@@ -246,7 +246,7 @@ impl Clone for DefaultSourceManager {
     }
 }
 
-#[derive(Default, Clone)]
+#[derive(Debug, Default, Clone)]
 struct DefaultSourceManagerImpl {
     files: Vec<Arc<SourceFile>>,
     names: BTreeMap<Arc<str>, SourceId>,

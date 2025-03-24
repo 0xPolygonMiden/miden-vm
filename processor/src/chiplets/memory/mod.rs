@@ -1,4 +1,5 @@
 use alloc::{collections::BTreeMap, vec::Vec};
+use core::fmt::Debug;
 
 use miden_air::{
     RowIndex,
@@ -9,13 +10,16 @@ use miden_air::{
         MEMORY_WRITE, V_COL_RANGE, WORD_COL_IDX,
     },
 };
-use vm_core::{WORD_SIZE, ZERO};
+use vm_core::{WORD_SIZE, ZERO, mast::MastNodeExt};
 
 use super::{
     EMPTY_WORD, Felt, FieldElement, ONE, RangeChecker, TraceFragment, Word,
     utils::{split_element_u32_into_u16, split_u32_into_u16},
 };
-use crate::{ExecutionError, system::ContextId};
+use crate::{errors::ErrorContext, system::ContextId};
+
+mod errors;
+pub use errors::MemoryError;
 
 mod segment;
 use segment::{MemoryOperation, MemorySegmentTrace};
@@ -123,11 +127,11 @@ impl Memory {
     ///
     /// # Errors
     /// - Returns an error if `addr` is not word aligned.
-    pub fn get_word(&self, ctx: ContextId, addr: u32) -> Result<Option<Word>, ExecutionError> {
+    pub fn get_word(&self, ctx: ContextId, addr: u32) -> Result<Option<Word>, MemoryError> {
         match self.trace.get(&ctx) {
             Some(segment) => segment
                 .get_word(addr)
-                .map_err(|_| ExecutionError::MemoryUnalignedWordAccessNoClk { addr, ctx }),
+                .map_err(|_| MemoryError::UnalignedWordAccessNoClk { addr, ctx }),
             None => Ok(None),
         }
     }
@@ -162,11 +166,12 @@ impl Memory {
         ctx: ContextId,
         addr: Felt,
         clk: RowIndex,
-    ) -> Result<Felt, ExecutionError> {
+        error_ctx: &ErrorContext<'_, impl MastNodeExt>,
+    ) -> Result<Felt, MemoryError> {
         let addr: u32 = addr
             .as_int()
             .try_into()
-            .map_err(|_| ExecutionError::MemoryAddressOutOfBounds(addr.as_int()))?;
+            .map_err(|_| MemoryError::address_out_of_bounds(addr.as_int(), error_ctx))?;
         self.num_trace_rows += 1;
         self.trace.entry(ctx).or_default().read(ctx, addr, Felt::from(clk))
     }
@@ -185,17 +190,14 @@ impl Memory {
         ctx: ContextId,
         addr: Felt,
         clk: RowIndex,
-    ) -> Result<Word, ExecutionError> {
+        error_ctx: &ErrorContext<'_, impl MastNodeExt>,
+    ) -> Result<Word, MemoryError> {
         let addr: u32 = addr
             .as_int()
             .try_into()
-            .map_err(|_| ExecutionError::MemoryAddressOutOfBounds(addr.as_int()))?;
+            .map_err(|_| MemoryError::address_out_of_bounds(addr.as_int(), error_ctx))?;
         if addr % WORD_SIZE as u32 != 0 {
-            return Err(ExecutionError::MemoryUnalignedWordAccess {
-                addr,
-                ctx,
-                clk: Felt::from(clk),
-            });
+            return Err(MemoryError::unaligned_word_access(addr, ctx, clk.into(), error_ctx));
         }
 
         self.num_trace_rows += 1;
@@ -213,11 +215,12 @@ impl Memory {
         addr: Felt,
         clk: RowIndex,
         value: Felt,
-    ) -> Result<(), ExecutionError> {
+        error_ctx: &ErrorContext<'_, impl MastNodeExt>,
+    ) -> Result<(), MemoryError> {
         let addr: u32 = addr
             .as_int()
             .try_into()
-            .map_err(|_| ExecutionError::MemoryAddressOutOfBounds(addr.as_int()))?;
+            .map_err(|_| MemoryError::address_out_of_bounds(addr.as_int(), error_ctx))?;
         self.num_trace_rows += 1;
         self.trace.entry(ctx).or_default().write(ctx, addr, Felt::from(clk), value)
     }
@@ -234,17 +237,14 @@ impl Memory {
         addr: Felt,
         clk: RowIndex,
         value: Word,
-    ) -> Result<(), ExecutionError> {
+        error_ctx: &ErrorContext<'_, impl MastNodeExt>,
+    ) -> Result<(), MemoryError> {
         let addr: u32 = addr
             .as_int()
             .try_into()
-            .map_err(|_| ExecutionError::MemoryAddressOutOfBounds(addr.as_int()))?;
+            .map_err(|_| MemoryError::address_out_of_bounds(addr.as_int(), error_ctx))?;
         if addr % WORD_SIZE as u32 != 0 {
-            return Err(ExecutionError::MemoryUnalignedWordAccess {
-                addr,
-                ctx,
-                clk: Felt::from(clk),
-            });
+            return Err(MemoryError::unaligned_word_access(addr, ctx, clk.into(), error_ctx));
         }
 
         self.num_trace_rows += 1;

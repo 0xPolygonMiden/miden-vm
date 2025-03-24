@@ -5,7 +5,7 @@ use miden_air::RowIndex;
 use miette::Diagnostic;
 use vm_core::{
     debuginfo::{SourceFile, SourceManager, SourceSpan},
-    mast::{DecoratorId, MastForest, MastNodeExt, MastNodeId},
+    mast::{BasicBlockNode, DecoratorId, MastForest, MastNodeExt, MastNodeId},
     stack::MIN_STACK_DEPTH,
     utils::to_hex,
 };
@@ -16,7 +16,7 @@ use super::{
     crypto::MerkleError,
     system::{FMP_MAX, FMP_MIN},
 };
-use crate::ContextId;
+use crate::MemoryError;
 
 // EXECUTION ERROR
 // ================================================================================================
@@ -61,10 +61,6 @@ pub enum ExecutionError {
         err_msg: Option<String>,
     },
     #[error(
-        "memory address {addr} in context {ctx} was read and written, or written twice, in the same clock cycle {clk}"
-    )]
-    IllegalMemoryAccess { ctx: ContextId, addr: u32, clk: Felt },
-    #[error(
         "Updating FMP register from {0} to {1} failed because {1} is outside of {FMP_MIN}..{FMP_MAX}"
     )]
     InvalidFmpValue(Felt, Felt),
@@ -72,10 +68,6 @@ pub enum ExecutionError {
     InvalidFriDomainSegment(u64),
     #[error("degree-respecting projection is inconsistent: expected {0} but was {1}")]
     InvalidFriLayerFolding(QuadFelt, QuadFelt),
-    #[error(
-        "memory range start address cannot exceed end address, but was ({start_addr}, {end_addr})"
-    )]
-    InvalidMemoryRange { start_addr: u64, end_addr: u64 },
     #[error(
         "when returning from a call or dyncall, stack depth must be {MIN_STACK_DEPTH}, but was {depth}"
     )]
@@ -103,18 +95,11 @@ pub enum ExecutionError {
     MalformedMastForestInHost { root_digest: Digest },
     #[error("node id {node_id} does not exist in MAST forest")]
     MastNodeNotFoundInForest { node_id: MastNodeId },
+    #[error(transparent)]
+    #[diagnostic(transparent)]
+    MemoryError(MemoryError),
     #[error("no MAST forest contains the procedure with root digest {root_digest}")]
     NoMastForestWithProcedure { root_digest: Digest },
-    #[error("memory address cannot exceed 2^32 but was {0}")]
-    MemoryAddressOutOfBounds(u64),
-    #[error(
-        "word memory access at address {addr} in context {ctx} is unaligned at clock cycle {clk}"
-    )]
-    MemoryUnalignedWordAccess { addr: u32, ctx: ContextId, clk: Felt },
-    // Note: we need this version as well because to handle advice provider calls, which don't
-    // have access to the clock.
-    #[error("word access at memory address {addr} in context {ctx} is unaligned")]
-    MemoryUnalignedWordAccessNoClk { addr: u32, ctx: ContextId },
     #[error("merkle path verification failed for value {value} at index {index} in the Merkle tree with root {root} (error code: {err_code})", 
       value = to_hex(Felt::elements_as_bytes(value)),
       root = to_hex(root.as_bytes()),
@@ -168,16 +153,6 @@ impl ExecutionError {
         let (label, source_file) = err_ctx.label_and_source_file();
         Self::InvalidStackDepthOnReturn { label, source_file, depth }
     }
-
-    fn label_and_source_file(
-        node: &impl MastNodeExt,
-        program: &MastForest,
-        source_manager: &dyn SourceManager,
-    ) -> (Option<SourceSpan>, Option<Arc<SourceFile>>) {
-        node.get_assembly_op(program)
-            .map(|assembly_op| assembly_op.to_label_and_source_file(source_manager))
-            .unwrap_or((None, None))
-    }
 }
 
 impl AsRef<dyn Diagnostic> for ExecutionError {
@@ -226,12 +201,32 @@ impl<'a, N: MastNodeExt> ErrorContext<'a, N> {
         Self(Some(ErrorContextImpl::new(mast_forest, node, source_manager)))
     }
 
+    pub fn new_with_op_idx(
+        mast_forest: &'a MastForest,
+        node: &'a N,
+        source_manager: Arc<dyn SourceManager>,
+        op_idx: usize,
+    ) -> Self {
+        Self(Some(ErrorContextImpl::new_with_op_idx(
+            mast_forest,
+            node,
+            source_manager,
+            op_idx,
+        )))
+    }
+
     pub fn none() -> Self {
         Self(None)
     }
 
     pub fn label_and_source_file(&self) -> (Option<SourceSpan>, Option<Arc<SourceFile>>) {
         self.0.as_ref().map_or((None, None), |ctx| ctx.label_and_source_file())
+    }
+}
+
+impl Default for ErrorContext<'_, BasicBlockNode> {
+    fn default() -> Self {
+        Self::none()
     }
 }
 

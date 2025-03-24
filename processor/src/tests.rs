@@ -3,6 +3,9 @@ use test_utils::build_test_by_mode;
 
 use super::*;
 
+// InvalidStackDepthOnReturn
+// ------------------------------------------------------------------------------------------------
+
 /// Ensures that the proper `ExecutionError::InvalidStackDepthOnReturn` diagnostic is generated when
 /// the stack depth is invalid on return from a call.
 #[test]
@@ -14,7 +17,7 @@ fn test_diagnostic_invalid_stack_depth_on_return_call() {
         end
 
         begin
-            call.foo
+            trace.2 call.foo
         end";
 
     let build_test = build_test_by_mode!(true, source, &[1, 2]);
@@ -58,6 +61,137 @@ fn test_diagnostic_invalid_stack_depth_on_return_dyncall() {
         "   :             ^^^|^^^",
         "   :                `-- when returning from this call site",
         " 9 |         end",
+        "   `----"
+    );
+}
+
+// MemoryError
+// ------------------------------------------------------------------------------------------------
+
+#[test]
+fn test_diagnostic_unaligned_word_access() {
+    // mem_storew
+    let source = "
+        begin
+            mem_storew.3
+        end";
+
+    let build_test = build_test_by_mode!(true, source, &[1, 2, 3, 4]);
+    let err = build_test.execute().expect_err("expected error");
+
+    assert_diagnostic_lines!(
+        err,
+        "word memory access at address 3 in context 0 is unaligned at clock cycle 2",
+        regex!(r#",-\[test[\d]+:3:13\]"#),
+        " 2 |         begin",
+        " 3 |             mem_storew.3",
+        "   :             ^^^^^^^^^^^^",
+        " 4 |         end",
+        "   `----",
+        "  help: ensure that the memory address accessed is aligned to a word boundary (it is a multiple of 4)"
+    );
+
+    // mem_loadw
+    let source = "
+        begin
+            mem_loadw.3
+        end";
+
+    let build_test = build_test_by_mode!(true, source, &[1, 2, 3, 4]);
+    let err = build_test.execute().expect_err("expected error");
+
+    assert_diagnostic_lines!(
+        err,
+        "word memory access at address 3 in context 0 is unaligned at clock cycle 2",
+        regex!(r#",-\[test[\d]+:3:13\]"#),
+        " 2 |         begin",
+        " 3 |             mem_loadw.3",
+        "   :             ^^^^^^^^^^^",
+        " 4 |         end",
+        "   `----",
+        "  help: ensure that the memory address accessed is aligned to a word boundary (it is a multiple of 4)"
+    );
+}
+
+#[test]
+fn test_diagnostic_address_out_of_bounds() {
+    // mem_store
+    let source = "
+        begin
+            mem_store
+        end";
+
+    let build_test = build_test_by_mode!(true, source, &[u32::MAX as u64 + 1_u64]);
+    let err = build_test.execute().expect_err("expected error");
+
+    assert_diagnostic_lines!(
+        err,
+        "memory address cannot exceed 2^32 but was 4294967296",
+        regex!(r#",-\[test[\d]+:3:13\]"#),
+        " 2 |         begin",
+        " 3 |             mem_store",
+        "   :             ^^^^^^^^^",
+        " 4 |         end",
+        "   `----"
+    );
+
+    // mem_storew
+    let source = "
+        begin
+            mem_storew
+        end";
+
+    let build_test = build_test_by_mode!(true, source, &[u32::MAX as u64 + 1_u64]);
+    let err = build_test.execute().expect_err("expected error");
+
+    assert_diagnostic_lines!(
+        err,
+        "memory address cannot exceed 2^32 but was 4294967296",
+        regex!(r#",-\[test[\d]+:3:13\]"#),
+        " 2 |         begin",
+        " 3 |             mem_storew",
+        "   :             ^^^^^^^^^^",
+        " 4 |         end",
+        "   `----"
+    );
+
+    // mem_load
+    let source = "
+        begin
+            swap swap mem_load push.1 drop
+        end";
+
+    let build_test = build_test_by_mode!(true, source, &[u32::MAX as u64 + 1_u64]);
+    let err = build_test.execute().expect_err("expected error");
+
+    assert_diagnostic_lines!(
+        err,
+        "memory address cannot exceed 2^32 but was 4294967296",
+        regex!(r#",-\[test[\d]+:3:23\]"#),
+        " 2 |         begin",
+        " 3 |             swap swap mem_load push.1 drop",
+        "   :                       ^^^^^^^^",
+        " 4 |         end",
+        "   `----"
+    );
+
+    // mem_loadw
+    let source = "
+        begin
+            swap swap mem_loadw push.1 drop
+        end";
+
+    let build_test = build_test_by_mode!(true, source, &[u32::MAX as u64 + 1_u64]);
+    let err = build_test.execute().expect_err("expected error");
+
+    assert_diagnostic_lines!(
+        err,
+        "memory address cannot exceed 2^32 but was 4294967296",
+        regex!(r#",-\[test[\d]+:3:23\]"#),
+        " 2 |         begin",
+        " 3 |             swap swap mem_loadw push.1 drop",
+        "   :                       ^^^^^^^^^",
+        " 4 |         end",
         "   `----"
     );
 }

@@ -123,9 +123,35 @@ impl BasicBlockBuilder<'_> {
 /// Decorators
 impl BasicBlockBuilder<'_> {
     /// Add the specified decorator to the list of basic block decorators.
+    ///
+    /// Note: currently, `AssemblyOp` decorators are generated for other decorator instructions
+    /// (e.g. `Instruction::Trace`). Since these do not generate an operation that goes into the
+    /// trace, they are ignored.
     pub fn push_decorator(&mut self, decorator: Decorator) -> Result<(), AssemblyError> {
+        let asm_op_num_cycles = match &decorator {
+            Decorator::AsmOp(assembly_op) => Some(assembly_op.num_cycles()),
+            _ => None,
+        };
+
         let decorator_id = self.mast_forest_builder.ensure_decorator(decorator)?;
-        self.decorators.push((self.ops.len(), decorator_id));
+
+        match asm_op_num_cycles {
+            // This is an `AssemblyOp` decorator.
+            Some(asm_op_num_cycles) => {
+                // We need to insert an `AssemblyOp` decorator for each operation that the
+                // associated instruction compiles down to.
+                for i in 0..asm_op_num_cycles {
+                    self.decorators.push((self.ops.len() - (i + 1) as usize, decorator_id));
+                }
+
+                self.decorators.sort_by_key(|(op_idx, _)| *op_idx);
+            },
+            // Not an `AssemblyOp` decorator, so we push the decorator as occurring after the last
+            // operation.
+            None => {
+                self.decorators.push((self.ops.len(), decorator_id));
+            },
+        }
 
         Ok(())
     }

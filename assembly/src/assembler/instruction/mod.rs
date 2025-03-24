@@ -41,8 +41,6 @@ impl Assembler {
                         .mast_forest_builder_mut()
                         .ensure_decorator(Decorator::AsmOp(assembly_op))?;
 
-                    // TODO(plafer): here we could theoretically overwrite other decorators already
-                    // present
                     block_builder
                         .mast_forest_builder_mut()
                         .set_before_enter(node_id, vec![asm_op_id]);
