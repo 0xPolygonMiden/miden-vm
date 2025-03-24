@@ -12,6 +12,10 @@ const.NUM_AUX_TRACE_COEFS=16
 # Number of constraints, both boundary and transitional
 const.NUM_CONSTRAINTS=226
 
+# Blowup factor
+const.BLOWUP_FACTOR=8
+const.BLOWUP_FACTOR_LOG=3
+
 # MEMORY POINTERS
 # =================================================================================================
 
@@ -356,6 +360,14 @@ end
 
 export.zeroize_stack_word
     exec.zero_word_ptr mem_loadw
+end
+
+export.get_blowup_factor
+    push.BLOWUP_FACTOR
+end
+
+export.get_blowup_factor_log
+    push.BLOWUP_FACTOR_LOG
 end
 
 #! Store details about the LDE domain.

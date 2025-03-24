@@ -10,7 +10,7 @@ use.std::crypto::stark::utils
 
 #!   Verify a STARK proof attesting to the correct execution of a program in the Miden VM.
 #!   The following simplifying assumptions are currently made:
-#!   - The blowup is set to 8.
+#!   - The blowup factor is set to 8.
 #!   - The maximal allowed degree of the remainder polynomial is 127.
 #!   - The public inputs are composed of the input and output stacks, of fixed size equal to 16, as
 #!     well as the program and the kernel procedures digests.
@@ -25,7 +25,7 @@ use.std::crypto::stark::utils
 #!   - The following procedure makes use of global memory address beyond 3 * 2^30 and these are
 #!    defined in `constants.masm`.
 #!
-#! Input: [log(trace_length), num_queries, log(blowup), grinding, ...]
+#! Input: [log(trace_length), num_queries, grinding, ...]
 #! Output: [...]
 #!
 #! Cycles:
@@ -46,13 +46,13 @@ export.verify
 
     # Validate inputs
     #
-    # Cycles: 40
+    # Cycles: 35
     exec.utils::validate_inputs
-    # => [log(trace_length), num_queries, log(blowup), grinding, ...]
+    # => [log(trace_length), num_queries, grinding, ...]
 
     # Initialize the seed using proof context
     #
-    # Cycles: 210
+    # Cycles: 195
     exec.random_coin::init_seed
     # => [C, ...]
 
@@ -73,7 +73,7 @@ export.verify
     padw
     adv_loadw
     exec.constants::main_trace_com_ptr mem_storew
-    # => [main_trace_commitment]
+    # => [main_trace_commitment, ...]
     exec.random_coin::reseed
     # => [...]
 
