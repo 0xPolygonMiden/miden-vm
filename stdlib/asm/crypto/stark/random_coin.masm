@@ -71,20 +71,20 @@ export.get_capacity
 end
 
 #! Initializes the seed for randomness generation by computing the hash of the proof context using
-#! the trace length, number of queries, logarithm of blowup factor and the number of bits of
-#! grinding. Currently, this part, as well as the rest of the STARK verifier assumes a blowup factor
+#! the trace length, number of queries and the number of bits of grinding.
+#! Currently, this part, as well as the rest of the STARK verifier assumes a blowup factor
 #! equal to 8.
 #! The ouput of this procedure is the capacity portion of the state after applying `hperm`.
 #!
-#! Input: [log(trace_length), num_queries, blowup, grinding, ...]
+#! Input: [log(trace_length), num_queries, grinding, ...]
 #! Output: [C]
-#! Cycles: 228
+#! Cycles: 195
 export.init_seed
 
     # Save the parameters in memory for later use
     dup exec.constants::set_trace_length_log
     dup.1 exec.constants::set_number_queries
-    dup.3 exec.constants::set_grinding_factor
+    dup.2 exec.constants::set_grinding_factor
 
     # Pre-load constants used by hperm into memory and initialize the state of the random coin to zeros.
     # Since memory beyond 3 * 2^30 does not have any special meaning, we can use the memory region
@@ -98,8 +98,7 @@ export.init_seed
     push.6 swap.4 drop exec.constants::zero_zero_zero_six_word_ptr mem_storew
     push.7 swap.4 drop exec.constants::zero_zero_zero_seven_word_ptr mem_storew
     dropw
-    #=> [log(trace_length), num_queries, log(blowup), grinding]
-
+    #=> [log(trace_length), num_queries, grinding, ...]
 
     # Create the initial seed for randomness generation from proof context
 
@@ -107,61 +106,54 @@ export.init_seed
     dup
     pow2
     u32split assertz
-    #=> [trace_length, log(trace_length), num_queries, log(blowup), grinding]
+    #=> [trace_length, log(trace_length), num_queries, grinding, ...]
 
     ## Save the trace length and its log to memory
     dup.0 exec.constants::set_trace_length
+    #=> [trace_length, log(trace_length), num_queries, grinding, ...]
 
-    ## Assert blowup is equal to 8
+    ## Compute log size of LDE domain
     swap
-    dup.3
-    dup
-    push.3
-    assert_eq
-
-    ## Compute log(lde_size) and lde_size and store them
+    exec.constants::get_blowup_factor_log
     add
-    swap
-    movup.3
+    #=> [log(lde_size), trace_length, num_queries, grinding, ...]
+
+    ## Compute size of LDE domain
+    dup
     pow2
-    dup
-    movdn.4
-    swap
-    dup
-    movdn.3
-    mul
+    #=> [lde_size, log(lde_size), trace_length, num_queries, grinding, ...]
 
     # Compute lde_domain generator
     dup.1
     exec.utils::compute_lde_generator
     movdn.2
-    #=> [lde_size, log(lde_size), lde_g, trace_length, num_queries, blowup, grinding]
+    #=> [lde_size, log(lde_size), lde_g, trace_length, num_queries, grinding]
 
     push.0
     movdn.3
-    #=> [lde_size, log(lde_size), lde_g, 0, trace_length, num_queries, blowup, grinding]
+    #=> [lde_size, log(lde_size), lde_g, 0, trace_length, num_queries, grinding]
 
     # Save `[lde_size, log(lde_size), lde_g, 0]`
     exec.constants::set_lde_domain_info_word
-    #=> [lde_size, log(lde_size), lde_g, 0, trace_length, num_queries, blowup, grinding]
+    #=> [lde_size, log(lde_size), lde_g, 0, trace_length, num_queries, grinding]
 
     # clean stack
     drop drop
-    #=> [lde_g, 0, trace_length, num_queries, blowup, grinding]
+    #=> [lde_g, 0, trace_length, num_queries, grinding]
 
     # Compute trace generator `trace_g` = `lde_g^blowup_factor`
     repeat.3
         dup mul
     end
-    #=> [trace_g, 0, trace_length, num_queries, blowup, grinding]
+    #=> [trace_g, 0, trace_length, num_queries, grinding]
 
     # Save `trace_g` to memory
     exec.constants::set_trace_domain_generator
-    #=> [0, trace_length, num_queries, blowup, grinding]
+    #=> [0, trace_length, num_queries, grinding]
 
     # clean stack
     drop
-    #=> [trace_length, num_queries, blowup, grinding]
+    #=> [trace_length, num_queries, grinding]
 
     # Construct the proof context
 
@@ -174,24 +166,24 @@ export.init_seed
 
     ## main segment width is 71 and there are 1 auxiliary segments
     ## of width 7 using 16 random extension field elements
-    push.0x47010710 
+    push.0x47010710 swap
     ## field modulus bytes (2 field elements)
     push.0x01 # lower half of the modulus
     push.0xffffffff # upper half of the modulus
     ## field extension and FRI parameters
     ## field extension degree || FRI folding factor || FRI remainder polynomial max degree || blowup factor
     push.0x02047f08
-    # => [proof_options, modulus1, modulus0, trace_info, trace_length, num_queries, blowup, grinding, ...]
+    # => [proof_options, modulus1, modulus0, trace_length, trace_info, num_queries, grinding, ...]
 
-    # Hash proof context
-    swapw
-    movup.2 drop
-    movdn.5
+    movup.6
+    movup.6
     # => [num_queries, grinding, proof_options, modulus1, modulus0, trace_length, trace_info, ...]
 
     exec.constants::get_num_constraints
     movdn.3
     # => [num_queries, grinding, proof_options, num_constraints, modulus1, modulus0, trace_length, trace_info, ...]
+
+    # Hash proof context
 
     push.4.0.0.0
     movdnw.2

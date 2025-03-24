@@ -31,7 +31,6 @@ pub fn generate_advice_inputs(
     // we need to provide the following instance specific data through the operand stack
     let initial_stack = vec![
         proof.context.options().grinding_factor() as u64,
-        proof.context.options().blowup_factor().ilog2() as u64,
         proof.context.options().num_queries() as u64,
         proof.context.trace_info().length().ilog2() as u64,
     ];
