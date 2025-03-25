@@ -130,8 +130,8 @@ impl JoinNode {
 }
 
 impl MastNodeExt for JoinNode {
-    fn decorators(&self) -> impl Iterator<Item = DecoratorId> {
-        self.before_enter.iter().chain(&self.after_exit).copied()
+    fn decorators(&self) -> impl Iterator<Item = (usize, DecoratorId)> {
+        self.before_enter.iter().chain(&self.after_exit).copied().enumerate()
     }
 }
 

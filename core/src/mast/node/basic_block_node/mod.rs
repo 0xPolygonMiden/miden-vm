@@ -235,8 +235,8 @@ impl BasicBlockNode {
 }
 
 impl MastNodeExt for BasicBlockNode {
-    fn decorators(&self) -> impl Iterator<Item = DecoratorId> {
-        self.decorator_iter().copied()
+    fn decorators(&self) -> impl Iterator<Item = (usize, DecoratorId)> {
+        self.decorators.iter().copied()
     }
 }
 

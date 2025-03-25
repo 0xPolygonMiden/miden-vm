@@ -240,6 +240,7 @@ struct ErrorContextImpl<'a, N: MastNodeExt> {
     mast_forest: &'a MastForest,
     node: &'a N,
     source_manager: Arc<dyn SourceManager>,
+    op_idx: Option<usize>,
 }
 
 impl<'a, N: MastNodeExt> ErrorContextImpl<'a, N> {
@@ -248,12 +249,31 @@ impl<'a, N: MastNodeExt> ErrorContextImpl<'a, N> {
         node: &'a N,
         source_manager: Arc<dyn SourceManager>,
     ) -> Self {
-        Self { mast_forest, node, source_manager }
+        Self {
+            mast_forest,
+            node,
+            source_manager,
+            op_idx: None,
+        }
+    }
+
+    pub fn new_with_op_idx(
+        mast_forest: &'a MastForest,
+        node: &'a N,
+        source_manager: Arc<dyn SourceManager>,
+        op_idx: usize,
+    ) -> Self {
+        Self {
+            mast_forest,
+            node,
+            source_manager,
+            op_idx: Some(op_idx),
+        }
     }
 
     pub fn label_and_source_file(&self) -> (Option<SourceSpan>, Option<Arc<SourceFile>>) {
         self.node
-            .get_assembly_op(&self.mast_forest)
+            .get_assembly_op(&self.mast_forest, self.op_idx)
             .map(|assembly_op| assembly_op.to_label_and_source_file(&self.source_manager))
             .unwrap_or((None, None))
     }

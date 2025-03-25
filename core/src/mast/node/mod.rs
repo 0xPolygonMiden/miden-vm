@@ -343,21 +343,50 @@ pub trait MastNodeExt {
     // REQUIRED METHODS
     // -------------------------------------------------------------------------------------------
 
-    fn decorators(&self) -> impl Iterator<Item = DecoratorId>;
+    /// The list of decorators tied to this node, along with their associated index.
+    ///
+    /// The index is only meaningful for [`BasicBlockNode`]s, where it corresponds to the index of
+    /// the operation in the basic block to which the decorator is attached.
+    fn decorators(&self) -> impl Iterator<Item = (usize, DecoratorId)>;
 
     // PROVIDED METHODS
     // -------------------------------------------------------------------------------------------
 
-    /// Returns the [`AssemblyOp`] associated with this node, if any.
+    /// Returns the [`AssemblyOp`] associated with this node and operation (if provided), if any.
     ///
-    /// This methods assumes that the node has at most one associated [`AssemblyOp`].
-    fn get_assembly_op<'m>(&self, mast_forest: &'m MastForest) -> Option<&'m AssemblyOp> {
-        for decorator_id in self.decorators() {
-            if let Some(Decorator::AsmOp(assembly_op)) =
-                mast_forest.get_decorator_by_id(decorator_id)
-            {
-                return Some(assembly_op);
-            }
+    /// If the `target_op_idx` is provided, the method treats the wrapped node as a basic block will
+    /// return the assembly op associated with the operation at the corresponding index in the basic
+    /// block. If no `target_op_idx` is provided, the method will return the first assembly op found
+    /// (effectively assuming that the node has at most one associated [`AssemblyOp`]).
+    fn get_assembly_op<'m>(
+        &self,
+        mast_forest: &'m MastForest,
+        target_op_idx: Option<usize>,
+    ) -> Option<&'m AssemblyOp> {
+        match target_op_idx {
+            // If a target operation index is provided, return the assembly op associated with that
+            // operation.
+            Some(target_op_idx) => {
+                for (_, decorator_id) in
+                    self.decorators().filter(|(op_idx, _)| *op_idx == target_op_idx)
+                {
+                    if let Some(Decorator::AsmOp(assembly_op)) =
+                        mast_forest.get_decorator_by_id(decorator_id)
+                    {
+                        return Some(assembly_op);
+                    }
+                }
+            },
+            // If no target operation index is provided, return the first assembly op found.
+            None => {
+                for (_, decorator_id) in self.decorators() {
+                    if let Some(Decorator::AsmOp(assembly_op)) =
+                        mast_forest.get_decorator_by_id(decorator_id)
+                    {
+                        return Some(assembly_op);
+                    }
+                }
+            },
         }
 
         None
