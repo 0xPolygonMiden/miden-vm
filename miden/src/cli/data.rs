@@ -8,7 +8,7 @@ use std::{
 use assembly::{
     Assembler, Library, LibraryNamespace,
     ast::{Module, ModuleKind},
-    diagnostics::{Report, WrapErr},
+    diagnostics::{Report, WrapErr, miette},
 };
 use miden_vm::{Digest, ExecutionProof, Program, StackOutputs, utils::SliceReader};
 use prover::utils::Deserializable;
@@ -260,9 +260,12 @@ impl Libraries {
         let mut libraries = Vec::new();
 
         for path in paths {
-            // TODO(plafer): How to create a `Report` from an error that doesn't derive
-            // `Diagnostic`?
-            let library = Library::deserialize_from_file(path).unwrap();
+            let path_str = path.as_ref().to_string_lossy().to_string();
+
+            let library = Library::deserialize_from_file(path).map_err(|err| {
+                miette!("Failed to read library from file `{}`: {}", path_str, err)
+            })?;
+
             libraries.push(library);
         }
 
