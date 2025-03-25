@@ -495,7 +495,7 @@ impl Process {
 
         // execute the first operation batch
         self.execute_op_batch(
-            &basic_block,
+            basic_block,
             &basic_block.op_batches()[0],
             &mut decorator_ids,
             op_offset,
@@ -511,7 +511,7 @@ impl Process {
             self.respan(op_batch);
             self.execute_op(Operation::Noop, host)?;
             self.execute_op_batch(
-                &basic_block,
+                basic_block,
                 op_batch,
                 &mut decorator_ids,
                 op_offset,

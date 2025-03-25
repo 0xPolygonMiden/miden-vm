@@ -268,7 +268,7 @@ impl<'a, N: MastNodeExt> ErrorContextImpl<'a, N> {
 
     pub fn label_and_source_file(&self) -> (Option<SourceSpan>, Option<Arc<SourceFile>>) {
         self.node
-            .get_assembly_op(&self.mast_forest, self.op_idx)
+            .get_assembly_op(self.mast_forest, self.op_idx)
             .map(|assembly_op| assembly_op.to_label_and_source_file(&self.source_manager))
             .unwrap_or((None, None))
     }
