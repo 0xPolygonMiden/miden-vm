@@ -71,13 +71,14 @@ export.get_capacity
 end
 
 #! Initializes the seed for randomness generation by computing the hash of the proof context using
-#! the trace length, number of queries and the number of bits of grinding.
+#! the trace length, number of queries, the number of bits of grinding and the number of kernel
+#! procedures defining the kernel against which the program being verified was compiled.
 #! Currently, this part, as well as the rest of the STARK verifier assumes a blowup factor
 #! equal to 8.
 #! The ouput of this procedure is the capacity portion of the state after applying `hperm`.
 #!
 #! Input: [log(trace_length), num_queries, grinding, num_ker_proc, ...]
-#! Output: [C, n, ...]
+#! Output: [C, ...]
 #! Cycles: 210
 export.init_seed
 
