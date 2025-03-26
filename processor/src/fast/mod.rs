@@ -19,9 +19,6 @@ use crate::{
     operations::utils::assert_binary, utils::resolve_external_node,
 };
 
-// temporary module to
-pub mod experiments;
-
 mod memory;
 
 // Ops
