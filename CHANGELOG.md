@@ -2,6 +2,9 @@
 
 ## 0.14.0 TBD
 
+#### Enhancements
+
+- Add kernel procedures digests as public inputs to the recursive verifier (#1724).
 
 ## 0.13.1 (2025-03-21) - `stdlib` crate only
 
