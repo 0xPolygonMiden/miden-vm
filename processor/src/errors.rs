@@ -7,12 +7,12 @@ use vm_core::{
     stack::MIN_STACK_DEPTH,
     utils::to_hex,
 };
-use winter_prover::{math::FieldElement, ProverError};
+use winter_prover::{ProverError, math::FieldElement};
 
 use super::{
+    Digest, Felt, QuadFelt, Word,
     crypto::MerkleError,
     system::{FMP_MAX, FMP_MIN},
-    Digest, Felt, QuadFelt, Word,
 };
 use crate::ContextId;
 
@@ -62,9 +62,13 @@ pub enum ExecutionError {
     FailedSignatureGeneration(&'static str),
     #[error("failed to execute the program for internal reason: {0}")]
     FailedToExecuteProgram(&'static str),
-    #[error("memory address {addr} in context {ctx} was read and written, or written twice, in the same clock cycle {clk}")]
+    #[error(
+        "memory address {addr} in context {ctx} was read and written, or written twice, in the same clock cycle {clk}"
+    )]
     IllegalMemoryAccess { ctx: ContextId, addr: u32, clk: Felt },
-    #[error("Updating FMP register from {0} to {1} failed because {1} is outside of {FMP_MIN}..{FMP_MAX}")]
+    #[error(
+        "Updating FMP register from {0} to {1} failed because {1} is outside of {FMP_MIN}..{FMP_MAX}"
+    )]
     InvalidFmpValue(Felt, Felt),
     #[error("FRI domain segment value cannot exceed 3, but was {0}")]
     InvalidFriDomainSegment(u64),
@@ -76,11 +80,11 @@ pub enum ExecutionError {
     InvalidMemoryRange { start_addr: u64, end_addr: u64 },
     #[error("when returning from a call, stack depth must be {MIN_STACK_DEPTH}, but was {0}")]
     InvalidStackDepthOnReturn(usize),
-    #[error("provided merkle tree {depth} is out of bounds and cannot be represented as an unsigned 8-bit integer")]
-    InvalidMerkleTreeDepth { depth: Felt },
     #[error(
-        "provided node index {value} is out of bounds for a merkle tree node at depth {depth}"
+        "provided merkle tree {depth} is out of bounds and cannot be represented as an unsigned 8-bit integer"
     )]
+    InvalidMerkleTreeDepth { depth: Felt },
+    #[error("provided node index {value} is out of bounds for a merkle tree node at depth {depth}")]
     InvalidMerkleTreeNodeIndex { depth: Felt, value: Felt },
     #[error("attempted to calculate integer logarithm with zero argument at clock cycle {0}")]
     LogArgumentZero(RowIndex),

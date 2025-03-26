@@ -1,6 +1,6 @@
 use miden_air::{
-    trace::{chiplets::hasher::DIGEST_RANGE, main_trace::MainTrace},
     RowIndex,
+    trace::{chiplets::hasher::DIGEST_RANGE, main_trace::MainTrace},
 };
 use vm_core::{Kernel, ONE};
 

@@ -40,7 +40,7 @@ impl crate::prettier::PrettyPrint for Op {
         use crate::prettier::*;
 
         match self {
-            Self::If { ref then_blk, ref else_blk, .. } => {
+            Self::If { then_blk, else_blk, .. } => {
                 text("if.true")
                     + nl()
                     + then_blk.render()
@@ -51,13 +51,13 @@ impl crate::prettier::PrettyPrint for Op {
                     + nl()
                     + text("end")
             },
-            Self::While { ref body, .. } => {
+            Self::While { body, .. } => {
                 text("while.true") + nl() + body.render() + nl() + text("end")
             },
-            Self::Repeat { count, ref body, .. } => {
+            Self::Repeat { count, body, .. } => {
                 display(format!("repeat.{count}")) + nl() + body.render() + nl() + text("end")
             },
-            Self::Inst(ref inst) => inst.render(),
+            Self::Inst(inst) => inst.render(),
         }
     }
 }
@@ -65,14 +65,14 @@ impl crate::prettier::PrettyPrint for Op {
 impl fmt::Debug for Op {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
-            Self::If { ref then_blk, ref else_blk, .. } => {
+            Self::If { then_blk, else_blk, .. } => {
                 f.debug_struct("If").field("then", then_blk).field("else", else_blk).finish()
             },
-            Self::While { ref body, .. } => f.debug_tuple("While").field(body).finish(),
-            Self::Repeat { ref count, ref body, .. } => {
+            Self::While { body, .. } => f.debug_tuple("While").field(body).finish(),
+            Self::Repeat { count, body, .. } => {
                 f.debug_struct("Repeat").field("count", count).field("body", body).finish()
             },
-            Self::Inst(ref inst) => fmt::Debug::fmt(&**inst, f),
+            Self::Inst(inst) => fmt::Debug::fmt(&**inst, f),
         }
     }
 }

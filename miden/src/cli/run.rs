@@ -131,7 +131,7 @@ fn run_masp_program(params: &RunCmd) -> Result<(ExecutionTrace, [u8; 32]), Repor
     let input_data = InputFile::read(&params.input_file, &params.program_file)?;
 
     let stack_inputs = input_data.parse_stack_inputs().map_err(Report::msg)?;
-    let mut host = DefaultHost::default();
+    let mut host = DefaultHost::new(input_data.parse_advice_provider().map_err(Report::msg)?);
 
     let execution_options = ExecutionOptions::new(
         Some(params.max_cycles),

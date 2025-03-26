@@ -253,7 +253,7 @@ impl Deserializable for MastForest {
                 other => {
                     return Err(DeserializationError::InvalidValue(format!(
                         "expected mast node with id {node_id} to be a basic block, found {other:?}"
-                    )))
+                    )));
                 },
             }
         }

@@ -1,7 +1,7 @@
 use processor::ExecutionError;
 use test_utils::{
-    build_op_test, expect_exec_error_matches, proptest::prelude::*, rand::rand_value, Felt,
-    StarkField, U32_BOUND, WORD_SIZE, ZERO,
+    Felt, StarkField, U32_BOUND, WORD_SIZE, ZERO, build_op_test, expect_exec_error_matches,
+    proptest::prelude::*, rand::rand_value,
 };
 
 use super::{prop_randw, test_inputs_out_of_bounds};

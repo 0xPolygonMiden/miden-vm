@@ -2,8 +2,8 @@ use core::str::FromStr;
 
 use super::*;
 use crate::{
-    ast::ProcedureName, diagnostics::Report, parse_module, testing::TestContext, Assembler,
-    Deserializable,
+    Assembler, Deserializable, ast::ProcedureName, diagnostics::Report, parse_module,
+    testing::TestContext,
 };
 
 // TESTS

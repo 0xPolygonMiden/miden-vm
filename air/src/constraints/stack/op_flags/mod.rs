@@ -1,11 +1,11 @@
-use vm_core::{Felt, FieldElement, Operation, ONE, ZERO};
+use vm_core::{Felt, FieldElement, ONE, Operation, ZERO};
 
-use super::{EvaluationFrame, B0_COL_IDX};
+use super::{B0_COL_IDX, EvaluationFrame};
 use crate::{
     trace::{
+        DECODER_TRACE_OFFSET, STACK_TRACE_OFFSET, TRACE_WIDTH,
         decoder::{IS_LOOP_FLAG_COL_IDX, NUM_OP_BITS, OP_BITS_EXTRA_COLS_RANGE, OP_BITS_RANGE},
         stack::H0_COL_IDX,
-        DECODER_TRACE_OFFSET, STACK_TRACE_OFFSET, TRACE_WIDTH,
     },
     utils::binary_not,
 };

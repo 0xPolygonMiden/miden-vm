@@ -1,10 +1,10 @@
 use alloc::vec::Vec;
 
-use vm_core::{stack::MIN_STACK_DEPTH, StackOutputs};
+use vm_core::{StackOutputs, stack::MIN_STACK_DEPTH};
 
 use super::super::{
-    Assertion, EvaluationFrame, Felt, FieldElement, TransitionConstraintDegree, CLK_COL_IDX,
-    DECODER_TRACE_OFFSET, FMP_COL_IDX, ONE, STACK_AUX_TRACE_OFFSET, STACK_TRACE_OFFSET, ZERO,
+    Assertion, CLK_COL_IDX, DECODER_TRACE_OFFSET, EvaluationFrame, FMP_COL_IDX, Felt, FieldElement,
+    ONE, STACK_AUX_TRACE_OFFSET, STACK_TRACE_OFFSET, TransitionConstraintDegree, ZERO,
 };
 use crate::{
     decoder::{IS_CALL_FLAG_COL_IDX, IS_SYSCALL_FLAG_COL_IDX, USER_OP_HELPERS_OFFSET},

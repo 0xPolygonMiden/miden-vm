@@ -1,6 +1,6 @@
 use vm_core::{Felt, FieldElement, ONE, ZERO};
 
-use super::{assert_binary, ExecutionError, FastProcessor};
+use super::{ExecutionError, FastProcessor, assert_binary};
 
 const TWO: Felt = Felt::new(2);
 
@@ -43,11 +43,7 @@ impl FastProcessor {
             assert_binary(b)?;
             assert_binary(a)?;
 
-            if a == ONE && b == ONE {
-                Ok(ONE)
-            } else {
-                Ok(ZERO)
-            }
+            if a == ONE && b == ONE { Ok(ONE) } else { Ok(ZERO) }
         })
     }
 
@@ -57,11 +53,7 @@ impl FastProcessor {
             assert_binary(b)?;
             assert_binary(a)?;
 
-            if a == ONE || b == ONE {
-                Ok(ONE)
-            } else {
-                Ok(ZERO)
-            }
+            if a == ONE || b == ONE { Ok(ONE) } else { Ok(ZERO) }
         })
     }
 

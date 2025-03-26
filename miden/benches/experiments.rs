@@ -1,7 +1,7 @@
-use criterion::{criterion_group, criterion_main, Criterion};
+use criterion::{Criterion, criterion_group, criterion_main};
 use processor::fast::experiments::{
-    fibonacci_hardcoded, FibOperation, FibonacciStackAsVec, FibonacciStackFixedLength,
-    FibonacciStackFixedLengthNoSize,
+    FibOperation, FibonacciStackAsVec, FibonacciStackFixedLength, FibonacciStackFixedLengthNoSize,
+    fibonacci_hardcoded,
 };
 
 const NUM_FIB_ITERATIONS: u32 = 1_000_000;

@@ -1,4 +1,4 @@
-use test_utils::{group_slice_elements, rand::rand_array, Felt, IntoBytes};
+use test_utils::{Felt, IntoBytes, group_slice_elements, rand::rand_array};
 
 #[test]
 fn blake3_hash_64_bytes() {

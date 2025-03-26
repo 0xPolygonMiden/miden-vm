@@ -1,24 +1,28 @@
-
 use.std::crypto::stark::constants
+use.std::crypto::hashes::rpo
 
 
 #! Load the public inputs in memory starting from the address referenced by `public_inputs_ptr`.
 #! In parallel, compute the hash of the public inputs being loaded. The hashing starts with
 #! capacity registers of the hash function set to `C` resulting from hashing the proof context.
-#! The output D is the digest of the hashing.
+#! The output D is the digest of the hashing of the public inputs.
 #!
-#! Input: [public_inputs_ptr, C]
-#! Output: [D]
-#! Cycles: 38
+#! Input: [C, ...]
+#! Output: [D, ...]
+#! Cycles: ~40
 export.load
+    # Load the public inputs from the advice provider.
+    # The public inputs are made up of:
+    # 
+    # 1. the input operand stack and the output operand stack both of length 16 field elements,
+    # 2. the digest of the program
+    # 3. the digests of procedures making up the kernel
+    #
+    # While loading the public inputs, we also absorb them in the Fiat-Shamir transcript.
 
-    # TODO: load the public inputs using public_inputs_ptr
-    drop
-
-    # Unhash the public inputs from the advice provider.
-    # The following assumes that the public inputs contain only the input and output states
-    # of the operand stack and both are of length exactly 16.
-    # TODO: generalize to any number of public inputs supported by the VM.
+    # 1) Load the input and output operand stacks
+    exec.constants::public_inputs_ptr
+    movdn.4
     padw padw
     repeat.4
         adv_loadw
@@ -26,12 +30,16 @@ export.load
         adv_loadw
         hperm
     end
+
+    # 2) Load the program digest
     adv_loadw
+
+    # 3) Load the kernel procedures digests
+    # TODO: Support non-empty kernels
     swapw
-    exec.constants::zero_word mem_loadw
+    exec.constants::zeroize_stack_word
     hperm
 
-    dropw
-    swapw
-    dropw
+    exec.rpo::squeeze_digest
+    movup.4 drop
 end

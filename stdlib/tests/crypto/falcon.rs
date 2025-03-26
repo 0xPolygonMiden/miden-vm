@@ -1,22 +1,23 @@
 use std::vec;
 
-use assembly::{utils::Serializable, Assembler};
+use assembly::{Assembler, utils::Serializable};
 use miden_air::{Felt, ProvingOptions, RowIndex};
-use miden_stdlib::StdLibrary;
+use miden_stdlib::{EVENT_FALCON_SIG_TO_STACK, StdLibrary, falcon_sign};
 use processor::{
-    crypto::RpoRandomCoin, AdviceInputs, DefaultHost, Digest, ExecutionError, MemAdviceProvider,
-    Program, ProgramInfo, StackInputs,
+    AdviceInputs, Digest, ExecutionError, MemAdviceProvider, Program, ProgramInfo, StackInputs,
+    crypto::RpoRandomCoin,
 };
-use rand::{thread_rng, Rng};
+use rand::{Rng, rng};
 use test_utils::{
+    Word,
     crypto::{
-        rpo_falcon512::{Polynomial, SecretKey},
         MerkleStore, Rpo256,
+        rpo_falcon512::{Polynomial, SecretKey},
     },
     expect_exec_error_matches,
+    host::TestHost,
     proptest::proptest,
     rand::rand_vector,
-    Word,
 };
 use vm_core::StarkField;
 
@@ -50,11 +51,11 @@ fn test_falcon512_norm_sq() {
     ";
 
     // normalize(e) = e^2 - phi * (2*M*e - M^2) where phi := (e > (M - 1)/2)
-    let upper = rand::thread_rng().gen_range(Q + 1..M);
+    let upper = rand::rng().random_range(Q + 1..M);
     let test_upper = build_test!(source, &[upper]);
     test_upper.expect_stack(&[(M - upper) * (M - upper)]);
 
-    let lower = rand::thread_rng().gen_range(0..=Q);
+    let lower = rand::rng().random_range(0..=Q);
     let test_lower = build_test!(source, &[lower]);
     test_lower.expect_stack(&[lower * lower])
 }
@@ -162,6 +163,56 @@ fn test_falcon512_probabilistic_product_failure() {
     );
 }
 
+/// Similar to `falcon_execution` test, but with the `move_sig_to_adv_stack` operation.
+/// Specifically, we put the signature in the advice map ahead of time, call
+/// `move_sig_to_adv_stack`, and then proceed to `verify` the signature.
+#[test]
+fn test_move_sig_to_adv_stack() {
+    let seed = Word::default();
+    let mut rng = RpoRandomCoin::new(seed);
+    let secret_key = SecretKey::with_rng(&mut rng);
+    let message: Word = rand_vector::<Felt>(4).try_into().unwrap();
+
+    let source = "
+    use.std::crypto::dsa::rpo_falcon512
+
+    begin
+        exec.rpo_falcon512::move_sig_from_map_to_adv_stack
+        exec.rpo_falcon512::verify
+    end
+    ";
+
+    let public_key = {
+        let pk: Word = secret_key.public_key().into();
+        pk.into()
+    };
+    let secret_key_bytes = secret_key.to_bytes();
+
+    let advice_map: Vec<(Digest, Vec<Felt>)> = {
+        let sig_key = Rpo256::merge(&[message.into(), public_key]);
+        let sk_felts = secret_key_bytes.iter().map(|a| Felt::new(*a as u64)).collect::<Vec<Felt>>();
+        let signature = falcon_sign(&sk_felts, message).expect("failed to sign message");
+
+        vec![(sig_key, signature.iter().rev().cloned().collect())]
+    };
+
+    let op_stack = {
+        let mut op_stack = vec![];
+        let message = message.into_iter().map(|a| a.as_int()).collect::<Vec<u64>>();
+        op_stack.extend_from_slice(&message);
+        let pk_elements = public_key.as_elements().iter().map(|a| a.as_int()).collect::<Vec<u64>>();
+        op_stack.extend_from_slice(&pk_elements);
+
+        op_stack
+    };
+
+    let adv_stack = vec![];
+    let store = MerkleStore::new();
+
+    let test = build_test!(source, &op_stack, &adv_stack, store, advice_map.into_iter());
+    test.expect_stack(&[])
+}
+
 #[test]
 fn falcon_execution() {
     let seed = Word::default();
@@ -170,12 +221,11 @@ fn falcon_execution() {
     let message = rand_vector::<Felt>(4).try_into().unwrap();
     let (source, op_stack, adv_stack, store, advice_map) = generate_test(sk, message);
 
-    let test = build_test!(source, &op_stack, &adv_stack, store, advice_map.into_iter());
+    let test = build_test!(&source, &op_stack, &adv_stack, store, advice_map.into_iter());
     test.expect_stack(&[])
 }
 
 #[test]
-#[ignore]
 fn falcon_prove_verify() {
     let sk = SecretKey::new();
     let message = rand_vector::<Felt>(4).try_into().unwrap();
@@ -190,7 +240,9 @@ fn falcon_prove_verify() {
     let stack_inputs = StackInputs::try_from_ints(op_stack).expect("failed to create stack inputs");
     let advice_inputs = AdviceInputs::default().with_map(advice_map);
     let advice_provider = MemAdviceProvider::from(advice_inputs);
-    let mut host = DefaultHost::new(advice_provider);
+    let mut host = TestHost::new(advice_provider);
+    host.load_mast_forest(StdLibrary::default().mast_forest().clone())
+        .expect("failed to load mast forest");
 
     let options = ProvingOptions::with_96_bit_security(false);
     let (stack_outputs, proof) =
@@ -207,14 +259,17 @@ fn falcon_prove_verify() {
 fn generate_test(
     sk: SecretKey,
     message: Word,
-) -> (&'static str, Vec<u64>, Vec<u64>, MerkleStore, Vec<(Digest, Vec<Felt>)>) {
-    let source = "
+) -> (String, Vec<u64>, Vec<u64>, MerkleStore, Vec<(Digest, Vec<Felt>)>) {
+    let source = format!(
+        "
     use.std::crypto::dsa::rpo_falcon512
 
     begin
+        emit.{EVENT_FALCON_SIG_TO_STACK}
         exec.rpo_falcon512::verify
     end
-    ";
+    "
+    );
 
     let pk: Word = sk.public_key().into();
     let pk: Digest = pk.into();
@@ -241,7 +296,7 @@ fn generate_test(
 fn random_coefficients() -> Vec<Felt> {
     let mut res = Vec::new();
     for _i in 0..N {
-        res.push(Felt::new(thread_rng().gen_range(0..M)))
+        res.push(Felt::new(rng().random_range(0..M)))
     }
     res
 }

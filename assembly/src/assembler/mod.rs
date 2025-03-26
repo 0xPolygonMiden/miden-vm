@@ -4,18 +4,18 @@ use basic_block_builder::BasicBlockOrDecorators;
 use mast_forest_builder::MastForestBuilder;
 use module_graph::{ProcedureWrapper, WrappedModule};
 use vm_core::{
+    DecoratorList, Felt, Kernel, Operation, Program, WORD_SIZE,
     crypto::hash::RpoDigest,
     debuginfo::SourceSpan,
     mast::{DecoratorId, MastNodeId},
-    DecoratorList, Felt, Kernel, Operation, Program, WORD_SIZE,
 };
 
 use crate::{
+    AssemblyError, Compile, CompileOptions, LibraryNamespace, LibraryPath, SourceManager, Spanned,
     ast::{self, Export, InvocationTarget, InvokeKind, ModuleKind, QualifiedProcedureName},
     diagnostics::Report,
     library::{KernelLibrary, Library},
     sema::SemanticAnalysisError,
-    AssemblyError, Compile, CompileOptions, LibraryNamespace, LibraryPath, SourceManager, Spanned,
 };
 
 mod basic_block_builder;
@@ -784,9 +784,10 @@ impl Assembler {
                             target.span(),
                             p.digest,
                             mast_forest_builder,
-                        )
-                    ,
-                        ProcedureWrapper::Ast(_) => panic!("AST procedure {gid:?} exits in the module graph but not in the MastForestBuilder"),
+                        ),
+                        ProcedureWrapper::Ast(_) => panic!(
+                            "AST procedure {gid:?} exits in the module graph but not in the MastForestBuilder"
+                        ),
                     },
                 }
             },

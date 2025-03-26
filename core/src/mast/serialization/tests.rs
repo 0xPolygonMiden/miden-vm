@@ -1,9 +1,9 @@
 use alloc::{string::ToString, sync::Arc};
 
-use miden_crypto::{hash::rpo::RpoDigest, Felt, ONE};
+use miden_crypto::{Felt, ONE, hash::rpo::RpoDigest};
 
 use super::*;
-use crate::{mast::MastForestError, operations::Operation, AssemblyOp, DebugOptions, Decorator};
+use crate::{AssemblyOp, DebugOptions, Decorator, mast::MastForestError, operations::Operation};
 
 /// If this test fails to compile, it means that `Operation` or `Decorator` was changed. Make sure
 /// that all tests in this file are updated accordingly. For example, if a new `Operation` variant

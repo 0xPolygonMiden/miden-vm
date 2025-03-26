@@ -1,7 +1,7 @@
 use alloc::vec::Vec;
 
 use super::MetaExpr;
-use crate::{ast::Ident, SourceSpan, Spanned};
+use crate::{SourceSpan, Spanned, ast::Ident};
 
 /// Represents the metadata of a named list [crate::ast::Attribute], i.e. `@name(item0, .., itemN)`
 #[derive(Clone)]

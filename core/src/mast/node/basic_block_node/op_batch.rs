@@ -1,6 +1,6 @@
 use alloc::vec::Vec;
 
-use super::{Felt, Operation, BATCH_SIZE, GROUP_SIZE, ZERO};
+use super::{BATCH_SIZE, Felt, GROUP_SIZE, Operation, ZERO};
 
 // OPERATION BATCH
 // ================================================================================================

@@ -1,4 +1,4 @@
-use super::{build_test, TRUNCATE_STACK_PROC};
+use super::{TRUNCATE_STACK_PROC, build_test};
 
 // PUSHING VALUES ONTO THE STACK (PUSH)
 // ================================================================================================

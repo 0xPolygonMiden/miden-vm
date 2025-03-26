@@ -4,7 +4,7 @@ use core::fmt;
 use miden_crypto::hash::rpo::RpoDigest;
 use miden_formatting::{
     hex::ToHex,
-    prettier::{const_text, nl, text, Document, PrettyPrint},
+    prettier::{Document, PrettyPrint, const_text, nl, text},
 };
 
 use crate::mast::{DecoratorId, MastForest};

@@ -7,7 +7,6 @@ use core::fmt;
 // between 0 and 2^32.
 pub use constants::*;
 
-use super::SignatureKind;
 #[rustfmt::skip]
 mod constants {
     pub const EVENT_MERKLE_NODE_MERGE: u32            = 276124218;
@@ -27,7 +26,6 @@ mod constants {
     pub const EVENT_HDWORD_TO_MAP: u32                = 2391452729;
     pub const EVENT_HDWORD_TO_MAP_WITH_DOMAIN: u32    = 2822590340;
     pub const EVENT_HPERM_TO_MAP: u32                 = 3297060969;
-    pub const EVENT_FALCON_SIG_TO_STACK: u32          = 3419226139;
     pub const EVENT_FALCON_DIV: u32                   = 3419226155;
 }
 
@@ -165,14 +163,14 @@ pub enum SystemEvent {
     ///   Operand stack: [output_size, input_size, input_start_ptr, ...]
     ///   Advice stack: [coefficients...]
     ///
-    /// - `input_size` is the number of evaluations (each evaluation is 2 base field elements).
-    ///   Must be a power of 2 and greater 1.
+    /// - `input_size` is the number of evaluations (each evaluation is 2 base field elements). Must
+    ///   be a power of 2 and greater 1.
     /// - `output_size` is the number of coefficients in the interpolated polynomial (each
     ///   coefficient is 2 base field elements). Must be smaller than or equal to the number of
     ///   input evaluations.
     /// - `input_start_ptr` is the memory address of the first evaluation.
-    /// - `coefficients` are the coefficients of the interpolated polynomial such that lowest
-    ///   degree coefficients are located at the top of the advice stack.
+    /// - `coefficients` are the coefficients of the interpolated polynomial such that lowest degree
+    ///   coefficients are located at the top of the advice stack.
     Ext2Intt,
 
     /// Pushes onto the advice stack the value associated with the specified key in a Sparse
@@ -302,21 +300,6 @@ pub enum SystemEvent {
     /// Where KEY is computed by extracting the digest elements from hperm([C, A, B]). For example,
     /// if C is [0, d, 0, 0], KEY will be set as hash(A || B, d).
     HpermToMap,
-
-    /// Reads two words from the stack and pushes values onto the advice stack which are required
-    /// for verification of Falcon DSA in Miden VM.
-    ///
-    /// Inputs:
-    ///   Operand stack: [PK, MSG, ...]
-    ///   Advice stack: [...]
-    ///
-    /// Outputs:
-    ///   Operand stack: [PK, MSG, ...]
-    ///   Advice stack: \[SIG_DATA\]
-    ///
-    /// Where PK is the public key corresponding to the signing key, MSG is the message, SIG_DATA
-    /// is the signature data.
-    FalconSigToStack,
 }
 
 impl SystemEvent {
@@ -340,7 +323,6 @@ impl SystemEvent {
             SystemEvent::HdwordToMap => EVENT_HDWORD_TO_MAP,
             SystemEvent::HdwordToMapWithDomain => EVENT_HDWORD_TO_MAP_WITH_DOMAIN,
             SystemEvent::HpermToMap => EVENT_HPERM_TO_MAP,
-            SystemEvent::FalconSigToStack => EVENT_FALCON_SIG_TO_STACK,
         }
     }
 
@@ -366,7 +348,6 @@ impl SystemEvent {
             EVENT_HDWORD_TO_MAP => Some(SystemEvent::HdwordToMap),
             EVENT_HDWORD_TO_MAP_WITH_DOMAIN => Some(SystemEvent::HdwordToMapWithDomain),
             EVENT_HPERM_TO_MAP => Some(SystemEvent::HpermToMap),
-            EVENT_FALCON_SIG_TO_STACK => Some(SystemEvent::FalconSigToStack),
             _ => None,
         }
     }
@@ -399,7 +380,6 @@ impl fmt::Display for SystemEvent {
             Self::HdwordToMap => write!(f, "hdword_to_map"),
             Self::HdwordToMapWithDomain => write!(f, "hdword_to_map_with_domain"),
             Self::HpermToMap => write!(f, "hperm_to_map"),
-            Self::FalconSigToStack => write!(f, "sig_to_stack.{}", SignatureKind::RpoFalcon512),
         }
     }
 }

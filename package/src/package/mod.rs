@@ -1,8 +1,8 @@
 use alloc::{collections::BTreeSet, format, string::String, sync::Arc, vec::Vec};
 use core::fmt;
 
-use assembly::{ast::QualifiedProcedureName, Library, Report};
-use vm_core::{mast::MastForest, utils::DisplayHex, Program};
+use assembly::{Library, Report, ast::QualifiedProcedureName};
+use vm_core::{Program, mast::MastForest, utils::DisplayHex};
 
 use crate::{Dependency, Digest};
 
@@ -42,16 +42,16 @@ impl MastArtifact {
     /// Get the content digest associated with this artifact
     pub fn digest(&self) -> Digest {
         match self {
-            Self::Executable(ref prog) => prog.hash(),
-            Self::Library(ref lib) => *lib.digest(),
+            Self::Executable(prog) => prog.hash(),
+            Self::Library(lib) => *lib.digest(),
         }
     }
 
     /// Get the underlying [MastForest] for this artifact
     pub fn mast_forest(&self) -> &MastForest {
         match self {
-            Self::Executable(ref prog) => prog.mast_forest(),
-            Self::Library(ref lib) => lib.mast_forest(),
+            Self::Executable(prog) => prog.mast_forest(),
+            Self::Library(lib) => lib.mast_forest(),
         }
     }
 }
@@ -202,7 +202,7 @@ impl Package {
 mod tests {
     use std::sync::{Arc, LazyLock};
 
-    use assembly::{parse_module, testing::TestContext, Assembler, Library};
+    use assembly::{Assembler, Library, parse_module, testing::TestContext};
     use proptest::prelude::*;
     use vm_core::Program;
 

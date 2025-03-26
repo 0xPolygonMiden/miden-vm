@@ -1,8 +1,8 @@
 use core::fmt::{Display, Formatter, Result as FmtResult};
 
 use miden_air::{
-    trace::{chiplets::bitwise::OP_CYCLE_LEN as BITWISE_OP_CYCLE_LEN, main_trace::MainTrace},
     RowIndex,
+    trace::{chiplets::bitwise::OP_CYCLE_LEN as BITWISE_OP_CYCLE_LEN, main_trace::MainTrace},
 };
 use vm_core::{Felt, FieldElement, ONE, ZERO};
 

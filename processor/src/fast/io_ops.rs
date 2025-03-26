@@ -1,4 +1,4 @@
-use vm_core::{utils::range, Word};
+use vm_core::{Word, utils::range};
 
 use super::{ExecutionError, FastProcessor, Felt, WORD_SIZE};
 use crate::{AdviceProvider, Host, ProcessState};

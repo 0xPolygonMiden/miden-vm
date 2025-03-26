@@ -6,8 +6,8 @@ use super::{
     AdviceInputs, AdviceProvider, AdviceSource, ExecutionError, Felt, MerklePath, RpoDigest, Word,
 };
 use crate::{
-    utils::collections::{KvMap, RecordingMap},
     ProcessState,
+    utils::collections::{KvMap, RecordingMap},
 };
 
 // TYPE ALIASES

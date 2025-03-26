@@ -1,7 +1,7 @@
 use vm_core::{Felt, ZERO};
 
 use super::FastProcessor;
-use crate::{utils::split_element, ExecutionError};
+use crate::{ExecutionError, utils::split_element};
 
 impl FastProcessor {
     /// Analogous to `Process::op_u32split`.

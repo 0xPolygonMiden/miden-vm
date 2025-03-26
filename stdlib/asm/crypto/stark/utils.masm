@@ -11,7 +11,7 @@ export.compute_lde_generator
     swap
     sub
     pow2
-    exec.constants::root_unity
+    exec.constants::get_root_unity
     swap
     exp.u32
     # => [domain_gen, ..]

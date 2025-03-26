@@ -3,17 +3,17 @@ use alloc::vec::Vec;
 use miden_air::ProcessorAir;
 use processor::crypto::RpoRandomCoin;
 use test_utils::{
+    VerifierError,
     crypto::{MerkleStore, RandomCoin, Rpo256, RpoDigest},
-    math::{fft, FieldElement, QuadExtension, StarkField, ToElements},
-    Felt, VerifierError,
+    math::{FieldElement, QuadExtension, ToElements},
 };
-use winter_air::{proof::Proof, Air};
+use vm_core::Felt;
+use winter_air::{Air, proof::Proof};
 use winter_fri::VerifierChannel as FriVerifierChannel;
 
 mod channel;
 use channel::VerifierChannel;
 
-pub const BLOWUP_FACTOR: usize = 8;
 pub type QuadExt = QuadExtension<Felt>;
 
 #[derive(Debug, Clone, Eq, PartialEq)]
@@ -68,7 +68,9 @@ pub fn generate_advice_inputs(
     for commitment in trace_commitments.iter().skip(1) {
         let rand_elements: Vec<QuadExt> = air
             .get_aux_rand_elements(&mut public_coin)
-            .map_err(|_| VerifierError::RandomCoinError)?;
+            .map_err(|_| VerifierError::RandomCoinError)?
+            .rand_elements()
+            .to_vec();
         aux_trace_rand_elements.push(rand_elements);
         public_coin.reseed(*commitment);
     }
@@ -91,18 +93,26 @@ pub fn generate_advice_inputs(
 
     // read the main and auxiliary segments' OOD frames and add them to advice tape
     let ood_trace_frame = channel.read_ood_trace_frame();
-    let _ood_main_trace_frame = ood_trace_frame.main_frame();
-    let _ood_aux_trace_frame = ood_trace_frame.aux_frame();
+    let ood_main_trace_frame = ood_trace_frame.main_frame();
+    let ood_aux_trace_frame = ood_trace_frame.aux_frame();
 
-    let mut main_and_aux_frame_states = Vec::new();
-    for col in 0.._ood_main_trace_frame.current().len() {
-        main_and_aux_frame_states.push(_ood_main_trace_frame.current()[col]);
-        main_and_aux_frame_states.push(_ood_main_trace_frame.next()[col]);
-    }
-    for col in 0.._ood_aux_trace_frame.as_ref().unwrap().current().len() {
-        main_and_aux_frame_states.push(_ood_aux_trace_frame.as_ref().unwrap().current()[col]);
-        main_and_aux_frame_states.push(_ood_aux_trace_frame.as_ref().unwrap().next()[col]);
-    }
+    // the expected layout is:
+    // [main_current_elements, aux_current_elements, main_next_elements, aux_next_elements]
+    let mut main_and_aux_frame_states = ood_main_trace_frame.current().to_vec();
+    main_and_aux_frame_states.extend_from_slice(
+        ood_aux_trace_frame
+            .as_ref()
+            .expect("execution trace should have an auxiliary segment")
+            .current(),
+    );
+    main_and_aux_frame_states.extend_from_slice(ood_main_trace_frame.next());
+    main_and_aux_frame_states.extend_from_slice(
+        ood_aux_trace_frame
+            .as_ref()
+            .expect("execution trace should have an auxiliary segment")
+            .next(),
+    );
+
     advice_stack.extend_from_slice(&to_int_vec(&main_and_aux_frame_states));
     public_coin.reseed(Rpo256::hash_elements(&main_and_aux_frame_states));
 
@@ -117,16 +127,10 @@ pub fn generate_advice_inputs(
     let fri_commitments_digests = channel.read_fri_layer_commitments();
     let poly = channel.read_remainder().unwrap();
 
-    // Reed-Solomon encode the remainder polynomial as this is needed for the probabilistic NTT
-    let twiddles = fft::get_twiddles(poly.len());
-    let fri_remainder =
-        fft::evaluate_poly_with_offset(&poly, &twiddles, Felt::GENERATOR, BLOWUP_FACTOR);
-
     // add the above to the advice tape
     let fri_commitments: Vec<u64> = digest_to_int_vec(&fri_commitments_digests);
     advice_stack.extend_from_slice(&fri_commitments);
     advice_stack.extend_from_slice(&to_int_vec(&poly));
-    advice_stack.extend_from_slice(&to_int_vec(&fri_remainder));
 
     // reseed with FRI layer commitments
     let _deep_coefficients = air

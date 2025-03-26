@@ -1,21 +1,20 @@
 use alloc::vec::Vec;
 
 use miden_air::trace::{
+    CTX_COL_IDX, DECODER_TRACE_RANGE, DECODER_TRACE_WIDTH, FMP_COL_IDX, FN_HASH_RANGE,
+    IN_SYSCALL_COL_IDX, SYS_TRACE_RANGE, SYS_TRACE_WIDTH,
     decoder::{
         ADDR_COL_IDX, GROUP_COUNT_COL_IDX, HASHER_STATE_RANGE, IN_SPAN_COL_IDX, NUM_HASHER_COLUMNS,
         NUM_OP_BATCH_FLAGS, NUM_OP_BITS, OP_BATCH_1_GROUPS, OP_BATCH_2_GROUPS, OP_BATCH_4_GROUPS,
         OP_BATCH_8_GROUPS, OP_BATCH_FLAGS_RANGE, OP_BITS_EXTRA_COLS_RANGE, OP_BITS_OFFSET,
         OP_INDEX_COL_IDX,
     },
-    CTX_COL_IDX, DECODER_TRACE_RANGE, DECODER_TRACE_WIDTH, FMP_COL_IDX, FN_HASH_RANGE,
-    IN_SYSCALL_COL_IDX, SYS_TRACE_RANGE, SYS_TRACE_WIDTH,
 };
 use rstest::rstest;
 use test_utils::rand::rand_value;
 use vm_core::{
-    assert_matches,
+    EMPTY_WORD, ONE, Program, ZERO, assert_matches,
     mast::{BasicBlockNode, MastForest, MastNode, MastNodeId, OP_BATCH_SIZE},
-    Program, EMPTY_WORD, ONE, ZERO,
 };
 
 use super::{

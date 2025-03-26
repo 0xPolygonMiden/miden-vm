@@ -1,13 +1,13 @@
 use alloc::vec::Vec;
 use core::fmt;
 
-use miden_crypto::{hash::rpo::RpoDigest, Felt};
+use miden_crypto::{Felt, hash::rpo::RpoDigest};
 
 use crate::{
+    OPCODE_JOIN,
     chiplets::hasher,
     mast::{DecoratorId, MastForest, MastForestError, MastNodeId, Remapping},
     prettier::PrettyPrint,
-    OPCODE_JOIN,
 };
 
 // JOIN NODE

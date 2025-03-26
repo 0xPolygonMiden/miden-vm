@@ -310,10 +310,10 @@ pub mod reporting {
     use core::fmt;
 
     pub use miette::{
-        set_hook, DebugReportHandler, JSONReportHandler, NarratableReportHandler, ReportHandler,
+        DebugReportHandler, JSONReportHandler, NarratableReportHandler, ReportHandler, set_hook,
     };
     #[cfg(feature = "std")]
-    pub use miette::{set_panic_hook, GraphicalReportHandler, GraphicalTheme};
+    pub use miette::{GraphicalReportHandler, GraphicalTheme, set_panic_hook};
 
     pub type ReportHandlerOpts = miette::MietteHandlerOpts;
 

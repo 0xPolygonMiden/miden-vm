@@ -1,6 +1,6 @@
-use criterion::{criterion_group, criterion_main, BatchSize, Criterion};
-use miden_vm::{internal::InputFile, Assembler, DefaultHost, StackInputs};
-use processor::{execute, ExecutionOptions};
+use criterion::{BatchSize, Criterion, criterion_group, criterion_main};
+use miden_vm::{Assembler, DefaultHost, StackInputs, internal::InputFile};
+use processor::{ExecutionOptions, execute};
 use stdlib::StdLibrary;
 use walkdir::WalkDir;
 

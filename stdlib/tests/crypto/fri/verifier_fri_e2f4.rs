@@ -1,28 +1,34 @@
 use core::{marker::PhantomData, mem};
 
 use processor::{
-    crypto::{Hasher, RandomCoin, RpoDigest, WinterRandomCoin},
     Digest as MidenDigest,
+    crypto::{Hasher, RandomCoin, RpoDigest, WinterRandomCoin},
 };
 use test_utils::{
+    EMPTY_WORD, Felt, FieldElement, MerkleTreeVC, QuadFelt as QuadExt, StarkField,
     crypto::{MerklePath, NodeIndex, PartialMerkleTree, Rpo256 as MidenHasher},
     group_slice_elements,
     math::fft,
-    Felt, FieldElement, MerkleTreeVC, QuadFelt as QuadExt, StarkField, EMPTY_WORD,
 };
 use winter_fri::{
-    folding::fold_positions, DefaultProverChannel, FriOptions, FriProof, FriProver, VerifierError,
+    DefaultProverChannel, FriOptions, FriProof, FriProver, VerifierError, folding::fold_positions,
 };
 
 use super::channel::{MidenFriVerifierChannel, UnBatch};
 
+const MAX_REMAINDER_POLY_DEGREE: usize = 128;
+const FRI_FOLDING_FACTOR: usize = 4;
+const BLOWUP_FACTOR: usize = 8;
+const NUM_FRI_QUERIES: usize = 32;
+
 type AdvMap = Vec<(RpoDigest, Vec<Felt>)>;
 
 pub struct FriResult {
-    /// contains the Merkle authentication paths used to authenticate the queries.
+    /// A vector containing the Merkle authentication paths used to authenticate the queries.
     pub partial_trees: Vec<PartialMerkleTree>,
 
-    /// used to unhash Merkle nodes to a sequence of field elements representing the query-values.
+    /// A map used to unhash Merkle nodes to a sequence of field elements representing the
+    /// query-values.
     pub advice_maps: AdvMap,
 
     /// A vector of consecutive quadruples of the form (poe, p, e1, e0) where p is index of the
@@ -53,12 +59,10 @@ pub struct FriResult {
 //  a FRI proof inside the Miden VM.
 //  The output is organized as follows:
 pub fn fri_prove_verify_fold4_ext2(trace_length_e: usize) -> Result<FriResult, VerifierError> {
-    let max_remainder_size_e = 3;
-    let folding_factor_e = 2;
     let trace_length = 1 << trace_length_e;
-    let lde_blowup = 1 << 3;
-    let max_remainder_size = 1 << max_remainder_size_e;
-    let folding_factor = 1 << folding_factor_e;
+    let lde_blowup = BLOWUP_FACTOR;
+    let max_remainder_size = MAX_REMAINDER_POLY_DEGREE;
+    let folding_factor = FRI_FOLDING_FACTOR;
     let nonce = 0_u64;
 
     let options = FriOptions::new(lde_blowup, folding_factor, max_remainder_size);
@@ -93,10 +97,7 @@ pub fn fri_prove_verify_fold4_ext2(trace_length_e: usize) -> Result<FriResult, V
 
     let remainder_poly: Vec<QuadExt> =
         proof.parse_remainder().expect("should return remainder polynomial");
-    let twiddles = fft::get_twiddles(remainder_poly.len());
-    let remainder = fft::evaluate_poly_with_offset(&remainder_poly, &twiddles, Felt::GENERATOR, 8);
-
-    let remainder: Vec<u64> = QuadExt::slice_as_base_elements(&remainder[..])
+    let remainder: Vec<u64> = QuadExt::slice_as_base_elements(&remainder_poly[..])
         .to_owned()
         .iter()
         .map(|a| a.as_int())
@@ -123,7 +124,7 @@ pub fn build_prover_channel(
     trace_length: usize,
     options: &FriOptions,
 ) -> DefaultProverChannel<QuadExt, MidenHasher, WinterRandomCoin<MidenHasher>> {
-    DefaultProverChannel::new(trace_length * options.blowup_factor(), 32)
+    DefaultProverChannel::new(trace_length * options.blowup_factor(), NUM_FRI_QUERIES)
 }
 
 pub fn build_evaluations(trace_length: usize, lde_blowup: usize) -> Vec<QuadExt> {
@@ -187,8 +188,8 @@ impl FriVerifierFold4Ext2 {
         options: FriOptions,
         max_poly_degree: usize,
     ) -> Result<Self, VerifierError> {
-        assert_eq!(options.blowup_factor(), 8);
-        assert_eq!(options.folding_factor(), 4);
+        assert_eq!(options.blowup_factor(), BLOWUP_FACTOR);
+        assert_eq!(options.folding_factor(), FRI_FOLDING_FACTOR);
 
         // infer evaluation domain info
         let domain_size = max_poly_degree.next_power_of_two() * options.blowup_factor();
@@ -255,7 +256,7 @@ impl FriVerifierFold4Ext2 {
         let advice_provider =
             channel.unbatch::<4, 3>(&positions, self.domain_size(), self.layer_commitments.clone());
 
-        let mut d_generator;
+        let mut d_generator = self.domain_generator;
         let mut all_alphas = vec![];
         let mut all_position_evaluation = vec![];
         for (index, &position) in positions.iter().enumerate() {
@@ -281,9 +282,14 @@ impl FriVerifierFold4Ext2 {
         // read the remainder from the channel and make sure it matches with the columns
         // of the previous layer
         let remainder_commitment = self.layer_commitments.last().unwrap();
-        let remainder = channel.read_remainder::<4>(remainder_commitment)?;
-        for (pos, eval) in final_pos_eval.iter() {
-            if remainder[*pos] != *eval {
+        let remainder_poly = channel.read_remainder(remainder_commitment)?;
+        let offset = Felt::GENERATOR;
+        for &(final_pos, final_eval) in final_pos_eval.iter() {
+            let comp_eval = eval_horner_rev(
+                &remainder_poly,
+                offset * d_generator.exp_vartime(final_pos as u64),
+            );
+            if comp_eval != final_eval {
                 return Err(VerifierError::InvalidRemainderFolding);
             }
         }
@@ -306,7 +312,7 @@ fn iterate_query_fold_4_quad_ext(
     let mut cur_pos = position;
     let mut evaluation = *evaluation;
     let mut domain_size = initial_domain_size;
-    let domain_offset = Felt::GENERATOR;
+    let get_domain_offset = Felt::GENERATOR;
 
     let initial_domain_generator = *domain_generator;
     let norm_cst = Felt::get_root_of_unity(2).inv();
@@ -320,7 +326,7 @@ fn iterate_query_fold_4_quad_ext(
 
     let mut alphas = vec![];
     for depth in 0..number_of_layers {
-        let target_domain_size = domain_size / 4;
+        let target_domain_size = domain_size / FRI_FOLDING_FACTOR;
 
         let folded_pos = cur_pos % target_domain_size;
 
@@ -356,7 +362,7 @@ fn iterate_query_fold_4_quad_ext(
             1 => init_exp * norm_cst,
             2 => init_exp * (norm_cst * norm_cst),
             _ => init_exp * (norm_cst * norm_cst * norm_cst),
-        } * domain_offset;
+        } * get_domain_offset;
 
         init_exp = init_exp * init_exp * init_exp * init_exp;
 
@@ -384,9 +390,9 @@ fn iterate_query_fold_4_quad_ext(
         alphas.push(0);
         alphas.push(0);
 
-        *domain_generator = (*domain_generator).exp((4_u32).into());
+        *domain_generator = (*domain_generator).exp((FRI_FOLDING_FACTOR as u32).into());
         cur_pos = folded_pos;
-        domain_size /= 4;
+        domain_size /= FRI_FOLDING_FACTOR;
     }
 
     Ok((cur_pos, evaluation, position_evaluation, alphas))
@@ -451,11 +457,20 @@ impl UnBatch<QuadExt, MidenHasher> for MidenFriVerifierChannel<QuadExt, MidenHas
     }
 }
 
-// Helper function
+// HELPER FUNCTIONS
+// ================================================================================================
+
 fn fri_2<E, B>(f_x: E, f_minus_x: E, x_star: E, alpha: E) -> E
 where
     B: StarkField,
     E: FieldElement<BaseField = B>,
 {
     (f_x + f_minus_x + ((f_x - f_minus_x) * alpha / x_star)) / E::ONE.double()
+}
+
+pub fn eval_horner_rev<E>(p: &[E], x: E::BaseField) -> E
+where
+    E: FieldElement,
+{
+    p.iter().fold(E::ZERO, |acc, &coeff| acc * E::from(x) + coeff)
 }

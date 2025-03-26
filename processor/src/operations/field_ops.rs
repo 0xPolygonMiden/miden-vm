@@ -1,6 +1,6 @@
-use vm_core::{Operation, ONE, ZERO};
+use vm_core::{ONE, Operation, ZERO};
 
-use super::{utils::assert_binary, ExecutionError, Felt, FieldElement, Process};
+use super::{ExecutionError, Felt, FieldElement, Process, utils::assert_binary};
 
 // FIELD OPERATIONS
 // ================================================================================================
@@ -231,7 +231,7 @@ mod tests {
     use vm_core::{ONE, ZERO};
 
     use super::{
-        super::{Felt, FieldElement, Operation, MIN_STACK_DEPTH},
+        super::{Felt, FieldElement, MIN_STACK_DEPTH, Operation},
         Process,
     };
     use crate::{AdviceInputs, DefaultHost, StackInputs};

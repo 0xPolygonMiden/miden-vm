@@ -3,10 +3,10 @@ use alloc::{string::ToString, sync::Arc};
 use assembly::{Assembler, DefaultSourceManager};
 use miden_air::ExecutionOptions;
 use rstest::rstest;
-use vm_core::{assert_matches, Kernel, StackInputs};
+use vm_core::{Kernel, StackInputs, assert_matches};
 
 use super::*;
-use crate::{system::FMP_MAX, DefaultHost, Process};
+use crate::{DefaultHost, Process, system::FMP_MAX};
 
 mod advice_provider;
 mod all_ops;

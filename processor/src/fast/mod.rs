@@ -4,19 +4,19 @@ use core::cmp::min;
 use memory::Memory;
 use miden_air::RowIndex;
 use vm_core::{
+    Decorator, DecoratorIterator, EMPTY_WORD, Felt, Kernel, ONE, Operation, Program, StackOutputs,
+    WORD_SIZE, Word, ZERO,
     mast::{
         BasicBlockNode, CallNode, DynNode, ExternalNode, JoinNode, LoopNode, MastForest, MastNode,
-        MastNodeId, OpBatch, SplitNode, OP_GROUP_SIZE,
+        MastNodeId, OP_GROUP_SIZE, OpBatch, SplitNode,
     },
     stack::MIN_STACK_DEPTH,
     utils::range,
-    Decorator, DecoratorIterator, Felt, Kernel, Operation, Program, StackOutputs, Word, EMPTY_WORD,
-    ONE, WORD_SIZE, ZERO,
 };
 
 use crate::{
-    operations::utils::assert_binary, utils::resolve_external_node, ContextId, ExecutionError,
-    Host, ProcessState, FMP_MIN, SYSCALL_FMP_MIN,
+    ContextId, ExecutionError, FMP_MIN, Host, ProcessState, SYSCALL_FMP_MIN,
+    operations::utils::assert_binary, utils::resolve_external_node,
 };
 
 // temporary module to

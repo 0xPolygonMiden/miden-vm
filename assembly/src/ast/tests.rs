@@ -3,12 +3,11 @@ use alloc::{string::ToString, sync::Arc, vec::Vec};
 use pretty_assertions::assert_eq;
 
 use crate::{
-    assert_diagnostic, assert_diagnostic_lines,
+    Felt, Span, assert_diagnostic, assert_diagnostic_lines,
     ast::*,
-    diagnostics::{reporting::PrintDiagnostic, Report},
+    diagnostics::{Report, reporting::PrintDiagnostic},
     regex, source_file,
     testing::{Pattern, TestContext},
-    Felt, Span,
 };
 
 macro_rules! id {
@@ -366,7 +365,10 @@ fn test_ast_parsing_program_push() -> Result<(), Report> {
     assert_eq!(context.parse_forms(source)?, forms);
 
     // Push a hexadecimal string containing more than 4 values
-    let source_too_long = source_file!(&context, "begin push.0x00000000000000001000000000000000200000000000000030000000000000004000000000000000");
+    let source_too_long = source_file!(
+        &context,
+        "begin push.0x00000000000000001000000000000000200000000000000030000000000000004000000000000000"
+    );
     assert_parse_diagnostic!(source_too_long, "long hex strings must contain exactly 64 digits");
 
     // Push a hexadecimal string containing less than 4 values

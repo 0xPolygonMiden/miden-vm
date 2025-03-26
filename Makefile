@@ -10,7 +10,7 @@ WARNINGS=RUSTDOCFLAGS="-D warnings"
 DEBUG_ASSERTIONS=RUSTFLAGS="-C debug-assertions"
 FEATURES_CONCURRENT_EXEC=--features concurrent,executable
 FEATURES_LOG_TREE=--features concurrent,executable,tracing-forest
-FEATURES_METAL_EXEC=--features concurrent,executable,metal
+FEATURES_METAL_EXEC=--features concurrent,executable,metal,tracing-forest
 ALL_FEATURES_BUT_ASYNC=--features concurrent,executable,metal,testing,with-debug-info,internal
 
 # -- linting --------------------------------------------------------------------------------------
@@ -44,9 +44,9 @@ lint: format fix clippy ## Runs all linting tasks at once (Clippy, fixing, forma
 doc: ## Generates & checks documentation
 	$(WARNINGS) cargo doc ${ALL_FEATURES_BUT_ASYNC} --keep-going --release
 
-.PHONY: mdbook
-mdbook: ## Generates mdbook documentation
-	mdbook build docs/
+.PHONY: book
+book: ## Builds the book & serves documentation site
+	mdbook serve --open docs
 
 # --- testing -------------------------------------------------------------------------------------
 

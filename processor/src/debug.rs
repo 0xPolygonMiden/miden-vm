@@ -9,8 +9,8 @@ use miden_air::RowIndex;
 use vm_core::{AssemblyOp, FieldElement, Operation, StackOutputs};
 
 use crate::{
-    range::RangeChecker, system::ContextId, Chiplets, ChipletsLengths, Decoder, ExecutionError,
-    Felt, Process, Stack, System, TraceLenSummary,
+    Chiplets, ChipletsLengths, Decoder, ExecutionError, Felt, Process, Stack, System,
+    TraceLenSummary, range::RangeChecker, system::ContextId,
 };
 
 /// VmState holds a current process state information at a specific clock cycle.

@@ -1,7 +1,7 @@
 use vm_core::Operation::*;
 
-use super::{mem_ops::local_to_absolute_addr, push_felt, BasicBlockBuilder};
-use crate::{assembler::ProcedureContext, AssemblyError, Felt, SourceSpan};
+use super::{BasicBlockBuilder, mem_ops::local_to_absolute_addr, push_felt};
+use crate::{AssemblyError, Felt, SourceSpan, assembler::ProcedureContext};
 
 // CONSTANT INPUTS
 // ================================================================================================

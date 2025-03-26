@@ -1,4 +1,4 @@
-use vm_core::{chiplets::hasher::STATE_WIDTH, crypto::hash::Rpo256, utils::range, Felt};
+use vm_core::{Felt, chiplets::hasher::STATE_WIDTH, crypto::hash::Rpo256, utils::range};
 
 use super::FastProcessor;
 use crate::{AdviceProvider, ExecutionError, Host};
