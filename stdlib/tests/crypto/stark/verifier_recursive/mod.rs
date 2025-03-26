@@ -3,11 +3,11 @@ use alloc::vec::Vec;
 use miden_air::ProcessorAir;
 use processor::crypto::RpoRandomCoin;
 use test_utils::{
-    VerifierError,
+    MIN_STACK_DEPTH, VerifierError,
     crypto::{MerkleStore, RandomCoin, Rpo256, RpoDigest},
     math::{FieldElement, QuadExtension, ToElements},
 };
-use vm_core::Felt;
+use vm_core::{Felt, WORD_SIZE};
 use winter_air::{Air, proof::Proof};
 use winter_fri::VerifierChannel as FriVerifierChannel;
 
@@ -28,8 +28,16 @@ pub fn generate_advice_inputs(
     proof: Proof,
     pub_inputs: <ProcessorAir as Air>::PublicInputs,
 ) -> Result<VerifierData, VerifierError> {
+    // we compute the number of procedures in the kernel
+    let pub_inputs_elements = pub_inputs.to_elements();
+    let digests_elements = pub_inputs_elements.len() - MIN_STACK_DEPTH * 2;
+    assert_eq!(digests_elements % WORD_SIZE, 0);
+    let num_digests = digests_elements / WORD_SIZE;
+    let num_kernel_procedures_digests = num_digests - 1;
+
     // we need to provide the following instance specific data through the operand stack
     let initial_stack = vec![
+        num_kernel_procedures_digests as u64,
         proof.context.options().grinding_factor() as u64,
         proof.context.options().num_queries() as u64,
         proof.context.trace_info().length().ilog2() as u64,
@@ -42,8 +50,9 @@ pub fn generate_advice_inputs(
     let mut public_coin_seed = proof.context.to_elements();
     public_coin_seed.append(&mut pub_inputs.to_elements());
 
-    // add the public inputs, which is nothing but the input and output stacks to the VM, to the
-    // advice tape
+    // add the public inputs, which is nothing but the input and output stacks to the VM as well as
+    // the digests of the procedures making up the kernel against which the program was compiled,
+    // to the advice tape
     let pub_inputs_int: Vec<u64> = pub_inputs.to_elements().iter().map(|a| a.as_int()).collect();
     advice_stack.extend_from_slice(&pub_inputs_int[..]);
 
