@@ -46,19 +46,19 @@ export.verify
 
     # Validate inputs
     #
-    # Cycles: 35
+    # Cycles: 45
     exec.utils::validate_inputs
     # => [log(trace_length), num_queries, grinding, ...]
 
     # Initialize the seed using proof context
     #
-    # Cycles: 195
+    # Cycles: 210
     exec.random_coin::init_seed
     # => [C, ...]
 
     # Load public inputs
     #
-    # Cycles: 94
+    # Cycles: 92 + 5 * number_kernel_procedures
     exec.public_inputs::load
     exec.random_coin::reseed
     # => [...]

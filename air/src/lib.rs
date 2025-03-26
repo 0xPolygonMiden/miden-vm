@@ -273,9 +273,9 @@ impl PublicInputs {
 
 impl vm_core::ToElements<Felt> for PublicInputs {
     fn to_elements(&self) -> Vec<Felt> {
-        let mut result = self.program_info.to_elements();
-        result.append(&mut self.stack_inputs.to_vec());
+        let mut result = self.stack_inputs.to_vec();
         result.append(&mut self.stack_outputs.to_vec());
+        result.append(&mut self.program_info.to_elements());
         result
     }
 }

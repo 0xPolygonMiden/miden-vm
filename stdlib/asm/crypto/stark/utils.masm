@@ -19,16 +19,14 @@ end
 
 #! Validates the inputs to the recursive verifier.
 #!
-#! Input: [log(trace_length), num_queries, grinding, ...]
-#! Output: [log(trace_length), num_queries, grinding, ...]
+#! Input: [log(trace_length), num_queries, grinding, num_ker_proc, ...]
+#! Output: [log(trace_length), num_queries, grinding, num_ker_proc, ...]
 #!
-#! Cycles: 35
+#! Cycles: 45
 export.validate_inputs
     # 1) Assert that all inputs are u32 so that we can use u32 operations in what follows
-    dup.2 dup.2
-    u32assert2
-    dup.2
-    u32assert
+    dupw
+    u32assertw
     # => [log(trace_length), num_queries, grinding, log(trace_length), num_queries, grinding, ...]
 
     # 2) Assert that the trace length is at most 29. The 2-adicity of our field is 32 and since
@@ -46,4 +44,7 @@ export.validate_inputs
 
     # 4) Assert that the grinding factor is at most 31
     u32lt.32 assert
+
+    # 5) Assert that the number of kernel procedures is at most 127
+    u32lt.128 assert
 end
