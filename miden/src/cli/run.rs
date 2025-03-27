@@ -47,9 +47,9 @@ pub struct RunCmd {
     #[clap(short = 't', long = "trace")]
     trace: bool,
 
-    /// Enable debug instructions
-    #[clap(short = 'd', long = "debug")]
-    debug: bool,
+    /// Disable debug instructions (release mode)
+    #[clap(short = 'r', long = "release")]
+    release: bool,
 }
 
 impl RunCmd {
@@ -137,7 +137,7 @@ fn run_masp_program(params: &RunCmd) -> Result<(ExecutionTrace, [u8; 32]), Repor
         Some(params.max_cycles),
         params.expected_cycles,
         params.trace,
-        params.debug,
+        !params.release,
     )
     .into_diagnostic()?;
 
@@ -171,7 +171,7 @@ fn run_masm_program(params: &RunCmd) -> Result<(ExecutionTrace, [u8; 32]), Repor
         Some(params.max_cycles),
         params.expected_cycles,
         params.trace,
-        params.debug,
+        !params.release,
     )
     .into_diagnostic()?;
 
