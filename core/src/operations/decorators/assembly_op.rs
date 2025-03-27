@@ -80,6 +80,11 @@ impl AssemblyOp {
     // STATE MUTATORS
     // --------------------------------------------------------------------------------------------
 
+    /// Change cycles corresponding to an AsmOp decorator to the specified number of cycles.
+    pub fn set_num_cycles(&mut self, num_cycles: u8) {
+        self.num_cycles = num_cycles;
+    }
+
     /// Change the [Location] of this [AssemblyOp]
     pub fn set_location(&mut self, location: Location) {
         self.location = Some(location);

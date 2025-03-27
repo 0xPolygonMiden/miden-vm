@@ -11,6 +11,7 @@ use super::*;
 #[test]
 fn test_diagnostic_invalid_stack_depth_on_return_call() {
     // returning from a function with non-empty overflow table should result in an error
+    // Note: we add the `trace.2` to ensure that asm ops co-exist well with other decorators.
     let source = "
         proc.foo
             push.1
@@ -25,11 +26,11 @@ fn test_diagnostic_invalid_stack_depth_on_return_call() {
     assert_diagnostic_lines!(
         err,
         "when returning from a call or dyncall, stack depth must be 16, but was 17",
-        regex!(r#",-\[test[\d]+:7:13\]"#),
+        regex!(r#",-\[test[\d]+:7:21\]"#),
         " 6 |         begin",
-        " 7 |             call.foo",
-        "   :             ^^^^|^^^",
-        "   :                 `-- when returning from this call site",
+        " 7 |             trace.2 call.foo",
+        "   :                     ^^^^|^^^",
+        "   :                         `-- when returning from this call site",
         " 8 |         end",
         "   `----"
     );
@@ -72,8 +73,9 @@ fn test_diagnostic_invalid_stack_depth_on_return_dyncall() {
 fn test_diagnostic_unaligned_word_access() {
     // mem_storew
     let source = "
+        proc.foo add end
         begin
-            mem_storew.3
+            exec.foo mem_storew.3
         end";
 
     let build_test = build_test_by_mode!(true, source, &[1, 2, 3, 4]);
@@ -81,12 +83,12 @@ fn test_diagnostic_unaligned_word_access() {
 
     assert_diagnostic_lines!(
         err,
-        "word memory access at address 3 in context 0 is unaligned at clock cycle 2",
-        regex!(r#",-\[test[\d]+:3:13\]"#),
-        " 2 |         begin",
-        " 3 |             mem_storew.3",
-        "   :             ^^^^^^^^^^^^",
-        " 4 |         end",
+        "word memory access at address 3 in context 0 is unaligned at clock cycle 3",
+        regex!(r#",-\[test[\d]+:4:22\]"#),
+        " 3 |         begin",
+        " 4 |             exec.foo mem_storew.3",
+        "   :                      ^^^^^^^^^^^^",
+        " 5 |         end",
         "   `----",
         "  help: ensure that the memory address accessed is aligned to a word boundary (it is a multiple of 4)"
     );
