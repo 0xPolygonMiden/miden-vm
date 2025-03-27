@@ -62,12 +62,16 @@ pub struct ProveCmd {
     /// Enable tracing to monitor execution of the VM
     #[clap(short = 't', long = "trace")]
     trace: bool,
+
+    /// Disable debug instructions (release mode)
+    #[clap(long = "release")]
+    release: bool,
 }
 
 impl ProveCmd {
     pub fn get_proof_options(&self) -> Result<ProvingOptions, ExecutionOptionsError> {
         let exec_options =
-            ExecutionOptions::new(Some(self.max_cycles), self.expected_cycles, self.trace, false)?;
+            ExecutionOptions::new(Some(self.max_cycles), self.expected_cycles, self.trace, !self.release)?;
         Ok(match self.security.as_str() {
             "96bits" => {
                 if self.rpx {
