@@ -38,25 +38,28 @@ impl Assembler {
             // compute and update the cycle count of the instruction which just finished executing
             let maybe_asm_op_id = block_builder.set_instruction_cycle_count();
 
-            // New node was created, so we are done building the current block. We then want to
-            // add the assembly operation to the new node.
-            if let Some(node_id) = new_node_id {
-                let asm_op_id = maybe_asm_op_id.expect("no asmop decorator");
+            // New node was created, so we are done building the current block. We then want to add
+            // the assembly operation to the new node. However, Exec instructions are not added to
+            // the trace, so we should ignore them.
+            if !matches!(instruction.inner(), &Instruction::Exec(_)) {
+                if let Some(node_id) = new_node_id {
+                    let asm_op_id = maybe_asm_op_id.expect("no asmop decorator");
 
-                // set the cycle count to 1
-                {
-                    let assembly_op = &mut block_builder.mast_forest_builder_mut()[asm_op_id];
-                    if let Decorator::AsmOp(assembly_op) = assembly_op {
-                        assembly_op.set_num_cycles(1);
-                    } else {
-                        panic!("expected AsmOp decorator");
+                    // set the cycle count to 1
+                    {
+                        let assembly_op = &mut block_builder.mast_forest_builder_mut()[asm_op_id];
+                        if let Decorator::AsmOp(assembly_op) = assembly_op {
+                            assembly_op.set_num_cycles(1);
+                        } else {
+                            panic!("expected AsmOp decorator");
+                        }
                     }
-                }
 
-                block_builder
-                    .mast_forest_builder_mut()
-                    .set_before_enter(node_id, vec![asm_op_id]);
-            };
+                    block_builder
+                        .mast_forest_builder_mut()
+                        .append_before_enter(node_id, &[asm_op_id]);
+                };
+            }
         }
 
         Ok(new_node_id)

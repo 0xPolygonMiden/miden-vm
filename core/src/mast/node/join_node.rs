@@ -119,8 +119,8 @@ impl JoinNode {
     }
 
     /// Sets the list of decorators to be executed before this node.
-    pub fn set_before_enter(&mut self, decorator_ids: Vec<DecoratorId>) {
-        self.before_enter = decorator_ids;
+    pub fn append_before_enter(&mut self, decorator_ids: &[DecoratorId]) {
+        self.before_enter.extend_from_slice(decorator_ids);
     }
 
     /// Sets the list of decorators to be executed after this node.

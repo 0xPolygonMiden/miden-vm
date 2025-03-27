@@ -497,10 +497,8 @@ impl MastForestBuilder {
         }
     }
 
-    // TODO(plafer): this should merge with existing decorator IDs if they exist (when building the
-    // stdlib this does occur)
-    pub fn set_before_enter(&mut self, node_id: MastNodeId, decorator_ids: Vec<DecoratorId>) {
-        self.mast_forest[node_id].set_before_enter(decorator_ids);
+    pub fn append_before_enter(&mut self, node_id: MastNodeId, decorator_ids: &[DecoratorId]) {
+        self.mast_forest[node_id].append_before_enter(decorator_ids);
 
         let new_node_fingerprint = self.fingerprint_for_node(&self[node_id]);
         self.hash_by_node_id.insert(node_id, new_node_fingerprint);

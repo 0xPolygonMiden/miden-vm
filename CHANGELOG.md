@@ -33,6 +33,7 @@
 - Optimize FRI remainder polynomial check (#1670).
 - Remove `FALCON_SIG_TO_STACK` event (#1703).
 - Prevent `U64Div` event from crashing processor (#1710).
+- Improve processor errors for memory and calls (#1717)
 
 ## 0.12.0 (2025-01-22)
 

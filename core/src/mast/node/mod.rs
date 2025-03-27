@@ -274,15 +274,15 @@ impl MastNode {
 /// Mutators
 impl MastNode {
     /// Sets the list of decorators to be executed before this node.
-    pub fn set_before_enter(&mut self, decorator_ids: Vec<DecoratorId>) {
+    pub fn append_before_enter(&mut self, decorator_ids: &[DecoratorId]) {
         match self {
             MastNode::Block(node) => node.prepend_decorators(decorator_ids),
-            MastNode::Join(node) => node.set_before_enter(decorator_ids),
-            MastNode::Split(node) => node.set_before_enter(decorator_ids),
-            MastNode::Loop(node) => node.set_before_enter(decorator_ids),
-            MastNode::Call(node) => node.set_before_enter(decorator_ids),
-            MastNode::Dyn(node) => node.set_before_enter(decorator_ids),
-            MastNode::External(node) => node.set_before_enter(decorator_ids),
+            MastNode::Join(node) => node.append_before_enter(decorator_ids),
+            MastNode::Split(node) => node.append_before_enter(decorator_ids),
+            MastNode::Loop(node) => node.append_before_enter(decorator_ids),
+            MastNode::Call(node) => node.append_before_enter(decorator_ids),
+            MastNode::Dyn(node) => node.append_before_enter(decorator_ids),
+            MastNode::External(node) => node.append_before_enter(decorator_ids),
         }
     }
 
@@ -367,16 +367,14 @@ pub trait MastNodeExt {
             // If a target operation index is provided, return the assembly op associated with that
             // operation.
             Some(target_op_idx) => {
-                // Find the `AsmOp` decorator associated with the target operation index. If found,
-                // return the assembly op. Otherwise, look at the decorators associated with the
-                // next operation index. If an assembly op is found, and the target operation index
-                // is greater than the operation index of the assembly op minus the num_cycles
-                // associated with that assembly op, return the assembly op.
-                // TODO(plafer): fix the comment
                 for (op_idx, decorator_id) in self.decorators() {
                     if let Some(Decorator::AsmOp(assembly_op)) =
                         mast_forest.get_decorator_by_id(decorator_id)
                     {
+                        // when an instruction compiles down to multiple operations, only the first
+                        // operation is associated with the assembly op. We need to check if the
+                        // target operation index falls within the range of operations associated
+                        // with the assembly op.
                         if target_op_idx >= op_idx
                             && target_op_idx < op_idx + assembly_op.num_cycles() as usize
                         {

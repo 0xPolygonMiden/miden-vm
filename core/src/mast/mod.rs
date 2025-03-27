@@ -198,8 +198,8 @@ impl MastForest {
         id_remappings
     }
 
-    pub fn set_before_enter(&mut self, node_id: MastNodeId, decorator_ids: Vec<DecoratorId>) {
-        self[node_id].set_before_enter(decorator_ids)
+    pub fn append_before_enter(&mut self, node_id: MastNodeId, decorator_ids: &[DecoratorId]) {
+        self[node_id].append_before_enter(decorator_ids)
     }
 
     pub fn set_after_exit(&mut self, node_id: MastNodeId, decorator_ids: Vec<DecoratorId>) {
