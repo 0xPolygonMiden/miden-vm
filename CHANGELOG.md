@@ -446,6 +446,3 @@
 ### Changed
 
 // ... existing code ...
-- Made `debug` mode the default in the CLI. Added `--release` flag to disable debugging instead of having to enable it.
-
-// ... existing code ...
