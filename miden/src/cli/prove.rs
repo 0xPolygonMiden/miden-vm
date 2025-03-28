@@ -70,8 +70,12 @@ pub struct ProveCmd {
 
 impl ProveCmd {
     pub fn get_proof_options(&self) -> Result<ProvingOptions, ExecutionOptionsError> {
-        let exec_options =
-            ExecutionOptions::new(Some(self.max_cycles), self.expected_cycles, self.trace, !self.release)?;
+        let exec_options = ExecutionOptions::new(
+            Some(self.max_cycles),
+            self.expected_cycles,
+            self.trace,
+            !self.release,
+        )?;
         Ok(match self.security.as_str() {
             "96bits" => {
                 if self.rpx {
@@ -166,7 +170,7 @@ fn load_masp_data(params: &ProveCmd) -> Result<(Program, InputFile), Report> {
 #[instrument(skip_all)]
 fn load_masm_data(params: &ProveCmd) -> Result<(Program, InputFile), Report> {
     let libraries = Libraries::new(&params.library_paths)?;
-    let program = get_masm_program(&params.program_file, &libraries)?;
+    let program = get_masm_program(&params.program_file, &libraries, !params.release)?;
     let input_data = InputFile::read(&params.input_file, &params.program_file)?;
     Ok((program, input_data))
 }
