@@ -5,6 +5,7 @@
 #### Enhancements
 
 - Add kernel procedures digests as public inputs to the recursive verifier (#1724).
+- add optional `Package::account_component_metadata_bytes` to store serialized `AccountComponentMetadata` (#1731).
 
 
 ## 0.13.2 (2025-04-02)

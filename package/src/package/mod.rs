@@ -107,6 +107,9 @@ pub struct Package {
     /// The package manifest, containing the set of exported procedures and their signatures,
     /// if known.
     pub manifest: PackageManifest,
+    /// Serialized `miden-objects::account::AccountComponentMetadata` for the account component
+    /// (name, descrioption, storage,) associated with this package, if any.
+    pub account_component_metadata_bytes: Option<Vec<u8>>,
 }
 
 impl Package {
@@ -188,6 +191,7 @@ impl Package {
                     exports,
                     dependencies: self.manifest.dependencies.clone(),
                 },
+                account_component_metadata_bytes: None,
             })
         } else {
             Err(Report::msg(format!(

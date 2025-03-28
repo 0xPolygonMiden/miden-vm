@@ -82,6 +82,9 @@ impl Serializable for Package {
 
         // Write manifest
         self.manifest.write_into(target);
+
+        // Write optional account component metadata
+        self.account_component_metadata_bytes.write_into(target);
     }
 }
 
@@ -111,7 +114,21 @@ impl Deserializable for Package {
         // Read manifest
         let manifest = PackageManifest::read_from(source)?;
 
-        Ok(Self { name, mast, manifest })
+        // Read optional account component metadata
+        let account_component_metadata_bytes: Option<Vec<u8>> = if source.has_more_bytes() {
+            Deserializable::read_from(source)?
+        } else {
+            // For compatibility with the packages serialized with the previous version without
+            // the AccountComponentMetadata bytes
+            None
+        };
+
+        Ok(Self {
+            name,
+            mast,
+            manifest,
+            account_component_metadata_bytes,
+        })
     }
 }
 
