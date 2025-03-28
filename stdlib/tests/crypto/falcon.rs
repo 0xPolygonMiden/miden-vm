@@ -164,18 +164,36 @@ fn test_falcon512_recover_pub_key() {
     let (pub_key, advice_stack): (Vec<u64>, Vec<u64>) =
         generate_data_probabilistic_product_test(h, s2, false);
 
-    // println!("pub_key: {:?}", pub_key);
     let empty_operand_stack: Vec<u64> = vec![];
 
     let test = build_test!(FALCON_RECOVER_PUB_KEY_SOURCE, &empty_operand_stack, &advice_stack);
-    println!("len: {:?}", advice_stack.len());
 
     let stack_state = test.get_last_stack_state();
-    println!("stack: {:?}", stack_state);
-
     let expected_stack: Vec<Felt> = pub_key.iter().rev().map(|&val| Felt::new(val)).collect();
 
     assert_eq!(&expected_stack, &stack_state[..expected_stack.len()]);
+}
+
+#[test]
+fn test_falcon512_recover_pub_key_failure() {
+    let h: Polynomial<Felt> = Polynomial::new(random_coefficients());
+    let s2: Polynomial<Felt> = Polynomial::new(random_coefficients());
+    let (pub_key, mut advice_stack): (Vec<u64>, Vec<u64>) =
+        generate_data_probabilistic_product_test(h, s2, false);
+
+    let empty_operand_stack: Vec<u64> = vec![];
+
+    let correct_stack_state: Vec<Felt> = pub_key.iter().rev().map(|&val| Felt::new(val)).collect();
+
+    // modify h_0 by 1
+    advice_stack[2] += 1;
+
+    let test = build_test!(FALCON_RECOVER_PUB_KEY_SOURCE, &empty_operand_stack, &advice_stack);
+    let raw_stack_state = test.get_last_stack_state().as_int_vec();
+    let stack_state: Vec<Felt> = raw_stack_state.into_iter().map(Felt::new).collect();
+
+    // Assert that the recovered stack state does not equal the correct stack state.
+    assert_ne!(correct_stack_state, stack_state);
 }
 
 #[test]
