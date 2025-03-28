@@ -168,9 +168,10 @@ fn test_falcon512_recover_pub_key() {
     let empty_operand_stack: Vec<u64> = vec![];
 
     let test = build_test!(FALCON_RECOVER_PUB_KEY_SOURCE, &empty_operand_stack, &advice_stack);
+    println!("len: {:?}", advice_stack.len());
 
     let stack_state = test.get_last_stack_state();
-    // println!("stack: {:?}", stack_state);
+    println!("stack: {:?}", stack_state);
 
     let expected_stack: Vec<Felt> = pub_key.iter().rev().map(|&val| Felt::new(val)).collect();
 

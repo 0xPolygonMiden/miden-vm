@@ -125,30 +125,9 @@ end
 #!   Operand stack: []
 #!   Advice stack:  [tau0, tau1, h_0, ..., h_511, s2_0, ..., s2_511, pi_0, ..., pi_1022, ...]
 #! Outputs:
-#!   Operand stack: [PK]
+#!   Operand stack: [PK_HASH]
 export.falcon_recover_pub_key.16
-    # We will store in local addresses:
-    # 1. 0..4 the public key,
-    # 2. 4..8 the inverse of the evaluation point tau as [tau_inv0, tau_inv1, tau0, tau1].
-    
-    # 1) Set up the stack for loading the coefficients of the polynomials, evaluating and hashing them
-    
-    ## a) Set up the accumulator for `horner_eval_base` and the memory pointers
-    push.0.0
-    locaddr.4
-    movup.3
-    # => [ptr, tau_inv_ptr, 0, 0, PK, ...]
-
-    ## b) Save PK to later compare it with the hash of the h polynomial
-    swapw
-    loc_storew.0
-    # => [PK, ptr, tau_inv_ptr, acc1, acc0, ...]
-
-    ## c) Prepare the capacity portion of the state of the hasher
-    padw swapw
-    # => [Y, 0, 0, 0, 0, ptr, tau_inv_ptr, acc1, acc0, ...], where Y is a "garbage" word
-
-    ## d) Load the evaluation point tau from the advice tape, compute its inverse and save both
+    ## Load the evaluation point tau from the advice tape, compute its inverse and save both
     ## Note that we will evaluate the polynomials at `tau_inv = tau^{-1}` as we are loading the coefficients
     ## in the normal order i.e., not in reversed order required for Horner evaluation.
     ## This means that the equality we will be checking is 
@@ -163,7 +142,27 @@ export.falcon_recover_pub_key.16
     loc_storew.4
     # => [tau1, tau0, tau_inv1, tau_inv0, Y, 0, 0, 0, 0, ptr, tau_inv_ptr, acc1, acc0, ...]
 
-    # 2) Load the coefficients of the h polynomial and evaluate it at tau_inv
+    # Load the coefficients of the h polynomial and evaluate it at tau_inv
+    exec.eval_tau_inv
+    # => [Y, D, C, ptr, tau_inv_ptr, acc1, acc0, ...] where D is the digest expected to be PK hash
+    
+    dropw
+    # => [D, C, ptr, tau_inv_ptr, acc1, acc0, ...]
+
+    repeat.4
+        swapw
+        dropw
+    end
+    # => [D]
+end
+
+#! Inputs:
+#!   Operand stack: [tau1, tau0, tau_inv1, tau_inv0, Y, 0, 0, 0, 0, ptr, tau_inv_ptr, acc1, acc0, ...]
+#!   Advice stack:  [tau0, tau1, h_0, ..., h_511, s2_0, ..., s2_511, pi_0, ..., pi_1022, ...]
+#! Outputs:
+#!   Operand stack: [Y, D, C, ptr, tau_inv_ptr, acc1, acc0, ...] where D is the digest expected to be PK
+#!   Advice stack:  [h_0, ..., h_511, s2_0, ..., s2_511, pi_0, ..., pi_1022, ...]
+proc.eval_tau_inv
     repeat.64
         adv_pipe
 
@@ -188,21 +187,6 @@ export.falcon_recover_pub_key.16
 
         hperm
     end
-    # => [Y, D, C, ptr, tau_inv_ptr, acc1, acc0, ...] where D is the digest expected to be PK
-    dropw
-    # => [D, C, ptr, tau_inv_ptr, acc1, acc0, ...] where D is the digest expected to be PK
-
-    mem_storew.0
-    # => [C, ptr, tau_inv_ptr, acc1, acc0, ...]
-
-    repeat.64
-        dropw
-    end
-    # => []
-
-    mem_loadw.0
-    # => [D]
-
 end
 
 
@@ -271,30 +255,7 @@ export.load_h_s2_and_product.8
     # => [tau1, tau0, tau_inv1, tau_inv0, Y, 0, 0, 0, 0, ptr, tau_inv_ptr, acc1, acc0, ...]
 
     # 2) Load the coefficients of the h polynomial and evaluate it at tau_inv
-    repeat.64
-        adv_pipe
-
-        # check that all coefficients are less than Falcon prime
-        dupw.1
-        u32assert2
-        u32overflowing_sub.M assert drop
-        u32overflowing_sub.M assert drop
-        u32assert2
-        u32overflowing_sub.M assert drop
-        u32overflowing_sub.M assert drop
-
-        dupw
-        u32assert2
-        u32overflowing_sub.M assert drop
-        u32overflowing_sub.M assert drop
-        u32assert2
-        u32overflowing_sub.M assert drop
-        u32overflowing_sub.M assert drop
-
-        horner_eval_base
-
-        hperm
-    end
+    exec.eval_tau_inv
     # => [Y, D, C, ptr, tau_inv_ptr, acc1, acc0, ...] where D is the digest expected to be PK
 
     # 3) Load PK, the saved claimed hash of h, and compare hashes
@@ -335,7 +296,6 @@ export.load_h_s2_and_product.8
         hperm
     end
     # => [Y, Y, C, ptr, tau_inv_ptr, s2(tau)_1, s2(tau)_0, h(tau)_1, h(tau)_0, ...]
-
 
     # 5) Load claimed h * s2 in Z_Q[x]
 
