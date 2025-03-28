@@ -29,11 +29,15 @@ pub fn generate_advice_inputs(
     pub_inputs: <ProcessorAir as Air>::PublicInputs,
 ) -> Result<VerifierData, VerifierError> {
     // we compute the number of procedures in the kernel
+    // the public inputs contain, in addition to the kernel procedure roots:
+    //
+    // 1. The input operand stack (16 field elements),
+    // 2. The output operand stack (16 field elements),
+    // 3. The program hash (4 field elements).
     let pub_inputs_elements = pub_inputs.to_elements();
-    let digests_elements = pub_inputs_elements.len() - MIN_STACK_DEPTH * 2;
+    let digests_elements = pub_inputs_elements.len() - MIN_STACK_DEPTH * 2 - WORD_SIZE;
     assert_eq!(digests_elements % WORD_SIZE, 0);
-    let num_digests = digests_elements / WORD_SIZE;
-    let num_kernel_procedures_digests = num_digests - 1;
+    let num_kernel_procedures_digests = digests_elements / WORD_SIZE;
 
     // we need to provide the following instance specific data through the operand stack
     let initial_stack = vec![

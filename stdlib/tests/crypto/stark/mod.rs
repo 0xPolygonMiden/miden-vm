@@ -3,6 +3,7 @@ mod verifier_recursive;
 use assembly::{Assembler, DefaultSourceManager};
 use miden_air::{FieldExtension, HashFunction, PublicInputs};
 use processor::{DefaultHost, Program, ProgramInfo};
+use rstest::rstest;
 use test_utils::{
     AdviceInputs, MemAdviceProvider, ProvingOptions, StackInputs, VerifierError, prove,
 };
@@ -10,8 +11,11 @@ use verifier_recursive::{VerifierData, generate_advice_inputs};
 
 // Note: Changes to Miden VM may cause this test to fail when some of the assumptions documented
 // in `stdlib/asm/crypto/stark/verifier.masm` are violated.
-#[test]
-fn stark_verifier_e2f4_without_kernel() {
+#[rstest]
+#[case(None)]
+#[case(Some(KERNEL_ODD_NUM_PROC))]
+#[case(Some(KERNEL_EVEN_NUM_PROC))]
+fn stark_verifier_e2f4(#[case] kernel: Option<&str>) {
     // An example MASM program to be verified inside Miden VM.
     let example_source = "begin
             repeat.32
@@ -27,77 +31,7 @@ fn stark_verifier_e2f4_without_kernel() {
         advice_stack: tape,
         store,
         advice_map,
-    } = generate_recursive_verifier_data(example_source, stack_inputs, None).unwrap();
-
-    // Verify inside Miden VM
-    let source = "
-        use.std::crypto::stark::verifier
-        begin
-            exec.verifier::verify
-        end
-        ";
-
-    let test = build_test!(source, &initial_stack, &tape, store, advice_map);
-
-    test.expect_stack(&[]);
-}
-
-// Note: Changes to Miden VM may cause this test to fail when some of the assumptions documented
-// in `stdlib/asm/crypto/stark/verifier.masm` are violated.
-#[test]
-fn stark_verifier_e2f4_with_kernel_odd_number_procedures() {
-    // An example MASM program to be verified inside Miden VM.
-    let example_source = "begin
-            repeat.32
-                swap dup.1 add
-            end
-        end";
-    let mut stack_inputs = vec![0_u64; 16];
-    stack_inputs[15] = 0;
-    stack_inputs[14] = 1;
-
-    let VerifierData {
-        initial_stack,
-        advice_stack: tape,
-        store,
-        advice_map,
-    } = generate_recursive_verifier_data(example_source, stack_inputs, Some(KERNEL_ODD_NUM_PROC))
-        .unwrap();
-
-    // Verify inside Miden VM
-    let source = "
-        use.std::crypto::stark::verifier
-        begin
-            exec.verifier::verify
-        end
-        ";
-
-    let test = build_test!(source, &initial_stack, &tape, store, advice_map);
-
-    test.expect_stack(&[]);
-}
-
-// Note: Changes to Miden VM may cause this test to fail when some of the assumptions documented
-// in `stdlib/asm/crypto/stark/verifier.masm` are violated.
-#[test]
-fn stark_verifier_e2f4_with_kernel_even_number_procedures() {
-    // An example MASM program to be verified inside Miden VM.
-    let example_source = "begin
-            repeat.32
-                swap dup.1 add
-            end
-        end";
-    let mut stack_inputs = vec![0_u64; 16];
-    stack_inputs[15] = 0;
-    stack_inputs[14] = 1;
-
-    let VerifierData {
-        initial_stack,
-        advice_stack: tape,
-        store,
-        advice_map,
-    } = generate_recursive_verifier_data(example_source, stack_inputs, Some(KERNEL_EVEN_NUM_PROC))
-        .unwrap();
+    } = generate_recursive_verifier_data(example_source, stack_inputs, kernel).unwrap();
 
     // Verify inside Miden VM
     let source = "

@@ -30,6 +30,7 @@ export.load
         adv_loadw
         hperm
     end
+    # => [R2, R1, C, ptr, ...]
      
     # 2) Compute the number of digests we have to load. The digests are the program hash
     #    and kernel procedures digests.
@@ -42,11 +43,13 @@ export.load
     #    to pad with the zero word, while we don't need to pad otherwise.
     u32divmod.2
     push.0 eq
+    # => [?, num_iter, R2, R1, C, ptr, ...]
     if.true
         dup
         movdn.14
         push.0
         neq
+        # => [(num_iter == 0), R2, R1, C, ptr, num_iter, ...]
         while.true
             adv_pipe
             hperm
@@ -56,6 +59,7 @@ export.load
             dup.13
             push.0
             neq
+            # => [(num_iter - 1 == 0), R2, R1, C, ptr, num_iter, ...]
         end
 
     else
@@ -63,6 +67,7 @@ export.load
         movdn.14
         push.0
         neq
+        # => [(num_iter == 0), R2, R1, C, ptr, num_iter, ...]
         while.true
             adv_pipe
             hperm
@@ -72,14 +77,14 @@ export.load
             dup.13
             push.0
             neq
+            # => [(num_iter - 1 == 0), R2, R1, C, ptr, num_iter, ...]
         end
 
+        # Absorb the last digest and pad with zeros
         adv_loadw
-
         swapw
         exec.constants::zeroize_stack_word
         hperm
-
     end
 
     exec.rpo::squeeze_digest
