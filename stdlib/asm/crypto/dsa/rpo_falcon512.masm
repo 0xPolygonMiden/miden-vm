@@ -121,6 +121,8 @@ export.hash_to_point.8
     dropw
 end
 
+# PUBLIC-KEY-HASH RECOVERY FROM SIGNATURE
+# =============================================================================================
 
 #!   Operand stack: []
 #!   Advice stack:  [tau0, tau1, h_0, ..., h_511, s2_0, ..., s2_511, pi_0, ..., pi_1022, ...]
@@ -156,6 +158,11 @@ export.falcon_recover_pub_key.16
     # => [D]
 end
 
+# @dev What should be the title of this procedure? 
+# Since it is used in falcon_recover_pub_key & load_h_s2_and_product 
+# It might make sense to have it as a standalone helper procedure 
+
+#! Loads and evaluates s2 at tau_inv
 #! Inputs:
 #!   Operand stack: [tau1, tau0, tau_inv1, tau_inv0, Y, 0, 0, 0, 0, ptr, tau_inv_ptr, acc1, acc0, ...]
 #!   Advice stack:  [tau0, tau1, h_0, ..., h_511, s2_0, ..., s2_511, pi_0, ..., pi_1022, ...]
@@ -188,7 +195,6 @@ proc.eval_tau_inv
         hperm
     end
 end
-
 
 # PROBABILISTIC POLYNOMIAL MULTIPLICATION IN Z_Q[x]
 # =============================================================================================
