@@ -23,7 +23,12 @@ pub fn get_masp_program(path: &Path) -> Result<vm_core::Program, Report> {
 }
 
 /// Returns a `Program` type from a `.masm` assembly file.
-pub fn get_masm_program(path: &Path, libraries: &Libraries) -> Result<vm_core::Program, Report> {
-    let program = ProgramFile::read(path)?.compile(Debug::On, &libraries.libraries)?;
+pub fn get_masm_program(
+    path: &Path,
+    libraries: &Libraries,
+    debug_on: bool,
+) -> Result<vm_core::Program, Report> {
+    let debug_mode = if debug_on { Debug::On } else { Debug::Off };
+    let program = ProgramFile::read(path)?.compile(debug_mode, &libraries.libraries)?;
     Ok(program)
 }
