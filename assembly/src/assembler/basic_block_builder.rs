@@ -145,8 +145,10 @@ impl BasicBlockBuilder<'_> {
         let (op_start, assembly_op_id) =
             self.decorators.get_mut(self.last_asmop_pos).expect("no asmop decorator");
 
-        let assembly_op = &mut self.mast_forest_builder[*assembly_op_id];
-        assert!(matches!(assembly_op, Decorator::AsmOp(_)));
+        let assembly_op = match &mut self.mast_forest_builder[*assembly_op_id] {
+            Decorator::AsmOp(assembly_op) => assembly_op,
+            _ => panic!("internal error: last asmop decorator is not an AsmOp"),
+        };
 
         // compute the cycle count for the instruction
         let cycle_count = self.ops.len() - *op_start;
@@ -155,11 +157,9 @@ impl BasicBlockBuilder<'_> {
         if cycle_count == 0 {
             let (_, decorator_id) = self.decorators.remove(self.last_asmop_pos);
             Some(decorator_id)
-        } else if let Decorator::AsmOp(assembly_op) = assembly_op {
+        } else {
             assembly_op.set_num_cycles(cycle_count as u8);
 
-            None
-        } else {
             None
         }
     }
