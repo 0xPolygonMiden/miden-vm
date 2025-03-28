@@ -197,7 +197,7 @@
 - The `Module::parse_file` and `Module::parse_str` functions have been removed in favor of calling `Module::parser` and then using the `ModuleParser` methods.
 - The `Compile` trait now requires passing a `SourceManager` reference along with the item to be compiled.
 - Update minimum supported Rust version to 1.80 (#1425).
-- Made `debug` mode the default in the CLI. Added `--release` flag to disable debugging instead of having to enable it.
+- Made `debug` mode the default in the CLI. Added `--release` flag to disable debugging instead of having to enable it. (#1728)
 
 ## 0.9.2 (2024-05-22) - `stdlib` crate only
 
