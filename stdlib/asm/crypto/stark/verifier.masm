@@ -30,9 +30,9 @@ use.std::crypto::stark::utils
 #!
 #! Cycles:
 #!  1- Remainder polynomial size 64:
-#!   2175 + num_queries * (512 + num_fri_layers * 83) + 108 * num_fri_layers + 10 * log(trace_length)
+#!   2215 + num_queries * (512 + num_fri_layers * 83) + 120 * num_fri_layers + 10 * log(trace_length)
 #!  2- Remainder polynomial size 128:
-#!   2200 + num_queries * (541 + num_fri_layers * 83) + 108 * num_fri_layers + 10 * log(trace_length)
+#!   2240 + num_queries * (541 + num_fri_layers * 83) + 120 * num_fri_layers + 10 * log(trace_length)
 #!
 #!  where num_fri_layers is computed as:
 #!
@@ -93,11 +93,11 @@ export.verify
     # => [...]
 
     #==============================================================================================
-    #       III) Draw constraint composition coefficients
+    #       III) Draw constraint composition coefficient
     #==============================================================================================
 
-    # Cycles: 13
-    exec.random_coin::generate_constraint_composition_coefficients
+    # Cycles: 25
+    exec.random_coin::generate_constraint_composition_coefficient
     # => [...]
 
     #==============================================================================================
@@ -153,12 +153,12 @@ export.verify
     #==============================================================================================
 
     #============================================
-    #   1) Draw random coefficients for computing
+    #   1) Draw random coefficient for computing
     #       DEEP composition polynomial.
     #============================================
 
-    # Cycles: 14
-    exec.random_coin::generate_deep_composition_random_coefficients
+    # Cycles: 25
+    exec.random_coin::generate_deep_composition_random_coefficient
 
     #============================================
     #   2) Compute constants needed for computing
@@ -169,7 +169,7 @@ export.verify
     #       -   Number of FRI layers.
     #============================================
 
-    # Cycles: 77
+    # Cycles: 45
     exec.helper::generate_fri_parameters
     # => [...]
 
@@ -179,7 +179,7 @@ export.verify
     #      computing the degree respecting projection
     #============================================
 
-    # Cycles: 40 + 108 * num_fri_layers
+    # Cycles: 40 + 120 * num_fri_layers
     exec.helper::load_fri_layer_commitments
     # => [...]
 
@@ -218,6 +218,7 @@ export.verify
     # Cycles: 92 + 32.5 * num_queries
     exec.random_coin::generate_list_indices
     # => [...]
+
 
     # Compute deep composition polynomial queries
     #

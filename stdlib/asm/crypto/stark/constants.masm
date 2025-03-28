@@ -16,6 +16,9 @@ const.NUM_CONSTRAINTS=226
 const.BLOWUP_FACTOR=8
 const.BLOWUP_FACTOR_LOG=3
 
+# Extension field degree
+const.EXTENSION_FIELD_DEGREE=2
+
 # MEMORY POINTERS
 # =================================================================================================
 
@@ -84,6 +87,8 @@ const.COMPOSITION_POLY_COM_PTR=4294813208
 # Instant-specific constants
 const.LDE_DOMAIN_INFO_PTR=4294813212
 const.LDE_DOMAIN_GEN_PTR=4294813213
+const.LDE_DOMAIN_LOG_SIZE_PTR=4294813214
+const.LDE_DOMAIN_SIZE_PTR=4294813215
 const.Z_PTR=4294813216
 const.NUM_QUERIES_PTR=4294813220
 const.REMAINDER_POLY_SIZE_PTR=4294813221
@@ -99,6 +104,7 @@ const.NUM_KERNEL_PROCEDURES_PTR=4294813233
 const.ZERO_WORD_PTR=4294813236
 
 # State of RPO-based random coin
+const.CURRENT_PTR=4294813243
 const.C_PTR=4294813244
 const.R1_PTR=4294813248
 const.R2_PTR=4294813252
@@ -160,6 +166,9 @@ const.ALPHA_POWER_85_1_PTR=4294903445
 #   | AUX_TRACE_COM_PTR                        |       4294913204        |
 #   | COMPOSITION_POLY_COM_PTR                 |       4294913208        |
 #   | LDE_DOMAIN_INFO_PTR                      |       4294913212        |
+#   | LDE_DOMAIN_SIZE_PTR                      |       4294913213        |
+#   | LDE_DOMAIN_LOG_SIZE_PTR                  |       4294913214        |
+#   | LDE_DOMAIN_SIZE_PTR                      |       4294913215        |
 #   | Z_PTR                                    |       4294913216        |
 #   | NUM_QUERIES_PTR                          |       4294913220        |
 #   | TRACE_LENGTH_PTR                         |       4294913224        |
@@ -251,6 +260,14 @@ end
 #! The word stored is `[z_0, z_1, z^n_0, z^n_1]`.
 export.z_ptr
     push.Z_PTR
+end
+
+export.set_rpo_current
+    push.CURRENT_PTR mem_store
+end
+
+export.get_rpo_current
+    push.CURRENT_PTR mem_load
 end
 
 #! Returns the pointer to the capacity word of the RPO-based random coin.
@@ -374,7 +391,7 @@ end
 
 #! Store details about the LDE domain.
 #!
-#! The info stored is `[lde_size, log(lde_size), lde_g, 0]`.
+#! The info stored is `[0, lde_g, log(lde_size), lde_size]`.
 export.set_lde_domain_info_word
     push.LDE_DOMAIN_INFO_PTR mem_storew
 end
@@ -492,4 +509,24 @@ end
 
 export.get_grinding_factor
     push.GRINDING_FACTOR_PTR mem_load
+end
+
+export.extension_field_degree
+    push.EXTENSION_FIELD_DEGREE
+end
+
+export.set_lde_domain_size
+    push.LDE_DOMAIN_SIZE_PTR mem_store
+end
+
+export.get_lde_domain_size
+    push.LDE_DOMAIN_SIZE_PTR mem_load
+end
+
+export.set_lde_domain_log_size
+    push.LDE_DOMAIN_LOG_SIZE_PTR mem_store 
+end
+
+export.get_lde_domain_log_size
+    push.LDE_DOMAIN_LOG_SIZE_PTR mem_load
 end
