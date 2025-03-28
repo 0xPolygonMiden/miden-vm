@@ -192,7 +192,6 @@ fn test_falcon512_recover_pub_key_failure() {
     let raw_stack_state = test.get_last_stack_state().as_int_vec();
     let stack_state: Vec<Felt> = raw_stack_state.into_iter().map(Felt::new).collect();
 
-    // Assert that the recovered stack state does not equal the correct stack state.
     assert_ne!(correct_stack_state, stack_state);
 }
 
@@ -210,7 +209,7 @@ fn test_falcon512_probabilistic_product_failure() {
     expect_exec_error_matches!(
         test,
         ExecutionError::FailedAssertion{ clk, err_code, err_msg }
-        if clk == RowIndex::from(3182) && err_code == 0 && err_msg.is_none()
+        if clk == RowIndex::from(3188) && err_code == 0 && err_msg.is_none()
     );
 }
 
