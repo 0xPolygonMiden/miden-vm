@@ -153,7 +153,7 @@ impl LibraryNamespace {
 
     /// Create an [Ident] representing this namespace.
     pub fn to_ident(&self) -> Ident {
-        Ident::new_unchecked(Span::unknown(self.as_refcounted_str()))
+        Ident::from_raw_parts(Span::unknown(self.as_refcounted_str()))
     }
 }
 

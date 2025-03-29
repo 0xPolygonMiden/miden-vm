@@ -87,12 +87,14 @@ impl Ident {
     }
 
     /// This allows constructing an [Ident] directly from a ref-counted string that is known to be
-    /// a valid identifier, and so does not require re-parsing/re-validating. This must _not_ be
-    /// used to bypass validation when you have an identifier that is not valid, and such
-    /// identifiers will be caught during compilation and result in a panic being raised.
+    /// a valid identifier, and so does not require re-parsing/re-validating.
+    ///
+    /// This should _not_ be used to bypass validation, as other parts of the assembler still may
+    /// re-validate identifiers, notably during deserialization, and may result in a panic being
+    /// raised.
     ///
     /// NOTE: This function is perma-unstable, it may be removed or modified at any time.
-    pub fn new_unchecked(name: Span<Arc<str>>) -> Self {
+    pub fn from_raw_parts(name: Span<Arc<str>>) -> Self {
         let (span, name) = name.into_parts();
         Self { span, name }
     }

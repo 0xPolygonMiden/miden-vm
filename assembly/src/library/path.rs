@@ -415,7 +415,7 @@ impl LibraryPath {
         S: AsRef<str>,
     {
         let component = component.as_ref().to_string().into_boxed_str();
-        let component = Ident::new_unchecked(Span::unknown(Arc::from(component)));
+        let component = Ident::from_raw_parts(Span::unknown(Arc::from(component)));
         let mut path = self.clone();
         path.push_ident(component);
         path
@@ -438,7 +438,7 @@ impl<'a> TryFrom<Vec<LibraryPathComponent<'a>>> for LibraryPath {
             match component {
                 LibraryPathComponent::Normal(ident) => components.push(ident.clone()),
                 LibraryPathComponent::Namespace(LibraryNamespace::User(name)) => {
-                    components.push(Ident::new_unchecked(Span::unknown(name.clone())));
+                    components.push(Ident::from_raw_parts(Span::unknown(name.clone())));
                 },
                 LibraryPathComponent::Namespace(_) => return Err(PathError::UnsupportedJoin),
             }

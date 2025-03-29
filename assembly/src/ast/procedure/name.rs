@@ -206,7 +206,7 @@ impl ProcedureName {
     /// so by construction all such identifiers are valid.
     ///
     /// NOTE: This function is perma-unstable, it may be removed or modified at any time.
-    pub fn new_unchecked(name: Ident) -> Self {
+    pub fn from_raw_parts(name: Ident) -> Self {
         Self(name)
     }
 
@@ -214,7 +214,7 @@ impl ProcedureName {
     /// (i.e., `main`).
     pub fn main() -> Self {
         let name = Arc::from(Self::MAIN_PROC_NAME.to_string().into_boxed_str());
-        Self(Ident::new_unchecked(Span::unknown(name)))
+        Self(Ident::from_raw_parts(Span::unknown(name)))
     }
 
     /// Is this the reserved name for the executable entrypoint (i.e. `main`)?
@@ -349,7 +349,7 @@ impl FromStr for ProcedureName {
             Some((_, c)) if c.is_ascii_uppercase() => Err(IdentError::Casing(CaseKindError::Snake)),
             Some(_) => Err(IdentError::InvalidChars { ident: s.into() }),
         }?;
-        Ok(Self(Ident::new_unchecked(Span::unknown(raw))))
+        Ok(Self(Ident::from_raw_parts(Span::unknown(raw))))
     }
 }
 
