@@ -196,3 +196,95 @@ impl FromStr for Ident {
         Ok(Self { span: SourceSpan::default(), name })
     }
 }
+
+#[cfg(feature = "testing")]
+pub(crate) mod testing {
+    use alloc::string::String;
+
+    use proptest::{char::CharStrategy, collection::vec, prelude::*};
+
+    use super::*;
+
+    impl Arbitrary for Ident {
+        type Parameters = ();
+
+        fn arbitrary_with(_args: Self::Parameters) -> Self::Strategy {
+            ident_any_random_length().boxed()
+        }
+
+        type Strategy = BoxedStrategy<Self>;
+    }
+
+    // Our dictionary includes all ASCII graphic characters (0x21..0x7E), as well as a variety
+    // of unicode alphanumerics.
+    const SPECIAL: [char; 32] = const {
+        let mut buf = ['a'; 32];
+        let mut idx = 0;
+        let mut range_idx = 0;
+        while range_idx < SPECIAL_RANGES.len() {
+            let range = &SPECIAL_RANGES[range_idx];
+            range_idx += 1;
+            let mut j = *range.start() as u32;
+            let end = *range.end() as u32;
+            while j <= end {
+                unsafe {
+                    buf[idx] = char::from_u32_unchecked(j);
+                }
+                idx += 1;
+                j += 1;
+            }
+        }
+        buf
+    };
+
+    const SPECIAL_RANGES: &[core::ops::RangeInclusive<char>] =
+        &['!'..='/', ':'..='@', '['..='`', '{'..='~'];
+    const PREFERRED_RANGES: &[core::ops::RangeInclusive<char>] = &['a'..='z', 'A'..='Z'];
+    const EXTRA_RANGES: &[core::ops::RangeInclusive<char>] = &['0'..='9', 'à'..='ö', 'ø'..='ÿ'];
+
+    prop_compose! {
+        /// A strategy to produce a random character from our valid dictionary, using the rules
+        /// for selection provided by `CharStrategy`
+        fn ident_chars()
+                      (c in CharStrategy::new_borrowed(
+                          &SPECIAL,
+                          PREFERRED_RANGES,
+                          EXTRA_RANGES
+                      )) -> char {
+            c
+        }
+    }
+
+    prop_compose! {
+        /// A strategy to produce a raw String of length `length`, containing any characers from
+        /// our dictionary.
+        ///
+        /// The returned string will always be at least 1 characters.
+        fn ident_raw_any(length: u32)
+                        (chars in vec(ident_chars(), 1..=(length as usize))) -> String {
+            String::from_iter(chars)
+        }
+    }
+
+    prop_compose! {
+        /// Generate a random identifier of `length` containing any characters from our dictionary
+        pub fn ident_any(length: u32)
+                    (raw in ident_raw_any(length)
+                        .prop_filter(
+                            "identifiers must be valid",
+                            |s| Ident::validate(s).is_ok()
+                        )
+                    ) -> Ident {
+            Ident::from_raw_parts(Span::new(SourceSpan::UNKNOWN, raw.into_boxed_str().into()))
+        }
+    }
+
+    prop_compose! {
+        /// Generate a random identifier of `length` containing any characters from our dictionary
+        pub fn ident_any_random_length()
+            (length in 1..u8::MAX)
+            (id in ident_any(length as u32)) -> Ident {
+            id
+        }
+    }
+}
