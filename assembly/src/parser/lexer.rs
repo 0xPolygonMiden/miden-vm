@@ -453,10 +453,7 @@ impl<'input> Lexer<'input> {
                         Token::QuotedString(self.slice_span(span))
                     });
                 },
-                c if c.is_ascii_alphanumeric() => {
-                    self.skip();
-                },
-                '_' | '$' | '-' | '!' | '?' | '<' | '>' | ':' | '.' => {
+                c if c.is_alphanumeric() || c.is_ascii_graphic() => {
                     self.skip();
                 },
                 _ => {

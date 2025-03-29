@@ -12,11 +12,9 @@ use crate::{SourceSpan, Span, Spanned};
 pub enum IdentError {
     #[error("invalid identifier: cannot be empty")]
     Empty,
-    #[error(
-        "invalid identifier '{ident}': must contain only lowercase, ascii alphanumeric characters, or underscores"
-    )]
+    #[error("invalid identifier '{ident}': must contain only ascii graphic characters")]
     InvalidChars { ident: Arc<str> },
-    #[error("invalid identifier: must start with lowercase ascii alphabetic character")]
+    #[error("invalid identifier: must start with ascii alphabetic character")]
     InvalidStart,
     #[error("invalid identifier: length exceeds the maximum of {max} bytes")]
     InvalidLength { max: usize },
@@ -45,9 +43,7 @@ pub enum CaseKindError {
 /// Represents a generic identifier in Miden Assembly source code.
 ///
 /// This type is used internally by all other specialized identifier types, e.g.
-/// [super::ProcedureName], and enforces the baseline rules for bare identifiers in Miden Assembly.
-/// Higher-level types, such as `ProcedureName`, can implement their own variations on these rules,
-/// and construct an [Ident] using [Ident::new_unchecked].
+/// [super::ProcedureName], and enforces the baseline rules for identifiers in Miden Assembly.
 ///
 /// All identifiers are associated with a source span, and are interned to the extent possible, i.e.
 /// rather than allocating a new `String` for every use of the same identifier, we attempt to have
@@ -70,12 +66,22 @@ pub struct Ident {
 }
 
 impl Ident {
-    /// Parses an [Ident] from `source`.
+    /// Creates an [Ident] from `source`.
+    ///
+    /// This can fail if:
+    ///
+    /// * The identifier exceeds the maximum allowed identifier length
+    /// * The identifier contains non-graphic characters (e.g. whitespace, control)
     pub fn new(source: impl AsRef<str>) -> Result<Self, IdentError> {
         source.as_ref().parse()
     }
 
-    /// Parses an [Ident] from `source`.
+    /// Creates an [Ident] from `source`.
+    ///
+    /// This can fail if:
+    ///
+    /// * The identifier exceeds the maximum allowed identifier length
+    /// * The identifier contains non-graphic characters (e.g. whitespace, control)
     pub fn new_with_span(span: SourceSpan, source: impl AsRef<str>) -> Result<Self, IdentError> {
         source.as_ref().parse::<Self>().map(|id| id.with_span(span))
     }
@@ -115,13 +121,7 @@ impl Ident {
         if source.is_empty() {
             return Err(IdentError::Empty);
         }
-        if !source.starts_with(|c: char| c.is_ascii_alphabetic()) {
-            return Err(IdentError::InvalidStart);
-        }
-        if !source
-            .chars()
-            .all(|c| c.is_ascii_alphanumeric() || matches!(c, '_' | '-' | ':' | '/' | '@' | '.'))
-        {
+        if !source.chars().all(|c| c.is_ascii_graphic() || c.is_alphanumeric()) {
             return Err(IdentError::InvalidChars { ident: source.into() });
         }
         Ok(())
