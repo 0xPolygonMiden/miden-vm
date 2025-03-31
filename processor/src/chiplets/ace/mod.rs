@@ -35,7 +35,7 @@ pub enum Op {
     Add,
 }
 
-/// A `Node` in the evaluation graph corresponds to
+/// A `NodeID` is the index of a node in the evaluation graph, depending on its type.
 /// - `Input` when it is a leaf, and its value is a variable in the circuit
 /// - `Const` when it is a leaf, and its value is a constant
 /// - `Eval` when it is a node with two incoming edges to which an `Op` is applied.
@@ -44,7 +44,7 @@ pub enum Op {
 /// with their kinds encoded as
 /// `[Input(0), ..., Input(n_i - 1), Const(0), ..., Const(n_c - 1), Eval(0), ..., Eval(n_e - 1)]`.
 #[derive(Debug, Copy, Clone, Eq, PartialEq, Ord, PartialOrd)]
-pub enum Node {
+pub enum NodeID {
     Input(usize),
     Const(usize),
     Eval(usize),
@@ -53,8 +53,8 @@ pub enum Node {
 /// An `Instruction` indicates how the next `Eval` node should be computed, given existing `Node`s.
 #[derive(Debug, Copy, Clone, Eq, PartialEq)]
 pub struct Instruction {
-    node_l: Node,
-    node_r: Node,
+    node_l: NodeID,
+    node_r: NodeID,
     op: Op,
 }
 
@@ -74,7 +74,7 @@ struct CircuitLayout {
 }
 
 impl CircuitLayout {
-    /// Total number of variables (inputs and constants)
+    /// Total number of variables (inputs and constants) in the circuit
     pub fn num_vars(&self) -> usize {
         self.num_inputs + self.num_constants
     }
@@ -96,6 +96,7 @@ impl CircuitLayout {
             && self.num_instructions % WORD_SIZE == 0
     }
 
+    /// Returns the layout of the padded circuit (see `is_padded`).
     pub fn padded(&self) -> Self {
         // Inputs are padded to next multiple of 2 so they can be word-aligned, since each word
         // contains two inputs.
@@ -115,27 +116,25 @@ impl CircuitLayout {
         }
     }
 
-    /// Checks if a `Node`'s index is in-bounds relative to this layout.
-    pub fn contains_node(&self, node: &Node) -> bool {
+    /// Checks if a `NodeID` is in-bounds relative to this layout.
+    pub fn contains_node(&self, node: &NodeID) -> bool {
         match *node {
-            Node::Input(id) => id < self.num_inputs,
-            Node::Const(id) => id < self.num_constants,
-            Node::Eval(id) => id < self.num_instructions,
+            NodeID::Input(id) => id < self.num_inputs,
+            NodeID::Const(id) => id < self.num_constants,
+            NodeID::Eval(id) => id < self.num_instructions,
         }
     }
 
-    /// Given a circuit `Node`, returns the natural index of it in the evaluation graph
-    /// described by its `CircuitLayout`.
-    ///
-    /// This node must be valid with regard to the layout.
-    pub fn node_index(&self, node: &Node) -> Option<usize> {
+    /// Given a circuit `NodeID`, returns the index it would be at in the list of all nodes
+    /// in the circuit evaluation graph.
+    pub fn node_index(&self, node: &NodeID) -> Option<usize> {
         if !self.contains_node(node) {
             return None;
         }
         let id = match *node {
-            Node::Input(id) => id,
-            Node::Const(id) => id + self.num_inputs,
-            Node::Eval(id) => id + self.num_vars(),
+            NodeID::Input(id) => id,
+            NodeID::Const(id) => id + self.num_inputs,
+            NodeID::Eval(id) => id + self.num_vars(),
         };
         Some(id)
     }
@@ -144,7 +143,6 @@ impl CircuitLayout {
 #[derive(Debug)]
 enum CircuitError {
     InvalidLayout,
-    NotPadded,
     InvalidInstruction,
     InvalidInputs,
     InvalidAlignment,
