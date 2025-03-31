@@ -1,134 +1,102 @@
+use crate::Word;
+use crate::chiplets::ace::{
+    Circuit, CircuitError, CircuitLayout, EncodedCircuit, ID_BITS, Instruction, MAX_ID, Node, Op,
+};
+use crate::crypto::ElementHasher;
 use crate::math::FieldElement;
 use crate::{Felt, QuadFelt};
 use std::prelude::rust_2024::Vec;
-use crate::chiplets::ace::{Instruction, Node, Op, ID_BITS, MAX_ID};
 
-struct Circuit {
-    num_vars: usize,
-    num_nodes: usize,
-    encoded_circuit: Vec<Felt>,
-}
+impl EncodedCircuit {
+    /// Try to create an `EncodedCircuit` matching the layout
+    pub fn try_from_circuit(circuit: &Circuit) -> Result<Self, CircuitError> {
+        let layout = circuit.layout().padded();
 
-enum CircuitError {
-    TooManyNodes,
-    NonLinearInstruction(usize),
-    InvalidNode(usize),
-}
-
-impl Circuit {
-    ///
-    /// To be padded with `Mult(0)` to the next multiple of 2 to ensure the memory region
-    /// containing the constants can be word-aligned.
-    /// Padded with `(E::ZERO, Mult(0))` to the next multiple of 2 to ensure the first
-    /// instruction is word-aligned
-    /// Padded to next multiple of 4 or 8 to ensure the circuit section (constants & instructions)
-    /// is double-word aligned to facilitate un-hashing.
-    fn new(
-        num_inputs: usize,
-        constants: &[Felt],
-        instructions: &[Instruction],
-    ) -> Result<Circuit, CircuitError> {
-        // Compute the real number of nodes in the circuit
-        let num_nodes = {
-            let num_vars = num_inputs + constants.len();
-            num_vars + instructions.len()
-        };
-        if num_nodes > MAX_ID as usize {
-            return Err(CircuitError::TooManyNodes);
+        if layout.num_nodes() > MAX_ID as usize {
+            return Err(CircuitError::InvalidLayout);
         }
 
-        // Inputs are padded to next multiple of 2 so they can be word-aligned, since each word
-        // contains two inputs.
-        // TODO(@adr1anh): does it makes sense to double-word align?
-        let num_inputs_padded = num_inputs.next_multiple_of(2);
+        // Encoded circuit contains constants followed by instructions.
+        // Constants are mapped to `QuadFelt`s represented by two `Felt`s.
+        // Instructions are mapped to a single `Felt`.
+        let circuit_size = 2 * layout.num_constants + layout.num_instructions;
 
-        // There are 4 instructions per word, we pad it to next multiple of 4.
-        let num_instructions_padded = instructions.len().next_multiple_of(4);
+        let mut encoded_circuit = Vec::with_capacity(circuit_size);
 
-        // The circuit size must be double-word aligned for more efficient hashing.
-        let circuit_size_padded =
-            (2 * constants.len() + num_instructions_padded).next_multiple_of(8);
+        // Add constants encoded as `QuadFelt`s
+        encoded_circuit.extend(circuit.constants.iter().flat_map(|c| [*c, Felt::ZERO]));
+        // Pad with zero constants.
+        let encoded_constants_size = 2 * layout.num_constants;
+        encoded_circuit.resize(encoded_constants_size, Felt::ZERO);
 
-        // Constants are represented as `QuadFelt`s so there are two per word.
-        // It is more efficient to pad the constants to ensure double-word alignment, since
-        // it would only require one additional row to add 1 word.
-        let num_constants_padded = (circuit_size_padded - num_instructions_padded) / 2;
+        // Encode the instructions to single `Felt`s, reversing the ids
+        let encoded_instructions_iter = circuit
+            .instructions
+            .iter()
+            .map(|instruction| instruction.encode(&layout).unwrap());
+        // Add the encoded instructions to the circuit
+        encoded_circuit.extend(encoded_instructions_iter);
 
-        let mut encoded_circuit = Vec::with_capacity(circuit_size_padded);
-
-        // Add the constants.
-        encoded_circuit.extend(constants.iter().flat_map(|c| [Felt::ZERO, *c]));
-        // Pad with zeros.
-        encoded_circuit.resize(num_constants_padded, Felt::ZERO);
-
-        let num_vars_padded = num_inputs_padded + num_constants_padded;
-        let num_nodes_padded = num_vars_padded + num_instructions_padded;
-
-        let is_valid_node = |node: Node| match node {
-            Node::Input(id) => id < num_inputs,
-            Node::Const(id) => id < constants.len(),
-            Node::Eval(id) => id < instructions.len(),
-        };
-
-        let normalize_node = |node: Node| {
-            // map err invalid id
-            let id = match node {
-                Node::Input(id) => id,
-                Node::Const(id) => num_inputs_padded + id,
-                Node::Eval(id) => num_vars_padded + id,
-            };
-            let reversed_id = num_nodes_padded - 1 - id;
-            reversed_id as u32
-        };
-
-        let encode_instruction = |i: Instruction| {
-            let Instruction { node_l, node_r, op } = i;
-            let id_l = normalize_node(node_l);
-            let id_r = normalize_node(node_r);
-            let encoded = encode_instruction(id_l, id_r, op);
-            encoded.into()
-        };
-
-        for (i, instruction) in instructions.iter().enumerate() {
-            let current_node = Node::Eval(i);
-
-            if !(is_valid_node(instruction.node_l) && is_valid_node(instruction.node_r)) {
-                return Err(CircuitError::InvalidNode(i));
-            }
-
-            // Ensure we are only referencing previous nodes as this allows the circuit
-            // to be evaluated in a single pass
-            if instruction.node_l >= current_node || instruction.node_r >= current_node {
-                return Err(CircuitError::NonLinearInstruction(i));
-            };
-
-            // Encode the instruction as a `Felt`, applying the necessary transformation on the ids
-            encoded_circuit.push(encode_instruction(*instruction));
-        }
-
-        // Pad instructions with squaring of the last node. Since we expect the evaluation to
-        // be zero, this is equivalent and does not require knowing which provided constant is zero.
-        for i in instructions.len()..num_instructions_padded {
-            let prev_node = Node::Eval(i - 1);
-            let padding_instruction = Instruction {
-                node_l: prev_node,
-                node_r: prev_node,
+        // Add instructions squaring the final value. Since we care about the output being 0,
+        // this has no effect. Moreover, it avoids having to know the index of the zero constant.
+        let mut last_eval_node_index = circuit.instructions.len() - 1;
+        while encoded_circuit.len() < circuit_size {
+            let last_eval_node = Node::Eval(last_eval_node_index);
+            let square_last_instruction = Instruction {
+                node_l: last_eval_node,
+                node_r: last_eval_node,
                 op: Op::Mul,
             };
-            encoded_circuit.push(encode_instruction(padding_instruction));
+            let encoded_instruction = square_last_instruction.encode(&layout).expect("");
+            encoded_circuit.push(encoded_instruction);
+            last_eval_node_index += 1;
         }
-        assert_eq!(encoded_circuit.len(), circuit_size_padded);
+        debug_assert_eq!(last_eval_node_index, layout.num_instructions - 1);
 
-        Ok(Self { num_vars, num_nodes, encoded_circuit })
+        Ok(Self {
+            num_vars: layout.num_vars(),
+            num_eval: layout.num_instructions,
+            encoded_circuit,
+        })
+    }
+
+    /// Compute the number of
+    fn circuit_hash<H: ElementHasher<BaseField = Felt>>(&self) -> H::Digest {
+        H::hash_elements(&self.encoded_circuit)
     }
 }
 
-fn encode_instruction(id_l: u32, id_r: u32, op: Op) -> Felt {
-    let op = match op {
-        Op::Sub => 0,
-        Op::Mul => 1,
-        Op::Add => 2,
-    };
-    let encoded = id_l as u64 + (id_r as u64) << ID_BITS + op << (2 * ID_BITS);
-    encoded.into()
+impl CircuitLayout {
+    /// Same as `node_to_index`, but reverses the index relative to `num_nodes`.
+    ///
+    /// For example, the first input node has `id = layout.num_nodes() - 1`
+    /// and the last instruction produces a node with `id = 0`.
+    pub fn encoded_node_id(&self, node: &Node) -> Option<u32> {
+        let id = self.node_index(node)?;
+        Some((self.num_nodes() - 1 - id) as u32)
+    }
+}
+
+impl Instruction {
+    /// Encode an instruction as a `Felt`, packed as
+    /// `[ id_l (30 bits) || id_r (30 bits) || op (2 bits) ]`,
+    /// where `id_{l, r}` are is the index of the node in the graph, reversed
+    /// with regard to the total number of nodes.
+    fn encode(&self, layout: &CircuitLayout) -> Option<Felt> {
+        if layout.num_nodes() > MAX_ID as usize {
+            return None;
+        }
+
+        let id_l = layout.encoded_node_id(&self.node_l)?;
+        let id_r = layout.encoded_node_id(&self.node_r)?;
+
+        let op = match self.op {
+            Op::Sub => 0,
+            Op::Mul => 1,
+            Op::Add => 2,
+        };
+
+        let encoded = id_l as u64 + ((id_r as u64) << ID_BITS) + (op << (2 * ID_BITS));
+        Some(Felt::new(encoded))
+    }
 }
