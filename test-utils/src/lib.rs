@@ -243,7 +243,8 @@ impl Test {
             program.kernel().clone(),
             self.stack_inputs.clone(),
             ExecutionOptions::default(),
-        );
+        )
+        .with_source_manager(self.source_manager.clone());
         process.execute(&program, &mut host).unwrap();
 
         // validate the memory state
@@ -384,9 +385,14 @@ impl Test {
         for library in &self.libraries {
             host.load_mast_forest(library.mast_forest().clone()).unwrap();
         }
-        let (mut stack_outputs, proof) =
-            prover::prove(&program, stack_inputs.clone(), &mut host, ProvingOptions::default())
-                .unwrap();
+        let (mut stack_outputs, proof) = prover::prove(
+            &program,
+            stack_inputs.clone(),
+            &mut host,
+            ProvingOptions::default(),
+            self.source_manager.clone(),
+        )
+        .unwrap();
 
         let program_info = ProgramInfo::from(program);
         if test_fail {
@@ -410,7 +416,12 @@ impl Test {
         for library in &self.libraries {
             host.load_mast_forest(library.mast_forest().clone()).unwrap();
         }
-        processor::execute_iter(&program, self.stack_inputs.clone(), &mut host)
+        processor::execute_iter(
+            &program,
+            self.stack_inputs.clone(),
+            &mut host,
+            self.source_manager.clone(),
+        )
     }
 
     /// Returns the last state of the stack after executing a test.

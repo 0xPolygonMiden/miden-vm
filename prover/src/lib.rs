@@ -6,13 +6,14 @@ extern crate alloc;
 #[cfg(feature = "std")]
 extern crate std;
 
+use alloc::sync::Arc;
 use core::marker::PhantomData;
 
 use air::{AuxRandElements, PartitionOptions, ProcessorAir, PublicInputs};
 #[cfg(all(feature = "metal", target_arch = "aarch64", target_os = "macos"))]
 use miden_gpu::HashFn;
 use processor::{
-    ExecutionTrace, Program,
+    ExecutionTrace, Program, SourceManager,
     crypto::{
         Blake3_192, Blake3_256, ElementHasher, RandomCoin, Rpo256, RpoRandomCoin, Rpx256,
         RpxRandomCoin, WinterRandomCoin,
@@ -61,12 +62,18 @@ pub fn prove(
     stack_inputs: StackInputs,
     host: &mut impl Host,
     options: ProvingOptions,
+    source_manager: Arc<dyn SourceManager>,
 ) -> Result<(StackOutputs, ExecutionProof), ExecutionError> {
     // execute the program to create an execution trace
     #[cfg(feature = "std")]
     let now = Instant::now();
-    let trace =
-        processor::execute(program, stack_inputs.clone(), host, *options.execution_options())?;
+    let trace = processor::execute(
+        program,
+        stack_inputs.clone(),
+        host,
+        *options.execution_options(),
+        source_manager,
+    )?;
     #[cfg(feature = "std")]
     tracing::event!(
         tracing::Level::INFO,

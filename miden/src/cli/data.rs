@@ -6,7 +6,7 @@ use std::{
 };
 
 use assembly::{
-    Assembler, Library, LibraryNamespace,
+    Assembler, Library, LibraryNamespace, SourceManager,
     ast::{Module, ModuleKind},
     diagnostics::{Report, WrapErr, miette::miette},
 };
@@ -108,7 +108,7 @@ impl OutputFile {
 
 pub struct ProgramFile {
     ast: Box<Module>,
-    source_manager: Arc<dyn assembly::SourceManager>,
+    source_manager: Arc<dyn SourceManager>,
 }
 
 /// Helper methods to interact with masm program file.
@@ -124,7 +124,7 @@ impl ProgramFile {
     #[instrument(name = "read_program_file", skip(source_manager), fields(path = %path.as_ref().display()))]
     pub fn read_with(
         path: impl AsRef<Path>,
-        source_manager: Arc<dyn assembly::SourceManager>,
+        source_manager: Arc<dyn SourceManager>,
     ) -> Result<Self, Report> {
         // parse the program into an AST
         let path = path.as_ref();
@@ -156,6 +156,11 @@ impl ProgramFile {
             .wrap_err("Failed to compile program")?;
 
         Ok(program)
+    }
+
+    /// Returns the source manager for this program file.
+    pub fn source_manager(&self) -> &Arc<dyn SourceManager> {
+        &self.source_manager
     }
 }
 

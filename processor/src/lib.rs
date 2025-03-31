@@ -134,8 +134,10 @@ pub fn execute(
     stack_inputs: StackInputs,
     host: &mut impl Host,
     options: ExecutionOptions,
+    source_manager: Arc<dyn SourceManager>,
 ) -> Result<ExecutionTrace, ExecutionError> {
-    let mut process = Process::new(program.kernel().clone(), stack_inputs, options);
+    let mut process = Process::new(program.kernel().clone(), stack_inputs, options)
+        .with_source_manager(source_manager);
     let stack_outputs = process.execute(program, host)?;
     let trace = ExecutionTrace::new(process, stack_outputs);
     assert_eq!(&program.hash(), trace.program_hash(), "inconsistent program hash");
@@ -148,8 +150,10 @@ pub fn execute_iter(
     program: &Program,
     stack_inputs: StackInputs,
     host: &mut impl Host,
+    source_manager: Arc<dyn SourceManager>,
 ) -> VmStateIterator {
-    let mut process = Process::new_debug(program.kernel().clone(), stack_inputs);
+    let mut process = Process::new_debug(program.kernel().clone(), stack_inputs)
+        .with_source_manager(source_manager);
     let result = process.execute(program, host);
     if result.is_ok() {
         assert_eq!(

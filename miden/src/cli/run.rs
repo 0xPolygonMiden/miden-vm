@@ -1,6 +1,9 @@
-use std::{path::PathBuf, time::Instant};
+use std::{path::PathBuf, sync::Arc, time::Instant};
 
-use assembly::diagnostics::{IntoDiagnostic, Report, WrapErr};
+use assembly::{
+    DefaultSourceManager,
+    diagnostics::{IntoDiagnostic, Report, WrapErr},
+};
 use clap::Parser;
 use miden_vm::internal::InputFile;
 use processor::{DefaultHost, ExecutionOptions, ExecutionTrace};
@@ -143,10 +146,14 @@ fn run_masp_program(params: &RunCmd) -> Result<(ExecutionTrace, [u8; 32]), Repor
 
     let program_hash: [u8; 32] = program.hash().into();
 
+    // Packages don't ship with sources, so we use a default source manager.
+    let source_manager = Arc::new(DefaultSourceManager::default());
+
     // execute program and generate outputs
-    let trace = processor::execute(&program, stack_inputs, &mut host, execution_options)
-        .into_diagnostic()
-        .wrap_err("Failed to generate execution trace")?;
+    let trace =
+        processor::execute(&program, stack_inputs, &mut host, execution_options, source_manager)
+            .into_diagnostic()
+            .wrap_err("Failed to generate execution trace")?;
 
     Ok((trace, program_hash))
 }
@@ -164,7 +171,7 @@ fn run_masm_program(params: &RunCmd) -> Result<(ExecutionTrace, [u8; 32]), Repor
     let libraries = Libraries::new(&params.library_paths)?;
 
     // load program from file and compile
-    let program = get_masm_program(&params.program_file, &libraries)?;
+    let (program, source_manager) = get_masm_program(&params.program_file, &libraries)?;
     let input_data = InputFile::read(&params.input_file, &params.program_file)?;
 
     let execution_options = ExecutionOptions::new(
@@ -185,9 +192,10 @@ fn run_masm_program(params: &RunCmd) -> Result<(ExecutionTrace, [u8; 32]), Repor
 
     let program_hash: [u8; 32] = program.hash().into();
 
-    let trace = processor::execute(&program, stack_inputs, &mut host, execution_options)
-        .into_diagnostic()
-        .wrap_err("Failed to generate execution trace")?;
+    let trace =
+        processor::execute(&program, stack_inputs, &mut host, execution_options, source_manager)
+            .into_diagnostic()
+            .wrap_err("Failed to generate execution trace")?;
 
     Ok((trace, program_hash))
 }

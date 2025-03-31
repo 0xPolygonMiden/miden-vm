@@ -1,5 +1,6 @@
+use std::sync::Arc;
 mod verifier_recursive;
-use assembly::Assembler;
+use assembly::{Assembler, DefaultSourceManager};
 use miden_air::{FieldExtension, HashFunction, PublicInputs};
 use processor::{DefaultHost, Program, ProgramInfo};
 use test_utils::{
@@ -55,7 +56,14 @@ pub fn generate_recursive_verifier_data(
     let options =
         ProvingOptions::new(27, 8, 16, FieldExtension::Quadratic, 4, 127, HashFunction::Rpo256);
 
-    let (stack_outputs, proof) = prove(&program, stack_inputs.clone(), &mut host, options).unwrap();
+    let (stack_outputs, proof) = prove(
+        &program,
+        stack_inputs.clone(),
+        &mut host,
+        options,
+        Arc::new(DefaultSourceManager::default()),
+    )
+    .unwrap();
 
     let program_info = ProgramInfo::from(program);
 
