@@ -2,8 +2,8 @@ use alloc::{boxed::Box, string::String, sync::Arc, vec::Vec};
 use core::fmt;
 
 use super::{
-    Export, Import, LocalNameResolver, ProcedureIndex, ProcedureName, QualifiedProcedureName,
-    ResolvedProcedure,
+    DocString, Export, Import, LocalNameResolver, ProcedureIndex, ProcedureName,
+    QualifiedProcedureName, ResolvedProcedure,
 };
 use crate::{
     ByteReader, ByteWriter, Deserializable, DeserializationError, LibraryNamespace, LibraryPath,
@@ -112,7 +112,7 @@ pub struct Module {
     /// Module documentation is provided in Miden Assembly as a documentation comment starting on
     /// the first line of the module. All other documentation comments are attached to the item the
     /// precede in the module body.
-    docs: Option<Span<String>>,
+    docs: Option<DocString>,
     /// The fully-qualified path representing the name of this module.
     path: LibraryPath,
     /// The kind of module this represents.
@@ -182,7 +182,7 @@ impl Module {
 
     /// Sets the documentation for this module
     pub fn set_docs(&mut self, docs: Option<Span<String>>) {
-        self.docs = docs;
+        self.docs = docs.map(DocString::new);
     }
 
     /// Like [Module::with_span], but does not require ownership of the [Module].
@@ -268,7 +268,7 @@ impl Module {
     /// Get the module documentation for this module, if it was present in the source code the
     /// module was parsed from
     pub fn docs(&self) -> Option<Span<&str>> {
-        self.docs.as_ref().map(|spanned| spanned.as_deref())
+        self.docs.as_ref().map(|spanned| spanned.as_spanned_str())
     }
 
     /// Get the type of module this represents:
@@ -501,15 +501,11 @@ impl crate::prettier::PrettyPrint for Module {
     fn render(&self) -> crate::prettier::Document {
         use crate::prettier::*;
 
-        let mut doc = Document::Empty;
-        if let Some(docs) = self.docs.as_ref() {
-            let fragment =
-                docs.lines().map(text).reduce(|acc, line| acc + nl() + text("#! ") + line);
-
-            if let Some(fragment) = fragment {
-                doc += fragment;
-            }
-        }
+        let mut doc = self
+            .docs
+            .as_ref()
+            .map(|docstring| docstring.render() + nl())
+            .unwrap_or(Document::Empty);
 
         for (i, import) in self.imports.iter().enumerate() {
             if i > 0 {
@@ -535,6 +531,9 @@ impl crate::prettier::PrettyPrint for Module {
         }
 
         if let Some(main) = self.procedures().find(|p| p.is_main()) {
+            if export_index > 0 {
+                doc += nl();
+            }
             doc += main.render();
         }
 

@@ -4,7 +4,7 @@ use core::fmt;
 use super::{ProcedureName, QualifiedProcedureName};
 use crate::{
     RpoDigest,
-    ast::InvocationTarget,
+    ast::{DocString, InvocationTarget},
     diagnostics::{SourceSpan, Span, Spanned},
 };
 
@@ -20,7 +20,7 @@ use crate::{
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ProcedureAlias {
     /// The documentation attached to this procedure
-    docs: Option<Span<String>>,
+    docs: Option<DocString>,
     /// The name of this procedure
     name: ProcedureName,
     /// The underlying procedure being aliased.
@@ -39,13 +39,13 @@ impl ProcedureAlias {
 
     /// Adds documentation to this procedure alias.
     pub fn with_docs(mut self, docs: Option<Span<String>>) -> Self {
-        self.docs = docs;
+        self.docs = docs.map(DocString::new);
         self
     }
 
     /// Returns the documentation associated with this declaration.
-    pub fn docs(&self) -> Option<&Span<String>> {
-        self.docs.as_ref()
+    pub fn docs(&self) -> Option<Span<&str>> {
+        self.docs.as_ref().map(|docstring| docstring.as_spanned_str())
     }
 
     /// Returns the name of this alias within its containing module.
@@ -97,14 +97,11 @@ impl crate::prettier::PrettyPrint for ProcedureAlias {
     fn render(&self) -> crate::prettier::Document {
         use crate::prettier::*;
 
-        let mut doc = Document::Empty;
-        if let Some(docs) = self.docs.as_deref() {
-            doc = docs
-                .lines()
-                .map(text)
-                .reduce(|acc, line| acc + nl() + text("#! ") + line)
-                .unwrap_or_default();
-        }
+        let mut doc = self
+            .docs
+            .as_ref()
+            .map(|docstring| docstring.render())
+            .unwrap_or(Document::Empty);
 
         doc += const_text("export.");
         doc += match &self.target {

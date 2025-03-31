@@ -3,7 +3,7 @@ use alloc::{string::ToString, sync::Arc, vec::Vec};
 use pretty_assertions::assert_eq;
 
 use crate::{
-    Felt, Span, assert_diagnostic, assert_diagnostic_lines,
+    Felt, LibraryNamespace, LibraryPath, Span, assert_diagnostic, assert_diagnostic_lines,
     ast::*,
     diagnostics::{Report, reporting::PrintDiagnostic},
     regex, source_file,
@@ -1170,4 +1170,115 @@ fn assert_parsing_line_unexpected_token() {
         "  `----",
         r#" help: expected "@", or "begin", or "const", or "export", or "proc", or "use", or end of file, or doc comment"#
     );
+}
+
+#[test]
+fn test_roundtrip_formatting() {
+    let source = "\
+#! module doc
+#!
+#! with spaces
+
+#! constant doc
+#!
+#! with spaces
+const.DEFAULT_CONST=100
+
+#! Perform `a + b`, `n` times
+#!
+#! with spaces
+proc.add_n_times # [n, b, a]
+    dup.0
+    push.0
+    u32gt
+    if.true
+        push.0.1
+        while.true  # [total, n, b, a]
+            dup.3 dup.3
+            u32wrapping_add3 # [total', n, b, a]
+            swap.1
+            push.1
+            u32overflowing_sub  # [overflowed, n - 1, total', b, a]
+            swap.1 movdn.3      # [overflowed, total', n', b, a]
+            push.0              # [0, overflowed, total, n', total', b, a]
+            dup.1               # [overflowed, 0, overflowed, total', n', b, a]
+            cdrop               # [continue, total', n', b, a]
+        end
+        movdn.3
+        drop drop drop
+    else
+        u32wrapping_add
+    end
+end
+
+begin
+    push.1.1.DEFAULT_CONST
+    exec.add_n_times
+    push.20
+    assert_eq
+
+    trace.DEFAULT_CONST
+end
+";
+
+    let context = TestContext::default();
+    let source = source_file!(&context, source);
+
+    let module = Module::parse(
+        LibraryPath::new_from_components(LibraryNamespace::Exec, []),
+        ModuleKind::Executable,
+        source,
+    )
+    .unwrap_or_else(|err| panic!("{err}"));
+
+    let formatted = module.to_string();
+    let expected = "\
+#! module doc
+#!
+#! with spaces
+
+#! Perform `a + b`, `n` times
+#!
+#! with spaces
+proc.add_n_times
+    dup.0
+    push.0
+    u32gt
+    if.true
+        push.0
+        push.1
+        while.true
+            dup.3
+            dup.3
+            u32wrapping_add3
+            swap.1
+            push.1
+            u32overflowing_sub
+            swap.1
+            movdn.3
+            push.0
+            dup.1
+            cdrop
+        end
+        movdn.3
+        drop
+        drop
+        drop
+    else
+        u32wrapping_add
+    end
+end
+
+begin
+    push.1
+    push.1
+    push.100
+    exec.add_n_times
+    push.20
+    assert_eq
+    trace.100
+end
+";
+
+    assert_eq!(&formatted, expected);
 }
