@@ -8,6 +8,10 @@
 - [BREAKING] Renamed `Ident::new_unchecked` and `ProcedureName::new_unchecked`
   to `from_raw_parts`
 
+#### Fixes
+
+- Fixed various issues with pretty printing of Miden Assembly
+
 ## 0.13.1 (2025-03-21) - `stdlib` crate only
 
 #### Enhancements
