@@ -151,14 +151,6 @@ pub enum ParsingError {
         #[label]
         span: SourceSpan,
     },
-    #[error("invalid character in identifier")]
-    #[diagnostic(help(
-        "bare identifiers must be lowercase alphanumeric with '_', quoted identifiers can include any graphical character"
-    ))]
-    InvalidIdentCharacter {
-        #[label]
-        span: SourceSpan,
-    },
     #[error("unclosed quoted identifier")]
     #[diagnostic()]
     UnclosedQuote {

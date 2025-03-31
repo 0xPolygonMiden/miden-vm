@@ -14,8 +14,6 @@ pub enum IdentError {
     Empty,
     #[error("invalid identifier '{ident}': must contain only ascii graphic characters")]
     InvalidChars { ident: Arc<str> },
-    #[error("invalid identifier: must start with ascii alphabetic character")]
-    InvalidStart,
     #[error("invalid identifier: length exceeds the maximum of {max} bytes")]
     InvalidLength { max: usize },
     #[error("invalid identifier: {0}")]
