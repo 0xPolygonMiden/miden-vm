@@ -74,7 +74,7 @@ pub enum ExecutionError {
     #[diagnostic()]
     InvalidStackDepthOnReturn {
         #[label("when returning from this call site")]
-        label: Option<SourceSpan>,
+        label: SourceSpan,
         #[source_code]
         source_file: Option<Arc<SourceFile>>,
         depth: usize,
@@ -219,8 +219,10 @@ impl<'a, N: MastNodeExt> ErrorContext<'a, N> {
         Self(None)
     }
 
-    pub fn label_and_source_file(&self) -> (Option<SourceSpan>, Option<Arc<SourceFile>>) {
-        self.0.as_ref().map_or((None, None), |ctx| ctx.label_and_source_file())
+    pub fn label_and_source_file(&self) -> (SourceSpan, Option<Arc<SourceFile>>) {
+        self.0
+            .as_ref()
+            .map_or((SourceSpan::UNKNOWN, None), |ctx| ctx.label_and_source_file())
     }
 }
 
@@ -266,11 +268,11 @@ impl<'a, N: MastNodeExt> ErrorContextImpl<'a, N> {
         }
     }
 
-    pub fn label_and_source_file(&self) -> (Option<SourceSpan>, Option<Arc<SourceFile>>) {
+    pub fn label_and_source_file(&self) -> (SourceSpan, Option<Arc<SourceFile>>) {
         self.node
             .get_assembly_op(self.mast_forest, self.op_idx)
             .map(|assembly_op| assembly_op.to_label_and_source_file(&self.source_manager))
-            .unwrap_or((None, None))
+            .unwrap_or((SourceSpan::UNKNOWN, None))
     }
 }
 

@@ -63,11 +63,12 @@ impl AssemblyOp {
     pub fn to_label_and_source_file(
         &self,
         source_manager: &dyn SourceManager,
-    ) -> (Option<SourceSpan>, Option<Arc<SourceFile>>) {
+    ) -> (SourceSpan, Option<Arc<SourceFile>>) {
         let label = self
             .location
             .clone()
-            .and_then(|location| source_manager.location_to_span(location));
+            .and_then(|location| source_manager.location_to_span(location))
+            .unwrap_or(SourceSpan::UNKNOWN);
 
         let source_file = self
             .location

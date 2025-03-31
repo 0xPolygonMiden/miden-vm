@@ -1,5 +1,6 @@
 use alloc::vec::Vec;
 
+use assembly::SourceSpan;
 use miden_air::{
     RowIndex,
     trace::chiplets::memory::{
@@ -125,7 +126,7 @@ fn mem_read_word_unaligned() {
             addr: _,
             ctx: _,
             clk: _,
-            label: None,
+            label: SourceSpan::UNKNOWN,
             source_file: None
         })
     );
@@ -276,7 +277,7 @@ fn mem_write_word_unaligned() {
             addr: _,
             ctx: _,
             clk: _,
-            label: None,
+            label: SourceSpan::UNKNOWN,
             source_file: None
         })
     );

@@ -15,7 +15,7 @@ pub enum MemoryError {
     #[diagnostic()]
     AddressOutOfBounds {
         #[label]
-        label: Option<SourceSpan>,
+        label: SourceSpan,
         #[source_code]
         source_file: Option<Arc<SourceFile>>,
         addr: u64,
@@ -36,7 +36,7 @@ pub enum MemoryError {
     ))]
     UnalignedWordAccess {
         #[label]
-        label: Option<SourceSpan>,
+        label: SourceSpan,
         #[source_code]
         source_file: Option<Arc<SourceFile>>,
         addr: u32,
