@@ -1,4 +1,4 @@
-use crate::chiplets::ace::{Circuit, CircuitError, CircuitLayout, Instruction, MAX_ID, Node, Op};
+use crate::chiplets::ace::{Circuit, CircuitError, CircuitLayout, Instruction, NodeID, Op};
 use crate::{Felt, QuadFelt};
 use std::prelude::rust_2015::Vec;
 use vm_core::FieldElement;
@@ -29,11 +29,11 @@ impl Circuit {
         // Ensure all instructions reference valid nodes and allow sequential evaluation
         for (instruction_idx, instruction) in instructions.iter().enumerate() {
             // Get the overall index of the node produced by this instruction
-            let eval_node = Node::Eval(instruction_idx);
+            let eval_node = NodeID::Eval(instruction_idx);
 
             // Check that each input node index is valid for this layout
             // and precedes the evaluation node
-            let valid_node = |node: Node| layout.contains_node(&node) && node < eval_node;
+            let valid_node = |node: NodeID| layout.contains_node(&node) && node < eval_node;
 
             if !(valid_node(instruction.node_l) && valid_node(instruction.node_r)) {
                 return Err(CircuitError::InvalidInstruction);
@@ -44,20 +44,16 @@ impl Circuit {
     }
 
     /// Given a list of inputs, compute the evaluation of the circuit.
-    ///
-    /// Returns an error if the number of inputs is larger than expected.
-    /// When there are fewer inputs, they will be assumed to be 0 to match the padding
-    /// behavior.
-    pub fn eval(&self, inputs: &[QuadFelt]) -> Result<QuadFelt, CircuitError> {
+    pub fn evaluate(&self, inputs: &[QuadFelt]) -> Result<QuadFelt, CircuitError> {
         if inputs.len() != self.num_inputs {
             return Err(CircuitError::InvalidInputs);
         }
         let mut eval_nodes = Vec::with_capacity(self.instructions.len());
 
-        let get_val = |node: Node, evals: &[QuadFelt]| match node {
-            Node::Input(id) => inputs[id],
-            Node::Const(id) => QuadFelt::new(self.constants[id], Felt::ZERO),
-            Node::Eval(id) => evals[id],
+        let get_val = |node: NodeID, evals: &[QuadFelt]| match node {
+            NodeID::Input(id) => inputs[id],
+            NodeID::Const(id) => QuadFelt::new(self.constants[id], Felt::ZERO),
+            NodeID::Eval(id) => evals[id],
         };
 
         for instruction in &self.instructions {
