@@ -1,17 +1,24 @@
-use crate::Word;
+use crate::Felt;
 use crate::chiplets::ace::{
-    Circuit, CircuitError, CircuitLayout, EncodedCircuit, ID_BITS, Instruction, MAX_ID, Node, Op,
+    Circuit, CircuitError, CircuitLayout, EncodedCircuit, ID_BITS, Instruction, MAX_ID, NodeID, Op,
 };
 use crate::crypto::ElementHasher;
 use crate::math::FieldElement;
-use crate::{Felt, QuadFelt};
 use std::prelude::rust_2024::Vec;
 
 impl EncodedCircuit {
-    /// Try to create an `EncodedCircuit` matching the layout
+    /// Try to create an `EncodedCircuit` from a given circuit. The circuit is expected to
+    /// evaluate to zero, as the resulting encoded circuit is padded with squaring operations.
+    /// - The number of nodes should not exceed `MAX_ID` to ensure IDs can be correctly encoded
+    ///
+    /// # Panic
+    /// Panics if the circuit is not in the right format (i.e. the instructions are not properly
+    /// ordered).
     pub fn try_from_circuit(circuit: &Circuit) -> Result<Self, CircuitError> {
+        // Get the layout of the padded circuit
         let layout = circuit.layout().padded();
 
+        // Ensure all node IDs can be encoded in 30 bits
         if layout.num_nodes() > MAX_ID as usize {
             return Err(CircuitError::InvalidLayout);
         }
@@ -29,11 +36,13 @@ impl EncodedCircuit {
         let encoded_constants_size = 2 * layout.num_constants;
         encoded_circuit.resize(encoded_constants_size, Felt::ZERO);
 
-        // Encode the instructions to single `Felt`s, reversing the ids
+        // Encode the instructions to single `Felt`s, reversing the ids.
+        // It is safe to unwrap the encoded instruction as we assume the circuit was constructed
+        // correctly.
         let encoded_instructions_iter = circuit
             .instructions
             .iter()
-            .map(|instruction| instruction.encode(&layout).unwrap());
+            .map(|instruction| instruction.encode(&layout).expect("Invalid instruction"));
         // Add the encoded instructions to the circuit
         encoded_circuit.extend(encoded_instructions_iter);
 
@@ -41,13 +50,13 @@ impl EncodedCircuit {
         // this has no effect. Moreover, it avoids having to know the index of the zero constant.
         let mut last_eval_node_index = circuit.instructions.len() - 1;
         while encoded_circuit.len() < circuit_size {
-            let last_eval_node = Node::Eval(last_eval_node_index);
+            let last_eval_node = NodeID::Eval(last_eval_node_index);
             let square_last_instruction = Instruction {
                 node_l: last_eval_node,
                 node_r: last_eval_node,
                 op: Op::Mul,
             };
-            let encoded_instruction = square_last_instruction.encode(&layout).expect("");
+            let encoded_instruction = square_last_instruction.encode(&layout).unwrap();
             encoded_circuit.push(encoded_instruction);
             last_eval_node_index += 1;
         }
@@ -60,9 +69,14 @@ impl EncodedCircuit {
         })
     }
 
-    /// Compute the number of
-    fn circuit_hash<H: ElementHasher<BaseField = Felt>>(&self) -> H::Digest {
+    /// Compute the hash of all circuit constants and instructions.
+    fn raw_circuit_hash<H: ElementHasher<BaseField = Felt>>(&self) -> H::Digest {
         H::hash_elements(&self.encoded_circuit)
+    }
+
+    /// Returns the digest of the circuit including a header
+    pub fn circuit_hash(&self) -> () {
+        todo!()
     }
 }
 
@@ -71,7 +85,7 @@ impl CircuitLayout {
     ///
     /// For example, the first input node has `id = layout.num_nodes() - 1`
     /// and the last instruction produces a node with `id = 0`.
-    pub fn encoded_node_id(&self, node: &Node) -> Option<u32> {
+    pub fn encoded_node_id(&self, node: &NodeID) -> Option<u32> {
         let id = self.node_index(node)?;
         Some((self.num_nodes() - 1 - id) as u32)
     }
@@ -82,7 +96,7 @@ impl Instruction {
     /// `[ id_l (30 bits) || id_r (30 bits) || op (2 bits) ]`,
     /// where `id_{l, r}` are is the index of the node in the graph, reversed
     /// with regard to the total number of nodes.
-    fn encode(&self, layout: &CircuitLayout) -> Option<Felt> {
+    pub fn encode(&self, layout: &CircuitLayout) -> Option<Felt> {
         if layout.num_nodes() > MAX_ID as usize {
             return None;
         }

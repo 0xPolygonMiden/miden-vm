@@ -8,7 +8,7 @@ pub mod bitwise;
 pub mod hasher;
 pub mod kernel_rom;
 pub mod memory;
-
+mod ace;
 // CONSTANTS
 // ================================================================================================
 
