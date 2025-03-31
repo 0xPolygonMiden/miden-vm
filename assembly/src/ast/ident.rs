@@ -12,7 +12,9 @@ use crate::{SourceSpan, Span, Spanned};
 pub enum IdentError {
     #[error("invalid identifier: cannot be empty")]
     Empty,
-    #[error("invalid identifier '{ident}': must contain only ascii graphic characters")]
+    #[error(
+        "invalid identifier '{ident}': must contain only unicode alphanumeric or ascii graphic characters"
+    )]
     InvalidChars { ident: Arc<str> },
     #[error("invalid identifier: length exceeds the maximum of {max} bytes")]
     InvalidLength { max: usize },
@@ -69,7 +71,8 @@ impl Ident {
     /// This can fail if:
     ///
     /// * The identifier exceeds the maximum allowed identifier length
-    /// * The identifier contains non-graphic characters (e.g. whitespace, control)
+    /// * The identifier contains something other than Unicode alphanumeric or ASCII graphic
+    ///   characters (e.g. whitespace, control)
     pub fn new(source: impl AsRef<str>) -> Result<Self, IdentError> {
         source.as_ref().parse()
     }
@@ -79,7 +82,8 @@ impl Ident {
     /// This can fail if:
     ///
     /// * The identifier exceeds the maximum allowed identifier length
-    /// * The identifier contains non-graphic characters (e.g. whitespace, control)
+    /// * The identifier contains something other than Unicode alphanumeric or ASCII graphic
+    ///   characters (e.g. whitespace, control)
     pub fn new_with_span(span: SourceSpan, source: impl AsRef<str>) -> Result<Self, IdentError> {
         source.as_ref().parse::<Self>().map(|id| id.with_span(span))
     }
