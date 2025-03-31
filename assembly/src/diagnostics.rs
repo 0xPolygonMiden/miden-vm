@@ -2,8 +2,8 @@ use alloc::{borrow::Cow, boxed::Box, sync::Arc, vec::Vec};
 use core::{fmt, ops::Range};
 
 pub use miette::{
-    Diagnostic, IntoDiagnostic, LabeledSpan, NamedSource, Report, Result, Severity, SourceCode,
-    WrapErr, miette,
+    self, Diagnostic, IntoDiagnostic, LabeledSpan, NamedSource, Report, Result, Severity,
+    SourceCode, WrapErr,
 };
 pub use tracing;
 pub use vm_core::debuginfo::*;

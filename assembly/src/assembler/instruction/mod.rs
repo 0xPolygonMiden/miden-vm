@@ -41,9 +41,10 @@ impl Assembler {
             if let Some(node_id) = new_node_id {
                 // New node was created, so we are done building the current block. We then want to
                 // add the assembly operation to the new node - for example call, dyncall, if/else
-                // statements, loops, etc. However, `exec` instructions compiled away and not added
-                // to the trace, so we should ignore them. Theoretically, we could probably add them
-                // anyways, but it currently breaks the `VmStateIterator`.
+                // statements, loops, etc. However, `exec` instructions are compiled away and not
+                // added to the trace, so we should ignore them. Theoretically, we
+                // could probably add them anyways, but it currently breaks the
+                // `VmStateIterator`.
                 if !matches!(instruction.inner(), &Instruction::Exec(_)) {
                     let asm_op_id = maybe_asm_op_id.expect("no asmop decorator");
 

@@ -8,7 +8,7 @@ use std::{
 use assembly::{
     Assembler, Library, LibraryNamespace,
     ast::{Module, ModuleKind},
-    diagnostics::{Report, WrapErr, miette},
+    diagnostics::{Report, WrapErr, miette::miette},
 };
 use miden_vm::{Digest, ExecutionProof, Program, StackOutputs, utils::SliceReader};
 use prover::utils::Deserializable;
@@ -260,7 +260,7 @@ impl Libraries {
         let mut libraries = Vec::new();
 
         for path in paths {
-            let path_str = path.as_ref().to_string_lossy().to_string();
+            let path_str = path.as_ref().to_string_lossy().into_owned();
 
             let library = Library::deserialize_from_file(path).map_err(|err| {
                 miette!("Failed to read library from file `{}`: {}", path_str, err)

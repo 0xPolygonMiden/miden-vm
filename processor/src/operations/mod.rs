@@ -34,6 +34,10 @@ impl Process {
         self.execute_op_with_error_ctx(op, host, &ErrorContext::default())
     }
 
+    /// Executes the specified operation.
+    ///
+    /// This method also takes an error context as an argument, which is used to construct helpful
+    /// error messages in case of an error.
     pub(super) fn execute_op_with_error_ctx(
         &mut self,
         op: Operation,
