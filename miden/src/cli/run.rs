@@ -152,7 +152,6 @@ fn run_masp_program(params: &RunCmd) -> Result<(ExecutionTrace, [u8; 32]), Repor
     // execute program and generate outputs
     let trace =
         processor::execute(&program, stack_inputs, &mut host, execution_options, source_manager)
-            .into_diagnostic()
             .wrap_err("Failed to generate execution trace")?;
 
     Ok((trace, program_hash))
@@ -194,7 +193,6 @@ fn run_masm_program(params: &RunCmd) -> Result<(ExecutionTrace, [u8; 32]), Repor
 
     let trace =
         processor::execute(&program, stack_inputs, &mut host, execution_options, source_manager)
-            .into_diagnostic()
             .wrap_err("Failed to generate execution trace")?;
 
     Ok((trace, program_hash))

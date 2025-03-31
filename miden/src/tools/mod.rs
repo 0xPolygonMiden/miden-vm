@@ -3,7 +3,7 @@ use std::{path::PathBuf, sync::Arc};
 
 use assembly::{
     DefaultSourceManager, SourceManager,
-    diagnostics::{IntoDiagnostic, Report, WrapErr},
+    diagnostics::{Report, WrapErr},
 };
 use clap::Parser;
 use miden_vm::{DefaultHost, Host, Operation, StackInputs, internal::InputFile};
@@ -64,8 +64,7 @@ impl Analyze {
         // fetch the stack and program inputs from the arguments
         let stack_inputs = input_data.parse_stack_inputs().map_err(Report::msg)?;
         let mut host = DefaultHost::new(input_data.parse_advice_provider().map_err(Report::msg)?);
-        host.load_mast_forest(StdLibrary::default().mast_forest().clone())
-            .into_diagnostic()?;
+        host.load_mast_forest(StdLibrary::default().mast_forest().clone())?;
 
         let execution_details: ExecutionDetails =
             analyze(&program, stack_inputs, host, source_manager)
@@ -253,7 +252,7 @@ where
     execution_details.set_trace_len_summary(vm_state_iterator.trace_len_summary());
 
     for state in vm_state_iterator {
-        let vm_state = state.into_diagnostic().wrap_err("execution error")?;
+        let vm_state = state.wrap_err("execution error")?;
         if matches!(vm_state.op, Some(Operation::Noop)) {
             execution_details.incr_noop_count();
         }

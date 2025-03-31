@@ -35,7 +35,7 @@ pub enum MemoryError {
         "ensure that the memory address accessed is aligned to a word boundary (it is a multiple of 4)"
     ))]
     UnalignedWordAccess {
-        #[label]
+        #[label("tried to access memory address {addr}")]
         label: SourceSpan,
         #[source_code]
         source_file: Option<Arc<SourceFile>>,
