@@ -1,7 +1,7 @@
-use alloc::{string::String, sync::Arc};
+use alloc::string::String;
 use core::fmt;
 
-use crate::debuginfo::{Location, SourceFile, SourceManager, SourceSpan};
+use crate::debuginfo::Location;
 
 // ASSEMBLY OP
 // ================================================================================================
@@ -58,24 +58,6 @@ impl AssemblyOp {
     /// Returns `true` if there is a breakpoint for the current operation.
     pub const fn should_break(&self) -> bool {
         self.should_break
-    }
-
-    pub fn to_label_and_source_file(
-        &self,
-        source_manager: &dyn SourceManager,
-    ) -> (SourceSpan, Option<Arc<SourceFile>>) {
-        let label = self
-            .location
-            .clone()
-            .and_then(|location| source_manager.location_to_span(location))
-            .unwrap_or(SourceSpan::UNKNOWN);
-
-        let source_file = self
-            .location
-            .as_ref()
-            .and_then(|location| source_manager.get_by_path(&location.path));
-
-        (label, source_file)
     }
 
     // STATE MUTATORS
