@@ -36,9 +36,9 @@ macro_rules! exec {
     ($name:path) => {{
         let path = stringify!($name);
         let (module, name) = path.split_once("::").expect("invalid procedure path");
-        let name =
-            Ident::new_unchecked(Span::unknown(Arc::from(name.to_string().into_boxed_str())));
-        let name = ProcedureName::new_unchecked(name);
+        let name = Ident::new(Span::unknown(Arc::from(name.to_string().into_boxed_str())))
+            .expect("invalid identifier");
+        let name = ProcedureName::new(name).expect("invalid procedure name");
 
         inst!(Exec(InvocationTarget::ProcedurePath { name, module: module.parse().unwrap() }))
     }};
@@ -53,7 +53,7 @@ macro_rules! call {
     ($name:path) => {{
         let path = stringify!($name);
         let (module, name) = path.split_once("::").expect("invalid procedure path");
-        let name = ProcedureName::new_unchecked(Default::default(), name);
+        let name = ProcedureName::new(Default::default(), name).expect("invalid procedure name");
 
         inst!(Call(InvocationTarget::ProcedurePath { name, module }))
     }};

@@ -145,11 +145,9 @@ impl Deserializable for QualifiedProcedureName {
 ///
 /// The symbol represented by this type must comply with the following rules:
 ///
-/// - It must start with an ASCII alphabetic character, or one of: `_`, `.`, or `$`
-/// - If it starts with a non-ASCII alphabetic character, it must contain at least one ASCII
-///   alphabetic character, e.g. `_`, `$_` are not valid symbols, but `_a` or `$_a` are.
-/// - Otherwise, the name may consist of any number of printable ASCII characters, e.g.
-///   alphanumerics, punctuation, etc. Control characters and the like are explicitly not allowed.
+/// - It must consist only of alphanumeric characters, or ASCII graphic characters.
+/// - If it starts with a non-alphabetic character, it must contain at least one alphanumeric
+///   character, e.g. `_`, `$_` are not valid procedure symbols, but `_a` or `$_a` are.
 ///
 /// NOTE: In Miden Assembly source files, a procedure name must be quoted in double-quotes if it
 /// contains any characters other than ASCII alphanumerics, or `_`. See examples below.
@@ -167,7 +165,8 @@ impl Deserializable for QualifiedProcedureName {
 ///   ...
 /// end
 ///
-/// # A symbol which contains `::`, which would be treated as a namespace operator, so requires quoting
+/// # A symbol which contains `::`, which would be treated as a namespace operator, so requires
+/// # quoting
 /// proc."std::foo"
 ///   ...
 /// end
@@ -206,7 +205,7 @@ impl ProcedureName {
     /// so by construction all such identifiers are valid.
     ///
     /// NOTE: This function is perma-unstable, it may be removed or modified at any time.
-    pub fn new_unchecked(name: Ident) -> Self {
+    pub fn from_raw_parts(name: Ident) -> Self {
         Self(name)
     }
 
@@ -214,7 +213,7 @@ impl ProcedureName {
     /// (i.e., `main`).
     pub fn main() -> Self {
         let name = Arc::from(Self::MAIN_PROC_NAME.to_string().into_boxed_str());
-        Self(Ident::new_unchecked(Span::unknown(name)))
+        Self(Ident::from_raw_parts(Span::unknown(name)))
     }
 
     /// Is this the reserved name for the executable entrypoint (i.e. `main`)?
@@ -325,8 +324,7 @@ impl FromStr for ProcedureName {
                             let tok = &s[1..pos];
                             break Ok(Arc::from(tok.to_string().into_boxed_str()));
                         },
-                        c if c.is_alphanumeric() => continue,
-                        '_' | '$' | '-' | '!' | '?' | '<' | '>' | ':' | '.' => continue,
+                        c if c.is_alphanumeric() || c.is_ascii_graphic() => continue,
                         _ => break Err(IdentError::InvalidChars { ident: s.into() }),
                     }
                 } else {
@@ -349,7 +347,7 @@ impl FromStr for ProcedureName {
             Some((_, c)) if c.is_ascii_uppercase() => Err(IdentError::Casing(CaseKindError::Snake)),
             Some(_) => Err(IdentError::InvalidChars { ident: s.into() }),
         }?;
-        Ok(Self(Ident::new_unchecked(Span::unknown(raw))))
+        Ok(Self(Ident::from_raw_parts(Span::unknown(raw))))
     }
 }
 

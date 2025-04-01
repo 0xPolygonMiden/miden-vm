@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.13.2 TBD
+
+#### Changes
+- Relaxed rules for identifiers created via `Ident::new`, `ProcedureName::new`,
+  `LibraryNamespace::new`, and `Library::new_from_components`
+- [BREAKING] Renamed `Ident::new_unchecked` and `ProcedureName::new_unchecked`
+  to `from_raw_parts`
+
 ## 0.13.1 (2025-03-21) - `stdlib` crate only
 
 #### Enhancements

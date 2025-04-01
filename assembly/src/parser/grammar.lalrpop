@@ -487,7 +487,8 @@ QuotedString: Ident = {
             interned.insert(value.clone());
             value
         });
-        Ident::new_unchecked(Span::new(span!(source_file.id(), l, r), value))
+        let span = span!(source_file.id(), l, r);
+        Ident::from_raw_parts(Span::new(span, value))
     }
 }
 
@@ -1448,19 +1449,24 @@ ProcedureName: ProcedureName = {
 
 #[inline]
 BareProcedureName: ProcedureName = {
-    <BareIdent> => ProcedureName::new_unchecked(<>),
+    <BareIdent> => ProcedureName::from_raw_parts(<>),
 }
 
 #[inline]
 QuotedProcedureName: ProcedureName = {
-    <l:@L> <name:quoted_ident> <r:@R> => {
+    <l:@L> <name:quoted_ident> <r:@R> =>? {
         let name = interned.get(name).cloned().unwrap_or_else(|| {
             let name = Arc::<str>::from(name.to_string().into_boxed_str());
             interned.insert(name.clone());
             name
         });
-        let id = Ident::new_unchecked(Span::new(span!(source_file.id(), l, r), name));
-        ProcedureName::new_unchecked(id)
+        let span = span!(source_file.id(), l, r);
+        Ident::validate(&name)
+            .map_err(|error| ParseError::User {
+                error: ParsingError::InvalidIdentifier { error, span },
+            })?;
+        let id = Ident::from_raw_parts(Span::new(span, name));
+        Ok(ProcedureName::from_raw_parts(id))
     }
 }
 
@@ -1514,13 +1520,18 @@ MaybeQualifiedProcedurePath: InvocationTarget = {
 
 #[inline]
 BareIdent: Ident = {
-    <l:@L> <name:bare_ident> <r:@R> => {
+    <l:@L> <name:bare_ident> <r:@R> =>? {
         let name = interned.get(name).cloned().unwrap_or_else(|| {
             let name = Arc::<str>::from(name.to_string().into_boxed_str());
             interned.insert(name.clone());
             name
         });
-        Ident::new_unchecked(Span::new(span!(source_file.id(), l, r), name))
+        let span = span!(source_file.id(), l, r);
+        Ident::validate(&name)
+            .map_err(|error| ParseError::User {
+                error: ParsingError::InvalidIdentifier { error, span },
+            })?;
+        Ok(Ident::from_raw_parts(Span::new(span, name)))
     },
 
     OpcodeName,
@@ -1598,7 +1609,7 @@ OpcodeName: Ident = {
             interned.insert(name.clone());
             name
         });
-        Ident::new_unchecked(Span::new(span!(source_file.id(), l, r), name))
+        Ident::from_raw_parts(Span::new(span!(source_file.id(), l, r), name))
     }
 }
 
@@ -1774,13 +1785,19 @@ ConstantExpr100: ConstantExpr = {
 
 #[inline]
 ConstantName: Ident = {
-    <l:@L> <name:const_ident> <r:@R> => {
+    <l:@L> <name:const_ident> <r:@R> =>? {
         let name = interned.get(name).cloned().unwrap_or_else(|| {
             let name = Arc::<str>::from(name.to_string().into_boxed_str());
             interned.insert(name.clone());
             name
         });
-        Ident::new_unchecked(Span::new(span!(source_file.id(), l, r), name))
+        let span = span!(source_file.id(), l, r);
+
+        Ident::validate(&name)
+            .map_err(|error| ParseError::User {
+                error: ParsingError::InvalidIdentifier { error, span },
+            })?;
+        Ok(Ident::from_raw_parts(Span::new(span, name)))
     }
 }
 
