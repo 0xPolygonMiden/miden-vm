@@ -1172,6 +1172,17 @@ fn assert_parsing_line_unexpected_token() {
     );
 }
 
+/// This test evaluates that we get the expected formatted Miden Assembly output when parsing some
+/// Miden Assembly source code into the AST, and then formatting the AST.
+///
+/// NOTE: Due to current limitations of the parser, round-tripping is currently somewhat lossy:
+///
+/// - Line comments (i.e. not docstrings) are not preserved, and so do not end up in the output
+/// - The original choice to place a sequence of instructions on the same line or multiple lines is
+///   not preserved in the AST, so the formatter always places them on individual lines.
+/// - References to constant values by name are replaced with their value during semantic analysis,
+///   so no named constants appear in the formatted output.
+/// - Constant declarations are not preserved by the parser, and so are not shown in the output
 #[test]
 fn test_roundtrip_formatting() {
     let source = "\
