@@ -1,7 +1,7 @@
-use crate::chiplets::ace::trace::{CircuitEvaluation, decode_instruction};
+use crate::chiplets::ace::trace::{CircuitEvaluationContext, decode_instruction};
 use crate::chiplets::ace::{Circuit, CircuitLayout, EncodedCircuit, Instruction, NodeID, Op};
-use crate::{Felt, QuadFelt, Word};
-use miden_air::FieldElement;
+use crate::{ContextId, Felt, QuadFelt, Word};
+use miden_air::{FieldElement, RowIndex};
 use std::prelude::rust_2015::Vec;
 
 /// Evaluate a `Circuit` for a given set of `inputs`, comparing the result with the native
@@ -17,13 +17,27 @@ fn check_eval(
     result
 }
 
+/// Performs encoding of circuit and evaluate it by the ACE chiplet.
 fn check_encoded_eval(circuit: &Circuit, inputs: &[QuadFelt]) {
     let encoded_circuit = EncodedCircuit::try_from_circuit(circuit).expect("cannot encode");
-    let mem = generate_memory(&encoded_circuit, inputs);
-    let evaluator =
-        CircuitEvaluation::new(encoded_circuit.num_vars, encoded_circuit.num_eval, &mem)
-            .expect("failed to evaluate");
-    let eval = evaluator.evaluation();
+    let num_read_rows = encoded_circuit.num_vars as u32 / 2;
+    let num_eval_rows = encoded_circuit.num_eval as u32;
+    let circuit_mem = generate_memory(&encoded_circuit, inputs);
+    let ctx = ContextId::default();
+    let ptr = Felt::ZERO;
+    let clk = RowIndex::from(0);
+
+    let mut evaluator = CircuitEvaluationContext::new(ctx, ptr, clk, num_read_rows, num_eval_rows);
+
+    let mut mem_iter = circuit_mem.iter();
+    for word in mem_iter.by_ref().take(num_read_rows as usize) {
+        evaluator.do_read(*word).expect("TODO");
+    }
+    for instruction in mem_iter.by_ref().flatten() {
+        evaluator.do_eval(*instruction).expect("TODO");
+    }
+
+    let eval = evaluator.final_evaluation().unwrap();
     assert_eq!(eval, QuadFelt::ZERO);
 }
 
@@ -96,9 +110,6 @@ fn test_bool_check() {
         check_eval(&circuit, input, |_| QuadFelt::ZERO);
         check_encoded_eval(&circuit, input);
     }
-
-
-
 }
 
 /// Check round-trip encoding and decoding of instructions.
