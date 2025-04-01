@@ -9,7 +9,7 @@ impl Circuit {
     ///
     /// Returns an error if
     /// - The circuit contains no instructions
-    /// -
+    /// - An instruction references a node whose index would be after the one created by it.
     pub fn new(
         num_inputs: usize,
         constants: Vec<Felt>,
