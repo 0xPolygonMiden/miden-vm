@@ -68,12 +68,12 @@ impl CircuitEvaluationContext {
         // Add first variable as QuadFelt to wire bus
         let v_0 = QuadFelt::new(word[0], word[1]);
         let id_0 = self.wire_bus.insert(v_0);
-        self.col_w0.append(id_0, v_0);
+        self.col_w0.push(id_0, v_0);
 
         // Add second variable as QuadFelt to wire bus
         let v_1 = QuadFelt::new(word[2], word[3]);
         let id_1 = self.wire_bus.insert(v_1);
-        self.col_w1.append(id_1, v_1);
+        self.col_w1.push(id_1, v_1);
         Ok(())
     }
 
@@ -91,12 +91,12 @@ impl CircuitEvaluationContext {
         // Read value of id_l from wire bus, increasing its multiplicity
         let v_l = self.wire_bus.read_value(id_l).expect("TODO");
         let id_l = Felt::from(id_l);
-        self.col_w1.append(id_l, v_l);
+        self.col_w1.push(id_l, v_l);
 
         // Read value of id_r from wire bus, increasing its multiplicity
         let v_r = self.wire_bus.read_value(id_r).expect("TODO");
         let id_r = Felt::from(id_r);
-        self.col_w2.append(id_r, v_r);
+        self.col_w2.push(id_r, v_r);
 
         // Compute v_out and insert it into the wire bus.
         let v_out = match op {
@@ -105,7 +105,7 @@ impl CircuitEvaluationContext {
             Op::Add => v_l + v_r,
         };
         let id_out = self.wire_bus.insert(v_out);
-        self.col_w0.append(id_out, v_out);
+        self.col_w0.push(id_out, v_out);
 
         // Add op to column
         let op_sub = -Felt::ONE;
@@ -120,7 +120,7 @@ impl CircuitEvaluationContext {
         Ok(())
     }
 
-    fn fill<'a>(&self, columns: &mut [&'a mut [Felt]]) {
+    pub fn fill<'a>(&self, columns: &mut [&'a mut [Felt]]) {
         let num_read_rows = self.num_read_rows as usize;
         let num_eval_rows = self.num_eval_rows as usize;
         let read_range = Range { start: 0, end: num_read_rows };
@@ -144,14 +144,14 @@ impl CircuitEvaluationContext {
         columns[CTX_COL_IDX].fill(ctx_felt);
 
         // Fill ptr column.
-        columns[PTR_IDX][read_range.clone()].copy_from_slice(&self.col_ptr);
+        columns[PTR_IDX].copy_from_slice(&self.col_ptr);
 
         // Fill clk column which is constant across the section
         let clt_felt = self.clk.into();
         columns[CTX_COL_IDX].fill(clt_felt);
 
         // Fill n_eval which is constant across the read block
-        let n_eval_felt = Felt::ZERO; // TODO
+        let n_eval_felt = Felt::from(self.num_eval_rows - 1);
         columns[READ_NUM_EVAL_IDX][read_range.clone()].fill(n_eval_felt);
 
         // Fill OP column for EVAL rows
@@ -188,18 +188,16 @@ impl CircuitEvaluationContext {
         debug_assert!(multiplicities_iter.next().is_none());
     }
 
-    pub fn final_evaluation(&self) -> Option<QuadFelt> {
+    /// If the circuit has finished evaluating, return the output value
+    pub fn output_value(&self) -> Option<QuadFelt> {
         if !self.wire_bus.is_finalized() {
             return None;
         }
         self.wire_bus.wires.last().map(|(v, _m)| *v)
     }
-
-    fn num_rows(&self) -> usize {
-        (self.num_read_rows + self.num_eval_rows) as usize
-    }
 }
 
+/// Set of columns for a given wire containing `[id, v_0, v_1]`
 struct WireColumn {
     id: Vec<Felt>,
     v_0: Vec<Felt>,
@@ -214,13 +212,16 @@ impl WireColumn {
             v_1: Vec::with_capacity(num_rows),
         }
     }
-    fn append(&mut self, id: Felt, v: QuadFelt) {
+
+    /// Pushes the wire `(id, v)` to the columns.
+    fn push(&mut self, id: Felt, v: QuadFelt) {
         self.id.push(id);
         let [v_0, v_1] = v.to_base_elements();
         self.v_0.push(v_0);
         self.v_1.push(v_1);
     }
 }
+
 
 struct WireBus {
     // Circuit ID as Felt of the next wire to be inserted
@@ -311,7 +312,7 @@ fn eval_circuit(
     }
 
     // Ensure the circuit evaluated to zero.
-    if !evaluation_context.final_evaluation().is_some_and(|eval| eval == QuadFelt::ZERO) {
+    if !evaluation_context.output_value().is_some_and(|eval| eval == QuadFelt::ZERO) {
         return Err(());
     }
 
@@ -387,4 +388,4 @@ pub const V_2_1_IDX: usize = 14;
 /// The index of the column containing the index of the first wire being evaluated.
 pub const READ_NUM_EVAL_IDX: usize = 12;
 
-pub const NUM_COLS: usize = 15;
+pub const NUM_COLS: usize = 16;
