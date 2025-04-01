@@ -126,7 +126,7 @@ macro_rules! expect_exec_error_matches {
 /// So if the output has 3 lines, the second of which is empty, and you provide 2 patterns, the
 /// assertion passes if the first line matches the first pattern, and the third line matches the
 /// second pattern - the second line is ignored because it is empty.
-#[cfg(all(feature = "std", not(target_family = "wasm")))]
+#[cfg(not(target_family = "wasm"))]
 #[macro_export]
 macro_rules! assert_diagnostic_lines {
     ($diagnostic:expr, $($expected:expr),+) => {{
@@ -139,7 +139,7 @@ macro_rules! assert_diagnostic_lines {
     }};
 }
 
-#[cfg(all(feature = "std", not(target_family = "wasm")))]
+#[cfg(not(target_family = "wasm"))]
 #[macro_export]
 macro_rules! assert_assembler_diagnostic {
     ($test:ident, $($expected:literal),+) => {{
@@ -243,7 +243,8 @@ impl Test {
             program.kernel().clone(),
             self.stack_inputs.clone(),
             ExecutionOptions::default(),
-        );
+        )
+        .with_source_manager(self.source_manager.clone());
         process.execute(&program, &mut host).unwrap();
 
         // validate the memory state
@@ -339,7 +340,8 @@ impl Test {
             program.kernel().clone(),
             self.stack_inputs.clone(),
             ExecutionOptions::default(),
-        );
+        )
+        .with_source_manager(self.source_manager.clone());
         let slow_stack_outputs = process.execute(&program, &mut host)?;
         let trace = ExecutionTrace::new(process, slow_stack_outputs.clone());
         assert_eq!(&program.hash(), trace.program_hash(), "inconsistent program hash");
@@ -373,9 +375,14 @@ impl Test {
     pub fn prove_and_verify(&self, pub_inputs: Vec<u64>, test_fail: bool) {
         let (program, mut host) = self.get_program_and_host();
         let stack_inputs = StackInputs::try_from_ints(pub_inputs).unwrap();
-        let (mut stack_outputs, proof) =
-            prover::prove(&program, stack_inputs.clone(), &mut host, ProvingOptions::default())
-                .unwrap();
+        let (mut stack_outputs, proof) = prover::prove(
+            &program,
+            stack_inputs.clone(),
+            &mut host,
+            ProvingOptions::default(),
+            self.source_manager.clone(),
+        )
+        .unwrap();
 
         self.assert_outputs_with_fast_processor(stack_outputs.clone());
 

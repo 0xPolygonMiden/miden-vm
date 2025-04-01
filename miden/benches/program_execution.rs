@@ -44,6 +44,8 @@ fn program_execution(c: &mut Criterion) {
                 group.bench_function(file_stem, |bench| {
                     let mut assembler = Assembler::default();
                     assembler.add_library(StdLibrary::default()).expect("failed to load stdlib");
+                    let source_manager = assembler.source_manager();
+
                     let program = assembler
                         .assemble_program(&source)
                         .expect("Failed to compile test source.");
@@ -55,6 +57,7 @@ fn program_execution(c: &mut Criterion) {
                                 stack_inputs.clone(),
                                 &mut host,
                                 ExecutionOptions::default(),
+                                source_manager.clone(),
                             )
                             .unwrap()
                         },

@@ -15,7 +15,7 @@ use vm_core::{
 };
 
 use crate::{
-    ContextId, ExecutionError, FMP_MIN, Host, ProcessState, SYSCALL_FMP_MIN,
+    ContextId, ExecutionError, FMP_MIN, Host, ProcessState, SYSCALL_FMP_MIN, errors::ErrorContext,
     operations::utils::assert_binary, utils::resolve_external_node,
 };
 
@@ -880,7 +880,10 @@ impl FastProcessor {
     fn restore_context(&mut self) -> Result<(), ExecutionError> {
         // when a call/dyncall/syscall node ends, stack depth must be exactly 16.
         if self.stack_size() > MIN_STACK_DEPTH {
-            return Err(ExecutionError::InvalidStackDepthOnReturn(self.stack_size()));
+            return Err(ExecutionError::invalid_stack_depth_on_return(
+                self.stack_size(),
+                &ErrorContext::default(),
+            ));
         }
 
         let ctx_info = self

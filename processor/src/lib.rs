@@ -6,10 +6,11 @@ extern crate alloc;
 #[cfg(feature = "std")]
 extern crate std;
 
-use alloc::vec::Vec;
+use alloc::{sync::Arc, vec::Vec};
 
 pub mod fast;
 
+use errors::ErrorContext;
 use fast::FastProcessor;
 use miden_air::trace::{
     CHIPLETS_WIDTH, DECODER_TRACE_WIDTH, MIN_TRACE_LEN, RANGE_CHECK_TRACE_WIDTH, STACK_TRACE_WIDTH,
@@ -22,6 +23,7 @@ pub use vm_core::{
     StackInputs, StackOutputs, Word, ZERO,
     chiplets::hasher::Digest,
     crypto::merkle::SMT_DEPTH,
+    debuginfo::{DefaultSourceManager, SourceManager},
     errors::InputError,
     mast::{MastForest, MastNode, MastNodeId},
     sys_events::SystemEvent,
@@ -58,6 +60,7 @@ pub use host::{
 
 mod chiplets;
 use chiplets::Chiplets;
+pub use chiplets::MemoryError;
 
 mod trace;
 use trace::TraceFragment;
@@ -67,6 +70,9 @@ mod errors;
 pub use errors::{ExecutionError, Ext2InttError};
 
 pub mod utils;
+
+#[cfg(test)]
+mod tests;
 
 mod debug;
 pub use debug::{AsmOpInfo, VmState, VmStateIterator};
@@ -132,8 +138,10 @@ pub fn execute(
     stack_inputs: StackInputs,
     host: &mut impl Host,
     options: ExecutionOptions,
+    source_manager: Arc<dyn SourceManager>,
 ) -> Result<ExecutionTrace, ExecutionError> {
-    let mut process = Process::new(program.kernel().clone(), stack_inputs, options);
+    let mut process = Process::new(program.kernel().clone(), stack_inputs, options)
+        .with_source_manager(source_manager);
     let stack_outputs = process.execute(program, host)?;
     let trace = ExecutionTrace::new(process, stack_outputs);
     assert_eq!(&program.hash(), trace.program_hash(), "inconsistent program hash");
@@ -146,8 +154,10 @@ pub fn execute_iter(
     program: &Program,
     stack_inputs: StackInputs,
     host: &mut impl Host,
+    source_manager: Arc<dyn SourceManager>,
 ) -> VmStateIterator {
-    let mut process = Process::new_debug(program.kernel().clone(), stack_inputs);
+    let mut process = Process::new_debug(program.kernel().clone(), stack_inputs)
+        .with_source_manager(source_manager);
     let result = process.execute(program, host);
     if result.is_ok() {
         assert_eq!(
@@ -180,6 +190,7 @@ pub struct Process {
     chiplets: Chiplets,
     max_cycles: u32,
     enable_tracing: bool,
+    source_manager: Arc<dyn SourceManager>,
 }
 
 #[cfg(any(test, feature = "testing"))]
@@ -191,6 +202,7 @@ pub struct Process {
     pub chiplets: Chiplets,
     pub max_cycles: u32,
     pub enable_tracing: bool,
+    pub source_manager: Arc<dyn SourceManager>,
 }
 
 impl Process {
@@ -216,6 +228,7 @@ impl Process {
 
     fn initialize(kernel: Kernel, stack: StackInputs, execution_options: ExecutionOptions) -> Self {
         let in_debug_mode = execution_options.enable_debugging();
+        let source_manager = Arc::new(DefaultSourceManager::default());
         Self {
             system: System::new(execution_options.expected_cycles() as usize),
             decoder: Decoder::new(in_debug_mode),
@@ -224,7 +237,14 @@ impl Process {
             chiplets: Chiplets::new(kernel),
             max_cycles: execution_options.max_cycles(),
             enable_tracing: execution_options.enable_tracing(),
+            source_manager,
         }
+    }
+
+    /// Set the internal source manager to an externally initialized one.
+    pub fn with_source_manager(mut self, source_manager: Arc<dyn SourceManager>) -> Self {
+        self.source_manager = source_manager;
+        self
     }
 
     // PROGRAM EXECUTOR
@@ -395,10 +415,11 @@ impl Process {
             })?;
             self.chiplets.kernel_rom.access_proc(callee.digest())?;
         }
+        let err_ctx = ErrorContext::new(program, call_node, self.source_manager.clone());
 
         self.start_call_node(call_node, program, host)?;
         self.execute_mast_node(call_node.callee(), program, host)?;
-        self.end_call_node(call_node, host)
+        self.end_call_node(call_node, host, &err_ctx)
     }
 
     /// Executes the specified [vm_core::mast::DynNode].
@@ -417,10 +438,12 @@ impl Process {
             return Err(ExecutionError::CallInSyscall("dyncall"));
         }
 
+        let error_ctx = ErrorContext::new(program, node, self.source_manager.clone());
+
         let callee_hash = if node.is_dyncall() {
-            self.start_dyncall_node(node)?
+            self.start_dyncall_node(node, &error_ctx)?
         } else {
-            self.start_dyn_node(node, host)?
+            self.start_dyn_node(node, host, &error_ctx)?
         };
 
         // if the callee is not in the program's MAST forest, try to find a MAST forest for it in
@@ -444,7 +467,7 @@ impl Process {
         }
 
         if node.is_dyncall() {
-            self.end_dyncall_node(node, host)
+            self.end_dyncall_node(node, host, &error_ctx)
         } else {
             self.end_dyn_node(node, host)
         }
@@ -465,6 +488,7 @@ impl Process {
 
         // execute the first operation batch
         self.execute_op_batch(
+            basic_block,
             &basic_block.op_batches()[0],
             &mut decorator_ids,
             op_offset,
@@ -479,7 +503,14 @@ impl Process {
         for op_batch in basic_block.op_batches().iter().skip(1) {
             self.respan(op_batch);
             self.execute_op(Operation::Noop, host)?;
-            self.execute_op_batch(op_batch, &mut decorator_ids, op_offset, program, host)?;
+            self.execute_op_batch(
+                basic_block,
+                op_batch,
+                &mut decorator_ids,
+                op_offset,
+                program,
+                host,
+            )?;
             op_offset += op_batch.ops().len();
         }
 
@@ -508,6 +539,7 @@ impl Process {
     #[inline(always)]
     fn execute_op_batch(
         &mut self,
+        basic_block: &BasicBlockNode,
         batch: &OpBatch,
         decorators: &mut DecoratorIterator,
         op_offset: usize,
@@ -534,8 +566,14 @@ impl Process {
             }
 
             // decode and execute the operation
+            let error_ctx = ErrorContext::new_with_op_idx(
+                program,
+                basic_block,
+                self.source_manager.clone(),
+                i + op_offset,
+            );
             self.decoder.execute_user_op(op, op_idx);
-            self.execute_op(op, host)?;
+            self.execute_op_with_error_ctx(op, host, &error_ctx)?;
 
             // if the operation carries an immediate value, the value is stored at the next group
             // pointer; so, we advance the pointer to the following group
@@ -738,7 +776,9 @@ impl<'a> ProcessState<'a> {
     #[inline(always)]
     pub fn get_mem_word(&self, ctx: ContextId, addr: u32) -> Result<Option<Word>, ExecutionError> {
         match self {
-            ProcessState::Slow(state) => state.chiplets.memory.get_word(ctx, addr),
+            ProcessState::Slow(state) => {
+                state.chiplets.memory.get_word(ctx, addr).map_err(ExecutionError::MemoryError)
+            },
             ProcessState::Fast(state) => {
                 Ok(state.processor.memory.read_word_impl(ctx, addr, None)?.copied())
             },

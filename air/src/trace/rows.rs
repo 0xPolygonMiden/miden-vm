@@ -163,6 +163,7 @@ impl RowIndex {
     }
 }
 
+// TODO(plafer): this should be Add<u32> too
 /// Adds a usize to a [`RowIndex`].
 ///
 /// # Panics

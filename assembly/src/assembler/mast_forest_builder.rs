@@ -497,8 +497,12 @@ impl MastForestBuilder {
         }
     }
 
-    pub fn set_before_enter(&mut self, node_id: MastNodeId, decorator_ids: Vec<DecoratorId>) {
-        self.mast_forest[node_id].set_before_enter(decorator_ids);
+    /// Adds a list of decorators to the provided node to be executed before the node executes.
+    ///
+    /// If other decorators are already present, the new decorators are added to the end of the
+    /// list.
+    pub fn append_before_enter(&mut self, node_id: MastNodeId, decorator_ids: &[DecoratorId]) {
+        self.mast_forest[node_id].append_before_enter(decorator_ids);
 
         let new_node_fingerprint = self.fingerprint_for_node(&self[node_id]);
         self.hash_by_node_id.insert(node_id, new_node_fingerprint);
