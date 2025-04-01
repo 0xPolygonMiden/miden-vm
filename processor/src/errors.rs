@@ -189,10 +189,14 @@ pub enum Ext2InttError {
 // ERROR CONTEXT
 // ===============================================================================================
 
+/// Context information to be used when reporting errors.
 #[derive(Debug)]
 pub struct ErrorContext<'a, N: MastNodeExt>(Option<ErrorContextImpl<'a, N>>);
 
 impl<'a, N: MastNodeExt> ErrorContext<'a, N> {
+    /// Creates a new error context for the specified node and source manager.
+    ///
+    /// This method should be used for all nodes except basic block nodes.
     pub fn new(
         mast_forest: &'a MastForest,
         node: &'a N,
@@ -201,6 +205,9 @@ impl<'a, N: MastNodeExt> ErrorContext<'a, N> {
         Self(Some(ErrorContextImpl::new(mast_forest, node, source_manager)))
     }
 
+    /// Creates a new error context for the specified node and source manager.
+    ///
+    /// This method should be used for basic block nodes.
     pub fn new_with_op_idx(
         mast_forest: &'a MastForest,
         node: &'a N,
@@ -215,10 +222,16 @@ impl<'a, N: MastNodeExt> ErrorContext<'a, N> {
         )))
     }
 
+    /// Creates a new empty error context.
+    ///
+    /// This error context will not provide any information about the source of the error.
     pub fn none() -> Self {
         Self(None)
     }
 
+    /// Returns the label and source file associated with the error context, if any.
+    ///
+    /// Note that `SourceSpan::UNKNOWN` will be returned to indicate an empty span.
     pub fn label_and_source_file(&self) -> (SourceSpan, Option<Arc<SourceFile>>) {
         self.0
             .as_ref()
