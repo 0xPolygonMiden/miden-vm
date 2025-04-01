@@ -1,7 +1,10 @@
-use vm_core::WORD_SIZE;
+use vm_core::{
+    WORD_SIZE,
+    mast::{BasicBlockNode, MastNodeExt},
+};
 
 use super::{ExecutionError, Felt, Process};
-use crate::{AdviceProvider, Host, Word};
+use crate::{AdviceProvider, Host, Word, errors::ErrorContext};
 
 // INPUT / OUTPUT OPERATIONS
 // ================================================================================================
@@ -35,13 +38,16 @@ impl Process {
     ///
     /// # Errors
     /// - Returns an error if the address is not aligned to a word boundary.
-    pub(super) fn op_mloadw(&mut self) -> Result<(), ExecutionError> {
+    pub(super) fn op_mloadw(
+        &mut self,
+        error_ctx: &ErrorContext<'_, impl MastNodeExt>,
+    ) -> Result<(), ExecutionError> {
         // get the address from the stack and read the word from current memory context
-        let mut word = self.chiplets.memory.read_word(
-            self.system.ctx(),
-            self.stack.get(0),
-            self.system.clk(),
-        )?;
+        let mut word = self
+            .chiplets
+            .memory
+            .read_word(self.system.ctx(), self.stack.get(0), self.system.clk(), error_ctx)
+            .map_err(ExecutionError::MemoryError)?;
         word.reverse();
 
         // update the stack state
@@ -61,11 +67,15 @@ impl Process {
     ///   initialized to ZEROs, and thus, if the specified address has never been written to, the
     ///   ZERO element is returned.
     /// - The element retrieved from memory is pushed to the top of the stack.
-    pub(super) fn op_mload(&mut self) -> Result<(), ExecutionError> {
-        let element =
-            self.chiplets
-                .memory
-                .read(self.system.ctx(), self.stack.get(0), self.system.clk())?;
+    pub(super) fn op_mload(
+        &mut self,
+        error_ctx: &ErrorContext<'_, BasicBlockNode>,
+    ) -> Result<(), ExecutionError> {
+        let element = self
+            .chiplets
+            .memory
+            .read(self.system.ctx(), self.stack.get(0), self.system.clk(), error_ctx)
+            .map_err(ExecutionError::MemoryError)?;
 
         self.stack.set(0, element);
         self.stack.copy_state(1);
@@ -84,7 +94,10 @@ impl Process {
     ///
     /// # Errors
     /// - Returns an error if the address is not aligned to a word boundary.
-    pub(super) fn op_mstorew(&mut self) -> Result<(), ExecutionError> {
+    pub(super) fn op_mstorew(
+        &mut self,
+        error_ctx: &ErrorContext<'_, impl MastNodeExt>,
+    ) -> Result<(), ExecutionError> {
         // get the address from the stack and build the word to be saved from the stack values
         let addr = self.stack.get(0);
 
@@ -94,7 +107,8 @@ impl Process {
         // write the word to memory and get the previous word
         self.chiplets
             .memory
-            .write_word(self.system.ctx(), addr, self.system.clk(), word)?;
+            .write_word(self.system.ctx(), addr, self.system.clk(), word, error_ctx)
+            .map_err(ExecutionError::MemoryError)?;
 
         // reverse the order of the memory word & update the stack state
         for (i, &value) in word.iter().rev().enumerate() {
@@ -113,14 +127,20 @@ impl Process {
     ///   from the stack.
     ///
     /// Thus, the net result of the operation is that the stack is shifted left by one item.
-    pub(super) fn op_mstore(&mut self) -> Result<(), ExecutionError> {
+    pub(super) fn op_mstore(
+        &mut self,
+        error_ctx: &ErrorContext<'_, BasicBlockNode>,
+    ) -> Result<(), ExecutionError> {
         // get the address and the value from the stack
         let ctx = self.system.ctx();
         let addr = self.stack.get(0);
         let value = self.stack.get(1);
 
         // write the value to the memory and get the previous word
-        self.chiplets.memory.write(ctx, addr, self.system.clk(), value)?;
+        self.chiplets
+            .memory
+            .write(ctx, addr, self.system.clk(), value, error_ctx)
+            .map_err(ExecutionError::MemoryError)?;
 
         // update the stack state
         self.stack.shift_left(1);
@@ -141,7 +161,10 @@ impl Process {
     ///
     /// # Errors
     /// - Returns an error if the address is not aligned to a word boundary.
-    pub(super) fn op_mstream(&mut self) -> Result<(), ExecutionError> {
+    pub(super) fn op_mstream(
+        &mut self,
+        error_ctx: &ErrorContext<'_, impl MastNodeExt>,
+    ) -> Result<(), ExecutionError> {
         const MEM_ADDR_STACK_IDX: usize = 12;
 
         let ctx = self.system.ctx();
@@ -151,8 +174,14 @@ impl Process {
 
         // load two words from memory
         let words = [
-            self.chiplets.memory.read_word(ctx, addr_first_word, clk)?,
-            self.chiplets.memory.read_word(ctx, addr_second_word, clk)?,
+            self.chiplets
+                .memory
+                .read_word(ctx, addr_first_word, clk, error_ctx)
+                .map_err(ExecutionError::MemoryError)?,
+            self.chiplets
+                .memory
+                .read_word(ctx, addr_second_word, clk, error_ctx)
+                .map_err(ExecutionError::MemoryError)?,
         ];
 
         // replace the stack elements with the elements from memory (in stack order)
@@ -189,7 +218,11 @@ impl Process {
     ///
     /// # Errors
     /// - Returns an error if the address is not aligned to a word boundary.
-    pub(super) fn op_pipe(&mut self, host: &mut impl Host) -> Result<(), ExecutionError> {
+    pub(super) fn op_pipe(
+        &mut self,
+        host: &mut impl Host,
+        error_ctx: &ErrorContext<'_, impl MastNodeExt>,
+    ) -> Result<(), ExecutionError> {
         const MEM_ADDR_STACK_IDX: usize = 12;
 
         // get the address from position 12 on the stack
@@ -202,8 +235,14 @@ impl Process {
         let words = host.advice_provider_mut().pop_stack_dword(self.into())?;
 
         // write the words memory
-        self.chiplets.memory.write_word(ctx, addr_first_word, clk, words[0])?;
-        self.chiplets.memory.write_word(ctx, addr_second_word, clk, words[1])?;
+        self.chiplets
+            .memory
+            .write_word(ctx, addr_first_word, clk, words[0], error_ctx)
+            .map_err(ExecutionError::MemoryError)?;
+        self.chiplets
+            .memory
+            .write_word(ctx, addr_second_word, clk, words[1], error_ctx)
+            .map_err(ExecutionError::MemoryError)?;
 
         // replace the elements on the stack with the word elements (in stack order)
         for (i, &adv_value) in words.iter().flat_map(|word| word.iter()).rev().enumerate() {
@@ -269,7 +308,9 @@ mod tests {
         super::{super::AdviceProvider, MIN_STACK_DEPTH, Operation},
         Felt, Host, Process,
     };
-    use crate::{AdviceSource, ContextId, DefaultHost, ExecutionError};
+    use crate::{
+        AdviceSource, ContextId, DefaultHost, ExecutionError, MemoryError, errors::ErrorContext,
+    };
 
     #[test]
     fn op_push() {
@@ -621,10 +662,14 @@ mod tests {
 
         // emulate reading and writing in the same clock cycle
         process.ensure_trace_capacity();
-        process.op_mload().unwrap();
+        process.op_mload(&ErrorContext::default()).unwrap();
         assert_matches!(
-            process.op_mstore(),
-            Err(ExecutionError::IllegalMemoryAccess { ctx: _, addr: _, clk: _ })
+            process.op_mstore(&ErrorContext::default()),
+            Err(ExecutionError::MemoryError(MemoryError::IllegalMemoryAccess {
+                ctx: _,
+                addr: _,
+                clk: _
+            }))
         );
     }
 
@@ -636,10 +681,14 @@ mod tests {
 
         // emulate reading and writing in the same clock cycle
         process.ensure_trace_capacity();
-        process.op_mstore().unwrap();
+        process.op_mstore(&ErrorContext::default()).unwrap();
         assert_matches!(
-            process.op_mstore(),
-            Err(ExecutionError::IllegalMemoryAccess { ctx: _, addr: _, clk: _ })
+            process.op_mstore(&ErrorContext::default()),
+            Err(ExecutionError::MemoryError(MemoryError::IllegalMemoryAccess {
+                ctx: _,
+                addr: _,
+                clk: _
+            }))
         );
     }
 
@@ -651,8 +700,8 @@ mod tests {
 
         // emulate reading in the same clock cycle
         process.ensure_trace_capacity();
-        process.op_mload().unwrap();
-        process.op_mload().unwrap();
+        process.op_mload(&ErrorContext::default()).unwrap();
+        process.op_mload(&ErrorContext::default()).unwrap();
     }
 
     // HELPER METHODS

@@ -1,4 +1,6 @@
-use assembly::Assembler;
+use std::sync::Arc;
+
+use assembly::{Assembler, DefaultSourceManager};
 use processor::{ExecutionOptions, Program};
 use prover::StackInputs;
 
@@ -18,8 +20,14 @@ fn test_event_handling() {
     // compile and execute program
     let program: Program = Assembler::default().assemble_program(source).unwrap();
     let mut host = TestHost::default();
-    processor::execute(&program, StackInputs::default(), &mut host, ExecutionOptions::default())
-        .unwrap();
+    processor::execute(
+        &program,
+        StackInputs::default(),
+        &mut host,
+        ExecutionOptions::default(),
+        Arc::new(DefaultSourceManager::default()),
+    )
+    .unwrap();
 
     // make sure events were handled correctly
     let expected = vec![1, 2];
@@ -42,8 +50,14 @@ fn test_trace_handling() {
     let mut host = TestHost::default();
 
     // execute program with disabled tracing
-    processor::execute(&program, StackInputs::default(), &mut host, ExecutionOptions::default())
-        .unwrap();
+    processor::execute(
+        &program,
+        StackInputs::default(),
+        &mut host,
+        ExecutionOptions::default(),
+        Arc::new(DefaultSourceManager::default()),
+    )
+    .unwrap();
     let expected = Vec::<u32>::new();
     assert_eq!(host.trace_handler, expected);
 
@@ -53,6 +67,7 @@ fn test_trace_handling() {
         StackInputs::default(),
         &mut host,
         ExecutionOptions::default().with_tracing(),
+        Arc::new(DefaultSourceManager::default()),
     )
     .unwrap();
     let expected = vec![1, 2];
@@ -78,6 +93,7 @@ fn test_debug_with_debugging() {
         StackInputs::default(),
         &mut host,
         ExecutionOptions::default().with_debugging(),
+        Arc::new(DefaultSourceManager::default()),
     )
     .unwrap();
 
@@ -99,8 +115,14 @@ fn test_debug_without_debugging() {
     // compile and execute program
     let program: Program = Assembler::default().assemble_program(source).unwrap();
     let mut host = TestHost::default();
-    processor::execute(&program, StackInputs::default(), &mut host, ExecutionOptions::default())
-        .unwrap();
+    processor::execute(
+        &program,
+        StackInputs::default(),
+        &mut host,
+        ExecutionOptions::default(),
+        Arc::new(DefaultSourceManager::default()),
+    )
+    .unwrap();
 
     // Expect to see no debug commands
     let expected: Vec<String> = vec![];

@@ -32,14 +32,40 @@ impl Assembler {
             block_builder.track_instruction(instruction, proc_ctx)?;
         }
 
-        let result = self.compile_instruction_impl(instruction, block_builder, proc_ctx)?;
+        let new_node_id = self.compile_instruction_impl(instruction, block_builder, proc_ctx)?;
 
-        // compute and update the cycle count of the instruction which just finished executing
         if self.in_debug_mode() {
-            block_builder.set_instruction_cycle_count();
+            // compute and update the cycle count of the instruction which just finished executing
+            let maybe_asm_op_id = block_builder.set_instruction_cycle_count();
+
+            if let Some(node_id) = new_node_id {
+                // New node was created, so we are done building the current block. We then want to
+                // add the assembly operation to the new node - for example call, dyncall, if/else
+                // statements, loops, etc. However, `exec` instructions are compiled away and not
+                // added to the trace, so we should ignore them. Theoretically, we
+                // could probably add them anyways, but it currently breaks the
+                // `VmStateIterator`.
+                if !matches!(instruction.inner(), &Instruction::Exec(_)) {
+                    let asm_op_id = maybe_asm_op_id.expect("no asmop decorator");
+
+                    // set the cycle count to 1
+                    {
+                        let assembly_op = &mut block_builder.mast_forest_builder_mut()[asm_op_id];
+                        if let Decorator::AsmOp(assembly_op) = assembly_op {
+                            assembly_op.set_num_cycles(1);
+                        } else {
+                            panic!("expected AsmOp decorator");
+                        }
+                    }
+
+                    block_builder
+                        .mast_forest_builder_mut()
+                        .append_before_enter(node_id, &[asm_op_id]);
+                }
+            }
         }
 
-        Ok(result)
+        Ok(new_node_id)
     }
 
     fn compile_instruction_impl(

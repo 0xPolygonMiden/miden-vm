@@ -1,6 +1,9 @@
 use std::{fs, path::Path, sync::Arc};
 
-use assembly::diagnostics::{IntoDiagnostic, Report, WrapErr};
+use assembly::{
+    SourceManager,
+    diagnostics::{IntoDiagnostic, Report, WrapErr},
+};
 use package::{MastArtifact, Package};
 use prover::utils::Deserializable;
 
@@ -23,7 +26,12 @@ pub fn get_masp_program(path: &Path) -> Result<vm_core::Program, Report> {
 }
 
 /// Returns a `Program` type from a `.masm` assembly file.
-pub fn get_masm_program(path: &Path, libraries: &Libraries) -> Result<vm_core::Program, Report> {
-    let program = ProgramFile::read(path)?.compile(Debug::On, &libraries.libraries)?;
-    Ok(program)
+pub fn get_masm_program(
+    path: &Path,
+    libraries: &Libraries,
+) -> Result<(vm_core::Program, Arc<dyn SourceManager>), Report> {
+    let program_file = ProgramFile::read(path)?;
+    let program = program_file.compile(Debug::On, &libraries.libraries)?;
+
+    Ok((program, program_file.source_manager().clone()))
 }
