@@ -83,7 +83,7 @@ use vm_core::Decorator;
 #[test]
 fn cli_bundle_debug() {
     let mut cmd = bin_under_test().command();
-    cmd.arg("bundle").arg("--debug").arg("./tests/integration/cli/data/lib");
+    cmd.arg("bundle").arg("./tests/integration/cli/data/lib");
     cmd.assert().success();
 
     let lib = Library::deserialize_from_file("./tests/integration/cli/data/out.masl").unwrap();

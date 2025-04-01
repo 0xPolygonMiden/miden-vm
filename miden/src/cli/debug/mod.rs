@@ -58,7 +58,7 @@ impl DebugCmd {
                 get_masp_program(&self.program_file)?,
                 Arc::new(DefaultSourceManager::default()) as Arc<dyn SourceManager>,
             ),
-            "masm" => get_masm_program(&self.program_file, &libraries)?,
+            "masm" => get_masm_program(&self.program_file, &libraries, true)?,
             _ => return Err(Report::msg("The provided file must have a .masm or .masp extension")),
         };
         let program_hash: [u8; 32] = program.hash().into();

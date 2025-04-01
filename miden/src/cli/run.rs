@@ -50,9 +50,9 @@ pub struct RunCmd {
     #[clap(short = 't', long = "trace")]
     trace: bool,
 
-    /// Enable debug instructions
-    #[clap(short = 'd', long = "debug")]
-    debug: bool,
+    /// Disable debug instructions (release mode)
+    #[clap(short = 'r', long = "release")]
+    release: bool,
 }
 
 impl RunCmd {
@@ -140,7 +140,7 @@ fn run_masp_program(params: &RunCmd) -> Result<(ExecutionTrace, [u8; 32]), Repor
         Some(params.max_cycles),
         params.expected_cycles,
         params.trace,
-        params.debug,
+        !params.release,
     )
     .into_diagnostic()?;
 
@@ -170,14 +170,15 @@ fn run_masm_program(params: &RunCmd) -> Result<(ExecutionTrace, [u8; 32]), Repor
     let libraries = Libraries::new(&params.library_paths)?;
 
     // load program from file and compile
-    let (program, source_manager) = get_masm_program(&params.program_file, &libraries)?;
+    let (program, source_manager) =
+        get_masm_program(&params.program_file, &libraries, !params.release)?;
     let input_data = InputFile::read(&params.input_file, &params.program_file)?;
 
     let execution_options = ExecutionOptions::new(
         Some(params.max_cycles),
         params.expected_cycles,
         params.trace,
-        params.debug,
+        !params.release,
     )
     .into_diagnostic()?;
 

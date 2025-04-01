@@ -29,9 +29,11 @@ pub fn get_masp_program(path: &Path) -> Result<vm_core::Program, Report> {
 pub fn get_masm_program(
     path: &Path,
     libraries: &Libraries,
+    debug_on: bool,
 ) -> Result<(vm_core::Program, Arc<dyn SourceManager>), Report> {
+    let debug_mode = if debug_on { Debug::On } else { Debug::Off };
     let program_file = ProgramFile::read(path)?;
-    let program = program_file.compile(Debug::On, &libraries.libraries)?;
+    let program = program_file.compile(debug_mode, &libraries.libraries)?;
 
     Ok((program, program_file.source_manager().clone()))
 }
