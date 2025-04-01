@@ -102,9 +102,10 @@ pub struct FastProcessor {
     bounds_check_counter: usize,
 
     /// The current clock cycle.
-    /// 
-    /// However, when we are in a basic block, this corresponds to the clock cycle at which the basic block
-    /// was entered. Hence, given an operation, we need to add its index in the block to this value to get the clock cycle.
+    ///
+    /// However, when we are in a basic block, this corresponds to the clock cycle at which the
+    /// basic block was entered. Hence, given an operation, we need to add its index in the
+    /// block to this value to get the clock cycle.
     pub(super) clk: RowIndex,
 
     /// The current context ID.
@@ -279,12 +280,6 @@ impl FastProcessor {
             .get_node_by_id(node_id)
             .ok_or(ExecutionError::MastNodeNotFoundInForest { node_id })?;
 
-        // Corresponds to the row inserted for the node added to the trace (e.g. JOIN, SPLIT, etc).
-        // `External` is the only node that doesn't insert a row in the trace.
-        if !matches!(node, MastNode::External(_)) {
-            self.clk += 1_u32;
-        }
-
         match node {
             MastNode::Block(basic_block_node) => {
                 self.execute_basic_block_node(basic_block_node, program, host)?
@@ -307,12 +302,6 @@ impl FastProcessor {
             },
         }
 
-        // Corresponds to the row inserted for the `END` added to the trace. `External` is the only
-        // node that doesn't insert a corresponding `END` row in the trace.
-        if !matches!(node, MastNode::External(_)) {
-            self.clk += 1_u32;
-        }
-
         Ok(())
     }
 
@@ -323,8 +312,16 @@ impl FastProcessor {
         kernel: &Kernel,
         host: &mut impl Host,
     ) -> Result<(), ExecutionError> {
+        // Corresponds to the row inserted for the JOIN operation added to the trace.
+        self.clk += 1_u32;
+
         self.execute_mast_node(join_node.first(), program, kernel, host)?;
-        self.execute_mast_node(join_node.second(), program, kernel, host)
+        self.execute_mast_node(join_node.second(), program, kernel, host)?;
+
+        // Corresponds to the row inserted for the END operation added to the trace.
+        self.clk += 1_u32;
+
+        Ok(())
     }
 
     fn execute_split_node(
@@ -334,19 +331,27 @@ impl FastProcessor {
         kernel: &Kernel,
         host: &mut impl Host,
     ) -> Result<(), ExecutionError> {
+        // Corresponds to the row inserted for the SPLIT operation added to the trace.
+        self.clk += 1_u32;
+
         let condition = self.stack[self.stack_top_idx - 1];
 
         // drop the condition from the stack
         self.decrement_stack_size();
 
         // execute the appropriate branch
-        if condition == ONE {
+        let ret = if condition == ONE {
             self.execute_mast_node(split_node.on_true(), program, kernel, host)
         } else if condition == ZERO {
             self.execute_mast_node(split_node.on_false(), program, kernel, host)
         } else {
             Err(ExecutionError::NotBinaryValue(condition))
-        }
+        };
+
+        // Corresponds to the row inserted for the END operation added to the trace.
+        self.clk += 1_u32;
+
+        ret
     }
 
     fn execute_loop_node(
@@ -356,6 +361,9 @@ impl FastProcessor {
         kernel: &Kernel,
         host: &mut impl Host,
     ) -> Result<(), ExecutionError> {
+        // Corresponds to the row inserted for the LOOP operation added to the trace.
+        self.clk += 1_u32;
+
         // The loop condition is checked after the loop body is executed.
         let mut condition = self.stack[self.stack_top_idx - 1];
 
@@ -379,6 +387,9 @@ impl FastProcessor {
             }
         }
 
+        // Corresponds to the row inserted for the END operation added to the trace.
+        self.clk += 1_u32;
+
         if condition == ZERO {
             Ok(())
         } else {
@@ -393,6 +404,9 @@ impl FastProcessor {
         kernel: &Kernel,
         host: &mut impl Host,
     ) -> Result<(), ExecutionError> {
+        // Corresponds to the row inserted for the CALL or SYSCALL operation added to the trace.
+        self.clk += 1_u32;
+
         // call or syscall are not allowed inside a syscall
         if self.in_syscall {
             let instruction = if call_node.is_syscall() { "syscall" } else { "call" };
@@ -436,7 +450,12 @@ impl FastProcessor {
         // when returning from a function call or a syscall, restore the context of the
         // system registers and the operand stack to what it was prior to
         // the call.
-        self.restore_context()
+        self.restore_context()?;
+
+        // Corresponds to the row inserted for the END operation added to the trace.
+        self.clk += 1_u32;
+
+        Ok(())
     }
 
     fn execute_dyn_node(
@@ -446,6 +465,9 @@ impl FastProcessor {
         kernel: &Kernel,
         host: &mut impl Host,
     ) -> Result<(), ExecutionError> {
+        // Corresponds to the row inserted for the DYN or DYNCALL operation added to the trace.
+        self.clk += 1_u32;
+
         // dyn calls are not allowed inside a syscall
         if dyn_node.is_dyncall() && self.in_syscall {
             return Err(ExecutionError::CallInSyscall("dyncall"));
@@ -494,6 +516,9 @@ impl FastProcessor {
             self.restore_context()?;
         }
 
+        // Corresponds to the row inserted for the END operation added to the trace.
+        self.clk += 1_u32;
+
         Ok(())
     }
 
@@ -517,6 +542,9 @@ impl FastProcessor {
         program: &MastForest,
         host: &mut impl Host,
     ) -> Result<(), ExecutionError> {
+        // Corresponds to the row inserted for the SPAN operation added to the trace.
+        self.clk += 1_u32;
+
         let mut batch_offset_in_block = 0;
         let mut op_batches = basic_block_node.op_batches().iter();
         let mut decorator_ids = basic_block_node.decorator_iter();
@@ -565,6 +593,9 @@ impl FastProcessor {
                 .ok_or(ExecutionError::DecoratorNotFoundInForest { decorator_id })?;
             self.execute_decorator(decorator, 1, host)?;
         }
+
+        // Corresponds to the row inserted for the END operation added to the trace.
+        self.clk += 1_u32;
 
         Ok(())
     }
