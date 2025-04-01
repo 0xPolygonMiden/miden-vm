@@ -60,8 +60,6 @@ pub enum ExecutionError {
         err_code: u32,
         err_msg: Option<String>,
     },
-    #[error("failed to generate signature: {0}")]
-    FailedSignatureGeneration(&'static str),
     #[error("failed to execute the program for internal reason: {0}")]
     FailedToExecuteProgram(&'static str),
     #[error(

@@ -11,13 +11,13 @@ begin
     repeat.50
         adv_pipe hperm
     end
+    # => [X, HASH, X, addr]  
 
-    # Drop the next memory address `adv_pipe` would write to. Below, `X` denotes junk words we 
-    # don't care about.
-    swap.12 drop
-    # => [X, HASH, X]
+    # Drop the junk words (denoted by `X` above).
+    exec.rpo::squeeze_digest  
+    # => [HASH, addr]  
 
-    # Keep just the hash 
-    exec.rpo::squeeze_digest
-    # => [HASH]
+    # Drop the memory address.
+    movup.4 drop  
+    # => [HASH] 
 end

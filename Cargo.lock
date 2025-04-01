@@ -1224,7 +1224,6 @@ dependencies = [
  "miden-test-utils",
  "pretty_assertions",
  "rstest",
- "smallvec",
  "thiserror 2.0.12",
  "tracing",
  "winter-fri",

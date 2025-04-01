@@ -102,6 +102,9 @@ pub struct FastProcessor {
     bounds_check_counter: usize,
 
     /// The current clock cycle.
+    /// 
+    /// However, when we are in a basic block, this corresponds to the clock cycle at which the basic block
+    /// was entered. Hence, given an operation, we need to add its index in the block to this value to get the clock cycle.
     pub(super) clk: RowIndex,
 
     /// The current context ID.
@@ -199,6 +202,7 @@ impl FastProcessor {
     }
 
     /// Returns the element on the stack at index `idx`.
+    #[inline(always)]
     pub fn stack_get(&self, idx: usize) -> Felt {
         self.stack[self.stack_top_idx - idx - 1]
     }
@@ -211,6 +215,7 @@ impl FastProcessor {
     ///
     /// The words are created in reverse order. For example, for `start_idx=0` the top element of
     /// the stack will be at the last position in the word.
+    #[inline(always)]
     pub fn stack_get_word(&self, start_idx: usize) -> Word {
         debug_assert!(start_idx < MIN_STACK_DEPTH);
 
