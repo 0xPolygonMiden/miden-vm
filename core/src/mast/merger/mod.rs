@@ -327,7 +327,7 @@ impl MastForestMerger {
         // Decorators must be handled specially for basic block nodes.
         // For other node types we can handle it centrally.
         if !mapped_node.is_basic_block() {
-            mapped_node.set_before_enter(map_decorators(node.before_enter())?);
+            mapped_node.append_before_enter(&map_decorators(node.before_enter())?);
             mapped_node.set_after_exit(map_decorators(node.after_exit())?);
         }
 

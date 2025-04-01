@@ -1,6 +1,6 @@
-use vm_core::{Felt, Operation};
+use vm_core::{Felt, Operation, mast::MastNodeExt};
 
-use crate::{ExecutionError, Process, QuadFelt};
+use crate::{ExecutionError, Process, QuadFelt, errors::ErrorContext};
 
 // CONSTANTS
 // ================================================================================================
@@ -61,12 +61,15 @@ impl Process {
     ///
     /// The instruction also makes use of the helper registers to hold the value of
     /// alpha = (alpha0, alpha1) during the course of its execution.
-    pub(super) fn op_horner_eval_base(&mut self) -> Result<(), ExecutionError> {
+    pub(super) fn op_horner_eval_base(
+        &mut self,
+        error_ctx: &ErrorContext<'_, impl MastNodeExt>,
+    ) -> Result<(), ExecutionError> {
         // read the values of the coefficients, over the base field, from the stack
         let coef = self.get_coeff_as_base_elements();
 
         // read the evaluation point alpha from memory
-        let alpha = self.get_evaluation_point()?;
+        let alpha = self.get_evaluation_point(error_ctx)?;
 
         // compute the updated accumulator value
         let acc_old = self.get_accumulator();
@@ -122,12 +125,15 @@ impl Process {
     ///
     /// The instruction also makes use of the helper registers to hold the value of
     /// alpha = (alpha0, alpha1) during the course of its execution.
-    pub(super) fn op_horner_eval_ext(&mut self) -> Result<(), ExecutionError> {
+    pub(super) fn op_horner_eval_ext(
+        &mut self,
+        error_ctx: &ErrorContext<'_, impl MastNodeExt>,
+    ) -> Result<(), ExecutionError> {
         // read the values of the coefficients, over the extension field, from the stack
         let coef = self.get_coeff_as_quad_ext_elements();
 
         // read the evaluation point from memory
-        let alpha = self.get_evaluation_point()?;
+        let alpha = self.get_evaluation_point(error_ctx)?;
 
         // compute the updated accumulator value
         let acc_old = self.get_accumulator();
@@ -180,10 +186,17 @@ impl Process {
     /// Returns the evaluation point.
     ///
     /// Also sets the helper registers to hold the word read from memory.
-    fn get_evaluation_point(&mut self) -> Result<QuadFelt, ExecutionError> {
+    fn get_evaluation_point(
+        &mut self,
+        error_ctx: &ErrorContext<'_, impl MastNodeExt>,
+    ) -> Result<QuadFelt, ExecutionError> {
         let ctx = self.system.ctx();
         let addr = self.stack.get(ALPHA_ADDR_INDEX);
-        let word = self.chiplets.memory.read_word(ctx, addr, self.system.clk())?;
+        let word = self
+            .chiplets
+            .memory
+            .read_word(ctx, addr, self.system.clk(), error_ctx)
+            .map_err(ExecutionError::MemoryError)?;
         let alpha_0 = word[0];
         let alpha_1 = word[1];
 
@@ -211,7 +224,7 @@ mod tests {
     use test_utils::{build_test, rand::rand_array};
     use vm_core::{Felt, Operation, StackInputs, ZERO};
 
-    use super::{ACC_HIGH_INDEX, ACC_LOW_INDEX, ALPHA_ADDR_INDEX};
+    use super::{ACC_HIGH_INDEX, ACC_LOW_INDEX, ALPHA_ADDR_INDEX, *};
     use crate::{ContextId, DefaultHost, Process, QuadFelt};
 
     #[test]
@@ -246,6 +259,7 @@ mod tests {
                 inputs[2].as_int().try_into().expect("Shouldn't fail by construction"),
                 process.system.clk(),
                 alpha_mem_word,
+                &ErrorContext::default(),
             )
             .unwrap();
         process.execute_op(Operation::Noop, &mut host).unwrap();
@@ -327,6 +341,7 @@ mod tests {
                 inputs[2].as_int().try_into().expect("Shouldn't fail by construction"),
                 process.system.clk(),
                 alpha_mem_word,
+                &ErrorContext::default(),
             )
             .unwrap();
         process.execute_op(Operation::Noop, &mut host).unwrap();

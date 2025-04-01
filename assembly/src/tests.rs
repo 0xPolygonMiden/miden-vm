@@ -10,7 +10,7 @@ use crate::{
     ast::{Module, ModuleKind},
     diagnostics::{IntoDiagnostic, Report},
     regex, source_file,
-    testing::{Pattern, TestContext},
+    testing::TestContext,
 };
 
 type TestResult = Result<(), Report>;

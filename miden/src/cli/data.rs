@@ -6,9 +6,9 @@ use std::{
 };
 
 use assembly::{
-    Assembler, Library, LibraryNamespace,
+    Assembler, Library, LibraryNamespace, SourceManager,
     ast::{Module, ModuleKind},
-    diagnostics::{Report, WrapErr},
+    diagnostics::{Report, WrapErr, miette::miette},
 };
 use miden_vm::{Digest, ExecutionProof, Program, StackOutputs, utils::SliceReader};
 use prover::utils::Deserializable;
@@ -108,7 +108,7 @@ impl OutputFile {
 
 pub struct ProgramFile {
     ast: Box<Module>,
-    source_manager: Arc<dyn assembly::SourceManager>,
+    source_manager: Arc<dyn SourceManager>,
 }
 
 /// Helper methods to interact with masm program file.
@@ -124,7 +124,7 @@ impl ProgramFile {
     #[instrument(name = "read_program_file", skip(source_manager), fields(path = %path.as_ref().display()))]
     pub fn read_with(
         path: impl AsRef<Path>,
-        source_manager: Arc<dyn assembly::SourceManager>,
+        source_manager: Arc<dyn SourceManager>,
     ) -> Result<Self, Report> {
         // parse the program into an AST
         let path = path.as_ref();
@@ -156,6 +156,11 @@ impl ProgramFile {
             .wrap_err("Failed to compile program")?;
 
         Ok(program)
+    }
+
+    /// Returns the source manager for this program file.
+    pub fn source_manager(&self) -> &Arc<dyn SourceManager> {
+        &self.source_manager
     }
 }
 
@@ -260,9 +265,12 @@ impl Libraries {
         let mut libraries = Vec::new();
 
         for path in paths {
-            // TODO(plafer): How to create a `Report` from an error that doesn't derive
-            // `Diagnostic`?
-            let library = Library::deserialize_from_file(path).unwrap();
+            let path_str = path.as_ref().to_string_lossy().into_owned();
+
+            let library = Library::deserialize_from_file(path).map_err(|err| {
+                miette!("Failed to read library from file `{}`: {}", path_str, err)
+            })?;
+
             libraries.push(library);
         }
 

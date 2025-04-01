@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.14.0 TBD
+
+
 ## 0.13.1 (2025-03-21) - `stdlib` crate only
 
 #### Enhancements
@@ -30,6 +33,7 @@
 - Optimize FRI remainder polynomial check (#1670).
 - Remove `FALCON_SIG_TO_STACK` event (#1703).
 - Prevent `U64Div` event from crashing processor (#1710).
+- [BREAKING] Improve processor errors for memory and calls (#1717)
 
 ## 0.12.0 (2025-01-22)
 

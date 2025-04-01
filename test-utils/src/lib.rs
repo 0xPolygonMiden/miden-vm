@@ -126,7 +126,7 @@ macro_rules! expect_exec_error_matches {
 /// So if the output has 3 lines, the second of which is empty, and you provide 2 patterns, the
 /// assertion passes if the first line matches the first pattern, and the third line matches the
 /// second pattern - the second line is ignored because it is empty.
-#[cfg(all(feature = "std", not(target_family = "wasm")))]
+#[cfg(not(target_family = "wasm"))]
 #[macro_export]
 macro_rules! assert_diagnostic_lines {
     ($diagnostic:expr, $($expected:expr),+) => {{
@@ -139,7 +139,7 @@ macro_rules! assert_diagnostic_lines {
     }};
 }
 
-#[cfg(all(feature = "std", not(target_family = "wasm")))]
+#[cfg(not(target_family = "wasm"))]
 #[macro_export]
 macro_rules! assert_assembler_diagnostic {
     ($test:ident, $($expected:literal),+) => {{
@@ -243,7 +243,8 @@ impl Test {
             program.kernel().clone(),
             self.stack_inputs.clone(),
             ExecutionOptions::default(),
-        );
+        )
+        .with_source_manager(self.source_manager.clone());
         process.execute(&program, &mut host).unwrap();
 
         // validate the memory state
@@ -337,12 +338,17 @@ impl Test {
         for library in &self.libraries {
             host.load_mast_forest(library.mast_forest().clone()).unwrap();
         }
-        processor::execute(
-            &program,
+
+        let mut process = Process::new(
+            program.kernel().clone(),
             self.stack_inputs.clone(),
-            &mut host,
             ExecutionOptions::default(),
         )
+        .with_source_manager(self.source_manager.clone());
+        let stack_outputs = process.execute(&program, &mut host)?;
+        let trace = ExecutionTrace::new(process, stack_outputs);
+        assert_eq!(&program.hash(), trace.program_hash(), "inconsistent program hash");
+        Ok(trace)
     }
 
     /// Compiles the test's source to a Program and executes it with the tests inputs. Returns the
@@ -379,9 +385,14 @@ impl Test {
         for library in &self.libraries {
             host.load_mast_forest(library.mast_forest().clone()).unwrap();
         }
-        let (mut stack_outputs, proof) =
-            prover::prove(&program, stack_inputs.clone(), &mut host, ProvingOptions::default())
-                .unwrap();
+        let (mut stack_outputs, proof) = prover::prove(
+            &program,
+            stack_inputs.clone(),
+            &mut host,
+            ProvingOptions::default(),
+            self.source_manager.clone(),
+        )
+        .unwrap();
 
         let program_info = ProgramInfo::from(program);
         if test_fail {
@@ -405,7 +416,12 @@ impl Test {
         for library in &self.libraries {
             host.load_mast_forest(library.mast_forest().clone()).unwrap();
         }
-        processor::execute_iter(&program, self.stack_inputs.clone(), &mut host)
+        processor::execute_iter(
+            &program,
+            self.stack_inputs.clone(),
+            &mut host,
+            self.source_manager.clone(),
+        )
     }
 
     /// Returns the last state of the stack after executing a test.

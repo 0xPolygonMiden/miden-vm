@@ -1,11 +1,13 @@
-use std::{path::PathBuf, time::Instant};
+use std::{path::PathBuf, sync::Arc, time::Instant};
 
-use assembly::diagnostics::{IntoDiagnostic, Report, WrapErr};
+use assembly::{
+    DefaultSourceManager, SourceManager,
+    diagnostics::{Report, WrapErr},
+};
 use clap::Parser;
 use miden_vm::{ProvingOptions, internal::InputFile};
-use processor::{DefaultHost, ExecutionOptions, ExecutionOptionsError, Program};
+use processor::{DefaultHost, ExecutionOptions, ExecutionOptionsError};
 use stdlib::StdLibrary;
-use tracing::instrument;
 
 use super::{
     data::{Libraries, OutputFile, ProofFile},
@@ -100,6 +102,9 @@ impl ProveCmd {
         println!("Prove program: {}", self.program_file.display());
         println!("-------------------------------------------------------------------------------");
 
+        // load libraries from files
+        let libraries = Libraries::new(&self.library_paths)?;
+
         // determine file type based on extension
         let ext = self
             .program_file
@@ -108,10 +113,14 @@ impl ProveCmd {
             .unwrap_or("")
             .to_lowercase();
 
-        let (program, input_data) = match ext.as_str() {
-            "masp" => load_masp_data(self)?,
-            "masm" => load_masm_data(self)?,
-            _ => return Err(Report::msg("File must have a .masm or .masp extension")),
+        let input_data = InputFile::read(&self.input_file, &self.program_file)?;
+        let (program, source_manager) = match ext.as_str() {
+            "masp" => (
+                get_masp_program(&self.program_file)?,
+                Arc::new(DefaultSourceManager::default()) as Arc<dyn SourceManager>,
+            ),
+            "masm" => get_masm_program(&self.program_file, &libraries, !self.release)?,
+            _ => return Err(Report::msg("The provided file must have a .masm or .masp extension")),
         };
 
         let program_hash: [u8; 32] = program.hash().into();
@@ -128,8 +137,7 @@ impl ProveCmd {
 
         // execute program and generate proof
         let (stack_outputs, proof) =
-            prover::prove(&program, stack_inputs, &mut host, proving_options)
-                .into_diagnostic()
+            prover::prove(&program, stack_inputs, &mut host, proving_options, source_manager)
                 .wrap_err("Failed to prove program")?;
 
         println!("Program proved in {} ms", now.elapsed().as_millis());
@@ -155,22 +163,4 @@ impl ProveCmd {
 
         Ok(())
     }
-}
-
-// HELPER FUNCTIONS
-// ================================================================================================
-
-#[instrument(skip_all)]
-fn load_masp_data(params: &ProveCmd) -> Result<(Program, InputFile), Report> {
-    let program = get_masp_program(&params.program_file)?;
-    let input_data = InputFile::read(&params.input_file, &params.program_file)?;
-    Ok((program.clone(), input_data))
-}
-
-#[instrument(skip_all)]
-fn load_masm_data(params: &ProveCmd) -> Result<(Program, InputFile), Report> {
-    let libraries = Libraries::new(&params.library_paths)?;
-    let program = get_masm_program(&params.program_file, &libraries, !params.release)?;
-    let input_data = InputFile::read(&params.input_file, &params.program_file)?;
-    Ok((program, input_data))
 }
