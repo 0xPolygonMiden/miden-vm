@@ -440,13 +440,3 @@
 ## 0.1.0 (2021-11-16)
 
 - Initial release (migration of the original [Distaff VM](https://github.com/GuildOfWeavers/distaff) codebase to [Winterfell](https://github.com/novifinancial/winterfell) backend).
-
-## Unreleased
-
-### Added
-
-// ... existing code ...
-
-### Changed
-
-// ... existing code ...
