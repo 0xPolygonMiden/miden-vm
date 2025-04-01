@@ -334,7 +334,7 @@ impl FastProcessor {
         // Corresponds to the row inserted for the SPLIT operation added to the trace.
         self.clk += 1_u32;
 
-        let condition = self.stack[self.stack_top_idx - 1];
+        let condition = self.stack_get(0);
 
         // drop the condition from the stack
         self.decrement_stack_size();
@@ -365,7 +365,7 @@ impl FastProcessor {
         self.clk += 1_u32;
 
         // The loop condition is checked after the loop body is executed.
-        let mut condition = self.stack[self.stack_top_idx - 1];
+        let mut condition = self.stack_get(0);
 
         // drop the condition from the stack
         self.decrement_stack_size();
@@ -375,7 +375,7 @@ impl FastProcessor {
             self.execute_mast_node(loop_node.body(), program, kernel, host)?;
 
             // check the loop condition, and drop it from the stack
-            condition = self.stack[self.stack_top_idx - 1];
+            condition = self.stack_get(0);
             self.decrement_stack_size();
 
             // this clock increment is for the row inserted for the `REPEAT` node added to
@@ -416,21 +416,14 @@ impl FastProcessor {
         let callee_hash = program
             .get_node_by_id(call_node.callee())
             .ok_or(ExecutionError::MastNodeNotFoundInForest { node_id: call_node.callee() })?
-            .digest()
-            .into();
+            .digest();
 
         self.save_context_and_truncate_stack();
 
         if call_node.is_syscall() {
             // check if the callee is in the kernel
-            let callee_digest = program
-                .get_node_by_id(call_node.callee())
-                .ok_or_else(|| ExecutionError::MastNodeNotFoundInForest {
-                    node_id: call_node.callee(),
-                })?
-                .digest();
-            if !kernel.contains_proc(callee_digest) {
-                return Err(ExecutionError::SyscallTargetNotInKernel(callee_digest));
+            if !kernel.contains_proc(callee_hash) {
+                return Err(ExecutionError::SyscallTargetNotInKernel(callee_hash));
             }
 
             // set the system registers to the syscall context
@@ -441,7 +434,7 @@ impl FastProcessor {
             // set the system registers to the callee context
             self.ctx = self.clk.into();
             self.fmp = Felt::new(FMP_MIN);
-            self.caller_hash = callee_hash;
+            self.caller_hash = callee_hash.into();
         }
 
         // Execute the callee.
@@ -475,7 +468,7 @@ impl FastProcessor {
 
         // Retrieve callee hash from memory, using stack top as the memory address.
         let callee_hash = {
-            let mem_addr = self.stack[self.stack_top_idx - 1];
+            let mem_addr = self.stack_get(0);
             self.memory.read_word(self.ctx, mem_addr, self.clk).copied()?
         };
 
