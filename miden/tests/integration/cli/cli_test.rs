@@ -88,7 +88,7 @@ fn cli_bundle_debug() {
     cmd.arg("bundle")
         .arg("./tests/integration/cli/data/lib")
         .arg("--output")
-        .arg(output_file.as_path());;
+        .arg(output_file.as_path());
     cmd.assert().success();
 
     let lib = Library::deserialize_from_file(&output_file).unwrap();
