@@ -294,6 +294,16 @@ impl FastProcessor {
             .get_node_by_id(node_id)
             .ok_or(ExecutionError::MastNodeNotFoundInForest { node_id })?;
 
+        // Note: we only run this in case there are Trace events associated with the node. However,
+        // if there are assembly ops in the "before enter" list, we will cycle through them and
+        // ignore them, resulting in a drop of performance. We should remove this after trace events
+        // are removed from decorators - or if decorators are removed entirely.
+        //
+        // A similar reasoning applies to the "after exit" list.
+        for &decorator_id in node.before_enter() {
+            self.execute_decorator(&program[decorator_id], 0, host)?;
+        }
+
         match node {
             MastNode::Block(basic_block_node) => {
                 self.execute_basic_block_node(basic_block_node, program, host)?
@@ -314,6 +324,10 @@ impl FastProcessor {
             MastNode::External(external_node) => {
                 self.execute_external_node(external_node, kernel, host)?
             },
+        }
+
+        for &decorator_id in node.after_exit() {
+            self.execute_decorator(&program[decorator_id], 0, host)?;
         }
 
         Ok(())

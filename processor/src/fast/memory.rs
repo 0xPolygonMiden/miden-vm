@@ -194,7 +194,7 @@ fn enforce_word_aligned_addr(
                 addr,
                 ctx,
                 clk.into(),
-                &error_ctx,
+                error_ctx,
             ))),
             None => Err(ExecutionError::MemoryError(MemoryError::UnalignedWordAccessNoClk {
                 addr,
