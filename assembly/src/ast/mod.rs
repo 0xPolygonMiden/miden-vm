@@ -3,6 +3,7 @@
 mod attribute;
 mod block;
 mod constants;
+mod docstring;
 mod form;
 mod ident;
 mod immediate;
@@ -23,6 +24,7 @@ pub use self::{
     },
     block::Block,
     constants::{Constant, ConstantExpr, ConstantOp},
+    docstring::DocString,
     form::Form,
     ident::{CaseKindError, Ident, IdentError},
     immediate::{ErrorCode, ImmFelt, ImmU8, ImmU16, ImmU32, Immediate},
