@@ -54,8 +54,8 @@ impl Export {
     /// Returns the documentation for this procedure.
     pub fn docs(&self) -> Option<&str> {
         match self {
-            Self::Procedure(proc) => proc.docs().map(|spanned| spanned.as_deref().into_inner()),
-            Self::Alias(alias) => alias.docs().map(|spanned| spanned.as_deref().into_inner()),
+            Self::Procedure(proc) => proc.docs().map(|spanned| spanned.into_inner()),
+            Self::Alias(alias) => alias.docs().map(|spanned| spanned.into_inner()),
         }
     }
 

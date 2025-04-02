@@ -1,7 +1,18 @@
 # Changelog
 
-## 0.14.0 TBD
+## 0.14.0 (TBD)
 
+
+
+## 0.13.2 (2025-04-02)
+
+#### Changes
+- Relaxed rules for identifiers created via `Ident::new`, `ProcedureName::new`, `LibraryNamespace::new`, and `Library::new_from_components` (#1735)
+- [BREAKING] Renamed `Ident::new_unchecked` and `ProcedureName::new_unchecked` to `from_raw_parts` (#1735).
+
+#### Fixes
+
+- Fixed various issues with pretty printing of Miden Assembly (#1740).
 
 ## 0.13.1 (2025-03-21) - `stdlib` crate only
 
@@ -202,6 +213,7 @@
 - The `Module::parse_file` and `Module::parse_str` functions have been removed in favor of calling `Module::parser` and then using the `ModuleParser` methods.
 - The `Compile` trait now requires passing a `SourceManager` reference along with the item to be compiled.
 - Update minimum supported Rust version to 1.80 (#1425).
+- Made `debug` mode the default in the CLI. Added `--release` flag to disable debugging instead of having to enable it. (#1728)
 
 ## 0.9.2 (2024-05-22) - `stdlib` crate only
 

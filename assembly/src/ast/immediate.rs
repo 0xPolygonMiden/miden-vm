@@ -36,6 +36,14 @@ impl<T> Immediate<T> {
         matches!(self, Self::Value(_))
     }
 
+    /// Override the source span of this immediate with `span`
+    pub fn with_span(self, span: SourceSpan) -> Self {
+        match self {
+            Self::Constant(id) => Self::Constant(id.with_span(span)),
+            Self::Value(value) => Self::Value(Span::new(span, value.into_inner())),
+        }
+    }
+
     /// Transform the type of this immediate from T to U, using `map`
     pub fn map<U, F>(self, map: F) -> Immediate<U>
     where

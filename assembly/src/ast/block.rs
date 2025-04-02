@@ -63,14 +63,16 @@ impl crate::prettier::PrettyPrint for Block {
 
         // If a block is empty, pretty-print it with a `nop` instruction
         let default_body = [Op::Inst(Span::new(self.span, Instruction::Nop))];
-        let body = match self.body.as_slice() {
-            [] => default_body.as_slice().iter(),
-            body => body.iter(),
+        let body = if self.body.is_empty() {
+            default_body.as_slice().iter()
+        } else {
+            self.body.iter()
         }
         .map(PrettyPrint::render)
-        .reduce(|acc, doc| acc + nl() + doc);
+        .reduce(|acc, doc| acc + nl() + doc)
+        .unwrap();
 
-        body.map(|body| indent(4, nl() + body)).unwrap_or(Document::Empty)
+        indent(4, nl() + body) + nl()
     }
 }
 

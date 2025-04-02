@@ -104,6 +104,14 @@ impl LibraryNamespace {
     }
 
     /// Checks if `source` is a valid [LibraryNamespace]
+    ///
+    /// The rules for valid library namespaces are:
+    ///
+    /// * Must be lowercase
+    /// * Must start with an ASCII alphabetic character, with the exception of reserved special
+    ///   namespaces
+    /// * May only contain alphanumeric unicode characters, or a character from the ASCII graphic
+    ///   set, see [char::is_ascii_graphic].
     pub fn validate(source: impl AsRef<str>) -> Result<(), LibraryNamespaceError> {
         let source = source.as_ref();
         if source.is_empty() {
@@ -118,7 +126,7 @@ impl LibraryNamespace {
         if !source.starts_with(|c: char| c.is_ascii_lowercase() && c.is_ascii_alphabetic()) {
             return Err(LibraryNamespaceError::InvalidStart);
         }
-        if !source.chars().all(|c| c.is_ascii_alphanumeric() || matches!(c, '_')) {
+        if !source.chars().all(|c| c.is_ascii_graphic() || c.is_alphanumeric()) {
             return Err(LibraryNamespaceError::InvalidChars);
         }
         Ok(())
@@ -153,7 +161,7 @@ impl LibraryNamespace {
 
     /// Create an [Ident] representing this namespace.
     pub fn to_ident(&self) -> Ident {
-        Ident::new_unchecked(Span::unknown(self.as_refcounted_str()))
+        Ident::from_raw_parts(Span::unknown(self.as_refcounted_str()))
     }
 }
 

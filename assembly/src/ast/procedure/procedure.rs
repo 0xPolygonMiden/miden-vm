@@ -4,7 +4,7 @@ use core::fmt;
 use super::ProcedureName;
 use crate::{
     SourceSpan, Span, Spanned,
-    ast::{Attribute, AttributeSet, Block, Invoke},
+    ast::{Attribute, AttributeSet, Block, DocString, Invoke},
 };
 
 // PROCEDURE VISIBILITY
@@ -54,7 +54,7 @@ pub struct Procedure {
     /// The source span of the full procedure body
     span: SourceSpan,
     /// The documentation attached to this procedure
-    docs: Option<Span<String>>,
+    docs: Option<DocString>,
     /// The attributes attached to this procedure
     attrs: AttributeSet,
     /// The local name of this procedure
@@ -94,7 +94,7 @@ impl Procedure {
 
     /// Adds documentation to this procedure definition
     pub fn with_docs(mut self, docs: Option<Span<String>>) -> Self {
-        self.docs = docs;
+        self.docs = docs.map(DocString::new);
         self
     }
 
@@ -142,8 +142,8 @@ impl Procedure {
     }
 
     /// Returns the documentation for this procedure, if present.
-    pub fn docs(&self) -> Option<&Span<String>> {
-        self.docs.as_ref()
+    pub fn docs(&self) -> Option<Span<&str>> {
+        self.docs.as_ref().map(|docstring| docstring.as_spanned_str())
     }
 
     /// Get the attributes attached to this procedure
@@ -243,17 +243,14 @@ impl crate::prettier::PrettyPrint for Procedure {
     fn render(&self) -> crate::prettier::Document {
         use crate::prettier::*;
 
-        let mut doc = Document::Empty;
-        if let Some(docs) = self.docs.as_deref() {
-            doc = docs
-                .lines()
-                .map(text)
-                .reduce(|acc, line| acc + nl() + const_text("#! ") + line)
-                .unwrap_or(Document::Empty);
-        }
+        let mut doc = self
+            .docs
+            .as_ref()
+            .map(|docstring| docstring.render())
+            .unwrap_or(Document::Empty);
 
         if !self.attrs.is_empty() {
-            doc = self
+            doc += self
                 .attrs
                 .iter()
                 .map(|attr| attr.render())
@@ -261,14 +258,16 @@ impl crate::prettier::PrettyPrint for Procedure {
                 .unwrap_or(Document::Empty);
         }
 
-        doc += display(self.visibility) + const_text(".") + display(&self.name);
-        if self.num_locals > 0 {
-            doc += const_text(".") + display(self.num_locals);
+        if self.is_entrypoint() {
+            doc += const_text("begin");
+        } else {
+            doc += display(self.visibility) + const_text(".") + display(&self.name);
+            if self.num_locals > 0 {
+                doc += const_text(".") + display(self.num_locals);
+            }
         }
 
-        doc += indent(4, nl() + self.body.render()) + nl();
-
-        doc + const_text("end") + nl() + nl()
+        doc + self.body.render() + const_text("end") + nl()
     }
 }
 

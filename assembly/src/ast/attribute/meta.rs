@@ -85,7 +85,7 @@ impl<'a> FromIterator<(&'a str, MetaExpr)> for Meta {
         Self::KeyValue(
             iter.into_iter()
                 .map(|(k, v)| {
-                    let k = Ident::new_unchecked(Span::new(SourceSpan::UNKNOWN, Arc::from(k)));
+                    let k = Ident::from_raw_parts(Span::new(SourceSpan::UNKNOWN, Arc::from(k)));
                     (k, v)
                 })
                 .collect(),
@@ -173,7 +173,7 @@ impl From<Ident> for MetaItem {
 
 impl From<&str> for MetaItem {
     fn from(value: &str) -> Self {
-        Self::Expr(MetaExpr::String(Ident::new_unchecked(Span::new(
+        Self::Expr(MetaExpr::String(Ident::from_raw_parts(Span::new(
             SourceSpan::UNKNOWN,
             Arc::from(value),
         ))))
@@ -182,7 +182,7 @@ impl From<&str> for MetaItem {
 
 impl From<String> for MetaItem {
     fn from(value: String) -> Self {
-        Self::Expr(MetaExpr::String(Ident::new_unchecked(Span::new(
+        Self::Expr(MetaExpr::String(Ident::from_raw_parts(Span::new(
             SourceSpan::UNKNOWN,
             Arc::from(value.into_boxed_str()),
         ))))
@@ -235,7 +235,7 @@ where
 {
     fn from(entry: (&str, V)) -> Self {
         let (key, value) = entry;
-        let key = Ident::new_unchecked(Span::new(SourceSpan::UNKNOWN, Arc::from(key)));
+        let key = Ident::from_raw_parts(Span::new(SourceSpan::UNKNOWN, Arc::from(key)));
         Self::KeyValue(key, value.into())
     }
 }
@@ -247,7 +247,7 @@ where
     fn from(entry: (String, V)) -> Self {
         let (key, value) = entry;
         let key =
-            Ident::new_unchecked(Span::new(SourceSpan::UNKNOWN, Arc::from(key.into_boxed_str())));
+            Ident::from_raw_parts(Span::new(SourceSpan::UNKNOWN, Arc::from(key.into_boxed_str())));
         Self::KeyValue(key, value.into())
     }
 }
