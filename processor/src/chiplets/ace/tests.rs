@@ -1,70 +1,14 @@
 use crate::chiplets::ace::trace::{
-    CircuitEvaluationContext, EVAL_OP_IDX, ID_0_IDX, ID_1_IDX, ID_2_IDX, M_0_IDX, M_1_IDX,
-    NUM_COLS, SELECTOR_BLOCK_IDX, SELECTOR_START_IDX, V_0_0_IDX, V_0_1_IDX, V_1_0_IDX, V_1_1_IDX,
-    V_2_0_IDX, V_2_1_IDX, decode_instruction,
+    EVAL_OP_IDX, EvaluationContext, ID_0_IDX, ID_1_IDX, ID_2_IDX, M_0_IDX, M_1_IDX, NUM_COLS,
+    SELECTOR_BLOCK_IDX, SELECTOR_START_IDX, V_0_0_IDX, V_0_1_IDX, V_1_0_IDX, V_1_1_IDX, V_2_0_IDX,
+    V_2_1_IDX, decode_instruction, eval_circuit,
 };
 use crate::chiplets::ace::{Circuit, CircuitLayout, EncodedCircuit, Instruction, NodeID, Op};
+use crate::chiplets::memory::Memory;
 use crate::{ContextId, Felt, QuadFelt, Word};
 use miden_air::{FieldElement, RowIndex};
 use std::collections::HashMap;
 use std::prelude::rust_2015::Vec;
-
-/// Evaluate a `Circuit` for a given set of `inputs`, comparing the result with the native
-/// evaluation given by `eval_fn`.
-fn check_eval(
-    circuit: &Circuit,
-    inputs: &[QuadFelt],
-    eval_fn: impl Fn(&[QuadFelt]) -> QuadFelt,
-) -> QuadFelt {
-    let result = circuit.evaluate(inputs).expect("failed to evaluate");
-    let expected = eval_fn(inputs);
-    assert_eq!(result, expected);
-    result
-}
-
-/// Performs encoding of circuit and evaluate it by the ACE chiplet.
-fn check_encoded_eval(circuit: &Circuit, inputs: &[QuadFelt]) {
-    let encoded_circuit = EncodedCircuit::try_from_circuit(circuit).expect("cannot encode");
-    let num_read_rows = encoded_circuit.num_vars as u32 / 2;
-    let num_eval_rows = encoded_circuit.num_eval as u32;
-    let circuit_mem = generate_memory(&encoded_circuit, inputs);
-    let ctx = ContextId::default();
-    let ptr = Felt::ZERO;
-    let clk = RowIndex::from(0);
-
-    let mut evaluator = CircuitEvaluationContext::new(ctx, ptr, clk, num_read_rows, num_eval_rows);
-
-    let mut mem_iter = circuit_mem.iter();
-    for word in mem_iter.by_ref().take(num_read_rows as usize) {
-        evaluator.do_read(*word).expect("TODO");
-    }
-    for instruction in mem_iter.by_ref().flatten() {
-        evaluator.do_eval(*instruction).expect("TODO");
-    }
-
-    let eval = evaluator.output_value().unwrap();
-    assert_eq!(eval, QuadFelt::ZERO);
-
-    verify_trace(evaluator, num_read_rows as usize, num_eval_rows as usize);
-}
-
-/// Generate a mock memory region that represents the inputs and un-hashed circuit.
-fn generate_memory(circuit: &EncodedCircuit, inputs: &[QuadFelt]) -> Vec<Word> {
-    // Inputs are store two by two in the fest set of words, followed by the instructions.
-    let mut mem = Vec::with_capacity(2 * inputs.len() + circuit.encoded_circuit.len());
-    mem.extend(inputs.iter().flat_map(|input| input.to_base_elements()));
-    if mem.len() % 4 != 0 {
-        mem.extend([Felt::ZERO, Felt::ZERO])
-    }
-    assert_eq!(
-        circuit.encoded_circuit.len() % 8,
-        0,
-        "encoded circuit must be double-word aligned"
-    );
-
-    mem.extend(circuit.encoded_circuit.iter());
-    mem.chunks_exact(4).map(|word| word.try_into().unwrap()).collect()
-}
 
 #[test]
 fn test_var_plus_one() {
@@ -162,7 +106,87 @@ fn encode_decode_instruction() {
     }
 }
 
-fn verify_trace(context: CircuitEvaluationContext, num_read_rows: usize, num_eval_rows: usize) {
+/// Evaluate a `Circuit` for a given set of `inputs`, comparing the result with the native
+/// evaluation given by `eval_fn`.
+fn check_eval(
+    circuit: &Circuit,
+    inputs: &[QuadFelt],
+    eval_fn: impl Fn(&[QuadFelt]) -> QuadFelt,
+) -> QuadFelt {
+    let result = circuit.evaluate(inputs).expect("failed to evaluate");
+    let expected = eval_fn(inputs);
+    assert_eq!(result, expected);
+    result
+}
+
+/// Performs encoding of circuit and evaluate it by the ACE chiplet.
+fn check_encoded_eval(circuit: &Circuit, inputs: &[QuadFelt]) {
+    let encoded_circuit = EncodedCircuit::try_from_circuit(circuit).expect("cannot encode");
+    let num_read_rows = encoded_circuit.num_vars as u32 / 2;
+    let num_eval_rows = encoded_circuit.num_eval as u32;
+    let circuit_mem = generate_memory(&encoded_circuit, inputs);
+    let ctx = ContextId::default();
+    let ptr = Felt::ZERO;
+    let clk = RowIndex::from(0);
+
+    let mut evaluator = EvaluationContext::new(ctx, ptr, clk, num_read_rows, num_eval_rows);
+
+    {
+        let mut mem_iter = circuit_mem.iter();
+        for word in mem_iter.by_ref().take(num_read_rows as usize) {
+            evaluator.do_read(*word).expect("TODO");
+        }
+        for instruction in mem_iter.flatten() {
+            evaluator.do_eval(*instruction).expect("TODO");
+        }
+
+        let eval = evaluator.output_value().unwrap();
+        assert_eq!(eval, QuadFelt::ZERO);
+
+        verify_trace(evaluator, num_read_rows as usize, num_eval_rows as usize);
+    }
+
+    {
+        let mut mem = Memory::default();
+
+        let mut ptr_curr = ptr;
+        for word in circuit_mem {
+            mem.write_word(ctx, ptr_curr, clk, word).unwrap();
+            ptr_curr += Felt::from(4u8);
+        }
+
+        eval_circuit(
+            ctx,
+            ptr,
+            clk + 1,
+            Felt::from(encoded_circuit.num_vars as u32),
+            Felt::from(encoded_circuit.num_eval as u32),
+            &mut mem,
+        )
+        .unwrap();
+    }
+}
+
+/// Generate a mock memory region that represents the inputs and un-hashed circuit.
+fn generate_memory(circuit: &EncodedCircuit, inputs: &[QuadFelt]) -> Vec<Word> {
+    // Inputs are store two by two in the fest set of words, followed by the instructions.
+    let mut mem = Vec::with_capacity(2 * inputs.len() + circuit.encoded_circuit.len());
+    mem.extend(inputs.iter().flat_map(|input| input.to_base_elements()));
+    if mem.len() % 4 != 0 {
+        mem.extend([Felt::ZERO, Felt::ZERO])
+    }
+    assert_eq!(
+        circuit.encoded_circuit.len() % 8,
+        0,
+        "encoded circuit must be double-word aligned"
+    );
+
+    mem.extend(circuit.encoded_circuit.iter());
+    mem.chunks_exact(4).map(|word| word.try_into().unwrap()).collect()
+}
+
+/// Given an EvaluationContext
+fn verify_trace(context: EvaluationContext, num_read_rows: usize, num_eval_rows: usize) {
     let num_rows = num_read_rows + num_eval_rows;
     let mut columns: Vec<_> = (0..NUM_COLS).map(|_| vec![Felt::from(42u8); num_rows]).collect();
     let mut columns_ref: Vec<_> = columns.iter_mut().map(|col| col.as_mut_slice()).collect();
