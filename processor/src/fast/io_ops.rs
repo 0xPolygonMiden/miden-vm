@@ -1,7 +1,7 @@
-use vm_core::{Word, utils::range};
+use vm_core::{Word, mast::MastNodeExt, utils::range};
 
 use super::{DOUBLE_WORD_SIZE, ExecutionError, FastProcessor, Felt, WORD_SIZE, WORD_SIZE_FELT};
-use crate::{AdviceProvider, Host, ProcessState};
+use crate::{AdviceProvider, Host, ProcessState, errors::ErrorContext};
 
 impl FastProcessor {
     /// Analogous to `Process::op_push`.
@@ -33,10 +33,14 @@ impl FastProcessor {
     }
 
     /// Analogous to `Process::op_mloadw`.
-    pub fn op_mloadw(&mut self, op_idx: usize) -> Result<(), ExecutionError> {
+    pub fn op_mloadw(
+        &mut self,
+        op_idx: usize,
+        error_context: &ErrorContext<impl MastNodeExt>,
+    ) -> Result<(), ExecutionError> {
         {
             let addr = self.stack[self.stack_top_idx - 1];
-            let word = self.memory.read_word(self.ctx, addr, self.clk + op_idx)?;
+            let word = self.memory.read_word(self.ctx, addr, self.clk + op_idx, error_context)?;
 
             self.stack[range(self.stack_top_idx - 1 - WORD_SIZE, WORD_SIZE)].copy_from_slice(word);
         }
@@ -46,7 +50,11 @@ impl FastProcessor {
     }
 
     /// Analogous to `Process::op_mstorew`.
-    pub fn op_mstorew(&mut self, op_idx: usize) -> Result<(), ExecutionError> {
+    pub fn op_mstorew(
+        &mut self,
+        op_idx: usize,
+        error_context: &ErrorContext<impl MastNodeExt>,
+    ) -> Result<(), ExecutionError> {
         {
             let addr = self.stack[self.stack_top_idx - 1];
             let word: [Felt; WORD_SIZE] = self.stack
@@ -54,7 +62,7 @@ impl FastProcessor {
             .try_into()
             .unwrap();
 
-            self.memory.write_word(self.ctx, addr, self.clk + op_idx, word)?;
+            self.memory.write_word(self.ctx, addr, self.clk + op_idx, word, error_context)?;
         }
 
         self.decrement_stack_size();
@@ -62,10 +70,13 @@ impl FastProcessor {
     }
 
     /// Analogous to `Process::op_mload`.
-    pub fn op_mload(&mut self) -> Result<(), ExecutionError> {
+    pub fn op_mload(
+        &mut self,
+        error_context: &ErrorContext<impl MastNodeExt>,
+    ) -> Result<(), ExecutionError> {
         let element = {
             let addr = self.stack[self.stack_top_idx - 1];
-            self.memory.read_element(self.ctx, addr)?
+            self.memory.read_element(self.ctx, addr, error_context)?
         };
 
         self.stack[self.stack_top_idx - 1] = element;
@@ -74,18 +85,25 @@ impl FastProcessor {
     }
 
     /// Analogous to `Process::op_mstore`.
-    pub fn op_mstore(&mut self) -> Result<(), ExecutionError> {
+    pub fn op_mstore(
+        &mut self,
+        error_context: &ErrorContext<impl MastNodeExt>,
+    ) -> Result<(), ExecutionError> {
         let addr = self.stack[self.stack_top_idx - 1];
         let value = self.stack[self.stack_top_idx - 2];
 
-        self.memory.write_element(self.ctx, addr, value)?;
+        self.memory.write_element(self.ctx, addr, value, error_context)?;
 
         self.decrement_stack_size();
         Ok(())
     }
 
     /// Analogous to `Process::op_mstream`.
-    pub fn op_mstream(&mut self, op_idx: usize) -> Result<(), ExecutionError> {
+    pub fn op_mstream(
+        &mut self,
+        op_idx: usize,
+        error_context: &ErrorContext<impl MastNodeExt>,
+    ) -> Result<(), ExecutionError> {
         // The stack index where the memory address to load the words from is stored.
         let mem_addr_stack_idx: usize = self.stack_top_idx - 1 - 12;
 
@@ -94,8 +112,10 @@ impl FastProcessor {
 
         // load two words from memory
         let words = [
-            self.memory.read_word(self.ctx, addr_first_word, self.clk + op_idx)?,
-            self.memory.read_word(self.ctx, addr_second_word, self.clk + op_idx)?,
+            self.memory
+                .read_word(self.ctx, addr_first_word, self.clk + op_idx, error_context)?,
+            self.memory
+                .read_word(self.ctx, addr_second_word, self.clk + op_idx, error_context)?,
         ];
 
         // Replace the stack elements with the elements from memory (in stack order). The word at
@@ -115,7 +135,12 @@ impl FastProcessor {
     }
 
     /// Analogous to `Process::op_pipe`.
-    pub fn op_pipe(&mut self, op_idx: usize, host: &mut impl Host) -> Result<(), ExecutionError> {
+    pub fn op_pipe(
+        &mut self,
+        op_idx: usize,
+        host: &mut impl Host,
+        error_context: &ErrorContext<impl MastNodeExt>,
+    ) -> Result<(), ExecutionError> {
         // The stack index where the memory address to load the words from is stored.
         let mem_addr_stack_idx: usize = self.stack_top_idx - 1 - 12;
 
@@ -128,9 +153,20 @@ impl FastProcessor {
             .pop_stack_dword(ProcessState::new_fast(self, op_idx))?;
 
         // write the words to memory
-        self.memory.write_word(self.ctx, addr_first_word, self.clk + op_idx, words[0])?;
-        self.memory
-            .write_word(self.ctx, addr_second_word, self.clk + op_idx, words[1])?;
+        self.memory.write_word(
+            self.ctx,
+            addr_first_word,
+            self.clk + op_idx,
+            words[0],
+            error_context,
+        )?;
+        self.memory.write_word(
+            self.ctx,
+            addr_second_word,
+            self.clk + op_idx,
+            words[1],
+            error_context,
+        )?;
 
         // replace the elements on the stack with the word elements (in stack order)
         {

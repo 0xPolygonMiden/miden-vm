@@ -1,4 +1,4 @@
-use alloc::vec::Vec;
+use alloc::{sync::Arc, vec::Vec};
 use core::cmp::min;
 
 use memory::Memory;
@@ -6,9 +6,10 @@ use miden_air::RowIndex;
 use vm_core::{
     Decorator, DecoratorIterator, EMPTY_WORD, Felt, Kernel, ONE, Operation, Program, StackOutputs,
     WORD_SIZE, Word, ZERO,
+    debuginfo::{DefaultSourceManager, SourceManager},
     mast::{
         BasicBlockNode, CallNode, DynNode, ExternalNode, JoinNode, LoopNode, MastForest, MastNode,
-        MastNodeId, OP_GROUP_SIZE, OpBatch, SplitNode,
+        MastNodeExt, MastNodeId, OP_GROUP_SIZE, OpBatch, SplitNode,
     },
     stack::MIN_STACK_DEPTH,
     utils::range,
@@ -137,6 +138,8 @@ pub struct FastProcessor {
 
     /// Whether to enable debug statements and tracing.
     in_debug_mode: bool,
+
+    source_manager: Arc<dyn SourceManager>,
 }
 
 impl FastProcessor {
@@ -152,7 +155,7 @@ impl FastProcessor {
     /// # Panics
     /// - Panics if the length of `stack_inputs` is greater than `MIN_STACK_DEPTH`.
     pub fn new(stack_inputs: &[Felt]) -> Self {
-        Self::initialize(stack_inputs, false)
+        Self::initialize(stack_inputs, false, Arc::new(DefaultSourceManager::default()))
     }
 
     /// Creates a new `FastProcessor` instance with the given stack inputs, set to debug mode.
@@ -163,11 +166,15 @@ impl FastProcessor {
     ///
     /// # Panics
     /// - Panics if the length of `stack_inputs` is greater than `MIN_STACK_DEPTH`.
-    pub fn new_debug(stack_inputs: &[Felt]) -> Self {
-        Self::initialize(stack_inputs, true)
+    pub fn new_debug(stack_inputs: &[Felt], source_manager: Arc<dyn SourceManager>) -> Self {
+        Self::initialize(stack_inputs, true, source_manager)
     }
 
-    fn initialize(stack_inputs: &[Felt], in_debug_mode: bool) -> Self {
+    fn initialize(
+        stack_inputs: &[Felt],
+        in_debug_mode: bool,
+        source_manager: Arc<dyn SourceManager>,
+    ) -> Self {
         assert!(stack_inputs.len() <= MIN_STACK_DEPTH);
 
         let stack_top_idx = INITIAL_STACK_TOP_IDX;
@@ -196,6 +203,7 @@ impl FastProcessor {
             memory: Memory::new(),
             call_stack: Vec::new(),
             in_debug_mode,
+            source_manager,
         }
     }
 
@@ -413,6 +421,8 @@ impl FastProcessor {
         // Corresponds to the row inserted for the CALL or SYSCALL operation added to the trace.
         self.clk += 1_u32;
 
+        let error_ctx = ErrorContext::new(program, call_node, self.source_manager.clone());
+
         // call or syscall are not allowed inside a syscall
         if self.in_syscall {
             let instruction = if call_node.is_syscall() { "syscall" } else { "call" };
@@ -449,7 +459,7 @@ impl FastProcessor {
         // when returning from a function call or a syscall, restore the context of the
         // system registers and the operand stack to what it was prior to
         // the call.
-        self.restore_context()?;
+        self.restore_context(&error_ctx)?;
 
         // Corresponds to the row inserted for the END operation added to the trace.
         self.clk += 1_u32;
@@ -472,10 +482,12 @@ impl FastProcessor {
             return Err(ExecutionError::CallInSyscall("dyncall"));
         }
 
+        let error_ctx = ErrorContext::new(program, dyn_node, self.source_manager.clone());
+
         // Retrieve callee hash from memory, using stack top as the memory address.
         let callee_hash = {
             let mem_addr = self.stack_get(0);
-            self.memory.read_word(self.ctx, mem_addr, self.clk).copied()?
+            self.memory.read_word(self.ctx, mem_addr, self.clk, &error_ctx).copied()?
         };
 
         // Drop the memory address from the stack. This needs to be done BEFORE saving the context,
@@ -512,7 +524,7 @@ impl FastProcessor {
 
         // For dyncall, restore the context.
         if dyn_node.is_dyncall() {
-            self.restore_context()?;
+            self.restore_context(&error_ctx)?;
         }
 
         // Corresponds to the row inserted for the END operation added to the trace.
@@ -551,6 +563,7 @@ impl FastProcessor {
         // execute first op batch
         if let Some(first_op_batch) = op_batches.next() {
             self.execute_op_batch(
+                basic_block_node,
                 first_op_batch,
                 &mut decorator_ids,
                 batch_offset_in_block,
@@ -566,6 +579,7 @@ impl FastProcessor {
             self.clk += 1;
 
             self.execute_op_batch(
+                basic_block_node,
                 op_batch,
                 &mut decorator_ids,
                 batch_offset_in_block,
@@ -602,6 +616,7 @@ impl FastProcessor {
     #[inline(always)]
     fn execute_op_batch(
         &mut self,
+        basic_block: &BasicBlockNode,
         batch: &OpBatch,
         decorators: &mut DecoratorIterator,
         batch_offset_in_block: usize,
@@ -620,9 +635,8 @@ impl FastProcessor {
 
         // execute operations in the batch one by one
         for (op_idx_in_batch, op) in batch.ops().iter().enumerate() {
-            while let Some(&decorator_id) =
-                decorators.next_filtered(batch_offset_in_block + op_idx_in_batch)
-            {
+            let op_idx_in_block = batch_offset_in_block + op_idx_in_batch;
+            while let Some(&decorator_id) = decorators.next_filtered(op_idx_in_block) {
                 let decorator = program
                     .get_decorator_by_id(decorator_id)
                     .ok_or(ExecutionError::DecoratorNotFoundInForest { decorator_id })?;
@@ -630,7 +644,13 @@ impl FastProcessor {
             }
 
             // decode and execute the operation
-            self.execute_op(op, batch_offset_in_block + op_idx_in_batch, host)?;
+            let error_ctx = ErrorContext::new_with_op_idx(
+                program,
+                basic_block,
+                self.source_manager.clone(),
+                op_idx_in_block,
+            );
+            self.execute_op(op, batch_offset_in_block + op_idx_in_batch, host, &error_ctx)?;
 
             // if the operation carries an immediate value, the value is stored at the next group
             // pointer; so, we advance the pointer to the following group
@@ -698,6 +718,7 @@ impl FastProcessor {
         operation: &Operation,
         op_idx: usize,
         host: &mut impl Host,
+        error_ctx: &ErrorContext<impl MastNodeExt>,
     ) -> Result<(), ExecutionError> {
         if self.bounds_check_counter == 0 {
             let err_str = if self.stack_top_idx - MIN_STACK_DEPTH == 0 {
@@ -803,20 +824,20 @@ impl FastProcessor {
             Operation::Push(element) => self.op_push(*element),
             Operation::AdvPop => self.op_advpop(op_idx, host)?,
             Operation::AdvPopW => self.op_advpopw(op_idx, host)?,
-            Operation::MLoadW => self.op_mloadw(op_idx)?,
-            Operation::MStoreW => self.op_mstorew(op_idx)?,
-            Operation::MLoad => self.op_mload()?,
-            Operation::MStore => self.op_mstore()?,
-            Operation::MStream => self.op_mstream(op_idx)?,
-            Operation::Pipe => self.op_pipe(op_idx, host)?,
+            Operation::MLoadW => self.op_mloadw(op_idx, error_ctx)?,
+            Operation::MStoreW => self.op_mstorew(op_idx, error_ctx)?,
+            Operation::MLoad => self.op_mload(error_ctx)?,
+            Operation::MStore => self.op_mstore(error_ctx)?,
+            Operation::MStream => self.op_mstream(op_idx, error_ctx)?,
+            Operation::Pipe => self.op_pipe(op_idx, host, error_ctx)?,
 
             // ----- cryptographic operations -----------------------------------------------------
             Operation::HPerm => self.op_hperm(),
             Operation::MpVerify(err_code) => self.op_mpverify(*err_code, host)?,
             Operation::MrUpdate => self.op_mrupdate(host)?,
             Operation::FriE2F4 => self.op_fri_ext2fold4()?,
-            Operation::HornerBase => self.op_horner_eval_base(op_idx)?,
-            Operation::HornerExt => self.op_horner_eval_ext(op_idx)?,
+            Operation::HornerBase => self.op_horner_eval_base(op_idx, error_ctx)?,
+            Operation::HornerExt => self.op_horner_eval_ext(op_idx, error_ctx)?,
         }
 
         Ok(())
@@ -912,12 +933,15 @@ impl FastProcessor {
     /// # Errors
     /// - Returns an error if the overflow stack is larger than the space available in the stack
     ///   buffer.
-    fn restore_context(&mut self) -> Result<(), ExecutionError> {
+    fn restore_context(
+        &mut self,
+        error_ctx: &ErrorContext<impl MastNodeExt>,
+    ) -> Result<(), ExecutionError> {
         // when a call/dyncall/syscall node ends, stack depth must be exactly 16.
         if self.stack_size() > MIN_STACK_DEPTH {
             return Err(ExecutionError::invalid_stack_depth_on_return(
                 self.stack_size(),
-                &ErrorContext::default(),
+                error_ctx,
             ));
         }
 

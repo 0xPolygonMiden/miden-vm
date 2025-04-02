@@ -470,7 +470,7 @@ impl Test {
     ) {
         let (program, mut host) = self.get_program_and_host();
         let stack_inputs: Vec<Felt> = self.stack_inputs.clone().into_iter().rev().collect();
-        let fast_process = FastProcessor::new(&stack_inputs);
+        let fast_process = FastProcessor::new_debug(&stack_inputs, self.source_manager.clone());
         let fast_result = fast_process.execute(&program, &mut host);
 
         match (slow_result, fast_result) {

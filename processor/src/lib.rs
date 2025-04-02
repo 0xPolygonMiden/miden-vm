@@ -779,9 +779,11 @@ impl<'a> ProcessState<'a> {
             ProcessState::Slow(state) => {
                 state.chiplets.memory.get_word(ctx, addr).map_err(ExecutionError::MemoryError)
             },
-            ProcessState::Fast(state) => {
-                Ok(state.processor.memory.read_word_impl(ctx, addr, None)?.copied())
-            },
+            ProcessState::Fast(state) => Ok(state
+                .processor
+                .memory
+                .read_word_impl(ctx, addr, None, &ErrorContext::default())?
+                .copied()),
         }
     }
 
