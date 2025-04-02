@@ -1,7 +1,64 @@
-use crate::chiplets::ace::{Circuit, CircuitError, CircuitLayout, Instruction, NodeID, Op};
 use crate::{Felt, QuadFelt};
 use std::prelude::rust_2015::Vec;
 use vm_core::FieldElement;
+
+/// A `Circuit` is a DAG representing a multivariate polynomial over its inputs.
+/// The nodes are laid out linearly, starting with the leaves and ending with the evaluation.
+///
+/// The constructor and invariants ensures that all instructions reference nodes whose index is
+/// in-bounds and cannot reference nodes produced by subsequent instructions.
+/// This ensures the circuit can be evaluated in a single pass over the instructions.
+#[derive(Debug, Clone, Eq, PartialEq)]
+pub struct Circuit {
+    pub num_inputs: usize,
+    pub constants: Vec<Felt>,
+    pub instructions: Vec<Instruction>,
+}
+
+/// Arithmetic operation applied to two nodes in the evaluation graph.
+#[derive(Debug, Copy, Clone, Eq, PartialEq)]
+pub enum Op {
+    Sub,
+    Mul,
+    Add,
+}
+
+/// A `NodeID` is the index of a node in the evaluation graph, depending on its type.
+/// - `Input` when it is a leaf, and its value is a variable in the circuit
+/// - `Const` when it is a leaf, and its value is a constant
+/// - `Eval` when it is a node with two incoming edges to which an `Op` is applied.
+///
+/// The graph is interpreted as a vector of `n_i + n_c + n_e` values,
+/// with their kinds encoded as
+/// `[Input(0), ..., Input(n_i - 1), Const(0), ..., Const(n_c - 1), Eval(0), ..., Eval(n_e - 1)]`.
+#[derive(Debug, Copy, Clone, Eq, PartialEq, Ord, PartialOrd)]
+pub enum NodeID {
+    Input(usize),
+    Const(usize),
+    Eval(usize),
+}
+
+/// An `Instruction` indicates how the next `Eval` node should be computed, given existing `Node`s.
+#[derive(Debug, Copy, Clone, Eq, PartialEq)]
+pub struct Instruction {
+    pub node_l: NodeID,
+    pub node_r: NodeID,
+    pub op: Op,
+}
+
+#[derive(Debug)]
+pub enum CircuitError {
+    InvalidLayout,
+    InvalidInstruction,
+    InvalidInputs,
+}
+
+/// Layout of a circuit representing the number of different `Node`s of each type.
+pub struct CircuitLayout {
+    pub num_inputs: usize,
+    pub num_constants: usize,
+    pub num_instructions: usize,
+}
 
 impl Circuit {
     /// Create a new circuit given the expected number of nodes, the constants
@@ -45,30 +102,32 @@ impl Circuit {
 
     /// Given a list of inputs, compute the evaluation of the circuit.
     pub fn evaluate(&self, inputs: &[QuadFelt]) -> Result<QuadFelt, CircuitError> {
-        if inputs.len() != self.num_inputs {
+        let layout = self.layout();
+        if inputs.len() != layout.num_inputs {
             return Err(CircuitError::InvalidInputs);
         }
-        let mut eval_nodes = Vec::with_capacity(self.instructions.len());
 
-        let get_val = |node: NodeID, evals: &[QuadFelt]| match node {
-            NodeID::Input(id) => inputs[id],
-            NodeID::Const(id) => QuadFelt::new(self.constants[id], Felt::ZERO),
-            NodeID::Eval(id) => evals[id],
-        };
+        let mut nodes = Vec::with_capacity(layout.num_nodes());
+        nodes.extend(inputs.iter().copied());
+        nodes.extend(self.constants.iter().map(|c| QuadFelt::from(*c)));
 
         for instruction in &self.instructions {
-            let v_l = get_val(instruction.node_l, &eval_nodes);
-            let v_r = get_val(instruction.node_r, &eval_nodes);
+            let id_l = layout.node_index(&instruction.node_l).expect("TODO");
+            let v_l = *nodes.get(id_l).expect("TODO");
+
+            let id_r = layout.node_index(&instruction.node_r).expect("TODO");
+            let v_r = *nodes.get(id_r).expect("TODO");
+
             let v_out = match instruction.op {
                 Op::Sub => v_l - v_r,
                 Op::Mul => v_l * v_r,
                 Op::Add => v_l + v_r,
             };
-            eval_nodes.push(v_out)
+            nodes.push(v_out);
         }
 
         // Safe to unwrap since there are
-        Ok(*eval_nodes.last().unwrap())
+        Ok(*nodes.last().unwrap())
     }
 
     /// Layout of the circuit.
@@ -78,5 +137,40 @@ impl Circuit {
             num_constants: self.constants.len(),
             num_instructions: self.instructions.len(),
         }
+    }
+}
+
+impl CircuitLayout {
+    /// Total number of variables (inputs and constants) in the circuit
+    pub fn num_vars(&self) -> usize {
+        self.num_inputs + self.num_constants
+    }
+
+    /// Total number of `Node`s required to represent the evaluation graph of the circuit.
+    pub fn num_nodes(&self) -> usize {
+        self.num_vars() + self.num_instructions
+    }
+
+    /// Checks if a `NodeID` is in-bounds relative to this layout.
+    pub fn contains_node(&self, node: &NodeID) -> bool {
+        match *node {
+            NodeID::Input(id) => id < self.num_inputs,
+            NodeID::Const(id) => id < self.num_constants,
+            NodeID::Eval(id) => id < self.num_instructions,
+        }
+    }
+
+    /// Given a circuit `NodeID`, returns the index it would be at in the list of all nodes
+    /// in the circuit evaluation graph.
+    pub fn node_index(&self, node: &NodeID) -> Option<usize> {
+        if !self.contains_node(node) {
+            return None;
+        }
+        let id = match *node {
+            NodeID::Input(id) => id,
+            NodeID::Const(id) => id + self.num_inputs,
+            NodeID::Eval(id) => id + self.num_vars(),
+        };
+        Some(id)
     }
 }
