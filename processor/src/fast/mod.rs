@@ -592,23 +592,19 @@ impl FastProcessor {
         // update clock with all the operations that executed
         self.clk += batch_offset_in_block as u32;
 
+        // Corresponds to the row inserted for the END operation added to the trace.
+        self.clk += 1_u32;
+
         // execute any decorators which have not been executed during span ops execution; this can
         // happen for decorators appearing after all operations in a block. these decorators are
         // executed after SPAN block is closed to make sure the VM clock cycle advances beyond the
         // last clock cycle of the SPAN block ops.
-        //
-        // Note: we pass in `op_idx_in_batch = 1` as a hack, since in `Process`, those decorators
-        // are executed after the `END` block (which we increment the `clk` outside of this
-        // function). Setting `op_idx_in_batch = 1` accounts for this discrepancy.
         for &decorator_id in decorator_ids {
             let decorator = program
                 .get_decorator_by_id(decorator_id)
                 .ok_or(ExecutionError::DecoratorNotFoundInForest { decorator_id })?;
-            self.execute_decorator(decorator, 1, host)?;
+            self.execute_decorator(decorator, 0, host)?;
         }
-
-        // Corresponds to the row inserted for the END operation added to the trace.
-        self.clk += 1_u32;
 
         Ok(())
     }
