@@ -52,6 +52,12 @@ const STACK_BUFFER_SIZE: usize = 6650;
 /// occurs, it is most likely a bug.
 const INITIAL_STACK_TOP_IDX: usize = 50;
 
+/// WORD_SIZE, but as a `Felt`.
+const WORD_SIZE_FELT: Felt = Felt::new(4);
+
+/// The size of a double-word.
+const DOUBLE_WORD_SIZE: Felt = Felt::new(8);
+
 /// A fast processor which doesn't generate any trace.
 ///
 /// This processor is designed to be as fast as possible. Hence, it only keeps track of the current

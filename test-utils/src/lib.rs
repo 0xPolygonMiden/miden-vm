@@ -13,7 +13,7 @@ use alloc::{
     vec::Vec,
 };
 
-use assembly::{KernelLibrary, Library};
+use assembly::{KernelLibrary, Library, diagnostics::reporting::PrintDiagnostic};
 pub use assembly::{LibraryPath, SourceFile, SourceManager, diagnostics::Report};
 pub use pretty_assertions::{assert_eq, assert_ne, assert_str_eq};
 pub use processor::{
@@ -342,12 +342,14 @@ impl Test {
             ExecutionOptions::default(),
         )
         .with_source_manager(self.source_manager.clone());
-        let slow_stack_outputs = process.execute(&program, &mut host)?;
-        let trace = ExecutionTrace::new(process, slow_stack_outputs.clone());
-        assert_eq!(&program.hash(), trace.program_hash(), "inconsistent program hash");
+        let slow_result = process.execute(&program, &mut host);
 
         // compare fast and slow processors' stack outputs
-        self.assert_outputs_with_fast_processor(slow_stack_outputs);
+        self.assert_result_with_fast_processor(&slow_result);
+
+        let slow_stack_outputs = slow_result?;
+        let trace = ExecutionTrace::new(process, slow_stack_outputs.clone());
+        assert_eq!(&program.hash(), trace.program_hash(), "inconsistent program hash");
 
         Ok(trace)
     }
@@ -362,9 +364,9 @@ impl Test {
             self.stack_inputs.clone(),
             ExecutionOptions::default(),
         );
-        let stack_outputs = process.execute(&program, &mut host)?;
+        let slow_result = process.execute(&program, &mut host);
 
-        self.assert_outputs_with_fast_processor(stack_outputs);
+        self.assert_result_with_fast_processor(&slow_result);
 
         Ok((process, host))
     }
@@ -405,14 +407,15 @@ impl Test {
         let mut process = Process::new_debug(program.kernel().clone(), self.stack_inputs.clone());
         let result = process.execute(&program, &mut host);
 
-        if let Ok(stack_outputs) = &result {
+        // compare fast and slow processors' results
+        self.assert_result_with_fast_processor(&result);
+
+        if let Ok(_stack_outputs) = &result {
             assert_eq!(
                 program.hash(),
                 process.decoder.program_hash().into(),
                 "inconsistent program hash"
             );
-
-            self.assert_outputs_with_fast_processor(stack_outputs.clone());
         }
         VmStateIterator::new(process, result)
     }
@@ -457,6 +460,50 @@ impl Test {
             slow_stack_outputs, fast_stack_outputs,
             "stack outputs do not match between slow and fast processors"
         );
+    }
+
+    /// Runs the program on the fast processor, and asserts that the execution result matches the
+    /// slow processor's execution result.
+    fn assert_result_with_fast_processor(
+        &self,
+        slow_result: &Result<StackOutputs, ExecutionError>,
+    ) {
+        let (program, mut host) = self.get_program_and_host();
+        let stack_inputs: Vec<Felt> = self.stack_inputs.clone().into_iter().rev().collect();
+        let fast_process = FastProcessor::new(&stack_inputs);
+        let fast_result = fast_process.execute(&program, &mut host);
+
+        match (slow_result, fast_result) {
+            (Ok(slow), Ok(fast)) => {
+                assert_eq!(
+                    slow.clone(),
+                    fast,
+                    "stack outputs do not match between slow and fast processors"
+                );
+            },
+            (Err(slow), Err(fast)) => {
+                let slow_report = PrintDiagnostic::new_without_color(slow);
+                let fast_report = PrintDiagnostic::new_without_color(fast);
+
+                assert_eq!(
+                    slow_report.to_string(),
+                    fast_report.to_string(),
+                    "diagnostics do not match between slow and fast processors"
+                );
+            },
+            (Ok(_slow), Err(fast)) => {
+                panic!(
+                    "fast processor failed with error: {:?}, while slow processor succeeded",
+                    fast
+                );
+            },
+            (Err(slow), Ok(_fast)) => {
+                panic!(
+                    "slow processor failed with error: {:?}, while fast processor succeeded",
+                    slow
+                );
+            },
+        }
     }
 }
 

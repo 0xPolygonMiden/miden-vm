@@ -1,6 +1,6 @@
 use vm_core::{Word, utils::range};
 
-use super::{ExecutionError, FastProcessor, Felt, WORD_SIZE};
+use super::{DOUBLE_WORD_SIZE, ExecutionError, FastProcessor, Felt, WORD_SIZE, WORD_SIZE_FELT};
 use crate::{AdviceProvider, Host, ProcessState};
 
 impl FastProcessor {
@@ -90,7 +90,7 @@ impl FastProcessor {
         let mem_addr_stack_idx: usize = self.stack_top_idx - 1 - 12;
 
         let addr_first_word = self.stack[mem_addr_stack_idx];
-        let addr_second_word = Felt::new(addr_first_word.as_int() + WORD_SIZE as u64);
+        let addr_second_word = addr_first_word + WORD_SIZE_FELT;
 
         // load two words from memory
         let words = [
@@ -109,7 +109,7 @@ impl FastProcessor {
         }
 
         // increment the address by 8 (2 words)
-        self.stack[mem_addr_stack_idx] = addr_first_word + Felt::from(2 * WORD_SIZE as u32);
+        self.stack[mem_addr_stack_idx] = addr_first_word + DOUBLE_WORD_SIZE;
 
         Ok(())
     }
@@ -120,7 +120,7 @@ impl FastProcessor {
         let mem_addr_stack_idx: usize = self.stack_top_idx - 1 - 12;
 
         let addr_first_word = self.stack[mem_addr_stack_idx];
-        let addr_second_word = Felt::new(addr_first_word.as_int() + WORD_SIZE as u64);
+        let addr_second_word = addr_first_word + WORD_SIZE_FELT;
 
         // pop two words from the advice stack
         let words = host
@@ -142,7 +142,7 @@ impl FastProcessor {
         }
 
         // increment the address by 8 (2 words)
-        self.stack[mem_addr_stack_idx] = addr_first_word + Felt::from(2 * WORD_SIZE as u32);
+        self.stack[mem_addr_stack_idx] = addr_first_word + DOUBLE_WORD_SIZE;
 
         Ok(())
     }
