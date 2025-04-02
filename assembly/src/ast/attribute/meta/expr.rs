@@ -33,13 +33,13 @@ impl From<Ident> for MetaExpr {
 
 impl From<&str> for MetaExpr {
     fn from(value: &str) -> Self {
-        Self::String(Ident::new_unchecked(Span::new(SourceSpan::UNKNOWN, Arc::from(value))))
+        Self::String(Ident::from_raw_parts(Span::new(SourceSpan::UNKNOWN, Arc::from(value))))
     }
 }
 
 impl From<String> for MetaExpr {
     fn from(value: String) -> Self {
-        Self::String(Ident::new_unchecked(Span::new(
+        Self::String(Ident::from_raw_parts(Span::new(
             SourceSpan::UNKNOWN,
             Arc::from(value.into_boxed_str()),
         )))

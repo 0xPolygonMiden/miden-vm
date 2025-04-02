@@ -140,11 +140,14 @@ pub enum ParsingError {
         span: SourceSpan,
         expected: Vec<String>,
     },
-    #[error("invalid character in identifier")]
+    #[error("{error}")]
     #[diagnostic(help(
-        "bare identifiers must be lowercase alphanumeric with '_', quoted identifiers can include uppercase, as well as '.' and '$'"
+        "bare identifiers must be lowercase alphanumeric with '_', quoted identifiers can include any graphical character"
     ))]
-    InvalidIdentCharacter {
+    InvalidIdentifier {
+        #[source]
+        #[diagnostic(source)]
+        error: crate::ast::IdentError,
         #[label]
         span: SourceSpan,
     },

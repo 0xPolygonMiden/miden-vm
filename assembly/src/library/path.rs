@@ -140,8 +140,9 @@ impl LibraryPath {
     /// * The path is empty.
     /// * The path prefix represents an invalid namespace, see [LibraryNamespace] for details.
     /// * Any component of the path is empty.
-    /// * Any component is not a valid bare identifier in Miden Assembly syntax, i.e. lowercase
-    ///   alphanumeric with underscores allowed, starts with alphabetic character.
+    /// * Any component is not a valid identifier (quoted or unquoted) in Miden Assembly syntax,
+    ///   i.e. starts with an ASCII alphabetic character, contains only printable ASCII characters,
+    ///   except for `::`, which must only be used as a path separator.
     pub fn new(source: impl AsRef<str>) -> Result<Self, PathError> {
         let source = source.as_ref();
         if source.is_empty() {
@@ -415,7 +416,7 @@ impl LibraryPath {
         S: AsRef<str>,
     {
         let component = component.as_ref().to_string().into_boxed_str();
-        let component = Ident::new_unchecked(Span::unknown(Arc::from(component)));
+        let component = Ident::from_raw_parts(Span::unknown(Arc::from(component)));
         let mut path = self.clone();
         path.push_ident(component);
         path
@@ -438,7 +439,7 @@ impl<'a> TryFrom<Vec<LibraryPathComponent<'a>>> for LibraryPath {
             match component {
                 LibraryPathComponent::Normal(ident) => components.push(ident.clone()),
                 LibraryPathComponent::Namespace(LibraryNamespace::User(name)) => {
-                    components.push(Ident::new_unchecked(Span::unknown(name.clone())));
+                    components.push(Ident::from_raw_parts(Span::unknown(name.clone())));
                 },
                 LibraryPathComponent::Namespace(_) => return Err(PathError::UnsupportedJoin),
             }
@@ -585,6 +586,9 @@ mod tests {
         let path = LibraryPath::new("foo::bar::baz").unwrap();
         assert_eq!(path.num_components(), 3);
 
+        let path = LibraryPath::new("miden:base/account@0.1.0").unwrap();
+        assert_eq!(path.num_components(), 1);
+
         let path = LibraryPath::new("#exec::bar::baz").unwrap();
         assert_eq!(path.num_components(), 3);
 
@@ -605,9 +609,6 @@ mod tests {
 
         let path = LibraryPath::new("::foo");
         assert_matches!(path, Err(PathError::InvalidNamespace(LibraryNamespaceError::Empty)));
-
-        let path = LibraryPath::new("foo::1bar");
-        assert_matches!(path, Err(PathError::InvalidComponent(IdentError::InvalidStart)));
 
         let path = LibraryPath::new("#foo::bar");
         assert_matches!(

@@ -3,6 +3,7 @@ use core::fmt;
 
 use vm_core::FieldElement;
 
+use super::DocString;
 use crate::{Felt, SourceSpan, Span, Spanned, ast::Ident, parser::ParsingError};
 
 // CONSTANT
@@ -13,7 +14,7 @@ pub struct Constant {
     /// The source span of the definition.
     pub span: SourceSpan,
     /// The documentation string attached to this definition.
-    pub docs: Option<Span<String>>,
+    pub docs: Option<DocString>,
     /// The name of the constant.
     pub name: Ident,
     /// The expression associated with the constant.
@@ -28,7 +29,7 @@ impl Constant {
 
     /// Adds documentation to this constant declaration.
     pub fn with_docs(mut self, docs: Option<Span<String>>) -> Self {
-        self.docs = docs;
+        self.docs = docs.map(DocString::new);
         self
     }
 }
@@ -47,17 +48,12 @@ impl crate::prettier::PrettyPrint for Constant {
     fn render(&self) -> crate::prettier::Document {
         use crate::prettier::*;
 
-        let mut doc = Document::Empty;
-        if let Some(docs) = self.docs.as_ref() {
-            let fragment =
-                docs.lines().map(text).reduce(|acc, line| acc + nl() + const_text("#! ") + line);
+        let mut doc = self
+            .docs
+            .as_ref()
+            .map(|docstring| docstring.render())
+            .unwrap_or(Document::Empty);
 
-            if let Some(fragment) = fragment {
-                doc += fragment;
-            }
-        }
-
-        doc += nl();
         doc += flatten(const_text("const") + const_text(".") + display(&self.name));
         doc += const_text("=");
 

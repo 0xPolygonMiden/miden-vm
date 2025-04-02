@@ -82,16 +82,21 @@ use vm_core::Decorator;
 
 #[test]
 fn cli_bundle_debug() {
+    let output_file = std::env::temp_dir().join("cli_bundle_debug.masl");
+
     let mut cmd = bin_under_test().command();
-    cmd.arg("bundle").arg("./tests/integration/cli/data/lib");
+    cmd.arg("bundle")
+        .arg("./tests/integration/cli/data/lib")
+        .arg("--output")
+        .arg(output_file.as_path());;
     cmd.assert().success();
 
-    let lib = Library::deserialize_from_file("./tests/integration/cli/data/out.masl").unwrap();
+    let lib = Library::deserialize_from_file(&output_file).unwrap();
     // If there are any AsmOp decorators in the forest, the bundle is in debug mode.
     let found_one_asm_op =
         lib.mast_forest().decorators().iter().any(|d| matches!(d, Decorator::AsmOp(_)));
     assert!(found_one_asm_op);
-    fs::remove_file("./tests/integration/cli/data/out.masl").unwrap();
+    fs::remove_file(&output_file).unwrap();
 }
 
 #[test]
@@ -105,25 +110,33 @@ fn cli_bundle_no_exports() {
 
 #[test]
 fn cli_bundle_kernel() {
+    let output_file = std::env::temp_dir().join("cli_bundle_kernel.masl");
+
     let mut cmd = bin_under_test().command();
     cmd.arg("bundle")
         .arg("./tests/integration/cli/data/lib")
         .arg("--kernel")
-        .arg("./tests/integration/cli/data/kernel_main.masm");
+        .arg("./tests/integration/cli/data/kernel_main.masm")
+        .arg("--output")
+        .arg(output_file.as_path());
     cmd.assert().success();
-    fs::remove_file("./tests/integration/cli/data/out.masl").unwrap()
+    fs::remove_file(&output_file).unwrap()
 }
 
 /// A kernel can bundle with a library w/o exports.
 #[test]
 fn cli_bundle_kernel_noexports() {
+    let output_file = std::env::temp_dir().join("cli_bundle_kernel.masl");
+
     let mut cmd = bin_under_test().command();
     cmd.arg("bundle")
         .arg("./tests/integration/cli/data/lib_noexports")
         .arg("--kernel")
-        .arg("./tests/integration/cli/data/kernel_main.masm");
+        .arg("./tests/integration/cli/data/kernel_main.masm")
+        .arg("--output")
+        .arg(output_file.as_path());
     cmd.assert().success();
-    fs::remove_file("./tests/integration/cli/data/out.masl").unwrap()
+    fs::remove_file(&output_file).unwrap()
 }
 
 #[test]

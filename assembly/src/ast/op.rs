@@ -41,21 +41,11 @@ impl crate::prettier::PrettyPrint for Op {
 
         match self {
             Self::If { then_blk, else_blk, .. } => {
-                text("if.true")
-                    + nl()
-                    + then_blk.render()
-                    + nl()
-                    + text("else")
-                    + nl()
-                    + else_blk.render()
-                    + nl()
-                    + text("end")
+                text("if.true") + then_blk.render() + text("else") + else_blk.render() + text("end")
             },
-            Self::While { body, .. } => {
-                text("while.true") + nl() + body.render() + nl() + text("end")
-            },
+            Self::While { body, .. } => text("while.true") + body.render() + text("end"),
             Self::Repeat { count, body, .. } => {
-                display(format!("repeat.{count}")) + nl() + body.render() + nl() + text("end")
+                display(format!("repeat.{count}")) + body.render() + text("end")
             },
             Self::Inst(inst) => inst.render(),
         }

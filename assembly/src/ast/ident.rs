@@ -13,11 +13,9 @@ pub enum IdentError {
     #[error("invalid identifier: cannot be empty")]
     Empty,
     #[error(
-        "invalid identifier '{ident}': must contain only lowercase, ascii alphanumeric characters, or underscores"
+        "invalid identifier '{ident}': must contain only unicode alphanumeric or ascii graphic characters"
     )]
     InvalidChars { ident: Arc<str> },
-    #[error("invalid identifier: must start with lowercase ascii alphabetic character")]
-    InvalidStart,
     #[error("invalid identifier: length exceeds the maximum of {max} bytes")]
     InvalidLength { max: usize },
     #[error("invalid identifier: {0}")]
@@ -45,9 +43,7 @@ pub enum CaseKindError {
 /// Represents a generic identifier in Miden Assembly source code.
 ///
 /// This type is used internally by all other specialized identifier types, e.g.
-/// [super::ProcedureName], and enforces the baseline rules for bare identifiers in Miden Assembly.
-/// Higher-level types, such as `ProcedureName`, can implement their own variations on these rules,
-/// and construct an [Ident] using [Ident::new_unchecked].
+/// [super::ProcedureName], and enforces the baseline rules for identifiers in Miden Assembly.
 ///
 /// All identifiers are associated with a source span, and are interned to the extent possible, i.e.
 /// rather than allocating a new `String` for every use of the same identifier, we attempt to have
@@ -70,12 +66,24 @@ pub struct Ident {
 }
 
 impl Ident {
-    /// Parses an [Ident] from `source`.
+    /// Creates an [Ident] from `source`.
+    ///
+    /// This can fail if:
+    ///
+    /// * The identifier exceeds the maximum allowed identifier length
+    /// * The identifier contains something other than Unicode alphanumeric or ASCII graphic
+    ///   characters (e.g. whitespace, control)
     pub fn new(source: impl AsRef<str>) -> Result<Self, IdentError> {
         source.as_ref().parse()
     }
 
-    /// Parses an [Ident] from `source`.
+    /// Creates an [Ident] from `source`.
+    ///
+    /// This can fail if:
+    ///
+    /// * The identifier exceeds the maximum allowed identifier length
+    /// * The identifier contains something other than Unicode alphanumeric or ASCII graphic
+    ///   characters (e.g. whitespace, control)
     pub fn new_with_span(span: SourceSpan, source: impl AsRef<str>) -> Result<Self, IdentError> {
         source.as_ref().parse::<Self>().map(|id| id.with_span(span))
     }
@@ -87,12 +95,14 @@ impl Ident {
     }
 
     /// This allows constructing an [Ident] directly from a ref-counted string that is known to be
-    /// a valid identifier, and so does not require re-parsing/re-validating. This must _not_ be
-    /// used to bypass validation when you have an identifier that is not valid, and such
-    /// identifiers will be caught during compilation and result in a panic being raised.
+    /// a valid identifier, and so does not require re-parsing/re-validating.
+    ///
+    /// This should _not_ be used to bypass validation, as other parts of the assembler still may
+    /// re-validate identifiers, notably during deserialization, and may result in a panic being
+    /// raised.
     ///
     /// NOTE: This function is perma-unstable, it may be removed or modified at any time.
-    pub fn new_unchecked(name: Span<Arc<str>>) -> Self {
+    pub fn from_raw_parts(name: Span<Arc<str>>) -> Self {
         let (span, name) = name.into_parts();
         Self { span, name }
     }
@@ -113,13 +123,7 @@ impl Ident {
         if source.is_empty() {
             return Err(IdentError::Empty);
         }
-        if !source.starts_with(|c: char| c.is_ascii_alphabetic()) {
-            return Err(IdentError::InvalidStart);
-        }
-        if !source
-            .chars()
-            .all(|c| c.is_ascii_alphanumeric() || matches!(c, '_' | '-' | ':' | '/' | '@' | '.'))
-        {
+        if !source.chars().all(|c| c.is_ascii_graphic() || c.is_alphanumeric()) {
             return Err(IdentError::InvalidChars { ident: source.into() });
         }
         Ok(())
@@ -192,5 +196,97 @@ impl FromStr for Ident {
         Self::validate(s)?;
         let name = Arc::from(s.to_string().into_boxed_str());
         Ok(Self { span: SourceSpan::default(), name })
+    }
+}
+
+#[cfg(feature = "testing")]
+pub(crate) mod testing {
+    use alloc::string::String;
+
+    use proptest::{char::CharStrategy, collection::vec, prelude::*};
+
+    use super::*;
+
+    impl Arbitrary for Ident {
+        type Parameters = ();
+
+        fn arbitrary_with(_args: Self::Parameters) -> Self::Strategy {
+            ident_any_random_length().boxed()
+        }
+
+        type Strategy = BoxedStrategy<Self>;
+    }
+
+    // Our dictionary includes all ASCII graphic characters (0x21..0x7E), as well as a variety
+    // of unicode alphanumerics.
+    const SPECIAL: [char; 32] = const {
+        let mut buf = ['a'; 32];
+        let mut idx = 0;
+        let mut range_idx = 0;
+        while range_idx < SPECIAL_RANGES.len() {
+            let range = &SPECIAL_RANGES[range_idx];
+            range_idx += 1;
+            let mut j = *range.start() as u32;
+            let end = *range.end() as u32;
+            while j <= end {
+                unsafe {
+                    buf[idx] = char::from_u32_unchecked(j);
+                }
+                idx += 1;
+                j += 1;
+            }
+        }
+        buf
+    };
+
+    const SPECIAL_RANGES: &[core::ops::RangeInclusive<char>] =
+        &['!'..='/', ':'..='@', '['..='`', '{'..='~'];
+    const PREFERRED_RANGES: &[core::ops::RangeInclusive<char>] = &['a'..='z', 'A'..='Z'];
+    const EXTRA_RANGES: &[core::ops::RangeInclusive<char>] = &['0'..='9', 'à'..='ö', 'ø'..='ÿ'];
+
+    prop_compose! {
+        /// A strategy to produce a random character from our valid dictionary, using the rules
+        /// for selection provided by `CharStrategy`
+        fn ident_chars()
+                      (c in CharStrategy::new_borrowed(
+                          &SPECIAL,
+                          PREFERRED_RANGES,
+                          EXTRA_RANGES
+                      )) -> char {
+            c
+        }
+    }
+
+    prop_compose! {
+        /// A strategy to produce a raw String of length `length`, containing any characers from
+        /// our dictionary.
+        ///
+        /// The returned string will always be at least 1 characters.
+        fn ident_raw_any(length: u32)
+                        (chars in vec(ident_chars(), 1..=(length as usize))) -> String {
+            String::from_iter(chars)
+        }
+    }
+
+    prop_compose! {
+        /// Generate a random identifier of `length` containing any characters from our dictionary
+        pub fn ident_any(length: u32)
+                    (raw in ident_raw_any(length)
+                        .prop_filter(
+                            "identifiers must be valid",
+                            |s| Ident::validate(s).is_ok()
+                        )
+                    ) -> Ident {
+            Ident::from_raw_parts(Span::new(SourceSpan::UNKNOWN, raw.into_boxed_str().into()))
+        }
+    }
+
+    prop_compose! {
+        /// Generate a random identifier of `length` containing any characters from our dictionary
+        pub fn ident_any_random_length()
+            (length in 1..u8::MAX)
+            (id in ident_any(length as u32)) -> Ident {
+            id
+        }
     }
 }

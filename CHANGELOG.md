@@ -1,7 +1,18 @@
 # Changelog
 
-## 0.14.0 TBD
+## 0.14.0 (TBD)
 
+
+
+## 0.13.2 (2025-04-02)
+
+#### Changes
+- Relaxed rules for identifiers created via `Ident::new`, `ProcedureName::new`, `LibraryNamespace::new`, and `Library::new_from_components` (#1735)
+- [BREAKING] Renamed `Ident::new_unchecked` and `ProcedureName::new_unchecked` to `from_raw_parts` (#1735).
+
+#### Fixes
+
+- Fixed various issues with pretty printing of Miden Assembly (#1740).
 
 ## 0.13.1 (2025-03-21) - `stdlib` crate only
 
