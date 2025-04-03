@@ -209,11 +209,11 @@ impl FastProcessor {
         let second_old = self.stack[self.stack_top_idx - 2].as_int();
 
         // Check that a and b are u32 values.
-        if second_old > u32::MAX as u64 {
-            return Err(ExecutionError::NotU32Value(Felt::new(second_old), Felt::from(err_code)));
-        }
         if first_old > u32::MAX as u64 {
             return Err(ExecutionError::NotU32Value(Felt::new(first_old), Felt::from(err_code)));
+        }
+        if second_old > u32::MAX as u64 {
+            return Err(ExecutionError::NotU32Value(Felt::new(second_old), Felt::from(err_code)));
         }
 
         let (first_new, second_new) = f(first_old, second_old)?;
