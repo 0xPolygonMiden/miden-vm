@@ -71,7 +71,7 @@ impl Process {
     pub(super) fn op_sdepth(&mut self) -> Result<(), ExecutionError> {
         let stack_depth = self.stack.depth();
         self.stack.set(0, Felt::new(stack_depth as u64));
-        self.stack.shift_right(0);
+        self.stack.shift_right(0, self.system.ctx());
         Ok(())
     }
 
@@ -109,7 +109,7 @@ impl Process {
     pub(super) fn op_clk(&mut self) -> Result<(), ExecutionError> {
         let clk = self.system.clk();
         self.stack.set(0, Felt::from(clk));
-        self.stack.shift_right(0);
+        self.stack.shift_right(0, self.system.ctx());
         Ok(())
     }
 

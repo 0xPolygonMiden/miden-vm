@@ -18,7 +18,7 @@ impl Process {
     /// The original stack is shifted to the right by one item.
     pub(super) fn op_push(&mut self, value: Felt) -> Result<(), ExecutionError> {
         self.stack.set(0, value);
-        self.stack.shift_right(0);
+        self.stack.shift_right(0, self.system.ctx());
         Ok(())
     }
 
@@ -275,7 +275,7 @@ impl Process {
     pub(super) fn op_advpop(&mut self, host: &mut impl Host) -> Result<(), ExecutionError> {
         let value = host.advice_provider_mut().pop_stack(self.into())?;
         self.stack.set(0, value);
-        self.stack.shift_right(0);
+        self.stack.shift_right(0, self.system.ctx());
         Ok(())
     }
 

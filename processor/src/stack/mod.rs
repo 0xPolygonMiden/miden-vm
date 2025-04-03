@@ -6,6 +6,7 @@ use vm_core::{WORD_SIZE, Word, stack::MIN_STACK_DEPTH};
 use super::{
     ExecutionError, Felt, FieldElement, ONE, STACK_TRACE_WIDTH, StackInputs, StackOutputs, ZERO,
 };
+use crate::ContextId;
 
 mod trace;
 use trace::StackTrace;
@@ -116,11 +117,11 @@ impl Stack {
     /// # Panics
     /// Panics if invoked for non-last clock cycle on a stack instantiated with
     /// `keep_overflow_trace` set to false.
-    pub fn get_state_at(&self, clk: RowIndex) -> Vec<Felt> {
+    pub fn get_state_at(&self, ctx: ContextId, clk: RowIndex) -> Vec<Felt> {
         let mut result = Vec::with_capacity(self.active_depth);
         self.trace.append_state_into(&mut result, clk);
         if clk == self.clk {
-            self.overflow.append_into(&mut result);
+            self.overflow.append_into(&mut result, ctx);
         } else {
             self.overflow.append_state_into(&mut result, clk.into());
         }
@@ -208,7 +209,7 @@ impl Stack {
     /// position + 1 at the next clock cycle
     ///
     /// If stack depth grows beyond 16 items, the additional item is pushed into the overflow table.
-    pub fn shift_right(&mut self, start_pos: usize) {
+    pub fn shift_right(&mut self, start_pos: usize, ctx: ContextId) {
         debug_assert!(start_pos < MIN_STACK_DEPTH, "start position cannot exceed stack top size");
 
         // Update the stack.
@@ -216,7 +217,7 @@ impl Stack {
 
         // Update the overflow table.
         let to_overflow = self.trace.get_stack_value_at(self.clk, MAX_TOP_IDX);
-        self.overflow.push(to_overflow, Felt::from(self.clk));
+        self.overflow.push(to_overflow, Felt::from(self.clk), ctx);
 
         // Stack depth always increases on right shift.
         self.active_depth += 1;

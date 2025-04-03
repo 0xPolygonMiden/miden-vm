@@ -726,7 +726,7 @@ impl ProcessState<'_> {
     /// Returns stack state at the current clock cycle. This includes the top 16 items of the
     /// stack + overflow entries.
     pub fn get_stack_state(&self) -> Vec<Felt> {
-        self.stack.get_state_at(self.system.clk())
+        self.stack.get_state_at(self.system.ctx(), self.system.clk())
     }
 
     /// Returns the element located at the specified context/address, or None if the address hasn't
