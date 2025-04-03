@@ -34,7 +34,7 @@ impl Process {
 
         self.stack.set(0, hi);
         self.stack.set(1, lo);
-        self.stack.shift_right(1);
+        self.stack.shift_right(1, self.system.ctx());
         Ok(())
     }
 

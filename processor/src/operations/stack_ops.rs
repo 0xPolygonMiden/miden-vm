@@ -7,7 +7,7 @@ impl Process {
     /// Pushes a ZERO onto the stack.
     pub(super) fn op_pad(&mut self) -> Result<(), ExecutionError> {
         self.stack.set(0, ZERO);
-        self.stack.shift_right(0);
+        self.stack.shift_right(0, self.system.ctx());
         Ok(())
     }
 
@@ -21,7 +21,7 @@ impl Process {
     pub(super) fn op_dup(&mut self, n: usize) -> Result<(), ExecutionError> {
         let value = self.stack.get(n);
         self.stack.set(0, value);
-        self.stack.shift_right(0);
+        self.stack.shift_right(0, self.system.ctx());
         Ok(())
     }
 
