@@ -411,7 +411,7 @@ impl FastProcessor {
             // of at the beginning), otherwise we get an off-by-one error when comparing
             // with [crate::Process].
             if condition == ONE {
-                self.clk += 1;
+                self.clk += 1_u32;
             }
         }
 
@@ -590,7 +590,7 @@ impl FastProcessor {
         // execute the rest of the op batches
         for op_batch in op_batches {
             // increment clock to account for `RESPAN`
-            self.clk += 1;
+            self.clk += 1_u32;
 
             self.execute_op_batch(
                 basic_block_node,
@@ -678,7 +678,7 @@ impl FastProcessor {
                     // so, we need execute a NOOP after it. In this processor, we increment the
                     // clock to account for the NOOP.
                     debug_assert!(op_idx_in_group < OP_GROUP_SIZE - 1, "invalid op index");
-                    self.clk += 1;
+                    self.clk += 1_u32;
                 }
 
                 // then, move to the next group and reset operation index

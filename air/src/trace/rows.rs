@@ -163,7 +163,6 @@ impl RowIndex {
     }
 }
 
-// TODO(plafer): this should be Add<u32> too
 /// Adds a usize to a [`RowIndex`].
 ///
 /// # Panics
@@ -197,6 +196,21 @@ impl Add<RowIndex> for u32 {
 /// value `u32::MAX`.
 impl AddAssign<u32> for RowIndex {
     fn add_assign(&mut self, rhs: u32) {
+        self.0 += rhs;
+    }
+}
+
+/// Adds a usize value to a RowIndex in place.
+///
+/// # Panics
+///
+/// This function will panic if the internal value of the [`RowIndex`] would exceed the maximum
+/// value `u32::MAX`.
+impl AddAssign<usize> for RowIndex {
+    fn add_assign(&mut self, rhs: usize) {
+        let rhs = u32::try_from(rhs)
+            .map_err(|_| RowIndexError::InvalidSize(format!("{}_usize", rhs).into()))
+            .unwrap();
         self.0 += rhs;
     }
 }
