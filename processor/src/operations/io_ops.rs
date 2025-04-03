@@ -54,7 +54,7 @@ impl Process {
         for (i, &value) in word.iter().enumerate() {
             self.stack.set(i, value);
         }
-        self.stack.shift_left(5);
+        self.stack.shift_left(5, self.system.ctx());
 
         Ok(())
     }
@@ -114,7 +114,7 @@ impl Process {
         for (i, &value) in word.iter().rev().enumerate() {
             self.stack.set(i, value);
         }
-        self.stack.shift_left(5);
+        self.stack.shift_left(5, self.system.ctx());
 
         Ok(())
     }
@@ -143,7 +143,7 @@ impl Process {
             .map_err(ExecutionError::MemoryError)?;
 
         // update the stack state
-        self.stack.shift_left(1);
+        self.stack.shift_left(1, self.system.ctx());
 
         Ok(())
     }

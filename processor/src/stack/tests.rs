@@ -102,7 +102,7 @@ fn shift_left() {
 
     // ---- left shift an entire stack of minimum depth -------------------------------------------
     // Perform the left shift.
-    stack.shift_left(1);
+    stack.shift_left(1, ContextId::default());
     stack.advance_clock();
 
     // Check the state of stack item and helper columns.
@@ -125,7 +125,7 @@ fn shift_left() {
 
     // Perform the left shift.
     stack.ensure_trace_capacity();
-    stack.shift_left(1);
+    stack.shift_left(1, ContextId::default());
     stack.advance_clock();
 
     // Check the state of stack item and helper columns.
@@ -135,7 +135,7 @@ fn shift_left() {
     // ---- left shift an entire stack with one overflow item -------------------------------------
 
     // Perform the left shift.
-    stack.shift_left(1);
+    stack.shift_left(1, ContextId::default());
     stack.advance_clock();
 
     // Check the state of stack item and helper columns.
@@ -204,7 +204,7 @@ fn start_restore_context() {
     assert_eq!(16, stack.depth());
 
     // stack depth shouldn't change
-    stack.shift_left(1);
+    stack.shift_left(1, ContextId::default());
     stack.advance_clock();
     assert_eq!(16, stack.depth());
 
@@ -214,7 +214,7 @@ fn start_restore_context() {
     assert_eq!(17, stack.depth());
 
     // stack depth = 16
-    stack.shift_left(1);
+    stack.shift_left(1, ContextId::default());
     stack.advance_clock();
     assert_eq!(16, stack.depth());
 
@@ -264,7 +264,7 @@ fn start_restore_context() {
     assert_eq!(stack.helpers_state(), build_helpers_partial(1, 3));
 
     // stack depth = 16
-    stack.shift_left(1);
+    stack.shift_left(1, ContextId::default());
     stack.advance_clock();
     assert_eq!(16, stack.depth());
 
@@ -285,7 +285,7 @@ fn start_restore_context() {
     );
 
     // stack depth = 16
-    stack.shift_left(1);
+    stack.shift_left(1, ContextId::default());
     stack.advance_clock();
     assert_eq!(16, stack.depth());
 
@@ -329,7 +329,7 @@ fn generate_trace() {
     stack.advance_clock();
 
     // clk = 6
-    stack.shift_left(1);
+    stack.shift_left(1, ContextId::default());
     stack.advance_clock();
 
     // restore previous context, clk = 7
@@ -346,15 +346,15 @@ fn generate_trace() {
     stack.advance_clock();
 
     // clk = 10
-    stack.shift_left(1);
+    stack.shift_left(1, ContextId::default());
     stack.advance_clock();
 
     // clk = 11
-    stack.shift_left(1);
+    stack.shift_left(1, ContextId::default());
     stack.advance_clock();
 
     // clk = 12
-    stack.shift_left(1);
+    stack.shift_left(1, ContextId::default());
     stack.advance_clock();
 
     let trace = stack.into_trace(16, 1);
