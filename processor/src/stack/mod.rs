@@ -123,7 +123,7 @@ impl Stack {
         if clk == self.clk {
             self.overflow.append_into(&mut result, ctx);
         } else {
-            self.overflow.append_state_into(&mut result, clk.into());
+            self.overflow.append_state_into(&mut result, ctx, clk.into());
         }
 
         result
@@ -197,11 +197,11 @@ impl Stack {
     /// If the stack depth is greater than 16, an item is moved from the overflow table to the
     /// "in-memory" portion of the stack. If the stack depth is 16, the 16th element of the
     /// stack is set to ZERO.
-    pub fn shift_left(&mut self, start_pos: usize) {
+    pub fn shift_left(&mut self, start_pos: usize, ctx: ContextId) {
         debug_assert!(start_pos > 0, "start position must be greater than 0");
         debug_assert!(start_pos <= MIN_STACK_DEPTH, "start position cannot exceed stack top size");
 
-        let (next_depth, next_overflow_addr) = self.shift_left_no_helpers(start_pos);
+        let (next_depth, next_overflow_addr) = self.shift_left_no_helpers(start_pos, ctx);
         self.trace.set_helpers_at(self.clk.as_usize(), next_depth, next_overflow_addr);
     }
 
@@ -226,7 +226,7 @@ impl Stack {
 
     /// Shifts the stack left, and returns the value for the helper columns B0 and B1, without
     /// writing them to the trace.
-    fn shift_left_no_helpers(&mut self, start_pos: usize) -> (Felt, Felt) {
+    fn shift_left_no_helpers(&mut self, start_pos: usize, ctx: ContextId) -> (Felt, Felt) {
         match self.active_depth {
             0..=MAX_TOP_IDX => unreachable!("stack underflow"),
             MIN_STACK_DEPTH => {
@@ -235,7 +235,7 @@ impl Stack {
             },
             _ => {
                 // Update the stack & overflow table.
-                let from_overflow = self.overflow.pop(u64::from(self.clk));
+                let from_overflow = self.overflow.pop(u64::from(self.clk), ctx);
                 let helpers = self.trace.stack_shift_left_no_helpers(
                     self.clk,
                     start_pos,
@@ -264,10 +264,10 @@ impl Stack {
     /// shift the stack left, and start a new context simultaneously (and hence reset the stack
     /// helper registers to their default value). It is assumed that the caller will write the
     /// return values somewhere else in the trace.
-    pub fn shift_left_and_start_context(&mut self) -> (usize, Felt) {
+    pub fn shift_left_and_start_context(&mut self, ctx: ContextId) -> (usize, Felt) {
         const START_POSITION: usize = 1;
 
-        self.shift_left_no_helpers(START_POSITION);
+        self.shift_left_no_helpers(START_POSITION, ctx);
 
         // reset the helper columns to their default value, and write those to the trace in the next
         // row.

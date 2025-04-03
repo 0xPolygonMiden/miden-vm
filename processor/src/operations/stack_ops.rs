@@ -13,7 +13,7 @@ impl Process {
 
     /// Removes the top element off the stack.
     pub(super) fn op_drop(&mut self) -> Result<(), ExecutionError> {
-        self.stack.shift_left(1);
+        self.stack.shift_left(1, self.system.ctx());
         Ok(())
     }
 
@@ -245,7 +245,7 @@ impl Process {
             _ => return Err(ExecutionError::NotBinaryValue(c)),
         }
 
-        self.stack.shift_left(3);
+        self.stack.shift_left(3, self.system.ctx());
         Ok(())
     }
 
@@ -289,7 +289,7 @@ impl Process {
             _ => return Err(ExecutionError::NotBinaryValue(c)),
         }
 
-        self.stack.shift_left(9);
+        self.stack.shift_left(9, self.system.ctx());
         Ok(())
     }
 }

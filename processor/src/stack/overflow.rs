@@ -22,7 +22,7 @@ pub struct OverflowTable {
     active_rows: Vec<usize>,
     /// A map which records the full state of the overflow table at every cycle during which an
     /// update happened. This map is populated only when `trace_enabled` = true.
-    trace: BTreeMap<u64, Vec<Felt>>,
+    trace: BTreeMap<u64, (Vec<Felt>, ContextId)>,
     /// A flag which specifies whether we should record the full state of the overflow table
     /// whenever an update happens. This is set to true only when executing programs for debug
     /// purposes.
@@ -71,12 +71,12 @@ impl OverflowTable {
 
         if self.trace_enabled {
             // insert a copy of the current table state into the trace
-            self.save_current_state(clk.as_int());
+            self.save_current_state(clk.as_int(), ctx);
         }
     }
 
     /// Removes the last value from the overflow table and returns it.
-    pub fn pop(&mut self, clk: u64) -> Felt {
+    pub fn pop(&mut self, clk: u64, ctx: ContextId) -> Felt {
         // if last_row_addr is ZERO, any rows in the overflow table are not accessible from the
         // current context. Thus, we should not be able to remove them.
         debug_assert_ne!(
@@ -96,7 +96,7 @@ impl OverflowTable {
 
         if self.trace_enabled {
             // insert a copy of the current table state into the trace
-            self.save_current_state(clk);
+            self.save_current_state(clk, ctx);
         }
 
         // return the removed value
@@ -145,11 +145,18 @@ impl OverflowTable {
     ///
     /// # Panics
     /// Panics when this overflow table was not initialized with `enable_trace` set to true.
-    pub fn append_state_into(&self, target: &mut Vec<Felt>, clk: u64) {
+    pub fn append_state_into(
+        &self,
+        target: &mut Vec<Felt>,
+        target_ctx: ContextId,
+        target_clk: u64,
+    ) {
         assert!(self.trace_enabled, "overflow trace not enabled");
-        if let Some(x) = self.trace.range(0..=clk).last() {
-            for item in x.1.iter().rev() {
-                target.push(*item);
+        if let Some((_clk, (stack_state, ctx))) = self.trace.range(0..=target_clk).last() {
+            if target_ctx == *ctx {
+                for item in stack_state.iter().rev() {
+                    target.push(*item);
+                }
             }
         }
     }
@@ -163,10 +170,17 @@ impl OverflowTable {
     // --------------------------------------------------------------------------------------------
 
     /// Saves a copy of the current table state into the trace at the specified clock cycle.
-    fn save_current_state(&mut self, clk: u64) {
+    fn save_current_state(&mut self, clk: u64, ctx: ContextId) {
         debug_assert!(self.trace_enabled, "overflow table trace not enabled");
-        let current_state = self.active_rows.iter().map(|&idx| self.all_rows[idx].0.val).collect();
-        self.trace.insert(clk, current_state);
+        let current_state = self
+            .active_rows
+            .iter()
+            .filter_map(|&idx| {
+                let (row, row_ctx) = &self.all_rows[idx];
+                if *row_ctx == ctx { Some(row.val) } else { None }
+            })
+            .collect();
+        self.trace.insert(clk, (current_state, ctx));
     }
 
     // TEST ACCESSORS

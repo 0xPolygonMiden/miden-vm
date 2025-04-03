@@ -83,7 +83,7 @@ impl Process {
 
         self.stack.set(0, hi);
         self.stack.set(1, lo);
-        self.stack.shift_left(3);
+        self.stack.shift_left(3, self.system.ctx());
         Ok(())
     }
 
@@ -138,7 +138,7 @@ impl Process {
 
         self.stack.set(0, hi);
         self.stack.set(1, lo);
-        self.stack.shift_left(3);
+        self.stack.shift_left(3, self.system.ctx());
         Ok(())
     }
 
@@ -181,7 +181,7 @@ impl Process {
         let result = self.chiplets.bitwise.u32and(a, b)?;
 
         self.stack.set(0, result);
-        self.stack.shift_left(2);
+        self.stack.shift_left(2, self.system.ctx());
 
         Ok(())
     }
@@ -194,7 +194,7 @@ impl Process {
         let result = self.chiplets.bitwise.u32xor(a, b)?;
 
         self.stack.set(0, result);
-        self.stack.shift_left(2);
+        self.stack.shift_left(2, self.system.ctx());
 
         Ok(())
     }

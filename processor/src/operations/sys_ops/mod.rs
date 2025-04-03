@@ -25,7 +25,7 @@ impl Process {
         if self.stack.get(0) != ONE {
             return Err(host.on_assert_failed(self.into(), err_code));
         }
-        self.stack.shift_left(1);
+        self.stack.shift_left(1, self.system.ctx());
         Ok(())
     }
 
@@ -58,7 +58,7 @@ impl Process {
         }
 
         self.system.set_fmp(new_fmp);
-        self.stack.shift_left(1);
+        self.stack.shift_left(1, self.system.ctx());
 
         Ok(())
     }
