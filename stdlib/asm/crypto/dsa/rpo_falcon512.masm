@@ -121,6 +121,80 @@ export.hash_to_point.8
     dropw
 end
 
+# PUBLIC-KEY-HASH RECOVERY FROM SIGNATURE
+# =============================================================================================
+
+#!   Operand stack: []
+#!   Advice stack:  [tau0, tau1, h_0, ..., h_511, s2_0, ..., s2_511, pi_0, ..., pi_1022, ...]
+#! Outputs:
+#!   Operand stack: [PK_HASH]
+export.falcon_recover_pub_key.16
+    ## Load the evaluation point tau from the advice tape, compute its inverse and save both
+    ## Note that we will evaluate the polynomials at `tau_inv = tau^{-1}` as we are loading the coefficients
+    ## in the normal order i.e., not in reversed order required for Horner evaluation.
+    ## This means that the equality we will be checking is 
+    ## pi(tau_inv) * tau^1023 == h(tau_inv) * tau^511 * s2(tau_inv) * tau^511
+    ##
+    ## which simplifies to
+    ##
+    ## pi(tau_inv) * tau == h(tau_inv) * s2(tau_inv)
+    adv_push.2 
+    dup.1 dup.1 ext2inv
+    movup.3 movup.3
+    loc_storew.4
+    # => [tau1, tau0, tau_inv1, tau_inv0, Y, 0, 0, 0, 0, ptr, tau_inv_ptr, acc1, acc0, ...]
+
+    # Load the coefficients of the h polynomial and evaluate it at tau_inv
+    exec.eval_tau_inv
+    # => [Y, D, C, ptr, tau_inv_ptr, acc1, acc0, ...] where D is the digest expected to be PK hash
+    
+    dropw
+    # => [D, C, ptr, tau_inv_ptr, acc1, acc0, ...]
+
+    repeat.4
+        swapw
+        dropw
+    end
+    # => [D]
+end
+
+# @dev What should be the title of this procedure? 
+# Since it is used in falcon_recover_pub_key & load_h_s2_and_product 
+# It might make sense to have it as a standalone helper procedure 
+
+#! Loads and evaluates s2 at tau_inv
+#! Inputs:
+#!   Operand stack: [tau1, tau0, tau_inv1, tau_inv0, Y, 0, 0, 0, 0, ptr, tau_inv_ptr, acc1, acc0, ...]
+#!   Advice stack:  [tau0, tau1, h_0, ..., h_511, s2_0, ..., s2_511, pi_0, ..., pi_1022, ...]
+#! Outputs:
+#!   Operand stack: [Y, D, C, ptr, tau_inv_ptr, acc1, acc0, ...] where D is the digest expected to be PK
+#!   Advice stack:  [h_0, ..., h_511, s2_0, ..., s2_511, pi_0, ..., pi_1022, ...]
+proc.eval_tau_inv
+    repeat.64
+        adv_pipe
+
+        # check that all coefficients are less than Falcon prime
+        dupw.1
+        u32assert2
+        u32overflowing_sub.M assert drop
+        u32overflowing_sub.M assert drop
+        u32assert2
+        u32overflowing_sub.M assert drop
+        u32overflowing_sub.M assert drop
+
+        dupw
+        u32assert2
+        u32overflowing_sub.M assert drop
+        u32overflowing_sub.M assert drop
+        u32assert2
+        u32overflowing_sub.M assert drop
+        u32overflowing_sub.M assert drop
+
+        horner_eval_base
+
+        hperm
+    end
+end
 
 # PROBABILISTIC POLYNOMIAL MULTIPLICATION IN Z_Q[x]
 # =============================================================================================
@@ -187,30 +261,7 @@ export.load_h_s2_and_product.8
     # => [tau1, tau0, tau_inv1, tau_inv0, Y, 0, 0, 0, 0, ptr, tau_inv_ptr, acc1, acc0, ...]
 
     # 2) Load the coefficients of the h polynomial and evaluate it at tau_inv
-    repeat.64
-        adv_pipe
-
-        # check that all coefficients are less than Falcon prime
-        dupw.1
-        u32assert2
-        u32overflowing_sub.M assert drop
-        u32overflowing_sub.M assert drop
-        u32assert2
-        u32overflowing_sub.M assert drop
-        u32overflowing_sub.M assert drop
-
-        dupw
-        u32assert2
-        u32overflowing_sub.M assert drop
-        u32overflowing_sub.M assert drop
-        u32assert2
-        u32overflowing_sub.M assert drop
-        u32overflowing_sub.M assert drop
-
-        horner_eval_base
-
-        hperm
-    end
+    exec.eval_tau_inv
     # => [Y, D, C, ptr, tau_inv_ptr, acc1, acc0, ...] where D is the digest expected to be PK
 
     # 3) Load PK, the saved claimed hash of h, and compare hashes
@@ -251,7 +302,6 @@ export.load_h_s2_and_product.8
         hperm
     end
     # => [Y, Y, C, ptr, tau_inv_ptr, s2(tau)_1, s2(tau)_0, h(tau)_1, h(tau)_0, ...]
-
 
     # 5) Load claimed h * s2 in Z_Q[x]
 
