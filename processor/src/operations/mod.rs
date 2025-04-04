@@ -12,6 +12,7 @@ mod io_ops;
 mod stack_ops;
 mod sys_ops;
 mod u32_ops;
+mod circuit_eval;
 mod utils;
 
 #[cfg(test)]
@@ -170,9 +171,12 @@ impl Process {
             Operation::HPerm => self.op_hperm()?,
             Operation::MpVerify(err_code) => self.op_mpverify(err_code, host)?,
             Operation::MrUpdate => self.op_mrupdate(host)?,
+
+            // ----- STARK proof verification -----------------------------------------------------
             Operation::FriE2F4 => self.op_fri_ext2fold4()?,
             Operation::HornerBase => self.op_horner_eval_base(error_ctx)?,
             Operation::HornerExt => self.op_horner_eval_ext(error_ctx)?,
+            Operation::ArithmeticCircuitEval => self.arithmetic_circuit_eval(error_ctx,)?,
         }
 
         self.advance_clock()?;
