@@ -135,6 +135,7 @@ fn run_masp_program(params: &RunCmd) -> Result<(ExecutionTrace, [u8; 32]), Repor
 
     let stack_inputs = input_data.parse_stack_inputs().map_err(Report::msg)?;
     let mut host = DefaultHost::new(input_data.parse_advice_provider().map_err(Report::msg)?);
+    host.load_mast_forest(StdLibrary::default().mast_forest().clone()).unwrap();
 
     let execution_options = ExecutionOptions::new(
         Some(params.max_cycles),
