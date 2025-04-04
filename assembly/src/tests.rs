@@ -99,8 +99,7 @@ fn empty_if() -> TestResult {
         "  :               ^|^",
         "  :                `-- found a end here",
         "  `----",
-        " help: expected primitive opcode (e.g. \"add\"), or \"else\", or control flow",
-        "       opcode (e.g. \"if.true\")"
+        " help: expected primitive opcode (e.g. \"add\"), or \"else\", or control flow opcode (e.g. \"if.true\")"
     );
     Ok(())
 }
@@ -614,7 +613,8 @@ fn constant_err_const_not_initialized() -> TestResult {
         regex!(r#",-\[test[\d]+:1:23\]"#),
         "1 | const.TEST_CONSTANT=5+A begin push.TEST_CONSTANT end",
         "  :                       ^",
-        "  `----"
+        "  `----",
+        "        help: are you missing an import?"
     );
     Ok(())
 }
@@ -677,7 +677,8 @@ fn constants_must_be_uppercase() -> TestResult {
         "1 | const.constant_1=12 begin push.constant_1 end",
         "  :       ^^^^^|^^^^",
         "  :            `-- found a identifier here",
-        "  `----"
+        "  `----",
+        "        help: expected constant identifier"
     );
 
     Ok(())
@@ -809,7 +810,8 @@ fn constant_not_found() -> TestResult {
         "1 |",
         "2 |     begin push.CONSTANT end",
         "  :                ^^^^^^^^",
-        "  `----"
+        "  `----",
+        "        help: are you missing an import?"
     );
     Ok(())
 }
@@ -1873,7 +1875,8 @@ fn program_with_exported_procedure() -> TestResult {
         regex!(r#",-\[test[\d]+:1:1\]"#),
         "1 | export.foo push.3 push.7 mul end begin push.2 push.3 add exec.foo end",
         "  : ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^",
-        "  `----"
+        "  `----",
+        "        help: perhaps you meant to use `proc` instead of `export`?"
     );
     Ok(())
 }
@@ -2254,7 +2257,17 @@ end";
         end"#
         )
     );
-    assert_assembler_diagnostic!(context, source, "undefined module 'dummy2::math::u64'");
+    assert_assembler_diagnostic!(
+        context,
+        source,
+        "undefined module 'dummy2::math::u64'",
+        regex!(r#",-\[test[\d]+:5:23\]"#),
+        "       4 |             push.4 push.3",
+        "       5 |             exec.u64::checked_eqz",
+        "         :                       ^^^^^^^^^^^",
+        "       6 |             exec.u64::notchecked_eqz",
+        "         `----"
+    );
     Ok(())
 }
 
@@ -3055,4 +3068,15 @@ fn vendoring() -> TestResult {
     };
     assert!(lib == expected_lib);
     Ok(())
+}
+
+#[test]
+#[should_panic]
+fn test_assert_diagnostic_lines() {
+    assert_diagnostic_lines!(
+        miette::miette!("the error string"),
+        "the error string",
+        "other",
+        "lines"
+    );
 }

@@ -910,8 +910,7 @@ fn test_ast_parsing_module_docs_fail() {
         "  :     ^^^^^^^^^^^^^^^^^",
         "9 |",
         "  `----",
-        "help: this docstring is immediately followed by at least one empty line, then another",
-        "docstring,if you intended these to be a single docstring, you should remove the empty lines"
+        "help: this docstring is immediately followed by at least one empty line, then another docstring,if you intended these to be a single docstring, you should remove the empty lines"
     );
 
     let source = source_file!(
@@ -937,8 +936,7 @@ fn test_ast_parsing_module_docs_fail() {
         "  :     ^^^^^^^^^^^^^^^^^",
         "7 |",
         "  `----",
-        "help: this docstring is immediately followed by at least one empty line, then another",
-        "docstring,if you intended these to be a single docstring, you should remove the empty lines"
+        "help: this docstring is immediately followed by at least one empty line, then another docstring,if you intended these to be a single docstring, you should remove the empty lines"
     );
 
     let source = source_file!(
@@ -961,8 +959,7 @@ fn test_ast_parsing_module_docs_fail() {
         "  :     ^^^^^^^^^^^^^^^^^",
         "4 |",
         "  `----",
-        "help: this docstring is immediately followed by at least one empty line, then another",
-        "docstring,if you intended these to be a single docstring, you should remove the empty lines"
+        "help: this docstring is immediately followed by at least one empty line, then another docstring,if you intended these to be a single docstring, you should remove the empty lines"
     );
 
     let source = source_file!(
@@ -987,8 +984,7 @@ fn test_ast_parsing_module_docs_fail() {
         "  :     ^^^^^^^^^^^^^^^^^",
         "6 |",
         "  `----",
-        "help: this docstring is immediately followed by at least one empty line, then another",
-        "docstring,if you intended these to be a single docstring, you should remove the empty lines"
+        "help: this docstring is immediately followed by at least one empty line, then another docstring,if you intended these to be a single docstring, you should remove the empty lines"
     );
 
     let source = source_file!(
@@ -1015,8 +1011,7 @@ fn test_ast_parsing_module_docs_fail() {
         "  :     ^^^^^^^^^^^^^^^^^",
         "8 |",
         "  `----",
-        "help: this docstring is immediately followed by at least one empty line, then another",
-        "docstring,if you intended these to be a single docstring, you should remove the empty lines"
+        "help: this docstring is immediately followed by at least one empty line, then another docstring,if you intended these to be a single docstring, you should remove the empty lines"
     );
 
     let source = source_file!(
