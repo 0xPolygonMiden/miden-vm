@@ -6,6 +6,7 @@ help:
 
 # -- variables --------------------------------------------------------------------------------------
 
+BACKTRACE=RUST_BACKTRACE=1
 WARNINGS=RUSTDOCFLAGS="-D warnings"
 DEBUG_ASSERTIONS=RUSTFLAGS="-C debug-assertions"
 FEATURES_CONCURRENT_EXEC=--features concurrent,executable
@@ -52,15 +53,15 @@ book: ## Builds the book & serves documentation site
 
 .PHONY: test-build
 test-build: ## Build the test binary
-	cargo nextest run --cargo-profile test-release --features concurrent,testing --no-run
+	cargo nextest run --cargo-profile test-dev --features concurrent,testing --no-run
 
 .PHONY: test
 test: ## Run all tests
-	$(DEBUG_ASSERTIONS) cargo nextest run --profile default --cargo-profile test-release --features concurrent,testing
+	$(BACKTRACE) cargo nextest run --profile default --cargo-profile test-dev --features concurrent,testing
 
 .PHONY: test-docs
 test-docs: ## Run documentation tests
-	$(WARNINGS) cargo test --doc $(ALL_FEATURES_BUT_ASYNC)
+	cargo test --doc $(ALL_FEATURES_BUT_ASYNC)
 
 .PHONY: test-fast
 test-fast: ## Runs all tests with the debug profile
