@@ -426,7 +426,8 @@ impl MainTrace {
         self.chiplet_selector_0(i) == ONE
             && self.chiplet_selector_1(i) == ONE
             && self.chiplet_selector_2(i) == ONE
-            && self.chiplet_selector_3(i) == ZERO
+            && self.chiplet_selector_3(i) == ONE 
+            && self.chiplet_selector_4(i) == ZERO
     }
 
     pub fn chiplet_ace_start_selector(&self, i: RowIndex) -> Felt {
