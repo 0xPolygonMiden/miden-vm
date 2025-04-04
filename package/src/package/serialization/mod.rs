@@ -115,13 +115,7 @@ impl Deserializable for Package {
         let manifest = PackageManifest::read_from(source)?;
 
         // Read optional account component metadata
-        let account_component_metadata_bytes: Option<Vec<u8>> = if source.has_more_bytes() {
-            Deserializable::read_from(source)?
-        } else {
-            // For compatibility with the packages serialized with the previous version without
-            // the AccountComponentMetadata bytes
-            None
-        };
+        let account_component_metadata_bytes: Option<Vec<u8>> = Deserializable::read_from(source)?;
 
         Ok(Self {
             name,
