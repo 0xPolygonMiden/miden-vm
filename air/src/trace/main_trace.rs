@@ -319,6 +319,11 @@ impl MainTrace {
         self.columns.get_column(CHIPLETS_OFFSET + 4)[i]
     }
 
+    /// Returns chiplet column number 5 at row i.
+    pub fn chiplet_selector_5(&self, i: RowIndex) -> Felt {
+        self.columns.get_column(CHIPLETS_OFFSET + 5)[i]
+    }
+
     /// Returns `true` if a row is part of the hash chiplet.
     pub fn is_hash_row(&self, i: RowIndex) -> bool {
         self.chiplet_selector_0(i) == ZERO
@@ -416,36 +421,37 @@ impl MainTrace {
         self.chiplet_selector_0(i) == ONE
             && self.chiplet_selector_1(i) == ONE
             && self.chiplet_selector_2(i) == ONE
-            && self.chiplet_selector_3(i) == ZERO
+            && self.chiplet_selector_3(i) == ONE 
+            && self.chiplet_selector_4(i) == ZERO
     }
 
     /// Returns the i-th row of the kernel chiplet `addr` column.
     pub fn chiplet_kernel_idx(&self, i: RowIndex) -> Felt {
-        self.columns.get_column(CHIPLETS_OFFSET + 5)[i]
+        self.columns.get_column(CHIPLETS_OFFSET + 6)[i]
     }
 
     /// Returns the i-th row of the chiplet column containing the zeroth element of the kernel
     /// procedure root.
     pub fn chiplet_kernel_root_0(&self, i: RowIndex) -> Felt {
-        self.columns.get_column(CHIPLETS_OFFSET + 6)[i]
+        self.columns.get_column(CHIPLETS_OFFSET + 7)[i]
     }
 
     /// Returns the i-th row of the chiplet column containing the first element of the kernel
     /// procedure root.
     pub fn chiplet_kernel_root_1(&self, i: RowIndex) -> Felt {
-        self.columns.get_column(CHIPLETS_OFFSET + 7)[i]
+        self.columns.get_column(CHIPLETS_OFFSET + 8)[i]
     }
 
     /// Returns the i-th row of the chiplet column containing the second element of the kernel
     /// procedure root.
     pub fn chiplet_kernel_root_2(&self, i: RowIndex) -> Felt {
-        self.columns.get_column(CHIPLETS_OFFSET + 8)[i]
+        self.columns.get_column(CHIPLETS_OFFSET + 9)[i]
     }
 
     /// Returns the i-th row of the chiplet column containing the third element of the kernel
     /// procedure root.
     pub fn chiplet_kernel_root_3(&self, i: RowIndex) -> Felt {
-        self.columns.get_column(CHIPLETS_OFFSET + 9)[i]
+        self.columns.get_column(CHIPLETS_OFFSET + 10)[i]
     }
 
     //  MERKLE PATH HASHING SELECTORS

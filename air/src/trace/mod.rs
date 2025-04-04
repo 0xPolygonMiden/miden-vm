@@ -19,7 +19,7 @@ pub const MIN_TRACE_LEN: usize = 64;
 // ------------------------------------------------------------------------------------------------
 
 //      system          decoder           stack      range checks       chiplets
-//    (8 columns)     (24 columns)    (19 columns)    (2 columns)     (18 columns)
+//    (8 columns)     (24 columns)    (19 columns)    (2 columns)     (20 columns)
 // ├───────────────┴───────────────┴───────────────┴───────────────┴─────────────────┤
 
 pub const SYS_TRACE_OFFSET: usize = 0;
@@ -51,7 +51,7 @@ pub const RANGE_CHECK_TRACE_RANGE: Range<usize> =
 
 // Chiplets trace
 pub const CHIPLETS_OFFSET: usize = RANGE_CHECK_TRACE_RANGE.end;
-pub const CHIPLETS_WIDTH: usize = 18;
+pub const CHIPLETS_WIDTH: usize = 20;
 pub const CHIPLETS_RANGE: Range<usize> = range(CHIPLETS_OFFSET, CHIPLETS_WIDTH);
 
 pub const TRACE_WIDTH: usize = CHIPLETS_OFFSET + CHIPLETS_WIDTH;

@@ -11,6 +11,8 @@ use crate::{ContextId, Felt, QuadFelt, Word};
 use miden_air::{FieldElement, RowIndex};
 use std::collections::HashMap;
 use std::prelude::rust_2015::Vec;
+use std::println;
+use vm_core::ZERO;
 use vm_core::mast::BasicBlockNode;
 
 #[test]
@@ -101,8 +103,10 @@ fn encode_decode_instruction() {
         },
     ];
 
+    let mut encoded_vec = vec![];
     for instruction in instructions {
         let encoded = EncodedCircuit::encode_instruction(&instruction, &layout).unwrap();
+        encoded_vec.push(encoded);
         let (id_l, id_r, op) = EncodedCircuit::decode_instruction(encoded).unwrap();
         let id_l_expected = layout.encoded_node_id(&instruction.node_l).unwrap();
         let id_r_expected = layout.encoded_node_id(&instruction.node_r).unwrap();
@@ -110,6 +114,48 @@ fn encode_decode_instruction() {
         assert_eq!(id_r, id_r_expected);
         assert_eq!(op, instruction.op);
     }
+
+    println!("encoded vec {:?}", encoded_vec);
+}
+
+#[test]
+fn test_circuit_encoding() {
+    let constants = vec![-Felt::ONE];
+    let neg_one = NodeID::Const(0);
+    let x = NodeID::Input(0);
+    let x_min_1 = NodeID::Eval(0);
+    let x_times_x_min_one = NodeID::Eval(1);
+    let result_expected = NodeID::Input(1);
+
+    let instructions = vec![
+        Instruction { node_l: x, node_r: neg_one, op: Op::Add },
+        Instruction { node_l: x, node_r: x_min_1, op: Op::Mul },
+        Instruction {
+            node_l: x_times_x_min_one,
+            node_r: result_expected,
+            op: Op::Sub,
+        },
+    ];
+
+    let circuit = Circuit::new(2, constants, instructions).unwrap();
+    let encoded_circuit =
+        EncodedCircuit::try_from_circuit(&circuit).expect("failed to generate encoded circuit");
+
+    assert_eq!(encoded_circuit.num_inputs(), 2);
+    assert_eq!(encoded_circuit.num_constants(), 2);
+    assert_eq!(
+        encoded_circuit.encoded_circuit,
+        vec![
+            -Felt::ONE,
+            ZERO,
+            ZERO,
+            ZERO,
+            Felt::new(7 + (5 << 30) + (2 << 60)), // id_l = 7; id_r = 5; op = ADD
+            Felt::new(7 + (3 << 30) + (1 << 60)), // id_l = 7; id_r = 3; op = MUL
+            Felt::new(2 + (6 << 30) + (0 << 60)), // id_l = 2; id_r = 6; op = SUB
+            Felt::new(1 + (1 << 30) + (1 << 60)), // id_l = 1; id_r = 1; op = MUL
+        ]
+    )
 }
 
 /// Evaluate a `Circuit` for a given set of `inputs`, comparing the result with the native
@@ -202,10 +248,9 @@ fn generate_memory(circuit: &EncodedCircuit, inputs: &[QuadFelt]) -> Vec<Word> {
 /// Given an EvaluationContext
 fn verify_trace(context: &EvaluationContext, num_read_rows: usize, num_eval_rows: usize) {
     let num_rows = num_read_rows + num_eval_rows;
-    let mut columns: Vec<_> = (0..NUM_COLS).map(|_| vec![Felt::from(42u8); num_rows]).collect();
-    let mut columns_ref: Vec<_> = columns.iter_mut().map(|col| col.as_mut_slice()).collect();
+    let mut columns: Vec<_> = (0..NUM_COLS).map(|_| vec![ZERO; num_rows]).collect();
 
-    context.fill(&mut columns_ref);
+    context.fill(0, &mut columns);
 
     let num_wires = num_read_rows * 2 + num_eval_rows;
 

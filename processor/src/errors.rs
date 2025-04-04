@@ -312,6 +312,8 @@ pub enum ExecutionError {
         source_file: Option<Arc<SourceFile>>,
         proc_root: Digest,
     },
+    #[error("failed to execute arithmetic circuit evaluation operation: {0}")]
+    AceError(AceError),
 }
 
 impl From<Ext2InttError> for ExecutionError {
@@ -531,6 +533,19 @@ impl AsRef<dyn Diagnostic> for ExecutionError {
     fn as_ref(&self) -> &(dyn Diagnostic + 'static) {
         self
     }
+}
+
+// ACE ERROR
+// ================================================================================================
+
+#[derive(Debug, thiserror::Error)]
+pub enum AceError {
+    #[error("num of variables is not word aligned or is zero {0}")]
+    NumVarIsNotWordAlignedOrIsEmpty(u64),
+    #[error("num of evaluation gates is not word aligned or is zero {0}")]
+    NumEvalIsNotWordAlignedOrIsEmpty(u64),
+    #[error("circuit does not evaluate to zero")]
+    CircuitNotEvaluateZero,
 }
 
 // EXT2INTT ERROR

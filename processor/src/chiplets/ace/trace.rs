@@ -1,8 +1,7 @@
 use crate::chiplets::ace::EncodedCircuit;
 use crate::chiplets::ace::circuit::Op;
-use crate::{ContextId, Felt, QuadFelt, Word};
+use crate::{ContextId, ExecutionError, Felt, QuadFelt, Word};
 use miden_air::RowIndex;
-use miden_air::trace::CTX_COL_IDX;
 use std::ops::Range;
 use std::prelude::rust_2015::Vec;
 use vm_core::FieldElement;
@@ -11,6 +10,7 @@ use vm_core::FieldElement;
 /// The output value is checked to be equal to 0.
 ///
 /// The set of nodes is used to fill the ACE chiplet trace.
+#[derive(Debug)]
 pub struct EvaluationContext {
     ctx: ContextId,
     clk: RowIndex,
@@ -49,10 +49,14 @@ impl EvaluationContext {
         }
     }
 
+    pub fn num_rows(&self) -> usize {
+        (self.num_read_rows + self.num_eval_rows) as usize
+    }
+
     /// Read the word from memory at `ptr`, interpreting it as `[v_00, v_01, v_10, v_11]`, and
     /// adds wires with values `v_0 = QuadFelt(v_00, v_01)` and `v_1 = QuadFelt(v_10, v_11)`.
     /// Returns the pointer for the next operation.
-    pub fn do_read(&mut self, ptr: Felt, word: Word) -> Result<Felt, ()> {
+    pub fn do_read(&mut self, ptr: Felt, word: Word) -> Result<Felt, ExecutionError> {
         // Add first variable as QuadFelt to wire bus
         let v_0 = QuadFelt::new(word[0], word[1]);
         let id_0 = self.wire_bus.insert(v_0);
@@ -72,7 +76,7 @@ impl EvaluationContext {
     /// Read the next instruction at `ptr`, requests the inputs from the wire bus
     /// and inserts a new wire with the result.
     /// Returns the pointer for the next operation.
-    pub fn do_eval(&mut self, ptr: Felt, instruction: Felt) -> Result<Felt, ()> {
+    pub fn do_eval(&mut self, ptr: Felt, instruction: Felt) -> Result<Felt, ExecutionError> {
         // Decode instruction, ensuring it is valid
         let (id_l, id_r, op) = EncodedCircuit::decode_instruction(instruction).expect("TODO");
 
@@ -112,19 +116,22 @@ impl EvaluationContext {
         Ok(ptr + PTR_OFFSET)
     }
 
-    pub fn fill<'a>(&self, columns: &mut [&'a mut [Felt]]) {
+    pub fn fill<'a>(&self, offset: usize, columns: &mut [Vec<Felt>]) {
         let num_read_rows = self.num_read_rows as usize;
         let num_eval_rows = self.num_eval_rows as usize;
-        let read_range = Range { start: 0, end: num_read_rows };
-        let eval_range = Range {
-            start: num_read_rows,
-            end: num_read_rows + num_eval_rows,
+        let num_rows = num_read_rows + num_eval_rows;
+        let read_range = Range {
+            start: offset,
+            end: offset + num_read_rows,
         };
-        debug_assert!(columns.iter().all(|col| col.len() == eval_range.end));
+        let eval_range = Range {
+            start: read_range.end,
+            end: read_range.end + num_eval_rows,
+        };
 
         // Fill start selector
-        columns[SELECTOR_START_IDX][0] = Felt::ONE;
-        columns[SELECTOR_START_IDX][1..].fill(Felt::ZERO);
+        columns[SELECTOR_START_IDX][offset] = Felt::ONE;
+        columns[SELECTOR_START_IDX][(offset + 1)..].fill(Felt::ZERO);
 
         // Block flag column
         let f_read = Felt::ZERO;
@@ -134,14 +141,14 @@ impl EvaluationContext {
 
         // Fill ctx column which is constant across the section
         let ctx_felt = self.ctx.into();
-        columns[CTX_COL_IDX].fill(ctx_felt);
+        columns[CTX_IDX][offset..offset + num_rows].fill(ctx_felt);
 
         // Fill ptr column.
-        columns[PTR_IDX].copy_from_slice(&self.col_ptr);
+        columns[PTR_IDX][offset..offset + num_rows].copy_from_slice(&self.col_ptr);
 
         // Fill clk column which is constant across the section
         let clt_felt = self.clk.into();
-        columns[CTX_COL_IDX].fill(clt_felt);
+        columns[CLK_IDX][offset..offset + num_rows].fill(clt_felt);
 
         // Fill n_eval which is constant across the read block
         let n_eval_felt = Felt::from(self.num_eval_rows - 1);
@@ -151,14 +158,14 @@ impl EvaluationContext {
         columns[EVAL_OP_IDX][eval_range.clone()].copy_from_slice(&self.col_op);
 
         // Fill wire 0 columns for all rows
-        columns[ID_0_IDX].copy_from_slice(&self.col_w0.id);
-        columns[V_0_0_IDX].copy_from_slice(&self.col_w0.v_0);
-        columns[V_0_1_IDX].copy_from_slice(&self.col_w0.v_1);
+        columns[ID_0_IDX][offset..offset + num_rows].copy_from_slice(&self.col_w0.id);
+        columns[V_0_0_IDX][offset..offset + num_rows].copy_from_slice(&self.col_w0.v_0);
+        columns[V_0_1_IDX][offset..offset + num_rows].copy_from_slice(&self.col_w0.v_1);
 
         // Fill wire 1 columns for all rows
-        columns[ID_1_IDX].copy_from_slice(&self.col_w1.id);
-        columns[V_1_0_IDX].copy_from_slice(&self.col_w1.v_0);
-        columns[V_1_1_IDX].copy_from_slice(&self.col_w1.v_1);
+        columns[ID_1_IDX][offset..offset + num_rows].copy_from_slice(&self.col_w1.id);
+        columns[V_1_0_IDX][offset..offset + num_rows].copy_from_slice(&self.col_w1.v_0);
+        columns[V_1_1_IDX][offset..offset + num_rows].copy_from_slice(&self.col_w1.v_1);
 
         // Fill wire 2 columns for EVAL rows
         columns[ID_2_IDX][eval_range.clone()].copy_from_slice(&self.col_w2.id);
@@ -193,6 +200,7 @@ impl EvaluationContext {
 }
 
 /// Set of columns for a given wire containing `[id, v_0, v_1]`
+#[derive(Debug)]
 struct WireColumn {
     id: Vec<Felt>,
     v_0: Vec<Felt>,
@@ -217,6 +225,7 @@ impl WireColumn {
     }
 }
 
+#[derive(Debug)]
 struct WireBus {
     // Circuit ID as Felt of the next wire to be inserted
     id_next: Felt,

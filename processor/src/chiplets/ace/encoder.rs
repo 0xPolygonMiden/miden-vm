@@ -15,8 +15,6 @@ impl EncodedCircuit {
     /// Define as 30 bits to ensure two indices and the operation can be encoded in a single `Felt`
     const ID_BITS: u64 = 30;
 
-    const OP_BITS: u64 = 2;
-
     /// Maximum allowed ID, also equal to the mask extracting an ID from the lower 30 bits of a `uint`.
     const MAX_ID: u32 = (1 << Self::ID_BITS) - 1;
 
