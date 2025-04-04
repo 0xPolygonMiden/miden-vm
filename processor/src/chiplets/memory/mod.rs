@@ -291,7 +291,7 @@ impl Memory {
                     prev_ctx = ctx;
                     prev_addr = addr;
                     prev_clk = clk;
-                    row += 1;
+                    row += 1_u32;
                 }
             }
         }
@@ -378,7 +378,7 @@ impl Memory {
                     prev_ctx = ctx;
                     prev_addr = felt_addr;
                     prev_clk = clk;
-                    row += 1;
+                    row += 1_u32;
                 }
             }
         }

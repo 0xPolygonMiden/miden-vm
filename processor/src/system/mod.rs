@@ -142,7 +142,7 @@ impl System {
 
     /// Increments the clock cycle.
     pub fn advance_clock(&mut self, max_cycles: u32) -> Result<(), ExecutionError> {
-        self.clk += 1;
+        self.clk += 1_u32;
 
         // Check that maximum number of cycles is not exceeded.
         if self.clk.as_u32() > max_cycles {

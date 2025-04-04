@@ -21,7 +21,7 @@ jobs:
       - name: Build tests
         run: make test-build
       - name: test
-        run: make test
+        run: make test -l 2.5
 
   doc-tests:
     name: doc-tests
