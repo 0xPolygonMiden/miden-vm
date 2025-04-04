@@ -3,6 +3,7 @@ mod verifier_recursive;
 use assembly::{Assembler, DefaultSourceManager};
 use miden_air::{FieldExtension, HashFunction, PublicInputs};
 use processor::{DefaultHost, Program, ProgramInfo};
+use rstest::rstest;
 use test_utils::{
     AdviceInputs, MemAdviceProvider, ProvingOptions, StackInputs, VerifierError, prove,
 };
@@ -10,8 +11,11 @@ use verifier_recursive::{VerifierData, generate_advice_inputs};
 
 // Note: Changes to Miden VM may cause this test to fail when some of the assumptions documented
 // in `stdlib/asm/crypto/stark/verifier.masm` are violated.
-#[test]
-fn stark_verifier_e2f4() {
+#[rstest]
+#[case(None)]
+#[case(Some(KERNEL_ODD_NUM_PROC))]
+#[case(Some(KERNEL_EVEN_NUM_PROC))]
+fn stark_verifier_e2f4(#[case] kernel: Option<&str>) {
     // An example MASM program to be verified inside Miden VM.
     let example_source = "begin
             repeat.32
@@ -27,7 +31,7 @@ fn stark_verifier_e2f4() {
         advice_stack: tape,
         store,
         advice_map,
-    } = generate_recursive_verifier_data(example_source, stack_inputs).unwrap();
+    } = generate_recursive_verifier_data(example_source, stack_inputs, kernel).unwrap();
 
     // Verify inside Miden VM
     let source = "
@@ -46,8 +50,24 @@ fn stark_verifier_e2f4() {
 pub fn generate_recursive_verifier_data(
     source: &str,
     stack_inputs: Vec<u64>,
+    kernel: Option<&str>,
 ) -> Result<VerifierData, VerifierError> {
-    let program: Program = Assembler::default().assemble_program(source).unwrap();
+    let program = {
+        match kernel {
+            Some(kernel) => {
+                let context = assembly::testing::TestContext::new();
+                let kernel_lib =
+                    Assembler::new(context.source_manager()).assemble_kernel(kernel).unwrap();
+                let assembler = Assembler::with_kernel(context.source_manager(), kernel_lib);
+                let program: Program = assembler.assemble_program(source).unwrap();
+                program
+            },
+            None => {
+                let program: Program = Assembler::default().assemble_program(source).unwrap();
+                program
+            },
+        }
+    };
     let stack_inputs = StackInputs::try_from_ints(stack_inputs).unwrap();
     let advice_inputs = AdviceInputs::default();
     let advice_provider = MemAdviceProvider::from(advice_inputs);
@@ -72,3 +92,22 @@ pub fn generate_recursive_verifier_data(
     let (_, proof) = proof.into_parts();
     Ok(generate_advice_inputs(proof, pub_inputs).unwrap())
 }
+
+const KERNEL_ODD_NUM_PROC: &str = r#"
+        export.foo
+            add
+        end
+        export.bar
+            div
+        end
+        export.baz
+            mul
+        end"#;
+
+const KERNEL_EVEN_NUM_PROC: &str = r#"
+        export.foo
+            add
+        end
+        export.bar
+            div
+        end"#;
