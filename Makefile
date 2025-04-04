@@ -50,9 +50,17 @@ book: ## Builds the book & serves documentation site
 
 # --- testing -------------------------------------------------------------------------------------
 
+.PHONY: test-build
+test-build: ## Build the test binary
+	cargo nextest run --cargo-profile test-release --features concurrent,testing --no-run
+
 .PHONY: test
-test: ## Runs all tests with the release profile
-	$(DEBUG_ASSERTIONS) cargo nextest run --cargo-profile test-release --features testing
+test: ## Run all tests
+	$(DEBUG_ASSERTIONS) cargo nextest run --profile default --cargo-profile test-release --features concurrent,testing
+
+.PHONY: test-docs
+test-docs: ## Run documentation tests
+	$(WARNINGS) cargo test --doc $(ALL_FEATURES_BUT_ASYNC)
 
 .PHONY: test-fast
 test-fast: ## Runs all tests with the debug profile
