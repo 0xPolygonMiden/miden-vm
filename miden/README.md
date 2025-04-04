@@ -50,14 +50,18 @@ The `execute_iter()` function takes similar arguments (but without the `options`
 For example:
 
 ```rust
-use miden_vm::{Assembler, execute, execute_iter, DefaultHost, Program, StackInputs};
+use std::sync::Arc;
+use miden_vm::{assembly::DefaultSourceManager, Assembler, execute, execute_iter, DefaultHost, Program, StackInputs};
 use processor::ExecutionOptions;
+
+// instantiate default source manager
+let source_manager = Arc::new(DefaultSourceManager::default());
 
 // instantiate the assembler
 let mut assembler = Assembler::default();
 
 // compile Miden assembly source code into a program
-let program = assembler.assemble_program("begin push.3 push.5 add end").unwrap();
+let program = assembler.assemble_program("begin push.3 push.5 add swap drop end").unwrap();
 
 // use an empty list as initial stack
 let stack_inputs = StackInputs::default();
@@ -69,10 +73,10 @@ let mut host = DefaultHost::default();
 let exec_options = ExecutionOptions::default();
 
 // execute the program with no inputs
-let trace = execute(&program, stack_inputs.clone(), &mut host, exec_options).unwrap();
+let trace = execute(&program, stack_inputs.clone(), &mut host, exec_options, source_manager.clone()).unwrap();
 
 // now, execute the same program in debug mode and iterate over VM states
-for vm_state in execute_iter(&program, stack_inputs, &mut host) {
+for vm_state in execute_iter(&program, stack_inputs, &mut host, source_manager) {
     match vm_state {
         Ok(vm_state) => println!("{:?}", vm_state),
         Err(_) => println!("something went terribly wrong!"),
@@ -99,13 +103,17 @@ If the program is executed successfully, the function returns a tuple with 2 ele
 Here is a simple example of executing a program which pushes two numbers onto the stack and computes their sum:
 
 ```rust
-use miden_vm::{Assembler, DefaultHost, ProvingOptions, Program, prove, StackInputs};
+use std::sync::Arc;
+use miden_vm::{assembly::DefaultSourceManager, Assembler, DefaultHost, ProvingOptions, Program, prove, StackInputs};
+
+// instantiate default source manager
+let source_manager = Arc::new(DefaultSourceManager::default());
 
 // instantiate the assembler
 let mut assembler = Assembler::default();
 
 // this is our program, we compile it from assembly code
-let program = assembler.assemble_program("begin push.3 push.5 add end").unwrap();
+let program = assembler.assemble_program("begin push.3 push.5 add swap drop end").unwrap();
 
 // let's execute it and generate a STARK proof
 let (outputs, proof) = prove(
@@ -113,6 +121,7 @@ let (outputs, proof) = prove(
     StackInputs::default(),       // we won't provide any inputs
     &mut DefaultHost::default(),  // we'll be using a default host
     ProvingOptions::default(),    // we'll be using default options
+    source_manager,
 )
 .unwrap();
 
@@ -177,7 +186,8 @@ add         // stack state: 3 2
 Notice that except for the first 2 operations which initialize the stack, the sequence of `swap dup.1 add` operations repeats over and over. In fact, we can repeat these operations an arbitrary number of times to compute an arbitrary Fibonacci number. In Rust, it would look like this:
 
 ```rust
-use miden_vm::{Assembler, DefaultHost, Program, ProvingOptions, StackInputs};
+use std::sync::Arc;
+use miden_vm::{assembly::DefaultSourceManager, Assembler, DefaultHost, Program, ProvingOptions, StackInputs};
 
 // set the number of terms to compute
 let n = 50;
@@ -207,6 +217,7 @@ let (outputs, proof) = miden_vm::prove(
     stack_inputs,
     &mut host,
     ProvingOptions::default(), // use default proving options
+    Arc::new(DefaultSourceManager::default()), // use default source manager
 )
 .unwrap();
 

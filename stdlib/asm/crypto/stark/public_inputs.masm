@@ -9,14 +9,14 @@ use.std::crypto::hashes::rpo
 #!
 #! Input: [C, ...]
 #! Output: [D, ...]
-#! Cycles: ~40
+#! Cycles: ~ 92 + 5 * number_kernel_procedures
 export.load
     # Load the public inputs from the advice provider.
     # The public inputs are made up of:
     # 
     # 1. the input operand stack and the output operand stack both of length 16 field elements,
-    # 2. the digest of the program
-    # 3. the digests of procedures making up the kernel
+    # 2. the digest of the program,
+    # 3. the digests of procedures making up the kernel.
     #
     # While loading the public inputs, we also absorb them in the Fiat-Shamir transcript.
 
@@ -30,16 +30,64 @@ export.load
         adv_loadw
         hperm
     end
+    # => [R2, R1, C, ptr, ...]
+     
+    # 2) Compute the number of digests we have to load. The digests are the program hash
+    #    and kernel procedures digests.
+    exec.constants::get_num_kernel_procedures
+    add.1
 
-    # 2) Load the program digest
-    adv_loadw
+    # 3) Load the program hash and kernel procedures digests.
+    #    We need one call to the RPO permutation per 2 digests, thus we compute the division
+    #    with remainder of the number of digests by 2. If the remainder is 1 then we need
+    #    to pad with the zero word, while we don't need to pad otherwise.
+    u32divmod.2
+    push.0 eq
+    # => [?, num_iter, R2, R1, C, ptr, ...]
+    if.true
+        dup
+        movdn.14
+        push.0
+        neq
+        # => [(num_iter == 0), R2, R1, C, ptr, num_iter, ...]
+        while.true
+            adv_pipe
+            hperm
+            movup.13
+            sub.1
+            movdn.13
+            dup.13
+            push.0
+            neq
+            # => [(num_iter - 1 == 0), R2, R1, C, ptr, num_iter, ...]
+        end
 
-    # 3) Load the kernel procedures digests
-    # TODO: Support non-empty kernels
-    swapw
-    exec.constants::zeroize_stack_word
-    hperm
+    else
+        dup
+        movdn.14
+        push.0
+        neq
+        # => [(num_iter == 0), R2, R1, C, ptr, num_iter, ...]
+        while.true
+            adv_pipe
+            hperm
+            movup.13
+            sub.1
+            movdn.13
+            dup.13
+            push.0
+            neq
+            # => [(num_iter - 1 == 0), R2, R1, C, ptr, num_iter, ...]
+        end
+
+        # Absorb the last digest and pad with zeros
+        adv_loadw
+        swapw
+        exec.constants::zeroize_stack_word
+        hperm
+    end
 
     exec.rpo::squeeze_digest
+    movup.4 drop
     movup.4 drop
 end

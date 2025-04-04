@@ -8,17 +8,30 @@ on:
 
 jobs:
   test:
-    name: test ${{matrix.toolchain}} on ubuntu-latest
+    name: test on ubuntu-latest
     runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        toolchain: [stable, nightly]
-    timeout-minutes: 30
     steps:
       - uses: actions/checkout@main
-      - uses: taiki-e/install-action@nextest
-      - name: Perform tests
-        run: |
-          rustup update --no-self-update ${{matrix.toolchain}}
-          make test
+      - uses: taiki-e/install-action@nextest 
+      - uses: Swatinem/rust-cache@v2
+        with:
+          save-if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/next' }}
+      - name: Install rust
+        run: rustup update --no-self-update 
+      - name: Build tests
+        run: make test-build
+      - name: test
+        run: make test
+
+  doc-tests:
+    name: doc-tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@main
+      - uses: Swatinem/rust-cache@v2
+        with:
+          save-if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/next' }}
+      - name: Install rust
+        run: rustup update --no-self-update
+      - name: Run doc-tests
+        run: make test-docs

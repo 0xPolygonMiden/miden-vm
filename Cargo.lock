@@ -1260,6 +1260,7 @@ dependencies = [
  "num-bigint",
  "pretty_assertions",
  "rand 0.9.0",
+ "rstest",
  "serde_json",
  "sha2",
  "sha3",
