@@ -21,6 +21,7 @@ pub(crate) use hasher::init_state_from_words;
 
 mod memory;
 use memory::Memory;
+pub use memory::MemoryError;
 
 mod kernel_rom;
 use kernel_rom::KernelRom;

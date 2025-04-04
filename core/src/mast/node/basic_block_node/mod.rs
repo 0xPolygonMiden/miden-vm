@@ -14,6 +14,8 @@ mod op_batch;
 pub use op_batch::OpBatch;
 use op_batch::OpBatchAccumulator;
 
+use super::MastNodeExt;
+
 #[cfg(test)]
 mod tests;
 
@@ -208,9 +210,9 @@ impl BasicBlockNode {
 /// Mutators
 impl BasicBlockNode {
     /// Sets the provided list of decorators to be executed before all existing decorators.
-    pub fn prepend_decorators(&mut self, decorator_ids: Vec<DecoratorId>) {
+    pub fn prepend_decorators(&mut self, decorator_ids: &[DecoratorId]) {
         let mut new_decorators: DecoratorList =
-            decorator_ids.into_iter().map(|decorator_id| (0, decorator_id)).collect();
+            decorator_ids.iter().map(|decorator_id| (0, *decorator_id)).collect();
         new_decorators.extend(mem::take(&mut self.decorators));
 
         self.decorators = new_decorators;
@@ -229,6 +231,12 @@ impl BasicBlockNode {
     /// with the given ['DecoratorList'].
     pub fn set_decorators(&mut self, decorator_list: DecoratorList) {
         self.decorators = decorator_list;
+    }
+}
+
+impl MastNodeExt for BasicBlockNode {
+    fn decorators(&self) -> impl Iterator<Item = (usize, DecoratorId)> {
+        self.decorators.iter().copied()
     }
 }
 

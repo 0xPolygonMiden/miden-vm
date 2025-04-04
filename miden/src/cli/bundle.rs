@@ -13,9 +13,9 @@ use stdlib::StdLibrary;
     about = "Bundles .masm files into a single .masl library with access to the stdlib."
 )]
 pub struct BundleCmd {
-    /// Include debug symbols.
-    #[clap(short, long, action)]
-    debug: bool,
+    /// Disable debug symbols (release mode)
+    #[clap(short = 'r', long = "release")]
+    release: bool,
     /// Path to a directory containing the `.masm` files which are part of the library.
     #[clap(value_parser)]
     dir: PathBuf,
@@ -41,7 +41,7 @@ impl BundleCmd {
         println!("Build library");
         println!("============================================================");
 
-        let mut assembler = Assembler::default().with_debug_mode(self.debug);
+        let mut assembler = Assembler::default().with_debug_mode(!self.release);
 
         if self.dir.is_file() {
             return Err(Report::msg("`dir` must be a directory."));

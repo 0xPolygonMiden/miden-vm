@@ -619,7 +619,7 @@ impl Assembler {
                         } else if let Some(decorator_ids) = block_builder.drain_decorators() {
                             block_builder
                                 .mast_forest_builder_mut()
-                                .set_before_enter(node_id, decorator_ids);
+                                .append_before_enter(node_id, &decorator_ids);
                         }
 
                         body_node_ids.push(node_id);
@@ -649,7 +649,7 @@ impl Assembler {
                     if let Some(decorator_ids) = block_builder.drain_decorators() {
                         block_builder
                             .mast_forest_builder_mut()
-                            .set_before_enter(split_node_id, decorator_ids)
+                            .append_before_enter(split_node_id, &decorator_ids)
                     }
 
                     body_node_ids.push(split_node_id);
@@ -671,7 +671,7 @@ impl Assembler {
                         // Attach the decorators before the first instance of the repeated node
                         let mut first_repeat_node =
                             block_builder.mast_forest_builder_mut()[repeat_node_id].clone();
-                        first_repeat_node.set_before_enter(decorator_ids);
+                        first_repeat_node.append_before_enter(&decorator_ids);
                         let first_repeat_node_id = block_builder
                             .mast_forest_builder_mut()
                             .ensure_node(first_repeat_node)?;
@@ -704,7 +704,7 @@ impl Assembler {
                     if let Some(decorator_ids) = block_builder.drain_decorators() {
                         block_builder
                             .mast_forest_builder_mut()
-                            .set_before_enter(loop_node_id, decorator_ids)
+                            .append_before_enter(loop_node_id, &decorator_ids)
                     }
 
                     body_node_ids.push(loop_node_id);

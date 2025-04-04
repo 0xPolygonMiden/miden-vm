@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.14.0 (TBD)
+
+#### Enhancements
+
+- Add kernel procedures digests as public inputs to the recursive verifier (#1724).
+
+
 ## 0.13.2 (2025-04-02)
 
 #### Changes
@@ -40,6 +47,7 @@
 - Optimize FRI remainder polynomial check (#1670).
 - Remove `FALCON_SIG_TO_STACK` event (#1703).
 - Prevent `U64Div` event from crashing processor (#1710).
+- [BREAKING] Improve processor errors for memory and calls (#1717)
 
 ## 0.12.0 (2025-01-22)
 
@@ -207,6 +215,7 @@
 - The `Module::parse_file` and `Module::parse_str` functions have been removed in favor of calling `Module::parser` and then using the `ModuleParser` methods.
 - The `Compile` trait now requires passing a `SourceManager` reference along with the item to be compiled.
 - Update minimum supported Rust version to 1.80 (#1425).
+- Made `debug` mode the default in the CLI. Added `--release` flag to disable debugging instead of having to enable it. (#1728)
 
 ## 0.9.2 (2024-05-22) - `stdlib` crate only
 
