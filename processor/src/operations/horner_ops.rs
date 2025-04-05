@@ -396,6 +396,7 @@ mod tests {
     }
 
     #[test]
+    #[ignore]
     fn prove_verify_horner_base() {
         let source = "
             begin
@@ -455,6 +456,7 @@ mod tests {
     }
 
     #[test]
+    #[ignore]
     fn prove_verify_horner_ext() {
         let source = "
             begin

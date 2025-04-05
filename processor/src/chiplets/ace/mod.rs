@@ -50,6 +50,10 @@ impl Ace {
             eval_ctx.fill(offset, &mut gen_trace);
             offset += eval_ctx.num_rows()
         }
+
+        for (out_column, column) in trace.columns().zip(gen_trace) {
+            out_column.copy_from_slice(&column);
+        }
     }
 
     pub(crate) fn add_eval_context(&mut self, clk: RowIndex, eval_context: EvaluationContext) {

@@ -416,6 +416,94 @@ impl MainTrace {
         self.columns.get_column(MEMORY_V_COL_RANGE.start + 3)[i]
     }
 
+    /// Returns `true` if a row is part of the ACE chiplet.
+    pub fn is_ace_row(&self, i: RowIndex) -> bool {
+        self.chiplet_selector_0(i) == ONE
+            && self.chiplet_selector_1(i) == ONE
+            && self.chiplet_selector_2(i) == ONE
+            && self.chiplet_selector_3(i) == ZERO
+    }
+
+    /// Returns `true` if a row is part of the ACE chiplet and is the start of a new section.
+    pub fn is_ace_row_start(&self, i: RowIndex) -> bool {
+        self.chiplet_selector_0(i) == ONE
+            && self.chiplet_selector_1(i) == ONE
+            && self.chiplet_selector_2(i) == ONE
+            && self.chiplet_selector_3(i) == ZERO
+            && self.chiplet_selector_4(i) == ONE
+    }
+
+    pub fn chiplet_ace_start_selector(&self, i: RowIndex) -> Felt  {
+        self.columns.get_column(CHIPLETS_OFFSET + 4)[i]
+    
+    }
+
+    pub fn chiplet_ace_block_selector(&self, i: RowIndex) -> Felt  {
+        self.columns.get_column(CHIPLETS_OFFSET + 5)[i]
+    
+    }
+
+    pub fn chiplet_ace_ctx(&self, i: RowIndex) -> Felt {
+        self.columns.get_column(CHIPLETS_OFFSET + 6)[i]
+    }
+
+
+    pub fn chiplet_ace_ptr(&self, i: RowIndex) -> Felt {
+        self.columns.get_column(CHIPLETS_OFFSET + 7)[i]
+    }
+
+    pub fn chiplet_ace_clk(&self, i: RowIndex) -> Felt {
+        self.columns.get_column(CHIPLETS_OFFSET + 8)[i]
+    }
+
+     pub fn chiplet_ace_eval_op(&self, i: RowIndex) -> Felt {
+        self.columns.get_column(CHIPLETS_OFFSET + 9)[i]
+    }
+
+    pub fn chiplet_ace_id_0(&self, i: RowIndex) -> Felt {
+        self.columns.get_column(CHIPLETS_OFFSET + 10)[i]
+    }
+
+    pub fn chiplet_ace_v_0_0(&self, i: RowIndex) -> Felt {
+        self.columns.get_column(CHIPLETS_OFFSET + 11)[i]
+    }
+
+    pub fn chiplet_ace_v_0_1(&self, i: RowIndex) -> Felt {
+        self.columns.get_column(CHIPLETS_OFFSET + 12)[i]
+    }
+
+    pub fn chiplet_ace_id_1(&self, i: RowIndex) -> Felt {
+        self.columns.get_column(CHIPLETS_OFFSET + 13)[i]
+    }
+
+    pub fn chiplet_ace_v_1_0(&self, i: RowIndex) -> Felt {
+        self.columns.get_column(CHIPLETS_OFFSET + 14)[i]
+    }
+
+    pub fn chiplet_ace_v_1_1(&self, i: RowIndex) -> Felt {
+        self.columns.get_column(CHIPLETS_OFFSET + 15)[i]
+    }
+
+    pub fn chiplet_ace_id_2(&self, i: RowIndex) -> Felt {
+        self.columns.get_column(CHIPLETS_OFFSET + 16)[i]
+    }
+
+    pub fn chiplet_ace_v_2_0(&self, i: RowIndex) -> Felt {
+        self.columns.get_column(CHIPLETS_OFFSET + 17)[i]
+    }
+
+    pub fn chiplet_ace_v_2_1(&self, i: RowIndex) -> Felt {
+        self.columns.get_column(CHIPLETS_OFFSET + 18)[i]
+    }
+
+    pub fn chiplet_ace_is_read_row(&self, i: RowIndex) -> bool {
+        self.is_ace_row(i)  && self.chiplet_ace_block_selector(i) == ZERO
+    }
+
+    pub fn chiplet_ace_is_eval_row(&self, i: RowIndex) -> bool {
+        self.is_ace_row(i)  && self.chiplet_ace_block_selector(i) == ONE
+    }
+
     /// Returns `true` if a row is part of the kernel chiplet.
     pub fn is_kernel_row(&self, i: RowIndex) -> bool {
         self.chiplet_selector_0(i) == ONE
