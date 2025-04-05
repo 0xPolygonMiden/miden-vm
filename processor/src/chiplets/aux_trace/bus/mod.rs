@@ -1,3 +1,4 @@
+use ace::{build_ace_chiplet_requests, build_ace_chiplet_responses};
 use bitwise::{build_bitwise_chiplet_responses, build_bitwise_request};
 use hasher::{
     ControlBlockRequestMessage, build_control_block_request, build_end_block_request,
@@ -6,9 +7,9 @@ use hasher::{
 };
 use kernel::{KernelRomMessage, build_kernel_chiplet_responses};
 use memory::{
-    MemoryWordMessage, build_horner_eval_request, build_mem_mload_mstore_request,
-    build_mem_mloadw_mstorew_request, build_memory_chiplet_responses, build_mstream_request,
-    build_pipe_request,
+    MemoryWordMessage, build_ace_memory_read_element_request, build_ace_memory_read_word_request,
+    build_horner_eval_request, build_mem_mload_mstore_request, build_mem_mloadw_mstorew_request,
+    build_memory_chiplet_responses, build_mstream_request, build_pipe_request,
 };
 use miden_air::{
     RowIndex,
@@ -24,10 +25,10 @@ use miden_air::{
     },
 };
 use vm_core::{
-    ONE, OPCODE_CALL, OPCODE_DYN, OPCODE_DYNCALL, OPCODE_END, OPCODE_HORNERBASE, OPCODE_HORNEREXT,
-    OPCODE_HPERM, OPCODE_JOIN, OPCODE_LOOP, OPCODE_MLOAD, OPCODE_MLOADW, OPCODE_MPVERIFY,
-    OPCODE_MRUPDATE, OPCODE_MSTORE, OPCODE_MSTOREW, OPCODE_MSTREAM, OPCODE_PIPE, OPCODE_RESPAN,
-    OPCODE_SPAN, OPCODE_SPLIT, OPCODE_SYSCALL, OPCODE_U32AND, OPCODE_U32XOR, ZERO,
+    ONE, OPCODE_ACE, OPCODE_CALL, OPCODE_DYN, OPCODE_DYNCALL, OPCODE_END, OPCODE_HORNERBASE,
+    OPCODE_HORNEREXT, OPCODE_HPERM, OPCODE_JOIN, OPCODE_LOOP, OPCODE_MLOAD, OPCODE_MLOADW,
+    OPCODE_MPVERIFY, OPCODE_MRUPDATE, OPCODE_MSTORE, OPCODE_MSTOREW, OPCODE_MSTREAM, OPCODE_PIPE,
+    OPCODE_RESPAN, OPCODE_SPAN, OPCODE_SPLIT, OPCODE_SYSCALL, OPCODE_U32AND, OPCODE_U32XOR, ZERO,
 };
 
 use super::{Felt, FieldElement};
@@ -36,6 +37,7 @@ use crate::{
     trace::AuxColumnBuilder,
 };
 
+mod ace;
 mod bitwise;
 mod hasher;
 mod kernel;
@@ -63,7 +65,7 @@ impl<E: FieldElement<BaseField = Felt>> AuxColumnBuilder<E> for BusColumnBuilder
         let op_code_felt = main_trace.get_op_code(row);
         let op_code = op_code_felt.as_int() as u8;
 
-        match op_code {
+        let request_decoder_stack = match op_code {
             OPCODE_JOIN | OPCODE_SPLIT | OPCODE_LOOP | OPCODE_CALL => build_control_block_request(
                 main_trace,
                 main_trace.decoder_hasher_state(row),
@@ -118,8 +120,18 @@ impl<E: FieldElement<BaseField = Felt>> AuxColumnBuilder<E> for BusColumnBuilder
             OPCODE_MPVERIFY => build_mpverify_request(main_trace, alphas, row, debugger),
             OPCODE_MRUPDATE => build_mrupdate_request(main_trace, alphas, row, debugger),
             OPCODE_PIPE => build_pipe_request(main_trace, alphas, row, debugger),
+            OPCODE_ACE => build_ace_chiplet_requests(main_trace, alphas, row, debugger),
             _ => E::ONE,
-        }
+        };
+
+        let request_ace = if main_trace.chiplet_ace_is_read_row(row) {
+            build_ace_memory_read_word_request(main_trace, alphas, row, debugger)
+        } else if main_trace.chiplet_ace_is_eval_row(row) {
+            build_ace_memory_read_element_request(main_trace, alphas, row, debugger)
+        } else {
+            E::ONE
+        };
+        request_decoder_stack * request_ace
     }
 
     /// Constructs the responses from the chiplets to the other VM-components at `row`.
@@ -134,11 +146,16 @@ impl<E: FieldElement<BaseField = Felt>> AuxColumnBuilder<E> for BusColumnBuilder
         E: FieldElement<BaseField = Felt>,
     {
         if main_trace.is_hash_row(row) {
-            build_hasher_chiplet_responses(main_trace, row, alphas, debugger)
+            let hash_response = build_hasher_chiplet_responses(main_trace, row, alphas, debugger);
+            hash_response
         } else if main_trace.is_bitwise_row(row) {
-            build_bitwise_chiplet_responses(main_trace, row, alphas, debugger)
+            let bit_response = build_bitwise_chiplet_responses(main_trace, row, alphas, debugger);
+            bit_response
         } else if main_trace.is_memory_row(row) {
-            build_memory_chiplet_responses(main_trace, row, alphas, debugger)
+            let mem_response = build_memory_chiplet_responses(main_trace, row, alphas, debugger);
+            mem_response
+        } else if main_trace.is_ace_row(row) {
+            build_ace_chiplet_responses(main_trace, row, alphas, debugger)
         } else if main_trace.is_kernel_row(row) {
             build_kernel_chiplet_responses(main_trace, row, alphas, debugger)
         } else {
