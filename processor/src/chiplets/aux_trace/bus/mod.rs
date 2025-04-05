@@ -7,9 +7,9 @@ use hasher::{
 };
 use kernel::{KernelRomMessage, build_kernel_chiplet_responses};
 use memory::{
-    MemoryWordMessage, build_ace_memory_read_element_request, build_ace_memory_read_word_request,
-    build_horner_eval_request, build_mem_mload_mstore_request, build_mem_mloadw_mstorew_request,
-    build_memory_chiplet_responses, build_mstream_request, build_pipe_request,
+    MemoryWordMessage, build_horner_eval_request, build_mem_mload_mstore_request,
+    build_mem_mloadw_mstorew_request, build_memory_chiplet_responses, build_mstream_request,
+    build_pipe_request,
 };
 use miden_air::{
     RowIndex,
@@ -42,6 +42,7 @@ mod bitwise;
 mod hasher;
 mod kernel;
 mod memory;
+pub use memory::{build_ace_memory_read_element_request, build_ace_memory_read_word_request};
 
 // BUS COLUMN BUILDER
 // ================================================================================================
@@ -65,7 +66,7 @@ impl<E: FieldElement<BaseField = Felt>> AuxColumnBuilder<E> for BusColumnBuilder
         let op_code_felt = main_trace.get_op_code(row);
         let op_code = op_code_felt.as_int() as u8;
 
-        let request_decoder_stack = match op_code {
+        match op_code {
             OPCODE_JOIN | OPCODE_SPLIT | OPCODE_LOOP | OPCODE_CALL => build_control_block_request(
                 main_trace,
                 main_trace.decoder_hasher_state(row),
@@ -122,16 +123,7 @@ impl<E: FieldElement<BaseField = Felt>> AuxColumnBuilder<E> for BusColumnBuilder
             OPCODE_PIPE => build_pipe_request(main_trace, alphas, row, debugger),
             OPCODE_ACE => build_ace_chiplet_requests(main_trace, alphas, row, debugger),
             _ => E::ONE,
-        };
-
-        let request_ace = if main_trace.chiplet_ace_is_read_row(row) {
-            build_ace_memory_read_word_request(main_trace, alphas, row, debugger)
-        } else if main_trace.chiplet_ace_is_eval_row(row) {
-            build_ace_memory_read_element_request(main_trace, alphas, row, debugger)
-        } else {
-            E::ONE
-        };
-        request_decoder_stack * request_ace
+        }
     }
 
     /// Constructs the responses from the chiplets to the other VM-components at `row`.
