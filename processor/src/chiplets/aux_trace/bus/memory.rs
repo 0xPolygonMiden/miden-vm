@@ -25,7 +25,7 @@ const FOUR: Felt = Felt::new(4);
 // ================================================================================================
 
 /// Builds ACE chiplet read requests as part of the `READ` section made to the memory chiplet.
-pub(super) fn build_ace_memory_read_word_request<E: FieldElement<BaseField = Felt>>(
+pub fn build_ace_memory_read_word_request<E: FieldElement<BaseField = Felt>>(
     main_trace: &MainTrace,
     alphas: &[E],
     row: RowIndex,
@@ -60,7 +60,7 @@ pub(super) fn build_ace_memory_read_word_request<E: FieldElement<BaseField = Fel
 }
 
 /// Builds ACE chiplet read requests as part of the `EVAL` section made to the memory chiplet.
-pub(super) fn build_ace_memory_read_element_request<E: FieldElement<BaseField = Felt>>(
+pub fn build_ace_memory_read_element_request<E: FieldElement<BaseField = Felt>>(
     main_trace: &MainTrace,
     alphas: &[E],
     row: RowIndex,

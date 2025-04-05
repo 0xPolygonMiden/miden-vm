@@ -6,7 +6,7 @@ use vm_core::Kernel;
 use super::{super::trace::AuxColumnBuilder, Felt, FieldElement};
 
 mod bus;
-pub use bus::BusColumnBuilder;
+pub use bus::{BusColumnBuilder,build_ace_memory_read_element_request,build_ace_memory_read_word_request};
 
 mod virtual_table;
 pub use virtual_table::ChipletsVTableColBuilder;
@@ -41,8 +41,9 @@ impl AuxTraceBuilder {
         let t_chip = v_table_col_builder.build_aux_column(main_trace, rand_elements);
         let b_chip = bus_col_builder.build_aux_column(main_trace, rand_elements);
 
-        debug_assert_eq!(*t_chip.last().unwrap(), E::ONE);
-        debug_assert_eq!(*b_chip.last().unwrap(), E::ONE);
+        let v_table_final_value = t_chip.last().unwrap();
+        let chiplets_bus_final_value = b_chip.last().unwrap();
+        debug_assert_eq!(*v_table_final_value * *chiplets_bus_final_value, E::ONE);
         vec![t_chip, b_chip]
     }
 }

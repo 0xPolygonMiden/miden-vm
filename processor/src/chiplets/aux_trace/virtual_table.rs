@@ -4,7 +4,9 @@ use miden_air::{
 };
 use vm_core::{Kernel, ONE};
 
-use super::{Felt, FieldElement};
+use super::{
+    Felt, FieldElement, build_ace_memory_read_element_request, build_ace_memory_read_word_request,
+};
 use crate::{debug::BusDebugger, trace::AuxColumnBuilder};
 
 /// Describes how to construct the execution trace of the chiplets virtual table auxiliary trace
@@ -45,7 +47,14 @@ impl<E: FieldElement<BaseField = Felt>> AuxColumnBuilder<E> for ChipletsVTableCo
         row: RowIndex,
         _debugger: &mut BusDebugger<E>,
     ) -> E {
-        chiplets_vtable_remove_sibling(main_trace, alphas, row)
+        let request_ace = if main_trace.chiplet_ace_is_read_row(row) {
+            build_ace_memory_read_word_request(main_trace, alphas, row, _debugger)
+        } else if main_trace.chiplet_ace_is_eval_row(row) {
+            build_ace_memory_read_element_request(main_trace, alphas, row, _debugger)
+        } else {
+            E::ONE
+        };
+        chiplets_vtable_remove_sibling(main_trace, alphas, row) * request_ace
     }
 
     fn get_responses_at(
