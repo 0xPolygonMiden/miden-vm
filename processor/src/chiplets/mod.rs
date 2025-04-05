@@ -23,6 +23,8 @@ mod memory;
 use memory::Memory;
 pub use memory::MemoryError;
 
+mod ace;
+
 mod kernel_rom;
 use kernel_rom::KernelRom;
 
