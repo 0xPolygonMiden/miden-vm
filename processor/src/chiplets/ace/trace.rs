@@ -53,6 +53,22 @@ impl EvaluationContext {
         (self.num_read_rows + self.num_eval_rows) as usize
     }
 
+    pub fn clk(&self) -> u32 {
+        self.clk.into()
+    }
+
+    pub fn ctx(&self) -> u32 {
+        self.ctx.into()
+    }
+
+    pub fn num_read_rows(&self) -> u32 {
+        self.num_read_rows
+    }
+
+    pub fn num_eval_rows(&self) -> u32 {
+        self.num_eval_rows
+    }
+
     /// Read the word from memory at `ptr`, interpreting it as `[v_00, v_01, v_10, v_11]`, and
     /// adds wires with values `v_0 = QuadFelt(v_00, v_01)` and `v_1 = QuadFelt(v_10, v_11)`.
     /// Returns the pointer for the next operation.
@@ -316,3 +332,6 @@ pub const V_2_1_IDX: usize = 14;
 pub const READ_NUM_EVAL_IDX: usize = 12;
 
 pub const NUM_COLS: usize = 16;
+
+pub const NUM_ACE_LOGUP_FRACTIONS_READ: usize = 2;
+pub const NUM_ACE_LOGUP_FRACTIONS_EVAL: usize = 3;

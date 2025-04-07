@@ -11,6 +11,7 @@ use crate::{debug::BusDebugger, trace::AuxColumnBuilder};
 
 /// Describes how to construct the execution trace of the chiplets virtual table auxiliary trace
 /// column.
+/// TODO(Al): This should probably be renamed to something more generic.
 pub struct ChipletsVTableColBuilder {
     kernel: Kernel,
 }

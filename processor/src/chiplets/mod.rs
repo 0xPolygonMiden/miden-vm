@@ -1,4 +1,4 @@
-use ace::Ace;
+use ace::{Ace, AceHints};
 use alloc::vec::Vec;
 
 use miden_air::{
@@ -226,11 +226,11 @@ impl Chiplets {
             .collect::<Vec<_>>()
             .try_into()
             .expect("failed to convert vector to array");
-        self.fill_trace(&mut trace);
+        let ace_hint = self.fill_trace(&mut trace);
 
         ChipletsTrace {
             trace,
-            aux_builder: AuxTraceBuilder::new(kernel),
+            aux_builder: AuxTraceBuilder::new(kernel, ace_hint),
         }
     }
 
@@ -241,7 +241,7 @@ impl Chiplets {
     /// Hasher, Bitwise, Memory, ACE, and kernel ROM chiplets along with selector columns
     /// to identify each individual chiplet trace in addition to padding to fill the rest of
     /// the trace.
-    fn fill_trace(self, trace: &mut [Vec<Felt>; CHIPLETS_WIDTH]) {
+    fn fill_trace(self, trace: &mut [Vec<Felt>; CHIPLETS_WIDTH]) -> AceHints {
         // get the rows where:usize  chiplets begin.
         let bitwise_start: usize = self.bitwise_start().into();
         let memory_start: usize = self.memory_start().into();
@@ -331,8 +331,9 @@ impl Chiplets {
         hasher.fill_trace(&mut hasher_fragment);
         bitwise.fill_trace(&mut bitwise_fragment);
         memory.fill_trace(&mut memory_fragment);
-        ace.fill_trace(&mut ace_fragment);
         kernel_rom.fill_trace(&mut kernel_rom_fragment);
+        let ace_sections = ace.fill_trace(&mut ace_fragment);
+        AceHints::new(ace_start, ace_sections)
     }
 }
 

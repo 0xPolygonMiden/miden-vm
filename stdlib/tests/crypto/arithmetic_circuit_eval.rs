@@ -3,7 +3,7 @@ use vm_core::{Felt, FieldElement, ONE, ZERO};
 
 #[test]
 fn arithmetic_circuit_eval_execute() {
-    let num_repetitions = 2;
+    let num_repetitions = 1;
     let pointer = 1 << 16;
 
     let source = format!(
@@ -33,8 +33,7 @@ fn arithmetic_circuit_eval_execute() {
        end
     end
     ",
-        num_repetitions,
-          pointer, pointer,
+        num_repetitions, pointer, pointer,
     );
 
     // the circuit
@@ -70,10 +69,9 @@ fn arithmetic_circuit_eval_execute() {
     test_utils::build_test!(source, &[], &adv_stack).prove_and_verify(vec![], false)
 }
 
-
 #[test]
 fn arithmetic_circuit_eval() {
-    let num_repetitions = 2;
+    let num_repetitions = 20;
     let pointer = 1 << 16;
 
     let source = format!(
