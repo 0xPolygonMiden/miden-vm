@@ -397,7 +397,8 @@ impl Process {
 
         debug_assert_eq!(dyn_node.digest(), hashed_block.into());
 
-        let (stack_depth, next_overflow_addr) = self.stack.shift_left_and_start_context();
+        let (stack_depth, next_overflow_addr) =
+            self.stack.shift_left_and_start_context(self.system.ctx());
         debug_assert!(stack_depth <= u32::MAX as usize, "stack depth too big");
 
         let ctx_info = ExecutionContextInfo::new(
