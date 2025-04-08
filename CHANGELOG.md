@@ -5,6 +5,7 @@
 #### Enhancements
 
 - Add kernel procedures digests as public inputs to the recursive verifier (#1724).
+- Improve implementation of RPO-based random coin for the recursive verifier (#1734).
 
 
 ## 0.13.2 (2025-04-02)
