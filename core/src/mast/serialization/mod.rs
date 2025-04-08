@@ -263,7 +263,7 @@ impl Deserializable for MastForest {
             read_before_after_decorators(source, &mast_forest)?;
         for (node_id, decorator_ids) in before_enter_decorators {
             let node_id = MastNodeId::from_usize_safe(node_id, &mast_forest)?;
-            mast_forest.set_before_enter(node_id, decorator_ids);
+            mast_forest.append_before_enter(node_id, &decorator_ids);
         }
 
         let after_exit_decorators: Vec<(usize, Vec<DecoratorId>)> =

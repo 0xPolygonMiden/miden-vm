@@ -315,6 +315,7 @@ fn execute(
         assembler.add_library(library).map_err(|err| format!("{err}"))?;
     }
 
+    let source_manager = assembler.source_manager();
     let program = assembler.assemble_program(program).map_err(|err| format!("{err}"))?;
 
     let stack_inputs = StackInputs::default();
@@ -324,7 +325,7 @@ fn execute(
             .map_err(|err| format!("{err}"))?;
     }
 
-    let state_iter = processor::execute_iter(&program, stack_inputs, &mut host);
+    let state_iter = processor::execute_iter(&program, stack_inputs, &mut host, source_manager);
     let (system, _, stack, chiplets, err) = state_iter.into_parts();
     if let Some(err) = err {
         return Err(format!("{err}"));

@@ -1,6 +1,6 @@
-use std::vec;
+use std::{sync::Arc, vec};
 
-use assembly::{Assembler, utils::Serializable};
+use assembly::{Assembler, DefaultSourceManager, utils::Serializable};
 use miden_air::{Felt, ProvingOptions, RowIndex};
 use miden_stdlib::{EVENT_FALCON_SIG_TO_STACK, StdLibrary, falcon_sign};
 use processor::{
@@ -245,9 +245,14 @@ fn falcon_prove_verify() {
         .expect("failed to load mast forest");
 
     let options = ProvingOptions::with_96_bit_security(false);
-    let (stack_outputs, proof) =
-        test_utils::prove(&program, stack_inputs.clone(), &mut host, options)
-            .expect("failed to generate proof");
+    let (stack_outputs, proof) = test_utils::prove(
+        &program,
+        stack_inputs.clone(),
+        &mut host,
+        options,
+        Arc::new(DefaultSourceManager::default()),
+    )
+    .expect("failed to generate proof");
 
     let program_info = ProgramInfo::from(program);
     let result = test_utils::verify(program_info, stack_inputs, stack_outputs, proof);

@@ -11,8 +11,8 @@ use vm_core::{
 use winter_prover::math::fft;
 
 use crate::{
-    AdviceProvider, AdviceSource, ExecutionError, Ext2InttError, Host, Process, ProcessState,
-    QuadFelt,
+    AdviceProvider, AdviceSource, ExecutionError, Ext2InttError, Host, MemoryError, Process,
+    ProcessState, QuadFelt, errors::ErrorContext,
 };
 
 /// The offset of the domain value on the stack in the `hdword_to_map_with_domain` system event.
@@ -688,14 +688,23 @@ fn get_mem_addr_range(
     let end_addr = process.get_stack_item(end_idx).as_int();
 
     if start_addr > u32::MAX as u64 {
-        return Err(ExecutionError::MemoryAddressOutOfBounds(start_addr));
+        return Err(ExecutionError::MemoryError(MemoryError::address_out_of_bounds(
+            start_addr,
+            &ErrorContext::default(),
+        )));
     }
     if end_addr > u32::MAX as u64 {
-        return Err(ExecutionError::MemoryAddressOutOfBounds(end_addr));
+        return Err(ExecutionError::MemoryError(MemoryError::address_out_of_bounds(
+            end_addr,
+            &ErrorContext::default(),
+        )));
     }
 
     if start_addr > end_addr {
-        return Err(ExecutionError::InvalidMemoryRange { start_addr, end_addr });
+        return Err(ExecutionError::MemoryError(MemoryError::InvalidMemoryRange {
+            start_addr,
+            end_addr,
+        }));
     }
 
     Ok((start_addr as u32, end_addr as u32))

@@ -12,6 +12,10 @@ const.NUM_AUX_TRACE_COEFS=16
 # Number of constraints, both boundary and transitional
 const.NUM_CONSTRAINTS=226
 
+# Blowup factor
+const.BLOWUP_FACTOR=8
+const.BLOWUP_FACTOR_LOG=3
+
 # MEMORY POINTERS
 # =================================================================================================
 
@@ -89,6 +93,7 @@ const.TRACE_LENGTH_PTR=4294813224
 const.FRI_QUERIES_ADDRESS_PTR=4294813225
 const.TRACE_LENGTH_LOG_PTR=4294813228
 const.GRINDING_FACTOR_PTR=4294813232
+const.NUM_KERNEL_PROCEDURES_PTR=4294813233
 
 # RPO capacity initialization words
 const.ZERO_WORD_PTR=4294813236
@@ -160,6 +165,7 @@ const.ALPHA_POWER_85_1_PTR=4294903445
 #   | TRACE_LENGTH_PTR                         |       4294913224        |
 #   | TRACE_LENGTH_LOG_PTR                     |       4294913228        |
 #   | GRINDING_FACTOR_PTR                      |       4294913232        |
+#   | NUM_KERNEL_PROCEDURES_PTR                |       4294913233        |
 #   | ZERO_WORD_PTR                            |       4294913236        |
 #   | ZERO_ZERO_ZERO_ONE_PTR                   |       4294913240        |
 #   | C_PTR                                    |       4294913244        |
@@ -358,6 +364,14 @@ export.zeroize_stack_word
     exec.zero_word_ptr mem_loadw
 end
 
+export.get_blowup_factor
+    push.BLOWUP_FACTOR
+end
+
+export.get_blowup_factor_log
+    push.BLOWUP_FACTOR_LOG
+end
+
 #! Store details about the LDE domain.
 #!
 #! The info stored is `[lde_size, log(lde_size), lde_g, 0]`.
@@ -398,6 +412,14 @@ end
 
 export.get_trace_domain_generator
     push.TRACE_DOMAIN_GENERATOR_PTR mem_load
+end
+
+export.set_num_kernel_procedures
+    push.NUM_KERNEL_PROCEDURES_PTR mem_store
+end
+
+export.get_num_kernel_procedures
+    push.NUM_KERNEL_PROCEDURES_PTR mem_load
 end
 
 export.set_lde_domain_generator

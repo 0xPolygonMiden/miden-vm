@@ -1,4 +1,6 @@
-use assembly::Assembler;
+use alloc::sync::Arc;
+
+use assembly::{Assembler, DefaultSourceManager};
 use miden_vm::DefaultHost;
 use processor::{ExecutionOptions, MastForest};
 use prover::{Digest, StackInputs};
@@ -24,6 +26,7 @@ fn advice_map_loaded_before_execution() {
         StackInputs::default(),
         &mut host,
         ExecutionOptions::default(),
+        Arc::new(DefaultSourceManager::default()),
     ) {
         Ok(_) => panic!("Expected error"),
         Err(e) => {
@@ -48,6 +51,7 @@ fn advice_map_loaded_before_execution() {
         StackInputs::default(),
         &mut host,
         ExecutionOptions::default(),
+        Arc::new(DefaultSourceManager::default()),
     )
     .unwrap();
 }

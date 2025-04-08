@@ -86,7 +86,6 @@ fn cli_bundle_debug() {
 
     let mut cmd = bin_under_test().command();
     cmd.arg("bundle")
-        .arg("--debug")
         .arg("./tests/integration/cli/data/lib")
         .arg("--output")
         .arg(output_file.as_path());
