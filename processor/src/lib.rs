@@ -99,6 +99,21 @@ pub mod crypto {
 
 type QuadFelt = QuadExtension<Felt>;
 
+#[derive(Copy, Clone, Debug, Eq, PartialEq)]
+pub struct MemoryAddress(u32);
+
+impl MemoryAddress {
+    pub fn as_u32(&self) -> u32 {
+        self.0
+    }
+}
+
+impl From<u32> for MemoryAddress {
+    fn from(addr: u32) -> Self {
+        MemoryAddress(addr)
+    }
+}
+
 type SysTrace = [Vec<Felt>; SYS_TRACE_WIDTH];
 
 pub struct DecoderTrace {
@@ -748,7 +763,7 @@ impl ProcessState<'_> {
     ///
     /// The state is returned as a vector of (address, value) tuples, and includes addresses which
     /// have been accessed at least once.
-    pub fn get_mem_state(&self, ctx: ContextId) -> Vec<(u64, Felt)> {
+    pub fn get_mem_state(&self, ctx: ContextId) -> Vec<(MemoryAddress, Felt)> {
         self.chiplets.memory.get_state_at(ctx, self.system.clk())
     }
 }

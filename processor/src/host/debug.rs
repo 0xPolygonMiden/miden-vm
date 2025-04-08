@@ -84,12 +84,12 @@ impl Printer {
 
         // print the main part of the memory (wihtout the last value)
         for (addr, value) in mem.iter().take(mem.len() - 1) {
-            print_mem_address(*addr as u32, Some(*value), false, false, element_width);
+            print_mem_address(addr.0, Some(*value), false, false, element_width);
         }
 
         // print the last memory value
         if let Some((addr, value)) = mem.last() {
-            print_mem_address(*addr as u32, Some(*value), true, false, element_width);
+            print_mem_address(addr.0, Some(*value), true, false, element_width);
         }
     }
 
