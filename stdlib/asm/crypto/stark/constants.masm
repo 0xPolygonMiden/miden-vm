@@ -26,17 +26,17 @@ const.TRACE_DOMAIN_GENERATOR_PTR=4294799999
 const.PUBLIC_INPUTS_PTR=4294800000
 
 # OOD Frames
-# (71 + 7) * 2 * 2 Felt for current and next trace rows and 8 * 2 Felt for constraint composition
+# (73 + 8) * 2 * 2 Felt for current and next trace rows and 8 * 2 Felt for constraint composition
 # polynomials. Memory slots:
-# OOD_TRACE_CURRENT_PTR: (71 + 7) * 2 = 156
-# OOD_TRACE_NEXT_PTR: (71 + 7) * 2 = 156
+# OOD_TRACE_CURRENT_PTR: (73 + 8) * 2 = 162
+# OOD_TRACE_NEXT_PTR: (73 + 8) * 2 = 162
 # OOD_CONSTRAINT_EVALS_PTR: 8 * 2 = 16
 const.OOD_TRACE_CURRENT_PTR=4294900000
-const.OOD_TRACE_NEXT_PTR=4294900156
-const.OOD_CONSTRAINT_EVALS_PTR=4294900312
+const.OOD_TRACE_NEXT_PTR=4294900162
+const.OOD_CONSTRAINT_EVALS_PTR=4294900324
 
 # Current trace row
-# 71 Felt for main portion of trace, 7 * 2 Felt for auxiliary portion of trace and 8 * 2 Felt for
+# 73 Felt for main portion of trace, 8 * 2 Felt for auxiliary portion of trace and 8 * 2 Felt for
 # constraint composition polynomials. Since we store these with the padding to make each of the
 # three portions a multiple of 8, the number of slots required is 72 + 16 + 16 = 104
 const.CURRENT_TRACE_ROW_PTR=4294900400
@@ -134,12 +134,12 @@ const.ALPHA_POWER_4_PTR=4294903412
 const.ALPHA_POWER_5_PTR=4294903416
 const.ALPHA_POWER_6_PTR=4294903420
 const.ALPHA_POWER_7_PTR=4294903424
-const.ALPHA_POWER_77_PTR=4294903440
-const.ALPHA_POWER_77_0_PTR=4294903440
-const.ALPHA_POWER_77_1_PTR=4294903441
-const.ALPHA_POWER_85_PTR=4294903444
-const.ALPHA_POWER_85_0_PTR=4294903444
-const.ALPHA_POWER_85_1_PTR=4294903445
+const.ALPHA_POWER_80_PTR=4294903440
+const.ALPHA_POWER_80_0_PTR=4294903440
+const.ALPHA_POWER_80_1_PTR=4294903441
+const.ALPHA_POWER_88_PTR=4294903444
+const.ALPHA_POWER_88_0_PTR=4294903444
+const.ALPHA_POWER_88_1_PTR=4294903445
 
 
 #   The following is a table summarizing the memory pointers used:
@@ -149,8 +149,8 @@ const.ALPHA_POWER_85_1_PTR=4294903445
 #   | TRACE_DOMAIN_GENERATOR_PTR               |       4294799999        |
 #   | PUBLIC_INPUTS_PTR                        |       4294800000        |
 #   | OOD_TRACE_CURRENT_PTR                    |       4294900000        |
-#   | OOD_TRACE_NEXT_PTR                       |       4294900156        |
-#   | OOD_CONSTRAINT_EVALS_PTR                 |       4294900312        |
+#   | OOD_TRACE_NEXT_PTR                       |       4294900162        |
+#   | OOD_CONSTRAINT_EVALS_PTR                 |       4294900324        |
 #   | CURRENT_TRACE_ROW_PTR                    |       4294900400        |
 #   | AUX_RAND_ELEM_PTR                        |       4294900600        |
 #   | COMPOSITION_COEF_PTR                     |       4294900800        |
@@ -187,12 +187,12 @@ const.ALPHA_POWER_85_1_PTR=4294903445
 #   | ALPHA_POWER_5_PTR                        |       4294903416        |
 #   | ALPHA_POWER_6_PTR                        |       4294903420        |
 #   | ALPHA_POWER_7_PTR                        |       4294903424        |
-#   | ALPHA_POWER_77_PTR                       |       4294903440        |
-#   | ALPHA_POWER_77_0_PTR                     |       4294903440        |
-#   | ALPHA_POWER_77_1_PTR                     |       4294903441        |
-#   | ALPHA_POWER_85_PTR                       |       4294903444        |
-#   | ALPHA_POWER_85_0_PTR                     |       4294903444        |
-#   | ALPHA_POWER_85_1_PTR                     |       4294903445        |
+#   | ALPHA_POWER_80_PTR                       |       4294903440        |
+#   | ALPHA_POWER_80_0_PTR                     |       4294903440        |
+#   | ALPHA_POWER_80_1_PTR                     |       4294903441        |
+#   | ALPHA_POWER_88_PTR                       |       4294903444        |
+#   | ALPHA_POWER_88_0_PTR                     |       4294903444        |
+#   | ALPHA_POWER_88_1_PTR                     |       4294903445        |
 #   +------------------------------------------+-------------------------+
 
 # ACCESSORS
@@ -320,28 +320,28 @@ export.deep_rand_alpha_7_ptr
     push.ALPHA_POWER_7_PTR
 end
 
-export.deep_rand_alpha_77_ptr
-    push.ALPHA_POWER_77_PTR
+export.deep_rand_alpha_80_ptr
+    push.ALPHA_POWER_80_PTR
 end
 
-export.deep_rand_alpha_77_0_ptr
-    push.ALPHA_POWER_77_0_PTR
+export.deep_rand_alpha_80_0_ptr
+    push.ALPHA_POWER_80_0_PTR
 end
 
-export.deep_rand_alpha_77_1_ptr
-    push.ALPHA_POWER_77_1_PTR
+export.deep_rand_alpha_80_1_ptr
+    push.ALPHA_POWER_80_1_PTR
 end
 
-export.deep_rand_alpha_85_ptr
-    push.ALPHA_POWER_85_PTR
+export.deep_rand_alpha_88_ptr
+    push.ALPHA_POWER_88_PTR
 end
 
-export.deep_rand_alpha_85_0_ptr
-    push.ALPHA_POWER_85_0_PTR
+export.deep_rand_alpha_88_0_ptr
+    push.ALPHA_POWER_88_0_PTR
 end
 
-export.deep_rand_alpha_85_1_ptr
-    push.ALPHA_POWER_85_1_PTR
+export.deep_rand_alpha_88_1_ptr
+    push.ALPHA_POWER_88_1_PTR
 end
 
 export.tmp1

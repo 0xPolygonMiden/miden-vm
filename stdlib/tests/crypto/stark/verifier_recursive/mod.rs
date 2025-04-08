@@ -7,7 +7,7 @@ use test_utils::{
     crypto::{MerkleStore, RandomCoin, Rpo256, RpoDigest},
     math::{FieldElement, QuadExtension, ToElements},
 };
-use vm_core::{Felt, WORD_SIZE};
+use vm_core::{utils::Serializable, Felt};
 use winter_air::{Air, proof::Proof};
 use winter_fri::VerifierChannel as FriVerifierChannel;
 
