@@ -9,10 +9,10 @@ use.std::crypto::hashes::rpo
 #! Output: [OOD_FRAME_HASH, ...]
 #! Cycles: 100
 export.load_evaluation_frame
-    # We have 71 main trace columns and 7 aux trace columns for a total of 156 base field elements
+    # We have 73 main trace columns and 8 aux trace columns for a total of 162 base field elements
     # per row. Since we have two rows, i.e. current and next, the total number of field elements
-    # making up the OOD evaluation frame is 156*2 = 312. We will be reading felts in 39 batches of 8 
-    # using `adv_pipe`: 312 = 39 * 8. 
+    # making up the OOD evaluation frame is 162*2 = 324. We will be reading felts in 40 batches of 8 
+    # and a final batch of 4 elements using `adv_pipe`: 324 = 40 * 8 + 4. 
     # The elements are stored from the stack as (a1_1, a1_0, a0_1, a0_0) where a0 is from the
     # current row and a1 from the next row.
 
@@ -20,14 +20,19 @@ export.load_evaluation_frame
     #=> [ood_trace_current_ptr, ...]
 
     # Note: the first word is the capacity, where its first element is initialized with the number of elements to hash MODULO 8.
-    push.0.0.0.0
+    push.4.0.0.0
     padw padw
-    # => [ZERO, ZERO, 0, 0, 0, 0, ood_trace_current_ptr, ...]
-    repeat.39
+    # => [ZERO, ZERO, 0, 0, 0, 4, ood_trace_current_ptr, ...]
+    repeat.40
         adv_pipe
         hperm
     end
-    #=> [R1, OOD_FRAME_HASH, C, ood_trace_current_ptr+312, ...]
+    adv_loadw
+    dup.12 mem_storew
+    swapw
+    exec.constants::zero_word_ptr mem_loadw
+    hperm
+    #=> [R1, OOD_FRAME_HASH, C, ood_trace_current_ptr+324, ...]
 
     exec.rpo::squeeze_digest
     movup.4
