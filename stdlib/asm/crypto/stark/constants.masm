@@ -140,6 +140,7 @@ const.ALPHA_POWER_80_1_PTR=4294903441
 const.ALPHA_POWER_88_PTR=4294903444
 const.ALPHA_POWER_88_0_PTR=4294903444
 const.ALPHA_POWER_88_1_PTR=4294903445
+const.OOD_HORNER_EVALS_PTR=4294903448
 
 
 #   The following is a table summarizing the memory pointers used:
@@ -193,6 +194,7 @@ const.ALPHA_POWER_88_1_PTR=4294903445
 #   | ALPHA_POWER_88_PTR                       |       4294903444        |
 #   | ALPHA_POWER_88_0_PTR                     |       4294903444        |
 #   | ALPHA_POWER_88_1_PTR                     |       4294903445        |
+#   | OOD_HORNER_EVALS_PTR                     |       4294903448        |
 #   +------------------------------------------+-------------------------+
 
 # ACCESSORS
@@ -342,6 +344,10 @@ end
 
 export.deep_rand_alpha_88_1_ptr
     push.ALPHA_POWER_88_1_PTR
+end
+
+export.ood_horner_evaluations_ptr
+    push.OOD_HORNER_EVALS_PTR
 end
 
 export.tmp1
