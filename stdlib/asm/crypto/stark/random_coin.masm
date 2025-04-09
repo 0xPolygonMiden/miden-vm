@@ -31,7 +31,7 @@ proc.add_two_words
     #=> [c3, c2, c1, c0]
 end
 
-#! Return the first half of the rate portion of the random coin state
+#! Return the first half of the rate portion of the random coin state.
 #!
 #! The random coin uses RPO to generate data. The RPO state is composed of 3
 #! words, 2 words for the rate, and 1 word for the capacity. This procedure
@@ -44,7 +44,16 @@ export.get_rate_1
     padw exec.constants::r1_ptr mem_loadw
 end
 
-#! Return the second half of the rate portion of the random coin state
+#! Store the first half of the rate portion of the random coin state.
+#!
+#! Input: [R1, ...]
+#! Output: [...]
+#! Cycles: 6
+export.set_rate_1
+    exec.constants::r1_ptr mem_storew dropw
+end
+
+#! Return the second half of the rate portion of the random coin state.
 #!
 #! The random coin uses RPO to generate data. The RPO state is composed of 3
 #! words, 2 words for the rate, and 1 word for the capacity. This procedure
@@ -57,7 +66,16 @@ export.get_rate_2
     padw exec.constants::r2_ptr mem_loadw
 end
 
-#! Return the capacity portion of the random coin state
+#! Store the second half of the rate portion of the random coin state.
+#!
+#! Input: [R2, ...]
+#! Output: [...]
+#! Cycles: 6
+export.set_rate_2
+    exec.constants::r2_ptr mem_storew dropw
+end
+
+#! Return the capacity portion of the random coin state.
 #!
 #! The random coin uses RPO to generate data. The RPO state is composed of 3
 #! words, 2 words for the rate, and 1 word for the capacity. This procedure
@@ -68,6 +86,37 @@ end
 #! Cycles: 6
 export.get_capacity
     padw exec.constants::c_ptr mem_loadw
+end
+
+#! Set the capacity portion of the random coin state.
+#!
+#! Input: [C, ...]
+#! Output: [...]
+#! Cycles: 6
+export.set_capacity
+    exec.constants::c_ptr mem_storew dropw
+end
+
+#! Load the random coin state on the stack.
+#!
+#! Input: [...]
+#! Output: [R2, R1, C, ...]
+#! Cycles: 18
+export.load_random_coin_state
+    exec.get_capacity
+    exec.get_rate_1
+    exec.get_rate_2
+end
+
+#! Store the random coin state to memory.
+#!
+#! Input: [R2, R1, C, ...]
+#! Output: [...]
+#! Cycles: 18
+export.store_random_coin_state
+    exec.set_rate_2
+    exec.set_rate_1
+    exec.set_capacity
 end
 
 #! Initializes the seed for randomness generation by computing the hash of the proof context using
@@ -100,6 +149,7 @@ export.init_seed
     push.6 swap.4 drop exec.constants::zero_zero_zero_six_word_ptr mem_storew
     push.7 swap.4 drop exec.constants::zero_zero_zero_seven_word_ptr mem_storew
     dropw
+    push.0 exec.constants::set_rpo_current
     #=> [log(trace_length), num_queries, grinding, num_ker_proc, ...]
 
     # Create the initial seed for randomness generation from proof context
@@ -135,7 +185,7 @@ export.init_seed
     movdn.3
     #=> [lde_size, log(lde_size), lde_g, 0, trace_length, num_queries, grinding]
 
-    # Save `[lde_size, log(lde_size), lde_g, 0]`
+    # Save `[0, lde_g, log(lde_size), lde_size]`
     exec.constants::set_lde_domain_info_word
     #=> [lde_size, log(lde_size), lde_g, 0, trace_length, num_queries, grinding]
 
@@ -223,6 +273,11 @@ end
 #! Ouput: [...]
 #! Cycles: 54
 export.reseed
+
+    # Reset the random coin buffer
+    # --------------------------------------------------------------------------------------------
+    push.0 exec.constants::set_rpo_current
+
     # Load previous state and update it
     # --------------------------------------------------------------------------------------------
     exec.get_rate_1
@@ -256,7 +311,7 @@ end
 
 #! Generates a `num_tuples` tuples of random field elements and stores them in memory
 #! starting from address `dest_ptr`. Each tuple uses 8 memory slots.
-#! TODO: Generalize by keeping track of something similar to the `output` variable in `RpoRandomCoin`
+#!
 #! so that we keep track of already used randomness and know when there is a need to apply `hperm`.
 #!
 #! `dest_ptr` must be word-aligned.
@@ -266,15 +321,31 @@ end
 #!
 #! Cycles: 69 + (22 * num_tuples) / 4
 proc.generate_random_coefficients
+    # Check that all field elements in the random coin buffer are available.
+    exec.constants::get_rpo_current assertz
 
-    # Compute the loop counter. We use checked division to make sure the number is a multiple of 4.
-    # If we use field division and num_tuples is not a multiple of 4 then we will enter into
-    # a very large loop with high probability.
-    push.0 dup movup.2 movup.3
-    u32assert u32divmod.4
-    assertz
+    # Compute the loop counter. We use division with remainder to get the number of loops.
+    # We use the remainder, in addition to determining the number of loops, to update
+    # the `current` field of the RPO-based random coin.
+    swap
+    u32assert2 u32divmod.4
+
+    # If the remainder is not zero then we add 1 to the quotient i.e., 1 more iteration of the loop
+    push.0 dup.1
+    # => [rem, 0, rem, quo, dst_ptr, ...]
+    neq
+    # => [(rem == 0), rem, quo, dst_ptr, ...]
+    movup.2 add swap
+    # => [rem, num_loops, dst_ptr, ...] where num_loops = quo + (rem == 0)
+
+    movdn.2
+    # => [num_loops, dst_ptr, rem, ...]
+    
+    push.0 movdn.2
+    # => [num_loops, dst_ptr, x, rem, ...]
+
     neg
-    #=> [loop_ctr, dest_ptr, x, x, ...]
+    #=> [loop_ctr, dest_ptr, x, rem, ...]
     # where loop_ctr = - num_tuples / 4; we negate the counter so that we can count up to 0
 
     exec.get_rate_1
@@ -282,46 +353,54 @@ proc.generate_random_coefficients
 
     exec.get_rate_2
     dup.9 add.4 mem_storew
-    #=> [R2, R1, loop_ctr, dest_ptr, 0, 0, ..]
+    #=> [R2, R1, loop_ctr, dest_ptr, rem, 0, ..]
 
     exec.get_capacity
     swapdw
-    #=> [R1, loop_ctr, dest_ptr, 0, 0, C, R2 ..]
+    #=> [R1, loop_ctr, dest_ptr, rem, 0, C, R2 ..]
     swapw
-    #=> [loop_ctr, dest_ptr, 0, 0, R1, C, R2 ..]
+    #=> [loop_ctr, dest_ptr, rem, 0, R1, C, R2 ..]
     swap add.8 swap
-    #=> [loop_ctr, dest_ptr+8, 0, 0, R1, C, R2, ..]
+    #=> [loop_ctr, dest_ptr+8, rem, 0, R1, C, R2, ..]
 
     add.1 dup neq.0
 
     while.true
 
         swapw.3 hperm
-        #=> [R2, R1, C, loop_ctr, dest_ptr, x, x, ...]
+        #=> [R2, R1, C, loop_ctr, dest_ptr, x, rem, ...]
 
         # save R2 to mem[dest+4]; we use dup.13 here because it takes only 1 cycle
         dup.13 add.4 mem_storew
-        #=> [R2, R1, C, loop_ctr, dest_ptr, x, x, ...]
+        #=> [R2, R1, C, loop_ctr, dest_ptr, x, rem, ...]
 
         # save R1 to mem[dest]
         swapw dup.13 mem_storew swapw
-        #=> [R2, R1, C, loop_ctr, dest_ptr, x, x, ...]
+        #=> [R2, R1, C, loop_ctr, dest_ptr, x, rem, ...]
 
         # update destination pointer and loop counter
         swapw.3
-        #=> [loop_ctr, dest_ptr, x, x, R1, C, R2, ...]
+        #=> [loop_ctr, dest_ptr, x, rem, R1, C, R2, ...]
 
         swap add.8 swap
-        #=> [loop_ctr, dest_ptr+8, x, x, R1, C, R2, ...]
+        #=> [loop_ctr, dest_ptr+8, x, rem, R1, C, R2, ...]
 
         add.1 dup
-        #=> [loop_ctr+1, loop_ctr+1, dest_ptr+2, x, x, R1, C, R2, ...]
+        #=> [loop_ctr+1, loop_ctr+1, dest_ptr+2, x, rem, R1, C, R2, ...]
 
         neq.0
     end
 
     # Save the new state of the random coin
-    dropw
+
+    ## 1) Update the `current` counter to store the number of used up field elements of the buffer.
+    ##    This is equal to `rem` times the degree of the extension field.
+    drop drop drop
+    exec.constants::extension_field_degree
+    mul
+    exec.constants::set_rpo_current
+
+    ## 2) Store the RPO state
     exec.constants::r1_ptr mem_storew
     dropw
     exec.constants::c_ptr mem_storew
@@ -331,15 +410,35 @@ proc.generate_random_coefficients
     #=> [...]
 end
 
+#! Draws a random challenge from the extension field elements.
+#!
+#! Input: [...]
+#! Output: [alpha1, alpha0, ...]
+#!
+#! Cycles: 17
+export.generate_random_challenge
+    # 1) Check that all field elements in the random coin buffer are available.
+    exec.constants::get_rpo_current
+    dup assertz
+
+    # 2) Update the number of used up field elements from the random coin buffer.
+    exec.constants::extension_field_degree add
+    exec.constants::set_rpo_current
+
+    # 3) Load the random challenge.
+    padw exec.constants::r1_ptr mem_loadw drop drop
+end
+
 #! Draw a list of random extension field elements related to the auxiliary segment of the execution
 #! trace and store the list in memory from `aux_rand_elem_ptr` to `aux_rand_elem_ptr + 32 - 4`.
 #!
 #! Input: [...]
 #! Output: [...]
+#!
 #! Cycles: 159
 export.generate_aux_randomness
+    exec.constants::get_num_aux_trace_coefs
     exec.constants::aux_rand_elem_ptr
-    exec.constants::get_num_aux_trace_coefs swap
     exec.generate_random_coefficients
     #=> [...]
 end
@@ -348,26 +447,26 @@ end
 #!
 #! Input: [...]
 #! Output: [...]
-#! Cycles: 13
-export.generate_constraint_composition_coefficients
-    exec.constants::composition_coef_ptr
-    padw exec.constants::r1_ptr mem_loadw
-    # => [y, y, alpha1, alpha0, compos_coef_ptr, ...] where y is a "garbage" value
-    movup.4 mem_storew dropw
-    #=> [...]
+#!
+#! Cycles: 25
+export.generate_constraint_composition_coefficient
+    exec.generate_random_challenge
+    push.0.0 
+    exec.constants::composition_coef_ptr mem_storew
+    dropw
 end
 
 #! Draw deep composition polynomial random coefficient and save it at `deep_rand_coef_ptr`.
 #!
 #! Input: [...]
 #! Output: [...]
-#! Cycles: 13
-export.generate_deep_composition_random_coefficients
-    exec.constants::deep_rand_coef_ptr
-    padw exec.constants::r1_ptr mem_loadw
-    # => [y, y, alpha1, alpha0, deep_rand_coef_ptr, ...] where y is a "garbage" value
-    movup.4 mem_storew dropw
-    #=> [...]
+#!
+#! Cycles: 25
+export.generate_deep_composition_random_coefficient
+    exec.generate_random_challenge
+    push.0.0
+    exec.constants::deep_rand_coef_ptr mem_storew
+    dropw
 end
 
 
@@ -381,19 +480,17 @@ end
 #! Input: [X, ...]
 #! Output: [...]
 #! Note: The top word on the stack is consumed by this procedure.
-#! Cycles: 21 + 10 * log(N)
+#! Cycles: 30 + 10 * log(N)
 export.generate_z_zN
-    # Load z (first two felts of the random coin state) and log trace length N
-    exec.constants::r1_ptr mem_loadw
-    drop drop
+    # Generate OOD challenge point z and load log trace length N
+    exec.generate_random_challenge
     exec.constants::get_trace_length_log
     # => [log(trace_len), z_1, z_0, ...]
 
-    dup.2 dup.2
-    # => [z_1, z_0, log(trace_len), z_1, z_0, ...]
-
     # Compute z^N using the fact that z^N = z^(2^log(N))
     # Loop starts with `i=log(trace_len)`
+    dup.2 dup.2
+    # => [z_1, z_0, log(trace_len), z_1, z_0, ...]
     push.1
     while.true
         dup.1 dup.1 ext2mul
@@ -544,32 +641,40 @@ end
 #! NOTE: The cycles count can be estimated, using the fact that r < 8, via the more compact formula
 #!  470 + 236 * (num_queries / 8)
 export.generate_list_indices
+    # Check that all field elements in the random coin buffer are available except for the first
+    # one. The first element in the buffer is not used as it is biased due to PoW.
+    exec.constants::get_rpo_current
+    push.1 assert_eq
+
+    # Get the number of querie indices we need to generate and the address to where we need
+    # to store them at.
     exec.constants::get_number_queries
     exec.constants::get_fri_queries_address
+    #=> [query_ptr, num_queries, ...]
+
     # Create mask
-    padw
-    exec.constants::get_lde_domain_info_word
-    movup.2 drop
-    movup.2 drop
+    exec.constants::get_lde_domain_log_size
+    exec.constants::get_lde_domain_size
     sub.1
-    #=> [mask, depth, query_ptr, num_queries] where depth = log(lde_size)
+    #=> [mask, depth, query_ptr, num_queries, ...] where depth = log(lde_size)
 
     # Get address holding the integers (this will later hold the FRI queries)
     movup.2
-    #=> [query_ptr, mask, depth, num_queries]
+    #=> [query_ptr, mask, depth, num_queries, ...]
 
     # Load the first half of the rate portion of the state of the random coin. We discard the first
     # element as it is used for PoW and use the remaining the 3.
     exec.get_rate_1
-    #=> [R1, query_ptr, mask, depth, num_queries]
+    #=> [R1, query_ptr, mask, depth, num_queries, ...]
     exec.generate_three_integers
-    #=> [R1, query_ptr+12, mask, depth, num_queries]
+    #=> [R1, query_ptr+12, mask, depth, num_queries, ...]
+
 
     # Load the second half of the rate portion of the state of the random coin.
     exec.constants::r2_ptr mem_loadw
-    #=> [R2, query_ptr+12, mask, depth, num_queries]
+    #=> [R2, query_ptr+12, mask, depth, num_queries, ...]
     exec.generate_four_integers
-    #=> [R2, query_ptr+26, mask, depth, num_queries, ...]
+    #=> [R2, query_ptr+26, mask, depth, num_queries, ..., ...]
 
     # Squeeze
     exec.constants::c_ptr mem_loadw
@@ -721,6 +826,15 @@ export.check_pow
     hperm
     #=> [R2, R1, C, mask, ...]
 
+    # We need to reset the RPO random coin buffer. We skip using the first field element as
+    # it is biased because of PoW.
+    # We first check that `current` is equal to 0.
+    exec.constants::get_rpo_current
+    assertz
+    # We skip using the first field element. 
+    push.1
+    exec.constants::set_rpo_current
+
     # Save the new random coin state
     exec.constants::r2_ptr mem_storew
     dropw
@@ -729,7 +843,7 @@ export.check_pow
     exec.constants::c_ptr mem_storew
     dropw
     drop drop drop
-    #=> [R10, mask]
+    #=> [R10, mask, ...]
 
     # Make sure the PoW is valid
     u32split

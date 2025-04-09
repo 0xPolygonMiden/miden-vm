@@ -7,52 +7,12 @@ use.std::crypto::stark::constants
 #!
 #! Input: [...]
 #! Output: [num_fri_layers, ...]
-#! Cycles: 77
+#!
+#! Cycles: 45
 export.generate_fri_parameters
     # Load FRI verifier data
     padw exec.constants::get_lde_domain_info_word
     #=> [lde_size, log(lde_size), lde_g, 0, ...] (6 cycles)
-
-    # Store temporarily in order to use it for FRI layer loading
-    exec.constants::tmp1 mem_storew
-
-    # Compute [gz1, gz0, z1, z0] using domain generator
-    # TODO: move to somewhere else
-    # ---------------------------------------------------------------------------------------------
-
-    # load z from memory
-    padw
-    exec.constants::z_ptr mem_loadw
-    #=> [(z1, z0)^n, z1, z0, lde_size, log2(lde_size), lde_g, 0, ...] (6 cycles)
-
-    # prepare stack
-    drop
-    drop
-    dup.1
-    dup.1
-    dup.6
-    drop
-    #=> [z1, z0, z1, z0, lde_size, log2(lde_size), lde_g, 0, ...] (6 cycles)
-
-    # Load `trace_g` from memory
-    exec.constants::get_trace_domain_generator
-    #=> [trace_g, z1, z0, z1, z0, lde_size, log2(lde_size), lde_g, 0, ...] (2 cycles)
-
-    # Compute `gz0` = `trace_g * z_0`
-    dup
-    movup.3
-    mul
-    #=> [gz0, trace_g, z1, z0, z1, z0, lde_size, log2(lde_size), lde_g, 0, ...] (3 cycles)
-
-    # Compute `gz1` = `trace_g * z_1`
-    swap.2
-    mul
-    #=> [gz1, gz0, z1, z0, lde_size, log2(lde_size), lde_g, 0, ...] (2 cycles)
-
-    # Save `[gz1, gz0, z1, z0]` and clean the stack
-    exec.constants::tmp1 mem_storew
-    dropw
-    #=> [lde_size, log2(lde_size), lde_g, 0, ...] (6 cycles)
 
     # Compute the number of FRI layers
     dup
@@ -86,21 +46,27 @@ end
 #!
 #! Input: [...]
 #! Output: [...]
-#! Cycles: 21 + 83 * num_fri_layers
+#!
+#! Cycles: 29 + 85 * num_fri_layers
 export.load_fri_layer_commitments
     # Address containing the first layer commitment
     push.0.0
-    push.0.0.0.0
     exec.constants::fri_com_ptr
     exec.constants::get_num_fri_layers
+    # => [num_layers, ptr_layer, y, y, ...]
+    
+    # We need to store the current FRI layer LDE domain size and its logarithm.
+    padw exec.constants::get_lde_domain_info_word 
+    exec.constants::tmp1 mem_storew swapw
     # => [num_layers, ptr_layer, y, y, Y, ...]
-
+    
     dup
     push.0
     neq
     while.true
-        swapw               # [Y, num_layers, ptr_layer, y, y, ...]
-        adv_loadw           # [COM, num_layers, ptr_layer, y, y, ...]
+        swapw
+        adv_loadw        
+        # => [COM, num_layers, ptr_layer, y, y, ...]
 
         # Save FRI layer commitment
         dup.5
@@ -113,34 +79,33 @@ export.load_fri_layer_commitments
         exec.random_coin::reseed
         # => [num_layers, ptr_layer + 4, y, y, ...]
 
-        push.0.0.0.0
-        exec.random_coin::get_rate_1
-        #=> [R1, ZERO, num_layers, ptr_layer + 4, y, y, ... ]
-        push.0.0
-        exec.constants::tmp1 mem_loadw
-        # => [lde_size, log2(lde_size), lde_generator, 0, a1, a0, Y, num_layers, ptr_layer + 4, y, y, ...]
+        # Generate FRI folding randomness
+        exec.random_coin::generate_random_challenge
+        #=> [a1, a0, num_layers, ptr_layer + 4, y, y, ... ]
 
-        # Compute and save to memory new lde_size and its new logarithm
+        # Compute and save to memory new lde_size and its logarithm
+        padw
+        exec.constants::tmp1 mem_loadw
+        # => [lde_size, log2(lde_size), lde_generator, 0, a1, a0, num_layers, ptr_layer + 4, y, y, ...]
         div.4
         swap
         sub.2
         swap
         exec.constants::tmp1 mem_storew
+        # => [lde_size / 4, log2(lde_size) - 2, lde_generator, 0, a1, a0, num_layers, ptr_layer + 4, y, y, ...]
 
         # Move the pointer higher up the stack
         movup.2 drop
         movup.2 drop
-        swapw
-        dropw
-        # => [lde_size, log2(lde_size), a1, a0, num_layers, ptr_layer + 4, y, y, Y, ...]
+        # => [lde_size / 4, log2(lde_size) - 2, a1, a0, num_layers, ptr_layer + 4, y, y, ...]
 
-        # Save [lde_size, log2(lde_size), a1, a0] in memory next to the layer commitment
+        # Save [a0, a1, log2(lde_size) - 2, lde_size / 4] in memory next to the layer commitment
         dup.5
         add.4
         swap.6
         mem_storew
         swapw
-        # => [num_layers, ptr_layer + 8, y, y, lde_size, log2(lde_size), a1, a0, Y]
+        # => [num_layers, ptr_layer + 8, y, y, lde_size / 4, log2(lde_size) - 2, a1, a0, ...]
 
         # Decrement the FRI layer counter
         sub.1
@@ -148,7 +113,7 @@ export.load_fri_layer_commitments
         push.0
         neq
     end
-    # => [Y, Y]
+    # => [Y, Y, ...]
     dropw
     dropw
     #=> [...]
@@ -165,8 +130,7 @@ end
 #!  2- Remainder of size 64: 3109
 export.load_and_verify_remainder
     # Load remainder commitment and save it at `TMP7`
-    push.0.0.0.0
-    adv_loadw
+    padw adv_loadw
     exec.constants::tmp1 mem_storew
     #=> [COM, ...]
 
