@@ -7,7 +7,7 @@ use test_utils::{
     crypto::{MerkleStore, RandomCoin, Rpo256, RpoDigest},
     math::{FieldElement, QuadExtension, ToElements},
 };
-use vm_core::{utils::Serializable, Felt, ZERO};
+use vm_core::{utils::Serializable, Felt, WORD_SIZE, ZERO};
 use winter_air::{Air, proof::Proof};
 use winter_fri::VerifierChannel as FriVerifierChannel;
 
@@ -153,6 +153,8 @@ pub fn generate_advice_inputs(
     let _deep_coefficients = air
         .get_deep_composition_coefficients::<QuadExt, RpoRandomCoin>(&mut public_coin)
         .map_err(|_| VerifierError::RandomCoinError)?;
+
+    let alpha_deep = _deep_coefficients.trace[1];
 
     advice_stack[alpha_deep_index] = alpha_deep.base_element(0).as_int();
     advice_stack[alpha_deep_index+1] = alpha_deep.base_element(1).as_int();
