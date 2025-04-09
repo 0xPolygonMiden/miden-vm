@@ -7,7 +7,7 @@ use test_utils::{
     crypto::{MerkleStore, RandomCoin, Rpo256, RpoDigest},
     math::{FieldElement, QuadExtension, ToElements},
 };
-use vm_core::{utils::Serializable, Felt};
+use vm_core::{utils::Serializable, Felt, ZERO};
 use winter_air::{Air, proof::Proof};
 use winter_fri::VerifierChannel as FriVerifierChannel;
 
@@ -125,6 +125,11 @@ pub fn generate_advice_inputs(
             .next(),
     );
 
+    // placeholder for the alpha_deep
+    let alpha_deep_index = advice_stack.len();
+    advice_stack.extend_from_slice(&[0, 0]);
+    assert_eq!(advice_stack[alpha_deep_index], 0);
+    assert_eq!(advice_stack[alpha_deep_index+1], 0);
     advice_stack.extend_from_slice(&to_int_vec(&main_and_aux_frame_states));
     public_coin.reseed(Rpo256::hash_elements(&main_and_aux_frame_states));
 
@@ -148,6 +153,10 @@ pub fn generate_advice_inputs(
     let _deep_coefficients = air
         .get_deep_composition_coefficients::<QuadExt, RpoRandomCoin>(&mut public_coin)
         .map_err(|_| VerifierError::RandomCoinError)?;
+
+    advice_stack[alpha_deep_index] = alpha_deep.base_element(0).as_int();
+    advice_stack[alpha_deep_index+1] = alpha_deep.base_element(1).as_int();
+
     let layer_commitments = fri_commitments_digests.clone();
     for commitment in layer_commitments.iter() {
         public_coin.reseed(*commitment);
