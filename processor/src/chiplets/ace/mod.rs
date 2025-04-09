@@ -238,47 +238,6 @@ impl AceHints {
     }
 }
 
-/// An `EncodedCircuit` represents a `Circuit` as a list of field elements, containing both
-/// constants and instructions.
-#[derive(Debug)]
-struct EncodedCircuit {
-    num_vars: usize,
-    num_eval: usize,
-    encoded_circuit: Vec<Felt>,
-}
-
-#[derive(Debug, Default)]
-pub struct Ace {
-    circuit_evaluations: BTreeMap<u32, EvaluationContext>,
-}
-impl Ace {
-    pub(crate) fn trace_len(&self) -> usize {
-        self.circuit_evaluations.iter().fold(0, |acc, term| acc + term.1.num_rows())
-    }
-
-    pub(crate) fn fill_trace(self, trace: &mut TraceFragment) {
-        // make sure fragment dimensions are consistent with the dimensions of this trace
-        debug_assert_eq!(self.trace_len(), trace.len(), "inconsistent trace lengths");
-        debug_assert_eq!(NUM_COLS, trace.width(), "inconsistent trace widths");
-
-        let mut gen_trace: [Vec<Felt>; NUM_COLS] = (0..NUM_COLS)
-            .map(|_| vec![ZERO; self.trace_len()])
-            .collect::<Vec<_>>()
-            .try_into()
-            .expect("failed to convert vector to array");
-
-        let mut offset = 0;
-        for eval_ctx in self.circuit_evaluations.into_values() {
-            eval_ctx.fill(offset, &mut gen_trace);
-            offset += eval_ctx.num_rows()
-        }
-    }
-
-    pub(crate) fn add_eval_context(&mut self, clk: RowIndex, eval_context: EvaluationContext) {
-        self.circuit_evaluations.insert(clk.as_u32(), eval_context);
-    }
-}
-
 pub fn eval_circuit(
     ctx: ContextId,
     ptr: Felt,
