@@ -333,7 +333,6 @@ impl Chiplets {
         hasher.fill_trace(&mut hasher_fragment);
         bitwise.fill_trace(&mut bitwise_fragment);
         memory.fill_trace(&mut memory_fragment);
-        ace.fill_trace(&mut ace_fragment);
         kernel_rom.fill_trace(&mut kernel_rom_fragment);
         let ace_sections = ace.fill_trace(&mut ace_fragment);
         AceHints::new(ace_start, ace_sections)
