@@ -226,6 +226,21 @@ fn falcon_execution() {
 }
 
 #[test]
+fn falcon_alice_bob() {
+    let seed = Word::default();
+    let mut rng = RpoRandomCoin::new(seed);
+    let sk_alice = SecretKey::with_rng(&mut rng);
+    let message = rand_vector::<Felt>(4).try_into().unwrap();
+
+    // Bob will verify the signature inside the VM
+    let (source, op_stack, adv_stack, store, advice_map) =
+        generate_test_alice_bob(sk_alice, message);
+
+    let test = build_test!(&source, &op_stack, &adv_stack, store, advice_map.into_iter());
+    test.expect_stack(&[])
+}
+
+#[test]
 fn falcon_prove_verify() {
     let sk = SecretKey::new();
     let message = rand_vector::<Felt>(4).try_into().unwrap();
@@ -283,6 +298,71 @@ fn generate_test(
     let to_adv_map = sk_bytes.iter().map(|a| Felt::new(*a as u64)).collect::<Vec<Felt>>();
 
     let advice_map: Vec<(Digest, Vec<Felt>)> = vec![(pk, to_adv_map)];
+
+    let mut op_stack = vec![];
+    let message = message.into_iter().map(|a| a.as_int()).collect::<Vec<u64>>();
+    op_stack.extend_from_slice(&message);
+    op_stack.extend_from_slice(&pk.as_elements().iter().map(|a| a.as_int()).collect::<Vec<u64>>());
+    let adv_stack = vec![];
+    let store = MerkleStore::new();
+
+    (source, op_stack, adv_stack, store, advice_map)
+}
+
+#[allow(clippy::type_complexity)]
+fn generate_test_alice_bob(
+    sk: SecretKey,
+    message: Word,
+) -> (String, Vec<u64>, Vec<u64>, MerkleStore, Vec<(Digest, Vec<Felt>)>) {
+    let source = format!(
+        "
+    use.std::crypto::dsa::rpo_falcon512
+
+    begin
+        exec.rpo_falcon512::move_sig_from_map_to_adv_stack
+        exec.rpo_falcon512::verify
+    end
+    "
+    );
+
+    let pk: Word = sk.public_key().into();
+    let pk: Digest = pk.into();
+
+    let pk_msg_hash = Rpo256::merge(&[message.into(), pk]);
+
+    let signature = sk.sign(message);
+
+    let nonce = signature.nonce().to_elements();
+    // We convert the signature to a polynomial
+    let s2 = signature.sig_poly();
+
+    // We also need in the VM the expanded key corresponding to the public key the was provided
+    // via the operand stack
+    let h = sk.compute_pub_key_poly().0;
+
+    // Lastly, for the probabilistic product routine that is part of the verification procedure,
+    // we need to compute the product of the expanded key and the signature polynomial in
+    // the ring of polynomials with coefficients in the Miden field.
+    let pi = Polynomial::mul_modulo_p(&h, s2);
+
+    // We now push the expanded key, the signature polynomial, and the product of the
+    // expanded key and the signature polynomial to the advice stack. We also push
+    // the challenge point at which the previous polynomials will be evaluated.
+    // Finally, we push the nonce needed for the hash-to-point algorithm.
+
+    let mut polynomials: Vec<Felt> =
+        h.coefficients.iter().map(|a| Felt::from(a.value() as u32)).collect();
+    polynomials.extend(s2.coefficients.iter().map(|a| Felt::from(a.value() as u32)));
+    polynomials.extend(pi.iter().map(|a| Felt::new(*a)));
+
+    let digest_polynomials = Rpo256::hash_elements(&polynomials);
+    let challenge = (digest_polynomials[0], digest_polynomials[1]);
+
+    let mut result: Vec<Felt> = vec![challenge.0, challenge.1];
+    result.extend_from_slice(&polynomials);
+    result.extend_from_slice(&nonce);
+
+    let advice_map: Vec<(Digest, Vec<Felt>)> = vec![(pk_msg_hash, result)];
 
     let mut op_stack = vec![];
     let message = message.into_iter().map(|a| a.as_int()).collect::<Vec<u64>>();
