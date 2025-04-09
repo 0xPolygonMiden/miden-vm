@@ -20,7 +20,7 @@ fn test_exec_iter() {
     let fmp = Felt::new(2u64.pow(30));
     let next_fmp = fmp + ONE;
     // TODO: double check this value
-    let mem = vec![(1_u64, Felt::from(13_u32))];
+    let mem = vec![(1u32.into(), Felt::from(13_u32))];
     let mem_storew1_loc = Some(Location {
         path: path.clone(),
         start: 33.into(),
@@ -311,7 +311,7 @@ fn test_exec_iter() {
             )),
             stack: [17, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0, 0, 0].to_elements(),
             fmp: next_fmp,
-            memory: vec![(1_u64, 13_u32.into()), (2u64.pow(30) + 1, 17_u32.into())],
+            memory: vec![(1u32.into(), 13_u32.into()), ((2u32.pow(30) + 1).into(), 17_u32.into())],
         },
         VmState {
             clk: RowIndex::from(19),
@@ -329,7 +329,7 @@ fn test_exec_iter() {
             )),
             stack: [12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0, 0, 0, 0, 0].to_elements(),
             fmp: next_fmp,
-            memory: vec![(1_u64, 13_u32.into()), (2u64.pow(30) + 1, 17_u32.into())],
+            memory: vec![(1u32.into(), 13_u32.into()), ((2u32.pow(30) + 1).into(), 17_u32.into())],
         },
         VmState {
             clk: RowIndex::from(20),
@@ -339,7 +339,7 @@ fn test_exec_iter() {
             stack: [18446744069414584320, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0, 0, 0]
                 .to_elements(),
             fmp: next_fmp,
-            memory: vec![(1_u64, 13_u32.into()), (2u64.pow(30) + 1, 17_u32.into())],
+            memory: vec![(1u32.into(), 13_u32.into()), ((2u32.pow(30) + 1).into(), 17_u32.into())],
         },
         VmState {
             clk: RowIndex::from(21),
@@ -348,7 +348,7 @@ fn test_exec_iter() {
             asmop: None,
             stack: [12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0, 0, 0, 0].to_elements(),
             fmp,
-            memory: vec![(1_u64, 13_u32.into()), (2u64.pow(30) + 1, 17_u32.into())],
+            memory: vec![(1u32.into(), 13_u32.into()), ((2u32.pow(30) + 1).into(), 17_u32.into())],
         },
         VmState {
             clk: RowIndex::from(22),
@@ -357,7 +357,7 @@ fn test_exec_iter() {
             asmop: None,
             stack: [12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0, 0, 0, 0].to_elements(),
             fmp,
-            memory: vec![(1_u64, 13_u32.into()), (2u64.pow(30) + 1, 17_u32.into())],
+            memory: vec![(1u32.into(), 13_u32.into()), ((2u32.pow(30) + 1).into(), 17_u32.into())],
         },
         VmState {
             clk: RowIndex::from(23),
@@ -366,7 +366,7 @@ fn test_exec_iter() {
             asmop: None,
             stack: [12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0, 0, 0, 0].to_elements(),
             fmp,
-            memory: vec![(1_u64, 13_u32.into()), (2u64.pow(30) + 1, 17_u32.into())],
+            memory: vec![(1u32.into(), 13_u32.into()), ((2u32.pow(30) + 1).into(), 17_u32.into())],
         },
         VmState {
             clk: RowIndex::from(24),
@@ -375,7 +375,7 @@ fn test_exec_iter() {
             asmop: None,
             stack: [12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0, 0, 0, 0].to_elements(),
             fmp,
-            memory: vec![(1_u64, 13_u32.into()), (2u64.pow(30) + 1, 17_u32.into())],
+            memory: vec![(1u32.into(), 13_u32.into()), ((2u32.pow(30) + 1).into(), 17_u32.into())],
         },
     ];
     for (expected, t) in expected_states.iter().zip(traces) {
