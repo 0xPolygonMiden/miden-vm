@@ -95,6 +95,13 @@ export.load_fri_layer_commitments
     exec.constants::get_num_fri_layers
     # => [num_layers, ptr_layer, y, y, Y, ...]
 
+    padw exec.constants::get_lde_domain_info_word
+    #=> [lde_size, log(lde_size), lde_g, 0, ...] (6 cycles)
+
+    # Store temporarily in order to use it for FRI layer loading
+    exec.constants::tmp1 mem_storew
+    dropw
+
     dup
     push.0
     neq

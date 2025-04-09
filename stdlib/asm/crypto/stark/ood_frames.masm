@@ -1,126 +1,378 @@
 use.std::crypto::stark::constants
 use.std::crypto::hashes::rpo
+use.std::crypto::stark::random_coin
 
-
-#! Loads trace OOD evaluation frame, with current rows first followed by next rows next, into memory.
-#! This ouputs the hash of the OOD for reseeding the random coin.
+#! Loads the execution trace and the quotient trace evaluation frames.
+#! 
+#! This also computes P^gz(alpha) and Q^z(alpha) where:
 #!
-#! Input: [...]
-#! Output: [OOD_FRAME_HASH, ...]
-#! Cycles: 100
-export.load_evaluation_frame
-    # We have 73 main trace columns and 8 aux trace columns for a total of 162 base field elements
-    # per row. Since we have two rows, i.e. current and next, the total number of field elements
-    # making up the OOD evaluation frame is 162*2 = 324. We will be reading felts in 40 batches of 8 
-    # and a final batch of 4 elements using `adv_pipe`: 324 = 40 * 8 + 4. 
-    # The elements are stored from the stack as (a1_1, a1_0, a0_1, a0_0) where a0 is from the
-    # current row and a1 from the next row.
+#! P^gz(alpha) = (p_gz_0, p_gz_1) = \sum_{i=0}^{n+m} T_i * alpha^i 
+#!
+#! and 
+#!
+#! Q^z(alpha) = (q_z_0, q_z_1) = \sum_{i=0}^{n+m+l} S_i * alpha^i
+#!
+#! where:
+#!
+#! 1. n, m and l are the widths of the main segment, auxiliary segment and constraint composition
+#!    traces, respectively.
+#! 2. T_i are the evaluations of columns in the main segment and auxiliary segments
+#!    at the the out-of-domain point gz.
+#! 3. S_i are the evaluations of columns in the main segment, auxiliary segment and constraint composition
+#!    at the the out-of-domain point z.
+#! 4. alpha is the randomness used in order to build the DEEP polynomial.
+export.load_and_horner_eval_ood_frames
+    # I) Load the random challenge used in computing the DEEP polynomial.
+    #    We use this challenge to compute the constant terms needed in the compuation of the DEEP queries.
+    #    Although this challenge is generated only after all the OOD evaluations are received by the verifier,
+    #    we use non-determinism to generate it before doing so. This is done so that we can hash, memory store
+    #    and Horner evaluate in parallel.
+    
+    ## 1) Load the random challenge non-deterministically
+    adv_push.2
+    # => [alpha_1, alpha_0, ...]
 
+    ## 2) Compute the adjustment factors needed in order to adjust the Horner evaluation accumulator
+    dup.1 dup.1
+    exec.compute_adjustment_powers_deep_challenge_horner_eval                               # (Cycles: 146)
+    # => [alpha_1, alpha_0, ...]
+
+    ## 3) Save the inverse of the random challenge as we are evaluating the reverse polynomial.
+    ext2inv
+    dup.1 dup.1
+    exec.constants::deep_rand_alpha_inv_ptr mem_storew
+    # [Y, ...]
+
+    # II) Hash the main trace OOD frame
+    #     Note that there a few a goals which are in tension. Namely, we want to hash the execution trace OOD evaluations,
+    #     both current and next, in one go but we want to use Horner evaluate to compute an expression which has a part in
+    #     the execution trace OOD evaluations and another part in the quotient trace OOD evaluations.
+    #     This complicates things in some places, in particular we need to save the Horner evaluation accumulator temporarily
+    #     while hashing the OOD evaluations of the execution trace.
+
+    ## 1) Set up the stack for `horner_eval_ext` to compute Q^z(alpha)
+
+    ### a) Set up the initial accumulator and the pointers to alpha^{-1} and a pointer to some memory region
+    ###    to which we save the OOD.
+    push.0.0
+    exec.constants::deep_rand_alpha_inv_ptr
     exec.constants::ood_trace_current_ptr
-    #=> [ood_trace_current_ptr, ...]
 
-    # Note: the first word is the capacity, where its first element is initialized with the number of elements to hash MODULO 8.
-    push.4.0.0.0
-    padw padw
-    # => [ZERO, ZERO, 0, 0, 0, 4, ood_trace_current_ptr, ...]
-    repeat.40
+    ## 2) Process the fully aligned OOD evaluations at z of the execution trace. 
+    ##    Since there are (73 + 8) * 2 = 20 * 8 + 2 base field elements, there are 20 fully double-word aligned batches.
+    ## Note: the first word is the capacity, where its first element is initialized with the number of elements to hash MODULO 8.
+
+    ### a) Set up the hasher state
+    push.4.0.0.0 # This computed from 324 = 40 * 8 + 4 where we include both main + aux and cur + nxt as they are hashed together.
+    padw     
+    # => [ZERO, 0, 0, 0, 4, U, Y, ...]
+    movupw.3
+    # => [Y, ZERO, 0, 0, 0, 4, U, ...]
+
+    ### b) Process the first 20 8-element batches
+    repeat.20
         adv_pipe
+        horner_eval_ext
         hperm
     end
-    adv_loadw
+
+    ## 3) Process the last extension field element of the current row of the execution trace from the point of view of Horner evaluation.
+    ##    We also store the Horner evaluation accumulator Q^z(alpha) so that we can finish computing Q^z(alpha) when we are done hashing
+    ##    the execution trace OOD evaluations.
+
+    ### a) First we run `horner_eval_ext`
+    dropw dropw
+    adv_push.2
+    push.0.0
+    # => [0, 0, v1, v0, C, U, ...]
+    padw
+    horner_eval_ext
+    # => [0, 0, 0, 0, 0, 0, v1, v0, C, U, ...]
+
+    ### b) Then, we save Horner accumulator after adjustment
+    swapw.3
+    movup.3 movup.3
+    padw exec.constants::deep_rand_alpha_3_ptr mem_loadw
+    drop drop
+    ext2mul
+    # => [acc1, acc0, ptr, ptr_alpha_inv, Y, C, Y, ...]
+    exec.constants::tmp1 mem_storew
+    drop drop
+    push.0 movdn.2
+    push.0 movdn.2
+    # => [ptr, ptr_alpha_inv, 0, 0, Y, C, Y, ...]
+    swapw.3
+    # => [Y, Y, C, ptr, ptr_alpha_inv, 0, 0, ...]
+    # => [Y, C, Y, U, ...]
+
+    ## 4) Continue hashing the execution trace OOD evaluations and initiate the computation of P^gz(alpha). 
+
+    ### a) Push from the advice stack the first extension field element of the `next` row of the OOD evaluation frame of the execution trace.
+    ### We save in the next available memory slot.
+    swapw
+    drop drop
+    adv_push.2
     dup.12 mem_storew
+
+
+    ### b) Set up a new Horner evaluate accumulator to compute P^gz(alpha). We keep the pointers as they are, but make a note
+    ### to update the memory pointer for saving the OOD evaluations later on.
+    movup.3 drop
+    movup.3 drop
+    push.0 movdn.2
+    push.0 movdn.2
+
+    ### c) Load the next 2 extension field element.
+    ### Note that the first coefficient in the 4 extension field elements batch to which we will apply `horner_eval_ext` is 0.
+    ### This has no effect on the final value of the Horner evaluation but allows us to lay out the OOD evaluations in
+    ### a contiguous manner in memory. 
+    swapw
+    adv_loadw
+
+    ### d) Start Horner evaluation
+    horner_eval_ext
+
+    ### e) With respect to hashing, we load the first word of the rate portion of the hasher. This word is composed
+    ### of two elements, one from the `current` portion of the OOD evaluations of the execution trace and
+    ### the other is from the `next` one.
+    swapw
+    dup.12
+    mem_loadw
+    swapw
+
+    ### f) Update the storage pointer and save the next 2 extension field element from the `next` portion of the execution trace
+    dup.12
+    add.8
+    swap.13
+    add.4
+    mem_storew
+
+    ### g) We are now ready to continue hashing of the execution trace OOD evaluations
+    hperm
+
+    ### h) Process the remaining (full) 8-element batches of the execution trace OOD evaluations
+    repeat.19
+        adv_pipe
+        horner_eval_ext
+        hperm
+    end
+
+    ### i) Process the last 2 extension field elements of the execution trace OOD evaluations
+    adv_loadw
+    dup.12 add.4 swap.13 mem_storew
     swapw
     exec.constants::zero_word_ptr mem_loadw
+    horner_eval_ext
     hperm
-    #=> [R1, OOD_FRAME_HASH, C, ood_trace_current_ptr+324, ...]
 
-    exec.rpo::squeeze_digest
-    movup.4
-    drop
-    #=> [OOD_FRAME_HASH, ...]
-end
+    ### j) Reseed with the digest of the execution trace OOD evaluations
+    swapw
+    exec.random_coin::reseed
+    # => [Y, Y, U, ...]
 
-#! Loads OOD evaluations of  constraint composition polynomial columns into memory and outputs 
-#! their hash so that it can be used to reseeds the random coin.
-#!
-#! Input: [...]
-#! Output: [OOD_EVAL_HASH, ...]
-#! Cycles: 29
-export.load_constraint_evaluations
-    # Read OOD constraint evaluations. These are 8 ExtFelt `value_i` such that the value of the
-    # constraint evaluation polynomial at `z` `H(z)` equals `\sum_0^7 z^(N * i) value_i` where N
-    # is the execution trace length.
+    ## 5) Compute P^gz(alpha)
+    swapw.2
+    movup.3 movup.3
 
-    exec.constants::ood_constraint_evals_ptr
-    exec.rpo::init_no_padding
-    # => [ZERO, ZERO, ZERO, ood_constraint_evals_ptr, ...]
+    ### a) Load alpha^80
+    padw
+    exec.constants::deep_rand_alpha_80_ptr
+    mem_loadw
+
+    ### b) Load alpha^2
+    push.0.0
+    exec.constants::deep_rand_alpha_2_ptr
+    mem_loadw
+    drop drop
+
+    ### c) Compute the combined adjustment factor
+    ext2mul
+
+    ### d) Compute the value of P^gz(alpha)
+    ext2mul
+
+    ### e) Move the value down the stack
+    movdn.11
+    movdn.11
+    # => [ood_frame_ptr, alpha_inv_ptr, Y, Y, p_gz_1, p_gz_0, ...]
+
+    # III) Hash the quotient trace OOD evaluations and finish up the computation of Q^z(alpha)
+    padw exec.constants::tmp1 mem_loadw
+    # => [acc1, acc0, y, y, ood_frame_ptr, alpha_inv_ptr, Y, Y, p_gz_1, p_gz_0, ...]
+
+    ## 1) Reset the Horner evaluation accumulator
+    movdn.5
+    movdn.5
+    # => [y, y, ood_frame_ptr, alpha_inv_ptr, acc1, acc0, Y, Y, p_gz_1, p_gz_0, ...]
+
+    ## 2) Set up the hasher state in order to hash the quotient trace OOD evaluations
+    drop drop padw
+    # => [ZERO, ood_frame_ptr, alpha_inv_ptr, acc1, acc0, Y, Y, p_gz_1, p_gz_0, ...]
+    swapdw
+    # => [Y, Y, ZERO, ood_frame_ptr, alpha_inv_ptr, acc1, acc0, p_gz_1, p_gz_0, ...]
+
+    ## 3) Process the quotient trace OOD evaluations
     repeat.2
         adv_pipe
+        horner_eval_ext
         hperm
     end
 
-    exec.rpo::squeeze_digest
-    # => [OOD_EVAL_HASH, ood_constraint_evals_ptr, ...]
-    movup.4 drop
+    ## 4) Reseed with the hash of the quotient trace OOD evaluations
+    swapw
+    exec.random_coin::reseed
+    # => [Y, Y, ood_frame_ptr, alpha_inv_ptr, acc1, acc0, p_gz_1, p_gz_0, ...]
+
+    ## 5) Compute Q^z(alpha)
+
+    ### a) clean up the stack
+    dropw
+    # => [Y, ood_frame_ptr, alpha_inv_ptr, acc1, acc0, p_gz_1, p_gz_0, ...]
+    drop drop
+    # => [Y, acc1, acc0, p_gz_1, p_gz_0, ...]
+
+    ### b) Load the Horner evaluation adjustment factor 
+    exec.constants::deep_rand_alpha_88_ptr mem_loadw drop drop
+    movup.3 movup.3
+    ext2mul
+
+    # IV) Store Q^z(alpha) and P^gz(alpha) after negating them in order to optimize the computation of the DEEP queries
+    
+    ## 1) Negate Q^z(alpha)
+    neg
+    swap
+    neg
+    swap
+    # => [q_z_1, q_z_0, p_gz_1, p_gz_0, ...]
+
+    ## 2) Negate P^gz(alpha)
+    movup.3 neg
+    movup.3 neg
+    # => [p_gz_1, p_gz_0, q_z_1, q_z_0, ...]
+    
+    ## 3) Store Q^z(alpha) and P^gz(alpha) for use in computing the DEEP queries.
+    exec.constants::ood_horner_evaluations_ptr mem_storew
+    dropw
+    # => [...]
 end
 
-#! Computes the H(z) evaluation of the constraint composition polynomial at the OOD element z.
+#! Computes the adjustment factors needed during Horner evaluation and saves them to memory.
 #!
-#! Input: [...]
-#! Output: [res1, res0, ...]
-#! Cycles: 83
-export.compute_Hz
-    # Load z^N, where N is the trace length, and save it for horner_eval_ext
-    padw
-    exec.constants::z_ptr mem_loadw
-    movup.2 drop
-    movup.2 drop
-    # => [zN_1, zN_0, ...]
+#! As `horner_eval_base` and `horner_eval_ext` operate on batches of 8 and 4 coefficients,
+#! respectively, and when the number of coefficients of the polynomial we are evaluating
+#! is not divisible by the size of the batch, we need to adjust the result to account
+#! for this. The adjustment is performed by multiplying the Horner accumulator by
+#! alpha^i where i depends on the number of coefficients missing in the last processed batch.
+#! For example, if we are evaluating using `horner_eval_base`, and the last batch of coefficients
+#! has only 7 coefficients, we would need then to multiply by alpha^1 to adjust the result.
+#! Note that since we are evaluating throughout at alpha^{-1}, the adjustment factors are
+#! alpha^i, if on the other hand we were evaluating at alpha then the factors would be alpha^{-i}.
+#!
+#! Input: [alpha_1, alpha_0, ...]
+#! Output: [...]  
+#!
+#! Cycles: 146
+proc.compute_adjustment_powers_deep_challenge_horner_eval
+
+    # 1) First compute powers from 1 to 7
+    
+    ## a) First power
     dup.1 dup.1
-    ext2inv
-    push.0.0
-    exec.constants::tmp1 mem_storew
-    # => [0, 0, zNinv_1, zNinv_0, zN_1, zN_0, ...]
+    exec.constants::deep_rand_alpha_1_ptr
+    mem_storew
+    # => [alpha_1, alpha_0, alpha_1, alpha_0, ...]
 
-    # Push the accumulator to hold the evaluation of horner_eval_ext
-    push.0.0
-    # => [0, 0, 0, 0, zNinv_1, zNinv_0, zN_1, zN_0, ...]
+    ## b) Second power
+    dup.1 dup.1
+    ext2mul
+    dup.1 dup.1
+    exec.constants::deep_rand_alpha_2_ptr
+    mem_storew
+    drop drop
+    # => [alpha2_1, alpha2_0, alpha_1, alpha_0, ...]
 
-    # Push pointers to the evaluation point and the coefficients i.e., OOD constraint polynomials
-    # evaluations
-    exec.constants::tmp1
-    exec.constants::ood_constraint_evals_ptr
-    # => [ood_ptr, zNinv_ptr, 0, 0, 0, 0, zNinv_1, zNinv_0, zN_1, zN_0, ...]
+    ## c) Third power
+    dup.3 dup.3
+    ext2mul
+    dup.1 dup.1
+    exec.constants::deep_rand_alpha_3_ptr
+    mem_storew
+    drop drop
+    # => [alpha3_1, alpha3_0, alpha_1, alpha_0, ...]
 
-    # Prepare stack for mem_stream
-    swapw padw padw
-    # => [ZERO, ZERO, 0, 0, zNinv_1, zNinv_0, ood_ptr, zNinv_ptr, 0, 0, zN_1, zN_0, ...]
+    ## d) Fourth power
+    dup.3 dup.3
+    ext2mul
+    dup.1 dup.1
+    exec.constants::deep_rand_alpha_4_ptr
+    mem_storew
+    drop drop
+    # => [alpha4_1, alpha4_0, alpha_1, alpha_0, ...]
 
-    # Compute `H_rev(zN^(-1))` where H_rev is the polynomial with coefficients in reverse order
+    ## e) Fifth power
+    dup.3 dup.3
+    ext2mul
+    dup.1 dup.1
+    exec.constants::deep_rand_alpha_5_ptr
+    mem_storew
+    drop drop
+    # => [alpha5_1, alpha5_0, alpha_1, alpha_0, ...]
+
+    ## f) Sixth power
+    dup.3 dup.3
+    ext2mul
+    dup.1 dup.1
+    exec.constants::deep_rand_alpha_6_ptr
+    mem_storew
+    drop drop
+    # => [alpha6_1, alpha6_0, alpha_1, alpha_0, ...]
+
+    ## g) Seventh power
+    dup.3 dup.3
+    ext2mul
+    dup.1 dup.1
+    exec.constants::deep_rand_alpha_7_ptr
+    mem_storew
+    drop drop
+    # => [alpha7_1, alpha7_0, alpha_1, alpha_0, ...]
+
+    ## h) Eighth power
+    dup.3 dup.3
+    ext2mul
+    # => [alpha8_1, alpha8_0, alpha_1, alpha_0, ...]
+
+
+    # 2) Compute alpha^16
+    dup.1 dup.1
+
+    dup.1 dup.1
+    ext2mul
+    # => [alpha16_1, alpha16_0, alpha8_1, alpha8_0, alpha_1, alpha_0, ...]
+
+    # 3) Compute alpha^64
+    dup.1 dup.1
     repeat.2
-        mem_stream
-        horner_eval_ext
-    end
-    # => [Y, Y, 0, 0, zNinv_1, zNinv_0, ood_ptr, zNinv_ptr, acc1, acc0, zN_1, zN_0, ...]
-
-    # Clean up the stack
-    dropw dropw drop drop
-    # => [zNinv_1, zNinv_0, ood_ptr, zNinv_ptr, acc1, acc0, zN_1, zN_0, ...]
-    swapw movup.3 movup.3
-    # => [zN_1, zN_0, acc1, acc0, zNinv_1, zNinv_0, ood_ptr, zNinv_ptr, ...]
-
-    # Compute zN^8
-    repeat.3
         dup.1 dup.1
         ext2mul
     end
-    # => [zN^8_1, zN^8_0, acc1, acc0, zNinv_1, zNinv_0, ood_ptr, zNinv_ptr, ...]
+    # => [alpha64_1, alpha64_0, alpha16_1, alpha16_0, alpha8_1, alpha8_0, alpha_1, alpha_0, ...]
 
-    # Compute zN^8 * H_rev(zN^(-1)) * zN^(-1) i.e, zN^7 * H_rev(zN^(-1)) which equals H(zN)
-    ext2mul ext2mul
-    # => [res_1, res_0, ood_ptr, zNinv_ptr, ...]
+    # 4) Compute alpha^80
+    ext2mul
+    # => [alpha80_1, alpha80_0, alpha8_1, alpha8_0, alpha_1, alpha_0, ...]
 
-    movup.2 drop
-    movup.2 drop
-    # => [res_1, res_0, ...]
+    dup.1 dup.1
+    exec.constants::deep_rand_alpha_80_ptr
+    mem_storew
+    drop drop
+    # => [alpha80_1, alpha80_0, alpha8_1, alpha8_0, alpha_1, alpha_0, ...]
+
+    # 5) Compute alpha^88
+    ext2mul
+    dup.1 dup.1
+    exec.constants::deep_rand_alpha_88_ptr
+    mem_storew
+    dropw
+    drop drop
+    # => [...]
 end
