@@ -168,7 +168,8 @@ export.init_seed
 
     ## main segment width is 71 and there are 1 auxiliary segments
     ## of width 7 using 16 random extension field elements
-    push.0x49010810 
+    push.0x49010810
+    swap
     ## field modulus bytes (2 field elements)
     push.0x01 # lower half of the modulus
     push.0xffffffff # upper half of the modulus

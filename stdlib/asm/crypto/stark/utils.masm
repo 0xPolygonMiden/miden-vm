@@ -48,3 +48,67 @@ export.validate_inputs
     # 5) Assert that the number of kernel procedures is at most 127
     u32lt.128 assert
 end
+
+#! Sets up auxiliary inputs to the arithmetic circuit for the constraint evaluation check.
+#!
+#! These inputs are:
+#!
+#! 1) OOD evaluation point z,
+#! 2) random challenge used in computing the DEEP composition polynomial,
+#! 3) z^N where N is the execution trace length
+#! 4) z^k where k = min_num_cycles = trace_len / max_cycle_len and max_cycle_len is the longest cycle
+#!    among all the cycles of periodic columns.
+#! 5) g^{-1} where g is the trace domain generator.
+#!
+#! Input: [...]
+#! Output: [...]
+export.set_up_auxiliary_inputs_ace
+    padw exec.constants::deep_rand_alpha_1_ptr mem_loadw
+
+    # z and z^N
+    push.0.0 exec.constants::z_ptr mem_loadw
+    # => [(z_1, z_0)^n, z_1, z_0, alpha1, alpha0, ...]
+
+    exec.constants::get_trace_length_log
+    exec.constants::get_max_cycle_length_log
+    sub
+    # => [log(min_num_cycles), (z_1, z_0)^n, z_1, z_0, alpha1, alpha0, ...] where min_num_cycles = trace_len / max_cycle_len
+
+    dup.4 dup.4
+    # => [z_1, z_0, k, (z_1, z_0)^n, z_1, z_0, alpha1, alpha0, ...] where k = min_num_cycles
+
+    push.1
+    while.true
+        dup.1 dup.1
+        # => [z_1, z_0, z_1, z_0, k, (z_1, z_0)^n, z_1, z_0, alpha1, alpha0, ...] where k = min_num_cycles
+        ext2mul
+        # => [z_exp_1, z_exp_0, k, (z_1, z_0)^n, z_1, z_0, alpha1, alpha0, ...] where k = min_num_cycles
+        dup.2 sub.1 swap.3
+        push.1 neq
+    end
+
+    movup.2 drop
+    # => [z_k_1, z_k_0, (z_1, z_0)^n, z_1, z_0, alpha1, alpha0, ...] where k = min_num_cycles
+
+    exec.constants::get_trace_domain_generator
+
+    inv
+    push.0.0.0
+    # => [0, 0, 0, g^-1, z_k_1, z_k_0, (z_1, z_0)^n, z_1, z_0, alpha1, alpha0, ...] where k = min_num_cycles
+
+    # Save [g^-1, 0, 0, 0]
+    exec.constants::auxiliary_ace_inputs_ptr add.8
+    mem_storew
+    dropw
+
+    # Save [(z_0, z_1)^n, z_k_0, z_k_1]
+    exec.constants::auxiliary_ace_inputs_ptr add.4
+    mem_storew
+    dropw
+
+    # Save [alpha0, alpha1, z_0, z_1]
+    exec.constants::auxiliary_ace_inputs_ptr
+    mem_storew
+    dropw
+    # => [...]
+end
