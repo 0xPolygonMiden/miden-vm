@@ -16,14 +16,21 @@ const.NUM_CONSTRAINTS=226
 const.BLOWUP_FACTOR=8
 const.BLOWUP_FACTOR_LOG=3
 
+# Max cycle length for periodic columns
+const.MAX_CYCLE_LEN_LOG=3
+
 # MEMORY POINTERS
 # =================================================================================================
 
 # Trace domain generator
 const.TRACE_DOMAIN_GENERATOR_PTR=4294799999
 
-# Public inputs
-const.PUBLIC_INPUTS_PTR=4294800000
+# Public inputs address
+const.PUBLIC_INPUTS_ADDRESS_PTR=4294800000
+
+# Random elements
+# There are are currently 16 ExtFelt for a total of 32 Felt. Thus the number of memory slots required is 32.
+const.AUX_RAND_ELEM_PTR=4294899968
 
 # OOD Frames
 # (73 + 8) * 2 * 2 Felt for current and next trace rows and 8 * 2 Felt for constraint composition
@@ -34,16 +41,13 @@ const.PUBLIC_INPUTS_PTR=4294800000
 const.OOD_TRACE_CURRENT_PTR=4294900000
 const.OOD_TRACE_NEXT_PTR=4294900162
 const.OOD_CONSTRAINT_EVALS_PTR=4294900324
+const.AUXILIARY_ACE_INPUTS_PTR=4294900340
 
 # Current trace row
 # 73 Felt for main portion of trace, 8 * 2 Felt for auxiliary portion of trace and 8 * 2 Felt for
 # constraint composition polynomials. Since we store these with the padding to make each of the
 # three portions a multiple of 8, the number of slots required is 72 + 16 + 16 = 104
 const.CURRENT_TRACE_ROW_PTR=4294900400
-
-# Random elements
-# There are are currently 16 ExtFelt for a total of 32 Felt. Thus the number of memory slots required is 32.
-const.AUX_RAND_ELEM_PTR=4294900600
 
 # Address to the randomness used in computing the constraint composition polynomial
 const.COMPOSITION_COEF_PTR=4294900800
@@ -148,12 +152,13 @@ const.OOD_HORNER_EVALS_PTR=4294903448
 #   |                  ID                      |        Address          |
 #   +------------------------------------------+-------------------------+
 #   | TRACE_DOMAIN_GENERATOR_PTR               |       4294799999        |
-#   | PUBLIC_INPUTS_PTR                        |       4294800000        |
+#   | PUBLIC_INPUTS_ADDRESS_PTR                |       4294800000        |
+#   | AUX_RAND_ELEM_PTR                        |       4294899968        |
 #   | OOD_TRACE_CURRENT_PTR                    |       4294900000        |
 #   | OOD_TRACE_NEXT_PTR                       |       4294900162        |
 #   | OOD_CONSTRAINT_EVALS_PTR                 |       4294900324        |
+#   | AUXILIARY_ACE_INPUTS_PTR                 |       4294900340        |
 #   | CURRENT_TRACE_ROW_PTR                    |       4294900400        |
-#   | AUX_RAND_ELEM_PTR                        |       4294900600        |
 #   | COMPOSITION_COEF_PTR                     |       4294900800        |
 #   | DEEP_RAND_CC_PTR                         |       4294912000        |
 #   | FRI_COM_PTR                              |       4294912800        |
@@ -200,8 +205,8 @@ const.OOD_HORNER_EVALS_PTR=4294903448
 # ACCESSORS
 # =================================================================================================
 
-export.public_inputs_ptr
-    push.PUBLIC_INPUTS_PTR
+export.public_inputs_address_ptr
+    push.PUBLIC_INPUTS_ADDRESS_PTR
 end
 
 export.ood_trace_current_ptr
@@ -498,4 +503,12 @@ end
 
 export.get_grinding_factor
     push.GRINDING_FACTOR_PTR mem_load
+end
+
+export.auxiliary_ace_inputs_ptr
+    push.AUXILIARY_ACE_INPUTS_PTR
+end
+
+export.get_max_cycle_length_log
+    push.MAX_CYCLE_LEN_LOG
 end

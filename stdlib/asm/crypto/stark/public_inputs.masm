@@ -2,7 +2,7 @@ use.std::crypto::stark::constants
 use.std::crypto::hashes::rpo
 
 
-#! Load the public inputs in memory starting from the address referenced by `public_inputs_ptr`.
+#! Load the public inputs in memory starting from the address stored at `public_inputs_address_ptr`.
 #! In parallel, compute the hash of the public inputs being loaded. The hashing starts with
 #! capacity registers of the hash function set to `C` resulting from hashing the proof context.
 #! The output D is the digest of the hashing of the public inputs.
@@ -21,13 +21,11 @@ export.load
     # While loading the public inputs, we also absorb them in the Fiat-Shamir transcript.
 
     # 1) Load the input and output operand stacks
-    exec.constants::public_inputs_ptr
+    exec.compute_public_inputs_address
     movdn.4
     padw padw
     repeat.4
-        adv_loadw
-        swapw
-        adv_loadw
+        adv_pipe
         hperm
     end
     # => [R2, R1, C, ptr, ...]
@@ -82,6 +80,7 @@ export.load
 
         # Absorb the last digest and pad with zeros
         adv_loadw
+        dup.12 mem_storew
         swapw
         exec.constants::zeroize_stack_word
         hperm
@@ -90,4 +89,43 @@ export.load
     exec.rpo::squeeze_digest
     movup.4 drop
     movup.4 drop
+end
+
+#! Computes the address where the public inputs are to be stored.
+#!
+#! In order to be able to call `arithmetic_circuit_eval`, we need to layout the inputs to
+#! the constraint evaluation circuit in a contiguous region of memory (called `READ` section
+#! in the ACE chiplet documentation) right before the region of memory storing the circuit
+#! description (called `EVAL` section in the ACE chiplet documentation).
+#! As the number of public inputs is a per-instance parameter, while the sizes of the OOD
+#! evaluation frames and the number of auxiliary random values are fixed, we can lay out
+#! the public inputs right before the auxiliary random values and OOD evaluations.
+#! Hence the address where public inputs are stored is computed using a negative offset
+#! from the address where the OOD are stored.
+#!
+#! Input: [...]
+#! Output: [...]
+proc.compute_public_inputs_address
+
+    # 1) Get a pointer to where OOD evaluations are stored
+    exec.constants::ood_trace_current_ptr
+
+    # 2) Compute the offset
+    #
+    # The public inputs are made up of:
+    # 
+    # 1. the input operand stack and the output operand stack both of length 16 field elements,
+    # 2. the digest of the program,
+    # 3. the digests of procedures making up the kernel.
+    #
+    # In total, we need to allocate 16 * 2 + 4 + num_ker_proc * 4
+    # We also need to allocate space for the auxiliary randomness, i.e., 16 * 2
+    sub.68
+    exec.constants::get_num_kernel_procedures
+    mul.4
+    sub
+
+    # 3) Store the address of public inputs
+    dup
+    exec.constants::public_inputs_address_ptr mem_store
 end

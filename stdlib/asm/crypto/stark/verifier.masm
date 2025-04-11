@@ -25,7 +25,7 @@ use.std::crypto::stark::utils
 #!   - The following procedure makes use of global memory address beyond 3 * 2^30 and these are
 #!    defined in `constants.masm`.
 #!
-#! Input: [log(trace_length), num_queries, grinding, ...]
+#! Input: [log(trace_length), num_queries, grinding, num_ker_proc, ...]
 #! Output: [...]
 #!
 #! Cycles:
@@ -48,7 +48,7 @@ export.verify
     #
     # Cycles: 45
     exec.utils::validate_inputs
-    # => [log(trace_length), num_queries, grinding, ...]
+    # => [log(trace_length), num_queries, grinding, num_ker_proc, ...]
 
     # Initialize the seed using proof context
     #
@@ -117,17 +117,18 @@ export.verify
 
     #==============================================================================================
     #       V) Read the OOD frames for the main trace, auxiliary trace and the trace of evaluations
-    #           of H over the LDE domain.
+    #           of H over the LDE domain. This also computes some values needed for the computation
+    #           of the DEEP queries.
     #==============================================================================================
 
     exec.ood_frames::load_and_horner_eval_ood_frames
 
     #==============================================================================================
-    #       VI) Evaluate the constraints over the OOD frame and assert equality with H(z)
+    #       VI) Constraint evaluation check
     #==============================================================================================
 
-    # TODO: compare with the evaluation of the constraints on the trace columns OOD evaluation frame. 
-    #drop drop
+    exec.utils::set_up_auxiliary_inputs_ace
+    # TODO: call `arithmetic_circuit_eval`
     # => [...]
 
     #==============================================================================================
