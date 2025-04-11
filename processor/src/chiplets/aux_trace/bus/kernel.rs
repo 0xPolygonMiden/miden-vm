@@ -27,7 +27,7 @@ pub(super) fn build_kernel_chiplet_responses<E>(
 where
     E: FieldElement<BaseField = Felt>,
 {
-    let kernel_chiplet_selector = main_trace.chiplet_selector_4(row);
+    let kernel_chiplet_selector = main_trace.chiplet_selector_5(row);
     if kernel_chiplet_selector == ONE {
         let message = {
             let root0 = main_trace.chiplet_kernel_root_0(row);

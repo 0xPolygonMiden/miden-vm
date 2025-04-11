@@ -9,3 +9,4 @@ mod keccak256;
 mod rpo;
 mod sha256;
 mod stark;
+mod arithmetic_circuit_eval;

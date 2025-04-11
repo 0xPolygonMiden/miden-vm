@@ -158,6 +158,7 @@ pub enum Token<'input> {
     Assertz,
     AssertEq,
     AssertEqw,
+    ArithmeticCircuitEval,
     Begin,
     Caller,
     Call,
@@ -344,6 +345,7 @@ impl fmt::Display for Token<'_> {
             Token::Assertz => write!(f, "assertz"),
             Token::AssertEq => write!(f, "assert_eq"),
             Token::AssertEqw => write!(f, "assert_eqw"),
+            Token::ArithmeticCircuitEval => write!(f, "arithmetic_circuit_eval"),
             Token::Begin => write!(f, "begin"),
             Token::Caller => write!(f, "caller"),
             Token::Call => write!(f, "call"),
@@ -538,6 +540,7 @@ impl<'input> Token<'input> {
                 | Token::Assertz
                 | Token::AssertEq
                 | Token::AssertEqw
+                | Token::ArithmeticCircuitEval
                 | Token::Caller
                 | Token::Call
                 | Token::Cdrop
@@ -663,6 +666,7 @@ impl<'input> Token<'input> {
     const KEYWORDS: &'static [(&'static str, Token<'static>)] = &[
         ("add", Token::Add),
         ("adv", Token::Adv),
+        ("arithmetic_circuit_eval", Token::ArithmeticCircuitEval),
         ("insert_hdword", Token::InsertHdword),
         ("insert_hdword_d", Token::InsertHdwordWithDomain),
         ("insert_hperm", Token::InsertHperm),
