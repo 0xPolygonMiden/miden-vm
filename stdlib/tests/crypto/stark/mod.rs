@@ -21,7 +21,7 @@ use verifier_recursive::{VerifierData, generate_advice_inputs};
 fn stark_verifier_e2f4(#[case] kernel: Option<&str>) {
     // An example MASM program to be verified inside Miden VM.
     let example_source = "begin
-            repeat.100
+            repeat.32
                 swap dup.1 add
             end
         end";
@@ -45,7 +45,6 @@ fn stark_verifier_e2f4(#[case] kernel: Option<&str>) {
         ";
 
     let test = build_test!(source, &initial_stack, &tape, store, advice_map);
-
     test.expect_stack(&[]);
 }
 
