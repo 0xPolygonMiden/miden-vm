@@ -42,7 +42,6 @@ fn stark_verifier_e2f4(#[case] kernel: Option<&str>) {
         ";
 
     let test = build_test!(source, &initial_stack, &tape, store, advice_map);
-
     test.expect_stack(&[]);
 }
 

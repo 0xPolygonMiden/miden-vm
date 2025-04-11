@@ -38,9 +38,9 @@ pub fn build_ace_memory_read_word_request<E: FieldElement<BaseField = Felt>>(
         main_trace.chiplet_ace_v_1_1(row),
     ];
     let op_label = MEMORY_READ_WORD_LABEL;
-        let clk = main_trace.chiplet_ace_clk(row);
-        let ctx = main_trace.chiplet_ace_ctx(row);
-        let addr = main_trace.chiplet_ace_ptr(row);
+    let clk = main_trace.chiplet_ace_clk(row);
+    let ctx = main_trace.chiplet_ace_ctx(row);
+    let addr = main_trace.chiplet_ace_ptr(row);
 
     let message = MemoryWordMessage {
         op_label: Felt::from(op_label),
@@ -66,16 +66,15 @@ pub fn build_ace_memory_read_element_request<E: FieldElement<BaseField = Felt>>(
     row: RowIndex,
     _debugger: &mut BusDebugger<E>,
 ) -> E {
-    
-let element = main_trace.chiplet_ace_eval_op(row);
+    let element = main_trace.chiplet_ace_eval_op(row);
 
-let id_0 = main_trace.chiplet_ace_id_1(row);
-let id_1 = main_trace.chiplet_ace_id_2(row);
-let element = id_0 + id_1 * Felt::new(1 << 30) + (element + ONE) * Felt::new(1 << 60) ;
-      let op_label = MEMORY_READ_ELEMENT_LABEL;
-        let clk = main_trace.chiplet_ace_clk(row);
-        let ctx = main_trace.chiplet_ace_ctx(row);
-        let addr = main_trace.chiplet_ace_ptr(row);
+    let id_0 = main_trace.chiplet_ace_id_1(row);
+    let id_1 = main_trace.chiplet_ace_id_2(row);
+    let element = id_0 + id_1 * Felt::new(1 << 30) + (element + ONE) * Felt::new(1 << 60);
+    let op_label = MEMORY_READ_ELEMENT_LABEL;
+    let clk = main_trace.chiplet_ace_clk(row);
+    let ctx = main_trace.chiplet_ace_ctx(row);
+    let addr = main_trace.chiplet_ace_ptr(row);
 
     let message = MemoryElementMessage {
         op_label: Felt::from(op_label),
@@ -92,7 +91,6 @@ let element = id_0 + id_1 * Felt::new(1 << 30) + (element + ONE) * Felt::new(1 <
 
     value
 }
-
 
 /// Builds `MLOADW` and `MSTOREW` requests made to the memory chiplet.
 pub(super) fn build_mem_mloadw_mstorew_request<E: FieldElement<BaseField = Felt>>(
