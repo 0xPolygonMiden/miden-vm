@@ -57,7 +57,7 @@ test-build: ## Build the test binary
 
 .PHONY: test
 test: ## Run all tests
-	$(BACKTRACE) cargo nextest run --profile default --cargo-profile test-dev --features concurrent,testing
+	$(BACKTRACE) cargo nextest run --profile default --cargo-profile test-dev --features concurrent,testing --no-fail-fast
 
 .PHONY: test-docs
 test-docs: ## Run documentation tests
