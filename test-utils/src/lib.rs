@@ -239,12 +239,8 @@ impl Test {
         }
 
         // execute the test
-        let mut process = Process::new(
-            program.kernel().clone(),
-            self.stack_inputs.clone(),
-            ExecutionOptions::default(),
-        )
-        .with_source_manager(self.source_manager.clone());
+        let mut process = Process::new_debug(program.kernel().clone(), self.stack_inputs.clone())
+            .with_source_manager(self.source_manager.clone());
         process.execute(&program, &mut host).unwrap();
 
         // validate the memory state
@@ -339,12 +335,8 @@ impl Test {
             host.load_mast_forest(library.mast_forest().clone()).unwrap();
         }
 
-        let mut process = Process::new(
-            program.kernel().clone(),
-            self.stack_inputs.clone(),
-            ExecutionOptions::default(),
-        )
-        .with_source_manager(self.source_manager.clone());
+        let mut process = Process::new_debug(program.kernel().clone(), self.stack_inputs.clone())
+            .with_source_manager(self.source_manager.clone());
         let stack_outputs = process.execute(&program, &mut host)?;
         let trace = ExecutionTrace::new(process, stack_outputs);
         assert_eq!(&program.hash(), trace.program_hash(), "inconsistent program hash");
@@ -363,11 +355,7 @@ impl Test {
             host.load_mast_forest(library.mast_forest().clone()).unwrap();
         }
 
-        let mut process = Process::new(
-            program.kernel().clone(),
-            self.stack_inputs.clone(),
-            ExecutionOptions::default(),
-        );
+        let mut process = Process::new_debug(program.kernel().clone(), self.stack_inputs.clone());
         process.execute(&program, &mut host)?;
         Ok((process, host))
     }
