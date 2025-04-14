@@ -10,6 +10,10 @@ jobs:
   test:
     name: test on ubuntu-latest
     runs-on: ubuntu-latest
+    # This is needed to make sure the CI doesn't kill our job
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
     steps:
       - uses: actions/checkout@main
       - uses: taiki-e/install-action@nextest 
