@@ -5,6 +5,7 @@
 #### Enhancements
 
 - Add kernel procedures digests as public inputs to the recursive verifier (#1724).
+- Add `executable` feature to the `make test` and `make test-build` Make commands (#1762).
 
 
 ## 0.13.2 (2025-04-02)
