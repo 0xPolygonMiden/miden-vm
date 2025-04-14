@@ -58,7 +58,7 @@ export.verify
 
     # Load public inputs
     #
-    # Cycles: 92 + 5 * number_kernel_procedures
+    # Cycles: xx + xx * number_kernel_procedures
     exec.public_inputs::load
     exec.random_coin::reseed
     # => [...]
