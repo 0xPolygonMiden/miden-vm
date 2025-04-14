@@ -2,14 +2,16 @@ use.std::crypto::stark::constants
 use.std::crypto::hashes::rpo
 
 
-#! Load the public inputs in memory starting from the address stored at `public_inputs_address_ptr`.
-#! In parallel, compute the hash of the public inputs being loaded. The hashing starts with
+#! Loads from the advice stack the public inputs and stores them in memory starting from address
+#! pointed to by `public_inputs_address_ptr`.
+#! Note that the public inputs are stored as extension field elements.
+#! In parallel, it computes the hash of the public inputs being loaded. The hashing starts with
 #! capacity registers of the hash function set to `C` resulting from hashing the proof context.
 #! The output D is the digest of the hashing of the public inputs.
 #!
 #! Input: [C, ...]
 #! Output: [D, ...]
-#! Cycles: ~ 92 + 5 * number_kernel_procedures
+#! Cycles: ~ xx + xx * number_kernel_procedures
 export.load
     # Load the public inputs from the advice provider.
     # The public inputs are made up of:
@@ -25,7 +27,7 @@ export.load
     movdn.4
     padw padw
     repeat.4
-        adv_pipe
+        exec.load_base_store_extension_double_word
         hperm
     end
     # => [R2, R1, C, ptr, ...]
@@ -38,7 +40,7 @@ export.load
     # 3) Load the program hash and kernel procedures digests.
     #    We need one call to the RPO permutation per 2 digests, thus we compute the division
     #    with remainder of the number of digests by 2. If the remainder is 1 then we need
-    #    to pad with the zero word, while we don't need to pad otherwise.
+    #    to pad with the zero word, while we don not need to pad otherwise.
     u32divmod.2
     push.0 eq
     # => [?, num_iter, R2, R1, C, ptr, ...]
@@ -49,7 +51,7 @@ export.load
         neq
         # => [(num_iter == 0), R2, R1, C, ptr, num_iter, ...]
         while.true
-            adv_pipe
+            exec.load_base_store_extension_double_word
             hperm
             movup.13
             sub.1
@@ -67,7 +69,7 @@ export.load
         neq
         # => [(num_iter == 0), R2, R1, C, ptr, num_iter, ...]
         while.true
-            adv_pipe
+            exec.load_base_store_extension_double_word
             hperm
             movup.13
             sub.1
@@ -79,10 +81,7 @@ export.load
         end
 
         # Absorb the last digest and pad with zeros
-        adv_loadw
-        dup.12 mem_storew
-        swapw
-        exec.constants::zeroize_stack_word
+        exec.load_base_store_extension_word
         hperm
     end
 
@@ -118,14 +117,117 @@ proc.compute_public_inputs_address
     # 2. the digest of the program,
     # 3. the digests of procedures making up the kernel.
     #
-    # In total, we need to allocate 16 * 2 + 4 + num_ker_proc * 4
+    # In total, we need to allocate 16 * 2 * 2 + 4 * 2 + num_ker_proc * 4 * 2
     # We also need to allocate space for the auxiliary randomness, i.e., 16 * 2
-    sub.68
+    sub.104
     exec.constants::get_num_kernel_procedures
-    mul.4
+    mul.8
     sub
 
     # 3) Store the address of public inputs
     dup
     exec.constants::public_inputs_address_ptr mem_store
+end
+
+#! Loads 4 base field elements from the advice stack and saves them as extension field elements.
+#!
+#!
+#! Input: [Y, Y, C, ptr, ...]
+#! Output: [0, 0, 0, 0, A, C, ptr, ..]
+proc.load_base_store_extension_word
+    # 1) Load the 4 base elements making up the word from the advice stack and save them temporarily 
+    adv_loadw
+    exec.constants::tmp1 mem_storew
+
+    # 2) Represent the 4 base field elements as elements in the quadratic extension field
+    swapw
+    exec.constants::zeroize_stack_word
+    # => [0, 0, 0, 0, a3, a2, a1, a0, C, ptr, ...]
+    movdn.6
+    # => [0, 0, 0, a3, a2, a1, 0, a0, C, ptr, ...]
+    movdn.4
+    # => [0, 0, a3, a2, 0, a1, 0, a0, C, ptr, ...]
+    movdn.2
+    # => [0, a3, 0, a2, 0, a1, 0, a0, C, ptr, ...]
+
+
+    # 3) Save the first 2 extension field elements
+    swapw
+    dup.12
+    mem_storew
+
+    # 4) Load the temporarily saved 4 base elements as a word for use in `hperm`
+    exec.constants::tmp1 mem_loadw
+    swapw
+
+    # 5) Save the second 2 extension field elements
+    dup.12 add.4
+    mem_storew
+
+    # 6) Load the ZERO word for padding
+    exec.constants::zeroize_stack_word
+end
+
+#! Loads 8 base field elements from the advice stack and saves them as extension field elements.
+#!
+#!
+#! Input: [Y, Y, C, ptr, ...]
+#! Output: [A1, A0, C, ptr + 16, ..]
+proc.load_base_store_extension_double_word
+    # 1) Load the first 4 base elements from the advice stack and save them temporarily 
+    adv_loadw
+    exec.constants::tmp1 mem_storew
+
+    # 2) Represent the first 4 base field elements as elements in the quadratic extension field
+    swapw
+    exec.constants::zeroize_stack_word
+    # => [0, 0, 0, 0, a3, a2, a1, a0, C, ptr, ...]
+    movdn.6
+    # => [0, 0, 0, a3, a2, a1, 0, a0, C, ptr, ...]
+    movdn.4
+    # => [0, 0, a3, a2, 0, a1, 0, a0, C, ptr, ...]
+    movdn.2
+    # => [0, a3, 0, a2, 0, a1, 0, a0, C, ptr, ...]
+
+    # 3) Save the first 2 extension field elements
+    swapw
+    dup.12
+    mem_storew
+
+    # 4) Load the second 4 base elements from the advice stack and save them temporarily
+    adv_loadw
+    exec.constants::tmp2 mem_storew
+    swapw
+    # => [0, a3, 0, a2, a7, a6, a5, a4, C, ptr, ...]
+
+    # 5) Save the second 2 extension field elements
+    dup.12 add.4
+    mem_storew
+
+    
+    # 6) Represent the second 4 base field elements as elements in the quadratic extension field
+    exec.constants::zeroize_stack_word
+    # => [0, 0, 0, 0, a7, a6, a5, a4, C, ptr, ...]
+    movdn.6
+    movdn.4
+    movdn.2
+    # => [0, a7, 0, a6, 0, a5, 0, a4, C, ptr, ...]
+
+    # 7) Save the third 2 extension field elements
+    #    We also load the first 4 base elements as a word for use by `hperm`
+    swapw
+    dup.12
+    add.8
+    mem_storew
+    exec.constants::tmp1 mem_loadw
+    swapw
+
+    # 8) Save the fourth 2 extension field elements
+    #    We also load the second 4 base elements as a word for use by `hperm` and update the pointer
+    dup.12
+    add.16 swap.13
+    add.12
+    mem_storew
+    exec.constants::tmp2 mem_loadw
+    # => [a7, a6, a5, a4, a3, a2, a1, a0, C, ptr, ...]
 end
