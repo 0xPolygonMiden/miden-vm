@@ -259,7 +259,8 @@ impl ExecutionOptions {
         self
     }
 
-    /// Enables execution of programs in debug mode.
+    /// Enables execution of programs in debug mode when the `enable_debugging` flag is set to true;
+    /// otherwise, debug mode is disabled.
     ///
     /// In debug mode the VM does the following:
     /// - Executes `debug` instructions (these are ignored in regular mode).
