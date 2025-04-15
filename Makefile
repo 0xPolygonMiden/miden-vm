@@ -53,11 +53,11 @@ book: ## Builds the book & serves documentation site
 
 .PHONY: test-build
 test-build: ## Build the test binary
-	cargo nextest run --cargo-profile test-dev --features concurrent,testing,executable --no-run
+	cargo nextest run --profile ci --cargo-profile test-dev --features concurrent,testing,executable --no-run
 
 .PHONY: test
 test: ## Run all tests
-	$(BACKTRACE) cargo nextest run --profile default --cargo-profile test-dev --features concurrent,testing,executable
+	$(BACKTRACE) cargo nextest run --profile ci --cargo-profile test-dev --features concurrent,testing,executable
 
 .PHONY: test-docs
 test-docs: ## Run documentation tests
