@@ -251,7 +251,7 @@ pub fn start_repl(library_paths: &Vec<PathBuf>, use_stdlib: bool) {
                             }
                             // in case the flag has not been initialized.
                             if !mem_at_addr_present {
-                                println!("Memory at address {:?} is empty", addr);
+                                println!("Memory at address {addr} is empty");
                             }
                         },
                         Err(msg) => println!("{}", msg),

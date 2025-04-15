@@ -98,7 +98,7 @@ impl DebugExecutor {
             DebugCommand::PrintStack => self.print_stack(),
             DebugCommand::PrintStackItem(index) => self.print_stack_item(index),
             DebugCommand::PrintMem => self.print_memory(),
-            DebugCommand::PrintMemAddress(address) => self.print_memory_entry(address.into()),
+            DebugCommand::PrintMemAddress(address) => self.print_memory_entry(address),
             DebugCommand::Clock => println!("{}", self.vm_state.clk),
             DebugCommand::Help => Self::print_help(),
             DebugCommand::Quit => return false,
@@ -172,7 +172,7 @@ impl DebugExecutor {
 
         match entry {
             Some(&mem) => print_mem_address(address, mem),
-            None => println!("memory at address '{}' not found", address.as_u32()),
+            None => println!("memory at address '{address}' not found"),
         }
     }
 

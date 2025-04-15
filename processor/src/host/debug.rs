@@ -5,7 +5,7 @@ use miden_air::RowIndex;
 use vm_core::{DebugOptions, Felt};
 
 use super::ProcessState;
-use crate::system::ContextId;
+use crate::{MemoryAddress, system::ContextId};
 
 // DEBUG HANDLER
 // ================================================================================================
@@ -84,12 +84,12 @@ impl Printer {
 
         // print the main part of the memory (wihtout the last value)
         for (addr, value) in mem.iter().take(mem.len() - 1) {
-            print_mem_address(addr.0, Some(*value), false, false, element_width);
+            print_mem_address(*addr, Some(*value), false, false, element_width);
         }
 
         // print the last memory value
         if let Some((addr, value)) = mem.last() {
-            print_mem_address(addr.0, Some(*value), true, false, element_width);
+            print_mem_address(*addr, Some(*value), true, false, element_width);
         }
     }
 
@@ -162,12 +162,12 @@ fn print_interval(mem_interval: Vec<(u32, Option<Felt>)>, is_local: bool) {
 
     // print the main part of the memory (wihtout the last value)
     for (addr, mem_value) in mem_interval.iter().take(mem_interval.len() - 1) {
-        print_mem_address(*addr, *mem_value, false, is_local, element_width)
+        print_mem_address((*addr).into(), *mem_value, false, is_local, element_width)
     }
 
     // print the last memory value
     if let Some((addr, value)) = mem_interval.last() {
-        print_mem_address(*addr, *value, true, is_local, element_width);
+        print_mem_address((*addr).into(), *value, true, is_local, element_width);
     }
 }
 
@@ -176,7 +176,7 @@ fn print_interval(mem_interval: Vec<(u32, Option<Felt>)>, is_local: bool) {
 /// If `is_local` is true, the output address is formatted as decimal value, otherwise as hex
 /// string.
 fn print_mem_address(
-    addr: u32,
+    addr: MemoryAddress,
     mem_value: Option<Felt>,
     is_last: bool,
     is_local: bool,

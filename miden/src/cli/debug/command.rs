@@ -1,3 +1,5 @@
+use processor::MemoryAddress;
+
 /// debug commands supported by the debugger
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum DebugCommand {
@@ -9,7 +11,7 @@ pub enum DebugCommand {
     PrintStack,
     PrintStackItem(usize),
     PrintMem,
-    PrintMemAddress(u32),
+    PrintMemAddress(MemoryAddress),
     Clock,
     Quit,
     Help,
@@ -123,7 +125,7 @@ impl DebugCommand {
 
         match (command, argument) {
             (Self::PrintMem, Some(arg)) => Ok(Self::PrintMemAddress(
-                u32::try_from(arg).expect("memory address should not exceed 2^32"),
+                u32::try_from(arg).expect("memory address should not exceed 2^32").into(),
             )),
             (Self::PrintStack, Some(arg)) => Ok(Self::PrintStackItem(arg as usize)),
             (_, Some(_)) => unreachable!("the command was previously parsed within this block"),
