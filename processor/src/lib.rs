@@ -218,7 +218,7 @@ impl Process {
         Self::initialize(
             kernel,
             stack_inputs,
-            ExecutionOptions::default().with_tracing().with_debugging(),
+            ExecutionOptions::default().with_tracing().with_debugging(true),
         )
     }
 

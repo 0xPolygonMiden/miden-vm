@@ -242,7 +242,7 @@ impl Test {
         let mut process = Process::new(
             program.kernel().clone(),
             self.stack_inputs.clone(),
-            ExecutionOptions::default(),
+            ExecutionOptions::default().with_debugging(self.in_debug_mode),
         )
         .with_source_manager(self.source_manager.clone());
         process.execute(&program, &mut host).unwrap();
@@ -342,7 +342,7 @@ impl Test {
         let mut process = Process::new(
             program.kernel().clone(),
             self.stack_inputs.clone(),
-            ExecutionOptions::default(),
+            ExecutionOptions::default().with_debugging(self.in_debug_mode),
         )
         .with_source_manager(self.source_manager.clone());
         let stack_outputs = process.execute(&program, &mut host)?;
@@ -366,8 +366,9 @@ impl Test {
         let mut process = Process::new(
             program.kernel().clone(),
             self.stack_inputs.clone(),
-            ExecutionOptions::default(),
-        );
+            ExecutionOptions::default().with_debugging(self.in_debug_mode),
+        )
+        .with_source_manager(self.source_manager.clone());
         process.execute(&program, &mut host)?;
         Ok((process, host))
     }

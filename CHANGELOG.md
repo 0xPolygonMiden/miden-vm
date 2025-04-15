@@ -6,6 +6,10 @@
 
 - Add kernel procedures digests as public inputs to the recursive verifier (#1724).
 - add optional `Package::account_component_metadata_bytes` to store serialized `AccountComponentMetadata` (#1731).
+- Add `executable` feature to the `make test` and `make test-build` Make commands (#1762).
+
+#### Changes
+- [BREAKING] `ExecutionOptions::with_debugging()` now takes a boolean parameter (#1761)
 
 
 ## 0.13.2 (2025-04-02)
