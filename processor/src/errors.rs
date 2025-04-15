@@ -55,7 +55,12 @@ pub enum ExecutionError {
         None => "".into()
       }
     )]
+    #[diagnostic()]
     FailedAssertion {
+        #[label]
+        label: SourceSpan,
+        #[source_code]
+        source_file: Option<Arc<SourceFile>>,
         clk: RowIndex,
         err_code: u32,
         err_msg: Option<String>,
@@ -148,6 +153,23 @@ impl From<Ext2InttError> for ExecutionError {
 }
 
 impl ExecutionError {
+    pub fn failed_assertion(
+        clk: RowIndex,
+        err_code: u32,
+        err_msg: Option<String>,
+        err_ctx: &ErrorContext<'_, impl MastNodeExt>,
+    ) -> Self {
+        let (label, source_file) = err_ctx.label_and_source_file();
+
+        Self::FailedAssertion {
+            label,
+            source_file,
+            clk,
+            err_code,
+            err_msg,
+        }
+    }
+
     pub fn invalid_stack_depth_on_return(
         depth: usize,
         err_ctx: &ErrorContext<'_, impl MastNodeExt>,
