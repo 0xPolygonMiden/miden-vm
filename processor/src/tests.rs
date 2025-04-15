@@ -3,6 +3,32 @@ use test_utils::build_test_by_mode;
 
 use super::*;
 
+// TODO(plafer): re-enable this and fix after `assert*` lexing is fixed
+#[test]
+#[ignore]
+fn test_diagnostic_failed_assertion() {
+    let source = "
+        begin
+            push.1.2
+            assertz
+            push.3.4
+        end";
+
+    let build_test = build_test_by_mode!(true, source, &[1, 2]);
+    let err = build_test.execute().expect_err("expected error");
+    assert_diagnostic_lines!(
+        err,
+        "when returning from a call or dyncall, stack depth must be 16, but was 17",
+        regex!(r#",-\[test[\d]+:7:21\]"#),
+        " 6 |         begin",
+        " 7 |             trace.2 call.foo",
+        "   :                     ^^^^|^^^",
+        "   :                         `-- when returning from this call site",
+        " 8 |         end",
+        "   `----"
+    );
+}
+
 // InvalidStackDepthOnReturn
 // ------------------------------------------------------------------------------------------------
 
