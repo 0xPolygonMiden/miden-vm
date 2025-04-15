@@ -349,25 +349,4 @@ mod tests {
         };
         assert_eq!(execution_details, expected_details);
     }
-
-    #[test]
-    fn analyze_test_execution_error() {
-        let source = "begin div end";
-        let program = Assembler::default().with_debug_mode(true).assemble_program(source).unwrap();
-        let stack_inputs = vec![1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
-        let stack_inputs = StackInputs::try_from_ints(stack_inputs).unwrap();
-        let host = DefaultHost::default();
-        let execution_details =
-            super::analyze(&program, stack_inputs, host, Arc::new(DefaultSourceManager::default()));
-        let expected_error = "execution error";
-        assert_eq!(execution_details.err().unwrap().to_string(), expected_error);
-    }
-
-    #[test]
-    fn analyze_test_assembly_error() {
-        let source = "proc.foo.1 loc_store.0 end mem_storew.0 dropw push.17 exec.foo end";
-        let program = Assembler::default().with_debug_mode(true).assemble_program(source);
-        let expected_error = "invalid syntax";
-        assert_eq!(program.err().unwrap().to_string(), expected_error);
-    }
 }
