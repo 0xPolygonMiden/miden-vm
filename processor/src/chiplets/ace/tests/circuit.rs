@@ -40,9 +40,9 @@ pub struct Instruction {
 
 #[derive(Debug)]
 pub enum CircuitError {
-    InvalidLayout,
-    InvalidInstruction,
-    InvalidInputs,
+    LayoutInvalid,
+    InstructionInvalid,
+    InputsInvalid,
 }
 
 /// Layout of a circuit representing the number of different `Node`s of each type.
@@ -71,8 +71,8 @@ impl Circuit {
         };
 
         // Circuit must contain at least one instruction
-        if instructions.len() == 0 {
-            return Err(CircuitError::InvalidLayout);
+        if instructions.is_empty() {
+            return Err(CircuitError::LayoutInvalid);
         }
 
         // Ensure all instructions reference valid nodes and allow sequential evaluation
@@ -85,7 +85,7 @@ impl Circuit {
             let valid_node = |node: NodeID| layout.contains_node(&node) && node < eval_node;
 
             if !(valid_node(instruction.node_l) && valid_node(instruction.node_r)) {
-                return Err(CircuitError::InvalidInstruction);
+                return Err(CircuitError::InstructionInvalid);
             }
         }
 
@@ -96,7 +96,7 @@ impl Circuit {
     pub fn evaluate(&self, inputs: &[QuadFelt]) -> Result<QuadFelt, CircuitError> {
         let layout = self.layout();
         if inputs.len() != layout.num_inputs {
-            return Err(CircuitError::InvalidInputs);
+            return Err(CircuitError::InputsInvalid);
         }
 
         let mut nodes = Vec::with_capacity(layout.num_nodes());
