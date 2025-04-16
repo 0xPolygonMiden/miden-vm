@@ -184,7 +184,7 @@ where
         err_ctx: &ErrorContext<'_, impl MastNodeExt>,
     ) -> Result<u8, ExecutionError> {
         let tree_depth = u8::try_from(tree_depth.as_int())
-            .map_err(|_| ExecutionError::InvalidMerkleTreeDepth { depth: *tree_depth })?;
+            .map_err(|_| ExecutionError::invalid_merkle_tree_depth(*tree_depth, err_ctx))?;
         self.store
             .get_leaf_depth(root.into(), tree_depth, index.as_int())
             .map_err(ExecutionError::MerkleStoreLookupFailed)
