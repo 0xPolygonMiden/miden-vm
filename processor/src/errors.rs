@@ -83,7 +83,15 @@ pub enum ExecutionError {
         digest: Digest,
     },
     #[error("error during processing of event in on_event handler")]
-    EventError(#[source] Box<dyn Error + Send + Sync + 'static>),
+    #[diagnostic()]
+    EventError {
+        #[label]
+        label: SourceSpan,
+        #[source_code]
+        source_file: Option<Arc<SourceFile>>,
+        #[source]
+        error: Box<dyn Error + Send + Sync + 'static>,
+    },
     #[error("failed to execute Ext2Intt operation: {0}")]
     Ext2InttError(Ext2InttError),
     #[error("assertion failed at clock cycle {clk} with error code {err_code}{}",
@@ -218,6 +226,15 @@ impl ExecutionError {
         let (label, source_file) = err_ctx.label_and_source_file();
 
         Self::DynamicNodeNotFound { label, source_file, digest }
+    }
+
+    pub fn event_error(
+        error: Box<dyn Error + Send + Sync + 'static>,
+        err_ctx: &ErrorContext<'_, impl MastNodeExt>,
+    ) -> Self {
+        let (label, source_file) = err_ctx.label_and_source_file();
+
+        Self::EventError { label, source_file, error }
     }
 
     pub fn failed_assertion(
