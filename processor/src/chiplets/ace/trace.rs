@@ -1,4 +1,5 @@
-use std::{ops::Range, prelude::rust_2015::Vec};
+use alloc::vec::Vec;
+use core::ops::Range;
 
 use miden_air::RowIndex;
 use vm_core::FieldElement;

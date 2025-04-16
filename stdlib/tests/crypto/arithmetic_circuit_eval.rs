@@ -55,7 +55,7 @@ fn arithmetic_circuit_eval_execute() {
     data.extend_from_slice(&[
         Felt::new(7 + (5 << 30) + (2 << 60)), // id_l = 7; id_r = 5; op = ADD
         Felt::new(7 + (3 << 30) + (1 << 60)), // id_l = 7; id_r = 3; op = MUL
-        Felt::new(2 + (6 << 30) + (0 << 60)), // id_l = 2; id_r = 6; op = SUB
+        Felt::new(2 + (6 << 30)),             // id_l = 2; id_r = 6; op = SUB
         Felt::new(1 + (1 << 30) + (1 << 60)), // id_l = 1; id_r = 1; op = MUL
     ]);
 
@@ -123,7 +123,7 @@ fn arithmetic_circuit_eval() {
     data.extend_from_slice(&[
         Felt::new(7 + (5 << 30) + (2 << 60)), // id_l = 7; id_r = 5; op = ADD
         Felt::new(7 + (3 << 30) + (1 << 60)), // id_l = 7; id_r = 3; op = MUL
-        Felt::new(2 + (6 << 30) + (0 << 60)), // id_l = 2; id_r = 6; op = SUB
+        Felt::new(2 + (6 << 30)),             // id_l = 2; id_r = 6; op = SUB
         Felt::new(1 + (1 << 30) + (1 << 60)), // id_l = 1; id_r = 1; op = MUL
     ]);
 

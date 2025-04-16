@@ -1,6 +1,6 @@
 #![allow(dead_code)]
 
-use std::{collections::BTreeMap, prelude::rust_2024::Vec};
+use alloc::{collections::BTreeMap, vec::Vec};
 
 use miden_air::{RowIndex, trace::main_trace::MainTrace};
 use trace::NUM_COLS;

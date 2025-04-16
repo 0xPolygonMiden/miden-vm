@@ -1,4 +1,4 @@
-use std::vec::Vec;
+use alloc::vec::Vec;
 
 use miden_air::trace::main_trace::MainTrace;
 use vm_core::{Felt, FieldElement};

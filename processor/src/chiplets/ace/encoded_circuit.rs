@@ -1,4 +1,4 @@
-use std::prelude::rust_2015::Vec;
+use alloc::vec::Vec;
 
 use crate::{Felt, crypto::ElementHasher};
 
