@@ -1,3 +1,5 @@
+#![allow(dead_code)]
+
 use crate::chiplets::ace::trace::EvaluationContext;
 use crate::chiplets::memory::Memory;
 use crate::errors::{AceError, ErrorContext};
@@ -11,27 +13,21 @@ use trace::NUM_COLS;
 use vm_core::mast::MastNodeExt;
 use vm_core::{FieldElement, ZERO};
 
-mod circuit;
-mod encoder;
+mod trace;
+
 #[cfg(test)]
 mod tests;
-mod trace;
+mod encoded_circuit;
+
 pub use trace::{NUM_ACE_LOGUP_FRACTIONS_EVAL, NUM_ACE_LOGUP_FRACTIONS_READ};
 
-/// An `EncodedCircuit` represents a `Circuit` as a list of field elements, containing both
-/// constants and instructions.
-#[derive(Debug)]
-struct EncodedCircuit {
-    num_vars: usize,
-    num_eval: usize,
-    encoded_circuit: Vec<Felt>,
-}
 
 #[derive(Debug, Default)]
 pub struct Ace {
     circuit_evaluations: BTreeMap<u32, EvaluationContext>,
     sections_info: Vec<AceSection>,
 }
+
 impl Ace {
     pub(crate) fn trace_len(&self) -> usize {
         self.circuit_evaluations.iter().fold(0, |acc, term| acc + term.1.num_rows())

@@ -1,9 +1,9 @@
-use crate::chiplets::ace::EncodedCircuit;
-use crate::chiplets::ace::circuit::{Circuit, CircuitLayout, Instruction, NodeID, Op};
-use crate::crypto::ElementHasher;
+use crate::chiplets::ace::encoded_circuit::Op;
+use crate::chiplets::ace::tests::circuit::{Circuit, CircuitLayout, Instruction, NodeID};
 use crate::math::FieldElement;
 use crate::{Felt, QuadFelt};
 use std::prelude::rust_2024::Vec;
+use crate::chiplets::ace::encoded_circuit::EncodedCircuit;
 
 #[derive(Debug)]
 pub enum EncodingError {
@@ -11,12 +11,6 @@ pub enum EncodingError {
 }
 
 impl EncodedCircuit {
-    /// Number of bits used to represent the ID of a node in the evaluation graph.
-    /// Define as 30 bits to ensure two indices and the operation can be encoded in a single `Felt`
-    const ID_BITS: u64 = 30;
-
-    /// Maximum allowed ID, also equal to the mask extracting an ID from the lower 30 bits of a `uint`.
-    const MAX_ID: u32 = (1 << Self::ID_BITS) - 1;
 
     /// Try to create an `EncodedCircuit` from a given circuit. The circuit is expected to
     /// evaluate to zero, as the resulting encoded circuit is padded with squaring operations.
@@ -81,19 +75,6 @@ impl EncodedCircuit {
         })
     }
 
-    // HASHING
-
-    /// Compute the hash of all circuit constants and instructions.
-    fn raw_circuit_hash<H: ElementHasher<BaseField = Felt>>(&self) -> H::Digest {
-        debug_assert_eq!(self.encoded_circuit.len() % 8, 0);
-        H::hash_elements(&self.encoded_circuit)
-    }
-
-    /// Returns the digest of the circuit including a header
-    pub fn circuit_hash(&self) -> () {
-        todo!()
-    }
-
     // INSTRUCTION ENCODING
 
     /// Encode an instruction as a `Felt`, packed as
@@ -116,38 +97,6 @@ impl EncodedCircuit {
 
         let encoded = id_l as u64 + ((id_r as u64) << Self::ID_BITS) + (op << (2 * Self::ID_BITS));
         Some(Felt::new(encoded))
-    }
-
-    /// Given a `Felt`, try to recover the components `id_l, id_r, op`.
-    pub fn decode_instruction(instruction: Felt) -> Option<(u32, u32, Op)> {
-        let mut remaining = instruction.as_int();
-        let id_l = (remaining & Self::MAX_ID as u64) as u32;
-        remaining >>= Self::ID_BITS;
-        let id_r = (remaining & Self::MAX_ID as u64) as u32;
-        remaining >>= Self::ID_BITS;
-
-        // Ensure the ID did not overflow
-        if id_l > Self::MAX_ID || id_r > Self::MAX_ID {
-            return None;
-        }
-
-        let op = match remaining {
-            0 => Op::Sub,
-            1 => Op::Mul,
-            2 => Op::Add,
-            _ => return None,
-        };
-        Some((id_l, id_r, op))
-    }
-
-    // HELPERS
-
-    pub fn num_constants(&self) -> usize {
-        (self.encoded_circuit.len() - self.num_eval) / 2
-    }
-
-    pub fn num_inputs(&self) -> usize {
-        self.num_vars - self.num_constants()
     }
 }
 

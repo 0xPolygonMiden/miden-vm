@@ -1,10 +1,9 @@
-use crate::chiplets::ace::EncodedCircuit;
-use crate::chiplets::ace::circuit::Op;
 use crate::{ContextId, ExecutionError, Felt, QuadFelt, Word};
 use miden_air::RowIndex;
 use std::ops::Range;
 use std::prelude::rust_2015::Vec;
 use vm_core::FieldElement;
+use crate::chiplets::ace::encoded_circuit::{EncodedCircuit, Op};
 
 /// Contains the variable and evaluation nodes resulting from the evaluation of a circuit.
 /// The output value is checked to be equal to 0.
