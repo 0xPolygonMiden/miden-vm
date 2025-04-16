@@ -1,6 +1,6 @@
 use crate::{Felt, QuadFelt};
 use std::prelude::rust_2015::Vec;
-use vm_core::FieldElement;
+use crate::chiplets::ace::encoded_circuit::Op;
 
 /// A `Circuit` is a DAG representing a multivariate polynomial over its inputs.
 /// The nodes are laid out linearly, starting with the leaves and ending with the evaluation.
@@ -13,14 +13,6 @@ pub struct Circuit {
     pub num_inputs: usize,
     pub constants: Vec<Felt>,
     pub instructions: Vec<Instruction>,
-}
-
-/// Arithmetic operation applied to two nodes in the evaluation graph.
-#[derive(Debug, Copy, Clone, Eq, PartialEq)]
-pub enum Op {
-    Sub,
-    Mul,
-    Add,
 }
 
 /// A `NodeID` is the index of a node in the evaluation graph, depending on its type.

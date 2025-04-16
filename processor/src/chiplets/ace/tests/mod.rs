@@ -1,10 +1,15 @@
-use crate::chiplets::ace::circuit::{Circuit, CircuitLayout, Instruction, NodeID, Op};
+use crate::chiplets::ace::encoded_circuit::EncodedCircuit;
+use crate::chiplets::ace::tests::circuit::CircuitLayout;
+use crate::chiplets::ace::tests::circuit::Circuit;
+use crate::chiplets::ace::encoded_circuit::Op;
+use crate::chiplets::ace::tests::circuit::NodeID;
+use crate::chiplets::ace::tests::circuit::Instruction;
+use crate::chiplets::ace::eval_circuit;
 use crate::chiplets::ace::trace::{
     EVAL_OP_IDX, EvaluationContext, ID_0_IDX, ID_1_IDX, ID_2_IDX, M_0_IDX, M_1_IDX, NUM_COLS,
     SELECTOR_BLOCK_IDX, SELECTOR_START_IDX, V_0_0_IDX, V_0_1_IDX, V_1_0_IDX, V_1_1_IDX, V_2_0_IDX,
     V_2_1_IDX,
 };
-use crate::chiplets::ace::{EncodedCircuit, eval_circuit};
 use crate::chiplets::memory::Memory;
 use crate::errors::ErrorContext;
 use crate::{ContextId, Felt, QuadFelt, Word};
@@ -14,6 +19,9 @@ use std::prelude::rust_2015::Vec;
 use std::println;
 use vm_core::ZERO;
 use vm_core::mast::BasicBlockNode;
+
+mod circuit;
+mod encoder;
 
 #[test]
 fn test_var_plus_one() {
