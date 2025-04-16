@@ -1,9 +1,12 @@
-use crate::{ContextId, ExecutionError, Felt, QuadFelt, Word};
+use std::{ops::Range, prelude::rust_2015::Vec};
+
 use miden_air::RowIndex;
-use std::ops::Range;
-use std::prelude::rust_2015::Vec;
 use vm_core::FieldElement;
-use crate::chiplets::ace::encoded_circuit::{EncodedCircuit, Op};
+
+use crate::{
+    ContextId, ExecutionError, Felt, QuadFelt, Word,
+    chiplets::ace::encoded_circuit::{EncodedCircuit, Op},
+};
 
 /// Contains the variable and evaluation nodes resulting from the evaluation of a circuit.
 /// The output value is checked to be equal to 0.
@@ -131,7 +134,7 @@ impl EvaluationContext {
         Ok(ptr + PTR_OFFSET)
     }
 
-    pub fn fill<'a>(&self, offset: usize, columns: &mut [Vec<Felt>]) {
+    pub fn fill(&self, offset: usize, columns: &mut [Vec<Felt>]) {
         let num_read_rows = self.num_read_rows as usize;
         let num_eval_rows = self.num_eval_rows as usize;
         let num_rows = num_read_rows + num_eval_rows;
@@ -193,13 +196,13 @@ impl EvaluationContext {
         for row_index in read_range {
             let m_0 = multiplicities_iter.next().expect("TODO");
             let m_1 = multiplicities_iter.next().expect("TODO");
-            columns[M_0_IDX][row_index] = Felt::from(m_0);
-            columns[M_1_IDX][row_index] = Felt::from(m_1);
+            columns[M_0_IDX][row_index] = m_0;
+            columns[M_1_IDX][row_index] = m_1;
         }
         // In the EVAL block, we inserted wire w_0
         for row_index in eval_range {
             let m_0 = multiplicities_iter.next().expect("TODO");
-            columns[M_0_IDX][row_index] = Felt::from(m_0);
+            columns[M_0_IDX][row_index] = m_0;
         }
 
         debug_assert!(multiplicities_iter.next().is_none());
@@ -315,7 +318,8 @@ pub const M_0_IDX: usize = 15;
 pub const ID_1_IDX: usize = 9;
 /// The index of the column containing the first base-field element of the value of the second wire.
 pub const V_1_0_IDX: usize = 10;
-/// The index of the column containing the second base-field element of the value of the second wire.
+/// The index of the column containing the second base-field element of the value of the second
+/// wire.
 pub const V_1_1_IDX: usize = 11;
 /// The index of the column containing the multiplicity of the second wire.
 pub const M_1_IDX: usize = 14;

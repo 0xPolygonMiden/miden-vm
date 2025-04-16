@@ -3,6 +3,7 @@ use vm_core::{mast::BasicBlockNode, stack::MIN_STACK_DEPTH};
 use super::{ExecutionError, Felt, FieldElement, Host, Operation, Process};
 use crate::errors::ErrorContext;
 
+mod circuit_eval;
 mod crypto_ops;
 mod ext2_ops;
 mod field_ops;
@@ -12,7 +13,6 @@ mod io_ops;
 mod stack_ops;
 mod sys_ops;
 mod u32_ops;
-mod circuit_eval;
 mod utils;
 
 #[cfg(test)]
@@ -176,7 +176,7 @@ impl Process {
             Operation::FriE2F4 => self.op_fri_ext2fold4()?,
             Operation::HornerBase => self.op_horner_eval_base(error_ctx)?,
             Operation::HornerExt => self.op_horner_eval_ext(error_ctx)?,
-            Operation::ArithmeticCircuitEval => self.arithmetic_circuit_eval(error_ctx,)?,
+            Operation::ArithmeticCircuitEval => self.arithmetic_circuit_eval(error_ctx)?,
         }
 
         self.advance_clock()?;

@@ -1,26 +1,25 @@
 #![allow(dead_code)]
 
-use crate::chiplets::ace::trace::EvaluationContext;
-use crate::chiplets::memory::Memory;
-use crate::errors::{AceError, ErrorContext};
-use crate::trace::TraceFragment;
-use crate::{ContextId, ExecutionError, Felt, QuadFelt};
-use miden_air::RowIndex;
-use miden_air::trace::main_trace::MainTrace;
-use std::collections::BTreeMap;
-use std::prelude::rust_2024::Vec;
+use std::{collections::BTreeMap, prelude::rust_2024::Vec};
+
+use miden_air::{RowIndex, trace::main_trace::MainTrace};
 use trace::NUM_COLS;
-use vm_core::mast::MastNodeExt;
-use vm_core::{FieldElement, ZERO};
+use vm_core::{FieldElement, ZERO, mast::MastNodeExt};
+
+use crate::{
+    ContextId, ExecutionError, Felt, QuadFelt,
+    chiplets::{ace::trace::EvaluationContext, memory::Memory},
+    errors::{AceError, ErrorContext},
+    trace::TraceFragment,
+};
 
 mod trace;
 
+mod encoded_circuit;
 #[cfg(test)]
 mod tests;
-mod encoded_circuit;
 
 pub use trace::{NUM_ACE_LOGUP_FRACTIONS_EVAL, NUM_ACE_LOGUP_FRACTIONS_READ};
-
 
 #[derive(Debug, Default)]
 pub struct Ace {
