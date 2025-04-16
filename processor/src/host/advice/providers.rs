@@ -149,6 +149,7 @@ where
         root: Word,
         depth: &Felt,
         index: &Felt,
+        err_ctx: &ErrorContext<'_, impl MastNodeExt>,
     ) -> Result<Word, ExecutionError> {
         let index = NodeIndex::from_elements(depth, index).map_err(|_| {
             ExecutionError::InvalidMerkleTreeNodeIndex { depth: *depth, value: *index }
@@ -164,6 +165,7 @@ where
         root: Word,
         depth: &Felt,
         index: &Felt,
+        err_ctx: &ErrorContext<'_, impl MastNodeExt>,
     ) -> Result<MerklePath, ExecutionError> {
         let index = NodeIndex::from_elements(depth, index).map_err(|_| {
             ExecutionError::InvalidMerkleTreeNodeIndex { depth: *depth, value: *index }
@@ -179,6 +181,7 @@ where
         root: Word,
         tree_depth: &Felt,
         index: &Felt,
+        err_ctx: &ErrorContext<'_, impl MastNodeExt>,
     ) -> Result<u8, ExecutionError> {
         let tree_depth = u8::try_from(tree_depth.as_int())
             .map_err(|_| ExecutionError::InvalidMerkleTreeDepth { depth: *tree_depth })?;
@@ -193,6 +196,7 @@ where
         depth: &Felt,
         index: &Felt,
         value: Word,
+        err_ctx: &ErrorContext<'_, impl MastNodeExt>,
     ) -> Result<(MerklePath, Word), ExecutionError> {
         let node_index = NodeIndex::from_elements(depth, index).map_err(|_| {
             ExecutionError::InvalidMerkleTreeNodeIndex { depth: *depth, value: *index }
@@ -203,7 +207,12 @@ where
             .map_err(ExecutionError::MerkleStoreUpdateFailed)
     }
 
-    fn merge_roots(&mut self, lhs: Word, rhs: Word) -> Result<Word, ExecutionError> {
+    fn merge_roots(
+        &mut self,
+        lhs: Word,
+        rhs: Word,
+        err_ctx: &ErrorContext<'_, impl MastNodeExt>,
+    ) -> Result<Word, ExecutionError> {
         self.store
             .merge_roots(lhs.into(), rhs.into())
             .map(|v| v.into())
@@ -286,24 +295,34 @@ impl AdviceProvider for MemAdviceProvider {
         self.provider.get_mapped_values(key)
     }
 
-    fn get_tree_node(&self, root: Word, depth: &Felt, index: &Felt) -> Result<Word, ExecutionError> {
-        self.provider.get_tree_node(root, depth, index)
+    fn get_tree_node(&self, root: Word, depth: &Felt, index: &Felt,
+        err_ctx: &ErrorContext<'_, impl MastNodeExt>,
+    ) -> Result<Word, ExecutionError> {
+        self.provider.get_tree_node(root, depth, index, err_ctx)
     }
 
-    fn get_merkle_path(&self, root: Word, depth: &Felt, index: &Felt) -> Result<MerklePath, ExecutionError> {
-        self.provider.get_merkle_path(root, depth, index)
+    fn get_merkle_path(&self, root: Word, depth: &Felt, index: &Felt, 
+        err_ctx: &ErrorContext<'_, impl MastNodeExt>,
+    ) -> Result<MerklePath, ExecutionError> {
+        self.provider.get_merkle_path(root, depth, index, err_ctx)
     }
 
-    fn get_leaf_depth(&self, root: Word, tree_depth: &Felt, index: &Felt) -> Result<u8, ExecutionError> {
-        self.provider.get_leaf_depth(root, tree_depth, index)
+    fn get_leaf_depth(&self, root: Word, tree_depth: &Felt, index: &Felt,
+        err_ctx: &ErrorContext<'_, impl MastNodeExt>,
+    ) -> Result<u8, ExecutionError> {
+        self.provider.get_leaf_depth(root, tree_depth, index, err_ctx)
     }
 
-    fn update_merkle_node(&mut self, root: Word, depth: &Felt, index: &Felt, value: Word) -> Result<(MerklePath, Word), ExecutionError> {
-        self.provider.update_merkle_node(root, depth, index, value)
+    fn update_merkle_node(&mut self, root: Word, depth: &Felt, index: &Felt, value: Word,
+        err_ctx: &ErrorContext<'_, impl MastNodeExt>,
+    ) -> Result<(MerklePath, Word), ExecutionError> {
+        self.provider.update_merkle_node(root, depth, index, value, err_ctx)
     }
 
-    fn merge_roots(&mut self, lhs: Word, rhs: Word) -> Result<Word, ExecutionError> {
-        self.provider.merge_roots(lhs, rhs)
+    fn merge_roots(&mut self, lhs: Word, rhs: Word,
+        err_ctx: &ErrorContext<'_, impl MastNodeExt>,
+    ) -> Result<Word, ExecutionError> {
+        self.provider.merge_roots(lhs, rhs, err_ctx)
     }
 }
 
@@ -398,24 +417,34 @@ impl AdviceProvider for RecAdviceProvider {
         self.provider.get_mapped_values(key)
     }
 
-    fn get_tree_node(&self, root: Word, depth: &Felt, index: &Felt) -> Result<Word, ExecutionError> {
-        self.provider.get_tree_node(root, depth, index)
+    fn get_tree_node(&self, root: Word, depth: &Felt, index: &Felt,
+        err_ctx: &ErrorContext<'_, impl MastNodeExt>,
+    ) -> Result<Word, ExecutionError> {
+        self.provider.get_tree_node(root, depth, index, err_ctx)
     }
 
-    fn get_merkle_path(&self, root: Word, depth: &Felt, index: &Felt) -> Result<MerklePath, ExecutionError> {
-        self.provider.get_merkle_path(root, depth, index)
+    fn get_merkle_path(&self, root: Word, depth: &Felt, index: &Felt, 
+        err_ctx: &ErrorContext<'_, impl MastNodeExt>,
+    ) -> Result<MerklePath, ExecutionError> {
+        self.provider.get_merkle_path(root, depth, index, err_ctx)
     }
 
-    fn get_leaf_depth(&self, root: Word, tree_depth: &Felt, index: &Felt) -> Result<u8, ExecutionError> {
-        self.provider.get_leaf_depth(root, tree_depth, index)
+    fn get_leaf_depth(&self, root: Word, tree_depth: &Felt, index: &Felt, 
+        err_ctx: &ErrorContext<'_, impl MastNodeExt>,
+    ) -> Result<u8, ExecutionError> {
+        self.provider.get_leaf_depth(root, tree_depth, index, err_ctx)
     }
 
-    fn update_merkle_node(&mut self, root: Word, depth: &Felt, index: &Felt, value: Word) -> Result<(MerklePath, Word), ExecutionError> {
-        self.provider.update_merkle_node(root, depth, index, value)
+    fn update_merkle_node(&mut self, root: Word, depth: &Felt, index: &Felt, value: Word,
+        err_ctx: &ErrorContext<'_, impl MastNodeExt>,
+    ) -> Result<(MerklePath, Word), ExecutionError> {
+        self.provider.update_merkle_node(root, depth, index, value, err_ctx)
     }
 
-    fn merge_roots(&mut self, lhs: Word, rhs: Word) -> Result<Word, ExecutionError> {
-        self.provider.merge_roots(lhs, rhs)
+    fn merge_roots(&mut self, lhs: Word, rhs: Word,
+        err_ctx: &ErrorContext<'_, impl MastNodeExt>,
+    ) -> Result<Word, ExecutionError> {
+        self.provider.merge_roots(lhs, rhs, err_ctx)
     }
 }
 
