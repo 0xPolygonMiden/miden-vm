@@ -62,13 +62,23 @@ where
     // ADVICE STACK
     // --------------------------------------------------------------------------------------------
 
-    fn pop_stack(&mut self, process: ProcessState) -> Result<Felt, ExecutionError> {
-        self.stack.pop().ok_or(ExecutionError::AdviceStackReadFailed(process.clk()))
+    fn pop_stack(
+        &mut self,
+        process: ProcessState,
+        err_ctx: &ErrorContext<'_, impl MastNodeExt>,
+    ) -> Result<Felt, ExecutionError> {
+        self.stack
+            .pop()
+            .ok_or(ExecutionError::advice_stack_read_failed(process.clk(), err_ctx))
     }
 
-    fn pop_stack_word(&mut self, process: ProcessState) -> Result<Word, ExecutionError> {
+    fn pop_stack_word(
+        &mut self,
+        process: ProcessState,
+        err_ctx: &ErrorContext<'_, impl MastNodeExt>,
+    ) -> Result<Word, ExecutionError> {
         if self.stack.len() < 4 {
-            return Err(ExecutionError::AdviceStackReadFailed(process.clk()));
+            return Err(ExecutionError::advice_stack_read_failed(process.clk(), err_ctx));
         }
 
         let idx = self.stack.len() - 4;
@@ -80,9 +90,13 @@ where
         Ok(result)
     }
 
-    fn pop_stack_dword(&mut self, process: ProcessState) -> Result<[Word; 2], ExecutionError> {
-        let word0 = self.pop_stack_word(process)?;
-        let word1 = self.pop_stack_word(process)?;
+    fn pop_stack_dword(
+        &mut self,
+        process: ProcessState,
+        err_ctx: &ErrorContext<'_, impl MastNodeExt>,
+    ) -> Result<[Word; 2], ExecutionError> {
+        let word0 = self.pop_stack_word(process, err_ctx)?;
+        let word1 = self.pop_stack_word(process, err_ctx)?;
 
         Ok([word0, word1])
     }
@@ -242,16 +256,22 @@ impl MemAdviceProvider {
 /// TODO: potentially do this via a macro.
 #[rustfmt::skip]
 impl AdviceProvider for MemAdviceProvider {
-    fn pop_stack(&mut self, process: ProcessState)-> Result<Felt, ExecutionError> {
-        self.provider.pop_stack(process)
+    fn pop_stack(&mut self, process: ProcessState,
+        err_ctx: &ErrorContext<'_, impl MastNodeExt>,
+    )-> Result<Felt, ExecutionError> {
+        self.provider.pop_stack(process, err_ctx)
     }
 
-    fn pop_stack_word(&mut self, process: ProcessState) -> Result<Word, ExecutionError> {
-        self.provider.pop_stack_word(process)
+    fn pop_stack_word(&mut self, process: ProcessState,
+        err_ctx: &ErrorContext<'_, impl MastNodeExt>,
+    ) -> Result<Word, ExecutionError> {
+        self.provider.pop_stack_word(process, err_ctx)
     }
 
-    fn pop_stack_dword(&mut self, process: ProcessState) -> Result<[Word; 2], ExecutionError> {
-        self.provider.pop_stack_dword(process)
+    fn pop_stack_dword(&mut self, process: ProcessState,
+        err_ctx: &ErrorContext<'_, impl MastNodeExt>,
+    ) -> Result<[Word; 2], ExecutionError> {
+        self.provider.pop_stack_dword(process, err_ctx)
     }
 
     fn push_stack(&mut self, source: AdviceSource, err_ctx: &ErrorContext<impl MastNodeExt>) -> Result<(), ExecutionError> {
@@ -348,16 +368,22 @@ impl RecAdviceProvider {
 /// TODO: potentially do this via a macro.
 #[rustfmt::skip]
 impl AdviceProvider for RecAdviceProvider {
-    fn pop_stack(&mut self, process: ProcessState) -> Result<Felt, ExecutionError> {
-        self.provider.pop_stack(process)
+    fn pop_stack(&mut self, process: ProcessState,
+        err_ctx: &ErrorContext<'_, impl MastNodeExt>,
+    ) -> Result<Felt, ExecutionError> {
+        self.provider.pop_stack(process,err_ctx)
     }
 
-    fn pop_stack_word(&mut self, process: ProcessState) -> Result<Word, ExecutionError> {
-        self.provider.pop_stack_word(process)
+    fn pop_stack_word(&mut self, process: ProcessState, 
+        err_ctx: &ErrorContext<'_, impl MastNodeExt>,
+    ) -> Result<Word, ExecutionError> {
+        self.provider.pop_stack_word(process,err_ctx)
     }
 
-    fn pop_stack_dword(&mut self, process: ProcessState) -> Result<[Word; 2], ExecutionError> {
-        self.provider.pop_stack_dword(process)
+    fn pop_stack_dword(&mut self, process: ProcessState,
+        err_ctx: &ErrorContext<'_, impl MastNodeExt>,
+    ) -> Result<[Word; 2], ExecutionError> {
+        self.provider.pop_stack_dword(process, err_ctx)
     }
 
     fn push_stack(&mut self, source: AdviceSource, err_ctx: &ErrorContext<impl MastNodeExt>) -> Result<(), ExecutionError> {

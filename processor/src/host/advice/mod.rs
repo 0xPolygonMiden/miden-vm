@@ -46,7 +46,11 @@ pub trait AdviceProvider: Sized {
     ///
     /// # Errors
     /// Returns an error if the advice stack is empty.
-    fn pop_stack(&mut self, process: ProcessState) -> Result<Felt, ExecutionError>;
+    fn pop_stack(
+        &mut self,
+        process: ProcessState,
+        err_ctx: &ErrorContext<'_, impl MastNodeExt>,
+    ) -> Result<Felt, ExecutionError>;
 
     /// Pops a word (4 elements) from the advice stack and returns it.
     ///
@@ -55,7 +59,11 @@ pub trait AdviceProvider: Sized {
     ///
     /// # Errors
     /// Returns an error if the advice stack does not contain a full word.
-    fn pop_stack_word(&mut self, process: ProcessState) -> Result<Word, ExecutionError>;
+    fn pop_stack_word(
+        &mut self,
+        process: ProcessState,
+        err_ctx: &ErrorContext<'_, impl MastNodeExt>,
+    ) -> Result<Word, ExecutionError>;
 
     /// Pops a double word (8 elements) from the advice stack and returns them.
     ///
@@ -65,7 +73,11 @@ pub trait AdviceProvider: Sized {
     ///
     /// # Errors
     /// Returns an error if the advice stack does not contain two words.
-    fn pop_stack_dword(&mut self, process: ProcessState) -> Result<[Word; 2], ExecutionError>;
+    fn pop_stack_dword(
+        &mut self,
+        process: ProcessState,
+        err_ctx: &ErrorContext<'_, impl MastNodeExt>,
+    ) -> Result<[Word; 2], ExecutionError>;
 
     /// Pushes the value(s) specified by the source onto the advice stack.
     ///
