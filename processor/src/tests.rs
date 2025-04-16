@@ -3,6 +3,54 @@ use test_utils::build_test_by_mode;
 
 use super::*;
 
+// AdviceMapKeyNotFound
+// ------------------------------------------------------------------------------------------------
+
+#[test]
+fn test_diagnostic_advice_map_key_not_found_1() {
+    let source = "
+        begin
+            swap swap trace.2 adv.push_mapval
+        end";
+
+    let build_test = build_test_by_mode!(true, source, &[1, 2]);
+    let err = build_test.execute().expect_err("expected error");
+    assert_diagnostic_lines!(
+        err,
+        "value for key 00000000000000000000000000000000ffffffff00000000feffffff01000000 not present in the advice map",
+        regex!(r#",-\[test[\d]+:3:31\]"#),
+        " 2 |         begin",
+        " 3 |             swap swap trace.2 adv.push_mapval",
+        "   :                               ^^^^^^^^^^^^^^^",
+        "4 |         end",
+        "   `----"
+    );
+}
+
+#[test]
+fn test_diagnostic_advice_map_key_not_found_2() {
+    let source = "
+        begin
+            swap swap trace.2 adv.push_mapvaln
+        end";
+
+    let build_test = build_test_by_mode!(true, source, &[1, 2]);
+    let err = build_test.execute().expect_err("expected error");
+    assert_diagnostic_lines!(
+        err,
+        "value for key 00000000000000000000000000000000ffffffff00000000feffffff01000000 not present in the advice map",
+        regex!(r#",-\[test[\d]+:3:31\]"#),
+        " 2 |         begin",
+        " 3 |             swap swap trace.2 adv.push_mapvaln",
+        "   :                               ^^^^^^^^^^^^^^^^",
+        "4 |         end",
+        "   `----"
+    );
+}
+
+// FailedAssertion
+// ------------------------------------------------------------------------------------------------
+
 // TODO(plafer): re-enable this and fix after `assert*` lexing is fixed
 #[test]
 #[ignore]
