@@ -232,7 +232,7 @@ impl Process {
         let addr_second_word = addr_first_word + Felt::from(WORD_SIZE as u32);
 
         // pop two words from the advice stack
-        let words = host.advice_provider_mut().pop_stack_dword(self.into())?;
+        let words = host.advice_provider_mut().pop_stack_dword(self.into(), error_ctx)?;
 
         // write the words memory
         self.chiplets
@@ -272,8 +272,12 @@ impl Process {
     ///
     /// # Errors
     /// Returns an error if the advice stack is empty.
-    pub(super) fn op_advpop(&mut self, host: &mut impl Host) -> Result<(), ExecutionError> {
-        let value = host.advice_provider_mut().pop_stack(self.into())?;
+    pub(super) fn op_advpop(
+        &mut self,
+        host: &mut impl Host,
+        err_ctx: &ErrorContext<'_, impl MastNodeExt>,
+    ) -> Result<(), ExecutionError> {
+        let value = host.advice_provider_mut().pop_stack(self.into(), err_ctx)?;
         self.stack.set(0, value);
         self.stack.shift_right(0);
         Ok(())
@@ -284,8 +288,12 @@ impl Process {
     ///
     /// # Errors
     /// Returns an error if the advice stack contains fewer than four elements.
-    pub(super) fn op_advpopw(&mut self, host: &mut impl Host) -> Result<(), ExecutionError> {
-        let word: Word = host.advice_provider_mut().pop_stack_word(self.into())?;
+    pub(super) fn op_advpopw(
+        &mut self,
+        host: &mut impl Host,
+        err_ctx: &ErrorContext<'_, impl MastNodeExt>,
+    ) -> Result<(), ExecutionError> {
+        let word: Word = host.advice_provider_mut().pop_stack_word(self.into(), err_ctx)?;
 
         self.stack.set(0, word[3]);
         self.stack.set(1, word[2]);

@@ -154,8 +154,8 @@ impl Process {
             // ----- input / output ---------------------------------------------------------------
             Operation::Push(value) => self.op_push(value)?,
 
-            Operation::AdvPop => self.op_advpop(host)?,
-            Operation::AdvPopW => self.op_advpopw(host)?,
+            Operation::AdvPop => self.op_advpop(host, error_ctx)?,
+            Operation::AdvPopW => self.op_advpopw(host, error_ctx)?,
 
             Operation::MLoadW => self.op_mloadw(error_ctx)?,
             Operation::MStoreW => self.op_mstorew(error_ctx)?,

@@ -41,10 +41,19 @@ pub enum ExecutionError {
         prev_values: Vec<Felt>,
         new_values: Vec<Felt>,
     },
-    #[error("advice stack read failed at step {0}")]
-    AdviceStackReadFailed(RowIndex),
+    #[error("advice stack read failed at clock cycle {row}")]
+    #[diagnostic()]
+    AdviceStackReadFailed {
+        #[label]
+        label: SourceSpan,
+        #[source_code]
+        source_file: Option<Arc<SourceFile>>,
+        row: RowIndex,
+    },
+    /// This error is caught by the assembler, so we don't need diagnostics here.
     #[error("illegal use of instruction {0} while inside a syscall")]
     CallInSyscall(&'static str),
+    /// This error is caught by the assembler, so we don't need diagnostics here.
     #[error("instruction `caller` used outside of kernel context")]
     CallerNotInSyscall,
     #[error("external node with mast root {0} resolved to an external node")]
@@ -173,6 +182,14 @@ impl ExecutionError {
     ) -> Self {
         let (label, source_file) = err_ctx.label_and_source_file();
         Self::AdviceMapKeyNotFound { label, source_file, key }
+    }
+
+    pub fn advice_stack_read_failed(
+        row: RowIndex,
+        err_ctx: &ErrorContext<'_, impl MastNodeExt>,
+    ) -> Self {
+        let (label, source_file) = err_ctx.label_and_source_file();
+        Self::AdviceStackReadFailed { label, source_file, row }
     }
 
     pub fn failed_assertion(

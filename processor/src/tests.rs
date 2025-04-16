@@ -86,6 +86,30 @@ fn test_diagnostic_advice_map_key_not_found_2() {
     );
 }
 
+// AdviceStackReadFailed
+// ------------------------------------------------------------------------------------------------
+
+#[test]
+fn test_diagnostic_advice_stack_read_failed() {
+    let source = "
+        begin
+            swap adv_push.1 trace.2
+        end";
+
+    let build_test = build_test_by_mode!(true, source, &[1, 2]);
+    let err = build_test.execute().expect_err("expected error");
+    assert_diagnostic_lines!(
+        err,
+        "advice stack read failed at clock cycle 2",
+        regex!(r#",-\[test[\d]+:3:18\]"#),
+        " 2 |         begin",
+        " 3 |             swap adv_push.1 trace.2",
+        "   :                  ^^^^^^^^^^",
+        " 4 |         end",
+        "   `----"
+    );
+}
+
 // FailedAssertion
 // ------------------------------------------------------------------------------------------------
 
