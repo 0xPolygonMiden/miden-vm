@@ -18,7 +18,11 @@ impl Process {
     ///
     /// # Errors
     /// Returns an error if the popped value is not ONE.
-    pub(super) fn op_assert<H>(&mut self, err_code: u32, host: &mut H) -> Result<(), ExecutionError>
+    pub(super) fn op_assert<H>(
+        &mut self,
+        err_code: Felt,
+        host: &mut H,
+    ) -> Result<(), ExecutionError>
     where
         H: Host,
     {
@@ -155,7 +159,7 @@ mod tests {
         process.execute_op(Operation::Swap, &mut host).unwrap();
         process.execute_op(Operation::Drop, &mut host).unwrap();
 
-        assert!(process.execute_op(Operation::Assert(0), &mut host).is_ok());
+        assert!(process.execute_op(Operation::Assert(ZERO), &mut host).is_ok());
     }
 
     #[test]

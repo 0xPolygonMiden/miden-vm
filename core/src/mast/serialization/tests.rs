@@ -126,7 +126,7 @@ fn serialize_deserialize_all_nodes() {
     let basic_block_id = {
         let operations = vec![
             Operation::Noop,
-            Operation::Assert(42),
+            Operation::Assert(Felt::from(42u32)),
             Operation::FmpAdd,
             Operation::FmpUpdate,
             Operation::SDepth,
@@ -157,7 +157,7 @@ fn serialize_deserialize_all_nodes() {
             Operation::Ext2Mul,
             Operation::U32split,
             Operation::U32add,
-            Operation::U32assert2(222),
+            Operation::U32assert2(Felt::from(222u32)),
             Operation::U32add3,
             Operation::U32sub,
             Operation::U32mul,
@@ -210,7 +210,7 @@ fn serialize_deserialize_all_nodes() {
             Operation::MStream,
             Operation::Pipe,
             Operation::HPerm,
-            Operation::MpVerify(1022),
+            Operation::MpVerify(Felt::from(1022u32)),
             Operation::MrUpdate,
             Operation::FriE2F4,
             Operation::HornerBase,

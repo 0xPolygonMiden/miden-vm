@@ -3,8 +3,7 @@ use alloc::sync::Arc;
 use vm_core::{DebugOptions, crypto::hash::RpoDigest, mast::MastForest};
 
 use super::{ExecutionError, ProcessState};
-use crate::{KvMap, MemAdviceProvider};
-
+use crate::{Felt, KvMap, MemAdviceProvider};
 pub(super) mod advice;
 use advice::AdviceProvider;
 
@@ -79,7 +78,7 @@ pub trait Host {
     }
 
     /// Handles the failure of the assertion instruction.
-    fn on_assert_failed(&mut self, process: ProcessState, err_code: u32) -> ExecutionError {
+    fn on_assert_failed(&mut self, process: ProcessState, err_code: Felt) -> ExecutionError {
         ExecutionError::FailedAssertion {
             clk: process.clk(),
             err_code,
@@ -122,7 +121,7 @@ where
         H::on_trace(self, process, trace_id)
     }
 
-    fn on_assert_failed(&mut self, process: ProcessState, err_code: u32) -> ExecutionError {
+    fn on_assert_failed(&mut self, process: ProcessState, err_code: Felt) -> ExecutionError {
         H::on_assert_failed(self, process, err_code)
     }
 }

@@ -16,7 +16,7 @@ const TWO: Felt = Felt::new(2);
 /// Asserts that the top two words in the stack are equal.
 ///
 /// VM cycles: 11 cycles
-pub fn assertw(span_builder: &mut BasicBlockBuilder, err_code: u32) {
+pub fn assertw(span_builder: &mut BasicBlockBuilder, err_code: Felt) {
     span_builder.push_ops([
         MovUp4,
         Eq,
@@ -136,7 +136,7 @@ pub fn append_pow2_op(span_builder: &mut BasicBlockBuilder) {
     // drop the top two elements bit and exp value of the latest bit.
     span_builder.push_ops([Drop, Drop]);
     // taking `b` to the top and asserting if it's equal to ZERO after all the right shifts.
-    span_builder.push_ops([Swap, Eqz, Assert(0)]);
+    span_builder.push_ops([Swap, Eqz, Assert(ZERO)]);
 }
 
 // EXPONENTIATION OPERATION
@@ -165,7 +165,7 @@ pub fn exp(span_builder: &mut BasicBlockBuilder, num_pow_bits: u8) -> Result<(),
     span_builder.push_ops([Drop, Drop]);
 
     // taking `b` to the top and asserting if it's equal to ZERO after all the right shifts.
-    span_builder.push_ops([Swap, Eqz, Assert(0)]);
+    span_builder.push_ops([Swap, Eqz, Assert(ZERO)]);
     Ok(())
 }
 
@@ -285,7 +285,7 @@ pub fn ilog2(block_builder: &mut BasicBlockBuilder) {
         // => [pow2_half * 2 - 1, n_half, ilog2, ...]
         Dup1, U32and,
         // => [m, n_half, ilog2, ...] if ilog2 calculation was correct, m should be equal to n_half
-        Eq, Assert(0),
+        Eq, Assert(ZERO),
         // => [ilog2, ...]
     ];
 

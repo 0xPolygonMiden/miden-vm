@@ -134,7 +134,7 @@ pub trait Visit<T = ()> {
     fn visit_immediate_felt(&mut self, imm: &Immediate<Felt>) -> ControlFlow<T> {
         visit_immediate_felt(self, imm)
     }
-    fn visit_immediate_error_code(&mut self, code: &Immediate<u32>) -> ControlFlow<T> {
+    fn visit_immediate_error_code(&mut self, code: &Immediate<Felt>) -> ControlFlow<T> {
         visit_immediate_error_code(self, code)
     }
 }
@@ -203,7 +203,7 @@ where
     fn visit_immediate_felt(&mut self, imm: &Immediate<Felt>) -> ControlFlow<T> {
         (**self).visit_immediate_felt(imm)
     }
-    fn visit_immediate_error_code(&mut self, code: &Immediate<u32>) -> ControlFlow<T> {
+    fn visit_immediate_error_code(&mut self, code: &Immediate<Felt>) -> ControlFlow<T> {
         (**self).visit_immediate_error_code(code)
     }
 }
@@ -457,7 +457,7 @@ where
 }
 
 #[inline(always)]
-pub fn visit_immediate_error_code<V, T>(_visitor: &mut V, _imm: &Immediate<u32>) -> ControlFlow<T>
+pub fn visit_immediate_error_code<V, T>(_visitor: &mut V, _imm: &Immediate<Felt>) -> ControlFlow<T>
 where
     V: ?Sized + Visit<T>,
 {
@@ -548,7 +548,7 @@ pub trait VisitMut<T = ()> {
     fn visit_mut_immediate_felt(&mut self, imm: &mut Immediate<Felt>) -> ControlFlow<T> {
         visit_mut_immediate_felt(self, imm)
     }
-    fn visit_mut_immediate_error_code(&mut self, code: &mut Immediate<u32>) -> ControlFlow<T> {
+    fn visit_mut_immediate_error_code(&mut self, code: &mut Immediate<Felt>) -> ControlFlow<T> {
         visit_mut_immediate_error_code(self, code)
     }
 }
@@ -617,7 +617,7 @@ where
     fn visit_mut_immediate_felt(&mut self, imm: &mut Immediate<Felt>) -> ControlFlow<T> {
         (**self).visit_mut_immediate_felt(imm)
     }
-    fn visit_mut_immediate_error_code(&mut self, code: &mut Immediate<u32>) -> ControlFlow<T> {
+    fn visit_mut_immediate_error_code(&mut self, code: &mut Immediate<Felt>) -> ControlFlow<T> {
         (**self).visit_mut_immediate_error_code(code)
     }
 }
@@ -888,7 +888,7 @@ where
 #[inline(always)]
 pub fn visit_mut_immediate_error_code<V, T>(
     _visitor: &mut V,
-    _imm: &mut Immediate<u32>,
+    _imm: &mut Immediate<Felt>,
 ) -> ControlFlow<T>
 where
     V: ?Sized + VisitMut<T>,

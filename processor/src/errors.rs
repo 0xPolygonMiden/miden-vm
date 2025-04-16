@@ -57,7 +57,7 @@ pub enum ExecutionError {
     )]
     FailedAssertion {
         clk: RowIndex,
-        err_code: u32,
+        err_code: Felt,
         err_msg: Option<String>,
     },
     #[error(
@@ -100,7 +100,7 @@ pub enum ExecutionError {
     MemoryError(MemoryError),
     #[error("no MAST forest contains the procedure with root digest {root_digest}")]
     NoMastForestWithProcedure { root_digest: Digest },
-    #[error("merkle path verification failed for value {value} at index {index} in the Merkle tree with root {root} (error code: {err_code})", 
+    #[error("merkle path verification failed for value {value} at index {index} in the Merkle tree with root {root} (error code: {err_code})",
       value = to_hex(Felt::elements_as_bytes(value)),
       root = to_hex(root.as_bytes()),
     )]
@@ -108,7 +108,7 @@ pub enum ExecutionError {
         value: Word,
         index: Felt,
         root: Digest,
-        err_code: u32,
+        err_code: Felt,
     },
     #[error("advice provider Merkle store backend lookup failed")]
     MerkleStoreLookupFailed(#[source] MerkleError),
