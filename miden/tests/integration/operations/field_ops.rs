@@ -213,7 +213,10 @@ fn div_fail() {
 
     // --- test divide by zero --------------------------------------------------------------------
     let test = build_op_test!(asm_op, &[1, 0]);
-    expect_exec_error_matches!(test, ExecutionError::DivideByZero(row_idx) if row_idx == RowIndex::from(2));
+    expect_exec_error_matches!(
+        test,
+        ExecutionError::DivideByZero{ clk:value, label: _, source_file: _ } if value == RowIndex::from(2)
+    );
 }
 
 #[test]
@@ -279,7 +282,7 @@ fn inv_fail() {
 
     // --- test no inv on 0 -----------------------------------------------------------------------
     let test = build_op_test!(asm_op, &[0]);
-    expect_exec_error_matches!(test, ExecutionError::DivideByZero(row_idx) if row_idx == RowIndex::from(2));
+    expect_exec_error_matches!(test, ExecutionError::DivideByZero{clk: row_idx, label: _, source_file: _ } if row_idx == RowIndex::from(2));
 
     let asm_op = "inv.1";
 

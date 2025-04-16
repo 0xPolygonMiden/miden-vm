@@ -110,6 +110,51 @@ fn test_diagnostic_advice_stack_read_failed() {
     );
 }
 
+// DivideByZero
+// ------------------------------------------------------------------------------------------------
+
+#[test]
+fn test_diagnostic_divide_by_zero_1() {
+    let source = "
+        begin
+            trace.2 div
+        end";
+
+    let build_test = build_test_by_mode!(true, source, &[]);
+    let err = build_test.execute().expect_err("expected error");
+    assert_diagnostic_lines!(
+        err,
+        "division by zero at clock cycle 1",
+        regex!(r#",-\[test[\d]+:3:21\]"#),
+        " 2 |         begin",
+        " 3 |             trace.2 div",
+        "   :                     ^^^",
+        " 4 |         end",
+        "   `----"
+    );
+}
+
+#[test]
+fn test_diagnostic_divide_by_zero_2() {
+    let source = "
+        begin
+            trace.2 u32div
+        end";
+
+    let build_test = build_test_by_mode!(true, source, &[]);
+    let err = build_test.execute().expect_err("expected error");
+    assert_diagnostic_lines!(
+        err,
+        "division by zero at clock cycle 1",
+        regex!(r#",-\[test[\d]+:3:21\]"#),
+        " 2 |         begin",
+        " 3 |             trace.2 u32div",
+        "   :                     ^^^^^^",
+        " 4 |         end",
+        "   `----"
+    );
+}
+
 // FailedAssertion
 // ------------------------------------------------------------------------------------------------
 
