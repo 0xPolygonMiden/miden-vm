@@ -4,11 +4,11 @@ use vm_core::{Felt, ONE, ZERO, utils::range as create_range};
 
 use super::{CHIPLETS_OFFSET, HASH_KERNEL_VTABLE_AUX_TRACE_OFFSET};
 
+mod ace;
 pub mod bitwise;
 pub mod hasher;
 pub mod kernel_rom;
 pub mod memory;
-mod ace;
 // CONSTANTS
 // ================================================================================================
 

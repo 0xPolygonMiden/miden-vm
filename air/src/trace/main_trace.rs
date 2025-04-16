@@ -511,7 +511,7 @@ impl MainTrace {
         self.columns.get_column(CHIPLETS_OFFSET + 18)[i]
     }
 
-    pub fn chiplet_ace_m_0(&self, i: usize) -> Felt {
+    pub fn chiplet_ace_m_0(&self, i: RowIndex) -> Felt {
         self.columns.get_column(CHIPLETS_OFFSET + 19)[i]
     }
 

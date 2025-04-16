@@ -1,8 +1,9 @@
 use std::vec::Vec;
 
-use crate::chiplets::ace::{AceHints, NUM_ACE_LOGUP_FRACTIONS_EVAL, NUM_ACE_LOGUP_FRACTIONS_READ};
 use miden_air::trace::main_trace::MainTrace;
 use vm_core::{Felt, FieldElement};
+
+use crate::chiplets::ace::{AceHints, NUM_ACE_LOGUP_FRACTIONS_EVAL, NUM_ACE_LOGUP_FRACTIONS_READ};
 
 /// Describes how to construct the execution trace of the ACE chiplet wiring bus column.
 pub struct WiringBusBuilder<'a> {

@@ -1,6 +1,6 @@
-use ace::{Ace, AceHints};
 use alloc::vec::Vec;
 
+use ace::{Ace, AceHints};
 use miden_air::{
     RowIndex,
     trace::chiplets::hasher::{Digest, HasherState},
@@ -68,8 +68,8 @@ mod tests;
 ///   - columns 3-17: execution trace of memory chiplet
 ///
 /// * ACE segment: contains the trace and selectors for the arithmetic circuit evaluation chiplet.
-///   This segment begins at the end of the memory segment and fills the next rows of the trace
-///   for the `trace_len` of the ACE chiplet.
+///   This segment begins at the end of the memory segment and fills the next rows of the trace for
+///   the `trace_len` of the ACE chiplet.
 ///   - column 0-2: selector columns with values set to ONE
 ///   - column 3: selector column with values set to ZERO
 ///   - columns 4-20: execution trace of ACE chiplet
@@ -265,8 +265,8 @@ impl Chiplets {
         let mut ace_fragment = TraceFragment::new(CHIPLETS_WIDTH);
         let mut kernel_rom_fragment = TraceFragment::new(CHIPLETS_WIDTH);
 
-        // add the hasher, bitwise, memory, ACE, and kernel ROM segments to their respective fragments
-        // so they can be filled with the chiplet traces
+        // add the hasher, bitwise, memory, ACE, and kernel ROM segments to their respective
+        // fragments so they can be filled with the chiplet traces
         for (column_num, column) in trace.iter_mut().enumerate().skip(1) {
             match column_num {
                 1 => {
@@ -285,7 +285,8 @@ impl Chiplets {
                     memory_fragment.push_column_slice(rest, memory.trace_len());
                 },
                 4 | 11..=14 => {
-                    // columns 4 - 11 to 14 are relevant for hasher, bitwise, memory chiplets and ace chiplet
+                    // columns 4 - 11 to 14 are relevant for hasher, bitwise, memory chiplets and
+                    // ace chiplet
                     let rest = hasher_fragment.push_column_slice(column, hasher.trace_len());
                     let rest = bitwise_fragment.push_column_slice(rest, bitwise.trace_len());
                     let rest = memory_fragment.push_column_slice(rest, memory.trace_len());

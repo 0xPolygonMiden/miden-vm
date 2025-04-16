@@ -1,6 +1,6 @@
-use crate::Felt;
 use std::prelude::rust_2015::Vec;
-use crate::crypto::ElementHasher;
+
+use crate::{Felt, crypto::ElementHasher};
 
 /// Arithmetic operation applied to two nodes in the evaluation graph.
 #[derive(Debug, Copy, Clone, Eq, PartialEq)]
@@ -38,7 +38,8 @@ impl EncodedCircuit {
     /// Define as 30 bits to ensure two indices and the operation can be encoded in a single `Felt`
     pub const ID_BITS: u64 = 30;
 
-    /// Maximum allowed ID, also equal to the mask extracting an ID from the lower 30 bits of a `uint`.
+    /// Maximum allowed ID, also equal to the mask extracting an ID from the lower 30 bits of a
+    /// `uint`.
     pub const MAX_ID: u32 = (1 << Self::ID_BITS) - 1;
 
     /// Given a `Felt`, try to recover the components `id_l, id_r, op`.
@@ -58,7 +59,6 @@ impl EncodedCircuit {
         Some((id_l, id_r, op))
     }
 
-
     // HASHING
 
     /// Compute the hash of all circuit constants and instructions.
@@ -68,7 +68,7 @@ impl EncodedCircuit {
     }
 
     /// Returns the digest of the circuit including a header
-    pub fn circuit_hash(&self) -> () {
+    pub fn circuit_hash<H: ElementHasher<BaseField = Felt>>(&self) -> H::Digest {
         todo!()
     }
 

@@ -138,14 +138,11 @@ impl<E: FieldElement<BaseField = Felt>> AuxColumnBuilder<E> for BusColumnBuilder
         E: FieldElement<BaseField = Felt>,
     {
         if main_trace.is_hash_row(row) {
-            let hash_response = build_hasher_chiplet_responses(main_trace, row, alphas, debugger);
-            hash_response
+            build_hasher_chiplet_responses(main_trace, row, alphas, debugger)
         } else if main_trace.is_bitwise_row(row) {
-            let bit_response = build_bitwise_chiplet_responses(main_trace, row, alphas, debugger);
-            bit_response
+            build_bitwise_chiplet_responses(main_trace, row, alphas, debugger)
         } else if main_trace.is_memory_row(row) {
-            let mem_response = build_memory_chiplet_responses(main_trace, row, alphas, debugger);
-            mem_response
+            build_memory_chiplet_responses(main_trace, row, alphas, debugger)
         } else if main_trace.is_ace_row(row) {
             build_ace_chiplet_responses(main_trace, row, alphas, debugger)
         } else if main_trace.is_kernel_row(row) {

@@ -1,9 +1,13 @@
-use crate::chiplets::ace::encoded_circuit::Op;
-use crate::chiplets::ace::tests::circuit::{Circuit, CircuitLayout, Instruction, NodeID};
-use crate::math::FieldElement;
-use crate::{Felt, QuadFelt};
 use std::prelude::rust_2024::Vec;
-use crate::chiplets::ace::encoded_circuit::EncodedCircuit;
+
+use crate::{
+    Felt, QuadFelt,
+    chiplets::ace::{
+        encoded_circuit::{EncodedCircuit, Op},
+        tests::circuit::{Circuit, CircuitLayout, Instruction, NodeID},
+    },
+    math::FieldElement,
+};
 
 #[derive(Debug)]
 pub enum EncodingError {
@@ -11,7 +15,6 @@ pub enum EncodingError {
 }
 
 impl EncodedCircuit {
-
     /// Try to create an `EncodedCircuit` from a given circuit. The circuit is expected to
     /// evaluate to zero, as the resulting encoded circuit is padded with squaring operations.
     /// - The number of nodes should not exceed `MAX_ID` to ensure IDs can be correctly encoded

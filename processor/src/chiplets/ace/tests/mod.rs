@@ -1,24 +1,25 @@
-use crate::chiplets::ace::encoded_circuit::EncodedCircuit;
-use crate::chiplets::ace::tests::circuit::CircuitLayout;
-use crate::chiplets::ace::tests::circuit::Circuit;
-use crate::chiplets::ace::encoded_circuit::Op;
-use crate::chiplets::ace::tests::circuit::NodeID;
-use crate::chiplets::ace::tests::circuit::Instruction;
-use crate::chiplets::ace::eval_circuit;
-use crate::chiplets::ace::trace::{
-    EVAL_OP_IDX, EvaluationContext, ID_0_IDX, ID_1_IDX, ID_2_IDX, M_0_IDX, M_1_IDX, NUM_COLS,
-    SELECTOR_BLOCK_IDX, SELECTOR_START_IDX, V_0_0_IDX, V_0_1_IDX, V_1_0_IDX, V_1_1_IDX, V_2_0_IDX,
-    V_2_1_IDX,
-};
-use crate::chiplets::memory::Memory;
-use crate::errors::ErrorContext;
-use crate::{ContextId, Felt, QuadFelt, Word};
+use std::{collections::HashMap, prelude::rust_2015::Vec, println};
+
 use miden_air::{FieldElement, RowIndex};
-use std::collections::HashMap;
-use std::prelude::rust_2015::Vec;
-use std::println;
-use vm_core::ZERO;
-use vm_core::mast::BasicBlockNode;
+use vm_core::{ZERO, mast::BasicBlockNode};
+
+use crate::{
+    ContextId, Felt, QuadFelt, Word,
+    chiplets::{
+        ace::{
+            encoded_circuit::{EncodedCircuit, Op},
+            eval_circuit,
+            tests::circuit::{Circuit, CircuitLayout, Instruction, NodeID},
+            trace::{
+                EVAL_OP_IDX, EvaluationContext, ID_0_IDX, ID_1_IDX, ID_2_IDX, M_0_IDX, M_1_IDX,
+                NUM_COLS, SELECTOR_BLOCK_IDX, SELECTOR_START_IDX, V_0_0_IDX, V_0_1_IDX, V_1_0_IDX,
+                V_1_1_IDX, V_2_0_IDX, V_2_1_IDX,
+            },
+        },
+        memory::Memory,
+    },
+    errors::ErrorContext,
+};
 
 mod circuit;
 mod encoder;
