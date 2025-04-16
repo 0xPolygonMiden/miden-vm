@@ -115,8 +115,13 @@ pub trait AdviceProvider: Sized {
     /// - The specified depth is either zero or greater than the depth of the Merkle tree identified
     ///   by the specified root.
     /// - Value of the node at the specified depth and index is not known to this advice provider.
-    fn get_tree_node(&self, root: Word, depth: &Felt, index: &Felt)
-    -> Result<Word, ExecutionError>;
+    fn get_tree_node(
+        &self,
+        root: Word,
+        depth: &Felt,
+        index: &Felt,
+        err_ctx: &ErrorContext<'_, impl MastNodeExt>,
+    ) -> Result<Word, ExecutionError>;
 
     /// Returns a path to a node at the specified depth and index in a Merkle tree with the
     /// specified root.
@@ -132,6 +137,7 @@ pub trait AdviceProvider: Sized {
         root: Word,
         depth: &Felt,
         index: &Felt,
+        err_ctx: &ErrorContext<'_, impl MastNodeExt>,
     ) -> Result<MerklePath, ExecutionError>;
 
     /// Reconstructs a path from the root until a leaf or empty node and returns its depth.
@@ -147,6 +153,7 @@ pub trait AdviceProvider: Sized {
         root: Word,
         tree_depth: &Felt,
         index: &Felt,
+        err_ctx: &ErrorContext<'_, impl MastNodeExt>,
     ) -> Result<u8, ExecutionError>;
 
     /// Updates a node at the specified depth and index in a Merkle tree with the specified root;
@@ -168,6 +175,7 @@ pub trait AdviceProvider: Sized {
         depth: &Felt,
         index: &Felt,
         value: Word,
+        err_ctx: &ErrorContext<'_, impl MastNodeExt>,
     ) -> Result<(MerklePath, Word), ExecutionError>;
 
     /// Creates a new Merkle tree in the advice provider by combining Merkle trees with the
@@ -178,5 +186,10 @@ pub trait AdviceProvider: Sized {
     ///
     /// It is not checked whether a Merkle tree for either of the specified roots can be found in
     /// this advice provider.
-    fn merge_roots(&mut self, lhs: Word, rhs: Word) -> Result<Word, ExecutionError>;
+    fn merge_roots(
+        &mut self,
+        lhs: Word,
+        rhs: Word,
+        err_ctx: &ErrorContext<'_, impl MastNodeExt>,
+    ) -> Result<Word, ExecutionError>;
 }

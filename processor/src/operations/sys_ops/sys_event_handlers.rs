@@ -32,7 +32,9 @@ impl Process {
         let advice_provider = host.advice_provider_mut();
         let process_state: ProcessState = self.into();
         match system_event {
-            SystemEvent::MerkleNodeMerge => merge_merkle_nodes(advice_provider, process_state),
+            SystemEvent::MerkleNodeMerge => {
+                merge_merkle_nodes(advice_provider, process_state, err_ctx)
+            },
             SystemEvent::MerkleNodeToStack => {
                 copy_merkle_node_to_adv_stack(advice_provider, process_state, err_ctx)
             },
@@ -205,13 +207,14 @@ pub fn insert_hperm_into_adv_map(
 pub fn merge_merkle_nodes(
     advice_provider: &mut impl AdviceProvider,
     process: ProcessState,
+    err_ctx: &ErrorContext<'_, impl MastNodeExt>,
 ) -> Result<(), ExecutionError> {
     // fetch the arguments from the stack
     let lhs = process.get_stack_word(1);
     let rhs = process.get_stack_word(0);
 
     // perform the merge
-    advice_provider.merge_roots(lhs, rhs)?;
+    advice_provider.merge_roots(lhs, rhs, err_ctx)?;
 
     Ok(())
 }
@@ -249,7 +252,7 @@ pub fn copy_merkle_node_to_adv_stack(
         process.get_stack_item(2),
     ];
 
-    let node = advice_provider.get_tree_node(root, &depth, &index)?;
+    let node = advice_provider.get_tree_node(root, &depth, &index, err_ctx)?;
 
     advice_provider.push_stack(AdviceSource::Value(node[3]), err_ctx)?;
     advice_provider.push_stack(AdviceSource::Value(node[2]), err_ctx)?;
@@ -677,7 +680,8 @@ pub fn push_smtpeek_result(
 
     // get the node from the SMT for the specified key; this node can be either a leaf node,
     // or a root of an empty subtree at the returned depth
-    let node = advice_provider.get_tree_node(root, &Felt::new(SMT_DEPTH as u64), &key[3])?;
+    let node =
+        advice_provider.get_tree_node(root, &Felt::new(SMT_DEPTH as u64), &key[3], err_ctx)?;
 
     if node == Word::from(empty_leaf) {
         // if the node is a root of an empty subtree, then there is no value associated with
