@@ -71,10 +71,17 @@ pub enum ExecutionError {
         source_file: Option<Arc<SourceFile>>,
         clk: RowIndex,
     },
-    #[error("failed to execute the dynamic code block provided by the stack with root {hex}; the block could not be found",
-      hex = to_hex(.0.as_bytes())
+    #[error("failed to execute the dynamic code block provided by the stack with root 0x{hex}; the block could not be found",
+      hex = to_hex(.digest.as_bytes())
     )]
-    DynamicNodeNotFound(Digest),
+    #[diagnostic()]
+    DynamicNodeNotFound {
+        #[label]
+        label: SourceSpan,
+        #[source_code]
+        source_file: Option<Arc<SourceFile>>,
+        digest: Digest,
+    },
     #[error("error during processing of event in on_event handler")]
     EventError(#[source] Box<dyn Error + Send + Sync + 'static>),
     #[error("failed to execute Ext2Intt operation: {0}")]
@@ -202,6 +209,15 @@ impl ExecutionError {
     pub fn divide_by_zero(clk: RowIndex, err_ctx: &ErrorContext<'_, impl MastNodeExt>) -> Self {
         let (label, source_file) = err_ctx.label_and_source_file();
         Self::DivideByZero { clk, label, source_file }
+    }
+
+    pub fn dynamic_node_not_found(
+        digest: Digest,
+        err_ctx: &ErrorContext<'_, impl MastNodeExt>,
+    ) -> Self {
+        let (label, source_file) = err_ctx.label_and_source_file();
+
+        Self::DynamicNodeNotFound { label, source_file, digest }
     }
 
     pub fn failed_assertion(

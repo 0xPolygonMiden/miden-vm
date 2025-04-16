@@ -155,6 +155,51 @@ fn test_diagnostic_divide_by_zero_2() {
     );
 }
 
+// DynamicNodeNotFound
+// ------------------------------------------------------------------------------------------------
+
+#[test]
+fn test_diagnostic_dynamic_node_not_found_1() {
+    let source = "
+        begin
+            trace.2 dynexec
+        end";
+
+    let build_test = build_test_by_mode!(true, source, &[]);
+    let err = build_test.execute().expect_err("expected error");
+    assert_diagnostic_lines!(
+        err,
+        "failed to execute the dynamic code block provided by the stack with root 0x0000000000000000000000000000000000000000000000000000000000000000; the block could not be found",
+        regex!(r#",-\[test[\d]+:3:21\]"#),
+        " 2 |         begin",
+        " 3 |             trace.2 dynexec",
+        "   :                     ^^^^^^^",
+        " 4 |         end",
+        "   `----"
+    );
+}
+
+#[test]
+fn test_diagnostic_dynamic_node_not_found_2() {
+    let source = "
+        begin
+            trace.2 dyncall
+        end";
+
+    let build_test = build_test_by_mode!(true, source, &[]);
+    let err = build_test.execute().expect_err("expected error");
+    assert_diagnostic_lines!(
+        err,
+        "failed to execute the dynamic code block provided by the stack with root 0x0000000000000000000000000000000000000000000000000000000000000000; the block could not be found",
+        regex!(r#",-\[test[\d]+:3:21\]"#),
+        " 2 |         begin",
+        " 3 |             trace.2 dyncall",
+        "   :                     ^^^^^^^",
+        " 4 |         end",
+        "   `----"
+    );
+}
+
 // FailedAssertion
 // ------------------------------------------------------------------------------------------------
 
