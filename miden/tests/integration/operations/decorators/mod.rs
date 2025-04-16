@@ -44,7 +44,7 @@ impl<A: AdviceProvider> Host for TestHost<A> {
         &mut self,
         _process: ProcessState,
         event_id: u32,
-        err_ctx: &ErrorContext<impl MastNodeExt>,
+        _err_ctx: &ErrorContext<impl MastNodeExt>,
     ) -> Result<(), ExecutionError> {
         self.event_handler.push(event_id);
         Ok(())

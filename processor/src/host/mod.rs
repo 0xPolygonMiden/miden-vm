@@ -188,7 +188,11 @@ impl<A: AdviceProvider> DefaultHost<A> {
         for (digest, values) in mast_forest.advice_map().iter() {
             if let Some(stored_values) = self.advice_provider().get_mapped_values(digest) {
                 if stored_values != values {
-                    return Err(ExecutionError::AdviceMapKeyAlreadyPresent(digest.into()));
+                    return Err(ExecutionError::AdviceMapKeyAlreadyPresent {
+                        key: digest.into(),
+                        prev_values: stored_values.to_vec(),
+                        new_values: values.clone(),
+                    });
                 }
             } else {
                 self.advice_provider_mut().insert_into_map(digest.into(), values.clone());
