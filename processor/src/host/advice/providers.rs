@@ -1,12 +1,15 @@
 use alloc::{collections::BTreeMap, vec::Vec};
 
-use vm_core::crypto::merkle::{MerkleStore, NodeIndex, StoreNode};
+use vm_core::{
+    crypto::merkle::{MerkleStore, NodeIndex, StoreNode},
+    mast::MastNodeExt,
+};
 
 use super::{
     AdviceInputs, AdviceProvider, AdviceSource, ExecutionError, Felt, MerklePath, RpoDigest, Word,
 };
 use crate::{
-    ProcessState,
+    ErrorContext, ProcessState,
     utils::collections::{KvMap, RecordingMap},
 };
 
@@ -84,7 +87,11 @@ where
         Ok([word0, word1])
     }
 
-    fn push_stack(&mut self, source: AdviceSource) -> Result<(), ExecutionError> {
+    fn push_stack(
+        &mut self,
+        source: AdviceSource,
+        err_ctx: &ErrorContext<'_, impl MastNodeExt>,
+    ) -> Result<(), ExecutionError> {
         match source {
             AdviceSource::Value(value) => {
                 self.stack.push(value);
@@ -93,8 +100,10 @@ where
                 self.stack.extend(word.iter().rev());
             },
             AdviceSource::Map { key, include_len } => {
-                let values =
-                    self.map.get(&key.into()).ok_or(ExecutionError::AdviceMapKeyNotFound(key))?;
+                let values = self
+                    .map
+                    .get(&key.into())
+                    .ok_or(ExecutionError::advice_map_key_not_found(key, err_ctx))?;
 
                 self.stack.extend(values.iter().rev());
                 if include_len {
@@ -245,8 +254,8 @@ impl AdviceProvider for MemAdviceProvider {
         self.provider.pop_stack_dword(process)
     }
 
-    fn push_stack(&mut self, source: AdviceSource) -> Result<(), ExecutionError> {
-        self.provider.push_stack(source)
+    fn push_stack(&mut self, source: AdviceSource, err_ctx: &ErrorContext<impl MastNodeExt>) -> Result<(), ExecutionError> {
+        self.provider.push_stack(source, err_ctx)
     }
 
     fn insert_into_map(&mut self, key: Word, values: Vec<Felt>)  {
@@ -351,8 +360,8 @@ impl AdviceProvider for RecAdviceProvider {
         self.provider.pop_stack_dword(process)
     }
 
-    fn push_stack(&mut self, source: AdviceSource) -> Result<(), ExecutionError> {
-        self.provider.push_stack(source)
+    fn push_stack(&mut self, source: AdviceSource, err_ctx: &ErrorContext<impl MastNodeExt>) -> Result<(), ExecutionError> {
+        self.provider.push_stack(source, err_ctx)
     }
 
     fn insert_into_map(&mut self, key: Word, values: Vec<Felt>)  {

@@ -8,7 +8,6 @@ extern crate std;
 
 use alloc::{sync::Arc, vec::Vec};
 
-use errors::ErrorContext;
 use miden_air::trace::{
     CHIPLETS_WIDTH, DECODER_TRACE_WIDTH, MIN_TRACE_LEN, RANGE_CHECK_TRACE_WIDTH, STACK_TRACE_WIDTH,
     SYS_TRACE_WIDTH,
@@ -63,7 +62,7 @@ use trace::TraceFragment;
 pub use trace::{ChipletsLengths, ExecutionTrace, NUM_RAND_ROWS, TraceLenSummary};
 
 mod errors;
-pub use errors::{ExecutionError, Ext2InttError};
+pub use errors::{ErrorContext, ExecutionError, Ext2InttError};
 
 pub mod utils;
 

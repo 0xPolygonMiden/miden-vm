@@ -48,7 +48,12 @@ pub trait Host {
     // --------------------------------------------------------------------------------------------
 
     /// Handles the event emitted from the VM.
-    fn on_event(&mut self, _process: ProcessState, _event_id: u32) -> Result<(), ExecutionError> {
+    fn on_event(
+        &mut self,
+        _process: ProcessState,
+        _event_id: u32,
+        _err_ctx: &ErrorContext<'_, impl MastNodeExt>,
+    ) -> Result<(), ExecutionError> {
         #[cfg(feature = "std")]
         std::println!(
             "Event with id {} emitted at step {} in context {}",
@@ -119,8 +124,13 @@ where
         H::on_debug(self, process, options)
     }
 
-    fn on_event(&mut self, process: ProcessState, event_id: u32) -> Result<(), ExecutionError> {
-        H::on_event(self, process, event_id)
+    fn on_event(
+        &mut self,
+        process: ProcessState,
+        event_id: u32,
+        err_ctx: &ErrorContext<'_, impl MastNodeExt>,
+    ) -> Result<(), ExecutionError> {
+        H::on_event(self, process, event_id, err_ctx)
     }
 
     fn on_trace(&mut self, process: ProcessState, trace_id: u32) -> Result<(), ExecutionError> {
@@ -219,7 +229,12 @@ impl<A: AdviceProvider> Host for DefaultHost<A> {
         self.store.get(node_digest)
     }
 
-    fn on_event(&mut self, _process: ProcessState, _event_id: u32) -> Result<(), ExecutionError> {
+    fn on_event(
+        &mut self,
+        _process: ProcessState,
+        _event_id: u32,
+        _err_ctx: &ErrorContext<'_, impl MastNodeExt>,
+    ) -> Result<(), ExecutionError> {
         #[cfg(feature = "std")]
         std::println!(
             "Event with id {} emitted at step {} in context {}",

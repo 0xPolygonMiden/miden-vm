@@ -6,6 +6,7 @@ use vm_core::{
         hash::{Rpo256, RpoDigest},
         merkle::{EmptySubtreeRoots, SMT_DEPTH, Smt},
     },
+    mast::MastNodeExt,
     sys_events::SystemEvent,
 };
 use winter_prover::math::fft;
@@ -26,30 +27,33 @@ impl Process {
         &self,
         system_event: SystemEvent,
         host: &mut impl Host,
+        err_ctx: &ErrorContext<'_, impl MastNodeExt>,
     ) -> Result<(), ExecutionError> {
         let advice_provider = host.advice_provider_mut();
         let process_state: ProcessState = self.into();
         match system_event {
             SystemEvent::MerkleNodeMerge => merge_merkle_nodes(advice_provider, process_state),
             SystemEvent::MerkleNodeToStack => {
-                copy_merkle_node_to_adv_stack(advice_provider, process_state)
+                copy_merkle_node_to_adv_stack(advice_provider, process_state, err_ctx)
             },
             SystemEvent::MapValueToStack => {
-                copy_map_value_to_adv_stack(advice_provider, process_state, false)
+                copy_map_value_to_adv_stack(advice_provider, process_state, false, err_ctx)
             },
             SystemEvent::MapValueToStackN => {
-                copy_map_value_to_adv_stack(advice_provider, process_state, true)
+                copy_map_value_to_adv_stack(advice_provider, process_state, true, err_ctx)
             },
-            SystemEvent::U64Div => push_u64_div_result(advice_provider, process_state),
-            SystemEvent::FalconDiv => push_falcon_mod_result(advice_provider, process_state),
-            SystemEvent::Ext2Inv => push_ext2_inv_result(advice_provider, process_state),
-            SystemEvent::Ext2Intt => push_ext2_intt_result(advice_provider, process_state),
-            SystemEvent::SmtPeek => push_smtpeek_result(advice_provider, process_state),
-            SystemEvent::U32Clz => push_leading_zeros(advice_provider, process_state),
-            SystemEvent::U32Ctz => push_trailing_zeros(advice_provider, process_state),
-            SystemEvent::U32Clo => push_leading_ones(advice_provider, process_state),
-            SystemEvent::U32Cto => push_trailing_ones(advice_provider, process_state),
-            SystemEvent::ILog2 => push_ilog2(advice_provider, process_state),
+            SystemEvent::U64Div => push_u64_div_result(advice_provider, process_state, err_ctx),
+            SystemEvent::FalconDiv => {
+                push_falcon_mod_result(advice_provider, process_state, err_ctx)
+            },
+            SystemEvent::Ext2Inv => push_ext2_inv_result(advice_provider, process_state, err_ctx),
+            SystemEvent::Ext2Intt => push_ext2_intt_result(advice_provider, process_state, err_ctx),
+            SystemEvent::SmtPeek => push_smtpeek_result(advice_provider, process_state, err_ctx),
+            SystemEvent::U32Clz => push_leading_zeros(advice_provider, process_state, err_ctx),
+            SystemEvent::U32Ctz => push_trailing_zeros(advice_provider, process_state, err_ctx),
+            SystemEvent::U32Clo => push_leading_ones(advice_provider, process_state, err_ctx),
+            SystemEvent::U32Cto => push_trailing_ones(advice_provider, process_state, err_ctx),
+            SystemEvent::ILog2 => push_ilog2(advice_provider, process_state, err_ctx),
 
             SystemEvent::MemToMap => insert_mem_values_into_adv_map(advice_provider, process_state),
             SystemEvent::HdwordToMap => {
@@ -234,6 +238,7 @@ pub fn merge_merkle_nodes(
 pub fn copy_merkle_node_to_adv_stack(
     advice_provider: &mut impl AdviceProvider,
     process: ProcessState,
+    err_ctx: &ErrorContext<'_, impl MastNodeExt>,
 ) -> Result<(), ExecutionError> {
     let depth = process.get_stack_item(0);
     let index = process.get_stack_item(1);
@@ -246,10 +251,10 @@ pub fn copy_merkle_node_to_adv_stack(
 
     let node = advice_provider.get_tree_node(root, &depth, &index)?;
 
-    advice_provider.push_stack(AdviceSource::Value(node[3]))?;
-    advice_provider.push_stack(AdviceSource::Value(node[2]))?;
-    advice_provider.push_stack(AdviceSource::Value(node[1]))?;
-    advice_provider.push_stack(AdviceSource::Value(node[0]))?;
+    advice_provider.push_stack(AdviceSource::Value(node[3]), err_ctx)?;
+    advice_provider.push_stack(AdviceSource::Value(node[2]), err_ctx)?;
+    advice_provider.push_stack(AdviceSource::Value(node[1]), err_ctx)?;
+    advice_provider.push_stack(AdviceSource::Value(node[0]), err_ctx)?;
 
     Ok(())
 }
@@ -282,6 +287,7 @@ pub fn copy_map_value_to_adv_stack(
     advice_provider: &mut impl AdviceProvider,
     process: ProcessState,
     include_len: bool,
+    err_ctx: &ErrorContext<'_, impl MastNodeExt>,
 ) -> Result<(), ExecutionError> {
     let key = [
         process.get_stack_item(3),
@@ -289,7 +295,7 @@ pub fn copy_map_value_to_adv_stack(
         process.get_stack_item(1),
         process.get_stack_item(0),
     ];
-    advice_provider.push_stack(AdviceSource::Map { key, include_len })?;
+    advice_provider.push_stack(AdviceSource::Map { key, include_len }, err_ctx)?;
 
     Ok(())
 }
@@ -315,6 +321,7 @@ pub fn copy_map_value_to_adv_stack(
 pub fn push_u64_div_result(
     advice_provider: &mut impl AdviceProvider,
     process: ProcessState,
+    err_ctx: &ErrorContext<'_, impl MastNodeExt>,
 ) -> Result<(), ExecutionError> {
     let divisor = {
         let divisor_hi = process.get_stack_item(0).as_int();
@@ -358,10 +365,10 @@ pub fn push_u64_div_result(
     let (q_hi, q_lo) = u64_to_u32_elements(quotient);
     let (r_hi, r_lo) = u64_to_u32_elements(remainder);
 
-    advice_provider.push_stack(AdviceSource::Value(r_hi))?;
-    advice_provider.push_stack(AdviceSource::Value(r_lo))?;
-    advice_provider.push_stack(AdviceSource::Value(q_hi))?;
-    advice_provider.push_stack(AdviceSource::Value(q_lo))?;
+    advice_provider.push_stack(AdviceSource::Value(r_hi), err_ctx)?;
+    advice_provider.push_stack(AdviceSource::Value(r_lo), err_ctx)?;
+    advice_provider.push_stack(AdviceSource::Value(q_hi), err_ctx)?;
+    advice_provider.push_stack(AdviceSource::Value(q_lo), err_ctx)?;
 
     Ok(())
 }
@@ -386,6 +393,7 @@ pub fn push_u64_div_result(
 pub fn push_falcon_mod_result(
     advice_provider: &mut impl AdviceProvider,
     process: ProcessState,
+    err_ctx: &ErrorContext<'_, impl MastNodeExt>,
 ) -> Result<(), ExecutionError> {
     let dividend_hi = process.get_stack_item(0).as_int();
     let dividend_lo = process.get_stack_item(1).as_int();
@@ -397,9 +405,9 @@ pub fn push_falcon_mod_result(
     let (r_hi, r_lo) = u64_to_u32_elements(remainder);
     assert_eq!(r_hi, ZERO);
 
-    advice_provider.push_stack(AdviceSource::Value(r_lo))?;
-    advice_provider.push_stack(AdviceSource::Value(q_lo))?;
-    advice_provider.push_stack(AdviceSource::Value(q_hi))?;
+    advice_provider.push_stack(AdviceSource::Value(r_lo), err_ctx)?;
+    advice_provider.push_stack(AdviceSource::Value(q_lo), err_ctx)?;
+    advice_provider.push_stack(AdviceSource::Value(q_hi), err_ctx)?;
 
     Ok(())
 }
@@ -423,6 +431,7 @@ pub fn push_falcon_mod_result(
 pub fn push_ext2_inv_result(
     advice_provider: &mut impl AdviceProvider,
     process: ProcessState,
+    err_ctx: &ErrorContext<'_, impl MastNodeExt>,
 ) -> Result<(), ExecutionError> {
     let coef0 = process.get_stack_item(1);
     let coef1 = process.get_stack_item(0);
@@ -433,8 +442,8 @@ pub fn push_ext2_inv_result(
     }
     let result = element.inv().to_base_elements();
 
-    advice_provider.push_stack(AdviceSource::Value(result[1]))?;
-    advice_provider.push_stack(AdviceSource::Value(result[0]))?;
+    advice_provider.push_stack(AdviceSource::Value(result[1]), err_ctx)?;
+    advice_provider.push_stack(AdviceSource::Value(result[0]), err_ctx)?;
 
     Ok(())
 }
@@ -470,6 +479,7 @@ pub fn push_ext2_inv_result(
 pub fn push_ext2_intt_result(
     advice_provider: &mut impl AdviceProvider,
     process: ProcessState,
+    err_ctx: &ErrorContext<'_, impl MastNodeExt>,
 ) -> Result<(), ExecutionError> {
     let output_size = process.get_stack_item(0).as_int() as usize;
     let input_size = process.get_stack_item(1).as_int() as usize;
@@ -517,7 +527,7 @@ pub fn push_ext2_intt_result(
     fft::interpolate_poly::<Felt, QuadFelt>(&mut poly, &twiddles);
 
     for element in QuadFelt::slice_as_base_elements(&poly[..output_size]).iter().rev() {
-        advice_provider.push_stack(AdviceSource::Value(*element))?;
+        advice_provider.push_stack(AdviceSource::Value(*element), err_ctx)?;
     }
 
     Ok(())
@@ -535,10 +545,14 @@ pub fn push_ext2_intt_result(
 pub fn push_leading_zeros(
     advice_provider: &mut impl AdviceProvider,
     process: ProcessState,
+    err_ctx: &ErrorContext<'_, impl MastNodeExt>,
 ) -> Result<(), ExecutionError> {
-    push_transformed_stack_top(advice_provider, process, |stack_top| {
-        Felt::from(stack_top.leading_zeros())
-    })
+    push_transformed_stack_top(
+        advice_provider,
+        process,
+        |stack_top| Felt::from(stack_top.leading_zeros()),
+        err_ctx,
+    )
 }
 
 /// Pushes the number of the trailing zeros of the top stack element onto the advice stack.
@@ -553,10 +567,14 @@ pub fn push_leading_zeros(
 pub fn push_trailing_zeros(
     advice_provider: &mut impl AdviceProvider,
     process: ProcessState,
+    err_ctx: &ErrorContext<'_, impl MastNodeExt>,
 ) -> Result<(), ExecutionError> {
-    push_transformed_stack_top(advice_provider, process, |stack_top| {
-        Felt::from(stack_top.trailing_zeros())
-    })
+    push_transformed_stack_top(
+        advice_provider,
+        process,
+        |stack_top| Felt::from(stack_top.trailing_zeros()),
+        err_ctx,
+    )
 }
 
 /// Pushes the number of the leading ones of the top stack element onto the advice stack.
@@ -571,10 +589,14 @@ pub fn push_trailing_zeros(
 pub fn push_leading_ones(
     advice_provider: &mut impl AdviceProvider,
     process: ProcessState,
+    err_ctx: &ErrorContext<'_, impl MastNodeExt>,
 ) -> Result<(), ExecutionError> {
-    push_transformed_stack_top(advice_provider, process, |stack_top| {
-        Felt::from(stack_top.leading_ones())
-    })
+    push_transformed_stack_top(
+        advice_provider,
+        process,
+        |stack_top| Felt::from(stack_top.leading_ones()),
+        err_ctx,
+    )
 }
 
 /// Pushes the number of the trailing ones of the top stack element onto the advice stack.
@@ -589,10 +611,14 @@ pub fn push_leading_ones(
 pub fn push_trailing_ones(
     advice_provider: &mut impl AdviceProvider,
     process: ProcessState,
+    err_ctx: &ErrorContext<'_, impl MastNodeExt>,
 ) -> Result<(), ExecutionError> {
-    push_transformed_stack_top(advice_provider, process, |stack_top| {
-        Felt::from(stack_top.trailing_ones())
-    })
+    push_transformed_stack_top(
+        advice_provider,
+        process,
+        |stack_top| Felt::from(stack_top.trailing_ones()),
+        err_ctx,
+    )
 }
 
 /// Pushes the base 2 logarithm of the top stack element, rounded down.
@@ -609,13 +635,14 @@ pub fn push_trailing_ones(
 pub fn push_ilog2(
     advice_provider: &mut impl AdviceProvider,
     process: ProcessState,
+    err_ctx: &ErrorContext<'_, impl MastNodeExt>,
 ) -> Result<(), ExecutionError> {
     let n = process.get_stack_item(0).as_int();
     if n == 0 {
         return Err(ExecutionError::LogArgumentZero(process.clk()));
     }
     let ilog2 = Felt::from(n.ilog2());
-    advice_provider.push_stack(AdviceSource::Value(ilog2))?;
+    advice_provider.push_stack(AdviceSource::Value(ilog2), err_ctx)?;
     Ok(())
 }
 
@@ -641,6 +668,7 @@ pub fn push_ilog2(
 pub fn push_smtpeek_result(
     advice_provider: &mut impl AdviceProvider,
     process: ProcessState,
+    err_ctx: &ErrorContext<'_, impl MastNodeExt>,
 ) -> Result<(), ExecutionError> {
     let empty_leaf = EmptySubtreeRoots::entry(SMT_DEPTH, SMT_DEPTH);
     // fetch the arguments from the operand stack
@@ -654,14 +682,14 @@ pub fn push_smtpeek_result(
     if node == Word::from(empty_leaf) {
         // if the node is a root of an empty subtree, then there is no value associated with
         // the specified key
-        advice_provider.push_stack(AdviceSource::Word(Smt::EMPTY_VALUE))?;
+        advice_provider.push_stack(AdviceSource::Word(Smt::EMPTY_VALUE), err_ctx)?;
     } else {
         let leaf_preimage = get_smt_leaf_preimage(advice_provider, node)?;
 
         for (key_in_leaf, value_in_leaf) in leaf_preimage {
             if key == key_in_leaf {
                 // Found key - push value associated with key, and return
-                advice_provider.push_stack(AdviceSource::Word(value_in_leaf))?;
+                advice_provider.push_stack(AdviceSource::Word(value_in_leaf), err_ctx)?;
 
                 return Ok(());
             }
@@ -669,7 +697,7 @@ pub fn push_smtpeek_result(
 
         // if we can't find any key in the leaf that matches `key`, it means no value is
         // associated with `key`
-        advice_provider.push_stack(AdviceSource::Word(Smt::EMPTY_VALUE))?;
+        advice_provider.push_stack(AdviceSource::Word(Smt::EMPTY_VALUE), err_ctx)?;
     }
     Ok(())
 }
@@ -722,6 +750,7 @@ fn push_transformed_stack_top<A: AdviceProvider>(
     advice_provider: &mut A,
     process: ProcessState,
     f: impl FnOnce(u32) -> Felt,
+    err_ctx: &ErrorContext<'_, impl MastNodeExt>,
 ) -> Result<(), ExecutionError> {
     let stack_top = process.get_stack_item(0);
     let stack_top: u32 = stack_top
@@ -729,7 +758,7 @@ fn push_transformed_stack_top<A: AdviceProvider>(
         .try_into()
         .map_err(|_| ExecutionError::NotU32Value(stack_top, ZERO))?;
     let transformed_stack_top = f(stack_top);
-    advice_provider.push_stack(AdviceSource::Value(transformed_stack_top))?;
+    advice_provider.push_stack(AdviceSource::Value(transformed_stack_top), err_ctx)?;
     Ok(())
 }
 
