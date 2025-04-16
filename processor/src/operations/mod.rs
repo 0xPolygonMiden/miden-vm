@@ -81,7 +81,7 @@ impl Process {
             Operation::Add => self.op_add()?,
             Operation::Neg => self.op_neg()?,
             Operation::Mul => self.op_mul()?,
-            Operation::Inv => self.op_inv()?,
+            Operation::Inv => self.op_inv(error_ctx)?,
             Operation::Incr => self.op_incr()?,
 
             Operation::And => self.op_and()?,
@@ -103,7 +103,7 @@ impl Process {
             Operation::U32sub => self.op_u32sub()?,
             Operation::U32mul => self.op_u32mul()?,
             Operation::U32madd => self.op_u32madd()?,
-            Operation::U32div => self.op_u32div()?,
+            Operation::U32div => self.op_u32div(error_ctx)?,
 
             Operation::U32and => self.op_u32and()?,
             Operation::U32xor => self.op_u32xor()?,

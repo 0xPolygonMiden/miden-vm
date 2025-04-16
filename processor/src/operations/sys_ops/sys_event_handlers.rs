@@ -338,7 +338,7 @@ pub fn push_u64_div_result(
         let divisor = (divisor_hi << 32) + divisor_lo;
 
         if divisor == 0 {
-            return Err(ExecutionError::DivideByZero(process.clk()));
+            return Err(ExecutionError::divide_by_zero(process.clk(), err_ctx));
         }
 
         divisor
@@ -438,7 +438,7 @@ pub fn push_ext2_inv_result(
 
     let element = QuadFelt::new(coef0, coef1);
     if element == QuadFelt::ZERO {
-        return Err(ExecutionError::DivideByZero(process.clk()));
+        return Err(ExecutionError::divide_by_zero(process.clk(), err_ctx));
     }
     let result = element.inv().to_base_elements();
 

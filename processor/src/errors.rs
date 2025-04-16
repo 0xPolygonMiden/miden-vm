@@ -62,8 +62,15 @@ pub enum ExecutionError {
     CycleLimitExceeded(u32),
     #[error("decorator id {decorator_id} does not exist in MAST forest")]
     DecoratorNotFoundInForest { decorator_id: DecoratorId },
-    #[error("division by zero at clock cycle {0}")]
-    DivideByZero(RowIndex),
+    #[error("division by zero at clock cycle {clk}")]
+    #[diagnostic()]
+    DivideByZero {
+        #[label]
+        label: SourceSpan,
+        #[source_code]
+        source_file: Option<Arc<SourceFile>>,
+        clk: RowIndex,
+    },
     #[error("failed to execute the dynamic code block provided by the stack with root {hex}; the block could not be found",
       hex = to_hex(.0.as_bytes())
     )]
@@ -190,6 +197,11 @@ impl ExecutionError {
     ) -> Self {
         let (label, source_file) = err_ctx.label_and_source_file();
         Self::AdviceStackReadFailed { label, source_file, row }
+    }
+
+    pub fn divide_by_zero(clk: RowIndex, err_ctx: &ErrorContext<'_, impl MastNodeExt>) -> Self {
+        let (label, source_file) = err_ctx.label_and_source_file();
+        Self::DivideByZero { clk, label, source_file }
     }
 
     pub fn failed_assertion(
