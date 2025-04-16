@@ -6,6 +6,7 @@
 
 - Add kernel procedures digests as public inputs to the recursive verifier (#1724).
 - Add arithmetic evaluation chiplet (#1759).
+- Update the recursive verifier to use arithmetic evaluation chiplet (#1760).
 
 
 ## 0.13.2 (2025-04-02)
