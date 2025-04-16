@@ -1,7 +1,45 @@
-use assembly::{assert_diagnostic_lines, regex};
+/// Tests in this file make sure that diagnostics presented to the user are as expected.
+use alloc::string::ToString;
+
+use assembly::{assert_diagnostic_lines, regex, source_file, testing::TestContext};
 use test_utils::build_test_by_mode;
+use vm_core::AdviceMap;
 
 use super::*;
+
+// AdviceMapKeyAlreadyPresent
+// ------------------------------------------------------------------------------------------------
+
+/// In this test, we load 2 libraries which have a MAST forest with an advice map that contains
+/// different values at the same key (which triggers the `AdviceMapKeyAlreadyPresent` error).
+#[test]
+fn test_diagnostic_advice_map_key_already_present() {
+    let test_context = TestContext::new();
+
+    let (lib_1, lib_2) = {
+        let dummy_library_source = source_file!(&test_context, "export.foo add end");
+        let module = test_context
+            .parse_module_with_path("foo::bar".parse().unwrap(), dummy_library_source)
+            .unwrap();
+        let lib = test_context.assemble_library(std::iter::once(module)).unwrap();
+        let lib_1 = lib
+            .clone()
+            .with_advice_map(AdviceMap::from_iter([(Digest::default(), vec![ZERO])]));
+        let lib_2 = lib.with_advice_map(AdviceMap::from_iter([(Digest::default(), vec![ONE])]));
+
+        (lib_1, lib_2)
+    };
+
+    let mut host = DefaultHost::default();
+    host.load_mast_forest(lib_1.mast_forest().clone()).unwrap();
+    let err = host.load_mast_forest(lib_2.mast_forest().clone()).unwrap_err();
+
+    assert_diagnostic_lines!(
+        err,
+        "x value for key 0000000000000000000000000000000000000000000000000000000000000000 already present in the advice map when loading MAST forest",
+        "help: previous values at key were '[0]'. Operation would have replaced them with '[1]'"
+    );
+}
 
 // AdviceMapKeyNotFound
 // ------------------------------------------------------------------------------------------------

@@ -1,4 +1,4 @@
-use alloc::{boxed::Box, string::String, sync::Arc};
+use alloc::{boxed::Box, string::String, sync::Arc, vec::Vec};
 use core::error::Error;
 
 use miden_air::RowIndex;
@@ -32,8 +32,15 @@ pub enum ExecutionError {
         source_file: Option<Arc<SourceFile>>,
         key: Word,
     },
-    #[error("value for key {} already present in the advice map", to_hex(Felt::elements_as_bytes(.0)))]
-    AdviceMapKeyAlreadyPresent(Word),
+    #[error("value for key {} already present in the advice map when loading MAST forest", to_hex(Felt::elements_as_bytes(.key)))]
+    #[diagnostic(help(
+        "previous values at key were '{prev_values:?}'. Operation would have replaced them with '{new_values:?}'",
+    ))]
+    AdviceMapKeyAlreadyPresent {
+        key: Word,
+        prev_values: Vec<Felt>,
+        new_values: Vec<Felt>,
+    },
     #[error("advice stack read failed at step {0}")]
     AdviceStackReadFailed(RowIndex),
     #[error("illegal use of instruction {0} while inside a syscall")]
