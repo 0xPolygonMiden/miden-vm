@@ -562,6 +562,7 @@ mod tests {
 
     #[test]
     fn op_pipe() {
+        let err_ctx = ErrorContext::default();
         let mut host = DefaultHost::default();
         let mut process = Process::new_dummy_with_decoder_helpers_and_empty_stack();
 
@@ -572,7 +573,9 @@ mod tests {
         let word2_felts: Word = word2.to_elements().try_into().unwrap();
         for element in word2_felts.iter().rev().chain(word1_felts.iter().rev()).copied() {
             // reverse the word order, since elements are pushed onto the advice stack.
-            host.advice_provider_mut().push_stack(AdviceSource::Value(element)).unwrap();
+            host.advice_provider_mut()
+                .push_stack(AdviceSource::Value(element), &err_ctx)
+                .unwrap();
         }
 
         // arrange the stack such that:

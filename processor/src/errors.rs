@@ -23,8 +23,15 @@ use crate::MemoryError;
 
 #[derive(Debug, thiserror::Error, Diagnostic)]
 pub enum ExecutionError {
-    #[error("value for key {} not present in the advice map", to_hex(Felt::elements_as_bytes(.0)))]
-    AdviceMapKeyNotFound(Word),
+    #[error("value for key {} not present in the advice map", to_hex(Felt::elements_as_bytes(.key)))]
+    #[diagnostic()]
+    AdviceMapKeyNotFound {
+        #[label]
+        label: SourceSpan,
+        #[source_code]
+        source_file: Option<Arc<SourceFile>>,
+        key: Word,
+    },
     #[error("value for key {} already present in the advice map", to_hex(Felt::elements_as_bytes(.0)))]
     AdviceMapKeyAlreadyPresent(Word),
     #[error("advice stack read failed at step {0}")]
@@ -153,6 +160,14 @@ impl From<Ext2InttError> for ExecutionError {
 }
 
 impl ExecutionError {
+    pub fn advice_map_key_not_found(
+        key: Word,
+        err_ctx: &ErrorContext<'_, impl MastNodeExt>,
+    ) -> Self {
+        let (label, source_file) = err_ctx.label_and_source_file();
+        Self::AdviceMapKeyNotFound { label, source_file, key }
+    }
+
     pub fn failed_assertion(
         clk: RowIndex,
         err_code: u32,

@@ -3,9 +3,10 @@ use alloc::vec::Vec;
 use vm_core::{
     Felt,
     crypto::{hash::RpoDigest, merkle::MerklePath},
+    mast::MastNodeExt,
 };
 
-use crate::{ExecutionError, ProcessState, Word};
+use crate::{ErrorContext, ExecutionError, ProcessState, Word};
 
 mod inputs;
 pub use inputs::AdviceInputs;
@@ -70,7 +71,11 @@ pub trait AdviceProvider: Sized {
     ///
     /// # Errors
     /// Returns an error if the value specified by the advice source cannot be obtained.
-    fn push_stack(&mut self, source: AdviceSource) -> Result<(), ExecutionError>;
+    fn push_stack(
+        &mut self,
+        source: AdviceSource,
+        err_ctx: &ErrorContext<'_, impl MastNodeExt>,
+    ) -> Result<(), ExecutionError>;
 
     // ADVICE MAP
     // --------------------------------------------------------------------------------------------
