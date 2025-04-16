@@ -132,7 +132,13 @@ pub enum ExecutionError {
     #[error(
         "provided merkle tree {depth} is out of bounds and cannot be represented as an unsigned 8-bit integer"
     )]
-    InvalidMerkleTreeDepth { depth: Felt },
+    InvalidMerkleTreeDepth {
+        #[label("when returning from this call site")]
+        label: SourceSpan,
+        #[source_code]
+        source_file: Option<Arc<SourceFile>>,
+        depth: Felt,
+    },
     #[error("provided node index {value} is out of bounds for a merkle tree node at depth {depth}")]
     InvalidMerkleTreeNodeIndex { depth: Felt, value: Felt },
     #[error("attempted to calculate integer logarithm with zero argument at clock cycle {0}")]
@@ -250,6 +256,14 @@ impl ExecutionError {
             err_code,
             err_msg,
         }
+    }
+    
+    pub fn invalid_merkle_tree_depth(
+        depth: Felt,
+        err_ctx: &ErrorContext<'_, impl MastNodeExt>,
+    ) -> Self {
+        let (label, source_file) = err_ctx.label_and_source_file();
+        Self::InvalidMerkleTreeDepth { label, source_file, depth } 
     }
 
     pub fn invalid_stack_depth_on_return(
