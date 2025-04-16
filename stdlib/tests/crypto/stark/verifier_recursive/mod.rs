@@ -109,12 +109,6 @@ pub fn generate_advice_inputs(
     let ood_main_trace_frame = ood_trace_frame.main_frame();
     let ood_aux_trace_frame = ood_trace_frame.aux_frame();
 
-    let mut evaluations_at_z = ood_trace_frame.main_frame().current().to_vec();
-    evaluations_at_z.extend_from_slice(&ood_trace_frame.aux_frame().unwrap().current().to_vec());
-
-    let mut evaluations_at_gz = ood_trace_frame.main_frame().next().to_vec();
-    evaluations_at_gz.extend_from_slice(&ood_trace_frame.aux_frame().unwrap().next().to_vec());
-
     // the expected layout is:
     // [main_current_elements, aux_current_elements, main_next_elements, aux_next_elements]
     let mut main_and_aux_frame_states = ood_main_trace_frame.current().to_vec();
