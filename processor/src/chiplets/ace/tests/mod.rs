@@ -161,7 +161,7 @@ fn test_circuit_encoding() {
             ZERO,
             Felt::new(7 + (5 << 30) + (2 << 60)), // id_l = 7; id_r = 5; op = ADD
             Felt::new(7 + (3 << 30) + (1 << 60)), // id_l = 7; id_r = 3; op = MUL
-            Felt::new(2 + (6 << 30) + (0 << 60)), // id_l = 2; id_r = 6; op = SUB
+            Felt::new(2 + (6 << 30)),             // id_l = 2; id_r = 6; op = SUB
             Felt::new(1 + (1 << 30) + (1 << 60)), // id_l = 1; id_r = 1; op = MUL
         ]
     )
@@ -219,7 +219,7 @@ fn verify_eval_circuit(circuit: &EncodedCircuit, inputs: &[QuadFelt]) {
     let mut mem = Memory::default();
     let error_ctx = ErrorContext::<BasicBlockNode>::none();
 
-    let circuit_mem = generate_memory(&circuit, inputs);
+    let circuit_mem = generate_memory(circuit, inputs);
 
     let mut ptr_curr = ptr;
     for word in circuit_mem {
