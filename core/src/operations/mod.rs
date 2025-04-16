@@ -137,7 +137,7 @@ pub enum Operation {
     ///
     /// The internal value specifies an error code associated with the error in case when the
     /// execution fails.
-    Assert(u32) = OPCODE_ASSERT,
+    Assert(Felt) = OPCODE_ASSERT,
 
     /// Pops an element off the stack, adds the current value of the `fmp` register to it, and
     /// pushes the result back onto the stack.
@@ -290,7 +290,7 @@ pub enum Operation {
     ///
     /// The internal value specifies an error code associated with the error in case when the
     /// assertion fails.
-    U32assert2(u32) = OPCODE_U32ASSERT2,
+    U32assert2(Felt) = OPCODE_U32ASSERT2,
 
     /// Pops three elements off the stack, adds them together, and splits the result into upper
     /// and lower 32-bit values. Then pushes the result back onto the stack.
@@ -533,7 +533,7 @@ pub enum Operation {
     ///
     /// The internal value specifies an error code associated with the error in case when the
     /// assertion fails.
-    MpVerify(u32) = OPCODE_MPVERIFY,
+    MpVerify(Felt) = OPCODE_MPVERIFY,
 
     /// Computes a new root of a Merkle tree where a node at the specified position is updated to
     /// the specified value.
@@ -924,8 +924,13 @@ impl Deserializable for Operation {
             OPCODE_SWAPDW => Self::SwapDW,
 
             OPCODE_ASSERT => {
-                let err_code = source.read_u32()?;
-                Self::Assert(err_code)
+                let value_u64 = source.read_u64()?;
+                let value_felt = Felt::try_from(value_u64).map_err(|_| {
+                    DeserializationError::InvalidValue(format!(
+                        "Operation associated data doesn't fit in a field element: {value_u64}"
+                    ))
+                })?;
+                Self::Assert(value_felt)
             },
             OPCODE_EQ => Self::Eq,
             OPCODE_ADD => Self::Add,
@@ -966,18 +971,26 @@ impl Deserializable for Operation {
             OPCODE_U32DIV => Self::U32div,
             OPCODE_U32SPLIT => Self::U32split,
             OPCODE_U32ASSERT2 => {
-                let err_code = source.read_u32()?;
-
-                Self::U32assert2(err_code)
+                let value_u64 = source.read_u64()?;
+                let value_felt = Felt::try_from(value_u64).map_err(|_| {
+                    DeserializationError::InvalidValue(format!(
+                        "Operation associated data doesn't fit in a field element: {value_u64}"
+                    ))
+                })?;
+                Self::U32assert2(value_felt)
             },
             OPCODE_U32ADD3 => Self::U32add3,
             OPCODE_U32MADD => Self::U32madd,
 
             OPCODE_HPERM => Self::HPerm,
             OPCODE_MPVERIFY => {
-                let err_code = source.read_u32()?;
-
-                Self::MpVerify(err_code)
+                let value_u64 = source.read_u64()?;
+                let value_felt = Felt::try_from(value_u64).map_err(|_| {
+                    DeserializationError::InvalidValue(format!(
+                        "Operation associated data doesn't fit in a field element: {value_u64}"
+                    ))
+                })?;
+                Self::MpVerify(value_felt)
             },
             OPCODE_PIPE => Self::Pipe,
             OPCODE_MSTREAM => Self::MStream,

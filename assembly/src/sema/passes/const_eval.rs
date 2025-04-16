@@ -55,7 +55,7 @@ impl VisitMut for ConstEvalVisitor<'_> {
     fn visit_mut_immediate_u32(&mut self, imm: &mut Immediate<u32>) -> ControlFlow<()> {
         self.eval_const(imm)
     }
-    fn visit_mut_immediate_error_code(&mut self, imm: &mut Immediate<u32>) -> ControlFlow<()> {
+    fn visit_mut_immediate_error_code(&mut self, imm: &mut Immediate<Felt>) -> ControlFlow<()> {
         self.eval_const(imm)
     }
     fn visit_mut_immediate_felt(&mut self, imm: &mut Immediate<Felt>) -> ControlFlow<()> {

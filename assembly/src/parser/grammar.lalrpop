@@ -694,8 +694,8 @@ InstWithErrorCode: Instruction = {
     "mtree_verify" <error_code:MaybeAssertCode> => error_code.map(Instruction::MTreeVerifyWithError).unwrap_or(Instruction::MTreeVerify),
 }
 
-MaybeAssertCode: Option<Immediate<u32>> = {
-    "." "err" "=" <code:ImmValue<U32>> => Some(code),
+MaybeAssertCode: Option<Immediate<Felt>> = {
+    "." "err" "=" <code:ImmValue<Felt>> => Some(code),
     => None,
 }
 

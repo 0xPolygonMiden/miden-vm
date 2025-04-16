@@ -1,7 +1,7 @@
 use vm_core::mast::MastNodeExt;
 
 use super::{ExecutionError, Operation, Process};
-use crate::{AdviceProvider, ErrorContext, Host};
+use crate::{AdviceProvider, ErrorContext, Felt, Host};
 
 // CRYPTOGRAPHIC OPERATIONS
 // ================================================================================================
@@ -67,7 +67,7 @@ impl Process {
     /// Panics if the computed root does not match the root provided via the stack.
     pub(super) fn op_mpverify(
         &mut self,
-        err_code: u32,
+        err_code: Felt,
         host: &mut impl Host,
         err_ctx: &ErrorContext<'_, impl MastNodeExt>,
     ) -> Result<(), ExecutionError> {
@@ -276,7 +276,7 @@ mod tests {
         let (mut process, mut host) =
             Process::new_dummy_with_inputs_and_decoder_helpers(stack_inputs, advice_inputs);
 
-        process.execute_op(Operation::MpVerify(0), &mut host).unwrap();
+        process.execute_op(Operation::MpVerify(ZERO), &mut host).unwrap();
         let expected_stack = build_expected(&[
             node[3], node[2], node[1], node[0], depth, index, root[3], root[2], root[1], root[0],
         ]);

@@ -78,19 +78,19 @@ impl Assembler {
 
         match &**instruction {
             Instruction::Nop => block_builder.push_op(Noop),
-            Instruction::Assert => block_builder.push_op(Assert(0)),
+            Instruction::Assert => block_builder.push_op(Assert(ZERO)),
             Instruction::AssertWithError(err_code) => {
                 block_builder.push_op(Assert(err_code.expect_value()))
             },
-            Instruction::AssertEq => block_builder.push_ops([Eq, Assert(0)]),
+            Instruction::AssertEq => block_builder.push_ops([Eq, Assert(ZERO)]),
             Instruction::AssertEqWithError(err_code) => {
                 block_builder.push_ops([Eq, Assert(err_code.expect_value())])
             },
-            Instruction::AssertEqw => field_ops::assertw(block_builder, 0),
+            Instruction::AssertEqw => field_ops::assertw(block_builder, ZERO),
             Instruction::AssertEqwWithError(err_code) => {
                 field_ops::assertw(block_builder, err_code.expect_value())
             },
-            Instruction::Assertz => block_builder.push_ops([Eqz, Assert(0)]),
+            Instruction::Assertz => block_builder.push_ops([Eqz, Assert(ZERO)]),
             Instruction::AssertzWithError(err_code) => {
                 block_builder.push_ops([Eqz, Assert(err_code.expect_value())])
             },
@@ -144,15 +144,15 @@ impl Assembler {
             // ----- u32 manipulation -------------------------------------------------------------
             Instruction::U32Test => block_builder.push_ops([Dup0, U32split, Swap, Drop, Eqz]),
             Instruction::U32TestW => u32_ops::u32testw(block_builder),
-            Instruction::U32Assert => block_builder.push_ops([Pad, U32assert2(0), Drop]),
+            Instruction::U32Assert => block_builder.push_ops([Pad, U32assert2(ZERO), Drop]),
             Instruction::U32AssertWithError(err_code) => {
                 block_builder.push_ops([Pad, U32assert2(err_code.expect_value()), Drop])
             },
-            Instruction::U32Assert2 => block_builder.push_op(U32assert2(0)),
+            Instruction::U32Assert2 => block_builder.push_op(U32assert2(ZERO)),
             Instruction::U32Assert2WithError(err_code) => {
                 block_builder.push_op(U32assert2(err_code.expect_value()))
             },
-            Instruction::U32AssertW => u32_ops::u32assertw(block_builder, 0),
+            Instruction::U32AssertW => u32_ops::u32assertw(block_builder, ZERO),
             Instruction::U32AssertWWithError(err_code) => {
                 u32_ops::u32assertw(block_builder, err_code.expect_value())
             },
@@ -413,7 +413,7 @@ impl Assembler {
             Instruction::MTreeGet => crypto_ops::mtree_get(block_builder),
             Instruction::MTreeSet => crypto_ops::mtree_set(block_builder)?,
             Instruction::MTreeMerge => crypto_ops::mtree_merge(block_builder),
-            Instruction::MTreeVerify => block_builder.push_op(MpVerify(0)),
+            Instruction::MTreeVerify => block_builder.push_op(MpVerify(ZERO)),
             Instruction::MTreeVerifyWithError(err_code) => {
                 block_builder.push_op(MpVerify(err_code.expect_value()))
             },

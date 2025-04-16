@@ -1,4 +1,4 @@
-use vm_core::{Felt, chiplets::hasher::STATE_WIDTH, crypto::hash::Rpo256, utils::range};
+use vm_core::{Felt, ZERO, chiplets::hasher::STATE_WIDTH, crypto::hash::Rpo256, utils::range};
 
 use super::FastProcessor;
 use crate::{AdviceProvider, ErrorContext, ExecutionError, Host};
@@ -24,7 +24,7 @@ impl FastProcessor {
     /// Analogous to `Process::op_mpverify`.
     pub fn op_mpverify(
         &mut self,
-        err_code: u32,
+        err_code: Felt,
         host: &mut impl Host,
     ) -> Result<(), ExecutionError> {
         // read node value, depth, index and root value from the stack
@@ -83,7 +83,7 @@ impl FastProcessor {
                 old_node,
                 index,
                 old_root.into(),
-                0,
+                ZERO,
                 &ErrorContext::default(),
             ));
         }

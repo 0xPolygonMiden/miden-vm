@@ -14,8 +14,8 @@ pub type ImmU32 = Immediate<u32>;
 /// A field element immediate
 pub type ImmFelt = Immediate<Felt>;
 
-/// Represents the 32-bit immediate used for assertion error codes
-pub type ErrorCode = Immediate<u32>;
+/// Represents a field element immediate used for assertion error codes
+pub type ErrorCode = Immediate<Felt>;
 
 /// Represents an instruction immediate, e.g. `add.1` or `add.CONST`
 pub enum Immediate<T> {

@@ -107,7 +107,7 @@ pub enum ExecutionError {
         #[source_code]
         source_file: Option<Arc<SourceFile>>,
         clk: RowIndex,
-        err_code: u32,
+        err_code: Felt,
         err_msg: Option<String>,
     },
     #[error("failed to execute the program for internal reason: {0}")]
@@ -193,7 +193,7 @@ pub enum ExecutionError {
         source_file: Option<Arc<SourceFile>>,
         root_digest: Digest,
     },
-    #[error("merkle path verification failed for value {value} at index {index} in the Merkle tree with root {root} (error code: {err_code})", 
+    #[error("merkle path verification failed for value {value} at index {index} in the Merkle tree with root {root} (error code: {err_code})",
       value = to_hex(Felt::elements_as_bytes(value)),
       root = to_hex(root.as_bytes()),
     )]
@@ -205,7 +205,7 @@ pub enum ExecutionError {
         value: Word,
         index: Felt,
         root: Digest,
-        err_code: u32,
+        err_code: Felt,
     },
     #[error("failed to lookup value in Merkle store")]
     MerkleStoreLookupFailed {
@@ -357,7 +357,7 @@ impl ExecutionError {
 
     pub fn failed_assertion(
         clk: RowIndex,
-        err_code: u32,
+        err_code: Felt,
         err_msg: Option<String>,
         err_ctx: &ErrorContext<'_, impl MastNodeExt>,
     ) -> Self {
@@ -422,7 +422,7 @@ impl ExecutionError {
         value: Word,
         index: Felt,
         root: Digest,
-        err_code: u32,
+        err_code: Felt,
         err_ctx: &ErrorContext<'_, impl MastNodeExt>,
     ) -> Self {
         let (label, source_file) = err_ctx.label_and_source_file();

@@ -54,7 +54,7 @@ fn test_basic_block(
         vec![Operation::U32and],
         vec![Operation::U32xor],
         vec![Operation::U32madd],
-        vec![Operation::U32assert2(5)],
+        vec![Operation::U32assert2(Felt::from(5u32))],
         vec![Operation::Pad, Operation::MovUp8, Operation::Drop],
         // for the dups, we drop an element that was not duplicated, and hence we are still testing
         // that the `dup` works as expected

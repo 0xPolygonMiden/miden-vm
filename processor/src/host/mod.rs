@@ -7,7 +7,7 @@ use vm_core::{
 };
 
 use super::{ExecutionError, ProcessState};
-use crate::{KvMap, MemAdviceProvider, errors::ErrorContext};
+use crate::{Felt, KvMap, MemAdviceProvider, errors::ErrorContext};
 
 pub(super) mod advice;
 use advice::AdviceProvider;
@@ -91,7 +91,7 @@ pub trait Host {
     fn on_assert_failed(
         &mut self,
         process: ProcessState,
-        err_code: u32,
+        err_code: Felt,
         err_ctx: &ErrorContext<'_, impl MastNodeExt>,
     ) -> ExecutionError {
         ExecutionError::failed_assertion(process.clk(), err_code, None, err_ctx)
@@ -140,7 +140,7 @@ where
     fn on_assert_failed(
         &mut self,
         process: ProcessState,
-        err_code: u32,
+        err_code: Felt,
         err_ctx: &ErrorContext<'_, impl MastNodeExt>,
     ) -> ExecutionError {
         H::on_assert_failed(self, process, err_code, err_ctx)

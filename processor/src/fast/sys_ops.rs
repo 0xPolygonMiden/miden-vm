@@ -1,6 +1,6 @@
-use vm_core::{ZERO, sys_events::SystemEvent};
+use vm_core::sys_events::SystemEvent;
 
-use super::{ExecutionError, FastProcessor, ONE};
+use super::{ExecutionError, FastProcessor, Felt, ONE, ZERO};
 use crate::{
     ErrorContext, FMP_MIN, Host, ProcessState,
     operations::sys_ops::sys_event_handlers::{
@@ -18,7 +18,7 @@ impl FastProcessor {
     /// Analogous to `Process::op_assert`.
     pub fn op_assert(
         &mut self,
-        err_code: u32,
+        err_code: Felt,
         op_idx: usize,
         host: &mut impl Host,
     ) -> Result<(), ExecutionError> {
