@@ -31,7 +31,7 @@ pub struct Ace {
 
 impl Ace {
     pub(crate) fn trace_len(&self) -> usize {
-        self.circuit_evaluations.iter().fold(0, |acc, term| acc + term.1.num_rows())
+        self.circuit_evaluations.values().map(|eval_ctx| eval_ctx.num_rows()).sum()
     }
 
     pub(crate) fn fill_trace(mut self, trace: &mut TraceFragment) -> Vec<AceSection> {
@@ -99,6 +99,7 @@ impl AceSection {
         }
     }
 }
+
 #[derive(Debug, Default)]
 pub struct AceHints {
     offset_chiplet_trace: usize,

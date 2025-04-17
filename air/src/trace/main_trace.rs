@@ -14,8 +14,8 @@ use super::{
         MEMORY_IDX1_COL_IDX, MEMORY_V_COL_RANGE, MEMORY_WORD_COL_IDX, NUM_ACE_SELECTORS,
         ace::{
             CLK_IDX, CTX_IDX, EVAL_OP_IDX, ID_0_IDX, ID_1_IDX, ID_2_IDX, M_0_IDX, M_1_IDX, PTR_IDX,
-            SELECTOR_BLOCK_IDX, SELECTOR_START_IDX, V_0_0_IDX, V_0_1_IDX, V_1_0_IDX, V_1_1_IDX,
-            V_2_0_IDX, V_2_1_IDX,
+            READ_NUM_EVAL_IDX, SELECTOR_BLOCK_IDX, SELECTOR_START_IDX, V_0_0_IDX, V_0_1_IDX,
+            V_1_0_IDX, V_1_1_IDX, V_2_0_IDX, V_2_1_IDX,
         },
         hasher::{DIGEST_LEN, HASH_CYCLE_LEN, STATE_WIDTH},
     },
@@ -455,6 +455,10 @@ impl MainTrace {
         self.columns.get_column(CHIPLETS_OFFSET + NUM_ACE_SELECTORS + EVAL_OP_IDX)[i]
     }
 
+    pub fn chiplet_ace_num_eval_rows(&self, i: RowIndex) -> Felt {
+        self.columns.get_column(CHIPLETS_OFFSET + NUM_ACE_SELECTORS + READ_NUM_EVAL_IDX)[i]
+    }
+
     pub fn chiplet_ace_id_0(&self, i: RowIndex) -> Felt {
         self.columns.get_column(CHIPLETS_OFFSET + NUM_ACE_SELECTORS + ID_0_IDX)[i]
     }
@@ -466,6 +470,7 @@ impl MainTrace {
     pub fn chiplet_ace_v_0_1(&self, i: RowIndex) -> Felt {
         self.columns.get_column(CHIPLETS_OFFSET + NUM_ACE_SELECTORS + V_0_1_IDX)[i]
     }
+
     pub fn chiplet_ace_wire_0(&self, i: RowIndex) -> [Felt; 3] {
         let id_0 = self.chiplet_ace_id_0(i);
         let v_0_0 = self.chiplet_ace_v_0_0(i);

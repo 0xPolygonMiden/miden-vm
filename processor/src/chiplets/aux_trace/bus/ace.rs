@@ -61,7 +61,7 @@ where
         let clk = main_trace.chiplet_ace_clk(row);
         let ctx = main_trace.chiplet_ace_ctx(row);
         let ptr = main_trace.chiplet_ace_ptr(row);
-        let num_eval_rows = main_trace.chiplet_ace_id_2(row) + ONE;
+        let num_eval_rows = main_trace.chiplet_ace_num_eval_rows(row) + ONE;
         let id_0 = main_trace.chiplet_ace_id_0(row);
         let num_read_rows = id_0 + ONE - num_eval_rows;
 

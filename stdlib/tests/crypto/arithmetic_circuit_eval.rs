@@ -39,23 +39,29 @@ fn arithmetic_circuit_eval_execute() {
     // the circuit
     let input_0: QuadFelt = rand_value();
     let input_1 = input_0 * (input_0 - QuadFelt::ONE);
-
     // inputs
     let mut data = vec![
+        // id = 7, v = rand
         input_0.base_element(0),
         input_0.base_element(1),
+        // id = 6, v = rand * (rand - 1) = result
         input_1.base_element(0),
         input_1.base_element(1),
     ];
-
     // constants
-    data.extend_from_slice(&[-ONE, ZERO, ZERO, ZERO]);
-
+    data.extend_from_slice(&[
+        -ONE, ZERO, // id = 5, v = -1
+        ZERO, ZERO, // id = 4, v = 0
+    ]);
     // eval gates
     data.extend_from_slice(&[
+        // id = 3, v = rand + -1
         Felt::new(7 + (5 << 30) + (2 << 60)), // id_l = 7; id_r = 5; op = ADD
+        // id = 2, v = rand * (rand - 1)
         Felt::new(7 + (3 << 30) + (1 << 60)), // id_l = 7; id_r = 3; op = MUL
-        Felt::new(2 + (6 << 30)),             // id_l = 2; id_r = 6; op = SUB
+        // id = 1, v = rand * (rand - 1) - result = zero
+        Felt::new(2 + (6 << 30) + (0 << 60)), // id_l = 2; id_r = 6; op = SUB
+        // id = 0, v = zero * zero
         Felt::new(1 + (1 << 30) + (1 << 60)), // id_l = 1; id_r = 1; op = MUL
     ]);
 
@@ -107,23 +113,30 @@ fn arithmetic_circuit_eval() {
     // the circuit
     let input_0: QuadFelt = rand_value();
     let input_1 = input_0 * (input_0 - QuadFelt::ONE);
-
     // inputs
     let mut data = vec![
+        // id = 7, v = rand
         input_0.base_element(0),
         input_0.base_element(1),
+        // id = 6, v = rand * (rand - 1) = result
         input_1.base_element(0),
         input_1.base_element(1),
     ];
 
     // constants
-    data.extend_from_slice(&[-ONE, ZERO, ZERO, ZERO]);
-
+    data.extend_from_slice(&[
+        -ONE, ZERO, // id = 5, v = -1
+        ZERO, ZERO, // id = 4, v = 0
+    ]);
     // eval gates
     data.extend_from_slice(&[
+        // id = 3, v = rand + -1
         Felt::new(7 + (5 << 30) + (2 << 60)), // id_l = 7; id_r = 5; op = ADD
+        // id = 2, v = rand * (rand - 1)
         Felt::new(7 + (3 << 30) + (1 << 60)), // id_l = 7; id_r = 3; op = MUL
-        Felt::new(2 + (6 << 30)),             // id_l = 2; id_r = 6; op = SUB
+        // id = 1, v = rand * (rand - 1) - result = zero
+        Felt::new(2 + (6 << 30) + (0 << 60)), // id_l = 2; id_r = 6; op = SUB
+        // id = 0, v = zero * zero
         Felt::new(1 + (1 << 30) + (1 << 60)), // id_l = 1; id_r = 1; op = MUL
     ]);
 

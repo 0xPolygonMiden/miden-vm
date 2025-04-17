@@ -50,7 +50,7 @@ mod tests;
 ///   first rows of the trace up to the length of the hasher `trace_len`.
 ///   - column 0: selector column with values set to ZERO
 ///   - columns 1-16: execution trace of hash chiplet
-///   - column 17: unused column padded with ZERO
+///   - columns 17-20: unused columns padded with ZERO
 ///
 /// * Bitwise segment: contains the trace and selectors for the bitwise chiplet. This segment begins
 ///   at the end of the hasher segment and fills the next rows of the trace for the `trace_len` of
@@ -58,7 +58,7 @@ mod tests;
 ///   - column 0: selector column with values set to ONE
 ///   - column 1: selector column with values set to ZERO
 ///   - columns 2-14: execution trace of bitwise chiplet
-///   - columns 15-17: unused columns padded with ZERO
+///   - columns 15-20: unused columns padded with ZERO
 ///
 /// * Memory segment: contains the trace and selectors for the memory chiplet.  This segment begins
 ///   at the end of the bitwise segment and fills the next rows of the trace for the `trace_len` of
@@ -66,6 +66,7 @@ mod tests;
 ///   - column 0-1: selector columns with values set to ONE
 ///   - column 2: selector column with values set to ZERO
 ///   - columns 3-17: execution trace of memory chiplet
+///   - columns 18-20: unused columns padded with ZERO
 ///
 /// * ACE segment: contains the trace and selectors for the arithmetic circuit evaluation chiplet.
 ///   This segment begins at the end of the memory segment and fills the next rows of the trace for
