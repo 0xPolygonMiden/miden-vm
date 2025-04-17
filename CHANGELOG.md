@@ -10,6 +10,7 @@
 
 #### Changes
 - [BREAKING] `ExecutionOptions::with_debugging()` now takes a boolean parameter (#1761)
+- Use `MemoryAddress(u32)` for `VmState` memory addresses instead of plain `u64` (#1758).
 
 
 ## 0.13.2 (2025-04-02)

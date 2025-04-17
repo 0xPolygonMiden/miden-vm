@@ -1,6 +1,7 @@
 use std::sync::Arc;
 
 use miden_vm::{DefaultHost, MemAdviceProvider, Program, StackInputs, VmState, VmStateIterator};
+use processor::MemoryAddress;
 
 use super::DebugCommand;
 use crate::utils::print_mem_address;
@@ -163,8 +164,8 @@ impl DebugExecutor {
     }
 
     /// Prints specified memory entry.
-    pub fn print_memory_entry(&self, address: u64) {
-        let entry = self.vm_state.memory.iter().find_map(|(addr, mem)| match address == *addr {
+    pub fn print_memory_entry(&self, address: MemoryAddress) {
+        let entry = self.vm_state.memory.iter().find_map(|(addr, mem)| match &address == addr {
             true => Some(mem),
             false => None,
         });
