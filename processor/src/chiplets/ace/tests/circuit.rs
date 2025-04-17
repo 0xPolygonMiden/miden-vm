@@ -5,7 +5,7 @@ use crate::{Felt, QuadFelt, chiplets::ace::encoded_circuit::Op};
 /// A `Circuit` is a DAG representing a multivariate polynomial over its inputs.
 /// The nodes are laid out linearly, starting with the leaves and ending with the evaluation.
 ///
-/// The constructor and invariants ensures that all instructions reference nodes whose index is
+/// The constructor and invariants ensure that all instructions reference nodes whose index is
 /// in-bounds and cannot reference nodes produced by subsequent instructions.
 /// This ensures the circuit can be evaluated in a single pass over the instructions.
 #[derive(Debug, Clone, Eq, PartialEq)]
@@ -16,12 +16,11 @@ pub struct Circuit {
 }
 
 /// A `NodeID` is the index of a node in the evaluation graph, depending on its type.
-/// - `Input` when it is a leaf, and its value is a variable in the circuit
-/// - `Const` when it is a leaf, and its value is a constant
+/// - `Input` when it is a leaf, and its value is a variable in the circuit,
+/// - `Const` when it is a leaf, and its value is a constant of the circuit,
 /// - `Eval` when it is a node with two incoming edges to which an `Op` is applied.
 ///
-/// The graph is interpreted as a vector of `n_i + n_c + n_e` values,
-/// with their kinds encoded as
+/// The graph is interpreted as a vector of `n_i + n_c + n_e` values, with their kinds encoded as
 /// `[Input(0), ..., Input(n_i - 1), Const(0), ..., Const(n_c - 1), Eval(0), ..., Eval(n_e - 1)]`.
 #[derive(Debug, Copy, Clone, Eq, PartialEq, Ord, PartialOrd)]
 pub enum NodeID {
@@ -30,7 +29,7 @@ pub enum NodeID {
     Eval(usize),
 }
 
-/// An `Instruction` indicates how the next `Eval` node should be computed, given existing `Node`s.
+/// An `Instruction` indicating how the next `Eval` node should be computed, given existing `Node`s.
 #[derive(Debug, Copy, Clone, Eq, PartialEq)]
 pub struct Instruction {
     pub node_l: NodeID,
@@ -53,8 +52,8 @@ pub struct CircuitLayout {
 }
 
 impl Circuit {
-    /// Create a new circuit given the expected number of nodes, the constants
-    /// and instructions to be evaluated to obtain the result.
+    /// Creates a new circuit given the expected number of nodes, the constants and instructions
+    /// to be evaluated to obtain the result.
     ///
     /// Returns an error if
     /// - The circuit contains no instructions
@@ -92,7 +91,7 @@ impl Circuit {
         Ok(Self { num_inputs, constants, instructions })
     }
 
-    /// Given a list of inputs, compute the evaluation of the circuit.
+    /// Given a list of inputs, computes the evaluation of the circuit.
     pub fn evaluate(&self, inputs: &[QuadFelt]) -> Result<QuadFelt, CircuitError> {
         let layout = self.layout();
         if inputs.len() != layout.num_inputs {
@@ -122,7 +121,7 @@ impl Circuit {
         Ok(*nodes.last().unwrap())
     }
 
-    /// Layout of the circuit.
+    /// Returns the layout of the circuit.
     pub fn layout(&self) -> CircuitLayout {
         CircuitLayout {
             num_inputs: self.num_inputs,
@@ -133,12 +132,13 @@ impl Circuit {
 }
 
 impl CircuitLayout {
-    /// Total number of variables (inputs and constants) in the circuit
+    /// Returns the total number of variables (inputs and constants) in the circuit.
     pub fn num_vars(&self) -> usize {
         self.num_inputs + self.num_constants
     }
 
-    /// Total number of `Node`s required to represent the evaluation graph of the circuit.
+    /// Returns the total number of `Node`s required to represent the evaluation graph of the
+    /// circuit.
     pub fn num_nodes(&self) -> usize {
         self.num_vars() + self.num_instructions
     }

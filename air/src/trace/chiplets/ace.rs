@@ -1,7 +1,5 @@
 // --- CONSTANTS ----------------------------------------------------------------------------------
 
-/// Number of selectors for ACE chiplets within the chiplets trace.
-pub const NUM_ACE_EXTERNAL_SELECTORS: usize = 4;
 /// Total number of columns making up the ACE chiplet.
 pub const ACE_CHIPLET_NUM_COLS: usize = 16;
 

@@ -36,12 +36,12 @@ impl AuxTraceBuilder {
 
     /// Builds and returns the Chiplets's auxiliary trace columns. This consists of:
     ///
-    /// 1. a bus column `b_chip` describing requests made by the stack and decoder and resposes
+    /// 1. a bus column `b_chip` describing requests made by the stack and decoder and responses
     ///    received from the chiplets in the Chiplets module,
     /// 2. a column acting as both virtual tables, one for the sibling table used by the hasher
     ///    chiplet and the other for the kernel procedure table, and as a bus between the memory
     ///    chiplet and the ACE chiplet.
-    /// 3. a column used as bus to wire the gates of the ACE chiplet.
+    /// 3. a column used as a bus to wire the gates of the ACE chiplet.
     pub fn build_aux_columns<E: FieldElement<BaseField = Felt>>(
         &self,
         main_trace: &MainTrace,

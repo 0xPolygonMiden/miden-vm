@@ -15,13 +15,18 @@ pub enum EncodingError {
 }
 
 impl EncodedCircuit {
-    /// Try to create an `EncodedCircuit` from a given circuit. The circuit is expected to
+    // CIRCUIT ENCODING
+    // --------------------------------------------------------------------------------------------
+
+    /// Attempts to create an `EncodedCircuit` from a given circuit. The circuit is expected to
     /// evaluate to zero, as the resulting encoded circuit is padded with squaring operations.
-    /// - The number of nodes should not exceed `MAX_ID` to ensure IDs can be correctly encoded
+    /// Note that the number of nodes should not exceed `MAX_ID` to ensure IDs can be correctly
+    /// encoded.
     ///
-    /// # Panic
-    /// Panics if the circuit is not in the right format (i.e. the instructions are not properly
-    /// ordered).
+    /// # Panics if:
+    ///
+    /// 1. the circuit is not in the right format (i.e. the instructions are not properly ordered).
+    /// 2. The number of nodes exceeds `MAX_ID`.
     pub fn try_from_circuit(circuit: &Circuit) -> Result<Self, EncodingError> {
         // Get the layout of the padded circuit
         let layout = circuit.layout().padded();
@@ -79,6 +84,7 @@ impl EncodedCircuit {
     }
 
     // INSTRUCTION ENCODING
+    // --------------------------------------------------------------------------------------------
 
     /// Encode an instruction as a `Felt`, packed as
     /// `[ id_l (30 bits) || id_r (30 bits) || op (2 bits) ]`,
@@ -106,14 +112,15 @@ impl EncodedCircuit {
 impl CircuitLayout {
     /// Same as `node_to_index`, but reverses the index relative to `num_nodes`.
     ///
-    /// For example, the first input node has `id = layout.num_nodes() - 1`
-    /// and the last instruction produces a node with `id = 0`.
+    /// For example, the first input node has `id = layout.num_nodes() - 1` and the last
+    /// instruction produces a node with `id = 0`.
     pub(crate) fn encoded_node_id(&self, node: &NodeID) -> Option<u32> {
         let id = self.node_index(node)?;
         Some((self.num_nodes() - 1 - id) as u32)
     }
 
-    /// Returns the layout of the padded circuit satisfying the following alignment properties
+    /// Returns the layout of the padded circuit ensuring the following alignment properties:
+    ///
     /// - Number of inputs and constants are multiples of 2, ensuring the memory regions containing
     ///   them are each word aligned, as each word contains two variables.
     /// - The size of the circuit is double-word aligned to allow efficient un-hashing
