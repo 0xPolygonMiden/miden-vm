@@ -94,6 +94,7 @@ pub fn generate_advice_inputs(
     let _constraint_coeffs: winter_air::ConstraintCompositionCoefficients<QuadExt> = air
         .get_constraint_composition_coefficients(&mut public_coin)
         .map_err(|_| VerifierError::RandomCoinError)?;
+
     let constraint_commitment = channel.read_constraint_commitment();
     advice_stack.extend_from_slice(&digest_to_int_vec(&[constraint_commitment]));
     public_coin.reseed(constraint_commitment);
@@ -125,6 +126,10 @@ pub fn generate_advice_inputs(
             .next(),
     );
 
+    // placeholder for the alpha_deep
+    let alpha_deep_index = advice_stack.len();
+    advice_stack.extend_from_slice(&[0, 0]);
+
     advice_stack.extend_from_slice(&to_int_vec(&main_and_aux_frame_states));
     public_coin.reseed(Rpo256::hash_elements(&main_and_aux_frame_states));
 
@@ -145,9 +150,14 @@ pub fn generate_advice_inputs(
     advice_stack.extend_from_slice(&to_int_vec(&poly));
 
     // reseed with FRI layer commitments
-    let _deep_coefficients = air
+    let deep_coefficients = air
         .get_deep_composition_coefficients::<QuadExt, RpoRandomCoin>(&mut public_coin)
         .map_err(|_| VerifierError::RandomCoinError)?;
+
+    let alpha_deep = deep_coefficients.trace[1];
+    advice_stack[alpha_deep_index] = alpha_deep.base_element(0).as_int();
+    advice_stack[alpha_deep_index + 1] = alpha_deep.base_element(1).as_int();
+
     let layer_commitments = fri_commitments_digests.clone();
     for commitment in layer_commitments.iter() {
         public_coin.reseed(*commitment);

@@ -168,7 +168,8 @@ export.init_seed
 
     ## main segment width is 71 and there are 1 auxiliary segments
     ## of width 7 using 16 random extension field elements
-    push.0x47010710 swap
+    push.0x49010810
+    swap
     ## field modulus bytes (2 field elements)
     push.0x01 # lower half of the modulus
     push.0xffffffff # upper half of the modulus
@@ -359,14 +360,26 @@ end
 
 #! Draw deep composition polynomial random coefficient and save it at `deep_rand_coef_ptr`.
 #!
+#! As this random challenge has already been used non-deterministically in prior computations, we
+#! also check that the generated challenge matches the non-deterministically provided one.
+#!
 #! Input: [...]
 #! Output: [...]
-#! Cycles: 13
+#! Cycles: 22
 export.generate_deep_composition_random_coefficients
-    exec.constants::deep_rand_coef_ptr
     padw exec.constants::r1_ptr mem_loadw
-    # => [y, y, alpha1, alpha0, deep_rand_coef_ptr, ...] where y is a "garbage" value
-    movup.4 mem_storew dropw
+    # => [y, y, alpha1, alpha0, ...] where y is a "garbage" value
+    push.0.0
+    exec.constants::deep_rand_alpha_1_ptr mem_loadw
+    drop drop
+    # => [alpha1_nd, alpha0_nd, alpha1, alpha0, ...] where y is a "garbage" value
+
+    dup.2 assert_eq
+    dup.2 assert_eq
+    push.0.0
+    exec.constants::deep_rand_coef_ptr
+    mem_storew
+    dropw
     #=> [...]
 end
 
