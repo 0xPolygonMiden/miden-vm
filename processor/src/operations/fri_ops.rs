@@ -108,7 +108,7 @@ impl Process {
 
         self.set_helper_registers(ev, es, x, x_inv);
 
-        self.stack.shift_left(16, self.system.ctx());
+        self.stack.shift_left(16);
         Ok(())
     }
 

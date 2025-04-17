@@ -165,7 +165,7 @@ impl VmStateIterator {
             op,
             asmop,
             fmp: self.system.get_fmp_at(self.clk),
-            stack: self.stack.get_state_at(ctx, self.clk),
+            stack: self.stack.get_state_at(self.clk),
             memory: self.chiplets.memory.get_state_at(ctx, self.clk),
         });
 
@@ -235,7 +235,7 @@ impl Iterator for VmStateIterator {
             op,
             asmop,
             fmp: self.system.get_fmp_at(self.clk),
-            stack: self.stack.get_state_at(ctx, self.clk),
+            stack: self.stack.get_state_at(self.clk),
             memory: self.chiplets.memory.get_state_at(ctx, self.clk),
         }));
 

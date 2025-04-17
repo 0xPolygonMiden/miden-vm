@@ -21,7 +21,7 @@ use vm_core::{
 use super::{
     EMPTY_WORD, ExecutionError, Felt, MIN_TRACE_LEN, ONE, OpBatch, Operation, Process, Word, ZERO,
 };
-use crate::{Host, errors::ErrorContext};
+use crate::{ContextId, Host, errors::ErrorContext};
 
 mod trace;
 use trace::DecoderTrace;
@@ -251,9 +251,15 @@ impl Process {
 
         debug_assert_eq!(node.digest(), hashed_block.into());
 
+        let new_ctx = if node.is_syscall() {
+            ContextId::root()
+        } else {
+            self.system.get_next_ctx_id()
+        };
+
         // start new execution context for the operand stack. this has the effect of resetting
         // stack depth to 16.
-        let (stack_depth, next_overflow_addr) = self.stack.start_context();
+        let (stack_depth, next_overflow_addr) = self.stack.start_context(new_ctx);
         debug_assert!(stack_depth <= u32::MAX as usize, "stack depth too big");
 
         // update the system registers and start decoding the block; this appends a row with
@@ -307,10 +313,8 @@ impl Process {
             ctx_info.parent_fmp,
             ctx_info.parent_fn_hash,
         );
-        self.stack.restore_context(
-            ctx_info.parent_stack_depth as usize,
-            ctx_info.parent_next_overflow_addr,
-        );
+        self.stack
+            .restore_context(ctx_info.parent_stack_depth as usize, ctx_info.parent_ctx);
 
         // the rest of the VM state does not change
         self.execute_op(Operation::Noop, host)
@@ -398,7 +402,7 @@ impl Process {
         debug_assert_eq!(dyn_node.digest(), hashed_block.into());
 
         let (stack_depth, next_overflow_addr) =
-            self.stack.shift_left_and_start_context(self.system.ctx());
+            self.stack.shift_left_and_start_context(self.system.get_next_ctx_id());
         debug_assert!(stack_depth <= u32::MAX as usize, "stack depth too big");
 
         let ctx_info = ExecutionContextInfo::new(
@@ -457,10 +461,8 @@ impl Process {
             ctx_info.parent_fmp,
             ctx_info.parent_fn_hash,
         );
-        self.stack.restore_context(
-            ctx_info.parent_stack_depth as usize,
-            ctx_info.parent_next_overflow_addr,
-        );
+        self.stack
+            .restore_context(ctx_info.parent_stack_depth as usize, ctx_info.parent_ctx);
 
         self.execute_op(Operation::Noop, host)
     }

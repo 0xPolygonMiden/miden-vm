@@ -25,7 +25,7 @@ impl Process {
         if self.stack.get(0) != ONE {
             return Err(host.on_assert_failed(self.into(), err_code));
         }
-        self.stack.shift_left(1, self.system.ctx());
+        self.stack.shift_left(1);
         Ok(())
     }
 
@@ -58,7 +58,7 @@ impl Process {
         }
 
         self.system.set_fmp(new_fmp);
-        self.stack.shift_left(1, self.system.ctx());
+        self.stack.shift_left(1);
 
         Ok(())
     }
@@ -71,7 +71,7 @@ impl Process {
     pub(super) fn op_sdepth(&mut self) -> Result<(), ExecutionError> {
         let stack_depth = self.stack.depth();
         self.stack.set(0, Felt::new(stack_depth as u64));
-        self.stack.shift_right(0, self.system.ctx());
+        self.stack.shift_right(0);
         Ok(())
     }
 
@@ -109,7 +109,7 @@ impl Process {
     pub(super) fn op_clk(&mut self) -> Result<(), ExecutionError> {
         let clk = self.system.clk();
         self.stack.set(0, Felt::from(clk));
-        self.stack.shift_right(0, self.system.ctx());
+        self.stack.shift_right(0);
         Ok(())
     }
 

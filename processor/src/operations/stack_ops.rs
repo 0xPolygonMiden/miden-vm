@@ -7,13 +7,13 @@ impl Process {
     /// Pushes a ZERO onto the stack.
     pub(super) fn op_pad(&mut self) -> Result<(), ExecutionError> {
         self.stack.set(0, ZERO);
-        self.stack.shift_right(0, self.system.ctx());
+        self.stack.shift_right(0);
         Ok(())
     }
 
     /// Removes the top element off the stack.
     pub(super) fn op_drop(&mut self) -> Result<(), ExecutionError> {
-        self.stack.shift_left(1, self.system.ctx());
+        self.stack.shift_left(1);
         Ok(())
     }
 
@@ -21,7 +21,7 @@ impl Process {
     pub(super) fn op_dup(&mut self, n: usize) -> Result<(), ExecutionError> {
         let value = self.stack.get(n);
         self.stack.set(0, value);
-        self.stack.shift_right(0, self.system.ctx());
+        self.stack.shift_right(0);
         Ok(())
     }
 
@@ -245,7 +245,7 @@ impl Process {
             _ => return Err(ExecutionError::NotBinaryValue(c)),
         }
 
-        self.stack.shift_left(3, self.system.ctx());
+        self.stack.shift_left(3);
         Ok(())
     }
 
@@ -289,7 +289,7 @@ impl Process {
             _ => return Err(ExecutionError::NotBinaryValue(c)),
         }
 
-        self.stack.shift_left(9, self.system.ctx());
+        self.stack.shift_left(9);
         Ok(())
     }
 }

@@ -334,7 +334,7 @@ fn execute(
     // loads the memory at the latest clock cycle.
     let mem_state = chiplets.memory.get_state_at(ContextId::root(), system.clk());
     // loads the stack along with the overflow values at the latest clock cycle.
-    let stack_state = stack.get_state_at(ContextId::default(), system.clk());
+    let stack_state = stack.get_state_at(system.clk());
 
     Ok((mem_state, stack_state))
 }

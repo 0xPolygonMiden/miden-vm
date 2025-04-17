@@ -14,7 +14,7 @@ impl Process {
         let b = self.stack.get(0);
         let a = self.stack.get(1);
         self.stack.set(0, a + b);
-        self.stack.shift_left(2, self.system.ctx());
+        self.stack.shift_left(2);
         Ok(())
     }
 
@@ -33,7 +33,7 @@ impl Process {
         let b = self.stack.get(0);
         let a = self.stack.get(1);
         self.stack.set(0, a * b);
-        self.stack.shift_left(2, self.system.ctx());
+        self.stack.shift_left(2);
         Ok(())
     }
 
@@ -78,7 +78,7 @@ impl Process {
         } else {
             self.stack.set(0, ZERO);
         }
-        self.stack.shift_left(2, self.system.ctx());
+        self.stack.shift_left(2);
         Ok(())
     }
 
@@ -96,7 +96,7 @@ impl Process {
         } else {
             self.stack.set(0, ZERO);
         }
-        self.stack.shift_left(2, self.system.ctx());
+        self.stack.shift_left(2);
         Ok(())
     }
 
@@ -138,7 +138,7 @@ impl Process {
         // save h0 in the decoder helper register.
         self.decoder.set_user_op_helpers(Operation::Eq, &[h0]);
 
-        self.stack.shift_left(2, self.system.ctx());
+        self.stack.shift_left(2);
         Ok(())
     }
 

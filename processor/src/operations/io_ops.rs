@@ -18,7 +18,7 @@ impl Process {
     /// The original stack is shifted to the right by one item.
     pub(super) fn op_push(&mut self, value: Felt) -> Result<(), ExecutionError> {
         self.stack.set(0, value);
-        self.stack.shift_right(0, self.system.ctx());
+        self.stack.shift_right(0);
         Ok(())
     }
 
@@ -54,7 +54,7 @@ impl Process {
         for (i, &value) in word.iter().enumerate() {
             self.stack.set(i, value);
         }
-        self.stack.shift_left(5, self.system.ctx());
+        self.stack.shift_left(5);
 
         Ok(())
     }
@@ -114,7 +114,7 @@ impl Process {
         for (i, &value) in word.iter().rev().enumerate() {
             self.stack.set(i, value);
         }
-        self.stack.shift_left(5, self.system.ctx());
+        self.stack.shift_left(5);
 
         Ok(())
     }
@@ -143,7 +143,7 @@ impl Process {
             .map_err(ExecutionError::MemoryError)?;
 
         // update the stack state
-        self.stack.shift_left(1, self.system.ctx());
+        self.stack.shift_left(1);
 
         Ok(())
     }
@@ -275,7 +275,7 @@ impl Process {
     pub(super) fn op_advpop(&mut self, host: &mut impl Host) -> Result<(), ExecutionError> {
         let value = host.advice_provider_mut().pop_stack(self.into())?;
         self.stack.set(0, value);
-        self.stack.shift_right(0, self.system.ctx());
+        self.stack.shift_right(0);
         Ok(())
     }
 

@@ -50,15 +50,15 @@ fn stack_overflow() {
     stack.copy_state(0);
     stack.advance_clock();
 
-    stack.shift_right(0, ContextId::default());
+    stack.shift_right(0);
     stack.set(0, Felt::from(17u8));
     stack.advance_clock();
 
-    stack.shift_right(0, ContextId::default());
+    stack.shift_right(0);
     stack.set(0, Felt::from(18u8));
     stack.advance_clock();
 
-    stack.shift_right(0, ContextId::default());
+    stack.shift_right(0);
     stack.set(0, Felt::from(19u8));
     stack.advance_clock();
 
@@ -73,12 +73,11 @@ fn stack_overflow() {
         Felt::new(expected_depth - MIN_STACK_DEPTH as u64),
     ];
     let init_addr = 1;
-    let expected_overflow_rows = vec![
+    let expected_overflow_rows = [
         OverflowTableRow::new(Felt::new(init_addr), ONE, ZERO),
         OverflowTableRow::new(Felt::new(init_addr + 1), Felt::new(2), Felt::new(init_addr)),
         OverflowTableRow::new(Felt::new(init_addr + 2), Felt::new(3), Felt::new(init_addr + 1)),
     ];
-    let expected_overflow_active_rows = vec![0, 1, 2];
 
     // Check the stack state.
     assert_eq!(stack.trace_state(), expected_stack);
@@ -87,8 +86,7 @@ fn stack_overflow() {
     assert_eq!(stack.helpers_state(), expected_helpers);
 
     // Check the overflow table state.
-    assert_eq!(stack.overflow.active_rows(), expected_overflow_active_rows);
-    assert_eq!(stack.overflow.all_rows(), expected_overflow_rows);
+    assert_eq!(stack.overflow.total_num_elements(), expected_overflow_rows.len());
 }
 
 // SHIFT LEFT TEST
@@ -102,7 +100,7 @@ fn shift_left() {
 
     // ---- left shift an entire stack of minimum depth -------------------------------------------
     // Perform the left shift.
-    stack.shift_left(1, ContextId::default());
+    stack.shift_left(1);
     stack.advance_clock();
 
     // Check the state of stack item and helper columns.
@@ -117,15 +115,15 @@ fn shift_left() {
     stack.advance_clock();
 
     // Shift right twice to add 2 items to the overflow table.
-    stack.shift_right(0, ContextId::default());
+    stack.shift_right(0);
     let prev_overflow_addr: usize = stack.current_clk().into();
     stack.advance_clock();
-    stack.shift_right(0, ContextId::default());
+    stack.shift_right(0);
     stack.advance_clock();
 
     // Perform the left shift.
     stack.ensure_trace_capacity();
-    stack.shift_left(1, ContextId::default());
+    stack.shift_left(1);
     stack.advance_clock();
 
     // Check the state of stack item and helper columns.
@@ -135,7 +133,7 @@ fn shift_left() {
     // ---- left shift an entire stack with one overflow item -------------------------------------
 
     // Perform the left shift.
-    stack.shift_left(1, ContextId::default());
+    stack.shift_left(1);
     stack.advance_clock();
 
     // Check the state of stack item and helper columns.
@@ -160,7 +158,7 @@ fn shift_right() {
     let expected_stack = build_stack(&[0, 4, 3, 2, 1]);
     let expected_helpers = build_helpers_partial(1, stack.current_clk().into());
 
-    stack.shift_right(0, ContextId::default());
+    stack.shift_right(0);
     stack.advance_clock();
 
     // Check the stack state.
@@ -173,7 +171,7 @@ fn shift_right() {
     let expected_stack = build_stack(&[0, 0, 4, 3, 2, 1]);
     let expected_helpers = build_helpers_partial(2, stack.current_clk().into());
 
-    stack.shift_right(0, ContextId::default());
+    stack.shift_right(0);
     stack.advance_clock();
 
     // Check the stack state.
@@ -198,28 +196,29 @@ fn start_restore_context() {
     stack.advance_clock();
 
     // start context
-    stack.start_context();
+    let new_ctx = (stack.clk.as_u32() + 1).into();
+    stack.start_context(new_ctx);
     stack.copy_state(0);
     stack.advance_clock();
     assert_eq!(16, stack.depth());
 
     // stack depth shouldn't change
-    stack.shift_left(1, ContextId::default());
+    stack.shift_left(1);
     stack.advance_clock();
     assert_eq!(16, stack.depth());
 
     // stack depth = 17
-    stack.shift_right(0, ContextId::default());
+    stack.shift_right(0);
     stack.advance_clock();
     assert_eq!(17, stack.depth());
 
     // stack depth = 16
-    stack.shift_left(1, ContextId::default());
+    stack.shift_left(1);
     stack.advance_clock();
     assert_eq!(16, stack.depth());
 
     // restore previous context
-    stack.restore_context(16, ZERO);
+    stack.restore_context(16, ContextId::root());
     stack.copy_state(0);
     stack.advance_clock();
     assert_eq!(16, stack.depth());
@@ -237,7 +236,7 @@ fn start_restore_context() {
     stack.advance_clock();
 
     // shift the stack right, stack depth = 17
-    stack.shift_right(0, ContextId::default());
+    stack.shift_right(0);
     stack.advance_clock();
     assert_eq!(17, stack.depth());
 
@@ -246,7 +245,8 @@ fn start_restore_context() {
     assert_eq!(stack.helpers_state(), build_helpers_partial(1, 1));
 
     // start context, depth gets reset to 16
-    let (ctx0_depth, ctx0_next_overflow_addr) = stack.start_context();
+    let new_ctx = (stack.clk.as_u32() + 1).into();
+    let (ctx0_depth, ctx0_next_overflow_addr) = stack.start_context(new_ctx);
     stack.copy_state(0);
     stack.advance_clock();
     assert_eq!(16, stack.depth());
@@ -255,7 +255,7 @@ fn start_restore_context() {
     assert_eq!(stack.helpers_state(), build_helpers_partial(0, 0));
 
     // stack depth = 17
-    stack.shift_right(0, ContextId::default());
+    stack.shift_right(0);
     stack.advance_clock();
     assert_eq!(17, stack.depth());
 
@@ -264,7 +264,7 @@ fn start_restore_context() {
     assert_eq!(stack.helpers_state(), build_helpers_partial(1, 3));
 
     // stack depth = 16
-    stack.shift_left(1, ContextId::default());
+    stack.shift_left(1);
     stack.advance_clock();
     assert_eq!(16, stack.depth());
 
@@ -273,7 +273,7 @@ fn start_restore_context() {
     assert_eq!(stack.helpers_state(), build_helpers_partial(0, 0));
 
     // restore previous context
-    stack.restore_context(17, ctx0_next_overflow_addr);
+    stack.restore_context(17, ContextId::root());
     stack.copy_state(0);
     stack.advance_clock();
     assert_eq!(ctx0_depth, stack.depth());
@@ -285,7 +285,7 @@ fn start_restore_context() {
     );
 
     // stack depth = 16
-    stack.shift_left(1, ContextId::default());
+    stack.shift_left(1);
     stack.advance_clock();
     assert_eq!(16, stack.depth());
 
@@ -308,20 +308,21 @@ fn generate_trace() {
     stack.advance_clock();
 
     // clk = 1
-    stack.shift_right(0, ContextId::default());
+    stack.shift_right(0);
     stack.advance_clock();
 
     // clk = 2
-    stack.shift_right(0, ContextId::default());
+    stack.shift_right(0);
     stack.advance_clock();
 
     // start new context, clk = 3
-    let (c0_depth, c0_overflow_addr) = stack.start_context();
+    let new_ctx = (stack.clk.as_u32() + 1).into();
+    let (c0_depth, _c0_overflow_addr) = stack.start_context(new_ctx);
     stack.copy_state(0);
     stack.advance_clock();
 
     // clk = 4
-    stack.shift_right(0, ContextId::default());
+    stack.shift_right(0);
     stack.advance_clock();
 
     // clk = 5
@@ -329,16 +330,16 @@ fn generate_trace() {
     stack.advance_clock();
 
     // clk = 6
-    stack.shift_left(1, ContextId::default());
+    stack.shift_left(1);
     stack.advance_clock();
 
     // restore previous context, clk = 7
-    stack.restore_context(c0_depth, c0_overflow_addr);
+    stack.restore_context(c0_depth, ContextId::default());
     stack.copy_state(0);
     stack.advance_clock();
 
     // clk = 8
-    stack.shift_right(0, ContextId::default());
+    stack.shift_right(0);
     stack.advance_clock();
 
     // clk = 9
@@ -346,15 +347,15 @@ fn generate_trace() {
     stack.advance_clock();
 
     // clk = 10
-    stack.shift_left(1, ContextId::default());
+    stack.shift_left(1);
     stack.advance_clock();
 
     // clk = 11
-    stack.shift_left(1, ContextId::default());
+    stack.shift_left(1);
     stack.advance_clock();
 
     // clk = 12
-    stack.shift_left(1, ContextId::default());
+    stack.shift_left(1);
     stack.advance_clock();
 
     let trace = stack.into_trace(16, 1);
