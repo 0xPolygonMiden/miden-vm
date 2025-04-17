@@ -7,12 +7,14 @@ impl Process {
     ///
     /// The inputs are composed of:
     ///
-    /// 1. a) pointer to the memory region containing the arithmetic circuit description, which
-    ///    itself is arranged as: a) `Read` section: i) Inputs to the circuit which are elements in
-    ///    the quadratic extension field, ii) Constants of the circuit which are elements in the
-    ///    quadratic extension field,
+    /// 1. a pointer to the memory region containing the arithmetic circuit description, which
+    ///    itself is arranged as:
     ///
-    ///    b) `Eval` section, which contains the encodings of the evaluation gates of the circuit.
+    ///    a. `Read` section:
+    ///       1. Inputs to the circuit which are elements in the quadratic extension field,
+    ///       2. Constants of the circuit which are elements in the quadratic extension field,
+    ///
+    ///    b. `Eval` section, which contains the encodings of the evaluation gates of the circuit.
     ///    Each gate is encoded as a single base field element.
     /// 2. the number of rows in the `READ` section,
     /// 3. the number of rows in the `EVAL` section,

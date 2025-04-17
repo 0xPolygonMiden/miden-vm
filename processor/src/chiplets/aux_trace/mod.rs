@@ -38,15 +38,16 @@ impl AuxTraceBuilder {
     ///
     /// 1. a bus column `b_chip` describing requests made by the stack and decoder and responses
     ///    received from the chiplets in the Chiplets module,
-    /// 2. a column acting as both virtual tables, one for the sibling table used by the hasher
-    ///    chiplet and the other for the kernel procedure table, and as a bus between the memory
-    ///    chiplet and the ACE chiplet.
+    /// 2. a column acting as
+    ///    - a virtual table for the sibling table used by the hasher chiplet,
+    ///    - a virtual table for the kernel procedure table, and
+    ///    - a bus between the memory chiplet and the ACE chiplet.
     /// 3. a column used as a bus to wire the gates of the ACE chiplet.
     pub fn build_aux_columns<E: FieldElement<BaseField = Felt>>(
         &self,
         main_trace: &MainTrace,
         rand_elements: &[E],
-    ) -> Vec<Vec<E>> {
+    ) -> [Vec<E>; 3] {
         let v_table_col_builder = ChipletsVTableColBuilder::new(self.kernel.clone());
         let bus_col_builder = BusColumnBuilder::default();
         let wiring_bus_builder = WiringBusBuilder::new(&self.ace_hints);
@@ -58,6 +59,6 @@ impl AuxTraceBuilder {
         let chiplets_bus_final_value = b_chip.last().unwrap();
         debug_assert_eq!(*v_table_final_value * *chiplets_bus_final_value, E::ONE);
 
-        vec![t_chip, b_chip, wiring_bus]
+        [t_chip, b_chip, wiring_bus]
     }
 }

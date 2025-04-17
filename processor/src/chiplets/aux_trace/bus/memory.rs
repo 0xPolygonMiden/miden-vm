@@ -4,9 +4,12 @@ use core::fmt::{Display, Formatter, Result as FmtResult};
 use miden_air::{
     RowIndex,
     trace::{
-        chiplets::memory::{
-            MEMORY_ACCESS_ELEMENT, MEMORY_ACCESS_WORD, MEMORY_READ_ELEMENT_LABEL,
-            MEMORY_READ_WORD_LABEL, MEMORY_WRITE_ELEMENT_LABEL, MEMORY_WRITE_WORD_LABEL,
+        chiplets::{
+            ace::{ACE_INSTRUCTION_ID1_OFFSET, ACE_INSTRUCTION_ID2_OFFSET},
+            memory::{
+                MEMORY_ACCESS_ELEMENT, MEMORY_ACCESS_WORD, MEMORY_READ_ELEMENT_LABEL,
+                MEMORY_READ_WORD_LABEL, MEMORY_WRITE_ELEMENT_LABEL, MEMORY_WRITE_WORD_LABEL,
+            },
         },
         main_trace::MainTrace,
     },
@@ -70,7 +73,8 @@ pub fn build_ace_memory_read_element_request<E: FieldElement<BaseField = Felt>>(
 
     let id_0 = main_trace.chiplet_ace_id_1(row);
     let id_1 = main_trace.chiplet_ace_id_2(row);
-    let element = id_0 + id_1 * Felt::new(1 << 30) + (element + ONE) * Felt::new(1 << 60);
+    let element =
+        id_0 + id_1 * ACE_INSTRUCTION_ID1_OFFSET + (element + ONE) * ACE_INSTRUCTION_ID2_OFFSET;
     let op_label = MEMORY_READ_ELEMENT_LABEL;
     let clk = main_trace.chiplet_ace_clk(row);
     let ctx = main_trace.chiplet_ace_ctx(row);
