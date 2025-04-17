@@ -28,8 +28,9 @@ inherits = "release"
 codegen-units = 1
 lto = true
 
-[profile.test-release]
-inherits = "release"
+[profile.test-dev]
+inherits = "dev"
+opt-level = 1
 debug = true
 debug-assertions = true
 overflow-checks = true

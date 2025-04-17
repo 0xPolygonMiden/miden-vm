@@ -33,6 +33,7 @@ const DECODER_HASHER_RANGE: Range<usize> =
 // HELPER STRUCT AND METHODS
 // ================================================================================================
 
+#[derive(Debug)]
 pub struct MainTrace {
     columns: ColMatrix<Felt>,
     last_program_row: RowIndex,

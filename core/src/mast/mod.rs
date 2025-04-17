@@ -11,8 +11,8 @@ use miden_crypto::hash::rpo::RpoDigest;
 
 mod node;
 pub use node::{
-    BasicBlockNode, CallNode, DynNode, ExternalNode, JoinNode, LoopNode, MastNode, OP_BATCH_SIZE,
-    OP_GROUP_SIZE, OpBatch, OperationOrDecorator, SplitNode,
+    BasicBlockNode, CallNode, DynNode, ExternalNode, JoinNode, LoopNode, MastNode, MastNodeExt,
+    OP_BATCH_SIZE, OP_GROUP_SIZE, OpBatch, OperationOrDecorator, SplitNode,
 };
 use winter_utils::{ByteWriter, DeserializationError, Serializable};
 
@@ -198,8 +198,8 @@ impl MastForest {
         id_remappings
     }
 
-    pub fn set_before_enter(&mut self, node_id: MastNodeId, decorator_ids: Vec<DecoratorId>) {
-        self[node_id].set_before_enter(decorator_ids)
+    pub fn append_before_enter(&mut self, node_id: MastNodeId, decorator_ids: &[DecoratorId]) {
+        self[node_id].append_before_enter(decorator_ids)
     }
 
     pub fn set_after_exit(&mut self, node_id: MastNodeId, decorator_ids: Vec<DecoratorId>) {

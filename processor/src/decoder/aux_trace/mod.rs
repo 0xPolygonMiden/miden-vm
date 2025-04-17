@@ -22,7 +22,7 @@ use op_group_table::OpGroupTableColumnBuilder;
 
 /// Constructs the execution traces of stack-related auxiliary trace segment columns
 /// (used in multiset checks).
-#[derive(Default, Clone, Copy)]
+#[derive(Debug, Default, Clone, Copy)]
 pub struct AuxTraceBuilder {}
 
 impl AuxTraceBuilder {

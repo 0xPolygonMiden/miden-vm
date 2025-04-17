@@ -76,7 +76,10 @@ impl fmt::Display for Decorator {
 }
 
 /// Vector consisting of a tuple of operation index (within a span block) and decorator at that
-/// index
+/// index.
+///
+/// Note: for `AssemblyOp` decorators, when an instruction compiles down to multiple operations,
+/// only the first operation is associated with the assembly op.
 pub type DecoratorList = Vec<(usize, DecoratorId)>;
 
 /// Iterator used to iterate through the decorator list of a span block
