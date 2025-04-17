@@ -60,7 +60,7 @@ fn arithmetic_circuit_eval_execute() {
         // id = 2, v = rand * (rand - 1)
         Felt::new(7 + (3 << 30) + (1 << 60)), // id_l = 7; id_r = 3; op = MUL
         // id = 1, v = rand * (rand - 1) - result = zero
-        Felt::new(2 + (6 << 30) + (0 << 60)), // id_l = 2; id_r = 6; op = SUB
+        Felt::new(2 + (6 << 30)), // id_l = 2; id_r = 6; op = SUB
         // id = 0, v = zero * zero
         Felt::new(1 + (1 << 30) + (1 << 60)), // id_l = 1; id_r = 1; op = MUL
     ]);
@@ -135,7 +135,7 @@ fn arithmetic_circuit_eval() {
         // id = 2, v = rand * (rand - 1)
         Felt::new(7 + (3 << 30) + (1 << 60)), // id_l = 7; id_r = 3; op = MUL
         // id = 1, v = rand * (rand - 1) - result = zero
-        Felt::new(2 + (6 << 30) + (0 << 60)), // id_l = 2; id_r = 6; op = SUB
+        Felt::new(2 + (6 << 30)), // id_l = 2; id_r = 6; op = SUB
         // id = 0, v = zero * zero
         Felt::new(1 + (1 << 30) + (1 << 60)), // id_l = 1; id_r = 1; op = MUL
     ]);
