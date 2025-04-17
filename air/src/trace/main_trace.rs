@@ -12,6 +12,11 @@ use super::{
         BITWISE_A_COL_IDX, BITWISE_B_COL_IDX, BITWISE_OUTPUT_COL_IDX, HASHER_NODE_INDEX_COL_IDX,
         HASHER_STATE_COL_RANGE, MEMORY_CLK_COL_IDX, MEMORY_CTX_COL_IDX, MEMORY_IDX0_COL_IDX,
         MEMORY_IDX1_COL_IDX, MEMORY_V_COL_RANGE, MEMORY_WORD_COL_IDX,
+        ace::{
+            CLK_IDX, CTX_IDX, EVAL_OP_IDX, ID_0_IDX, ID_1_IDX, ID_2_IDX, M_0_IDX, M_1_IDX,
+            NUM_ACE_EXTERNAL_SELECTORS, PTR_IDX, SELECTOR_BLOCK_IDX, SELECTOR_START_IDX, V_0_0_IDX,
+            V_0_1_IDX, V_1_0_IDX, V_1_1_IDX, V_2_0_IDX, V_2_1_IDX,
+        },
         hasher::{DIGEST_LEN, HASH_CYCLE_LEN, STATE_WIDTH},
     },
     decoder::{
@@ -425,39 +430,44 @@ impl MainTrace {
     }
 
     pub fn chiplet_ace_start_selector(&self, i: RowIndex) -> Felt {
-        self.columns.get_column(CHIPLETS_OFFSET + 4)[i]
+        self.columns
+            .get_column(CHIPLETS_OFFSET + NUM_ACE_EXTERNAL_SELECTORS + SELECTOR_START_IDX)[i]
     }
 
     pub fn chiplet_ace_block_selector(&self, i: RowIndex) -> Felt {
-        self.columns.get_column(CHIPLETS_OFFSET + 5)[i]
+        self.columns
+            .get_column(CHIPLETS_OFFSET + NUM_ACE_EXTERNAL_SELECTORS + SELECTOR_BLOCK_IDX)[i]
     }
 
     pub fn chiplet_ace_ctx(&self, i: RowIndex) -> Felt {
-        self.columns.get_column(CHIPLETS_OFFSET + 6)[i]
+        self.columns.get_column(CHIPLETS_OFFSET + NUM_ACE_EXTERNAL_SELECTORS + CTX_IDX)[i]
     }
 
     pub fn chiplet_ace_ptr(&self, i: RowIndex) -> Felt {
-        self.columns.get_column(CHIPLETS_OFFSET + 7)[i]
+        self.columns.get_column(CHIPLETS_OFFSET + NUM_ACE_EXTERNAL_SELECTORS + PTR_IDX)[i]
     }
 
     pub fn chiplet_ace_clk(&self, i: RowIndex) -> Felt {
-        self.columns.get_column(CHIPLETS_OFFSET + 8)[i]
+        self.columns.get_column(CHIPLETS_OFFSET + NUM_ACE_EXTERNAL_SELECTORS + CLK_IDX)[i]
     }
 
     pub fn chiplet_ace_eval_op(&self, i: RowIndex) -> Felt {
-        self.columns.get_column(CHIPLETS_OFFSET + 9)[i]
+        self.columns
+            .get_column(CHIPLETS_OFFSET + NUM_ACE_EXTERNAL_SELECTORS + EVAL_OP_IDX)[i]
     }
 
     pub fn chiplet_ace_id_0(&self, i: RowIndex) -> Felt {
-        self.columns.get_column(CHIPLETS_OFFSET + 10)[i]
+        self.columns.get_column(CHIPLETS_OFFSET + NUM_ACE_EXTERNAL_SELECTORS + ID_0_IDX)[i]
     }
 
     pub fn chiplet_ace_v_0_0(&self, i: RowIndex) -> Felt {
-        self.columns.get_column(CHIPLETS_OFFSET + 11)[i]
+        self.columns
+            .get_column(CHIPLETS_OFFSET + NUM_ACE_EXTERNAL_SELECTORS + V_0_0_IDX)[i]
     }
 
     pub fn chiplet_ace_v_0_1(&self, i: RowIndex) -> Felt {
-        self.columns.get_column(CHIPLETS_OFFSET + 12)[i]
+        self.columns
+            .get_column(CHIPLETS_OFFSET + NUM_ACE_EXTERNAL_SELECTORS + V_0_1_IDX)[i]
     }
     pub fn chiplet_ace_wire_0(&self, i: RowIndex) -> [Felt; 3] {
         let id_0 = self.chiplet_ace_id_0(i);
@@ -468,15 +478,17 @@ impl MainTrace {
     }
 
     pub fn chiplet_ace_id_1(&self, i: RowIndex) -> Felt {
-        self.columns.get_column(CHIPLETS_OFFSET + 13)[i]
+        self.columns.get_column(CHIPLETS_OFFSET + NUM_ACE_EXTERNAL_SELECTORS + ID_1_IDX)[i]
     }
 
     pub fn chiplet_ace_v_1_0(&self, i: RowIndex) -> Felt {
-        self.columns.get_column(CHIPLETS_OFFSET + 14)[i]
+        self.columns
+            .get_column(CHIPLETS_OFFSET + NUM_ACE_EXTERNAL_SELECTORS + V_1_0_IDX)[i]
     }
 
     pub fn chiplet_ace_v_1_1(&self, i: RowIndex) -> Felt {
-        self.columns.get_column(CHIPLETS_OFFSET + 15)[i]
+        self.columns
+            .get_column(CHIPLETS_OFFSET + NUM_ACE_EXTERNAL_SELECTORS + V_1_1_IDX)[i]
     }
 
     pub fn chiplet_ace_wire_1(&self, i: RowIndex) -> [Felt; 3] {
@@ -488,15 +500,17 @@ impl MainTrace {
     }
 
     pub fn chiplet_ace_id_2(&self, i: RowIndex) -> Felt {
-        self.columns.get_column(CHIPLETS_OFFSET + 16)[i]
+        self.columns.get_column(CHIPLETS_OFFSET + NUM_ACE_EXTERNAL_SELECTORS + ID_2_IDX)[i]
     }
 
     pub fn chiplet_ace_v_2_0(&self, i: RowIndex) -> Felt {
-        self.columns.get_column(CHIPLETS_OFFSET + 17)[i]
+        self.columns
+            .get_column(CHIPLETS_OFFSET + NUM_ACE_EXTERNAL_SELECTORS + V_2_0_IDX)[i]
     }
 
     pub fn chiplet_ace_v_2_1(&self, i: RowIndex) -> Felt {
-        self.columns.get_column(CHIPLETS_OFFSET + 18)[i]
+        self.columns
+            .get_column(CHIPLETS_OFFSET + NUM_ACE_EXTERNAL_SELECTORS + V_2_1_IDX)[i]
     }
 
     pub fn chiplet_ace_wire_2(&self, i: RowIndex) -> [Felt; 3] {
@@ -508,11 +522,11 @@ impl MainTrace {
     }
 
     pub fn chiplet_ace_m_1(&self, i: RowIndex) -> Felt {
-        self.columns.get_column(CHIPLETS_OFFSET + 18)[i]
+        self.columns.get_column(CHIPLETS_OFFSET + NUM_ACE_EXTERNAL_SELECTORS + M_1_IDX)[i]
     }
 
     pub fn chiplet_ace_m_0(&self, i: RowIndex) -> Felt {
-        self.columns.get_column(CHIPLETS_OFFSET + 19)[i]
+        self.columns.get_column(CHIPLETS_OFFSET + NUM_ACE_EXTERNAL_SELECTORS + M_0_IDX)[i]
     }
 
     pub fn chiplet_ace_is_read_row(&self, i: RowIndex) -> bool {

@@ -1,6 +1,14 @@
-use std::{collections::HashMap, prelude::rust_2015::Vec, println};
+use alloc::vec::Vec;
+use std::collections::HashMap;
 
-use miden_air::{FieldElement, RowIndex};
+use miden_air::{
+    FieldElement, RowIndex,
+    trace::chiplets::ace::{
+        ACE_CHIPLET_NUM_COLS, EVAL_OP_IDX, ID_0_IDX, ID_1_IDX, ID_2_IDX, M_0_IDX, M_1_IDX,
+        SELECTOR_BLOCK_IDX, SELECTOR_START_IDX, V_0_0_IDX, V_0_1_IDX, V_1_0_IDX, V_1_1_IDX,
+        V_2_0_IDX, V_2_1_IDX,
+    },
+};
 use vm_core::{ZERO, mast::BasicBlockNode};
 
 use crate::{
@@ -10,11 +18,7 @@ use crate::{
             encoded_circuit::{EncodedCircuit, Op},
             eval_circuit,
             tests::circuit::{Circuit, CircuitLayout, Instruction, NodeID},
-            trace::{
-                EVAL_OP_IDX, EvaluationContext, ID_0_IDX, ID_1_IDX, ID_2_IDX, M_0_IDX, M_1_IDX,
-                NUM_COLS, SELECTOR_BLOCK_IDX, SELECTOR_START_IDX, V_0_0_IDX, V_0_1_IDX, V_1_0_IDX,
-                V_1_1_IDX, V_2_0_IDX, V_2_1_IDX,
-            },
+            trace::EvaluationContext,
         },
         memory::Memory,
     },
@@ -123,8 +127,6 @@ fn encode_decode_instruction() {
         assert_eq!(id_r, id_r_expected);
         assert_eq!(op, instruction.op);
     }
-
-    println!("encoded vec {:?}", encoded_vec);
 }
 
 #[test]
@@ -257,7 +259,7 @@ fn generate_memory(circuit: &EncodedCircuit, inputs: &[QuadFelt]) -> Vec<Word> {
 /// Given an EvaluationContext
 fn verify_trace(context: &EvaluationContext, num_read_rows: usize, num_eval_rows: usize) {
     let num_rows = num_read_rows + num_eval_rows;
-    let mut columns: Vec<_> = (0..NUM_COLS).map(|_| vec![ZERO; num_rows]).collect();
+    let mut columns: Vec<_> = (0..ACE_CHIPLET_NUM_COLS).map(|_| vec![ZERO; num_rows]).collect();
 
     context.fill(0, &mut columns);
 

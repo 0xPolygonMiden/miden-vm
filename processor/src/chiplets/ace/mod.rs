@@ -2,8 +2,10 @@
 
 use alloc::{collections::BTreeMap, vec::Vec};
 
-use miden_air::{RowIndex, trace::main_trace::MainTrace};
-use trace::NUM_COLS;
+use miden_air::{
+    RowIndex,
+    trace::{chiplets::ace::ACE_CHIPLET_NUM_COLS, main_trace::MainTrace},
+};
 use vm_core::{FieldElement, ZERO, mast::MastNodeExt};
 
 use crate::{
@@ -35,9 +37,9 @@ impl Ace {
     pub(crate) fn fill_trace(mut self, trace: &mut TraceFragment) -> Vec<AceSection> {
         // make sure fragment dimensions are consistent with the dimensions of this trace
         debug_assert_eq!(self.trace_len(), trace.len(), "inconsistent trace lengths");
-        debug_assert_eq!(NUM_COLS, trace.width(), "inconsistent trace widths");
+        debug_assert_eq!(ACE_CHIPLET_NUM_COLS, trace.width(), "inconsistent trace widths");
 
-        let mut gen_trace: [Vec<Felt>; NUM_COLS] = (0..NUM_COLS)
+        let mut gen_trace: [Vec<Felt>; ACE_CHIPLET_NUM_COLS] = (0..ACE_CHIPLET_NUM_COLS)
             .map(|_| vec![ZERO; self.trace_len()])
             .collect::<Vec<_>>()
             .try_into()
@@ -234,7 +236,11 @@ impl AceHints {
     fn num_fractions(&self) -> usize {
         self.sections
             .iter()
-            .fold(0, |acc, term| acc + 2 * term.num_vars + 3 * term.num_evals) as usize
+            .map(|section| {
+                NUM_ACE_LOGUP_FRACTIONS_READ * (section.num_vars as usize)
+                    + NUM_ACE_LOGUP_FRACTIONS_EVAL * (section.num_evals as usize)
+            })
+            .sum()
     }
 }
 
