@@ -1,13 +1,24 @@
 use alloc::vec::Vec;
 use core::ops::Range;
 
-use miden_air::RowIndex;
+use miden_air::{
+    RowIndex,
+    trace::chiplets::ace::{
+        CLK_IDX, CTX_IDX, EVAL_OP_IDX, ID_0_IDX, ID_1_IDX, ID_2_IDX, M_0_IDX, M_1_IDX, PTR_IDX,
+        READ_NUM_EVAL_IDX, SELECTOR_BLOCK_IDX, SELECTOR_START_IDX, V_0_0_IDX, V_0_1_IDX, V_1_0_IDX,
+        V_1_1_IDX, V_2_0_IDX, V_2_1_IDX,
+    },
+};
 use vm_core::FieldElement;
 
 use crate::{
     ContextId, ExecutionError, Felt, QuadFelt, Word,
     chiplets::ace::encoded_circuit::{EncodedCircuit, Op},
 };
+/// Number of LogUp fractions in the wiring bus for rows in the `READ` section.
+pub const NUM_ACE_LOGUP_FRACTIONS_READ: usize = 2;
+/// Number of LogUp fractions in the wiring bus for rows in the `EVAL` section.
+pub const NUM_ACE_LOGUP_FRACTIONS_EVAL: usize = 3;
 
 /// Contains the variable and evaluation nodes resulting from the evaluation of a circuit.
 /// The output value is checked to be equal to 0.
@@ -290,52 +301,3 @@ impl WireBus {
         self.wires.len() == self.num_wires as usize
     }
 }
-
-/// The index of the column containing the flag indicating the start of a new circuit evaluation.
-pub const SELECTOR_START_IDX: usize = 0;
-/// The index of the column containing the flag indicating whether the current row performs
-/// a READ or EVAL operation.
-pub const SELECTOR_BLOCK_IDX: usize = 1;
-/// The index of the column containing memory context.
-pub const CTX_IDX: usize = 2;
-/// The index of the column containing the pointer from which to read the next two variables
-/// or instruction.
-pub const PTR_IDX: usize = 3;
-/// The index of the column containing memory clk at which the memory read is performed.
-pub const CLK_IDX: usize = 4;
-/// The index of the column containing the flag indicating which arithmetic operation to perform.
-pub const EVAL_OP_IDX: usize = 5;
-
-/// The index of the column containing ID of the first wire.
-pub const ID_0_IDX: usize = 6;
-/// The index of the column containing the first base-field element of the value of the first wire.
-pub const V_0_0_IDX: usize = 7;
-/// The index of the column containing the second base-field element of the value of the first wire.
-pub const V_0_1_IDX: usize = 8;
-/// The index of the column containing the multiplicity of the first wire.
-pub const M_0_IDX: usize = 15;
-
-/// The index of the column containing ID of the second wire.
-pub const ID_1_IDX: usize = 9;
-/// The index of the column containing the first base-field element of the value of the second wire.
-pub const V_1_0_IDX: usize = 10;
-/// The index of the column containing the second base-field element of the value of the second
-/// wire.
-pub const V_1_1_IDX: usize = 11;
-/// The index of the column containing the multiplicity of the second wire.
-pub const M_1_IDX: usize = 14;
-
-/// The index of the column containing ID of the third wire.
-pub const ID_2_IDX: usize = 12;
-/// The index of the column containing the first base-field element of the value of the third wire.
-pub const V_2_0_IDX: usize = 13;
-/// The index of the column containing the second base-field element of the value of the third wire.
-pub const V_2_1_IDX: usize = 14;
-
-/// The index of the column containing the index of the first wire being evaluated.
-pub const READ_NUM_EVAL_IDX: usize = 12;
-
-pub const NUM_COLS: usize = 16;
-
-pub const NUM_ACE_LOGUP_FRACTIONS_READ: usize = 2;
-pub const NUM_ACE_LOGUP_FRACTIONS_EVAL: usize = 3;

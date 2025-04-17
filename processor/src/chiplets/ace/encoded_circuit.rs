@@ -42,7 +42,7 @@ impl EncodedCircuit {
     /// `uint`.
     pub const MAX_ID: u32 = (1 << Self::ID_BITS) - 1;
 
-    /// Given a `Felt`, try to recover the components `id_l, id_r, op`.
+    /// Given a `Felt`, tries to recover the components `id_l, id_r, op`.
     pub fn decode_instruction(instruction: Felt) -> Option<(u32, u32, Op)> {
         let mut remaining = instruction.as_int();
         let id_l = (remaining & Self::MAX_ID as u64) as u32;
@@ -59,25 +59,18 @@ impl EncodedCircuit {
         Some((id_l, id_r, op))
     }
 
-    // HASHING
-
-    /// Compute the hash of all circuit constants and instructions.
+    /// Computes the hash of all circuit constants and instructions.
     fn raw_circuit_hash<H: ElementHasher<BaseField = Felt>>(&self) -> H::Digest {
         debug_assert_eq!(self.encoded_circuit.len() % 8, 0);
         H::hash_elements(&self.encoded_circuit)
     }
 
-    /// Returns the digest of the circuit including a header
-    pub fn circuit_hash<H: ElementHasher<BaseField = Felt>>(&self) -> H::Digest {
-        todo!()
-    }
-
-    // HELPERS
-
+    /// Returns the number of constants in the circuit.
     pub fn num_constants(&self) -> usize {
         (self.encoded_circuit.len() - self.num_eval) / 2
     }
 
+    /// Returns the number of inputs in the circuit.
     pub fn num_inputs(&self) -> usize {
         self.num_vars - self.num_constants()
     }
