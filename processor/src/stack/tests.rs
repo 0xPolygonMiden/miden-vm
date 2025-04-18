@@ -7,6 +7,7 @@ use miden_air::trace::{
 use vm_core::FieldElement;
 
 use super::*;
+use crate::stack::OverflowTableRow;
 
 // TYPE ALIASES
 // ================================================================================================

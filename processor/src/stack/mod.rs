@@ -13,10 +13,11 @@ use trace::StackTrace;
 
 mod overflow;
 use overflow::OverflowStack;
-pub use overflow::OverflowTableRow;
 
 mod aux_trace;
 pub use aux_trace::AuxTraceBuilder;
+#[cfg(test)]
+pub(crate) use aux_trace::OverflowTableRow;
 
 #[cfg(test)]
 mod tests;
