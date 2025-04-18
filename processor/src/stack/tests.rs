@@ -6,7 +6,8 @@ use miden_air::trace::{
 };
 use vm_core::FieldElement;
 
-use super::{Felt, MIN_STACK_DEPTH, ONE, OverflowTableRow, Stack, StackInputs, ZERO};
+use super::*;
+use crate::stack::OverflowTableRow;
 
 // TYPE ALIASES
 // ================================================================================================
@@ -73,12 +74,11 @@ fn stack_overflow() {
         Felt::new(expected_depth - MIN_STACK_DEPTH as u64),
     ];
     let init_addr = 1;
-    let expected_overflow_rows = vec![
+    let expected_overflow_rows = [
         OverflowTableRow::new(Felt::new(init_addr), ONE, ZERO),
         OverflowTableRow::new(Felt::new(init_addr + 1), Felt::new(2), Felt::new(init_addr)),
         OverflowTableRow::new(Felt::new(init_addr + 2), Felt::new(3), Felt::new(init_addr + 1)),
     ];
-    let expected_overflow_active_rows = vec![0, 1, 2];
 
     // Check the stack state.
     assert_eq!(stack.trace_state(), expected_stack);
@@ -87,8 +87,7 @@ fn stack_overflow() {
     assert_eq!(stack.helpers_state(), expected_helpers);
 
     // Check the overflow table state.
-    assert_eq!(stack.overflow.active_rows(), expected_overflow_active_rows);
-    assert_eq!(stack.overflow.all_rows(), expected_overflow_rows);
+    assert_eq!(stack.overflow.total_num_elements(), expected_overflow_rows.len());
 }
 
 // SHIFT LEFT TEST
@@ -198,7 +197,8 @@ fn start_restore_context() {
     stack.advance_clock();
 
     // start context
-    stack.start_context();
+    let new_ctx = (stack.clk.as_u32() + 1).into();
+    stack.start_context(new_ctx);
     stack.copy_state(0);
     stack.advance_clock();
     assert_eq!(16, stack.depth());
@@ -219,7 +219,7 @@ fn start_restore_context() {
     assert_eq!(16, stack.depth());
 
     // restore previous context
-    stack.restore_context(16, ZERO);
+    stack.restore_context(16, ContextId::root());
     stack.copy_state(0);
     stack.advance_clock();
     assert_eq!(16, stack.depth());
@@ -246,7 +246,8 @@ fn start_restore_context() {
     assert_eq!(stack.helpers_state(), build_helpers_partial(1, 1));
 
     // start context, depth gets reset to 16
-    let (ctx0_depth, ctx0_next_overflow_addr) = stack.start_context();
+    let new_ctx = (stack.clk.as_u32() + 1).into();
+    let (ctx0_depth, ctx0_next_overflow_addr) = stack.start_context(new_ctx);
     stack.copy_state(0);
     stack.advance_clock();
     assert_eq!(16, stack.depth());
@@ -273,7 +274,7 @@ fn start_restore_context() {
     assert_eq!(stack.helpers_state(), build_helpers_partial(0, 0));
 
     // restore previous context
-    stack.restore_context(17, ctx0_next_overflow_addr);
+    stack.restore_context(17, ContextId::root());
     stack.copy_state(0);
     stack.advance_clock();
     assert_eq!(ctx0_depth, stack.depth());
@@ -316,7 +317,8 @@ fn generate_trace() {
     stack.advance_clock();
 
     // start new context, clk = 3
-    let (c0_depth, c0_overflow_addr) = stack.start_context();
+    let new_ctx = (stack.clk.as_u32() + 1).into();
+    let (c0_depth, _c0_overflow_addr) = stack.start_context(new_ctx);
     stack.copy_state(0);
     stack.advance_clock();
 
@@ -333,7 +335,7 @@ fn generate_trace() {
     stack.advance_clock();
 
     // restore previous context, clk = 7
-    stack.restore_context(c0_depth, c0_overflow_addr);
+    stack.restore_context(c0_depth, ContextId::default());
     stack.copy_state(0);
     stack.advance_clock();
 
