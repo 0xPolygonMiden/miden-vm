@@ -1,9 +1,13 @@
 use alloc::sync::Arc;
 
-use vm_core::{DebugOptions, crypto::hash::RpoDigest, mast::MastForest};
+use vm_core::{
+    DebugOptions,
+    crypto::hash::RpoDigest,
+    mast::{MastForest, MastNodeExt},
+};
 
 use super::{ExecutionError, ProcessState};
-use crate::{KvMap, MemAdviceProvider};
+use crate::{KvMap, MemAdviceProvider, errors::ErrorContext};
 
 pub(super) mod advice;
 use advice::AdviceProvider;
@@ -44,7 +48,12 @@ pub trait Host {
     // --------------------------------------------------------------------------------------------
 
     /// Handles the event emitted from the VM.
-    fn on_event(&mut self, _process: ProcessState, _event_id: u32) -> Result<(), ExecutionError> {
+    fn on_event(
+        &mut self,
+        _process: ProcessState,
+        _event_id: u32,
+        _err_ctx: &ErrorContext<'_, impl MastNodeExt>,
+    ) -> Result<(), ExecutionError> {
         #[cfg(feature = "std")]
         std::println!(
             "Event with id {} emitted at step {} in context {}",
@@ -79,12 +88,13 @@ pub trait Host {
     }
 
     /// Handles the failure of the assertion instruction.
-    fn on_assert_failed(&mut self, process: ProcessState, err_code: u32) -> ExecutionError {
-        ExecutionError::FailedAssertion {
-            clk: process.clk(),
-            err_code,
-            err_msg: None,
-        }
+    fn on_assert_failed(
+        &mut self,
+        process: ProcessState,
+        err_code: u32,
+        err_ctx: &ErrorContext<'_, impl MastNodeExt>,
+    ) -> ExecutionError {
+        ExecutionError::failed_assertion(process.clk(), err_code, None, err_ctx)
     }
 }
 
@@ -114,16 +124,26 @@ where
         H::on_debug(self, process, options)
     }
 
-    fn on_event(&mut self, process: ProcessState, event_id: u32) -> Result<(), ExecutionError> {
-        H::on_event(self, process, event_id)
+    fn on_event(
+        &mut self,
+        process: ProcessState,
+        event_id: u32,
+        err_ctx: &ErrorContext<'_, impl MastNodeExt>,
+    ) -> Result<(), ExecutionError> {
+        H::on_event(self, process, event_id, err_ctx)
     }
 
     fn on_trace(&mut self, process: ProcessState, trace_id: u32) -> Result<(), ExecutionError> {
         H::on_trace(self, process, trace_id)
     }
 
-    fn on_assert_failed(&mut self, process: ProcessState, err_code: u32) -> ExecutionError {
-        H::on_assert_failed(self, process, err_code)
+    fn on_assert_failed(
+        &mut self,
+        process: ProcessState,
+        err_code: u32,
+        err_ctx: &ErrorContext<'_, impl MastNodeExt>,
+    ) -> ExecutionError {
+        H::on_assert_failed(self, process, err_code, err_ctx)
     }
 }
 
@@ -168,7 +188,11 @@ impl<A: AdviceProvider> DefaultHost<A> {
         for (digest, values) in mast_forest.advice_map().iter() {
             if let Some(stored_values) = self.advice_provider().get_mapped_values(digest) {
                 if stored_values != values {
-                    return Err(ExecutionError::AdviceMapKeyAlreadyPresent(digest.into()));
+                    return Err(ExecutionError::AdviceMapKeyAlreadyPresent {
+                        key: digest.into(),
+                        prev_values: stored_values.to_vec(),
+                        new_values: values.clone(),
+                    });
                 }
             } else {
                 self.advice_provider_mut().insert_into_map(digest.into(), values.clone());
@@ -209,7 +233,12 @@ impl<A: AdviceProvider> Host for DefaultHost<A> {
         self.store.get(node_digest)
     }
 
-    fn on_event(&mut self, _process: ProcessState, _event_id: u32) -> Result<(), ExecutionError> {
+    fn on_event(
+        &mut self,
+        _process: ProcessState,
+        _event_id: u32,
+        _err_ctx: &ErrorContext<'_, impl MastNodeExt>,
+    ) -> Result<(), ExecutionError> {
         #[cfg(feature = "std")]
         std::println!(
             "Event with id {} emitted at step {} in context {}",

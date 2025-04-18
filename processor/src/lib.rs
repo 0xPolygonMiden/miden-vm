@@ -8,7 +8,6 @@ extern crate std;
 
 use alloc::{sync::Arc, vec::Vec};
 
-use errors::ErrorContext;
 use miden_air::trace::{
     CHIPLETS_WIDTH, DECODER_TRACE_WIDTH, MIN_TRACE_LEN, RANGE_CHECK_TRACE_WIDTH, STACK_TRACE_WIDTH,
     SYS_TRACE_WIDTH,
@@ -63,7 +62,7 @@ use trace::TraceFragment;
 pub use trace::{ChipletsLengths, ExecutionTrace, NUM_RAND_ROWS, TraceLenSummary};
 
 mod errors;
-pub use errors::{ExecutionError, Ext2InttError};
+pub use errors::{ErrorContext, ExecutionError, Ext2InttError};
 
 pub mod utils;
 
@@ -260,7 +259,11 @@ impl Process {
         for (digest, values) in program.mast_forest().advice_map().iter() {
             if let Some(stored_values) = host.advice_provider().get_mapped_values(digest) {
                 if stored_values != values {
-                    return Err(ExecutionError::AdviceMapKeyAlreadyPresent(digest.into()));
+                    return Err(ExecutionError::AdviceMapKeyAlreadyPresent {
+                        key: digest.into(),
+                        prev_values: stored_values.to_vec(),
+                        new_values: values.clone(),
+                    });
                 }
             } else {
                 host.advice_provider_mut().insert_into_map(digest.into(), values.clone());
@@ -463,9 +466,9 @@ impl Process {
         match program.find_procedure_root(callee_hash.into()) {
             Some(callee_id) => self.execute_mast_node(callee_id, program, host)?,
             None => {
-                let mast_forest = host
-                    .get_mast_forest(&callee_hash.into())
-                    .ok_or_else(|| ExecutionError::DynamicNodeNotFound(callee_hash.into()))?;
+                let mast_forest = host.get_mast_forest(&callee_hash.into()).ok_or_else(|| {
+                    ExecutionError::dynamic_node_not_found(callee_hash.into(), &error_ctx)
+                })?;
 
                 // We limit the parts of the program that can be called externally to procedure
                 // roots, even though MAST doesn't have that restriction.

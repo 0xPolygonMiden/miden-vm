@@ -1,6 +1,7 @@
-use vm_core::{ONE, Operation, ZERO};
+use vm_core::{ONE, Operation, ZERO, mast::MastNodeExt};
 
 use super::{ExecutionError, Felt, FieldElement, Process, utils::assert_binary};
+use crate::ErrorContext;
 
 // FIELD OPERATIONS
 // ================================================================================================
@@ -42,10 +43,13 @@ impl Process {
     ///
     /// # Errors
     /// Returns an error if the value on the top of the stack is ZERO.
-    pub(super) fn op_inv(&mut self) -> Result<(), ExecutionError> {
+    pub(super) fn op_inv(
+        &mut self,
+        err_ctx: &ErrorContext<'_, impl MastNodeExt>,
+    ) -> Result<(), ExecutionError> {
         let a = self.stack.get(0);
         if a == ZERO {
-            return Err(ExecutionError::DivideByZero(self.system.clk()));
+            return Err(ExecutionError::divide_by_zero(self.system.clk(), err_ctx));
         }
 
         self.stack.set(0, a.inv());

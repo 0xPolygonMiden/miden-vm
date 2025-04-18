@@ -1,7 +1,233 @@
-use assembly::{assert_diagnostic_lines, regex};
+/// Tests in this file make sure that diagnostics presented to the user are as expected.
+use alloc::string::ToString;
+
+use assembly::{assert_diagnostic_lines, regex, source_file, testing::TestContext};
 use test_utils::build_test_by_mode;
+use vm_core::AdviceMap;
 
 use super::*;
+
+// AdviceMapKeyAlreadyPresent
+// ------------------------------------------------------------------------------------------------
+
+/// In this test, we load 2 libraries which have a MAST forest with an advice map that contains
+/// different values at the same key (which triggers the `AdviceMapKeyAlreadyPresent` error).
+#[test]
+fn test_diagnostic_advice_map_key_already_present() {
+    let test_context = TestContext::new();
+
+    let (lib_1, lib_2) = {
+        let dummy_library_source = source_file!(&test_context, "export.foo add end");
+        let module = test_context
+            .parse_module_with_path("foo::bar".parse().unwrap(), dummy_library_source)
+            .unwrap();
+        let lib = test_context.assemble_library(std::iter::once(module)).unwrap();
+        let lib_1 = lib
+            .clone()
+            .with_advice_map(AdviceMap::from_iter([(Digest::default(), vec![ZERO])]));
+        let lib_2 = lib.with_advice_map(AdviceMap::from_iter([(Digest::default(), vec![ONE])]));
+
+        (lib_1, lib_2)
+    };
+
+    let mut host = DefaultHost::default();
+    host.load_mast_forest(lib_1.mast_forest().clone()).unwrap();
+    let err = host.load_mast_forest(lib_2.mast_forest().clone()).unwrap_err();
+
+    assert_diagnostic_lines!(
+        err,
+        "x value for key 0000000000000000000000000000000000000000000000000000000000000000 already present in the advice map when loading MAST forest",
+        "help: previous values at key were '[0]'. Operation would have replaced them with '[1]'"
+    );
+}
+
+// AdviceMapKeyNotFound
+// ------------------------------------------------------------------------------------------------
+
+#[test]
+fn test_diagnostic_advice_map_key_not_found_1() {
+    let source = "
+        begin
+            swap swap trace.2 adv.push_mapval
+        end";
+
+    let build_test = build_test_by_mode!(true, source, &[1, 2]);
+    let err = build_test.execute().expect_err("expected error");
+    assert_diagnostic_lines!(
+        err,
+        "value for key 00000000000000000000000000000000ffffffff00000000feffffff01000000 not present in the advice map",
+        regex!(r#",-\[test[\d]+:3:31\]"#),
+        " 2 |         begin",
+        " 3 |             swap swap trace.2 adv.push_mapval",
+        "   :                               ^^^^^^^^^^^^^^^",
+        "4 |         end",
+        "   `----"
+    );
+}
+
+#[test]
+fn test_diagnostic_advice_map_key_not_found_2() {
+    let source = "
+        begin
+            swap swap trace.2 adv.push_mapvaln
+        end";
+
+    let build_test = build_test_by_mode!(true, source, &[1, 2]);
+    let err = build_test.execute().expect_err("expected error");
+    assert_diagnostic_lines!(
+        err,
+        "value for key 00000000000000000000000000000000ffffffff00000000feffffff01000000 not present in the advice map",
+        regex!(r#",-\[test[\d]+:3:31\]"#),
+        " 2 |         begin",
+        " 3 |             swap swap trace.2 adv.push_mapvaln",
+        "   :                               ^^^^^^^^^^^^^^^^",
+        "4 |         end",
+        "   `----"
+    );
+}
+
+// AdviceStackReadFailed
+// ------------------------------------------------------------------------------------------------
+
+#[test]
+fn test_diagnostic_advice_stack_read_failed() {
+    let source = "
+        begin
+            swap adv_push.1 trace.2
+        end";
+
+    let build_test = build_test_by_mode!(true, source, &[1, 2]);
+    let err = build_test.execute().expect_err("expected error");
+    assert_diagnostic_lines!(
+        err,
+        "advice stack read failed at clock cycle 2",
+        regex!(r#",-\[test[\d]+:3:18\]"#),
+        " 2 |         begin",
+        " 3 |             swap adv_push.1 trace.2",
+        "   :                  ^^^^^^^^^^",
+        " 4 |         end",
+        "   `----"
+    );
+}
+
+// DivideByZero
+// ------------------------------------------------------------------------------------------------
+
+#[test]
+fn test_diagnostic_divide_by_zero_1() {
+    let source = "
+        begin
+            trace.2 div
+        end";
+
+    let build_test = build_test_by_mode!(true, source, &[]);
+    let err = build_test.execute().expect_err("expected error");
+    assert_diagnostic_lines!(
+        err,
+        "division by zero at clock cycle 1",
+        regex!(r#",-\[test[\d]+:3:21\]"#),
+        " 2 |         begin",
+        " 3 |             trace.2 div",
+        "   :                     ^^^",
+        " 4 |         end",
+        "   `----"
+    );
+}
+
+#[test]
+fn test_diagnostic_divide_by_zero_2() {
+    let source = "
+        begin
+            trace.2 u32div
+        end";
+
+    let build_test = build_test_by_mode!(true, source, &[]);
+    let err = build_test.execute().expect_err("expected error");
+    assert_diagnostic_lines!(
+        err,
+        "division by zero at clock cycle 1",
+        regex!(r#",-\[test[\d]+:3:21\]"#),
+        " 2 |         begin",
+        " 3 |             trace.2 u32div",
+        "   :                     ^^^^^^",
+        " 4 |         end",
+        "   `----"
+    );
+}
+
+// DynamicNodeNotFound
+// ------------------------------------------------------------------------------------------------
+
+#[test]
+fn test_diagnostic_dynamic_node_not_found_1() {
+    let source = "
+        begin
+            trace.2 dynexec
+        end";
+
+    let build_test = build_test_by_mode!(true, source, &[]);
+    let err = build_test.execute().expect_err("expected error");
+    assert_diagnostic_lines!(
+        err,
+        "failed to execute the dynamic code block provided by the stack with root 0x0000000000000000000000000000000000000000000000000000000000000000; the block could not be found",
+        regex!(r#",-\[test[\d]+:3:21\]"#),
+        " 2 |         begin",
+        " 3 |             trace.2 dynexec",
+        "   :                     ^^^^^^^",
+        " 4 |         end",
+        "   `----"
+    );
+}
+
+#[test]
+fn test_diagnostic_dynamic_node_not_found_2() {
+    let source = "
+        begin
+            trace.2 dyncall
+        end";
+
+    let build_test = build_test_by_mode!(true, source, &[]);
+    let err = build_test.execute().expect_err("expected error");
+    assert_diagnostic_lines!(
+        err,
+        "failed to execute the dynamic code block provided by the stack with root 0x0000000000000000000000000000000000000000000000000000000000000000; the block could not be found",
+        regex!(r#",-\[test[\d]+:3:21\]"#),
+        " 2 |         begin",
+        " 3 |             trace.2 dyncall",
+        "   :                     ^^^^^^^",
+        " 4 |         end",
+        "   `----"
+    );
+}
+
+// FailedAssertion
+// ------------------------------------------------------------------------------------------------
+
+// TODO(plafer): re-enable this and fix after `assert*` lexing is fixed
+#[test]
+#[ignore]
+fn test_diagnostic_failed_assertion() {
+    let source = "
+        begin
+            push.1.2
+            assertz
+            push.3.4
+        end";
+
+    let build_test = build_test_by_mode!(true, source, &[1, 2]);
+    let err = build_test.execute().expect_err("expected error");
+    assert_diagnostic_lines!(
+        err,
+        "when returning from a call or dyncall, stack depth must be 16, but was 17",
+        regex!(r#",-\[test[\d]+:7:21\]"#),
+        " 6 |         begin",
+        " 7 |             trace.2 call.foo",
+        "   :                     ^^^^|^^^",
+        "   :                         `-- when returning from this call site",
+        " 8 |         end",
+        "   `----"
+    );
+}
 
 // InvalidStackDepthOnReturn
 // ------------------------------------------------------------------------------------------------

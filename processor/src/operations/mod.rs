@@ -51,7 +51,7 @@ impl Process {
         match op {
             // ----- system operations ------------------------------------------------------------
             Operation::Noop => self.stack.copy_state(0),
-            Operation::Assert(err_code) => self.op_assert(err_code, host)?,
+            Operation::Assert(err_code) => self.op_assert(err_code, host, error_ctx)?,
 
             Operation::FmpAdd => self.op_fmpadd()?,
             Operation::FmpUpdate => self.op_fmpupdate()?,
@@ -60,7 +60,7 @@ impl Process {
             Operation::Caller => self.op_caller()?,
 
             Operation::Clk => self.op_clk()?,
-            Operation::Emit(event_id) => self.op_emit(event_id, host)?,
+            Operation::Emit(event_id) => self.op_emit(event_id, host, error_ctx)?,
 
             // ----- flow control operations ------------------------------------------------------
             // control flow operations are never executed directly
@@ -81,7 +81,7 @@ impl Process {
             Operation::Add => self.op_add()?,
             Operation::Neg => self.op_neg()?,
             Operation::Mul => self.op_mul()?,
-            Operation::Inv => self.op_inv()?,
+            Operation::Inv => self.op_inv(error_ctx)?,
             Operation::Incr => self.op_incr()?,
 
             Operation::And => self.op_and()?,
@@ -103,7 +103,7 @@ impl Process {
             Operation::U32sub => self.op_u32sub()?,
             Operation::U32mul => self.op_u32mul()?,
             Operation::U32madd => self.op_u32madd()?,
-            Operation::U32div => self.op_u32div()?,
+            Operation::U32div => self.op_u32div(error_ctx)?,
 
             Operation::U32and => self.op_u32and()?,
             Operation::U32xor => self.op_u32xor()?,
@@ -154,8 +154,8 @@ impl Process {
             // ----- input / output ---------------------------------------------------------------
             Operation::Push(value) => self.op_push(value)?,
 
-            Operation::AdvPop => self.op_advpop(host)?,
-            Operation::AdvPopW => self.op_advpopw(host)?,
+            Operation::AdvPop => self.op_advpop(host, error_ctx)?,
+            Operation::AdvPopW => self.op_advpopw(host, error_ctx)?,
 
             Operation::MLoadW => self.op_mloadw(error_ctx)?,
             Operation::MStoreW => self.op_mstorew(error_ctx)?,
@@ -168,8 +168,8 @@ impl Process {
 
             // ----- cryptographic operations -----------------------------------------------------
             Operation::HPerm => self.op_hperm()?,
-            Operation::MpVerify(err_code) => self.op_mpverify(err_code, host)?,
-            Operation::MrUpdate => self.op_mrupdate(host)?,
+            Operation::MpVerify(err_code) => self.op_mpverify(err_code, host, error_ctx)?,
+            Operation::MrUpdate => self.op_mrupdate(host, error_ctx)?,
             Operation::FriE2F4 => self.op_fri_ext2fold4()?,
             Operation::HornerBase => self.op_horner_eval_base(error_ctx)?,
             Operation::HornerExt => self.op_horner_eval_ext(error_ctx)?,

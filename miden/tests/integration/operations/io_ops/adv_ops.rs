@@ -34,7 +34,7 @@ fn adv_push_invalid() {
     let test = build_op_test!("adv_push.1");
     expect_exec_error_matches!(
         test,
-        ExecutionError::AdviceStackReadFailed(row_idx) if row_idx == RowIndex::from(2)
+        ExecutionError::AdviceStackReadFailed{row: row_idx, label: _, source_file: _ } if row_idx == RowIndex::from(2)
     );
 }
 
@@ -58,7 +58,7 @@ fn adv_loadw_invalid() {
     let test = build_op_test!("adv_loadw", &[0, 0, 0, 0]);
     expect_exec_error_matches!(
         test,
-        ExecutionError::AdviceStackReadFailed(row_idx) if row_idx == RowIndex::from(2)
+        ExecutionError::AdviceStackReadFailed{row: row_idx, label: _, source_file: _ } if row_idx == RowIndex::from(2)
     );
 }
 

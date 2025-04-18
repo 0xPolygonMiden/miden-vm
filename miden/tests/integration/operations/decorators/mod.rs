@@ -1,9 +1,9 @@
 use std::sync::Arc;
 
 use processor::{
-    AdviceProvider, ExecutionError, Host, MastForest, MemAdviceProvider, ProcessState,
+    AdviceProvider, ErrorContext, ExecutionError, Host, MastForest, MemAdviceProvider, ProcessState,
 };
-use vm_core::DebugOptions;
+use vm_core::{DebugOptions, mast::MastNodeExt};
 
 mod advice;
 mod asmop;
@@ -40,7 +40,12 @@ impl<A: AdviceProvider> Host for TestHost<A> {
         &mut self.adv_provider
     }
 
-    fn on_event(&mut self, _process: ProcessState, event_id: u32) -> Result<(), ExecutionError> {
+    fn on_event(
+        &mut self,
+        _process: ProcessState,
+        event_id: u32,
+        _err_ctx: &ErrorContext<impl MastNodeExt>,
+    ) -> Result<(), ExecutionError> {
         self.event_handler.push(event_id);
         Ok(())
     }

@@ -1,8 +1,10 @@
+use vm_core::mast::MastNodeExt;
+
 use super::{
     super::utils::{split_element, split_u32_into_u16},
     ExecutionError, Felt, FieldElement, Operation, Process,
 };
-use crate::ZERO;
+use crate::{ErrorContext, ZERO};
 
 const U32_MAX: u64 = u32::MAX as u64;
 
@@ -147,12 +149,15 @@ impl Process {
     ///
     /// # Errors
     /// Returns an error if the divisor is ZERO.
-    pub(super) fn op_u32div(&mut self) -> Result<(), ExecutionError> {
+    pub(super) fn op_u32div(
+        &mut self,
+        err_ctx: &ErrorContext<'_, impl MastNodeExt>,
+    ) -> Result<(), ExecutionError> {
         let b = require_u32_operand!(self.stack, 0).as_int();
         let a = require_u32_operand!(self.stack, 1).as_int();
 
         if b == 0 {
-            return Err(ExecutionError::DivideByZero(self.system.clk()));
+            return Err(ExecutionError::divide_by_zero(self.system.clk(), err_ctx));
         }
 
         let q = a / b;

@@ -1,4 +1,4 @@
-use alloc::{boxed::Box, string::String, sync::Arc};
+use alloc::{boxed::Box, string::String, sync::Arc, vec::Vec};
 use core::error::Error;
 
 use miden_air::RowIndex;
@@ -23,14 +23,37 @@ use crate::MemoryError;
 
 #[derive(Debug, thiserror::Error, Diagnostic)]
 pub enum ExecutionError {
-    #[error("value for key {} not present in the advice map", to_hex(Felt::elements_as_bytes(.0)))]
-    AdviceMapKeyNotFound(Word),
-    #[error("value for key {} already present in the advice map", to_hex(Felt::elements_as_bytes(.0)))]
-    AdviceMapKeyAlreadyPresent(Word),
-    #[error("advice stack read failed at step {0}")]
-    AdviceStackReadFailed(RowIndex),
+    #[error("value for key {} not present in the advice map", to_hex(Felt::elements_as_bytes(.key)))]
+    #[diagnostic()]
+    AdviceMapKeyNotFound {
+        #[label]
+        label: SourceSpan,
+        #[source_code]
+        source_file: Option<Arc<SourceFile>>,
+        key: Word,
+    },
+    #[error("value for key {} already present in the advice map when loading MAST forest", to_hex(Felt::elements_as_bytes(.key)))]
+    #[diagnostic(help(
+        "previous values at key were '{prev_values:?}'. Operation would have replaced them with '{new_values:?}'",
+    ))]
+    AdviceMapKeyAlreadyPresent {
+        key: Word,
+        prev_values: Vec<Felt>,
+        new_values: Vec<Felt>,
+    },
+    #[error("advice stack read failed at clock cycle {row}")]
+    #[diagnostic()]
+    AdviceStackReadFailed {
+        #[label]
+        label: SourceSpan,
+        #[source_code]
+        source_file: Option<Arc<SourceFile>>,
+        row: RowIndex,
+    },
+    /// This error is caught by the assembler, so we don't need diagnostics here.
     #[error("illegal use of instruction {0} while inside a syscall")]
     CallInSyscall(&'static str),
+    /// This error is caught by the assembler, so we don't need diagnostics here.
     #[error("instruction `caller` used outside of kernel context")]
     CallerNotInSyscall,
     #[error("external node with mast root {0} resolved to an external node")]
@@ -39,14 +62,36 @@ pub enum ExecutionError {
     CycleLimitExceeded(u32),
     #[error("decorator id {decorator_id} does not exist in MAST forest")]
     DecoratorNotFoundInForest { decorator_id: DecoratorId },
-    #[error("division by zero at clock cycle {0}")]
-    DivideByZero(RowIndex),
-    #[error("failed to execute the dynamic code block provided by the stack with root {hex}; the block could not be found",
-      hex = to_hex(.0.as_bytes())
+    #[error("division by zero at clock cycle {clk}")]
+    #[diagnostic()]
+    DivideByZero {
+        #[label]
+        label: SourceSpan,
+        #[source_code]
+        source_file: Option<Arc<SourceFile>>,
+        clk: RowIndex,
+    },
+    #[error("failed to execute the dynamic code block provided by the stack with root 0x{hex}; the block could not be found",
+      hex = to_hex(.digest.as_bytes())
     )]
-    DynamicNodeNotFound(Digest),
+    #[diagnostic()]
+    DynamicNodeNotFound {
+        #[label]
+        label: SourceSpan,
+        #[source_code]
+        source_file: Option<Arc<SourceFile>>,
+        digest: Digest,
+    },
     #[error("error during processing of event in on_event handler")]
-    EventError(#[source] Box<dyn Error + Send + Sync + 'static>),
+    #[diagnostic()]
+    EventError {
+        #[label]
+        label: SourceSpan,
+        #[source_code]
+        source_file: Option<Arc<SourceFile>>,
+        #[source]
+        error: Box<dyn Error + Send + Sync + 'static>,
+    },
     #[error("failed to execute Ext2Intt operation: {0}")]
     Ext2InttError(Ext2InttError),
     #[error("assertion failed at clock cycle {clk} with error code {err_code}{}",
@@ -55,7 +100,12 @@ pub enum ExecutionError {
         None => "".into()
       }
     )]
+    #[diagnostic()]
     FailedAssertion {
+        #[label]
+        label: SourceSpan,
+        #[source_code]
+        source_file: Option<Arc<SourceFile>>,
         clk: RowIndex,
         err_code: u32,
         err_msg: Option<String>,
@@ -82,7 +132,13 @@ pub enum ExecutionError {
     #[error(
         "provided merkle tree {depth} is out of bounds and cannot be represented as an unsigned 8-bit integer"
     )]
-    InvalidMerkleTreeDepth { depth: Felt },
+    InvalidMerkleTreeDepth {
+        #[label("when returning from this call site")]
+        label: SourceSpan,
+        #[source_code]
+        source_file: Option<Arc<SourceFile>>,
+        depth: Felt,
+    },
     #[error("provided node index {value} is out of bounds for a merkle tree node at depth {depth}")]
     InvalidMerkleTreeNodeIndex { depth: Felt, value: Felt },
     #[error("attempted to calculate integer logarithm with zero argument at clock cycle {0}")]
@@ -146,6 +202,70 @@ impl From<Ext2InttError> for ExecutionError {
 }
 
 impl ExecutionError {
+    pub fn advice_map_key_not_found(
+        key: Word,
+        err_ctx: &ErrorContext<'_, impl MastNodeExt>,
+    ) -> Self {
+        let (label, source_file) = err_ctx.label_and_source_file();
+        Self::AdviceMapKeyNotFound { label, source_file, key }
+    }
+
+    pub fn advice_stack_read_failed(
+        row: RowIndex,
+        err_ctx: &ErrorContext<'_, impl MastNodeExt>,
+    ) -> Self {
+        let (label, source_file) = err_ctx.label_and_source_file();
+        Self::AdviceStackReadFailed { label, source_file, row }
+    }
+
+    pub fn divide_by_zero(clk: RowIndex, err_ctx: &ErrorContext<'_, impl MastNodeExt>) -> Self {
+        let (label, source_file) = err_ctx.label_and_source_file();
+        Self::DivideByZero { clk, label, source_file }
+    }
+
+    pub fn dynamic_node_not_found(
+        digest: Digest,
+        err_ctx: &ErrorContext<'_, impl MastNodeExt>,
+    ) -> Self {
+        let (label, source_file) = err_ctx.label_and_source_file();
+
+        Self::DynamicNodeNotFound { label, source_file, digest }
+    }
+
+    pub fn event_error(
+        error: Box<dyn Error + Send + Sync + 'static>,
+        err_ctx: &ErrorContext<'_, impl MastNodeExt>,
+    ) -> Self {
+        let (label, source_file) = err_ctx.label_and_source_file();
+
+        Self::EventError { label, source_file, error }
+    }
+
+    pub fn failed_assertion(
+        clk: RowIndex,
+        err_code: u32,
+        err_msg: Option<String>,
+        err_ctx: &ErrorContext<'_, impl MastNodeExt>,
+    ) -> Self {
+        let (label, source_file) = err_ctx.label_and_source_file();
+
+        Self::FailedAssertion {
+            label,
+            source_file,
+            clk,
+            err_code,
+            err_msg,
+        }
+    }
+    
+    pub fn invalid_merkle_tree_depth(
+        depth: Felt,
+        err_ctx: &ErrorContext<'_, impl MastNodeExt>,
+    ) -> Self {
+        let (label, source_file) = err_ctx.label_and_source_file();
+        Self::InvalidMerkleTreeDepth { label, source_file, depth } 
+    }
+
     pub fn invalid_stack_depth_on_return(
         depth: usize,
         err_ctx: &ErrorContext<'_, impl MastNodeExt>,
