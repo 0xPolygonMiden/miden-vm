@@ -89,7 +89,7 @@ impl MetaKeyValue {
         self.items.entry(key)
     }
 
-    /// Get an iterator over the the key-value items of this metadata
+    /// Get an iterator over the key-value items of this metadata
     #[inline]
     pub fn iter(&self) -> impl Iterator<Item = (&Ident, &MetaExpr)> {
         self.items.iter()
