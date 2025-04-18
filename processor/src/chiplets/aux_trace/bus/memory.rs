@@ -4,9 +4,12 @@ use core::fmt::{Display, Formatter, Result as FmtResult};
 use miden_air::{
     RowIndex,
     trace::{
-        chiplets::memory::{
-            MEMORY_ACCESS_ELEMENT, MEMORY_ACCESS_WORD, MEMORY_READ_ELEMENT_LABEL,
-            MEMORY_READ_WORD_LABEL, MEMORY_WRITE_ELEMENT_LABEL, MEMORY_WRITE_WORD_LABEL,
+        chiplets::{
+            ace::{ACE_INSTRUCTION_ID1_OFFSET, ACE_INSTRUCTION_ID2_OFFSET},
+            memory::{
+                MEMORY_ACCESS_ELEMENT, MEMORY_ACCESS_WORD, MEMORY_READ_ELEMENT_LABEL,
+                MEMORY_READ_WORD_LABEL, MEMORY_WRITE_ELEMENT_LABEL, MEMORY_WRITE_WORD_LABEL,
+            },
         },
         main_trace::MainTrace,
     },
@@ -23,6 +26,75 @@ const FOUR: Felt = Felt::new(4);
 
 // REQUESTS
 // ================================================================================================
+
+/// Builds ACE chiplet read requests as part of the `READ` section made to the memory chiplet.
+pub fn build_ace_memory_read_word_request<E: FieldElement<BaseField = Felt>>(
+    main_trace: &MainTrace,
+    alphas: &[E],
+    row: RowIndex,
+    _debugger: &mut BusDebugger<E>,
+) -> E {
+    let word = [
+        main_trace.chiplet_ace_v_0_0(row),
+        main_trace.chiplet_ace_v_0_1(row),
+        main_trace.chiplet_ace_v_1_0(row),
+        main_trace.chiplet_ace_v_1_1(row),
+    ];
+    let op_label = MEMORY_READ_WORD_LABEL;
+    let clk = main_trace.chiplet_ace_clk(row);
+    let ctx = main_trace.chiplet_ace_ctx(row);
+    let addr = main_trace.chiplet_ace_ptr(row);
+
+    let message = MemoryWordMessage {
+        op_label: Felt::from(op_label),
+        ctx,
+        addr,
+        clk,
+        word,
+        source: "read word ACE",
+    };
+
+    let value = message.value(alphas);
+
+    #[cfg(any(test, feature = "bus-debugger"))]
+    _debugger.add_request(Box::new(message), alphas);
+
+    value
+}
+
+/// Builds ACE chiplet read requests as part of the `EVAL` section made to the memory chiplet.
+pub fn build_ace_memory_read_element_request<E: FieldElement<BaseField = Felt>>(
+    main_trace: &MainTrace,
+    alphas: &[E],
+    row: RowIndex,
+    _debugger: &mut BusDebugger<E>,
+) -> E {
+    let element = main_trace.chiplet_ace_eval_op(row);
+
+    let id_0 = main_trace.chiplet_ace_id_1(row);
+    let id_1 = main_trace.chiplet_ace_id_2(row);
+    let element =
+        id_0 + id_1 * ACE_INSTRUCTION_ID1_OFFSET + (element + ONE) * ACE_INSTRUCTION_ID2_OFFSET;
+    let op_label = MEMORY_READ_ELEMENT_LABEL;
+    let clk = main_trace.chiplet_ace_clk(row);
+    let ctx = main_trace.chiplet_ace_ctx(row);
+    let addr = main_trace.chiplet_ace_ptr(row);
+
+    let message = MemoryElementMessage {
+        op_label: Felt::from(op_label),
+        ctx,
+        addr,
+        clk,
+        element,
+    };
+
+    let value = message.value(alphas);
+
+    #[cfg(any(test, feature = "bus-debugger"))]
+    _debugger.add_request(Box::new(message), alphas);
+
+    value
+}
 
 /// Builds `MLOADW` and `MSTOREW` requests made to the memory chiplet.
 pub(super) fn build_mem_mloadw_mstorew_request<E: FieldElement<BaseField = Felt>>(

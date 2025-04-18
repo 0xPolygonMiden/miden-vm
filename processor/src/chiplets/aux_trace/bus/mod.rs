@@ -1,3 +1,4 @@
+use ace::{build_ace_chiplet_requests, build_ace_chiplet_responses};
 use bitwise::{build_bitwise_chiplet_responses, build_bitwise_request};
 use hasher::{
     ControlBlockRequestMessage, build_control_block_request, build_end_block_request,
@@ -24,10 +25,10 @@ use miden_air::{
     },
 };
 use vm_core::{
-    ONE, OPCODE_CALL, OPCODE_DYN, OPCODE_DYNCALL, OPCODE_END, OPCODE_HORNERBASE, OPCODE_HORNEREXT,
-    OPCODE_HPERM, OPCODE_JOIN, OPCODE_LOOP, OPCODE_MLOAD, OPCODE_MLOADW, OPCODE_MPVERIFY,
-    OPCODE_MRUPDATE, OPCODE_MSTORE, OPCODE_MSTOREW, OPCODE_MSTREAM, OPCODE_PIPE, OPCODE_RESPAN,
-    OPCODE_SPAN, OPCODE_SPLIT, OPCODE_SYSCALL, OPCODE_U32AND, OPCODE_U32XOR, ZERO,
+    ONE, OPCODE_ACE, OPCODE_CALL, OPCODE_DYN, OPCODE_DYNCALL, OPCODE_END, OPCODE_HORNERBASE,
+    OPCODE_HORNEREXT, OPCODE_HPERM, OPCODE_JOIN, OPCODE_LOOP, OPCODE_MLOAD, OPCODE_MLOADW,
+    OPCODE_MPVERIFY, OPCODE_MRUPDATE, OPCODE_MSTORE, OPCODE_MSTOREW, OPCODE_MSTREAM, OPCODE_PIPE,
+    OPCODE_RESPAN, OPCODE_SPAN, OPCODE_SPLIT, OPCODE_SYSCALL, OPCODE_U32AND, OPCODE_U32XOR, ZERO,
 };
 
 use super::{Felt, FieldElement};
@@ -36,10 +37,12 @@ use crate::{
     trace::AuxColumnBuilder,
 };
 
+mod ace;
 mod bitwise;
 mod hasher;
 mod kernel;
 mod memory;
+pub use memory::{build_ace_memory_read_element_request, build_ace_memory_read_word_request};
 
 // BUS COLUMN BUILDER
 // ================================================================================================
@@ -118,6 +121,7 @@ impl<E: FieldElement<BaseField = Felt>> AuxColumnBuilder<E> for BusColumnBuilder
             OPCODE_MPVERIFY => build_mpverify_request(main_trace, alphas, row, debugger),
             OPCODE_MRUPDATE => build_mrupdate_request(main_trace, alphas, row, debugger),
             OPCODE_PIPE => build_pipe_request(main_trace, alphas, row, debugger),
+            OPCODE_ACE => build_ace_chiplet_requests(main_trace, alphas, row, debugger),
             _ => E::ONE,
         }
     }
@@ -139,6 +143,8 @@ impl<E: FieldElement<BaseField = Felt>> AuxColumnBuilder<E> for BusColumnBuilder
             build_bitwise_chiplet_responses(main_trace, row, alphas, debugger)
         } else if main_trace.is_memory_row(row) {
             build_memory_chiplet_responses(main_trace, row, alphas, debugger)
+        } else if main_trace.is_ace_row(row) {
+            build_ace_chiplet_responses(main_trace, row, alphas, debugger)
         } else if main_trace.is_kernel_row(row) {
             build_kernel_chiplet_responses(main_trace, row, alphas, debugger)
         } else {

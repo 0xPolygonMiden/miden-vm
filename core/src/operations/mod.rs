@@ -111,6 +111,7 @@ pub(super) mod opcode_constants {
     pub const OPCODE_EMIT: u8       = 0b0101_1010;
     pub const OPCODE_PUSH: u8       = 0b0101_1011;
     pub const OPCODE_DYNCALL: u8    = 0b0101_1100;
+    pub const OPCODE_ACE: u8        = 0b0101_1101;
 
     pub const OPCODE_MRUPDATE: u8   = 0b0110_0000;
     pub const OPCODE_HORNERBASE: u8 = 0b0110_0100;
@@ -595,6 +596,10 @@ pub enum Operation {
     ///
     /// P(X) := c3 * X^3 + c2 * X^2 + c1 * X + c0
     HornerExt = OPCODE_HORNEREXT,
+
+    /// Evaluates an arithmetic circuit given a pointer to its description in memory, the number
+    /// of arithmetic gates, and the sum of the input and constant gates.
+    ArithmeticCircuitEval = OPCODE_ACE,
 }
 
 impl Operation {
@@ -770,9 +775,12 @@ impl fmt::Display for Operation {
             Self::HPerm => write!(f, "hperm"),
             Self::MpVerify(err_code) => write!(f, "mpverify({err_code})"),
             Self::MrUpdate => write!(f, "mrupdate"),
+
+            // ----- STARK proof verification -----------------------------------------------------
             Self::FriE2F4 => write!(f, "frie2f4"),
             Self::HornerBase => write!(f, "horner_eval_base"),
             Self::HornerExt => write!(f, "horner_eval_ext"),
+            Self::ArithmeticCircuitEval => write!(f, "arithmetic_circuit_eval"),
         }
     }
 }
@@ -880,7 +888,8 @@ impl Serializable for Operation {
             | Operation::MrUpdate
             | Operation::FriE2F4
             | Operation::HornerBase
-            | Operation::HornerExt => (),
+            | Operation::HornerExt
+            | Operation::ArithmeticCircuitEval => (),
         }
     }
 }
