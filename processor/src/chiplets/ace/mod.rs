@@ -17,7 +17,7 @@ use crate::{
 
 mod trace;
 
-mod encoded_circuit;
+mod instruction;
 #[cfg(test)]
 mod tests;
 

@@ -1,9 +1,11 @@
 use std::prelude::rust_2024::Vec;
 
+use winter_prover::crypto::ElementHasher;
+
 use crate::{
     Felt, QuadFelt,
     chiplets::ace::{
-        encoded_circuit::{EncodedCircuit, Op},
+        instruction::{ID_BITS, MAX_ID, Op},
         tests::circuit::{Circuit, CircuitLayout, Instruction, NodeID},
     },
     math::FieldElement,
@@ -12,6 +14,49 @@ use crate::{
 #[derive(Debug)]
 pub enum EncodingError {
     InvalidLayout,
+}
+
+/// An `EncodedCircuit` represents a `Circuit` as a list of field elements, containing both
+/// constants and instructions.
+#[derive(Clone, Debug)]
+pub struct EncodedCircuit {
+    num_vars: usize,
+    num_eval: usize,
+    encoded_circuit: Vec<Felt>,
+}
+
+impl EncodedCircuit {
+    pub fn new(num_vars: usize, num_eval: usize, encoded_circuit: Vec<Felt>) -> Self {
+        debug_assert_eq!(encoded_circuit.len() % 8, 0);
+        Self { num_vars, num_eval, encoded_circuit }
+    }
+
+    pub fn num_vars(&self) -> usize {
+        self.num_vars
+    }
+
+    pub fn num_eval(&self) -> usize {
+        self.num_eval
+    }
+
+    pub fn encoded_circuit(&self) -> &[Felt] {
+        &self.encoded_circuit
+    }
+
+    /// Computes the hash of all circuit constants and instructions.
+    fn raw_circuit_hash<H: ElementHasher<BaseField = Felt>>(&self) -> H::Digest {
+        H::hash_elements(&self.encoded_circuit)
+    }
+
+    /// Returns the number of constants in the circuit.
+    pub fn num_constants(&self) -> usize {
+        (self.encoded_circuit.len() - self.num_eval) / 2
+    }
+
+    /// Returns the number of inputs in the circuit.
+    pub fn num_inputs(&self) -> usize {
+        self.num_vars - self.num_constants()
+    }
 }
 
 impl EncodedCircuit {
@@ -32,7 +77,7 @@ impl EncodedCircuit {
         let layout = circuit.layout().padded();
 
         // Ensure all node IDs can be encoded in 30 bits
-        if layout.num_nodes() > EncodedCircuit::MAX_ID as usize {
+        if layout.num_nodes() > MAX_ID as usize {
             return Err(EncodingError::InvalidLayout);
         }
 
@@ -76,11 +121,7 @@ impl EncodedCircuit {
         }
         debug_assert_eq!(last_eval_node_index, layout.num_instructions - 1);
 
-        Ok(Self {
-            num_vars: layout.num_vars(),
-            num_eval: layout.num_instructions,
-            encoded_circuit,
-        })
+        Ok(EncodedCircuit::new(layout.num_vars(), layout.num_instructions, encoded_circuit))
     }
 
     // INSTRUCTION ENCODING
@@ -91,7 +132,7 @@ impl EncodedCircuit {
     /// where `id_{l, r}` are is the index of the node in the graph, reversed
     /// with regard to the total number of nodes.
     pub fn encode_instruction(instruction: &Instruction, layout: &CircuitLayout) -> Option<Felt> {
-        if layout.num_nodes() > EncodedCircuit::MAX_ID as usize {
+        if layout.num_nodes() > MAX_ID as usize {
             return None;
         }
 
@@ -104,7 +145,7 @@ impl EncodedCircuit {
             Op::Add => 2,
         };
 
-        let encoded = id_l as u64 + ((id_r as u64) << Self::ID_BITS) + (op << (2 * Self::ID_BITS));
+        let encoded = id_l as u64 + ((id_r as u64) << ID_BITS) + (op << (2 * ID_BITS));
         Some(Felt::new(encoded))
     }
 }

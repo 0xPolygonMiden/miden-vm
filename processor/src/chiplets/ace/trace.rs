@@ -13,7 +13,8 @@ use vm_core::FieldElement;
 
 use crate::{
     ContextId, ExecutionError, Felt, QuadFelt, Word,
-    chiplets::ace::encoded_circuit::{EncodedCircuit, Op},
+    chiplets::ace::instruction::{Op, decode_instruction},
+    errors::AceError,
 };
 /// Number of LogUp fractions in the wiring bus for rows in the `READ` section.
 pub const NUM_ACE_LOGUP_FRACTIONS_READ: usize = 2;
@@ -108,15 +109,22 @@ impl EvaluationContext {
     /// Returns the pointer for the next operation.
     pub fn do_eval(&mut self, ptr: Felt, instruction: Felt) -> Result<Felt, ExecutionError> {
         // Decode instruction, ensuring it is valid
-        let (id_l, id_r, op) = EncodedCircuit::decode_instruction(instruction).expect("TODO");
+        let (id_l, id_r, op) = decode_instruction(instruction)
+            .ok_or_else(|| ExecutionError::AceError(AceError::FailedDecodeInstruction))?;
 
         // Read value of id_l from wire bus, increasing its multiplicity
-        let v_l = self.wire_bus.read_value(id_l).expect("TODO");
+        let v_l = self
+            .wire_bus
+            .read_value(id_l)
+            .ok_or_else(|| ExecutionError::AceError(AceError::FailedMemoryRead))?;
         let id_l = Felt::from(id_l);
         self.col_w1.push(id_l, v_l);
 
         // Read value of id_r from wire bus, increasing its multiplicity
-        let v_r = self.wire_bus.read_value(id_r).expect("TODO");
+        let v_r = self
+            .wire_bus
+            .read_value(id_r)
+            .ok_or_else(|| ExecutionError::AceError(AceError::FailedMemoryRead))?;
         let id_r = Felt::from(id_r);
         self.col_w2.push(id_r, v_r);
 
@@ -206,14 +214,20 @@ impl EvaluationContext {
         let mut multiplicities_iter = self.wire_bus.wires.iter().map(|(_v, m)| Felt::from(*m));
         // In the READ block, we inserted wires w_0 and w_1
         for row_index in read_range {
-            let m_0 = multiplicities_iter.next().expect("TODO");
-            let m_1 = multiplicities_iter.next().expect("TODO");
+            let m_0 = multiplicities_iter
+                .next()
+                .expect("the m0 multiplicities were not constructed properly");
+            let m_1 = multiplicities_iter
+                .next()
+                .expect("the m0 multiplicities were not constructed properly");
             columns[M_0_IDX][row_index] = m_0;
             columns[M_1_IDX][row_index] = m_1;
         }
         // In the EVAL block, we inserted wire w_0
         for row_index in eval_range {
-            let m_0 = multiplicities_iter.next().expect("TODO");
+            let m_0 = multiplicities_iter
+                .next()
+                .expect("the m0 multiplicities were not constructed properly");
             columns[M_0_IDX][row_index] = m_0;
         }
 

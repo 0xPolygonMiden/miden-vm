@@ -1,6 +1,6 @@
 use std::prelude::rust_2015::Vec;
 
-use crate::{Felt, QuadFelt, chiplets::ace::encoded_circuit::Op};
+use crate::{Felt, QuadFelt, chiplets::ace::instruction::Op};
 
 /// A `Circuit` is a DAG representing a multivariate polynomial over its inputs.
 /// The nodes are laid out linearly, starting with the leaves and ending with the evaluation.
