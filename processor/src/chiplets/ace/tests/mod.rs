@@ -1,6 +1,7 @@
 use alloc::vec::Vec;
 use std::collections::HashMap;
 
+use encoder::EncodedCircuit;
 use miden_air::{
     FieldElement, RowIndex,
     trace::chiplets::ace::{
@@ -15,8 +16,8 @@ use crate::{
     ContextId, Felt, QuadFelt, Word,
     chiplets::{
         ace::{
-            encoded_circuit::{EncodedCircuit, Op},
             eval_circuit,
+            instruction::{Op, decode_instruction},
             tests::circuit::{Circuit, CircuitLayout, Instruction, NodeID},
             trace::EvaluationContext,
         },
@@ -120,7 +121,7 @@ fn encode_decode_instruction() {
     for instruction in instructions {
         let encoded = EncodedCircuit::encode_instruction(&instruction, &layout).unwrap();
         encoded_vec.push(encoded);
-        let (id_l, id_r, op) = EncodedCircuit::decode_instruction(encoded).unwrap();
+        let (id_l, id_r, op) = decode_instruction(encoded).unwrap();
         let id_l_expected = layout.encoded_node_id(&instruction.node_l).unwrap();
         let id_r_expected = layout.encoded_node_id(&instruction.node_r).unwrap();
         assert_eq!(id_l, id_l_expected);
@@ -155,7 +156,7 @@ fn test_circuit_encoding() {
     assert_eq!(encoded_circuit.num_inputs(), 2);
     assert_eq!(encoded_circuit.num_constants(), 2);
     assert_eq!(
-        encoded_circuit.encoded_circuit,
+        encoded_circuit.encoded_circuit(),
         vec![
             -Felt::ONE,
             ZERO,
@@ -186,8 +187,8 @@ fn verify_circuit_eval(
 fn verify_encoded_circuit_eval(circuit: &Circuit, inputs: &[QuadFelt]) -> EncodedCircuit {
     let encoded_circuit = EncodedCircuit::try_from_circuit(circuit).expect("cannot encode");
 
-    let num_read_rows = encoded_circuit.num_vars as u32 / 2;
-    let num_eval_rows = encoded_circuit.num_eval as u32;
+    let num_read_rows = encoded_circuit.num_vars() as u32 / 2;
+    let num_eval_rows = encoded_circuit.num_eval() as u32;
     let ctx = ContextId::default();
     let clk = RowIndex::from(0);
 
@@ -233,8 +234,8 @@ fn verify_eval_circuit(circuit: &EncodedCircuit, inputs: &[QuadFelt]) {
         ctx,
         ptr,
         clk + 1,
-        Felt::from(circuit.num_vars as u32),
-        Felt::from(circuit.num_eval as u32),
+        Felt::from(circuit.num_vars() as u32),
+        Felt::from(circuit.num_eval() as u32),
         &mut mem,
         &error_ctx,
     )
@@ -246,11 +247,11 @@ fn generate_memory(circuit: &EncodedCircuit, inputs: &[QuadFelt]) -> Vec<Word> {
     assert_eq!(inputs.len(), circuit.num_inputs());
 
     // Inputs are store two by two in the fest set of words, followed by the instructions.
-    let mut mem = Vec::with_capacity(2 * inputs.len() + circuit.encoded_circuit.len());
+    let mut mem = Vec::with_capacity(2 * inputs.len() + circuit.encoded_circuit().len());
     // Add inputs
     mem.extend(inputs.iter().flat_map(|input| input.to_base_elements()));
     // Add circuit
-    mem.extend(circuit.encoded_circuit.iter());
+    mem.extend(circuit.encoded_circuit().iter());
 
     // Convert to words
     mem.chunks_exact(4).map(|word| word.try_into().unwrap()).collect()

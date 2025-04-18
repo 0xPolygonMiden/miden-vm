@@ -8,7 +8,7 @@ pub const ACE_CHIPLET_NUM_COLS: usize = 16;
 /// Offset of the `ID1` wire used when encoding an ACE instruction.
 pub const ACE_INSTRUCTION_ID1_OFFSET: Felt = Felt::new(1 << 30);
 
-/// Offset of the `ID1` wire used when encoding an ACE instruction.
+/// Offset of the `ID2` wire used when encoding an ACE instruction.
 pub const ACE_INSTRUCTION_ID2_OFFSET: Felt = Felt::new(1 << 60);
 
 // --- OPERATION SELECTORS ------------------------------------------------------------------------
@@ -63,6 +63,9 @@ pub const V_1_0_IDX: usize = 10;
 pub const V_1_1_IDX: usize = 11;
 
 /// The index of the column containing the multiplicity of the second wire.
+/// This column has the meaning of a multiplicity column only when the rows are `READ` rows, else
+/// it should be interpreted as containing the second base-field element of the value of the third
+/// wire.
 pub const M_1_IDX: usize = 14;
 
 /// The index of the column containing ID of the third wire.

@@ -546,6 +546,10 @@ pub enum AceError {
     NumEvalIsNotWordAlignedOrIsEmpty(u64),
     #[error("circuit does not evaluate to zero")]
     CircuitNotEvaluateZero,
+    #[error("failed to read from memory")]
+    FailedMemoryRead,
+    #[error("failed to decode instruction")]
+    FailedDecodeInstruction,
 }
 
 // EXT2INTT ERROR
