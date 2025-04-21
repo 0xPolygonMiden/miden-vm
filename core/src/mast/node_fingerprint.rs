@@ -7,7 +7,7 @@ use miden_crypto::hash::{
 };
 
 use crate::{
-    Felt, Operation,
+    Operation,
     mast::{DecoratorId, MastForest, MastForestError, MastNode, MastNodeId},
 };
 
@@ -79,7 +79,7 @@ impl MastNodeFingerprint {
                         // we include the operation index to distinguish between basic blocks that
                         // would have the same assert instructions, but in a different order
                         bytes_to_hash.extend(op_idx.to_le_bytes());
-                        let inner_value: u64 = Felt::into(*inner_value);
+                        let inner_value = u64::from(*inner_value);
                         bytes_to_hash.extend(inner_value.to_le_bytes());
                     }
                 }

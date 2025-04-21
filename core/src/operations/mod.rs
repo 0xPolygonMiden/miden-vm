@@ -885,6 +885,15 @@ impl Serializable for Operation {
     }
 }
 
+fn read_felt<R: ByteReader>(source: &mut R) -> Result<Felt, DeserializationError> {
+    let value_u64 = source.read_u64()?;
+    Felt::try_from(value_u64).map_err(|_| {
+        DeserializationError::InvalidValue(format!(
+            "Operation associated data doesn't fit in a field element: {value_u64}"
+        ))
+    })
+}
+
 impl Deserializable for Operation {
     fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
         let op_code = source.read_u8()?;
@@ -923,15 +932,7 @@ impl Deserializable for Operation {
             OPCODE_SWAPW3 => Self::SwapW3,
             OPCODE_SWAPDW => Self::SwapDW,
 
-            OPCODE_ASSERT => {
-                let value_u64 = source.read_u64()?;
-                let value_felt = Felt::try_from(value_u64).map_err(|_| {
-                    DeserializationError::InvalidValue(format!(
-                        "Operation associated data doesn't fit in a field element: {value_u64}"
-                    ))
-                })?;
-                Self::Assert(value_felt)
-            },
+            OPCODE_ASSERT => Self::Assert(read_felt(source)?),
             OPCODE_EQ => Self::Eq,
             OPCODE_ADD => Self::Add,
             OPCODE_MUL => Self::Mul,
@@ -970,28 +971,12 @@ impl Deserializable for Operation {
             OPCODE_U32MUL => Self::U32mul,
             OPCODE_U32DIV => Self::U32div,
             OPCODE_U32SPLIT => Self::U32split,
-            OPCODE_U32ASSERT2 => {
-                let value_u64 = source.read_u64()?;
-                let value_felt = Felt::try_from(value_u64).map_err(|_| {
-                    DeserializationError::InvalidValue(format!(
-                        "Operation associated data doesn't fit in a field element: {value_u64}"
-                    ))
-                })?;
-                Self::U32assert2(value_felt)
-            },
+            OPCODE_U32ASSERT2 => Self::U32assert2(read_felt(source)?),
             OPCODE_U32ADD3 => Self::U32add3,
             OPCODE_U32MADD => Self::U32madd,
 
             OPCODE_HPERM => Self::HPerm,
-            OPCODE_MPVERIFY => {
-                let value_u64 = source.read_u64()?;
-                let value_felt = Felt::try_from(value_u64).map_err(|_| {
-                    DeserializationError::InvalidValue(format!(
-                        "Operation associated data doesn't fit in a field element: {value_u64}"
-                    ))
-                })?;
-                Self::MpVerify(value_felt)
-            },
+            OPCODE_MPVERIFY => Self::MpVerify(read_felt(source)?),
             OPCODE_PIPE => Self::Pipe,
             OPCODE_MSTREAM => Self::MStream,
             OPCODE_SPLIT => Self::Split,
@@ -1004,16 +989,7 @@ impl Deserializable for Operation {
             OPCODE_HORNEREXT => Self::HornerExt,
 
             OPCODE_MRUPDATE => Self::MrUpdate,
-            OPCODE_PUSH => {
-                let value_u64 = source.read_u64()?;
-                let value_felt = Felt::try_from(value_u64).map_err(|_| {
-                    DeserializationError::InvalidValue(format!(
-                        "Operation associated data doesn't fit in a field element: {value_u64}"
-                    ))
-                })?;
-
-                Self::Push(value_felt)
-            },
+            OPCODE_PUSH => Self::Push(read_felt(source)?),
             OPCODE_EMIT => {
                 let value = source.read_u32()?;
 

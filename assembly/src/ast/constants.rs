@@ -1,4 +1,4 @@
-use alloc::{boxed::Box, string::String};
+use alloc::{boxed::Box, string::String, sync::Arc};
 use core::fmt;
 
 use vm_core::FieldElement;
@@ -79,6 +79,7 @@ impl Spanned for Constant {
 // ================================================================================================
 
 /// Represents a constant expression or value in Miden Assembly syntax.
+#[derive(Clone)]
 pub enum ConstantExpr {
     /// A literal integer value.
     Literal(Span<Felt>),
@@ -91,6 +92,7 @@ pub enum ConstantExpr {
         lhs: Box<ConstantExpr>,
         rhs: Box<ConstantExpr>,
     },
+    String(Ident),
 }
 
 impl ConstantExpr {
@@ -106,6 +108,13 @@ impl ConstantExpr {
         }
     }
 
+    pub fn expect_string(&self) -> Arc<str> {
+        match self {
+            Self::String(spanned) => spanned.clone().into_inner(),
+            other => panic!("expected constant expression to be a string, got {other:#?}"),
+        }
+    }
+
     /// Attempt to fold to a single value.
     ///
     /// This will only succeed if the expression has no references to other constants.
@@ -114,14 +123,22 @@ impl ConstantExpr {
     /// Returns an error if an invalid expression is found while folding, such as division by zero.
     pub fn try_fold(self) -> Result<Self, ParsingError> {
         match self {
-            Self::Literal(_) | Self::Var(_) => Ok(self),
+            Self::String(_) | Self::Literal(_) | Self::Var(_) => Ok(self),
             Self::BinaryOp { span, op, lhs, rhs } => {
                 if rhs.is_literal() {
                     let rhs = Self::into_inner(rhs).try_fold()?;
                     match rhs {
+                        Self::String(ident) => {
+                            Err(ParsingError::StringInArithmeticExpression { span: ident.span() })
+                        },
                         Self::Literal(rhs) => {
                             let lhs = Self::into_inner(lhs).try_fold()?;
                             match lhs {
+                                Self::String(ident) => {
+                                    Err(ParsingError::StringInArithmeticExpression {
+                                        span: ident.span(),
+                                    })
+                                },
                                 Self::Literal(lhs) => {
                                     let lhs = lhs.into_inner();
                                     let rhs = rhs.into_inner();
@@ -178,7 +195,7 @@ impl ConstantExpr {
 
     fn is_literal(&self) -> bool {
         match self {
-            Self::Literal(_) => true,
+            Self::Literal(_) | Self::String(_) => true,
             Self::Var(_) => false,
             Self::BinaryOp { lhs, rhs, .. } => lhs.is_literal() && rhs.is_literal(),
         }
@@ -211,7 +228,7 @@ impl fmt::Debug for ConstantExpr {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
             Self::Literal(lit) => fmt::Debug::fmt(&**lit, f),
-            Self::Var(name) => fmt::Debug::fmt(&**name, f),
+            Self::Var(name) | Self::String(name) => fmt::Debug::fmt(&**name, f),
             Self::BinaryOp { op, lhs, rhs, .. } => {
                 f.debug_tuple(op.name()).field(lhs).field(rhs).finish()
             },
@@ -225,7 +242,7 @@ impl crate::prettier::PrettyPrint for ConstantExpr {
 
         match self {
             Self::Literal(literal) => display(literal),
-            Self::Var(ident) => display(ident),
+            Self::Var(ident) | Self::String(ident) => display(ident),
             Self::BinaryOp { op, lhs, rhs, .. } => {
                 let single_line = lhs.render() + display(op) + rhs.render();
                 let multi_line = lhs.render() + nl() + (display(op)) + rhs.render();
@@ -239,7 +256,7 @@ impl Spanned for ConstantExpr {
     fn span(&self) -> SourceSpan {
         match self {
             Self::Literal(spanned) => spanned.span(),
-            Self::Var(spanned) => spanned.span(),
+            Self::Var(spanned) | Self::String(spanned) => spanned.span(),
             Self::BinaryOp { span, .. } => *span,
         }
     }

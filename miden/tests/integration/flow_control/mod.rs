@@ -387,7 +387,7 @@ fn dynexec_with_procref() {
 
         dup
         push.4
-        assert_eq.err=101
+        assert_eq.err=\"101\"
 
         swap drop
     end";

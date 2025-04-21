@@ -21,6 +21,9 @@
 //! (advice map section)
 //! - Advice map (AdviceMap)
 //!
+//! (error_codes map section)
+//! - Error codes map (BTreeMap<u64, String>)
+//!
 //! (decorator data section)
 //! - Decorator data
 //! - String table
@@ -35,7 +38,7 @@
 //! - before enter decorators (`Vec<(MastNodeId, Vec<DecoratorId>)>`)
 //! - after exit decorators (`Vec<(MastNodeId, Vec<DecoratorId>)>`)
 
-use alloc::vec::Vec;
+use alloc::{collections::BTreeMap, string::String, vec::Vec};
 
 use decorator::{DecoratorDataBuilder, DecoratorInfo};
 use string_table::StringTable;
@@ -149,6 +152,7 @@ impl Serializable for MastForest {
         }
 
         self.advice_map.write_into(target);
+        self.error_codes.write_into(target);
 
         // write all decorator data below
 
@@ -194,6 +198,8 @@ impl Deserializable for MastForest {
             .collect::<Result<Vec<MastNodeInfo>, DeserializationError>>()?;
 
         let advice_map = AdviceMap::read_from(source)?;
+
+        let error_codes: BTreeMap<u64, String> = Deserializable::read_from(source)?;
 
         // Reading Decorators
         let decorator_data: Vec<u8> = Deserializable::read_from(source)?;
@@ -272,6 +278,8 @@ impl Deserializable for MastForest {
             let node_id = MastNodeId::from_usize_safe(node_id, &mast_forest)?;
             mast_forest.append_after_exit(node_id, &decorator_ids);
         }
+
+        mast_forest.error_codes = error_codes;
 
         Ok(mast_forest)
     }

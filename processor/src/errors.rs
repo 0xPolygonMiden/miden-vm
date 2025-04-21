@@ -94,10 +94,10 @@ pub enum ExecutionError {
     },
     #[error("failed to execute Ext2Intt operation: {0}")]
     Ext2InttError(Ext2InttError),
-    #[error("assertion failed at clock cycle {clk} with error code {err_code}{}",
+    #[error("assertion failed at clock cycle {clk} with error {}",
       match err_msg {
-        Some(msg) => format!(": {msg}"),
-        None => "".into()
+        Some(msg) => format!("message: {msg}"),
+        None => format!("code: {err_code}"),
       }
     )]
     #[diagnostic()]

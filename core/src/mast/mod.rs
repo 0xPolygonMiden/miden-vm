@@ -1,5 +1,7 @@
 use alloc::{
     collections::{BTreeMap, BTreeSet},
+    string::{String, ToString},
+    sync::Arc,
     vec::Vec,
 };
 use core::{
@@ -9,6 +11,8 @@ use core::{
 
 use miden_crypto::hash::rpo::RpoDigest;
 
+use crate::crypto::hash::{Blake3_256, Blake3Digest, Digest};
+
 mod node;
 pub use node::{
     BasicBlockNode, CallNode, DynNode, ExternalNode, JoinNode, LoopNode, MastNode, MastNodeExt,
@@ -16,7 +20,7 @@ pub use node::{
 };
 use winter_utils::{ByteWriter, DeserializationError, Serializable};
 
-use crate::{AdviceMap, Decorator, DecoratorList, Operation};
+use crate::{AdviceMap, Decorator, DecoratorList, Felt, Operation};
 
 mod serialization;
 
@@ -53,6 +57,11 @@ pub struct MastForest {
 
     /// Advice map to be loaded into the VM prior to executing procedures from this MAST forest.
     advice_map: AdviceMap,
+
+    /// A map from error codes to error messages. Error messages cannot be
+    /// recovered from error codes, so they are stored in order to provide a
+    /// useful message to the user in case a error code is triggered.
+    error_codes: BTreeMap<u64, String>,
 }
 
 // ------------------------------------------------------------------------------------------------
@@ -471,6 +480,16 @@ impl MastForest {
     pub fn advice_map_mut(&mut self) -> &mut AdviceMap {
         &mut self.advice_map
     }
+
+    /// Registers an error message in the MAST Forest and returns the
+    /// corresponding error code as a Felt.
+    pub fn register_error(&mut self, msg: Arc<str>) -> Felt {
+        let code: Felt = error_code_from_msg(&msg);
+        let code_key = u64::from(code);
+        // we use u64 as keys for the map
+        self.error_codes.insert(code_key, msg.to_string());
+        code
+    }
 }
 
 impl Index<MastNodeId> for MastForest {
@@ -725,6 +744,16 @@ impl Serializable for DecoratorId {
     fn write_into<W: ByteWriter>(&self, target: &mut W) {
         self.0.write_into(target)
     }
+}
+
+/// Derives an error code from an error message by hashing the message and
+/// interpreting the first 64 bits as a Felt.
+pub fn error_code_from_msg(msg: impl AsRef<str>) -> Felt {
+    let digest: Blake3Digest<32> = Blake3_256::hash(msg.as_ref().as_bytes());
+    let mut digest_bytes: [u8; 8] = [0; 8];
+    digest_bytes.copy_from_slice(&digest.as_bytes()[0..8]);
+    let code = u64::from_le_bytes(digest_bytes);
+    Felt::new(code)
 }
 
 // MAST FOREST ERROR

@@ -51,6 +51,8 @@
 //! modifications to specific nodes they care about.
 use core::ops::ControlFlow;
 
+use immediate::ErrorMsg;
+
 use crate::{Felt, Span, ast::*};
 
 /// Represents an immutable AST visitor, whose "early return" type is `T` (by default `()`).
@@ -134,8 +136,8 @@ pub trait Visit<T = ()> {
     fn visit_immediate_felt(&mut self, imm: &Immediate<Felt>) -> ControlFlow<T> {
         visit_immediate_felt(self, imm)
     }
-    fn visit_immediate_error_code(&mut self, code: &Immediate<Felt>) -> ControlFlow<T> {
-        visit_immediate_error_code(self, code)
+    fn visit_immediate_error_message(&mut self, code: &ErrorMsg) -> ControlFlow<T> {
+        visit_immediate_error_message(self, code)
     }
 }
 
@@ -203,8 +205,8 @@ where
     fn visit_immediate_felt(&mut self, imm: &Immediate<Felt>) -> ControlFlow<T> {
         (**self).visit_immediate_felt(imm)
     }
-    fn visit_immediate_error_code(&mut self, code: &Immediate<Felt>) -> ControlFlow<T> {
-        (**self).visit_immediate_error_code(code)
+    fn visit_immediate_error_message(&mut self, code: &ErrorMsg) -> ControlFlow<T> {
+        (**self).visit_immediate_error_message(code)
     }
 }
 
@@ -299,7 +301,7 @@ where
         | U32AssertWithError(code)
         | U32Assert2WithError(code)
         | U32AssertWWithError(code)
-        | MTreeVerifyWithError(code) => visitor.visit_immediate_error_code(code),
+        | MTreeVerifyWithError(code) => visitor.visit_immediate_error_message(code),
         AddImm(imm) | SubImm(imm) | MulImm(imm) | DivImm(imm) | ExpImm(imm) | EqImm(imm)
         | NeqImm(imm) | Push(imm) => visitor.visit_immediate_felt(imm),
         U32WrappingAddImm(imm)
@@ -457,7 +459,7 @@ where
 }
 
 #[inline(always)]
-pub fn visit_immediate_error_code<V, T>(_visitor: &mut V, _imm: &Immediate<Felt>) -> ControlFlow<T>
+pub fn visit_immediate_error_message<V, T>(_visitor: &mut V, _imm: &ErrorMsg) -> ControlFlow<T>
 where
     V: ?Sized + Visit<T>,
 {
@@ -548,8 +550,8 @@ pub trait VisitMut<T = ()> {
     fn visit_mut_immediate_felt(&mut self, imm: &mut Immediate<Felt>) -> ControlFlow<T> {
         visit_mut_immediate_felt(self, imm)
     }
-    fn visit_mut_immediate_error_code(&mut self, code: &mut Immediate<Felt>) -> ControlFlow<T> {
-        visit_mut_immediate_error_code(self, code)
+    fn visit_mut_immediate_error_message(&mut self, code: &mut ErrorMsg) -> ControlFlow<T> {
+        visit_mut_immediate_error_message(self, code)
     }
 }
 
@@ -617,8 +619,8 @@ where
     fn visit_mut_immediate_felt(&mut self, imm: &mut Immediate<Felt>) -> ControlFlow<T> {
         (**self).visit_mut_immediate_felt(imm)
     }
-    fn visit_mut_immediate_error_code(&mut self, code: &mut Immediate<Felt>) -> ControlFlow<T> {
-        (**self).visit_mut_immediate_error_code(code)
+    fn visit_mut_immediate_error_message(&mut self, code: &mut ErrorMsg) -> ControlFlow<T> {
+        (**self).visit_mut_immediate_error_message(code)
     }
 }
 
@@ -716,7 +718,7 @@ where
         | U32AssertWithError(code)
         | U32Assert2WithError(code)
         | U32AssertWWithError(code)
-        | MTreeVerifyWithError(code) => visitor.visit_mut_immediate_error_code(code),
+        | MTreeVerifyWithError(code) => visitor.visit_mut_immediate_error_message(code),
         AddImm(imm) | SubImm(imm) | MulImm(imm) | DivImm(imm) | ExpImm(imm) | EqImm(imm)
         | NeqImm(imm) | Push(imm) => visitor.visit_mut_immediate_felt(imm),
         U32WrappingAddImm(imm)
@@ -886,9 +888,9 @@ where
 }
 
 #[inline(always)]
-pub fn visit_mut_immediate_error_code<V, T>(
+pub fn visit_mut_immediate_error_message<V, T>(
     _visitor: &mut V,
-    _imm: &mut Immediate<Felt>,
+    _imm: &mut ErrorMsg,
 ) -> ControlFlow<T>
 where
     V: ?Sized + VisitMut<T>,
