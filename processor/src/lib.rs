@@ -7,6 +7,7 @@ extern crate alloc;
 extern crate std;
 
 use alloc::{sync::Arc, vec::Vec};
+use core::fmt::{Display, LowerHex};
 
 use errors::ErrorContext;
 use miden_air::trace::{
@@ -98,6 +99,33 @@ pub mod crypto {
 // ================================================================================================
 
 type QuadFelt = QuadExtension<Felt>;
+
+#[derive(Copy, Clone, Debug, Eq, PartialEq, Hash)]
+pub struct MemoryAddress(u32);
+
+impl From<u32> for MemoryAddress {
+    fn from(addr: u32) -> Self {
+        MemoryAddress(addr)
+    }
+}
+
+impl From<MemoryAddress> for u32 {
+    fn from(value: MemoryAddress) -> Self {
+        value.0
+    }
+}
+
+impl Display for MemoryAddress {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        Display::fmt(&self.0, f)
+    }
+}
+
+impl LowerHex for MemoryAddress {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        LowerHex::fmt(&self.0, f)
+    }
+}
 
 type SysTrace = [Vec<Felt>; SYS_TRACE_WIDTH];
 
@@ -748,7 +776,7 @@ impl ProcessState<'_> {
     ///
     /// The state is returned as a vector of (address, value) tuples, and includes addresses which
     /// have been accessed at least once.
-    pub fn get_mem_state(&self, ctx: ContextId) -> Vec<(u64, Felt)> {
+    pub fn get_mem_state(&self, ctx: ContextId) -> Vec<(MemoryAddress, Felt)> {
         self.chiplets.memory.get_state_at(ctx, self.system.clk())
     }
 }
