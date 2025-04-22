@@ -12,7 +12,7 @@ mod trace;
 use trace::StackTrace;
 
 mod overflow;
-use overflow::OverflowStack;
+use overflow::OverflowTable;
 
 mod aux_trace;
 pub use aux_trace::AuxTraceBuilder;
@@ -61,7 +61,7 @@ const MAX_TOP_IDX: usize = MIN_STACK_DEPTH - 1;
 pub struct Stack {
     clk: RowIndex,
     trace: StackTrace,
-    overflow: OverflowStack,
+    overflow: OverflowTable,
     active_depth: usize,
     full_depth: usize,
 }
@@ -80,7 +80,7 @@ impl Stack {
         Self {
             clk: RowIndex::from(0),
             trace,
-            overflow: OverflowStack::new(save_overflow_history),
+            overflow: OverflowTable::new(save_overflow_history),
             active_depth: MIN_STACK_DEPTH,
             full_depth: MIN_STACK_DEPTH,
         }
