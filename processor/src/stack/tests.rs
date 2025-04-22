@@ -341,44 +341,44 @@ fn root_context_separate_overflows() {
     // -------------------------------------------
 
     let mut overflow_stack_at_clk = Vec::new();
-    overflow_stack.append_into_at_clk(0_u32.into(), &mut overflow_stack_at_clk);
+    overflow_stack.append_from_history_at(0_u32.into(), &mut overflow_stack_at_clk);
     assert!(overflow_stack_at_clk.is_empty());
 
     overflow_stack_at_clk.clear();
-    overflow_stack.append_into_at_clk(1_u32.into(), &mut overflow_stack_at_clk);
+    overflow_stack.append_from_history_at(1_u32.into(), &mut overflow_stack_at_clk);
     assert_eq!(overflow_stack_at_clk, vec![SENTINEL_VALUE]);
 
     // clk=2: the `CALL` operation no longer has access to the overflow table since it is in the new
     // context.
     overflow_stack_at_clk.clear();
-    overflow_stack.append_into_at_clk(2_u32.into(), &mut overflow_stack_at_clk);
+    overflow_stack.append_from_history_at(2_u32.into(), &mut overflow_stack_at_clk);
     assert!(overflow_stack_at_clk.is_empty());
 
     // clk=3: still in the new context, overflow table is empty
     overflow_stack_at_clk.clear();
-    overflow_stack.append_into_at_clk(3_u32.into(), &mut overflow_stack_at_clk);
+    overflow_stack.append_from_history_at(3_u32.into(), &mut overflow_stack_at_clk);
     assert!(overflow_stack_at_clk.is_empty());
 
     // clk=4: we're back in context 0, but from a syscall, so we expect the overflow table to be
     // empty (i.e. we're not supposed to see the sentinel value, since each new syscall back into
     // context 0 gets its own overflow stack).
     overflow_stack_at_clk.clear();
-    overflow_stack.append_into_at_clk(4_u32.into(), &mut overflow_stack_at_clk);
+    overflow_stack.append_from_history_at(4_u32.into(), &mut overflow_stack_at_clk);
     assert!(overflow_stack_at_clk.is_empty());
 
     // clk=5: syscall's `END` operation, we're back in context 10, so the overflow stack is empty
     overflow_stack_at_clk.clear();
-    overflow_stack.append_into_at_clk(5_u32.into(), &mut overflow_stack_at_clk);
+    overflow_stack.append_from_history_at(5_u32.into(), &mut overflow_stack_at_clk);
     assert!(overflow_stack_at_clk.is_empty());
 
     // clk=6: `CALL`'s END: we're back in context 0, and we can now see the sentinel value
     overflow_stack_at_clk.clear();
-    overflow_stack.append_into_at_clk(6_u32.into(), &mut overflow_stack_at_clk);
+    overflow_stack.append_from_history_at(6_u32.into(), &mut overflow_stack_at_clk);
     assert_eq!(overflow_stack_at_clk, vec![SENTINEL_VALUE]);
 
     // clk=7: POP the sentinel value
     overflow_stack_at_clk.clear();
-    overflow_stack.append_into_at_clk(7_u32.into(), &mut overflow_stack_at_clk);
+    overflow_stack.append_from_history_at(7_u32.into(), &mut overflow_stack_at_clk);
     assert!(overflow_stack_at_clk.is_empty());
 }
 

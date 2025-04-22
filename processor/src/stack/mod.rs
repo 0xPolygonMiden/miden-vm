@@ -123,7 +123,7 @@ impl Stack {
         if clk == self.clk {
             self.overflow.append_into(&mut result);
         } else {
-            self.overflow.append_into_at_clk(clk, &mut result);
+            self.overflow.append_from_history_at(clk, &mut result);
         }
 
         result
@@ -270,8 +270,8 @@ impl Stack {
 
         self.shift_left_no_helpers(START_POSITION);
 
-        // reset the helper columns to their default value, and write those to the trace in the next
-        // row.
+        // resets the helper columns to their default value, and write those to the trace in the
+        // next row.
         let next_depth = self.start_context(ctx);
 
         // Note: `start_context()` reset `active_depth` to 16, and `overflow.last_row_addr` to 0.

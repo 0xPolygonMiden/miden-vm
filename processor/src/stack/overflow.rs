@@ -6,7 +6,7 @@ use miden_air::RowIndex;
 use super::{Felt, ZERO};
 use crate::ContextId;
 
-// overflow table
+// OVERFLOW TABLE
 // ================================================================================================
 
 /// An element of an overflow stack.
@@ -128,7 +128,10 @@ impl OverflowTable {
 
     /// Appends the values from the overflow table at the given clock cycle to the end of the
     /// provided vector.
-    pub fn append_into_at_clk(&self, clk: RowIndex, target: &mut Vec<Felt>) {
+    ///
+    /// # Panics
+    /// - if the overflow history is not enabled.
+    pub fn append_from_history_at(&self, clk: RowIndex, target: &mut Vec<Felt>) {
         let history = self.history.as_ref().expect("overflow history not enabled");
         match history.get_at(clk) {
             Some(table) => {
@@ -183,7 +186,10 @@ impl OverflowTable {
             // Note: we do the `history.is_some()` and `history.unwrap()` instead of matching to
             // satisfy the borrow checker (due to the call to `get_current_overflow_stack()` which
             // borrows `self` immutably).
-            self.history.as_mut().unwrap().on_push_or_pop(clk, table_before_push);
+            self.history
+                .as_mut()
+                .unwrap()
+                .save_stack_to_history_before_clk(clk, table_before_push);
         }
 
         // 2. push value
@@ -206,7 +212,10 @@ impl OverflowTable {
             // Note: we do the `history.is_some()` and `history.unwrap()` instead of matching to
             // satisfy the borrow checker (due to the call to `get_current_overflow_stack()` which
             // borrows `self` immutably).
-            self.history.as_mut().unwrap().on_push_or_pop(clk, table_before_pop);
+            self.history
+                .as_mut()
+                .unwrap()
+                .save_stack_to_history_before_clk(clk, table_before_pop);
         }
 
         // 2. pop value
@@ -234,7 +243,7 @@ impl OverflowTable {
             self.history
                 .as_mut()
                 .unwrap()
-                .start_or_restore_context(self.clk, table_before_context_change);
+                .save_stack_to_history_before_clk(self.clk, table_before_context_change);
         }
 
         // 2. Initialize the overflow stack for the new context if it doesn't exist.
@@ -262,7 +271,7 @@ impl OverflowTable {
             self.history
                 .as_mut()
                 .unwrap()
-                .start_or_restore_context(self.clk, table_before_context_change);
+                .save_stack_to_history_before_clk(self.clk, table_before_context_change);
         }
 
         // 2. pop the last overflow stack for the current context, and make sure it is empty.
@@ -344,13 +353,13 @@ impl OverflowTableHistory {
                 if target_clk > last_clk_in_history {
                     None
                 } else {
-                    for (range, state) in self.history.iter() {
-                        if range.contains(&target_clk) {
-                            return Some(state.iter().rev());
-                        }
-                    }
+                    let (_, overflow_stack) = self
+                        .history
+                        .iter()
+                        .find(|(range, _)| range.contains(&target_clk))
+                        .expect("overflow table history not properly constructed");
 
-                    unreachable!("overflow table history not properly constructed")
+                    Some(overflow_stack.iter().rev())
                 }
             },
             None => None,
@@ -360,29 +369,19 @@ impl OverflowTableHistory {
     // PUBLIC MUTATORS
     // --------------------------------------------------------------------------------------------
 
-    /// Indicates that an element was added to or removed from the overflow table at the current
-    /// clock cycle.
+    /// Saves the stack to the history to end right before the given clock cycle.
     ///
-    /// The `table_before_operation` parameter specifies the state of the overflow table *before*
-    /// the operation was performed.
-    pub fn on_push_or_pop(&mut self, clk: RowIndex, table_before_operation: Vec<Felt>) {
-        self.save_table_to_history(clk - 1, table_before_operation);
-    }
-
-    /// Indicates that a new context was started or a former context was restored at the current
-    /// clock cycle.
-    ///
-    /// The `table_before_context_change` parameter specifies the state of the overflow table
-    /// *before* the context change was performed.
-    pub fn start_or_restore_context(
+    /// The `stack_before_operation` parameter specifies the state of the overflow stack
+    /// *before* the operation at the given clock cycle was performed.
+    pub fn save_stack_to_history_before_clk(
         &mut self,
         clk: RowIndex,
-        table_before_context_change: Vec<Felt>,
+        stack_before_operation: Vec<Felt>,
     ) {
         // The edge case where `clk == 0` happens if e.g. the first instruction of the program is a
         // `CALL`. In this case, there is no history to save.
         if clk > 0 {
-            self.save_table_to_history(clk - 1, table_before_context_change);
+            self.save_stack_to_history(clk - 1, stack_before_operation);
         }
     }
 
@@ -391,9 +390,9 @@ impl OverflowTableHistory {
 
     /// Saves the current state of the overflow table to the history.
     ///
-    /// The `clk_end` specifies the last clock cycle with the given table as the state of the
-    /// overflow table.
-    fn save_table_to_history(&mut self, clk_end_inclusive: RowIndex, table: Vec<Felt>) {
+    /// The `clk_end_inclusive` parameter specifies the last clock cycle with the given table as the
+    /// state of the overflow table.
+    fn save_stack_to_history(&mut self, clk_end_inclusive: RowIndex, stack: Vec<Felt>) {
         let range_start = match self.last_clk_in_history() {
             Some(last_clk) => last_clk + 1,
             None => RowIndex::from(0),
@@ -404,7 +403,7 @@ impl OverflowTableHistory {
         // case, we just ignore the 2nd update.
         if range_start <= clk_end_inclusive {
             let clk_range = range_start..=clk_end_inclusive;
-            self.history.push((clk_range, table));
+            self.history.push((clk_range, stack));
         }
     }
 

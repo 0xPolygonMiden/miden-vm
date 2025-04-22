@@ -85,7 +85,7 @@ impl<E: FieldElement<BaseField = Felt>> AuxColumnBuilder<E> for AuxTraceBuilder 
 // OVERFLOW STACK ROW
 // ================================================================================================
 
-/// A single row in the stack overflow stack. Each row contains the following values:
+/// A single row in the stack overflow table. Each row contains the following values:
 /// - The value of the stack item pushed into the overflow stack.
 /// - The clock cycle at which the stack item was pushed into the overflow stack.
 /// - The clock cycle of the value which was at the top of the overflow stack when this value was
