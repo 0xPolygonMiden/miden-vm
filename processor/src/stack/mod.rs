@@ -294,7 +294,7 @@ impl Stack {
         let current_depth = self.active_depth;
         let current_overflow_addr = self.overflow.last_update_clk_in_current_ctx();
         self.active_depth = MIN_STACK_DEPTH;
-        self.overflow.set_current_context(new_ctx);
+        self.overflow.start_context(new_ctx);
         (current_depth, current_overflow_addr)
     }
 
@@ -306,7 +306,7 @@ impl Stack {
         debug_assert_eq!(self.active_depth, MIN_STACK_DEPTH, "overflow table not empty");
 
         self.active_depth = stack_depth;
-        self.overflow.set_current_context(new_ctx);
+        self.overflow.restore_context(new_ctx);
     }
 
     // TRACE GENERATION

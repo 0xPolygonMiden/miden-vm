@@ -153,10 +153,13 @@ impl OverflowStack {
             .map(StackEntry::value)
     }
 
-    /// Sets the current context to the specified value.
+    /// Starts the specified context.
     ///
     /// Subsequent calls to `push` and `pop` will affect the overflow stack in this context.
-    pub fn set_current_context(&mut self, new_ctx: ContextId) {
+    ///
+    /// Note: It is possible to return to context 0 with a syscall; in this case, each instantiation
+    /// of context 0 will get a separate overflow stack.
+    pub fn start_context(&mut self, new_ctx: ContextId) {
         // 1. save history
         if let Some(history) = self.history.as_mut() {
             history.start_or_restore_context(
@@ -172,6 +175,11 @@ impl OverflowStack {
 
         // 2. set new context
         self.current_ctx = new_ctx;
+    }
+
+    /// Restores the specified context.
+    pub fn restore_context(&mut self, new_ctx: ContextId) {
+        self.start_context(new_ctx);
     }
 
     /// Increments the clock cycle.
