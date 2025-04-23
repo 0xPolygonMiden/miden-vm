@@ -274,7 +274,7 @@ impl Stack {
         // next row.
         let next_depth = self.start_context(ctx);
 
-        // Note: `start_context()` reset `active_depth` to 16, and `overflow.last_row_addr` to 0.
+        // Note: `start_context()` resets `active_depth` to 16, and `overflow.last_row_addr` to 0.
         self.trace.set_helpers_at(
             self.clk.as_usize(),
             Felt::from(self.active_depth as u32),
