@@ -229,6 +229,33 @@ fn test_diagnostic_failed_assertion() {
     );
 }
 
+// InvalidMerkleTreeNodeIndex
+// ------------------------------------------------------------------------------------------------
+
+#[test]
+fn test_diagnostic_invalid_merkle_tree_node_index() {
+    let source = "
+        begin
+            mtree_get
+        end";
+    
+    let depth = 4;
+    let index = 16;
+
+    let build_test = build_test_by_mode!(true, source, &[index, depth]);
+    let err = build_test.execute().expect_err("expected error");
+    assert_diagnostic_lines!(
+        err,
+        "provided node index 16 is out of bounds for a merkle tree node at depth 4",
+        regex!(r#",-\[test[\d]+:3:13\]"#),
+        " 2 |         begin",
+        " 3 |             mtree_get",
+        "   :             ^^^^^^^^^",
+        " 4 |         end",
+        "   `----"
+    );
+}
+
 // InvalidStackDepthOnReturn
 // ------------------------------------------------------------------------------------------------
 

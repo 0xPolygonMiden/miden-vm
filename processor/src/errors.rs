@@ -142,8 +142,16 @@ pub enum ExecutionError {
         source_file: Option<Arc<SourceFile>>,
         depth: Felt,
     },
-    #[error("provided node index {value} is out of bounds for a merkle tree node at depth {depth}")]
-    InvalidMerkleTreeNodeIndex { depth: Felt, value: Felt },
+    #[error("provided node index {index} is out of bounds for a merkle tree node at depth {depth}")]
+    #[diagnostic()]
+    InvalidMerkleTreeNodeIndex {
+        #[label]
+        label: SourceSpan,
+        #[source_code]
+        source_file: Option<Arc<SourceFile>>,
+        depth: Felt,
+        index: Felt,
+    },
     #[error("attempted to calculate integer logarithm with zero argument at clock cycle {0}")]
     LogArgumentZero(RowIndex),
     #[error("malformed signature key: {0}")]
@@ -267,6 +275,15 @@ impl ExecutionError {
     ) -> Self {
         let (label, source_file) = err_ctx.label_and_source_file();
         Self::InvalidMerkleTreeDepth { label, source_file, depth }
+    }
+
+    pub fn invalid_merkle_tree_node_index(
+        depth: Felt,
+        index: Felt,
+        err_ctx: &ErrorContext<'_, impl MastNodeExt>,
+    ) -> Self {
+        let (label, source_file) = err_ctx.label_and_source_file();
+        Self::InvalidMerkleTreeNodeIndex { label, source_file, depth, index }
     }
 
     pub fn invalid_stack_depth_on_return(

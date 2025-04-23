@@ -151,9 +151,8 @@ where
         index: &Felt,
         err_ctx: &ErrorContext<'_, impl MastNodeExt>,
     ) -> Result<Word, ExecutionError> {
-        let index = NodeIndex::from_elements(depth, index).map_err(|_| {
-            ExecutionError::InvalidMerkleTreeNodeIndex { depth: *depth, value: *index }
-        })?;
+        let index = NodeIndex::from_elements(depth, index)
+            .map_err(|_| ExecutionError::invalid_merkle_tree_node_index(*depth, *index, err_ctx))?;
         self.store
             .get_node(root.into(), index)
             .map(|v| v.into())
@@ -167,9 +166,8 @@ where
         index: &Felt,
         err_ctx: &ErrorContext<'_, impl MastNodeExt>,
     ) -> Result<MerklePath, ExecutionError> {
-        let index = NodeIndex::from_elements(depth, index).map_err(|_| {
-            ExecutionError::InvalidMerkleTreeNodeIndex { depth: *depth, value: *index }
-        })?;
+        let index = NodeIndex::from_elements(depth, index)
+            .map_err(|_| ExecutionError::invalid_merkle_tree_node_index(*depth, *index, err_ctx))?;
         self.store
             .get_path(root.into(), index)
             .map(|value| value.path)
@@ -198,9 +196,8 @@ where
         value: Word,
         err_ctx: &ErrorContext<'_, impl MastNodeExt>,
     ) -> Result<(MerklePath, Word), ExecutionError> {
-        let node_index = NodeIndex::from_elements(depth, index).map_err(|_| {
-            ExecutionError::InvalidMerkleTreeNodeIndex { depth: *depth, value: *index }
-        })?;
+        let node_index = NodeIndex::from_elements(depth, index)
+            .map_err(|_| ExecutionError::invalid_merkle_tree_node_index(*depth, *index, err_ctx))?;
         self.store
             .set_node(root.into(), node_index, value.into())
             .map(|root| (root.path, root.root.into()))
