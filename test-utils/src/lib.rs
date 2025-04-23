@@ -242,7 +242,7 @@ impl Test {
         let mut process = Process::new(
             program.kernel().clone(),
             self.stack_inputs.clone(),
-            ExecutionOptions::default().with_debugging(),
+            ExecutionOptions::default().with_debugging(self.in_debug_mode),
         )
         .with_source_manager(self.source_manager.clone());
         process.execute(&program, &mut host).unwrap();
@@ -339,7 +339,7 @@ impl Test {
         let mut process = Process::new(
             program.kernel().clone(),
             self.stack_inputs.clone(),
-            ExecutionOptions::default().with_debugging(),
+            ExecutionOptions::default().with_debugging(self.in_debug_mode),
         )
         .with_source_manager(self.source_manager.clone());
         let slow_stack_outputs = process.execute(&program, &mut host)?;
@@ -361,8 +361,9 @@ impl Test {
         let mut process = Process::new(
             program.kernel().clone(),
             self.stack_inputs.clone(),
-            ExecutionOptions::default().with_debugging(),
-        );
+            ExecutionOptions::default().with_debugging(self.in_debug_mode),
+        )
+        .with_source_manager(self.source_manager.clone());
 
         let stack_outputs = process.execute(&program, &mut host)?;
         self.assert_outputs_with_fast_processor(stack_outputs);
@@ -403,7 +404,12 @@ impl Test {
     pub fn execute_iter(&self) -> VmStateIterator {
         let (program, mut host) = self.get_program_and_host();
 
-        let mut process = Process::new_debug(program.kernel().clone(), self.stack_inputs.clone());
+        let mut process = Process::new(
+            program.kernel().clone(),
+            self.stack_inputs.clone(),
+            ExecutionOptions::default().with_debugging(self.in_debug_mode),
+        )
+        .with_source_manager(self.source_manager.clone());
         let result = process.execute(&program, &mut host);
 
         if let Ok(stack_outputs) = &result {

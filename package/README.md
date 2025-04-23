@@ -21,6 +21,7 @@ The package data contains:
   - List of dependencies, where each dependency has:
     - Name  
     - Digest
+- Account component metadata bytes (optional)
 
 ## License
 

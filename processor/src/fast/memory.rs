@@ -3,7 +3,7 @@ use alloc::{collections::BTreeMap, vec::Vec};
 use miden_air::RowIndex;
 use vm_core::{EMPTY_WORD, Felt, WORD_SIZE, Word, ZERO};
 
-use crate::{ContextId, ExecutionError, MemoryError, errors::ErrorContext};
+use crate::{ContextId, ExecutionError, MemoryAddress, MemoryError, errors::ErrorContext};
 
 /// The memory for the processor.
 ///
@@ -92,13 +92,18 @@ impl Memory {
     ///
     /// The state is returned as a vector of (address, value) tuples, and includes addresses which
     /// have been accessed at least once.
-    pub fn get_memory_state(&self, ctx: ContextId) -> Vec<(u64, Felt)> {
+    pub fn get_memory_state(&self, ctx: ContextId) -> Vec<(MemoryAddress, Felt)> {
         self.memory
             .iter()
             .filter(|((c, _), _)| *c == ctx)
-            .flat_map(|((_c, addr), word)| {
-                let addr = *addr as u64;
-                [(addr, word[0]), (addr + 1, word[1]), (addr + 2, word[2]), (addr + 3, word[3])]
+            .flat_map(|(&(_c, addr), word)| {
+                let addr: MemoryAddress = addr.into();
+                [
+                    (addr, word[0]),
+                    (addr + 1_u32, word[1]),
+                    (addr + 2_u32, word[2]),
+                    (addr + 3_u32, word[3]),
+                ]
             })
             .collect()
     }

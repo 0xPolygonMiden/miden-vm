@@ -156,11 +156,21 @@ macro_rules! assert_diagnostic {
 /// second pattern - the second line is ignored because it is empty.
 #[macro_export]
 macro_rules! assert_diagnostic_lines {
-    ($diagnostic:expr, $($expected:expr),+) => {{
-        let actual = format!("{}", $crate::diagnostics::reporting::PrintDiagnostic::new_without_color($diagnostic));
-        let lines = actual.lines().filter(|l| !l.trim().is_empty()).zip([$($crate::testing::Pattern::from($expected)),*].into_iter());
-        for (actual_line, expected) in lines {
-            expected.assert_match_with_context(actual_line, &actual);
+    ($diagnostic:expr, $($expected_lines:expr),+) => {{
+        let full_output = format!("{}", $crate::diagnostics::reporting::PrintDiagnostic::new_without_color($diagnostic));
+        let lines: Vec<_> = full_output.lines().filter(|l| !l.trim().is_empty()).collect();
+        let patterns = [$($crate::testing::Pattern::from($expected_lines)),*];
+        if lines.len() != patterns.len() {
+            panic!(
+                "expected {} lines, but got {}:\n{}",
+                patterns.len(),
+                lines.len(),
+                full_output
+            );
+        }
+        let lines_and_patterns = lines.into_iter().zip(patterns.into_iter());
+        for (actual_line, expected_pattern) in lines_and_patterns {
+            expected_pattern.assert_match_with_context(actual_line, &full_output);
         }
     }};
 }

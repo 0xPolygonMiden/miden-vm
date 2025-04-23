@@ -92,7 +92,7 @@ fn test_debug_with_debugging() {
         &program,
         StackInputs::default(),
         &mut host,
-        ExecutionOptions::default().with_debugging(),
+        ExecutionOptions::default().with_debugging(true),
         Arc::new(DefaultSourceManager::default()),
     )
     .unwrap();

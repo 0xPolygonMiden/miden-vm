@@ -4,7 +4,7 @@ use pretty_assertions::assert_eq;
 use vm_core::crypto::hash::RpoDigest;
 
 use super::*;
-use crate::{MastForestStore, MemAdviceProvider, MemMastForestStore, ProcessState};
+use crate::{MastForestStore, MemAdviceProvider, MemMastForestStore, MemoryAddress, ProcessState};
 
 #[test]
 fn test_advice_provider() {
@@ -197,7 +197,7 @@ struct ProcessStateSnapshot {
     fmp: u64,
     stack_state: Vec<Felt>,
     stack_words: [Word; 4],
-    mem_state: Vec<(u64, Felt)>,
+    mem_state: Vec<(MemoryAddress, Felt)>,
 }
 
 impl From<ProcessState<'_>> for ProcessStateSnapshot {

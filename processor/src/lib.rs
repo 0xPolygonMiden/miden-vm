@@ -7,6 +7,7 @@ extern crate alloc;
 extern crate std;
 
 use alloc::{sync::Arc, vec::Vec};
+use core::fmt::{Display, LowerHex};
 
 use errors::ErrorContext;
 use fast::FastProcessor;
@@ -102,6 +103,49 @@ pub mod crypto {
 // ================================================================================================
 
 type QuadFelt = QuadExtension<Felt>;
+
+#[derive(Copy, Clone, Debug, Eq, PartialEq, Hash)]
+pub struct MemoryAddress(u32);
+
+impl From<u32> for MemoryAddress {
+    fn from(addr: u32) -> Self {
+        MemoryAddress(addr)
+    }
+}
+
+impl From<MemoryAddress> for u32 {
+    fn from(value: MemoryAddress) -> Self {
+        value.0
+    }
+}
+
+impl Display for MemoryAddress {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        Display::fmt(&self.0, f)
+    }
+}
+
+impl LowerHex for MemoryAddress {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        LowerHex::fmt(&self.0, f)
+    }
+}
+
+impl core::ops::Add<MemoryAddress> for MemoryAddress {
+    type Output = Self;
+
+    fn add(self, rhs: MemoryAddress) -> Self::Output {
+        MemoryAddress(self.0 + rhs.0)
+    }
+}
+
+impl core::ops::Add<u32> for MemoryAddress {
+    type Output = Self;
+
+    fn add(self, rhs: u32) -> Self::Output {
+        MemoryAddress(self.0 + rhs)
+    }
+}
 
 type SysTrace = [Vec<Felt>; SYS_TRACE_WIDTH];
 
@@ -222,7 +266,7 @@ impl Process {
         Self::initialize(
             kernel,
             stack_inputs,
-            ExecutionOptions::default().with_tracing().with_debugging(),
+            ExecutionOptions::default().with_tracing().with_debugging(true),
         )
     }
 
@@ -791,7 +835,7 @@ impl<'a> ProcessState<'a> {
     /// The state is returned as a vector of (address, value) tuples, and includes addresses which
     /// have been accessed at least once.
     #[inline(always)]
-    pub fn get_mem_state(&self, ctx: ContextId) -> Vec<(u64, Felt)> {
+    pub fn get_mem_state(&self, ctx: ContextId) -> Vec<(MemoryAddress, Felt)> {
         match self {
             ProcessState::Slow(state) => {
                 state.chiplets.memory.get_state_at(ctx, state.system.clk())

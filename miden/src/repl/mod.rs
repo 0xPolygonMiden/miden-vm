@@ -2,7 +2,7 @@ use std::{collections::BTreeSet, path::PathBuf};
 
 use assembly::{Assembler, Library};
 use miden_vm::{DefaultHost, StackInputs, math::Felt};
-use processor::ContextId;
+use processor::{ContextId, MemoryAddress};
 use rustyline::{DefaultEditor, error::ReadlineError};
 use stdlib::StdLibrary;
 
@@ -173,7 +173,7 @@ pub fn start_repl(library_paths: &Vec<PathBuf>, use_stdlib: bool) {
     let mut should_print_stack = false;
 
     // state of the entire memory at the latest clock cycle.
-    let mut memory: Vec<(u64, Felt)> = Vec::new();
+    let mut memory: Vec<(MemoryAddress, Felt)> = Vec::new();
 
     // initializing readline.
     let mut rl = DefaultEditor::new().expect("Readline couldn't be initialized");
@@ -251,7 +251,7 @@ pub fn start_repl(library_paths: &Vec<PathBuf>, use_stdlib: bool) {
                             }
                             // in case the flag has not been initialized.
                             if !mem_at_addr_present {
-                                println!("Memory at address {} is empty", addr);
+                                println!("Memory at address {addr} is empty");
                             }
                         },
                         Err(msg) => println!("{}", msg),
@@ -307,7 +307,7 @@ pub fn start_repl(library_paths: &Vec<PathBuf>, use_stdlib: bool) {
 fn execute(
     program: String,
     provided_libraries: &[Library],
-) -> Result<(Vec<(u64, Felt)>, Vec<Felt>), String> {
+) -> Result<(Vec<(MemoryAddress, Felt)>, Vec<Felt>), String> {
     // compile program
     let mut assembler = Assembler::default();
 
@@ -340,7 +340,7 @@ fn execute(
 }
 
 /// Parses the address in integer form from `!mem[addr]` command, otherwise throws an error.
-fn read_mem_address(mem_str: &str) -> Result<u64, String> {
+fn read_mem_address(mem_str: &str) -> Result<MemoryAddress, String> {
     // the first five characters is "!mem[" and the digit character should start from 6th
     // element.
     let remainder = &mem_str[5..];
@@ -354,11 +354,11 @@ fn read_mem_address(mem_str: &str) -> Result<u64, String> {
     }
 
     // convert the parsed digits into integer form.
-    let addr = &remainder[..digits_end]
+    let addr: u32 = remainder[..digits_end]
         .parse()
         .expect("The input address couldn't be parsed into an integer");
 
-    Ok(*addr)
+    Ok(addr.into())
 }
 
 /// Parses `!use` command. Adds the provided module to the program imports, or prints the list of
