@@ -138,12 +138,13 @@ fn test_advice_provider() {
     ";
 
     let stack_inputs = Vec::new();
-    let source_manager = Arc::new(DefaultSourceManager::default());
 
     let (program, kernel_lib) = {
+        let source_manager = Arc::new(DefaultSourceManager::default());
+
         let kernel_lib =
             Assembler::new(source_manager.clone()).assemble_kernel(kernel_source).unwrap();
-        let program = Assembler::with_kernel(source_manager.clone(), kernel_lib.clone())
+        let program = Assembler::with_kernel(source_manager, kernel_lib.clone())
             .assemble_program(program_source)
             .unwrap();
 
@@ -152,7 +153,7 @@ fn test_advice_provider() {
 
     // fast processor
     let mut fast_host = ConsistencyHost::new(kernel_lib.mast_forest().clone());
-    let processor = FastProcessor::new_debug(&stack_inputs, source_manager);
+    let processor = FastProcessor::new_debug(&stack_inputs);
     let fast_stack_outputs = processor.execute(&program, &mut fast_host).unwrap();
 
     // slow processor

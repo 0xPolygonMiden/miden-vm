@@ -8,8 +8,6 @@ extern crate std;
 
 use alloc::{sync::Arc, vec::Vec};
 
-pub mod fast;
-
 use errors::ErrorContext;
 use fast::FastProcessor;
 use miden_air::trace::{
@@ -36,6 +34,8 @@ use vm_core::{
     },
 };
 pub use winter_prover::matrix::ColMatrix;
+
+pub mod fast;
 
 mod operations;
 
@@ -779,11 +779,9 @@ impl<'a> ProcessState<'a> {
             ProcessState::Slow(state) => {
                 state.chiplets.memory.get_word(ctx, addr).map_err(ExecutionError::MemoryError)
             },
-            ProcessState::Fast(state) => Ok(state
-                .processor
-                .memory
-                .read_word_impl(ctx, addr, None, &ErrorContext::default())?
-                .copied()),
+            ProcessState::Fast(state) => {
+                Ok(state.processor.memory.read_word_impl(ctx, addr, None)?.copied())
+            },
         }
     }
 

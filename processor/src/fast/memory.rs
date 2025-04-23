@@ -1,7 +1,7 @@
 use alloc::{collections::BTreeMap, vec::Vec};
 
 use miden_air::RowIndex;
-use vm_core::{EMPTY_WORD, Felt, WORD_SIZE, Word, ZERO, mast::MastNodeExt};
+use vm_core::{EMPTY_WORD, Felt, WORD_SIZE, Word, ZERO};
 
 use crate::{ContextId, ExecutionError, MemoryError, errors::ErrorContext};
 
@@ -24,13 +24,8 @@ impl Memory {
     ///
     /// # Errors
     /// - Returns an error if the provided address is out-of-bounds.
-    pub fn read_element(
-        &mut self,
-        ctx: ContextId,
-        addr: Felt,
-        error_context: &ErrorContext<impl MastNodeExt>,
-    ) -> Result<Felt, ExecutionError> {
-        let element = self.read_element_impl(ctx, clean_addr(addr, error_context)?).unwrap_or(ZERO);
+    pub fn read_element(&mut self, ctx: ContextId, addr: Felt) -> Result<Felt, ExecutionError> {
+        let element = self.read_element_impl(ctx, clean_addr(addr)?).unwrap_or(ZERO);
         Ok(element)
     }
 
@@ -43,10 +38,9 @@ impl Memory {
         ctx: ContextId,
         addr: Felt,
         clk: RowIndex,
-        error_context: &ErrorContext<impl MastNodeExt>,
     ) -> Result<&Word, ExecutionError> {
-        let addr = clean_addr(addr, error_context)?;
-        let word = self.read_word_impl(ctx, addr, Some(clk), error_context)?.unwrap_or(&EMPTY_WORD);
+        let addr = clean_addr(addr)?;
+        let word = self.read_word_impl(ctx, addr, Some(clk))?.unwrap_or(&EMPTY_WORD);
 
         Ok(word)
     }
@@ -60,9 +54,8 @@ impl Memory {
         ctx: ContextId,
         addr: Felt,
         element: Felt,
-        error_context: &ErrorContext<impl MastNodeExt>,
     ) -> Result<(), ExecutionError> {
-        let (word_addr, idx) = split_addr(clean_addr(addr, error_context)?);
+        let (word_addr, idx) = split_addr(clean_addr(addr)?);
 
         self.memory
             .entry((ctx, word_addr))
@@ -88,14 +81,8 @@ impl Memory {
         addr: Felt,
         clk: RowIndex,
         word: Word,
-        error_context: &ErrorContext<impl MastNodeExt>,
     ) -> Result<(), ExecutionError> {
-        let addr = enforce_word_aligned_addr(
-            ctx,
-            clean_addr(addr, error_context)?,
-            Some(clk),
-            error_context,
-        )?;
+        let addr = enforce_word_aligned_addr(ctx, clean_addr(addr)?, Some(clk))?;
         self.memory.insert((ctx, addr), word);
 
         Ok(())
@@ -140,9 +127,8 @@ impl Memory {
         ctx: ContextId,
         addr: u32,
         clk: Option<RowIndex>,
-        error_context: &ErrorContext<impl MastNodeExt>,
     ) -> Result<Option<&Word>, ExecutionError> {
-        let addr = enforce_word_aligned_addr(ctx, addr, clk, error_context)?;
+        let addr = enforce_word_aligned_addr(ctx, addr, clk)?;
         let word = self.memory.get(&(ctx, addr));
 
         Ok(word)
@@ -156,13 +142,13 @@ impl Memory {
 ///
 /// # Errors
 /// - Returns an error if the provided address is out-of-bounds.
-fn clean_addr(
-    addr: Felt,
-    error_context: &ErrorContext<impl MastNodeExt>,
-) -> Result<u32, ExecutionError> {
+fn clean_addr(addr: Felt) -> Result<u32, ExecutionError> {
     let addr = addr.as_int();
     addr.try_into().map_err(|_| {
-        ExecutionError::MemoryError(MemoryError::address_out_of_bounds(addr, error_context))
+        ExecutionError::MemoryError(MemoryError::address_out_of_bounds(
+            addr,
+            &ErrorContext::default(),
+        ))
     })
 }
 
@@ -186,15 +172,14 @@ fn enforce_word_aligned_addr(
     ctx: ContextId,
     addr: u32,
     clk: Option<RowIndex>,
-    error_ctx: &ErrorContext<impl MastNodeExt>,
 ) -> Result<u32, ExecutionError> {
     if addr % WORD_SIZE as u32 != 0 {
         return match clk {
             Some(clk) => Err(ExecutionError::MemoryError(MemoryError::unaligned_word_access(
                 addr,
                 ctx,
-                clk.into(),
-                error_ctx,
+                Felt::from(clk.as_u32()),
+                &ErrorContext::default(),
             ))),
             None => Err(ExecutionError::MemoryError(MemoryError::UnalignedWordAccessNoClk {
                 addr,
