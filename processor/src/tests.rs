@@ -2,8 +2,11 @@
 use alloc::string::ToString;
 
 use assembly::{assert_diagnostic_lines, regex, source_file, testing::TestContext};
-use test_utils::build_test_by_mode;
-use vm_core::AdviceMap;
+use test_utils::{build_test_by_mode, crypto::init_merkle_leaves};
+use vm_core::{
+    AdviceMap,
+    crypto::merkle::{MerkleStore, MerkleTree},
+};
 
 use super::*;
 
@@ -473,6 +476,52 @@ fn test_diagnostic_address_out_of_bounds() {
         " 2 |         begin",
         " 3 |             swap swap mem_loadw push.1 drop",
         "   :                       ^^^^^^^^^",
+        " 4 |         end",
+        "   `----"
+    );
+}
+
+// MerkleStoreLookupFailed
+// -------------------------------------------------------------------------------------------------
+
+#[test]
+fn test_diagnostic_merkle_store_lookup_failed() {
+    let source = "
+        begin
+            mtree_set
+        end";
+
+    let leaves = &[1, 2, 3, 4];
+    let merkle_tree = MerkleTree::new(init_merkle_leaves(leaves)).unwrap();
+    let merkle_root = merkle_tree.root();
+    let merkle_store = MerkleStore::from(&merkle_tree);
+    let advice_stack = Vec::new();
+
+    let stack = {
+        let log_depth = 10;
+        let index = 0;
+
+        &[
+            1,
+            merkle_root[0].as_int(),
+            merkle_root[1].as_int(),
+            merkle_root[2].as_int(),
+            merkle_root[3].as_int(),
+            index,
+            log_depth,
+        ]
+    };
+
+    let build_test = build_test_by_mode!(true, source, stack, &advice_stack, merkle_store);
+    let err = build_test.execute().expect_err("expected error");
+    assert_diagnostic_lines!(
+        err,
+        "failed to lookup value in Merkle store",
+        "  `-> node RpoDigest([1, 0, 0, 0]) with index `depth=10, value=0` not found in the store",
+        regex!(r#",-\[test[\d]+:3:13\]"#),
+        " 2 |         begin",
+        " 3 |             mtree_set",
+        "   :             ^^^^^^^^^",
         " 4 |         end",
         "   `----"
     );

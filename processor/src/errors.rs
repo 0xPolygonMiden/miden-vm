@@ -184,8 +184,15 @@ pub enum ExecutionError {
         root: Digest,
         err_code: u32,
     },
-    #[error("advice provider Merkle store backend lookup failed")]
-    MerkleStoreLookupFailed(#[source] MerkleError),
+    #[error("failed to lookup value in Merkle store")]
+    MerkleStoreLookupFailed {
+        #[label]
+        label: SourceSpan,
+        #[source_code]
+        source_file: Option<Arc<SourceFile>>,
+        #[source]
+        err: MerkleError,
+    },
     #[error("advice provider Merkle store backend merge failed")]
     MerkleStoreMergeFailed {
         #[label]
@@ -318,6 +325,14 @@ impl ExecutionError {
     pub fn log_argument_zero(clk: RowIndex, err_ctx: &ErrorContext<'_, impl MastNodeExt>) -> Self {
         let (label, source_file) = err_ctx.label_and_source_file();
         Self::LogArgumentZero { label, source_file, clk }
+    }
+
+    pub fn merkle_store_lookup_failed(
+        err: MerkleError,
+        err_ctx: &ErrorContext<'_, impl MastNodeExt>,
+    ) -> Self {
+        let (label, source_file) = err_ctx.label_and_source_file();
+        Self::MerkleStoreLookupFailed { label, source_file, err }
     }
 
     /// Note: This error currently never occurs, since `MerkleStore::merge_roots()` never fails.

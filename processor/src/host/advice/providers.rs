@@ -156,7 +156,7 @@ where
         self.store
             .get_node(root.into(), index)
             .map(|v| v.into())
-            .map_err(ExecutionError::MerkleStoreLookupFailed)
+            .map_err(|err| ExecutionError::merkle_store_lookup_failed(err, err_ctx))
     }
 
     fn get_merkle_path(
@@ -171,7 +171,7 @@ where
         self.store
             .get_path(root.into(), index)
             .map(|value| value.path)
-            .map_err(ExecutionError::MerkleStoreLookupFailed)
+            .map_err(|err| ExecutionError::merkle_store_lookup_failed(err, err_ctx))
     }
 
     fn get_leaf_depth(
@@ -185,7 +185,7 @@ where
             .map_err(|_| ExecutionError::invalid_merkle_tree_depth(*tree_depth, err_ctx))?;
         self.store
             .get_leaf_depth(root.into(), tree_depth, index.as_int())
-            .map_err(ExecutionError::MerkleStoreLookupFailed)
+            .map_err(|err| ExecutionError::merkle_store_lookup_failed(err, err_ctx))
     }
 
     fn update_merkle_node(
