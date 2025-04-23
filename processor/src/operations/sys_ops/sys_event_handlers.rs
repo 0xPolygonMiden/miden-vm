@@ -642,7 +642,7 @@ pub fn push_ilog2(
 ) -> Result<(), ExecutionError> {
     let n = process.get_stack_item(0).as_int();
     if n == 0 {
-        return Err(ExecutionError::LogArgumentZero(process.clk()));
+        return Err(ExecutionError::log_argument_zero(process.clk(), err_ctx));
     }
     let ilog2 = Felt::from(n.ilog2());
     advice_provider.push_stack(AdviceSource::Value(ilog2), err_ctx)?;

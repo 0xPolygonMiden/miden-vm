@@ -152,8 +152,15 @@ pub enum ExecutionError {
         depth: Felt,
         index: Felt,
     },
-    #[error("attempted to calculate integer logarithm with zero argument at clock cycle {0}")]
-    LogArgumentZero(RowIndex),
+    #[error("attempted to calculate integer logarithm with zero argument at clock cycle {clk}")]
+    #[diagnostic()]
+    LogArgumentZero {
+        #[label]
+        label: SourceSpan,
+        #[source_code]
+        source_file: Option<Arc<SourceFile>>,
+        clk: RowIndex,
+    },
     #[error("malformed signature key: {0}")]
     MalformedSignatureKey(&'static str),
     #[error(
@@ -292,6 +299,11 @@ impl ExecutionError {
     ) -> Self {
         let (label, source_file) = err_ctx.label_and_source_file();
         Self::InvalidStackDepthOnReturn { label, source_file, depth }
+    }
+
+    pub fn log_argument_zero(clk: RowIndex, err_ctx: &ErrorContext<'_, impl MastNodeExt>) -> Self {
+        let (label, source_file) = err_ctx.label_and_source_file();
+        Self::LogArgumentZero { label, source_file, clk }
     }
 }
 

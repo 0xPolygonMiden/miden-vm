@@ -238,7 +238,7 @@ fn test_diagnostic_invalid_merkle_tree_node_index() {
         begin
             mtree_get
         end";
-    
+
     let depth = 4;
     let index = 16;
 
@@ -315,6 +315,31 @@ fn test_diagnostic_invalid_stack_depth_on_return_dyncall() {
         "   :             ^^^|^^^",
         "   :                `-- when returning from this call site",
         " 9 |         end",
+        "   `----"
+    );
+}
+
+// LogArgumentZero
+// ------------------------------------------------------------------------------------------------
+
+#[test]
+fn test_diagnostic_log_argument_zero() {
+    // returning from a function with non-empty overflow table should result in an error
+    let source = "
+        begin
+            trace.2 ilog2    
+        end";
+
+    let build_test = build_test_by_mode!(true, source, &[]);
+    let err = build_test.execute().expect_err("expected error");
+    assert_diagnostic_lines!(
+        err,
+        "attempted to calculate integer logarithm with zero argument at clock cycle 1",
+        regex!(r#",-\[test[\d]+:3:21\]"#),
+        " 2 |         begin",
+        " 3 |             trace.2 ilog2",
+        "   :                     ^^^^^",
+        " 4 |         end",
         "   `----"
     );
 }
