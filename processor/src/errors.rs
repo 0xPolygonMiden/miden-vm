@@ -196,7 +196,14 @@ pub enum ExecutionError {
         err: MerkleError,
     },
     #[error("advice provider Merkle store backend update failed")]
-    MerkleStoreUpdateFailed(#[source] MerkleError),
+    MerkleStoreUpdateFailed {
+        #[label]
+        label: SourceSpan,
+        #[source_code]
+        source_file: Option<Arc<SourceFile>>,
+        #[source]
+        err: MerkleError,
+    },
     #[error("an operation expected a binary value, but received {0}")]
     NotBinaryValue(Felt),
     #[error("an operation expected a u32 value, but received {0} (error code: {1})")]
@@ -320,6 +327,14 @@ impl ExecutionError {
     ) -> Self {
         let (label, source_file) = err_ctx.label_and_source_file();
         Self::MerkleStoreMergeFailed { label, source_file, err }
+    }
+
+    pub fn merkle_store_update_failed(
+        err: MerkleError,
+        err_ctx: &ErrorContext<'_, impl MastNodeExt>,
+    ) -> Self {
+        let (label, source_file) = err_ctx.label_and_source_file();
+        Self::MerkleStoreUpdateFailed { label, source_file, err }
     }
 }
 

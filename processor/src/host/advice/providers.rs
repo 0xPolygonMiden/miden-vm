@@ -201,7 +201,7 @@ where
         self.store
             .set_node(root.into(), node_index, value.into())
             .map(|root| (root.path, root.root.into()))
-            .map_err(ExecutionError::MerkleStoreUpdateFailed)
+            .map_err(|err| ExecutionError::merkle_store_update_failed(err, err_ctx))
     }
 
     fn merge_roots(
