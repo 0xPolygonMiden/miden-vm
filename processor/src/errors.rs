@@ -187,7 +187,14 @@ pub enum ExecutionError {
     #[error("advice provider Merkle store backend lookup failed")]
     MerkleStoreLookupFailed(#[source] MerkleError),
     #[error("advice provider Merkle store backend merge failed")]
-    MerkleStoreMergeFailed(#[source] MerkleError),
+    MerkleStoreMergeFailed {
+        #[label]
+        label: SourceSpan,
+        #[source_code]
+        source_file: Option<Arc<SourceFile>>,
+        #[source]
+        err: MerkleError,
+    },
     #[error("advice provider Merkle store backend update failed")]
     MerkleStoreUpdateFailed(#[source] MerkleError),
     #[error("an operation expected a binary value, but received {0}")]
@@ -304,6 +311,15 @@ impl ExecutionError {
     pub fn log_argument_zero(clk: RowIndex, err_ctx: &ErrorContext<'_, impl MastNodeExt>) -> Self {
         let (label, source_file) = err_ctx.label_and_source_file();
         Self::LogArgumentZero { label, source_file, clk }
+    }
+
+    /// Note: This error currently never occurs, since `MerkleStore::merge_roots()` never fails.
+    pub fn merkle_store_merge_failed(
+        err: MerkleError,
+        err_ctx: &ErrorContext<'_, impl MastNodeExt>,
+    ) -> Self {
+        let (label, source_file) = err_ctx.label_and_source_file();
+        Self::MerkleStoreMergeFailed { label, source_file, err }
     }
 }
 

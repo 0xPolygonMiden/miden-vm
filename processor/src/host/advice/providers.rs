@@ -213,7 +213,7 @@ where
         self.store
             .merge_roots(lhs.into(), rhs.into())
             .map(|v| v.into())
-            .map_err(ExecutionError::MerkleStoreMergeFailed)
+            .map_err(|err| ExecutionError::merkle_store_merge_failed(err, err_ctx))
     }
 }
 
