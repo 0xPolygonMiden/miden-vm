@@ -1,5 +1,5 @@
 use alloc::vec::Vec;
-use core::ops::RangeInclusive;
+use core::{cmp::Ordering, ops::RangeInclusive};
 
 use miden_air::RowIndex;
 
@@ -289,11 +289,20 @@ impl OverflowTableHistory {
                 if target_clk > last_clk_in_history {
                     None
                 } else {
-                    let (_, overflow_stack) = self
+                    let idx = self
                         .history
-                        .iter()
-                        .find(|(range, _)| range.contains(&target_clk))
+                        .binary_search_by(|(clk_range, _)| {
+                            if clk_range.contains(&target_clk) {
+                                Ordering::Equal
+                            } else if clk_range.start() > &target_clk {
+                                Ordering::Greater
+                            } else {
+                                Ordering::Less
+                            }
+                        })
                         .expect("overflow table history not properly constructed");
+
+                    let (_, overflow_stack) = &self.history[idx];
 
                     Some(overflow_stack.iter().rev())
                 }
