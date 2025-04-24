@@ -161,6 +161,7 @@ pub enum Token<'input> {
     AssertEqw,
     ArithmeticCircuitEval,
     Begin,
+    Breakpoint,
     Caller,
     Call,
     Cdrop,
@@ -349,6 +350,7 @@ impl fmt::Display for Token<'_> {
             Token::AssertEqw => write!(f, "assert_eqw"),
             Token::ArithmeticCircuitEval => write!(f, "arithmetic_circuit_eval"),
             Token::Begin => write!(f, "begin"),
+            Token::Breakpoint => write!(f, "breakpoint"),
             Token::Caller => write!(f, "caller"),
             Token::Call => write!(f, "call"),
             Token::Cdrop => write!(f, "cdrop"),
@@ -544,6 +546,7 @@ impl<'input> Token<'input> {
                 | Token::AssertEq
                 | Token::AssertEqw
                 | Token::ArithmeticCircuitEval
+                | Token::Breakpoint
                 | Token::Caller
                 | Token::Call
                 | Token::Cdrop
@@ -693,6 +696,7 @@ impl<'input> Token<'input> {
         ("assert_eq", Token::AssertEq),
         ("assert_eqw", Token::AssertEqw),
         ("begin", Token::Begin),
+        ("breakpoint", Token::Breakpoint),
         ("caller", Token::Caller),
         ("call", Token::Call),
         ("cdrop", Token::Cdrop),
