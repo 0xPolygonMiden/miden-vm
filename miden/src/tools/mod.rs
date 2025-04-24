@@ -77,17 +77,17 @@ impl Analyze {
             .unwrap();
 
         println!("============================================================");
-        print!("Analyzed {} program", program_name);
+        print!("Analyzed {program_name} program");
         if let Some(input_path) = &self.input_file {
             let input_name = input_path
                 .file_name()
                 .expect("provided input path is incorrect")
                 .to_str()
                 .unwrap();
-            println!(" with {}", input_name);
+            println!(" with {input_name}");
         }
 
-        println!("{}", execution_details);
+        println!("{execution_details}");
 
         Ok(())
     }
@@ -229,7 +229,7 @@ impl fmt::Display for ExecutionDetails {
             )?;
         }
 
-        writeln!(f, "\nTotal number of NOOPs executed: {}", total_noops)?;
+        writeln!(f, "\nTotal number of NOOPs executed: {total_noops}")?;
 
         Ok(())
     }

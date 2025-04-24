@@ -87,7 +87,7 @@ impl fmt::Debug for PackageExport {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let Self { name, digest } = self;
         f.debug_struct("PackageExport")
-            .field("name", &format_args!("{}", name))
+            .field("name", &format_args!("{name}"))
             .field("digest", &format_args!("{}", DisplayHex::new(&digest.as_bytes())))
             .finish()
     }
@@ -195,8 +195,7 @@ impl Package {
             })
         } else {
             Err(Report::msg(format!(
-                "invalid entrypoint: library does not export '{}'",
-                entrypoint
+                "invalid entrypoint: library does not export '{entrypoint}'"
             )))
         }
     }

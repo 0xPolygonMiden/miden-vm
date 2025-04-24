@@ -45,8 +45,7 @@ impl DebugCommand {
             "q" | "quit" => Self::Quit,
             _ => {
                 return Err(format!(
-                    "malformed command - does not match any known command: `{}`",
-                    command
+                    "malformed command - does not match any known command: `{command}`"
                 ));
             },
         };
@@ -69,10 +68,7 @@ impl DebugCommand {
     {
         let num_cycles = match tokens.next() {
             Some(n) => n.parse::<usize>().map_err(|err| {
-                format!(
-                    "malformed `next` command - failed to parse number of cycles: `{}` {}",
-                    n, err
-                )
+                format!("malformed `next` command - failed to parse number of cycles: `{n}` {err}")
             })?,
             None => return Ok(Self::Next(1)),
         };
@@ -86,10 +82,7 @@ impl DebugCommand {
     {
         let num_cycles = match tokens.next() {
             Some(n) => n.parse::<usize>().map_err(|err| {
-                format!(
-                    "malformed `back` command - failed to parse number of cycles: `{}` {}",
-                    n, err
-                )
+                format!("malformed `back` command - failed to parse number of cycles: `{n}` {err}")
             })?,
             None => return Ok(Self::Back(1)),
         };
