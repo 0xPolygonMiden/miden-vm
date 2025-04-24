@@ -158,50 +158,19 @@ impl OverflowTable {
 
     /// Pushes a value into the overflow table in the current context.
     pub fn push(&mut self, value: Felt) {
-        let clk = self.clk;
-
         // 1. save history
-        if self.history.is_some() {
-            let table_before_push: Vec<Felt> = self
-                .get_current_overflow_stack()
-                .iter()
-                .map(OverflowStackEntry::value)
-                .collect();
-
-            // Note: we do the `history.is_some()` and `history.unwrap()` instead of matching to
-            // satisfy the borrow checker (due to the call to `get_current_overflow_stack()` which
-            // borrows `self` immutably).
-            self.history
-                .as_mut()
-                .unwrap()
-                .save_stack_to_history_before_clk(clk, table_before_push);
-        }
+        self.save_stack_to_history();
 
         // 2. push value
+        let clk = self.clk;
         self.get_current_overflow_stack_mut().push(OverflowStackEntry::new(value, clk));
     }
 
     /// Removes the last value from the overflow table in the current context, if any, and returns
     /// it.
     pub fn pop(&mut self) -> Option<Felt> {
-        let clk = self.clk;
-
         // 1. save history
-        if self.history.is_some() {
-            let table_before_pop: Vec<Felt> = self
-                .get_current_overflow_stack()
-                .iter()
-                .map(OverflowStackEntry::value)
-                .collect();
-
-            // Note: we do the `history.is_some()` and `history.unwrap()` instead of matching to
-            // satisfy the borrow checker (due to the call to `get_current_overflow_stack()` which
-            // borrows `self` immutably).
-            self.history
-                .as_mut()
-                .unwrap()
-                .save_stack_to_history_before_clk(clk, table_before_pop);
-        }
+        self.save_stack_to_history();
 
         // 2. pop value
         self.get_current_overflow_stack_mut()
@@ -218,18 +187,7 @@ impl OverflowTable {
     /// of context 0 will get a separate overflow table.
     pub fn start_context(&mut self) {
         // 1. save history
-        if self.history.is_some() {
-            let table_before_context_change: Vec<Felt> = self
-                .get_current_overflow_stack()
-                .iter()
-                .map(OverflowStackEntry::value)
-                .collect();
-
-            self.history
-                .as_mut()
-                .unwrap()
-                .save_stack_to_history_before_clk(self.clk, table_before_context_change);
-        }
+        self.save_stack_to_history();
 
         // 2. Initialize the overflow stack for the new context.
         self.overflow.push(OverflowStack::new());
@@ -243,18 +201,7 @@ impl OverflowTable {
     ///   - i.e. this should be checked before calling this function.
     pub fn restore_context(&mut self) {
         // 1. save history
-        if self.history.is_some() {
-            let table_before_context_change: Vec<Felt> = self
-                .get_current_overflow_stack()
-                .iter()
-                .map(OverflowStackEntry::value)
-                .collect();
-
-            self.history
-                .as_mut()
-                .unwrap()
-                .save_stack_to_history_before_clk(self.clk, table_before_context_change);
-        }
+        self.save_stack_to_history();
 
         // 2. pop the last overflow stack for the current context, and make sure it is empty.
         let overflow_stack_for_ctx =
@@ -286,6 +233,22 @@ impl OverflowTable {
         self.overflow
             .last_mut()
             .expect("The current context should always have an overflow stack initialized")
+    }
+
+    fn save_stack_to_history(&mut self) {
+        let clk = self.clk;
+        if self.history.is_some() {
+            let table_before_op: Vec<Felt> = self
+                .get_current_overflow_stack()
+                .iter()
+                .map(OverflowStackEntry::value)
+                .collect();
+
+            self.history
+                .as_mut()
+                .unwrap()
+                .save_stack_to_history_before_clk(clk, table_before_op);
+        }
     }
 }
 
