@@ -76,7 +76,7 @@ impl OutputFile {
 
         // deserialize outputs data
         let outputs: OutputFile = serde_json::from_str(&outputs_file)
-            .map_err(|err| format!("Failed to deserialize outputs data - {}", err))?;
+            .map_err(|err| format!("Failed to deserialize outputs data - {err}"))?;
 
         Ok(outputs)
     }
@@ -91,7 +91,7 @@ impl OutputFile {
 
         // write outputs to output file
         serde_json::to_writer_pretty(file, &Self::new(stack_outputs))
-            .map_err(|err| format!("Failed to write output data - {}", err))
+            .map_err(|err| format!("Failed to write output data - {err}"))
     }
 
     /// Converts stack output vector to [StackOutputs].
@@ -191,7 +191,7 @@ impl ProofFile {
 
         // deserialize bytes into a stark proof
         ExecutionProof::from_bytes(&file)
-            .map_err(|err| format!("Failed to decode proof data - {}", err))
+            .map_err(|err| format!("Failed to decode proof data - {err}"))
     }
 
     /// Write stark proof to file
@@ -235,14 +235,14 @@ impl ProgramHash {
     pub fn read(hash_hex_string: &String) -> Result<Digest, String> {
         // decode hex to bytes
         let program_hash_bytes = hex::decode(hash_hex_string)
-            .map_err(|err| format!("Failed to convert program hash to bytes {}", err))?;
+            .map_err(|err| format!("Failed to convert program hash to bytes {err}"))?;
 
         // create slice reader from bytes
         let mut program_hash_slice = SliceReader::new(&program_hash_bytes);
 
         // create hash digest from slice
         let program_hash = Digest::read_from(&mut program_hash_slice)
-            .map_err(|err| format!("Failed to deserialize program hash from bytes - {}", err))?;
+            .map_err(|err| format!("Failed to deserialize program hash from bytes - {err}"))?;
 
         Ok(program_hash)
     }

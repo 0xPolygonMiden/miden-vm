@@ -580,8 +580,7 @@ impl MastNodeId {
             Ok(Self(id))
         } else {
             Err(DeserializationError::InvalidValue(format!(
-                "Invalid deserialized MAST node ID '{}', but {} is the number of nodes in the forest",
-                id, node_count,
+                "Invalid deserialized MAST node ID '{id}', but {node_count} is the number of nodes in the forest",
             )))
         }
     }

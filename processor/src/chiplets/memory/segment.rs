@@ -7,7 +7,7 @@ use miden_air::RowIndex;
 use vm_core::WORD_SIZE;
 
 use super::{Felt, INIT_MEM_VALUE, MemoryError, Word};
-use crate::ContextId;
+use crate::{ContextId, MemoryAddress};
 
 // MEMORY SEGMENT TRACE
 // ================================================================================================
@@ -59,28 +59,28 @@ impl MemorySegmentTrace {
     }
 
     /// Returns the entire memory state at the beginning of the specified cycle.
-    pub fn get_state_at(&self, clk: RowIndex) -> Vec<(u64, Felt)> {
-        let mut result: Vec<(u64, Felt)> = Vec::new();
+    pub fn get_state_at(&self, clk: RowIndex) -> Vec<(MemoryAddress, Felt)> {
+        let mut result: Vec<(MemoryAddress, Felt)> = Vec::new();
 
         if clk == 0 {
             return result;
         }
 
-        // since we record memory state at the end of a given cycle, to get memory state at the end
-        // of a cycle, we need to look at the previous cycle. that is, memory state at the end of
-        // the previous cycle is the same as memory state the the beginning of the current cycle.
+        // since we record memory state at the end of a given cycle, to get memory state at the
+        // beginning of a cycle, we need to look at the previous cycle. that is, memory state at the
+        // end of the previous cycle is the same as memory state the the beginning of the current
+        // cycle.
         let search_clk: u64 = (clk - 1).into();
 
         for (&addr, addr_trace) in self.0.iter() {
             match addr_trace.binary_search_by(|access| access.clk().as_int().cmp(&search_clk)) {
                 Ok(i) => {
                     let word_addr = addr_trace[i].word();
-                    let addr: u64 = addr.into();
                     result.extend([
-                        (addr, word_addr[0]),
-                        (addr + 1, word_addr[1]),
-                        (addr + 2, word_addr[2]),
-                        (addr + 3, word_addr[3]),
+                        (MemoryAddress(addr), word_addr[0]),
+                        (MemoryAddress(addr + 1), word_addr[1]),
+                        (MemoryAddress(addr + 2), word_addr[2]),
+                        (MemoryAddress(addr + 3), word_addr[3]),
                     ]);
                 },
                 Err(i) => {
@@ -89,12 +89,11 @@ impl MemorySegmentTrace {
                     // cycle to insert into the results.
                     if i > 0 {
                         let word_addr = addr_trace[i - 1].word();
-                        let addr: u64 = addr.into();
                         result.extend([
-                            (addr, word_addr[0]),
-                            (addr + 1, word_addr[1]),
-                            (addr + 2, word_addr[2]),
-                            (addr + 3, word_addr[3]),
+                            (MemoryAddress(addr), word_addr[0]),
+                            (MemoryAddress(addr + 1), word_addr[1]),
+                            (MemoryAddress(addr + 2), word_addr[2]),
+                            (MemoryAddress(addr + 3), word_addr[3]),
                         ]);
                     }
                 },

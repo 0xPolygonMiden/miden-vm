@@ -152,7 +152,7 @@ impl AnalysisContext {
                 source_file: self.source_file,
                 errors: self.errors,
             });
-            std::eprintln!("{}", warning);
+            std::eprintln!("{warning}");
         }
     }
 
