@@ -292,13 +292,7 @@ impl OverflowTableHistory {
                     let idx = self
                         .history
                         .binary_search_by(|(clk_range, _)| {
-                            if clk_range.contains(&target_clk) {
-                                Ordering::Equal
-                            } else if clk_range.start() > &target_clk {
-                                Ordering::Greater
-                            } else {
-                                Ordering::Less
-                            }
+                            get_target_clock_ordering(clk_range, target_clk)
                         })
                         .expect("overflow table history not properly constructed");
 
@@ -355,5 +349,33 @@ impl OverflowTableHistory {
     /// Returns the last clock cycle contained in the history, or `None` if the history is empty.
     fn last_clk_in_history(&self) -> Option<RowIndex> {
         self.history.last().map(|(range, _)| *range.end())
+    }
+}
+
+// HELPERS
+// ---------------------------------------------------------------------------------------------
+
+/// Returns the ordering of the target clock cycle with respect to the given range, as expected by
+/// binary search functions.
+///
+/// The ordering is defined as follows:
+/// - `Ordering::Equal` if the target clock cycle is in the range.
+/// - `Ordering::Greater` if the range is greater than the target clock cycle.
+/// - `Ordering::Less` if the range is less than the target clock cycle.
+///
+/// # Examples
+/// - `get_target_clock_ordering(2..=5, 3)` returns `Ordering::Equal`.
+/// - `get_target_clock_ordering(2..=5, 6)` returns `Ordering::Less`.
+/// - `get_target_clock_ordering(2..=5, 0)` returns `Ordering::Greater`.
+pub fn get_target_clock_ordering(
+    clk_range: &RangeInclusive<RowIndex>,
+    target_clk: RowIndex,
+) -> Ordering {
+    if clk_range.contains(&target_clk) {
+        Ordering::Equal
+    } else if clk_range.start() > &target_clk {
+        Ordering::Greater
+    } else {
+        Ordering::Less
     }
 }
