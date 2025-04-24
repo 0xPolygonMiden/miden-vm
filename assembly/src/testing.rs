@@ -84,7 +84,7 @@ full output: `{context}`
 impl fmt::Display for Pattern {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
-            Self::Literal(lit) => write!(f, "contain `{}`", lit),
+            Self::Literal(lit) => write!(f, "contain `{lit}`"),
             Self::Regex(pat) => write!(f, "match regular expression `{}`", pat.as_str()),
         }
     }

@@ -148,7 +148,7 @@ impl DebugExecutor {
     /// Prints specified stack item.
     pub fn print_stack_item(&self, index: usize) {
         let len = self.vm_state.stack.len();
-        println!("stack len {}", len);
+        println!("stack len {len}");
         if index >= len {
             println!("stack index must be < {len}")
         } else {
@@ -212,7 +212,7 @@ impl DebugExecutor {
             h -> help\n\
             ? -> help";
 
-        println!("{}", message);
+        println!("{message}");
     }
 
     /// Returns `true` if the current state should break.

@@ -140,8 +140,7 @@ impl Deserializable for StackOutputs {
 
         StackOutputs::new(elements).map_err(|_| {
             DeserializationError::InvalidValue(format!(
-                "number of stack elements should not be greater than {}, but {} was found",
-                MIN_STACK_DEPTH, num_elements
+                "number of stack elements should not be greater than {MIN_STACK_DEPTH}, but {num_elements} was found",
             ))
         })
     }

@@ -110,7 +110,7 @@ impl DebugCmd {
                     eprintln!("CTRL-D");
                     break;
                 },
-                Err(err) => eprintln!("malformed command - failed to read user input: {}", err),
+                Err(err) => eprintln!("malformed command - failed to read user input: {err}"),
             }
         }
 
