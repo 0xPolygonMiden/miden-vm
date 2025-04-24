@@ -197,8 +197,7 @@ fn start_restore_context() {
     stack.advance_clock();
 
     // start context
-    let new_ctx = (stack.clk.as_u32() + 1).into();
-    stack.start_context(new_ctx);
+    stack.start_context();
     stack.copy_state(0);
     stack.advance_clock();
     assert_eq!(16, stack.depth());
@@ -219,7 +218,7 @@ fn start_restore_context() {
     assert_eq!(16, stack.depth());
 
     // restore previous context
-    stack.restore_context(16, ContextId::root());
+    stack.restore_context(16);
     stack.copy_state(0);
     stack.advance_clock();
     assert_eq!(16, stack.depth());
@@ -246,8 +245,7 @@ fn start_restore_context() {
     assert_eq!(stack.helpers_state(), build_helpers_partial(1, 1));
 
     // start context, depth gets reset to 16
-    let new_ctx = (stack.clk.as_u32() + 1).into();
-    let (ctx0_depth, ctx0_next_overflow_addr) = stack.start_context(new_ctx);
+    let (ctx0_depth, ctx0_next_overflow_addr) = stack.start_context();
     stack.copy_state(0);
     stack.advance_clock();
     assert_eq!(16, stack.depth());
@@ -274,7 +272,7 @@ fn start_restore_context() {
     assert_eq!(stack.helpers_state(), build_helpers_partial(0, 0));
 
     // restore previous context
-    stack.restore_context(17, ContextId::root());
+    stack.restore_context(17);
     stack.copy_state(0);
     stack.advance_clock();
     assert_eq!(ctx0_depth, stack.depth());
@@ -310,12 +308,11 @@ fn root_context_separate_overflows() {
     overflow_stack.advance_clock();
 
     // clk=2: start a new context (e.g. from a CALL operation)
-    let new_context_id = ContextId::from(10_u32);
-    overflow_stack.start_context(new_context_id);
+    overflow_stack.start_context();
     overflow_stack.advance_clock();
 
     // clk=3: syscall back into context 0
-    overflow_stack.start_context(ContextId::root());
+    overflow_stack.start_context();
     overflow_stack.advance_clock();
 
     // clk=4: popping the stack should *not* return the sentinel value
@@ -324,12 +321,12 @@ fn root_context_separate_overflows() {
     assert!(popped_value.is_none());
 
     // clk=5: Return the `new_context_id`
-    overflow_stack.restore_context(new_context_id);
+    overflow_stack.restore_context();
     overflow_stack.advance_clock();
 
     // clk=6: Return to the root context (as a result of `new_context_id` ending). Popping the stack
     // then should return the sentinel value.
-    overflow_stack.restore_context(ContextId::root());
+    overflow_stack.restore_context();
     overflow_stack.advance_clock();
 
     // clk=7: pop the sentinel value
@@ -404,8 +401,7 @@ fn generate_trace() {
     stack.advance_clock();
 
     // start new context, clk = 3
-    let new_ctx = (stack.clk.as_u32() + 1).into();
-    let (c0_depth, _c0_overflow_addr) = stack.start_context(new_ctx);
+    let (c0_depth, _c0_overflow_addr) = stack.start_context();
     stack.copy_state(0);
     stack.advance_clock();
 
@@ -422,7 +418,7 @@ fn generate_trace() {
     stack.advance_clock();
 
     // restore previous context, clk = 7
-    stack.restore_context(c0_depth, ContextId::default());
+    stack.restore_context(c0_depth);
     stack.copy_state(0);
     stack.advance_clock();
 

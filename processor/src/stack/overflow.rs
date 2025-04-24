@@ -1,10 +1,9 @@
-use alloc::{collections::BTreeMap, vec::Vec};
+use alloc::vec::Vec;
 use core::ops::RangeInclusive;
 
 use miden_air::RowIndex;
 
 use super::{Felt, ZERO};
-use crate::ContextId;
 
 // OVERFLOW TABLE
 // ================================================================================================
@@ -89,8 +88,7 @@ impl OverflowStack {
 /// called whenever the clock cycle is incremented globally.
 #[derive(Debug)]
 pub struct OverflowTable {
-    overflow: BTreeMap<ContextId, Vec<OverflowStack>>,
-    current_ctx: ContextId,
+    overflow: Vec<OverflowStack>,
     clk: RowIndex,
     history: Option<OverflowTableHistory>,
 }
@@ -101,16 +99,8 @@ impl OverflowTable {
     /// If `save_history` is set to true, the table will keep track of the history of the overflow
     /// table at every clock cycle. This is used for debugging purposes.
     pub fn new(save_history: bool) -> Self {
-        // The root context is initialized with an empty overflow stack.
-        let overflow = {
-            let mut overflow = BTreeMap::new();
-            overflow.insert(ContextId::root(), vec![OverflowStack::new()]);
-            overflow
-        };
-
         Self {
-            overflow,
-            current_ctx: ContextId::default(),
+            overflow: vec![OverflowStack::new()],
             clk: RowIndex::from(0),
             history: save_history.then(OverflowTableHistory::new),
         }
@@ -160,12 +150,7 @@ impl OverflowTable {
     /// Returns the total number of elements in the overflow table across all stacks in all
     /// contexts.
     pub fn total_num_elements(&self) -> usize {
-        self.overflow
-            .values()
-            .map(|overflow_stacks| {
-                overflow_stacks.iter().map(OverflowStack::num_elements).sum::<usize>()
-            })
-            .sum()
+        self.overflow.iter().map(OverflowStack::num_elements).sum::<usize>()
     }
 
     // PUBLIC MUTATORS
@@ -231,7 +216,7 @@ impl OverflowTable {
     ///
     /// Note: It is possible to return to context 0 with a syscall; in this case, each instantiation
     /// of context 0 will get a separate overflow table.
-    pub fn start_context(&mut self, new_ctx: ContextId) {
+    pub fn start_context(&mut self) {
         // 1. save history
         if self.history.is_some() {
             let table_before_context_change: Vec<Felt> = self
@@ -246,11 +231,8 @@ impl OverflowTable {
                 .save_stack_to_history_before_clk(self.clk, table_before_context_change);
         }
 
-        // 2. Initialize the overflow stack for the new context if it doesn't exist.
-        self.overflow.entry(new_ctx).or_default().push(OverflowStack::new());
-
-        // 3. set new context
-        self.current_ctx = new_ctx;
+        // 2. Initialize the overflow stack for the new context.
+        self.overflow.push(OverflowStack::new());
     }
 
     /// Restores the specified context.
@@ -259,7 +241,7 @@ impl OverflowTable {
     /// - if there is no overflow stack for the current context.
     /// - if the overflow stack for the current context is not empty.
     ///   - i.e. this should be checked before calling this function.
-    pub fn restore_context(&mut self, new_ctx: ContextId) {
+    pub fn restore_context(&mut self) {
         // 1. save history
         if self.history.is_some() {
             let table_before_context_change: Vec<Felt> = self
@@ -275,16 +257,9 @@ impl OverflowTable {
         }
 
         // 2. pop the last overflow stack for the current context, and make sure it is empty.
-        let overflow_stack_for_ctx = self
-            .overflow
-            .get_mut(&self.current_ctx)
-            .expect("no overflow stack at the end of a context")
-            .pop()
-            .expect("no overflow stack at the end of a context");
+        let overflow_stack_for_ctx =
+            self.overflow.pop().expect("no overflow stack at the end of a context");
         assert!(overflow_stack_for_ctx.is_empty());
-
-        // 3. set new context
-        self.current_ctx = new_ctx;
     }
 
     /// Increments the clock cycle.
@@ -302,16 +277,14 @@ impl OverflowTable {
     /// there is at most one overflow stack, but for the root context, there can be two.
     fn get_current_overflow_stack(&self) -> &OverflowStack {
         self.overflow
-            .get(&self.current_ctx)
-            .and_then(|overflow_stacks| overflow_stacks.last())
+            .last()
             .expect("The current context should always have an overflow stack initialized")
     }
 
     /// Mutable version of `get_current_overflow_stack()`.
     fn get_current_overflow_stack_mut(&mut self) -> &mut OverflowStack {
         self.overflow
-            .get_mut(&self.current_ctx)
-            .and_then(|overflow_stacks| overflow_stacks.last_mut())
+            .last_mut()
             .expect("The current context should always have an overflow stack initialized")
     }
 }

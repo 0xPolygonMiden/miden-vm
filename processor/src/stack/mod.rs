@@ -6,7 +6,6 @@ use vm_core::{WORD_SIZE, Word, stack::MIN_STACK_DEPTH};
 use super::{
     ExecutionError, Felt, FieldElement, ONE, STACK_TRACE_WIDTH, StackInputs, StackOutputs, ZERO,
 };
-use crate::ContextId;
 
 mod trace;
 use trace::StackTrace;
@@ -265,14 +264,14 @@ impl Stack {
     /// shift the stack left, and start a new context simultaneously (and hence reset the stack
     /// helper registers to their default value). It is assumed that the caller will write the
     /// return values somewhere else in the trace.
-    pub fn shift_left_and_start_context(&mut self, ctx: ContextId) -> (usize, Felt) {
+    pub fn shift_left_and_start_context(&mut self) -> (usize, Felt) {
         const START_POSITION: usize = 1;
 
         self.shift_left_no_helpers(START_POSITION);
 
         // resets the helper columns to their default value, and write those to the trace in the
         // next row.
-        let next_depth = self.start_context(ctx);
+        let next_depth = self.start_context();
 
         // Note: `start_context()` resets `active_depth` to 16, and `overflow.last_row_addr` to 0.
         self.trace.set_helpers_at(
@@ -290,23 +289,23 @@ impl Stack {
     ///
     /// This has the effect of hiding the contents of the overflow table such that it appears as
     /// if the overflow table in the new context is empty.
-    pub fn start_context(&mut self, new_ctx: ContextId) -> (usize, Felt) {
+    pub fn start_context(&mut self) -> (usize, Felt) {
         let current_depth = self.active_depth;
         let current_overflow_addr = self.overflow.last_update_clk_in_current_ctx();
         self.active_depth = MIN_STACK_DEPTH;
-        self.overflow.start_context(new_ctx);
+        self.overflow.start_context();
         (current_depth, current_overflow_addr)
     }
 
     /// Restores the prior context for this stack.
     ///
     /// This has the effect bringing back items previously hidden from the overflow table.
-    pub fn restore_context(&mut self, stack_depth: usize, new_ctx: ContextId) {
+    pub fn restore_context(&mut self, stack_depth: usize) {
         debug_assert!(stack_depth <= self.full_depth, "stack depth too big");
         debug_assert_eq!(self.active_depth, MIN_STACK_DEPTH, "overflow table not empty");
 
         self.active_depth = stack_depth;
-        self.overflow.restore_context(new_ctx);
+        self.overflow.restore_context();
     }
 
     // TRACE GENERATION
