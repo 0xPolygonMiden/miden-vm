@@ -518,6 +518,6 @@ pub fn build_expected_hash(values: &[u64]) -> [Felt; 4] {
 pub fn push_inputs(inputs: &[u64]) -> String {
     let mut result = String::new();
 
-    inputs.iter().for_each(|v| result.push_str(&format!("push.{}\n", v)));
+    inputs.iter().for_each(|v| result.push_str(&format!("push.{v}\n")));
     result
 }

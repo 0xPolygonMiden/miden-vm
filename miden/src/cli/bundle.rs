@@ -81,7 +81,7 @@ impl BundleCmd {
                 assembler.add_library(StdLibrary::default())?;
                 let library = Library::from_dir(&self.dir, library_namespace, assembler)?;
                 library.write_to_file(output_file).into_diagnostic()?;
-                println!("Built library {}", namespace);
+                println!("Built library {namespace}");
             },
         }
 

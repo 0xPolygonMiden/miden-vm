@@ -185,11 +185,7 @@ pub fn start_repl(library_paths: &Vec<PathBuf>, use_stdlib: bool) {
         }
         program.push_str(&format!(
             "\nbegin\n{}\nend",
-            program_lines
-                .iter()
-                .map(|l| format!("    {}", l))
-                .collect::<Vec<_>>()
-                .join("\n")
+            program_lines.iter().map(|l| format!("    {l}")).collect::<Vec<_>>().join("\n")
         ));
 
         let result = execute(program.clone(), &provided_libraries);
@@ -203,7 +199,7 @@ pub fn start_repl(library_paths: &Vec<PathBuf>, use_stdlib: bool) {
                     memory = mem;
                 },
                 Err(e) => {
-                    println!("Error running program: {:?}", e);
+                    println!("Error running program: {e:?}");
                     program_lines.pop();
                 },
             }
@@ -214,7 +210,7 @@ pub fn start_repl(library_paths: &Vec<PathBuf>, use_stdlib: bool) {
         match rl.readline(">> ") {
             Ok(line) => {
                 if line == "!program" {
-                    println!("{}", program);
+                    println!("{program}");
                     should_print_stack = false;
                 } else if line == "!help" {
                     // prints out all the available commands in the Miden Repl tool.
@@ -254,14 +250,14 @@ pub fn start_repl(library_paths: &Vec<PathBuf>, use_stdlib: bool) {
                                 println!("Memory at address {addr} is empty");
                             }
                         },
-                        Err(msg) => println!("{}", msg),
+                        Err(msg) => println!("{msg}"),
                     }
 
                     should_print_stack = false;
                 } else if line == "!undo" {
                     match program_lines.pop() {
                         Some(last_line) => {
-                            println!("Undoing {}", last_line);
+                            println!("Undoing {last_line}");
                             should_print_stack = true;
                         },
                         None => {
@@ -288,7 +284,7 @@ pub fn start_repl(library_paths: &Vec<PathBuf>, use_stdlib: bool) {
                 break;
             },
             Err(err) => {
-                println!("Error: {:?}", err);
+                println!("Error: {err:?}");
                 break;
             },
         };
@@ -402,5 +398,5 @@ fn print_instructions() {
 /// Returns the state of the stack along with its overflown part in a string format.
 fn print_stack(stack: Vec<Felt>) {
     // converts the stack which is a vector of felt into string and prints it.
-    println!("{}", stack.iter().map(|f| format!("{}", f)).collect::<Vec<_>>().join(" "),)
+    println!("{}", stack.iter().map(|f| format!("{f}")).collect::<Vec<_>>().join(" "),)
 }

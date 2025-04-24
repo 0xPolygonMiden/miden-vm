@@ -111,7 +111,7 @@ impl crate::prettier::PrettyPrint for ProcedureAlias {
                 if self.is_renamed() {
                     display(format_args!("{}{}->{}", prefix, target, &self.name))
                 } else {
-                    display(format_args!("{}{}", prefix, target))
+                    display(format_args!("{prefix}{target}"))
                 }
             },
         };
@@ -212,7 +212,7 @@ impl crate::prettier::PrettyPrint for AliasTarget {
         match self {
             Self::MastRoot(digest) => display(DisplayHex(digest.as_bytes().as_slice())),
             Self::ProcedurePath(fqn) => display(fqn),
-            Self::AbsoluteProcedurePath(fqn) => display(format_args!("::{}", fqn)),
+            Self::AbsoluteProcedurePath(fqn) => display(format_args!("::{fqn}")),
         }
     }
 }

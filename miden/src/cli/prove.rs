@@ -93,7 +93,7 @@ impl ProveCmd {
                     ProvingOptions::with_128_bit_security(self.recursive)
                 }
             },
-            other => panic!("{} is not a valid security setting", other),
+            other => panic!("{other} is not a valid security setting"),
         }
         .with_execution_options(exec_options))
     }
@@ -158,7 +158,7 @@ impl ProveCmd {
             OutputFile::write(&stack_outputs, &default_output_path).map_err(Report::msg)?;
 
             // print stack outputs to screen.
-            println!("Output: {:?}", stack);
+            println!("Output: {stack:?}");
         }
 
         Ok(())

@@ -89,10 +89,8 @@ impl crate::prettier::PrettyPrint for InvocationTarget {
         match self {
             Self::MastRoot(digest) => display(DisplayHex(digest.as_bytes().as_slice())),
             Self::ProcedureName(name) => display(name),
-            Self::ProcedurePath { name, module } => display(format_args!("{}::{}", module, name)),
-            Self::AbsoluteProcedurePath { name, path } => {
-                display(format_args!("::{}::{}", path, name))
-            },
+            Self::ProcedurePath { name, module } => display(format_args!("{module}::{name}")),
+            Self::AbsoluteProcedurePath { name, path } => display(format_args!("::{path}::{name}")),
         }
     }
 }
