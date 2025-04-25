@@ -996,6 +996,7 @@ impl Deserializable for Operation {
             OPCODE_DYNCALL => Self::Dyncall,
             OPCODE_HORNERBASE => Self::HornerBase,
             OPCODE_HORNEREXT => Self::HornerExt,
+            OPCODE_ACE => Self::ArithmeticCircuitEval,
 
             OPCODE_MRUPDATE => Self::MrUpdate,
             OPCODE_PUSH => Self::Push(read_felt(source)?),
