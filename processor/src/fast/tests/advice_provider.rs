@@ -206,8 +206,7 @@ impl From<ProcessState<'_>> for ProcessStateSnapshot {
             clk: state.clk(),
             ctx: state.ctx(),
             fmp: state.fmp(),
-            // TODO(plafer): revert
-            stack_state: Vec::new(), //state.get_stack_state(),
+            stack_state: state.get_stack_state(),
             stack_words: [
                 state.get_stack_word(0),
                 state.get_stack_word(1),
