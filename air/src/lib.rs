@@ -1,4 +1,5 @@
 #![no_std]
+#![allow(dead_code)]
 
 #[macro_use]
 extern crate alloc;
@@ -67,23 +68,26 @@ impl Air for ProcessorAir {
 
     fn new(trace_info: TraceInfo, pub_inputs: PublicInputs, options: WinterProofOptions) -> Self {
         // --- system -----------------------------------------------------------------------------
-        let mut main_degrees = vec![
+        let main_degrees = vec![
             TransitionConstraintDegree::new(1), // clk' = clk + 1
         ];
-
-        // --- stack constraints -------------------------------------------------------------------
-        let mut stack_degrees = stack::get_transition_constraint_degrees();
-        main_degrees.append(&mut stack_degrees);
-
-        // --- range checker ----------------------------------------------------------------------
-        let mut range_checker_degrees = range::get_transition_constraint_degrees();
-        main_degrees.append(&mut range_checker_degrees);
-
         let aux_degrees = range::get_aux_transition_constraint_degrees();
 
-        // --- chiplets (hasher, bitwise, memory) -------------------------
-        let mut chiplets_degrees = chiplets::get_transition_constraint_degrees();
-        main_degrees.append(&mut chiplets_degrees);
+        /*
+                // --- stack constraints -------------------------------------------------------------------
+                let mut stack_degrees = stack::get_transition_constraint_degrees();
+                main_degrees.append(&mut stack_degrees);
+
+                // --- range checker ----------------------------------------------------------------------
+                let mut range_checker_degrees = range::get_transition_constraint_degrees();
+                main_degrees.append(&mut range_checker_degrees);
+
+                let aux_degrees = range::get_aux_transition_constraint_degrees();
+
+                // --- chiplets (hasher, bitwise, memory) -------------------------
+                let mut chiplets_degrees = chiplets::get_transition_constraint_degrees();
+                main_degrees.append(&mut chiplets_degrees);
+        */
 
         // Define the transition constraint ranges.
         let constraint_ranges = TransitionConstraintRange::new(
@@ -95,10 +99,12 @@ impl Air for ProcessorAir {
 
         // Define the number of boundary constraints for the main execution trace segment.
         // TODO: determine dynamically
-        let num_main_assertions = 2 + stack::NUM_ASSERTIONS + range::NUM_ASSERTIONS;
+        //let num_main_assertions = 2 + stack::NUM_ASSERTIONS + range::NUM_ASSERTIONS;
+        let num_main_assertions = 1;
 
         // Define the number of boundary constraints for the auxiliary execution trace segment.
-        let num_aux_assertions = stack::NUM_AUX_ASSERTIONS + range::NUM_AUX_ASSERTIONS;
+        //let num_aux_assertions = stack::NUM_AUX_ASSERTIONS + range::NUM_AUX_ASSERTIONS;
+        let num_aux_assertions = 1;
 
         // Create the context and set the number of transition constraint exemptions to two; this
         // allows us to inject random values into the last row of the execution trace.
@@ -139,6 +145,7 @@ impl Air for ProcessorAir {
         // first value of clk is 0
         result.push(Assertion::single(CLK_COL_IDX, 0, ZERO));
 
+        /*
         // first value of fmp is 2^30
         result.push(Assertion::single(FMP_COL_IDX, 0, Felt::new(2u64.pow(30))));
 
@@ -156,7 +163,7 @@ impl Air for ProcessorAir {
 
         // Add the range checker's assertions for the last step.
         range::get_assertions_last_step(&mut result, last_step);
-
+        */
         result
     }
 
@@ -167,7 +174,7 @@ impl Air for ProcessorAir {
         let mut result: Vec<Assertion<E>> = Vec::new();
 
         // --- set assertions for the first step --------------------------------------------------
-
+        /*
         // add initial assertions for the stack's auxiliary columns.
         stack::get_aux_assertions_first_step(&mut result);
 
@@ -179,8 +186,9 @@ impl Air for ProcessorAir {
 
         // add the stack's auxiliary column assertions for the last step.
         stack::get_aux_assertions_last_step(&mut result, last_step);
-
+         */
         // Add the range checker's auxiliary column assertions for the last step.
+        let last_step = self.last_step();
         range::get_aux_assertions_last_step::<E>(&mut result, last_step);
 
         result
@@ -192,7 +200,7 @@ impl Air for ProcessorAir {
     fn evaluate_transition<E: FieldElement<BaseField = Felt>>(
         &self,
         frame: &EvaluationFrame<E>,
-        periodic_values: &[E],
+        _periodic_values: &[E],
         result: &mut [E],
     ) {
         let current = frame.current();
@@ -202,6 +210,7 @@ impl Air for ProcessorAir {
         // clk' = clk + 1
         result[0] = next[CLK_COL_IDX] - (current[CLK_COL_IDX] + E::ONE);
 
+        /*
         // --- stack operations -------------------------------------------------------------------
         stack::enforce_constraints::<E>(
             frame,
@@ -220,6 +229,7 @@ impl Air for ProcessorAir {
             periodic_values,
             select_result_range!(result, self.constraint_ranges.chiplets),
         );
+         */
     }
 
     fn evaluate_aux_transition<F, E>(

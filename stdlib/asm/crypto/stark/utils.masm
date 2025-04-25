@@ -63,7 +63,7 @@ end
 #! Input: [...]
 #! Output: [...]
 export.set_up_auxiliary_inputs_ace
-    padw exec.constants::deep_rand_alpha_1_ptr mem_loadw
+    padw exec.constants::composition_coef_ptr mem_loadw
 
     # z and z^N
     push.0.0 exec.constants::z_ptr mem_loadw
@@ -91,17 +91,25 @@ export.set_up_auxiliary_inputs_ace
     # => [z_k_1, z_k_0, (z_1, z_0)^n, z_1, z_0, alpha1, alpha0, ...] where k = min_num_cycles
 
     exec.constants::get_trace_domain_generator
-
     inv
-    push.0.0.0
-    # => [0, 0, 0, g^-1, z_k_1, z_k_0, (z_1, z_0)^n, z_1, z_0, alpha1, alpha0, ...] where k = min_num_cycles
+    # => [g^-1, z_k_1, z_k_0, (z_1, z_0)^n, z_1, z_0, alpha1, alpha0, ...] where k = min_num_cycles
+    movdn.2
+    push.0
+    movdn.2
+    # => [z_k_1, z_k_0, 0, g^-1, (z_1, z_0)^n, z_1, z_0, alpha1, alpha0, ...] where k = min_num_cycles
 
-    # Save [g^-1, 0, 0, 0]
+    exec.constants::get_trace_domain_generator
+    inv dup mul
+    push.0
+    # => [0, g^-2, z_k_1, z_k_0, 0, g^-1, (z_1, z_0)^n, z_1, z_0, alpha1, alpha0, ...] where k = min_num_cycles
+
+    # Save [z_k_0, z_k_1, g^-2, 0]
     exec.constants::auxiliary_ace_inputs_ptr add.8
     mem_storew
     dropw
+    # => [0, g^-1, (z_1, z_0)^n, z_1, z_0, alpha1, alpha0, ...]
 
-    # Save [(z_0, z_1)^n, z_k_0, z_k_1]
+    # Save [(z_0, z_1)^n, g^-1, 0]
     exec.constants::auxiliary_ace_inputs_ptr add.4
     mem_storew
     dropw
@@ -110,5 +118,48 @@ export.set_up_auxiliary_inputs_ace
     exec.constants::auxiliary_ace_inputs_ptr
     mem_storew
     dropw
+    # => [...]
+end
+
+#! Executes the constraints evaluation logic based on arithmetic circuit evaluation.
+#!
+#! Input: [...]
+#! Output: [...]
+export.constraint_evaluation_check
+    # 1) Compute and store at the appropriate memory location the auxiliary inputs needed by
+    #    the arithmetic circuit.
+    exec.set_up_auxiliary_inputs_ace
+    # => [...]
+
+    # 2) Load the circuit description from the advice tape and check that it matches the hardcoded digest.
+    exec.constants::get_arithmetic_circuit_eval_digest
+    adv.push_mapval
+    exec.constants::get_arithmetic_circuit_ptr
+    padw padw padw
+    repeat.12
+        adv_pipe
+        hperm
+    end
+    dropw swapw dropw
+    movup.4 drop
+    assert_eqw
+    # => [...]
+
+    # 3) Set up the inputs to the "arithmetic_circuit_eval" op. Namely:
+    #    1. a pointer to the inputs of the circuit in memory,
+    #    2. the number of inputs to the circuit,
+    #    3. the number of evaluation gates in the circuit.
+    exec.constants::get_arithmetic_circuit_eval_number_eval_gates
+    exec.constants::get_arithmetic_circuit_eval_number_inputs
+    exec.constants::public_inputs_address_ptr mem_load
+    # => [...]
+
+
+    # 4) Perform the constraint evaluation check by checking that the circuit evaluates to zero, which
+    #    boils down to the "arithmetic_circuit_eval" returning.
+    arithmetic_circuit_eval
+
+    # 5) Clean up the stack.
+    drop drop drop
     # => [...]
 end

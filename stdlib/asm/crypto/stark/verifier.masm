@@ -60,6 +60,7 @@ export.verify
     #
     # Cycles: xx + xx * number_kernel_procedures
     exec.public_inputs::load
+
     exec.random_coin::reseed
     # => [...]
 
@@ -127,9 +128,7 @@ export.verify
     #       VI) Constraint evaluation check
     #==============================================================================================
 
-    exec.utils::set_up_auxiliary_inputs_ace
-    # TODO: call `arithmetic_circuit_eval`
-    # => [...]
+    exec.utils::constraint_evaluation_check
 
     #==============================================================================================
     #       VII) FRI

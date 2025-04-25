@@ -10,7 +10,8 @@ const.DOMAIN_OFFSET_INV=2635249152773512046
 const.NUM_AUX_TRACE_COEFS=16
 
 # Number of constraints, both boundary and transitional
-const.NUM_CONSTRAINTS=226
+#const.NUM_CONSTRAINTS=226
+const.NUM_CONSTRAINTS=4
 
 # Blowup factor
 const.BLOWUP_FACTOR=8
@@ -18,6 +19,18 @@ const.BLOWUP_FACTOR_LOG=3
 
 # Max cycle length for periodic columns
 const.MAX_CYCLE_LEN_LOG=3
+
+# Constraint evaluation circuit digest
+const.DIGEST_0=13839693060569330762
+const.DIGEST_1=2312826173762406067
+const.DIGEST_2=8866828852882360297
+const.DIGEST_3=18124346805341043858
+
+# Number of inputs to the constraint evaluation circuit
+const.NUM_INPUTS_CIRCUIT=232
+
+# Number of evaluation gates in the constraint evaluation circuit
+const.NUM_EVAL_GATES_CIRCUIT=88
 
 # MEMORY POINTERS
 # =================================================================================================
@@ -54,6 +67,9 @@ const.COMPOSITION_COEF_PTR=4294900800
 
 # Address to the randomness used in computing the DEEP polynomial
 const.DEEP_RAND_CC_PTR=4294912000
+
+# Address at the start of the memory region holding the arithmetic circuit for constraint evaluation
+const.ACE_CIRCUIT_PTR=4294900352
 
 # FRI
 #
@@ -511,4 +527,23 @@ end
 
 export.get_max_cycle_length_log
     push.MAX_CYCLE_LEN_LOG
+end
+
+export.get_arithmetic_circuit_ptr
+    push.ACE_CIRCUIT_PTR
+end
+
+export.get_arithmetic_circuit_eval_digest
+    push.DIGEST_0
+    push.DIGEST_1
+    push.DIGEST_2
+    push.DIGEST_3
+end
+
+export.get_arithmetic_circuit_eval_number_inputs
+    push.NUM_INPUTS_CIRCUIT
+end
+
+export.get_arithmetic_circuit_eval_number_eval_gates
+    push.NUM_EVAL_GATES_CIRCUIT
 end
