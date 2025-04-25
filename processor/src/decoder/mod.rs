@@ -307,10 +307,7 @@ impl Process {
             ctx_info.parent_fmp,
             ctx_info.parent_fn_hash,
         );
-        self.stack.restore_context(
-            ctx_info.parent_stack_depth as usize,
-            ctx_info.parent_next_overflow_addr,
-        );
+        self.stack.restore_context(ctx_info.parent_stack_depth as usize);
 
         // the rest of the VM state does not change
         self.execute_op(Operation::Noop, host)
@@ -456,10 +453,7 @@ impl Process {
             ctx_info.parent_fmp,
             ctx_info.parent_fn_hash,
         );
-        self.stack.restore_context(
-            ctx_info.parent_stack_depth as usize,
-            ctx_info.parent_next_overflow_addr,
-        );
+        self.stack.restore_context(ctx_info.parent_stack_depth as usize);
 
         self.execute_op(Operation::Noop, host)
     }

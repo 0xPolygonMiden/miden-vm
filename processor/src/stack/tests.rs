@@ -6,7 +6,8 @@ use miden_air::trace::{
 };
 use vm_core::FieldElement;
 
-use super::{Felt, MIN_STACK_DEPTH, ONE, OverflowTableRow, Stack, StackInputs, ZERO};
+use super::*;
+use crate::stack::OverflowTableRow;
 
 // TYPE ALIASES
 // ================================================================================================
@@ -73,12 +74,11 @@ fn stack_overflow() {
         Felt::new(expected_depth - MIN_STACK_DEPTH as u64),
     ];
     let init_addr = 1;
-    let expected_overflow_rows = vec![
+    let expected_overflow_rows = [
         OverflowTableRow::new(Felt::new(init_addr), ONE, ZERO),
         OverflowTableRow::new(Felt::new(init_addr + 1), Felt::new(2), Felt::new(init_addr)),
         OverflowTableRow::new(Felt::new(init_addr + 2), Felt::new(3), Felt::new(init_addr + 1)),
     ];
-    let expected_overflow_active_rows = vec![0, 1, 2];
 
     // Check the stack state.
     assert_eq!(stack.trace_state(), expected_stack);
@@ -87,8 +87,7 @@ fn stack_overflow() {
     assert_eq!(stack.helpers_state(), expected_helpers);
 
     // Check the overflow table state.
-    assert_eq!(stack.overflow.active_rows(), expected_overflow_active_rows);
-    assert_eq!(stack.overflow.all_rows(), expected_overflow_rows);
+    assert_eq!(stack.overflow.total_num_elements(), expected_overflow_rows.len());
 }
 
 // SHIFT LEFT TEST
@@ -219,7 +218,7 @@ fn start_restore_context() {
     assert_eq!(16, stack.depth());
 
     // restore previous context
-    stack.restore_context(16, ZERO);
+    stack.restore_context(16);
     stack.copy_state(0);
     stack.advance_clock();
     assert_eq!(16, stack.depth());
@@ -273,7 +272,7 @@ fn start_restore_context() {
     assert_eq!(stack.helpers_state(), build_helpers_partial(0, 0));
 
     // restore previous context
-    stack.restore_context(17, ctx0_next_overflow_addr);
+    stack.restore_context(17);
     stack.copy_state(0);
     stack.advance_clock();
     assert_eq!(ctx0_depth, stack.depth());
@@ -292,6 +291,92 @@ fn start_restore_context() {
     stack_state.remove(0);
     assert_eq!(stack.trace_state(), build_stack(&stack_state[..16]));
     assert_eq!(stack.helpers_state(), build_helpers_partial(0, 0));
+}
+
+/// Tests that syscalling back into context 0 uses a different overflow table with each call.
+#[test]
+fn root_context_separate_overflows() {
+    const SENTINEL_VALUE: Felt = Felt::new(100);
+
+    let mut overflow_stack = OverflowTable::new(true);
+
+    // clk=0: Advance clock to emulate the first `SPAN` operation.
+    overflow_stack.advance_clock();
+
+    // clk=1: push sentinel value to overflow stack
+    overflow_stack.push(SENTINEL_VALUE);
+    overflow_stack.advance_clock();
+
+    // clk=2: start a new context (e.g. from a CALL operation)
+    overflow_stack.start_context();
+    overflow_stack.advance_clock();
+
+    // clk=3: syscall back into context 0
+    overflow_stack.start_context();
+    overflow_stack.advance_clock();
+
+    // clk=4: popping the stack should *not* return the sentinel value
+    let popped_value = overflow_stack.pop();
+    overflow_stack.advance_clock();
+    assert!(popped_value.is_none());
+
+    // clk=5: Return the `new_context_id`
+    overflow_stack.restore_context();
+    overflow_stack.advance_clock();
+
+    // clk=6: Return to the root context (as a result of `new_context_id` ending). Popping the stack
+    // then should return the sentinel value.
+    overflow_stack.restore_context();
+    overflow_stack.advance_clock();
+
+    // clk=7: pop the sentinel value
+    let popped_value = overflow_stack.pop();
+    overflow_stack.advance_clock();
+    assert_eq!(popped_value, Some(SENTINEL_VALUE));
+
+    // Check that the history is also correct.
+    // -------------------------------------------
+
+    let mut overflow_stack_at_clk = Vec::new();
+    overflow_stack.append_from_history_at(0_u32.into(), &mut overflow_stack_at_clk);
+    assert!(overflow_stack_at_clk.is_empty());
+
+    overflow_stack_at_clk.clear();
+    overflow_stack.append_from_history_at(1_u32.into(), &mut overflow_stack_at_clk);
+    assert_eq!(overflow_stack_at_clk, vec![SENTINEL_VALUE]);
+
+    // clk=2: the `CALL` operation no longer has access to the overflow table since it is in the new
+    // context.
+    overflow_stack_at_clk.clear();
+    overflow_stack.append_from_history_at(2_u32.into(), &mut overflow_stack_at_clk);
+    assert!(overflow_stack_at_clk.is_empty());
+
+    // clk=3: still in the new context, overflow table is empty
+    overflow_stack_at_clk.clear();
+    overflow_stack.append_from_history_at(3_u32.into(), &mut overflow_stack_at_clk);
+    assert!(overflow_stack_at_clk.is_empty());
+
+    // clk=4: we're back in context 0, but from a syscall, so we expect the overflow table to be
+    // empty (i.e. we're not supposed to see the sentinel value, since each new syscall back into
+    // context 0 gets its own overflow stack).
+    overflow_stack_at_clk.clear();
+    overflow_stack.append_from_history_at(4_u32.into(), &mut overflow_stack_at_clk);
+    assert!(overflow_stack_at_clk.is_empty());
+
+    // clk=5: syscall's `END` operation, we're back in context 10, so the overflow stack is empty
+    overflow_stack_at_clk.clear();
+    overflow_stack.append_from_history_at(5_u32.into(), &mut overflow_stack_at_clk);
+    assert!(overflow_stack_at_clk.is_empty());
+
+    // clk=6: `CALL`'s END: we're back in context 0, and we can now see the sentinel value
+    overflow_stack_at_clk.clear();
+    overflow_stack.append_from_history_at(6_u32.into(), &mut overflow_stack_at_clk);
+    assert_eq!(overflow_stack_at_clk, vec![SENTINEL_VALUE]);
+
+    // clk=7: POP the sentinel value
+    overflow_stack_at_clk.clear();
+    overflow_stack.append_from_history_at(7_u32.into(), &mut overflow_stack_at_clk);
+    assert!(overflow_stack_at_clk.is_empty());
 }
 
 // TRACE GENERATION
@@ -316,7 +401,7 @@ fn generate_trace() {
     stack.advance_clock();
 
     // start new context, clk = 3
-    let (c0_depth, c0_overflow_addr) = stack.start_context();
+    let (c0_depth, _c0_overflow_addr) = stack.start_context();
     stack.copy_state(0);
     stack.advance_clock();
 
@@ -333,7 +418,7 @@ fn generate_trace() {
     stack.advance_clock();
 
     // restore previous context, clk = 7
-    stack.restore_context(c0_depth, c0_overflow_addr);
+    stack.restore_context(c0_depth);
     stack.copy_state(0);
     stack.advance_clock();
 
