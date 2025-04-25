@@ -180,7 +180,13 @@ pub enum ExecutionError {
     #[diagnostic(transparent)]
     MemoryError(MemoryError),
     #[error("no MAST forest contains the procedure with root digest {root_digest}")]
-    NoMastForestWithProcedure { root_digest: Digest },
+    NoMastForestWithProcedure {
+        #[label]
+        label: SourceSpan,
+        #[source_code]
+        source_file: Option<Arc<SourceFile>>,
+        root_digest: Digest,
+    },
     #[error("merkle path verification failed for value {value} at index {index} in the Merkle tree with root {root} (error code: {err_code})", 
       value = to_hex(Felt::elements_as_bytes(value)),
       root = to_hex(root.as_bytes()),
@@ -365,6 +371,14 @@ impl ExecutionError {
     ) -> Self {
         let (label, source_file) = err_ctx.label_and_source_file();
         Self::MerkleStoreUpdateFailed { label, source_file, err }
+    }
+
+    pub fn no_mast_forest_with_procedure(
+        root_digest: Digest,
+        err_ctx: &ErrorContext<'_, impl MastNodeExt>,
+    ) -> Self {
+        let (label, source_file) = err_ctx.label_and_source_file();
+        Self::NoMastForestWithProcedure { label, source_file, root_digest }
     }
 }
 

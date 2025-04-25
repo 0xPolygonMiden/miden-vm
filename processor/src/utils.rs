@@ -6,7 +6,7 @@ use vm_core::mast::{ExternalNode, MastForest, MastNodeId};
 pub use vm_core::utils::*;
 
 use super::Felt;
-use crate::{ExecutionError, Host};
+use crate::{ErrorContext, ExecutionError, Host};
 
 // HELPER FUNCTIONS
 // ================================================================================================
@@ -57,9 +57,12 @@ pub(crate) fn resolve_external_node(
     host: &mut impl Host,
 ) -> Result<(MastNodeId, Arc<MastForest>), ExecutionError> {
     let node_digest = external_node.digest();
-    let mast_forest = host
-        .get_mast_forest(&node_digest)
-        .ok_or(ExecutionError::NoMastForestWithProcedure { root_digest: node_digest })?;
+    let mast_forest =
+        host.get_mast_forest(&node_digest)
+            .ok_or(ExecutionError::no_mast_forest_with_procedure(
+                node_digest,
+                &ErrorContext::default(),
+            ))?;
 
     // We limit the parts of the program that can be called externally to procedure
     // roots, even though MAST doesn't have that restriction.

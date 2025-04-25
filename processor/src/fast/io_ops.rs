@@ -1,7 +1,7 @@
 use vm_core::Word;
 
 use super::{DOUBLE_WORD_SIZE, ExecutionError, FastProcessor, Felt, WORD_SIZE_FELT};
-use crate::{AdviceProvider, Host, ProcessState};
+use crate::{AdviceProvider, ErrorContext, Host, ProcessState};
 
 impl FastProcessor {
     /// Analogous to `Process::op_push`.
@@ -12,7 +12,9 @@ impl FastProcessor {
 
     /// Analogous to `Process::op_advpop`.
     pub fn op_advpop(&mut self, op_idx: usize, host: &mut impl Host) -> Result<(), ExecutionError> {
-        let value = host.advice_provider_mut().pop_stack(ProcessState::new_fast(self, op_idx))?;
+        let value = host
+            .advice_provider_mut()
+            .pop_stack(ProcessState::new_fast(self, op_idx), &ErrorContext::default())?;
         self.increment_stack_size();
         self.stack_write(0, value);
         Ok(())
@@ -26,7 +28,7 @@ impl FastProcessor {
     ) -> Result<(), ExecutionError> {
         let word: Word = host
             .advice_provider_mut()
-            .pop_stack_word(ProcessState::new_fast(self, op_idx))?;
+            .pop_stack_word(ProcessState::new_fast(self, op_idx), &ErrorContext::default())?;
         self.stack_write_word(0, &word);
 
         Ok(())
@@ -111,7 +113,7 @@ impl FastProcessor {
         // pop two words from the advice stack
         let words = host
             .advice_provider_mut()
-            .pop_stack_dword(ProcessState::new_fast(self, op_idx))?;
+            .pop_stack_dword(ProcessState::new_fast(self, op_idx), &ErrorContext::default())?;
 
         // write the words to memory
         self.memory.write_word(self.ctx, addr_first_word, self.clk + op_idx, words[0])?;

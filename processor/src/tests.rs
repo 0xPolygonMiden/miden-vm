@@ -1,7 +1,7 @@
 /// Tests in this file make sure that diagnostics presented to the user are as expected.
 use alloc::string::ToString;
 
-use assembly::{assert_diagnostic_lines, regex, source_file, testing::TestContext};
+use assembly::{Assembler, assert_diagnostic_lines, regex, source_file, testing::TestContext};
 use test_utils::{build_test_by_mode, crypto::init_merkle_leaves};
 use vm_core::{
     AdviceMap,
@@ -523,6 +523,65 @@ fn test_diagnostic_merkle_store_lookup_failed() {
         " 3 |             mtree_set",
         "   :             ^^^^^^^^^",
         " 4 |         end",
+        "   `----"
+    );
+}
+
+// NoMastForestWithProcedure
+// -------------------------------------------------------------------------------------------------
+
+#[test]
+fn test_diagnostic_no_mast_forest_with_procedure() {
+    let source_manager = Arc::new(DefaultSourceManager::default());
+
+    let lib_source = {
+        let module_name = "foo::bar";
+        let src = "
+        export.dummy_proc
+            push.1
+        end 
+    ";
+        source_manager.load(module_name, src.to_string())
+    };
+
+    let program_source = {
+        let src = "
+        use.foo::bar
+
+        begin
+            call.bar::dummy_proc
+        end
+    ";
+        source_manager.load("test_program", src.to_string())
+    };
+
+    let library = Assembler::new(source_manager.clone())
+        .with_debug_mode(true)
+        .assemble_library([lib_source])
+        .unwrap();
+
+    let program = Assembler::new(source_manager.clone())
+        .with_debug_mode(true)
+        .with_library(&library)
+        .unwrap()
+        .assemble_program(program_source)
+        .unwrap();
+
+    let mut process = Process::new(
+        Kernel::default(),
+        StackInputs::default(),
+        ExecutionOptions::default().with_debugging(true),
+    )
+    .with_source_manager(source_manager.clone());
+    let err = process.execute(&program, &mut DefaultHost::default()).unwrap_err();
+    assert_diagnostic_lines!(
+        err,
+        "no MAST forest contains the procedure with root digest 0x1b0a6d4b3976737badf180f3df558f45e06e6d1803ea5ad3b95fa7428caccd02",
+        regex!(r#",-\[test_program:5:13\]"#),
+        " 4 |         begin",
+        " 5 |             call.bar::dummy_proc",
+        "   :             ^^^^^^^^^^^^^^^^^^^^",
+        " 6 |         end",
         "   `----"
     );
 }

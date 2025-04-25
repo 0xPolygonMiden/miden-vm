@@ -1,7 +1,7 @@
 use vm_core::{Felt, chiplets::hasher::STATE_WIDTH, crypto::hash::Rpo256, utils::range};
 
 use super::FastProcessor;
-use crate::{AdviceProvider, ExecutionError, Host};
+use crate::{AdviceProvider, ErrorContext, ExecutionError, Host};
 
 impl FastProcessor {
     /// Applies a permutation of the Rpo256 hash function to the top 12 elements of the stack.
@@ -34,7 +34,12 @@ impl FastProcessor {
         let root = self.stack_get_word(6);
 
         // get a Merkle path from the advice provider for the specified root and node index
-        let path = host.advice_provider_mut().get_merkle_path(root, &depth, &index)?;
+        let path = host.advice_provider_mut().get_merkle_path(
+            root,
+            &depth,
+            &index,
+            &ErrorContext::default(),
+        )?;
 
         // verify the path
         match path.verify(index.as_int(), node.into(), &root.into()) {
@@ -61,9 +66,13 @@ impl FastProcessor {
         // get a Merkle path to it. The length of the returned path is expected to match the
         // specified depth. If the new node is the root of a tree, this instruction will append the
         // whole sub-tree to this node.
-        let (path, new_root) = host
-            .advice_provider_mut()
-            .update_merkle_node(old_root, &depth, &index, new_node)?;
+        let (path, new_root) = host.advice_provider_mut().update_merkle_node(
+            old_root,
+            &depth,
+            &index,
+            new_node,
+            &ErrorContext::default(),
+        )?;
 
         assert_eq!(path.len(), depth.as_int() as usize);
 

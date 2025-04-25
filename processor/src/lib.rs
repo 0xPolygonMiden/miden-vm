@@ -21,7 +21,7 @@ pub use vm_core::{
     StackInputs, StackOutputs, Word, ZERO,
     chiplets::hasher::Digest,
     crypto::merkle::SMT_DEPTH,
-    debuginfo::{DefaultSourceManager, SourceManager},
+    debuginfo::{DefaultSourceManager, SourceManager, SourceSpan},
     errors::InputError,
     mast::{MastForest, MastNode, MastNodeId},
     sys_events::SystemEvent,
@@ -30,7 +30,8 @@ pub use vm_core::{
 use vm_core::{
     Decorator, DecoratorIterator, FieldElement, WORD_SIZE,
     mast::{
-        BasicBlockNode, CallNode, DynNode, JoinNode, LoopNode, OP_GROUP_SIZE, OpBatch, SplitNode,
+        BasicBlockNode, CallNode, DynNode, JoinNode, LoopNode, MastNodeExt, OP_GROUP_SIZE, OpBatch,
+        SplitNode,
     },
 };
 pub use winter_prover::matrix::ColMatrix;
@@ -345,8 +346,20 @@ impl Process {
             MastNode::Join(node) => self.execute_join_node(node, program, host)?,
             MastNode::Split(node) => self.execute_split_node(node, program, host)?,
             MastNode::Loop(node) => self.execute_loop_node(node, program, host)?,
-            MastNode::Call(node) => self.execute_call_node(node, program, host)?,
-            MastNode::Dyn(node) => self.execute_dyn_node(node, program, host)?,
+            MastNode::Call(node) => {
+                let err_ctx = ErrorContext::new(program, node, self.source_manager.clone());
+                add_error_ctx_to_external_error(
+                    self.execute_call_node(node, program, host),
+                    err_ctx,
+                )?
+            },
+            MastNode::Dyn(node) => {
+                let err_ctx = ErrorContext::new(program, node, self.source_manager.clone());
+                add_error_ctx_to_external_error(
+                    self.execute_dyn_node(node, program, host),
+                    err_ctx,
+                )?
+            },
             MastNode::External(external_node) => {
                 let (root_id, mast_forest) = resolve_external_node(external_node, host)?;
 
@@ -868,5 +881,39 @@ impl<'a> From<&'a mut Process> for ProcessState<'a> {
             stack: &process.stack,
             chiplets: &process.chiplets,
         })
+    }
+}
+
+// HELPERS
+// ================================================================================================
+
+/// For errors generated from processing an `ExternalNode`, returns the same error except with
+/// proper error context.
+fn add_error_ctx_to_external_error(
+    result: Result<(), ExecutionError>,
+    err_ctx: ErrorContext<impl MastNodeExt>,
+) -> Result<(), ExecutionError> {
+    match result {
+        Ok(_) => Ok(()),
+        // Add context information to any errors coming from executing an `ExternalNode`
+        Err(err) => match err {
+            ExecutionError::NoMastForestWithProcedure { label, source_file: _, root_digest } => {
+                if label == SourceSpan::UNKNOWN {
+                    let err_with_ctx =
+                        ExecutionError::no_mast_forest_with_procedure(root_digest, &err_ctx);
+                    Err(err_with_ctx)
+                } else {
+                    // If the source span was already populated, just return the error as-is. This
+                    // would occur when a call deeper down the call stack was responsible for the
+                    // error.
+                    Err(err)
+                }
+            },
+
+            _ => {
+                // do nothing
+                Err(err)
+            },
+        },
     }
 }

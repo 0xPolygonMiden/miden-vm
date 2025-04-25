@@ -559,9 +559,12 @@ impl FastProcessor {
         match program.find_procedure_root(callee_hash.into()) {
             Some(callee_id) => self.execute_mast_node(callee_id, program, kernel, host)?,
             None => {
-                let mast_forest = host
-                    .get_mast_forest(&callee_hash.into())
-                    .ok_or_else(|| ExecutionError::DynamicNodeNotFound(callee_hash.into()))?;
+                let mast_forest = host.get_mast_forest(&callee_hash.into()).ok_or_else(|| {
+                    ExecutionError::dynamic_node_not_found(
+                        callee_hash.into(),
+                        &ErrorContext::default(),
+                    )
+                })?;
 
                 // We limit the parts of the program that can be called externally to procedure
                 // roots, even though MAST doesn't have that restriction.

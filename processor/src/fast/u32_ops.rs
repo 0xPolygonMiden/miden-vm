@@ -1,7 +1,7 @@
 use vm_core::{Felt, ZERO};
 
 use super::FastProcessor;
-use crate::{ExecutionError, utils::split_element};
+use crate::{ErrorContext, ExecutionError, utils::split_element};
 
 impl FastProcessor {
     /// Analogous to `Process::op_u32split`.
@@ -107,7 +107,7 @@ impl FastProcessor {
         let clk = self.clk + op_idx;
         self.u32_pop2_applyfn_push_results(0, |first, second| {
             if first == 0 {
-                return Err(ExecutionError::DivideByZero(clk));
+                return Err(ExecutionError::divide_by_zero(clk, &ErrorContext::default()));
             }
 
             // a/b = n*q + r for some n>=0 and 0<=r<b
