@@ -161,8 +161,15 @@ pub enum ExecutionError {
         source_file: Option<Arc<SourceFile>>,
         clk: RowIndex,
     },
-    #[error("malformed signature key: {0}")]
-    MalformedSignatureKey(&'static str),
+    #[error("malformed signature key: {key_type}")]
+    #[diagnostic(help("the secret key associated with the provided public key is malformed"))]
+    MalformedSignatureKey {
+        #[label]
+        label: SourceSpan,
+        #[source_code]
+        source_file: Option<Arc<SourceFile>>,
+        key_type: &'static str,
+    },
     #[error(
         "MAST forest in host indexed by procedure root {root_digest} doesn't contain that root"
     )]
@@ -325,6 +332,14 @@ impl ExecutionError {
     pub fn log_argument_zero(clk: RowIndex, err_ctx: &ErrorContext<'_, impl MastNodeExt>) -> Self {
         let (label, source_file) = err_ctx.label_and_source_file();
         Self::LogArgumentZero { label, source_file, clk }
+    }
+
+    pub fn malformed_signature_key(
+        key_type: &'static str,
+        err_ctx: &ErrorContext<'_, impl MastNodeExt>,
+    ) -> Self {
+        let (label, source_file) = err_ctx.label_and_source_file();
+        Self::MalformedSignatureKey { label, source_file, key_type }
     }
 
     pub fn merkle_store_lookup_failed(
