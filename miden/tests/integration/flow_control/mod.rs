@@ -273,6 +273,44 @@ fn simple_syscall_2() {
     test.prove_and_verify(vec![2, 2, 3, 2, 1], false);
 }
 
+/// Tests that syscalling back into context 0 uses a different overflow table with each call.
+#[test]
+fn root_context_separate_overflows() {
+    let kernel_source = "
+    export.foo
+        # Drop an element, which in the failing case removes the `100` from the overflow table
+        drop
+    end
+    ";
+
+    let program_source = "
+    proc.bar
+        syscall.foo
+    end
+
+    begin
+        # => [100]
+
+        # push `100` on overflow stack
+        swap.15 push.0
+
+        # Call `bar`, which will syscall back into this context
+        call.bar
+
+        # Place back the 100 on top of the stack
+        drop swap.15
+    end";
+
+    let mut test = Test::new(&format!("test{}", line!()), program_source, false);
+    test.stack_inputs = StackInputs::try_from_ints([100]).unwrap();
+    test.kernel_source = Some(
+        test.source_manager
+            .load(&format!("kernel{}", line!()), kernel_source.to_string()),
+    );
+    test.expect_stack(&[100]);
+    test.prove_and_verify(vec![100], false);
+}
+
 // DYNAMIC CODE EXECUTION
 // ================================================================================================
 
