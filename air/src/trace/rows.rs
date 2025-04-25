@@ -209,7 +209,7 @@ impl AddAssign<u32> for RowIndex {
 impl AddAssign<usize> for RowIndex {
     fn add_assign(&mut self, rhs: usize) {
         let rhs = u32::try_from(rhs)
-            .map_err(|_| RowIndexError::InvalidSize(format!("{}_usize", rhs).into()))
+            .map_err(|_| RowIndexError::InvalidSize(format!("{rhs}_usize").into()))
             .unwrap();
         self.0 += rhs;
     }
