@@ -6,8 +6,8 @@ use crate::{AdviceProvider, Host, ProcessState};
 impl FastProcessor {
     /// Analogous to `Process::op_push`.
     pub fn op_push(&mut self, element: Felt) {
-        self.stack[self.stack_top_idx] = element;
         self.increment_stack_size();
+        self.stack_write(0, element);
     }
 
     /// Analogous to `Process::op_advpop`.
