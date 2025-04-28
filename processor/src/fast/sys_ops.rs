@@ -72,8 +72,8 @@ impl FastProcessor {
 
     /// Analogous to `Process::op_clk`.
     pub fn op_clk(&mut self, op_idx: usize) -> Result<(), ExecutionError> {
-        self.stack[self.stack_top_idx] = (self.clk + op_idx).into();
         self.increment_stack_size();
+        self.stack_write(0, (self.clk + op_idx).into());
         Ok(())
     }
 
