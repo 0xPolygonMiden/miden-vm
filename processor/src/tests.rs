@@ -2,7 +2,7 @@
 use alloc::string::ToString;
 
 use assembly::{Assembler, assert_diagnostic_lines, regex, source_file, testing::TestContext};
-use test_utils::{build_test_by_mode, crypto::init_merkle_leaves};
+use test_utils::{build_test_by_mode, crypto::{init_merkle_leaves, init_merkle_store}};
 use vm_core::{
     AdviceMap,
     crypto::merkle::{MerkleStore, MerkleTree},
@@ -230,6 +230,46 @@ fn test_diagnostic_failed_assertion() {
         " 8 |         end",
         "   `----"
     );
+}
+
+// TODO(plafer): finish the diagnostic when the lexer is fixed
+#[test]
+#[ignore]
+fn test_diagnostic_merkle_path_verification_failed() {
+    let source = "
+        begin
+            mtree_verify
+        end";
+
+    let index = 3_usize;
+    let (leaves, store) = init_merkle_store(&[1, 2, 3, 4, 5, 6, 7, 8]);
+    let tree = MerkleTree::new(leaves.clone()).unwrap();
+
+    let stack_inputs = [
+        tree.root()[0].as_int(),
+        tree.root()[1].as_int(),
+        tree.root()[2].as_int(),
+        tree.root()[3].as_int(),
+        // Intentionally choose the wrong index to trigger the error
+        (index + 1) as u64,
+        tree.depth() as u64,
+        leaves[index][0].as_int(),
+        leaves[index][1].as_int(),
+        leaves[index][2].as_int(),
+        leaves[index][3].as_int(),
+    ];
+
+    let build_test = build_test_by_mode!(true, source, &stack_inputs, &[], store);
+    let err = build_test.execute().expect_err("expected error");
+    assert_diagnostic_lines!(
+        err,
+        "merkle path verification failed for value fcffffff03000000000000000000000000000000000000000000000000000000 at index 4 in the Merkle tree with root
+  | c9b007301fbe49f9c96698ea31f251b61d51674c892fbb2d8d349280bbd4a273 (error code: 0)",
+        regex!(r#",-\[test[\d]+:3:13\]"#),
+        " 2 |         begin",
+        "TODO: complete"
+    );
+
 }
 
 // InvalidMerkleTreeNodeIndex

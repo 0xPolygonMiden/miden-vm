@@ -198,6 +198,10 @@ pub enum ExecutionError {
       root = to_hex(root.as_bytes()),
     )]
     MerklePathVerificationFailed {
+        #[label]
+        label: SourceSpan,
+        #[source_code]
+        source_file: Option<Arc<SourceFile>>,
         value: Word,
         index: Felt,
         root: Digest,
@@ -360,6 +364,25 @@ impl ExecutionError {
     ) -> Self {
         let (label, source_file) = err_ctx.label_and_source_file();
         Self::MalformedSignatureKey { label, source_file, key_type }
+    }
+
+    pub fn merkle_path_verification_failed(
+        value: Word,
+        index: Felt,
+        root: Digest,
+        err_code: u32,
+        err_ctx: &ErrorContext<'_, impl MastNodeExt>,
+    ) -> Self {
+        let (label, source_file) = err_ctx.label_and_source_file();
+
+        Self::MerklePathVerificationFailed {
+            label,
+            source_file,
+            value,
+            index,
+            root,
+            err_code,
+        }
     }
 
     pub fn merkle_store_lookup_failed(
