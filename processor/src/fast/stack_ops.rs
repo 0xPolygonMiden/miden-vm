@@ -12,19 +12,19 @@ impl FastProcessor {
 
     /// Analogous to `Process::op_swap`.
     pub fn op_swap(&mut self) {
-        self.stack.swap(self.stack_top_idx - 1, self.stack_top_idx - 2);
+        self.stack_swap(0, 1);
     }
 
     /// Analogous to `Process::op_swapdw`.
     pub fn op_swap_double_word(&mut self) {
-        self.stack.swap(self.stack_top_idx - 1, self.stack_top_idx - 9);
-        self.stack.swap(self.stack_top_idx - 2, self.stack_top_idx - 10);
-        self.stack.swap(self.stack_top_idx - 3, self.stack_top_idx - 11);
-        self.stack.swap(self.stack_top_idx - 4, self.stack_top_idx - 12);
-        self.stack.swap(self.stack_top_idx - 5, self.stack_top_idx - 13);
-        self.stack.swap(self.stack_top_idx - 6, self.stack_top_idx - 14);
-        self.stack.swap(self.stack_top_idx - 7, self.stack_top_idx - 15);
-        self.stack.swap(self.stack_top_idx - 8, self.stack_top_idx - 16);
+        self.stack_swap(0, 8);
+        self.stack_swap(1, 9);
+        self.stack_swap(2, 10);
+        self.stack_swap(3, 11);
+        self.stack_swap(4, 12);
+        self.stack_swap(5, 13);
+        self.stack_swap(6, 14);
+        self.stack_swap(7, 15);
     }
 
     /// Rotates the top `n` elements of the stack to the left by 1.
@@ -93,48 +93,40 @@ impl FastProcessor {
 
     /// Analogous to `Process::op_cswap`.
     pub fn op_cswap(&mut self) -> Result<(), ExecutionError> {
-        let condition = self.stack[self.stack_top_idx - 1];
-        let b = self.stack[self.stack_top_idx - 2];
-        let a = self.stack[self.stack_top_idx - 3];
+        let condition = self.stack_get(0);
+        self.decrement_stack_size();
 
         match condition.as_int() {
             0 => {
                 // do nothing, a and b are already in the right place
             },
             1 => {
-                self.stack[self.stack_top_idx - 2] = a;
-                self.stack[self.stack_top_idx - 3] = b;
+                self.stack_swap(0, 1);
             },
             _ => return Err(ExecutionError::NotBinaryValue(condition)),
         }
 
-        self.decrement_stack_size();
         Ok(())
     }
 
     /// Analogous to `Process::op_cswapw`.
     pub fn op_cswapw(&mut self) -> Result<(), ExecutionError> {
-        let condition = self.stack[self.stack_top_idx - 1];
-
-        // b is the top word of the stack, a is the 2rd word from the top of the stack.
-        // The indices are chosen assuming that `condition` is removed from the stack.
-        let b_word_start_idx = self.stack_top_idx - 1 - WORD_SIZE;
-        let a_word_start_idx = self.stack_top_idx - 1 - (2 * WORD_SIZE);
+        let condition = self.stack_get(0);
+        self.decrement_stack_size();
 
         match condition.as_int() {
             0 => {
                 // do nothing, the words are already in the right place
             },
             1 => {
-                self.stack.swap(b_word_start_idx, a_word_start_idx);
-                self.stack.swap(b_word_start_idx + 1, a_word_start_idx + 1);
-                self.stack.swap(b_word_start_idx + 2, a_word_start_idx + 2);
-                self.stack.swap(b_word_start_idx + 3, a_word_start_idx + 3);
+                self.stack_swap(0, 4);
+                self.stack_swap(1, 5);
+                self.stack_swap(2, 6);
+                self.stack_swap(3, 7);
             },
             _ => return Err(ExecutionError::NotBinaryValue(condition)),
         }
 
-        self.decrement_stack_size();
         Ok(())
     }
 }

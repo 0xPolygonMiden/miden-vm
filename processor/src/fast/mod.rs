@@ -264,6 +264,16 @@ impl FastProcessor {
         self.stack[range(word_start_idx, WORD_SIZE)].copy_from_slice(word)
     }
 
+    /// Swaps the elements at the given indices on the stack.
+    #[inline(always)]
+    pub fn stack_swap(&mut self, idx1: usize, idx2: usize) {
+        let a = self.stack_get(idx1);
+        let b = self.stack_get(idx2);
+        self.stack_write(idx1, b);
+        self.stack_write(idx2, a);
+    }
+
+
     // EXECUTE
     // -------------------------------------------------------------------------------------------
 
