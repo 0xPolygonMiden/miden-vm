@@ -241,8 +241,8 @@ impl FastProcessor {
 
     /// Writes an element to the stack at the given index.
     #[inline(always)]
-    pub fn stack_write(&mut self, idx: usize, element: Felt) -> Felt {
-        *self.stack[self.stack_top_idx - idx - 1] = element
+    pub fn stack_write(&mut self, idx: usize, element: Felt) {
+        self.stack[self.stack_top_idx - idx - 1] = element
     }
 
     /// Writes a word to the stack starting at the given index.
