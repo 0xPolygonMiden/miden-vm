@@ -78,7 +78,7 @@ impl FastProcessor {
 
     /// Analogous to `Process::op_eqz`.
     pub fn op_eqz(&mut self) -> Result<(), ExecutionError> {
-        let top = &mut self.stack[self.stack_top_idx - 1];
+        let top = self.stack_get_mut(0);
         if (*top) == ZERO {
             *top = ONE;
         } else {
