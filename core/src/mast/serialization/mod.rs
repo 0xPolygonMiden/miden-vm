@@ -270,7 +270,7 @@ impl Deserializable for MastForest {
             read_before_after_decorators(source, &mast_forest)?;
         for (node_id, decorator_ids) in after_exit_decorators {
             let node_id = MastNodeId::from_usize_safe(node_id, &mast_forest)?;
-            mast_forest.set_after_exit(node_id, decorator_ids);
+            mast_forest.append_after_exit(node_id, &decorator_ids);
         }
 
         Ok(mast_forest)

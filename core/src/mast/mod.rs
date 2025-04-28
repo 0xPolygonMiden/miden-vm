@@ -202,8 +202,8 @@ impl MastForest {
         self[node_id].append_before_enter(decorator_ids)
     }
 
-    pub fn set_after_exit(&mut self, node_id: MastNodeId, decorator_ids: Vec<DecoratorId>) {
-        self[node_id].set_after_exit(decorator_ids)
+    pub fn append_after_exit(&mut self, node_id: MastNodeId, decorator_ids: &[DecoratorId]) {
+        self[node_id].append_after_exit(decorator_ids)
     }
 
     /// Merges all `forests` into a new [`MastForest`].

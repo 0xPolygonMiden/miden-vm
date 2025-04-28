@@ -219,12 +219,12 @@ impl BasicBlockNode {
     }
 
     /// Sets the provided list of decorators to be executed after all existing decorators.
-    pub fn append_decorators(&mut self, decorator_ids: Vec<DecoratorId>) {
-        let after_last_op_idx = self.num_operations() as usize;
+    pub fn append_decorators(&mut self, decorator_ids: &[DecoratorId]) {
+        let mut new_decorators: DecoratorList =
+            decorator_ids.iter().map(|decorator_id| (0, *decorator_id)).collect();
+        new_decorators.extend(mem::take(&mut self.decorators));
 
-        self.decorators.extend(
-            decorator_ids.into_iter().map(|decorator_id| (after_last_op_idx, decorator_id)),
-        );
+        self.decorators = new_decorators;
     }
 
     /// Used to initialize decorators for the [`BasicBlockNode`]. Replaces the existing decorators

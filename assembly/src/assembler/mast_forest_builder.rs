@@ -508,8 +508,8 @@ impl MastForestBuilder {
         self.hash_by_node_id.insert(node_id, new_node_fingerprint);
     }
 
-    pub fn set_after_exit(&mut self, node_id: MastNodeId, decorator_ids: Vec<DecoratorId>) {
-        self.mast_forest[node_id].set_after_exit(decorator_ids);
+    pub fn append_after_exit(&mut self, node_id: MastNodeId, decorator_ids: &[DecoratorId]) {
+        self.mast_forest[node_id].append_after_exit(decorator_ids);
 
         let new_node_fingerprint = self.fingerprint_for_node(&self[node_id]);
         self.hash_by_node_id.insert(node_id, new_node_fingerprint);
