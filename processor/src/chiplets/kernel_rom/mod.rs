@@ -105,13 +105,13 @@ impl KernelRom {
             // write at least one row into the trace for each kernel procedure
             access_info.write_into_trace(trace, row, idx);
 
-            row += 1;
+            row += 1_u32;
 
             // if the procedure was accessed more than once, we need write a row and provide the
             // procedure to the bus per additional access
             for _ in 1..access_info.num_accesses {
                 access_info.write_into_trace(trace, row, idx);
-                row += 1;
+                row += 1_u32
             }
         }
     }

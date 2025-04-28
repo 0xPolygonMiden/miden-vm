@@ -1,12 +1,12 @@
 use criterion::{BatchSize, Criterion, criterion_group, criterion_main};
 use miden_vm::{Assembler, DefaultHost, StackInputs, internal::InputFile};
-use processor::{ExecutionOptions, execute};
+use processor::fast::FastProcessor;
 use stdlib::StdLibrary;
 use walkdir::WalkDir;
 
 /// Benchmark the execution of all the masm examples in the `masm-examples` directory.
-fn program_execution(c: &mut Criterion) {
-    let mut group = c.benchmark_group("program_execution");
+fn program_execution_fast(c: &mut Criterion) {
+    let mut group = c.benchmark_group("program_execution_fast");
 
     let masm_examples_dir = {
         let mut miden_dir = std::env::current_dir().unwrap();
@@ -44,22 +44,15 @@ fn program_execution(c: &mut Criterion) {
                 group.bench_function(file_stem, |bench| {
                     let mut assembler = Assembler::default();
                     assembler.add_library(StdLibrary::default()).expect("failed to load stdlib");
-                    let source_manager = assembler.source_manager();
-
                     let program = assembler
                         .assemble_program(&source)
                         .expect("Failed to compile test source.");
+                    let stack_inputs: Vec<_> = stack_inputs.iter().rev().copied().collect();
                     bench.iter_batched(
                         || host.clone(),
                         |mut host| {
-                            execute(
-                                &program,
-                                stack_inputs.clone(),
-                                &mut host,
-                                ExecutionOptions::default(),
-                                source_manager.clone(),
-                            )
-                            .unwrap()
+                            let speedy = FastProcessor::new(&stack_inputs);
+                            speedy.execute(&program, &mut host).unwrap();
                         },
                         BatchSize::SmallInput,
                     );
@@ -76,5 +69,5 @@ fn program_execution(c: &mut Criterion) {
     group.finish();
 }
 
-criterion_group!(benchmark, program_execution);
+criterion_group!(benchmark, program_execution_fast);
 criterion_main!(benchmark);

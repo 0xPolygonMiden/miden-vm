@@ -60,6 +60,8 @@ pub enum ExecutionError {
         err_code: u32,
         err_msg: Option<String>,
     },
+    #[error("failed to execute the program for internal reason: {0}")]
+    FailedToExecuteProgram(&'static str),
     #[error(
         "Updating FMP register from {0} to {1} failed because {1} is outside of {FMP_MIN}..{FMP_MAX}"
     )]

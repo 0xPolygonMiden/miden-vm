@@ -188,16 +188,30 @@ impl Add<RowIndex> for u32 {
     }
 }
 
+/// Adds a u32 value to a RowIndex in place.
+///
+/// # Panics
+///
+/// This function will panic if the internal value of the [`RowIndex`] would exceed the maximum
+/// value `u32::MAX`.
+impl AddAssign<u32> for RowIndex {
+    fn add_assign(&mut self, rhs: u32) {
+        self.0 += rhs;
+    }
+}
+
 /// Adds a usize value to a RowIndex in place.
 ///
 /// # Panics
 ///
-/// This function will panic if the number represented by the usize is greater than the maximum
-/// [`RowIndex`] value, `u32::MAX`.
+/// This function will panic if the internal value of the [`RowIndex`] would exceed the maximum
+/// value `u32::MAX`.
 impl AddAssign<usize> for RowIndex {
     fn add_assign(&mut self, rhs: usize) {
-        let rhs: RowIndex = rhs.into();
-        self.0 += rhs.0;
+        let rhs = u32::try_from(rhs)
+            .map_err(|_| RowIndexError::InvalidSize(format!("{rhs}_usize").into()))
+            .unwrap();
+        self.0 += rhs;
     }
 }
 
@@ -307,7 +321,7 @@ mod tests {
 
         // Add assign
         let mut step = RowIndex(5);
-        step += 5;
+        step += 5_u32;
         assert_eq!(step, 10);
     }
 

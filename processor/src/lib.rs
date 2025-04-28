@@ -10,11 +10,13 @@ use alloc::{sync::Arc, vec::Vec};
 use core::fmt::{Display, LowerHex};
 
 use errors::ErrorContext;
+use fast::FastProcessor;
 use miden_air::trace::{
     CHIPLETS_WIDTH, DECODER_TRACE_WIDTH, MIN_TRACE_LEN, RANGE_CHECK_TRACE_WIDTH, STACK_TRACE_WIDTH,
     SYS_TRACE_WIDTH,
 };
 pub use miden_air::{ExecutionOptions, ExecutionOptionsError, RowIndex};
+use utils::resolve_external_node;
 pub use vm_core::{
     AssemblyOp, EMPTY_WORD, Felt, Kernel, ONE, Operation, Program, ProgramInfo, QuadExtension,
     StackInputs, StackOutputs, Word, ZERO,
@@ -27,12 +29,14 @@ pub use vm_core::{
     utils::{DeserializationError, collections::KvMap},
 };
 use vm_core::{
-    Decorator, DecoratorIterator, FieldElement,
+    Decorator, DecoratorIterator, FieldElement, WORD_SIZE,
     mast::{
         BasicBlockNode, CallNode, DynNode, JoinNode, LoopNode, OP_GROUP_SIZE, OpBatch, SplitNode,
     },
 };
 pub use winter_prover::matrix::ColMatrix;
+
+pub mod fast;
 
 mod operations;
 
@@ -124,6 +128,22 @@ impl Display for MemoryAddress {
 impl LowerHex for MemoryAddress {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         LowerHex::fmt(&self.0, f)
+    }
+}
+
+impl core::ops::Add<MemoryAddress> for MemoryAddress {
+    type Output = Self;
+
+    fn add(self, rhs: MemoryAddress) -> Self::Output {
+        MemoryAddress(self.0 + rhs.0)
+    }
+}
+
+impl core::ops::Add<u32> for MemoryAddress {
+    type Output = Self;
+
+    fn add(self, rhs: u32) -> Self::Output {
+        MemoryAddress(self.0 + rhs)
     }
 }
 
@@ -325,22 +345,7 @@ impl Process {
             MastNode::Call(node) => self.execute_call_node(node, program, host)?,
             MastNode::Dyn(node) => self.execute_dyn_node(node, program, host)?,
             MastNode::External(external_node) => {
-                let node_digest = external_node.digest();
-                let mast_forest = host.get_mast_forest(&node_digest).ok_or(
-                    ExecutionError::NoMastForestWithProcedure { root_digest: node_digest },
-                )?;
-
-                // We limit the parts of the program that can be called externally to procedure
-                // roots, even though MAST doesn't have that restriction.
-                let root_id = mast_forest.find_procedure_root(node_digest).ok_or(
-                    ExecutionError::MalformedMastForestInHost { root_digest: node_digest },
-                )?;
-
-                // if the node that we got by looking up an external reference is also an External
-                // node, we are about to enter into an infinite loop - so, return an error
-                if mast_forest[root_id].is_external() {
-                    return Err(ExecutionError::CircularExternalNode(node_digest));
-                }
+                let (root_id, mast_forest) = resolve_external_node(external_node, host)?;
 
                 self.execute_mast_node(root_id, &mast_forest, host)?;
             },
@@ -710,31 +715,64 @@ impl Process {
 // ================================================================================================
 
 #[derive(Debug, Clone, Copy)]
-pub struct ProcessState<'a> {
+pub struct SlowProcessState<'a> {
     system: &'a System,
     stack: &'a Stack,
     chiplets: &'a Chiplets,
 }
 
-impl ProcessState<'_> {
+#[derive(Debug, Clone, Copy)]
+pub struct FastProcessState<'a> {
+    processor: &'a FastProcessor,
+    /// the index of the operation in its basic block
+    op_idx: usize,
+}
+
+#[derive(Debug, Clone, Copy)]
+pub enum ProcessState<'a> {
+    Slow(SlowProcessState<'a>),
+    Fast(FastProcessState<'a>),
+}
+
+impl<'a> ProcessState<'a> {
+    pub fn new_fast(processor: &'a FastProcessor, op_idx: usize) -> Self {
+        Self::Fast(FastProcessState { processor, op_idx })
+    }
+
     /// Returns the current clock cycle of a process.
+    #[inline(always)]
     pub fn clk(&self) -> RowIndex {
-        self.system.clk()
+        match self {
+            ProcessState::Slow(state) => state.system.clk(),
+            ProcessState::Fast(state) => state.processor.clk + state.op_idx,
+        }
     }
 
     /// Returns the current execution context ID.
+    #[inline(always)]
     pub fn ctx(&self) -> ContextId {
-        self.system.ctx()
+        match self {
+            ProcessState::Slow(state) => state.system.ctx(),
+            ProcessState::Fast(state) => state.processor.ctx,
+        }
     }
 
     /// Returns the current value of the free memory pointer.
+    #[inline(always)]
     pub fn fmp(&self) -> u64 {
-        self.system.fmp().as_int()
+        match self {
+            ProcessState::Slow(state) => state.system.fmp().as_int(),
+            ProcessState::Fast(state) => state.processor.fmp.as_int(),
+        }
     }
 
     /// Returns the value located at the specified position on the stack at the current clock cycle.
+    #[inline(always)]
     pub fn get_stack_item(&self, pos: usize) -> Felt {
-        self.stack.get(pos)
+        match self {
+            ProcessState::Slow(state) => state.stack.get(pos),
+            ProcessState::Fast(state) => state.processor.stack_get(pos),
+        }
     }
 
     /// Returns a word located at the specified word index on the stack.
@@ -747,28 +785,48 @@ impl ProcessState<'_> {
     /// stack will be at the last position in the word.
     ///
     /// Creating a word does not change the state of the stack.
+    #[inline(always)]
     pub fn get_stack_word(&self, word_idx: usize) -> Word {
-        self.stack.get_word(word_idx)
+        match self {
+            ProcessState::Slow(state) => state.stack.get_word(word_idx),
+            ProcessState::Fast(state) => state.processor.stack_get_word(word_idx * WORD_SIZE),
+        }
     }
 
     /// Returns stack state at the current clock cycle. This includes the top 16 items of the
     /// stack + overflow entries.
+    #[inline(always)]
     pub fn get_stack_state(&self) -> Vec<Felt> {
-        self.stack.get_state_at(self.system.clk())
+        match self {
+            ProcessState::Slow(state) => state.stack.get_state_at(state.system.clk()),
+            ProcessState::Fast(state) => state.processor.stack().iter().rev().copied().collect(),
+        }
     }
 
     /// Returns the element located at the specified context/address, or None if the address hasn't
     /// been accessed previously.
+    #[inline(always)]
     pub fn get_mem_value(&self, ctx: ContextId, addr: u32) -> Option<Felt> {
-        self.chiplets.memory.get_value(ctx, addr)
+        match self {
+            ProcessState::Slow(state) => state.chiplets.memory.get_value(ctx, addr),
+            ProcessState::Fast(state) => state.processor.memory.read_element_impl(ctx, addr),
+        }
     }
 
     /// Returns the batch of elements starting at the specified context/address.
     ///
     /// # Errors
     /// - If the address is not word aligned.
+    #[inline(always)]
     pub fn get_mem_word(&self, ctx: ContextId, addr: u32) -> Result<Option<Word>, ExecutionError> {
-        self.chiplets.memory.get_word(ctx, addr).map_err(ExecutionError::MemoryError)
+        match self {
+            ProcessState::Slow(state) => {
+                state.chiplets.memory.get_word(ctx, addr).map_err(ExecutionError::MemoryError)
+            },
+            ProcessState::Fast(state) => {
+                Ok(state.processor.memory.read_word_impl(ctx, addr, None)?.copied())
+            },
+        }
     }
 
     /// Returns the entire memory state for the specified execution context at the current clock
@@ -776,27 +834,36 @@ impl ProcessState<'_> {
     ///
     /// The state is returned as a vector of (address, value) tuples, and includes addresses which
     /// have been accessed at least once.
+    #[inline(always)]
     pub fn get_mem_state(&self, ctx: ContextId) -> Vec<(MemoryAddress, Felt)> {
-        self.chiplets.memory.get_state_at(ctx, self.system.clk())
+        match self {
+            ProcessState::Slow(state) => {
+                state.chiplets.memory.get_state_at(ctx, state.system.clk())
+            },
+            ProcessState::Fast(state) => state.processor.memory.get_memory_state(ctx),
+        }
     }
 }
 
+// CONVERSIONS
+// ===============================================================================================
+
 impl<'a> From<&'a Process> for ProcessState<'a> {
     fn from(process: &'a Process) -> Self {
-        Self {
+        Self::Slow(SlowProcessState {
             system: &process.system,
             stack: &process.stack,
             chiplets: &process.chiplets,
-        }
+        })
     }
 }
 
 impl<'a> From<&'a mut Process> for ProcessState<'a> {
     fn from(process: &'a mut Process) -> Self {
-        Self {
+        Self::Slow(SlowProcessState {
             system: &process.system,
             stack: &process.stack,
             chiplets: &process.chiplets,
-        }
+        })
     }
 }

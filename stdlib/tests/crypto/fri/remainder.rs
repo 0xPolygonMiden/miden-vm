@@ -71,7 +71,7 @@ fn test_decorator_ext2intt(in_poly_len: usize, blowup: usize) {
     ",
         eval_mem_req,
         eval_mem_req - 4,
-        eval_mem_req,
+        eval_mem_req / 4,
         eval_len,
         in_poly_len,
         out_mem_req,
