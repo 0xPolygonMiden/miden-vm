@@ -34,7 +34,7 @@ impl FastProcessor {
 
     /// Analogous to `Process::op_inc`.
     pub fn op_incr(&mut self) -> Result<(), ExecutionError> {
-        self.stack[self.stack_top_idx - 1] += ONE;
+        *self.stack_get_mut(0) += ONE;
         Ok(())
     }
 
