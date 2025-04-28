@@ -89,9 +89,9 @@ impl FastProcessor {
 
     /// Analogous to `Process::op_expacc`.
     pub fn op_expacc(&mut self) {
-        let old_base = self.stack[self.stack_top_idx - 2];
-        let old_acc = self.stack[self.stack_top_idx - 3];
-        let old_exp_int = self.stack[self.stack_top_idx - 4].as_int();
+        let old_base = self.stack_get(1);
+        let old_acc = self.stack_get(2);
+        let old_exp_int = self.stack_get(3).as_int();
 
         // Compute new exponent.
         let new_exp = Felt::new(old_exp_int >> 1);
@@ -105,10 +105,10 @@ impl FastProcessor {
         // Compute the new base.
         let new_base = old_base * old_base;
 
-        self.stack[self.stack_top_idx - 1] = Felt::new(exp_lsb);
-        self.stack[self.stack_top_idx - 2] = new_base;
-        self.stack[self.stack_top_idx - 3] = new_acc;
-        self.stack[self.stack_top_idx - 4] = new_exp;
+        self.stack_write(0, Felt::new(exp_lsb));
+        self.stack_write(1, new_base);
+        self.stack_write(2, new_acc);
+        self.stack_write(3, new_exp);
     }
 
     /// Analogous to `Process::op_ext2mul`.
