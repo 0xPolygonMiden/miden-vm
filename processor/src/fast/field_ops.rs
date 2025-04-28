@@ -12,7 +12,8 @@ impl FastProcessor {
 
     /// Analogous to `Process::op_neg`.
     pub fn op_neg(&mut self) -> Result<(), ExecutionError> {
-        self.stack[self.stack_top_idx - 1] = -self.stack[self.stack_top_idx - 1];
+        let element = self.stack_get(0);
+        self.stack_write(0, -element);
         Ok(())
     }
 
