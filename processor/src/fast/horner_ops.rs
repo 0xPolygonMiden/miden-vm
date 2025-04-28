@@ -22,8 +22,10 @@ impl FastProcessor {
         // compute the updated accumulator value
         let (acc_new1, acc_new0) = {
             let acc_old = self.get_accumulator();
-            let acc_new =
-                coeffs.iter().rev().fold(acc_old, |acc, coef| QuadFelt::from(*coef) + alpha * acc);
+            let acc_new = coeffs
+                .iter()
+                .rev()
+                .fold(acc_old, |acc, coef| QuadFelt::from(*coef) + alpha * acc);
 
             let acc_new_base_elements = acc_new.to_base_elements();
 

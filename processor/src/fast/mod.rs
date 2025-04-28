@@ -214,6 +214,12 @@ impl FastProcessor {
         self.stack[self.stack_top_idx - idx - 1]
     }
 
+    /// Mutable variant of `stack_get()`.
+    #[inline(always)]
+    pub fn stack_get_mut(&mut self, idx: usize) -> &mut Felt {
+        &mut self.stack[self.stack_top_idx - idx - 1]
+    }
+
     /// Returns the word on the stack starting at index `start_idx`.
     ///
     /// For example,
@@ -228,6 +234,27 @@ impl FastProcessor {
 
         let word_start_idx = self.stack_top_idx - start_idx - 4;
         self.stack[range(word_start_idx, WORD_SIZE)].try_into().unwrap()
+    }
+
+    // MUTATORS
+    // -------------------------------------------------------------------------------------------
+
+    /// Writes an element to the stack at the given index.
+    #[inline(always)]
+    pub fn stack_write(&mut self, idx: usize, element: Felt) -> Felt {
+        *self.stack[self.stack_top_idx - idx - 1] = element
+    }
+
+    /// Writes a word to the stack starting at the given index.
+    ///
+    /// The index is the index of the first element of the word, and the word is written in reverse
+    /// order.
+    #[inline(always)]
+    pub fn stack_write_word(&mut self, start_idx: usize, word: &Word) {
+        debug_assert!(start_idx < MIN_STACK_DEPTH);
+
+        let word_start_idx = self.stack_top_idx - start_idx - 4;
+        self.stack[range(word_start_idx, WORD_SIZE)].copy_from_slice(word)
     }
 
     // EXECUTE
