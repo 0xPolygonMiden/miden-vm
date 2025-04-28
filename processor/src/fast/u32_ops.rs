@@ -29,9 +29,9 @@ impl FastProcessor {
     /// The size of the stack is decremented by 1.
     pub fn op_u32add3(&mut self) -> Result<(), ExecutionError> {
         let (sum_hi, sum_lo) = {
-            let c = self.stack[self.stack_top_idx - 1].as_int();
-            let b = self.stack[self.stack_top_idx - 2].as_int();
-            let a = self.stack[self.stack_top_idx - 3].as_int();
+            let c = self.stack_get(0).as_int();
+            let b = self.stack_get(1).as_int();
+            let a = self.stack_get(2).as_int();
 
             // Check that a, b, and c are u32 values.
             if a > u32::MAX as u64 {
@@ -48,10 +48,9 @@ impl FastProcessor {
         };
 
         // write the high 32 bits to the new top of the stack, and low 32 bits after
-        self.stack[self.stack_top_idx - 2] = sum_hi;
-        self.stack[self.stack_top_idx - 3] = sum_lo;
-
         self.decrement_stack_size();
+        self.stack_write(0, sum_hi);
+        self.stack_write(1, sum_lo);
         Ok(())
     }
 
@@ -143,8 +142,8 @@ impl FastProcessor {
         &mut self,
         f: impl FnOnce(u64, u64) -> u64,
     ) -> Result<(), ExecutionError> {
-        let b = self.stack[self.stack_top_idx - 1].as_int();
-        let a = self.stack[self.stack_top_idx - 2].as_int();
+        let b = self.stack_get(0).as_int();
+        let a = self.stack_get(1).as_int();
 
         // Check that a and b are u32 values.
         if b > u32::MAX as u64 {
