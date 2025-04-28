@@ -76,9 +76,9 @@ impl FastProcessor {
     /// back onto the stack.
     pub fn op_u32madd(&mut self) -> Result<(), ExecutionError> {
         let (result_hi, result_lo) = {
-            let b = self.stack[self.stack_top_idx - 1].as_int();
-            let a = self.stack[self.stack_top_idx - 2].as_int();
-            let c = self.stack[self.stack_top_idx - 3].as_int();
+            let b = self.stack_get(0).as_int();
+            let a = self.stack_get(1).as_int();
+            let c = self.stack_get(2).as_int();
 
             // Check that a, b, and c are u32 values.
             if b > u32::MAX as u64 {
