@@ -1,3 +1,5 @@
+use core::array;
+
 use vm_core::Felt;
 
 use super::FastProcessor;
@@ -33,8 +35,8 @@ impl FastProcessor {
         };
 
         // Update the accumulator values
-        self.stack_write(ACC_HIGH_INDEX,  acc_new1);
-        self.stack_write(ACC_LOW_INDEX,  acc_new0);
+        self.stack_write(ACC_HIGH_INDEX, acc_new1);
+        self.stack_write(ACC_LOW_INDEX, acc_new0);
 
         Ok(())
     }
@@ -42,7 +44,7 @@ impl FastProcessor {
     /// Analogous to `Process::op_horner_eval_ext`.
     pub fn op_horner_eval_ext(&mut self, op_idx: usize) -> Result<(), ExecutionError> {
         // read the values of the coefficients, over the base field, from the stack
-        let coef = self.get_coeff_as_quad_ext_elements();
+        let coef = self.get_coeffs_as_quad_ext_elements();
 
         // read the evaluation point alpha from memory
         let alpha = self.get_evaluation_point(op_idx)?;
@@ -86,6 +88,7 @@ impl FastProcessor {
             QuadFelt::new(c2[1], c2[0]),
             QuadFelt::new(c3[1], c3[0]),
         ]
+    }
 
     /// Returns the evaluation point.
     fn get_evaluation_point(&mut self, op_idx: usize) -> Result<QuadFelt, ExecutionError> {
