@@ -12,6 +12,8 @@ impl FastProcessor {
         self.increment_stack_size();
         self.stack_write(0, hi);
         self.stack_write(1, lo);
+
+        Ok(())
     }
 
     /// Analogous to `Process::op_u32add`.

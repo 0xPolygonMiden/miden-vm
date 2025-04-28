@@ -42,7 +42,7 @@ impl FastProcessor {
 
         let new_fmp = self.fmp + top;
         let new_fmp_int = new_fmp.as_int();
-        if new_fmp_int < FMP_MIN || new_fmp_int > FMP_MAX {
+        if !(FMP_MIN..=FMP_MAX).contains(&new_fmp_int) {
             return Err(ExecutionError::InvalidFmpValue(self.fmp, new_fmp));
         }
 
