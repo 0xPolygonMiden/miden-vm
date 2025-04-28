@@ -13,8 +13,8 @@ impl FastProcessor {
     /// Analogous to `Process::op_advpop`.
     pub fn op_advpop(&mut self, op_idx: usize, host: &mut impl Host) -> Result<(), ExecutionError> {
         let value = host.advice_provider_mut().pop_stack(ProcessState::new_fast(self, op_idx))?;
-        self.stack[self.stack_top_idx] = value;
         self.increment_stack_size();
+        self.stack_write(0, value);
         Ok(())
     }
 
