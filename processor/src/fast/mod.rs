@@ -220,14 +220,24 @@ impl FastProcessor {
         &mut self.stack[self.stack_top_idx - idx - 1]
     }
 
-    /// Returns the word on the stack starting at index `start_idx`.
+    /// Returns the word on the stack starting at index `start_idx` in "stack order".
+    /// 
+    /// That is, for `start_idx=0` the top element of the stack will be at the last position in the
+    /// word.
     ///
-    /// For example,
-    /// - `start_idx=0` will return the word starting at the top of the stack,
-    /// - `start_idx=1` will return the word 1 element from the top of the stack, etc.
+    /// For example, if the stack looks like this:
+    /// 
+    /// ```
+    /// top                                                       bottom
+    /// v                                                           v
+    /// a | b | c | d | e | f | g | h | i | j | k | l | m | n | o | p
+    /// ```
+    /// 
+    /// Then 
+    /// - `stack_get_word(0)` returns `[d, c, b, a]`, 
+    /// - `stack_get_word(1)` returns `[e, d, c ,b]`, 
+    /// - etc.
     ///
-    /// The words are created in reverse order. For example, for `start_idx=0` the top element of
-    /// the stack will be at the last position in the word.
     #[inline(always)]
     pub fn stack_get_word(&self, start_idx: usize) -> Word {
         debug_assert!(start_idx < MIN_STACK_DEPTH);
