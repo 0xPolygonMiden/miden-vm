@@ -6,8 +6,8 @@ use crate::ExecutionError;
 impl FastProcessor {
     /// Analogous to `Process::op_pad`.
     pub fn op_pad(&mut self) {
-        self.stack[self.stack_top_idx] = ZERO;
         self.increment_stack_size();
+        self.stack_write(0, ZERO);
     }
 
     /// Analogous to `Process::op_swap`.
