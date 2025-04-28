@@ -95,10 +95,9 @@ impl FastProcessor {
         };
 
         // write the high 32 bits to the new top of the stack, and low 32 bits after
-        self.stack[self.stack_top_idx - 2] = result_hi;
-        self.stack[self.stack_top_idx - 3] = result_lo;
-
         self.decrement_stack_size();
+        self.stack_write(0, result_hi);
+        self.stack_write(1, result_lo);
         Ok(())
     }
 
