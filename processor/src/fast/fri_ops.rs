@@ -97,14 +97,8 @@ impl FastProcessor {
     /// Returns 4 query values in the source domain. These values are to be folded into a single
     /// value in the folded domain.
     fn get_query_values(&self) -> [QuadFelt; 4] {
-        let v7 = self.stack[self.stack_top_idx - 1];
-        let v6 = self.stack[self.stack_top_idx - 2];
-        let v5 = self.stack[self.stack_top_idx - 3];
-        let v4 = self.stack[self.stack_top_idx - 4];
-        let v3 = self.stack[self.stack_top_idx - 5];
-        let v2 = self.stack[self.stack_top_idx - 6];
-        let v1 = self.stack[self.stack_top_idx - 7];
-        let v0 = self.stack[self.stack_top_idx - 8];
+        let [v4, v5, v6, v7] = self.stack_get_word(0);
+        let [v0, v1, v2, v3] = self.stack_get_word(4);
 
         [
             QuadFelt::new(v0, v1),
