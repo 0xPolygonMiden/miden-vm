@@ -74,23 +74,18 @@ impl FastProcessor {
     }
 
     /// Returns the top 8 elements of the operand stack.
-    fn get_coeff_as_quad_ext_elements(&self) -> [QuadFelt; 4] {
-        let c0_1 = self.stack[self.stack_top_idx - 1];
-        let c0_0 = self.stack[self.stack_top_idx - 2];
-        let c1_1 = self.stack[self.stack_top_idx - 3];
-        let c1_0 = self.stack[self.stack_top_idx - 4];
-        let c2_1 = self.stack[self.stack_top_idx - 5];
-        let c2_0 = self.stack[self.stack_top_idx - 6];
-        let c3_1 = self.stack[self.stack_top_idx - 7];
-        let c3_0 = self.stack[self.stack_top_idx - 8];
+    fn get_coeffs_as_quad_ext_elements(&self) -> [QuadFelt; 4] {
+        let c0 = [self.stack_get(0), self.stack_get(1)];
+        let c1 = [self.stack_get(2), self.stack_get(3)];
+        let c2 = [self.stack_get(4), self.stack_get(5)];
+        let c3 = [self.stack_get(6), self.stack_get(7)];
 
         [
-            QuadFelt::new(c0_0, c0_1),
-            QuadFelt::new(c1_0, c1_1),
-            QuadFelt::new(c2_0, c2_1),
-            QuadFelt::new(c3_0, c3_1),
+            QuadFelt::new(c0[1], c0[0]),
+            QuadFelt::new(c1[1], c1[0]),
+            QuadFelt::new(c2[1], c2[0]),
+            QuadFelt::new(c3[1], c3[0]),
         ]
-    }
 
     /// Returns the evaluation point.
     fn get_evaluation_point(&mut self, op_idx: usize) -> Result<QuadFelt, ExecutionError> {
