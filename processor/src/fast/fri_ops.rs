@@ -23,25 +23,25 @@ impl FastProcessor {
     pub fn op_fri_ext2fold4(&mut self) -> Result<(), ExecutionError> {
         // --- read all relevant variables from the stack ---------------------
         let query_values = self.get_query_values();
-        let folded_pos = self.stack[self.stack_top_idx - 9];
+        let folded_pos = self.stack_get(8);
         // the segment identifier of the position in the source domain
-        let domain_segment = self.stack[self.stack_top_idx - 10].as_int();
+        let domain_segment = self.stack_get(9).as_int();
         // the power of the domain generator which can be used to determine current domain value x
-        let poe = self.stack[self.stack_top_idx - 11];
+        let poe = self.stack_get(10);
         // the result of the previous layer folding
         let prev_value = {
-            let pe1 = self.stack[self.stack_top_idx - 12];
-            let pe0 = self.stack[self.stack_top_idx - 13];
+            let pe1 = self.stack_get(11);
+            let pe0 = self.stack_get(12);
             QuadFelt::new(pe0, pe1)
         };
         // the verifier challenge for the current layer
         let alpha = {
-            let a1 = self.stack[self.stack_top_idx - 14];
-            let a0 = self.stack[self.stack_top_idx - 15];
+            let a1 = self.stack_get(13);
+            let a0 = self.stack_get(14);
             QuadFelt::new(a0, a1)
         };
         // the memory address of the current layer
-        let layer_ptr = self.stack[self.stack_top_idx - 16];
+        let layer_ptr = self.stack_get(15);
 
         // --- make sure the previous folding was done correctly --------------
         if domain_segment > 3 {
@@ -70,23 +70,20 @@ impl FastProcessor {
         let poe2 = poe.square();
         let poe4 = poe2.square();
 
-        self.stack[self.stack_top_idx - 2] = tmp0[1];
-        self.stack[self.stack_top_idx - 3] = tmp0[0];
-        self.stack[self.stack_top_idx - 4] = tmp1[1];
-        self.stack[self.stack_top_idx - 5] = tmp1[0];
-        self.stack[self.stack_top_idx - 6] = ds[3];
-        self.stack[self.stack_top_idx - 7] = ds[2];
-        self.stack[self.stack_top_idx - 8] = ds[1];
-        self.stack[self.stack_top_idx - 9] = ds[0];
-        self.stack[self.stack_top_idx - 10] = poe2;
-        self.stack[self.stack_top_idx - 11] = f_tau;
-        self.stack[self.stack_top_idx - 12] = layer_ptr + EIGHT;
-        self.stack[self.stack_top_idx - 13] = poe4;
-        self.stack[self.stack_top_idx - 14] = folded_pos;
-        self.stack[self.stack_top_idx - 15] = folded_value[1];
-        self.stack[self.stack_top_idx - 16] = folded_value[0];
-
         self.decrement_stack_size();
+        
+        self.stack_write(0, tmp0[1]);
+        self.stack_write(1, tmp0[0]);
+        self.stack_write(2, tmp1[1]);
+        self.stack_write(3, tmp1[0]);
+        self.stack_write_word(4, &ds);
+        self.stack_write(8, poe2);
+        self.stack_write(9, f_tau);
+        self.stack_write(10, layer_ptr + EIGHT);
+        self.stack_write(11, poe4);
+        self.stack_write(12, folded_pos);
+        self.stack_write(13, folded_value[1]);
+        self.stack_write(14, folded_value[0]);
 
         Ok(())
     }
