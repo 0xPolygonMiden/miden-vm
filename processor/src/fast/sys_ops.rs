@@ -38,7 +38,7 @@ impl FastProcessor {
 
     /// Analogous to `Process::op_fmpupdate`.
     pub fn op_fmpupdate(&mut self) -> Result<(), ExecutionError> {
-        let top = self.stack[self.stack_top_idx - 1];
+        let top = self.stack_get(0);
 
         let new_fmp = self.fmp + top;
         let new_fmp_int = new_fmp.as_int();
