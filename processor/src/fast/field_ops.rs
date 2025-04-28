@@ -119,10 +119,7 @@ impl FastProcessor {
     /// the first and second positions on the stack, c1 and c2 to the third and fourth positions,
     /// and leaves the rest of the stack unchanged.
     pub fn op_ext2mul(&mut self) {
-        let b1 = self.stack[self.stack_top_idx - 1];
-        let b0 = self.stack[self.stack_top_idx - 2];
-        let a1 = self.stack[self.stack_top_idx - 3];
-        let a0 = self.stack[self.stack_top_idx - 4];
+        let [a0, a1, b0, b1] = self.stack_get_word(0);
 
         /* top 2 elements remain unchanged */
 
