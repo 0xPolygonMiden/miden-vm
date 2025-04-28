@@ -221,23 +221,22 @@ impl FastProcessor {
     }
 
     /// Returns the word on the stack starting at index `start_idx` in "stack order".
-    /// 
+    ///
     /// That is, for `start_idx=0` the top element of the stack will be at the last position in the
     /// word.
     ///
     /// For example, if the stack looks like this:
-    /// 
+    ///
     /// ```
     /// top                                                       bottom
     /// v                                                           v
     /// a | b | c | d | e | f | g | h | i | j | k | l | m | n | o | p
     /// ```
-    /// 
-    /// Then 
-    /// - `stack_get_word(0)` returns `[d, c, b, a]`, 
-    /// - `stack_get_word(1)` returns `[e, d, c ,b]`, 
-    /// - etc.
     ///
+    /// Then
+    /// - `stack_get_word(0)` returns `[d, c, b, a]`,
+    /// - `stack_get_word(1)` returns `[e, d, c ,b]`,
+    /// - etc.
     #[inline(always)]
     pub fn stack_get_word(&self, start_idx: usize) -> Word {
         debug_assert!(start_idx < MIN_STACK_DEPTH);

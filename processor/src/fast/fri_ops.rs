@@ -71,7 +71,7 @@ impl FastProcessor {
         let poe4 = poe2.square();
 
         self.decrement_stack_size();
-        
+
         self.stack_write(0, tmp0[1]);
         self.stack_write(1, tmp0[0]);
         self.stack_write(2, tmp1[1]);
