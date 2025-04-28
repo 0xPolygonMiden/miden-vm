@@ -60,9 +60,14 @@ impl FastProcessor {
 
     /// Analogous to `Process::op_not`.
     pub fn op_not(&mut self) -> Result<(), ExecutionError> {
-        let top = &mut self.stack[self.stack_top_idx - 1];
-        assert_binary(*top)?;
-        *top = ONE - *top;
+        let top = self.stack_get_mut(0);
+        if *top == ZERO {
+            *top = ONE;
+        } else if *top == ONE {
+            *top = ZERO;
+        } else {
+            return Err(ExecutionError::NotBinaryValue(*top));
+        }
         Ok(())
     }
 
