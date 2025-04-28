@@ -53,8 +53,8 @@ impl FastProcessor {
     /// Analogous to `Process::op_sdepth`.
     pub fn op_sdepth(&mut self) {
         let depth = (self.stack_top_idx - self.stack_bot_idx) as u32;
-        self.stack[self.stack_top_idx] = depth.into();
         self.increment_stack_size();
+        self.stack_write(0, depth.into());
     }
 
     /// Analogous to `Process::op_caller`.
