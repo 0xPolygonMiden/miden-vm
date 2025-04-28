@@ -61,26 +61,11 @@ impl FastProcessor {
     /// Analogous to `Process::op_mrupdate`.
     pub fn op_mrupdate(&mut self, host: &mut impl Host) -> Result<(), ExecutionError> {
         // read old node value, depth, index, tree root and new node values from the stack
-        let old_node = [
-            self.stack[self.stack_top_idx - 4],
-            self.stack[self.stack_top_idx - 3],
-            self.stack[self.stack_top_idx - 2],
-            self.stack[self.stack_top_idx - 1],
-        ];
-        let depth = self.stack[self.stack_top_idx - 5];
-        let index = self.stack[self.stack_top_idx - 6];
-        let old_root = [
-            self.stack[self.stack_top_idx - 10],
-            self.stack[self.stack_top_idx - 9],
-            self.stack[self.stack_top_idx - 8],
-            self.stack[self.stack_top_idx - 7],
-        ];
-        let new_node = [
-            self.stack[self.stack_top_idx - 14],
-            self.stack[self.stack_top_idx - 13],
-            self.stack[self.stack_top_idx - 12],
-            self.stack[self.stack_top_idx - 11],
-        ];
+        let old_node = self.stack_get_word(0);
+        let depth = self.stack_get(4);
+        let index = self.stack_get(5);
+        let old_root = self.stack_get_word(6);
+        let new_node = self.stack_get_word(10);
 
         // update the node at the specified index in the Merkle tree specified by the old root, and
         // get a Merkle path to it. The length of the returned path is expected to match the
