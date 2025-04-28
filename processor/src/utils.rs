@@ -66,9 +66,9 @@ pub(crate) fn resolve_external_node(
 
     // We limit the parts of the program that can be called externally to procedure
     // roots, even though MAST doesn't have that restriction.
-    let root_id = mast_forest
-        .find_procedure_root(node_digest)
-        .ok_or(ExecutionError::MalformedMastForestInHost { root_digest: node_digest })?;
+    let root_id = mast_forest.find_procedure_root(node_digest).ok_or(
+        ExecutionError::malfored_mast_forest_in_host(node_digest, &ErrorContext::default()),
+    )?;
 
     // if the node that we got by looking up an external reference is also an External
     // node, we are about to enter into an infinite loop - so, return an error

@@ -173,7 +173,13 @@ pub enum ExecutionError {
     #[error(
         "MAST forest in host indexed by procedure root {root_digest} doesn't contain that root"
     )]
-    MalformedMastForestInHost { root_digest: Digest },
+    MalformedMastForestInHost {
+        #[label]
+        label: SourceSpan,
+        #[source_code]
+        source_file: Option<Arc<SourceFile>>,
+        root_digest: Digest,
+    },
     #[error("node id {node_id} does not exist in MAST forest")]
     MastNodeNotFoundInForest { node_id: MastNodeId },
     #[error(transparent)]
@@ -338,6 +344,14 @@ impl ExecutionError {
     pub fn log_argument_zero(clk: RowIndex, err_ctx: &ErrorContext<'_, impl MastNodeExt>) -> Self {
         let (label, source_file) = err_ctx.label_and_source_file();
         Self::LogArgumentZero { label, source_file, clk }
+    }
+
+    pub fn malfored_mast_forest_in_host(
+        root_digest: Digest,
+        err_ctx: &ErrorContext<'_, impl MastNodeExt>,
+    ) -> Self {
+        let (label, source_file) = err_ctx.label_and_source_file();
+        Self::MalformedMastForestInHost { label, source_file, root_digest }
     }
 
     pub fn malformed_signature_key(

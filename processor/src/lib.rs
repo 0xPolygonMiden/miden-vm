@@ -519,7 +519,10 @@ impl Process {
                 // We limit the parts of the program that can be called externally to procedure
                 // roots, even though MAST doesn't have that restriction.
                 let root_id = mast_forest.find_procedure_root(callee_hash.into()).ok_or(
-                    ExecutionError::MalformedMastForestInHost { root_digest: callee_hash.into() },
+                    ExecutionError::malfored_mast_forest_in_host(
+                        callee_hash.into(),
+                        &ErrorContext::default(),
+                    ),
                 )?;
 
                 self.execute_mast_node(root_id, &mast_forest, host)?
@@ -897,7 +900,8 @@ fn add_error_ctx_to_external_error(
         Ok(_) => Ok(()),
         // Add context information to any errors coming from executing an `ExternalNode`
         Err(err) => match err {
-            ExecutionError::NoMastForestWithProcedure { label, source_file: _, root_digest } => {
+            ExecutionError::NoMastForestWithProcedure { label, source_file: _, root_digest }
+            | ExecutionError::MalformedMastForestInHost { label, source_file: _, root_digest } => {
                 if label == SourceSpan::UNKNOWN {
                     let err_with_ctx =
                         ExecutionError::no_mast_forest_with_procedure(root_digest, &err_ctx);
