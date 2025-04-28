@@ -223,7 +223,7 @@ impl BasicBlockNode {
         let after_last_op_idx = self.num_operations() as usize;
 
         self.decorators.extend(
-            decorator_ids.into_iter().map(|&decorator_id| (after_last_op_idx, decorator_id)),
+            decorator_ids.iter().map(|&decorator_id| (after_last_op_idx, decorator_id)),
         );
     }
 
