@@ -155,8 +155,8 @@ impl FastProcessor {
         }
 
         let result = f(a, b);
-        self.stack[self.stack_top_idx - 2] = Felt::new(result);
         self.decrement_stack_size();
+        self.stack_write(0, Felt::new(result));
 
         Ok(())
     }
