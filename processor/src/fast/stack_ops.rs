@@ -71,9 +71,9 @@ impl FastProcessor {
     /// The size of the stack is incremented by 1.
     #[inline(always)]
     pub fn dup_nth(&mut self, n: usize) {
-        let to_dup_index = self.stack_top_idx - n - 1;
-        self.stack[self.stack_top_idx] = self.stack[to_dup_index];
+        let to_dup = self.stack_get(n);
         self.increment_stack_size();
+        self.stack_write(0, to_dup);
     }
 
     /// Swaps the nth word from the top of the stack with the top word of the stack.
