@@ -58,8 +58,8 @@ impl FastProcessor {
         };
 
         // Update the accumulator values
-        self.stack[self.stack_top_idx - 1 - ACC_HIGH_INDEX] = acc_new1;
-        self.stack[self.stack_top_idx - 1 - ACC_LOW_INDEX] = acc_new0;
+        self.stack_write(ACC_HIGH_INDEX, acc_new1);
+        self.stack_write(ACC_LOW_INDEX, acc_new0);
 
         Ok(())
     }
