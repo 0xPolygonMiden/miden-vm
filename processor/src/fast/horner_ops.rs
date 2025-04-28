@@ -14,7 +14,7 @@ impl FastProcessor {
     /// Analogous to `Process::op_horner_eval_base`.
     pub fn op_horner_eval_base(&mut self, op_idx: usize) -> Result<(), ExecutionError> {
         // read the values of the coefficients, over the base field, from the stack
-        let coef = self.get_coeff_as_base_elements();
+        let coeffs = self.get_coeffs_as_base_elements();
 
         // read the evaluation point alpha from memory
         let alpha = self.get_evaluation_point(op_idx)?;
@@ -23,7 +23,7 @@ impl FastProcessor {
         let (acc_new1, acc_new0) = {
             let acc_old = self.get_accumulator();
             let acc_new =
-                coef.iter().rev().fold(acc_old, |acc, coef| QuadFelt::from(*coef) + alpha * acc);
+                coeffs.iter().rev().fold(acc_old, |acc, coef| QuadFelt::from(*coef) + alpha * acc);
 
             let acc_new_base_elements = acc_new.to_base_elements();
 
@@ -67,7 +67,7 @@ impl FastProcessor {
 
     /// Returns the top 8 elements of the operand stack, such that the element on top of the stack
     /// appears first in the return array.
-    fn get_coeff_as_base_elements(&self) -> [Felt; 8] {
+    fn get_coeffs_as_base_elements(&self) -> [Felt; 8] {
         let c0 = self.stack[self.stack_top_idx - 1];
         let c1 = self.stack[self.stack_top_idx - 2];
         let c2 = self.stack[self.stack_top_idx - 3];
