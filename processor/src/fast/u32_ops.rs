@@ -190,8 +190,8 @@ impl FastProcessor {
         let result = Felt::new(f(a, b));
         let (hi, lo) = split_element(result);
 
-        self.stack[self.stack_top_idx - 2] = lo;
-        self.stack[self.stack_top_idx - 1] = hi;
+        self.stack_write(0, hi);
+        self.stack_write(1, lo);
         Ok(())
     }
 
