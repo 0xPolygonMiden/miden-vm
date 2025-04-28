@@ -1,5 +1,7 @@
+use vm_core::mast::MastNodeExt;
+
 use super::{ExecutionError, MIN_STACK_DEPTH, Process};
-use crate::ZERO;
+use crate::{ErrorContext, ZERO};
 
 impl Process {
     // STACK MANIPULATION
@@ -228,7 +230,10 @@ impl Process {
     ///
     /// # Errors
     /// Returns an error if the top element of the stack is neither 0 nor 1.
-    pub(super) fn op_cswap(&mut self) -> Result<(), ExecutionError> {
+    pub(super) fn op_cswap(
+        &mut self,
+        err_ctx: &ErrorContext<'_, impl MastNodeExt>,
+    ) -> Result<(), ExecutionError> {
         let c = self.stack.get(0);
         let b = self.stack.get(1);
         let a = self.stack.get(2);
@@ -242,7 +247,7 @@ impl Process {
                 self.stack.set(0, a);
                 self.stack.set(1, b);
             },
-            _ => return Err(ExecutionError::NotBinaryValue(c)),
+            _ => return Err(ExecutionError::not_binary_value_op(c, err_ctx)),
         }
 
         self.stack.shift_left(3);
@@ -254,7 +259,10 @@ impl Process {
     ///
     /// # Errors
     /// Returns an error if the top element of the stack is neither 0 nor 1.
-    pub(super) fn op_cswapw(&mut self) -> Result<(), ExecutionError> {
+    pub(super) fn op_cswapw(
+        &mut self,
+        err_ctx: &ErrorContext<'_, impl MastNodeExt>,
+    ) -> Result<(), ExecutionError> {
         let c = self.stack.get(0);
         let b0 = self.stack.get(1);
         let b1 = self.stack.get(2);
@@ -286,7 +294,7 @@ impl Process {
                 self.stack.set(6, b2);
                 self.stack.set(7, b3);
             },
-            _ => return Err(ExecutionError::NotBinaryValue(c)),
+            _ => return Err(ExecutionError::not_binary_value_op(c, err_ctx)),
         }
 
         self.stack.shift_left(9);

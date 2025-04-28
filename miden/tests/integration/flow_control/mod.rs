@@ -66,7 +66,10 @@ fn faulty_condition_from_loop() {
         end";
 
     let test = build_test!(source, &[10]);
-    expect_exec_error_matches!(test, ExecutionError::NotBinaryValue(_));
+    expect_exec_error_matches!(
+        test,
+        ExecutionError::NotBinaryValueOp { label: _, source_file: _, value: _ }
+    );
 }
 
 #[test]

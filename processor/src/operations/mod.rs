@@ -84,9 +84,9 @@ impl Process {
             Operation::Inv => self.op_inv(error_ctx)?,
             Operation::Incr => self.op_incr()?,
 
-            Operation::And => self.op_and()?,
-            Operation::Or => self.op_or()?,
-            Operation::Not => self.op_not()?,
+            Operation::And => self.op_and(error_ctx)?,
+            Operation::Or => self.op_or(error_ctx)?,
+            Operation::Not => self.op_not(error_ctx)?,
 
             Operation::Eq => self.op_eq()?,
             Operation::Eqz => self.op_eqz()?,
@@ -148,8 +148,8 @@ impl Process {
             Operation::MovDn7 => self.op_movdn(7)?,
             Operation::MovDn8 => self.op_movdn(8)?,
 
-            Operation::CSwap => self.op_cswap()?,
-            Operation::CSwapW => self.op_cswapw()?,
+            Operation::CSwap => self.op_cswap(error_ctx)?,
+            Operation::CSwapW => self.op_cswapw(error_ctx)?,
 
             // ----- input / output ---------------------------------------------------------------
             Operation::Push(value) => self.op_push(value)?,

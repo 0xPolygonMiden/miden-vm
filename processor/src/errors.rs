@@ -234,8 +234,35 @@ pub enum ExecutionError {
         #[source]
         err: MerkleError,
     },
-    #[error("an operation expected a binary value, but received {0}")]
-    NotBinaryValue(Felt),
+    #[error("if statement expected a binary value on top of the stack, but got {value}")]
+    #[diagnostic()]
+    NotBinaryValueIf {
+        #[label]
+        label: SourceSpan,
+        #[source_code]
+        source_file: Option<Arc<SourceFile>>,
+        value: Felt,
+    },
+    #[error("operation expected a binary value, but got {value}")]
+    #[diagnostic()]
+    NotBinaryValueOp {
+        #[label]
+        label: SourceSpan,
+        #[source_code]
+        source_file: Option<Arc<SourceFile>>,
+        value: Felt,
+    },
+    #[error("loop condition must be a binary value, but got {value}")]
+    #[diagnostic(help(
+        "this could happen either when first entering the loop, or any subsequent iteration"
+    ))]
+    NotBinaryValueLoop {
+        #[label]
+        label: SourceSpan,
+        #[source_code]
+        source_file: Option<Arc<SourceFile>>,
+        value: Felt,
+    },
     #[error("an operation expected a u32 value, but received {0} (error code: {1})")]
     NotU32Value(Felt, Felt),
     #[error("stack should have at most {MIN_STACK_DEPTH} elements at the end of program execution, but had {} elements", MIN_STACK_DEPTH + .0)]
@@ -416,6 +443,24 @@ impl ExecutionError {
     ) -> Self {
         let (label, source_file) = err_ctx.label_and_source_file();
         Self::NoMastForestWithProcedure { label, source_file, root_digest }
+    }
+
+    pub fn not_binary_value_if(value: Felt, err_ctx: &ErrorContext<'_, impl MastNodeExt>) -> Self {
+        let (label, source_file) = err_ctx.label_and_source_file();
+        Self::NotBinaryValueIf { label, source_file, value }
+    }
+
+    pub fn not_binary_value_op(value: Felt, err_ctx: &ErrorContext<'_, impl MastNodeExt>) -> Self {
+        let (label, source_file) = err_ctx.label_and_source_file();
+        Self::NotBinaryValueOp { label, source_file, value }
+    }
+
+    pub fn not_binary_value_loop(
+        value: Felt,
+        err_ctx: &ErrorContext<'_, impl MastNodeExt>,
+    ) -> Self {
+        let (label, source_file) = err_ctx.label_and_source_file();
+        Self::NotBinaryValueLoop { label, source_file, value }
     }
 }
 

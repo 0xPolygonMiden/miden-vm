@@ -2,7 +2,10 @@
 use alloc::string::ToString;
 
 use assembly::{Assembler, assert_diagnostic_lines, regex, source_file, testing::TestContext};
-use test_utils::{build_test_by_mode, crypto::{init_merkle_leaves, init_merkle_store}};
+use test_utils::{
+    build_test_by_mode,
+    crypto::{init_merkle_leaves, init_merkle_store},
+};
 use vm_core::{
     AdviceMap,
     crypto::merkle::{MerkleStore, MerkleTree},
@@ -269,7 +272,6 @@ fn test_diagnostic_merkle_path_verification_failed() {
         " 2 |         begin",
         "TODO: complete"
     );
-
 }
 
 // InvalidMerkleTreeNodeIndex
@@ -622,6 +624,134 @@ fn test_diagnostic_no_mast_forest_with_procedure() {
         " 5 |             call.bar::dummy_proc",
         "   :             ^^^^^^^^^^^^^^^^^^^^",
         " 6 |         end",
+        "   `----"
+    );
+}
+
+// NotBinaryValue
+// -------------------------------------------------------------------------------------------------
+
+#[test]
+fn test_diagnostic_not_binary_value_split_node() {
+    let source = "
+        begin
+            if.true swap else dup end
+        end";
+
+    let build_test = build_test_by_mode!(true, source, &[2]);
+    let err = build_test.execute().expect_err("expected error");
+    assert_diagnostic_lines!(
+        err,
+        "if statement expected a binary value on top of the stack, but got 2",
+        regex!(r#",-\[test[\d]+:3:13\]"#),
+        " 2 |         begin",
+        " 3 |             if.true swap else dup end",
+        "   :             ^^^^^^^^^^^^^^^^^^^^^^^^^",
+        " 4 |         end",
+        "   `----"
+    );
+}
+
+#[test]
+fn test_diagnostic_not_binary_value_loop_node() {
+    let source = "
+        begin
+            while.true swap dup end
+        end";
+
+    let build_test = build_test_by_mode!(true, source, &[2]);
+    let err = build_test.execute().expect_err("expected error");
+    assert_diagnostic_lines!(
+        err,
+        "loop condition must be a binary value, but got 2",
+        regex!(r#",-\[test[\d]+:3:13\]"#),
+        " 2 |         begin",
+        " 3 |             while.true swap dup end",
+        "   :             ^^^^^^^^^^^^^^^^^^^^^^^",
+        " 4 |         end",
+        "   `----",
+        "  help: this could happen either when first entering the loop, or any subsequent iteration"
+    );
+}
+
+#[test]
+fn test_diagnostic_not_binary_value_cswap_cswapw() {
+    // cswap
+    let source = "
+        begin
+            cswap
+        end";
+
+    let build_test = build_test_by_mode!(true, source, &[2]);
+    let err = build_test.execute().expect_err("expected error");
+    assert_diagnostic_lines!(
+        err,
+        "operation expected a binary value, but got 2",
+        regex!(r#",-\[test[\d]+:3:13\]"#),
+        " 2 |         begin",
+        " 3 |             cswap",
+        "   :             ^^^^^",
+        " 4 |         end",
+        "   `----"
+    );
+
+    // cswapw
+    let source = "
+        begin
+            cswapw
+        end";
+
+    let build_test = build_test_by_mode!(true, source, &[2]);
+    let err = build_test.execute().expect_err("expected error");
+    assert_diagnostic_lines!(
+        err,
+        "operation expected a binary value, but got 2",
+        regex!(r#",-\[test[\d]+:3:13\]"#),
+        " 2 |         begin",
+        " 3 |             cswapw",
+        "   :             ^^^^^^",
+        " 4 |         end",
+        "   `----"
+    );
+}
+
+#[test]
+fn test_diagnostic_not_binary_value_binary_ops() {
+    // and
+    let source = "
+        begin
+            and trace.2
+        end";
+
+    let build_test = build_test_by_mode!(true, source, &[2]);
+    let err = build_test.execute().expect_err("expected error");
+    assert_diagnostic_lines!(
+        err,
+        "operation expected a binary value, but got 2",
+        regex!(r#",-\[test[\d]+:3:13\]"#),
+        " 2 |         begin",
+        " 3 |             and trace.2",
+        "   :             ^^^",
+        " 4 |         end",
+        "   `----"
+    );
+
+    // or
+    let source = "
+        begin
+            or trace.2
+        end";
+
+    let build_test = build_test_by_mode!(true, source, &[2]);
+    let err = build_test.execute().expect_err("expected error");
+    assert_diagnostic_lines!(
+        err,
+        "operation expected a binary value, but got 2",
+        regex!(r#",-\[test[\d]+:3:13\]"#),
+        " 2 |         begin",
+        " 3 |             or trace.2",
+        "   :             ^^",
+        " 4 |         end",
         "   `----"
     );
 }

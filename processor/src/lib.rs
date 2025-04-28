@@ -408,7 +408,8 @@ impl Process {
         } else if condition == ZERO {
             self.execute_mast_node(node.on_false(), program, host)?;
         } else {
-            return Err(ExecutionError::NotBinaryValue(condition));
+            let err_ctx = ErrorContext::new(program, node, self.source_manager.clone());
+            return Err(ExecutionError::not_binary_value_if(condition, &err_ctx));
         }
 
         self.end_split_node(node, host)
@@ -440,7 +441,8 @@ impl Process {
             }
 
             if self.stack.peek() != ZERO {
-                return Err(ExecutionError::NotBinaryValue(self.stack.peek()));
+                let err_ctx = ErrorContext::new(program, node, self.source_manager.clone());
+                return Err(ExecutionError::not_binary_value_loop(self.stack.peek(), &err_ctx));
             }
 
             // end the LOOP block and drop the condition from the stack
@@ -450,7 +452,8 @@ impl Process {
             // already dropped when we started the LOOP block
             self.end_loop_node(node, false, host)
         } else {
-            Err(ExecutionError::NotBinaryValue(condition))
+            let err_ctx = ErrorContext::new(program, node, self.source_manager.clone());
+            Err(ExecutionError::not_binary_value_loop(condition, &err_ctx))
         }
     }
 
