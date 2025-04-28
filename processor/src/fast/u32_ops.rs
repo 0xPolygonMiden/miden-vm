@@ -205,8 +205,8 @@ impl FastProcessor {
         err_code: u32,
         f: impl FnOnce(u64, u64) -> Result<(u64, u64), ExecutionError>,
     ) -> Result<(), ExecutionError> {
-        let first_old = self.stack[self.stack_top_idx - 1].as_int();
-        let second_old = self.stack[self.stack_top_idx - 2].as_int();
+        let first_old = self.stack_get(0).as_int();
+        let second_old = self.stack_get(1).as_int();
 
         // Check that a and b are u32 values.
         if first_old > u32::MAX as u64 {
