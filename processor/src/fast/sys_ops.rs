@@ -41,7 +41,8 @@ impl FastProcessor {
         let top = self.stack[self.stack_top_idx - 1];
 
         let new_fmp = self.fmp + top;
-        if new_fmp.as_int() < FMP_MIN || new_fmp.as_int() > FMP_MAX {
+        let new_fmp_int = new_fmp.as_int();
+        if new_fmp_int < FMP_MIN || new_fmp_int > FMP_MAX {
             return Err(ExecutionError::InvalidFmpValue(self.fmp, new_fmp));
         }
 
