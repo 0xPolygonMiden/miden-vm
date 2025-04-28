@@ -28,20 +28,10 @@ impl FastProcessor {
         host: &mut impl Host,
     ) -> Result<(), ExecutionError> {
         // read node value, depth, index and root value from the stack
-        let node = [
-            self.stack[self.stack_top_idx - 4],
-            self.stack[self.stack_top_idx - 3],
-            self.stack[self.stack_top_idx - 2],
-            self.stack[self.stack_top_idx - 1],
-        ];
-        let depth = self.stack[self.stack_top_idx - 5];
-        let index = self.stack[self.stack_top_idx - 6];
-        let root = [
-            self.stack[self.stack_top_idx - 10],
-            self.stack[self.stack_top_idx - 9],
-            self.stack[self.stack_top_idx - 8],
-            self.stack[self.stack_top_idx - 7],
-        ];
+        let node = self.stack_get_word(0);
+        let depth = self.stack_get(4);
+        let index = self.stack_get(5);
+        let root = self.stack_get_word(6);
 
         // get a Merkle path from the advice provider for the specified root and node index
         let path = host.advice_provider_mut().get_merkle_path(root, &depth, &index)?;
@@ -88,10 +78,7 @@ impl FastProcessor {
         }
 
         // Replace the old node value with computed new root; everything else remains the same.
-        self.stack[self.stack_top_idx - 1] = new_root[3];
-        self.stack[self.stack_top_idx - 2] = new_root[2];
-        self.stack[self.stack_top_idx - 3] = new_root[1];
-        self.stack[self.stack_top_idx - 4] = new_root[0];
+        self.stack_write_word(0, &new_root);
 
         Ok(())
     }

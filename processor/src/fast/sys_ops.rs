@@ -1,4 +1,4 @@
-use vm_core::{WORD_SIZE, ZERO, sys_events::SystemEvent, utils::range};
+use vm_core::{ZERO, sys_events::SystemEvent};
 
 use super::{ExecutionError, FastProcessor, ONE};
 use crate::{
@@ -32,8 +32,10 @@ impl FastProcessor {
 
     /// Analogous to `Process::op_fmpadd`.
     pub fn op_fmpadd(&mut self) {
-        let top = &mut self.stack[self.stack_top_idx - 1];
-        *top += self.fmp;
+        let fmp = self.fmp;
+        let top = self.stack_get_mut(0);
+
+        *top += fmp;
     }
 
     /// Analogous to `Process::op_fmpupdate`.
@@ -53,7 +55,7 @@ impl FastProcessor {
 
     /// Analogous to `Process::op_sdepth`.
     pub fn op_sdepth(&mut self) {
-        let depth = (self.stack_top_idx - self.stack_bot_idx) as u32;
+        let depth = self.stack_depth();
         self.increment_stack_size();
         self.stack_write(0, depth.into());
     }
@@ -64,8 +66,8 @@ impl FastProcessor {
             return Err(ExecutionError::CallerNotInSyscall);
         }
 
-        self.stack[range(self.stack_top_idx - WORD_SIZE, WORD_SIZE)]
-            .copy_from_slice(&self.caller_hash);
+        let caller_hash = self.caller_hash;
+        self.stack_write_word(0, &caller_hash);
 
         Ok(())
     }

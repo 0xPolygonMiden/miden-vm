@@ -35,6 +35,9 @@ impl FastProcessor {
     /// This operation is useful for implementing the `movup` instructions.
     ///
     /// The stack size doesn't change.
+    /// 
+    /// Note: This method doesn't use the `stack_get()` and `stack_write()` methods because it is
+    /// more efficient to directly manipulate the stack array (~10% performance difference).
     #[inline(always)]
     pub fn rotate_left(&mut self, n: usize) {
         let rotation_bot_index = self.stack_top_idx - n;
@@ -46,12 +49,15 @@ impl FastProcessor {
         }
 
         // Set the top element (which comes from the bottom of the rotation).
-        self.stack[self.stack_top_idx - 1] = new_stack_top_element;
+        self.stack_write(0, new_stack_top_element);
     }
 
     /// Rotates the top `n` elements of the stack to the right by 1.
     ///
     /// Analogous to `rotate_left`, but in the opposite direction.
+    /// 
+    /// Note: This method doesn't use the `stack_get()` and `stack_write()` methods because it is
+    /// more efficient to directly manipulate the stack array (~10% performance difference).
     #[inline(always)]
     pub fn rotate_right(&mut self, n: usize) {
         let rotation_bot_index = self.stack_top_idx - n;

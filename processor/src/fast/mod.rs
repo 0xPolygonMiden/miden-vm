@@ -243,6 +243,12 @@ impl FastProcessor {
         self.stack[range(word_start_idx, WORD_SIZE)].try_into().unwrap()
     }
 
+    /// Returns the number of elements on the stack in the current context.
+    #[inline(always)]
+    pub fn stack_depth(&self) -> u32 {
+        (self.stack_top_idx - self.stack_bot_idx) as u32
+    }
+
     // MUTATORS
     // -------------------------------------------------------------------------------------------
 
@@ -272,7 +278,6 @@ impl FastProcessor {
         self.stack_write(idx1, b);
         self.stack_write(idx2, a);
     }
-
 
     // EXECUTE
     // -------------------------------------------------------------------------------------------

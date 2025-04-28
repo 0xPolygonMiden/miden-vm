@@ -93,7 +93,7 @@ impl FastProcessor {
     /// Returns the evaluation point.
     fn get_evaluation_point(&mut self, op_idx: usize) -> Result<QuadFelt, ExecutionError> {
         let (alpha_0, alpha_1) = {
-            let addr = self.stack[self.stack_top_idx - 1 - ALPHA_ADDR_INDEX];
+            let addr = self.stack_get(ALPHA_ADDR_INDEX);
             let word = self.memory.read_word(self.ctx, addr, self.clk + op_idx)?;
 
             (word[0], word[1])
