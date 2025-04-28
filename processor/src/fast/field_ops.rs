@@ -143,11 +143,11 @@ impl FastProcessor {
         &mut self,
         f: impl FnOnce(Felt, Felt) -> Result<Felt, ExecutionError>,
     ) -> Result<(), ExecutionError> {
-        let b = self.stack[self.stack_top_idx - 1];
-        let a = self.stack[self.stack_top_idx - 2];
+        let b = self.stack_get(0);
+        let a = self.stack_get(1);
 
-        self.stack[self.stack_top_idx - 2] = f(a, b)?;
         self.decrement_stack_size();
+        self.stack_write(0, f(a, b)?);
 
         Ok(())
     }
