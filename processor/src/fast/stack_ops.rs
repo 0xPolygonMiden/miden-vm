@@ -35,7 +35,7 @@ impl FastProcessor {
     /// This operation is useful for implementing the `movup` instructions.
     ///
     /// The stack size doesn't change.
-    /// 
+    ///
     /// Note: This method doesn't use the `stack_get()` and `stack_write()` methods because it is
     /// more efficient to directly manipulate the stack array (~10% performance difference).
     #[inline(always)]
@@ -55,7 +55,7 @@ impl FastProcessor {
     /// Rotates the top `n` elements of the stack to the right by 1.
     ///
     /// Analogous to `rotate_left`, but in the opposite direction.
-    /// 
+    ///
     /// Note: This method doesn't use the `stack_get()` and `stack_write()` methods because it is
     /// more efficient to directly manipulate the stack array (~10% performance difference).
     #[inline(always)]
