@@ -22,7 +22,7 @@ impl FastProcessor {
         op_idx: usize,
         host: &mut impl Host,
     ) -> Result<(), ExecutionError> {
-        if self.stack[self.stack_top_idx - 1] != ONE {
+        if self.stack_get(0) != ONE {
             return Err(host.on_assert_failed(ProcessState::new_fast(self, op_idx), err_code));
         }
 
