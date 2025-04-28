@@ -16,7 +16,7 @@ use vm_core::{
 
 use crate::{
     ContextId, ExecutionError, FMP_MIN, Host, ProcessState, SYSCALL_FMP_MIN, errors::ErrorContext,
-    operations::utils::assert_binary, utils::resolve_external_node,
+    utils::resolve_external_node,
 };
 
 mod memory;
@@ -414,7 +414,7 @@ impl FastProcessor {
         } else if condition == ZERO {
             self.execute_mast_node(split_node.on_false(), program, kernel, host)
         } else {
-            Err(ExecutionError::NotBinaryValue(condition))
+            Err(ExecutionError::not_binary_value_if(condition, &ErrorContext::default()))
         };
 
         // Corresponds to the row inserted for the END operation added to the trace.
@@ -462,7 +462,7 @@ impl FastProcessor {
         if condition == ZERO {
             Ok(())
         } else {
-            Err(ExecutionError::NotBinaryValue(condition))
+            Err(ExecutionError::not_binary_value_loop(condition, &ErrorContext::default()))
         }
     }
 

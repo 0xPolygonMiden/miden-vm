@@ -1,7 +1,7 @@
 use vm_core::{Felt, FieldElement, ONE, ZERO};
 
-use super::{ExecutionError, FastProcessor, assert_binary};
-use crate::ErrorContext;
+use super::{ExecutionError, FastProcessor};
+use crate::{ErrorContext, operations::utils::assert_binary};
 
 const TWO: Felt = Felt::new(2);
 
@@ -70,7 +70,7 @@ impl FastProcessor {
         } else if *top == ONE {
             *top = ZERO;
         } else {
-            return Err(ExecutionError::NotBinaryValue(*top));
+            return Err(ExecutionError::not_binary_value_op(*top, &ErrorContext::default()));
         }
         Ok(())
     }

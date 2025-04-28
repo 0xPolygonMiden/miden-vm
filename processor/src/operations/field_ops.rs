@@ -1,6 +1,6 @@
 use vm_core::{ONE, Operation, ZERO, mast::MastNodeExt};
 
-use super::{ExecutionError, Felt, FieldElement, Process, utils::assert_binary};
+use super::{ExecutionError, Felt, FieldElement, Process, utils::assert_binary_with_ctx};
 use crate::ErrorContext;
 
 // FIELD OPERATIONS
@@ -78,8 +78,8 @@ impl Process {
         &mut self,
         err_ctx: &ErrorContext<'_, impl MastNodeExt>,
     ) -> Result<(), ExecutionError> {
-        let b = assert_binary(self.stack.get(0), err_ctx)?;
-        let a = assert_binary(self.stack.get(1), err_ctx)?;
+        let b = assert_binary_with_ctx(self.stack.get(0), err_ctx)?;
+        let a = assert_binary_with_ctx(self.stack.get(1), err_ctx)?;
         if a == ONE && b == ONE {
             self.stack.set(0, ONE);
         } else {
@@ -99,8 +99,8 @@ impl Process {
         &mut self,
         err_ctx: &ErrorContext<'_, impl MastNodeExt>,
     ) -> Result<(), ExecutionError> {
-        let b = assert_binary(self.stack.get(0), err_ctx)?;
-        let a = assert_binary(self.stack.get(1), err_ctx)?;
+        let b = assert_binary_with_ctx(self.stack.get(0), err_ctx)?;
+        let a = assert_binary_with_ctx(self.stack.get(1), err_ctx)?;
         if a == ONE || b == ONE {
             self.stack.set(0, ONE);
         } else {
@@ -119,7 +119,7 @@ impl Process {
         &mut self,
         err_ctx: &ErrorContext<'_, impl MastNodeExt>,
     ) -> Result<(), ExecutionError> {
-        let a = assert_binary(self.stack.get(0), err_ctx)?;
+        let a = assert_binary_with_ctx(self.stack.get(0), err_ctx)?;
         self.stack.set(0, ONE - a);
         self.stack.copy_state(1);
         Ok(())

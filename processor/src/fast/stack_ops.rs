@@ -1,7 +1,7 @@
 use vm_core::{WORD_SIZE, ZERO};
 
 use super::FastProcessor;
-use crate::ExecutionError;
+use crate::{ErrorContext, ExecutionError};
 
 impl FastProcessor {
     /// Analogous to `Process::op_pad`.
@@ -109,7 +109,12 @@ impl FastProcessor {
             1 => {
                 self.stack_swap(0, 1);
             },
-            _ => return Err(ExecutionError::NotBinaryValue(condition)),
+            _ => {
+                return Err(ExecutionError::not_binary_value_op(
+                    condition,
+                    &ErrorContext::default(),
+                ));
+            },
         }
 
         Ok(())
@@ -130,7 +135,12 @@ impl FastProcessor {
                 self.stack_swap(2, 6);
                 self.stack_swap(3, 7);
             },
-            _ => return Err(ExecutionError::NotBinaryValue(condition)),
+            _ => {
+                return Err(ExecutionError::not_binary_value_op(
+                    condition,
+                    &ErrorContext::default(),
+                ));
+            },
         }
 
         Ok(())
