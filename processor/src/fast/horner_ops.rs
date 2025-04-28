@@ -70,16 +70,7 @@ impl FastProcessor {
     /// Returns the top 8 elements of the operand stack, such that the element on top of the stack
     /// appears first in the return array.
     fn get_coeffs_as_base_elements(&self) -> [Felt; 8] {
-        let c0 = self.stack[self.stack_top_idx - 1];
-        let c1 = self.stack[self.stack_top_idx - 2];
-        let c2 = self.stack[self.stack_top_idx - 3];
-        let c3 = self.stack[self.stack_top_idx - 4];
-        let c4 = self.stack[self.stack_top_idx - 5];
-        let c5 = self.stack[self.stack_top_idx - 6];
-        let c6 = self.stack[self.stack_top_idx - 7];
-        let c7 = self.stack[self.stack_top_idx - 8];
-
-        [c0, c1, c2, c3, c4, c5, c6, c7]
+        array::from_fn(|i| self.stack_get(i))
     }
 
     /// Returns the top 8 elements of the operand stack.
