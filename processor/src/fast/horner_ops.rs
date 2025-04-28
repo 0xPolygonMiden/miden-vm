@@ -101,8 +101,8 @@ impl FastProcessor {
 
     /// Reads the accumulator values.
     fn get_accumulator(&self) -> QuadFelt {
-        let acc1 = self.stack[self.stack_top_idx - 1 - ACC_HIGH_INDEX];
-        let acc0 = self.stack[self.stack_top_idx - 1 - ACC_LOW_INDEX];
+        let acc1 = self.stack_get(ACC_HIGH_INDEX);
+        let acc0 = self.stack_get(ACC_LOW_INDEX);
 
         QuadFelt::new(acc0, acc1)
     }
