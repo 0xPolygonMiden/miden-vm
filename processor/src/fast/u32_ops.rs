@@ -218,8 +218,8 @@ impl FastProcessor {
 
         let (first_new, second_new) = f(first_old, second_old)?;
 
-        self.stack[self.stack_top_idx - 1] = Felt::new(first_new);
-        self.stack[self.stack_top_idx - 2] = Felt::new(second_new);
+        self.stack_write(0, Felt::new(first_new));
+        self.stack_write(1, Felt::new(second_new));
         Ok(())
     }
 }
