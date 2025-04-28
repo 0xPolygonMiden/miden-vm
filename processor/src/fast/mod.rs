@@ -227,11 +227,9 @@ impl FastProcessor {
     ///
     /// For example, if the stack looks like this:
     ///
-    /// ```
     /// top                                                       bottom
     /// v                                                           v
     /// a | b | c | d | e | f | g | h | i | j | k | l | m | n | o | p
-    /// ```
     ///
     /// Then
     /// - `stack_get_word(0)` returns `[d, c, b, a]`,
