@@ -345,7 +345,7 @@ fn mast_forest_merge_decorators() {
     let id_foo_a = forest_a.add_node(foo_node_a).unwrap();
 
     let mut loop_node_a = MastNode::new_loop(id_foo_a, &forest_a).unwrap();
-    loop_node_a.set_after_exit(vec![deco0_a, deco2_a]);
+    loop_node_a.append_after_exit(&[deco0_a, deco2_a]);
     let id_loop_a = forest_a.add_node(loop_node_a).unwrap();
 
     forest_a.make_root(id_loop_a);
@@ -363,7 +363,7 @@ fn mast_forest_merge_decorators() {
 
     // This loop node's decorators are different from the loop node in a.
     let mut loop_node_b = MastNode::new_loop(id_foo_b, &forest_b).unwrap();
-    loop_node_b.set_after_exit(vec![deco1_b, deco3_b]);
+    loop_node_b.append_after_exit(&[deco1_b, deco3_b]);
     let id_loop_b = forest_b.add_node(loop_node_b).unwrap();
 
     forest_b.make_root(id_loop_b);
@@ -531,7 +531,7 @@ fn mast_forest_merge_external_node_with_decorator() {
 
     let mut external_node_a = MastNode::new_external(block_foo().digest());
     external_node_a.append_before_enter(&[deco1]);
-    external_node_a.set_after_exit(vec![deco2]);
+    external_node_a.append_after_exit(&[deco2]);
     let id_external_a = forest_a.add_node(external_node_a).unwrap();
 
     forest_a.make_root(id_external_a);
@@ -671,7 +671,7 @@ fn mast_forest_merge_multiple_external_nodes_with_decorator() {
 
     let mut external_node_a = MastNode::new_external(block_foo().digest());
     external_node_a.append_before_enter(&[deco1_a]);
-    external_node_a.set_after_exit(vec![deco2_a]);
+    external_node_a.append_after_exit(&[deco2_a]);
     let id_external_a = forest_a.add_node(external_node_a).unwrap();
 
     let mut external_node_b = MastNode::new_external(block_foo().digest());
