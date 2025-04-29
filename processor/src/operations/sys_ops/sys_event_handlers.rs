@@ -332,10 +332,10 @@ pub fn push_u64_div_result(
 
         // Ensure the divisor is a pair of u32 values
         if divisor_hi > u32::MAX.into() {
-            return Err(ExecutionError::NotU32Value(Felt::new(divisor_hi), ZERO));
+            return Err(ExecutionError::not_u32_value(Felt::new(divisor_hi), ZERO, err_ctx));
         }
         if divisor_lo > u32::MAX.into() {
-            return Err(ExecutionError::NotU32Value(Felt::new(divisor_lo), ZERO));
+            return Err(ExecutionError::not_u32_value(Felt::new(divisor_lo), ZERO, err_ctx));
         }
 
         let divisor = (divisor_hi << 32) + divisor_lo;
@@ -353,10 +353,10 @@ pub fn push_u64_div_result(
 
         // Ensure the dividend is a pair of u32 values
         if dividend_hi > u32::MAX.into() {
-            return Err(ExecutionError::NotU32Value(Felt::new(dividend_hi), ZERO));
+            return Err(ExecutionError::not_u32_value(Felt::new(dividend_hi), ZERO, err_ctx));
         }
         if dividend_lo > u32::MAX.into() {
-            return Err(ExecutionError::NotU32Value(Felt::new(dividend_lo), ZERO));
+            return Err(ExecutionError::not_u32_value(Felt::new(dividend_lo), ZERO, err_ctx));
         }
 
         (dividend_hi << 32) + dividend_lo
@@ -760,7 +760,7 @@ fn push_transformed_stack_top<A: AdviceProvider>(
     let stack_top: u32 = stack_top
         .as_int()
         .try_into()
-        .map_err(|_| ExecutionError::NotU32Value(stack_top, ZERO))?;
+        .map_err(|_| ExecutionError::not_u32_value(stack_top, ZERO, err_ctx))?;
     let transformed_stack_top = f(stack_top);
     advice_provider.push_stack(AdviceSource::Value(transformed_stack_top), err_ctx)?;
     Ok(())

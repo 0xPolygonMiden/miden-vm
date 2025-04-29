@@ -263,8 +263,15 @@ pub enum ExecutionError {
         source_file: Option<Arc<SourceFile>>,
         value: Felt,
     },
-    #[error("an operation expected a u32 value, but received {0} (error code: {1})")]
-    NotU32Value(Felt, Felt),
+    #[error("operation expected a u32 value, but got {value} (error code: {err_code})")]
+    NotU32Value {
+        #[label]
+        label: SourceSpan,
+        #[source_code]
+        source_file: Option<Arc<SourceFile>>,
+        value: Felt,
+        err_code: Felt,
+    },
     #[error("stack should have at most {MIN_STACK_DEPTH} elements at the end of program execution, but had {} elements", MIN_STACK_DEPTH + .0)]
     OutputStackOverflow(usize),
     #[error("a program has already been executed in this process")]
@@ -461,6 +468,15 @@ impl ExecutionError {
     ) -> Self {
         let (label, source_file) = err_ctx.label_and_source_file();
         Self::NotBinaryValueLoop { label, source_file, value }
+    }
+
+    pub fn not_u32_value(
+        value: Felt,
+        err_code: Felt,
+        err_ctx: &ErrorContext<'_, impl MastNodeExt>,
+    ) -> Self {
+        let (label, source_file) = err_ctx.label_and_source_file();
+        Self::NotU32Value { label, source_file, value, err_code }
     }
 }
 

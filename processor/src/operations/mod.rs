@@ -98,16 +98,16 @@ impl Process {
 
             // ----- u32 operations ---------------------------------------------------------------
             Operation::U32split => self.op_u32split()?,
-            Operation::U32add => self.op_u32add()?,
-            Operation::U32add3 => self.op_u32add3()?,
-            Operation::U32sub => self.op_u32sub()?,
-            Operation::U32mul => self.op_u32mul()?,
-            Operation::U32madd => self.op_u32madd()?,
+            Operation::U32add => self.op_u32add(error_ctx)?,
+            Operation::U32add3 => self.op_u32add3(error_ctx)?,
+            Operation::U32sub => self.op_u32sub(error_ctx)?,
+            Operation::U32mul => self.op_u32mul(error_ctx)?,
+            Operation::U32madd => self.op_u32madd(error_ctx)?,
             Operation::U32div => self.op_u32div(error_ctx)?,
 
-            Operation::U32and => self.op_u32and()?,
-            Operation::U32xor => self.op_u32xor()?,
-            Operation::U32assert2(err_code) => self.op_u32assert2(err_code)?,
+            Operation::U32and => self.op_u32and(error_ctx)?,
+            Operation::U32xor => self.op_u32xor(error_ctx)?,
+            Operation::U32assert2(err_code) => self.op_u32assert2(err_code, error_ctx)?,
 
             // ----- stack manipulation -----------------------------------------------------------
             Operation::Pad => self.op_pad()?,

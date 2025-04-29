@@ -755,3 +755,49 @@ fn test_diagnostic_not_binary_value_binary_ops() {
         "   `----"
     );
 }
+
+// NotU32Value
+// -------------------------------------------------------------------------------------------------
+
+#[test]
+fn test_diagnostic_not_u32_value() {
+    // u32and
+    let source = "
+        begin
+            u32and trace.2
+        end";
+
+    let big_value = u32::MAX as u64 + 1_u64;
+    let build_test = build_test_by_mode!(true, source, &[big_value]);
+    let err = build_test.execute().expect_err("expected error");
+    assert_diagnostic_lines!(
+        err,
+        "operation expected a u32 value, but got 4294967296",
+        regex!(r#",-\[test[\d]+:3:13\]"#),
+        " 2 |         begin",
+        " 3 |             u32and trace.2",
+        "   :             ^^^^^^",
+        " 4 |         end",
+        "   `----"
+    );
+
+    // u32madd
+    let source = "
+        begin
+            u32overflowing_add3 trace.2
+        end";
+
+    let big_value = u32::MAX as u64 + 1_u64;
+    let build_test = build_test_by_mode!(true, source, &[big_value]);
+    let err = build_test.execute().expect_err("expected error");
+    assert_diagnostic_lines!(
+        err,
+        "operation expected a u32 value, but got 4294967296",
+        regex!(r#",-\[test[\d]+:3:13\]"#),
+        " 2 |         begin",
+        " 3 |             u32overflowing_add3 trace.2",
+        "   :             ^^^^^^^^^^^^^^^^^^^",
+        " 4 |         end",
+        "   `----"
+    );
+}
