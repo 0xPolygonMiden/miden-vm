@@ -801,3 +801,55 @@ fn test_diagnostic_not_u32_value() {
         "   `----"
     );
 }
+
+// SyscallTargetNotInKernel
+// -------------------------------------------------------------------------------------------------
+
+#[test]
+fn test_diagnostic_syscall_target_not_in_kernel() {
+    let source_manager = Arc::new(DefaultSourceManager::default());
+
+    let kernel_source = "
+        export.dummy_proc
+            push.1 drop
+        end
+    ";
+
+    let program_source = {
+        let src = "
+        begin
+            syscall.dummy_proc
+        end
+    ";
+        source_manager.load("test_program", src.to_string())
+    };
+
+    let kernel_library = Assembler::new(source_manager.clone())
+        .with_debug_mode(true)
+        .assemble_kernel(kernel_source)
+        .unwrap();
+
+    let program = Assembler::with_kernel(source_manager.clone(), kernel_library)
+        .with_debug_mode(true)
+        .assemble_program(program_source)
+        .unwrap();
+
+    // Note: we do not provide the kernel to trigger the error
+    let mut process = Process::new(
+        Kernel::default(),
+        StackInputs::default(),
+        ExecutionOptions::default().with_debugging(true),
+    )
+    .with_source_manager(source_manager.clone());
+    let err = process.execute(&program, &mut DefaultHost::default()).unwrap_err();
+    assert_diagnostic_lines!(
+        err,
+        "syscall failed: procedure with root d754f5422c74afd0b094889be6b288f9ffd2cc630e3c44d412b1408b2be3b99c was not found in the kernel",
+        regex!(r#",-\[test_program:3:13\]"#),
+        " 2 |         begin",
+        " 3 |             syscall.dummy_proc",
+        "   :             ^^^^^^^^^^^^^^^^^^",
+        " 4 |         end",
+        "   `----"
+    );
+}

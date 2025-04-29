@@ -231,7 +231,10 @@ fn test_syscall_fail() {
     let err = processor.execute(&program, &mut host).unwrap_err();
 
     // Check that the error is due to the syscall target not being in the kernel
-    assert_matches!(err, ExecutionError::SyscallTargetNotInKernel(_));
+    assert_matches!(
+        err,
+        ExecutionError::SyscallTargetNotInKernel { label: _, source_file: _, proc_root: _ }
+    );
 }
 
 #[test]

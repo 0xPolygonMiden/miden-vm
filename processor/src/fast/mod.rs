@@ -492,7 +492,10 @@ impl FastProcessor {
         if call_node.is_syscall() {
             // check if the callee is in the kernel
             if !kernel.contains_proc(callee_hash) {
-                return Err(ExecutionError::SyscallTargetNotInKernel(callee_hash));
+                return Err(ExecutionError::syscall_target_not_in_kernel(
+                    callee_hash,
+                    &ErrorContext::default(),
+                ));
             }
 
             // set the system registers to the syscall context

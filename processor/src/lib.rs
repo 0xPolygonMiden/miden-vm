@@ -476,7 +476,8 @@ impl Process {
             let callee = program.get_node_by_id(call_node.callee()).ok_or_else(|| {
                 ExecutionError::MastNodeNotFoundInForest { node_id: call_node.callee() }
             })?;
-            self.chiplets.kernel_rom.access_proc(callee.digest())?;
+            let err_ctx = ErrorContext::new(program, call_node, self.source_manager.clone());
+            self.chiplets.kernel_rom.access_proc(callee.digest(), &err_ctx)?;
         }
         let err_ctx = ErrorContext::new(program, call_node, self.source_manager.clone());
 

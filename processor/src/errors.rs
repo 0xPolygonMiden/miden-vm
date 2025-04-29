@@ -298,9 +298,15 @@ pub enum ExecutionError {
         preimage_len: usize,
     },
     #[error("syscall failed: procedure with root {hex} was not found in the kernel",
-      hex = to_hex(.0.as_bytes())
+      hex = to_hex(proc_root.as_bytes())
     )]
-    SyscallTargetNotInKernel(Digest),
+    SyscallTargetNotInKernel {
+        #[label]
+        label: SourceSpan,
+        #[source_code]
+        source_file: Option<Arc<SourceFile>>,
+        proc_root: Digest,
+    },
 }
 
 impl From<Ext2InttError> for ExecutionError {
@@ -503,6 +509,14 @@ impl ExecutionError {
     ) -> Self {
         let (label, source_file) = err_ctx.label_and_source_file();
         Self::SmtNodePreImageNotValid { label, source_file, node, preimage_len }
+    }
+
+    pub fn syscall_target_not_in_kernel(
+        proc_root: Digest,
+        err_ctx: &ErrorContext<'_, impl MastNodeExt>,
+    ) -> Self {
+        let (label, source_file) = err_ctx.label_and_source_file();
+        Self::SyscallTargetNotInKernel { label, source_file, proc_root }
     }
 }
 
