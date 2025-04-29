@@ -369,7 +369,7 @@ fn test_diagnostic_invalid_stack_depth_on_return_dyncall() {
 
 #[test]
 fn test_diagnostic_log_argument_zero() {
-    // returning from a function with non-empty overflow table should result in an error
+    // taking the log of 0 should result in an error
     let source = "
         begin
             trace.2 ilog2    
