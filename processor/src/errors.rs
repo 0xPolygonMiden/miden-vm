@@ -281,10 +281,16 @@ pub enum ExecutionError {
     #[error("smt node {node_hex} not found", node_hex = to_hex(Felt::elements_as_bytes(.0)))]
     SmtNodeNotFound(Word),
     #[error("expected pre-image length of node {node_hex} to be a multiple of 8 but was {preimage_len}",
-      node_hex = to_hex(Felt::elements_as_bytes(.0)),
-      preimage_len = .1
+      node_hex = to_hex(Felt::elements_as_bytes(node)),
     )]
-    SmtNodePreImageNotValid(Word, usize),
+    SmtNodePreImageNotValid {
+        #[label]
+        label: SourceSpan,
+        #[source_code]
+        source_file: Option<Arc<SourceFile>>,
+        node: Word,
+        preimage_len: usize,
+    },
     #[error("syscall failed: procedure with root {hex} was not found in the kernel",
       hex = to_hex(.0.as_bytes())
     )]
@@ -477,6 +483,15 @@ impl ExecutionError {
     ) -> Self {
         let (label, source_file) = err_ctx.label_and_source_file();
         Self::NotU32Value { label, source_file, value, err_code }
+    }
+
+    pub fn smt_node_preimage_not_valid(
+        node: Word,
+        preimage_len: usize,
+        err_ctx: &ErrorContext<'_, impl MastNodeExt>,
+    ) -> Self {
+        let (label, source_file) = err_ctx.label_and_source_file();
+        Self::SmtNodePreImageNotValid { label, source_file, node, preimage_len }
     }
 }
 

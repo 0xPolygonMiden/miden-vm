@@ -688,7 +688,7 @@ pub fn push_smtpeek_result(
         // the specified key
         advice_provider.push_stack(AdviceSource::Word(Smt::EMPTY_VALUE), err_ctx)?;
     } else {
-        let leaf_preimage = get_smt_leaf_preimage(advice_provider, node)?;
+        let leaf_preimage = get_smt_leaf_preimage(advice_provider, node, err_ctx)?;
 
         for (key_in_leaf, value_in_leaf) in leaf_preimage {
             if key == key_in_leaf {
@@ -769,6 +769,7 @@ fn push_transformed_stack_top<A: AdviceProvider>(
 fn get_smt_leaf_preimage<A: AdviceProvider>(
     advice_provider: &A,
     node: Word,
+    err_ctx: &ErrorContext<'_, impl MastNodeExt>,
 ) -> Result<Vec<(Word, Word)>, ExecutionError> {
     let node_bytes = RpoDigest::from(node);
 
@@ -777,7 +778,7 @@ fn get_smt_leaf_preimage<A: AdviceProvider>(
         .ok_or(ExecutionError::SmtNodeNotFound(node))?;
 
     if kv_pairs.len() % WORD_SIZE * 2 != 0 {
-        return Err(ExecutionError::SmtNodePreImageNotValid(node, kv_pairs.len()));
+        return Err(ExecutionError::smt_node_preimage_not_valid(node, kv_pairs.len(), err_ctx));
     }
 
     Ok(kv_pairs
