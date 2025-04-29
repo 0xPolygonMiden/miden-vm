@@ -278,8 +278,14 @@ pub enum ExecutionError {
     ProgramAlreadyExecuted,
     #[error("proof generation failed")]
     ProverError(#[source] ProverError),
-    #[error("smt node {node_hex} not found", node_hex = to_hex(Felt::elements_as_bytes(.0)))]
-    SmtNodeNotFound(Word),
+    #[error("smt node {node_hex} not found", node_hex = to_hex(Felt::elements_as_bytes(node)))]
+    SmtNodeNotFound {
+        #[label]
+        label: SourceSpan,
+        #[source_code]
+        source_file: Option<Arc<SourceFile>>,
+        node: Word,
+    },
     #[error("expected pre-image length of node {node_hex} to be a multiple of 8 but was {preimage_len}",
       node_hex = to_hex(Felt::elements_as_bytes(node)),
     )]
@@ -483,6 +489,11 @@ impl ExecutionError {
     ) -> Self {
         let (label, source_file) = err_ctx.label_and_source_file();
         Self::NotU32Value { label, source_file, value, err_code }
+    }
+
+    pub fn smt_node_not_found(node: Word, err_ctx: &ErrorContext<'_, impl MastNodeExt>) -> Self {
+        let (label, source_file) = err_ctx.label_and_source_file();
+        Self::SmtNodeNotFound { label, source_file, node }
     }
 
     pub fn smt_node_preimage_not_valid(
