@@ -19,7 +19,7 @@ use crate::{
             eval_circuit,
             instruction::{Op, decode_instruction},
             tests::circuit::{Circuit, CircuitLayout, Instruction, NodeID},
-            trace::EvaluationContext,
+            trace::CircuitEvaluation,
         },
         memory::Memory,
     },
@@ -28,6 +28,9 @@ use crate::{
 
 mod circuit;
 mod encoder;
+
+const PTR_OFFSET_ELEM: Felt = Felt::ONE;
+const PTR_OFFSET_WORD: Felt = Felt::new(4);
 
 #[test]
 fn test_var_plus_one() {
@@ -46,7 +49,8 @@ fn test_var_plus_one() {
     }
 
     let valid_input = &[-QuadFelt::ONE, QuadFelt::ZERO];
-    let encoded_circuit = verify_encoded_circuit_eval(&circuit, valid_input);
+    let err_ctx = ErrorContext::default();
+    let encoded_circuit = verify_encoded_circuit_eval(&circuit, valid_input, &err_ctx);
     verify_eval_circuit(&encoded_circuit, valid_input);
 }
 
@@ -77,10 +81,10 @@ fn test_bool_check() {
             [x, result]
         })
         .collect();
-
+    let err_ctx = ErrorContext::default();
     for input in &inputs {
         verify_circuit_eval(&circuit, input, |_| QuadFelt::ZERO);
-        let encoded_circuit = verify_encoded_circuit_eval(&circuit, input);
+        let encoded_circuit = verify_encoded_circuit_eval(&circuit, input, &err_ctx);
         verify_eval_circuit(&encoded_circuit, input);
     }
 }
@@ -184,7 +188,11 @@ fn verify_circuit_eval(
 }
 
 /// Performs encoding of circuit and evaluate it by the ACE chiplet.
-fn verify_encoded_circuit_eval(circuit: &Circuit, inputs: &[QuadFelt]) -> EncodedCircuit {
+fn verify_encoded_circuit_eval(
+    circuit: &Circuit,
+    inputs: &[QuadFelt],
+    err_ctx: &ErrorContext<'_, BasicBlockNode>,
+) -> EncodedCircuit {
     let encoded_circuit = EncodedCircuit::try_from_circuit(circuit).expect("cannot encode");
 
     let num_read_rows = encoded_circuit.num_vars() as u32 / 2;
@@ -192,17 +200,21 @@ fn verify_encoded_circuit_eval(circuit: &Circuit, inputs: &[QuadFelt]) -> Encode
     let ctx = ContextId::default();
     let clk = RowIndex::from(0);
 
-    let mut evaluator = EvaluationContext::new(ctx, clk, num_read_rows, num_eval_rows);
+    let mut evaluator = CircuitEvaluation::new(ctx, clk, num_read_rows, num_eval_rows);
 
     // Feed memory to evaluation context
     let circuit_mem = generate_memory(&encoded_circuit, inputs);
     let mut mem_iter = circuit_mem.iter();
     let mut ptr = Felt::ZERO;
     for word in mem_iter.by_ref().take(num_read_rows as usize) {
-        ptr = evaluator.do_read(ptr, *word).expect("TODO");
+        evaluator.do_read(ptr, *word).expect("failed to read a word during `READ`");
+        ptr += PTR_OFFSET_WORD;
     }
     for instruction in mem_iter.flatten() {
-        ptr = evaluator.do_eval(ptr, *instruction).expect("TODO");
+        evaluator
+            .do_eval(ptr, *instruction, err_ctx)
+            .expect("failed to read an element during `EVAL`");
+        ptr += PTR_OFFSET_ELEM;
     }
 
     // Check final eval is 0
@@ -258,7 +270,7 @@ fn generate_memory(circuit: &EncodedCircuit, inputs: &[QuadFelt]) -> Vec<Word> {
 }
 
 /// Given an EvaluationContext
-fn verify_trace(context: &EvaluationContext, num_read_rows: usize, num_eval_rows: usize) {
+fn verify_trace(context: &CircuitEvaluation, num_read_rows: usize, num_eval_rows: usize) {
     let num_rows = num_read_rows + num_eval_rows;
     let mut columns: Vec<_> = (0..ACE_CHIPLET_NUM_COLS).map(|_| vec![ZERO; num_rows]).collect();
 
