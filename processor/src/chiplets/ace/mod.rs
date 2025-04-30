@@ -31,7 +31,7 @@ const PTR_OFFSET_WORD: Felt = Felt::new(4);
 /// to evaluating some multi-variate polynomial at a tuple representing the input.
 ///
 /// During the course of the VM execution, we keep track of all calls to the ACE chiplet in an
-/// `EvaluationContext` per call. This is then used to generate the full trace of the ACE chiplet.
+/// [`CircuitEvaluation`] per call. This is then used to generate the full trace of the ACE chiplet.
 #[derive(Debug, Default)]
 pub struct Ace {
     circuit_evaluations: BTreeMap<RowIndex, CircuitEvaluation>,
