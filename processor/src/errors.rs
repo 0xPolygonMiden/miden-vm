@@ -312,8 +312,15 @@ pub enum ExecutionError {
         source_file: Option<Arc<SourceFile>>,
         proc_root: Digest,
     },
-    #[error("failed to execute arithmetic circuit evaluation operation: {0}")]
-    AceError(AceError),
+    #[error("failed to execute arithmetic circuit evaluation operation: {error}")]
+    #[diagnostic()]
+    AceChipError {
+        #[label("this call failed")]
+        label: SourceSpan,
+        #[source_code]
+        source_file: Option<Arc<SourceFile>>,
+        error: AceError,
+    },
 }
 
 impl From<Ext2InttError> for ExecutionError {
@@ -526,6 +533,12 @@ impl ExecutionError {
     ) -> Self {
         let (label, source_file) = err_ctx.label_and_source_file();
         Self::SyscallTargetNotInKernel { label, source_file, proc_root }
+    pub fn failed_arithmetic_evaluation(
+        err_ctx: &ErrorContext<'_, impl MastNodeExt>,
+        error: AceError,
+    ) -> Self {
+        let (label, source_file) = err_ctx.label_and_source_file();
+        Self::AceChipError { label, source_file, error }
     }
 }
 
@@ -540,9 +553,9 @@ impl AsRef<dyn Diagnostic> for ExecutionError {
 
 #[derive(Debug, thiserror::Error)]
 pub enum AceError {
-    #[error("num of variables is not word aligned or is zero {0}")]
+    #[error("num of variables should be word aligned and non-zero but was {0}")]
     NumVarIsNotWordAlignedOrIsEmpty(u64),
-    #[error("num of evaluation gates is not word aligned or is zero {0}")]
+    #[error("num of evaluation gates should be word aligned and non-zero but was {0}")]
     NumEvalIsNotWordAlignedOrIsEmpty(u64),
     #[error("circuit does not evaluate to zero")]
     CircuitNotEvaluateZero,
@@ -550,6 +563,8 @@ pub enum AceError {
     FailedMemoryRead,
     #[error("failed to decode instruction")]
     FailedDecodeInstruction,
+    #[error("failed to read from the wiring bus")]
+    FailedWireBusRead,
 }
 
 // EXT2INTT ERROR

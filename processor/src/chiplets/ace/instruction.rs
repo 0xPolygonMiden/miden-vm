@@ -8,7 +8,7 @@ pub const ID_BITS: u64 = 30;
 /// `uint`.
 pub const MAX_ID: u32 = (1 << ID_BITS) - 1;
 
-/// Arithmetic operation applied to two nodes in the evaluation graph.
+/// Arithmetic operation applied to two incoming wires in the evaluation graph.
 #[derive(Debug, Copy, Clone, Eq, PartialEq)]
 pub enum Op {
     Sub = 0,

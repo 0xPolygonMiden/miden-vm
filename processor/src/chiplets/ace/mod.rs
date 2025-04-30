@@ -6,35 +6,48 @@ use miden_air::{
     RowIndex,
     trace::{chiplets::ace::ACE_CHIPLET_NUM_COLS, main_trace::MainTrace},
 };
-use vm_core::{FieldElement, ZERO, mast::MastNodeExt};
+use vm_core::{FieldElement, ZERO, mast::BasicBlockNode};
 
 use crate::{
     ContextId, ExecutionError, Felt, QuadFelt,
-    chiplets::{ace::trace::EvaluationContext, memory::Memory},
+    chiplets::{ace::trace::CircuitEvaluation, memory::Memory},
     errors::{AceError, ErrorContext},
     trace::TraceFragment,
 };
 
 mod trace;
+pub use trace::{NUM_ACE_LOGUP_FRACTIONS_EVAL, NUM_ACE_LOGUP_FRACTIONS_READ};
 
 mod instruction;
 #[cfg(test)]
 mod tests;
 
-pub use trace::{NUM_ACE_LOGUP_FRACTIONS_EVAL, NUM_ACE_LOGUP_FRACTIONS_READ};
+const PTR_OFFSET_ELEM: Felt = Felt::ONE;
+const PTR_OFFSET_WORD: Felt = Felt::new(4);
 
+/// Arithmetic circuit evaluation (ACE) chiplet.
+///
+/// This is a VM chiplet used to evaluate arithmetic circuits given some input, which is equivalent
+/// to evaluating some multi-variate polynomial at a tuple representing the input.
+///
+/// During the course of the VM execution, we keep track of all calls to the ACE chiplet in an
+/// `EvaluationContext` per call. This is then used to generate the full trace of the ACE chiplet.
 #[derive(Debug, Default)]
 pub struct Ace {
-    circuit_evaluations: BTreeMap<u32, EvaluationContext>,
-    sections_info: Vec<AceSection>,
+    circuit_evaluations: BTreeMap<RowIndex, CircuitEvaluation>,
 }
 
 impl Ace {
+    /// Gets the total trace length of the ACE chiplet.
     pub(crate) fn trace_len(&self) -> usize {
         self.circuit_evaluations.values().map(|eval_ctx| eval_ctx.num_rows()).sum()
     }
 
-    pub(crate) fn fill_trace(mut self, trace: &mut TraceFragment) -> Vec<AceSection> {
+    /// Fills the portion of the main trace allocated to the ACE chiplet.
+    ///
+    /// This also returns helper data needed for generating the part of the auxiliary trace
+    /// associated with the ACE chiplet.
+    pub(crate) fn fill_trace(self, trace: &mut TraceFragment) -> Vec<EvaluatedCircuitsMetadata> {
         // make sure fragment dimensions are consistent with the dimensions of this trace
         debug_assert_eq!(self.trace_len(), trace.len(), "inconsistent trace lengths");
         debug_assert_eq!(ACE_CHIPLET_NUM_COLS, trace.width(), "inconsistent trace widths");
@@ -45,35 +58,40 @@ impl Ace {
             .try_into()
             .expect("failed to convert vector to array");
 
+        let mut sections_info = Vec::with_capacity(self.circuit_evaluations.keys().count());
+
         let mut offset = 0;
         for eval_ctx in self.circuit_evaluations.into_values() {
             eval_ctx.fill(offset, &mut gen_trace);
             offset += eval_ctx.num_rows();
-            let section = AceSection::from_evaluation_context(&eval_ctx);
-            self.sections_info.push(section);
+            let section = EvaluatedCircuitsMetadata::from_evaluation_context(&eval_ctx);
+            sections_info.push(section);
         }
 
         for (out_column, column) in trace.columns().zip(gen_trace) {
             out_column.copy_from_slice(&column);
         }
 
-        self.sections_info
+        sections_info
     }
 
-    pub(crate) fn add_eval_context(&mut self, clk: RowIndex, eval_context: EvaluationContext) {
-        self.circuit_evaluations.insert(clk.as_u32(), eval_context);
+    /// Adds an entry resulting from a call to the ACE chiplet.
+    pub(crate) fn add_eval_context(&mut self, clk: RowIndex, eval_context: CircuitEvaluation) {
+        self.circuit_evaluations.insert(clk, eval_context);
     }
 }
 
+/// Stores metadata associated to an evaluated circuit needed for building the portion of the
+/// auxiliary trace segment relevant for the ACE chiplet.
 #[derive(Debug, Default)]
-pub struct AceSection {
+pub struct EvaluatedCircuitsMetadata {
     ctx: u32,
     clk: u32,
     num_vars: u32,
     num_evals: u32,
 }
 
-impl AceSection {
+impl EvaluatedCircuitsMetadata {
     pub fn clk(&self) -> u32 {
         self.clk
     }
@@ -90,8 +108,8 @@ impl AceSection {
         self.num_evals
     }
 
-    fn from_evaluation_context(eval_ctx: &EvaluationContext) -> AceSection {
-        AceSection {
+    fn from_evaluation_context(eval_ctx: &CircuitEvaluation) -> EvaluatedCircuitsMetadata {
+        EvaluatedCircuitsMetadata {
             ctx: eval_ctx.ctx(),
             clk: eval_ctx.clk(),
             num_vars: eval_ctx.num_read_rows(),
@@ -100,14 +118,23 @@ impl AceSection {
     }
 }
 
+/// Stores metadata for the ACE chiplet useful when building the portion of the auxiliary
+/// trace segment relevant for the ACE chiplet.
+///
+/// This data is already present in the main trace but collecting it here allows us to simplify
+/// the logic for building the auxiliary segment portion for the ACE chiplet.
+/// For example, we know that `clk` and `ctx` are constant throughout each circuit evaluation
+/// and we also know the exact number of ACE chiplet rows per circuit evaluation and the exact
+/// number of rows per `READ` and `EVAL` portions, which allows us to avoid the need to compute
+/// selectors as part of the logic of auxiliary trace generation.
 #[derive(Debug, Default)]
 pub struct AceHints {
     offset_chiplet_trace: usize,
-    pub sections: Vec<AceSection>,
+    pub sections: Vec<EvaluatedCircuitsMetadata>,
 }
 
 impl AceHints {
-    pub fn new(offset_chiplet_trace: usize, sections: Vec<AceSection>) -> Self {
+    pub fn new(offset_chiplet_trace: usize, sections: Vec<EvaluatedCircuitsMetadata>) -> Self {
         Self { offset_chiplet_trace, sections }
     }
 
@@ -245,6 +272,18 @@ impl AceHints {
     }
 }
 
+/// Evaluates an arithmetic circuit at `(ctx, clk)` given a pointer `ptr` to its description,
+/// the number of variables/inputs to the circuit and the number of evaluation gates.
+///
+/// The description of the circuit is divided into two portions:
+///
+/// 1. `READ` made up of the inputs to the circuit followed by the constants of the circuit, both of
+///    which are quadratic extension field elements,
+/// 2. `EVAL` made up of the base field elements encoding each evaluation gate of the circuit. Each
+///    gate is encoded as `[ id_l (30 bits) || id_r (30 bits) || op (2 bits) ]`, where `id_l` is the
+///    identifier of the left input wire, `id_r` is the identifier of the right input wire and `op`
+///    is the operation executed by the gate, namely `op ∈ {0, 1, 2}` where `0` denotes a `SUB`, `1`
+///    a `MUL` and `2` an `ADD`.
 pub fn eval_circuit(
     ctx: ContextId,
     ptr: Felt,
@@ -252,41 +291,54 @@ pub fn eval_circuit(
     num_vars: Felt,
     num_eval: Felt,
     mem: &mut Memory,
-    error_ctx: &ErrorContext<'_, impl MastNodeExt>,
-) -> Result<EvaluationContext, ExecutionError> {
+    error_ctx: &ErrorContext<'_, BasicBlockNode>,
+) -> Result<CircuitEvaluation, ExecutionError> {
     let num_vars = num_vars.as_int();
     let num_eval = num_eval.as_int();
 
-    // Ensure vars and instructions are word-aligned and non-empty
+    // Ensure vars and instructions are word-aligned and non-empty. Note that variables are
+    // quadratic extension field elements while instructions are encoded as base field elements.
+    // Hence we can pack 2 variables and 4 instructions per word.
     if num_vars % 2 != 0 || num_vars == 0 {
-        return Err(ExecutionError::AceError(AceError::NumVarIsNotWordAlignedOrIsEmpty(num_vars)));
+        return Err(ExecutionError::failed_arithmetic_evaluation(
+            error_ctx,
+            AceError::NumVarIsNotWordAlignedOrIsEmpty(num_vars),
+        ));
     }
     if num_eval % 4 != 0 || num_eval == 0 {
-        return Err(ExecutionError::AceError(AceError::NumEvalIsNotWordAlignedOrIsEmpty(num_eval)));
+        return Err(ExecutionError::failed_arithmetic_evaluation(
+            error_ctx,
+            AceError::NumEvalIsNotWordAlignedOrIsEmpty(num_eval),
+        ));
     }
 
     // Ensure instructions are word-aligned and non-empty
     let num_read_rows = num_vars as u32 / 2;
     let num_eval_rows = num_eval as u32;
 
-    let mut evaluation_context = EvaluationContext::new(ctx, clk, num_read_rows, num_eval_rows);
+    let mut evaluation_context = CircuitEvaluation::new(ctx, clk, num_read_rows, num_eval_rows);
 
     let mut ptr = ptr;
     // perform READ operations
     for _ in 0..num_read_rows {
         let word = mem.read_word(ctx, ptr, clk, error_ctx).map_err(ExecutionError::MemoryError)?;
-        ptr = evaluation_context.do_read(ptr, word)?;
+        evaluation_context.do_read(ptr, word)?;
+        ptr += PTR_OFFSET_WORD;
     }
     // perform EVAL operations
     for _ in 0..num_eval_rows {
         let instruction =
             mem.read(ctx, ptr, clk, error_ctx).map_err(ExecutionError::MemoryError)?;
-        ptr = evaluation_context.do_eval(ptr, instruction)?;
+        evaluation_context.do_eval(ptr, instruction, error_ctx)?;
+        ptr += PTR_OFFSET_ELEM;
     }
 
     // Ensure the circuit evaluated to zero.
     if !evaluation_context.output_value().is_some_and(|eval| eval == QuadFelt::ZERO) {
-        return Err(ExecutionError::AceError(AceError::CircuitNotEvaluateZero));
+        return Err(ExecutionError::failed_arithmetic_evaluation(
+            error_ctx,
+            AceError::CircuitNotEvaluateZero,
+        ));
     }
 
     Ok(evaluation_context)
