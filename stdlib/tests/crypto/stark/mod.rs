@@ -102,7 +102,7 @@ pub fn generate_recursive_verifier_data(
     Ok(generate_advice_inputs(proof, pub_inputs).unwrap())
 }
 
-const _KERNEL_ODD_NUM_PROC: &str = r#"
+const KERNEL_ODD_NUM_PROC: &str = r#"
         export.foo
             add
         end
@@ -113,7 +113,7 @@ const _KERNEL_ODD_NUM_PROC: &str = r#"
             mul
         end"#;
 
-const _KERNEL_EVEN_NUM_PROC: &str = r#"
+const KERNEL_EVEN_NUM_PROC: &str = r#"
         export.foo
             add
         end
