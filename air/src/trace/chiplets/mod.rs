@@ -4,11 +4,11 @@ use vm_core::{Felt, ONE, ZERO, utils::range as create_range};
 
 use super::{CHIPLETS_OFFSET, HASH_KERNEL_VTABLE_AUX_TRACE_OFFSET};
 
+pub mod ace;
 pub mod bitwise;
 pub mod hasher;
 pub mod kernel_rom;
 pub mod memory;
-
 // CONSTANTS
 // ================================================================================================
 
@@ -18,8 +18,10 @@ pub const NUM_HASHER_SELECTORS: usize = 1;
 pub const NUM_BITWISE_SELECTORS: usize = 2;
 /// The number of columns in the chiplets which are used as selectors for the memory chiplet.
 pub const NUM_MEMORY_SELECTORS: usize = 3;
+/// The number of columns in the chiplets which are used as selectors for the ACE chiplet.
+pub const NUM_ACE_SELECTORS: usize = 4;
 /// The number of columns in the chiplets which are used as selectors for the kernel ROM chiplet.
-pub const NUM_KERNEL_ROM_SELECTORS: usize = 4;
+pub const NUM_KERNEL_ROM_SELECTORS: usize = 5;
 
 /// The first column of the hash chiplet.
 pub const HASHER_TRACE_OFFSET: usize = CHIPLETS_OFFSET + NUM_HASHER_SELECTORS;

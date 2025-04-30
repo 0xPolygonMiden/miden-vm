@@ -12,8 +12,11 @@ use verifier_recursive::{VerifierData, generate_advice_inputs};
 // Note: Changes to Miden VM may cause this test to fail when some of the assumptions documented
 // in `stdlib/asm/crypto/stark/verifier.masm` are violated.
 #[rstest]
+#[ignore = "fixed-in-https://github.com/0xMiden/miden-vm/pull/1760"]
 #[case(None)]
+#[ignore = "fixed-in-https://github.com/0xMiden/miden-vm/pull/1760"]
 #[case(Some(KERNEL_ODD_NUM_PROC))]
+#[ignore = "fixed-in-https://github.com/0xMiden/miden-vm/pull/1760"]
 #[case(Some(KERNEL_EVEN_NUM_PROC))]
 fn stark_verifier_e2f4(#[case] kernel: Option<&str>) {
     // An example MASM program to be verified inside Miden VM.

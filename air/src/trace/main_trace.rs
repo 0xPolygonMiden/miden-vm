@@ -11,7 +11,12 @@ use super::{
     chiplets::{
         BITWISE_A_COL_IDX, BITWISE_B_COL_IDX, BITWISE_OUTPUT_COL_IDX, HASHER_NODE_INDEX_COL_IDX,
         HASHER_STATE_COL_RANGE, MEMORY_CLK_COL_IDX, MEMORY_CTX_COL_IDX, MEMORY_IDX0_COL_IDX,
-        MEMORY_IDX1_COL_IDX, MEMORY_V_COL_RANGE, MEMORY_WORD_COL_IDX,
+        MEMORY_IDX1_COL_IDX, MEMORY_V_COL_RANGE, MEMORY_WORD_COL_IDX, NUM_ACE_SELECTORS,
+        ace::{
+            CLK_IDX, CTX_IDX, EVAL_OP_IDX, ID_0_IDX, ID_1_IDX, ID_2_IDX, M_0_IDX, M_1_IDX, PTR_IDX,
+            READ_NUM_EVAL_IDX, SELECTOR_BLOCK_IDX, SELECTOR_START_IDX, V_0_0_IDX, V_0_1_IDX,
+            V_1_0_IDX, V_1_1_IDX, V_2_0_IDX, V_2_1_IDX,
+        },
         hasher::{DIGEST_LEN, HASH_CYCLE_LEN, STATE_WIDTH},
     },
     decoder::{
@@ -319,6 +324,11 @@ impl MainTrace {
         self.columns.get_column(CHIPLETS_OFFSET + 4)[i]
     }
 
+    /// Returns chiplet column number 5 at row i.
+    pub fn chiplet_selector_5(&self, i: RowIndex) -> Felt {
+        self.columns.get_column(CHIPLETS_OFFSET + 5)[i]
+    }
+
     /// Returns `true` if a row is part of the hash chiplet.
     pub fn is_hash_row(&self, i: RowIndex) -> bool {
         self.chiplet_selector_0(i) == ZERO
@@ -411,41 +421,156 @@ impl MainTrace {
         self.columns.get_column(MEMORY_V_COL_RANGE.start + 3)[i]
     }
 
-    /// Returns `true` if a row is part of the kernel chiplet.
-    pub fn is_kernel_row(&self, i: RowIndex) -> bool {
+    /// Returns `true` if a row is part of the ACE chiplet.
+    pub fn is_ace_row(&self, i: RowIndex) -> bool {
         self.chiplet_selector_0(i) == ONE
             && self.chiplet_selector_1(i) == ONE
             && self.chiplet_selector_2(i) == ONE
             && self.chiplet_selector_3(i) == ZERO
     }
 
+    pub fn chiplet_ace_start_selector(&self, i: RowIndex) -> Felt {
+        self.columns
+            .get_column(CHIPLETS_OFFSET + NUM_ACE_SELECTORS + SELECTOR_START_IDX)[i]
+    }
+
+    pub fn chiplet_ace_block_selector(&self, i: RowIndex) -> Felt {
+        self.columns
+            .get_column(CHIPLETS_OFFSET + NUM_ACE_SELECTORS + SELECTOR_BLOCK_IDX)[i]
+    }
+
+    pub fn chiplet_ace_ctx(&self, i: RowIndex) -> Felt {
+        self.columns.get_column(CHIPLETS_OFFSET + NUM_ACE_SELECTORS + CTX_IDX)[i]
+    }
+
+    pub fn chiplet_ace_ptr(&self, i: RowIndex) -> Felt {
+        self.columns.get_column(CHIPLETS_OFFSET + NUM_ACE_SELECTORS + PTR_IDX)[i]
+    }
+
+    pub fn chiplet_ace_clk(&self, i: RowIndex) -> Felt {
+        self.columns.get_column(CHIPLETS_OFFSET + NUM_ACE_SELECTORS + CLK_IDX)[i]
+    }
+
+    pub fn chiplet_ace_eval_op(&self, i: RowIndex) -> Felt {
+        self.columns.get_column(CHIPLETS_OFFSET + NUM_ACE_SELECTORS + EVAL_OP_IDX)[i]
+    }
+
+    pub fn chiplet_ace_num_eval_rows(&self, i: RowIndex) -> Felt {
+        self.columns.get_column(CHIPLETS_OFFSET + NUM_ACE_SELECTORS + READ_NUM_EVAL_IDX)[i]
+    }
+
+    pub fn chiplet_ace_id_0(&self, i: RowIndex) -> Felt {
+        self.columns.get_column(CHIPLETS_OFFSET + NUM_ACE_SELECTORS + ID_0_IDX)[i]
+    }
+
+    pub fn chiplet_ace_v_0_0(&self, i: RowIndex) -> Felt {
+        self.columns.get_column(CHIPLETS_OFFSET + NUM_ACE_SELECTORS + V_0_0_IDX)[i]
+    }
+
+    pub fn chiplet_ace_v_0_1(&self, i: RowIndex) -> Felt {
+        self.columns.get_column(CHIPLETS_OFFSET + NUM_ACE_SELECTORS + V_0_1_IDX)[i]
+    }
+
+    pub fn chiplet_ace_wire_0(&self, i: RowIndex) -> [Felt; 3] {
+        let id_0 = self.chiplet_ace_id_0(i);
+        let v_0_0 = self.chiplet_ace_v_0_0(i);
+        let v_0_1 = self.chiplet_ace_v_0_1(i);
+
+        [id_0, v_0_0, v_0_1]
+    }
+
+    pub fn chiplet_ace_id_1(&self, i: RowIndex) -> Felt {
+        self.columns.get_column(CHIPLETS_OFFSET + NUM_ACE_SELECTORS + ID_1_IDX)[i]
+    }
+
+    pub fn chiplet_ace_v_1_0(&self, i: RowIndex) -> Felt {
+        self.columns.get_column(CHIPLETS_OFFSET + NUM_ACE_SELECTORS + V_1_0_IDX)[i]
+    }
+
+    pub fn chiplet_ace_v_1_1(&self, i: RowIndex) -> Felt {
+        self.columns.get_column(CHIPLETS_OFFSET + NUM_ACE_SELECTORS + V_1_1_IDX)[i]
+    }
+
+    pub fn chiplet_ace_wire_1(&self, i: RowIndex) -> [Felt; 3] {
+        let id_1 = self.chiplet_ace_id_1(i);
+        let v_1_0 = self.chiplet_ace_v_1_0(i);
+        let v_1_1 = self.chiplet_ace_v_1_1(i);
+
+        [id_1, v_1_0, v_1_1]
+    }
+
+    pub fn chiplet_ace_id_2(&self, i: RowIndex) -> Felt {
+        self.columns.get_column(CHIPLETS_OFFSET + NUM_ACE_SELECTORS + ID_2_IDX)[i]
+    }
+
+    pub fn chiplet_ace_v_2_0(&self, i: RowIndex) -> Felt {
+        self.columns.get_column(CHIPLETS_OFFSET + NUM_ACE_SELECTORS + V_2_0_IDX)[i]
+    }
+
+    pub fn chiplet_ace_v_2_1(&self, i: RowIndex) -> Felt {
+        self.columns.get_column(CHIPLETS_OFFSET + NUM_ACE_SELECTORS + V_2_1_IDX)[i]
+    }
+
+    pub fn chiplet_ace_wire_2(&self, i: RowIndex) -> [Felt; 3] {
+        let id_2 = self.chiplet_ace_id_2(i);
+        let v_2_0 = self.chiplet_ace_v_2_0(i);
+        let v_2_1 = self.chiplet_ace_v_2_1(i);
+
+        [id_2, v_2_0, v_2_1]
+    }
+
+    pub fn chiplet_ace_m_1(&self, i: RowIndex) -> Felt {
+        self.columns.get_column(CHIPLETS_OFFSET + NUM_ACE_SELECTORS + M_1_IDX)[i]
+    }
+
+    pub fn chiplet_ace_m_0(&self, i: RowIndex) -> Felt {
+        self.columns.get_column(CHIPLETS_OFFSET + NUM_ACE_SELECTORS + M_0_IDX)[i]
+    }
+
+    pub fn chiplet_ace_is_read_row(&self, i: RowIndex) -> bool {
+        self.is_ace_row(i) && self.chiplet_ace_block_selector(i) == ZERO
+    }
+
+    pub fn chiplet_ace_is_eval_row(&self, i: RowIndex) -> bool {
+        self.is_ace_row(i) && self.chiplet_ace_block_selector(i) == ONE
+    }
+
+    /// Returns `true` if a row is part of the kernel chiplet.
+    pub fn is_kernel_row(&self, i: RowIndex) -> bool {
+        self.chiplet_selector_0(i) == ONE
+            && self.chiplet_selector_1(i) == ONE
+            && self.chiplet_selector_2(i) == ONE
+            && self.chiplet_selector_3(i) == ONE
+            && self.chiplet_selector_4(i) == ZERO
+    }
+
     /// Returns the i-th row of the kernel chiplet `addr` column.
     pub fn chiplet_kernel_idx(&self, i: RowIndex) -> Felt {
-        self.columns.get_column(CHIPLETS_OFFSET + 5)[i]
+        self.columns.get_column(CHIPLETS_OFFSET + 6)[i]
     }
 
     /// Returns the i-th row of the chiplet column containing the zeroth element of the kernel
     /// procedure root.
     pub fn chiplet_kernel_root_0(&self, i: RowIndex) -> Felt {
-        self.columns.get_column(CHIPLETS_OFFSET + 6)[i]
+        self.columns.get_column(CHIPLETS_OFFSET + 7)[i]
     }
 
     /// Returns the i-th row of the chiplet column containing the first element of the kernel
     /// procedure root.
     pub fn chiplet_kernel_root_1(&self, i: RowIndex) -> Felt {
-        self.columns.get_column(CHIPLETS_OFFSET + 7)[i]
+        self.columns.get_column(CHIPLETS_OFFSET + 8)[i]
     }
 
     /// Returns the i-th row of the chiplet column containing the second element of the kernel
     /// procedure root.
     pub fn chiplet_kernel_root_2(&self, i: RowIndex) -> Felt {
-        self.columns.get_column(CHIPLETS_OFFSET + 8)[i]
+        self.columns.get_column(CHIPLETS_OFFSET + 9)[i]
     }
 
     /// Returns the i-th row of the chiplet column containing the third element of the kernel
     /// procedure root.
     pub fn chiplet_kernel_root_3(&self, i: RowIndex) -> Felt {
-        self.columns.get_column(CHIPLETS_OFFSET + 9)[i]
+        self.columns.get_column(CHIPLETS_OFFSET + 10)[i]
     }
 
     //  MERKLE PATH HASHING SELECTORS
