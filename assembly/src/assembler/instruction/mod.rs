@@ -1,10 +1,9 @@
 use core::ops::RangeBounds;
 
-use miette::miette;
 use vm_core::{Decorator, ONE, WORD_SIZE, ZERO, debuginfo::Spanned, mast::MastNodeId};
 
 use super::{Assembler, BasicBlockBuilder, Felt, Operation, ProcedureContext, ast::InvokeKind};
-use crate::{AssemblyError, Span, ast::Instruction, utils::bound_into_included_u64};
+use crate::{AssemblyError, Span, ast::Instruction, report, utils::bound_into_included_u64};
 
 mod adv_ops;
 mod crypto_ops;
@@ -540,7 +539,7 @@ where
         let min = bound_into_included_u64(range.start_bound(), true);
         let max = bound_into_included_u64(range.end_bound(), false);
         AssemblyError::Other(
-            miette!(
+            report!(
                 "parameter value must be greater than or equal to {min} and \
             less than or equal to {max}, but was {value}",
             )

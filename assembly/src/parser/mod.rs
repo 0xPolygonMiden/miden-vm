@@ -180,18 +180,20 @@ pub fn read_modules_from_dir(
 ) -> Result<impl Iterator<Item = Box<ast::Module>>, Report> {
     use std::collections::{BTreeMap, btree_map::Entry};
 
-    use miette::miette;
     use module_walker::{ModuleEntry, WalkModules};
 
-    use crate::diagnostics::{IntoDiagnostic, WrapErr};
+    use crate::{
+        diagnostics::{IntoDiagnostic, WrapErr},
+        report,
+    };
 
     if !dir.is_dir() {
-        return Err(miette!("the provided path '{}' is not a valid directory", dir.display()));
+        return Err(report!("the provided path '{}' is not a valid directory", dir.display()));
     }
 
     // mod.masm is not allowed in the root directory
     if dir.join(ast::Module::ROOT_FILENAME).exists() {
-        return Err(miette!("{} is not allowed in the root directory", ast::Module::ROOT_FILENAME));
+        return Err(report!("{} is not allowed in the root directory", ast::Module::ROOT_FILENAME));
     }
 
     let mut modules = BTreeMap::default();
@@ -210,7 +212,7 @@ pub fn read_modules_from_dir(
         let ast = parser.parse_file(name.clone(), &source_path, source_manager)?;
         match modules.entry(name) {
             Entry::Occupied(ref entry) => {
-                return Err(miette!("duplicate module '{0}'", entry.key().clone()));
+                return Err(report!("duplicate module '{0}'", entry.key().clone()));
             },
             Entry::Vacant(entry) => {
                 entry.insert(ast);
@@ -231,12 +233,11 @@ mod module_walker {
         path::{Path, PathBuf},
     };
 
-    use miette::miette;
-
     use crate::{
         LibraryNamespace, LibraryPath,
         ast::Module,
         diagnostics::{IntoDiagnostic, Report},
+        report,
     };
 
     pub struct ModuleEntry {
@@ -282,7 +283,7 @@ mod module_walker {
             // Remove the file extension and the root prefix, leaving a namespace-relative path
             file_path.set_extension("");
             if file_path.is_dir() {
-                return Err(miette!(
+                return Err(report!(
                     "file and directory with same name are not allowed: {}",
                     file_path.display()
                 ));
@@ -296,7 +297,7 @@ mod module_walker {
             for component in relative_path.iter() {
                 let component = component.to_str().ok_or_else(|| {
                     let p = entry.path();
-                    miette!("{} is an invalid directory entry", p.display())
+                    report!("{} is an invalid directory entry", p.display())
                 })?;
                 libpath.push(component).into_diagnostic()?;
             }

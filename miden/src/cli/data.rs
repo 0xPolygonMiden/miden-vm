@@ -9,6 +9,7 @@ use assembly::{
     Assembler, Library, LibraryNamespace, SourceManager,
     ast::{Module, ModuleKind},
     diagnostics::{Report, WrapErr, miette::miette},
+    report,
 };
 use miden_vm::{Digest, ExecutionProof, Program, StackOutputs, utils::SliceReader};
 use prover::utils::Deserializable;
@@ -268,7 +269,7 @@ impl Libraries {
             let path_str = path.as_ref().to_string_lossy().into_owned();
 
             let library = Library::deserialize_from_file(path).map_err(|err| {
-                miette!("Failed to read library from file `{}`: {}", path_str, err)
+                report!("Failed to read library from file `{}`: {}", path_str, err)
             })?;
 
             libraries.push(library);
