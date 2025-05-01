@@ -23,7 +23,7 @@ export.load
     # While loading the public inputs, we also absorb them in the Fiat-Shamir transcript.
 
     # 1) Load the input and output operand stacks
-    exec.compute_public_inputs_address
+    exec.compute_and_store_public_inputs_address
     movdn.4
     padw padw
     repeat.4
@@ -40,7 +40,7 @@ export.load
     # 3) Load the program hash and kernel procedures digests.
     #    We need one call to the RPO permutation per 2 digests, thus we compute the division
     #    with remainder of the number of digests by 2. If the remainder is 1 then we need
-    #    to pad with the zero word, while we don not need to pad otherwise.
+    #    to pad with the zero word, while we do not need to pad otherwise.
     u32divmod.2
     push.0 eq
     # => [?, num_iter, R2, R1, C, ptr, ...]
@@ -90,7 +90,7 @@ export.load
     movup.4 drop
 end
 
-#! Computes the address where the public inputs are to be stored.
+#! Computes the address where the public inputs are to be stored and returns it.
 #!
 #! In order to be able to call `arithmetic_circuit_eval`, we need to layout the inputs to
 #! the constraint evaluation circuit in a contiguous region of memory (called `READ` section
@@ -103,8 +103,8 @@ end
 #! from the address where the OOD are stored.
 #!
 #! Input: [...]
-#! Output: [...]
-proc.compute_public_inputs_address
+#! Output: [ptr, ...]
+proc.compute_and_store_public_inputs_address
 
     # 1) Get a pointer to where OOD evaluations are stored
     exec.constants::ood_trace_current_ptr

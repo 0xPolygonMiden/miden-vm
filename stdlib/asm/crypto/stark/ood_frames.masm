@@ -229,7 +229,7 @@ export.load_and_horner_eval_ood_frames
     dropw
     # => [Y, ood_frame_ptr, alpha_inv_ptr, acc1, acc0, p_gz_1, p_gz_0, ...]
     drop drop
-    # => [Y, acc1, acc0, p_gz_1, p_gz_0, ...]
+    # => [acc1, acc0, p_gz_1, p_gz_0, ...]
 
     ### b) Load the Horner evaluation adjustment factor 
     exec.constants::deep_rand_alpha_88_ptr mem_loadw drop drop

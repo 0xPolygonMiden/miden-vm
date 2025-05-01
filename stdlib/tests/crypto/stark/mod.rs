@@ -37,7 +37,7 @@ fn stark_verifier_e2f4(#[case] kernel: Option<&str>) {
         mut advice_map,
     } = generate_recursive_verifier_data(example_source, stack_inputs, kernel).unwrap();
 
-    let circuit: Vec<Felt> = CIRCUIT.iter().map(|a| Felt::new(*a)).collect();
+    let circuit: Vec<Felt> = CONSTRAINT_EVALUATION_CIRCUIT.iter().map(|a| Felt::new(*a)).collect();
     let circuit_digest = Rpo256::hash_elements(&circuit);
 
     advice_map.push((circuit_digest, circuit));
@@ -120,7 +120,9 @@ const KERNEL_EVEN_NUM_PROC: &str = r#"
             div
         end"#;
 
-const CIRCUIT: [u64; 96] = [
+/// This is an output of the ACE codegen in AirScript and encodes the circuit for executing
+/// the constraint evaluation check i.e., DEEP-ALI.
+const CONSTRAINT_EVALUATION_CIRCUIT: [u64; 96] = [
     1,
     0,
     0,

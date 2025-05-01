@@ -10,7 +10,7 @@ const.DOMAIN_OFFSET_INV=2635249152773512046
 const.NUM_AUX_TRACE_COEFS=16
 
 # Number of constraints, both boundary and transitional
-#const.NUM_CONSTRAINTS=226
+# Note: If the full set of all implemented constraints is used then this should be set to 226
 const.NUM_CONSTRAINTS=4
 
 # Blowup factor
