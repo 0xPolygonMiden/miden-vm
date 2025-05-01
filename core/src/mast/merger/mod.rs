@@ -328,7 +328,7 @@ impl MastForestMerger {
         // For other node types we can handle it centrally.
         if !mapped_node.is_basic_block() {
             mapped_node.append_before_enter(&map_decorators(node.before_enter())?);
-            mapped_node.set_after_exit(map_decorators(node.after_exit())?);
+            mapped_node.append_after_exit(&map_decorators(node.after_exit())?);
         }
 
         Ok(mapped_node)

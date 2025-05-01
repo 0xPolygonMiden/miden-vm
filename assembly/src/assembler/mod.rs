@@ -777,7 +777,7 @@ impl Assembler {
 
         // Make sure that any post decorators are added at the end of the procedure body
         if let Some(post_decorator_ids) = maybe_post_decorators {
-            mast_forest_builder.set_after_exit(procedure_body_id, post_decorator_ids);
+            mast_forest_builder.append_after_exit(procedure_body_id, &post_decorator_ids);
         }
 
         Ok(procedure_body_id)

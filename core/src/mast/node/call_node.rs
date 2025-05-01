@@ -182,8 +182,8 @@ impl CallNode {
     }
 
     /// Sets the list of decorators to be executed after this node.
-    pub fn set_after_exit(&mut self, decorator_ids: Vec<DecoratorId>) {
-        self.after_exit = decorator_ids;
+    pub fn append_after_exit(&mut self, decorator_ids: &[DecoratorId]) {
+        self.after_exit.extend_from_slice(decorator_ids);
     }
 }
 
