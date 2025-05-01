@@ -209,9 +209,8 @@ fn test_diagnostic_dynamic_node_not_found_2() {
 // FailedAssertion
 // ------------------------------------------------------------------------------------------------
 
-// TODO(plafer): re-enable this and fix after `assert*` lexing is fixed
 #[test]
-#[ignore]
+#[ignore = "https://github.com/0xMiden/miden-vm/issues/1764"]
 fn test_diagnostic_failed_assertion() {
     let source = "
         begin
@@ -235,9 +234,8 @@ fn test_diagnostic_failed_assertion() {
     );
 }
 
-// TODO(plafer): finish the diagnostic when the lexer is fixed
 #[test]
-#[ignore]
+#[ignore = "https://github.com/0xMiden/miden-vm/issues/1764"]
 fn test_diagnostic_merkle_path_verification_failed() {
     let source = "
         begin
