@@ -490,6 +490,13 @@ impl MastForest {
         self.error_codes.insert(code_key, msg.to_string());
         code
     }
+
+    /// Given an error code as a Felt, resolves it to its corresponding
+    /// error message.
+    pub fn resolve_error_message(&self, code: Felt) -> Option<&String> {
+        let key = u64::from(code);
+        self.error_codes.get(&key)
+    }
 }
 
 impl Index<MastNodeId> for MastForest {
