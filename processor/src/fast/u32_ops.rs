@@ -1,7 +1,7 @@
 use vm_core::{Felt, ZERO};
 
 use super::FastProcessor;
-use crate::{ExecutionError, utils::split_element};
+use crate::{ErrorContext, ExecutionError, utils::split_element};
 
 impl FastProcessor {
     /// Analogous to `Process::op_u32split`.
@@ -35,13 +35,25 @@ impl FastProcessor {
 
             // Check that a, b, and c are u32 values.
             if a > u32::MAX as u64 {
-                return Err(ExecutionError::NotU32Value(Felt::new(a), ZERO));
+                return Err(ExecutionError::not_u32_value(
+                    Felt::new(a),
+                    ZERO,
+                    &ErrorContext::default(),
+                ));
             }
             if b > u32::MAX as u64 {
-                return Err(ExecutionError::NotU32Value(Felt::new(b), ZERO));
+                return Err(ExecutionError::not_u32_value(
+                    Felt::new(b),
+                    ZERO,
+                    &ErrorContext::default(),
+                ));
             }
             if c > u32::MAX as u64 {
-                return Err(ExecutionError::NotU32Value(Felt::new(c), ZERO));
+                return Err(ExecutionError::not_u32_value(
+                    Felt::new(c),
+                    ZERO,
+                    &ErrorContext::default(),
+                ));
             }
             let result = Felt::new(a + b + c);
             split_element(result)
@@ -83,13 +95,25 @@ impl FastProcessor {
 
             // Check that a, b, and c are u32 values.
             if b > u32::MAX as u64 {
-                return Err(ExecutionError::NotU32Value(Felt::new(a), ZERO));
+                return Err(ExecutionError::not_u32_value(
+                    Felt::new(a),
+                    ZERO,
+                    &ErrorContext::default(),
+                ));
             }
             if a > u32::MAX as u64 {
-                return Err(ExecutionError::NotU32Value(Felt::new(b), ZERO));
+                return Err(ExecutionError::not_u32_value(
+                    Felt::new(b),
+                    ZERO,
+                    &ErrorContext::default(),
+                ));
             }
             if c > u32::MAX as u64 {
-                return Err(ExecutionError::NotU32Value(Felt::new(c), ZERO));
+                return Err(ExecutionError::not_u32_value(
+                    Felt::new(c),
+                    ZERO,
+                    &ErrorContext::default(),
+                ));
             }
             let result = Felt::new(a * b + c);
             split_element(result)
@@ -107,7 +131,7 @@ impl FastProcessor {
         let clk = self.clk + op_idx;
         self.u32_pop2_applyfn_push_results(0, |first, second| {
             if first == 0 {
-                return Err(ExecutionError::DivideByZero(clk));
+                return Err(ExecutionError::divide_by_zero(clk, &ErrorContext::default()));
             }
 
             // a/b = n*q + r for some n>=0 and 0<=r<b
@@ -147,10 +171,18 @@ impl FastProcessor {
 
         // Check that a and b are u32 values.
         if b > u32::MAX as u64 {
-            return Err(ExecutionError::NotU32Value(Felt::new(b), ZERO));
+            return Err(ExecutionError::not_u32_value(
+                Felt::new(b),
+                ZERO,
+                &ErrorContext::default(),
+            ));
         }
         if a > u32::MAX as u64 {
-            return Err(ExecutionError::NotU32Value(Felt::new(a), ZERO));
+            return Err(ExecutionError::not_u32_value(
+                Felt::new(a),
+                ZERO,
+                &ErrorContext::default(),
+            ));
         }
 
         let result = f(a, b);
@@ -180,10 +212,18 @@ impl FastProcessor {
 
         // Check that a and b are u32 values.
         if a > u32::MAX as u64 {
-            return Err(ExecutionError::NotU32Value(Felt::new(a), ZERO));
+            return Err(ExecutionError::not_u32_value(
+                Felt::new(a),
+                ZERO,
+                &ErrorContext::default(),
+            ));
         }
         if b > u32::MAX as u64 {
-            return Err(ExecutionError::NotU32Value(Felt::new(b), ZERO));
+            return Err(ExecutionError::not_u32_value(
+                Felt::new(b),
+                ZERO,
+                &ErrorContext::default(),
+            ));
         }
 
         let result = Felt::new(f(a, b));
@@ -209,10 +249,18 @@ impl FastProcessor {
 
         // Check that a and b are u32 values.
         if first_old > u32::MAX as u64 {
-            return Err(ExecutionError::NotU32Value(Felt::new(first_old), Felt::from(err_code)));
+            return Err(ExecutionError::not_u32_value(
+                Felt::new(first_old),
+                Felt::from(err_code),
+                &ErrorContext::default(),
+            ));
         }
         if second_old > u32::MAX as u64 {
-            return Err(ExecutionError::NotU32Value(Felt::new(second_old), Felt::from(err_code)));
+            return Err(ExecutionError::not_u32_value(
+                Felt::new(second_old),
+                Felt::from(err_code),
+                &ErrorContext::default(),
+            ));
         }
 
         let (first_new, second_new) = f(first_old, second_old)?;

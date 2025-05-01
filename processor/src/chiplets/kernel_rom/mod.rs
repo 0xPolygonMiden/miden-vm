@@ -1,8 +1,10 @@
 use alloc::collections::BTreeMap;
 
 use miden_air::{RowIndex, trace::chiplets::kernel_rom::TRACE_WIDTH};
+use vm_core::mast::MastNodeExt;
 
 use super::{Digest, ExecutionError, Felt, Kernel, ONE, TraceFragment, Word, ZERO};
+use crate::ErrorContext;
 
 #[cfg(test)]
 mod tests;
@@ -77,12 +79,16 @@ impl KernelRom {
     ///
     /// # Errors
     /// If the specified procedure does not exist in this kernel ROM, an error is returned.
-    pub fn access_proc(&mut self, proc_hash: Digest) -> Result<(), ExecutionError> {
+    pub fn access_proc(
+        &mut self,
+        proc_hash: Digest,
+        err_ctx: &ErrorContext<impl MastNodeExt>,
+    ) -> Result<(), ExecutionError> {
         let proc_hash_bytes: ProcHashBytes = proc_hash.into();
         let access_info = self
             .access_map
             .get_mut(&proc_hash_bytes)
-            .ok_or(ExecutionError::SyscallTargetNotInKernel(proc_hash))?;
+            .ok_or(ExecutionError::syscall_target_not_in_kernel(proc_hash, err_ctx))?;
         // when access count is going from 0 to 1 we don't increment trace length as both 0 and 1
         // accesses require a single row in the trace
         if access_info.num_accesses > 0 {

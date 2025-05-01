@@ -1,5 +1,7 @@
+use vm_core::mast::MastNodeExt;
+
 use super::{ExecutionError, Operation, Process};
-use crate::{AdviceProvider, Host};
+use crate::{AdviceProvider, ErrorContext, Host};
 
 // CRYPTOGRAPHIC OPERATIONS
 // ================================================================================================
@@ -67,6 +69,7 @@ impl Process {
         &mut self,
         err_code: u32,
         host: &mut impl Host,
+        err_ctx: &ErrorContext<'_, impl MastNodeExt>,
     ) -> Result<(), ExecutionError> {
         // read node value, depth, index and root value from the stack
         let node = [self.stack.get(3), self.stack.get(2), self.stack.get(1), self.stack.get(0)];
@@ -76,7 +79,7 @@ impl Process {
 
         // get a Merkle path from the advice provider for the specified root and node index.
         // the path is expected to be of the specified depth.
-        let path = host.advice_provider_mut().get_merkle_path(root, &depth, &index)?;
+        let path = host.advice_provider_mut().get_merkle_path(root, &depth, &index, err_ctx)?;
 
         // use hasher to compute the Merkle root of the path
         let (addr, computed_root) = self.chiplets.hasher.build_merkle_root(node, &path, index);
@@ -88,12 +91,13 @@ impl Process {
         if root != computed_root {
             // If the hasher chiplet doesn't compute the same root (using the same path),
             // then it means that `node` is not the value currently in the tree at `index`
-            return Err(ExecutionError::MerklePathVerificationFailed {
-                value: node,
+            return Err(ExecutionError::merkle_path_verification_failed(
+                node,
                 index,
-                root: root.into(),
+                root.into(),
                 err_code,
-            });
+                err_ctx,
+            ));
         }
 
         // The same state is copied over to the next clock cycle with no changes.
@@ -134,7 +138,11 @@ impl Process {
     ///
     /// # Panics
     /// Panics if the computed old root does not match the input root provided via the stack.
-    pub(super) fn op_mrupdate(&mut self, host: &mut impl Host) -> Result<(), ExecutionError> {
+    pub(super) fn op_mrupdate(
+        &mut self,
+        host: &mut impl Host,
+        err_ctx: &ErrorContext<'_, impl MastNodeExt>,
+    ) -> Result<(), ExecutionError> {
         // read old node value, depth, index, tree root and new node values from the stack
         let old_node = [self.stack.get(3), self.stack.get(2), self.stack.get(1), self.stack.get(0)];
         let depth = self.stack.get(4);
@@ -149,7 +157,7 @@ impl Process {
         // whole sub-tree to this node.
         let (path, _) = host
             .advice_provider_mut()
-            .update_merkle_node(old_root, &depth, &index, new_node)?;
+            .update_merkle_node(old_root, &depth, &index, new_node, err_ctx)?;
 
         assert_eq!(path.len(), depth.as_int() as usize);
 

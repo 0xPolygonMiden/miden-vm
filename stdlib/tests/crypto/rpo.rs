@@ -19,7 +19,7 @@ fn test_invalid_end_addr() {
 
     expect_exec_error_matches!(
         test,
-        ExecutionError::FailedAssertion{ clk, err_code, err_msg }
+        ExecutionError::FailedAssertion{ clk, err_code, err_msg , label: _, source_file: _ }
         if clk == RowIndex::from(18) && err_code == 0 && err_msg.is_none()
     );
 }

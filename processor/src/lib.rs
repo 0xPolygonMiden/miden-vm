@@ -9,7 +9,6 @@ extern crate std;
 use alloc::{sync::Arc, vec::Vec};
 use core::fmt::{Display, LowerHex};
 
-use errors::ErrorContext;
 use fast::FastProcessor;
 use miden_air::trace::{
     CHIPLETS_WIDTH, DECODER_TRACE_WIDTH, MIN_TRACE_LEN, RANGE_CHECK_TRACE_WIDTH, STACK_TRACE_WIDTH,
@@ -22,7 +21,7 @@ pub use vm_core::{
     StackInputs, StackOutputs, Word, ZERO,
     chiplets::hasher::Digest,
     crypto::merkle::SMT_DEPTH,
-    debuginfo::{DefaultSourceManager, SourceManager},
+    debuginfo::{DefaultSourceManager, SourceManager, SourceSpan},
     errors::InputError,
     mast::{MastForest, MastNode, MastNodeId},
     sys_events::SystemEvent,
@@ -31,7 +30,8 @@ pub use vm_core::{
 use vm_core::{
     Decorator, DecoratorIterator, FieldElement, WORD_SIZE,
     mast::{
-        BasicBlockNode, CallNode, DynNode, JoinNode, LoopNode, OP_GROUP_SIZE, OpBatch, SplitNode,
+        BasicBlockNode, CallNode, DynNode, JoinNode, LoopNode, MastNodeExt, OP_GROUP_SIZE, OpBatch,
+        SplitNode,
     },
 };
 pub use winter_prover::matrix::ColMatrix;
@@ -68,7 +68,7 @@ use trace::TraceFragment;
 pub use trace::{ChipletsLengths, ExecutionTrace, NUM_RAND_ROWS, TraceLenSummary};
 
 mod errors;
-pub use errors::{ExecutionError, Ext2InttError};
+pub use errors::{ErrorContext, ExecutionError, Ext2InttError};
 
 pub mod utils;
 
@@ -308,7 +308,11 @@ impl Process {
         for (digest, values) in program.mast_forest().advice_map().iter() {
             if let Some(stored_values) = host.advice_provider().get_mapped_values(digest) {
                 if stored_values != values {
-                    return Err(ExecutionError::AdviceMapKeyAlreadyPresent(digest.into()));
+                    return Err(ExecutionError::AdviceMapKeyAlreadyPresent {
+                        key: digest.into(),
+                        prev_values: stored_values.to_vec(),
+                        new_values: values.clone(),
+                    });
                 }
             } else {
                 host.advice_provider_mut().insert_into_map(digest.into(), values.clone());
@@ -342,8 +346,20 @@ impl Process {
             MastNode::Join(node) => self.execute_join_node(node, program, host)?,
             MastNode::Split(node) => self.execute_split_node(node, program, host)?,
             MastNode::Loop(node) => self.execute_loop_node(node, program, host)?,
-            MastNode::Call(node) => self.execute_call_node(node, program, host)?,
-            MastNode::Dyn(node) => self.execute_dyn_node(node, program, host)?,
+            MastNode::Call(node) => {
+                let err_ctx = ErrorContext::new(program, node, self.source_manager.clone());
+                add_error_ctx_to_external_error(
+                    self.execute_call_node(node, program, host),
+                    err_ctx,
+                )?
+            },
+            MastNode::Dyn(node) => {
+                let err_ctx = ErrorContext::new(program, node, self.source_manager.clone());
+                add_error_ctx_to_external_error(
+                    self.execute_dyn_node(node, program, host),
+                    err_ctx,
+                )?
+            },
             MastNode::External(external_node) => {
                 let (root_id, mast_forest) = resolve_external_node(external_node, host)?;
 
@@ -392,7 +408,8 @@ impl Process {
         } else if condition == ZERO {
             self.execute_mast_node(node.on_false(), program, host)?;
         } else {
-            return Err(ExecutionError::NotBinaryValue(condition));
+            let err_ctx = ErrorContext::new(program, node, self.source_manager.clone());
+            return Err(ExecutionError::not_binary_value_if(condition, &err_ctx));
         }
 
         self.end_split_node(node, host)
@@ -424,7 +441,8 @@ impl Process {
             }
 
             if self.stack.peek() != ZERO {
-                return Err(ExecutionError::NotBinaryValue(self.stack.peek()));
+                let err_ctx = ErrorContext::new(program, node, self.source_manager.clone());
+                return Err(ExecutionError::not_binary_value_loop(self.stack.peek(), &err_ctx));
             }
 
             // end the LOOP block and drop the condition from the stack
@@ -434,7 +452,8 @@ impl Process {
             // already dropped when we started the LOOP block
             self.end_loop_node(node, false, host)
         } else {
-            Err(ExecutionError::NotBinaryValue(condition))
+            let err_ctx = ErrorContext::new(program, node, self.source_manager.clone());
+            Err(ExecutionError::not_binary_value_loop(condition, &err_ctx))
         }
     }
 
@@ -457,7 +476,8 @@ impl Process {
             let callee = program.get_node_by_id(call_node.callee()).ok_or_else(|| {
                 ExecutionError::MastNodeNotFoundInForest { node_id: call_node.callee() }
             })?;
-            self.chiplets.kernel_rom.access_proc(callee.digest())?;
+            let err_ctx = ErrorContext::new(program, call_node, self.source_manager.clone());
+            self.chiplets.kernel_rom.access_proc(callee.digest(), &err_ctx)?;
         }
         let err_ctx = ErrorContext::new(program, call_node, self.source_manager.clone());
 
@@ -496,14 +516,17 @@ impl Process {
         match program.find_procedure_root(callee_hash.into()) {
             Some(callee_id) => self.execute_mast_node(callee_id, program, host)?,
             None => {
-                let mast_forest = host
-                    .get_mast_forest(&callee_hash.into())
-                    .ok_or_else(|| ExecutionError::DynamicNodeNotFound(callee_hash.into()))?;
+                let mast_forest = host.get_mast_forest(&callee_hash.into()).ok_or_else(|| {
+                    ExecutionError::dynamic_node_not_found(callee_hash.into(), &error_ctx)
+                })?;
 
                 // We limit the parts of the program that can be called externally to procedure
                 // roots, even though MAST doesn't have that restriction.
                 let root_id = mast_forest.find_procedure_root(callee_hash.into()).ok_or(
-                    ExecutionError::MalformedMastForestInHost { root_digest: callee_hash.into() },
+                    ExecutionError::malfored_mast_forest_in_host(
+                        callee_hash.into(),
+                        &ErrorContext::default(),
+                    ),
                 )?;
 
                 self.execute_mast_node(root_id, &mast_forest, host)?
@@ -865,5 +888,40 @@ impl<'a> From<&'a mut Process> for ProcessState<'a> {
             stack: &process.stack,
             chiplets: &process.chiplets,
         })
+    }
+}
+
+// HELPERS
+// ================================================================================================
+
+/// For errors generated from processing an `ExternalNode`, returns the same error except with
+/// proper error context.
+fn add_error_ctx_to_external_error(
+    result: Result<(), ExecutionError>,
+    err_ctx: ErrorContext<impl MastNodeExt>,
+) -> Result<(), ExecutionError> {
+    match result {
+        Ok(_) => Ok(()),
+        // Add context information to any errors coming from executing an `ExternalNode`
+        Err(err) => match err {
+            ExecutionError::NoMastForestWithProcedure { label, source_file: _, root_digest }
+            | ExecutionError::MalformedMastForestInHost { label, source_file: _, root_digest } => {
+                if label == SourceSpan::UNKNOWN {
+                    let err_with_ctx =
+                        ExecutionError::no_mast_forest_with_procedure(root_digest, &err_ctx);
+                    Err(err_with_ctx)
+                } else {
+                    // If the source span was already populated, just return the error as-is. This
+                    // would occur when a call deeper down the call stack was responsible for the
+                    // error.
+                    Err(err)
+                }
+            },
+
+            _ => {
+                // do nothing
+                Err(err)
+            },
+        },
     }
 }

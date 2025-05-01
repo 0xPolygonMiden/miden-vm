@@ -1,4 +1,4 @@
-use vm_core::{Felt, Operation, sys_events::SystemEvent};
+use vm_core::{Felt, Operation, mast::MastNodeExt, sys_events::SystemEvent};
 
 use super::{
     super::{
@@ -7,7 +7,7 @@ use super::{
     },
     ExecutionError, Process,
 };
-use crate::Host;
+use crate::{Host, errors::ErrorContext};
 pub(crate) mod sys_event_handlers;
 
 // SYSTEM OPERATIONS
@@ -18,12 +18,17 @@ impl Process {
     ///
     /// # Errors
     /// Returns an error if the popped value is not ONE.
-    pub(super) fn op_assert<H>(&mut self, err_code: u32, host: &mut H) -> Result<(), ExecutionError>
+    pub(super) fn op_assert<H>(
+        &mut self,
+        err_code: u32,
+        host: &mut H,
+        err_ctx: &ErrorContext<'_, impl MastNodeExt>,
+    ) -> Result<(), ExecutionError>
     where
         H: Host,
     {
         if self.stack.get(0) != ONE {
-            return Err(host.on_assert_failed(self.into(), err_code));
+            return Err(host.on_assert_failed(self.into(), err_code, err_ctx));
         }
         self.stack.shift_left(1);
         Ok(())
@@ -117,7 +122,12 @@ impl Process {
     // --------------------------------------------------------------------------------------------
 
     /// Forwards the emitted event id to the host.
-    pub(super) fn op_emit<H>(&mut self, event_id: u32, host: &mut H) -> Result<(), ExecutionError>
+    pub(super) fn op_emit<H>(
+        &mut self,
+        event_id: u32,
+        host: &mut H,
+        err_ctx: &ErrorContext<'_, impl MastNodeExt>,
+    ) -> Result<(), ExecutionError>
     where
         H: Host,
     {
@@ -126,9 +136,9 @@ impl Process {
 
         // If it's a system event, handle it directly. Otherwise, forward it to the host.
         if let Some(system_event) = SystemEvent::from_event_id(event_id) {
-            self.handle_system_event(system_event, host)
+            self.handle_system_event(system_event, host, err_ctx)
         } else {
-            host.on_event(self.into(), event_id)
+            host.on_event(self.into(), event_id, err_ctx)
         }
     }
 }

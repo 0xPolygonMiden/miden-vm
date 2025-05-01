@@ -1,8 +1,11 @@
 use alloc::sync::Arc;
 
-use processor::{AdviceProvider, AdviceSource, DefaultHost, MastForest, ProcessState};
+use processor::{
+    AdviceProvider, AdviceSource, DefaultHost, ErrorContext, MastForest, ProcessState,
+};
 use prover::{ExecutionError, Host, MemAdviceProvider};
 use stdlib::{EVENT_FALCON_SIG_TO_STACK, falcon_sign};
+use vm_core::mast::MastNodeExt;
 
 pub struct TestHost(DefaultHost<MemAdviceProvider>);
 
@@ -43,10 +46,15 @@ impl Host for TestHost {
         self.0.get_mast_forest(node_digest)
     }
 
-    fn on_event(&mut self, process: ProcessState, event_id: u32) -> Result<(), ExecutionError> {
+    fn on_event(
+        &mut self,
+        process: ProcessState,
+        event_id: u32,
+        err_ctx: &ErrorContext<'_, impl MastNodeExt>,
+    ) -> Result<(), ExecutionError> {
         if event_id == EVENT_FALCON_SIG_TO_STACK {
             let advice_provider = self.advice_provider_mut();
-            push_falcon_signature(advice_provider, process)
+            push_falcon_signature(advice_provider, process, err_ctx)
         } else {
             Ok(())
         }
@@ -73,19 +81,20 @@ impl Host for TestHost {
 pub fn push_falcon_signature(
     advice_provider: &mut impl AdviceProvider,
     process: ProcessState,
+    err_ctx: &ErrorContext<'_, impl MastNodeExt>,
 ) -> Result<(), ExecutionError> {
     let pub_key = process.get_stack_word(0);
     let msg = process.get_stack_word(1);
 
     let pk_sk = advice_provider
         .get_mapped_values(&pub_key.into())
-        .ok_or(ExecutionError::AdviceMapKeyNotFound(pub_key))?;
+        .ok_or(ExecutionError::advice_map_key_not_found(pub_key, err_ctx))?;
 
     let result = falcon_sign(pk_sk, msg)
-        .ok_or_else(|| ExecutionError::MalformedSignatureKey("RPO Falcon512"))?;
+        .ok_or_else(|| ExecutionError::malformed_signature_key("RPO Falcon512", err_ctx))?;
 
     for r in result {
-        advice_provider.push_stack(AdviceSource::Value(r))?;
+        advice_provider.push_stack(AdviceSource::Value(r), err_ctx)?;
     }
     Ok(())
 }

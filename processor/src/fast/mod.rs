@@ -16,7 +16,7 @@ use vm_core::{
 
 use crate::{
     ContextId, ExecutionError, FMP_MIN, Host, ProcessState, SYSCALL_FMP_MIN, errors::ErrorContext,
-    operations::utils::assert_binary, utils::resolve_external_node,
+    utils::resolve_external_node,
 };
 
 mod memory;
@@ -414,7 +414,7 @@ impl FastProcessor {
         } else if condition == ZERO {
             self.execute_mast_node(split_node.on_false(), program, kernel, host)
         } else {
-            Err(ExecutionError::NotBinaryValue(condition))
+            Err(ExecutionError::not_binary_value_if(condition, &ErrorContext::default()))
         };
 
         // Corresponds to the row inserted for the END operation added to the trace.
@@ -462,7 +462,7 @@ impl FastProcessor {
         if condition == ZERO {
             Ok(())
         } else {
-            Err(ExecutionError::NotBinaryValue(condition))
+            Err(ExecutionError::not_binary_value_loop(condition, &ErrorContext::default()))
         }
     }
 
@@ -492,7 +492,10 @@ impl FastProcessor {
         if call_node.is_syscall() {
             // check if the callee is in the kernel
             if !kernel.contains_proc(callee_hash) {
-                return Err(ExecutionError::SyscallTargetNotInKernel(callee_hash));
+                return Err(ExecutionError::syscall_target_not_in_kernel(
+                    callee_hash,
+                    &ErrorContext::default(),
+                ));
             }
 
             // set the system registers to the syscall context
@@ -559,14 +562,20 @@ impl FastProcessor {
         match program.find_procedure_root(callee_hash.into()) {
             Some(callee_id) => self.execute_mast_node(callee_id, program, kernel, host)?,
             None => {
-                let mast_forest = host
-                    .get_mast_forest(&callee_hash.into())
-                    .ok_or_else(|| ExecutionError::DynamicNodeNotFound(callee_hash.into()))?;
+                let mast_forest = host.get_mast_forest(&callee_hash.into()).ok_or_else(|| {
+                    ExecutionError::dynamic_node_not_found(
+                        callee_hash.into(),
+                        &ErrorContext::default(),
+                    )
+                })?;
 
                 // We limit the parts of the program that can be called externally to procedure
                 // roots, even though MAST doesn't have that restriction.
                 let root_id = mast_forest.find_procedure_root(callee_hash.into()).ok_or(
-                    ExecutionError::MalformedMastForestInHost { root_digest: callee_hash.into() },
+                    ExecutionError::malfored_mast_forest_in_host(
+                        callee_hash.into(),
+                        &ErrorContext::default(),
+                    ),
                 )?;
 
                 self.execute_mast_node(root_id, &mast_forest, kernel, host)?

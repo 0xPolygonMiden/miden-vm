@@ -30,7 +30,10 @@ fn advice_map_loaded_before_execution() {
     ) {
         Ok(_) => panic!("Expected error"),
         Err(e) => {
-            assert_matches!(e, prover::ExecutionError::AdviceMapKeyNotFound(_));
+            assert_matches!(
+                e,
+                prover::ExecutionError::AdviceMapKeyNotFound { key: _, label: _, source_file: _ }
+            );
         },
     }
 

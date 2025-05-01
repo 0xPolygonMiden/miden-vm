@@ -1,7 +1,303 @@
-use assembly::{assert_diagnostic_lines, regex};
-use test_utils::build_test_by_mode;
+/// Tests in this file make sure that diagnostics presented to the user are as expected.
+use alloc::string::ToString;
+
+use assembly::{Assembler, assert_diagnostic_lines, regex, source_file, testing::TestContext};
+use test_utils::{
+    build_test_by_mode,
+    crypto::{init_merkle_leaves, init_merkle_store},
+};
+use vm_core::{
+    AdviceMap,
+    crypto::merkle::{MerkleStore, MerkleTree},
+};
 
 use super::*;
+
+// AdviceMapKeyAlreadyPresent
+// ------------------------------------------------------------------------------------------------
+
+/// In this test, we load 2 libraries which have a MAST forest with an advice map that contains
+/// different values at the same key (which triggers the `AdviceMapKeyAlreadyPresent` error).
+#[test]
+fn test_diagnostic_advice_map_key_already_present() {
+    let test_context = TestContext::new();
+
+    let (lib_1, lib_2) = {
+        let dummy_library_source = source_file!(&test_context, "export.foo add end");
+        let module = test_context
+            .parse_module_with_path("foo::bar".parse().unwrap(), dummy_library_source)
+            .unwrap();
+        let lib = test_context.assemble_library(std::iter::once(module)).unwrap();
+        let lib_1 = lib
+            .clone()
+            .with_advice_map(AdviceMap::from_iter([(Digest::default(), vec![ZERO])]));
+        let lib_2 = lib.with_advice_map(AdviceMap::from_iter([(Digest::default(), vec![ONE])]));
+
+        (lib_1, lib_2)
+    };
+
+    let mut host = DefaultHost::default();
+    host.load_mast_forest(lib_1.mast_forest().clone()).unwrap();
+    let err = host.load_mast_forest(lib_2.mast_forest().clone()).unwrap_err();
+
+    assert_diagnostic_lines!(
+        err,
+        "x value for key 0000000000000000000000000000000000000000000000000000000000000000 already present in the advice map when loading MAST forest",
+        "help: previous values at key were '[0]'. Operation would have replaced them with '[1]'"
+    );
+}
+
+// AdviceMapKeyNotFound
+// ------------------------------------------------------------------------------------------------
+
+#[test]
+fn test_diagnostic_advice_map_key_not_found_1() {
+    let source = "
+        begin
+            swap swap trace.2 adv.push_mapval
+        end";
+
+    let build_test = build_test_by_mode!(true, source, &[1, 2]);
+    let err = build_test.execute().expect_err("expected error");
+    assert_diagnostic_lines!(
+        err,
+        "value for key 00000000000000000000000000000000ffffffff00000000feffffff01000000 not present in the advice map",
+        regex!(r#",-\[test[\d]+:3:31\]"#),
+        " 2 |         begin",
+        " 3 |             swap swap trace.2 adv.push_mapval",
+        "   :                               ^^^^^^^^^^^^^^^",
+        "4 |         end",
+        "   `----"
+    );
+}
+
+#[test]
+fn test_diagnostic_advice_map_key_not_found_2() {
+    let source = "
+        begin
+            swap swap trace.2 adv.push_mapvaln
+        end";
+
+    let build_test = build_test_by_mode!(true, source, &[1, 2]);
+    let err = build_test.execute().expect_err("expected error");
+    assert_diagnostic_lines!(
+        err,
+        "value for key 00000000000000000000000000000000ffffffff00000000feffffff01000000 not present in the advice map",
+        regex!(r#",-\[test[\d]+:3:31\]"#),
+        " 2 |         begin",
+        " 3 |             swap swap trace.2 adv.push_mapvaln",
+        "   :                               ^^^^^^^^^^^^^^^^",
+        "4 |         end",
+        "   `----"
+    );
+}
+
+// AdviceStackReadFailed
+// ------------------------------------------------------------------------------------------------
+
+#[test]
+fn test_diagnostic_advice_stack_read_failed() {
+    let source = "
+        begin
+            swap adv_push.1 trace.2
+        end";
+
+    let build_test = build_test_by_mode!(true, source, &[1, 2]);
+    let err = build_test.execute().expect_err("expected error");
+    assert_diagnostic_lines!(
+        err,
+        "advice stack read failed at clock cycle 2",
+        regex!(r#",-\[test[\d]+:3:18\]"#),
+        " 2 |         begin",
+        " 3 |             swap adv_push.1 trace.2",
+        "   :                  ^^^^^^^^^^",
+        " 4 |         end",
+        "   `----"
+    );
+}
+
+// DivideByZero
+// ------------------------------------------------------------------------------------------------
+
+#[test]
+fn test_diagnostic_divide_by_zero_1() {
+    let source = "
+        begin
+            trace.2 div
+        end";
+
+    let build_test = build_test_by_mode!(true, source, &[]);
+    let err = build_test.execute().expect_err("expected error");
+    assert_diagnostic_lines!(
+        err,
+        "division by zero at clock cycle 1",
+        regex!(r#",-\[test[\d]+:3:21\]"#),
+        " 2 |         begin",
+        " 3 |             trace.2 div",
+        "   :                     ^^^",
+        " 4 |         end",
+        "   `----"
+    );
+}
+
+#[test]
+fn test_diagnostic_divide_by_zero_2() {
+    let source = "
+        begin
+            trace.2 u32div
+        end";
+
+    let build_test = build_test_by_mode!(true, source, &[]);
+    let err = build_test.execute().expect_err("expected error");
+    assert_diagnostic_lines!(
+        err,
+        "division by zero at clock cycle 1",
+        regex!(r#",-\[test[\d]+:3:21\]"#),
+        " 2 |         begin",
+        " 3 |             trace.2 u32div",
+        "   :                     ^^^^^^",
+        " 4 |         end",
+        "   `----"
+    );
+}
+
+// DynamicNodeNotFound
+// ------------------------------------------------------------------------------------------------
+
+#[test]
+fn test_diagnostic_dynamic_node_not_found_1() {
+    let source = "
+        begin
+            trace.2 dynexec
+        end";
+
+    let build_test = build_test_by_mode!(true, source, &[]);
+    let err = build_test.execute().expect_err("expected error");
+    assert_diagnostic_lines!(
+        err,
+        "failed to execute the dynamic code block provided by the stack with root 0x0000000000000000000000000000000000000000000000000000000000000000; the block could not be found",
+        regex!(r#",-\[test[\d]+:3:21\]"#),
+        " 2 |         begin",
+        " 3 |             trace.2 dynexec",
+        "   :                     ^^^^^^^",
+        " 4 |         end",
+        "   `----"
+    );
+}
+
+#[test]
+fn test_diagnostic_dynamic_node_not_found_2() {
+    let source = "
+        begin
+            trace.2 dyncall
+        end";
+
+    let build_test = build_test_by_mode!(true, source, &[]);
+    let err = build_test.execute().expect_err("expected error");
+    assert_diagnostic_lines!(
+        err,
+        "failed to execute the dynamic code block provided by the stack with root 0x0000000000000000000000000000000000000000000000000000000000000000; the block could not be found",
+        regex!(r#",-\[test[\d]+:3:21\]"#),
+        " 2 |         begin",
+        " 3 |             trace.2 dyncall",
+        "   :                     ^^^^^^^",
+        " 4 |         end",
+        "   `----"
+    );
+}
+
+// FailedAssertion
+// ------------------------------------------------------------------------------------------------
+
+#[test]
+#[ignore = "https://github.com/0xMiden/miden-vm/issues/1764"]
+fn test_diagnostic_failed_assertion() {
+    let source = "
+        begin
+            push.1.2
+            assertz
+            push.3.4
+        end";
+
+    let build_test = build_test_by_mode!(true, source, &[1, 2]);
+    let err = build_test.execute().expect_err("expected error");
+    assert_diagnostic_lines!(
+        err,
+        "when returning from a call or dyncall, stack depth must be 16, but was 17",
+        regex!(r#",-\[test[\d]+:7:21\]"#),
+        " 6 |         begin",
+        " 7 |             trace.2 call.foo",
+        "   :                     ^^^^|^^^",
+        "   :                         `-- when returning from this call site",
+        " 8 |         end",
+        "   `----"
+    );
+}
+
+#[test]
+#[ignore = "https://github.com/0xMiden/miden-vm/issues/1764"]
+fn test_diagnostic_merkle_path_verification_failed() {
+    let source = "
+        begin
+            mtree_verify
+        end";
+
+    let index = 3_usize;
+    let (leaves, store) = init_merkle_store(&[1, 2, 3, 4, 5, 6, 7, 8]);
+    let tree = MerkleTree::new(leaves.clone()).unwrap();
+
+    let stack_inputs = [
+        tree.root()[0].as_int(),
+        tree.root()[1].as_int(),
+        tree.root()[2].as_int(),
+        tree.root()[3].as_int(),
+        // Intentionally choose the wrong index to trigger the error
+        (index + 1) as u64,
+        tree.depth() as u64,
+        leaves[index][0].as_int(),
+        leaves[index][1].as_int(),
+        leaves[index][2].as_int(),
+        leaves[index][3].as_int(),
+    ];
+
+    let build_test = build_test_by_mode!(true, source, &stack_inputs, &[], store);
+    let err = build_test.execute().expect_err("expected error");
+    assert_diagnostic_lines!(
+        err,
+        "merkle path verification failed for value fcffffff03000000000000000000000000000000000000000000000000000000 at index 4 in the Merkle tree with root
+  | c9b007301fbe49f9c96698ea31f251b61d51674c892fbb2d8d349280bbd4a273 (error code: 0)",
+        regex!(r#",-\[test[\d]+:3:13\]"#),
+        " 2 |         begin",
+        "TODO: complete"
+    );
+}
+
+// InvalidMerkleTreeNodeIndex
+// ------------------------------------------------------------------------------------------------
+
+#[test]
+fn test_diagnostic_invalid_merkle_tree_node_index() {
+    let source = "
+        begin
+            mtree_get
+        end";
+
+    let depth = 4;
+    let index = 16;
+
+    let build_test = build_test_by_mode!(true, source, &[index, depth]);
+    let err = build_test.execute().expect_err("expected error");
+    assert_diagnostic_lines!(
+        err,
+        "provided node index 16 is out of bounds for a merkle tree node at depth 4",
+        regex!(r#",-\[test[\d]+:3:13\]"#),
+        " 2 |         begin",
+        " 3 |             mtree_get",
+        "   :             ^^^^^^^^^",
+        " 4 |         end",
+        "   `----"
+    );
+}
 
 // InvalidStackDepthOnReturn
 // ------------------------------------------------------------------------------------------------
@@ -62,6 +358,31 @@ fn test_diagnostic_invalid_stack_depth_on_return_dyncall() {
         "   :             ^^^|^^^",
         "   :                `-- when returning from this call site",
         " 9 |         end",
+        "   `----"
+    );
+}
+
+// LogArgumentZero
+// ------------------------------------------------------------------------------------------------
+
+#[test]
+fn test_diagnostic_log_argument_zero() {
+    // taking the log of 0 should result in an error
+    let source = "
+        begin
+            trace.2 ilog2    
+        end";
+
+    let build_test = build_test_by_mode!(true, source, &[]);
+    let err = build_test.execute().expect_err("expected error");
+    assert_diagnostic_lines!(
+        err,
+        "attempted to calculate integer logarithm with zero argument at clock cycle 1",
+        regex!(r#",-\[test[\d]+:3:21\]"#),
+        " 2 |         begin",
+        " 3 |             trace.2 ilog2",
+        "   :                     ^^^^^",
+        " 4 |         end",
         "   `----"
     );
 }
@@ -195,6 +516,337 @@ fn test_diagnostic_address_out_of_bounds() {
         " 2 |         begin",
         " 3 |             swap swap mem_loadw push.1 drop",
         "   :                       ^^^^^^^^^",
+        " 4 |         end",
+        "   `----"
+    );
+}
+
+// MerkleStoreLookupFailed
+// -------------------------------------------------------------------------------------------------
+
+#[test]
+fn test_diagnostic_merkle_store_lookup_failed() {
+    let source = "
+        begin
+            mtree_set
+        end";
+
+    let leaves = &[1, 2, 3, 4];
+    let merkle_tree = MerkleTree::new(init_merkle_leaves(leaves)).unwrap();
+    let merkle_root = merkle_tree.root();
+    let merkle_store = MerkleStore::from(&merkle_tree);
+    let advice_stack = Vec::new();
+
+    let stack = {
+        let log_depth = 10;
+        let index = 0;
+
+        &[
+            1,
+            merkle_root[0].as_int(),
+            merkle_root[1].as_int(),
+            merkle_root[2].as_int(),
+            merkle_root[3].as_int(),
+            index,
+            log_depth,
+        ]
+    };
+
+    let build_test = build_test_by_mode!(true, source, stack, &advice_stack, merkle_store);
+    let err = build_test.execute().expect_err("expected error");
+    assert_diagnostic_lines!(
+        err,
+        "failed to lookup value in Merkle store",
+        "  `-> node RpoDigest([1, 0, 0, 0]) with index `depth=10, value=0` not found in the store",
+        regex!(r#",-\[test[\d]+:3:13\]"#),
+        " 2 |         begin",
+        " 3 |             mtree_set",
+        "   :             ^^^^^^^^^",
+        " 4 |         end",
+        "   `----"
+    );
+}
+
+// NoMastForestWithProcedure
+// -------------------------------------------------------------------------------------------------
+
+#[test]
+fn test_diagnostic_no_mast_forest_with_procedure() {
+    let source_manager = Arc::new(DefaultSourceManager::default());
+
+    let lib_source = {
+        let module_name = "foo::bar";
+        let src = "
+        export.dummy_proc
+            push.1
+        end 
+    ";
+        source_manager.load(module_name, src.to_string())
+    };
+
+    let program_source = {
+        let src = "
+        use.foo::bar
+
+        begin
+            call.bar::dummy_proc
+        end
+    ";
+        source_manager.load("test_program", src.to_string())
+    };
+
+    let library = Assembler::new(source_manager.clone())
+        .with_debug_mode(true)
+        .assemble_library([lib_source])
+        .unwrap();
+
+    let program = Assembler::new(source_manager.clone())
+        .with_debug_mode(true)
+        .with_library(&library)
+        .unwrap()
+        .assemble_program(program_source)
+        .unwrap();
+
+    let mut process = Process::new(
+        Kernel::default(),
+        StackInputs::default(),
+        ExecutionOptions::default().with_debugging(true),
+    )
+    .with_source_manager(source_manager.clone());
+    let err = process.execute(&program, &mut DefaultHost::default()).unwrap_err();
+    assert_diagnostic_lines!(
+        err,
+        "no MAST forest contains the procedure with root digest 0x1b0a6d4b3976737badf180f3df558f45e06e6d1803ea5ad3b95fa7428caccd02",
+        regex!(r#",-\[test_program:5:13\]"#),
+        " 4 |         begin",
+        " 5 |             call.bar::dummy_proc",
+        "   :             ^^^^^^^^^^^^^^^^^^^^",
+        " 6 |         end",
+        "   `----"
+    );
+}
+
+// NotBinaryValue
+// -------------------------------------------------------------------------------------------------
+
+#[test]
+fn test_diagnostic_not_binary_value_split_node() {
+    let source = "
+        begin
+            if.true swap else dup end
+        end";
+
+    let build_test = build_test_by_mode!(true, source, &[2]);
+    let err = build_test.execute().expect_err("expected error");
+    assert_diagnostic_lines!(
+        err,
+        "if statement expected a binary value on top of the stack, but got 2",
+        regex!(r#",-\[test[\d]+:3:13\]"#),
+        " 2 |         begin",
+        " 3 |             if.true swap else dup end",
+        "   :             ^^^^^^^^^^^^^^^^^^^^^^^^^",
+        " 4 |         end",
+        "   `----"
+    );
+}
+
+#[test]
+fn test_diagnostic_not_binary_value_loop_node() {
+    let source = "
+        begin
+            while.true swap dup end
+        end";
+
+    let build_test = build_test_by_mode!(true, source, &[2]);
+    let err = build_test.execute().expect_err("expected error");
+    assert_diagnostic_lines!(
+        err,
+        "loop condition must be a binary value, but got 2",
+        regex!(r#",-\[test[\d]+:3:13\]"#),
+        " 2 |         begin",
+        " 3 |             while.true swap dup end",
+        "   :             ^^^^^^^^^^^^^^^^^^^^^^^",
+        " 4 |         end",
+        "   `----",
+        "  help: this could happen either when first entering the loop, or any subsequent iteration"
+    );
+}
+
+#[test]
+fn test_diagnostic_not_binary_value_cswap_cswapw() {
+    // cswap
+    let source = "
+        begin
+            cswap
+        end";
+
+    let build_test = build_test_by_mode!(true, source, &[2]);
+    let err = build_test.execute().expect_err("expected error");
+    assert_diagnostic_lines!(
+        err,
+        "operation expected a binary value, but got 2",
+        regex!(r#",-\[test[\d]+:3:13\]"#),
+        " 2 |         begin",
+        " 3 |             cswap",
+        "   :             ^^^^^",
+        " 4 |         end",
+        "   `----"
+    );
+
+    // cswapw
+    let source = "
+        begin
+            cswapw
+        end";
+
+    let build_test = build_test_by_mode!(true, source, &[2]);
+    let err = build_test.execute().expect_err("expected error");
+    assert_diagnostic_lines!(
+        err,
+        "operation expected a binary value, but got 2",
+        regex!(r#",-\[test[\d]+:3:13\]"#),
+        " 2 |         begin",
+        " 3 |             cswapw",
+        "   :             ^^^^^^",
+        " 4 |         end",
+        "   `----"
+    );
+}
+
+#[test]
+fn test_diagnostic_not_binary_value_binary_ops() {
+    // and
+    let source = "
+        begin
+            and trace.2
+        end";
+
+    let build_test = build_test_by_mode!(true, source, &[2]);
+    let err = build_test.execute().expect_err("expected error");
+    assert_diagnostic_lines!(
+        err,
+        "operation expected a binary value, but got 2",
+        regex!(r#",-\[test[\d]+:3:13\]"#),
+        " 2 |         begin",
+        " 3 |             and trace.2",
+        "   :             ^^^",
+        " 4 |         end",
+        "   `----"
+    );
+
+    // or
+    let source = "
+        begin
+            or trace.2
+        end";
+
+    let build_test = build_test_by_mode!(true, source, &[2]);
+    let err = build_test.execute().expect_err("expected error");
+    assert_diagnostic_lines!(
+        err,
+        "operation expected a binary value, but got 2",
+        regex!(r#",-\[test[\d]+:3:13\]"#),
+        " 2 |         begin",
+        " 3 |             or trace.2",
+        "   :             ^^",
+        " 4 |         end",
+        "   `----"
+    );
+}
+
+// NotU32Value
+// -------------------------------------------------------------------------------------------------
+
+#[test]
+fn test_diagnostic_not_u32_value() {
+    // u32and
+    let source = "
+        begin
+            u32and trace.2
+        end";
+
+    let big_value = u32::MAX as u64 + 1_u64;
+    let build_test = build_test_by_mode!(true, source, &[big_value]);
+    let err = build_test.execute().expect_err("expected error");
+    assert_diagnostic_lines!(
+        err,
+        "operation expected a u32 value, but got 4294967296",
+        regex!(r#",-\[test[\d]+:3:13\]"#),
+        " 2 |         begin",
+        " 3 |             u32and trace.2",
+        "   :             ^^^^^^",
+        " 4 |         end",
+        "   `----"
+    );
+
+    // u32madd
+    let source = "
+        begin
+            u32overflowing_add3 trace.2
+        end";
+
+    let big_value = u32::MAX as u64 + 1_u64;
+    let build_test = build_test_by_mode!(true, source, &[big_value]);
+    let err = build_test.execute().expect_err("expected error");
+    assert_diagnostic_lines!(
+        err,
+        "operation expected a u32 value, but got 4294967296",
+        regex!(r#",-\[test[\d]+:3:13\]"#),
+        " 2 |         begin",
+        " 3 |             u32overflowing_add3 trace.2",
+        "   :             ^^^^^^^^^^^^^^^^^^^",
+        " 4 |         end",
+        "   `----"
+    );
+}
+
+// SyscallTargetNotInKernel
+// -------------------------------------------------------------------------------------------------
+
+#[test]
+fn test_diagnostic_syscall_target_not_in_kernel() {
+    let source_manager = Arc::new(DefaultSourceManager::default());
+
+    let kernel_source = "
+        export.dummy_proc
+            push.1 drop
+        end
+    ";
+
+    let program_source = {
+        let src = "
+        begin
+            syscall.dummy_proc
+        end
+    ";
+        source_manager.load("test_program", src.to_string())
+    };
+
+    let kernel_library = Assembler::new(source_manager.clone())
+        .with_debug_mode(true)
+        .assemble_kernel(kernel_source)
+        .unwrap();
+
+    let program = Assembler::with_kernel(source_manager.clone(), kernel_library)
+        .with_debug_mode(true)
+        .assemble_program(program_source)
+        .unwrap();
+
+    // Note: we do not provide the kernel to trigger the error
+    let mut process = Process::new(
+        Kernel::default(),
+        StackInputs::default(),
+        ExecutionOptions::default().with_debugging(true),
+    )
+    .with_source_manager(source_manager.clone());
+    let err = process.execute(&program, &mut DefaultHost::default()).unwrap_err();
+    assert_diagnostic_lines!(
+        err,
+        "syscall failed: procedure with root d754f5422c74afd0b094889be6b288f9ffd2cc630e3c44d412b1408b2be3b99c was not found in the kernel",
+        regex!(r#",-\[test_program:3:13\]"#),
+        " 2 |         begin",
+        " 3 |             syscall.dummy_proc",
+        "   :             ^^^^^^^^^^^^^^^^^^",
         " 4 |         end",
         "   `----"
     );
