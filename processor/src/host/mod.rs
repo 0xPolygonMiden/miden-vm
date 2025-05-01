@@ -93,8 +93,10 @@ pub trait Host {
         process: ProcessState,
         err_code: Felt,
         err_ctx: &ErrorContext<'_, impl MastNodeExt>,
+        program: &MastForest,
     ) -> ExecutionError {
-        ExecutionError::failed_assertion(process.clk(), err_code, None, err_ctx)
+        let err_msg = program.resolve_error_message(err_code).cloned();
+        ExecutionError::failed_assertion(process.clk(), err_code, err_msg, err_ctx)
     }
 }
 
