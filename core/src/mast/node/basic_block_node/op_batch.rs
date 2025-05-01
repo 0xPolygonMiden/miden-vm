@@ -19,6 +19,10 @@ pub struct OpBatch {
 
 impl OpBatch {
     /// Returns a list of operations contained in this batch.
+    ///
+    /// Note: the processor will insert NOOP operations to fill out the groups, so the true number
+    /// of operations in the batch may be larger than the number of operations reported by this
+    /// method.
     pub fn ops(&self) -> &[Operation] {
         &self.ops
     }

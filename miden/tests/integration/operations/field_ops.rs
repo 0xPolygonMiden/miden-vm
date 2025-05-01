@@ -213,7 +213,10 @@ fn div_fail() {
 
     // --- test divide by zero --------------------------------------------------------------------
     let test = build_op_test!(asm_op, &[1, 0]);
-    expect_exec_error_matches!(test, ExecutionError::DivideByZero(row_idx) if row_idx == RowIndex::from(2));
+    expect_exec_error_matches!(
+        test,
+        ExecutionError::DivideByZero{ clk:value, label: _, source_file: _ } if value == RowIndex::from(2)
+    );
 }
 
 #[test]
@@ -279,7 +282,7 @@ fn inv_fail() {
 
     // --- test no inv on 0 -----------------------------------------------------------------------
     let test = build_op_test!(asm_op, &[0]);
-    expect_exec_error_matches!(test, ExecutionError::DivideByZero(row_idx) if row_idx == RowIndex::from(2));
+    expect_exec_error_matches!(test, ExecutionError::DivideByZero{clk: row_idx, label: _, source_file: _ } if row_idx == RowIndex::from(2));
 
     let asm_op = "inv.1";
 
@@ -321,7 +324,7 @@ fn pow2_fail() {
 
     expect_exec_error_matches!(
         test,
-        ExecutionError::FailedAssertion{clk, err_code, err_msg }
+        ExecutionError::FailedAssertion{clk, err_code, err_msg, label: _, source_file: _ }
         if clk == RowIndex::from(17) && err_code == 0 && err_msg.is_none()
     );
 }
@@ -353,7 +356,7 @@ fn exp_bits_length_fail() {
 
     expect_exec_error_matches!(
         test,
-        ExecutionError::FailedAssertion{clk, err_code, err_msg }
+        ExecutionError::FailedAssertion{clk, err_code, err_msg, label: _, source_file: _ }
         if clk == RowIndex::from(19) && err_code == 0 && err_msg.is_none()
     );
 
@@ -404,7 +407,7 @@ fn ilog2_fail() {
     let test = build_op_test!(asm_op, &[0]);
     expect_exec_error_matches!(
         test,
-        ExecutionError::LogArgumentZero(row_idx) if row_idx == RowIndex::from(2)
+        ExecutionError::LogArgumentZero{ clk: row_idx, label: _, source_file: _ } if row_idx == RowIndex::from(2)
     );
 }
 
@@ -431,7 +434,7 @@ fn not_fail() {
 
     expect_exec_error_matches!(
         test,
-        ExecutionError::NotBinaryValue(value) if value == Felt::new(2_u64)
+        ExecutionError::NotBinaryValueOp{value, label: _, source_file: _ } if value == Felt::new(2_u64)
     );
 }
 
@@ -460,19 +463,19 @@ fn and_fail() {
     let test = build_op_test!(asm_op, &[2, 3]);
     expect_exec_error_matches!(
         test,
-        ExecutionError::NotBinaryValue(value) if value == Felt::new(3_u64)
+        ExecutionError::NotBinaryValueOp{value, label: _, source_file: _ } if value == Felt::new(3_u64)
     );
 
     let test = build_op_test!(asm_op, &[2, 0]);
     expect_exec_error_matches!(
         test,
-        ExecutionError::NotBinaryValue(value) if value == Felt::new(2_u64)
+        ExecutionError::NotBinaryValueOp{value, label: _, source_file: _ } if value == Felt::new(2_u64)
     );
 
     let test = build_op_test!(asm_op, &[0, 2]);
     expect_exec_error_matches!(
         test,
-        ExecutionError::NotBinaryValue(value) if value == Felt::new(2_u64)
+        ExecutionError::NotBinaryValueOp{value, label: _, source_file: _ } if value == Felt::new(2_u64)
     );
 }
 
@@ -502,20 +505,20 @@ fn or_fail() {
     let test = build_op_test!(asm_op, &[2, 3]);
     expect_exec_error_matches!(
         test,
-        ExecutionError::NotBinaryValue(value) if value == expected_value
+        ExecutionError::NotBinaryValueOp{value, label: _, source_file: _ } if value == expected_value
     );
 
     let expected_value = Felt::new(2);
     let test = build_op_test!(asm_op, &[2, 0]);
     expect_exec_error_matches!(
         test,
-        ExecutionError::NotBinaryValue(value) if value == expected_value
+        ExecutionError::NotBinaryValueOp{value, label: _, source_file: _ } if value == expected_value
     );
 
     let test = build_op_test!(asm_op, &[0, 2]);
     expect_exec_error_matches!(
         test,
-        ExecutionError::NotBinaryValue(value) if value == expected_value
+        ExecutionError::NotBinaryValueOp{value, label: _, source_file: _ } if value == expected_value
     );
 }
 
@@ -545,19 +548,19 @@ fn xor_fail() {
     let test = build_op_test!(asm_op, &[2, 3]);
     expect_exec_error_matches!(
         test,
-        ExecutionError::NotBinaryValue(value) if value == expected_value
+        ExecutionError::NotBinaryValueOp{value, label: _, source_file: _ } if value == expected_value
     );
 
     let test = build_op_test!(asm_op, &[2, 0]);
     expect_exec_error_matches!(
         test,
-        ExecutionError::NotBinaryValue(value) if value == expected_value
+        ExecutionError::NotBinaryValueOp{value, label: _, source_file: _ } if value == expected_value
     );
 
     let test = build_op_test!(asm_op, &[0, 2]);
     expect_exec_error_matches!(
         test,
-        ExecutionError::NotBinaryValue(value) if value == expected_value
+        ExecutionError::NotBinaryValueOp{value, label: _, source_file: _ } if value == expected_value
     );
 }
 

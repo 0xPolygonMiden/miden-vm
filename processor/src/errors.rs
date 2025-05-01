@@ -1,4 +1,4 @@
-use alloc::{boxed::Box, string::String, sync::Arc};
+use alloc::{boxed::Box, string::String, sync::Arc, vec::Vec};
 use core::error::Error;
 
 use miden_air::RowIndex;
@@ -23,14 +23,37 @@ use crate::MemoryError;
 
 #[derive(Debug, thiserror::Error, Diagnostic)]
 pub enum ExecutionError {
-    #[error("value for key {} not present in the advice map", to_hex(Felt::elements_as_bytes(.0)))]
-    AdviceMapKeyNotFound(Word),
-    #[error("value for key {} already present in the advice map", to_hex(Felt::elements_as_bytes(.0)))]
-    AdviceMapKeyAlreadyPresent(Word),
-    #[error("advice stack read failed at step {0}")]
-    AdviceStackReadFailed(RowIndex),
+    #[error("value for key {} not present in the advice map", to_hex(Felt::elements_as_bytes(.key)))]
+    #[diagnostic()]
+    AdviceMapKeyNotFound {
+        #[label]
+        label: SourceSpan,
+        #[source_code]
+        source_file: Option<Arc<SourceFile>>,
+        key: Word,
+    },
+    #[error("value for key {} already present in the advice map when loading MAST forest", to_hex(Felt::elements_as_bytes(.key)))]
+    #[diagnostic(help(
+        "previous values at key were '{prev_values:?}'. Operation would have replaced them with '{new_values:?}'",
+    ))]
+    AdviceMapKeyAlreadyPresent {
+        key: Word,
+        prev_values: Vec<Felt>,
+        new_values: Vec<Felt>,
+    },
+    #[error("advice stack read failed at clock cycle {row}")]
+    #[diagnostic()]
+    AdviceStackReadFailed {
+        #[label]
+        label: SourceSpan,
+        #[source_code]
+        source_file: Option<Arc<SourceFile>>,
+        row: RowIndex,
+    },
+    /// This error is caught by the assembler, so we don't need diagnostics here.
     #[error("illegal use of instruction {0} while inside a syscall")]
     CallInSyscall(&'static str),
+    /// This error is caught by the assembler, so we don't need diagnostics here.
     #[error("instruction `caller` used outside of kernel context")]
     CallerNotInSyscall,
     #[error("external node with mast root {0} resolved to an external node")]
@@ -39,14 +62,36 @@ pub enum ExecutionError {
     CycleLimitExceeded(u32),
     #[error("decorator id {decorator_id} does not exist in MAST forest")]
     DecoratorNotFoundInForest { decorator_id: DecoratorId },
-    #[error("division by zero at clock cycle {0}")]
-    DivideByZero(RowIndex),
-    #[error("failed to execute the dynamic code block provided by the stack with root {hex}; the block could not be found",
-      hex = to_hex(.0.as_bytes())
+    #[error("division by zero at clock cycle {clk}")]
+    #[diagnostic()]
+    DivideByZero {
+        #[label]
+        label: SourceSpan,
+        #[source_code]
+        source_file: Option<Arc<SourceFile>>,
+        clk: RowIndex,
+    },
+    #[error("failed to execute the dynamic code block provided by the stack with root 0x{hex}; the block could not be found",
+      hex = to_hex(.digest.as_bytes())
     )]
-    DynamicNodeNotFound(Digest),
+    #[diagnostic()]
+    DynamicNodeNotFound {
+        #[label]
+        label: SourceSpan,
+        #[source_code]
+        source_file: Option<Arc<SourceFile>>,
+        digest: Digest,
+    },
     #[error("error during processing of event in on_event handler")]
-    EventError(#[source] Box<dyn Error + Send + Sync + 'static>),
+    #[diagnostic()]
+    EventError {
+        #[label]
+        label: SourceSpan,
+        #[source_code]
+        source_file: Option<Arc<SourceFile>>,
+        #[source]
+        error: Box<dyn Error + Send + Sync + 'static>,
+    },
     #[error("failed to execute Ext2Intt operation: {0}")]
     Ext2InttError(Ext2InttError),
     #[error("assertion failed at clock cycle {clk} with error code {err_code}{}",
@@ -55,11 +100,18 @@ pub enum ExecutionError {
         None => "".into()
       }
     )]
+    #[diagnostic()]
     FailedAssertion {
+        #[label]
+        label: SourceSpan,
+        #[source_code]
+        source_file: Option<Arc<SourceFile>>,
         clk: RowIndex,
         err_code: u32,
         err_msg: Option<String>,
     },
+    #[error("failed to execute the program for internal reason: {0}")]
+    FailedToExecuteProgram(&'static str),
     #[error(
         "Updating FMP register from {0} to {1} failed because {1} is outside of {FMP_MIN}..{FMP_MAX}"
     )]
@@ -82,61 +134,179 @@ pub enum ExecutionError {
     #[error(
         "provided merkle tree {depth} is out of bounds and cannot be represented as an unsigned 8-bit integer"
     )]
-    InvalidMerkleTreeDepth { depth: Felt },
-    #[error("provided node index {value} is out of bounds for a merkle tree node at depth {depth}")]
-    InvalidMerkleTreeNodeIndex { depth: Felt, value: Felt },
-    #[error("attempted to calculate integer logarithm with zero argument at clock cycle {0}")]
-    LogArgumentZero(RowIndex),
-    #[error("malformed signature key: {0}")]
-    MalformedSignatureKey(&'static str),
+    #[diagnostic()]
+    InvalidMerkleTreeDepth {
+        #[label]
+        label: SourceSpan,
+        #[source_code]
+        source_file: Option<Arc<SourceFile>>,
+        depth: Felt,
+    },
+    #[error("provided node index {index} is out of bounds for a merkle tree node at depth {depth}")]
+    #[diagnostic()]
+    InvalidMerkleTreeNodeIndex {
+        #[label]
+        label: SourceSpan,
+        #[source_code]
+        source_file: Option<Arc<SourceFile>>,
+        depth: Felt,
+        index: Felt,
+    },
+    #[error("attempted to calculate integer logarithm with zero argument at clock cycle {clk}")]
+    #[diagnostic()]
+    LogArgumentZero {
+        #[label]
+        label: SourceSpan,
+        #[source_code]
+        source_file: Option<Arc<SourceFile>>,
+        clk: RowIndex,
+    },
+    #[error("malformed signature key: {key_type}")]
+    #[diagnostic(help("the secret key associated with the provided public key is malformed"))]
+    MalformedSignatureKey {
+        #[label]
+        label: SourceSpan,
+        #[source_code]
+        source_file: Option<Arc<SourceFile>>,
+        key_type: &'static str,
+    },
     #[error(
         "MAST forest in host indexed by procedure root {root_digest} doesn't contain that root"
     )]
-    MalformedMastForestInHost { root_digest: Digest },
+    MalformedMastForestInHost {
+        #[label]
+        label: SourceSpan,
+        #[source_code]
+        source_file: Option<Arc<SourceFile>>,
+        root_digest: Digest,
+    },
     #[error("node id {node_id} does not exist in MAST forest")]
     MastNodeNotFoundInForest { node_id: MastNodeId },
     #[error(transparent)]
     #[diagnostic(transparent)]
     MemoryError(MemoryError),
     #[error("no MAST forest contains the procedure with root digest {root_digest}")]
-    NoMastForestWithProcedure { root_digest: Digest },
+    NoMastForestWithProcedure {
+        #[label]
+        label: SourceSpan,
+        #[source_code]
+        source_file: Option<Arc<SourceFile>>,
+        root_digest: Digest,
+    },
     #[error("merkle path verification failed for value {value} at index {index} in the Merkle tree with root {root} (error code: {err_code})", 
       value = to_hex(Felt::elements_as_bytes(value)),
       root = to_hex(root.as_bytes()),
     )]
     MerklePathVerificationFailed {
+        #[label]
+        label: SourceSpan,
+        #[source_code]
+        source_file: Option<Arc<SourceFile>>,
         value: Word,
         index: Felt,
         root: Digest,
         err_code: u32,
     },
-    #[error("advice provider Merkle store backend lookup failed")]
-    MerkleStoreLookupFailed(#[source] MerkleError),
+    #[error("failed to lookup value in Merkle store")]
+    MerkleStoreLookupFailed {
+        #[label]
+        label: SourceSpan,
+        #[source_code]
+        source_file: Option<Arc<SourceFile>>,
+        #[source]
+        err: MerkleError,
+    },
     #[error("advice provider Merkle store backend merge failed")]
-    MerkleStoreMergeFailed(#[source] MerkleError),
+    MerkleStoreMergeFailed {
+        #[label]
+        label: SourceSpan,
+        #[source_code]
+        source_file: Option<Arc<SourceFile>>,
+        #[source]
+        err: MerkleError,
+    },
     #[error("advice provider Merkle store backend update failed")]
-    MerkleStoreUpdateFailed(#[source] MerkleError),
-    #[error("an operation expected a binary value, but received {0}")]
-    NotBinaryValue(Felt),
-    #[error("an operation expected a u32 value, but received {0} (error code: {1})")]
-    NotU32Value(Felt, Felt),
+    MerkleStoreUpdateFailed {
+        #[label]
+        label: SourceSpan,
+        #[source_code]
+        source_file: Option<Arc<SourceFile>>,
+        #[source]
+        err: MerkleError,
+    },
+    #[error("if statement expected a binary value on top of the stack, but got {value}")]
+    #[diagnostic()]
+    NotBinaryValueIf {
+        #[label]
+        label: SourceSpan,
+        #[source_code]
+        source_file: Option<Arc<SourceFile>>,
+        value: Felt,
+    },
+    #[error("operation expected a binary value, but got {value}")]
+    #[diagnostic()]
+    NotBinaryValueOp {
+        #[label]
+        label: SourceSpan,
+        #[source_code]
+        source_file: Option<Arc<SourceFile>>,
+        value: Felt,
+    },
+    #[error("loop condition must be a binary value, but got {value}")]
+    #[diagnostic(help(
+        "this could happen either when first entering the loop, or any subsequent iteration"
+    ))]
+    NotBinaryValueLoop {
+        #[label]
+        label: SourceSpan,
+        #[source_code]
+        source_file: Option<Arc<SourceFile>>,
+        value: Felt,
+    },
+    #[error("operation expected a u32 value, but got {value} (error code: {err_code})")]
+    NotU32Value {
+        #[label]
+        label: SourceSpan,
+        #[source_code]
+        source_file: Option<Arc<SourceFile>>,
+        value: Felt,
+        err_code: Felt,
+    },
     #[error("stack should have at most {MIN_STACK_DEPTH} elements at the end of program execution, but had {} elements", MIN_STACK_DEPTH + .0)]
     OutputStackOverflow(usize),
     #[error("a program has already been executed in this process")]
     ProgramAlreadyExecuted,
     #[error("proof generation failed")]
     ProverError(#[source] ProverError),
-    #[error("smt node {node_hex} not found", node_hex = to_hex(Felt::elements_as_bytes(.0)))]
-    SmtNodeNotFound(Word),
+    #[error("smt node {node_hex} not found", node_hex = to_hex(Felt::elements_as_bytes(node)))]
+    SmtNodeNotFound {
+        #[label]
+        label: SourceSpan,
+        #[source_code]
+        source_file: Option<Arc<SourceFile>>,
+        node: Word,
+    },
     #[error("expected pre-image length of node {node_hex} to be a multiple of 8 but was {preimage_len}",
-      node_hex = to_hex(Felt::elements_as_bytes(.0)),
-      preimage_len = .1
+      node_hex = to_hex(Felt::elements_as_bytes(node)),
     )]
-    SmtNodePreImageNotValid(Word, usize),
+    SmtNodePreImageNotValid {
+        #[label]
+        label: SourceSpan,
+        #[source_code]
+        source_file: Option<Arc<SourceFile>>,
+        node: Word,
+        preimage_len: usize,
+    },
     #[error("syscall failed: procedure with root {hex} was not found in the kernel",
-      hex = to_hex(.0.as_bytes())
+      hex = to_hex(proc_root.as_bytes())
     )]
-    SyscallTargetNotInKernel(Digest),
+    SyscallTargetNotInKernel {
+        #[label]
+        label: SourceSpan,
+        #[source_code]
+        source_file: Option<Arc<SourceFile>>,
+        proc_root: Digest,
+    },
 }
 
 impl From<Ext2InttError> for ExecutionError {
@@ -146,12 +316,207 @@ impl From<Ext2InttError> for ExecutionError {
 }
 
 impl ExecutionError {
+    pub fn advice_map_key_not_found(
+        key: Word,
+        err_ctx: &ErrorContext<'_, impl MastNodeExt>,
+    ) -> Self {
+        let (label, source_file) = err_ctx.label_and_source_file();
+        Self::AdviceMapKeyNotFound { label, source_file, key }
+    }
+
+    pub fn advice_stack_read_failed(
+        row: RowIndex,
+        err_ctx: &ErrorContext<'_, impl MastNodeExt>,
+    ) -> Self {
+        let (label, source_file) = err_ctx.label_and_source_file();
+        Self::AdviceStackReadFailed { label, source_file, row }
+    }
+
+    pub fn divide_by_zero(clk: RowIndex, err_ctx: &ErrorContext<'_, impl MastNodeExt>) -> Self {
+        let (label, source_file) = err_ctx.label_and_source_file();
+        Self::DivideByZero { clk, label, source_file }
+    }
+
+    pub fn dynamic_node_not_found(
+        digest: Digest,
+        err_ctx: &ErrorContext<'_, impl MastNodeExt>,
+    ) -> Self {
+        let (label, source_file) = err_ctx.label_and_source_file();
+
+        Self::DynamicNodeNotFound { label, source_file, digest }
+    }
+
+    pub fn event_error(
+        error: Box<dyn Error + Send + Sync + 'static>,
+        err_ctx: &ErrorContext<'_, impl MastNodeExt>,
+    ) -> Self {
+        let (label, source_file) = err_ctx.label_and_source_file();
+
+        Self::EventError { label, source_file, error }
+    }
+
+    pub fn failed_assertion(
+        clk: RowIndex,
+        err_code: u32,
+        err_msg: Option<String>,
+        err_ctx: &ErrorContext<'_, impl MastNodeExt>,
+    ) -> Self {
+        let (label, source_file) = err_ctx.label_and_source_file();
+
+        Self::FailedAssertion {
+            label,
+            source_file,
+            clk,
+            err_code,
+            err_msg,
+        }
+    }
+
+    pub fn invalid_merkle_tree_depth(
+        depth: Felt,
+        err_ctx: &ErrorContext<'_, impl MastNodeExt>,
+    ) -> Self {
+        let (label, source_file) = err_ctx.label_and_source_file();
+        Self::InvalidMerkleTreeDepth { label, source_file, depth }
+    }
+
+    pub fn invalid_merkle_tree_node_index(
+        depth: Felt,
+        index: Felt,
+        err_ctx: &ErrorContext<'_, impl MastNodeExt>,
+    ) -> Self {
+        let (label, source_file) = err_ctx.label_and_source_file();
+        Self::InvalidMerkleTreeNodeIndex { label, source_file, depth, index }
+    }
+
     pub fn invalid_stack_depth_on_return(
         depth: usize,
         err_ctx: &ErrorContext<'_, impl MastNodeExt>,
     ) -> Self {
         let (label, source_file) = err_ctx.label_and_source_file();
         Self::InvalidStackDepthOnReturn { label, source_file, depth }
+    }
+
+    pub fn log_argument_zero(clk: RowIndex, err_ctx: &ErrorContext<'_, impl MastNodeExt>) -> Self {
+        let (label, source_file) = err_ctx.label_and_source_file();
+        Self::LogArgumentZero { label, source_file, clk }
+    }
+
+    pub fn malfored_mast_forest_in_host(
+        root_digest: Digest,
+        err_ctx: &ErrorContext<'_, impl MastNodeExt>,
+    ) -> Self {
+        let (label, source_file) = err_ctx.label_and_source_file();
+        Self::MalformedMastForestInHost { label, source_file, root_digest }
+    }
+
+    pub fn malformed_signature_key(
+        key_type: &'static str,
+        err_ctx: &ErrorContext<'_, impl MastNodeExt>,
+    ) -> Self {
+        let (label, source_file) = err_ctx.label_and_source_file();
+        Self::MalformedSignatureKey { label, source_file, key_type }
+    }
+
+    pub fn merkle_path_verification_failed(
+        value: Word,
+        index: Felt,
+        root: Digest,
+        err_code: u32,
+        err_ctx: &ErrorContext<'_, impl MastNodeExt>,
+    ) -> Self {
+        let (label, source_file) = err_ctx.label_and_source_file();
+
+        Self::MerklePathVerificationFailed {
+            label,
+            source_file,
+            value,
+            index,
+            root,
+            err_code,
+        }
+    }
+
+    pub fn merkle_store_lookup_failed(
+        err: MerkleError,
+        err_ctx: &ErrorContext<'_, impl MastNodeExt>,
+    ) -> Self {
+        let (label, source_file) = err_ctx.label_and_source_file();
+        Self::MerkleStoreLookupFailed { label, source_file, err }
+    }
+
+    /// Note: This error currently never occurs, since `MerkleStore::merge_roots()` never fails.
+    pub fn merkle_store_merge_failed(
+        err: MerkleError,
+        err_ctx: &ErrorContext<'_, impl MastNodeExt>,
+    ) -> Self {
+        let (label, source_file) = err_ctx.label_and_source_file();
+        Self::MerkleStoreMergeFailed { label, source_file, err }
+    }
+
+    pub fn merkle_store_update_failed(
+        err: MerkleError,
+        err_ctx: &ErrorContext<'_, impl MastNodeExt>,
+    ) -> Self {
+        let (label, source_file) = err_ctx.label_and_source_file();
+        Self::MerkleStoreUpdateFailed { label, source_file, err }
+    }
+
+    pub fn no_mast_forest_with_procedure(
+        root_digest: Digest,
+        err_ctx: &ErrorContext<'_, impl MastNodeExt>,
+    ) -> Self {
+        let (label, source_file) = err_ctx.label_and_source_file();
+        Self::NoMastForestWithProcedure { label, source_file, root_digest }
+    }
+
+    pub fn not_binary_value_if(value: Felt, err_ctx: &ErrorContext<'_, impl MastNodeExt>) -> Self {
+        let (label, source_file) = err_ctx.label_and_source_file();
+        Self::NotBinaryValueIf { label, source_file, value }
+    }
+
+    pub fn not_binary_value_op(value: Felt, err_ctx: &ErrorContext<'_, impl MastNodeExt>) -> Self {
+        let (label, source_file) = err_ctx.label_and_source_file();
+        Self::NotBinaryValueOp { label, source_file, value }
+    }
+
+    pub fn not_binary_value_loop(
+        value: Felt,
+        err_ctx: &ErrorContext<'_, impl MastNodeExt>,
+    ) -> Self {
+        let (label, source_file) = err_ctx.label_and_source_file();
+        Self::NotBinaryValueLoop { label, source_file, value }
+    }
+
+    pub fn not_u32_value(
+        value: Felt,
+        err_code: Felt,
+        err_ctx: &ErrorContext<'_, impl MastNodeExt>,
+    ) -> Self {
+        let (label, source_file) = err_ctx.label_and_source_file();
+        Self::NotU32Value { label, source_file, value, err_code }
+    }
+
+    pub fn smt_node_not_found(node: Word, err_ctx: &ErrorContext<'_, impl MastNodeExt>) -> Self {
+        let (label, source_file) = err_ctx.label_and_source_file();
+        Self::SmtNodeNotFound { label, source_file, node }
+    }
+
+    pub fn smt_node_preimage_not_valid(
+        node: Word,
+        preimage_len: usize,
+        err_ctx: &ErrorContext<'_, impl MastNodeExt>,
+    ) -> Self {
+        let (label, source_file) = err_ctx.label_and_source_file();
+        Self::SmtNodePreImageNotValid { label, source_file, node, preimage_len }
+    }
+
+    pub fn syscall_target_not_in_kernel(
+        proc_root: Digest,
+        err_ctx: &ErrorContext<'_, impl MastNodeExt>,
+    ) -> Self {
+        let (label, source_file) = err_ctx.label_and_source_file();
+        Self::SyscallTargetNotInKernel { label, source_file, proc_root }
     }
 }
 

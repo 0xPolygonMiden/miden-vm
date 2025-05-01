@@ -54,8 +54,10 @@
 - Remove `FALCON_SIG_TO_STACK` event (#1703).
 - Prevent `U64Div` event from crashing processor (#1710).
 - [BREAKING] Improve processor errors for memory and calls (#1717)
+- Implement a new fast processor that doesn't generate a trace (#1668)
 - `ProcessState::get_stack_state()` now only returns the state of the active context (#1753)
 - Change `MastForestBuilder::set_after_exit()` for `append_after_exit()` (#1775)
+- Improve processor error diagnostics (#1765)
 
 ## 0.12.0 (2025-01-22)
 
