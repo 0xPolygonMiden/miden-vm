@@ -1,4 +1,6 @@
-use vm_core::{Felt, ZERO, chiplets::hasher::STATE_WIDTH, crypto::hash::Rpo256, utils::range};
+use vm_core::{
+    Felt, ZERO, chiplets::hasher::STATE_WIDTH, crypto::hash::Rpo256, mast::MastForest, utils::range,
+};
 
 use super::FastProcessor;
 use crate::{AdviceProvider, ErrorContext, ExecutionError, Host};
@@ -26,6 +28,7 @@ impl FastProcessor {
         &mut self,
         err_code: Felt,
         host: &mut impl Host,
+        program: &MastForest,
     ) -> Result<(), ExecutionError> {
         // read node value, depth, index and root value from the stack
         let node = self.stack_get_word(0);
@@ -44,13 +47,17 @@ impl FastProcessor {
         // verify the path
         match path.verify(index.as_int(), node.into(), &root.into()) {
             Ok(_) => Ok(()),
-            Err(_) => Err(ExecutionError::merkle_path_verification_failed(
-                node,
-                index,
-                root.into(),
-                err_code,
-                &ErrorContext::default(),
-            )),
+            Err(_) => {
+                let err_msg = program.resolve_error_message(err_code).cloned();
+                Err(ExecutionError::merkle_path_verification_failed(
+                    node,
+                    index,
+                    root.into(),
+                    err_code,
+                    err_msg,
+                    &ErrorContext::default(),
+                ))
+            },
         }
     }
 
@@ -84,6 +91,7 @@ impl FastProcessor {
                 index,
                 old_root.into(),
                 ZERO,
+                None,
                 &ErrorContext::default(),
             ));
         }

@@ -173,7 +173,9 @@ impl Process {
 
             // ----- cryptographic operations -----------------------------------------------------
             Operation::HPerm => self.op_hperm()?,
-            Operation::MpVerify(err_code) => self.op_mpverify(err_code, host, error_ctx)?,
+            Operation::MpVerify(err_code) => {
+                self.op_mpverify(err_code, host, program, error_ctx)?
+            },
             Operation::MrUpdate => self.op_mrupdate(host, error_ctx)?,
             Operation::FriE2F4 => self.op_fri_ext2fold4()?,
             Operation::HornerBase => self.op_horner_eval_base(error_ctx)?,

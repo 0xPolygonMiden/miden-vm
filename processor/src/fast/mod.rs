@@ -881,7 +881,7 @@ impl FastProcessor {
 
             // ----- cryptographic operations -----------------------------------------------------
             Operation::HPerm => self.op_hperm(),
-            Operation::MpVerify(err_code) => self.op_mpverify(*err_code, host)?,
+            Operation::MpVerify(err_code) => self.op_mpverify(*err_code, host, program)?,
             Operation::MrUpdate => self.op_mrupdate(host)?,
             Operation::FriE2F4 => self.op_fri_ext2fold4()?,
             Operation::HornerBase => self.op_horner_eval_base(op_idx)?,

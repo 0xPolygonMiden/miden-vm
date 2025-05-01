@@ -1,4 +1,4 @@
-use vm_core::mast::MastNodeExt;
+use vm_core::mast::{MastForest, MastNodeExt};
 
 use super::{ExecutionError, Operation, Process};
 use crate::{AdviceProvider, ErrorContext, Felt, Host};
@@ -69,6 +69,7 @@ impl Process {
         &mut self,
         err_code: Felt,
         host: &mut impl Host,
+        program: &MastForest,
         err_ctx: &ErrorContext<'_, impl MastNodeExt>,
     ) -> Result<(), ExecutionError> {
         // read node value, depth, index and root value from the stack
@@ -91,11 +92,13 @@ impl Process {
         if root != computed_root {
             // If the hasher chiplet doesn't compute the same root (using the same path),
             // then it means that `node` is not the value currently in the tree at `index`
+            let err_msg = program.resolve_error_message(err_code).cloned();
             return Err(ExecutionError::merkle_path_verification_failed(
                 node,
                 index,
                 root.into(),
                 err_code,
+                err_msg,
                 err_ctx,
             ));
         }
