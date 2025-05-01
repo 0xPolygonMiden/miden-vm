@@ -1,5 +1,5 @@
 use.std::crypto::stark::constants
-
+use.std::crypto::hashes::rpo
 
 #! Compute the LDE domain generator from the log2 of its size.
 #!
@@ -140,7 +140,7 @@ export.constraint_evaluation_check
         adv_pipe
         hperm
     end
-    dropw swapw dropw
+    exec.rpo::squeeze_digest
     movup.4 drop
     assert_eqw
     # => [...]
