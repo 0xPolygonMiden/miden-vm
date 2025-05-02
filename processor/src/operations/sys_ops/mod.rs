@@ -11,7 +11,7 @@ use super::{
     },
     ExecutionError, Process,
 };
-use crate::{Host, errors::ErrorContext};
+use crate::{Host, ProcessState, errors::ErrorContext};
 pub(crate) mod sys_event_handlers;
 
 // SYSTEM OPERATIONS
@@ -33,7 +33,10 @@ impl Process {
         H: Host,
     {
         if self.stack.get(0) != ONE {
-            return Err(host.on_assert_failed(self.into(), err_code, err_ctx, program));
+            let state = ProcessState::from(self);
+            host.on_assert_failed(state, err_code);
+            let err_msg = program.resolve_error_message(err_code).cloned();
+            return Err(ExecutionError::failed_assertion(state.clk(), err_code, err_msg, err_ctx));
         }
         self.stack.shift_left(1);
         Ok(())

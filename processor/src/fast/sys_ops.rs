@@ -25,14 +25,15 @@ impl FastProcessor {
         program: &MastForest,
     ) -> Result<(), ExecutionError> {
         if self.stack_get(0) != ONE {
-            return Err(host.on_assert_failed(
-                ProcessState::new_fast(self, op_idx),
+            host.on_assert_failed(ProcessState::new_fast(self, op_idx), err_code);
+            let err_msg = program.resolve_error_message(err_code).cloned();
+            return Err(ExecutionError::failed_assertion(
+                self.clk,
                 err_code,
+                err_msg,
                 &ErrorContext::default(),
-                program,
             ));
         }
-
         self.decrement_stack_size();
         Ok(())
     }

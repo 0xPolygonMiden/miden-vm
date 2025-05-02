@@ -88,16 +88,7 @@ pub trait Host {
     }
 
     /// Handles the failure of the assertion instruction.
-    fn on_assert_failed(
-        &mut self,
-        process: ProcessState,
-        err_code: Felt,
-        err_ctx: &ErrorContext<'_, impl MastNodeExt>,
-        program: &MastForest,
-    ) -> ExecutionError {
-        let err_msg = program.resolve_error_message(err_code).cloned();
-        ExecutionError::failed_assertion(process.clk(), err_code, err_msg, err_ctx)
-    }
+    fn on_assert_failed(&mut self, _process: ProcessState, _err_code: Felt) {}
 }
 
 impl<H> Host for &mut H
@@ -139,14 +130,8 @@ where
         H::on_trace(self, process, trace_id)
     }
 
-    fn on_assert_failed(
-        &mut self,
-        process: ProcessState,
-        err_code: Felt,
-        err_ctx: &ErrorContext<'_, impl MastNodeExt>,
-        program: &MastForest,
-    ) -> ExecutionError {
-        H::on_assert_failed(self, process, err_code, err_ctx, program)
+    fn on_assert_failed(&mut self, process: ProcessState, err_code: Felt) {
+        H::on_assert_failed(self, process, err_code)
     }
 }
 
