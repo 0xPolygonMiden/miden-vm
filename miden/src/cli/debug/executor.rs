@@ -205,8 +205,6 @@ impl DebugExecutor {
             b -> back\n\
             r -> rewind\n\
             p -> print\n\
-            m -> mem\n\
-            s -> stack\n\
             l -> clock\n\
             q -> quit\n\
             h -> help\n\
