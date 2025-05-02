@@ -210,8 +210,8 @@ fn test_diagnostic_dynamic_node_not_found_2() {
 // ------------------------------------------------------------------------------------------------
 
 #[test]
-#[ignore = "https://github.com/0xMiden/miden-vm/issues/1764"]
 fn test_diagnostic_failed_assertion() {
+    // No error message
     let source = "
         begin
             push.1.2
@@ -223,20 +223,62 @@ fn test_diagnostic_failed_assertion() {
     let err = build_test.execute().expect_err("expected error");
     assert_diagnostic_lines!(
         err,
-        "when returning from a call or dyncall, stack depth must be 16, but was 17",
-        regex!(r#",-\[test[\d]+:7:21\]"#),
-        " 6 |         begin",
-        " 7 |             trace.2 call.foo",
-        "   :                     ^^^^|^^^",
-        "   :                         `-- when returning from this call site",
-        " 8 |         end",
+        "assertion failed at clock cycle 5 with error code: 0",
+        regex!(r#",-\[test[\d]+:4:13\]"#),
+        " 3 |             push.1.2",
+        " 4 |             assertz",
+        "   :             ^^^^^^^",
+        " 5 |             push.3.4",
+        "   `----"
+    );
+
+    // With error message
+    let source = "
+        begin
+            push.1.2
+            assertz.err=\"some error message\"
+            push.3.4
+        end";
+
+    let build_test = build_test_by_mode!(true, source, &[1, 2]);
+    let err = build_test.execute().expect_err("expected error");
+    assert_diagnostic_lines!(
+        err,
+        "assertion failed at clock cycle 5 with error message: some error message",
+        regex!(r#",-\[test[\d]+:4:13\]"#),
+        " 3 |             push.1.2",
+        " 4 |             assertz.err=\"some error message\"",
+        "   :             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^",
+        " 5 |             push.3.4",
+        "   `----"
+    );
+
+    // With error message as constant
+    let source = "
+        const.ERR_MSG=\"some error message\"
+        begin
+            push.1.2
+            assertz.err=ERR_MSG
+            push.3.4
+        end";
+
+    let build_test = build_test_by_mode!(true, source, &[1, 2]);
+    let err = build_test.execute().expect_err("expected error");
+    assert_diagnostic_lines!(
+        err,
+        "assertion failed at clock cycle 5 with error message: some error message",
+        regex!(r#",-\[test[\d]+:5:13\]"#),
+        " 4 |             push.1.2",
+        " 5 |             assertz.err=ERR_MSG",
+        "   :             ^^^^^^^^^^^^^^^^^^^",
+        " 6 |             push.3.4",
         "   `----"
     );
 }
 
 #[test]
-#[ignore = "https://github.com/0xMiden/miden-vm/issues/1764"]
 fn test_diagnostic_merkle_path_verification_failed() {
+    // No message
     let source = "
         begin
             mtree_verify
@@ -264,11 +306,52 @@ fn test_diagnostic_merkle_path_verification_failed() {
     let err = build_test.execute().expect_err("expected error");
     assert_diagnostic_lines!(
         err,
-        "merkle path verification failed for value fcffffff03000000000000000000000000000000000000000000000000000000 at index 4 in the Merkle tree with root
-  | c9b007301fbe49f9c96698ea31f251b61d51674c892fbb2d8d349280bbd4a273 (error code: 0)",
+        "merkle path verification failed for value fcffffff03000000000000000000000000000000000000000000000000000000 at index 4 in the Merkle tree with root",
+        "| c9b007301fbe49f9c96698ea31f251b61d51674c892fbb2d8d349280bbd4a273 (error code: 0)",
         regex!(r#",-\[test[\d]+:3:13\]"#),
         " 2 |         begin",
-        "TODO: complete"
+        " 3 |             mtree_verify",
+        "   :             ^^^^^^^^^^^^",
+        " 4 |         end",
+        "   `----"
+    );
+
+    // With message
+    let source = "
+        begin
+            mtree_verify.err=\"some error message\"
+        end";
+
+    let index = 3_usize;
+    let (leaves, store) = init_merkle_store(&[1, 2, 3, 4, 5, 6, 7, 8]);
+    let tree = MerkleTree::new(leaves.clone()).unwrap();
+
+    let stack_inputs = [
+        tree.root()[0].as_int(),
+        tree.root()[1].as_int(),
+        tree.root()[2].as_int(),
+        tree.root()[3].as_int(),
+        // Intentionally choose the wrong index to trigger the error
+        (index + 1) as u64,
+        tree.depth() as u64,
+        leaves[index][0].as_int(),
+        leaves[index][1].as_int(),
+        leaves[index][2].as_int(),
+        leaves[index][3].as_int(),
+    ];
+
+    let build_test = build_test_by_mode!(true, source, &stack_inputs, &[], store);
+    let err = build_test.execute().expect_err("expected error");
+    assert_diagnostic_lines!(
+        err,
+        "merkle path verification failed for value fcffffff03000000000000000000000000000000000000000000000000000000 at index 4 in the Merkle tree with root",
+        "| c9b007301fbe49f9c96698ea31f251b61d51674c892fbb2d8d349280bbd4a273 (error message: some error message)",
+        regex!(r#",-\[test[\d]+:3:13\]"#),
+        " 2 |         begin",
+        " 3 |             mtree_verify.err=\"some error message\"",
+        "   :             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^",
+        " 4 |         end",
+        "   `----"
     );
 }
 

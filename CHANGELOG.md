@@ -59,6 +59,7 @@
 - `ProcessState::get_stack_state()` now only returns the state of the active context (#1753)
 - Change `MastForestBuilder::set_after_exit()` for `append_after_exit()` (#1775)
 - Improve processor error diagnostics (#1765)
+- Fix source spans associated with assert* and mtree_verify instructions (#1789)
 
 ## 0.12.0 (2025-01-22)
 
