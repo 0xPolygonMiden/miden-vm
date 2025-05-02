@@ -388,7 +388,7 @@ impl Process {
         self.execute_mast_node(node.first(), program, host)?;
         self.execute_mast_node(node.second(), program, host)?;
 
-        self.end_join_node(node, host)
+        self.end_join_node(node, program, host)
     }
 
     /// Executes the specified [SplitNode].
@@ -412,7 +412,7 @@ impl Process {
             return Err(ExecutionError::not_binary_value_if(condition, &err_ctx));
         }
 
-        self.end_split_node(node, host)
+        self.end_split_node(node, program, host)
     }
 
     /// Executes the specified [LoopNode].
@@ -436,7 +436,7 @@ impl Process {
             // which drops the condition from the stack
             while self.stack.peek() == ONE {
                 self.decoder.repeat();
-                self.execute_op(Operation::Drop, host)?;
+                self.execute_op(Operation::Drop, program, host)?;
                 self.execute_mast_node(node.body(), program, host)?;
             }
 
@@ -446,11 +446,11 @@ impl Process {
             }
 
             // end the LOOP block and drop the condition from the stack
-            self.end_loop_node(node, true, host)
+            self.end_loop_node(node, true, program, host)
         } else if condition == ZERO {
             // end the LOOP block, but don't drop the condition from the stack because it was
             // already dropped when we started the LOOP block
-            self.end_loop_node(node, false, host)
+            self.end_loop_node(node, false, program, host)
         } else {
             let err_ctx = ErrorContext::new(program, node, self.source_manager.clone());
             Err(ExecutionError::not_binary_value_loop(condition, &err_ctx))
@@ -483,7 +483,7 @@ impl Process {
 
         self.start_call_node(call_node, program, host)?;
         self.execute_mast_node(call_node.callee(), program, host)?;
-        self.end_call_node(call_node, host, &err_ctx)
+        self.end_call_node(call_node, program, host, &err_ctx)
     }
 
     /// Executes the specified [vm_core::mast::DynNode].
@@ -507,7 +507,7 @@ impl Process {
         let callee_hash = if node.is_dyncall() {
             self.start_dyncall_node(node, &error_ctx)?
         } else {
-            self.start_dyn_node(node, host, &error_ctx)?
+            self.start_dyn_node(node, program, host, &error_ctx)?
         };
 
         // if the callee is not in the program's MAST forest, try to find a MAST forest for it in
@@ -534,9 +534,9 @@ impl Process {
         }
 
         if node.is_dyncall() {
-            self.end_dyncall_node(node, host, &error_ctx)
+            self.end_dyncall_node(node, program, host, &error_ctx)
         } else {
-            self.end_dyn_node(node, host)
+            self.end_dyn_node(node, program, host)
         }
     }
 
@@ -548,7 +548,7 @@ impl Process {
         program: &MastForest,
         host: &mut impl Host,
     ) -> Result<(), ExecutionError> {
-        self.start_basic_block_node(basic_block, host)?;
+        self.start_basic_block_node(basic_block, program, host)?;
 
         let mut op_offset = 0;
         let mut decorator_ids = basic_block.decorator_iter();
@@ -569,7 +569,7 @@ impl Process {
         // of the stack
         for op_batch in basic_block.op_batches().iter().skip(1) {
             self.respan(op_batch);
-            self.execute_op(Operation::Noop, host)?;
+            self.execute_op(Operation::Noop, program, host)?;
             self.execute_op_batch(
                 basic_block,
                 op_batch,
@@ -581,7 +581,7 @@ impl Process {
             op_offset += op_batch.ops().len();
         }
 
-        self.end_basic_block_node(basic_block, host)?;
+        self.end_basic_block_node(basic_block, program, host)?;
 
         // execute any decorators which have not been executed during span ops execution; this
         // can happen for decorators appearing after all operations in a block. these decorators
@@ -640,7 +640,7 @@ impl Process {
                 i + op_offset,
             );
             self.decoder.execute_user_op(op, op_idx);
-            self.execute_op_with_error_ctx(op, host, &error_ctx)?;
+            self.execute_op_with_error_ctx(op, program, host, &error_ctx)?;
 
             // if the operation carries an immediate value, the value is stored at the next group
             // pointer; so, we advance the pointer to the following group
@@ -660,7 +660,7 @@ impl Process {
                     // bug somewhere in the assembler)
                     debug_assert!(op_idx < OP_GROUP_SIZE - 1, "invalid op index");
                     self.decoder.execute_user_op(Operation::Noop, op_idx + 1);
-                    self.execute_op(Operation::Noop, host)?;
+                    self.execute_op(Operation::Noop, program, host)?;
                 }
 
                 // then, move to the next group and reset operation index
@@ -683,7 +683,7 @@ impl Process {
         // the actual number of operation groups was not a power of two
         for group_idx in group_idx..num_batch_groups {
             self.decoder.execute_user_op(Operation::Noop, 0);
-            self.execute_op(Operation::Noop, host)?;
+            self.execute_op(Operation::Noop, program, host)?;
 
             // if we are not at the last group yet, set up the decoder for decoding the next
             // operation groups. the groups were are processing are just NOOPs - so, the op group

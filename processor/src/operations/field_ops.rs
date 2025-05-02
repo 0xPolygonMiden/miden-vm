@@ -241,7 +241,7 @@ impl Process {
 #[cfg(test)]
 mod tests {
     use test_utils::rand::rand_value;
-    use vm_core::{ONE, ZERO};
+    use vm_core::{ONE, ZERO, mast::MastForest};
 
     use super::{
         super::{Felt, FieldElement, MIN_STACK_DEPTH, Operation},
@@ -259,9 +259,10 @@ mod tests {
         let stack = StackInputs::try_from_ints([c.as_int(), b.as_int(), a.as_int()]).unwrap();
         let mut process = Process::new_dummy(stack);
         let mut host = DefaultHost::default();
+        let program = &MastForest::default();
 
         // add the top two values
-        process.execute_op(Operation::Add, &mut host).unwrap();
+        process.execute_op(Operation::Add, program, &mut host).unwrap();
         let expected = build_expected(&[a + b, c]);
 
         assert_eq!(MIN_STACK_DEPTH, process.stack.depth());
@@ -270,7 +271,7 @@ mod tests {
 
         // calling add with a stack of minimum depth is ok
         let mut process = Process::new_dummy_with_empty_stack();
-        assert!(process.execute_op(Operation::Add, &mut host).is_ok());
+        assert!(process.execute_op(Operation::Add, program, &mut host).is_ok());
     }
 
     #[test]
@@ -280,9 +281,10 @@ mod tests {
         let stack = StackInputs::try_from_ints([c.as_int(), b.as_int(), a.as_int()]).unwrap();
         let mut process = Process::new_dummy(stack);
         let mut host = DefaultHost::default();
+        let program = &MastForest::default();
 
         // negate the top value
-        process.execute_op(Operation::Neg, &mut host).unwrap();
+        process.execute_op(Operation::Neg, program, &mut host).unwrap();
         let expected = build_expected(&[-a, b, c]);
 
         assert_eq!(expected, process.stack.trace_state());
@@ -297,9 +299,10 @@ mod tests {
         let stack = StackInputs::try_from_ints([c.as_int(), b.as_int(), a.as_int()]).unwrap();
         let mut process = Process::new_dummy(stack);
         let mut host = DefaultHost::default();
+        let program = &MastForest::default();
 
         // add the top two values
-        process.execute_op(Operation::Mul, &mut host).unwrap();
+        process.execute_op(Operation::Mul, program, &mut host).unwrap();
         let expected = build_expected(&[a * b, c]);
 
         assert_eq!(MIN_STACK_DEPTH, process.stack.depth());
@@ -308,7 +311,7 @@ mod tests {
 
         // calling mul with a stack of minimum depth is ok
         let mut process = Process::new_dummy_with_empty_stack();
-        assert!(process.execute_op(Operation::Mul, &mut host).is_ok());
+        assert!(process.execute_op(Operation::Mul, program, &mut host).is_ok());
     }
 
     #[test]
@@ -318,10 +321,11 @@ mod tests {
         let stack = StackInputs::try_from_ints([c.as_int(), b.as_int(), a.as_int()]).unwrap();
         let mut process = Process::new_dummy(stack);
         let mut host = DefaultHost::default();
+        let program = &MastForest::default();
 
         // invert the top value
         if b != ZERO {
-            process.execute_op(Operation::Inv, &mut host).unwrap();
+            process.execute_op(Operation::Inv, program, &mut host).unwrap();
             let expected = build_expected(&[a.inv(), b, c]);
 
             assert_eq!(MIN_STACK_DEPTH, process.stack.depth());
@@ -330,8 +334,8 @@ mod tests {
         }
 
         // inverting zero should be an error
-        process.execute_op(Operation::Pad, &mut host).unwrap();
-        assert!(process.execute_op(Operation::Inv, &mut host).is_err());
+        process.execute_op(Operation::Pad, program, &mut host).unwrap();
+        assert!(process.execute_op(Operation::Inv, program, &mut host).is_err());
     }
 
     #[test]
@@ -341,9 +345,10 @@ mod tests {
         let stack = StackInputs::try_from_ints([c.as_int(), b.as_int(), a.as_int()]).unwrap();
         let mut process = Process::new_dummy(stack);
         let mut host = DefaultHost::default();
+        let program = &MastForest::default();
 
         // negate the top value
-        process.execute_op(Operation::Incr, &mut host).unwrap();
+        process.execute_op(Operation::Incr, program, &mut host).unwrap();
         let expected = build_expected(&[a + ONE, b, c]);
 
         assert_eq!(MIN_STACK_DEPTH, process.stack.depth());
@@ -360,8 +365,9 @@ mod tests {
         // --- test 0 AND 0 ---------------------------------------------------
         let stack = StackInputs::try_from_ints([2, 0, 0]).unwrap();
         let mut process = Process::new_dummy(stack);
+        let program = &MastForest::default();
 
-        process.execute_op(Operation::And, &mut host).unwrap();
+        process.execute_op(Operation::And, program, &mut host).unwrap();
         let expected = build_expected(&[ZERO, Felt::new(2)]);
         assert_eq!(expected, process.stack.trace_state());
 
@@ -369,7 +375,7 @@ mod tests {
         let stack = StackInputs::try_from_ints([2, 0, 1]).unwrap();
         let mut process = Process::new_dummy(stack);
 
-        process.execute_op(Operation::And, &mut host).unwrap();
+        process.execute_op(Operation::And, program, &mut host).unwrap();
         let expected = build_expected(&[ZERO, Felt::new(2)]);
         assert_eq!(expected, process.stack.trace_state());
 
@@ -377,7 +383,7 @@ mod tests {
         let stack = StackInputs::try_from_ints([2, 1, 0]).unwrap();
         let mut process = Process::new_dummy(stack);
 
-        process.execute_op(Operation::And, &mut host).unwrap();
+        process.execute_op(Operation::And, program, &mut host).unwrap();
         let expected = build_expected(&[ZERO, Felt::new(2)]);
         assert_eq!(expected, process.stack.trace_state());
 
@@ -385,23 +391,23 @@ mod tests {
         let stack = StackInputs::try_from_ints([2, 1, 1]).unwrap();
         let mut process = Process::new_dummy(stack);
 
-        process.execute_op(Operation::And, &mut host).unwrap();
+        process.execute_op(Operation::And, program, &mut host).unwrap();
         let expected = build_expected(&[ONE, Felt::new(2)]);
         assert_eq!(expected, process.stack.trace_state());
 
         // --- first operand is not binary ------------------------------------
         let stack = StackInputs::try_from_ints([2, 1, 2]).unwrap();
         let mut process = Process::new_dummy(stack);
-        assert!(process.execute_op(Operation::And, &mut host).is_err());
+        assert!(process.execute_op(Operation::And, program, &mut host).is_err());
 
         // --- second operand is not binary -----------------------------------
         let stack = StackInputs::try_from_ints([2, 2, 1]).unwrap();
         let mut process = Process::new_dummy(stack);
-        assert!(process.execute_op(Operation::And, &mut host).is_err());
+        assert!(process.execute_op(Operation::And, program, &mut host).is_err());
 
         // --- calling AND with a stack of minimum depth is ok ----------------
         let mut process = Process::new_dummy_with_empty_stack();
-        assert!(process.execute_op(Operation::And, &mut host).is_ok());
+        assert!(process.execute_op(Operation::And, program, &mut host).is_ok());
     }
 
     #[test]
@@ -410,8 +416,9 @@ mod tests {
         // --- test 0 OR 0 ---------------------------------------------------
         let stack = StackInputs::try_from_ints([2, 0, 0]).unwrap();
         let mut process = Process::new_dummy(stack);
+        let program = &MastForest::default();
 
-        process.execute_op(Operation::Or, &mut host).unwrap();
+        process.execute_op(Operation::Or, program, &mut host).unwrap();
         let expected = build_expected(&[ZERO, Felt::new(2)]);
         assert_eq!(expected, process.stack.trace_state());
 
@@ -419,7 +426,7 @@ mod tests {
         let stack = StackInputs::try_from_ints([2, 0, 1]).unwrap();
         let mut process = Process::new_dummy(stack);
 
-        process.execute_op(Operation::Or, &mut host).unwrap();
+        process.execute_op(Operation::Or, program, &mut host).unwrap();
         let expected = build_expected(&[ONE, Felt::new(2)]);
         assert_eq!(expected, process.stack.trace_state());
 
@@ -427,7 +434,7 @@ mod tests {
         let stack = StackInputs::try_from_ints([2, 1, 0]).unwrap();
         let mut process = Process::new_dummy(stack);
 
-        process.execute_op(Operation::Or, &mut host).unwrap();
+        process.execute_op(Operation::Or, program, &mut host).unwrap();
         let expected = build_expected(&[ONE, Felt::new(2)]);
         assert_eq!(expected, process.stack.trace_state());
 
@@ -435,23 +442,23 @@ mod tests {
         let stack = StackInputs::try_from_ints([2, 1, 1]).unwrap();
         let mut process = Process::new_dummy(stack);
 
-        process.execute_op(Operation::Or, &mut host).unwrap();
+        process.execute_op(Operation::Or, program, &mut host).unwrap();
         let expected = build_expected(&[ONE, Felt::new(2)]);
         assert_eq!(expected, process.stack.trace_state());
 
         // --- first operand is not binary ------------------------------------
         let stack = StackInputs::try_from_ints([2, 1, 2]).unwrap();
         let mut process = Process::new_dummy(stack);
-        assert!(process.execute_op(Operation::Or, &mut host).is_err());
+        assert!(process.execute_op(Operation::Or, program, &mut host).is_err());
 
         // --- second operand is not binary -----------------------------------
         let stack = StackInputs::try_from_ints([2, 2, 1]).unwrap();
         let mut process = Process::new_dummy(stack);
-        assert!(process.execute_op(Operation::Or, &mut host).is_err());
+        assert!(process.execute_op(Operation::Or, program, &mut host).is_err());
 
         // --- calling OR with a stack of minimum depth is a ok ----------------
         let mut process = Process::new_dummy_with_empty_stack();
-        assert!(process.execute_op(Operation::Or, &mut host).is_ok());
+        assert!(process.execute_op(Operation::Or, program, &mut host).is_ok());
     }
 
     #[test]
@@ -460,21 +467,23 @@ mod tests {
         // --- test NOT 0 -----------------------------------------------------
         let stack = StackInputs::try_from_ints([2, 0]).unwrap();
         let mut process = Process::new_dummy(stack);
-        process.execute_op(Operation::Not, &mut host).unwrap();
+        let program = &MastForest::default();
+
+        process.execute_op(Operation::Not, program, &mut host).unwrap();
         let expected = build_expected(&[ONE, Felt::new(2)]);
         assert_eq!(expected, process.stack.trace_state());
 
         // --- test NOT 1 ----------------------------------------------------
         let stack = StackInputs::try_from_ints([2, 1]).unwrap();
         let mut process = Process::new_dummy(stack);
-        process.execute_op(Operation::Not, &mut host).unwrap();
+        process.execute_op(Operation::Not, program, &mut host).unwrap();
         let expected = build_expected(&[ZERO, Felt::new(2)]);
         assert_eq!(expected, process.stack.trace_state());
 
         // --- operand is not binary ------------------------------------------
         let stack = StackInputs::try_from_ints([2, 2]).unwrap();
         let mut process = Process::new_dummy(stack);
-        assert!(process.execute_op(Operation::Not, &mut host).is_err());
+        assert!(process.execute_op(Operation::Not, program, &mut host).is_err());
     }
 
     // COMPARISON OPERATIONS
@@ -487,8 +496,9 @@ mod tests {
         let stack_inputs = StackInputs::try_from_ints([3, 7, 7]).unwrap();
         let (mut process, mut host) =
             Process::new_dummy_with_inputs_and_decoder_helpers(stack_inputs, advice_inputs);
+        let program = &MastForest::default();
 
-        process.execute_op(Operation::Eq, &mut host).unwrap();
+        process.execute_op(Operation::Eq, program, &mut host).unwrap();
         let expected = build_expected(&[ONE, Felt::new(3)]);
         assert_eq!(expected, process.stack.trace_state());
 
@@ -498,7 +508,7 @@ mod tests {
         let (mut process, mut host) =
             Process::new_dummy_with_inputs_and_decoder_helpers(stack_inputs, advice_inputs);
 
-        process.execute_op(Operation::Eq, &mut host).unwrap();
+        process.execute_op(Operation::Eq, program, &mut host).unwrap();
         let expected = build_expected(&[ZERO, Felt::new(3)]);
         assert_eq!(expected, process.stack.trace_state());
 
@@ -507,7 +517,7 @@ mod tests {
         let stack_inputs = StackInputs::default();
         let (mut process, mut host) =
             Process::new_dummy_with_inputs_and_decoder_helpers(stack_inputs, advice_inputs);
-        assert!(process.execute_op(Operation::Eq, &mut host).is_ok());
+        assert!(process.execute_op(Operation::Eq, program, &mut host).is_ok());
     }
 
     #[test]
@@ -517,8 +527,9 @@ mod tests {
         let stack_inputs = StackInputs::try_from_ints([3, 0]).unwrap();
         let (mut process, mut host) =
             Process::new_dummy_with_inputs_and_decoder_helpers(stack_inputs, advice_inputs);
+        let program = &MastForest::default();
 
-        process.execute_op(Operation::Eqz, &mut host).unwrap();
+        process.execute_op(Operation::Eqz, program, &mut host).unwrap();
         let expected = build_expected(&[ONE, Felt::new(3)]);
         assert_eq!(expected, process.stack.trace_state());
 
@@ -528,7 +539,7 @@ mod tests {
         let (mut process, mut host) =
             Process::new_dummy_with_inputs_and_decoder_helpers(stack_inputs, advice_inputs);
 
-        process.execute_op(Operation::Eqz, &mut host).unwrap();
+        process.execute_op(Operation::Eqz, program, &mut host).unwrap();
         let expected = build_expected(&[ZERO, Felt::new(3)]);
         assert_eq!(expected, process.stack.trace_state());
     }
@@ -552,8 +563,9 @@ mod tests {
         let stack_inputs = StackInputs::try_from_ints([old_exp, old_acc, old_base, 0]).unwrap();
         let (mut process, mut host) =
             Process::new_dummy_with_inputs_and_decoder_helpers(stack_inputs, advice_inputs);
+        let program = &MastForest::default();
 
-        process.execute_op(Operation::Expacc, &mut host).unwrap();
+        process.execute_op(Operation::Expacc, program, &mut host).unwrap();
         let expected = build_expected(&[ZERO, new_base, new_acc, new_exp]);
         assert_eq!(expected, process.stack.trace_state());
 
@@ -572,7 +584,7 @@ mod tests {
         let (mut process, mut host) =
             Process::new_dummy_with_inputs_and_decoder_helpers(stack_inputs, advice_inputs);
 
-        process.execute_op(Operation::Expacc, &mut host).unwrap();
+        process.execute_op(Operation::Expacc, program, &mut host).unwrap();
         let expected = build_expected(&[ONE, new_base, new_acc, new_exp]);
         assert_eq!(expected, process.stack.trace_state());
 
@@ -591,7 +603,7 @@ mod tests {
         let (mut process, mut host) =
             Process::new_dummy_with_inputs_and_decoder_helpers(stack_inputs, advice_inputs);
 
-        process.execute_op(Operation::Expacc, &mut host).unwrap();
+        process.execute_op(Operation::Expacc, program, &mut host).unwrap();
         let expected = build_expected(&[ZERO, new_base, new_acc, new_exp]);
         assert_eq!(expected, process.stack.trace_state());
 
@@ -611,7 +623,7 @@ mod tests {
         let (mut process, mut host) =
             Process::new_dummy_with_inputs_and_decoder_helpers(stack_inputs, advice_inputs);
 
-        process.execute_op(Operation::Expacc, &mut host).unwrap();
+        process.execute_op(Operation::Expacc, program, &mut host).unwrap();
         let expected = build_expected(&[ONE, new_base, new_acc, new_exp]);
         assert_eq!(expected, process.stack.trace_state());
 
@@ -631,7 +643,7 @@ mod tests {
         let (mut process, mut host) =
             Process::new_dummy_with_inputs_and_decoder_helpers(stack_inputs, advice_inputs);
 
-        process.execute_op(Operation::Expacc, &mut host).unwrap();
+        process.execute_op(Operation::Expacc, program, &mut host).unwrap();
         let expected = build_expected(&[ONE, new_base, new_acc, new_exp]);
         assert_eq!(expected, process.stack.trace_state());
     }

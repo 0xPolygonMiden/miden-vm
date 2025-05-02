@@ -1,4 +1,7 @@
-use vm_core::{mast::BasicBlockNode, stack::MIN_STACK_DEPTH};
+use vm_core::{
+    mast::{BasicBlockNode, MastForest},
+    stack::MIN_STACK_DEPTH,
+};
 
 use super::{ExecutionError, Felt, FieldElement, Host, Operation, Process};
 use crate::errors::ErrorContext;
@@ -29,9 +32,10 @@ impl Process {
     pub(super) fn execute_op(
         &mut self,
         op: Operation,
+        program: &MastForest,
         host: &mut impl Host,
     ) -> Result<(), ExecutionError> {
-        self.execute_op_with_error_ctx(op, host, &ErrorContext::default())
+        self.execute_op_with_error_ctx(op, program, host, &ErrorContext::default())
     }
 
     /// Executes the specified operation.
@@ -41,6 +45,7 @@ impl Process {
     pub(super) fn execute_op_with_error_ctx(
         &mut self,
         op: Operation,
+        program: &MastForest,
         host: &mut impl Host,
         error_ctx: &ErrorContext<'_, BasicBlockNode>,
     ) -> Result<(), ExecutionError> {
@@ -51,7 +56,7 @@ impl Process {
         match op {
             // ----- system operations ------------------------------------------------------------
             Operation::Noop => self.stack.copy_state(0),
-            Operation::Assert(err_code) => self.op_assert(err_code, host, error_ctx)?,
+            Operation::Assert(err_code) => self.op_assert(err_code, program, host, error_ctx)?,
 
             Operation::FmpAdd => self.op_fmpadd()?,
             Operation::FmpUpdate => self.op_fmpupdate()?,
@@ -197,7 +202,7 @@ impl Process {
 #[cfg(test)]
 pub mod testing {
     use miden_air::ExecutionOptions;
-    use vm_core::StackInputs;
+    use vm_core::{StackInputs, mast::MastForest};
 
     use super::*;
     use crate::{AdviceInputs, DefaultHost, MemAdviceProvider};
@@ -209,7 +214,8 @@ pub mod testing {
             let mut host = DefaultHost::default();
             let mut process =
                 Self::new(Kernel::default(), stack_inputs, ExecutionOptions::default());
-            process.execute_op(Operation::Noop, &mut host).unwrap();
+            let program = &MastForest::default();
+            process.execute_op(Operation::Noop, program, &mut host).unwrap();
             process
         }
 
@@ -230,7 +236,8 @@ pub mod testing {
             let mut host = DefaultHost::new(advice_provider);
             let mut process =
                 Self::new(Kernel::default(), stack_inputs, ExecutionOptions::default());
-            process.execute_op(Operation::Noop, &mut host).unwrap();
+            let program = &MastForest::default();
+            process.execute_op(Operation::Noop, program, &mut host).unwrap();
 
             (process, host)
         }
@@ -263,8 +270,9 @@ pub mod testing {
             let mut host = DefaultHost::new(advice_provider);
             let mut process =
                 Self::new(Kernel::default(), stack_inputs, ExecutionOptions::default());
+            let program = &MastForest::default();
             process.decoder.add_dummy_trace_row();
-            process.execute_op(Operation::Noop, &mut host).unwrap();
+            process.execute_op(Operation::Noop, program, &mut host).unwrap();
 
             (process, host)
         }

@@ -195,6 +195,7 @@ mod tests {
     use vm_core::{
         chiplets::hasher::{STATE_WIDTH, apply_permutation},
         crypto::merkle::{MerkleStore, MerkleTree, NodeIndex},
+        mast::MastForest,
     };
 
     use super::{
@@ -215,9 +216,10 @@ mod tests {
         let stack = StackInputs::try_from_ints(inputs).unwrap();
         let mut process = Process::new_dummy_with_decoder_helpers(stack);
         let mut host = DefaultHost::default();
+        let program = &MastForest::default();
 
         let expected: [Felt; STATE_WIDTH] = build_expected_perm(&inputs);
-        process.execute_op(Operation::HPerm, &mut host).unwrap();
+        process.execute_op(Operation::HPerm, program, &mut host).unwrap();
         assert_eq!(expected, &process.stack.trace_state()[0..12]);
 
         // --- test hashing 8 random values -------------------------------------------------------
@@ -229,7 +231,7 @@ mod tests {
 
         // add the capacity to prepare the input vector
         let expected: [Felt; STATE_WIDTH] = build_expected_perm(&inputs);
-        process.execute_op(Operation::HPerm, &mut host).unwrap();
+        process.execute_op(Operation::HPerm, program, &mut host).unwrap();
         assert_eq!(expected, &process.stack.trace_state()[0..12]);
 
         // --- test that the rest of the stack isn't affected -------------------------------------
@@ -240,7 +242,7 @@ mod tests {
 
         let stack = StackInputs::try_from_ints(inputs).unwrap();
         let mut process = Process::new_dummy_with_decoder_helpers(stack);
-        process.execute_op(Operation::HPerm, &mut host).unwrap();
+        process.execute_op(Operation::HPerm, program, &mut host).unwrap();
         assert_eq!(expected, &process.stack.trace_state()[12..16]);
     }
 
@@ -275,8 +277,9 @@ mod tests {
         let stack_inputs = StackInputs::try_from_ints(stack_inputs).unwrap();
         let (mut process, mut host) =
             Process::new_dummy_with_inputs_and_decoder_helpers(stack_inputs, advice_inputs);
+        let program = &MastForest::default();
 
-        process.execute_op(Operation::MpVerify(ZERO), &mut host).unwrap();
+        process.execute_op(Operation::MpVerify(ZERO), program, &mut host).unwrap();
         let expected_stack = build_expected(&[
             node[3], node[2], node[1], node[0], depth, index, root[3], root[2], root[1], root[0],
         ]);
@@ -317,9 +320,10 @@ mod tests {
         let stack_inputs = StackInputs::try_from_ints(stack_inputs).unwrap();
         let (mut process, mut host) =
             Process::new_dummy_with_inputs_and_decoder_helpers(stack_inputs, advice_inputs);
+        let program = &MastForest::default();
 
         // update the Merkle tree but keep the old copy
-        process.execute_op(Operation::MrUpdate, &mut host).unwrap();
+        process.execute_op(Operation::MrUpdate, program, &mut host).unwrap();
         let expected_stack = build_expected(&[
             new_tree.root()[3],
             new_tree.root()[2],
@@ -395,12 +399,13 @@ mod tests {
         let stack_inputs = StackInputs::try_from_ints(stack_inputs).unwrap();
         let (mut process, mut host) =
             Process::new_dummy_with_inputs_and_decoder_helpers(stack_inputs, advice_inputs);
+        let program = &MastForest::default();
 
         // assert the expected root doesn't exist before the merge operation
         assert!(!host.advice_provider().has_merkle_root(expected_root));
 
         // update the previous root
-        process.execute_op(Operation::MrUpdate, &mut host).unwrap();
+        process.execute_op(Operation::MrUpdate, program, &mut host).unwrap();
         let expected_stack = build_expected(&[
             expected_root[3],
             expected_root[2],

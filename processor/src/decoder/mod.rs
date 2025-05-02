@@ -84,20 +84,21 @@ impl Process {
         // start decoding the JOIN block; this appends a row with JOIN operation to the decoder
         // trace. when JOIN operation is executed, the rest of the VM state does not change
         self.decoder.start_join(child1_hash, child2_hash, addr);
-        self.execute_op(Operation::Noop, host)
+        self.execute_op(Operation::Noop, program, host)
     }
 
     ///  Ends decoding of a JOIN node.
     pub(super) fn end_join_node<H: Host>(
         &mut self,
         node: &JoinNode,
+        program: &MastForest,
         host: &mut H,
     ) -> Result<(), ExecutionError> {
         // this appends a row with END operation to the decoder trace. when END operation is
         // executed the rest of the VM state does not change
         self.decoder.end_control_block(node.digest().into());
 
-        self.execute_op(Operation::Noop, host)
+        self.execute_op(Operation::Noop, program, host)
     }
 
     // SPLIT NODE
@@ -138,7 +139,7 @@ impl Process {
         // start decoding the SPLIT block. this appends a row with SPLIT operation to the decoder
         // trace. we also pop the value off the top of the stack and return it.
         self.decoder.start_split(child1_hash, child2_hash, addr);
-        self.execute_op(Operation::Drop, host)?;
+        self.execute_op(Operation::Drop, program, host)?;
         Ok(condition)
     }
 
@@ -146,13 +147,14 @@ impl Process {
     pub(super) fn end_split_node<H: Host>(
         &mut self,
         block: &SplitNode,
+        program: &MastForest,
         host: &mut H,
     ) -> Result<(), ExecutionError> {
         // this appends a row with END operation to the decoder trace. when END operation is
         // executed the rest of the VM state does not change
         self.decoder.end_control_block(block.digest().into());
 
-        self.execute_op(Operation::Noop, host)
+        self.execute_op(Operation::Noop, program, host)
     }
 
     // LOOP NODE
@@ -193,7 +195,7 @@ impl Process {
         // basically, if the top of the stack is ZERO, a LOOP operation should be immediately
         // followed by an END operation.
         self.decoder.start_loop(body_hash, addr, condition);
-        self.execute_op(Operation::Drop, host)?;
+        self.execute_op(Operation::Drop, program, host)?;
         Ok(condition)
     }
 
@@ -203,6 +205,7 @@ impl Process {
         &mut self,
         node: &LoopNode,
         pop_stack: bool,
+        program: &MastForest,
         host: &mut H,
     ) -> Result<(), ExecutionError> {
         // this appends a row with END operation to the decoder trace.
@@ -217,9 +220,9 @@ impl Process {
             #[cfg(debug_assertions)]
             debug_assert_eq!(ZERO, self.stack.peek());
 
-            self.execute_op(Operation::Drop, host)
+            self.execute_op(Operation::Drop, program, host)
         } else {
-            self.execute_op(Operation::Noop, host)
+            self.execute_op(Operation::Noop, program, host)
         }
     }
 
@@ -277,13 +280,14 @@ impl Process {
         }
 
         // the rest of the VM state does not change
-        self.execute_op(Operation::Noop, host)
+        self.execute_op(Operation::Noop, program, host)
     }
 
     /// Ends decoding of a CALL or a SYSCALL block.
     pub(super) fn end_call_node<H: Host>(
         &mut self,
         node: &CallNode,
+        program: &MastForest,
         host: &mut H,
         err_ctx: &ErrorContext<'_, CallNode>,
     ) -> Result<(), ExecutionError> {
@@ -310,7 +314,7 @@ impl Process {
         self.stack.restore_context(ctx_info.parent_stack_depth as usize);
 
         // the rest of the VM state does not change
-        self.execute_op(Operation::Noop, host)
+        self.execute_op(Operation::Noop, program, host)
     }
 
     // DYN NODE
@@ -323,6 +327,7 @@ impl Process {
     pub(super) fn start_dyn_node<H: Host>(
         &mut self,
         dyn_node: &DynNode,
+        program: &MastForest,
         host: &mut H,
         error_ctx: &ErrorContext<'_, DynNode>,
     ) -> Result<Word, ExecutionError> {
@@ -349,7 +354,7 @@ impl Process {
         self.decoder.start_dyn(addr, callee_hash);
 
         // Pop the memory address off the stack.
-        self.execute_op(Operation::Drop, host)?;
+        self.execute_op(Operation::Drop, program, host)?;
 
         Ok(callee_hash)
     }
@@ -417,19 +422,21 @@ impl Process {
     pub(super) fn end_dyn_node<H: Host>(
         &mut self,
         dyn_node: &DynNode,
+        program: &MastForest,
         host: &mut H,
     ) -> Result<(), ExecutionError> {
         // this appends a row with END operation to the decoder trace. when the END operation is
         // executed the rest of the VM state does not change
         self.decoder.end_control_block(dyn_node.digest().into());
 
-        self.execute_op(Operation::Noop, host)
+        self.execute_op(Operation::Noop, program, host)
     }
 
     /// Ends decoding of a DYNCALL node.
     pub(super) fn end_dyncall_node<H: Host>(
         &mut self,
         dyn_node: &DynNode,
+        program: &MastForest,
         host: &mut H,
         err_ctx: &ErrorContext<'_, DynNode>,
     ) -> Result<(), ExecutionError> {
@@ -455,7 +462,7 @@ impl Process {
         );
         self.stack.restore_context(ctx_info.parent_stack_depth as usize);
 
-        self.execute_op(Operation::Noop, host)
+        self.execute_op(Operation::Noop, program, host)
     }
 
     // BASIC BLOCK NODE
@@ -465,6 +472,7 @@ impl Process {
     pub(super) fn start_basic_block_node<H: Host>(
         &mut self,
         basic_block: &BasicBlockNode,
+        program: &MastForest,
         host: &mut H,
     ) -> Result<(), ExecutionError> {
         // use the hasher to compute the hash of the SPAN block; the row address returned by the
@@ -483,20 +491,21 @@ impl Process {
         let num_op_groups = basic_block.num_op_groups();
         self.decoder
             .start_basic_block(&op_batches[0], Felt::new(num_op_groups as u64), addr);
-        self.execute_op(Operation::Noop, host)
+        self.execute_op(Operation::Noop, program, host)
     }
 
     /// Ends decoding a BASIC BLOCK node.
     pub(super) fn end_basic_block_node<H: Host>(
         &mut self,
         block: &BasicBlockNode,
+        program: &MastForest,
         host: &mut H,
     ) -> Result<(), ExecutionError> {
         // this appends a row with END operation to the decoder trace. when END operation is
         // executed the rest of the VM state does not change
         self.decoder.end_basic_block(block.digest().into());
 
-        self.execute_op(Operation::Noop, host)
+        self.execute_op(Operation::Noop, program, host)
     }
 
     /// Continues decoding a SPAN block by absorbing the next batch of operations.

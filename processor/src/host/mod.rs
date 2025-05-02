@@ -144,8 +144,9 @@ where
         process: ProcessState,
         err_code: Felt,
         err_ctx: &ErrorContext<'_, impl MastNodeExt>,
+        program: &MastForest,
     ) -> ExecutionError {
-        H::on_assert_failed(self, process, err_code, err_ctx)
+        H::on_assert_failed(self, process, err_code, err_ctx, program)
     }
 }
 
