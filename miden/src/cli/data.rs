@@ -8,7 +8,7 @@ use std::{
 use assembly::{
     Assembler, Library, LibraryNamespace, SourceManager,
     ast::{Module, ModuleKind},
-    diagnostics::{Report, WrapErr, miette::miette},
+    diagnostics::{Report, WrapErr},
     report,
 };
 use miden_vm::{Digest, ExecutionProof, Program, StackOutputs, utils::SliceReader};

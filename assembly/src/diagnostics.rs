@@ -12,7 +12,7 @@ pub use vm_core::debuginfo::*;
 macro_rules! report {
     ($($key:ident = $value:expr,)* $fmt:literal $($arg:tt)*) => {
         $crate::diagnostics::Report::from(
-            miette::diagnostic!($($key = $value,)* $fmt $($arg)*)
+            $crate::diagnostic!($($key = $value,)* $fmt $($arg)*)
         )
     };
 }
