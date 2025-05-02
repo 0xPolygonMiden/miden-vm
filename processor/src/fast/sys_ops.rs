@@ -26,7 +26,7 @@ impl FastProcessor {
     ) -> Result<(), ExecutionError> {
         if self.stack_get(0) != ONE {
             host.on_assert_failed(ProcessState::new_fast(self, op_idx), err_code);
-            let err_msg = program.resolve_error_message(err_code).cloned();
+            let err_msg = program.resolve_error_message(err_code);
             return Err(ExecutionError::failed_assertion(
                 self.clk,
                 err_code,

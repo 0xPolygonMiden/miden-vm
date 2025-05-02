@@ -38,7 +38,12 @@
 //! - before enter decorators (`Vec<(MastNodeId, Vec<DecoratorId>)>`)
 //! - after exit decorators (`Vec<(MastNodeId, Vec<DecoratorId>)>`)
 
-use alloc::{collections::BTreeMap, string::String, vec::Vec};
+use alloc::{
+    collections::BTreeMap,
+    string::{String, ToString},
+    sync::Arc,
+    vec::Vec,
+};
 
 use decorator::{DecoratorDataBuilder, DecoratorInfo};
 use string_table::StringTable;
@@ -152,7 +157,9 @@ impl Serializable for MastForest {
         }
 
         self.advice_map.write_into(target);
-        self.error_codes.write_into(target);
+        let error_codes: BTreeMap<u64, String> =
+            self.error_codes.iter().map(|(k, v)| (*k, v.to_string())).collect();
+        error_codes.write_into(target);
 
         // write all decorator data below
 
@@ -200,6 +207,8 @@ impl Deserializable for MastForest {
         let advice_map = AdviceMap::read_from(source)?;
 
         let error_codes: BTreeMap<u64, String> = Deserializable::read_from(source)?;
+        let error_codes: BTreeMap<u64, Arc<str>> =
+            error_codes.into_iter().map(|(k, v)| (k, Arc::from(v))).collect();
 
         // Reading Decorators
         let decorator_data: Vec<u8> = Deserializable::read_from(source)?;

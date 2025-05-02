@@ -1,4 +1,4 @@
-use alloc::{boxed::Box, string::String, sync::Arc, vec::Vec};
+use alloc::{boxed::Box, sync::Arc, vec::Vec};
 use core::error::Error;
 
 use miden_air::RowIndex;
@@ -108,7 +108,7 @@ pub enum ExecutionError {
         source_file: Option<Arc<SourceFile>>,
         clk: RowIndex,
         err_code: Felt,
-        err_msg: Option<Arc<String>>,
+        err_msg: Option<Arc<str>>,
     },
     #[error("failed to execute the program for internal reason: {0}")]
     FailedToExecuteProgram(&'static str),
@@ -210,7 +210,7 @@ pub enum ExecutionError {
         index: Felt,
         root: Digest,
         err_code: Felt,
-        err_msg: Option<Arc<String>>,
+        err_msg: Option<Arc<str>>,
     },
     #[error("failed to lookup value in Merkle store")]
     MerkleStoreLookupFailed {
@@ -363,7 +363,7 @@ impl ExecutionError {
     pub fn failed_assertion(
         clk: RowIndex,
         err_code: Felt,
-        err_msg: Option<String>,
+        err_msg: Option<Arc<str>>,
         err_ctx: &ErrorContext<'_, impl MastNodeExt>,
     ) -> Self {
         let (label, source_file) = err_ctx.label_and_source_file();
@@ -373,7 +373,7 @@ impl ExecutionError {
             source_file,
             clk,
             err_code,
-            err_msg: err_msg.map(Arc::new),
+            err_msg,
         }
     }
 
@@ -428,7 +428,7 @@ impl ExecutionError {
         index: Felt,
         root: Digest,
         err_code: Felt,
-        err_msg: Option<String>,
+        err_msg: Option<Arc<str>>,
         err_ctx: &ErrorContext<'_, impl MastNodeExt>,
     ) -> Self {
         let (label, source_file) = err_ctx.label_and_source_file();
@@ -440,7 +440,7 @@ impl ExecutionError {
             index,
             root,
             err_code,
-            err_msg: err_msg.map(Arc::new),
+            err_msg,
         }
     }
 

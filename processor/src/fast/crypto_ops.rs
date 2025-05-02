@@ -48,7 +48,7 @@ impl FastProcessor {
         match path.verify(index.as_int(), node.into(), &root.into()) {
             Ok(_) => Ok(()),
             Err(_) => {
-                let err_msg = program.resolve_error_message(err_code).cloned();
+                let err_msg = program.resolve_error_message(err_code);
                 Err(ExecutionError::merkle_path_verification_failed(
                     node,
                     index,

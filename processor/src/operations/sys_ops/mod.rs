@@ -35,7 +35,7 @@ impl Process {
         if self.stack.get(0) != ONE {
             let state = ProcessState::from(self);
             host.on_assert_failed(state, err_code);
-            let err_msg = program.resolve_error_message(err_code).cloned();
+            let err_msg = program.resolve_error_message(err_code);
             return Err(ExecutionError::failed_assertion(state.clk(), err_code, err_msg, err_ctx));
         }
         self.stack.shift_left(1);

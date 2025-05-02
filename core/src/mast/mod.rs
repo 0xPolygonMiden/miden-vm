@@ -1,6 +1,5 @@
 use alloc::{
     collections::{BTreeMap, BTreeSet},
-    string::{String, ToString},
     sync::Arc,
     vec::Vec,
 };
@@ -61,7 +60,7 @@ pub struct MastForest {
     /// A map from error codes to error messages. Error messages cannot be
     /// recovered from error codes, so they are stored in order to provide a
     /// useful message to the user in case a error code is triggered.
-    error_codes: BTreeMap<u64, String>,
+    error_codes: BTreeMap<u64, Arc<str>>,
 }
 
 // ------------------------------------------------------------------------------------------------
@@ -487,15 +486,15 @@ impl MastForest {
         let code: Felt = error_code_from_msg(&msg);
         let code_key = u64::from(code);
         // we use u64 as keys for the map
-        self.error_codes.insert(code_key, msg.to_string());
+        self.error_codes.insert(code_key, msg);
         code
     }
 
     /// Given an error code as a Felt, resolves it to its corresponding
     /// error message.
-    pub fn resolve_error_message(&self, code: Felt) -> Option<&String> {
+    pub fn resolve_error_message(&self, code: Felt) -> Option<Arc<str>> {
         let key = u64::from(code);
-        self.error_codes.get(&key)
+        self.error_codes.get(&key).cloned()
     }
 }
 
