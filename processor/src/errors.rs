@@ -108,7 +108,7 @@ pub enum ExecutionError {
         source_file: Option<Arc<SourceFile>>,
         clk: RowIndex,
         err_code: Felt,
-        err_msg: Option<String>,
+        err_msg: Option<Arc<String>>,
     },
     #[error("failed to execute the program for internal reason: {0}")]
     FailedToExecuteProgram(&'static str),
@@ -373,7 +373,7 @@ impl ExecutionError {
             source_file,
             clk,
             err_code,
-            err_msg,
+            err_msg: err_msg.map(Arc::new),
         }
     }
 
