@@ -9,6 +9,7 @@
 - Add `executable` feature to the `make test` and `make test-build` Make commands (#1762).
 
 #### Changes
+- Replace deprecated #[clap(...)] with #[command(...)] and #[arg(.…)] (#1794)
 - [BREAKING] `ExecutionOptions::with_debugging()` now takes a boolean parameter (#1761)
 - Use `MemoryAddress(u32)` for `VmState` memory addresses instead of plain `u64` (#1758).
 

@@ -26,11 +26,11 @@ pub struct Analyze {
     program_file: PathBuf,
 
     /// Path to .inputs file
-    #[clap(short = 'i', long = "input", value_parser)]
+    #[arg(short = 'i', long = "input", value_parser)]
     input_file: Option<PathBuf>,
 
     /// Paths to .masl library files
-    #[clap(short = 'l', long = "libraries", value_parser)]
+    #[arg(short = 'l', long = "libraries", value_parser)]
     library_paths: Vec<PathBuf>,
 }
 

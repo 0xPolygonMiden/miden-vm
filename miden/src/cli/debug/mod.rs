@@ -23,15 +23,15 @@ pub struct DebugCmd {
     pub program_file: PathBuf,
 
     /// Path to input file
-    #[clap(short = 'i', long = "input", value_parser)]
+    #[arg(short = 'i', long = "input", value_parser)]
     input_file: Option<PathBuf>,
 
     /// Enable vi edit mode
-    #[clap(long = "vi", long = "vim_edit_mode")]
+    #[arg(long = "vi", long = "vim_edit_mode")]
     vim_edit_mode: Option<String>,
 
     /// Paths to .masl library files
-    #[clap(short = 'l', long = "libraries", value_parser)]
+    #[arg(short = 'l', long = "libraries", value_parser)]
     library_paths: Vec<PathBuf>,
 }
 

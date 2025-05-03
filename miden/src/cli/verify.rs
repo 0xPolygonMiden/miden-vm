@@ -13,16 +13,16 @@ use super::data::{OutputFile, ProgramHash, ProofFile};
 #[clap(about = "Verify a miden program")]
 pub struct VerifyCmd {
     /// Path to input file
-    #[clap(short = 'i', long = "input", value_parser)]
+    #[arg(short = 'i', long = "input", value_parser)]
     input_file: Option<PathBuf>,
     /// Path to output file
-    #[clap(short = 'o', long = "output", value_parser)]
+    #[arg(short = 'o', long = "output", value_parser)]
     output_file: Option<PathBuf>,
     /// Path to proof file
-    #[clap(short = 'p', long = "proof", value_parser)]
+    #[arg(short = 'p', long = "proof", value_parser)]
     proof_file: PathBuf,
     /// Program hash (hex)
-    #[clap(short = 'x', long = "program-hash")]
+    #[arg(short = 'x', long = "program-hash")]
     program_hash: String,
 }
 

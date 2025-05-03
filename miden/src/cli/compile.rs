@@ -9,13 +9,13 @@ use super::data::{Debug, Libraries, ProgramFile};
 #[clap(about = "Compile a miden program")]
 pub struct CompileCmd {
     /// Path to .masm assembly file
-    #[clap(short = 'a', long = "assembly", value_parser)]
+    #[arg(short = 'a', long = "assembly", value_parser)]
     assembly_file: PathBuf,
     /// Paths to .masl library files
-    #[clap(short = 'l', long = "libraries", value_parser)]
+    #[arg(short = 'l', long = "libraries", value_parser)]
     library_paths: Vec<PathBuf>,
     /// Path to output file
-    #[clap(short = 'o', long = "output", value_parser)]
+    #[arg(short = 'o', long = "output", value_parser)]
     output_file: Option<PathBuf>,
 }
 

@@ -14,24 +14,24 @@ use stdlib::StdLibrary;
 )]
 pub struct BundleCmd {
     /// Disable debug symbols (release mode)
-    #[clap(short = 'r', long = "release")]
+    #[arg(short = 'r', long = "release")]
     release: bool,
     /// Path to a directory containing the `.masm` files which are part of the library.
     #[clap(value_parser)]
     dir: PathBuf,
     /// Defines the top-level namespace, e.g. `mylib`, otherwise the directory name is used. For a
     /// kernel library the namespace defaults to `kernel`.
-    #[clap(short, long)]
+    #[arg(short, long)]
     namespace: Option<String>,
     /// Version of the library, defaults to `0.1.0`.
-    #[clap(short, long, default_value = "0.1.0")]
+    #[arg(short, long, default_value = "0.1.0")]
     version: String,
     /// Build a kernel library from module `kernel` and using the library `dir` as kernel
     /// namespace. The `kernel` file should not be in the directory `dir`.
-    #[clap(short, long)]
+    #[arg(short, long)]
     kernel: Option<PathBuf>,
     /// Path of the output `.masl` file.
-    #[clap(short, long)]
+    #[arg(short, long)]
     output: Option<PathBuf>,
 }
 
