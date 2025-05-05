@@ -2,14 +2,14 @@
 
 #### First off, thanks for taking the time to contribute!
 
-You can find a detailed explanation of main project concepts in [docs](https://0xpolygonmiden.github.io/miden-vm/).
+You can find a detailed explanation of main project concepts in [docs](https://0xmiden.github.io/miden-vm/).
 
 We want to make contributing to this project as easy and transparent as possible, whether it's:
 
-- Reporting a [bug](https://github.com/0xPolygonMiden/miden-vm/issues/new)
-- Taking part in [discussions](https://github.com/0xPolygonMiden/miden-vm/discussions)
-- Submitting a [fix](https://github.com/0xPolygonMiden/miden-vm/pulls)
-- Proposing new [features](https://github.com/0xPolygonMiden/miden-vm/issues/new)
+- Reporting a [bug](https://github.com/0xmiden/miden-vm/issues/new)
+- Taking part in [discussions](https://github.com/0xmiden/miden-vm/discussions)
+- Submitting a [fix](https://github.com/0xmiden/miden-vm/pulls)
+- Proposing new [features](https://github.com/0xmiden/miden-vm/issues/new)
 
 &nbsp;
 

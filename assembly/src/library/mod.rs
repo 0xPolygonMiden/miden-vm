@@ -440,7 +440,7 @@ mod use_std_kernel {
         /// - ~/masm/lib/bar/baz.masm    -> Can be imported as "kernel::bar::baz"
         ///
         /// Note: this is a temporary structure which will likely change once
-        /// <https://github.com/0xPolygonMiden/miden-vm/issues/1436> is implemented.
+        /// <https://github.com/0xmiden/miden-vm/issues/1436> is implemented.
         pub fn from_dir(
             sys_module_path: impl AsRef<Path>,
             lib_dir: Option<impl AsRef<Path>>,
