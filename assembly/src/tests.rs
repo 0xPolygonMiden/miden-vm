@@ -9,7 +9,7 @@ use crate::{
     Assembler, Deserializable, LibraryPath, ModuleParser, Serializable, assert_diagnostic_lines,
     ast::{Module, ModuleKind},
     diagnostics::{IntoDiagnostic, Report},
-    regex, source_file,
+    regex, report, source_file,
     testing::TestContext,
 };
 
@@ -3145,10 +3145,5 @@ fn vendoring() -> TestResult {
 #[test]
 #[should_panic]
 fn test_assert_diagnostic_lines() {
-    assert_diagnostic_lines!(
-        miette::miette!("the error string"),
-        "the error string",
-        "other",
-        "lines"
-    );
+    assert_diagnostic_lines!(report!("the error string"), "the error string", "other", "lines");
 }
