@@ -698,7 +698,7 @@ impl FastProcessor {
             }
 
             // decode and execute the operation
-            self.execute_op(op, batch_offset_in_block + op_idx_in_batch, host)?;
+            self.execute_op(op, batch_offset_in_block + op_idx_in_batch, program, host)?;
 
             // if the operation carries an immediate value, the value is stored at the next group
             // pointer; so, we advance the pointer to the following group
@@ -765,6 +765,7 @@ impl FastProcessor {
         &mut self,
         operation: &Operation,
         op_idx: usize,
+        program: &MastForest,
         host: &mut impl Host,
     ) -> Result<(), ExecutionError> {
         if self.bounds_check_counter == 0 {
@@ -781,7 +782,7 @@ impl FastProcessor {
             Operation::Noop => {
                 // do nothing
             },
-            Operation::Assert(err_code) => self.op_assert(*err_code, op_idx, host)?,
+            Operation::Assert(err_code) => self.op_assert(*err_code, op_idx, host, program)?,
             Operation::FmpAdd => self.op_fmpadd(),
             Operation::FmpUpdate => self.op_fmpupdate()?,
             Operation::SDepth => self.op_sdepth(),
@@ -880,7 +881,7 @@ impl FastProcessor {
 
             // ----- cryptographic operations -----------------------------------------------------
             Operation::HPerm => self.op_hperm(),
-            Operation::MpVerify(err_code) => self.op_mpverify(*err_code, host)?,
+            Operation::MpVerify(err_code) => self.op_mpverify(*err_code, host, program)?,
             Operation::MrUpdate => self.op_mrupdate(host)?,
             Operation::FriE2F4 => self.op_fri_ext2fold4()?,
             Operation::HornerBase => self.op_horner_eval_base(op_idx)?,

@@ -244,7 +244,7 @@ fn test_assert() {
     // Case 1: the stack top is ONE
     {
         let stack_inputs = vec![ONE];
-        let program = simple_program_with_ops(vec![Operation::Assert(0)]);
+        let program = simple_program_with_ops(vec![Operation::Assert(ZERO)]);
 
         let processor = FastProcessor::new(&stack_inputs);
         let result = processor.execute(&program, &mut host);
@@ -256,7 +256,7 @@ fn test_assert() {
     // Case 2: the stack top is not ONE
     {
         let stack_inputs = vec![ZERO];
-        let program = simple_program_with_ops(vec![Operation::Assert(0)]);
+        let program = simple_program_with_ops(vec![Operation::Assert(ZERO)]);
 
         let processor = FastProcessor::new(&stack_inputs);
         let err = processor.execute(&program, &mut host).unwrap_err();

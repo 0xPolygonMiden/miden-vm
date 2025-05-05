@@ -310,7 +310,7 @@ impl Process {
 
 #[cfg(test)]
 mod tests {
-    use vm_core::{ONE, Word, ZERO, assert_matches, utils::ToElements};
+    use vm_core::{ONE, Word, ZERO, assert_matches, mast::MastForest, utils::ToElements};
 
     use super::{
         super::{super::AdviceProvider, MIN_STACK_DEPTH, Operation},
@@ -324,13 +324,15 @@ mod tests {
     fn op_push() {
         let mut host = DefaultHost::default();
         let mut process = Process::new_dummy_with_empty_stack();
+        let program = &MastForest::default();
+
         assert_eq!(MIN_STACK_DEPTH, process.stack.depth());
         assert_eq!(1, process.stack.current_clk());
         assert_eq!([ZERO; 16], process.stack.trace_state());
 
         // push one item onto the stack
         let op = Operation::Push(ONE);
-        process.execute_op(op, &mut host).unwrap();
+        process.execute_op(op, program, &mut host).unwrap();
         let mut expected = [ZERO; 16];
         expected[0] = ONE;
 
@@ -340,7 +342,7 @@ mod tests {
 
         // push another item onto the stack
         let op = Operation::Push(Felt::new(3));
-        process.execute_op(op, &mut host).unwrap();
+        process.execute_op(op, program, &mut host).unwrap();
         let mut expected = [ZERO; 16];
         expected[0] = Felt::new(3);
         expected[1] = ONE;
@@ -356,6 +358,8 @@ mod tests {
     fn op_mloadw() {
         let mut host = DefaultHost::default();
         let mut process = Process::new_dummy_with_decoder_helpers_and_empty_stack();
+        let program = &MastForest::default();
+
         assert_eq!(0, process.chiplets.memory.num_accessed_words());
 
         // push a word onto the stack and save it at address 4
@@ -364,12 +368,12 @@ mod tests {
 
         // push four zeros onto the stack
         for _ in 0..4 {
-            process.execute_op(Operation::Pad, &mut host).unwrap();
+            process.execute_op(Operation::Pad, program, &mut host).unwrap();
         }
 
         // push the address onto the stack and load the word
-        process.execute_op(Operation::Push(4_u32.into()), &mut host).unwrap();
-        process.execute_op(Operation::MLoadW, &mut host).unwrap();
+        process.execute_op(Operation::Push(4_u32.into()), program, &mut host).unwrap();
+        process.execute_op(Operation::MLoadW, program, &mut host).unwrap();
 
         let expected_stack = build_expected_stack(&[7, 5, 3, 1, 7, 5, 3, 1]);
         assert_eq!(expected_stack, process.stack.trace_state());
@@ -379,18 +383,22 @@ mod tests {
         assert_eq!(word, process.chiplets.memory.get_word(ContextId::root(), 4).unwrap().unwrap());
 
         // --- calling MLOADW with address greater than u32::MAX leads to an error ----------------
-        process.execute_op(Operation::Push(Felt::new(u64::MAX / 2)), &mut host).unwrap();
-        assert!(process.execute_op(Operation::MLoadW, &mut host).is_err());
+        process
+            .execute_op(Operation::Push(Felt::new(u64::MAX / 2)), program, &mut host)
+            .unwrap();
+        assert!(process.execute_op(Operation::MLoadW, program, &mut host).is_err());
 
         // --- calling MLOADW with a stack of minimum depth is ok ----------------
         let mut process = Process::new_dummy_with_decoder_helpers_and_empty_stack();
-        assert!(process.execute_op(Operation::MLoadW, &mut host).is_ok());
+        assert!(process.execute_op(Operation::MLoadW, program, &mut host).is_ok());
     }
 
     #[test]
     fn op_mload() {
         let mut host = DefaultHost::default();
         let mut process = Process::new_dummy_with_decoder_helpers_and_empty_stack();
+        let program = &MastForest::default();
+
         assert_eq!(0, process.chiplets.memory.num_accessed_words());
 
         // push a word onto the stack and save it at address 4
@@ -398,8 +406,8 @@ mod tests {
         store_value(&mut process, 4, word, &mut host);
 
         // push the address onto the stack and load the element
-        process.execute_op(Operation::Push(Felt::new(4)), &mut host).unwrap();
-        process.execute_op(Operation::MLoad, &mut host).unwrap();
+        process.execute_op(Operation::Push(Felt::new(4)), program, &mut host).unwrap();
+        process.execute_op(Operation::MLoad, program, &mut host).unwrap();
 
         let expected_stack = build_expected_stack(&[1, 7, 5, 3, 1]);
         assert_eq!(expected_stack, process.stack.trace_state());
@@ -409,18 +417,21 @@ mod tests {
         assert_eq!(word, process.chiplets.memory.get_word(ContextId::root(), 4).unwrap().unwrap());
 
         // --- calling MLOAD with address greater than u32::MAX leads to an error -----------------
-        process.execute_op(Operation::Push(Felt::new(u64::MAX / 2)), &mut host).unwrap();
-        assert!(process.execute_op(Operation::MLoad, &mut host).is_err());
+        process
+            .execute_op(Operation::Push(Felt::new(u64::MAX / 2)), program, &mut host)
+            .unwrap();
+        assert!(process.execute_op(Operation::MLoad, program, &mut host).is_err());
 
         // --- calling MLOAD with a stack of minimum depth is ok ----------------
         let mut process = Process::new_dummy_with_decoder_helpers_and_empty_stack();
-        assert!(process.execute_op(Operation::MLoad, &mut host).is_ok());
+        assert!(process.execute_op(Operation::MLoad, program, &mut host).is_ok());
     }
 
     #[test]
     fn op_mstream() {
         let mut host = DefaultHost::default();
         let mut process = Process::new_dummy_with_decoder_helpers_and_empty_stack();
+        let program = &MastForest::default();
 
         // save two words into memory addresses 4 and 8
         let word1 = [30, 29, 28, 27];
@@ -443,7 +454,7 @@ mod tests {
 
         // clear the stack
         for _ in 0..8 {
-            process.execute_op(Operation::Drop, &mut host).unwrap();
+            process.execute_op(Operation::Drop, program, &mut host).unwrap();
         }
 
         // arrange the stack such that:
@@ -451,14 +462,14 @@ mod tests {
         // - 4 (the address) is at position 12
         // - values 1 - 12 are at positions 0 - 11. Adding the first 8 of these values to the values
         //   stored in memory should result in 35.
-        process.execute_op(Operation::Push(Felt::new(101)), &mut host).unwrap();
-        process.execute_op(Operation::Push(4_u32.into()), &mut host).unwrap();
+        process.execute_op(Operation::Push(Felt::new(101)), program, &mut host).unwrap();
+        process.execute_op(Operation::Push(4_u32.into()), program, &mut host).unwrap();
         for i in 1..13 {
-            process.execute_op(Operation::Push(Felt::new(i)), &mut host).unwrap();
+            process.execute_op(Operation::Push(Felt::new(i)), program, &mut host).unwrap();
         }
 
         // execute the MSTREAM operation
-        process.execute_op(Operation::MStream, &mut host).unwrap();
+        process.execute_op(Operation::MStream, program, &mut host).unwrap();
 
         // the first 8 values should contain the values from memory. the next 4 values should remain
         // unchanged, and the address should be incremented by 2 (i.e., 1 -> 3).
@@ -486,6 +497,8 @@ mod tests {
     fn op_mstorew() {
         let mut host = DefaultHost::default();
         let mut process = Process::new_dummy_with_decoder_helpers_and_empty_stack();
+        let program = &MastForest::default();
+
         assert_eq!(0, process.chiplets.memory.num_accessed_words());
 
         // push the first word onto the stack and save it at address 0
@@ -514,18 +527,22 @@ mod tests {
         assert_eq!(word2, process.chiplets.memory.get_word(ContextId::root(), 4).unwrap().unwrap());
 
         // --- calling MSTOREW with address greater than u32::MAX leads to an error ----------------
-        process.execute_op(Operation::Push(Felt::new(u64::MAX / 2)), &mut host).unwrap();
-        assert!(process.execute_op(Operation::MStoreW, &mut host).is_err());
+        process
+            .execute_op(Operation::Push(Felt::new(u64::MAX / 2)), program, &mut host)
+            .unwrap();
+        assert!(process.execute_op(Operation::MStoreW, program, &mut host).is_err());
 
         // --- calling STOREW with a stack of minimum depth is ok ----------------
         let mut process = Process::new_dummy_with_decoder_helpers_and_empty_stack();
-        assert!(process.execute_op(Operation::MStoreW, &mut host).is_ok());
+        assert!(process.execute_op(Operation::MStoreW, program, &mut host).is_ok());
     }
 
     #[test]
     fn op_mstore() {
         let mut host = DefaultHost::default();
         let mut process = Process::new_dummy_with_decoder_helpers_and_empty_stack();
+        let program = &MastForest::default();
+
         assert_eq!(0, process.chiplets.memory.num_accessed_words());
 
         // push new element onto the stack and save it as first element of the word on
@@ -560,12 +577,14 @@ mod tests {
         assert_eq!(mem_2, process.chiplets.memory.get_word(ContextId::root(), 4).unwrap().unwrap());
 
         // --- calling MSTORE with address greater than u32::MAX leads to an error ----------------
-        process.execute_op(Operation::Push(Felt::new(u64::MAX / 2)), &mut host).unwrap();
-        assert!(process.execute_op(Operation::MStore, &mut host).is_err());
+        process
+            .execute_op(Operation::Push(Felt::new(u64::MAX / 2)), program, &mut host)
+            .unwrap();
+        assert!(process.execute_op(Operation::MStore, program, &mut host).is_err());
 
         // --- calling MSTORE with a stack of minimum depth is ok ----------------
         let mut process = Process::new_dummy_with_decoder_helpers_and_empty_stack();
-        assert!(process.execute_op(Operation::MStore, &mut host).is_ok());
+        assert!(process.execute_op(Operation::MStore, program, &mut host).is_ok());
     }
 
     #[test]
@@ -573,6 +592,7 @@ mod tests {
         let err_ctx = ErrorContext::default();
         let mut host = DefaultHost::default();
         let mut process = Process::new_dummy_with_decoder_helpers_and_empty_stack();
+        let program = &MastForest::default();
 
         // push words onto the advice stack
         let word1 = [30, 29, 28, 27];
@@ -592,14 +612,14 @@ mod tests {
         // - values 1 - 12 are at positions 0 - 11. Replacing the first 8 of these values with the
         //   values from the advice stack should result in 30 through 23 in stack order (with 23 at
         //   stack[0]).
-        process.execute_op(Operation::Push(Felt::new(101)), &mut host).unwrap();
-        process.execute_op(Operation::Push(4_u32.into()), &mut host).unwrap();
+        process.execute_op(Operation::Push(Felt::new(101)), program, &mut host).unwrap();
+        process.execute_op(Operation::Push(4_u32.into()), program, &mut host).unwrap();
         for i in 1..13 {
-            process.execute_op(Operation::Push(Felt::new(i)), &mut host).unwrap();
+            process.execute_op(Operation::Push(Felt::new(i)), program, &mut host).unwrap();
         }
 
         // execute the PIPE operation
-        process.execute_op(Operation::Pipe, &mut host).unwrap();
+        process.execute_op(Operation::Pipe, program, &mut host).unwrap();
 
         // check memory state contains the words from the advice stack
         assert_eq!(2, process.chiplets.memory.num_accessed_words());
@@ -641,13 +661,15 @@ mod tests {
     fn op_advpop() {
         // popping from the advice stack should push the value onto the operand stack
         let (mut process, mut host) = Process::new_dummy_with_advice_stack(&[3]);
-        process.execute_op(Operation::Push(ONE), &mut host).unwrap();
-        process.execute_op(Operation::AdvPop, &mut host).unwrap();
+        let program = &MastForest::default();
+
+        process.execute_op(Operation::Push(ONE), program, &mut host).unwrap();
+        process.execute_op(Operation::AdvPop, program, &mut host).unwrap();
         let expected = build_expected_stack(&[3, 1]);
         assert_eq!(expected, process.stack.trace_state());
 
         // popping again should result in an error because advice stack is empty
-        assert!(process.execute_op(Operation::AdvPop, &mut host).is_err());
+        assert!(process.execute_op(Operation::AdvPop, program, &mut host).is_err());
     }
 
     #[test]
@@ -655,12 +677,14 @@ mod tests {
         // popping a word from the advice stack should overwrite top 4 elements of the operand
         // stack
         let (mut process, mut host) = Process::new_dummy_with_advice_stack(&[3, 4, 5, 6]);
-        process.execute_op(Operation::Push(ONE), &mut host).unwrap();
-        process.execute_op(Operation::Pad, &mut host).unwrap();
-        process.execute_op(Operation::Pad, &mut host).unwrap();
-        process.execute_op(Operation::Pad, &mut host).unwrap();
-        process.execute_op(Operation::Pad, &mut host).unwrap();
-        process.execute_op(Operation::AdvPopW, &mut host).unwrap();
+        let program = &MastForest::default();
+
+        process.execute_op(Operation::Push(ONE), program, &mut host).unwrap();
+        process.execute_op(Operation::Pad, program, &mut host).unwrap();
+        process.execute_op(Operation::Pad, program, &mut host).unwrap();
+        process.execute_op(Operation::Pad, program, &mut host).unwrap();
+        process.execute_op(Operation::Pad, program, &mut host).unwrap();
+        process.execute_op(Operation::AdvPopW, program, &mut host).unwrap();
         let expected = build_expected_stack(&[6, 5, 4, 3, 1]);
         assert_eq!(expected, process.stack.trace_state());
     }
@@ -722,22 +746,26 @@ mod tests {
     where
         H: Host,
     {
+        let program = &MastForest::default();
+
         for &value in value.iter() {
-            process.execute_op(Operation::Push(value), host).unwrap();
+            process.execute_op(Operation::Push(value), program, host).unwrap();
         }
         let addr = Felt::new(addr);
-        process.execute_op(Operation::Push(addr), host).unwrap();
-        process.execute_op(Operation::MStoreW, host).unwrap();
+        process.execute_op(Operation::Push(addr), program, host).unwrap();
+        process.execute_op(Operation::MStoreW, program, host).unwrap();
     }
 
     fn store_element<H>(process: &mut Process, addr: u64, value: Felt, host: &mut H)
     where
         H: Host,
     {
-        process.execute_op(Operation::Push(value), host).unwrap();
+        let program = &MastForest::default();
+
+        process.execute_op(Operation::Push(value), program, host).unwrap();
         let addr = Felt::new(addr);
-        process.execute_op(Operation::Push(addr), host).unwrap();
-        process.execute_op(Operation::MStore, host).unwrap();
+        process.execute_op(Operation::Push(addr), program, host).unwrap();
+        process.execute_op(Operation::MStore, program, host).unwrap();
     }
 
     fn build_expected_stack(values: &[u64]) -> [Felt; 16] {

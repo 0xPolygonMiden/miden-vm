@@ -851,3 +851,29 @@ fn test_diagnostic_syscall_target_not_in_kernel() {
         "   `----"
     );
 }
+
+// Tests that the original error message is reported to the user together with
+// the error code in case of assert failure.
+#[test]
+fn test_assert_messages() {
+    let source = "
+        const.NONZERO = \"Value is not zero\"
+        begin
+            push.1
+            assertz.err=NONZERO
+        end";
+
+    let build_test = build_test_by_mode!(true, source, &[1, 2]);
+    let err = build_test.execute().expect_err("expected error");
+
+    assert_diagnostic_lines!(
+        err,
+        "Value is not zero",
+        regex!(r#",-\[test[\d]+:5:13\]"#),
+        "4 |             push.1",
+        "5 |             assertz.err=NONZERO",
+        "  :             ^^^^^^^^^^^^^^^^^^^",
+        "6 |         end",
+        "  `----"
+    );
+}

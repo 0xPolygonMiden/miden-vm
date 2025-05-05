@@ -1,8 +1,7 @@
 use vm_core::{Operation::*, sys_events::SystemEvent::Ext2Inv};
 
 use super::BasicBlockBuilder;
-use crate::AssemblyError;
-
+use crate::{AssemblyError, ZERO};
 /// Given a stack in the following initial configuration [b1, b0, a1, a0, ...] where a = (a0, a1)
 /// and b = (b0, b1) represent elements in the extension field of degree 2, this series of
 /// operations outputs the result c = (c1, c0) where c1 = a1 + b1 and c0 = a0 + b0.
@@ -62,9 +61,9 @@ pub fn ext2_div(block_builder: &mut BasicBlockBuilder) {
         Ext2Mul,        // [b1', b0', 0, 1, a1, a0, ...]
         MovUp2,         // [0, b1', b0', 1, a1, a0, ...]
         Eqz,            // [1, b1', b0', 1, a1, a0, ...]
-        Assert(0),      // [b1', b0', 1, a1, a0, ...]
+        Assert(ZERO),   // [b1', b0', 1, a1, a0, ...]
         MovUp2,         // [1, b1', b0', a1, a0, ...]
-        Assert(0),      // [b1', b0', a1, a0, ...]
+        Assert(ZERO),   // [b1', b0', a1, a0, ...]
         Ext2Mul,        // [b1', b0', a1*b1', a0*b0', ...]
         Drop,           // [b0', a1*b1', a0*b0'...]
         Drop            // [a1*b1', a0*b0'...]
@@ -122,9 +121,9 @@ pub fn ext2_inv(block_builder: &mut BasicBlockBuilder) -> Result<(), AssemblyErr
         Ext2Mul,        // [a1', a0', 0, 1, ...]
         MovUp2,         // [0, a1', a0', 1, ...]
         Eqz,            // [1, a1', a0', 1, ...]
-        Assert(0),      // [a1', a0', 1, ...]
+        Assert(ZERO),   // [a1', a0', 1, ...]
         MovUp2,         // [1, a1', a0', ...]
-        Assert(0),      // [a1', a0', ...]
+        Assert(ZERO),   // [a1', a0', ...]
     ];
     block_builder.push_ops(ops);
 
