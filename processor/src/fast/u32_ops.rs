@@ -68,7 +68,8 @@ impl FastProcessor {
 
     /// Analogous to `Process::op_u32sub`.
     pub fn op_u32sub(&mut self, op_idx: usize) -> Result<(), ExecutionError> {
-        self.u32_pop2_applyfn_push_results(op_idx as u32, |first_old, second_old| {
+        let op_idx = Felt::from(op_idx as u32);
+        self.u32_pop2_applyfn_push_results(op_idx, |first_old, second_old| {
             let result = second_old.wrapping_sub(first_old);
             let first_new = result >> 63;
             let second_new = result & u32::MAX as u64;
@@ -129,7 +130,7 @@ impl FastProcessor {
     /// Analogous to `Process::op_u32div`.
     pub fn op_u32div(&mut self, op_idx: usize) -> Result<(), ExecutionError> {
         let clk = self.clk + op_idx;
-        self.u32_pop2_applyfn_push_results(0, |first, second| {
+        self.u32_pop2_applyfn_push_results(ZERO, |first, second| {
             if first == 0 {
                 return Err(ExecutionError::divide_by_zero(clk, &ErrorContext::default()));
             }
@@ -154,7 +155,7 @@ impl FastProcessor {
     }
 
     /// Analogous to `Process::op_u32assert2`.
-    pub fn op_u32assert2(&mut self, err_code: u32) -> Result<(), ExecutionError> {
+    pub fn op_u32assert2(&mut self, err_code: Felt) -> Result<(), ExecutionError> {
         self.u32_pop2_applyfn_push_results(err_code, |first, second| Ok((first, second)))
     }
 
@@ -241,7 +242,7 @@ impl FastProcessor {
     #[inline(always)]
     fn u32_pop2_applyfn_push_results(
         &mut self,
-        err_code: u32,
+        err_code: Felt,
         f: impl FnOnce(u64, u64) -> Result<(u64, u64), ExecutionError>,
     ) -> Result<(), ExecutionError> {
         let first_old = self.stack_get(0).as_int();
@@ -251,14 +252,14 @@ impl FastProcessor {
         if first_old > u32::MAX as u64 {
             return Err(ExecutionError::not_u32_value(
                 Felt::new(first_old),
-                Felt::from(err_code),
+                err_code,
                 &ErrorContext::default(),
             ));
         }
         if second_old > u32::MAX as u64 {
             return Err(ExecutionError::not_u32_value(
                 Felt::new(second_old),
-                Felt::from(err_code),
+                err_code,
                 &ErrorContext::default(),
             ));
         }

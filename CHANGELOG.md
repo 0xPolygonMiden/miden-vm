@@ -7,9 +7,11 @@
 - Add kernel procedures digests as public inputs to the recursive verifier (#1724).
 - add optional `Package::account_component_metadata_bytes` to store serialized `AccountComponentMetadata` (#1731).
 - Add `executable` feature to the `make test` and `make test-build` Make commands (#1762).
+- Allow asserts intruction to take error messages as strings instead of error codes as Felts (#1771).
 
 #### Changes
 - Replace deprecated #[clap(...)] with #[command(...)] and #[arg(.…)] (#1794)
+- Add pull request template to guide contributors (#1795)
 - [BREAKING] `ExecutionOptions::with_debugging()` now takes a boolean parameter (#1761)
 - Use `MemoryAddress(u32)` for `VmState` memory addresses instead of plain `u64` (#1758).
 
@@ -59,6 +61,7 @@
 - `ProcessState::get_stack_state()` now only returns the state of the active context (#1753)
 - Change `MastForestBuilder::set_after_exit()` for `append_after_exit()` (#1775)
 - Improve processor error diagnostics (#1765)
+- Fix source spans associated with assert* and mtree_verify instructions (#1789)
 
 ## 0.12.0 (2025-01-22)
 

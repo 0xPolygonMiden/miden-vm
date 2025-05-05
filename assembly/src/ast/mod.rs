@@ -27,7 +27,7 @@ pub use self::{
     docstring::DocString,
     form::Form,
     ident::{CaseKindError, Ident, IdentError},
-    immediate::{ErrorCode, ImmFelt, ImmU8, ImmU16, ImmU32, Immediate},
+    immediate::{ImmFelt, ImmU8, ImmU16, ImmU32, Immediate},
     imports::Import,
     instruction::{DebugOptions, Instruction, SystemEventNode, advice::SignatureKind},
     invocation_target::{InvocationTarget, Invoke, InvokeKind},

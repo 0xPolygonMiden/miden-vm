@@ -1,3 +1,4 @@
+use alloc::sync::Arc;
 use core::fmt;
 
 use crate::{Felt, SourceSpan, Span, Spanned, ast::Ident};
@@ -14,8 +15,8 @@ pub type ImmU32 = Immediate<u32>;
 /// A field element immediate
 pub type ImmFelt = Immediate<Felt>;
 
-/// Represents the 32-bit immediate used for assertion error codes
-pub type ErrorCode = Immediate<u32>;
+/// The type of error messages used in MASM assertions.
+pub type ErrorMsg = Immediate<Arc<str>>;
 
 /// Represents an instruction immediate, e.g. `add.1` or `add.CONST`
 pub enum Immediate<T> {
@@ -68,6 +69,15 @@ impl<T: Copy> Immediate<T> {
     pub fn expect_spanned_value(&self) -> Span<T> {
         match self {
             Self::Value(value) => *value,
+            Self::Constant(name) => panic!("tried to unwrap unresolved constant: '{name}'"),
+        }
+    }
+}
+
+impl Immediate<Arc<str>> {
+    pub fn expect_string(&self) -> Arc<str> {
+        match self {
+            Self::Value(value) => value.clone().into_inner(),
             Self::Constant(name) => panic!("tried to unwrap unresolved constant: '{name}'"),
         }
     }

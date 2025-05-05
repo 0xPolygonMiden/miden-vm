@@ -1,7 +1,7 @@
-use alloc::{borrow::Borrow, string::ToString, vec::Vec};
+use alloc::{borrow::Borrow, string::ToString, sync::Arc, vec::Vec};
 
 use vm_core::{
-    AssemblyOp, Decorator, Operation,
+    AssemblyOp, Decorator, Felt, Operation,
     mast::{DecoratorId, MastNodeId},
     sys_events::SystemEvent,
 };
@@ -239,4 +239,12 @@ pub enum BasicBlockOrDecorators {
     BasicBlock(MastNodeId),
     Decorators(Vec<DecoratorId>),
     Nothing,
+}
+
+impl BasicBlockBuilder<'_> {
+    /// Registers an error message in the MAST Forest and returns the
+    /// corresponding error code as a Felt.
+    pub fn register_error(&mut self, msg: Arc<str>) -> Felt {
+        self.mast_forest_builder.register_error(msg)
+    }
 }

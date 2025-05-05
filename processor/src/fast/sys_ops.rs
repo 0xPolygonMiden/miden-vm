@@ -1,8 +1,9 @@
-use vm_core::{ZERO, sys_events::SystemEvent};
+use vm_core::{Felt, ZERO, mast::MastForest, sys_events::SystemEvent};
 
 use super::{ExecutionError, FastProcessor, ONE};
 use crate::{
-    ErrorContext, FMP_MIN, Host, ProcessState,
+    FMP_MIN, Host, ProcessState,
+    errors::ErrorContext,
     operations::sys_ops::sys_event_handlers::{
         HDWORD_TO_MAP_WITH_DOMAIN_DOMAIN_OFFSET, copy_map_value_to_adv_stack,
         copy_merkle_node_to_adv_stack, insert_hdword_into_adv_map, insert_hperm_into_adv_map,
@@ -18,18 +19,21 @@ impl FastProcessor {
     /// Analogous to `Process::op_assert`.
     pub fn op_assert(
         &mut self,
-        err_code: u32,
+        err_code: Felt,
         op_idx: usize,
         host: &mut impl Host,
+        program: &MastForest,
     ) -> Result<(), ExecutionError> {
         if self.stack_get(0) != ONE {
-            return Err(host.on_assert_failed(
-                ProcessState::new_fast(self, op_idx),
+            host.on_assert_failed(ProcessState::new_fast(self, op_idx), err_code);
+            let err_msg = program.resolve_error_message(err_code);
+            return Err(ExecutionError::failed_assertion(
+                self.clk,
                 err_code,
+                err_msg,
                 &ErrorContext::default(),
             ));
         }
-
         self.decrement_stack_size();
         Ok(())
     }

@@ -16,10 +16,10 @@ use executor::DebugExecutor;
 use crate::cli::utils::{get_masm_program, get_masp_program};
 
 #[derive(Debug, Clone, Parser)]
-#[clap(about = "Debug a miden program")]
+#[command(about = "Debug a miden program")]
 pub struct DebugCmd {
     /// Path to a .masm assembly file or a .masp package file
-    #[clap(value_parser)]
+    #[arg(value_parser)]
     pub program_file: PathBuf,
 
     /// Path to input file

@@ -8,7 +8,7 @@ use clap::Parser;
 use stdlib::StdLibrary;
 
 #[derive(Debug, Clone, Parser)]
-#[clap(
+#[command(
     name = "Compile Library",
     about = "Bundles .masm files into a single .masl library with access to the stdlib."
 )]
@@ -17,7 +17,7 @@ pub struct BundleCmd {
     #[arg(short = 'r', long = "release")]
     release: bool,
     /// Path to a directory containing the `.masm` files which are part of the library.
-    #[clap(value_parser)]
+    #[arg(value_parser)]
     dir: PathBuf,
     /// Defines the top-level namespace, e.g. `mylib`, otherwise the directory name is used. For a
     /// kernel library the namespace defaults to `kernel`.

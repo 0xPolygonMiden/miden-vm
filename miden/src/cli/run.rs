@@ -16,10 +16,10 @@ use super::{
 };
 
 #[derive(Debug, Clone, Parser)]
-#[clap(about = "Run a miden program")]
+#[command(about = "Run a miden program")]
 pub struct RunCmd {
     /// Path to a .masm assembly file or a .masp package file
-    #[clap(value_parser)]
+    #[arg(value_parser)]
     program_file: PathBuf,
 
     /// Number of cycles the program is expected to consume

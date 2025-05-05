@@ -1,8 +1,8 @@
 # Miden Virtual Machine
 
-[![LICENSE](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/0xPolygonMiden/miden-vm/blob/main/LICENSE)
-[![Test](https://github.com/0xPolygonMiden/miden-vm/actions/workflows/test.yml/badge.svg)](https://github.com/0xPolygonMiden/miden-vm/actions/workflows/test.yml)
-[![Build](https://github.com/0xPolygonMiden/miden-vm/actions/workflows/build.yml/badge.svg)](https://github.com/0xPolygonMiden/miden-vm/actions/workflows/build.yml)
+[![LICENSE](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/0xMiden/miden-vm/blob/main/LICENSE)
+[![Test](https://github.com/0xMiden/miden-vm/actions/workflows/test.yml/badge.svg)](https://github.com/0xMiden/miden-vm/actions/workflows/test.yml)
+[![Build](https://github.com/0xMiden/miden-vm/actions/workflows/build.yml/badge.svg)](https://github.com/0xMiden/miden-vm/actions/workflows/build.yml)
 [![RUST_VERSION](https://img.shields.io/badge/rustc-1.85+-lightgray.svg)](https://www.rust-lang.org/tools/install)
 [![Crates.io](https://img.shields.io/crates/v/miden-vm)](https://crates.io/crates/miden-vm)
 
@@ -16,7 +16,7 @@ A STARK-based virtual machine.
 
 Miden VM is a zero-knowledge virtual machine written in Rust. For any program executed on Miden VM, a STARK-based proof of execution is automatically generated. This proof can then be used by anyone to verify that the program was executed correctly without the need for re-executing the program or even knowing the contents of the program.
 
-- If you'd like to learn more about how Miden VM works, check out the [documentation](https://0xpolygonmiden.github.io/miden-vm/).
+- If you'd like to learn more about how Miden VM works, check out the [documentation](https://0xMiden.github.io/miden-vm/).
 - If you'd like to start using Miden VM, check out the [miden](miden) crate.
 - If you'd like to learn more about STARKs, check out the [references](#references) section.
 
@@ -24,7 +24,7 @@ Miden VM is a zero-knowledge virtual machine written in Rust. For any program ex
 
 Miden VM is currently on release v0.14. In this release, most of the core features of the VM have been stabilized, and most of the STARK proof generation has been implemented. While we expect to keep making changes to the VM internals, the external interfaces should remain relatively stable, and we will do our best to minimize the amount of breaking changes going forward.
 
-The next version of the VM is being developed in the [next](https://github.com/0xPolygonMiden/miden-vm/tree/next) branch. There is also a documentation for the latest features and changes in the next branch [documentation next branch](https://0xpolygonmiden.github.io/miden-vm/intro/main.html).
+The next version of the VM is being developed in the [next](https://github.com/0xMiden/miden-vm/tree/next) branch. There is also a documentation for the latest features and changes in the next branch [documentation next branch](https://0xMiden.github.io/miden-vm/intro/main.html).
 
 #### Feature highlights
 

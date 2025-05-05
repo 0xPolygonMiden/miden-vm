@@ -6,7 +6,7 @@ use clap::Parser;
 use crate::repl::start_repl;
 
 #[derive(Debug, Clone, Parser)]
-#[clap(about = "Initiates the Miden REPL tool")]
+#[command(about = "Initiates the Miden REPL tool")]
 pub struct ReplCmd {
     /// Paths to .masl library files
     #[arg(short = 'l', long = "libraries", value_parser)]

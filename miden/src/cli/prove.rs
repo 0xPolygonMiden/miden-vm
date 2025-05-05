@@ -15,10 +15,10 @@ use super::{
 };
 
 #[derive(Debug, Clone, Parser)]
-#[clap(about = "Prove a miden program")]
+#[command(about = "Prove a miden program")]
 pub struct ProveCmd {
     /// Path to a .masm assembly file or a .masp package file
-    #[clap(value_parser)]
+    #[arg(value_parser)]
     program_file: PathBuf,
 
     /// Number of cycles the program is expected to consume

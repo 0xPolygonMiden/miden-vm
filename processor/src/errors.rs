@@ -1,4 +1,4 @@
-use alloc::{boxed::Box, string::String, sync::Arc, vec::Vec};
+use alloc::{boxed::Box, sync::Arc, vec::Vec};
 use core::error::Error;
 
 use miden_air::RowIndex;
@@ -94,10 +94,10 @@ pub enum ExecutionError {
     },
     #[error("failed to execute Ext2Intt operation: {0}")]
     Ext2InttError(Ext2InttError),
-    #[error("assertion failed at clock cycle {clk} with error code {err_code}{}",
+    #[error("assertion failed at clock cycle {clk} with error {}",
       match err_msg {
-        Some(msg) => format!(": {msg}"),
-        None => "".into()
+        Some(msg) => format!("message: {msg}"),
+        None => format!("code: {err_code}"),
       }
     )]
     #[diagnostic()]
@@ -107,8 +107,8 @@ pub enum ExecutionError {
         #[source_code]
         source_file: Option<Arc<SourceFile>>,
         clk: RowIndex,
-        err_code: u32,
-        err_msg: Option<String>,
+        err_code: Felt,
+        err_msg: Option<Arc<str>>,
     },
     #[error("failed to execute the program for internal reason: {0}")]
     FailedToExecuteProgram(&'static str),
@@ -193,9 +193,13 @@ pub enum ExecutionError {
         source_file: Option<Arc<SourceFile>>,
         root_digest: Digest,
     },
-    #[error("merkle path verification failed for value {value} at index {index} in the Merkle tree with root {root} (error code: {err_code})", 
+    #[error("merkle path verification failed for value {value} at index {index} in the Merkle tree with root {root} (error {err})",
       value = to_hex(Felt::elements_as_bytes(value)),
       root = to_hex(root.as_bytes()),
+      err = match err_msg {
+        Some(msg) => format!("message: {msg}"),
+        None => format!("code: {err_code}"),
+      }
     )]
     MerklePathVerificationFailed {
         #[label]
@@ -205,7 +209,8 @@ pub enum ExecutionError {
         value: Word,
         index: Felt,
         root: Digest,
-        err_code: u32,
+        err_code: Felt,
+        err_msg: Option<Arc<str>>,
     },
     #[error("failed to lookup value in Merkle store")]
     MerkleStoreLookupFailed {
@@ -357,8 +362,8 @@ impl ExecutionError {
 
     pub fn failed_assertion(
         clk: RowIndex,
-        err_code: u32,
-        err_msg: Option<String>,
+        err_code: Felt,
+        err_msg: Option<Arc<str>>,
         err_ctx: &ErrorContext<'_, impl MastNodeExt>,
     ) -> Self {
         let (label, source_file) = err_ctx.label_and_source_file();
@@ -422,7 +427,8 @@ impl ExecutionError {
         value: Word,
         index: Felt,
         root: Digest,
-        err_code: u32,
+        err_code: Felt,
+        err_msg: Option<Arc<str>>,
         err_ctx: &ErrorContext<'_, impl MastNodeExt>,
     ) -> Self {
         let (label, source_file) = err_ctx.label_and_source_file();
@@ -434,6 +440,7 @@ impl ExecutionError {
             index,
             root,
             err_code,
+            err_msg,
         }
     }
 

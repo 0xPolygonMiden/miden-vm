@@ -8,6 +8,27 @@ pub use miette::{
 pub use tracing;
 pub use vm_core::debuginfo::*;
 
+#[macro_export]
+macro_rules! report {
+    ($($key:ident = $value:expr,)* $fmt:literal $($arg:tt)*) => {
+        $crate::diagnostics::Report::from(
+            $crate::diagnostic!($($key = $value,)* $fmt $($arg)*)
+        )
+    };
+}
+
+#[macro_export]
+macro_rules! diagnostic {
+    ($fmt:literal $($arg:tt)*) => {{
+        $crate::diagnostics::miette::MietteDiagnostic::new(format!($fmt $($arg)*))
+    }};
+    ($($key:ident = $value:expr,)+ $fmt:literal $($arg:tt)*) => {{
+        let mut diag = $crate::diagnostics::miette::MietteDiagnostic::new(format!($fmt $($arg)*));
+        $(diag.$key = Some($value.into());)*
+        diag
+    }};
+}
+
 // LABEL
 // ================================================================================================
 
