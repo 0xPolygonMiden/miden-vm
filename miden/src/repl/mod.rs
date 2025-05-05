@@ -22,7 +22,7 @@ use crate::utils::print_mem_address;
 //
 // Miden Instructions
 // All Miden instructions mentioned in the
-// [Miden Assembly section](https://0xmiden.github.io/miden-vm/user_docs/assembly/main.html)
+// [Miden Assembly section](https://0xMiden.github.io/miden-vm/user_docs/assembly/main.html)
 // are valid.
 // One can either input instructions one by one or multiple instructions in one input.
 // For example, the below two commands will result in the same output.
