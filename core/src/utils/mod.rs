@@ -122,7 +122,7 @@ fn debug_assert_is_checked() {
     // downstream.
     //
     // for reference, check
-    // https://github.com/0xPolygonMiden/miden-vm/issues/433
+    // https://github.com/0xMiden/miden-vm/issues/433
     debug_assert!(false);
 }
 
