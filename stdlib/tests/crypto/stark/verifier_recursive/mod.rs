@@ -106,37 +106,44 @@ pub fn generate_advice_inputs(
 
     // read the main and auxiliary segments' OOD frames and add them to advice tape
     let ood_trace_frame = channel.read_ood_trace_frame();
+    let ood_constraint_evaluations = channel.read_ood_constraint_evaluations();
+    let ood_trace_hash = ood_trace_frame.hash::<Rpo256>();
+    let ood_constraints_hash = ood_constraint_evaluations.hash::<Rpo256>();
+
     let ood_main_trace_frame = ood_trace_frame.main_frame();
     let ood_aux_trace_frame = ood_trace_frame.aux_frame();
 
     // the expected layout is:
-    // [main_current_elements, aux_current_elements, main_next_elements, aux_next_elements]
-    let mut main_and_aux_frame_states = ood_main_trace_frame.current().to_vec();
-    main_and_aux_frame_states.extend_from_slice(
+    // [main_current, aux_current, constraint_current, main_next, aux_next, constraint_next]
+    let mut ood_current = ood_main_trace_frame.current().to_vec();
+    ood_current.extend_from_slice(
         ood_aux_trace_frame
             .as_ref()
             .expect("execution trace should have an auxiliary segment")
             .current(),
     );
-    main_and_aux_frame_states.extend_from_slice(ood_main_trace_frame.next());
-    main_and_aux_frame_states.extend_from_slice(
+    ood_current.extend_from_slice(ood_constraint_evaluations.current_row());
+
+    let mut ood_next = ood_main_trace_frame.next().to_vec();
+    ood_next.extend_from_slice(
         ood_aux_trace_frame
             .as_ref()
             .expect("execution trace should have an auxiliary segment")
             .next(),
     );
+    ood_next.extend_from_slice(ood_constraint_evaluations.next_row());
 
     // placeholder for the alpha_deep
     let alpha_deep_index = advice_stack.len();
     advice_stack.extend_from_slice(&[0, 0]);
 
-    advice_stack.extend_from_slice(&to_int_vec(&main_and_aux_frame_states));
-    public_coin.reseed(Rpo256::hash_elements(&main_and_aux_frame_states));
+    // add OOD evaluations to advice stack
+    advice_stack.extend_from_slice(&to_int_vec(&ood_current));
+    advice_stack.extend_from_slice(&to_int_vec(&ood_next));
 
-    // read OOD evaluations of composition polynomial columns
-    let ood_constraint_evaluations = channel.read_ood_constraint_evaluations();
-    advice_stack.extend_from_slice(&to_int_vec(&ood_constraint_evaluations));
-    public_coin.reseed(Rpo256::hash_elements(&ood_constraint_evaluations));
+    // reseed with the digests of the OOD evaluations
+    public_coin.reseed(ood_trace_hash);
+    public_coin.reseed(ood_constraints_hash);
 
     // 5 ----- FRI  -------------------------------------------------------------------------------
 
@@ -154,7 +161,13 @@ pub fn generate_advice_inputs(
         .get_deep_composition_coefficients::<QuadExt, RpoRandomCoin>(&mut public_coin)
         .map_err(|_| VerifierError::RandomCoinError)?;
 
-    let alpha_deep = deep_coefficients.trace[1];
+    // since we are using Horner batching, the randomness will be located in the penultimate
+    // position, the last position holds the constant `1`
+    assert_eq!(
+        deep_coefficients.constraints[deep_coefficients.constraints.len() - 1],
+        QuadExt::ONE
+    );
+    let alpha_deep = deep_coefficients.constraints[deep_coefficients.constraints.len() - 2];
     advice_stack[alpha_deep_index] = alpha_deep.base_element(0).as_int();
     advice_stack[alpha_deep_index + 1] = alpha_deep.base_element(1).as_int();
 

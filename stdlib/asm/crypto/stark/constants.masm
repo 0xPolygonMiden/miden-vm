@@ -46,20 +46,19 @@ const.PUBLIC_INPUTS_ADDRESS_PTR=4294800000
 const.AUX_RAND_ELEM_PTR=4294899968
 
 # OOD Frames
-# (73 + 8) * 2 * 2 Felt for current and next trace rows and 8 * 2 Felt for constraint composition
+# (80 + 8) * 2 * 2 Felt for current and next trace rows and 8 * 2 Felt for constraint composition
 # polynomials. Memory slots:
-# OOD_TRACE_CURRENT_PTR: (73 + 8) * 2 = 162
-# OOD_TRACE_NEXT_PTR: (73 + 8) * 2 = 162
+# OOD_TRACE_CURRENT_PTR: (80 + 8) * 2 = 176
+# OOD_TRACE_NEXT_PTR: (80 + 8) * 2 = 176
 # OOD_CONSTRAINT_EVALS_PTR: 8 * 2 = 16
 const.OOD_TRACE_CURRENT_PTR=4294900000
-const.OOD_TRACE_NEXT_PTR=4294900162
-const.OOD_CONSTRAINT_EVALS_PTR=4294900324
-const.AUXILIARY_ACE_INPUTS_PTR=4294900340
+const.OOD_TRACE_NEXT_PTR=4294900176
+const.OOD_CONSTRAINT_EVALS_PTR=4294900352
+const.AUXILIARY_ACE_INPUTS_PTR=4294900368
 
 # Current trace row
-# 73 Felt for main portion of trace, 8 * 2 Felt for auxiliary portion of trace and 8 * 2 Felt for
-# constraint composition polynomials. Since we store these with the padding to make each of the
-# three portions a multiple of 8, the number of slots required is 72 + 16 + 16 = 104
+# 80 Felt for main portion of trace, 8 * 2 Felt for auxiliary portion of trace and 8 * 2 Felt for
+# constraint composition polynomials, i.e., the number of slots required is 80 + 16 + 16 = 112
 const.CURRENT_TRACE_ROW_PTR=4294900400
 
 # Address to the randomness used in computing the constraint composition polynomial
@@ -131,6 +130,7 @@ const.TMP4=4294913268
 
 # RPO state capacity portion initialization words. In theory, we need a variant for each possible 
 # remainder modulo 8 but in practice we only need the following:
+# TODO(Al): Remove because we will not need after padding trace
 const.ZERO_ZERO_ZERO_FOUR_PTR=4294913400
 const.ZERO_ZERO_ZERO_FIVE_PTR=4294913404
 const.ZERO_ZERO_ZERO_SIX_PTR=4294913408
@@ -142,24 +142,15 @@ const.ZERO_ZERO_ZERO_SEVEN_PTR=4294913412
 # 4 in the case of `horner_eval_ext`. For example if we are evaluating a polynomial with
 # coefficients over base field and the last batch of coefficients processed by `horner_eval_base`
 # contains only 7 instead of 8 coefficients, then we would have to multiply the accumulator
-# by the first power of alpha.
-# We also need alpha^{77} and alpha^{85} which are used in the final computation used to recover
-# the evaluation of the original polynomial from the evaluation of its reversed version at alpha^{-1}.
-# Note that 77 = 71 + 7 - 1 and 85 = 71 + 7 + 8 - 1.
-const.ALPHA_INV=4294903600
-const.ALPHA_POWER_1_PTR=4294903400
-const.ALPHA_POWER_2_PTR=4294903404
-const.ALPHA_POWER_3_PTR=4294903408
-const.ALPHA_POWER_4_PTR=4294903412
-const.ALPHA_POWER_5_PTR=4294903416
-const.ALPHA_POWER_6_PTR=4294903420
-const.ALPHA_POWER_7_PTR=4294903424
-const.ALPHA_POWER_80_PTR=4294903440
-const.ALPHA_POWER_80_0_PTR=4294903440
-const.ALPHA_POWER_80_1_PTR=4294903441
-const.ALPHA_POWER_88_PTR=4294903444
-const.ALPHA_POWER_88_0_PTR=4294903444
-const.ALPHA_POWER_88_1_PTR=4294903445
+# by the first power of alpha^{-1}.
+const.ALPHA=4294903600
+const.ALPHA_INV_POWER_1_PTR=4294903400
+const.ALPHA_INV_POWER_2_PTR=4294903404
+const.ALPHA_INV_POWER_3_PTR=4294903408
+const.ALPHA_INV_POWER_4_PTR=4294903412
+const.ALPHA_INV_POWER_5_PTR=4294903416
+const.ALPHA_INV_POWER_6_PTR=4294903420
+const.ALPHA_INV_POWER_7_PTR=4294903424
 const.OOD_HORNER_EVALS_PTR=4294903448
 
 
@@ -201,20 +192,14 @@ const.OOD_HORNER_EVALS_PTR=4294903448
 #   | ZERO_ZERO_ZERO_FIVE_PTR                  |       4294913404        |
 #   | ZERO_ZERO_ZERO_SIX_PTR                   |       4294913408        |
 #   | ZERO_ZERO_ZERO_SEVEN_PTR                 |       4294913412        |
-#   | ALPHA_INV                                |       4294903600        |
-#   | ALPHA_POWER_1_PTR                        |       4294903400        |
-#   | ALPHA_POWER_2_PTR                        |       4294903404        |
-#   | ALPHA_POWER_3_PTR                        |       4294903408        |
-#   | ALPHA_POWER_4_PTR                        |       4294903412        |
-#   | ALPHA_POWER_5_PTR                        |       4294903416        |
-#   | ALPHA_POWER_6_PTR                        |       4294903420        |
-#   | ALPHA_POWER_7_PTR                        |       4294903424        |
-#   | ALPHA_POWER_80_PTR                       |       4294903440        |
-#   | ALPHA_POWER_80_0_PTR                     |       4294903440        |
-#   | ALPHA_POWER_80_1_PTR                     |       4294903441        |
-#   | ALPHA_POWER_88_PTR                       |       4294903444        |
-#   | ALPHA_POWER_88_0_PTR                     |       4294903444        |
-#   | ALPHA_POWER_88_1_PTR                     |       4294903445        |
+#   | ALPHA                                    |       4294903600        |
+#   | ALPHA_INV_POWER_1_PTR                    |       4294903400        |
+#   | ALPHA_INV_POWER_2_PTR                    |       4294903404        |
+#   | ALPHA_INV_POWER_3_PTR                    |       4294903408        |
+#   | ALPHA_INV_POWER_4_PTR                    |       4294903412        |
+#   | ALPHA_INV_POWER_5_PTR                    |       4294903416        |
+#   | ALPHA_INV_POWER_6_PTR                    |       4294903420        |
+#   | ALPHA_INV_POWER_7_PTR                    |       4294903424        |
 #   | OOD_HORNER_EVALS_PTR                     |       4294903448        |
 #   +------------------------------------------+-------------------------+
 
@@ -311,60 +296,36 @@ export.zero_zero_zero_seven_word_ptr
     push.ZERO_ZERO_ZERO_SEVEN_PTR
 end
 
-export.deep_rand_alpha_inv_ptr
-    push.ALPHA_INV
+export.deep_rand_alpha_ptr
+    push.ALPHA
 end
 
-export.deep_rand_alpha_1_ptr
-    push.ALPHA_POWER_1_PTR
+export.deep_rand_alpha_inv_1_ptr
+    push.ALPHA_INV_POWER_1_PTR
 end
 
-export.deep_rand_alpha_2_ptr
-    push.ALPHA_POWER_2_PTR
+export.deep_rand_alpha_inv_2_ptr
+    push.ALPHA_INV_POWER_2_PTR
 end
 
-export.deep_rand_alpha_3_ptr
-    push.ALPHA_POWER_3_PTR
+export.deep_rand_alpha_inv_3_ptr
+    push.ALPHA_INV_POWER_3_PTR
 end
 
-export.deep_rand_alpha_4_ptr
-    push.ALPHA_POWER_4_PTR
+export.deep_rand_alpha_inv_4_ptr
+    push.ALPHA_INV_POWER_4_PTR
 end
 
-export.deep_rand_alpha_5_ptr
-    push.ALPHA_POWER_5_PTR
+export.deep_rand_alpha_inv_5_ptr
+    push.ALPHA_INV_POWER_5_PTR
 end
 
-export.deep_rand_alpha_6_ptr
-    push.ALPHA_POWER_6_PTR
+export.deep_rand_alpha_inv_6_ptr
+    push.ALPHA_INV_POWER_6_PTR
 end
 
-export.deep_rand_alpha_7_ptr
-    push.ALPHA_POWER_7_PTR
-end
-
-export.deep_rand_alpha_80_ptr
-    push.ALPHA_POWER_80_PTR
-end
-
-export.deep_rand_alpha_80_0_ptr
-    push.ALPHA_POWER_80_0_PTR
-end
-
-export.deep_rand_alpha_80_1_ptr
-    push.ALPHA_POWER_80_1_PTR
-end
-
-export.deep_rand_alpha_88_ptr
-    push.ALPHA_POWER_88_PTR
-end
-
-export.deep_rand_alpha_88_0_ptr
-    push.ALPHA_POWER_88_0_PTR
-end
-
-export.deep_rand_alpha_88_1_ptr
-    push.ALPHA_POWER_88_1_PTR
+export.deep_rand_alpha_inv_7_ptr
+    push.ALPHA_INV_POWER_7_PTR
 end
 
 export.ood_horner_evaluations_ptr

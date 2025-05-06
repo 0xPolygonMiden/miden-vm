@@ -1,5 +1,6 @@
 use core::ops::Range;
 
+use chiplets::hasher::RATE_LEN;
 use vm_core::utils::range;
 
 pub mod chiplets;
@@ -55,6 +56,8 @@ pub const CHIPLETS_WIDTH: usize = 20;
 pub const CHIPLETS_RANGE: Range<usize> = range(CHIPLETS_OFFSET, CHIPLETS_WIDTH);
 
 pub const TRACE_WIDTH: usize = CHIPLETS_OFFSET + CHIPLETS_WIDTH;
+
+pub const PADDED_TRACE_WIDTH: usize = TRACE_WIDTH.next_multiple_of(RATE_LEN);
 
 // AUXILIARY COLUMNS LAYOUT
 // ------------------------------------------------------------------------------------------------
