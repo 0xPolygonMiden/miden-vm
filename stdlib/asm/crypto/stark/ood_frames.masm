@@ -32,12 +32,7 @@ export.load_and_horner_eval_ood_frames
     adv_push.2
     # => [alpha_1, alpha_0, ...]
 
-    ## 2) Compute the adjustment factors needed in order to adjust the Horner evaluation accumulator
-    dup.1 dup.1
-    exec.compute_adjustment_powers_deep_challenge_horner_eval
-    # => [alpha_1, alpha_0, ...]
-
-    ## 3) Save the random challenge
+    ## 2) Save the random challenge
     dup.1 dup.1
     exec.constants::deep_rand_alpha_ptr mem_storew
     # [Y, ...]
@@ -162,91 +157,5 @@ export.load_and_horner_eval_ood_frames
     # => [acc0, ...]
     neg
     exec.constants::ood_horner_evaluations_ptr add.2 mem_store
-    # => [...]
-end
-
-#! Computes the adjustment factors needed during Horner evaluation and saves them to memory.
-#!
-#! As `horner_eval_base` and `horner_eval_ext` operate on batches of 8 and 4 coefficients,
-#! respectively, and when the number of coefficients of the polynomial we are evaluating
-#! is not divisible by the size of the batch, we need to adjust the result to account
-#! for this. The adjustment is performed by multiplying the Horner accumulator by
-#! alpha^i where i depends on the number of coefficients missing in the last processed batch.
-#! For example, if we are evaluating using `horner_eval_base`, and the last batch of coefficients
-#! has only 7 coefficients, we would need then to multiply by alpha^1 to adjust the result.
-#! Note that since we are evaluating throughout at alpha^{-1}, the adjustment factors are
-#! alpha^i, if on the other hand we were evaluating at alpha then the factors would be alpha^{-i}.
-#!
-#! Input: [alpha_1, alpha_0, ...]
-#! Output: [...]  
-#!
-#! Cycles: 146
-proc.compute_adjustment_powers_deep_challenge_horner_eval
-
-    # 1) First compute powers from 1 to 7
-    
-    ## a) First power
-    ext2inv
-    dup.1 dup.1
-    exec.constants::deep_rand_alpha_inv_1_ptr
-    mem_storew
-    # => [alpha_1, alpha_0, alpha_1, alpha_0, ...]
-
-    ## b) Second power
-    dup.1 dup.1
-    ext2mul
-    dup.1 dup.1
-    exec.constants::deep_rand_alpha_inv_2_ptr
-    mem_storew
-    drop drop
-    # => [alpha2_1, alpha2_0, alpha_1, alpha_0, ...]
-
-    ## c) Third power
-    dup.3 dup.3
-    ext2mul
-    dup.1 dup.1
-    exec.constants::deep_rand_alpha_inv_3_ptr
-    mem_storew
-    drop drop
-    # => [alpha3_1, alpha3_0, alpha_1, alpha_0, ...]
-
-    ## d) Fourth power
-    dup.3 dup.3
-    ext2mul
-    dup.1 dup.1
-    exec.constants::deep_rand_alpha_inv_4_ptr
-    mem_storew
-    drop drop
-    # => [alpha4_1, alpha4_0, alpha_1, alpha_0, ...]
-
-    ## e) Fifth power
-    dup.3 dup.3
-    ext2mul
-    dup.1 dup.1
-    exec.constants::deep_rand_alpha_inv_5_ptr
-    mem_storew
-    drop drop
-    # => [alpha5_1, alpha5_0, alpha_1, alpha_0, ...]
-
-    ## f) Sixth power
-    dup.3 dup.3
-    ext2mul
-    dup.1 dup.1
-    exec.constants::deep_rand_alpha_inv_6_ptr
-    mem_storew
-    drop drop
-    # => [alpha6_1, alpha6_0, alpha_1, alpha_0, ...]
-
-    ## g) Seventh power
-    dup.3 dup.3
-    ext2mul
-    dup.1 dup.1
-    exec.constants::deep_rand_alpha_inv_7_ptr
-    mem_storew
-    drop drop
-    # => [alpha7_1, alpha7_0, alpha_1, alpha_0, ...]
-
-    # 2) Clean up the stack
-    dropw
     # => [...]
 end

@@ -144,13 +144,6 @@ const.ZERO_ZERO_ZERO_SEVEN_PTR=4294913412
 # contains only 7 instead of 8 coefficients, then we would have to multiply the accumulator
 # by the first power of alpha^{-1}.
 const.ALPHA=4294903600
-const.ALPHA_INV_POWER_1_PTR=4294903400
-const.ALPHA_INV_POWER_2_PTR=4294903404
-const.ALPHA_INV_POWER_3_PTR=4294903408
-const.ALPHA_INV_POWER_4_PTR=4294903412
-const.ALPHA_INV_POWER_5_PTR=4294903416
-const.ALPHA_INV_POWER_6_PTR=4294903420
-const.ALPHA_INV_POWER_7_PTR=4294903424
 const.OOD_HORNER_EVALS_PTR=4294903448
 
 
@@ -193,13 +186,6 @@ const.OOD_HORNER_EVALS_PTR=4294903448
 #   | ZERO_ZERO_ZERO_SIX_PTR                   |       4294913408        |
 #   | ZERO_ZERO_ZERO_SEVEN_PTR                 |       4294913412        |
 #   | ALPHA                                    |       4294903600        |
-#   | ALPHA_INV_POWER_1_PTR                    |       4294903400        |
-#   | ALPHA_INV_POWER_2_PTR                    |       4294903404        |
-#   | ALPHA_INV_POWER_3_PTR                    |       4294903408        |
-#   | ALPHA_INV_POWER_4_PTR                    |       4294903412        |
-#   | ALPHA_INV_POWER_5_PTR                    |       4294903416        |
-#   | ALPHA_INV_POWER_6_PTR                    |       4294903420        |
-#   | ALPHA_INV_POWER_7_PTR                    |       4294903424        |
 #   | OOD_HORNER_EVALS_PTR                     |       4294903448        |
 #   +------------------------------------------+-------------------------+
 
@@ -298,34 +284,6 @@ end
 
 export.deep_rand_alpha_ptr
     push.ALPHA
-end
-
-export.deep_rand_alpha_inv_1_ptr
-    push.ALPHA_INV_POWER_1_PTR
-end
-
-export.deep_rand_alpha_inv_2_ptr
-    push.ALPHA_INV_POWER_2_PTR
-end
-
-export.deep_rand_alpha_inv_3_ptr
-    push.ALPHA_INV_POWER_3_PTR
-end
-
-export.deep_rand_alpha_inv_4_ptr
-    push.ALPHA_INV_POWER_4_PTR
-end
-
-export.deep_rand_alpha_inv_5_ptr
-    push.ALPHA_INV_POWER_5_PTR
-end
-
-export.deep_rand_alpha_inv_6_ptr
-    push.ALPHA_INV_POWER_6_PTR
-end
-
-export.deep_rand_alpha_inv_7_ptr
-    push.ALPHA_INV_POWER_7_PTR
 end
 
 export.ood_horner_evaluations_ptr
