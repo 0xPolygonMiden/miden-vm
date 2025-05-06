@@ -10,6 +10,7 @@
 - Allow asserts intruction to take error messages as strings instead of error codes as Felts (#1771).
 
 #### Changes
+- Replace deprecated #[clap(...)] with #[command(...)] and #[arg(.…)] (#1794)
 - Add pull request template to guide contributors (#1795)
 - [BREAKING] `ExecutionOptions::with_debugging()` now takes a boolean parameter (#1761)
 - Use `MemoryAddress(u32)` for `VmState` memory addresses instead of plain `u64` (#1758).

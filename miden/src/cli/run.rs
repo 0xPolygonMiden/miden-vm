@@ -16,42 +16,42 @@ use super::{
 };
 
 #[derive(Debug, Clone, Parser)]
-#[clap(about = "Run a miden program")]
+#[command(about = "Run a miden program")]
 pub struct RunCmd {
     /// Path to a .masm assembly file or a .masp package file
-    #[clap(value_parser)]
+    #[arg(value_parser)]
     program_file: PathBuf,
 
     /// Number of cycles the program is expected to consume
-    #[clap(short = 'e', long = "exp-cycles", default_value = "64")]
+    #[arg(short = 'e', long = "exp-cycles", default_value = "64")]
     expected_cycles: u32,
 
     /// Path to input file
-    #[clap(short = 'i', long = "input", value_parser)]
+    #[arg(short = 'i', long = "input", value_parser)]
     input_file: Option<PathBuf>,
 
     /// Paths to .masl library files (only used for assembly files)
-    #[clap(short = 'l', long = "libraries", value_parser)]
+    #[arg(short = 'l', long = "libraries", value_parser)]
     library_paths: Vec<PathBuf>,
 
     /// Maximum number of cycles a program is allowed to consume
-    #[clap(short = 'm', long = "max-cycles", default_value = "4294967295")]
+    #[arg(short = 'm', long = "max-cycles", default_value = "4294967295")]
     max_cycles: u32,
 
     /// Number of outputs
-    #[clap(short = 'n', long = "num-outputs", default_value = "16")]
+    #[arg(short = 'n', long = "num-outputs", default_value = "16")]
     num_outputs: usize,
 
     /// Path to output file
-    #[clap(short = 'o', long = "output", value_parser)]
+    #[arg(short = 'o', long = "output", value_parser)]
     output_file: Option<PathBuf>,
 
     /// Enable tracing to monitor execution of the VM
-    #[clap(short = 't', long = "trace")]
+    #[arg(short = 't', long = "trace")]
     trace: bool,
 
     /// Disable debug instructions (release mode)
-    #[clap(short = 'r', long = "release")]
+    #[arg(short = 'r', long = "release")]
     release: bool,
 }
 
