@@ -1,5 +1,5 @@
 use miden_air::trace::{
-    AUX_TRACE_RAND_ELEMENTS, CHIPLETS_AUX_TRACE_OFFSET, chiplets::hasher::HASH_CYCLE_LEN,
+    AUX_TRACE_RAND_ELEMENTS, CHIPLETS_BUS_AUX_TRACE_OFFSET, chiplets::hasher::HASH_CYCLE_LEN,
 };
 use test_utils::rand::rand_value;
 

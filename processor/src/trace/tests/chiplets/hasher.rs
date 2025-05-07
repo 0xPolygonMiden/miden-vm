@@ -26,7 +26,7 @@ use vm_core::{
 };
 
 use super::{
-    AUX_TRACE_RAND_ELEMENTS, AdviceInputs, CHIPLETS_AUX_TRACE_OFFSET, ExecutionTrace, Felt,
+    AUX_TRACE_RAND_ELEMENTS, AdviceInputs, CHIPLETS_BUS_AUX_TRACE_OFFSET, ExecutionTrace, Felt,
     FieldElement, NUM_RAND_ROWS, ONE, Operation, Trace, ZERO, build_span_with_respan_ops,
     build_trace_from_ops_with_inputs, build_trace_from_program, init_state_from_words, rand_array,
 };
@@ -66,7 +66,7 @@ pub fn b_chip_span() {
 
     let alphas = rand_array::<Felt, AUX_TRACE_RAND_ELEMENTS>();
     let aux_columns = trace.build_aux_trace(&alphas).unwrap();
-    let b_chip = aux_columns.get_column(CHIPLETS_AUX_TRACE_OFFSET);
+    let b_chip = aux_columns.get_column(CHIPLETS_BUS_AUX_TRACE_OFFSET);
 
     assert_eq!(trace.length(), b_chip.len());
     assert_eq!(ONE, b_chip[0]);
@@ -138,7 +138,7 @@ pub fn b_chip_span_with_respan() {
 
     let alphas = rand_array::<Felt, AUX_TRACE_RAND_ELEMENTS>();
     let aux_columns = trace.build_aux_trace(&alphas).unwrap();
-    let b_chip = aux_columns.get_column(CHIPLETS_AUX_TRACE_OFFSET);
+    let b_chip = aux_columns.get_column(CHIPLETS_BUS_AUX_TRACE_OFFSET);
 
     assert_eq!(trace.length(), b_chip.len());
     assert_eq!(ONE, b_chip[0]);
@@ -233,7 +233,7 @@ pub fn b_chip_merge() {
 
     let alphas = rand_array::<Felt, AUX_TRACE_RAND_ELEMENTS>();
     let aux_columns = trace.build_aux_trace(&alphas).unwrap();
-    let b_chip = aux_columns.get_column(CHIPLETS_AUX_TRACE_OFFSET);
+    let b_chip = aux_columns.get_column(CHIPLETS_BUS_AUX_TRACE_OFFSET);
 
     assert_eq!(trace.length(), b_chip.len());
     assert_eq!(ONE, b_chip[0]);
@@ -352,7 +352,7 @@ pub fn b_chip_permutation() {
         .expect("failed to convert vector to array");
     let alphas = rand_array::<Felt, AUX_TRACE_RAND_ELEMENTS>();
     let aux_columns = trace.build_aux_trace(&alphas).unwrap();
-    let b_chip = aux_columns.get_column(CHIPLETS_AUX_TRACE_OFFSET);
+    let b_chip = aux_columns.get_column(CHIPLETS_BUS_AUX_TRACE_OFFSET);
 
     assert_eq!(trace.length(), b_chip.len());
     assert_eq!(ONE, b_chip[0]);
@@ -470,7 +470,7 @@ fn b_chip_mpverify() {
     );
     let alphas = rand_array::<Felt, AUX_TRACE_RAND_ELEMENTS>();
     let aux_columns = trace.build_aux_trace(&alphas).unwrap();
-    let b_chip = aux_columns.get_column(CHIPLETS_AUX_TRACE_OFFSET);
+    let b_chip = aux_columns.get_column(CHIPLETS_BUS_AUX_TRACE_OFFSET);
 
     assert_eq!(trace.length(), b_chip.len());
     assert_eq!(ONE, b_chip[0]);
@@ -616,7 +616,7 @@ fn b_chip_mrupdate() {
         build_trace_from_ops_with_inputs(vec![Operation::MrUpdate], stack_inputs, advice_inputs);
     let alphas = rand_array::<Felt, AUX_TRACE_RAND_ELEMENTS>();
     let aux_columns = trace.build_aux_trace(&alphas).unwrap();
-    let b_chip = aux_columns.get_column(CHIPLETS_AUX_TRACE_OFFSET);
+    let b_chip = aux_columns.get_column(CHIPLETS_BUS_AUX_TRACE_OFFSET);
 
     assert_eq!(trace.length(), b_chip.len());
     assert_eq!(ONE, b_chip[0]);

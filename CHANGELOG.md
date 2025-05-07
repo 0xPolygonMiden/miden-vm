@@ -8,6 +8,8 @@
 - add optional `Package::account_component_metadata_bytes` to store serialized `AccountComponentMetadata` (#1731).
 - Add `executable` feature to the `make test` and `make test-build` Make commands (#1762).
 - Allow asserts intruction to take error messages as strings instead of error codes as Felts (#1771).
+- Add arithmetic evaluation chiplet (#1759).
+- Update the recursive verifier to use arithmetic evaluation chiplet (#1760).
 
 #### Changes
 - Replace deprecated #[clap(...)] with #[command(...)] and #[arg(.…)] (#1794)
