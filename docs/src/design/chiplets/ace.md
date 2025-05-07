@@ -1,4 +1,4 @@
-# ACE chip design
+# ACE chiplet
 
 The following formalizes the description and functionality of the ACE chiplet. It is still a work in progress, but will evolve to serve as the documentation for its implementation.
 
@@ -10,7 +10,7 @@ TL;DR: The chiplet requires 16 columns and has maximum internal degree 5, which 
 The ACE chiplet contains 16 internal columns. Cells marked with = behave the same way in each mode. Empty cells are unconstrained and can be set to 0. When a column is unnamed, we refer to the column by its name used within the selected operation
 
 | $s_{start}$ | $s_{block}$ | $ctx$ | $ptr$ | $clk$ |      | $id_0$ | $v_{0,0}$ | $v_{0,1}$ | $id_1$ | $v_{1,0}$ | $v_{1,1}$ |            |           |           | $m_0$ |
-| ----------- | ----------- | ----- | ----- | ----- | ---- | ------ | --------- | --------- | ------ | --------- | --------- | ---------- | --------- | --------- | ----- |
+|-------------|-------------|-------|-------|-------|------|--------|-----------|-----------|--------|-----------|-----------|------------|-----------|-----------|-------|
 | =           | $f_{read}$  | =     | =     | =     |      | =      | =         | =         | =      | =         | =         | $n_{eval}$ |           | $m_1$     | =     |
 | =           | $f_{eval}$  | =     | =     | =     | $op$ | =      | =         | =         | =      | =         | =         | $id_2$     | $v_{2,0}$ | $v_{2,1}$ | =     |
 
@@ -49,15 +49,15 @@ From these common selector, we derive the following binary flags which indicate 
 - $f_{ace, next}$: Current and next row are in ACE chiplet
 - $f_{ace, last}$: Last row in ACE chiplet
 
-$$
-\begin{aligned}
-f_{prev} &\gets (1 - s_{d-1}) \cdot \prod_{i=1}^{d-2} s_{i} && | \deg = d-1\\
-f_{ace} &\gets (1 - s_{d}) \cdot \prod_{i=1}^{d-1} s_{i} && | \deg = d\\
-f_{ace, first}' &\gets f_{prev} \cdot (1 - s_{d-1}') && | \deg = d \\
-f_{ace, next} &\gets f_{ace} \cdot (1 - s_{d}') && | \deg = d + 1\\
-f_{ace, last} &\gets f_{ace} \cdot s_{d}' && | \deg = d + 1\\
-\end{aligned}
-$$
+> $$
+  \begin{aligned}
+  f_{prev} &\gets (1 - s_{d-1}) \cdot \prod_{i=1}^{d-2} s_{i} && | \deg = d-1\\
+  f_{ace} &\gets (1 - s_{d}) \cdot \prod_{i=1}^{d-1} s_{i} && | \deg = d\\
+  f_{ace, first}' &\gets f_{prev} \cdot (1 - s_{d-1}') && | \deg = d \\
+  f_{ace, next} &\gets f_{ace} \cdot (1 - s_{d}') && | \deg = d + 1\\
+  f_{ace, last} &\gets f_{ace} \cdot s_{d}' && | \deg = d + 1\\
+  \end{aligned}
+  $$
 
 #### Section constraints
 
@@ -65,57 +65,60 @@ The selector $s_{start}$ indicates the start of a new section, from which we can
 - $f_{start}$ : the current row initializes the section
 - $f_{next}$: the current and next row are in the same section
 - $f_{end}$: the current row finalizes the section
-  $$
+> $$
   \begin{aligned}
-  f_{start} &\gets f_{ace} \cdot s_{start} && | \deg = d+1\\
-  f_{next} &\gets f_{ace, next} \cdot (1 - s_{start}')  && | \deg = d+2\\
-  f_{end} &\gets f_{ace, next} \cdot s_{start}' + f_{ace,last} && | \deg = d+2\\
+  f_{start} &\gets f_{ace} \cdot s_{start} && | \deg = d+1 \\
+  f_{next} &\gets f_{ace, next} \cdot (1 - s_{start}')  && | \deg = d+2 \\
+  f_{end} &\gets f_{ace, next} \cdot s_{start}' + f_{ace,last} && | \deg = d+2 \\
   \end{aligned}
   $$
-  These flags require the following constraints on $s_{start}$, namely
+
+These flags require the following constraints on $s_{start}$, namely
 - it is binary,
 - it must equal 1 in the first row,
 - it must equal 0 in the last row,
 - two consecutive rows cannot initialize a section, therefore a section contains at least two rows
-  $$
+
+> $$
   \begin{aligned}
-  f_{ace} \cdot s_{start} \cdot (1 - s_{start}) &= 0 && | \deg = d + 2\\
-  f_{ace, first}' \cdot (1 - s_{start}') &= 0 && | \deg = d + 1\\
-  f_{ace, last} \cdot s_{start} &= 0 && | \deg = d + 2\\
-  f_{ace, next} \cdot s_{start} \cdot s_{start}' &= 0 && | \deg = d + 2\\
+  f_{ace} \cdot s_{start} \cdot (1 - s_{start}) &= 0 && | \deg = d + 2 \\
+  f_{ace, first}' \cdot (1 - s_{start}') &= 0 && | \deg = d + 1 \\
+  f_{ace, last} \cdot s_{start} &= 0 && | \deg = d + 2 \\
+  f_{ace, next} \cdot s_{start} \cdot s_{start}' &= 0 && | \deg = d + 2 \\
   \end{aligned}
   $$
 
 A section is composed of a READ block followed by an EVAL block. The flag indicating which block is active are derived from the binary selector $s_{block}$. The constraint ensures they are mutually exclusive
-$$
-\begin{aligned}
-f_{read} \gets (1-s_{block}) & &&| \deg = 1\\
-f_{eval} \gets s_{block} & &&| \deg = 1\\
-\\
-f_{ace} \cdot (1-s_{block}) \cdot s_{block} = 0 && &| \deg = d + 2\\
-\end{aligned}
-$$
+> $$
+  \begin{aligned}
+  f_{read} \gets (1-s_{block}) & &&| \deg = 1 \\
+  f_{eval} \gets s_{block} & &&| \deg = 1 \\
+  \\
+  f_{ace} \cdot (1-s_{block}) \cdot s_{block} = 0 && &| \deg = d + 2 \\
+  \end{aligned}
+  $$
 
 The following constraints ensure the proper layout of the trace. In particular, it contains one or more sections each with consecutive READ and EVAL blocks.
 - The first row cannot be EVAL so it must be READ
 - A row after EVAL cannot be read
 - The last cannot be READ, so it must be EVAL
-  $$
+
+> $$
   \begin{aligned}
   f_{start} \cdot f_{eval} &= 0 && | \deg = d + 2\\
   f_{next} \cdot f_{eval} \cdot f_{read}' &= 0 && | \deg = d + 4\\
   f_{end} \cdot f_{read} &= 0 && | \deg = d + 3\\
   \end{aligned}
   $$
-  In particular, we can infer from the above that
+
+In particular, we can infer from the above that
 - Each section contains at least two rows (a READ and EVAL)
 - A row following a READ is always in the same block.
 
 When the EVAL block starts, the next $id_0$ is expected to be equal to the number of evaluation nodes $n_{eval}$ provided by the caller at initialization. Therefore, we have to ensure that it is propagated across the READ rows and corresponds to $id_0$ in the first EVAL row.
-$$
-f_{ace} \cdot f_{read} \cdot
-\big[f_{read}' \cdot n_{eval}' + f_{eval}' \cdot id_0' - n_{eval}\big] = 0 \quad | \deg = d + 3.
-$$
+> $$
+  f_{ace} \cdot f_{read} \cdot \big[f_{read}' \cdot n_{eval}' + f_{eval}' \cdot id_0' - n_{eval}\big] = 0 \quad | \deg = d + 3.
+  $$
 
 
 
@@ -123,7 +126,7 @@ The transition constraints for the variables are the following
 - Across the section, $ctx$ and $clk$ are constant.
 - A READ/EVAL block requests a word/element from memory so the $ptr$ increases by 4/1, respectively.
 - A READ/EVAL block adds 2/1 new nodes to the evaluation graph, so $id_0$ decreases by that amount.
-  $$
+> $$
   \begin{aligned}
   f_{next} \cdot (ctx' - ctx) &= 0 && | \deg = d + 3\\
   f_{next} \cdot (clk' - clk) &= 0 && | \deg = d + 3\\
@@ -147,9 +150,9 @@ The values are obtained as-is from the current row, except for the two following
 We'll forgo the concrete expressions for the corresponding bus messages reduced by challenges $\alpha_0, \alpha_1, \ldots$, and assume they are given by degree-1 expressions $u_{chip}, u_{mem, read}, u_{mem, eval}$.
 
 Given access to the auxiliary bus column $b$, the constraint applied is
-$$
-f_{ace} \cdot  b' \cdot \Big( f_{read}\cdot w_{mem,read} + f_{eval}\cdot w_{mem,eval} \Big) - b \cdot \Big(f_{ace} + f_{start}\cdot (w_{chip,start} - 1)\Big) = 0 \quad | \deg = d+3.
-$$
+> $$
+  f_{ace} \cdot  b' \cdot \Big( f_{read}\cdot w_{mem,read} + f_{eval}\cdot w_{mem,eval} \Big) - b \cdot \Big(f_{ace} + f_{start}\cdot (w_{chip,start} - 1)\Big) = 0 \quad | \deg = d+3.
+  $$
 
 ##### Wire bus
 
@@ -157,28 +160,28 @@ Each row of the chip can make 3 requests to the circuit's wire bus. For $i = 0, 
 
 The expression $e_i$ is derived from $m_i$ and the operation flag, so that the the wire bus update is uniform across all rows of the chiplet's trace.
 - $v_0$ always defines a new node, and each operation defines its identifier $id_0$ and multiplicity $m_0$ using the same columns.
-  $$
+> $$
   e_0 \gets  m_0  \quad \text{| degree} = 1
   $$
 - $v_1$ defines a new node when the operation is a READ, but is an input during an EVAL. Again, the columns for these values are identical.
-  $$
+> $$
   e_1 \gets  f_{read} \cdot m_1 - f_{eval}  \quad \text{| degree} = 2
   $$
 - $v_2$ is unused during a READ, and an input during EVAL
-  $$
+> $$
   e_2 \gets  - f_{eval}  \quad \text{| degree} = 1
   $$
 
 The auxiliary logUp bus column $b$ is updated as follows. Given random challenges $\alpha_j$ for $j = 0, ..., 5$,  
 let $w_i = \alpha_0 + \alpha_1 \cdot ctx +  \alpha_2 \cdot clk + \alpha_3 \cdot id_i + \alpha_4 \cdot v_{i,0} + \alpha_5 \cdot v_{i,1}$ be the randomized node value. The value of the bus in the next column is given by
-$$
-b' = b + \sum_{i=0}^2 \frac{e_i}{w_i},
-$$
+> $$
+  b' = b + \sum_{i=0}^2 \frac{e_i}{w_i},
+  $$
 
 The actual constrain is given by normalizing the denominator
-$$
-f_{ace}\cdot \left( (b - b')\cdot \prod_{i=0}^{2}w_i  + \left(e_0 \cdot w_1 \cdot w_2 + e_1 \cdot w_0 \cdot w_2 + e_2 \cdot w_0 \cdot w_1\right)\right) = 0 \quad \text{| degree} = d + 4.
-$$
+> $$
+  f_{ace}\cdot \left( (b - b')\cdot \prod_{i=0}^{2}w_i  + \left(e_0 \cdot w_1 \cdot w_2 + e_1 \cdot w_0 \cdot w_2 + e_2 \cdot w_0 \cdot w_1\right)\right) = 0 \quad \text{| degree} = d + 4.
+  $$
 
 
 
@@ -186,40 +189,40 @@ $$
 
 In a READ block, each row requests a row from memory a word containing two extension field elements $v_0 = (v_{0,0}, v_{0,1})$ and $v_1 = (v_{1,0}, v_{1,1})$. We have already described how these are then added to the wire bus. The only constraint we enforce is that $id_0$ and $id_1$ are consecutive
 
-$$
-\begin{aligned}
-f_{ace} \cdot f_{read} \cdot (id_1 - id_0 + 1)  &= 0 && | \deg = d + 2\\
-\end{aligned}
-$$
+> $$
+  \begin{aligned}
+  f_{ace} \cdot f_{read} \cdot (id_1 - id_0 + 1)  &= 0 && | \deg = d + 2\\
+  \end{aligned}
+  $$
 
 
 #### EVAL block
 
 An EVAL block checks that the arithmetic operation $op$ was correctly applies to inputs $v_1, v_2$ and results in $v_0$. The result is given by the degree-4 expression
-$$
-v_{out} \gets op^2 \cdot \big[ v_1 + op\cdot v_2 \big] + (1 - op^2)  \cdot \big[ v_1 \cdot v_2 \big]
-= \begin{cases}
-v_1 - v_2, & op = -1, \\
-v_1 \times v_2, & op = 0, \\
-v_1 + v_2, & op = 1. \\
-\end{cases}
-$$
+> $$
+  v_{out} \gets op^2 \cdot \big[ v_1 + op\cdot v_2 \big] + (1 - op^2)  \cdot \big[ v_1 \cdot v_2 \big]
+  = \begin{cases}
+  v_1 - v_2, & op = -1, \\
+  v_1 \times v_2, & op = 0, \\
+  v_1 + v_2, & op = 1. \\
+  \end{cases}
+  $$
+
 The constraints ensuring the operation is correct are applied in every row of the chip
 - $op \in \{-1, 0, 1\}$
 - $v_0$ is equal to $v_{out}$
 
-$$
-\begin{aligned}
-f_{ace} \cdot f_{eval} \cdot op \cdot (op^2 - 1) &= 0 && | \deg = d + 4\\
-f_{ace} \cdot f_{eval} \cdot (v_0 - v_{out}) &= 0 && | \deg = d + 5\\
-\end{aligned}
-$$
+> $$
+  \begin{aligned}
+  f_{ace} \cdot f_{eval} \cdot op \cdot (op^2 - 1) &= 0 && | \deg = d + 4\\
+  f_{ace} \cdot f_{eval} \cdot (v_0 - v_{out}) &= 0 && | \deg = d + 5\\
+  \end{aligned}
+  $$
 
 The actual instruction is given by the field element $instr$ read from memory. It encodes
 - the operation $op$ using 2 bits
-- the ids of $v_1$ and $v_2$ using 30 bits each
-  and is computed as
-  $$
+- the ids of $v_1$ and $v_2$ using 30 bits each and is computed as
+> $$
   instr \gets id_0 + id_1 \cdot 2^{30} + (op+1)\cdot 2^{60}.
   $$
 
@@ -227,63 +230,65 @@ It is clear from the constraint on $op$ that $op+1$ will always require 2 bits. 
 
 
 To ensure the circuit has finished evaluating and that the final output value is 0, we add the following section boundary constraints to enforce that the section ends with the node with $id_0 = 0$ has value $v_0 = 0$.
-$$
-\begin{aligned}
-f_{end} \cdot id_0 &= 0 && | \deg = d + 3\\
-f_{end} \cdot v_0 &= 0 && | \deg = d + 3\\
-\end{aligned}
-$$
-
-
+> $$
+  \begin{aligned}
+  f_{end} \cdot id_0 &= 0 && | \deg = d + 3\\
+  f_{end} \cdot v_0 &= 0 && | \deg = d + 3\\
+  \end{aligned}
+  $$
 
 #### Example
 
 The following is a section of the trace representing the evaluation of the expressions
-$$
-(s \times (1-s)) \times \alpha + s \cdot (t - 2) - q \cdot (x^n - 1)
-$$
+> $$
+  (s \times (1-s)) \times \alpha + s \cdot (t - 2) - q \cdot (x^n - 1)
+  $$
 
 With the following inputs stored in memory in addresses `0x0000-0x0008`
-$$
-\begin{aligned}
-v_{16} &= \alpha &
-v_{15} &= x^n \\
-v_{14} &= s &
-v_{13} &= t \\
-v_{12} &= q &
-v_{11} &= \cdots \\
-\end{aligned}
-$$
-Followed by the constant at `0x000c`
-$$v_{10} = 1 \quad v_{9} = 2$$
-And the remaining instructions computing the evaluations
-$$
-\begin{aligned}
-v_8 &= v_{10} - v_{14} &&= 1 - s \\
-v_7 &= v_{14} \times v_{8} &&= s\times (1-s) \\
-v_6 &= v_{13} - v_{9} &&= t - 2 \\
-v_5 &= v_{14} \times v_{6} &&= s \times (t - 2) \\
-v_4 &= v_{15} - v_{10} &&= x^n - 1  \\
-v_3 &= v_{12} \times v_{4} &&= q \times (x^n - 1)  \\
-v_2 &= v_{7} \times v_{16} &&= (s\times (1-s)) \times \alpha   \\
-v_1 &= v_2 + v_5 &&= \Big(\big(s\times (1-s)\big) \times \alpha\Big) + \Big(s \times (t - 2)\Big) \\
-v_0 &= v_1 - v_3 &&= \Bigg(\Big(\big(s\times (1-s)\big) \times \alpha\Big) + \Big(s \times (t - 2)\Big)\Bigg) - \Bigg(q \times (x^n - 1)\Bigg)\\
-\end{aligned}
-$$
+> $$
+  \begin{aligned}
+  v_{16} &= \alpha &
+  v_{15} &= x^n \\
+  v_{14} &= s &
+  v_{13} &= t \\
+  v_{12} &= q &
+  v_{11} &= \cdots \\
+  \end{aligned}
+  $$
 
-| $s_{start}$ | $s_{block}$ | $ctx$ | $ptr$  | $clk$ | $op$     | $id_0$ | $v_{0}$           | $id_1$ | $v_{1}$        | $n_{eval}$/$id_{2}$ | $m_1$/$v_2$  | $m_0$        |
-| ----------- | ----------- | ----- | ------ | ----- | -------- | ------ | ----------------- | ------ | -------------- | ------------------- | ------------ | ------------ |
-| 1           | 0           | ctx   | 0x0000 | clk   |          | 16     | $v_{16} = \alpha$ | 15     | $v_{15} = x^n$ | 8                   | $m_{15} = 1$ | $m_{16} = 1$ |
-| 0           | 0           | ctx   | 0x0004 | clk   |          | 14     | $v_{14} = s$      | 13     | $v_{13} = t$   | 8                   | $m_{13} = 1$ | $m_{14} = 3$ |
-| 0           | 0           | ctx   | 0x0008 | clk   |          | 12     | $v_{12} = q$      | 11     | -              | 8                   | $m_{11} = 0$ | $m_{12} = 1$ |
-| 0           | 0           | ctx   | 0x000c | clk   |          | 10     | $v_{10} = 1$      | 9      | $v_{9} = 2$    | 8                   | $m_{9} = 1$  | $m_{10} = 2$ |
-| 0           | 1           | ctx   | 0x0010 | clk   | $-$      | 8      | $v_{8}$           | 10     | $v_{10}$       | 14                  | $v_{14}$     | 1            |
-| 0           | 1           | ctx   | 0x0011 | clk   | $\times$ | 7      | $v_{7}$           | 14     | $v_{14}$       | 8                   | $v_{8}$      | 1            |
-| 0           | 1           | ctx   | 0x0012 | clk   | $-$      | 6      | $v_{6}$           | 13     | $v_{13}$       | 9                   | $v_{9}$      | 1            |
-| 0           | 1           | ctx   | 0x0013 | clk   | $\times$ | 5      | $v_{5}$           | 14     | $v_{14}$       | 6                   | $v_{6}$      | 1            |
-| 0           | 1           | ctx   | 0x0014 | clk   | $-$      | 4      | $v_{4}$           | 15     | $v_{15}$       | 10                  | $v_{10}$     | 1            |
-| 0           | 1           | ctx   | 0x0015 | clk   | $\times$ | 3      | $v_{3}$           | 12     | $v_{12}$       | 4                   | $v_{4}$      | 1            |
-| 0           | 1           | ctx   | 0x0016 | clk   | $\times$ | 2      | $v_{2}$           | 7      | $v_{7}$        | 16                  | $v_{16}$     | 1            |
-| 0           | 1           | ctx   | 0x0017 | clk   | $+$      | 1      | $v_1$             | 2      | $v_{2}$        | 5                   | $v_{5}$      | 1            |
-| 0           | 1           | ctx   | 0x0018 | clk   | $-$      | 0      | $v_0$             | 1      | $v_{1}$        | 3                   | $v_{3}$      | 0            |
+Followed by the constant at `0x000c`
+> $$v_{10} = 1 \quad v_{9} = 2$$
+
+And the remaining instructions computing the evaluations
+> $$
+  \begin{aligned}
+  v_8 &= v_{10} - v_{14} && |= 1 - s \\
+  v_7 &= v_{14} \times v_{8} && |= s\times (1-s) \\
+  v_6 &= v_{13} - v_{9} && |= t - 2 \\
+  v_5 &= v_{14} \times v_{6} && |= s \times (t - 2) \\
+  v_4 &= v_{15} - v_{10} && |= x^n - 1  \\
+  v_3 &= v_{12} \times v_{4} && |= q \times (x^n - 1)  \\
+  v_2 &= v_{7} \times v_{16} && |= (s\times (1-s)) \times \alpha   \\
+  v_1 &= v_2 + v_5 && |= \Big(\big(s\times (1-s)\big) \times \alpha\Big) + \Big(s \times (t - 2)\Big) \\
+  v_0 &= v_1 - v_3 && |= \Bigg(\Big(\big(s\times (1-s)\big) \times \alpha\Big) + \Big(s \times (t - 2)\Big)\Bigg) - \Bigg(q \times (x^n - 1)\Bigg)\\
+  \end{aligned}
+  $$
+
+The layout of the chiplet would then 
+
+| $s_{start}$ | $s_{block}$ | $ctx$ | $ptr$  | $clk$ | $op$     | $id_0$ | $v_{0}$           | $id_1$ | $v_{1}$        | $n_{eval}$ / $id_{2}$ | $m_1$ / $v_2$ | $m_0$        |
+|-------------|-------------|-------|--------|-------|----------|--------|-------------------|--------|----------------|-----------------------|---------------|--------------|
+| 1           | 0           | ctx   | 0x0000 | clk   |          | 16     | $v_{16} = \alpha$ | 15     | $v_{15} = x^n$ | 8                     | $m_{15} = 1$  | $m_{16} = 1$ |
+| 0           | 0           | ctx   | 0x0004 | clk   |          | 14     | $v_{14} = s$      | 13     | $v_{13} = t$   | 8                     | $m_{13} = 1$  | $m_{14} = 3$ |
+| 0           | 0           | ctx   | 0x0008 | clk   |          | 12     | $v_{12} = q$      | 11     | -              | 8                     | $m_{11} = 0$  | $m_{12} = 1$ |
+| 0           | 0           | ctx   | 0x000c | clk   |          | 10     | $v_{10} = 1$      | 9      | $v_{9} = 2$    | 8                     | $m_{9} = 1$   | $m_{10} = 2$ |
+| 0           | 1           | ctx   | 0x0010 | clk   | $-$      | 8      | $v_{8}$           | 10     | $v_{10}$       | 14                    | $v_{14}$      | 1            |
+| 0           | 1           | ctx   | 0x0011 | clk   | $\times$ | 7      | $v_{7}$           | 14     | $v_{14}$       | 8                     | $v_{8}$       | 1            |
+| 0           | 1           | ctx   | 0x0012 | clk   | $-$      | 6      | $v_{6}$           | 13     | $v_{13}$       | 9                     | $v_{9}$       | 1            |
+| 0           | 1           | ctx   | 0x0013 | clk   | $\times$ | 5      | $v_{5}$           | 14     | $v_{14}$       | 6                     | $v_{6}$       | 1            |
+| 0           | 1           | ctx   | 0x0014 | clk   | $-$      | 4      | $v_{4}$           | 15     | $v_{15}$       | 10                    | $v_{10}$      | 1            |
+| 0           | 1           | ctx   | 0x0015 | clk   | $\times$ | 3      | $v_{3}$           | 12     | $v_{12}$       | 4                     | $v_{4}$       | 1            |
+| 0           | 1           | ctx   | 0x0016 | clk   | $\times$ | 2      | $v_{2}$           | 7      | $v_{7}$        | 16                    | $v_{16}$      | 1            |
+| 0           | 1           | ctx   | 0x0017 | clk   | $+$      | 1      | $v_1$             | 2      | $v_{2}$        | 5                     | $v_{5}$       | 1            |
+| 0           | 1           | ctx   | 0x0018 | clk   | $-$      | 0      | $v_0$             | 1      | $v_{1}$        | 3                     | $v_{3}$       | 0            |
 
