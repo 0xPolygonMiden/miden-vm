@@ -20,7 +20,6 @@ use crate::{
 };
 
 mod memory;
-pub use memory::Memory as MemoryFast;
 
 // Ops
 mod circuit_eval;

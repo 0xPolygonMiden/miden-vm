@@ -20,7 +20,7 @@ impl Process {
     /// 3. the number of rows in the `EVAL` section,
     ///
     /// Stack transition:
-    /// [ptr, num_read_rows, num_eval_rows, ...] -> [...]
+    /// [ptr, num_read_rows, num_eval_rows, ...] -> [ptr, num_read_rows, num_eval_rows, ...]
     pub fn arithmetic_circuit_eval(
         &mut self,
         error_ctx: &ErrorContext<'_, BasicBlockNode>,
@@ -30,7 +30,7 @@ impl Process {
         let ptr = self.stack.get(0);
         let ctx = self.system.ctx();
         let clk = self.system.clk();
-        let eval_context = eval_circuit(
+        let circuit_evaluation = eval_circuit(
             ctx,
             ptr,
             clk,
@@ -39,7 +39,7 @@ impl Process {
             &mut self.chiplets.memory,
             error_ctx,
         )?;
-        self.chiplets.ace.add_eval_context(clk, eval_context);
+        self.chiplets.ace.add_circuit_evaluation(clk, circuit_evaluation);
 
         self.stack.copy_state(0);
 

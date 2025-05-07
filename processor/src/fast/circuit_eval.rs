@@ -1,5 +1,12 @@
-use super::FastProcessor;
-use crate::{ExecutionError, chiplets::eval_circuit_fast, errors::ErrorContext};
+use miden_air::RowIndex;
+use vm_core::{Felt, FieldElement, mast::BasicBlockNode};
+
+use super::{FastProcessor, memory::Memory};
+use crate::{
+    ContextId, ExecutionError, QuadFelt,
+    chiplets::{CircuitEvaluation, PTR_OFFSET_ELEM, PTR_OFFSET_WORD},
+    errors::{AceError, ErrorContext},
+};
 
 impl FastProcessor {
     /// Checks that the evaluation of an arithmetic circuit is equal to zero.
@@ -19,14 +26,14 @@ impl FastProcessor {
     /// 3. the number of rows in the `EVAL` section,
     ///
     /// Stack transition:
-    /// [ptr, num_read_rows, num_eval_rows, ...] -> [...]
+    /// [ptr, num_read_rows, num_eval_rows, ...] -> [ptr, num_read_rows, num_eval_rows, ...]
     pub fn arithmetic_circuit_eval(&mut self, op_idx: usize) -> Result<(), ExecutionError> {
         let num_eval_rows = self.stack_get(2);
         let num_read_rows = self.stack_get(1);
         let ptr = self.stack_get(0);
         let ctx = self.ctx;
         let clk = self.clk;
-        let eval_context = eval_circuit_fast(
+        let circuit_evaluation = eval_circuit_fast_(
             ctx,
             ptr,
             clk,
@@ -36,8 +43,71 @@ impl FastProcessor {
             op_idx,
             &ErrorContext::default(),
         )?;
-        self.ace.add_eval_context(clk, eval_context);
+        self.ace.add_circuit_evaluation(clk, circuit_evaluation);
 
         Ok(())
     }
+}
+
+/// Identical to `[chiplets::ace::eval_circuit]` but adapted for use with `[FastProcessor]`.
+#[allow(clippy::too_many_arguments)]
+pub fn eval_circuit_fast_(
+    ctx: ContextId,
+    ptr: Felt,
+    clk: RowIndex,
+    num_vars: Felt,
+    num_eval: Felt,
+    mem: &mut Memory,
+    op_idx: usize,
+    error_ctx: &ErrorContext<'_, BasicBlockNode>,
+) -> Result<CircuitEvaluation, ExecutionError> {
+    let num_vars = num_vars.as_int();
+    let num_eval = num_eval.as_int();
+
+    // Ensure vars and instructions are word-aligned and non-empty. Note that variables are
+    // quadratic extension field elements while instructions are encoded as base field elements.
+    // Hence we can pack 2 variables and 4 instructions per word.
+    if num_vars % 2 != 0 || num_vars == 0 {
+        return Err(ExecutionError::failed_arithmetic_evaluation(
+            error_ctx,
+            AceError::NumVarIsNotWordAlignedOrIsEmpty(num_vars),
+        ));
+    }
+    if num_eval % 4 != 0 || num_eval == 0 {
+        return Err(ExecutionError::failed_arithmetic_evaluation(
+            error_ctx,
+            AceError::NumEvalIsNotWordAlignedOrIsEmpty(num_eval),
+        ));
+    }
+
+    // Ensure instructions are word-aligned and non-empty
+    let num_read_rows = num_vars as u32 / 2;
+    let num_eval_rows = num_eval as u32;
+
+    let mut evaluation_context =
+        CircuitEvaluation::new(ctx, clk + op_idx, num_read_rows, num_eval_rows);
+
+    let mut ptr = ptr;
+    // perform READ operations
+    for _ in 0..num_read_rows {
+        let word = mem.read_word(ctx, ptr, clk + op_idx)?;
+        evaluation_context.do_read(ptr, *word)?;
+        ptr += PTR_OFFSET_WORD;
+    }
+    // perform EVAL operations
+    for _ in 0..num_eval_rows {
+        let instruction = mem.read_element(ctx, ptr)?;
+        evaluation_context.do_eval(ptr, instruction, error_ctx)?;
+        ptr += PTR_OFFSET_ELEM;
+    }
+
+    // Ensure the circuit evaluated to zero.
+    if !evaluation_context.output_value().is_some_and(|eval| eval == QuadFelt::ZERO) {
+        return Err(ExecutionError::failed_arithmetic_evaluation(
+            error_ctx,
+            AceError::CircuitNotEvaluateZero,
+        ));
+    }
+
+    Ok(evaluation_context)
 }

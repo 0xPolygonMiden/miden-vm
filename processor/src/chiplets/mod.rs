@@ -25,7 +25,7 @@ pub use memory::MemoryError;
 
 mod ace;
 use ace::AceHints;
-pub use ace::{Ace, eval_circuit, eval_circuit_fast};
+pub use ace::{Ace, CircuitEvaluation, PTR_OFFSET_ELEM, PTR_OFFSET_WORD, eval_circuit};
 
 mod kernel_rom;
 use kernel_rom::KernelRom;
