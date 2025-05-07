@@ -12,9 +12,9 @@ fn arithmetic_circuit_eval_and_execute() {
     const.NUM_EVAL_ROWS=4
     
     begin
-       repeat.{}
+       repeat.{num_repetitions}
             # Set up the stack for loading data from advice map
-            push.{}
+            push.{pointer}
             padw padw padw
 
             # Load data
@@ -23,7 +23,7 @@ fn arithmetic_circuit_eval_and_execute() {
             end
             
             # Set up the inputs to the arithmetic circuit evaluation op and execute it
-            push.NUM_EVAL_ROWS push.NUM_READ_ROWS push.{}
+            push.NUM_EVAL_ROWS push.NUM_READ_ROWS push.{pointer}
             arithmetic_circuit_eval
 
             # Clean up the stack
@@ -32,8 +32,7 @@ fn arithmetic_circuit_eval_and_execute() {
             drop
        end
     end
-    ",
-        num_repetitions, pointer, pointer,
+    "
     );
 
     // the circuit
