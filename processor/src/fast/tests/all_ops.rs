@@ -105,6 +105,7 @@ fn test_basic_block(
         vec![Operation::FriE2F4],
         vec![Operation::HornerBase],
         vec![Operation::HornerExt],
+        vec![Operation::ArithmeticCircuitEval],
     )]
     operations: Vec<Operation>,
 ) {

@@ -1,6 +1,5 @@
 use alloc::vec::Vec;
 
-use ace::{Ace, AceHints};
 use miden_air::{
     RowIndex,
     trace::chiplets::hasher::{Digest, HasherState},
@@ -25,7 +24,8 @@ use memory::Memory;
 pub use memory::MemoryError;
 
 mod ace;
-pub use ace::eval_circuit;
+use ace::AceHints;
+pub use ace::{Ace, eval_circuit, eval_circuit_fast};
 
 mod kernel_rom;
 use kernel_rom::KernelRom;

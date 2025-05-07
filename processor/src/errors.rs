@@ -533,6 +533,8 @@ impl ExecutionError {
     ) -> Self {
         let (label, source_file) = err_ctx.label_and_source_file();
         Self::SyscallTargetNotInKernel { label, source_file, proc_root }
+    }
+
     pub fn failed_arithmetic_evaluation(
         err_ctx: &ErrorContext<'_, impl MastNodeExt>,
         error: AceError,

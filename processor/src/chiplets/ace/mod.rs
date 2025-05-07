@@ -12,6 +12,7 @@ use crate::{
     ContextId, ExecutionError, Felt, QuadFelt,
     chiplets::{ace::trace::CircuitEvaluation, memory::Memory},
     errors::{AceError, ErrorContext},
+    fast::MemoryFast,
     trace::TraceFragment,
 };
 
@@ -329,6 +330,69 @@ pub fn eval_circuit(
     for _ in 0..num_eval_rows {
         let instruction =
             mem.read(ctx, ptr, clk, error_ctx).map_err(ExecutionError::MemoryError)?;
+        evaluation_context.do_eval(ptr, instruction, error_ctx)?;
+        ptr += PTR_OFFSET_ELEM;
+    }
+
+    // Ensure the circuit evaluated to zero.
+    if !evaluation_context.output_value().is_some_and(|eval| eval == QuadFelt::ZERO) {
+        return Err(ExecutionError::failed_arithmetic_evaluation(
+            error_ctx,
+            AceError::CircuitNotEvaluateZero,
+        ));
+    }
+
+    Ok(evaluation_context)
+}
+
+/// Identical to `[eval_circuit]` but addapted for use with `[FastProcessor]`.
+#[allow(clippy::too_many_arguments)]
+pub fn eval_circuit_fast(
+    ctx: ContextId,
+    ptr: Felt,
+    clk: RowIndex,
+    num_vars: Felt,
+    num_eval: Felt,
+    mem: &mut MemoryFast,
+    op_idx: usize,
+    error_ctx: &ErrorContext<'_, BasicBlockNode>,
+) -> Result<CircuitEvaluation, ExecutionError> {
+    let num_vars = num_vars.as_int();
+    let num_eval = num_eval.as_int();
+
+    // Ensure vars and instructions are word-aligned and non-empty. Note that variables are
+    // quadratic extension field elements while instructions are encoded as base field elements.
+    // Hence we can pack 2 variables and 4 instructions per word.
+    if num_vars % 2 != 0 || num_vars == 0 {
+        return Err(ExecutionError::failed_arithmetic_evaluation(
+            error_ctx,
+            AceError::NumVarIsNotWordAlignedOrIsEmpty(num_vars),
+        ));
+    }
+    if num_eval % 4 != 0 || num_eval == 0 {
+        return Err(ExecutionError::failed_arithmetic_evaluation(
+            error_ctx,
+            AceError::NumEvalIsNotWordAlignedOrIsEmpty(num_eval),
+        ));
+    }
+
+    // Ensure instructions are word-aligned and non-empty
+    let num_read_rows = num_vars as u32 / 2;
+    let num_eval_rows = num_eval as u32;
+
+    let mut evaluation_context =
+        CircuitEvaluation::new(ctx, clk + op_idx, num_read_rows, num_eval_rows);
+
+    let mut ptr = ptr;
+    // perform READ operations
+    for _ in 0..num_read_rows {
+        let word = mem.read_word(ctx, ptr, clk + op_idx)?;
+        evaluation_context.do_read(ptr, *word)?;
+        ptr += PTR_OFFSET_WORD;
+    }
+    // perform EVAL operations
+    for _ in 0..num_eval_rows {
+        let instruction = mem.read_element(ctx, ptr)?;
         evaluation_context.do_eval(ptr, instruction, error_ctx)?;
         ptr += PTR_OFFSET_ELEM;
     }
