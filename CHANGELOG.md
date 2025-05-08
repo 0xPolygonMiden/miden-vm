@@ -1,6 +1,6 @@
 # Changelog
 
-## 0.14.0 (TBD)
+## 0.14.0 (2025-05-07)
 
 #### Enhancements
 
@@ -16,6 +16,12 @@
 - Add pull request template to guide contributors (#1795)
 - [BREAKING] `ExecutionOptions::with_debugging()` now takes a boolean parameter (#1761)
 - Use `MemoryAddress(u32)` for `VmState` memory addresses instead of plain `u64` (#1758).
+- [BREAKING] Improve processor errors for memory and calls (#1717)
+- Implement a new fast processor that doesn't generate a trace (#1668)
+- `ProcessState::get_stack_state()` now only returns the state of the active context (#1753)
+- Change `MastForestBuilder::set_after_exit()` for `append_after_exit()` (#1775)
+- Improve processor error diagnostics (#1765)
+- Fix source spans associated with assert* and mtree_verify instructions (#1789)
 
 
 ## 0.13.2 (2025-04-02)
@@ -58,12 +64,6 @@
 - Optimize FRI remainder polynomial check (#1670).
 - Remove `FALCON_SIG_TO_STACK` event (#1703).
 - Prevent `U64Div` event from crashing processor (#1710).
-- [BREAKING] Improve processor errors for memory and calls (#1717)
-- Implement a new fast processor that doesn't generate a trace (#1668)
-- `ProcessState::get_stack_state()` now only returns the state of the active context (#1753)
-- Change `MastForestBuilder::set_after_exit()` for `append_after_exit()` (#1775)
-- Improve processor error diagnostics (#1765)
-- Fix source spans associated with assert* and mtree_verify instructions (#1789)
 
 ## 0.12.0 (2025-01-22)
 
