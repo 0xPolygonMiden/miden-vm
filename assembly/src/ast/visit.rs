@@ -51,6 +51,8 @@
 //! modifications to specific nodes they care about.
 use core::ops::ControlFlow;
 
+use immediate::ErrorMsg;
+
 use crate::{Felt, Span, ast::*};
 
 /// Represents an immutable AST visitor, whose "early return" type is `T` (by default `()`).
@@ -134,8 +136,8 @@ pub trait Visit<T = ()> {
     fn visit_immediate_felt(&mut self, imm: &Immediate<Felt>) -> ControlFlow<T> {
         visit_immediate_felt(self, imm)
     }
-    fn visit_immediate_error_code(&mut self, code: &Immediate<u32>) -> ControlFlow<T> {
-        visit_immediate_error_code(self, code)
+    fn visit_immediate_error_message(&mut self, code: &ErrorMsg) -> ControlFlow<T> {
+        visit_immediate_error_message(self, code)
     }
 }
 
@@ -203,8 +205,8 @@ where
     fn visit_immediate_felt(&mut self, imm: &Immediate<Felt>) -> ControlFlow<T> {
         (**self).visit_immediate_felt(imm)
     }
-    fn visit_immediate_error_code(&mut self, code: &Immediate<u32>) -> ControlFlow<T> {
-        (**self).visit_immediate_error_code(code)
+    fn visit_immediate_error_message(&mut self, code: &ErrorMsg) -> ControlFlow<T> {
+        (**self).visit_immediate_error_message(code)
     }
 }
 
@@ -299,7 +301,7 @@ where
         | U32AssertWithError(code)
         | U32Assert2WithError(code)
         | U32AssertWWithError(code)
-        | MTreeVerifyWithError(code) => visitor.visit_immediate_error_code(code),
+        | MTreeVerifyWithError(code) => visitor.visit_immediate_error_message(code),
         AddImm(imm) | SubImm(imm) | MulImm(imm) | DivImm(imm) | ExpImm(imm) | EqImm(imm)
         | NeqImm(imm) | Push(imm) => visitor.visit_immediate_felt(imm),
         U32WrappingAddImm(imm)
@@ -323,28 +325,190 @@ where
         SysCall(target) => visitor.visit_syscall(target),
         ProcRef(target) => visitor.visit_procref(target),
         Debug(options) => visitor.visit_debug_options(Span::new(span, options)),
-        Nop | Assert | AssertEq | AssertEqw | Assertz | Add | Sub | Mul | Div | Neg | ILog2
-        | Inv | Incr | Pow2 | Exp | ExpBitLength(_) | Not | And | Or | Xor | Eq | Neq | Eqw
-        | Lt | Lte | Gt | Gte | IsOdd | Ext2Add | Ext2Sub | Ext2Mul | Ext2Div | Ext2Neg
-        | Ext2Inv | U32Test | U32TestW | U32Assert | U32Assert2 | U32AssertW | U32Split
-        | U32Cast | U32WrappingAdd | U32OverflowingAdd | U32OverflowingAdd3 | U32WrappingAdd3
-        | U32WrappingSub | U32OverflowingSub | U32WrappingMul | U32OverflowingMul
-        | U32OverflowingMadd | U32WrappingMadd | U32Div | U32Mod | U32DivMod | U32And | U32Or
-        | U32Xor | U32Not | U32Shr | U32Shl | U32Rotr | U32Rotl | U32Popcnt | U32Clz | U32Ctz
-        | U32Clo | U32Cto | U32Lt | U32Lte | U32Gt | U32Gte | U32Min | U32Max | Drop | DropW
-        | PadW | Dup0 | Dup1 | Dup2 | Dup3 | Dup4 | Dup5 | Dup6 | Dup7 | Dup8 | Dup9 | Dup10
-        | Dup11 | Dup12 | Dup13 | Dup14 | Dup15 | DupW0 | DupW1 | DupW2 | DupW3 | Swap1 | Swap2
-        | Swap3 | Swap4 | Swap5 | Swap6 | Swap7 | Swap8 | Swap9 | Swap10 | Swap11 | Swap12
-        | Swap13 | Swap14 | Swap15 | SwapW1 | SwapW2 | SwapW3 | SwapDw | MovUp2 | MovUp3
-        | MovUp4 | MovUp5 | MovUp6 | MovUp7 | MovUp8 | MovUp9 | MovUp10 | MovUp11 | MovUp12
-        | MovUp13 | MovUp14 | MovUp15 | MovUpW2 | MovUpW3 | MovDn2 | MovDn3 | MovDn4 | MovDn5
-        | MovDn6 | MovDn7 | MovDn8 | MovDn9 | MovDn10 | MovDn11 | MovDn12 | MovDn13 | MovDn14
-        | MovDn15 | MovDnW2 | MovDnW3 | CSwap | CSwapW | CDrop | CDropW | PushU8(_)
-        | PushU16(_) | PushU32(_) | PushFelt(_) | PushWord(_) | PushU8List(_) | PushU16List(_)
-        | PushU32List(_) | PushFeltList(_) | Sdepth | Caller | Clk | MemLoad | MemLoadW
-        | MemStore | MemStoreW | MemStream | AdvPipe | AdvLoadW | Hash | HMerge | HPerm
-        | MTreeGet | MTreeSet | MTreeMerge | MTreeVerify | FriExt2Fold4 | DynExec | DynCall
-        | Breakpoint | HornerBase | HornerExt => ControlFlow::Continue(()),
+        Nop
+        | Assert
+        | AssertEq
+        | AssertEqw
+        | Assertz
+        | Add
+        | Sub
+        | Mul
+        | Div
+        | Neg
+        | ILog2
+        | Inv
+        | Incr
+        | Pow2
+        | Exp
+        | ExpBitLength(_)
+        | Not
+        | And
+        | Or
+        | Xor
+        | Eq
+        | Neq
+        | Eqw
+        | Lt
+        | Lte
+        | Gt
+        | Gte
+        | IsOdd
+        | Ext2Add
+        | Ext2Sub
+        | Ext2Mul
+        | Ext2Div
+        | Ext2Neg
+        | Ext2Inv
+        | U32Test
+        | U32TestW
+        | U32Assert
+        | U32Assert2
+        | U32AssertW
+        | U32Split
+        | U32Cast
+        | U32WrappingAdd
+        | U32OverflowingAdd
+        | U32OverflowingAdd3
+        | U32WrappingAdd3
+        | U32WrappingSub
+        | U32OverflowingSub
+        | U32WrappingMul
+        | U32OverflowingMul
+        | U32OverflowingMadd
+        | U32WrappingMadd
+        | U32Div
+        | U32Mod
+        | U32DivMod
+        | U32And
+        | U32Or
+        | U32Xor
+        | U32Not
+        | U32Shr
+        | U32Shl
+        | U32Rotr
+        | U32Rotl
+        | U32Popcnt
+        | U32Clz
+        | U32Ctz
+        | U32Clo
+        | U32Cto
+        | U32Lt
+        | U32Lte
+        | U32Gt
+        | U32Gte
+        | U32Min
+        | U32Max
+        | Drop
+        | DropW
+        | PadW
+        | Dup0
+        | Dup1
+        | Dup2
+        | Dup3
+        | Dup4
+        | Dup5
+        | Dup6
+        | Dup7
+        | Dup8
+        | Dup9
+        | Dup10
+        | Dup11
+        | Dup12
+        | Dup13
+        | Dup14
+        | Dup15
+        | DupW0
+        | DupW1
+        | DupW2
+        | DupW3
+        | Swap1
+        | Swap2
+        | Swap3
+        | Swap4
+        | Swap5
+        | Swap6
+        | Swap7
+        | Swap8
+        | Swap9
+        | Swap10
+        | Swap11
+        | Swap12
+        | Swap13
+        | Swap14
+        | Swap15
+        | SwapW1
+        | SwapW2
+        | SwapW3
+        | SwapDw
+        | MovUp2
+        | MovUp3
+        | MovUp4
+        | MovUp5
+        | MovUp6
+        | MovUp7
+        | MovUp8
+        | MovUp9
+        | MovUp10
+        | MovUp11
+        | MovUp12
+        | MovUp13
+        | MovUp14
+        | MovUp15
+        | MovUpW2
+        | MovUpW3
+        | MovDn2
+        | MovDn3
+        | MovDn4
+        | MovDn5
+        | MovDn6
+        | MovDn7
+        | MovDn8
+        | MovDn9
+        | MovDn10
+        | MovDn11
+        | MovDn12
+        | MovDn13
+        | MovDn14
+        | MovDn15
+        | MovDnW2
+        | MovDnW3
+        | CSwap
+        | CSwapW
+        | CDrop
+        | CDropW
+        | PushU8(_)
+        | PushU16(_)
+        | PushU32(_)
+        | PushFelt(_)
+        | PushWord(_)
+        | PushU8List(_)
+        | PushU16List(_)
+        | PushU32List(_)
+        | PushFeltList(_)
+        | Sdepth
+        | Caller
+        | Clk
+        | MemLoad
+        | MemLoadW
+        | MemStore
+        | MemStoreW
+        | MemStream
+        | AdvPipe
+        | AdvLoadW
+        | Hash
+        | HMerge
+        | HPerm
+        | MTreeGet
+        | MTreeSet
+        | MTreeMerge
+        | MTreeVerify
+        | FriExt2Fold4
+        | DynExec
+        | DynCall
+        | Breakpoint
+        | HornerBase
+        | HornerExt
+        | ArithmeticCircuitEval => ControlFlow::Continue(()),
     }
 }
 
@@ -457,7 +621,7 @@ where
 }
 
 #[inline(always)]
-pub fn visit_immediate_error_code<V, T>(_visitor: &mut V, _imm: &Immediate<u32>) -> ControlFlow<T>
+pub fn visit_immediate_error_message<V, T>(_visitor: &mut V, _imm: &ErrorMsg) -> ControlFlow<T>
 where
     V: ?Sized + Visit<T>,
 {
@@ -548,8 +712,8 @@ pub trait VisitMut<T = ()> {
     fn visit_mut_immediate_felt(&mut self, imm: &mut Immediate<Felt>) -> ControlFlow<T> {
         visit_mut_immediate_felt(self, imm)
     }
-    fn visit_mut_immediate_error_code(&mut self, code: &mut Immediate<u32>) -> ControlFlow<T> {
-        visit_mut_immediate_error_code(self, code)
+    fn visit_mut_immediate_error_message(&mut self, code: &mut ErrorMsg) -> ControlFlow<T> {
+        visit_mut_immediate_error_message(self, code)
     }
 }
 
@@ -617,8 +781,8 @@ where
     fn visit_mut_immediate_felt(&mut self, imm: &mut Immediate<Felt>) -> ControlFlow<T> {
         (**self).visit_mut_immediate_felt(imm)
     }
-    fn visit_mut_immediate_error_code(&mut self, code: &mut Immediate<u32>) -> ControlFlow<T> {
-        (**self).visit_mut_immediate_error_code(code)
+    fn visit_mut_immediate_error_message(&mut self, code: &mut ErrorMsg) -> ControlFlow<T> {
+        (**self).visit_mut_immediate_error_message(code)
     }
 }
 
@@ -716,7 +880,7 @@ where
         | U32AssertWithError(code)
         | U32Assert2WithError(code)
         | U32AssertWWithError(code)
-        | MTreeVerifyWithError(code) => visitor.visit_mut_immediate_error_code(code),
+        | MTreeVerifyWithError(code) => visitor.visit_mut_immediate_error_message(code),
         AddImm(imm) | SubImm(imm) | MulImm(imm) | DivImm(imm) | ExpImm(imm) | EqImm(imm)
         | NeqImm(imm) | Push(imm) => visitor.visit_mut_immediate_felt(imm),
         U32WrappingAddImm(imm)
@@ -740,28 +904,190 @@ where
         SysCall(target) => visitor.visit_mut_syscall(target),
         ProcRef(target) => visitor.visit_mut_procref(target),
         Debug(options) => visitor.visit_mut_debug_options(Span::new(span, options)),
-        Nop | Assert | AssertEq | AssertEqw | Assertz | Add | Sub | Mul | Div | Neg | ILog2
-        | Inv | Incr | Pow2 | Exp | ExpBitLength(_) | Not | And | Or | Xor | Eq | Neq | Eqw
-        | Lt | Lte | Gt | Gte | IsOdd | Ext2Add | Ext2Sub | Ext2Mul | Ext2Div | Ext2Neg
-        | Ext2Inv | U32Test | U32TestW | U32Assert | U32Assert2 | U32AssertW | U32Split
-        | U32Cast | U32WrappingAdd | U32OverflowingAdd | U32OverflowingAdd3 | U32WrappingAdd3
-        | U32WrappingSub | U32OverflowingSub | U32WrappingMul | U32OverflowingMul
-        | U32OverflowingMadd | U32WrappingMadd | U32Div | U32Mod | U32DivMod | U32And | U32Or
-        | U32Xor | U32Not | U32Shr | U32Shl | U32Rotr | U32Rotl | U32Popcnt | U32Clz | U32Ctz
-        | U32Clo | U32Cto | U32Lt | U32Lte | U32Gt | U32Gte | U32Min | U32Max | Drop | DropW
-        | PadW | Dup0 | Dup1 | Dup2 | Dup3 | Dup4 | Dup5 | Dup6 | Dup7 | Dup8 | Dup9 | Dup10
-        | Dup11 | Dup12 | Dup13 | Dup14 | Dup15 | DupW0 | DupW1 | DupW2 | DupW3 | Swap1 | Swap2
-        | Swap3 | Swap4 | Swap5 | Swap6 | Swap7 | Swap8 | Swap9 | Swap10 | Swap11 | Swap12
-        | Swap13 | Swap14 | Swap15 | SwapW1 | SwapW2 | SwapW3 | SwapDw | MovUp2 | MovUp3
-        | MovUp4 | MovUp5 | MovUp6 | MovUp7 | MovUp8 | MovUp9 | MovUp10 | MovUp11 | MovUp12
-        | MovUp13 | MovUp14 | MovUp15 | MovUpW2 | MovUpW3 | MovDn2 | MovDn3 | MovDn4 | MovDn5
-        | MovDn6 | MovDn7 | MovDn8 | MovDn9 | MovDn10 | MovDn11 | MovDn12 | MovDn13 | MovDn14
-        | MovDn15 | MovDnW2 | MovDnW3 | CSwap | CSwapW | CDrop | CDropW | PushU8(_)
-        | PushU16(_) | PushU32(_) | PushFelt(_) | PushWord(_) | PushU8List(_) | PushU16List(_)
-        | PushU32List(_) | PushFeltList(_) | Sdepth | Caller | Clk | MemLoad | MemLoadW
-        | MemStore | MemStoreW | MemStream | AdvPipe | AdvLoadW | Hash | HMerge | HPerm
-        | MTreeGet | MTreeSet | MTreeMerge | MTreeVerify | FriExt2Fold4 | DynExec | DynCall
-        | Breakpoint | HornerBase | HornerExt => ControlFlow::Continue(()),
+        Nop
+        | Assert
+        | AssertEq
+        | AssertEqw
+        | Assertz
+        | Add
+        | Sub
+        | Mul
+        | Div
+        | Neg
+        | ILog2
+        | Inv
+        | Incr
+        | Pow2
+        | Exp
+        | ExpBitLength(_)
+        | Not
+        | And
+        | Or
+        | Xor
+        | Eq
+        | Neq
+        | Eqw
+        | Lt
+        | Lte
+        | Gt
+        | Gte
+        | IsOdd
+        | Ext2Add
+        | Ext2Sub
+        | Ext2Mul
+        | Ext2Div
+        | Ext2Neg
+        | Ext2Inv
+        | U32Test
+        | U32TestW
+        | U32Assert
+        | U32Assert2
+        | U32AssertW
+        | U32Split
+        | U32Cast
+        | U32WrappingAdd
+        | U32OverflowingAdd
+        | U32OverflowingAdd3
+        | U32WrappingAdd3
+        | U32WrappingSub
+        | U32OverflowingSub
+        | U32WrappingMul
+        | U32OverflowingMul
+        | U32OverflowingMadd
+        | U32WrappingMadd
+        | U32Div
+        | U32Mod
+        | U32DivMod
+        | U32And
+        | U32Or
+        | U32Xor
+        | U32Not
+        | U32Shr
+        | U32Shl
+        | U32Rotr
+        | U32Rotl
+        | U32Popcnt
+        | U32Clz
+        | U32Ctz
+        | U32Clo
+        | U32Cto
+        | U32Lt
+        | U32Lte
+        | U32Gt
+        | U32Gte
+        | U32Min
+        | U32Max
+        | Drop
+        | DropW
+        | PadW
+        | Dup0
+        | Dup1
+        | Dup2
+        | Dup3
+        | Dup4
+        | Dup5
+        | Dup6
+        | Dup7
+        | Dup8
+        | Dup9
+        | Dup10
+        | Dup11
+        | Dup12
+        | Dup13
+        | Dup14
+        | Dup15
+        | DupW0
+        | DupW1
+        | DupW2
+        | DupW3
+        | Swap1
+        | Swap2
+        | Swap3
+        | Swap4
+        | Swap5
+        | Swap6
+        | Swap7
+        | Swap8
+        | Swap9
+        | Swap10
+        | Swap11
+        | Swap12
+        | Swap13
+        | Swap14
+        | Swap15
+        | SwapW1
+        | SwapW2
+        | SwapW3
+        | SwapDw
+        | MovUp2
+        | MovUp3
+        | MovUp4
+        | MovUp5
+        | MovUp6
+        | MovUp7
+        | MovUp8
+        | MovUp9
+        | MovUp10
+        | MovUp11
+        | MovUp12
+        | MovUp13
+        | MovUp14
+        | MovUp15
+        | MovUpW2
+        | MovUpW3
+        | MovDn2
+        | MovDn3
+        | MovDn4
+        | MovDn5
+        | MovDn6
+        | MovDn7
+        | MovDn8
+        | MovDn9
+        | MovDn10
+        | MovDn11
+        | MovDn12
+        | MovDn13
+        | MovDn14
+        | MovDn15
+        | MovDnW2
+        | MovDnW3
+        | CSwap
+        | CSwapW
+        | CDrop
+        | CDropW
+        | PushU8(_)
+        | PushU16(_)
+        | PushU32(_)
+        | PushFelt(_)
+        | PushWord(_)
+        | PushU8List(_)
+        | PushU16List(_)
+        | PushU32List(_)
+        | PushFeltList(_)
+        | Sdepth
+        | Caller
+        | Clk
+        | MemLoad
+        | MemLoadW
+        | MemStore
+        | MemStoreW
+        | MemStream
+        | AdvPipe
+        | AdvLoadW
+        | Hash
+        | HMerge
+        | HPerm
+        | MTreeGet
+        | MTreeSet
+        | MTreeMerge
+        | MTreeVerify
+        | FriExt2Fold4
+        | DynExec
+        | DynCall
+        | Breakpoint
+        | HornerBase
+        | HornerExt
+        | ArithmeticCircuitEval => ControlFlow::Continue(()),
     }
 }
 
@@ -886,9 +1212,9 @@ where
 }
 
 #[inline(always)]
-pub fn visit_mut_immediate_error_code<V, T>(
+pub fn visit_mut_immediate_error_message<V, T>(
     _visitor: &mut V,
-    _imm: &mut Immediate<u32>,
+    _imm: &mut ErrorMsg,
 ) -> ControlFlow<T>
 where
     V: ?Sized + VisitMut<T>,

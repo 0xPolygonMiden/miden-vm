@@ -70,13 +70,16 @@ impl fmt::Display for Decorator {
                 write!(f, "asmOp({}, {})", assembly_op.op(), assembly_op.num_cycles())
             },
             Self::Debug(options) => write!(f, "debug({options})"),
-            Self::Trace(trace_id) => write!(f, "trace({})", trace_id),
+            Self::Trace(trace_id) => write!(f, "trace({trace_id})"),
         }
     }
 }
 
 /// Vector consisting of a tuple of operation index (within a span block) and decorator at that
-/// index
+/// index.
+///
+/// Note: for `AssemblyOp` decorators, when an instruction compiles down to multiple operations,
+/// only the first operation is associated with the assembly op.
 pub type DecoratorList = Vec<(usize, DecoratorId)>;
 
 /// Iterator used to iterate through the decorator list of a span block

@@ -101,6 +101,9 @@ impl MastForestMerger {
         for other_forest in forests.iter() {
             self.merge_decorators(other_forest)?;
         }
+        for other_forest in forests.iter() {
+            self.merge_error_codes(other_forest)?;
+        }
 
         let iterator = MultiMastForestNodeIter::new(forests.clone());
         for item in iterator {
@@ -177,6 +180,11 @@ impl MastForestMerger {
                 self.mast_forest.advice_map_mut().insert(*digest, values.clone());
             }
         }
+        Ok(())
+    }
+
+    fn merge_error_codes(&mut self, other_forest: &MastForest) -> Result<(), MastForestError> {
+        self.mast_forest.error_codes.extend(other_forest.error_codes.clone());
         Ok(())
     }
 
@@ -327,8 +335,8 @@ impl MastForestMerger {
         // Decorators must be handled specially for basic block nodes.
         // For other node types we can handle it centrally.
         if !mapped_node.is_basic_block() {
-            mapped_node.set_before_enter(map_decorators(node.before_enter())?);
-            mapped_node.set_after_exit(map_decorators(node.after_exit())?);
+            mapped_node.append_before_enter(&map_decorators(node.before_enter())?);
+            mapped_node.append_after_exit(&map_decorators(node.after_exit())?);
         }
 
         Ok(mapped_node)

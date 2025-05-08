@@ -3,11 +3,11 @@ use alloc::vec::Vec;
 use miden_air::ProcessorAir;
 use processor::crypto::RpoRandomCoin;
 use test_utils::{
-    VerifierError,
+    MIN_STACK_DEPTH, VerifierError,
     crypto::{MerkleStore, RandomCoin, Rpo256, RpoDigest},
     math::{FieldElement, QuadExtension, ToElements},
 };
-use vm_core::Felt;
+use vm_core::{Felt, WORD_SIZE};
 use winter_air::{Air, proof::Proof};
 use winter_fri::VerifierChannel as FriVerifierChannel;
 
@@ -28,10 +28,21 @@ pub fn generate_advice_inputs(
     proof: Proof,
     pub_inputs: <ProcessorAir as Air>::PublicInputs,
 ) -> Result<VerifierData, VerifierError> {
+    // we compute the number of procedures in the kernel
+    // the public inputs contain, in addition to the kernel procedure roots:
+    //
+    // 1. The input operand stack (16 field elements),
+    // 2. The output operand stack (16 field elements),
+    // 3. The program hash (4 field elements).
+    let pub_inputs_elements = pub_inputs.to_elements();
+    let digests_elements = pub_inputs_elements.len() - MIN_STACK_DEPTH * 2 - WORD_SIZE;
+    assert_eq!(digests_elements % WORD_SIZE, 0);
+    let num_kernel_procedures_digests = digests_elements / WORD_SIZE;
+
     // we need to provide the following instance specific data through the operand stack
     let initial_stack = vec![
+        num_kernel_procedures_digests as u64,
         proof.context.options().grinding_factor() as u64,
-        proof.context.options().blowup_factor().ilog2() as u64,
         proof.context.options().num_queries() as u64,
         proof.context.trace_info().length().ilog2() as u64,
     ];
@@ -43,8 +54,9 @@ pub fn generate_advice_inputs(
     let mut public_coin_seed = proof.context.to_elements();
     public_coin_seed.append(&mut pub_inputs.to_elements());
 
-    // add the public inputs, which is nothing but the input and output stacks to the VM, to the
-    // advice tape
+    // add the public inputs, which is nothing but the input and output stacks to the VM as well as
+    // the digests of the procedures making up the kernel against which the program was compiled,
+    // to the advice tape
     let pub_inputs_int: Vec<u64> = pub_inputs.to_elements().iter().map(|a| a.as_int()).collect();
     advice_stack.extend_from_slice(&pub_inputs_int[..]);
 
@@ -82,6 +94,7 @@ pub fn generate_advice_inputs(
     let _constraint_coeffs: winter_air::ConstraintCompositionCoefficients<QuadExt> = air
         .get_constraint_composition_coefficients(&mut public_coin)
         .map_err(|_| VerifierError::RandomCoinError)?;
+
     let constraint_commitment = channel.read_constraint_commitment();
     advice_stack.extend_from_slice(&digest_to_int_vec(&[constraint_commitment]));
     public_coin.reseed(constraint_commitment);
@@ -113,6 +126,10 @@ pub fn generate_advice_inputs(
             .next(),
     );
 
+    // placeholder for the alpha_deep
+    let alpha_deep_index = advice_stack.len();
+    advice_stack.extend_from_slice(&[0, 0]);
+
     advice_stack.extend_from_slice(&to_int_vec(&main_and_aux_frame_states));
     public_coin.reseed(Rpo256::hash_elements(&main_and_aux_frame_states));
 
@@ -133,9 +150,14 @@ pub fn generate_advice_inputs(
     advice_stack.extend_from_slice(&to_int_vec(&poly));
 
     // reseed with FRI layer commitments
-    let _deep_coefficients = air
+    let deep_coefficients = air
         .get_deep_composition_coefficients::<QuadExt, RpoRandomCoin>(&mut public_coin)
         .map_err(|_| VerifierError::RandomCoinError)?;
+
+    let alpha_deep = deep_coefficients.trace[1];
+    advice_stack[alpha_deep_index] = alpha_deep.base_element(0).as_int();
+    advice_stack[alpha_deep_index + 1] = alpha_deep.base_element(1).as_int();
+
     let layer_commitments = fri_commitments_digests.clone();
     for commitment in layer_commitments.iter() {
         public_coin.reseed(*commitment);

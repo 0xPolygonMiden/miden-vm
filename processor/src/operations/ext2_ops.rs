@@ -31,7 +31,7 @@ impl Process {
 mod tests {
     type QuadFelt = QuadExtension<Felt>;
     use test_utils::rand::rand_value;
-    use vm_core::QuadExtension;
+    use vm_core::{QuadExtension, mast::MastForest};
 
     use super::{
         super::{Felt, MIN_STACK_DEPTH, Operation},
@@ -50,9 +50,10 @@ mod tests {
         let stack = StackInputs::new(vec![a0, a1, b0, b1]).expect("inputs lenght too long");
         let mut host = DefaultHost::default();
         let mut process = Process::new_dummy(stack);
+        let program = &MastForest::default();
 
         // multiply the top two values
-        process.execute_op(Operation::Ext2Mul, &mut host).unwrap();
+        process.execute_op(Operation::Ext2Mul, program, &mut host).unwrap();
         let a = QuadFelt::new(a0, a1);
         let b = QuadFelt::new(b0, b1);
         let c = (b * a).to_base_elements();
@@ -65,7 +66,7 @@ mod tests {
         // calling ext2mul with a stack of minimum depth is ok
         let stack = StackInputs::new(vec![]).expect("inputs lenght too long");
         let mut process = Process::new_dummy(stack);
-        assert!(process.execute_op(Operation::Ext2Mul, &mut host).is_ok());
+        assert!(process.execute_op(Operation::Ext2Mul, program, &mut host).is_ok());
     }
 
     // HELPER FUNCTIONS

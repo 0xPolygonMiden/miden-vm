@@ -74,6 +74,7 @@ fn stacked_chiplet_trace() {
     let kernel = build_kernel();
     let (chiplets_trace, trace_len) = build_trace(&stack, ops, kernel);
     let memory_len = 1;
+    let ace_len = 0;
     let kernel_rom_len = 2;
 
     // Skip the hash of the span block generated while building the trace to check only the HPerm.
@@ -89,8 +90,9 @@ fn stacked_chiplet_trace() {
     let memory_end = bitwise_end + memory_len;
     validate_memory_trace(&chiplets_trace, bitwise_end, memory_end);
 
-    let kernel_rom_end = memory_end + kernel_rom_len;
-    validate_kernel_rom_trace(&chiplets_trace, memory_end, kernel_rom_end);
+    let ace_end = memory_end + ace_len;
+    let kernel_rom_end = memory_end + ace_len + kernel_rom_len;
+    validate_kernel_rom_trace(&chiplets_trace, ace_end, kernel_rom_end);
 
     // Validate that the trace was padded correctly.
     validate_padding(&chiplets_trace, kernel_rom_end, trace_len);
@@ -214,7 +216,7 @@ fn validate_kernel_rom_trace(trace: &ChipletsTrace, start: usize, end: usize) {
         assert_eq!(ONE, trace[0][row]);
         assert_eq!(ONE, trace[1][row]);
         assert_eq!(ONE, trace[2][row]);
-        assert_eq!(ZERO, trace[3][row]);
+        assert_eq!(ONE, trace[3][row]);
 
         // the s0 column of kernel ROM must be set to ZERO as there were no kernel accesses
         assert_eq!(ZERO, trace[4][row]);
@@ -235,9 +237,10 @@ fn validate_padding(trace: &ChipletsTrace, start: usize, end: usize) {
         assert_eq!(ONE, trace[1][row]);
         assert_eq!(ONE, trace[2][row]);
         assert_eq!(ONE, trace[3][row]);
+        assert_eq!(ONE, trace[4][row]);
 
         // padding
-        trace.iter().skip(4).for_each(|column| {
+        trace.iter().skip(5).for_each(|column| {
             assert_eq!(ZERO, column[row]);
         });
     }

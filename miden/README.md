@@ -4,17 +4,17 @@ This crate aggregates all components of the Miden VM in a single place. Specific
 
 ## Basic concepts
 
-An in-depth description of Miden VM is available in the full Miden VM [documentation](https://0xpolygonmiden.github.io/miden-vm/). In this section we cover only the basics to make the included examples easier to understand.
+An in-depth description of Miden VM is available in the full Miden VM [documentation](https://0xMiden.github.io/miden-vm/). In this section we cover only the basics to make the included examples easier to understand.
 
 ### Writing programs
 
 Our goal is to make Miden VM an easy compilation target for high-level languages such as Rust, Move, Sway, and others. We believe it is important to let people write programs in the languages of their choice. However, compilers to help with this have not been developed yet. Thus, for now, the primary way to write programs for Miden VM is to use [Miden assembly](../assembly).
 
-Miden assembler compiles assembly source code in a [program MAST](https://0xpolygonmiden.github.io/miden-vm/design/programs.html), which is represented by a `Program` struct. It is possible to construct a `Program` struct manually, but we don't recommend this approach because it is tedious, error-prone, and requires an in-depth understanding of VM internals. All examples throughout these docs use assembly syntax.
+Miden assembler compiles assembly source code in a [program MAST](https://0xMiden.github.io/miden-vm/design/programs.html), which is represented by a `Program` struct. It is possible to construct a `Program` struct manually, but we don't recommend this approach because it is tedious, error-prone, and requires an in-depth understanding of VM internals. All examples throughout these docs use assembly syntax.
 
 #### Program hash
 
-All Miden programs can be reduced to a single 32-byte value, called program hash. Once a `Program` object is constructed, you can access this hash via `Program::hash()` method. This hash value is used by a verifier when they verify program execution. This ensures that the verifier verifies execution of a specific program (e.g. a program which the prover had committed to previously). The methodology for computing program hash is described [here](https://0xpolygonmiden.github.io/miden-vm/design/programs.html#program-hash-computation).
+All Miden programs can be reduced to a single 32-byte value, called program hash. Once a `Program` object is constructed, you can access this hash via `Program::hash()` method. This hash value is used by a verifier when they verify program execution. This ensures that the verifier verifies execution of a specific program (e.g. a program which the prover had committed to previously). The methodology for computing program hash is described [here](https://0xMiden.github.io/miden-vm/design/programs.html#program-hash-computation).
 
 ### Inputs / outputs
 
@@ -50,14 +50,18 @@ The `execute_iter()` function takes similar arguments (but without the `options`
 For example:
 
 ```rust
-use miden_vm::{Assembler, execute, execute_iter, DefaultHost, Program, StackInputs};
+use std::sync::Arc;
+use miden_vm::{assembly::DefaultSourceManager, Assembler, execute, execute_iter, DefaultHost, Program, StackInputs};
 use processor::ExecutionOptions;
+
+// instantiate default source manager
+let source_manager = Arc::new(DefaultSourceManager::default());
 
 // instantiate the assembler
 let mut assembler = Assembler::default();
 
 // compile Miden assembly source code into a program
-let program = assembler.assemble_program("begin push.3 push.5 add end").unwrap();
+let program = assembler.assemble_program("begin push.3 push.5 add swap drop end").unwrap();
 
 // use an empty list as initial stack
 let stack_inputs = StackInputs::default();
@@ -69,10 +73,10 @@ let mut host = DefaultHost::default();
 let exec_options = ExecutionOptions::default();
 
 // execute the program with no inputs
-let trace = execute(&program, stack_inputs.clone(), &mut host, exec_options).unwrap();
+let trace = execute(&program, stack_inputs.clone(), &mut host, exec_options, source_manager.clone()).unwrap();
 
 // now, execute the same program in debug mode and iterate over VM states
-for vm_state in execute_iter(&program, stack_inputs, &mut host) {
+for vm_state in execute_iter(&program, stack_inputs, &mut host, source_manager) {
     match vm_state {
         Ok(vm_state) => println!("{:?}", vm_state),
         Err(_) => println!("something went terribly wrong!"),
@@ -99,13 +103,17 @@ If the program is executed successfully, the function returns a tuple with 2 ele
 Here is a simple example of executing a program which pushes two numbers onto the stack and computes their sum:
 
 ```rust
-use miden_vm::{Assembler, DefaultHost, ProvingOptions, Program, prove, StackInputs};
+use std::sync::Arc;
+use miden_vm::{assembly::DefaultSourceManager, Assembler, DefaultHost, ProvingOptions, Program, prove, StackInputs};
+
+// instantiate default source manager
+let source_manager = Arc::new(DefaultSourceManager::default());
 
 // instantiate the assembler
 let mut assembler = Assembler::default();
 
 // this is our program, we compile it from assembly code
-let program = assembler.assemble_program("begin push.3 push.5 add end").unwrap();
+let program = assembler.assemble_program("begin push.3 push.5 add swap drop end").unwrap();
 
 // let's execute it and generate a STARK proof
 let (outputs, proof) = prove(
@@ -113,6 +121,7 @@ let (outputs, proof) = prove(
     StackInputs::default(),       // we won't provide any inputs
     &mut DefaultHost::default(),  // we'll be using a default host
     ProvingOptions::default(),    // we'll be using default options
+    source_manager,
 )
 .unwrap();
 
@@ -177,7 +186,8 @@ add         // stack state: 3 2
 Notice that except for the first 2 operations which initialize the stack, the sequence of `swap dup.1 add` operations repeats over and over. In fact, we can repeat these operations an arbitrary number of times to compute an arbitrary Fibonacci number. In Rust, it would look like this:
 
 ```rust
-use miden_vm::{Assembler, DefaultHost, Program, ProvingOptions, StackInputs};
+use std::sync::Arc;
+use miden_vm::{assembly::DefaultSourceManager, Assembler, DefaultHost, Program, ProvingOptions, StackInputs};
 
 // set the number of terms to compute
 let n = 50;
@@ -207,6 +217,7 @@ let (outputs, proof) = miden_vm::prove(
     stack_inputs,
     &mut host,
     ProvingOptions::default(), // use default proving options
+    Arc::new(DefaultSourceManager::default()), // use default source manager
 )
 .unwrap();
 

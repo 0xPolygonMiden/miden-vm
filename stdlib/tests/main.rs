@@ -10,6 +10,16 @@ macro_rules! build_test {
     }}
 }
 
+/// Instantiates a test in debug mode with Miden standard library included.
+#[macro_export]
+macro_rules! build_debug_test {
+    ($($params:tt)+) => {{
+        let mut test = test_utils::build_test_by_mode!(true, $($params)+);
+        test.libraries = vec![miden_stdlib::StdLibrary::default().into()];
+        test
+    }}
+}
+
 mod collections;
 mod crypto;
 mod mast_forest_merge;

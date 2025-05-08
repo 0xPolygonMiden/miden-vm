@@ -1,7 +1,7 @@
-use alloc::{borrow::Borrow, string::ToString, vec::Vec};
+use alloc::{borrow::Borrow, string::ToString, sync::Arc, vec::Vec};
 
 use vm_core::{
-    AssemblyOp, Decorator, Operation,
+    AssemblyOp, Decorator, Felt, Operation,
     mast::{DecoratorId, MastNodeId},
     sys_events::SystemEvent,
 };
@@ -134,28 +134,33 @@ impl BasicBlockBuilder<'_> {
         Ok(())
     }
 
-    /// Computes the number of cycles elapsed since the last invocation of track_instruction()
-    /// and updates the related AsmOp decorator to include this cycle count.
+    /// Computes the number of cycles elapsed since the last invocation of track_instruction() and
+    /// updates the related AsmOp decorator to include this cycle count.
     ///
-    /// If the cycle count is 0, the original decorator is removed from the list. This can happen
-    /// for instructions which do not contribute any operations to the span block - e.g., exec,
-    /// call, and syscall.
-    pub fn set_instruction_cycle_count(&mut self) {
+    /// If the cycle count is 0, the original decorator is removed from the list and returned. This
+    /// can happen for instructions which do not contribute any operations to the span block - e.g.,
+    /// exec, call, and syscall.
+    pub fn set_instruction_cycle_count(&mut self) -> Option<DecoratorId> {
         // get the last asmop decorator and the cycle at which it was added
         let (op_start, assembly_op_id) =
             self.decorators.get_mut(self.last_asmop_pos).expect("no asmop decorator");
 
-        let assembly_op = &mut self.mast_forest_builder[*assembly_op_id];
-        assert!(matches!(assembly_op, Decorator::AsmOp(_)));
+        let assembly_op = match &mut self.mast_forest_builder[*assembly_op_id] {
+            Decorator::AsmOp(assembly_op) => assembly_op,
+            _ => panic!("internal error: last asmop decorator is not an AsmOp"),
+        };
 
         // compute the cycle count for the instruction
         let cycle_count = self.ops.len() - *op_start;
 
         // if the cycle count is 0, remove the decorator; otherwise update its cycle count
         if cycle_count == 0 {
-            self.decorators.remove(self.last_asmop_pos);
-        } else if let Decorator::AsmOp(assembly_op) = assembly_op {
-            assembly_op.set_num_cycles(cycle_count as u8)
+            let (_, decorator_id) = self.decorators.remove(self.last_asmop_pos);
+            Some(decorator_id)
+        } else {
+            assembly_op.set_num_cycles(cycle_count as u8);
+
+            None
         }
     }
 }
@@ -234,4 +239,12 @@ pub enum BasicBlockOrDecorators {
     BasicBlock(MastNodeId),
     Decorators(Vec<DecoratorId>),
     Nothing,
+}
+
+impl BasicBlockBuilder<'_> {
+    /// Registers an error message in the MAST Forest and returns the
+    /// corresponding error code as a Felt.
+    pub fn register_error(&mut self, msg: Arc<str>) -> Felt {
+        self.mast_forest_builder.register_error(msg)
+    }
 }

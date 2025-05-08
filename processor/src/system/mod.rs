@@ -142,7 +142,7 @@ impl System {
 
     /// Increments the clock cycle.
     pub fn advance_clock(&mut self, max_cycles: u32) -> Result<(), ExecutionError> {
-        self.clk += 1;
+        self.clk += 1_u32;
 
         // Check that maximum number of cycles is not exceeded.
         if self.clk.as_u32() > max_cycles {
@@ -181,7 +181,7 @@ impl System {
     ///
     /// A CALL or DYNCALL cannot be started when the VM is executing a SYSCALL.
     pub fn start_call_or_dyncall(&mut self, fn_hash: Word) {
-        self.ctx = (self.clk + 1).into();
+        self.ctx = self.get_next_ctx_id();
         self.fmp = Felt::new(FMP_MIN);
         self.fn_hash = fn_hash;
     }
@@ -296,6 +296,15 @@ impl System {
                 column.resize(new_length, ZERO);
             }
         }
+    }
+
+    /// Returns the next context ID that would be created given the current state.
+    ///
+    /// Note: This only applies to the context created upon a `CALL` or `DYNCALL` operation;
+    /// specifically the `SYSCALL` operation doesn't apply as it always goes back to the root
+    /// context.
+    pub fn get_next_ctx_id(&self) -> ContextId {
+        (self.clk + 1).into()
     }
 }
 

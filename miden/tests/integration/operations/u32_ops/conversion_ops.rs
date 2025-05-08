@@ -103,7 +103,7 @@ fn u32assert_fail() {
 
     expect_exec_error_matches!(
         test,
-        ExecutionError::NotU32Value(value, err_code) if value == Felt::new(equal) && err_code == ZERO
+        ExecutionError::NotU32Value{ value, err_code, label: _, source_file: _ } if value == Felt::new(equal) && err_code == ZERO
     );
 
     // --- test when a > 2^32 ---------------------------------------------------------------------
@@ -111,7 +111,7 @@ fn u32assert_fail() {
 
     expect_exec_error_matches!(
         test,
-        ExecutionError::NotU32Value(value, err_code) if value == Felt::new(larger) && err_code == ZERO
+        ExecutionError::NotU32Value{ value, err_code, label: _, source_file: _ } if value == Felt::new(larger) && err_code == ZERO
     );
 }
 
@@ -142,7 +142,7 @@ fn u32assert2_fail() {
 
     expect_exec_error_matches!(
         test,
-        ExecutionError::NotU32Value(value, err_code) if value == Felt::new(value_b) && err_code == ZERO
+        ExecutionError::NotU32Value{ value, err_code, label: _, source_file: _ } if value == Felt::new(value_b) && err_code == ZERO
     );
 
     // -------- Case 2: a > 2^32 and b < 2^32 ---------------------------------------------------
@@ -152,7 +152,7 @@ fn u32assert2_fail() {
 
     expect_exec_error_matches!(
         test,
-        ExecutionError::NotU32Value(value, err_code) if value == Felt::new(value_a) && err_code == ZERO
+        ExecutionError::NotU32Value{ value, err_code, label: _, source_file: _ } if value == Felt::new(value_a) && err_code == ZERO
     );
 
     // --------- Case 3: a < 2^32 and b > 2^32 --------------------------------------------------
@@ -162,7 +162,7 @@ fn u32assert2_fail() {
 
     expect_exec_error_matches!(
         test,
-        ExecutionError::NotU32Value(value, err_code) if value == Felt::new(value_b) && err_code == ZERO
+        ExecutionError::NotU32Value{ value, err_code, label: _, source_file: _ } if value == Felt::new(value_b) && err_code == ZERO
     );
 }
 
@@ -188,7 +188,7 @@ fn u32assertw_fail() {
 
     expect_exec_error_matches!(
         test,
-        ExecutionError::NotU32Value(value, err_code) if value == Felt::new(U32_BOUND) && err_code == ZERO
+        ExecutionError::NotU32Value{ value, err_code, label: _, source_file: _ } if value == Felt::new(U32_BOUND) && err_code == ZERO
     );
 }
 

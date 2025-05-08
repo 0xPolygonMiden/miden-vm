@@ -77,7 +77,7 @@ impl From<RowIndex> for Felt {
 impl From<usize> for RowIndex {
     fn from(value: usize) -> Self {
         let value = u32::try_from(value)
-            .map_err(|_| RowIndexError::InvalidSize(format!("{}_usize", value).into()))
+            .map_err(|_| RowIndexError::InvalidSize(format!("{value}_usize").into()))
             .unwrap();
         value.into()
     }
@@ -94,7 +94,7 @@ impl TryFrom<u64> for RowIndex {
 
     fn try_from(value: u64) -> Result<Self, Self::Error> {
         let value = u32::try_from(value)
-            .map_err(|_| RowIndexError::InvalidSize(format!("{}_u64", value).into()))?;
+            .map_err(|_| RowIndexError::InvalidSize(format!("{value}_u64").into()))?;
         Ok(RowIndex::from(value))
     }
 }
@@ -113,7 +113,7 @@ impl From<u32> for RowIndex {
 impl From<i32> for RowIndex {
     fn from(value: i32) -> Self {
         let value = u32::try_from(value)
-            .map_err(|_| RowIndexError::InvalidSize(format!("{}_i32", value).into()))
+            .map_err(|_| RowIndexError::InvalidSize(format!("{value}_i32").into()))
             .unwrap();
         RowIndex(value)
     }
@@ -133,7 +133,7 @@ impl Sub<usize> for RowIndex {
 
     fn sub(self, rhs: usize) -> Self::Output {
         let rhs = u32::try_from(rhs)
-            .map_err(|_| RowIndexError::InvalidSize(format!("{}_usize", rhs).into()))
+            .map_err(|_| RowIndexError::InvalidSize(format!("{rhs}_usize").into()))
             .unwrap();
         RowIndex(self.0 - rhs)
     }
@@ -174,7 +174,7 @@ impl Add<usize> for RowIndex {
 
     fn add(self, rhs: usize) -> Self::Output {
         let rhs = u32::try_from(rhs)
-            .map_err(|_| RowIndexError::InvalidSize(format!("{}_usize", rhs).into()))
+            .map_err(|_| RowIndexError::InvalidSize(format!("{rhs}_usize").into()))
             .unwrap();
         RowIndex(self.0 + rhs)
     }
@@ -188,16 +188,30 @@ impl Add<RowIndex> for u32 {
     }
 }
 
+/// Adds a u32 value to a RowIndex in place.
+///
+/// # Panics
+///
+/// This function will panic if the internal value of the [`RowIndex`] would exceed the maximum
+/// value `u32::MAX`.
+impl AddAssign<u32> for RowIndex {
+    fn add_assign(&mut self, rhs: u32) {
+        self.0 += rhs;
+    }
+}
+
 /// Adds a usize value to a RowIndex in place.
 ///
 /// # Panics
 ///
-/// This function will panic if the number represented by the usize is greater than the maximum
-/// [`RowIndex`] value, `u32::MAX`.
+/// This function will panic if the internal value of the [`RowIndex`] would exceed the maximum
+/// value `u32::MAX`.
 impl AddAssign<usize> for RowIndex {
     fn add_assign(&mut self, rhs: usize) {
-        let rhs: RowIndex = rhs.into();
-        self.0 += rhs.0;
+        let rhs = u32::try_from(rhs)
+            .map_err(|_| RowIndexError::InvalidSize(format!("{rhs}_usize").into()))
+            .unwrap();
+        self.0 += rhs;
     }
 }
 
@@ -307,7 +321,7 @@ mod tests {
 
         // Add assign
         let mut step = RowIndex(5);
-        step += 5;
+        step += 5_u32;
         assert_eq!(step, 10);
     }
 

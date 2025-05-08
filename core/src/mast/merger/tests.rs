@@ -341,11 +341,11 @@ fn mast_forest_merge_decorators() {
     let deco2_a = forest_a.add_decorator(trace2.clone()).unwrap();
 
     let mut foo_node_a = block_foo();
-    foo_node_a.set_before_enter(vec![deco1_a, deco2_a]);
+    foo_node_a.append_before_enter(&[deco1_a, deco2_a]);
     let id_foo_a = forest_a.add_node(foo_node_a).unwrap();
 
     let mut loop_node_a = MastNode::new_loop(id_foo_a, &forest_a).unwrap();
-    loop_node_a.set_after_exit(vec![deco0_a, deco2_a]);
+    loop_node_a.append_after_exit(&[deco0_a, deco2_a]);
     let id_loop_a = forest_a.add_node(loop_node_a).unwrap();
 
     forest_a.make_root(id_loop_a);
@@ -358,12 +358,12 @@ fn mast_forest_merge_decorators() {
 
     // This foo node is identical to the one in A, including its decorators.
     let mut foo_node_b = block_foo();
-    foo_node_b.set_before_enter(vec![deco1_b, deco2_b]);
+    foo_node_b.append_before_enter(&[deco1_b, deco2_b]);
     let id_foo_b = forest_b.add_node(foo_node_b).unwrap();
 
     // This loop node's decorators are different from the loop node in a.
     let mut loop_node_b = MastNode::new_loop(id_foo_b, &forest_b).unwrap();
-    loop_node_b.set_after_exit(vec![deco1_b, deco3_b]);
+    loop_node_b.append_after_exit(&[deco1_b, deco3_b]);
     let id_loop_b = forest_b.add_node(loop_node_b).unwrap();
 
     forest_b.make_root(id_loop_b);
@@ -464,7 +464,7 @@ fn mast_forest_merge_external_node_reference_with_decorator() {
     let deco = forest_a.add_decorator(trace.clone()).unwrap();
 
     let mut foo_node_a = block_foo();
-    foo_node_a.set_before_enter(vec![deco]);
+    foo_node_a.append_before_enter(&[deco]);
     let foo_node_digest = foo_node_a.digest();
     let id_foo_a = forest_a.add_node(foo_node_a).unwrap();
 
@@ -530,8 +530,8 @@ fn mast_forest_merge_external_node_with_decorator() {
     let deco2 = forest_a.add_decorator(trace2.clone()).unwrap();
 
     let mut external_node_a = MastNode::new_external(block_foo().digest());
-    external_node_a.set_before_enter(vec![deco1]);
-    external_node_a.set_after_exit(vec![deco2]);
+    external_node_a.append_before_enter(&[deco1]);
+    external_node_a.append_after_exit(&[deco2]);
     let id_external_a = forest_a.add_node(external_node_a).unwrap();
 
     forest_a.make_root(id_external_a);
@@ -597,7 +597,7 @@ fn mast_forest_merge_external_node_and_referenced_node_have_decorators() {
     let deco1_a = forest_a.add_decorator(trace1.clone()).unwrap();
 
     let mut external_node_a = MastNode::new_external(block_foo().digest());
-    external_node_a.set_before_enter(vec![deco1_a]);
+    external_node_a.append_before_enter(&[deco1_a]);
     let id_external_a = forest_a.add_node(external_node_a).unwrap();
 
     forest_a.make_root(id_external_a);
@@ -607,7 +607,7 @@ fn mast_forest_merge_external_node_and_referenced_node_have_decorators() {
     let deco2_b = forest_b.add_decorator(trace2.clone()).unwrap();
 
     let mut foo_node_b = block_foo();
-    foo_node_b.set_before_enter(vec![deco2_b]);
+    foo_node_b.append_before_enter(&[deco2_b]);
     let id_foo_b = forest_b.add_node(foo_node_b).unwrap();
 
     forest_b.make_root(id_foo_b);
@@ -670,12 +670,12 @@ fn mast_forest_merge_multiple_external_nodes_with_decorator() {
     let deco2_a = forest_a.add_decorator(trace2.clone()).unwrap();
 
     let mut external_node_a = MastNode::new_external(block_foo().digest());
-    external_node_a.set_before_enter(vec![deco1_a]);
-    external_node_a.set_after_exit(vec![deco2_a]);
+    external_node_a.append_before_enter(&[deco1_a]);
+    external_node_a.append_after_exit(&[deco2_a]);
     let id_external_a = forest_a.add_node(external_node_a).unwrap();
 
     let mut external_node_b = MastNode::new_external(block_foo().digest());
-    external_node_b.set_before_enter(vec![deco1_a]);
+    external_node_b.append_before_enter(&[deco1_a]);
     let id_external_b = forest_a.add_node(external_node_b).unwrap();
 
     forest_a.make_root(id_external_a);
@@ -685,7 +685,7 @@ fn mast_forest_merge_multiple_external_nodes_with_decorator() {
     let mut forest_b = MastForest::new();
     let deco1_b = forest_b.add_decorator(trace1).unwrap();
     let mut block_foo_b = block_foo();
-    block_foo_b.set_before_enter(vec![deco1_b]);
+    block_foo_b.append_before_enter(&[deco1_b]);
     let id_foo_b = forest_b.add_node(block_foo_b).unwrap();
 
     forest_b.make_root(id_foo_b);
@@ -786,7 +786,7 @@ fn mast_forest_merge_invalid_decorator_index() {
     let mut forest_b = MastForest::new();
     let mut block_b = block_foo();
     // We're using a DecoratorId from forest A which is invalid.
-    block_b.set_before_enter(vec![deco1_a, deco2_a]);
+    block_b.append_before_enter(&[deco1_a, deco2_a]);
     let id_foo_b = forest_b.add_node(block_b).unwrap();
 
     forest_b.make_root(id_foo_b);

@@ -7,7 +7,7 @@ use miden_air::{
 };
 
 use super::{
-    AUX_TRACE_RAND_ELEMENTS, CHIPLETS_AUX_TRACE_OFFSET, ExecutionTrace, Felt, FieldElement,
+    AUX_TRACE_RAND_ELEMENTS, CHIPLETS_BUS_AUX_TRACE_OFFSET, ExecutionTrace, Felt, FieldElement,
     HASH_CYCLE_LEN, NUM_RAND_ROWS, ONE, Operation, Trace, build_trace_from_ops, rand_array,
     rand_value,
 };
@@ -55,7 +55,7 @@ fn b_chip_trace_bitwise() {
 
     let rand_elements = rand_array::<Felt, AUX_TRACE_RAND_ELEMENTS>();
     let aux_columns = trace.build_aux_trace(&rand_elements).unwrap();
-    let b_chip = aux_columns.get_column(CHIPLETS_AUX_TRACE_OFFSET);
+    let b_chip = aux_columns.get_column(CHIPLETS_BUS_AUX_TRACE_OFFSET);
 
     assert_eq!(trace.length(), b_chip.len());
     assert_eq!(ONE, b_chip[0]);

@@ -80,7 +80,7 @@ end
 #! [s2, s6, s3, s10, s7, s0, s4, s13, s1, s11, s12, s5, s9, s14, s15, s8]
 #!
 #! See https://github.com/itzmeanjan/blake3/blob/f07d32ec10cbc8a10663b7e6539e0b1dab3e453b/include/blake3.hpp#!L1623-L1639
-#! and https://github.com/0xPolygonMiden/miden-vm/pull/313#!discussion_r922627984
+#! and https://github.com/0xMiden/miden-vm/pull/313#!discussion_r922627984
 proc.permute_msg_words
     movdn.7
     movup.5

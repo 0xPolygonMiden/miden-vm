@@ -1,6 +1,6 @@
-use std::vec;
+use std::{sync::Arc, vec};
 
-use assembly::{Assembler, utils::Serializable};
+use assembly::{Assembler, DefaultSourceManager, utils::Serializable};
 use miden_air::{Felt, ProvingOptions, RowIndex};
 use miden_stdlib::{EVENT_FALCON_SIG_TO_STACK, StdLibrary, falcon_sign};
 use processor::{
@@ -19,7 +19,7 @@ use test_utils::{
     proptest::proptest,
     rand::rand_vector,
 };
-use vm_core::StarkField;
+use vm_core::{StarkField, ZERO};
 
 /// Modulus used for rpo falcon 512.
 const M: u64 = 12289;
@@ -158,8 +158,8 @@ fn test_falcon512_probabilistic_product_failure() {
 
     expect_exec_error_matches!(
         test,
-        ExecutionError::FailedAssertion{ clk, err_code, err_msg }
-        if clk == RowIndex::from(3182) && err_code == 0 && err_msg.is_none()
+        ExecutionError::FailedAssertion{clk, err_code, err_msg, label: _, source_file: _ }
+        if clk == RowIndex::from(3182) && err_code == ZERO && err_msg.is_none()
     );
 }
 
@@ -245,9 +245,14 @@ fn falcon_prove_verify() {
         .expect("failed to load mast forest");
 
     let options = ProvingOptions::with_96_bit_security(false);
-    let (stack_outputs, proof) =
-        test_utils::prove(&program, stack_inputs.clone(), &mut host, options)
-            .expect("failed to generate proof");
+    let (stack_outputs, proof) = test_utils::prove(
+        &program,
+        stack_inputs.clone(),
+        &mut host,
+        options,
+        Arc::new(DefaultSourceManager::default()),
+    )
+    .expect("failed to generate proof");
 
     let program_info = ProgramInfo::from(program);
     let result = test_utils::verify(program_info, stack_inputs, stack_outputs, proof);

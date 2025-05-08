@@ -266,6 +266,7 @@ impl PrettyPrint for Instruction {
             Self::FriExt2Fold4 => const_text("fri_ext2fold4"),
             Self::HornerBase => const_text("horner_eval_base"),
             Self::HornerExt => const_text("horner_eval_ext"),
+            Self::ArithmeticCircuitEval => const_text("arithmetic_circuit_eval"),
 
             // ----- exec / call ------------------------------------------------------------------
             Self::Exec(InvocationTarget::MastRoot(root)) => flatten(
@@ -277,10 +278,10 @@ impl PrettyPrint for Instruction {
                 flatten(const_text("exec") + const_text(".") + text(name))
             },
             Self::Exec(InvocationTarget::ProcedurePath { name, module }) => {
-                const_text("exec") + const_text(".") + text(format!("{}::{}", module, name))
+                const_text("exec") + const_text(".") + text(format!("{module}::{name}"))
             },
             Self::Exec(InvocationTarget::AbsoluteProcedurePath { name, path }) => {
-                const_text("exec") + const_text(".") + text(format!("::{}::{}", path, name))
+                const_text("exec") + const_text(".") + text(format!("::{path}::{name}"))
             },
             Self::Call(InvocationTarget::MastRoot(root)) => {
                 const_text("call")
@@ -291,10 +292,10 @@ impl PrettyPrint for Instruction {
                 flatten(const_text("call") + const_text(".") + text(name))
             },
             Self::Call(InvocationTarget::ProcedurePath { name, module }) => {
-                const_text("call") + const_text(".") + text(format!("{}::{}", module, name))
+                const_text("call") + const_text(".") + text(format!("{module}::{name}"))
             },
             Self::Call(InvocationTarget::AbsoluteProcedurePath { name, path }) => {
-                const_text("call") + const_text(".") + text(format!("::{}::{}", path, name))
+                const_text("call") + const_text(".") + text(format!("::{path}::{name}"))
             },
             Self::SysCall(InvocationTarget::MastRoot(root)) => {
                 const_text("syscall")
@@ -302,13 +303,13 @@ impl PrettyPrint for Instruction {
                     + text(format!("{:#x}", DisplayHex(root.as_bytes().as_slice())))
             },
             Self::SysCall(InvocationTarget::ProcedureName(name)) => {
-                flatten(const_text("syscall") + const_text(".") + text(format!("{}", name)))
+                flatten(const_text("syscall") + const_text(".") + text(format!("{name}")))
             },
             Self::SysCall(InvocationTarget::ProcedurePath { name, module }) => {
-                const_text("syscall") + const_text(".") + text(format!("{}::{}", module, name))
+                const_text("syscall") + const_text(".") + text(format!("{module}::{name}"))
             },
             Self::SysCall(InvocationTarget::AbsoluteProcedurePath { name, path }) => {
-                const_text("syscall") + const_text(".") + text(format!("::{}::{}", path, name))
+                const_text("syscall") + const_text(".") + text(format!("::{path}::{name}"))
             },
             Self::DynExec => const_text("dynexec"),
             Self::DynCall => const_text("dyncall"),
@@ -318,12 +319,12 @@ impl PrettyPrint for Instruction {
             Self::ProcRef(InvocationTarget::ProcedureName(name)) => {
                 flatten(const_text("procref") + const_text(".") + text(name))
             },
-            Self::ProcRef(InvocationTarget::ProcedurePath { name, module }) => flatten(
-                const_text("procref") + const_text(".") + text(format!("{}::{}", module, name)),
-            ),
-            Self::ProcRef(InvocationTarget::AbsoluteProcedurePath { name, path }) => flatten(
-                const_text("procref") + const_text(".") + text(format!("::{}::{}", path, name)),
-            ),
+            Self::ProcRef(InvocationTarget::ProcedurePath { name, module }) => {
+                flatten(const_text("procref") + const_text(".") + text(format!("{module}::{name}")))
+            },
+            Self::ProcRef(InvocationTarget::AbsoluteProcedurePath { name, path }) => {
+                flatten(const_text("procref") + const_text(".") + text(format!("::{path}::{name}")))
+            },
 
             // ----- debug decorators -------------------------------------------------------------
             Self::Breakpoint => const_text("breakpoint"),

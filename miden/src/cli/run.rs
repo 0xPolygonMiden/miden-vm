@@ -1,6 +1,9 @@
-use std::{path::PathBuf, time::Instant};
+use std::{path::PathBuf, sync::Arc, time::Instant};
 
-use assembly::diagnostics::{IntoDiagnostic, Report, WrapErr};
+use assembly::{
+    DefaultSourceManager,
+    diagnostics::{IntoDiagnostic, Report, WrapErr},
+};
 use clap::Parser;
 use miden_vm::internal::InputFile;
 use processor::{DefaultHost, ExecutionOptions, ExecutionTrace};
@@ -13,43 +16,43 @@ use super::{
 };
 
 #[derive(Debug, Clone, Parser)]
-#[clap(about = "Run a miden program")]
+#[command(about = "Run a miden program")]
 pub struct RunCmd {
     /// Path to a .masm assembly file or a .masp package file
-    #[clap(value_parser)]
+    #[arg(value_parser)]
     program_file: PathBuf,
 
     /// Number of cycles the program is expected to consume
-    #[clap(short = 'e', long = "exp-cycles", default_value = "64")]
+    #[arg(short = 'e', long = "exp-cycles", default_value = "64")]
     expected_cycles: u32,
 
     /// Path to input file
-    #[clap(short = 'i', long = "input", value_parser)]
+    #[arg(short = 'i', long = "input", value_parser)]
     input_file: Option<PathBuf>,
 
     /// Paths to .masl library files (only used for assembly files)
-    #[clap(short = 'l', long = "libraries", value_parser)]
+    #[arg(short = 'l', long = "libraries", value_parser)]
     library_paths: Vec<PathBuf>,
 
     /// Maximum number of cycles a program is allowed to consume
-    #[clap(short = 'm', long = "max-cycles", default_value = "4294967295")]
+    #[arg(short = 'm', long = "max-cycles", default_value = "4294967295")]
     max_cycles: u32,
 
     /// Number of outputs
-    #[clap(short = 'n', long = "num-outputs", default_value = "16")]
+    #[arg(short = 'n', long = "num-outputs", default_value = "16")]
     num_outputs: usize,
 
     /// Path to output file
-    #[clap(short = 'o', long = "output", value_parser)]
+    #[arg(short = 'o', long = "output", value_parser)]
     output_file: Option<PathBuf>,
 
     /// Enable tracing to monitor execution of the VM
-    #[clap(short = 't', long = "trace")]
+    #[arg(short = 't', long = "trace")]
     trace: bool,
 
-    /// Enable debug instructions
-    #[clap(short = 'd', long = "debug")]
-    debug: bool,
+    /// Disable debug instructions (release mode)
+    #[arg(short = 'r', long = "release")]
+    release: bool,
 }
 
 impl RunCmd {
@@ -132,21 +135,25 @@ fn run_masp_program(params: &RunCmd) -> Result<(ExecutionTrace, [u8; 32]), Repor
 
     let stack_inputs = input_data.parse_stack_inputs().map_err(Report::msg)?;
     let mut host = DefaultHost::new(input_data.parse_advice_provider().map_err(Report::msg)?);
+    host.load_mast_forest(StdLibrary::default().mast_forest().clone()).unwrap();
 
     let execution_options = ExecutionOptions::new(
         Some(params.max_cycles),
         params.expected_cycles,
         params.trace,
-        params.debug,
+        !params.release,
     )
     .into_diagnostic()?;
 
     let program_hash: [u8; 32] = program.hash().into();
 
+    // Packages don't ship with sources, so we use a default source manager.
+    let source_manager = Arc::new(DefaultSourceManager::default());
+
     // execute program and generate outputs
-    let trace = processor::execute(&program, stack_inputs, &mut host, execution_options)
-        .into_diagnostic()
-        .wrap_err("Failed to generate execution trace")?;
+    let trace =
+        processor::execute(&program, stack_inputs, &mut host, execution_options, source_manager)
+            .wrap_err("Failed to generate execution trace")?;
 
     Ok((trace, program_hash))
 }
@@ -164,14 +171,15 @@ fn run_masm_program(params: &RunCmd) -> Result<(ExecutionTrace, [u8; 32]), Repor
     let libraries = Libraries::new(&params.library_paths)?;
 
     // load program from file and compile
-    let program = get_masm_program(&params.program_file, &libraries)?;
+    let (program, source_manager) =
+        get_masm_program(&params.program_file, &libraries, !params.release)?;
     let input_data = InputFile::read(&params.input_file, &params.program_file)?;
 
     let execution_options = ExecutionOptions::new(
         Some(params.max_cycles),
         params.expected_cycles,
         params.trace,
-        params.debug,
+        !params.release,
     )
     .into_diagnostic()?;
 
@@ -185,9 +193,9 @@ fn run_masm_program(params: &RunCmd) -> Result<(ExecutionTrace, [u8; 32]), Repor
 
     let program_hash: [u8; 32] = program.hash().into();
 
-    let trace = processor::execute(&program, stack_inputs, &mut host, execution_options)
-        .into_diagnostic()
-        .wrap_err("Failed to generate execution trace")?;
+    let trace =
+        processor::execute(&program, stack_inputs, &mut host, execution_options, source_manager)
+            .wrap_err("Failed to generate execution trace")?;
 
     Ok((trace, program_hash))
 }

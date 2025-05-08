@@ -58,10 +58,9 @@ impl AnalysisContext {
             });
             return Ok(());
         }
-
         match self.const_eval(&constant.value) {
             Ok(value) => {
-                constant.value = ConstantExpr::Literal(Span::new(constant.span(), value));
+                constant.value = value;
                 self.constants.insert(constant.name.clone(), constant);
                 Ok(())
             },
@@ -76,20 +75,23 @@ impl AnalysisContext {
         }
     }
 
-    fn const_eval(&self, value: &ConstantExpr) -> Result<Felt, SemanticAnalysisError> {
+    fn const_eval(&self, value: &ConstantExpr) -> Result<ConstantExpr, SemanticAnalysisError> {
         match value {
-            ConstantExpr::Literal(value) => Ok(value.into_inner()),
-            ConstantExpr::Var(name) => self.get_constant(name),
+            ConstantExpr::Literal(_) | ConstantExpr::String(_) => Ok((*value).clone()),
+            ConstantExpr::Var(name) => {
+                Ok(ConstantExpr::Literal(Span::unknown(self.get_constant(name)?)))
+            },
             ConstantExpr::BinaryOp { op, lhs, rhs, .. } => {
-                let rhs = self.const_eval(rhs)?;
-                let lhs = self.const_eval(lhs)?;
-                match op {
-                    ConstantOp::Add => Ok(lhs + rhs),
-                    ConstantOp::Sub => Ok(lhs - rhs),
-                    ConstantOp::Mul => Ok(lhs * rhs),
-                    ConstantOp::Div => Ok(lhs / rhs),
-                    ConstantOp::IntDiv => Ok(Felt::new(lhs.as_int() / rhs.as_int())),
-                }
+                let rhs = self.const_eval(rhs)?.expect_literal();
+                let lhs = self.const_eval(lhs)?.expect_literal();
+                let felt = match op {
+                    ConstantOp::Add => lhs + rhs,
+                    ConstantOp::Sub => lhs - rhs,
+                    ConstantOp::Mul => lhs * rhs,
+                    ConstantOp::Div => lhs / rhs,
+                    ConstantOp::IntDiv => Felt::new(lhs.as_int() / rhs.as_int()),
+                };
+                Ok(ConstantExpr::Literal(Span::unknown(felt)))
             },
         }
     }
@@ -101,6 +103,18 @@ impl AnalysisContext {
         let span = name.span();
         if let Some(expr) = self.constants.get(name) {
             Ok(expr.value.expect_literal())
+        } else {
+            Err(SemanticAnalysisError::SymbolUndefined { span })
+        }
+    }
+
+    /// Get the error message bound to `name`
+    ///
+    /// Returns `Err` if the symbol is undefined
+    pub fn get_error(&self, name: &Ident) -> Result<Arc<str>, SemanticAnalysisError> {
+        let span = name.span();
+        if let Some(expr) = self.constants.get(name) {
+            Ok(expr.value.expect_string())
         } else {
             Err(SemanticAnalysisError::SymbolUndefined { span })
         }
@@ -152,7 +166,7 @@ impl AnalysisContext {
                 source_file: self.source_file,
                 errors: self.errors,
             });
-            std::eprintln!("{}", warning);
+            std::eprintln!("{warning}");
         }
     }
 

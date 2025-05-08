@@ -6,9 +6,10 @@ use std::{
 };
 
 use assembly::{
-    Assembler, Library, LibraryNamespace,
+    Assembler, Library, LibraryNamespace, SourceManager,
     ast::{Module, ModuleKind},
     diagnostics::{Report, WrapErr},
+    report,
 };
 use miden_vm::{Digest, ExecutionProof, Program, StackOutputs, utils::SliceReader};
 use prover::utils::Deserializable;
@@ -76,7 +77,7 @@ impl OutputFile {
 
         // deserialize outputs data
         let outputs: OutputFile = serde_json::from_str(&outputs_file)
-            .map_err(|err| format!("Failed to deserialize outputs data - {}", err))?;
+            .map_err(|err| format!("Failed to deserialize outputs data - {err}"))?;
 
         Ok(outputs)
     }
@@ -91,7 +92,7 @@ impl OutputFile {
 
         // write outputs to output file
         serde_json::to_writer_pretty(file, &Self::new(stack_outputs))
-            .map_err(|err| format!("Failed to write output data - {}", err))
+            .map_err(|err| format!("Failed to write output data - {err}"))
     }
 
     /// Converts stack output vector to [StackOutputs].
@@ -108,7 +109,7 @@ impl OutputFile {
 
 pub struct ProgramFile {
     ast: Box<Module>,
-    source_manager: Arc<dyn assembly::SourceManager>,
+    source_manager: Arc<dyn SourceManager>,
 }
 
 /// Helper methods to interact with masm program file.
@@ -124,7 +125,7 @@ impl ProgramFile {
     #[instrument(name = "read_program_file", skip(source_manager), fields(path = %path.as_ref().display()))]
     pub fn read_with(
         path: impl AsRef<Path>,
-        source_manager: Arc<dyn assembly::SourceManager>,
+        source_manager: Arc<dyn SourceManager>,
     ) -> Result<Self, Report> {
         // parse the program into an AST
         let path = path.as_ref();
@@ -157,6 +158,11 @@ impl ProgramFile {
 
         Ok(program)
     }
+
+    /// Returns the source manager for this program file.
+    pub fn source_manager(&self) -> &Arc<dyn SourceManager> {
+        &self.source_manager
+    }
 }
 
 // PROOF FILE
@@ -186,7 +192,7 @@ impl ProofFile {
 
         // deserialize bytes into a stark proof
         ExecutionProof::from_bytes(&file)
-            .map_err(|err| format!("Failed to decode proof data - {}", err))
+            .map_err(|err| format!("Failed to decode proof data - {err}"))
     }
 
     /// Write stark proof to file
@@ -230,14 +236,14 @@ impl ProgramHash {
     pub fn read(hash_hex_string: &String) -> Result<Digest, String> {
         // decode hex to bytes
         let program_hash_bytes = hex::decode(hash_hex_string)
-            .map_err(|err| format!("Failed to convert program hash to bytes {}", err))?;
+            .map_err(|err| format!("Failed to convert program hash to bytes {err}"))?;
 
         // create slice reader from bytes
         let mut program_hash_slice = SliceReader::new(&program_hash_bytes);
 
         // create hash digest from slice
         let program_hash = Digest::read_from(&mut program_hash_slice)
-            .map_err(|err| format!("Failed to deserialize program hash from bytes - {}", err))?;
+            .map_err(|err| format!("Failed to deserialize program hash from bytes - {err}"))?;
 
         Ok(program_hash)
     }
@@ -260,9 +266,12 @@ impl Libraries {
         let mut libraries = Vec::new();
 
         for path in paths {
-            // TODO(plafer): How to create a `Report` from an error that doesn't derive
-            // `Diagnostic`?
-            let library = Library::deserialize_from_file(path).unwrap();
+            let path_str = path.as_ref().to_string_lossy().into_owned();
+
+            let library = Library::deserialize_from_file(path).map_err(|err| {
+                report!("Failed to read library from file `{}`: {}", path_str, err)
+            })?;
+
             libraries.push(library);
         }
 

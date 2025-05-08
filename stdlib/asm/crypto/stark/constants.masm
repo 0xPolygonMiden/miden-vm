@@ -10,7 +10,27 @@ const.DOMAIN_OFFSET_INV=2635249152773512046
 const.NUM_AUX_TRACE_COEFS=16
 
 # Number of constraints, both boundary and transitional
-const.NUM_CONSTRAINTS=226
+# Note: If the full set of all implemented constraints is used then this should be set to 226
+const.NUM_CONSTRAINTS=4
+
+# Blowup factor
+const.BLOWUP_FACTOR=8
+const.BLOWUP_FACTOR_LOG=3
+
+# Max cycle length for periodic columns
+const.MAX_CYCLE_LEN_LOG=3
+
+# Constraint evaluation circuit digest
+const.DIGEST_0=13839693060569330762
+const.DIGEST_1=2312826173762406067
+const.DIGEST_2=8866828852882360297
+const.DIGEST_3=18124346805341043858
+
+# Number of inputs to the constraint evaluation circuit
+const.NUM_INPUTS_CIRCUIT=232
+
+# Number of evaluation gates in the constraint evaluation circuit
+const.NUM_EVAL_GATES_CIRCUIT=88
 
 # MEMORY POINTERS
 # =================================================================================================
@@ -18,34 +38,38 @@ const.NUM_CONSTRAINTS=226
 # Trace domain generator
 const.TRACE_DOMAIN_GENERATOR_PTR=4294799999
 
-# Public inputs
-const.PUBLIC_INPUTS_PTR=4294800000
-
-# OOD Frames
-# (71 + 7) * 2 * 2 Felt for current and next trace rows and 8 * 2 Felt for constraint composition
-# polynomials. Memory slots:
-# OOD_TRACE_CURRENT_PTR: (71 + 7) * 2 = 156
-# OOD_TRACE_NEXT_PTR: (71 + 7) * 2 = 156
-# OOD_CONSTRAINT_EVALS_PTR: 8 * 2 = 16
-const.OOD_TRACE_CURRENT_PTR=4294900000
-const.OOD_TRACE_NEXT_PTR=4294900156
-const.OOD_CONSTRAINT_EVALS_PTR=4294900312
-
-# Current trace row
-# 71 Felt for main portion of trace, 7 * 2 Felt for auxiliary portion of trace and 8 * 2 Felt for
-# constraint composition polynomials. Since we store these with the padding to make each of the
-# three portions a multiple of 8, the number of slots required is 72 + 16 + 16 = 104
-const.CURRENT_TRACE_ROW_PTR=4294900400
+# Public inputs address
+const.PUBLIC_INPUTS_ADDRESS_PTR=4294800000
 
 # Random elements
 # There are are currently 16 ExtFelt for a total of 32 Felt. Thus the number of memory slots required is 32.
-const.AUX_RAND_ELEM_PTR=4294900600
+const.AUX_RAND_ELEM_PTR=4294899968
+
+# OOD Frames
+# (73 + 8) * 2 * 2 Felt for current and next trace rows and 8 * 2 Felt for constraint composition
+# polynomials. Memory slots:
+# OOD_TRACE_CURRENT_PTR: (73 + 8) * 2 = 162
+# OOD_TRACE_NEXT_PTR: (73 + 8) * 2 = 162
+# OOD_CONSTRAINT_EVALS_PTR: 8 * 2 = 16
+const.OOD_TRACE_CURRENT_PTR=4294900000
+const.OOD_TRACE_NEXT_PTR=4294900162
+const.OOD_CONSTRAINT_EVALS_PTR=4294900324
+const.AUXILIARY_ACE_INPUTS_PTR=4294900340
+
+# Current trace row
+# 73 Felt for main portion of trace, 8 * 2 Felt for auxiliary portion of trace and 8 * 2 Felt for
+# constraint composition polynomials. Since we store these with the padding to make each of the
+# three portions a multiple of 8, the number of slots required is 72 + 16 + 16 = 104
+const.CURRENT_TRACE_ROW_PTR=4294900400
 
 # Address to the randomness used in computing the constraint composition polynomial
 const.COMPOSITION_COEF_PTR=4294900800
 
 # Address to the randomness used in computing the DEEP polynomial
 const.DEEP_RAND_CC_PTR=4294912000
+
+# Address at the start of the memory region holding the arithmetic circuit for constraint evaluation
+const.ACE_CIRCUIT_PTR=4294900352
 
 # FRI
 #
@@ -89,6 +113,7 @@ const.TRACE_LENGTH_PTR=4294813224
 const.FRI_QUERIES_ADDRESS_PTR=4294813225
 const.TRACE_LENGTH_LOG_PTR=4294813228
 const.GRINDING_FACTOR_PTR=4294813232
+const.NUM_KERNEL_PROCEDURES_PTR=4294813233
 
 # RPO capacity initialization words
 const.ZERO_WORD_PTR=4294813236
@@ -129,12 +154,13 @@ const.ALPHA_POWER_4_PTR=4294903412
 const.ALPHA_POWER_5_PTR=4294903416
 const.ALPHA_POWER_6_PTR=4294903420
 const.ALPHA_POWER_7_PTR=4294903424
-const.ALPHA_POWER_77_PTR=4294903440
-const.ALPHA_POWER_77_0_PTR=4294903440
-const.ALPHA_POWER_77_1_PTR=4294903441
-const.ALPHA_POWER_85_PTR=4294903444
-const.ALPHA_POWER_85_0_PTR=4294903444
-const.ALPHA_POWER_85_1_PTR=4294903445
+const.ALPHA_POWER_80_PTR=4294903440
+const.ALPHA_POWER_80_0_PTR=4294903440
+const.ALPHA_POWER_80_1_PTR=4294903441
+const.ALPHA_POWER_88_PTR=4294903444
+const.ALPHA_POWER_88_0_PTR=4294903444
+const.ALPHA_POWER_88_1_PTR=4294903445
+const.OOD_HORNER_EVALS_PTR=4294903448
 
 
 #   The following is a table summarizing the memory pointers used:
@@ -142,12 +168,13 @@ const.ALPHA_POWER_85_1_PTR=4294903445
 #   |                  ID                      |        Address          |
 #   +------------------------------------------+-------------------------+
 #   | TRACE_DOMAIN_GENERATOR_PTR               |       4294799999        |
-#   | PUBLIC_INPUTS_PTR                        |       4294800000        |
+#   | PUBLIC_INPUTS_ADDRESS_PTR                |       4294800000        |
+#   | AUX_RAND_ELEM_PTR                        |       4294899968        |
 #   | OOD_TRACE_CURRENT_PTR                    |       4294900000        |
-#   | OOD_TRACE_NEXT_PTR                       |       4294900156        |
-#   | OOD_CONSTRAINT_EVALS_PTR                 |       4294900312        |
+#   | OOD_TRACE_NEXT_PTR                       |       4294900162        |
+#   | OOD_CONSTRAINT_EVALS_PTR                 |       4294900324        |
+#   | AUXILIARY_ACE_INPUTS_PTR                 |       4294900340        |
 #   | CURRENT_TRACE_ROW_PTR                    |       4294900400        |
-#   | AUX_RAND_ELEM_PTR                        |       4294900600        |
 #   | COMPOSITION_COEF_PTR                     |       4294900800        |
 #   | DEEP_RAND_CC_PTR                         |       4294912000        |
 #   | FRI_COM_PTR                              |       4294912800        |
@@ -160,6 +187,7 @@ const.ALPHA_POWER_85_1_PTR=4294903445
 #   | TRACE_LENGTH_PTR                         |       4294913224        |
 #   | TRACE_LENGTH_LOG_PTR                     |       4294913228        |
 #   | GRINDING_FACTOR_PTR                      |       4294913232        |
+#   | NUM_KERNEL_PROCEDURES_PTR                |       4294913233        |
 #   | ZERO_WORD_PTR                            |       4294913236        |
 #   | ZERO_ZERO_ZERO_ONE_PTR                   |       4294913240        |
 #   | C_PTR                                    |       4294913244        |
@@ -181,19 +209,20 @@ const.ALPHA_POWER_85_1_PTR=4294903445
 #   | ALPHA_POWER_5_PTR                        |       4294903416        |
 #   | ALPHA_POWER_6_PTR                        |       4294903420        |
 #   | ALPHA_POWER_7_PTR                        |       4294903424        |
-#   | ALPHA_POWER_77_PTR                       |       4294903440        |
-#   | ALPHA_POWER_77_0_PTR                     |       4294903440        |
-#   | ALPHA_POWER_77_1_PTR                     |       4294903441        |
-#   | ALPHA_POWER_85_PTR                       |       4294903444        |
-#   | ALPHA_POWER_85_0_PTR                     |       4294903444        |
-#   | ALPHA_POWER_85_1_PTR                     |       4294903445        |
+#   | ALPHA_POWER_80_PTR                       |       4294903440        |
+#   | ALPHA_POWER_80_0_PTR                     |       4294903440        |
+#   | ALPHA_POWER_80_1_PTR                     |       4294903441        |
+#   | ALPHA_POWER_88_PTR                       |       4294903444        |
+#   | ALPHA_POWER_88_0_PTR                     |       4294903444        |
+#   | ALPHA_POWER_88_1_PTR                     |       4294903445        |
+#   | OOD_HORNER_EVALS_PTR                     |       4294903448        |
 #   +------------------------------------------+-------------------------+
 
 # ACCESSORS
 # =================================================================================================
 
-export.public_inputs_ptr
-    push.PUBLIC_INPUTS_PTR
+export.public_inputs_address_ptr
+    push.PUBLIC_INPUTS_ADDRESS_PTR
 end
 
 export.ood_trace_current_ptr
@@ -314,28 +343,32 @@ export.deep_rand_alpha_7_ptr
     push.ALPHA_POWER_7_PTR
 end
 
-export.deep_rand_alpha_77_ptr
-    push.ALPHA_POWER_77_PTR
+export.deep_rand_alpha_80_ptr
+    push.ALPHA_POWER_80_PTR
 end
 
-export.deep_rand_alpha_77_0_ptr
-    push.ALPHA_POWER_77_0_PTR
+export.deep_rand_alpha_80_0_ptr
+    push.ALPHA_POWER_80_0_PTR
 end
 
-export.deep_rand_alpha_77_1_ptr
-    push.ALPHA_POWER_77_1_PTR
+export.deep_rand_alpha_80_1_ptr
+    push.ALPHA_POWER_80_1_PTR
 end
 
-export.deep_rand_alpha_85_ptr
-    push.ALPHA_POWER_85_PTR
+export.deep_rand_alpha_88_ptr
+    push.ALPHA_POWER_88_PTR
 end
 
-export.deep_rand_alpha_85_0_ptr
-    push.ALPHA_POWER_85_0_PTR
+export.deep_rand_alpha_88_0_ptr
+    push.ALPHA_POWER_88_0_PTR
 end
 
-export.deep_rand_alpha_85_1_ptr
-    push.ALPHA_POWER_85_1_PTR
+export.deep_rand_alpha_88_1_ptr
+    push.ALPHA_POWER_88_1_PTR
+end
+
+export.ood_horner_evaluations_ptr
+    push.OOD_HORNER_EVALS_PTR
 end
 
 export.tmp1
@@ -356,6 +389,14 @@ end
 
 export.zeroize_stack_word
     exec.zero_word_ptr mem_loadw
+end
+
+export.get_blowup_factor
+    push.BLOWUP_FACTOR
+end
+
+export.get_blowup_factor_log
+    push.BLOWUP_FACTOR_LOG
 end
 
 #! Store details about the LDE domain.
@@ -398,6 +439,14 @@ end
 
 export.get_trace_domain_generator
     push.TRACE_DOMAIN_GENERATOR_PTR mem_load
+end
+
+export.set_num_kernel_procedures
+    push.NUM_KERNEL_PROCEDURES_PTR mem_store
+end
+
+export.get_num_kernel_procedures
+    push.NUM_KERNEL_PROCEDURES_PTR mem_load
 end
 
 export.set_lde_domain_generator
@@ -470,4 +519,31 @@ end
 
 export.get_grinding_factor
     push.GRINDING_FACTOR_PTR mem_load
+end
+
+export.auxiliary_ace_inputs_ptr
+    push.AUXILIARY_ACE_INPUTS_PTR
+end
+
+export.get_max_cycle_length_log
+    push.MAX_CYCLE_LEN_LOG
+end
+
+export.get_arithmetic_circuit_ptr
+    push.ACE_CIRCUIT_PTR
+end
+
+export.get_arithmetic_circuit_eval_digest
+    push.DIGEST_0
+    push.DIGEST_1
+    push.DIGEST_2
+    push.DIGEST_3
+end
+
+export.get_arithmetic_circuit_eval_number_inputs
+    push.NUM_INPUTS_CIRCUIT
+end
+
+export.get_arithmetic_circuit_eval_number_eval_gates
+    push.NUM_EVAL_GATES_CIRCUIT
 end

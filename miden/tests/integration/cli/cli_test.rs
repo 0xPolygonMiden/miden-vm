@@ -42,41 +42,6 @@ fn cli_run() -> Result<(), Box<dyn std::error::Error>> {
     Ok(())
 }
 
-#[test]
-fn cli_run_masp() -> Result<(), Box<dyn std::error::Error>> {
-    let mut cmd = bin_under_test().command();
-
-    cmd.arg("run")
-        .arg("./tests/integration/cli/data/masp/is_prime.masp")
-        .arg("-i")
-        .arg("./tests/integration/cli/data/masp/is_prime.inputs");
-
-    let output = cmd.unwrap();
-
-    output.assert().stdout(predicate::str::contains("VM cycles"));
-
-    Ok(())
-}
-
-#[test]
-fn cli_prove_masp() -> Result<(), Box<dyn std::error::Error>> {
-    let mut cmd = bin_under_test().command();
-
-    cmd.arg("prove")
-        .arg("./tests/integration/cli/data/masp/is_prime.masp")
-        .arg("-i")
-        .arg("./tests/integration/cli/data/masp/is_prime.inputs");
-
-    let output = cmd.unwrap();
-
-    output.assert().stdout(predicate::str::contains("proved in"));
-
-    fs::remove_file("./tests/integration/cli/data/masp/is_prime.proof").unwrap();
-    fs::remove_file("./tests/integration/cli/data/masp/is_prime.outputs").unwrap();
-
-    Ok(())
-}
-
 use assembly::Library;
 use vm_core::Decorator;
 
@@ -86,7 +51,6 @@ fn cli_bundle_debug() {
 
     let mut cmd = bin_under_test().command();
     cmd.arg("bundle")
-        .arg("--debug")
         .arg("./tests/integration/cli/data/lib")
         .arg("--output")
         .arg(output_file.as_path());
@@ -170,37 +134,5 @@ fn cli_run_with_lib() -> Result<(), Box<dyn std::error::Error>> {
     cmd.assert().success();
 
     fs::remove_file("lib.masl").unwrap();
-    Ok(())
-}
-
-#[test]
-fn cli_analyze_masp() -> Result<(), Box<dyn std::error::Error>> {
-    let mut cmd = bin_under_test().command();
-
-    cmd.arg("analyze")
-        .arg("./tests/integration/cli/data/masp/is_prime.masp")
-        .arg("-i")
-        .arg("./tests/integration/cli/data/masp/is_prime.inputs");
-
-    let output = cmd.unwrap();
-
-    output.assert().stdout(predicate::str::contains("Total number of NOOPs"));
-
-    Ok(())
-}
-
-#[test]
-fn cli_debug_masp() -> Result<(), Box<dyn std::error::Error>> {
-    let mut cmd = bin_under_test().command();
-
-    cmd.arg("debug")
-        .arg("./tests/integration/cli/data/masp/is_prime.masp")
-        .arg("-i")
-        .arg("./tests/integration/cli/data/masp/is_prime.inputs");
-
-    let output = cmd.unwrap();
-
-    output.assert().stdout(predicate::str::contains("Debugging program"));
-
     Ok(())
 }

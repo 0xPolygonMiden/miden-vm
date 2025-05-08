@@ -87,7 +87,7 @@ impl fmt::Debug for PackageExport {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let Self { name, digest } = self;
         f.debug_struct("PackageExport")
-            .field("name", &format_args!("{}", name))
+            .field("name", &format_args!("{name}"))
             .field("digest", &format_args!("{}", DisplayHex::new(&digest.as_bytes())))
             .finish()
     }
@@ -107,6 +107,9 @@ pub struct Package {
     /// The package manifest, containing the set of exported procedures and their signatures,
     /// if known.
     pub manifest: PackageManifest,
+    /// Serialized `miden-objects::account::AccountComponentMetadata` for the account component
+    /// (name, descrioption, storage,) associated with this package, if any.
+    pub account_component_metadata_bytes: Option<Vec<u8>>,
 }
 
 impl Package {
@@ -188,11 +191,11 @@ impl Package {
                     exports,
                     dependencies: self.manifest.dependencies.clone(),
                 },
+                account_component_metadata_bytes: None,
             })
         } else {
             Err(Report::msg(format!(
-                "invalid entrypoint: library does not export '{}'",
-                entrypoint
+                "invalid entrypoint: library does not export '{entrypoint}'"
             )))
         }
     }

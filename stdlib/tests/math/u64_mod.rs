@@ -448,7 +448,15 @@ fn ensure_div_doesnt_crash() {
     let err = test.execute();
     match err {
         Ok(_) => panic!("expected an error"),
-        Err(err) => assert_matches!(err, ExecutionError::NotU32Value(_, _)),
+        Err(err) => assert_matches!(
+            err,
+            ExecutionError::NotU32Value {
+                label: _,
+                source_file: _,
+                value: _,
+                err_code: _
+            }
+        ),
     }
 
     // 2. dividend limbs not u32
@@ -460,7 +468,15 @@ fn ensure_div_doesnt_crash() {
     let err = test.execute();
     match err {
         Ok(_) => panic!("expected an error"),
-        Err(err) => assert_matches!(err, ExecutionError::NotU32Value(_, _)),
+        Err(err) => assert_matches!(
+            err,
+            ExecutionError::NotU32Value {
+                label: _,
+                source_file: _,
+                value: _,
+                err_code: _
+            }
+        ),
     }
 }
 
@@ -559,7 +575,7 @@ fn checked_and_fail() {
 
     expect_exec_error_matches!(
         test,
-        ExecutionError::NotU32Value(value, err_code) if value == Felt::new(a0) && err_code == ZERO
+        ExecutionError::NotU32Value{ value, err_code, label: _, source_file: _ } if value == Felt::new(a0) && err_code == ZERO
     );
 }
 
@@ -601,7 +617,7 @@ fn checked_or_fail() {
 
     expect_exec_error_matches!(
         test,
-        ExecutionError::NotU32Value(value, err_code) if value == Felt::new(a0) && err_code == ZERO
+        ExecutionError::NotU32Value{ value, err_code, label: _, source_file: _ } if value == Felt::new(a0) && err_code == ZERO
     );
 }
 
@@ -643,7 +659,7 @@ fn checked_xor_fail() {
 
     expect_exec_error_matches!(
         test,
-        ExecutionError::NotU32Value(value, err_code) if value == Felt::new(a0) && err_code == ZERO
+        ExecutionError::NotU32Value{ value, err_code, label: _, source_file: _ } if value == Felt::new(a0) && err_code == ZERO
     );
 }
 

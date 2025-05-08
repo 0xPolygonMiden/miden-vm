@@ -1,4 +1,4 @@
-use criterion::{Criterion, criterion_group, criterion_main};
+use criterion::{BatchSize, Criterion, criterion_group, criterion_main};
 use miden_vm::{Assembler, DefaultHost, StackInputs, internal::InputFile};
 use processor::{ExecutionOptions, execute};
 use stdlib::StdLibrary;
@@ -44,22 +44,30 @@ fn program_execution(c: &mut Criterion) {
                 group.bench_function(file_stem, |bench| {
                     let mut assembler = Assembler::default();
                     assembler.add_library(StdLibrary::default()).expect("failed to load stdlib");
+                    let source_manager = assembler.source_manager();
+
                     let program = assembler
                         .assemble_program(&source)
                         .expect("Failed to compile test source.");
-                    bench.iter(|| {
-                        execute(
-                            &program,
-                            stack_inputs.clone(),
-                            &mut host,
-                            ExecutionOptions::default(),
-                        )
-                    });
+                    bench.iter_batched(
+                        || host.clone(),
+                        |mut host| {
+                            execute(
+                                &program,
+                                stack_inputs.clone(),
+                                &mut host,
+                                ExecutionOptions::default(),
+                                source_manager.clone(),
+                            )
+                            .unwrap()
+                        },
+                        BatchSize::SmallInput,
+                    );
                 });
             },
             // If we can't access the entry, just skip it
             Err(err) => {
-                eprintln!("Failed to access file: {:?} with error {err:?}", entry);
+                eprintln!("Failed to access file: {entry:?} with error {err:?}");
                 continue;
             },
         }

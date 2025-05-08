@@ -1,4 +1,4 @@
-use vm_core::{Felt, Operation::*, sys_events::SystemEvent};
+use vm_core::{Felt, Operation::*, ZERO, sys_events::SystemEvent};
 
 use super::BasicBlockBuilder;
 use crate::AssemblyError;
@@ -121,7 +121,7 @@ pub(super) fn mtree_get(block_builder: &mut BasicBlockBuilder) {
     let ops = [
         // verify the node V for root R with depth d and index i
         // => [V, d, i, R, ...]
-        MpVerify(0),
+        MpVerify(ZERO),
 
         // move d, i back to the top of the stack and are dropped since they are
         // no longer needed => [V, R, ...]

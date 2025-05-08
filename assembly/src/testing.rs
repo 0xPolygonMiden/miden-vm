@@ -84,7 +84,7 @@ full output: `{context}`
 impl fmt::Display for Pattern {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
-            Self::Literal(lit) => write!(f, "contain `{}`", lit),
+            Self::Literal(lit) => write!(f, "contain `{lit}`"),
             Self::Regex(pat) => write!(f, "match regular expression `{}`", pat.as_str()),
         }
     }
@@ -112,11 +112,11 @@ impl From<regex::Regex> for Pattern {
 #[macro_export]
 macro_rules! regex {
     ($source:literal) => {
-        Pattern::regex($source)
+        $crate::testing::Pattern::regex($source)
     };
 
     ($source:expr) => {
-        Pattern::regex($source)
+        $crate::testing::Pattern::regex($source)
     };
 }
 
@@ -156,11 +156,21 @@ macro_rules! assert_diagnostic {
 /// second pattern - the second line is ignored because it is empty.
 #[macro_export]
 macro_rules! assert_diagnostic_lines {
-    ($diagnostic:expr, $($expected:expr),+) => {{
-        let actual = format!("{}", $crate::diagnostics::reporting::PrintDiagnostic::new_without_color($diagnostic));
-        let lines = actual.lines().filter(|l| !l.trim().is_empty()).zip([$(Pattern::from($expected)),*].into_iter());
-        for (actual_line, expected) in lines {
-            expected.assert_match_with_context(actual_line, &actual);
+    ($diagnostic:expr, $($expected_lines:expr),+) => {{
+        let full_output = format!("{}", $crate::diagnostics::reporting::PrintDiagnostic::new_without_color($diagnostic));
+        let lines: Vec<_> = full_output.lines().filter(|l| !l.trim().is_empty()).collect();
+        let patterns = [$($crate::testing::Pattern::from($expected_lines)),*];
+        if lines.len() != patterns.len() {
+            panic!(
+                "expected {} lines, but got {}:\n{}",
+                patterns.len(),
+                lines.len(),
+                full_output
+            );
+        }
+        let lines_and_patterns = lines.into_iter().zip(patterns.into_iter());
+        for (actual_line, expected_pattern) in lines_and_patterns {
+            expected_pattern.assert_match_with_context(actual_line, &full_output);
         }
     }};
 }

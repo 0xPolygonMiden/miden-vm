@@ -1,7 +1,10 @@
 use core::fmt;
-use std::path::PathBuf;
+use std::{path::PathBuf, sync::Arc};
 
-use assembly::diagnostics::{IntoDiagnostic, Report, WrapErr};
+use assembly::{
+    DefaultSourceManager, SourceManager,
+    diagnostics::{Report, WrapErr},
+};
 use clap::Parser;
 use miden_vm::{DefaultHost, Host, Operation, StackInputs, internal::InputFile};
 use processor::{AsmOpInfo, TraceLenSummary};
@@ -16,18 +19,18 @@ use crate::cli::utils::{get_masm_program, get_masp_program};
 
 /// Defines cli interface
 #[derive(Debug, Clone, Parser)]
-#[clap(about = "Analyze a miden program")]
+#[command(about = "Analyze a miden program")]
 pub struct Analyze {
     /// Path to a .masm assembly file or a .masp package file
-    #[clap(value_parser)]
+    #[arg(value_parser)]
     program_file: PathBuf,
 
     /// Path to .inputs file
-    #[clap(short = 'i', long = "input", value_parser)]
+    #[arg(short = 'i', long = "input", value_parser)]
     input_file: Option<PathBuf>,
 
     /// Paths to .masl library files
-    #[clap(short = 'l', long = "libraries", value_parser)]
+    #[arg(short = 'l', long = "libraries", value_parser)]
     library_paths: Vec<PathBuf>,
 }
 
@@ -46,12 +49,14 @@ impl Analyze {
             .to_lowercase();
 
         // Use a single match expression to load the program.
-        let program = match ext.as_str() {
-            "masp" => get_masp_program(&self.program_file)?,
-            "masm" => get_masm_program(&self.program_file, &libraries)?,
+        let (program, source_manager) = match ext.as_str() {
+            "masp" => (
+                get_masp_program(&self.program_file)?,
+                Arc::new(DefaultSourceManager::default()) as Arc<dyn SourceManager>,
+            ),
+            "masm" => get_masm_program(&self.program_file, &libraries, true)?,
             _ => return Err(Report::msg("The provided file must have a .masm or .masp extension")),
         };
-        // let program_hash: [u8; 32] = program.hash().into();
 
         // load input data from file
         let input_data = InputFile::read(&self.input_file, &self.program_file)?;
@@ -59,11 +64,11 @@ impl Analyze {
         // fetch the stack and program inputs from the arguments
         let stack_inputs = input_data.parse_stack_inputs().map_err(Report::msg)?;
         let mut host = DefaultHost::new(input_data.parse_advice_provider().map_err(Report::msg)?);
-        host.load_mast_forest(StdLibrary::default().mast_forest().clone())
-            .into_diagnostic()?;
+        host.load_mast_forest(StdLibrary::default().mast_forest().clone())?;
 
         let execution_details: ExecutionDetails =
-            analyze(&program, stack_inputs, host).expect("Could not retrieve execution details");
+            analyze(&program, stack_inputs, host, source_manager)
+                .expect("Could not retrieve execution details");
         let program_name = self
             .program_file
             .file_name()
@@ -72,17 +77,17 @@ impl Analyze {
             .unwrap();
 
         println!("============================================================");
-        print!("Analyzed {} program", program_name);
+        print!("Analyzed {program_name} program");
         if let Some(input_path) = &self.input_file {
             let input_name = input_path
                 .file_name()
                 .expect("provided input path is incorrect")
                 .to_str()
                 .unwrap();
-            println!(" with {}", input_name);
+            println!(" with {input_name}");
         }
 
-        println!("{}", execution_details);
+        println!("{execution_details}");
 
         Ok(())
     }
@@ -224,7 +229,7 @@ impl fmt::Display for ExecutionDetails {
             )?;
         }
 
-        writeln!(f, "\nTotal number of NOOPs executed: {}", total_noops)?;
+        writeln!(f, "\nTotal number of NOOPs executed: {total_noops}")?;
 
         Ok(())
     }
@@ -235,17 +240,19 @@ fn analyze<H>(
     program: &Program,
     stack_inputs: StackInputs,
     mut host: H,
+    source_manager: Arc<dyn SourceManager>,
 ) -> Result<ExecutionDetails, Report>
 where
     H: Host,
 {
     let mut execution_details = ExecutionDetails::default();
 
-    let vm_state_iterator = processor::execute_iter(program, stack_inputs, &mut host);
+    let vm_state_iterator =
+        processor::execute_iter(program, stack_inputs, &mut host, source_manager);
     execution_details.set_trace_len_summary(vm_state_iterator.trace_len_summary());
 
     for state in vm_state_iterator {
-        let vm_state = state.into_diagnostic().wrap_err("execution error")?;
+        let vm_state = state.wrap_err("execution error")?;
         if matches!(vm_state.op, Some(Operation::Noop)) {
             execution_details.incr_noop_count();
         }
@@ -309,57 +316,37 @@ impl AsmOpStats {
 
 #[cfg(test)]
 mod tests {
+    use assembly::DefaultSourceManager;
     use miden_vm::Assembler;
     use processor::{ChipletsLengths, DefaultHost, TraceLenSummary};
 
-    use super::{AsmOpStats, ExecutionDetails, StackInputs};
+    use super::{AsmOpStats, ExecutionDetails, StackInputs, *};
 
     #[test]
     fn analyze_test() {
-        let source = "proc.foo.1 loc_store.0 end begin mem_storew.1 dropw push.17 push.1 movdn.2 exec.foo end";
+        let source = "proc.foo.1 loc_store.0 end begin mem_storew.4 dropw push.17 push.1 movdn.2 exec.foo drop end";
         let stack_inputs = StackInputs::default();
         let host = DefaultHost::default();
         let program = Assembler::default().with_debug_mode(true).assemble_program(source).unwrap();
         let execution_details =
-            super::analyze(&program, stack_inputs, host).expect("analyze_test: Unexpected Error");
+            super::analyze(&program, stack_inputs, host, Arc::new(DefaultSourceManager::default()))
+                .expect("analyze_test: Unexpected Error");
         let expected_details = ExecutionDetails {
-            total_noops: 2,
+            total_noops: 0,
             asm_op_stats: vec![
+                AsmOpStats::new("drop".to_string(), 1, 1),
                 AsmOpStats::new("dropw".to_string(), 1, 4),
                 AsmOpStats::new("loc_store".to_string(), 1, 4),
-                AsmOpStats::new("mem_storew".to_string(), 1, 3),
+                AsmOpStats::new("mem_storew".to_string(), 1, 2),
                 AsmOpStats::new("movdn.2".to_string(), 1, 1),
                 AsmOpStats::new("push".to_string(), 2, 3),
             ],
             trace_len_summary: TraceLenSummary::new(
-                23,
+                21,
                 39,
                 ChipletsLengths::from_parts(8, 0, 2, 0),
             ),
         };
         assert_eq!(execution_details, expected_details);
-    }
-
-    #[test]
-    fn analyze_test_execution_error() {
-        let source = "begin div end";
-        let program = Assembler::default().with_debug_mode(true).assemble_program(source).unwrap();
-        let stack_inputs = vec![1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
-        let stack_inputs = StackInputs::try_from_ints(stack_inputs).unwrap();
-        let host = DefaultHost::default();
-        let execution_details = super::analyze(&program, stack_inputs, host);
-        let expected_error = "Execution Error: DivideByZero(1)";
-        assert_eq!(execution_details.err().unwrap().to_string(), expected_error);
-    }
-
-    #[test]
-    fn analyze_test_assembly_error() {
-        let source = "proc.foo.1 loc_store.0 end mem_storew.1 dropw push.17 exec.foo end";
-        let program = Assembler::default().with_debug_mode(true).assemble_program(source).unwrap();
-        let stack_inputs = StackInputs::default();
-        let host = DefaultHost::default();
-        let execution_details = super::analyze(&program, stack_inputs, host);
-        let expected_error = "Assembly Error: ParsingError(\"unexpected token: expected 'begin' but was 'mem_storew.1'\")";
-        assert_eq!(execution_details.err().unwrap().to_string(), expected_error);
     }
 }

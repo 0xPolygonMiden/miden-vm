@@ -85,6 +85,8 @@ macro_rules! build_test {
 ///   `merkle_store` are also expected.
 /// * `merkle_store` (optional): the initial merkle set values. When provided, `stack_inputs` and
 ///   `advice_stack` are also expected.
+///
+/// NOTE: use `miden_stdlib::tests::build_debug_test` to include the standard library in the test.
 #[macro_export]
 macro_rules! build_debug_test {
     ($($params:tt)+) => {{

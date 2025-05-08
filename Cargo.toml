@@ -15,12 +15,12 @@ resolver = "2"
 
 [workspace.package]
 edition = "2024"
-rust-version = "1.85"
+rust-version = "1.86"
 license = "MIT"
 readme = "README.md"
 authors = ["Miden contributors"]
 homepage = "https://polygon.technology/polygon-miden"
-repository = "https://github.com/0xPolygonMiden/miden-vm"
+repository = "https://github.com/0xMiden/miden-vm"
 exclude = [".github/"]
 
 [profile.optimized]
@@ -28,8 +28,9 @@ inherits = "release"
 codegen-units = 1
 lto = true
 
-[profile.test-release]
-inherits = "release"
+[profile.test-dev]
+inherits = "dev"
+opt-level = 1
 debug = true
 debug-assertions = true
 overflow-checks = true

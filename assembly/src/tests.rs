@@ -2,15 +2,15 @@ use alloc::{string::ToString, vec::Vec};
 
 use vm_core::{
     Program,
-    mast::{MastNode, MastNodeId},
+    mast::{MastNode, MastNodeId, error_code_from_msg},
 };
 
 use crate::{
     Assembler, Deserializable, LibraryPath, ModuleParser, Serializable, assert_diagnostic_lines,
     ast::{Module, ModuleKind},
     diagnostics::{IntoDiagnostic, Report},
-    regex, source_file,
-    testing::{Pattern, TestContext},
+    regex, report, source_file,
+    testing::TestContext,
 };
 
 type TestResult = Result<(), Report>;
@@ -99,8 +99,7 @@ fn empty_if() -> TestResult {
         "  :               ^|^",
         "  :                `-- found a end here",
         "  `----",
-        " help: expected primitive opcode (e.g. \"add\"), or \"else\", or control flow",
-        "       opcode (e.g. \"if.true\")"
+        " help: expected primitive opcode (e.g. \"add\"), or \"else\", or control flow opcode (e.g. \"if.true\")"
     );
     Ok(())
 }
@@ -614,7 +613,8 @@ fn constant_err_const_not_initialized() -> TestResult {
         regex!(r#",-\[test[\d]+:1:23\]"#),
         "1 | const.TEST_CONSTANT=5+A begin push.TEST_CONSTANT end",
         "  :                       ^",
-        "  `----"
+        "  `----",
+        "        help: are you missing an import?"
     );
     Ok(())
 }
@@ -677,7 +677,8 @@ fn constants_must_be_uppercase() -> TestResult {
         "1 | const.constant_1=12 begin push.constant_1 end",
         "  :       ^^^^^|^^^^",
         "  :            `-- found a identifier here",
-        "  `----"
+        "  `----",
+        "        help: expected constant identifier"
     );
 
     Ok(())
@@ -809,7 +810,8 @@ fn constant_not_found() -> TestResult {
         "1 |",
         "2 |     begin push.CONSTANT end",
         "  :                ^^^^^^^^",
-        "  `----"
+        "  `----",
+        "        help: are you missing an import?"
     );
     Ok(())
 }
@@ -1244,24 +1246,34 @@ end";
 #[test]
 fn assert_with_code() -> TestResult {
     let context = TestContext::default();
+    let err_msg = "Oh no";
     let source = source_file!(
         &context,
-        "\
-    const.ERR1=1
+        format!(
+            "\
+    const.ERR1=\"{err_msg}\"
 
     begin
         assert
         assert.err=ERR1
-        assert.err=2
+        assert.err=\"{err_msg}\"
     end
     "
+        )
     );
     let program = context.assemble(source)?;
+    let err_code = error_code_from_msg(err_msg);
 
-    let expected = "\
+    let expected = format!(
+        "\
 begin
-    basic_block assert(0) assert(1) assert(2) end
-end";
+    basic_block
+        assert(0)
+        assert({err_code})
+        assert({err_code})
+    end
+end"
+    );
     assert_str_eq!(format!("{program}"), expected);
     Ok(())
 }
@@ -1269,24 +1281,37 @@ end";
 #[test]
 fn assertz_with_code() -> TestResult {
     let context = TestContext::default();
+    let err_msg = "Oh no";
     let source = source_file!(
         &context,
-        "\
-    const.ERR1=1
+        format!(
+            "\
+    const.ERR1=\"{err_msg}\"
 
     begin
         assertz
         assertz.err=ERR1
-        assertz.err=2
+        assertz.err=\"{err_msg}\"
     end
     "
+        )
     );
     let program = context.assemble(source)?;
+    let err_code = error_code_from_msg(err_msg);
 
-    let expected = "\
+    let expected = format!(
+        "\
 begin
-    basic_block eqz assert(0) eqz assert(1) eqz assert(2) end
-end";
+    basic_block
+        eqz
+        assert(0)
+        eqz
+        assert({err_code})
+        eqz
+        assert({err_code})
+    end
+end"
+    );
     assert_str_eq!(format!("{program}"), expected);
     Ok(())
 }
@@ -1294,24 +1319,37 @@ end";
 #[test]
 fn assert_eq_with_code() -> TestResult {
     let context = TestContext::default();
+    let err_msg = "Oh no";
     let source = source_file!(
         &context,
-        "\
-    const.ERR1=1
+        format!(
+            "\
+    const.ERR1=\"{err_msg}\"
 
     begin
         assert_eq
         assert_eq.err=ERR1
-        assert_eq.err=2
+        assert_eq.err=\"{err_msg}\"
     end
     "
+        )
     );
     let program = context.assemble(source)?;
+    let err_code = error_code_from_msg(err_msg);
 
-    let expected = "\
+    let expected = format!(
+        "\
 begin
-    basic_block eq assert(0) eq assert(1) eq assert(2) end
-end";
+    basic_block
+        eq
+        assert(0)
+        eq
+        assert({err_code})
+        eq
+        assert({err_code})
+    end
+end"
+    );
     assert_str_eq!(format!("{program}"), expected);
     Ok(())
 }
@@ -1319,21 +1357,26 @@ end";
 #[test]
 fn assert_eqw_with_code() -> TestResult {
     let context = TestContext::default();
+    let err_msg = "Oh no";
     let source = source_file!(
         &context,
-        "\
-    const.ERR1=1
+        format!(
+            "\
+    const.ERR1=\"{err_msg}\"
 
     begin
         assert_eqw
         assert_eqw.err=ERR1
-        assert_eqw.err=2
+        assert_eqw.err=\"{err_msg}\"
     end
     "
+        )
     );
     let program = context.assemble(source)?;
+    let err_code = error_code_from_msg(err_msg);
 
-    let expected = "\
+    let expected = format!(
+        "\
 begin
     basic_block
         movup4
@@ -1349,28 +1392,29 @@ begin
         assert(0)
         movup4
         eq
-        assert(1)
+        assert({err_code})
         movup3
         eq
-        assert(1)
+        assert({err_code})
         movup2
         eq
-        assert(1)
+        assert({err_code})
         eq
-        assert(1)
+        assert({err_code})
         movup4
         eq
-        assert(2)
+        assert({err_code})
         movup3
         eq
-        assert(2)
+        assert({err_code})
         movup2
         eq
-        assert(2)
+        assert({err_code})
         eq
-        assert(2)
+        assert({err_code})
     end
-end";
+end"
+    );
     assert_str_eq!(format!("{program}"), expected);
     Ok(())
 }
@@ -1378,34 +1422,40 @@ end";
 #[test]
 fn u32assert_with_code() -> TestResult {
     let context = TestContext::default();
+    let err_msg = "Oh no";
     let source = source_file!(
         &context,
-        "\
-    const.ERR1=1
+        format!(
+            "\
+    const.ERR1=\"{err_msg}\"
 
     begin
         u32assert
         u32assert.err=ERR1
-        u32assert.err=2
+        u32assert.err=\"{err_msg}\"
     end
     "
+        )
     );
     let program = context.assemble(source)?;
+    let err_code = error_code_from_msg(err_msg);
 
-    let expected = "\
+    let expected = format!(
+        "\
 begin
     basic_block
         pad
         u32assert2(0)
         drop
         pad
-        u32assert2(1)
+        u32assert2({err_code})
         drop
         pad
-        u32assert2(2)
+        u32assert2({err_code})
         drop
     end
-end";
+end"
+    );
     assert_str_eq!(format!("{program}"), expected);
     Ok(())
 }
@@ -1413,24 +1463,34 @@ end";
 #[test]
 fn u32assert2_with_code() -> TestResult {
     let context = TestContext::default();
+    let err_msg = "Oh no";
     let source = source_file!(
         &context,
-        "\
-    const.ERR1=1
+        format!(
+            "\
+    const.ERR1=\"{err_msg}\"
 
     begin
         u32assert2
         u32assert2.err=ERR1
-        u32assert2.err=2
+        u32assert2.err=\"{err_msg}\"
     end
     "
+        )
     );
     let program = context.assemble(source)?;
+    let err_code = error_code_from_msg(err_msg);
 
-    let expected = "\
+    let expected = format!(
+        "\
 begin
-    basic_block u32assert2(0) u32assert2(1) u32assert2(2) end
-end";
+    basic_block
+        u32assert2(0)
+        u32assert2({err_code})
+        u32assert2({err_code})
+    end
+end"
+    );
     assert_str_eq!(format!("{program}"), expected);
     Ok(())
 }
@@ -1438,21 +1498,26 @@ end";
 #[test]
 fn u32assertw_with_code() -> TestResult {
     let context = TestContext::default();
+    let err_msg = "Oh no";
     let source = source_file!(
         &context,
-        "\
-    const.ERR1=1
+        format!(
+            "\
+    const.ERR1=\"{err_msg}\"
 
     begin
         u32assertw
         u32assertw.err=ERR1
-        u32assertw.err=2
+        u32assertw.err=\"{err_msg}\"
     end
     "
+        )
     );
     let program = context.assemble(source)?;
+    let err_code = error_code_from_msg(err_msg);
 
-    let expected = "\
+    let expected = format!(
+        "\
 begin
     basic_block
         u32assert2(0)
@@ -1461,26 +1526,27 @@ begin
         u32assert2(0)
         movup3
         movup3
-        u32assert2(1)
+        u32assert2({err_code})
         movup3
         movup3
-        u32assert2(1)
+        u32assert2({err_code})
         movup3
         movup3
-        u32assert2(2)
+        u32assert2({err_code})
         movup3
         movup3
-        u32assert2(2)
+        u32assert2({err_code})
         movup3
         movup3
     end
-end";
+end"
+    );
     assert_str_eq!(format!("{program}"), expected);
     Ok(())
 }
 
-/// Ensure that there is no collision between `Assert`, `U32assert2`, and `MpVerify`  instructions
-/// with different inner values (which all don't contribute to the MAST root).
+/// Ensure that there is no collision between `Assert`, `U32assert2`, and `MpVerify`
+/// instructions with different inner values (which all don't contribute to the MAST root).
 #[test]
 fn asserts_and_mpverify_with_code_in_duplicate_procedure() -> TestResult {
     let context = TestContext::default();
@@ -1488,50 +1554,50 @@ fn asserts_and_mpverify_with_code_in_duplicate_procedure() -> TestResult {
         &context,
         "\
     proc.f1
-        u32assert.err=1
+        u32assert.err=\"1\"
     end
     proc.f2
-        u32assert.err=2
+        u32assert.err=\"2\"
     end
     proc.f12
-        u32assert.err=1
-        u32assert.err=2
+        u32assert.err=\"1\"
+        u32assert.err=\"2\"
     end
     proc.f21
-        u32assert.err=2
-        u32assert.err=1
+        u32assert.err=\"2\"
+        u32assert.err=\"1\"
     end
     proc.g1
-        assert.err=1
+        assert.err=\"1\"
     end
     proc.g2
-        assert.err=2
+        assert.err=\"2\"
     end
     proc.g12
-        assert.err=1
-        assert.err=2
+        assert.err=\"1\"
+        assert.err=\"2\"
     end
     proc.g21
-        assert.err=2
-        assert.err=1
+        assert.err=\"2\"
+        assert.err=\"1\"
     end
     proc.fg
-        assert.err=1
-        u32assert.err=1
-        assert.err=2
-        u32assert.err=2
+        assert.err=\"1\"
+        u32assert.err=\"1\"
+        assert.err=\"2\"
+        u32assert.err=\"2\"
 
-        u32assert.err=1
-        assert.err=1
-        u32assert.err=2
-        assert.err=2
+        u32assert.err=\"1\"
+        assert.err=\"1\"
+        u32assert.err=\"2\"
+        assert.err=\"2\"
     end
 
     proc.mpverify
-        mtree_verify.err=1
-        mtree_verify.err=2
-        mtree_verify.err=2
-        mtree_verify.err=1
+        mtree_verify.err=\"1\"
+        mtree_verify.err=\"2\"
+        mtree_verify.err=\"2\"
+        mtree_verify.err=\"1\"
     end
 
     begin
@@ -1549,56 +1615,60 @@ fn asserts_and_mpverify_with_code_in_duplicate_procedure() -> TestResult {
     "
     );
     let program = context.assemble(source)?;
+    let code1 = error_code_from_msg("1");
+    let code2 = error_code_from_msg("2");
 
-    let expected = "\
+    let expected = format!(
+        "\
 begin
     basic_block
         pad
-        u32assert2(1)
+        u32assert2({code1})
         drop
         pad
-        u32assert2(2)
+        u32assert2({code2})
         drop
         pad
-        u32assert2(1)
+        u32assert2({code1})
         drop
         pad
-        u32assert2(2)
+        u32assert2({code2})
         drop
         pad
-        u32assert2(2)
+        u32assert2({code2})
         drop
         pad
-        u32assert2(1)
+        u32assert2({code1})
         drop
-        assert(1)
-        assert(2)
-        assert(1)
-        assert(2)
-        assert(2)
-        assert(1)
-        assert(1)
+        assert({code1})
+        assert({code2})
+        assert({code1})
+        assert({code2})
+        assert({code2})
+        assert({code1})
+        assert({code1})
         pad
-        u32assert2(1)
+        u32assert2({code1})
         drop
-        assert(2)
+        assert({code2})
         pad
-        u32assert2(2)
+        u32assert2({code2})
         drop
         pad
-        u32assert2(1)
+        u32assert2({code1})
         drop
-        assert(1)
+        assert({code1})
         pad
-        u32assert2(2)
+        u32assert2({code2})
         drop
-        assert(2)
-        mpverify(1)
-        mpverify(2)
-        mpverify(2)
-        mpverify(1)
+        assert({code2})
+        mpverify({code1})
+        mpverify({code2})
+        mpverify({code2})
+        mpverify({code1})
     end
-end";
+end"
+    );
 
     assert_str_eq!(expected, format!("{program}"));
     Ok(())
@@ -1610,12 +1680,12 @@ fn mtree_verify_with_code() -> TestResult {
     let source = source_file!(
         &context,
         "\
-    const.ERR1=1
+    const.ERR1=\"1\"
 
     begin
         mtree_verify
         mtree_verify.err=ERR1
-        mtree_verify.err=2
+        mtree_verify.err=\"2\"
     end
     "
     );
@@ -1624,7 +1694,11 @@ fn mtree_verify_with_code() -> TestResult {
 
     let expected = "\
 begin
-    basic_block mpverify(0) mpverify(1) mpverify(2) end
+    basic_block
+        mpverify(0)
+        mpverify(13948122101519563734)
+        mpverify(17575088163785490049)
+    end
 end";
     assert_str_eq!(format!("{program}"), expected);
     Ok(())
@@ -1873,7 +1947,8 @@ fn program_with_exported_procedure() -> TestResult {
         regex!(r#",-\[test[\d]+:1:1\]"#),
         "1 | export.foo push.3 push.7 mul end begin push.2 push.3 add exec.foo end",
         "  : ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^",
-        "  `----"
+        "  `----",
+        "        help: perhaps you meant to use `proc` instead of `export`?"
     );
     Ok(())
 }
@@ -2254,7 +2329,17 @@ end";
         end"#
         )
     );
-    assert_assembler_diagnostic!(context, source, "undefined module 'dummy2::math::u64'");
+    assert_assembler_diagnostic!(
+        context,
+        source,
+        "undefined module 'dummy2::math::u64'",
+        regex!(r#",-\[test[\d]+:5:23\]"#),
+        "       4 |             push.4 push.3",
+        "       5 |             exec.u64::checked_eqz",
+        "         :                       ^^^^^^^^^^^",
+        "       6 |             exec.u64::notchecked_eqz",
+        "         `----"
+    );
     Ok(())
 }
 
@@ -3055,4 +3140,10 @@ fn vendoring() -> TestResult {
     };
     assert!(lib == expected_lib);
     Ok(())
+}
+
+#[test]
+#[should_panic]
+fn test_assert_diagnostic_lines() {
+    assert_diagnostic_lines!(report!("the error string"), "the error string", "other", "lines");
 }

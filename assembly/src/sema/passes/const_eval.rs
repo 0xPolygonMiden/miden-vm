@@ -1,3 +1,4 @@
+use alloc::sync::Arc;
 use core::ops::ControlFlow;
 
 use crate::{
@@ -55,8 +56,25 @@ impl VisitMut for ConstEvalVisitor<'_> {
     fn visit_mut_immediate_u32(&mut self, imm: &mut Immediate<u32>) -> ControlFlow<()> {
         self.eval_const(imm)
     }
-    fn visit_mut_immediate_error_code(&mut self, imm: &mut Immediate<u32>) -> ControlFlow<()> {
-        self.eval_const(imm)
+    fn visit_mut_immediate_error_message(
+        &mut self,
+        imm: &mut Immediate<Arc<str>>,
+    ) -> ControlFlow<()> {
+        match imm {
+            Immediate::Value(_) => ControlFlow::Continue(()),
+            Immediate::Constant(name) => {
+                let span = name.span();
+                match self.analyzer.get_error(name) {
+                    Ok(value) => {
+                        *imm = Immediate::Value(Span::new(span, value));
+                    },
+                    Err(error) => {
+                        self.analyzer.error(error);
+                    },
+                }
+                ControlFlow::Continue(())
+            },
+        }
     }
     fn visit_mut_immediate_felt(&mut self, imm: &mut Immediate<Felt>) -> ControlFlow<()> {
         match imm {

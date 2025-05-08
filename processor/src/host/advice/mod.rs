@@ -3,9 +3,10 @@ use alloc::vec::Vec;
 use vm_core::{
     Felt,
     crypto::{hash::RpoDigest, merkle::MerklePath},
+    mast::MastNodeExt,
 };
 
-use crate::{ExecutionError, ProcessState, Word};
+use crate::{ErrorContext, ExecutionError, ProcessState, Word};
 
 mod inputs;
 pub use inputs::AdviceInputs;
@@ -45,7 +46,11 @@ pub trait AdviceProvider: Sized {
     ///
     /// # Errors
     /// Returns an error if the advice stack is empty.
-    fn pop_stack(&mut self, process: ProcessState) -> Result<Felt, ExecutionError>;
+    fn pop_stack(
+        &mut self,
+        process: ProcessState,
+        err_ctx: &ErrorContext<'_, impl MastNodeExt>,
+    ) -> Result<Felt, ExecutionError>;
 
     /// Pops a word (4 elements) from the advice stack and returns it.
     ///
@@ -54,7 +59,11 @@ pub trait AdviceProvider: Sized {
     ///
     /// # Errors
     /// Returns an error if the advice stack does not contain a full word.
-    fn pop_stack_word(&mut self, process: ProcessState) -> Result<Word, ExecutionError>;
+    fn pop_stack_word(
+        &mut self,
+        process: ProcessState,
+        err_ctx: &ErrorContext<'_, impl MastNodeExt>,
+    ) -> Result<Word, ExecutionError>;
 
     /// Pops a double word (8 elements) from the advice stack and returns them.
     ///
@@ -64,13 +73,21 @@ pub trait AdviceProvider: Sized {
     ///
     /// # Errors
     /// Returns an error if the advice stack does not contain two words.
-    fn pop_stack_dword(&mut self, process: ProcessState) -> Result<[Word; 2], ExecutionError>;
+    fn pop_stack_dword(
+        &mut self,
+        process: ProcessState,
+        err_ctx: &ErrorContext<'_, impl MastNodeExt>,
+    ) -> Result<[Word; 2], ExecutionError>;
 
     /// Pushes the value(s) specified by the source onto the advice stack.
     ///
     /// # Errors
     /// Returns an error if the value specified by the advice source cannot be obtained.
-    fn push_stack(&mut self, source: AdviceSource) -> Result<(), ExecutionError>;
+    fn push_stack(
+        &mut self,
+        source: AdviceSource,
+        err_ctx: &ErrorContext<'_, impl MastNodeExt>,
+    ) -> Result<(), ExecutionError>;
 
     // ADVICE MAP
     // --------------------------------------------------------------------------------------------
@@ -98,8 +115,13 @@ pub trait AdviceProvider: Sized {
     /// - The specified depth is either zero or greater than the depth of the Merkle tree identified
     ///   by the specified root.
     /// - Value of the node at the specified depth and index is not known to this advice provider.
-    fn get_tree_node(&self, root: Word, depth: &Felt, index: &Felt)
-    -> Result<Word, ExecutionError>;
+    fn get_tree_node(
+        &self,
+        root: Word,
+        depth: &Felt,
+        index: &Felt,
+        err_ctx: &ErrorContext<'_, impl MastNodeExt>,
+    ) -> Result<Word, ExecutionError>;
 
     /// Returns a path to a node at the specified depth and index in a Merkle tree with the
     /// specified root.
@@ -115,6 +137,7 @@ pub trait AdviceProvider: Sized {
         root: Word,
         depth: &Felt,
         index: &Felt,
+        err_ctx: &ErrorContext<'_, impl MastNodeExt>,
     ) -> Result<MerklePath, ExecutionError>;
 
     /// Reconstructs a path from the root until a leaf or empty node and returns its depth.
@@ -130,6 +153,7 @@ pub trait AdviceProvider: Sized {
         root: Word,
         tree_depth: &Felt,
         index: &Felt,
+        err_ctx: &ErrorContext<'_, impl MastNodeExt>,
     ) -> Result<u8, ExecutionError>;
 
     /// Updates a node at the specified depth and index in a Merkle tree with the specified root;
@@ -151,6 +175,7 @@ pub trait AdviceProvider: Sized {
         depth: &Felt,
         index: &Felt,
         value: Word,
+        err_ctx: &ErrorContext<'_, impl MastNodeExt>,
     ) -> Result<(MerklePath, Word), ExecutionError>;
 
     /// Creates a new Merkle tree in the advice provider by combining Merkle trees with the
@@ -161,5 +186,10 @@ pub trait AdviceProvider: Sized {
     ///
     /// It is not checked whether a Merkle tree for either of the specified roots can be found in
     /// this advice provider.
-    fn merge_roots(&mut self, lhs: Word, rhs: Word) -> Result<Word, ExecutionError>;
+    fn merge_roots(
+        &mut self,
+        lhs: Word,
+        rhs: Word,
+        err_ctx: &ErrorContext<'_, impl MastNodeExt>,
+    ) -> Result<Word, ExecutionError>;
 }
