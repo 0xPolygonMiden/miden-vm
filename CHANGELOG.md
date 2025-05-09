@@ -2,6 +2,9 @@
 
 ## 0.15.0 (TBD)
 
+#### Enhancements
+
+- Simplify and optimize the recursive verifier (#1801).
 
 ## 0.14.0 (2025-05-07)
 
