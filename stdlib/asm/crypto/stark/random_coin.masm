@@ -301,93 +301,20 @@ end
 # COEFFICIENT GENERATION
 # =============================================================================================
 
-#! Generates a `num_tuples` tuples of random field elements and stores them in memory
-#! starting from address `dest_ptr`. Each tuple uses 8 memory slots.
-#! TODO: Generalize by keeping track of something similar to the `output` variable in `RpoRandomCoin`
-#! so that we keep track of already used randomness and know when there is a need to apply `hperm`.
-#!
-#! `dest_ptr` must be word-aligned.
-#!
-#! Input: [dest_ptr, num_tuples, ...]
-#! Output: [...]
-#!
-#! Cycles: 69 + (22 * num_tuples) / 4
-proc.generate_random_coefficients
-
-    # Compute the loop counter. We use checked division to make sure the number is a multiple of 4.
-    # If we use field division and num_tuples is not a multiple of 4 then we will enter into
-    # a very large loop with high probability.
-    push.0 dup movup.2 movup.3
-    u32assert u32divmod.4
-    assertz
-    neg
-    #=> [loop_ctr, dest_ptr, x, x, ...]
-    # where loop_ctr = - num_tuples / 4; we negate the counter so that we can count up to 0
-
-    exec.get_rate_1
-    dup.5 mem_storew
-
-    exec.get_rate_2
-    dup.9 add.4 mem_storew
-    #=> [R2, R1, loop_ctr, dest_ptr, 0, 0, ..]
-
-    exec.get_capacity
-    swapdw
-    #=> [R1, loop_ctr, dest_ptr, 0, 0, C, R2 ..]
-    swapw
-    #=> [loop_ctr, dest_ptr, 0, 0, R1, C, R2 ..]
-    swap add.8 swap
-    #=> [loop_ctr, dest_ptr+8, 0, 0, R1, C, R2, ..]
-
-    add.1 dup neq.0
-
-    while.true
-
-        swapw.3 hperm
-        #=> [R2, R1, C, loop_ctr, dest_ptr, x, x, ...]
-
-        # save R2 to mem[dest+4]; we use dup.13 here because it takes only 1 cycle
-        dup.13 add.4 mem_storew
-        #=> [R2, R1, C, loop_ctr, dest_ptr, x, x, ...]
-
-        # save R1 to mem[dest]
-        swapw dup.13 mem_storew swapw
-        #=> [R2, R1, C, loop_ctr, dest_ptr, x, x, ...]
-
-        # update destination pointer and loop counter
-        swapw.3
-        #=> [loop_ctr, dest_ptr, x, x, R1, C, R2, ...]
-
-        swap add.8 swap
-        #=> [loop_ctr, dest_ptr+8, x, x, R1, C, R2, ...]
-
-        add.1 dup
-        #=> [loop_ctr+1, loop_ctr+1, dest_ptr+2, x, x, R1, C, R2, ...]
-
-        neq.0
-    end
-
-    # Save the new state of the random coin
-    dropw
-    exec.constants::r1_ptr mem_storew
-    dropw
-    exec.constants::c_ptr mem_storew
-    dropw
-    exec.constants::r2_ptr mem_storew
-    dropw
-    #=> [...]
-end
-
 #! Draw a list of random extension field elements related to the auxiliary segment of the execution
-#! trace and store the list in memory from `aux_rand_elem_ptr` to `aux_rand_elem_ptr + 32 - 4`.
+#! trace and store them.
+#!
+#! More specifically, we draw two challenges, alpha and beta. This means that our multi-set hash function
+#! has the form `h(m) = alpha + \sum_{i=0}^{|m| - 1} m_i * beta^i` for a message `m`.
 #!
 #! Input: [...]
 #! Output: [...]
-#! Cycles: 159
+#! Cycles: 12
 export.generate_aux_randomness
-    exec.constants::aux_rand_elem_ptr
-    exec.constants::get_num_aux_trace_coefs swap
-    exec.generate_random_coefficients
+    padw exec.constants::r1_ptr mem_loadw
+    exec.constants::aux_rand_elem_ptr mem_storew
+    #=> [beta1, beta0, alpha1, alpha0, ...]
+    dropw
     #=> [...]
 end
 
