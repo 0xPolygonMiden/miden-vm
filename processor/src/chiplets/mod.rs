@@ -1,6 +1,5 @@
 use alloc::vec::Vec;
 
-use ace::{Ace, AceHints};
 use miden_air::{
     RowIndex,
     trace::chiplets::hasher::{Digest, HasherState},

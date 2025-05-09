@@ -30,9 +30,9 @@ use.std::crypto::stark::utils
 #!
 #! Cycles:
 #!  1- Remainder polynomial size 64:
-#!   2175 + num_queries * (512 + num_fri_layers * 83) + 108 * num_fri_layers + 10 * log(trace_length)
+#!   2015 + num_queries * (512 + num_fri_layers * 83) + 108 * num_fri_layers + 10 * log(trace_length)
 #!  2- Remainder polynomial size 128:
-#!   2200 + num_queries * (541 + num_fri_layers * 83) + 108 * num_fri_layers + 10 * log(trace_length)
+#!   2040 + num_queries * (541 + num_fri_layers * 83) + 108 * num_fri_layers + 10 * log(trace_length)
 #!
 #!  where num_fri_layers is computed as:
 #!
@@ -80,7 +80,7 @@ export.verify
 
     # Draw random ExtFelt for the auxiliary trace
     #
-    # Cycles: 168
+    # Cycles: 12
     exec.random_coin::generate_aux_randomness
     # => [...]
 
