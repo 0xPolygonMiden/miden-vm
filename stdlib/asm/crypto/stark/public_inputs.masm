@@ -118,8 +118,8 @@ proc.compute_and_store_public_inputs_address
     # 3. the digests of procedures making up the kernel.
     #
     # In total, we need to allocate 16 * 2 * 2 + 4 * 2 + num_ker_proc * 4 * 2
-    # We also need to allocate space for the auxiliary randomness, i.e., 16 * 2
-    sub.104
+    # We also need to allocate space for the auxiliary randomness, i.e., 2 * 2
+    sub.76
     exec.constants::get_num_kernel_procedures
     mul.8
     sub

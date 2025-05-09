@@ -7,7 +7,7 @@ const.DOMAIN_OFFSET=7
 const.DOMAIN_OFFSET_INV=2635249152773512046
 
 # Number of random extension field coefficients related to the auxiliary trace (i.e. the alphas)
-const.NUM_AUX_TRACE_COEFS=16
+const.NUM_AUX_TRACE_COEFS=2
 
 # Number of constraints, both boundary and transitional
 # Note: If the full set of all implemented constraints is used then this should be set to 226
