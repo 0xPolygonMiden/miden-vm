@@ -7,7 +7,7 @@ use.std::crypto::stark::constants
 #!
 #! Input: [...]
 #! Output: [num_fri_layers, ...]
-#! Cycles: 77
+#! Cycles: 45
 export.generate_fri_parameters
     # Load FRI verifier data
     padw exec.constants::get_lde_domain_info_word
@@ -90,6 +90,7 @@ export.load_fri_layer_commitments
         sub.2
         swap
         exec.constants::tmp1 mem_storew
+        # => [lde_size / 4, log2(lde_size) - 2, lde_generator, 0, a1, a0, num_layers, ptr_layer + 4, y, y, ...]
 
         # Move the pointer higher up the stack
         movup.2 drop
@@ -129,7 +130,7 @@ end
 #!  2- Remainder of size 64: 3109
 export.load_and_verify_remainder
     # Load remainder commitment and save it at `TMP1`
-    push.0.0.0.0
+    padw
     adv_loadw
     exec.constants::tmp1 mem_storew
     #=> [COM, ...]
