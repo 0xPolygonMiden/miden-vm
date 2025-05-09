@@ -2,6 +2,9 @@
 
 ## 0.15.0 (TBD)
 
+#### Enhancements
+
+- Add ACE chiplet documentation (#1802).
 
 ## 0.14.0 (2025-05-07)
 
