@@ -7,7 +7,7 @@ use core::ops::{Index, IndexMut};
 
 use miette::{IntoDiagnostic, Report};
 use vm_core::{
-    Decorator, DecoratorList, Operation,
+    Decorator, DecoratorList, Felt, Operation,
     crypto::hash::RpoDigest,
     mast::{
         DecoratorFingerprint, DecoratorId, MastForest, MastNode, MastNodeFingerprint, MastNodeId,
@@ -508,8 +508,8 @@ impl MastForestBuilder {
         self.hash_by_node_id.insert(node_id, new_node_fingerprint);
     }
 
-    pub fn set_after_exit(&mut self, node_id: MastNodeId, decorator_ids: Vec<DecoratorId>) {
-        self.mast_forest[node_id].set_after_exit(decorator_ids);
+    pub fn append_after_exit(&mut self, node_id: MastNodeId, decorator_ids: &[DecoratorId]) {
+        self.mast_forest[node_id].append_after_exit(decorator_ids);
 
         let new_node_fingerprint = self.fingerprint_for_node(&self[node_id]);
         self.hash_by_node_id.insert(node_id, new_node_fingerprint);
@@ -520,6 +520,12 @@ impl MastForestBuilder {
     fn fingerprint_for_node(&self, node: &MastNode) -> MastNodeFingerprint {
         MastNodeFingerprint::from_mast_node(&self.mast_forest, &self.hash_by_node_id, node)
             .expect("hash_by_node_id should contain the fingerprints of all children of `node`")
+    }
+
+    /// Registers an error message in the MAST Forest and returns the
+    /// corresponding error code as a Felt.
+    pub fn register_error(&mut self, msg: Arc<str>) -> Felt {
+        self.mast_forest.register_error(msg)
     }
 }
 

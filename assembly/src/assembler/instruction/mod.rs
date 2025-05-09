@@ -1,10 +1,9 @@
 use core::ops::RangeBounds;
 
-use miette::miette;
 use vm_core::{Decorator, ONE, WORD_SIZE, ZERO, debuginfo::Spanned, mast::MastNodeId};
 
 use super::{Assembler, BasicBlockBuilder, Felt, Operation, ProcedureContext, ast::InvokeKind};
-use crate::{AssemblyError, Span, ast::Instruction, utils::bound_into_included_u64};
+use crate::{AssemblyError, Span, ast::Instruction, report, utils::bound_into_included_u64};
 
 mod adv_ops;
 mod crypto_ops;
@@ -78,21 +77,25 @@ impl Assembler {
 
         match &**instruction {
             Instruction::Nop => block_builder.push_op(Noop),
-            Instruction::Assert => block_builder.push_op(Assert(0)),
-            Instruction::AssertWithError(err_code) => {
-                block_builder.push_op(Assert(err_code.expect_value()))
+            Instruction::Assert => block_builder.push_op(Assert(ZERO)),
+            Instruction::AssertWithError(err_msg) => {
+                let error_code = block_builder.register_error(err_msg.expect_string());
+                block_builder.push_op(Assert(error_code))
             },
-            Instruction::AssertEq => block_builder.push_ops([Eq, Assert(0)]),
-            Instruction::AssertEqWithError(err_code) => {
-                block_builder.push_ops([Eq, Assert(err_code.expect_value())])
+            Instruction::AssertEq => block_builder.push_ops([Eq, Assert(ZERO)]),
+            Instruction::AssertEqWithError(err_msg) => {
+                let error_code = block_builder.register_error(err_msg.expect_string());
+                block_builder.push_ops([Eq, Assert(error_code)])
             },
-            Instruction::AssertEqw => field_ops::assertw(block_builder, 0),
-            Instruction::AssertEqwWithError(err_code) => {
-                field_ops::assertw(block_builder, err_code.expect_value())
+            Instruction::AssertEqw => field_ops::assertw(block_builder, ZERO),
+            Instruction::AssertEqwWithError(err_msg) => {
+                let error_code = block_builder.register_error(err_msg.expect_string());
+                field_ops::assertw(block_builder, error_code)
             },
-            Instruction::Assertz => block_builder.push_ops([Eqz, Assert(0)]),
-            Instruction::AssertzWithError(err_code) => {
-                block_builder.push_ops([Eqz, Assert(err_code.expect_value())])
+            Instruction::Assertz => block_builder.push_ops([Eqz, Assert(ZERO)]),
+            Instruction::AssertzWithError(err_msg) => {
+                let error_code = block_builder.register_error(err_msg.expect_string());
+                block_builder.push_ops([Eqz, Assert(error_code)])
             },
 
             Instruction::Add => block_builder.push_op(Add),
@@ -144,17 +147,20 @@ impl Assembler {
             // ----- u32 manipulation -------------------------------------------------------------
             Instruction::U32Test => block_builder.push_ops([Dup0, U32split, Swap, Drop, Eqz]),
             Instruction::U32TestW => u32_ops::u32testw(block_builder),
-            Instruction::U32Assert => block_builder.push_ops([Pad, U32assert2(0), Drop]),
-            Instruction::U32AssertWithError(err_code) => {
-                block_builder.push_ops([Pad, U32assert2(err_code.expect_value()), Drop])
+            Instruction::U32Assert => block_builder.push_ops([Pad, U32assert2(ZERO), Drop]),
+            Instruction::U32AssertWithError(err_msg) => {
+                let error_code = block_builder.register_error(err_msg.expect_string());
+                block_builder.push_ops([Pad, U32assert2(error_code), Drop])
             },
-            Instruction::U32Assert2 => block_builder.push_op(U32assert2(0)),
-            Instruction::U32Assert2WithError(err_code) => {
-                block_builder.push_op(U32assert2(err_code.expect_value()))
+            Instruction::U32Assert2 => block_builder.push_op(U32assert2(ZERO)),
+            Instruction::U32Assert2WithError(err_msg) => {
+                let error_code = block_builder.register_error(err_msg.expect_string());
+                block_builder.push_op(U32assert2(error_code))
             },
-            Instruction::U32AssertW => u32_ops::u32assertw(block_builder, 0),
-            Instruction::U32AssertWWithError(err_code) => {
-                u32_ops::u32assertw(block_builder, err_code.expect_value())
+            Instruction::U32AssertW => u32_ops::u32assertw(block_builder, ZERO),
+            Instruction::U32AssertWWithError(err_msg) => {
+                let error_code = block_builder.register_error(err_msg.expect_string());
+                u32_ops::u32assertw(block_builder, error_code)
             },
 
             Instruction::U32Cast => block_builder.push_ops([U32split, Drop]),
@@ -413,9 +419,10 @@ impl Assembler {
             Instruction::MTreeGet => crypto_ops::mtree_get(block_builder),
             Instruction::MTreeSet => crypto_ops::mtree_set(block_builder)?,
             Instruction::MTreeMerge => crypto_ops::mtree_merge(block_builder),
-            Instruction::MTreeVerify => block_builder.push_op(MpVerify(0)),
-            Instruction::MTreeVerifyWithError(err_code) => {
-                block_builder.push_op(MpVerify(err_code.expect_value()))
+            Instruction::MTreeVerify => block_builder.push_op(MpVerify(ZERO)),
+            Instruction::MTreeVerifyWithError(err_msg) => {
+                let error_code = block_builder.register_error(err_msg.expect_string());
+                block_builder.push_op(MpVerify(error_code))
             },
 
             // ----- STARK proof verification -----------------------------------------------------
@@ -543,7 +550,7 @@ where
         let min = bound_into_included_u64(range.start_bound(), true);
         let max = bound_into_included_u64(range.end_bound(), false);
         AssemblyError::Other(
-            miette!(
+            report!(
                 "parameter value must be greater than or equal to {min} and \
             less than or equal to {max}, but was {value}",
             )

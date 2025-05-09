@@ -3,7 +3,7 @@ use alloc::vec::Vec;
 use miden_air::{RowIndex, trace::main_trace::MainTrace};
 use vm_core::OPCODE_DYNCALL;
 
-use super::{Felt, FieldElement, OverflowTableRow};
+use super::{Felt, FieldElement};
 use crate::{debug::BusDebugger, trace::AuxColumnBuilder};
 
 // AUXILIARY TRACE BUILDER
@@ -79,5 +79,37 @@ impl<E: FieldElement<BaseField = Felt>> AuxColumnBuilder<E> for AuxTraceBuilder 
         } else {
             E::ONE
         }
+    }
+}
+
+// OVERFLOW STACK ROW
+// ================================================================================================
+
+/// A single row in the stack overflow table. Each row contains the following values:
+/// - The value of the stack item pushed into the overflow stack.
+/// - The clock cycle at which the stack item was pushed into the overflow stack.
+/// - The clock cycle of the value which was at the top of the overflow stack when this value was
+///   pushed onto it.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct OverflowTableRow {
+    val: Felt,
+    clk: Felt,
+    prev: Felt,
+}
+
+impl OverflowTableRow {
+    pub fn new(clk: Felt, val: Felt, prev: Felt) -> Self {
+        Self { val, clk, prev }
+    }
+}
+
+impl OverflowTableRow {
+    /// Reduces this row to a single field element in the field specified by E. This requires
+    /// at least 4 alpha values.
+    pub fn to_value<E: FieldElement<BaseField = Felt>>(&self, alphas: &[E]) -> E {
+        alphas[0]
+            + alphas[1].mul_base(self.clk)
+            + alphas[2].mul_base(self.val)
+            + alphas[3].mul_base(self.prev)
     }
 }

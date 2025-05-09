@@ -1,10 +1,10 @@
-use alloc::{collections::BTreeMap, sync::Arc, vec::Vec};
+use alloc::{collections::BTreeMap, string::ToString, sync::Arc, vec::Vec};
 
 use basic_block_builder::BasicBlockOrDecorators;
 use mast_forest_builder::MastForestBuilder;
 use module_graph::{ProcedureWrapper, WrappedModule};
 use vm_core::{
-    DecoratorList, Felt, Kernel, Operation, Program, WORD_SIZE,
+    AssemblyOp, Decorator, DecoratorList, Felt, Kernel, Operation, Program, WORD_SIZE,
     crypto::hash::RpoDigest,
     debuginfo::SourceSpan,
     mast::{DecoratorId, MastNodeId},
@@ -626,7 +626,7 @@ impl Assembler {
                     }
                 },
 
-                Op::If { then_blk, else_blk, .. } => {
+                Op::If { then_blk, else_blk, span } => {
                     if let Some(basic_block_id) = block_builder.make_basic_block()? {
                         body_node_ids.push(basic_block_id);
                     }
@@ -650,6 +650,23 @@ impl Assembler {
                         block_builder
                             .mast_forest_builder_mut()
                             .append_before_enter(split_node_id, &decorator_ids)
+                    }
+
+                    // Add an assembly operation decorator to the if node in debug mode.
+                    if self.in_debug_mode() {
+                        let location = proc_ctx.source_manager().location(*span).ok();
+                        let context_name = proc_ctx.name().to_string();
+                        let num_cycles = 0;
+                        let op = "if.true".to_string();
+                        let should_break = false;
+                        let op =
+                            AssemblyOp::new(location, context_name, num_cycles, op, should_break);
+                        let decorator_id = block_builder
+                            .mast_forest_builder_mut()
+                            .ensure_decorator(Decorator::AsmOp(op))?;
+                        block_builder
+                            .mast_forest_builder_mut()
+                            .append_before_enter(split_node_id, &[decorator_id]);
                     }
 
                     body_node_ids.push(split_node_id);
@@ -687,7 +704,7 @@ impl Assembler {
                     }
                 },
 
-                Op::While { body, .. } => {
+                Op::While { body, span } => {
                     if let Some(basic_block_id) = block_builder.make_basic_block()? {
                         body_node_ids.push(basic_block_id);
                     }
@@ -705,6 +722,23 @@ impl Assembler {
                         block_builder
                             .mast_forest_builder_mut()
                             .append_before_enter(loop_node_id, &decorator_ids)
+                    }
+
+                    // Add an assembly operation decorator to the loop node in debug mode.
+                    if self.in_debug_mode() {
+                        let location = proc_ctx.source_manager().location(*span).ok();
+                        let context_name = proc_ctx.name().to_string();
+                        let num_cycles = 0;
+                        let op = "while.true".to_string();
+                        let should_break = false;
+                        let op =
+                            AssemblyOp::new(location, context_name, num_cycles, op, should_break);
+                        let decorator_id = block_builder
+                            .mast_forest_builder_mut()
+                            .ensure_decorator(Decorator::AsmOp(op))?;
+                        block_builder
+                            .mast_forest_builder_mut()
+                            .append_before_enter(loop_node_id, &[decorator_id]);
                     }
 
                     body_node_ids.push(loop_node_id);
@@ -743,7 +777,7 @@ impl Assembler {
 
         // Make sure that any post decorators are added at the end of the procedure body
         if let Some(post_decorator_ids) = maybe_post_decorators {
-            mast_forest_builder.set_after_exit(procedure_body_id, post_decorator_ids);
+            mast_forest_builder.append_after_exit(procedure_body_id, &post_decorator_ids);
         }
 
         Ok(procedure_body_id)

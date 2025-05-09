@@ -7,31 +7,36 @@ extern crate alloc;
 extern crate std;
 
 use alloc::{sync::Arc, vec::Vec};
+use core::fmt::{Display, LowerHex};
 
-use errors::ErrorContext;
+use fast::FastProcessor;
 use miden_air::trace::{
     CHIPLETS_WIDTH, DECODER_TRACE_WIDTH, MIN_TRACE_LEN, RANGE_CHECK_TRACE_WIDTH, STACK_TRACE_WIDTH,
     SYS_TRACE_WIDTH,
 };
 pub use miden_air::{ExecutionOptions, ExecutionOptionsError, RowIndex};
+use utils::resolve_external_node;
 pub use vm_core::{
     AssemblyOp, EMPTY_WORD, Felt, Kernel, ONE, Operation, Program, ProgramInfo, QuadExtension,
     StackInputs, StackOutputs, Word, ZERO,
     chiplets::hasher::Digest,
     crypto::merkle::SMT_DEPTH,
-    debuginfo::{DefaultSourceManager, SourceManager},
+    debuginfo::{DefaultSourceManager, SourceManager, SourceSpan},
     errors::InputError,
     mast::{MastForest, MastNode, MastNodeId},
     sys_events::SystemEvent,
     utils::{DeserializationError, collections::KvMap},
 };
 use vm_core::{
-    Decorator, DecoratorIterator, FieldElement,
+    Decorator, DecoratorIterator, FieldElement, WORD_SIZE,
     mast::{
-        BasicBlockNode, CallNode, DynNode, JoinNode, LoopNode, OP_GROUP_SIZE, OpBatch, SplitNode,
+        BasicBlockNode, CallNode, DynNode, JoinNode, LoopNode, MastNodeExt, OP_GROUP_SIZE, OpBatch,
+        SplitNode,
     },
 };
 pub use winter_prover::matrix::ColMatrix;
+
+pub mod fast;
 
 mod operations;
 
@@ -63,7 +68,7 @@ use trace::TraceFragment;
 pub use trace::{ChipletsLengths, ExecutionTrace, NUM_RAND_ROWS, TraceLenSummary};
 
 mod errors;
-pub use errors::{ExecutionError, Ext2InttError};
+pub use errors::{ErrorContext, ExecutionError, Ext2InttError};
 
 pub mod utils;
 
@@ -98,6 +103,49 @@ pub mod crypto {
 // ================================================================================================
 
 type QuadFelt = QuadExtension<Felt>;
+
+#[derive(Copy, Clone, Debug, Eq, PartialEq, Hash)]
+pub struct MemoryAddress(u32);
+
+impl From<u32> for MemoryAddress {
+    fn from(addr: u32) -> Self {
+        MemoryAddress(addr)
+    }
+}
+
+impl From<MemoryAddress> for u32 {
+    fn from(value: MemoryAddress) -> Self {
+        value.0
+    }
+}
+
+impl Display for MemoryAddress {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        Display::fmt(&self.0, f)
+    }
+}
+
+impl LowerHex for MemoryAddress {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        LowerHex::fmt(&self.0, f)
+    }
+}
+
+impl core::ops::Add<MemoryAddress> for MemoryAddress {
+    type Output = Self;
+
+    fn add(self, rhs: MemoryAddress) -> Self::Output {
+        MemoryAddress(self.0 + rhs.0)
+    }
+}
+
+impl core::ops::Add<u32> for MemoryAddress {
+    type Output = Self;
+
+    fn add(self, rhs: u32) -> Self::Output {
+        MemoryAddress(self.0 + rhs)
+    }
+}
 
 type SysTrace = [Vec<Felt>; SYS_TRACE_WIDTH];
 
@@ -218,7 +266,7 @@ impl Process {
         Self::initialize(
             kernel,
             stack_inputs,
-            ExecutionOptions::default().with_tracing().with_debugging(),
+            ExecutionOptions::default().with_tracing().with_debugging(true),
         )
     }
 
@@ -260,7 +308,11 @@ impl Process {
         for (digest, values) in program.mast_forest().advice_map().iter() {
             if let Some(stored_values) = host.advice_provider().get_mapped_values(digest) {
                 if stored_values != values {
-                    return Err(ExecutionError::AdviceMapKeyAlreadyPresent(digest.into()));
+                    return Err(ExecutionError::AdviceMapKeyAlreadyPresent {
+                        key: digest.into(),
+                        prev_values: stored_values.to_vec(),
+                        new_values: values.clone(),
+                    });
                 }
             } else {
                 host.advice_provider_mut().insert_into_map(digest.into(), values.clone());
@@ -294,25 +346,22 @@ impl Process {
             MastNode::Join(node) => self.execute_join_node(node, program, host)?,
             MastNode::Split(node) => self.execute_split_node(node, program, host)?,
             MastNode::Loop(node) => self.execute_loop_node(node, program, host)?,
-            MastNode::Call(node) => self.execute_call_node(node, program, host)?,
-            MastNode::Dyn(node) => self.execute_dyn_node(node, program, host)?,
+            MastNode::Call(node) => {
+                let err_ctx = ErrorContext::new(program, node, self.source_manager.clone());
+                add_error_ctx_to_external_error(
+                    self.execute_call_node(node, program, host),
+                    err_ctx,
+                )?
+            },
+            MastNode::Dyn(node) => {
+                let err_ctx = ErrorContext::new(program, node, self.source_manager.clone());
+                add_error_ctx_to_external_error(
+                    self.execute_dyn_node(node, program, host),
+                    err_ctx,
+                )?
+            },
             MastNode::External(external_node) => {
-                let node_digest = external_node.digest();
-                let mast_forest = host.get_mast_forest(&node_digest).ok_or(
-                    ExecutionError::NoMastForestWithProcedure { root_digest: node_digest },
-                )?;
-
-                // We limit the parts of the program that can be called externally to procedure
-                // roots, even though MAST doesn't have that restriction.
-                let root_id = mast_forest.find_procedure_root(node_digest).ok_or(
-                    ExecutionError::MalformedMastForestInHost { root_digest: node_digest },
-                )?;
-
-                // if the node that we got by looking up an external reference is also an External
-                // node, we are about to enter into an infinite loop - so, return an error
-                if mast_forest[root_id].is_external() {
-                    return Err(ExecutionError::CircularExternalNode(node_digest));
-                }
+                let (root_id, mast_forest) = resolve_external_node(external_node, host)?;
 
                 self.execute_mast_node(root_id, &mast_forest, host)?;
             },
@@ -339,7 +388,7 @@ impl Process {
         self.execute_mast_node(node.first(), program, host)?;
         self.execute_mast_node(node.second(), program, host)?;
 
-        self.end_join_node(node, host)
+        self.end_join_node(node, program, host)
     }
 
     /// Executes the specified [SplitNode].
@@ -359,10 +408,11 @@ impl Process {
         } else if condition == ZERO {
             self.execute_mast_node(node.on_false(), program, host)?;
         } else {
-            return Err(ExecutionError::NotBinaryValue(condition));
+            let err_ctx = ErrorContext::new(program, node, self.source_manager.clone());
+            return Err(ExecutionError::not_binary_value_if(condition, &err_ctx));
         }
 
-        self.end_split_node(node, host)
+        self.end_split_node(node, program, host)
     }
 
     /// Executes the specified [LoopNode].
@@ -386,22 +436,24 @@ impl Process {
             // which drops the condition from the stack
             while self.stack.peek() == ONE {
                 self.decoder.repeat();
-                self.execute_op(Operation::Drop, host)?;
+                self.execute_op(Operation::Drop, program, host)?;
                 self.execute_mast_node(node.body(), program, host)?;
             }
 
             if self.stack.peek() != ZERO {
-                return Err(ExecutionError::NotBinaryValue(self.stack.peek()));
+                let err_ctx = ErrorContext::new(program, node, self.source_manager.clone());
+                return Err(ExecutionError::not_binary_value_loop(self.stack.peek(), &err_ctx));
             }
 
             // end the LOOP block and drop the condition from the stack
-            self.end_loop_node(node, true, host)
+            self.end_loop_node(node, true, program, host)
         } else if condition == ZERO {
             // end the LOOP block, but don't drop the condition from the stack because it was
             // already dropped when we started the LOOP block
-            self.end_loop_node(node, false, host)
+            self.end_loop_node(node, false, program, host)
         } else {
-            Err(ExecutionError::NotBinaryValue(condition))
+            let err_ctx = ErrorContext::new(program, node, self.source_manager.clone());
+            Err(ExecutionError::not_binary_value_loop(condition, &err_ctx))
         }
     }
 
@@ -424,13 +476,14 @@ impl Process {
             let callee = program.get_node_by_id(call_node.callee()).ok_or_else(|| {
                 ExecutionError::MastNodeNotFoundInForest { node_id: call_node.callee() }
             })?;
-            self.chiplets.kernel_rom.access_proc(callee.digest())?;
+            let err_ctx = ErrorContext::new(program, call_node, self.source_manager.clone());
+            self.chiplets.kernel_rom.access_proc(callee.digest(), &err_ctx)?;
         }
         let err_ctx = ErrorContext::new(program, call_node, self.source_manager.clone());
 
         self.start_call_node(call_node, program, host)?;
         self.execute_mast_node(call_node.callee(), program, host)?;
-        self.end_call_node(call_node, host, &err_ctx)
+        self.end_call_node(call_node, program, host, &err_ctx)
     }
 
     /// Executes the specified [vm_core::mast::DynNode].
@@ -454,7 +507,7 @@ impl Process {
         let callee_hash = if node.is_dyncall() {
             self.start_dyncall_node(node, &error_ctx)?
         } else {
-            self.start_dyn_node(node, host, &error_ctx)?
+            self.start_dyn_node(node, program, host, &error_ctx)?
         };
 
         // if the callee is not in the program's MAST forest, try to find a MAST forest for it in
@@ -463,14 +516,17 @@ impl Process {
         match program.find_procedure_root(callee_hash.into()) {
             Some(callee_id) => self.execute_mast_node(callee_id, program, host)?,
             None => {
-                let mast_forest = host
-                    .get_mast_forest(&callee_hash.into())
-                    .ok_or_else(|| ExecutionError::DynamicNodeNotFound(callee_hash.into()))?;
+                let mast_forest = host.get_mast_forest(&callee_hash.into()).ok_or_else(|| {
+                    ExecutionError::dynamic_node_not_found(callee_hash.into(), &error_ctx)
+                })?;
 
                 // We limit the parts of the program that can be called externally to procedure
                 // roots, even though MAST doesn't have that restriction.
                 let root_id = mast_forest.find_procedure_root(callee_hash.into()).ok_or(
-                    ExecutionError::MalformedMastForestInHost { root_digest: callee_hash.into() },
+                    ExecutionError::malfored_mast_forest_in_host(
+                        callee_hash.into(),
+                        &ErrorContext::default(),
+                    ),
                 )?;
 
                 self.execute_mast_node(root_id, &mast_forest, host)?
@@ -478,9 +534,9 @@ impl Process {
         }
 
         if node.is_dyncall() {
-            self.end_dyncall_node(node, host, &error_ctx)
+            self.end_dyncall_node(node, program, host, &error_ctx)
         } else {
-            self.end_dyn_node(node, host)
+            self.end_dyn_node(node, program, host)
         }
     }
 
@@ -492,7 +548,7 @@ impl Process {
         program: &MastForest,
         host: &mut impl Host,
     ) -> Result<(), ExecutionError> {
-        self.start_basic_block_node(basic_block, host)?;
+        self.start_basic_block_node(basic_block, program, host)?;
 
         let mut op_offset = 0;
         let mut decorator_ids = basic_block.decorator_iter();
@@ -513,7 +569,7 @@ impl Process {
         // of the stack
         for op_batch in basic_block.op_batches().iter().skip(1) {
             self.respan(op_batch);
-            self.execute_op(Operation::Noop, host)?;
+            self.execute_op(Operation::Noop, program, host)?;
             self.execute_op_batch(
                 basic_block,
                 op_batch,
@@ -525,7 +581,7 @@ impl Process {
             op_offset += op_batch.ops().len();
         }
 
-        self.end_basic_block_node(basic_block, host)?;
+        self.end_basic_block_node(basic_block, program, host)?;
 
         // execute any decorators which have not been executed during span ops execution; this
         // can happen for decorators appearing after all operations in a block. these decorators
@@ -584,7 +640,7 @@ impl Process {
                 i + op_offset,
             );
             self.decoder.execute_user_op(op, op_idx);
-            self.execute_op_with_error_ctx(op, host, &error_ctx)?;
+            self.execute_op_with_error_ctx(op, program, host, &error_ctx)?;
 
             // if the operation carries an immediate value, the value is stored at the next group
             // pointer; so, we advance the pointer to the following group
@@ -604,7 +660,7 @@ impl Process {
                     // bug somewhere in the assembler)
                     debug_assert!(op_idx < OP_GROUP_SIZE - 1, "invalid op index");
                     self.decoder.execute_user_op(Operation::Noop, op_idx + 1);
-                    self.execute_op(Operation::Noop, host)?;
+                    self.execute_op(Operation::Noop, program, host)?;
                 }
 
                 // then, move to the next group and reset operation index
@@ -627,7 +683,7 @@ impl Process {
         // the actual number of operation groups was not a power of two
         for group_idx in group_idx..num_batch_groups {
             self.decoder.execute_user_op(Operation::Noop, 0);
-            self.execute_op(Operation::Noop, host)?;
+            self.execute_op(Operation::Noop, program, host)?;
 
             // if we are not at the last group yet, set up the decoder for decoding the next
             // operation groups. the groups were are processing are just NOOPs - so, the op group
@@ -682,31 +738,64 @@ impl Process {
 // ================================================================================================
 
 #[derive(Debug, Clone, Copy)]
-pub struct ProcessState<'a> {
+pub struct SlowProcessState<'a> {
     system: &'a System,
     stack: &'a Stack,
     chiplets: &'a Chiplets,
 }
 
-impl ProcessState<'_> {
+#[derive(Debug, Clone, Copy)]
+pub struct FastProcessState<'a> {
+    processor: &'a FastProcessor,
+    /// the index of the operation in its basic block
+    op_idx: usize,
+}
+
+#[derive(Debug, Clone, Copy)]
+pub enum ProcessState<'a> {
+    Slow(SlowProcessState<'a>),
+    Fast(FastProcessState<'a>),
+}
+
+impl<'a> ProcessState<'a> {
+    pub fn new_fast(processor: &'a FastProcessor, op_idx: usize) -> Self {
+        Self::Fast(FastProcessState { processor, op_idx })
+    }
+
     /// Returns the current clock cycle of a process.
+    #[inline(always)]
     pub fn clk(&self) -> RowIndex {
-        self.system.clk()
+        match self {
+            ProcessState::Slow(state) => state.system.clk(),
+            ProcessState::Fast(state) => state.processor.clk + state.op_idx,
+        }
     }
 
     /// Returns the current execution context ID.
+    #[inline(always)]
     pub fn ctx(&self) -> ContextId {
-        self.system.ctx()
+        match self {
+            ProcessState::Slow(state) => state.system.ctx(),
+            ProcessState::Fast(state) => state.processor.ctx,
+        }
     }
 
     /// Returns the current value of the free memory pointer.
+    #[inline(always)]
     pub fn fmp(&self) -> u64 {
-        self.system.fmp().as_int()
+        match self {
+            ProcessState::Slow(state) => state.system.fmp().as_int(),
+            ProcessState::Fast(state) => state.processor.fmp.as_int(),
+        }
     }
 
     /// Returns the value located at the specified position on the stack at the current clock cycle.
+    #[inline(always)]
     pub fn get_stack_item(&self, pos: usize) -> Felt {
-        self.stack.get(pos)
+        match self {
+            ProcessState::Slow(state) => state.stack.get(pos),
+            ProcessState::Fast(state) => state.processor.stack_get(pos),
+        }
     }
 
     /// Returns a word located at the specified word index on the stack.
@@ -719,28 +808,48 @@ impl ProcessState<'_> {
     /// stack will be at the last position in the word.
     ///
     /// Creating a word does not change the state of the stack.
+    #[inline(always)]
     pub fn get_stack_word(&self, word_idx: usize) -> Word {
-        self.stack.get_word(word_idx)
+        match self {
+            ProcessState::Slow(state) => state.stack.get_word(word_idx),
+            ProcessState::Fast(state) => state.processor.stack_get_word(word_idx * WORD_SIZE),
+        }
     }
 
     /// Returns stack state at the current clock cycle. This includes the top 16 items of the
     /// stack + overflow entries.
+    #[inline(always)]
     pub fn get_stack_state(&self) -> Vec<Felt> {
-        self.stack.get_state_at(self.system.clk())
+        match self {
+            ProcessState::Slow(state) => state.stack.get_state_at(state.system.clk()),
+            ProcessState::Fast(state) => state.processor.stack().iter().rev().copied().collect(),
+        }
     }
 
     /// Returns the element located at the specified context/address, or None if the address hasn't
     /// been accessed previously.
+    #[inline(always)]
     pub fn get_mem_value(&self, ctx: ContextId, addr: u32) -> Option<Felt> {
-        self.chiplets.memory.get_value(ctx, addr)
+        match self {
+            ProcessState::Slow(state) => state.chiplets.memory.get_value(ctx, addr),
+            ProcessState::Fast(state) => state.processor.memory.read_element_impl(ctx, addr),
+        }
     }
 
     /// Returns the batch of elements starting at the specified context/address.
     ///
     /// # Errors
     /// - If the address is not word aligned.
+    #[inline(always)]
     pub fn get_mem_word(&self, ctx: ContextId, addr: u32) -> Result<Option<Word>, ExecutionError> {
-        self.chiplets.memory.get_word(ctx, addr).map_err(ExecutionError::MemoryError)
+        match self {
+            ProcessState::Slow(state) => {
+                state.chiplets.memory.get_word(ctx, addr).map_err(ExecutionError::MemoryError)
+            },
+            ProcessState::Fast(state) => {
+                Ok(state.processor.memory.read_word_impl(ctx, addr, None)?.copied())
+            },
+        }
     }
 
     /// Returns the entire memory state for the specified execution context at the current clock
@@ -748,27 +857,71 @@ impl ProcessState<'_> {
     ///
     /// The state is returned as a vector of (address, value) tuples, and includes addresses which
     /// have been accessed at least once.
-    pub fn get_mem_state(&self, ctx: ContextId) -> Vec<(u64, Felt)> {
-        self.chiplets.memory.get_state_at(ctx, self.system.clk())
+    #[inline(always)]
+    pub fn get_mem_state(&self, ctx: ContextId) -> Vec<(MemoryAddress, Felt)> {
+        match self {
+            ProcessState::Slow(state) => {
+                state.chiplets.memory.get_state_at(ctx, state.system.clk())
+            },
+            ProcessState::Fast(state) => state.processor.memory.get_memory_state(ctx),
+        }
     }
 }
 
+// CONVERSIONS
+// ===============================================================================================
+
 impl<'a> From<&'a Process> for ProcessState<'a> {
     fn from(process: &'a Process) -> Self {
-        Self {
+        Self::Slow(SlowProcessState {
             system: &process.system,
             stack: &process.stack,
             chiplets: &process.chiplets,
-        }
+        })
     }
 }
 
 impl<'a> From<&'a mut Process> for ProcessState<'a> {
     fn from(process: &'a mut Process) -> Self {
-        Self {
+        Self::Slow(SlowProcessState {
             system: &process.system,
             stack: &process.stack,
             chiplets: &process.chiplets,
-        }
+        })
+    }
+}
+
+// HELPERS
+// ================================================================================================
+
+/// For errors generated from processing an `ExternalNode`, returns the same error except with
+/// proper error context.
+fn add_error_ctx_to_external_error(
+    result: Result<(), ExecutionError>,
+    err_ctx: ErrorContext<impl MastNodeExt>,
+) -> Result<(), ExecutionError> {
+    match result {
+        Ok(_) => Ok(()),
+        // Add context information to any errors coming from executing an `ExternalNode`
+        Err(err) => match err {
+            ExecutionError::NoMastForestWithProcedure { label, source_file: _, root_digest }
+            | ExecutionError::MalformedMastForestInHost { label, source_file: _, root_digest } => {
+                if label == SourceSpan::UNKNOWN {
+                    let err_with_ctx =
+                        ExecutionError::no_mast_forest_with_procedure(root_digest, &err_ctx);
+                    Err(err_with_ctx)
+                } else {
+                    // If the source span was already populated, just return the error as-is. This
+                    // would occur when a call deeper down the call stack was responsible for the
+                    // error.
+                    Err(err)
+                }
+            },
+
+            _ => {
+                // do nothing
+                Err(err)
+            },
+        },
     }
 }

@@ -1,3 +1,5 @@
+use processor::MemoryAddress;
+
 /// debug commands supported by the debugger
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum DebugCommand {
@@ -9,7 +11,7 @@ pub enum DebugCommand {
     PrintStack,
     PrintStackItem(usize),
     PrintMem,
-    PrintMemAddress(u64),
+    PrintMemAddress(MemoryAddress),
     Clock,
     Quit,
     Help,
@@ -43,8 +45,7 @@ impl DebugCommand {
             "q" | "quit" => Self::Quit,
             _ => {
                 return Err(format!(
-                    "malformed command - does not match any known command: `{}`",
-                    command
+                    "malformed command - does not match any known command: `{command}`"
                 ));
             },
         };
@@ -67,10 +68,7 @@ impl DebugCommand {
     {
         let num_cycles = match tokens.next() {
             Some(n) => n.parse::<usize>().map_err(|err| {
-                format!(
-                    "malformed `next` command - failed to parse number of cycles: `{}` {}",
-                    n, err
-                )
+                format!("malformed `next` command - failed to parse number of cycles: `{n}` {err}")
             })?,
             None => return Ok(Self::Next(1)),
         };
@@ -84,10 +82,7 @@ impl DebugCommand {
     {
         let num_cycles = match tokens.next() {
             Some(n) => n.parse::<usize>().map_err(|err| {
-                format!(
-                    "malformed `back` command - failed to parse number of cycles: `{}` {}",
-                    n, err
-                )
+                format!("malformed `back` command - failed to parse number of cycles: `{n}` {err}")
             })?,
             None => return Ok(Self::Back(1)),
         };
@@ -122,7 +117,9 @@ impl DebugCommand {
             })?;
 
         match (command, argument) {
-            (Self::PrintMem, Some(arg)) => Ok(Self::PrintMemAddress(arg)),
+            (Self::PrintMem, Some(arg)) => Ok(Self::PrintMemAddress(
+                u32::try_from(arg).expect("memory address should not exceed 2^32").into(),
+            )),
             (Self::PrintStack, Some(arg)) => Ok(Self::PrintStackItem(arg as usize)),
             (_, Some(_)) => unreachable!("the command was previously parsed within this block"),
             (_, None) => Ok(command),

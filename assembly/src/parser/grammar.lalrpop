@@ -482,7 +482,7 @@ MetaExpr: MetaExpr = {
 
 #[inline]
 QuotedString: Ident = {
-    <l:@L> <value:quoted_string> <r:@R> => {
+    <l:@L> <value:string> <r:@R> => {
         let value = interned.get(value).cloned().unwrap_or_else(|| {
             let value = Arc::<str>::from(value.to_string().into_boxed_str());
             interned.insert(value.clone());
@@ -686,20 +686,34 @@ SystemEvent: Instruction = {
 
 #[inline]
 InstWithErrorCode: Instruction = {
-    "assert" <error_code:MaybeAssertCode> => error_code.map(Instruction::AssertWithError).unwrap_or(Instruction::Assert),
-    "assertz" <error_code:MaybeAssertCode> => error_code.map(Instruction::AssertzWithError).unwrap_or(Instruction::Assertz),
-    "assert_eq" <error_code:MaybeAssertCode> => error_code.map(Instruction::AssertEqWithError).unwrap_or(Instruction::AssertEq),
-    "assert_eqw" <error_code:MaybeAssertCode> => error_code.map(Instruction::AssertEqwWithError).unwrap_or(Instruction::AssertEqw),
-    "u32assert" <error_code:MaybeAssertCode> => error_code.map(Instruction::U32AssertWithError).unwrap_or(Instruction::U32Assert),
-    "u32assert2" <error_code:MaybeAssertCode> => error_code.map(Instruction::U32Assert2WithError).unwrap_or(Instruction::U32Assert2),
-    "u32assertw" <error_code:MaybeAssertCode> => error_code.map(Instruction::U32AssertWWithError).unwrap_or(Instruction::U32AssertW),
-    "mtree_verify" <error_code:MaybeAssertCode> => error_code.map(Instruction::MTreeVerifyWithError).unwrap_or(Instruction::MTreeVerify),
+    "assert" => Instruction::Assert,
+    "assert" "." "err" "=" <value:ImmError> => Instruction::AssertWithError(value),
+    "assertz" => Instruction::Assertz,
+    "assertz" "." "err" "=" <value:ImmError> => Instruction::AssertzWithError(value),
+    "assert_eq" => Instruction::AssertEq,
+    "assert_eq" "." "err" "=" <value:ImmError> => Instruction::AssertEqWithError(value),
+    "assert_eqw" => Instruction::AssertEqw,
+    "assert_eqw" "." "err" "=" <value:ImmError> => Instruction::AssertEqwWithError(value),
+    "u32assert" => Instruction::U32Assert,
+    "u32assert" "." "err" "=" <value:ImmError> => Instruction::U32AssertWithError(value),
+    "u32assert2" => Instruction::U32Assert2,
+    "u32assert2" "." "err" "=" <value:ImmError> => Instruction::U32Assert2WithError(value),
+    "u32assertw" => Instruction::U32AssertW,
+    "u32assertw" "." "err" "=" <value:ImmError> => Instruction::U32AssertWWithError(value),
+    "mtree_verify" => Instruction::MTreeVerify,
+    "mtree_verify" "." "err" "=" <value:ImmError> => Instruction::MTreeVerifyWithError(value),
 }
 
-MaybeAssertCode: Option<Immediate<u32>> = {
-    "." "err" "=" <code:ImmValue<U32>> => Some(code),
-    => None,
+#[inline]
+ImmError: Immediate<Arc<str>> = {
+    <l:@L> <t:string> <r:@R> => {
+        let name = Arc::<str>::from(t.to_string().into_boxed_str());
+        let id = Span::new(span!(source_file.id(), l, r), name);
+        Immediate::Value(id)
+    },
+    <ConstantName> => Immediate::Constant(<>),
 }
+
 
 Call: Instruction = {
     "exec" "." <callee:InvocationTarget> => Instruction::Exec(callee),
@@ -1807,10 +1821,18 @@ ConstantName: Ident = {
 Term: ConstantExpr = {
     "(" <ConstantExpr> ")",
 
-    <value:ImmValue<Felt>> => {
-        match value {
-            Immediate::Value(value) => ConstantExpr::Literal(value),
-            Immediate::Constant(name) => ConstantExpr::Var(name),
-        }
-    }
+    <l:@L> <t:Felt> <r:@R> => ConstantExpr::Literal(Span::new(span!(source_file.id(), l, r), t)),
+
+    <l:@L> <t:QuotedString> <r:@R> => ConstantExpr::String(t),
+
+    <ConstantName> => ConstantExpr::Var(<>),
+}
+
+// Terminals
+/////////////////////////////
+
+#[inline]
+string : &'input str = {
+    quoted_string,
+    quoted_ident
 }

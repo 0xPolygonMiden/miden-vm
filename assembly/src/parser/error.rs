@@ -168,6 +168,12 @@ pub enum ParsingError {
         #[label]
         span: SourceSpan,
     },
+    #[error("unexpected string in an arithmetic expression")]
+    #[diagnostic()]
+    StringInArithmeticExpression {
+        #[label]
+        span: SourceSpan,
+    },
     #[error("doc comment is too large")]
     #[diagnostic(help("make sure it is less than u16::MAX bytes in length"))]
     DocsTooLarge {

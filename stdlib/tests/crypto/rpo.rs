@@ -1,5 +1,5 @@
 use miden_air::RowIndex;
-use processor::ExecutionError;
+use processor::{ExecutionError, ZERO};
 use test_utils::{build_expected_hash, build_expected_perm, expect_exec_error_matches};
 
 #[test]
@@ -19,8 +19,8 @@ fn test_invalid_end_addr() {
 
     expect_exec_error_matches!(
         test,
-        ExecutionError::FailedAssertion{ clk, err_code, err_msg }
-        if clk == RowIndex::from(18) && err_code == 0 && err_msg.is_none()
+        ExecutionError::FailedAssertion{ clk, err_code, err_msg , label: _, source_file: _ }
+        if clk == RowIndex::from(18) && err_code == ZERO && err_msg.is_none()
     );
 }
 
@@ -36,8 +36,8 @@ fn test_hash_empty() {
         mem_stream hperm
 
         # drop everything except the hash
-        exec.rpo::squeeze_digest movup.4 drop 
-        
+        exec.rpo::squeeze_digest movup.4 drop
+
         # truncate stack
         swapw dropw
     end
@@ -357,9 +357,9 @@ fn test_hash_memory() {
 
     #[rustfmt::skip]
     let mut expected_hash: Vec<u64> = build_expected_hash(&[
-        1, 2, 3, 4, 
-        5, 6, 7, 8, 
-        9, 10, 11, 12, 
+        1, 2, 3, 4,
+        5, 6, 7, 8,
+        9, 10, 11, 12,
         13, 14, 15
     ]).into_iter().map(|e| e.as_int()).collect();
     // make sure that value `11` stays unchanged
@@ -414,7 +414,7 @@ fn test_hash_memory_empty() {
     use.std::crypto::hashes::rpo
 
     begin
-        push.0    # number of elements to hash 
+        push.0    # number of elements to hash
         push.1000 # start address
 
         exec.rpo::hash_memory

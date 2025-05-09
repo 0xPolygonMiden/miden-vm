@@ -287,15 +287,15 @@ impl MastNode {
     }
 
     /// Sets the list of decorators to be executed after this node.
-    pub fn set_after_exit(&mut self, decorator_ids: Vec<DecoratorId>) {
+    pub fn append_after_exit(&mut self, decorator_ids: &[DecoratorId]) {
         match self {
             MastNode::Block(node) => node.append_decorators(decorator_ids),
-            MastNode::Join(node) => node.set_after_exit(decorator_ids),
-            MastNode::Split(node) => node.set_after_exit(decorator_ids),
-            MastNode::Loop(node) => node.set_after_exit(decorator_ids),
-            MastNode::Call(node) => node.set_after_exit(decorator_ids),
-            MastNode::Dyn(node) => node.set_after_exit(decorator_ids),
-            MastNode::External(node) => node.set_after_exit(decorator_ids),
+            MastNode::Join(node) => node.append_after_exit(decorator_ids),
+            MastNode::Split(node) => node.append_after_exit(decorator_ids),
+            MastNode::Loop(node) => node.append_after_exit(decorator_ids),
+            MastNode::Call(node) => node.append_after_exit(decorator_ids),
+            MastNode::Dyn(node) => node.append_after_exit(decorator_ids),
+            MastNode::External(node) => node.append_after_exit(decorator_ids),
         }
     }
 }

@@ -17,7 +17,7 @@ use super::{
     FieldElement, Memory, ONE, TraceFragment, V_COL_RANGE, WORD_COL_IDX,
     segment::{MemoryAccessType, MemoryOperation},
 };
-use crate::{ContextId, MemoryError, errors::ErrorContext};
+use crate::{ContextId, MemoryAddress, MemoryError, errors::ErrorContext};
 
 #[test]
 fn mem_init() {
@@ -293,41 +293,41 @@ fn mem_write_read() {
     // write [1,2,3,4] starting at address 0; clk = 1
     let word1234 = [ONE, 2_u32.into(), 3_u32.into(), 4_u32.into()];
     mem.write_word(ContextId::root(), ZERO, clk, word1234, &error_context).unwrap();
-    clk += 1;
+    clk += 1_u32;
 
     // read individual values from addresses 3,2,1,0; clk = 2,3,4,5
     let value_read = mem.read(ContextId::root(), 3_u32.into(), clk, &error_context).unwrap();
     assert_eq!(value_read, 4_u32.into());
-    clk += 1;
+    clk += 1_u32;
     let value_read = mem.read(ContextId::root(), 2_u32.into(), clk, &error_context).unwrap();
     assert_eq!(value_read, 3_u32.into());
-    clk += 1;
+    clk += 1_u32;
     let value_read = mem.read(ContextId::root(), 1_u32.into(), clk, &error_context).unwrap();
     assert_eq!(value_read, 2_u32.into());
-    clk += 1;
+    clk += 1_u32;
     let value_read = mem.read(ContextId::root(), ZERO, clk, &error_context).unwrap();
     assert_eq!(value_read, 1_u32.into());
-    clk += 1;
+    clk += 1_u32;
 
     // read word from address 0; clk = 6
     let word_read = mem.read_word(ContextId::root(), ZERO, clk, &error_context).unwrap();
     assert_eq!(word_read, word1234);
-    clk += 1;
+    clk += 1_u32;
 
     // write 42 into address 2; clk = 7
     mem.write(ContextId::root(), 2_u32.into(), clk, 42_u32.into(), &error_context)
         .unwrap();
-    clk += 1;
+    clk += 1_u32;
 
     // read element from address 2; clk = 8
     let value_read = mem.read(ContextId::root(), 2_u32.into(), clk, &error_context).unwrap();
     assert_eq!(value_read, 42_u32.into());
-    clk += 1;
+    clk += 1_u32;
 
     // read word from address 0; clk = 9
     let word_read = mem.read_word(ContextId::root(), ZERO, clk, &error_context).unwrap();
     assert_eq!(word_read, [ONE, 2_u32.into(), 42_u32.into(), 4_u32.into()]);
-    clk += 1;
+    clk += 1_u32;
 
     // check generated trace and memory data provided to the ChipletsBus; rows should be sorted by
     // address and then clock cycle
@@ -345,7 +345,7 @@ fn mem_write_read() {
         word1234,
     );
     prev_row = verify_memory_access(&trace, 0, memory_access, prev_row);
-    clk += 1;
+    clk += 1_u32;
 
     let memory_access = MemoryAccess::new(
         MemoryOperation::Read,
@@ -356,7 +356,7 @@ fn mem_write_read() {
         word1234,
     );
     prev_row = verify_memory_access(&trace, 1, memory_access, prev_row);
-    clk += 1;
+    clk += 1_u32;
 
     let memory_access = MemoryAccess::new(
         MemoryOperation::Read,
@@ -367,7 +367,7 @@ fn mem_write_read() {
         word1234,
     );
     prev_row = verify_memory_access(&trace, 2, memory_access, prev_row);
-    clk += 1;
+    clk += 1_u32;
 
     let memory_access = MemoryAccess::new(
         MemoryOperation::Read,
@@ -378,7 +378,7 @@ fn mem_write_read() {
         word1234,
     );
     prev_row = verify_memory_access(&trace, 3, memory_access, prev_row);
-    clk += 1;
+    clk += 1_u32;
 
     let memory_access = MemoryAccess::new(
         MemoryOperation::Read,
@@ -389,7 +389,7 @@ fn mem_write_read() {
         word1234,
     );
     prev_row = verify_memory_access(&trace, 4, memory_access, prev_row);
-    clk += 1;
+    clk += 1_u32;
 
     let memory_access = MemoryAccess::new(
         MemoryOperation::Read,
@@ -400,7 +400,7 @@ fn mem_write_read() {
         word1234,
     );
     prev_row = verify_memory_access(&trace, 5, memory_access, prev_row);
-    clk += 1;
+    clk += 1_u32;
 
     let memory_access = MemoryAccess::new(
         MemoryOperation::Write,
@@ -411,7 +411,7 @@ fn mem_write_read() {
         [ONE, 2_u32.into(), 42_u32.into(), 4_u32.into()],
     );
     prev_row = verify_memory_access(&trace, 6, memory_access, prev_row);
-    clk += 1;
+    clk += 1_u32;
 
     let memory_access = MemoryAccess::new(
         MemoryOperation::Read,
@@ -422,7 +422,7 @@ fn mem_write_read() {
         [ONE, 2_u32.into(), 42_u32.into(), 4_u32.into()],
     );
     prev_row = verify_memory_access(&trace, 7, memory_access, prev_row);
-    clk += 1;
+    clk += 1_u32;
 
     let memory_access = MemoryAccess::new(
         MemoryOperation::Read,
@@ -468,10 +468,10 @@ fn mem_get_state_at() {
     assert_eq!(
         mem.get_state_at(ContextId::root(), clk),
         vec![
-            (addr_start.into(), word1234[0]),
-            (u64::from(addr_start) + 1_u64, word1234[1]),
-            (u64::from(addr_start) + 2_u64, word1234[2]),
-            (u64::from(addr_start) + 3_u64, word1234[3])
+            (MemoryAddress(addr_start), word1234[0]),
+            (MemoryAddress(addr_start + 1), word1234[1]),
+            (MemoryAddress(addr_start + 2), word1234[2]),
+            (MemoryAddress(addr_start + 3), word1234[3])
         ]
     );
     assert_eq!(mem.get_state_at(3.into(), clk), vec![]);
@@ -481,10 +481,10 @@ fn mem_get_state_at() {
     assert_eq!(
         mem.get_state_at(ContextId::root(), clk),
         vec![
-            (addr_start.into(), word4567[0]),
-            (u64::from(addr_start) + 1_u64, word4567[1]),
-            (u64::from(addr_start) + 2_u64, word4567[2]),
-            (u64::from(addr_start) + 3_u64, word4567[3])
+            (MemoryAddress(addr_start), word4567[0]),
+            (MemoryAddress(addr_start + 1), word4567[1]),
+            (MemoryAddress(addr_start + 2), word4567[2]),
+            (MemoryAddress(addr_start + 3), word4567[3])
         ]
     );
     assert_eq!(mem.get_state_at(3.into(), clk), vec![]);

@@ -131,7 +131,7 @@ fn test_pipe_words_to_memory() {
         use.std::crypto::hashes::rpo
 
         begin
-            push.{} # target address
+            push.{mem_addr} # target address
             push.1  # number of words
 
             exec.mem::pipe_words_to_memory
@@ -139,8 +139,7 @@ fn test_pipe_words_to_memory() {
 
             # truncate stack
             swapdw dropw dropw
-        end",
-        mem_addr
+        end"
     );
 
     let operand_stack = &[];
@@ -159,7 +158,7 @@ fn test_pipe_words_to_memory() {
         use.std::crypto::hashes::rpo
 
         begin
-            push.{} # target address
+            push.{mem_addr} # target address
             push.3  # number of words
 
             exec.mem::pipe_words_to_memory
@@ -167,8 +166,7 @@ fn test_pipe_words_to_memory() {
 
             # truncate stack
             swapdw dropw dropw
-        end",
-        mem_addr
+        end"
     );
 
     let operand_stack = &[];
@@ -190,13 +188,12 @@ fn test_pipe_preimage_to_memory() {
 
         begin
             adv_push.4 # push commitment to stack
-            push.{}    # target address
+            push.{mem_addr}    # target address
             push.3     # number of words
 
             exec.mem::pipe_preimage_to_memory
             swap drop
-        end",
-        mem_addr
+        end"
     );
 
     let operand_stack = &[];

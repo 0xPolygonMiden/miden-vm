@@ -10,20 +10,20 @@ use vm_core::{FieldElement, ZERO, mast::BasicBlockNode};
 
 use crate::{
     ContextId, ExecutionError, Felt, QuadFelt,
-    chiplets::{ace::trace::CircuitEvaluation, memory::Memory},
+    chiplets::memory::Memory,
     errors::{AceError, ErrorContext},
     trace::TraceFragment,
 };
 
 mod trace;
-pub use trace::{NUM_ACE_LOGUP_FRACTIONS_EVAL, NUM_ACE_LOGUP_FRACTIONS_READ};
+pub use trace::{CircuitEvaluation, NUM_ACE_LOGUP_FRACTIONS_EVAL, NUM_ACE_LOGUP_FRACTIONS_READ};
 
 mod instruction;
 #[cfg(test)]
 mod tests;
 
-const PTR_OFFSET_ELEM: Felt = Felt::ONE;
-const PTR_OFFSET_WORD: Felt = Felt::new(4);
+pub const PTR_OFFSET_ELEM: Felt = Felt::ONE;
+pub const PTR_OFFSET_WORD: Felt = Felt::new(4);
 
 /// Arithmetic circuit evaluation (ACE) chiplet.
 ///
@@ -76,8 +76,12 @@ impl Ace {
     }
 
     /// Adds an entry resulting from a call to the ACE chiplet.
-    pub(crate) fn add_eval_context(&mut self, clk: RowIndex, eval_context: CircuitEvaluation) {
-        self.circuit_evaluations.insert(clk, eval_context);
+    pub(crate) fn add_circuit_evaluation(
+        &mut self,
+        clk: RowIndex,
+        circuit_eval: CircuitEvaluation,
+    ) {
+        self.circuit_evaluations.insert(clk, circuit_eval);
     }
 }
 

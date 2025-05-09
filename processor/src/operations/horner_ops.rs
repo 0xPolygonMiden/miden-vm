@@ -222,7 +222,7 @@ mod tests {
     use std::vec::Vec;
 
     use test_utils::{build_test, rand::rand_array};
-    use vm_core::{Felt, Operation, StackInputs, ZERO};
+    use vm_core::{Felt, Operation, StackInputs, ZERO, mast::MastForest};
 
     use super::{ACC_HIGH_INDEX, ACC_LOW_INDEX, ALPHA_ADDR_INDEX, *};
     use crate::{ContextId, DefaultHost, Process, QuadFelt};
@@ -244,6 +244,7 @@ mod tests {
         let mut host = DefaultHost::default();
         let stack_inputs = StackInputs::new(inputs.to_vec()).expect("inputs length too long");
         let mut process = Process::new_dummy_with_decoder_helpers(stack_inputs);
+        let program = &MastForest::default();
 
         // --- setup memory -----------------------------------------------------------------------
         let ctx = ContextId::root();
@@ -262,10 +263,10 @@ mod tests {
                 &ErrorContext::default(),
             )
             .unwrap();
-        process.execute_op(Operation::Noop, &mut host).unwrap();
+        process.execute_op(Operation::Noop, program, &mut host).unwrap();
 
         // --- execute HORNER_BASE operation ------------------------------------------------------
-        process.execute_op(Operation::HornerBase, &mut host).unwrap();
+        process.execute_op(Operation::HornerBase, program, &mut host).unwrap();
 
         // --- check that the top 8 stack elements were not affected ------------------------------
         let stack_state = process.stack.trace_state();
@@ -328,6 +329,7 @@ mod tests {
         let mut host = DefaultHost::default();
         let stack_inputs = StackInputs::new(inputs.to_vec()).expect("inputs lenght too long");
         let mut process = Process::new_dummy_with_decoder_helpers(stack_inputs);
+        let program = &MastForest::default();
 
         // --- setup memory -----------------------------------------------------------------------
         let ctx = ContextId::root();
@@ -344,10 +346,10 @@ mod tests {
                 &ErrorContext::default(),
             )
             .unwrap();
-        process.execute_op(Operation::Noop, &mut host).unwrap();
+        process.execute_op(Operation::Noop, program, &mut host).unwrap();
 
         // --- execute HORNER_BASE operation ------------------------------------------------------
-        process.execute_op(Operation::HornerExt, &mut host).unwrap();
+        process.execute_op(Operation::HornerExt, program, &mut host).unwrap();
 
         // --- check that the top 8 stack elements were not affected ------------------------------
         let stack_state = process.stack.trace_state();
@@ -448,7 +450,7 @@ mod tests {
         let test = build_test!(source, &inputs, &adv_stack);
         test.expect_stack(&expected);
 
-        let pub_inputs: Vec<u64> = Vec::new();
+        let pub_inputs: Vec<u64> = inputs.to_vec();
         test.prove_and_verify(pub_inputs, false);
     }
 
@@ -507,7 +509,7 @@ mod tests {
         let test = build_test!(source, &inputs, &adv_stack);
         test.expect_stack(&expected);
 
-        let pub_inputs: Vec<u64> = Vec::new();
+        let pub_inputs: Vec<u64> = inputs.to_vec();
         test.prove_and_verify(pub_inputs, false);
     }
 }

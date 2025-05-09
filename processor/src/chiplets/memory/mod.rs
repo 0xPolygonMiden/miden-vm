@@ -16,7 +16,7 @@ use super::{
     EMPTY_WORD, Felt, FieldElement, ONE, RangeChecker, TraceFragment, Word,
     utils::{split_element_u32_into_u16, split_u32_into_u16},
 };
-use crate::{errors::ErrorContext, system::ContextId};
+use crate::{MemoryAddress, errors::ErrorContext, system::ContextId};
 
 mod errors;
 pub use errors::MemoryError;
@@ -139,7 +139,7 @@ impl Memory {
     /// Returns the entire memory state for the specified execution context at the specified cycle.
     /// The state is returned as a vector of (address, value) tuples, and includes addresses which
     /// have been accessed at least once.
-    pub fn get_state_at(&self, ctx: ContextId, clk: RowIndex) -> Vec<(u64, Felt)> {
+    pub fn get_state_at(&self, ctx: ContextId, clk: RowIndex) -> Vec<(MemoryAddress, Felt)> {
         if clk == 0 {
             return vec![];
         }
@@ -291,7 +291,7 @@ impl Memory {
                     prev_ctx = ctx;
                     prev_addr = addr;
                     prev_clk = clk;
-                    row += 1;
+                    row += 1_u32;
                 }
             }
         }
@@ -378,7 +378,7 @@ impl Memory {
                     prev_ctx = ctx;
                     prev_addr = felt_addr;
                     prev_clk = clk;
-                    row += 1;
+                    row += 1_u32;
                 }
             }
         }

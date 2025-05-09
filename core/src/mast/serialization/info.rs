@@ -231,13 +231,11 @@ impl MastNodeType {
     fn encode_u32_pair(left_value: u32, right_value: u32) -> u64 {
         assert!(
             left_value.leading_zeros() >= 2,
-            "MastNodeType::encode_u32_pair: left value doesn't fit in 30 bits: {}",
-            left_value
+            "MastNodeType::encode_u32_pair: left value doesn't fit in 30 bits: {left_value}",
         );
         assert!(
             right_value.leading_zeros() >= 2,
-            "MastNodeType::encode_u32_pair: right value doesn't fit in 30 bits: {}",
-            right_value
+            "MastNodeType::encode_u32_pair: right value doesn't fit in 30 bits: {right_value}",
         );
 
         ((left_value as u64) << 30) | (right_value as u64)

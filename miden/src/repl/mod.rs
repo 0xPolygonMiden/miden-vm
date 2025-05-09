@@ -2,7 +2,7 @@ use std::{collections::BTreeSet, path::PathBuf};
 
 use assembly::{Assembler, Library};
 use miden_vm::{DefaultHost, StackInputs, math::Felt};
-use processor::ContextId;
+use processor::{ContextId, MemoryAddress};
 use rustyline::{DefaultEditor, error::ReadlineError};
 use stdlib::StdLibrary;
 
@@ -22,7 +22,7 @@ use crate::utils::print_mem_address;
 //
 // Miden Instructions
 // All Miden instructions mentioned in the
-// [Miden Assembly section](https://0xpolygonmiden.github.io/miden-vm/user_docs/assembly/main.html)
+// [Miden Assembly section](https://0xMiden.github.io/miden-vm/user_docs/assembly/main.html)
 // are valid.
 // One can either input instructions one by one or multiple instructions in one input.
 // For example, the below two commands will result in the same output.
@@ -173,7 +173,7 @@ pub fn start_repl(library_paths: &Vec<PathBuf>, use_stdlib: bool) {
     let mut should_print_stack = false;
 
     // state of the entire memory at the latest clock cycle.
-    let mut memory: Vec<(u64, Felt)> = Vec::new();
+    let mut memory: Vec<(MemoryAddress, Felt)> = Vec::new();
 
     // initializing readline.
     let mut rl = DefaultEditor::new().expect("Readline couldn't be initialized");
@@ -185,11 +185,7 @@ pub fn start_repl(library_paths: &Vec<PathBuf>, use_stdlib: bool) {
         }
         program.push_str(&format!(
             "\nbegin\n{}\nend",
-            program_lines
-                .iter()
-                .map(|l| format!("    {}", l))
-                .collect::<Vec<_>>()
-                .join("\n")
+            program_lines.iter().map(|l| format!("    {l}")).collect::<Vec<_>>().join("\n")
         ));
 
         let result = execute(program.clone(), &provided_libraries);
@@ -203,7 +199,7 @@ pub fn start_repl(library_paths: &Vec<PathBuf>, use_stdlib: bool) {
                     memory = mem;
                 },
                 Err(e) => {
-                    println!("Error running program: {:?}", e);
+                    println!("Error running program: {e:?}");
                     program_lines.pop();
                 },
             }
@@ -214,7 +210,7 @@ pub fn start_repl(library_paths: &Vec<PathBuf>, use_stdlib: bool) {
         match rl.readline(">> ") {
             Ok(line) => {
                 if line == "!program" {
-                    println!("{}", program);
+                    println!("{program}");
                     should_print_stack = false;
                 } else if line == "!help" {
                     // prints out all the available commands in the Miden Repl tool.
@@ -251,17 +247,17 @@ pub fn start_repl(library_paths: &Vec<PathBuf>, use_stdlib: bool) {
                             }
                             // in case the flag has not been initialized.
                             if !mem_at_addr_present {
-                                println!("Memory at address {} is empty", addr);
+                                println!("Memory at address {addr} is empty");
                             }
                         },
-                        Err(msg) => println!("{}", msg),
+                        Err(msg) => println!("{msg}"),
                     }
 
                     should_print_stack = false;
                 } else if line == "!undo" {
                     match program_lines.pop() {
                         Some(last_line) => {
-                            println!("Undoing {}", last_line);
+                            println!("Undoing {last_line}");
                             should_print_stack = true;
                         },
                         None => {
@@ -288,7 +284,7 @@ pub fn start_repl(library_paths: &Vec<PathBuf>, use_stdlib: bool) {
                 break;
             },
             Err(err) => {
-                println!("Error: {:?}", err);
+                println!("Error: {err:?}");
                 break;
             },
         };
@@ -307,7 +303,7 @@ pub fn start_repl(library_paths: &Vec<PathBuf>, use_stdlib: bool) {
 fn execute(
     program: String,
     provided_libraries: &[Library],
-) -> Result<(Vec<(u64, Felt)>, Vec<Felt>), String> {
+) -> Result<(Vec<(MemoryAddress, Felt)>, Vec<Felt>), String> {
     // compile program
     let mut assembler = Assembler::default();
 
@@ -340,7 +336,7 @@ fn execute(
 }
 
 /// Parses the address in integer form from `!mem[addr]` command, otherwise throws an error.
-fn read_mem_address(mem_str: &str) -> Result<u64, String> {
+fn read_mem_address(mem_str: &str) -> Result<MemoryAddress, String> {
     // the first five characters is "!mem[" and the digit character should start from 6th
     // element.
     let remainder = &mem_str[5..];
@@ -354,11 +350,11 @@ fn read_mem_address(mem_str: &str) -> Result<u64, String> {
     }
 
     // convert the parsed digits into integer form.
-    let addr = &remainder[..digits_end]
+    let addr: u32 = remainder[..digits_end]
         .parse()
         .expect("The input address couldn't be parsed into an integer");
 
-    Ok(*addr)
+    Ok(addr.into())
 }
 
 /// Parses `!use` command. Adds the provided module to the program imports, or prints the list of
@@ -402,5 +398,5 @@ fn print_instructions() {
 /// Returns the state of the stack along with its overflown part in a string format.
 fn print_stack(stack: Vec<Felt>) {
     // converts the stack which is a vector of felt into string and prints it.
-    println!("{}", stack.iter().map(|f| format!("{}", f)).collect::<Vec<_>>().join(" "),)
+    println!("{}", stack.iter().map(|f| format!("{f}")).collect::<Vec<_>>().join(" "),)
 }

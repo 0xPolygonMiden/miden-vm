@@ -9,10 +9,10 @@ help:
 BACKTRACE=RUST_BACKTRACE=1
 WARNINGS=RUSTDOCFLAGS="-D warnings"
 DEBUG_ASSERTIONS=RUSTFLAGS="-C debug-assertions"
-FEATURES_CONCURRENT_EXEC=--features concurrent,executable
+FEATURES_CONCURRENT_EXEC=--features concurrent,executable,diagnostics
 FEATURES_LOG_TREE=--features concurrent,executable,tracing-forest
 FEATURES_METAL_EXEC=--features concurrent,executable,metal,tracing-forest
-ALL_FEATURES_BUT_ASYNC=--features concurrent,executable,metal,testing,with-debug-info,internal
+ALL_FEATURES_BUT_ASYNC=--features concurrent,executable,metal,testing,with-debug-info,internal,diagnostics
 
 # -- linting --------------------------------------------------------------------------------------
 
@@ -53,11 +53,11 @@ book: ## Builds the book & serves documentation site
 
 .PHONY: test-build
 test-build: ## Build the test binary
-	cargo nextest run --cargo-profile test-dev --features concurrent,testing --no-run
+	cargo nextest run --profile ci --cargo-profile test-dev --features concurrent,testing,executable --no-run
 
 .PHONY: test
 test: ## Run all tests
-	$(BACKTRACE) cargo nextest run --profile default --cargo-profile test-dev --features concurrent,testing
+	$(BACKTRACE) cargo nextest run --profile ci --cargo-profile test-dev --features concurrent,testing,executable
 
 .PHONY: test-docs
 test-docs: ## Run documentation tests

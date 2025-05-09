@@ -718,6 +718,11 @@ fn asmop_conditional_execution_test() {
     //if branch
     let test = build_debug_test!(source, &[1, 1]);
     let path = test.source.name();
+    let if_branch_loc = Some(Location {
+        path: path.clone(),
+        start: 42.into(),
+        end: 150.into(),
+    });
     let eq_loc = Some(Location {
         path: path.clone(),
         start: 27.into(),
@@ -795,7 +800,16 @@ fn asmop_conditional_execution_test() {
         },
         VmStatePartial {
             clk: RowIndex::from(6),
-            asmop: None,
+            asmop: Some(AsmOpInfo::new(
+                AssemblyOp::new(
+                    if_branch_loc,
+                    "#exec::#main".to_string(),
+                    0,
+                    "if.true".to_string(),
+                    false,
+                ),
+                1,
+            )),
             op: Some(Operation::Split),
         },
         VmStatePartial {
@@ -946,6 +960,11 @@ fn asmop_conditional_execution_test() {
     //else branch
     let test = build_debug_test!(source, &[1, 0]);
     let path = test.source.name();
+    let else_branch_loc = Some(Location {
+        path: path.clone(),
+        start: 42.into(),
+        end: 150.into(),
+    });
     let eq_loc = Some(Location {
         path: path.clone(),
         start: 27.into(),
@@ -1023,7 +1042,16 @@ fn asmop_conditional_execution_test() {
         },
         VmStatePartial {
             clk: RowIndex::from(6),
-            asmop: None,
+            asmop: Some(AsmOpInfo::new(
+                AssemblyOp::new(
+                    else_branch_loc,
+                    "#exec::#main".to_string(),
+                    0,
+                    "if.true".to_string(),
+                    false,
+                ),
+                1,
+            )),
             op: Some(Operation::Split),
         },
         VmStatePartial {

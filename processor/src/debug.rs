@@ -9,8 +9,8 @@ use miden_air::RowIndex;
 use vm_core::{AssemblyOp, FieldElement, Operation, StackOutputs};
 
 use crate::{
-    Chiplets, ChipletsLengths, Decoder, ExecutionError, Felt, Process, Stack, System,
-    TraceLenSummary, range::RangeChecker, system::ContextId,
+    Chiplets, ChipletsLengths, Decoder, ExecutionError, Felt, MemoryAddress, Process, Stack,
+    System, TraceLenSummary, range::RangeChecker, system::ContextId,
 };
 
 /// VmState holds a current process state information at a specific clock cycle.
@@ -22,7 +22,7 @@ pub struct VmState {
     pub asmop: Option<AsmOpInfo>,
     pub fmp: Felt,
     pub stack: Vec<Felt>,
-    pub memory: Vec<(u64, Felt)>,
+    pub memory: Vec<(MemoryAddress, Felt)>,
 }
 
 impl fmt::Display for VmState {
@@ -212,7 +212,7 @@ impl Iterator for VmStateIterator {
 
         // if we are changing iteration directions we must increment the clk counter
         if !self.forward && self.clk < self.system.clk() {
-            self.clk += 1;
+            self.clk += 1_u32;
             self.forward = true;
         }
 
@@ -239,7 +239,7 @@ impl Iterator for VmStateIterator {
             memory: self.chiplets.memory.get_state_at(ctx, self.clk),
         }));
 
-        self.clk += 1;
+        self.clk += 1_u32;
 
         result
     }

@@ -139,12 +139,10 @@ fn test_mmr_get_two_peaks() -> Result<(), MerkleError> {
                 adv_push.4 push.1004 mem_storew dropw # MMR first peak
                 adv_push.4 push.1008 mem_storew dropw # MMR second peak
 
-                push.1000 push.{pos} exec.mmr::get
+                push.1000 push.{absolute_pos} exec.mmr::get
 
                 swapw dropw
             end",
-            num_leaves = num_leaves,
-            pos = absolute_pos,
         );
 
         let test = build_test!(source, &[], advice_stack, merkle_store.clone());

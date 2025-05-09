@@ -16,22 +16,22 @@ use executor::DebugExecutor;
 use crate::cli::utils::{get_masm_program, get_masp_program};
 
 #[derive(Debug, Clone, Parser)]
-#[clap(about = "Debug a miden program")]
+#[command(about = "Debug a miden program")]
 pub struct DebugCmd {
     /// Path to a .masm assembly file or a .masp package file
-    #[clap(value_parser)]
+    #[arg(value_parser)]
     pub program_file: PathBuf,
 
     /// Path to input file
-    #[clap(short = 'i', long = "input", value_parser)]
+    #[arg(short = 'i', long = "input", value_parser)]
     input_file: Option<PathBuf>,
 
     /// Enable vi edit mode
-    #[clap(long = "vi", long = "vim_edit_mode")]
+    #[arg(long = "vi", long = "vim_edit_mode")]
     vim_edit_mode: Option<String>,
 
     /// Paths to .masl library files
-    #[clap(short = 'l', long = "libraries", value_parser)]
+    #[arg(short = 'l', long = "libraries", value_parser)]
     library_paths: Vec<PathBuf>,
 }
 
@@ -110,7 +110,7 @@ impl DebugCmd {
                     eprintln!("CTRL-D");
                     break;
                 },
-                Err(err) => eprintln!("malformed command - failed to read user input: {}", err),
+                Err(err) => eprintln!("malformed command - failed to read user input: {err}"),
             }
         }
 
