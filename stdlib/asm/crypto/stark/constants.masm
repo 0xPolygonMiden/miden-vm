@@ -103,6 +103,8 @@ const.COMPOSITION_POLY_COM_PTR=4294813208
 # Instant-specific constants
 const.LDE_DOMAIN_INFO_PTR=4294813212
 const.LDE_DOMAIN_GEN_PTR=4294813213
+const.LDE_DOMAIN_LOG_SIZE_PTR=4294813214
+const.LDE_DOMAIN_SIZE_PTR=4294813215
 const.Z_PTR=4294813216
 const.NUM_QUERIES_PTR=4294813220
 const.REMAINDER_POLY_SIZE_PTR=4294813221
@@ -164,6 +166,9 @@ const.OOD_FIXED_TERM_HORNER_EVALS_PTR=4294903448
 #   | AUX_TRACE_COM_PTR                        |       4294913204        |
 #   | COMPOSITION_POLY_COM_PTR                 |       4294913208        |
 #   | LDE_DOMAIN_INFO_PTR                      |       4294913212        |
+#   | LDE_DOMAIN_GEN_PTR                       |       4294913213        |
+#   | LDE_DOMAIN_LOG_SIZE_PTR                  |       4294913214        |
+#   | LDE_DOMAIN_SIZE_PTR                      |       4294913215        |
 #   | Z_PTR                                    |       4294913216        |
 #   | NUM_QUERIES_PTR                          |       4294913220        |
 #   | TRACE_LENGTH_PTR                         |       4294913224        |
@@ -391,6 +396,22 @@ end
 
 export.get_fri_queries_address
     push.FRI_QUERIES_ADDRESS_PTR mem_load
+end
+
+export.set_lde_domain_size
+    push.LDE_DOMAIN_SIZE_PTR mem_store
+end
+
+export.get_lde_domain_size
+    push.LDE_DOMAIN_SIZE_PTR mem_load
+end
+
+export.set_lde_domain_log_size
+    push.LDE_DOMAIN_LOG_SIZE_PTR mem_store 
+end
+
+export.get_lde_domain_log_size
+    push.LDE_DOMAIN_LOG_SIZE_PTR mem_load
 end
 
 export.set_trace_length

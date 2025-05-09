@@ -1,13 +1,20 @@
 use std::sync::Arc;
-mod verifier_recursive;
+
 use assembly::{Assembler, DefaultSourceManager};
 use miden_air::{FieldExtension, HashFunction, PublicInputs};
-use processor::{DefaultHost, Program, ProgramInfo, crypto::Rpo256};
+use processor::{
+    DefaultHost, Program, ProgramInfo,
+    crypto::{RandomCoin, Rpo256, RpoRandomCoin},
+};
 use rstest::rstest;
 use test_utils::{
-    AdviceInputs, MemAdviceProvider, ProvingOptions, StackInputs, VerifierError, prove,
+    AdviceInputs, MemAdviceProvider, ProvingOptions, StackInputs, VerifierError,
+    proptest::proptest, prove,
 };
 use verifier_recursive::{VerifierData, generate_advice_inputs};
+use vm_core::Word;
+
+mod verifier_recursive;
 
 // Note: Changes to Miden VM may cause this test to fail when some of the assumptions documented
 // in `stdlib/asm/crypto/stark/verifier.masm` are violated.
@@ -99,6 +106,48 @@ pub fn generate_recursive_verifier_data(
     let pub_inputs = PublicInputs::new(program_info, stack_inputs, stack_outputs);
     let (_, proof) = proof.into_parts();
     Ok(generate_advice_inputs(proof, pub_inputs).unwrap())
+}
+
+proptest! {
+    #[test]
+    fn generate_query_indices_proptest(num_queries in 7..150_usize, lde_log_size in 9..32_usize) {
+        let source = TEST_RANDOM_INDICES_GENERATION;
+        let lde_size = 1 << lde_log_size;
+
+        let seed = Word::default();
+        let mut coin = RpoRandomCoin::new(seed);
+        let indices = coin
+            .draw_integers(num_queries, lde_size, 0)
+            .expect("should not fail to generate the indices");
+        let advice_stack: Vec<u64> = indices.iter().rev().map(|index| *index as u64).collect();
+
+        let input_stack = vec![num_queries as u64, lde_log_size as u64, lde_size as u64];
+        let test = build_test!(source, &input_stack, &advice_stack);
+        test.prop_expect_stack(&[])?;
+    }
+}
+
+#[test]
+fn generate_query_indices() {
+    let source = TEST_RANDOM_INDICES_GENERATION;
+
+    let num_queries = 27;
+    let lde_log_size = 18;
+    let lde_size = 1 << lde_log_size;
+
+    let input_stack = vec![num_queries as u64, lde_log_size as u64, lde_size as u64];
+
+    let seed = Word::default();
+    let mut coin = RpoRandomCoin::new(seed);
+    let indices = coin
+        .draw_integers(num_queries, lde_size, 0)
+        .expect("should not fail to generate the indices");
+
+    let advice_stack: Vec<u64> = indices.iter().rev().map(|index| *index as u64).collect();
+
+    let test = build_test!(source, &input_stack, &advice_stack);
+
+    test.expect_stack(&[]);
 }
 
 const KERNEL_ODD_NUM_PROC: &str = r#"
@@ -220,3 +269,61 @@ const CONSTRAINT_EVALUATION_CIRCUIT: [u64; 96] = [
     2147483667,
     1152921505680588801,
 ];
+
+const TEST_RANDOM_INDICES_GENERATION: &str = r#"
+        const.QUERY_ADDRESS=1024
+
+        use.std::crypto::stark::random_coin
+        use.std::crypto::stark::constants
+
+        begin
+            exec.constants::set_lde_domain_size
+            exec.constants::set_lde_domain_log_size
+            exec.constants::set_number_queries
+            push.QUERY_ADDRESS exec.constants::set_fri_queries_address
+
+            exec.random_coin::load_random_coin_state
+            hperm
+            hperm
+            exec.random_coin::store_random_coin_state
+
+            exec.random_coin::generate_list_indices
+
+            exec.constants::get_lde_domain_log_size
+            exec.constants::get_number_queries neg
+            push.QUERY_ADDRESS
+            # => [query_ptr, loop_counter, lde_size_log, ...]
+
+            push.1
+            while.true
+                dup add.3 mem_load
+                movdn.3
+                # => [query_ptr, loop_counter, lde_size_log, query_index, ...]
+                dup
+                add.2 mem_load
+                dup.3 assert_eq
+
+                add.4
+                # => [query_ptr + 4, loop_counter, lde_size_log, query_index, ...]
+
+                swap add.1 swap
+                # => [query_ptr + 4, loop_counter, lde_size_log, query_index, ...]
+
+                dup.1 neq.0
+                # => [?, query_ptr + 4, loop_counter + 1, lde_size_log, query_index, ...]
+            end
+            drop drop drop
+
+            exec.constants::get_number_queries neg
+            push.1
+            while.true
+                swap
+                adv_push.1
+                assert_eq
+                add.1
+                dup
+                neq.0
+            end
+            drop  
+        end
+        "#;
