@@ -38,9 +38,9 @@ export.validate_inputs
     # 3) Assert that the number of FRI queries is at most 150. This restriction is a soft one
     #    and is due to the memory layout in the `constants.masm` files but can be updated
     #    therein.
-    #    We also make sure that there is at least one FRI query.
+    #    We also make sure that the number of FRI queries is at least 7.
     dup u32lt.151 assert
-    u32gt.0 assert
+    u32gt.6 assert
 
     # 4) Assert that the grinding factor is at most 31
     u32lt.32 assert
