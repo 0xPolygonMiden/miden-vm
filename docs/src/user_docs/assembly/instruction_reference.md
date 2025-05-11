@@ -8,23 +8,23 @@ This page provides a comprehensive reference for Miden Assembly instructions.
 
 | Instruction                       | Stack Input | Stack Output | Cycles      | Notes                                                                      |
 | --------------------------------- | ----------- | ------------ | ----------- | -------------------------------------------------------------------------- |
-| `lte` <br> `lte.b`                | `[b, a, ...]` | `[c, ...]`   | 15 <br> 16   | `c <- 1` if `a <= b` <br> `c <- 0` otherwise                               |
-| `lt` <br> `lt.b`                  | `[b, a, ...]` | `[c, ...]`   | 14 <br> 15   | `c <- 1` if `a < b` <br> `c <- 0` otherwise                                |
-| `gte` <br> `gte.b`                | `[b, a, ...]` | `[c, ...]`   | 16 <br> 17   | `c <- 1` if `a >= b` <br> `c <- 0` otherwise                               |
-| `gt` <br> `gt.b`                  | `[b, a, ...]` | `[c, ...]`   | 15 <br> 16   | `c <- 1` if `a > b` <br> `c <- 0` otherwise                                |
-| `eq` <br> `eq.b`                  | `[b, a, ...]` | `[c, ...]`   | 1 <br> 1-2   | `c <- 1` if `a = b` <br> `c <- 0` otherwise                                |
-| `neq` <br> `neq.b`                | `[b, a, ...]` | `[c, ...]`   | 2 <br> 2-3   | `c <- 1` if `a != b` <br> `c <- 0` otherwise                               |
-| `eqw`                             | `[A, B, ...]` | `[c, A, B, ...]` | 15          | `c <- 1` if `a_i = b_i` for all `i` in `{0,1,2,3}` <br> `c <- 0` otherwise |
-| `is_odd`                          | `[a, ...]`    | `[b, ...]`   | 5           | `b <- 1` if `a` is odd <br> `b <- 0` otherwise                             |
+| `lte` <br> `lte.b`                | `[b, a, ...]` | `[c, ...]`   | 15 <br> 16   | $$c = \begin{cases} 1, & \text{if } a \leq b \\ 0, & \text{otherwise} \end{cases}$$ |
+| `lt` <br> `lt.b`                  | `[b, a, ...]` | `[c, ...]`   | 14 <br> 15   | $$c = \begin{cases} 1, & \text{if } a < b \\ 0, & \text{otherwise} \end{cases}$$ |
+| `gte` <br> `gte.b`                | `[b, a, ...]` | `[c, ...]`   | 16 <br> 17   | $$c = \begin{cases} 1, & \text{if } a \geq b \\ 0, & \text{otherwise} \end{cases}$$ |
+| `gt` <br> `gt.b`                  | `[b, a, ...]` | `[c, ...]`   | 15 <br> 16   | $$c = \begin{cases} 1, & \text{if } a > b \\ 0, & \text{otherwise} \end{cases}$$ |
+| `eq` <br> `eq.b`                  | `[b, a, ...]` | `[c, ...]`   | 1 <br> 1-2   | $$c = \begin{cases} 1, & \text{if } a = b \\ 0, & \text{otherwise} \end{cases}$$ |
+| `neq` <br> `neq.b`                | `[b, a, ...]` | `[c, ...]`   | 2 <br> 2-3   | $$c = \begin{cases} 1, & \text{if } a \neq b \\ 0, & \text{otherwise} \end{cases}$$ |
+| `eqw`                             | `[A, B, ...]` | `[c, A, B, ...]` | 15          | $$c = \begin{cases} 1, & \text{if } a_i = b_i\ \forall i \in \{0,1,2,3\} \\ 0, & \text{otherwise} \end{cases}$$ |
+| `is_odd`                          | `[a, ...]`    | `[b, ...]`   | 5           | $$b = \begin{cases} 1, & \text{if $a$ is odd} \\ 0, & \text{otherwise} \end{cases}$$ |
 
 ### Assertions and Tests
 
 | Instruction        | Stack Input | Stack Output | Cycles | Notes                                                                          |
 | ------------------ | ----------- | ------------ | ------ | ------------------------------------------------------------------------------ |
-| `assert`           | `[a, ...]`  | `[...]`      | 1      | Removes `a` if `a = 1`. Fails if `a != 1`.                                   |
-| `assertz`          | `[a, ...]`  | `[...]`      | 2      | Removes `a` if `a = 0`. Fails if `a != 0`.                                   |
-| `assert_eq`        | `[b, a, ...]` | `[...]`      | 2      | Removes `a, b` if `a = b`. Fails if `a != b`.                                |
-| `assert_eqw`       | `[B, A, ...]` | `[...]`      | 11     | Removes `A, B` if `A = B`. Fails if `A != B`.                                |
+| `assert`           | `[a, ...]`  | `[...]`      | 1      | Removes $a$ if $a = 1$. Fails if $a \neq 1$.                                   |
+| `assertz`          | `[a, ...]`  | `[...]`      | 2      | Removes $a$ if $a = 0$. Fails if $a \neq 0$.                                   |
+| `assert_eq`        | `[b, a, ...]` | `[...]`      | 2      | Removes $a, b$ if $a = b$. Fails if $a \neq b$.                                |
+| `assert_eqw`       | `[B, A, ...]` | `[...]`      | 11     | Removes $A, B$ if $A = B$. Fails if $A \neq B$.                                |
 
 *Note: Assertions can be parameterized with an error code (e.g., `assert.err=123`). Default error code is 0.*
 
@@ -32,30 +32,30 @@ This page provides a comprehensive reference for Miden Assembly instructions.
 
 | Instruction                             | Stack Input | Stack Output | Cycles             | Notes                                                                                                                          |
 | --------------------------------------- | ----------- | ------------ | ------------------ | ------------------------------------------------------------------------------------------------------------------------------ |
-| `add` <br> `add.b`                       | `[b, a, ...]` | `[c, ...]`   | 1 <br> 1-2        | `c <- (a + b) mod p`                                                                                                           |
-| `sub` <br> `sub.b`                       | `[b, a, ...]` | `[c, ...]`   | 2 <br> 2          | `c <- (a - b) mod p`                                                                                                           |
-| `mul` <br> `mul.b`                       | `[b, a, ...]` | `[c, ...]`   | 1 <br> 2          | `c <- (a * b) mod p`                                                                                                           |
-| `div` <br> `div.b`                       | `[b, a, ...]` | `[c, ...]`   | 2 <br> 2          | `c <- (a * b^-1) mod p`. Fails if `b = 0`.                                                                                     |
-| `neg`                                   | `[a, ...]`  | `[b, ...]`   | 1                  | `b <- -a mod p`                                                                                                                |
-| `inv`                                   | `[a, ...]`  | `[b, ...]`   | 1                  | `b <- a^-1 mod p`. Fails if `a = 0`.                                                                                           |
-| `pow2`                                  | `[a, ...]`  | `[b, ...]`   | 16                 | `b <- 2^a`. Fails if `a > 63`.                                                                                                 |
-| `exp.uxx` <br> `exp.b`                   | `[b, a, ...]` | `[c, ...]`   | 9+xx <br> 9+log2(b) | `c <- a^b`. Fails if `xx` is outside `[0, 63)`. `exp` is `exp.u64` (73 cycles).                                                |
-| `ilog2`                                 | `[a, ...]`  | `[b, ...]`   | 44                 | `b <- floor(log2(a))`. Fails if `a = 0`.                                                                                       |
-| `not`                                   | `[a, ...]`  | `[b, ...]`   | 1                  | `b <- 1 - a`. Fails if `a > 1`.                                                                                                |
-| `and`                                   | `[b, a, ...]` | `[c, ...]`   | 1                  | `c <- a * b`. Fails if `max(a, b) > 1`.                                                                                        |
-| `or`                                    | `[b, a, ...]` | `[c, ...]`   | 1                  | `c <- a + b - a * b`. Fails if `max(a, b) > 1`.                                                                                |
-| `xor`                                   | `[b, a, ...]` | `[c, ...]`   | 7                  | `c <- a + b - 2 * a * b`. Fails if `max(a, b) > 1`.                                                                            |
+| `add` <br> `add.b`                       | `[b, a, ...]` | `[c, ...]`   | 1 <br> 1-2        | $c = (a + b) \bmod p$                                                                                                           |
+| `sub` <br> `sub.b`                       | `[b, a, ...]` | `[c, ...]`   | 2 <br> 2          | $c = (a - b) \bmod p$                                                                                                           |
+| `mul` <br> `mul.b`                       | `[b, a, ...]` | `[c, ...]`   | 1 <br> 2          | $c = (a \cdot b) \bmod p$                                                                                                           |
+| `div` <br> `div.b`                       | `[b, a, ...]` | `[c, ...]`   | 2 <br> 2          | $c = (a \cdot b^{-1}) \bmod p$. Fails if $b = 0$.                                                                                     |
+| `neg`                                   | `[a, ...]`  | `[b, ...]`   | 1                  | $b = -a \bmod p$                                                                                                                |
+| `inv`                                   | `[a, ...]`  | `[b, ...]`   | 1                  | $b = a^{-1} \bmod p$. Fails if $a = 0$.                                                                                           |
+| `pow2`                                  | `[a, ...]`  | `[b, ...]`   | 16                 | $b = 2^a$. Fails if $a > 63$.                                                                                                 |
+| `exp.uxx` <br> `exp.b`                   | `[b, a, ...]` | `[c, ...]`   | 9+xx <br> 9+log2(b) | $c = a^b$. Fails if $xx$ is outside $[0, 63)$. `exp` is `exp.u64` (73 cycles).                                                |
+| `ilog2`                                 | `[a, ...]`  | `[b, ...]`   | 44                 | $b = \lfloor \log_2(a) \rfloor$. Fails if $a = 0$.                                                                                       |
+| `not`                                   | `[a, ...]`  | `[b, ...]`   | 1                  | $b = 1 - a$. Fails if $a > 1$.                                                                                                |
+| `and`                                   | `[b, a, ...]` | `[c, ...]`   | 1                  | $c = a \cdot b$. Fails if $\max(a, b) > 1$.                                                                                        |
+| `or`                                    | `[b, a, ...]` | `[c, ...]`   | 1                  | $c = a + b - a \cdot b$. Fails if $\max(a, b) > 1$.                                                                                |
+| `xor`                                   | `[b, a, ...]` | `[c, ...]`   | 7                  | $c = a + b - 2 \cdot a \cdot b$. Fails if $\max(a, b) > 1$.                                                                            |
 
 ### Extension Field Operations
 
 | Instruction | Stack Input           | Stack Output    | Cycles | Notes                                                                                       |
 | ----------- | --------------------- | --------------- | ------ | ------------------------------------------------------------------------------------------- |
-| `ext2add`   | `[b1, b0, a1, a0, ...]` | `[c1, c0, ...]`   | 5      | `c1 <- (a1 + b1) mod p` <br> `c0 <- (a0 + b0) mod p`                                       |
-| `ext2sub`   | `[b1, b0, a1, a0, ...]` | `[c1, c0, ...]`   | 7      | `c1 <- (a1 - b1) mod p` <br> `c0 <- (a0 - b0) mod p`                                       |
-| `ext2mul`   | `[b1, b0, a1, a0, ...]` | `[c1, c0, ...]`   | 3      | `c1 <- (a0 + a1) * (b0 + b1) mod p` <br> `c0 <- (a0 * b0) - 2 * (a1 * b1) mod p`           |
-| `ext2neg`   | `[a1, a0, ...]`         | `[a1', a0', ...]` | 4      | `a1' <- -a1` <br> `a0' <- -a0`                                                               |
-| `ext2inv`   | `[a1, a0, ...]`         | `[a1', a0', ...]` | 8      | `a' <- a^-1 mod q`. Fails if `a = 0`.                                                       |
-| `ext2div`   | `[b1, b0, a1, a0, ...]` | `[c1, c0, ...]`   | 11     | `c <- a * b^-1`. Fails if `b = 0`. Multiplication and inversion are as defined previously. |
+| `ext2add`   | `[b1, b0, a1, a0, ...]` | `[c1, c0, ...]`   | 5      | $c_1 = (a_1 + b_1) \bmod p$ <br> $c_0 = (a_0 + b_0) \bmod p$                                       |
+| `ext2sub`   | `[b1, b0, a1, a0, ...]` | `[c1, c0, ...]`   | 7      | $c_1 = (a_1 - b_1) \bmod p$ <br> $c_0 = (a_0 - b_0) \bmod p$                                       |
+| `ext2mul`   | `[b1, b0, a1, a0, ...]` | `[c1, c0, ...]`   | 3      | $c_1 = (a_0 + a_1) (b_0 + b_1) \bmod p$ <br> $c_0 = (a_0 b_0) - 2 (a_1 b_1) \bmod p$           |
+| `ext2neg`   | `[a1, a0, ...]`         | `[a1', a0', ...]` | 4      | $a_1' = -a_1$ <br> $a_0' = -a_0$                                                               |
+| `ext2inv`   | `[a1, a0, ...]`         | `[a1', a0', ...]` | 8      | $a' = a^{-1} \bmod q$. Fails if $a = 0$.                                                       |
+| `ext2div`   | `[b1, b0, a1, a0, ...]` | `[c1, c0, ...]`   | 11     | $c = a \cdot b^{-1}$. Fails if $b = 0$. Multiplication and inversion are as defined previously. |
 
 ## U32 Operations
 
@@ -65,13 +65,13 @@ Operations on 32-bit integers. Most instructions will fail or have undefined beh
 
 | Instruction      | Stack Input | Stack Output   | Cycles | Notes                                                                                                |
 | ---------------- | ----------- | -------------- | ------ | ---------------------------------------------------------------------------------------------------- |
-| `u32test`        | `[a, ...]`  | `[b, a, ...]`  | 5      | `b <- 1` if `a < 2^32`, else `0`.                                                                      |
-| `u32testw`       | `[A, ...]`  | `[b, A, ...]`  | 23     | `b <- 1` if all elements of `A` are `< 2^32`, else `0`.                                                |
-| `u32assert`      | `[a, ...]`  | `[a, ...]`     | 3      | Fails if `a >= 2^32`.                                                                                |
-| `u32assert2`     | `[b, a,...]`| `[b, a,...]`   | 1      | Fails if `a >= 2^32` or `b >= 2^32`.                                                                 |
-| `u32assertw`     | `[A, ...]`  | `[A, ...]`     | 6      | Fails if any element of `A` is `>= 2^32`.                                                            |
-| `u32cast`        | `[a, ...]`  | `[b, ...]`     | 2      | `b <- a mod 2^32`.                                                                                   |
-| `u32split`       | `[a, ...]`  | `[c, b, ...]`  | 1      | `b <- a mod 2^32`, `c <- floor(a / 2^32)`.                                                             |
+| `u32test`        | `[a, ...]`  | `[b, a, ...]`  | 5      | $$b = \begin{cases} 1, & \text{if } a < 2^{32} \\ 0, & \text{otherwise} \end{cases}$$ |
+| `u32testw`       | `[A, ...]`  | `[b, A, ...]`  | 23     | $$b = \begin{cases} 1, & \text{if } \forall i \in \{0,1,2,3\}, a_i < 2^{32} \\ 0, & \text{otherwise} \end{cases}$$ |
+| `u32assert`      | `[a, ...]`  | `[a, ...]`     | 3      | Fails if $a \geq 2^{32}$.                                                                                |
+| `u32assert2`     | `[b, a,...]`| `[b, a,...]`   | 1      | Fails if $a \geq 2^{32}$ or $b \geq 2^{32}$.                                                                 |
+| `u32assertw`     | `[A, ...]`  | `[A, ...]`     | 6      | Fails if any element of $A$ is $\geq 2^{32}$.                                                            |
+| `u32cast`        | `[a, ...]`  | `[b, ...]`     | 2      | $b = a \bmod 2^{32}$                                                                                   |
+| `u32split`       | `[a, ...]`  | `[c, b, ...]`  | 1      | $b = a \bmod 2^{32}$, $c = \lfloor a / 2^{32} \rfloor$                                                             |
 
 *Note: u32 assertions can be parameterized with an error code (e.g., `u32assert.err=123`). Default error code is 0.*
 
@@ -79,48 +79,48 @@ Operations on 32-bit integers. Most instructions will fail or have undefined beh
 
 | Instruction                                   | Stack Input    | Stack Output  | Cycles    | Notes                                                                                                                            |
 | --------------------------------------------- | -------------- | ------------- | --------- | -------------------------------------------------------------------------------------------------------------------------------- |
-| `u32overflowing_add` <br> `u32overflowing_add.b` | `[b, a, ...]`  | `[d, c, ...]` | 1 <br> 2-3 | `c <- (a + b) mod 2^32`, `d <- 1` if overflow, else `0`. Undefined if `max(a,b) >= 2^32`.                                       |
-| `u32wrapping_add` <br> `u32wrapping_add.b`     | `[b, a, ...]`  | `[c, ...]`    | 2 <br> 3-4 | `c <- (a + b) mod 2^32`. Undefined if `max(a,b) >= 2^32`.                                                                         |
-| `u32overflowing_add3`                         | `[c, b, a, ...]` | `[e, d, ...]` | 1         | `d <- (a+b+c) mod 2^32`, `e <- floor((a+b+c)/2^32)`. Undefined if `max(a,b,c) >= 2^32`.                                          |
-| `u32wrapping_add3`                            | `[c, b, a, ...]` | `[d, ...]`    | 2         | `d <- (a+b+c) mod 2^32`. Undefined if `max(a,b,c) >= 2^32`.                                                                      |
-| `u32overflowing_sub` <br> `u32overflowing_sub.b` | `[b, a, ...]`  | `[d, c, ...]` | 1 <br> 2-3 | `c <- (a - b) mod 2^32`, `d <- 1` if underflow, else `0`. Undefined if `max(a,b) >= 2^32`.                                     |
-| `u32wrapping_sub` <br> `u32wrapping_sub.b`     | `[b, a, ...]`  | `[c, ...]`    | 2 <br> 3-4 | `c <- (a - b) mod 2^32`. Undefined if `max(a,b) >= 2^32`.                                                                         |
-| `u32overflowing_mul` <br> `u32overflowing_mul.b` | `[b, a, ...]`  | `[d, c, ...]` | 1 <br> 2-3 | `c <- (a*b) mod 2^32`, `d <- floor((a*b)/2^32)`. Undefined if `max(a,b) >= 2^32`.                                                 |
-| `u32wrapping_mul` <br> `u32wrapping_mul.b`     | `[b, a, ...]`  | `[c, ...]`    | 2 <br> 3-4 | `c <- (a*b) mod 2^32`. Undefined if `max(a,b) >= 2^32`.                                                                           |
-| `u32overflowing_madd`                         | `[b, a, c, ...]` | `[e, d, ...]` | 1         | `d <- (a*b+c) mod 2^32`, `e <- floor((a*b+c)/2^32)`. Undefined if `max(a,b,c) >= 2^32`.                                          |
-| `u32wrapping_madd`                            | `[b, a, c, ...]` | `[d, ...]`    | 2         | `d <- (a*b+c) mod 2^32`. Undefined if `max(a,b,c) >= 2^32`.                                                                      |
-| `u32div` <br> `u32div.b`                        | `[b, a, ...]`  | `[c, ...]`    | 2 <br> 3-4 | `c <- floor(a/b)`. Fails if `b=0`. Undefined if `max(a,b) >= 2^32`.                                                               |
-| `u32mod` <br> `u32mod.b`                        | `[b, a, ...]`  | `[c, ...]`    | 3 <br> 4-5 | `c <- a mod b`. Fails if `b=0`. Undefined if `max(a,b) >= 2^32`.                                                                 |
-| `u32divmod` <br> `u32divmod.b`                  | `[b, a, ...]`  | `[d, c, ...]` | 1 <br> 2-3 | `c <- floor(a/b)`, `d <- a mod b`. Fails if `b=0`. Undefined if `max(a,b) >= 2^32`.                                               |
+| `u32overflowing_add` <br> `u32overflowing_add.b` | `[b, a, ...]`  | `[d, c, ...]` | 1 <br> 2-3 | $c = (a + b) \bmod 2^{32}$, $$d = \begin{cases} 1, & \text{if } (a + b) \geq 2^{32} \\ 0, & \text{otherwise} \end{cases}$$. Undefined if $\max(a,b) \geq 2^{32}$. |
+| `u32wrapping_add` <br> `u32wrapping_add.b`     | `[b, a, ...]`  | `[c, ...]`    | 2 <br> 3-4 | $c = (a + b) \bmod 2^{32}$. Undefined if $\max(a,b) \geq 2^{32}$.                                                                         |
+| `u32overflowing_add3`                         | `[c, b, a, ...]` | `[e, d, ...]` | 1         | $d = (a+b+c) \bmod 2^{32}$, $e = \lfloor (a+b+c)/2^{32} \rfloor$. Undefined if $\max(a,b,c) \geq 2^{32}$.                                          |
+| `u32wrapping_add3`                            | `[c, b, a, ...]` | `[d, ...]`    | 2         | $d = (a+b+c) \bmod 2^{32}$. Undefined if $\max(a,b,c) \geq 2^{32}$.                                                                      |
+| `u32overflowing_sub` <br> `u32overflowing_sub.b` | `[b, a, ...]`  | `[d, c, ...]` | 1 <br> 2-3 | $c = (a - b) \bmod 2^{32}$, $$d = \begin{cases} 1, & \text{if } a < b \\ 0, & \text{otherwise} \end{cases}$$. Undefined if $\max(a,b) \geq 2^{32}$.                                     |
+| `u32wrapping_sub` <br> `u32wrapping_sub.b`     | `[b, a, ...]`  | `[c, ...]`    | 2 <br> 3-4 | $c = (a - b) \bmod 2^{32}$. Undefined if $\max(a,b) \geq 2^{32}$.                                                                         |
+| `u32overflowing_mul` <br> `u32overflowing_mul.b` | `[b, a, ...]`  | `[d, c, ...]` | 1 <br> 2-3 | $c = (a \cdot b) \bmod 2^{32}$, $d = \lfloor(a \cdot b) / 2^{32}\rfloor$. Undefined if $\max(a,b) \geq 2^{32}$.                                                 |
+| `u32wrapping_mul` <br> `u32wrapping_mul.b`     | `[b, a, ...]`  | `[c, ...]`    | 2 <br> 3-4 | $c = (a \cdot b) \bmod 2^{32}$. Undefined if $\max(a,b) \geq 2^{32}$.                                                                           |
+| `u32overflowing_madd`                         | `[b, a, c, ...]` | `[e, d, ...]` | 1         | $d = (a \cdot b+c) \bmod 2^{32}$, $e = \lfloor(a \cdot b+c) / 2^{32}\rfloor$. Undefined if $\max(a,b,c) \geq 2^{32}$.                                          |
+| `u32wrapping_madd`                            | `[b, a, c, ...]` | `[d, ...]`    | 2         | $d = (a \cdot b+c) \bmod 2^{32}$. Undefined if $\max(a,b,c) \geq 2^{32}$.                                                                      |
+| `u32div` <br> `u32div.b`                        | `[b, a, ...]`  | `[c, ...]`    | 2 <br> 3-4 | $c = \lfloor a/b \rfloor$. Fails if $b=0$. Undefined if $\max(a,b) \geq 2^{32}$.                                                               |
+| `u32mod` <br> `u32mod.b`                        | `[b, a, ...]`  | `[c, ...]`    | 3 <br> 4-5 | $c = a \bmod b$. Fails if $b=0$. Undefined if $\max(a,b) \geq 2^{32}$.                                                                 |
+| `u32divmod` <br> `u32divmod.b`                  | `[b, a, ...]`  | `[d, c, ...]` | 1 <br> 2-3 | $c = \lfloor a/b \rfloor$, $d = a \bmod b$. Fails if $b=0$. Undefined if $\max(a,b) \geq 2^{32}$.                                               |
 
 ### Bitwise Operations
 
 | Instruction                       | Stack Input | Stack Output | Cycles    | Notes                                                                                             |
 | --------------------------------- | ----------- | ------------ | --------- | ------------------------------------------------------------------------------------------------- |
-| `u32and` <br> `u32and.b`           | `[b, a, ...]` | `[c, ...]`   | 1 <br> 2  | Bitwise AND. Fails if `max(a,b) >= 2^32`.                                                         |
-| `u32or` <br> `u32or.b`             | `[b, a, ...]` | `[c, ...]`   | 6 <br> 7  | Bitwise OR. Fails if `max(a,b) >= 2^32`.                                                          |
-| `u32xor` <br> `u32xor.b`           | `[b, a, ...]` | `[c, ...]`   | 1 <br> 2  | Bitwise XOR. Fails if `max(a,b) >= 2^32`.                                                         |
-| `u32not` <br> `u32not.a`           | `[a, ...]`  | `[b, ...]`   | 5 <br> 6  | Bitwise NOT. Fails if `a >= 2^32`.                                                                |
-| `u32shl` <br> `u32shl.b`           | `[b, a, ...]` | `[c, ...]`   | 18 <br> 3 | `c <- (a * 2^b) mod 2^32`. Undefined if `a >= 2^32` or `b > 31`.                                  |
-| `u32shr` <br> `u32shr.b`           | `[b, a, ...]` | `[c, ...]`   | 18 <br> 3 | `c <- floor(a / 2^b)`. Undefined if `a >= 2^32` or `b > 31`.                                      |
-| `u32rotl` <br> `u32rotl.b`         | `[b, a, ...]` | `[c, ...]`   | 18 <br> 3 | Rotate left. Undefined if `a >= 2^32` or `b > 31`.                                                  |
-| `u32rotr` <br> `u32rotr.b`         | `[b, a, ...]` | `[c, ...]`   | 23 <br> 3 | Rotate right. Undefined if `a >= 2^32` or `b > 31`.                                                 |
-| `u32popcnt`                       | `[a, ...]`    | `[b, ...]`   | 33        | Population count (Hamming weight). Undefined if `a >= 2^32`.                                        |
-| `u32clz`                          | `[a, ...]`    | `[b, ...]`   | 42        | Count leading zeros. Undefined if `a >= 2^32`.                                                      |
-| `u32ctz`                          | `[a, ...]`    | `[b, ...]`   | 34        | Count trailing zeros. Undefined if `a >= 2^32`.                                                     |
-| `u32clo`                          | `[a, ...]`    | `[b, ...]`   | 41        | Count leading ones. Undefined if `a >= 2^32`.                                                       |
-| `u32cto`                          | `[a, ...]`    | `[b, ...]`   | 33        | Count trailing ones. Undefined if `a >= 2^32`.                                                      |
+| `u32and` <br> `u32and.b`           | `[b, a, ...]` | `[c, ...]`   | 1 <br> 2  | Bitwise AND. Fails if $\max(a,b) \geq 2^{32}$.                                                         |
+| `u32or` <br> `u32or.b`             | `[b, a, ...]` | `[c, ...]`   | 6 <br> 7  | Bitwise OR. Fails if $\max(a,b) \geq 2^{32}$.                                                          |
+| `u32xor` <br> `u32xor.b`           | `[b, a, ...]` | `[c, ...]`   | 1 <br> 2  | Bitwise XOR. Fails if $\max(a,b) \geq 2^{32}$.                                                         |
+| `u32not` <br> `u32not.a`           | `[a, ...]`  | `[b, ...]`   | 5 <br> 6  | Bitwise NOT. Fails if $a \geq 2^{32}$.                                                                |
+| `u32shl` <br> `u32shl.b`           | `[b, a, ...]` | `[c, ...]`   | 18 <br> 3 | $c = (a \cdot 2^b) \bmod 2^{32}$. Undefined if $a \geq 2^{32}$ or $b > 31$.                                  |
+| `u32shr` <br> `u32shr.b`           | `[b, a, ...]` | `[c, ...]`   | 18 <br> 3 | $c = \lfloor a / 2^b \rfloor$. Undefined if $a \geq 2^{32}$ or $b > 31$.                                      |
+| `u32rotl` <br> `u32rotl.b`         | `[b, a, ...]` | `[c, ...]`   | 18 <br> 3 | Rotate left. Undefined if $a \geq 2^{32}$ or $b > 31$.                                                  |
+| `u32rotr` <br> `u32rotr.b`         | `[b, a, ...]` | `[c, ...]`   | 23 <br> 3 | Rotate right. Undefined if $a \geq 2^{32}$ or $b > 31$.                                                 |
+| `u32popcnt`                       | `[a, ...]`    | `[b, ...]`   | 33        | Population count (Hamming weight). Undefined if $a \geq 2^{32}$.                                        |
+| `u32clz`                          | `[a, ...]`    | `[b, ...]`   | 42        | Count leading zeros. Undefined if $a \geq 2^{32}$.                                                      |
+| `u32ctz`                          | `[a, ...]`    | `[b, ...]`   | 34        | Count trailing zeros. Undefined if $a \geq 2^{32}$.                                                     |
+| `u32clo`                          | `[a, ...]`    | `[b, ...]`   | 41        | Count leading ones. Undefined if $a \geq 2^{32}$.                                                       |
+| `u32cto`                          | `[a, ...]`    | `[b, ...]`   | 33        | Count trailing ones. Undefined if $a \geq 2^{32}$.                                                      |
 
 ### Comparison Operations
 
 | Instruction                     | Stack Input | Stack Output | Cycles    | Notes                                                                                             |
 | ------------------------------- | ----------- | ------------ | --------- | ------------------------------------------------------------------------------------------------- |
-| `u32lt` <br> `u32lt.b`           | `[b, a, ...]` | `[c, ...]`   | 3 <br> 4  | `c <- 1` if `a < b`, else `0`. Undefined if `max(a,b) >= 2^32`.                                   |
-| `u32lte` <br> `u32lte.b`         | `[b, a, ...]` | `[c, ...]`   | 5 <br> 6  | `c <- 1` if `a <= b`, else `0`. Undefined if `max(a,b) >= 2^32`.                                  |
-| `u32gt` <br> `u32gt.b`           | `[b, a, ...]` | `[c, ...]`   | 4 <br> 5  | `c <- 1` if `a > b`, else `0`. Undefined if `max(a,b) >= 2^32`.                                   |
-| `u32gte` <br> `u32gte.b`         | `[b, a, ...]` | `[c, ...]`   | 4 <br> 5  | `c <- 1` if `a >= b`, else `0`. Undefined if `max(a,b) >= 2^32`.                                  |
-| `u32min` <br> `u32min.b`         | `[b, a, ...]` | `[c, ...]`   | 8 <br> 9  | `c <- min(a,b)`. Undefined if `max(a,b) >= 2^32`.                                                  |
-| `u32max` <br> `u32max.b`         | `[b, a, ...]` | `[c, ...]`   | 9 <br> 10 | `c <- max(a,b)`. Undefined if `max(a,b) >= 2^32`.                                                  |
+| `u32lt` <br> `u32lt.b`           | `[b, a, ...]` | `[c, ...]`   | 3 <br> 4  | $$c = \begin{cases} 1, & \text{if } a < b \\ 0, & \text{otherwise} \end{cases}$$. Undefined if $\max(a,b) \geq 2^{32}$.                                   |
+| `u32lte` <br> `u32lte.b`         | `[b, a, ...]` | `[c, ...]`   | 5 <br> 6  | $$c = \begin{cases} 1, & \text{if } a \leq b \\ 0, & \text{otherwise} \end{cases}$$. Undefined if $\max(a,b) \geq 2^{32}$.                                  |
+| `u32gt` <br> `u32gt.b`           | `[b, a, ...]` | `[c, ...]`   | 4 <br> 5  | $$c = \begin{cases} 1, & \text{if } a > b \\ 0, & \text{otherwise} \end{cases}$$. Undefined if $\max(a,b) \geq 2^{32}$.                                   |
+| `u32gte` <br> `u32gte.b`         | `[b, a, ...]` | `[c, ...]`   | 4 <br> 5  | $$c = \begin{cases} 1, & \text{if } a \geq b \\ 0, & \text{otherwise} \end{cases}$$. Undefined if $\max(a,b) \geq 2^{32}$.                                  |
+| `u32min` <br> `u32min.b`         | `[b, a, ...]` | `[c, ...]`   | 8 <br> 9  | $c = \min(a,b)$. Undefined if $\max(a,b) \geq 2^{32}$.                                                  |
+| `u32max` <br> `u32max.b`         | `[b, a, ...]` | `[c, ...]`   | 9 <br> 10 | $c = \max(a,b)$. Undefined if $\max(a,b) \geq 2^{32}$.                                                  |
 
 ## Stack Manipulation
 
