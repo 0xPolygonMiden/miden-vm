@@ -26,7 +26,7 @@ This page provides a comprehensive reference for Miden Assembly instructions.
 | `assert_eq`        | `[b, a, ...]` | `[...]`      | 2      | Removes $a, b$ if $a = b$. Fails if $a \neq b$.                                |
 | `assert_eqw`       | `[B, A, ...]` | `[...]`      | 11     | Removes $A, B$ if $A = B$. Fails if $A \neq B$.                                |
 
-*Note: Assertions can be parameterized with an error message (e.g., assert.err="Division by 0"). *
+*Note: Assertions can be parameterized with an error message (e.g., assert.err="Division by 0").*
 
 ### Arithmetic and Boolean Operations
 
@@ -73,7 +73,7 @@ Operations on 32-bit integers. Most instructions will fail or have undefined beh
 | `u32cast`        | `[a, ...]`  | `[b, ...]`     | 2      | $b = a \bmod 2^{32}$                                                                                   |
 | `u32split`       | `[a, ...]`  | `[c, b, ...]`  | 1      | $b = a \bmod 2^{32}$, $c = \lfloor a / 2^{32} \rfloor$                                                             |
 
-*Note: Assertions can be parameterized with an error message (e.g., assert.err="Division by 0"). *
+*Note: Assertions can be parameterized with an error message (e.g., assert.err="Division by 0").*
 
 ### Arithmetic Operations
 
