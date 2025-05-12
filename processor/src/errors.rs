@@ -1,4 +1,4 @@
-use alloc::{boxed::Box, string::String, sync::Arc, vec::Vec};
+use alloc::{boxed::Box, sync::Arc, vec::Vec};
 use core::error::Error;
 
 use miden_air::RowIndex;
@@ -94,10 +94,10 @@ pub enum ExecutionError {
     },
     #[error("failed to execute Ext2Intt operation: {0}")]
     Ext2InttError(Ext2InttError),
-    #[error("assertion failed at clock cycle {clk} with error code {err_code}{}",
+    #[error("assertion failed at clock cycle {clk} with error {}",
       match err_msg {
-        Some(msg) => format!(": {msg}"),
-        None => "".into()
+        Some(msg) => format!("message: {msg}"),
+        None => format!("code: {err_code}"),
       }
     )]
     #[diagnostic()]
@@ -107,8 +107,8 @@ pub enum ExecutionError {
         #[source_code]
         source_file: Option<Arc<SourceFile>>,
         clk: RowIndex,
-        err_code: u32,
-        err_msg: Option<String>,
+        err_code: Felt,
+        err_msg: Option<Arc<str>>,
     },
     #[error("failed to execute the program for internal reason: {0}")]
     FailedToExecuteProgram(&'static str),
@@ -193,9 +193,13 @@ pub enum ExecutionError {
         source_file: Option<Arc<SourceFile>>,
         root_digest: Digest,
     },
-    #[error("merkle path verification failed for value {value} at index {index} in the Merkle tree with root {root} (error code: {err_code})", 
+    #[error("merkle path verification failed for value {value} at index {index} in the Merkle tree with root {root} (error {err})",
       value = to_hex(Felt::elements_as_bytes(value)),
       root = to_hex(root.as_bytes()),
+      err = match err_msg {
+        Some(msg) => format!("message: {msg}"),
+        None => format!("code: {err_code}"),
+      }
     )]
     MerklePathVerificationFailed {
         #[label]
@@ -205,7 +209,8 @@ pub enum ExecutionError {
         value: Word,
         index: Felt,
         root: Digest,
-        err_code: u32,
+        err_code: Felt,
+        err_msg: Option<Arc<str>>,
     },
     #[error("failed to lookup value in Merkle store")]
     MerkleStoreLookupFailed {
@@ -307,6 +312,15 @@ pub enum ExecutionError {
         source_file: Option<Arc<SourceFile>>,
         proc_root: Digest,
     },
+    #[error("failed to execute arithmetic circuit evaluation operation: {error}")]
+    #[diagnostic()]
+    AceChipError {
+        #[label("this call failed")]
+        label: SourceSpan,
+        #[source_code]
+        source_file: Option<Arc<SourceFile>>,
+        error: AceError,
+    },
 }
 
 impl From<Ext2InttError> for ExecutionError {
@@ -357,8 +371,8 @@ impl ExecutionError {
 
     pub fn failed_assertion(
         clk: RowIndex,
-        err_code: u32,
-        err_msg: Option<String>,
+        err_code: Felt,
+        err_msg: Option<Arc<str>>,
         err_ctx: &ErrorContext<'_, impl MastNodeExt>,
     ) -> Self {
         let (label, source_file) = err_ctx.label_and_source_file();
@@ -422,7 +436,8 @@ impl ExecutionError {
         value: Word,
         index: Felt,
         root: Digest,
-        err_code: u32,
+        err_code: Felt,
+        err_msg: Option<Arc<str>>,
         err_ctx: &ErrorContext<'_, impl MastNodeExt>,
     ) -> Self {
         let (label, source_file) = err_ctx.label_and_source_file();
@@ -434,6 +449,7 @@ impl ExecutionError {
             index,
             root,
             err_code,
+            err_msg,
         }
     }
 
@@ -518,12 +534,39 @@ impl ExecutionError {
         let (label, source_file) = err_ctx.label_and_source_file();
         Self::SyscallTargetNotInKernel { label, source_file, proc_root }
     }
+
+    pub fn failed_arithmetic_evaluation(
+        err_ctx: &ErrorContext<'_, impl MastNodeExt>,
+        error: AceError,
+    ) -> Self {
+        let (label, source_file) = err_ctx.label_and_source_file();
+        Self::AceChipError { label, source_file, error }
+    }
 }
 
 impl AsRef<dyn Diagnostic> for ExecutionError {
     fn as_ref(&self) -> &(dyn Diagnostic + 'static) {
         self
     }
+}
+
+// ACE ERROR
+// ================================================================================================
+
+#[derive(Debug, thiserror::Error)]
+pub enum AceError {
+    #[error("num of variables should be word aligned and non-zero but was {0}")]
+    NumVarIsNotWordAlignedOrIsEmpty(u64),
+    #[error("num of evaluation gates should be word aligned and non-zero but was {0}")]
+    NumEvalIsNotWordAlignedOrIsEmpty(u64),
+    #[error("circuit does not evaluate to zero")]
+    CircuitNotEvaluateZero,
+    #[error("failed to read from memory")]
+    FailedMemoryRead,
+    #[error("failed to decode instruction")]
+    FailedDecodeInstruction,
+    #[error("failed to read from the wiring bus")]
+    FailedWireBusRead,
 }
 
 // EXT2INTT ERROR

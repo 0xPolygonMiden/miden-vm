@@ -15,13 +15,14 @@ use vm_core::{
 };
 
 use crate::{
-    ContextId, ExecutionError, FMP_MIN, Host, ProcessState, SYSCALL_FMP_MIN, errors::ErrorContext,
-    utils::resolve_external_node,
+    ContextId, ExecutionError, FMP_MIN, Host, ProcessState, SYSCALL_FMP_MIN, chiplets::Ace,
+    errors::ErrorContext, utils::resolve_external_node,
 };
 
 mod memory;
 
 // Ops
+mod circuit_eval;
 mod crypto_ops;
 mod field_ops;
 mod fri_ops;
@@ -130,6 +131,9 @@ pub struct FastProcessor {
     /// A map from (context_id, word_address) to the word stored starting at that memory location.
     pub(super) memory: Memory,
 
+    /// A map storing metadata per call to the ACE chiplet.
+    pub(super) ace: Ace,
+
     /// The call stack is used when starting a new execution context (from a `call`, `syscall` or
     /// `dyncall`) to keep track of the information needed to return to the previous context upon
     /// return. It is a stack since calls can be nested.
@@ -195,6 +199,7 @@ impl FastProcessor {
             caller_hash: EMPTY_WORD,
             memory: Memory::new(),
             call_stack: Vec::new(),
+            ace: Ace::default(),
             in_debug_mode,
         }
     }
@@ -698,7 +703,7 @@ impl FastProcessor {
             }
 
             // decode and execute the operation
-            self.execute_op(op, batch_offset_in_block + op_idx_in_batch, host)?;
+            self.execute_op(op, batch_offset_in_block + op_idx_in_batch, program, host)?;
 
             // if the operation carries an immediate value, the value is stored at the next group
             // pointer; so, we advance the pointer to the following group
@@ -765,6 +770,7 @@ impl FastProcessor {
         &mut self,
         operation: &Operation,
         op_idx: usize,
+        program: &MastForest,
         host: &mut impl Host,
     ) -> Result<(), ExecutionError> {
         if self.bounds_check_counter == 0 {
@@ -781,7 +787,7 @@ impl FastProcessor {
             Operation::Noop => {
                 // do nothing
             },
-            Operation::Assert(err_code) => self.op_assert(*err_code, op_idx, host)?,
+            Operation::Assert(err_code) => self.op_assert(*err_code, op_idx, host, program)?,
             Operation::FmpAdd => self.op_fmpadd(),
             Operation::FmpUpdate => self.op_fmpupdate()?,
             Operation::SDepth => self.op_sdepth(),
@@ -880,11 +886,12 @@ impl FastProcessor {
 
             // ----- cryptographic operations -----------------------------------------------------
             Operation::HPerm => self.op_hperm(),
-            Operation::MpVerify(err_code) => self.op_mpverify(*err_code, host)?,
+            Operation::MpVerify(err_code) => self.op_mpverify(*err_code, host, program)?,
             Operation::MrUpdate => self.op_mrupdate(host)?,
             Operation::FriE2F4 => self.op_fri_ext2fold4()?,
             Operation::HornerBase => self.op_horner_eval_base(op_idx)?,
             Operation::HornerExt => self.op_horner_eval_ext(op_idx)?,
+            Operation::ArithmeticCircuitEval => self.arithmetic_circuit_eval(op_idx)?,
         }
 
         Ok(())

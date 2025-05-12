@@ -15,12 +15,12 @@ resolver = "2"
 
 [workspace.package]
 edition = "2024"
-rust-version = "1.85"
+rust-version = "1.86"
 license = "MIT"
 readme = "README.md"
 authors = ["Miden contributors"]
 homepage = "https://polygon.technology/polygon-miden"
-repository = "https://github.com/0xPolygonMiden/miden-vm"
+repository = "https://github.com/0xMiden/miden-vm"
 exclude = [".github/"]
 
 [profile.optimized]

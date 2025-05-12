@@ -6,14 +6,14 @@ use clap::Parser;
 use crate::repl::start_repl;
 
 #[derive(Debug, Clone, Parser)]
-#[clap(about = "Initiates the Miden REPL tool")]
+#[command(about = "Initiates the Miden REPL tool")]
 pub struct ReplCmd {
     /// Paths to .masl library files
-    #[clap(short = 'l', long = "libraries", value_parser)]
+    #[arg(short = 'l', long = "libraries", value_parser)]
     library_paths: Vec<PathBuf>,
 
     /// Usage of standard library
-    #[clap(short = 's', long = "stdlib")]
+    #[arg(short = 's', long = "stdlib")]
     use_stdlib: bool,
 }
 

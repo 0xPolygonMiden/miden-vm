@@ -1,4 +1,8 @@
-use vm_core::{Felt, Operation, mast::MastNodeExt, sys_events::SystemEvent};
+use vm_core::{
+    Felt, Operation,
+    mast::{MastForest, MastNodeExt},
+    sys_events::SystemEvent,
+};
 
 use super::{
     super::{
@@ -7,7 +11,7 @@ use super::{
     },
     ExecutionError, Process,
 };
-use crate::{Host, errors::ErrorContext};
+use crate::{Host, ProcessState, errors::ErrorContext};
 pub(crate) mod sys_event_handlers;
 
 // SYSTEM OPERATIONS
@@ -20,7 +24,8 @@ impl Process {
     /// Returns an error if the popped value is not ONE.
     pub(super) fn op_assert<H>(
         &mut self,
-        err_code: u32,
+        err_code: Felt,
+        program: &MastForest,
         host: &mut H,
         err_ctx: &ErrorContext<'_, impl MastNodeExt>,
     ) -> Result<(), ExecutionError>
@@ -28,7 +33,10 @@ impl Process {
         H: Host,
     {
         if self.stack.get(0) != ONE {
-            return Err(host.on_assert_failed(self.into(), err_code, err_ctx));
+            let state = ProcessState::from(self);
+            host.on_assert_failed(state, err_code);
+            let err_msg = program.resolve_error_message(err_code);
+            return Err(ExecutionError::failed_assertion(state.clk(), err_code, err_msg, err_ctx));
         }
         self.stack.shift_left(1);
         Ok(())
@@ -148,6 +156,8 @@ impl Process {
 
 #[cfg(test)]
 mod tests {
+    use vm_core::mast::MastForest;
+
     use super::{
         super::{MIN_STACK_DEPTH, Operation},
         FMP_MAX, FMP_MIN, Felt, Process,
@@ -161,83 +171,87 @@ mod tests {
         let mut host = DefaultHost::default();
         // calling assert with a minimum stack should be an ok, as long as the top value is ONE
         let mut process = Process::new_dummy_with_empty_stack();
-        process.execute_op(Operation::Push(ONE), &mut host).unwrap();
-        process.execute_op(Operation::Swap, &mut host).unwrap();
-        process.execute_op(Operation::Drop, &mut host).unwrap();
+        let program = &MastForest::default();
 
-        assert!(process.execute_op(Operation::Assert(0), &mut host).is_ok());
+        process.execute_op(Operation::Push(ONE), program, &mut host).unwrap();
+        process.execute_op(Operation::Swap, program, &mut host).unwrap();
+        process.execute_op(Operation::Drop, program, &mut host).unwrap();
+
+        assert!(process.execute_op(Operation::Assert(ZERO), program, &mut host).is_ok());
     }
 
     #[test]
     fn op_fmpupdate() {
         let mut host = DefaultHost::default();
         let mut process = Process::new_dummy_with_empty_stack();
+        let program = &MastForest::default();
 
         // initial value of fmp register should be 2^30
         assert_eq!(Felt::new(2_u64.pow(30)), process.system.fmp());
 
         // increment fmp register
-        process.execute_op(Operation::Push(Felt::new(2)), &mut host).unwrap();
-        process.execute_op(Operation::FmpUpdate, &mut host).unwrap();
+        process.execute_op(Operation::Push(Felt::new(2)), program, &mut host).unwrap();
+        process.execute_op(Operation::FmpUpdate, program, &mut host).unwrap();
         assert_eq!(Felt::new(FMP_MIN + 2), process.system.fmp());
 
         // increment fmp register again
-        process.execute_op(Operation::Push(Felt::new(3)), &mut host).unwrap();
-        process.execute_op(Operation::FmpUpdate, &mut host).unwrap();
+        process.execute_op(Operation::Push(Felt::new(3)), program, &mut host).unwrap();
+        process.execute_op(Operation::FmpUpdate, program, &mut host).unwrap();
         assert_eq!(Felt::new(FMP_MIN + 5), process.system.fmp());
 
         // decrement fmp register
-        process.execute_op(Operation::Push(-Felt::new(3)), &mut host).unwrap();
-        process.execute_op(Operation::FmpUpdate, &mut host).unwrap();
+        process.execute_op(Operation::Push(-Felt::new(3)), program, &mut host).unwrap();
+        process.execute_op(Operation::FmpUpdate, program, &mut host).unwrap();
         assert_eq!(Felt::new(FMP_MIN + 2), process.system.fmp());
 
         // decrementing beyond the minimum fmp value should be an error
-        process.execute_op(Operation::Push(-Felt::new(3)), &mut host).unwrap();
-        assert!(process.execute_op(Operation::FmpUpdate, &mut host).is_err());
+        process.execute_op(Operation::Push(-Felt::new(3)), program, &mut host).unwrap();
+        assert!(process.execute_op(Operation::FmpUpdate, program, &mut host).is_err());
 
         // going up to the max fmp value should be OK
         let stack = StackInputs::try_from_ints([MAX_PROC_LOCALS]).unwrap();
         let mut process = Process::new_dummy(stack);
-        process.execute_op(Operation::FmpUpdate, &mut host).unwrap();
+        process.execute_op(Operation::FmpUpdate, program, &mut host).unwrap();
         assert_eq!(Felt::new(FMP_MAX), process.system.fmp());
 
         // but going beyond that should be an error
         let stack = StackInputs::try_from_ints([MAX_PROC_LOCALS + 1]).unwrap();
         let mut process = Process::new_dummy(stack);
-        assert!(process.execute_op(Operation::FmpUpdate, &mut host).is_err());
+        assert!(process.execute_op(Operation::FmpUpdate, program, &mut host).is_err());
 
         // should not affect the rest of the stack state
         let stack = StackInputs::try_from_ints([2, 3]).unwrap();
         let mut process = Process::new_dummy(stack);
-        process.execute_op(Operation::FmpUpdate, &mut host).unwrap();
+        process.execute_op(Operation::FmpUpdate, program, &mut host).unwrap();
 
         let expected = build_expected_stack(&[2]);
         assert_eq!(expected, process.stack.trace_state());
 
         // calling fmpupdate with a minimum stack should be ok
         let mut process = Process::new_dummy_with_empty_stack();
-        assert!(process.execute_op(Operation::FmpUpdate, &mut host).is_ok());
+        assert!(process.execute_op(Operation::FmpUpdate, program, &mut host).is_ok());
     }
 
     #[test]
     fn op_fmpadd() {
         let mut host = DefaultHost::default();
         let mut process = Process::new_dummy_with_empty_stack();
+        let program = &MastForest::default();
 
         // set value of fmp register
-        process.execute_op(Operation::Push(Felt::new(2)), &mut host).unwrap();
-        process.execute_op(Operation::FmpUpdate, &mut host).unwrap();
+        process.execute_op(Operation::Push(Felt::new(2)), program, &mut host).unwrap();
+        process.execute_op(Operation::FmpUpdate, program, &mut host).unwrap();
 
         // compute address of the first local
-        process.execute_op(Operation::Push(-ONE), &mut host).unwrap();
-        process.execute_op(Operation::FmpAdd, &mut host).unwrap();
+        process.execute_op(Operation::Push(-ONE), program, &mut host).unwrap();
+        process.execute_op(Operation::FmpAdd, program, &mut host).unwrap();
 
         let expected = build_expected_stack(&[FMP_MIN + 1]);
         assert_eq!(expected, process.stack.trace_state());
 
         // compute address of second local (also make sure that rest of stack is not affected)
-        process.execute_op(Operation::Push(-Felt::new(2)), &mut host).unwrap();
-        process.execute_op(Operation::FmpAdd, &mut host).unwrap();
+        process.execute_op(Operation::Push(-Felt::new(2)), program, &mut host).unwrap();
+        process.execute_op(Operation::FmpAdd, program, &mut host).unwrap();
 
         let expected = build_expected_stack(&[FMP_MIN, FMP_MIN + 1]);
         assert_eq!(expected, process.stack.trace_state());
@@ -248,20 +262,22 @@ mod tests {
         let mut host = DefaultHost::default();
         // stack is empty
         let mut process = Process::new_dummy_with_empty_stack();
-        process.execute_op(Operation::SDepth, &mut host).unwrap();
+        let program = &MastForest::default();
+
+        process.execute_op(Operation::SDepth, program, &mut host).unwrap();
         let expected = build_expected_stack(&[MIN_STACK_DEPTH as u64]);
         assert_eq!(expected, process.stack.trace_state());
         assert_eq!(MIN_STACK_DEPTH + 1, process.stack.depth());
 
         // stack has one item
-        process.execute_op(Operation::SDepth, &mut host).unwrap();
+        process.execute_op(Operation::SDepth, program, &mut host).unwrap();
         let expected = build_expected_stack(&[MIN_STACK_DEPTH as u64 + 1, MIN_STACK_DEPTH as u64]);
         assert_eq!(expected, process.stack.trace_state());
         assert_eq!(MIN_STACK_DEPTH + 2, process.stack.depth());
 
         // stack has 3 items
-        process.execute_op(Operation::Pad, &mut host).unwrap();
-        process.execute_op(Operation::SDepth, &mut host).unwrap();
+        process.execute_op(Operation::Pad, program, &mut host).unwrap();
+        process.execute_op(Operation::SDepth, program, &mut host).unwrap();
         let expected = build_expected_stack(&[
             MIN_STACK_DEPTH as u64 + 3,
             0,
@@ -276,21 +292,22 @@ mod tests {
     fn op_clk() {
         let mut host = DefaultHost::default();
         let mut process = Process::new_dummy_with_empty_stack();
+        let program = &MastForest::default();
 
         // initial value of clk register should be 1.
-        process.execute_op(Operation::Clk, &mut host).unwrap();
+        process.execute_op(Operation::Clk, program, &mut host).unwrap();
         let expected = build_expected_stack(&[1]);
         assert_eq!(expected, process.stack.trace_state());
 
         // increment clk register.
-        process.execute_op(Operation::Push(Felt::new(2)), &mut host).unwrap();
-        process.execute_op(Operation::Clk, &mut host).unwrap();
+        process.execute_op(Operation::Push(Felt::new(2)), program, &mut host).unwrap();
+        process.execute_op(Operation::Clk, program, &mut host).unwrap();
         let expected = build_expected_stack(&[3, 2, 1]);
         assert_eq!(expected, process.stack.trace_state());
 
         // increment clk register again.
-        process.execute_op(Operation::Push(Felt::new(3)), &mut host).unwrap();
-        process.execute_op(Operation::Clk, &mut host).unwrap();
+        process.execute_op(Operation::Push(Felt::new(3)), program, &mut host).unwrap();
+        process.execute_op(Operation::Clk, program, &mut host).unwrap();
         let expected = build_expected_stack(&[5, 3, 3, 2, 1]);
         assert_eq!(expected, process.stack.trace_state());
     }

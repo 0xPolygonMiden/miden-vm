@@ -1,7 +1,7 @@
 use vm_core::{
     Felt,
     Operation::{self, *},
-    debuginfo::Spanned,
+    debuginfo::Spanned,ZERO,
     sys_events::SystemEvent,
 };
 
@@ -48,7 +48,7 @@ pub fn u32testw(span_builder: &mut BasicBlockBuilder) {
 ///
 /// Implemented by executing `U32ASSERT2` on each pair of elements in the word.
 /// Total of 6 VM cycles.
-pub fn u32assertw(span_builder: &mut BasicBlockBuilder, err_code: u32) {
+pub fn u32assertw(span_builder: &mut BasicBlockBuilder, err_code: Felt) {
     #[rustfmt::skip]
     let ops = [
         // Test the first and the second elements
@@ -174,7 +174,7 @@ pub fn u32not(span_builder: &mut BasicBlockBuilder) {
     let ops = [
         // Perform the operation
         Push(Felt::from(u32::MAX)),
-        U32assert2(0),
+        U32assert2(ZERO),
         Swap,
         U32sub,
 
@@ -526,7 +526,7 @@ fn verify_clz(block_builder: &mut BasicBlockBuilder) {
         // 6. Assert that the masked input, and the mask representing `clz` leading zeros, followed
         // by at least one trailing one, if `clz < 32`, are equal; OR that the input was zero if `clz`
         // is 32.
-        Eq, MovUp2, Or, Assert(0),
+        Eq, MovUp2, Or, Assert(ZERO),
     ];
 
     block_builder.push_ops(ops_group_2);
@@ -601,7 +601,7 @@ fn verify_clo(block_builder: &mut BasicBlockBuilder) {
         // #=> [u32::MAX - 2^(32 - clo) - 1, n & mask, clo]
         Push(u32::MAX.into()), MovUp2, Neg, Add,
         // 6. Assert that the masked input, and the mask representing `clo` leading ones, are equal
-        Eq, Assert(0),
+        Eq, Assert(ZERO),
     ];
 
     block_builder.push_ops(ops_group_2);
@@ -675,7 +675,7 @@ fn verify_ctz(block_builder: &mut BasicBlockBuilder) {
                         // If calcualtion of `ctz` is correct, m should be equal to
                         // pow2(ctz)
 
-        Eq, Assert(0), // [ctz, ...]
+        Eq, Assert(ZERO), // [ctz, ...]
     ];
 
     block_builder.push_ops(ops_group_2);
@@ -749,7 +749,7 @@ fn verify_cto(block_builder: &mut BasicBlockBuilder) {
                         // If calcualtion of `cto` is correct, m should be equal to
                         // pow2(cto) - 1
 
-        Eq, Assert(0), // [cto, ...]
+        Eq, Assert(ZERO), // [cto, ...]
     ];
 
     block_builder.push_ops(ops_group_2);

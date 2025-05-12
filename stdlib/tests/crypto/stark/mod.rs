@@ -2,7 +2,7 @@ use std::sync::Arc;
 mod verifier_recursive;
 use assembly::{Assembler, DefaultSourceManager};
 use miden_air::{FieldExtension, HashFunction, PublicInputs};
-use processor::{DefaultHost, Program, ProgramInfo};
+use processor::{DefaultHost, Program, ProgramInfo, crypto::Rpo256};
 use rstest::rstest;
 use test_utils::{
     AdviceInputs, MemAdviceProvider, ProvingOptions, StackInputs, VerifierError, prove,
@@ -13,12 +13,16 @@ use verifier_recursive::{VerifierData, generate_advice_inputs};
 // in `stdlib/asm/crypto/stark/verifier.masm` are violated.
 #[rstest]
 #[case(None)]
+#[ignore = "see-https://github.com/0xMiden/miden-vm/issues/1781"]
 #[case(Some(KERNEL_ODD_NUM_PROC))]
+#[ignore = "see-https://github.com/0xMiden/miden-vm/issues/1781"]
 #[case(Some(KERNEL_EVEN_NUM_PROC))]
 fn stark_verifier_e2f4(#[case] kernel: Option<&str>) {
     // An example MASM program to be verified inside Miden VM.
+
+    use vm_core::Felt;
     let example_source = "begin
-            repeat.32
+            repeat.320
                 swap dup.1 add
             end
         end";
@@ -30,8 +34,13 @@ fn stark_verifier_e2f4(#[case] kernel: Option<&str>) {
         initial_stack,
         advice_stack: tape,
         store,
-        advice_map,
+        mut advice_map,
     } = generate_recursive_verifier_data(example_source, stack_inputs, kernel).unwrap();
+
+    let circuit: Vec<Felt> = CONSTRAINT_EVALUATION_CIRCUIT.iter().map(|a| Felt::new(*a)).collect();
+    let circuit_digest = Rpo256::hash_elements(&circuit);
+
+    advice_map.push((circuit_digest, circuit));
 
     // Verify inside Miden VM
     let source = "
@@ -42,7 +51,6 @@ fn stark_verifier_e2f4(#[case] kernel: Option<&str>) {
         ";
 
     let test = build_test!(source, &initial_stack, &tape, store, advice_map);
-
     test.expect_stack(&[]);
 }
 
@@ -111,3 +119,104 @@ const KERNEL_EVEN_NUM_PROC: &str = r#"
         export.bar
             div
         end"#;
+
+/// This is an output of the ACE codegen in AirScript and encodes the circuit for executing
+/// the constraint evaluation check i.e., DEEP-ALI.
+const CONSTRAINT_EVALUATION_CIRCUIT: [u64; 96] = [
+    1,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    97710506174,
+    230854492443,
+    267361714459,
+    266287972635,
+    1152921594801160277,
+    265214230811,
+    1152921592653676627,
+    264140488987,
+    1152921590506192977,
+    1152921589432451158,
+    214748365083,
+    213674623259,
+    1152921586211225677,
+    1152921585137483854,
+    1152921584063742061,
+    1152921584063742142,
+    1152921585137483855,
+    1152921580842516696,
+    2305843084375621704,
+    1152921585137483862,
+    272730423387,
+    1152921576547549436,
+    271656681563,
+    1152921574400065602,
+    1152921573326323780,
+    1152921572252581972,
+    1152921571178840146,
+    1152921570105098320,
+    64424509509,
+    1152921572252581973,
+    1152921566883872850,
+    1152921565810131024,
+    60129542203,
+    1152921566883872852,
+    1152921562588905552,
+    56908316727,
+    1152921562588905554,
+    54760833076,
+    1152921733313855702,
+    227633266779,
+    1152921556146454577,
+    1152921555072712782,
+    1152921553998970956,
+    48318382130,
+    1152921553998970957,
+    46170898476,
+    45097156681,
+    2305843106924200203,
+    42949673146,
+    100931731552,
+    98784247904,
+    97710506080,
+    97710506079,
+    1152921548630261857,
+    1152921608759804001,
+    2305843045720916007,
+    1152921538966585382,
+    1152921537892843556,
+    1152921536819101733,
+    1152921535745359909,
+    1152921540040327435,
+    1152921540040327265,
+    1152921533597876259,
+    1152921531450392613,
+    1152921532524134487,
+    1152921529302908963,
+    1152921528229167140,
+    2305843034983497756,
+    2305843030688530453,
+    1152921606612320354,
+    2305843028541046883,
+    1152921522860458079,
+    2305843026393563236,
+    1152921520712974431,
+    2305843024246079589,
+    1152921518565490783,
+    2305843022098595942,
+    1152921516418007135,
+    2305843019951112295,
+    1152921514270523487,
+    2305843017803628648,
+    1152921512123039839,
+    2305843015656145001,
+    1152921509975556131,
+    1152921508901814308,
+    1152921507828072485,
+    2147483667,
+    1152921505680588801,
+];

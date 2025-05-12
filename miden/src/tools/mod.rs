@@ -19,18 +19,18 @@ use crate::cli::utils::{get_masm_program, get_masp_program};
 
 /// Defines cli interface
 #[derive(Debug, Clone, Parser)]
-#[clap(about = "Analyze a miden program")]
+#[command(about = "Analyze a miden program")]
 pub struct Analyze {
     /// Path to a .masm assembly file or a .masp package file
-    #[clap(value_parser)]
+    #[arg(value_parser)]
     program_file: PathBuf,
 
     /// Path to .inputs file
-    #[clap(short = 'i', long = "input", value_parser)]
+    #[arg(short = 'i', long = "input", value_parser)]
     input_file: Option<PathBuf>,
 
     /// Paths to .masl library files
-    #[clap(short = 'l', long = "libraries", value_parser)]
+    #[arg(short = 'l', long = "libraries", value_parser)]
     library_paths: Vec<PathBuf>,
 }
 

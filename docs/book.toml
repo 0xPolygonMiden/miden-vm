@@ -6,7 +6,7 @@ multilingual = false
 title        = "The Miden virtual machine"
 
 [output.html]
-git-repository-url = "https://github.com/0xPolygonMiden/miden-vm"
+git-repository-url = "https://github.com/0xMiden/miden-vm"
 
 [preprocessor.katex]
 after = ["links"]

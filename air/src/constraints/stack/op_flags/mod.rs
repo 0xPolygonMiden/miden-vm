@@ -638,7 +638,7 @@ impl<E: FieldElement> OpFlags<E> {
     /// Operation Flag of ASSERT operation.
     #[inline(always)]
     pub fn assert(&self) -> E {
-        self.degree7_op_flags[get_op_index(Operation::Assert(0).op_code())]
+        self.degree7_op_flags[get_op_index(Operation::Assert(ZERO).op_code())]
     }
 
     /// Operation Flag of EQ operation.
@@ -852,7 +852,7 @@ impl<E: FieldElement> OpFlags<E> {
     /// Operation Flag of U32ASSERT2 operation.
     #[inline(always)]
     pub fn u32assert2(&self) -> E {
-        self.degree6_op_flags[get_op_index(Operation::U32assert2(0).op_code())]
+        self.degree6_op_flags[get_op_index(Operation::U32assert2(ZERO).op_code())]
     }
 
     /// Operation Flag of U32ADD3 operation.
@@ -878,7 +878,7 @@ impl<E: FieldElement> OpFlags<E> {
     /// Operation Flag of MPVERIFY operation.
     #[inline(always)]
     pub fn mpverify(&self) -> E {
-        self.degree5_op_flags[get_op_index(Operation::MpVerify(0).op_code())]
+        self.degree5_op_flags[get_op_index(Operation::MpVerify(ZERO).op_code())]
     }
 
     /// Operation Flag of SPLIT operation.

@@ -14,9 +14,9 @@ pub(crate) mod utils;
 
 /// Root CLI struct
 #[derive(Parser, Debug)]
-#[clap(name = "Miden", about = "Miden CLI", version, rename_all = "kebab-case")]
+#[command(name = "Miden", about = "Miden CLI", version, rename_all = "kebab-case")]
 pub struct Cli {
-    #[clap(subcommand)]
+    #[command(subcommand)]
     action: Actions,
 }
 
