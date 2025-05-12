@@ -1,7 +1,8 @@
 use vm_core::{
     Felt,
     Operation::{self, *},
-    debuginfo::Spanned,ZERO,
+    ZERO,
+    debuginfo::Spanned,
     sys_events::SystemEvent,
 };
 
