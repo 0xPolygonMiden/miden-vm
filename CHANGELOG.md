@@ -2,6 +2,9 @@
 
 ## 0.15.0 (TBD)
 
+#### Changes
+- Improve error messages for some assembler instruction (#1785)
+
 
 ## 0.14.0 (2025-05-07)
 
