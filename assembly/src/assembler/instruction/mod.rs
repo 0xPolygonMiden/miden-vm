@@ -1,9 +1,7 @@
-use core::ops::RangeBounds;
-
 use vm_core::{Decorator, ONE, WORD_SIZE, ZERO, debuginfo::Spanned, mast::MastNodeId};
 
 use super::{Assembler, BasicBlockBuilder, Felt, Operation, ProcedureContext, ast::InvokeKind};
-use crate::{AssemblyError, Span, ast::Instruction, report, utils::bound_into_included_u64};
+use crate::{AssemblyError, Span, ast::Instruction};
 
 mod adv_ops;
 mod crypto_ops;
@@ -116,7 +114,7 @@ impl Assembler {
             Instruction::Exp => field_ops::exp(
                 block_builder,
                 proc_ctx,
-                vm_core::debuginfo::Span::new(proc_ctx.span(), 64),
+                64_u8
             )?,
 
             Instruction::ExpImm(pow) => {
