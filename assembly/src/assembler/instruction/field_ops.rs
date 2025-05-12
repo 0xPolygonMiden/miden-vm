@@ -205,7 +205,7 @@ pub fn exp_imm(
     } else {
         // compute the bits length of the exponent
         let num_pow_bits = (64 - pow.as_int().leading_zeros()) as u8;
-        let span = proc_ctx.span();
+        let _span = proc_ctx.span();
 
         // pushing the exponent onto the stack.
         span_builder.push_op(Push(pow));
