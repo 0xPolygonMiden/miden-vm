@@ -112,7 +112,7 @@ impl Assembler {
 
             Instruction::Pow2 => field_ops::pow2(block_builder),
             Instruction::Exp => field_ops::exp(block_builder, proc_ctx, 64_u8)?,
-            
+
             Instruction::ExpImm(pow) => {
                 field_ops::exp_imm(block_builder, proc_ctx, pow.expect_value())?
             },
