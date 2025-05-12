@@ -172,7 +172,7 @@ pub fn exp(
     span_builder.push_ops([Pad, Incr, MovUp2, Pad]);
 
     // calling expacc instruction n times.
-    span_builder.push_op_many(Expacc, *num_pow_bits.inner() as usize);
+    span_builder.push_op_many(Expacc, num_pow_bits as usize);
 
     // drop the top two elements exp_lsb and base value of the last iteration.
     span_builder.push_ops([Drop, Drop]);
