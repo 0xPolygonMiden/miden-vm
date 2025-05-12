@@ -2,6 +2,9 @@
 
 ## 0.15.0 (TBD)
 
+#### Changes
+- Improve error messages for some assembler instruction (#1785)
+
 
 ## 0.14.0 (2025-05-07)
 
@@ -15,7 +18,6 @@
 - Update the recursive verifier to use arithmetic evaluation chiplet (#1760).
 
 #### Changes
-- remove usage of validate_param in instruction ops (#1785)
 - Replace deprecated #[clap(...)] with #[command(...)] and #[arg(.…)] (#1794)
 - Add pull request template to guide contributors (#1795)
 - [BREAKING] `ExecutionOptions::with_debugging()` now takes a boolean parameter (#1761)
