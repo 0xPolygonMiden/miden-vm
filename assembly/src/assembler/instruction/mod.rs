@@ -555,24 +555,3 @@ fn push_felt(span_builder: &mut BasicBlockBuilder, value: Felt) {
         span_builder.push_op(Push(value));
     }
 }
-
-/// Returns an error if the specified value is smaller than or equal to min or greater than or
-/// equal to max. Otherwise, returns Ok(()).
-fn validate_param<I, R>(value: I, range: R) -> Result<(), AssemblyError>
-where
-    I: Ord + Clone + Into<u64>,
-    R: RangeBounds<I>,
-{
-    range.contains(&value).then_some(()).ok_or_else(|| {
-        let value: u64 = value.into();
-        let min = bound_into_included_u64(range.start_bound(), true);
-        let max = bound_into_included_u64(range.end_bound(), false);
-        AssemblyError::Other(
-            report!(
-                "parameter value must be greater than or equal to {min} and \
-            less than or equal to {max}, but was {value}",
-            )
-            .into(),
-        )
-    })
-}
