@@ -155,14 +155,14 @@ pub fn append_pow2_op(span_builder: &mut BasicBlockBuilder) {
 pub fn exp(
     span_builder: &mut BasicBlockBuilder,
     proc_ctx: &ProcedureContext,
-    num_pow_bits: Span<u8>,
+    num_pow_bits: u8,
 ) -> Result<(), AssemblyError> {
-    if *num_pow_bits.inner() > MAX_EXP_BITS {
-        let span = num_pow_bits.span();
+    if num_pow_bits > MAX_EXP_BITS {
+        let span = proc_ctx.span();
         return Err(AssemblyError::InvalidU8Param {
             span,
             source_file: proc_ctx.source_manager().get(span.source_id()).ok(),
-            param: *num_pow_bits.inner(),
+            param: num_pow_bits,
             min: 0,
             max: MAX_EXP_BITS,
         });
@@ -205,7 +205,7 @@ pub fn exp_imm(
     } else {
         // compute the bits length of the exponent
         let num_pow_bits = (64 - pow.as_int().leading_zeros()) as u8;
-        let num_pow_bits = Span::<u8>::new(proc_ctx.span(), num_pow_bits);
+        let span = proc_ctx.span();
 
         // pushing the exponent onto the stack.
         span_builder.push_op(Push(pow));
