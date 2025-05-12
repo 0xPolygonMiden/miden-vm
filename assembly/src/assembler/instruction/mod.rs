@@ -123,7 +123,7 @@ impl Assembler {
             Instruction::ExpBitLength(num_pow_bits) => field_ops::exp(
                 block_builder,
                 proc_ctx,
-                vm_core::debuginfo::Span::new(proc_ctx.span(), *num_pow_bits),
+                *num_pow_bits
             )?,
             Instruction::ILog2 => field_ops::ilog2(block_builder),
 
