@@ -55,31 +55,30 @@ pub(super) struct OpBatchAccumulator {
     /// A list of operations in this batch, including decorators.
     ops: Vec<Operation>,
     /// Values of operation groups, including immediate values.
-    groups: [Felt; BATCH_SIZE],
+    groups: Vec<u64>,
     /// Number of non-decorator operations in each operation group. Operation count for groups
     /// with immediate values is set to 0.
     op_counts: [usize; BATCH_SIZE],
-    /// Value of the currently active op group.
-    group: u64,
+    /// Index of the op group that is currently being filled.
+    current_op_group_idx: usize,
     /// Index of the next opcode in the current group.
-    op_idx: usize,
-    /// index of the current group in the batch.
-    group_idx: usize,
-    // Index of the next free group in the batch.
-    next_group_idx: usize,
+    current_op_group_size: usize,
 }
 
 impl OpBatchAccumulator {
     /// Returns a blank [OpBatchAccumulator].
     pub fn new() -> Self {
+        let groups = {
+            let current_op_group = 0;
+            vec![current_op_group]
+        };
+
         Self {
             ops: Vec::new(),
-            groups: [ZERO; BATCH_SIZE],
+            groups,
             op_counts: [0; BATCH_SIZE],
-            group: 0,
-            op_idx: 0,
-            group_idx: 0,
-            next_group_idx: 1,
+            current_op_group_idx: 0,
+            current_op_group_size: 0,
         }
     }
 
@@ -102,15 +101,15 @@ impl OpBatchAccumulator {
             // an operation carrying an immediate value cannot be the last one in a group; so, we
             // check if we need to move the operation to the next group. in either case, we need
             // to make sure there is enough space for the immediate value as well.
-            if self.op_idx < GROUP_SIZE - 1 {
-                self.next_group_idx < BATCH_SIZE
+            if self.current_op_group_size < GROUP_SIZE - 1 {
+                self.groups.len() < BATCH_SIZE
             } else {
-                self.next_group_idx + 1 < BATCH_SIZE
+                self.groups.len() + 1 < BATCH_SIZE
             }
         } else {
             // check if there is space for the operation in the current group, or if there isn't,
             // whether we can add another group
-            self.op_idx < GROUP_SIZE || self.next_group_idx < BATCH_SIZE
+            self.current_op_group_size < GROUP_SIZE || self.groups.len() < BATCH_SIZE
         }
     }
 
@@ -120,7 +119,7 @@ impl OpBatchAccumulator {
     /// the accumulator.
     pub fn add_op(&mut self, op: Operation) {
         // if the group is full, finalize it and start a new group
-        if self.op_idx == GROUP_SIZE {
+        if self.current_op_group_size == GROUP_SIZE {
             self.finalize_op_group();
         }
 
@@ -128,52 +127,61 @@ impl OpBatchAccumulator {
         if let Some(imm) = op.imm_value() {
             // since an operation with an immediate value cannot be the last one in a group, if
             // the operation would be the last one in the group, we need to start a new group
-            if self.op_idx == GROUP_SIZE - 1 {
+            if self.current_op_group_size == GROUP_SIZE - 1 {
                 self.finalize_op_group();
             }
 
-            // save the immediate value at the next group index and advance the next group pointer
-            self.groups[self.next_group_idx] = imm;
-            self.next_group_idx += 1;
+            // save the immediate value by appending it as a group in the batch
+            self.groups.push(imm.into());
         }
 
         // add the opcode to the group and increment the op index pointer
         let opcode = op.op_code() as u64;
-        self.group |= opcode << (Operation::OP_BITS * self.op_idx);
+        self.groups[self.current_op_group_idx] |=
+            opcode << (Operation::OP_BITS * self.current_op_group_size);
         self.ops.push(op);
-        self.op_idx += 1;
+        self.current_op_group_size += 1;
     }
 
     /// Convert the accumulator into an [OpBatch].
     pub fn into_batch(mut self) -> OpBatch {
         // make sure the last group gets added to the group array; we also check the op_idx to
         // handle the case when a group contains a single NOOP operation.
-        if self.group != 0 || self.op_idx != 0 {
-            self.groups[self.group_idx] = Felt::new(self.group);
-            self.op_counts[self.group_idx] = self.op_idx;
+        if self.current_op_group_idx != 0 || self.current_op_group_size != 0 {
+            self.op_counts[self.current_op_group_idx] = self.current_op_group_size;
         }
+
+        let num_groups = self.groups.len();
+
+        // Convert groups to [Felt; BATCH_SIZE], padding with 0s if necessary
+        let groups = {
+            let mut padded_groups = [ZERO; BATCH_SIZE];
+            for (i, group) in self.groups.into_iter().enumerate() {
+                padded_groups[i] = Felt::new(group);
+            }
+            padded_groups
+        };
 
         OpBatch {
             ops: self.ops,
-            groups: self.groups,
+            groups,
             op_counts: self.op_counts,
-            num_groups: self.next_group_idx,
+            num_groups,
         }
     }
 
     // HELPER METHODS
     // --------------------------------------------------------------------------------------------
 
-    /// Saves the current group into the group array, advances current and next group pointers,
-    /// and resets group content.
+    /// Finalizes the current operation group and starts a new one.
     pub(super) fn finalize_op_group(&mut self) {
-        self.groups[self.group_idx] = Felt::new(self.group);
-        self.op_counts[self.group_idx] = self.op_idx;
+        // Store the size of the current group in the op_counts array and reset the group size
+        self.op_counts[self.current_op_group_idx] = self.current_op_group_size;
+        self.current_op_group_size = 0;
 
-        self.group_idx = self.next_group_idx;
-        self.next_group_idx = self.group_idx + 1;
-
-        self.op_idx = 0;
-        self.group = 0;
+        // Start a new group
+        let new_op_group = 0;
+        self.groups.push(new_op_group);
+        self.current_op_group_idx = self.groups.len() - 1;
     }
 }
