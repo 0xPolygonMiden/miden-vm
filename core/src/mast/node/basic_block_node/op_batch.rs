@@ -52,17 +52,23 @@ impl OpBatch {
 
 /// An accumulator used in construction of operation batches.
 pub(super) struct OpBatchAccumulator {
-    /// A list of operations in this batch, including decorators.
+    /// A list of operations in this batch.
+    /// 
+    /// This list is redundant with opcodes stored in the operation groups.
     ops: Vec<Operation>,
-    /// Values of operation groups, including immediate values.
+    /// The batch's groups, of which there are 2 types:
+    /// 1. operation groups, which encode the opcodes of the operations,
+    /// 2. immediate values of operations in the preceding operation group.
     groups: Vec<u64>,
-    /// Number of non-decorator operations in each operation group. Operation count for groups
-    /// with immediate values is set to 0.
+    /// Number of operations in each operation group. Operation count for groups with immediate
+    /// values is set to 0.
     op_counts: [usize; BATCH_SIZE],
-    /// Index of the op group that is currently being filled.
+    /// Index in `groups` of the operation group that is currently being filled.
     current_op_group_idx: usize,
-    /// Index of the next opcode in the current group.
+    /// Number of operations in the operation group currently being filled.
     current_op_group_size: usize,
+    /// True if the last operation in the current operation group has an immediate value.
+    last_op_has_imm: bool,
 }
 
 impl OpBatchAccumulator {
@@ -79,6 +85,7 @@ impl OpBatchAccumulator {
             op_counts: [0; BATCH_SIZE],
             current_op_group_idx: 0,
             current_op_group_size: 0,
+            last_op_has_imm: false,
         }
     }
 
@@ -113,40 +120,55 @@ impl OpBatchAccumulator {
         }
     }
 
-    /// Adds the specified operation to this accumulator. It is expected that the specified
-    /// operation is not a decorator and that (can_accept_op())[OpBatchAccumulator::can_accept_op]
-    /// is called before this function to make sure that the specified operation can be added to
-    /// the accumulator.
+    /// Adds the specified operation to this accumulator. It is expected that
+    /// (can_accept_op())[OpBatchAccumulator::can_accept_op] is called before this function to make
+    /// sure that the specified operation can be added to the accumulator.
     pub fn add_op(&mut self, op: Operation) {
         // if the group is full, finalize it and start a new group
         if self.current_op_group_size == GROUP_SIZE {
             self.finalize_op_group();
         }
 
-        // for operations with immediate values, we need to do a few more things
         if let Some(imm) = op.imm_value() {
-            // since an operation with an immediate value cannot be the last one in a group, if
-            // the operation would be the last one in the group, we need to start a new group
+            // since an operation with an immediate value cannot be the last one in a group, if the
+            // operation would be the last one in the group, we insert a no-op and start a new group
             if self.current_op_group_size == GROUP_SIZE - 1 {
+                self.insert_op_into_current_group(Operation::Noop);
                 self.finalize_op_group();
             }
 
+            debug_assert!(
+                self.current_op_group_size < GROUP_SIZE - 1,
+                "finalize_op_group() did not reset the group size"
+            );
             // save the immediate value by appending it as a group in the batch
             self.groups.push(imm.into());
+            // TODO(plafer): isn't this false when we added a NOOP?
+            self.last_op_has_imm = true;
+        } else {
+            self.last_op_has_imm = false;
         }
 
         // add the opcode to the group and increment the op index pointer
-        let opcode = op.op_code() as u64;
-        self.groups[self.current_op_group_idx] |=
-            opcode << (Operation::OP_BITS * self.current_op_group_size);
-        self.ops.push(op);
-        self.current_op_group_size += 1;
+        self.insert_op_into_current_group(op);
     }
 
     /// Convert the accumulator into an [OpBatch].
     pub fn into_batch(mut self) -> OpBatch {
+        // if the last group ends with an immediate value, we need to insert a NOOP operation.
+        if self.last_op_has_imm {
+            debug_assert!(
+                self.current_op_group_size < GROUP_SIZE,
+                "Last operation with immediate value cannot be the last one in a group"
+            );
+            self.insert_op_into_current_group(Operation::Noop);
+            // TODO(plafer): double check
+            // self.last_op_has_imm = false;
+        }
+
         // make sure the last group gets added to the group array; we also check the op_idx to
         // handle the case when a group contains a single NOOP operation.
+        // TODO(plafer): is this `if` necessary?
         if self.current_op_group_idx != 0 || self.current_op_group_size != 0 {
             self.op_counts[self.current_op_group_idx] = self.current_op_group_size;
         }
@@ -172,6 +194,20 @@ impl OpBatchAccumulator {
 
     // HELPER METHODS
     // --------------------------------------------------------------------------------------------
+
+    /// Adds the opcode to the current group and increment the op index pointer
+    fn insert_op_into_current_group(&mut self, op: Operation) {
+        debug_assert!(
+            self.current_op_group_size < GROUP_SIZE,
+            "Cannot add operation to a full group"
+        );
+
+        let opcode = op.op_code() as u64;
+        self.groups[self.current_op_group_idx] |=
+            opcode << (Operation::OP_BITS * self.current_op_group_size);
+        self.ops.push(op);
+        self.current_op_group_size += 1;
+    }
 
     /// Finalizes the current operation group and starts a new one.
     pub(super) fn finalize_op_group(&mut self) {

@@ -954,13 +954,15 @@ fn get_num_groups_in_next_batch(num_groups_left: Felt) -> usize {
 /// Build an operation group from the specified list of operations.
 #[cfg(test)]
 pub fn build_op_group(ops: &[Operation]) -> Felt {
+    use vm_core::mast::OP_GROUP_SIZE;
+
     let mut group = 0u64;
     let mut i = 0;
     for op in ops.iter() {
         group |= (op.op_code() as u64) << (Operation::OP_BITS * i);
         i += 1;
     }
-    assert!(i <= super::OP_GROUP_SIZE, "too many ops");
+    assert!(i <= OP_GROUP_SIZE, "too many ops");
     Felt::new(group)
 }
 

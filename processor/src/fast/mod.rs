@@ -8,7 +8,7 @@ use vm_core::{
     WORD_SIZE, Word, ZERO,
     mast::{
         BasicBlockNode, CallNode, DynNode, ExternalNode, JoinNode, LoopNode, MastForest, MastNode,
-        MastNodeId, OP_GROUP_SIZE, OpBatch, SplitNode,
+        MastNodeId, OpBatch, SplitNode,
     },
     stack::MIN_STACK_DEPTH,
     utils::range,
@@ -714,17 +714,12 @@ impl FastProcessor {
 
             // determine if we've executed all non-decorator operations in a group
             if op_idx_in_group == op_counts[group_idx] - 1 {
-                // if we are at the end of the group, first check if the operation carries an
-                // immediate value
-                if has_imm {
-                    // an operation with an immediate value cannot be the last operation in a group
-                    // so, we need execute a NOOP after it. In this processor, we increment the
-                    // clock to account for the NOOP.
-                    debug_assert!(op_idx_in_group < OP_GROUP_SIZE - 1, "invalid op index");
-                    self.clk += 1_u32;
-                }
+                debug_assert!(
+                    !has_imm,
+                    "operation with immediate value at the end of an operation group"
+                );
 
-                // then, move to the next group and reset operation index
+                // move to the next group and reset operation index
                 group_idx = next_group_idx;
                 next_group_idx += 1;
                 op_idx_in_group = 0;

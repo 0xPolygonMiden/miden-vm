@@ -335,8 +335,10 @@ impl MastForestBuilder {
                 for &(op_idx, decorator) in basic_block_node.decorators() {
                     decorators.push((op_idx + operations.len(), decorator));
                 }
+                // Merge all operations except the NOOPs
                 for batch in basic_block_node.op_batches() {
-                    operations.extend_from_slice(batch.ops());
+                    operations
+                        .extend(batch.ops().iter().filter(|op| !matches!(op, Operation::Noop)));
                 }
             } else {
                 // if we don't want to merge this block, we flush the buffer of operations into a

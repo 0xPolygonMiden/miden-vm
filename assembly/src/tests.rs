@@ -194,7 +194,7 @@ fn basic_block_and_simple_if_true() -> TestResult {
     let expected = "\
 begin
     join
-        basic_block push(2) push(3) end
+        basic_block push(2) push(3) noop end
         if.true
             basic_block add end
         else
@@ -210,7 +210,7 @@ end";
     let expected = "\
 begin
     join
-        basic_block push(2) push(3) end
+        basic_block push(2) push(3) noop end
         if.true
             basic_block add end
         else
@@ -232,7 +232,7 @@ fn basic_block_and_simple_if_false() -> TestResult {
     let expected = "\
 begin
     join
-        basic_block push(2) push(3) end
+        basic_block push(2) push(3) noop end
         if.true
             basic_block mul end
         else
@@ -248,7 +248,7 @@ end";
     let expected = "\
 begin
     join
-        basic_block push(2) push(3) end
+        basic_block push(2) push(3) noop end
         if.true
             basic_block noop end
         else
@@ -485,7 +485,7 @@ fn simple_constant() -> TestResult {
     );
     let expected = "\
 begin
-    basic_block push(7) end
+    basic_block push(7) noop end
 end";
     let program = context.assemble(source)?;
     assert_str_eq!(format!("{program}"), expected);
@@ -505,7 +505,7 @@ fn multiple_constants_push() -> TestResult {
     );
     let expected = "\
 begin
-    basic_block push(21) push(64) push(44) push(72) end
+    basic_block push(21) push(64) push(44) push(72) noop end
 end";
     let program = context.assemble(source)?;
     assert_str_eq!(format!("{program}"), expected);
@@ -525,7 +525,7 @@ fn constant_numeric_expression() -> TestResult {
     );
     let expected = "\
 begin
-    basic_block push(26) end
+    basic_block push(26) noop end
 end";
     let program = context.assemble(source)?;
     assert_str_eq!(format!("{program}"), expected);
@@ -547,7 +547,7 @@ fn constant_alphanumeric_expression() -> TestResult {
     );
     let expected = "\
 begin
-    basic_block push(21) end
+    basic_block push(21) noop end
 end";
     let program = context.assemble(source)?;
     assert_str_eq!(format!("{program}"), expected);
@@ -567,7 +567,7 @@ fn constant_hexadecimal_value() -> TestResult {
     );
     let expected = "\
 begin
-    basic_block push(255) end
+    basic_block push(255) noop end
 end";
     let program = context.assemble(source)?;
     assert_str_eq!(format!("{program}"), expected);
@@ -587,7 +587,7 @@ fn constant_field_division() -> TestResult {
     );
     let expected = "\
 begin
-    basic_block push(2) end
+    basic_block push(2) noop end
 end";
     let program = context.assemble(source)?;
     assert_str_eq!(format!("{program}"), expected);
@@ -1074,15 +1074,15 @@ begin
     join
         trace(0)
         if.true
-            basic_block trace(1) push(42) trace(2) end
+            basic_block trace(1) push(42) trace(2) noop end
         else
-            basic_block trace(3) push(22) trace(3) end
+            basic_block trace(3) push(22) trace(3) noop end
         end
         trace(4)
         if.true
-            basic_block trace(1) push(42) trace(2) end
+            basic_block trace(1) push(42) trace(2) noop end
         else
-            basic_block trace(3) push(22) trace(3) end
+            basic_block trace(3) push(22) trace(3) noop end
         end
         trace(4)
     end
@@ -1228,9 +1228,9 @@ begin
         end
         trace(6)
         if.true
-            basic_block trace(7) push(42) trace(8) end
+            basic_block trace(7) push(42) trace(8) noop end
         else
-            basic_block trace(9) push(22) trace(10) end
+            basic_block trace(9) push(22) trace(10) noop end
         end
     end
     trace(11)
@@ -1729,7 +1729,7 @@ fn nested_control_blocks() -> TestResult {
 begin
     join
         join
-            basic_block push(2) push(3) end
+            basic_block push(2) push(3) noop end
             if.true
                 join
                     basic_block add end
@@ -1739,7 +1739,7 @@ begin
                 end
             else
                 join
-                    basic_block mul push(8) push(8) end
+                    basic_block mul push(8) push(8) noop end
                     if.true
                         basic_block mul end
                     else
@@ -1848,6 +1848,7 @@ begin
         mul
         push(11)
         push(5)
+        noop
         push(3)
         push(7)
         mul
@@ -2098,7 +2099,7 @@ fn program_with_one_import_and_hex_call() -> TestResult {
 begin
     join
         join
-            basic_block push(4) push(3) end
+            basic_block push(4) push(3) noop end
             external.0xc2545da99d3a1f3f38d957c7893c44d78998d8ea8b11aba7e22c8c2b2a213dae
         end
         call.0x20234ee941e53a15886e733cc8e041198c6e90d2a16ea18ce1030e8c3596dd38
@@ -2235,7 +2236,7 @@ fn program_with_reexported_proc_in_same_library() -> TestResult {
 begin
     join
         join
-            basic_block push(4) push(3) end
+            basic_block push(4) push(3) noop end
             external.0xb9691da1d9b4b364aca0a0990e9f04c446a2faa622c8dd0d8831527dbec61393
         end
         external.0xcb08c107c81c582788cbf63c99f6b455e11b33bb98ca05fe1cfa17c087dfa8f1
@@ -2305,7 +2306,7 @@ fn program_with_reexported_proc_in_another_library() -> TestResult {
 begin
     join
         join
-            basic_block push(4) push(3) end
+            basic_block push(4) push(3) noop end
             external.0xb9691da1d9b4b364aca0a0990e9f04c446a2faa622c8dd0d8831527dbec61393
         end
         external.0xcb08c107c81c582788cbf63c99f6b455e11b33bb98ca05fe1cfa17c087dfa8f1
@@ -2556,7 +2557,7 @@ fn comment_in_nested_control_blocks() -> TestResult {
 begin
     join
         join
-            basic_block pad incr push(2) end
+            basic_block pad incr push(2) noop end
             if.true
                 join
                     basic_block add end
@@ -2566,7 +2567,7 @@ begin
                 end
             else
                 join
-                    basic_block mul push(8) push(8) end
+                    basic_block mul push(8) push(8) noop end
                     if.true
                         basic_block mul end
                     else

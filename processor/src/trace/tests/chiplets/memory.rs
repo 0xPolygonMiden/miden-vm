@@ -36,19 +36,22 @@ fn b_chip_trace_mem() {
     let stack = [1, 2, 3, 4, 0];
     let word = [ONE, Felt::new(2), Felt::new(3), Felt::new(4)];
     let operations = vec![
-        Operation::MStoreW, // store [1, 2, 3, 4]
-        Operation::Drop,    // clear the stack
+        // clk 0: SPAN
+        Operation::MStoreW, // clk 1: store [1, 2, 3, 4]
+        Operation::Drop,    // clk 2: clear the stack
         Operation::Drop,
         Operation::Drop,
         Operation::Drop,
-        Operation::MLoad,      // read the first value of the word
-        Operation::MovDn5,     // put address 0 and space for a full word at top of stack
-        Operation::MLoadW,     // load word from address 0 to stack
-        Operation::Push(ONE),  // push a new value onto the stack
-        Operation::Push(FOUR), // push a new address on to the stack
-        Operation::MStore,     // store 1 at address 4
-        Operation::Drop,       // ensure the stack overflow table is empty
-        Operation::MStream,    // read 2 words starting at address 0
+        Operation::MLoad,  // clk 6: read the first value of the word
+        Operation::MovDn5, // clk 7: put address 0 and space for a full word at top of stack
+        Operation::MLoadW, // clk 8: load word from address 0 to stack
+        Operation::Noop,   /* clk 9: no-op inserted so that the next PUSh is not at the end
+                            * of the group */
+        Operation::Push(ONE),  // clk 10: push a new value onto the stack
+        Operation::Push(FOUR), // clk 11: push a new address on to the stack
+        Operation::MStore,     // clk 12: store 1 at address 4
+        Operation::Drop,       // clk 13: ensure the stack overflow table is empty
+        Operation::MStream,    // clk 14: read 2 words starting at address 0
     ];
     let trace = build_trace_from_ops(operations, &stack);
 
@@ -119,32 +122,24 @@ fn b_chip_trace_mem() {
     expected *= build_expected_bus_msg_from_trace(&trace, &rand_elements, 10.into());
     assert_eq!(expected, b_chip[11]);
 
-    // At cycle 11, `MStore` is requested by the stack and the first read of `MStream` is provided
-    // by the memory.
-    let value = build_expected_bus_element_msg(
-        &rand_elements,
-        MEMORY_WRITE_ELEMENT_LABEL,
-        ZERO,
-        FOUR,
-        Felt::new(11),
-        ONE,
-    );
-    expected *= value.inv();
+    // At cycle 11, the first read of `MStream` is provided by the memory.
     expected *= build_expected_bus_msg_from_trace(&trace, &rand_elements, 11.into());
     assert_eq!(expected, b_chip[12]);
 
-    // At cycle 12, `MStore` is provided by the memory
-    expected *= build_expected_bus_msg_from_trace(&trace, &rand_elements, 12.into());
+    // At cycle 12, `MStore` is requested and provided by the memory, so no change is expected.
     assert_eq!(expected, b_chip[13]);
 
-    // At cycle 13, `MStream` is requested by the stack, and the second read of `MStream` is
-    // provided by the memory.
+    // At cycle 13 the second read of `MStream` is provided by the memory.
+    expected *= build_expected_bus_msg_from_trace(&trace, &rand_elements, 13.into());
+    assert_eq!(expected, b_chip[14]);
+
+    // At cycle 14, `MStream` is requested by the stack.
     let value1 = build_expected_bus_word_msg(
         &rand_elements,
         MEMORY_READ_WORD_LABEL,
         ZERO,
         ZERO,
-        Felt::new(13),
+        Felt::new(14),
         word,
     );
     let value2 = build_expected_bus_word_msg(
@@ -152,21 +147,20 @@ fn b_chip_trace_mem() {
         MEMORY_READ_WORD_LABEL,
         ZERO,
         Felt::new(4),
-        Felt::new(13),
+        Felt::new(14),
         [ONE, ZERO, ZERO, ZERO],
     );
     expected *= (value1 * value2).inv();
-    expected *= build_expected_bus_msg_from_trace(&trace, &rand_elements, 13.into());
-    assert_eq!(expected, b_chip[14]);
-
-    // At cycle 14 the decoder requests the span hash. We set this as the inverse of the previously
-    // identified `span_result`, since this test is for consistency of the memory lookups.
-    assert_ne!(expected, b_chip[15]);
-    expected *= span_result.inv();
     assert_eq!(expected, b_chip[15]);
 
+    // At cycle 15 the decoder requests the span hash. We set this as the inverse of the previously
+    // identified `span_result`, since this test is for consistency of the memory lookups.
+    assert_ne!(expected, b_chip[16]);
+    expected *= span_result.inv();
+    assert_eq!(expected, b_chip[16]);
+
     // The value in b_chip should be ONE now and for the rest of the trace.
-    for row in 15..trace.length() - NUM_RAND_ROWS {
+    for row in 16..trace.length() - NUM_RAND_ROWS {
         assert_eq!(ONE, b_chip[row]);
     }
 }

@@ -30,8 +30,7 @@ pub use vm_core::{
 use vm_core::{
     Decorator, DecoratorIterator, FieldElement, WORD_SIZE,
     mast::{
-        BasicBlockNode, CallNode, DynNode, JoinNode, LoopNode, MastNodeExt, OP_GROUP_SIZE, OpBatch,
-        SplitNode,
+        BasicBlockNode, CallNode, DynNode, JoinNode, LoopNode, MastNodeExt, OpBatch, SplitNode,
     },
 };
 pub use winter_prover::matrix::ColMatrix;
@@ -651,19 +650,12 @@ impl Process {
 
             // determine if we've executed all non-decorator operations in a group
             if op_idx == op_counts[group_idx] - 1 {
-                // if we are at the end of the group, first check if the operation carries an
-                // immediate value
-                if has_imm {
-                    // an operation with an immediate value cannot be the last operation in a group
-                    // so, we need execute a NOOP after it. the assert also makes sure that there
-                    // is enough room in the group to execute a NOOP (if there isn't, there is a
-                    // bug somewhere in the assembler)
-                    debug_assert!(op_idx < OP_GROUP_SIZE - 1, "invalid op index");
-                    self.decoder.execute_user_op(Operation::Noop, op_idx + 1);
-                    self.execute_op(Operation::Noop, program, host)?;
-                }
+                debug_assert!(
+                    !has_imm,
+                    "operation with immediate value at the end of an operation group"
+                );
 
-                // then, move to the next group and reset operation index
+                // move to the next group and reset operation index
                 group_idx = next_group_idx;
                 next_group_idx += 1;
                 op_idx = 0;
