@@ -60,6 +60,10 @@ pub fn generate_advice_inputs(
     let pub_inputs_int: Vec<u64> = pub_inputs.to_elements().iter().map(|a| a.as_int()).collect();
     advice_stack.extend_from_slice(&pub_inputs_int[..]);
 
+    // add a placeholder for the auxiliary randomness
+    let aux_rand_insertion_index = advice_stack.len();
+    advice_stack.extend_from_slice(&[0, 0, 0, 0]);
+
     // create AIR instance for the computation specified in the proof
     let air = ProcessorAir::new(proof.trace_info().to_owned(), pub_inputs, proof.options().clone());
     let seed_digest = Rpo256::hash_elements(&public_coin_seed);
@@ -86,6 +90,13 @@ pub fn generate_advice_inputs(
         aux_trace_rand_elements.push(rand_elements);
         public_coin.reseed(*commitment);
     }
+
+    let alpha = aux_trace_rand_elements[0][0].to_owned();
+    let beta = aux_trace_rand_elements[0][2].to_owned();
+    advice_stack[aux_rand_insertion_index] = QuadExt::base_element(&beta, 0).as_int();
+    advice_stack[aux_rand_insertion_index + 1] = QuadExt::base_element(&beta, 1).as_int();
+    advice_stack[aux_rand_insertion_index + 2] = QuadExt::base_element(&alpha, 0).as_int();
+    advice_stack[aux_rand_insertion_index + 3] = QuadExt::base_element(&alpha, 1).as_int();
 
     // 3 ----- constraint composition trace -------------------------------------------------------
 
