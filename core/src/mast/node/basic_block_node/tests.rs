@@ -93,6 +93,7 @@ fn test_batch_ops() {
 
     // --- two groups with 7 immediate values; the last push overflows to the second batch ----
     let ops = vec![
+        // BATCH 0
         Operation::Add,
         Operation::Mul,
         Operation::Push(ONE),
@@ -102,22 +103,32 @@ fn test_batch_ops() {
         Operation::Push(Felt::new(5)),
         Operation::Push(Felt::new(6)),
         Operation::Add,
+        /* Operation::Noop */
+        // BATCH 1
         Operation::Push(Felt::new(7)),
+        /* Operation::Noop */
     ];
 
-    // A NOOP is inserted at the end so that the PUSH is not at the end of a group
-    let expected_batch_ops = {
+    // A NOOP is inserted after the last `ADD` into its own operation group so that the first batch
+    // has 2 groups.
+    let expected_batch0_ops = {
         let mut batch_ops = ops.clone();
-        batch_ops.push(Operation::Noop);
+        batch_ops.insert(9, Operation::Noop);
+
+        // Remove the last PUSH, which will be added to the second batch
+        batch_ops.pop();
         batch_ops
     };
+    // A NOOP is inserted at the end of the second batch so that the PUSH is not at the end of its
+    // operation group.
+    let expected_batch1_ops = vec![Operation::Push(Felt::new(7)), Operation::Noop];
 
     let (batches, hash) = super::batch_and_hash_ops(ops.clone());
     assert_eq!(2, batches.len());
 
     let batch0 = &batches[0];
-    assert_eq!(ops[..9], batch0.ops);
-    assert_eq!(7, batch0.num_groups());
+    assert_eq!(expected_batch0_ops, batch0.ops);
+    assert_eq!(8, batch0.num_groups());
 
     let batch0_groups = [
         build_group(&ops[..9]),
@@ -131,10 +142,10 @@ fn test_batch_ops() {
     ];
 
     assert_eq!(batch0_groups, batch0.groups);
-    assert_eq!([9_usize, 0, 0, 0, 0, 0, 0, 0], batch0.op_counts);
+    assert_eq!([9_usize, 0, 0, 0, 0, 0, 0, 1], batch0.op_counts);
 
     let batch1 = &batches[1];
-    assert_eq!(&expected_batch_ops[9..], &batch1.ops);
+    assert_eq!(expected_batch1_ops, batch1.ops);
     assert_eq!(2, batch1.num_groups());
 
     let mut batch1_groups = [ZERO; BATCH_SIZE];
@@ -185,6 +196,7 @@ fn test_batch_ops() {
 
     // --- push at the end of a group is moved into the next group ----------------------------
     let ops = vec![
+        // BATCH 0 group 0
         Operation::Add,
         Operation::Mul,
         Operation::Add,
@@ -194,15 +206,24 @@ fn test_batch_ops() {
         Operation::Mul,
         Operation::Add,
         /* Operation::Noop */
+        // BATCH 0 group 1
         Operation::Push(Felt::new(11)),
+        /* Operation::Noop */
+
+        // BATCH 0 group 2: Felt::new(11) immediate value
+
+        // BATCH 0 group 3
         /* Operation::Noop */
     ];
 
-    // 2 NOOPs are inserted so that the PUSH is not at the end of the first group, nor at the end of
-    // the second group
+    // 3 NOOPs are inserted so that
+    // 1. the PUSH is not at the end of the first group,
+    // 2. nor at the end of the second group
+    // 3. so that there are 4 groups in total
     let expected_batch_ops = {
         let mut batch_ops = ops.clone();
         batch_ops.insert(8, Operation::Noop);
+        batch_ops.push(Operation::Noop);
         batch_ops.push(Operation::Noop);
         batch_ops
     };
@@ -212,7 +233,7 @@ fn test_batch_ops() {
 
     let batch = &batches[0];
     assert_eq!(expected_batch_ops, batch.ops);
-    assert_eq!(3, batch.num_groups());
+    assert_eq!(4, batch.num_groups());
 
     let batch_groups = [
         build_group(&expected_batch_ops[..9]),
@@ -226,7 +247,7 @@ fn test_batch_ops() {
     ];
 
     assert_eq!(batch_groups, batch.groups);
-    assert_eq!([9_usize, 2, 0, 0, 0, 0, 0, 0], batch.op_counts);
+    assert_eq!([9_usize, 2, 0, 1, 0, 0, 0, 0], batch.op_counts);
     assert_eq!(hasher::hash_elements(&batch_groups), hash);
 
     // --- push at the end of a group is moved into the next group ----------------------------
@@ -276,6 +297,7 @@ fn test_batch_ops() {
 
     // --- push at the end of the 7th group overflows to the next batch -----------------------
     let ops = vec![
+        // BATCH 0 group 0
         Operation::Add,
         Operation::Mul,
         Operation::Push(ONE),
@@ -284,6 +306,9 @@ fn test_batch_ops() {
         Operation::Push(Felt::new(4)),
         Operation::Push(Felt::new(5)),
         Operation::Add,
+        // BATCH 0 group 1..5: immediate values
+
+        // BATCH 0 group 6
         Operation::Mul,
         Operation::Add,
         Operation::Mul,
@@ -293,16 +318,26 @@ fn test_batch_ops() {
         Operation::Mul,
         Operation::Add,
         Operation::Mul,
+        // BATCH 0 group 7
+        /* Operation::Noop */
+        // BATCH 1 group 0 (pushed to the next batch)
         Operation::Push(Felt::new(6)),
         Operation::Pad,
+        // BATCH 1 group 1: Felt::new(6) immediate value
     ];
+
+    let expected_batch0_ops = {
+        let mut batch0_ops = ops[..17].to_vec();
+        batch0_ops.push(Operation::Noop);
+        batch0_ops
+    };
 
     let (batches, hash) = super::batch_and_hash_ops(ops.clone());
     assert_eq!(2, batches.len());
 
     let batch0 = &batches[0];
-    assert_eq!(ops[..17], batch0.ops);
-    assert_eq!(7, batch0.num_groups());
+    assert_eq!(expected_batch0_ops, batch0.ops);
+    assert_eq!(8, batch0.num_groups());
 
     let batch0_groups = [
         build_group(&ops[..9]),
@@ -316,7 +351,7 @@ fn test_batch_ops() {
     ];
 
     assert_eq!(batch0_groups, batch0.groups);
-    assert_eq!([9_usize, 0, 0, 0, 0, 0, 8, 0], batch0.op_counts);
+    assert_eq!([9_usize, 0, 0, 0, 0, 0, 8, 1], batch0.op_counts);
 
     let batch1 = &batches[1];
     assert_eq!(ops[17..], batch1.ops);

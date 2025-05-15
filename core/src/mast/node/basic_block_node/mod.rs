@@ -23,7 +23,7 @@ mod tests;
 // ================================================================================================
 
 /// Maximum number of operations per group.
-pub const GROUP_SIZE: usize = 9;
+pub const OP_GROUP_SIZE: usize = 9;
 
 /// Maximum number of groups per batch.
 pub const BATCH_SIZE: usize = 8;
@@ -408,22 +408,13 @@ fn batch_ops(ops: Vec<Operation>) -> Vec<OpBatch> {
     let mut batch_acc = OpBatchAccumulator::new();
 
     for op in ops {
-        // If the operation cannot be accepted into the current accumulator, add the contents of
-        // the accumulator to the list of batches and start a new accumulator.
-        if !batch_acc.can_accept_op(op) {
-            let batch = batch_acc.into_batch();
-            batch_acc = OpBatchAccumulator::new();
-
+        if let Some(batch) = batch_acc.add_op(op) {
             batches.push(batch);
         }
-
-        // Add the operation to the accumulator.
-        batch_acc.add_op(op);
     }
 
     // Make sure we finished processing the last batch.
-    if !batch_acc.is_empty() {
-        let batch = batch_acc.into_batch();
+    if let Some(batch) = batch_acc.into_batch() {
         batches.push(batch);
     }
 

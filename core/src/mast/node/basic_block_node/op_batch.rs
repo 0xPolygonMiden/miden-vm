@@ -1,6 +1,6 @@
 use alloc::vec::Vec;
 
-use super::{BATCH_SIZE, Felt, GROUP_SIZE, Operation, ZERO};
+use super::{BATCH_SIZE, Felt, OP_GROUP_SIZE, Operation, ZERO};
 
 // OPERATION BATCH
 // ================================================================================================
@@ -53,7 +53,7 @@ impl OpBatch {
 /// An accumulator used in construction of operation batches.
 pub(super) struct OpBatchAccumulator {
     /// A list of operations in this batch.
-    /// 
+    ///
     /// This list is redundant with opcodes stored in the operation groups.
     ops: Vec<Operation>,
     /// The batch's groups, of which there are 2 types:
@@ -72,7 +72,7 @@ pub(super) struct OpBatchAccumulator {
 }
 
 impl OpBatchAccumulator {
-    /// Returns a blank [OpBatchAccumulator].
+    /// Returns an empty [OpBatchAccumulator].
     pub fn new() -> Self {
         let groups = {
             let current_op_group = 0;
@@ -94,6 +94,29 @@ impl OpBatchAccumulator {
         self.ops.is_empty()
     }
 
+    /// Adds the specified operation to this accumulator, and returns a batch if the accumulator was
+    /// full prior to adding the operation.
+    pub fn add_op(&mut self, op: Operation) -> Option<OpBatch> {
+        // If the accumulator is full, we extract batch and reset the accumulator.
+        let maybe_batch = if !self.can_accept_op(op) {
+            self.extract_batch_and_reset()
+        } else {
+            None
+        };
+
+        self.add_op_impl(op);
+
+        maybe_batch
+    }
+
+    /// Converts the accumulator into an [OpBatch] if the accumulator is not empty.
+    pub fn into_batch(mut self) -> Option<OpBatch> {
+        self.extract_batch_and_reset()
+    }
+
+    // HELPER METHODS
+    // --------------------------------------------------------------------------------------------
+
     /// Returns true if this accumulator can accept the specified operation.
     ///
     /// An accumulator may not be able accept an operation for the following reasons:
@@ -103,102 +126,103 @@ impl OpBatchAccumulator {
     ///   only partially full, but we are trying to add a PUSH operation).
     /// - The alignment rules require that the operation overflows into the next group, and if this
     ///   happens, there will be no space for the operation or its immediate value.
-    pub fn can_accept_op(&self, op: Operation) -> bool {
-        if op.imm_value().is_some() {
-            // an operation carrying an immediate value cannot be the last one in a group; so, we
-            // check if we need to move the operation to the next group. in either case, we need
-            // to make sure there is enough space for the immediate value as well.
-            if self.current_op_group_size < GROUP_SIZE - 1 {
-                self.groups.len() < BATCH_SIZE
+    fn can_accept_op(&self, op: Operation) -> bool {
+        let num_groups_post_insertion = {
+            let num_new_imm_groups: usize = op.imm_value().is_some() as usize;
+            let num_new_op_groups: usize = if op.imm_value().is_some() {
+                // an operation carrying an immediate value cannot be the last one in a group; so,
+                // if it were to be the last one in the group, we need to add it to
+                // a new group.
+                (self.current_op_group_size >= OP_GROUP_SIZE - 1) as usize
             } else {
-                self.groups.len() + 1 < BATCH_SIZE
-            }
-        } else {
-            // check if there is space for the operation in the current group, or if there isn't,
-            // whether we can add another group
-            self.current_op_group_size < GROUP_SIZE || self.groups.len() < BATCH_SIZE
-        }
+                // we need a new op group if the current group is full
+                (self.current_op_group_size == OP_GROUP_SIZE) as usize
+            };
+
+            self.groups.len() + num_new_imm_groups + num_new_op_groups
+        };
+
+        num_groups_post_insertion <= BATCH_SIZE
     }
 
     /// Adds the specified operation to this accumulator. It is expected that
     /// (can_accept_op())[OpBatchAccumulator::can_accept_op] is called before this function to make
     /// sure that the specified operation can be added to the accumulator.
-    pub fn add_op(&mut self, op: Operation) {
+    fn add_op_impl(&mut self, op: Operation) {
         // if the group is full, finalize it and start a new group
-        if self.current_op_group_size == GROUP_SIZE {
-            self.finalize_op_group();
+        if self.current_op_group_size == OP_GROUP_SIZE {
+            self.finalize_and_start_new_op_group();
         }
 
         if let Some(imm) = op.imm_value() {
             // since an operation with an immediate value cannot be the last one in a group, if the
             // operation would be the last one in the group, we insert a no-op and start a new group
-            if self.current_op_group_size == GROUP_SIZE - 1 {
+            if self.current_op_group_size == OP_GROUP_SIZE - 1 {
                 self.insert_op_into_current_group(Operation::Noop);
-                self.finalize_op_group();
+                self.finalize_and_start_new_op_group();
             }
 
             debug_assert!(
-                self.current_op_group_size < GROUP_SIZE - 1,
+                self.current_op_group_size < OP_GROUP_SIZE - 1,
                 "finalize_op_group() did not reset the group size"
             );
             // save the immediate value by appending it as a group in the batch
             self.groups.push(imm.into());
-            // TODO(plafer): isn't this false when we added a NOOP?
-            self.last_op_has_imm = true;
-        } else {
-            self.last_op_has_imm = false;
         }
 
         // add the opcode to the group and increment the op index pointer
         self.insert_op_into_current_group(op);
     }
 
-    /// Convert the accumulator into an [OpBatch].
-    pub fn into_batch(mut self) -> OpBatch {
+    /// Returns a new batch with the current operations and groups if the accumulator is not empty,
+    /// and resets the accumulator.
+    fn extract_batch_and_reset(&mut self) -> Option<OpBatch> {
+        if self.is_empty() {
+            return None;
+        }
+
         // if the last group ends with an immediate value, we need to insert a NOOP operation.
         if self.last_op_has_imm {
-            debug_assert!(
-                self.current_op_group_size < GROUP_SIZE,
-                "Last operation with immediate value cannot be the last one in a group"
-            );
+            debug_assert!(self.current_op_group_size < OP_GROUP_SIZE);
             self.insert_op_into_current_group(Operation::Noop);
-            // TODO(plafer): double check
-            // self.last_op_has_imm = false;
         }
 
         // make sure the last group gets added to the group array; we also check the op_idx to
         // handle the case when a group contains a single NOOP operation.
-        // TODO(plafer): is this `if` necessary?
-        if self.current_op_group_idx != 0 || self.current_op_group_size != 0 {
-            self.op_counts[self.current_op_group_idx] = self.current_op_group_size;
+        self.finalize_op_group();
+
+        while self.groups.len() != self.groups.len().next_power_of_two() {
+            self.start_new_op_group();
+            self.insert_op_into_current_group(Operation::Noop);
+            self.finalize_op_group();
         }
 
-        let num_groups = self.groups.len();
+        let op_batch = {
+            let num_groups = self.groups.len();
 
-        // Convert groups to [Felt; BATCH_SIZE], padding with 0s if necessary
-        let groups = {
-            let mut padded_groups = [ZERO; BATCH_SIZE];
-            for (i, group) in self.groups.into_iter().enumerate() {
-                padded_groups[i] = Felt::new(group);
-            }
-            padded_groups
+            // Convert groups to [Felt; BATCH_SIZE], padding with 0s if necessary
+            let groups = {
+                let mut padded_groups = [ZERO; BATCH_SIZE];
+                for (i, group) in self.groups.iter().enumerate() {
+                    padded_groups[i] = Felt::new(*group);
+                }
+                padded_groups
+            };
+
+            let ops = core::mem::take(&mut self.ops);
+            let op_counts = self.op_counts;
+
+            OpBatch { ops, groups, op_counts, num_groups }
         };
 
-        OpBatch {
-            ops: self.ops,
-            groups,
-            op_counts: self.op_counts,
-            num_groups,
-        }
+        *self = Self::new();
+        Some(op_batch)
     }
-
-    // HELPER METHODS
-    // --------------------------------------------------------------------------------------------
 
     /// Adds the opcode to the current group and increment the op index pointer
     fn insert_op_into_current_group(&mut self, op: Operation) {
         debug_assert!(
-            self.current_op_group_size < GROUP_SIZE,
+            self.current_op_group_size < OP_GROUP_SIZE,
             "Cannot add operation to a full group"
         );
 
@@ -207,14 +231,24 @@ impl OpBatchAccumulator {
             opcode << (Operation::OP_BITS * self.current_op_group_size);
         self.ops.push(op);
         self.current_op_group_size += 1;
+        self.last_op_has_imm = op.imm_value().is_some();
     }
 
-    /// Finalizes the current operation group and starts a new one.
-    pub(super) fn finalize_op_group(&mut self) {
+    /// Finalizes the current operation group, and starts a new one.
+    fn finalize_and_start_new_op_group(&mut self) {
+        self.finalize_op_group();
+        self.start_new_op_group();
+    }
+
+    /// Finalizes the current operation group.
+    fn finalize_op_group(&mut self) {
         // Store the size of the current group in the op_counts array and reset the group size
         self.op_counts[self.current_op_group_idx] = self.current_op_group_size;
         self.current_op_group_size = 0;
+    }
 
+    /// Starts a new operation group.
+    fn start_new_op_group(&mut self) {
         // Start a new group
         let new_op_group = 0;
         self.groups.push(new_op_group);

@@ -194,7 +194,7 @@ fn basic_block_and_simple_if_true() -> TestResult {
     let expected = "\
 begin
     join
-        basic_block push(2) push(3) noop end
+        basic_block push(2) push(3) noop noop end
         if.true
             basic_block add end
         else
@@ -210,7 +210,7 @@ end";
     let expected = "\
 begin
     join
-        basic_block push(2) push(3) noop end
+        basic_block push(2) push(3) noop noop end
         if.true
             basic_block add end
         else
@@ -232,7 +232,7 @@ fn basic_block_and_simple_if_false() -> TestResult {
     let expected = "\
 begin
     join
-        basic_block push(2) push(3) noop end
+        basic_block push(2) push(3) noop noop end
         if.true
             basic_block mul end
         else
@@ -248,7 +248,7 @@ end";
     let expected = "\
 begin
     join
-        basic_block push(2) push(3) noop end
+        basic_block push(2) push(3) noop noop end
         if.true
             basic_block noop end
         else
@@ -505,7 +505,7 @@ fn multiple_constants_push() -> TestResult {
     );
     let expected = "\
 begin
-    basic_block push(21) push(64) push(44) push(72) noop end
+    basic_block push(21) push(64) push(44) push(72) noop noop noop noop end
 end";
     let program = context.assemble(source)?;
     assert_str_eq!(format!("{program}"), expected);
@@ -1666,6 +1666,9 @@ begin
         mpverify({code2})
         mpverify({code2})
         mpverify({code1})
+        noop
+        noop
+        noop
     end
 end"
     );
@@ -1729,17 +1732,17 @@ fn nested_control_blocks() -> TestResult {
 begin
     join
         join
-            basic_block push(2) push(3) noop end
+            basic_block push(2) push(3) noop noop end
             if.true
                 join
                     basic_block add end
                     while.true
-                        basic_block push(7) push(11) add end
+                        basic_block push(7) push(11) add noop end
                     end
                 end
             else
                 join
-                    basic_block mul push(8) push(8) noop end
+                    basic_block mul push(8) push(8) noop noop end
                     if.true
                         basic_block mul end
                     else
@@ -1820,7 +1823,7 @@ fn program_with_one_procedure() -> TestResult {
     let program = context.assemble(source)?;
     let expected = "\
 begin
-    basic_block push(2) push(3) add push(3) push(7) mul end
+    basic_block push(2) push(3) add push(3) push(7) mul noop noop noop end
 end";
     assert_str_eq!(format!("{program}"), expected);
     Ok(())
@@ -1849,12 +1852,14 @@ begin
         push(11)
         push(5)
         noop
+        noop
         push(3)
         push(7)
         mul
         add
         neg
         add
+        noop
     end
 end";
     assert_str_eq!(format!("{program}"), expected);
@@ -2099,7 +2104,7 @@ fn program_with_one_import_and_hex_call() -> TestResult {
 begin
     join
         join
-            basic_block push(4) push(3) noop end
+            basic_block push(4) push(3) noop noop end
             external.0xc2545da99d3a1f3f38d957c7893c44d78998d8ea8b11aba7e22c8c2b2a213dae
         end
         call.0x20234ee941e53a15886e733cc8e041198c6e90d2a16ea18ce1030e8c3596dd38
@@ -2236,7 +2241,7 @@ fn program_with_reexported_proc_in_same_library() -> TestResult {
 begin
     join
         join
-            basic_block push(4) push(3) noop end
+            basic_block push(4) push(3) noop noop end
             external.0xb9691da1d9b4b364aca0a0990e9f04c446a2faa622c8dd0d8831527dbec61393
         end
         external.0xcb08c107c81c582788cbf63c99f6b455e11b33bb98ca05fe1cfa17c087dfa8f1
@@ -2306,7 +2311,7 @@ fn program_with_reexported_proc_in_another_library() -> TestResult {
 begin
     join
         join
-            basic_block push(4) push(3) noop end
+            basic_block push(4) push(3) noop noop end
             external.0xb9691da1d9b4b364aca0a0990e9f04c446a2faa622c8dd0d8831527dbec61393
         end
         external.0xcb08c107c81c582788cbf63c99f6b455e11b33bb98ca05fe1cfa17c087dfa8f1
@@ -2562,12 +2567,12 @@ begin
                 join
                     basic_block add end
                     while.true
-                        basic_block push(7) push(11) add end
+                        basic_block push(7) push(11) add noop end
                     end
                 end
             else
                 join
-                    basic_block mul push(8) push(8) noop end
+                    basic_block mul push(8) push(8) noop noop end
                     if.true
                         basic_block mul end
                     else
