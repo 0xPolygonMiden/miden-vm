@@ -153,13 +153,15 @@ The effect on the rest of the stack is:
 
 ## HORNERBASE
 The `HORNERBASE` operation performs $8$ steps of the Horner method for evaluating a polynomial with coefficients over the base field at a point in the quadratic extension field. More precisely, it performs the following update to the accumulator on the stack
-    $$\mathsf{acc}^{'} = (((((((((\mathsf{acc} \cdot \alpha + a_7) \cdot \alpha + a_6) \cdot \alpha + a_5) \cdot \alpha + a_4) \cdot \alpha + a_3) \cdot \alpha + a_2) \cdot \alpha + a_1) \cdot \alpha + a_0$$
-where $a_i$ are the coefficients of the polynomial, $\alpha$ the evaluation point, $\mathsf{acc}$ the current accumulator value and $\mathsf{acc}^{'}$ the updated accumulator value.
+    $$\mathsf{tmp} = (((\mathsf{acc} \cdot \alpha + a_7) \cdot \alpha + a_6) \cdot \alpha + a_5) \cdot \alpha + a_4$$
+
+   $$\mathsf{acc}^{'} = (((\mathsf{tmp} \cdot \alpha + a_3) \cdot \alpha + a_2) \cdot \alpha + a_1) \cdot \alpha + a_0$$
+where $a_i$ are the coefficients of the polynomial, $\alpha$ the evaluation point, $\mathsf{acc}$ the current accumulator value, $\mathsf{acc}^{'}$ the updated accumulator value, and $\mathsf{tmp}$ is a helper variable used for constraint degree reduction.
 
 The stack for the operation is expected to be arranged as follows:
-- The first $8$ stack elements contain $8$ base field elements $a_0,\cdots , a_7$ representing the current 8-element batch of coefficients for the polynomial being evaluated.
+- The first $8$ stack elements are the $8$ base field elements $a_0,\cdots , a_7$ representing the current 8-element batch of coefficients for the polynomial being evaluated.
 - The next $5$ stack elements are irrelevant for the operation and unaffected by it.
-- The next stack element contains the value of the memory pointer `alpha_ptr` to the evaluation point $\alpha$. The word address containing $\alpha = (\alpha_0, \alpha_1)$ is expected to have layout $[\alpha_0, \alpha_1, 0, 0]$.
+- The next stack element contains the value of the memory pointer `alpha_ptr` to the evaluation point $\alpha$. The word address containing $\alpha = (\alpha_0, \alpha_1)$ is expected to have layout $[\alpha_0, \alpha_1, k_0, k_1]$ where $[k_0, k_1]$ is the second half of the memory word containing $\alpha$. Note that, in the context of the above expressions, we only care about the first half i.e., $[\alpha_0, \alpha_1]$, but providing the second half of the word in order to be able to do a one word memory read is more optimal than doing two element memory reads.
 - The next $2$ stack elements contain the value of the current accumulator $\textsf{acc} = (\textsf{acc}_0, \textsf{acc}_1)$.
 
 The diagram below illustrates the stack transition for `HORNERBASE` operation.
@@ -167,7 +169,26 @@ The diagram below illustrates the stack transition for `HORNERBASE` operation.
 ![horner_eval_base](../../assets/design/stack/crypto_ops/HORNERBASE.png)
 
 After calling the operation:
+- Helper registers $h_4$ and $h_5$ will contain the intermediate value $\mathsf{tmp}$.
 - Stack elements $14$ and $15$ will contain the value of the updated accumulator i.e., $\mathsf{acc}^{'}$.
+
+More specifically, the stack transition for this operation must satisfy the following constraints:
+
+>$$
+\mathsf{tmp}_0 = \mathsf{acc}_0 \cdot \alpha_0^4 - 8 \cdot \mathsf{acc}_1 \cdot \alpha_0^3 \cdot \alpha_1 - 12 \cdot \mathsf{acc}_0 \cdot \alpha_0^2 \cdot \alpha_1^2 - 12 \cdot \mathsf{acc}_1 \cdot \alpha_0^2 \cdot \alpha_1^2 - 8 \cdot \mathsf{acc}_0 \cdot \alpha_0 \cdot \alpha_1^3 + 8 \cdot \mathsf{acc}_1\cdot\alpha_0\cdot\alpha_1^3 + 2\cdot\mathsf{acc}_0\cdot\alpha_1^4 + 6\cdot\mathsf{acc}_1\cdot\alpha_1^4 + s_7\cdot\alpha_0^3 - 6 \cdot s_7\cdot\alpha_0\cdot\alpha_1^2 - 2 \cdot s_7\cdot\alpha_1^3 + s_6\cdot\alpha_0^2 - 2\cdot s_6\cdot\alpha_1^2 + s_5\cdot\alpha_0 + s_4  \text{ | degree} = 5
+$$
+
+>$$
+\mathsf{tmp}_1 = \mathsf{acc}_1 \cdot \alpha_0^4 + 4 \cdot \mathsf{acc}_0 \cdot \alpha_0^3 \cdot \alpha_1 + 4 \cdot \mathsf{acc}_1 \cdot \alpha_0^3 \cdot \alpha_1 + 6 \cdot \mathsf{acc}_0 \cdot \alpha_0^2 \cdot \alpha_1^2 - 6 \cdot \mathsf{acc}_1 \cdot \alpha_0^2 \cdot \alpha_1^2 - 4 \cdot \mathsf{acc}_0 \cdot \alpha_0\cdot\alpha_1^3 - 12 \cdot \mathsf{acc}_1 \cdot \alpha_0 \cdot \alpha_1^3  - 3 \cdot\mathsf{acc}_0 \cdot \alpha_1^4 - \mathsf{acc}_1 \cdot \alpha_1^4 + 3 \cdot s_7 \cdot \alpha_0^2\cdot\alpha_1 + 3 \cdot s_7 \cdot \alpha_0\cdot\alpha_1^2 - s_7   \cdot\alpha_1^3 + 2\cdot s_6\cdot\alpha_0\cdot\alpha_1 + s_6\cdot\alpha_1^2 + s_5\cdot\alpha_1  \text{ | degree} = 5
+$$
+
+>$$
+\mathsf{acc}_0^{'} = \mathsf{tmp}_0\cdot\alpha_0^4 - 8 \cdot\mathsf{tmp}_1\cdot\alpha_0^3\cdot\alpha_1 - 12 \cdot\mathsf{tmp}_0\cdot\alpha_0^2\cdot\alpha_1^2  - 12\cdot\mathsf{tmp}_1\cdot\alpha_0^2\cdot\alpha_1^2 - 8\cdot\mathsf{tmp}_0\cdot\alpha_0\cdot\alpha_1^3 + 8\cdot\mathsf{tmp}_1\cdot\alpha_0\cdot\alpha_1^3 + 2\cdot\mathsf{tmp}_0\cdot\alpha_1^4 + 6\cdot\mathsf{tmp}_1\cdot\alpha_1^4 +  s_3\cdot\alpha_0^3 - 6\cdot s_3\cdot\alpha_0\cdot\alpha_1^2 - 2\cdot s_3\cdot\alpha_1^3 +  s_2\cdot\alpha_0^2 - 2\cdot s_2\cdot\alpha_1^2 +  s_1\cdot\alpha_0 + s_0  \text{ | degree} = 5
+$$
+
+>$$
+\mathsf{acc}_1^{'} = \mathsf{tmp}_1\cdot\alpha_0^4 + 4\cdot\mathsf{tmp}_0\cdot\alpha_0^3\cdot\alpha_1 + 4\cdot\mathsf{tmp}_1\cdot\alpha_0^3\cdot\alpha_1 + 6\cdot\mathsf{tmp}_0\cdot\alpha_0^2\cdot\alpha_1^2 - 6\cdot\mathsf{tmp}_1\cdot\alpha_0^2\cdot\alpha_1^2 - 4 \cdot \mathsf{tmp}_0\cdot\alpha_0\cdot\alpha_1^3 -12\cdot\mathsf{tmp}_1\cdot\alpha_0\cdot\alpha_1^3 - 3\cdot\mathsf{tmp}_0\cdot\alpha_1^4 - \mathsf{tmp}_1\cdot\alpha_1^4 + 3\cdot s_3\cdot\alpha_0^2\cdot\alpha_1 + 3\cdot s_3\cdot\alpha_0\cdot\alpha_1^2 -  s_3\cdot\alpha_1^3 + 2\cdot s_2\cdot\alpha_0\cdot\alpha_1 +  s_2\cdot\alpha_1^2 +  s_1\cdot\alpha_1  \text{ | degree} = 5
+$$
 
 The effect on the rest of the stack is:
 * **No change.**
@@ -175,18 +196,20 @@ The effect on the rest of the stack is:
 The `HORNERBASE` makes one memory access request:
 
 $$
-u_{mem} = \alpha_0 + \alpha_1 \cdot op_{mem\_readword} + \alpha_2 \cdot ctx + \alpha_3 \cdot s_{13} + \alpha_4 \cdot clk + \alpha_{5} \cdot h_{0} + \alpha_{6} \cdot h_{1}
+u_{mem} = \alpha_0 + \alpha_1 \cdot op_{mem\_readword} + \alpha_2 \cdot ctx + \alpha_3 \cdot s_{13} + \alpha_4 \cdot clk + \alpha_{5} \cdot h_{0} + \alpha_{6} \cdot h_{1} + \alpha_{7} \cdot h_{3} + \alpha_{8} \cdot h_{4}
 $$
 
 ## HORNEREXT
 The `HORNEREXT` operation performs $4$ steps of the Horner method for evaluating a polynomial with coefficients over the quadratic extension field at a point in the quadratic extension field. More precisely, it performs the following update to the accumulator on the stack
-    $$\mathsf{acc}^{'} = (((\mathsf{acc} \cdot \alpha + a_3) \cdot \alpha + a_2) \cdot \alpha + a_1) \cdot \alpha + a_0$$
-where $a_i$ are the coefficients of the polynomial, $\alpha$ the evaluation point, $\mathsf{acc}$ the current accumulator value and $\mathsf{acc}^{'}$ the updated accumulator value.
+    $$\mathsf{tmp} = (\mathsf{acc} \cdot \alpha + a_3) \cdot \alpha + a_2$$
+$$\mathsf{acc}^{'} = (\mathsf{tmp} \cdot \alpha + a_1) \cdot \alpha + a_0$$
+
+where $a_i$ are the coefficients of the polynomial, $\alpha$ the evaluation point, $\mathsf{acc}$ the current accumulator value, $\mathsf{acc}^{'}$ the updated accumulator value, and $\mathsf{tmp}$ is a helper variable used for constraint degree reduction.
 
 The stack for the operation is expected to be arranged as follows:
-- The first $8$ stack elements contain $8$ base field elements $a_0,\cdots , a_7$ representing the current 4-element batch of coefficients, in the quadratic extension field, for the polynomial being evaluated.
+- The first $8$ stack elements contain $8$ base field elements that make up the current 4-element batch of coefficients, in the quadratic extension field, for the polynomial being evaluated.
 - The next $5$ stack elements are irrelevant for the operation and unaffected by it.
-- The next stack element contains the value of the memory pointer `alpha_ptr` to the evaluation point $\alpha$. The word address containing $\alpha = (\alpha_0, \alpha_1)$ is expected to have layout $[\alpha_0, \alpha_1, 0, 0]$.
+- The next stack element contains the value of the memory pointer `alpha_ptr` to the evaluation point $\alpha$. The word address containing $\alpha = (\alpha_0, \alpha_1)$ is expected to have layout $[\alpha_0, \alpha_1, k_0, k_1]$ where $[k_0, k_1]$ is the second half of the memory word containing $\alpha$. Note that, in the context of the above expressions, we only care about the first half i.e., $[\alpha_0, \alpha_1]$, but providing the second half of the word in order to be able to do a one word memory read is more optimal than doing two element memory reads.
 - The next $2$ stack elements contain the value of the current accumulator $\textsf{acc} = (\textsf{acc}_0, \textsf{acc}_1)$.
 
 The diagram below illustrates the stack transition for `HORNEREXT` operation.
@@ -194,7 +217,26 @@ The diagram below illustrates the stack transition for `HORNEREXT` operation.
 ![horner_eval_ext](../../assets/design/stack/crypto_ops/HORNEREXT.png)
 
 After calling the operation:
+- Helper registers $h_4$ and $h_5$ will contain the intermediate value $\mathsf{tmp}$.
 - Stack elements $14$ and $15$ will contain the value of the updated accumulator i.e., $\mathsf{acc}^{'}$.
+
+More specifically, the stack transition for this operation must satisfy the following constraints:
+
+>$$
+\mathsf{tmp}_0 = \mathsf{acc}_0\cdot \alpha_0^2 - 4\cdot \mathsf{acc}_1\cdot \alpha_0\cdot \alpha_1 -2\cdot \mathsf{acc}_0\cdot \alpha_1^2 -2\cdot \mathsf{acc}_1\cdot \alpha_1^2 + s_6\cdot \alpha_0 -2\cdot s_7\cdot \alpha_1 + s_4  \text{ | degree} = 3
+$$
+
+>$$
+\mathsf{tmp}_1 = \mathsf{acc}_1\cdot \alpha_0^2 + 2\cdot \mathsf{acc}_0\cdot \alpha_0\cdot \alpha_1 + 2\cdot \mathsf{acc}_1\cdot \alpha_0\cdot \alpha_1 + \mathsf{acc}_0\cdot \alpha_1^2 - \mathsf{acc}_1\cdot \alpha_1^2 + s_7\cdot \alpha_0 + s_6\cdot \alpha_1 + s_7\cdot \alpha_1 + s_5  \text{ | degree} = 3
+$$
+
+>$$
+\mathsf{acc}_0^{'} = \mathsf{tmp}_0\cdot \alpha_0^2 - 4\cdot \mathsf{tmp}_1\cdot \alpha_0\cdot \alpha_1 - 2\cdot \mathsf{tmp}_0\cdot \alpha_1^2 - 2\cdot \mathsf{tmp}_1\cdot \alpha_1^2 + s_2\cdot \alpha_0 - 2\cdot s_3\cdot \alpha_1 + s_0  \text{ | degree} = 3
+$$
+
+>$$
+\mathsf{acc}_1^{'} = \mathsf{tmp}_1\cdot \alpha_0^2 + 2\cdot \mathsf{tmp}_0\cdot \alpha_0\cdot \alpha_1 + 2\cdot \mathsf{tmp}_1\cdot \alpha_0\cdot \alpha_1 + \mathsf{tmp}_0\cdot \alpha_1^2 - \mathsf{tmp}_1\cdot \alpha_1^2 + s_3\cdot \alpha_0 + s_2\cdot \alpha_1 + s_3\cdot \alpha_1 + s_1  \text{ | degree} = 3
+$$
 
 The effect on the rest of the stack is:
 * **No change.**
@@ -202,5 +244,5 @@ The effect on the rest of the stack is:
 The `HORNEREXT` makes one memory access request:
 
 $$
-u_{mem} = \alpha_0 + \alpha_1 \cdot op_{mem\_readword} + \alpha_2 \cdot ctx + \alpha_3 \cdot s_{13} + \alpha_4 \cdot clk + \alpha_{5} \cdot h_{0} + \alpha_{6} \cdot h_{1}
+u_{mem} = \alpha_0 + \alpha_1 \cdot op_{mem\_readword} + \alpha_2 \cdot ctx + \alpha_3 \cdot s_{13} + \alpha_4 \cdot clk + \alpha_{5} \cdot h_{0} + \alpha_{6} \cdot h_{1} + \alpha_{7} \cdot h_{3} + \alpha_{8} \cdot h_{4}
 $$
