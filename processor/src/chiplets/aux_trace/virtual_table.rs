@@ -2,7 +2,7 @@ use miden_air::{
     RowIndex,
     trace::{chiplets::hasher::DIGEST_RANGE, main_trace::MainTrace},
 };
-use vm_core::{Kernel, ONE};
+use vm_core::Kernel;
 
 use super::{
     Felt, FieldElement, build_ace_memory_read_element_request, build_ace_memory_read_word_request,
@@ -29,13 +29,15 @@ impl<E: FieldElement<BaseField = Felt>> AuxColumnBuilder<E> for ChipletsVTableCo
         _debugger: &mut BusDebugger<E>,
     ) -> E {
         let mut requests = E::ONE;
-        for (idx, proc_hash) in self.kernel.proc_hashes().iter().enumerate() {
+        // Initialize the bus with the kernel rom hashes provided by the public inputs.
+        // The verifier computes this value, and is enforced with a boundary constraint in the
+        // first row.
+        for proc_hash in self.kernel.proc_hashes() {
             requests *= alphas[0]
-                + alphas[1].mul_base((idx as u32).into())
-                + alphas[2].mul_base(proc_hash[0])
-                + alphas[3].mul_base(proc_hash[1])
-                + alphas[4].mul_base(proc_hash[2])
-                + alphas[5].mul_base(proc_hash[3]);
+                + alphas[1].mul_base(proc_hash[0])
+                + alphas[2].mul_base(proc_hash[1])
+                + alphas[3].mul_base(proc_hash[2])
+                + alphas[4].mul_base(proc_hash[3]);
         }
         requests
     }
@@ -184,6 +186,7 @@ where
 }
 
 /// Builds the inclusions to the kernel procedure table at `row`.
+/// to be verified by public inputs
 fn build_kernel_procedure_table_inclusions<E>(
     main_trace: &MainTrace,
     alphas: &[E],
@@ -192,34 +195,18 @@ fn build_kernel_procedure_table_inclusions<E>(
 where
     E: FieldElement<BaseField = Felt>,
 {
-    if main_trace.is_kernel_row(row) {
-        let idx = main_trace.chiplet_kernel_idx(row);
-        let idx_delta = {
-            let idx_next = main_trace.chiplet_kernel_idx(row + 1);
-            idx_next - idx
-        };
-        let next_row_is_kernel = main_trace.is_kernel_row(row + 1);
-
-        // We want to add an entry to the table in 2 cases:
-        // 1. when the next row is a kernel row and the idx changes
-        //    - this adds the last row of all rows that share the same idx
-        // 2. when the next row is not a kernel row
-        //    - this is the edge case of (1)
-        if !next_row_is_kernel || idx_delta == ONE {
-            let root0 = main_trace.chiplet_kernel_root_0(row);
-            let root1 = main_trace.chiplet_kernel_root_1(row);
-            let root2 = main_trace.chiplet_kernel_root_2(row);
-            let root3 = main_trace.chiplet_kernel_root_3(row);
-
-            alphas[0]
-                + alphas[1].mul_base(idx)
-                + alphas[2].mul_base(root0)
-                + alphas[3].mul_base(root1)
-                + alphas[4].mul_base(root2)
-                + alphas[5].mul_base(root3)
-        } else {
-            E::ONE
-        }
+    if main_trace.is_kernel_row(row) && main_trace.chiplet_kernel_is_table_response(row) {
+        let root0 = main_trace.chiplet_kernel_root_0(row);
+        let root1 = main_trace.chiplet_kernel_root_1(row);
+        let root2 = main_trace.chiplet_kernel_root_2(row);
+        let root3 = main_trace.chiplet_kernel_root_3(row);
+        // In contrast to the responses to the bus requests, we omit the label to simplify
+        // the verifier's work when initializing the virtual table's bus.
+        alphas[0]
+            + alphas[1].mul_base(root0)
+            + alphas[2].mul_base(root1)
+            + alphas[3].mul_base(root2)
+            + alphas[4].mul_base(root3)
     } else {
         E::ONE
     }
