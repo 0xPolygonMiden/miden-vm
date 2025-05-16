@@ -1,4 +1,4 @@
-use alloc::{string::String, sync::Arc, vec::Vec};
+use alloc::{boxed::Box, string::String, sync::Arc};
 
 use vm_core::mast::MastForestError;
 
@@ -14,7 +14,6 @@ use crate::{
 /// An error which can be generated while compiling a Miden assembly program into a MAST.
 #[derive(Debug, thiserror::Error, Diagnostic)]
 #[non_exhaustive]
-#[allow(clippy::large_enum_variant)]
 pub enum AssemblyError {
     #[error("there are no modules to analyze")]
     #[diagnostic()]
@@ -23,18 +22,18 @@ pub enum AssemblyError {
     #[diagnostic(help("see diagnostics for details"))]
     Failed {
         #[related]
-        labels: Vec<RelatedLabel>,
+        labels: Box<[RelatedLabel]>,
     },
-    #[error("found a cycle in the call graph, involving these procedures: {}", nodes.as_slice().join(", "))]
+    #[error("found a cycle in the call graph, involving these procedures: {}", nodes.join(", "))]
     #[diagnostic()]
-    Cycle { nodes: Vec<String> },
+    Cycle { nodes: Box<[String]> },
     #[error(
         "two procedures found with same mast root, but conflicting definitions ('{first}' and '{second}')"
     )]
     #[diagnostic()]
     ConflictingDefinitions {
-        first: QualifiedProcedureName,
-        second: QualifiedProcedureName,
+        first: Box<QualifiedProcedureName>,
+        second: Box<QualifiedProcedureName>,
     },
     #[error("duplicate definition found for module '{path}'")]
     #[diagnostic()]
@@ -61,7 +60,7 @@ pub enum AssemblyError {
         span: SourceSpan,
         #[source_code]
         source_file: Option<Arc<SourceFile>>,
-        callee: QualifiedProcedureName,
+        callee: Box<QualifiedProcedureName>,
     },
     #[error("invalid local word index: {local_addr}")]
     #[diagnostic(help("the index to a local word must be a multiple of 4"))]

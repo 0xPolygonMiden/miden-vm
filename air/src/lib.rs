@@ -148,13 +148,10 @@ impl Air for ProcessorAir {
     // ASSERTIONS
     // --------------------------------------------------------------------------------------------
 
-    #[allow(clippy::vec_init_then_push)]
     fn get_assertions(&self) -> Vec<Assertion<Felt>> {
-        let mut result = Vec::new();
-
         // --- set assertions for the first step --------------------------------------------------
         // first value of clk is 0
-        result.push(Assertion::single(CLK_COL_IDX, 0, ZERO));
+        let mut result = vec![Assertion::single(CLK_COL_IDX, 0, ZERO)];
 
         if IS_FULL_CONSTRAINT_SET {
             // first value of fmp is 2^30
