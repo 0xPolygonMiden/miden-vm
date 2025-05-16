@@ -285,7 +285,7 @@ impl Chiplets {
                     let rest = bitwise_fragment.push_column_slice(rest, bitwise.trace_len());
                     memory_fragment.push_column_slice(rest, memory.trace_len());
                 },
-                4 | 11..=14 => {
+                4 | 10..=14 => {
                     // columns 4 - 11 to 14 are relevant for hasher, bitwise, memory chiplets and
                     // ace chiplet
                     let rest = hasher_fragment.push_column_slice(column, hasher.trace_len());
@@ -293,8 +293,8 @@ impl Chiplets {
                     let rest = memory_fragment.push_column_slice(rest, memory.trace_len());
                     ace_fragment.push_column_slice(rest, ace.trace_len());
                 },
-                5..=10 => {
-                    // columns 5 - 10 are relevant to all chiplets
+                5..=9 => {
+                    // columns 5 - 9 are relevant to all chiplets
                     let rest = hasher_fragment.push_column_slice(column, hasher.trace_len());
                     let rest = bitwise_fragment.push_column_slice(rest, bitwise.trace_len());
                     let rest = memory_fragment.push_column_slice(rest, memory.trace_len());

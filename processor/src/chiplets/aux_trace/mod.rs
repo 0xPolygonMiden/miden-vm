@@ -40,7 +40,8 @@ impl AuxTraceBuilder {
     ///    received from the chiplets in the Chiplets module,
     /// 2. a column acting as
     ///    - a virtual table for the sibling table used by the hasher chiplet,
-    ///    - a virtual table for the kernel procedure table, and
+    ///    - a virtual table for the kernel procedure table, where the requests are made by the
+    ///      verifier with hashes included in the public inputs of the program, and
     ///    - a bus between the memory chiplet and the ACE chiplet.
     /// 3. a column used as a bus to wire the gates of the ACE chiplet.
     pub fn build_aux_columns<E: FieldElement<BaseField = Felt>>(
@@ -55,9 +56,15 @@ impl AuxTraceBuilder {
         let b_chip = bus_col_builder.build_aux_column(main_trace, rand_elements);
         let wiring_bus = wiring_bus_builder.build_aux_column(main_trace, rand_elements);
 
-        let v_table_final_value = t_chip.last().unwrap();
-        let chiplets_bus_final_value = b_chip.last().unwrap();
-        debug_assert_eq!(*v_table_final_value * *chiplets_bus_final_value, E::ONE);
+        // When debugging, check that all multi-set and logUp interactions are valid.
+        let (multiset_final_value, logup_final_value) = {
+            let v_table_final_value = t_chip.last().copied().unwrap_or(E::ONE);
+            let chiplets_bus_final_value = b_chip.last().copied().unwrap_or(E::ONE);
+            let log_up_final_value = wiring_bus.last().copied().unwrap_or(E::ZERO);
+            (v_table_final_value * chiplets_bus_final_value, log_up_final_value)
+        };
+        debug_assert_eq!(multiset_final_value, E::ONE);
+        debug_assert_eq!(logup_final_value, E::ZERO);
 
         [t_chip, b_chip, wiring_bus]
     }

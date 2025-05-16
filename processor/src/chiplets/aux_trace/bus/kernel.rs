@@ -4,7 +4,7 @@ use miden_air::{
     RowIndex,
     trace::{chiplets::kernel_rom::KERNEL_PROC_LABEL, main_trace::MainTrace},
 };
-use vm_core::{Felt, FieldElement, ONE};
+use vm_core::{Felt, FieldElement};
 
 use crate::debug::{BusDebugger, BusMessage};
 
@@ -27,8 +27,8 @@ pub(super) fn build_kernel_chiplet_responses<E>(
 where
     E: FieldElement<BaseField = Felt>,
 {
-    let kernel_chiplet_selector = main_trace.chiplet_selector_5(row);
-    if kernel_chiplet_selector == ONE {
+    // The caller ensures this row is a kernel ROM row, we just check this is a bus response row.
+    if main_trace.chiplet_kernel_is_bus_response(row) {
         let message = {
             let root0 = main_trace.chiplet_kernel_root_0(row);
             let root1 = main_trace.chiplet_kernel_root_1(row);
