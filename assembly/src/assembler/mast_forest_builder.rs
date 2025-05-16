@@ -229,8 +229,8 @@ impl MastForestBuilder {
                 !mismatched_locals || core::cmp::min(cached_locals, procedure_locals) == 0;
             if !is_valid {
                 return Err(AssemblyError::ConflictingDefinitions {
-                    first: cached.fully_qualified_name().clone(),
-                    second: procedure.fully_qualified_name().clone(),
+                    first: cached.fully_qualified_name().clone().into(),
+                    second: procedure.fully_qualified_name().clone().into(),
                 });
             }
         }
