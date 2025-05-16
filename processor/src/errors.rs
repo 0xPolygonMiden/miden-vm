@@ -180,6 +180,17 @@ pub enum ExecutionError {
         source_file: Option<Arc<SourceFile>>,
         root_digest: Digest,
     },
+    #[error("The op batch is malformed")]
+    #[diagnostic(help(
+        "The number of groups in the batch is {num_groups}, but needs to be a power of 2"
+    ))]
+    MalformedOpBatch {
+        #[label]
+        label: SourceSpan,
+        #[source_code]
+        source_file: Option<Arc<SourceFile>>,
+        num_groups: usize,
+    },
     #[error("node id {node_id} does not exist in MAST forest")]
     MastNodeNotFoundInForest { node_id: MastNodeId },
     #[error(transparent)]
@@ -414,6 +425,14 @@ impl ExecutionError {
     pub fn log_argument_zero(clk: RowIndex, err_ctx: &ErrorContext<'_, impl MastNodeExt>) -> Self {
         let (label, source_file) = err_ctx.label_and_source_file();
         Self::LogArgumentZero { label, source_file, clk }
+    }
+
+    pub fn malformed_op_batch(
+        num_groups: usize,
+        err_ctx: &ErrorContext<'_, impl MastNodeExt>,
+    ) -> Self {
+        let (label, source_file) = err_ctx.label_and_source_file();
+        Self::MalformedOpBatch { label, source_file, num_groups }
     }
 
     pub fn malfored_mast_forest_in_host(

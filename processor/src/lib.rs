@@ -617,10 +617,11 @@ impl Process {
         let mut group_idx = 0;
         let mut next_group_idx = 1;
 
-        // round up the number of groups to be processed to the next power of two; we do this
-        // because the processor requires the number of groups to be either 1, 2, 4, or 8; if
-        // the actual number of groups is smaller, we'll pad the batch with NOOPs at the end
-        let num_batch_groups = batch.num_groups().next_power_of_two();
+        // Ensure the number of groups is a power of 2.
+        if !batch.num_groups().is_power_of_two() {
+            let error_ctx = ErrorContext::new(program, basic_block, self.source_manager.clone());
+            return Err(ExecutionError::malformed_op_batch(batch.num_groups(), &error_ctx));
+        }
 
         // execute operations in the batch one by one
         for (i, &op) in batch.ops().iter().enumerate() {
@@ -662,26 +663,12 @@ impl Process {
 
                 // if we haven't reached the end of the batch yet, set up the decoder for
                 // decoding the next operation group
-                if group_idx < num_batch_groups {
+                if group_idx < batch.num_groups() {
                     self.decoder.start_op_group(batch.groups()[group_idx]);
                 }
             } else {
                 // if we are not at the end of the group, just increment the operation index
                 op_idx += 1;
-            }
-        }
-
-        // make sure we execute the required number of operation groups; this would happen when
-        // the actual number of operation groups was not a power of two
-        for group_idx in group_idx..num_batch_groups {
-            self.decoder.execute_user_op(Operation::Noop, 0);
-            self.execute_op(Operation::Noop, program, host)?;
-
-            // if we are not at the last group yet, set up the decoder for decoding the next
-            // operation groups. the groups were are processing are just NOOPs - so, the op group
-            // value is ZERO
-            if group_idx < num_batch_groups - 1 {
-                self.decoder.start_op_group(ZERO);
             }
         }
 
