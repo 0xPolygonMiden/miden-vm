@@ -25,10 +25,11 @@ use miden_air::{
     },
 };
 use vm_core::{
-    ONE, OPCODE_ACE, OPCODE_CALL, OPCODE_DYN, OPCODE_DYNCALL, OPCODE_END, OPCODE_HORNERBASE,
-    OPCODE_HORNEREXT, OPCODE_HPERM, OPCODE_JOIN, OPCODE_LOOP, OPCODE_MLOAD, OPCODE_MLOADW,
-    OPCODE_MPVERIFY, OPCODE_MRUPDATE, OPCODE_MSTORE, OPCODE_MSTOREW, OPCODE_MSTREAM, OPCODE_PIPE,
-    OPCODE_RESPAN, OPCODE_SPAN, OPCODE_SPLIT, OPCODE_SYSCALL, OPCODE_U32AND, OPCODE_U32XOR, ZERO,
+    Kernel, ONE, OPCODE_ACE, OPCODE_CALL, OPCODE_DYN, OPCODE_DYNCALL, OPCODE_END,
+    OPCODE_HORNERBASE, OPCODE_HORNEREXT, OPCODE_HPERM, OPCODE_JOIN, OPCODE_LOOP, OPCODE_MLOAD,
+    OPCODE_MLOADW, OPCODE_MPVERIFY, OPCODE_MRUPDATE, OPCODE_MSTORE, OPCODE_MSTOREW, OPCODE_MSTREAM,
+    OPCODE_PIPE, OPCODE_RESPAN, OPCODE_SPAN, OPCODE_SPLIT, OPCODE_SYSCALL, OPCODE_U32AND,
+    OPCODE_U32XOR, ZERO,
 };
 
 use super::{Felt, FieldElement};
@@ -42,16 +43,30 @@ mod bitwise;
 mod hasher;
 mod kernel;
 mod memory;
+
 pub use memory::{build_ace_memory_read_element_request, build_ace_memory_read_word_request};
+
+use crate::chiplets::aux_trace::bus::kernel::build_kernel_init_requests;
 
 // BUS COLUMN BUILDER
 // ================================================================================================
 
 /// Describes how to construct the execution trace of the chiplets bus auxiliary trace column.
-#[derive(Default)]
-pub struct BusColumnBuilder {}
+/// It includes
+pub struct BusColumnBuilder<'a> {
+    kernel: &'a Kernel,
+}
 
-impl<E: FieldElement<BaseField = Felt>> AuxColumnBuilder<E> for BusColumnBuilder {
+impl<'a> BusColumnBuilder<'a> {
+    pub(super) fn new(kernel: &'a Kernel) -> Self {
+        Self { kernel }
+    }
+}
+
+impl<E> AuxColumnBuilder<E> for BusColumnBuilder<'_>
+where
+    E: FieldElement<BaseField = Felt>,
+{
     /// Constructs the requests made by the VM-components to the chiplets at `row`.
     fn get_requests_at(
         &self,
@@ -59,10 +74,7 @@ impl<E: FieldElement<BaseField = Felt>> AuxColumnBuilder<E> for BusColumnBuilder
         alphas: &[E],
         row: RowIndex,
         debugger: &mut BusDebugger<E>,
-    ) -> E
-    where
-        E: FieldElement<BaseField = Felt>,
-    {
+    ) -> E {
         let op_code_felt = main_trace.get_op_code(row);
         let op_code = op_code_felt.as_int() as u8;
 
@@ -133,10 +145,7 @@ impl<E: FieldElement<BaseField = Felt>> AuxColumnBuilder<E> for BusColumnBuilder
         alphas: &[E],
         row: RowIndex,
         debugger: &mut BusDebugger<E>,
-    ) -> E
-    where
-        E: FieldElement<BaseField = Felt>,
-    {
+    ) -> E {
         if main_trace.is_hash_row(row) {
             build_hasher_chiplet_responses(main_trace, row, alphas, debugger)
         } else if main_trace.is_bitwise_row(row) {
@@ -151,19 +160,31 @@ impl<E: FieldElement<BaseField = Felt>> AuxColumnBuilder<E> for BusColumnBuilder
             E::ONE
         }
     }
+
+    fn init_requests(
+        &self,
+        _main_trace: &MainTrace,
+        alphas: &[E],
+        _debugger: &mut BusDebugger<E>,
+    ) -> E {
+        build_kernel_init_requests(self.kernel.proc_hashes(), alphas, _debugger)
+    }
 }
 
 // CHIPLETS REQUESTS TO MORE THAN ONE CHIPLET
 // ================================================================================================
 
 /// Builds requests made on a `DYN` or `DYNCALL` operation.
-fn build_dyn_block_request<E: FieldElement<BaseField = Felt>>(
+fn build_dyn_block_request<E>(
     main_trace: &MainTrace,
     op_code_felt: Felt,
     alphas: &[E],
     row: RowIndex,
     _debugger: &mut BusDebugger<E>,
-) -> E {
+) -> E
+where
+    E: FieldElement<BaseField = Felt>,
+{
     let control_block_req = ControlBlockRequestMessage {
         transition_label: Felt::from(LINEAR_HASH_LABEL + 16),
         addr_next: main_trace.addr(row + 1),
@@ -196,13 +217,16 @@ fn build_dyn_block_request<E: FieldElement<BaseField = Felt>>(
 }
 
 /// Builds requests made to kernel ROM chiplet when initializing a syscall block.
-fn build_syscall_block_request<E: FieldElement<BaseField = Felt>>(
+fn build_syscall_block_request<E>(
     main_trace: &MainTrace,
     op_code_felt: Felt,
     alphas: &[E],
     row: RowIndex,
     _debugger: &mut BusDebugger<E>,
-) -> E {
+) -> E
+where
+    E: FieldElement<BaseField = Felt>,
+{
     let control_block_req = ControlBlockRequestMessage {
         transition_label: Felt::from(LINEAR_HASH_LABEL + 16),
         addr_next: main_trace.addr(row + 1),
@@ -230,10 +254,10 @@ fn build_syscall_block_request<E: FieldElement<BaseField = Felt>>(
 
 /// Runs an inner product between the alphas and the elements.
 #[inline(always)]
-fn build_value<E: FieldElement<BaseField = Felt>, const N: usize>(
-    alphas: &[E],
-    elements: [Felt; N],
-) -> E {
+fn build_value<E, const N: usize>(alphas: &[E], elements: [Felt; N]) -> E
+where
+    E: FieldElement<BaseField = Felt>,
+{
     debug_assert_eq!(alphas.len(), elements.len());
     let mut value = E::ZERO;
     for i in 0..N {
@@ -243,6 +267,7 @@ fn build_value<E: FieldElement<BaseField = Felt>, const N: usize>(
 }
 
 /// Returns the operation unique label.
+#[inline(always)]
 fn get_op_label(s0: Felt, s1: Felt, s2: Felt, s3: Felt) -> Felt {
     s3.mul_small(1 << 3) + s2.mul_small(1 << 2) + s1.mul_small(2) + s0 + ONE
 }

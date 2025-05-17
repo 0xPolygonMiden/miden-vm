@@ -19,6 +19,7 @@ Each chiplet is identified within the Chiplets module by one or more chiplet sel
 
 The result is an execution trace of 17 trace columns, which allows space for the widest chiplet component (the hash chiplet) and a column to select for it.
 
+> TODO: update diagram with columns
 ![chiplets](../../assets/design/chiplets/chiplets.png)
 
 During the finalization of the overall execution trace, the chiplets' traces (including internal selectors) are appended to the trace of the Chiplets module one after another, as pictured. Thus, when one chiplet's trace ends, the trace of the next chiplet starts in the subsequent row.
@@ -36,12 +37,12 @@ After that, chiplets are ordered by degree of constraints so that higher-degree 
 The resulting order is as follows:
 
 | Chiplet         | Cycle Length | Internal Degree | Chiplet Selector Degree | Total Degree | Columns | Chiplet Selector Flag |
-| --------------- | :----------: | :-------------: | :---------------------: | :----------: | :-----: | --------------------- |
+| --------------- | :----------: | :-------------: | :---------------------: | :----------: |:-------:| --------------------- |
 | Hash chiplet    |      8       |        8        |            1            |       9      |   17    | $\{0\}$               |
 | Bitwise chiplet |      8       |        3        |            2            |       5      |   13    | $\{1, 0\}$            |
 | Memory          |      -       |        6        |            3            |       9      |   12    | $\{1, 1, 0\}$         |
-| Kernel ROM      |      -       |        2        |            4            |       6      |   6     | $\{1, 1, 1, 0\}$      |
-| Padding         |      -       |        -        |            -            |       -      |   -     | $\{1, 1, 1, 1\}$      |
+| Kernel ROM      |      -       |        2        |            4            |       6      |    5    | $\{1, 1, 1, 0\}$      |
+| Padding         |      -       |        -        |            -            |       -      |    -    | $\{1, 1, 1, 1\}$      |
 
 ### Additional requirements for stacking execution traces
 
@@ -160,6 +161,8 @@ The bus is implemented as a single [running product column](../lookups/multiset.
 - Each chiplet response is “sent” by computing the same operation-specific lookup value from the label, inputs, and outputs, and then multiplying it into the $b_{chip}$ running product column.
 
 Thus, if the requests and responses match, then the bus column $b_{chip}$ will start and end with the value $1$. This condition is enforced by boundary constraints on the $b_{chip}$ column.
+It is also possible to invoke chiplet computations through public inputs, by initializing the bus with requests that must be responded to by the chiplets.
+In this case, the verifier derives the initial value of the bus as the inverse product of all reduced requests.
 
 Note that the order of the requests and responses does not matter, as long as they are all included in $b_{chip}$. In fact, requests and responses for the same operation will generally occur at different cycles.
 
@@ -172,8 +175,16 @@ Lookup requests are sent to the chiplets bus by the following components:
 - The stack sends requests for [bitwise](../stack/u32_ops.md#u32and), [memory](../stack/io_ops.md#memory-access-operations), and [cryptographic hash operations](../stack/crypto_ops.md).
 - The decoder sends requests for [hash operations](../decoder/main.md#program-block-hashing) for program block hashing.
 - The decoder sends a procedure access request to the [Kernel ROM chiplet](./kernel_rom.md) for each `SYSCALL` during [program block hashing](../decoder/main.md#program-block-hashing).
+- The verifier initializes the bus with requests to the [Kernel ROM chiplet](./kernel_rom.md) for each unique kernel procedure hash.
 
 Responses are provided by the [hash](./hasher.md#chiplets-bus-constraints), [bitwise](./bitwise.md#chiplets-bus-constraints), [memory](./memory.md#chiplets-bus-constraints), and [kernel ROM](./kernel_rom.md#chiplets-bus-constraints) chiplets.
+
+The chiplet bus can be initialized with reduced request $v_0, v_1, \ldots$ by computing their product $v_{init} = \prod_i v_i$, and enforcing the boundary constraint in the first row to ensure 
+$b_{chip} = \frac{1}{v_{init}}$ 
+
+> $$
+b_{chip} \cdot v_{init} - 1 = 0 \text{ | degree} = 2
+$$
 
 ## Chiplets virtual table
 
@@ -181,9 +192,11 @@ Some chiplets require the use of a [virtual table](../lookups/multiset.md#virtua
 
 Currently, the chiplets virtual table combines two virtual tables:
 - the hash chiplet's [sibling table](./hasher.md#sibling-table-constraints)
-- the kernel ROM chiplet's [kernel procedure table](./kernel_rom.md#kernel-procedure-table-constraints)
+- TODO: a shared table between the [ACE](./ace.md#chiplets-bus-constraints) and [memory](./memory.md#chiplets-bus-constraints) chiplets enabling the ACE chiplet to read inputs and the circuit from memory.
 
-To combine these correctly, the [running product column](../lookups/multiset.md) for this table must be constrained not only at the beginning and the end of the trace, but also where the hash chiplet ends and where the kernel ROM chiplet begins. These positions can be identified using the chiplet selector columns.
+To combine these correctly, the [running product column](../lookups/multiset.md) for this table must be constrained not only at the beginning and the end of the trace, but also where the hash chiplet ends. 
+Other chiplets can use the virtual table to communicate amongst each other, for example, to enable a chiplet to access the memory.
+Since the hasher chiplet is in the first position, and running product columns can only be initialized in its first row, the table must be empty at the end of the chiplets trace.
 
 ### Chiplets virtual table constraints
 
@@ -197,10 +210,17 @@ For the sibling table to be properly constrained, the value of the running produ
 (s'_0 - s_0) \cdot (1 - vt_{chip}) = 0 \text{ | degree} = 2
 $$
 
-For the kernel procedure table to be properly constrained, the value must be $1$ when it starts, and it must be equal to the product of all of the kernel ROM procedures when it finishes. This can be achieved by:
-- enforcing a boundary constraint against the last row for the value of all of the kernel ROM procedures
-- using the following transition constraint to enforce that when the active chiplet changes to the kernel ROM chiplet the value is $1$.
 
-> $$
-s_0 \cdot s_1 \cdot (s'_2 - s_2) \cdot (1 - vt'_{chip}) = 0 \text{ | degree} = 4
-$$
+
+[//]: # (For the kernel procedure table to be properly constrained, the value must be $1$ when it starts, and it must be equal to the product of all of the kernel ROM procedures when it finishes. This can be achieved by:)
+
+[//]: # (- enforcing a boundary constraint against the last row for the value of all of the kernel ROM procedures)
+
+[//]: # (- using the following transition constraint to enforce that when the active chiplet changes to the kernel ROM chiplet the value is $1$.)
+
+[//]: # ()
+[//]: # (> $$)
+
+[//]: # (s_0 \cdot s_1 \cdot &#40;s'_2 - s_2&#41; \cdot &#40;1 - vt'_{chip}&#41; = 0 \text{ | degree} = 4)
+
+[//]: # ($$)

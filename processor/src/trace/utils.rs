@@ -253,16 +253,15 @@ pub trait AuxColumnBuilder<E: FieldElement<BaseField = Felt>> {
         let mut requests: Vec<E> = unsafe { uninit_vector(main_trace.num_rows()) };
         requests[0] = self.init_requests(main_trace, alphas, &mut bus_debugger);
 
-        // Running products of all responses, used to facilitate batch inversion.
         let mut responses_prod: Vec<E> = unsafe { uninit_vector(main_trace.num_rows()) };
         responses_prod[0] = self.init_responses(main_trace, alphas, &mut bus_debugger);
 
-        // Product of all requests to be inverted, used to compute inverses of all requests.
         let mut requests_running_prod = requests[0];
+
+        // Product of all requests to be inverted, used to compute inverses of requests.
         for row_idx in 0..main_trace.num_rows() - 1 {
             let row = row_idx.into();
 
-            //
             let response = self.get_responses_at(main_trace, alphas, row, &mut bus_debugger);
             responses_prod[row_idx + 1] = responses_prod[row_idx] * response;
 
@@ -271,14 +270,12 @@ pub trait AuxColumnBuilder<E: FieldElement<BaseField = Felt>> {
             requests_running_prod *= request;
         }
 
-        // Use batch-inversion method to compute running product of `request[i]/response[i]`
+        // Use batch-inversion method to compute running product of `response[i]/request[i]`.
         let mut result_aux_column = responses_prod;
-        {
-            let mut requests_running_divisor = requests_running_prod.inv();
-            for i in (0..main_trace.num_rows()).rev() {
-                result_aux_column[i] *= requests_running_divisor;
-                requests_running_divisor *= requests[i];
-            }
+        let mut requests_running_divisor = requests_running_prod.inv();
+        for i in (0..main_trace.num_rows()).rev() {
+            result_aux_column[i] *= requests_running_divisor;
+            requests_running_divisor *= requests[i];
         }
 
         #[cfg(any(test, feature = "bus-debugger"))]
