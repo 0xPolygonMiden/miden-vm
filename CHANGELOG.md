@@ -3,8 +3,9 @@
 ## 0.15.0 (TBD)
 
 #### Changes
-- Improve error messages for some assembler instruction (#1785)
 
+- Improve error messages for some assembler instruction (#1785)
+- Remove `idx` column from Kernel ROM chiplet and use chiplet bus for initialization. (#1818)
 
 ## 0.14.0 (2025-05-07)
 
@@ -18,6 +19,7 @@
 - Update the recursive verifier to use arithmetic evaluation chiplet (#1760).
 
 #### Changes
+
 - Replace deprecated #[clap(...)] with #[command(...)] and #[arg(.…)] (#1794)
 - Add pull request template to guide contributors (#1795)
 - [BREAKING] `ExecutionOptions::with_debugging()` now takes a boolean parameter (#1761)
@@ -29,11 +31,12 @@
 - Improve processor error diagnostics (#1765)
 - Fix source spans associated with assert* and mtree_verify instructions (#1789)
 
-
 ## 0.13.2 (2025-04-02)
 
 #### Changes
-- Relaxed rules for identifiers created via `Ident::new`, `ProcedureName::new`, `LibraryNamespace::new`, and `Library::new_from_components` (#1735)
+
+- Relaxed rules for identifiers created via `Ident::new`, `ProcedureName::new`, `LibraryNamespace::new`, and
+  `Library::new_from_components` (#1735)
 - [BREAKING] Renamed `Ident::new_unchecked` and `ProcedureName::new_unchecked` to `from_raw_parts` (#1735).
 
 #### Fixes
@@ -44,7 +47,8 @@
 
 #### Enhancements
 
-- Added `prepare_hasher_state` and `hash_memory_with_state` procedures to the `stdlib::crypto::hashes::rpo` module (#1718).
+- Added `prepare_hasher_state` and `hash_memory_with_state` procedures to the `stdlib::crypto::hashes::rpo` module (
+  #1718).
 
 ## 0.13.0 (2025-03-20)
 
@@ -55,6 +59,7 @@
 - [BREAKING] Introduced `HORNERBASE`, `HORNEREXT` and removed `RCOMBBASE` instructions (#1656).
 
 #### Changes
+
 - Update minimum supported Rust version to 1.85.
 - Change Chiplet Fields to Public (#1629).
 - [BREAKING] Updated Winterfell dependency to v0.12 (#1658).
@@ -74,11 +79,15 @@
 ## 0.12.0 (2025-01-22)
 
 #### Highlights
+
 - [BREAKING] Refactored memory to be element-addressable (#1598).
 
 #### Changes
-- [BREAKING] Resolved flag collision in `--verify` command and added functionality for optional input/output files (#1513).
-- [BREAKING] Refactored `MastForest` serialization/deserialization to put decorator data at the end of the binary (#1531).
+
+- [BREAKING] Resolved flag collision in `--verify` command and added functionality for optional input/output files (
+  #1513).
+- [BREAKING] Refactored `MastForest` serialization/deserialization to put decorator data at the end of the binary (
+  #1531).
 - [BREAKING] Refactored `Process` struct to no longer take ownership of the `Host` (#1571).
 - [BREAKING] Converted `ProcessState` from a trait to a struct (#1571).
 - [BREAKING] Simplified `Host` and `AdviceProvider` traits (#1572).
@@ -88,8 +97,10 @@
 - Moved handling of `FalconSigToStack` event from system event handlers to the `DefaultHost` (#1630).
 
 #### Enhancements
+
 - Added options `--kernel`, `--debug` and `--output` to `miden bundle` (#1447).
-- Added `miden_core::mast::MastForest::advice_map` to load it into the advice provider before the `MastForest` execution (#1574).
+- Added `miden_core::mast::MastForest::advice_map` to load it into the advice provider before the `MastForest`
+  execution (#1574).
 - Optimized the computation of the DEEP queries in the recursive verifier (#1594).
 - Added validity checks for the inputs to the recursive verifier (#1596).
 - Allow multiple memory reads in the same clock cycle (#1626)
@@ -101,7 +112,8 @@
 #### Enhancements
 
 - Added `miden_core::utils::sync::racy_lock` module (#1463).
-- Updated `miden_core::utils` to re-export `std::sync::LazyLock` and `racy_lock::RacyLock as LazyLock` for std and no_std environments, respectively (#1463).
+- Updated `miden_core::utils` to re-export `std::sync::LazyLock` and `racy_lock::RacyLock as LazyLock` for std and
+  no_std environments, respectively (#1463).
 - Debug instructions can be enabled in the cli `run` command using `--debug` flag (#1502).
 - Added support for procedure annotation (attribute) syntax to Miden Assembly (#1510).
 - Make `miden-prover::prove()` method conditionally asynchronous (#1563).
@@ -200,11 +212,14 @@
 - Added source location tracking to assembled MAST (#1419).
 - Added error codes support for the `mtree_verify` instruction (#1328).
 - Added support for immediate values for `lt`, `lte`, `gt`, `gte` comparison instructions (#1346).
-- Added support for immediate values for `u32lt`, `u32lte`, `u32gt`, `u32gte`, `u32min` and `u32max` comparison instructions (#1358).
-- Added support for the `nop` instruction, which corresponds to the VM opcode of the same name, and has the same semantics.
+- Added support for immediate values for `u32lt`, `u32lte`, `u32gt`, `u32gte`, `u32min` and `u32max` comparison
+  instructions (#1358).
+- Added support for the `nop` instruction, which corresponds to the VM opcode of the same name, and has the same
+  semantics.
 - Added support for the `if.false` instruction, which can be used in the same manner as `if.true`
 - Added support for immediate values for `u32and`, `u32or`, `u32xor` and `u32not` bitwise instructions (#1362).
-- [BREAKING] Assembler: add the ability to compile MAST libraries, and to assemble a program using compiled libraries (#1401)
+- [BREAKING] Assembler: add the ability to compile MAST libraries, and to assemble a program using compiled libraries (
+  #1401)
 
 #### Enhancements
 
@@ -222,7 +237,8 @@
 - Removed `ProcedureCache` from the assembler (#1411).
 - Added functions to `MastForest` and `MastForestBuilder` to add and ensure nodes with fewer LOC (#1404, #1412).
 - Added `Assembler::assemble_library()` and `Assembler::assemble_kernel()`  (#1413, #1418).
-- Added `miden_core::prettier::pretty_print_csv` helper, for formatting of iterators over `PrettyPrint` values as comma-separated items.
+- Added `miden_core::prettier::pretty_print_csv` helper, for formatting of iterators over `PrettyPrint` values as
+  comma-separated items.
 - Added source code management primitives in `miden-core` (#1419).
 - Added `make test-fast` and `make test-skip-proptests` Makefile targets for faster testing during local development.
 - Added `ProgramFile::read_with` constructor that takes a `SourceManager` impl to use for source management.
@@ -230,14 +246,17 @@
 
 #### Changed
 
-- When using `if.(true|false) .. end`, the parser used to emit an empty block for the branch that was elided. The parser now emits a block containing a single `nop` instruction instead.
+- When using `if.(true|false) .. end`, the parser used to emit an empty block for the branch that was elided. The parser
+  now emits a block containing a single `nop` instruction instead.
 - [BREAKING] `internals` configuration feature was renamed to `testing` (#1399).
 - The `AssemblyOp` decorator now contains an optional `Location` (#1419)
 - The `Assembler` now requires passing in a `Arc<dyn SourceManager>`, for use in rendering diagnostics.
-- The `Module::parse_file` and `Module::parse_str` functions have been removed in favor of calling `Module::parser` and then using the `ModuleParser` methods.
+- The `Module::parse_file` and `Module::parse_str` functions have been removed in favor of calling `Module::parser` and
+  then using the `ModuleParser` methods.
 - The `Compile` trait now requires passing a `SourceManager` reference along with the item to be compiled.
 - Update minimum supported Rust version to 1.80 (#1425).
-- Made `debug` mode the default in the CLI. Added `--release` flag to disable debugging instead of having to enable it. (#1728)
+- Made `debug` mode the default in the CLI. Added `--release` flag to disable debugging instead of having to enable
+  it. (#1728)
 
 ## 0.9.2 (2024-05-22) - `stdlib` crate only
 
@@ -259,12 +278,14 @@
 
 #### Packaging
 
-- [BREAKING] The package `miden-vm` crate was renamed from `miden` to `miden-vm`. Now the package and crate names match (#1271).
+- [BREAKING] The package `miden-vm` crate was renamed from `miden` to `miden-vm`. Now the package and crate names
+  match (#1271).
 
 #### Stdlib
 
 - Added `init_no_padding` procedure to `std::crypto::hashes::native` (#1313).
-- [BREAKING] `native` module was renamed to the `rpo`, `hash_memory` procedure was renamed to the `hash_memory_words` (#1368).
+- [BREAKING] `native` module was renamed to the `rpo`, `hash_memory` procedure was renamed to the `hash_memory_words` (
+  #1368).
 - Added `hash_memory` procedure to `std::crypto::hashes::rpo` (#1368).
 
 #### VM Internals
@@ -376,7 +397,8 @@
 - Added new module: `std::collections::mmr`.
 - Added new module: `std::collections::smt64`.
 - Added several convenience procedures to `std::mem` module.
-- [BREAKING] Added procedures to compute 1-to-1 hashes in `std::crypto::hashes` module and renamed existing procedures to remove ambiguity.
+- [BREAKING] Added procedures to compute 1-to-1 hashes in `std::crypto::hashes` module and renamed existing procedures
+  to remove ambiguity.
 - Greatly optimized recursive STARK verifier (reduced number of cycles by 6x - 8x).
 
 #### VM Internals
@@ -436,7 +458,8 @@
 
 - [BREAKING] Refactored `execute()`, `prove()`, `verify()` functions to take `StackInputs` as one of the parameters.
 - [BREAKING] Refactored `prove()` function to return `ExecutionProof` (which is a wrapper for `StarkProof`).
-- [BREAKING] Refactored `verify()` function to take `ProgramInfo`, `StackInputs`, and `ExecutionProof` as parameters and return a `u32` indicating security level of the verified proof.
+- [BREAKING] Refactored `verify()` function to take `ProgramInfo`, `StackInputs`, and `ExecutionProof` as parameters and
+  return a `u32` indicating security level of the verified proof.
 
 #### Stdlib
 
@@ -452,14 +475,19 @@
 
 - Implemented `call` operation for context-isolated function calls.
 - Added support for custom kernels.
-- Implemented `syscall` operation for kernel calls, and added a new `caller` instruction for accessing the hash of the calling function.
+- Implemented `syscall` operation for kernel calls, and added a new `caller` instruction for accessing the hash of the
+  calling function.
 - Implemented `mem_stream` operation for fast hashing of memory regions.
 - Implemented `adv_pipe` operation for fast "unhashing" of inputs into memory.
 - Added support for unlimited number of stack inputs/outputs.
-- [BREAKING] Redesigned Miden assembly input/output instructions for environment, random access memory, local memory, and non-deterministic "advice" inputs.
-- [BREAKING] Reordered the output stack for Miden assembly cryptographic operations `mtree_set` and `mtree_get` to improve efficiency.
-- Refactored the advice provider to add support for advice maps, and added the `adv.mem` decorator for copying memory regions into the advice map.
-- [BREAKING] Refactored the Assembler and added support for module providers. (Standard library is no longer available by default.)
+- [BREAKING] Redesigned Miden assembly input/output instructions for environment, random access memory, local memory,
+  and non-deterministic "advice" inputs.
+- [BREAKING] Reordered the output stack for Miden assembly cryptographic operations `mtree_set` and `mtree_get` to
+  improve efficiency.
+- Refactored the advice provider to add support for advice maps, and added the `adv.mem` decorator for copying memory
+  regions into the advice map.
+- [BREAKING] Refactored the Assembler and added support for module providers. (Standard library is no longer available
+  by default.)
 - Implemented AIR constraints for the stack component.
 - Added Miden REPL tool.
 - Improved performance with various internal refactorings and optimizations.
@@ -475,4 +503,5 @@
 
 ## 0.1.0 (2021-11-16)
 
-- Initial release (migration of the original [Distaff VM](https://github.com/GuildOfWeavers/distaff) codebase to [Winterfell](https://github.com/novifinancial/winterfell) backend).
+- Initial release (migration of the original [Distaff VM](https://github.com/GuildOfWeavers/distaff) codebase
+  to [Winterfell](https://github.com/novifinancial/winterfell) backend).
