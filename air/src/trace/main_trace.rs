@@ -2,30 +2,30 @@
 use alloc::vec::Vec;
 use core::ops::{Deref, Range};
 
-use vm_core::{Felt, ONE, Word, ZERO, utils::range};
+use vm_core::{utils::range, Felt, Word, ONE, ZERO};
 
 use super::{
     super::ColMatrix,
-    CHIPLETS_OFFSET, CLK_COL_IDX, CTX_COL_IDX, DECODER_TRACE_OFFSET, FMP_COL_IDX, FN_HASH_OFFSET,
-    STACK_TRACE_OFFSET,
     chiplets::{
-        BITWISE_A_COL_IDX, BITWISE_B_COL_IDX, BITWISE_OUTPUT_COL_IDX, HASHER_NODE_INDEX_COL_IDX,
-        HASHER_STATE_COL_RANGE, MEMORY_CLK_COL_IDX, MEMORY_CTX_COL_IDX, MEMORY_IDX0_COL_IDX,
-        MEMORY_IDX1_COL_IDX, MEMORY_V_COL_RANGE, MEMORY_WORD_COL_IDX, NUM_ACE_SELECTORS,
         ace::{
             CLK_IDX, CTX_IDX, EVAL_OP_IDX, ID_0_IDX, ID_1_IDX, ID_2_IDX, M_0_IDX, M_1_IDX, PTR_IDX,
             READ_NUM_EVAL_IDX, SELECTOR_BLOCK_IDX, SELECTOR_START_IDX, V_0_0_IDX, V_0_1_IDX,
             V_1_0_IDX, V_1_1_IDX, V_2_0_IDX, V_2_1_IDX,
-        },
-        hasher::{DIGEST_LEN, HASH_CYCLE_LEN, STATE_WIDTH},
-    },
-    decoder::{
+        }, hasher::{DIGEST_LEN, HASH_CYCLE_LEN, STATE_WIDTH}, BITWISE_A_COL_IDX, BITWISE_B_COL_IDX,
+        BITWISE_OUTPUT_COL_IDX, HASHER_NODE_INDEX_COL_IDX, HASHER_STATE_COL_RANGE, MEMORY_CLK_COL_IDX,
+        MEMORY_CTX_COL_IDX, MEMORY_IDX0_COL_IDX, MEMORY_IDX1_COL_IDX, MEMORY_V_COL_RANGE,
+        MEMORY_WORD_COL_IDX,
+        NUM_ACE_SELECTORS,
+    }, decoder::{
         GROUP_COUNT_COL_IDX, HASHER_STATE_OFFSET, IN_SPAN_COL_IDX, IS_CALL_FLAG_COL_IDX,
         IS_LOOP_BODY_FLAG_COL_IDX, IS_LOOP_FLAG_COL_IDX, IS_SYSCALL_FLAG_COL_IDX,
         NUM_HASHER_COLUMNS, NUM_OP_BATCH_FLAGS, OP_BATCH_FLAGS_OFFSET, OP_BITS_EXTRA_COLS_OFFSET,
         USER_OP_HELPERS_OFFSET,
-    },
-    stack::{B0_COL_IDX, B1_COL_IDX, H0_COL_IDX},
+    }, stack::{B0_COL_IDX, B1_COL_IDX, H0_COL_IDX}, CHIPLETS_OFFSET, CLK_COL_IDX, CTX_COL_IDX,
+    DECODER_TRACE_OFFSET,
+    FMP_COL_IDX,
+    FN_HASH_OFFSET,
+    STACK_TRACE_OFFSET,
 };
 use crate::RowIndex;
 
@@ -545,15 +545,9 @@ impl MainTrace {
     }
 
     /// Returns true when i-th row of the kernel chiplet is the first `s_first` column, i.e.,
-    /// a response to a table request for the kernel proc hash.
-    pub fn chiplet_kernel_is_table_response(&self, i: RowIndex) -> bool {
+    /// when this is the first row in a range of rows containing the same kernel proc hash.
+    pub fn chiplet_kernel_is_first_hash_row(&self, i: RowIndex) -> bool {
         self.columns.get_column(CHIPLETS_OFFSET + 5)[i] == ONE
-    }
-
-    /// Returns true when i-th row of the kernel chiplet is not the first `s_first` column, i.e.,
-    /// a response to a bus request for the kernel proc hash.
-    pub fn chiplet_kernel_is_bus_response(&self, i: RowIndex) -> bool {
-        self.columns.get_column(CHIPLETS_OFFSET + 5)[i] == ZERO
     }
 
     /// Returns the i-th row of the chiplet column containing the zeroth element of the kernel

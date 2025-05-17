@@ -1,91 +1,101 @@
 # Kernel ROM chiplet
-The kernel ROM enables executing predefined kernel procedures. These procedures are always executed in the root context and can only be accessed by a `SYSCALL` operation. The chiplet tracks and enforces correctness of all kernel procedure calls as well as maintaining a list of all the procedures defined for the kernel, whether they are executed or not. More background about Miden VM execution contexts can be found [here](../../user_docs/assembly/execution_contexts.md).
+
+The kernel ROM enables executing predefined kernel procedures. These procedures are always executed in the root context
+and can only be accessed by a `SYSCALL` operation. The chiplet tracks and enforces correctness of all kernel procedure
+calls as well as maintaining a list of all the procedures defined for the kernel, whether they are executed or not. More
+background about Miden VM execution contexts can be found [here](../../user_docs/assembly/execution_contexts.md).
 
 ## Kernel ROM trace
-The kernel ROM table consists of 6 columns.
+
+The kernel ROM table consists of 5 columns.
+
+> TODO: Update diagram
+> - remove `idx`
+> - duplicate each hash once and set `s_first` = 1 in that row
 
 ![kernel_rom_execution_trace](../../assets/design/chiplets/kernel_rom/kernel_rom_execution_trace.png)
 
 The meaning of columns in the above is as follows:
-- Column $s_0$ specifies whether the value in the row should be included into the chiplets bus $b_{chip}$.
-- $idx$ is a column which starts out at $0$ and must either remain the same or be incremented by $1$ with every row.
-- $r_0, ..., r_3$ are contain the roots of the kernel functions. The values in these columns can change only when the value in the $idx$ column changes. If the $idx$ column remains the same, the values in the $r$ columns must also remain the same.
+
+- Column $s_{first}$ specifies that the start of a block representing a unique kernel procedure hash.
+- $r_0, ..., r_3$ are contain the roots of the kernel functions. The values in these columns can change only
+  when $s_{first}$ is set to 1 in the next row. Otherwise, the values in the $r$ columns remain the same.
 
 ## Constraints
 
-The following constraints are required to enforce correctness of the kernel ROM trace.
+> Note: the following assumes the ACE chiplet is included in the previous slot, whose documentation will be included
+> in a subsequent PR.
 
-For convenience, let's define $\Delta idx = idx' - idx$.
+The following constraints are required to enforce the correctness of the kernel ROM trace.
+_Note: Unless otherwise stated, these constraints should also be multiplied by chiplets module's selector
+flag $chip\_s_4$ for the kernel ROM chiplet, as is true for all constraints in this chiplet._
 
-The $s_0$ column must be binary.
-
-> $$
-s_0^2 - s_0 = 0 \text{ | degree} = 2
-$$
-
-The value in the $idx$ column must either stay the same or increase by $1$.
+The $s_{first}$ column must be binary.
 
 > $$
-\Delta idx \cdot (1 - \Delta idx) = 0 \text{ | degree} = 2
+s_{first}^2 - s_{first} = 0 \text{ | degree} = 2
 $$
 
-Finally, if the $idx$ column stays the same then the kernel procedure root must not change. This can be achieved by enforcing the following constraint against each of the four procedure root columns:
+$s_{first}$ must be set in the first row of the trace, indicating the start of a new hash which must be included in the set of kernel procedure roots provided by the verifier.
+This constraint is enforced in the last row of the previous trace, using selector columns from the [chiplets](main.md)
+module.
+The virtual $chip\_s_3$ flag is active in all rows of the previous chiplet.
+In the last row of that chiplet, the selector $s_3$ transitions from 0 to 1.
 
 > $$
-(1 - \Delta idx) \cdot (r_i' - r_i) = 0 \text{ | degree} = 2
+chip\_s_3 \cdot s_3' \cdot (1 - s_{first}') = 0 \text{ | degree} = \deg(chip\_s_3) + 2
 $$
 
-These constraints on $idx$ should not be applied to the very last row of the kernel ROM's execution trace, since we do not want to enforce a value that would conflict with the first row of a subsequent chiplet (or padding). Therefore we can create a special virtual flag for this constraint using the $chip\_s_3$ selector column from the [chiplets](main.md) module that selects for the kernel ROM chiplet.
+_Note that this selector need not be multiplied by the kernel ROM chiplet flag $chip\_s_4$, since it is only active when the previous chiplet is active._
 
-The modified constraints which should be applied are the following:
-
->$$
-(1 - chip\_s_3') \cdot \Delta idx \cdot (1 - \Delta idx) = 0 \text{ | degree} = 3
-$$
-
->$$
-(1 - chip\_s_3') \cdot (1 - \Delta idx) \cdot (r_i' - r_i) = 0 \text{ | degree} = 3
-$$
-
-_Note: these constraints should also be multiplied by chiplets module's selector flag for the kernel ROM chiplet, as is true for all constraints in this chiplet._
-
-## Chiplets bus constraints
-
-The chiplets bus is used to keep track of all kernel function calls. To simplify the notation for describing kernel ROM constraints on the chiplets bus, we'll first define variable $u$, which represents how each kernel procedure in the kernel ROM's execution trace is reduced to a single value. Denoting the random values received from the verifier as $\alpha_0, \alpha_1$, etc., this can be achieved as follows.
-
-$$
-v = \alpha_0 + \alpha_1 \cdot op_{krom} + \sum_{i=0}^3 (\alpha_{i + 2} \cdot r_i)
-$$
-
-Where, $op_{krom}$ is the unique [operation label](./main.md#operation-labels) of the kernel procedure call operation.
-
-The request side of the constraint for the operation is enforced during program block hashing of the [`SYSCALL` operation](../decoder/constraints.md#block-hash-computation-constraints).
-
-To provide accessed kernel procedures to the chiplets bus, we must send the kernel procedure to the bus every time it is called, which is indicated by the $s_0$ column.
+The hash of the procedure repeats in the next row whenever the next row is not the first of a new procedure, i.e., when $s_{first}' = 0$.
+To ensure the constraint is disabled in the last row, we multiply it by the chiplet selector $s_4$ for the next row,
+since it transitions from 0 to 1 at this point, indicating the start of
 
 > $$
-b'_{chip} = b_{chip} \cdot (s_0 \cdot v + 1 - s_0) \text{ | degree} = 3
+s_4' \cdot (1 - s_{first}') \cdot (r_i' - r_i) = 0 \text{ | degree} = 3
 $$
 
-Thus, when $s_0 = 0$ this reduces to $b'_{chip} = b_{chip}$, but when $s_0=1$ it becomes $b'_{chip} = b_{chip} \cdot u$.
+### Kernel procedure table constraints
 
-## Kernel procedure table constraints
-*Note: Although this table is described independently, it is implemented as part of the [chiplets virtual table](../chiplets/main.md#chiplets-virtual-table), which combines all virtual tables required by any of the chiplets into a single master table.*
+This kernel procedure table keeps track of all *unique* kernel function roots. The values in this table will be updated
+only when the value in the $s_{first}$ selector is set.
 
-This kernel procedure table keeps track of all *unique* kernel function roots. The values in this table will be updated only when the value in the `idx` column changes.
+The chiplet communicates with the chiplet bus via the $b_{chip}$ columns.
+In the first row of each trace segment containing the same hash, it responds to a request with message $u_{init}$,
+ensuring equality between the set of hashes contained in the trace and the list of kernel procedure roots provided via
+public inputs.
+In all other rows, the chiplet responds messages $u_{bus}$ requested during program block hashing of the [
+`SYSCALL` operation](../decoder/constraints.md#block-hash-computation-constraints).
 
-The row value included into $vt_{chip}$ is:
+The variables $u_{init}$ and $u_{bus}$ represent reduced bus messages containing a kernel procedure hash.
+Denoting the random values received from the verifier as $\alpha_0, \alpha_1$, etc., this can be defined as
 
 $$
-v = \alpha_0 + \alpha_1 \cdot idx + \sum_{i=0}^3 (\alpha_{i + 2} \cdot r_i)
+\begin{aligned}
+u_{init} &= \alpha_0 + \sum_{i=0}^3 (\alpha_{i + 1} \cdot r_i) \\
+u_{bus} &= \alpha_0 + \alpha_1 \cdot op_{krom} + \sum_{i=0}^3 (\alpha_{i + 2} \cdot r_i) \\
+\end{aligned}
 $$
 
-The constraint against $vt_{chip}$ is:
+Here, $op_{krom}$ is the unique [operation label](./main.md#operation-labels) of the kernel procedure call operation.
+
+_Note: the above might be unsafe since the first element of a hash may collide with another bus message op code._
+
+To provide accessed kernel procedures to the chiplets bus, we must send the kernel procedure to the bus every time it is
+called, which is indicated by the $s_{first}$ column.
+We also ensure that each new hash in the table corresponds to one of the kernel procedure roots provided via public inputs.
+These responses are mutually exclusive, allowing us to group them in a single constraint.
 
 > $$
-vt_{chip}' = vt_{chip} \cdot (\Delta idx \cdot v + 1 - \Delta idx) \text{ | degree} = 3
+b'_{chip} = b_{chip} \cdot (s_{first} \cdot u_{init} + (1 - s_{first}) \cdot u_{bus}) \text{ | degree} = 3
 $$
 
-Thus, when $\Delta idx = 0$, the above reduces to $vt'_{chip}=vt_{chip}$, but when $\Delta idx = 1$, the above becomes $vt'_{chip} = vt_{chip} \cdot v$.
+We also need to impose boundary constraints to ensure that the set of unique hashes in the trace matches the set of kernel procedure roots provided by the verifier.
+This is achieved by enforcing that the running product column for the bus is initialized with all $u_{init}$ hashes provided by the verifier.
+This ensures that the verifier only needs to know which kernel was used, but doesn't need to know which functions were invoked within the kernel.
+Moreover, since each new hash in the trace initiates a response to the initial public input requests, the trace cannot contain any other hash, ensuring both sets of hashes are equal.
 
-We also need to impose boundary constraints to make sure that running product column implementing the kernel procedure table is equal to $1$ when the kernel procedure table begins and to the product of all unique kernel functions when it ends. The last boundary constraint means that the verifier only needs to know which kernel was used, but doesn't need to know which functions were invoked within the kernel. These two constraints are described as part of the [chiplets virtual table constraints](../chiplets/main.md#chiplets-virtual-table-constraints).
+This constraint is described as part of
+the [chiplets bus constraints](../chiplets/main.md#chiplets-bus-constraints).
+

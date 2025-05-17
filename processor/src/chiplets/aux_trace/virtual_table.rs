@@ -2,7 +2,6 @@ use miden_air::{
     RowIndex,
     trace::{chiplets::hasher::DIGEST_RANGE, main_trace::MainTrace},
 };
-use vm_core::Kernel;
 
 use super::{
     Felt, FieldElement, build_ace_memory_read_element_request, build_ace_memory_read_word_request,
@@ -10,38 +9,31 @@ use super::{
 use crate::{debug::BusDebugger, trace::AuxColumnBuilder};
 
 /// Describes how to construct the execution trace of the chiplets virtual table auxiliary trace
-/// column.
-pub struct ChipletsVTableColBuilder {
-    kernel: Kernel,
-}
+/// column. This column enables communication between the different chiplets, in particular:
+/// - Ensuring sharing of sibling nodes in a Merkle tree when one of its leaves is updated by the
+///   hasher chiplet.
+/// - Allowing memory access for the ACE chiplet.
+///
+/// # Detail:
+/// The hasher chiplet requires the bus to be empty whenever a Merkle tree update is requested.
+/// This implies that the bus is also empty at the end of the trace containing the hasher rows.
+/// On the other hand, communication between the ACE and memory chiplets requires the bus to be
+/// contiguous, since messages are shared between these rows.
+///
+/// Since the hasher chip is in the first position, the other chiplets can treat it as a shared bus.
+/// However, this prevents any bus initialization via public inputs using boundary constraints
+/// in the first row. If such constraints are required, they must be enforced in the last row of
+/// the trace.
+///
+/// If public inputs are required for other chiplets, it is also possible to use the chiplet bus,
+/// as is done for the kernel ROM chiplet.
+#[derive(Default)]
+pub struct ChipletsVTableColBuilder {}
 
-impl ChipletsVTableColBuilder {
-    pub(super) fn new(kernel: Kernel) -> Self {
-        Self { kernel }
-    }
-}
-
-impl<E: FieldElement<BaseField = Felt>> AuxColumnBuilder<E> for ChipletsVTableColBuilder {
-    fn init_requests(
-        &self,
-        _main_trace: &MainTrace,
-        alphas: &[E],
-        _debugger: &mut BusDebugger<E>,
-    ) -> E {
-        let mut requests = E::ONE;
-        // Initialize the bus with the kernel rom hashes provided by the public inputs.
-        // The verifier computes this value, and is enforced with a boundary constraint in the
-        // first row.
-        for proc_hash in self.kernel.proc_hashes() {
-            requests *= alphas[0]
-                + alphas[1].mul_base(proc_hash[0])
-                + alphas[2].mul_base(proc_hash[1])
-                + alphas[3].mul_base(proc_hash[2])
-                + alphas[4].mul_base(proc_hash[3]);
-        }
-        requests
-    }
-
+impl<E> AuxColumnBuilder<E> for ChipletsVTableColBuilder
+where
+    E: FieldElement<BaseField = Felt>,
+{
     fn get_requests_at(
         &self,
         main_trace: &MainTrace,
@@ -67,7 +59,6 @@ impl<E: FieldElement<BaseField = Felt>> AuxColumnBuilder<E> for ChipletsVTableCo
         _debugger: &mut BusDebugger<E>,
     ) -> E {
         chiplets_vtable_add_sibling(main_trace, alphas, row)
-            * build_kernel_procedure_table_inclusions(main_trace, alphas, row)
     }
 }
 
@@ -180,33 +171,6 @@ where
                 + alphas[10].mul_base(sibling[2])
                 + alphas[11].mul_base(sibling[3])
         }
-    } else {
-        E::ONE
-    }
-}
-
-/// Builds the inclusions to the kernel procedure table at `row`.
-/// to be verified by public inputs
-fn build_kernel_procedure_table_inclusions<E>(
-    main_trace: &MainTrace,
-    alphas: &[E],
-    row: RowIndex,
-) -> E
-where
-    E: FieldElement<BaseField = Felt>,
-{
-    if main_trace.is_kernel_row(row) && main_trace.chiplet_kernel_is_table_response(row) {
-        let root0 = main_trace.chiplet_kernel_root_0(row);
-        let root1 = main_trace.chiplet_kernel_root_1(row);
-        let root2 = main_trace.chiplet_kernel_root_2(row);
-        let root3 = main_trace.chiplet_kernel_root_3(row);
-        // In contrast to the responses to the bus requests, we omit the label to simplify
-        // the verifier's work when initializing the virtual table's bus.
-        alphas[0]
-            + alphas[1].mul_base(root0)
-            + alphas[2].mul_base(root1)
-            + alphas[3].mul_base(root2)
-            + alphas[4].mul_base(root3)
     } else {
         E::ONE
     }
