@@ -66,3 +66,20 @@ impl AuxTraceBuilder {
         [t_chip, b_chip, wiring_bus]
     }
 }
+
+// HELPER FUNCTIONS
+// ================================================================================================
+
+/// Runs an inner product between the alphas and the elements.
+#[inline(always)]
+fn build_value<E, const N: usize>(alphas: &[E], elements: [Felt; N]) -> E
+where
+    E: FieldElement<BaseField = Felt>,
+{
+    debug_assert_eq!(alphas.len(), elements.len());
+    let mut value = alphas[0].mul_base(elements[0]);
+    for i in 1..N {
+        value += alphas[i].mul_base(elements[i]);
+    }
+    value
+}

@@ -7,7 +7,7 @@ use miden_air::{
 use vm_core::{Felt, FieldElement, crypto::hash::RpoDigest};
 
 use crate::{
-    chiplets::aux_trace::bus::build_value,
+    chiplets::aux_trace::build_value,
     debug::{BusDebugger, BusMessage},
 };
 

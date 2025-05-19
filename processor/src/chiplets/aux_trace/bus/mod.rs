@@ -252,20 +252,6 @@ where
 // HELPER FUNCTIONS
 // ================================================================================================
 
-/// Runs an inner product between the alphas and the elements.
-#[inline(always)]
-fn build_value<E, const N: usize>(alphas: &[E], elements: [Felt; N]) -> E
-where
-    E: FieldElement<BaseField = Felt>,
-{
-    debug_assert_eq!(alphas.len(), elements.len());
-    let mut value = E::ZERO;
-    for i in 0..N {
-        value += alphas[i].mul_base(elements[i]);
-    }
-    value
-}
-
 /// Returns the operation unique label.
 #[inline(always)]
 fn get_op_label(s0: Felt, s1: Felt, s2: Felt, s3: Felt) -> Felt {
