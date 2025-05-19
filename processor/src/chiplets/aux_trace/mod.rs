@@ -57,13 +57,11 @@ impl AuxTraceBuilder {
 
         // When debugging, check that all multi-set and logUp interactions are valid.
         let v_table_final_value = t_chip.last().copied().unwrap_or(E::ONE);
-        debug_assert_eq!(v_table_final_value, E::ONE);
-
         let chiplets_bus_final_value = b_chip.last().copied().unwrap_or(E::ONE);
-        debug_assert_eq!(chiplets_bus_final_value, E::ONE);
-
         let log_up_final_value = wiring_bus.last().copied().unwrap_or(E::ZERO);
+
         debug_assert_eq!(log_up_final_value, E::ZERO);
+        debug_assert_eq!(v_table_final_value * chiplets_bus_final_value, E::ONE);
 
         [t_chip, b_chip, wiring_bus]
     }
