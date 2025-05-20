@@ -26,6 +26,8 @@ pub enum DebugOptions {
     /// First parameter specifies the starting address, second -- the ending address, and the third
     /// specifies the overall number of locals.
     LocalInterval(u16, u16, u16),
+    /// Prints out the top n items of the advice stack for the current context.
+    AdvStackTop(u8),
 }
 
 impl crate::prettier::PrettyPrint for DebugOptions {
@@ -44,6 +46,7 @@ impl fmt::Display for DebugOptions {
             Self::LocalInterval(start, end, _) => {
                 write!(f, "local.{start}.{end}")
             },
+            Self::AdvStackTop(n) => write!(f, "adv_stack.{n}"),
         }
     }
 }

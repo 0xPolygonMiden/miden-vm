@@ -29,6 +29,7 @@ pub fn print_debug_info(process: ProcessState, options: &DebugOptions) {
         DebugOptions::LocalInterval(n, m, num_locals) => {
             printer.print_local_interval(process, (*n as u32, *m as u32), *num_locals as u32);
         },
+        DebugOptions::AdvStackTop(_) => todo!(),
     }
 }
 

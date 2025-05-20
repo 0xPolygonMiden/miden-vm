@@ -109,6 +109,10 @@ impl DecoratorInfo {
 
                 Ok(Decorator::Trace(value))
             },
+            EncodedDecoratorVariant::DebugOptionsAdvStackTop => {
+                let value = data_reader.read_u8()?;
+                Ok(Decorator::Debug(DebugOptions::AdvStackTop(value)))
+            },
         }
     }
 }
@@ -147,6 +151,7 @@ pub enum EncodedDecoratorVariant {
     DebugOptionsMemAll,
     DebugOptionsMemInterval,
     DebugOptionsLocalInterval,
+    DebugOptionsAdvStackTop,
     Trace,
 }
 
@@ -175,6 +180,7 @@ impl From<&Decorator> for EncodedDecoratorVariant {
                 DebugOptions::MemAll => Self::DebugOptionsMemAll,
                 DebugOptions::MemInterval(..) => Self::DebugOptionsMemInterval,
                 DebugOptions::LocalInterval(..) => Self::DebugOptionsLocalInterval,
+                DebugOptions::AdvStackTop(_) => Self::DebugOptionsAdvStackTop,
             },
             Decorator::Trace(_) => Self::Trace,
         }
@@ -261,7 +267,7 @@ impl DecoratorDataBuilder {
                 Some(data_offset)
             },
             Decorator::Debug(debug_options) => match debug_options {
-                DebugOptions::StackTop(value) => {
+                DebugOptions::StackTop(value) | DebugOptions::AdvStackTop(value) => {
                     self.decorator_data.push(*value);
                     Some(data_offset)
                 },
