@@ -32,6 +32,9 @@ const.NUM_INPUTS_CIRCUIT=232
 # Number of evaluation gates in the constraint evaluation circuit
 const.NUM_EVAL_GATES_CIRCUIT=88
 
+# Op label for kernel procedures table messages
+const.KERNEL_OP_LABEL=0
+
 # MEMORY POINTERS
 # =================================================================================================
 
@@ -479,3 +482,10 @@ end
 export.aux_rand_nd_ptr
     push.AUX_RAND_ND_PTR
 end
+<<<<<<< HEAD
+=======
+
+export.kernel_proc_table_op_label
+    push.KERNEL_OP_LABEL
+end
+>>>>>>> 567fc1a2 (update the computation of unique kernel digests hash to include a domain separator)
