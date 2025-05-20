@@ -89,6 +89,14 @@ pub trait AdviceProvider: Sized {
         err_ctx: &ErrorContext<'_, impl MastNodeExt>,
     ) -> Result<(), ExecutionError>;
 
+    /// Returns a copy of the item currently at the top of the stack.
+    fn peek_stack(
+        &self,
+        n: usize,
+        process: ProcessState,
+        err_ctx: &ErrorContext<'_, impl MastNodeExt>,
+    ) -> Result<Felt, ExecutionError>;
+
     // ADVICE MAP
     // --------------------------------------------------------------------------------------------
 
