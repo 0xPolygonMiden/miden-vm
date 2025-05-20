@@ -49,6 +49,7 @@ extern {
         "adv_loadw" => Token::AdvLoadw,
         "adv_pipe" => Token::AdvPipe,
         "adv_push" => Token::AdvPush,
+        "adv_stack" => Token::AdvStack,
         "push_ext2intt" => Token::PushExt2intt,
         "push_mapval" => Token::PushMapval,
         "push_mapvaln" => Token::PushMapvaln,
@@ -741,6 +742,12 @@ Debug: Instruction = {
         match n {
             Some(n) => Instruction::Debug(DebugOptions::LocalInterval(n.clone(), n)),
             None => Instruction::Debug(DebugOptions::LocalAll),
+        }
+    },
+    "debug" "." "adv_stack" <n:MaybeImm<U8>> => {
+        match n {
+            Some(n) => Instruction::Debug(DebugOptions::AdvStackTop(n.map(|spanned| spanned.into_inner()))),
+            None => Instruction::Debug(DebugOptions::AdvStackTop(1.into())),
         }
     },
     "emit" <id:Imm<U32>> => Instruction::Emit(id),
@@ -1635,6 +1642,7 @@ Opcode: &'static str = {
     "adv_loadw" => "adv_loadw",
     "adv_pipe" => "adv_pipe",
     "adv_push" => "adv_push",
+    "adv_stack" => "adv_stack",
     "and" => "and",
     "arithmetic_circuit_eval" => "arithmetic_circuit_eval",
     "assert" => "assert",
