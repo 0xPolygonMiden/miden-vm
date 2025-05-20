@@ -2,7 +2,10 @@ use core::fmt::{Display, Formatter, Result as FmtResult};
 
 use miden_air::{
     RowIndex,
-    trace::{chiplets::kernel_rom::KERNEL_PROC_LABEL, main_trace::MainTrace},
+    trace::{
+        chiplets::kernel_rom::{KERNEL_PROC_CALL_LABEL, KERNEL_PROC_INIT_LABEL},
+        main_trace::MainTrace,
+    },
 };
 use vm_core::{Felt, FieldElement, crypto::hash::RpoDigest};
 
@@ -14,7 +17,7 @@ use crate::{
 // REQUESTS
 // ================================================================================================
 
-/// Builds the requests for each unique kernel proc hash, to be provided via public inputs.
+/// Builds the requests for each unique kernel procedure digest, to be provided via public inputs.
 pub(super) fn build_kernel_init_requests<E>(
     proc_hashes: &[RpoDigest],
     alphas: &[E],
@@ -49,8 +52,9 @@ where
 ///   public inputs, or,
 /// - requests by the decoder when it performs a SYSCALL.
 ///
-/// If a kernel proc hash is requested `n` times by the decoder, it is repeated `n+1` times
-/// in the trace. In the first row, the chiplet responds to a request made via public inputs.
+/// If a kernel procedure digest is requested `n` times by the decoder, it is repeated
+/// `n+1` times in the trace.
+/// In the first row, the chiplet responds to a request made via public inputs.
 /// The remaining `n` rows respond to decoder requests.
 pub(super) fn build_kernel_chiplet_responses<E>(
     main_trace: &MainTrace,
@@ -97,7 +101,7 @@ where
 // ===============================================================================================
 
 /// A message between the decoder and the kernel ROM to ensure a SYSCALL can only call procedures
-/// provided through public inputs.
+///in the kernel as specified through public inputs.
 pub struct KernelRomMessage {
     pub kernel_proc_digest: [Felt; 4],
 }
@@ -112,7 +116,7 @@ where
             + build_value(
                 &alphas[1..6],
                 [
-                    KERNEL_PROC_LABEL,
+                    KERNEL_PROC_CALL_LABEL,
                     self.kernel_proc_digest[0],
                     self.kernel_proc_digest[1],
                     self.kernel_proc_digest[2],
@@ -144,18 +148,11 @@ where
 {
     #[inline(always)]
     fn value(&self, alphas: &[E]) -> E {
-        // In contrast to the responses to the decoder, we omit the label to simplify
-        // the verifier's work when initializing the virtual table's bus.
-        // This is safe, as long as all other messages are domain separated with a tag.
-        // TODO(adr1anh):
-        //   This may actually be unsafe, unless we explicitly use the 0 tag for
-        //   this message. The first element of a hash could correspond to one of the
-        //   the OP tags.
-        //   One solution could be to just use the 0 tag, and use challenges 2..5.
         alphas[0]
             + build_value(
-                &alphas[1..5],
+                &alphas[1..6],
                 [
+                    KERNEL_PROC_INIT_LABEL,
                     self.kernel_proc_digest[0],
                     self.kernel_proc_digest[1],
                     self.kernel_proc_digest[2],

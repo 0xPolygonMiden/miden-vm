@@ -544,7 +544,7 @@ impl MainTrace {
             && self.chiplet_selector_4(i) == ZERO
     }
 
-    /// Returns true when i-th row of the kernel chiplet is the first `s_first` column, i.e.,
+    /// Returns true when the i-th row of the `s_first` column in the kernel chiplet is one, i.e.,
     /// when this is the first row in a range of rows containing the same kernel proc hash.
     pub fn chiplet_kernel_is_first_hash_row(&self, i: RowIndex) -> bool {
         self.columns.get_column(CHIPLETS_OFFSET + 5)[i] == ONE
