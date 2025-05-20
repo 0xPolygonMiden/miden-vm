@@ -6,6 +6,11 @@
 
 - Simplify and optimize the recursive verifier (#1801).
 
+#### Changes
+
+- Improve error messages for some assembler instruction (#1785)
+
+
 ## 0.14.0 (2025-05-07)
 
 #### Enhancements
