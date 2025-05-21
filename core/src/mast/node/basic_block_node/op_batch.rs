@@ -51,7 +51,7 @@ impl OpBatch {
 // ================================================================================================
 
 /// An accumulator used in construction of operation batches.
-pub(super) struct OpBatchAccumulator {
+pub struct OpBatchAccumulator {
     /// A list of operations in this batch.
     ///
     /// This list is redundant with opcodes stored in the operation groups.

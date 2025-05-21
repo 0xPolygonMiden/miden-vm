@@ -11,8 +11,7 @@ use crate::{
 };
 
 mod op_batch;
-pub use op_batch::OpBatch;
-use op_batch::OpBatchAccumulator;
+pub use op_batch::{OpBatch, OpBatchAccumulator};
 
 use super::MastNodeExt;
 
