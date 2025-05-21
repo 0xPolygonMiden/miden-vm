@@ -65,7 +65,7 @@ The kernel ROM chiplet must ensure that all kernel procedure digests requested b
 This is achieved by making use of the chiplet bus $b_{bus}$, responding to requests made by the decoder and by the verifier through public inputs.
 
 In the first row of each new block of hashes in the kernel ROM chiplet trace (i.e., when $s_{first} = 1$), the chiplet responds to a message $v_{init}$ requested by the verifier.
-Since these initialization messages must match, the set of digests across all blocks must be equal to the set of procedure roots provided by the verifier (though not necessarily in the same order).
+Since these initialization messages must match, the set of digests across all blocks must be equal to the set of procedure digests provided by the verifier (though not necessarily in the same order).
 
 Whenever a digest is requested by the decoder during program block hashing of the [`SYSCALL` operation](../decoder/constraints.md#block-hash-computation-constraints), a new row is added to the trace after the first row which is used to respond to one of the initialization requests made by the verifier using public inputs.
 The chiplet responds to the request with a message $v_{call}$.
