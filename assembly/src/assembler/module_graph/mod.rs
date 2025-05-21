@@ -477,7 +477,7 @@ impl ModuleGraph {
                 let proc = self.get_procedure_unsafe(node);
                 nodes.push(format!("{}::{}", module, proc.name()));
             }
-            AssemblyError::Cycle { nodes }
+            AssemblyError::Cycle { nodes: nodes.into() }
         })?;
 
         Ok(())

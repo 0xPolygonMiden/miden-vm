@@ -457,7 +457,7 @@ impl Assembler {
                     let proc = self.module_graph.get_procedure_unsafe(node);
                     nodes.push(format!("{}::{}", module, proc.name()));
                 }
-                AssemblyError::Cycle { nodes }
+                AssemblyError::Cycle { nodes: nodes.into() }
             })?
             .into_iter()
             .filter(|&gid| self.module_graph.get_procedure_unsafe(gid).is_ast())
@@ -854,7 +854,7 @@ impl Assembler {
                     return Err(AssemblyError::InvalidSysCallTarget {
                         span,
                         source_file: current_source_file,
-                        callee: proc.fully_qualified_name().clone(),
+                        callee: proc.fully_qualified_name().clone().into(),
                     });
                 }
                 let maybe_kernel_path = proc.path();
@@ -863,7 +863,7 @@ impl Assembler {
                     .ok_or_else(|| AssemblyError::InvalidSysCallTarget {
                         span,
                         source_file: current_source_file.clone(),
-                        callee: proc.fully_qualified_name().clone(),
+                        callee: proc.fully_qualified_name().clone().into(),
                     })
                     .and_then(|module| {
                         // Note: this module is guaranteed to be of AST variant, since we have the
@@ -875,7 +875,7 @@ impl Assembler {
                             Err(AssemblyError::InvalidSysCallTarget {
                                 span,
                                 source_file: current_source_file.clone(),
-                                callee: proc.fully_qualified_name().clone(),
+                                callee: proc.fully_qualified_name().clone().into(),
                             })
                         }
                     })?;
