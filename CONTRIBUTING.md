@@ -86,11 +86,12 @@ We use [semver](https://semver.org/) naming convention.
 
 ## Pre-PR checklist
 1. Repo forked and branch created from `next` according to the naming convention.
-2. Commit messages and code style follow conventions.
-3. Tests added for new functionality.
-4. Documentation/comments updated for all changes according to our documentation convention.
-5. Clippy and Rustfmt linting passed.
-6. New branch rebased from `next`.
+2. An available key to [sign commits](https://docs.github.com/en/authentication/managing-commit-signature-verification/signing-commits).
+3. Commit messages and code style follow conventions.
+4. Tests added for new functionality.
+5. Documentation/comments updated for all changes according to our documentation convention.
+6. Clippy and Rustfmt linting passed.
+7. New branch rebased from `next`.
 
 &nbsp;
 
