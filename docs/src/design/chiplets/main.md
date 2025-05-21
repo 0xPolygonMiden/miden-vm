@@ -19,7 +19,8 @@ Each chiplet is identified within the Chiplets module by one or more chiplet sel
 
 The result is an execution trace of 17 trace columns, which allows space for the widest chiplet component (the hash chiplet) and a column to select for it.
 
-> TODO: update diagram with columns
+_**Note**: The following diagram is outdated (see [issue #1829](https://github.com/0xMiden/miden-vm/issues/1829)._
+
 ![chiplets](../../assets/design/chiplets/chiplets.png)
 
 During the finalization of the overall execution trace, the chiplets' traces (including internal selectors) are appended to the trace of the Chiplets module one after another, as pictured. Thus, when one chiplet's trace ends, the trace of the next chiplet starts in the subsequent row.
@@ -178,7 +179,8 @@ The bus is implemented as a single [running product column](../lookups/multiset.
 
 Thus, if the requests and responses match, then the bus column $b_{chip}$ will start and end with the value $1$. This condition is enforced by boundary constraints on the $b_{chip}$ column.
 It is also possible to invoke chiplet computations through public inputs, by initializing the bus with requests that must be responded to by the chiplets.
-In this case, the verifier computes the product of all reduced requests, treating it as a constant when evaluating the boundary constraint for the initial value of the bus column.
+In this case, the verifier computes the product of all randomness-reduced requests, treating it as a constant when evaluating the boundary constraint for the initial value of the bus column.
+Currently, this is only used to request the initialization of kernel procedure digests for the kernel ROM chiplet.
 
 Note that the order of the requests and responses does not matter, as long as they are all included in $b_{chip}$. In fact, requests and responses for the same operation will generally occur at different cycles.
 
@@ -191,11 +193,11 @@ Lookup requests are sent to the chiplets bus by the following components:
 - The stack sends requests for [bitwise](../stack/u32_ops.md#u32and), [memory](../stack/io_ops.md#memory-access-operations), and [cryptographic hash operations](../stack/crypto_ops.md).
 - The decoder sends requests for [hash operations](../decoder/main.md#program-block-hashing) for program block hashing.
 - The decoder sends a procedure access request to the [Kernel ROM chiplet](./kernel_rom.md) for each `SYSCALL` during [program block hashing](../decoder/main.md#program-block-hashing).
-- The verifier initializes the bus with requests to the [Kernel ROM chiplet](./kernel_rom.md) for each unique kernel procedure hash.
+- The verifier initializes the bus with requests to the [Kernel ROM chiplet](./kernel_rom.md) for each unique kernel procedure digest.
 
 Responses are provided by the [hash](./hasher.md#chiplets-bus-constraints), [bitwise](./bitwise.md#chiplets-bus-constraints), [memory](./memory.md#chiplets-bus-constraints), and [kernel ROM](./kernel_rom.md#chiplets-bus-constraints) chiplets.
 
-The chiplet bus can be initialized with reduced request $v_0, v_1, \ldots$ by computing their product $v_{init} = \prod_i v_i$, and enforcing the boundary constraint in the first row to ensure
+The chiplet bus can be initialized with randomness-reduced requests $v_0, v_1, \ldots$ by computing their product $v_{init} = \prod_i v_i$, and enforcing the boundary constraint in the first row to ensure
 $b_{chip} = \frac{1}{v_{init}}$.
 Note that $v_{init}$ is a constant, and therefore does not contribute to the constraint degree.
 
@@ -207,9 +209,9 @@ $$
 
 _Note: over time, the use of this construction has evolved to the point where its name doesn't match the way it is used. This is documented in [issue #1779](https://github.com/0xMiden/miden-vm/issues/1779)._
 
-The [virtual table](../lookups/multiset.md#virtual-tables) bus $vt_{chip}$ is used by chiplets by several chiplets as a way to maintain and enforce the correctness of their internal states, and enable communication with each other.
+The [virtual table](../lookups/multiset.md#virtual-tables) bus $vt_{chip}$ is used by several chiplets as a way to maintain and enforce the correctness of their internal states, and enable communication with each other.
 
-The hasher chiplet uses it as to store [sibling nodes](./hasher.md#sibling-table-constraints) when performing a Merkle tree update.
+The hasher chiplet uses it as a way to store [sibling nodes](./hasher.md#sibling-table-constraints) when performing a Merkle tree update.
 In particular, it expects an empty bus at the start of this operation, and ensures that all entries it inserts are removed once the new tree is finalized.
 Consequently, the column representing this table must be equal to 1 at the boundaries of the hasher chiplet's trace, preventing communication with other chiplets.
 
@@ -218,10 +220,10 @@ Other chiplets use the table as an extension of the chiplet bus, since both mult
 This enables chiplets to make bus requests to other chiplets, without affecting the degree of the chiplet bus.
 As currently implemented, a single constraint is required to include all requests made by the main trace and corresponding responses from the chiplets.
 The degree of this constraint is the maximum of both message types and is currently reached by the requests by the main trace,
-preventing chiplets from performing their own requests using the same bus.
-Instead, a chiplet can make a request through the $vt_{chip}$ bus, with the receiving chiplet responding through the existing bus.
+preventing chiplets from performing any requests using the same bus.
+Instead, a chiplet can make a request through the $vt_{chip}$ bus, with the receiving chiplet responding through the main chiplet bus $b_{chip}$.
 
-At the moment, this feature is only used by the `[ACE](./ace.md#chiplets-bus-constraints)` allowing it to read inputs and circuit instruction stored in the memory chiplet.
+At the moment, this feature is only used by the `[ACE](./ace.md#chiplets-bus-constraints)` allowing it to read inputs and circuit instructions stored in the memory chiplet.
 Note that the [memory](./memory.md#chiplets-bus-constraints) chiplet responds via the chiplet bus $b_{chip}$.
 
 To combine these correctly, the [running product column](../lookups/multiset.md) for this table must be constrained not only at the beginning and the end of the trace, but also where the hash chiplet ends.

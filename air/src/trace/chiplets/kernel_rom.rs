@@ -8,8 +8,9 @@ pub const TRACE_WIDTH: usize = 5;
 
 // --- OPERATION SELECTORS ------------------------------------------------------------------------
 
-// All bus labels encode the chiplet selector (1, 1, 1, 0), appended with the internal selector
-// `s_first` which indicates whether the chiplet should respond to an `init` or `call` request.
+// All kernel ROM bus labels encode the chiplet selector (1, 1, 1, 0), appended with the internal
+// selector `s_first` which indicates whether the chiplet should respond to an `init` or `call`
+// request.
 // These do not collide with any other labels.
 
 /// Specifies a kernel procedure call operation to access a procedure in the kernel ROM.

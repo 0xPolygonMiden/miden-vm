@@ -52,7 +52,6 @@ use crate::chiplets::aux_trace::bus::kernel::build_kernel_init_requests;
 // ================================================================================================
 
 /// Describes how to construct the execution trace of the chiplets bus auxiliary trace column.
-/// It includes
 pub struct BusColumnBuilder<'a> {
     kernel: &'a Kernel,
 }

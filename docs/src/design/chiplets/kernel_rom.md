@@ -9,16 +9,14 @@ More background about Miden VM execution contexts can be found [here](../../user
 
 The kernel ROM table consists of five columns.
 
-> TODO: Update diagram
-> - remove `idx`
-> - duplicate each digest once and set `s_first` = 1 in that row
+_**Note**: The following diagram is outdated (see [issue #1829](https://github.com/0xMiden/miden-vm/issues/1829)_
 
 ![kernel_rom_execution_trace](../../assets/design/chiplets/kernel_rom/kernel_rom_execution_trace.png)
 
 The meaning of columns in the above is as follows:
 
 - Column $s_{first}$ specifies the start of a block of rows with identical kernel procedure digests.
-- $r_0, ..., r_3$ contain the digests of the kernel functions. The values in these columns can change only when $s_{first}$ is set to 1 in the next row. Otherwise, the values in the $r$ columns remain the same.
+- $r_0, ..., r_3$ contain the digests of the kernel procedures. The values in these columns can change only when $s_{first}$ is set to 1 in the next row. Otherwise, the values in the $r$ columns remain the same.
 
 ## Constraints
 
@@ -27,7 +25,7 @@ The meaning of columns in the above is as follows:
 
 The following constraints are required to enforce the correctness of the kernel ROM trace.
 
-_Note: Unless otherwise stated, these constraints should also be multiplied by chiplets module's selector flag $chip\_s_4$ for the kernel ROM chiplet._
+_Note: Unless otherwise stated, these constraints should also be multiplied by chiplets module's virtual flag $f_{krom}$ which is active in all rows the kernel ROM chiplet._
 
 The $s_{first}$ column is a selector indicating the start of a new digest included in the kernel ROM chiplet trace.
 In this row, the chiplet responds to a bus request made by the verifier to ensure consistency with the set of kernel procedure digests given as public inputs.
@@ -42,11 +40,11 @@ $$
 The flag $s_{first}$ must be set to be 1 in the first row of the kernel ROM chiplet.
 Otherwise, the digest in this row would not be matched with one of the input procedure roots.
 This constraint is enforced in the last row of the previous trace, using selector columns from the [chiplets](main.md) module.
-The virtual $chip\_s_3$ flag is active in all rows of the previous chiplet,
-and in the last row of that chiplet, the selector $s_3$ transitions from 0 to 1.
+More precisely, we use the virtual $f_{ACE}$ flag from the chiplet selectors $s_0, s_1, \ldots, s_{ACE}$ which is active in all rows of the previous (in this case ACE) chiplet,
+along with the selector $s_{ACE}$ which transitions from 0 to 1 in the last row, allowing us to target the first row of the kernel ROM trace.
 
 > $$
-chip\_s_3 \cdot s_3' \cdot (1 - s_{first}') = 0 \text{ | degree} = \deg(chip\_s_3) + 2
+f_{ACE} \cdot s_{ACE}' \cdot (1 - s_{first}') = 0 \text{ | degree} = \deg(f_{prev}) + 2
 $$
 
 _Note that this selector need not be multiplied by the kernel ROM chiplet flag $chip\_s_4$, since it is only active when the previous chiplet is active._
@@ -67,9 +65,9 @@ The kernel ROM chiplet must ensure that all kernel procedure digests requested b
 This is achieved by making use of the chiplet bus $b_{bus}$, responding to requests made by the decoder and by the verifier through public inputs.
 
 In the first row of each new block of hashes in the kernel ROM chiplet trace (i.e., when $s_{first} = 1$), the chiplet responds to a message $v_{init}$ requested by the verifier.
-Since these initialization messages must match, the set of digest across all blocks must be equal to the set of procedure roots provided by the verifier (though not necessarily in the same order).
+Since these initialization messages must match, the set of digests across all blocks must be equal to the set of procedure roots provided by the verifier (though not necessarily in the same order).
 
-Whenever a digest is requested by the decoder during program block hashing of the [`SYSCALL` operation](../decoder/constraints.md#block-hash-computation-constraints), a new row is added to the trace after the first row which initialized that digest.
+Whenever a digest is requested by the decoder during program block hashing of the [`SYSCALL` operation](../decoder/constraints.md#block-hash-computation-constraints), a new row is added to the trace after the first row which is used to respond to one of the initialization requests made by the verifier using public inputs.
 The chiplet responds to the request with a message $v_{call}$.
 
 In other words, the selector $s_{first}$ indicates whether the chiplet should respond to the decoder or the verifier initialization requests.
@@ -103,7 +101,7 @@ The above simplifies to
 The kernel procedure digests initialization requests are implemented by imposing a boundary constraint in the first row of the $b_{chip}$ column.
 This is described in the [chiplets bus constraints](../chiplets/main.md#chiplets-bus-constraints).
 
-By using the bus to initialize the kernel ROM procedure digest in this way, the verifier only learns which procedures can be invoked but doesn't learn how often they were called.
+By using the bus to initialize the kernel ROM procedure digest in this way, the verifier only learns which procedures can be invoked but doesn't learn how often they were called, if at all.
 
 The full set of constraints applied to the $b_{chip}$ are described as part of the [chiplets bus constraints](../chiplets/main.md#chiplets-bus-constraints).
 

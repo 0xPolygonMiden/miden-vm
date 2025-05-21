@@ -71,7 +71,7 @@ where
     let root3 = main_trace.chiplet_kernel_root_3(row);
 
     // The caller ensures this row is a kernel ROM row, so we just need to check if this is
-    // the first row for a unique proc hash.
+    // the first row for a unique procedure digest.
     if main_trace.chiplet_kernel_is_first_hash_row(row) {
         // Respond to the requests performed by the verifier when they initialize the bus
         // column with the unique proc hashes.
