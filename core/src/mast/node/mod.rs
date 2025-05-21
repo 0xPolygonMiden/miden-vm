@@ -3,7 +3,8 @@ use alloc::{boxed::Box, vec::Vec};
 use core::fmt;
 
 pub use basic_block_node::{
-    BATCH_SIZE as OP_BATCH_SIZE, BasicBlockNode, OP_GROUP_SIZE, OpBatch, OpBatchAccumulator, OperationOrDecorator,
+    BATCH_SIZE as OP_BATCH_SIZE, BasicBlockNode, OP_GROUP_SIZE, OpBatch, OpBatchAccumulator,
+    OperationOrDecorator,
 };
 
 mod call_node;

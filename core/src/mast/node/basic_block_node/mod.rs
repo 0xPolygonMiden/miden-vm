@@ -403,21 +403,9 @@ fn batch_and_hash_ops(ops: Vec<Operation>) -> (Vec<OpBatch>, RpoDigest) {
 /// Groups the provided operations into batches as described in the docs for this module (i.e., up
 /// to 9 operations per group, and 8 groups per batch).
 fn batch_ops(ops: Vec<Operation>) -> Vec<OpBatch> {
-    let mut batches = Vec::<OpBatch>::new();
     let mut batch_acc = OpBatchAccumulator::new();
-
-    for op in ops {
-        if let Some(batch) = batch_acc.add_op(op) {
-            batches.push(batch);
-        }
-    }
-
-    // Make sure we finished processing the last batch.
-    if let Some(batch) = batch_acc.into_batch() {
-        batches.push(batch);
-    }
-
-    batches
+    batch_acc.add_ops(&ops);
+    batch_acc.into_batches()
 }
 
 /// Checks if a given decorators list is valid (only checked in debug mode)

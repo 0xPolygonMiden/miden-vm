@@ -51,7 +51,10 @@ impl OpBatch {
 // ================================================================================================
 
 /// An accumulator used in construction of operation batches.
+#[derive(Debug)]
 pub struct OpBatchAccumulator {
+    /// The batches that have been accumulated so far.
+    accumulated_batches: Vec<OpBatch>,
     /// A list of operations in this batch.
     ///
     /// This list is redundant with opcodes stored in the operation groups.
@@ -80,6 +83,7 @@ impl OpBatchAccumulator {
         };
 
         Self {
+            accumulated_batches: Vec::new(),
             ops: Vec::new(),
             groups,
             op_counts: [0; BATCH_SIZE],
@@ -94,24 +98,36 @@ impl OpBatchAccumulator {
         self.ops.is_empty()
     }
 
-    /// Adds the specified operation to this accumulator, and returns a batch if the accumulator was
-    /// full prior to adding the operation.
-    pub fn add_op(&mut self, op: Operation) -> Option<OpBatch> {
+    /// Returns the total number of operations in this accumulator.
+    pub fn num_ops(&self) -> usize {
+        let num_ops_in_built_batches =
+            self.accumulated_batches.iter().map(|b| b.ops.len()).sum::<usize>();
+        let num_ops_in_current_batch = self.ops.len();
+
+        num_ops_in_built_batches + num_ops_in_current_batch
+    }
+
+    /// Adds the specified operation to this accumulator.
+    pub fn add_op(&mut self, op: Operation) {
         // If the accumulator is full, we extract batch and reset the accumulator.
-        let maybe_batch = if !self.can_accept_op(op) {
+        if !self.can_accept_op(op) {
             self.extract_batch_and_reset()
-        } else {
-            None
         };
 
         self.add_op_impl(op);
-
-        maybe_batch
     }
 
-    /// Converts the accumulator into an [OpBatch] if the accumulator is not empty.
-    pub fn into_batch(mut self) -> Option<OpBatch> {
-        self.extract_batch_and_reset()
+    /// Adds the specified operations to this accumulator.
+    pub fn add_ops(&mut self, ops: &[Operation]) {
+        for op in ops {
+            self.add_op(*op);
+        }
+    }
+
+    /// Converts the accumulator into a list of [OpBatch] if the accumulator is not empty.
+    pub fn into_batches(mut self) -> Vec<OpBatch> {
+        self.extract_batch_and_reset();
+        self.accumulated_batches
     }
 
     // HELPER METHODS
@@ -174,11 +190,12 @@ impl OpBatchAccumulator {
         self.insert_op_into_current_group(op);
     }
 
+    // TODO(plafer): update docs (and others)
     /// Returns a new batch with the current operations and groups if the accumulator is not empty,
     /// and resets the accumulator.
-    fn extract_batch_and_reset(&mut self) -> Option<OpBatch> {
+    fn extract_batch_and_reset(&mut self) {
         if self.is_empty() {
-            return None;
+            return;
         }
 
         // if the last group ends with an immediate value, we need to insert a NOOP operation.
@@ -215,8 +232,23 @@ impl OpBatchAccumulator {
             OpBatch { ops, groups, op_counts, num_groups }
         };
 
-        *self = Self::new();
-        Some(op_batch)
+        // Extract batch and reset the accumulator
+        self.accumulated_batches.push(op_batch);
+
+        // TODO(plafer): use function
+        {
+            let groups = {
+                let current_op_group = 0;
+                vec![current_op_group]
+            };
+
+            self.ops = Vec::new();
+            self.groups = groups;
+            self.op_counts = [0; BATCH_SIZE];
+            self.current_op_group_idx = 0;
+            self.current_op_group_size = 0;
+            self.last_op_has_imm = false;
+        }
     }
 
     /// Adds the opcode to the current group and increment the op index pointer
