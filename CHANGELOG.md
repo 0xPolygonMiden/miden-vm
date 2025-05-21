@@ -5,6 +5,9 @@
 #### Changes
 - Improve error messages for some assembler instruction (#1785)
 
+#### Fixes
+- `miden debug` rewind command no longer panics at clock 0 (#1751)
+
 
 ## 0.14.0 (2025-05-07)
 
