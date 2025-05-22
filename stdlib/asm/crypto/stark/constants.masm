@@ -128,14 +128,6 @@ const.TMP2=4294913260
 const.TMP3=4294913264
 const.TMP4=4294913268
 
-# RPO state capacity portion initialization words. In theory, we need a variant for each possible 
-# remainder modulo 8 but in practice we only need the following:
-# TODO(Al): Remove because we will not need after padding trace
-const.ZERO_ZERO_ZERO_FOUR_PTR=4294913400
-const.ZERO_ZERO_ZERO_FIVE_PTR=4294913404
-const.ZERO_ZERO_ZERO_SIX_PTR=4294913408
-const.ZERO_ZERO_ZERO_SEVEN_PTR=4294913412
-
 # Addresses to store powers of the DEEP composition randomness needed during the computation of
 # the DEEP queries. Powers from 1 to 7 are needed to correct results of `horner_eval_*` when
 # the final batch of coefficients processed is not 8 in the case of `horner_eval_base` or
@@ -143,8 +135,8 @@ const.ZERO_ZERO_ZERO_SEVEN_PTR=4294913412
 # coefficients over base field and the last batch of coefficients processed by `horner_eval_base`
 # contains only 7 instead of 8 coefficients, then we would have to multiply the accumulator
 # by the first power of alpha^{-1}.
-const.ALPHA=4294903600
-const.OOD_HORNER_EVALS_PTR=4294903448
+const.ALPHA_PTR=4294903600
+const.OOD_FIXED_TERM_HORNER_EVALS_PTR=4294903448
 
 
 #   The following is a table summarizing the memory pointers used:
@@ -173,7 +165,6 @@ const.OOD_HORNER_EVALS_PTR=4294903448
 #   | GRINDING_FACTOR_PTR                      |       4294913232        |
 #   | NUM_KERNEL_PROCEDURES_PTR                |       4294913233        |
 #   | ZERO_WORD_PTR                            |       4294913236        |
-#   | ZERO_ZERO_ZERO_ONE_PTR                   |       4294913240        |
 #   | C_PTR                                    |       4294913244        |
 #   | R1_PTR                                   |       4294913248        |
 #   | R2_PTR                                   |       4294913252        |
@@ -181,12 +172,8 @@ const.OOD_HORNER_EVALS_PTR=4294903448
 #   | TMP2                                     |       4294913260        |
 #   | TMP3                                     |       4294913264        |
 #   | TMP4                                     |       4294913268        |
-#   | ZERO_ZERO_ZERO_FOUR_PTR                  |       4294913400        |
-#   | ZERO_ZERO_ZERO_FIVE_PTR                  |       4294913404        |
-#   | ZERO_ZERO_ZERO_SIX_PTR                   |       4294913408        |
-#   | ZERO_ZERO_ZERO_SEVEN_PTR                 |       4294913412        |
-#   | ALPHA                                    |       4294903600        |
-#   | OOD_HORNER_EVALS_PTR                     |       4294903448        |
+#   | ALPHA_PTR                                |       4294903600        |
+#   | OOD_FIXED_TERM_HORNER_EVALS_PTR          |       4294903448        |
 #   +------------------------------------------+-------------------------+
 
 # ACCESSORS
@@ -266,28 +253,12 @@ export.zero_word_ptr
     push.ZERO_WORD_PTR
 end
 
-export.zero_zero_zero_four_word_ptr
-    push.ZERO_ZERO_ZERO_FOUR_PTR
-end
-
-export.zero_zero_zero_five_word_ptr
-    push.ZERO_ZERO_ZERO_FIVE_PTR
-end
-
-export.zero_zero_zero_six_word_ptr
-    push.ZERO_ZERO_ZERO_SIX_PTR
-end
-
-export.zero_zero_zero_seven_word_ptr
-    push.ZERO_ZERO_ZERO_SEVEN_PTR
-end
-
 export.deep_rand_alpha_ptr
-    push.ALPHA
+    push.ALPHA_PTR
 end
 
-export.ood_horner_evaluations_ptr
-    push.OOD_HORNER_EVALS_PTR
+export.ood_fixed_term_horner_evaluations_ptr
+    push.OOD_FIXED_TERM_HORNER_EVALS_PTR
 end
 
 export.tmp1

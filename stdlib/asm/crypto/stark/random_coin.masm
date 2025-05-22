@@ -97,8 +97,6 @@ export.init_seed
     exec.constants::c_ptr mem_storew
     exec.constants::r1_ptr mem_storew
     exec.constants::r2_ptr mem_storew
-    push.6 swap.4 drop exec.constants::zero_zero_zero_six_word_ptr mem_storew
-    push.7 swap.4 drop exec.constants::zero_zero_zero_seven_word_ptr mem_storew
     dropw
     #=> [log(trace_length), num_queries, grinding, num_ker_proc, ...]
 

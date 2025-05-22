@@ -254,7 +254,7 @@ export.compute_deep_composition_polynomial_queries
     exec.constants::get_fri_queries_address
     # => [query_ptr, ...]
 
-    padw exec.constants::ood_horner_evaluations_ptr mem_loadw
+    padw exec.constants::ood_fixed_term_horner_evaluations_ptr mem_loadw
     # => [q_gz_1, q_gz_0, q_z_1, q_z_0, query_ptr, ...]
     # => [W, query_ptr, ...] where W is [q_gz_1, q_gz_0, q_z_1, q_z_0]
 

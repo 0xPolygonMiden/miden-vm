@@ -100,7 +100,7 @@ export.load_and_horner_eval_ood_frames
     movup.3
     neg
     push.0.0
-    exec.constants::ood_horner_evaluations_ptr mem_storew
+    exec.constants::ood_fixed_term_horner_evaluations_ptr mem_storew
     # => [0, 0, -acc1, -acc0, ood_frame_ptr, alpha_ptr, Y, C, Y, ...]
 
     # II) Compute Q^gz(alpha)
@@ -153,9 +153,9 @@ export.load_and_horner_eval_ood_frames
     dropw dropw drop drop
     # => [acc1, acc0, ...]
     neg
-    exec.constants::ood_horner_evaluations_ptr add.3 mem_store
+    exec.constants::ood_fixed_term_horner_evaluations_ptr add.3 mem_store
     # => [acc0, ...]
     neg
-    exec.constants::ood_horner_evaluations_ptr add.2 mem_store
+    exec.constants::ood_fixed_term_horner_evaluations_ptr add.2 mem_store
     # => [...]
 end
