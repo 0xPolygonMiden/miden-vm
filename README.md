@@ -74,6 +74,16 @@ The project is organized into several crates like so:
 | [stdlib](stdlib)         | Contains Miden standard library. The goal of Miden standard library is to provide highly-optimized and battle-tested implementations of commonly-used primitives.                                                      |
 | [test-utils](test-utils) | Contains utilities for testing execution of Miden VM programs.                                                                                                                                                         |
 
+## Optional Clippy Checks
+
+To run additional Clippy lints (e.g. `pedantic`, `style`, `cargo`, etc.), you can use the following script:
+
+```bash
+./scripts/clippy-extra.sh
+```
+
+This script enables strict linting rules that are too verbose for regular development or CI. It is useful when you want to catch rare but potentially important issues such as missing documentation, unnecessary casts, or inefficient method usage.
+
 ## Performance
 
 The benchmarks below should be viewed only as a rough guide for expected future performance. The reasons for this are twofold:
