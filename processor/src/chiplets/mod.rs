@@ -80,8 +80,8 @@ mod tests;
 ///   `trace_len` of the kernel ROM chiplet.
 ///   - column 0-3: selector columns with values set to ONE
 ///   - column 4: selector column with values set to ZERO
-///   - columns 5-10: execution trace of kernel ROM chiplet
-///   - columns 11-20: unused column padded with ZERO
+///   - columns 5-9: execution trace of kernel ROM chiplet
+///   - columns 10-20: unused column padded with ZERO
 ///
 /// * Padding segment: unused. This segment begins at the end of the kernel ROM segment and fills
 ///   the rest of the execution trace minus the number of random rows. When it finishes, the
@@ -122,7 +122,7 @@ mod tests;
 ///             | . + . | . +---+---+---------------------------+-------------------------+
 ///             | . | . | . | 1 | 0 |                           |-------------------------|
 ///             | . | . | . | . | . |     Kernel ROM chiplet    |-------------------------|
-///             | . | . | . | . | . |     6 columns             |-------------------------|
+///             | . | . | . | . | . |     5 columns             |-------------------------|
 ///             | . | . | . | . | . |     constraint degree 9   |-------------------------|
 ///             | . | . | . | . | 0 |                           |-------------------------|
 ///             | . + . | . | . +---+---+-----------------------+-------------------------+
@@ -285,16 +285,16 @@ impl Chiplets {
                     let rest = bitwise_fragment.push_column_slice(rest, bitwise.trace_len());
                     memory_fragment.push_column_slice(rest, memory.trace_len());
                 },
-                4 | 11..=14 => {
-                    // columns 4 - 11 to 14 are relevant for hasher, bitwise, memory chiplets and
+                4 | 10..=14 => {
+                    // columns 4 - 10 to 14 are relevant for hasher, bitwise, memory chiplets and
                     // ace chiplet
                     let rest = hasher_fragment.push_column_slice(column, hasher.trace_len());
                     let rest = bitwise_fragment.push_column_slice(rest, bitwise.trace_len());
                     let rest = memory_fragment.push_column_slice(rest, memory.trace_len());
                     ace_fragment.push_column_slice(rest, ace.trace_len());
                 },
-                5..=10 => {
-                    // columns 5 - 10 are relevant to all chiplets
+                5..=9 => {
+                    // columns 5 - 9 are relevant to all chiplets
                     let rest = hasher_fragment.push_column_slice(column, hasher.trace_len());
                     let rest = bitwise_fragment.push_column_slice(rest, bitwise.trace_len());
                     let rest = memory_fragment.push_column_slice(rest, memory.trace_len());
