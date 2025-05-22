@@ -71,6 +71,16 @@ pub enum ExecutionError {
         source_file: Option<Arc<SourceFile>>,
         clk: RowIndex,
     },
+    #[error("Operand stack input is {input} but it is not a u32 at clock cycle {clk}")]
+    #[diagnostic()]
+    InputNotU32 {
+        #[label]
+        label: SourceSpan,
+        #[source_code]
+        source_file: Option<Arc<SourceFile>>,
+        clk: RowIndex,
+        input: u64,
+    },
     #[error("failed to execute the dynamic code block provided by the stack with root 0x{hex}; the block could not be found",
       hex = to_hex(.digest.as_bytes())
     )]
@@ -349,6 +359,15 @@ impl ExecutionError {
     pub fn divide_by_zero(clk: RowIndex, err_ctx: &ErrorContext<'_, impl MastNodeExt>) -> Self {
         let (label, source_file) = err_ctx.label_and_source_file();
         Self::DivideByZero { clk, label, source_file }
+    }
+
+    pub fn input_not_u32(
+        clk: RowIndex,
+        input: u64,
+        err_ctx: &ErrorContext<'_, impl MastNodeExt>,
+    ) -> Self {
+        let (label, source_file) = err_ctx.label_and_source_file();
+        Self::InputNotU32 { clk, input, label, source_file }
     }
 
     pub fn dynamic_node_not_found(
