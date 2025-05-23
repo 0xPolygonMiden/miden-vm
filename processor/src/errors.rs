@@ -71,16 +71,6 @@ pub enum ExecutionError {
         source_file: Option<Arc<SourceFile>>,
         clk: RowIndex,
     },
-    #[error("Operand stack input is {input} but it is not a u32 at clock cycle {clk}")]
-    #[diagnostic()]
-    InputNotU32 {
-        #[label]
-        label: SourceSpan,
-        #[source_code]
-        source_file: Option<Arc<SourceFile>>,
-        clk: RowIndex,
-        input: u64,
-    },
     #[error("failed to execute the dynamic code block provided by the stack with root 0x{hex}; the block could not be found",
       hex = to_hex(.digest.as_bytes())
     )]
@@ -287,6 +277,18 @@ pub enum ExecutionError {
         value: Felt,
         err_code: Felt,
     },
+    #[error(
+        "Operand stack input is {input} but it is expected to fit in a u32 at clock cycle {clk}"
+    )]
+    #[diagnostic()]
+    NotU32StackValue {
+        #[label]
+        label: SourceSpan,
+        #[source_code]
+        source_file: Option<Arc<SourceFile>>,
+        clk: RowIndex,
+        input: u64,
+    },
     #[error("stack should have at most {MIN_STACK_DEPTH} elements at the end of program execution, but had {} elements", MIN_STACK_DEPTH + .0)]
     OutputStackOverflow(usize),
     #[error("a program has already been executed in this process")]
@@ -367,7 +369,7 @@ impl ExecutionError {
         err_ctx: &ErrorContext<'_, impl MastNodeExt>,
     ) -> Self {
         let (label, source_file) = err_ctx.label_and_source_file();
-        Self::InputNotU32 { clk, input, label, source_file }
+        Self::NotU32StackValue { clk, input, label, source_file }
     }
 
     pub fn dynamic_node_not_found(
