@@ -51,7 +51,7 @@ proc.load_query_row
     ##    compute their hashing and the value of their random linear combination using powers of
     ##    a single random value alpha.
 
-    ### a) Load the 80 columns in 10 batches of 8 base field elements
+    ### Load the 80 columns in 10 batches of 8 base field elements
     padw
     swapw
     padw
@@ -117,7 +117,7 @@ proc.load_query_row
     assert_eq
     #=> [Y, ptr_x, ptr_alpha_inv, acc1, acc0, depth, index, query_ptr, ...]
 
-    # IV) Process the constraint trace portion of the query
+    # III) Process the constraint trace portion of the query
 
     ## 1) Load the commitment to the constraint trace
     exec.constants::composition_poly_com_ptr mem_loadw
@@ -264,10 +264,10 @@ export.compute_deep_composition_polynomial_queries
     dup.5
     # => [query_ptr, query_end_ptr, W, query_ptr, ...]
 
-    # Store pointers to alpha_inv, memory region to store trace row for current query and a fresh
+    # Store pointers to alpha, memory region to store trace row for current query and a fresh
     # accumulator value i.e., (0, 0).
     push.0.0
-    exec.constants::deep_rand_alpha_ptr
+    exec.constants::deep_rand_alpha_nd_ptr
     exec.constants::current_trace_row_ptr
     exec.constants::tmp2 mem_storew
 

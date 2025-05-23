@@ -135,7 +135,13 @@ const.TMP4=4294913268
 # coefficients over base field and the last batch of coefficients processed by `horner_eval_base`
 # contains only 7 instead of 8 coefficients, then we would have to multiply the accumulator
 # by the first power of alpha^{-1}.
-const.ALPHA_PTR=4294903600
+# Note that due to the fact that in all current applications of `horner_eval_base`, respectively
+# `horner_eval_ext`, the number of coefficients is a multiple of 8, respectively of 4, we do not
+# need any of the above powers.
+
+# Address to store the non-deterministically provided DEEP polynomial batching randomness
+const.ALPHA_DEEP_ND_PTR=4294903600
+# Address to store the fixed terms, accross all queries, of the DEEP queries.
 const.OOD_FIXED_TERM_HORNER_EVALS_PTR=4294903448
 
 
@@ -172,7 +178,7 @@ const.OOD_FIXED_TERM_HORNER_EVALS_PTR=4294903448
 #   | TMP2                                     |       4294913260        |
 #   | TMP3                                     |       4294913264        |
 #   | TMP4                                     |       4294913268        |
-#   | ALPHA_PTR                                |       4294903600        |
+#   | ALPHA_DEEP_ND_PTR                        |       4294903600        |
 #   | OOD_FIXED_TERM_HORNER_EVALS_PTR          |       4294903448        |
 #   +------------------------------------------+-------------------------+
 
@@ -253,8 +259,8 @@ export.zero_word_ptr
     push.ZERO_WORD_PTR
 end
 
-export.deep_rand_alpha_ptr
-    push.ALPHA_PTR
+export.deep_rand_alpha_nd_ptr
+    push.ALPHA_DEEP_ND_PTR
 end
 
 export.ood_fixed_term_horner_evaluations_ptr
