@@ -747,7 +747,7 @@ Debug: Instruction = {
     "debug" "." "adv_stack" <n:MaybeImm<U8>> => {
         match n {
             Some(n) => Instruction::Debug(DebugOptions::AdvStackTop(n.map(|spanned| spanned.into_inner()))),
-            None => Instruction::Debug(DebugOptions::AdvStackTop(1.into())),
+            None => Instruction::Debug(DebugOptions::AdvStackTop(0.into())),
         }
     },
     "emit" <id:Imm<U32>> => Instruction::Emit(id),

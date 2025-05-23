@@ -130,16 +130,12 @@ where
         Ok(())
     }
 
-    fn peek_stack(
-        &self,
-        pos: usize,
-        process: ProcessState,
-        err_ctx: &ErrorContext<'_, impl MastNodeExt>,
-    ) -> Result<Felt, ExecutionError> {
-        self.stack
-            .get(pos)
-            .cloned()
-            .ok_or(ExecutionError::advice_stack_read_failed(process.clk(), err_ctx))
+    fn peek_stack(&self, length: usize) -> &[Felt] {
+        if length == 0 {
+            &self.stack
+        } else {
+            &self.stack[0..length]
+        }
     }
 
     // ADVICE MAP
@@ -296,10 +292,9 @@ impl AdviceProvider for MemAdviceProvider {
         self.provider.push_stack(source, err_ctx)
     }
 
-    fn peek_stack(&self, n: usize, process: ProcessState,
-        err_ctx: &ErrorContext<'_, impl MastNodeExt>,
-    )-> Result<Felt, ExecutionError> {
-        self.provider.peek_stack(n, process, err_ctx)
+    fn peek_stack(&self, length: usize,
+    )-> &[Felt] {
+        self.provider.peek_stack(length)
     }
 
     fn insert_into_map(&mut self, key: Word, values: Vec<Felt>)  {
@@ -424,10 +419,8 @@ impl AdviceProvider for RecAdviceProvider {
         self.provider.push_stack(source, err_ctx)
     }
 
-    fn peek_stack(&self, n: usize, process: ProcessState,
-        err_ctx: &ErrorContext<'_, impl MastNodeExt>,
-    ) -> Result<Felt, ExecutionError> {
-        self.provider.peek_stack(n, process,err_ctx)
+    fn peek_stack(&self, length: usize) -> &[Felt] {
+        self.provider.peek_stack(length)
     }
 
     fn insert_into_map(&mut self, key: Word, values: Vec<Felt>)  {

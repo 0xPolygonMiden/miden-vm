@@ -58,7 +58,7 @@ impl fmt::Display for DebugOptions {
             Self::LocalInterval(start, end) => {
                 write!(f, "local.{start}.{end}")
             },
-            Self::AdvStackTop(n) => write!(f, "advStack.{n}"),
+            Self::AdvStackTop(n) => write!(f, "adv_stack.{n}"),
         }
     }
 }

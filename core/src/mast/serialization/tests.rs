@@ -242,6 +242,7 @@ fn serialize_deserialize_all_nodes() {
             (15, Decorator::Debug(DebugOptions::MemAll)),
             (15, Decorator::Debug(DebugOptions::MemInterval(0, 16))),
             (17, Decorator::Debug(DebugOptions::LocalInterval(1, 2, 3))),
+            (19, Decorator::Debug(DebugOptions::AdvStackTop(255))),
             (num_operations, Decorator::Trace(55)),
         ];
 

@@ -5,7 +5,7 @@ use miden_air::RowIndex;
 use vm_core::{DebugOptions, Felt};
 
 use super::{Host, ProcessState};
-use crate::{AdviceProvider, ErrorContext, MemoryAddress, system::ContextId};
+use crate::{AdviceProvider, MemoryAddress, system::ContextId};
 
 // DEBUG HANDLER
 // ================================================================================================
@@ -29,8 +29,8 @@ pub fn print_debug_info(host: impl Host, process: ProcessState, options: &DebugO
         DebugOptions::LocalInterval(n, m, num_locals) => {
             printer.print_local_interval(process, (*n as u32, *m as u32), *num_locals as u32);
         },
-        DebugOptions::AdvStackTop(n) => {
-            printer.print_vm_adv_stack(host.advice_provider(), process, Some(*n as usize));
+        DebugOptions::AdvStackTop(length) => {
+            printer.print_vm_adv_stack(host.advice_provider(), *length as usize);
         },
     }
 }
@@ -74,26 +74,10 @@ impl Printer {
         }
     }
 
-    /// Prints the number of advice stack items specified by `n` if it is provided, otherwise print
-    /// only the top.
-    fn print_vm_adv_stack(
-        &self,
-        advice_provider: &impl AdviceProvider,
-        process: ProcessState,
-        requested: Option<usize>,
-    ) {
-        let requested = requested.unwrap_or(1);
-        if requested == 0 {
-            return;
-        };
-
-        let mut stack = vec![];
-        for i in 0..requested {
-            match advice_provider.peek_stack(i, process, &ErrorContext::default()) {
-                Ok(el) => stack.push(el),
-                Err(_) => break,
-            }
-        }
+    /// Prints length items from the top of the  advice stack. If length is 0 it returns the whole
+    /// stack.
+    fn print_vm_adv_stack(&self, advice_provider: &impl AdviceProvider, length: usize) {
+        let stack = advice_provider.peek_stack(length);
 
         // we may have less elements than requested
         let num_items = stack.len();
