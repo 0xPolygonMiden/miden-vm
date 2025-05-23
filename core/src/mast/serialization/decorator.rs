@@ -110,7 +110,7 @@ impl DecoratorInfo {
                 Ok(Decorator::Trace(value))
             },
             EncodedDecoratorVariant::DebugOptionsAdvStackTop => {
-                let value = data_reader.read_u8()?;
+                let value = data_reader.read_u16()?;
                 Ok(Decorator::Debug(DebugOptions::AdvStackTop(value)))
             },
         }
@@ -267,8 +267,12 @@ impl DecoratorDataBuilder {
                 Some(data_offset)
             },
             Decorator::Debug(debug_options) => match debug_options {
-                DebugOptions::StackTop(value) | DebugOptions::AdvStackTop(value) => {
+                DebugOptions::StackTop(value) => {
                     self.decorator_data.push(*value);
+                    Some(data_offset)
+                },
+                DebugOptions::AdvStackTop(value) => {
+                    self.decorator_data.extend(value.to_le_bytes());
                     Some(data_offset)
                 },
                 DebugOptions::MemInterval(start, end) => {

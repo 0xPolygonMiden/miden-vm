@@ -27,7 +27,7 @@ pub enum DebugOptions {
     /// specifies the overall number of locals.
     LocalInterval(u16, u16, u16),
     /// Prints out the top n items of the advice stack for the current context.
-    AdvStackTop(u8),
+    AdvStackTop(u16),
 }
 
 impl crate::prettier::PrettyPrint for DebugOptions {
