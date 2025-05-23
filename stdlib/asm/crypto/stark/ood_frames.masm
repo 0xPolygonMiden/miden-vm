@@ -23,7 +23,7 @@ use.std::crypto::stark::random_coin
 #! 4. alpha is the randomness used in order to build the DEEP polynomial.
 export.load_and_horner_eval_ood_frames
     # I) Load the random challenge used in computing the DEEP polynomial.
-    #    We use this challenge to compute the constant terms needed in the compuation of the DEEP queries.
+    #    We use this challenge to compute the constant terms needed in the computation of the DEEP queries.
     #    Although this challenge is generated only after all the OOD evaluations are received by the verifier,
     #    we use non-determinism to generate it before doing so. This is done so that we can hash, memory store
     #    and Horner evaluate in parallel.
@@ -34,8 +34,8 @@ export.load_and_horner_eval_ood_frames
 
     ## 2) Save the random challenge
     dup.1 dup.1
-    exec.constants::deep_rand_alpha_ptr mem_storew
-    # [Y, ...]
+    exec.constants::deep_rand_alpha_nd_ptr mem_storew
+    # => [Y, ...]
 
     # II) Compute Q^z(alpha)
     #     Note that there a few a goals which are in tension. Namely, we want to hash the execution trace OOD evaluations,
@@ -49,8 +49,10 @@ export.load_and_horner_eval_ood_frames
     ### a) Set up the initial accumulator and the pointers to alpha and a pointer to some memory region
     ###    to which we save the OOD.
     push.0.0
-    exec.constants::deep_rand_alpha_ptr
+    exec.constants::deep_rand_alpha_nd_ptr
     exec.constants::ood_trace_current_ptr
+    # => [ood_trace_current_ptr, deep_rand_alpha_ptr, 0, 0, Y, ...]
+    # => [U, Y, ...]
 
     ## 2) Process the fully aligned OOD `current` evaluations at z of the execution trace. 
     ##    Since there are (80 + 8 + 8) * 2 = 24 * 8 base field elements, there are 24 fully double-word aligned batches.

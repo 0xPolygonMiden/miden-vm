@@ -164,8 +164,8 @@ export.init_seed
     ## 4. number of auxiliary random values
     ## 5. trace length (this is already on the stack)
 
-    ## main segment width is 80 and there are 1 auxiliary segments
-    ## of width 8 using 16 random extension field elements
+    ## main segment width is 80 (0x50) and there are 1 (0x01) auxiliary segments
+    ## of width 8 (0x08) using 16 (0x10) random extension field elements
     push.0x50010810
     swap
     ## field modulus bytes (2 field elements)
@@ -368,7 +368,7 @@ export.generate_deep_composition_random_coefficients
     padw exec.constants::r1_ptr mem_loadw
     # => [y, y, alpha1, alpha0, ...] where y is a "garbage" value
     push.0.0
-    exec.constants::deep_rand_alpha_ptr mem_loadw
+    exec.constants::deep_rand_alpha_nd_ptr mem_loadw
     drop drop
     # => [alpha1_nd, alpha0_nd, alpha1, alpha0, ...] where y is a "garbage" value
 
