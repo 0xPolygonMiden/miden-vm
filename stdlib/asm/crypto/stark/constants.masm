@@ -32,18 +32,27 @@ const.NUM_INPUTS_CIRCUIT=232
 # Number of evaluation gates in the constraint evaluation circuit
 const.NUM_EVAL_GATES_CIRCUIT=88
 
+# Op label for kernel procedures table messages
+const.KERNEL_OP_LABEL=0
+
 # MEMORY POINTERS
 # =================================================================================================
 
 # Trace domain generator
-const.TRACE_DOMAIN_GENERATOR_PTR=4294799999
+const.TRACE_DOMAIN_GENERATOR_PTR=4294799998
+
+# Variable length public inputs address
+const.VARIABLE_LEN_PUBLIC_INPUTS_ADDRESS_PTR=4294799999
 
 # Public inputs address
 const.PUBLIC_INPUTS_ADDRESS_PTR=4294800000
 
 # Random elements
-# There are are currently 16 ExtFelt for a total of 32 Felt. Thus the number of memory slots required is 32.
-const.AUX_RAND_ELEM_PTR=4294899968
+# We use 2 extension field elements for a total of 4 base field elements.
+const.AUX_RAND_ELEM_PTR=4294899996
+# This will hold the non-deterministically loaded 2 random challenges, which will be
+# checked for correctness once we receive the commitment to the auxiliary trace.
+const.AUX_RAND_ND_PTR=4294800004
 
 # OOD Frames
 # (80 + 8) * 2 * 2 Felt for current and next trace rows and 8 * 2 Felt for constraint composition
@@ -153,7 +162,8 @@ const.OOD_FIXED_TERM_HORNER_EVALS_PTR=4294903448
 #   +------------------------------------------+-------------------------+
 #   | TRACE_DOMAIN_GENERATOR_PTR               |       4294799999        |
 #   | PUBLIC_INPUTS_ADDRESS_PTR                |       4294800000        |
-#   | AUX_RAND_ELEM_PTR                        |       4294899968        |
+#   | AUX_RAND_ND_PTR                          |       4294800004        |
+#   | AUX_RAND_ELEM_PTR                        |       4294899996        |
 #   | OOD_TRACE_CURRENT_PTR                    |       4294900000        |
 #   | OOD_TRACE_NEXT_PTR                       |       4294900162        |
 #   | OOD_CONSTRAINT_EVALS_PTR                 |       4294900324        |
@@ -192,6 +202,10 @@ const.OOD_FIXED_TERM_HORNER_EVALS_PTR=4294903448
 
 export.public_inputs_address_ptr
     push.PUBLIC_INPUTS_ADDRESS_PTR
+end
+
+export.variable_length_public_inputs_address_ptr
+    push.VARIABLE_LEN_PUBLIC_INPUTS_ADDRESS_PTR
 end
 
 export.ood_trace_current_ptr
@@ -463,4 +477,12 @@ end
 
 export.get_arithmetic_circuit_eval_number_eval_gates
     push.NUM_EVAL_GATES_CIRCUIT
+end
+
+export.aux_rand_nd_ptr
+    push.AUX_RAND_ND_PTR
+end
+
+export.kernel_proc_table_op_label
+    push.KERNEL_OP_LABEL
 end
