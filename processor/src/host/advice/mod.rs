@@ -89,7 +89,7 @@ pub trait AdviceProvider: Sized {
         err_ctx: &ErrorContext<'_, impl MastNodeExt>,
     ) -> Result<(), ExecutionError>;
 
-    /// Returns a slice of length [length] from the top of the advice stack.
+    /// Returns a slice of length `length` from the top of the advice stack.
     /// If length = 0 returns the whole advice stack.
     fn peek_stack(&self, length: usize) -> &[Felt];
 
