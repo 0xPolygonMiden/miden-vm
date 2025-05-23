@@ -64,7 +64,7 @@ pub use self::{
 #[derive(Clone)]
 pub struct Assembler {
     /// The source manager to use for compilation and source location information
-    source_manager: Arc<dyn SourceManager>,
+    source_manager: Arc<dyn SourceManager + Send + Sync>,
     /// The global [ModuleGraph] for this assembler.
     module_graph: ModuleGraph,
     /// Whether to treat warning diagnostics as errors
@@ -93,7 +93,7 @@ impl Default for Assembler {
 /// Constructors
 impl Assembler {
     /// Start building an [Assembler]
-    pub fn new(source_manager: Arc<dyn SourceManager>) -> Self {
+    pub fn new(source_manager: Arc<dyn SourceManager + Send + Sync>) -> Self {
         let module_graph = ModuleGraph::new(source_manager.clone());
         Self {
             source_manager,
@@ -105,7 +105,10 @@ impl Assembler {
     }
 
     /// Start building an [`Assembler`] with a kernel defined by the provided [KernelLibrary].
-    pub fn with_kernel(source_manager: Arc<dyn SourceManager>, kernel_lib: KernelLibrary) -> Self {
+    pub fn with_kernel(
+        source_manager: Arc<dyn SourceManager + Send + Sync>,
+        kernel_lib: KernelLibrary,
+    ) -> Self {
         let (kernel, kernel_module, _) = kernel_lib.into_parts();
         let module_graph = ModuleGraph::with_kernel(source_manager.clone(), kernel, kernel_module);
         Self {
@@ -300,7 +303,7 @@ impl Assembler {
     }
 
     /// Returns a link to the source manager used by this assembler.
-    pub fn source_manager(&self) -> Arc<dyn SourceManager> {
+    pub fn source_manager(&self) -> Arc<dyn SourceManager + Send + Sync> {
         self.source_manager.clone()
     }
 
