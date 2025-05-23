@@ -3,8 +3,10 @@ use core::fmt::{Display, Formatter, Result as FmtResult};
 use miden_air::{RowIndex, trace::main_trace::MainTrace};
 use vm_core::{Felt, FieldElement, ONE};
 
-use super::build_value;
-use crate::debug::{BusDebugger, BusMessage};
+use crate::{
+    chiplets::aux_trace::build_value,
+    debug::{BusDebugger, BusMessage},
+};
 
 /// Unique label ACE operation.
 pub const ACE_LABEL: Felt = Felt::new(0b11101_u64);

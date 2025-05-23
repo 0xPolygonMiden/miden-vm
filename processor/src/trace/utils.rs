@@ -248,25 +248,31 @@ pub trait AuxColumnBuilder<E: FieldElement<BaseField = Felt>> {
 
     /// Builds the chiplets bus auxiliary trace column.
     fn build_aux_column(&self, main_trace: &MainTrace, alphas: &[E]) -> Vec<E> {
-        let mut responses_prod: Vec<E> = unsafe { uninit_vector(main_trace.num_rows()) };
-        let mut requests: Vec<E> = unsafe { uninit_vector(main_trace.num_rows()) };
         let mut bus_debugger = BusDebugger::new("chiplets bus".to_string());
 
-        responses_prod[0] = self.init_responses(main_trace, alphas, &mut bus_debugger);
+        let mut requests: Vec<E> = unsafe { uninit_vector(main_trace.num_rows()) };
         requests[0] = self.init_requests(main_trace, alphas, &mut bus_debugger);
 
+        let mut responses_prod: Vec<E> = unsafe { uninit_vector(main_trace.num_rows()) };
+        responses_prod[0] = self.init_responses(main_trace, alphas, &mut bus_debugger);
+
         let mut requests_running_prod = requests[0];
+
+        // Product of all requests to be inverted, used to compute inverses of requests.
         for row_idx in 0..main_trace.num_rows() - 1 {
             let row = row_idx.into();
-            responses_prod[row_idx + 1] = responses_prod[row_idx]
-                * self.get_responses_at(main_trace, alphas, row, &mut bus_debugger);
-            requests[row_idx + 1] =
-                self.get_requests_at(main_trace, alphas, row, &mut bus_debugger);
-            requests_running_prod *= requests[row_idx + 1];
+
+            let response = self.get_responses_at(main_trace, alphas, row, &mut bus_debugger);
+            responses_prod[row_idx + 1] = responses_prod[row_idx] * response;
+
+            let request = self.get_requests_at(main_trace, alphas, row, &mut bus_debugger);
+            requests[row_idx + 1] = request;
+            requests_running_prod *= request;
         }
 
-        let mut requests_running_divisor = requests_running_prod.inv();
+        // Use batch-inversion method to compute running product of `response[i]/request[i]`.
         let mut result_aux_column = responses_prod;
+        let mut requests_running_divisor = requests_running_prod.inv();
         for i in (0..main_trace.num_rows()).rev() {
             result_aux_column[i] *= requests_running_divisor;
             requests_running_divisor *= requests[i];

@@ -18,8 +18,11 @@ use vm_core::{
     utils::range,
 };
 
-use super::{build_value, get_op_label};
-use crate::debug::{BusDebugger, BusMessage};
+use super::get_op_label;
+use crate::{
+    chiplets::aux_trace::build_value,
+    debug::{BusDebugger, BusMessage},
+};
 // REQUESTS
 // ==============================================================================================
 

@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.15.0 (TBD)
+
+#### Changes
+- Improve error messages for some assembler instruction (#1785)
+- Remove `idx` column from Kernel ROM chiplet and use chiplet bus for initialization. (#1818)
+
+#### Fixes
+- `miden debug` rewind command no longer panics at clock 0 (#1751)
+
+
 ## 0.14.0 (2025-05-07)
 
 #### Enhancements
