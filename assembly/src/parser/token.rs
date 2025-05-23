@@ -144,6 +144,7 @@ pub enum Token<'input> {
     AdvLoadw,
     AdvPipe,
     AdvPush,
+    AdvStack,
     PushExt2intt,
     PushMapval,
     PushMapvaln,
@@ -324,6 +325,7 @@ impl fmt::Display for Token<'_> {
         match self {
             Token::Add => write!(f, "add"),
             Token::Adv => write!(f, "adv"),
+            Token::AdvStack => write!(f, "adv_stack"),
             Token::InsertHdword => write!(f, "insert_hdword"),
             Token::InsertHdwordWithDomain => write!(f, "insert_hdword_d"),
             Token::InsertHperm => write!(f, "insert_hperm"),
@@ -526,6 +528,7 @@ impl<'input> Token<'input> {
                 | Token::AdvLoadw
                 | Token::AdvPipe
                 | Token::AdvPush
+                | Token::AdvStack
                 | Token::PushExt2intt
                 | Token::PushMapval
                 | Token::PushMapvaln
@@ -674,6 +677,7 @@ impl<'input> Token<'input> {
         ("adv_loadw", Token::AdvLoadw),
         ("adv_pipe", Token::AdvPipe),
         ("adv_push", Token::AdvPush),
+        ("adv_stack", Token::AdvStack),
         ("push_ext2intt", Token::PushExt2intt),
         ("push_mapval", Token::PushMapval),
         ("push_mapvaln", Token::PushMapvaln),

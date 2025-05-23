@@ -1,0 +1,5 @@
+    begin
+        push.12
+        debug.adv_stack.1
+        drop
+    end
