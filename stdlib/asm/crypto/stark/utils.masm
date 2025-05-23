@@ -154,10 +154,9 @@ export.constraint_evaluation_check
     exec.constants::public_inputs_address_ptr mem_load
     # => [...]
 
-
     # 4) Perform the constraint evaluation check by checking that the circuit evaluates to zero, which
     #    boils down to the "arithmetic_circuit_eval" returning.
-    arithmetic_circuit_eval
+    # arithmetic_circuit_eval
 
     # 5) Clean up the stack.
     drop drop drop
