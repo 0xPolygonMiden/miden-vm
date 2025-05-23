@@ -603,7 +603,7 @@ end
 #! NOTE: The cycles count can be estimated, using the fact that r < 8, via the more compact formula
 #!  470 + 236 * (num_queries / 8)
 export.generate_list_indices
-    # Get the number of querie indices we need to generate and the address to where we need
+    # Get the number of query indices we need to generate and the address to where we need
     # to store them at.
     exec.constants::get_number_queries
     exec.constants::get_fri_queries_address
