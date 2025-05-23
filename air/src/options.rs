@@ -51,8 +51,8 @@ impl ProvingOptions {
         FieldExtension::Quadratic,
         4,
         7,
-        BatchingMethod::Algebraic,
-        BatchingMethod::Algebraic,
+        BatchingMethod::Horner,
+        BatchingMethod::Horner,
     );
 
     /// Standard proof parameters for 128-bit conjectured security in recursive context.
@@ -63,8 +63,8 @@ impl ProvingOptions {
         FieldExtension::Cubic,
         4,
         7,
-        BatchingMethod::Algebraic,
-        BatchingMethod::Algebraic,
+        BatchingMethod::Horner,
+        BatchingMethod::Horner,
     );
 
     // CONSTRUCTORS
@@ -87,8 +87,8 @@ impl ProvingOptions {
             field_extension,
             fri_folding_factor,
             fri_remainder_max_degree,
-            BatchingMethod::Algebraic,
-            BatchingMethod::Algebraic,
+            BatchingMethod::Horner,
+            BatchingMethod::Horner,
         );
         let exec_options = ExecutionOptions::default();
         Self { exec_options, proof_options, hash_fn }
