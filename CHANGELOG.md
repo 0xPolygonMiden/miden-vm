@@ -9,6 +9,8 @@
 #### Fixes
 - `miden debug` rewind command no longer panics at clock 0 (#1751)
 
+#### Enhancements
+- Add range checks to the `push_falcon_mod_result` advice injector to make sure that the inputs are `u32` (#1819).
 
 ## 0.14.0 (2025-05-07)
 
