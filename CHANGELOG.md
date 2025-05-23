@@ -5,6 +5,7 @@
 #### Changes
 - Improve error messages for some assembler instruction (#1785)
 - Remove `idx` column from Kernel ROM chiplet and use chiplet bus for initialization. (#1818)
+- Simplify and optimize the recursive verifier (#1801).
 
 #### Fixes
 - `miden debug` rewind command no longer panics at clock 0 (#1751)
