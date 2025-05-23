@@ -169,25 +169,37 @@ The diagram below illustrates the stack transition for `HORNERBASE` operation.
 ![horner_eval_base](../../assets/design/stack/crypto_ops/HORNERBASE.png)
 
 After calling the operation:
-- Helper registers $h_4$ and $h_5$ will contain the intermediate value $\mathsf{tmp}$.
+- Helper registers $h_i$ will contain the values $[\alpha_0, \alpha_1, k_0, k_1, \mathsf{tmp}_0, \mathsf{tmp}_1]$.
 - Stack elements $14$ and $15$ will contain the value of the updated accumulator i.e., $\mathsf{acc}^{'}$.
 
 More specifically, the stack transition for this operation must satisfy the following constraints:
 
 >$$
-\mathsf{tmp}_0 = \mathsf{acc}_0 \cdot \alpha_0^4 - 8 \cdot \mathsf{acc}_1 \cdot \alpha_0^3 \cdot \alpha_1 - 12 \cdot \mathsf{acc}_0 \cdot \alpha_0^2 \cdot \alpha_1^2 - 12 \cdot \mathsf{acc}_1 \cdot \alpha_0^2 \cdot \alpha_1^2 - 8 \cdot \mathsf{acc}_0 \cdot \alpha_0 \cdot \alpha_1^3 + 8 \cdot \mathsf{acc}_1\cdot\alpha_0\cdot\alpha_1^3 + 2\cdot\mathsf{acc}_0\cdot\alpha_1^4 + 6\cdot\mathsf{acc}_1\cdot\alpha_1^4 + s_7\cdot\alpha_0^3 - 6 \cdot s_7\cdot\alpha_0\cdot\alpha_1^2 - 2 \cdot s_7\cdot\alpha_1^3 + s_6\cdot\alpha_0^2 - 2\cdot s_6\cdot\alpha_1^2 + s_5\cdot\alpha_0 + s_4  \text{ | degree} = 5
+\begin{align*}
+    \mathsf{tmp}_0 &= \mathsf{acc}_0 \cdot \alpha_0^4 - 8 \cdot \mathsf{acc}_1 \cdot \alpha_0^3 \cdot \alpha_1 - 12 \cdot \mathsf{acc}_0 \cdot \alpha_0^2 \cdot \alpha_1^2 \\ 
+    &- 12 \cdot \mathsf{acc}_1 \cdot \alpha_0^2 \cdot \alpha_1^2 - 8 \cdot \mathsf{acc}_0 \cdot \alpha_0 \cdot \alpha_1^3 \\ 
+    &+ 8 \cdot \mathsf{acc}_1\cdot\alpha_0\cdot\alpha_1^3 + 2\cdot\mathsf{acc}_0\cdot\alpha_1^4 \\ 
+    &+ 6\cdot\mathsf{acc}_1\cdot\alpha_1^4 + s_7\cdot\alpha_0^3 - 6 \cdot s_7\cdot\alpha_0\cdot\alpha_1^2 \\ 
+    &- 2 \cdot s_7\cdot\alpha_1^3 + s_6\cdot\alpha_0^2 - 2\cdot s_6\cdot\alpha_1^2 + s_5\cdot\alpha_0 + s_4  \text{ | degree} = 5
+\end{align*}
 $$
 
 >$$
-\mathsf{tmp}_1 = \mathsf{acc}_1 \cdot \alpha_0^4 + 4 \cdot \mathsf{acc}_0 \cdot \alpha_0^3 \cdot \alpha_1 + 4 \cdot \mathsf{acc}_1 \cdot \alpha_0^3 \cdot \alpha_1 + 6 \cdot \mathsf{acc}_0 \cdot \alpha_0^2 \cdot \alpha_1^2 - 6 \cdot \mathsf{acc}_1 \cdot \alpha_0^2 \cdot \alpha_1^2 - 4 \cdot \mathsf{acc}_0 \cdot \alpha_0\cdot\alpha_1^3 - 12 \cdot \mathsf{acc}_1 \cdot \alpha_0 \cdot \alpha_1^3  - 3 \cdot\mathsf{acc}_0 \cdot \alpha_1^4 - \mathsf{acc}_1 \cdot \alpha_1^4 + 3 \cdot s_7 \cdot \alpha_0^2\cdot\alpha_1 + 3 \cdot s_7 \cdot \alpha_0\cdot\alpha_1^2 - s_7   \cdot\alpha_1^3 + 2\cdot s_6\cdot\alpha_0\cdot\alpha_1 + s_6\cdot\alpha_1^2 + s_5\cdot\alpha_1  \text{ | degree} = 5
+\begin{align*}
+\mathsf{tmp}_1 &= \mathsf{acc}_1 \cdot \alpha_0^4 + 4 \cdot \mathsf{acc}_0 \cdot \alpha_0^3 \cdot \alpha_1 + 4 \cdot \mathsf{acc}_1 \cdot \alpha_0^3 \cdot \alpha_1 \\ &+ 6 \cdot \mathsf{acc}_0 \cdot \alpha_0^2 \cdot \alpha_1^2 - 6 \cdot \mathsf{acc}_1 \cdot \alpha_0^2 \cdot \alpha_1^2 \\ &- 4 \cdot \mathsf{acc}_0 \cdot \alpha_0\cdot\alpha_1^3 - 12 \cdot \mathsf{acc}_1 \cdot \alpha_0 \cdot \alpha_1^3 \\ & - 3 \cdot\mathsf{acc}_0 \cdot \alpha_1^4 - \mathsf{acc}_1 \cdot \alpha_1^4 + 3 \cdot s_7 \cdot \alpha_0^2\cdot\alpha_1 \\ &+ 3 \cdot s_7 \cdot \alpha_0\cdot\alpha_1^2 - s_7   \cdot\alpha_1^3 + 2\cdot s_6\cdot\alpha_0\cdot\alpha_1 + s_6\cdot\alpha_1^2 + s_5\cdot\alpha_1  \text{ | degree} = 5
+\end{align*}
 $$
 
 >$$
-\mathsf{acc}_0^{'} = \mathsf{tmp}_0\cdot\alpha_0^4 - 8 \cdot\mathsf{tmp}_1\cdot\alpha_0^3\cdot\alpha_1 - 12 \cdot\mathsf{tmp}_0\cdot\alpha_0^2\cdot\alpha_1^2  - 12\cdot\mathsf{tmp}_1\cdot\alpha_0^2\cdot\alpha_1^2 - 8\cdot\mathsf{tmp}_0\cdot\alpha_0\cdot\alpha_1^3 + 8\cdot\mathsf{tmp}_1\cdot\alpha_0\cdot\alpha_1^3 + 2\cdot\mathsf{tmp}_0\cdot\alpha_1^4 + 6\cdot\mathsf{tmp}_1\cdot\alpha_1^4 +  s_3\cdot\alpha_0^3 - 6\cdot s_3\cdot\alpha_0\cdot\alpha_1^2 - 2\cdot s_3\cdot\alpha_1^3 +  s_2\cdot\alpha_0^2 - 2\cdot s_2\cdot\alpha_1^2 +  s_1\cdot\alpha_0 + s_0  \text{ | degree} = 5
+\begin{align*}
+\mathsf{acc}_0^{'} &= \mathsf{tmp}_0\cdot\alpha_0^4 - 8 \cdot\mathsf{tmp}_1\cdot\alpha_0^3\cdot\alpha_1 - 12 \cdot\mathsf{tmp}_0\cdot\alpha_0^2\cdot\alpha_1^2  \\ &- 12\cdot\mathsf{tmp}_1\cdot\alpha_0^2\cdot\alpha_1^2 - 8\cdot\mathsf{tmp}_0\cdot\alpha_0\cdot\alpha_1^3 + 8\cdot\mathsf{tmp}_1\cdot\alpha_0\cdot\alpha_1^3 \\ &+ 2\cdot\mathsf{tmp}_0\cdot\alpha_1^4 + 6\cdot\mathsf{tmp}_1\cdot\alpha_1^4 +  s_3\cdot\alpha_0^3 - 6\cdot s_3\cdot\alpha_0\cdot\alpha_1^2 \\ &- 2\cdot s_3\cdot\alpha_1^3 +  s_2\cdot\alpha_0^2 - 2\cdot s_2\cdot\alpha_1^2 +  s_1\cdot\alpha_0 + s_0  \text{ | degree} = 5
+\end{align*}
 $$
 
 >$$
-\mathsf{acc}_1^{'} = \mathsf{tmp}_1\cdot\alpha_0^4 + 4\cdot\mathsf{tmp}_0\cdot\alpha_0^3\cdot\alpha_1 + 4\cdot\mathsf{tmp}_1\cdot\alpha_0^3\cdot\alpha_1 + 6\cdot\mathsf{tmp}_0\cdot\alpha_0^2\cdot\alpha_1^2 - 6\cdot\mathsf{tmp}_1\cdot\alpha_0^2\cdot\alpha_1^2 - 4 \cdot \mathsf{tmp}_0\cdot\alpha_0\cdot\alpha_1^3 -12\cdot\mathsf{tmp}_1\cdot\alpha_0\cdot\alpha_1^3 - 3\cdot\mathsf{tmp}_0\cdot\alpha_1^4 - \mathsf{tmp}_1\cdot\alpha_1^4 + 3\cdot s_3\cdot\alpha_0^2\cdot\alpha_1 + 3\cdot s_3\cdot\alpha_0\cdot\alpha_1^2 -  s_3\cdot\alpha_1^3 + 2\cdot s_2\cdot\alpha_0\cdot\alpha_1 +  s_2\cdot\alpha_1^2 +  s_1\cdot\alpha_1  \text{ | degree} = 5
+\begin{align*}
+\mathsf{acc}_1^{'} &= \mathsf{tmp}_1\cdot\alpha_0^4 + 4\cdot\mathsf{tmp}_0\cdot\alpha_0^3\cdot\alpha_1 + 4\cdot\mathsf{tmp}_1\cdot\alpha_0^3\cdot\alpha_1 + 6\cdot\mathsf{tmp}_0\cdot\alpha_0^2\cdot\alpha_1^2 \\ &- 6\cdot\mathsf{tmp}_1\cdot\alpha_0^2\cdot\alpha_1^2 - 4 \cdot \mathsf{tmp}_0\cdot\alpha_0\cdot\alpha_1^3 -12\cdot\mathsf{tmp}_1\cdot\alpha_0\cdot\alpha_1^3 \\ &- 3\cdot\mathsf{tmp}_0\cdot\alpha_1^4 - \mathsf{tmp}_1\cdot\alpha_1^4 + 3\cdot s_3\cdot\alpha_0^2\cdot\alpha_1 \\ &+ 3\cdot s_3\cdot\alpha_0\cdot\alpha_1^2 -  s_3\cdot\alpha_1^3 + 2\cdot s_2\cdot\alpha_0\cdot\alpha_1 +  s_2\cdot\alpha_1^2 +  s_1\cdot\alpha_1  \text{ | degree} = 5
+\end{align*}
 $$
 
 The effect on the rest of the stack is:
@@ -217,25 +229,33 @@ The diagram below illustrates the stack transition for `HORNEREXT` operation.
 ![horner_eval_ext](../../assets/design/stack/crypto_ops/HORNEREXT.png)
 
 After calling the operation:
-- Helper registers $h_4$ and $h_5$ will contain the intermediate value $\mathsf{tmp}$.
+- Helper registers $h_i$ will contain the values $[\alpha_0, \alpha_1, k_0, k_1, \mathsf{tmp}_0, \mathsf{tmp}_1]$.
 - Stack elements $14$ and $15$ will contain the value of the updated accumulator i.e., $\mathsf{acc}^{'}$.
 
 More specifically, the stack transition for this operation must satisfy the following constraints:
 
 >$$
-\mathsf{tmp}_0 = \mathsf{acc}_0\cdot \alpha_0^2 - 4\cdot \mathsf{acc}_1\cdot \alpha_0\cdot \alpha_1 -2\cdot \mathsf{acc}_0\cdot \alpha_1^2 -2\cdot \mathsf{acc}_1\cdot \alpha_1^2 + s_6\cdot \alpha_0 -2\cdot s_7\cdot \alpha_1 + s_4  \text{ | degree} = 3
+\begin{align*}
+\mathsf{tmp}_0 &= \mathsf{acc}_0\cdot \alpha_0^2 - 4\cdot \mathsf{acc}_1\cdot \alpha_0\cdot \alpha_1 - 2\cdot \mathsf{acc}_0\cdot \alpha_1^2 \\ &- 2\cdot \mathsf{acc}_1\cdot \alpha_1^2 + s_6\cdot \alpha_0 -2\cdot s_7\cdot \alpha_1 + s_4  \text{ | degree} = 3
+\end{align*}
 $$
 
 >$$
-\mathsf{tmp}_1 = \mathsf{acc}_1\cdot \alpha_0^2 + 2\cdot \mathsf{acc}_0\cdot \alpha_0\cdot \alpha_1 + 2\cdot \mathsf{acc}_1\cdot \alpha_0\cdot \alpha_1 + \mathsf{acc}_0\cdot \alpha_1^2 - \mathsf{acc}_1\cdot \alpha_1^2 + s_7\cdot \alpha_0 + s_6\cdot \alpha_1 + s_7\cdot \alpha_1 + s_5  \text{ | degree} = 3
+\begin{align*}
+\mathsf{tmp}_1 &= \mathsf{acc}_1\cdot \alpha_0^2 + 2\cdot \mathsf{acc}_0\cdot \alpha_0\cdot \alpha_1 + 2\cdot \mathsf{acc}_1\cdot \alpha_0\cdot \alpha_1 \\ &+ \mathsf{acc}_0\cdot \alpha_1^2 - \mathsf{acc}_1\cdot \alpha_1^2 + s_7\cdot \alpha_0 + s_6\cdot \alpha_1 + s_7\cdot \alpha_1 + s_5  \text{ | degree} = 3
+\end{align*}
 $$
 
 >$$
-\mathsf{acc}_0^{'} = \mathsf{tmp}_0\cdot \alpha_0^2 - 4\cdot \mathsf{tmp}_1\cdot \alpha_0\cdot \alpha_1 - 2\cdot \mathsf{tmp}_0\cdot \alpha_1^2 - 2\cdot \mathsf{tmp}_1\cdot \alpha_1^2 + s_2\cdot \alpha_0 - 2\cdot s_3\cdot \alpha_1 + s_0  \text{ | degree} = 3
+\begin{align*}
+\mathsf{acc}_0^{'} &= \mathsf{tmp}_0\cdot \alpha_0^2 - 4\cdot \mathsf{tmp}_1\cdot \alpha_0\cdot \alpha_1 - 2\cdot \mathsf{tmp}_0\cdot \alpha_1^2 \\& - 2\cdot \mathsf{tmp}_1\cdot \alpha_1^2 + s_2\cdot \alpha_0 - 2\cdot s_3\cdot \alpha_1 + s_0  \text{ | degree} = 3
+\end{align*}
 $$
 
 >$$
-\mathsf{acc}_1^{'} = \mathsf{tmp}_1\cdot \alpha_0^2 + 2\cdot \mathsf{tmp}_0\cdot \alpha_0\cdot \alpha_1 + 2\cdot \mathsf{tmp}_1\cdot \alpha_0\cdot \alpha_1 + \mathsf{tmp}_0\cdot \alpha_1^2 - \mathsf{tmp}_1\cdot \alpha_1^2 + s_3\cdot \alpha_0 + s_2\cdot \alpha_1 + s_3\cdot \alpha_1 + s_1  \text{ | degree} = 3
+\begin{align*}
+\mathsf{acc}_1^{'} &= \mathsf{tmp}_1\cdot \alpha_0^2 + 2\cdot \mathsf{tmp}_0\cdot \alpha_0\cdot \alpha_1 + 2\cdot \mathsf{tmp}_1\cdot \alpha_0\cdot \alpha_1 \\& + \mathsf{tmp}_0\cdot \alpha_1^2 - \mathsf{tmp}_1\cdot \alpha_1^2 + s_3\cdot \alpha_0 + s_2\cdot \alpha_1 + s_3\cdot \alpha_1 + s_1  \text{ | degree} = 3
+\end{align*}
 $$
 
 The effect on the rest of the stack is:

@@ -330,7 +330,7 @@ mod tests {
 
         let alpha = QuadFelt::new(alpha_mem_word[0], alpha_mem_word[1]);
 
-        let tmp = stack_state
+        let acc_tmp = stack_state
             .iter()
             .take(8)
             .rev()
@@ -342,7 +342,7 @@ mod tests {
             .take(8)
             .rev()
             .skip(4)
-            .fold(tmp, |acc, coef| QuadFelt::from(*coef) + alpha * acc);
+            .fold(acc_tmp, |acc, coef| QuadFelt::from(*coef) + alpha * acc);
 
         assert_eq!(acc_new.to_base_elements()[1], stack_state[ACC_HIGH_INDEX]);
         assert_eq!(acc_new.to_base_elements()[0], stack_state[ACC_LOW_INDEX]);
@@ -357,8 +357,8 @@ mod tests {
             alpha_mem_word[1],
             alpha_mem_word[2],
             alpha_mem_word[3],
-            tmp.base_element(0),
-            tmp.base_element(1),
+            acc_tmp.base_element(0),
+            acc_tmp.base_element(1),
         ];
         assert_eq!(helper_reg_expected, process.decoder.get_user_op_helpers());
     }
@@ -427,8 +427,10 @@ mod tests {
             .map(|coef| QuadFelt::new(coef[1], coef[0]))
             .collect();
 
-        let tmp = coefficients.iter().rev().take(2).fold(acc_old, |acc, coef| *coef + alpha * acc);
-        let acc_new = coefficients.iter().rev().skip(2).fold(tmp, |acc, coef| *coef + alpha * acc);
+        let acc_tmp =
+            coefficients.iter().rev().take(2).fold(acc_old, |acc, coef| *coef + alpha * acc);
+        let acc_new =
+            coefficients.iter().rev().skip(2).fold(acc_tmp, |acc, coef| *coef + alpha * acc);
 
         assert_eq!(acc_new.to_base_elements()[1], stack_state[ACC_HIGH_INDEX]);
         assert_eq!(acc_new.to_base_elements()[0], stack_state[ACC_LOW_INDEX]);
@@ -443,8 +445,8 @@ mod tests {
             alpha_mem_word[1],
             alpha_mem_word[2],
             alpha_mem_word[3],
-            tmp.base_element(0),
-            tmp.base_element(1),
+            acc_tmp.base_element(0),
+            acc_tmp.base_element(1),
         ];
         assert_eq!(helper_reg_expected, process.decoder.get_user_op_helpers());
     }
