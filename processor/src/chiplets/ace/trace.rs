@@ -2,22 +2,22 @@ use alloc::vec::Vec;
 use core::ops::Range;
 
 use miden_air::{
+    RowIndex,
     trace::chiplets::ace::{
         CLK_IDX, CTX_IDX, EVAL_OP_IDX, ID_0_IDX, ID_1_IDX, ID_2_IDX, M_0_IDX, M_1_IDX, PTR_IDX,
         READ_NUM_EVAL_IDX, SELECTOR_BLOCK_IDX, SELECTOR_START_IDX, V_0_0_IDX, V_0_1_IDX, V_1_0_IDX,
         V_1_1_IDX, V_2_0_IDX, V_2_1_IDX,
     },
-    RowIndex,
 };
-use vm_core::{mast::BasicBlockNode, FieldElement};
+use vm_core::{FieldElement, mast::BasicBlockNode};
 
 use crate::{
+    ContextId, ExecutionError, Felt, QuadFelt, Word,
     chiplets::ace::{
-        instruction::{decode_instruction, Op},
         MAX_ACE_WIRES,
-    }, errors::{AceError, ErrorContext}, ContextId, ExecutionError, Felt,
-    QuadFelt,
-    Word,
+        instruction::{Op, decode_instruction},
+    },
+    errors::{AceError, ErrorContext},
 };
 
 /// Number of LogUp fractions in the wiring bus for rows in the `READ` section.
