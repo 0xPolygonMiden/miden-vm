@@ -588,6 +588,8 @@ pub enum AceError {
     FailedDecodeInstruction,
     #[error("failed to read from the wiring bus")]
     FailedWireBusRead,
+    #[error("num of wires must be less than 2^30 but was {0}")]
+    TooManyWires(u64),
 }
 
 // EXT2INTT ERROR
