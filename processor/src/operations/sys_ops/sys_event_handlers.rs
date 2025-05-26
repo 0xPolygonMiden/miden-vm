@@ -387,13 +387,12 @@ pub fn push_u64_div_result(
 ///   Operand stack: [a1, a0, ...]
 ///   Advice stack: [q1, q0, r, ...]
 ///
-/// where (a0, a1) are the 32-bit limbs of the dividend (with a0 representing the 32 least
+/// Where (a0, a1) are the 32-bit limbs of the dividend (with a0 representing the 32 least
 /// significant bits and a1 representing the 32 most significant bits).
 /// Similarly, (q0, q1) represent the quotient and r the remainder.
 ///
 /// # Errors
-/// - Returns an error if the divisor is ZERO.
-/// - Returns an error if either a0 or a1 is not a u32.
+/// Returns an error if the divisor is ZERO.
 pub fn push_falcon_mod_result(
     advice_provider: &mut impl AdviceProvider,
     process: ProcessState,
@@ -401,12 +400,6 @@ pub fn push_falcon_mod_result(
 ) -> Result<(), ExecutionError> {
     let dividend_hi = process.get_stack_item(0).as_int();
     let dividend_lo = process.get_stack_item(1).as_int();
-    if dividend_lo > u32::MAX as u64 {
-        return Err(ExecutionError::input_not_u32(process.clk(), dividend_lo, err_ctx));
-    }
-    if dividend_hi > u32::MAX as u64 {
-        return Err(ExecutionError::input_not_u32(process.clk(), dividend_hi, err_ctx));
-    }
     let dividend = (dividend_hi << 32) + dividend_lo;
 
     let (quotient, remainder) = (dividend / M, dividend % M);
