@@ -26,7 +26,7 @@ const.MEMORY_POINTER_OFFSET_OF_HASH_TO_POINT_POLY_FROM_PRODUCT_POLY=1024
 #!
 #! [c, ...] | c = a % M
 #!
-#! Note that it is the responsibility of the calling procedure to insure that `a_hi` and `a_lo` are
+#! Note that it is the responsibility of the calling procedure to ensure that `a_hi` and `a_lo` are
 #! within the appropriate range i.e., they are u32-s.
 #!
 #! Cycles: 27
