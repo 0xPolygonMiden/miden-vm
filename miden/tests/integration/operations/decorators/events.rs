@@ -128,3 +128,28 @@ fn test_debug_without_debugging() {
     let expected: Vec<String> = vec![];
     assert_eq!(host.debug_handler, expected);
 }
+
+// Test that debug.adv_stack is parsable. For a functional test see
+// `miden/tests/integration/cli/cli_test.rs::test_debug_adv_stack`
+#[test]
+fn test_parsing_debug_advice_stack() {
+    let source: &str = "\
+    begin
+        push.1
+        debug.adv_stack.2
+        drop
+    end";
+
+    // compile and execute program
+    let program: Program =
+        Assembler::default().with_debug_mode(true).assemble_program(source).unwrap();
+    let mut host = TestHost::default();
+    processor::execute(
+        &program,
+        StackInputs::default(),
+        &mut host,
+        ExecutionOptions::default().with_debugging(true),
+        Arc::new(DefaultSourceManager::default()),
+    )
+    .unwrap();
+}

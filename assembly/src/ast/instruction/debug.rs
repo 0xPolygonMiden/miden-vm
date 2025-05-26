@@ -15,6 +15,7 @@ pub enum DebugOptions {
     LocalInterval(ImmU16, ImmU16),
     LocalRangeFrom(ImmU16),
     LocalAll,
+    AdvStackTop(ImmU16),
 }
 
 impl crate::prettier::PrettyPrint for DebugOptions {
@@ -39,6 +40,7 @@ impl TryFrom<DebugOptions> for vm_core::DebugOptions {
                 let end = end.into_inner();
                 Ok(Self::LocalInterval(start, end, end - start))
             },
+            DebugOptions::AdvStackTop(ImmU16::Value(n)) => Ok(Self::AdvStackTop(n.into_inner())),
             _ => Err(()),
         }
     }
@@ -56,6 +58,7 @@ impl fmt::Display for DebugOptions {
             Self::LocalInterval(start, end) => {
                 write!(f, "local.{start}.{end}")
             },
+            Self::AdvStackTop(n) => write!(f, "adv_stack.{n}"),
         }
     }
 }

@@ -2,6 +2,10 @@
 
 ## 0.15.0 (TBD)
 
+#### Enhancements
+
+- Add `debug.stack_adv` and `debug.stack_adv.<n>` to help debug the advice stack (#1828).
+
 #### Changes
 - Improve error messages for some assembler instruction (#1785)
 - Remove `idx` column from Kernel ROM chiplet and use chiplet bus for initialization. (#1818)
