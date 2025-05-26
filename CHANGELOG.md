@@ -2,6 +2,10 @@
 
 ## 0.15.0 (TBD)
 
+#### Enhancements
+
+- Add a complete description of the constraints for `horner_eval_base` and `horner_eval_ext` (#1817).
+
 #### Changes
 - Improve error messages for some assembler instruction (#1785)
 - Remove `idx` column from Kernel ROM chiplet and use chiplet bus for initialization. (#1818)
