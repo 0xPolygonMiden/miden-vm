@@ -26,6 +26,9 @@ const.MEMORY_POINTER_OFFSET_OF_HASH_TO_POINT_POLY_FROM_PRODUCT_POLY=1024
 #!
 #! [c, ...] | c = a % M
 #!
+#! Note that it is the responsibility of the calling procedure to ensure that `a_hi` and `a_lo` are
+#! within the appropriate range i.e., they are u32-s.
+#!
 #! Cycles: 27
 export.mod_12289
     adv.push_falcon_div
@@ -402,6 +405,8 @@ export.diff_mod_M
     #=> [res_hi, res_lo, ..]
 
     # 5) Reduce modulo M
+    #    Note that by virtue of the above, we are guaranteed that `res_hi` and `res_lo` are u32-s,
+    #    and hence calling `mod_12289` is safe.
     exec.mod_12289
     #=> [e, ...]
 end
