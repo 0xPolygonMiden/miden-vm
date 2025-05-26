@@ -17,7 +17,7 @@
 - Add kernel procedures digests as public inputs to the recursive verifier (#1724).
 - add optional `Package::account_component_metadata_bytes` to store serialized `AccountComponentMetadata` (#1731).
 - Add `executable` feature to the `make test` and `make test-build` Make commands (#1762).
-- Allow asserts intruction to take error messages as strings instead of error codes as Felts (#1771).
+- Allow asserts instruction to take error messages as strings instead of error codes as Felts (#1771).
 - Add arithmetic evaluation chiplet (#1759).
 - Update the recursive verifier to use arithmetic evaluation chiplet (#1760).
 
@@ -97,7 +97,7 @@
 - Optimized the computation of the DEEP queries in the recursive verifier (#1594).
 - Added validity checks for the inputs to the recursive verifier (#1596).
 - Allow multiple memory reads in the same clock cycle (#1626)
-- Improved Falcon signiture verification (#1623).
+- Improved Falcon signature verification (#1623).
 - Added `miden-mast-package` crate with `Package` type to represent a compiled Miden program/library (#1544).
 
 ## 0.11.0 (2024-11-04)
