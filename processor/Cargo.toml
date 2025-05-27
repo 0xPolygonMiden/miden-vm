@@ -31,6 +31,7 @@ miette = { package = "miden-miette", version = "8.0", default-features = false, 
     "fancy-no-syscall",
     "derive"
 ] }
+tokio = { version = "1.45", default-features = false, features = ["rt", "sync"] }
 tracing = { version = "0.1", default-features = false, features = ["attributes"] }
 vm-core = { package = "miden-core", path = "../core", version = "0.15", default-features = false, features = ["diagnostics"] }
 winter-prover = { package = "winter-prover", version = "0.13", default-features = false }
