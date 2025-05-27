@@ -7,13 +7,17 @@
 - Add a complete description of the constraints for `horner_eval_base` and `horner_eval_ext` (#1817).
 
 #### Changes
+
 - Improve error messages for some assembler instruction (#1785)
 - Remove `idx` column from Kernel ROM chiplet and use chiplet bus for initialization. (#1818)
 
 #### Fixes
+
 - `miden debug` rewind command no longer panics at clock 0 (#1751)
+- Prevent overflow in ACE circuit evaluation (#1820)
 
 #### Enhancements
+
 - Add range checks to the `push_falcon_mod_result` advice injector to make sure that the inputs are `u32` (#1819).
 
 ## 0.14.0 (2025-05-07)
@@ -28,6 +32,7 @@
 - Update the recursive verifier to use arithmetic evaluation chiplet (#1760).
 
 #### Changes
+
 - Replace deprecated #[clap(...)] with #[command(...)] and #[arg(.…)] (#1794)
 - Add pull request template to guide contributors (#1795)
 - [BREAKING] `ExecutionOptions::with_debugging()` now takes a boolean parameter (#1761)
@@ -39,10 +44,10 @@
 - Improve processor error diagnostics (#1765)
 - Fix source spans associated with assert* and mtree_verify instructions (#1789)
 
-
 ## 0.13.2 (2025-04-02)
 
 #### Changes
+
 - Relaxed rules for identifiers created via `Ident::new`, `ProcedureName::new`, `LibraryNamespace::new`, and `Library::new_from_components` (#1735)
 - [BREAKING] Renamed `Ident::new_unchecked` and `ProcedureName::new_unchecked` to `from_raw_parts` (#1735).
 
@@ -65,6 +70,7 @@
 - [BREAKING] Introduced `HORNERBASE`, `HORNEREXT` and removed `RCOMBBASE` instructions (#1656).
 
 #### Changes
+
 - Update minimum supported Rust version to 1.85.
 - Change Chiplet Fields to Public (#1629).
 - [BREAKING] Updated Winterfell dependency to v0.12 (#1658).
@@ -84,9 +90,11 @@
 ## 0.12.0 (2025-01-22)
 
 #### Highlights
+
 - [BREAKING] Refactored memory to be element-addressable (#1598).
 
 #### Changes
+
 - [BREAKING] Resolved flag collision in `--verify` command and added functionality for optional input/output files (#1513).
 - [BREAKING] Refactored `MastForest` serialization/deserialization to put decorator data at the end of the binary (#1531).
 - [BREAKING] Refactored `Process` struct to no longer take ownership of the `Host` (#1571).
@@ -98,6 +106,7 @@
 - Moved handling of `FalconSigToStack` event from system event handlers to the `DefaultHost` (#1630).
 
 #### Enhancements
+
 - Added options `--kernel`, `--debug` and `--output` to `miden bundle` (#1447).
 - Added `miden_core::mast::MastForest::advice_map` to load it into the advice provider before the `MastForest` execution (#1574).
 - Optimized the computation of the DEEP queries in the recursive verifier (#1594).
