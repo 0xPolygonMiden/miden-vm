@@ -1,0 +1,63 @@
+use core::ops::ControlFlow;
+
+use vm_core::{Word, mast::CallNode};
+
+use super::{MainTraceFragmentGenerator, TraceRowType, trace_builder::OperationTraceConfig};
+
+impl MainTraceFragmentGenerator {
+    /// Adds a trace row for a CALL/SYSCALL operation (start or end) to the main trace fragment.
+    ///
+    /// This method populates the system, decoder, and stack columns for a single trace row
+    /// corresponding to either the start or end of a CALL/SYSCALL block execution. It uses the
+    /// shared control flow trace building infrastructure.
+    pub fn add_call_trace_row(
+        &mut self,
+        call_node: &CallNode,
+        program: &vm_core::mast::MastForest,
+        trace_type: TraceRowType,
+    ) -> ControlFlow<()> {
+        // For CALL/SYSCALL operations, the hasher state in start operations contains the callee
+        // hash in the first half, and zeros in the second half (since CALL only has one
+        // child)
+        let callee_hash: Word = program
+            .get_node_by_id(call_node.callee())
+            .expect("callee should exist")
+            .digest()
+            .into();
+        let zero_hash: Word = [vm_core::ZERO; 4];
+
+        let config = OperationTraceConfig {
+            start_opcode: if call_node.is_syscall() {
+                vm_core::Operation::SysCall.op_code()
+            } else {
+                vm_core::Operation::Call.op_code()
+            },
+            start_hasher_state: (callee_hash, zero_hash),
+            end_node_digest: call_node.digest().into(),
+        };
+
+        self.add_control_flow_trace_row(config, trace_type)
+    }
+
+    /// Adds a trace row for the start of a CALL/SYSCALL operation.
+    ///
+    /// This is a convenience method that calls `add_call_trace_row` with `TraceRowType::Start`.
+    pub fn add_call_start_trace_row(
+        &mut self,
+        call_node: &CallNode,
+        program: &vm_core::mast::MastForest,
+    ) -> ControlFlow<()> {
+        self.add_call_trace_row(call_node, program, TraceRowType::Start)
+    }
+
+    /// Adds a trace row for the end of a CALL/SYSCALL operation.
+    ///
+    /// This is a convenience method that calls `add_call_trace_row` with `TraceRowType::End`.
+    pub fn add_call_end_trace_row(
+        &mut self,
+        call_node: &CallNode,
+        program: &vm_core::mast::MastForest,
+    ) -> ControlFlow<()> {
+        self.add_call_trace_row(call_node, program, TraceRowType::End)
+    }
+}
