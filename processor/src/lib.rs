@@ -37,6 +37,7 @@ use vm_core::{
 pub use winter_prover::matrix::ColMatrix;
 
 pub mod fast;
+pub mod parallel;
 
 mod operations;
 
@@ -44,7 +45,7 @@ mod system;
 use system::System;
 pub use system::{ContextId, FMP_MIN, SYSCALL_FMP_MIN};
 
-mod decoder;
+pub(crate) mod decoder;
 use decoder::Decoder;
 
 mod stack;
