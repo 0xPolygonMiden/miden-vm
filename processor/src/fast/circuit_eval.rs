@@ -1,11 +1,11 @@
 use miden_air::RowIndex;
-use vm_core::{mast::BasicBlockNode, Felt, FieldElement};
+use vm_core::{Felt, FieldElement, mast::BasicBlockNode};
 
-use super::{memory::Memory, FastProcessor};
+use super::{FastProcessor, memory::Memory};
 use crate::{
-    chiplets::{CircuitEvaluation, MAX_NUM_ACE_WIRES, PTR_OFFSET_ELEM, PTR_OFFSET_WORD}, errors::{AceError, ErrorContext}, ContextId,
-    ExecutionError,
-    QuadFelt,
+    ContextId, ExecutionError, QuadFelt,
+    chiplets::{CircuitEvaluation, MAX_NUM_ACE_WIRES, PTR_OFFSET_ELEM, PTR_OFFSET_WORD},
+    errors::{AceError, ErrorContext},
 };
 
 impl FastProcessor {

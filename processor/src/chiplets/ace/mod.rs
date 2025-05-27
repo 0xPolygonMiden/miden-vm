@@ -3,16 +3,16 @@
 use alloc::{collections::BTreeMap, vec::Vec};
 
 use miden_air::{
-    trace::{chiplets::ace::ACE_CHIPLET_NUM_COLS, main_trace::MainTrace},
     RowIndex,
+    trace::{chiplets::ace::ACE_CHIPLET_NUM_COLS, main_trace::MainTrace},
 };
-use vm_core::{mast::BasicBlockNode, FieldElement, ZERO};
+use vm_core::{FieldElement, ZERO, mast::BasicBlockNode};
 
 use crate::{
-    chiplets::memory::Memory, errors::{AceError, ErrorContext}, trace::TraceFragment, ContextId,
-    ExecutionError,
-    Felt,
-    QuadFelt,
+    ContextId, ExecutionError, Felt, QuadFelt,
+    chiplets::memory::Memory,
+    errors::{AceError, ErrorContext},
+    trace::TraceFragment,
 };
 
 mod trace;
