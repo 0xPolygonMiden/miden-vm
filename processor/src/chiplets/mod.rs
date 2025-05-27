@@ -1,23 +1,23 @@
 use alloc::vec::Vec;
 
 use miden_air::{
-    RowIndex,
     trace::chiplets::hasher::{Digest, HasherState},
+    RowIndex,
 };
-use vm_core::{Kernel, mast::OpBatch};
+use vm_core::{mast::OpBatch, Kernel};
 
 use super::{
-    CHIPLETS_WIDTH, ChipletsTrace, EMPTY_WORD, ExecutionError, Felt, FieldElement, ONE,
-    RangeChecker, TraceFragment, Word, ZERO, crypto::MerklePath, utils,
+    crypto::MerklePath, utils, ChipletsTrace, ExecutionError, Felt, FieldElement, RangeChecker,
+    TraceFragment, Word, CHIPLETS_WIDTH, EMPTY_WORD, ONE, ZERO,
 };
 
 mod bitwise;
 use bitwise::Bitwise;
 
 mod hasher;
-use hasher::Hasher;
 #[cfg(test)]
 pub(crate) use hasher::init_state_from_words;
+use hasher::Hasher;
 
 mod memory;
 use memory::Memory;
@@ -26,7 +26,7 @@ pub use memory::MemoryError;
 mod ace;
 use ace::AceHints;
 pub use ace::{
-    Ace, CircuitEvaluation, MAX_ACE_WIRES, PTR_OFFSET_ELEM, PTR_OFFSET_WORD, eval_circuit,
+    eval_circuit, Ace, CircuitEvaluation, MAX_NUM_ACE_WIRES, PTR_OFFSET_ELEM, PTR_OFFSET_WORD,
 };
 
 mod kernel_rom;

@@ -1,11 +1,11 @@
 use miden_air::RowIndex;
-use vm_core::{Felt, FieldElement, mast::BasicBlockNode};
+use vm_core::{mast::BasicBlockNode, Felt, FieldElement};
 
-use super::{FastProcessor, memory::Memory};
+use super::{memory::Memory, FastProcessor};
 use crate::{
-    ContextId, ExecutionError, QuadFelt,
-    chiplets::{CircuitEvaluation, MAX_ACE_WIRES, PTR_OFFSET_ELEM, PTR_OFFSET_WORD},
-    errors::{AceError, ErrorContext},
+    chiplets::{CircuitEvaluation, MAX_NUM_ACE_WIRES, PTR_OFFSET_ELEM, PTR_OFFSET_WORD}, errors::{AceError, ErrorContext}, ContextId,
+    ExecutionError,
+    QuadFelt,
 };
 
 impl FastProcessor {
@@ -65,7 +65,7 @@ pub fn eval_circuit_fast_(
     let num_eval = num_eval.as_int();
 
     let num_wires = num_vars + num_eval;
-    if num_wires > MAX_ACE_WIRES as u64 {
+    if num_wires > MAX_NUM_ACE_WIRES as u64 {
         return Err(ExecutionError::failed_arithmetic_evaluation(
             error_ctx,
             AceError::TooManyWires(num_wires),

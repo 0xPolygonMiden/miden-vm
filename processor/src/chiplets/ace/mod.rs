@@ -3,16 +3,16 @@
 use alloc::{collections::BTreeMap, vec::Vec};
 
 use miden_air::{
-    RowIndex,
     trace::{chiplets::ace::ACE_CHIPLET_NUM_COLS, main_trace::MainTrace},
+    RowIndex,
 };
-use vm_core::{FieldElement, ZERO, mast::BasicBlockNode};
+use vm_core::{mast::BasicBlockNode, FieldElement, ZERO};
 
 use crate::{
-    ContextId, ExecutionError, Felt, QuadFelt,
-    chiplets::memory::Memory,
-    errors::{AceError, ErrorContext},
-    trace::TraceFragment,
+    chiplets::memory::Memory, errors::{AceError, ErrorContext}, trace::TraceFragment, ContextId,
+    ExecutionError,
+    Felt,
+    QuadFelt,
 };
 
 mod trace;
@@ -24,7 +24,7 @@ mod tests;
 
 pub const PTR_OFFSET_ELEM: Felt = Felt::ONE;
 pub const PTR_OFFSET_WORD: Felt = Felt::new(4);
-pub const MAX_ACE_WIRES: u32 = instruction::MAX_ID;
+pub const MAX_NUM_ACE_WIRES: u32 = instruction::MAX_ID;
 
 /// Arithmetic circuit evaluation (ACE) chiplet.
 ///
@@ -302,7 +302,7 @@ pub fn eval_circuit(
     let num_eval = num_eval.as_int();
 
     let num_wires = num_vars + num_eval;
-    if num_wires > MAX_ACE_WIRES as u64 {
+    if num_wires > MAX_NUM_ACE_WIRES as u64 {
         return Err(ExecutionError::failed_arithmetic_evaluation(
             error_ctx,
             AceError::TooManyWires(num_wires),
