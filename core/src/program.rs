@@ -1,6 +1,7 @@
 use alloc::{sync::Arc, vec::Vec};
 use core::fmt;
 
+use math::FieldElement;
 use miden_crypto::{Felt, WORD_SIZE, hash::rpo::RpoDigest};
 use winter_utils::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable};
 
@@ -264,18 +265,33 @@ impl Deserializable for ProgramInfo {
 impl ToElements for ProgramInfo {
     fn to_elements(&self) -> Vec<Felt> {
         let num_kernel_proc_elements = self.kernel.proc_hashes().len() * WORD_SIZE;
-        let mut result = Vec::with_capacity(WORD_SIZE + num_kernel_proc_elements);
+        let mut result = Vec::with_capacity(2 * WORD_SIZE + num_kernel_proc_elements);
 
         // append program hash elements
         result.extend_from_slice(self.program_hash.as_elements());
+        result.extend_from_slice(&[Felt::ZERO; 4]);
 
         // append kernel procedure hash elements
         // we reverse the digests in order to make reducing them using auxiliary randomness easier
+        // we also pad them to the next multiple of 8
         for proc_hash in self.kernel.proc_hashes() {
-            let mut digest = proc_hash.as_elements().to_vec();
+            let mut digest = pad_next_mul_8(proc_hash.as_elements().to_vec());
             digest.reverse();
             result.extend_from_slice(&digest);
         }
         result
     }
+}
+
+// HELPER
+// ===============================================================================================
+
+/// Pads a vector of field elements using zeros to the next multiple of 8.
+fn pad_next_mul_8(input: Vec<Felt>) -> Vec<Felt> {
+    let output_len = input.len().next_multiple_of(8);
+    let mut output = vec![Felt::ZERO; output_len];
+
+    output.iter_mut().zip(input.iter()).for_each(|(out, inp)| *out = *inp);
+
+    output
 }
