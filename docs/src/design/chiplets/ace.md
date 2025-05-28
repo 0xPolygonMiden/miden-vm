@@ -1,6 +1,6 @@
 # ACE chip design
 
-The following formalizes the description and functionality of the ACE chiplet. It is still a work in progress, but will evolve to serve as the documentation for its implementation.
+The following formalizes the description and functionality of the Arithmetic Circuit Evaluation (ACE) chiplet. It is still a work in progress, but will evolve to serve as the documentation for its implementation.
 
 TL;DR: The chiplet requires 16 columns and has maximum internal degree 5, which provides more freedom around its placement within the chiplet trace. It requires the caller to make one chiplet bus message for initializing the computation. The input variables and unhashed circuit must be written to a contiguous memory region but allow for multiple evaluations of a circuit with different inputs, keeping the unhashed circuit cached. The design could be optimized in the future if the VM supported read-only memory, though these optimizations would mainly reduce the cycles for the caller.
 
