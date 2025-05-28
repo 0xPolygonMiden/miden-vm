@@ -35,8 +35,17 @@ const.NUM_EVAL_GATES_CIRCUIT=88
 # Op label for kernel procedures table messages
 const.KERNEL_OP_LABEL=0
 
+# Number of fixed length public inputs with padding (in field elements)
+# This is composed of the input/output operand stacks (16 * 2) and the program digest (4) and four
+# zeros for padding to the next multiple of 4. Note that, then, the fixed length public inputs
+# which are stored as extension field elements will be double-word aligned. 
+const.NUM_FIXED_LEN_PUBLIC_INPUTS=40
+
 # MEMORY POINTERS
 # =================================================================================================
+
+# Number of public inputs (in field elements)
+const. NUM_PUBLIC_INPUTS_PTR=4294799997
 
 # Trace domain generator
 const.TRACE_DOMAIN_GENERATOR_PTR=4294799998
@@ -160,6 +169,7 @@ const.OOD_FIXED_TERM_HORNER_EVALS_PTR=4294903448
 #   +------------------------------------------+-------------------------+
 #   |                  ID                      |        Address          |
 #   +------------------------------------------+-------------------------+
+#   | NUM_PUBLIC_INPUTS_PTR                    |       4294799998        |
 #   | TRACE_DOMAIN_GENERATOR_PTR               |       4294799999        |
 #   | PUBLIC_INPUTS_ADDRESS_PTR                |       4294800000        |
 #   | AUX_RAND_ND_PTR                          |       4294800004        |
@@ -199,6 +209,10 @@ const.OOD_FIXED_TERM_HORNER_EVALS_PTR=4294903448
 
 # ACCESSORS
 # =================================================================================================
+
+export.num_public_inputs_ptr
+    push.NUM_PUBLIC_INPUTS_PTR
+end
 
 export.public_inputs_address_ptr
     push.PUBLIC_INPUTS_ADDRESS_PTR
@@ -485,4 +499,8 @@ end
 
 export.kernel_proc_table_op_label
     push.KERNEL_OP_LABEL
+end
+
+export.get_num_fixed_len_public_inputs
+    push.NUM_FIXED_LEN_PUBLIC_INPUTS
 end

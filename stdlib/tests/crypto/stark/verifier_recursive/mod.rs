@@ -35,13 +35,13 @@ pub fn generate_advice_inputs(
     // 2. The output operand stack (16 field elements),
     // 3. The program hash (4 field elements).
     let pub_inputs_elements = pub_inputs.to_elements();
-    let digests_elements = pub_inputs_elements.len() - MIN_STACK_DEPTH * 2 - WORD_SIZE;
+    let num_elements_pi = pub_inputs_elements.len();
+    let digests_elements = num_elements_pi - MIN_STACK_DEPTH * 2 - 2 * WORD_SIZE;
     assert_eq!(digests_elements % WORD_SIZE, 0);
-    let num_kernel_procedures_digests = digests_elements / WORD_SIZE;
+    let num_kernel_procedures_digests = digests_elements / (2 * WORD_SIZE);
 
     // we need to provide the following instance specific data through the operand stack
     let initial_stack = vec![
-        num_kernel_procedures_digests as u64,
         proof.context.options().grinding_factor() as u64,
         proof.context.options().num_queries() as u64,
         proof.context.trace_info().length().ilog2() as u64,
@@ -50,19 +50,21 @@ pub fn generate_advice_inputs(
     // build a seed for the public coin; the initial seed is the hash of public inputs and proof
     // context, but as the protocol progresses, the coin will be reseeded with the info received
     // from the prover
-    let mut advice_stack = vec![];
+    let mut advice_stack = vec![digests_elements as u64];
     let mut public_coin_seed = proof.context.to_elements();
-    public_coin_seed.append(&mut pub_inputs.to_elements());
+    let pub_inputs_elements = pub_inputs.to_elements();
+    public_coin_seed.extend_from_slice(&pub_inputs_elements);
 
     // add the public inputs, which is nothing but the input and output stacks to the VM as well as
     // the digests of the procedures making up the kernel against which the program was compiled,
     // to the advice tape
-    let pub_inputs_int: Vec<u64> = pub_inputs.to_elements().iter().map(|a| a.as_int()).collect();
-    advice_stack.extend_from_slice(&pub_inputs_int[..]);
+    let pub_inputs_int: Vec<u64> = pub_inputs_elements.iter().map(|a| a.as_int()).collect();
+    advice_stack.extend_from_slice(&pub_inputs_int);
 
     // add a placeholder for the auxiliary randomness
     let aux_rand_insertion_index = advice_stack.len();
     advice_stack.extend_from_slice(&[0, 0, 0, 0]);
+    advice_stack.push(num_kernel_procedures_digests as u64);
 
     // create AIR instance for the computation specified in the proof
     let air = ProcessorAir::new(proof.trace_info().to_owned(), pub_inputs, proof.options().clone());

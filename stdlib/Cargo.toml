@@ -45,6 +45,7 @@ processor = { package = "miden-processor", path = "../processor", version = "0.1
     "testing",
 ] }
 rand = { version = "0.9", default-features = false }
+rand_chacha = { version = "0.9", default-features = false }
 rstest = { version = "0.24" }
 serde_json = "1.0"
 sha2 = "0.10"
