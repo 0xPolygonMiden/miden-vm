@@ -30,8 +30,7 @@ pub use vm_core::{
 use vm_core::{
     Decorator, DecoratorIterator, FieldElement, WORD_SIZE,
     mast::{
-        BasicBlockNode, CallNode, DynNode, JoinNode, LoopNode, MastNodeExt, OP_GROUP_SIZE, OpBatch,
-        SplitNode,
+        BasicBlockNode, CallNode, DynNode, JoinNode, LoopNode, MastNodeExt, OpBatch, SplitNode,
     },
 };
 pub use winter_prover::matrix::ColMatrix;
@@ -618,10 +617,11 @@ impl Process {
         let mut group_idx = 0;
         let mut next_group_idx = 1;
 
-        // round up the number of groups to be processed to the next power of two; we do this
-        // because the processor requires the number of groups to be either 1, 2, 4, or 8; if
-        // the actual number of groups is smaller, we'll pad the batch with NOOPs at the end
-        let num_batch_groups = batch.num_groups().next_power_of_two();
+        // Ensure the number of groups is a power of 2.
+        if !batch.num_groups().is_power_of_two() {
+            let error_ctx = ErrorContext::new(program, basic_block, self.source_manager.clone());
+            return Err(ExecutionError::malformed_op_batch(batch.num_groups(), &error_ctx));
+        }
 
         // execute operations in the batch one by one
         for (i, &op) in batch.ops().iter().enumerate() {
@@ -651,45 +651,24 @@ impl Process {
 
             // determine if we've executed all non-decorator operations in a group
             if op_idx == op_counts[group_idx] - 1 {
-                // if we are at the end of the group, first check if the operation carries an
-                // immediate value
-                if has_imm {
-                    // an operation with an immediate value cannot be the last operation in a group
-                    // so, we need execute a NOOP after it. the assert also makes sure that there
-                    // is enough room in the group to execute a NOOP (if there isn't, there is a
-                    // bug somewhere in the assembler)
-                    debug_assert!(op_idx < OP_GROUP_SIZE - 1, "invalid op index");
-                    self.decoder.execute_user_op(Operation::Noop, op_idx + 1);
-                    self.execute_op(Operation::Noop, program, host)?;
-                }
+                debug_assert!(
+                    !has_imm,
+                    "operation with immediate value at the end of an operation group"
+                );
 
-                // then, move to the next group and reset operation index
+                // move to the next group and reset operation index
                 group_idx = next_group_idx;
                 next_group_idx += 1;
                 op_idx = 0;
 
                 // if we haven't reached the end of the batch yet, set up the decoder for
                 // decoding the next operation group
-                if group_idx < num_batch_groups {
+                if group_idx < batch.num_groups() {
                     self.decoder.start_op_group(batch.groups()[group_idx]);
                 }
             } else {
                 // if we are not at the end of the group, just increment the operation index
                 op_idx += 1;
-            }
-        }
-
-        // make sure we execute the required number of operation groups; this would happen when
-        // the actual number of operation groups was not a power of two
-        for group_idx in group_idx..num_batch_groups {
-            self.decoder.execute_user_op(Operation::Noop, 0);
-            self.execute_op(Operation::Noop, program, host)?;
-
-            // if we are not at the last group yet, set up the decoder for decoding the next
-            // operation groups. the groups were are processing are just NOOPs - so, the op group
-            // value is ZERO
-            if group_idx < num_batch_groups - 1 {
-                self.decoder.start_op_group(ZERO);
             }
         }
 

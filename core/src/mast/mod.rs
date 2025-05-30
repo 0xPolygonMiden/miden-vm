@@ -15,7 +15,7 @@ use crate::crypto::hash::{Blake3_256, Blake3Digest, Digest};
 mod node;
 pub use node::{
     BasicBlockNode, CallNode, DynNode, ExternalNode, JoinNode, LoopNode, MastNode, MastNodeExt,
-    OP_BATCH_SIZE, OP_GROUP_SIZE, OpBatch, OperationOrDecorator, SplitNode,
+    OP_BATCH_SIZE, OP_GROUP_SIZE, OpBatch, OpBatchAccumulator, OperationOrDecorator, SplitNode,
 };
 use winter_utils::{ByteWriter, DeserializationError, Serializable};
 
