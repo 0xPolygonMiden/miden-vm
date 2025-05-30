@@ -45,6 +45,10 @@ i.e. this branches state:
 
   More about rebase [here](https://git-scm.com/docs/git-rebase) and [here](https://www.atlassian.com/git/tutorials/rewriting-history/git-rebase#:~:text=What%20is%20git%20rebase%3F,of%20a%20feature%20branching%20workflow.)
 
+### Signing commits
+
+We require all commits to be [signed](https://docs.github.com/en/authentication/managing-commit-signature-verification/about-commit-signature-verification#ssh-commit-signature-verification).
+
 
 ### Commit messages
 - Commit messages should be written in a short, descriptive manner and be prefixed with tags for the change type and scope (if possible) according to the [semantic commit](https://gist.github.com/joshbuchea/6f47e86d2510bce28f8e7f42ae84c716) scheme.
@@ -86,11 +90,12 @@ We use [semver](https://semver.org/) naming convention.
 
 ## Pre-PR checklist
 1. Repo forked and branch created from `next` according to the naming convention.
-2. Commit messages and code style follow conventions.
-3. Tests added for new functionality.
-4. Documentation/comments updated for all changes according to our documentation convention.
-5. Clippy and Rustfmt linting passed.
-6. New branch rebased from `next`.
+2. Every commit is [signed](https://docs.github.com/en/authentication/managing-commit-signature-verification/about-commit-signature-verification#ssh-commit-signature-verification).
+3. Commit messages and code style follow conventions.
+4. Tests added for new functionality.
+5. Documentation/comments updated for all changes according to our documentation convention.
+6. Clippy and Rustfmt linting passed.
+7. New branch rebased from `next`.
 
 &nbsp;
 

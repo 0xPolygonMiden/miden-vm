@@ -171,7 +171,7 @@ macro_rules! assert_assembler_diagnostic {
 /// - Execution error test: check that running a program compiled from the given source causes an
 ///   ExecutionError which contains the specified substring.
 pub struct Test {
-    pub source_manager: Arc<dyn SourceManager>,
+    pub source_manager: Arc<dyn SourceManager + Send + Sync>,
     pub source: Arc<SourceFile>,
     pub kernel_source: Option<Arc<SourceFile>>,
     pub stack_inputs: StackInputs,

@@ -1,5 +1,5 @@
-#!/bin/bash
-set -uo pipefail
+#!/bin/sh
+set -u
 
 CHANGELOG_FILE="${1:-CHANGELOG.md}"
 

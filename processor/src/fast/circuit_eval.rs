@@ -4,7 +4,7 @@ use vm_core::{Felt, FieldElement, mast::BasicBlockNode};
 use super::{FastProcessor, memory::Memory};
 use crate::{
     ContextId, ExecutionError, QuadFelt,
-    chiplets::{CircuitEvaluation, PTR_OFFSET_ELEM, PTR_OFFSET_WORD},
+    chiplets::{CircuitEvaluation, MAX_NUM_ACE_WIRES, PTR_OFFSET_ELEM, PTR_OFFSET_WORD},
     errors::{AceError, ErrorContext},
 };
 
@@ -63,6 +63,14 @@ pub fn eval_circuit_fast_(
 ) -> Result<CircuitEvaluation, ExecutionError> {
     let num_vars = num_vars.as_int();
     let num_eval = num_eval.as_int();
+
+    let num_wires = num_vars + num_eval;
+    if num_wires > MAX_NUM_ACE_WIRES as u64 {
+        return Err(ExecutionError::failed_arithmetic_evaluation(
+            error_ctx,
+            AceError::TooManyWires(num_wires),
+        ));
+    }
 
     // Ensure vars and instructions are word-aligned and non-empty. Note that variables are
     // quadratic extension field elements while instructions are encoded as base field elements.

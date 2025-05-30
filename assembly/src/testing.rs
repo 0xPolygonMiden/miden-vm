@@ -195,7 +195,7 @@ macro_rules! parse_module {
 ///
 /// Some of the assertion macros defined above require a [TestContext], so be aware of that.
 pub struct TestContext {
-    source_manager: Arc<dyn SourceManager>,
+    source_manager: Arc<dyn SourceManager + Send + Sync>,
     assembler: Assembler,
 }
 
@@ -233,7 +233,7 @@ impl TestContext {
     }
 
     #[inline(always)]
-    pub fn source_manager(&self) -> Arc<dyn SourceManager> {
+    pub fn source_manager(&self) -> Arc<dyn SourceManager + Send + Sync> {
         self.source_manager.clone()
     }
 

@@ -55,7 +55,7 @@ jobs:
 
       - name: Upload book artifact
         if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/next' }}
-        uses: actions/upload-pages-artifact@v3
+        uses: actions/deploy-pages@v4
         with:
           # We specify multiple [output] sections in our book.toml which causes mdbook to create separate folders for each. This moves the generated `html` into its own `html` subdirectory.
           path: ./docs/book/html
