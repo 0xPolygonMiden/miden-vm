@@ -15,7 +15,7 @@ use.std::crypto::stark::random_coin
 #! auxiliary column. 
 #!
 #! Note that the fixed length public inputs are stored as extension field elements while
-#! variable length one are stored as base field elements.
+#! the variable length ones are stored as base field elements.
 #! Note also that, while loading the above, we compute the hash of the public inputs. The hashing
 #! starts with capacity registers of the hash function set to `C` that is the result of hashing
 #! the proof context.
