@@ -5,6 +5,7 @@
 #### Enhancements
 
 - Add a complete description of the constraints for `horner_eval_base` and `horner_eval_ext` (#1817).
+- Add documentation for ACE chiplet (#1766)
 
 #### Changes
 
