@@ -96,6 +96,7 @@ pub fn analyze(
                 docs.take();
                 analyzer.error(SemanticAnalysisError::UnexpectedEntrypoint { span: body.span() });
             },
+            Form::AdviceMapEntry(_) => todo!("todo"),
         }
     }
 

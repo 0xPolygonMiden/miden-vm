@@ -1,5 +1,6 @@
 //! Abstract syntax tree (AST) components of Miden programs, modules, and procedures.
 
+mod advicemap_entry;
 mod attribute;
 mod block;
 mod constants;
@@ -18,6 +19,7 @@ mod tests;
 pub mod visit;
 
 pub use self::{
+    advicemap_entry::AdviceMapEntry,
     attribute::{
         Attribute, AttributeSet, AttributeSetEntry, BorrowedMeta, Meta, MetaExpr, MetaItem,
         MetaKeyValue, MetaList,
