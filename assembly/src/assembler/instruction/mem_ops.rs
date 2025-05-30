@@ -138,7 +138,10 @@ pub fn local_to_absolute_addr(
     let max = if is_single {
         num_proc_locals - 1
     } else {
-        num_proc_locals - 4
+        // If a word local value is used, then the procedure needs at least 4 local values.
+        u16::checked_sub(num_proc_locals, 4).ok_or_else(|| AssemblyError::Other(Report::msg(
+            "number of procedure locals was set to less 4, but word-sized local values were used".to_string()
+        ).into()))?
     };
 
     // Local values are placed under the frame pointer, so we need to calculate the offset of the
