@@ -12,6 +12,7 @@
 - Remove `idx` column from Kernel ROM chiplet and use chiplet bus for initialization. (#1818)
 - [BREAKING] Make `Assembler::source_manager()` be `Send + Sync` (#1822)
 - Simplify and optimize the recursive verifier (#1801).
+- Simplify auxiliary randomness generation (#1810).
 
 #### Fixes
 
