@@ -12,7 +12,7 @@ use test_utils::{
     proptest::proptest, prove,
 };
 use verifier_recursive::{VerifierData, generate_advice_inputs};
-use vm_core::{Felt, Word};
+use vm_core::Word;
 
 mod verifier_recursive;
 
@@ -20,13 +20,14 @@ mod verifier_recursive;
 // in `stdlib/asm/crypto/stark/verifier.masm` are violated.
 #[rstest]
 #[case(None)]
-#[ignore = "see-https://github.com/0xMiden/air-script/issues/399"]
-#[case(Some(KERNEL_EVEN_NUM_PROC))]
-#[ignore = "see-https://github.com/0xMiden/air-script/issues/399"]
+#[ignore = "see-https://github.com/0xMiden/miden-vm/issues/1781"]
 #[case(Some(KERNEL_ODD_NUM_PROC))]
+#[ignore = "see-https://github.com/0xMiden/miden-vm/issues/1781"]
+#[case(Some(KERNEL_EVEN_NUM_PROC))]
 fn stark_verifier_e2f4(#[case] kernel: Option<&str>) {
     // An example MASM program to be verified inside Miden VM.
 
+    use vm_core::Felt;
     let example_source = "begin
             repeat.320
                 swap dup.1 add

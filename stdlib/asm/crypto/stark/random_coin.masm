@@ -284,7 +284,7 @@ export.reseed
     # => [R2, R1, C, ...] (13 cycles)
 
     hperm
-    # => [R2', R1', C`, ...] (1 cycles)
+    # => [R2', R1', C', ...] (1 cycles)
 
     # Save the new state to memory
     # --------------------------------------------------------------------------------------------
@@ -307,26 +307,14 @@ end
 #! More specifically, we draw two challenges, alpha and beta. This means that our multi-set hash function
 #! has the form `h(m) = alpha + \sum_{i=0}^{|m| - 1} m_i * beta^i` for a message `m`.
 #!
-#! As these random challenges have already been used non-deterministically in prior computations, we
-#! also check that the generated challenges matche the non-deterministically provided one.
-#!
 #! Input: [...]
 #! Output: [...]
-#! Cycles: 20
+#! Cycles: 12
 export.generate_aux_randomness
     padw exec.constants::r1_ptr mem_loadw
     exec.constants::aux_rand_elem_ptr mem_storew
     #=> [beta1, beta0, alpha1, alpha0, ...]
-
-    padw exec.constants::aux_rand_nd_ptr mem_loadw
-    # => [alpha1, alpha0, beta1, beta0, beta1, beta0, alpha1, alpha0, ...]
-
-    movup.6 assert_eq
-    movup.5 assert_eq
-    # => [beta1, beta0, beta1, beta0, ...]
-
-    movup.2 assert_eq
-    assert_eq
+    dropw
     #=> [...]
 end
 

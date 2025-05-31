@@ -270,11 +270,8 @@ impl ToElements for ProgramInfo {
         result.extend_from_slice(self.program_hash.as_elements());
 
         // append kernel procedure hash elements
-        // we reverse the digests in order to make reducing them using auxiliary randomness easier
         for proc_hash in self.kernel.proc_hashes() {
-            let mut digest = proc_hash.as_elements().to_vec();
-            digest.reverse();
-            result.extend_from_slice(&digest);
+            result.extend_from_slice(proc_hash.as_elements());
         }
         result
     }
