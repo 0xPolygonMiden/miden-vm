@@ -126,8 +126,11 @@ end
 #! Output: [...]
 #!
 #! Cycles:
-#!  1- Remainder of size 32: 1633
-#!  2- Remainder of size 64: 3109
+#!
+#!  1- Remainder polynomial of degree less
+#!     than 64: 157
+#!  2- Remainder polynomial of degree less
+#!     than 128: 191
 export.load_and_verify_remainder
     # Load remainder commitment and save it at `TMP1`
     padw
