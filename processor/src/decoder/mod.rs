@@ -967,10 +967,15 @@ pub fn build_op_group(ops: &[Operation]) -> Felt {
 // DEBUG INFO
 // ================================================================================================
 
+pub struct IndexedAssemblyOp {
+    pub index: RowIndex,
+    pub op: AssemblyOp,
+}
+
 pub struct DebugInfo {
     in_debug_mode: bool,
     operations: Vec<Operation>,
-    assembly_ops: Vec<(usize, AssemblyOp)>,
+    assembly_ops: Vec<IndexedAssemblyOp>,
 }
 
 impl DebugInfo {
@@ -978,7 +983,7 @@ impl DebugInfo {
         Self {
             in_debug_mode,
             operations: Vec::<Operation>::new(),
-            assembly_ops: Vec::<(usize, AssemblyOp)>::new(),
+            assembly_ops: Vec::<IndexedAssemblyOp>::new(),
         }
     }
 
@@ -995,7 +1000,7 @@ impl DebugInfo {
     }
 
     /// Returns list of assembly operations in debug mode.
-    pub fn assembly_ops(&self) -> &[(usize, AssemblyOp)] {
+    pub fn assembly_ops(&self) -> &[IndexedAssemblyOp] {
         &self.assembly_ops
     }
 
@@ -1009,6 +1014,6 @@ impl DebugInfo {
 
     /// Appends an asmop decorator at the specified clock cycle to the asmop list in debug mode.
     pub fn append_asmop(&mut self, clk: RowIndex, asmop: AssemblyOp) {
-        self.assembly_ops.push((clk.into(), asmop));
+        self.assembly_ops.push(IndexedAssemblyOp { index: clk, op: asmop });
     }
 }

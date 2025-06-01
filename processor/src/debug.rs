@@ -92,47 +92,39 @@ impl VmStateIterator {
 
         // Determine the next asmop.
         let next_asmop = if self.forward && self.asmop_idx < assembly_ops.len() {
-            // The next asmop is 1 more than the previous.
+            // We are moving forward and in bounds, so the next asmop is 1 more than the previous.
             &assembly_ops[self.asmop_idx]
         } else {
-            // We are either going backwards or at the end of the list.
+            // We are either going backwards or out of bounds.
             &assembly_ops[self.asmop_idx.saturating_sub(1)]
         };
-
-        // Determine the current asmop based on ...
-        let (curr_asmop, cycle_idx) = if self.asmop_idx == 0 {
-            (next_asmop, 0)
-        } else {
-            // ...
-            let clk = self.clk;
-            let prev = RowIndex::from(assembly_ops[self.asmop_idx - 1].0);
-            (
-                &assembly_ops[self.asmop_idx - 1],
-                // difference between current clock cycle and start clock cycle of the current
-                // asmop
-                (clk.max(prev) - clk.min(prev)) as u8,
-            )
-        };
-
-        // if this is the first op in the sequence corresponding to the next asmop, returns a new
+        // If this is the first op in the sequence corresponding to the next asmop, returns a new
         // instance of [AsmOp] instantiated with next asmop, num_cycles and cycle_idx of 1.
-        if next_asmop.0 == (self.clk - 1).as_usize() {
+        if next_asmop.index == (self.clk - 1).as_usize() {
             // cycle_idx starts at 1 instead of 0 to remove ambiguity
             let cycle_idx = 1;
-            let asmop = AsmOpInfo::new(next_asmop.1.clone(), cycle_idx);
-            (Some(asmop), true)
+            let asmop = AsmOpInfo::new(next_asmop.op.clone(), cycle_idx);
+            return (Some(asmop), true);
         }
+
+        if self.asmop_idx == 0 {
+            return (None, false);
+        }
+
+        // Retrieve asmop and calculate cycle index.
+        let clk = self.clk;
+        let prev_asmop = &assembly_ops[self.asmop_idx - 1];
+        let max_idx = clk.max(prev_asmop.index);
+        let min_idx = clk.min(prev_asmop.index);
+        let cycle_idx = (max_idx - min_idx) as u8;
         // if this is not the first asmop in the list and if this op is part of current asmop,
         // returns a new instance of [AsmOp] instantiated with current asmop, num_cycles and
         // cycle_idx of current op.
-        else if self.asmop_idx > 0 && cycle_idx <= curr_asmop.1.num_cycles() {
+        if cycle_idx <= prev_asmop.op.num_cycles() {
             // diff between curr clock cycle and start clock cycle of the current asmop
-            let asmop = AsmOpInfo::new(curr_asmop.1.clone(), cycle_idx);
+            let asmop = AsmOpInfo::new(prev_asmop.op.clone(), cycle_idx);
             (Some(asmop), false)
-        }
-        // if the next asmop is the first in the list and is at a greater than current clock cycle
-        // or if the current op is not a part of any asmop, return None.
-        else {
+        } else {
             (None, false)
         }
     }
