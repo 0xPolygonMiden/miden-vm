@@ -80,13 +80,15 @@ impl VmStateIterator {
         }
     }
 
-    /// Returns the asm op info corresponding to this vm state and whether this is the start of
-    /// operation sequence corresponding to current assembly instruction.
+    /// Returns the ASM op info corresponding to this vm state.
     fn get_asmop(&mut self) -> Option<AsmOpInfo> {
         let assembly_ops = self.decoder.debug_info().assembly_ops();
 
-        // Serge: why? is_empty() seems weird? Should that be impossible? Also asmop_idx being out of bounds?
-        if self.clk == 0 || assembly_ops.is_empty() || self.asmop_idx > assembly_ops.len() {
+        if self.clk == 0
+            || assembly_ops.is_empty()
+            || self.asmop_idx > assembly_ops.len()
+            || self.asmop_idx == 0
+        {
             return None;
         }
 
@@ -115,21 +117,18 @@ impl VmStateIterator {
             return Some(asmop);
         }
 
-        if self.asmop_idx == 0 {
-            return None;
-        }
-
         // Retrieve asmop and calculate cycle index.
         let clk = self.clk;
         let prev_asmop = &assembly_ops[self.asmop_idx - 1];
         let max_idx = clk.max(prev_asmop.index);
         let min_idx = clk.min(prev_asmop.index);
         let cycle_idx = (max_idx - min_idx) as u8;
-        // if this is not the first asmop in the list and if this op is part of current asmop,
-        // returns a new instance of [AsmOp] instantiated with current asmop, num_cycles and
+
+        // We know this is not the first asmop in the list, so if this op is part of current asmop,
+        // return a new instance of [AsmOp] instantiated with current asmop, num_cycles and
         // cycle_idx of current op.
         if cycle_idx <= prev_asmop.op.num_cycles() {
-            // diff between curr clock cycle and start clock cycle of the current asmop
+            // Diff between curr clock cycle and start clock cycle of the current asmop.
             let asmop = AsmOpInfo::new(prev_asmop.op.clone(), cycle_idx);
             Some(asmop)
         } else {
@@ -142,18 +141,20 @@ impl VmStateIterator {
             return None;
         }
 
-        // If we are changing directions we must decrement the clk counter.
+        // Change direction.
         if self.forward {
             self.clk = self.clk.saturating_sub(1);
             self.forward = false;
         }
 
+        // Retrieve the operation.
         let op = if self.clk == 0 {
             None
         } else {
             Some(self.decoder.debug_info().operations()[self.clk - 1])
         };
 
+        // Retrieve the ASM op info.
         let asmop = self.get_asmop();
 
         // Decrement the clock after recording return state.
@@ -199,7 +200,6 @@ impl Iterator for VmStateIterator {
     type Item = Result<VmState, ExecutionError>;
 
     fn next(&mut self) -> Option<Self::Item> {
-        // Serge: When does this actually occur?
         if self.clk > self.system.clk() {
             match &self.error {
                 Some(_) => {
@@ -210,7 +210,7 @@ impl Iterator for VmStateIterator {
             }
         }
 
-        // Serge: why must we increment during direction change?
+        // Change direction.
         if !self.forward && self.clk < self.system.clk() {
             self.clk += 1_u32;
             self.forward = true;
@@ -223,6 +223,7 @@ impl Iterator for VmStateIterator {
             Some(self.decoder.debug_info().operations()[self.clk - 1])
         };
 
+        // Retrieve the ASM op info.
         let asmop = self.get_asmop();
 
         // Increment the clock after recording return state.
