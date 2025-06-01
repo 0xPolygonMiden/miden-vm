@@ -134,13 +134,11 @@ impl VmStateIterator {
             return None;
         }
 
-        // if we are changing directions we must decrement the clk counter.
+        // If we are changing directions we must decrement the clk counter.
         if self.forward {
             self.clk = self.clk.saturating_sub(1);
             self.forward = false;
         }
-
-        let ctx = self.system.get_ctx_at(self.clk);
 
         let op = if self.clk == 0 {
             None
@@ -154,20 +152,20 @@ impl VmStateIterator {
             self.asmop_idx -= 1;
         }
 
-        let result = Some(VmState {
-            clk: self.clk,
+        // Decrement the clock after recording return state.
+        let clk = self.clk;
+        let ctx = self.system.get_ctx_at(self.clk);
+        self.clk = self.clk.saturating_sub(1);
+
+        Some(VmState {
+            clk,
             ctx,
             op,
             asmop,
             fmp: self.system.get_fmp_at(self.clk),
             stack: self.stack.get_state_at(self.clk),
             memory: self.chiplets.memory.get_state_at(ctx, self.clk),
-        });
-
-        // Use saturating_sub to prevent underflow when at clock 0
-        self.clk = self.clk.saturating_sub(1);
-
-        result
+        })
     }
 
     pub fn into_parts(self) -> (System, Decoder, Stack, Chiplets, Option<ExecutionError>) {
