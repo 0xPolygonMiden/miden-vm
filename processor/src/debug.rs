@@ -85,11 +85,12 @@ impl VmStateIterator {
     fn get_asmop(&self) -> (Option<AsmOpInfo>, bool) {
         let assembly_ops = self.decoder.debug_info().assembly_ops();
 
+        // Serge: why?
         if self.clk == 0 || assembly_ops.is_empty() || self.asmop_idx > assembly_ops.len() {
             return (None, false);
         }
 
-        // keeps track of the next assembly op in the list. It's the same as the current asmop
+        // Keeps track of the next assembly op in the list. It's the same as the current asmop
         // when the current asmop is last in the list
         let next_asmop = if self.forward && self.asmop_idx < assembly_ops.len() {
             &assembly_ops[self.asmop_idx]
@@ -97,7 +98,7 @@ impl VmStateIterator {
             &assembly_ops[self.asmop_idx.saturating_sub(1)]
         };
 
-        // keeps track of the current assembly op in the list. It's the same as the next asmop
+        // Keeps track of the current assembly op in the list. It's the same as the next asmop
         // when the clock cycle is less than the clock cycle of the first asmop.
         let (curr_asmop, cycle_idx) = if self.asmop_idx > 0 {
             let a = self.clk;
@@ -154,6 +155,7 @@ impl VmStateIterator {
             Some(self.decoder.debug_info().operations()[self.clk - 1])
         };
 
+        // Serge: why update index?
         let (asmop, is_start) = self.get_asmop();
         if is_start {
             self.asmop_idx -= 1;
@@ -201,6 +203,7 @@ impl Iterator for VmStateIterator {
     type Item = Result<VmState, ExecutionError>;
 
     fn next(&mut self) -> Option<Self::Item> {
+        // Serge: When does this actually occur?
         if self.clk > self.system.clk() {
             match &self.error {
                 Some(_) => {
@@ -211,38 +214,40 @@ impl Iterator for VmStateIterator {
             }
         }
 
-        // if we are changing iteration directions we must increment the clk counter
+        // Serge: why must we increment during direction change?
         if !self.forward && self.clk < self.system.clk() {
             self.clk += 1_u32;
             self.forward = true;
         }
 
-        let ctx = self.system.get_ctx_at(self.clk);
-
+        // Retrieve the operation.
         let op = if self.clk == 0 {
             None
         } else {
             Some(self.decoder.debug_info().operations()[self.clk - 1])
         };
 
+        // Serge: why update index?
         let (asmop, is_start) = self.get_asmop();
         if is_start {
             self.asmop_idx += 1;
         }
 
-        let result = Some(Ok(VmState {
-            clk: self.clk,
+        // Increment the clock after recording return state.
+        let clk = self.clk;
+        let ctx = self.system.get_ctx_at(self.clk);
+        self.clk += 1_u32;
+
+        // Return the iterated state.
+        Some(Ok(VmState {
+            clk,
             ctx,
             op,
             asmop,
             fmp: self.system.get_fmp_at(self.clk),
             stack: self.stack.get_state_at(self.clk),
             memory: self.chiplets.memory.get_state_at(ctx, self.clk),
-        }));
-
-        self.clk += 1_u32;
-
-        result
+        }))
     }
 }
 
