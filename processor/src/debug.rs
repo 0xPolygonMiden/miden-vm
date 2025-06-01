@@ -85,32 +85,33 @@ impl VmStateIterator {
     fn get_asmop(&self) -> (Option<AsmOpInfo>, bool) {
         let assembly_ops = self.decoder.debug_info().assembly_ops();
 
-        // Serge: why?
+        // Serge: why? is_empty() seems weird? Should that be impossible? Also asmop_idx being out of bounds?
         if self.clk == 0 || assembly_ops.is_empty() || self.asmop_idx > assembly_ops.len() {
             return (None, false);
         }
 
-        // Keeps track of the next assembly op in the list. It's the same as the current asmop
-        // when the current asmop is last in the list
+        // Determine the next asmop.
         let next_asmop = if self.forward && self.asmop_idx < assembly_ops.len() {
+            // The next asmop is 1 more than the previous.
             &assembly_ops[self.asmop_idx]
         } else {
+            // We are either going backwards or at the end of the list.
             &assembly_ops[self.asmop_idx.saturating_sub(1)]
         };
 
-        // Keeps track of the current assembly op in the list. It's the same as the next asmop
-        // when the clock cycle is less than the clock cycle of the first asmop.
-        let (curr_asmop, cycle_idx) = if self.asmop_idx > 0 {
-            let a = self.clk;
-            let b = RowIndex::from(assembly_ops[self.asmop_idx - 1].0);
+        // Determine the current asmop based on ...
+        let (curr_asmop, cycle_idx) = if self.asmop_idx == 0 {
+            (next_asmop, 0)
+        } else {
+            // ...
+            let clk = self.clk;
+            let prev = RowIndex::from(assembly_ops[self.asmop_idx - 1].0);
             (
                 &assembly_ops[self.asmop_idx - 1],
                 // difference between current clock cycle and start clock cycle of the current
                 // asmop
-                (a.max(b) - a.min(b)) as u8,
+                (clk.max(prev) - clk.min(prev)) as u8,
             )
-        } else {
-            (next_asmop, 0) //dummy value, never used.
         };
 
         // if this is the first op in the sequence corresponding to the next asmop, returns a new
