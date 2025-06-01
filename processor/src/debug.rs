@@ -82,12 +82,12 @@ impl VmStateIterator {
 
     /// Returns the asm op info corresponding to this vm state and whether this is the start of
     /// operation sequence corresponding to current assembly instruction.
-    fn get_asmop(&self) -> (Option<AsmOpInfo>, bool) {
+    fn get_asmop(&mut self) -> Option<AsmOpInfo> {
         let assembly_ops = self.decoder.debug_info().assembly_ops();
 
         // Serge: why? is_empty() seems weird? Should that be impossible? Also asmop_idx being out of bounds?
         if self.clk == 0 || assembly_ops.is_empty() || self.asmop_idx > assembly_ops.len() {
-            return (None, false);
+            return None;
         }
 
         // Determine the next asmop.
@@ -98,17 +98,25 @@ impl VmStateIterator {
             // We are either going backwards or out of bounds.
             &assembly_ops[self.asmop_idx.saturating_sub(1)]
         };
+
         // If this is the first op in the sequence corresponding to the next asmop, returns a new
         // instance of [AsmOp] instantiated with next asmop, num_cycles and cycle_idx of 1.
         if next_asmop.index == (self.clk - 1).as_usize() {
-            // cycle_idx starts at 1 instead of 0 to remove ambiguity
+            // cycle_idx starts at 1 instead of 0 to remove ambiguity.
             let cycle_idx = 1;
             let asmop = AsmOpInfo::new(next_asmop.op.clone(), cycle_idx);
-            return (Some(asmop), true);
+
+            // Move index to next asmop.
+            if self.forward {
+                self.asmop_idx += 1;
+            } else {
+                self.asmop_idx -= 1;
+            }
+            return Some(asmop);
         }
 
         if self.asmop_idx == 0 {
-            return (None, false);
+            return None;
         }
 
         // Retrieve asmop and calculate cycle index.
@@ -123,9 +131,9 @@ impl VmStateIterator {
         if cycle_idx <= prev_asmop.op.num_cycles() {
             // diff between curr clock cycle and start clock cycle of the current asmop
             let asmop = AsmOpInfo::new(prev_asmop.op.clone(), cycle_idx);
-            (Some(asmop), false)
+            Some(asmop)
         } else {
-            (None, false)
+            None
         }
     }
 
@@ -146,17 +154,14 @@ impl VmStateIterator {
             Some(self.decoder.debug_info().operations()[self.clk - 1])
         };
 
-        // Serge: why update index?
-        let (asmop, is_start) = self.get_asmop();
-        if is_start {
-            self.asmop_idx -= 1;
-        }
+        let asmop = self.get_asmop();
 
         // Decrement the clock after recording return state.
         let clk = self.clk;
         let ctx = self.system.get_ctx_at(self.clk);
         self.clk = self.clk.saturating_sub(1);
 
+        // Return the VM state.
         Some(VmState {
             clk,
             ctx,
@@ -218,18 +223,14 @@ impl Iterator for VmStateIterator {
             Some(self.decoder.debug_info().operations()[self.clk - 1])
         };
 
-        // Serge: why update index?
-        let (asmop, is_start) = self.get_asmop();
-        if is_start {
-            self.asmop_idx += 1;
-        }
+        let asmop = self.get_asmop();
 
         // Increment the clock after recording return state.
         let clk = self.clk;
         let ctx = self.system.get_ctx_at(self.clk);
         self.clk += 1_u32;
 
-        // Return the iterated state.
+        // Return the VM state.
         Some(Ok(VmState {
             clk,
             ctx,
