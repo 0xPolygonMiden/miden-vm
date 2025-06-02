@@ -5,12 +5,16 @@ language     = "en"
 multilingual = false
 title        = "The Miden virtual machine"
 
+
 [output.html]
 git-repository-url = "https://github.com/0xMiden/miden-vm"
+additional-js = ["mermaid.min.js", "mermaid-init.js"]
+
+[preprocessor.mermaid]
 
 [preprocessor.katex]
 after = ["links"]
 
 [preprocessor.alerts]
 
-[output.linkcheck]
+#[output.linkcheck]

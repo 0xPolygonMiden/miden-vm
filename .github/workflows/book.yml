@@ -42,7 +42,7 @@ jobs:
       - name: Install mdbook and plugins
         uses: taiki-e/install-action@v2
         with:
-          tool: mdbook, mdbook-linkcheck, mdbook-alerts, mdbook-katex
+          tool: mdbook, mdbook-linkcheck, mdbook-alerts, mdbook-katex, mdbook-mermaid
 
       - name: Build book
         run: mdbook build docs/
