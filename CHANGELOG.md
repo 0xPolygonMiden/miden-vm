@@ -22,6 +22,7 @@
 #### Enhancements
 
 - The documentation for the `Assembler` and its APIs was improved, to better explain how each affects the final assembled artifact (#1881).
+- Optimize handling of variable length public inputs in the recursive verifier (#1842).
 
 #### Fixes
 
