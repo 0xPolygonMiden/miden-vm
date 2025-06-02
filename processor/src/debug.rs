@@ -80,15 +80,12 @@ impl VmStateIterator {
         }
     }
 
-    /// Returns the ASM op info corresponding to this vm state.
+    /// Returns the asmop info corresponding to the vm state.
     fn get_asmop(&mut self) -> Option<AsmOpInfo> {
         let assembly_ops = self.decoder.debug_info().assembly_ops();
 
-        if self.clk == 0
-            || assembly_ops.is_empty()
-            || self.asmop_idx > assembly_ops.len()
-            || self.asmop_idx == 0
-        {
+        // Determine whether no asmop corresponds to the vm state.
+        if self.clk == 0 || assembly_ops.is_empty() || self.asmop_idx > assembly_ops.len() {
             return None;
         }
 
@@ -101,14 +98,14 @@ impl VmStateIterator {
             &assembly_ops[self.asmop_idx.saturating_sub(1)]
         };
 
-        // If this is the first op in the sequence corresponding to the next asmop, returns a new
-        // instance of [AsmOp] instantiated with next asmop, num_cycles and cycle_idx of 1.
+        // If this is the first op in the sequence corresponding to the next asmop, return the next
+        // asmop with num_cycles and cycle_ids of 1.
         if next_asmop.index == (self.clk - 1).as_usize() {
-            // cycle_idx starts at 1 instead of 0 to remove ambiguity.
+            // Start at cycle_idx 1 instead of 0 to remove ambiguity.
             let cycle_idx = 1;
             let asmop = AsmOpInfo::new(next_asmop.op.clone(), cycle_idx);
 
-            // Move index to next asmop.
+            // Iterate asmop index.
             if self.forward {
                 self.asmop_idx += 1;
             } else {
@@ -117,6 +114,9 @@ impl VmStateIterator {
             return Some(asmop);
         }
 
+        if self.asmop_idx == 0 {
+            return None;
+        }
         // Retrieve asmop and calculate cycle index.
         let clk = self.clk;
         let prev_asmop = &assembly_ops[self.asmop_idx - 1];
@@ -125,8 +125,7 @@ impl VmStateIterator {
         let cycle_idx = (max_idx - min_idx) as u8;
 
         // We know this is not the first asmop in the list, so if this op is part of current asmop,
-        // return a new instance of [AsmOp] instantiated with current asmop, num_cycles and
-        // cycle_idx of current op.
+        // return current asmop with num_cycles and cycle_idx of current op.
         if cycle_idx <= prev_asmop.op.num_cycles() {
             // Diff between curr clock cycle and start clock cycle of the current asmop.
             let asmop = AsmOpInfo::new(prev_asmop.op.clone(), cycle_idx);
