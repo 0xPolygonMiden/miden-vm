@@ -35,7 +35,7 @@ assembly = { package = "miden-assembly", path = "../assembly", version = "0.15",
 vm-core = { package = "miden-core", path = "../core", version = "0.15", default-features = false }
 
 [dev-dependencies]
-blake3 = "1.5"
+blake3 = "1.8"
 criterion = "0.5"
 miden-air = { package = "miden-air", path = "../air", version = "0.15", default-features = false }
 num = "0.4"
