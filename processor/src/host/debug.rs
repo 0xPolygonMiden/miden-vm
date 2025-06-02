@@ -4,14 +4,14 @@ use std::{print, println};
 use miden_air::RowIndex;
 use vm_core::{DebugOptions, Felt};
 
-use super::ProcessState;
-use crate::{MemoryAddress, system::ContextId};
+use super::{Host, ProcessState};
+use crate::{AdviceProvider, MemoryAddress, system::ContextId};
 
 // DEBUG HANDLER
 // ================================================================================================
 
 /// Prints the info about the VM state specified by the provided options to stdout.
-pub fn print_debug_info(process: ProcessState, options: &DebugOptions) {
+pub fn print_debug_info(host: impl Host, process: ProcessState, options: &DebugOptions) {
     let printer = Printer::new(process.clk(), process.ctx(), process.fmp());
     match options {
         DebugOptions::StackAll => {
@@ -28,6 +28,9 @@ pub fn print_debug_info(process: ProcessState, options: &DebugOptions) {
         },
         DebugOptions::LocalInterval(n, m, num_locals) => {
             printer.print_local_interval(process, (*n as u32, *m as u32), *num_locals as u32);
+        },
+        DebugOptions::AdvStackTop(length) => {
+            printer.print_vm_adv_stack(host.advice_provider(), *length as usize);
         },
     }
 }
@@ -69,6 +72,28 @@ impl Printer {
             println!("├── {i:>2}: {}", stack[i]);
             println!("└── ({} more items)\n", stack.len() - num_items);
         }
+    }
+
+    /// Prints length items from the top of the  advice stack. If length is 0 it returns the whole
+    /// stack.
+    fn print_vm_adv_stack(&self, advice_provider: &impl AdviceProvider, length: usize) {
+        let stack = advice_provider.peek_stack(length);
+
+        // we may have less elements than requested
+        let num_items = stack.len();
+        if num_items == 0 {
+            println!("Advice Stack empty before step {}.", self.clk);
+            return;
+        };
+
+        // print all items except for the last one
+        println!("Advice Stack state before step {}:", self.clk);
+        for (i, element) in stack.iter().take(num_items - 1).enumerate() {
+            println!("├── {i:>2}: {element}");
+        }
+
+        let i = num_items - 1;
+        println!("└── {i:>2}: {}\n", stack[i]);
     }
 
     /// Prints the whole memory state at the cycle `clk` in context `ctx`.

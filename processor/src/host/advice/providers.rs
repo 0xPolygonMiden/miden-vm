@@ -130,6 +130,14 @@ where
         Ok(())
     }
 
+    fn peek_stack(&self, length: usize) -> &[Felt] {
+        if length == 0 {
+            &self.stack
+        } else {
+            &self.stack[0..length]
+        }
+    }
+
     // ADVICE MAP
     // --------------------------------------------------------------------------------------------
 
@@ -284,6 +292,11 @@ impl AdviceProvider for MemAdviceProvider {
         self.provider.push_stack(source, err_ctx)
     }
 
+    fn peek_stack(&self, length: usize,
+    )-> &[Felt] {
+        self.provider.peek_stack(length)
+    }
+
     fn insert_into_map(&mut self, key: Word, values: Vec<Felt>)  {
         self.provider.insert_into_map(key, values)
     }
@@ -404,6 +417,10 @@ impl AdviceProvider for RecAdviceProvider {
 
     fn push_stack(&mut self, source: AdviceSource, err_ctx: &ErrorContext<impl MastNodeExt>) -> Result<(), ExecutionError> {
         self.provider.push_stack(source, err_ctx)
+    }
+
+    fn peek_stack(&self, length: usize) -> &[Felt] {
+        self.provider.peek_stack(length)
     }
 
     fn insert_into_map(&mut self, key: Word, values: Vec<Felt>)  {
