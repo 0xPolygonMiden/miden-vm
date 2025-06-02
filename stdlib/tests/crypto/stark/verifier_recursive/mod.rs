@@ -8,7 +8,10 @@ use test_utils::{
     math::{FieldElement, QuadExtension, ToElements},
 };
 use vm_core::{Felt, WORD_SIZE};
-use winter_air::{Air, proof::Proof};
+use winter_air::{
+    Air,
+    proof::{Proof, merge_ood_evaluations},
+};
 use winter_fri::VerifierChannel as FriVerifierChannel;
 
 mod channel;
@@ -120,43 +123,18 @@ pub fn generate_advice_inputs(
     // read the main and auxiliary segments' OOD frames and add them to advice tape
     let ood_trace_frame = channel.read_ood_trace_frame();
     let ood_constraint_evaluations = channel.read_ood_constraint_evaluations();
-    let ood_trace_hash = ood_trace_frame.hash::<Rpo256>();
-    let ood_constraints_hash = ood_constraint_evaluations.hash::<Rpo256>();
-
-    let ood_main_trace_frame = ood_trace_frame.main_frame();
-    let ood_aux_trace_frame = ood_trace_frame.aux_frame();
-
-    // the expected layout is:
-    // [main_current, aux_current, constraint_current, main_next, aux_next, constraint_next]
-    let mut ood_current = ood_main_trace_frame.current().to_vec();
-    ood_current.extend_from_slice(
-        ood_aux_trace_frame
-            .as_ref()
-            .expect("execution trace should have an auxiliary segment")
-            .current(),
-    );
-    ood_current.extend_from_slice(ood_constraint_evaluations.current_row());
-
-    let mut ood_next = ood_main_trace_frame.next().to_vec();
-    ood_next.extend_from_slice(
-        ood_aux_trace_frame
-            .as_ref()
-            .expect("execution trace should have an auxiliary segment")
-            .next(),
-    );
-    ood_next.extend_from_slice(ood_constraint_evaluations.next_row());
+    let ood_evals = merge_ood_evaluations(&ood_trace_frame, &ood_constraint_evaluations);
 
     // placeholder for the alpha_deep
     let alpha_deep_index = advice_stack.len();
     advice_stack.extend_from_slice(&[0, 0]);
 
     // add OOD evaluations to advice stack
-    advice_stack.extend_from_slice(&to_int_vec(&ood_current));
-    advice_stack.extend_from_slice(&to_int_vec(&ood_next));
+    advice_stack.extend_from_slice(&to_int_vec(&ood_evals));
 
-    // reseed with the digests of the OOD evaluations
-    public_coin.reseed(ood_trace_hash);
-    public_coin.reseed(ood_constraints_hash);
+    // reseed with the digest of the OOD evaluations
+    let ood_digest = Rpo256::hash_elements(&ood_evals);
+    public_coin.reseed(ood_digest);
 
     // 5 ----- FRI  -------------------------------------------------------------------------------
 
