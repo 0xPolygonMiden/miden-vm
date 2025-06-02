@@ -14,6 +14,7 @@
 - Simplify and optimize the recursive verifier (#1801).
 - Simplify auxiliary randomness generation (#1810).
 - Add handling of variable length public inputs to the recursive verifier (#1813).
+- Optimize handling of variable length public inputs in the recursive verifier (#1842).
 
 #### Fixes
 
