@@ -5,14 +5,22 @@
 #### Enhancements
 
 - Add `debug.stack_adv` and `debug.stack_adv.<n>` to help debug the advice stack (#1828).
+- Add a complete description of the constraints for `horner_eval_base` and `horner_eval_ext` (#1817).
 
 #### Changes
+
 - Improve error messages for some assembler instruction (#1785)
 - Remove `idx` column from Kernel ROM chiplet and use chiplet bus for initialization. (#1818)
+- [BREAKING] Make `Assembler::source_manager()` be `Send + Sync` (#1822)
 
 #### Fixes
-- `miden debug` rewind command no longer panics at clock 0 (#1751)
 
+- `miden debug` rewind command no longer panics at clock 0 (#1751)
+- Prevent overflow in ACE circuit evaluation (#1820)
+
+#### Enhancements
+
+- Add range checks to the `push_falcon_mod_result` advice injector to make sure that the inputs are `u32` (#1819).
 
 ## 0.14.0 (2025-05-07)
 
@@ -21,11 +29,12 @@
 - Add kernel procedures digests as public inputs to the recursive verifier (#1724).
 - add optional `Package::account_component_metadata_bytes` to store serialized `AccountComponentMetadata` (#1731).
 - Add `executable` feature to the `make test` and `make test-build` Make commands (#1762).
-- Allow asserts intruction to take error messages as strings instead of error codes as Felts (#1771).
+- Allow asserts instruction to take error messages as strings instead of error codes as Felts (#1771).
 - Add arithmetic evaluation chiplet (#1759).
 - Update the recursive verifier to use arithmetic evaluation chiplet (#1760).
 
 #### Changes
+
 - Replace deprecated #[clap(...)] with #[command(...)] and #[arg(.…)] (#1794)
 - Add pull request template to guide contributors (#1795)
 - [BREAKING] `ExecutionOptions::with_debugging()` now takes a boolean parameter (#1761)
@@ -37,10 +46,10 @@
 - Improve processor error diagnostics (#1765)
 - Fix source spans associated with assert* and mtree_verify instructions (#1789)
 
-
 ## 0.13.2 (2025-04-02)
 
 #### Changes
+
 - Relaxed rules for identifiers created via `Ident::new`, `ProcedureName::new`, `LibraryNamespace::new`, and `Library::new_from_components` (#1735)
 - [BREAKING] Renamed `Ident::new_unchecked` and `ProcedureName::new_unchecked` to `from_raw_parts` (#1735).
 
@@ -63,6 +72,7 @@
 - [BREAKING] Introduced `HORNERBASE`, `HORNEREXT` and removed `RCOMBBASE` instructions (#1656).
 
 #### Changes
+
 - Update minimum supported Rust version to 1.85.
 - Change Chiplet Fields to Public (#1629).
 - [BREAKING] Updated Winterfell dependency to v0.12 (#1658).
@@ -82,9 +92,11 @@
 ## 0.12.0 (2025-01-22)
 
 #### Highlights
+
 - [BREAKING] Refactored memory to be element-addressable (#1598).
 
 #### Changes
+
 - [BREAKING] Resolved flag collision in `--verify` command and added functionality for optional input/output files (#1513).
 - [BREAKING] Refactored `MastForest` serialization/deserialization to put decorator data at the end of the binary (#1531).
 - [BREAKING] Refactored `Process` struct to no longer take ownership of the `Host` (#1571).
@@ -96,12 +108,13 @@
 - Moved handling of `FalconSigToStack` event from system event handlers to the `DefaultHost` (#1630).
 
 #### Enhancements
+
 - Added options `--kernel`, `--debug` and `--output` to `miden bundle` (#1447).
 - Added `miden_core::mast::MastForest::advice_map` to load it into the advice provider before the `MastForest` execution (#1574).
 - Optimized the computation of the DEEP queries in the recursive verifier (#1594).
 - Added validity checks for the inputs to the recursive verifier (#1596).
 - Allow multiple memory reads in the same clock cycle (#1626)
-- Improved Falcon signiture verification (#1623).
+- Improved Falcon signature verification (#1623).
 - Added `miden-mast-package` crate with `Package` type to represent a compiled Miden program/library (#1544).
 
 ## 0.11.0 (2024-11-04)
