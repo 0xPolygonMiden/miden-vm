@@ -35,7 +35,6 @@ $$
 The following graph describes the evaluation of the circuit describing the above polynomial. The leaf nodes correspond to the variables of the polynomial: blue for inputs and green for constants.
 Note that the circuit is able to reuse evaluation, as is the case for the node $s-1$.
 
-<!-- @formatter:off -->
 ```mermaid
 flowchart BT
     %% Sink node (final expression)
@@ -80,7 +79,6 @@ flowchart BT
     output_val --> sub4
     input --> sub4
 ```
-<!-- @formatter:on -->
 
 
 The chiplet constructs and verifies the correctness of such a DAG by using a logUp argument, which we interpret as a _wiring bus_.
