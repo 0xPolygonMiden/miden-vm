@@ -3154,18 +3154,3 @@ dependencies = [
  "quote",
  "syn",
 ]
-
-[[patch.unused]]
-name = "winter-air"
-version = "0.12.1"
-source = "git+https://github.com/Al-Kindi-0/winterfell/?branch=al-open-quotient-at-gz#cc900892f442c6f36bb28ab105c5c7ff90cf013d"
-
-[[patch.unused]]
-name = "winter-prover"
-version = "0.12.2"
-source = "git+https://github.com/Al-Kindi-0/winterfell/?branch=al-open-quotient-at-gz#cc900892f442c6f36bb28ab105c5c7ff90cf013d"
-
-[[patch.unused]]
-name = "winter-verifier"
-version = "0.12.2"
-source = "git+https://github.com/Al-Kindi-0/winterfell/?branch=al-open-quotient-at-gz#cc900892f442c6f36bb28ab105c5c7ff90cf013d"
