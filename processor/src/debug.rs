@@ -100,7 +100,7 @@ impl VmStateIterator {
 
         // If this is the first op in the sequence corresponding to the next asmop, return the next
         // asmop with num_cycles and cycle_ids of 1.
-        if next_asmop.index == (self.clk - 1).as_usize() {
+        if next_asmop.clk == (self.clk - 1).as_usize() {
             // Start at cycle_idx 1 instead of 0 to remove ambiguity.
             let cycle_idx = 1;
             let asmop = AsmOpInfo::new(next_asmop.op.clone(), cycle_idx);
@@ -120,7 +120,9 @@ impl VmStateIterator {
         // Retrieve asmop and calculate cycle index.
         // Calculate cycle index within the current assembly operation
         let prev_asmop = &assembly_ops[self.asmop_idx - 1];
-        let cycle_idx = (self.clk - prev_asmop.index) as u8;
+        let cycle_idx: u8 = (self.clk - prev_asmop.clk)
+            .try_into()
+            .expect("difference between clock cycles and assembly operation start clock cycle should be within u8 range");
 
         // If this cycle is within the bounds of the current assembly operation, return it
         if cycle_idx <= prev_asmop.op.num_cycles() {

@@ -976,7 +976,7 @@ pub struct AssemblyOpAtClock {
 pub struct DebugInfo {
     in_debug_mode: bool,
     operations: Vec<Operation>,
-    assembly_ops: Vec<IndexedAssemblyOp>,
+    assembly_ops: Vec<AssemblyOpAtClock>,
 }
 
 impl DebugInfo {
@@ -984,7 +984,7 @@ impl DebugInfo {
         Self {
             in_debug_mode,
             operations: Vec::<Operation>::new(),
-            assembly_ops: Vec::<IndexedAssemblyOp>::new(),
+            assembly_ops: Vec::<AssemblyOpAtClock>::new(),
         }
     }
 
@@ -1001,7 +1001,7 @@ impl DebugInfo {
     }
 
     /// Returns list of assembly operations in debug mode.
-    pub fn assembly_ops(&self) -> &[IndexedAssemblyOp] {
+    pub fn assembly_ops(&self) -> &[AssemblyOpAtClock] {
         &self.assembly_ops
     }
 
@@ -1015,6 +1015,6 @@ impl DebugInfo {
 
     /// Appends an asmop decorator at the specified clock cycle to the asmop list in debug mode.
     pub fn append_asmop(&mut self, clk: RowIndex, asmop: AssemblyOp) {
-        self.assembly_ops.push(IndexedAssemblyOp { index: clk, op: asmop });
+        self.assembly_ops.push(AssemblyOpAtClock { clk, op: asmop });
     }
 }
