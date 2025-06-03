@@ -187,6 +187,12 @@ pub enum SemanticAnalysisError {
         #[label]
         span: SourceSpan,
     },
+    #[error("invalid constant")]
+    #[diagnostic(help("this constant does not resolve to a value of the right type"))]
+    InvalidConstant {
+        #[label]
+        span: SourceSpan,
+    },
 }
 
 /// Represents a system limit that was exceeded

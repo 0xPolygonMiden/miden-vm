@@ -1832,7 +1832,24 @@ ConstantName: Ident = {
 Term: ConstantExpr = {
     "(" <ConstantExpr> ")",
 
-    <l:@L> <t:Felt> <r:@R> => ConstantExpr::Literal(Span::new(span!(source_file.id(), l, r), t)),
+    // TODO this is a copy of the Felt rule with the Word case modifier to return a constant word instead of an error, they should be refactored together.
+    // <l:@L> <t:Felt> <r:@R> => ConstantExpr::Literal(Span::new(span!(source_file.id(), l, r), t)),
+    <l:@L> <n:uint> <r:@R> =>? {
+        if n > Felt::MODULUS {
+            return Err(ParseError::User { error: ParsingError::InvalidLiteral { span: span!(source_file.id(), l, r), kind: LiteralErrorKind::FeltOverflow } });
+        }
+        Ok(ConstantExpr::Literal(Span::new(span!(source_file.id(), l, r), Felt::new(n))))
+    },
+
+    <l:@L> <value:hex_value> <r:@R> =>? {
+        Ok(match value {
+            HexEncodedValue::U8(v) => ConstantExpr::Literal(Span::new(span!(source_file.id(), l, r), Felt::new(v as u64))),
+            HexEncodedValue::U16(v) => ConstantExpr::Literal(Span::new(span!(source_file.id(), l, r), Felt::new(v as u64))),
+            HexEncodedValue::U32(v) => ConstantExpr::Literal(Span::new(span!(source_file.id(), l, r), Felt::new(v as u64))),
+            HexEncodedValue::Felt(v) => ConstantExpr::Literal(Span::new(span!(source_file.id(), l, r), v)),
+            HexEncodedValue::Word(t) => ConstantExpr::Word(Span::new(span!(source_file.id(), l, r),t))
+        })
+    },
 
     <l:@L> <t:QuotedString> <r:@R> => ConstantExpr::String(t),
 
