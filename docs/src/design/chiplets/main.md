@@ -19,7 +19,7 @@ Each chiplet is identified within the Chiplets module by one or more chiplet sel
 
 The result is an execution trace of 17 trace columns, which allows space for the widest chiplet component (the hash chiplet) and a column to select for it.
 
-_**Note**: The following diagram is outdated (see [issue #1829](https://github.com/0xMiden/miden-vm/issues/1829)._
+_**Note**: The following diagram is outdated (see [issue #1829](https://github.com/0xMiden/miden-vm/issues/1829))._
 
 ![chiplets](../../assets/design/chiplets/chiplets.png)
 
@@ -50,7 +50,7 @@ The resulting order is as follows:
 
 Stacking the chiplets introduces one new complexity. Each chiplet proves its own correctness with its own set of internal transition constraints, many of which are enforced between each row in its trace and the next row. As a result, when the chiplets are stacked, transition constraints applied to the final row of one chiplet will cause a conflict with the first row of the following chiplet.
 
-This is true for any transition constraints that are applied at every row and selected by a `Chiplet Selector Flag` for the current row. (Therefore, cyclic transition constraints controlled by periodic columns do not cause an issue.)
+This is true for any transition constraints that are applied at every row and selected by a `Chiplet Selector Flag` for the current row. (Therefore, cyclic transition constraints controlled by periodic columns do not cause any issue.)
 
 This requires the following adjustments for each chiplet.
 
