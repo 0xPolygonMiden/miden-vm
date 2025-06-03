@@ -2614,6 +2614,36 @@ end";
     Ok(())
 }
 
+#[test]
+fn can_push_word() -> TestResult {
+    let context = TestContext::default();
+    let source = source_file!(
+        &context,
+        "\
+begin
+    push.0x0200000000000000020000000000000002000000000000000200000000000000
+end"
+    );
+    let _program = context.assemble(source)?;
+    Ok(())
+}
+
+#[ignore]
+#[test]
+fn can_declare_constant_word() -> TestResult {
+    let context = TestContext::default();
+    let source = source_file!(
+        &context,
+        "\
+const.A=0x0200000000000000020000000000000002000000000000000200000000000000
+begin
+    push.2
+end"
+    );
+    let _program = context.assemble(source)?;
+    Ok(())
+}
+
 // ERRORS
 // ================================================================================================
 
