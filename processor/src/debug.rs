@@ -118,14 +118,11 @@ impl VmStateIterator {
             return None;
         }
         // Retrieve asmop and calculate cycle index.
-        let clk = self.clk;
+        // Calculate cycle index within the current assembly operation
         let prev_asmop = &assembly_ops[self.asmop_idx - 1];
-        let max_idx = clk.max(prev_asmop.index);
-        let min_idx = clk.min(prev_asmop.index);
-        let cycle_idx = (max_idx - min_idx) as u8;
+        let cycle_idx = (self.clk - prev_asmop.index) as u8;
 
-        // We know this is not the first asmop in the list, so if this op is part of current asmop,
-        // return current asmop with num_cycles and cycle_idx of current op.
+        // If this cycle is within the bounds of the current assembly operation, return it
         if cycle_idx <= prev_asmop.op.num_cycles() {
             // Diff between curr clock cycle and start clock cycle of the current asmop.
             let asmop = AsmOpInfo::new(prev_asmop.op.clone(), cycle_idx);
