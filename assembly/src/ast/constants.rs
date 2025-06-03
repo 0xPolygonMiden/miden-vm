@@ -4,7 +4,7 @@ use core::fmt;
 use vm_core::FieldElement;
 
 use super::DocString;
-use crate::{Felt, SourceSpan, Span, Spanned, ast::Ident, parser::ParsingError};
+use crate::{Felt, SourceSpan, Span, Spanned, Word, ast::Ident, parser::ParsingError};
 
 // CONSTANT
 // ================================================================================================
@@ -93,6 +93,7 @@ pub enum ConstantExpr {
         rhs: Box<ConstantExpr>,
     },
     String(Ident),
+    Word(Span<Word>),
 }
 
 impl ConstantExpr {
@@ -123,7 +124,7 @@ impl ConstantExpr {
     /// Returns an error if an invalid expression is found while folding, such as division by zero.
     pub fn try_fold(self) -> Result<Self, ParsingError> {
         match self {
-            Self::String(_) | Self::Literal(_) | Self::Var(_) => Ok(self),
+            Self::String(_) | Self::Literal(_) | Self::Var(_) | Self::Word(_) => Ok(self),
             Self::BinaryOp { span, op, lhs, rhs } => {
                 if rhs.is_literal() {
                     let rhs = Self::into_inner(rhs).try_fold()?;
@@ -195,7 +196,7 @@ impl ConstantExpr {
 
     fn is_literal(&self) -> bool {
         match self {
-            Self::Literal(_) | Self::String(_) => true,
+            Self::Literal(_) | Self::String(_) | Self::Word(_) => true,
             Self::Var(_) => false,
             Self::BinaryOp { lhs, rhs, .. } => lhs.is_literal() && rhs.is_literal(),
         }
@@ -228,6 +229,7 @@ impl fmt::Debug for ConstantExpr {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
             Self::Literal(lit) => fmt::Debug::fmt(&**lit, f),
+            Self::Word(w) => fmt::Debug::fmt(&**w, f),
             Self::Var(name) | Self::String(name) => fmt::Debug::fmt(&**name, f),
             Self::BinaryOp { op, lhs, rhs, .. } => {
                 f.debug_tuple(op.name()).field(lhs).field(rhs).finish()
@@ -242,6 +244,10 @@ impl crate::prettier::PrettyPrint for ConstantExpr {
 
         match self {
             Self::Literal(literal) => display(literal),
+            Self::Word(spanned) => {
+                let [f0, f1, f2, f3] = spanned.inner();
+                display(f0) + display(f1) + display(f2) + display(f3)
+            },
             Self::Var(ident) | Self::String(ident) => display(ident),
             Self::BinaryOp { op, lhs, rhs, .. } => {
                 let single_line = lhs.render() + display(op) + rhs.render();
@@ -256,6 +262,7 @@ impl Spanned for ConstantExpr {
     fn span(&self) -> SourceSpan {
         match self {
             Self::Literal(spanned) => spanned.span(),
+            Self::Word(spanned) => spanned.span(),
             Self::Var(spanned) | Self::String(spanned) => spanned.span(),
             Self::BinaryOp { span, .. } => *span,
         }

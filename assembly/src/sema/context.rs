@@ -78,6 +78,7 @@ impl AnalysisContext {
     fn const_eval(&self, value: &ConstantExpr) -> Result<ConstantExpr, SemanticAnalysisError> {
         match value {
             ConstantExpr::Literal(_) | ConstantExpr::String(_) => Ok((*value).clone()),
+            ConstantExpr::Word(_) => Ok((*value).clone()),
             ConstantExpr::Var(name) => {
                 Ok(ConstantExpr::Literal(Span::unknown(self.get_constant(name)?)))
             },
