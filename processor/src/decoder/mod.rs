@@ -967,8 +967,9 @@ pub fn build_op_group(ops: &[Operation]) -> Felt {
 // DEBUG INFO
 // ================================================================================================
 
-pub struct IndexedAssemblyOp {
-    pub index: RowIndex,
+/// An [AssemblyOp] tagged with the clock cycle at which it occurred.
+pub struct AssemblyOpAtClock {
+    pub clk: RowIndex,
     pub op: AssemblyOp,
 }
 
