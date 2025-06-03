@@ -198,7 +198,7 @@ fn variable_length_public_inputs(#[case] num_kernel_proc_digests: usize) {
             #    the kernel procedures digests, but there will be later on overwritten by the reduced value, the auxiliary
             #    randomness, and the OOD evaluations.
             padw
-            exec.constants::ood_trace_current_ptr
+            exec.constants::ood_evaluations_ptr
             sub.8
             mem_loadw
 
