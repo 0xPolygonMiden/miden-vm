@@ -312,43 +312,56 @@ impl FromStr for ProcedureName {
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         let mut chars = s.char_indices();
-        let raw = match chars.next() {
-            None => Err(IdentError::Empty),
-            Some((_, '"')) => loop {
-                if let Some((pos, c)) = chars.next() {
-                    match c {
-                        '"' => {
-                            if chars.next().is_some() {
-                                break Err(IdentError::InvalidChars { ident: s.into() });
-                            }
-                            let tok = &s[1..pos];
-                            break Ok(Arc::from(tok.to_string().into_boxed_str()));
-                        },
-                        c if c.is_alphanumeric() || c.is_ascii_graphic() => continue,
-                        _ => break Err(IdentError::InvalidChars { ident: s.into() }),
+
+        // match the first char
+        match chars.next() {
+            None => return Err(IdentError::Empty),
+            Some((_, '"')) => {},
+            Some((_, c)) if is_valid_starting_charcter(c) => {
+                // procedure name should have atleast one alphanumeric character
+                let has_alphan_char = chars.any(|(_, char)| char.is_ascii_alphanumeric());
+                // `has_alphan_char` is false in the case that the procedure name is a
+                // single character. in case it is a single character then the first char should
+                // only be alphanumberic
+                if has_alphan_char || c.is_ascii_alphanumeric() {
+                    return Ok(Self(Ident::from_raw_parts(Span::unknown(s.into()))));
+                } else {
+                    return Err(IdentError::InvalidChars { ident: s.into() });
+                }
+            },
+            Some((_, c)) if c.is_ascii_uppercase() => {
+                return Err(IdentError::Casing(CaseKindError::Snake));
+            },
+            Some(_) => return Err(IdentError::InvalidChars { ident: s.into() }),
+        };
+
+        // parsing the case non_ascii_alphanumberic string
+        while let Some((pos, char)) = chars.next() {
+            match char {
+                '"' => {
+                    if chars.next().is_some() {
+                        return Err(IdentError::InvalidChars { ident: s.into() });
                     }
-                } else {
-                    break Err(IdentError::InvalidChars { ident: s.into() });
-                }
-            },
-            Some((_, c))
-                if c.is_ascii_lowercase() || c == '_' || c == '-' || c == '$' || c == '.' =>
-            {
-                if chars.as_str().contains(|c| match c {
-                    c if c.is_ascii_alphanumeric() => false,
-                    '_' | '-' | '$' | '.' => false,
-                    _ => true,
-                }) {
-                    Err(IdentError::InvalidChars { ident: s.into() })
-                } else {
-                    Ok(Arc::from(s.to_string().into_boxed_str()))
-                }
-            },
-            Some((_, c)) if c.is_ascii_uppercase() => Err(IdentError::Casing(CaseKindError::Snake)),
-            Some(_) => Err(IdentError::InvalidChars { ident: s.into() }),
-        }?;
-        Ok(Self(Ident::from_raw_parts(Span::unknown(raw))))
+                    let token = &s[0..pos];
+                    return Ok(Self(Ident::from_raw_parts(Span::unknown(token.into()))));
+                },
+                c => {
+                    // if char is not alphanumeric or asciigraphic then return err
+                    if !(c.is_alphanumeric() || c.is_ascii_graphic()) {
+                        return Err(IdentError::InvalidChars { ident: s.into() });
+                    }
+                },
+            }
+        }
+
+        // if while loop has not returned then the qoute was not closed
+        return Err(IdentError::InvalidChars { ident: s.into() });
     }
+}
+
+// FROM STR HELPER
+fn is_valid_starting_charcter(c: char) -> bool {
+    c.is_ascii_lowercase() || matches!(c, '_' | '-' | '$' | '.')
 }
 
 impl Serializable for ProcedureName {

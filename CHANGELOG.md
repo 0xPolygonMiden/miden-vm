@@ -12,6 +12,7 @@
 - Improve error messages for some assembler instruction (#1785)
 - Remove `idx` column from Kernel ROM chiplet and use chiplet bus for initialization. (#1818)
 - [BREAKING] Make `Assembler::source_manager()` be `Send + Sync` (#1822)
+- Refactored `ProcedureName` validation logic to improve readability (#1663)
 
 #### Fixes
 
