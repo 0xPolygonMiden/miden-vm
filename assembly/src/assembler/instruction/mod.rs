@@ -529,7 +529,7 @@ impl Assembler {
 
             Instruction::Debug(options) => {
                 if self.in_debug_mode() {
-                    block_builder.push_decorator(Decorator::Debug(options.compile()?))?;
+                    block_builder.push_decorator(Decorator::Debug(options.compile(proc_ctx)?))?;
                 }
             },
 

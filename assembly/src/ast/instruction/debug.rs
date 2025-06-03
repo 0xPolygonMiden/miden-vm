@@ -2,6 +2,7 @@ use core::fmt;
 
 use crate::{
     AssemblyError,
+    assembler::ProcedureContext,
     ast::{ImmU8, ImmU16, ImmU32},
 };
 
@@ -27,7 +28,10 @@ impl DebugOptions {
     /// This function does not currently return any errors, but may in the future.
     ///
     /// See [crate::Assembler] for an overview of AST compilation.
-    pub fn compile(&self) -> Result<vm_core::DebugOptions, AssemblyError> {
+    pub fn compile(
+        &self,
+        proc_ctx: &ProcedureContext,
+    ) -> Result<vm_core::DebugOptions, AssemblyError> {
         type Ast = DebugOptions;
         type Vm = vm_core::DebugOptions;
 
@@ -42,7 +46,7 @@ impl DebugOptions {
             },
             Ast::LocalInterval(start, end) => {
                 let (start, end) = (start.expect_value(), end.expect_value());
-                Vm::LocalInterval(start, end, end - start)
+                Vm::LocalInterval(start, end, proc_ctx.num_locals())
             },
             Ast::AdvStackTop(n) => Vm::AdvStackTop(n.expect_value()),
             other @ (Ast::LocalRangeFrom(_) | Ast::LocalAll) => {
