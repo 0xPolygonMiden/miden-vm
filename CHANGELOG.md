@@ -6,6 +6,7 @@
 
 - Add `debug.stack_adv` and `debug.stack_adv.<n>` to help debug the advice stack (#1828).
 - Add a complete description of the constraints for `horner_eval_base` and `horner_eval_ext` (#1817).
+- Add documentation for ACE chiplet (#1766)
 
 #### Changes
 
