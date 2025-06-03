@@ -311,19 +311,18 @@ impl FromStr for ProcedureName {
     type Err = IdentError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let mut chars = s.char_indices();
+        let mut chars = s.char_indices().peekable();
 
-        // match the first char
-        match chars.next() {
+        // peek the first char
+        match chars.peek() {
             None => return Err(IdentError::Empty),
-            Some((_, '"')) => {},
-            Some((_, c)) if is_valid_starting_charcter(c) => {
-                // procedure name should have atleast one alphanumeric character
-                let has_alphan_char = chars.any(|(_, char)| char.is_ascii_alphanumeric());
-                // `has_alphan_char` is false in the case that the procedure name is a
-                // single character. in case it is a single character then the first char should
-                // only be alphanumberic
-                if has_alphan_char || c.is_ascii_alphanumeric() {
+            Some((_, '"')) => chars.next(),
+            Some((_, c)) if is_valid_unquoted_identifier_char(*c) => {
+                // All character for unqouted should be valid
+                let all_chars_valid =
+                    chars.all(|(_, char)| is_valid_unquoted_identifier_char(char));
+
+                if all_chars_valid {
                     return Ok(Self(Ident::from_raw_parts(Span::unknown(s.into()))));
                 } else {
                     return Err(IdentError::InvalidChars { ident: s.into() });
@@ -335,7 +334,7 @@ impl FromStr for ProcedureName {
             Some(_) => return Err(IdentError::InvalidChars { ident: s.into() }),
         };
 
-        // parsing the case non_ascii_alphanumberic string
+        // parsing the qouted identifier
         while let Some((pos, char)) = chars.next() {
             match char {
                 '"' => {
@@ -355,13 +354,13 @@ impl FromStr for ProcedureName {
         }
 
         // if while loop has not returned then the qoute was not closed
-        return Err(IdentError::InvalidChars { ident: s.into() });
+        Err(IdentError::InvalidChars { ident: s.into() })
     }
 }
 
 // FROM STR HELPER
-fn is_valid_starting_charcter(c: char) -> bool {
-    c.is_ascii_lowercase() || matches!(c, '_' | '-' | '$' | '.')
+fn is_valid_unquoted_identifier_char(c: char) -> bool {
+    c.is_ascii_alphanumeric() || matches!(c, '_' | '-' | '$' | '.')
 }
 
 impl Serializable for ProcedureName {
