@@ -79,8 +79,8 @@ Denoting the random values received from the verifier as $\alpha_0, \alpha_1$, e
 $$
 \begin{aligned}
 \tilde{r} &= \sum_{i=0}^3 (\alpha_{i + 2} \cdot r_i) \\
-v_{init} &= \alpha_0 + \alpha_1 \cdot \textsf{KERNEL\_PROC\_INIT\_LABEL} + \tilde{r} \\
-v_{call} &= \alpha_0 + \alpha_1 \cdot \textsf{KERNEL\_PROC\_CALL\_LABEL} + \tilde{r}
+v_{init} &= \alpha_0 + \alpha_1 \cdot \textsf{KERNEL\_PROC\_INIT} + \tilde{r} \\
+v_{call} &= \alpha_0 + \alpha_1 \cdot \textsf{KERNEL\_PROC\_CALL} + \tilde{r}
 \end{aligned}
 $$
 
