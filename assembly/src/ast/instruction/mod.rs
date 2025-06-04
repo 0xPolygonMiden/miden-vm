@@ -8,6 +8,7 @@ pub use self::{advice::SystemEventNode, debug::DebugOptions};
 use crate::{
     Felt, Word,
     ast::{InvocationTarget, immediate::*},
+    parser::HexEncodedValue,
 };
 
 // INSTRUCTION
@@ -204,7 +205,7 @@ pub enum Instruction {
     CDropW,
 
     // ----- input / output operations -----------------------------------------------------------
-    Push(ImmFelt),
+    Push(Immediate<HexEncodedValue>),
     PushU8(u8),
     PushU16(u16),
     PushU32(u32),
