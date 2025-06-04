@@ -9,6 +9,7 @@ More background about Miden VM execution contexts can be found [here](../../user
 
 The kernel ROM table consists of five columns.
 The following example table shows the execution trace of the kernel ROM with procedure digests $a, b, c$, which were called 1, 2, and 0 times, respectively.
+Each digest is included once to respond to the initialization request by the public inputs, and then repeated for each call made by the decoder. 
 
 | $s_{first}$ | $r_0$ | $r_1$ | $r_2$ | $r_3$ |
 |-------------|-------|-------|-------|-------|
