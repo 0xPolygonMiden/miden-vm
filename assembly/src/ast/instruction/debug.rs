@@ -48,8 +48,16 @@ impl DebugOptions {
                 let (start, end) = (start.expect_value(), end.expect_value());
                 Vm::LocalInterval(start, end, proc_ctx.num_locals())
             },
+            Ast::LocalRangeFrom(index) => {
+                let index = index.expect_value();
+                Vm::LocalInterval(index, index, proc_ctx.num_locals())
+            },
+            Ast::LocalAll => {
+                let end_exclusive = Ord::min(1, proc_ctx.num_locals());
+                Vm::LocalInterval(0, end_exclusive - 1, proc_ctx.num_locals())
+            },
             Ast::AdvStackTop(n) => Vm::AdvStackTop(n.expect_value()),
-            other @ (Ast::LocalRangeFrom(_) | Ast::LocalAll) => {
+            other @ Ast::LocalRangeFrom(_) => {
                 unimplemented!("compilation of debug instruction {other:?}");
             },
         };
