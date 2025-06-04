@@ -30,7 +30,7 @@ fn stark_verifier_e2f4(#[case] kernel: Option<&str>) {
     // An example MASM program to be verified inside Miden VM.
 
     let example_source = "begin
-            repeat.32
+            repeat.320
                 swap dup.1 add
             end
         end";

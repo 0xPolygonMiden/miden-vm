@@ -44,29 +44,14 @@ const.KERNEL_OP_LABEL=0
 # MEMORY POINTERS
 # =================================================================================================
 
-# ACE related
+## General
 
-# We use 2 extension field elements for a total of 4 base field elements.
-const.AUX_RAND_ELEM_PTR=4294899996
-
-# OOD evaluations require a total of (80 + 8) * 2 * 2 field elements for current and next trace
-# polynomials and 8 * 2 * 2 field elements for current and next constraint composition polynomials
-const.OOD_EVALUATIONS_PTR=4294900000
-
-# We need to allocate for 12 field
-const.AUXILIARY_ACE_INPUTS_PTR=4294900384
-
-# Address at the start of the memory region holding the arithmetic circuit for constraint evaluation
-const.ACE_CIRCUIT_PTR=4294900396
-
-# General
-
-# Commitment to main, auxiliary and composition polynomials traces
+### Commitment to main, auxiliary and composition polynomials traces
 const.MAIN_TRACE_COM_PTR=4294813200
 const.AUX_TRACE_COM_PTR=4294813204
 const.COMPOSITION_POLY_COM_PTR=4294813208
 
-# Instant-specific constants
+### Instant-specific constants
 const.LDE_DOMAIN_INFO_PTR=4294813212
 const.LDE_DOMAIN_GEN_PTR=4294813213
 const.LDE_DOMAIN_LOG_SIZE_PTR=4294813214
@@ -78,121 +63,101 @@ const.NUM_FRI_LAYERS_PTR=4294813222
 const.REMAINDER_POLY_ADDRESS_PTR=4294813223
 const.TRACE_LENGTH_PTR=4294813224
 const.FRI_QUERIES_ADDRESS_PTR=4294813225
-const.TRACE_LENGTH_LOG_PTR=4294813228
-const.GRINDING_FACTOR_PTR=4294813232
+const.TRACE_LENGTH_LOG_PTR=4294813226
+const.GRINDING_FACTOR_PTR=4294813227
 
-# Zero word, mainly used in the context of RPO
-const.ZERO_WORD_PTR=4294813236
+### Zero word, mainly used in the context of RPO
+const.ZERO_WORD_PTR=4294813228
 
-# State of RPO-based random coin
+### Address to store the non-deterministically provided DEEP polynomial batching randomness
+const.ALPHA_DEEP_ND_PTR=4294813232
+
+### Address to store the fixed terms, accross all queries, of the DEEP queries.
+const.OOD_FIXED_TERM_HORNER_EVALS_PTR=4294813236
+
+### Number of public inputs (in field elements)
+const.NUM_PUBLIC_INPUTS_PTR=4294813240
+
+### Trace domain generator
+const.TRACE_DOMAIN_GENERATOR_PTR=4294813241
+
+### Variable length public inputs address
+const.VARIABLE_LEN_PUBLIC_INPUTS_ADDRESS_PTR=4294813242
+
+### Public inputs address
+const.PUBLIC_INPUTS_ADDRESS_PTR=4294813243
+
+### State of RPO-based random coin
 const.C_PTR=4294813244
 const.R1_PTR=4294813248
 const.R2_PTR=4294813252
 
-# Address used for storing temporary values:
+### Address used for storing temporary values:
 const.TMP1=4294913256
 const.TMP2=4294913260
 const.TMP3=4294913264
 const.TMP4=4294913268
 
-# Address to store the non-deterministically provided DEEP polynomial batching randomness
-const.ALPHA_DEEP_ND_PTR=4294913272
+### This will hold the non-deterministically loaded 2 random challenges, which will be
+### checked for correctness once we receive the commitment to the auxiliary trace.
+const.AUX_RAND_ND_PTR=4294913272
 
-# Address to store the fixed terms, accross all queries, of the DEEP queries.
-const.OOD_FIXED_TERM_HORNER_EVALS_PTR=4294913276
+### Address to the randomness used in computing the constraint composition polynomial
+const.COMPOSITION_COEF_PTR=4294913276
 
-# Number of public inputs (in field elements)
-const.NUM_PUBLIC_INPUTS_PTR=4294913280
+### Address to the randomness used in computing the DEEP polynomial
+const.DEEP_RAND_CC_PTR=4294913280
 
-# Trace domain generator
-const.TRACE_DOMAIN_GENERATOR_PTR=4294913281
+## ACE related
+## 3225419776 = 2**31 + 2**30 + 2**22
 
-# Variable length public inputs address
-const.VARIABLE_LEN_PUBLIC_INPUTS_ADDRESS_PTR=4294913282
+### We use 2 extension field elements for a total of 4 base field elements.
+const.AUX_RAND_ELEM_PTR=3225419776
 
-# Public inputs address
-const.PUBLIC_INPUTS_ADDRESS_PTR=4294913283
+### OOD evaluations require a total of (80 + 8) * 2 * 2 field elements for current and next trace
+### polynomials and 8 * 2 * 2 field elements for current and next constraint composition polynomials
+const.OOD_EVALUATIONS_PTR=3225419780        # AUX_RAND_ELEM_PTR + 4
 
-# This will hold the non-deterministically loaded 2 random challenges, which will be
-# checked for correctness once we receive the commitment to the auxiliary trace.
-const.AUX_RAND_ND_PTR=4294913284
+### We need to allocate for 12 field
+const.AUXILIARY_ACE_INPUTS_PTR=3225420164   # AUXILIARY_ACE_INPUTS_PTR + (80 + 8 + 8) * 2 * 2
 
-# Address to the randomness used in computing the constraint composition polynomial
-const.COMPOSITION_COEF_PTR=4294913288
+### Address at the start of the memory region holding the arithmetic circuit for constraint evaluation
+const.ACE_CIRCUIT_PTR=3225420176            # AUXILIARY_ACE_INPUTS_PTR + 12
 
-# Address to the randomness used in computing the DEEP polynomial
-const.DEEP_RAND_CC_PTR=4294913292
-
-# Current trace row
-# 80 field elements for main portion of trace, 8 * 2 field elements for auxiliary portion of trace
-# and 8 * 2 field elements for constraint composition polynomials, i.e., the number of slots
-# required is 80 + 16 + 16 = 112
-const.CURRENT_TRACE_ROW_PTR=4294900400
-
-
-# FRI
-#
-#       (FRI_COM_PTR - 600)     ---|
-#              .
-#              .                   | <- FRI queries
-#              .
-#         FRI_COM_PTR           ---|
-#              .
-#              .                   | <- FRI layer commitments and folding challenges
-#              .
-#       (FRI_COM_PTR + 256)     ---|
-#              .
-#              .                   | <- Remainder polynomial
-#              .
-#       (FRI_COM_PTR + 512-1)   ---|
-#
-# For each FRI layer, we need 8 memory slots, one for storing the FRI layer commitment and one for
-# storing the word [a0, a1, log2(lde_size), lde_size] where a := (a0, a1) is the folding randomness
-# and lde_size is the size of the LDE domain of the corresponding FRI layer.
-# Since we are using a folding factor of 4 and the maximal degree of the remainder polynomial
-# that we allow is 127, an upper limit of 32 FRI layers is ample and the number of memory slots
-# we thus allocate for this is 256. Moreover, we allocate an additional 256 slots for the remainder
-# polynomial which is expected to be laid out right after the FRI commitments.
+## FRI
+##
+##       (FRI_COM_PTR - 600)     ---|
+##              .
+##              .                   | <- FRI queries
+##              .
+##         FRI_COM_PTR           ---|
+##              .
+##              .                   | <- FRI layer commitments and folding challenges
+##              .
+##       (FRI_COM_PTR + 256)     ---|
+##              .
+##              .                   | <- Remainder polynomial
+##              .
+##       (FRI_COM_PTR + 512-1)   ---|
+##
+## For each FRI layer, we need 8 memory slots, one for storing the FRI layer commitment and one for
+## storing the word [a0, a1, log2(lde_size), lde_size] where a := (a0, a1) is the folding randomness
+## and lde_size is the size of the LDE domain of the corresponding FRI layer.
+## Since we are using a folding factor of 4 and the maximal degree of the remainder polynomial
+## that we allow is 127, an upper limit of 32 FRI layers is ample and the number of memory slots
+## we thus allocate for this is 256. Moreover, we allocate an additional 256 slots for the remainder
+## polynomial which is expected to be laid out right after the FRI commitments.
+##
+## 3229614080 = 2**31 + 2**30 + 2**23
 const.FRI_COM_PTR=4294912800
 
-#   The following is a table summarizing the memory pointers used:
-#   +------------------------------------------+-------------------------+
-#   |                  ID                      |        Address          |
-#   +------------------------------------------+-------------------------+
-#   | NUM_PUBLIC_INPUTS_PTR                    |       4294799998        |
-#   | TRACE_DOMAIN_GENERATOR_PTR               |       4294799999        |
-#   | PUBLIC_INPUTS_ADDRESS_PTR                |       4294800000        |
-#   | AUX_RAND_ND_PTR                          |       4294800004        |
-#   | AUX_RAND_ELEM_PTR                        |       4294899996        |
-#   | OOD_EVALUATIONS_PTR                      |       4294900000        |
-#   | AUXILIARY_ACE_INPUTS_PTR                 |       4294900340        |
-#   | CURRENT_TRACE_ROW_PTR                    |       4294900400        |
-#   | COMPOSITION_COEF_PTR                     |       4294900800        |
-#   | DEEP_RAND_CC_PTR                         |       4294912000        |
-#   | FRI_COM_PTR                              |       4294912800        |
-#   | MAIN_TRACE_COM_PTR                       |       4294913200        |
-#   | AUX_TRACE_COM_PTR                        |       4294913204        |
-#   | COMPOSITION_POLY_COM_PTR                 |       4294913208        |
-#   | LDE_DOMAIN_INFO_PTR                      |       4294913212        |
-#   | LDE_DOMAIN_GEN_PTR                       |       4294913213        |
-#   | LDE_DOMAIN_LOG_SIZE_PTR                  |       4294913214        |
-#   | LDE_DOMAIN_SIZE_PTR                      |       4294913215        |
-#   | Z_PTR                                    |       4294913216        |
-#   | NUM_QUERIES_PTR                          |       4294913220        |
-#   | TRACE_LENGTH_PTR                         |       4294913224        |
-#   | TRACE_LENGTH_LOG_PTR                     |       4294913228        |
-#   | GRINDING_FACTOR_PTR                      |       4294913232        |
-#   | ZERO_WORD_PTR                            |       4294913236        |
-#   | C_PTR                                    |       4294913244        |
-#   | R1_PTR                                   |       4294913248        |
-#   | R2_PTR                                   |       4294913252        |
-#   | TMP1                                     |       4294913256        |
-#   | TMP2                                     |       4294913260        |
-#   | TMP3                                     |       4294913264        |
-#   | TMP4                                     |       4294913268        |
-#   | ALPHA_DEEP_ND_PTR                        |       4294903600        |
-#   | OOD_FIXED_TERM_HORNER_EVALS_PTR          |       4294903448        |
-#   +------------------------------------------+-------------------------+
+## Current trace row
+## 80 field elements for main portion of trace, 8 * 2 field elements for auxiliary portion of trace
+## and 8 * 2 field elements for constraint composition polynomials, i.e., the number of slots
+## required is 80 + 16 + 16 = 112
+##
+## 3238002688 = 2**31 + 2**30 + 2**24
+const.CURRENT_TRACE_ROW_PTR=3238002688
 
 # ACCESSORS
 # =================================================================================================
