@@ -8,10 +8,17 @@ More background about Miden VM execution contexts can be found [here](../../user
 ## Kernel ROM trace
 
 The kernel ROM table consists of five columns.
+The following example table shows the execution trace of the kernel ROM with procedure digests $a, b, c$, which were called 1, 2, and 0 times, respectively.
+Each digest is included once to respond to the initialization request by the public inputs, and then repeated for each call made by the decoder. 
 
-_**Note**: The following diagram is outdated (see [issue #1829](https://github.com/0xMiden/miden-vm/issues/1829)_
-
-![kernel_rom_execution_trace](../../assets/design/chiplets/kernel_rom/kernel_rom_execution_trace.png)
+| $s_{first}$ | $r_0$ | $r_1$ | $r_2$ | $r_3$ |
+|-------------|-------|-------|-------|-------|
+| 1           | $a_0$ | $a_1$ | $a_2$ | $a_3$ |
+| 0           | $a_0$ | $a_1$ | $a_2$ | $a_3$ |
+| 1           | $b_0$ | $b_1$ | $b_2$ | $b_3$ |
+| 0           | $b_0$ | $b_1$ | $b_2$ | $b_3$ |
+| 0           | $b_0$ | $b_1$ | $b_2$ | $b_3$ |
+| 1           | $c_0$ | $c_1$ | $c_2$ | $c_3$ |
 
 The meaning of columns in the above is as follows:
 
