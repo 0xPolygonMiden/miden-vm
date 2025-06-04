@@ -57,9 +57,6 @@ impl DebugOptions {
                 Vm::LocalInterval(0, end_exclusive - 1, proc_ctx.num_locals())
             },
             Ast::AdvStackTop(n) => Vm::AdvStackTop(n.expect_value()),
-            other @ Ast::LocalRangeFrom(_) => {
-                unimplemented!("compilation of debug instruction {other:?}");
-            },
         };
 
         Ok(compiled)
