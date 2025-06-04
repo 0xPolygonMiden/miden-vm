@@ -30,7 +30,7 @@ fn stark_verifier_e2f4(#[case] kernel: Option<&str>) {
     // An example MASM program to be verified inside Miden VM.
 
     let example_source = "begin
-            repeat.32
+            repeat.320
                 swap dup.1 add
             end
         end";
@@ -198,7 +198,7 @@ fn variable_length_public_inputs(#[case] num_kernel_proc_digests: usize) {
             #    the kernel procedures digests, but there will be later on overwritten by the reduced value, the auxiliary
             #    randomness, and the OOD evaluations.
             padw
-            exec.constants::ood_trace_current_ptr
+            exec.constants::ood_evaluations_ptr
             sub.8
             mem_loadw
 
