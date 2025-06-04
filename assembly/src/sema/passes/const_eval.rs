@@ -4,6 +4,7 @@ use core::ops::ControlFlow;
 use crate::{
     Felt, Span, Spanned,
     ast::*,
+    parser::HexEncodedValue,
     sema::{AnalysisContext, SemanticAnalysisError},
 };
 
@@ -85,6 +86,34 @@ impl VisitMut for ConstEvalVisitor<'_> {
                 match self.analyzer.get_constant(name) {
                     Ok(ConstantExpr::Literal(value)) => {
                         *imm = Immediate::Value(Span::new(span, *value.inner()));
+                    },
+                    Err(error) => {
+                        self.analyzer.error(error);
+                    },
+                    _ => self.analyzer.error(SemanticAnalysisError::InvalidConstant { span }),
+                }
+                ControlFlow::Continue(())
+            },
+        }
+    }
+
+    fn visit_mut_immediate_hex(&mut self, imm: &mut Immediate<HexEncodedValue>) -> ControlFlow<()> {
+        match imm {
+            Immediate::Value(_) => ControlFlow::Continue(()),
+            Immediate::Constant(name) => {
+                let span = name.span();
+                match self.analyzer.get_constant(name) {
+                    Ok(ConstantExpr::Literal(value)) => {
+                        *imm = Immediate::Value(Span::new(
+                            span,
+                            HexEncodedValue::Felt(*value.inner()),
+                        ));
+                    },
+                    Ok(ConstantExpr::Word(value)) => {
+                        *imm = Immediate::Value(Span::new(
+                            span,
+                            HexEncodedValue::Word(*value.inner()),
+                        ));
                     },
                     Err(error) => {
                         self.analyzer.error(error);

@@ -68,6 +68,24 @@ impl fmt::Display for HexEncodedValue {
         }
     }
 }
+
+impl crate::prettier::PrettyPrint for HexEncodedValue {
+    fn render(&self) -> crate::prettier::Document {
+        match self {
+            Self::U8(v) => v.render(),
+            Self::U16(v) => v.render(),
+            Self::U32(v) => v.render(),
+            Self::Felt(v) => u64::from(*v).render(),
+            Self::Word(v) => {
+                u64::from(v[0]).render()
+                    + u64::from(v[1]).render()
+                    + u64::from(v[2]).render()
+                    + u64::from(v[3]).render()
+            },
+        }
+    }
+}
+
 impl PartialOrd for HexEncodedValue {
     fn partial_cmp(&self, other: &Self) -> Option<core::cmp::Ordering> {
         Some(self.cmp(other))
