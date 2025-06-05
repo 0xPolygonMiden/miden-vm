@@ -8,7 +8,7 @@ use alloc::{
 use core::{marker::PhantomData, num::NonZeroU32};
 
 use smallvec::smallvec;
-use vm_core::{Felt, FieldElement, StarkField, crypto::hash::RpoDigest};
+use vm_core::{Word, Felt, FieldElement, StarkField, crypto::hash::RpoDigest};
 
 use crate::{LibraryPath, LibraryNamespace, ast::*, diagnostics::SourceFile, SourceSpan};
 use super::{
@@ -302,8 +302,20 @@ Const: Form = {
     }
 }
 
+AdvMapKey: Span<Word> = {
+    <l:@L> <value:hex_value> <r:@R> =>? {
+        match value {
+            HexEncodedValue::Word(word) => Ok(Span::new(span!(source_file.id(), l, r), word)),
+            _ => {
+                Err(ParseError::User { error: ParsingError::InvalidAdvMapKey { span: span!(source_file.id(), l, r) } })
+            }
+        }
+    }
+}
+
+
 AdvMap: Form = {
-    <l:@L> "adv_map" "." <name:ConstantName> "(" <key:ConstantExpr> ")" "=" <value:ConstantExpr> <r:@R> => {
+    <l:@L> "adv_map" "." <name:ConstantName> "(" <key:AdvMapKey> ")" "=" <value:Felt+> <r:@R> => {
         Form::AdviceMapEntry(AdviceMapEntry::new(
             span!(source_file.id(), l, r),
             name,
