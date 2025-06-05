@@ -14,7 +14,9 @@ use alloc::{
 };
 
 use assembly::{KernelLibrary, Library};
-pub use assembly::{LibraryPath, SourceFile, SourceManager, diagnostics::Report};
+pub use assembly::{
+    LibraryPath, SourceFile, SourceManager, SourceManagerSync, diagnostics::Report,
+};
 pub use pretty_assertions::{assert_eq, assert_ne, assert_str_eq};
 pub use processor::{
     AdviceInputs, AdviceProvider, ContextId, ExecutionError, ExecutionOptions, ExecutionTrace,
@@ -171,7 +173,7 @@ macro_rules! assert_assembler_diagnostic {
 /// - Execution error test: check that running a program compiled from the given source causes an
 ///   ExecutionError which contains the specified substring.
 pub struct Test {
-    pub source_manager: Arc<dyn SourceManager + Send + Sync>,
+    pub source_manager: Arc<dyn SourceManagerSync>,
     pub source: Arc<SourceFile>,
     pub kernel_source: Option<Arc<SourceFile>>,
     pub stack_inputs: StackInputs,

@@ -1,7 +1,7 @@
 use alloc::{boxed::Box, string::String, sync::Arc, vec::Vec};
 use core::fmt;
 
-use vm_core::Program;
+use vm_core::{Program, debuginfo::SourceManagerSync};
 
 #[cfg(feature = "std")]
 use crate::diagnostics::reporting::set_panic_hook;
@@ -10,7 +10,7 @@ use crate::{
     assembler::Assembler,
     ast::{Form, Module, ModuleKind},
     diagnostics::{
-        Report, SourceFile, SourceManager,
+        Report, SourceFile,
         reporting::{ReportHandlerOpts, set_hook},
     },
     library::Library,
@@ -195,7 +195,7 @@ macro_rules! parse_module {
 ///
 /// Some of the assertion macros defined above require a [TestContext], so be aware of that.
 pub struct TestContext {
-    source_manager: Arc<dyn SourceManager + Send + Sync>,
+    source_manager: Arc<dyn SourceManagerSync>,
     assembler: Assembler,
 }
 
@@ -233,7 +233,7 @@ impl TestContext {
     }
 
     #[inline(always)]
-    pub fn source_manager(&self) -> Arc<dyn SourceManager + Send + Sync> {
+    pub fn source_manager(&self) -> Arc<dyn SourceManagerSync> {
         self.source_manager.clone()
     }
 

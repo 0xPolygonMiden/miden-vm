@@ -10,6 +10,6 @@ pub use self::{
     source_file::{
         ByteIndex, ByteOffset, ColumnIndex, LineIndex, SourceContent, SourceFile, SourceFileRef,
     },
-    source_manager::{DefaultSourceManager, SourceId, SourceManager},
+    source_manager::{DefaultSourceManager, SourceId, SourceManager, SourceManagerSync},
     span::{SourceSpan, Span, Spanned},
 };

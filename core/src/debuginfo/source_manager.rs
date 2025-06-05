@@ -391,6 +391,9 @@ impl SourceManager for DefaultSourceManager {
     }
 }
 
+pub trait SourceManagerSync: SourceManager + Send + Sync {}
+impl<T: SourceManager + Send + Sync> SourceManagerSync for T {}
+
 #[cfg(test)]
 mod error_assertions {
     use super::*;

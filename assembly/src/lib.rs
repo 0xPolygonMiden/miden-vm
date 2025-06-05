@@ -39,8 +39,8 @@ pub use self::{
     assembler::Assembler,
     compile::{Compile, Options as CompileOptions},
     diagnostics::{
-        DefaultSourceManager, Report, SourceFile, SourceId, SourceManager, SourceSpan, Span,
-        Spanned,
+        DefaultSourceManager, Report, SourceFile, SourceId, SourceManager, SourceManagerSync,
+        SourceSpan, Span, Spanned,
     },
     errors::AssemblyError,
     library::{

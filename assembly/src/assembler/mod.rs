@@ -6,7 +6,7 @@ use module_graph::{ProcedureWrapper, WrappedModule};
 use vm_core::{
     AssemblyOp, Decorator, DecoratorList, Felt, Kernel, Operation, Program, WORD_SIZE,
     crypto::hash::RpoDigest,
-    debuginfo::SourceSpan,
+    debuginfo::{SourceManagerSync, SourceSpan},
     mast::{DecoratorId, MastNodeId},
 };
 
@@ -64,7 +64,7 @@ pub use self::{
 #[derive(Clone)]
 pub struct Assembler {
     /// The source manager to use for compilation and source location information
-    source_manager: Arc<dyn SourceManager + Send + Sync>,
+    source_manager: Arc<dyn SourceManagerSync>,
     /// The global [ModuleGraph] for this assembler.
     module_graph: ModuleGraph,
     /// Whether to treat warning diagnostics as errors
@@ -93,7 +93,7 @@ impl Default for Assembler {
 /// Constructors
 impl Assembler {
     /// Start building an [Assembler]
-    pub fn new(source_manager: Arc<dyn SourceManager + Send + Sync>) -> Self {
+    pub fn new(source_manager: Arc<dyn SourceManagerSync>) -> Self {
         let module_graph = ModuleGraph::new(source_manager.clone());
         Self {
             source_manager,
@@ -106,7 +106,7 @@ impl Assembler {
 
     /// Start building an [`Assembler`] with a kernel defined by the provided [KernelLibrary].
     pub fn with_kernel(
-        source_manager: Arc<dyn SourceManager + Send + Sync>,
+        source_manager: Arc<dyn SourceManagerSync>,
         kernel_lib: KernelLibrary,
     ) -> Self {
         let (kernel, kernel_module, _) = kernel_lib.into_parts();
@@ -303,7 +303,7 @@ impl Assembler {
     }
 
     /// Returns a link to the source manager used by this assembler.
-    pub fn source_manager(&self) -> Arc<dyn SourceManager + Send + Sync> {
+    pub fn source_manager(&self) -> Arc<dyn SourceManagerSync> {
         self.source_manager.clone()
     }
 
