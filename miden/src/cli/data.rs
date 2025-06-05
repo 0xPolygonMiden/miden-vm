@@ -6,7 +6,7 @@ use std::{
 };
 
 use assembly::{
-    Assembler, Library, LibraryNamespace, SourceManager,
+    Assembler, Library, LibraryNamespace, SourceManagerSync,
     ast::{Module, ModuleKind},
     diagnostics::{Report, WrapErr},
     report,
