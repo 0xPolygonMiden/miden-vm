@@ -10,6 +10,7 @@
 - Add support for setting debugger breakpoints via `breakpoint` instruction (#1860)
 - Improve error messages for some procedure locals-related errors (#1863)
 - Add range checks to the `push_falcon_mod_result` advice injector to make sure that the inputs are `u32` (#1819).
+- Allow constants to be declared as words and to be arguments of the `push` instruction (#1855).
 
 #### Changes
 
