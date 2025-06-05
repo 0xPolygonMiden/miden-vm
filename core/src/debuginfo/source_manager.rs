@@ -101,6 +101,9 @@ impl SourceManagerError {
     }
 }
 
+pub trait SourceManagerSync: SourceManager + Send + Sync {}
+impl<T: SourceManager + Send + Sync> SourceManagerSync for T {}
+
 pub trait SourceManager: Debug {
     /// Returns true if `file` is managed by this source manager
     fn is_manager_of(&self, file: &SourceFile) -> bool {
@@ -390,9 +393,6 @@ impl SourceManager for DefaultSourceManager {
             .ok_or(SourceManagerError::InvalidBounds)
     }
 }
-
-pub trait SourceManagerSync: SourceManager + Send + Sync {}
-impl<T: SourceManager + Send + Sync> SourceManagerSync for T {}
 
 #[cfg(test)]
 mod error_assertions {
