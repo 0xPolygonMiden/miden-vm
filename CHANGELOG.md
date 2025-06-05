@@ -27,6 +27,7 @@
 
 - `miden debug` rewind command no longer panics at clock 0 (#1751)
 - Prevent overflow in ACE circuit evaluation (#1820)
+- `debug.local` decorators no longer panic or print incorrect values (#1859)
 
 ## 0.14.0 (2025-05-07)
 
