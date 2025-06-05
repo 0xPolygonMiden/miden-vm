@@ -2641,7 +2641,7 @@ begin push.A adv.push_mapval assert end"
     let program = context.assemble(source)?;
     let expected = "\
 begin
-    basic_block push(2) push(2) push(2) push(2) end
+    basic_block push(2) push(2) push(2) push(2) emit(574478993) assert(0) end
 end";
     assert_str_eq!(format!("{program}"), expected);
     Ok(())
