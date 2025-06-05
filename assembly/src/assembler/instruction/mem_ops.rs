@@ -1,9 +1,7 @@
-use alloc::string::ToString;
-
-use vm_core::{Felt, Operation::*, debuginfo::Spanned};
+use vm_core::{Felt, Operation::*, debuginfo::SourceSpan};
 
 use super::{BasicBlockBuilder, push_felt, push_u32_value};
-use crate::{AssemblyError, assembler::ProcedureContext, diagnostics::Report};
+use crate::{AssemblyError, assembler::ProcedureContext};
 
 // INSTRUCTION PARSERS
 // ================================================================================================
@@ -28,12 +26,20 @@ pub fn mem_read(
     addr: Option<u32>,
     is_local: bool,
     is_single: bool,
+    instr_span: SourceSpan,
 ) -> Result<(), AssemblyError> {
     // if the address was provided as an immediate value, put it onto the stack
     if let Some(addr) = addr {
         if is_local {
             let num_locals = proc_ctx.num_locals();
-            local_to_absolute_addr(block_builder, proc_ctx, addr as u16, num_locals, is_single)?;
+            local_to_absolute_addr(
+                block_builder,
+                proc_ctx,
+                addr as u16,
+                num_locals,
+                is_single,
+                instr_span,
+            )?;
         } else {
             push_u32_value(block_builder, addr);
         }
@@ -79,6 +85,7 @@ pub fn mem_write_imm(
     addr: u32,
     is_local: bool,
     is_single: bool,
+    instr_span: SourceSpan,
 ) -> Result<(), AssemblyError> {
     if is_local {
         local_to_absolute_addr(
@@ -87,6 +94,7 @@ pub fn mem_write_imm(
             addr as u16,
             proc_ctx.num_locals(),
             is_single,
+            instr_span,
         )?;
     } else {
         push_u32_value(block_builder, addr);
@@ -121,15 +129,13 @@ pub fn local_to_absolute_addr(
     index_of_local: u16,
     num_proc_locals: u16,
     is_single: bool,
+    instr_span: SourceSpan,
 ) -> Result<(), AssemblyError> {
     if num_proc_locals == 0 {
-        return Err(AssemblyError::Other(
-            Report::msg(
-                "number of procedure locals was not set (or set to 0), but local values were used"
-                    .to_string(),
-            )
-            .into(),
-        ));
+        return Err(AssemblyError::ProcLocalsNotDeclared {
+            span: instr_span,
+            source_file: proc_ctx.source_manager().get(instr_span.source_id()).ok(),
+        });
     }
 
     // If a single local value is being accessed, then the index can take the full range
@@ -139,19 +145,20 @@ pub fn local_to_absolute_addr(
         num_proc_locals - 1
     } else {
         // If a word local value is used, then the procedure needs at least 4 local values.
-        u16::checked_sub(num_proc_locals, 4).ok_or_else(|| AssemblyError::Other(Report::msg(
-            "number of procedure locals was set to less 4, but word-sized local values were used".to_string()
-        ).into()))?
+        u16::checked_sub(num_proc_locals, 4).ok_or_else(|| AssemblyError::InvalidNumProcLocals {
+            span: instr_span,
+            source_file: proc_ctx.source_manager().get(instr_span.source_id()).ok(),
+            num_proc_locals,
+        })?
     };
 
     // Local values are placed under the frame pointer, so we need to calculate the offset of the
     // local value from the frame pointer.
     // The offset is in the range [1, num_proc_locals], which is then subtracted from `fmp`.
-    let span = proc_ctx.span();
     if index_of_local > max {
         return Err(AssemblyError::InvalidU8Param {
-            span,
-            source_file: proc_ctx.source_manager().get(span.source_id()).ok(),
+            span: instr_span,
+            source_file: proc_ctx.source_manager().get(instr_span.source_id()).ok(),
             param: index_of_local as u8,
             min: 0,
             max: max as u8,

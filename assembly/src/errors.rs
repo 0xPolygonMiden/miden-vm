@@ -71,6 +71,19 @@ pub enum AssemblyError {
         source_file: Option<Arc<SourceFile>>,
         local_addr: u16,
     },
+    #[error(
+        "word accessed from local memory but the number of procedure locals was only {num_proc_locals}"
+    )]
+    #[diagnostic(help(
+        "when a word is accessed from local memory, the number of procedure locals must be at least 4 (since a word is 4 locals)"
+    ))]
+    InvalidNumProcLocals {
+        #[label("local word accessed here")]
+        span: SourceSpan,
+        #[source_code]
+        source_file: Option<Arc<SourceFile>>,
+        num_proc_locals: u16,
+    },
     #[error("invalid parameter value: {param}; expected to be between {min} and {max}")]
     #[diagnostic()]
     InvalidU8Param {
@@ -96,6 +109,16 @@ pub enum AssemblyError {
     #[error("invalid procedure: body must contain at least one instruction if it has decorators")]
     #[diagnostic()]
     EmptyProcedureBodyWithDecorators {
+        span: SourceSpan,
+        #[source_code]
+        source_file: Option<Arc<SourceFile>>,
+    },
+    #[error("number of procedure locals was not set (or set to 0), but local memory was accessed")]
+    #[diagnostic(help(
+        "to use procedure locals, the number of procedure locals must be declared at the start of the procedure"
+    ))]
+    ProcLocalsNotDeclared {
+        #[label("procedure local accessed here")]
         span: SourceSpan,
         #[source_code]
         source_file: Option<Arc<SourceFile>>,
