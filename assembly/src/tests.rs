@@ -2608,6 +2608,26 @@ end";
     Ok(())
 }
 
+#[test]
+fn can_push_constant_word() -> TestResult {
+    let context = TestContext::default();
+    let source = source_file!(
+        &context,
+        "\
+const.A=0x0200000000000000020000000000000002000000000000000200000000000000
+begin
+    push.A
+end"
+    );
+    let program = context.assemble(source)?;
+    let expected = "\
+begin
+    basic_block push(2) push(2) push(2) push(2) end
+end";
+    assert_str_eq!(format!("{program}"), expected);
+    Ok(())
+}
+
 // ERRORS
 // ================================================================================================
 
