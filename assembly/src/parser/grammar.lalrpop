@@ -8,7 +8,7 @@ use alloc::{
 use core::{marker::PhantomData, num::NonZeroU32};
 
 use smallvec::smallvec;
-use vm_core::{Felt, FieldElement, StarkField, crypto::hash::RpoDigest};
+use vm_core::{Word, Felt, FieldElement, StarkField, crypto::hash::RpoDigest};
 
 use crate::{LibraryPath, LibraryNamespace, ast::*, diagnostics::SourceFile, SourceSpan};
 use super::{
@@ -42,6 +42,7 @@ extern {
         uint => Token::Int(<u64>),
         "add" => Token::Add,
         "adv" => Token::Adv,
+        "adv_map" => Token::AdvMap,
         "insert_hdword" => Token::InsertHdword,
         "insert_hdword_d" => Token::InsertHdwordWithDomain,
         "insert_hperm" => Token::InsertHperm,
@@ -255,6 +256,7 @@ Form: Form = {
     Doc,
     Import,
     Const,
+    AdvMap,
     Begin,
     Proc,
 }
@@ -299,6 +301,31 @@ Const: Form = {
         ))
     }
 }
+
+MaybeAdvMapKey: Option<Span<Word>> = {
+    <l:@L> "(" <value:hex_value> ")" <r:@R> =>? {
+        match value {
+            HexEncodedValue::Word(word) => Ok(Some(Span::new(span!(source_file.id(), l, r), word))),
+            _ => {
+                Err(ParseError::User { error: ParsingError::InvalidAdvMapKey { span: span!(source_file.id(), l, r) } })
+            }
+        }
+    },
+    => None
+}
+
+
+AdvMap: Form = {
+    <l:@L> "adv_map" "." <name:ConstantName> <key:MaybeAdvMapKey> "=" <value:Felt+> <r:@R> => {
+        Form::AdviceMapEntry(AdviceMapEntry::new(
+            span!(source_file.id(), l, r),
+            name,
+            key,
+            value,
+        ))
+    }
+}
+
 
 Begin: Form = {
     <l:@L> "begin" <body:Ops> "end" <r:@R> => {
@@ -1640,6 +1667,7 @@ OpcodeName: Ident = {
 Opcode: &'static str = {
     "add" => "add",
     "adv" => "adv",
+    "adv_map" => "adv_map",
     "adv_loadw" => "adv_loadw",
     "adv_pipe" => "adv_pipe",
     "adv_push" => "adv_push",

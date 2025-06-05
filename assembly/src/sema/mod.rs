@@ -96,6 +96,9 @@ pub fn analyze(
                 docs.take();
                 analyzer.error(SemanticAnalysisError::UnexpectedEntrypoint { span: body.span() });
             },
+            Form::AdviceMapEntry(entry) => {
+                analyzer.add_advicemap_entry(entry.with_docs(docs.take()))?;
+            },
         }
     }
 
