@@ -97,13 +97,7 @@ pub fn analyze(
                 analyzer.error(SemanticAnalysisError::UnexpectedEntrypoint { span: body.span() });
             },
             Form::AdviceMapEntry(entry) => {
-                let cst = Constant::new(
-                    entry.span.clone(),
-                    entry.name.clone(),
-                    ConstantExpr::Word(entry.key.clone()),
-                );
-                analyzer.define_constant(cst.with_docs(docs.take()))?;
-                analyzer.add_advicemap_entry(entry.with_docs(docs.take()));
+                analyzer.add_advicemap_entry(entry.with_docs(docs.take()))?;
             },
         }
     }

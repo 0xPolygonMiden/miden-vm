@@ -2647,6 +2647,32 @@ end";
     Ok(())
 }
 
+#[test]
+fn test_advmap_push_nokey() -> TestResult {
+    let context = TestContext::default();
+    let source = source_file!(
+        &context,
+        "\
+adv_map.A=0x01
+begin push.A adv.push_mapval assert end"
+    );
+
+    let program = context.assemble(source)?;
+    let expected = "\
+begin
+    basic_block
+        push(3846236276142386450)
+        push(5034591595140902852)
+        push(4565868838168209231)
+        push(6740431856120851931)
+        emit(574478993)
+        assert(0)
+    end
+end";
+    assert_str_eq!(format!("{program}"), expected);
+    Ok(())
+}
+
 // ERRORS
 // ================================================================================================
 

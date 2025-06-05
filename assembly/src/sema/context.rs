@@ -4,7 +4,10 @@ use alloc::{
     vec::Vec,
 };
 
-use vm_core::{AdviceMap, crypto::hash::RpoDigest};
+use vm_core::{
+    AdviceMap,
+    crypto::hash::{Rpo256, RpoDigest},
+};
 
 use super::{SemanticAnalysisError, SyntaxError};
 use crate::{
@@ -111,18 +114,28 @@ impl AnalysisContext {
         }
     }
 
-    /// Inserts a new entry in the Advice Map.
+    /// Inserts a new entry in the Advice Map and defines a constant corresposnding to the entry's
+    /// key.
     ///
     /// Returns `Err` if the symbol is already defined
-    pub fn add_advicemap_entry(&mut self, entry: AdviceMapEntry) {
-        let key = RpoDigest::from(entry.key.inner());
+    pub fn add_advicemap_entry(&mut self, entry: AdviceMapEntry) -> Result<(), SyntaxError> {
+        let key = match entry.key {
+            Some(key) => RpoDigest::from(key.inner()),
+            None => Rpo256::hash_elements(&entry.value),
+        };
+        let cst = Constant::new(
+            entry.span,
+            entry.name.clone(),
+            ConstantExpr::Word(Span::new(entry.span, *key)),
+        );
+        self.define_constant(cst)?;
         match self.advice_map.insert(key, entry.value) {
             Some(_) => {
-                self.errors.push(SemanticAnalysisError::AdvMapKeyAlreadyDefined {
-                    span: entry.key.span(),
-                });
+                self.errors
+                    .push(SemanticAnalysisError::AdvMapKeyAlreadyDefined { span: entry.span });
+                Ok(())
             },
-            None => (),
+            None => Ok(()),
         }
     }
 

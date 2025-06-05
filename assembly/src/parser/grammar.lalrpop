@@ -302,20 +302,21 @@ Const: Form = {
     }
 }
 
-AdvMapKey: Span<Word> = {
-    <l:@L> <value:hex_value> <r:@R> =>? {
+MaybeAdvMapKey: Option<Span<Word>> = {
+    <l:@L> "(" <value:hex_value> ")" <r:@R> =>? {
         match value {
-            HexEncodedValue::Word(word) => Ok(Span::new(span!(source_file.id(), l, r), word)),
+            HexEncodedValue::Word(word) => Ok(Some(Span::new(span!(source_file.id(), l, r), word))),
             _ => {
                 Err(ParseError::User { error: ParsingError::InvalidAdvMapKey { span: span!(source_file.id(), l, r) } })
             }
         }
-    }
+    },
+    => None
 }
 
 
 AdvMap: Form = {
-    <l:@L> "adv_map" "." <name:ConstantName> "(" <key:AdvMapKey> ")" "=" <value:Felt+> <r:@R> => {
+    <l:@L> "adv_map" "." <name:ConstantName> <key:MaybeAdvMapKey> "=" <value:Felt+> <r:@R> => {
         Form::AdviceMapEntry(AdviceMapEntry::new(
             span!(source_file.id(), l, r),
             name,

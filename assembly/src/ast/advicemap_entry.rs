@@ -15,13 +15,13 @@ pub struct AdviceMapEntry {
     /// The name of the constant.
     pub name: Ident,
     /// The key to insert in the Advice Map.
-    pub key: Span<Word>,
+    pub key: Option<Span<Word>>,
     /// The value to insert in the Advice Map.
     pub value: Vec<Felt>,
 }
 
 impl AdviceMapEntry {
-    pub fn new(span: SourceSpan, name: Ident, key: Span<Word>, value: Vec<Felt>) -> Self {
+    pub fn new(span: SourceSpan, name: Ident, key: Option<Span<Word>>, value: Vec<Felt>) -> Self {
         Self { span, docs: None, name, key, value }
     }
 
