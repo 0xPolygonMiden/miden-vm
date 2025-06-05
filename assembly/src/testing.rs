@@ -1,7 +1,7 @@
 use alloc::{boxed::Box, string::String, sync::Arc, vec::Vec};
 use core::fmt;
 
-use vm_core::{Program, debuginfo::SourceManagerSync};
+use vm_core::Program;
 
 #[cfg(feature = "std")]
 use crate::diagnostics::reporting::set_panic_hook;
@@ -10,7 +10,7 @@ use crate::{
     assembler::Assembler,
     ast::{Form, Module, ModuleKind},
     diagnostics::{
-        Report, SourceFile,
+        Report, SourceFile, SourceManagerSync,
         reporting::{ReportHandlerOpts, set_hook},
     },
     library::Library,

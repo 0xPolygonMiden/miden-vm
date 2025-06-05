@@ -6,12 +6,13 @@ use module_graph::{ProcedureWrapper, WrappedModule};
 use vm_core::{
     AssemblyOp, Decorator, DecoratorList, Felt, Kernel, Operation, Program, WORD_SIZE,
     crypto::hash::RpoDigest,
-    debuginfo::{SourceManagerSync, SourceSpan},
+    debuginfo::SourceSpan,
     mast::{DecoratorId, MastNodeId},
 };
 
 use crate::{
-    AssemblyError, Compile, CompileOptions, LibraryNamespace, LibraryPath, SourceManager, Spanned,
+    AssemblyError, Compile, CompileOptions, LibraryNamespace, LibraryPath, SourceManager,
+    SourceManagerSync, Spanned,
     ast::{self, Export, InvocationTarget, InvokeKind, ModuleKind, QualifiedProcedureName},
     diagnostics::Report,
     library::{KernelLibrary, Library},
