@@ -2,7 +2,7 @@ use alloc::vec::Vec;
 
 use miden_air::trace::{
     AUX_TRACE_RAND_ELEMENTS, AUX_TRACE_WIDTH, DECODER_TRACE_OFFSET, MIN_TRACE_LEN,
-    STACK_TRACE_OFFSET, TRACE_WIDTH,
+    PADDED_TRACE_WIDTH, STACK_TRACE_OFFSET, TRACE_WIDTH,
     decoder::{NUM_USER_OP_HELPERS, USER_OP_HELPERS_OFFSET},
     main_trace::MainTrace,
 };
@@ -83,7 +83,7 @@ impl ExecutionTrace {
         let program_info = ProgramInfo::new(program_hash.into(), kernel);
         let (main_trace, aux_trace_builders, trace_len_summary) = finalize_trace(process, rng);
         let trace_info = TraceInfo::new_multi_segment(
-            TRACE_WIDTH,
+            PADDED_TRACE_WIDTH,
             AUX_TRACE_WIDTH,
             AUX_TRACE_RAND_ELEMENTS,
             main_trace.num_rows(),
@@ -176,10 +176,13 @@ impl ExecutionTrace {
     #[cfg(feature = "std")]
     #[allow(dead_code)]
     pub fn print(&self) {
-        let mut row = [ZERO; TRACE_WIDTH];
+        let mut row = [ZERO; PADDED_TRACE_WIDTH];
         for i in 0..self.length() {
             self.main_trace.read_row_into(i, &mut row);
-            std::println!("{:?}", row.iter().map(|v| v.as_int()).collect::<Vec<_>>());
+            std::println!(
+                "{:?}",
+                row.iter().take(TRACE_WIDTH).map(|v| v.as_int()).collect::<Vec<_>>()
+            );
         }
     }
 
@@ -312,17 +315,21 @@ fn finalize_trace(
     // Combine the range trace segment using the support lookup table
     let range_check_trace = range.into_trace_with_table(range_table_len, trace_len, NUM_RAND_ROWS);
 
+    // Padding to make the number of columns a multiple of 8 i.e., the RPO permutation rate
+    let padding = vec![vec![ZERO; trace_len]; PADDED_TRACE_WIDTH - TRACE_WIDTH];
+
     let mut trace = system_trace
         .into_iter()
         .chain(decoder_trace.trace)
         .chain(stack_trace.trace)
         .chain(range_check_trace.trace)
         .chain(chiplets_trace.trace)
+        .chain(padding)
         .collect::<Vec<_>>();
 
     // Inject random values into the last rows of the trace
     for i in trace_len - NUM_RAND_ROWS..trace_len {
-        for column in trace.iter_mut() {
+        for column in trace.iter_mut().take(TRACE_WIDTH) {
             column[i] = rng.draw().expect("failed to draw a random value");
         }
     }

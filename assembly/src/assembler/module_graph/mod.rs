@@ -477,7 +477,7 @@ impl ModuleGraph {
                 let proc = self.get_procedure_unsafe(node);
                 nodes.push(format!("{}::{}", module, proc.name()));
             }
-            AssemblyError::Cycle { nodes }
+            AssemblyError::Cycle { nodes: nodes.into() }
         })?;
 
         Ok(())
@@ -519,7 +519,7 @@ impl ModuleGraph {
     ///
     /// # Panics
     /// - Panics if index is invalid.
-    pub fn get_procedure_unsafe(&self, id: GlobalProcedureIndex) -> ProcedureWrapper {
+    pub fn get_procedure_unsafe(&self, id: GlobalProcedureIndex) -> ProcedureWrapper<'_> {
         match &self.modules[id.module.as_usize()] {
             WrappedModule::Ast(m) => ProcedureWrapper::Ast(&m[id.index]),
             WrappedModule::Info(m) => {

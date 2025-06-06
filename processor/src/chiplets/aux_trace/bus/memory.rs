@@ -16,8 +16,10 @@ use miden_air::{
 };
 use vm_core::{Felt, FieldElement, ONE, ZERO};
 
-use super::build_value;
-use crate::debug::{BusDebugger, BusMessage};
+use crate::{
+    chiplets::aux_trace::build_value,
+    debug::{BusDebugger, BusMessage},
+};
 
 // CONSTANTS
 // ================================================================================================

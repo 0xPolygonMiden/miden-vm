@@ -115,6 +115,7 @@ fn confirm_operation_and_decorator_structure() {
             DebugOptions::MemAll => (),
             DebugOptions::MemInterval(..) => (),
             DebugOptions::LocalInterval(..) => (),
+            DebugOptions::AdvStackTop(_) => (),
         },
         Decorator::Trace(_) => (),
     };
@@ -241,6 +242,7 @@ fn serialize_deserialize_all_nodes() {
             (15, Decorator::Debug(DebugOptions::MemAll)),
             (15, Decorator::Debug(DebugOptions::MemInterval(0, 16))),
             (17, Decorator::Debug(DebugOptions::LocalInterval(1, 2, 3))),
+            (19, Decorator::Debug(DebugOptions::AdvStackTop(255))),
             (num_operations, Decorator::Trace(55)),
         ];
 

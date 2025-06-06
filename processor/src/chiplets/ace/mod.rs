@@ -24,6 +24,7 @@ mod tests;
 
 pub const PTR_OFFSET_ELEM: Felt = Felt::ONE;
 pub const PTR_OFFSET_WORD: Felt = Felt::new(4);
+pub const MAX_NUM_ACE_WIRES: u32 = instruction::MAX_ID;
 
 /// Arithmetic circuit evaluation (ACE) chiplet.
 ///
@@ -299,6 +300,14 @@ pub fn eval_circuit(
 ) -> Result<CircuitEvaluation, ExecutionError> {
     let num_vars = num_vars.as_int();
     let num_eval = num_eval.as_int();
+
+    let num_wires = num_vars + num_eval;
+    if num_wires > MAX_NUM_ACE_WIRES as u64 {
+        return Err(ExecutionError::failed_arithmetic_evaluation(
+            error_ctx,
+            AceError::TooManyWires(num_wires),
+        ));
+    }
 
     // Ensure vars and instructions are word-aligned and non-empty. Note that variables are
     // quadratic extension field elements while instructions are encoded as base field elements.

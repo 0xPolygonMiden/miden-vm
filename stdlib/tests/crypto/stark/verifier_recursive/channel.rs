@@ -9,7 +9,7 @@ use test_utils::{
 };
 use winter_air::{
     Air,
-    proof::{Proof, Queries, Table, TraceOodFrame},
+    proof::{Proof, Queries, QuotientOodFrame, Table, TraceOodFrame},
 };
 use winter_fri::{VerifierChannel as FriVerifierChannel, folding::fold_positions};
 
@@ -37,7 +37,7 @@ pub struct VerifierChannel {
     fri_num_partitions: usize,
     // out-of-domain frame
     ood_trace_frame: Option<TraceOodFrame<QuadExt>>,
-    ood_constraint_evaluations: Option<Vec<QuadExt>>,
+    ood_constraint_evaluations: Option<QuotientOodFrame<QuadExt>>,
     // query proof-of-work
     pow_nonce: u64,
 }
@@ -143,9 +143,9 @@ impl VerifierChannel {
         self.ood_trace_frame.take().expect("already read")
     }
 
-    /// Returns evaluations of composition polynomial columns at z^m, where z is the out-of-domain
-    /// point, and m is the number of composition polynomial columns.
-    pub fn read_ood_constraint_evaluations(&mut self) -> Vec<QuadExt> {
+    /// Returns evaluations of composition polynomial columns at z, where z is the out-of-domain
+    /// point.
+    pub fn read_ood_constraint_evaluations(&mut self) -> QuotientOodFrame<QuadExt> {
         self.ood_constraint_evaluations.take().expect("already read")
     }
 

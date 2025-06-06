@@ -2,7 +2,6 @@
 
 use.std::crypto::stark::constants
 use.std::crypto::stark::utils
-use.std::crypto::hashes::rpo
 
 #! Helper procedure to compute addition of two words component-wise.
 #! Input: [b3, b2, b1, b0, a3, a2, a1, a0]
@@ -44,6 +43,15 @@ export.get_rate_1
     padw exec.constants::r1_ptr mem_loadw
 end
 
+#! Store the first half of the rate portion of the random coin state.
+#!
+#! Input: [R1, ...]
+#! Output: [...]
+#! Cycles: 6
+export.set_rate_1
+    exec.constants::r1_ptr mem_storew dropw
+end
+
 #! Return the second half of the rate portion of the random coin state
 #!
 #! The random coin uses RPO to generate data. The RPO state is composed of 3
@@ -57,6 +65,15 @@ export.get_rate_2
     padw exec.constants::r2_ptr mem_loadw
 end
 
+#! Store the second half of the rate portion of the random coin state.
+#!
+#! Input: [R2, ...]
+#! Output: [...]
+#! Cycles: 6
+export.set_rate_2
+    exec.constants::r2_ptr mem_storew dropw
+end
+
 #! Return the capacity portion of the random coin state
 #!
 #! The random coin uses RPO to generate data. The RPO state is composed of 3
@@ -68,6 +85,37 @@ end
 #! Cycles: 6
 export.get_capacity
     padw exec.constants::c_ptr mem_loadw
+end
+
+#! Set the capacity portion of the random coin state.
+#!
+#! Input: [C, ...]
+#! Output: [...]
+#! Cycles: 6
+export.set_capacity
+    exec.constants::c_ptr mem_storew dropw
+end
+
+#! Load the random coin state on the stack.
+#!
+#! Input: [...]
+#! Output: [R2, R1, C, ...]
+#! Cycles: 18
+export.load_random_coin_state
+    exec.get_capacity
+    exec.get_rate_1
+    exec.get_rate_2
+end
+
+#! Store the random coin state to memory.
+#!
+#! Input: [R2, R1, C, ...]
+#! Output: [...]
+#! Cycles: 18
+export.store_random_coin_state
+    exec.set_rate_2
+    exec.set_rate_1
+    exec.set_capacity
 end
 
 #! Initializes the seed for randomness generation by computing the hash of the proof context using
@@ -97,8 +145,6 @@ export.init_seed
     exec.constants::c_ptr mem_storew
     exec.constants::r1_ptr mem_storew
     exec.constants::r2_ptr mem_storew
-    push.6 swap.4 drop exec.constants::zero_zero_zero_six_word_ptr mem_storew
-    push.7 swap.4 drop exec.constants::zero_zero_zero_seven_word_ptr mem_storew
     dropw
     #=> [log(trace_length), num_queries, grinding, num_ker_proc, ...]
 
@@ -135,7 +181,7 @@ export.init_seed
     movdn.3
     #=> [lde_size, log(lde_size), lde_g, 0, trace_length, num_queries, grinding]
 
-    # Save `[lde_size, log(lde_size), lde_g, 0]`
+    # Save `[0, lde_g, log(lde_size), lde_size]`
     exec.constants::set_lde_domain_info_word
     #=> [lde_size, log(lde_size), lde_g, 0, trace_length, num_queries, grinding]
 
@@ -166,9 +212,9 @@ export.init_seed
     ## 4. number of auxiliary random values
     ## 5. trace length (this is already on the stack)
 
-    ## main segment width is 71 and there are 1 auxiliary segments
-    ## of width 7 using 16 random extension field elements
-    push.0x49010810
+    ## main segment width is 80 (0x50) and there are 1 (0x01) auxiliary segments
+    ## of width 8 (0x08) using 16 (0x10) random extension field elements
+    push.0x50010810
     swap
     ## field modulus bytes (2 field elements)
     push.0x01 # lower half of the modulus
@@ -238,7 +284,7 @@ export.reseed
     # => [R2, R1, C, ...] (13 cycles)
 
     hperm
-    # => [R2', R1', C', ...] (1 cycles)
+    # => [R2', R1', C`, ...] (1 cycles)
 
     # Save the new state to memory
     # --------------------------------------------------------------------------------------------
@@ -255,93 +301,32 @@ end
 # COEFFICIENT GENERATION
 # =============================================================================================
 
-#! Generates a `num_tuples` tuples of random field elements and stores them in memory
-#! starting from address `dest_ptr`. Each tuple uses 8 memory slots.
-#! TODO: Generalize by keeping track of something similar to the `output` variable in `RpoRandomCoin`
-#! so that we keep track of already used randomness and know when there is a need to apply `hperm`.
-#!
-#! `dest_ptr` must be word-aligned.
-#!
-#! Input: [dest_ptr, num_tuples, ...]
-#! Output: [...]
-#!
-#! Cycles: 69 + (22 * num_tuples) / 4
-proc.generate_random_coefficients
-
-    # Compute the loop counter. We use checked division to make sure the number is a multiple of 4.
-    # If we use field division and num_tuples is not a multiple of 4 then we will enter into
-    # a very large loop with high probability.
-    push.0 dup movup.2 movup.3
-    u32assert u32divmod.4
-    assertz
-    neg
-    #=> [loop_ctr, dest_ptr, x, x, ...]
-    # where loop_ctr = - num_tuples / 4; we negate the counter so that we can count up to 0
-
-    exec.get_rate_1
-    dup.5 mem_storew
-
-    exec.get_rate_2
-    dup.9 add.4 mem_storew
-    #=> [R2, R1, loop_ctr, dest_ptr, 0, 0, ..]
-
-    exec.get_capacity
-    swapdw
-    #=> [R1, loop_ctr, dest_ptr, 0, 0, C, R2 ..]
-    swapw
-    #=> [loop_ctr, dest_ptr, 0, 0, R1, C, R2 ..]
-    swap add.8 swap
-    #=> [loop_ctr, dest_ptr+8, 0, 0, R1, C, R2, ..]
-
-    add.1 dup neq.0
-
-    while.true
-
-        swapw.3 hperm
-        #=> [R2, R1, C, loop_ctr, dest_ptr, x, x, ...]
-
-        # save R2 to mem[dest+4]; we use dup.13 here because it takes only 1 cycle
-        dup.13 add.4 mem_storew
-        #=> [R2, R1, C, loop_ctr, dest_ptr, x, x, ...]
-
-        # save R1 to mem[dest]
-        swapw dup.13 mem_storew swapw
-        #=> [R2, R1, C, loop_ctr, dest_ptr, x, x, ...]
-
-        # update destination pointer and loop counter
-        swapw.3
-        #=> [loop_ctr, dest_ptr, x, x, R1, C, R2, ...]
-
-        swap add.8 swap
-        #=> [loop_ctr, dest_ptr+8, x, x, R1, C, R2, ...]
-
-        add.1 dup
-        #=> [loop_ctr+1, loop_ctr+1, dest_ptr+2, x, x, R1, C, R2, ...]
-
-        neq.0
-    end
-
-    # Save the new state of the random coin
-    dropw
-    exec.constants::r1_ptr mem_storew
-    dropw
-    exec.constants::c_ptr mem_storew
-    dropw
-    exec.constants::r2_ptr mem_storew
-    dropw
-    #=> [...]
-end
-
 #! Draw a list of random extension field elements related to the auxiliary segment of the execution
-#! trace and store the list in memory from `aux_rand_elem_ptr` to `aux_rand_elem_ptr + 32 - 4`.
+#! trace and store them.
+#!
+#! More specifically, we draw two challenges, alpha and beta. This means that our multi-set hash function
+#! has the form `h(m) = alpha + \sum_{i=0}^{|m| - 1} m_i * beta^i` for a message `m`.
+#!
+#! As these random challenges have already been used non-deterministically in prior computations, we
+#! also check that the generated challenges matche the non-deterministically provided one.
 #!
 #! Input: [...]
 #! Output: [...]
-#! Cycles: 159
+#! Cycles: 20
 export.generate_aux_randomness
-    exec.constants::aux_rand_elem_ptr
-    exec.constants::get_num_aux_trace_coefs swap
-    exec.generate_random_coefficients
+    padw exec.constants::r1_ptr mem_loadw
+    exec.constants::aux_rand_elem_ptr mem_storew
+    #=> [beta1, beta0, alpha1, alpha0, ...]
+
+    padw exec.constants::aux_rand_nd_ptr mem_loadw
+    # => [alpha1, alpha0, beta1, beta0, beta1, beta0, alpha1, alpha0, ...]
+
+    movup.6 assert_eq
+    movup.5 assert_eq
+    # => [beta1, beta0, beta1, beta0, ...]
+
+    movup.2 assert_eq
+    assert_eq
     #=> [...]
 end
 
@@ -370,7 +355,7 @@ export.generate_deep_composition_random_coefficients
     padw exec.constants::r1_ptr mem_loadw
     # => [y, y, alpha1, alpha0, ...] where y is a "garbage" value
     push.0.0
-    exec.constants::deep_rand_alpha_1_ptr mem_loadw
+    exec.constants::deep_rand_alpha_nd_ptr mem_loadw
     drop drop
     # => [alpha1_nd, alpha0_nd, alpha1, alpha0, ...] where y is a "garbage" value
 
@@ -557,32 +542,35 @@ end
 #! NOTE: The cycles count can be estimated, using the fact that r < 8, via the more compact formula
 #!  470 + 236 * (num_queries / 8)
 export.generate_list_indices
+    # Get the number of query indices we need to generate and the address to where we need
+    # to store them at.
     exec.constants::get_number_queries
     exec.constants::get_fri_queries_address
+    #=> [query_ptr, num_queries, ...]
+
     # Create mask
-    padw
-    exec.constants::get_lde_domain_info_word
-    movup.2 drop
-    movup.2 drop
+    exec.constants::get_lde_domain_log_size
+    exec.constants::get_lde_domain_size
     sub.1
-    #=> [mask, depth, query_ptr, num_queries] where depth = log(lde_size)
+    #=> [mask, depth, query_ptr, num_queries, ...] where depth = log(lde_size)
 
     # Get address holding the integers (this will later hold the FRI queries)
     movup.2
-    #=> [query_ptr, mask, depth, num_queries]
+    #=> [query_ptr, mask, depth, num_queries, ...]
 
     # Load the first half of the rate portion of the state of the random coin. We discard the first
     # element as it is used for PoW and use the remaining the 3.
     exec.get_rate_1
-    #=> [R1, query_ptr, mask, depth, num_queries]
+    #=> [R1, query_ptr, mask, depth, num_queries, ...]
     exec.generate_three_integers
-    #=> [R1, query_ptr+12, mask, depth, num_queries]
+    #=> [R1, query_ptr+12, mask, depth, num_queries, ...]
+
 
     # Load the second half of the rate portion of the state of the random coin.
     exec.constants::r2_ptr mem_loadw
-    #=> [R2, query_ptr+12, mask, depth, num_queries]
+    #=> [R2, query_ptr+12, mask, depth, num_queries, ...]
     exec.generate_four_integers
-    #=> [R2, query_ptr+26, mask, depth, num_queries, ...]
+    #=> [R2, query_ptr+26, mask, depth, num_queries, ..., ...]
 
     # Squeeze
     exec.constants::c_ptr mem_loadw

@@ -67,12 +67,12 @@ not exhibit (or rely on) undefined behavior.
 | u32cast <br> - *(2 cycles)*                    | [a, ...]    | [b, ...]      | $b \leftarrow a \mod 2^{32}$                                                                                                   |
 | u32split <br> - *(1 cycle)*                    | [a, ...]    | [c, b, ...]   | $b \leftarrow a \mod 2^{32}$, $c \leftarrow \lfloor{a / 2^{32}}\rfloor$                                                        |
 
-The instructions `u32assert`, `u32assert2` and `u32assertw` can also be parametrized with an error code which can be any 32-bit value specified either directly or via a [named constant](./code_organization.md#constants). For example:
+The instructions `u32assert`, `u32assert2` and `u32assertw` can also be parametrized with an error message which can be specified either directly or via a [named constant](./code_organization.md#constants). For example:
 ```
-u32assert.err=123
+u32assert.err="Division by zero"
 u32assert.err=MY_CONSTANT
 ```
-If the error code is omitted, the default value of $0$ is assumed.
+The message is hashed and turned into a field element. If the error code is omitted, the default value of $0$ is assumed.
 
 ### Arithmetic operations
 

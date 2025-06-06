@@ -1,4 +1,4 @@
-use alloc::{string::String, sync::Arc, vec::Vec};
+use alloc::{boxed::Box, string::String, sync::Arc};
 
 use vm_core::mast::MastForestError;
 
@@ -14,7 +14,6 @@ use crate::{
 /// An error which can be generated while compiling a Miden assembly program into a MAST.
 #[derive(Debug, thiserror::Error, Diagnostic)]
 #[non_exhaustive]
-#[allow(clippy::large_enum_variant)]
 pub enum AssemblyError {
     #[error("there are no modules to analyze")]
     #[diagnostic()]
@@ -23,18 +22,18 @@ pub enum AssemblyError {
     #[diagnostic(help("see diagnostics for details"))]
     Failed {
         #[related]
-        labels: Vec<RelatedLabel>,
+        labels: Box<[RelatedLabel]>,
     },
-    #[error("found a cycle in the call graph, involving these procedures: {}", nodes.as_slice().join(", "))]
+    #[error("found a cycle in the call graph, involving these procedures: {}", nodes.join(", "))]
     #[diagnostic()]
-    Cycle { nodes: Vec<String> },
+    Cycle { nodes: Box<[String]> },
     #[error(
         "two procedures found with same mast root, but conflicting definitions ('{first}' and '{second}')"
     )]
     #[diagnostic()]
     ConflictingDefinitions {
-        first: QualifiedProcedureName,
-        second: QualifiedProcedureName,
+        first: Box<QualifiedProcedureName>,
+        second: Box<QualifiedProcedureName>,
     },
     #[error("duplicate definition found for module '{path}'")]
     #[diagnostic()]
@@ -61,7 +60,7 @@ pub enum AssemblyError {
         span: SourceSpan,
         #[source_code]
         source_file: Option<Arc<SourceFile>>,
-        callee: QualifiedProcedureName,
+        callee: Box<QualifiedProcedureName>,
     },
     #[error("invalid local word index: {local_addr}")]
     #[diagnostic(help("the index to a local word must be a multiple of 4"))]
@@ -71,6 +70,30 @@ pub enum AssemblyError {
         #[source_code]
         source_file: Option<Arc<SourceFile>>,
         local_addr: u16,
+    },
+    #[error(
+        "word accessed from local memory but the number of procedure locals was only {num_proc_locals}"
+    )]
+    #[diagnostic(help(
+        "when a word is accessed from local memory, the number of procedure locals must be at least 4 (since a word is 4 locals)"
+    ))]
+    InvalidNumProcLocals {
+        #[label("local word accessed here")]
+        span: SourceSpan,
+        #[source_code]
+        source_file: Option<Arc<SourceFile>>,
+        num_proc_locals: u16,
+    },
+    #[error("invalid parameter value: {param}; expected to be between {min} and {max}")]
+    #[diagnostic()]
+    InvalidU8Param {
+        #[label]
+        span: SourceSpan,
+        #[source_code]
+        source_file: Option<Arc<SourceFile>>,
+        param: u8,
+        min: u8,
+        max: u8,
     },
     #[error("invalid use of 'caller' instruction outside of kernel")]
     #[diagnostic(help(
@@ -86,6 +109,16 @@ pub enum AssemblyError {
     #[error("invalid procedure: body must contain at least one instruction if it has decorators")]
     #[diagnostic()]
     EmptyProcedureBodyWithDecorators {
+        span: SourceSpan,
+        #[source_code]
+        source_file: Option<Arc<SourceFile>>,
+    },
+    #[error("number of procedure locals was not set (or set to 0), but local memory was accessed")]
+    #[diagnostic(help(
+        "to use procedure locals, the number of procedure locals must be declared at the start of the procedure"
+    ))]
+    ProcLocalsNotDeclared {
+        #[label("procedure local accessed here")]
         span: SourceSpan,
         #[source_code]
         source_file: Option<Arc<SourceFile>>,

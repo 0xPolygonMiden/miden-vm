@@ -34,11 +34,11 @@ Miden VM consists of several interconnected components, each providing a specifi
 The above components are connected via **buses**, which are implemented using [lookup arguments](./lookups/main.md). We also use [multiset check lookups](./lookups/multiset.md) internally within components to describe **virtual tables**.
 
 ## VM execution trace
-The execution trace of Miden VM consists of $71$ main trace columns, $2$ buses, and $5$ virtual tables, as shown in the diagram below.
+The execution trace of Miden VM consists of $73$ main trace columns, $2$ buses, and $5$ virtual tables, as shown in the diagram below.
 
 ![vm_trace.png](../assets/design/vm_trace.png)
 
-As can be seen from the above, the system, decoder, stack, and range checker components use dedicated sets of columns, while all chiplets share the same $17$ columns. To differentiate between chiplets, we use a set of binary selector columns, a combination of which uniquely identifies each chiplet.
+As can be seen from the above, the system, decoder, stack, and range checker components use dedicated sets of columns, while all chiplets share the same $18$ columns. To differentiate between chiplets, we use a set of binary selector columns, a combination of which uniquely identifies each chiplet.
 
 The system component does not yet have a dedicated documentation section, since the design is likely to change. However, the following two columns are not expected to change:
 

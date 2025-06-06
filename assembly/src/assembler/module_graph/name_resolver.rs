@@ -226,7 +226,8 @@ impl<'a> NameResolver<'a> {
                             self.graph.source_manager.get(caller.span.source_id()).ok(),
                         )
                         .with_labeled_span(caller.span, "unable to resolve this name locally"),
-                ],
+                ]
+                .into(),
             }),
         }
     }
@@ -326,7 +327,7 @@ impl<'a> NameResolver<'a> {
                                 .source_manager
                                 .get(current_caller.span.source_id())
                                 .ok(),
-                            callee: current_callee.into_owned(),
+                            callee: current_callee.into_owned().into(),
                         });
                     }
                     break Ok(id);
@@ -344,7 +345,7 @@ impl<'a> NameResolver<'a> {
                                 RelatedLabel::advice("recursive alias")
                                     .with_source_file(self.graph.source_manager.get(caller.span.source_id()).ok())
                                     .with_labeled_span(caller.span, "as a result of resolving this procedure reference"),
-                            ],
+                            ].into(),
                         });
                     }
                     current_caller = Cow::Owned(CallerInfo {
@@ -381,7 +382,8 @@ impl<'a> NameResolver<'a> {
                                     current_callee.span(),
                                     "this name cannot be resolved",
                                 ),
-                        ],
+                        ]
+                        .into(),
                     });
                 },
                 None if matches!(current_caller.kind, InvokeKind::SysCall) => {
@@ -398,7 +400,7 @@ impl<'a> NameResolver<'a> {
                                         current_callee.span(),
                                         "this name cannot be resolved, because the assembler has an empty kernel",
                                     ),
-                            ]
+                            ].into()
                         });
                     } else {
                         // No such kernel procedure
@@ -413,7 +415,7 @@ impl<'a> NameResolver<'a> {
                                         current_callee.span(),
                                         "this name cannot be resolved",
                                     ),
-                            ]
+                            ].into()
                         });
                     }
                 },
@@ -440,7 +442,8 @@ impl<'a> NameResolver<'a> {
                                     current_callee.span(),
                                     "this name cannot be resolved",
                                 ),
-                        ],
+                        ]
+                        .into(),
                     });
                 },
             }

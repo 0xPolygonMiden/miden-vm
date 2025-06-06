@@ -181,7 +181,7 @@ impl BasicBlockNode {
 
     /// Returns a [`DecoratorIterator`] which allows us to iterate through the decorator list of
     /// this basic block node while executing operation batches of this basic block node.
-    pub fn decorator_iter(&self) -> DecoratorIterator {
+    pub fn decorator_iter(&self) -> DecoratorIterator<'_> {
         DecoratorIterator::new(&self.decorators)
     }
 
@@ -202,7 +202,7 @@ impl BasicBlockNode {
 
     /// Returns an iterator over all operations and decorator, in the order in which they appear in
     /// the program.
-    pub fn iter(&self) -> impl Iterator<Item = OperationOrDecorator> {
+    pub fn iter(&self) -> impl Iterator<Item = OperationOrDecorator<'_>> {
         OperationOrDecoratorIterator::new(self)
     }
 }

@@ -17,7 +17,11 @@ use winter_air::{
     Air, AirContext, Assertion, EvaluationFrame, ProofOptions as WinterProofOptions, TraceInfo,
     TransitionConstraintDegree,
 };
-use winter_prover::matrix::ColMatrix;
+use winter_prover::{
+    crypto::{RandomCoin, RandomCoinError},
+    math::get_power_series,
+    matrix::ColMatrix,
+};
 
 mod constraints;
 pub use constraints::stack;
@@ -148,13 +152,10 @@ impl Air for ProcessorAir {
     // ASSERTIONS
     // --------------------------------------------------------------------------------------------
 
-    #[allow(clippy::vec_init_then_push)]
     fn get_assertions(&self) -> Vec<Assertion<Felt>> {
-        let mut result = Vec::new();
-
         // --- set assertions for the first step --------------------------------------------------
         // first value of clk is 0
-        result.push(Assertion::single(CLK_COL_IDX, 0, ZERO));
+        let mut result = vec![Assertion::single(CLK_COL_IDX, 0, ZERO)];
 
         if IS_FULL_CONSTRAINT_SET {
             // first value of fmp is 2^30
@@ -270,6 +271,29 @@ impl Air for ProcessorAir {
 
     fn context(&self) -> &AirContext<Felt> {
         &self.context
+    }
+
+    fn get_aux_rand_elements<E, R>(
+        &self,
+        public_coin: &mut R,
+    ) -> Result<AuxRandElements<E>, RandomCoinError>
+    where
+        E: FieldElement<BaseField = Self::BaseField>,
+        R: RandomCoin<BaseField = Self::BaseField>,
+    {
+        let num_elements = self.trace_info().get_num_aux_segment_rand_elements();
+        let mut rand_elements = Vec::with_capacity(num_elements);
+        let max_message_length = num_elements - 1;
+
+        let alpha = public_coin.draw()?;
+        let beta = public_coin.draw()?;
+
+        let betas = get_power_series(beta, max_message_length);
+
+        rand_elements.push(alpha);
+        rand_elements.extend_from_slice(&betas);
+
+        Ok(AuxRandElements::new(rand_elements))
     }
 }
 

@@ -144,6 +144,7 @@ pub enum Token<'input> {
     AdvLoadw,
     AdvPipe,
     AdvPush,
+    AdvStack,
     PushExt2intt,
     PushMapval,
     PushMapvaln,
@@ -160,6 +161,7 @@ pub enum Token<'input> {
     AssertEqw,
     ArithmeticCircuitEval,
     Begin,
+    Breakpoint,
     Caller,
     Call,
     Cdrop,
@@ -324,6 +326,7 @@ impl fmt::Display for Token<'_> {
         match self {
             Token::Add => write!(f, "add"),
             Token::Adv => write!(f, "adv"),
+            Token::AdvStack => write!(f, "adv_stack"),
             Token::InsertHdword => write!(f, "insert_hdword"),
             Token::InsertHdwordWithDomain => write!(f, "insert_hdword_d"),
             Token::InsertHperm => write!(f, "insert_hperm"),
@@ -347,6 +350,7 @@ impl fmt::Display for Token<'_> {
             Token::AssertEqw => write!(f, "assert_eqw"),
             Token::ArithmeticCircuitEval => write!(f, "arithmetic_circuit_eval"),
             Token::Begin => write!(f, "begin"),
+            Token::Breakpoint => write!(f, "breakpoint"),
             Token::Caller => write!(f, "caller"),
             Token::Call => write!(f, "call"),
             Token::Cdrop => write!(f, "cdrop"),
@@ -526,6 +530,7 @@ impl<'input> Token<'input> {
                 | Token::AdvLoadw
                 | Token::AdvPipe
                 | Token::AdvPush
+                | Token::AdvStack
                 | Token::PushExt2intt
                 | Token::PushMapval
                 | Token::PushMapvaln
@@ -541,6 +546,7 @@ impl<'input> Token<'input> {
                 | Token::AssertEq
                 | Token::AssertEqw
                 | Token::ArithmeticCircuitEval
+                | Token::Breakpoint
                 | Token::Caller
                 | Token::Call
                 | Token::Cdrop
@@ -674,6 +680,7 @@ impl<'input> Token<'input> {
         ("adv_loadw", Token::AdvLoadw),
         ("adv_pipe", Token::AdvPipe),
         ("adv_push", Token::AdvPush),
+        ("adv_stack", Token::AdvStack),
         ("push_ext2intt", Token::PushExt2intt),
         ("push_mapval", Token::PushMapval),
         ("push_mapvaln", Token::PushMapvaln),
@@ -689,6 +696,7 @@ impl<'input> Token<'input> {
         ("assert_eq", Token::AssertEq),
         ("assert_eqw", Token::AssertEqw),
         ("begin", Token::Begin),
+        ("breakpoint", Token::Breakpoint),
         ("caller", Token::Caller),
         ("call", Token::Call),
         ("cdrop", Token::Cdrop),

@@ -69,9 +69,12 @@ pub trait Host {
         &mut self,
         _process: ProcessState,
         _options: &DebugOptions,
-    ) -> Result<(), ExecutionError> {
+    ) -> Result<(), ExecutionError>
+    where
+        Self: Sized,
+    {
         #[cfg(feature = "std")]
-        debug::print_debug_info(_process, _options);
+        debug::print_debug_info(self, _process, _options);
         Ok(())
     }
 
