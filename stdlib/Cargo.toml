@@ -36,7 +36,7 @@ vm-core = { package = "miden-core", path = "../core", version = "0.15", default-
 
 [dev-dependencies]
 blake3 = "1.5"
-criterion = "0.5"
+criterion = "0.6"
 miden-air = { package = "miden-air", path = "../air", version = "0.15", default-features = false }
 num = "0.4"
 num-bigint = "0.4"

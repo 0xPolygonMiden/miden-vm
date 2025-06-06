@@ -86,7 +86,7 @@ vm-core = { package = "miden-core", path = "../core", version = "0.15", default-
 
 [dev-dependencies]
 assert_cmd = "2.0"
-criterion = "0.5"
+criterion = "0.6"
 escargot = "0.5"
 num-bigint = "0.4"
 predicates = "3.1"
