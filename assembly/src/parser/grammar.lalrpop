@@ -742,7 +742,7 @@ Debug: Instruction = {
     "debug" "." "local" <n:Imm<U16>> <m:Imm<U16>> => Instruction::Debug(DebugOptions::LocalInterval(n, m)),
     "debug" "." "local" <n:MaybeImm<U16>> => {
         match n {
-            Some(n) => Instruction::Debug(DebugOptions::LocalInterval(n.clone(), n)),
+            Some(n) => Instruction::Debug(DebugOptions::LocalRangeFrom(n)),
             None => Instruction::Debug(DebugOptions::LocalAll),
         }
     },
