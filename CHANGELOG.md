@@ -6,6 +6,9 @@
 
 - Add `debug.stack_adv` and `debug.stack_adv.<n>` to help debug the advice stack (#1828).
 - Add a complete description of the constraints for `horner_eval_base` and `horner_eval_ext` (#1817).
+- Add documentation for ACE chiplet (#1766)
+- Add support for setting debugger breakpoints via `breakpoint` instruction
+- Improve error messages for some procedure locals-related errors (#1863)
 
 #### Changes
 
@@ -13,6 +16,9 @@
 - Remove `idx` column from Kernel ROM chiplet and use chiplet bus for initialization. (#1818)
 - [BREAKING] Make `Assembler::source_manager()` be `Send + Sync` (#1822)
 - Refactored `ProcedureName` validation logic to improve readability (#1663)
+- Simplify and optimize the recursive verifier (#1801).
+- Simplify auxiliary randomness generation (#1810).
+- Add handling of variable length public inputs to the recursive verifier (#1813).
 
 #### Fixes
 
