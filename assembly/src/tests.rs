@@ -1924,7 +1924,13 @@ fn program_with_proc_locals_fail() -> TestResult {
     assert_assembler_diagnostic!(
         context,
         source,
-        "number of procedure locals was not set (or set to 0), but local values were used"
+        "number of procedure locals was not set (or set to 0), but local memory was accessed",
+        regex!(r#",-\[test[\d]+:1:10\]"#),
+        "1 | proc.foo loc_store.0 add loc_load.0 mul end begin push.4 push.3 push.2 exec.foo end",
+        "  :          ^^^^^|^^^^^",
+        "  :               `-- procedure local accessed here",
+        "  `----",
+        "  help: to use procedure locals, the number of procedure locals must be declared at the start of the procedure"
     );
 
     Ok(())

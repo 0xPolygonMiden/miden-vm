@@ -356,23 +356,38 @@ impl Assembler {
             Instruction::AdvLoadW => block_builder.push_op(AdvPopW),
 
             Instruction::MemStream => block_builder.push_op(MStream),
-            Instruction::Locaddr(v) => env_ops::locaddr(block_builder, v.expect_value(), proc_ctx)?,
-            Instruction::MemLoad => mem_ops::mem_read(block_builder, proc_ctx, None, false, true)?,
-            Instruction::MemLoadImm(v) => {
-                mem_ops::mem_read(block_builder, proc_ctx, Some(v.expect_value()), false, true)?
+            Instruction::Locaddr(v) => {
+                env_ops::locaddr(block_builder, v.expect_value(), proc_ctx, instruction.span())?
             },
+            Instruction::MemLoad => {
+                mem_ops::mem_read(block_builder, proc_ctx, None, false, true, instruction.span())?
+            },
+            Instruction::MemLoadImm(v) => mem_ops::mem_read(
+                block_builder,
+                proc_ctx,
+                Some(v.expect_value()),
+                false,
+                true,
+                instruction.span(),
+            )?,
             Instruction::MemLoadW => {
-                mem_ops::mem_read(block_builder, proc_ctx, None, false, false)?
+                mem_ops::mem_read(block_builder, proc_ctx, None, false, false, instruction.span())?
             },
-            Instruction::MemLoadWImm(v) => {
-                mem_ops::mem_read(block_builder, proc_ctx, Some(v.expect_value()), false, false)?
-            },
+            Instruction::MemLoadWImm(v) => mem_ops::mem_read(
+                block_builder,
+                proc_ctx,
+                Some(v.expect_value()),
+                false,
+                false,
+                instruction.span(),
+            )?,
             Instruction::LocLoad(v) => mem_ops::mem_read(
                 block_builder,
                 proc_ctx,
                 Some(v.expect_value() as u32),
                 true,
                 true,
+                instruction.span(),
             )?,
             Instruction::LocLoadW(v) => {
                 let local_addr = v.expect_value();
@@ -387,22 +402,40 @@ impl Assembler {
                     });
                 }
 
-                mem_ops::mem_read(block_builder, proc_ctx, Some(local_addr as u32), true, false)?
+                mem_ops::mem_read(
+                    block_builder,
+                    proc_ctx,
+                    Some(local_addr as u32),
+                    true,
+                    false,
+                    instruction.span(),
+                )?
             },
             Instruction::MemStore => block_builder.push_ops([MStore, Drop]),
             Instruction::MemStoreW => block_builder.push_ops([MStoreW]),
-            Instruction::MemStoreImm(v) => {
-                mem_ops::mem_write_imm(block_builder, proc_ctx, v.expect_value(), false, true)?
-            },
-            Instruction::MemStoreWImm(v) => {
-                mem_ops::mem_write_imm(block_builder, proc_ctx, v.expect_value(), false, false)?
-            },
+            Instruction::MemStoreImm(v) => mem_ops::mem_write_imm(
+                block_builder,
+                proc_ctx,
+                v.expect_value(),
+                false,
+                true,
+                instruction.span(),
+            )?,
+            Instruction::MemStoreWImm(v) => mem_ops::mem_write_imm(
+                block_builder,
+                proc_ctx,
+                v.expect_value(),
+                false,
+                false,
+                instruction.span(),
+            )?,
             Instruction::LocStore(v) => mem_ops::mem_write_imm(
                 block_builder,
                 proc_ctx,
                 v.expect_value() as u32,
                 true,
                 true,
+                instruction.span(),
             )?,
             Instruction::LocStoreW(v) => {
                 let local_addr = v.expect_value();
@@ -417,7 +450,14 @@ impl Assembler {
                     });
                 }
 
-                mem_ops::mem_write_imm(block_builder, proc_ctx, local_addr as u32, true, false)?
+                mem_ops::mem_write_imm(
+                    block_builder,
+                    proc_ctx,
+                    local_addr as u32,
+                    true,
+                    false,
+                    instruction.span(),
+                )?
             },
             Instruction::SysEvent(system_event) => {
                 block_builder.push_system_event(system_event.into())
