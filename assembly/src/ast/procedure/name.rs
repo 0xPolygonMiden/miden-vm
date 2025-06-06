@@ -311,44 +311,56 @@ impl FromStr for ProcedureName {
     type Err = IdentError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let mut chars = s.char_indices();
-        let raw = match chars.next() {
-            None => Err(IdentError::Empty),
-            Some((_, '"')) => loop {
-                if let Some((pos, c)) = chars.next() {
-                    match c {
-                        '"' => {
-                            if chars.next().is_some() {
-                                break Err(IdentError::InvalidChars { ident: s.into() });
-                            }
-                            let tok = &s[1..pos];
-                            break Ok(Arc::from(tok.to_string().into_boxed_str()));
-                        },
-                        c if c.is_alphanumeric() || c.is_ascii_graphic() => continue,
-                        _ => break Err(IdentError::InvalidChars { ident: s.into() }),
+        let mut chars = s.char_indices().peekable();
+
+        // peek the first char
+        match chars.peek() {
+            None => return Err(IdentError::Empty),
+            Some((_, '"')) => chars.next(),
+            Some((_, c)) if is_valid_unquoted_identifier_char(*c) => {
+                // All character for unqouted should be valid
+                let all_chars_valid =
+                    chars.all(|(_, char)| is_valid_unquoted_identifier_char(char));
+
+                if all_chars_valid {
+                    return Ok(Self(Ident::from_raw_parts(Span::unknown(s.into()))));
+                } else {
+                    return Err(IdentError::InvalidChars { ident: s.into() });
+                }
+            },
+            Some((_, c)) if c.is_ascii_uppercase() => {
+                return Err(IdentError::Casing(CaseKindError::Snake));
+            },
+            Some(_) => return Err(IdentError::InvalidChars { ident: s.into() }),
+        };
+
+        // parsing the qouted identifier
+        while let Some((pos, char)) = chars.next() {
+            match char {
+                '"' => {
+                    if chars.next().is_some() {
+                        return Err(IdentError::InvalidChars { ident: s.into() });
                     }
-                } else {
-                    break Err(IdentError::InvalidChars { ident: s.into() });
-                }
-            },
-            Some((_, c))
-                if c.is_ascii_lowercase() || c == '_' || c == '-' || c == '$' || c == '.' =>
-            {
-                if chars.as_str().contains(|c| match c {
-                    c if c.is_ascii_alphanumeric() => false,
-                    '_' | '-' | '$' | '.' => false,
-                    _ => true,
-                }) {
-                    Err(IdentError::InvalidChars { ident: s.into() })
-                } else {
-                    Ok(Arc::from(s.to_string().into_boxed_str()))
-                }
-            },
-            Some((_, c)) if c.is_ascii_uppercase() => Err(IdentError::Casing(CaseKindError::Snake)),
-            Some(_) => Err(IdentError::InvalidChars { ident: s.into() }),
-        }?;
-        Ok(Self(Ident::from_raw_parts(Span::unknown(raw))))
+                    let token = &s[0..pos];
+                    return Ok(Self(Ident::from_raw_parts(Span::unknown(token.into()))));
+                },
+                c => {
+                    // if char is not alphanumeric or asciigraphic then return err
+                    if !(c.is_alphanumeric() || c.is_ascii_graphic()) {
+                        return Err(IdentError::InvalidChars { ident: s.into() });
+                    }
+                },
+            }
+        }
+
+        // if while loop has not returned then the qoute was not closed
+        Err(IdentError::InvalidChars { ident: s.into() })
     }
+}
+
+// FROM STR HELPER
+fn is_valid_unquoted_identifier_char(c: char) -> bool {
+    c.is_ascii_alphanumeric() || matches!(c, '_' | '-' | '$' | '.')
 }
 
 impl Serializable for ProcedureName {
