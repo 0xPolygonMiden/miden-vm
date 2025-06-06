@@ -1,14 +1,15 @@
 # Changelog
 
-## 0.15.0 (TBD)
+## 0.15.0 (2025-06-06)
 
 #### Enhancements
 
 - Add `debug.stack_adv` and `debug.stack_adv.<n>` to help debug the advice stack (#1828).
 - Add a complete description of the constraints for `horner_eval_base` and `horner_eval_ext` (#1817).
 - Add documentation for ACE chiplet (#1766)
-- Add support for setting debugger breakpoints via `breakpoint` instruction
+- Add support for setting debugger breakpoints via `breakpoint` instruction (#1860)
 - Improve error messages for some procedure locals-related errors (#1863)
+- Add range checks to the `push_falcon_mod_result` advice injector to make sure that the inputs are `u32` (#1819).
 
 #### Changes
 
@@ -24,10 +25,6 @@
 
 - `miden debug` rewind command no longer panics at clock 0 (#1751)
 - Prevent overflow in ACE circuit evaluation (#1820)
-
-#### Enhancements
-
-- Add range checks to the `push_falcon_mod_result` advice injector to make sure that the inputs are `u32` (#1819).
 
 ## 0.14.0 (2025-05-07)
 
