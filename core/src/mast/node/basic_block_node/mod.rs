@@ -11,8 +11,7 @@ use crate::{
 };
 
 mod op_batch;
-pub use op_batch::OpBatch;
-use op_batch::OpBatchAccumulator;
+pub use op_batch::{OpBatch, OpBatchAccumulator};
 
 use super::MastNodeExt;
 
@@ -23,7 +22,7 @@ mod tests;
 // ================================================================================================
 
 /// Maximum number of operations per group.
-pub const GROUP_SIZE: usize = 9;
+pub const OP_GROUP_SIZE: usize = 9;
 
 /// Maximum number of groups per batch.
 pub const BATCH_SIZE: usize = 8;
@@ -404,30 +403,9 @@ fn batch_and_hash_ops(ops: Vec<Operation>) -> (Vec<OpBatch>, RpoDigest) {
 /// Groups the provided operations into batches as described in the docs for this module (i.e., up
 /// to 9 operations per group, and 8 groups per batch).
 fn batch_ops(ops: Vec<Operation>) -> Vec<OpBatch> {
-    let mut batches = Vec::<OpBatch>::new();
     let mut batch_acc = OpBatchAccumulator::new();
-
-    for op in ops {
-        // If the operation cannot be accepted into the current accumulator, add the contents of
-        // the accumulator to the list of batches and start a new accumulator.
-        if !batch_acc.can_accept_op(op) {
-            let batch = batch_acc.into_batch();
-            batch_acc = OpBatchAccumulator::new();
-
-            batches.push(batch);
-        }
-
-        // Add the operation to the accumulator.
-        batch_acc.add_op(op);
-    }
-
-    // Make sure we finished processing the last batch.
-    if !batch_acc.is_empty() {
-        let batch = batch_acc.into_batch();
-        batches.push(batch);
-    }
-
-    batches
+    batch_acc.add_ops(&ops);
+    batch_acc.into_batches()
 }
 
 /// Checks if a given decorators list is valid (only checked in debug mode)
