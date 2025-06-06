@@ -73,7 +73,7 @@ hex = { version = "0.4", optional = true }
 processor = { package = "miden-processor", path = "../processor", version = "0.15", default-features = false }
 prover = { package = "miden-prover", path = "../prover", version = "0.15", default-features = false }
 package = { package = "miden-mast-package", path = "../package", version = "0.15", default-features = false }
-rustyline = { version = "13.0", default-features = false, optional = true }
+rustyline = { version = "16.0", default-features = false, optional = true }
 serde = { version = "1.0", optional = true }
 serde_derive = { version = "1.0", optional = true }
 serde_json = { version = "1.0", optional = true }
