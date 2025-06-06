@@ -2,11 +2,12 @@
 
 # Expects 
 # 1. to be run from the root of the repository
-# 2. for ~/.cargo/credentials.toml to contain your crates.io token
-#   (see https://doc.rust-lang.org/cargo/reference/publishing.html)
-
-git checkout main
-git pull origin main
+# 2. for ~/.cargo/credentials.toml to contain your crates.io token (see
+#   https://doc.rust-lang.org/cargo/reference/publishing.html)
+#
+# It is recommended to run this script while still on the `next` branch right before merging it into
+# `main`, so that if any error occurs, we can fix it and re-run the script directly without having
+# to merge the fix into `next`, and then merge `next` into `main` again.
 
 cargo publish -p miden-core
 cargo publish -p miden-air
