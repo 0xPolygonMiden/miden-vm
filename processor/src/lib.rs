@@ -37,6 +37,7 @@ use vm_core::{
 pub use winter_prover::matrix::ColMatrix;
 
 pub mod fast;
+pub mod parallel;
 
 mod operations;
 

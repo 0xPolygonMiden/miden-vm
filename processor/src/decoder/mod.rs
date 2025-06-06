@@ -32,7 +32,8 @@ pub use aux_trace::AuxTraceBuilder;
 pub use aux_trace::BlockHashTableRow;
 
 mod block_stack;
-use block_stack::{BlockStack, BlockType, ExecutionContextInfo};
+pub use block_stack::BlockStack;
+use block_stack::{BlockType, ExecutionContextInfo};
 #[cfg(test)]
 use miden_air::trace::decoder::NUM_USER_OP_HELPERS;
 
