@@ -519,7 +519,7 @@ impl ModuleGraph {
     ///
     /// # Panics
     /// - Panics if index is invalid.
-    pub fn get_procedure_unsafe(&self, id: GlobalProcedureIndex) -> ProcedureWrapper {
+    pub fn get_procedure_unsafe(&self, id: GlobalProcedureIndex) -> ProcedureWrapper<'_> {
         match &self.modules[id.module.as_usize()] {
             WrappedModule::Ast(m) => ProcedureWrapper::Ast(&m[id.index]),
             WrappedModule::Info(m) => {
