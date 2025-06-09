@@ -207,6 +207,11 @@ impl Default for TestContext {
 
 impl TestContext {
     pub fn new() -> Self {
+        #[cfg(feature = "logging")]
+        {
+            let _ = env_logger::Builder::from_env("MIDEN_LOG").format_timestamp(None).try_init();
+        }
+
         #[cfg(feature = "std")]
         {
             let result = set_hook(Box::new(|_| Box::new(ReportHandlerOpts::new().build())));
