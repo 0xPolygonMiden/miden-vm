@@ -245,8 +245,14 @@ impl crate::prettier::PrettyPrint for ConstantExpr {
         match self {
             Self::Literal(literal) => display(literal),
             Self::Word(spanned) => {
-                let [f0, f1, f2, f3] = spanned.inner();
-                display(f0) + display(f1) + display(f2) + display(f3)
+                // similar to instruction::inst_with_pretty_felt_params
+                spanned
+                    .inner()
+                    .iter()
+                    .copied()
+                    .map(display)
+                    .reduce(|acc, doc| acc + const_text(".") + doc)
+                    .unwrap_or_default()
             },
             Self::Var(ident) | Self::String(ident) => display(ident),
             Self::BinaryOp { op, lhs, rhs, .. } => {

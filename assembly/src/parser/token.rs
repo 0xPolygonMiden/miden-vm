@@ -71,16 +71,19 @@ impl fmt::Display for IntValue {
 
 impl crate::prettier::PrettyPrint for IntValue {
     fn render(&self) -> crate::prettier::Document {
+        use crate::prettier::*;
         match self {
             Self::U8(v) => v.render(),
             Self::U16(v) => v.render(),
             Self::U32(v) => v.render(),
             Self::Felt(v) => u64::from(*v).render(),
             Self::Word(v) => {
-                u64::from(v[0]).render()
-                    + u64::from(v[1]).render()
-                    + u64::from(v[2]).render()
-                    + u64::from(v[3]).render()
+                // similar to instruction::inst_with_pretty_felt_params
+                v.iter()
+                    .copied()
+                    .map(display)
+                    .reduce(|acc, doc| acc + const_text(".") + doc)
+                    .unwrap_or_default()
             },
         }
     }

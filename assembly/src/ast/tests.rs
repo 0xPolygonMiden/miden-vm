@@ -1288,3 +1288,34 @@ end
 
     assert_eq!(&formatted, expected);
 }
+
+#[test]
+fn test_words_roundtrip_formatting() {
+    let source = "\
+const.A=0x0200000000000000020000000000000002000000000000000200000000000000
+begin
+    push.A
+    push.0x0200000000000000020000000000000002000000000000000200000000000000
+end
+";
+
+    let context = TestContext::default();
+    let source = source_file!(&context, source);
+
+    let module = Module::parse(
+        LibraryPath::new_from_components(LibraryNamespace::Exec, []),
+        ModuleKind::Executable,
+        source,
+    )
+    .unwrap_or_else(|err| panic!("{err}"));
+
+    let formatted = module.to_string();
+    let expected = "\
+begin
+    push.2.2.2.2
+    push.2.2.2.2
+end
+";
+
+    assert_eq!(&formatted, expected);
+}
