@@ -210,14 +210,14 @@ impl PrettyPrint for Instruction {
             Self::CDropW => const_text("cdropw"),
 
             // ----- input / output operations ----------------------------------------------------
-            Self::Push(imm) => inst_with_imm("push", imm),
+            Self::Push(value) => inst_with_imm("push", value),
             Self::PushU8(value) => inst_with_imm("push", value),
             Self::PushU16(value) => inst_with_imm("push", value),
             Self::PushU32(value) => inst_with_imm("push", value),
             Self::PushFelt(value) => {
                 inst_with_felt_imm("push", &Immediate::Value(Span::unknown(*value)))
             },
-            Self::PushWord(values) => inst_with_pretty_felt_params("push", values),
+            Self::PushWord(value) => flatten(const_text("push") + const_text(".") + value.render()),
             Self::PushU8List(values) => inst_with_pretty_params("push", values),
             Self::PushU16List(values) => inst_with_pretty_params("push", values),
             Self::PushU32List(values) => inst_with_pretty_params("push", values),

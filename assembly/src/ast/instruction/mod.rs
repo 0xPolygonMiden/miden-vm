@@ -6,9 +6,9 @@ use alloc::vec::Vec;
 
 pub use self::{advice::SystemEventNode, debug::DebugOptions};
 use crate::{
-    Felt, Word,
+    Felt,
     ast::{InvocationTarget, immediate::*},
-    parser::IntValue,
+    parser::{IntValue, Word},
 };
 
 // INSTRUCTION

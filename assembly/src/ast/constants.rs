@@ -4,7 +4,11 @@ use core::fmt;
 use vm_core::FieldElement;
 
 use super::DocString;
-use crate::{Felt, SourceSpan, Span, Spanned, Word, ast::Ident, parser::ParsingError};
+use crate::{
+    Felt, SourceSpan, Span, Spanned,
+    ast::Ident,
+    parser::{ParsingError, Word},
+};
 
 // CONSTANT
 // ================================================================================================
@@ -244,16 +248,7 @@ impl crate::prettier::PrettyPrint for ConstantExpr {
 
         match self {
             Self::Literal(literal) => display(literal),
-            Self::Word(spanned) => {
-                // similar to instruction::inst_with_pretty_felt_params
-                spanned
-                    .inner()
-                    .iter()
-                    .copied()
-                    .map(display)
-                    .reduce(|acc, doc| acc + const_text(".") + doc)
-                    .unwrap_or_default()
-            },
+            Self::Word(spanned) => spanned.render(),
             Self::Var(ident) | Self::String(ident) => display(ident),
             Self::BinaryOp { op, lhs, rhs, .. } => {
                 let single_line = lhs.render() + display(op) + rhs.render();

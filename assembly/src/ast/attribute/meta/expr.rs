@@ -1,6 +1,11 @@
 use alloc::{string::String, sync::Arc};
 
-use crate::{Felt, SourceSpan, Span, Spanned, ast::Ident, parser::IntValue, prettier};
+use crate::{
+    Felt, SourceSpan, Span, Spanned,
+    ast::Ident,
+    parser::{IntValue, Word},
+    prettier,
+};
 
 /// Represents a metadata expression of an [crate::ast::Attribute]
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
@@ -70,8 +75,8 @@ impl From<Felt> for MetaExpr {
     }
 }
 
-impl From<[Felt; 4]> for MetaExpr {
-    fn from(value: [Felt; 4]) -> Self {
+impl From<Word> for MetaExpr {
+    fn from(value: Word) -> Self {
         Self::Int(Span::new(SourceSpan::UNKNOWN, IntValue::Word(value)))
     }
 }

@@ -6,7 +6,11 @@ use alloc::{collections::BTreeMap, string::String, sync::Arc, vec::Vec};
 use core::fmt;
 
 pub use self::{expr::MetaExpr, kv::MetaKeyValue, list::MetaList};
-use crate::{Felt, SourceSpan, Span, ast::Ident, parser::IntValue};
+use crate::{
+    Felt, SourceSpan, Span,
+    ast::Ident,
+    parser::{IntValue, Word},
+};
 
 /// Represents the metadata provided as arguments to an attribute.
 #[derive(Clone, PartialEq, Eq)]
@@ -213,8 +217,8 @@ impl From<Felt> for MetaItem {
     }
 }
 
-impl From<[Felt; 4]> for MetaItem {
-    fn from(value: [Felt; 4]) -> Self {
+impl From<Word> for MetaItem {
+    fn from(value: Word) -> Self {
         Self::Expr(MetaExpr::Int(Span::new(SourceSpan::UNKNOWN, IntValue::Word(value))))
     }
 }

@@ -8,7 +8,7 @@ extern crate alloc;
 extern crate std;
 
 use vm_core::{
-    Felt, ONE, Word, ZERO,
+    Felt, ONE, ZERO,
     crypto::hash::RpoDigest,
     prettier,
     utils::{

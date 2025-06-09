@@ -6,6 +6,7 @@ use crate::{
     Felt, LibraryNamespace, LibraryPath, Span, assert_diagnostic, assert_diagnostic_lines,
     ast::*,
     diagnostics::{Report, reporting::PrintDiagnostic},
+    parser::Word,
     regex, source_file,
     testing::{Pattern, TestContext},
 };
@@ -359,7 +360,7 @@ fn test_ast_parsing_program_push() -> Result<(), Report> {
         inst!(PushU32(90000)),
         inst!(PushFelt(Felt::new(5000000000_u64))),
         inst!(PushFelt(Felt::new(7000000000_u64))),
-        inst!(PushWord([Felt::new(0), Felt::new(1), Felt::new(2), Felt::new(3)]))
+        inst!(PushWord(Word([Felt::new(0), Felt::new(1), Felt::new(2), Felt::new(3)])))
     ));
 
     assert_eq!(context.parse_forms(source)?, forms);
@@ -1293,9 +1294,12 @@ end
 fn test_words_roundtrip_formatting() {
     let source = "\
 const.A=0x0200000000000000020000000000000002000000000000000200000000000000
+const.B=[2,2,2,2]
 begin
-    push.A
-    push.0x0200000000000000020000000000000002000000000000000200000000000000
+    push.0x0200000000000000020000000000000002000000000000000200000000000000.2
+    push.A.2
+    push.B.2
+    push.2.2.2.2
 end
 ";
 
@@ -1312,8 +1316,16 @@ end
     let formatted = module.to_string();
     let expected = "\
 begin
-    push.2.2.2.2
-    push.2.2.2.2
+    push.[2,2,2,2]
+    push.2
+    push.[2,2,2,2]
+    push.2
+    push.[2,2,2,2]
+    push.2
+    push.2
+    push.2
+    push.2
+    push.2
 end
 ";
 

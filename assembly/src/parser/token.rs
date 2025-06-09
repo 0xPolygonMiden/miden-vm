@@ -32,6 +32,61 @@ impl core::ops::Deref for DocumentationType {
     }
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct Word(pub [Felt; 4]);
+
+impl fmt::Display for Word {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(
+            f,
+            "{:#08x}{:08x}{:08x}{:08x}",
+            &self.0[0].as_int(),
+            &self.0[1].as_int(),
+            &self.0[2].as_int(),
+            &self.0[3].as_int(),
+        )
+    }
+}
+
+impl crate::prettier::PrettyPrint for Word {
+    fn render(&self) -> crate::prettier::Document {
+        use crate::prettier::*;
+
+        const_text("[")
+            + self
+                .0
+                .iter()
+                .copied()
+                .map(display)
+                .reduce(|acc, doc| acc + const_text(",") + doc)
+                .unwrap_or_default()
+            + const_text("]")
+    }
+}
+
+impl PartialOrd for Word {
+    fn partial_cmp(&self, other: &Self) -> Option<core::cmp::Ordering> {
+        Some(self.cmp(other))
+    }
+}
+impl Ord for Word {
+    fn cmp(&self, other: &Self) -> core::cmp::Ordering {
+        let (Word([l0, l1, l2, l3]), Word([r0, r1, r2, r3])) = (self, other);
+        l0.as_int()
+            .cmp(&r0.as_int())
+            .then_with(|| l1.as_int().cmp(&r1.as_int()))
+            .then_with(|| l2.as_int().cmp(&r2.as_int()))
+            .then_with(|| l3.as_int().cmp(&r3.as_int()))
+    }
+}
+
+impl core::hash::Hash for Word {
+    fn hash<H: core::hash::Hasher>(&self, state: &mut H) {
+        let Word([a, b, c, d]) = self;
+        [a.as_int(), b.as_int(), c.as_int(), d.as_int()].hash(state)
+    }
+}
+
 // HEX ENCODED VALUE
 // ================================================================================================
 
@@ -48,7 +103,7 @@ pub enum IntValue {
     /// A single field element, 8 bytes, encoded as 16 hex digits
     Felt(Felt),
     /// A set of 4 field elements, 32 bytes, encoded as a contiguous string of 64 hex digits
-    Word([Felt; 4]),
+    Word(Word),
 }
 impl fmt::Display for IntValue {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -57,34 +112,19 @@ impl fmt::Display for IntValue {
             Self::U16(value) => write!(f, "{value}"),
             Self::U32(value) => write!(f, "{value:#04x}"),
             Self::Felt(value) => write!(f, "{:#08x}", &value.as_int().to_be()),
-            Self::Word(value) => write!(
-                f,
-                "{:#08x}{:08x}{:08x}{:08x}",
-                &value[0].as_int(),
-                &value[1].as_int(),
-                &value[2].as_int(),
-                &value[3].as_int(),
-            ),
+            Self::Word(value) => write!(f, "{value}"),
         }
     }
 }
 
 impl crate::prettier::PrettyPrint for IntValue {
     fn render(&self) -> crate::prettier::Document {
-        use crate::prettier::*;
         match self {
             Self::U8(v) => v.render(),
             Self::U16(v) => v.render(),
             Self::U32(v) => v.render(),
             Self::Felt(v) => u64::from(*v).render(),
-            Self::Word(v) => {
-                // similar to instruction::inst_with_pretty_felt_params
-                v.iter()
-                    .copied()
-                    .map(display)
-                    .reduce(|acc, doc| acc + const_text(".") + doc)
-                    .unwrap_or_default()
-            },
+            Self::Word(v) => v.render(),
         }
     }
 }
@@ -109,12 +149,7 @@ impl Ord for IntValue {
             (Self::Felt(_), Self::U8(_) | Self::U16(_) | Self::U32(_)) => Ordering::Greater,
             (Self::Felt(l), Self::Felt(r)) => l.as_int().cmp(&r.as_int()),
             (Self::Felt(_), _) => Ordering::Less,
-            (Self::Word([l0, l1, l2, l3]), Self::Word([r0, r1, r2, r3])) => l0
-                .as_int()
-                .cmp(&r0.as_int())
-                .then_with(|| l1.as_int().cmp(&r1.as_int()))
-                .then_with(|| l2.as_int().cmp(&r2.as_int()))
-                .then_with(|| l3.as_int().cmp(&r3.as_int())),
+            (Self::Word(l), Self::Word(r)) => l.cmp(r),
             (Self::Word(_), _) => Ordering::Greater,
         }
     }
@@ -128,9 +163,7 @@ impl core::hash::Hash for IntValue {
             Self::U16(value) => value.hash(state),
             Self::U32(value) => value.hash(state),
             Self::Felt(value) => value.as_int().hash(state),
-            Self::Word([a, b, c, d]) => {
-                [a.as_int(), b.as_int(), c.as_int(), d.as_int()].hash(state)
-            },
+            Self::Word(value) => value.hash(state),
         }
     }
 }
