@@ -18,6 +18,17 @@ pub enum InvokeKind {
     ProcRef,
 }
 
+impl fmt::Display for InvokeKind {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::Exec => f.write_str("exec"),
+            Self::Call => f.write_str("call"),
+            Self::SysCall => f.write_str("syscall"),
+            Self::ProcRef => f.write_str("procref"),
+        }
+    }
+}
+
 /// Represents a specific invocation
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub struct Invoke {
