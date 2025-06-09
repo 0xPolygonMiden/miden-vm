@@ -276,7 +276,7 @@ make exec-info
 Once the executable has been compiled, you can run Miden VM like so:
 
 ```shell
-./target/optimized/miden [subcommand] [parameters]
+./target/optimized/miden-vm [subcommand] [parameters]
 ```
 
 Currently, Miden VM can be executed with the following subcommands:
@@ -291,13 +291,13 @@ Currently, Miden VM can be executed with the following subcommands:
 All of the above subcommands require various parameters to be provided. To get more detailed help on what is needed for a given subcommand, you can run the following:
 
 ```shell
-./target/optimized/miden [subcommand] --help
+./target/optimized/miden-vm [subcommand] --help
 ```
 
 For example:
 
 ```shell
-./target/optimized/miden prove --help
+./target/optimized/miden-vm prove --help
 ```
 
 ### Fibonacci example
@@ -305,7 +305,7 @@ For example:
 In the `miden/masm-examples/fib` directory, we provide a very simple Fibonacci calculator example. This example computes the 1000th term of the Fibonacci sequence. You can execute this example on Miden VM like so:
 
 ```shell
-./target/optimized/miden run miden/masm-examples/fib/fib.masm -n 1
+./target/optimized/miden-vm run miden/masm-examples/fib/fib.masm -n 1
 ```
 
 This will run the example code to completion and will output the top element remaining on the stack.

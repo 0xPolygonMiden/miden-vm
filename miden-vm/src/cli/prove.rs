@@ -15,7 +15,7 @@ use super::{
 };
 
 #[derive(Debug, Clone, Parser)]
-#[command(about = "Prove a miden program")]
+#[command(about = "Prove a Miden program")]
 pub struct ProveCmd {
     /// Path to a .masm assembly file or a .masp package file
     #[arg(value_parser)]

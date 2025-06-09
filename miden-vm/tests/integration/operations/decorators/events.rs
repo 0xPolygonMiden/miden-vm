@@ -130,7 +130,7 @@ fn test_debug_without_debugging() {
 }
 
 // Test that debug.adv_stack is parsable. For a functional test see
-// `miden/tests/integration/cli/cli_test.rs::test_debug_adv_stack`
+// `miden-vm/tests/integration/cli/cli_test.rs::test_debug_adv_stack`
 #[test]
 fn test_parsing_debug_advice_stack() {
     let source: &str = "\
