@@ -38,7 +38,7 @@ impl core::ops::Deref for DocumentationType {
 /// Represents one of the various types of values that have a hex-encoded representation in Miden
 /// Assembly source files.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub enum HexEncodedValue {
+pub enum IntValue {
     /// A tiny value
     U8(u8),
     /// A small value
@@ -50,7 +50,7 @@ pub enum HexEncodedValue {
     /// A set of 4 field elements, 32 bytes, encoded as a contiguous string of 64 hex digits
     Word([Felt; 4]),
 }
-impl fmt::Display for HexEncodedValue {
+impl fmt::Display for IntValue {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::U8(value) => write!(f, "{value}"),
@@ -69,7 +69,7 @@ impl fmt::Display for HexEncodedValue {
     }
 }
 
-impl crate::prettier::PrettyPrint for HexEncodedValue {
+impl crate::prettier::PrettyPrint for IntValue {
     fn render(&self) -> crate::prettier::Document {
         match self {
             Self::U8(v) => v.render(),
@@ -86,12 +86,12 @@ impl crate::prettier::PrettyPrint for HexEncodedValue {
     }
 }
 
-impl PartialOrd for HexEncodedValue {
+impl PartialOrd for IntValue {
     fn partial_cmp(&self, other: &Self) -> Option<core::cmp::Ordering> {
         Some(self.cmp(other))
     }
 }
-impl Ord for HexEncodedValue {
+impl Ord for IntValue {
     fn cmp(&self, other: &Self) -> core::cmp::Ordering {
         use core::cmp::Ordering;
         match (self, other) {
@@ -117,7 +117,7 @@ impl Ord for HexEncodedValue {
     }
 }
 
-impl core::hash::Hash for HexEncodedValue {
+impl core::hash::Hash for IntValue {
     fn hash<H: core::hash::Hasher>(&self, state: &mut H) {
         core::mem::discriminant(self).hash(state);
         match self {
@@ -328,7 +328,7 @@ pub enum Token<'input> {
     Rbracket,
     Rstab,
     DocComment(DocumentationType),
-    HexValue(HexEncodedValue),
+    HexValue(IntValue),
     BinValue(BinEncodedValue),
     Int(u64),
     Ident(&'input str),
@@ -935,7 +935,7 @@ impl<'input> Token<'input> {
                     "module doc" => Ok(Token::DocComment(DocumentationType::Module(String::new()))),
                     "doc comment" => Ok(Token::DocComment(DocumentationType::Form(String::new()))),
                     "comment" => Ok(Token::Comment),
-                    "hex-encoded value" => Ok(Token::HexValue(HexEncodedValue::U8(0))),
+                    "hex-encoded value" => Ok(Token::HexValue(IntValue::U8(0))),
                     "bin-encoded value" => Ok(Token::BinValue(BinEncodedValue::U8(0))),
                     "integer" => Ok(Token::Int(0)),
                     "identifier" => Ok(Token::Ident("")),

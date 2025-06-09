@@ -2,8 +2,8 @@ use alloc::string::String;
 use core::{num::IntErrorKind, ops::Range};
 
 use super::{
-    BinEncodedValue, BinErrorKind, DocumentationType, HexEncodedValue, HexErrorKind,
-    LiteralErrorKind, ParsingError, Scanner, Token,
+    BinEncodedValue, BinErrorKind, DocumentationType, HexErrorKind, IntValue, LiteralErrorKind,
+    ParsingError, Scanner, Token,
 };
 use crate::{
     Felt,
@@ -587,7 +587,7 @@ impl<'input> Iterator for Lexer<'input> {
 // HELPER FUNCTIONS
 // ================================================================================================
 
-fn parse_hex(span: SourceSpan, hex_digits: &str) -> Result<HexEncodedValue, ParsingError> {
+fn parse_hex(span: SourceSpan, hex_digits: &str) -> Result<IntValue, ParsingError> {
     use vm_core::{FieldElement, StarkField};
     match hex_digits.len() {
         // Felt
@@ -637,7 +637,7 @@ fn parse_hex(span: SourceSpan, hex_digits: &str) -> Result<HexEncodedValue, Pars
                 }
                 *element = Felt::new(value);
             }
-            Ok(HexEncodedValue::Word(word))
+            Ok(IntValue::Word(word))
         },
         // Invalid
         n if n > 64 => Err(ParsingError::InvalidHexLiteral { span, kind: HexErrorKind::TooLong }),
@@ -670,15 +670,15 @@ fn is_ascii_binary(c: char) -> bool {
 }
 
 #[inline]
-fn shrink_u64_hex(n: u64) -> HexEncodedValue {
+fn shrink_u64_hex(n: u64) -> IntValue {
     if n <= (u8::MAX as u64) {
-        HexEncodedValue::U8(n as u8)
+        IntValue::U8(n as u8)
     } else if n <= (u16::MAX as u64) {
-        HexEncodedValue::U16(n as u16)
+        IntValue::U16(n as u16)
     } else if n <= (u32::MAX as u64) {
-        HexEncodedValue::U32(n as u32)
+        IntValue::U32(n as u32)
     } else {
-        HexEncodedValue::Felt(Felt::new(n))
+        IntValue::Felt(Felt::new(n))
     }
 }
 

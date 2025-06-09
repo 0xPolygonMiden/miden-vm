@@ -53,7 +53,7 @@ use core::ops::ControlFlow;
 
 use immediate::ErrorMsg;
 
-use crate::{Felt, Span, ast::*, parser::HexEncodedValue};
+use crate::{Felt, Span, ast::*, parser::IntValue};
 
 /// Represents an immutable AST visitor, whose "early return" type is `T` (by default `()`).
 ///
@@ -136,7 +136,7 @@ pub trait Visit<T = ()> {
     fn visit_immediate_felt(&mut self, imm: &Immediate<Felt>) -> ControlFlow<T> {
         visit_immediate_felt(self, imm)
     }
-    fn visit_immediate_hex(&mut self, code: &Immediate<HexEncodedValue>) -> ControlFlow<T> {
+    fn visit_immediate_hex(&mut self, code: &Immediate<IntValue>) -> ControlFlow<T> {
         visit_immediate_hex(self, code)
     }
     fn visit_immediate_error_message(&mut self, code: &ErrorMsg) -> ControlFlow<T> {
@@ -625,10 +625,7 @@ where
     ControlFlow::Continue(())
 }
 
-pub fn visit_immediate_hex<V, T>(
-    _visitor: &mut V,
-    _imm: &Immediate<HexEncodedValue>,
-) -> ControlFlow<T>
+pub fn visit_immediate_hex<V, T>(_visitor: &mut V, _imm: &Immediate<IntValue>) -> ControlFlow<T>
 where
     V: ?Sized + Visit<T>,
 {
@@ -727,7 +724,7 @@ pub trait VisitMut<T = ()> {
     fn visit_mut_immediate_felt(&mut self, imm: &mut Immediate<Felt>) -> ControlFlow<T> {
         visit_mut_immediate_felt(self, imm)
     }
-    fn visit_mut_immediate_hex(&mut self, imm: &mut Immediate<HexEncodedValue>) -> ControlFlow<T> {
+    fn visit_mut_immediate_hex(&mut self, imm: &mut Immediate<IntValue>) -> ControlFlow<T> {
         visit_mut_immediate_hex(self, imm)
     }
     fn visit_mut_immediate_error_message(&mut self, code: &mut ErrorMsg) -> ControlFlow<T> {
@@ -1234,7 +1231,7 @@ where
 #[inline(always)]
 pub fn visit_mut_immediate_hex<V, T>(
     _visitor: &mut V,
-    _imm: &mut Immediate<HexEncodedValue>,
+    _imm: &mut Immediate<IntValue>,
 ) -> ControlFlow<T>
 where
     V: ?Sized + VisitMut<T>,

@@ -12,7 +12,7 @@ use vm_core::{Felt, FieldElement, StarkField, crypto::hash::RpoDigest};
 
 use crate::{LibraryPath, LibraryNamespace, ast::*, diagnostics::SourceFile, SourceSpan};
 use super::{
-    BinEncodedValue, HexEncodedValue, Token, ParseError, ParsingError,
+    BinEncodedValue, IntValue, Token, ParseError, ParsingError,
     LiteralErrorKind, HexErrorKind, Span, Spanned,
     DocumentationType
 };
@@ -209,7 +209,7 @@ extern {
         comment => Token::Comment,
         const_ident => Token::ConstantIdent(<&'input str>),
         doc_comment => Token::DocComment(<DocumentationType>),
-        hex_value => Token::HexValue(<HexEncodedValue>),
+        hex_value => Token::HexValue(<IntValue>),
         quoted_ident => Token::QuotedIdent(<&'input str>),
         quoted_string => Token::QuotedString(<&'input str>),
         uint => Token::Int(<u64>),
@@ -1253,11 +1253,11 @@ Push: SmallOpsVec = {
                 Immediate::Constant(name) => Instruction::Push(Immediate::Constant(name)),
                 Immediate::Value(value) => {
                     match value.into_inner() {
-                        HexEncodedValue::U8(v) => Instruction::PushU8(v),
-                        HexEncodedValue::U16(v) => Instruction::PushU16(v),
-                        HexEncodedValue::U32(v) => Instruction::PushU32(v),
-                        HexEncodedValue::Felt(v) => Instruction::PushFelt(v),
-                        HexEncodedValue::Word(v) => Instruction::PushWord(v),
+                        IntValue::U8(v) => Instruction::PushU8(v),
+                        IntValue::U16(v) => Instruction::PushU16(v),
+                        IntValue::U32(v) => Instruction::PushU32(v),
+                        IntValue::Felt(v) => Instruction::PushFelt(v),
+                        IntValue::Word(v) => Instruction::PushWord(v),
                     }
                 }
             }))
@@ -1342,9 +1342,9 @@ U32: u32 = {
 
     <l:@L> <value:hex_value> <r:@R> =>? {
         match value {
-            HexEncodedValue::U8(v) => Ok(v as u32),
-            HexEncodedValue::U16(v) => Ok(v as u32),
-            HexEncodedValue::U32(v) => Ok(v),
+            IntValue::U8(v) => Ok(v as u32),
+            IntValue::U16(v) => Ok(v as u32),
+            IntValue::U32(v) => Ok(v),
             _ =>  Err(ParseError::User { error: ParsingError::InvalidLiteral { span: span!(source_file.id(), l, r), kind: LiteralErrorKind::U32Overflow } }),
         }
     },
@@ -1361,7 +1361,7 @@ U32: u32 = {
 MastRoot: Span<RpoDigest> = {
     <l:@L> <value:hex_value> <r:@R> =>? {
         match value {
-            HexEncodedValue::Word(word) => Ok(Span::new(span!(source_file.id(), l, r), RpoDigest::from(word))),
+            IntValue::Word(word) => Ok(Span::new(span!(source_file.id(), l, r), RpoDigest::from(word))),
             _ => {
                 Err(ParseError::User { error: ParsingError::InvalidMastRoot { span: span!(source_file.id(), l, r) } })
             }
@@ -1419,24 +1419,24 @@ BitSize: u8 = {
     }
 }
 
-IntOrHexImm: Immediate<HexEncodedValue> = {
+IntOrHexImm: Immediate<IntValue> = {
     <l:@L> <value:IntOrHex> <r:@R> => Immediate::Value(Span::new(span!(source_file.id(), l, r), value)),
     <name:ConstantName> => Immediate::Constant(<>),
 }
 
-IntOrHex: HexEncodedValue = {
+IntOrHex: IntValue = {
     <l:@L> <n:uint> <r:@R> =>? {
         if n > Felt::MODULUS {
             return Err(ParseError::User { error: ParsingError::InvalidLiteral { span: span!(source_file.id(), l, r), kind: LiteralErrorKind::FeltOverflow } });
         }
         if n <= (u8::MAX as u64) {
-            Ok(HexEncodedValue::U8(n as u8))
+            Ok(IntValue::U8(n as u8))
         } else if n <= (u16::MAX as u64) {
-            Ok(HexEncodedValue::U16(n as u16))
+            Ok(IntValue::U16(n as u16))
         } else if n <= (u32::MAX as u64) {
-            Ok(HexEncodedValue::U32(n as u32))
+            Ok(IntValue::U32(n as u32))
         } else {
-            Ok(HexEncodedValue::Felt(Felt::new(n)))
+            Ok(IntValue::Felt(Felt::new(n)))
         }
     },
 
@@ -1453,11 +1453,11 @@ Felt: Felt = {
 
     <l:@L> <value:hex_value> <r:@R> =>? {
         Ok(match value {
-            HexEncodedValue::U8(v) => Felt::new(v as u64),
-            HexEncodedValue::U16(v) => Felt::new(v as u64),
-            HexEncodedValue::U32(v) => Felt::new(v as u64),
-            HexEncodedValue::Felt(v) => v,
-            HexEncodedValue::Word(_) => return Err(ParseError::User {
+            IntValue::U8(v) => Felt::new(v as u64),
+            IntValue::U16(v) => Felt::new(v as u64),
+            IntValue::U32(v) => Felt::new(v as u64),
+            IntValue::Felt(v) => v,
+            IntValue::Word(_) => return Err(ParseError::User {
                 error: ParsingError::InvalidHexLiteral { span: span!(source_file.id(), l, r), kind: HexErrorKind::Overflow },
             }),
         })
@@ -1843,11 +1843,11 @@ Term: ConstantExpr = {
 
     <l:@L> <value:hex_value> <r:@R> =>? {
         Ok(match value {
-            HexEncodedValue::U8(v) => ConstantExpr::Literal(Span::new(span!(source_file.id(), l, r), Felt::new(v as u64))),
-            HexEncodedValue::U16(v) => ConstantExpr::Literal(Span::new(span!(source_file.id(), l, r), Felt::new(v as u64))),
-            HexEncodedValue::U32(v) => ConstantExpr::Literal(Span::new(span!(source_file.id(), l, r), Felt::new(v as u64))),
-            HexEncodedValue::Felt(v) => ConstantExpr::Literal(Span::new(span!(source_file.id(), l, r), v)),
-            HexEncodedValue::Word(t) => ConstantExpr::Word(Span::new(span!(source_file.id(), l, r),t))
+            IntValue::U8(v) => ConstantExpr::Literal(Span::new(span!(source_file.id(), l, r), Felt::new(v as u64))),
+            IntValue::U16(v) => ConstantExpr::Literal(Span::new(span!(source_file.id(), l, r), Felt::new(v as u64))),
+            IntValue::U32(v) => ConstantExpr::Literal(Span::new(span!(source_file.id(), l, r), Felt::new(v as u64))),
+            IntValue::Felt(v) => ConstantExpr::Literal(Span::new(span!(source_file.id(), l, r), v)),
+            IntValue::Word(t) => ConstantExpr::Word(Span::new(span!(source_file.id(), l, r),t))
         })
     },
 
