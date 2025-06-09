@@ -1264,6 +1264,7 @@ version = "0.15.0"
 dependencies = [
  "blake3",
  "criterion",
+ "env_logger",
  "miden-air",
  "miden-assembly",
  "miden-core",
