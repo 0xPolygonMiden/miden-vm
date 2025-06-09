@@ -6,14 +6,14 @@ extern crate escargot;
 
 fn bin_under_test() -> escargot::CargoRun {
     escargot::CargoBuild::new()
-        .bin("miden")
+        .bin("miden-vm")
         .features("executable internal")
         .current_release()
         .current_target()
         .run()
         .unwrap_or_else(|err| {
             eprintln!("{err}");
-            panic!("failed to build `miden`");
+            panic!("failed to build `miden-vm`");
         })
 }
 

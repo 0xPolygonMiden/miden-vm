@@ -244,7 +244,7 @@ Then, to compile Miden VM into a binary, run the following `make` command:
 make exec
 ```
 
-This will place `miden` executable in the `./target/optimized` directory.
+This will place `miden-vm` executable in the `./target/optimized` directory.
 
 By default, the executable will be compiled in the multi-threaded mode. If you would like to enable single-threaded proof generation, you can compile Miden VM using the following command:
 
