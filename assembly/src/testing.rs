@@ -318,7 +318,7 @@ impl TestContext {
     /// other modules.
     #[track_caller]
     pub fn add_module(&mut self, module: impl Compile) -> Result<(), Report> {
-        self.assembler.add_module(module).map(|_| ())
+        self.assembler.compile_and_link_module(module).map(|_| ())
     }
 
     /// Add a module to the [Assembler] constructed by this context, with the fully-qualified
@@ -332,21 +332,20 @@ impl TestContext {
         path: LibraryPath,
         source: impl Compile,
     ) -> Result<(), Report> {
-        self.assembler
-            .add_module_with_options(
-                source,
-                CompileOptions {
-                    path: Some(path),
-                    ..CompileOptions::for_library()
-                },
-            )
-            .map(|_| ())
+        let module = source.compile_with_options(
+            &self.source_manager,
+            CompileOptions {
+                path: Some(path),
+                ..CompileOptions::for_library()
+            },
+        )?;
+        self.assembler.compile_and_link_module(module).map(|_| ())
     }
 
     /// Add the modules of `library` to the [Assembler] constructed by this context.
     #[track_caller]
     pub fn add_library(&mut self, library: impl AsRef<Library>) -> Result<(), Report> {
-        self.assembler.add_library(library)
+        self.assembler.link_library(library)
     }
 
     /// Compile a [Program] from `source` using the [Assembler] constructed by this context.

@@ -61,6 +61,7 @@ impl<'a, 'b: 'a> ModuleRewriter<'a, 'b> {
         kind: InvokeKind,
         target: &mut InvocationTarget,
     ) -> ControlFlow<AssemblyError> {
+        log::debug!(target: "module-graph", "    * rewriting {kind} target {target}");
         let caller = CallerInfo {
             span: target.span(),
             module: self.module_id,
@@ -70,9 +71,11 @@ impl<'a, 'b: 'a> ModuleRewriter<'a, 'b> {
             Err(err) => return ControlFlow::Break(err),
             Ok(ResolvedTarget::Phantom(_)) => (),
             Ok(ResolvedTarget::Exact { .. }) => {
+                log::debug!(target: "module-graph", "    | target is already resolved exactly");
                 self.invoked.insert(Invoke { kind, target: target.clone() });
             },
             Ok(ResolvedTarget::Resolved { target: new_target, .. }) => {
+                log::debug!(target: "module-graph", "    | target resolved to {new_target}");
                 *target = new_target;
                 self.invoked.insert(Invoke { kind, target: target.clone() });
             },
@@ -84,6 +87,7 @@ impl<'a, 'b: 'a> ModuleRewriter<'a, 'b> {
 
 impl<'a, 'b: 'a> VisitMut<AssemblyError> for ModuleRewriter<'a, 'b> {
     fn visit_mut_procedure(&mut self, procedure: &mut Procedure) -> ControlFlow<AssemblyError> {
+        log::debug!(target: "module-graph", "  | visiting {}", procedure.name());
         self.invoked.clear();
         self.invoked.extend(procedure.invoked().cloned());
         visit::visit_mut_procedure(self, procedure)?;

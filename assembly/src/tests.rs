@@ -2287,8 +2287,11 @@ fn program_with_reexported_proc_in_another_library() -> TestResult {
     // But only exports from this module are exposed by the library
     let ast = parser.parse_str(MODULE.parse().unwrap(), MODULE_BODY, &source_manager)?;
 
-    let dummy_library =
-        Assembler::new(source_manager).with_module(ref_ast)?.assemble_library([ast])?;
+    let dummy_library = {
+        let mut assembler = Assembler::new(source_manager);
+        assembler.compile_and_link_module(ref_ast)?;
+        assembler.assemble_library([ast])?
+    };
 
     // Now we want to use the the library we've compiled
     context.add_library(&dummy_library)?;
@@ -3005,7 +3008,7 @@ fn test_compiled_library() {
     // Compile program that uses compiled library
     let mut assembler = Assembler::new(context.source_manager());
 
-    assembler.add_library(&compiled_library).unwrap();
+    assembler.link_library(&compiled_library).unwrap();
 
     let program_source = "
     use.mylib::mod1
@@ -3066,7 +3069,7 @@ fn test_reexported_proc_with_same_name_as_local_proc_diff_locals() {
     // Compile program that uses compiled library
     let mut assembler = Assembler::new(context.source_manager());
 
-    assembler.add_library(&compiled_library).unwrap();
+    assembler.link_library(&compiled_library).unwrap();
 
     let program_source = "
     use.test::mod1
@@ -3155,7 +3158,7 @@ fn vendoring() -> TestResult {
         let mod2 = mod_parser.parse(LibraryPath::new("test::mod2").unwrap(), source).unwrap();
 
         let mut assembler = Assembler::default();
-        assembler.add_vendored_library(vendor_lib)?;
+        assembler.link_vendored_library(vendor_lib)?;
         assembler.assemble_library([mod2]).unwrap()
     };
 
