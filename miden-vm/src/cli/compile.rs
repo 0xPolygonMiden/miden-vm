@@ -6,7 +6,7 @@ use clap::Parser;
 use super::data::{Debug, Libraries, ProgramFile};
 
 #[derive(Debug, Clone, Parser)]
-#[command(about = "Compile a miden program")]
+#[command(about = "Assemble a Miden program")]
 pub struct CompileCmd {
     /// Path to .masm assembly file
     #[arg(short = 'a', long = "assembly", value_parser)]

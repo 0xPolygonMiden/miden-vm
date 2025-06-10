@@ -3,7 +3,7 @@ members = [
     "air",
     "assembly",
     "core",
-    "miden",
+    "miden-vm",
     "package",
     "processor",
     "prover",

@@ -10,7 +10,7 @@ use miden_vm::{Kernel, ProgramInfo, internal::InputFile};
 use super::data::{OutputFile, ProgramHash, ProofFile};
 
 #[derive(Debug, Clone, Parser)]
-#[command(about = "Verify a miden program")]
+#[command(about = "Verify a Miden program")]
 pub struct VerifyCmd {
     /// Path to input file
     #[arg(short = 'i', long = "input", value_parser)]

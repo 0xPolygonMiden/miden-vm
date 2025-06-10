@@ -12,7 +12,7 @@ use crate::utils::print_mem_address;
 // [here](https://github.com/ControlCplusControlV/Scribe/blob/main/transpiler/src/repl.rs#L8)
 //
 // The Miden Read–eval–print loop (REPL) is a Miden shell that allows for quick and easy debugging
-// of Miden assembly. To use the repl, simply type "miden repl" after building it with feature
+// of Miden assembly. To use the repl, simply type "miden-vm repl" after building it with feature
 // "executable" (cargo build --release --feature executable) when in the miden home
 // crate and the repl will launch. After the REPL gets initialized, you can execute any Miden
 // instruction, undo executed instructions, check the state of the stack and memory at a given
@@ -76,7 +76,7 @@ use crate::utils::print_mem_address;
 // last executed assembly instruction from the program. One could use `!undo` as often as they want
 // to restore the state of a stack and memory $n$ instructions ago (provided there are $n$
 // instructions in the program). The `!undo` command will result in an error if no remaining
-// instructions are left in  the miden program.
+// instructions are left in  the Miden program.
 // ```
 // >> push.1 push.2 push.3
 // >> push.4
@@ -92,7 +92,7 @@ use crate::utils::print_mem_address;
 // ```
 //
 //`!program`
-// The `!program` command prints out the entire miden program getting executed. E.g., in the below
+// The `!program` command prints out the entire Miden program getting executed. E.g., in the below
 // ```
 // scenario: >> push.1
 // >> push.2
