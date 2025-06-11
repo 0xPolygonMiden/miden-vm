@@ -9,12 +9,14 @@ use alloc::{
     vec::Vec,
 };
 
+use vm_core::crypto::hash::{Rpo256, RpoDigest};
+
 use self::passes::{ConstEvalVisitor, VerifyInvokeTargets};
 pub use self::{
     context::AnalysisContext,
     errors::{SemanticAnalysisError, SyntaxError},
 };
-use crate::{LibraryPath, Spanned, ast::*, diagnostics::SourceFile};
+use crate::{LibraryPath, Span, Spanned, ast::*, diagnostics::SourceFile, parser::WordValue};
 
 /// Constructs and validates a [Module], given the forms constituting the module body.
 ///
@@ -95,6 +97,9 @@ pub fn analyze(
             Form::Begin(body) => {
                 docs.take();
                 analyzer.error(SemanticAnalysisError::UnexpectedEntrypoint { span: body.span() });
+            },
+            Form::AdviceMapEntry(entry) => {
+                add_advice_map_entry(&mut module, entry.with_docs(docs.take()), &mut analyzer)?;
             },
         }
     }
@@ -240,4 +245,35 @@ fn define_procedure(
     context.register_procedure_name(name);
 
     Ok(())
+}
+
+/// Inserts a new entry in the Advice Map and defines a constant corresposnding to the entry's
+/// key.
+///
+/// Returns `Err` if the symbol is already defined
+fn add_advice_map_entry(
+    module: &mut Module,
+    entry: AdviceMapEntry,
+    context: &mut AnalysisContext,
+) -> Result<(), SyntaxError> {
+    let key = match entry.key {
+        Some(key) => RpoDigest::from(key.inner().0),
+        None => Rpo256::hash_elements(&entry.value),
+    };
+    let cst = Constant::new(
+        entry.span,
+        entry.name.clone(),
+        ConstantExpr::Word(Span::new(entry.span, WordValue(*key))),
+    );
+    context.define_constant(cst)?;
+    match module.advice_map.get(&key) {
+        Some(_) => {
+            context.error(SemanticAnalysisError::AdvMapKeyAlreadyDefined { span: entry.span });
+            Ok(())
+        },
+        None => {
+            module.advice_map.insert(key, entry.value);
+            Ok(())
+        },
+    }
 }
