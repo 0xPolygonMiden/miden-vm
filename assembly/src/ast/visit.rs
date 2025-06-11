@@ -136,8 +136,8 @@ pub trait Visit<T = ()> {
     fn visit_immediate_felt(&mut self, imm: &Immediate<Felt>) -> ControlFlow<T> {
         visit_immediate_felt(self, imm)
     }
-    fn visit_immediate_hex(&mut self, code: &Immediate<IntValue>) -> ControlFlow<T> {
-        visit_immediate_hex(self, code)
+    fn visit_immediate_int_value(&mut self, code: &Immediate<IntValue>) -> ControlFlow<T> {
+        visit_immediate_int_value(self, code)
     }
     fn visit_immediate_error_message(&mut self, code: &ErrorMsg) -> ControlFlow<T> {
         visit_immediate_error_message(self, code)
@@ -307,7 +307,7 @@ where
         | MTreeVerifyWithError(code) => visitor.visit_immediate_error_message(code),
         AddImm(imm) | SubImm(imm) | MulImm(imm) | DivImm(imm) | ExpImm(imm) | EqImm(imm)
         | NeqImm(imm) => visitor.visit_immediate_felt(imm),
-        Push(imm) => visitor.visit_immediate_hex(imm),
+        Push(imm) => visitor.visit_immediate_int_value(imm),
         U32WrappingAddImm(imm)
         | U32OverflowingAddImm(imm)
         | U32WrappingSubImm(imm)
@@ -625,7 +625,10 @@ where
     ControlFlow::Continue(())
 }
 
-pub fn visit_immediate_hex<V, T>(_visitor: &mut V, _imm: &Immediate<IntValue>) -> ControlFlow<T>
+pub fn visit_immediate_int_value<V, T>(
+    _visitor: &mut V,
+    _imm: &Immediate<IntValue>,
+) -> ControlFlow<T>
 where
     V: ?Sized + Visit<T>,
 {

@@ -1293,13 +1293,13 @@ end
 #[test]
 fn test_words_roundtrip_formatting() {
     let source = "\
-const.A=0x0200000000000000020000000000000002000000000000000200000000000000
-const.B=[2,2,2,2]
+const.A=0x0200000000000000030000000000000004000000000000000500000000000000
+const.B=[2,3,4,5]
 begin
-    push.0x0200000000000000020000000000000002000000000000000200000000000000.2
-    push.A.2
-    push.B.2
-    push.2.2.2.2
+    push.0x0200000000000000030000000000000004000000000000000500000000000000.6
+    push.A.6
+    push.B.6
+    push.2.3.4.5
 end
 ";
 
@@ -1316,16 +1316,16 @@ end
     let formatted = module.to_string();
     let expected = "\
 begin
-    push.[2,2,2,2]
+    push.[2,3,4,5]
+    push.6
+    push.[2,3,4,5]
+    push.6
+    push.[2,3,4,5]
+    push.6
     push.2
-    push.[2,2,2,2]
-    push.2
-    push.[2,2,2,2]
-    push.2
-    push.2
-    push.2
-    push.2
-    push.2
+    push.3
+    push.4
+    push.5
 end
 ";
 
