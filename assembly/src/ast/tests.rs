@@ -1331,3 +1331,40 @@ end
 
     assert_eq!(&formatted, expected);
 }
+
+#[test]
+fn cannot_mem_store_word() {
+    let context = TestContext::default();
+    let source = source_file!(
+        &context,
+        r#"
+const.A=[2,3,4,5]
+begin
+    mem_store.A
+end"#
+    );
+
+    // Instead of the usual macro that does only parsing we need to use this
+    // parse function that also performs the semantic analysis to realize that
+    // the constant is of the wrong type.
+    let error = Module::parse(
+        LibraryPath::new_from_components(LibraryNamespace::Exec, []),
+        ModuleKind::Executable,
+        source,
+    )
+    .expect_err("expected diagnostic to be raised, but parsing succeeded");
+
+    assert_diagnostic_lines!(
+        error,
+        "syntax error",
+        "help: see emitted diagnostics for details",
+        "invalid constant",
+        regex!(r#",-\[test[\d]+:4:15\]"#),
+        "3 | begin",
+        "4 |     mem_store.A",
+        "  :               ^",
+        "5 | end",
+        "  `----",
+        r#" help: this constant does not resolve to a value of the right type"#
+    );
+}
