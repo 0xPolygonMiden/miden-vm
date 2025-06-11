@@ -1300,6 +1300,7 @@ begin
     push.A.6
     push.B.6
     push.2.3.4.5
+    push.A.B
 end
 ";
 
@@ -1326,6 +1327,8 @@ begin
     push.3
     push.4
     push.5
+    push.[2,3,4,5]
+    push.[2,3,4,5]
 end
 ";
 
