@@ -191,6 +191,7 @@ pub enum BinEncodedValue {
 pub enum Token<'input> {
     Add,
     Adv,
+    AdvMap,
     InsertHdword,
     InsertHdwordWithDomain,
     InsertHperm,
@@ -379,6 +380,7 @@ impl fmt::Display for Token<'_> {
         match self {
             Token::Add => write!(f, "add"),
             Token::Adv => write!(f, "adv"),
+            Token::AdvMap => write!(f, "adv_map"),
             Token::AdvStack => write!(f, "adv_stack"),
             Token::InsertHdword => write!(f, "insert_hdword"),
             Token::InsertHdwordWithDomain => write!(f, "insert_hdword_d"),
@@ -724,6 +726,7 @@ impl<'input> Token<'input> {
     const KEYWORDS: &'static [(&'static str, Token<'static>)] = &[
         ("add", Token::Add),
         ("adv", Token::Adv),
+        ("adv_map", Token::AdvMap),
         ("arithmetic_circuit_eval", Token::ArithmeticCircuitEval),
         ("insert_hdword", Token::InsertHdword),
         ("insert_hdword_d", Token::InsertHdwordWithDomain),

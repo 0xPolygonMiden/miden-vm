@@ -272,6 +272,11 @@ pub enum ParsingError {
         #[label("previously defined here")]
         prev: SourceSpan,
     },
+    #[error("invalid Advice Map key")]
+    InvalidAdvMapKey {
+        #[label]
+        span: SourceSpan,
+    },
 }
 
 impl ParsingError {
