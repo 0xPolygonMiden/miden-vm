@@ -8,7 +8,7 @@ pub use self::{advice::SystemEventNode, debug::DebugOptions};
 use crate::{
     Felt,
     ast::{InvocationTarget, immediate::*},
-    parser::{IntValue, Word},
+    parser::{AstWord, IntValue},
 };
 
 // INSTRUCTION
@@ -210,7 +210,7 @@ pub enum Instruction {
     PushU16(u16),
     PushU32(u32),
     PushFelt(Felt),
-    PushWord(Word),
+    PushWord(AstWord),
     PushU8List(Vec<u8>),
     PushU16List(Vec<u16>),
     PushU32List(Vec<u32>),

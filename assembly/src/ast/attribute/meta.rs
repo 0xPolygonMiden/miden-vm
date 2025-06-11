@@ -9,7 +9,7 @@ pub use self::{expr::MetaExpr, kv::MetaKeyValue, list::MetaList};
 use crate::{
     Felt, SourceSpan, Span,
     ast::Ident,
-    parser::{IntValue, Word},
+    parser::{AstWord, IntValue},
 };
 
 /// Represents the metadata provided as arguments to an attribute.
@@ -217,8 +217,8 @@ impl From<Felt> for MetaItem {
     }
 }
 
-impl From<Word> for MetaItem {
-    fn from(value: Word) -> Self {
+impl From<AstWord> for MetaItem {
+    fn from(value: AstWord) -> Self {
         Self::Expr(MetaExpr::Int(Span::new(SourceSpan::UNKNOWN, IntValue::Word(value))))
     }
 }

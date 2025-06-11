@@ -25,7 +25,7 @@ pub use self::{
     error::{BinErrorKind, HexErrorKind, LiteralErrorKind, ParsingError},
     lexer::Lexer,
     scanner::Scanner,
-    token::{BinEncodedValue, DocumentationType, IntValue, Token, Word},
+    token::{AstWord, BinEncodedValue, DocumentationType, IntValue, Token},
 };
 use crate::{
     LibraryPath, SourceManager, ast,
