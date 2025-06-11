@@ -6,7 +6,7 @@ use crate::{
     Felt, LibraryNamespace, LibraryPath, Span, assert_diagnostic, assert_diagnostic_lines,
     ast::*,
     diagnostics::{Report, reporting::PrintDiagnostic},
-    parser::AstWord,
+    parser::WordValue,
     regex, source_file,
     testing::{Pattern, TestContext},
 };
@@ -360,7 +360,7 @@ fn test_ast_parsing_program_push() -> Result<(), Report> {
         inst!(PushU32(90000)),
         inst!(PushFelt(Felt::new(5000000000_u64))),
         inst!(PushFelt(Felt::new(7000000000_u64))),
-        inst!(PushWord(AstWord([Felt::new(0), Felt::new(1), Felt::new(2), Felt::new(3)])))
+        inst!(PushWord(WordValue([Felt::new(0), Felt::new(1), Felt::new(2), Felt::new(3)])))
     ));
 
     assert_eq!(context.parse_forms(source)?, forms);

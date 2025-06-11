@@ -33,9 +33,9 @@ impl core::ops::Deref for DocumentationType {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct AstWord(pub [Felt; 4]);
+pub struct WordValue(pub [Felt; 4]);
 
-impl fmt::Display for AstWord {
+impl fmt::Display for WordValue {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(
             f,
@@ -48,7 +48,7 @@ impl fmt::Display for AstWord {
     }
 }
 
-impl crate::prettier::PrettyPrint for AstWord {
+impl crate::prettier::PrettyPrint for WordValue {
     fn render(&self) -> crate::prettier::Document {
         use crate::prettier::*;
 
@@ -64,14 +64,14 @@ impl crate::prettier::PrettyPrint for AstWord {
     }
 }
 
-impl PartialOrd for AstWord {
+impl PartialOrd for WordValue {
     fn partial_cmp(&self, other: &Self) -> Option<core::cmp::Ordering> {
         Some(self.cmp(other))
     }
 }
-impl Ord for AstWord {
+impl Ord for WordValue {
     fn cmp(&self, other: &Self) -> core::cmp::Ordering {
-        let (AstWord([l0, l1, l2, l3]), AstWord([r0, r1, r2, r3])) = (self, other);
+        let (WordValue([l0, l1, l2, l3]), WordValue([r0, r1, r2, r3])) = (self, other);
         l0.as_int()
             .cmp(&r0.as_int())
             .then_with(|| l1.as_int().cmp(&r1.as_int()))
@@ -80,9 +80,9 @@ impl Ord for AstWord {
     }
 }
 
-impl core::hash::Hash for AstWord {
+impl core::hash::Hash for WordValue {
     fn hash<H: core::hash::Hasher>(&self, state: &mut H) {
-        let AstWord([a, b, c, d]) = self;
+        let WordValue([a, b, c, d]) = self;
         [a.as_int(), b.as_int(), c.as_int(), d.as_int()].hash(state)
     }
 }
@@ -103,7 +103,7 @@ pub enum IntValue {
     /// A single field element, 8 bytes, encoded as 16 hex digits
     Felt(Felt),
     /// A set of 4 field elements, 32 bytes, encoded as a contiguous string of 64 hex digits
-    Word(AstWord),
+    Word(WordValue),
 }
 impl fmt::Display for IntValue {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {

@@ -7,7 +7,7 @@ use super::DocString;
 use crate::{
     Felt, SourceSpan, Span, Spanned,
     ast::Ident,
-    parser::{AstWord, ParsingError},
+    parser::{ParsingError, WordValue},
 };
 
 // CONSTANT
@@ -97,7 +97,7 @@ pub enum ConstantExpr {
         rhs: Box<ConstantExpr>,
     },
     String(Ident),
-    Word(Span<AstWord>),
+    Word(Span<WordValue>),
 }
 
 impl ConstantExpr {

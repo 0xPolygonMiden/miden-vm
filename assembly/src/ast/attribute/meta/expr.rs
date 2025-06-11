@@ -3,7 +3,7 @@ use alloc::{string::String, sync::Arc};
 use crate::{
     Felt, SourceSpan, Span, Spanned,
     ast::Ident,
-    parser::{AstWord, IntValue},
+    parser::{IntValue, WordValue},
     prettier,
 };
 
@@ -75,8 +75,8 @@ impl From<Felt> for MetaExpr {
     }
 }
 
-impl From<AstWord> for MetaExpr {
-    fn from(value: AstWord) -> Self {
+impl From<WordValue> for MetaExpr {
+    fn from(value: WordValue) -> Self {
         Self::Int(Span::new(SourceSpan::UNKNOWN, IntValue::Word(value)))
     }
 }

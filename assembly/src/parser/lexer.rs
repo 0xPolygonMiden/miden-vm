@@ -2,8 +2,8 @@ use alloc::string::String;
 use core::{num::IntErrorKind, ops::Range};
 
 use super::{
-    AstWord, BinEncodedValue, BinErrorKind, DocumentationType, HexErrorKind, IntValue,
-    LiteralErrorKind, ParsingError, Scanner, Token,
+    BinEncodedValue, BinErrorKind, DocumentationType, HexErrorKind, IntValue, LiteralErrorKind,
+    ParsingError, Scanner, Token, WordValue,
 };
 use crate::{
     Felt,
@@ -637,7 +637,7 @@ fn parse_hex(span: SourceSpan, hex_digits: &str) -> Result<IntValue, ParsingErro
                 }
                 *element = Felt::new(value);
             }
-            Ok(IntValue::Word(AstWord(word)))
+            Ok(IntValue::Word(WordValue(word)))
         },
         // Invalid
         n if n > 64 => Err(ParsingError::InvalidHexLiteral { span, kind: HexErrorKind::TooLong }),

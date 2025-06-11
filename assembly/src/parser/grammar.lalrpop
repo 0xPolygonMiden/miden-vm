@@ -12,7 +12,7 @@ use vm_core::{Felt, FieldElement, StarkField, crypto::hash::RpoDigest};
 
 use crate::{LibraryPath, LibraryNamespace, ast::*, diagnostics::SourceFile, SourceSpan};
 use super::{
-    BinEncodedValue, IntValue, Token, AstWord, ParseError, ParsingError,
+    BinEncodedValue, IntValue, Token, WordValue, ParseError, ParsingError,
     LiteralErrorKind, HexErrorKind, Span, Spanned,
     DocumentationType
 };
@@ -1441,7 +1441,7 @@ IntValue: IntValue = {
     },
 
     <l:@L> "[" <v0:Felt> "," <v1:Felt> ","<v2:Felt> ","<v3:Felt> "]" <r:@R> =>? {
-        Ok(IntValue::Word(AstWord([v0,v1,v2,v3])))
+        Ok(IntValue::Word(WordValue([v0,v1,v2,v3])))
     },
 
     hex_value
