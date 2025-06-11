@@ -1,6 +1,8 @@
 use alloc::{boxed::Box, string::String, sync::Arc, vec::Vec};
 use core::fmt;
 
+use vm_core::AdviceMap;
+
 use super::{
     DocString, Export, Import, LocalNameResolver, ProcedureIndex, ProcedureName,
     QualifiedProcedureName, ResolvedProcedure,
@@ -124,6 +126,8 @@ pub struct Module {
     /// NOTE: Despite the name, the procedures in this set are not necessarily exported, the
     /// individual procedure item must be checked to determine visibility.
     pub(crate) procedures: Vec<Export>,
+    /// AdviceMap that this module expects to be loaded in the host before executing.
+    pub(crate) advice_map: AdviceMap,
 }
 
 /// Constants
@@ -150,6 +154,7 @@ impl Module {
             kind,
             imports: Default::default(),
             procedures: Default::default(),
+            advice_map: Default::default(),
         }
     }
 

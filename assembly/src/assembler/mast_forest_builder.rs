@@ -7,7 +7,7 @@ use core::ops::{Index, IndexMut};
 
 use miette::{IntoDiagnostic, Report};
 use vm_core::{
-    Decorator, DecoratorList, Felt, Operation,
+    AdviceMap, Decorator, DecoratorList, Felt, Operation,
     crypto::hash::RpoDigest,
     mast::{
         DecoratorFingerprint, DecoratorId, MastForest, MastNode, MastNodeFingerprint, MastNodeId,
@@ -16,7 +16,7 @@ use vm_core::{
 };
 
 use super::{GlobalProcedureIndex, Procedure};
-use crate::{AssemblyError, Library};
+use crate::{AssemblyError, Library, mast::MastForestError};
 
 // CONSTANTS
 // ================================================================================================
@@ -551,6 +551,27 @@ impl IndexMut<DecoratorId> for MastForestBuilder {
     #[inline(always)]
     fn index_mut(&mut self, decorator_id: DecoratorId) -> &mut Self::Output {
         &mut self.mast_forest[decorator_id]
+    }
+}
+
+// ------------------------------------------------------------------------------------------------
+
+impl MastForestBuilder {
+    /// Merge an AdviceMap into the one being built within the MAST Forest.
+    pub fn merge_advice_map(&mut self, adv_map: &AdviceMap) -> Result<(), AssemblyError> {
+        for (digest, values) in adv_map.clone().into_iter() {
+            if let Some(stored_values) = self.mast_forest.advice_map().get(&digest) {
+                if stored_values != values {
+                    return Err(AssemblyError::Forest(
+                        "AdviceMapKeyCollisionOnMerge",
+                        MastForestError::AdviceMapKeyCollisionOnMerge(digest),
+                    ));
+                }
+            } else {
+                self.mast_forest.advice_map_mut().insert(digest, values.clone());
+            }
+        }
+        Ok(())
     }
 }
 
