@@ -2,9 +2,7 @@ use core::fmt;
 
 use super::Felt;
 mod decorators;
-pub use decorators::{
-    AssemblyOp, DebugOptions, Decorator, DecoratorIterator, DecoratorList, SignatureKind,
-};
+pub use decorators::{AssemblyOp, DebugOptions, Decorator, DecoratorIterator, DecoratorList};
 // OPERATIONS OP CODES
 // ================================================================================================
 use opcode_constants::*;

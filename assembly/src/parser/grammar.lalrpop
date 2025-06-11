@@ -151,7 +151,6 @@ extern {
         "horner_eval_base" => Token::HornerBase,
         "horner_eval_ext" => Token::HornerExt,
         "repeat" => Token::Repeat,
-        "rpo_falcon512" => Token::RpoFalcon512,
         "sdepth" => Token::Sdepth,
         "stack" => Token::Stack,
         "sub" => Token::Sub,
@@ -1624,10 +1623,6 @@ QualifiedName: (Ident, LibraryPath) = {
     }
 }
 
-SignatureKind: SignatureKind = {
-    "rpo_falcon512" => SignatureKind::RpoFalcon512,
-}
-
 OpcodeName: Ident = {
     <l:@L> <name:Opcode> <r:@R> => {
         let name = interned.get(name).cloned().unwrap_or_else(|| {
@@ -1724,7 +1719,6 @@ Opcode: &'static str = {
     "procref" => "procref",
     "push" => "push",
     "repeat" => "repeat",
-    "rpo_falcon512" => "rpo_falcon512",
     "sdepth" => "sdepth",
     "stack" => "stack",
     "sub" => "sub",
