@@ -2750,8 +2750,8 @@ fn invalid_proc_invalid_numeric_name() {
         "  :      ^|^",
         "  :       `-- found a integer here",
         "  `----",
-        " help: expected",
-        "identifier, or quoted identifier"
+        " help: expected primitive opcode",
+        "      identifier"
     );
 }
 

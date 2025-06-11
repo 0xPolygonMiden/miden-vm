@@ -29,7 +29,7 @@ pub use self::{
     ident::{CaseKindError, Ident, IdentError},
     immediate::{ImmFelt, ImmU8, ImmU16, ImmU32, Immediate},
     imports::Import,
-    instruction::{DebugOptions, Instruction, SystemEventNode, advice::SignatureKind},
+    instruction::{DebugOptions, Instruction, SystemEventNode},
     invocation_target::{InvocationTarget, Invoke, InvokeKind},
     module::{Module, ModuleKind},
     op::Op,
