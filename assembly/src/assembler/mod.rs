@@ -335,6 +335,8 @@ impl Assembler {
                 // in `ast_module_indices` are in AST form by definition.
                 let ast_module = self.module_graph[module_idx].unwrap_ast().clone();
 
+                mast_forest_builder.merge_advice_map(&ast_module.advice_map)?;
+
                 for (proc_idx, fqn) in ast_module.exported_procedures() {
                     let gid = module_idx + proc_idx;
                     self.compile_subgraph(gid, &mut mast_forest_builder)?;
@@ -422,6 +424,9 @@ impl Assembler {
 
         // Compile the module graph rooted at the entrypoint
         let mut mast_forest_builder = MastForestBuilder::new(self.vendored_libraries.values())?;
+
+        mast_forest_builder
+            .merge_advice_map(&self.module_graph[ast_module_index].unwrap_ast().advice_map)?;
 
         self.compile_subgraph(entrypoint, &mut mast_forest_builder)?;
         let entry_node_id = mast_forest_builder
