@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.16.0 (TBD)
+
+#### Changes
+
+- Removed the obsolete `RpoFalcon512` decorator and associated structs (#1872).
+
 ## 0.15.0 (2025-06-06)
 
 #### Enhancements
