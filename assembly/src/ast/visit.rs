@@ -480,11 +480,6 @@ where
         | CSwapW
         | CDrop
         | CDropW
-        | PushU8(_)
-        | PushU16(_)
-        | PushU32(_)
-        | PushFelt(_)
-        | PushWord(_)
         | PushU8List(_)
         | PushU16List(_)
         | PushU32List(_)
@@ -1074,11 +1069,6 @@ where
         | CSwapW
         | CDrop
         | CDropW
-        | PushU8(_)
-        | PushU16(_)
-        | PushU32(_)
-        | PushFelt(_)
-        | PushWord(_)
         | PushU8List(_)
         | PushU16List(_)
         | PushU32List(_)
