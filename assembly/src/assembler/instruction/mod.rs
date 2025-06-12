@@ -1,7 +1,7 @@
 use vm_core::{Decorator, ONE, WORD_SIZE, ZERO, debuginfo::Spanned, mast::MastNodeId};
 
 use super::{Assembler, BasicBlockBuilder, Felt, Operation, ProcedureContext, ast::InvokeKind};
-use crate::{AssemblyError, Span, ast::Instruction};
+use crate::{AssemblyError, Span, ast::Instruction, parser::IntValue};
 
 mod adv_ops;
 mod crypto_ops;
@@ -336,12 +336,18 @@ impl Assembler {
             Instruction::CDropW => block_builder.push_ops([CSwapW, Drop, Drop, Drop, Drop]),
 
             // ----- input / output instructions --------------------------------------------------
-            Instruction::Push(imm) => env_ops::push_one(imm.expect_value(), block_builder),
+            Instruction::Push(imm) => match (*imm).expect_value() {
+                IntValue::U8(v) => env_ops::push_one(v, block_builder),
+                IntValue::U16(v) => env_ops::push_one(v, block_builder),
+                IntValue::U32(v) => env_ops::push_one(v, block_builder),
+                IntValue::Felt(v) => env_ops::push_one(v, block_builder),
+                IntValue::Word(v) => env_ops::push_many(&v.0, block_builder),
+            },
             Instruction::PushU8(imm) => env_ops::push_one(*imm, block_builder),
             Instruction::PushU16(imm) => env_ops::push_one(*imm, block_builder),
             Instruction::PushU32(imm) => env_ops::push_one(*imm, block_builder),
             Instruction::PushFelt(imm) => env_ops::push_one(*imm, block_builder),
-            Instruction::PushWord(imms) => env_ops::push_many(imms, block_builder),
+            Instruction::PushWord(imms) => env_ops::push_many(&imms.0, block_builder),
             Instruction::PushU8List(imms) => env_ops::push_many(imms, block_builder),
             Instruction::PushU16List(imms) => env_ops::push_many(imms, block_builder),
             Instruction::PushU32List(imms) => env_ops::push_many(imms, block_builder),
