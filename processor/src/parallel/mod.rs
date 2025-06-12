@@ -8,10 +8,10 @@ use miden_air::{
 use tokio::{sync::mpsc::Receiver, task::JoinHandle};
 use traversal::ExecutionTraversal;
 use vm_core::{
-    Felt, ONE, Operation, Program, Word, ZERO,
+    Felt, ONE, Operation, Program, StarkField, WORD_SIZE, Word, ZERO,
     mast::{BasicBlockNode, MastForest, MastNode, MastNodeId, OP_GROUP_SIZE, OpBatch},
     stack::MIN_STACK_DEPTH,
-    utils::uninit_vector,
+    utils::{range, uninit_vector},
 };
 
 use crate::{
@@ -20,6 +20,7 @@ use crate::{
         SpanContext,
         block_stack::{BlockStack, BlockType, ExecutionContextInfo},
     },
+    processor::Processor,
     stack::OverflowTable,
     system::{FMP_MIN, SYSCALL_FMP_MIN},
 };
@@ -117,6 +118,7 @@ pub struct SystemState {
 /// OverflowTable.
 #[derive(Debug)]
 pub struct StackState {
+    // TODO: Store in reverse order
     /// Top 16 stack slots (s0 to s15)
     /// These represent the top elements of the stack that are directly accessible
     pub stack_top: [Felt; MIN_STACK_DEPTH], // 16 columns
@@ -727,14 +729,18 @@ impl CoreTraceFragmentGenerator {
 
         match op {
             // ----- system operations ------------------------------------------------------------
-            Operation::Noop => {},
+            Operation::Noop => {
+                // do nothing
+            },
             Operation::Assert(_err_code) => self.op_assert(),
-            Operation::FmpAdd => self.fmpadd(),
-            Operation::FmpUpdate => self.fmpupdate(),
-            Operation::SDepth => self.sdepth(),
-            Operation::Caller => self.caller(),
-            Operation::Clk => self.clk(),
-            Operation::Emit(event_id) => self.emit(*event_id),
+            Operation::FmpAdd => self.op_fmpadd(),
+            Operation::FmpUpdate => self.op_fmpupdate().expect("FMP update should not fail"),
+            Operation::SDepth => self.op_sdepth(),
+            Operation::Caller => self.op_caller().expect("Caller operation should not fail"),
+            Operation::Clk => self.op_clk(),
+            Operation::Emit(_) => {
+                // do nothing
+            },
 
             // ----- flow control operations ------------------------------------------------------
             // control flow operations are never executed directly
@@ -755,69 +761,72 @@ impl CoreTraceFragmentGenerator {
             Operation::Add => self.op_add(),
             Operation::Neg => self.op_neg(),
             Operation::Mul => self.op_mul(),
-            Operation::Inv => self.op_inv(),
+            Operation::Inv => self.op_inv().expect("Inverse operation should not fail"),
             Operation::Incr => self.op_incr(),
-            Operation::And => self.op_and(),
-            Operation::Or => self.op_or(),
-            Operation::Not => self.op_not(),
+            Operation::And => self.op_and().expect("And operation should not fail"),
+            Operation::Or => self.op_or().expect("Or operation should not fail"),
+            Operation::Not => self.op_not().expect("Not operation should not fail"),
             Operation::Eq => self.op_eq(),
             Operation::Eqz => self.op_eqz(),
             Operation::Expacc => self.op_expacc(),
 
             // ----- ext2 operations --------------------------------------------------------------
-            Operation::Ext2Mul => self.ext2mul(),
+            Operation::Ext2Mul => self.op_ext2mul(),
 
             // ----- u32 operations ---------------------------------------------------------------
-            Operation::U32split => self.u32split(),
-            Operation::U32add => self.u32add(),
-            Operation::U32add3 => self.u32add3(),
-            Operation::U32sub => self.u32sub(),
-            Operation::U32mul => self.u32mul(),
-            Operation::U32madd => self.u32madd(),
-            Operation::U32div => self.u32div(),
-            Operation::U32and => self.u32and(),
-            Operation::U32xor => self.u32xor(),
-            Operation::U32assert2(_err_code) => self.u32assert2(),
+            Operation::U32split => self.op_u32split(),
+            Operation::U32add => self.op_u32add().expect("U32 add operation should not fail"),
+            Operation::U32add3 => self.op_u32add3().expect("U32 add3 operation should not fail"),
+            // Note: the `op_idx_in_block` argument is just in case of error, so we set it to 0
+            Operation::U32sub => self.op_u32sub(0).expect("U32 sub operation should not fail"),
+            Operation::U32mul => self.op_u32mul().expect("U32 mul operation should not fail"),
+            Operation::U32madd => self.op_u32madd().expect("U32 madd operation should not fail"),
+            Operation::U32div => self.op_u32div().expect("U32 div operation should not fail"),
+            Operation::U32and => self.op_u32and().expect("U32 and operation should not fail"),
+            Operation::U32xor => self.op_u32xor().expect("U32 xor operation should not fail"),
+            Operation::U32assert2(err_code) => {
+                self.op_u32assert2(*err_code).expect("U32 assert2 operation should not fail")
+            },
 
             // ----- stack manipulation -----------------------------------------------------------
-            Operation::Pad => self.pad(),
-            Operation::Drop => self.drop(),
-            Operation::Dup0 => self.dup(0),
-            Operation::Dup1 => self.dup(1),
-            Operation::Dup2 => self.dup(2),
-            Operation::Dup3 => self.dup(3),
-            Operation::Dup4 => self.dup(4),
-            Operation::Dup5 => self.dup(5),
-            Operation::Dup6 => self.dup(6),
-            Operation::Dup7 => self.dup(7),
-            Operation::Dup9 => self.dup(9),
-            Operation::Dup11 => self.dup(11),
-            Operation::Dup13 => self.dup(13),
-            Operation::Dup15 => self.dup(15),
-            Operation::Swap => self.swap(),
-            Operation::SwapW => self.swapw(),
-            Operation::SwapW2 => self.swapw2(),
-            Operation::SwapW3 => self.swapw3(),
-            Operation::SwapDW => self.swapdw(),
-            Operation::MovUp2 => self.movup(2),
-            Operation::MovUp3 => self.movup(3),
-            Operation::MovUp4 => self.movup(4),
-            Operation::MovUp5 => self.movup(5),
-            Operation::MovUp6 => self.movup(6),
-            Operation::MovUp7 => self.movup(7),
-            Operation::MovUp8 => self.movup(8),
-            Operation::MovDn2 => self.movdn(2),
-            Operation::MovDn3 => self.movdn(3),
-            Operation::MovDn4 => self.movdn(4),
-            Operation::MovDn5 => self.movdn(5),
-            Operation::MovDn6 => self.movdn(6),
-            Operation::MovDn7 => self.movdn(7),
-            Operation::MovDn8 => self.movdn(8),
-            Operation::CSwap => self.cswap(),
-            Operation::CSwapW => self.cswapw(),
+            Operation::Pad => self.op_pad(),
+            Operation::Drop => self.decrement_stack_size(),
+            Operation::Dup0 => self.dup_nth(0),
+            Operation::Dup1 => self.dup_nth(1),
+            Operation::Dup2 => self.dup_nth(2),
+            Operation::Dup3 => self.dup_nth(3),
+            Operation::Dup4 => self.dup_nth(4),
+            Operation::Dup5 => self.dup_nth(5),
+            Operation::Dup6 => self.dup_nth(6),
+            Operation::Dup7 => self.dup_nth(7),
+            Operation::Dup9 => self.dup_nth(9),
+            Operation::Dup11 => self.dup_nth(11),
+            Operation::Dup13 => self.dup_nth(13),
+            Operation::Dup15 => self.dup_nth(15),
+            Operation::Swap => self.op_swap(),
+            Operation::SwapW => self.swapw_nth(1),
+            Operation::SwapW2 => self.swapw_nth(2),
+            Operation::SwapW3 => self.swapw_nth(3),
+            Operation::SwapDW => self.op_swap_double_word(),
+            Operation::MovUp2 => self.rotate_left(3),
+            Operation::MovUp3 => self.rotate_left(4),
+            Operation::MovUp4 => self.rotate_left(5),
+            Operation::MovUp5 => self.rotate_left(6),
+            Operation::MovUp6 => self.rotate_left(7),
+            Operation::MovUp7 => self.rotate_left(8),
+            Operation::MovUp8 => self.rotate_left(9),
+            Operation::MovDn2 => self.rotate_right(3),
+            Operation::MovDn3 => self.rotate_right(4),
+            Operation::MovDn4 => self.rotate_right(5),
+            Operation::MovDn5 => self.rotate_right(6),
+            Operation::MovDn6 => self.rotate_right(7),
+            Operation::MovDn7 => self.rotate_right(8),
+            Operation::MovDn8 => self.rotate_right(9),
+            Operation::CSwap => self.op_cswap().expect("CSwap operation should not fail"),
+            Operation::CSwapW => self.op_cswapw().expect("CSwapW operation should not fail"),
 
             // ----- input / output ---------------------------------------------------------------
-            Operation::Push(value) => self.push(*value),
+            Operation::Push(value) => self.op_push(*value),
             Operation::AdvPop => self.advpop(),
             Operation::AdvPopW => self.advpopw(),
             Operation::MLoadW => self.mloadw(),
@@ -956,4 +965,156 @@ fn get_current_op_group_idx(op_batch: &OpBatch, op_idx_in_batch: usize) -> usize
     }
 
     panic!("operation index {op_idx_in_batch} exceeds batch size");
+}
+
+// REQUIRED METHODS
+// ===============================================================================================
+
+impl Processor for CoreTraceFragmentGenerator {
+    fn caller_hash(&self) -> Word {
+        self.state.system.fn_hash
+    }
+
+    fn in_syscall(&self) -> bool {
+        self.state.system.in_syscall
+    }
+
+    fn clk(&self) -> RowIndex {
+        self.state.system.clk
+    }
+
+    fn fmp(&self) -> Felt {
+        self.state.system.fmp
+    }
+
+    fn set_fmp(&mut self, new_fmp: Felt) {
+        self.state.system.fmp = new_fmp;
+    }
+
+    fn stack_top(&self) -> &[Felt] {
+        &self.state.stack.stack_top
+    }
+
+    fn stack_get(&self, idx: usize) -> Felt {
+        debug_assert!(idx < MIN_STACK_DEPTH);
+        self.state.stack.stack_top[MIN_STACK_DEPTH - idx - 1]
+    }
+
+    fn stack_get_mut(&mut self, idx: usize) -> &mut Felt {
+        debug_assert!(idx < MIN_STACK_DEPTH);
+
+        &mut self.state.stack.stack_top[MIN_STACK_DEPTH - idx - 1]
+    }
+
+    fn stack_get_word(&self, start_idx: usize) -> Word {
+        debug_assert!(start_idx < MIN_STACK_DEPTH - 4);
+
+        let word_start_idx = start_idx - 4;
+        self.stack_top()[range(word_start_idx, WORD_SIZE)].try_into().unwrap()
+    }
+
+    fn stack_depth(&self) -> u32 {
+        (MIN_STACK_DEPTH + self.state.stack.overflow.num_elements_in_current_ctx()) as u32
+    }
+
+    fn stack_write(&mut self, idx: usize, element: Felt) {
+        *self.stack_get_mut(idx) = element;
+    }
+
+    fn stack_write_word(&mut self, start_idx: usize, word: &Word) {
+        debug_assert!(start_idx < MIN_STACK_DEPTH - 4);
+        let word_start_idx = start_idx - 4;
+
+        let word_on_stack = &mut self.state.stack.stack_top[range(word_start_idx, WORD_SIZE)];
+        word_on_stack.copy_from_slice(word.as_slice());
+    }
+
+    fn stack_swap(&mut self, idx1: usize, idx2: usize) {
+        let a = self.stack_get(idx1);
+        let b = self.stack_get(idx2);
+        self.stack_write(idx1, b);
+        self.stack_write(idx2, a);
+    }
+
+    // TODO(plafer): this is copy/pasted (almost) from the FastProcessor. Find a way to
+    // properly abstract this out.
+    fn swapw_nth(&mut self, n: usize) {
+        // For example, for n=3, the stack words and variables look like:
+        //    3     2     1     0
+        // | ... | ... | ... | ... |
+        // ^                 ^
+        // nth_word       top_word
+        let (rest_of_stack, top_word) =
+            self.state.stack.stack_top.split_at_mut(MIN_STACK_DEPTH - WORD_SIZE);
+        let (_, nth_word) = rest_of_stack.split_at_mut(rest_of_stack.len() - n * WORD_SIZE);
+
+        nth_word[0..WORD_SIZE].swap_with_slice(&mut top_word[0..WORD_SIZE]);
+    }
+
+    // TODO(plafer): this is copy/pasted (almost) from the FastProcessor
+    fn rotate_left(&mut self, n: usize) {
+        let rotation_bot_index = MIN_STACK_DEPTH - n;
+        let new_stack_top_element = self.state.stack.stack_top[rotation_bot_index];
+
+        // shift the top n elements down by 1, starting from the bottom of the rotation.
+        for i in 0..n - 1 {
+            self.state.stack.stack_top[rotation_bot_index + i] =
+                self.state.stack.stack_top[rotation_bot_index + i + 1];
+        }
+
+        // Set the top element (which comes from the bottom of the rotation).
+        self.stack_write(0, new_stack_top_element);
+    }
+
+    // TODO(plafer): this is copy/pasted (almost) from the FastProcessor
+    fn rotate_right(&mut self, n: usize) {
+        let rotation_bot_index = MIN_STACK_DEPTH - n;
+        let new_stack_bot_element = self.state.stack.stack_top[MIN_STACK_DEPTH - 1];
+
+        // shift the top n elements up by 1, starting from the top of the rotation.
+        for i in 1..n {
+            self.state.stack.stack_top[MIN_STACK_DEPTH - i] =
+                self.state.stack.stack_top[MIN_STACK_DEPTH - i - 1];
+        }
+
+        // Set the bot element (which comes from the top of the rotation).
+        self.state.stack.stack_top[rotation_bot_index] = new_stack_bot_element;
+    }
+
+    fn increment_stack_size(&mut self) {
+        const SENTINEL_VALUE: Felt = Felt::new(Felt::MODULUS - 1);
+
+        // push the last element on the overflow table
+        {
+            let last_element = self.stack_get(MIN_STACK_DEPTH - 1);
+            self.state.stack.overflow.push(last_element);
+        }
+
+        // Shift all other elements down
+        for write_idx in (1..MIN_STACK_DEPTH).rev() {
+            let read_idx = write_idx - 1;
+            self.stack_write(write_idx, self.stack_get(read_idx));
+        }
+
+        // Set the top element to SENTINEL_VALUE to help in debugging. Per the method docs, this
+        // value will be overwritten
+        self.stack_write(0, SENTINEL_VALUE);
+    }
+
+    fn decrement_stack_size(&mut self) {
+        // Shift all other elements up
+        for write_idx in 0..(MIN_STACK_DEPTH - 1) {
+            let read_idx = write_idx + 1;
+            self.stack_write(write_idx, self.stack_get(read_idx));
+        }
+
+        // Pop the last element from the overflow table
+        if let Some(last_element) = self.state.stack.overflow.pop() {
+            // Write the last element to the bottom of the stack
+            self.stack_write(MIN_STACK_DEPTH - 1, last_element);
+        } else {
+            // If overflow table is empty, set the bottom element to zero
+            self.stack_write(MIN_STACK_DEPTH - 1, ZERO);
+        }
+    }
 }

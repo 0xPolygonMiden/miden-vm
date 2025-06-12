@@ -1,16 +1,10 @@
-use vm_core::{Felt, Word, ZERO};
+use vm_core::{Word, ZERO};
 
 use crate::processor::Processor;
 
 use super::CoreTraceFragmentGenerator;
 
 impl CoreTraceFragmentGenerator {
-    /// Pushes a value onto the stack.
-    pub(crate) fn push(&mut self, value: Felt) {
-        self.stack_shift_right(1);
-        self.stack_set(0, value);
-    }
-
     /// Pops a value from the advice stack and pushes it onto the operand stack.
     pub(crate) fn advpop(&mut self) {
         let value = self.state.advice.replay_stack_pop();
