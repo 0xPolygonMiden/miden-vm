@@ -6,7 +6,7 @@ use crate::{
     Felt, LibraryNamespace, LibraryPath, Span, assert_diagnostic, assert_diagnostic_lines,
     ast::*,
     diagnostics::{Report, reporting::PrintDiagnostic},
-    parser::WordValue,
+    parser::{IntValue, WordValue},
     regex, source_file,
     testing::{Pattern, TestContext},
 };
@@ -312,13 +312,39 @@ macro_rules! assert_program_diagnostic_lines {
 // UNIT TESTS
 // ================================================================================================
 
+fn push_u8(n: u8) -> Op {
+    Op::Inst(Span::unknown(Instruction::Push(Immediate::Value(Span::unknown(IntValue::U8(
+        n,
+    ))))))
+}
+fn push_u16(n: u16) -> Op {
+    Op::Inst(Span::unknown(Instruction::Push(Immediate::Value(Span::unknown(
+        IntValue::U16(n),
+    )))))
+}
+fn push_u32(n: u32) -> Op {
+    Op::Inst(Span::unknown(Instruction::Push(Immediate::Value(Span::unknown(
+        IntValue::U32(n),
+    )))))
+}
+fn push_felt(n: Felt) -> Op {
+    Op::Inst(Span::unknown(Instruction::Push(Immediate::Value(Span::unknown(
+        IntValue::Felt(n),
+    )))))
+}
+fn push_word(n: WordValue) -> Op {
+    Op::Inst(Span::unknown(Instruction::Push(Immediate::Value(Span::unknown(
+        IntValue::Word(n),
+    )))))
+}
+
 /// Tests the AST parsing
 #[test]
 fn test_ast_parsing_program_simple() -> Result<(), Report> {
     let context = TestContext::new();
 
     let source = source_file!(&context, "begin push.0 assertz add.1 end");
-    let forms = module!(begin!(inst!(PushU8(0)), inst!(Assertz), inst!(Incr)));
+    let forms = module!(begin!(push_u8(0), inst!(Assertz), inst!(Incr)));
 
     assert_eq!(context.parse_forms(source)?, forms);
 
@@ -344,23 +370,23 @@ fn test_ast_parsing_program_push() -> Result<(), Report> {
     end"#
     );
     let forms = module!(begin!(
-        inst!(PushU8(10)),
-        inst!(PushU16(500)),
-        inst!(PushU32(70000)),
-        inst!(PushFelt(Felt::new(5000000000_u64))),
-        inst!(PushFelt(Felt::new(5000000000_u64))),
-        inst!(PushFelt(Felt::new(7000000000_u64))),
-        inst!(PushFelt(Felt::new(9000000000_u64))),
-        inst!(PushFelt(Felt::new(11000000000_u64))),
-        inst!(PushU8(5)),
-        inst!(PushU8(7)),
-        inst!(PushU16(500)),
-        inst!(PushU16(700)),
-        inst!(PushU32(70000)),
-        inst!(PushU32(90000)),
-        inst!(PushFelt(Felt::new(5000000000_u64))),
-        inst!(PushFelt(Felt::new(7000000000_u64))),
-        inst!(PushWord(WordValue([Felt::new(0), Felt::new(1), Felt::new(2), Felt::new(3)])))
+        push_u8(10),
+        push_u16(500),
+        push_u32(70000),
+        push_felt(Felt::new(5000000000_u64)),
+        push_felt(Felt::new(5000000000_u64)),
+        push_felt(Felt::new(7000000000_u64)),
+        push_felt(Felt::new(9000000000_u64)),
+        push_felt(Felt::new(11000000000_u64)),
+        push_u8(5),
+        push_u8(7),
+        push_u16(500),
+        push_u16(700),
+        push_u32(70000),
+        push_u32(90000),
+        push_felt(Felt::new(5000000000_u64)),
+        push_felt(Felt::new(7000000000_u64)),
+        push_word(WordValue([Felt::new(0), Felt::new(1), Felt::new(2), Felt::new(3)]))
     ));
 
     assert_eq!(context.parse_forms(source)?, forms);
@@ -401,7 +427,7 @@ fn test_ast_parsing_program_u32() -> Result<(), Report> {
     end"#
     );
     let forms = module!(begin!(
-        inst!(PushU8(3)),
+        push_u8(3),
         inst!(U32WrappingAddImm(5u32.into())),
         inst!(U32OverflowingAddImm(5u32.into())),
         inst!(U32WrappingSubImm(1u32.into())),
@@ -497,7 +523,7 @@ fn test_ast_parsing_bitwise_counters() -> Result<(), Report> {
 fn test_ast_parsing_ilog2() -> Result<(), Report> {
     let context = TestContext::new();
     let source = source_file!(&context, "begin push.8 ilog2 end");
-    let forms = module!(begin!(inst!(PushU8(8)), inst!(ILog2)));
+    let forms = module!(begin!(push_u8(8), inst!(ILog2)));
 
     assert_eq!(context.parse_forms(source)?, forms);
     Ok(())
@@ -546,15 +572,12 @@ fn test_ast_parsing_module_nested_if() -> Result<(), Report> {
         foo,
         0,
         block!(
-            inst!(PushU8(1)),
+            push_u8(1),
             if_true!(
                 block!(
-                    inst!(PushU8(0)),
-                    inst!(PushU8(1)),
-                    if_true!(
-                        block!(inst!(PushU8(0)), inst!(Sub)),
-                        block!(inst!(PushU8(1)), inst!(Sub))
-                    )
+                    push_u8(0),
+                    push_u8(1),
+                    if_true!(block!(push_u8(0), inst!(Sub)), block!(push_u8(1), inst!(Sub)))
                 ),
                 block!(inst!(Nop))
             )
@@ -590,9 +613,9 @@ fn test_ast_parsing_module_sequential_if() -> Result<(), Report> {
         foo,
         0,
         block!(
-            inst!(PushU8(1)),
-            if_true!(block!(inst!(PushU8(5)), inst!(PushU8(1))), block!(inst!(Nop))),
-            if_true!(block!(inst!(PushU8(0)), inst!(Sub)), block!(inst!(PushU8(1)), inst!(Sub)))
+            push_u8(1),
+            if_true!(block!(push_u8(5), push_u8(1)), block!(inst!(Nop))),
+            if_true!(block!(push_u8(0), inst!(Sub)), block!(push_u8(1), inst!(Sub)))
         )
     ));
 
@@ -621,7 +644,7 @@ fn test_ast_parsing_while_if_body() {
     );
 
     let forms = module!(begin!(
-        inst!(PushU8(1)),
+        push_u8(1),
         while_true!(block!(inst!(Mul))),
         inst!(Add),
         if_true!(block!(inst!(Div)), block!(inst!(Nop))),
@@ -869,7 +892,7 @@ end"
         doc!(BAR_DOC),
         proc!(bar, 2, block!(inst!(PadW))),
         doc!(BAZ_DOC),
-        export!(baz, 3, block!(inst!(PadW), inst!(PushU8(0))))
+        export!(baz, 3, block!(inst!(PadW), push_u8(0)))
     );
 
     let actual_forms = context.parse_forms(source.clone()).unwrap();
