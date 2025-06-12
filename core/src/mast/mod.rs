@@ -57,9 +57,9 @@ pub struct MastForest {
     /// Advice map to be loaded into the VM prior to executing procedures from this MAST forest.
     advice_map: AdviceMap,
 
-    /// A map from error codes to error messages. Error messages cannot be
-    /// recovered from error codes, so they are stored in order to provide a
-    /// useful message to the user in case a error code is triggered.
+    /// A map from error codes to error messages. Error messages cannot be recovered from error
+    /// codes, so they are stored in order to provide a useful message to the user in case a error
+    /// code is triggered.
     error_codes: BTreeMap<u64, Arc<str>>,
 }
 
@@ -480,18 +480,16 @@ impl MastForest {
         &mut self.advice_map
     }
 
-    /// Registers an error message in the MAST Forest and returns the
-    /// corresponding error code as a Felt.
+    /// Registers an error message in the MAST Forest and returns the corresponding error code as a
+    /// Felt.
     pub fn register_error(&mut self, msg: Arc<str>) -> Felt {
         let code: Felt = error_code_from_msg(&msg);
-        let code_key = u64::from(code);
         // we use u64 as keys for the map
-        self.error_codes.insert(code_key, msg);
+        self.error_codes.insert(code.as_int(), msg);
         code
     }
 
-    /// Given an error code as a Felt, resolves it to its corresponding
-    /// error message.
+    /// Given an error code as a Felt, resolves it to its corresponding error message.
     pub fn resolve_error_message(&self, code: Felt) -> Option<Arc<str>> {
         let key = u64::from(code);
         self.error_codes.get(&key).cloned()
@@ -650,8 +648,8 @@ impl fmt::Display for MastNodeId {
 
 // ITERATOR
 
-/// Iterates over all the nodes a root depends on, in pre-order.
-/// The iteration can include other roots in the same forest.
+/// Iterates over all the nodes a root depends on, in pre-order. The iteration can include other
+/// roots in the same forest.
 pub struct SubtreeIterator<'a> {
     forest: &'a MastForest,
     discovered: Vec<MastNodeId>,
