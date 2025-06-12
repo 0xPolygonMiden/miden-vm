@@ -1,6 +1,7 @@
 use vm_core::ONE;
 
 use super::CoreTraceFragmentGenerator;
+use crate::processor::Processor;
 
 impl CoreTraceFragmentGenerator {
     /// Asserts that the top element on the stack is 1.
@@ -12,6 +13,6 @@ impl CoreTraceFragmentGenerator {
                 value, self.state.system.clk
             );
         }
-        self.stack_shift_left(1);
+        self.decrement_stack_size();
     }
 }

@@ -4,8 +4,8 @@ use miden_air::trace::{
     DECODER_TRACE_OFFSET,
     decoder::{
         ADDR_COL_IDX, GROUP_COUNT_COL_IDX, HASHER_STATE_OFFSET, IN_SPAN_COL_IDX,
-        NUM_OP_BATCH_FLAGS, NUM_OP_BITS, NUM_OP_BITS_EXTRA_COLS, OP_BATCH_FLAGS_OFFSET,
-        OP_BITS_EXTRA_COLS_OFFSET, OP_BITS_OFFSET, OP_INDEX_COL_IDX,
+        NUM_OP_BATCH_FLAGS, NUM_OP_BITS, NUM_OP_BITS_EXTRA_COLS, NUM_USER_OP_HELPERS,
+        OP_BATCH_FLAGS_OFFSET, OP_BITS_EXTRA_COLS_OFFSET, OP_BITS_OFFSET, OP_INDEX_COL_IDX,
     },
 };
 use vm_core::{
@@ -194,6 +194,7 @@ impl CoreTraceFragmentGenerator {
         &mut self,
         operation: Operation,
         op_idx_in_group: usize,
+        user_op_helpers: Option<[Felt; NUM_USER_OP_HELPERS]>,
     ) -> ControlFlow<()> {
         let row_idx = self.num_rows_built();
 
@@ -208,7 +209,7 @@ impl CoreTraceFragmentGenerator {
 
         self.fragment.columns[DECODER_TRACE_OFFSET + ADDR_COL_IDX][row_idx] = block.addr;
 
-        // TODO(plafer): copy/pasted from trace_builder.rs; put in some `append_opcode` method
+        // TODO(plafer): copy/pasted from trace_builder.rs; use `append_opcode` method
         {
             let opcode = operation.op_code();
             for i in 0..NUM_OP_BITS {
@@ -217,17 +218,28 @@ impl CoreTraceFragmentGenerator {
             }
         }
 
-        // hasher trace
+        // hasher trace: group_ops_left and parent address
         self.fragment.columns[DECODER_TRACE_OFFSET + HASHER_STATE_OFFSET][row_idx] =
             ctx.group_ops_left;
         self.fragment.columns[DECODER_TRACE_OFFSET + HASHER_STATE_OFFSET + 1][row_idx] =
             block.parent_addr;
-        self.fragment.columns[DECODER_TRACE_OFFSET + HASHER_STATE_OFFSET + 2][row_idx] = ZERO;
-        self.fragment.columns[DECODER_TRACE_OFFSET + HASHER_STATE_OFFSET + 3][row_idx] = ZERO;
-        self.fragment.columns[DECODER_TRACE_OFFSET + HASHER_STATE_OFFSET + 4][row_idx] = ZERO;
-        self.fragment.columns[DECODER_TRACE_OFFSET + HASHER_STATE_OFFSET + 5][row_idx] = ZERO;
-        self.fragment.columns[DECODER_TRACE_OFFSET + HASHER_STATE_OFFSET + 6][row_idx] = ZERO;
-        self.fragment.columns[DECODER_TRACE_OFFSET + HASHER_STATE_OFFSET + 7][row_idx] = ZERO;
+
+        // hasher trace: user op helpers
+        {
+            let user_op_helpers = user_op_helpers.unwrap_or([ZERO; NUM_USER_OP_HELPERS]);
+            self.fragment.columns[DECODER_TRACE_OFFSET + HASHER_STATE_OFFSET + 2][row_idx] =
+                user_op_helpers[0];
+            self.fragment.columns[DECODER_TRACE_OFFSET + HASHER_STATE_OFFSET + 3][row_idx] =
+                user_op_helpers[1];
+            self.fragment.columns[DECODER_TRACE_OFFSET + HASHER_STATE_OFFSET + 4][row_idx] =
+                user_op_helpers[2];
+            self.fragment.columns[DECODER_TRACE_OFFSET + HASHER_STATE_OFFSET + 5][row_idx] =
+                user_op_helpers[3];
+            self.fragment.columns[DECODER_TRACE_OFFSET + HASHER_STATE_OFFSET + 6][row_idx] =
+                user_op_helpers[4];
+            self.fragment.columns[DECODER_TRACE_OFFSET + HASHER_STATE_OFFSET + 7][row_idx] =
+                user_op_helpers[5];
+        }
 
         self.fragment.columns[DECODER_TRACE_OFFSET + IN_SPAN_COL_IDX][row_idx] = ONE;
         self.fragment.columns[DECODER_TRACE_OFFSET + GROUP_COUNT_COL_IDX][row_idx] =

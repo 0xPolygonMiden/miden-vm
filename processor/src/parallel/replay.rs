@@ -74,7 +74,7 @@ impl MemoryReplay {
     // ACCESSORS
     // --------------------------------------------------------------------------------
 
-    pub fn read_element(&mut self, addr: Felt) -> Felt {
+    pub fn replay_read_element(&mut self, addr: Felt) -> Felt {
         let (stored_addr, element) =
             self.elements_read.pop_front().expect("No elements read from memory");
         debug_assert_eq!(
@@ -85,7 +85,7 @@ impl MemoryReplay {
         element
     }
 
-    pub fn read_word(&mut self, addr: Felt) -> Word {
+    pub fn replay_read_word(&mut self, addr: Felt) -> Word {
         let (stored_addr, word) = self.words_read.pop_front().expect("No words read from memory");
         debug_assert_eq!(
             stored_addr, addr,
@@ -313,7 +313,7 @@ impl AdviceReplay {
     }
 
     /// Replays a get_merkle_path operation, returning the previously recorded path
-    pub fn replay_merkle_path(&mut self, root: Word, depth: &Felt, index: &Felt) -> MerklePath {
+    pub fn replay_merkle_path(&mut self, root: Word, depth: Felt, index: Felt) -> MerklePath {
         let (recorded_root, recorded_depth, recorded_index, merkle_path) =
             self.merkle_paths.pop_front().expect("No merkle path operations recorded");
         debug_assert_eq!(
@@ -322,12 +322,12 @@ impl AdviceReplay {
             root, recorded_root
         );
         debug_assert_eq!(
-            recorded_depth, *depth,
+            recorded_depth, depth,
             "Merkle path depth mismatch: expected {:?}, got {:?}",
             depth, recorded_depth
         );
         debug_assert_eq!(
-            recorded_index, *index,
+            recorded_index, index,
             "Merkle path index mismatch: expected {:?}, got {:?}",
             index, recorded_index
         );
@@ -424,7 +424,7 @@ pub struct HasherReplay {
 
     /// Recorded hasher operations from Merkle path verification operations
     /// Each entry contains (address, computed_root)
-    pub mpverify_operations: VecDeque<(Felt, Word)>,
+    pub build_merkle_root_operations: VecDeque<(Felt, Word)>,
 
     /// Recorded hasher operations from Merkle root update operations
     /// Each entry contains (address, old_root, new_root)
@@ -436,7 +436,7 @@ impl HasherReplay {
         Self {
             block_addresses: VecDeque::new(),
             permutation_operations: VecDeque::new(),
-            mpverify_operations: VecDeque::new(),
+            build_merkle_root_operations: VecDeque::new(),
             mrupdate_operations: VecDeque::new(),
         }
     }
@@ -455,8 +455,8 @@ impl HasherReplay {
     }
 
     /// Records a Merkle path verification with its address and computed root
-    pub fn record_mpverify(&mut self, addr: Felt, computed_root: Word) {
-        self.mpverify_operations.push_back((addr, computed_root));
+    pub fn record_build_merkle_root(&mut self, addr: Felt, computed_root: Word) {
+        self.build_merkle_root_operations.push_back((addr, computed_root));
     }
 
     /// Records a Merkle root update with its address, old root, and new root
@@ -480,8 +480,10 @@ impl HasherReplay {
     }
 
     /// Replays a Merkle path verification, returning the pre-recorded address and computed root
-    pub fn replay_mpverify(&mut self) -> (Felt, Word) {
-        self.mpverify_operations.pop_front().expect("No mpverify operations recorded")
+    pub fn replay_build_merkle_root(&mut self) -> (Felt, Word) {
+        self.build_merkle_root_operations
+            .pop_front()
+            .expect("No build merkle root operations recorded")
     }
 
     /// Replays a Merkle root update, returning the pre-recorded address, old root, and new root

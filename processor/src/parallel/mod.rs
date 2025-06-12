@@ -3,7 +3,10 @@ use core::ops::ControlFlow;
 
 use miden_air::{
     RowIndex,
-    trace::{DECODER_TRACE_WIDTH, STACK_TRACE_WIDTH, SYS_TRACE_WIDTH, decoder::NUM_OP_BITS},
+    trace::{
+        DECODER_TRACE_WIDTH, STACK_TRACE_WIDTH, SYS_TRACE_WIDTH,
+        decoder::{NUM_OP_BITS, NUM_USER_OP_HELPERS},
+    },
 };
 use tokio::{sync::mpsc::Receiver, task::JoinHandle};
 use traversal::ExecutionTraversal;
@@ -717,15 +720,17 @@ impl CoreTraceFragmentGenerator {
     /// any memory or advice provider operations for parallel trace generation.
     fn execute_op(&mut self, op: Operation, op_idx_in_group: usize) -> ControlFlow<()> {
         // Execute the operation by dispatching to appropriate operation methods
-        self.dispatch_operation(&op);
+        let user_op_helpers = self.dispatch_operation(&op);
 
         // write the operation to the trace
-        self.add_operation_trace_row(op, op_idx_in_group)
+        self.add_operation_trace_row(op, op_idx_in_group, user_op_helpers)
     }
 
     /// Dispatches the operation to the appropriate execution method.
-    fn dispatch_operation(&mut self, op: &Operation) {
+    fn dispatch_operation(&mut self, op: &Operation) -> Option<[Felt; NUM_USER_OP_HELPERS]> {
         use vm_core::Operation;
+
+        let mut user_op_helpers = None;
 
         match op {
             // ----- system operations ------------------------------------------------------------
@@ -827,24 +832,32 @@ impl CoreTraceFragmentGenerator {
 
             // ----- input / output ---------------------------------------------------------------
             Operation::Push(value) => self.op_push(*value),
-            Operation::AdvPop => self.advpop(),
-            Operation::AdvPopW => self.advpopw(),
-            Operation::MLoadW => self.mloadw(),
-            Operation::MStoreW => self.mstorew(),
-            Operation::MLoad => self.mload(),
-            Operation::MStore => self.mstore(),
-            Operation::MStream => self.mstream(),
-            Operation::Pipe => self.pipe(),
+            Operation::AdvPop => self.op_advpop(),
+            Operation::AdvPopW => self.op_advpopw(),
+            Operation::MLoadW => self.op_mloadw(),
+            Operation::MStoreW => self.op_mstorew(),
+            Operation::MLoad => self.op_mload(),
+            Operation::MStore => self.op_mstore(),
+            Operation::MStream => self.op_mstream(),
+            Operation::Pipe => self.op_pipe(),
 
             // ----- cryptographic operations -----------------------------------------------------
-            Operation::HPerm => self.hperm(),
-            Operation::MpVerify(_err_code) => self.mpverify(),
-            Operation::MrUpdate => self.mrupdate(),
-            Operation::FriE2F4 => self.fri_ext2fold4(),
-            Operation::HornerBase => self.horner_eval_base(),
-            Operation::HornerExt => self.horner_eval_ext(),
-            Operation::ArithmeticCircuitEval => self.arithmetic_circuit_eval(),
+            Operation::HPerm => {
+                let hperm_helpers = self.op_hperm();
+                user_op_helpers = Some(hperm_helpers);
+            },
+            Operation::MpVerify(_err_code) => {
+                let mpverify_helpers = self.op_mpverify();
+                user_op_helpers = Some(mpverify_helpers);
+            },
+            Operation::MrUpdate => self.op_mrupdate(),
+            Operation::FriE2F4 => self.op_fri_ext2fold4(),
+            Operation::HornerBase => self.op_horner_eval_base(),
+            Operation::HornerExt => self.op_horner_eval_ext(),
+            Operation::ArithmeticCircuitEval => self.op_arithmetic_circuit_eval(),
         }
+
+        user_op_helpers
     }
 
     fn finalize_fragment(mut self) -> CoreTraceFragment {
