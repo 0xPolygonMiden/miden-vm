@@ -20,7 +20,6 @@ mod assembler;
 pub mod ast;
 mod compile;
 pub mod diagnostics;
-mod errors;
 mod library;
 mod parser;
 mod sema;
@@ -42,7 +41,6 @@ pub use self::{
         DefaultSourceManager, Report, SourceFile, SourceId, SourceManager, SourceSpan, Span,
         Spanned,
     },
-    errors::AssemblyError,
     library::{
         KernelLibrary, Library, LibraryError, LibraryNamespace, LibraryPath, LibraryPathComponent,
         PathError, Version, VersionError,

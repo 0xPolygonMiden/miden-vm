@@ -2,7 +2,7 @@ use vm_core::{FieldElement, Operation::*, sys_events::SystemEvent};
 
 use super::BasicBlockBuilder;
 use crate::{
-    AssemblyError, Felt, MAX_EXP_BITS, ONE, Span, ZERO,
+    Felt, MAX_EXP_BITS, ONE, Span, ZERO,
     assembler::ProcedureContext,
     diagnostics::{RelatedError, RelatedLabel, Report, SourceSpan},
 };
@@ -92,15 +92,15 @@ pub fn div_imm(
     span_builder: &mut BasicBlockBuilder,
     proc_ctx: &mut ProcedureContext,
     imm: Span<Felt>,
-) -> Result<(), AssemblyError> {
+) -> Result<(), Report> {
     if imm == ZERO {
         let source_span = imm.span();
         let source_file = proc_ctx.source_manager().get(source_span.source_id()).ok();
         let error = Report::new(crate::parser::ParsingError::DivisionByZero { span: source_span });
         return Err(if let Some(source_file) = source_file {
-            AssemblyError::Report(RelatedError::new(error.with_source_code(source_file)))
+            RelatedError::new(error.with_source_code(source_file)).into()
         } else {
-            AssemblyError::Report(RelatedError::new(error))
+            RelatedError::new(error).into()
         });
     } else if imm == ONE {
         span_builder.push_op(Noop);
@@ -157,7 +157,7 @@ pub fn exp(
     proc_ctx: &ProcedureContext,
     num_pow_bits: u8,
     span: SourceSpan,
-) -> Result<(), AssemblyError> {
+) -> Result<(), Report> {
     if num_pow_bits > MAX_EXP_BITS {
         return Err(RelatedLabel::error("invalid argument")
             .with_labeled_span(span, "this instruction argument is out of range")
@@ -197,7 +197,7 @@ pub fn exp_imm(
     proc_ctx: &ProcedureContext,
     pow: Felt,
     span: SourceSpan,
-) -> Result<(), AssemblyError> {
+) -> Result<(), Report> {
     if pow.as_int() <= 7 {
         perform_exp_for_small_power(span_builder, pow.as_int());
         Ok(())

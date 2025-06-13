@@ -7,7 +7,7 @@ use vm_core::{
 
 use super::{BasicBlockBuilder, field_ops::append_pow2_op, push_u32_value};
 use crate::{
-    AssemblyError, MAX_U32_ROTATE_VALUE, MAX_U32_SHIFT_VALUE, Span,
+    MAX_U32_ROTATE_VALUE, MAX_U32_SHIFT_VALUE, Span,
     assembler::ProcedureContext,
     diagnostics::{RelatedLabel, Report, SourceSpan},
 };
@@ -122,7 +122,7 @@ pub fn u32div(
     span_builder: &mut BasicBlockBuilder,
     proc_ctx: &ProcedureContext,
     imm: Option<Span<u32>>,
-) -> Result<(), AssemblyError> {
+) -> Result<(), Report> {
     handle_division(span_builder, proc_ctx, imm)?;
     span_builder.push_op(Drop);
     Ok(())
@@ -139,7 +139,7 @@ pub fn u32mod(
     span_builder: &mut BasicBlockBuilder,
     proc_ctx: &ProcedureContext,
     imm: Option<Span<u32>>,
-) -> Result<(), AssemblyError> {
+) -> Result<(), Report> {
     handle_division(span_builder, proc_ctx, imm)?;
     span_builder.push_ops([Swap, Drop]);
     Ok(())
@@ -156,7 +156,7 @@ pub fn u32divmod(
     span_builder: &mut BasicBlockBuilder,
     proc_ctx: &ProcedureContext,
     imm: Option<Span<u32>>,
-) -> Result<(), AssemblyError> {
+) -> Result<(), Report> {
     handle_division(span_builder, proc_ctx, imm)
 }
 
@@ -197,7 +197,7 @@ pub fn u32shl(
     proc_ctx: &ProcedureContext,
     imm: Option<u8>,
     span: SourceSpan,
-) -> Result<(), AssemblyError> {
+) -> Result<(), Report> {
     prepare_bitwise::<MAX_U32_SHIFT_VALUE>(span_builder, proc_ctx, imm, span)?;
     if imm != Some(0) {
         span_builder.push_ops([U32mul, Drop]);
@@ -218,7 +218,7 @@ pub fn u32shr(
     proc_ctx: &ProcedureContext,
     imm: Option<u8>,
     span: SourceSpan,
-) -> Result<(), AssemblyError> {
+) -> Result<(), Report> {
     prepare_bitwise::<MAX_U32_SHIFT_VALUE>(span_builder, proc_ctx, imm, span)?;
     if imm != Some(0) {
         span_builder.push_ops([U32div, Drop]);
@@ -239,7 +239,7 @@ pub fn u32rotl(
     proc_ctx: &ProcedureContext,
     imm: Option<u8>,
     span: SourceSpan,
-) -> Result<(), AssemblyError> {
+) -> Result<(), Report> {
     prepare_bitwise::<MAX_U32_ROTATE_VALUE>(span_builder, proc_ctx, imm, span)?;
     if imm != Some(0) {
         span_builder.push_ops([U32mul, Add]);
@@ -260,7 +260,7 @@ pub fn u32rotr(
     proc_ctx: &ProcedureContext,
     imm: Option<u8>,
     span: SourceSpan,
-) -> Result<(), AssemblyError> {
+) -> Result<(), Report> {
     match imm {
         Some(0) => {
             // if rotation is performed by 0, do nothing (Noop)
@@ -398,16 +398,16 @@ fn handle_division(
     block_builder: &mut BasicBlockBuilder,
     proc_ctx: &ProcedureContext,
     imm: Option<Span<u32>>,
-) -> Result<(), AssemblyError> {
+) -> Result<(), Report> {
     if let Some(imm) = imm {
         if imm == 0 {
             let imm_span = imm.span();
             let source_file = proc_ctx.source_manager().get(imm_span.source_id()).ok();
             let error = Report::new(crate::parser::ParsingError::DivisionByZero { span: imm_span });
             return if let Some(source_file) = source_file {
-                Err(error.with_source_code(source_file).into())
+                Err(error.with_source_code(source_file))
             } else {
-                Err(error.into())
+                Err(error)
             };
         }
         push_u32_value(block_builder, imm.into_inner());
@@ -427,7 +427,7 @@ fn prepare_bitwise<const MAX_VALUE: u8>(
     proc_ctx: &ProcedureContext,
     imm: Option<u8>,
     span: SourceSpan,
-) -> Result<(), AssemblyError> {
+) -> Result<(), Report> {
     match imm {
         Some(0) => {
             // if shift/rotation is performed by 0, do nothing (Noop)

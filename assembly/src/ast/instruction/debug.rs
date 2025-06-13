@@ -1,9 +1,9 @@
 use core::fmt;
 
 use crate::{
-    AssemblyError,
     assembler::ProcedureContext,
     ast::{ImmU8, ImmU16, ImmU32},
+    diagnostics::Report,
 };
 
 // DEBUG OPTIONS
@@ -28,10 +28,7 @@ impl DebugOptions {
     /// This function does not currently return any errors, but may in the future.
     ///
     /// See [crate::Assembler] for an overview of AST compilation.
-    pub fn compile(
-        &self,
-        proc_ctx: &ProcedureContext,
-    ) -> Result<vm_core::DebugOptions, AssemblyError> {
+    pub fn compile(&self, proc_ctx: &ProcedureContext) -> Result<vm_core::DebugOptions, Report> {
         type Ast = DebugOptions;
         type Vm = vm_core::DebugOptions;
 
