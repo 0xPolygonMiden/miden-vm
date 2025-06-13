@@ -13,7 +13,7 @@ use alloc::{
     vec::Vec,
 };
 
-use assembly::{KernelLibrary, Library};
+use assembly::{Compile, KernelLibrary, Library};
 pub use assembly::{LibraryPath, SourceFile, SourceManager, diagnostics::Report};
 pub use pretty_assertions::{assert_eq, assert_ne, assert_str_eq};
 pub use processor::{
@@ -310,17 +310,19 @@ impl Test {
         let mut assembler = self
             .add_modules
             .iter()
-            .fold(assembler, |assembler, (path, source)| {
-                assembler
-                    .with_module_and_options(
-                        source,
+            .fold(assembler, |mut assembler, (path, source)| {
+                let module = source
+                    .compile_with_options(
+                        &assembler.source_manager(),
                         CompileOptions::new(ModuleKind::Library, path.clone()).unwrap(),
                     )
-                    .expect("invalid masm source code")
+                    .expect("invalid masm source code");
+                assembler.compile_and_link_module(module).expect("failed to link module");
+                assembler
             })
             .with_debug_mode(self.in_debug_mode);
         for library in &self.libraries {
-            assembler.add_library(library).unwrap();
+            assembler.link_library(library).unwrap();
         }
 
         Ok((assembler.assemble_program(self.source.clone())?, kernel_lib))

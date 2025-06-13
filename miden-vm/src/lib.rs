@@ -5,7 +5,7 @@
 // ================================================================================================
 
 pub use assembly::{
-    self, Assembler, AssemblyError,
+    self, Assembler,
     ast::{Module, ModuleKind},
     diagnostics,
 };

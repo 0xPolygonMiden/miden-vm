@@ -118,6 +118,8 @@ pub struct RelatedLabel {
     pub message: Cow<'static, str>,
     /// The sub-labels for this label
     pub labels: Vec<Label>,
+    /// If provided as a standalone diagnostic, the help message to provide
+    pub help: Option<Cow<'static, str>>,
     /// The source file to use when rendering source spans of this label as snippets.
     pub file: Option<Arc<SourceFile>>,
 }
@@ -150,6 +152,7 @@ impl RelatedLabel {
         Self {
             severity,
             message: Cow::from(message),
+            help: None,
             labels: vec![],
             file: None,
         }
@@ -204,6 +207,14 @@ impl RelatedLabel {
         self.labels.extend(labels);
         self
     }
+
+    pub fn with_help<S>(mut self, help: S) -> Self
+    where
+        Cow<'static, str>: From<S>,
+    {
+        self.help = Some(help.into());
+        self
+    }
 }
 
 impl Diagnostic for RelatedLabel {
@@ -214,7 +225,7 @@ impl Diagnostic for RelatedLabel {
         Some(self.severity)
     }
     fn help<'a>(&'a self) -> Option<Box<dyn fmt::Display + 'a>> {
-        None
+        self.help.as_deref().map(|help| Box::new(help) as Box<_>)
     }
     fn url<'a>(&'a self) -> Option<Box<dyn fmt::Display + 'a>> {
         None

@@ -1,11 +1,11 @@
 use alloc::{borrow::Cow, collections::BTreeSet, vec::Vec};
 
-use super::{ModuleGraph, WrappedModule};
+use super::{Linker, ModuleLink, PreLinkModule};
 use crate::{
-    AssemblyError, RpoDigest, SourceSpan, Span, Spanned,
-    assembler::{GlobalProcedureIndex, ModuleIndex},
+    RpoDigest, SourceSpan, Span, Spanned,
+    assembler::{GlobalProcedureIndex, LinkerError, ModuleIndex},
     ast::{
-        Ident, InvocationTarget, InvokeKind, Module, ProcedureName, QualifiedProcedureName,
+        Ident, InvocationTarget, InvokeKind, ProcedureName, QualifiedProcedureName,
         ResolvedProcedure,
     },
     diagnostics::RelatedLabel,
@@ -21,6 +21,7 @@ use crate::{
 /// include in name resolution in order to be able to fully resolve all names for a given set of
 /// modules.
 struct ThinModule {
+    index: ModuleIndex,
     path: LibraryPath,
     resolver: crate::ast::LocalNameResolver,
 }
@@ -84,7 +85,7 @@ impl ResolvedTarget {
 /// resolved.
 pub struct NameResolver<'a> {
     /// The graph containing already-compiled and partially-resolved modules.
-    graph: &'a ModuleGraph,
+    graph: &'a Linker,
     /// The set of modules which are being added to `graph`, but which have not been fully
     /// processed yet.
     pending: Vec<ThinModule>,
@@ -92,7 +93,7 @@ pub struct NameResolver<'a> {
 
 impl<'a> NameResolver<'a> {
     /// Create a new [NameResolver] for the provided [ModuleGraph].
-    pub fn new(graph: &'a ModuleGraph) -> Self {
+    pub fn new(graph: &'a Linker) -> Self {
         Self { graph, pending: vec![] }
     }
 
@@ -106,10 +107,11 @@ impl<'a> NameResolver<'a> {
     ///
     /// This is typically called when we begin processing the pending modules, by adding those we
     /// have not yet processed to the resolver, as we resolve names for each module in the set.
-    pub fn push_pending(&mut self, module: &Module) {
+    pub fn push_pending(&mut self, module: &PreLinkModule) {
         self.pending.push(ThinModule {
-            path: module.path().clone(),
-            resolver: module.resolver(),
+            index: module.module_index,
+            path: module.module.path().clone(),
+            resolver: module.module.resolver(),
         });
     }
 
@@ -119,9 +121,10 @@ impl<'a> NameResolver<'a> {
         &self,
         caller: &CallerInfo,
         target: &InvocationTarget,
-    ) -> Result<ResolvedTarget, AssemblyError> {
+    ) -> Result<ResolvedTarget, LinkerError> {
         match target {
             InvocationTarget::MastRoot(mast_root) => {
+                log::debug!(target: "name-resolver", "resolving {target}");
                 match self.graph.get_procedure_index_by_digest(mast_root) {
                     None => Ok(ResolvedTarget::Phantom(mast_root.into_inner())),
                     Some(gid) => Ok(ResolvedTarget::Exact { gid }),
@@ -129,8 +132,10 @@ impl<'a> NameResolver<'a> {
             },
             InvocationTarget::ProcedureName(callee) => self.resolve(caller, callee),
             InvocationTarget::ProcedurePath { name, module: imported_module } => {
+                log::debug!(target: "name-resolver", "resolving procedure path {imported_module}::{name}");
                 match self.resolve_import(caller, imported_module) {
                     Some(imported_module) => {
+                        log::debug!(target: "name-resolver", "resolved module path to {imported_module}");
                         let fqn = QualifiedProcedureName {
                             span: target.span(),
                             module: imported_module.into_inner().clone(),
@@ -138,21 +143,19 @@ impl<'a> NameResolver<'a> {
                         };
                         let gid = self.find(caller, &fqn)?;
                         let path = self.module_path(gid.module);
-                        let pending_offset = self.graph.modules.len();
-                        let name = if gid.module.as_usize() >= pending_offset {
-                            self.pending[gid.module.as_usize() - pending_offset]
-                                .resolver
-                                .get_name(gid.index)
-                                .clone()
-                        } else {
+                        let module_index = gid.module.as_usize();
+                        let name = if self.graph.modules[module_index].is_some() {
                             self.graph.get_procedure_unsafe(gid).name().clone()
+                        } else {
+                            let pending_index = self.pending_index(gid.module);
+                            self.pending[pending_index].resolver.get_name(gid.index).clone()
                         };
                         Ok(ResolvedTarget::Resolved {
                             gid,
                             target: InvocationTarget::AbsoluteProcedurePath { name, path },
                         })
                     },
-                    None => Err(AssemblyError::UndefinedModule {
+                    None => Err(LinkerError::UndefinedModule {
                         span: caller.span,
                         source_file: self.graph.source_manager.get(caller.span.source_id()).ok(),
                         path: LibraryPath::new_from_components(
@@ -163,6 +166,7 @@ impl<'a> NameResolver<'a> {
                 }
             },
             InvocationTarget::AbsoluteProcedurePath { name, path } => {
+                log::debug!(target: "name-resolver", "resolving absolute path ::{path}::{name}");
                 let fqn = QualifiedProcedureName {
                     span: target.span(),
                     module: path.clone(),
@@ -180,7 +184,7 @@ impl<'a> NameResolver<'a> {
         &self,
         caller: &CallerInfo,
         callee: &ProcedureName,
-    ) -> Result<ResolvedTarget, AssemblyError> {
+    ) -> Result<ResolvedTarget, LinkerError> {
         match self.resolve_local(caller, callee) {
             Some(ResolvedProcedure::Local(index)) if matches!(caller.kind, InvokeKind::SysCall) => {
                 let gid = GlobalProcedureIndex {
@@ -199,14 +203,12 @@ impl<'a> NameResolver<'a> {
             Some(ResolvedProcedure::External(ref fqn)) => {
                 let gid = self.find(caller, fqn)?;
                 let path = self.module_path(gid.module);
-                let pending_offset = self.graph.modules.len();
-                let name = if gid.module.as_usize() >= pending_offset {
-                    self.pending[gid.module.as_usize() - pending_offset]
-                        .resolver
-                        .get_name(gid.index)
-                        .clone()
-                } else {
+                let module_index = gid.module.as_usize();
+                let name = if self.graph.modules[module_index].as_ref().is_some() {
                     self.graph.get_procedure_unsafe(gid).name().clone()
+                } else {
+                    let pending_index = self.pending_index(gid.module);
+                    self.pending[pending_index].resolver.get_name(gid.index).clone()
                 };
                 Ok(ResolvedTarget::Resolved {
                     gid,
@@ -219,7 +221,7 @@ impl<'a> NameResolver<'a> {
                     None => Ok(ResolvedTarget::Phantom(*digest)),
                 }
             },
-            None => Err(AssemblyError::Failed {
+            None => Err(LinkerError::Failed {
                 labels: vec![
                     RelatedLabel::error("undefined procedure")
                         .with_source_file(
@@ -235,18 +237,20 @@ impl<'a> NameResolver<'a> {
     /// Resolve `name`, the name of an imported module, to a [LibraryPath], using `caller` as the
     /// context.
     fn resolve_import(&self, caller: &CallerInfo, name: &Ident) -> Option<Span<&LibraryPath>> {
-        let pending_offset = self.graph.modules.len();
-        if caller.module.as_usize() >= pending_offset {
-            self.pending[caller.module.as_usize() - pending_offset]
-                .resolver
-                .resolve_import(name)
-        } else {
-            match &self.graph[caller.module] {
-                WrappedModule::Ast(module) => module
+        log::debug!(target: "name-resolver", "resolving import '{name}' from module index {}", caller.module.as_usize());
+        let caller_index = caller.module.as_usize();
+        if let Some(caller_module) = self.graph.modules[caller_index].as_ref() {
+            log::debug!(target: "name-resolver", "resolved import to {}", caller_module.path());
+            match caller_module {
+                ModuleLink::Ast(module) => module
                     .resolve_import(name)
                     .map(|import| Span::new(import.span(), import.path())),
-                WrappedModule::Info(_) => None,
+                ModuleLink::Info(module) => Some(Span::new(name.span(), module.path())),
             }
+        } else {
+            let pending_index = self.pending_index(caller.module);
+            log::debug!(target: "name-resolver", "resolved import to {}", &self.pending[pending_index].path);
+            self.pending[pending_index].resolver.resolve_import(name)
         }
     }
 
@@ -255,6 +259,7 @@ impl<'a> NameResolver<'a> {
         caller: &CallerInfo,
         callee: &ProcedureName,
     ) -> Option<ResolvedProcedure> {
+        log::debug!(target: "name-resolver", "resolving {} {callee} locally from {}", caller.kind, caller.module.as_usize());
         let module = if matches!(caller.kind, InvokeKind::SysCall) {
             // Resolve local names relative to the kernel
             self.graph.kernel_index?
@@ -269,12 +274,14 @@ impl<'a> NameResolver<'a> {
         module: ModuleIndex,
         callee: &ProcedureName,
     ) -> Option<ResolvedProcedure> {
-        let pending_offset = self.graph.modules.len();
         let module_index = module.as_usize();
-        if module_index >= pending_offset {
-            self.pending[module_index - pending_offset].resolver.resolve(callee)
+        log::debug!(target: "name-resolver", "resolving {callee} locally in {module_index}");
+        if let Some(module) = self.graph.modules[module_index].as_ref() {
+            module.resolve(callee)
         } else {
-            self.graph[module].resolve(callee)
+            let pending_index = self.pending_index(module);
+            log::debug!(target: "name-resolver", "resolving in pending module {} (index {pending_index})", &self.pending[pending_index].path);
+            self.pending[pending_index].resolver.resolve(callee)
         }
     }
 
@@ -286,7 +293,7 @@ impl<'a> NameResolver<'a> {
         &self,
         caller: &CallerInfo,
         callee: &QualifiedProcedureName,
-    ) -> Result<GlobalProcedureIndex, AssemblyError> {
+    ) -> Result<GlobalProcedureIndex, LinkerError> {
         // If the caller is a syscall, set the invoke kind to `ProcRef` until we have resolved the
         // procedure, then verify that it is in the kernel module. This bypasses validation until
         // after resolution
@@ -301,7 +308,7 @@ impl<'a> NameResolver<'a> {
         let mut visited = BTreeSet::default();
         loop {
             let module_index = self.find_module_index(&current_callee.module).ok_or_else(|| {
-                AssemblyError::UndefinedModule {
+                LinkerError::UndefinedModule {
                     span: current_caller.span,
                     source_file: self
                         .graph
@@ -320,7 +327,7 @@ impl<'a> NameResolver<'a> {
                     };
                     if matches!(current_caller.kind, InvokeKind::SysCall if self.graph.kernel_index != Some(module_index))
                     {
-                        break Err(AssemblyError::InvalidSysCallTarget {
+                        break Err(LinkerError::InvalidSysCallTarget {
                             span: current_caller.span,
                             source_file: self
                                 .graph
@@ -337,7 +344,7 @@ impl<'a> NameResolver<'a> {
                     // resolver loop because of a recursive alias, return
                     // an error
                     if !visited.insert(fqn.clone()) {
-                        break Err(AssemblyError::Failed {
+                        break Err(LinkerError::Failed {
                             labels: vec![
                                 RelatedLabel::error("recursive alias")
                                     .with_source_file(self.graph.source_manager.get(fqn.span().source_id()).ok())
@@ -361,7 +368,7 @@ impl<'a> NameResolver<'a> {
                     }
                     // This is a phantom procedure - we know its root, but do not have its
                     // definition
-                    break Err(AssemblyError::Failed {
+                    break Err(LinkerError::Failed {
                         labels: vec![
                             RelatedLabel::error("undefined procedure")
                                 .with_source_file(
@@ -389,7 +396,7 @@ impl<'a> NameResolver<'a> {
                 None if matches!(current_caller.kind, InvokeKind::SysCall) => {
                     if self.graph.has_nonempty_kernel() {
                         // No kernel, so this invoke is invalid anyway
-                        break Err(AssemblyError::Failed {
+                        break Err(LinkerError::Failed {
                             labels: vec![
                                 RelatedLabel::error("undefined kernel procedure")
                                     .with_source_file(self.graph.source_manager.get(caller.span.source_id()).ok())
@@ -404,7 +411,7 @@ impl<'a> NameResolver<'a> {
                         });
                     } else {
                         // No such kernel procedure
-                        break Err(AssemblyError::Failed {
+                        break Err(LinkerError::Failed {
                             labels: vec![
                                 RelatedLabel::error("undefined kernel procedure")
                                     .with_source_file(self.graph.source_manager.get(caller.span.source_id()).ok())
@@ -421,7 +428,7 @@ impl<'a> NameResolver<'a> {
                 },
                 None => {
                     // No such procedure known to `module`
-                    break Err(AssemblyError::Failed {
+                    break Err(LinkerError::Failed {
                         labels: vec![
                             RelatedLabel::error("undefined procedure")
                                 .with_source_file(
@@ -455,19 +462,26 @@ impl<'a> NameResolver<'a> {
         self.graph
             .modules
             .iter()
-            .map(|m| m.path())
-            .chain(self.pending.iter().map(|m| &m.path))
-            .position(|path| path == name)
-            .map(ModuleIndex::new)
+            .enumerate()
+            .filter_map(|(idx, m)| m.as_ref().map(|m| (ModuleIndex::new(idx), m.path())))
+            .chain(self.pending.iter().map(|m| (m.index, &m.path)))
+            .find(|(_, path)| *path == name)
+            .map(|(idx, _)| idx)
     }
 
     fn module_path(&self, module: ModuleIndex) -> LibraryPath {
-        let pending_offset = self.graph.modules.len();
         let module_index = module.as_usize();
-        if module_index >= pending_offset {
-            self.pending[module_index - pending_offset].path.clone()
+        if let Some(module) = self.graph.modules[module_index].as_ref() {
+            module.path().clone()
         } else {
-            self.graph[module].path().clone()
+            self.pending[self.pending_index(module)].path.clone()
         }
+    }
+
+    fn pending_index(&self, index: ModuleIndex) -> usize {
+        self.pending
+            .iter()
+            .position(|p| p.index == index)
+            .expect("invalid pending module index")
     }
 }
