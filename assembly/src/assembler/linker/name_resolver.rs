@@ -1,6 +1,6 @@
 use alloc::{borrow::Cow, collections::BTreeSet, vec::Vec};
 
-use super::{Linker, PendingModule, WrappedModule};
+use super::{Linker, ModuleLink, PreLinkModule};
 use crate::{
     AssemblyError, RpoDigest, SourceSpan, Span, Spanned,
     assembler::{GlobalProcedureIndex, ModuleIndex},
@@ -107,7 +107,7 @@ impl<'a> NameResolver<'a> {
     ///
     /// This is typically called when we begin processing the pending modules, by adding those we
     /// have not yet processed to the resolver, as we resolve names for each module in the set.
-    pub fn push_pending(&mut self, module: &PendingModule) {
+    pub fn push_pending(&mut self, module: &PreLinkModule) {
         self.pending.push(ThinModule {
             index: module.module_index,
             path: module.module.path().clone(),
@@ -242,10 +242,10 @@ impl<'a> NameResolver<'a> {
         if let Some(caller_module) = self.graph.modules[caller_index].as_ref() {
             log::debug!(target: "name-resolver", "resolved import to {}", caller_module.path());
             match caller_module {
-                WrappedModule::Ast(module) => module
+                ModuleLink::Ast(module) => module
                     .resolve_import(name)
                     .map(|import| Span::new(import.span(), import.path())),
-                WrappedModule::Info(module) => Some(Span::new(name.span(), module.path())),
+                ModuleLink::Info(module) => Some(Span::new(name.span(), module.path())),
             }
         } else {
             let pending_index = self.pending_index(caller.module);

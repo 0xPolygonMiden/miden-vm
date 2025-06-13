@@ -20,7 +20,7 @@ impl fmt::Debug for DisplayModuleGraph<'_> {
             .entries(self.0.modules.iter().filter_map(|m| m.as_ref()).enumerate().flat_map(
                 |(module_index, m)| {
                     match m {
-                        WrappedModule::Ast(m) => m
+                        ModuleLink::Ast(m) => m
                             .procedures()
                             .enumerate()
                             .filter_map(move |(i, export)| {
@@ -36,7 +36,7 @@ impl fmt::Debug for DisplayModuleGraph<'_> {
                                 }
                             })
                             .collect::<Vec<_>>(),
-                        WrappedModule::Info(m) => m
+                        ModuleLink::Info(m) => m
                             .procedures()
                             .map(|(proc_index, _proc)| {
                                 let gid = GlobalProcedureIndex {
@@ -56,7 +56,7 @@ impl fmt::Debug for DisplayModuleGraph<'_> {
 }
 
 #[doc(hidden)]
-struct DisplayModuleGraphNodes<'a>(&'a Vec<Option<WrappedModule>>);
+struct DisplayModuleGraphNodes<'a>(&'a Vec<Option<ModuleLink>>);
 
 impl fmt::Debug for DisplayModuleGraphNodes<'_> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
@@ -66,7 +66,7 @@ impl fmt::Debug for DisplayModuleGraphNodes<'_> {
                     let module_index = ModuleIndex::new(module_index);
 
                     match m {
-                        WrappedModule::Ast(m) => m
+                        ModuleLink::Ast(m) => m
                             .procedures()
                             .enumerate()
                             .filter_map(move |(proc_index, export)| {
@@ -83,7 +83,7 @@ impl fmt::Debug for DisplayModuleGraphNodes<'_> {
                                 }
                             })
                             .collect::<Vec<_>>(),
-                        WrappedModule::Info(m) => m
+                        ModuleLink::Info(m) => m
                             .procedures()
                             .map(|(proc_index, proc)| DisplayModuleGraphNode {
                                 module: module_index,
