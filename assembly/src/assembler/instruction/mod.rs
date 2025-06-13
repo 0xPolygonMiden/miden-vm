@@ -1,7 +1,12 @@
 use vm_core::{Decorator, ONE, WORD_SIZE, ZERO, debuginfo::Spanned, mast::MastNodeId};
 
 use super::{Assembler, BasicBlockBuilder, Felt, Operation, ProcedureContext, ast::InvokeKind};
-use crate::{AssemblyError, Span, ast::Instruction, diagnostics::RelatedLabel, parser::IntValue};
+use crate::{
+    Span,
+    ast::Instruction,
+    diagnostics::{RelatedLabel, Report},
+    parser::IntValue,
+};
 
 mod adv_ops;
 mod crypto_ops;
@@ -21,7 +26,7 @@ impl Assembler {
         instruction: &Span<Instruction>,
         block_builder: &mut BasicBlockBuilder,
         proc_ctx: &mut ProcedureContext,
-    ) -> Result<Option<MastNodeId>, AssemblyError> {
+    ) -> Result<Option<MastNodeId>, Report> {
         // if the assembler is in debug mode, start tracking the instruction about to be executed;
         // this will allow us to map the instruction to the sequence of operations which were
         // executed as a part of this instruction.
@@ -70,7 +75,7 @@ impl Assembler {
         instruction: &Span<Instruction>,
         block_builder: &mut BasicBlockBuilder,
         proc_ctx: &mut ProcedureContext,
-    ) -> Result<Option<MastNodeId>, AssemblyError> {
+    ) -> Result<Option<MastNodeId>, Report> {
         use Operation::*;
 
         let span = instruction.span();

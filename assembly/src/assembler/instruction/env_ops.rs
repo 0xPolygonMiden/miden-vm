@@ -2,7 +2,9 @@ use vm_core::Operation::*;
 
 use super::{BasicBlockBuilder, mem_ops::local_to_absolute_addr, push_felt};
 use crate::{
-    AssemblyError, Felt, SourceSpan, assembler::ProcedureContext, diagnostics::RelatedLabel,
+    Felt, SourceSpan,
+    assembler::ProcedureContext,
+    diagnostics::{RelatedLabel, Report},
 };
 
 // CONSTANT INPUTS
@@ -46,7 +48,7 @@ pub fn locaddr(
     index: u16,
     proc_ctx: &ProcedureContext,
     instr_span: SourceSpan,
-) -> Result<(), AssemblyError> {
+) -> Result<(), Report> {
     local_to_absolute_addr(block_builder, proc_ctx, index, proc_ctx.num_locals(), true, instr_span)
 }
 
@@ -59,7 +61,7 @@ pub fn caller(
     block_builder: &mut BasicBlockBuilder,
     proc_ctx: &ProcedureContext,
     source_span: SourceSpan,
-) -> Result<(), AssemblyError> {
+) -> Result<(), Report> {
     if !proc_ctx.is_kernel() {
         return Err(RelatedLabel::error("invalid use of 'caller' instruction outside of kernel")
             .with_help("the 'caller' instruction is only allowed in procedures defined in a kernel")

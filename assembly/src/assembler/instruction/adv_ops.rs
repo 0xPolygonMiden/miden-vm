@@ -2,9 +2,9 @@ use vm_core::Operation;
 
 use super::BasicBlockBuilder;
 use crate::{
-    ADVICE_READ_LIMIT, AssemblyError,
+    ADVICE_READ_LIMIT,
     assembler::ProcedureContext,
-    diagnostics::{RelatedLabel, SourceSpan},
+    diagnostics::{RelatedLabel, Report, SourceSpan},
 };
 
 // NON-DETERMINISTIC (ADVICE) INPUTS
@@ -22,7 +22,7 @@ pub fn adv_push(
     proc_ctx: &ProcedureContext,
     n: u8,
     span: SourceSpan,
-) -> Result<(), AssemblyError> {
+) -> Result<(), Report> {
     let min = 1;
     let max = ADVICE_READ_LIMIT;
 

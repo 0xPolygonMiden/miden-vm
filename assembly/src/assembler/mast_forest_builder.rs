@@ -5,7 +5,6 @@ use alloc::{
 };
 use core::ops::{Index, IndexMut};
 
-use miette::{IntoDiagnostic, Report};
 use vm_core::{
     Decorator, DecoratorList, Felt, Operation,
     crypto::hash::RpoDigest,
@@ -16,7 +15,11 @@ use vm_core::{
 };
 
 use super::{GlobalProcedureIndex, Procedure};
-use crate::{AssemblyError, Library, report};
+use crate::{
+    Library,
+    diagnostics::{IntoDiagnostic, Report, WrapErr},
+    report,
+};
 
 // CONSTANTS
 // ================================================================================================
@@ -196,7 +199,7 @@ impl MastForestBuilder {
         &mut self,
         gid: GlobalProcedureIndex,
         procedure: Procedure,
-    ) -> Result<(), AssemblyError> {
+    ) -> Result<(), Report> {
         // Check if an entry is already in this cache slot.
         //
         // If there is already a cache entry, but it conflicts with what we're trying to cache,
@@ -234,7 +237,7 @@ impl MastForestBuilder {
                     "two procedures found with same mast root, but conflicting definitions ('{}' and '{}')",
                     first,
                     second
-                ).into());
+                ));
             }
         }
 
@@ -250,7 +253,7 @@ impl MastForestBuilder {
 /// Joining nodes
 impl MastForestBuilder {
     /// Builds a tree of `JOIN` operations to combine the provided MAST node IDs.
-    pub fn join_nodes(&mut self, node_ids: Vec<MastNodeId>) -> Result<MastNodeId, AssemblyError> {
+    pub fn join_nodes(&mut self, node_ids: Vec<MastNodeId>) -> Result<MastNodeId, Report> {
         debug_assert!(!node_ids.is_empty(), "cannot combine empty MAST node id list");
 
         let mut node_ids = self.merge_contiguous_basic_blocks(node_ids)?;
@@ -283,7 +286,7 @@ impl MastForestBuilder {
     fn merge_contiguous_basic_blocks(
         &mut self,
         node_ids: Vec<MastNodeId>,
-    ) -> Result<Vec<MastNodeId>, AssemblyError> {
+    ) -> Result<Vec<MastNodeId>, Report> {
         let mut merged_node_ids = Vec::with_capacity(node_ids.len());
         let mut contiguous_basic_block_ids: Vec<MastNodeId> = Vec::new();
 
@@ -311,7 +314,7 @@ impl MastForestBuilder {
     fn merge_basic_blocks(
         &mut self,
         contiguous_basic_block_ids: &[MastNodeId],
-    ) -> Result<Vec<MastNodeId>, AssemblyError> {
+    ) -> Result<Vec<MastNodeId>, Report> {
         if contiguous_basic_block_ids.is_empty() {
             return Ok(Vec::new());
         }
@@ -372,16 +375,18 @@ impl MastForestBuilder {
 /// Node inserters
 impl MastForestBuilder {
     /// Adds a decorator to the forest, and returns the [`Decorator`] associated with it.
-    pub fn ensure_decorator(&mut self, decorator: Decorator) -> Result<DecoratorId, AssemblyError> {
+    pub fn ensure_decorator(&mut self, decorator: Decorator) -> Result<DecoratorId, Report> {
         let decorator_hash = decorator.fingerprint();
 
         if let Some(decorator_id) = self.decorator_id_by_fingerprint.get(&decorator_hash) {
             // decorator already exists in the forest; return previously assigned id
             Ok(*decorator_id)
         } else {
-            let new_decorator_id = self.mast_forest.add_decorator(decorator).map_err(|source| {
-                AssemblyError::forest_error("assembler failed to add new decorator", source)
-            })?;
+            let new_decorator_id = self
+                .mast_forest
+                .add_decorator(decorator)
+                .into_diagnostic()
+                .wrap_err("assembler failed to add new decorator")?;
             self.decorator_id_by_fingerprint.insert(decorator_hash, new_decorator_id);
 
             Ok(new_decorator_id)
@@ -393,16 +398,18 @@ impl MastForestBuilder {
     /// Note that only one copy of nodes that have the same MAST root and decorators is added to the
     /// MAST forest; two nodes that have the same MAST root and decorators will have the same
     /// [`MastNodeId`].
-    pub fn ensure_node(&mut self, node: MastNode) -> Result<MastNodeId, AssemblyError> {
+    pub fn ensure_node(&mut self, node: MastNode) -> Result<MastNodeId, Report> {
         let node_fingerprint = self.fingerprint_for_node(&node);
 
         if let Some(node_id) = self.node_id_by_fingerprint.get(&node_fingerprint) {
             // node already exists in the forest; return previously assigned id
             Ok(*node_id)
         } else {
-            let new_node_id = self.mast_forest.add_node(node).map_err(|source| {
-                AssemblyError::forest_error("assembler failed to add new node", source)
-            })?;
+            let new_node_id = self
+                .mast_forest
+                .add_node(node)
+                .into_diagnostic()
+                .wrap_err("assembler failed to add new node")?;
             self.node_id_by_fingerprint.insert(node_fingerprint, new_node_id);
             self.hash_by_node_id.insert(new_node_id, node_fingerprint);
 
@@ -415,10 +422,10 @@ impl MastForestBuilder {
         &mut self,
         operations: Vec<Operation>,
         decorators: Option<DecoratorList>,
-    ) -> Result<MastNodeId, AssemblyError> {
-        let block = MastNode::new_basic_block(operations, decorators).map_err(|source| {
-            AssemblyError::forest_error("assembler failed to add new basic block node", source)
-        })?;
+    ) -> Result<MastNodeId, Report> {
+        let block = MastNode::new_basic_block(operations, decorators)
+            .into_diagnostic()
+            .wrap_err("assembler failed to add new basic block node")?;
         self.ensure_node(block)
     }
 
@@ -427,11 +434,10 @@ impl MastForestBuilder {
         &mut self,
         left_child: MastNodeId,
         right_child: MastNodeId,
-    ) -> Result<MastNodeId, AssemblyError> {
-        let join =
-            MastNode::new_join(left_child, right_child, &self.mast_forest).map_err(|source| {
-                AssemblyError::forest_error("assembler failed to add new join node", source)
-            })?;
+    ) -> Result<MastNodeId, Report> {
+        let join = MastNode::new_join(left_child, right_child, &self.mast_forest)
+            .into_diagnostic()
+            .wrap_err("assembler failed to add new join node")?;
         self.ensure_node(join)
     }
 
@@ -440,45 +446,44 @@ impl MastForestBuilder {
         &mut self,
         if_branch: MastNodeId,
         else_branch: MastNodeId,
-    ) -> Result<MastNodeId, AssemblyError> {
-        let split =
-            MastNode::new_split(if_branch, else_branch, &self.mast_forest).map_err(|source| {
-                AssemblyError::forest_error("assembler failed to add new split node", source)
-            })?;
+    ) -> Result<MastNodeId, Report> {
+        let split = MastNode::new_split(if_branch, else_branch, &self.mast_forest)
+            .into_diagnostic()
+            .wrap_err("assembler failed to add new split node")?;
         self.ensure_node(split)
     }
 
     /// Adds a loop node to the forest, and returns the [`MastNodeId`] associated with it.
-    pub fn ensure_loop(&mut self, body: MastNodeId) -> Result<MastNodeId, AssemblyError> {
-        let loop_node = MastNode::new_loop(body, &self.mast_forest).map_err(|source| {
-            AssemblyError::forest_error("assembler failed to add new loop node", source)
-        })?;
+    pub fn ensure_loop(&mut self, body: MastNodeId) -> Result<MastNodeId, Report> {
+        let loop_node = MastNode::new_loop(body, &self.mast_forest)
+            .into_diagnostic()
+            .wrap_err("assembler failed to add new loop node")?;
         self.ensure_node(loop_node)
     }
 
     /// Adds a call node to the forest, and returns the [`MastNodeId`] associated with it.
-    pub fn ensure_call(&mut self, callee: MastNodeId) -> Result<MastNodeId, AssemblyError> {
-        let call = MastNode::new_call(callee, &self.mast_forest).map_err(|source| {
-            AssemblyError::forest_error("assembler failed to add new call node", source)
-        })?;
+    pub fn ensure_call(&mut self, callee: MastNodeId) -> Result<MastNodeId, Report> {
+        let call = MastNode::new_call(callee, &self.mast_forest)
+            .into_diagnostic()
+            .wrap_err("assembler failed to add new call node")?;
         self.ensure_node(call)
     }
 
     /// Adds a syscall node to the forest, and returns the [`MastNodeId`] associated with it.
-    pub fn ensure_syscall(&mut self, callee: MastNodeId) -> Result<MastNodeId, AssemblyError> {
-        let syscall = MastNode::new_syscall(callee, &self.mast_forest).map_err(|source| {
-            AssemblyError::forest_error("assembler failed to add new syscall node", source)
-        })?;
+    pub fn ensure_syscall(&mut self, callee: MastNodeId) -> Result<MastNodeId, Report> {
+        let syscall = MastNode::new_syscall(callee, &self.mast_forest)
+            .into_diagnostic()
+            .wrap_err("assembler failed to add new syscall node")?;
         self.ensure_node(syscall)
     }
 
     /// Adds a dyn node to the forest, and returns the [`MastNodeId`] associated with it.
-    pub fn ensure_dyn(&mut self) -> Result<MastNodeId, AssemblyError> {
+    pub fn ensure_dyn(&mut self) -> Result<MastNodeId, Report> {
         self.ensure_node(MastNode::new_dyn())
     }
 
     /// Adds a dyncall node to the forest, and returns the [`MastNodeId`] associated with it.
-    pub fn ensure_dyncall(&mut self) -> Result<MastNodeId, AssemblyError> {
+    pub fn ensure_dyncall(&mut self) -> Result<MastNodeId, Report> {
         self.ensure_node(MastNode::new_dyncall())
     }
 
@@ -487,7 +492,7 @@ impl MastForestBuilder {
     pub fn vendor_or_ensure_external(
         &mut self,
         mast_root: RpoDigest,
-    ) -> Result<MastNodeId, AssemblyError> {
+    ) -> Result<MastNodeId, Report> {
         if let Some(root_id) = self.vendored_mast.find_procedure_root(mast_root) {
             for old_id in SubtreeIterator::new(&root_id, &self.vendored_mast.clone()) {
                 let node = self.vendored_mast[old_id].remap_children(&self.vendored_remapping);

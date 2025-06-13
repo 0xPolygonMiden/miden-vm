@@ -13,7 +13,7 @@ use vm_core::{
 };
 
 use crate::{
-    AssemblyError, Compile, CompileOptions, LibraryNamespace, LibraryPath, SourceManager, Spanned,
+    Compile, CompileOptions, LibraryNamespace, LibraryPath, SourceManager, Spanned,
     ast::{self, Export, InvocationTarget, InvokeKind, ModuleKind, QualifiedProcedureName},
     diagnostics::{RelatedLabel, Report},
     library::{KernelLibrary, Library},
@@ -486,7 +486,7 @@ impl Assembler {
                     let proc = self.module_graph.get_procedure_unsafe(node);
                     nodes.push(format!("{}::{}", module, proc.name()));
                 }
-                AssemblyError::Linker(LinkerError::Cycle { nodes: nodes.into() })
+                LinkerError::Cycle { nodes: nodes.into() }
             })?
             .into_iter()
             .filter(|&gid| self.module_graph.get_procedure_unsafe(gid).is_ast())
@@ -828,7 +828,7 @@ impl Assembler {
         target: &InvocationTarget,
         proc_ctx: &ProcedureContext,
         mast_forest_builder: &mut MastForestBuilder,
-    ) -> Result<MastNodeId, AssemblyError> {
+    ) -> Result<MastNodeId, Report> {
         let caller = CallerInfo {
             span: target.span(),
             module: proc_ctx.id().module,
@@ -873,7 +873,7 @@ impl Assembler {
         span: SourceSpan,
         mast_root: RpoDigest,
         mast_forest_builder: &mut MastForestBuilder,
-    ) -> Result<MastNodeId, AssemblyError> {
+    ) -> Result<MastNodeId, Report> {
         // Get the procedure from the assembler
         let current_source_file = self.source_manager.get(span.source_id()).ok();
 

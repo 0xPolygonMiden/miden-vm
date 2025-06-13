@@ -1910,27 +1910,33 @@ fn program_with_proc_locals_fail() -> TestResult {
     let source = source_file!(
         &context,
         "\
-        proc.foo \
-            loc_store.0 \
-            add \
-            loc_load.0 \
-            mul \
-        end \
-        begin \
-            push.4 push.3 push.2 \
-            exec.foo \
-        end"
+proc.foo
+    loc_store.0
+    add
+    loc_load.0
+    mul
+end
+begin
+    push.4 push.3 push.2
+    exec.foo
+end"
     );
     assert_assembler_diagnostic!(
         context,
         source,
-        "number of procedure locals was not set (or set to 0), but local memory was accessed",
-        regex!(r#",-\[test[\d]+:1:10\]"#),
-        "1 | proc.foo loc_store.0 add loc_load.0 mul end begin push.4 push.3 push.2 exec.foo end",
-        "  :          ^^^^^|^^^^^",
-        "  :               `-- procedure local accessed here",
-        "  `----",
-        "  help: to use procedure locals, the number of procedure locals must be declared at the start of the procedure"
+        "invalid procedure local reference",
+        regex!(r#",-\[test[\d]+:1:1\]"#),
+        "1 | ,-> proc.foo",
+        "2 | |       loc_store.0",
+        "  : |       ^^^^^|^^^^^",
+        "  : |            `-- the procedure local index referenced here is invalid",
+        "3 | |       add",
+        "4 | |       loc_load.0",
+        "5 | |       mul",
+        "6 | |-> end",
+        "  : `---- this procedure definition does not allocate any locals",
+        "7 |     begin",
+        "  `----"
     );
 
     Ok(())

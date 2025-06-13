@@ -2,9 +2,8 @@ use vm_core::{Felt, Operation::*, debuginfo::SourceSpan};
 
 use super::{BasicBlockBuilder, push_felt, push_u32_value};
 use crate::{
-    AssemblyError,
     assembler::ProcedureContext,
-    diagnostics::{RelatedLabel, Spanned},
+    diagnostics::{RelatedLabel, Report, Spanned},
 };
 
 // INSTRUCTION PARSERS
@@ -31,7 +30,7 @@ pub fn mem_read(
     is_local: bool,
     is_single: bool,
     instr_span: SourceSpan,
-) -> Result<(), AssemblyError> {
+) -> Result<(), Report> {
     // if the address was provided as an immediate value, put it onto the stack
     if let Some(addr) = addr {
         if is_local {
@@ -90,7 +89,7 @@ pub fn mem_write_imm(
     is_local: bool,
     is_single: bool,
     instr_span: SourceSpan,
-) -> Result<(), AssemblyError> {
+) -> Result<(), Report> {
     if is_local {
         local_to_absolute_addr(
             block_builder,
@@ -134,17 +133,14 @@ pub fn local_to_absolute_addr(
     num_proc_locals: u16,
     is_single: bool,
     instr_span: SourceSpan,
-) -> Result<(), AssemblyError> {
+) -> Result<(), Report> {
     if num_proc_locals == 0 {
         return Err(RelatedLabel::error("invalid procedure local reference")
             .with_labeled_span(
                 proc_ctx.span(),
                 "this procedure definition does not allocate any locals",
             )
-            .with_labeled_span(
-                instr_span,
-                "so the procedure local index referenced here is invalid",
-            )
+            .with_labeled_span(instr_span, "the procedure local index referenced here is invalid")
             .with_source_file(proc_ctx.source_manager().get(instr_span.source_id()).ok())
             .into());
     }
