@@ -2,7 +2,7 @@ use core::fmt;
 
 use super::*;
 
-impl fmt::Debug for ModuleGraph {
+impl fmt::Debug for Linker {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         f.debug_struct("ModuleGraph")
             .field("nodes", &DisplayModuleGraphNodes(&self.modules))
@@ -12,7 +12,7 @@ impl fmt::Debug for ModuleGraph {
 }
 
 #[doc(hidden)]
-struct DisplayModuleGraph<'a>(&'a ModuleGraph);
+struct DisplayModuleGraph<'a>(&'a Linker);
 
 impl fmt::Debug for DisplayModuleGraph<'_> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {

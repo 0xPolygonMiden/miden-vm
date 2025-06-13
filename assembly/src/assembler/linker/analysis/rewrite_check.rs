@@ -4,7 +4,7 @@ use crate::{
     AssemblyError, Spanned,
     assembler::{
         ModuleIndex, ResolvedTarget,
-        module_graph::{CallerInfo, NameResolver},
+        linker::{CallerInfo, NameResolver},
     },
     ast::{InvocationTarget, InvokeKind, Module, visit::Visit},
 };
