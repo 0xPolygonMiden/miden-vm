@@ -25,21 +25,18 @@ use crate::{
     library::{ModuleInfo, ProcedureInfo},
 };
 
-// WRAPPER STRUCTS
+// LINKER INPUTS
 // ================================================================================================
 
-/// Wraps all supported representations of a procedure in the module graph.
-///
-/// Currently, there are two supported representations:
-/// - `Ast`: wraps a procedure for which we have access to the entire AST,
-/// - `Info`: stores the procedure's name and digest (resulting from previously compiled
-///   procedures).
-pub enum ProcedureWrapper<'a> {
+/// Represents a linked procedure in the procedure graph of the [`Linker`]
+pub enum ProcedureLink<'a> {
+    /// A procedure which we have the original AST for, and may require additional processing
     Ast(&'a Export),
+    /// A procedure which we have the MAST for, no additional processing required
     Info(&'a ProcedureInfo),
 }
 
-impl ProcedureWrapper<'_> {
+impl ProcedureLink<'_> {
     /// Returns the name of the procedure.
     pub fn name(&self) -> &ProcedureName {
         match self {
@@ -65,19 +62,16 @@ impl ProcedureWrapper<'_> {
     }
 }
 
-/// Wraps all supported representations of a module in the module graph.
-///
-/// Currently, there are two supported representations:
-/// - `Ast`: wraps a module for which we have access to the entire AST,
-/// - `Info`: stores only the necessary information about a module (resulting from previously
-///   compiled modules).
+/// Represents a linked module in the module graph of the [`Linker`]
 #[derive(Clone)]
-pub enum WrappedModule {
+pub enum ModuleLink {
+    /// A module which we have the original AST for, and may require additional processing
     Ast(Arc<Module>),
+    /// A previously-assembled module we have MAST for, no additional processing required
     Info(ModuleInfo),
 }
 
-impl WrappedModule {
+impl ModuleLink {
     /// Returns the library path of the wrapped module.
     pub fn path(&self) -> &LibraryPath {
         match self {
@@ -102,16 +96,17 @@ impl WrappedModule {
     /// Resolves `name` to a procedure within the local scope of this module.
     pub fn resolve(&self, name: &ProcedureName) -> Option<ResolvedProcedure> {
         match self {
-            WrappedModule::Ast(module) => module.resolve(name),
-            WrappedModule::Info(module) => {
+            ModuleLink::Ast(module) => module.resolve(name),
+            ModuleLink::Info(module) => {
                 module.get_procedure_digest_by_name(name).map(ResolvedProcedure::MastRoot)
             },
         }
     }
 }
 
+/// Represents an AST module which has not been linked yet
 #[derive(Clone)]
-pub struct PendingModule {
+pub struct PreLinkModule {
     pub module: Box<Module>,
     pub module_index: ModuleIndex,
 }
@@ -121,7 +116,7 @@ pub struct PendingModule {
 
 #[derive(Clone)]
 pub struct Linker {
-    modules: Vec<Option<WrappedModule>>,
+    modules: Vec<Option<ModuleLink>>,
     /// The set of modules pending additional processing before adding them to the graph.
     ///
     /// When adding a set of inter-dependent modules to the graph, we process them as a group, so
@@ -130,7 +125,7 @@ pub struct Linker {
     ///
     /// Once added to the graph, modules become immutable, and any additional modules added after
     /// that must by definition only depend on modules in the graph, and not be depended upon.
-    pending: Vec<PendingModule>,
+    pending: Vec<PreLinkModule>,
     /// The global call graph of calls, not counting those that are performed directly via MAST
     /// root.
     callgraph: CallGraph,
@@ -145,7 +140,7 @@ pub struct Linker {
 // ------------------------------------------------------------------------------------------------
 /// Constructors
 impl Linker {
-    /// Instantiate a new [ModuleGraph], using the provided [SourceManager] to resolve source info.
+    /// Instantiate a new [Linker], using the provided [SourceManager] to resolve source info.
     pub fn new(source_manager: Arc<dyn SourceManager>) -> Self {
         Self {
             modules: Default::default(),
@@ -158,19 +153,20 @@ impl Linker {
         }
     }
 
-    /// Adds all module infos to the graph.
-    pub fn add_compiled_modules(
+    /// Registers `modules` with the linker.
+    pub fn link_assembled_modules(
         &mut self,
-        module_infos: impl IntoIterator<Item = ModuleInfo>,
+        modules: impl IntoIterator<Item = ModuleInfo>,
     ) -> Result<(), AssemblyError> {
-        for module in module_infos {
-            self.add_compiled_module(module)?;
+        for module in modules {
+            self.link_assembled_module(module)?;
         }
 
         Ok(())
     }
 
-    pub fn add_compiled_module(
+    /// Registers `module` with the linker.
+    pub fn link_assembled_module(
         &mut self,
         module: ModuleInfo,
     ) -> Result<ModuleIndex, AssemblyError> {
@@ -189,11 +185,11 @@ impl Linker {
             self.register_procedure_root(gid, proc.digest)?;
             self.callgraph.get_or_insert_node(gid);
         }
-        self.modules.push(Some(WrappedModule::Info(module)));
+        self.modules.push(Some(ModuleLink::Info(module)));
         Ok(module_index)
     }
 
-    /// Add `module` to the graph.
+    /// Adds `modules` to the set of modules to be linked into the final assembly.
     ///
     /// # Errors
     ///
@@ -206,19 +202,14 @@ impl Linker {
     ///
     /// This function will panic if the number of modules exceeds the maximum representable
     /// [ModuleIndex] value, `u16::MAX`.
-    #[allow(unused)]
-    pub fn add_included_ast_module(&mut self, module: Box<Module>) -> Result<(), AssemblyError> {
-        self.include_module(module).map(|_| ())
-    }
-
-    pub fn add_included_ast_modules(
+    pub fn link_modules(
         &mut self,
         modules: impl IntoIterator<Item = Box<Module>>,
     ) -> Result<Vec<ModuleIndex>, AssemblyError> {
-        modules.into_iter().map(|m| self.include_module(m)).collect()
+        modules.into_iter().map(|m| self.link_module(m)).collect()
     }
 
-    fn include_module(&mut self, module: Box<Module>) -> Result<ModuleIndex, AssemblyError> {
+    fn link_module(&mut self, module: Box<Module>) -> Result<ModuleIndex, AssemblyError> {
         log::debug!(target: "module-graph", "adding unprocessed module {}", module.path());
         let module_path = module.path();
 
@@ -230,7 +221,7 @@ impl Linker {
 
         let module_index = self.next_module_id();
         self.modules.push(None);
-        self.pending.push(PendingModule { module, module_index });
+        self.pending.push(PreLinkModule { module, module_index });
         Ok(module_index)
     }
 
@@ -263,7 +254,7 @@ impl Linker {
 
         let mut graph = Self::new(source_manager);
         let kernel_index = graph
-            .add_compiled_module(kernel_module)
+            .link_assembled_module(kernel_module)
             .expect("failed to add kernel module to the module graph");
 
         graph.kernel_index = Some(kernel_index);
@@ -283,13 +274,17 @@ impl Linker {
 // ------------------------------------------------------------------------------------------------
 /// Analysis
 impl Linker {
-    pub fn process(
+    /// Links `modules` using the current state of the linker.
+    ///
+    /// Returns the module indices corresponding to the provided modules, which are expected to
+    /// provide the public interface of the final assembled artifact.
+    pub fn link(
         &mut self,
         modules: impl IntoIterator<Item = Box<Module>>,
     ) -> Result<Vec<ModuleIndex>, AssemblyError> {
-        let module_indices = self.add_included_ast_modules(modules)?;
+        let module_indices = self.link_modules(modules)?;
 
-        self.recompute()?;
+        self.link_and_rewrite()?;
 
         Ok(module_indices)
     }
@@ -333,7 +328,7 @@ impl Linker {
     /// NOTE: This will return `Err` if we detect a validation error, a cycle in the graph, or an
     /// operation not supported by the current configuration. Basically, for any reason that would
     /// cause the resulting graph to represent an invalid program.
-    fn recompute(&mut self) -> Result<(), AssemblyError> {
+    fn link_and_rewrite(&mut self) -> Result<(), AssemblyError> {
         log::debug!(target: "module-graph", "processing {} new modules, and recomputing module graph", self.pending.len());
 
         // It is acceptable for there to be no changes, but if the graph is empty and no changes
@@ -351,7 +346,7 @@ impl Linker {
         // graph after rewriting any calls to use absolute paths
         let high_water_mark = self.modules.len();
         let pending = core::mem::take(&mut self.pending);
-        for PendingModule { module: pending_module, module_index } in pending.iter() {
+        for PreLinkModule { module: pending_module, module_index } in pending.iter() {
             log::debug!(
                 target: "module-graph",
                 "adding procedures from pending module {} (index {}) to call graph",
@@ -381,10 +376,10 @@ impl Linker {
             resolver.push_pending(module);
         }
         let mut edges = Vec::new();
-        let mut finished: Vec<PendingModule> = Vec::with_capacity(pending.len());
+        let mut finished: Vec<PreLinkModule> = Vec::with_capacity(pending.len());
 
         // Visit all of the newly-added modules and perform any rewrites to AST modules.
-        for PendingModule { mut module, module_index } in pending.into_iter() {
+        for PreLinkModule { mut module, module_index } in pending.into_iter() {
             log::debug!(target: "module-graph", "rewriting pending module {} (index {})", module.path(), module_index.as_usize());
 
             let mut rewriter = ModuleRewriter::new(&resolver);
@@ -451,15 +446,15 @@ impl Linker {
                 }
             }
 
-            finished.push(PendingModule { module, module_index });
+            finished.push(PreLinkModule { module, module_index });
         }
 
         // Release the graph again
         drop(resolver);
 
         // Update the graph with the processed modules
-        for PendingModule { module, module_index } in finished {
-            self.modules[module_index.as_usize()] = Some(WrappedModule::Ast(Arc::from(module)));
+        for PreLinkModule { module, module_index } in finished {
+            self.modules[module_index.as_usize()] = Some(ModuleLink::Ast(Arc::from(module)));
         }
 
         edges
@@ -479,13 +474,13 @@ impl Linker {
             });
 
             match module {
-                WrappedModule::Ast(module) => {
+                ModuleLink::Ast(module) => {
                     log::debug!(target: "module-graph", "re-analyzing module {} (index {})", module.path(), module_index.as_usize());
                     // Re-analyze the module, and if we needed to clone-on-write, the new module will be
                     // returned. Otherwise, `Ok(None)` indicates that the module is unchanged, and `Err`
                     // indicates that re-analysis has found an issue with this module.
                     let new_module =
-                        self.reanalyze_module(module_index, module).map(WrappedModule::Ast)?;
+                        self.reanalyze_module(module_index, module).map(ModuleLink::Ast)?;
                     self.modules[module_index.as_usize()] = Some(new_module);
                 },
                 module => {
@@ -545,15 +540,13 @@ impl Linker {
     ///
     /// # Panics
     /// - Panics if index is invalid.
-    pub fn get_procedure_unsafe(&self, id: GlobalProcedureIndex) -> ProcedureWrapper<'_> {
+    pub fn get_procedure_unsafe(&self, id: GlobalProcedureIndex) -> ProcedureLink<'_> {
         match self.modules[id.module.as_usize()]
             .as_ref()
             .expect("invalid reference to pending module")
         {
-            WrappedModule::Ast(m) => ProcedureWrapper::Ast(&m[id.index]),
-            WrappedModule::Info(m) => {
-                ProcedureWrapper::Info(m.get_procedure_by_index(id.index).unwrap())
-            },
+            ModuleLink::Ast(m) => ProcedureLink::Ast(&m[id.index]),
+            ModuleLink::Info(m) => ProcedureLink::Info(m.get_procedure_by_index(id.index).unwrap()),
         }
     }
 
@@ -618,7 +611,7 @@ impl Linker {
     }
 
     /// Resolve a [LibraryPath] to a [Module] in this graph
-    pub fn find_module(&self, name: &LibraryPath) -> Option<WrappedModule> {
+    pub fn find_module(&self, name: &LibraryPath) -> Option<ModuleLink> {
         self.modules
             .iter()
             .find(|m| m.as_ref().is_some_and(|m| m.path() == name))
@@ -628,7 +621,7 @@ impl Linker {
 }
 
 impl Index<ModuleIndex> for Linker {
-    type Output = WrappedModule;
+    type Output = ModuleLink;
 
     fn index(&self, index: ModuleIndex) -> &Self::Output {
         self.modules

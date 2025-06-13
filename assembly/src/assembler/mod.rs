@@ -3,7 +3,7 @@ use std::boxed::Box;
 use alloc::{collections::BTreeMap, string::ToString, sync::Arc, vec::Vec};
 
 use basic_block_builder::BasicBlockOrDecorators;
-use linker::{ProcedureWrapper, WrappedModule};
+use linker::{ModuleLink, ProcedureLink};
 use mast_forest_builder::MastForestBuilder;
 use vm_core::{
     AssemblyOp, Decorator, DecoratorList, Felt, Kernel, Operation, Program, WORD_SIZE,
@@ -197,7 +197,7 @@ impl Assembler {
             })
             .collect::<Result<Vec<_>, Report>>()?;
 
-        self.module_graph.add_included_ast_modules(modules)?;
+        self.module_graph.link_modules(modules)?;
 
         Ok(self)
     }
@@ -227,7 +227,7 @@ impl Assembler {
         dir: &std::path::Path,
     ) -> Result<(), Report> {
         let modules = crate::parser::read_modules_from_dir(namespace, dir, &self.source_manager)?;
-        self.module_graph.add_included_ast_modules(modules)?;
+        self.module_graph.link_modules(modules)?;
         Ok(())
     }
 
@@ -256,7 +256,7 @@ impl Assembler {
     /// to this edge case.
     pub fn link_library(&mut self, library: impl AsRef<Library>) -> Result<(), Report> {
         self.module_graph
-            .add_compiled_modules(library.as_ref().module_infos())
+            .link_assembled_modules(library.as_ref().module_infos())
             .map_err(Report::from)?;
         Ok(())
     }
@@ -381,7 +381,7 @@ impl Assembler {
         mut self,
         modules: impl IntoIterator<Item = Box<ast::Module>>,
     ) -> Result<Library, Report> {
-        let module_indices = self.module_graph.process(modules)?;
+        let module_indices = self.module_graph.link(modules)?;
 
         let mut mast_forest_builder = MastForestBuilder::new(self.vendored_libraries.values())?;
         let mut exports = {
@@ -435,7 +435,7 @@ impl Assembler {
         assert!(program.is_executable());
 
         // Recompute graph with executable module, and start compiling
-        let module_index = self.module_graph.process([program])?[0];
+        let module_index = self.module_graph.link([program])?[0];
 
         // Find the executable entrypoint Note: it is safe to use `unwrap_ast()` here, since this is
         // the module we just added, which is in AST representation.
@@ -512,10 +512,10 @@ impl Assembler {
             }
             // Fetch procedure metadata from the graph
             let module = match &self.module_graph[procedure_gid.module] {
-                WrappedModule::Ast(ast_module) => ast_module,
+                ModuleLink::Ast(ast_module) => ast_module,
                 // Note: if the containing module is in `Info` representation, there is nothing to
                 // compile.
-                WrappedModule::Info(_) => continue,
+                ModuleLink::Info(_) => continue,
             };
 
             let export = &module[procedure_gid.index];
@@ -841,13 +841,13 @@ impl Assembler {
                     // We didn't find the procedure in our current MAST forest. We still need to
                     // check if it exists in one of a library dependency.
                     None => match self.module_graph.get_procedure_unsafe(gid) {
-                        ProcedureWrapper::Info(p) => self.ensure_valid_procedure_mast_root(
+                        ProcedureLink::Info(p) => self.ensure_valid_procedure_mast_root(
                             kind,
                             target.span(),
                             p.digest,
                             mast_forest_builder,
                         ),
-                        ProcedureWrapper::Ast(_) => panic!(
+                        ProcedureLink::Ast(_) => panic!(
                             "AST procedure {gid:?} exits in the module graph but not in the MastForestBuilder"
                         ),
                     },
