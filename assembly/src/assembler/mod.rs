@@ -1,5 +1,4 @@
-use alloc::{collections::BTreeMap, string::ToString, sync::Arc, vec::Vec};
-use std::boxed::Box;
+use alloc::{boxed::Box, collections::BTreeMap, string::ToString, sync::Arc, vec::Vec};
 
 use basic_block_builder::BasicBlockOrDecorators;
 use linker::{ModuleLink, ProcedureLink};
