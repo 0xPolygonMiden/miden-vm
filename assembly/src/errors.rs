@@ -1,11 +1,8 @@
-use alloc::{boxed::Box, string::String, sync::Arc};
-
 use vm_core::mast::MastForestError;
 
 use crate::{
-    LibraryNamespace, LibraryPath, SourceSpan,
-    ast::QualifiedProcedureName,
-    diagnostics::{Diagnostic, RelatedError, RelatedLabel, SourceFile},
+    assembler::LinkerError,
+    diagnostics::{Diagnostic, RelatedError, RelatedLabel, Report},
 };
 
 // ASSEMBLY ERROR
@@ -15,126 +12,33 @@ use crate::{
 #[derive(Debug, thiserror::Error, Diagnostic)]
 #[non_exhaustive]
 pub enum AssemblyError {
-    #[error("there are no modules to analyze")]
-    #[diagnostic()]
-    Empty,
-    #[error("assembly failed")]
-    #[diagnostic(help("see diagnostics for details"))]
-    Failed {
-        #[related]
-        labels: Box<[RelatedLabel]>,
-    },
-    #[error("found a cycle in the call graph, involving these procedures: {}", nodes.join(", "))]
-    #[diagnostic()]
-    Cycle { nodes: Box<[String]> },
-    #[error(
-        "two procedures found with same mast root, but conflicting definitions ('{first}' and '{second}')"
-    )]
-    #[diagnostic()]
-    ConflictingDefinitions {
-        first: Box<QualifiedProcedureName>,
-        second: Box<QualifiedProcedureName>,
-    },
-    #[error("duplicate definition found for module '{path}'")]
-    #[diagnostic()]
-    DuplicateModule { path: LibraryPath },
-    #[error("undefined module '{path}'")]
-    #[diagnostic()]
-    UndefinedModule {
-        #[label]
-        span: SourceSpan,
-        #[source_code]
-        source_file: Option<Arc<SourceFile>>,
-        path: LibraryPath,
-    },
-    #[error("module namespace is inconsistent with library ('{actual}' vs '{expected}')")]
-    #[diagnostic()]
-    InconsistentNamespace {
-        expected: LibraryNamespace,
-        actual: LibraryNamespace,
-    },
-    #[error("invalid syscall: '{callee}' is not an exported kernel procedure")]
-    #[diagnostic()]
-    InvalidSysCallTarget {
-        #[label("call occurs here")]
-        span: SourceSpan,
-        #[source_code]
-        source_file: Option<Arc<SourceFile>>,
-        callee: Box<QualifiedProcedureName>,
-    },
-    #[error("invalid local word index: {local_addr}")]
-    #[diagnostic(help("the index to a local word must be a multiple of 4"))]
-    InvalidLocalWordIndex {
-        #[label]
-        span: SourceSpan,
-        #[source_code]
-        source_file: Option<Arc<SourceFile>>,
-        local_addr: u16,
-    },
-    #[error(
-        "word accessed from local memory but the number of procedure locals was only {num_proc_locals}"
-    )]
-    #[diagnostic(help(
-        "when a word is accessed from local memory, the number of procedure locals must be at least 4 (since a word is 4 locals)"
-    ))]
-    InvalidNumProcLocals {
-        #[label("local word accessed here")]
-        span: SourceSpan,
-        #[source_code]
-        source_file: Option<Arc<SourceFile>>,
-        num_proc_locals: u16,
-    },
-    #[error("invalid parameter value: {param}; expected to be between {min} and {max}")]
-    #[diagnostic()]
-    InvalidU8Param {
-        #[label]
-        span: SourceSpan,
-        #[source_code]
-        source_file: Option<Arc<SourceFile>>,
-        param: u8,
-        min: u8,
-        max: u8,
-    },
-    #[error("invalid use of 'caller' instruction outside of kernel")]
-    #[diagnostic(help(
-        "the 'caller' instruction is only allowed in procedures defined in a kernel"
-    ))]
-    CallerOutsideOfKernel {
-        #[label]
-        span: SourceSpan,
-        #[source_code]
-        source_file: Option<Arc<SourceFile>>,
-    },
-
-    #[error("invalid procedure: body must contain at least one instruction if it has decorators")]
-    #[diagnostic()]
-    EmptyProcedureBodyWithDecorators {
-        span: SourceSpan,
-        #[source_code]
-        source_file: Option<Arc<SourceFile>>,
-    },
-    #[error("number of procedure locals was not set (or set to 0), but local memory was accessed")]
-    #[diagnostic(help(
-        "to use procedure locals, the number of procedure locals must be declared at the start of the procedure"
-    ))]
-    ProcLocalsNotDeclared {
-        #[label("procedure local accessed here")]
-        span: SourceSpan,
-        #[source_code]
-        source_file: Option<Arc<SourceFile>>,
-    },
     #[error(transparent)]
     #[diagnostic(transparent)]
-    Other(RelatedError),
+    Report(RelatedError),
     // Technically MastForestError is the source error here, but since AssemblyError is converted
     // into a Report and that doesn't implement core::error::Error, treating MastForestError as a
     // source error would effectively swallow it, so we include it in the error message instead.
     #[error("{0}: {1}")]
     Forest(&'static str, MastForestError),
+    #[error(transparent)]
+    #[diagnostic(transparent)]
+    Linker(#[from] LinkerError),
 }
 
 impl AssemblyError {
     pub(super) fn forest_error(message: &'static str, source: MastForestError) -> Self {
         Self::Forest(message, source)
+    }
+}
+
+impl From<Report> for AssemblyError {
+    fn from(value: Report) -> Self {
+        Self::Report(RelatedError::new(value))
+    }
+}
+
+impl From<RelatedLabel> for AssemblyError {
+    fn from(value: RelatedLabel) -> Self {
+        Self::Report(RelatedError::new(Report::new(value)))
     }
 }

@@ -15,7 +15,7 @@ use vm_core::{
 use crate::{
     AssemblyError, Compile, CompileOptions, LibraryNamespace, LibraryPath, SourceManager, Spanned,
     ast::{self, Export, InvocationTarget, InvokeKind, ModuleKind, QualifiedProcedureName},
-    diagnostics::Report,
+    diagnostics::{RelatedLabel, Report},
     library::{KernelLibrary, Library},
     sema::SemanticAnalysisError,
 };
@@ -39,6 +39,7 @@ use self::{
 };
 pub use self::{
     id::{GlobalProcedureIndex, ModuleIndex},
+    linker::LinkerError,
     procedure::{Procedure, ProcedureContext},
 };
 
@@ -485,7 +486,7 @@ impl Assembler {
                     let proc = self.module_graph.get_procedure_unsafe(node);
                     nodes.push(format!("{}::{}", module, proc.name()));
                 }
-                AssemblyError::Cycle { nodes: nodes.into() }
+                AssemblyError::Linker(LinkerError::Cycle { nodes: nodes.into() })
             })?
             .into_iter()
             .filter(|&gid| self.module_graph.get_procedure_unsafe(gid).is_ast())
@@ -792,10 +793,16 @@ impl Assembler {
             // the MAST digest of a node. Hence, two empty procedures with different decorators
             // would look the same to the `MastForestBuilder`.
             if maybe_post_decorators.is_some() {
-                return Err(AssemblyError::EmptyProcedureBodyWithDecorators {
-                    span: proc_ctx.span(),
-                    source_file: proc_ctx.source_manager().get(proc_ctx.span().source_id()).ok(),
-                })?;
+                return Err(Report::new(
+                    RelatedLabel::error("invalid procedure")
+                        .with_labeled_span(
+                            proc_ctx.span(),
+                            "body must contain at least one instruction if it has decorators",
+                        )
+                        .with_source_file(
+                            proc_ctx.source_manager().get(proc_ctx.span().source_id()).ok(),
+                        ),
+                ));
             }
 
             mast_forest_builder.ensure_block(vec![Operation::Noop], None)?
@@ -879,34 +886,41 @@ impl Assembler {
                 // procedures at this point, so if we can't identify the callee as a
                 // kernel procedure, it is a definite error.
                 if !proc.visibility().is_syscall() {
-                    return Err(AssemblyError::InvalidSysCallTarget {
-                        span,
-                        source_file: current_source_file,
-                        callee: proc.fully_qualified_name().clone().into(),
-                    });
+                    assert!(
+                        !proc.visibility().is_syscall(),
+                        "linker failed to validate syscall correctly: {}",
+                        Report::new(LinkerError::InvalidSysCallTarget {
+                            span,
+                            source_file: current_source_file,
+                            callee: proc.fully_qualified_name().clone().into(),
+                        })
+                    );
                 }
                 let maybe_kernel_path = proc.path();
-                self.module_graph
-                    .find_module(maybe_kernel_path)
-                    .ok_or_else(|| AssemblyError::InvalidSysCallTarget {
-                        span,
-                        source_file: current_source_file.clone(),
-                        callee: proc.fully_qualified_name().clone().into(),
-                    })
-                    .and_then(|module| {
-                        // Note: this module is guaranteed to be of AST variant, since we have the
-                        // AST of a procedure contained in it (i.e. `proc`). Hence, it must be that
-                        // the entire module is in AST representation as well.
-                        if module.unwrap_ast().is_kernel() {
-                            Ok(())
-                        } else {
-                            Err(AssemblyError::InvalidSysCallTarget {
+                let module =
+                    self.module_graph.find_module(maybe_kernel_path).unwrap_or_else(|| {
+                        panic!(
+                            "linker failed to validate syscall correctly: {}",
+                            Report::new(LinkerError::InvalidSysCallTarget {
                                 span,
                                 source_file: current_source_file.clone(),
                                 callee: proc.fully_qualified_name().clone().into(),
                             })
-                        }
-                    })?;
+                        )
+                    });
+                // Note: this module is guaranteed to be of AST variant, since we have the
+                // AST of a procedure contained in it (i.e. `proc`). Hence, it must be that
+                // the entire module is in AST representation as well.
+                if !module.unwrap_ast().is_kernel() {
+                    panic!(
+                        "linker failed to validate syscall correctly: {}",
+                        Report::new(LinkerError::InvalidSysCallTarget {
+                            span,
+                            source_file: current_source_file.clone(),
+                            callee: proc.fully_qualified_name().clone().into(),
+                        })
+                    )
+                }
             },
             Some(_) | None => (),
         }

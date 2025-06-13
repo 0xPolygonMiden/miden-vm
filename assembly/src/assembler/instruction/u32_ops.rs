@@ -2,7 +2,6 @@ use vm_core::{
     Felt,
     Operation::{self, *},
     ZERO,
-    debuginfo::Spanned,
     sys_events::SystemEvent,
 };
 
@@ -10,7 +9,7 @@ use super::{BasicBlockBuilder, field_ops::append_pow2_op, push_u32_value};
 use crate::{
     AssemblyError, MAX_U32_ROTATE_VALUE, MAX_U32_SHIFT_VALUE, Span,
     assembler::ProcedureContext,
-    diagnostics::{RelatedError, Report},
+    diagnostics::{RelatedLabel, Report, SourceSpan},
 };
 
 /// This enum is intended to determine the mode of operation passed to the parsing function
@@ -197,8 +196,9 @@ pub fn u32shl(
     span_builder: &mut BasicBlockBuilder,
     proc_ctx: &ProcedureContext,
     imm: Option<u8>,
+    span: SourceSpan,
 ) -> Result<(), AssemblyError> {
-    prepare_bitwise::<MAX_U32_SHIFT_VALUE>(span_builder, proc_ctx, imm)?;
+    prepare_bitwise::<MAX_U32_SHIFT_VALUE>(span_builder, proc_ctx, imm, span)?;
     if imm != Some(0) {
         span_builder.push_ops([U32mul, Drop]);
     }
@@ -217,8 +217,9 @@ pub fn u32shr(
     span_builder: &mut BasicBlockBuilder,
     proc_ctx: &ProcedureContext,
     imm: Option<u8>,
+    span: SourceSpan,
 ) -> Result<(), AssemblyError> {
-    prepare_bitwise::<MAX_U32_SHIFT_VALUE>(span_builder, proc_ctx, imm)?;
+    prepare_bitwise::<MAX_U32_SHIFT_VALUE>(span_builder, proc_ctx, imm, span)?;
     if imm != Some(0) {
         span_builder.push_ops([U32div, Drop]);
     }
@@ -237,8 +238,9 @@ pub fn u32rotl(
     span_builder: &mut BasicBlockBuilder,
     proc_ctx: &ProcedureContext,
     imm: Option<u8>,
+    span: SourceSpan,
 ) -> Result<(), AssemblyError> {
-    prepare_bitwise::<MAX_U32_ROTATE_VALUE>(span_builder, proc_ctx, imm)?;
+    prepare_bitwise::<MAX_U32_ROTATE_VALUE>(span_builder, proc_ctx, imm, span)?;
     if imm != Some(0) {
         span_builder.push_ops([U32mul, Add]);
     }
@@ -257,6 +259,7 @@ pub fn u32rotr(
     span_builder: &mut BasicBlockBuilder,
     proc_ctx: &ProcedureContext,
     imm: Option<u8>,
+    span: SourceSpan,
 ) -> Result<(), AssemblyError> {
     match imm {
         Some(0) => {
@@ -265,14 +268,11 @@ pub fn u32rotr(
         },
         Some(imm) => {
             if imm == 0 || imm > MAX_U32_ROTATE_VALUE {
-                let span = proc_ctx.span();
-                return Err(AssemblyError::InvalidU8Param {
-                    span,
-                    source_file: proc_ctx.source_manager().get(span.source_id()).ok(),
-                    param: imm,
-                    min: 0,
-                    max: MAX_U32_ROTATE_VALUE,
-                });
+                return Err(RelatedLabel::error("invalid argument")
+                    .with_labeled_span(span, "this instruction argument is out of range")
+                    .with_help(format!("value must be in the range 0..={MAX_U32_ROTATE_VALUE}"))
+                    .with_source_file(proc_ctx.source_manager().get(span.source_id()).ok())
+                    .into());
             }
             span_builder.push_op(Push(Felt::new(1 << (32 - imm))));
             span_builder.push_ops([U32mul, Add]);
@@ -405,9 +405,9 @@ fn handle_division(
             let source_file = proc_ctx.source_manager().get(imm_span.source_id()).ok();
             let error = Report::new(crate::parser::ParsingError::DivisionByZero { span: imm_span });
             return if let Some(source_file) = source_file {
-                Err(AssemblyError::Other(RelatedError::new(error.with_source_code(source_file))))
+                Err(error.with_source_code(source_file).into())
             } else {
-                Err(AssemblyError::Other(RelatedError::new(error)))
+                Err(error.into())
             };
         }
         push_u32_value(block_builder, imm.into_inner());
@@ -426,6 +426,7 @@ fn prepare_bitwise<const MAX_VALUE: u8>(
     block_builder: &mut BasicBlockBuilder,
     proc_ctx: &ProcedureContext,
     imm: Option<u8>,
+    span: SourceSpan,
 ) -> Result<(), AssemblyError> {
     match imm {
         Some(0) => {
@@ -434,14 +435,11 @@ fn prepare_bitwise<const MAX_VALUE: u8>(
         },
         Some(imm) => {
             if imm == 0 || imm > MAX_VALUE {
-                let span = proc_ctx.span();
-                return Err(AssemblyError::InvalidU8Param {
-                    span,
-                    source_file: proc_ctx.source_manager().get(span.source_id()).ok(),
-                    param: imm,
-                    min: 0,
-                    max: MAX_VALUE,
-                });
+                return Err(RelatedLabel::error("invalid argument")
+                    .with_labeled_span(span, "this instruction argument is out of range")
+                    .with_help(format!("value must be in the range 0..={MAX_VALUE}"))
+                    .with_source_file(proc_ctx.source_manager().get(span.source_id()).ok())
+                    .into());
             }
             block_builder.push_op(Push(Felt::new(1 << imm)));
         },

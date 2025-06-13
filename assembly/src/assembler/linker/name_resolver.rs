@@ -2,8 +2,8 @@ use alloc::{borrow::Cow, collections::BTreeSet, vec::Vec};
 
 use super::{Linker, ModuleLink, PreLinkModule};
 use crate::{
-    AssemblyError, RpoDigest, SourceSpan, Span, Spanned,
-    assembler::{GlobalProcedureIndex, ModuleIndex},
+    RpoDigest, SourceSpan, Span, Spanned,
+    assembler::{GlobalProcedureIndex, LinkerError, ModuleIndex},
     ast::{
         Ident, InvocationTarget, InvokeKind, ProcedureName, QualifiedProcedureName,
         ResolvedProcedure,
@@ -121,7 +121,7 @@ impl<'a> NameResolver<'a> {
         &self,
         caller: &CallerInfo,
         target: &InvocationTarget,
-    ) -> Result<ResolvedTarget, AssemblyError> {
+    ) -> Result<ResolvedTarget, LinkerError> {
         match target {
             InvocationTarget::MastRoot(mast_root) => {
                 log::debug!(target: "name-resolver", "resolving {target}");
@@ -155,7 +155,7 @@ impl<'a> NameResolver<'a> {
                             target: InvocationTarget::AbsoluteProcedurePath { name, path },
                         })
                     },
-                    None => Err(AssemblyError::UndefinedModule {
+                    None => Err(LinkerError::UndefinedModule {
                         span: caller.span,
                         source_file: self.graph.source_manager.get(caller.span.source_id()).ok(),
                         path: LibraryPath::new_from_components(
@@ -184,7 +184,7 @@ impl<'a> NameResolver<'a> {
         &self,
         caller: &CallerInfo,
         callee: &ProcedureName,
-    ) -> Result<ResolvedTarget, AssemblyError> {
+    ) -> Result<ResolvedTarget, LinkerError> {
         match self.resolve_local(caller, callee) {
             Some(ResolvedProcedure::Local(index)) if matches!(caller.kind, InvokeKind::SysCall) => {
                 let gid = GlobalProcedureIndex {
@@ -221,7 +221,7 @@ impl<'a> NameResolver<'a> {
                     None => Ok(ResolvedTarget::Phantom(*digest)),
                 }
             },
-            None => Err(AssemblyError::Failed {
+            None => Err(LinkerError::Failed {
                 labels: vec![
                     RelatedLabel::error("undefined procedure")
                         .with_source_file(
@@ -293,7 +293,7 @@ impl<'a> NameResolver<'a> {
         &self,
         caller: &CallerInfo,
         callee: &QualifiedProcedureName,
-    ) -> Result<GlobalProcedureIndex, AssemblyError> {
+    ) -> Result<GlobalProcedureIndex, LinkerError> {
         // If the caller is a syscall, set the invoke kind to `ProcRef` until we have resolved the
         // procedure, then verify that it is in the kernel module. This bypasses validation until
         // after resolution
@@ -308,7 +308,7 @@ impl<'a> NameResolver<'a> {
         let mut visited = BTreeSet::default();
         loop {
             let module_index = self.find_module_index(&current_callee.module).ok_or_else(|| {
-                AssemblyError::UndefinedModule {
+                LinkerError::UndefinedModule {
                     span: current_caller.span,
                     source_file: self
                         .graph
@@ -327,7 +327,7 @@ impl<'a> NameResolver<'a> {
                     };
                     if matches!(current_caller.kind, InvokeKind::SysCall if self.graph.kernel_index != Some(module_index))
                     {
-                        break Err(AssemblyError::InvalidSysCallTarget {
+                        break Err(LinkerError::InvalidSysCallTarget {
                             span: current_caller.span,
                             source_file: self
                                 .graph
@@ -344,7 +344,7 @@ impl<'a> NameResolver<'a> {
                     // resolver loop because of a recursive alias, return
                     // an error
                     if !visited.insert(fqn.clone()) {
-                        break Err(AssemblyError::Failed {
+                        break Err(LinkerError::Failed {
                             labels: vec![
                                 RelatedLabel::error("recursive alias")
                                     .with_source_file(self.graph.source_manager.get(fqn.span().source_id()).ok())
@@ -368,7 +368,7 @@ impl<'a> NameResolver<'a> {
                     }
                     // This is a phantom procedure - we know its root, but do not have its
                     // definition
-                    break Err(AssemblyError::Failed {
+                    break Err(LinkerError::Failed {
                         labels: vec![
                             RelatedLabel::error("undefined procedure")
                                 .with_source_file(
@@ -396,7 +396,7 @@ impl<'a> NameResolver<'a> {
                 None if matches!(current_caller.kind, InvokeKind::SysCall) => {
                     if self.graph.has_nonempty_kernel() {
                         // No kernel, so this invoke is invalid anyway
-                        break Err(AssemblyError::Failed {
+                        break Err(LinkerError::Failed {
                             labels: vec![
                                 RelatedLabel::error("undefined kernel procedure")
                                     .with_source_file(self.graph.source_manager.get(caller.span.source_id()).ok())
@@ -411,7 +411,7 @@ impl<'a> NameResolver<'a> {
                         });
                     } else {
                         // No such kernel procedure
-                        break Err(AssemblyError::Failed {
+                        break Err(LinkerError::Failed {
                             labels: vec![
                                 RelatedLabel::error("undefined kernel procedure")
                                     .with_source_file(self.graph.source_manager.get(caller.span.source_id()).ok())
@@ -428,7 +428,7 @@ impl<'a> NameResolver<'a> {
                 },
                 None => {
                     // No such procedure known to `module`
-                    break Err(AssemblyError::Failed {
+                    break Err(LinkerError::Failed {
                         labels: vec![
                             RelatedLabel::error("undefined procedure")
                                 .with_source_file(

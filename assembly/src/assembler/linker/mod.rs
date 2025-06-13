@@ -1,6 +1,7 @@
 mod analysis;
 mod callgraph;
 mod debug;
+mod errors;
 mod name_resolver;
 mod rewrites;
 
@@ -13,11 +14,12 @@ use vm_core::{Kernel, crypto::hash::RpoDigest};
 use self::{analysis::MaybeRewriteCheck, name_resolver::NameResolver, rewrites::ModuleRewriter};
 pub use self::{
     callgraph::{CallGraph, CycleError},
+    errors::LinkerError,
     name_resolver::{CallerInfo, ResolvedTarget},
 };
 use super::{GlobalProcedureIndex, ModuleIndex};
 use crate::{
-    AssemblyError, LibraryNamespace, LibraryPath, SourceManager, Spanned,
+    LibraryNamespace, LibraryPath, SourceManager, Spanned,
     ast::{
         Export, InvocationTarget, InvokeKind, Module, ProcedureIndex, ProcedureName,
         ResolvedProcedure,
@@ -157,7 +159,7 @@ impl Linker {
     pub fn link_assembled_modules(
         &mut self,
         modules: impl IntoIterator<Item = ModuleInfo>,
-    ) -> Result<(), AssemblyError> {
+    ) -> Result<(), LinkerError> {
         for module in modules {
             self.link_assembled_module(module)?;
         }
@@ -169,14 +171,14 @@ impl Linker {
     pub fn link_assembled_module(
         &mut self,
         module: ModuleInfo,
-    ) -> Result<ModuleIndex, AssemblyError> {
+    ) -> Result<ModuleIndex, LinkerError> {
         log::debug!(target: "module-graph", "adding pre-assembled module {} to module graph", module.path());
 
         let module_path = module.path();
         let is_duplicate =
             self.is_pending(module_path) || self.find_module_index(module_path).is_some();
         if is_duplicate {
-            return Err(AssemblyError::DuplicateModule { path: module_path.clone() });
+            return Err(LinkerError::DuplicateModule { path: module_path.clone() });
         }
 
         let module_index = self.next_module_id();
@@ -205,18 +207,18 @@ impl Linker {
     pub fn link_modules(
         &mut self,
         modules: impl IntoIterator<Item = Box<Module>>,
-    ) -> Result<Vec<ModuleIndex>, AssemblyError> {
+    ) -> Result<Vec<ModuleIndex>, LinkerError> {
         modules.into_iter().map(|m| self.link_module(m)).collect()
     }
 
-    fn link_module(&mut self, module: Box<Module>) -> Result<ModuleIndex, AssemblyError> {
+    fn link_module(&mut self, module: Box<Module>) -> Result<ModuleIndex, LinkerError> {
         log::debug!(target: "module-graph", "adding unprocessed module {}", module.path());
         let module_path = module.path();
 
         let is_duplicate =
             self.is_pending(module_path) || self.find_module_index(module_path).is_some();
         if is_duplicate {
-            return Err(AssemblyError::DuplicateModule { path: module_path.clone() });
+            return Err(LinkerError::DuplicateModule { path: module_path.clone() });
         }
 
         let module_index = self.next_module_id();
@@ -281,7 +283,7 @@ impl Linker {
     pub fn link(
         &mut self,
         modules: impl IntoIterator<Item = Box<Module>>,
-    ) -> Result<Vec<ModuleIndex>, AssemblyError> {
+    ) -> Result<Vec<ModuleIndex>, LinkerError> {
         let module_indices = self.link_modules(modules)?;
 
         self.link_and_rewrite()?;
@@ -328,13 +330,13 @@ impl Linker {
     /// NOTE: This will return `Err` if we detect a validation error, a cycle in the graph, or an
     /// operation not supported by the current configuration. Basically, for any reason that would
     /// cause the resulting graph to represent an invalid program.
-    fn link_and_rewrite(&mut self) -> Result<(), AssemblyError> {
+    fn link_and_rewrite(&mut self) -> Result<(), LinkerError> {
         log::debug!(target: "module-graph", "processing {} new modules, and recomputing module graph", self.pending.len());
 
         // It is acceptable for there to be no changes, but if the graph is empty and no changes
         // are being made, we treat that as an error
         if self.modules.is_empty() && self.pending.is_empty() {
-            return Err(AssemblyError::Empty);
+            return Err(LinkerError::Empty);
         }
 
         // If no changes are being made, we're done
@@ -498,7 +500,7 @@ impl Linker {
                 let proc = self.get_procedure_unsafe(node);
                 nodes.push(format!("{}::{}", module, proc.name()));
             }
-            AssemblyError::Cycle { nodes: nodes.into() }
+            LinkerError::Cycle { nodes: nodes.into() }
         })?;
 
         Ok(())
@@ -508,7 +510,7 @@ impl Linker {
         &mut self,
         module_id: ModuleIndex,
         module: Arc<Module>,
-    ) -> Result<Arc<Module>, AssemblyError> {
+    ) -> Result<Arc<Module>, LinkerError> {
         let resolver = NameResolver::new(self);
         let maybe_rewrite = MaybeRewriteCheck::new(&resolver);
         if maybe_rewrite.check(module_id, &module)? {
@@ -567,7 +569,7 @@ impl Linker {
         &self,
         caller: &CallerInfo,
         target: &InvocationTarget,
-    ) -> Result<ResolvedTarget, AssemblyError> {
+    ) -> Result<ResolvedTarget, LinkerError> {
         let resolver = NameResolver::new(self);
         resolver.resolve_target(caller, target)
     }
@@ -584,7 +586,7 @@ impl Linker {
         &mut self,
         id: GlobalProcedureIndex,
         procedure_mast_root: RpoDigest,
-    ) -> Result<(), AssemblyError> {
+    ) -> Result<(), LinkerError> {
         use alloc::collections::btree_map::Entry;
         match self.procedures_by_mast_root.entry(procedure_mast_root) {
             Entry::Occupied(ref mut entry) => {

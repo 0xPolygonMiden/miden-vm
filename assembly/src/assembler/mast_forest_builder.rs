@@ -16,7 +16,7 @@ use vm_core::{
 };
 
 use super::{GlobalProcedureIndex, Procedure};
-use crate::{AssemblyError, Library};
+use crate::{AssemblyError, Library, report};
 
 // CONSTANTS
 // ================================================================================================
@@ -228,10 +228,13 @@ impl MastForestBuilder {
             let is_valid =
                 !mismatched_locals || core::cmp::min(cached_locals, procedure_locals) == 0;
             if !is_valid {
-                return Err(AssemblyError::ConflictingDefinitions {
-                    first: cached.fully_qualified_name().clone().into(),
-                    second: procedure.fully_qualified_name().clone().into(),
-                });
+                let first = cached.fully_qualified_name();
+                let second = procedure.fully_qualified_name();
+                return Err(report!(
+                    "two procedures found with same mast root, but conflicting definitions ('{}' and '{}')",
+                    first,
+                    second
+                ).into());
             }
         }
 
