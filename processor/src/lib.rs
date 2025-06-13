@@ -306,6 +306,8 @@ impl Process {
 
         // Load the program's advice data into the advice provider
         for (digest, values) in program.mast_forest().advice_map().iter() {
+            std::dbg!("LOADING");
+            std::dbg!(&digest, &values);
             if let Some(stored_values) = host.advice_provider().get_mapped_values(digest) {
                 if stored_values != values {
                     return Err(ExecutionError::AdviceMapKeyAlreadyPresent {
@@ -315,6 +317,7 @@ impl Process {
                     });
                 }
             } else {
+                std::dbg!("INSERTING");
                 host.advice_provider_mut().insert_into_map(digest.into(), values.clone());
             }
         }
