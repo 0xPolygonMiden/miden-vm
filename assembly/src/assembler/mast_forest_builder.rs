@@ -560,9 +560,9 @@ impl MastForestBuilder {
     /// Merge an AdviceMap into the one being built within the MAST Forest.
     pub fn merge_advice_map(&mut self, adv_map: &AdviceMap) -> Result<(), AssemblyError> {
         match self.mast_forest.advice_map_mut().merge(adv_map) {
-            Some(key) => Err(AssemblyError::Forest(
+            Some((key, prev_values, new_values)) => Err(AssemblyError::Forest(
                 "AdviceMapKeyCollisionOnMerge",
-                MastForestError::AdviceMapKeyCollisionOnMerge(key),
+                MastForestError::AdviceMapKeyAlreadyPresent { key, prev_values, new_values },
             )),
             None => Ok(()),
         }

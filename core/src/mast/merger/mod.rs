@@ -171,8 +171,14 @@ impl MastForestMerger {
     }
 
     fn merge_advice_map(&mut self, other_forest: &MastForest) -> Result<(), MastForestError> {
-        if let Some(key) = self.mast_forest.advice_map_mut().merge(other_forest.advice_map()) {
-            return Err(MastForestError::AdviceMapKeyCollisionOnMerge(key));
+        if let Some((key, prev_values, new_values)) =
+            self.mast_forest.advice_map_mut().merge(other_forest.advice_map())
+        {
+            return Err(MastForestError::AdviceMapKeyAlreadyPresent {
+                key,
+                prev_values,
+                new_values,
+            });
         }
         Ok(())
     }

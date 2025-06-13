@@ -35,14 +35,18 @@ impl AdviceMap {
 
     /// Inserts a key-value pair in the advice map.
     /// Returns None if the insertion was successful, that is if `key` was not present or it was
-    /// already bound to `value`. Returns Some(k) in case of failure, that is if `key` was
-    /// already present with a value different than `value`.
-    pub fn insert(&mut self, key: RpoDigest, value: Vec<Felt>) -> Option<RpoDigest> {
+    /// already bound to `value`. Returns Some(key, new_value, old_value) in case of failure, that
+    /// is if `key` was already present with a value `old_value` different than `new_value`.
+    pub fn insert(
+        &mut self,
+        key: RpoDigest,
+        value: Vec<Felt>,
+    ) -> Option<(RpoDigest, Vec<Felt>, Vec<Felt>)> {
         match self.get(&key) {
             Some(stored_value) => {
                 if value != stored_value {
                     // key present with different value
-                    Some(key)
+                    Some((key, value, stored_value.to_vec()))
                 } else {
                     // key already present with the same value
                     None
@@ -72,10 +76,10 @@ impl AdviceMap {
     }
 
     /// Merges two advice maps using insert.
-    pub fn merge(&mut self, other: &AdviceMap) -> Option<RpoDigest> {
+    pub fn merge(&mut self, other: &AdviceMap) -> Option<(RpoDigest, Vec<Felt>, Vec<Felt>)> {
         for (key, value) in other.iter() {
-            if let Some(key) = self.insert(*key, value.clone()) {
-                return Some(key);
+            if let Some(error) = self.insert(*key, value.clone()) {
+                return Some(error);
             }
         }
         None

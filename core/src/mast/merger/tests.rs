@@ -843,5 +843,5 @@ fn mast_forest_merge_advice_maps_collision() {
     forest_b.advice_map_mut().insert(key_b, value_b.clone());
 
     let err = MastForest::merge([&forest_a, &forest_b]).unwrap_err();
-    assert_matches!(err, MastForestError::AdviceMapKeyCollisionOnMerge(_));
+    assert_matches!(err, MastForestError::AdviceMapKeyAlreadyPresent { .. });
 }

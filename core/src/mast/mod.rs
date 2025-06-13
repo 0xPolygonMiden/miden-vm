@@ -780,6 +780,10 @@ pub enum MastForestError {
         "decorator root of child with node id {0} is missing but is required for fingerprint computation"
     )]
     ChildFingerprintMissing(MastNodeId),
-    #[error("advice map key {0} already exists when merging forests")]
-    AdviceMapKeyCollisionOnMerge(RpoDigest),
+    #[error("advice map key {key} already exists when merging forests")]
+    AdviceMapKeyAlreadyPresent {
+        key: RpoDigest,
+        prev_values: Vec<Felt>,
+        new_values: Vec<Felt>,
+    },
 }
