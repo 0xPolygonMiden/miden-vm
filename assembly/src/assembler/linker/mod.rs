@@ -478,9 +478,10 @@ impl Linker {
             match module {
                 ModuleLink::Ast(module) => {
                     log::debug!(target: "module-graph", "re-analyzing module {} (index {})", module.path(), module_index.as_usize());
-                    // Re-analyze the module, and if we needed to clone-on-write, the new module will be
-                    // returned. Otherwise, `Ok(None)` indicates that the module is unchanged, and `Err`
-                    // indicates that re-analysis has found an issue with this module.
+                    // Re-analyze the module, and if we needed to clone-on-write, the new module
+                    // will be returned. Otherwise, `Ok(None)` indicates that
+                    // the module is unchanged, and `Err` indicates that
+                    // re-analysis has found an issue with this module.
                     let new_module =
                         self.reanalyze_module(module_index, module).map(ModuleLink::Ast)?;
                     self.modules[module_index.as_usize()] = Some(new_module);
