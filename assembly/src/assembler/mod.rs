@@ -3,8 +3,8 @@ use std::boxed::Box;
 use alloc::{collections::BTreeMap, string::ToString, sync::Arc, vec::Vec};
 
 use basic_block_builder::BasicBlockOrDecorators;
+use linker::{ProcedureWrapper, WrappedModule};
 use mast_forest_builder::MastForestBuilder;
-use module_graph::{ProcedureWrapper, WrappedModule};
 use vm_core::{
     AssemblyOp, Decorator, DecoratorList, Felt, Kernel, Operation, Program, WORD_SIZE,
     crypto::hash::RpoDigest,
@@ -23,8 +23,8 @@ use crate::{
 mod basic_block_builder;
 mod id;
 mod instruction;
+mod linker;
 mod mast_forest_builder;
-mod module_graph;
 mod procedure;
 
 #[cfg(test)]
@@ -35,7 +35,7 @@ mod mast_forest_merger_tests;
 
 use self::{
     basic_block_builder::BasicBlockBuilder,
-    module_graph::{CallerInfo, ModuleGraph, ResolvedTarget},
+    linker::{CallerInfo, Linker, ResolvedTarget},
 };
 pub use self::{
     id::{GlobalProcedureIndex, ModuleIndex},
@@ -94,7 +94,7 @@ pub struct Assembler {
     /// The source manager to use for compilation and source location information
     source_manager: Arc<dyn SourceManager + Send + Sync>,
     /// The global [ModuleGraph] for this assembler.
-    module_graph: ModuleGraph,
+    module_graph: Linker,
     /// Whether to treat warning diagnostics as errors
     warnings_as_errors: bool,
     /// Whether the assembler enables extra debugging information.
@@ -106,7 +106,7 @@ pub struct Assembler {
 impl Default for Assembler {
     fn default() -> Self {
         let source_manager = Arc::new(crate::DefaultSourceManager::default());
-        let module_graph = ModuleGraph::new(source_manager.clone());
+        let module_graph = Linker::new(source_manager.clone());
         Self {
             source_manager,
             module_graph,
@@ -122,7 +122,7 @@ impl Default for Assembler {
 impl Assembler {
     /// Start building an [Assembler]
     pub fn new(source_manager: Arc<dyn SourceManager + Send + Sync>) -> Self {
-        let module_graph = ModuleGraph::new(source_manager.clone());
+        let module_graph = Linker::new(source_manager.clone());
         Self {
             source_manager,
             module_graph,
@@ -138,7 +138,7 @@ impl Assembler {
         kernel_lib: KernelLibrary,
     ) -> Self {
         let (kernel, kernel_module, _) = kernel_lib.into_parts();
-        let module_graph = ModuleGraph::with_kernel(source_manager.clone(), kernel, kernel_module);
+        let module_graph = Linker::with_kernel(source_manager.clone(), kernel, kernel_module);
         Self {
             source_manager,
             module_graph,
@@ -324,7 +324,7 @@ impl Assembler {
 
     #[cfg(any(test, feature = "testing"))]
     #[doc(hidden)]
-    pub fn module_graph(&self) -> &ModuleGraph {
+    pub fn module_graph(&self) -> &Linker {
         &self.module_graph
     }
 }

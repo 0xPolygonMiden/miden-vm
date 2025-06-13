@@ -1,6 +1,6 @@
 use alloc::{borrow::Cow, collections::BTreeSet, vec::Vec};
 
-use super::{ModuleGraph, PendingModule, WrappedModule};
+use super::{Linker, PendingModule, WrappedModule};
 use crate::{
     AssemblyError, RpoDigest, SourceSpan, Span, Spanned,
     assembler::{GlobalProcedureIndex, ModuleIndex},
@@ -85,7 +85,7 @@ impl ResolvedTarget {
 /// resolved.
 pub struct NameResolver<'a> {
     /// The graph containing already-compiled and partially-resolved modules.
-    graph: &'a ModuleGraph,
+    graph: &'a Linker,
     /// The set of modules which are being added to `graph`, but which have not been fully
     /// processed yet.
     pending: Vec<ThinModule>,
@@ -93,7 +93,7 @@ pub struct NameResolver<'a> {
 
 impl<'a> NameResolver<'a> {
     /// Create a new [NameResolver] for the provided [ModuleGraph].
-    pub fn new(graph: &'a ModuleGraph) -> Self {
+    pub fn new(graph: &'a Linker) -> Self {
         Self { graph, pending: vec![] }
     }
 

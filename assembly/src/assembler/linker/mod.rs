@@ -116,11 +116,11 @@ pub struct PendingModule {
     pub module_index: ModuleIndex,
 }
 
-// MODULE GRAPH
+// LINKER
 // ================================================================================================
 
 #[derive(Clone)]
-pub struct ModuleGraph {
+pub struct Linker {
     modules: Vec<Option<WrappedModule>>,
     /// The set of modules pending additional processing before adding them to the graph.
     ///
@@ -144,7 +144,7 @@ pub struct ModuleGraph {
 
 // ------------------------------------------------------------------------------------------------
 /// Constructors
-impl ModuleGraph {
+impl Linker {
     /// Instantiate a new [ModuleGraph], using the provided [SourceManager] to resolve source info.
     pub fn new(source_manager: Arc<dyn SourceManager>) -> Self {
         Self {
@@ -246,7 +246,7 @@ impl ModuleGraph {
 
 // ------------------------------------------------------------------------------------------------
 /// Kernels
-impl ModuleGraph {
+impl Linker {
     /// Returns a new [ModuleGraph] instantiated from the provided kernel and kernel info module.
     ///
     /// Note: it is assumed that kernel and kernel_module are consistent, but this is not checked.
@@ -282,7 +282,7 @@ impl ModuleGraph {
 
 // ------------------------------------------------------------------------------------------------
 /// Analysis
-impl ModuleGraph {
+impl Linker {
     pub fn process(
         &mut self,
         modules: impl IntoIterator<Item = Box<Module>>,
@@ -532,7 +532,7 @@ impl ModuleGraph {
 
 // ------------------------------------------------------------------------------------------------
 /// Accessors/Queries
-impl ModuleGraph {
+impl Linker {
     /// Compute the topological sort of the callgraph rooted at `caller`
     pub fn topological_sort_from_root(
         &self,
@@ -627,7 +627,7 @@ impl ModuleGraph {
     }
 }
 
-impl Index<ModuleIndex> for ModuleGraph {
+impl Index<ModuleIndex> for Linker {
     type Output = WrappedModule;
 
     fn index(&self, index: ModuleIndex) -> &Self::Output {

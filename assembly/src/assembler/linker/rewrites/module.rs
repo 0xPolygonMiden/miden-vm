@@ -5,7 +5,7 @@ use crate::{
     AssemblyError, SourceSpan, Spanned,
     assembler::{
         ModuleIndex, ResolvedTarget,
-        module_graph::{CallerInfo, NameResolver},
+        linker::{CallerInfo, NameResolver},
     },
     ast::{
         AliasTarget, InvocationTarget, Invoke, InvokeKind, Module, Procedure,
