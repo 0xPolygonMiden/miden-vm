@@ -1,10 +1,10 @@
 use core::ops::ControlFlow;
 
 use crate::{
-    AssemblyError, Spanned,
+    Spanned,
     assembler::{
         ModuleIndex, ResolvedTarget,
-        linker::{CallerInfo, NameResolver},
+        linker::{CallerInfo, LinkerError, NameResolver},
     },
     ast::{InvocationTarget, InvokeKind, Module, visit::Visit},
 };
@@ -32,7 +32,7 @@ impl<'a, 'b: 'a> MaybeRewriteCheck<'a, 'b> {
 
     /// Run the analysis, returning either a boolean answer, or an error that was found during
     /// analysis.
-    pub fn check(&self, module_id: ModuleIndex, module: &Module) -> Result<bool, AssemblyError> {
+    pub fn check(&self, module_id: ModuleIndex, module: &Module) -> Result<bool, LinkerError> {
         let mut visitor = RewriteCheckVisitor { resolver: self.resolver, module_id };
         match visitor.visit_module(module) {
             ControlFlow::Break(result) => result,
@@ -54,7 +54,7 @@ impl<'a, 'b: 'a> RewriteCheckVisitor<'a, 'b> {
         &self,
         kind: InvokeKind,
         target: &InvocationTarget,
-    ) -> ControlFlow<Result<bool, AssemblyError>> {
+    ) -> ControlFlow<Result<bool, LinkerError>> {
         let caller = CallerInfo {
             span: target.span(),
             module: self.module_id,
@@ -70,23 +70,20 @@ impl<'a, 'b: 'a> RewriteCheckVisitor<'a, 'b> {
     }
 }
 
-impl<'a, 'b: 'a> Visit<Result<bool, AssemblyError>> for RewriteCheckVisitor<'a, 'b> {
+impl<'a, 'b: 'a> Visit<Result<bool, LinkerError>> for RewriteCheckVisitor<'a, 'b> {
     fn visit_syscall(
         &mut self,
         target: &InvocationTarget,
-    ) -> ControlFlow<Result<bool, AssemblyError>> {
+    ) -> ControlFlow<Result<bool, LinkerError>> {
         self.resolve_target(InvokeKind::SysCall, target)
     }
-    fn visit_call(
-        &mut self,
-        target: &InvocationTarget,
-    ) -> ControlFlow<Result<bool, AssemblyError>> {
+    fn visit_call(&mut self, target: &InvocationTarget) -> ControlFlow<Result<bool, LinkerError>> {
         self.resolve_target(InvokeKind::Call, target)
     }
     fn visit_invoke_target(
         &mut self,
         target: &InvocationTarget,
-    ) -> ControlFlow<Result<bool, AssemblyError>> {
+    ) -> ControlFlow<Result<bool, LinkerError>> {
         self.resolve_target(InvokeKind::Exec, target)
     }
 }

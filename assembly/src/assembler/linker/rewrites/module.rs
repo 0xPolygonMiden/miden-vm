@@ -2,10 +2,10 @@ use alloc::collections::BTreeSet;
 use core::ops::ControlFlow;
 
 use crate::{
-    AssemblyError, SourceSpan, Spanned,
+    SourceSpan, Spanned,
     assembler::{
         ModuleIndex, ResolvedTarget,
-        linker::{CallerInfo, NameResolver},
+        linker::{CallerInfo, LinkerError, NameResolver},
     },
     ast::{
         AliasTarget, InvocationTarget, Invoke, InvokeKind, Module, Procedure,
@@ -45,7 +45,7 @@ impl<'a, 'b: 'a> ModuleRewriter<'a, 'b> {
         &mut self,
         module_id: ModuleIndex,
         module: &mut Module,
-    ) -> Result<(), AssemblyError> {
+    ) -> Result<(), LinkerError> {
         self.module_id = module_id;
         self.span = module.span();
 
@@ -60,7 +60,7 @@ impl<'a, 'b: 'a> ModuleRewriter<'a, 'b> {
         &mut self,
         kind: InvokeKind,
         target: &mut InvocationTarget,
-    ) -> ControlFlow<AssemblyError> {
+    ) -> ControlFlow<LinkerError> {
         log::debug!(target: "module-graph", "    * rewriting {kind} target {target}");
         let caller = CallerInfo {
             span: target.span(),
@@ -85,8 +85,8 @@ impl<'a, 'b: 'a> ModuleRewriter<'a, 'b> {
     }
 }
 
-impl<'a, 'b: 'a> VisitMut<AssemblyError> for ModuleRewriter<'a, 'b> {
-    fn visit_mut_procedure(&mut self, procedure: &mut Procedure) -> ControlFlow<AssemblyError> {
+impl<'a, 'b: 'a> VisitMut<LinkerError> for ModuleRewriter<'a, 'b> {
+    fn visit_mut_procedure(&mut self, procedure: &mut Procedure) -> ControlFlow<LinkerError> {
         log::debug!(target: "module-graph", "  | visiting {}", procedure.name());
         self.invoked.clear();
         self.invoked.extend(procedure.invoked().cloned());
@@ -94,19 +94,19 @@ impl<'a, 'b: 'a> VisitMut<AssemblyError> for ModuleRewriter<'a, 'b> {
         procedure.extend_invoked(core::mem::take(&mut self.invoked));
         ControlFlow::Continue(())
     }
-    fn visit_mut_syscall(&mut self, target: &mut InvocationTarget) -> ControlFlow<AssemblyError> {
+    fn visit_mut_syscall(&mut self, target: &mut InvocationTarget) -> ControlFlow<LinkerError> {
         self.rewrite_target(InvokeKind::SysCall, target)
     }
-    fn visit_mut_call(&mut self, target: &mut InvocationTarget) -> ControlFlow<AssemblyError> {
+    fn visit_mut_call(&mut self, target: &mut InvocationTarget) -> ControlFlow<LinkerError> {
         self.rewrite_target(InvokeKind::Call, target)
     }
     fn visit_mut_invoke_target(
         &mut self,
         target: &mut InvocationTarget,
-    ) -> ControlFlow<AssemblyError> {
+    ) -> ControlFlow<LinkerError> {
         self.rewrite_target(InvokeKind::Exec, target)
     }
-    fn visit_mut_alias_target(&mut self, target: &mut AliasTarget) -> ControlFlow<AssemblyError> {
+    fn visit_mut_alias_target(&mut self, target: &mut AliasTarget) -> ControlFlow<LinkerError> {
         if matches!(target, AliasTarget::MastRoot(_)) {
             return ControlFlow::Continue(());
         }

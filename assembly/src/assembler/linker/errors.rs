@@ -1,0 +1,49 @@
+use alloc::{boxed::Box, string::String, sync::Arc};
+
+use crate::{
+    LibraryPath, SourceSpan,
+    ast::QualifiedProcedureName,
+    diagnostics::{Diagnostic, RelatedLabel, SourceFile},
+};
+
+// LINKER ERROR
+// ================================================================================================
+
+/// An error which can be generated while linking modules and resolving procedure references.
+#[derive(Debug, thiserror::Error, Diagnostic)]
+#[non_exhaustive]
+pub enum LinkerError {
+    #[error("there are no modules to analyze")]
+    #[diagnostic()]
+    Empty,
+    #[error("linking failed")]
+    #[diagnostic(help("see diagnostics for details"))]
+    Failed {
+        #[related]
+        labels: Box<[RelatedLabel]>,
+    },
+    #[error("found a cycle in the call graph, involving these procedures: {}", nodes.join(", "))]
+    #[diagnostic()]
+    Cycle { nodes: Box<[String]> },
+    #[error("duplicate definition found for module '{path}'")]
+    #[diagnostic()]
+    DuplicateModule { path: LibraryPath },
+    #[error("undefined module '{path}'")]
+    #[diagnostic()]
+    UndefinedModule {
+        #[label]
+        span: SourceSpan,
+        #[source_code]
+        source_file: Option<Arc<SourceFile>>,
+        path: LibraryPath,
+    },
+    #[error("invalid syscall: '{callee}' is not an exported kernel procedure")]
+    #[diagnostic()]
+    InvalidSysCallTarget {
+        #[label("call occurs here")]
+        span: SourceSpan,
+        #[source_code]
+        source_file: Option<Arc<SourceFile>>,
+        callee: Box<QualifiedProcedureName>,
+    },
+}
