@@ -1,6 +1,5 @@
-use std::boxed::Box;
-
 use alloc::{collections::BTreeMap, string::ToString, sync::Arc, vec::Vec};
+use std::boxed::Box;
 
 use basic_block_builder::BasicBlockOrDecorators;
 use linker::{ModuleLink, ProcedureLink};
@@ -64,8 +63,8 @@ pub use self::{
 /// * If you wish to produce an executable program, you will call [`Self::assemble_program`] with
 ///   the source module which contains the program entrypoint.
 /// * If you wish to produce a library for use in other executables, you will call
-///   [`Self::assemble_library`] with the source module(s) whose exports form the public API of
-///   the library.
+///   [`Self::assemble_library`] with the source module(s) whose exports form the public API of the
+///   library.
 /// * If you wish to produce a kernel library, you will call [`Self::assemble_kernel`] with the
 ///   source module(s) whose exports form the public API of the kernel.
 ///
@@ -89,7 +88,6 @@ pub use self::{
 ///   [`Self::link_library`].
 /// * If you want to incorporate referenced procedures from a previously assembled [`Library`] into
 ///   the assembled artifact, see [`Self::link_vendored_library`].
-///
 #[derive(Clone)]
 pub struct Assembler {
     /// The source manager to use for compilation and source location information
